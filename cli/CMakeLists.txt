@@ -68,6 +68,26 @@ list(APPEND P2_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src/hips/aio_hips_reader.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src/aio_upm.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src/hips/aio_hips_writer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix/healpix_core.cpp)
+# Phase1 Final Closure: 生产 Drizzle→HiPS 链(cli 需链接 hp_drizzle_run_hips; 见 hp_drizzle_api.h)
+# 排除模块内 heapix_core.cpp 去重 shim(cli 已链接 lib/common/healpix/healpix_core.cpp)
+set(DRIZZLE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/healpix_db/healpix_drizzle)
+set(DRIZZLE_SRCS
+  ${DRIZZLE_DIR}/fits_reader.cpp ${DRIZZLE_DIR}/wcs_sip.cpp ${DRIZZLE_DIR}/poly_clip.cpp
+  ${DRIZZLE_DIR}/spherical_overlap.cpp ${DRIZZLE_DIR}/drizzle_engine.cpp
+  ${DRIZZLE_DIR}/reverse_drizzle.cpp ${DRIZZLE_DIR}/hp_drizzle_api.cpp
+  ${DRIZZLE_DIR}/astro_sphere_sink.cpp ${DRIZZLE_DIR}/snr_evaluator.cpp)
+set_property(SOURCE ${DRIZZLE_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS};-DAIO_ENABLE_HEALPIX")
+set_property(SOURCE ${DRIZZLE_SRCS} PROPERTY INCLUDE_DIRECTORIES
+  "${DRIZZLE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix;${CMAKE_CURRENT_SOURCE_DIR}/../include;${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
+# hiss 格式写出器 + HEALPix I/O(drizzle_engine 依赖 hiss::HissWriter/compute_tile_*)
+set(HISS_SRCS
+  ${AIO_DIR}/src/hiss_tile_model.cpp ${AIO_DIR}/src/hiss_writer.cpp ${AIO_DIR}/src/hiss_common.cpp
+  ${AIO_DIR}/src/hiss_transform.cpp ${AIO_DIR}/src/hiss_codec.cpp ${AIO_DIR}/src/hiss_reader.cpp
+  ${AIO_DIR}/src/hiss_stream_writer.cpp ${AIO_DIR}/src/healpix/aio_healpix_io.cpp
+  ${AIO_DIR}/src/aio_pipeline.cpp ${AIO_DIR}/src/aio_pipeline_engine.cpp)
+set_property(SOURCE ${HISS_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS};-DAIO_ENABLE_HEALPIX")
+set_property(SOURCE ${HISS_SRCS} PROPERTY INCLUDE_DIRECTORIES
+  "${AIO_DIR}/include;${AIO_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix;${CMAKE_CURRENT_SOURCE_DIR}/../include;${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
 set_property(SOURCE ${P2_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS}")
 # sampler.cpp 用 C++ try/catch(...)/EHa 捕获结构化异常(原 __try/__except, MSVC 禁与对象展开混用)
 if(MSVC)
@@ -85,7 +105,7 @@ file(GLOB P3_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/*.cpp)
 set_property(SOURCE ${P3_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS}")
 set_property(SOURCE ${P3_SRCS} APPEND PROPERTY INCLUDE_DIRECTORIES
   "${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/third_party/cfitsio;${CMAKE_CURRENT_SOURCE_DIR}/../include;${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
-add_executable(astrocs main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto/sha256.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/cpu_features.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/hardware_inspect.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/backend_loader.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/bench_harness.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/profile_gen.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/baseline_backend.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/host_services.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase1_session/p1_session.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2_session/p2_session.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/p3_session.cpp ${P3_SRCS} ${P2_SRCS} ${AIO_SRCS} ${CFITSIO_SRCS} ${CAL_SRCS} ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h)
+add_executable(astrocs main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto/sha256.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/cpu_features.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/hardware_inspect.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/backend_loader.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/bench_harness.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/profile_gen.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/baseline_backend.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/host_services.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase1_session/p1_session.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2_session/p2_session.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/p3_session.cpp ${P3_SRCS} ${P2_SRCS} ${AIO_SRCS} ${CFITSIO_SRCS} ${CAL_SRCS} ${DRIZZLE_SRCS} ${HISS_SRCS} ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h)
 if(MSVC)
   # gomp/m 为 Unix 库, MSVC 不用; zstd/lz4 在CLI走 fallback(HAS_* 未定义), 仅 cfitsio 需 zlib(z)。
   # zlib: 由 MSVC 从源码构建(zlib.h+zlib.lib), 用 -DACS_ZLIB_ROOT=... 指定。
