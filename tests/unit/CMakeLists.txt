@@ -223,3 +223,11 @@ target_include_directories(p3_output_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include)
 target_link_libraries(p3_output_test PRIVATE astrocs_phase3_session astrocs_hips astrocs_common)
 add_test(NAME p3_output COMMAND p3_output_test)
+
+add_executable(p3_assembly_test p3_assembly_test.cpp)
+target_include_directories(p3_assembly_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_session
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common/healpix)
+target_link_libraries(p3_assembly_test PRIVATE astrocs_phase3_session astrocs_hips astrocs_aio astrocs_common)
+add_test(NAME p3_assembly COMMAND p3_assembly_test)
