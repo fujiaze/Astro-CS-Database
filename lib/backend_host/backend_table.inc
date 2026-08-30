@@ -17,18 +17,18 @@
 namespace {
 
 const astrocs_kernel_entry_v1 kKernels[] = {
-    {"ALG-001", "calibration-pixel-transform", "1.0.0", ACS_PRECISION_F32, ACS_DET_BITWISE, &kernel_dispatch},
-    {"ALG-004", "noise-snr-reductions",        "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
-    {"ALG-002", "wcs-psf-batch",               "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
-    {"ALG-005", "drizzle-overlap",             "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch},
-    {"ALG-005", "drizzle-accumulate",          "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch},
-    {"ALG-005", "drizzle-normalize",           "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch},
-    {"ALG-006", "upm-spmv",                    "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
-    {"ALG-006", "upm-residual",                "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
-    {"ALG-006", "upm-weight-update",           "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
-    {"ALG-008", "rejection-statistics",        "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch},
-    {"ALG-009", "integration-accumulate",      "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch},
-    {"ALG-P3-002", "hips-bulk-transform",      "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch},
+    ACS_KERNEL_ENTRY("ALG-001", "calibration-pixel-transform", "1.0.0", ACS_PRECISION_F32, ACS_DET_BITWISE, &kernel_dispatch),
+    ACS_KERNEL_ENTRY("ALG-004", "noise-snr-reductions", "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch),
+    ACS_KERNEL_ENTRY("ALG-002", "wcs-psf-batch", "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch),
+    ACS_KERNEL_ENTRY("ALG-005", "drizzle-overlap", "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch),
+    ACS_KERNEL_ENTRY("ALG-005", "drizzle-accumulate", "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch),
+    ACS_KERNEL_ENTRY("ALG-005", "drizzle-normalize", "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch),
+    ACS_KERNEL_ENTRY("ALG-006", "upm-spmv", "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch),
+    ACS_KERNEL_ENTRY("ALG-006", "upm-residual", "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch),
+    ACS_KERNEL_ENTRY("ALG-006", "upm-weight-update", "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch),
+    ACS_KERNEL_ENTRY("ALG-008", "rejection-statistics", "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch),
+    ACS_KERNEL_ENTRY("ALG-009", "integration-accumulate", "1.0.0", ACS_PRECISION_F32, ACS_DET_FIXED_ORDER, &kernel_dispatch),
+    ACS_KERNEL_ENTRY("ALG-P3-002", "hips-bulk-transform", "1.0.0", ACS_PRECISION_F64, ACS_DET_BITWISE, &kernel_dispatch),
 };
 
 /* self_test: handshake→allocator 往返(计数可验证)→cancel 读→budget 租借/归还→logger。

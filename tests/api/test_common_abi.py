@@ -25,7 +25,8 @@ class TestCommonAbi(unittest.TestCase):
             self.assertIn(k, self.s, f"缺 {k}")
 
     def test_02_struct_size_handshake(self):
-        self.assertEqual(self.s.count("struct_size, abi_version"), 5, "五个结构必须带 handshake")
+        self.assertGreaterEqual(self.s.count("struct_size, abi_version") + self.s.count("acs_head head;"), 8,
+                              "至少 8 个结构带 handshake(4 直接 + acs_head 定义 + 3 span head)")
 
     def test_03_units_and_ownership_annotated(self):
         self.assertIn("count=元素数", self.s)

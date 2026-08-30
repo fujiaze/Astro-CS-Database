@@ -1,0 +1,95 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CPU-001",
+  "status": "PASS",
+  "start_commit": "09228a1cccec57a64cb68949935c4bfc612c10d2",
+  "source_commit": "09228a1cccec57a64cb68949935c4bfc612c10d2",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "include/astrocs/common_abi_v1.h",
+    "lib/backend_host/backend_table.inc",
+    "lib/backend_host/profile_gen.cpp",
+    "lib/backend_host/bench_harness.cpp",
+    "cli/main.cpp",
+    "docs/api/COMMON_ABI_V1.md",
+    "tests/api/test_common_abi.py",
+    "tools/check_abi_boundary.py",
+    "tests/unit/cpu_abi_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/CPU-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/CPU-001/logs/c01.log",
+    "evidence/refactor/tasks/CPU-001/logs/c02.log",
+    "evidence/refactor/tasks/CPU-001/logs/c03.log",
+    "evidence/refactor/tasks/CPU-001/logs/c04.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 1200,
+      "exit_code": 0,
+      "log_sha256": "13a3ea1c5a31e2840976738e460bf08d6aacd7bc03c65920f91f5c6c5d93684c"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "c2fc591db8706b0c4550109157318df0419e03ccaf70011cc1e60ab3a4872873"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "e8429c14a992f6cf1780f4fda78434e4b18164b4320be25e9890f81808fa6417"
+    },
+    {
+      "command_id": "c04",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "b5e48354ea0bf6e4befecaf31d4b0ec0b47fb79399d7297faf9af730d6f205c8"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-ABI-SCAN",
+      "description": "11 个 ABI 结构均带 size/version; 边界头无 STL/异常",
+      "result": "PASS"
+    },
+    {
+      "id": "T-HANDSHAKE",
+      "description": "host_services 默认构造 struct_size/version 全对",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ALLOCATOR",
+      "description": "allocator 对齐合同(16 对齐/非 2 幂拒/free nullptr 安全)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SPAN-HEAD",
+      "description": "span 带 head + ACS_SPAN_* 宏; kernel_entry head offsetof 验证",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PY-ABI",
+      "description": "test_common_abi 5/5 OK (C/C++ 双编译)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BUILD",
+      "description": "span 改动后 CLI 全量构建 + link scan PASS",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "abi_structs": 11,
+    "kernel_entries": 12,
+    "span_macros": 3,
+    "boundary_headers_clean": true
+  },
+  "findings": [
+    "CPU-001: 全部 11 个 C ABI 结构带 struct_size/abi_version(acs_span_* 补 head + ACS_SPAN_* 宏; astrocs_kernel_entry_v1 补 head + ACS_KERNEL_ENTRY 宏; backend_table 12 行更新); 边界头(common_abi_v1.h)零 STL/异常; allocator 对齐合同验证; host_services 默认构造 handshake 验证; 全库 span 初始化迁移到宏"
+  ],
+  "created_utc": "2026-08-30T16:35:06Z"
+}

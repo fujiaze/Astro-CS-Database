@@ -37,7 +37,7 @@ BenchResult bench_kernel(const astrocs_host_services_v1* host,
     // ── 1. 正确性筛选(独立 scalar Oracle; 失败=禁用, 不计时) ──
     std::vector<float> out(params.out0.count, 0.0f);
     acs_baseline_params_v1 p = params;
-    p.out0 = {out.data(), out.size()};
+    p.out0 = ACS_SPAN_F32(out.data(), out.size());
     const acs_status rc = fn(host, &p, sizeof(p), nullptr, nullptr);
     if (rc != ACS_OK) {
         r.verdict = (rc == ACS_ERR_CANCELLED) ? "ERROR" : "ORACLE_FAIL";

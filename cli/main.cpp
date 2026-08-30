@@ -658,8 +658,8 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
             pdoc["output_dir"] = out_dir;
         }
         const std::string ptext = pdoc.dump();
-        const acs_span_u8 span{reinterpret_cast<uint8_t*>(const_cast<char*>(ptext.data())),
-                               static_cast<uint64_t>(ptext.size())};
+        const acs_span_u8 span = ACS_SPAN_U8(reinterpret_cast<uint8_t*>(const_cast<char*>(ptext.data())),
+                               static_cast<uint64_t>(ptext.size()));
 
         if (phase == 3) {
             acs_handle s3 = nullptr;
@@ -667,7 +667,7 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
             acs_status r3 = p3_session_validate(s3, span);
             if (r3 != ACS_OK) { fail_reason = astrocs::phase3::last_error(s3); p3_session_destroy(s3); ev.stage("run_phase3",false); break; }
             r3 = p3_session_run(s3, span);
-            acs_span_u8 res{};
+            acs_span_u8 res = ACS_SPAN_U8(nullptr, 0);
             if (p3_session_inspect(s3, &res) == ACS_OK) {
                 try { astrocs::g_phase3_session = nlohmann::json::parse(std::string(
                           reinterpret_cast<const char*>(res.data), static_cast<size_t>(res.count))); }
@@ -691,7 +691,7 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
             acs_status r2 = p2_session_validate(s2, span);
             if (r2 != ACS_OK) { fail_reason = astrocs::phase2::last_error(s2); p2_session_destroy(s2); ev.stage("run_phase2",false); break; }
             r2 = p2_session_run(s2, span);
-            acs_span_u8 man{};
+            acs_span_u8 man = ACS_SPAN_U8(nullptr, 0);
             if (p2_session_inspect(s2, &man) == ACS_OK) {
                 try { astrocs::g_phase2_session = nlohmann::json::parse(std::string(
                           reinterpret_cast<const char*>(man.data), static_cast<size_t>(man.count))); }
@@ -716,7 +716,7 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
             acs_status r1 = p1_session_validate(s1, span);
             if (r1 != ACS_OK) { fail_reason = astrocs::phase1::last_error(s1); p1_session_destroy(s1); ev.stage("run_phase1",false); break; }
             r1 = p1_session_run(s1, span, 0);
-            acs_span_u8 man{};
+            acs_span_u8 man = ACS_SPAN_U8(nullptr, 0);
             if (p1_session_inspect(s1, &man) == ACS_OK) {
                 try { astrocs::g_phase1_session = nlohmann::json::parse(std::string(
                           reinterpret_cast<const char*>(man.data), static_cast<size_t>(man.count))); }
@@ -851,8 +851,8 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     acs_handle sess = nullptr;
     acs_status rc = p2_session_create(&host, &sess);
     if (rc != ACS_OK) return astrocs::INTERNAL;
-    const acs_span_u8 cfg_span{reinterpret_cast<uint8_t*>(const_cast<char*>(cfg_text.data())),
-                               static_cast<uint64_t>(cfg_text.size())};
+    const acs_span_u8 cfg_span = ACS_SPAN_U8(reinterpret_cast<uint8_t*>(const_cast<char*>(cfg_text.data())),
+                               static_cast<uint64_t>(cfg_text.size()));
     rc = p2_session_validate(sess, cfg_span);
     if (rc != ACS_OK) {
         const std::string verr = astrocs::phase2::last_error(sess);
@@ -883,7 +883,7 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     rc = p2_session_run(sess, cfg_span);
     ev.stage("phase2_session", false);
-    acs_span_u8 man{};
+    acs_span_u8 man = ACS_SPAN_U8(nullptr, 0);
     if (p2_session_inspect(sess, &man) == ACS_OK) {
         try { astrocs::g_phase2_session = nlohmann::json::parse(std::string(
                   reinterpret_cast<const char*>(man.data), static_cast<size_t>(man.count))); }
@@ -966,8 +966,8 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     acs_handle sess = nullptr;
     acs_status rc = p3_session_create(&host, &sess);
     if (rc != ACS_OK) return astrocs::INTERNAL;
-    const acs_span_u8 cfg_span{reinterpret_cast<uint8_t*>(const_cast<char*>(cfg_text.data())),
-                               static_cast<uint64_t>(cfg_text.size())};
+    const acs_span_u8 cfg_span = ACS_SPAN_U8(reinterpret_cast<uint8_t*>(const_cast<char*>(cfg_text.data())),
+                               static_cast<uint64_t>(cfg_text.size()));
     rc = p3_session_validate(sess, cfg_span);
     if (rc != ACS_OK) {
         const std::string verr = astrocs::phase3::last_error(sess);
@@ -980,7 +980,7 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     ev.stage("phase3_session", true);
     rc = p3_session_run(sess, cfg_span);
     ev.stage("phase3_session", false);
-    acs_span_u8 res{};
+    acs_span_u8 res = ACS_SPAN_U8(nullptr, 0);
     if (p3_session_inspect(sess, &res) == ACS_OK) {
         try { astrocs::g_phase3_session = nlohmann::json::parse(std::string(
                   reinterpret_cast<const char*>(res.data), static_cast<size_t>(res.count))); }
@@ -1063,8 +1063,8 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     acs_handle sess = nullptr;
     acs_status rc = p1_session_create(&host, &sess);
     if (rc != ACS_OK) return astrocs::INTERNAL;
-    const acs_span_u8 cfg_span{reinterpret_cast<uint8_t*>(const_cast<char*>(cfg_text.data())),
-                               static_cast<uint64_t>(cfg_text.size())};
+    const acs_span_u8 cfg_span = ACS_SPAN_U8(reinterpret_cast<uint8_t*>(const_cast<char*>(cfg_text.data())),
+                               static_cast<uint64_t>(cfg_text.size()));
     rc = p1_session_validate(sess, cfg_span);
     if (rc != ACS_OK) {
         const std::string verr = astrocs::p1_last_error(sess);   // 先取, 后 destroy
@@ -1083,7 +1083,7 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         while (std::chrono::steady_clock::now() < deadline) {
             if (astrocs::is_cancelled()) {
                 ev.stage("phase1_session", false);
-                acs_span_u8 cm{};
+                acs_span_u8 cm = ACS_SPAN_U8(nullptr, 0);
                 if (p1_session_inspect(sess, &cm) == ACS_OK)
                     host.allocator.free(host.allocator.user_data, cm.data);
                 p1_session_destroy(sess);
@@ -1100,7 +1100,7 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     rc = p1_session_run(sess, cfg_span, 0);
     ev.stage("phase1_session", false);
-    acs_span_u8 man{};
+    acs_span_u8 man = ACS_SPAN_U8(nullptr, 0);
     if (p1_session_inspect(sess, &man) == ACS_OK) {
         try { astrocs::g_phase1_session = nlohmann::json::parse(std::string(
                   reinterpret_cast<const char*>(man.data), static_cast<size_t>(man.count))); }

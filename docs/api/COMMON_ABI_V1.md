@@ -14,9 +14,13 @@
 /* 基础 POD(逐字段单位注释为合同一部分, 由 ABI layout 测试核对) */
 typedef struct { uint32_t struct_size, abi_version; } acs_head;
 
-typedef struct acs_span_f32 { float*  data; uint64_t count; } acs_span_f32;  /* count=元素数, data 所有权=外部分配方 */
-typedef struct acs_span_f64 { double* data; uint64_t count; } acs_span_f64;
-typedef struct acs_span_u8  { uint8_t* data; uint64_t count; } acs_span_u8;
+/* CPU-001: 所有跨边界结构带 head(struct_size+abi_version); span 构造经 ACS_SPAN_* 宏 */
+typedef struct acs_span_f32 { acs_head head; float*  data; uint64_t count; } acs_span_f32;  /* count=元素数, data 所有权=外部分配方 */
+typedef struct acs_span_f64 { acs_head head; double* data; uint64_t count; } acs_span_f64;
+typedef struct acs_span_u8  { acs_head head; uint8_t* data; uint64_t count; } acs_span_u8;
+#define ACS_SPAN_U8(ptr, n) { { sizeof(acs_span_u8), ACS_ABI_VERSION_V1 }, (ptr), (n) }
+#define ACS_SPAN_F32(ptr, n) { { sizeof(acs_span_f32), ACS_ABI_VERSION_V1 }, (ptr), (n) }
+#define ACS_SPAN_F64(ptr, n) { { sizeof(acs_span_f64), ACS_ABI_VERSION_V1 }, (ptr), (n) }
 
 /* opaque handle: 不透明指针, 生命周期仅经 create/destroy 对 */
 typedef struct acs_handle_s* acs_handle;

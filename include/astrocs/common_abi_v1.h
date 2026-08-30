@@ -23,19 +23,30 @@ typedef struct acs_head {
 } acs_head;
 
 typedef struct acs_span_f32 {
-    float*   data;          /* 所有权=外部分配方; 边界内不释放 */
-    uint64_t count;         /* 元素数(非字节) */
+    acs_head head;           /* CPU-001: 所有跨边界结构带 size/version */
+    float*   data;           /* 所有权=外部分配方; 边界内不释放 */
+    uint64_t count;          /* 元素数(非字节) */
 } acs_span_f32;
 
 typedef struct acs_span_f64 {
+    acs_head head;
     double*  data;
     uint64_t count;
 } acs_span_f64;
 
 typedef struct acs_span_u8 {
+    acs_head head;
     uint8_t* data;
     uint64_t count;
 } acs_span_u8;
+
+/* 跨边界 span 构造宏 (CPU-001: 自动填充 head) */
+#define ACS_SPAN_U8(ptr, n) \
+    { { sizeof(acs_span_u8), ACS_ABI_VERSION_V1 }, (ptr), (n) }
+#define ACS_SPAN_F32(ptr, n) \
+    { { sizeof(acs_span_f32), ACS_ABI_VERSION_V1 }, (ptr), (n) }
+#define ACS_SPAN_F64(ptr, n) \
+    { { sizeof(acs_span_f64), ACS_ABI_VERSION_V1 }, (ptr), (n) }
 
 /* opaque handle: 生命周期仅经 create/destroy 对; 内部实现不可见 */
 typedef struct acs_handle_s* acs_handle;
@@ -112,6 +123,8 @@ enum { ACS_PRECISION_F32 = 0, ACS_PRECISION_F64 = 1 };
 enum { ACS_DET_BITWISE = 0, ACS_DET_FIXED_ORDER = 1, ACS_DET_THREADLOCAL_MERGE = 2 };
 
 typedef struct astrocs_kernel_entry_v1 {
+    uint32_t struct_size;            /* CPU-001: sizeof(astrocs_kernel_entry_v1) */
+    uint32_t abi_version;            /* ACS_ABI_VERSION_V1 */
     char     science_contract_id[32];  /* 如 "ALG-P3-003"; NUL 结尾 */
     char     algorithm_id[32];         /* 如 "drizzle-accumulate" */
     char     kernel_version[16];       /* 如 "1.0.0" */
@@ -122,6 +135,11 @@ typedef struct astrocs_kernel_entry_v1 {
                      const void* params, uint32_t params_bytes,
                      const void* in, void* out);
 } astrocs_kernel_entry_v1;
+
+/* kernel entry 构造宏 (CPU-001: 自动填充 head) */
+#define ACS_KERNEL_ENTRY(sci_id, alg_id, ver, prec, det, fn_ptr) \
+    { sizeof(astrocs_kernel_entry_v1), ACS_ABI_VERSION_V1, \
+      (sci_id), (alg_id), (ver), (prec), (det), (fn_ptr) }
 
 /* ───────── backend API(05 §4) ───────── */
 
