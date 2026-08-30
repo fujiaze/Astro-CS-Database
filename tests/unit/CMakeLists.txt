@@ -104,6 +104,14 @@ target_include_directories(cpu_profile_test PRIVATE
 target_link_libraries(cpu_profile_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME cpu_profile COMMAND cpu_profile_test)
 
+# G9: OpenMP 可选 (clang Debug 无 libomp 时降级串行; P2_ENABLE_OPENMP 默认 OFF)
+find_package(OpenMP QUIET)
+if(OpenMP_CXX_FOUND)
+  set(ASTROCS_OMP_TARGET OpenMP::OpenMP_CXX)
+else()
+  set(ASTROCS_OMP_TARGET "")
+endif()
+
 add_executable(cpu_monitor_test cpu_monitor_test.cpp)
 target_include_directories(cpu_monitor_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
@@ -114,8 +122,7 @@ add_test(NAME cpu_monitor COMMAND cpu_monitor_test)
 add_executable(p1_calibration_test p1_calibration_test.cpp)
 target_include_directories(p1_calibration_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include)
-target_link_libraries(p1_calibration_test PRIVATE astrocs_calibration OpenMP::OpenMP_CXX)
-find_package(OpenMP QUIET)
+target_link_libraries(p1_calibration_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
 add_test(NAME p1_calibration COMMAND p1_calibration_test)
 
 add_executable(p1_stars_test p1_stars_test.cpp)
@@ -154,21 +161,21 @@ add_test(NAME p1_hips_writer COMMAND p1_hips_writer_test)
 add_executable(p1_ir_facade_test p1_ir_facade_test.cpp)
 target_include_directories(p1_ir_facade_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include)
-target_link_libraries(p1_ir_facade_test PRIVATE astrocs_calibration OpenMP::OpenMP_CXX)
+target_link_libraries(p1_ir_facade_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
 add_test(NAME p1_ir_facade COMMAND p1_ir_facade_test)
 
 add_executable(p1_resource_test p1_resource_test.cpp)
 target_include_directories(p1_resource_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
-target_link_libraries(p1_resource_test PRIVATE astrocs_calibration OpenMP::OpenMP_CXX Threads::Threads)
+target_link_libraries(p1_resource_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET} Threads::Threads)
 add_test(NAME p1_resource COMMAND p1_resource_test)
 
 add_executable(p2_workers_test p2_workers_test.cpp)
 target_include_directories(p2_workers_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase2/include)
-target_link_libraries(p2_workers_test PRIVATE astrocs_phase2 astrocs_contracts OpenMP::OpenMP_CXX)
+target_link_libraries(p2_workers_test PRIVATE astrocs_phase2 astrocs_contracts ${ASTROCS_OMP_TARGET})
 add_test(NAME p2_workers COMMAND p2_workers_test)
 
 add_executable(p2_upm_synthetic_test p2_upm_synthetic_test.cpp)

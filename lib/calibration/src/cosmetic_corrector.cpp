@@ -21,7 +21,9 @@
 #include <cmath>
 #include <queue>
 #include <cstdio>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 namespace ac {
 

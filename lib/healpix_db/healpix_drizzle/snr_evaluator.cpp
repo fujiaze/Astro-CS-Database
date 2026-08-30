@@ -9,7 +9,9 @@
 #include <algorithm>
 #include <vector>
 
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 // nanoflann: header-only KD-tree
 #include "nanoflann.hpp"
