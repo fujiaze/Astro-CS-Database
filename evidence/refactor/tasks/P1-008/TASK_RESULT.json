@@ -1,0 +1,64 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P1-008",
+  "status": "PASS",
+  "start_commit": "466c6fa4a54e4af3ba9a4207e532bec2436a4dd7",
+  "source_commit": "466c6fa4a54e4af3ba9a4207e532bec2436a4dd7",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p1_ir_facade_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P1-008/TASK_RESULT.json",
+    "evidence/refactor/tasks/P1-008/logs/c01.log",
+    "evidence/refactor/tasks/P1-008/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "004755ad2d1925921f9abc4f16deb5a96dfde6602771e756ffd3e63417d2ceb3"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "0513318c252f2b333f2f8d3a964e8a292db1762c59ae9561cc1c599283f66df2"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-IR-NODES",
+      "description": "canonical IR 4 节点(io_read/calibrate/cosmetic/io_write)全声明",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PRESET",
+      "description": "cosmetic.enabled 开关存在默认 true(功能关闭经 IR preset)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-FACADE",
+      "description": "p1_session 委托 ac_calibrate_frame/ac_correct_frame, 不内联算法",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DELEGATE-WORKS",
+      "description": "委托层可调用且结果正确",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "ir_nodes": 4,
+    "preset_keys": [
+      "cosmetic.enabled"
+    ],
+    "facade_delegates": 2
+  },
+  "findings": [
+    "P1-008: canonical Phase1 IR 节点(io_read→calibrate→cosmetic→io_write)静态声明完整; 功能关闭经 config(preset)开关; p1_session 委托 ac_* 接口(facade 不复制算法); 运行 trace 与静态图一致"
+  ],
+  "created_utc": "2026-08-30T17:06:16Z"
+}
