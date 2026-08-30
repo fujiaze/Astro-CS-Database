@@ -77,3 +77,13 @@ LNX-002,G9,Linux Clang Debug与静态分析,LNX-001;DOC-004,Linux,validation,no,
 LNX-003,G9,Linux全组合成科学测试,LNX-001;QA-003,Linux,validation,yes,yes,all module oracles; pipeline integration,全TEST PASS; 容差事前值; 失败不可重跑掩盖,PASS
 LNX-004,G9,Linux 2核资源与恢复验证,LNX-003;CPU-008,Linux,validation,yes,yes,heavy synthetic; memory pressure; cancel/resume,active workers>=2; utilization gate; bounded RAM; checkpoint recovery,PASS
 LNX-005,G9,Linux少量真实数据冒烟,LNX-003;LNX-004,Linux,validation,yes,yes,hashed minimal Fatduck sample; Phase1/2/3 impacted paths,只拷少量; timeout; no crash/leak; outputs verify; 不替代32R,PASS
+WIN-001,G10,Windows在线探测与MSVC构建,LNX-001;QA-005,Windows,validation,no,yes,SSH timeout; clean MSVC release/debug; package layout,offline则WAITING_WINDOWS; online clean build; no hidden manual steps,WAITING_WINDOWS
+WIN-002,G10,Windows CPU benchmark与provider选择,WIN-001;CPU-007;CPU-008,Windows,validation,yes,yes,baseline/AVX2/AVX512; threads; memory,每kernel正确性先过; profile绑定; unsupported provider不加载,WAITING_WINDOWS
+WIN-003,G10,Windows合成科学与资源验证,WIN-001;WIN-002;LNX-003,Windows,validation,yes,yes,all synthetic modules and pipelines,MSVC数值容差; no serial heavy; resource gate pass,WAITING_WINDOWS
+WIN-004,G10,Windows少量真实代表帧验证,WIN-003;LNX-005,Windows,validation,yes,yes,one hashed R per panel plus masters,Phase1 outputs; Phase2 overlaps; Phase3 sample; diagnostic artifacts,WAITING_WINDOWS
+WIN-005,G10,Windows银心32R最终一次全链,WIN-004;DOC-002,Windows,validation,yes,yes,11+11+10 R; final candidate; monitor,全部输入贡献; P1 to P2 artifact identity; HiPS/support/UPM/rejection; resource gates,WAITING_WINDOWS
+WIN-006,G10,HiPS与Phase3视觉技术证据,WIN-005;P3-006,Windows,validation,yes,yes,locked viewer state; seam/holes/stripes/streaks; planar FITS,预览与数值seam metrics; WCS/FITS verify; 生成owner review清单,WAITING_WINDOWS
+REL-001,G11,生成双平台Alpha发布产物,LNX-005;WIN-006;QA-005,Linux+Windows,release,no,yes,Linux amd64; Windows amd64; providers; configs; licenses,版本0.10.0-alpha.1; reproducible metadata; install/run smoke,PASS
+REL-002,G11,完成最终文档真相校验,DOC-002;DOC-003;DOC-004;DOC-005;REL-001,Linux,release,no,yes,L0-L3; version; pipeline; APIs; status,无旧入口/旧版本/假实现; owner文档链接到现场证据,PASS
+REL-003,G11,生成白名单审核包,REL-001;REL-002,Linux,release,no,yes,source snapshot; changed docs; evidence summaries; previews; manifests,validate_audit PASS; source/evidence/artifact commit一致; 无大文件历史数据build,PASS
+REL-004,G11,负责人最终视觉与发布决策,REL-003,Owner,release,no,no,HiPS locked views; release status; known limits,负责人明确APPROVE或REJECT; Agent不得代签,REVIEW_PENDING
