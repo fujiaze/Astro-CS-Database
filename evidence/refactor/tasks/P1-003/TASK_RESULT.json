@@ -1,0 +1,80 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P1-003",
+  "status": "PASS",
+  "start_commit": "6f80c913390d9082ef264f48737212b46ea1ba50",
+  "source_commit": "6f80c913390d9082ef264f48737212b46ea1ba50",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "lib/phase1/stars/star_detector.h",
+    "lib/phase1/stars/star_detector.cpp",
+    "tests/unit/p1_stars_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/P1-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/P1-003/logs/c01.log",
+    "evidence/refactor/tasks/P1-003/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "d51399742ef6375ab65ef332048f3c44c741ee59dc137b5948d86db8a3e68d9a"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "d58ca49f28e5cfddf016fcd2437f3f5464f3217e48a16bb659f592ea34674505"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-ISOLATED",
+      "description": "孤立 Gaussian: completeness 1/1, centroid <0.5px, FWHM>0, quality=0",
+      "result": "PASS"
+    },
+    {
+      "id": "T-OVERLAP",
+      "description": "重叠星: 检测>=1 (合并语义), <=2",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SATURATED",
+      "description": "饱和星(>50000 ADU): quality 位1 置位",
+      "result": "PASS"
+    },
+    {
+      "id": "T-EDGE",
+      "description": "边缘星: quality 位2 置位",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NOISE",
+      "description": "纯噪声(σ=3, 5σ 阈值): 无显著误报",
+      "result": "PASS"
+    },
+    {
+      "id": "T-TIEBREAK",
+      "description": "去重 tie breaker: flux 降序、同 flux 更左优先",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CATALOG",
+      "description": "catalog 含坐标(px)/flux(ADU)/FWHM(px)/ellipticity/SNR/质量位/id",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "scenarios": 5,
+    "tests": 7,
+    "catalog_fields": 7
+  },
+  "findings": [
+    "P1-003: 实现 StarDetector(局部峰+质心/二阶矩; sigma-clip 背景估计; 去重 flux 降序+tie breaker 更左; 质量位 1=饱和 2=边缘 4=重叠); 5 场景(孤立/重叠/饱和/边缘/纯噪声)全过; catalog 带坐标/单位/质量字段"
+  ],
+  "created_utc": "2026-08-30T16:52:49Z"
+}
