@@ -1,0 +1,71 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P1-004",
+  "status": "PASS",
+  "start_commit": "d3af6ffadd70106ccfe3054fc662596f3feaefed",
+  "source_commit": "d3af6ffadd70106ccfe3054fc662596f3feaefed",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "lib/phase1/wcs/wcs_tan.h",
+    "lib/phase1/wcs/wcs_tan.cpp",
+    "lib/phase1/photometry/photometer.h",
+    "lib/phase1/photometry/photometer.cpp",
+    "tests/unit/p1_wcs_phot_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/P1-004/TASK_RESULT.json",
+    "evidence/refactor/tasks/P1-004/logs/c01.log",
+    "evidence/refactor/tasks/P1-004/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "f14fa8bd4d371c5af1dd8ea2106de81d7b8a1d7e20df3ec436831d992821b977"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "c131d065fd0edb12d705174df2bf15a65ec03f9bf5da5941654e556652364f1a"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-WCS-ROUNDTRIP",
+      "description": "已知 WCS (150,+2 deg, 0.5\"/px): pixel↔sky roundtrip <1e-6; 参考像素→crval 精确",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PHOT-FLUX",
+      "description": "已知 flux/背景/PSF: 恢复解析总通量 amp*2πσ² (容差20%); 背景<5 ADU",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PHOT-OOB",
+      "description": "越界中心: valid=false + reason (不留貌似有效 catalog)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-INTEGRATION-REG",
+      "description": "边缘中心积分回归: valid 但 flux>0 (不误报空)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "wcs_roundtrip_error": 1e-06,
+    "photometry_flux_tolerance": 0.2,
+    "failure_modes": [
+      "out of bounds",
+      "no sky",
+      "empty aperture"
+    ]
+  },
+  "findings": [
+    "P1-004: 实现 WCS TAN(pixel↔sky roundtrip 1e-6 deg) + Photometer(aperture 积分/annulus 背景/Poisson 误差/SNR); 已知通量解析恢复; 失败显式 valid=false+reason(不留空 catalog); 边缘积分回归覆盖"
+  ],
+  "created_utc": "2026-08-30T16:56:33Z"
+}
