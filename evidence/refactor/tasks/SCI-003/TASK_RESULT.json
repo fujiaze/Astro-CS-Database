@@ -1,0 +1,75 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "SCI-003",
+  "status": "PASS",
+  "start_commit": "e765161d5c921fa7dd52c82e2a9dcf8c896a6e9e",
+  "source_commit": "e765161d5c921fa7dd52c82e2a9dcf8c896a6e9e",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "science",
+  "science_changed": false,
+  "files_changed": [
+    "evidence/refactor/tasks/SCI-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/SCI-003/logs/c01.log",
+    "evidence/refactor/tasks/SCI-003/logs/c02.log",
+    "evidence/refactor/tasks/SCI-003/logs/c03.log",
+    "evidence/refactor/tasks/SCI-003/logs/c04.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "a23bbb8ebee4ebfd7247f0cccc984049496cfe6892426c51815e24385233e7a5"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "b75d4e49d4f1a0601c2fd5be0513cacc55df6277c7820564038825ea06509d85"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "89b6b32ba1c8fe0a0870e1fff1cf45d7da52fdf90ed4b9c8d5897662a5286eb1"
+    },
+    {
+      "command_id": "c04",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "b55437b38e8b0a12a18c744797c8886d5ab0daf6129f3ad2b3f441d3f51a64f2"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-P3-FROZEN",
+      "description": "SCI-P3-001 FROZEN; 12 项专属问题逐项冻结",
+      "result": "PASS"
+    },
+    {
+      "id": "T-WCS",
+      "description": "TAN/CRPIX/CD/order_needed/bilinear/nearest 完整",
+      "result": "PASS"
+    },
+    {
+      "id": "T-UNITS-COV",
+      "description": "Jy/beam 禁默认/UNKNOWN 语义/coverage/NaN/RA wrap/极区 完整",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PROTOTYPE",
+      "description": "prototype 不算实现已登记(P0-007/P3-001); 文档状态 NOT_IMPLEMENTED",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "p3_frozen": 1,
+    "wcs_hits": 24,
+    "units_cov_hits": 15,
+    "prototype_flagged": 1
+  },
+  "findings": [
+    "Phase3 科学合同 SCI-P3-001 已完整冻结(WCS 往返/order 选择/插值核/单位传播/coverage/RA wrap/极区/FOV 限制); prototype phase3_session 明确 NOT_IMPLEMENTED, 由 P3-001..006 按合同实现"
+  ],
+  "created_utc": "2026-08-30T15:38:13Z"
+}
