@@ -1,0 +1,57 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P2-001",
+  "status": "PASS",
+  "start_commit": "fb4d023e57ec6687475365a0c85d04e7b221a0f3",
+  "source_commit": "fb4d023e57ec6687475365a0c85d04e7b221a0f3",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "docs/refactor/P2_SYMBOL_MAP.md",
+    "tools/check_p2_symbol_map.py",
+    "evidence/refactor/tasks/P2-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/P2-001/logs/c01.log",
+    "evidence/refactor/tasks/P2-001/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "346f05a16b195b64e20041ac041d9652076d8cfb8d3ea6182bcf4e085ad61db0"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "b5e48354ea0bf6e4befecaf31d4b0ec0b47fb79399d7297faf9af730d6f205c8"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-MAP",
+      "description": "8 个 old Stage2 模块全映射(config/coverage/sampler/upm/rejection/integrate/block/io)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ACR-FORBIDDEN",
+      "description": "acr_kernels/cuda_bridge_stub/p2_acr_block_eligible 标禁止迁移依赖",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-ACR-PROD",
+      "description": "生产二进制 ACR 符号=0 (check_link_scan 联动)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "modules": 8,
+    "acr_forbidden": 3,
+    "sci_registered": 7
+  },
+  "findings": [
+    "P2-001: old Stage2 全步骤映射(8 模块/7 SCI); ACR call(acr_kernels/cuda_bridge_stub/p2_acr_block_eligible)标为禁止迁移依赖, 生产仅纯 CPU; 生产 heavy 禁选 workers=1"
+  ],
+  "created_utc": "2026-08-30T17:09:37Z"
+}

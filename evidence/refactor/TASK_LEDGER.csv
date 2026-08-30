@@ -42,8 +42,8 @@ P1-006,G4,迁移NSIDE与Drizzle模块,P1-004;P1-005;CPU-007,Linux,architecture,y
 P1-007,G4,迁移HiPS writer和verify,P1-006;IO-001,Linux,architecture,yes,yes,HiPS artifact; properties; tile tree; verify,完整性和hash; 不覆盖未提交目录; 失败原子回滚,PASS
 P1-008,G4,组装Canonical Phase1 Pipeline,P1-002;P1-003;P1-004;P1-005;P1-006;P1-007,Linux,architecture,yes,yes,phase1 preset and session facade,静态IR=runtime trace; 文档全部节点真实执行; artifact identity连续,PASS
 P1-009,G4,完成Phase1模块测试与资源门,P1-008;CPU-008,Linux,test,yes,yes,synthetic suite; small frame; resource timeline,全部SCI/ALG TEST; CPU-heavy active workers>=2 on 2-core; 无泄漏,PASS
-P2-001,G5,建立Phase2模块清单和adapter,CORE-003;CORE-004;SCI-002;IO-004,Linux,architecture,no,yes,map stage2/session/UPM/integration symbols,旧完整链每一步有归属; ACR调用标隔离; descriptor valid,IN_PROGRESS
-P2-002,G5,迁移Coverage与Sampler,P2-001;CORE-006;IO-004,Linux,architecture,yes,yes,coverage graph; sample/control points,删除workers=1; worker-local I/O; deterministic partition; resource gate,NOT_STARTED
+P2-001,G5,建立Phase2模块清单和adapter,CORE-003;CORE-004;SCI-002;IO-004,Linux,architecture,no,yes,map stage2/session/UPM/integration symbols,旧完整链每一步有归属; ACR调用标隔离; descriptor valid,PASS
+P2-002,G5,迁移Coverage与Sampler,P2-001;CORE-006;IO-004,Linux,architecture,yes,yes,coverage graph; sample/control points,删除workers=1; worker-local I/O; deterministic partition; resource gate,IN_PROGRESS
 P2-003,G5,迁移加性UPM接缝模型,P2-002;SCI-002,Linux,architecture,yes,yes,control filtering; overlap equations; regularized fit,只加性; gauge/断图定义; seam synthetic; flux/source preservation,NOT_STARTED
 P2-004,G5,迁移BlockPlan与校正应用,P2-003;CORE-006,Linux,architecture,yes,yes,block plan; apply additive model; cache,有界内存; 无35GB稠密缓存; block equivalence; no holes,NOT_STARTED
 P2-005,G5,迁移Rejection与Integration,P2-004;CPU-007,Linux,architecture,yes,yes,sigma/winsor/linear-fit/ESD/RCR selection; integration,选择规则可追溯; cosmic/streak fixtures; weight语义明确,NOT_STARTED
