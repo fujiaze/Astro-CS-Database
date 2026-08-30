@@ -66,6 +66,10 @@ int p2_block_plan(const P2BlockPlannerInput* in, P2BlockPlan* out) {
     const double max_px = std::floor(available / per_px);
     out->block_pixels = static_cast<std::uint64_t>(max_px);
     if (out->block_pixels == 0) out->block_pixels = 1;
+    // 缩块后重算峰值 (峰值 RAM 必须符合 plan 误差界 ≤ budget)
+    out->estimated_peak_bytes =
+        static_cast<std::uint64_t>(static_cast<double>(out->block_pixels) * per_px +
+                                   static_cast<double>(in->fixed_overhead));
     out->micro_chunk_required = 1;
     out->status = 0;
     return 0;
