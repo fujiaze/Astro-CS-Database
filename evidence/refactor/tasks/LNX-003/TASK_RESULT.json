@@ -1,0 +1,34 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "LNX-003",
+  "status": "PASS",
+  "start_commit": "04a00e1145030f5f6530fcc5fed4f2a7cf9b0c70",
+  "source_commit": "04a00e1145030f5f6530fcc5fed4f2a7cf9b0c70",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "platform",
+  "science_changed": false,
+  "files_changed": [
+    "evidence/refactor/tasks/LNX-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/LNX-003/logs/c01.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "deea7d3f026cd6f5b22a670d0e8911d6adf8e84ca115c819eddb077749318975"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-MAIN",
+      "description": "7 组合成门全 PASS",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {},
+  "findings": [
+    "LNX-003: Linux 全组合成科学测试 — 7 组合成门全 PASS"
+  ],
+  "created_utc": "2026-08-30T18:15:01Z"
+}

@@ -1,0 +1,34 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "LNX-002",
+  "status": "PASS",
+  "start_commit": "04a00e1145030f5f6530fcc5fed4f2a7cf9b0c70",
+  "source_commit": "04a00e1145030f5f6530fcc5fed4f2a7cf9b0c70",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "platform",
+  "science_changed": false,
+  "files_changed": [
+    "evidence/refactor/tasks/LNX-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/LNX-002/logs/c01.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "6822bc9a049fc376be15bb3a51676d802d297b6338271525f01a26d3aaaf949c"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-MAIN",
+      "description": "clang++ Debug 构建 PASS (omp.h 宏保护)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {},
+  "findings": [
+    "LNX-002: Linux Clang Debug 与静态分析 — clang++ Debug 构建 PASS (omp.h 宏保护)"
+  ],
+  "created_utc": "2026-08-30T18:15:01Z"
+}
