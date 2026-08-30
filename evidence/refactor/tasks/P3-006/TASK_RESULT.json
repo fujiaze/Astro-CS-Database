@@ -1,0 +1,65 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P3-006",
+  "status": "PASS",
+  "start_commit": "c9a22b5d38af4316c38dda3ecc56a704dc3bf45b",
+  "source_commit": "c9a22b5d38af4316c38dda3ecc56a704dc3bf45b",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p3_assembly_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P3-006/TASK_RESULT.json",
+    "evidence/refactor/tasks/P3-006/logs/c01.log",
+    "evidence/refactor/tasks/P3-006/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "28cd667067b5ae4809fcf3a211e87e776cf11ad81dfe732dfdfd41f364e7be12"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "5f6b80bf3d719be590c39fa868227341751473972f82ef9517d682009bdc4255"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-MINI-HIPS",
+      "description": "生成 mini HiPS (signal 常数+峰值, P1-007 writer)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SAMPLER",
+      "description": "p3_sampler_open 严格校验 + bilinear 采样覆盖存在 + 背景 100",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DETERMINISM",
+      "description": "同位置二次采样 val2==val (确定性)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-OUTPUT",
+      "description": "FITS 输出 + 重开验证 (P3-005 链)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "chain": [
+      "wcs",
+      "sampler",
+      "output"
+    ],
+    "fixture": "mini HiPS Norder0"
+  },
+  "findings": [
+    "P3-006: Phase3 全链组装验证(mini HiPS 生成→sampler open 严格校验→bilinear 采样→FITS 输出→重开验证); 采样确定性; 科学资源门由 P2-008/p1_resource 覆盖; 全部合同通过后 registry status 可改 IMPLEMENTED"
+  ],
+  "created_utc": "2026-08-30T17:34:44Z"
+}
