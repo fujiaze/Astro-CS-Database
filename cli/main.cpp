@@ -29,6 +29,11 @@
 #include "p1_session.h"
 #include "p2_session.h"
 #include "p3_session.h"
+#include "aio_pipeline.h"
+#include "hp_drizzle_api.h"
+#include "aio_fits.h"
+#include "astro_image_io.h"
+#include "fitsio.h"
 
 namespace astrocs {
 nlohmann::json g_phase1_session;
@@ -124,7 +129,7 @@ struct Parsed {
 const std::set<std::string> kBoolFlags = {"--json", "--events-jsonl", "--quick", "--full"};
 const std::set<std::string> kValueFlags = {"--output", "--config", "--cpu-profile",
                                            "--run-manifest", "--group", "--phases",
-                                           "--resource-detail"};
+                                           "--resource-detail", "--nside", "--pixfrac"};
 
 // 04 §1 命令树: 每条命令允许的旗标(严格白名单, 未知即 2)
 struct CmdRule { const char* path; std::vector<std::string> allowed; };
@@ -140,6 +145,7 @@ const CmdRule kRules[] = {
     {"phase2 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
     {"phase3 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
     {"run",                         {"--phases", "--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
+    {"drizzle",                     {"--config", "--events-jsonl", "--nside", "--pixfrac"}},
     {"verify",                      {"--run-manifest", "--json"}},
 };
 
@@ -1221,6 +1227,123 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
     return astrocs::OK;
 }
 
+// ── 生产 Phase1 Final Closure: 读校准 FITS → PipelineFrame → hp_drizzle_run_hips 直写 HiPS ──
+inline const char* aio_frame_kv_get_(const PipelineFrame* f, const char* b, const char* k) {
+    return aio_frame_kv_get(f, b, k);
+}
+static int read_double_key(fitsfile* fp, const char* key, double* out) {
+    int status = 0; double v = 0.0;
+    fits_read_key(fp, TDOUBLE, key, &v, nullptr, &status);
+    if (status != 0) return -1;
+    *out = v; return 0;
+}
+static void read_str_key(fitsfile* fp, const char* key, std::string& out) {
+    int status = 0; char v[256] = {0};
+    fits_read_key(fp, TSTRING, key, v, nullptr, &status);
+    if (status == 0) out = v;
+}
+static int spawn_frame_from_fits(PipelineFrame** out, const std::string& path, std::string& err) {
+    *out = nullptr;
+    // 像素: 用 CLI 自有 aio_read (与 phase1 同一读取器, 已验证)
+    AIOImageData* img = aio_read(path.c_str());
+    if (!img || !img->data || img->width <= 0 || img->height <= 0) {
+        if (img) aio_free_image_data(img);
+        err = "aio_read failed/bad image"; return -1;
+    }
+    fitsfile* fp = nullptr; int status = 0;
+    if (fits_open_file(&fp, path.c_str(), READONLY, &status)) {
+        aio_free_image_data(img);
+        err = "fits_open_file failed"; if (fp) fits_close_file(fp, &status); return -1;
+    }
+    PipelineFrame* fr = aio_pipeline_frame_create();
+    if (!fr) { err = "frame_create failed"; aio_free_image_data(img); fits_close_file(fp, &status); return -1; }
+    int dims[2] = {img->width, img->height};
+    std::vector<float> conv; const float* src = img->data;
+    if (img->data_f64) {
+        conv.resize((size_t)img->width * img->height);
+        for (size_t i = 0; i < conv.size(); ++i) conv[i] = (float)img->data_f64[i];
+        src = conv.data();
+    }
+    if (aio_frame_add_block(fr, "data", AIO_BLOCK_FLOAT32, src,
+                            (int64_t)img->width * img->height, dims, 2, "image") != 0) {
+        err = "add_block failed"; aio_pipeline_frame_destroy(fr);
+        aio_free_image_data(img); fits_close_file(fp, &status); return -1;
+    }
+    aio_free_image_data(img);
+    // WCS (cfitsio 读 header cards)
+    double crval1=0,crval2=0,crpix1=0,crpix2=0,cd11=0,cd12=0,cd21=0,cd22=0,cdelt1=0,cdelt2=0,crota2=0;
+    read_double_key(fp,"CRVAL1",&crval1); read_double_key(fp,"CRVAL2",&crval2);
+    read_double_key(fp,"CRPIX1",&crpix1); read_double_key(fp,"CRPIX2",&crpix2);
+    int have_cd = (read_double_key(fp,"CD1_1",&cd11)==0);
+    read_double_key(fp,"CD1_2",&cd12); read_double_key(fp,"CD2_1",&cd21); read_double_key(fp,"CD2_2",&cd22);
+    read_double_key(fp,"CDELT1",&cdelt1); read_double_key(fp,"CDELT2",&cdelt2);
+    read_double_key(fp,"CROTA2",&crota2);
+    std::string ctype1,ctype2; read_str_key(fp,"CTYPE1",ctype1); read_str_key(fp,"CTYPE2",ctype2);
+    aio_frame_kv_set_double(fr,"header","CRVAL1",crval1); aio_frame_kv_set_double(fr,"header","CRVAL2",crval2);
+    aio_frame_kv_set_double(fr,"header","CRPIX1",crpix1); aio_frame_kv_set_double(fr,"header","CRPIX2",crpix2);
+    if (have_cd) { aio_frame_kv_set_double(fr,"header","CD1_1",cd11); aio_frame_kv_set_double(fr,"header","CD1_2",cd12);
+                   aio_frame_kv_set_double(fr,"header","CD2_1",cd21); aio_frame_kv_set_double(fr,"header","CD2_2",cd22); }
+    else if (cdelt1!=0.0 && cdelt2!=0.0) {
+        aio_frame_kv_set_double(fr,"header","CDELT1",cdelt1); aio_frame_kv_set_double(fr,"header","CDELT2",cdelt2);
+        if (crota2!=0.0) aio_frame_kv_set_double(fr,"header","CROTA2",crota2);
+    }
+    if (!ctype1.empty()) aio_frame_kv_set(fr,"header","CTYPE1",ctype1.c_str());
+    if (!ctype2.empty()) aio_frame_kv_set(fr,"header","CTYPE2",ctype2.c_str());
+    int a_ord=-1,b_ord=-1; read_double_key(fp,"A_ORDER",(double*)&a_ord); char tmp[32];
+    std::snprintf(tmp,sizeof(tmp),"%d",a_ord); aio_frame_kv_set(fr,"header","A_ORDER",tmp);
+    std::snprintf(tmp,sizeof(tmp),"%d",b_ord); aio_frame_kv_set(fr,"header","B_ORDER",tmp);
+    for (int i=0;i<=4;i++) for (int j=0;j<=4-i;j++) {
+        char kn[32]; double v=0.0;
+        std::snprintf(kn,sizeof(kn),"A_%d_%d",i,j); if (read_double_key(fp,kn,&v)==0) aio_frame_kv_set_double(fr,"header",kn,v);
+        std::snprintf(kn,sizeof(kn),"B_%d_%d",i,j); if (read_double_key(fp,kn,&v)==0) aio_frame_kv_set_double(fr,"header",kn,v);
+    }
+    // 测光校准: PHOTSCAL/PHOTAPPL (drizzle 要求 PHOTSCAL>0)
+    double photscal = 1.0; read_double_key(fp,"PHOTSCAL",&photscal);
+    aio_frame_kv_set_double(fr,"header","PHOTSCAL",photscal);
+    std::string photappl; read_str_key(fp,"PHOTAPPL",photappl);
+    if (!photappl.empty()) aio_frame_kv_set(fr,"header","PHOTAPPL",photappl.c_str());
+    fits_close_file(fp, &status);
+    *out = fr; return 0;
+}
+int cmd_drizzle(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    const std::string cfg = need_value(p, "--config");
+    nlohmann::json doc; int rc = validate_config_full(cfg, &doc);
+    if (rc != astrocs::OK) return rc;
+    if (!doc.contains("inputs") || !doc["inputs"].is_object() || !doc["inputs"].contains("lights")) {
+        std::fprintf(stderr, "astrocs: drizzle config missing inputs.lights\n"); return astrocs::INPUT;
+    }
+    const std::string out_dir = doc.value("output_dir", std::string("."));
+    std::string hips_dir = out_dir + "/hips";
+    int nside = std::atoi(p.values.count("--nside") ? p.values.at("--nside").c_str() : "2048");
+    if (nside < 1 || (nside & (nside - 1)) != 0) { std::fprintf(stderr, "astrocs: --nside 必须是 2 的幂\n"); return astrocs::ARGS; }
+    int nested = 1;                   // NESTED
+    double pixfrac = p.values.count("--pixfrac") ? std::atof(p.values.at("--pixfrac").c_str()) : 0.8;
+    int precision = 0;                // FP32
+    std::error_code ec; std::filesystem::remove_all(std::filesystem::u8path(hips_dir), ec);
+    std::filesystem::create_directories(std::filesystem::u8path(hips_dir), ec);
+    long total_pix = 0, total_src = 0; std::vector<std::string> made;
+    for (const auto& l : doc["inputs"]["lights"]) {
+        const std::string path = l.get<std::string>();
+        PipelineFrame* fr = nullptr; std::string err;
+        if (spawn_frame_from_fits(&fr, path, err) != 0) {
+            std::fprintf(stderr, "astrocs: drizzle read %s failed: %s\n", path.c_str(), err.c_str()); return astrocs::INPUT;
+        }
+        aio_frame_kv_set(fr,"header","PRECISION", precision ? "fp64" : "fp32");
+        HpDrizzleResult r; std::memset(&r, 0, sizeof(r));
+        int ret = hp_drizzle_run_hips(fr, nside, nested, pixfrac, hips_dir.c_str(), nullptr, &r, precision);
+        aio_pipeline_frame_destroy(fr);
+        if (ret != 0) { std::fprintf(stderr, "astrocs: drizzle %s failed: %s\n", path.c_str(), r.error_msg); return astrocs::COMPUTE; }
+        total_pix += r.n_healpix_pixels; total_src += r.n_source_pixels; made.push_back(path);
+    }
+    nlohmann::json out = {{"drizzle", "ok"}, {"hips_dir", hips_dir}, {"frames", made.size()},
+                          {"n_healpix_pixels", total_pix}, {"n_source_pixels", total_src}};
+    ev.emit("drizzle", "info", "hips", "drizzle->hips done",
+            {{"hips_dir", hips_dir}, {"frames", std::to_string(made.size())},
+             {"n_healpix_pixels", std::to_string(total_pix)}});
+    std::printf("%s\n", out.dump().c_str());
+    return astrocs::OK;
+}
+
 int dispatch(const Parsed& p) {
     const std::string joined = p.join();
     const bool events = p.flags.count("--events-jsonl") > 0;
@@ -1335,6 +1458,7 @@ int dispatch(const Parsed& p) {
     if (joined == "phase3 run")            return cmd_phase3_run(p, ev);
     if (joined == "verify")                return cmd_verify(p, ev);
     if (joined == "run")                   return cmd_run_pipeline(p, ev);
+    if (joined == "drizzle")               return cmd_drizzle(p, ev);
     if (joined == "test synthetic") {
         const std::string g = need_value(p, "--group");
         if (!kGroups.count(g)) parse_fail("invalid --group '" + g + "'");
