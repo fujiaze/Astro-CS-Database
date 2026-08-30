@@ -196,3 +196,9 @@ add_test(NAME p2_output_semantics COMMAND p2_output_semantics_test)
 add_executable(p2_ir_facade_test p2_ir_facade_test.cpp)
 target_link_libraries(p2_ir_facade_test PRIVATE astrocs_contracts)
 add_test(NAME p2_ir_facade COMMAND p2_ir_facade_test)
+
+add_executable(p2_seam_gate_test p2_seam_gate_test.cpp)
+target_include_directories(p2_seam_gate_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+target_link_libraries(p2_seam_gate_test PRIVATE astrocs_contracts)
+add_test(NAME p2_seam_gate COMMAND p2_seam_gate_test)

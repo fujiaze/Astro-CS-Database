@@ -1,0 +1,64 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P2-008",
+  "status": "PASS",
+  "start_commit": "ab45a63a7dd15bb2c0f761d4044aef3794bc9278",
+  "source_commit": "ab45a63a7dd15bb2c0f761d4044aef3794bc9278",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p2_seam_gate_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P2-008/TASK_RESULT.json",
+    "evidence/refactor/tasks/P2-008/logs/c01.log",
+    "evidence/refactor/tasks/P2-008/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "12200ea8ea4790abab2cc8fbbcb1fbd9d05d59d2ebe04f55c6ef2edcced06c4b"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "ec7c9d36839ec2193549f3e695499dec15c6ae27acf320aab33c13d152869f8b"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-SEAM-NUMERIC",
+      "description": "数值门: 合成 seam 校准前 8 ADU → 校准后 <0.5 (非预览)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-RESOURCE-OK",
+      "description": "资源门: 2 worker/2 核/超阈值 → Ok",
+      "result": "PASS"
+    },
+    {
+      "id": "T-RESOURCE-REJECT",
+      "description": "资源门: workers=1 → SingleThreaded 拒",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BOTH-GATES",
+      "description": "数值门+资源门同时通过 = PASS",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "seam_before_after": "8 → <0.5 ADU",
+    "gates": [
+      "numeric",
+      "resource"
+    ]
+  },
+  "findings": [
+    "P2-008: synthetic seam 数值门(8→<0.5 ADU)与资源门(2worker Ok / 1worker SingleThreaded 拒)同时验证; 不得仅凭预览(数值门硬断言)"
+  ],
+  "created_utc": "2026-08-30T17:23:37Z"
+}
