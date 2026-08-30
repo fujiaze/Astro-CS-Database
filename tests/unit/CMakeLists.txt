@@ -156,3 +156,10 @@ target_include_directories(p1_ir_facade_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include)
 target_link_libraries(p1_ir_facade_test PRIVATE astrocs_calibration OpenMP::OpenMP_CXX)
 add_test(NAME p1_ir_facade COMMAND p1_ir_facade_test)
+
+add_executable(p1_resource_test p1_resource_test.cpp)
+target_include_directories(p1_resource_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+target_link_libraries(p1_resource_test PRIVATE astrocs_calibration OpenMP::OpenMP_CXX Threads::Threads)
+add_test(NAME p1_resource COMMAND p1_resource_test)

@@ -1,0 +1,63 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P1-009",
+  "status": "PASS",
+  "start_commit": "c22819a2ec782f989f17eec0bb371604de97c3af",
+  "source_commit": "c22819a2ec782f989f17eec0bb371604de97c3af",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p1_resource_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P1-009/TASK_RESULT.json",
+    "evidence/refactor/tasks/P1-009/logs/c01.log",
+    "evidence/refactor/tasks/P1-009/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "2c83c299ec1c6722ccfc8482c7e927c56d8bca4b399e513037630532779cde79"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "5a9945217203a4bbbf96d0dce11ac478ef1bb382c92b7b1cbec8e1726b7a9c04"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-RESOURCE",
+      "description": "2 核 heavy synthetic 6 帧循环: 资源采样 6, RSS 峰值 8.3MB 记录",
+      "result": "PASS"
+    },
+    {
+      "id": "T-MULTIFRAME",
+      "description": "多 frame 循环结果逐元素正确 (150.0)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-GATE",
+      "description": "2 核 gate 阈值 1.6 核公式",
+      "result": "PASS"
+    },
+    {
+      "id": "T-MEM",
+      "description": "RSS 斜率不异常 (无内存回涨)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "frames": 6,
+    "samples": 6,
+    "rss_peak_bytes": 8265728,
+    "gate_threshold_cores": 1.6
+  },
+  "findings": [
+    "P1-009: 2 核 heavy synthetic 多帧校准循环(2 线程并行)资源记录(采样/RSS/CPU); 结果正确; gate 阈值公式; ASan/LSan 循环验证受 GCC14-cfitsio 限制移交 Windows 节点(同 G3 登记)"
+  ],
+  "created_utc": "2026-08-30T17:07:22Z"
+}
