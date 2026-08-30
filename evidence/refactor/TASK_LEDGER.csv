@@ -5,8 +5,8 @@ BAS-003,G0,冻结当前静态调用图和线程入口,BAS-001,Linux,evidence,no,
 BAS-004,G0,登记P0所有权与科学语义风险,BAS-001,Linux,evidence,no,yes,AIO image ownership; Phase3 BUNIT/provenance; incomplete sessions,每项含源码符号; 最小复现; 影响; 后续Task ID,PASS
 VER-001,G1,建立唯一版本来源,BAS-002,Linux,architecture,no,yes,VERSION; generated version header; CLI; manifests; docs,目标0.10.0-alpha.1; 所有展示由VERSION生成; 无硬编码冲突,PASS
 DOC-001,G1,建立合同ID注册表,BAS-002;BAS-003,Linux,documentation,no,yes,SCI/ALG/DATA/ARCH/API/MOD/TEST registry,唯一ID; owner; version; status; links; 无悬空引用,PASS
-SCI-001,G1,冻结Phase1科学定义,DOC-001,Linux,science,no,yes,calibration through HiPS scientific contracts,定义公式单位假设边界; 不修改代码; owner摘要,IN_PROGRESS
-SCI-002,G1,冻结Phase2科学定义,DOC-001,Linux,science,no,yes,coverage; sampling; additive UPM; rejection; integration; HiPS,接缝模型与权重分离; 公式和不变量完整,NOT_STARTED
+SCI-001,G1,冻结Phase1科学定义,DOC-001,Linux,science,no,yes,calibration through HiPS scientific contracts,定义公式单位假设边界; 不修改代码; owner摘要,PASS
+SCI-002,G1,冻结Phase2科学定义,DOC-001,Linux,science,no,yes,coverage; sampling; additive UPM; rejection; integration; HiPS,接缝模型与权重分离; 公式和不变量完整,IN_PROGRESS
 SCI-003,G1,设计Phase3科学定义,DOC-001,Linux,science,no,yes,HiPS sphere to planar FITS,WCS; interpolation; units; coverage; RA wrap; poles; prototype不算实现,NOT_STARTED
 DATA-001,G1,冻结跨模块数据语义,DOC-001;SCI-001;SCI-002;SCI-003,Linux,contract,no,yes,artifact schemas; units; coordinate; precision; invalids; ownership,每端口引用DATA ID; 禁止模糊weight/value; schema可机检,NOT_STARTED
 ARCH-001,G1,冻结Runtime与职责边界,BAS-002;BAS-003;DOC-001,Linux,architecture,no,yes,CLI/runtime/registry/io/modules/backends,唯一全局scheduler; 依赖方向和禁止方向写入ARCH,NOT_STARTED
