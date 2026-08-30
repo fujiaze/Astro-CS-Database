@@ -497,8 +497,11 @@ int cmd_test_synthetic(const Parsed& p, const std::string& group, astrocs::Jsonl
         // 源码相对读取的测试 (p1_ir_facade/p2_ir_facade) 需要 ASTROCS_REPO;
         // 默认设为调用方 cwd, 可用环境变量覆盖。
         const char* repo_env = std::getenv("ASTROCS_REPO");
+        // G9: 所有外部命令必须 timeout (ASTROCS_TEST_TIMEOUT_S 可配, 默认 600s)
+        const char* tmo = std::getenv("ASTROCS_TEST_TIMEOUT_S");
+        const std::string tmo_s = tmo ? tmo : "600";
         const std::string cmd = std::string("ASTROCS_REPO=") +
-                                (repo_env ? repo_env : ".") + " " + exe;
+                                (repo_env ? repo_env : ".") + " timeout " + tmo_s + "s " + exe;
         const int rc = std::system(cmd.c_str());
         ev.stage(("test_" + std::string(b)).c_str(), rc == 0);
         if (rc != 0) {
