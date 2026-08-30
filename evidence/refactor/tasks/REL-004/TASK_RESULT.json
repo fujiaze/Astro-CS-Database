@@ -1,0 +1,56 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "REL-004",
+  "status": "REVIEW_PENDING",
+  "start_commit": "b840ed64b4cb1492a659b00b275afdc6ff789751",
+  "source_commit": "b840ed64b4cb1492a659b00b275afdc6ff789751",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "release",
+  "science_changed": false,
+  "files_changed": [
+    "tools/gen_visual_views.py",
+    "evidence/refactor/tasks/REL-004/VIEWS.md",
+    "evidence/refactor/tasks/REL-004/TASK_RESULT.json",
+    "evidence/refactor/tasks/REL-004/logs/c01.log",
+    "evidence/refactor/tasks/REL-004/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "8df2c6adc2666543a8ef993eb9a751202ec942fe2b6a49ae303cc7b4280e58f7"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "b560204d4535e4b81e230cd78110b22964ce53992c9ab8738dbcd81a8c0212f8"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-VIEWS",
+      "description": "6 固定视图生成: 三块 overlap/最弱背景/亮星区/卫星线区/support 边缘/Phase3 FITS",
+      "result": "PASS"
+    },
+    {
+      "id": "T-OWNER-REVIEW",
+      "description": "Agent 无权宣布发布; 状态 READY_FOR_OWNER_REVIEW",
+      "result": "PASS"
+    },
+    {
+      "id": "T-REGEN",
+      "description": "视图可再生成 (tools/gen_visual_views.py)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "views": 6,
+    "status": "READY_FOR_OWNER_REVIEW"
+  },
+  "findings": [
+    "REL-004: 负责人视觉验收视图就绪(6 固定视图, 合成/参考); Agent 无权宣布发布; 负责人批准后才写发布决定; 本任务 = READY_FOR_OWNER_REVIEW"
+  ],
+  "created_utc": "2026-08-30T18:01:11Z"
+}
