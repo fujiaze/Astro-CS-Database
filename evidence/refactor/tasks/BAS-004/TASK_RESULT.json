@@ -1,0 +1,81 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "BAS-004",
+  "status": "PASS",
+  "start_commit": "e4fa8a368f3737dcb36da58e8a0310c08ea8073e",
+  "source_commit": "e4fa8a368f3737dcb36da58e8a0310c08ea8073e",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "evidence",
+  "science_changed": false,
+  "files_changed": [
+    "evidence/refactor/tasks/BAS-004/P0_OWNERSHIP_AND_SCIENCE_RISKS.csv",
+    "evidence/refactor/tasks/BAS-004/TASK_RESULT.json",
+    "evidence/refactor/tasks/BAS-004/logs/c01.log",
+    "evidence/refactor/tasks/BAS-004/logs/c02.log",
+    "evidence/refactor/tasks/BAS-004/logs/c03.log",
+    "evidence/refactor/tasks/BAS-004/logs/c04.log",
+    "evidence/refactor/tasks/BAS-004/logs/c05.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "5c10bb2da7f73e3ba6d010f976c91c965f2877e4343915a413119e4a119a8cd6"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "e539e0ba3bef1c33e028642861fdd06f33fc8c780c901c8e5d403eb0cc410ced"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "4f6c1887d99e17d1e06d5a3ebc46cc768e089ebed1ed97d9454ea13ec76cf141"
+    },
+    {
+      "command_id": "c04",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "75f82ddddf52c911d09f0cd09c39e9fe1a38e7f479c3492261ad35eb70355306"
+    },
+    {
+      "command_id": "c05",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "26ee240fa9b4cd4ffca5492f2c1bd152f7fed59ed817e6d972e846eda86ad8cf"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-P0-MAPPING",
+      "description": "P0-001..007 全部绑定后续 Ledger Task",
+      "result": "PASS"
+    },
+    {
+      "id": "T-OWNERSHIP",
+      "description": "P0-003 所有权调用图静态证据(alloc vs free 不匹配)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-P0-003-DYNAMIC",
+      "description": "ASan 循环复现被工具链阻断(GCC14 fpermissive + ptrace LSAN), 记录 NOT_RUN",
+      "result": "NOT_RUN"
+    }
+  ],
+  "metrics": {
+    "p0_count": 7,
+    "dynamic_repro_blocks": [
+      "GCC14 -fpermissive 拒编 cfitsio zcompress.c",
+      "ASan LSAN 在 ptrace 环境不可用"
+    ]
+  },
+  "findings": [
+    "P0-001/002/006/007 静态证据充分, 已绑定后续任务",
+    "P0-003 所有权不匹配静态确凿(aio_free_image_data 释放 3 字段 vs ImageDeleter 仅 free struct); 动态复现 NOT_RUN(工具链), 由 IO-002 在 sanitizer 环境完成",
+    "P0-004/005 文档与 session 阶段差集确凿, 绑定 P1-008/P2-007"
+  ],
+  "created_utc": "2026-08-30T15:28:19Z"
+}
