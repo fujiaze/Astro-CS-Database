@@ -8,7 +8,7 @@
 - QA-001..005 质量门 5/5 PASS; LNX-001..005 平台任务 5/5 PASS。
 - 88 任务: 81 PASS + 6 WAITING_WINDOWS + 1 REVIEW_PENDING。
 
-## 未完成/等待项 (诚实标注, 无"基本完成")
+## 未完成/等待项 (诚实标注; 未过项一律 NOT VERIFIED/FAIL, 无模糊完成措辞)
 | 项 | 状态 | 说明 |
 |---|---|---|
 | G10 Windows (WIN-001..006) | WAITING_WINDOWS | Fatduck 离线 (DNS 失败); 恢复后执行 MSVC/benchmark/真实帧 |
