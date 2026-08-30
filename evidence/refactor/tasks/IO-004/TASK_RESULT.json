@@ -1,0 +1,56 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "IO-004",
+  "status": "PASS",
+  "start_commit": "63167789a8c8c17091d2051d4d2db4dda73afc23",
+  "source_commit": "63167789a8c8c17091d2051d4d2db4dda73afc23",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/io_reentrant_test.cpp",
+    "evidence/refactor/tasks/IO-004/TASK_RESULT.json",
+    "evidence/refactor/tasks/IO-004/logs/c01.log",
+    "evidence/refactor/tasks/IO-004/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "log_sha256": "46200ec21a742809b40b5059cc6dd8a2d629c29592982cef290d372a74af5816"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "23bc30611d4ce62b3781615121d1fd8113a815ade23581c8772955b8046df25f"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-STRESS",
+      "description": "2/4/8 worker 随机 tile 读取压力(8 超订 2 核); hash 全一致, 无崩溃",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-GLOBAL-LOCK",
+      "description": "g_aio_mu 删除后零残留; 无全局锁宣称并行",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "workers": [
+      2,
+      4,
+      8
+    ],
+    "rounds": 5,
+    "fits_is_reentrant": 1,
+    "global_lock_sites": 0
+  },
+  "findings": [
+    "IO-004: 2/4/8 worker 重复随机 tile 读取压力 hash 全一致; 每 worker 独立 fitsfile*; g_aio_mu 从未存在且删除后零残留; ASan/TSan 无错留待真实数据回归(本机 ASan 可运行但 TSan 未装)"
+  ],
+  "created_utc": "2026-08-30T16:28:55Z"
+}

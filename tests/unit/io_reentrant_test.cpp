@@ -91,13 +91,28 @@ int main() {
   for (auto& t : workers) t.join();
   CHECK(mismatches.load() == 0);
 
-  // 4) 每 worker 独立 fitsfile* (无共享句柄): read_hash 每次独立打开
+  // 4) 2/8 worker 压力变体 (8 超订 2 核, 验证无崩溃且 hash 仍一致)
+  for (int wcount : {2, 8}) {
+    std::atomic<int> mm{0};
+    std::vector<std::thread> w2;
+    for (int w = 0; w < wcount; ++w) {
+      w2.emplace_back([&, w] {
+        for (int round = 0; round < 3; ++round) {
+          if (read_hash(path) != ref) ++mm;
+        }
+      });
+    }
+    for (auto& t2 : w2) t2.join();
+    CHECK(mm.load() == 0);
+  }
+
+  // 5) 每 worker 独立 fitsfile* (无共享句柄): read_hash 每次独立打开
   std::remove(path.c_str());
   if (failures == 0) {
-    std::printf("IO-003 TESTS PASS (fits_is_reentrant=%d, 4 worker x 5 round hash 一致)\n",
+    std::printf("IO-004 TESTS PASS (fits_is_reentrant=%d, 2/4/8 worker 压力 hash 全一致)\n",
                 fits_is_reentrant());
     return 0;
   }
-  std::fprintf(stderr, "IO-003 TESTS FAIL (%d)\n", failures);
+  std::fprintf(stderr, "IO-004 TESTS FAIL (%d)\n", failures);
   return 1;
 }
