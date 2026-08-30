@@ -17,8 +17,8 @@ CORE-001,G2,实现公共Result错误取消语义,BLD-001;API-001,Linux,architect
 CORE-002,G2,实现DataArtifact与Provenance,CORE-001;DATA-001,Linux,architecture,no,yes,artifact descriptor; ownership; provenance,schema/units/shape验证; serialization roundtrip; hash稳定,PASS
 CORE-003,G2,实现ModuleDescriptor注册表,CORE-001;API-001;DOC-001,Linux,architecture,no,yes,registry; descriptor; duplicate detection,模块唯一; ABI/API/端口校验; 可导出machine index,PASS
 CORE-004,G2,实现PipelineIR解析和静态验证,CORE-002;CORE-003,Linux,architecture,no,yes,pipeline schema; parser; DAG validator,未知模块/端口/单位/环/producer冲突均拒绝; golden tests,PASS
-CORE-005,G2,实现RunContext服务接口,CORE-001;CORE-002;ARCH-001,Linux,architecture,no,yes,logger metrics budgets artifact cancellation checkpoint backend,模块只能通过context访问服务; mock tests,IN_PROGRESS
-CORE-006,G2,实现统一DAG调度与线程租约,CORE-004;CORE-005,Linux,architecture,yes,yes,runtime scheduler; bounded queues; leases; backpressure,2核合成DAG并发; 无过订阅; 取消/失败传播; resource trace,NOT_STARTED
+CORE-005,G2,实现RunContext服务接口,CORE-001;CORE-002;ARCH-001,Linux,architecture,no,yes,logger metrics budgets artifact cancellation checkpoint backend,模块只能通过context访问服务; mock tests,PASS
+CORE-006,G2,实现统一DAG调度与线程租约,CORE-004;CORE-005,Linux,architecture,yes,yes,runtime scheduler; bounded queues; leases; backpressure,2核合成DAG并发; 无过订阅; 取消/失败传播; resource trace,IN_PROGRESS
 CORE-007,G2,实现checkpoint与幂等恢复,CORE-002;CORE-006,Linux,architecture,no,yes,checkpoint store; artifact commit boundary,故障注入后只重跑未提交节点; 不接受半成品,NOT_STARTED
 CORE-008,G2,实现结构化日志指标运行trace,CORE-005;CORE-006,Linux,architecture,no,yes,JSONL events; metrics; run identity,stdout/stderr隔离; schema valid; 静态图可与trace比较,NOT_STARTED
 IO-001,G3,建立I/O和ArtifactStore接口,CORE-002;CORE-005;BLD-001,Linux,architecture,no,yes,fits/hips adapters; artifact transaction,I/O不含pipeline; atomic write; fault injection tests,NOT_STARTED

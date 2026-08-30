@@ -18,3 +18,8 @@ add_executable(core_pipeline_test core_pipeline_test.cpp)
 target_include_directories(core_pipeline_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(core_pipeline_test PRIVATE astrocs_core)
 add_test(NAME core_pipeline COMMAND core_pipeline_test)
+
+add_executable(core_context_test core_context_test.cpp)
+target_include_directories(core_context_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(core_context_test PRIVATE astrocs_core)
+add_test(NAME core_context COMMAND core_context_test)
