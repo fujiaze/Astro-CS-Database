@@ -91,10 +91,10 @@ set(HISS_SRCS
 set_property(SOURCE ${HISS_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS};-DAIO_ENABLE_HEALPIX")
 set_property(SOURCE ${HISS_SRCS} PROPERTY INCLUDE_DIRECTORIES
   "${AIO_DIR}/include;${AIO_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix;${CMAKE_CURRENT_SOURCE_DIR}/../include;${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
-set_property(SOURCE ${P2_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS}")
+# QA-001: P2 生产源已去 -w 抑制 (警告清零)
 # sampler.cpp 用 C++ try/catch(...)/EHa 捕获结构化异常(原 __try/__except, MSVC 禁与对象展开混用)
 if(MSVC)
-  set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/sampler.cpp PROPERTIES COMPILE_OPTIONS "/EHa;${ACS_WARN_SUPPRESS}")
+  set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/src/sampler.cpp PROPERTIES COMPILE_OPTIONS "/EHa")
 endif()
 set_property(SOURCE ${P2_SRCS} PROPERTY INCLUDE_DIRECTORIES
   "${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/acr/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/acr;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/third_party/cfitsio;${CMAKE_CURRENT_SOURCE_DIR}/../lib/acr/backends/cuda/bridge;${CMAKE_CURRENT_SOURCE_DIR}/../include;${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
@@ -105,7 +105,7 @@ else()
   set_source_files_properties(${CAL_SRCS} PROPERTIES COMPILE_OPTIONS "-fopenmp")
 endif()
 file(GLOB P3_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/*.cpp)
-set_property(SOURCE ${P3_SRCS} PROPERTY COMPILE_OPTIONS "${ACS_WARN_SUPPRESS}")
+# QA-001: P3 生产源已去 -w 抑制 (警告清零)
 set_property(SOURCE ${P3_SRCS} APPEND PROPERTY INCLUDE_DIRECTORIES
   "${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix;${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/third_party/cfitsio;${CMAKE_CURRENT_SOURCE_DIR}/../include;${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
 add_executable(astrocs main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto/sha256.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/cpu_features.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/hardware_inspect.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/backend_loader.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/bench_harness.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/profile_gen.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/baseline_backend.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/host_services.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase1_session/p1_session.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2_session/p2_session.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/p3_session.cpp ${P3_SRCS} ${P2_SRCS} ${AIO_SRCS} ${CFITSIO_SRCS} ${CAL_SRCS} ${DRIZZLE_SRCS} ${HISS_SRCS} ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h)
