@@ -1,0 +1,62 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "SCI-001",
+  "status": "PASS",
+  "start_commit": "0f78c1115ac470a8f7248dd503f5ff30a0999267",
+  "source_commit": "0f78c1115ac470a8f7248dd503f5ff30a0999267",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "science",
+  "science_changed": false,
+  "files_changed": [
+    "docs/review/SCIENCE_OVERVIEW.md",
+    "evidence/refactor/tasks/SCI-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/SCI-001/logs/c01.log",
+    "evidence/refactor/tasks/SCI-001/logs/c02.log",
+    "evidence/refactor/tasks/SCI-001/logs/c03.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "1a05d5943224dd70dbc8983b21b32c393365fd70742b88c5860fcdfb368a1c15"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "6c5085b7fa9a2e42d3694570d8954b89a1c2be080fbcea3b302356e9bc695241"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "c2a488086de5be27728474a8f0275276ab97154fb010d95cd0446f95ae383c7d"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-P1-FROZEN",
+      "description": "6 份 Phase1 科学文档均标 FROZEN 且含公式/单位/不变量/Oracle",
+      "result": "PASS"
+    },
+    {
+      "id": "T-FAIL-SEMANTICS",
+      "description": "PlateSolve/Photometry/Noise/Drizzle 失败语义均有明确记录",
+      "result": "PASS"
+    },
+    {
+      "id": "T-OWNER-SUMMARY",
+      "description": "L0 SCIENCE_OVERVIEW.md 生成(Phase1 摘要含公式/单位/不变量/失败语义)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "frozen_docs": 6,
+    "overview_lines": 76
+  },
+  "findings": [
+    "现有 Phase1 科学合同已冻结且完整(公式/单位/假设/边界/不变量/Oracle/失败语义); SCI-001 确认冻结现状, 未修改任何公式与代码; owner 摘要已生成于 docs/review/SCIENCE_OVERVIEW.md"
+  ],
+  "created_utc": "2026-08-30T15:36:41Z"
+}
