@@ -1,0 +1,75 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "SCI-002",
+  "status": "PASS",
+  "start_commit": "7b43ed1c7f1598a11a9a65bd55a63ebb7269aa0f",
+  "source_commit": "7b43ed1c7f1598a11a9a65bd55a63ebb7269aa0f",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "science",
+  "science_changed": false,
+  "files_changed": [
+    "evidence/refactor/tasks/SCI-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/SCI-002/logs/c01.log",
+    "evidence/refactor/tasks/SCI-002/logs/c02.log",
+    "evidence/refactor/tasks/SCI-002/logs/c03.log",
+    "evidence/refactor/tasks/SCI-002/logs/c04.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "47ec9259ce094356db9074368c576ebcf563d7bf7aac52166e6883ac42fea987"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "d7699ba5e3b6274886253c10f29f5e9cef6835f72515a0174a0c9a4fa729cbcb"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "5fb7c9a9416b1ae616a1397b4a57438c3ba36d119a43aea4f59fedaa1a5f0dcc"
+    },
+    {
+      "command_id": "c04",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "c4f677b1672071836c0e10be870221dbda8f2f841a117bb89f6feaaf19ec8e99"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-P2-FROZEN",
+      "description": "4 份 Phase2 科学文档均标 FROZEN",
+      "result": "PASS"
+    },
+    {
+      "id": "T-UPM",
+      "description": "UPM 合同: 加性模型/gauge/control_ivar/k_corr 完整",
+      "result": "PASS"
+    },
+    {
+      "id": "T-REJ",
+      "description": "Rejection 合同: nominal n 路由/percentile/winsorized/linear_fit/reason 完整",
+      "result": "PASS"
+    },
+    {
+      "id": "T-INT",
+      "description": "Integration 合同: weight/variance/support/INVALID_INPUT 完整",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "p2_frozen_docs": 4,
+    "upm_hits": 20,
+    "rej_nominal_n_hits": 3,
+    "int_hits": 40
+  },
+  "findings": [
+    "现有 Phase2 科学合同已冻结且完整(UPM 加性+权重分离+接缝指标预冻结; rejection 每方法适用条件/统计量/确定性路由; integration 权重单位/support/失败语义); SCI-002 确认冻结现状, 未修改公式与代码; SCIENCE_OVERVIEW.md 已含 Phase2 摘要"
+  ],
+  "created_utc": "2026-08-30T15:37:27Z"
+}
