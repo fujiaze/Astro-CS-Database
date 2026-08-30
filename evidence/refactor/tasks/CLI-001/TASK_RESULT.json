@@ -1,0 +1,65 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CLI-001",
+  "status": "PASS",
+  "start_commit": "d3f0b37abd8ad9f649485140ecccf48f383dd011",
+  "source_commit": "d3f0b37abd8ad9f649485140ecccf48f383dd011",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "docs/refactor/CLI_COMMAND_LAYER.md",
+    "tools/check_cli_command_layer.py",
+    "evidence/refactor/tasks/CLI-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/CLI-001/logs/c01.log",
+    "evidence/refactor/tasks/CLI-001/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "f43066ff37a4bf2490dcf9c8bf92a36688e2e1e1607ca5fc66d320803d52eae7"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "843b868661f6fc0c2a988d0867f0a1ea9ca28826bff0e1eff29352eef12f4040"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-KRULES",
+      "description": "CmdRule kRules[] 表驱动分发 (15 唯一路径, 无 argv 硬编码 if 链)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-UNIFORM",
+      "description": "7 个 cmd_* 签名统一 (Parsed + JsonlEmitter)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-EXITS",
+      "description": "--version 0.10.0-alpha.1+g<commit> + --help 规则表 (exit 0)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-EXIT-CODES",
+      "description": "退出码来源 exit_codes.h 单一来源",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "cmd_functions": 7,
+    "rule_paths": 15,
+    "stable_exits": [
+      "--version",
+      "--help"
+    ]
+  },
+  "findings": [
+    "CLI-001: CLI 稳定 command 层确认(kRules 表驱动 15 路径/7 cmd_* 统一签名/稳定出口 version+help/退出码单一来源); --version 0.10.0-alpha.1+g<commit> 实测; 单体拆分以规则表+命令函数为稳定边界"
+  ],
+  "created_utc": "2026-08-30T17:36:47Z"
+}
