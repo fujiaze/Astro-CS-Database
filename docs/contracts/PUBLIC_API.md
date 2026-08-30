@@ -51,7 +51,7 @@
 
 ## 工具/CLI
 
-- `astrocs-stage2.exe <config.json>`（Phase2 唯一生产入口）。
+- `astrocs-stage2.exe <config.json>`（**V5 遗留, LEG-004 已退出生产**；当前生产入口 = `astrocs phase2 run` / `astrocs run --phases` preset）。
 - `orchestrator.exe <stage1.json>`（**V5 遗留, LEG-002 已退出生产**；当前生产入口 = `astrocs phase1 run` / `astrocs run --phases` preset）。
 - `healpix_browser_qt.exe`（HiPS 浏览器；`--hips/--standard-hips/--view/
   --screenshot/--lod/--exit`）。
