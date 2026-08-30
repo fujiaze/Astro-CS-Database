@@ -41,6 +41,20 @@ def main():
                              if "orchestrator.exe" in (REPO / "docs" / "contracts" / "PUBLIC_API.md").read_text(encoding="utf-8", errors="ignore")
                              and "LEG-002" not in (REPO / "docs" / "contracts" / "PUBLIC_API.md").read_text(encoding="utf-8", errors="ignore")
                              else []))
+    # LEG-003: AIO PipelineEngine 调度职责 (engine run API 无生产 caller;
+    # frame 数据结构 API 保留供 CLI drizzle 测试 wrapper 用)
+    eng_h = (REPO / "lib" / "astro_image_io" / "include" / "aio_pipeline_engine.h").read_text(encoding="utf-8", errors="ignore")
+    engine_run_decl = ("aio_pipeline_engine_run_single" in eng_h or
+                       "aio_pipeline_engine_run_batch" in eng_h)
+    caller_files = []
+    for root in (REPO / "lib", REPO / "cli"):
+        for f in root.rglob("*.cpp"):
+            if "aio_pipeline_engine.cpp" in str(f): continue
+            txt = f.read_text(encoding="utf-8", errors="ignore")
+            if "aio_pipeline_engine_run" in txt:
+                caller_files.append(str(f.relative_to(REPO)))
+    if engine_run_decl and caller_files:
+        errors.append(f"PipelineEngine run API has callers: {caller_files} (LEG-003)")
     if errors:
         print("LEGACY_EXIT_VIOLATION:")
         for e in errors: print("  " + e)
