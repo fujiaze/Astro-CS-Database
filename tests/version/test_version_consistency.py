@@ -45,7 +45,7 @@ class TestVersionContract(unittest.TestCase):
         schema = json.load(open(os.path.join(REPO, "schemas", "version.schema.json"), encoding="utf-8"))
         rep = gen_version.build_report(commit="0123456789ab" * 3, dirty=False)
         self.assertIsNone(validate_schema(rep, schema), "gen_version 输出必须符合 version.schema.json")
-        self.assertTrue(rep["version"].startswith("0.9.0-alpha.1+g0123456789ab"))
+        self.assertTrue(rep["version"].startswith("0.10.0-alpha.1+g0123456789ab"))
         self.assertNotIn(".dirty", rep["version"])
 
     def test_02_dirty_suffix(self):
@@ -74,13 +74,13 @@ class TestVersionContract(unittest.TestCase):
             forged = os.path.join(td, "docs", "FORGED.md")
             open(forged, "w").write("发布版本: 1.2.3 正式版\n")
             errs = []
-            m.check_file(forged, "0.9.0", 1, errs)
+            m.check_file(forged, "0.10.0", 1, errs)
             self.assertTrue(any("1.2.3" in e for e in errs), f"伪造版本必须被抓: {errs}")
             # 对照: 当前唯一源不被误报
             ok_doc = os.path.join(td, "docs", "OK.md")
-            open(ok_doc, "w").write("当前版本 0.9.0-alpha.1\n")
+            open(ok_doc, "w").write("当前版本 0.10.0-alpha.1\n")
             errs2 = []
-            m.check_file(ok_doc, "0.9.0", 1, errs2)
+            m.check_file(ok_doc, "0.10.0", 1, errs2)
             self.assertEqual(errs2, [])
 
 if __name__ == "__main__":

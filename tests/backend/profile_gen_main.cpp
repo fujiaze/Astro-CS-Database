@@ -13,7 +13,7 @@ std::string arg_of(int argc, char** argv, const std::string& key, const std::str
 int main(int argc, char** argv) {
     const std::string out = arg_of(argc, argv, "--out");
     const std::string mode = arg_of(argc, argv, "--mode", "quick");
-    const std::string version = arg_of(argc, argv, "--version", "0.9.0-alpha.1");
+    const std::string version = arg_of(argc, argv, "--version", "0.10.0-alpha.1");
     const std::string commit = arg_of(argc, argv, "--commit", "0");
     const std::string bsha = arg_of(argc, argv, "--backend-sha", "0");
     if (out.empty()) return 2;

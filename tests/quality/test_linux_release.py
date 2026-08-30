@@ -93,7 +93,7 @@ class TestLinuxRelease(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn('"verdict": "PASS"', r.stdout, "解包后 doctor must PASS")
         v = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=30)
-        self.assertIn("astrocs 0.9.0", v.stdout, "解包后 --version 可运行")
+        self.assertIn("astrocs 0.10.0", v.stdout, "解包后 --version 可运行")
 
 
 def json_load(path):
