@@ -21,21 +21,18 @@ Fatduck `astrocs.exe` `0.9.0-alpha.1+gb842899eb8fb`(doctor PASS, 内置生产 Dr
 - sampler 日志: `enter n_union=2 grid=8 n_frames=1 target_order=2`, `first tile 112 probe`, 但 **`obs=0 overlap_controls=0`**。
 - `upm_build rc=1` → `phase2_failed`(exit_code=3)。
 
-### 根因分析(已定位到 sampler)
-`obs=0` 源于 sampler(phase2/src/sampler.cpp)经 `p2_frame_id(hips_path)`(line 316)用 `aio_hips_open(hips_path, AIO_HIPS_RD_SIGNAL)` + `aio_hips_get_properties` 读 **信号 properties**, 取 `creator_did/obs_title/obs_filter/obs_exptime/obs_date/hips_order/hips_pixel_scale/moc_sky_fraction` 等键。
-**实测发现(已确认)**:
-- drizzle 把这些 obs_* 键写到 **`support/properties`**(creator_did=ivo://astrocs/phase1, obs_title=AstroCS Phase1, hips_order=2, hips_pixel_scale=103.06, moc_sky_fraction=0.010417, hips_release_date=2026-08-30 …)。
-- 但 **`signal/properties` 只有** hips_pixel_scale/hips_initial_fov/moc_sky_fraction/astrocs_* /hips_data_range, **缺失 creator_did/obs_title/obs_filter/obs_exptime/obs_date/hips_order/hips_release_date**。
-- 而 `p2_frame_id` 读的是 **signal** properties(缺这些键) → 帧观测身份为空 → sample `obs=0`。
-**这就是 drizzle→phase2 观测链路 metadata 不匹配的根因**(不是基础设施失败, 是 properties 写入/读取端不匹配)。
+### 根因分析(已定位到 sampler, 修正)
+phase2 实跑 `sample ok: obs=0 overlap_controls=0`。经查 `p2_sample_controls`(sampler.cpp):
+- `n_frames = coverage->n_inputs` = 1(单个合并 HiPS)。
+- `p2_frame_id(path)` 返回**有效非零 frame_id**(未触发 `"frame_id 0 invalid"` 错误), 故**不是** properties 缺失直接导致 obs=0(先前记录以 frame_id 判定的观测身份是通的)。
+- `obs=0` 来自**后续 cell 接受门限**: 对单个合并 HiPS 帧跑 `pass1_cell`/catalog veto/`rejected_insufficient_support`/`min_samples` 等接受判据, 该单帧 coadd 产物在采样网格里没有产生被**接受的 control observation cell**(可能因 6 帧 coadd 成一帧、SNR/support/catalog veto 不满足, 或单帧无有效邻域)。
+- **关键**: phase2 的观测模型是「每观测=独立 HiPS 帧」; 把 6 帧 coadd 成单一 HiPS 后 phase2 只看到 1 个观测, 而该观测未通过采样接受判据 → obs=0, 且无 overlap_controls。
 
 ### 修复方向(win-006/008)
-- **让 drizzle 把 obs_* 观测 provenance 同时写入 `signal/properties`**(aio_hips_writer/drizzle 的 properties 段), 使 `p2_frame_id` 读 signal properties 能取到帧观测身份; 或
-- 让 phase2/sampler 改读 `support/properties`(已含 obs_*); 或
-- 以逐帧单独 HiPS 作为 phase2 多个 `hips_paths` 输入; 或
+- **逐帧独立 HiPS 作多个 `hips_paths` 输入**(每帧=每个观测, 最符合 phase2 观测模型; 6 帧 → n_inputs=6), 或
+- 逐个 cell 调高 `min_samples`/放宽 veto(需科学验证); 或
 - 明确 phase2 `upm`/投影/STF 配置后重试。
-
-> 现状: phase1(6帧, exit0) + drizzle(→366781 HEALPix→完整HiPS, exit0) **PASS**; phase2 UPM(obs=0) **blocker**, 记录不宣称 PASS。
+> 更可能正解: **drizzle 每帧单独 HiPS + phase2 用多个 hips_paths**, 使 phase2 看到 6 个独立观测并形成 overlap_controls = 32R/接缝的前提。
 
 ## 5. 结论
 - production 链在真实银心数据上 phase1+drizzle 全通(核心场景达成)。
