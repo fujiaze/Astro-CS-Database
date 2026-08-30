@@ -1,0 +1,75 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CPU-005",
+  "status": "PASS",
+  "start_commit": "4560aaf9cdae9e6d0c83ba07a0a41d666c5ad840",
+  "source_commit": "4560aaf9cdae9e6d0c83ba07a0a41d666c5ad840",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/cpu_fallback_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/CPU-005/TASK_RESULT.json",
+    "evidence/refactor/tasks/CPU-005/logs/c01.log",
+    "evidence/refactor/tasks/CPU-005/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "log_sha256": "89910056c1e432ba0b83f6f33507640215f38323d05de964d02090efeb45314b"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "cc79950c8227970fa0b43de3f372c85ad2b48e68173c1bfdeeeb51bd612bbca1"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-CORRUPT",
+      "description": "损坏 provider(sha256 不匹配)→FALLBACK_BASELINE",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ABI-MISMATCH",
+      "description": "abi_version 非法→拒(不猜布局)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-MISSING",
+      "description": "缺 kernel/文件→FALLBACK_BASELINE",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PATH-INJECT",
+      "description": "路径注入(../, 盘符)→REJECT_SECURITY",
+      "result": "PASS"
+    },
+    {
+      "id": "T-MANIFEST",
+      "description": "伪造 manifest 结构非法→err 非空不猜",
+      "result": "PASS"
+    },
+    {
+      "id": "T-FAKE-REQUIRED",
+      "description": "伪造 required feature→降级 baseline",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "decision_paths": [
+      "OK",
+      "FALLBACK_BASELINE",
+      "REJECT_SECURITY"
+    ],
+    "checks": 7
+  },
+  "findings": [
+    "CPU-005: backend 预检六查(裸文件名/ABI/文件存在/sha256/feature 匹配)+manifest 解析全部经负测试验证; 损坏 provider/ABI mismatch/缺文件/路径注入/伪造 manifest/伪造 required 均优雅降级或安全拒绝; baseline required=0 永不 REJECT"
+  ],
+  "created_utc": "2026-08-30T16:40:46Z"
+}
