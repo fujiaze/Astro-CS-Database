@@ -1,0 +1,67 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "REL-002",
+  "status": "PASS",
+  "start_commit": "1c7da8de71a6f679f3053e6cc249f36fddb879e6",
+  "source_commit": "1c7da8de71a6f679f3053e6cc249f36fddb879e6",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "release",
+  "science_changed": false,
+  "files_changed": [
+    "docs/contracts/PUBLIC_API.md",
+    "tools/check_final_traceability.py",
+    "evidence/refactor/tasks/REL-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/REL-002/logs/c01.log",
+    "evidence/refactor/tasks/REL-002/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "4af4ac8a3be72b6f917f654761e6c175434587cbcdbc62aaf28e78e2b0c41fdb"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "a9af9dbd0e0d55b153dddc21baec35021bbd385ee5484bcd496c4a9db8a33518"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-TRACE-66",
+      "description": "六层追溯 66 claims 全链 PASS",
+      "result": "PASS"
+    },
+    {
+      "id": "T-LEGACY-ENTRY",
+      "description": "旧入口 orchestrator/stage2 全标 LEG 退出 (行级检查)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-VERSION",
+      "description": "VERSION 单源 0.10.0-alpha.1; 无旧版本残留入口",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PHASE3-REAL",
+      "description": "phase3 非假状态 (p3_wcs/resample/output 真实实现)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-RELEASE-STATUS",
+      "description": "RELEASE_STATUS 诚实 (无'基本'模糊词; 未过项标 NOT VERIFIED)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "trace_claims": 66,
+    "legacy_marked": 2,
+    "version": "0.10.0-alpha.1"
+  },
+  "findings": [
+    "REL-002: 最终追溯校验(66 claims 全链); 旧入口扫描(astrocs-stage2.exe 补标 LEG-004 退出); VERSION 单源; phase3 真实实现(非假状态); RELEASE_STATUS 诚实无模糊词"
+  ],
+  "created_utc": "2026-08-30T17:57:57Z"
+}
