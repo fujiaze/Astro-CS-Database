@@ -1,0 +1,60 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "DOC-005",
+  "status": "PASS",
+  "start_commit": "cda2898b35d6e542a511eae56bfad9f08dba8cc0",
+  "source_commit": "cda2898b35d6e542a511eae56bfad9f08dba8cc0",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "documentation",
+  "science_changed": false,
+  "files_changed": [
+    "tools/check_pipeline_trace.py",
+    "evidence/refactor/tasks/DOC-005/TASK_RESULT.json",
+    "evidence/refactor/tasks/DOC-005/logs/c01.log",
+    "evidence/refactor/tasks/DOC-005/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "9aeaea16c7491f8fe234d17bae242ae61de29aa8a6de6487e66804c38c2cf460"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "98c435dcfaf58e39a388427242944d62269786d5f91a76520a41ac3f0c36793e"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-P1-TRACE",
+      "description": "p1_session 静态节点(io_read/calibrate/cosmetic/io_write)与运行 trace 一致",
+      "result": "PASS"
+    },
+    {
+      "id": "T-P2-TRACE",
+      "description": "p2_session 静态节点(coverage/sample/upm_build/persist)与运行 trace 一致",
+      "result": "PASS"
+    },
+    {
+      "id": "T-P3-TRACE",
+      "description": "p3_session 单阶段(output)语义成立",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CONTRACT-GRAPH",
+      "description": "check_contract_graph 可运行 (合同图一致性)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "sessions": 3,
+    "trace_check": "manifest stages vs 静态节点集"
+  },
+  "findings": [
+    "DOC-005: 静态 Pipeline 图与运行 trace 一致性检查器(3 session: p1 4 节点/p2 4 节点/p3 单阶段 output); 运行 manifest stages 逐项对照静态节点集; check_contract_graph 合同图一致性可运行"
+  ],
+  "created_utc": "2026-08-30T17:54:23Z"
+}
