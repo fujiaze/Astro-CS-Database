@@ -23,3 +23,8 @@ add_executable(core_context_test core_context_test.cpp)
 target_include_directories(core_context_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(core_context_test PRIVATE astrocs_core)
 add_test(NAME core_context COMMAND core_context_test)
+
+add_executable(core_scheduler_test core_scheduler_test.cpp)
+target_include_directories(core_scheduler_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(core_scheduler_test PRIVATE astrocs_core)
+add_test(NAME core_scheduler COMMAND core_scheduler_test)
