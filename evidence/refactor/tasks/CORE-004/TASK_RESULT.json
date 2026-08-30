@@ -1,0 +1,54 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CORE-004",
+  "status": "PASS",
+  "start_commit": "e29aae750df675b8103675ce194ecce93227a194",
+  "source_commit": "e29aae750df675b8103675ce194ecce93227a194",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "include/astrocs/core/pipeline.h",
+    "lib/core/src/pipeline.cpp",
+    "tests/unit/core_pipeline_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/CORE-004/TASK_RESULT.json",
+    "evidence/refactor/tasks/CORE-004/logs/c01.log",
+    "evidence/refactor/tasks/CORE-004/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "1f9b969f2d07b8e837dba7bb507a4fa9fe6c23d9dfc608516ee84791a7807d65"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "80650047edb4f49af54f770053d0d036234ed6c59f05d4750015a248fa698a1a"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-UNIT",
+      "description": "core_pipeline_test 7 组 PASS (parse valid/serial-heavy 拒/bad schema/unknown module/cycle/duplicate producer/控制包 fixtures)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-FIXTURES",
+      "description": "控制包 valid_pipeline PASS + invalid_serial_heavy 拒",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "tests": 7,
+    "ir_error_kinds": 9
+  },
+  "findings": [
+    "CORE-004 实现 Pipeline IR 解析(自研最小 JSON 解析器, 无外部依赖) + 静态验证: 未知模块/重复 producer/环/未消费产物/cpu_heavy 串行拒; 控制包 fixtures 全过"
+  ],
+  "created_utc": "2026-08-30T16:13:18Z"
+}
