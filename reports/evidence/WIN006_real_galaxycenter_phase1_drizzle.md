@@ -39,6 +39,13 @@ phase2 实跑 `sample ok: obs=0 overlap_controls=0`。经查 `p2_sample_controls
 - 但下一档 blocker: **`coverage_build rc=1`**(phase2 首阶段 coverage)。6 个逐帧 nside=256 HiPS 的 MOC union 失败(单帧 4500×3600 只覆盖一小块, 逐帧 MOC 过小/分布散, coverage_build 无法 union)。
 - 说明: 逐帧结构解决了「观测模型=每帧一 HiPS」的 obs=0, 但**帧间 MOC union/覆盖连续性**是新问题(需覆盖重叠/更大 nside, 或 coverage_build 对稀疏帧的处理)。
 
+### ✅ 突破: 逐帧 nside=2048 → phase2 全链 PASS(当前SHA b842899)
+- 逐帧 drizzle **nside=2048**(每帧独立 HiPS, 匹配正常 tile_width=512/hierarchy), 6 个 `hips_paths` → phase2 全链:
+  - `stage sample ok: obs=96 overlap_controls=42`(96 观测 / 42 重叠控制 → UPM 有足够 overlap 可解)。
+  - **`{"exit_code":0,"status":"ok","summary":"phase2 complete"}`**, run_id `84e1b6de317b`, manifest `status:"complete"`, `n_inputs=6, n_obs=96`, sha256 `98441aa3bed...`。
+- **结论**: WIN-006 代表链路(phase1→逐帧 drizzle→phase2)在真实银心数据上**全链打通**。前提=逐帧 nside=2048 独立 HiPS 作多个 `hips_paths`(而非单帧 coadd)。
+- 注意: 本次 phase2 未 `persist_upm`(默认 false), 故仅落 manifest, UPM 模型未落盘。WIN-008 需 persist UPM + phase3 + seam/flux/coverage + 资源/内存门控。
+
 ### 结论(阶段)
 - phase1(6帧,exit0) + drizzle(→完整HiPS,exit0) **PASS**; phase2 在逐帧结构下推进到 coverage_build, 但 `coverage_build rc=1` 为新 blocker。记录不宣称 PASS/release。
 
