@@ -1,11 +1,11 @@
 {
  "schema_version": 1,
  "version": "0.9.0-alpha.1",
- "commit": "8e7c7a3a992b2862ac359ceaf2011d6295c6538a",
+ "commit": "b1bfee5a0afa5487f9bdcd37ce0e628c6e5ba829",
  "verdict": "RELEASE_NOT_READY_BLOCKED",
  "blockers": [
-  "WIN-006: phase2/3 真实数据链缺生产 HIPS 构建命令(详见 reports/evidence/WIN006_verification.md)",
-  "PAR-002: (见 FINDINGS/blocker 记录)"
+  "WIN-006: CLI 生产 Drizzle→HiPS 直链已打通(drizzle 子命令, 合成帧+oracle 复验 PASS, 见 WIN006_drizzle_hips_verification.md); phase2/3 真实数据/32R 与 Windows 链仍待 Fatduck 完成",
+  "PAR-002: (见 FINDINGS/blocker 记录; cfitsio 并发读 SIGSEGV 库级缺陷→g_aio_mu 串行化, N-worker 加速待真实数据)"
  ],
  "windows_32r_run_id": "",
  "task_counts": {

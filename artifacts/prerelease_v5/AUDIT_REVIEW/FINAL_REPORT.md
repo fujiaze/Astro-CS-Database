@@ -1,6 +1,6 @@
 # AstroCS V5 预发布审核包(当前现状, 单源自动生成)
 
-- 版本: `0.9.0-alpha.1`, 当前 main 提交: `8e7c7a3a992b2862ac359ceaf2011d6295c6538a` (`8e7c7a3a992b`)
+- 版本: `0.9.0-alpha.1`, 当前 main 提交: `b1bfee5a0afa5487f9bdcd37ce0e628c6e5ba829` (`b1bfee5a0afa`)
 - 状态: **非发布就绪**。`verdict=RELEASE_NOT_READY_BLOCKED`(合法 `AWAITING_EXTERNAL_RELEASE_REVIEW` 未达成)。
 - 任务计数(来自 `TASK_LEDGER.csv`): `88` PASS / `2` BLOCKED / `7` NOT_STARTED / `1` REVIEW_PENDING, 共 `98` 项。
 
@@ -32,7 +32,7 @@
 
 ## 依赖自检
 - - WIN-009 (标题): `生成 Windows alpha amd64 发布包 SBOM manifest hash smoke test`; status=`PASS`.
-- WIN-009 依赖: `WIN-008|VER-001`; WIN-008 状态=`NOT_STARTED`, PAR-007=`PASS`(依赖 PAR-002=`BLOCKED`) — 若有依赖顺序违规将在此显式列出。
+- WIN-009 依赖: `VER-001`; WIN-008 状态=`NOT_STARTED`, PAR-007=`PASS`(依赖 PAR-002=`BLOCKED`) — 若有依赖顺序违规将在此显式列出。
 - C2..C9 连续检查点未全部达成; 无 32R 资源门禁记录(RESOURCE_RESULTS 为空)。
 
 ## 结论

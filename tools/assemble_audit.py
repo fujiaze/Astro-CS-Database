@@ -145,8 +145,8 @@ def main() -> int:
         "version": base,
         "commit": commit,
         "verdict": "RELEASE_NOT_READY_BLOCKED",
-        "blockers": ["WIN-006: phase2/3 真实数据链缺生产 HIPS 构建命令(详见 reports/evidence/WIN006_verification.md)",
-                     "PAR-002: (见 FINDINGS/blocker 记录)"],
+        "blockers": ["WIN-006: CLI 生产 Drizzle→HiPS 直链已打通(drizzle 子命令, 合成帧+oracle 复验 PASS, 见 WIN006_drizzle_hips_verification.md); phase2/3 真实数据/32R 与 Windows 链仍待 Fatduck 完成",
+                     "PAR-002: (见 FINDINGS/blocker 记录; cfitsio 并发读 SIGSEGV 库级缺陷→g_aio_mu 串行化, N-worker 加速待真实数据)"],
         "windows_32r_run_id": "",
         "task_counts": dict(sorted(tc.items())),
         "finding_counts": cc(SRC / "FINDINGS.csv", "severity"),
@@ -218,7 +218,8 @@ def main() -> int:
     copy_(CP / "13_ALPHA_VERSION_AND_PHASE3.md", SRC / "control" / "13_ALPHA_VERSION_AND_PHASE3.md")
     for f in ["WIN004_verification.md", "WIN005_verification.md", "WIN006_verification.md",
               "WIN009_verification.md", "LINUX_ALPHA_SUITE_verification.md",
-              "PAR002_blocker.md", "AUDIT_PACKAGE_SUMMARY.md"]:
+              "PAR002_blocker.md", "AUDIT_PACKAGE_SUMMARY.md",
+              "WIN006_drizzle_hips_verification.md", "AUDIT_DEPENDENCY_RECONCILE.md"]:
         p = REPO / "reports/evidence" / f
         if p.exists():
             copy_(p, SRC / "reports" / "evidence" / f)
