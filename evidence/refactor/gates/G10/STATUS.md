@@ -20,3 +20,9 @@ REL/G11 的 Linux 侧可验项继续。
 - WIN-001 Windows在线探测与MSVC构建 / WIN-002 CPU benchmark与provider / WIN-003 合成科学与资源
 - WIN-004 少量真实代表帧 / WIN-005 银心32R最终一次全链 / WIN-006 HiPS与Phase3视觉技术证据
 - 全部 WAITING_WINDOWS (Fatduck 离线); Linux 侧已完成 (G9 PASS)。
+
+## 最终审核包 (2026-08-31, HEAD b16d422)
+- dist/audit/astrocs_audit_20260830T183323Z.tar.gz — 568 files, VALIDATE_OK, SHA 137e3ed1...
+- 含全部 L0-L3 文档/证据/检查器; 无 .git/build/testdata。
+- 视觉视图: dist/visual_views/ (6 视图, REL-004)。
+- 待负责人: 视觉审核 + G10 Windows 恢复。
