@@ -144,3 +144,9 @@ target_include_directories(p1_nside_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_session)
 target_link_libraries(p1_nside_test PRIVATE astrocs_common astrocs_phase3_session astrocs_hips astrocs_contracts)
 add_test(NAME p1_nside COMMAND p1_nside_test)
+
+add_executable(p1_hips_writer_test p1_hips_writer_test.cpp)
+target_include_directories(p1_hips_writer_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include)
+target_link_libraries(p1_hips_writer_test PRIVATE astrocs_hips astrocs_aio)
+add_test(NAME p1_hips_writer COMMAND p1_hips_writer_test)
