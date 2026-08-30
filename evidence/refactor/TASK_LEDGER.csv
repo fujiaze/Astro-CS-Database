@@ -34,8 +34,8 @@ CPU-006,G3,实现代表性benchmark,CPU-002;CPU-003;CPU-004;CPU-005,Linux+Window
 CPU-007,G3,实现机器profile与失效策略,CPU-006;CORE-005,Linux+Windows,architecture,no,yes,profile schema; signature; selection; fallback,硬件/OS/build不匹配自动失效; 未benchmark回baseline并诊断,PASS
 CPU-008,G3,实现统一资源监测与硬门,CORE-008;CPU-005,Linux+Windows,performance,yes,yes,CPU threads memory IO waits timeline; gate evaluator,每重计算自动采集; 阈值失败不可静默PASS; JSON/CSV报告,PASS
 P1-001,G4,建立Phase1模块清单和adapter,CORE-003;CORE-004;IO-002;SCI-001,Linux,architecture,no,yes,map old symbols to module IDs and ports,无公式修改; 每旧入口有迁移归属; module descriptor valid,PASS
-P1-002,G4,迁移输入校准美容模块,P1-001;CORE-006;IO-001,Linux,architecture,yes,yes,read; calibration; cosmetic; write adapter,合成解析解; 负值保留; 单位/所有权; 串并行一致,IN_PROGRESS
-P1-003,G4,迁移Star与PSF模块,P1-001;CORE-006,Linux,architecture,yes,yes,star detection; PSF; de-duplication,analytic PSF fixture; centroid/FWHM tolerances; trace ports,NOT_STARTED
+P1-002,G4,迁移输入校准美容模块,P1-001;CORE-006;IO-001,Linux,architecture,yes,yes,read; calibration; cosmetic; write adapter,合成解析解; 负值保留; 单位/所有权; 串并行一致,PASS
+P1-003,G4,迁移Star与PSF模块,P1-001;CORE-006,Linux,architecture,yes,yes,star detection; PSF; de-duplication,analytic PSF fixture; centroid/FWHM tolerances; trace ports,IN_PROGRESS
 P1-004,G4,迁移PlateSolve与Photometry模块,P1-003;CORE-006,Linux,architecture,yes,yes,WCS solve; photometry; integration failure paths,WCS roundtrip; flux fixture; failure semantics; 无隐藏全局状态,NOT_STARTED
 P1-005,G4,迁移Noise与SNR模块,P1-002;P1-004;SCI-001,Linux,architecture,yes,yes,noise estimators; variance; ivar; SNR,单位与公式可追溯; Monte Carlo/analytic oracle; 极端输入,NOT_STARTED
 P1-006,G4,迁移NSIDE与Drizzle模块,P1-004;P1-005;CPU-007,Linux,architecture,yes,yes,nside planning; drizzle kernel; support/weight,能量/常数场/质心/RA wrap; FP64 accum; provider等价,NOT_STARTED
