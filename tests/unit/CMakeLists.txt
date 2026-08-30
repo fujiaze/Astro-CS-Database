@@ -1,2 +1,5 @@
 # CORE-*/IO-*/CPU-* 单元测试 (G2/G3 任务逐步加入)
-# 占位: 无测试时也合法; 每新增测试 target 显式列出
+add_executable(core_contracts_test core_contracts_test.cpp)
+target_include_directories(core_contracts_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(core_contracts_test PRIVATE astrocs_contracts)
+add_test(NAME core_contracts COMMAND core_contracts_test)
