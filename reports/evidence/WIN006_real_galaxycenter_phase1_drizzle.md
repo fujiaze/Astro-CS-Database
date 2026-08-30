@@ -22,10 +22,20 @@ Fatduck `astrocs.exe` `0.9.0-alpha.1+gb842899eb8fb`(doctor PASS, 内置生产 Dr
 - `upm_build rc=1` → `phase2_failed`(exit_code=3)。
 
 ### 根因分析(已定位到 sampler)
-`obs=0` 源于 sampler(phase2/src/sampler.cpp)经 `p2_frame_id(hips_path)`(line 316)从**每个 HiPS 的 `properties`/provenance** 构建 observation/frame。obs=0 说明 drizzle 产出的 HiPS **未携带 sampler 所需的逐帧观测/provenance 元数据**(`frame_drizzle_provenance` line 115 读 properties 时拿不到帧 WCS/观测信息)。属 **drizzle→phase2 观测链路线缺**: phase2 期待每观测一个 HiPS(含 properties 帧信息), 而 `drizzle` 合并输出单一 HiPS, 其 properties 未逐帧标记观测。 属 WIN-008 科学验证范畴, 需:
-- 让 drizzle 输出的 HiPS 携带逐帧观测 provenance(properties 写 帧WCS/obs)，或
-- 以单帧 HiPS 作为 phase2 的多个 `hips_paths` 输入, 或
+`obs=0` 源于 sampler(phase2/src/sampler.cpp)经 `p2_frame_id(hips_path)`(line 316)用 `aio_hips_open(hips_path, AIO_HIPS_RD_SIGNAL)` + `aio_hips_get_properties` 读 **信号 properties**, 取 `creator_did/obs_title/obs_filter/obs_exptime/obs_date/hips_order/hips_pixel_scale/moc_sky_fraction` 等键。
+**实测发现(已确认)**:
+- drizzle 把这些 obs_* 键写到 **`support/properties`**(creator_did=ivo://astrocs/phase1, obs_title=AstroCS Phase1, hips_order=2, hips_pixel_scale=103.06, moc_sky_fraction=0.010417, hips_release_date=2026-08-30 …)。
+- 但 **`signal/properties` 只有** hips_pixel_scale/hips_initial_fov/moc_sky_fraction/astrocs_* /hips_data_range, **缺失 creator_did/obs_title/obs_filter/obs_exptime/obs_date/hips_order/hips_release_date**。
+- 而 `p2_frame_id` 读的是 **signal** properties(缺这些键) → 帧观测身份为空 → sample `obs=0`。
+**这就是 drizzle→phase2 观测链路 metadata 不匹配的根因**(不是基础设施失败, 是 properties 写入/读取端不匹配)。
+
+### 修复方向(win-006/008)
+- **让 drizzle 把 obs_* 观测 provenance 同时写入 `signal/properties`**(aio_hips_writer/drizzle 的 properties 段), 使 `p2_frame_id` 读 signal properties 能取到帧观测身份; 或
+- 让 phase2/sampler 改读 `support/properties`(已含 obs_*); 或
+- 以逐帧单独 HiPS 作为 phase2 多个 `hips_paths` 输入; 或
 - 明确 phase2 `upm`/投影/STF 配置后重试。
+
+> 现状: phase1(6帧, exit0) + drizzle(→366781 HEALPix→完整HiPS, exit0) **PASS**; phase2 UPM(obs=0) **blocker**, 记录不宣称 PASS。
 
 ## 5. 结论
 - production 链在真实银心数据上 phase1+drizzle 全通(核心场景达成)。
