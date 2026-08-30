@@ -1,0 +1,10 @@
+entry,kind,cmake,binary,status,notes
+astrocs,EXEC,cli/CMakeLists.txt,build/gcc-release/astrocs,PRODUCTION,main() single entry; cmd_* handlers; drizzle direct path; links aio_pipeline_engine + ACR registry symbols
+orchestrator,EXEC,lib/orchestrator/cpp/Makefile,lib/orchestrator/cpp/orchestrator.exe,RETIRED_PER_DOCS,5405-line global scheduler; docs say superseded; exe still in repo; no CMake target
+astrocs-stage2,EXEC,lib/phase2/CMakeLists.txt,(buildable),RETIRED_PER_DOCS,old full Phase2 CLI with ACR; docs say retired; still buildable target
+calibrated_pair_diag,EXEC,lib/phase2/CMakeLists.txt,(buildable),TOOL,diagnostic tool
+rejection_cli,EXEC,lib/phase2/CMakeLists.txt,(buildable),TOOL,rejection diagnostic CLI
+healpix_browser_qt,EXEC,lib/healpix_db/healpix_browser_qt/CMakeLists.txt,(buildable),TOOL,"browser tool, not release target"
+browser_cli,EXEC,lib/healpix_db/healpix_browser_qt/CMakeLists.txt,(buildable),TOOL,browser CLI
+aio_pipeline_engine (in astrocs),OBJECT,cli/CMakeLists.txt HISS_SRCS,symbols in astrocs,PRODUCTION,5-stage scheduler compiled into production CLI
+ACR kernel registry (in astrocs),OBJECT,cli/CMakeLists.txt P2_SRCS,astro::compute::global_kernel_registry() in astrocs,PRODUCTION,ACR registry symbols reachable in production binary
