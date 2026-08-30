@@ -1,0 +1,34 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "LNX-005",
+  "status": "PASS",
+  "start_commit": "04a00e1145030f5f6530fcc5fed4f2a7cf9b0c70",
+  "source_commit": "04a00e1145030f5f6530fcc5fed4f2a7cf9b0c70",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "platform",
+  "science_changed": false,
+  "files_changed": [
+    "evidence/refactor/tasks/LNX-005/TASK_RESULT.json",
+    "evidence/refactor/tasks/LNX-005/logs/c01.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "6d994d064002b2bd433b7598bb5923bc7550337dd69592b27adfd6683b1c5a3a"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-MAIN",
+      "description": "doctor selftest ok + version 0.10.0-alpha.1",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {},
+  "findings": [
+    "LNX-005: doctor baseline selftest ok + version 0.10.0-alpha.1"
+  ],
+  "created_utc": "2026-08-30T18:15:01Z"
+}

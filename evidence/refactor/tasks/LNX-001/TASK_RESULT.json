@@ -1,0 +1,34 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "LNX-001",
+  "status": "PASS",
+  "start_commit": "04a00e1145030f5f6530fcc5fed4f2a7cf9b0c70",
+  "source_commit": "04a00e1145030f5f6530fcc5fed4f2a7cf9b0c70",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "platform",
+  "science_changed": false,
+  "files_changed": [
+    "evidence/refactor/tasks/LNX-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/LNX-001/logs/c01.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "203aa30bfe62e6504e8db97b56a19fa28974661faef937f5462712d7b373caaf"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-MAIN",
+      "description": "GCC Release 零 error 构建 astrocs 产物",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {},
+  "findings": [
+    "LNX-001: Linux GCC Release 构建 — GCC Release 零 error 构建 astrocs 产物"
+  ],
+  "created_utc": "2026-08-30T18:14:51Z"
+}
