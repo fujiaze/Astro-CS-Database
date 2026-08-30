@@ -1,0 +1,73 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "IO-002",
+  "status": "PASS",
+  "start_commit": "2f39880c3ffc9717c0423898667d8c992a6016e2",
+  "source_commit": "2f39880c3ffc9717c0423898667d8c992a6016e2",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "lib/phase1_session/p1_session.cpp",
+    "lib/astro_image_io/src/aio_api.cpp",
+    "tools/check_aio_ownership.py",
+    "tests/unit/io_ownership_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/IO-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/IO-002/logs/c01.log",
+    "evidence/refactor/tasks/IO-002/logs/c02.log",
+    "evidence/refactor/tasks/IO-002/logs/c03.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "d11d18c8f4857fdddfc6d4d5bbc0d4061e0f7648c7b191d924383e5f9de86d13"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 1200,
+      "exit_code": 0,
+      "log_sha256": "4da769a17769d6dd92ff99cbd51630ff34d29487bccb451cc6effae54a2ca9d4"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "4c8bede1ac0e2347a0a88aa1005ee74b0af0a9a21719eaddfd381841ae2988b1"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-SCAN",
+      "description": "check_aio_ownership: 8 acquisition sites 全 owner 归类; canonical deleter 全覆盖; 裸 free(aio_image*)=0",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DELETER",
+      "description": "io_ownership_test: aio_free_image_data nullptr 安全; 符号可链接",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BUILD",
+      "description": "p1_session/aio_api 修复后 CLI 全量构建 exit0",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "acquisition_sites": 8,
+    "raw_free_violations": 0,
+    "owners": [
+      "cli/main.cpp",
+      "aio_api.cpp",
+      "p1_session.cpp",
+      "ipv_select.cpp"
+    ]
+  },
+  "findings": [
+    "IO-002: 全库扫描 8 个 aio_image* 获取点归 4 个 owner 文件; p1_session.cpp dispose_image 从裸 std::free 改为 canonical aio_free_image_data(修复 data_f64/keywords 泄漏); aio_api.cpp 5 处内部失败路径统一 canonical; ipv_select.cpp 经 DLL 导出 aio_free 跨边界释放(正确); 静态扫描+deleter 测试+全量构建 PASS; LSan 数值差额验证需真实 FITS 数据(留待回归)"
+  ],
+  "created_utc": "2026-08-30T16:26:12Z"
+}

@@ -66,7 +66,7 @@ AIO_EXPORT AIOImageData *aio_read_fits(const char *path) {
     if (!img) return nullptr;
 
     if (fits_read_file(path, img) != 0) {
-        free(img);
+        aio_free_image_data(img);
         return nullptr;
     }
 
@@ -88,7 +88,7 @@ AIO_EXPORT AIOImageData *aio_read_xisf(const char *path) {
     if (!img) return nullptr;
 
     if (xisf_read_file(path, img) != 0) {
-        free(img);
+        aio_free_image_data(img);
         return nullptr;
     }
 
@@ -109,7 +109,7 @@ AIO_EXPORT AIOImageData *aio_read_header_only(const char *path) {
 #ifdef AIO_ENABLE_XISF
     if (xisf_detect(path)) {
         if (xisf_read_header_only(path, img) != 0) {
-            free(img);
+            aio_free_image_data(img);
             return nullptr;
         }
     } else
@@ -117,13 +117,13 @@ AIO_EXPORT AIOImageData *aio_read_header_only(const char *path) {
 #ifdef AIO_ENABLE_FITS
     {
         if (fits_read_header_only(path, img) != 0) {
-            free(img);
+            aio_free_image_data(img);
             return nullptr;
         }
     }
 #else
     {
-        free(img);
+        aio_free_image_data(img);
         return nullptr;
     }
 #endif
