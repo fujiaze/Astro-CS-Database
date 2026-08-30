@@ -130,7 +130,7 @@ if(MSVC)
   set_property(SOURCE ${CFITSIO_SRCS} APPEND PROPERTY INCLUDE_DIRECTORIES "${AIO_DIR}/third_party/cfitsio/win_compat")
 endif()
 set_property(SOURCE ${CAL_SRCS} PROPERTY INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../lib/calibration/include;${AIO_DIR}/include;${CMAKE_CURRENT_SOURCE_DIR}/../include")
-target_include_directories(astrocs PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../third_party ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase1_session ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2_session ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+target_include_directories(astrocs PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../third_party ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase1_session ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2_session ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session ${CMAKE_CURRENT_SOURCE_DIR}/../include ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/include ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/third_party/cfitsio ${CMAKE_CURRENT_SOURCE_DIR}/../lib/healpix_db/healpix_drizzle)
 target_compile_options(astrocs PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra>
   $<$<CXX_COMPILER_ID:MSVC>:/W4;/EHsc;/utf-8>)
