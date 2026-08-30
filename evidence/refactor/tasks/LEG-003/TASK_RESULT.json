@@ -1,0 +1,61 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "LEG-003",
+  "status": "PASS",
+  "start_commit": "fb0d081da7806dde99655294c22eaad4de45fc86",
+  "source_commit": "fb0d081da7806dde99655294c22eaad4de45fc86",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tools/check_legacy_exit.py",
+    "evidence/refactor/tasks/LEG-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/LEG-003/logs/c01.log",
+    "evidence/refactor/tasks/LEG-003/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "1542521ff97414f0ad8727418b241dc2078bcd0b884c0cfbec7df45335533249"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "f781281b3b271d9830cbb22ed44a643249789b4103fbf4f3d87ffc03aebd2d07"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-ENGINE-NO-CALLER",
+      "description": "PipelineEngine run API (run_single/run_batch) 生产 caller=0",
+      "result": "PASS"
+    },
+    {
+      "id": "T-FRAME-KEPT",
+      "description": "底层 frame 数据结构 API 保留 (CLI drizzle 测试 wrapper 用)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DOC-EXIT",
+      "description": "ARCH-001 已标 I/O 越权编排 → LEG-003",
+      "result": "PASS"
+    },
+    {
+      "id": "T-KEEP-SRC",
+      "description": "源码保留不破坏删除 (aio_pipeline_engine.cpp 完整)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "legacy": "AIO PipelineEngine 调度",
+    "run_callers": 0,
+    "frame_api": "kept"
+  },
+  "findings": [
+    "LEG-003: AIO PipelineEngine 调度职责退出(engine run API 无生产 caller; 仅 frame 数据结构被 CLI drizzle 测试 wrapper 用); 调度删除保留底层有效函数(frame API); ARCH-001 已标注; 源码保留"
+  ],
+  "created_utc": "2026-08-30T17:46:38Z"
+}
