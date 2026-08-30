@@ -1,0 +1,72 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P3-003",
+  "status": "PASS",
+  "start_commit": "a994fe1d089b5a5679b1b739c5c0f83dcfa06c5e",
+  "source_commit": "a994fe1d089b5a5679b1b739c5c0f83dcfa06c5e",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p3_interp_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P3-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/P3-003/logs/c01.log",
+    "evidence/refactor/tasks/P3-003/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "917f2f93f92cbbfdc2a72cdc79844b137331520a2ba4c21c464bca48d6fef363"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "45ce7cbfafe4b55478f2838a2c1e948d7a533835ae89f319e02951616f40f70c"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-CONSTANT",
+      "description": "constant sphere: 插值处处=常数 42.0 (1e-9)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ANALYTIC",
+      "description": "解析纬经函数 f=x+2y: 双线性精确 (1e-9)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-IMPULSE",
+      "description": "impulse: 峰值精确保持; 半像素偏移能量扩散",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BOUNDARY",
+      "description": "边界缺失: 越界 → NaN (coverage=0 不虚构)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-TILE-BUFFER",
+      "description": "tile 独立 buffer 无共享像素写(无 data race)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "interp": "bilinear",
+    "fixtures": [
+      "constant",
+      "analytic",
+      "impulse",
+      "boundary",
+      "coverage"
+    ]
+  },
+  "findings": [
+    "P3-003: tile 分工语义(每 tile 独立 buffer, 只读采样无共享像素写 → 无 data race); 1-thread reference 仅测试用(生产取>=2 workers 由 Runtime lease 保证); 插值几何 fixtures(constant 保持/解析精确/impulse 峰值/边界缺失 NaN/coverage mask)全过"
+  ],
+  "created_utc": "2026-08-30T17:28:22Z"
+}

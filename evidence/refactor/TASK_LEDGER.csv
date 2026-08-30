@@ -52,8 +52,8 @@ P2-007,G5,组装Canonical Phase2 Pipeline,P2-002;P2-003;P2-004;P2-005;P2-006,Lin
 P2-008,G5,完成Phase2科学与资源门,P2-007;CPU-008,Linux,test,yes,yes,synthetic seam/rejection/integration; small overlap,无接缝回退/黑洞/条纹; CPU或带宽门通过; 无单线程重计算,PASS
 P3-001,G6,隔离现有Phase3原型,SCI-003;BLD-001,Linux,architecture,no,yes,phase3_session prototype; production registry,标PROTOTYPE; 不注册生产preset; 移除错误已实现宣称,PASS
 P3-002,G6,实现Phase3 WCS与输出计划,P3-001;DATA-001;CORE-004,Linux,architecture,no,yes,source properties; output WCS; dimensions; units,不硬编码Jy/beam; WCS roundtrip; size/overflow/bounds validation,PASS
-P3-003,G6,实现并行tile resample,P3-002;CORE-006;CPU-007,Linux,architecture,yes,yes,sphere-to-plane tile scheduler; kernels,2D串行循环退出生产; deterministic tiles; CPU resource gate,IN_PROGRESS
-P3-004,G6,实现coverage与边界语义,P3-003;SCI-003,Linux,architecture,yes,yes,missing pixels; RA wrap; poles; interpolation support,constant sphere/impulse/edge fixtures; no fabricated valid data,NOT_STARTED
+P3-003,G6,实现并行tile resample,P3-002;CORE-006;CPU-007,Linux,architecture,yes,yes,sphere-to-plane tile scheduler; kernels,2D串行循环退出生产; deterministic tiles; CPU resource gate,PASS
+P3-004,G6,实现coverage与边界语义,P3-003;SCI-003,Linux,architecture,yes,yes,missing pixels; RA wrap; poles; interpolation support,constant sphere/impulse/edge fixtures; no fabricated valid data,IN_PROGRESS
 P3-005,G6,实现FITS写入验证与provenance,P3-004;IO-001,Linux,architecture,yes,yes,output artifact; WCS/BUNIT; verify,header由合同生成; roundtrip; atomic output; real run identity,NOT_STARTED
 P3-006,G6,组装Phase3并完成科学资源门,P3-003;P3-004;P3-005;CPU-008,Linux,test,yes,yes,phase3 preset; synthetic suite; trace,SCI/ALG/DATA/TEST闭环; 并行利用达标; 才改IMPLEMENTED,NOT_STARTED
 CLI-001,G7,拆分CLI单体并建立稳定command层,CORE-004;CORE-008;CPU-007,Linux+Windows,architecture,no,yes,main parsing/handlers/output; public runtime facade,CLI无科学内部include; handlers可单测; 退出码/JSON稳定,NOT_STARTED
