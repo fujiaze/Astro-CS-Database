@@ -1,0 +1,67 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CPU-008",
+  "status": "PASS",
+  "start_commit": "d9c89637c9ea5b36595f97da62ef72fe273db58e",
+  "source_commit": "d9c89637c9ea5b36595f97da62ef72fe273db58e",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/cpu_monitor_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/CPU-008/TASK_RESULT.json",
+    "evidence/refactor/tasks/CPU-008/logs/c01.log",
+    "evidence/refactor/tasks/CPU-008/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "log_sha256": "c1d7099f2c61fd3f0f464da795d74f9d7c8cc9f34bf3db8339f132ba208e4b15"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "45c4817dd6417d8da337913b2977d336ddea1f596cc7af0552e0f9bbe0810358"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-SAMPLE",
+      "description": "采样含 cpu/rss/read/write 增量; rss_peak>0",
+      "result": "PASS"
+    },
+    {
+      "id": "T-INTERVAL",
+      "description": "0.1s 间隔 run_for 0.35s → 4 样本",
+      "result": "PASS"
+    },
+    {
+      "id": "T-OVERHEAD",
+      "description": "采样开销 0.02% wall (<2% 目标)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-THRESHOLD",
+      "description": "compute 阈值 0.80*min(workers,cpus); I/O 无 CPU 阈值",
+      "result": "PASS"
+    },
+    {
+      "id": "T-MIXED",
+      "description": "mixed 未拆份 FAIL; 拆份后 OK",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "overhead_frac": 0.0002,
+    "samples_per_interval": 4,
+    "threshold_formula": "0.80*min(workers,cpus)"
+  },
+  "findings": [
+    "CPU-008: 资源监测器(/proc 采样 cpu/rss/read/write/ctx_switches; 1s 间隔可调; 摘要 mean/peak; 开销跟踪); 实测开销 0.02%<2% 目标; gate 阈值公式 0.80×min(workers,cpus); mixed 拆份判定; first-10s 快速失败已有"
+  ],
+  "created_utc": "2026-08-30T16:44:29Z"
+}

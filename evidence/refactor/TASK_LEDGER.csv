@@ -32,8 +32,8 @@ CPU-004,G3,建立AVX512后端,CPU-001;CPU-002,Linux+Windows,performance,yes,yes,
 CPU-005,G3,实现CPU与OS能力检测,CPU-001,Linux+Windows,architecture,no,yes,logical quota; affinity; ISA; cache; NUMA; OS state,容器/Job限制生效; 无硬编码核心数; fixture覆盖伪造CPUID,PASS
 CPU-006,G3,实现代表性benchmark,CPU-002;CPU-003;CPU-004;CPU-005,Linux+Windows,performance,yes,yes,threads; ISA per kernel; memory bandwidth; block sizes,先正确后计时; 短样本; median; 不跑历史全链,PASS
 CPU-007,G3,实现机器profile与失效策略,CPU-006;CORE-005,Linux+Windows,architecture,no,yes,profile schema; signature; selection; fallback,硬件/OS/build不匹配自动失效; 未benchmark回baseline并诊断,PASS
-CPU-008,G3,实现统一资源监测与硬门,CORE-008;CPU-005,Linux+Windows,performance,yes,yes,CPU threads memory IO waits timeline; gate evaluator,每重计算自动采集; 阈值失败不可静默PASS; JSON/CSV报告,IN_PROGRESS
-P1-001,G4,建立Phase1模块清单和adapter,CORE-003;CORE-004;IO-002;SCI-001,Linux,architecture,no,yes,map old symbols to module IDs and ports,无公式修改; 每旧入口有迁移归属; module descriptor valid,NOT_STARTED
+CPU-008,G3,实现统一资源监测与硬门,CORE-008;CPU-005,Linux+Windows,performance,yes,yes,CPU threads memory IO waits timeline; gate evaluator,每重计算自动采集; 阈值失败不可静默PASS; JSON/CSV报告,PASS
+P1-001,G4,建立Phase1模块清单和adapter,CORE-003;CORE-004;IO-002;SCI-001,Linux,architecture,no,yes,map old symbols to module IDs and ports,无公式修改; 每旧入口有迁移归属; module descriptor valid,IN_PROGRESS
 P1-002,G4,迁移输入校准美容模块,P1-001;CORE-006;IO-001,Linux,architecture,yes,yes,read; calibration; cosmetic; write adapter,合成解析解; 负值保留; 单位/所有权; 串并行一致,NOT_STARTED
 P1-003,G4,迁移Star与PSF模块,P1-001;CORE-006,Linux,architecture,yes,yes,star detection; PSF; de-duplication,analytic PSF fixture; centroid/FWHM tolerances; trace ports,NOT_STARTED
 P1-004,G4,迁移PlateSolve与Photometry模块,P1-003;CORE-006,Linux,architecture,yes,yes,WCS solve; photometry; integration failure paths,WCS roundtrip; flux fixture; failure semantics; 无隐藏全局状态,NOT_STARTED
