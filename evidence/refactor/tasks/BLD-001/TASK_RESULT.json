@@ -1,0 +1,86 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "BLD-001",
+  "status": "PASS",
+  "start_commit": "aa4298a72214045127868b3fae7d1009b55b1fd5",
+  "source_commit": "aa4298a72214045127868b3fae7d1009b55b1fd5",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "CMakeLists.txt",
+    "cmake/cfitsio_sources.cmake",
+    "tools/gen_cfitsio_list.py",
+    "tools/check_link_scan.py",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/BLD-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/BLD-001/logs/c01.log",
+    "evidence/refactor/tasks/BLD-001/logs/c02.log",
+    "evidence/refactor/tasks/BLD-001/logs/c03.log",
+    "evidence/refactor/tasks/BLD-001/logs/c04.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 3600,
+      "exit_code": 0,
+      "log_sha256": "036b6d53d3caec60f3c4ca052be6760340c2e2e611efaf05a90e95c1274b7355"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "b5e48354ea0bf6e4befecaf31d4b0ec0b47fb79399d7297faf9af730d6f205c8"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "f7d4e2f7605456292edb8c2d5bfd5bcaac553eb603f3800e5e1196bff601a24b"
+    },
+    {
+      "command_id": "c04",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "a2831bb131809fe7bc7fb97a368e93abfced691d30a85d8e93630738123f67eb"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-ROOT-BUILD",
+      "description": "根 CMake clean configure+build astrocs 成功 (exit 0)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-LINK-SCAN",
+      "description": "check_link_scan: globs=0 acr_symbols=0",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ACR-ISOLATION",
+      "description": "新构建 ACR 符号 0 vs 旧 cli 构建 78 (R-CPU-01 达成)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-GRAPHVIZ",
+      "description": "cmake --graphviz 导出 62 node 依赖图",
+      "result": "PASS"
+    },
+    {
+      "id": "T-VERSION",
+      "description": "根 CMake 二进制版本 0.10.0-alpha.1 正确",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "targets": 11,
+    "cfitsio_sources": 60,
+    "acr_symbols_new": 0,
+    "acr_symbols_old": 78,
+    "graphviz_nodes": 62
+  },
+  "findings": [
+    "根 CMake 建立显式 target 图(11 target: contracts/common/cfitsio/aio/hips/calibration/phase2/drizzle/cpu/3 sessions/cli), 无 production GLOB(cfitsio 用生成清单); ACR=OFF 使生产 CLI ACR 符号 78→0; CLI 从 GLOB 单体变为显式库链接; 版本单源"
+  ],
+  "created_utc": "2026-08-30T15:59:30Z"
+}
