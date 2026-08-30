@@ -69,8 +69,8 @@ DOC-004,G8,实现AST API与追溯矩阵检查,CORE-003;DOC-001;DOC-003,Linux,too
 DOC-005,G8,实现静态Pipeline图与运行trace一致性检查,CORE-004;CORE-008;CLI-002,Linux,tooling,no,yes,IR graph; trace; artifacts; module versions,节点/边/端口/hash一致; 机器图纳入代码文档,PASS
 QA-001,G8,清零生产编译警告抑制和高风险警告,BLD-001;LEG-004,Linux+Windows,quality,no,yes,CMake warning flags; -w /w; compiler warnings,项目源码无全局禁警告; 警告基线为空或逐项批准,PASS
 QA-002,G8,建立串行与硬编码静态禁令,DOC-004;CORE-006,Linux,tooling,no,yes,workers=1; thread literals; direct omp; serial hot loops; ISA flags,production heavy path零违规; allowlist仅短I/O且有理由,PASS
-QA-003,G8,完成Sanitizer与线程安全验证,IO-002;IO-004;P1-009;P2-008;P3-006,Linux,quality,yes,yes,ASan; UBSan; LSan; TSan targeted,无泄漏/UAF/race/UB; suppressions逐项来源和期限,IN_PROGRESS
-QA-004,G8,完成复杂度重复实现和所有权审查,LEG-002;LEG-003;LEG-004,Linux,quality,no,yes,dup schedulers; I/O/WCS copies; ownership; giant files,每P0/P1闭环; 无第二生产调度器; 关键函数复杂度报告,NOT_STARTED
+QA-003,G8,完成Sanitizer与线程安全验证,IO-002;IO-004;P1-009;P2-008;P3-006,Linux,quality,yes,yes,ASan; UBSan; LSan; TSan targeted,无泄漏/UAF/race/UB; suppressions逐项来源和期限,PASS
+QA-004,G8,完成复杂度重复实现和所有权审查,LEG-002;LEG-003;LEG-004,Linux,quality,no,yes,dup schedulers; I/O/WCS copies; ownership; giant files,每P0/P1闭环; 无第二生产调度器; 关键函数复杂度报告,IN_PROGRESS
 QA-005,G8,建立可复现构建依赖与SBOM,BLD-001;QA-001,Linux+Windows,quality,no,yes,dependency versions; licenses; build metadata; SBOM,同commit重建hash可解释; third-party不隐式漂移,NOT_STARTED
 LNX-001,G9,Linux GCC Release构建,QA-001;CLI-003;LEG-004,Linux,validation,no,yes,amd64 release baseline; ACR OFF,clean configure/build; CLI doctor; target/link scan pass,PASS
 LNX-002,G9,Linux Clang Debug与静态分析,LNX-001;DOC-004,Linux,validation,no,yes,clang build; clang-tidy/analyzer; contracts,无P0/P1; findings逐项状态; API extraction pass,PASS

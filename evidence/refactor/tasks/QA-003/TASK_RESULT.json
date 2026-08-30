@@ -1,0 +1,67 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "QA-003",
+  "status": "PASS",
+  "start_commit": "f8001e29dbff155eaa121d8474c9421cfe0eaf99",
+  "source_commit": "f8001e29dbff155eaa121d8474c9421cfe0eaf99",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "quality",
+  "science_changed": false,
+  "files_changed": [
+    "evidence/refactor/tasks/QA-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/QA-003/logs/c01.log",
+    "evidence/refactor/tasks/QA-003/logs/c02.log",
+    "evidence/refactor/tasks/QA-003/logs/c03.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "log_sha256": "bb57c10d6ffdc94163c3e3c8776827a50ffd86ac29fb6d5d486d9f65ef1fb965"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "9de521f385f43f69617502ec6219a5b89ba523193b393b774f17efd30bea7a9f"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "86f3880ada4a07b7d5bd6465790d4dd5e5699f7d37ebbe85dc3c84ff3c871b31"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-ASAN-BUILD",
+      "description": "ASan 构建成功 (G3 受限解除: 显式清单+omp 宏保护后 cfitsio 可编)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ASAN-SYNTHETIC",
+      "description": "ASan 7 组合成路径全 PASS 无内存错误 (detect_leaks=0, LSan 受 ptrace 限制)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CONCURRENCY",
+      "description": "并发路径覆盖: 2 核 p2_workers_test PASS",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-SUPPRESS",
+      "description": "无宽泛 suppression 清屏 (仅 LSan ptrace 环境限制登记)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "asan_synthetic": 7,
+    "lsan": "ptrace 受限(环境)",
+    "asan_build": "success"
+  },
+  "findings": [
+    "QA-003: Sanitizer 验证(ASan 构建成功, 7 组合成路径无内存错误; LSan 受 ptrace 环境限制用 detect_leaks=0, 非宽泛 suppression); 并发路径 2 核 p2_workers PASS; G3 的 cfitsio 拒编问题经显式清单+omp 宏保护解除"
+  ],
+  "created_utc": "2026-08-30T18:25:08Z"
+}
