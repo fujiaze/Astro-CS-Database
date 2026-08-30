@@ -28,8 +28,8 @@ IO-004,G3,移除Phase2全局读锁,IO-003;CORE-006,Linux,performance,yes,yes,sam
 CPU-001,G3,实现CPU provider稳定C ABI,API-001;BLD-001;CORE-005,Linux+Windows,architecture,no,yes,backend ABI; loader; metadata,size/version/features/build-id校验; 坏DLL拒绝; baseline始终可用,PASS
 CPU-002,G3,建立AMD64保守多线程后端,CPU-001;CORE-006,Linux+Windows,performance,yes,yes,baseline provider; representative kernels,不要求AVX2; 重计算仍多线程; 独立Oracle通过,PASS
 CPU-003,G3,建立AVX2后端,CPU-001;CPU-002,Linux+Windows,performance,yes,yes,qualified hot kernels only,CPUID+XGETBV; unsupported不加载; 与Oracle/backend等价,PASS
-CPU-004,G3,建立AVX512后端,CPU-001;CPU-002,Linux+Windows,performance,yes,yes,qualified hot kernels only,检查具体子集和OS状态; 不快则不选; 数值等价,IN_PROGRESS
-CPU-005,G3,实现CPU与OS能力检测,CPU-001,Linux+Windows,architecture,no,yes,logical quota; affinity; ISA; cache; NUMA; OS state,容器/Job限制生效; 无硬编码核心数; fixture覆盖伪造CPUID,NOT_STARTED
+CPU-004,G3,建立AVX512后端,CPU-001;CPU-002,Linux+Windows,performance,yes,yes,qualified hot kernels only,检查具体子集和OS状态; 不快则不选; 数值等价,PASS
+CPU-005,G3,实现CPU与OS能力检测,CPU-001,Linux+Windows,architecture,no,yes,logical quota; affinity; ISA; cache; NUMA; OS state,容器/Job限制生效; 无硬编码核心数; fixture覆盖伪造CPUID,IN_PROGRESS
 CPU-006,G3,实现代表性benchmark,CPU-002;CPU-003;CPU-004;CPU-005,Linux+Windows,performance,yes,yes,threads; ISA per kernel; memory bandwidth; block sizes,先正确后计时; 短样本; median; 不跑历史全链,NOT_STARTED
 CPU-007,G3,实现机器profile与失效策略,CPU-006;CORE-005,Linux+Windows,architecture,no,yes,profile schema; signature; selection; fallback,硬件/OS/build不匹配自动失效; 未benchmark回baseline并诊断,NOT_STARTED
 CPU-008,G3,实现统一资源监测与硬门,CORE-008;CPU-005,Linux+Windows,performance,yes,yes,CPU threads memory IO waits timeline; gate evaluator,每重计算自动采集; 阈值失败不可静默PASS; JSON/CSV报告,NOT_STARTED
