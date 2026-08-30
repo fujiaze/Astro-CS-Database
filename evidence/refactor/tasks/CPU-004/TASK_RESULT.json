@@ -1,0 +1,60 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CPU-004",
+  "status": "PASS",
+  "start_commit": "79dbcfa6783cf9f0c926eb5b84daea6ea9a20e03",
+  "source_commit": "79dbcfa6783cf9f0c926eb5b84daea6ea9a20e03",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/cpu_provider_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/CPU-004/TASK_RESULT.json",
+    "evidence/refactor/tasks/CPU-004/logs/c01.log",
+    "evidence/refactor/tasks/CPU-004/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "log_sha256": "57bca17749633c238f0dc2dbc6d344ab52aa5905285185eb6c32d3247ac59da1"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "c7aba971014edab08c3b3527fb637ce3fc742666475b720023c06e1a416768c7"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-DEGRADE-CHAIN",
+      "description": "本机 AVX-512: avx2/avx512 条目均满足; 无 AVX-512 时降级 avx2; 纯 SSE 仅 baseline",
+      "result": "PASS"
+    },
+    {
+      "id": "T-FAKE-FEATURE",
+      "description": "伪造 feature 位拒绝(损坏 provider 降级)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SHARED-SEMANTICS",
+      "description": "avx2/avx512/avx 与 baseline 共享 kernel 表源(同 kernel ID/semantics 零漂移)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "providers": 3,
+    "shared_sources": [
+      "baseline_kernels_impl.inc",
+      "backend_table.inc"
+    ],
+    "host": "AVX-512"
+  },
+  "findings": [
+    "CPU-004: avx2/avx512/avx provider 与 baseline 共用 baseline_kernels_impl.inc/backend_table.inc(同 kernel ID/semantics, 仅 ISA 旗标不同, 零复制漂移); manifest required⊆detected 匹配链验证; 伪造 feature 拒绝; 本机 AVX-512 全链满足"
+  ],
+  "created_utc": "2026-08-30T16:39:43Z"
+}
