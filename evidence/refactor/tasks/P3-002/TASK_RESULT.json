@@ -1,0 +1,62 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P3-002",
+  "status": "PASS",
+  "start_commit": "be2d6c0d57eed3ffd9e0e9e51e0f1b4b0109bacf",
+  "source_commit": "be2d6c0d57eed3ffd9e0e9e51e0f1b4b0109bacf",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "lib/phase3_session/p3_wcs.cpp",
+    "tests/unit/p3_wcs_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P3-002/TASK_RESULT.json",
+    "evidence/refactor/tasks/P3-002/logs/c01.log",
+    "evidence/refactor/tasks/P3-002/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "a7b04f7ac02cb11900aee548e822322f494961ced1e25e85cffc96a0bf9ff596"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "9ff4d1c0a431e56020825722db252ff42317f348a20bcd0f68a40f4738010d35"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-WCS-OUTPUT",
+      "description": "输入 RA/Dec/scale/尺寸 → WCS 输出完整(dimensions/pixel scale CD)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-OVERFLOW",
+      "description": "尺寸乘法 uint64 溢出检查(0/负拒; 50000×50000 安全)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CONFIG-MAX",
+      "description": "最大尺寸来自配置合同(ASTROCS_P3_MAX_SIDE 可覆盖; 20001 拒, 20000 收)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ROUNDTRIP",
+      "description": "pix2world↔world2pix roundtrip <1e-4 px",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "max_side_source": "config contract (default 20000)",
+    "overflow_check": "uint64 multiply guard"
+  },
+  "findings": [
+    "P3-002: WCS 输出完整(尺寸/像素尺度/CD); 尺寸乘法溢出检查(uint64 guard); 最大尺寸改配置合同驱动(ASTROCS_P3_MAX_SIDE 可覆盖, 不硬编码业务值); pix2world roundtrip 精确"
+  ],
+  "created_utc": "2026-08-30T17:27:08Z"
+}
