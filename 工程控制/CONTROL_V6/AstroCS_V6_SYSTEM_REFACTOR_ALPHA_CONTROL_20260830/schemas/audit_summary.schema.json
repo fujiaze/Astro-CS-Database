@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/audit-summary-v1.json",
+  "title": "AstroCS Audit Summary v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "version", "verdict", "source_commit", "origin_main_commit", "control_sha256", "ledger_sha256", "task_counts", "gate_status", "science_changed", "blockers", "not_verified", "linux", "windows", "artifacts", "owner_review"],
+  "properties": {
+    "schema": {"const": "astrocs.audit-summary/v1"},
+    "version": {"const": "0.10.0-alpha.1"},
+    "verdict": {"enum": ["NOT_READY", "READY_FOR_OWNER_REVIEW", "ALPHA_RELEASE_APPROVED"]},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "origin_main_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "control_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "ledger_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "task_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "gate_status": {"type": "object", "additionalProperties": {"enum": ["NOT_STARTED", "IN_PROGRESS", "PASS", "FAIL", "BLOCKED", "WAITING_WINDOWS"]}},
+    "science_changed": {"type": "boolean"},
+    "blockers": {"type": "array", "items": {"type": "string"}},
+    "not_verified": {"type": "array", "items": {"type": "string"}},
+    "linux": {"type": "object"},
+    "windows": {"type": "object"},
+    "artifacts": {"type": "array", "items": {"type": "object"}},
+    "owner_review": {"enum": ["PENDING", "APPROVED", "REJECTED"]}
+  }
+}

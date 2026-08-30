@@ -1,0 +1,27 @@
+gate_id,category,requirement,evidence,automatic,release_blocking
+R-SCI-01,science,Phase1 SCI-ALG-DATA-API-source-TEST complete,TRACEABILITY_MATRIX.csv,yes,yes
+R-SCI-02,science,Phase2 additive UPM rejection integration contracts and oracles,phase2 synthetic reports,yes,yes
+R-SCI-03,science,Phase3 WCS unit coverage science complete,phase3 synthetic reports,yes,yes
+R-ARCH-01,architecture,one production Pipeline Runtime,build call and link graph,yes,yes
+R-ARCH-02,architecture,typed Artifact identity continuous across phases,pipeline trace comparison,yes,yes
+R-ARCH-03,architecture,I/O has no scheduler responsibilities,dependency checker,yes,yes
+R-ARCH-04,architecture,module registry matches CMake symbols docs,module registry report,yes,yes
+R-CPU-01,compute,ACR absent from production,link symbol runtime module scan,yes,yes
+R-CPU-02,compute,safe per-kernel ISA selection,benchmark and profile reports,yes,yes
+R-CPU-03,compute,no single-thread heavy production path,serial checker and resource report,yes,yes
+R-CPU-04,compute,resource utilization gate passes,RESOURCE_SUMMARY.csv,yes,yes
+R-IO-01,quality,AIO ownership leak-free,ASan LSan reports,yes,yes
+R-IO-02,quality,CFITSIO reentrant worker-local handles,doctor stress TSan,yes,yes
+R-DOC-01,documentation,L0 owner documents complete,doc checker,yes,yes
+R-DOC-02,documentation,API signatures match source AST,AST API diff,yes,yes
+R-DOC-03,documentation,Pipeline docs match runtime,static observed graph diff,yes,yes
+R-QA-01,quality,no P0 P1 compiler or static findings,compiler analyzer reports,yes,yes
+R-QA-02,quality,sanitizers and thread safety clean,sanitizer reports,yes,yes
+R-PLAT-01,platform,Linux clean build synthetic smoke,Linux gate report,yes,yes
+R-PLAT-02,platform,Windows MSVC synthetic benchmark smoke,Windows gate report,yes,yes
+R-REAL-01,real-data,final 32R complete chain,manifest trace artifact reports,yes,yes
+R-REAL-02,real-data,seam holes stripes rejection acceptable,metrics and locked previews,partial,yes
+R-REAL-03,real-data,Phase3 planar FITS valid,WCS unit coverage report,yes,yes
+R-PKG-01,release,two platform packages valid,install smoke checksum SBOM,yes,yes
+R-AUD-01,audit,whitelist audit package valid,validate_audit output,yes,yes
+R-OWNER-01,owner,HiPS visual and release decision,owner signed decision,no,yes

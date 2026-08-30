@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/cpu-profile-v1.json",
+  "title": "AstroCS CPU Profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "profile_id", "created_utc", "host", "build", "memory_bandwidth", "kernels"],
+  "properties": {
+    "schema": {"const": "astrocs.cpu-profile/v1"},
+    "profile_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "created_utc": {"type": "string", "format": "date-time"},
+    "host": {"type": "object", "required": ["arch", "vendor", "family", "model", "stepping", "os", "logical_available", "quota_signature", "features"], "properties": {"arch": {"const": "amd64"}, "vendor": {"type": "string"}, "family": {"type": "integer"}, "model": {"type": "integer"}, "stepping": {"type": "integer"}, "os": {"type": "string"}, "logical_available": {"type": "integer", "minimum": 1}, "quota_signature": {"type": "string"}, "features": {"type": "array", "items": {"type": "string"}}}, "additionalProperties": true},
+    "build": {"type": "object", "required": ["astrocs_version", "source_commit", "compiler", "runtime_build_id", "provider_build_ids"], "properties": {"astrocs_version": {"const": "0.10.0-alpha.1"}, "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "compiler": {"type": "string"}, "runtime_build_id": {"type": "string"}, "provider_build_ids": {"type": "object"}}, "additionalProperties": false},
+    "memory_bandwidth": {"type": "object"},
+    "kernels": {"type": "object", "additionalProperties": {"type": "object", "required": ["provider", "workers", "correctness_test", "median", "mad"], "properties": {"provider": {"enum": ["baseline", "avx2", "avx512"]}, "workers": {"type": "integer", "minimum": 1}, "block": {"type": "integer", "minimum": 0}, "correctness_test": {"type": "string", "pattern": "^TEST-[A-Z0-9-]+$"}, "median": {"type": "number", "exclusiveMinimum": 0}, "mad": {"type": "number", "minimum": 0}}, "additionalProperties": true}}
+  }
+}

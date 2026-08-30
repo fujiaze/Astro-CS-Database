@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/task-result-v1.json",
+  "title": "AstroCS Refactor Task Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "task_id", "status", "start_commit", "source_commit", "control_sha256", "change_class", "science_changed", "files_changed", "commands", "tests", "metrics", "findings", "created_utc"],
+  "properties": {
+    "schema": {"const": "astrocs.task-result/v1"},
+    "task_id": {"type": "string", "pattern": "^[A-Z0-9]+-[0-9]{3}$"},
+    "status": {"enum": ["PASS", "FAIL", "BLOCKED", "WAITING_WINDOWS"]},
+    "start_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "control_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "change_class": {"enum": ["evidence", "science", "contract", "architecture", "bugfix", "performance", "test", "tooling", "quality", "validation", "documentation", "release"]},
+    "science_changed": {"type": "boolean"},
+    "files_changed": {"type": "array", "items": {"type": "string"}},
+    "commands": {"type": "array", "items": {"type": "object", "required": ["command_id", "timeout_seconds", "exit_code", "log_sha256"], "properties": {"command_id": {"type": "string"}, "timeout_seconds": {"type": "integer", "minimum": 1}, "exit_code": {"type": "integer"}, "log_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}, "additionalProperties": true}},
+    "tests": {"type": "array", "items": {"type": "object"}},
+    "metrics": {"type": "object"},
+    "findings": {"type": "array", "items": {"type": "string"}},
+    "created_utc": {"type": "string", "format": "date-time"}
+  }
+}

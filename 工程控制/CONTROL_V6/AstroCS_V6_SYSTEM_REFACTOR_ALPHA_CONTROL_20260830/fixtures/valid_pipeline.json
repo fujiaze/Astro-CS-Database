@@ -1,0 +1,15 @@
+{
+  "schema": "astrocs.pipeline/v1",
+  "pipeline_id": "phase3.synthetic",
+  "version": "1.0.0",
+  "nodes": [{
+    "node_id": "resample",
+    "module_id": "astrocs.phase3.resample",
+    "module_api": "1.x",
+    "config": {"kernel": "bilinear"},
+    "inputs": {"hips": "artifact:input.hips"},
+    "outputs": {"tile": "artifact:phase3.tile"},
+    "resources": {"class": "cpu_heavy", "parallel": true}
+  }],
+  "outputs": {"tile": "artifact:phase3.tile"}
+}

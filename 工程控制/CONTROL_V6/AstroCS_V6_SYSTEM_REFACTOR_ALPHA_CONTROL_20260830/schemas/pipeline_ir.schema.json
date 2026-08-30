@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/pipeline-v1.json",
+  "title": "AstroCS Pipeline IR v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "pipeline_id", "version", "nodes", "outputs"],
+  "properties": {
+    "schema": {"const": "astrocs.pipeline/v1"},
+    "pipeline_id": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]+$"},
+    "version": {"type": "string"},
+    "nodes": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["node_id", "module_id", "module_api", "config", "inputs", "outputs", "resources"],
+        "properties": {
+          "node_id": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]+$"},
+          "module_id": {"type": "string", "pattern": "^astrocs\\.[a-z0-9_.-]+$"},
+          "module_api": {"type": "string"},
+          "config": {"type": "object"},
+          "inputs": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^artifact:[a-zA-Z0-9_.:-]+$"}},
+          "outputs": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^artifact:[a-zA-Z0-9_.:-]+$"}},
+          "resources": {
+            "type": "object", "additionalProperties": false,
+            "required": ["class", "parallel"],
+            "properties": {
+              "class": {"enum": ["metadata", "io", "cpu_light", "cpu_heavy"]},
+              "parallel": {"type": "boolean"}
+            },
+            "allOf": [{"if": {"properties": {"class": {"const": "cpu_heavy"}}}, "then": {"properties": {"parallel": {"const": true}}}}]
+          }
+        }
+      }
+    },
+    "outputs": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string", "pattern": "^artifact:[a-zA-Z0-9_.:-]+$"}}
+  }
+}

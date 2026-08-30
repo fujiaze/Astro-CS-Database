@@ -1,0 +1,15 @@
+{
+  "schema": "astrocs.pipeline/v1",
+  "pipeline_id": "fixture.invalid.serial",
+  "version": "1.0.0",
+  "nodes": [{
+    "node_id": "bad",
+    "module_id": "astrocs.phase3.resample",
+    "module_api": "1.x",
+    "config": {},
+    "inputs": {"hips": "artifact:input.hips"},
+    "outputs": {"tile": "artifact:output.tile"},
+    "resources": {"class": "cpu_heavy", "parallel": false}
+  }],
+  "outputs": {"tile": "artifact:output.tile"}
+}

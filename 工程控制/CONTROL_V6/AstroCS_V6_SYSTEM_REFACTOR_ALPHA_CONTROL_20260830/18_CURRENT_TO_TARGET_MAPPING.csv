@@ -1,0 +1,12 @@
+current_component,current_path,current_role,target_component,migration_task,final_state
+monolithic CLI,code/cli/main.cpp,parsing plus orchestration plus science direct calls,thin astrocs_cli,CLI-001,parser and public runtime facade only
+phase1 session,code/lib/phase1_session/p1_session.cpp,partial read calibrate cosmetic write,phase1 preset facade,P1-008,complete canonical Pipeline IR facade
+phase2 session,code/lib/phase2_session/p2_session.cpp,partial coverage sample UPM,phase2 preset facade,P2-007,complete canonical Pipeline IR facade
+phase3 session,code/lib/phase3_session/p3_session.cpp,serial prototype,phase3 modules and preset,P3-006,contracted parallel implementation
+old orchestrator,code/lib/orchestrator/cpp/src/orchestrator.cpp,hardcoded global scheduler,Pipeline Runtime,LEG-002,not production reachable
+AIO PipelineEngine,code/lib/astro_image_io/src/aio_pipeline_engine.cpp,I/O-owned five-stage scheduler,I/O adapters plus Runtime,LEG-003,scheduler removed
+old Stage2,code/lib/phase2/tools/stage2.cpp,monolithic full phase2 with ACR,registered phase2 modules,LEG-004,not production reachable
+direct drizzle,code/cli/main.cpp drizzle command,bypasses phase1 and duplicates FITS WCS,Drizzle module preset,LEG-001,no direct internal call
+sampler global lock,code/lib/phase2/src/sampler.cpp,serializes tile reads,worker-local reentrant readers,IO-004,global hot lock removed
+ACR registry,code/lib/astro_compute and stage2 links,dormant future heterogeneous backend,dormant/acr optional target,LEG-004,default OFF and absent from production
+version literals,multiple source docs and provenance,mixed product versions,root VERSION generated,VER-001,0.10.0-alpha.1 single source

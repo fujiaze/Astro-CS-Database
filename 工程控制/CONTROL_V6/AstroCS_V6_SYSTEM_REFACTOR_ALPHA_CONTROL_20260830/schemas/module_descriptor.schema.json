@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/module_descriptor-v1.json",
+  "title": "AstroCS Module Descriptor v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "module_id", "implementation_version", "api_version", "status", "inputs", "outputs", "config_schema", "execution", "memory", "contracts"],
+  "properties": {
+    "schema": {"const": "astrocs.module/v1"},
+    "module_id": {"type": "string", "pattern": "^astrocs\\.[a-z0-9_.-]+$"},
+    "implementation_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"},
+    "api_version": {"type": "string", "pattern": "^[0-9]+\\.x$"},
+    "status": {"enum": ["PRODUCTION", "EXPERIMENTAL", "PROTOTYPE", "DORMANT"]},
+    "inputs": {"type": "array", "items": {"$ref": "#/$defs/port"}},
+    "outputs": {"type": "array", "items": {"$ref": "#/$defs/port"}},
+    "config_schema": {"type": "string", "minLength": 1},
+    "execution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["class", "parallel_model", "cancellable", "checkpointable"],
+      "properties": {
+        "class": {"enum": ["metadata", "io", "cpu_light", "cpu_heavy"]},
+        "parallel_model": {"enum": ["serial_short", "runtime_lease", "io_async"]},
+        "parallel_min_work": {"type": "integer", "minimum": 0},
+        "determinism": {"enum": ["bitwise", "bounded_numeric", "statistical"]},
+        "cancellable": {"type": "boolean"},
+        "checkpointable": {"type": "boolean"}
+      },
+      "allOf": [{"if": {"properties": {"class": {"const": "cpu_heavy"}}}, "then": {"properties": {"parallel_model": {"const": "runtime_lease"}}, "required": ["parallel_min_work", "determinism"]}}]
+    },
+    "memory": {
+      "type": "object", "additionalProperties": false,
+      "required": ["model", "bounded"],
+      "properties": {
+        "model": {"type": "string", "minLength": 1},
+        "bounded": {"type": "boolean"},
+        "spillable": {"type": "boolean"}
+      }
+    },
+    "contracts": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sci", "alg", "data", "api", "mod", "test"],
+      "properties": {
+        "sci": {"$ref": "#/$defs/idlist"},
+        "alg": {"$ref": "#/$defs/idlist"},
+        "data": {"$ref": "#/$defs/idlist"},
+        "api": {"$ref": "#/$defs/idlist"},
+        "mod": {"$ref": "#/$defs/idlist"},
+        "test": {"$ref": "#/$defs/idlist"}
+      }
+    }
+  },
+  "$defs": {
+    "idlist": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z]+-[A-Z0-9-]+$"}},
+    "port": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "data_contract", "required"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "data_contract": {"type": "string", "pattern": "^DATA-[A-Z0-9-]+$"},
+        "required": {"type": "boolean"},
+        "multiplicity": {"enum": ["one", "many"]}
+      }
+    }
+  }
+}

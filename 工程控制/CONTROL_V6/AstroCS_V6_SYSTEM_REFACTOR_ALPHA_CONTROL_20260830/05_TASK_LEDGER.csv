@@ -1,0 +1,89 @@
+task_id,gate,title,depends_on,platform,change_class,heavy_compute,commit_required,scope,acceptance,status
+BAS-001,G0,冻结仓库身份与控制包,,Linux,evidence,no,yes,"repo identity; control hash; dirty tree inventory","HEAD=main=origin/main; CONTROL_PASS; 无未登记变更",NOT_STARTED
+BAS-002,G0,冻结当前构建目标和生产入口,BAS-001,Linux,evidence,no,yes,"CMake targets; executables; linked symbols; entry points","生成真实构建图和入口清单; 不采用历史报告",NOT_STARTED
+BAS-003,G0,冻结当前静态调用图和线程入口,BAS-001,Linux,evidence,no,yes,"CLI; sessions; orchestrator; AIO; stage2; OpenMP/thread calls","定位所有 scheduler/thread hardcode/global locks; 图可复现",NOT_STARTED
+BAS-004,G0,登记P0所有权与科学语义风险,BAS-001,Linux,evidence,no,yes,"AIO image ownership; Phase3 BUNIT/provenance; incomplete sessions","每项含源码符号; 最小复现; 影响; 后续Task ID",NOT_STARTED
+VER-001,G1,建立唯一版本来源,BAS-002,Linux,architecture,no,yes,"VERSION; generated version header; CLI; manifests; docs","目标0.10.0-alpha.1; 所有展示由VERSION生成; 无硬编码冲突",NOT_STARTED
+DOC-001,G1,建立合同ID注册表,BAS-002;BAS-003,Linux,documentation,no,yes,"SCI/ALG/DATA/ARCH/API/MOD/TEST registry","唯一ID; owner; version; status; links; 无悬空引用",NOT_STARTED
+SCI-001,G1,冻结Phase1科学定义,DOC-001,Linux,science,no,yes,"calibration through HiPS scientific contracts","定义公式单位假设边界; 不修改代码; owner摘要",NOT_STARTED
+SCI-002,G1,冻结Phase2科学定义,DOC-001,Linux,science,no,yes,"coverage; sampling; additive UPM; rejection; integration; HiPS","接缝模型与权重分离; 公式和不变量完整",NOT_STARTED
+SCI-003,G1,设计Phase3科学定义,DOC-001,Linux,science,no,yes,"HiPS sphere to planar FITS","WCS; interpolation; units; coverage; RA wrap; poles; prototype不算实现",NOT_STARTED
+DATA-001,G1,冻结跨模块数据语义,DOC-001;SCI-001;SCI-002;SCI-003,Linux,contract,no,yes,"artifact schemas; units; coordinate; precision; invalids; ownership","每端口引用DATA ID; 禁止模糊weight/value; schema可机检",NOT_STARTED
+ARCH-001,G1,冻结Runtime与职责边界,BAS-002;BAS-003;DOC-001,Linux,architecture,no,yes,"CLI/runtime/registry/io/modules/backends","唯一全局scheduler; 依赖方向和禁止方向写入ARCH",NOT_STARTED
+API-001,G1,冻结公共API与错误模型,DATA-001;ARCH-001,Linux,contract,no,yes,"public C++ API; CPU C ABI; exit codes; JSON events","签名和所有权明确; exception不跨ABI; AST规则可执行",NOT_STARTED
+TEST-001,G1,建立科学测试矩阵,SCI-001;SCI-002;SCI-003;DATA-001,Linux,test,no,yes,"module oracles; properties; tolerances; triggers","容差事前冻结; 每SCI/ALG至少一个独立TEST",NOT_STARTED
+BLD-001,G2,建立显式根CMake目标图,ARCH-001;API-001;VER-001,Linux,architecture,no,yes,"root CMake; explicit targets; options","无生产GLOB; target级警告; ACR默认OFF; CLI可最小链接",NOT_STARTED
+CORE-001,G2,实现公共Result错误取消语义,BLD-001;API-001,Linux,architecture,no,yes,"core contracts error/result/cancel","无process exit; 错误码稳定; 单元测试覆盖传播",NOT_STARTED
+CORE-002,G2,实现DataArtifact与Provenance,CORE-001;DATA-001,Linux,architecture,no,yes,"artifact descriptor; ownership; provenance","schema/units/shape验证; serialization roundtrip; hash稳定",NOT_STARTED
+CORE-003,G2,实现ModuleDescriptor注册表,CORE-001;API-001;DOC-001,Linux,architecture,no,yes,"registry; descriptor; duplicate detection","模块唯一; ABI/API/端口校验; 可导出machine index",NOT_STARTED
+CORE-004,G2,实现PipelineIR解析和静态验证,CORE-002;CORE-003,Linux,architecture,no,yes,"pipeline schema; parser; DAG validator","未知模块/端口/单位/环/producer冲突均拒绝; golden tests",NOT_STARTED
+CORE-005,G2,实现RunContext服务接口,CORE-001;CORE-002;ARCH-001,Linux,architecture,no,yes,"logger metrics budgets artifact cancellation checkpoint backend","模块只能通过context访问服务; mock tests",NOT_STARTED
+CORE-006,G2,实现统一DAG调度与线程租约,CORE-004;CORE-005,Linux,architecture,yes,yes,"runtime scheduler; bounded queues; leases; backpressure","2核合成DAG并发; 无过订阅; 取消/失败传播; resource trace",NOT_STARTED
+CORE-007,G2,实现checkpoint与幂等恢复,CORE-002;CORE-006,Linux,architecture,no,yes,"checkpoint store; artifact commit boundary","故障注入后只重跑未提交节点; 不接受半成品",NOT_STARTED
+CORE-008,G2,实现结构化日志指标运行trace,CORE-005;CORE-006,Linux,architecture,no,yes,"JSONL events; metrics; run identity","stdout/stderr隔离; schema valid; 静态图可与trace比较",NOT_STARTED
+IO-001,G3,建立I/O和ArtifactStore接口,CORE-002;CORE-005;BLD-001,Linux,architecture,no,yes,"fits/hips adapters; artifact transaction","I/O不含pipeline; atomic write; fault injection tests",NOT_STARTED
+IO-002,G3,修复AIO图像所有权和泄漏,IO-001;BAS-004,Linux,bugfix,no,yes,"p1 ImageDeleter; all AIO image owners","统一aio_free_image_data RAII; ASan/LSan循环零泄漏",NOT_STARTED
+IO-003,G3,启用并验证CFITSIO可重入读取,IO-001;BLD-001,Linux,bugfix,yes,yes,"CFITSIO build; doctor; worker-local handles","fits_is_reentrant=1; 独立open并发读压力测试; 禁止共享fitsfile*",NOT_STARTED
+IO-004,G3,移除Phase2全局读锁,IO-003;CORE-006,Linux,performance,yes,yes,"sampler g_aio_mu; dataset ownership","worker-local reader; TSan/ASan; 数值一致; 锁等待证据清零",NOT_STARTED
+CPU-001,G3,实现CPU provider稳定C ABI,API-001;BLD-001;CORE-005,Linux+Windows,architecture,no,yes,"backend ABI; loader; metadata","size/version/features/build-id校验; 坏DLL拒绝; baseline始终可用",NOT_STARTED
+CPU-002,G3,建立AMD64保守多线程后端,CPU-001;CORE-006,Linux+Windows,performance,yes,yes,"baseline provider; representative kernels","不要求AVX2; 重计算仍多线程; 独立Oracle通过",NOT_STARTED
+CPU-003,G3,建立AVX2后端,CPU-001;CPU-002,Linux+Windows,performance,yes,yes,"qualified hot kernels only","CPUID+XGETBV; unsupported不加载; 与Oracle/backend等价",NOT_STARTED
+CPU-004,G3,建立AVX512后端,CPU-001;CPU-002,Linux+Windows,performance,yes,yes,"qualified hot kernels only","检查具体子集和OS状态; 不快则不选; 数值等价",NOT_STARTED
+CPU-005,G3,实现CPU与OS能力检测,CPU-001,Linux+Windows,architecture,no,yes,"logical quota; affinity; ISA; cache; NUMA; OS state","容器/Job限制生效; 无硬编码核心数; fixture覆盖伪造CPUID",NOT_STARTED
+CPU-006,G3,实现代表性benchmark,CPU-002;CPU-003;CPU-004;CPU-005,Linux+Windows,performance,yes,yes,"threads; ISA per kernel; memory bandwidth; block sizes","先正确后计时; 短样本; median; 不跑历史全链",NOT_STARTED
+CPU-007,G3,实现机器profile与失效策略,CPU-006;CORE-005,Linux+Windows,architecture,no,yes,"profile schema; signature; selection; fallback","硬件/OS/build不匹配自动失效; 未benchmark回baseline并诊断",NOT_STARTED
+CPU-008,G3,实现统一资源监测与硬门,CORE-008;CPU-005,Linux+Windows,performance,yes,yes,"CPU threads memory IO waits timeline; gate evaluator","每重计算自动采集; 阈值失败不可静默PASS; JSON/CSV报告",NOT_STARTED
+P1-001,G4,建立Phase1模块清单和adapter,CORE-003;CORE-004;IO-002;SCI-001,Linux,architecture,no,yes,"map old symbols to module IDs and ports","无公式修改; 每旧入口有迁移归属; module descriptor valid",NOT_STARTED
+P1-002,G4,迁移输入校准美容模块,P1-001;CORE-006;IO-001,Linux,architecture,yes,yes,"read; calibration; cosmetic; write adapter","合成解析解; 负值保留; 单位/所有权; 串并行一致",NOT_STARTED
+P1-003,G4,迁移Star与PSF模块,P1-001;CORE-006,Linux,architecture,yes,yes,"star detection; PSF; de-duplication","analytic PSF fixture; centroid/FWHM tolerances; trace ports",NOT_STARTED
+P1-004,G4,迁移PlateSolve与Photometry模块,P1-003;CORE-006,Linux,architecture,yes,yes,"WCS solve; photometry; integration failure paths","WCS roundtrip; flux fixture; failure semantics; 无隐藏全局状态",NOT_STARTED
+P1-005,G4,迁移Noise与SNR模块,P1-002;P1-004;SCI-001,Linux,architecture,yes,yes,"noise estimators; variance; ivar; SNR","单位与公式可追溯; Monte Carlo/analytic oracle; 极端输入",NOT_STARTED
+P1-006,G4,迁移NSIDE与Drizzle模块,P1-004;P1-005;CPU-007,Linux,architecture,yes,yes,"nside planning; drizzle kernel; support/weight","能量/常数场/质心/RA wrap; FP64 accum; provider等价",NOT_STARTED
+P1-007,G4,迁移HiPS writer和verify,P1-006;IO-001,Linux,architecture,yes,yes,"HiPS artifact; properties; tile tree; verify","完整性和hash; 不覆盖未提交目录; 失败原子回滚",NOT_STARTED
+P1-008,G4,组装Canonical Phase1 Pipeline,P1-002;P1-003;P1-004;P1-005;P1-006;P1-007,Linux,architecture,yes,yes,"phase1 preset and session facade","静态IR=runtime trace; 文档全部节点真实执行; artifact identity连续",NOT_STARTED
+P1-009,G4,完成Phase1模块测试与资源门,P1-008;CPU-008,Linux,test,yes,yes,"synthetic suite; small frame; resource timeline","全部SCI/ALG TEST; CPU-heavy active workers>=2 on 2-core; 无泄漏",NOT_STARTED
+P2-001,G5,建立Phase2模块清单和adapter,CORE-003;CORE-004;SCI-002;IO-004,Linux,architecture,no,yes,"map stage2/session/UPM/integration symbols","旧完整链每一步有归属; ACR调用标隔离; descriptor valid",NOT_STARTED
+P2-002,G5,迁移Coverage与Sampler,P2-001;CORE-006;IO-004,Linux,architecture,yes,yes,"coverage graph; sample/control points","删除workers=1; worker-local I/O; deterministic partition; resource gate",NOT_STARTED
+P2-003,G5,迁移加性UPM接缝模型,P2-002;SCI-002,Linux,architecture,yes,yes,"control filtering; overlap equations; regularized fit","只加性; gauge/断图定义; seam synthetic; flux/source preservation",NOT_STARTED
+P2-004,G5,迁移BlockPlan与校正应用,P2-003;CORE-006,Linux,architecture,yes,yes,"block plan; apply additive model; cache","有界内存; 无35GB稠密缓存; block equivalence; no holes",NOT_STARTED
+P2-005,G5,迁移Rejection与Integration,P2-004;CPU-007,Linux,architecture,yes,yes,"sigma/winsor/linear-fit/ESD/RCR selection; integration","选择规则可追溯; cosmic/streak fixtures; weight语义明确",NOT_STARTED
+P2-006,G5,迁移Phase2 HiPS writer与verify,P2-005;IO-001,Linux,architecture,yes,yes,"mosaic/support/weight/UPM/rejection products","所有diagnostic artifact登记; HiPS验证; 原子提交",NOT_STARTED
+P2-007,G5,组装Canonical Phase2 Pipeline,P2-002;P2-003;P2-004;P2-005;P2-006,Linux,architecture,yes,yes,"phase2 preset and session facade","文档链真实执行; static graph=trace; ACR=OFF可完整运行",NOT_STARTED
+P2-008,G5,完成Phase2科学与资源门,P2-007;CPU-008,Linux,test,yes,yes,"synthetic seam/rejection/integration; small overlap","无接缝回退/黑洞/条纹; CPU或带宽门通过; 无单线程重计算",NOT_STARTED
+P3-001,G6,隔离现有Phase3原型,SCI-003;BLD-001,Linux,architecture,no,yes,"phase3_session prototype; production registry","标PROTOTYPE; 不注册生产preset; 移除错误已实现宣称",NOT_STARTED
+P3-002,G6,实现Phase3 WCS与输出计划,P3-001;DATA-001;CORE-004,Linux,architecture,no,yes,"source properties; output WCS; dimensions; units","不硬编码Jy/beam; WCS roundtrip; size/overflow/bounds validation",NOT_STARTED
+P3-003,G6,实现并行tile resample,P3-002;CORE-006;CPU-007,Linux,architecture,yes,yes,"sphere-to-plane tile scheduler; kernels","2D串行循环退出生产; deterministic tiles; CPU resource gate",NOT_STARTED
+P3-004,G6,实现coverage与边界语义,P3-003;SCI-003,Linux,architecture,yes,yes,"missing pixels; RA wrap; poles; interpolation support","constant sphere/impulse/edge fixtures; no fabricated valid data",NOT_STARTED
+P3-005,G6,实现FITS写入验证与provenance,P3-004;IO-001,Linux,architecture,yes,yes,"output artifact; WCS/BUNIT; verify","header由合同生成; roundtrip; atomic output; real run identity",NOT_STARTED
+P3-006,G6,组装Phase3并完成科学资源门,P3-003;P3-004;P3-005;CPU-008,Linux,test,yes,yes,"phase3 preset; synthetic suite; trace","SCI/ALG/DATA/TEST闭环; 并行利用达标; 才改IMPLEMENTED",NOT_STARTED
+CLI-001,G7,拆分CLI单体并建立稳定command层,CORE-004;CORE-008;CPU-007,Linux+Windows,architecture,no,yes,"main parsing/handlers/output; public runtime facade","CLI无科学内部include; handlers可单测; 退出码/JSON稳定",NOT_STARTED
+CLI-002,G7,接通run preset与真实Artifact传递,P1-008;P2-007;P3-006;CLI-001,Linux+Windows,architecture,yes,yes,"phase1/2/3/all pipeline presets","P1 output ID=P2 input ID; P2 output ID=P3 input ID; trace可证",NOT_STARTED
+CLI-003,G7,接通test benchmark doctor命令,CLI-001;CPU-007;TEST-001,Linux+Windows,architecture,yes,yes,"test synthetic; benchmark; doctor; artifacts verify","无stub; machine reports validated; timeout/cancel可用",NOT_STARTED
+LEG-001,G7,退出CLI直连Drizzle路径,P1-008;CLI-002,Linux,architecture,no,yes,"direct drizzle command/header parsing","改为pipeline preset/test wrapper; 无重复WCS/I/O语义",NOT_STARTED
+LEG-002,G7,退出旧Orchestrator生产路径,CLI-002;BAS-003,Linux+Windows,architecture,no,yes,"orchestrator executable and run_stage graph","无生产引用/链接/文档; 必要兼容只读adapter有期限",NOT_STARTED
+LEG-003,G7,退出AIO PipelineEngine调度职责,CLI-002;IO-001,Linux+Windows,architecture,no,yes,"aio_pipeline_engine 5-stage scheduler","I/O target无runtime/stage dependency; omp hardcode清零",NOT_STARTED
+LEG-004,G7,退出旧Stage2并隔离ACR,CLI-002;P2-007;BLD-001,Linux+Windows,architecture,no,yes,"stage2 tool; ACR registry; build graph","canonical Phase2唯一; production link/symbol/module list无ACR",NOT_STARTED
+DOC-002,G8,完成L0负责人审查文档,SCI-001;SCI-002;SCI-003;CLI-002,Linux,documentation,no,yes,"REVIEW and five owner docs","简洁公式/图/风险/证据链接; 不复制底层定义",NOT_STARTED
+DOC-003,G8,完成每模块L2 README和合同链接,P1-008;P2-007;P3-006,Linux,documentation,no,yes,"all production modules","职责/端口/单位/并发/内存/错误/测试/符号完整",NOT_STARTED
+DOC-004,G8,实现AST API与追溯矩阵检查,CORE-003;DOC-001;DOC-003,Linux,tooling,no,yes,"Clang AST; exports; docs refs; tests","真实签名与API匹配; SCI到TEST无断链; negative fixtures失败",NOT_STARTED
+DOC-005,G8,实现静态Pipeline图与运行trace一致性检查,CORE-004;CORE-008;CLI-002,Linux,tooling,no,yes,"IR graph; trace; artifacts; module versions","节点/边/端口/hash一致; 机器图纳入代码文档",NOT_STARTED
+QA-001,G8,清零生产编译警告抑制和高风险警告,BLD-001;LEG-004,Linux+Windows,quality,no,yes,"CMake warning flags; -w /w; compiler warnings","项目源码无全局禁警告; 警告基线为空或逐项批准",NOT_STARTED
+QA-002,G8,建立串行与硬编码静态禁令,DOC-004;CORE-006,Linux,tooling,no,yes,"workers=1; thread literals; direct omp; serial hot loops; ISA flags","production heavy path零违规; allowlist仅短I/O且有理由",NOT_STARTED
+QA-003,G8,完成Sanitizer与线程安全验证,IO-002;IO-004;P1-009;P2-008;P3-006,Linux,quality,yes,yes,"ASan; UBSan; LSan; TSan targeted","无泄漏/UAF/race/UB; suppressions逐项来源和期限",NOT_STARTED
+QA-004,G8,完成复杂度重复实现和所有权审查,LEG-002;LEG-003;LEG-004,Linux,quality,no,yes,"dup schedulers; I/O/WCS copies; ownership; giant files","每P0/P1闭环; 无第二生产调度器; 关键函数复杂度报告",NOT_STARTED
+QA-005,G8,建立可复现构建依赖与SBOM,BLD-001;QA-001,Linux+Windows,quality,no,yes,"dependency versions; licenses; build metadata; SBOM","同commit重建hash可解释; third-party不隐式漂移",NOT_STARTED
+LNX-001,G9,Linux GCC Release构建,QA-001;CLI-003;LEG-004,Linux,validation,no,yes,"amd64 release baseline; ACR OFF","clean configure/build; CLI doctor; target/link scan pass",NOT_STARTED
+LNX-002,G9,Linux Clang Debug与静态分析,LNX-001;DOC-004,Linux,validation,no,yes,"clang build; clang-tidy/analyzer; contracts","无P0/P1; findings逐项状态; API extraction pass",NOT_STARTED
+LNX-003,G9,Linux全组合成科学测试,LNX-001;QA-003,Linux,validation,yes,yes,"all module oracles; pipeline integration","全TEST PASS; 容差事前值; 失败不可重跑掩盖",NOT_STARTED
+LNX-004,G9,Linux 2核资源与恢复验证,LNX-003;CPU-008,Linux,validation,yes,yes,"heavy synthetic; memory pressure; cancel/resume","active workers>=2; utilization gate; bounded RAM; checkpoint recovery",NOT_STARTED
+LNX-005,G9,Linux少量真实数据冒烟,LNX-003;LNX-004,Linux,validation,yes,yes,"hashed minimal Fatduck sample; Phase1/2/3 impacted paths","只拷少量; timeout; no crash/leak; outputs verify; 不替代32R",NOT_STARTED
+WIN-001,G10,Windows在线探测与MSVC构建,LNX-001;QA-005,Windows,validation,no,yes,"SSH timeout; clean MSVC release/debug; package layout","offline则WAITING_WINDOWS; online clean build; no hidden manual steps",NOT_STARTED
+WIN-002,G10,Windows CPU benchmark与provider选择,WIN-001;CPU-007;CPU-008,Windows,validation,yes,yes,"baseline/AVX2/AVX512; threads; memory","每kernel正确性先过; profile绑定; unsupported provider不加载",NOT_STARTED
+WIN-003,G10,Windows合成科学与资源验证,WIN-001;WIN-002;LNX-003,Windows,validation,yes,yes,"all synthetic modules and pipelines","MSVC数值容差; no serial heavy; resource gate pass",NOT_STARTED
+WIN-004,G10,Windows少量真实代表帧验证,WIN-003;LNX-005,Windows,validation,yes,yes,"one hashed R per panel plus masters","Phase1 outputs; Phase2 overlaps; Phase3 sample; diagnostic artifacts",NOT_STARTED
+WIN-005,G10,Windows银心32R最终一次全链,WIN-004;DOC-002,Windows,validation,yes,yes,"11+11+10 R; final candidate; monitor","全部输入贡献; P1 to P2 artifact identity; HiPS/support/UPM/rejection; resource gates",NOT_STARTED
+WIN-006,G10,HiPS与Phase3视觉技术证据,WIN-005;P3-006,Windows,validation,yes,yes,"locked viewer state; seam/holes/stripes/streaks; planar FITS","预览与数值seam metrics; WCS/FITS verify; 生成owner review清单",NOT_STARTED
+REL-001,G11,生成双平台Alpha发布产物,LNX-005;WIN-006;QA-005,Linux+Windows,release,no,yes,"Linux amd64; Windows amd64; providers; configs; licenses","版本0.10.0-alpha.1; reproducible metadata; install/run smoke",NOT_STARTED
+REL-002,G11,完成最终文档真相校验,DOC-002;DOC-003;DOC-004;DOC-005;REL-001,Linux,release,no,yes,"L0-L3; version; pipeline; APIs; status","无旧入口/旧版本/假实现; owner文档链接到现场证据",NOT_STARTED
+REL-003,G11,生成白名单审核包,REL-001;REL-002,Linux,release,no,yes,"source snapshot; changed docs; evidence summaries; previews; manifests","validate_audit PASS; source/evidence/artifact commit一致; 无大文件历史数据build",NOT_STARTED
+REL-004,G11,负责人最终视觉与发布决策,REL-003,Owner,release,no,no,"HiPS locked views; release status; known limits","负责人明确APPROVE或REJECT; Agent不得代签",NOT_STARTED
