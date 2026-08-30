@@ -1,0 +1,5 @@
+test_id,task_id,host,commit,group,backend,workers,seed,contract_hash,command_log,duration_seconds,status,evidence
+TLNX-FULL,LNX-005,vm-bj,b8ce36691e0b6ef31a9a31814f711f09b48a2263,full_suite,backend:builtin,CPU,syn009,0,python3 -m unittest discover -s tests -t tests,840,PASS,reports/evidence/LNX005_verification.md (ISA perf timing flake re-run PASS)
+TWN-001,WIN-001,fatduck,b8ce36691e0b6ef31a9a31814f711f09b48a2263,win_cli_smoke,builtin,CPU,syn009,0,astrocs.exe --version/doctor/phase smoke,12,PASS,reports/evidence/WIN001_verification.md
+TWN-005,WIN-005,fatduck,b8ce36691e0b6ef31a9a31814f711f09b48a2263,win_analyze_asan,builtin,CPU,syn009,0,MSVC /analyze 0 errors + ASan suite,300,PASS,reports/evidence/WIN005_verification.md
+TWN-006-P1,WIN-006,fatduck,b8ce36691e0b6ef31a9a31814f711f09b48a2263,phase1_realdata,builtin,CPU,galactic-center-T4-R,0,astrocs phase1 run --config phase1_cfg.json (6 R frames + 3 xisf masters),4,PASS,reports/evidence/WIN006_verification.md
