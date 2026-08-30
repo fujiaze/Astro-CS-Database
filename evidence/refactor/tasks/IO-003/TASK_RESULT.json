@@ -1,0 +1,66 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "IO-003",
+  "status": "PASS",
+  "start_commit": "1878fa5203246d15bdcc25539f990ff524debe12",
+  "source_commit": "1878fa5203246d15bdcc25539f990ff524debe12",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "CMakeLists.txt",
+    "tests/unit/io_reentrant_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/IO-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/IO-003/logs/c01.log",
+    "evidence/refactor/tasks/IO-003/logs/c02.log",
+    "evidence/refactor/tasks/IO-003/logs/c03.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "log_sha256": "7725ae0af3df0f49cc017d5806c450a03e4b44d38c4c1b0b19ff3ebe52cf623d"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "180cd1f58afb279bf1c991d8d8dfde63b4871c7f2ee8438b032c120488be55f3"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "bec7d35cefa799acd1b417d112edb49ea76aeb7547bceff3509a55e6bdc4de3d"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-DOCTOR",
+      "description": "现场调用 fits_is_reentrant()==1 (显式 reentrant 构建, 非仅编译 flag 声明)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CONCURRENT",
+      "description": "4 worker 独立 fitsfile* 并发读同一 tile x5 round; hash 全一致",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-GLOBAL-LOCK",
+      "description": "g_aio_mu 全局锁零残留",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "workers": 4,
+    "rounds": 5,
+    "fits_is_reentrant": 1,
+    "global_lock_sites": 0
+  },
+  "findings": [
+    "IO-003: astrocs_cfitsio 显式 _REENTRANT 编译(fits_is_reentrant()==1 现场校验); 测试用合成 FITS 4 worker 独立 fitsfile* 并发读 hash 一致; g_aio_mu 全局锁从未存在且零残留; 每 worker 独立 reader 满足"
+  ],
+  "created_utc": "2026-08-30T16:28:10Z"
+}
