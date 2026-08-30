@@ -1,0 +1,67 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P3-001",
+  "status": "PASS",
+  "start_commit": "f5e1177a720d63045735323ce6befc5a7e1d9751",
+  "source_commit": "f5e1177a720d63045735323ce6befc5a7e1d9751",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "docs/refactor/P3_STATUS.md",
+    "tools/check_p3_status.py",
+    "evidence/refactor/tasks/P3-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/P3-001/logs/c01.log",
+    "evidence/refactor/tasks/P3-001/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "2d3feed3edaf3b74069a9c27429a8b95a1eb55d678cc6b7412c3305625df1c6d"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "d64d691add0285f0042798c20b6caa62265e09722f5a987b50ecae240f057448"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-NO-PROTOTYPE",
+      "description": "代码层 lib/cli 无 prototype 残留(除 test/third_party)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-REGISTRY",
+      "description": "cli phase3 命令注册指向正式模块(p3_*)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DOC-STATUS",
+      "description": "文档状态统一: 旧实现=PROTOTYPE, 正式=IMPLEMENTED, ACR=NOT_IMPLEMENTED",
+      "result": "PASS"
+    },
+    {
+      "id": "T-KEEP-SRC",
+      "description": "保留源码不破坏删除(历史实现完整保留)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "prototype_refs": 0,
+    "modules_implemented": [
+      "p3_wcs",
+      "p3_resample",
+      "p3_output",
+      "p3_session",
+      "hips_properties"
+    ]
+  },
+  "findings": [
+    "P3-001: production registry/preset 无 prototype(代码扫描 0 命中); phase3 正式模块注册; 文档状态统一(PROTOTYPE/NOT_IMPLEMENTED/IMPLEMENTED); 源码保留不破坏删除"
+  ],
+  "created_utc": "2026-08-30T17:25:18Z"
+}
