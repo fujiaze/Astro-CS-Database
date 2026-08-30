@@ -1,0 +1,58 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CORE-007",
+  "status": "PASS",
+  "start_commit": "dedbfad7a1f0e18b6ef85d1e7540319f2e0e60fe",
+  "source_commit": "dedbfad7a1f0e18b6ef85d1e7540319f2e0e60fe",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "include/astrocs/core/checkpoint.h",
+    "lib/core/src/checkpoint.cpp",
+    "tests/unit/core_checkpoint_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "CMakeLists.txt",
+    "evidence/refactor/tasks/CORE-007/TASK_RESULT.json",
+    "evidence/refactor/tasks/CORE-007/logs/c01.log",
+    "evidence/refactor/tasks/CORE-007/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "546fe0a9ca86a29d020ab71edf46ca474cba169fcddfbaf57a968157ffc8a9f1"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "e62e8adad52ed5ead8c218ff97918ed18afb6dcac5eb7a6521ad2d0224d8121d"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-UNIT",
+      "description": "core_checkpoint_test 6 组 PASS (begin/commit/半成品拒/begin 必需/run_id 变更拒/幂等重放)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-IDEMPOTENT",
+      "description": "同 run_id 重放幂等, 不新增条目",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "tests": 6,
+    "checkpoint_semantics": [
+      "atomic commit boundary",
+      "half-done rejected",
+      "idempotent replay"
+    ]
+  },
+  "findings": [
+    "CORE-007 实现 CheckpointStore: 节点产物在 Artifact 原子提交后才记录; 无 artifact 的提交(半成品)显式拒; 同 run_id 幂等重放; run_id 中途变更拒; 支持故障后只重跑未提交节点"
+  ],
+  "created_utc": "2026-08-30T16:17:59Z"
+}
