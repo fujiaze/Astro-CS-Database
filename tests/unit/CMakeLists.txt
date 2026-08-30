@@ -163,3 +163,10 @@ target_include_directories(p1_resource_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
 target_link_libraries(p1_resource_test PRIVATE astrocs_calibration OpenMP::OpenMP_CXX Threads::Threads)
 add_test(NAME p1_resource COMMAND p1_resource_test)
+
+add_executable(p2_workers_test p2_workers_test.cpp)
+target_include_directories(p2_workers_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase2/include)
+target_link_libraries(p2_workers_test PRIVATE astrocs_phase2 astrocs_contracts OpenMP::OpenMP_CXX)
+add_test(NAME p2_workers COMMAND p2_workers_test)
