@@ -58,8 +58,8 @@ P3-005,G6,实现FITS写入验证与provenance,P3-004;IO-001,Linux,architecture,y
 P3-006,G6,组装Phase3并完成科学资源门,P3-003;P3-004;P3-005;CPU-008,Linux,test,yes,yes,phase3 preset; synthetic suite; trace,SCI/ALG/DATA/TEST闭环; 并行利用达标; 才改IMPLEMENTED,PASS
 CLI-001,G7,拆分CLI单体并建立稳定command层,CORE-004;CORE-008;CPU-007,Linux+Windows,architecture,no,yes,main parsing/handlers/output; public runtime facade,CLI无科学内部include; handlers可单测; 退出码/JSON稳定,PASS
 CLI-002,G7,接通run preset与真实Artifact传递,P1-008;P2-007;P3-006;CLI-001,Linux+Windows,architecture,yes,yes,phase1/2/3/all pipeline presets,P1 output ID=P2 input ID; P2 output ID=P3 input ID; trace可证,PASS
-CLI-003,G7,接通test benchmark doctor命令,CLI-001;CPU-007;TEST-001,Linux+Windows,architecture,yes,yes,test synthetic; benchmark; doctor; artifacts verify,无stub; machine reports validated; timeout/cancel可用,IN_PROGRESS
-LEG-001,G7,退出CLI直连Drizzle路径,P1-008;CLI-002,Linux,architecture,no,yes,direct drizzle command/header parsing,改为pipeline preset/test wrapper; 无重复WCS/I/O语义,NOT_STARTED
+CLI-003,G7,接通test benchmark doctor命令,CLI-001;CPU-007;TEST-001,Linux+Windows,architecture,yes,yes,test synthetic; benchmark; doctor; artifacts verify,无stub; machine reports validated; timeout/cancel可用,PASS
+LEG-001,G7,退出CLI直连Drizzle路径,P1-008;CLI-002,Linux,architecture,no,yes,direct drizzle command/header parsing,改为pipeline preset/test wrapper; 无重复WCS/I/O语义,IN_PROGRESS
 LEG-002,G7,退出旧Orchestrator生产路径,CLI-002;BAS-003,Linux+Windows,architecture,no,yes,orchestrator executable and run_stage graph,无生产引用/链接/文档; 必要兼容只读adapter有期限,NOT_STARTED
 LEG-003,G7,退出AIO PipelineEngine调度职责,CLI-002;IO-001,Linux+Windows,architecture,no,yes,aio_pipeline_engine 5-stage scheduler,I/O target无runtime/stage dependency; omp hardcode清零,NOT_STARTED
 LEG-004,G7,退出旧Stage2并隔离ACR,CLI-002;P2-007;BLD-001,Linux+Windows,architecture,no,yes,stage2 tool; ACR registry; build graph,canonical Phase2唯一; production link/symbol/module list无ACR,NOT_STARTED
