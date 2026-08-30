@@ -109,6 +109,48 @@ static void test_cancel_propagation() {
   CHECK(r.failed());
 }
 
+static void test_backpressure_bounded_concurrency() {
+  // budget=1: 即使 3 个独立节点, 并发上限必须 =1 (backpressure)
+  Scheduler sched(4, 1);
+  std::atomic<int> concurrent{0};
+  std::atomic<int> max_concurrent{0};
+  for (int i = 0; i < 3; ++i) {
+    sched.add_node({"n" + std::to_string(i), {}, [&](const std::string&, RunContext&) {
+      int c = ++concurrent;
+      int cur = max_concurrent.load();
+      while (cur < c && !max_concurrent.compare_exchange_weak(cur, c)) {}
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      --concurrent;
+      return Result<void>::success();
+    }, "cpu_heavy"});
+  }
+  RunContext ctx;
+  ctx.set_thread_budget(1);
+  auto r = sched.run(ctx);
+  CHECK(r.ok());
+  CHECK(max_concurrent.load() <= 1);  // backpressure: 不超过 budget
+  CHECK(max_concurrent.load() >= 1);
+}
+
+static void test_recovery_skip_after_failure() {
+  // 失败后: 依赖失败的节点被 SKIPPED; 独立节点仍完成
+  Scheduler sched(2, 2);
+  sched.add_node({"bad", {}, [](const std::string&, RunContext&) {
+    return Result<void>::fail(Error(ErrorDomain::DATA, "boom"));
+  }, "cpu_heavy"});
+  sched.add_node({"dep", {"bad"}, [](const std::string&, RunContext&) {
+    return Result<void>::success();
+  }, "cpu_heavy"});
+  sched.add_node({"indep", {}, [](const std::string&, RunContext&) {
+    return Result<void>::success();
+  }, "cpu_heavy"});
+  RunContext ctx;
+  std::vector<NodeStatus> statuses;
+  auto r = sched.run(ctx, &statuses);
+  CHECK(r.failed());
+  CHECK(statuses.size() == 3);
+}
+
 static void test_cycle_rejected() {
   Scheduler sched(2, 2);
   sched.add_node({"a", {"b"}, [](const std::string&, RunContext&) {
@@ -139,6 +181,8 @@ int main() {
   test_parallel_independent();
   test_failure_propagation();
   test_cancel_propagation();
+  test_backpressure_bounded_concurrency();
+  test_recovery_skip_after_failure();
   test_cycle_rejected();
   test_unknown_dep_rejected();
   if (failures == 0) {
