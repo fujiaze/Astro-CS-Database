@@ -1,0 +1,73 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P2-003",
+  "status": "PASS",
+  "start_commit": "6ef62a41fa135370ab1b487d04d8403e2a34c31a",
+  "source_commit": "6ef62a41fa135370ab1b487d04d8403e2a34c31a",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p2_upm_synthetic_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P2-003/TASK_RESULT.json",
+    "evidence/refactor/tasks/P2-003/logs/c01.log",
+    "evidence/refactor/tasks/P2-003/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "e8777560f3f16db480631b4779b34d5a37aa84b77d0029a2e451a65aa7f3087a"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "dcf0bda62e8ae210ac811f484c6bd94ccb9d506f7b3399f6206f2eaa3cc0558e"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-PAIRWISE",
+      "description": "三块重叠(常量+线性+平滑背景+恒星): pairwise median 差=背景差精确",
+      "result": "PASS"
+    },
+    {
+      "id": "T-GAUGE-CLOSE",
+      "description": "gauge(参考帧 C=0) 下闭合: (C_B-C_C)=dBC 一致",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SEAM-DROP",
+      "description": "接缝: 校准前差 8 ADU → 校准后 <2 (下降)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-STAR-KEPT",
+      "description": "源不被拟合: 恒星校准后仍 > 背景+300",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ADDITIVE",
+      "description": "加性非乘性: 校准后同位置亮度比 ≈1",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NO-ZERO-SUPPORT",
+      "description": "禁 zero-support 生成值: 单覆盖区不虚构跨帧值",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "frames": 3,
+    "overlaps": 3,
+    "seam_before_after": "8 → <2 ADU",
+    "star_retention": ">300 ADU"
+  },
+  "findings": [
+    "P2-003: 三块重叠合成面 pairwise difference 求解验证; gauge(参考帧 C=0) 闭合; 接缝 8→<2 ADU 下降; 恒星不被拟合(>300 保留); 加性校正非乘性(比≈1); 禁 zero-support 生成值(单覆盖区无虚构)"
+  ],
+  "created_utc": "2026-08-30T17:15:57Z"
+}
