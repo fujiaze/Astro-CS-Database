@@ -1,8 +1,8 @@
 {
  "schema_version": 1,
- "package": "AstroCS-audit-8e7c7a3a992b",
+ "package": "AstroCS-audit-b1bfee5a0afa",
  "version": "0.9.0-alpha.1",
- "commit": "8e7c7a3a992b2862ac359ceaf2011d6295c6538a",
+ "commit": "b1bfee5a0afa5487f9bdcd37ce0e628c6e5ba829",
  "files": [
   {
    "path": "00_READ_FIRST.md",
@@ -11,7 +11,7 @@
   },
   {
    "path": "BUILD_RESULTS.csv",
-   "sha256": "383f4dd924cfdc3f85938884be121696e0c26218424be674b3f83a2620b6865d",
+   "sha256": "ea6ed38d606781d67e302ae4455001a37289343f3d2894c99afa8c5eafcb962f",
    "size": 440
   },
   {
@@ -31,8 +31,8 @@
   },
   {
    "path": "FINAL_REPORT.md",
-   "sha256": "debc1b405c99575045fd074a5cac1a9fc3e7c9baa7738da0f5e51912bc3615de",
-   "size": 3201
+   "sha256": "cafb5b34e4eb810b9d87b847c281d9795d0e857972a5307d1855251e911ae97f",
+   "size": 3193
   },
   {
    "path": "FINDINGS.csv",
@@ -66,23 +66,28 @@
   },
   {
    "path": "SUMMARY.json",
-   "sha256": "e371ac201af2b053b48e2764f897f3d69c6c6e23e1636b45ba38f0ef4803fb19",
-   "size": 721
+   "sha256": "a136225643aac02aa7f4f657c8bcda404005c76c74ef1df0ca791dea56270eae",
+   "size": 910
   },
   {
    "path": "TASK_LEDGER.csv",
-   "sha256": "66cdffd88473f420e0514991e681de706ad6a9f000042ff70d0982feac85f618",
-   "size": 10091
+   "sha256": "1b5ccf5c59b48884e23841f90682248dbc01ff0348f98c9731cd7da27be00936",
+   "size": 10075
   },
   {
    "path": "TEST_RESULTS.csv",
-   "sha256": "56e3d131a57414eabb441825542a944d660dde67229a1ea10de9b75d6d3994b6",
+   "sha256": "b3ec2b9fa248d80abfb11f26f76cdf23947a70a18e1befcf548095238f96c406",
    "size": 1224
   },
   {
    "path": "TRACEABILITY.csv",
    "sha256": "50dfcc67b672b4ee869e807b023d2009f5294c8a3196da57514dc65528c741ac",
    "size": 15449
+  },
+  {
+   "path": "reports/evidence/AUDIT_DEPENDENCY_RECONCILE.md",
+   "sha256": "56d724a8565222d098183515fa9cf79b24696875f614ec6e17df08025150737b",
+   "size": 2144
   },
   {
    "path": "reports/evidence/AUDIT_PACKAGE_SUMMARY.md",
@@ -108,6 +113,11 @@
    "path": "reports/evidence/WIN005_verification.md",
    "sha256": "71c3881113c5ef1b76719e6a666165b0a05ab8bbf04df4e5684dc4fa9e63b364",
    "size": 3830
+  },
+  {
+   "path": "reports/evidence/WIN006_drizzle_hips_verification.md",
+   "sha256": "120b717c41c5c6528712a2cef57a9d1db87f8e93233306dfc0e1b03d2b46a47d",
+   "size": 4181
   },
   {
    "path": "reports/evidence/WIN006_verification.md",
