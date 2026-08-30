@@ -1,0 +1,63 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P1-007",
+  "status": "PASS",
+  "start_commit": "ed9f3b0dbb8e9299944df1fc2a7b8728b60758ba",
+  "source_commit": "ed9f3b0dbb8e9299944df1fc2a7b8728b60758ba",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p1_hips_writer_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P1-007/TASK_RESULT.json",
+    "evidence/refactor/tasks/P1-007/logs/c01.log",
+    "evidence/refactor/tasks/P1-007/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "000decc0445c5cf3d9d412a6ad01a229a66c2c18d93d91b4cbe500d1828071f7"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "35249eee698242db173d852b1ba2f517b982855f50403db4c12131954ae0bcf3"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-PRODUCT",
+      "description": "写合法 HiPS 产品(全产品 flags): signal/support/variance/ivar + Moc",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PROPERTIES",
+      "description": "properties 存在含 hips_version/creator/obs_title + drizzle provenance",
+      "result": "PASS"
+    },
+    {
+      "id": "T-TILE",
+      "description": "tile FITS 文件存在(SIMPLE header); 重开读回 hash 确定性一致",
+      "result": "PASS"
+    },
+    {
+      "id": "T-MANIFEST",
+      "description": "manifest n_leaf_tiles=1, covered_sky_fraction>0",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "tile_width": 512,
+    "nside": 512,
+    "leaf_order": 9,
+    "flags": "ALL_V19"
+  },
+  "findings": [
+    "P1-007: HiPS writer 写合法产品(signal/support/variance/ivar + Moc + properties); verify 重开 tile 读回 hash 确定; drizzle provenance 写入; manifest n_leaf_tiles=1"
+  ],
+  "created_utc": "2026-08-30T17:04:52Z"
+}
