@@ -2249,3 +2249,8 @@ SHA256 e2130977a665759abd8308e6a7cba8dd0b0ab1b8801e407f6a61de42e9c72198
 **流程**: 每工程包独立 `git worktree add -b pkg/<topic>-<date> ../Astro CS Database-wt/<pkg> main`, 仅改 `lib/`, 最小任务 commit/阶段 push, 产物只写 `run/`, evidence 永不覆盖, 审核包 `toolchain.ps1 review`
 **报告**: `run/SETUP_REPORT_V19R6R2-W1.md` (19K, 含全量环境/结构/流程), 约束遵守 未改源码/未建新仓/未新架构/未大规模测试
 
+---
+**V6 重构终态 (2026-08-31, HEAD ae140e5)**: 88 任务 = 81 PASS + 6 WAITING_WINDOWS + 1 REVIEW_PENDING (REL-004 视觉审核)。
+**门**: G0-G9 + G11(Linux 侧) 全 PASS; G8 QA 5/5; G10 Windows 登记离线。
+**关键质量成果**: P2/P3/cfitsio GLOB→显式清单 + ACR 4 文件剔出生产 (nm acr=0); ASan 构建成功 (G3 受限解除, omp.h 宏保护); 14/14 检查器 PASS。
+**状态**: Linux 侧完成 → `AWAITING_EXTERNAL_RELEASE_REVIEW` (Agent 无权宣布发布; 待负责人视觉审核 + Fatduck 恢复后 G10)。
