@@ -88,7 +88,7 @@ WIN-002,WINDOWS,WIN-001,MSVC amd64 clean Debug Release 构建零错误零失败,
 WIN-003,WINDOWS,WIN-002|BENCH-005,运行 doctor 全 backend 安全加载与 full benchmark,yes,yes,Windows,PASS
 WIN-004,WINDOWS,WIN-003|MON-004,运行全量 synthetic CLI contract 资源与内存门禁,yes,yes,Windows,PASS
 WIN-005,WINDOWS,WIN-004,运行 Windows sanitizer 可用集 静态检查和跨平台数值合同,yes,yes,Windows,PASS
-WIN-006,WINDOWS,WIN-005,从 Fatduck testdata 冻结少量真实帧并通过代表链路,yes,yes,Windows,BLOCKED
+WIN-006,WINDOWS,WIN-005,从 Fatduck testdata 冻结少量真实帧并通过代表链路,yes,yes,Windows,IN_PROGRESS
 WIN-007,WINDOWS,WIN-006|SYN-008,当前候选银心 32R 唯一一次全流程和 32 32 contribution,yes,yes,Windows,NOT_STARTED
 WIN-008,WINDOWS,WIN-007,验证 HiPS 接缝固定视图 数值指标和完整资源曲线,yes,yes,Windows,NOT_STARTED
 WIN-009,WINDOWS,VER-001,生成 Windows alpha amd64 发布包 SBOM manifest hash smoke test,yes,yes,Windows,PASS

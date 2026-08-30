@@ -1,8 +1,8 @@
 {
  "schema_version": 1,
- "package": "AstroCS-audit-b1bfee5a0afa",
+ "package": "AstroCS-audit-59649edc0480",
  "version": "0.9.0-alpha.1",
- "commit": "b1bfee5a0afa5487f9bdcd37ce0e628c6e5ba829",
+ "commit": "59649edc0480a4e663ed37bd3e56215ba729526a",
  "files": [
   {
    "path": "00_READ_FIRST.md",
@@ -11,7 +11,7 @@
   },
   {
    "path": "BUILD_RESULTS.csv",
-   "sha256": "ea6ed38d606781d67e302ae4455001a37289343f3d2894c99afa8c5eafcb962f",
+   "sha256": "0fa2a54b6547def5f0961f1f2fae46fabb2de92d2511960e8d4ec34d71ea1618",
    "size": 440
   },
   {
@@ -31,8 +31,8 @@
   },
   {
    "path": "FINAL_REPORT.md",
-   "sha256": "cafb5b34e4eb810b9d87b847c281d9795d0e857972a5307d1855251e911ae97f",
-   "size": 3193
+   "sha256": "ee69424a8cf0309dfaf2baef3946741a84b8bcf4a6a5401baf9b95cda8cea563",
+   "size": 3057
   },
   {
    "path": "FINDINGS.csv",
@@ -66,17 +66,17 @@
   },
   {
    "path": "SUMMARY.json",
-   "sha256": "a136225643aac02aa7f4f657c8bcda404005c76c74ef1df0ca791dea56270eae",
-   "size": 910
+   "sha256": "3236215ff3765be59e53d4560669069e06c327f85cb71749a3cbbca70a7ba0a4",
+   "size": 1222
   },
   {
    "path": "TASK_LEDGER.csv",
-   "sha256": "1b5ccf5c59b48884e23841f90682248dbc01ff0348f98c9731cd7da27be00936",
-   "size": 10075
+   "sha256": "914fbd838ec807524e4c175e06d0c1dd8ae7df0210ad409ff14f07bf90561913",
+   "size": 10178
   },
   {
    "path": "TEST_RESULTS.csv",
-   "sha256": "b3ec2b9fa248d80abfb11f26f76cdf23947a70a18e1befcf548095238f96c406",
+   "sha256": "af7b8094ad4c5ecf4e6a2baff1c19e30f9337f1bc5d2e48bbc6eb37b26c2506a",
    "size": 1224
   },
   {

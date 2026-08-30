@@ -1,8 +1,8 @@
 # AstroCS V5 预发布审核包(当前现状, 单源自动生成)
 
-- 版本: `0.9.0-alpha.1`, 当前 main 提交: `b1bfee5a0afa5487f9bdcd37ce0e628c6e5ba829` (`b1bfee5a0afa`)
+- 版本: `0.9.0-alpha.1`, 当前 main 提交: `59649edc0480a4e663ed37bd3e56215ba729526a` (`59649edc0480`)
 - 状态: **非发布就绪**。`verdict=RELEASE_NOT_READY_BLOCKED`(合法 `AWAITING_EXTERNAL_RELEASE_REVIEW` 未达成)。
-- 任务计数(来自 `TASK_LEDGER.csv`): `88` PASS / `2` BLOCKED / `7` NOT_STARTED / `1` REVIEW_PENDING, 共 `98` 项。
+- 任务计数(来自 `TASK_LEDGER.csv`): `88` PASS / `1` BLOCKED / `7` NOT_STARTED / `1` REVIEW_PENDING, 共 `98` 项。
 
 ## 已收敛
 - **88/98** 任务 PASS。
@@ -16,12 +16,11 @@
 
 ## 阻塞项(审核包如实汇报)
 - **PAR-002 BLOCKED** `(PAR)`: 修复 sampler 竞态 crash 生命周期与可扩展性 — 见 reports/evidence 阻断记录。
-- **WIN-006 BLOCKED** `(WINDOWS)`: 从 Fatduck testdata 冻结少量真实帧并通过代表链路 — 见 reports/evidence 阻断记录。
 
 ## 非 PASS 任务(自动: TASK_LEDGER.csv)
 - `PAR-002` (PAR), status=`BLOCKED`: 修复 sampler 竞态 crash 生命周期与可扩展性
 - `REV-002` (REVIEW), status=`REVIEW_PENDING`: 生成架构 API 核心代码 Oracle 与 Linux 异步审阅胶囊
-- `WIN-006` (WINDOWS), status=`BLOCKED`: 从 Fatduck testdata 冻结少量真实帧并通过代表链路
+- `WIN-006` (WINDOWS), status=`IN_PROGRESS`: 从 Fatduck testdata 冻结少量真实帧并通过代表链路
 - `WIN-007` (WINDOWS), status=`NOT_STARTED`: 当前候选银心 32R 唯一一次全流程和 32 32 contribution
 - `WIN-008` (WINDOWS), status=`NOT_STARTED`: 验证 HiPS 接缝固定视图 数值指标和完整资源曲线
 - `REV-003` (REVIEW), status=`NOT_STARTED`: 生成 Windows 32R HiPS 资源和发布包异步审阅胶囊

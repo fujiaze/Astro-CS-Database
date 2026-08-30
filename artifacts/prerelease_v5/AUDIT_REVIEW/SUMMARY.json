@@ -1,15 +1,17 @@
 {
  "schema_version": 1,
  "version": "0.9.0-alpha.1",
- "commit": "b1bfee5a0afa5487f9bdcd37ce0e628c6e5ba829",
+ "commit": "59649edc0480a4e663ed37bd3e56215ba729526a",
  "verdict": "RELEASE_NOT_READY_BLOCKED",
  "blockers": [
-  "WIN-006: CLI 生产 Drizzle→HiPS 直链已打通(drizzle 子命令, 合成帧+oracle 复验 PASS, 见 WIN006_drizzle_hips_verification.md); phase2/3 真实数据/32R 与 Windows 链仍待 Fatduck 完成",
-  "PAR-002: (见 FINDINGS/blocker 记录; cfitsio 并发读 SIGSEGV 库级缺陷→g_aio_mu 串行化, N-worker 加速待真实数据)"
+  "WIN-006: CLI 生产 Drizzle→HiPS 直链已打通(drizzle 子命令, 真实银心代表链路 phase1→逐帧drizzle nside2048→phase2 obs=96/controls=42→phase3 PASS; 证据 WIN006_real_galaxycenter_phase1_drizzle.md, 当前候选SHA b842899eb8fb)",
+  "PAR-002: (见 FINDINGS/blocker 记录; cfitsio 并发读 SIGSEGV 库级缺陷→g_aio_mu 串行化, N-worker 加速待真实数据)",
+  "WIN-008: 非发布就绪 — 真实数据 seam/flux/coverage 数值门槛与资源/内存门控(32R chain 已 PASS obs=529/controls=47, manifest 已冻结 WIN007_32r_manifest.json; WIN-007/008 仍需外部审阅与最终重建)"
  ],
- "windows_32r_run_id": "",
+ "windows_32r_run_id": "4f885b8b8fd4",
  "task_counts": {
-  "BLOCKED": 2,
+  "BLOCKED": 1,
+  "IN_PROGRESS": 1,
   "NOT_STARTED": 7,
   "PASS": 88,
   "REVIEW_PENDING": 1
@@ -22,5 +24,5 @@
   "PASS": 5
  },
  "resource_counts": {},
- "note": "当前现状审核包: `88` PASS, `2` BLOCKED, `7` NOT_STARTED, `1` REVIEW_PENDING; 非发布就绪, 仅供外部审阅当前进展与阻塞项。"
+ "note": "当前现状审核包: `88` PASS, `1` BLOCKED, `7` NOT_STARTED, `1` REVIEW_PENDING; 非发布就绪, 仅供外部审阅当前进展与阻塞项。"
 }

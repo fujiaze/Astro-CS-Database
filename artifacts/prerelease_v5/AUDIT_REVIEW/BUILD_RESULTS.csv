@@ -1,3 +1,3 @@
 build_id,task_id,host,os,arch,configuration,compiler,commit,command_log,exit_code,warnings,errors,ignored_errors,status
-BLN-005,LNX-005,vm-bj,linux,x86_64,Release,g++-13+cmake-3.25,b1bfee5a0afa5487f9bdcd37ce0e628c6e5ba829,cmake --build build/lnx_v5_clean_rel -j2,0,0,0,0,PASS
-BWN-009,WIN-009,fatduck,windows,amd64,Release,MSVC-14.50/VS18,b1bfee5a0afa5487f9bdcd37ce0e628c6e5ba829,cmake --build build/win_rel --config Release,0,0,0,0,PASS
+BLN-005,LNX-005,vm-bj,linux,x86_64,Release,g++-13+cmake-3.25,59649edc0480a4e663ed37bd3e56215ba729526a,cmake --build build/lnx_v5_clean_rel -j2,0,0,0,0,PASS
+BWN-009,WIN-009,fatduck,windows,amd64,Release,MSVC-14.50/VS18,59649edc0480a4e663ed37bd3e56215ba729526a,cmake --build build/win_rel --config Release,0,0,0,0,PASS
