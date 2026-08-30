@@ -1,0 +1,55 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "QA-005",
+  "status": "PASS",
+  "start_commit": "1ee07955230b84e5229628965f86531a2561130d",
+  "source_commit": "1ee07955230b84e5229628965f86531a2561130d",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "quality",
+  "science_changed": false,
+  "files_changed": [
+    "DEPENDENCIES.md",
+    "tools/check_reproducible_build.py",
+    "evidence/refactor/tasks/QA-005/TASK_RESULT.json",
+    "evidence/refactor/tasks/QA-005/logs/c01.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "9b9035a9baf78b72a1f4ead3f15006e1a02742ca8fad07340765388b615ed6b8"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-TOOLCHAIN",
+      "description": "工具链锁定 (DEPENDENCIES.md: GCC14.2/clang18/cmake3.31.6/py3.13/cfitsio vendored)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-BUILD-ID",
+      "description": "build id = VERSION+g<commit> 可追溯",
+      "result": "PASS"
+    },
+    {
+      "id": "T-SBOM",
+      "description": "SBOM 完整 (version/components/license)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-REPRODUCIBLE",
+      "description": "同 commit 重构建 build id 一致 (REPRODUCIBLE 验证)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "build_id": "0.10.0-alpha.1+g<commit>",
+    "toolchain_locked": true,
+    "sbom": true
+  },
+  "findings": [
+    "QA-005: 可复现构建依赖建立(DEPENDENCIES.md 工具链锁定 + flags; build id=VERSION+g<commit>; SBOM 完整; 同 commit 重构建 build id 一致复现)"
+  ],
+  "created_utc": "2026-08-30T18:27:29Z"
+}
