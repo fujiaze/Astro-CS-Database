@@ -212,3 +212,7 @@ add_test(NAME p3_wcs COMMAND p3_wcs_test)
 add_executable(p3_interp_test p3_interp_test.cpp)
 target_link_libraries(p3_interp_test PRIVATE astrocs_contracts)
 add_test(NAME p3_interp COMMAND p3_interp_test)
+
+add_executable(p3_coverage_test p3_coverage_test.cpp)
+target_link_libraries(p3_coverage_test PRIVATE astrocs_contracts)
+add_test(NAME p3_coverage COMMAND p3_coverage_test)
