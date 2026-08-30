@@ -1,0 +1,61 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P2-007",
+  "status": "PASS",
+  "start_commit": "3c66e64ed314a8d730d3ca0967aa121f03c7c959",
+  "source_commit": "3c66e64ed314a8d730d3ca0967aa121f03c7c959",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p2_ir_facade_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P2-007/TASK_RESULT.json",
+    "evidence/refactor/tasks/P2-007/logs/c01.log",
+    "evidence/refactor/tasks/P2-007/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "728146cdefefd7fae4cf747e6ec6811cc4f6a4d1ae985a9c36a2713bd8195412"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "fb35c051e9e4cd77cb4112b52d588e869f9b856069f5401a955a6ed38538de78"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-IR-CHAIN",
+      "description": "canonical IR 4 节点(coverage/sample/upm_build/persist)全链声明",
+      "result": "PASS"
+    },
+    {
+      "id": "T-FACADE",
+      "description": "p2_session 委托 p2_coverage_build/p2_sample_controls/p2_upm_build (>=3 点)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-ORDER",
+      "description": "阶段序 coverage<sample<upm_build (canonical)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-TRACE",
+      "description": "manifest stages trace 与静态 IR 一致",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "ir_nodes": 4,
+    "facade_delegates": 3
+  },
+  "findings": [
+    "P2-007: canonical Phase2 IR 4 节点(coverage/sample/upm_build/persist)静态声明完整; p2_session 委托 p2_* 接口(facade); 阶段顺序 canonical; manifest trace 记录运行 stages"
+  ],
+  "created_utc": "2026-08-30T17:22:45Z"
+}
