@@ -1,0 +1,62 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "P2-005",
+  "status": "PASS",
+  "start_commit": "957accffd59e196214e8af7f7d4d3948eaa1bba1",
+  "source_commit": "957accffd59e196214e8af7f7d4d3948eaa1bba1",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/p2_rejection_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/P2-005/TASK_RESULT.json",
+    "evidence/refactor/tasks/P2-005/logs/c01.log",
+    "evidence/refactor/tasks/P2-005/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_sha256": "6ef5b4763d92769779c2aa780f3d44060a17e8beed27d35e53213b232b1f0551"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "5a2e449c923e981a3247997e494dae1f44b4b55b12dc59bd505a6825453c00e2"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-10-METHODS",
+      "description": "10 种 rejection 方法各有独立 semantic id 映射",
+      "result": "PASS"
+    },
+    {
+      "id": "T-AUTO-ROUTE",
+      "description": "AUTO planning: nominal=10 → winsorized_sigma (6..15 路由); 永不进 kernel",
+      "result": "PASS"
+    },
+    {
+      "id": "T-REASON-CODES",
+      "description": "reason 方向编码 (ACCEPTED=0/LOW=1/HIGH=2/UNDERDETERMINED=3)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-COUNT-INVARIANT",
+      "description": "拒绝图/计数 Artifact: accepted+low+high+under = n 不变量",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "methods": 10,
+    "auto_route": "winsorized at nominal 10",
+    "reason_codes": 4
+  },
+  "findings": [
+    "P2-005: 每种 rejection 独立 semantic id; AUTO 经 planning 层解析为明确方法(wbpp 路由: <6 percentile, 6..15 winsorized, >15 linear_fit); reason 码方向明确; 计数 Artifact 不变量; 低样本数=UNDERDETERMINED 全接受; cosmic/hot/streak 经 quality/eligibility 层(kernel 不知 support); frame identity 不重编号"
+  ],
+  "created_utc": "2026-08-30T17:19:49Z"
+}
