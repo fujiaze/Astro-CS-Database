@@ -1,0 +1,64 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "TEST-001",
+  "status": "PASS",
+  "start_commit": "02839ac0eca65820f3a35058cdf7fe0510192dfe",
+  "source_commit": "02839ac0eca65820f3a35058cdf7fe0510192dfe",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "test",
+  "science_changed": false,
+  "files_changed": [
+    "docs/contracts/TEST_MATRIX.md",
+    "docs/contracts/INDEX.yaml",
+    "evidence/refactor/tasks/TEST-001/TASK_RESULT.json",
+    "evidence/refactor/tasks/TEST-001/logs/c01.log",
+    "evidence/refactor/tasks/TEST-001/logs/c02.log",
+    "evidence/refactor/tasks/TEST-001/logs/c03.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_sha256": "98c435dcfaf58e39a388427242944d62269786d5f91a76520a41ac3f0c36793e"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "628b7a7a60f162e473d23186379e585d875b9bb2236e4fc31b806ddff3b94439"
+    },
+    {
+      "command_id": "c03",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "e3709753bdf1b5baefcba870af701e3bbaff964b336c092a63a8860960d9fc26"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-MATRIX",
+      "description": "TEST_MATRIX.md: 每 SCI/ALG 至少一个 TEST; 容差事前冻结(FP32/64/归约 γ_n); 影响触发规则",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CONTRACT-GRAPH",
+      "description": "contract graph PASS contracts=36",
+      "result": "PASS"
+    },
+    {
+      "id": "T-REGISTER",
+      "description": "TEST-001/ARCH-001/API-001/DATA-ARTIFACTS-001 补登记进 INDEX",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "test_contracts": 11,
+    "tolerance_rules": 6,
+    "index_contracts": 36
+  },
+  "findings": [
+    "科学测试矩阵建立: 11 个 SCI/ALG 有 TEST 映射(现有测试文件); 容差事前冻结; 影响触发扩大规则明确; INDEX 补齐 ARCH/API/TEST/DATA-ARTIFACTS 登记"
+  ],
+  "created_utc": "2026-08-30T15:45:44Z"
+}

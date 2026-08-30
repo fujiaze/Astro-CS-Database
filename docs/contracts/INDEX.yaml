@@ -250,7 +250,25 @@ contracts:
     version: 1.0.0
     path: docs/contracts/DATA_SEMANTICS.md
     upstream: []
+    downstream: [DATA-ARTIFACTS-001]
+  - id: DATA-ARTIFACTS-001
+    type: DATA
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/DATA_ARTIFACTS.md
+    upstream: [DATA-SEMANTICS-001]
     downstream: []
+
+  # ── ARCH 架构 ──
+  - id: ARCH-001
+    type: ARCH
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/ARCH-001.md
+    upstream: []
+    downstream: [API-001]
 
   # ── API 接口 ──
   - id: API-CONTRACTS-001
@@ -259,6 +277,24 @@ contracts:
     owner: AstroCS
     version: 1.0.0
     path: docs/contracts/API_CONTRACTS.csv
+    upstream: []
+    downstream: []
+  - id: API-001
+    type: API
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/API-001.md
+    upstream: [ARCH-001]
+    downstream: []
+
+  # ── TEST 测试矩阵 ──
+  - id: TEST-001
+    type: TEST
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/TEST_MATRIX.md
     upstream: []
     downstream: []
 

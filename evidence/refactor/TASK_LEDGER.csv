@@ -11,8 +11,8 @@ SCI-003,G1,设计Phase3科学定义,DOC-001,Linux,science,no,yes,HiPS sphere to 
 DATA-001,G1,冻结跨模块数据语义,DOC-001;SCI-001;SCI-002;SCI-003,Linux,contract,no,yes,artifact schemas; units; coordinate; precision; invalids; ownership,每端口引用DATA ID; 禁止模糊weight/value; schema可机检,PASS
 ARCH-001,G1,冻结Runtime与职责边界,BAS-002;BAS-003;DOC-001,Linux,architecture,no,yes,CLI/runtime/registry/io/modules/backends,唯一全局scheduler; 依赖方向和禁止方向写入ARCH,PASS
 API-001,G1,冻结公共API与错误模型,DATA-001;ARCH-001,Linux,contract,no,yes,public C++ API; CPU C ABI; exit codes; JSON events,签名和所有权明确; exception不跨ABI; AST规则可执行,PASS
-TEST-001,G1,建立科学测试矩阵,SCI-001;SCI-002;SCI-003;DATA-001,Linux,test,no,yes,module oracles; properties; tolerances; triggers,容差事前冻结; 每SCI/ALG至少一个独立TEST,IN_PROGRESS
-BLD-001,G2,建立显式根CMake目标图,ARCH-001;API-001;VER-001,Linux,architecture,no,yes,root CMake; explicit targets; options,无生产GLOB; target级警告; ACR默认OFF; CLI可最小链接,NOT_STARTED
+TEST-001,G1,建立科学测试矩阵,SCI-001;SCI-002;SCI-003;DATA-001,Linux,test,no,yes,module oracles; properties; tolerances; triggers,容差事前冻结; 每SCI/ALG至少一个独立TEST,PASS
+BLD-001,G2,建立显式根CMake目标图,ARCH-001;API-001;VER-001,Linux,architecture,no,yes,root CMake; explicit targets; options,无生产GLOB; target级警告; ACR默认OFF; CLI可最小链接,IN_PROGRESS
 CORE-001,G2,实现公共Result错误取消语义,BLD-001;API-001,Linux,architecture,no,yes,core contracts error/result/cancel,无process exit; 错误码稳定; 单元测试覆盖传播,NOT_STARTED
 CORE-002,G2,实现DataArtifact与Provenance,CORE-001;DATA-001,Linux,architecture,no,yes,artifact descriptor; ownership; provenance,schema/units/shape验证; serialization roundtrip; hash稳定,NOT_STARTED
 CORE-003,G2,实现ModuleDescriptor注册表,CORE-001;API-001;DOC-001,Linux,architecture,no,yes,registry; descriptor; duplicate detection,模块唯一; ABI/API/端口校验; 可导出machine index,NOT_STARTED
