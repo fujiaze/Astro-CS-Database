@@ -1,0 +1,56 @@
+{
+  "schema": "astrocs.task-result/v1",
+  "task_id": "CPU-007",
+  "status": "PASS",
+  "start_commit": "3019381bf0073011b6de10842af184b9ba8838a8",
+  "source_commit": "3019381bf0073011b6de10842af184b9ba8838a8",
+  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "change_class": "architecture",
+  "science_changed": false,
+  "files_changed": [
+    "tests/unit/cpu_profile_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/refactor/tasks/CPU-007/TASK_RESULT.json",
+    "evidence/refactor/tasks/CPU-007/logs/c01.log",
+    "evidence/refactor/tasks/CPU-007/logs/c02.log"
+  ],
+  "commands": [
+    {
+      "command_id": "c01",
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "log_sha256": "8ab9828e4d9114f9d53ffeeaa6b786ac5f325863b27556912b4c72e8c4431d9b"
+    },
+    {
+      "command_id": "c02",
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_sha256": "630e420fd27eb66616a49717ea2f3d0c946f35a389c184d303682e6558554c07"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-FIELDS",
+      "description": "profile 含全部规格字段: schema/UTC/mode/hardware(fingerprint/feature/xcr0/quota)/build(version/commit/backend_sha/abi)/memory/kernels(median/correctness_hash)/verdict",
+      "result": "PASS"
+    },
+    {
+      "id": "T-STALE",
+      "description": "CLI cpu_signature 比较 → stale 拒+rerun 提示",
+      "result": "PASS"
+    },
+    {
+      "id": "T-INVALID",
+      "description": "schema_version/kind 错误 → 拒(回退 baseline + warning 语义)",
+      "result": "PASS"
+    }
+  ],
+  "metrics": {
+    "required_fields": 12,
+    "stale_check": "cpu_signature"
+  },
+  "findings": [
+    "CPU-007: profile 关键字段完整性验证(CPU signature/fingerprint/xcr0/quota/build IDs/benchmark version/UTC/结果 hash); CLI validate_cpu_profile 已实现 cpu_signature stale 判定(变化→拒+rerun 提示); tools/validate_cpu_profile.py schema 校验; 无效 profile 回退 baseline + warning 由 CLI 处理"
+  ],
+  "created_utc": "2026-08-30T16:43:12Z"
+}
