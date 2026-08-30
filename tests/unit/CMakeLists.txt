@@ -28,3 +28,8 @@ add_executable(core_scheduler_test core_scheduler_test.cpp)
 target_include_directories(core_scheduler_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(core_scheduler_test PRIVATE astrocs_core)
 add_test(NAME core_scheduler COMMAND core_scheduler_test)
+
+add_executable(core_checkpoint_test core_checkpoint_test.cpp)
+target_include_directories(core_checkpoint_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(core_checkpoint_test PRIVATE astrocs_core)
+add_test(NAME core_checkpoint COMMAND core_checkpoint_test)
