@@ -1,8 +1,8 @@
 {
  "schema_version": 1,
- "package": "AstroCS-audit-db1244439893",
+ "package": "AstroCS-audit-ec7a8cdc1566",
  "version": "0.9.0-alpha.1",
- "commit": "db12444398930f982d19b80a455d4db543c2b2fa",
+ "commit": "ec7a8cdc15661da4d225d75a435b40e4daca71fd",
  "files": [
   {
    "path": "00_READ_FIRST.md",
@@ -11,7 +11,7 @@
   },
   {
    "path": "BUILD_RESULTS.csv",
-   "sha256": "0d0118399fad3dd48b0c59bcf5ed86af34ddcb169dbd131f30b4b07a6df50928",
+   "sha256": "a708366233cdd4a17bf128378080e2bfa5a14344db36ae03c57adb043bb4b902",
    "size": 440
   },
   {
@@ -31,7 +31,7 @@
   },
   {
    "path": "FINAL_REPORT.md",
-   "sha256": "41136ab7db0911b708e8acdc39acf02aa21533bf034c7f8edc6ff924172001e5",
+   "sha256": "b63abe0d015ab8212150168ffdd1c925f3c8449b272ff2ac9cba27c96a841c9d",
    "size": 1956
   },
   {
@@ -41,13 +41,13 @@
   },
   {
    "path": "LARGE_ARTIFACTS.csv",
-   "sha256": "13bdfb85907d590dbe230392cc13fa95640552f9bd17e9d34650eba890199027",
-   "size": 435
+   "sha256": "a80090e6813fc015498abd802e10b61bb106416bd898bea9c031274141954a20",
+   "size": 729
   },
   {
    "path": "RELEASE_ARTIFACTS.csv",
-   "sha256": "3f57f828b5e10c9eab6b596464f153801fcfeb7ff2a781baa42c86fba70c2515",
-   "size": 114
+   "sha256": "f614524cf9d1b1b0b277d34b596292d616cdabb2461d75ad19edb0dc5832f4fa",
+   "size": 906
   },
   {
    "path": "RESOURCE_RESULTS.csv",
@@ -66,7 +66,7 @@
   },
   {
    "path": "SUMMARY.json",
-   "sha256": "48a0a2a6b0eba2beba02762859ad2b723373f28f5359c0b94eed5dfded6f356b",
+   "sha256": "8659f980bc64701206e764ecc42bd271a9b1169434ea1e8d093565ba1184f378",
    "size": 713
   },
   {
@@ -76,7 +76,7 @@
   },
   {
    "path": "TEST_RESULTS.csv",
-   "sha256": "c1b23a36dd2e909fc4f4206cd0517542c31fc0ed92ce9dbc6d07978ae269856b",
+   "sha256": "e76c33b59cae2702634db79cf5a4f410f6498fd6aa40e3c3deb0012f11b1c04a",
    "size": 1224
   },
   {

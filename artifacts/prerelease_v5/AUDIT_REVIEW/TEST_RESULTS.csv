@@ -1,6 +1,6 @@
 test_id,task_id,host,commit,group,backend,workers,seed,contract_hash,command_log,duration_seconds,status,evidence
-TLNX-FULL,LNX-005,vm-bj,db12444398930f982d19b80a455d4db543c2b2fa,full_suite,backend:builtin,CPU,syn009,0,python3 -m unittest discover -s tests -t tests,840,PASS,reports/evidence/LNX005_verification.md (ISA perf timing flake re-run PASS)
-TWN-001,WIN-001,fatduck,db12444398930f982d19b80a455d4db543c2b2fa,win_cli_smoke,builtin,CPU,syn009,0,astrocs.exe --version/doctor/phase smoke,12,PASS,reports/evidence/WIN001_verification.md
-TWN-005,WIN-005,fatduck,db12444398930f982d19b80a455d4db543c2b2fa,win_analyze_asan,builtin,CPU,syn009,0,MSVC /analyze 0 errors + ASan suite,300,PASS,reports/evidence/WIN005_verification.md
-TWN-006-P1,WIN-006,fatduck,db12444398930f982d19b80a455d4db543c2b2fa,phase1_realdata,builtin,CPU,galactic-center-T4-R,0,astrocs phase1 run --config phase1_cfg.json (6 R frames + 3 xisf masters),4,PASS,reports/evidence/WIN006_verification.md
-TWN-009,WIN-009,fatduck,db12444398930f982d19b80a455d4db543c2b2fa,win_alpha_pkg_smoke,builtin,CPU,noprof,0,unzip+ --version + doctor --json + SHA256SUMS all-True + phase1 run no-profile (omp threads=16),30,PASS,reports/evidence/WIN009_verification.md
+TLNX-FULL,LNX-005,vm-bj,ec7a8cdc15661da4d225d75a435b40e4daca71fd,full_suite,backend:builtin,CPU,syn009,0,python3 -m unittest discover -s tests -t tests,840,PASS,reports/evidence/LNX005_verification.md (ISA perf timing flake re-run PASS)
+TWN-001,WIN-001,fatduck,ec7a8cdc15661da4d225d75a435b40e4daca71fd,win_cli_smoke,builtin,CPU,syn009,0,astrocs.exe --version/doctor/phase smoke,12,PASS,reports/evidence/WIN001_verification.md
+TWN-005,WIN-005,fatduck,ec7a8cdc15661da4d225d75a435b40e4daca71fd,win_analyze_asan,builtin,CPU,syn009,0,MSVC /analyze 0 errors + ASan suite,300,PASS,reports/evidence/WIN005_verification.md
+TWN-006-P1,WIN-006,fatduck,ec7a8cdc15661da4d225d75a435b40e4daca71fd,phase1_realdata,builtin,CPU,galactic-center-T4-R,0,astrocs phase1 run --config phase1_cfg.json (6 R frames + 3 xisf masters),4,PASS,reports/evidence/WIN006_verification.md
+TWN-009,WIN-009,fatduck,ec7a8cdc15661da4d225d75a435b40e4daca71fd,win_alpha_pkg_smoke,builtin,CPU,noprof,0,unzip+ --version + doctor --json + SHA256SUMS all-True + phase1 run no-profile (omp threads=16),30,PASS,reports/evidence/WIN009_verification.md
