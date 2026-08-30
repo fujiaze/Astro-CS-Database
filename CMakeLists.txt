@@ -40,7 +40,11 @@ target_include_directories(astrocs_contracts INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/include)
 
-# core contracts impl (CORE-002 artifact)
+# io adapter (IO-001: 依赖方向 core <- io; 不 include runtime/模块)
+add_library(astrocs_io STATIC lib/io/src/io_adapter.cpp)
+target_include_directories(astrocs_io PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(astrocs_io PUBLIC astrocs_core)
+
 add_library(astrocs_core STATIC
   lib/core/src/artifact.cpp
   lib/core/src/module.cpp
