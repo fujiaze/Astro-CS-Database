@@ -56,9 +56,9 @@ void dispose_image(AIOImageData* p);   // aio_free(经 header; 见下)
 using ImagePtr = std::unique_ptr<AIOImageData, ImageDeleter>;
 void ImageDeleter::operator()(AIOImageData* p) const { dispose_image(p); }
 
-// 释放合同: aio_read_fits 返回结构体及像素由调用方 free(aio_free 的实现即 std::free);
-// 为避免把整个 pipeline 翻译单元拖进 CLI, 释放经 std::free(与模块分配器 calloc 匹配)。
-void dispose_image(AIOImageData* p) { if (p) std::free(p); }
+// 释放合同 (IO-002): AIOImageData 必须经 canonical deleter aio_free_image_data 释放,
+// 禁止裸 free(aio_image*)——结构体含 data/data_f64/keywords 多指针, 裸 free 会泄漏。
+void dispose_image(AIOImageData* p) { if (p) aio_free_image_data(p); }
 
 [[maybe_unused]] acs_status map_aio_err(const char* what, std::string* err) {
     if (err) *err = what;
@@ -262,11 +262,11 @@ acs_status p1_session_run(acs_handle h, const acs_span_u8 config_json, int async
             if (aio_write_fits(wim, outp.c_str()) != 0) {
                 s->last_error = "write failed: " + outp;
                 s->manifest["error_kind"] = "output";
-                std::free(wim);
+                aio_free_image_data(wim);
                 s->manifest["stages"].back()["status"] = "fail";
                 return ACS_ERR_IO;
             }
-            std::free(wim);
+            aio_free_image_data(wim);
             ++frames_ok;
             per_frame.push_back({{"input", base},
                                  {"output", "calibrated_" + base},

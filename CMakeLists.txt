@@ -87,7 +87,7 @@ target_include_directories(astrocs_aio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common)
 target_compile_definitions(astrocs_aio PRIVATE AIO_ENABLE_FITS AIO_ENABLE_XISF)
-target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio)
+target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio z)
 
 # io/hips: HiPS reader/writer + hiss (无科学积分)
 add_library(astrocs_hips STATIC

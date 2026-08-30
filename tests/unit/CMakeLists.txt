@@ -43,3 +43,10 @@ add_executable(io_adapter_test io_adapter_test.cpp)
 target_include_directories(io_adapter_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(io_adapter_test PRIVATE astrocs_io)
 add_test(NAME io_adapter COMMAND io_adapter_test)
+
+add_executable(io_ownership_test io_ownership_test.cpp)
+target_include_directories(io_ownership_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include)
+target_link_libraries(io_ownership_test PRIVATE astrocs_aio astrocs_core)
+add_test(NAME io_ownership COMMAND io_ownership_test)
