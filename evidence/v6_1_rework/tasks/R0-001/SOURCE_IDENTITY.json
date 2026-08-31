@@ -1,0 +1,23 @@
+{
+  "schema": "astrocs.source-identity/v1",
+  "source_commit": "30a3516ae8a3a1736bf8a470de56909997b1a219",
+  "head_commit": "30a3516ae8a3a1736bf8a470de56909997b1a219",
+  "main_commit": "30a3516ae8a3a1736bf8a470de56909997b1a219",
+  "origin_main_commit": "30a3516ae8a3a1736bf8a470de56909997b1a219",
+  "branch": "main",
+  "b16d422_is_ancestor": true,
+  "ancestor_check_command": "git merge-base --is-ancestor b16d422a40fefedbdedab1749cfb8ebc06189736 HEAD",
+  "ancestor_check_exit": 0,
+  "reviewed_audit_commit": "b16d422a40fefedbdedab1749cfb8ebc06189736",
+  "control_zip_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "control_extracted_dir": "工程控制/AstroCS_V6_1_REWORK_CONTROL_20260831",
+  "control_validate_result": "CONTROL_PASS files=47 bytes=214426 tasks=67 findings=40 prompt_chars=487",
+  "control_sha256_from_manifest": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "branch_list": ["main"],
+  "remotes_redacted": "origin=https://github.com/fujiaze/Astro-CS-Database.git (credentials redacted; none present)",
+  "submodules": "AstroCS.wiki gitlink 901725847ded7d1185a98b995df8fce9a7e20a1e in index; no .gitmodules; not checked out (pre-existing)",
+  "dirty_entries": [],
+  "dirty_classification": "see WORKTREE_CLASSIFICATION.md — all 205 entries classified; 0 unknown-origin",
+  "created_utc": "2026-08-31T03:30:00Z"
+}

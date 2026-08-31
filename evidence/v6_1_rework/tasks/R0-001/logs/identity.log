@@ -1,0 +1,16 @@
+=== git fetch origin --prune ===
+exit=0
+=== rev-parse ===
+30a3516ae8a3a1736bf8a470de56909997b1a219
+30a3516ae8a3a1736bf8a470de56909997b1a219
+30a3516ae8a3a1736bf8a470de56909997b1a219
+=== ancestor ===
+exit=0
+=== branches ===
+* main
+  remotes/origin/main
+=== remote ===
+origin	https://github.com/fujiaze/Astro-CS-Database.git (fetch)
+origin	https://github.com/fujiaze/Astro-CS-Database.git (push)
+=== submodule ===
+fatal: no submodule mapping found in .gitmodules for path 'AstroCS.wiki'

@@ -1,0 +1,68 @@
+task_id,gate,title,depends_on,platform,change_class,heavy_compute,commit_required,scope,acceptance,status
+R0-001,G0,冻结当前main身份,,Linux,governance,no,yes,fetch; HEAD/main/origin; ancestor; dirty tree,三SHA相同; b16d422是祖先; 无未知修改; SOURCE_IDENTITY.json,PASS
+R0-002,G0,生成完整自有源码清单,R0-001,Linux,audit,no,yes,CMake/source/header/docs/scripts inventory,所有生产target引用存在; 第三方单列; SOURCE_INDEX.csv,NOT_STARTED
+R0-003,G0,建立V6.1证据与台账,R0-002,Linux,governance,no,yes,copy immutable ledger; result schema; evidence dirs,台账hash冻结; 状态机validator PASS; 不覆盖旧证据,NOT_STARTED
+R0-004,G0,复现并冻结40项已知问题,R0-003,Linux,audit,no,yes,known_failure_scan; manual probes,F-001..040逐项REPRODUCED/NOT_REPRODUCED有证据; 禁提前关闭,NOT_STARTED
+GOV-001,G1,修复任务证据与commit绑定,R0-004,Linux,governance,no,yes,TASK_RESULT/COMMITS semantics,parent/result commit不混; 打包期可验证每任务commit/push,NOT_STARTED
+GOV-002,G1,修复gate和依赖状态机,GOV-001,Linux,governance,no,yes,dependency validator; release states,非法状态/依赖先过后消失; negative fixtures PASS,NOT_STARTED
+VER-001,G1,版本推进为0.10.0-alpha.2,GOV-002,Linux,release,no,yes,VERSION single source,CLI/header/docs/package均派生; 无源码旧版本字面量,NOT_STARTED
+CHK-001,G1,建立生产可达调用图检查器,GOV-002,Linux,quality,no,yes,compile_commands; AST/call/link reachability,能识别CLI直连session/Drizzle和dead Runtime; negative fixture,NOT_STARTED
+CHK-002,G1,建立非空静态图运行图检查器,CHK-001,Linux,quality,no,yes,IR/static/observed graph compare,无trace必FAIL; node edge port artifact version backend worker全比,NOT_STARTED
+CHK-003,G1,建立serial-heavy与资源接线检查器,CHK-002,Linux,quality,no,yes,production reachability; compile defs; gate callers,能抓P2宏关闭/P3双循环/gate无caller; negative fixtures,NOT_STARTED
+RT-001,G2,冻结Runtime与模块公共合同,CHK-003,Linux,architecture,no,yes,Runtime API; module executor; ports; lifecycle,SCI/ALG/DATA/API/TEST字段完整; ABI/ownership/thread-safety明确,NOT_STARTED
+RT-002,G2,实现全局原子ThreadBudget租约,RT-001,Linux,architecture,yes,yes,reserve/release; quota; nested work,并发节点总worker不超budget; RAII释放; fault/cancel测试,NOT_STARTED
+RT-003,G2,实现并发安全RunContext,RT-002,Linux,architecture,yes,yes,log/metric/artifact/checkpoint/cancel,TSan targeted无race; artifact重复写确定性失败,NOT_STARTED
+RT-004,G2,实现schema驱动PipelineIR解析校验,RT-001,Linux,architecture,no,yes,JSON schema; DAG; ports units coordinates,错误枚举全可触发; malformed/unknown/unit/cycle负测,NOT_STARTED
+RT-005,G2,实现可执行ModuleRegistry,RT-004,Linux,architecture,no,yes,descriptor; factory; plan; execute; inspect,production modules可注册/创建/执行; duplicate/mismatch拒绝,NOT_STARTED
+RT-006,G2,实现唯一Runtime调度器,RT-002;RT-003;RT-005,Linux,architecture,yes,yes,DAG scheduling; lease executor; backpressure,独立node并发; nested不超卖; fail/cancel/checkpoint正确,NOT_STARTED
+RT-007,G2,实现类型化ArtifactStore与跨阶段绑定,RT-004;RT-005,Linux,architecture,no,yes,artifact ID/hash/schema/unit/provenance,producer-consumer严格匹配; 禁路径猜测; tamper负测,NOT_STARTED
+RT-008,G2,将CLI接入唯一Runtime,RT-006;RT-007,Linux,architecture,yes,yes,thin handlers; presets; runtime public API,CLI无session/科学/I/O内部include或直接调用; 1->2->3真实Artifact链,NOT_STARTED
+RT-009,G2,生成真实静态与observed运行图,RT-008;CHK-002,Linux,documentation,yes,yes,DOT/JSON/SVG; trace sidecar,图由同IR和trace派生; hash/source commit齐; 无敏感路径,NOT_STARTED
+CPU-001,G3,构建baseline AVX2 AVX512独立provider,RT-002;RT-005,Linux,performance,yes,yes,shared library targets; per-kernel registry,CLI baseline ISA; providers独立flags/manifest/selftest; unsupported不加载,NOT_STARTED
+CPU-002,G3,实现CPU与有效配额探测,CPU-001,Linux+Windows,performance,no,yes,CPUID/XGETBV; affinity/cgroup/Job Object,logical_available真实; feature子集准确; fallback安全,NOT_STARTED
+CPU-003,G3,实现真实benchmark与profile,CPU-001;CPU-002,Linux+Windows,performance,yes,yes,correctness first; memory; kernel/thread/block,3 warmup+7 measure; median/MAD; raw candidates; profile schema,NOT_STARTED
+CPU-004,G3,实现按kernel自适应路由,CPU-003;RT-006,Linux+Windows,performance,yes,yes,profile verify; provider fallback; lease,无profile保守baseline但多线程; stale/corrupt profile拒绝,NOT_STARTED
+MON-001,G3,把资源监测接入每个heavy node,RT-006;CPU-002,Linux+Windows,performance,yes,yes,samples/summary/worker balance,无需操作者额外脚本; init/active/flush分段; 开销<2%,NOT_STARTED
+MON-002,G3,把资源门接入生产控制流,MON-001,Linux+Windows,performance,yes,yes,first10s; final gate; exit code,低CPU且非IO/内存自动失败; 不能只emit summary,NOT_STARTED
+MON-003,G3,完成2核真实资源基准,MON-002;CPU-004,Linux,validation,yes,yes,>=10s synthetic heavy per kernel,active worker p50>=2; normalized CPU p50>=90 mean>=85或内存瓶颈证据,NOT_STARTED
+P1-001,G4,迁移Phase1到Registry和IR,RT-008;CPU-004,Linux,architecture,yes,yes,calibration/stars/wcs/phot/noise/drizzle modules,每节点标准端口; 无session手写顺序; trace与IR一致,NOT_STARTED
+P1-002,G4,重写Phase1生产路径合成Oracle,P1-001,Linux,science,yes,yes,calibration/star/WCS/phot/noise/drizzle,测试调用production module/CLI; 独立reference; 容差预冻结,NOT_STARTED
+P1-003,G4,移除CLI直连Drizzle与重复FITS解析,P1-001,Linux,architecture,yes,yes,cmd_drizzle; spawn_frame_from_fits,生产callgraph无hp_drizzle直连; wrapper仅通过preset/runtime,NOT_STARTED
+P1-004,G4,Phase1数值与资源联合门,P1-002;P1-003;MON-003,Linux,validation,yes,yes,heavy synthetic and artifact verify,科学Oracle+资源门同跑同commit; 2核利用达标,NOT_STARTED
+P2-001,G5,并行化生产Coverage与Sampler,RT-008;MON-003,Linux+Windows,architecture,yes,yes,worker-local readers; deterministic chunks,Linux/MSVC均实际N worker; Runtime lease唯一来源; 1/N等价,NOT_STARTED
+P2-002,G5,并行化生产UPM求解,P2-001,Linux+Windows,architecture,yes,yes,control weights; IRLS; per-frame solve; reductions,无模块hardware_concurrency; fixed merge; 2核资源门; MSVC生效,NOT_STARTED
+P2-003,G5,建立调用生产UPM的三块接缝Oracle,P2-002,Linux,science,yes,yes,mini HiPS; masks; stars; gradients; disconnected graph,真实p2 pipeline估计校正; before/after metrics; flux/source preserved,NOT_STARTED
+P2-004,G5,重建排异积分生产Oracle,P2-002,Linux,science,yes,yes,all methods; cosmic/hot/streak/stars; ivar,调用production reject/integrate; reason/frame identity/variance/support,NOT_STARTED
+P2-005,G5,完成block内存计划与并行I O,P2-001;RT-007,Linux,architecture,yes,yes,bounded cache; block edges; worker IO,峰值RAM受plan约束; 小块/full reference等价; no shared fitsfile,NOT_STARTED
+P2-006,G5,组装Canonical Phase2 Pipeline,P2-003;P2-004;P2-005,Linux,architecture,yes,yes,coverage/sampler/upm/reject/integrate/write,Registry/IR执行; artifact chain; ACR absent; trace exact,NOT_STARTED
+P2-007,G5,Phase2接缝与资源联合门,P2-006;MON-003,Linux,validation,yes,yes,production synthetic >=10s,seam metrics pass and CPU/resource pass in same run,NOT_STARTED
+P3-001,G6,核实并冻结Phase3科学算法API,CHK-003,Linux,science,no,yes,HiPS/WCS/domain/unit/order/interpolation/coverage,SCI->ALG推导; Dec极区条件正确; primary references; no contradiction,NOT_STARTED
+P3-002,G6,实现properties order unit与请求语义,P3-001;RT-007,Linux,science,yes,yes,properties; order selection; bitpix/max memory,order真正驱动采样; BUNIT传播; invalid/missing显式; no fixed 20,NOT_STARTED
+P3-003,G6,实现Runtime并行tile resampler,P3-002;RT-006;CPU-004,Linux+Windows,architecture,yes,yes,output tiles; per-worker cache; ordered writer,无serial pixel production loop; lease>=2; no shared cache race,NOT_STARTED
+P3-004,G6,建立独立球面重采样Oracle,P3-003,Linux,science,yes,yes,nearest/bilinear; cross-tile; RA wrap; boundaries,Oracle不调用production lookup/WCS; constant/analytic/impulse/continuity,NOT_STARTED
+P3-005,G6,修复FITS输出校验与provenance,P3-001;RT-007,Linux,science,yes,yes,BITPIX/BUNIT/WCS/checksum/atomicity/version/run/missing,CFITSIO checksum verify; mismatch hard fail; fsync order; reopen independent,NOT_STARTED
+P3-006,G6,组装Phase3生产Pipeline与资源门,P3-004;P3-005;MON-003,Linux,validation,yes,yes,registry/IR/session removal; full synthetic,SCI/ALG/API/CODE/TEST闭合; 2核利用达标; status IMPLEMENTED,NOT_STARTED
+DOC-001,G7,重建合同front matter与完整图,P1-004;P2-007;P3-006,Linux,documentation,no,yes,SCI ALG DATA ARCH API MOD TEST,每active模块完整链; 双向依赖; DRAFT不得宣称implemented,NOT_STARTED
+DOC-002,G7,重建当前版本追溯矩阵,RT-009;P1-004;P2-007;P3-006,Linux,documentation,no,yes,current source only; symbols/tests/evidence,无V5默认表/硬编码计数; 每行路径符号真实,NOT_STARTED
+DOC-003,G7,重建全公共API AST语义检查,DOC-001,Linux,documentation,no,yes,all public headers; ABI/layout/signatures; semantics,参数类型/cv/noexcept/layout全比; 占位字段拒绝; negative fixture,NOT_STARTED
+DOC-004,G7,补齐所有生产模块README,DOC-001,Linux,documentation,no,yes,core/io/runtime/cpu/P1/P2/P3 modules,职责/端口/合同/符号/并行/内存/错误/test齐,NOT_STARTED
+DOC-005,G7,重建L0负责人文档,DOC-002;DOC-003;DOC-004,Linux,documentation,no,yes,REVIEW plus 5 docs,状态由ledger/evidence生成; owner只读L0可判断风险,NOT_STARTED
+DOC-006,G7,统一注释命名与代码可读性,DOC-005,Linux,quality,no,yes,comments; vague names; CLI split; dead code,注释准确无审计历史; main thin; warnings fixed; no unrelated format,NOT_STARTED
+QA-001,G7,完成零警告静态分析,DOC-006,Linux,quality,no,yes,GCC/Clang warnings; clang-tidy/cppcheck scoped,自有生产源码zero warning; P0/P1 static findings closed,NOT_STARTED
+QA-002,G7,完成sanitizer与线程安全,QA-001;RT-003,Linux,quality,yes,yes,ASan UBSan LSan targeted TSan,所有权/并发生产链覆盖; 不禁LSan; suppressions逐项,NOT_STARTED
+QA-003,G7,完成依赖许可SBOM与可复现构建,QA-002,Linux,quality,no,yes,locks; licenses; flags; build IDs,双平台依赖清单; provider hashes; reproducibility metadata,NOT_STARTED
+LNX-001,G8,Linux干净GCC与Clang构建,QA-001;P3-006,Linux,validation,no,yes,fresh dirs; Release/Debug; CLI/package,完整自有源码; zero warning; no hidden old build,NOT_STARTED
+LNX-002,G8,Linux全合成科学测试,LNX-001,Linux,validation,yes,yes,all production oracles; pipeline integration,机器summary逐test; no CHECK true; no rerun masking,NOT_STARTED
+LNX-003,G8,Linuxsanitizer现场复验,LNX-002;QA-002,Linux,validation,yes,yes,production paths under sanitizers,ASan/UBSan/LSan/targeted TSan pass; hashes current,NOT_STARTED
+LNX-004,G8,Linux 2c2g资源恢复验证,LNX-003;MON-003,Linux,validation,yes,yes,P1/P2/P3 >=10s; cancel/resume; memory pressure,real samples summaries balance; no low utilization; bounded RAM,NOT_STARTED
+LNX-005,G8,尝试少量真实数据辅助冒烟,LNX-004,Linux,validation,yes,yes,Fatduck hashed 1R/panel+masters if online,online则P1/P2/P3 smoke; offline记录NOT_RUN不阻塞Windows; 禁伪PASS实测,NOT_STARTED
+WIN-001,G9,Windows在线探测与MSVC干净构建,LNX-004;QA-003,Windows,validation,no,yes,SSH timeouts; clean Release/Debug,online build pass; offline WAITING_WINDOWS; no Linux stop,NOT_STARTED
+WIN-002,G9,Windows CPU provider benchmark,WIN-001;CPU-003,Windows,validation,yes,yes,baseline/AVX2/AVX512; memory/thread/block,correctness before timing; profile verified; actual DLL loaded,NOT_STARTED
+WIN-003,G9,Windows全合成科学资源验证,WIN-001;LNX-002,Windows,validation,yes,yes,same production registry/oracles,MSVC tolerance; no serial heavy; resource gates pass,NOT_STARTED
+WIN-004,G9,Windows少量真实三板块验证,WIN-002;WIN-003,Windows,validation,yes,yes,1 hashed R/panel plus masters,P1->P2->P3 artifact identity; seam/units/resources,NOT_STARTED
+WIN-005,G9,Windows银心32R最终一次全链,WIN-004;DOC-005,Windows,validation,yes,yes,11+11+10 frozen manifest; final candidate,all inputs contribute; numerical/resource/artifact gates; no rerun unless failed cause fixed,NOT_STARTED
+WIN-006,G9,生成真实HiPS与Phase3审核视图,WIN-005;P3-006,Windows,validation,yes,yes,locked center/FOV/stretch; seam/support/FITS,views from WIN-005 artifacts/current commit; metrics and WCS verify,NOT_STARTED
+REL-001,G10,生成Linux Windows alpha.2发布包,WIN-006;LNX-004;QA-003;VER-001,Linux+Windows,release,no,yes,single CLI; provider DLL/so; configs/licenses,clean install/run smoke; checksums; no data/build/history,NOT_STARTED
+REL-002,G10,最终文档与真相校验,REL-001;DOC-006,Linux,release,no,yes,L0-L3; version/API/IR/status,all current; no false implementation; no P0/P1 open,NOT_STARTED
+REL-003,G10,生成严格白名单审核包,REL-002,Linux,release,no,yes,full self-owned source; summaries; evidence; previews,validate_return_audit PASS; source/evidence/artifact commit equal,NOT_STARTED
+REL-004,G10,负责人最终视觉与发布决定,REL-003,Owner,release,no,no,six actual views; limits; decision,owner explicit APPROVE/REJECT; Agent cannot execute or pre-pass,NOT_STARTED
