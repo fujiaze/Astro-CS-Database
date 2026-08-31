@@ -13,6 +13,7 @@
 #include "backend_loader.h"
 #include "cpu_features.h"
 #include "sha256.h"
+#include "sha256.h"
 
 #if defined(__x86_64__)
 #include <cpuid.h>
@@ -176,6 +177,17 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
         if (std::sscanf(cmax.c_str(), "%lf %lf", &quota, &period) == 2 && period > 0)
             cgroup_limit = static_cast<uint32_t>(quota / period + 0.999);
     }
+    // cgroup v1 回退: cpu.cfs_quota_us / cpu.cfs_period_us（v2 无 cpu.max 时探测）
+    if (cgroup_limit == 0) {
+        const std::string cq = read_file_trim("/sys/fs/cgroup/cpu/cpu.cfs_quota_us");
+        const std::string cp = read_file_trim("/sys/fs/cgroup/cpu/cpu.cfs_period_us");
+        if (!cq.empty() && cq != "-1" && !cp.empty()) {
+            double quota = 0, period = 0;
+            if (std::sscanf(cq.c_str(), "%lf", &quota) == 1 &&
+                std::sscanf(cp.c_str(), "%lf", &period) == 1 && period > 0 && quota > 0)
+                cgroup_limit = static_cast<uint32_t>(quota / period + 0.999);
+        }
+    }
     uint32_t avail = aff_count;
     if (cgroup_limit > 0 && cgroup_limit < avail) avail = cgroup_limit;   // ∩ 约束
 
@@ -303,6 +315,16 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
     j["affinity_count"] = aff_count;
     j["cgroup_cpu_limit"] = cgroup_limit;         // 0=无显式限制
     j["job_object_limit"] = nullptr;              // Windows Job Object(WIN/FAT 域)
+    // CPU-002: quota signature = 有效配额状态的指纹(affinity∩cgroup/job; 禁硬编码)。
+    {
+        astrocs::crypto::Sha256 qh;
+        const std::string qsrc =
+            std::to_string(aff_count) + "|" + std::to_string(cgroup_limit) +
+            "|" + std::to_string(avail) + "|" + std::to_string(feats) + "|" +
+            std::to_string(xcr0_cached());
+        qh.update(qsrc.data(), qsrc.size());
+        j["quota_signature"] = qh.final_hex();
+    }
     j["physical_packages"] = nullptr;   // 拓扑受限容器不可读; 可得时填充(06 §2)
     j["smt"] = {{"known", smt_known}, {"enabled", smt}};
     j["numa_nodes"] = numa_nodes;

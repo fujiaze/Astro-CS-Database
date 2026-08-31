@@ -5,6 +5,10 @@
 // 同一源(零复制漂移), 仅 ISA 旗标不同。
 #define ASTROCS_BACKEND_ID "avx2"
 
+#include "cpu_features.h"
+// CPU-001: AVX2+FMA 分别声明(ISA-001) — required features = AVX2 | FMA
+#define ASTROCS_BACKEND_REQUIRED_FEATURES (ACS_FEAT_AVX2 | ACS_FEAT_FMA)
+
 #include "astrocs/common_abi_v1.h"
 #include "baseline_kernels.h"
 

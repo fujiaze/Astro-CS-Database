@@ -1,0 +1,187 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "CPU-001",
+  "status": "PASS",
+  "parent_commit": "90cad4951f7885bb9fd13a99f6dd9c11da90a7cd",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "performance",
+  "changed_paths": [
+    "CMakeLists.txt",
+    "lib/backend_host/backend_table.inc",
+    "lib/backend_host/avx2_backend.cpp",
+    "lib/backend_host/avx512_backend.cpp",
+    "tools/gen_provider_manifests.py",
+    "tools/quality/check_isa_leak.py",
+    "tests/unit/cpu001_provider_selftest.cpp",
+    "tests/unit/cpu001_negative_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/v6_1_rework/tasks/CPU-001/PLAN.md",
+    "evidence/v6_1_rework/tasks/CPU-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/CPU-001/logs/c01.log",
+    "evidence/v6_1_rework/tasks/CPU-001/logs/c02.log",
+    "evidence/v6_1_rework/tasks/CPU-001/logs/c03.log",
+    "evidence/v6_1_rework/tasks/CPU-001/logs/c04.log",
+    "evidence/v6_1_rework/tasks/CPU-001/logs/c05.log",
+    "evidence/v6_1_rework/tasks/CPU-001/logs/cpu001_manifest.json"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": true,
+    "reason": "新增 avx2/avx512 provider 独立 target 与 manifest/ISA 检查工具；主 CLI 二进制链接面不变(仍不链变体库)"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "ctest",
+        "--test-dir",
+        "run/temp/build_v61",
+        "-R",
+        "cpu0"
+      ],
+      "timeout_seconds": 200,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T10:00:00Z",
+      "duration_seconds": 0.3,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-001/logs/c01.log",
+      "log_sha256": "af02f0847fdbd39b0558c793a180145989258968ea19d89e177470e3b624c334"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_isa_leak.py",
+        "--binary",
+        "run/temp/build_v61/astrocs",
+        "--avx2-lib",
+        "libastrocs_cpu_avx2.a",
+        "--avx512-lib",
+        "libastrocs_cpu_avx512.a"
+      ],
+      "timeout_seconds": 400,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T10:00:00Z",
+      "duration_seconds": 30.0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-001/logs/c02.log",
+      "log_sha256": "c674c75ad46595164662daed81efabd6fee61ff030d454a10236f457b579b117"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_isa_leak.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T10:00:00Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-001/logs/c03.log",
+      "log_sha256": "97cd0bf163a991141a2025539837f2d23d1e84a2c3a16773c8ee07119d0e703a"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "python3",
+        "tools/gen_provider_manifests.py",
+        "--repo",
+        ".",
+        "--build-dir",
+        "run/temp/build_v61",
+        "--out",
+        "cpu001_manifest.json"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T10:00:00Z",
+      "duration_seconds": 2.0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-001/logs/c04.log",
+      "log_sha256": "7040fd5d60cbf278b05ad5dace01e5d58c312ef08841f54caaa6d1c05e6ce760"
+    },
+    {
+      "command_id": "c05",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_isa_leak.py",
+        "--binary",
+        "build/cli/astrocs",
+        "--avx2-lib",
+        "libastrocs_cpu_avx2.a",
+        "--avx512-lib",
+        "libastrocs_cpu_avx512.a"
+      ],
+      "timeout_seconds": 400,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T10:00:00Z",
+      "duration_seconds": 45.0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-001/logs/c05.log",
+      "log_sha256": "65a33921d297d1e891014281ecfd08b1ee5cd9a7f28ec560aa26640f27a7fe7b"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-PROVIDER-SELFTEST",
+      "description": "baseline/avx2/avx512 三份 provider self_test 全 PASS",
+      "result": "PASS",
+      "evidence_sha256": "af02f0847fdbd39b0558c793a180145989258968ea19d89e177470e3b624c334"
+    },
+    {
+      "test_id": "T-NEGATIVE",
+      "description": "feature bits 不满足的 provider 预检 FALLBACK_BASELINE(拒绝加载)",
+      "result": "PASS",
+      "evidence_sha256": "af02f0847fdbd39b0558c793a180145989258968ea19d89e177470e3b624c334"
+    },
+    {
+      "test_id": "T-ISA-LEAK",
+      "description": "主 CLI(build_v61+build/cli) 无 AVX2/AVX512; provider 库含对应指令",
+      "result": "PASS",
+      "evidence_sha256": "c674c75ad46595164662daed81efabd6fee61ff030d454a10236f457b579b117"
+    },
+    {
+      "test_id": "T-MANIFEST",
+      "description": "manifest 生成: baseline req=0; avx2 req=24(AVX2|FMA); avx512 req=32(F, 子集 F/DQ/BW/VL)",
+      "result": "PASS",
+      "evidence_sha256": "7040fd5d60cbf278b05ad5dace01e5d58c312ef08841f54caaa6d1c05e6ce760"
+    },
+    {
+      "test_id": "T-REGRESSION",
+      "description": "core_|rt0 ctest 16/16 PASS(backend_table.inc 改动无回归)",
+      "result": "PASS",
+      "evidence_sha256": "af02f0847fdbd39b0558c793a180145989258968ea19d89e177470e3b624c334"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-001/PLAN.md",
+      "sha256": "22f9588cb47818b7348a7bad165d520c46146891efa26a458f4502294456b4a7"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-001/TASK_RESULT.json",
+      "sha256": "5edf8aea64b780eef2b914f7ed20f7a6aaf68c46882be66a54907ea4624501b3"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-001/logs/c01.log",
+      "sha256": "af02f0847fdbd39b0558c793a180145989258968ea19d89e177470e3b624c334"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-001/logs/c02.log",
+      "sha256": "c674c75ad46595164662daed81efabd6fee61ff030d454a10236f457b579b117"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-001/logs/cpu001_manifest.json",
+      "sha256": "7f3414a8fd3cd19d873f8926c1a0eb636df32a430002a031bbc188d7b1ab7a78"
+    }
+  ],
+  "findings": [
+    "F-002",
+    "F-003",
+    "F-007"
+  ],
+  "expected_commit_subject": "CPU-001: baseline/AVX2/AVX512独立provider构建 (CMake targets+manifest+selftest+负例+ISA泄漏检查)",
+  "created_utc": "2026-09-01T10:00:00Z"
+}

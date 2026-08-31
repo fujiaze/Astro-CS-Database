@@ -72,6 +72,9 @@ acs_status backend_shutdown(const astrocs_host_services_v1* host) {
 
 astrocs_backend_api_v1 g_api = {};
 
+#ifndef ASTROCS_BACKEND_REQUIRED_FEATURES
+#define ASTROCS_BACKEND_REQUIRED_FEATURES 0   // baseline: 最低 amd64(SSE2 基线), 无附加位
+#endif
 astrocs_backend_api_v1* backend_api() {
     if (g_api.struct_size != sizeof(astrocs_backend_api_v1)) {
         std::memset(&g_api, 0, sizeof(g_api));
@@ -79,7 +82,7 @@ astrocs_backend_api_v1* backend_api() {
         g_api.abi_version = ACS_ABI_VERSION_V1;
         std::strncpy(g_api.backend_id, ASTROCS_BACKEND_ID, sizeof(g_api.backend_id) - 1);
 std::strncpy(g_api.backend_build_id, ASTROCS_BACKEND_BUILD_ID, sizeof(g_api.backend_build_id) - 1);
-        g_api.required_features = 0;         // baseline: 最低 amd64(SSE2 基线), 无附加位
+        g_api.required_features = ASTROCS_BACKEND_REQUIRED_FEATURES;
         g_api.detected_features = 0;
         g_api.alignment_bytes = 64;
         g_api.precision_class = ACS_PRECISION_F32;

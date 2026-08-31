@@ -182,6 +182,28 @@ target_include_directories(astrocs_cpu PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto)
 target_link_libraries(astrocs_cpu PUBLIC astrocs_contracts astrocs_common)
 
+# CPU-001 (G3): 独立 provider 变体 target — 真实独立编译单元 (05 §2)
+# 编译隔离合同: -mavx2/-mfma 等高级旗标仅作用于对应 provider target(PRIVATE),
+# 不污染 astrocs_cpu/baseline 与主 CLI; 主 CLI 保持最低 amd64/SSE2 (ARCH-003 §2)。
+# 变体与 baseline 共享 baseline_kernels_impl.inc/backend_table.inc 同一源(零复制漂移),
+# 仅编译旗标与 ASTROCS_BACKEND_ID 不同 → 每条路径独立编译成不同目标并各自 self-test。
+# 注意: 两个变体 target 均不得被 astrocs(主 CLI) 链接 — 由 check_isa_leak 的 link map 验证把关。
+add_library(astrocs_cpu_avx2 STATIC lib/backend_host/avx2_backend.cpp)
+target_include_directories(astrocs_cpu_avx2 PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/backend_host
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto)
+target_compile_options(astrocs_cpu_avx2 PRIVATE -mavx2 -mfma)
+target_link_libraries(astrocs_cpu_avx2 PUBLIC astrocs_contracts astrocs_common)
+
+add_library(astrocs_cpu_avx512 STATIC lib/backend_host/avx512_backend.cpp)
+target_include_directories(astrocs_cpu_avx512 PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/backend_host
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto)
+# AVX512 实际使用子集: F + DQ + BW + VL (ISA-004, 与 cpu_features.h 检测面一致)
+target_compile_options(astrocs_cpu_avx512 PRIVATE
+  -mavx512f -mavx512bw -mavx512vl -mavx512dq)
+target_link_libraries(astrocs_cpu_avx512 PUBLIC astrocs_contracts astrocs_common)
+
 # phase1 wcs + photometry (P1-004)
 add_library(astrocs_phase1_wcs STATIC lib/phase1/wcs/wcs_tan.cpp)
 target_include_directories(astrocs_phase1_wcs PUBLIC
