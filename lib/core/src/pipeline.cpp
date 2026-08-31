@@ -1,248 +1,302 @@
-// CORE-004 Pipeline IR 解析 + 静态验证实现
+// CORE-004 / RT-004: Pipeline IR 解析 + 静态验证
+// 使用 nlohmann::json（真正 JSON parser），schema 驱动校验，接受完整 ModuleRegistry。
 #include "astrocs/core/pipeline.h"
 
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
-#include <cctype>
 #include <functional>
 #include <set>
+#include <sstream>
 
 namespace astrocs::core {
 
+using nlohmann::json;
+
 namespace {
 
-// 最小 JSON 解析: 顶层键/节点数组提取 (不依赖外部库)
-bool json_trim(std::string& s) {
-  size_t b = s.find_first_not_of(" \t\r\n");
-  if (b == std::string::npos) return false;
-  s = s.substr(b);
-  size_t e = s.find_last_not_of(" \t\r\n");
-  s = s.substr(0, e + 1);
-  return !s.empty();
-}
-
-std::string top_key_value(const std::string& json, const char* key) {
-  std::string pat = std::string("\"") + key + "\":";
-  auto pos = json.find(pat);
-  if (pos == std::string::npos) return "";
-  pos += pat.size();
-  while (pos < json.size() && (json[pos] == ' ' || json[pos] == '\t')) ++pos;
-  if (pos >= json.size()) return "";
-  char c = json[pos];
-  if (c == '"') {
-    auto end = json.find('"', pos + 1);
-    return end == std::string::npos ? "" : json.substr(pos + 1, end - pos - 1);
-  }
-  // 数字/布尔
-  auto end = json.find_first_of(",}]", pos);
-  return end == std::string::npos ? json.substr(pos) : json.substr(pos, end - pos);
-}
-
-// 提取 nodes 数组的每个对象 (平衡花括号)
-std::vector<std::string> extract_objects(const std::string& json, const char* key) {
-  std::string pat = std::string("\"") + key + "\":";
-  auto pos = json.find(pat);
-  if (pos == std::string::npos) return {};
-  pos += pat.size();
-  while (pos < json.size() && (json[pos] == ' ' || json[pos] == '\t' || json[pos] == '\n' || json[pos] == '\r')) ++pos;
-  if (pos >= json.size() || json[pos] != '[') return {};
-  ++pos;
-  std::vector<std::string> objs;
-  int depth = 0;
-  size_t start = std::string::npos;
-  bool in_str = false;
-  for (size_t i = pos; i < json.size(); ++i) {
-    char c = json[i];
-    if (in_str) {
-      if (c == '"' && (i == 0 || json[i - 1] != '\\')) in_str = false;
-      continue;
-    }
-    if (c == '"') { in_str = true; continue; }
-    if (c == '{') { if (depth == 0) start = i; ++depth; }
-    else if (c == '}') {
-      --depth;
-      if (depth == 0 && start != std::string::npos) {
-        objs.push_back(json.substr(start, i - start + 1));
-        start = std::string::npos;
-      }
-    }
-    if (depth == 0 && c == ']') break;
-  }
-  return objs;
-}
-
-// 提取对象内 "k":"v" 字符串键值
-std::string obj_key_str(const std::string& obj, const char* key) {
-  return top_key_value(obj, key);
-}
-
-// 提取对象内 "k":{...} 子对象
-std::string obj_key_obj(const std::string& obj, const char* key) {
-  std::string pat = std::string("\"") + key + "\":";
-  auto pos = obj.find(pat);
-  if (pos == std::string::npos) return "";
-  pos += pat.size();
-  while (pos < obj.size() && (obj[pos] == ' ' || obj[pos] == '\t' || obj[pos] == '\n' || obj[pos] == '\r')) ++pos;
-  if (pos >= obj.size() || obj[pos] != '{') return "";
-  int depth = 0;
-  bool in_str = false;
-  size_t start = pos;
-  for (size_t i = start; i < obj.size(); ++i) {
-    char c = obj[i];
-    if (in_str) { if (c == '"' && (i == 0 || obj[i - 1] != '\\')) in_str = false; continue; }
-    if (c == '"') { in_str = true; continue; }
-    if (c == '{') ++depth;
-    else if (c == '}') {
-      --depth;
-      if (depth == 0) return obj.substr(start, i - start + 1);
-    }
-  }
-  return "";
-}
-
-// 提取扁平对象的所有 "k":"v" 对
-std::map<std::string, std::string> obj_key_pairs(const std::string& obj) {
+// 从 JSON 值读取扁平字符串映射（port -> artifact）
+std::map<std::string, std::string> str_map(const json& obj) {
   std::map<std::string, std::string> out;
-  size_t i = 0;
-  while (i < obj.size()) {
-    auto ks = obj.find('"', i);
-    if (ks == std::string::npos) break;
-    auto ke = obj.find('"', ks + 1);
-    if (ke == std::string::npos) break;
-    std::string k = obj.substr(ks + 1, ke - ks - 1);
-    auto colon = obj.find(':', ke);
-    if (colon == std::string::npos) break;
-    size_t vs = colon + 1;
-    while (vs < obj.size() && (obj[vs] == ' ' || obj[vs] == '\t')) ++vs;
-    if (vs >= obj.size()) break;
-    if (obj[vs] == '"') {
-      auto ve = obj.find('"', vs + 1);
-      if (ve == std::string::npos) break;
-      out[k] = obj.substr(vs + 1, ve - vs - 1);
-      i = ve + 1;
-    } else if (obj[vs] == '{') {
-      // 跳过子对象
-      int d = 0; bool s = false;
-      size_t j = vs;
-      for (; j < obj.size(); ++j) {
-        char c = obj[j];
-        if (s) { if (c == '"' && obj[j-1] != '\\') s = false; continue; }
-        if (c == '"') { s = true; continue; }
-        if (c == '{') ++d;
-        else if (c == '}') { --d; if (d == 0) break; }
-      }
-      i = j + 1;
-    } else {
-      auto ve = obj.find_first_of(",}", vs);
-      if (ve == std::string::npos) break;
-      out[k] = obj.substr(vs, ve - vs);
-      i = ve;
-    }
+  if (!obj.is_object()) return out;
+  for (auto it = obj.begin(); it != obj.end(); ++it) {
+    if (it.value().is_string()) out[it.key()] = it.value().get<std::string>();
   }
   return out;
+}
+
+bool is_artifact_ref(const std::string& s) {
+  return s.rfind("artifact:", 0) == 0;
 }
 
 }  // namespace
 
 std::string PipelineIR::to_json() const {
-  std::string s = "{\"schema\":\"astrocs.pipeline/v1\",\"pipeline_id\":\"" + pipeline_id +
-                  "\",\"version\":\"" + version + "\",\"nodes\":[";
-  bool first = true;
+  json j;
+  j["schema"] = schema.empty() ? "astrocs.pipeline/v1" : schema;
+  j["pipeline_id"] = pipeline_id;
+  j["version"] = version;
+  j["nodes"] = json::array();
   for (const auto& n : nodes) {
-    if (!first) s += ",";
-    first = false;
-    s += "{\"node_id\":\"" + n.node_id + "\",\"module_id\":\"" + n.module_id + "\"}";
+    json nj;
+    nj["node_id"] = n.node_id;
+    nj["module_id"] = n.module_id;
+    if (!n.module_api.empty()) nj["module_api"] = n.module_api;
+    nj["inputs"] = n.inputs;
+    nj["outputs"] = n.outputs;
+    nj["resources"] = {{"class", n.resource_class}, {"parallel", n.parallel}};
+    if (!n.config_json.empty()) nj["config"] = json::parse(n.config_json, nullptr, false);
+    j["nodes"].push_back(std::move(nj));
   }
-  s += "]}";
-  return s;
+  j["outputs"] = outputs;
+  return j.dump();
 }
 
 Result<PipelineIR> PipelineIRParser::parse(const std::string& json_text) const {
-  std::string json = json_text;
-  if (!json_trim(json) || json.empty()) {
-    return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "empty pipeline JSON"));
+  json doc;
+  try {
+    doc = json::parse(json_text);
+  } catch (const json::parse_error& e) {
+    return Result<PipelineIR>::fail(
+        Error(ErrorDomain::DATA, std::string("pipeline JSON parse error: ") + e.what()));
   }
+  if (!doc.is_object()) {
+    return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "pipeline JSON must be object"));
+  }
+
+  // schema 字段
+  auto it_schema = doc.find("schema");
+  if (it_schema == doc.end() || !it_schema->is_string()) {
+    return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "schema required"));
+  }
+  const std::string schema = it_schema->get<std::string>();
+  if (schema != "astrocs.pipeline/v1" && schema != "astrocs.pipeline/v2") {
+    return Result<PipelineIR>::fail(Error(ErrorDomain::DATA,
+        "schema must be astrocs.pipeline/v1 or /v2, got " + schema));
+  }
+
   PipelineIR ir;
-  if (top_key_value(json, "schema") != "astrocs.pipeline/v1") {
-    return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "schema must be astrocs.pipeline/v1"));
+  ir.schema = schema;
+  auto get_str = [&](const char* key, std::string* out) -> bool {
+    auto it = doc.find(key);
+    if (it == doc.end() || !it->is_string()) return false;
+    *out = it->get<std::string>();
+    return true;
+  };
+  if (!get_str("pipeline_id", &ir.pipeline_id) || ir.pipeline_id.empty()) {
+    return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "pipeline_id required"));
   }
-  ir.pipeline_id = top_key_value(json, "pipeline_id");
-  ir.version = top_key_value(json, "version");
-  if (ir.pipeline_id.empty() || ir.version.empty()) {
-    return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "pipeline_id/version required"));
+  if (!get_str("version", &ir.version) || ir.version.empty()) {
+    return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "version required"));
   }
-  auto node_objs = extract_objects(json, "nodes");
-  if (node_objs.empty()) {
-    return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "nodes array empty/missing"));
+
+  auto it_nodes = doc.find("nodes");
+  if (it_nodes == doc.end() || !it_nodes->is_array() || it_nodes->empty()) {
+    return Result<PipelineIR>::fail(Error(ErrorDomain::DATA,
+        "nodes array required and non-empty"));
   }
-  for (const auto& obj : node_objs) {
+
+  for (const auto& nj : *it_nodes) {
     PipelineNode n;
-    n.node_id = obj_key_str(obj, "node_id");
-    n.module_id = obj_key_str(obj, "module_id");
-    n.module_api = obj_key_str(obj, "module_api");
-    if (n.node_id.empty() || n.module_id.empty()) {
-      return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "node missing node_id/module_id"));
+    if (!nj.is_object()) {
+      return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "node must be object"));
     }
-    std::string ins = obj_key_obj(obj, "inputs");
-    std::string outs = obj_key_obj(obj, "outputs");
-    n.inputs = obj_key_pairs(ins);
-    n.outputs = obj_key_pairs(outs);
+    auto git = nj.find("node_id");
+    if (git == nj.end() || !git->is_string()) {
+      return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "node missing node_id"));
+    }
+    n.node_id = git->get<std::string>();
+    auto mit = nj.find("module_id");
+    if (mit == nj.end() || !mit->is_string()) {
+      return Result<PipelineIR>::fail(Error(ErrorDomain::DATA,
+          "node " + n.node_id + " missing module_id"));
+    }
+    n.module_id = mit->get<std::string>();
+    auto ait = nj.find("module_api");
+    if (ait != nj.end() && ait->is_string()) n.module_api = ait->get<std::string>();
+
+    // inputs/outputs: port -> artifact
+    n.inputs = str_map(nj.value("inputs", json::object()));
+    n.outputs = str_map(nj.value("outputs", json::object()));
     if (n.inputs.empty() || n.outputs.empty()) {
       return Result<PipelineIR>::fail(Error(ErrorDomain::DATA,
-          "node " + n.node_id + " missing inputs/outputs"));
+          "node " + n.node_id + " requires non-empty inputs and outputs"));
     }
-    std::string res = obj_key_obj(obj, "resources");
-    auto res_pairs = obj_key_pairs(res);
-    n.resource_class = res_pairs["class"];
-    n.parallel = res_pairs["parallel"] == "true";
-    if (n.resource_class.empty()) {
+    for (const auto& [port, art] : n.inputs) {
+      if (!is_artifact_ref(art)) {
+        return Result<PipelineIR>::fail(Error(ErrorDomain::DATA,
+            "node " + n.node_id + " input " + port + " not artifact ref: " + art));
+      }
+    }
+    for (const auto& [port, art] : n.outputs) {
+      if (!is_artifact_ref(art)) {
+        return Result<PipelineIR>::fail(Error(ErrorDomain::DATA,
+            "node " + n.node_id + " output " + port + " not artifact ref: " + art));
+      }
+    }
+
+    // resources
+    auto rit = nj.find("resources");
+    if (rit == nj.end() || !rit->is_object()) {
+      return Result<PipelineIR>::fail(Error(ErrorDomain::DATA,
+          "node " + n.node_id + " missing resources"));
+    }
+    auto cit = rit->find("class");
+    if (cit == rit->end() || !cit->is_string()) {
       return Result<PipelineIR>::fail(Error(ErrorDomain::DATA,
           "node " + n.node_id + " missing resources.class"));
     }
-    // cpu_heavy 必须 parallel (控制包 schema allOf)
+    n.resource_class = cit->get<std::string>();
+    if (n.resource_class != "metadata" && n.resource_class != "io" &&
+        n.resource_class != "cpu_light" && n.resource_class != "cpu_heavy") {
+      return Result<PipelineIR>::fail(Error(ErrorDomain::DATA,
+          "node " + n.node_id + " invalid resources.class: " + n.resource_class));
+    }
+    auto pit = rit->find("parallel");
+    n.parallel = pit != rit->end() && pit->is_boolean() && pit->get<bool>();
+    // cpu_heavy 必须 parallel（schema allOf）
     if (n.resource_class == "cpu_heavy" && !n.parallel) {
       return Result<PipelineIR>::fail(Error(ErrorDomain::DATA,
           "node " + n.node_id + ": cpu_heavy must be parallel=true"));
     }
+
+    // config: inline JSON 或 config_ref {schema, sha256}
+    auto cit_inline = nj.find("config");
+    if (cit_inline != nj.end() && cit_inline->is_object()) {
+      n.config_json = cit_inline->dump();
+    }
+    auto cref = nj.find("config_ref");
+    if (cref != nj.end() && cref->is_object()) {
+      auto cs = cref->find("schema");
+      if (cs != cref->end() && cs->is_string()) n.config_ref_schema = cs->get<std::string>();
+      auto ch = cref->find("sha256");
+      if (ch != cref->end() && ch->is_string()) n.config_ref_sha256 = ch->get<std::string>();
+    }
+
     ir.nodes.push_back(std::move(n));
   }
-  // pipeline 顶层 outputs 为扁平对象 (非数组)
-  {
-    std::string outs_obj = obj_key_obj(json, "outputs");
-    ir.outputs = obj_key_pairs(outs_obj);
-  }
-  if (ir.outputs.empty()) {
+
+  // pipeline 顶层 outputs
+  auto oit = doc.find("outputs");
+  if (oit == doc.end() || !oit->is_object()) {
     return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "pipeline outputs required"));
   }
+  ir.outputs = str_map(*oit);
+  if (ir.outputs.empty()) {
+    return Result<PipelineIR>::fail(Error(ErrorDomain::DATA, "pipeline outputs empty"));
+  }
+
   return Result<PipelineIR>::ok(std::move(ir));
 }
 
 std::vector<IrIssue> PipelineIRParser::validate(
-    const PipelineIR& ir, const std::vector<std::string>& known_modules) const {
+    const PipelineIR& ir, const ModuleRegistry& registry) const {
   std::vector<IrIssue> issues;
-  std::set<std::string> known(known_modules.begin(), known_modules.end());
+  std::set<std::string> produced_artifacts;
+  std::set<std::string> consumed_artifacts;
   std::map<std::string, std::string> producer_of;  // artifact -> node_id
+  std::map<std::string, std::string> producer_port_of;  // artifact -> port
   std::map<std::string, std::vector<std::string>> consumers_of;
   std::map<std::string, std::string> node_by_id;
 
   for (const auto& n : ir.nodes) {
     node_by_id[n.node_id] = n.module_id;
-    if (!known.count(n.module_id)) {
+    const ModuleDescriptor* desc = registry.find(n.module_id);
+    if (desc == nullptr) {
       issues.push_back({IrError::UNKNOWN_MODULE, n.node_id,
                         "module not registered: " + n.module_id});
+      continue;  // 无描述符无法继续端口级检查
+    }
+    // 执行类一致性
+    if (desc->execution_class == "cpu_heavy" && n.resource_class != "cpu_heavy") {
+      issues.push_back({IrError::SERIAL_HEAVY, n.node_id,
+                        "module declares cpu_heavy but node resources.class=" +
+                            n.resource_class});
+    }
+    // 端口检查: 输入/输出端口必须存在于 descriptor
+    std::map<std::string, PortDescriptor> in_ports, out_ports;
+    for (const auto& p : desc->ports) {
+      if (p.is_input) in_ports[p.name] = p;
+      else out_ports[p.name] = p;
+    }
+    for (const auto& [port, art] : n.inputs) {
+      auto pit = in_ports.find(port);
+      if (pit == in_ports.end()) {
+        issues.push_back({IrError::MISSING_PORT, n.node_id,
+                          "input port '" + port + "' not in module " + n.module_id});
+      }
+      consumed_artifacts.insert(art);
+      consumers_of[art].push_back(n.node_id);
     }
     for (const auto& [port, art] : n.outputs) {
+      auto pit = out_ports.find(port);
+      if (pit == out_ports.end()) {
+        issues.push_back({IrError::MISSING_PORT, n.node_id,
+                          "output port '" + port + "' not in module " + n.module_id});
+      }
       if (producer_of.count(art)) {
         issues.push_back({IrError::DUPLICATE_PRODUCER, n.node_id,
                           "artifact " + art + " already produced by " + producer_of[art]});
       }
       producer_of[art] = n.node_id;
-    }
-    for (const auto& [port, art] : n.inputs) {
-      consumers_of[art].push_back(n.node_id);
+      producer_port_of[art] = port;
+      produced_artifacts.insert(art);
     }
   }
 
-  // 环检测 (DFS on node deps via artifact producer)
+  // 端口级 DATA schema / unit / coordinate 冲突（在已注册端口之间）
+  for (const auto& [art, producer_node] : producer_of) {
+    const PipelineNode* pn = nullptr;
+    for (const auto& n : ir.nodes) if (n.node_id == producer_node) { pn = &n; break; }
+    if (!pn) continue;
+    const ModuleDescriptor* pd = registry.find(pn->module_id);
+    if (!pd) continue;
+    PortDescriptor prod_port;
+    bool have_prod = false;
+    for (const auto& p : pd->ports) {
+      if (!p.is_input && pn->outputs.count(p.name) &&
+          pn->outputs.at(p.name) == art) {
+        prod_port = p;
+        have_prod = true;
+        break;
+      }
+    }
+    if (!have_prod) continue;
+    for (const auto& cons_node : consumers_of[art]) {
+      const PipelineNode* cn = nullptr;
+      for (const auto& n : ir.nodes) if (n.node_id == cons_node) { cn = &n; break; }
+      if (!cn) continue;
+      const ModuleDescriptor* cd = registry.find(cn->module_id);
+      if (!cd) continue;
+      for (const auto& [port, c_art] : cn->inputs) {
+        if (c_art != art) continue;
+        for (const auto& p : cd->ports) {
+          if (p.is_input && p.name == port) {
+            if (prod_port.data_schema_id != p.data_schema_id &&
+                !prod_port.data_schema_id.empty() && !p.data_schema_id.empty()) {
+              issues.push_back({IrError::DATA_MISMATCH, cons_node,
+                                "artifact " + art + " producer schema " +
+                                    prod_port.data_schema_id + " != consumer " +
+                                    p.data_schema_id});
+            }
+            if (prod_port.unit != p.unit &&
+                prod_port.unit != UnitId::UNKNOWN && p.unit != UnitId::UNKNOWN) {
+              issues.push_back({IrError::UNIT_MISMATCH, cons_node,
+                                "artifact " + art + " producer unit " +
+                                    unit_name(prod_port.unit) + " != consumer " +
+                                    unit_name(p.unit)});
+            }
+            if (prod_port.coordinate != p.coordinate) {
+              issues.push_back({IrError::COORDINATE_MISMATCH, cons_node,
+                                "artifact " + art + " producer coord mismatch"});
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 环检测（artifact producer 依赖）
   std::map<std::string, std::vector<std::string>> deps;
   for (const auto& n : ir.nodes) {
     for (const auto& [port, art] : n.inputs) {
@@ -253,7 +307,7 @@ std::vector<IrIssue> PipelineIRParser::validate(
   std::set<std::string> visiting, done;
   std::function<bool(const std::string&)> dfs = [&](const std::string& id) -> bool {
     if (done.count(id)) return false;
-    if (visiting.count(id)) return true;  // cycle
+    if (visiting.count(id)) return true;
     visiting.insert(id);
     for (const auto& d : deps[id]) {
       if (dfs(d)) return true;
@@ -269,12 +323,26 @@ std::vector<IrIssue> PipelineIRParser::validate(
     }
   }
 
-  // 未消费的必需产物 (pipeline outputs 必须被产出)
-  for (const auto& [port, art] : ir.outputs) {
-    if (!producer_of.count(art)) {
-      issues.push_back({IrError::UNCONSUMED, "", "output artifact not produced: " + art});
+  // UNCONSUMED: 内部产物被产出但从未消费（除 pipeline outputs 本身）
+  for (const auto& art : produced_artifacts) {
+    bool is_pipeline_output = false;
+    for (const auto& [port, oa] : ir.outputs) {
+      if (oa == art) { is_pipeline_output = true; break; }
+    }
+    if (!is_pipeline_output && !consumed_artifacts.count(art)) {
+      issues.push_back({IrError::UNCONSUMED, producer_of[art],
+                        "produced but never consumed: " + art});
     }
   }
+
+  // UNPRODUCED_OUTPUT: pipeline outputs 必须被产出
+  for (const auto& [port, art] : ir.outputs) {
+    if (!produced_artifacts.count(art)) {
+      issues.push_back({IrError::UNPRODUCED_OUTPUT, "",
+                        "pipeline output artifact not produced: " + art});
+    }
+  }
+
   return issues;
 }
 
