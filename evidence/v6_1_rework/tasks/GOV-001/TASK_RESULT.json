@@ -1,0 +1,141 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "GOV-001",
+  "status": "PASS",
+  "parent_commit": "50673825f83d51065d22e99425e9a84e6e8e6838",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "governance",
+  "changed_paths": [
+    "tools/quality/gen_commits_csv.py",
+    "tools/quality/check_commits_csv.py",
+    "evidence/v6_1_rework/COMMITS.csv",
+    "evidence/v6_1_rework/tasks/R0-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/R0-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/GOV-001/PLAN.md",
+    "evidence/v6_1_rework/tasks/GOV-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/GOV-001/logs/c01.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "task-evidence/commit binding governance; no science code"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/gen_commits_csv.py",
+        "--repo",
+        ".",
+        "--results-dir",
+        "evidence/v6_1_rework/tasks",
+        "--out",
+        "evidence/v6_1_rework/COMMITS.csv"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:20:38Z",
+      "duration_seconds": 2.5,
+      "log_path": "evidence/v6_1_rework/tasks/GOV-001/logs/c01.log",
+      "log_sha256": "8607e0c780278fbb6d17b157b5f34145657fccec7198a41045b288ef19c8140c"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_commits_csv.py",
+        "--repo",
+        ".",
+        "--commits",
+        "evidence/v6_1_rework/COMMITS.csv"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:20:38Z",
+      "duration_seconds": 2.0,
+      "log_path": "evidence/v6_1_rework/tasks/GOV-001/logs/c01.log",
+      "log_sha256": "8607e0c780278fbb6d17b157b5f34145657fccec7198a41045b288ef19c8140c"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_commits_csv.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:20:38Z",
+      "duration_seconds": 3.0,
+      "log_path": "evidence/v6_1_rework/tasks/GOV-001/logs/c01.log",
+      "log_sha256": "8607e0c780278fbb6d17b157b5f34145657fccec7198a41045b288ef19c8140c"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_task_result_schema.py"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:20:38Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/GOV-001/logs/c01.log",
+      "log_sha256": "8607e0c780278fbb6d17b157b5f34145657fccec7198a41045b288ef19c8140c"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-GEN-COMMITS",
+      "description": "COMMITS.csv 从 git log --first-parent 生成 4 任务链",
+      "result": "PASS",
+      "evidence_sha256": "52d88111590c67e1ad68cf8b6609d1328b463df332dfefeb036c511e2830f943"
+    },
+    {
+      "test_id": "T-CHECK-REAL",
+      "description": "真实 COMMITS 链 parent/result/ancestor/push 全过",
+      "result": "PASS",
+      "evidence_sha256": "52d88111590c67e1ad68cf8b6609d1328b463df332dfefeb036c511e2830f943"
+    },
+    {
+      "test_id": "T-NEGATIVE",
+      "description": "tamper parent/swap commits/unpushed 三类篡改全被抓",
+      "result": "PASS",
+      "evidence_sha256": "8607e0c780278fbb6d17b157b5f34145657fccec7198a41045b288ef19c8140c"
+    },
+    {
+      "test_id": "T-SCHEMA-4",
+      "description": "4 个 TASK_RESULT 全 schema 合规（R0-001/002 修复）",
+      "result": "PASS",
+      "evidence_sha256": "8607e0c780278fbb6d17b157b5f34145657fccec7198a41045b288ef19c8140c"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/COMMITS.csv",
+      "sha256": "52d88111590c67e1ad68cf8b6609d1328b463df332dfefeb036c511e2830f943"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/GOV-001/PLAN.md",
+      "sha256": "7da44fbb84f93acbb0ea983595421019f521d64bd6924c43c764d5875ffa3ab4"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/GOV-001/TASK_RESULT.json",
+      "sha256": "06f3460189854cb82478425e580445ef9931cf425d365fa75d040a983525dbb1"
+    }
+  ],
+  "findings": [
+    "F-040"
+  ],
+  "limitations": [
+    "COMMITS.csv 后续任务逐任务追加；最终打包器（REL-003）从同一 git 历史重建全量"
+  ],
+  "expected_commit_subject": "GOV-001: 任务证据与 commit 绑定 (COMMITS.csv 链 + 篡改/交换/缺push 负例全抓)",
+  "created_utc": "2026-08-31T04:20:38Z"
+}

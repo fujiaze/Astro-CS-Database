@@ -40,7 +40,9 @@
       "timeout_seconds": 300,
       "exit_code": 0,
       "log_path": "evidence/v6_1_rework/tasks/R0-002/logs/c01.log",
-      "log_sha256": "d88f7d87582fce796feac4c93941f1940f7dbd72b689a35531816d0b7c366934"
+      "log_sha256": "d88f7d87582fce796feac4c93941f1940f7dbd72b689a35531816d0b7c366934",
+      "started_utc": "2026-08-31T04:20:06Z",
+      "duration_seconds": 3.0
     },
     {
       "command_id": "c02",
@@ -55,7 +57,9 @@
       "timeout_seconds": 120,
       "exit_code": 0,
       "log_path": "evidence/v6_1_rework/tasks/R0-002/logs/c01.log",
-      "log_sha256": "d88f7d87582fce796feac4c93941f1940f7dbd72b689a35531816d0b7c366934"
+      "log_sha256": "d88f7d87582fce796feac4c93941f1940f7dbd72b689a35531816d0b7c366934",
+      "started_utc": "2026-08-31T04:20:06Z",
+      "duration_seconds": 3.0
     },
     {
       "command_id": "c03",
@@ -64,8 +68,10 @@
       ],
       "timeout_seconds": 120,
       "exit_code": 1,
-      "log_path": "run/temp/fixture_gen.log",
-      "log_sha256": "6efbaf234296605abadf5d214c0682c25991c7aa82f0d0462e93de7909b59c7a"
+      "log_path": "evidence/v6_1_rework/tasks/R0-002/logs/c01.log",
+      "log_sha256": "d88f7d87582fce796feac4c93941f1940f7dbd72b689a35531816d0b7c366934",
+      "started_utc": "2026-08-31T04:20:06Z",
+      "duration_seconds": 3.0
     }
   ],
   "tests": [
