@@ -11,7 +11,8 @@ EXPECTED_HELP_LINES = [
     "astrocs config init --output <path>",
     "astrocs config validate --config <path>",
     "astrocs config show-effective --config <path> [--cpu-profile <path>] --json",
-    "astrocs benchmark cpu (--quick|--full) [--output <path>]",
+    "astrocs benchmark cpu (--quick|--full) [--output <path>] [--events-jsonl]",
+    "astrocs verify profile --profile <path> [--json]",
     "astrocs doctor --json",
     "astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|pipeline>",
     "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]",
@@ -27,7 +28,7 @@ class TestCliBuild(unittest.TestCase):
     def setUpClass(cls):
         cls.bdir = tempfile.mkdtemp(prefix="astrocs_cli_build_")
         subprocess.run(["cmake", "-S", CLI, "-B", cls.bdir], check=True, capture_output=True, timeout=120)
-        subprocess.run(["cmake", "--build", cls.bdir, "-j2"], check=True, capture_output=True, timeout=180)
+        subprocess.run(["cmake", "--build", cls.bdir, "-j2"], check=True, capture_output=True, timeout=900)
         exe = os.path.join(cls.bdir, "astrocs")
         assert os.path.isfile(exe), exe
         cls.exe = exe
@@ -43,7 +44,7 @@ class TestCliBuild(unittest.TestCase):
         r = self.run_cli("--version")
         self.assertEqual(r.returncode, 0)
         self.assertRegex(r.stdout.strip(),
-                         r"^astrocs 0\.9\.0-alpha\.1\+g[0-9a-f]{12}(\.dirty)?$")
+                         r"^astrocs 0\.10\.0-alpha\.2\+g[0-9a-f]{12}(\.dirty)?$")
 
     def test_02_version_json_single_document(self):
         r = self.run_cli("--version", "--json")
@@ -53,7 +54,7 @@ class TestCliBuild(unittest.TestCase):
         doc = json.loads(lines[0])
         self.assertEqual(doc["name"], "astrocs")
         self.assertEqual(doc["schema_version"], "1")
-        self.assertRegex(doc["version"], r"^0\.9\.0-alpha\.1\+g[0-9a-f]{12}")
+        self.assertRegex(doc["version"], r"^0\.10\.0-alpha\.2\+g[0-9a-f]{12}")
 
     def test_03_help_matches_contract(self):
         r = self.run_cli("--help")

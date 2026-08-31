@@ -175,6 +175,7 @@ add_library(astrocs_cpu STATIC
   lib/backend_host/backend_loader.cpp
   lib/backend_host/baseline_backend.cpp
   lib/backend_host/profile_gen.cpp
+  lib/backend_host/profile_gen_v2.cpp
   lib/backend_host/host_services.cpp
   lib/backend_host/bench_harness.cpp)
 target_include_directories(astrocs_cpu PUBLIC

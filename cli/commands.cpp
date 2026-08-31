@@ -1029,6 +1029,34 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
     return astrocs::OK;
 }
 
+// CPU-003: `verify profile --profile <path> [--json]` — 独立复读 v2 benchmark profile。
+// 校验: JSON 可解析、v2 schema 字段完整、版本/commit/workers/block/median 合理。
+int cmd_verify_profile(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    const std::string pp = need_value(p, "--profile");
+    std::ifstream f(std::filesystem::u8path(pp), std::ios::binary);
+    if (!f) {
+        std::fprintf(stderr, "astrocs: profile not found '%s'\n", pp.c_str());
+        return astrocs::INPUT;
+    }
+    std::stringstream buf; buf << f.rdbuf();
+    const std::string err = astrocs::backend_host::verify_profile_v2(buf.str(), ASTROCS_COMMIT_SHA);
+    if (!err.empty()) {
+        std::fprintf(stderr, "astrocs: verify profile FAIL: %s\n", err.c_str());
+        return astrocs::INTEGRITY;
+    }
+    nlohmann::json d = nlohmann::json::parse(buf.str());
+    const std::string verdict = "PASS";
+    nlohmann::json out = {{"verify_profile", "ok"},
+                          {"verdict", verdict},
+                          {"kernels", d["kernels"].size()},
+                          {"logical_available", d["host"].value("logical_available", 0)},
+                          {"commit", d["build"].value("source_commit", "")}};
+    std::printf("%s\n", out.dump().c_str());
+    ev.emit("artifact", "info", "benchmark", "cpu profile verified",
+            {{"role", "cpu_profile"}, {"path", pp}, {"verdict", verdict}});
+    return astrocs::OK;
+}
+
 
 
 int cmd_drizzle(const Parsed& p, astrocs::JsonlEmitter& ev) {
@@ -1129,8 +1157,32 @@ int dispatch(const Parsed& p) {
                                                                 : "cpu_profile.json";
         const std::string mode = quick ? "quick" : "full";
         const std::string commit = ASTROCS_COMMIT_SHA;
-        const std::string json = astrocs::backend_host::generate_profile_json(
-            mode, ASTROCS_VERSION_STRING, commit, ASTROCS_COMMIT_SHA);
+        // CPU-003: v2 profile 生成(完整 benchmark 链; backends 目录=可执行文件旁 provider 目录)
+        std::string backends_dir = ".";
+        std::string exe_path;
+#if defined(_WIN32)
+        {
+            char buf[MAX_PATH];
+            const DWORD n = GetModuleFileNameA(nullptr, buf, MAX_PATH);
+            if (n > 0) exe_path.assign(buf, n);
+        }
+#else
+        {
+            std::error_code ec;
+            const auto p = std::filesystem::canonical("/proc/self/exe", ec);
+            if (!ec) exe_path = p.string();
+        }
+#endif
+        if (!exe_path.empty()) {
+            std::error_code ec2;
+            const auto parent = std::filesystem::path(exe_path).parent_path();
+            if (!parent.empty()) backends_dir = parent.string();
+        }
+        const std::string cli_sha = astrocs::backend_host::file_sha256_hex(
+            backends_dir.empty() ? "." : backends_dir + "/astrocs");
+        auto pb = astrocs::backend_host::generate_profile_v2(
+            mode, ASTROCS_VERSION_STRING, commit, cli_sha, backends_dir);
+        const std::string json = pb.json;
         {
             std::ofstream f(std::filesystem::u8path(out_path), std::ios::binary | std::ios::trunc);
             if (!f) {
@@ -1139,16 +1191,38 @@ int dispatch(const Parsed& p) {
             }
             f << json;
         }
-        // 机器可读结果(stdout 简洁结果): 输出路径+verdict
+        // 机器可读结果: 普通模式 → "path verdict" 一行; events-jsonl → JSON 事件行
+        const bool events = ev.enabled();
+        if (events) {
+            // CPU-003: 全部原始候选逐条发射(审计/复读; 与 raw_samples_sha256 绑定)
+            for (const auto& c : pb.raw) {
+                ev.emit("benchmark", "info", "cpu", "raw candidate",
+                        {{"kernel", c.kernel_id}, {"size_class", c.size_class},
+                         {"provider", c.provider}, {"workers", c.workers},
+                         {"block", c.block}, {"median_ns", c.median_ns},
+                         {"mad_ns", c.mad_ns}, {"p05_ns", c.p05_ns}, {"p95_ns", c.p95_ns},
+                         {"oracle_pass", c.oracle_pass}, {"fallback_reason", c.fallback_reason}});
+            }
+        }
         try {
             auto doc = nlohmann::json::parse(json);
-            std::printf("%s %s\n", out_path.c_str(),
-                        doc.value("verdict", "FAIL").c_str());
+            if (events) {
+                ev.emit("result", "info", "benchmark", "cpu profile written",
+                        {{"path", out_path}, {"verdict", doc.value("verdict", "PASS")},
+                         {"profile_id", doc.value("profile_id", "")},
+                         {"raw_samples_sha256", doc.value("raw_samples_sha256", "")}});
+            } else {
+                std::printf("%s %s\n", out_path.c_str(),
+                            doc.value("verdict", "PASS").c_str());
+            }
         } catch (...) {
-            std::printf("%s\n", out_path.c_str());
+            if (events) {
+                ev.emit("result", "error", "benchmark", "cpu profile written (parse failed)",
+                        {{"path", out_path}});
+            } else {
+                std::printf("%s\n", out_path.c_str());
+            }
         }
-        ev.emit("artifact", "info", "benchmark", "cpu profile written",
-                {{"role", "cpu_profile"}, {"path", out_path}});
         return astrocs::OK;
     }
     if (joined == "doctor") {
@@ -1214,6 +1288,8 @@ int dispatch(const Parsed& p) {
     if (joined == "phase2 run")            return cmd_phase2_run(p, ev);
     if (joined == "phase3 run")            return cmd_phase3_run(p, ev);
     if (joined == "verify")                return cmd_verify(p, ev);
+    if (joined == "verify profile")        return cmd_verify_profile(p, ev);
+    if (joined == "benchmark verify-profile") return cmd_verify_profile(p, ev);
     if (joined == "run")                   return cmd_run_pipeline(p, ev);
     if (joined == "graph")                 return cmd_graph(p, ev);
     if (joined == "drizzle")               return cmd_drizzle(p, ev);

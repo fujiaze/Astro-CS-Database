@@ -115,12 +115,12 @@ int main(int argc, char** argv) {
         p.head.struct_size = sizeof(p);
         p.head.abi_version = ACS_ABI_VERSION_V1;
         p.op = op.op; p.w = W; p.h = H; p.k = op.k; p.aux0 = op.aux0; p.aux1 = op.aux1;
-        p.in0 = {in0.data(), in0.size()};
-        p.in1 = {in1.data(), in1.size()};
-        p.in2 = {in2.data(), in2.size()};
-        p.in3 = {in3.data(), in3.size()};
-        p.out0 = {out.data(), out.size()};
-        p.out1 = {out1.data(), out1.size()};
+        p.in0 = ACS_SPAN_F32(in0.data(), in0.size());
+        p.in1 = ACS_SPAN_F32(in1.data(), in1.size());
+        p.in2 = ACS_SPAN_F32(in2.data(), in2.size());
+        p.in3 = ACS_SPAN_F32(in3.data(), in3.size());
+        p.out0 = ACS_SPAN_F32(out.data(), out.size());
+        p.out1 = ACS_SPAN_F32(out1.data(), out1.size());
         if (op.op == ACS_KOP_UPM_SPMV) {   // col 索引整数域 [0,N); 行指针单调末位=nnz
             for (uint32_t k = 0; k < op.aux0; ++k) in1[k] = static_cast<float>(k % N);
             in2[0] = 0;

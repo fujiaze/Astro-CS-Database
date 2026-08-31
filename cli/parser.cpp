@@ -21,7 +21,7 @@ const std::set<std::string> kBoolFlags = {"--json", "--events-jsonl", "--quick",
 const std::set<std::string> kValueFlags = {"--output", "--config", "--cpu-profile",
                                            "--run-manifest", "--group", "--phases",
                                            "--resource-detail", "--nside", "--pixfrac",
-                                           "--preset"};
+                                           "--preset", "--profile"};
 
 // 04 §1 命令树: 每条命令允许的旗标(严格白名单, 未知即 2)
 // struct CmdRule 定义见 cli_common.h; 此处定义 kRules 表(extern 声明)
@@ -30,7 +30,8 @@ const CmdRule kRules[] = {
     {"config init",                 {"--output"}},
     {"config validate",             {"--config"}},
     {"config show-effective",       {"--config", "--cpu-profile", "--json"}},
-    {"benchmark cpu",               {"--quick", "--full", "--output"}},
+    {"benchmark cpu",               {"--quick", "--full", "--output", "--events-jsonl"}},
+    {"benchmark verify-profile",    {"--profile", "--json"}},
     {"doctor",                      {"--json"}},
     {"test synthetic",              {"--group"}},
     {"phase1 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
@@ -39,6 +40,7 @@ const CmdRule kRules[] = {
     {"run",                         {"--phases", "--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
     {"drizzle",                     {"--config", "--events-jsonl", "--nside", "--pixfrac"}},
     {"verify",                      {"--run-manifest", "--json"}},
+    {"verify profile",              {"--profile", "--json"}},
     {"graph",                       {"--config", "--preset", "--phases", "--output"}},
 };
 
@@ -48,7 +50,8 @@ const char* kHelp =
     "astrocs config init --output <path>\n"
     "astrocs config validate --config <path>\n"
     "astrocs config show-effective --config <path> [--cpu-profile <path>] --json\n"
-    "astrocs benchmark cpu (--quick|--full) [--output <path>]\n"
+    "astrocs benchmark cpu (--quick|--full) [--output <path>] [--events-jsonl]\n"
+    "astrocs verify profile --profile <path> [--json]\n"
     "astrocs doctor --json\n"
     "astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|pipeline>\n"
     "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
@@ -63,7 +66,8 @@ Parsed parse_args(int argc, char** argv_utf8) {
     Parsed p;
     std::vector<std::string> raw(argv_utf8 + (argc > 0 ? 1 : 0), argv_utf8 + argc);
     size_t i = 0;
-    // 子命令 token: 不以 -- 开头, 逐段拼接直至命中已知命令(或 --version/--help)
+    // 子命令 token: 不以 -- 开头, 逐段拼接; 命中已知命令时记录但不立即 break,
+    // 继续检查是否还有更长的命令前缀(最长匹配, 支持 verify / verify profile 并存)
     std::vector<std::string> tokens;
     bool known_break = false;
     for (; i < raw.size(); ++i) {
@@ -81,8 +85,29 @@ Parsed parse_args(int argc, char** argv_utf8) {
         for (const auto& t : tokens) { if (!joined.empty()) joined += ' '; joined += t; }
         bool known = false;
         for (const auto& r : kRules) if (joined == r.path) known = true;
-        if (known) { known_break = true; break; }
-        if (tokens.size() >= 2) parse_fail("unknown command '" + joined + "'");
+        if (known) {
+            // 已匹配完整命令; 若还有下一个非 dash token 且与其拼接仍是已知命令,
+            // 继续循环以取最长匹配; 否则在此 break。
+            if (i + 1 >= raw.size() || raw[i + 1].empty() || raw[i + 1][0] == '-') {
+                known_break = true;
+                break;
+            }
+            const std::string joined2 = joined + " " + raw[i + 1];
+            bool known2 = false;
+            for (const auto& r : kRules) if (joined2 == r.path) known2 = true;
+            if (!known2) {
+                // 规格命令 `benchmark verify-profile <path>` 的位置参数 → 转 --profile
+                if (joined == "benchmark verify-profile") {
+                    p.values["--profile"] = raw[i + 1];
+                    ++i;   // 消费位置参数
+                }
+                known_break = true;
+                break;
+            }
+            // joined2 是已知命令 → 继续循环消费下一 token
+        } else if (tokens.size() >= 2) {
+            parse_fail("unknown command '" + joined + "'");
+        }
     }
     p.cmd = tokens;
     if (known_break) ++i;  // 越过已消费的最后一个命令 token

@@ -85,12 +85,12 @@ int main(int argc, char** argv) {
     p.head.struct_size = sizeof(p);
     p.head.abi_version = ACS_ABI_VERSION_V1;
     p.op = ACS_KOP_CALIBRATION; p.w = W; p.h = H; p.k = k;
-    p.in0 = {light.data(), light.size()};
-    p.in1 = {bias.data(), bias.size()};
-    p.in2 = {dark.data(), dark.size()};
-    p.in3 = {gain.data(), gain.size()};
-    p.out0 = {out.data(), out.size()};
-    p.out1 = {nullptr, 0};
+    p.in0 = ACS_SPAN_F32(light.data(), light.size());
+    p.in1 = ACS_SPAN_F32(bias.data(), bias.size());
+    p.in2 = ACS_SPAN_F32(dark.data(), dark.size());
+    p.in3 = ACS_SPAN_F32(gain.data(), gain.size());
+    p.out0 = ACS_SPAN_F32(out.data(), out.size());
+    p.out1 = ACS_SPAN_F32(nullptr, 0);
 
     std::vector<astrocs::backend_host::BenchResult> results;
     // 候选 1: baseline(正确)

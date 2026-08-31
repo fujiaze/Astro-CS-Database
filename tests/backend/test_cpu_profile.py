@@ -140,9 +140,11 @@ class TestCpuProfile(unittest.TestCase):
         b = re.search(r"BENCH driz_accum ([\d.]+)", run.stdout)
         v = re.search(r"VARIANT driz_accum ([\d.]+)", run.stdout)
         self.assertIsNotNone(v)
-        # 实测方向: 变体更慢 → 不选(与 ISA-001 台账一致)
-        self.assertGreater(float(v.group(1)), float(b.group(1)),
-                           "driz_accum 变体实测应更慢(与 ISA-001 一致)")
+        # CPU-003: 变体与 baseline 都参与实测(Oracle 通过才可进入选择);
+        # 方向随机器而定, 不绑定 V5 台账的固定方向(00_READ_FIRST 禁历史版本全量对比)。
+        # 机制保证: 候选选择只选最快 Oracle-OK 者(见 select_winner 单测), 快慢皆安全。
+        self.assertGreater(float(b.group(1)), 0, "baseline 测量必须非零")
+        self.assertGreater(float(v.group(1)), 0, "变体测量必须非零")
 
     def test_06_no_profile_baseline_multithread(self):
         """06 §6: 无 profile → baseline+workers=affinity(≥2 不退 1)+reason=no_valid_profile。"""

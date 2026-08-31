@@ -20,7 +20,7 @@ RT-008,G2,将CLI接入唯一Runtime,RT-006;RT-007,Linux,architecture,yes,yes,thi
 RT-009,G2,生成真实静态与observed运行图,RT-008;CHK-002,Linux,documentation,yes,yes,DOT/JSON/SVG; trace sidecar,图由同IR和trace派生; hash/source commit齐; 无敏感路径,PASS
 CPU-001,G3,构建baseline AVX2 AVX512独立provider,RT-002;RT-005,Linux,performance,yes,yes,shared library targets; per-kernel registry,CLI baseline ISA; providers独立flags/manifest/selftest; unsupported不加载,PASS
 CPU-002,G3,实现CPU与有效配额探测,CPU-001,Linux+Windows,performance,no,yes,CPUID/XGETBV; affinity/cgroup/Job Object,logical_available真实; feature子集准确; fallback安全,PASS
-CPU-003,G3,实现真实benchmark与profile,CPU-001;CPU-002,Linux+Windows,performance,yes,yes,correctness first; memory; kernel/thread/block,3 warmup+7 measure; median/MAD; raw candidates; profile schema,NOT_STARTED
+CPU-003,G3,实现真实benchmark与profile,CPU-001;CPU-002,Linux+Windows,performance,yes,yes,correctness first; memory; kernel/thread/block,3 warmup+7 measure; median/MAD; raw candidates; profile schema,PASS
 CPU-004,G3,实现按kernel自适应路由,CPU-003;RT-006,Linux+Windows,performance,yes,yes,profile verify; provider fallback; lease,无profile保守baseline但多线程; stale/corrupt profile拒绝,NOT_STARTED
 MON-001,G3,把资源监测接入每个heavy node,RT-006;CPU-002,Linux+Windows,performance,yes,yes,samples/summary/worker balance,无需操作者额外脚本; init/active/flush分段; 开销<2%,NOT_STARTED
 MON-002,G3,把资源门接入生产控制流,MON-001,Linux+Windows,performance,yes,yes,first10s; final gate; exit code,低CPU且非IO/内存自动失败; 不能只emit summary,NOT_STARTED

@@ -68,7 +68,7 @@ class TestHardwareInspect(unittest.TestCase):
         self.assertGreater(d["ram_bytes"], 0)
         self.assertEqual(d["page_size"], os.sysconf("SC_PAGESIZE"))
         self.assertIn(platform.machine(), ("x86_64",))
-        self.assertRegex(d["astrocs_build"], r"^0\.9\.0-alpha\.1\+g[0-9a-f]{12}")
+        self.assertRegex(d["astrocs_build"], r"^0\.10\.0-alpha\.2\+g[0-9a-f]{12}")
 
     def test_04_affinity_one_cpu_fixture(self):
         """fixture: taskset 单 CPU 下 available_cpus 必须降为 1(mock 环境 vs 实机比对)。"""

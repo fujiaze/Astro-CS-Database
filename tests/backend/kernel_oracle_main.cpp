@@ -115,18 +115,18 @@ int main() {
         base.head.abi_version = ACS_ABI_VERSION_V1;
         base.op = op.op; base.w = W; base.h = H; base.k = op.k;
         base.aux0 = op.aux0; base.aux1 = op.aux1;
-        base.in0 = {b.in0.data(), b.in0.size()};
-        base.in1 = {b.in1.data(), b.in1.size()};
-        base.in2 = {b.in2.data(), b.in2.size()};
-        base.in3 = {b.in3.data(), b.in3.size()};
+        base.in0 = ACS_SPAN_F32(b.in0.data(), b.in0.size());
+        base.in1 = ACS_SPAN_F32(b.in1.data(), b.in1.size());
+        base.in2 = ACS_SPAN_F32(b.in2.data(), b.in2.size());
+        base.in3 = ACS_SPAN_F32(b.in3.data(), b.in3.size());
 
         uint32_t w_used[2] = {0, 0};
         std::vector<float>* outs[2] = {&out_a, &out_b};
         for (int pass = 0; pass < 2; ++pass) {
             astrocs_host_state_set_budget_v1(state, 1, pass == 0 ? 1u : 4u, &host);
             acs_baseline_params_v1 p = base;
-            p.out0 = {outs[pass]->data(), outs[pass]->size()};
-            p.out1 = {out1.data(), out1.size()};
+            p.out0 = ACS_SPAN_F32(outs[pass]->data(), outs[pass]->size());
+            p.out1 = ACS_SPAN_F32(out1.data(), out1.size());
             const acs_status rc = api.kernels[0].fn(&host, &p, sizeof(p), nullptr, nullptr);
             if (rc != ACS_OK) { std::printf("RC %d\n", (int)rc); return 3; }
             w_used[pass] = p.workers_used;
