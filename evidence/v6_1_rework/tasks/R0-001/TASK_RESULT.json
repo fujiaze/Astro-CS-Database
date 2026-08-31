@@ -1,0 +1,113 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "R0-001",
+  "status": "PASS",
+  "parent_commit": "30a3516ae8a3a1736bf8a470de56909997b1a219",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "governance",
+  "changed_paths": [
+    "evidence/v6_1_rework/tasks/R0-001/SOURCE_IDENTITY.json",
+    "evidence/v6_1_rework/tasks/R0-001/WORKTREE_CLASSIFICATION.md",
+    "evidence/v6_1_rework/tasks/R0-001/PLAN.md",
+    "evidence/v6_1_rework/tasks/R0-001/logs/identity.log",
+    "evidence/v6_1_rework/tasks/R0-001/TASK_RESULT.json"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "governance identity freeze only"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "git",
+        "fetch",
+        "origin",
+        "--prune"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/R0-001/logs/identity.log"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "git",
+        "rev-parse",
+        "HEAD",
+        "main",
+        "origin/main"
+      ],
+      "timeout_seconds": 30,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/R0-001/logs/identity.log"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "git",
+        "merge-base",
+        "--is-ancestor",
+        "b16d422a40fefedbdedab1749cfb8ebc06189736",
+        "HEAD"
+      ],
+      "timeout_seconds": 30,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/R0-001/logs/identity.log"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-THREE-SHA",
+      "description": "HEAD==main==origin/main 三 SHA 相等",
+      "result": "PASS",
+      "evidence_sha256": "1c61e7838d392968d9031d2949b93084773068e0021a105b543697bdbd7d7721"
+    },
+    {
+      "test_id": "T-ANCESTOR",
+      "description": "b16d422 是 HEAD 祖先",
+      "result": "PASS",
+      "evidence_sha256": "1c61e7838d392968d9031d2949b93084773068e0021a105b543697bdbd7d7721"
+    },
+    {
+      "test_id": "T-BRANCH-MAIN",
+      "description": "仅 main 分支",
+      "result": "PASS",
+      "evidence_sha256": "1c61e7838d392968d9031d2949b93084773068e0021a105b543697bdbd7d7721"
+    },
+    {
+      "test_id": "T-NO-TOKEN",
+      "description": "remote 无 token",
+      "result": "PASS",
+      "evidence_sha256": "1c61e7838d392968d9031d2949b93084773068e0021a105b543697bdbd7d7721"
+    },
+    {
+      "test_id": "T-WORKTREE-CLASSIFIED",
+      "description": "205 项 dirty/untracked 全部有分类",
+      "result": "PASS",
+      "evidence_sha256": "54d0b07c3816686a799dca8fdb2c4ab3278e0b44287e9f7998f2d4b742f8c9bc"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-001/SOURCE_IDENTITY.json",
+      "sha256": "8300d57c2d636b90d15fc49f5b418da90ae4e8f1dbab5ab6b11d1930f820cf20"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-001/WORKTREE_CLASSIFICATION.md",
+      "sha256": "54d0b07c3816686a799dca8fdb2c4ab3278e0b44287e9f7998f2d4b742f8c9bc"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "AstroCS.wiki gitlink 无 .gitmodules 且未检出（前轮遗留，非本轮引入）"
+  ],
+  "expected_commit_subject": "R0-001: 冻结当前 main 身份 (三 SHA 相同, b16d422 为祖先, 工作树全部分类)",
+  "created_utc": "2026-08-31T04:07:44Z"
+}
