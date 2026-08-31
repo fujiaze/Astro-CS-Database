@@ -1,0 +1,174 @@
+{
+  "schema": "astrocs.known-failure-scan/v1",
+  "repo": "/home/lighthouse/Astro CS Database",
+  "probe_count": 19,
+  "present_count": 18,
+  "probes": [
+    {
+      "finding_id": "F-001",
+      "description": "CLI directly calls phase sessions",
+      "present": true,
+      "evidence": [
+        "p1_session_create",
+        "p1_session_destroy",
+        "p1_session_inspect",
+        "p1_session_run",
+        "p1_session_validate",
+        "p2_session_create",
+        "p2_session_destroy",
+        "p2_session_inspect",
+        "p2_session_run",
+        "p2_session_validate",
+        "p3_session_create",
+        "p3_session_destroy",
+        "p3_session_inspect",
+        "p3_session_run",
+        "p3_session_validate"
+      ]
+    },
+    {
+      "finding_id": "F-002",
+      "description": "phase handoff is rebuilt from config paths",
+      "present": true,
+      "evidence": [
+        "cli/main.cpp"
+      ]
+    },
+    {
+      "finding_id": "F-003",
+      "description": "Phase2 sampler parallel path is not portable production default",
+      "present": true,
+      "evidence": [
+        "lib/phase2/src/sampler.cpp",
+        "CMakeLists.txt"
+      ]
+    },
+    {
+      "finding_id": "F-004",
+      "description": "Phase2 UPM bypasses Runtime lease or excludes MSVC",
+      "present": true,
+      "evidence": [
+        "lib/phase2/src/upm.cpp"
+      ]
+    },
+    {
+      "finding_id": "F-005",
+      "description": "Phase3 production resampler is explicitly serial",
+      "present": true,
+      "evidence": [
+        "lib/phase3_session/p3_session.cpp"
+      ]
+    },
+    {
+      "finding_id": "F-006",
+      "description": "resource gate has no production caller",
+      "present": true,
+      "evidence": [
+        "no production evaluate_gate caller"
+      ]
+    },
+    {
+      "finding_id": "F-007",
+      "description": "ThreadLease has no observable atomic reservation/release",
+      "present": true,
+      "evidence": [
+        "include/astrocs/core/context.h",
+        "lib/core/src/context.cpp"
+      ]
+    },
+    {
+      "finding_id": "F-009",
+      "description": "Phase2 seam test bypasses production UPM",
+      "present": true,
+      "evidence": [
+        "tests/unit/p2_upm_synthetic_test.cpp"
+      ]
+    },
+    {
+      "finding_id": "F-010",
+      "description": "Phase3 rejects equatorial instead of near-pole coordinates",
+      "present": true,
+      "evidence": [
+        "lib/phase3_session/p3_session.cpp"
+      ]
+    },
+    {
+      "finding_id": "F-011",
+      "description": "Phase3 max order is hard-coded",
+      "present": true,
+      "evidence": [
+        "lib/phase3_session/p3_session.cpp"
+      ]
+    },
+    {
+      "finding_id": "F-012",
+      "description": "Phase3 scientific unit/version/run identity is hard-coded",
+      "present": true,
+      "evidence": [
+        "lib/phase3_session/p3_session.cpp"
+      ]
+    },
+    {
+      "finding_id": "F-013",
+      "description": "Phase3 writer ignores requested BITPIX",
+      "present": true,
+      "evidence": [
+        "lib/phase3_session/p3_output.cpp"
+      ]
+    },
+    {
+      "finding_id": "F-017",
+      "description": "CLI directly invokes Drizzle",
+      "present": true,
+      "evidence": [
+        "cli/main.cpp"
+      ]
+    },
+    {
+      "finding_id": "F-019",
+      "description": "independent CPU provider targets are absent",
+      "present": true,
+      "evidence": [
+        "CMakeLists.txt"
+      ]
+    },
+    {
+      "finding_id": "F-022",
+      "description": "Phase3 assembly contains vacuous CHECK(true)",
+      "present": true,
+      "evidence": [
+        "tests/unit/p3_assembly_test.cpp"
+      ]
+    },
+    {
+      "finding_id": "F-024",
+      "description": "algorithm documents are absent",
+      "present": false,
+      "evidence": []
+    },
+    {
+      "finding_id": "F-025",
+      "description": "API semantic table contains mass placeholder values",
+      "present": true,
+      "evidence": [
+        "placeholder rows=422"
+      ]
+    },
+    {
+      "finding_id": "F-028",
+      "description": "traceability checker reads historical/fixed truth",
+      "present": true,
+      "evidence": [
+        "tools/check_traceability.py"
+      ]
+    },
+    {
+      "finding_id": "F-030",
+      "description": "monitor uses non-portable %llu parsing",
+      "present": true,
+      "evidence": [
+        "cli/monitor.h"
+      ]
+    }
+  ]
+}

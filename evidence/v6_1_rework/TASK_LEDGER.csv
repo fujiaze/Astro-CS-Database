@@ -2,7 +2,7 @@ task_id,gate,title,depends_on,platform,change_class,heavy_compute,commit_require
 R0-001,G0,冻结当前main身份,,Linux,governance,no,yes,fetch; HEAD/main/origin; ancestor; dirty tree,三SHA相同; b16d422是祖先; 无未知修改; SOURCE_IDENTITY.json,PASS
 R0-002,G0,生成完整自有源码清单,R0-001,Linux,audit,no,yes,CMake/source/header/docs/scripts inventory,所有生产target引用存在; 第三方单列; SOURCE_INDEX.csv,PASS
 R0-003,G0,建立V6.1证据与台账,R0-002,Linux,governance,no,yes,copy immutable ledger; result schema; evidence dirs,台账hash冻结; 状态机validator PASS; 不覆盖旧证据,PASS
-R0-004,G0,复现并冻结40项已知问题,R0-003,Linux,audit,no,yes,known_failure_scan; manual probes,F-001..040逐项REPRODUCED/NOT_REPRODUCED有证据; 禁提前关闭,NOT_STARTED
+R0-004,G0,复现并冻结40项已知问题,R0-003,Linux,audit,no,yes,known_failure_scan; manual probes,F-001..040逐项REPRODUCED/NOT_REPRODUCED有证据; 禁提前关闭,PASS
 GOV-001,G1,修复任务证据与commit绑定,R0-004,Linux,governance,no,yes,TASK_RESULT/COMMITS semantics,parent/result commit不混; 打包期可验证每任务commit/push,NOT_STARTED
 GOV-002,G1,修复gate和依赖状态机,GOV-001,Linux,governance,no,yes,dependency validator; release states,非法状态/依赖先过后消失; negative fixtures PASS,NOT_STARTED
 VER-001,G1,版本推进为0.10.0-alpha.2,GOV-002,Linux,release,no,yes,VERSION single source,CLI/header/docs/package均派生; 无源码旧版本字面量,NOT_STARTED
