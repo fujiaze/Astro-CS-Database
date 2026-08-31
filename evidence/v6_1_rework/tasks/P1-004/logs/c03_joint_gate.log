@@ -1,0 +1,19 @@
+test_01_all_p1_oracles_pass (__main__.TestP1004JointGate.test_01_all_p1_oracles_pass)
+所有 P1 Oracle(6 个)在同 commit 下全绿(数值门)。 ... ok
+test_02_resource_workload_runs (__main__.TestP1004JointGate.test_02_resource_workload_runs)
+资源 workload(CLI run phase3)成功执行, 产 resource_summary.json。 ... ok
+test_03_science_resource_share_run_id (__main__.TestP1004JointGate.test_03_science_resource_share_run_id)
+science manifest 与 resource_summary.json 引用同一 run_id(联合门核心)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p1004_joint_gate.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/mon001_run_out/astrocs_run_ceb7f13d9103.json' mode='r' encoding='UTF-8'>
+  m = json.load(open(mf))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p1004_joint_gate.py:76: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/mon001_run_out/resource_summary.json' mode='r' encoding='UTF-8'>
+  res = json.load(open(os.path.join(TMP, "resource_summary.json")))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_04_same_commit (__main__.TestP1004JointGate.test_04_same_commit)
+CLI 二进制 source commit(version_generated.h)与当前 HEAD 同批(同 commit 门)。 ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 134.686s
+
+OK
