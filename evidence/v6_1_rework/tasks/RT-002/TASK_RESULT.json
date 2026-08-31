@@ -1,0 +1,142 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "RT-002",
+  "status": "PASS",
+  "parent_commit": "ef9e34dbe9d043f9b7c32c1c86b5364dc7e0a476",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "architecture",
+  "changed_paths": [
+    "include/astrocs/core/context.h",
+    "lib/core/src/context.cpp",
+    "tests/unit/rt002_budget_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/v6_1_rework/tasks/RT-002/PLAN.md",
+    "evidence/v6_1_rework/tasks/RT-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/RT-002/logs/c01.log",
+    "evidence/v6_1_rework/tasks/RT-002/logs/c02.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": true,
+    "binary": true,
+    "reason": "ThreadBudget atomic lease with policies; public API extended"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "rt002_budget_test",
+        "-j2"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:54:36Z",
+      "duration_seconds": 60.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-002/logs/c01.log",
+      "log_sha256": "602a74cd177566703cd78d185a265f17b52338c7b99f56aa3ae5f72d3b87ac62"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "./run/temp/build_v61/tests/unit/rt002_budget_test"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:54:36Z",
+      "duration_seconds": 0.2,
+      "log_path": "evidence/v6_1_rework/tasks/RT-002/logs/c01.log",
+      "log_sha256": "602a74cd177566703cd78d185a265f17b52338c7b99f56aa3ae5f72d3b87ac62"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "ASTROCS_REPO=$(pwd)",
+        "ctest",
+        "--test-dir",
+        "run/temp/build_v61",
+        "-R",
+        "core_|rt001|rt002"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:54:36Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-002/logs/c02.log",
+      "log_sha256": "e42253e8b17d197e1d9affad059192c91b83b8c17d53ea0d6d01d5e0fcc04e51"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-2-HEAVY-NO-OVERS",
+      "description": "两 heavy node 各请求全核，sum(active)<=budget，全部归还",
+      "result": "PASS",
+      "evidence_sha256": "602a74cd177566703cd78d185a265f17b52338c7b99f56aa3ae5f72d3b87ac62"
+    },
+    {
+      "test_id": "T-NESTED",
+      "description": "嵌套租约不超卖（outer=2 后 inner 空）",
+      "result": "PASS",
+      "evidence_sha256": "602a74cd177566703cd78d185a265f17b52338c7b99f56aa3ae5f72d3b87ac62"
+    },
+    {
+      "test_id": "T-EXCEPTION",
+      "description": "异常注入后 available 恢复",
+      "result": "PASS",
+      "evidence_sha256": "602a74cd177566703cd78d185a265f17b52338c7b99f56aa3ae5f72d3b87ac62"
+    },
+    {
+      "test_id": "T-CANCEL",
+      "description": "取消路径租约归还",
+      "result": "PASS",
+      "evidence_sha256": "602a74cd177566703cd78d185a265f17b52338c7b99f56aa3ae5f72d3b87ac62"
+    },
+    {
+      "test_id": "T-POLICIES",
+      "description": "NONBLOCK/BEST_EFFORT/BLOCK 三策略行为正确",
+      "result": "PASS",
+      "evidence_sha256": "602a74cd177566703cd78d185a265f17b52338c7b99f56aa3ae5f72d3b87ac62"
+    },
+    {
+      "test_id": "T-SINGLE-REF",
+      "description": "1 worker 仅 available=1 reference 合法",
+      "result": "PASS",
+      "evidence_sha256": "602a74cd177566703cd78d185a265f17b52338c7b99f56aa3ae5f72d3b87ac62"
+    },
+    {
+      "test_id": "T-REPEAT-8",
+      "description": "8 次重复运行全 PASS（无 flake）",
+      "result": "PASS",
+      "evidence_sha256": "602a74cd177566703cd78d185a265f17b52338c7b99f56aa3ae5f72d3b87ac62"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-002/PLAN.md",
+      "sha256": "4c37ad4f4612725acbed85c84d6b8a5636b1dcc03fabeb1c941a6386a6aab015"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-002/TASK_RESULT.json",
+      "sha256": "347d0df06cf7225b557a61e72a7a4bd8e0f1d8b34c5eb3304fef18a10ac2c021"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-002/logs/c01.log",
+      "sha256": "602a74cd177566703cd78d185a265f17b52338c7b99f56aa3ae5f72d3b87ac62"
+    }
+  ],
+  "findings": [
+    "F-007"
+  ],
+  "limitations": [
+    "RunContext 尚未接入 ThreadBudget（RT-003 完成）；Scheduler 工作池统一预算由 RT-006 完成"
+  ],
+  "expected_commit_subject": "RT-002: 全局原子 ThreadBudget 租约 (三策略, RAII 归还, 双节点不超卖/异常/取消恢复测试 8x PASS)",
+  "created_utc": "2026-08-31T04:54:36Z"
+}
