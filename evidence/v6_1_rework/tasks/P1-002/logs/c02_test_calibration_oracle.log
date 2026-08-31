@@ -1,0 +1,12 @@
+test_01_master_bias_mean_oracle (__main__.TestCalibrationOracle.test_01_master_bias_mean_oracle) ... ok
+test_02_master_dark_median_oracle (__main__.TestCalibrationOracle.test_02_master_dark_median_oracle) ... ok
+test_03_master_flat_oracle (__main__.TestCalibrationOracle.test_03_master_flat_oracle) ... ok
+test_04_calibrate_standard_value_oracle (__main__.TestCalibrationOracle.test_04_calibrate_standard_value_oracle) ... ok
+test_05_calibrate_darkopt_value_oracle (__main__.TestCalibrationOracle.test_05_calibrate_darkopt_value_oracle) ... ok
+test_06_calibrate_zero_flat_clip (__main__.TestCalibrationOracle.test_06_calibrate_zero_flat_clip) ... ok
+test_07_determinism_across_threads (__main__.TestCalibrationOracle.test_07_determinism_across_threads) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 4.796s
+
+OK

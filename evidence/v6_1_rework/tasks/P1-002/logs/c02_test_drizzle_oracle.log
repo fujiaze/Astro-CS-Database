@@ -1,0 +1,17 @@
+test_01_overlap_invariant_analytic (__main__.TestDrizzleOracle.test_01_overlap_invariant_analytic)
+OVERLAP: wx=max(0,1-|u|), wy=max(0,1-|v|) 逐像素 == 独立解析复算(亚像素中心 9.4,6.7)。 ... ok
+test_02_overlap_support_coverage (__main__.TestDrizzleOracle.test_02_overlap_support_coverage)
+coverage/support: 只有 |u|<1 且 |v|<1 像素非零(亚像素 drop 覆盖范围)。 ... ok
+test_03_accumulate_invariant (__main__.TestDrizzleOracle.test_03_accumulate_invariant)
+ACCUMULATE: out[i]=Σ_f in0[f*N+i]*in1[f*N+i] 逐像素 == 独立复算。 ... ok
+test_04_normalize_invariant_and_guard (__main__.TestDrizzleOracle.test_04_normalize_invariant_and_guard)
+NORMALIZE: in1>1e-6 → in0/in1; 否则 0(阈值守卫)。 ... ok
+test_05_subpixel_shift_shifts_overlap (__main__.TestDrizzleOracle.test_05_subpixel_shift_shifts_overlap)
+亚像素 shift: 移动中心 Δ 会按解析平移 overlap 权重(峰仍按 |u|<1 规则)。 ... ok
+test_06_flux_brightness_conservation (__main__.TestDrizzleOracle.test_06_flux_brightness_conservation)
+flux/brightness 守恒: 归一化后 norm*support 精确还原 accumulate(通量累加-支持关系)。 ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 1.580s
+
+OK

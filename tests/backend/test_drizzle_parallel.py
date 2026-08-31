@@ -43,7 +43,7 @@ int main(int argc,char**argv){ int budget=argc>1?atoi(argv[1]):1;
     for(auto&x:in0)x=lcg(); for(auto&x:in1)x=lcg();
     acs_baseline_params_v1 p; std::memset(&p,0,sizeof(p)); p.head.struct_size=sizeof(p); p.head.abi_version=ACS_ABI_VERSION_V1;
     p.op=ACS_KOP_DRIZZLE_ACCUMULATE; p.w=W;p.h=H;p.k=0.0f;p.aux0=FR;
-    p.in0={in0.data(),in0.size()}; p.in1={in1.data(),in1.size()}; p.out0={out.data(),out.size()};
+    p.in0=ACS_SPAN_F32(in0.data(),in0.size()); p.in1=ACS_SPAN_F32(in1.data(),in1.size()); p.out0=ACS_SPAN_F32(out.data(),out.size());
     uint32_t wu=0; double ns=bench(&host,api.kernels[0].fn,p,6,&wu);
     double chk=0; for(uint32_t i=0;i<N;i+=997) chk+=out[i];
     printf("DRIZ budget=%d ns=%.1f workers=%u chk=%.6f\n",budget,ns,wu,chk);

@@ -50,7 +50,7 @@ int main(int argc,char**argv){ int budget=argc>1?atoi(argv[1]):1;
         for(uint32_t i=0;i<N;++i){ int x=i%W,y=i/W; u[i]=(float)x-cx; v[i]=(float)y-cy; }
         acs_baseline_params_v1 p; std::memset(&p,0,sizeof(p)); p.head.struct_size=sizeof(p); p.head.abi_version=ACS_ABI_VERSION_V1;
         p.op=ACS_KOP_DRIZZLE_OVERLAP; p.w=W;p.h=H;
-        p.in0={u.data(),N}; p.in1={v.data(),N}; p.out0={ov.data(),N};
+        p.in0=ACS_SPAN_F32(u.data(),N); p.in1=ACS_SPAN_F32(v.data(),N); p.out0=ACS_SPAN_F32(ov.data(),N);
         if(api.kernels[0].fn(&host,&p,sizeof(p),nullptr,nullptr)!=ACS_OK) return 3;
         putf(ov.data(),N,"OVERLAP ");
     }
@@ -59,7 +59,7 @@ int main(int argc,char**argv){ int budget=argc>1?atoi(argv[1]):1;
     for(uint32_t f=0;f<FR;++f) for(uint32_t i=0;i<N;++i){ flux[f*N+i]=1000.0f+10.0f*(float)f; wgt[f*N+i]=(float)((i*0.001f+f*0.25f)); }
     acs_baseline_params_v1 p2; std::memset(&p2,0,sizeof(p2)); p2.head.struct_size=sizeof(p2); p2.head.abi_version=ACS_ABI_VERSION_V1;
     p2.op=ACS_KOP_DRIZZLE_ACCUMULATE; p2.w=W;p2.h=H;p2.aux0=FR;
-    p2.in0={flux.data(),flux.size()}; p2.in1={wgt.data(),wgt.size()}; p2.out0={acc.data(),N};
+    p2.in0=ACS_SPAN_F32(flux.data(),flux.size()); p2.in1=ACS_SPAN_F32(wgt.data(),wgt.size()); p2.out0=ACS_SPAN_F32(acc.data(),N);
     if(api.kernels[0].fn(&host,&p2,sizeof(p2),nullptr,nullptr)!=ACS_OK) return 4;
     putf(acc.data(),N,"ACCUM ");
     // ---- NORMALIZE: acc/support
@@ -67,7 +67,7 @@ int main(int argc,char**argv){ int budget=argc>1?atoi(argv[1]):1;
     std::vector<float> norm(N);
     acs_baseline_params_v1 p3; std::memset(&p3,0,sizeof(p3)); p3.head.struct_size=sizeof(p3); p3.head.abi_version=ACS_ABI_VERSION_V1;
     p3.op=ACS_KOP_DRIZZLE_NORMALIZE; p3.w=W;p3.h=H;
-    p3.in0={acc.data(),N}; p3.in1={support.data(),N}; p3.out0={norm.data(),N};
+    p3.in0=ACS_SPAN_F32(acc.data(),N); p3.in1=ACS_SPAN_F32(support.data(),N); p3.out0=ACS_SPAN_F32(norm.data(),N);
     if(api.kernels[0].fn(&host,&p3,sizeof(p3),nullptr,nullptr)!=ACS_OK) return 5;
     putf(norm.data(),N,"NORM ");
     astrocs_host_services_destroy_state_v1(state); return 0; }
