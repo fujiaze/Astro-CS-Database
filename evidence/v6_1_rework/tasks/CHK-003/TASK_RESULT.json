@@ -1,0 +1,95 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "CHK-003",
+  "status": "PASS",
+  "parent_commit": "1490bae5fc05202ceb24e845c75d39c0e09a15a8",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "quality",
+  "changed_paths": [
+    "tools/quality/check_serial_heavy.py",
+    "evidence/v6_1_rework/tasks/CHK-003/PLAN.md",
+    "evidence/v6_1_rework/tasks/CHK-003/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/CHK-003/logs/c01.log",
+    "evidence/v6_1_rework/tasks/CHK-003/logs/c02.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "new checker only"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_serial_heavy.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:42:36Z",
+      "duration_seconds": 1.5,
+      "log_path": "evidence/v6_1_rework/tasks/CHK-003/logs/c01.log",
+      "log_sha256": "db8600e1c500ae2580d9e01265d4fdbc8f83de9ad7fdf8299487d036bc4b21a4"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_serial_heavy.py",
+        "--repo",
+        "."
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 1,
+      "started_utc": "2026-08-31T04:42:36Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/CHK-003/logs/c02.log",
+      "log_sha256": "bb04b16ed8357c8e938af9d51836b3b25a6fd8b7b780256eed34b3c7c886d8bf"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-3-NEGATIVE",
+      "description": "P2 宏关/P3 双循环/无 gate caller 三类负例全抓",
+      "result": "PASS",
+      "evidence_sha256": "db8600e1c500ae2580d9e01265d4fdbc8f83de9ad7fdf8299487d036bc4b21a4"
+    },
+    {
+      "test_id": "T-REAL-BASELINE",
+      "description": "真实仓库扫描列出 8 项 serial-heavy 缺陷基线（F-003/004/005/006）",
+      "result": "PASS",
+      "evidence_sha256": "bb04b16ed8357c8e938af9d51836b3b25a6fd8b7b780256eed34b3c7c886d8bf"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/CHK-003/PLAN.md",
+      "sha256": "2af8a20d1f0ae58a251a02d6531b194b0aa05567c68899ad012344c2e88136f9"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CHK-003/TASK_RESULT.json",
+      "sha256": "8c2d46cc7b76464df1c3305088ead327a6b13318f9843616e0e5607d70ae9b82"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CHK-003/logs/c01.log",
+      "sha256": "db8600e1c500ae2580d9e01265d4fdbc8f83de9ad7fdf8299487d036bc4b21a4"
+    }
+  ],
+  "findings": [
+    "F-003",
+    "F-004",
+    "F-005",
+    "F-006"
+  ],
+  "limitations": [
+    "基线 FAIL 由 P2-001/P2-002/P3-003/MON-002 修复；allowlist 含 owner/reason/expiry/test"
+  ],
+  "expected_commit_subject": "CHK-003: serial-heavy 与资源接线检查器 (P2 宏关/P3 双循环/无 gate caller 负例全抓)",
+  "created_utc": "2026-08-31T04:42:36Z"
+}
