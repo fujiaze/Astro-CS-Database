@@ -5,10 +5,12 @@
 #include "astrocs/core/contracts.h"
 
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -83,15 +85,25 @@ class ThreadLease {
 // ── ThreadBudget: 全进程原子线程租约 (RT-002) ──
 // 语义: acquire(min,max,policy) 原子预留 token；sum(active)<=budget 全局不超卖；
 // 取消/异常 RAII 自动归还；Scheduler 自身 worker 与节点内部 work 共用同一预算。
+enum class AcquirePolicy : uint8_t {
+  BLOCK = 0,        // 阻塞等待满足 min（需并发归还方，否则死锁风险由调用方管理）
+  NONBLOCK = 1,     // 立即判定；不足 min 返回空租约
+  BEST_EFFORT = 2,  // 立即判定；不足 min 也返回 available（>0 时）
+};
+
 class ThreadBudget {
  public:
   explicit ThreadBudget(uint32_t budget) : budget_(budget) {}
   ThreadBudget(const ThreadBudget&) = delete;
   ThreadBudget& operator=(const ThreadBudget&) = delete;
 
-  // acquire(min, max): 若 available>=min 返回租约(至多 max, 至多 available)，否则返回空租约。
-  // 线程安全：可并发调用；阻塞：不阻塞（立即判定）。
-  ThreadLease acquire(uint32_t min, uint32_t max) noexcept;
+  // acquire(min, max, policy):
+  // - NONBLOCK: available<min → 空租约；
+  // - BEST_EFFORT: available<min 且 available>0 → 取 available；
+  // - BLOCK: 自旋/CV 等待直到 available>=min（调用方保证最终有归还方）。
+  // 成功租约 size<=max 且 <=available；线程安全：可并发；阻塞：BLOCK 除外。
+  ThreadLease acquire(uint32_t min, uint32_t max,
+                      AcquirePolicy policy = AcquirePolicy::NONBLOCK) noexcept;
 
   uint32_t available() const noexcept { return available_.load(std::memory_order_relaxed); }
   uint32_t budget() const noexcept { return budget_; }
@@ -104,6 +116,10 @@ class ThreadBudget {
  private:
   uint32_t budget_;
   std::atomic<uint32_t> available_{0};
+  std::mutex cv_mutex_;
+  std::condition_variable cv_;
+  // 构造已预留 size 的租约并注入归还回调（内部）
+  ThreadLease _make_lease(uint32_t got) noexcept;
 };
 
 // 全局唯一预算工厂（RT-002 提供实现；owner=Runtime）

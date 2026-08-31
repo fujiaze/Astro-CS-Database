@@ -37,27 +37,51 @@ std::vector<std::string> RunContext::artifact_ids() const {
 }
 
 // ── RT-001/RT-002: ThreadBudget 原子租约 ──
-ThreadLease ThreadBudget::acquire(uint32_t min, uint32_t max) noexcept {
+ThreadLease ThreadBudget::acquire(uint32_t min, uint32_t max,
+                                  AcquirePolicy policy) noexcept {
   if (min == 0) min = 1;
   if (max == 0) max = budget_;
-  uint32_t got = 0;
-  uint32_t cur = available_.load(std::memory_order_relaxed);
-  for (;;) {
-    if (cur < min) {
-      return ThreadLease();  // 空租约（不满足最小值）
+
+  auto try_take = [&]() -> ThreadLease {
+    uint32_t cur = available_.load(std::memory_order_relaxed);
+    for (;;) {
+      if (cur < min) {
+        if (policy == AcquirePolicy::BEST_EFFORT && cur > 0) {
+          const uint32_t take = (max < cur) ? max : cur;
+          if (available_.compare_exchange_weak(cur, cur - take,
+                                               std::memory_order_acq_rel,
+                                               std::memory_order_relaxed)) {
+            return _make_lease(take);
+          }
+          continue;
+        }
+        return ThreadLease();  // 空租约（不满足最小值）
+      }
+      const uint32_t take = (max < cur) ? max : cur;
+      if (available_.compare_exchange_weak(cur, cur - take,
+                                           std::memory_order_acq_rel,
+                                           std::memory_order_relaxed)) {
+        return _make_lease(take);
+      }
     }
-    const uint32_t take = (max < cur) ? max : cur;
-    if (available_.compare_exchange_weak(cur, cur - take,
-                                         std::memory_order_acq_rel,
-                                         std::memory_order_relaxed)) {
-      got = take;
-      break;
-    }
+  };
+
+  if (policy != AcquirePolicy::BLOCK) {
+    return try_take();
   }
-  ThreadLease lease(got, [this, got]() noexcept {
+  std::unique_lock<std::mutex> lock(cv_mutex_);
+  for (;;) {
+    ThreadLease lease = try_take();
+    if (lease.acquired()) return lease;
+    cv_.wait(lock, [&] { return available_.load(std::memory_order_relaxed) >= min; });
+  }
+}
+
+ThreadLease ThreadBudget::_make_lease(uint32_t got) noexcept {
+  return ThreadLease(got, [this, got]() noexcept {
     available_.fetch_add(got, std::memory_order_acq_rel);
+    cv_.notify_all();
   });
-  return lease;
 }
 
 Result<std::shared_ptr<ThreadBudget>> create_thread_budget(uint32_t budget) noexcept {

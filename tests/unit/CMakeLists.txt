@@ -44,6 +44,11 @@ target_include_directories(rt001_abi_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..
 target_link_libraries(rt001_abi_test PRIVATE astrocs_core)
 add_test(NAME rt001_abi COMMAND rt001_abi_test)
 
+add_executable(rt002_budget_test rt002_budget_test.cpp)
+target_include_directories(rt002_budget_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(rt002_budget_test PRIVATE astrocs_core)
+add_test(NAME rt002_budget COMMAND rt002_budget_test)
+
 add_executable(io_adapter_test io_adapter_test.cpp)
 target_include_directories(io_adapter_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(io_adapter_test PRIVATE astrocs_io)
