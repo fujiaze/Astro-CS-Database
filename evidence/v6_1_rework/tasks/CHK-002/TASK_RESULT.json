@@ -1,0 +1,101 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "CHK-002",
+  "status": "PASS",
+  "parent_commit": "abb758937981b88a1845572636def72cb0c4ea53",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "quality",
+  "changed_paths": [
+    "tools/quality/check_pipeline_graph.py",
+    "evidence/v6_1_rework/tasks/CHK-002/PLAN.md",
+    "evidence/v6_1_rework/tasks/CHK-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/CHK-002/logs/c01.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "new graph checker only"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_pipeline_graph.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:41:01Z",
+      "duration_seconds": 1.5,
+      "log_path": "evidence/v6_1_rework/tasks/CHK-002/logs/c01.log",
+      "log_sha256": "60e00c3a649eababd37419b652a875e2dba9854c49c9cfa7ca9c3bea664d87d3"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_pipeline_graph.py",
+        "--ir",
+        "/nonexistent",
+        "--module-index",
+        "/nonexistent",
+        "--trace",
+        "/nonexistent"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 1,
+      "started_utc": "2026-08-31T04:41:01Z",
+      "duration_seconds": 0.5,
+      "log_path": "evidence/v6_1_rework/tasks/CHK-002/logs/c01.log",
+      "log_sha256": "60e00c3a649eababd37419b652a875e2dba9854c49c9cfa7ca9c3bea664d87d3"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-7-FIXTURES",
+      "description": "7 负例+正例全过（少节点/换artifact/换class/隐藏节点/空trace/版本不匹配）",
+      "result": "PASS",
+      "evidence_sha256": "60e00c3a649eababd37419b652a875e2dba9854c49c9cfa7ca9c3bea664d87d3"
+    },
+    {
+      "test_id": "T-MISSING-FILE",
+      "description": "缺 --ir/--module-index/--trace → FAIL exit 1",
+      "result": "PASS",
+      "evidence_sha256": "60e00c3a649eababd37419b652a875e2dba9854c49c9cfa7ca9c3bea664d87d3"
+    },
+    {
+      "test_id": "T-EMPTY-TRACE",
+      "description": "空 trace 必须 FAIL",
+      "result": "PASS",
+      "evidence_sha256": "60e00c3a649eababd37419b652a875e2dba9854c49c9cfa7ca9c3bea664d87d3"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/CHK-002/PLAN.md",
+      "sha256": "65178b94a42a7037e6862aa8454646c66ef8021e735a3bdcdefa3f45d32bde4e"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CHK-002/TASK_RESULT.json",
+      "sha256": "95ae059a1dcf363be221a9f43c4890c3ea9cba2b71e8f8a18ee3bf923244746f"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CHK-002/logs/c01.log",
+      "sha256": "60e00c3a649eababd37419b652a875e2dba9854c49c9cfa7ca9c3bea664d87d3"
+    }
+  ],
+  "findings": [
+    "F-027"
+  ],
+  "limitations": [
+    "IR/trace 实格式由 RT-004/RT-009 冻结；届时用真实产物跑本检查器"
+  ],
+  "expected_commit_subject": "CHK-002: 非空静态图/运行图检查器 (--ir/--module-index/--trace 必填, 7 负例全抓, 空 trace FAIL)",
+  "created_utc": "2026-08-31T04:41:01Z"
+}

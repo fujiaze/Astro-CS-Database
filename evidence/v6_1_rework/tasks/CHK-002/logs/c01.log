@@ -1,0 +1,8 @@
+SELFTEST_PASS ok
+SELFTEST_PASS fewer_nodes
+SELFTEST_PASS swapped_artifact
+SELFTEST_PASS changed_resource_class
+SELFTEST_PASS hidden_node
+SELFTEST_PASS empty_trace
+SELFTEST_PASS module_version_mismatch
+SELFTEST_PASS all fixtures
