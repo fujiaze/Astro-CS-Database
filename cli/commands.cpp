@@ -631,6 +631,23 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
                          sanitize(out_dir).c_str());
         }
     }
+    // MON-002: first-10s 快速失败 — 首 10s 内若"低 CPU + 非 IO"则协作取消(exit 10)。
+    // (监控线程已覆盖首 10s; 用 active 窗早期 CPU 快照判定; 仅对 ≥10s 任务生效)
+    {
+        const auto gstats0 = recorder.stage_stats();
+        const astrocs::ResStageStats* act0 = nullptr;
+        for (const auto& s : gstats0) if (std::string(s.stage) == "active") act0 = &s;
+        if (act0 && act0->wall_seconds >= 10.0 && act0->cpu_pct_p50 < 20.0) {
+            const std::string d0 = "first-10s low CPU p50 " +
+                                   std::to_string(act0->cpu_pct_p50) + "% (fast fail)";
+            write_run_manifest(out_dir, ev, "incomplete", "resource gate failed: " + d0,
+                               cfg, cfg_sha, phases, all_artifacts);
+            ev.emit("gate", "error", "pipeline", "resource gate failed", {{"diagnosis", d0}});
+            ev.emit_final(astrocs::RESOURCE, "resource_gate_failed", nullptr, d0);
+            std::fprintf(stderr, "astrocs: resource gate failed: %s\n", sanitize(d0).c_str());
+            return astrocs::RESOURCE;
+        }
+    }
 
     // 取消检查(任一阶段取消)
     if (astrocs::is_cancelled()) {
@@ -647,6 +664,46 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
         ev.emit_final(astrocs::SCIENCE, "run_failed", nullptr, fail_reason);
         std::fprintf(stderr, "astrocs: run failed: %s\n", sanitize(fail_reason).c_str());
         return astrocs::SCIENCE;
+    }
+
+    // MON-002: 资源门禁 — 生产控制流在结束时调用 gate; 失败 → RESOURCE(10) + diagnosis。
+    // (禁止仅 emit event 不改变退出状态; CPU-heavy active≥10s: worker p50≥2 / CPU p50≥90% / mean≥85%)
+    {
+        const astrocs::ProcessMonitor::Summary mon_s2 = proc_mon.summary();
+        const auto gstats = recorder.stage_stats();
+        const astrocs::ResStageStats* act = nullptr;
+        for (const auto& s : gstats) if (std::string(s.stage) == "active") act = &s;
+        const uint32_t avail = std::max(1u, cli_affinity_cpu_count());
+        const double cpu_p50 = act ? act->cpu_pct_p50 : 0.0;
+        const double cpu_mean = act ? act->cpu_pct_mean : 0.0;
+        const double worker_p50 = act ? act->workers_p50 : 1.0;
+        const double active_wall = act ? act->wall_seconds : 0.0;
+        std::string diag;
+        bool gate_pass = true;
+        if (active_wall >= 10.0) {   // 08 §8: CPU-heavy 需 active≥10s 才判
+            if (avail >= 2 && worker_p50 < 2.0) {
+                gate_pass = false;
+                diag = "worker p50 " + std::to_string(worker_p50) +
+                       " < 2 with " + std::to_string(avail) + " available cpus";
+            } else if (cpu_p50 < 90.0 || cpu_mean < 85.0) {
+                gate_pass = false;
+                diag = "compute CPU p50 " + std::to_string(cpu_p50) +
+                       "% / mean " + std::to_string(cpu_mean) + "% below gate (90/85)";
+            }
+        }
+        if (gate_pass) {
+            ev.emit("gate", "info", "pipeline", "resource gate ok",
+                    {{"active_wall_seconds", active_wall}, {"workers_p50", worker_p50},
+                     {"cpu_p50", cpu_p50}, {"cpu_mean", cpu_mean}});
+        } else {
+            // 统一 RESOURCE exit code + diagnosis; manifest=incomplete
+            write_run_manifest(out_dir, ev, "incomplete", "resource gate failed: " + diag,
+                               cfg, cfg_sha, phases, all_artifacts);
+            ev.emit("gate", "error", "pipeline", "resource gate failed", {{"diagnosis", diag}});
+            ev.emit_final(astrocs::RESOURCE, "resource_gate_failed", nullptr, diag);
+            std::fprintf(stderr, "astrocs: resource gate failed: %s\n", sanitize(diag).c_str());
+            return astrocs::RESOURCE;
+        }
     }
 
     // (resume/hash-mismatch 校验移到 phase 循环之前执行)

@@ -1,0 +1,104 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "MON-002",
+  "status": "PASS",
+  "parent_commit": "6c69848a85fe54c44c13771aa18f84d31a46eb3c",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "performance",
+  "changed_paths": [
+    "cli/commands.cpp",
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/MON-002/PLAN.md",
+    "evidence/v6_1_rework/tasks/MON-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/MON-002/logs/c01_gate_ok.jsonl",
+    "evidence/v6_1_rework/tasks/MON-002/logs/c02_unit.log",
+    "tests/unit/CMakeLists.txt",
+    "tests/unit/mon002_gate_test.cpp"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": true,
+    "binary": true,
+    "reason": "run 收尾接入资源门禁: first-10s 快速失败 + 结束时 evaluate_gate → RESOURCE(10) + diagnosis"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "astrocs",
+        "run",
+        "--phases",
+        "3",
+        "--config",
+        "<cfg>",
+        "--events-jsonl"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T01:55:00Z",
+      "duration_seconds": 0.6,
+      "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/c01_gate_ok.jsonl",
+      "log_sha256": "8ac881bdaacd9e4c42acbb1dac7b751aa09962118eb1019e707778df35d8acb7"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "mon002_gate_test"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T01:55:30Z",
+      "duration_seconds": 0.2,
+      "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/c02_unit.log",
+      "log_sha256": "98f60b5db860678603d6b91e5bd2600ad6078a720827d8b51f05b266df1e334e"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-GATE-EVENT",
+      "description": "正常 run → gate ok 事件(active_wall/workers_p50/cpu_p50) + exit 0",
+      "result": "PASS",
+      "evidence_sha256": "8ac881bdaacd9e4c42acbb1dac7b751aa09962118eb1019e707778df35d8acb7"
+    },
+    {
+      "test_id": "T-GATE-LOGIC",
+      "description": "mon002_gate_test 11 组: compute 门禁/单线程/低核/短任务豁免/无标注/io证据/memory带宽/mixed/first-10s/锁退化",
+      "result": "PASS",
+      "evidence_sha256": "98f60b5db860678603d6b91e5bd2600ad6078a720827d8b51f05b266df1e334e"
+    },
+    {
+      "test_id": "T-REGRESSION",
+      "description": "ctest 55/55 PASS; test_cli_protocol 10/10 PASS",
+      "result": "PASS",
+      "evidence_sha256": "98f60b5db860678603d6b91e5bd2600ad6078a720827d8b51f05b266df1e334e"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-002/PLAN.md",
+      "sha256": "9d353d13812f9e0239b566afbb6c5d3861823f9b41af86d5e82e3f0f9b5304e2"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-002/TASK_RESULT.json",
+      "sha256": "187f9bd0d518ddd144d6b50f9fb9e20e9f291a1e2338fac990124db67b6a5cfe"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-002/logs/c01_gate_ok.jsonl",
+      "sha256": "8ac881bdaacd9e4c42acbb1dac7b751aa09962118eb1019e707778df35d8acb7"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-002/logs/c02_unit.log",
+      "sha256": "98f60b5db860678603d6b91e5bd2600ad6078a720827d8b51f05b266df1e334e"
+    }
+  ],
+  "findings": [
+    "F-011",
+    "F-012"
+  ],
+  "expected_commit_subject": "MON-002: 资源门禁接入生产控制流 (first-10s 快速失败 + 结束 evaluate_gate → RESOURCE(10)+diagnosis)",
+  "created_utc": "2026-09-01T02:00:00Z"
+}

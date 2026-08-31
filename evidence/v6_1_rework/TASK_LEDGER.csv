@@ -23,7 +23,7 @@ CPU-002,G3,实现CPU与有效配额探测,CPU-001,Linux+Windows,performance,no,y
 CPU-003,G3,实现真实benchmark与profile,CPU-001;CPU-002,Linux+Windows,performance,yes,yes,correctness first; memory; kernel/thread/block,3 warmup+7 measure; median/MAD; raw candidates; profile schema,PASS
 CPU-004,G3,实现按kernel自适应路由,CPU-003;RT-006,Linux+Windows,performance,yes,yes,profile verify; provider fallback; lease,无profile保守baseline但多线程; stale/corrupt profile拒绝,PASS
 MON-001,G3,把资源监测接入每个heavy node,RT-006;CPU-002,Linux+Windows,performance,yes,yes,samples/summary/worker balance,无需操作者额外脚本; init/active/flush分段; 开销<2%,PASS
-MON-002,G3,把资源门接入生产控制流,MON-001,Linux+Windows,performance,yes,yes,first10s; final gate; exit code,低CPU且非IO/内存自动失败; 不能只emit summary,NOT_STARTED
+MON-002,G3,把资源门接入生产控制流,MON-001,Linux+Windows,performance,yes,yes,first10s; final gate; exit code,低CPU且非IO/内存自动失败; 不能只emit summary,PASS
 MON-003,G3,完成2核真实资源基准,MON-002;CPU-004,Linux,validation,yes,yes,>=10s synthetic heavy per kernel,active worker p50>=2; normalized CPU p50>=90 mean>=85或内存瓶颈证据,NOT_STARTED
 P1-001,G4,迁移Phase1到Registry和IR,RT-008;CPU-004,Linux,architecture,yes,yes,calibration/stars/wcs/phot/noise/drizzle modules,每节点标准端口; 无session手写顺序; trace与IR一致,NOT_STARTED
 P1-002,G4,重写Phase1生产路径合成Oracle,P1-001,Linux,science,yes,yes,calibration/star/WCS/phot/noise/drizzle,测试调用production module/CLI; 独立reference; 容差预冻结,NOT_STARTED
