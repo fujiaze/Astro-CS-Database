@@ -4,7 +4,9 @@
 #include "astrocs/core/artifact.h"
 #include "astrocs/core/contracts.h"
 
+#include <atomic>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -27,15 +29,87 @@ struct Metrics {
 };
 
 // 线程租约 (08 §6: Runtime 唯一线程来源)
+// RT-001 冻结合同：acquire 返回 ThreadLease（RAII；析构自动归还）。
+// RT-002 实现原子 reserve/release；本文件只冻结接口语义。
 class ThreadLease {
  public:
-  explicit ThreadLease(uint32_t size) : size_(size) {}
+  ThreadLease() = default;
+  ThreadLease(const ThreadLease&) = delete;
+  ThreadLease& operator=(const ThreadLease&) = delete;
+  ThreadLease(ThreadLease&& other) noexcept
+      : size_(other.size_), release_(std::move(other.release_)) {
+    other.size_ = 0;
+  }
+  ThreadLease& operator=(ThreadLease&& other) noexcept {
+    if (this != &other) {
+      release();
+      size_ = other.size_;
+      release_ = std::move(other.release_);
+      other.size_ = 0;
+    }
+    return *this;
+  }
+  ~ThreadLease() { release(); }
+
   uint32_t size() const noexcept { return size_; }
   bool acquired() const noexcept { return size_ > 0; }
 
+  // 归还（幂等；析构/异常/取消路径自动调用）
+  void release() noexcept {
+    if (size_ > 0 && release_) {
+      release_();
+    }
+    size_ = 0;
+  }
+
  private:
+  // RT-002 构造：acquire(min,max) 成功后注入 size 与归还回调
+  explicit ThreadLease(uint32_t size, std::function<void()> release)  // NOLINT
+      : size_(size), release_(std::move(release)) {}
   uint32_t size_ = 0;
+  std::function<void()> release_;
+  friend class ThreadBudget;
+  friend class RunContext;
+
+ public:
+  // 仅大小语义的租约（RT-003 前兼容；无原子预留，析构不回调）
+  static ThreadLease make(uint32_t size) {
+    ThreadLease l;
+    l.size_ = size;
+    return l;
+  }
 };
+
+// ── ThreadBudget: 全进程原子线程租约 (RT-002) ──
+// 语义: acquire(min,max,policy) 原子预留 token；sum(active)<=budget 全局不超卖；
+// 取消/异常 RAII 自动归还；Scheduler 自身 worker 与节点内部 work 共用同一预算。
+class ThreadBudget {
+ public:
+  explicit ThreadBudget(uint32_t budget) : budget_(budget) {}
+  ThreadBudget(const ThreadBudget&) = delete;
+  ThreadBudget& operator=(const ThreadBudget&) = delete;
+
+  // acquire(min, max): 若 available>=min 返回租约(至多 max, 至多 available)，否则返回空租约。
+  // 线程安全：可并发调用；阻塞：不阻塞（立即判定）。
+  ThreadLease acquire(uint32_t min, uint32_t max) noexcept;
+
+  uint32_t available() const noexcept { return available_.load(std::memory_order_relaxed); }
+  uint32_t budget() const noexcept { return budget_; }
+
+  // 工厂初始化（仅 create_thread_budget 调用一次；非并发阶段）
+  void reset_available() noexcept {
+    available_.store(budget_, std::memory_order_relaxed);
+  }
+
+ private:
+  uint32_t budget_;
+  std::atomic<uint32_t> available_{0};
+};
+
+// 全局唯一预算工厂（RT-002 提供实现；owner=Runtime）
+// budget: 有效 CPU 配额（CPU-002 探测结果，>0）。
+// 失败返回 Error(RESOURCE)。
+Result<std::shared_ptr<ThreadBudget>> create_thread_budget(uint32_t budget) noexcept;
 
 // RunContext: 模块访问服务的唯一通道 (CORE-005: 模块只能通过 context 访问服务)
 // 禁止 singleton/global scheduler (G2 checklist)
@@ -58,8 +132,10 @@ class RunContext {
   // ── 预算/线程租约 (Runtime 唯一授权) ──
   void set_thread_budget(uint32_t budget) { thread_budget_ = budget; }
   uint32_t thread_budget() const noexcept { return thread_budget_; }
+  // RT-003 起经 ThreadBudget 原子预留；此处为预算上限语义（不超卖请求值）。
   ThreadLease acquire_lease(uint32_t requested) const {
-    return ThreadLease(requested <= thread_budget_ ? requested : thread_budget_);
+    const uint32_t n = requested <= thread_budget_ ? requested : thread_budget_;
+    return ThreadLease::make(n);
   }
 
   // ── artifact 存取 (模块经此读写; 禁止直接路径猜测) ──

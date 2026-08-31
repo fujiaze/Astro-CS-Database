@@ -50,6 +50,7 @@ add_library(astrocs_core STATIC
   lib/core/src/module.cpp
   lib/core/src/pipeline.cpp
   lib/core/src/context.cpp
+  lib/core/src/runtime.cpp
   lib/core/src/scheduler.cpp
   lib/core/src/checkpoint.cpp
   lib/core/src/logging.cpp)

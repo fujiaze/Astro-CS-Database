@@ -36,4 +36,38 @@ std::vector<std::string> RunContext::artifact_ids() const {
   return out;
 }
 
+// ── RT-001/RT-002: ThreadBudget 原子租约 ──
+ThreadLease ThreadBudget::acquire(uint32_t min, uint32_t max) noexcept {
+  if (min == 0) min = 1;
+  if (max == 0) max = budget_;
+  uint32_t got = 0;
+  uint32_t cur = available_.load(std::memory_order_relaxed);
+  for (;;) {
+    if (cur < min) {
+      return ThreadLease();  // 空租约（不满足最小值）
+    }
+    const uint32_t take = (max < cur) ? max : cur;
+    if (available_.compare_exchange_weak(cur, cur - take,
+                                         std::memory_order_acq_rel,
+                                         std::memory_order_relaxed)) {
+      got = take;
+      break;
+    }
+  }
+  ThreadLease lease(got, [this, got]() noexcept {
+    available_.fetch_add(got, std::memory_order_acq_rel);
+  });
+  return lease;
+}
+
+Result<std::shared_ptr<ThreadBudget>> create_thread_budget(uint32_t budget) noexcept {
+  if (budget == 0) {
+    return Result<std::shared_ptr<ThreadBudget>>::fail(
+        Error(ErrorDomain::RESOURCE, "create_thread_budget: budget must be > 0"));
+  }
+  auto b = std::make_shared<ThreadBudget>(budget);
+  b->reset_available();
+  return Result<std::shared_ptr<ThreadBudget>>::ok(std::move(b));
+}
+
 }  // namespace astrocs::core
