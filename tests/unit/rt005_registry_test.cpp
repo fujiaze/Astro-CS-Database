@@ -25,14 +25,22 @@ static void test_register_three_phase_modules() {
   auto r = register_phase_modules(reg);
   CHECK(r.ok());
   if (r.failed()) return;
-  CHECK(reg.size() == 3);
+  // P1-001 (G4): 8 类 Phase1 + Phase2/3 = 10 个模块
+  CHECK(reg.size() == 10);
   CHECK(reg.has_factory("astrocs.phase1.calibration"));
   CHECK(reg.has_factory("astrocs.phase2.resample"));
   CHECK(reg.has_factory("astrocs.phase3.resample"));
   // create 全部成功（不接受只注册 metadata）
   for (const auto& id : {"astrocs.phase1.calibration",
                          "astrocs.phase2.resample",
-                         "astrocs.phase3.resample"}) {
+                         "astrocs.phase3.resample",
+                         "astrocs.phase1.cosmetic",
+                         "astrocs.phase1.star-psf",
+                         "astrocs.phase1.wcs-platesolve",
+                         "astrocs.phase1.photometry",
+                         "astrocs.phase1.noise-snr",
+                         "astrocs.phase1.drizzle",
+                         "astrocs.phase1.writer"}) {
     auto m = reg.create(id);
     CHECK(m.ok());
     if (m.ok()) {

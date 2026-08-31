@@ -284,6 +284,142 @@ ModuleDescriptor phase3_descriptor() {
   return d;
 }
 
+ModuleDescriptor p1_cosmetic_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase1.cosmetic";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"calibrated", "DATA-P1-CAL", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"cleaned", "DATA-P1-COSMETIC", false, UnitId::ADU, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P1-COS-001";
+  d.alg_id = "ALG-P1-COS-001";
+  d.data_id = "DATA-P1-COSMETIC";
+  d.api_id = "API-P1-002";
+  d.test_id = "TEST-P1-COS-001";
+  return d;
+}
+
+ModuleDescriptor p1_star_psf_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase1.star-psf";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"cleaned", "DATA-P1-COSMETIC", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"sources", "DATA-P1-SOURCES", false, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+      {"psf", "DATA-P1-PSF", false, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P1-PSF-001";
+  d.alg_id = "ALG-002";            // wcs-psf-batch kernel
+  d.data_id = "DATA-P1-SOURCES";
+  d.api_id = "API-P1-003";
+  d.test_id = "TEST-P1-PSF-001";
+  return d;
+}
+
+ModuleDescriptor p1_wcs_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase1.wcs-platesolve";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"sources", "DATA-P1-SOURCES", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+      {"wcs", "DATA-P1-WCS", false, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+  };
+  d.sci_id = "SCI-P1-WCS-001";
+  d.alg_id = "ALG-002";            // wcs-psf-batch kernel
+  d.data_id = "DATA-P1-WCS";
+  d.api_id = "API-P1-004";
+  d.test_id = "TEST-P1-WCS-001";
+  return d;
+}
+
+ModuleDescriptor p1_photometry_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase1.photometry";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"psf", "DATA-P1-PSF", true, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
+      {"sources", "DATA-P1-SOURCES", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+      {"fluxes", "DATA-P1-FLUX", false, UnitId::ELECTRON, CoordinateFrame::ICRS},
+  };
+  d.sci_id = "SCI-P1-PHOT-001";
+  d.alg_id = "ALG-002";            // wcs-psf-batch kernel
+  d.data_id = "DATA-P1-FLUX";
+  d.api_id = "API-P1-005";
+  d.test_id = "TEST-P1-PHOT-001";
+  return d;
+}
+
+ModuleDescriptor p1_noise_snr_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase1.noise-snr";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"fluxes", "DATA-P1-FLUX", true, UnitId::ELECTRON, CoordinateFrame::ICRS},
+      {"snr", "DATA-P1-SNR", false, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+  };
+  d.sci_id = "SCI-P1-SNR-001";
+  d.alg_id = "ALG-004";            // noise-snr-reductions kernel
+  d.data_id = "DATA-P1-SNR";
+  d.api_id = "API-P1-006";
+  d.test_id = "TEST-P1-SNR-001";
+  return d;
+}
+
+ModuleDescriptor p1_drizzle_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase1.drizzle";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"calibrated", "DATA-P1-CAL", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"stacked", "DATA-P1-STACK", false, UnitId::ADU, CoordinateFrame::ICRS},
+  };
+  d.sci_id = "SCI-P1-DRIZ-001";
+  d.alg_id = "ALG-005";            // drizzle-* kernels
+  d.data_id = "DATA-P1-STACK";
+  d.api_id = "API-P1-007";
+  d.test_id = "TEST-P1-DRIZ-001";
+  return d;
+}
+
+ModuleDescriptor p1_writer_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase1.writer";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "io";
+  d.parallel_ok = false;
+  d.ports = {
+      {"stacked", "DATA-P1-STACK", true, UnitId::ADU, CoordinateFrame::ICRS},
+      {"fits", "DATA-P1-FITS", false, UnitId::ADU, CoordinateFrame::ICRS},
+  };
+  d.sci_id = "SCI-P1-WR-001";
+  d.alg_id = "ALG-P1-WR-001";
+  d.data_id = "DATA-P1-FITS";
+  d.api_id = "API-P1-008";
+  d.test_id = "TEST-P1-WR-001";
+  return d;
+}
+
+
 template <typename T>
 std::unique_ptr<IModule> make_session_module(ModuleDescriptor desc) {
   return std::make_unique<SessionModule>(std::move(desc), T::create, T::validate,
@@ -347,6 +483,24 @@ Result<void> register_phase_modules(ModuleRegistry& registry) {
   auto f3 = registry.register_factory(
       d3.module_id, [d3]() { return make_session_module<P3Api>(d3); });
   if (f3.failed()) return f3;
+
+  // P1-001 (G4): 8 类 Phase1 模块注册。工厂委托 p1_session 兼容 adapter
+  // (Session 仅兼容 adapter, 内部委托 Runtime, 无第二调度顺序)。
+  // calibration 已注册; 补 cosmetic/star-psf/wcs-platesolve/photometry/noise-snr/
+  // drizzle/writer 共 7 个。
+  const ModuleDescriptor p1_more[] = {
+      p1_cosmetic_descriptor(),   p1_star_psf_descriptor(),
+      p1_wcs_descriptor(),        p1_photometry_descriptor(),
+      p1_noise_snr_descriptor(),  p1_drizzle_descriptor(),
+      p1_writer_descriptor(),
+  };
+  for (const auto& d : p1_more) {
+    auto rr = registry.register_module(d);
+    if (rr.failed()) return rr;
+    auto ff = registry.register_factory(
+        d.module_id, [d]() { return make_session_module<P1Api>(d); });
+    if (ff.failed()) return ff;
+  }
 
   return Result<void>::success();
 }

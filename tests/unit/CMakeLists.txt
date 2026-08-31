@@ -189,6 +189,14 @@ target_include_directories(mon002_gate_test PRIVATE
 target_link_libraries(mon002_gate_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME mon002_gate COMMAND mon002_gate_test)
 
+# P1-001 (G4): Phase1 8 类模块注册(端口/执行类/Runtime 委托)
+add_executable(p1001_modules_test p1001_modules_test.cpp)
+target_include_directories(p1001_modules_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
+target_link_libraries(p1001_modules_test PRIVATE astrocs_module_adapters astrocs_core)
+add_test(NAME p1001_modules COMMAND p1001_modules_test)
+
 # CPU-001 (G3): 独立 provider 构建 — 三份 self-test + 负例
 # 每个 provider 静态库各自链接进独立可执行, 运行共享 backend_table.inc 的
 # backend_self_test(handshake→allocator→cancel→budget→logger); -R "cpu0" 可全跑。
