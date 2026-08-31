@@ -1,0 +1,121 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "R0-002",
+  "status": "PASS",
+  "parent_commit": "a3d16d8545939de4dda7baf4436a77f98806f78a",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "audit",
+  "changed_paths": [
+    "tools/quality/gen_source_index_v61.py",
+    "tools/quality/check_source_index_v61.py",
+    "evidence/v6_1_rework/tasks/R0-002/SOURCE_INDEX.csv",
+    "evidence/v6_1_rework/tasks/R0-002/TARGET_SOURCE_GRAPH.json",
+    "evidence/v6_1_rework/tasks/R0-002/TARGET_SOURCE_GRAPH.dot",
+    "evidence/v6_1_rework/tasks/R0-002/third_party_sources.csv",
+    "evidence/v6_1_rework/tasks/R0-002/PLAN.md",
+    "evidence/v6_1_rework/tasks/R0-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/R0-002/logs/c01.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "source inventory only; no code changed"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/gen_source_index_v61.py",
+        "--repo",
+        ".",
+        "--out-dir",
+        "evidence/v6_1_rework/tasks/R0-002"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/R0-002/logs/c01.log",
+      "log_sha256": "d88f7d87582fce796feac4c93941f1940f7dbd72b689a35531816d0b7c366934"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_source_index_v61.py",
+        "--repo",
+        ".",
+        "--index",
+        "evidence/v6_1_rework/tasks/R0-002/SOURCE_INDEX.csv"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/R0-002/logs/c01.log",
+      "log_sha256": "d88f7d87582fce796feac4c93941f1940f7dbd72b689a35531816d0b7c366934"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "negative-fixture: hide lib/io/src/io_adapter.cpp, regenerate, expect fail, restore"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 1,
+      "log_path": "run/temp/fixture_gen.log",
+      "log_sha256": "6efbaf234296605abadf5d214c0682c25991c7aa82f0d0462e93de7909b59c7a"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-ALL-SOURCES-EXIST",
+      "description": "58 targets 全部显式源引用存在 (missing=0)",
+      "result": "PASS",
+      "evidence_sha256": "7283473dcd8f14280a03a8fe4a092a51b9d7b6bc186f7e106bedbc900401eadf"
+    },
+    {
+      "test_id": "T-INDEX-COMPLETE",
+      "description": "SOURCE_INDEX 1120 行, sha256/size 全部匹配, 列完整",
+      "result": "PASS",
+      "evidence_sha256": "7283473dcd8f14280a03a8fe4a092a51b9d7b6bc186f7e106bedbc900401eadf"
+    },
+    {
+      "test_id": "T-PROD-BUILD-REQUIRED",
+      "description": "19 生产 target 源全部 required_for_build=yes (70 项)",
+      "result": "PASS",
+      "evidence_sha256": "3279eb897e9e656020ccfa8933bfb6660e6a4705143a1eced6e85567f35c6c1a"
+    },
+    {
+      "test_id": "T-NEGATIVE-FIXTURE",
+      "description": "隐藏 CMake 源 → SOURCE_INDEX_FAIL missing target sources",
+      "result": "PASS",
+      "evidence_sha256": "6efbaf234296605abadf5d214c0682c25991c7aa82f0d0462e93de7909b59c7a"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-002/SOURCE_INDEX.csv",
+      "sha256": "7283473dcd8f14280a03a8fe4a092a51b9d7b6bc186f7e106bedbc900401eadf"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-002/TARGET_SOURCE_GRAPH.json",
+      "sha256": "3279eb897e9e656020ccfa8933bfb6660e6a4705143a1eced6e85567f35c6c1a"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-002/TARGET_SOURCE_GRAPH.dot",
+      "sha256": "4beaea692f09e5ae9227c3f5a8fe284240cf2cfef21fe883e4e21b56c1a33a5c"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-002/third_party_sources.csv",
+      "sha256": "2e0ed861a0037ee835cebc0f5ee2056f77773a766f41da936a65aecb6d9d0b84"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "CMake ${var} 展开不解析（本仓库无 GLOB 源引用）; vendored cfitsio 239 文件单列"
+  ],
+  "expected_commit_subject": "R0-002: 完整自有源码清单 (58 targets, 1120 文件, 负例缺源 FAIL)",
+  "created_utc": "2026-08-31T04:11:01Z"
+}
