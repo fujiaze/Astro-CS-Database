@@ -1,0 +1,193 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "RT-006",
+  "status": "PASS",
+  "parent_commit": "c764c2bec2599dcbc94f567b8cf0fa1dc7603a9c",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "architecture",
+  "changed_paths": [
+    "include/astrocs/core/scheduler.h",
+    "lib/core/src/scheduler.cpp",
+    "lib/core/src/runtime.cpp",
+    "tests/unit/rt006_scheduler_test.cpp",
+    "tests/unit/core_scheduler_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/v6_1_rework/tasks/RT-006/PLAN.md",
+    "evidence/v6_1_rework/tasks/RT-006/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/RT-006/logs/c01.log",
+    "evidence/v6_1_rework/tasks/RT-006/logs/c02.log",
+    "evidence/v6_1_rework/tasks/RT-006/logs/c03.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": true,
+    "binary": true,
+    "reason": "Scheduler run() semantics rewritten (per-node failure propagation, memory backpressure, node-ID statuses); Runtime now executes modules via Scheduler"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "rt006_scheduler_test core_scheduler_test",
+        "-j2"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:25:53Z",
+      "duration_seconds": 120.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-006/logs/c01.log",
+      "log_sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "./run/temp/build_v61/tests/unit/rt006_scheduler_test"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:25:53Z",
+      "duration_seconds": 0.3,
+      "log_path": "evidence/v6_1_rework/tasks/RT-006/logs/c01.log",
+      "log_sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "./run/temp/build_tsan/tests/unit/rt006_scheduler_test"
+      ],
+      "timeout_seconds": 180,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:25:53Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-006/logs/c02.log",
+      "log_sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "ASTROCS_REPO=$(pwd)",
+        "ctest",
+        "--test-dir",
+        "run/temp/build_v61",
+        "-R",
+        "core_|rt0"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:25:53Z",
+      "duration_seconds": 1.1,
+      "log_path": "evidence/v6_1_rework/tasks/RT-006/logs/c03.log",
+      "log_sha256": "60b7ce636e34a14fd93d894f5a8d31570e297cd4e03db1a42e69e20ea3e38404"
+    },
+    {
+      "command_id": "c05",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "astrocs",
+        "-j2"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:25:53Z",
+      "duration_seconds": 240.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-006/logs/c03.log",
+      "log_sha256": "60b7ce636e34a14fd93d894f5a8d31570e297cd4e03db1a42e69e20ea3e38404"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-DIAMOND",
+      "description": "diamond DAG 并发执行 4 节点全 COMPLETED",
+      "result": "PASS",
+      "evidence_sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    },
+    {
+      "test_id": "T-MEM-BACKPRESSURE",
+      "description": "内存限制 1000 下两 600 节点峰值<=1000（回压串行）",
+      "result": "PASS",
+      "evidence_sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    },
+    {
+      "test_id": "T-FAILURE-PROP",
+      "description": "失败节点 FAILED/依赖 SKIPPED/独立节点 COMPLETED",
+      "result": "PASS",
+      "evidence_sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    },
+    {
+      "test_id": "T-CANCEL",
+      "description": "取消路径不崩溃",
+      "result": "PASS",
+      "evidence_sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    },
+    {
+      "test_id": "T-BUDGET",
+      "description": "并发 worker<=budget",
+      "result": "PASS",
+      "evidence_sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    },
+    {
+      "test_id": "T-DETERMINISM",
+      "description": "两次运行状态一致",
+      "result": "PASS",
+      "evidence_sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    },
+    {
+      "test_id": "T-RUNTIME-FULL",
+      "description": "Runtime load_pipeline→run 全链路，node statuses 带 ID",
+      "result": "PASS",
+      "evidence_sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    },
+    {
+      "test_id": "T-TSAN",
+      "description": "rt006 在 TSan 下 PASS（无 data race）",
+      "result": "PASS",
+      "evidence_sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    },
+    {
+      "test_id": "T-CORE-13",
+      "description": "13/13 core+rt 测试全 PASS",
+      "result": "PASS",
+      "evidence_sha256": "60b7ce636e34a14fd93d894f5a8d31570e297cd4e03db1a42e69e20ea3e38404"
+    },
+    {
+      "test_id": "T-CLI-LINK",
+      "description": "CLI 重链接成功",
+      "result": "PASS",
+      "evidence_sha256": "60b7ce636e34a14fd93d894f5a8d31570e297cd4e03db1a42e69e20ea3e38404"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-006/PLAN.md",
+      "sha256": "86acc44af21ef54c727b324fa88d123909df2944ba54dfae9876a78666909f85"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-006/TASK_RESULT.json",
+      "sha256": "f364a579f2c738bda966df1189aa7c2af87f4c4d83717d414b00835ff1accab0"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-006/logs/c01.log",
+      "sha256": "9e0668745d12b5c7d0838d392e5332aaeed17debc2299c6bc9dd101114460b04"
+    }
+  ],
+  "findings": [
+    "F-001",
+    "F-006"
+  ],
+  "limitations": [
+    "Runtime 模块 execute 需合法 config/数据（RT-008 CLI 接线后真实驱动）；I/O executor 与 lease 细化在 RT-008/RT-009"
+  ],
+  "expected_commit_subject": "RT-006: 唯一 Scheduler+Runtime DAG 调度 (节点级失败传播/内存回压/node-ID 状态/TSan PASS)",
+  "created_utc": "2026-08-31T05:25:53Z"
+}

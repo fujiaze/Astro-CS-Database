@@ -61,6 +61,13 @@ target_include_directories(rt005_registry_test PRIVATE
 target_link_libraries(rt005_registry_test PRIVATE astrocs_module_adapters)
 add_test(NAME rt005_registry COMMAND rt005_registry_test)
 
+add_executable(rt006_scheduler_test rt006_scheduler_test.cpp)
+target_include_directories(rt006_scheduler_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
+target_link_libraries(rt006_scheduler_test PRIVATE astrocs_module_adapters astrocs_core)
+add_test(NAME rt006_scheduler COMMAND rt006_scheduler_test)
+
 add_executable(io_adapter_test io_adapter_test.cpp)
 target_include_directories(io_adapter_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(io_adapter_test PRIVATE astrocs_io)

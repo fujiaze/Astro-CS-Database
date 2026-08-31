@@ -145,10 +145,18 @@ static void test_recovery_skip_after_failure() {
     return Result<void>::success();
   }, "cpu_heavy"});
   RunContext ctx;
-  std::vector<NodeStatus> statuses;
+  std::vector<std::pair<std::string, NodeStatus>> statuses;
   auto r = sched.run(ctx, &statuses);
   CHECK(r.failed());
   CHECK(statuses.size() == 3);
+  // 带 node ID 断言（RT-006）
+  bool saw_bad = false, saw_dep_skipped = false, saw_indep_ok = false;
+  for (const auto& [id, st] : statuses) {
+    if (id == "bad") saw_bad = st == NodeStatus::FAILED;
+    if (id == "dep") saw_dep_skipped = st == NodeStatus::SKIPPED;
+    if (id == "indep") saw_indep_ok = st == NodeStatus::COMPLETED;
+  }
+  CHECK(saw_bad && saw_dep_skipped && saw_indep_ok);
 }
 
 static void test_cycle_rejected() {
