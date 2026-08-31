@@ -49,9 +49,11 @@ static void test_artifact_store() {
   RunContext ctx;
   CHECK(ctx.store_artifact(make_artifact()).ok());
   CHECK(ctx.artifact_ids().size() == 1);
-  const DataArtifactDescriptor* a = ctx.get_artifact("sha256:xyz");
-  CHECK(a != nullptr);
-  CHECK(a->data_schema_id == "DATA-IMG-CAL-001");
+  DataArtifactDescriptor a;
+  CHECK(ctx.get_artifact("sha256:xyz", &a));
+  CHECK(a.data_schema_id == "DATA-IMG-CAL-001");
+  // 不存在的 id → false（不返回内部指针）
+  CHECK(!ctx.get_artifact("sha256:nope", nullptr));
   // duplicate rejected
   CHECK(ctx.store_artifact(make_artifact()).failed());
   // invalid rejected

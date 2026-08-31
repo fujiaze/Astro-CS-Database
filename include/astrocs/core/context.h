@@ -129,21 +129,26 @@ Result<std::shared_ptr<ThreadBudget>> create_thread_budget(uint32_t budget) noex
 
 // RunContext: 模块访问服务的唯一通道 (CORE-005: 模块只能通过 context 访问服务)
 // 禁止 singleton/global scheduler (G2 checklist)
+// RT-003: 日志/metrics/artifact/checkpoint/cancel 全部线程安全；
+// 不暴露裸容器引用；不返回可能因并发插入失效的 map 指针。
 class RunContext {
  public:
   RunContext() = default;
   RunContext(const RunContext&) = delete;
   RunContext& operator=(const RunContext&) = delete;
 
-  // ── 日志 ──
+  // ── 日志（线程安全 sink；返回快照，不暴露内部引用） ──
   void log(LogLevel level, const std::string& component, const std::string& message);
-  const std::vector<std::string>& log_entries() const { return log_entries_; }
+  // 返回日志快照（拷贝）；线程安全
+  std::vector<std::string> log_entries() const;
 
-  // ── 指标 ──
-  void add_metric(const std::string& name, uint64_t value) { metrics_[name] = value; }
-  void record_tick(const Metrics& m) { ticks_.push_back(m); }
-  const std::map<std::string, uint64_t>& metrics() const { return metrics_; }
-  const std::vector<Metrics>& ticks() const { return ticks_; }
+  // ── 指标（线程安全） ──
+  void add_metric(const std::string& name, uint64_t value);
+  void record_tick(const Metrics& m);
+  // 返回 metrics 快照（拷贝）；线程安全
+  std::map<std::string, uint64_t> metrics() const;
+  // 返回 ticks 快照（拷贝）；线程安全
+  std::vector<Metrics> ticks() const;
 
   // ── 预算/线程租约 (Runtime 唯一授权) ──
   void set_thread_budget(uint32_t budget) { thread_budget_ = budget; }
@@ -155,19 +160,24 @@ class RunContext {
   }
 
   // ── artifact 存取 (模块经此读写; 禁止直接路径猜测) ──
+  // 线程安全；duplicate id 写 → 确定性失败（唯一 producer）
   Result<void> store_artifact(DataArtifactDescriptor desc);
-  const DataArtifactDescriptor* get_artifact(const std::string& id) const;
+  // 返回描述快照（拷贝）；id 不存在 → ok=false。不返回内部指针。
+  bool get_artifact(const std::string& id, DataArtifactDescriptor* out) const;
+  // 返回已存 id 快照（拷贝）；线程安全
   std::vector<std::string> artifact_ids() const;
 
-  // ── 取消 ──
+  // ── 取消（原子） ──
   CancellationToken& cancel_token() noexcept { return cancel_; }
   bool cancelled() const noexcept { return cancel_.cancelled(); }
 
-  // ── checkpoint (CORE-007 边界; 此处仅接口) ──
-  void mark_checkpoint(const std::string& node_id) { checkpoints_.push_back(node_id); }
-  const std::vector<std::string>& checkpoints() const { return checkpoints_; }
+  // ── checkpoint (顺序可追溯；线程安全) ──
+  void mark_checkpoint(const std::string& node_id);
+  // 返回 checkpoint 序列快照（拷贝）；线程安全
+  std::vector<std::string> checkpoints() const;
 
  private:
+  mutable std::mutex mu_;
   std::vector<std::string> log_entries_;
   std::map<std::string, uint64_t> metrics_;
   std::vector<Metrics> ticks_;
