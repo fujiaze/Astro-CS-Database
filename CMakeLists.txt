@@ -257,6 +257,16 @@ if(UNIX)
   endif()
 endif()
 
+# RT-005 可执行模块适配器: Phase1/2/3 session → IModule (core 不依赖会话库)
+add_library(astrocs_module_adapters STATIC lib/core/src/module_adapters.cpp)
+target_include_directories(astrocs_module_adapters PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+target_link_libraries(astrocs_module_adapters PUBLIC
+  astrocs_core astrocs_common astrocs_contracts
+  astrocs_phase1_session astrocs_phase2_session astrocs_phase3_session
+  astrocs_cpu)
+
 if(ASTROCS_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests/unit)
