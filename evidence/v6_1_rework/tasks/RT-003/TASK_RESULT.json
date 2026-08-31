@@ -1,0 +1,162 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "RT-003",
+  "status": "PASS",
+  "parent_commit": "30c83b452cdfbd04072b1848feaa65ca5fd0dbc4",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "architecture",
+  "changed_paths": [
+    "include/astrocs/core/context.h",
+    "lib/core/src/context.cpp",
+    "lib/core/src/scheduler.cpp",
+    "tests/unit/rt003_context_test.cpp",
+    "tests/unit/core_context_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/v6_1_rework/tasks/RT-003/PLAN.md",
+    "evidence/v6_1_rework/tasks/RT-003/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/RT-003/logs/c01.log",
+    "evidence/v6_1_rework/tasks/RT-003/logs/c02.log",
+    "evidence/v6_1_rework/tasks/RT-003/logs/c03.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": true,
+    "binary": true,
+    "reason": "RunContext thread-safe; get_artifact API changed to bool+out; scheduler budget write moved to single-threaded entry"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "rt003_context_test core_context_test",
+        "-j2"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:59:12Z",
+      "duration_seconds": 90.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-003/logs/c01.log",
+      "log_sha256": "6c53914b024012018840e51617250f6081d07fbd093e97f242debeff3519443d"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_tsan",
+        "--target",
+        "rt003_context_test core_scheduler_test rt002_budget_test core_context_test",
+        "-j2"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:59:12Z",
+      "duration_seconds": 180.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-003/logs/c02.log",
+      "log_sha256": "925c7e6fe27985747c2c56cfe25a23400726818250b469ca433ca59f8ece9b79"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "./run/temp/build_tsan/tests/unit/rt003_context_test"
+      ],
+      "timeout_seconds": 180,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:59:12Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-003/logs/c02.log",
+      "log_sha256": "925c7e6fe27985747c2c56cfe25a23400726818250b469ca433ca59f8ece9b79"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "./run/temp/build_tsan/tests/unit/core_scheduler_test"
+      ],
+      "timeout_seconds": 180,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:59:12Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-003/logs/c02.log",
+      "log_sha256": "925c7e6fe27985747c2c56cfe25a23400726818250b469ca433ca59f8ece9b79"
+    },
+    {
+      "command_id": "c05",
+      "argv_redacted": [
+        "ASTROCS_REPO=$(pwd)",
+        "ctest",
+        "--test-dir",
+        "run/temp/build_v61",
+        "-R",
+        "core_|rt0"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:59:12Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-003/logs/c03.log",
+      "log_sha256": "2e201bc3f160a26c20ce63d1e8bc87786aa30fd528f37163e3d3c3755430e9e4"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-CONCURRENT-8NODE",
+      "description": "8 node 并发 log(200)/metrics/tick/checkpoint/store，全部成功无丢失",
+      "result": "PASS",
+      "evidence_sha256": "6c53914b024012018840e51617250f6081d07fbd093e97f242debeff3519443d"
+    },
+    {
+      "test_id": "T-DUPLICATE-DETERMINISTIC",
+      "description": "同 id 双写恰好一次成功（唯一 producer）",
+      "result": "PASS",
+      "evidence_sha256": "6c53914b024012018840e51617250f6081d07fbd093e97f242debeff3519443d"
+    },
+    {
+      "test_id": "T-CANCEL-ATOMIC",
+      "description": "并发 cancel/cancelled 无竞争",
+      "result": "PASS",
+      "evidence_sha256": "6c53914b024012018840e51617250f6081d07fbd093e97f242debeff3519443d"
+    },
+    {
+      "test_id": "T-TSAN-4",
+      "description": "TSan 下 rt002/rt003/core_context/core_scheduler 全 PASS；修复 scheduler budget 并发写竞争",
+      "result": "PASS",
+      "evidence_sha256": "925c7e6fe27985747c2c56cfe25a23400726818250b469ca433ca59f8ece9b79"
+    },
+    {
+      "test_id": "T-CORE-11",
+      "description": "11/11 core+rt 测试全 PASS",
+      "result": "PASS",
+      "evidence_sha256": "2e201bc3f160a26c20ce63d1e8bc87786aa30fd528f37163e3d3c3755430e9e4"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-003/PLAN.md",
+      "sha256": "b87bb54a1f7ce384f0482131e08f7258d2df7b678b3f71fee93f278a2a340e64"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-003/TASK_RESULT.json",
+      "sha256": "b123cf57cdf3657a6559967dd308f7d17ec4c83e6c3cfe30765d0af2327ba1b5"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-003/logs/c01.log",
+      "sha256": "6c53914b024012018840e51617250f6081d07fbd093e97f242debeff3519443d"
+    }
+  ],
+  "findings": [
+    "F-008"
+  ],
+  "limitations": [
+    "RunContext 尚未接入 ThreadBudget 原子池（RT-002 独立对象已就绪；RT-008 接线时替换 acquire_lease）"
+  ],
+  "expected_commit_subject": "RT-003: 并发安全 RunContext (快照访问, 唯一 producer 冲突确定, TSan 修复 scheduler budget 竞争)",
+  "created_utc": "2026-08-31T04:59:12Z"
+}

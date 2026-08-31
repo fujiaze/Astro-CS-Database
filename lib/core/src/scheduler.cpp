@@ -56,6 +56,9 @@ Result<void> Scheduler::run(RunContext& ctx, std::vector<NodeStatus>* statuses) 
     auto b = build();
     if (b.failed()) return b;
   }
+  // RT-003: 在 worker 启动前（单线程阶段）一次性写入 thread budget，
+  // 避免多 worker 并发 set_thread_budget 数据竞争；节点执行只读 budget。
+  ctx.set_thread_budget(budget_);
   std::mutex mtx;
   std::condition_variable cv;
   std::map<std::string, NodeStatus> status = status_;
@@ -96,11 +99,10 @@ Result<void> Scheduler::run(RunContext& ctx, std::vector<NodeStatus>* statuses) 
         status[node_id] = NodeStatus::RUNNING;
         ++active;
       }
-      // 执行
+      // 执行（budget 已在 run 入口设置；此处只读，无写竞争）
       {
         auto it = nodes_.find(node_id);
         if (it != nodes_.end() && it->second.fn) {
-          ctx.set_thread_budget(budget_);
           auto r = it->second.fn(node_id, ctx);
           if (r.failed() && !failed.load()) {
             std::lock_guard<std::mutex> lk(mtx);
