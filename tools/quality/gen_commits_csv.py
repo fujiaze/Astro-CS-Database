@@ -59,11 +59,20 @@ def main(argv: list[str] | None = None) -> int:
     if args.first_parent is not None:
         lines = [line.strip() for line in args.first_parent.read_text(encoding="utf-8").splitlines() if line.strip()]
     else:
+        # V6.1 起点: 从 R0-001 提交开始扫描(排除 V6 旧历史中的同名任务前缀, 如旧 CPU-001/002)
         proc = git(repo, "log", "--first-parent", "--format=%H %s", "main")
         if proc.returncode != 0:
             print(f"COMMITS_GEN_FAIL: git log failed: {proc.stderr}", file=sys.stderr)
             return 1
         lines = proc.stdout.splitlines()
+        start = git(repo, "log", "--first-parent", "--format=%H", "main",
+                    "--grep=^R0-001:")
+        if start.returncode == 0 and start.stdout.strip():
+            start_commit = start.stdout.splitlines()[0].strip()
+            # 截取从 start_commit 开始(含)的子序列
+            idx = next((i for i, ln in enumerate(lines) if ln.startswith(start_commit)), -1)
+            if idx >= 0:
+                lines = lines[:idx + 1]
 
     # map: task_id -> commit record from git log (first match on subject prefix)
     commit_of: dict[str, dict] = {}
@@ -73,6 +82,13 @@ def main(argv: list[str] | None = None) -> int:
             continue
         commit, subject = parts
         import re
+        # 支持双任务合并前缀 "CPU-001/CPU-002:" → 同时映射两个任务
+        m = re.match(r"^([A-Z0-9]+-[0-9]{3})/([A-Z0-9]+-[0-9]{3}):", subject)
+        if m:
+            for tid in (m.group(1), m.group(2)):
+                if tid not in commit_of:
+                    commit_of[tid] = {"commit": commit, "subject": subject, "parent": ""}
+            continue
         m = re.match(SUBJECT_RE, subject)
         if m:
             task_id = m.group(1)

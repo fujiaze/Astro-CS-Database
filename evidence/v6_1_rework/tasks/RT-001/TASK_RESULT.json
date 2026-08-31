@@ -2,7 +2,7 @@
   "schema": "astrocs.task-result/v2",
   "task_id": "RT-001",
   "status": "PASS",
-  "parent_commit": "545bd4d47c13b8edcd1adfd3a27e0b42a8e9426f",
+  "parent_commit": "545bd4d47c13c024d11d491d5e487d2e0211d92f",
   "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
   "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
   "change_class": "architecture",
@@ -121,7 +121,7 @@
     },
     {
       "path": "evidence/v6_1_rework/tasks/RT-001/TASK_RESULT.json",
-      "sha256": "2d88090eb4373a806e17c7335e09331ca9a8116edc1103ed5702cf49953096fe"
+      "sha256": "3c95c4fbc0c42d685195fb60ad88321c8e3b3a2cdae352c49a1ddb7c457deacb"
     },
     {
       "path": "evidence/v6_1_rework/tasks/RT-001/logs/c01.log",
