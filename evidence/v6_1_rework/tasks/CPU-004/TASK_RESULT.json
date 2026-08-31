@@ -1,0 +1,140 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "CPU-004",
+  "status": "PASS",
+  "parent_commit": "065aa3400b9c98e7f7e384f93b0ca001e26a7b80",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "performance",
+  "changed_paths": [
+    "CMakeLists.txt",
+    "cli/CMakeLists.txt",
+    "cli/commands.cpp",
+    "cli/parser.cpp",
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/CPU-004/PLAN.md",
+    "evidence/v6_1_rework/tasks/CPU-004/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/CPU-004/logs/c01_routing.json",
+    "evidence/v6_1_rework/tasks/CPU-004/logs/c02_stale.log",
+    "evidence/v6_1_rework/tasks/CPU-004/logs/c03_unit_test.log",
+    "lib/backend_host/cpu_routing.cpp",
+    "lib/backend_host/cpu_routing.h",
+    "tests/unit/CMakeLists.txt",
+    "tests/unit/cpu004_routing_test.cpp"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": true,
+    "binary": true,
+    "reason": "新增逐 kernel 自适应路由(cpu_routing); CLI profile 校验升级 v2; show-effective 输出 kernel_routes"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "astrocs",
+        "config",
+        "show-effective",
+        "--config",
+        "<cfg>",
+        "--cpu-profile",
+        "<profile>",
+        "--json"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T01:20:00Z",
+      "duration_seconds": 0.5,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-004/logs/c01_routing.json",
+      "log_sha256": "3b5b39098bc0b9a7df8bfb46f33d2f40418033edb0d8114de397c6ef26abcd60"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "astrocs",
+        "config",
+        "show-effective",
+        "--config",
+        "<cfg>",
+        "--cpu-profile",
+        "<stale-profile>",
+        "--json"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 5,
+      "started_utc": "2026-09-01T01:20:10Z",
+      "duration_seconds": 0.3,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-004/logs/c02_stale.log",
+      "log_sha256": "9fa9e51eb695ec65da33f5e6ecae04f62a8bf53fc82457f8502abd9e342da29a"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "cpu004_routing_test"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T01:20:20Z",
+      "duration_seconds": 0.2,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-004/logs/c03_unit_test.log",
+      "log_sha256": "b7174c14dc67e0dde9b1c438047c6ca6a55e863aab52a4268843c1cffef855b8"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-ROUTING-CLI",
+      "description": "config show-effective --cpu-profile 输出 effective.kernel_routes(provider/workers/block/fallback/self_test_sha256)",
+      "result": "PASS",
+      "evidence_sha256": "3b5b39098bc0b9a7df8bfb46f33d2f40418033edb0d8114de397c6ef26abcd60"
+    },
+    {
+      "test_id": "T-STALE-REJECT",
+      "description": "篡改 quota_signature/logical_available/schema/commit → 拒绝(exit=5, 提示 rerun benchmark)",
+      "result": "PASS",
+      "evidence_sha256": "9fa9e51eb695ec65da33f5e6ecae04f62a8bf53fc82457f8502abd9e342da29a"
+    },
+    {
+      "test_id": "T-UNIT",
+      "description": "cpu004_routing_test 8 组断言: valid/stale×3/逐 kernel 路由/缺 kernel 保守/无 profile malformed/保守多线程; ctest 53/53 PASS",
+      "result": "PASS",
+      "evidence_sha256": "b7174c14dc67e0dde9b1c438047c6ca6a55e863aab52a4268843c1cffef855b8"
+    },
+    {
+      "test_id": "T-REGRESSION",
+      "description": "tests/cli/test_cli_protocol.py 10/10 PASS; 全量 ctest 53/53 PASS",
+      "result": "PASS",
+      "evidence_sha256": "b7174c14dc67e0dde9b1c438047c6ca6a55e863aab52a4268843c1cffef855b8"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-004/PLAN.md",
+      "sha256": "140a7b0d086326ee208fcee07d5954cc9b2623660a400f21d1bdda2ce3c52e71"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-004/TASK_RESULT.json",
+      "sha256": "a9c1e4844d5aa17ec0e4b1f23c4517fa43f34fa13d4055b941d370867c0b915f"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-004/logs/c01_routing.json",
+      "sha256": "3b5b39098bc0b9a7df8bfb46f33d2f40418033edb0d8114de397c6ef26abcd60"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-004/logs/c02_stale.log",
+      "sha256": "9fa9e51eb695ec65da33f5e6ecae04f62a8bf53fc82457f8502abd9e342da29a"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-004/logs/c03_unit_test.log",
+      "sha256": "b7174c14dc67e0dde9b1c438047c6ca6a55e863aab52a4268843c1cffef855b8"
+    }
+  ],
+  "findings": [
+    "F-019",
+    "F-020"
+  ],
+  "expected_commit_subject": "CPU-004: 逐 kernel 自适应路由 (v2 profile 机器一致性校验, unsupported 回 baseline 但多线程, kernel_routes 输出)",
+  "created_utc": "2026-09-01T01:30:00Z"
+}

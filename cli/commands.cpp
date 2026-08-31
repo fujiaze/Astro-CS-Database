@@ -27,6 +27,7 @@
 
 #include "hardware_inspect.h"
 #include "profile_gen.h"
+#include "cpu_routing.h"
 
 
 
@@ -143,6 +144,27 @@ int cmd_show_effective(const Parsed& p, astrocs::JsonlEmitter& ev) {
         out["cpu_profile"] = prof;
         bool ok = false;
         out["effective"]["cpu_profile_sha256"] = file_sha256(p.values.at("--cpu-profile"), &ok);
+        // CPU-004: 逐 kernel 路由摘要(provider 选择/workers/block/fallback reason/self-test hash)
+        const std::string hw_json = astrocs::backend_host::hardware_inspect_json_v1(
+            ASTROCS_VERSION_STRING);
+        nlohmann::json routes = nlohmann::json::object();
+        if (prof.contains("kernels") && prof["kernels"].is_object()) {
+            for (auto it = prof["kernels"].begin(); it != prof["kernels"].end(); ++it) {
+                const std::string kid = it.key();
+                astrocs::backend_host::KernelRoute kr;
+                astrocs::backend_host::route_kernel_from_profile(
+                    prof.dump(), kid, hw_json, &kr);
+                routes[kid] = {
+                    {"provider", kr.provider},
+                    {"workers", kr.workers},
+                    {"block", kr.block},
+                    {"fallback_reason", kr.fallback_reason.empty()
+                        ? nlohmann::json(nullptr) : nlohmann::json(kr.fallback_reason)},
+                    {"self_test_sha256", kr.self_test_sha256},
+                };
+            }
+        }
+        out["effective"]["kernel_routes"] = routes;
     }
     std::printf("%s\n", out.dump().c_str());
     return astrocs::OK;
