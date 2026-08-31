@@ -30,9 +30,6 @@
 #include <mutex>
 #include <thread>
 
-#if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
-#include <omp.h>
-#endif
 
 #define NOMINMAX
 #if defined(_WIN32) && defined(__has_include)
@@ -309,7 +306,7 @@ P2SamplerConfig p2_sampler_default_config(void) {
     c.background_neighbor_radius = 2;
     c.background_catalog_veto = 1;
     c.control_k_corr = kControlCorrDefault;
-    c.cpu_workers = 0;                  // 0=auto：默认构建 P2_ENABLE_OPENMP=OFF => 实际串行(=1)
+    c.cpu_workers = 1;                  // P2-001: 默认 1(串行 reference); 生产由 p2_session 传 lease
     return c;
 }
 
@@ -628,7 +625,7 @@ static int p2_sample_controls_impl(
 
     // 第一遍：每个 union cell 的 64 controls（hotfix：串行；
     // 保留 tile 级复用——每 cell 覆盖帧的 signal/support tile 只读一次，
-    // 消除 64× 重读；OpenMP 默认关闭，可用 -DP2_ENABLE_OPENMP=ON 显式开启）。
+    // 消除 64× 重读；P2-001: 并行由 std::thread + Runtime lease 驱动。
     const std::uint64_t n_union = coverage->n_union_cells;
     // 边界：714*64=45696，32 帧候选约 1.4M；reserve 前检查溢出
     if (n_union > (std::size_t)1e6) {
@@ -875,35 +872,41 @@ static int p2_sample_controls_impl(
         return 0;
     };
 
-    // worker 数：0=auto => hardware_concurrency；1 或非 OpenMP 构建 => 串行（默认行为不变）。
-    // 仅在 OpenMP 构建下计算/使用（避免 OFF 构建 unused 警告）。
-#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
-    const int workers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : (int)std::max(1u, std::thread::hardware_concurrency());
+    // worker 数：来自 Runtime lease(p2_session 传 cfg.cpu_workers=budget.max_workers)。
+    // 无 hardware_concurrency()(模块不得自行开线程); 1 => 串行 reference。
+    // P2-001: 生产默认 N-worker 并行(std::thread, 跨 Linux/MSVC 一致); OpenMP 条件已移除。
+    const int workers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
     const bool par = (workers > 1);
-#endif
 
-#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
     if (par) {
         std::atomic<int> pass1_fail{0};
-        #pragma omp parallel num_threads(workers)
-        {
-            SamplerReader rdr; rdr.init_own(hips_paths, n_frames);
-            #pragma omp for schedule(dynamic) reduction(+:sum_catalog_veto, sum_insufficient_support)
-            for (std::uint64_t c = 0; c < n_union; ++c) {
+        std::atomic<std::uint64_t> a_veto{0}, a_insuff{0};
+        std::atomic<std::uint64_t> next_c{0};
+        std::vector<std::thread> pool;
+        pool.reserve((std::size_t)workers);
+        for (int w = 0; w < workers; ++w) {
+            pool.emplace_back([&]() {
+                SamplerReader rdr; rdr.init_own(hips_paths, n_frames);
                 std::uint64_t cv = 0, ci = 0;
-                if (pass1_cell(c, rdr, cv, ci) != 0) { pass1_fail.store(1); continue; }
-                sum_catalog_veto += cv;
-                sum_insufficient_support += ci;
-            }
-            rdr.close_all();
+                for (;;) {
+                    const std::uint64_t c = next_c.fetch_add(1);
+                    if (c >= n_union) break;
+                    if (pass1_cell(c, rdr, cv, ci) != 0) { pass1_fail.store(1); break; }
+                }
+                a_veto.fetch_add(cv);
+                a_insuff.fetch_add(ci);
+                rdr.close_all();
+            });
         }
+        for (auto& th : pool) th.join();
+        sum_catalog_veto += a_veto.load();
+        sum_insufficient_support += a_insuff.load();
         if (pass1_fail.load()) {
             if (err && err_size) std::snprintf(err, err_size, "pass1 pairs resize failed (parallel)");
             for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
             return 1;
         }
     } else
-#endif
     {
         SamplerReader rdr; rdr.init_shared(sig.data(), sup.data(), n_frames);
         for (std::uint64_t c = 0; c < n_union; ++c) {

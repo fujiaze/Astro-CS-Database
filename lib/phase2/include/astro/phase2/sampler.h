@@ -53,7 +53,7 @@ typedef struct {
     double control_k_corr;                // 默认 1.4
     // CON-004 并行采样 worker 数（0=auto：omp_get_max_threads()/hardware_concurrency；1=串行默认）。
     // 仅 P2_ENABLE_OPENMP 且 >1 时启用并行第一遍；否则恒串行（默认行为不变）。
-    int cpu_workers;                      // 默认 0（=auto，但默认构建 P2_ENABLE_OPENMP=OFF => 实际串行）
+    int cpu_workers;                      // P2-001: 来自 Runtime lease(p2_session 传 budget.max_workers); 1=串行 reference
 } P2SamplerConfig;
 
 // sampler 默认配置单一来源（null cfg 时使用；显式 cfg 覆盖）。
