@@ -64,18 +64,27 @@ def check(repo: Path, commits_csv: Path, results_dir: Path) -> list[str]:
         rows = list(reader)
 
     seen_tasks: set[str] = set()
-    seen_commits: set[str] = set()
+    seen_commits: dict[str, list[str]] = {}
     for row in rows:
         task_id, result, parent = row["task_id"], row["result_commit"], row["parent_commit"]
         if task_id in seen_tasks:
             errors.append(f"duplicate task_id: {task_id}")
         seen_tasks.add(task_id)
+        # 同一 commit 可由双任务合并提交共享(如 "CPU-001/CPU-002:")，但必须 subject 声明两者
         if result in seen_commits:
-            errors.append(f"duplicate result_commit {result} for {task_id}（两个任务不可共享 commit）")
-        seen_commits.add(result)
+            owners = seen_commits[result]
+            subj = row["commit_subject"]
+            all_declared = all(f"{o}:" in subj or f"{o}/" in subj for o in owners + [task_id])
+            if not all_declared:
+                errors.append(f"duplicate result_commit {result} for {task_id}（未声明为合并提交）")
+        seen_commits.setdefault(result, []).append(task_id)
         if not is_40hex(result) or not is_40hex(parent):
             errors.append(f"{task_id}: bad sha (result={result} parent={parent})")
-        if not row["commit_subject"].startswith(task_id + ":"):
+        # subject 以 <TASK-ID>: 开头; 允许双任务合并前缀 "CPU-001/CPU-002:"
+        subj_ok = row["commit_subject"].startswith(task_id + ":") or \
+                  ("/" in row["commit_subject"].split(":")[0] and
+                   task_id + "/" in row["commit_subject"].split(":")[0] + "/")
+        if not subj_ok:
             errors.append(f"{task_id}: subject does not start with task id")
         # parent chain
         proc = git(repo, "rev-parse", result + "^")
