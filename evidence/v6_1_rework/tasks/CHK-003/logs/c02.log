@@ -1,0 +1,9 @@
+  - P2_ENABLE_OPENMP/P2_PARALLEL absent from root CMake (Phase2 production parallel default off)
+  - Phase2 sampler.cpp reads hardware_concurrency (must use Runtime lease)
+  - Phase2 upm.cpp reads hardware_concurrency (must use Runtime lease)
+  - Phase2 parallel path excludes MSVC (!defined(_MSC_VER))
+  - Phase2 sampler default build is serial (P2_ENABLE_OPENMP=OFF)
+  - Phase3 production resampler has serial nested y/x pixel loop
+  - Phase3 resampler bilinear has no parallel/lease wiring
+  - resource gate (evaluate_gate/fast_fail_first10s) has no production caller
+SERIAL_HEAVY_FAIL
