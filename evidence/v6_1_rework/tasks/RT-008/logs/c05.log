@@ -1,0 +1,149 @@
+................./home/lighthouse/Astro CS Database/tests/cli/test_cli_protocol.py:291: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/astrocs_mf_ej5fjgjg/astrocs_run_b06428545765.json' mode='r' encoding='utf-8'>
+  doc = json.loads(open(mpath, encoding="utf-8").read())
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_cli_protocol.py:297: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/astrocs_mf_ej5fjgjg/cfg.json'>
+  hashlib.sha256(open(self.cfg, "rb").read()).hexdigest())
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_cli_protocol.py:313: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/astrocs_mf_ej5fjgjg/cfg.json'>
+  "config_sha256": _h.sha256(open(self.cfg, "rb").read()).hexdigest(),
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_cli_protocol.py:366: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/astrocs_mf_ej5fjgjg/astrocs_run_b06438d39f24.json' mode='r' encoding='utf-8'>
+  doc = json.loads(open(mfe[-1]["path"], encoding="utf-8").read())
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase1_inprocess.py:60: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p1int__7l2cq7z/cfg.json' mode='w' encoding='UTF-8'>
+  json.dump({
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase1_inprocess.py:92: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p1int__7l2cq7z/out/astrocs_run_b06f3e0d7ffa.json' mode='r' encoding='utf-8'>
+  m = json.load(open(mpath, encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+../home/lighthouse/Astro CS Database/tests/cli/test_phase1_inprocess.py:119: ResourceWarning: unclosed file <_io.TextIOWrapper name='/proc/2427687/task/2427687/children' mode='r' encoding='UTF-8'>
+  children += open(cf).read().split()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/case.py:606: ResourceWarning: unclosed file <_io.BufferedReader name=3>
+  if method() is not None:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase1_inprocess.py:127: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p1int__7l2cq7z/missing.json' mode='w' encoding='UTF-8'>
+  json.dump({"input_lights": ["/nonexistent/x.fits"], "output_dir": self.out},
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase1_inprocess.py:133: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p1int__7l2cq7z/badjson.json' mode='w' encoding='UTF-8'>
+  open(bad2, "w").write("{not json")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase1_inprocess.py:140: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p1int__7l2cq7z/cfg3.json' mode='w' encoding='UTF-8'>
+  json.dump({"input_lights": [os.path.join(self.data, "light_1.fits")],
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+../home/lighthouse/Astro CS Database/tests/cli/test_phase2_inprocess.py:56: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2int_hfqehxu0/cfg.json' mode='w' encoding='UTF-8'>
+  json.dump({
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase2_inprocess.py:81: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2int_hfqehxu0/out/astrocs_run_b0797ada6190.json' mode='r' encoding='utf-8'>
+  m = json.load(open(mpath, encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+../home/lighthouse/Astro CS Database/tests/cli/test_phase2_inprocess.py:105: ResourceWarning: unclosed file <_io.TextIOWrapper name='/proc/2428140/task/2428140/children' mode='r' encoding='UTF-8'>
+  children += open(cf).read().split()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/case.py:606: ResourceWarning: unclosed file <_io.BufferedReader name=3>
+  if method() is not None:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase2_inprocess.py:113: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2int_hfqehxu0/badpath.json' mode='w' encoding='UTF-8'>
+  json.dump({"hips_paths": ["/nonexistent/does_not_exist.hips"],
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase2_inprocess.py:118: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2int_hfqehxu0/badjson.json' mode='w' encoding='UTF-8'>
+  open(bad2, "w").write("{oops")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase2_inprocess.py:123: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2int_hfqehxu0/nodir.json' mode='w' encoding='UTF-8'>
+  json.dump({"hips_paths": [os.path.join(self.data, "F1.hips")]}, open(bad3, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+../home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:58: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/cfg.json' mode='w' encoding='UTF-8'>
+  json.dump({
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:88: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/out/astrocs_run_b083e59d3e65.json' mode='r' encoding='utf-8'>
+  m = json.load(open(mpath, encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:99: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/cfg.json' mode='r' encoding='UTF-8'>
+  d = json.load(open(self.cfg)); d["projection"] = "SIN"
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:100: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/bad.json' mode='w' encoding='UTF-8'>
+  json.dump(d, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:108: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/cfg.json' mode='r' encoding='UTF-8'>
+  d = json.load(open(self.cfg)); d["center"]["dec_deg"] = 2.0
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:109: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/bad.json' mode='w' encoding='UTF-8'>
+  json.dump(d, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:116: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/cfg.json' mode='r' encoding='UTF-8'>
+  d = json.load(open(self.cfg)); d["width_px"] = 0
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:117: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/bad.json' mode='w' encoding='UTF-8'>
+  json.dump(d, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:120: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/cfg.json' mode='r' encoding='UTF-8'>
+  d = json.load(open(self.cfg)); d["scale_deg_per_px"] = 0
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:121: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/bad.json' mode='w' encoding='UTF-8'>
+  json.dump(d, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:129: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/cfg.json' mode='r' encoding='UTF-8'>
+  d = json.load(open(self.cfg)); d["sampler"] = samp
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:132: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/s_nearest.json' mode='w' encoding='UTF-8'>
+  json.dump(d, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:132: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/s_bilinear.json' mode='w' encoding='UTF-8'>
+  json.dump(d, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+../home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:151: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/run7/rcfg.json' mode='w' encoding='UTF-8'>
+  json.dump({
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:169: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/run7/astrocs_run_b083e85b8e0f.json' mode='r' encoding='utf-8'>
+  m = json.load(open(mf["path"], encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:184: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/p3cli_7ycktzw4/run8/stable.fits'>
+  sha = hashlib.sha256(open(stable, "rb").read()).hexdigest()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:187: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/run8/astrocs_run_prior.json' mode='w' encoding='UTF-8'>
+  json.dump({"schema_version": "1", "kind": "astrocs_run_manifest",
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase3_inprocess.py:196: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_7ycktzw4/run8/rcfg.json' mode='w' encoding='UTF-8'>
+  json.dump({
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase123_pipeline.py:104: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/syn009_vtqmp5rh/cfg_out1.json' mode='w' encoding='UTF-8'>
+  json.dump(doc, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase123_pipeline.py:125: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/syn009_vtqmp5rh/out1/astrocs_run_b08df92551fa.json' mode='r' encoding='utf-8'>
+  man = json.load(open(m["path"], encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase123_pipeline.py:133: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/syn009_vtqmp5rh/cfg_p1cal.json' mode='w' encoding='UTF-8'>
+  json.dump({"input_lights": [os.path.join(self.p1data, "light_1.fits"),
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase123_pipeline.py:104: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/syn009_vtqmp5rh/cfg_out2.json' mode='w' encoding='UTF-8'>
+  json.dump(doc, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase123_pipeline.py:104: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/syn009_vtqmp5rh/cfg_out3.json' mode='w' encoding='UTF-8'>
+  json.dump(doc, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase123_pipeline.py:177: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/syn009_vtqmp5rh/out3/astrocs_run_b08e36a97802.json' mode='r' encoding='utf-8'>
+  man = json.load(open(m["path"], encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase123_pipeline.py:104: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/syn009_vtqmp5rh/cfg_out23.json' mode='w' encoding='UTF-8'>
+  json.dump(doc, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase123_pipeline.py:197: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/syn009_vtqmp5rh/out23/astrocs_run_b08e45df221d.json' mode='r' encoding='utf-8'>
+  man = json.load(open(m["path"], encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase123_pipeline.py:104: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/syn009_vtqmp5rh/cfg_outcancel.json' mode='w' encoding='UTF-8'>
+  json.dump(doc, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/case.py:606: ResourceWarning: unclosed file <_io.BufferedReader name=3>
+  if method() is not None:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./home/lighthouse/Astro CS Database/tests/cli/test_phase123_pipeline.py:104: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/syn009_vtqmp5rh/cfg_outhm.json' mode='w' encoding='UTF-8'>
+  json.dump(doc, open(cfg, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/cli/test_phase123_pipeline.py:233: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/syn009_vtqmp5rh/outhm/astrocs_run_b08eaef6aa1e.json' mode='r' encoding='utf-8'>
+  m = json.load(open(man["path"], encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+.
+----------------------------------------------------------------------
+Ran 44 tests in 183.462s
+
+OK

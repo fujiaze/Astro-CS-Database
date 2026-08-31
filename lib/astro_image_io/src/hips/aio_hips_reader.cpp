@@ -12,10 +12,14 @@
 #include <cstring>
 #include <fstream>
 #include <map>
+#include <mutex>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
+
+// RT-008: cfitsio 全局表并行访问非线程安全 → 进程级串行化（共享单例，见头文件）
+#include "aio_cfitsio_mutex.h"
 
 namespace {
 
@@ -84,6 +88,7 @@ struct AioHipsDataset {
 template <typename T>
 static int read_tile_t(AioHipsDataset* d, uint64_t ipix, T* out) {
     if (!d || !out) return -1;
+    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
     std::string p = tile_path(d->dir, d->hips_order, ipix, ".fits");
     int status = 0;
     fitsfile* fptr = nullptr;
@@ -132,6 +137,7 @@ namespace {
 
 // 从 MOC FITS 提取叶级 ipix (order == hips_order 的 UNIQ -> ipix)
 bool load_tiles_from_moc(AioHipsDataset* d) {
+    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
     std::string moc = d->dir + "/Moc.fits";
     int status = 0;
     fitsfile* fptr = nullptr;
@@ -284,6 +290,7 @@ int aio_hips_read_leaf_f64(AioHipsDataset* d, uint64_t leaf_ipix, double* out) {
 int aio_hips_read_tile_datasum(AioHipsDataset* d, uint64_t tile_ipix,
                                char* out, int out_size) {
     if (!d || !out || out_size <= 0) return -1;
+    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
     std::string p = tile_path(d->dir, d->hips_order, tile_ipix, ".fits");
     int status = 0;
     fitsfile* fptr = nullptr;

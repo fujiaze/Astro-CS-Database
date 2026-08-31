@@ -87,8 +87,14 @@ def main(argv: list[str] | None = None) -> int:
 
     errors: list[str] = []
 
-    cli_main = read_text(repo / "cli" / "main.cpp")
-    cli_includes = re.findall(r'#include\s*[<"]([^>"]+)[">]', cli_main)
+    # RT-008: 扫描整个 cli/ 目录（main.cpp + 拆分后的 parser/commands 等），
+    # 保证 CLI 整体不 include/调用生产内部符号（不只 main.cpp）
+    cli_dir = repo / "cli"
+    cli_sources = sorted(cli_dir.glob("*.cpp")) if cli_dir.is_dir() else []
+    if not cli_sources:
+        cli_sources = [repo / "cli" / "main.cpp"]
+    cli_all_text = "\n".join(read_text(p) for p in cli_sources)
+    cli_includes = re.findall(r'#include\s*[<"]([^>"]+)[">]', cli_all_text)
 
     # 1) CLI 禁止 include 生产内部头
     for banned in BANNED_CLI_INCLUDES:
@@ -97,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # 2) CLI 禁止直接调用 session/科学/IO 内部符号
     for pattern in BANNED_CLI_SYMBOLS:
-        hits = re.findall(pattern, cli_main)
+        hits = re.findall(pattern, cli_all_text)
         if hits:
             errors.append(f"CLI direct call to banned symbol {pattern}: {sorted(set(hits))[:5]}")
 

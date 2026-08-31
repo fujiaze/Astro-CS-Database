@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include <map>
+#include <mutex>
 #include <utility>
 
 namespace astrocs::core {
@@ -59,7 +60,7 @@ class RuntimeImpl final : public Runtime {
       spec.min_workers = 1;
       spec.max_workers = budget_;
       spec.estimated_memory_bytes = 0;
-      // 每个节点执行: 创建模块实例 → execute（模块内部走 session/lease）
+      // 每个节点执行: 创建模块实例 → plan(config) → execute（模块内部走 session/lease）
       spec.fn = [this, n](const std::string& node_id, RunContext& ctx) -> Result<void> {
         auto m = registry_.create(n.module_id);
         if (m.failed()) {
@@ -69,10 +70,23 @@ class RuntimeImpl final : public Runtime {
         }
         ctx.log(LogLevel::INFO, "runtime",
                 "execute node " + node_id + " module " + n.module_id);
+        // RT-008: plan 先下发 config（SessionModule 存 config 供 execute 用）
+        auto pl = m.value()->plan(node_id, n.config_json);
+        if (pl.failed()) {
+          return Result<void>::fail(Error(ErrorDomain::DATA,
+              "node " + node_id + ": plan failed: " + pl.error().message()));
+        }
         auto r = m.value()->execute(ctx);
+        // RT-008: 捕获节点 manifest（成功/失败都捕获；失败时含 error_kind 供 CLI 映射）
+        auto man = m.value()->last_manifest();
+        if (man.ok()) {
+          std::lock_guard<std::mutex> lock(man_mu_);
+          node_manifests_.push_back({node_id, man.value()});
+        }
         if (r.failed()) {
           ctx.log(LogLevel::ERROR, "runtime",
                   "node " + node_id + " failed: " + r.error().message());
+          return r;
         }
         return r;
       };
@@ -113,6 +127,12 @@ class RuntimeImpl final : public Runtime {
     return statuses_;
   }
 
+  // RT-008: 返回每个节点 execute 后捕获的 session manifest
+  std::vector<std::pair<std::string, std::string>> node_manifests() const override {
+    std::lock_guard<std::mutex> lock(man_mu_);
+    return node_manifests_;
+  }
+
   void set_registry(ModuleRegistry* reg) { registry_ = *reg; }
 
  private:
@@ -121,6 +141,8 @@ class RuntimeImpl final : public Runtime {
   std::unique_ptr<Scheduler> scheduler_;
   ModuleRegistry registry_;
   std::vector<std::pair<std::string, NodeStatus>> statuses_;
+  std::vector<std::pair<std::string, std::string>> node_manifests_;
+  mutable std::mutex man_mu_;
   std::atomic<bool> cancelled_{false};
   bool loaded_ = false;
 };

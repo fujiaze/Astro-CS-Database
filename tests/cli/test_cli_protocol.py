@@ -66,7 +66,7 @@ class TestGolden(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         doc = json.loads(lines[0])
         self.assertEqual(doc["name"], "astrocs")
-        self.assertRegex(doc["version"], r"^0\.9\.0-alpha\.1\+g[0-9a-f]{12}(\.dirty)?$")
+        self.assertRegex(doc["version"], r"^0\.10\.0-alpha\.2\+g[0-9a-f]{12}(\.dirty)?$")
 
     # ── parser 拒绝面(全部 → 2, 诊断在 stderr) ──
     def test_03_parser_rejects(self):

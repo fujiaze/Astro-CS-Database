@@ -233,8 +233,12 @@ target_include_directories(astrocs_phase3_session PUBLIC
 target_link_libraries(astrocs_phase3_session PUBLIC astrocs_contracts astrocs_aio astrocs_common)
 
 # app/astrocs_cli: 薄 CLI (显式链接各库; 无 GLOB; ACR 不链)
+# RT-008: main.cpp 仅入口壳; parser/commands/runtime_client 为独立编译单元
 add_executable(astrocs
-  cli/main.cpp)
+  cli/main.cpp
+  cli/parser.cpp
+  cli/commands.cpp
+  cli/runtime_client.cpp)
 target_include_directories(astrocs PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/cli
   ${CMAKE_CURRENT_BINARY_DIR}
@@ -247,7 +251,7 @@ target_include_directories(astrocs PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/healpix
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase2/include)
 target_link_libraries(astrocs PRIVATE
-  astrocs_contracts astrocs_core astrocs_common astrocs_cfitsio astrocs_aio astrocs_hips
+  astrocs_contracts astrocs_core astrocs_cli_runtime astrocs_common astrocs_cfitsio astrocs_aio astrocs_hips
   astrocs_calibration astrocs_phase2 astrocs_drizzle astrocs_cpu
   astrocs_phase1_session astrocs_phase2_session astrocs_phase3_session
   ${CMAKE_DL_LIBS} m z)
@@ -267,6 +271,15 @@ target_link_libraries(astrocs_module_adapters PUBLIC
   astrocs_core astrocs_common astrocs_contracts
   astrocs_phase1_session astrocs_phase2_session astrocs_phase3_session
   astrocs_cpu)
+
+# RT-008 CLI Runtime client: CLI 经公开 Runtime API 驱动 pipeline（不 include session/IO 内部头）
+add_library(astrocs_cli_runtime STATIC cli/runtime_client.cpp)
+target_include_directories(astrocs_cli_runtime PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+target_link_libraries(astrocs_cli_runtime PUBLIC
+  astrocs_core astrocs_module_adapters)
 
 if(ASTROCS_BUILD_TESTS)
   enable_testing()

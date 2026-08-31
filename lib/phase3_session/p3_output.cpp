@@ -44,6 +44,7 @@
 #include "aio_fits.h"
 #include "astro_image_io.h"
 #include "fitsio.h"
+#include "../astro_image_io/src/aio_cfitsio_mutex.h"
 #include "sha256.h"
 
 #include <vector>
@@ -96,6 +97,8 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
     if (!signal || !coverage || !wcs || !output_path || width < 1 || height < 1)
         return P3_OUT_PARAM;
     if (result) std::memset(result, 0, sizeof(*result));
+    // RT-008: cfitsio 全局表非线程安全 → 进程级串行化（覆盖内部 verify 重开）
+    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
 
     std::string tmp;
     make_temp_path(output_path, &tmp);

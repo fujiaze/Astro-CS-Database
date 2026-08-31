@@ -1,0 +1,15 @@
+[  1%] Built target astrocs_common
+[ 44%] Built target astrocs_cfitsio
+[ 50%] Built target astrocs_core
+[ 57%] Built target astrocs_cpu
+[ 61%] Built target astrocs_aio
+[ 69%] Built target astrocs_hips
+[ 72%] Built target astrocs_phase3_session
+[ 76%] Built target astrocs_calibration
+[ 83%] Built target astrocs_phase2
+[ 84%] Built target astrocs_phase1_session
+[ 91%] Built target astrocs_drizzle
+[ 93%] Built target astrocs_phase2_session
+[ 94%] Built target astrocs_module_adapters
+[ 96%] Built target astrocs_cli_runtime
+[100%] Built target astrocs

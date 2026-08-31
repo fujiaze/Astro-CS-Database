@@ -4,6 +4,9 @@
     "lib/core/src/artifact.cpp": {
       "kind": "lib"
     },
+    "lib/core/src/artifact_store.cpp": {
+      "kind": "lib"
+    },
     "lib/core/src/module.cpp": {
       "kind": "lib"
     },
@@ -11,6 +14,9 @@
       "kind": "lib"
     },
     "lib/core/src/context.cpp": {
+      "kind": "lib"
+    },
+    "lib/core/src/runtime.cpp": {
       "kind": "lib"
     },
     "lib/core/src/scheduler.cpp": {
@@ -379,13 +385,28 @@
     "lib/phase3_session/p3_resample.cpp": {
       "kind": "lib"
     },
+    "lib/core/src/module_adapters.cpp": {
+      "kind": "lib"
+    },
+    "cli/runtime_client.cpp": {
+      "kind": "cli"
+    },
     "cli/main.cpp": {
+      "kind": "cli"
+    },
+    "cli/parser.cpp": {
+      "kind": "cli"
+    },
+    "cli/commands.cpp": {
       "kind": "cli"
     }
   },
   "edges": {
     "lib/core/src/artifact.cpp": [
       "include/astrocs/core/artifact.h"
+    ],
+    "lib/core/src/artifact_store.cpp": [
+      "include/astrocs/core/artifact_store.h"
     ],
     "lib/core/src/module.cpp": [
       "include/astrocs/core/module.h"
@@ -395,6 +416,9 @@
     ],
     "lib/core/src/context.cpp": [
       "include/astrocs/core/context.h"
+    ],
+    "lib/core/src/runtime.cpp": [
+      "include/astrocs/core/runtime.h"
     ],
     "lib/core/src/scheduler.cpp": [
       "include/astrocs/core/scheduler.h"
@@ -604,6 +628,7 @@
     "lib/astro_image_io/third_party/cfitsio/zcompress.c": [],
     "lib/astro_image_io/third_party/cfitsio/zuncompress.c": [],
     "lib/astro_image_io/src/aio_fits.cpp": [
+      "lib/astro_image_io/src/aio_cfitsio_mutex.h",
       "lib/astro_image_io/src/aio_fits.h",
       "lib/astro_image_io/src/aio_log.h",
       "lib/astro_image_io/src/aio_util.h",
@@ -634,6 +659,7 @@
     ],
     "lib/astro_image_io/src/hips/aio_hips_reader.cpp": [
       "lib/astro_image_io/include/aio_hips_reader.h",
+      "lib/astro_image_io/src/aio_cfitsio_mutex.h",
       "lib/astro_image_io/third_party/cfitsio/fitsio.h",
       "lib/common/healpix/healpix_core.h",
       "lib/healpix_db/archive/legacy/healpix_stack/healpix_core.h",
@@ -856,6 +882,7 @@
     ],
     "lib/phase3_session/p3_output.cpp": [
       "lib/astro_image_io/include/astro_image_io.h",
+      "lib/astro_image_io/src/aio_cfitsio_mutex.h",
       "lib/astro_image_io/src/aio_fits.h",
       "lib/astro_image_io/third_party/cfitsio/fitsio.h",
       "lib/astro_image_io/third_party/cfitsio/win_compat/unistd.h",
@@ -870,25 +897,39 @@
       "lib/phase3_session/hips_properties.h",
       "lib/phase3_session/p3_resample.h"
     ],
+    "lib/core/src/module_adapters.cpp": [
+      "include/astrocs/common_abi_v1.h",
+      "include/astrocs/core/context.h",
+      "include/astrocs/core/module_adapters.h"
+    ],
+    "cli/runtime_client.cpp": [
+      "cli/runtime_client.h",
+      "include/astrocs/core/context.h"
+    ],
     "cli/main.cpp": [
       "cli/cancel_token.h",
+      "cli/cli_common.h",
+      "cli/exit_codes.h",
+      "cli/jsonl.h"
+    ],
+    "cli/parser.cpp": [
+      "cli/cli_common.h",
+      "cli/exit_codes.h",
+      "lib/common/crypto/sha256.h"
+    ],
+    "cli/commands.cpp": [
+      "cli/cancel_token.h",
+      "cli/cli_common.h",
       "cli/exit_codes.h",
       "cli/jsonl.h",
       "cli/monitor.h",
       "cli/resource_events.h",
-      "lib/astro_image_io/include/aio_pipeline.h",
-      "lib/astro_image_io/include/astro_image_io.h",
-      "lib/astro_image_io/src/aio_fits.h",
-      "lib/astro_image_io/third_party/cfitsio/fitsio.h",
+      "cli/runtime_client.h",
       "lib/backend_host/backend_loader.h",
       "lib/backend_host/hardware_inspect.h",
       "lib/backend_host/profile_gen.h",
-      "lib/common/crypto/sha256.h",
-      "lib/healpix_db/healpix_drizzle/hp_drizzle_api.h",
-      "lib/phase1_session/p1_session.h",
-      "lib/phase2_session/p2_session.h",
-      "lib/phase3_session/p3_session.h"
+      "lib/common/crypto/sha256.h"
     ]
   },
-  "linked_symbol_count": 3712
+  "linked_symbol_count": 3617
 }

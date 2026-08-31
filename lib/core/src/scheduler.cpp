@@ -81,6 +81,7 @@ Result<void> Scheduler::run(
   std::atomic<uint64_t> mem_used{0};
   std::string fail_node;
   std::string fail_msg;
+  ErrorDomain fail_domain = ErrorDomain::INTERNAL;  // RT-008: 保留节点原始错误域
   std::set<std::string> blocked;  // 失败节点的传递依赖（SKIPPED）
 
   auto compute_blocked = [&](const std::string& root) {
@@ -151,6 +152,7 @@ Result<void> Scheduler::run(
             std::lock_guard<std::mutex> lk(mtx);
             fail_node = node_id;
             fail_msg = r.error().message();
+            fail_domain = r.error().domain();  // RT-008: 保留原始域(IO/DATA/...)
             compute_blocked(node_id);
           }
         }
@@ -198,7 +200,7 @@ Result<void> Scheduler::run(
         "node " + fail_node + " cancelled: " + fail_msg));
   }
   if (!fail_node.empty()) {
-    return Result<void>::fail(Error(ErrorDomain::BACKEND,
+    return Result<void>::fail(Error(fail_domain,
         "node " + fail_node + " failed: " + fail_msg));
   }
   return Result<void>::success();

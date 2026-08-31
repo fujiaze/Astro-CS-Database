@@ -75,6 +75,14 @@ target_include_directories(rt007_artifact_store_test PRIVATE
 target_link_libraries(rt007_artifact_store_test PRIVATE astrocs_core)
 add_test(NAME rt007_artifact_store COMMAND rt007_artifact_store_test)
 
+add_executable(rt008_runtime_client_test rt008_runtime_client_test.cpp)
+target_include_directories(rt008_runtime_client_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
+target_link_libraries(rt008_runtime_client_test PRIVATE astrocs_cli_runtime)
+add_test(NAME rt008_runtime_client COMMAND rt008_runtime_client_test)
+
 add_executable(io_adapter_test io_adapter_test.cpp)
 target_include_directories(io_adapter_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(io_adapter_test PRIVATE astrocs_io)
@@ -274,3 +282,4 @@ target_include_directories(p3_assembly_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common/healpix)
 target_link_libraries(p3_assembly_test PRIVATE astrocs_phase3_session astrocs_hips astrocs_aio astrocs_common)
 add_test(NAME p3_assembly COMMAND p3_assembly_test)
+
