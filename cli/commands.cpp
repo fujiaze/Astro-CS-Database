@@ -32,6 +32,7 @@
 
 
 #include "backend_loader.h"
+#include "resource_recorder.h"
 
 extern "C" {
 int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
@@ -555,19 +556,26 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
 
     // MON-002: 背景采样线程(进程 CPU/RSS 在 run 期间累计), 000 后 join; 禁硬编码。
+    // MON-001: 记录器(样本/阶段分段/worker balance)随采样线程写入。
     std::atomic<bool> mon_stop{false};
-    std::thread mon_thread([&proc_mon, &mon_stop]() {
+    astrocs::ResourceRecorder recorder(0.25);
+    std::thread mon_thread([&proc_mon, &recorder, &mon_stop]() {
         while (!mon_stop.load()) {
             proc_mon.tick();
+            recorder.record(proc_mon.last_sample());
             std::this_thread::sleep_for(std::chrono::milliseconds(250));
         }
     });
 
     // RT-008: 通过 Runtime 执行全部 phase(单次调度; IR 由 runtime_client 构建)。
+    recorder.set_stage(astrocs::ResStage::Active);
     for (int phase : phases) ev.stage(("run_phase" + std::to_string(phase)).c_str(), true);
     {
         const uint32_t budget = cli_affinity_cpu_count();
+        // MON-001: active 阶段注入实际 worker 租约数(available 核; 禁硬编码)
+        recorder.set_workers(budget, budget);
         const int rrc = astrocs::cli::run_pipeline(phases, cfg_text, budget, &fail_reason);
+        recorder.set_stage(astrocs::ResStage::Flush);
         if (rrc != astrocs::OK && fail_reason.empty()) {
             fail_reason = "runtime pipeline failed (exit " + std::to_string(rrc) + ")";
         }
@@ -613,6 +621,16 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
     for (int phase : phases) ev.stage(("run_phase" + std::to_string(phase)).c_str(), false);
     mon_stop.store(true);
     mon_thread.join();
+    // MON-001: 自动生成 resource_samples.csv / resource_summary.json / worker_balance.csv
+    // (无需操作者额外脚本; 开销<2% 由 summary.sample_overhead_ms 度量)。
+    {
+        const astrocs::ProcessMonitor::Summary mon_s = proc_mon.summary();
+        const bool wrote = recorder.write_all(out_dir, mon_s.wall_seconds, mon_s.sample_overhead_ms);
+        if (!wrote) {
+            std::fprintf(stderr, "astrocs: warning: resource files not written to %s\n",
+                         sanitize(out_dir).c_str());
+        }
+    }
 
     // 取消检查(任一阶段取消)
     if (astrocs::is_cancelled()) {

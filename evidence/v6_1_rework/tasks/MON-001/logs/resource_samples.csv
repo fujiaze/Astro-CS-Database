@@ -1,0 +1,2 @@
+elapsed_seconds,stage,cpu_pct,system_cpu_pct,active_workers,runnable_workers,rss_bytes,pss_bytes,commit_bytes,page_faults,read_bytes,write_bytes,queue_depth,lock_wait_ns,progress
+0.001,active,0.00,0.00,2,2,6197248,0,104792064,0,0,0,0,0,0.000

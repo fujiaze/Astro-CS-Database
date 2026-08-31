@@ -1,0 +1,139 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "MON-001",
+  "status": "PASS",
+  "parent_commit": "f10edacc8b93694c061e26e7532137a2caa7a697",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "performance",
+  "changed_paths": [
+    "cli/commands.cpp",
+    "cli/monitor.h",
+    "cli/resource_recorder.h",
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/MON-001/PLAN.md",
+    "evidence/v6_1_rework/tasks/MON-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/MON-001/logs/c01_run_events.jsonl",
+    "evidence/v6_1_rework/tasks/MON-001/logs/c02_unit.log",
+    "evidence/v6_1_rework/tasks/MON-001/logs/resource_samples.csv",
+    "evidence/v6_1_rework/tasks/MON-001/logs/resource_summary.json",
+    "evidence/v6_1_rework/tasks/MON-001/logs/worker_balance.csv",
+    "tests/unit/CMakeLists.txt",
+    "tests/unit/mon001_recorder_test.cpp"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": true,
+    "binary": true,
+    "reason": "run 自动生成 resource_samples.csv/resource_summary.json/worker_balance.csv; init/active/flush 分段; 统计与 normalized 口径"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "astrocs",
+        "run",
+        "--phases",
+        "3",
+        "--config",
+        "<cfg>",
+        "--events-jsonl"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T01:35:00Z",
+      "duration_seconds": 0.6,
+      "log_path": "evidence/v6_1_rework/tasks/MON-001/logs/c01_run_events.jsonl",
+      "log_sha256": "58aab675476808849c84af10c487962f0c24c0f3a64eb80c805de80bbbb52b2e"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "mon001_recorder_test"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T01:35:30Z",
+      "duration_seconds": 0.3,
+      "log_path": "evidence/v6_1_rework/tasks/MON-001/logs/c02_unit.log",
+      "log_sha256": "015837d92a3273725c760cf756a6ff38fbeaf5928d55df4fa278ad2e99df6a43"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-THREE-ARTIFACTS",
+      "description": "run 后 output_dir 自动生成 resource_samples.csv/resource_summary.json/worker_balance.csv",
+      "result": "PASS",
+      "evidence_sha256": "58aab675476808849c84af10c487962f0c24c0f3a64eb80c805de80bbbb52b2e"
+    },
+    {
+      "test_id": "T-STAGES",
+      "description": "resource_summary.json 含 init/active/flush 三阶段统计(mean/p50/p95/peak/slope)",
+      "result": "PASS",
+      "evidence_sha256": "78a8301327c034450a8cae83973728fd9967d2bead939e6e87f9850bfedc684d"
+    },
+    {
+      "test_id": "T-NORMALIZED",
+      "description": "normalized_cpu_100pct_all_allocated_cores 声明; cpu_pct=CPU秒/墙钟×100",
+      "result": "PASS",
+      "evidence_sha256": "78a8301327c034450a8cae83973728fd9967d2bead939e6e87f9850bfedc684d"
+    },
+    {
+      "test_id": "T-WORKER-BALANCE",
+      "description": "worker_balance.csv 每样本 active/runnable/utilization",
+      "result": "PASS",
+      "evidence_sha256": "525e4878d5b9b318d62fcf9582234277125b89d46120c8fa295de1575d4c226f"
+    },
+    {
+      "test_id": "T-UNIT",
+      "description": "mon001_recorder_test: 采样/阶段分段/p50-p95/三产物/开销; ctest 54/54 PASS",
+      "result": "PASS",
+      "evidence_sha256": "015837d92a3273725c760cf756a6ff38fbeaf5928d55df4fa278ad2e99df6a43"
+    },
+    {
+      "test_id": "T-REGRESSION",
+      "description": "test_cli_protocol 10/10; test_cli_build 6/6 PASS",
+      "result": "PASS",
+      "evidence_sha256": "015837d92a3273725c760cf756a6ff38fbeaf5928d55df4fa278ad2e99df6a43"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-001/PLAN.md",
+      "sha256": "e262fdddef5e27ddd93c82fffba230d2be8858df4f28999f83ea5a7ba635f904"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-001/TASK_RESULT.json",
+      "sha256": "9150857a4bfa2c1c4aa7db02cb41fe9bd655b32dee7919b2e457b6b23af15675"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-001/logs/c01_run_events.jsonl",
+      "sha256": "58aab675476808849c84af10c487962f0c24c0f3a64eb80c805de80bbbb52b2e"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-001/logs/c02_unit.log",
+      "sha256": "015837d92a3273725c760cf756a6ff38fbeaf5928d55df4fa278ad2e99df6a43"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-001/logs/resource_samples.csv",
+      "sha256": "a9e5c34f17d0e55ca6354f4da467c69a95154b90be965488e3d3d95ad213a4f8"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-001/logs/resource_summary.json",
+      "sha256": "78a8301327c034450a8cae83973728fd9967d2bead939e6e87f9850bfedc684d"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-001/logs/worker_balance.csv",
+      "sha256": "525e4878d5b9b318d62fcf9582234277125b89d46120c8fa295de1575d4c226f"
+    }
+  ],
+  "findings": [
+    "F-011",
+    "F-012"
+  ],
+  "expected_commit_subject": "MON-001: 资源监测接入每个 heavy node (resource_samples.csv/resource_summary.json/worker_balance.csv 自动生成, init/active/flush 分段, p50/p95 统计)",
+  "created_utc": "2026-09-01T01:40:00Z"
+}

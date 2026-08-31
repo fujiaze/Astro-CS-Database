@@ -243,6 +243,9 @@ public:
 #endif
     }
 
+    // 最近一次样本(供 MON-001 记录器/事件消费; 非线程安全, 由采样线程调用后共享)。
+    const ProcSample& last_sample() const { return last_; }
+
 private:
     double interval_;
     ProcSample baseline_;

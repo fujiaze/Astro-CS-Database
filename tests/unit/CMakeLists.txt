@@ -173,6 +173,14 @@ target_include_directories(cpu004_routing_test PRIVATE
 target_link_libraries(cpu004_routing_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME cpu004_routing COMMAND cpu004_routing_test)
 
+# MON-001 (G3): 资源记录器(采样/阶段分段/统计/三产物)
+add_executable(mon001_recorder_test mon001_recorder_test.cpp)
+target_include_directories(mon001_recorder_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+target_link_libraries(mon001_recorder_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME mon001_recorder COMMAND mon001_recorder_test)
+
 # CPU-001 (G3): 独立 provider 构建 — 三份 self-test + 负例
 # 每个 provider 静态库各自链接进独立可执行, 运行共享 backend_table.inc 的
 # backend_self_test(handshake→allocator→cancel→budget→logger); -R "cpu0" 可全跑。
