@@ -1,6 +1,7 @@
 // lib/phase3_session/p3_session.cpp — Phase3 会话 (API-P3-001) — CLI-006
 // 组装 P3-001(P3 sampler_open 即 properties 严格校验)→P3-002(WCS)→P3-003(采样)→P3-004(原子写)。
 #include "p3_session.h"
+#include "version_generated.h"
 
 #include <cmath>
 #include <cstring>
@@ -204,13 +205,15 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
 
     // provenance
     const std::string order_sel_str = std::to_string(order_sel);
+    const std::string version_str = ASTROCS_VERSION_STRING;
+    const std::string run_id_str = std::string("p3-") + ASTROCS_COMMIT_SHA;
     P3Provenance prov{};
     prov.hips_id = "ivo://astrocs/phase3";
     prov.manifest_hash = nullptr;
     prov.missing_tiles = nullptr;
     prov.missing_count = 0;
-    prov.software_version = "0.1.0";
-    prov.run_id = "phase3-run";
+    prov.software_version = version_str.c_str();
+    prov.run_id = run_id_str.c_str();
     prov.order_sel_used = order_sel_str.c_str();
     prov.sampler_used = sampler.c_str();
 
@@ -233,7 +236,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
     long covn = 0;
     for (long i = 0; i < nelem; ++i) if (cov[(size_t)i] > 0.5f) ++covn;
     s->result = {{"kind", "astrocs_phase3_session"},
-                 {"run_id", "phase3-run"},
+                 {"run_id", run_id_str},
                  {"exit_code", 0},
                  {"output_fits_path", opath},
                  {"sha256", ores.sha256},
@@ -243,7 +246,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
                  {"provenance",
                   {{"hips_id", "ivo://astrocs/phase3"},
                    {"missing_tiles", json::array()},
-                   {"software_version", "0.1.0"}}}};
+                   {"software_version", version_str}}}};
     s->last_error.clear();
     return ACS_OK;
 }

@@ -2,7 +2,7 @@
 """G11: 发布一致性校验 (VERSION/commit/build id/SBOM/checksums)。
 
 规则:
-1. VERSION 单源 0.10.0-alpha.1; CLI --version 前缀一致。
+1. VERSION 单源 0.10.0-alpha.2; CLI --version 前缀一致。
 2. 发布布局 dist/astrocs-alpha 的 checksums 与文件一致。
 3. SBOM (dist/astrocs-alpha/SBOM.json 若有) 记录库清单。
 4. 无 NOT VERIFIED 项 (除 owner review) — RELEASE_STATUS 扫描。
@@ -16,7 +16,7 @@ def main():
     errors = []
     # 1) VERSION 单源
     ver = (REPO / "VERSION").read_text(encoding="utf-8").strip()
-    if ver != "0.10.0-alpha.1":
+    if ver != "0.10.0-alpha.2":
         errors.append(f"VERSION 异常: {ver}")
     # 2) 发布布局 checksums
     dist = REPO / "dist" / "astrocs-alpha"

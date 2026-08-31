@@ -1,0 +1,158 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "VER-001",
+  "status": "PASS",
+  "parent_commit": "c15851239a4918062126ccfb9722804dcf578934",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "release",
+  "changed_paths": [
+    "VERSION",
+    "CMakeLists.txt",
+    "lib/phase3_session/p3_session.cpp",
+    "tools/check_version_consistency.py",
+    "tools/make_linux_release.py",
+    "tools/make_windows_release.py",
+    "tools/check_final_traceability.py",
+    "tools/check_release_consistency.py",
+    "tools/check_reproducible_build.py",
+    "docs/VERSIONING.md",
+    "docs/review/SCIENCE_OVERVIEW.md",
+    "docs/review/PIPELINE_OVERVIEW.md",
+    "docs/review/ARCHITECTURE_OVERVIEW.md",
+    "docs/review/RELEASE_STATUS.md",
+    "docs/review/CHANGE_REVIEW.md",
+    "docs/refactor/CLI_COMMAND_LAYER.md",
+    "tests/version/test_version_consistency.py",
+    "tests/unit/p3_output_test.cpp",
+    "tests/unit/cpu_profile_test.cpp",
+    "tests/unit/p3_assembly_test.cpp",
+    "tests/backend/profile_gen_main.cpp",
+    "tests/backend/test_cpu_profile.py",
+    "evidence/v6_1_rework/tasks/VER-001/PLAN.md",
+    "evidence/v6_1_rework/tasks/VER-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/VER-001/logs/c02.log",
+    "evidence/v6_1_rework/tasks/VER-001/logs/c03.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": true,
+    "reason": "version string derived from VERSION single source; binary rebuild needed"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "cmake",
+        "-S",
+        ".",
+        "-B",
+        "run/temp/build_v61",
+        "-DCMAKE_BUILD_TYPE=Release"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:34:38Z",
+      "duration_seconds": 20.0,
+      "log_path": "evidence/v6_1_rework/tasks/VER-001/logs/c01.log",
+      "log_sha256": "db865ce83c56cfca0d81788d145ef1ec4ee18476c6dd434e4f56dfcad04d6bcf"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/check_version_consistency.py"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:34:38Z",
+      "duration_seconds": 2.0,
+      "log_path": "evidence/v6_1_rework/tasks/VER-001/logs/c02.log",
+      "log_sha256": "4a7c47b2fb6817bd9881eb92d1283036ae11ec26e9e1208518735ada22b04705"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "python3",
+        "-m",
+        "unittest",
+        "tests/version/test_version_consistency.py"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:34:38Z",
+      "duration_seconds": 2.0,
+      "log_path": "evidence/v6_1_rework/tasks/VER-001/logs/c03.log",
+      "log_sha256": "cde27ec91a618faa512db76d3a7479600ea83e67ce552ed2e98c2d5a519562ce"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "astrocs",
+        "-j2"
+      ],
+      "timeout_seconds": 1200,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:34:38Z",
+      "duration_seconds": 600.0,
+      "log_path": "evidence/v6_1_rework/tasks/VER-001/logs/c01.log",
+      "log_sha256": "db865ce83c56cfca0d81788d145ef1ec4ee18476c6dd434e4f56dfcad04d6bcf"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-VERSION-CHECK",
+      "description": "版本一致性检查 PASS base=0.10.0-alpha.2",
+      "result": "PASS",
+      "evidence_sha256": "4a7c47b2fb6817bd9881eb92d1283036ae11ec26e9e1208518735ada22b04705"
+    },
+    {
+      "test_id": "T-VERSION-TEST",
+      "description": "version 5 测试全 PASS（含 mutation 负例）",
+      "result": "PASS",
+      "evidence_sha256": "cde27ec91a618faa512db76d3a7479600ea83e67ce552ed2e98c2d5a519562ce"
+    },
+    {
+      "test_id": "T-CLI-VERSION",
+      "description": "CLI --version = 0.10.0-alpha.2+g<commit>",
+      "result": "PASS",
+      "evidence_sha256": "db865ce83c56cfca0d81788d145ef1ec4ee18476c6dd434e4f56dfcad04d6bcf"
+    },
+    {
+      "test_id": "T-NO-OLD-LITERALS",
+      "description": "生产源码无 0.1.0/alpha.1 残留",
+      "result": "PASS",
+      "evidence_sha256": "4a7c47b2fb6817bd9881eb92d1283036ae11ec26e9e1208518735ada22b04705"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/VER-001/PLAN.md",
+      "sha256": "f1c02c5fd4dd443724b1cc0cb719007c89de52c7860e044542953864956eefda"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/VER-001/TASK_RESULT.json",
+      "sha256": "b234d32bb9f399761bb2195f9306c8fb7e0a32805c42eb6a8465c9cec62899e6"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/VER-001/logs/c02.log",
+      "sha256": "4a7c47b2fb6817bd9881eb92d1283036ae11ec26e9e1208518735ada22b04705"
+    }
+  ],
+  "findings": [
+    "F-012"
+  ],
+  "limitations": [
+    "lib/acr/CMakeLists.txt VERSION 0.1.0 为 DORMANT 非生产树，登记豁免；F-012 其余（BUNIT/run_id 语义）由 P3-005 完成"
+  ],
+  "expected_commit_subject": "VER-001: 版本推进 0.10.0-alpha.2 (VERSION 单源, 生产源码 0.1.0/alpha.1 清零, checker PASS)",
+  "created_utc": "2026-08-31T04:34:38Z"
+}

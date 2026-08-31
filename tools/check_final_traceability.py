@@ -4,7 +4,7 @@
 规则:
 1. 六层追溯 (TRACEABILITY.csv) 全链 PASS (委托 check_traceability)。
 2. 扫描旧入口: orchestrator.exe/astrocs-stage2/旧 drizzle 直连 — 生产退出或标 LEG。
-3. 旧版本: VERSION 单源 0.10.0-alpha.1; 无 0.9/0.8 残留入口。
+3. 旧版本: VERSION 单源 0.10.0-alpha.2; 无 0.9/0.8 残留入口。
 4. Windows-only 主流程: phase3 非假状态 (真实实现)。
 5. RELEASE_STATUS: 未通过项标 NOT VERIFIED/FAIL (不写"基本完成")。
 exit 0 = PASS。
@@ -28,7 +28,7 @@ def main():
                 errors.append(f"旧入口未标退出: {legacy}")
     # 3) 版本单源
     ver = (REPO / "VERSION").read_text(encoding="utf-8").strip()
-    if ver != "0.10.0-alpha.1":
+    if ver != "0.10.0-alpha.2":
         errors.append(f"VERSION 非预期: {ver}")
     # 4) phase3 假状态: 真实实现存在
     for impl in ("p3_wcs.cpp", "p3_resample.cpp", "p3_output.cpp"):

@@ -41,7 +41,7 @@ int main() {
   prov.manifest_hash = "deadbeef";
   prov.missing_tiles = nullptr;
   prov.missing_count = 0;
-  prov.software_version = "0.10.0-alpha.1";   // 来自版本单源, 非硬编码
+  prov.software_version = "0.10.0-alpha.2";   // 来自版本单源, 非硬编码
   prov.run_id = "run-p3-005-test";
   prov.order_sel_used = "4";
   prov.sampler_used = "bilinear";

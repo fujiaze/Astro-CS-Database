@@ -9,16 +9,22 @@ import os, re, subprocess, sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_RE = re.compile(r"(?<![\w.])(\d+\.\d+\.\d+)(?![\d.])")  # 排除 127.0.0.1 等 IP/更长子串
 PRERELEASE_BAD = re.compile(r"\b\d+\.\d+\.\d+-(stable|rc|beta)\b", re.IGNORECASE)
-SCAN_ROOTS = ["docs", "schemas", "tools", "launch", "tests"]
-SCAN_FILES = ["build.sh", "toolchain.ps1", "README.md", "CHANGELOG.md", "VERSION"]
+SCAN_ROOTS = ["docs", "schemas", "launch", "tests"]
+SCAN_FILES = ["build.sh", "toolchain.ps1", "README.md", "CHANGELOG.md", "VERSION",
+              "tools/gen_version.py"]
 SELF_FIXTURE = os.path.join("tests", "version", "test_version_consistency.py")  # mutation 样本自身
+PROBE_FIXTURES = {  # 版本探针工具：内含 '0.1.0' 等被扫描 token，属扫描器自身而非产品
+    os.path.join("tools", "quality", "known_failures_baseline.py"),
+}
 # 行内豁免: 非产品版本的数字三元组(外部工具/格式版本/协议版本/示例占位)
 EXEMPT = ("hips_version", "DatabaseVersion", "schema_version", "cap.version", "driver",
           "X.Y.Z", "MAJOR.MINOR.PATCH", "healpix", "cfitsio", "fitsio", "opencl", "example",
           "g++", "gcc", "cmake", "ninja", "mingw", "msys2", "siril", "wbpp", "pcl", "rcr",
-          "python", '"version":', "clang", "ivoa")
+          "python", '"version":', '"版本":', "version: ", "clang", "ivoa")
+# 合同文档 front matter 的 "状态: ACTIVE  版本: 1.0.0" 是文档修订号，不是产品版本
+CONTRACT_DOC_VERSION = re.compile(r"状态:\s*\w+\s+版本:\s*\d+\.\d+\.\d+")
 SKIP_DIRS = {".git", "build", "run", "reports", "archive", "testdata", "工程控制",
-             "BASS DR3", "lib", "AstroCS.wiki", "tools", "__pycache__"}
+             "BASS DR3", "lib", "AstroCS.wiki", "__pycache__"}
 
 def base_version():
     """返回 (基础号 X.Y.Z, alpha.N)。"""
@@ -45,11 +51,13 @@ def check_file(path, base_num, alpha_n, errors):
     rel = os.path.relpath(path, REPO)
     if rel == "VERSION" or rel == os.path.join("tools", "gen_version.py"):
         return  # 唯一定义点自身豁免
-    if rel == SELF_FIXTURE:
-        return  # mutation 测试样本文件(内含故意伪造版本)
+    if rel == SELF_FIXTURE or rel in PROBE_FIXTURES:
+        return  # mutation/probe 测试样本文件(内含故意伪造版本 token)
     alpha_full = re.compile(r"(\d+\.\d+\.\d+)-alpha\.(\d+)")
     with open(path, encoding="utf-8", errors="replace") as f:
         for i, line in enumerate(f, 1):
+            if CONTRACT_DOC_VERSION.search(line):
+                continue  # L1 合同 front matter 的文档修订号(非产品版本)
             if PRERELEASE_BAD.search(line):
                 errors.append(f"{rel}:{i}: 禁止的 prerelease 标记(stable/rc/beta): {line.strip()[:90]}")
             if "-alpha" in line:
