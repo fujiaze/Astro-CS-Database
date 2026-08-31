@@ -51,7 +51,7 @@ int main(int argc,char**argv){
     acs_baseline_params_v1 p; std::memset(&p,0,sizeof(p));
     p.head.struct_size=sizeof(p); p.head.abi_version=ACS_ABI_VERSION_V1;
     p.op=ACS_KOP_PSF_BATCH; p.w=W;p.h=H;p.k=k;
-    p.in0={psin.data(),psin.size()}; p.out0={psout.data(),psout.size()};
+    p.in0=ACS_SPAN_F32(psin.data(),psin.size()); p.out0=ACS_SPAN_F32(psout.data(),psout.size());
     if(api.kernels[0].fn(&host,&p,sizeof(p),nullptr,nullptr)!=ACS_OK) return 2;
     put(psout.data(),N,"PSF ");
     // ==== B) 星场从 WCS: 3颗星已知天球坐标 → world2pix ====
@@ -72,8 +72,8 @@ int main(int argc,char**argv){
     acs_baseline_params_v1 p2; std::memset(&p2,0,sizeof(p2));
     p2.head.struct_size=sizeof(p2); p2.head.abi_version=ACS_ABI_VERSION_V1;
     p2.op=ACS_KOP_PSF_BATCH; p2.w=RW;p2.h=RH;p2.k=(float)knorm;
-    float cen[2]={ex,ey}; p2.in0={cen,2}; std::vector<float> pix(RN);
-    p2.out0={pix.data(),RN};
+    float cen[2]={ex,ey}; p2.in0=ACS_SPAN_F32(cen,2); std::vector<float> pix(RN);
+    p2.out0=ACS_SPAN_F32(pix.data(),RN);
     if(api.kernels[0].fn(&host,&p2,sizeof(p2),nullptr,nullptr)!=ACS_OK) return 6;
     put(pix.data(),RN,"APERTURE ");
     printf("APCENTER %.4f %.4f\n",ex,ey);

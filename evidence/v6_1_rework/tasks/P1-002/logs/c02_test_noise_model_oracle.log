@@ -1,0 +1,17 @@
+test_01_gaussian_blank_sky_unbiased (__main__.TestNoiseModelOracle.test_01_gaussian_blank_sky_unbiased)
+Gaussian blank-sky(σ_true=7.3) → 全局 σ 无偏恢复(相对偏差<5%)。 ... ok
+test_02_constant_background_boundary_and_smallN (__main__.TestNoiseModelOracle.test_02_constant_background_boundary_and_smallN)
+常量背景(σ_true=0) → σ≈floor 级; small-N 3x3 → 完全退化 ivar=0。 ... ok
+test_03_outlier_robust_clip (__main__.TestNoiseModelOracle.test_03_outlier_robust_clip)
+σ_true=5 + 1% 离群(±500) → 稳健裁剪去除, σ 不被抬高(<10%)。 ... ok
+test_04_poisson_readnoise_analytic (__main__.TestNoiseModelOracle.test_04_poisson_readnoise_analytic)
+var=max(s,0)/gain+(read/gain)² 解析模型。 ... ok
+test_05_scale_law (__main__.TestNoiseModelOracle.test_05_scale_law)
+x'=αx → var'=α²·var, ivar'=ivar/α²。 ... ok
+test_06_spatial_field_fill (__main__.TestNoiseModelOracle.test_06_spatial_field_fill)
+fill 输出逐像素 ivar=1/σ² 数量级(空间场或全局), 非退化。 ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 2.670s
+
+OK

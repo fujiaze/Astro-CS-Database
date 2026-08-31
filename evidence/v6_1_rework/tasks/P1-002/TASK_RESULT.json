@@ -1,0 +1,113 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P1-002",
+  "status": "PASS",
+  "parent_commit": "56da7faa4e63ccdab05e915d57fe25a22f8b56b9",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "validation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P1-002/PLAN.md",
+    "evidence/v6_1_rework/tasks/P1-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P1-002/logs/c01_gaps_oracle.log",
+    "evidence/v6_1_rework/tasks/P1-002/logs/c02_test_calibration_oracle.log",
+    "evidence/v6_1_rework/tasks/P1-002/logs/c02_test_drizzle_oracle.log",
+    "evidence/v6_1_rework/tasks/P1-002/logs/c02_test_noise_model_oracle.log",
+    "evidence/v6_1_rework/tasks/P1-002/logs/c02_test_wcs_psf_oracle.log",
+    "tests/backend/p3_session_probe.cpp",
+    "tests/backend/test_drizzle_oracle.py",
+    "tests/backend/test_drizzle_parallel.py",
+    "tests/backend/test_phase1_hotspot.py",
+    "tests/backend/test_phase3_reproject_oracle.py",
+    "tests/backend/test_p1002_gaps.py",
+    "tests/backend/test_wcs_psf_oracle.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "验证任务: 新增 P1-002 缺口 Oracle(stars/PSF/WCS/photometry) + ABI 遗留测试同步; 无生产代码变更"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p1002_gaps.py"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T04:30:00Z",
+      "duration_seconds": 30.0,
+      "log_path": "evidence/v6_1_rework/tasks/P1-002/logs/c01_gaps_oracle.log",
+      "log_sha256": "e01d719c531491084977c70915cebfb2b71824ed30ac44f21eabc68a93a4e971"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_<calibration|drizzle|noise|wcs>_oracle.py"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T04:31:00Z",
+      "duration_seconds": 60.0,
+      "log_path": "evidence/v6_1_rework/tasks/P1-002/logs/c02_test_calibration_oracle.log",
+      "log_sha256": "e6718cb6a09efa63ea863d4549e6887bd646458149829d7c2572a6cafab48c08"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-STARS-PSF",
+      "description": "五场景(孤立/重叠/饱和/边缘/纯噪声) + completeness=1.0/FP=0/centroid<0.5px/FWHM≈2.3548σ(8%)",
+      "result": "PASS",
+      "evidence_sha256": "e01d719c531491084977c70915cebfb2b71824ed30ac44f21eabc68a93a4e971"
+    },
+    {
+      "test_id": "T-WCS",
+      "description": "已知场(解析解)/扰动初值收敛/roundtrip 恒等/无解(4 类 PARAM+HEMISPHERE)",
+      "result": "PASS",
+      "evidence_sha256": "e01d719c531491084977c70915cebfb2b71824ed30ac44f21eabc68a93a4e971"
+    },
+    {
+      "test_id": "T-PHOTOMETRY",
+      "description": "已知 flux/background/PSF 光圈恢复(2%) + flux 线性 + 饱和拒绝(sat 星不进测光)",
+      "result": "PASS",
+      "evidence_sha256": "e01d719c531491084977c70915cebfb2b71824ed30ac44f21eabc68a93a4e971"
+    },
+    {
+      "test_id": "T-CALIBRATION-NOISE-DRIZZLE",
+      "description": "calibration(负值/NaN/u16-f32-f64)/noise(Poisson+read noise)/drizzle(flux 守恒/亚像素) Oracle 全绿",
+      "result": "PASS",
+      "evidence_sha256": "e6718cb6a09efa63ea863d4549e6887bd646458149829d7c2572a6cafab48c08"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-002/PLAN.md",
+      "sha256": "b1985ad4ee4f7115fe5bea6e3424e38c4b0ad685a653903881e72c6e0d0e7da5"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-002/TASK_RESULT.json",
+      "sha256": "b763e8324e47dcd1365e986102cea7a407bda83bb2737a2ce8b059343da4d0b2"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-002/logs/c01_gaps_oracle.log",
+      "sha256": "e01d719c531491084977c70915cebfb2b71824ed30ac44f21eabc68a93a4e971"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-002/logs/c02_test_calibration_oracle.log",
+      "sha256": "e6718cb6a09efa63ea863d4549e6887bd646458149829d7c2572a6cafab48c08"
+    }
+  ],
+  "findings": [
+    "F-002",
+    "F-019"
+  ],
+  "expected_commit_subject": "P1-002: 生产 Oracle 补齐 (stars/PSF 五场景+completeness/FP/FWHM, WCS 扰动/无解, photometry 饱和拒绝; ABI 遗留测试同步)",
+  "created_utc": "2026-09-01T04:35:00Z"
+}

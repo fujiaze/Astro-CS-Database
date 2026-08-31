@@ -1,0 +1,11 @@
+test_01_psf_analytic_profile_oracle (__main__.TestWcsPsfOracle.test_01_psf_analytic_profile_oracle)
+PSF kernel 逐像素 == k*exp(-r^2/2); σ=1, 中心(cx,cy)(非整像素)。 ... ok
+test_02_wcs_roundtrip_identity (__main__.TestWcsPsfOracle.test_02_wcs_roundtrip_identity)
+已知天球星场 world2pix→pix2world 回程恒等(冻结容差 1e-9 度)。 ... ok
+test_03_aperture_flux_matches_injected (__main__.TestWcsPsfOracle.test_03_aperture_flux_matches_injected)
+光圈测光: 归一化 PSF(k=flux/2π) 在光圈 R 内求和 → 解析流量占比符合二维高斯。 ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 2.196s
+
+OK

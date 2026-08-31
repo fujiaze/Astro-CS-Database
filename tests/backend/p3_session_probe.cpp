@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
             "\"scale_deg_per_px\":%.10f,\"width_px\":%d,\"height_px\":%d,\"sampler\":\"%s\","
             "\"longitude_parity\":\"east_left\"}",
             argv[2], atof(argv[3]), atof(argv[4]), atof(argv[5]), atoi(argv[6]), atoi(argv[7]), argv[8]);
-        acs_status st = p3_session_validate(h, acs_span_u8{(uint8_t*)req, (uint64_t)std::strlen(req)});
+        acs_status st = p3_session_validate(h, ACS_SPAN_U8((uint8_t*)req, (uint64_t)std::strlen(req)));
         std::printf("%d\n", (int)st);
         p3_session_destroy(h); return 0;
     }
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
             "\"scale_deg_per_px\":%.10f,\"width_px\":%d,\"height_px\":%d,\"sampler\":\"%s\","
             "\"longitude_parity\":\"east_left\",\"output_dir\":\"%s\"}",
             argv[2], atof(argv[3]), atof(argv[4]), atof(argv[5]), atoi(argv[6]), atoi(argv[7]), argv[8], argv[9]);
-        acs_status st = p3_session_run(h, acs_span_u8{(uint8_t*)req, (uint64_t)std::strlen(req)});
+        acs_status st = p3_session_run(h, ACS_SPAN_U8((uint8_t*)req, (uint64_t)std::strlen(req)));
         if (st != ACS_OK) { std::printf("FAIL %d %s\n", (int)st, last_error(h).c_str()); p3_session_destroy(h); return 1; }
         acs_span_u8 out{};
         if (p3_session_inspect(h, &out) == ACS_OK) {

@@ -1,0 +1,33 @@
+test_01_known_flux_background_psf (__main__.TestPhotometryOracle.test_01_known_flux_background_psf)
+已知 flux/background/PSF(高斯 σ=2, A=5000): 光圈测光恢复 flux≈Σ 解析 PSF, 背景≈注入。 ... ok
+test_02_flux_scaling_linearity (__main__.TestPhotometryOracle.test_02_flux_scaling_linearity)
+flux 线性: A=5000 与 A=20000 的恢复比值 = 注入比值(容差 1%)。 ... ok
+test_04_failure_explicit (__main__.TestPhotometryOracle.test_04_failure_explicit)
+失败显式: 越界中心 → valid=false + reason(不留空 catalog); 无 annulus → 显式失败。 ... ok
+test_01_isolated_completeness_centroid_fwhm (__main__.TestStarsPsfOracle.test_01_isolated_completeness_centroid_fwhm)
+孤立场景: completeness=1.0(5/5), FP=0, centroid<0.5px, FWHM≈2.3548σ。 ... ok
+test_02_overlapping_pair_resolved (__main__.TestStarsPsfOracle.test_02_overlapping_pair_resolved)
+重叠场景(sep=12px 双星): 两星均检出且位置精确; 孤立参考星也检出。 ... ok
+test_03_saturated_u16_platform (__main__.TestStarsPsfOracle.test_03_saturated_u16_platform)
+饱和场景(u16): 亮星平台(≥34px 达 65535)检出 sat=1, 非饱和星 sat=0。 ... ok
+test_03b_saturated_rejection (__main__.TestStarsPsfOracle.test_03b_saturated_rejection)
+饱和拒绝(P1-002 photometry): 含 u16 饱和平台的星场中, 检测器标记 sat=1 的饱和星 ... ok
+test_04_edge_stars_detected (__main__.TestStarsPsfOracle.test_04_edge_stars_detected)
+边缘场景(距边界 ≥5px): 四边缘星均检出, centroid 精确, FP=0。 ... ok
+test_05_pure_noise_zero_fp (__main__.TestStarsPsfOracle.test_05_pure_noise_zero_fp)
+纯噪声场景: 无星 → 0 检出(FP=0); u16 路径同样 0 检出。 ... ok
+test_06_flux_amplitude_recovery (__main__.TestStarsPsfOracle.test_06_flux_amplitude_recovery)
+通量恢复: 检出 flux(振幅 A)≈ 注入 A(预冻结容差, 非饱和星相对误差<8%)。 ... ok
+test_01_known_field_analytic (__main__.TestWcsOracle.test_01_known_field_analytic)
+已知天球场: world2pix 与独立解析解(CD⁻¹·(ξ,η)+CRPIX)比对(容差 1e-9 px)。 ... ok
+test_02_roundtrip_identity (__main__.TestWcsOracle.test_02_roundtrip_identity)
+roundtrip: world2pix→pix2world 回程恒等(容差 1e-9 度)。 ... ok
+test_03_perturbed_center_converges (__main__.TestWcsOracle.test_03_perturbed_center_converges)
+扰动初值(crpix 偏移 0.5px): world2pix 仍收敛, 坐标整体平移与解析一致。 ... ok
+test_04_no_solution (__main__.TestWcsOracle.test_04_no_solution)
+无解: parity 非法/极点越界/负 scale/尺寸 0 → PARAM(1); 背面半球/远像素 → HEMISPHERE(3)。 ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 15.542s
+
+OK
