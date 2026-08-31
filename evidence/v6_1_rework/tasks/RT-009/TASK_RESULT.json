@@ -1,0 +1,245 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "RT-009",
+  "status": "PASS",
+  "parent_commit": "84191084152a7a216061436e3867c62eeca4e9a8",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "documentation",
+  "changed_paths": [
+    "include/astrocs/core/runtime.h",
+    "lib/core/src/runtime.cpp",
+    "cli/runtime_client.h",
+    "cli/runtime_client.cpp",
+    "cli/commands.cpp",
+    "cli/parser.cpp",
+    "cli/cli_common.h",
+    "tools/quality/gen_run_graphs.py",
+    "tests/unit/rt009_node_trace_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "tests/cli/test_phase123_pipeline.py",
+    "evidence/v6_1_rework/gates/G2/CHECKLIST.md",
+    "evidence/v6_1_rework/tasks/RT-009/PLAN.md",
+    "evidence/v6_1_rework/tasks/RT-009/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/RT-009/logs/c01.log",
+    "evidence/v6_1_rework/tasks/RT-009/logs/c02.log",
+    "evidence/v6_1_rework/tasks/RT-009/logs/c03.log",
+    "evidence/v6_1_rework/tasks/RT-009/logs/c04.log",
+    "evidence/v6_1_rework/tasks/RT-009/logs/c05.log",
+    "evidence/v6_1_rework/tasks/RT-009/logs/c06.log",
+    "evidence/v6_1_rework/tasks/RT-009/logs/c07.log",
+    "evidence/v6_1_rework/tasks/RT-009/logs/c08.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": true,
+    "binary": true,
+    "reason": "Runtime 新增 NodeTrace API；CLI 每次 run 生成 static/observed/L0 图与 sidecar；新 graph 命令；路径脱敏"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_prod_reachability.py",
+        "--repo",
+        ".",
+        "--binary",
+        "run/temp/build_v61/astrocs",
+        "--compile-commands",
+        "run/temp/build_v61/compile_commands.json"
+      ],
+      "timeout_seconds": 180,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:40:00Z",
+      "duration_seconds": 12.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-009/logs/c01.log",
+      "log_sha256": "fe3002095f901879733dd01ffc2745028978ae4f7b8dd8f0b9a24b162131cda0"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "ASTROCS_REPO=$(pwd)",
+        "ctest",
+        "--test-dir",
+        "run/temp/build_v61",
+        "-R",
+        "core_|rt0"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:40:00Z",
+      "duration_seconds": 1.2,
+      "log_path": "evidence/v6_1_rework/tasks/RT-009/logs/c02.log",
+      "log_sha256": "73653bc05c41190f5845e7c2c93b55c61b8dc3f21166dfddb721f084d40ee675"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "./run/temp/build_v61/tests/unit/rt009_node_trace_test"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:40:00Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-009/logs/c03.log",
+      "log_sha256": "e264e69a4ef5af44e74c8acb8274c527789ab4b28fe22e5e96d2c8832dab2a09"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/gen_run_graphs.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:40:00Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-009/logs/c04.log",
+      "log_sha256": "6cacaeb87cd36f0caed19b39751ab218ec0a8db9bdb265b3feb4c7aac32ca4d4"
+    },
+    {
+      "command_id": "c05",
+      "argv_redacted": [
+        "python3",
+        "-m",
+        "unittest",
+        "tests.cli.test_cli_protocol",
+        "tests.cli.test_phase1_inprocess",
+        "tests.cli.test_phase2_inprocess",
+        "tests.cli.test_phase3_inprocess",
+        "tests.cli.test_phase123_pipeline"
+      ],
+      "timeout_seconds": 700,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:40:00Z",
+      "duration_seconds": 420.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-009/logs/c05.log",
+      "log_sha256": "9b5e961ca01d8a1fa7adf57c0447320775bec7baac3190cec27c97f688153632"
+    },
+    {
+      "command_id": "c06",
+      "argv_redacted": [
+        "astrocs",
+        "run",
+        "--phases",
+        "2,3",
+        "--config",
+        "/tmp/rt9/cfg.json"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:40:00Z",
+      "duration_seconds": 15.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-009/logs/c06.log",
+      "log_sha256": "e5c2fb666085b51796611182239bd5307e0bf4b1548ce697842bb9ef12569262"
+    },
+    {
+      "command_id": "c07",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_pipeline_graph.py",
+        "--ir",
+        "graph/static_graph.json",
+        "--module-index",
+        "module_index.json",
+        "--trace",
+        "graph/observed_trace.json"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:40:00Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-009/logs/c07.log",
+      "log_sha256": "e682dc9e1a9431e0c31508cc3f7bf5dd8fcbef515e10181f0d514a5736c3f98d"
+    },
+    {
+      "command_id": "c08",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/gen_run_graphs.py",
+        "--graph-dir",
+        "graph"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:40:00Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-009/logs/c08.log",
+      "log_sha256": "b6992569d8ba874337134be2968f622b340826c32a58e61037603630822305c1"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-TRACE",
+      "description": "rt009_node_trace_test: run 后 node_trace 含 status/时间/workers/provider；IR 保留",
+      "result": "PASS",
+      "evidence_sha256": "e264e69a4ef5af44e74c8acb8274c527789ab4b28fe22e5e96d2c8832dab2a09"
+    },
+    {
+      "test_id": "T-RENDER-SELFTEST",
+      "description": "gen_run_graphs.py --selftest: static/observed/L0 render + sanitize",
+      "result": "PASS",
+      "evidence_sha256": "6cacaeb87cd36f0caed19b39751ab218ec0a8db9bdb265b3feb4c7aac32ca4d4"
+    },
+    {
+      "test_id": "T-CHK1",
+      "description": "CHK-001 REACH_PASS（CLI 无 banned include；Runtime owner 可达）",
+      "result": "PASS",
+      "evidence_sha256": "fe3002095f901879733dd01ffc2745028978ae4f7b8dd8f0b9a24b162131cda0"
+    },
+    {
+      "test_id": "T-CORE",
+      "description": "core_|rt0 ctest 16/16 PASS（含 rt009）",
+      "result": "PASS",
+      "evidence_sha256": "73653bc05c41190f5845e7c2c93b55c61b8dc3f21166dfddb721f084d40ee675"
+    },
+    {
+      "test_id": "T-CLI-BATTERY",
+      "description": "CLI battery 45/45 PASS（protocol+inprocess+phase123 含 test_07_run_graphs）",
+      "result": "PASS",
+      "evidence_sha256": "9b5e961ca01d8a1fa7adf57c0447320775bec7baac3190cec27c97f688153632"
+    },
+    {
+      "test_id": "T-RUN-GRAPHS",
+      "description": "run 生成 9 图产物（static/observed JSON+DOT+SVG、L0、sidecar）；路径脱敏",
+      "result": "PASS",
+      "evidence_sha256": "e5c2fb666085b51796611182239bd5307e0bf4b1548ce697842bb9ef12569262"
+    },
+    {
+      "test_id": "T-CHK2",
+      "description": "check_pipeline_graph.py PIPELINE_GRAPH_PASS：静态↔observed 双向一致",
+      "result": "PASS",
+      "evidence_sha256": "e682dc9e1a9431e0c31508cc3f7bf5dd8fcbef515e10181f0d514a5736c3f98d"
+    }
+  ],
+  "created_utc": "2026-08-31T12:40:00Z",
+  "findings": [
+    "F-003",
+    "F-004",
+    "F-012"
+  ],
+  "expected_commit_subject": "RT-009: 真实静态与observed运行图 (NodeTrace, static/observed/L0+sidecar, graph命令, 路径脱敏)",
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-009/PLAN.md",
+      "sha256": "6097d68c8b08012430dfa2076e7525fed587f7328e22f444e60a077bf6039bd5"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-009/TASK_RESULT.json",
+      "sha256": "383e03eba73c3e8a4bcd9067f687091c5f756980de25dd11b5eba8be0b3735eb"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-009/logs/c07.log",
+      "sha256": "e682dc9e1a9431e0c31508cc3f7bf5dd8fcbef515e10181f0d514a5736c3f98d"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-009/logs/c05.log",
+      "sha256": "9b5e961ca01d8a1fa7adf57c0447320775bec7baac3190cec27c97f688153632"
+    }
+  ]
+}

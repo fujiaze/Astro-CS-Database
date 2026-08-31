@@ -15,7 +15,7 @@
   - 单 CLI: 全程用同一 build/cli/astrocs 二进制。
 依赖: SYN-001..008 + CLI-001..007 + P3-004 已 PASS。
 """
-import json, os, re, shutil, signal, subprocess, tempfile, time, unittest
+import json, os, re, shutil, signal, subprocess, sys, tempfile, time, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EXE = os.path.join(REPO, "build", "cli", "astrocs")
@@ -240,6 +240,64 @@ class TestPhase123Pipeline(unittest.TestCase):
         self.assertEqual(r2.returncode, 8, r2.stdout[-300:] + r2.stderr[-300:])
         ev = [e for e in jsonl_lines(r2.stdout) if e["kind"] == "final"]
         self.assertEqual(ev[-1]["status"], "resume_hash_mismatch")
+
+    # ── RT-009: 运行图产物(static/observed/L0/sidecar; 路径脱敏) ──
+    def test_07_run_graphs(self):
+        out = os.path.join(self.tmp, "outg"); os.makedirs(out)
+        ph3 = {"source": {"hips_dir": os.path.join(self.hips, "FIELD.hips")},
+               "center": {"ra_deg": 0.0, "dec_deg": 30.0}, "scale_deg_per_px": 0.05,
+               "width_px": 20, "height_px": 20, "sampler": "bilinear",
+               "projection": "TAN", "coverage_output": "mask"}
+        cfg = self._config(out, [os.path.join(self.hips, "F1.hips")], phase3=ph3)
+        r = self._run("3", cfg)
+        self.assertEqual(r.returncode, 0, r.stderr[-400:])
+        gdir = os.path.join(out, "graph")
+        for name in ("static_graph.json", "observed_trace.json", "graph_sidecar.json",
+                     "static_graph.dot", "observed_graph.dot", "static_graph.svg",
+                     "observed_graph.svg", "l0_graph.json", "l0_graph.dot"):
+            self.assertTrue(os.path.isfile(os.path.join(gdir, name)), name)
+        tr = json.load(open(os.path.join(gdir, "observed_trace.json"), encoding="utf-8"))
+        self.assertEqual(tr["schema"], "astrocs.observed-trace/v1")
+        nodes = {n["node_id"]: n for n in tr["nodes"]}
+        self.assertIn("hips", nodes)
+        hn = nodes["hips"]
+        self.assertEqual(hn["status"], "COMPLETED")
+        self.assertTrue(hn["duration_ms"] >= 0)
+        self.assertGreaterEqual(hn["workers"], 1)
+        self.assertTrue(hn["provider"])
+        self.assertTrue(hn["started_utc"] and hn["ended_utc"])
+        self.assertIn("module_id", hn)
+        # 路径脱敏: 不得含绝对前缀
+        raw = open(os.path.join(gdir, "observed_trace.json"), encoding="utf-8").read()
+        self.assertNotIn(REPO, raw)
+        self.assertNotIn("/home/", raw)
+        side = json.load(open(os.path.join(gdir, "graph_sidecar.json"), encoding="utf-8"))
+        self.assertEqual(side["schema"], "astrocs.graph-sidecar/v1")
+        self.assertRegex(side["ir_sha256"], r"^[0-9a-f]{64}$")
+        self.assertTrue(side["source_commit"])
+        self.assertTrue(side["input_manifest_sha256"])
+        # CHK-002 双向比较: 静态与 observed 一致
+        mods = os.path.join(self.tmp, "mods.json")
+        json.dump({"astrocs.phase3.resample": {"module_id": "astrocs.phase3.resample",
+                                               "module_version": "1.x"}},
+                  open(mods, "w"))
+        c = subprocess.run([sys.executable, os.path.join(REPO, "tools", "quality",
+                            "check_pipeline_graph.py"),
+                            "--ir", os.path.join(gdir, "static_graph.json"),
+                            "--module-index", mods,
+                            "--trace", os.path.join(gdir, "observed_trace.json")],
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(c.returncode, 0, c.stderr[-400:])
+        self.assertIn("PIPELINE_GRAPH_PASS", c.stdout)
+        # 静态-only graph 命令(每个正式 preset 预生成静态图)
+        gout = os.path.join(self.tmp, "gstatic"); os.makedirs(gout, exist_ok=True)
+        g = subprocess.run([EXE, "graph", "--preset", "1,2,3", "--config", cfg,
+                            "--output", gout],
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(g.returncode, 0, g.stderr[-400:])
+        self.assertTrue(os.path.isfile(os.path.join(gout, "graph", "static_graph.dot")))
+        self.assertTrue(os.path.isfile(os.path.join(gout, "graph", "l0_graph.json")))
+        self.assertTrue(os.path.isfile(os.path.join(gout, "graph", "static_graph.svg")))
 
 
 if __name__ == "__main__":

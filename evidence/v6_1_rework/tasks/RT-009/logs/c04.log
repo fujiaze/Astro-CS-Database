@@ -1,0 +1,2 @@
+RENDER_OK static_nodes=2 observed_nodes=2
+SELFTEST_PASS: static/observed/L0 render + sanitize

@@ -150,7 +150,23 @@ namespace {
 std::mutex g_man_mu;
 std::vector<std::pair<std::string, std::string>> g_manifests;
 
+// RT-009: 最近一次 run_pipeline 的节点 trace + PipelineIR（供 observed graph）
+std::mutex g_tr_mu;
+std::vector<astrocs::core::Runtime::NodeTrace> g_trace;
+std::string g_ir_json;
+
 }  // namespace
+
+// RT-009: 收集节点 trace
+void collect_node_trace(std::vector<astrocs::core::Runtime::NodeTrace>* out) {
+  std::lock_guard<std::mutex> lock(g_tr_mu);
+  if (out) *out = g_trace;
+}
+
+// RT-009: 最近一次 run 的 PipelineIR JSON（静态图来源）
+const std::string& last_pipeline_ir_json() {
+  return g_ir_json;
+}
 
 int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
                  uint32_t budget, std::string* fail_reason) {
@@ -182,6 +198,12 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
   {
     std::lock_guard<std::mutex> lock(g_man_mu);
     g_manifests = rt.value()->node_manifests();
+  }
+  // RT-009: 保留节点 trace 与 PipelineIR（observed graph 数据源）
+  {
+    std::lock_guard<std::mutex> lock(g_tr_mu);
+    g_trace = rt.value()->node_trace();
+    g_ir_json = ir_json;
   }
   if (r.failed()) {
     if (fail_reason) *fail_reason = r.error().message();

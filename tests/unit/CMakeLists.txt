@@ -83,6 +83,15 @@ target_include_directories(rt008_runtime_client_test PRIVATE
 target_link_libraries(rt008_runtime_client_test PRIVATE astrocs_cli_runtime)
 add_test(NAME rt008_runtime_client COMMAND rt008_runtime_client_test)
 
+# RT-009: 节点 trace 数据源（run 后 status/时间/workers/provider; IR 保留）
+add_executable(rt009_node_trace_test rt009_node_trace_test.cpp)
+target_include_directories(rt009_node_trace_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
+target_link_libraries(rt009_node_trace_test PRIVATE astrocs_cli_runtime)
+add_test(NAME rt009_node_trace COMMAND rt009_node_trace_test)
+
 add_executable(io_adapter_test io_adapter_test.cpp)
 target_include_directories(io_adapter_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(io_adapter_test PRIVATE astrocs_io)

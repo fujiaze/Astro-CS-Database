@@ -1,0 +1,1 @@
+REACH_PASS binary=astrocs runtime_owners=['PipelineIR', 'ModuleRegistry', 'Scheduler', 'RunContext', 'ThreadBudget'] compile_entries=181 acr=0 graph=PROD_REACHABILITY.json/dot

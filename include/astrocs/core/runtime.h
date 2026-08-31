@@ -59,6 +59,22 @@ class Runtime {
   // RT-008: 每个节点最近一次执行的 session manifest 摘要（node_id → JSON 文本）。
   // 供 CLI 收集跨阶段 artifact（ArtifactStore 绑定语义）。
   virtual std::vector<std::pair<std::string, std::string>> node_manifests() const = 0;
+
+  // RT-009: 节点级运行 trace（node_id → 结构化记录；线程安全：run 完成后调用）。
+  // 供 CLI 生成 observed graph 与 CHK-002 双向比较。每条记录含:
+  //   status(COMPLETED/FAILED/CANCELLED/SKIPPED), started_utc, ended_utc (RFC3339),
+  //   duration_ms, workers(实际租约), provider(当前 provider ID), error(失败消息, 可空)。
+  struct NodeTrace {
+    std::string node_id;
+    std::string status;      // 终态字符串
+    std::string started_utc; // RFC3339
+    std::string ended_utc;   // RFC3339
+    double duration_ms = 0.0;
+    uint32_t workers = 0;
+    std::string provider;    // 当前 provider ID（baseline/avx2/avx512）
+    std::string error;       // 失败消息（成功时为空）
+  };
+  virtual std::vector<NodeTrace> node_trace() const = 0;
 };
 
 // ── 工厂（C++ 边界；ownership: 调用者独占销毁） ──

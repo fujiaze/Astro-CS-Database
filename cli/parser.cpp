@@ -20,7 +20,8 @@
 const std::set<std::string> kBoolFlags = {"--json", "--events-jsonl", "--quick", "--full"};
 const std::set<std::string> kValueFlags = {"--output", "--config", "--cpu-profile",
                                            "--run-manifest", "--group", "--phases",
-                                           "--resource-detail", "--nside", "--pixfrac"};
+                                           "--resource-detail", "--nside", "--pixfrac",
+                                           "--preset"};
 
 // 04 §1 命令树: 每条命令允许的旗标(严格白名单, 未知即 2)
 // struct CmdRule 定义见 cli_common.h; 此处定义 kRules 表(extern 声明)
@@ -38,6 +39,7 @@ const CmdRule kRules[] = {
     {"run",                         {"--phases", "--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
     {"drizzle",                     {"--config", "--events-jsonl", "--nside", "--pixfrac"}},
     {"verify",                      {"--run-manifest", "--json"}},
+    {"graph",                       {"--config", "--preset", "--phases", "--output"}},
 };
 
 const char* kHelp =
@@ -141,6 +143,31 @@ std::string sanitize(const std::string& s) {
     return out;
 }
 
+// RT-009: 运行图路径脱敏 — 绝对路径 → "<root>/<末2组件>"；相对路径原样返回。
+std::string sanitize_path(const std::string& p) {
+    if (p.empty()) return p;
+    std::string norm = p;
+    for (auto& c : norm) if (c == '\\') c = '/';
+    const bool abs = !norm.empty() && norm[0] == '/';
+    if (!abs) {
+        // Windows 盘符 / URI
+        if (norm.size() > 1 && norm[1] == ':') return "<root>/" + norm.substr(2);
+        if (norm.find("://") != std::string::npos) return "<root>/...";
+        return norm;
+    }
+    std::vector<std::string> parts;
+    std::stringstream ss(norm);
+    std::string tok;
+    while (std::getline(ss, tok, '/')) if (!tok.empty()) parts.push_back(tok);
+    if (parts.empty()) return "<root>/";
+    std::string tail;
+    for (std::size_t i = (parts.size() >= 2 ? parts.size() - 2 : 0); i < parts.size(); ++i) {
+        if (!tail.empty()) tail += "/";
+        tail += parts[i];
+    }
+    return "<root>/" + tail;
+}
+
 std::string file_sha256(const std::string& u8path, bool* ok) {
     std::ifstream f(std::filesystem::u8path(u8path), std::ios::binary);
     if (!f) { if (ok) *ok = false; return {}; }
@@ -152,6 +179,30 @@ std::string file_sha256(const std::string& u8path, bool* ok) {
     }
     if (ok) *ok = true;
     return h.final_hex();
+}
+
+// RT-009: 当前 git HEAD 短 SHA（sidecar source_commit）。
+// 不 shell-out：读 .git/HEAD；指向 refs/ 时再读 ref 文件；解析 "ref: " 前缀。
+std::optional<std::string> git_head_sha() {
+    try {
+        std::error_code ec;
+        std::ifstream head(".git/HEAD", std::ios::in);
+        if (!head) return std::nullopt;
+        std::string line;
+        std::getline(head, line);
+        while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
+        if (line.rfind("ref: ", 0) == 0) {
+            const std::string ref = line.substr(5);
+            std::ifstream rf(std::filesystem::u8path(".git/" + ref), std::ios::in);
+            if (!rf) return std::nullopt;
+            std::getline(rf, line);
+            while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
+        }
+        if (line.size() < 7) return std::nullopt;
+        return line.substr(0, 12);
+    } catch (...) {
+        return std::nullopt;
+    }
 }
 
 // 本机 CPU 特征指纹(profile stale 判定; 非调度线程数, 不违反 ARCH-003/AGENTS 禁硬编码)
