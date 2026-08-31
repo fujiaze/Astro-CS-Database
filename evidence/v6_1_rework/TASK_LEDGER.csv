@@ -27,7 +27,7 @@ MON-002,G3,把资源门接入生产控制流,MON-001,Linux+Windows,performance,y
 MON-003,G3,完成2核真实资源基准,MON-002;CPU-004,Linux,validation,yes,yes,>=10s synthetic heavy per kernel,active worker p50>=2; normalized CPU p50>=90 mean>=85或内存瓶颈证据,PASS
 P1-001,G4,迁移Phase1到Registry和IR,RT-008;CPU-004,Linux,architecture,yes,yes,calibration/stars/wcs/phot/noise/drizzle modules,每节点标准端口; 无session手写顺序; trace与IR一致,PASS
 P1-002,G4,重写Phase1生产路径合成Oracle,P1-001,Linux,science,yes,yes,calibration/star/WCS/phot/noise/drizzle,测试调用production module/CLI; 独立reference; 容差预冻结,NOT_STARTED
-P1-003,G4,移除CLI直连Drizzle与重复FITS解析,P1-001,Linux,architecture,yes,yes,cmd_drizzle; spawn_frame_from_fits,生产callgraph无hp_drizzle直连; wrapper仅通过preset/runtime,NOT_STARTED
+P1-003,G4,移除CLI直连Drizzle与重复FITS解析,P1-001,Linux,architecture,yes,yes,cmd_drizzle; spawn_frame_from_fits,生产callgraph无hp_drizzle直连; wrapper仅通过preset/runtime,PASS
 P1-004,G4,Phase1数值与资源联合门,P1-002;P1-003;MON-003,Linux,validation,yes,yes,heavy synthetic and artifact verify,科学Oracle+资源门同跑同commit; 2核利用达标,NOT_STARTED
 P2-001,G5,并行化生产Coverage与Sampler,RT-008;MON-003,Linux+Windows,architecture,yes,yes,worker-local readers; deterministic chunks,Linux/MSVC均实际N worker; Runtime lease唯一来源; 1/N等价,NOT_STARTED
 P2-002,G5,并行化生产UPM求解,P2-001,Linux+Windows,architecture,yes,yes,control weights; IRLS; per-frame solve; reductions,无模块hardware_concurrency; fixed merge; 2核资源门; MSVC生效,NOT_STARTED
