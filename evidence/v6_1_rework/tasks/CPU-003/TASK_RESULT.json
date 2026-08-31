@@ -1,0 +1,159 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "CPU-003",
+  "status": "PASS",
+  "parent_commit": "8df1a86d7053a88cf66959d8fac0ceca23459663",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "performance",
+  "changed_paths": [
+    "cli/CMakeLists.txt",
+    "cli/commands.cpp",
+    "cli/parser.cpp",
+    "CMakeLists.txt",
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/CPU-003/PLAN.md",
+    "evidence/v6_1_rework/tasks/CPU-003/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/CPU-003/logs/c01_full_benchmark.jsonl",
+    "evidence/v6_1_rework/tasks/CPU-003/logs/c02_verify_profile.log",
+    "lib/backend_host/profile_gen.h",
+    "lib/backend_host/profile_gen_v2.cpp",
+    "schemas/hardware_inspect.schema.json",
+    "tests/backend/bench_candidates_main.cpp",
+    "tests/backend/bench_harness_main.cpp",
+    "tests/backend/kernel_bench_main.cpp",
+    "tests/backend/kernel_oracle_main.cpp",
+    "tests/backend/test_cpu_profile.py",
+    "tests/backend/test_hardware_inspect.py",
+    "tests/cli/test_bench_cli.py",
+    "tests/cli/test_cli_build.py",
+    "tests/cli/test_cli_protocol.py",
+    "tests/unit/CMakeLists.txt",
+    "tests/unit/cpu003_profile_v2_test.cpp"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": true,
+    "reason": "新增 v2 cpu_profile 生成/复读与 benchmark 链; CLI benchmark cpu 输出 v2 schema; provider DSO 实际加载测量"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "astrocs",
+        "benchmark",
+        "cpu",
+        "--full",
+        "--output",
+        "<profile>",
+        "--events-jsonl"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-003/logs/c01_full_benchmark.jsonl",
+      "log_sha256": "4fb1229ed1f77960af2c8bf0feefbfe5cfced4e1150fa48dad5a1a5b04358def",
+      "started_utc": "2026-09-01T16:20:00Z",
+      "duration_seconds": 480.0
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "astrocs",
+        "benchmark",
+        "verify-profile",
+        "<profile>"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-003/logs/c02_verify_profile.log",
+      "log_sha256": "7f17785ba444db41c543fb9e9e61e4f6b58509966c5fc644a461b363e72982f2",
+      "started_utc": "2026-09-01T16:28:30Z",
+      "duration_seconds": 0.3
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-V2-SCHEMA",
+      "description": "benchmark cpu --quick/--full 输出 v2 schema profile(schema/profile_id/host/build/memory_bandwidth/raw_samples_sha256/kernels); 手工全字段/pattern/const 校验符合控制包 cpu_profile.schema.json",
+      "result": "PASS",
+      "evidence_sha256": "4fb1229ed1f77960af2c8bf0feefbfe5cfced4e1150fa48dad5a1a5b04358def"
+    },
+    {
+      "test_id": "T-12-KERNELS",
+      "description": "full 模式 12 注册 kernel 全 Oracle PASS(独立 scalar Oracle, 与 kernel 实现不同路径); 无 fallback",
+      "result": "PASS",
+      "evidence_sha256": "4fb1229ed1f77960af2c8bf0feefbfe5cfced4e1150fa48dad5a1a5b04358def"
+    },
+    {
+      "test_id": "T-PROVIDER-LOAD",
+      "description": "3 provider(baseline 内置 + avx2/avx512 DSO)经 manifest 预检实际加载, self-test 通过, 全部参与候选测量",
+      "result": "PASS",
+      "evidence_sha256": "4fb1229ed1f77960af2c8bf0feefbfe5cfced4e1150fa48dad5a1a5b04358def"
+    },
+    {
+      "test_id": "T-RAW-CANDIDATES",
+      "description": "--events-jsonl 逐条发射全部原始候选(full=864 条), 含 kernel/size_class/provider/workers/block/median/mad/oracle_pass",
+      "result": "PASS",
+      "evidence_sha256": "4fb1229ed1f77960af2c8bf0feefbfe5cfced4e1150fa48dad5a1a5b04358def"
+    },
+    {
+      "test_id": "T-VERIFY-POSITIVE",
+      "description": "benchmark verify-profile <profile> 独立复读 PASS; verify profile --profile 兼容",
+      "result": "PASS",
+      "evidence_sha256": "4fb1229ed1f77960af2c8bf0feefbfe5cfced4e1150fa48dad5a1a5b04358def"
+    },
+    {
+      "test_id": "T-VERIFY-NEGATIVE",
+      "description": "篡改 schema/workers=0/median=0/commit 不匹配均 FAIL(exit=8)",
+      "result": "PASS",
+      "evidence_sha256": "4fb1229ed1f77960af2c8bf0feefbfe5cfced4e1150fa48dad5a1a5b04358def"
+    },
+    {
+      "test_id": "T-UNIT",
+      "description": "cpu003_profile_v2_test: v2 字段全/Oracle 门/winner/AVX512<3%/worker 候选/verify 正负例; ctest 52/52 PASS",
+      "result": "PASS",
+      "evidence_sha256": "4fb1229ed1f77960af2c8bf0feefbfe5cfced4e1150fa48dad5a1a5b04358def"
+    },
+    {
+      "test_id": "T-CLI-REGRESSION",
+      "description": "test_bench_cli.py 9/9; test_cli_protocol.py 10/10; test_cli_build.py 6/6 PASS",
+      "result": "PASS",
+      "evidence_sha256": "4fb1229ed1f77960af2c8bf0feefbfe5cfced4e1150fa48dad5a1a5b04358def"
+    },
+    {
+      "test_id": "T-BACKEND-REGRESSION",
+      "description": "test_cpu_profile 7/7; test_isa_variants 5/5; test_abi_v1/loader/kernels PASS; test_hardware_inspect 5/5; ISA 泄漏检查 PASS",
+      "result": "PASS",
+      "evidence_sha256": "4fb1229ed1f77960af2c8bf0feefbfe5cfced4e1150fa48dad5a1a5b04358def"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-003/PLAN.md",
+      "sha256": "b7f7a0e960308ab1d6b3d2962b3617efb62afa16efff78044d1dc9867b55b9e2"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-003/TASK_RESULT.json",
+      "sha256": "29e8aee40f5376f90c1e50ca327d440320f16627a8925e94ae0ad5bcd73295e3"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-003/logs/c01_full_benchmark.jsonl",
+      "sha256": "4fb1229ed1f77960af2c8bf0feefbfe5cfced4e1150fa48dad5a1a5b04358def"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-003/logs/c02_verify_profile.log",
+      "sha256": "7f17785ba444db41c543fb9e9e61e4f6b58509966c5fc644a461b363e72982f2"
+    }
+  ],
+  "findings": [
+    "F-019",
+    "F-025",
+    "F-039"
+  ],
+  "expected_commit_subject": "CPU-003: v2 benchmark profile 与 verify-profile 复读 (12 kernel Oracle, 3 provider 实测, raw candidates)",
+  "created_utc": "2026-09-01T16:30:00Z"
+}

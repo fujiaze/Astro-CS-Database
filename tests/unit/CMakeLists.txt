@@ -157,6 +157,14 @@ target_include_directories(cpu_profile_test PRIVATE
 target_link_libraries(cpu_profile_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME cpu_profile COMMAND cpu_profile_test)
 
+# CPU-003 (G3): v2 profile 生成与复读
+add_executable(cpu003_profile_v2_test cpu003_profile_v2_test.cpp)
+target_include_directories(cpu003_profile_v2_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu003_profile_v2_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME cpu003_profile_v2 COMMAND cpu003_profile_v2_test)
+
 # CPU-001 (G3): 独立 provider 构建 — 三份 self-test + 负例
 # 每个 provider 静态库各自链接进独立可执行, 运行共享 backend_table.inc 的
 # backend_self_test(handshake→allocator→cancel→budget→logger); -R "cpu0" 可全跑。

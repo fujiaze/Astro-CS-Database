@@ -75,11 +75,11 @@ int main(int argc, char** argv) {
                 p.head.abi_version = ACS_ABI_VERSION_V1;
                 p.op = ACS_KOP_CALIBRATION;
                 p.w = sz.n; p.h = 1; p.k = 2.0f;
-                p.in0 = {in0.data() + off, in0.size() - off};
-                p.in1 = {in1.data() + off, in1.size() - off};
-                p.in2 = {in2.data() + off, in2.size() - off};
-                p.in3 = {in3.data() + off, in3.size() - off};
-                p.out0 = {out.data(), out.size()};
+                p.in0 = ACS_SPAN_F32(in0.data() + off, in0.size() - off);
+                p.in1 = ACS_SPAN_F32(in1.data() + off, in1.size() - off);
+                p.in2 = ACS_SPAN_F32(in2.data() + off, in2.size() - off);
+                p.in3 = ACS_SPAN_F32(in3.data() + off, in3.size() - off);
+                p.out0 = ACS_SPAN_F32(out.data(), out.size());
                 std::vector<double> samples;
                 std::ostringstream srow;
                 for (int r = 0; r < 5; ++r) {

@@ -3,41 +3,148 @@
   "$id": "https://astrocs.invalid/schemas/hardware-inspect-v1.json",
   "title": "AstroCS hardware inspect v1 (06 §2, BENCH-001)",
   "type": "object",
-  "required": ["schema_version", "kind", "architecture", "vendor", "family", "model",
-               "stepping", "feature_bits", "feature_names", "xcr0",
-               "affinity", "affinity_count", "available_logical_cpus",
-               "logical_cpus_configured", "ram_bytes", "page_size", "os",
-               "compiler", "astrocs_build"],
+  "required": [
+    "schema_version",
+    "kind",
+    "architecture",
+    "vendor",
+    "family",
+    "model",
+    "stepping",
+    "feature_bits",
+    "feature_names",
+    "xcr0",
+    "affinity",
+    "affinity_count",
+    "available_logical_cpus",
+    "logical_cpus_configured",
+    "ram_bytes",
+    "page_size",
+    "os",
+    "compiler",
+    "astrocs_build",
+    "quota_signature"
+  ],
   "properties": {
-    "schema_version": {"const": 1},
-    "kind": {"const": "astrocs_hardware_inspect"},
-    "architecture": {"const": "amd64"},
-    "vendor": {"type": "string"},
-    "brand": {"type": "string"},
-    "family": {"type": "integer"},
-    "model": {"type": "integer"},
-    "stepping": {"type": "integer"},
-    "microcode": {"type": "string"},
-    "feature_bits": {"type": "integer", "minimum": 1},
-    "feature_names": {"type": "array", "items": {"type": "string"}},
-    "xcr0": {"type": "integer"},
-    "logical_cpus_configured": {"type": "integer", "minimum": 0},
-    "affinity": {"type": "array", "items": {"type": "integer", "minimum": 0}},
-    "affinity_count": {"type": "integer", "minimum": 1},
-    "available_logical_cpus": {"type": "integer", "minimum": 1},
-    "cgroup_cpu_limit": {"type": "integer", "minimum": 0},
-    "job_object_limit": {"type": ["integer", "null"]},
-    "physical_packages": {"type": ["integer", "null"]},
-    "smt": {"type": "object"},
-    "numa_nodes": {"type": "integer", "minimum": 0},
-    "ram_bytes": {"type": "integer", "minimum": 0},
-    "page_size": {"type": "integer", "minimum": 1},
-    "cache": {"type": "array"},
-    "os": {"type": "object", "required": ["name"]},
-    "compiler": {"type": "object", "required": ["id", "version"]},
-    "astrocs_build": {"type": "string", "minLength": 1},
-    "cli_sha256": {"type": "string"},
-    "backend_hashes": {"type": "array"}
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "astrocs_hardware_inspect"
+    },
+    "architecture": {
+      "const": "amd64"
+    },
+    "vendor": {
+      "type": "string"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "family": {
+      "type": "integer"
+    },
+    "model": {
+      "type": "integer"
+    },
+    "stepping": {
+      "type": "integer"
+    },
+    "microcode": {
+      "type": "string"
+    },
+    "feature_bits": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "feature_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "xcr0": {
+      "type": "integer"
+    },
+    "logical_cpus_configured": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "affinity": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "affinity_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "available_logical_cpus": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "cgroup_cpu_limit": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "job_object_limit": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "physical_packages": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "smt": {
+      "type": "object"
+    },
+    "numa_nodes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ram_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "page_size": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "cache": {
+      "type": "array"
+    },
+    "os": {
+      "type": "object",
+      "required": [
+        "name"
+      ]
+    },
+    "compiler": {
+      "type": "object",
+      "required": [
+        "id",
+        "version"
+      ]
+    },
+    "astrocs_build": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cli_sha256": {
+      "type": "string"
+    },
+    "backend_hashes": {
+      "type": "array"
+    },
+    "quota_signature": {
+      "type": "string"
+    }
   },
   "additionalProperties": false
 }
