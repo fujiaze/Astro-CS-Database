@@ -1,0 +1,163 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "RT-005",
+  "status": "PASS",
+  "parent_commit": "90cf35a8db8e3df0d1da8b1500e2c6be460e7f95",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "architecture",
+  "changed_paths": [
+    "include/astrocs/core/module.h",
+    "include/astrocs/core/module_adapters.h",
+    "lib/core/src/module.cpp",
+    "lib/core/src/module_adapters.cpp",
+    "CMakeLists.txt",
+    "tests/unit/rt005_registry_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/v6_1_rework/tasks/RT-005/PLAN.md",
+    "evidence/v6_1_rework/tasks/RT-005/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/RT-005/logs/c01.log",
+    "evidence/v6_1_rework/tasks/RT-005/logs/c02.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": true,
+    "binary": true,
+    "reason": "ModuleRegistry gains factory/create; IModule/ModulePlan moved into module.h; new adapter library links sessions"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "rt005_registry_test",
+        "-j2"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:12:58Z",
+      "duration_seconds": 120.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-005/logs/c01.log",
+      "log_sha256": "6a639a6ea770da1731a4b9a45bcbd7e5d9d6560003b735d9499d7a2e07a49cb1"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "./run/temp/build_v61/tests/unit/rt005_registry_test"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:12:58Z",
+      "duration_seconds": 0.3,
+      "log_path": "evidence/v6_1_rework/tasks/RT-005/logs/c01.log",
+      "log_sha256": "6a639a6ea770da1731a4b9a45bcbd7e5d9d6560003b735d9499d7a2e07a49cb1"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "ASTROCS_REPO=$(pwd)",
+        "ctest",
+        "--test-dir",
+        "run/temp/build_v61",
+        "-R",
+        "core_|rt0"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:12:58Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-005/logs/c02.log",
+      "log_sha256": "8396b204ec017339c275d6acdb9d0d1c38c2a6bdb089d221e1037633e958392b"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "astrocs",
+        "-j2"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:12:58Z",
+      "duration_seconds": 240.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-005/logs/c02.log",
+      "log_sha256": "8396b204ec017339c275d6acdb9d0d1c38c2a6bdb089d221e1037633e958392b"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-3-REAL-MODULES",
+      "description": "真实 Phase1/2/3 模块 factory 注册+create 全部成功",
+      "result": "PASS",
+      "evidence_sha256": "6a639a6ea770da1731a4b9a45bcbd7e5d9d6560003b735d9499d7a2e07a49cb1"
+    },
+    {
+      "test_id": "T-DESCRIPTOR-CONTRACTS",
+      "description": "SCI/ALG/DATA/API/TEST/端口/execution class 完整",
+      "result": "PASS",
+      "evidence_sha256": "6a639a6ea770da1731a4b9a45bcbd7e5d9d6560003b735d9499d7a2e07a49cb1"
+    },
+    {
+      "test_id": "T-REJECTIONS",
+      "description": "heavy+serial/ACR/重复端口/重复 ID 全拒",
+      "result": "PASS",
+      "evidence_sha256": "6a639a6ea770da1731a4b9a45bcbd7e5d9d6560003b735d9499d7a2e07a49cb1"
+    },
+    {
+      "test_id": "T-EXPORT-JSON",
+      "description": "nlohmann 转义 + executable 标志",
+      "result": "PASS",
+      "evidence_sha256": "6a639a6ea770da1731a4b9a45bcbd7e5d9d6560003b735d9499d7a2e07a49cb1"
+    },
+    {
+      "test_id": "T-FACTORY-EXEC",
+      "description": "3 模块 validate_config/inspect/plan 走真实 session",
+      "result": "PASS",
+      "evidence_sha256": "6a639a6ea770da1731a4b9a45bcbd7e5d9d6560003b735d9499d7a2e07a49cb1"
+    },
+    {
+      "test_id": "T-CORE-12",
+      "description": "12/12 core+rt 测试全 PASS",
+      "result": "PASS",
+      "evidence_sha256": "8396b204ec017339c275d6acdb9d0d1c38c2a6bdb089d221e1037633e958392b"
+    },
+    {
+      "test_id": "T-CLI-LINK",
+      "description": "CLI 重链接成功",
+      "result": "PASS",
+      "evidence_sha256": "8396b204ec017339c275d6acdb9d0d1c38c2a6bdb089d221e1037633e958392b"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-005/PLAN.md",
+      "sha256": "ed9dc223c3683fdaa77806b68a4892970559c20a254326f92b974edc2fafe5f8"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-005/TASK_RESULT.json",
+      "sha256": "d5c82a7093d5f5093068cf099631a13eefe1c5f80d48518a0d9f26a6c944633c"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-005/logs/c01.log",
+      "sha256": "6a639a6ea770da1731a4b9a45bcbd7e5d9d6560003b735d9499d7a2e07a49cb1"
+    }
+  ],
+  "findings": [
+    "F-001",
+    "F-018"
+  ],
+  "limitations": [
+    "适配器 execute 真实 run 需合法 config+数据（RT-008 接线后 CLI 驱动）；本任务验证 create/validate/inspect/plan"
+  ],
+  "expected_commit_subject": "RT-005: 可执行 ModuleRegistry (真实 Phase1/2/3 工厂, 完整合同校验, nlohmann 转义 index)",
+  "created_utc": "2026-08-31T05:12:58Z"
+}
