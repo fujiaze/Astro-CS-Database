@@ -74,32 +74,41 @@ def load_ledger(path: Path) -> list[dict[str, str]]:
     return rows
 
 
-def validate_rows(rows: list[dict[str, str]], *, enforce_states: bool = True) -> dict:
+def validate_rows(rows: list[dict[str, str]], *, enforce_states: bool = True,
+                  expected_count: int | None = None) -> dict:
+    """GOV-002: 收集全部错误（不只第一个），expected_count 校验任务数。"""
+    errors: list[str] = []
+    if expected_count is not None and len(rows) != expected_count:
+        errors.append(f"task count mismatch: got {len(rows)} expected {expected_count}")
     by_id: dict[str, dict[str, str]] = {}
     order: list[str] = []
     for line_no, row in enumerate(rows, start=2):
         task_id = row["task_id"]
         if not TASK_RE.fullmatch(task_id):
-            raise LedgerError(f"line {line_no}: invalid task_id {task_id!r}")
+            errors.append(f"line {line_no}: invalid task_id {task_id!r}")
+            continue
         if task_id in by_id:
-            raise LedgerError(f"duplicate task_id: {task_id}")
+            errors.append(f"duplicate task_id: {task_id}")
+            continue
         if row["status"] not in STATUSES:
-            raise LedgerError(f"{task_id}: invalid status {row['status']!r}")
+            errors.append(f"{task_id}: invalid status {row['status']!r}")
         if row["heavy_compute"] not in {"yes", "no"} or row["commit_required"] not in {"yes", "no"}:
-            raise LedgerError(f"{task_id}: heavy_compute/commit_required must be yes/no")
+            errors.append(f"{task_id}: heavy_compute/commit_required must be yes/no")
         if not GATE_RE.fullmatch(row["gate"]):
-            raise LedgerError(f"{task_id}: invalid gate {row['gate']!r}")
+            errors.append(f"{task_id}: invalid gate {row['gate']!r}")
         if not all(row[name].strip() for name in ("title", "platform", "change_class", "scope", "acceptance")):
-            raise LedgerError(f"{task_id}: required text field is empty")
+            errors.append(f"{task_id}: required text field is empty")
         if row["status"] == "WAITING_WINDOWS" and "Windows" not in row["platform"]:
-            raise LedgerError(f"{task_id}: WAITING_WINDOWS is legal only for a Windows task")
+            errors.append(f"{task_id}: WAITING_WINDOWS is legal only for a Windows task")
         if row["status"] == "BLOCKED":
             if not row.get("BLOCKED_REASON", "").strip():
-                raise LedgerError(f"{task_id}: BLOCKED requires BLOCKED_REASON (object/command/time)")
+                errors.append(f"{task_id}: BLOCKED requires BLOCKED_REASON (object/command/time)")
             if row["commit_required"] == "yes":
-                raise LedgerError(f"{task_id}: BLOCKED is not a final state for a commit_required task")
+                errors.append(f"{task_id}: BLOCKED is not a final state for a commit_required task")
         by_id[task_id] = row
         order.append(task_id)
+    if errors:
+        raise LedgerError("; ".join(errors))
 
     deps: dict[str, list[str]] = {}
     reverse: dict[str, list[str]] = defaultdict(list)
@@ -107,17 +116,20 @@ def validate_rows(rows: list[dict[str, str]], *, enforce_states: bool = True) ->
     for task_id, row in by_id.items():
         task_deps = [item.strip() for item in row["depends_on"].split(";") if item.strip()]
         if len(task_deps) != len(set(task_deps)):
-            raise LedgerError(f"{task_id}: duplicate dependency")
+            errors.append(f"{task_id}: duplicate dependency")
         task_gate = int(GATE_RE.fullmatch(row["gate"]).group(1))
         for dep in task_deps:
             if dep not in by_id:
-                raise LedgerError(f"{task_id}: unknown dependency {dep}")
+                errors.append(f"{task_id}: unknown dependency {dep}")
+                continue
             dep_gate = int(GATE_RE.fullmatch(by_id[dep]["gate"]).group(1))
             if dep_gate > task_gate:
-                raise LedgerError(f"{task_id}: dependency {dep} belongs to a later gate")
+                errors.append(f"{task_id}: dependency {dep} belongs to a later gate")
             reverse[dep].append(task_id)
         deps[task_id] = task_deps
         indegree[task_id] = len(task_deps)
+    if errors:
+        raise LedgerError("; ".join(errors))
 
     queue = deque(task_id for task_id in order if indegree[task_id] == 0)
     topo: list[str] = []
@@ -132,17 +144,20 @@ def validate_rows(rows: list[dict[str, str]], *, enforce_states: bool = True) ->
         raise LedgerError(f"dependency cycle: {sorted(k for k, v in indegree.items() if v > 0)}")
 
     if enforce_states:
+        state_errors: list[str] = []
         if sum(row["status"] == "IN_PROGRESS" for row in rows) > 1:
-            raise LedgerError("more than one task is IN_PROGRESS")
+            state_errors.append("more than one task is IN_PROGRESS")
         for task_id, task_deps in deps.items():
             state = by_id[task_id]["status"]
             if state in {"PASS", "IN_PROGRESS"}:
                 bad = [dep for dep in task_deps if by_id[dep]["status"] != "PASS"]
                 if bad:
-                    raise LedgerError(f"{task_id}: {state} with non-PASS dependencies {bad}")
+                    state_errors.append(f"{task_id}: {state} with non-PASS dependencies {bad}")
         owner = by_id.get("REL-004")
         if owner is not None and owner["status"] == "PASS":
-            raise LedgerError("REL-004 is Owner-only and cannot be marked PASS by the Agent")
+            state_errors.append("REL-004 is Owner-only and cannot be marked PASS by the Agent")
+        if state_errors:
+            raise LedgerError("; ".join(state_errors))
 
     counts = Counter(row["status"] for row in rows)
     gates: dict[str, str] = {}
@@ -209,6 +224,10 @@ SELFTEST_CASES: list[tuple[str, str, str]] = [
     ("bad_task_id", _ledger({"bad": "NOT_STARTED"}), "invalid task_id"),
     ("missing_task", _ledger({"R0-001": "PASS", "R0-003": "PASS"}, {"R0-003": "R0-002"}),
      "unknown dependency"),
+    ("task_count_mismatch", _ledger({"R0-001": "PASS"}),
+     "task count mismatch"),
+    ("all_errors_aggregated", _ledger({"R0-001": "REVIEW_PENDING", "R0-002": "IN_PROGRESS"}),
+     "invalid status"),
 ]
 
 
@@ -216,8 +235,9 @@ def run_selftest() -> int:
     failures = 0
     for name, content, expected in SELFTEST_CASES:
         path = _write_tmp(name, content)
+        expected_count = 67 if name == "task_count_mismatch" else None
         try:
-            validate_rows(load_ledger(path), enforce_states=True)
+            validate_rows(load_ledger(path), enforce_states=True, expected_count=expected_count)
         except LedgerError as exc:
             if expected in str(exc):
                 print(f"SELFTEST_PASS {name}: caught {exc}")
@@ -239,6 +259,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("ledger", nargs="?", type=Path)
     parser.add_argument("--baseline-sha256")
     parser.add_argument("--structure-only", action="store_true")
+    parser.add_argument("--expected-tasks", type=int, default=None,
+                        help="GOV-002: 期望任务数，不符即 FAIL")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args(argv)
@@ -253,7 +275,9 @@ def main(argv: list[str] | None = None) -> int:
         digest = sha256_file(args.ledger)
         if args.baseline_sha256 and digest != args.baseline_sha256.lower():
             raise LedgerError(f"ledger hash changed: {digest}")
-        result = validate_rows(load_ledger(args.ledger), enforce_states=not args.structure_only)
+        result = validate_rows(load_ledger(args.ledger),
+                               enforce_states=not args.structure_only,
+                               expected_count=args.expected_tasks)
         result["ledger_sha256"] = digest
         rendered = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
         if args.output:
