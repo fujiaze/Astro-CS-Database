@@ -78,6 +78,10 @@ class IModule {
 
   // 结构化诊断（output JSON 文本；不重执行科学计算；线程安全：可并发）
   virtual Result<std::string> inspect() = 0;
+
+  // RT-008: 最近一次 execute 的产物清单 JSON（科学 session inspect/manifest 摘要；
+  // 未执行或失败 → 空串）。供 Runtime 收集跨阶段 artifact。
+  virtual Result<std::string> last_manifest() = 0;
 };
 
 // ModuleRegistry: 模块唯一注册, duplicate/ABI/合同校验 + 工厂创建（RT-005 可执行）

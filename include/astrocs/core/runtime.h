@@ -27,43 +27,7 @@
 
 namespace astrocs::core {
 
-// ── ModulePlan: 模块执行前的资源/工作量计划 (RT-005) ──
-// plan() 不得修改输入；只输出工作量、内存、I/O、并行轴与 kernel 请求。
-struct ModulePlan {
-  std::string node_id;                  // 计划所属 node（非空）
-  uint64_t work_units = 0;              // 工作量（tile/row-band/样本数）
-  uint64_t estimated_memory_bytes = 0;  // 峰值内存估计（NodePlan 预算用）
-  std::vector<std::string> parallel_axes;  // 并行轴（"tile"/"row"/"sample"…）
-  std::vector<std::string> kernel_ids;     // 请求的 provider kernel IDs
-  bool cpu_heavy = false;               // execution class 判定
-};
-
-// ── IModule: 模块生命周期接口 (RT-005) ──
-// 生命周期: describe → validate_config → plan → create → execute → inspect → destroy。
-// execute 只使用 Runtime 提供的 lease/context/artifacts；inspect 不重执行科学计算。
-class IModule {
- public:
-  virtual ~IModule() = default;
-
-  // 静态描述（descriptor；非空、不得与注册合同矛盾）
-  virtual const ModuleDescriptor& descriptor() const noexcept = 0;
-
-  // 校验 config JSON（input: config schema JSON 文本, 非空, 拥有方=调用者,
-  // lifetime=本次调用有效; output err 可空, 由调用者持有）
-  virtual Result<void> validate_config(const std::string& config_json) = 0;
-
-  // 生成执行计划（input: node_id, config; output: ModulePlan）。
-  // 禁止修改任何输入；线程安全：可并发调用。
-  virtual Result<ModulePlan> plan(const std::string& node_id,
-                                  const std::string& config_json) = 0;
-
-  // 执行（input: RunContext& 引用, 拥有方=Runtime, 非空, 仅当前线程调用；
-  // 输出 Result<void>；取消/异常必须归还 lease）
-  virtual Result<void> execute(RunContext& ctx) = 0;
-
-  // 结构化诊断（output JSON 文本；不重执行科学计算；线程安全：可并发）
-  virtual Result<std::string> inspect() = 0;
-};
+// ModulePlan / IModule 定义于 module.h（RT-005 冻结合同；此处不再重复）。
 
 // ── Runtime: 唯一生产调度入口 (ARCH-001 §1; 全进程唯一 owner) ──
 // 禁止第二套调度器；模块不建私有 pool；ACR 不注册不链接。
@@ -91,6 +55,10 @@ class Runtime {
 
   // 当前 DAG 节点状态快照（node_id → status；线程安全）。
   virtual std::vector<std::pair<std::string, NodeStatus>> node_statuses() const = 0;
+
+  // RT-008: 每个节点最近一次执行的 session manifest 摘要（node_id → JSON 文本）。
+  // 供 CLI 收集跨阶段 artifact（ArtifactStore 绑定语义）。
+  virtual std::vector<std::pair<std::string, std::string>> node_manifests() const = 0;
 };
 
 // ── 工厂（C++ 边界；ownership: 调用者独占销毁） ──

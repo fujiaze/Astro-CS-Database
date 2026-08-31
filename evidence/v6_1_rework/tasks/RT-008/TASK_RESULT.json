@@ -1,0 +1,279 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "RT-008",
+  "status": "PASS",
+  "parent_commit": "d5f5143a04ced96500ff02928339aad336d48bfa",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "architecture",
+  "changed_paths": [
+    "cli/main.cpp",
+    "cli/parser.cpp",
+    "cli/commands.cpp",
+    "cli/runtime_client.h",
+    "cli/runtime_client.cpp",
+    "cli/CMakeLists.txt",
+    "CMakeLists.txt",
+    "include/astrocs/core/module.h",
+    "include/astrocs/core/runtime.h",
+    "lib/core/src/module_adapters.cpp",
+    "lib/core/src/runtime.cpp",
+    "lib/core/src/scheduler.cpp",
+    "lib/astro_image_io/src/aio_fits.cpp",
+    "lib/astro_image_io/src/aio_cfitsio_mutex.h",
+    "lib/astro_image_io/src/hips/aio_hips_reader.cpp",
+    "lib/phase3_session/p3_output.cpp",
+    "tests/unit/rt008_runtime_client_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "tests/cli/test_cli_protocol.py",
+    "tools/quality/check_prod_reachability.py",
+    "evidence/v6_1_rework/tasks/CHK-001/PROD_REACHABILITY.json",
+    "evidence/v6_1_rework/tasks/CHK-001/PROD_REACHABILITY.dot",
+    "evidence/v6_1_rework/tasks/RT-008/PLAN.md",
+    "evidence/v6_1_rework/tasks/RT-008/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/RT-008/logs/c01.log",
+    "evidence/v6_1_rework/tasks/RT-008/logs/c02.log",
+    "evidence/v6_1_rework/tasks/RT-008/logs/c03.log",
+    "evidence/v6_1_rework/tasks/RT-008/logs/c04.log",
+    "evidence/v6_1_rework/tasks/RT-008/logs/c05.log",
+    "evidence/v6_1_rework/tasks/RT-008/logs/c06.log",
+    "evidence/v6_1_rework/tasks/RT-008/logs/c07.log",
+    "evidence/v6_1_rework/tasks/RT-008/logs/c08.log",
+    "evidence/v6_1_rework/tasks/RT-008/logs/c09.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": true,
+    "binary": true,
+    "reason": "CLI 接入唯一 Runtime；新增 IModule::last_manifest/Runtime::node_manifests 接口；SessionModule 经 Runtime 唯一执行；cfitsio 进程级串行化修复并行文件 I/O 竞争"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_prod_reachability.py",
+        "--repo",
+        ".",
+        "--binary",
+        "run/temp/build_v61/astrocs",
+        "--compile-commands",
+        "run/temp/build_v61/compile_commands.json"
+      ],
+      "timeout_seconds": 180,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:00:00Z",
+      "duration_seconds": 12.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-008/logs/c01.log",
+      "log_sha256": "f5b9ea092d866898262a220d607a4a8e793efd75464b5814268445900cc57d3c"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "ASTROCS_REPO=$(pwd)",
+        "ctest",
+        "--test-dir",
+        "run/temp/build_v61",
+        "-R",
+        "core_|rt0"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:00:00Z",
+      "duration_seconds": 1.1,
+      "log_path": "evidence/v6_1_rework/tasks/RT-008/logs/c02.log",
+      "log_sha256": "9e9ec57e0296f0f363b85c99421be0c785e9970822c4bb697dc9fdf6cdc15fe7"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "astrocs",
+        "-j2"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:00:00Z",
+      "duration_seconds": 240.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-008/logs/c03.log",
+      "log_sha256": "b6c25c2aad9042f627ced40ba8033b4e0688c90b6680b9ebf98b80f34389bdb5"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "build/cli",
+        "--target",
+        "astrocs",
+        "-j2"
+      ],
+      "timeout_seconds": 1500,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:00:00Z",
+      "duration_seconds": 300.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-008/logs/c04.log",
+      "log_sha256": "39c7ac2be57a6a3977977a5e26f182b60e9c002f57836fea65d19593081b2fb5"
+    },
+    {
+      "command_id": "c05",
+      "argv_redacted": [
+        "python3",
+        "-m",
+        "unittest",
+        "tests.cli.test_cli_protocol",
+        "tests.cli.test_phase1_inprocess",
+        "tests.cli.test_phase2_inprocess",
+        "tests.cli.test_phase3_inprocess",
+        "tests.cli.test_phase123_pipeline"
+      ],
+      "timeout_seconds": 700,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:00:00Z",
+      "duration_seconds": 176.8,
+      "log_path": "evidence/v6_1_rework/tasks/RT-008/logs/c05.log",
+      "log_sha256": "a08fef6be3c14f98419dd4ab9c19e0365e896744a956445ec5bb11b22686f3b1"
+    },
+    {
+      "command_id": "c06",
+      "argv_redacted": [
+        "./run/temp/build_tsan/tests/unit/rt006_scheduler_test",
+        "&&",
+        "./run/temp/build_tsan/tests/unit/rt008_runtime_client_test"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:00:00Z",
+      "duration_seconds": 3.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-008/logs/c06.log",
+      "log_sha256": "8c08922f37c9c0be0eb21a879b445a77e2a216b5cdfd2ca6c352e6649affb796"
+    },
+    {
+      "command_id": "c07",
+      "argv_redacted": [
+        "./run/temp/build_v61/astrocs",
+        "run",
+        "--phases",
+        "1",
+        "--config",
+        "/tmp/rt8_smoke/cfg1.json",
+        "--events-jsonl"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:00:00Z",
+      "duration_seconds": 15.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-008/logs/c07.log",
+      "log_sha256": "7f60479591d76f3366c4ddcedc12a49e9b459d63f5b45c6a751320c647370d2c"
+    },
+    {
+      "command_id": "c08",
+      "argv_redacted": [
+        "TSan",
+        "astrocs",
+        "run",
+        "--phases",
+        "2,3",
+        "--config",
+        "/tmp/rt8_23/cfg.json"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:00:00Z",
+      "duration_seconds": 90.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-008/logs/c08.log",
+      "log_sha256": "8404f2ee799656454738b77a3848c3851028d592205b90a120b3abb603b036ed"
+    },
+    {
+      "command_id": "c09",
+      "argv_redacted": [
+        "release",
+        "astrocs",
+        "run",
+        "--phases",
+        "2,3",
+        "x10",
+        "stress"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T12:00:00Z",
+      "duration_seconds": 40.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-008/logs/c09.log",
+      "log_sha256": "3e9c8619311926eef044d8302fc7454c285efd5ea8ef2a3ae19b39f7f8ec440b"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-CHK1-REACH",
+      "description": "CLI 全源无 banned include/符号；Runtime owner 符号可达（REACH_PASS）",
+      "result": "PASS",
+      "evidence_sha256": "f5b9ea092d866898262a220d607a4a8e793efd75464b5814268445900cc57d3c"
+    },
+    {
+      "test_id": "T-CLI-BATTERY",
+      "description": "44 项 CLI 测试（protocol 20 + phase1/2/3 inprocess + phase123 pipeline 6）全 PASS",
+      "result": "PASS",
+      "evidence_sha256": "a08fef6be3c14f98419dd4ab9c19e0365e896744a956445ec5bb11b22686f3b1"
+    },
+    {
+      "test_id": "T-CORE-UNIT",
+      "description": "core_|rt0 ctest 15/15 PASS",
+      "result": "PASS",
+      "evidence_sha256": "9e9ec57e0296f0f363b85c99421be0c785e9970822c4bb697dc9fdf6cdc15fe7"
+    },
+    {
+      "test_id": "T-TSAN",
+      "description": "TSan 2,3 并行 3 次 0 race；rt002/003/005/006/008 全 PASS",
+      "result": "PASS",
+      "evidence_sha256": "8404f2ee799656454738b77a3848c3851028d592205b90a120b3abb603b036ed"
+    },
+    {
+      "test_id": "T-STRESS",
+      "description": "release 2,3 并行 10 次 stress 全 PASS（cfitsio 竞争修复后无 SIGSEGV）",
+      "result": "PASS",
+      "evidence_sha256": "3e9c8619311926eef044d8302fc7454c285efd5ea8ef2a3ae19b39f7f8ec440b"
+    },
+    {
+      "test_id": "T-TRACE",
+      "description": "run --phases 1 observed trace：exit 0、final ok、事件链完整",
+      "result": "PASS",
+      "evidence_sha256": "7f60479591d76f3366c4ddcedc12a49e9b459d63f5b45c6a751320c647370d2c"
+    }
+  ],
+  "created_utc": "2026-08-31T12:00:00Z",
+  "findings": [
+    "F-003",
+    "F-004",
+    "F-012"
+  ],
+  "expected_commit_subject": "RT-008: CLI 接入唯一 Runtime (main 拆分, run/phase 走 runtime_client, cfitsio 并行 I/O 串行化, CHK-001 REACH_PASS)",
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-008/PLAN.md",
+      "sha256": "9d52acf3c326bc8fa727c44dcb91d12cbc4a630932fd4edfd2783b0f0792d0b6"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-008/TASK_RESULT.json",
+      "sha256": "881d58f54b51f6d46a9e1476aa26f37f0618a6751cb922a0a756151d36656f1f"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-008/logs/c01.log",
+      "sha256": "f5b9ea092d866898262a220d607a4a8e793efd75464b5814268445900cc57d3c"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-008/logs/c05.log",
+      "sha256": "a08fef6be3c14f98419dd4ab9c19e0365e896744a956445ec5bb11b22686f3b1"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-008/logs/c08.log",
+      "sha256": "8404f2ee799656454738b77a3848c3851028d592205b90a120b3abb603b036ed"
+    }
+  ]
+}

@@ -32,6 +32,11 @@ acs_status p3_session_inspect(acs_handle h, acs_span_u8* out_result_json);
 acs_status p3_session_destroy(acs_handle h);
 }
 
+// session C++ 辅助（last_error 保留错误细节；RT-008 CLI 合同需要）
+namespace astrocs::phase1 { std::string last_error(acs_handle h); }
+namespace astrocs::phase2 { std::string last_error(acs_handle h); }
+namespace astrocs::phase3 { std::string last_error(acs_handle h); }
+
 namespace astrocs::core {
 
 namespace {
@@ -89,12 +94,14 @@ Result<void> to_result(acs_status st, const char* what) {
 struct SessionModule : public IModule {
   ModuleDescriptor desc_;
   std::string config_;
+  std::string manifest_;  // RT-008: 最近一次 execute 的 session inspect 摘要
   // 会话函数族
   acs_status (*fn_create)(const astrocs_host_services_v1*, acs_handle*);
   acs_status (*fn_validate)(acs_handle, acs_span_u8);
   acs_status (*fn_run)(acs_handle, acs_span_u8);
   acs_status (*fn_inspect)(acs_handle, acs_span_u8*);
   acs_status (*fn_destroy)(acs_handle);
+  std::string (*fn_last_error)(acs_handle);  // RT-008: 会话 last_error（保留错误细节）
   uint32_t workers_ = 2;
 
   SessionModule(ModuleDescriptor desc,
@@ -102,9 +109,11 @@ struct SessionModule : public IModule {
                 acs_status (*validate)(acs_handle, acs_span_u8),
                 acs_status (*run)(acs_handle, acs_span_u8),
                 acs_status (*inspect)(acs_handle, acs_span_u8*),
-                acs_status (*destroy)(acs_handle))
+                acs_status (*destroy)(acs_handle),
+                std::string (*last_error)(acs_handle))
       : desc_(std::move(desc)), fn_create(create), fn_validate(validate),
-        fn_run(run), fn_inspect(inspect), fn_destroy(destroy) {}
+        fn_run(run), fn_inspect(inspect), fn_destroy(destroy),
+        fn_last_error(last_error) {}
 
   const ModuleDescriptor& descriptor() const noexcept override { return desc_; }
 
@@ -131,6 +140,7 @@ struct SessionModule : public IModule {
 
   Result<ModulePlan> plan(const std::string& node_id,
                           const std::string& config_json) override {
+    config_ = config_json;  // RT-008: 保存 config，execute 用真实配置驱动 session
     ModulePlan p;
     p.node_id = node_id;
     p.work_units = 1;
@@ -154,7 +164,27 @@ struct SessionModule : public IModule {
     cfg.count = static_cast<uint64_t>(config_.size());
     cfg.data = const_cast<uint8_t*>(
         reinterpret_cast<const uint8_t*>(config_.data()));
+    // RT-008: execute 先 validate（与旧 CLI 流程一致；拒绝面在 validate 层:
+    // phase3 projection/center/scale 等 → PARAM/UNSUPPORTED，CLI 映射 ARGS(2)）
+    st = fn_validate(h, cfg);
+    if (st != ACS_OK) {
+      // validate 阶段失败 = 配置/请求错 → DATA(CLI → 2)；UNSUPPORTED 也是显式拒(2)
+      std::string why = fn_last_error ? fn_last_error(h) : "";
+      if (why.empty()) why = "session validate: " + status_str(st);
+      fn_destroy(h);
+      return Result<void>::fail(Error(ErrorDomain::DATA, why));
+    }
     st = fn_run(h, cfg);
+    // RT-008: destroy 前捕获 session manifest（inspect 摘要；成功/失败都捕获，
+    // 失败时 manifest 含 error_kind 供 CLI 按 04 合同映射退出码）
+    {
+      acs_span_u8 man{};
+      if (fn_inspect(h, &man) == ACS_OK && man.data) {
+        manifest_ = std::string(reinterpret_cast<char*>(man.data),
+                                static_cast<size_t>(man.count));
+        hs.host.allocator.free(hs.host.allocator.user_data, man.data);
+      }
+    }
     if (st != ACS_OK) { fn_destroy(h); return to_result(st, "session run"); }
     ctx.log(LogLevel::INFO, desc_.module_id, "execute OK");
     fn_destroy(h);
@@ -185,6 +215,15 @@ struct SessionModule : public IModule {
     if (st != ACS_OK) return Result<std::string>::fail(
         to_result(st, "session inspect").error());
     return Result<std::string>::ok(std::move(result));
+  }
+
+  // RT-008: 返回 execute 时捕获的 session manifest（不再重新 create session）
+  Result<std::string> last_manifest() override {
+    if (manifest_.empty()) {
+      return Result<std::string>::fail(Error(ErrorDomain::DATA,
+          desc_.module_id + ": no manifest captured (execute not run)"));
+    }
+    return Result<std::string>::ok(manifest_);
   }
 };
 
@@ -248,7 +287,7 @@ ModuleDescriptor phase3_descriptor() {
 template <typename T>
 std::unique_ptr<IModule> make_session_module(ModuleDescriptor desc) {
   return std::make_unique<SessionModule>(std::move(desc), T::create, T::validate,
-                                         T::run, T::inspect, T::destroy);
+                                         T::run, T::inspect, T::destroy, T::last_error);
 }
 
 struct P1Api {
@@ -257,6 +296,7 @@ struct P1Api {
   static acs_status run(acs_handle h, acs_span_u8 c) { return p1_session_run(h, c, 0); }
   static acs_status inspect(acs_handle h, acs_span_u8* o) { return p1_session_inspect(h, o); }
   static acs_status destroy(acs_handle h) { return p1_session_destroy(h); }
+  static std::string last_error(acs_handle h) { return phase1::last_error(h); }
 };
 struct P2Api {
   static acs_status create(const astrocs_host_services_v1* h, acs_handle* o) { return p2_session_create(h, o); }
@@ -264,6 +304,7 @@ struct P2Api {
   static acs_status run(acs_handle h, acs_span_u8 c) { return p2_session_run(h, c); }
   static acs_status inspect(acs_handle h, acs_span_u8* o) { return p2_session_inspect(h, o); }
   static acs_status destroy(acs_handle h) { return p2_session_destroy(h); }
+  static std::string last_error(acs_handle h) { return phase2::last_error(h); }
 };
 struct P3Api {
   static acs_status create(const astrocs_host_services_v1* h, acs_handle* o) { return p3_session_create(h, o); }
@@ -271,11 +312,18 @@ struct P3Api {
   static acs_status run(acs_handle h, acs_span_u8 c) { return p3_session_run(h, c); }
   static acs_status inspect(acs_handle h, acs_span_u8* o) { return p3_session_inspect(h, o); }
   static acs_status destroy(acs_handle h) { return p3_session_destroy(h); }
+  static std::string last_error(acs_handle h) { return phase3::last_error(h); }
 };
 
 }  // namespace
 
+// RT-008: cfitsio 首次初始化 shim（core 不 include cfitsio 头，避免依赖图污染）
+extern "C" void astrocs_cfitsio_ensure_initialized(void);
+
 Result<void> register_phase_modules(ModuleRegistry& registry) {
+  // RT-008: cfitsio 首次初始化在单线程阶段完成（Runtime 并行 worker 并发首用会数据竞争）。
+  astrocs_cfitsio_ensure_initialized();
+
   // Phase1
   auto d1 = phase1_descriptor();
   auto r1 = registry.register_module(d1);

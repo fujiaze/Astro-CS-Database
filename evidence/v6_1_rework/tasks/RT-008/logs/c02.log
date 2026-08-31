@@ -1,0 +1,36 @@
+Internal ctest changing into directory: /home/lighthouse/Astro CS Database/run/temp/build_v61
+Test project /home/lighthouse/Astro CS Database/run/temp/build_v61
+      Start  1: core_contracts
+ 1/15 Test  #1: core_contracts ...................   Passed    0.00 sec
+      Start  2: core_artifact
+ 2/15 Test  #2: core_artifact ....................   Passed    0.00 sec
+      Start  3: core_module
+ 3/15 Test  #3: core_module ......................   Passed    0.00 sec
+      Start  4: core_pipeline
+ 4/15 Test  #4: core_pipeline ....................   Passed    0.01 sec
+      Start  5: core_context
+ 5/15 Test  #5: core_context .....................   Passed    0.00 sec
+      Start  6: core_scheduler
+ 6/15 Test  #6: core_scheduler ...................   Passed    0.86 sec
+      Start  7: core_checkpoint
+ 7/15 Test  #7: core_checkpoint ..................   Passed    0.00 sec
+      Start  8: core_logging
+ 8/15 Test  #8: core_logging .....................   Passed    0.00 sec
+      Start  9: rt001_abi
+ 9/15 Test  #9: rt001_abi ........................   Passed    0.01 sec
+      Start 10: rt002_budget
+10/15 Test #10: rt002_budget .....................   Passed    0.03 sec
+      Start 11: rt003_context
+11/15 Test #11: rt003_context ....................   Passed    0.01 sec
+      Start 12: rt005_registry
+12/15 Test #12: rt005_registry ...................   Passed    0.01 sec
+      Start 13: rt006_scheduler
+13/15 Test #13: rt006_scheduler ..................   Passed    0.10 sec
+      Start 14: rt007_artifact_store
+14/15 Test #14: rt007_artifact_store .............   Passed    0.00 sec
+      Start 15: rt008_runtime_client
+15/15 Test #15: rt008_runtime_client .............   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 15
+
+Total Test time (real) =   1.05 sec

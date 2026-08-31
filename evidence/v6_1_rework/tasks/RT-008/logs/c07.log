@@ -1,0 +1,39 @@
+{"event_id":"evt-ae6cd09f7c74-0","kind":"stage_start","message":"stage started","phase":"pipeline","run_id":"ae6cd09f7c74","schema_version":"1","sequence":0,"severity":"info","stage":"run_phase1","timestamp_utc":"2026-08-31T11:20:46Z"}
+[astrocs:INFO][phase1] session run: omp threads=2 (budget injected, cpus=2)
+[astrocs:INFO][phase1] stage io_read start
+[2026-08-31 19:20:46][INFO][FITS] Reading: /tmp/syn009_11iebyfm/p1data/light_1.fits
+[2026-08-31 19:20:46][INFO][FITS] Header: BITPIX=-32 NAXIS=2 NAXIS1=64 NAXIS2=64 NAXIS3=0 BSCALE=1.0 BZERO=0.0 keywords=5
+[2026-08-31 19:20:46][INFO][FITS] Read OK: 64x64 1ch BITPIX=-32
+[2026-08-31 19:20:46][INFO][API] aio_read_fits: 0.005 s
+[2026-08-31 19:20:46][INFO][FITS] Reading: /tmp/syn009_11iebyfm/p1data/light_2.fits
+[2026-08-31 19:20:46][INFO][FITS] Header: BITPIX=-32 NAXIS=2 NAXIS1=64 NAXIS2=64 NAXIS3=0 BSCALE=1.0 BZERO=0.0 keywords=5
+[2026-08-31 19:20:46][INFO][FITS] Read OK: 64x64 1ch BITPIX=-32
+[2026-08-31 19:20:46][INFO][API] aio_read_fits: 0.002 s
+[astrocs:INFO][phase1] stage io_read ok: 2 files
+[2026-08-31 19:20:46][INFO][FITS] Reading: /tmp/syn009_11iebyfm/p1data/light_1.fits
+[2026-08-31 19:20:46][INFO][FITS] Header: BITPIX=-32 NAXIS=2 NAXIS1=64 NAXIS2=64 NAXIS3=0 BSCALE=1.0 BZERO=0.0 keywords=5
+[2026-08-31 19:20:46][INFO][FITS] Read OK: 64x64 1ch BITPIX=-32
+[2026-08-31 19:20:46][INFO][API] aio_read_fits: 0.000 s
+[2026-08-31 19:20:46][INFO][FITS] Reading: /tmp/syn009_11iebyfm/p1data/light_1.fits
+[2026-08-31 19:20:46][INFO][FITS] Header: BITPIX=-32 NAXIS=2 NAXIS1=64 NAXIS2=64 NAXIS3=0 BSCALE=1.0 BZERO=0.0 keywords=5
+[2026-08-31 19:20:46][INFO][FITS] Read OK: 64x64 1ch BITPIX=-32
+[2026-08-31 19:20:46][INFO][API] aio_read_fits: 0.000 s
+[2026-08-31 19:20:46][INFO][FITS] Writing: /tmp/rt8_smoke/out1/calibrated_light_1.fits (64x64)
+[2026-08-31 19:20:46][INFO][FITS] Write OK: /tmp/rt8_smoke/out1/calibrated_light_1.fits
+[2026-08-31 19:20:46][INFO][FITS] Reading: /tmp/syn009_11iebyfm/p1data/light_2.fits
+[2026-08-31 19:20:46][INFO][FITS] Header: BITPIX=-32 NAXIS=2 NAXIS1=64 NAXIS2=64 NAXIS3=0 BSCALE=1.0 BZERO=0.0 keywords=5
+[2026-08-31 19:20:46][INFO][FITS] Read OK: 64x64 1ch BITPIX=-32
+[2026-08-31 19:20:46][INFO][API] aio_read_fits: 0.000 s
+[2026-08-31 19:20:46][INFO][FITS] Reading: /tmp/syn009_11iebyfm/p1data/light_2.fits
+[2026-08-31 19:20:46][INFO][FITS] Header: BITPIX=-32 NAXIS=2 NAXIS1=64 NAXIS2=64 NAXIS3=0 BSCALE=1.0 BZERO=0.0 keywords=5
+[2026-08-31 19:20:46][INFO][FITS] Read OK: 64x64 1ch BITPIX=-32
+[2026-08-31 19:20:46][INFO][API] aio_read_fits: 0.000 s
+[2026-08-31 19:20:46][INFO][FITS] Writing: /tmp/rt8_smoke/out1/calibrated_light_2.fits (64x64)
+[2026-08-31 19:20:46][INFO][FITS] Write OK: /tmp/rt8_smoke/out1/calibrated_light_2.fits
+[astrocs:INFO][phase1] stage calibrate ok: 2 frames
+{"event_id":"evt-ae6cd09f7c74-1","kind":"stage_end","message":"stage finished","phase":"pipeline","run_id":"ae6cd09f7c74","schema_version":"1","sequence":1,"severity":"info","stage":"run_phase1","timestamp_utc":"2026-08-31T11:20:46Z"}
+{"event_id":"evt-ae6cd09f7c74-2","kind":"artifact","message":"run manifest written","path":"/tmp/rt8_smoke/out1/astrocs_run_ae6cd09f7c74.json","phase":"pipeline","role":"run_manifest","run_id":"ae6cd09f7c74","schema_version":"1","sequence":2,"severity":"info","sha256":"9aaacf3b2d6ce9e467f101ac44c6a4d419b62d4b9c510a1b430babeb286ef5f4","stage":"manifest","timestamp_utc":"2026-08-31T11:20:46Z"}
+{"avg_equivalent_cores":0.0,"event_id":"evt-ae6cd09f7c74-3","kind":"resource","max_threads":0,"message":"resource summary","n_samples":1,"peak_equivalent_cores":0.0,"peak_rss_bytes":4431872,"phase":"pipeline","raw_dir":"/tmp/rt8_smoke/out1","raw_n":1,"resource_detail":"summary","rss_slope_bytes_per_s":0,"run_id":"ae6cd09f7c74","sample_overhead_ms":0.0,"schema_version":"1","sequence":3,"severity":"info","stage":"pipeline","timestamp_utc":"2026-08-31T11:20:46Z","total_ctx_switches":0,"total_read_bytes":0,"total_write_bytes":0,"wall_seconds":0.258955235}
+{"available_cpus":2,"backend_id":"baseline","event_id":"evt-ae6cd09f7c74-4","kind":"backend","message":"ok","phase":"pipeline","run_id":"ae6cd09f7c74","schema_version":"1","sequence":4,"severity":"info","stage":"pipeline","timestamp_utc":"2026-08-31T11:20:46Z","workers_used":2}
+{"event_id":"evt-ae6cd09f7c74-5","kind":"resource","message":"run summary","n_artifacts":2,"n_phases":1,"phase":"pipeline","run_id":"ae6cd09f7c74","schema_version":"1","sequence":5,"severity":"info","stage":"pipeline","timestamp_utc":"2026-08-31T11:20:46Z"}
+{"event_id":"evt-ae6cd09f7c74-6","exit_code":0,"kind":"final","message":"run complete","phase":"pipeline","run_id":"ae6cd09f7c74","run_manifest":null,"schema_version":"1","sequence":6,"severity":"info","stage":"n/a","status":"ok","summary":"run complete","timestamp_utc":"2026-08-31T11:20:46Z"}

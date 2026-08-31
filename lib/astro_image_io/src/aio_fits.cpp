@@ -3,6 +3,7 @@
 #include "aio_util.h"
 #include "fitsio.h"
 #include <cstdio>
+#include <mutex>
 #include <cctype>
 
 // 修复: AIO 模块内部精度模式查询 (替代跨 DLL 的 PrecisionContext)
@@ -494,7 +495,11 @@ static bool fits_is_fpack_compressed(const char *path) {
            second.find("COMPRESSED_IMAGE") != std::string::npos;
 }
 
+// RT-008: cfitsio 全局表在并行访问下非线程安全 → 进程级串行化（共享单例，见头文件）
+#include "aio_cfitsio_mutex.h"
+
 static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool header_only) {
+    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
     fitsfile *fptr = nullptr;
     int status = 0;
     if (fits_open_file(&fptr, path, READONLY, &status)) {
@@ -1053,4 +1058,10 @@ int fits_detect(const char *path) {
     for (auto &c : e) c = tolower(c);
     // .fz = fpack 压缩 FITS (CFITSIO 透明解压)
     return (e == ".fits" || e == ".fit" || e == ".fts" || e == ".fz") ? 1 : 0;
+}
+
+// RT-008: cfitsio 首次初始化 shim — 供 core/CLI 在单线程阶段调用一次，
+// 避免 Runtime 并行 worker 并发首用 cfitsio 时的数据竞争（fits_init_cfitsio 非线程安全）。
+extern "C" void astrocs_cfitsio_ensure_initialized(void) {
+    fits_init_cfitsio();
 }
