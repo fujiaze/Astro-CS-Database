@@ -6,7 +6,7 @@ R0-004,G0,复现并冻结40项已知问题,R0-003,Linux,audit,no,yes,known_failu
 GOV-001,G1,修复任务证据与commit绑定,R0-004,Linux,governance,no,yes,TASK_RESULT/COMMITS semantics,parent/result commit不混; 打包期可验证每任务commit/push,PASS
 GOV-002,G1,修复gate和依赖状态机,GOV-001,Linux,governance,no,yes,dependency validator; release states,非法状态/依赖先过后消失; negative fixtures PASS,PASS
 VER-001,G1,版本推进为0.10.0-alpha.2,GOV-002,Linux,release,no,yes,VERSION single source,CLI/header/docs/package均派生; 无源码旧版本字面量,PASS
-CHK-001,G1,建立生产可达调用图检查器,GOV-002,Linux,quality,no,yes,compile_commands; AST/call/link reachability,能识别CLI直连session/Drizzle和dead Runtime; negative fixture,NOT_STARTED
+CHK-001,G1,建立生产可达调用图检查器,GOV-002,Linux,quality,no,yes,compile_commands; AST/call/link reachability,能识别CLI直连session/Drizzle和dead Runtime; negative fixture,PASS
 CHK-002,G1,建立非空静态图运行图检查器,CHK-001,Linux,quality,no,yes,IR/static/observed graph compare,无trace必FAIL; node edge port artifact version backend worker全比,NOT_STARTED
 CHK-003,G1,建立serial-heavy与资源接线检查器,CHK-002,Linux,quality,no,yes,production reachability; compile defs; gate callers,能抓P2宏关闭/P3双循环/gate无caller; negative fixtures,NOT_STARTED
 RT-001,G2,冻结Runtime与模块公共合同,CHK-003,Linux,architecture,no,yes,Runtime API; module executor; ports; lifecycle,SCI/ALG/DATA/API/TEST字段完整; ABI/ownership/thread-safety明确,NOT_STARTED
