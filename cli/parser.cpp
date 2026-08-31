@@ -4,6 +4,8 @@
 #include "cli_common.h"
 
 #include "sha256.h"
+#include "cpu_routing.h"
+#include "hardware_inspect.h"
 
 #include "exit_codes.h"
 
@@ -324,18 +326,14 @@ int validate_cpu_profile(const std::string& path, nlohmann::json* prof_out) {
         std::fprintf(stderr, "astrocs: cpu profile malformed JSON: %s\n", sanitize(e.what()).c_str());
         return astrocs::INPUT;
     }
-    if (!prof.is_object() || prof.value("kind", std::string()) != "astrocs_cpu_profile" ||
-        prof.value("schema_version", std::string()) != "1" || !prof.contains("kernels") ||
-        !prof["kernels"].is_object()) {
-        std::fprintf(stderr, "astrocs: cpu profile is not a v1 astrocs_cpu_profile document\n");
-        return astrocs::INPUT;
-    }
-    if (prof.value("cpu_signature", std::string()) != local_cpu_signature()) {
-        std::fprintf(stderr, "astrocs: cpu profile is stale (profile cpu_signature=%s, "
-                             "local=%s) — rerun 'astrocs benchmark cpu'\n",
-                     prof.value("cpu_signature", std::string()).c_str(),
-                     local_cpu_signature().c_str());
-        return astrocs::BACKEND;                     // 04: CPU 特征 → 5
+    // CPU-004: v2 profile 校验(结构 + 机器一致性: arch/quota_signature/logical_available)
+    const std::string hw = astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING);
+    const auto verdict = astrocs::backend_host::validate_profile_v2_for_machine(
+        buf.str(), ASTROCS_COMMIT_SHA, hw);
+    if (!verdict.valid) {
+        std::fprintf(stderr, "astrocs: cpu profile invalid: %s — rerun 'astrocs benchmark cpu'\n",
+                     verdict.stale_reason.c_str());
+        return astrocs::BACKEND;                     // 04: CPU 特征/损坏 → 5
     }
     *prof_out = std::move(prof);
     return astrocs::OK;
