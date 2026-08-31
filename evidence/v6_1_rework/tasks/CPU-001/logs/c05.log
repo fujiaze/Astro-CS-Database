@@ -1,0 +1,1 @@
+ISA_LEAK_PASS binary=build/cli/astrocs (CLI 无 AVX2/AVX512; provider 库含对应指令)

@@ -5,6 +5,11 @@
 // 同一源(零复制漂移), 仅 ISA 旗标与 backend_id 不同。
 #define ASTROCS_BACKEND_ID "avx512"
 
+#include "cpu_features.h"
+// CPU-001: AVX512 实际使用子集 F/DQ/BW/VL (ISA-004) — required = AVX512F 检测面位
+// (硬件上 F 与 DQ/BW/VL 共存; 加载匹配以 avx512f 为准, 子集声明在 manifest)
+#define ASTROCS_BACKEND_REQUIRED_FEATURES (ACS_FEAT_AVX512F)
+
 #include "astrocs/common_abi_v1.h"
 #include "baseline_kernels.h"
 

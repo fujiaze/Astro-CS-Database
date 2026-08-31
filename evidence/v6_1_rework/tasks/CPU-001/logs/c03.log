@@ -1,0 +1,1 @@
+SELFTEST_PASS: AVX2/AVX512 泄漏扫描器负例/正例均正确

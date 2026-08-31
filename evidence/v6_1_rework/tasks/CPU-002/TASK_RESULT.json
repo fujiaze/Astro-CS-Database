@@ -1,0 +1,82 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "CPU-002",
+  "status": "PASS",
+  "parent_commit": "90cad4951f7885bb9fd13a99f6dd9c11da90a7cd",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "performance",
+  "changed_paths": [
+    "lib/backend_host/hardware_inspect.cpp",
+    "evidence/v6_1_rework/tasks/CPU-002/PLAN.md",
+    "evidence/v6_1_rework/tasks/CPU-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/CPU-002/logs/c01.json"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": true,
+    "reason": "hardware inspect 新增 cgroup v1 回退与 quota_signature 指纹字段"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "astrocs",
+        "hardware",
+        "inspect",
+        "--json"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T10:05:00Z",
+      "duration_seconds": 0.5,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-002/logs/c01.json",
+      "log_sha256": "7074aa4a2d5abfe2f7440123c214efb980eb647c49ce152f33b9a41fe31eff7d"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-CAPABILITIES",
+      "description": "hardware inspect 输出 12 必需字段(vendor/family/model/stepping/feature_bits/xcr0/available/affinity/cgroup/quota_signature/numa/os)",
+      "result": "PASS",
+      "evidence_sha256": "7074aa4a2d5abfe2f7440123c214efb980eb647c49ce152f33b9a41fe31eff7d"
+    },
+    {
+      "test_id": "T-QUOTA-SIG",
+      "description": "quota_signature 为 64-hex SHA-256(affinity|cgroup|avail|features|xcr0)",
+      "result": "PASS",
+      "evidence_sha256": "7074aa4a2d5abfe2f7440123c214efb980eb647c49ce152f33b9a41fe31eff7d"
+    },
+    {
+      "test_id": "T-REGRESSION",
+      "description": "core_|rt0 ctest 16/16 PASS; cpu0 4/4 PASS(与 CPU-001 同批)",
+      "result": "PASS",
+      "evidence_sha256": "46c0c1f5bb7ffee9b6aad3e33a85ee70eb4e1cc4dbeda0a6f67f55dabad1d249"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-002/PLAN.md",
+      "sha256": "d6440255e151256df7e4c98bab5c6566ecc7ec0331db4eee2ee46d3279adea30"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-002/TASK_RESULT.json",
+      "sha256": "46c0c1f5bb7ffee9b6aad3e33a85ee70eb4e1cc4dbeda0a6f67f55dabad1d249"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-002/logs/c01.json",
+      "sha256": "7074aa4a2d5abfe2f7440123c214efb980eb647c49ce152f33b9a41fe31eff7d"
+    }
+  ],
+  "findings": [
+    "F-003",
+    "F-007",
+    "F-012"
+  ],
+  "expected_commit_subject": "CPU-002: 能力/配额检测 (cgroup v1 回退 + quota_signature)",
+  "created_utc": "2026-09-01T10:05:00Z"
+}

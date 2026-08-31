@@ -157,6 +157,52 @@ target_include_directories(cpu_profile_test PRIVATE
 target_link_libraries(cpu_profile_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME cpu_profile COMMAND cpu_profile_test)
 
+# CPU-001 (G3): 独立 provider 构建 — 三份 self-test + 负例
+# 每个 provider 静态库各自链接进独立可执行, 运行共享 backend_table.inc 的
+# backend_self_test(handshake→allocator→cancel→budget→logger); -R "cpu0" 可全跑。
+# 注意: 三个 provider 库都导出 astrocs_backend_get_api_v1(共享 table.inc 的同一符号),
+# 因此每个可执行只能链接其中一个 provider 库(禁止混合链接, 否则重复符号)。
+# avx2/avx512 库不含 host_services → 源显式加入; baseline 在 astrocs_cpu 内。
+set(CPU001_SRC ${CMAKE_CURRENT_SOURCE_DIR}/cpu001_provider_selftest.cpp)
+add_executable(cpu001_provider_selftest_baseline ${CPU001_SRC})
+target_include_directories(cpu001_provider_selftest_baseline PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu001_provider_selftest_baseline PRIVATE
+  astrocs_cpu astrocs_contracts astrocs_common)
+add_test(NAME cpu001_selftest_baseline COMMAND cpu001_provider_selftest_baseline)
+
+add_executable(cpu001_provider_selftest_avx2 ${CPU001_SRC}
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host/host_services.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host/cpu_features.cpp)
+target_include_directories(cpu001_provider_selftest_avx2 PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu001_provider_selftest_avx2 PRIVATE
+  astrocs_cpu_avx2 astrocs_contracts astrocs_common)
+add_test(NAME cpu001_selftest_avx2
+  COMMAND cpu001_provider_selftest_avx2 avx2)
+
+add_executable(cpu001_provider_selftest_avx512 ${CPU001_SRC}
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host/host_services.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host/cpu_features.cpp)
+target_include_directories(cpu001_provider_selftest_avx512 PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu001_provider_selftest_avx512 PRIVATE
+  astrocs_cpu_avx512 astrocs_contracts astrocs_common)
+add_test(NAME cpu001_selftest_avx512
+  COMMAND cpu001_provider_selftest_avx512 avx512)
+
+# 负例: feature bits 不满足的 provider 加载被拒(用 astrocs_cpu 内的 backend_loader 预检)
+add_executable(cpu001_negative_test cpu001_negative_test.cpp)
+target_include_directories(cpu001_negative_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu001_negative_test PRIVATE
+  astrocs_cpu astrocs_contracts astrocs_common)
+add_test(NAME cpu001_negative COMMAND cpu001_negative_test)
+
 # G9: OpenMP 可选 (clang Debug 无 libomp 时降级串行; P2_ENABLE_OPENMP 默认 OFF)
 find_package(OpenMP QUIET)
 if(OpenMP_CXX_FOUND)

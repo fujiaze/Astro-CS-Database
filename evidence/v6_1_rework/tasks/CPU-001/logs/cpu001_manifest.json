@@ -1,0 +1,374 @@
+{
+  "schema_version": "1",
+  "kind": "astrocs_backends_manifest",
+  "build": {
+    "build_id": "90cad4951f78-baseline-avx2-avx512",
+    "abi_version": 1,
+    "compiler": "",
+    "commit": "90cad4951f7885bb9fd13a99f6dd9c11da90a7cd",
+    "features_defined": [
+      "avx",
+      "avx2",
+      "avx512bw",
+      "avx512dq",
+      "avx512f",
+      "avx512vl",
+      "fma",
+      "sse2",
+      "sse4_1"
+    ]
+  },
+  "features_defined": [
+    "avx",
+    "avx2",
+    "avx512bw",
+    "avx512dq",
+    "avx512f",
+    "avx512vl",
+    "fma",
+    "sse2",
+    "sse4_1"
+  ],
+  "backends": [
+    {
+      "file": "libastrocs_cpu.a",
+      "backend_id": "baseline",
+      "sha256": "4d8517e27b8d2a02a9dba51fb5b42a7fa1a7a7eaa0f30f375e8bf7dc7e2ef8c7",
+      "abi_version": 1,
+      "required_features_bits": 0,
+      "required_features_names": [],
+      "required_features_bits_detectable": [],
+      "kernel_entries": [
+        {
+          "science_contract_id": "ALG-001",
+          "algorithm_id": "calibration-pixel-transform",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "bitwise",
+          "entry_hash": "f34a42400876c7d0691cabf10876f1d3c8e3b8fde2594dba258b8de34fb8d13c"
+        },
+        {
+          "science_contract_id": "ALG-004",
+          "algorithm_id": "noise-snr-reductions",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "ea5b385340f34af471284b53ec862d42762cf7afa0b620d933d35dddb292c035"
+        },
+        {
+          "science_contract_id": "ALG-002",
+          "algorithm_id": "wcs-psf-batch",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "3d202e09d64b183d2bcc2effab9704be2f919962ad421ef14c2d6e3e50deca57"
+        },
+        {
+          "science_contract_id": "ALG-005",
+          "algorithm_id": "drizzle-overlap",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "6e87f274d897d7c9bfa3cefbb6d4b901a9287e59184590bbf776d5cb9ec6ccdf"
+        },
+        {
+          "science_contract_id": "ALG-005",
+          "algorithm_id": "drizzle-accumulate",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "8f97fccb6e6e0ae6b1421905472cd828dc7396f0f9d4cfe1659aeab80ecc9a47"
+        },
+        {
+          "science_contract_id": "ALG-005",
+          "algorithm_id": "drizzle-normalize",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "4d9299b2490b629b91c0e8c6ff12997b7404e9985cc9ec51a2de9baafb0adabc"
+        },
+        {
+          "science_contract_id": "ALG-006",
+          "algorithm_id": "upm-spmv",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "0bd3a5909b3a1f14f5488bb68aaa36ee15d6c1ce82b158487c87d78f3af42953"
+        },
+        {
+          "science_contract_id": "ALG-006",
+          "algorithm_id": "upm-residual",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "bf135269edd68ff2093d66b48b5d73a512733cd7ad55831d8f9f3da7d85d32b1"
+        },
+        {
+          "science_contract_id": "ALG-006",
+          "algorithm_id": "upm-weight-update",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "65d4e83d8faa33f4ddeabd8b02bca4cac20a2ba5159a4d5158d293c53e5c5383"
+        },
+        {
+          "science_contract_id": "ALG-008",
+          "algorithm_id": "rejection-statistics",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "2a662afc5cb3a6a379bfdf2b5a64d4cc83b6e510e620a60f3a01f6495a28b653"
+        },
+        {
+          "science_contract_id": "ALG-009",
+          "algorithm_id": "integration-accumulate",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "bb7d5b7b582150cb22d76b823937cbc96120f64578ec831801c6e957f9e4baf4"
+        },
+        {
+          "science_contract_id": "ALG-P3-002",
+          "algorithm_id": "hips-bulk-transform",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "d61b5d5dbb18e2b3d1187c386bf82265c244b83acafba7bfe37679daacb7f877"
+        }
+      ],
+      "kernel_table_hash": "a90c96c4a3c4e7ed75aeb219121ef479ba757c96757ea7ceaecdd8c3167fcb9a",
+      "selftest": "pass"
+    },
+    {
+      "file": "libastrocs_cpu_avx2.a",
+      "backend_id": "avx2",
+      "sha256": "f7a56054a8dfab7e8c44c2ef262ef53ba2af58f218158317f57a8bddd901540c",
+      "abi_version": 1,
+      "required_features_bits": 24,
+      "required_features_names": [
+        "avx2",
+        "fma"
+      ],
+      "required_features_bits_detectable": [
+        "avx2",
+        "fma"
+      ],
+      "kernel_entries": [
+        {
+          "science_contract_id": "ALG-001",
+          "algorithm_id": "calibration-pixel-transform",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "bitwise",
+          "entry_hash": "f34a42400876c7d0691cabf10876f1d3c8e3b8fde2594dba258b8de34fb8d13c"
+        },
+        {
+          "science_contract_id": "ALG-004",
+          "algorithm_id": "noise-snr-reductions",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "ea5b385340f34af471284b53ec862d42762cf7afa0b620d933d35dddb292c035"
+        },
+        {
+          "science_contract_id": "ALG-002",
+          "algorithm_id": "wcs-psf-batch",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "3d202e09d64b183d2bcc2effab9704be2f919962ad421ef14c2d6e3e50deca57"
+        },
+        {
+          "science_contract_id": "ALG-005",
+          "algorithm_id": "drizzle-overlap",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "6e87f274d897d7c9bfa3cefbb6d4b901a9287e59184590bbf776d5cb9ec6ccdf"
+        },
+        {
+          "science_contract_id": "ALG-005",
+          "algorithm_id": "drizzle-accumulate",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "8f97fccb6e6e0ae6b1421905472cd828dc7396f0f9d4cfe1659aeab80ecc9a47"
+        },
+        {
+          "science_contract_id": "ALG-005",
+          "algorithm_id": "drizzle-normalize",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "4d9299b2490b629b91c0e8c6ff12997b7404e9985cc9ec51a2de9baafb0adabc"
+        },
+        {
+          "science_contract_id": "ALG-006",
+          "algorithm_id": "upm-spmv",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "0bd3a5909b3a1f14f5488bb68aaa36ee15d6c1ce82b158487c87d78f3af42953"
+        },
+        {
+          "science_contract_id": "ALG-006",
+          "algorithm_id": "upm-residual",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "bf135269edd68ff2093d66b48b5d73a512733cd7ad55831d8f9f3da7d85d32b1"
+        },
+        {
+          "science_contract_id": "ALG-006",
+          "algorithm_id": "upm-weight-update",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "65d4e83d8faa33f4ddeabd8b02bca4cac20a2ba5159a4d5158d293c53e5c5383"
+        },
+        {
+          "science_contract_id": "ALG-008",
+          "algorithm_id": "rejection-statistics",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "2a662afc5cb3a6a379bfdf2b5a64d4cc83b6e510e620a60f3a01f6495a28b653"
+        },
+        {
+          "science_contract_id": "ALG-009",
+          "algorithm_id": "integration-accumulate",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "bb7d5b7b582150cb22d76b823937cbc96120f64578ec831801c6e957f9e4baf4"
+        },
+        {
+          "science_contract_id": "ALG-P3-002",
+          "algorithm_id": "hips-bulk-transform",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "d61b5d5dbb18e2b3d1187c386bf82265c244b83acafba7bfe37679daacb7f877"
+        }
+      ],
+      "kernel_table_hash": "a90c96c4a3c4e7ed75aeb219121ef479ba757c96757ea7ceaecdd8c3167fcb9a",
+      "selftest": "pass"
+    },
+    {
+      "file": "libastrocs_cpu_avx512.a",
+      "backend_id": "avx512",
+      "sha256": "6e902b45e435636a8295d63b9d7e0fa99702674bf4a7f5e64658c7f5905c194e",
+      "abi_version": 1,
+      "required_features_bits": 32,
+      "required_features_names": [
+        "avx512f",
+        "avx512bw",
+        "avx512dq",
+        "avx512vl"
+      ],
+      "required_features_bits_detectable": [
+        "avx512f"
+      ],
+      "kernel_entries": [
+        {
+          "science_contract_id": "ALG-001",
+          "algorithm_id": "calibration-pixel-transform",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "bitwise",
+          "entry_hash": "f34a42400876c7d0691cabf10876f1d3c8e3b8fde2594dba258b8de34fb8d13c"
+        },
+        {
+          "science_contract_id": "ALG-004",
+          "algorithm_id": "noise-snr-reductions",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "ea5b385340f34af471284b53ec862d42762cf7afa0b620d933d35dddb292c035"
+        },
+        {
+          "science_contract_id": "ALG-002",
+          "algorithm_id": "wcs-psf-batch",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "3d202e09d64b183d2bcc2effab9704be2f919962ad421ef14c2d6e3e50deca57"
+        },
+        {
+          "science_contract_id": "ALG-005",
+          "algorithm_id": "drizzle-overlap",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "6e87f274d897d7c9bfa3cefbb6d4b901a9287e59184590bbf776d5cb9ec6ccdf"
+        },
+        {
+          "science_contract_id": "ALG-005",
+          "algorithm_id": "drizzle-accumulate",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "8f97fccb6e6e0ae6b1421905472cd828dc7396f0f9d4cfe1659aeab80ecc9a47"
+        },
+        {
+          "science_contract_id": "ALG-005",
+          "algorithm_id": "drizzle-normalize",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "4d9299b2490b629b91c0e8c6ff12997b7404e9985cc9ec51a2de9baafb0adabc"
+        },
+        {
+          "science_contract_id": "ALG-006",
+          "algorithm_id": "upm-spmv",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "0bd3a5909b3a1f14f5488bb68aaa36ee15d6c1ce82b158487c87d78f3af42953"
+        },
+        {
+          "science_contract_id": "ALG-006",
+          "algorithm_id": "upm-residual",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "bf135269edd68ff2093d66b48b5d73a512733cd7ad55831d8f9f3da7d85d32b1"
+        },
+        {
+          "science_contract_id": "ALG-006",
+          "algorithm_id": "upm-weight-update",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "65d4e83d8faa33f4ddeabd8b02bca4cac20a2ba5159a4d5158d293c53e5c5383"
+        },
+        {
+          "science_contract_id": "ALG-008",
+          "algorithm_id": "rejection-statistics",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "2a662afc5cb3a6a379bfdf2b5a64d4cc83b6e510e620a60f3a01f6495a28b653"
+        },
+        {
+          "science_contract_id": "ALG-009",
+          "algorithm_id": "integration-accumulate",
+          "kernel_version": "1.0.0",
+          "precision": "f32",
+          "determinism_class": "fixed-order",
+          "entry_hash": "bb7d5b7b582150cb22d76b823937cbc96120f64578ec831801c6e957f9e4baf4"
+        },
+        {
+          "science_contract_id": "ALG-P3-002",
+          "algorithm_id": "hips-bulk-transform",
+          "kernel_version": "1.0.0",
+          "precision": "f64",
+          "determinism_class": "bitwise",
+          "entry_hash": "d61b5d5dbb18e2b3d1187c386bf82265c244b83acafba7bfe37679daacb7f877"
+        }
+      ],
+      "kernel_table_hash": "a90c96c4a3c4e7ed75aeb219121ef479ba757c96757ea7ceaecdd8c3167fcb9a",
+      "selftest": "pass"
+    }
+  ]
+}

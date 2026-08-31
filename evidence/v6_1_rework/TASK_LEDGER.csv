@@ -18,8 +18,8 @@ RT-006,G2,实现唯一Runtime调度器,RT-002;RT-003;RT-005,Linux,architecture,y
 RT-007,G2,实现类型化ArtifactStore与跨阶段绑定,RT-004;RT-005,Linux,architecture,no,yes,artifact ID/hash/schema/unit/provenance,producer-consumer严格匹配; 禁路径猜测; tamper负测,PASS
 RT-008,G2,将CLI接入唯一Runtime,RT-006;RT-007,Linux,architecture,yes,yes,thin handlers; presets; runtime public API,CLI无session/科学/I/O内部include或直接调用; 1->2->3真实Artifact链,PASS
 RT-009,G2,生成真实静态与observed运行图,RT-008;CHK-002,Linux,documentation,yes,yes,DOT/JSON/SVG; trace sidecar,图由同IR和trace派生; hash/source commit齐; 无敏感路径,PASS
-CPU-001,G3,构建baseline AVX2 AVX512独立provider,RT-002;RT-005,Linux,performance,yes,yes,shared library targets; per-kernel registry,CLI baseline ISA; providers独立flags/manifest/selftest; unsupported不加载,NOT_STARTED
-CPU-002,G3,实现CPU与有效配额探测,CPU-001,Linux+Windows,performance,no,yes,CPUID/XGETBV; affinity/cgroup/Job Object,logical_available真实; feature子集准确; fallback安全,NOT_STARTED
+CPU-001,G3,构建baseline AVX2 AVX512独立provider,RT-002;RT-005,Linux,performance,yes,yes,shared library targets; per-kernel registry,CLI baseline ISA; providers独立flags/manifest/selftest; unsupported不加载,PASS
+CPU-002,G3,实现CPU与有效配额探测,CPU-001,Linux+Windows,performance,no,yes,CPUID/XGETBV; affinity/cgroup/Job Object,logical_available真实; feature子集准确; fallback安全,PASS
 CPU-003,G3,实现真实benchmark与profile,CPU-001;CPU-002,Linux+Windows,performance,yes,yes,correctness first; memory; kernel/thread/block,3 warmup+7 measure; median/MAD; raw candidates; profile schema,NOT_STARTED
 CPU-004,G3,实现按kernel自适应路由,CPU-003;RT-006,Linux+Windows,performance,yes,yes,profile verify; provider fallback; lease,无profile保守baseline但多线程; stale/corrupt profile拒绝,NOT_STARTED
 MON-001,G3,把资源监测接入每个heavy node,RT-006;CPU-002,Linux+Windows,performance,yes,yes,samples/summary/worker balance,无需操作者额外脚本; init/active/flush分段; 开销<2%,NOT_STARTED

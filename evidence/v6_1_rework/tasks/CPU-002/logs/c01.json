@@ -1,0 +1,73 @@
+{
+  "affinity": [
+    0,
+    1
+  ],
+  "affinity_count": 2,
+  "architecture": "amd64",
+  "astrocs_build": "0.10.0-alpha.2+g90cad4951f7885bb9fd13a99f6dd9c11da90a7cd",
+  "available_logical_cpus": 2,
+  "backend_hashes": [],
+  "brand": "Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz",
+  "cache": [
+    {
+      "level": "1",
+      "size": "32K",
+      "type": "Data"
+    },
+    {
+      "level": "1",
+      "size": "32K",
+      "type": "Instruction"
+    },
+    {
+      "level": "2",
+      "size": "4096K",
+      "type": "Unified"
+    },
+    {
+      "level": "3",
+      "size": "28160K",
+      "type": "Unified"
+    }
+  ],
+  "cgroup_cpu_limit": 0,
+  "cli_sha256": "9e91ab5bff98cb00930721978001a5340d6377c400fac968204536cecd209429",
+  "compiler": {
+    "id": "gcc",
+    "version": "gcc-14.2.0"
+  },
+  "family": 6,
+  "feature_bits": 63,
+  "feature_names": [
+    "sse2",
+    "sse4_1",
+    "avx",
+    "avx2",
+    "fma",
+    "avx512f"
+  ],
+  "job_object_limit": null,
+  "kind": "astrocs_hardware_inspect",
+  "logical_cpus_configured": 2,
+  "microcode": "0x1",
+  "model": 94,
+  "numa_nodes": 1,
+  "os": {
+    "kernel": "6.12.95+deb13-amd64",
+    "machine": "x86_64",
+    "name": "linux"
+  },
+  "page_size": 4096,
+  "physical_packages": null,
+  "quota_signature": "2921b4150a3b7d36fdb07966a9277e843ac20d3401c43a59445abd056b6bb8ed",
+  "ram_bytes": 3911012352,
+  "schema_version": 1,
+  "smt": {
+    "enabled": false,
+    "known": true
+  },
+  "stepping": 3,
+  "vendor": "GenuineIntel",
+  "xcr0": 255
+}
