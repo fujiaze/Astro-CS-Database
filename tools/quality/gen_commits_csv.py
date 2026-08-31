@@ -74,8 +74,8 @@ def main(argv: list[str] | None = None) -> int:
             if idx >= 0:
                 lines = lines[:idx + 1]
 
-    # map: task_id -> commit record from git log (first match on subject prefix)
-    commit_of: dict[str, dict] = {}
+    # map: task_id -> [commit records] from git log (all matches on subject prefix)
+    commit_of: dict[str, list[dict]] = {}
     for line in lines:
         parts = line.split(" ", 1)
         if len(parts) != 2:
@@ -86,20 +86,19 @@ def main(argv: list[str] | None = None) -> int:
         m = re.match(r"^([A-Z0-9]+-[0-9]{3})/([A-Z0-9]+-[0-9]{3}):", subject)
         if m:
             for tid in (m.group(1), m.group(2)):
-                if tid not in commit_of:
-                    commit_of[tid] = {"commit": commit, "subject": subject, "parent": ""}
+                commit_of.setdefault(tid, []).append({"commit": commit, "subject": subject, "parent": ""})
             continue
         m = re.match(SUBJECT_RE, subject)
         if m:
             task_id = m.group(1)
-            if task_id not in commit_of:
-                commit_of[task_id] = {"commit": commit, "subject": subject, "parent": ""}
+            commit_of.setdefault(task_id, []).append({"commit": commit, "subject": subject, "parent": ""})
 
     # parent from git (commit^) for chain verification
-    for task_id, record in commit_of.items():
-        proc = git(repo, "rev-parse", record["commit"] + "^")
-        if proc.returncode == 0:
-            record["parent"] = proc.stdout.strip()
+    for records in commit_of.values():
+        for record in records:
+            proc = git(repo, "rev-parse", record["commit"] + "^")
+            if proc.returncode == 0:
+                record["parent"] = proc.stdout.strip()
 
     # read TASK_RESULT.json files
     rows: list[dict] = []
@@ -113,8 +112,13 @@ def main(argv: list[str] | None = None) -> int:
         if task_id not in commit_of:
             print(f"COMMITS_GEN_FAIL: no first-parent commit for task {task_id}", file=sys.stderr)
             return 1
-        record = commit_of[task_id]
+        candidates = commit_of[task_id]
         parent = doc.get("parent_commit", "")
+        # 优先选 parent==parent_commit 的候选(TASK_RESULT 记录任务开始 SHA);
+        # 其次选 git log 中最新的候选(双任务合并提交等场景, 如 CPU-001/002 共享一个 commit)。
+        record = next((c for c in candidates if c["parent"] == parent), None)
+        if record is None:
+            record = candidates[0]
         rows.append({
             "task_id": task_id,
             "parent_commit": parent,
