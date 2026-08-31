@@ -623,9 +623,11 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
     mon_thread.join();
     // MON-001: 自动生成 resource_samples.csv / resource_summary.json / worker_balance.csv
     // (无需操作者额外脚本; 开销<2% 由 summary.sample_overhead_ms 度量)。
+    // P1-004: resource summary 引用 run_id(science manifest 同 run_id, 联合门)。
     {
         const astrocs::ProcessMonitor::Summary mon_s = proc_mon.summary();
-        const bool wrote = recorder.write_all(out_dir, mon_s.wall_seconds, mon_s.sample_overhead_ms);
+        const bool wrote = recorder.write_all(out_dir, mon_s.wall_seconds, mon_s.sample_overhead_ms,
+                                              ev.run_id());
         if (!wrote) {
             std::fprintf(stderr, "astrocs: warning: resource files not written to %s\n",
                          sanitize(out_dir).c_str());

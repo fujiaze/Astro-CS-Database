@@ -1,0 +1,129 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P1-004",
+  "status": "PASS",
+  "parent_commit": "14baed5d4151e7b5b1d5ce7004a7bbf9f2f41ca8",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "validation",
+  "changed_paths": [
+    "cli/commands.cpp",
+    "cli/resource_recorder.h",
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P1-004/PLAN.md",
+    "evidence/v6_1_rework/tasks/P1-004/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P1-004/logs/c01_run.jsonl",
+    "evidence/v6_1_rework/tasks/P1-004/logs/c02_resource_summary.json",
+    "evidence/v6_1_rework/tasks/P1-004/logs/c03_joint_gate.log",
+    "tests/backend/test_p1004_joint_gate.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": true,
+    "binary": true,
+    "reason": "resource_summary.json 新增 run_id 字段与 science manifest 互引; 联合门测试"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "astrocs",
+        "run",
+        "--phases",
+        "3",
+        "--config",
+        "<cfg>",
+        "--events-jsonl"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T05:00:00Z",
+      "duration_seconds": 0.6,
+      "log_path": "evidence/v6_1_rework/tasks/P1-004/logs/c01_run.jsonl",
+      "log_sha256": "2eaccd00bef34a3c00b77182aec8412ddeaccf8deb6ac8dec5395d244c254ba0"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "cat",
+        "resource_summary.json"
+      ],
+      "timeout_seconds": 10,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T05:00:10Z",
+      "duration_seconds": 0.1,
+      "log_path": "evidence/v6_1_rework/tasks/P1-004/logs/c02_resource_summary.json",
+      "log_sha256": "c1d27952546d072882dafe80cc0e5c7cb04597eed010a0786e123281c373469c"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p1004_joint_gate.py"
+      ],
+      "timeout_seconds": 1800,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T05:00:30Z",
+      "duration_seconds": 90.0,
+      "log_path": "evidence/v6_1_rework/tasks/P1-004/logs/c03_joint_gate.log",
+      "log_sha256": "1fd33505853ca12a91ec86c96356887069de676f55e15bf2a1903500489b32ca"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-ORACLES",
+      "description": "6 个 P1 Oracle 同 commit 全绿(calibration/drizzle/noise/wcs_psf/reproject/gaps)",
+      "result": "PASS",
+      "evidence_sha256": "1fd33505853ca12a91ec86c96356887069de676f55e15bf2a1903500489b32ca"
+    },
+    {
+      "test_id": "T-RUNID-LINK",
+      "description": "science manifest run_id == resource_summary run_id(互引); resource_summary.json 含 run_id 字段",
+      "result": "PASS",
+      "evidence_sha256": "c1d27952546d072882dafe80cc0e5c7cb04597eed010a0786e123281c373469c"
+    },
+    {
+      "test_id": "T-SAME-COMMIT",
+      "description": "CLI --version commit == git HEAD(同批)",
+      "result": "PASS",
+      "evidence_sha256": "1fd33505853ca12a91ec86c96356887069de676f55e15bf2a1903500489b32ca"
+    },
+    {
+      "test_id": "T-REGRESSION",
+      "description": "ctest 56/56 PASS; resource 三产物仍生成",
+      "result": "PASS",
+      "evidence_sha256": "1fd33505853ca12a91ec86c96356887069de676f55e15bf2a1903500489b32ca"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-004/PLAN.md",
+      "sha256": "168db098ed080cb6c3c3d85ddcedb417be36c16e4d7d092a51cd2c68de306cf5"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-004/TASK_RESULT.json",
+      "sha256": "3dd444305a055f91b8f5ec295d137e58212893e6adf4fd087813781ceb6e96e6"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-004/logs/c01_run.jsonl",
+      "sha256": "2eaccd00bef34a3c00b77182aec8412ddeaccf8deb6ac8dec5395d244c254ba0"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-004/logs/c02_resource_summary.json",
+      "sha256": "c1d27952546d072882dafe80cc0e5c7cb04597eed010a0786e123281c373469c"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-004/logs/c03_joint_gate.log",
+      "sha256": "1fd33505853ca12a91ec86c96356887069de676f55e15bf2a1903500489b32ca"
+    }
+  ],
+  "findings": [
+    "F-011",
+    "F-012"
+  ],
+  "expected_commit_subject": "P1-004: Phase1 数值与资源联合门 (resource_summary 引用 run_id 与 science manifest 互引, 6 Oracle 同 commit 全绿)",
+  "created_utc": "2026-09-01T05:05:00Z"
+}

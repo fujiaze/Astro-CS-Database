@@ -115,7 +115,8 @@ public:
 
     // 生成三个产物(由 run 命令在收尾调用):
     //  out_dir/resource_samples.csv, out_dir/resource_summary.json, out_dir/worker_balance.csv
-    bool write_all(const std::string& out_dir, double wall_total, double sample_overhead_ms);
+    bool write_all(const std::string& out_dir, double wall_total, double sample_overhead_ms,
+                        const std::string& run_id = "");
 
     // 摘要(供测试/事件): 按阶段统计
     std::vector<ResStageStats> stage_stats() const;
@@ -181,7 +182,8 @@ inline std::vector<ResStageStats> ResourceRecorder::stage_stats() const {
 }
 
 inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_total,
-                                        double sample_overhead_ms) {
+                                        double sample_overhead_ms,
+                                        const std::string& run_id) {
     std::vector<ResRecord> snap;
     {
         std::lock_guard<std::mutex> lk(mu_);
@@ -211,8 +213,9 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
     {
         std::FILE* f = std::fopen((out_dir + "/resource_summary.json").c_str(), "w");
         if (!f) return false;
-        std::fprintf(f, "{\"n_samples\":%zu,\"wall_seconds\":%.3f,\"sample_overhead_ms\":%.3f,"
+        std::fprintf(f, "{\"run_id\":\"%s\",\"n_samples\":%zu,\"wall_seconds\":%.3f,\"sample_overhead_ms\":%.3f,"
                         "\"normalized_cpu_100pct_all_allocated_cores\":true,\"stages\":[",
+                        run_id.c_str(),
                         snap.size(), wall_total, sample_overhead_ms);
         const auto stats = stage_stats();
         for (std::size_t i = 0; i < stats.size(); ++i) {
