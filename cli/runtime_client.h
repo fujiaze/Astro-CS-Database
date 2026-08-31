@@ -27,6 +27,13 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
 // 供 CLI 写 run manifest 时逐 artifact 验证（ArtifactStore 绑定语义）。
 void collect_node_manifests(std::vector<std::pair<std::string, std::string>>* out);
 
+// RT-009: 执行后收集节点级 trace（node_id/status/时间/duration/workers/provider）。
+// 供 CLI 生成 observed graph 与 sidecar（CHK-002 双向比较输入）。
+void collect_node_trace(std::vector<astrocs::core::Runtime::NodeTrace>* out);
+
+// RT-009: 最近一次 run 的 PipelineIR JSON 文本（静态图来源；供 graph 生成）。
+const std::string& last_pipeline_ir_json();
+
 // 注册 Phase1/2/3 模块（CLI 启动时调用一次）
 astrocs::core::Result<void> register_cli_modules(astrocs::core::ModuleRegistry& reg);
 

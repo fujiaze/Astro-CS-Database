@@ -5,6 +5,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <chrono>
+#include <ctime>
 #include <map>
 #include <mutex>
 #include <utility>
@@ -14,6 +16,15 @@ namespace astrocs::core {
 using nlohmann::json;
 
 namespace {
+
+std::string utc_now() {
+  char buf[32];
+  std::time_t t = std::time(nullptr);
+  std::tm tm{};
+  gmtime_r(&t, &tm);
+  std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &tm);
+  return buf;
+}
 
 class RuntimeImpl final : public Runtime {
  public:
@@ -62,6 +73,9 @@ class RuntimeImpl final : public Runtime {
       spec.estimated_memory_bytes = 0;
       // 每个节点执行: 创建模块实例 → plan(config) → execute（模块内部走 session/lease）
       spec.fn = [this, n](const std::string& node_id, RunContext& ctx) -> Result<void> {
+        auto t_start = std::chrono::steady_clock::now();
+        const std::string started_utc = utc_now();
+        std::string error_msg;
         auto m = registry_.create(n.module_id);
         if (m.failed()) {
           return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -86,7 +100,26 @@ class RuntimeImpl final : public Runtime {
         if (r.failed()) {
           ctx.log(LogLevel::ERROR, "runtime",
                   "node " + node_id + " failed: " + r.error().message());
-          return r;
+          error_msg = r.error().message();
+        }
+        // RT-009: 记录节点 trace（时间/状态/provider/workers）
+        const auto t_end = std::chrono::steady_clock::now();
+        Runtime::NodeTrace tr;
+        tr.node_id = node_id;
+        tr.started_utc = started_utc;
+        tr.ended_utc = utc_now();
+        tr.duration_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
+        tr.workers = budget_;
+        tr.provider = "baseline";  // CPU-001 前唯一 provider；G3 后按 profile 路由
+        if (r.failed()) {
+          tr.status = "FAILED";
+          tr.error = error_msg;
+        } else {
+          tr.status = "COMPLETED";
+        }
+        {
+          std::lock_guard<std::mutex> lock(trace_mu_);
+          trace_.push_back(std::move(tr));
         }
         return r;
       };
@@ -133,6 +166,12 @@ class RuntimeImpl final : public Runtime {
     return node_manifests_;
   }
 
+  // RT-009: 节点级运行 trace（run 完成后调用；线程安全）
+  std::vector<NodeTrace> node_trace() const override {
+    std::lock_guard<std::mutex> lock(trace_mu_);
+    return trace_;
+  }
+
   void set_registry(ModuleRegistry* reg) { registry_ = *reg; }
 
  private:
@@ -143,6 +182,8 @@ class RuntimeImpl final : public Runtime {
   std::vector<std::pair<std::string, NodeStatus>> statuses_;
   std::vector<std::pair<std::string, std::string>> node_manifests_;
   mutable std::mutex man_mu_;
+  std::vector<NodeTrace> trace_;   // RT-009: 节点 trace
+  mutable std::mutex trace_mu_;    // RT-009: trace 互斥
   std::atomic<bool> cancelled_{false};
   bool loaded_ = false;
 };

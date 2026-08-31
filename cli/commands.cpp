@@ -301,6 +301,141 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
     return astrocs::OK;
 }
 
+// RT-009: 写运行图产物 — 静态 IR JSON + observed trace JSON + sidecar。
+// 每次 run 都生成（静态图与 observed 图同源于同一 IR；L0 由 Python 渲染器派生）。
+// 路径脱敏: 所有绝对路径替换为 <root> 相对占位（sanitize 逻辑在渲染器/JSON 输出统一）。
+// 不失败 run: 图产物损坏只记 warning。
+static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& ev,
+                             const std::string& config_path, const std::string& config_sha,
+                             const std::vector<int>& phases) {
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
+    const std::string ir_json = astrocs::cli::last_pipeline_ir_json();
+    const std::string gdir = out_dir + "/graph";
+    std::filesystem::create_directories(std::filesystem::u8path(gdir), ec);
+    if (ec) return;
+
+    // 1) 静态图 = PipelineIR（节点/端口/artifact/资源）
+    const std::string static_path = gdir + "/static_graph.json";
+    {
+        std::ofstream f(std::filesystem::u8path(static_path), std::ios::binary | std::ios::trunc);
+        if (!f) return;
+        f << ir_json << "\n";
+        if (!f.good()) return;
+    }
+
+    // 2) observed trace = Runtime 节点 trace + session manifest 摘要（CHK-002 双向比较输入）
+    std::vector<astrocs::core::Runtime::NodeTrace> tr;
+    astrocs::cli::collect_node_trace(&tr);
+    std::vector<std::pair<std::string, std::string>> mans;
+    astrocs::cli::collect_node_manifests(&mans);
+    nlohmann::json ir = nlohmann::json::parse(ir_json, nullptr, false);
+    nlohmann::json static_nodes = nlohmann::json::object();
+    if (!ir.is_discarded() && ir.contains("nodes") && ir["nodes"].is_array()) {
+        for (const auto& n : ir["nodes"]) {
+            if (n.contains("node_id")) static_nodes[n["node_id"].get<std::string>()] = n;
+        }
+    }
+    nlohmann::json nodes = nlohmann::json::array();
+    for (const auto& t : tr) {
+        nlohmann::json nd;
+        nd["node_id"] = t.node_id;
+        if (static_nodes.contains(t.node_id)) {
+            const auto& sn = static_nodes[t.node_id];
+            if (sn.contains("module_id")) nd["module_id"] = sn["module_id"];
+            if (sn.contains("module_api")) nd["module_version"] = sn["module_api"];
+            if (sn.contains("inputs")) nd["inputs"] = sn["inputs"];
+            if (sn.contains("outputs")) nd["outputs"] = sn["outputs"];
+            if (sn.contains("resources")) nd["resources"] = sn["resources"];
+        }
+        nd["status"] = t.status;
+        nd["started_utc"] = t.started_utc;
+        nd["ended_utc"] = t.ended_utc;
+        nd["duration_ms"] = t.duration_ms;
+        nd["workers"] = t.workers;
+        nd["provider"] = t.provider;
+        if (!t.error.empty()) nd["error"] = t.error;
+        // 节点 manifest → input/output artifact 摘要（id + sha256）
+        for (const auto& [nid, mtext] : mans) {
+            if (nid != t.node_id) continue;
+            try {
+                auto m = nlohmann::json::parse(mtext);
+                if (m.contains("artifacts") && m["artifacts"].is_array()) {
+                    for (const auto& a : m["artifacts"]) {
+                        if (a.is_string()) {
+                            std::string ap = a.get<std::string>();
+                            bool sok = false;
+                            nd["output_artifacts"].push_back(
+                                {{"id", "artifact:" + t.node_id},
+                                 {"path", sanitize_path(ap)},
+                                 {"sha256", file_sha256(ap, &sok)}});
+                        }
+                    }
+                }
+                if (m.contains("output_fits_path")) {
+                    std::string op = m["output_fits_path"].get<std::string>();
+                    if (!op.empty()) {
+                        bool sok = false;
+                        nd["output_artifacts"].push_back(
+                            {{"id", "artifact:out_" + t.node_id},
+                             {"path", sanitize_path(op)},
+                             {"sha256", file_sha256(op, &sok)}});
+                    }
+                }
+            } catch (...) {}
+            break;
+        }
+        nodes.push_back(std::move(nd));
+    }
+    nlohmann::json observed = {
+        {"schema", "astrocs.observed-trace/v1"},
+        {"run_id", ev.run_id()},
+        {"pipeline_id", ir.contains("pipeline_id") ? ir["pipeline_id"] : "cli.run.preset"},
+        {"nodes", nodes},
+    };
+    const std::string trace_path = gdir + "/observed_trace.json";
+    {
+        std::ofstream f(std::filesystem::u8path(trace_path), std::ios::binary | std::ios::trunc);
+        if (!f) return;
+        f << observed.dump(2) << "\n";
+        if (!f.good()) return;
+    }
+
+    // 3) sidecar: IR hash / source commit / profile ID / input manifest hash
+    nlohmann::json side = {
+        {"schema", "astrocs.graph-sidecar/v1"},
+        {"run_id", ev.run_id()},
+        {"ir_sha256", [&] { bool ok = false; return file_sha256(static_path, &ok); }()},
+        {"source_commit", git_head_sha().value_or("unknown")},
+        {"profile_id", nullptr},
+        {"input_manifest_sha256", config_sha},
+        {"config_path", sanitize_path(config_path)},
+        {"phases", phases},
+    };
+    const std::string side_path = gdir + "/graph_sidecar.json";
+    {
+        std::ofstream f(std::filesystem::u8path(side_path), std::ios::binary | std::ios::trunc);
+        if (!f) return;
+        f << side.dump(2) << "\n";
+        if (!f.good()) return;
+    }
+    // RT-009: 渲染 DOT/SVG/L0（best-effort; 工具缺失/失败不失败 run）。
+    // 仅当 tools/quality/gen_run_graphs.py 存在时调用; timeout 30s 防悬挂。
+    {
+        const std::string repo = std::getenv("ASTROCS_REPO")
+                                     ? std::getenv("ASTROCS_REPO") : ".";
+        const std::string renderer = repo + "/tools/quality/gen_run_graphs.py";
+        std::error_code ec;
+        if (std::filesystem::is_regular_file(std::filesystem::u8path(renderer), ec)) {
+            const std::string cmd = "timeout 30s python3 '" + renderer +
+                                    "' --graph-dir " + gdir + " >/dev/null 2>&1";
+            std::system(cmd.c_str());
+        }
+    }
+    ev.emit("artifact", "info", "graph", "run graphs written",
+            {{"role", "graph_dir"}, {"path", gdir}});
+}
+
 int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const std::string cfg = need_value(p, "--config");
     nlohmann::json doc;
@@ -477,6 +612,8 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
     // (resume/hash-mismatch 校验移到 phase 循环之前执行)
     rc = write_run_manifest(out_dir, ev, "complete", "run ok", cfg, cfg_sha, phases, all_artifacts);
     if (rc != astrocs::OK) return rc;
+    // RT-009: 运行图产物（静态 IR / observed trace / sidecar；不失败 run）
+    write_run_graphs(out_dir, ev, cfg, cfg_sha, phases);
     // MON-002: 结束监控, 发射资源分层事件(07 §1 强制 summary) + backend 事件(07 §2 必采)。
     const auto proc_summary = proc_mon.summary();
     emit_resource_summary(ev, "pipeline", proc_summary, out_dir, proc_summary.n_samples,
@@ -903,6 +1040,66 @@ int cmd_drizzle(const Parsed& p, astrocs::JsonlEmitter& ev) {
     return astrocs::ARGS;
 }
 
+// RT-009: `graph --preset 1,2,3 --config cfg.json --output DIR` 生成静态图
+// （IR → static JSON/DOT/SVG + L0）。不执行科学计算; 只构图。
+static int cmd_graph(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    const std::string cfg = need_value(p, "--config");
+    std::string preset = "1,2,3";
+    if (p.values.count("--preset")) preset = p.values.at("--preset");
+    if (p.values.count("--phases")) preset = p.values.at("--phases");
+    const std::string out_dir = p.values.count("--output") ? p.values.at("--output") : ".";
+    std::vector<int> phases;
+    {
+        std::stringstream ss(preset);
+        std::string tok;
+        while (std::getline(ss, tok, ',')) {
+            char* end = nullptr;
+            long v = std::strtol(tok.c_str(), &end, 10);
+            if (!end || *end != '\0' || v < 1 || v > 3) {
+                parse_fail("invalid preset '" + preset + "' (expect 1,2,3 子集)");
+            }
+            phases.push_back(static_cast<int>(v));
+        }
+        std::sort(phases.begin(), phases.end());
+        phases.erase(std::unique(phases.begin(), phases.end()), phases.end());
+    }
+    nlohmann::json doc;
+    int rc = validate_config_full(cfg, &doc);
+    if (rc != astrocs::OK) return rc;
+    std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
+    const std::string cfg_text(std::istreambuf_iterator<char>(f), {});
+    std::string err;
+    const std::string ir_json = astrocs::cli::build_pipeline_ir(phases, cfg_text, &err);
+    if (ir_json.empty()) {
+        std::fprintf(stderr, "astrocs: graph IR build failed: %s\n", sanitize(err).c_str());
+        return astrocs::ARGS;
+    }
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::u8path(out_dir + "/graph"), ec);
+    if (ec) { std::fprintf(stderr, "astrocs: cannot create graph dir\n"); return astrocs::IO; }
+    const std::string gdir = out_dir + "/graph";
+    const std::string static_path = gdir + "/static_graph.json";
+    {
+        std::ofstream fo(std::filesystem::u8path(static_path), std::ios::binary | std::ios::trunc);
+        if (!fo) { std::fprintf(stderr, "astrocs: cannot write static graph\n"); return astrocs::IO; }
+        fo << ir_json << "\n";
+    }
+    // 渲染 DOT/SVG/L0（best-effort; 工具缺失不失败）
+    {
+        const std::string repo = std::getenv("ASTROCS_REPO") ? std::getenv("ASTROCS_REPO") : ".";
+        const std::string renderer = repo + "/tools/quality/gen_run_graphs.py";
+        if (std::filesystem::is_regular_file(std::filesystem::u8path(renderer), ec)) {
+            const std::string cmd = "timeout 30s python3 '" + renderer +
+                                    "' --graph-dir " + gdir + " >/dev/null 2>&1";
+            std::system(cmd.c_str());
+        }
+    }
+    std::printf("%s\n", static_path.c_str());
+    ev.emit("artifact", "info", "graph", "static graph written",
+            {{"role", "static_graph"}, {"path", static_path}});
+    return astrocs::OK;
+}
+
 // dispatch: 外部可见（cli_common.h 声明；main.cpp 调用）。
 int dispatch(const Parsed& p) {
     const std::string joined = p.join();
@@ -1018,6 +1215,7 @@ int dispatch(const Parsed& p) {
     if (joined == "phase3 run")            return cmd_phase3_run(p, ev);
     if (joined == "verify")                return cmd_verify(p, ev);
     if (joined == "run")                   return cmd_run_pipeline(p, ev);
+    if (joined == "graph")                 return cmd_graph(p, ev);
     if (joined == "drizzle")               return cmd_drizzle(p, ev);
     if (joined == "test synthetic") {
         const std::string g = need_value(p, "--group");

@@ -1,0 +1,12 @@
+[astrocs:INFO][phase2] session run: budget workers=2 (cpus=2)
+[astrocs:INFO][phase2] stage coverage ok: cells=12
+[sampler] enter n_union=12 grid=8 n_frames=2 target_order=0
+[sampler] cells resized 768, first tile read check
+[sampler] first tile 0 probe (frames with tile: 1 1 )
+[sampler] progress 12/12 tiles (0.1s)
+[sampler] enter n_union=12 grid=8 n_frames=2 target_order=0
+[sampler] cells resized 768, first tile read check
+[sampler] first tile 0 probe (frames with tile: 1 1 )
+[sampler] progress 12/12 tiles (0.1s)
+[astrocs:INFO][phase2] stage sample ok: obs=1536 overlap_controls=768
+/tmp/rt9/final/out/astrocs_run_b2eedf95c9db.json
