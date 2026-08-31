@@ -1,0 +1,111 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "GOV-002",
+  "status": "PASS",
+  "parent_commit": "a52dcce12c02dd25a86ceee258a18175619f2e59",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "governance",
+  "changed_paths": [
+    "tools/quality/validate_task_ledger.py",
+    "evidence/v6_1_rework/tasks/GOV-002/PLAN.md",
+    "evidence/v6_1_rework/tasks/GOV-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/GOV-002/logs/c01.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "ledger state machine governance only"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/validate_task_ledger.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:22:28Z",
+      "duration_seconds": 3.0,
+      "log_path": "evidence/v6_1_rework/tasks/GOV-002/logs/c01.log",
+      "log_sha256": "5cb8a26dedc62017467c59f43fab7fcafd4554736fb7d54c020435c86be31ab3"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/validate_task_ledger.py",
+        "evidence/v6_1_rework/TASK_LEDGER.csv",
+        "--expected-tasks",
+        "67"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:22:28Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/GOV-002/logs/c01.log",
+      "log_sha256": "5cb8a26dedc62017467c59f43fab7fcafd4554736fb7d54c020435c86be31ab3"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/validate_task_ledger.py",
+        "evidence/v6_1_rework/TASK_LEDGER.csv",
+        "--expected-tasks",
+        "66"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 1,
+      "started_utc": "2026-08-31T04:22:28Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/GOV-002/logs/c01.log",
+      "log_sha256": "5cb8a26dedc62017467c59f43fab7fcafd4554736fb7d54c020435c86be31ab3"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-SELFTEST-12",
+      "description": "12 负例全抓（非法状态/双IN_PROGRESS/PASS依赖WAITING/环/缺任务/REL提前PASS/任务数不符/错误聚合）",
+      "result": "PASS",
+      "evidence_sha256": "5cb8a26dedc62017467c59f43fab7fcafd4554736fb7d54c020435c86be31ab3"
+    },
+    {
+      "test_id": "T-LIVE-67",
+      "description": "工作台账 67 任务验证 PASS",
+      "result": "PASS",
+      "evidence_sha256": "5cb8a26dedc62017467c59f43fab7fcafd4554736fb7d54c020435c86be31ab3"
+    },
+    {
+      "test_id": "T-COUNT-NEG",
+      "description": "expected 66 → task count mismatch 失败",
+      "result": "PASS",
+      "evidence_sha256": "5cb8a26dedc62017467c59f43fab7fcafd4554736fb7d54c020435c86be31ab3"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/GOV-002/PLAN.md",
+      "sha256": "cf00691f2d8c0728744863b08fd4b01d88ad850353cfce9fdbe6fef4277d6b51"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/GOV-002/TASK_RESULT.json",
+      "sha256": "0a1009a4517f9416729ec380aca8bc16b9634f25e474460ef62065fb0a7125e0"
+    }
+  ],
+  "findings": [
+    "F-034",
+    "F-035"
+  ],
+  "limitations": [
+    "F-034/F-035 的闭环证据最终由 REL-002 汇总（上轮 ledger 缺陷不再复现：本轮 REL 任务保持 NOT_STARTED 直至依赖 PASS）"
+  ],
+  "expected_commit_subject": "GOV-002: gate 与依赖状态机 (12 负例全抓, 全部错误聚合, 任务数校验)",
+  "created_utc": "2026-08-31T04:22:28Z"
+}
