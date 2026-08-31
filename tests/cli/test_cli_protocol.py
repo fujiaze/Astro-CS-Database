@@ -260,21 +260,24 @@ class TestManifestVerify(unittest.TestCase):
         self.assertEqual(run("config", "validate", "--config", self.cfg).returncode, 0)
 
     def test_06_show_effective_stale_profile_5(self):
-        prof = os.path.join(self.tmp, "cpu_profile.json")
-        with open(prof, "w", encoding="utf-8") as f:
-            json.dump({"schema_version": "1", "kind": "astrocs_cpu_profile",
-                       "cpu_signature": "stale-signature", "kernels": {}}, f)
-        r = run("config", "show-effective", "--config", self.cfg, "--cpu-profile", prof, "--json")
-        self.assertEqual(r.returncode, 5, "stale profile → 5(CPU 特征)")
-        m = re.search(r"local=([0-9a-f]{64})", r.stderr)
-        self.assertIsNotNone(m, "stderr 提供本机签名")
-        with open(prof, "w", encoding="utf-8") as f:
-            json.dump({"schema_version": "1", "kind": "astrocs_cpu_profile",
-                       "cpu_signature": m.group(1), "kernels": {"k": 1}}, f)
-        r2 = run("config", "show-effective", "--config", self.cfg, "--cpu-profile", prof, "--json")
+        # CPU-004: profile 校验升级为 v2(机器一致性: arch/quota_signature/logical_available/commit)。
+        # stale 语义 = 篡改 build.source_commit 等 → 拒绝(5); 合法 v2 profile → 通过(0)。
+        good = os.path.join(self.tmp, "cpu_profile_good.json")
+        r0 = run("benchmark", "cpu", "--quick", "--output", good)
+        self.assertEqual(r0.returncode, 0, r0.stderr[-200:])
+        stale = os.path.join(self.tmp, "cpu_profile_stale.json")
+        with open(good, encoding="utf-8") as fh:
+            doc = json.loads(fh.read())
+        doc["build"]["source_commit"] = "0" * 40   # 篡改 commit → 机器一致性失败
+        with open(stale, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh)
+        r = run("config", "show-effective", "--config", self.cfg, "--cpu-profile", stale, "--json")
+        self.assertEqual(r.returncode, 5, "stale profile → 5(机器一致性失败)")
+        self.assertIn("cpu profile invalid", r.stderr)
+        r2 = run("config", "show-effective", "--config", self.cfg, "--cpu-profile", good, "--json")
         self.assertEqual(r2.returncode, 0)
-        doc = json.loads(r2.stdout)
-        self.assertIn("effective", doc)
+        doc2 = json.loads(r2.stdout)
+        self.assertIn("effective", doc2)
 
     def test_07_show_effective_requires_json(self):
         r = run("config", "show-effective", "--config", self.cfg)
