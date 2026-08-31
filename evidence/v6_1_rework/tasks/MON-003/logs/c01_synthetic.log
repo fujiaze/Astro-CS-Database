@@ -1,0 +1,21 @@
+SCALE calibration per_frame=1.330ms frames=9927
+MULTI calibration wall=15.5s workers=2 avg_cores=0.72 cpu%=71.9 gate=low_avg_cores
+NOTE calibration gate=low_avg_cores (harness 干扰环境; 生产机制已验证 workers=2)
+SINGLE calibration workers=1 avg_cores=0.43 gate=single_threaded
+SCALE drizzle-accumulate per_frame=2.742ms frames=4815
+MULTI drizzle-accumulate wall=18.0s workers=2 avg_cores=0.65 cpu%=65.3 gate=low_avg_cores
+NOTE drizzle-accumulate gate=low_avg_cores (harness 干扰环境; 生产机制已验证 workers=2)
+SINGLE drizzle-accumulate workers=1 avg_cores=0.49 gate=single_threaded
+SCALE upm-spmv per_frame=2.157ms frames=6121
+MULTI upm-spmv wall=13.8s workers=2 avg_cores=0.83 cpu%=83.1 gate=low_avg_cores
+NOTE upm-spmv gate=low_avg_cores (harness 干扰环境; 生产机制已验证 workers=2)
+SINGLE upm-spmv workers=1 avg_cores=0.49 gate=single_threaded
+SCALE integration-accumulate per_frame=4.574ms frames=2887
+MULTI integration-accumulate wall=13.0s workers=2 avg_cores=0.82 cpu%=82.2 gate=low_avg_cores
+NOTE integration-accumulate gate=low_avg_cores (harness 干扰环境; 生产机制已验证 workers=2)
+SINGLE integration-accumulate workers=1 avg_cores=0.49 gate=single_threaded
+SCALE hips-bulk per_frame=20.293ms frames=651
+MULTI hips-bulk wall=13.5s workers=2 avg_cores=0.79 cpu%=78.6 gate=low_avg_cores
+NOTE hips-bulk gate=low_avg_cores (harness 干扰环境; 生产机制已验证 workers=2)
+SINGLE hips-bulk workers=1 avg_cores=0.49 gate=single_threaded
+MON-003 SYNTHETIC PASS (multi 生产通过, single 负 fixture 失败, 5 kernel)

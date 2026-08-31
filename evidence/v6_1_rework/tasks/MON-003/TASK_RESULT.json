@@ -1,0 +1,105 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "MON-003",
+  "status": "PASS",
+  "parent_commit": "0a24e8570309e9456e07e7dc7343d9fae9b6f171",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "validation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/MON-003/PLAN.md",
+    "evidence/v6_1_rework/tasks/MON-003/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/MON-003/logs/c01_synthetic.log",
+    "evidence/v6_1_rework/tasks/MON-003/logs/c02_gate_unit.log",
+    "tests/backend/mon003_synthetic_main.cpp",
+    "tests/backend/test_mon003_synthetic.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "验证工具(合成 workload + 门禁判定)与证据; 无生产代码变更"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "mon003_synthetic",
+        "--duration",
+        "12"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T02:20:00Z",
+      "duration_seconds": 240.0,
+      "log_path": "evidence/v6_1_rework/tasks/MON-003/logs/c01_synthetic.log",
+      "log_sha256": "df23b2091d550fac5f78e2ae27d6726d92ad6c6ae6e16da27d22cfe9f2b363c7"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "mon002_gate_test"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T02:25:00Z",
+      "duration_seconds": 0.2,
+      "log_path": "evidence/v6_1_rework/tasks/MON-003/logs/c02_gate_unit.log",
+      "log_sha256": "98f60b5db860678603d6b91e5bd2600ad6078a720827d8b51f05b266df1e334e"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-MULTI-PRODUCTION",
+      "description": "5 代表 heavy kernel 各≥10s 合成 workload; 多核 workers_used=2 全生效; 无单线程/锁退化失败",
+      "result": "PASS",
+      "evidence_sha256": "df23b2091d550fac5f78e2ae27d6726d92ad6c6ae6e16da27d22cfe9f2b363c7"
+    },
+    {
+      "test_id": "T-SINGLE-NEGATIVE",
+      "description": "单核负 fixture workers=1 → 5/5 gate 拒绝(single_threaded)",
+      "result": "PASS",
+      "evidence_sha256": "df23b2091d550fac5f78e2ae27d6726d92ad6c6ae6e16da27d22cfe9f2b363c7"
+    },
+    {
+      "test_id": "T-GATE-THRESHOLDS",
+      "description": "门禁阈值(worker p50/CPU p50/mean/io/memory/mixed/锁退化)由 mon002_gate_test 11 组断言全量保证",
+      "result": "PASS",
+      "evidence_sha256": "98f60b5db860678603d6b91e5bd2600ad6078a720827d8b51f05b266df1e334e"
+    },
+    {
+      "test_id": "T-REGRESSION",
+      "description": "test_mon003_synthetic 2/2 PASS; test_resource_gate 7/7 PASS",
+      "result": "PASS",
+      "evidence_sha256": "df23b2091d550fac5f78e2ae27d6726d92ad6c6ae6e16da27d22cfe9f2b363c7"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-003/PLAN.md",
+      "sha256": "4d186a254922957072f0f40cd1cf1a3ec8d03f7a5ffdd7afb0c2edb1b1aef2e1"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-003/TASK_RESULT.json",
+      "sha256": "3dc4cb338a935b761d230ce58f6d4e8ac1bb1b9dc5931cfb482c10536615b88b"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-003/logs/c01_synthetic.log",
+      "sha256": "df23b2091d550fac5f78e2ae27d6726d92ad6c6ae6e16da27d22cfe9f2b363c7"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/MON-003/logs/c02_gate_unit.log",
+      "sha256": "98f60b5db860678603d6b91e5bd2600ad6078a720827d8b51f05b266df1e334e"
+    }
+  ],
+  "findings": [
+    "F-011",
+    "F-012"
+  ],
+  "expected_commit_subject": "MON-003: 2核合成 workload 门禁验证 (5 kernel ≥10s, 多核生产通过, 单核负 fixture 失败, harness 干扰如实记录)",
+  "created_utc": "2026-09-01T02:30:00Z"
+}
