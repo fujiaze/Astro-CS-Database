@@ -1,0 +1,423 @@
+{
+  "schema": "astrocs.known-failures-baseline/v1",
+  "repo": "/home/lighthouse/Astro CS Database",
+  "source_commit": "d7b202ecba65bcf715126e81222a566d62956b0d",
+  "finding_count": 40,
+  "reproduced_count": 40,
+  "findings": [
+    {
+      "finding_id": "F-001",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -oE 'p[123]_session_(create|validate|run|inspect|destroy)' cli/main.cpp",
+      "evidence": [
+        "cli/main.cpp: ['p1_session_create', 'p1_session_destroy', 'p1_session_inspect', 'p1_session_run', 'p1_session_validate', 'p2_session_create', 'p2_session_destroy', 'p2_session_inspect', 'p2_session_run', 'p2_session_validate', 'p3_session_create', 'p3_session_destroy', 'p3_session_inspect', 'p3_session_run', 'p3_session_validate']"
+      ],
+      "note": "生产 CLI 直接调用 session 入口，无 Runtime 可达"
+    },
+    {
+      "finding_id": "F-002",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'hips_paths\\|inputs.*lights\\|phase3' cli/main.cpp",
+      "evidence": [
+        "cli/main.cpp 中 P2 输入从 doc.inputs.lights 重建，P3 独立 config 路径"
+      ],
+      "note": "无类型化 P1->P2->P3 Artifact 连续性"
+    },
+    {
+      "finding_id": "F-003",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'P2_ENABLE_OPENMP' CMakeLists.txt lib/phase2/src/sampler.cpp",
+      "evidence": [
+        "CMakeLists.txt 无 P2_ENABLE_OPENMP 定义",
+        "sampler.cpp 含 !defined(_MSC_VER) 排除"
+      ],
+      "note": "Phase2 sampler 并行路径非生产默认，Windows 被排除"
+    },
+    {
+      "finding_id": "F-004",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'hardware_concurrency\\|P2_ENABLE_OPENMP\\|_MSC_VER' lib/phase2/src/upm.cpp",
+      "evidence": [
+        "#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)",
+        "                             : (int)std::max(1u, std::thread::hardware_concurrency());",
+        "#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)",
+        "#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)",
+        "#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)"
+      ],
+      "note": "UPM 绕过 Runtime lease 或排除 MSVC"
+    },
+    {
+      "finding_id": "F-005",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n '单线程\\|serial\\|for *(.y' lib/phase3_session/p3_session.cpp",
+      "evidence": [
+        "    // 行带粒度采样 + 取消点 (禁硬编码线程数: 单线程串行, budget 有多核可扩——P3 采样线程由上层注入)"
+      ],
+      "note": "P3 生产重采样显式串行双循环"
+    },
+    {
+      "finding_id": "F-006",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "git grep -l evaluate_gate -- cli lib",
+      "evidence": [
+        "非 resource_gate.h 的 evaluate_gate 调用点: 无"
+      ],
+      "note": "资源 gate 无生产调用者"
+    },
+    {
+      "finding_id": "F-007",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'acquire_lease\\|compare_exchange\\|fetch_sub\\|release_lease' include/astrocs/core/context.h lib/core/src/context.cpp",
+      "evidence": [
+        "  ThreadLease acquire_lease(uint32_t requested) const {"
+      ],
+      "note": "ThreadLease 无原子预留/归还，可能超卖"
+    },
+    {
+      "finding_id": "F-008",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'mutex\\|lock\\|RunContext' lib/core/src/context.cpp",
+      "evidence": [
+        "RunContext 容器无同步"
+      ],
+      "note": "共享容器并发修改无同步，数据竞争风险"
+    },
+    {
+      "finding_id": "F-009",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'p2_upm_build\\|phase2 run' tests/unit/p2_upm_synthetic_test.cpp",
+      "evidence": [
+        "p2_upm_synthetic_test.cpp 不调用生产 UPM"
+      ],
+      "note": "接缝回归未用生产 UPM 证明"
+    },
+    {
+      "finding_id": "F-010",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -nE 'fabs\\([^)]*dec[^)]*\\) *< *5' lib/phase3_session/p3_session.cpp",
+      "evidence": [
+        "p3_session 用 fabs(dec)<5 拒绝赤道附近，与 WCS 层 |dec|<=85 矛盾"
+      ],
+      "note": "SCI/API/CODE 输入域冲突"
+    },
+    {
+      "finding_id": "F-011",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'order_select\\|order_sel' lib/phase3_session/p3_session.cpp",
+      "evidence": [
+        "order_sel 硬编码 max order 20"
+      ],
+      "note": "报告分辨率与执行采样不一致"
+    },
+    {
+      "finding_id": "F-012",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'Jy/beam\\|0\\.1\\.0\\|phase3-run' lib/phase3_session/p3_session.cpp",
+      "evidence": [
+        "Jy/beam",
+        "0.1.0",
+        "phase3-run"
+      ],
+      "note": "科学单位/版本/run 身份硬编码"
+    },
+    {
+      "finding_id": "F-013",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -nE 'int *bitpix *=' lib/phase3_session/p3_output.cpp",
+      "evidence": [
+        "writer 固定 BITPIX=-32"
+      ],
+      "note": "请求 bitpix 被忽略"
+    },
+    {
+      "finding_id": "F-014",
+      "severity": "P0",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'p3_output_verify\\|CHECKSUM\\|DATASUM\\|P3_OUT_OK' lib/phase3_session/p3_output.cpp",
+      "evidence": [
+        "verify 未比较 WCS/BUNIT/CHECKSUM 或 mismatch 仍返回 OK"
+      ],
+      "note": "无效 FITS 可被报告为有效"
+    },
+    {
+      "finding_id": "F-015",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -oE 'IrError::\\w+' lib/core/src/pipeline.cpp; grep -oE 'MISSING_PORT|DATA_MISMATCH|UNIT_MISMATCH|COORDINATE_MISMATCH|UNPRODUCED_OUTPUT|SERIAL_HEAVY' include/astrocs/core/pipeline.h",
+      "evidence": [
+        "声明的错误枚举从未发出: ['DATA_MISMATCH', 'MISSING_PORT', 'SERIAL_HEAVY', 'UNIT_MISMATCH']",
+        "实际发出: ['CYCLE', 'DUPLICATE_PRODUCER', 'UNCONSUMED', 'UNKNOWN_MODULE']"
+      ],
+      "note": "类型化管道合同名义化：validate 无法校验端口/单位/坐标"
+    },
+    {
+      "finding_id": "F-016",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'ALG\\|DATA\\|TEST\\|heavy\\|validate' lib/core/src/module.cpp",
+      "evidence": [
+        "descriptor 校验不要求 ALG/DATA/API/TEST 或 heavy+parallel 合同"
+      ],
+      "note": "无效模块可能注册"
+    },
+    {
+      "finding_id": "F-017",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'hp_drizzle_run_hips' cli/main.cpp",
+      "evidence": [
+        "cli/main.cpp 直接调用 Drizzle"
+      ],
+      "note": "遗留直接科学路径可达"
+    },
+    {
+      "finding_id": "F-018",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "wc -l cli/main.cpp",
+      "evidence": [
+        "cli/main.cpp 1604 行（>400 判定为超厚）"
+      ],
+      "note": "薄 CLI 要求未满足"
+    },
+    {
+      "finding_id": "F-019",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -nE 'add_(library|executable).*astrocs_cpu_(baseline|avx2|avx512)' CMakeLists.txt",
+      "evidence": [
+        "独立 provider targets: 无"
+      ],
+      "note": "无编译的 AVX2/AVX512 provider targets"
+    },
+    {
+      "finding_id": "F-020",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'cli_affinity_cpu_count\\|cgroup\\|Job Object' cli/main.cpp",
+      "evidence": [
+        "仅 affinity，无 cgroup/Job Object 配额"
+      ],
+      "note": "worker 预算可超有效配额"
+    },
+    {
+      "finding_id": "F-021",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'bilinear\\|p3_sample_bilinear' tests/unit/p3_interp_test.cpp",
+      "evidence": [
+        "测试使用规则数组 helper，不调用生产 HEALPix resampler"
+      ],
+      "note": "插值/边界正确性未证明"
+    },
+    {
+      "finding_id": "F-022",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'CHECK(true)' tests/unit/p3_assembly_test.cpp",
+      "evidence": [
+        "CHECK(true) 空洞资源门"
+      ],
+      "note": "Phase3 assembly PASS 空洞"
+    },
+    {
+      "finding_id": "F-023",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'C_B\\|GateConfig' tests/unit/p2_seam_gate_test.cpp",
+      "evidence": [
+        "测试把已知 correction 与人工资源值写入"
+      ],
+      "note": "不验证估计器或实测资源"
+    },
+    {
+      "finding_id": "F-024",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'ALG-P3-001\\|status: DRAFT' docs/contracts/INDEX.yaml; ls docs/algorithms/*.md",
+      "evidence": [
+        "docs/algorithms 现有 14 份",
+        "ALG-P3-001 状态 DRAFT（审核指出 15 个 ALG/MOD 引用路径在快照缺失、Phase3 ALG 仍 DRAFT）"
+      ],
+      "note": "合同图不完整：Phase3 ALG 仍 DRAFT，审核快照缺算法文档"
+    },
+    {
+      "finding_id": "F-025",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -c 'ADU/pixel/deg per header' docs/contracts/API_CONTRACTS.csv",
+      "evidence": [
+        "占位行数=422"
+      ],
+      "note": "422 行批量占位语义"
+    },
+    {
+      "finding_id": "F-026",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -oE '[\\w/]+\\.h' tools/check_ast_api.py",
+      "evidence": [
+        "AST 检查头文件集合: ['include/astrocs/core/artifact.h', 'include/astrocs/core/contracts.h', 'include/astrocs/io/io_adapter.h']"
+      ],
+      "note": "只查符号名存在，不查参数/语义"
+    },
+    {
+      "finding_id": "F-027",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'trace\\|output\\|PASS' tools/check_pipeline_trace.py",
+      "evidence": [
+        "checker 空 trace 也 PASS / 人工补 P3 output 节点"
+      ],
+      "note": "pipeline 文档门空洞"
+    },
+    {
+      "finding_id": "F-028",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'prerelease_v5\\|66' tools/check_traceability.py",
+      "evidence": [
+        "默认读 artifacts/prerelease_v5 或硬编码 66 claims"
+      ],
+      "note": "当前 V6 追溯未被验证"
+    },
+    {
+      "finding_id": "F-029",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n '完成\\|81 PASS' docs/review/RELEASE_STATUS.md; grep -n 'prototype\\|未实现' docs/review/SCIENCE_OVERVIEW.md",
+      "evidence": [
+        "RELEASE_STATUS 自报 Linux 侧完成/81 PASS",
+        "SCIENCE_OVERVIEW 声明 Phase3 prototype/未实现"
+      ],
+      "note": "负责人面向状态互相矛盾"
+    },
+    {
+      "finding_id": "F-030",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n '%llu' cli/monitor.h",
+      "evidence": [
+        "monitor 用 %llu 配 uint64_t* 于 LP64（Clang 警告）"
+      ],
+      "note": "UB 风险 + 零警告声明虚假"
+    },
+    {
+      "finding_id": "F-031",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'detect_leaks\\|LSan' evidence/refactor/tasks/QA-003/TASK_RESULT.json",
+      "evidence": [
+        "QA-003 记录 LSan 关闭且无 TSan 生产 trace"
+      ],
+      "note": "内存/线程安全未闭合"
+    },
+    {
+      "finding_id": "F-032",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "unzip -l artifacts/prerelease_v5/AUDIT_PACKAGE_587fe0e341a7.zip | grep -E 'SUMMARY|SOURCE_IDENTITY|COMMITS'",
+      "evidence": [
+        "V5 审核包缺 SUMMARY/SOURCE_IDENTITY/COMMITS 等必需文件"
+      ],
+      "note": "审核结果不可独立复现（本包 REL-003 修复）"
+    },
+    {
+      "finding_id": "F-033",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "unzip -l artifacts/prerelease_v5/AUDIT_PACKAGE_587fe0e341a7.zip | grep -cE 'code/'",
+      "evidence": [
+        "独立审核指出 42 个 CMake 显式自有路径缺失，algorithms 全缺"
+      ],
+      "note": "源码快照不可配置/审阅"
+    },
+    {
+      "finding_id": "F-034",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -E '^(REL-001|WIN-006),' evidence/refactor/TASK_LEDGER.csv",
+      "evidence": [
+        "上轮 ledger: REL-001=PASS 且其依赖 WIN-006=WAITING_WINDOWS（依赖门被绕过）"
+      ],
+      "note": "依赖门被绕过"
+    },
+    {
+      "finding_id": "F-035",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep 'REL-004' evidence/refactor/TASK_LEDGER.csv",
+      "evidence": [
+        "上轮 ledger 使用非法状态 REVIEW_PENDING"
+      ],
+      "note": "台账不符合验证器状态集"
+    },
+    {
+      "finding_id": "F-036",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -c '522\\|568' evidence/refactor/tasks/REL-003/package_logs 2>/dev/null; unzip -l artifacts/prerelease_v5/AUDIT_PACKAGE_587fe0e341a7.zip | tail -1",
+      "evidence": [
+        "审核指出日志 522 文件而 manifest 568，打包器脚本缺失"
+      ],
+      "note": "打包对象与声称验证对象不一致"
+    },
+    {
+      "finding_id": "F-037",
+      "severity": "P1",
+      "status": "REPRODUCED",
+      "minimal_command": "ls evidence/refactor/tasks/REL-004/VIEWS 2>/dev/null",
+      "evidence": [
+        "REL-004 视图为合成 PGM/reference FITS，非最终 32R"
+      ],
+      "note": "负责人视觉门无有效证据"
+    },
+    {
+      "finding_id": "F-038",
+      "severity": "P2",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'system\\|rm -rf\\|TMPDIR' tests/unit/p3_assembly_test.cpp",
+      "evidence": [
+        "测试用 shell 字符串 rm -rf + TMPDIR"
+      ],
+      "note": "测试命令注入/破坏性路径风险"
+    },
+    {
+      "finding_id": "F-039",
+      "severity": "P2",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'project\\|p3_sample_bilinear' lib/phase3_session/p3_resample.cpp",
+      "evidence": [
+        "p3_sample_bilinear 有未用 project lambda / 临时象限插值"
+      ],
+      "note": "可读性与数值设计需清理"
+    },
+    {
+      "finding_id": "F-040",
+      "severity": "P2",
+      "status": "REPRODUCED",
+      "minimal_command": "python3 -c '... 比较每个 TASK_RESULT source_commit 与 start_commit ...'",
+      "evidence": [
+        "LEG-002: start==source==317566c07e3407e270a06b117a94742d4d0d8f37",
+        "QA-002: start==source==41943d42e0850db99fd79e1544e7bf08fc583205",
+        "BAS-001: start==source==ac2d230da9e4f1096d98ad3cfa9a8605f84fb33f",
+        "DOC-003: start==source==8e7b2c95df76d265650191652a3bdb989ee2ef8b",
+        "P2-005: start==source==957accffd59e196214e8af7f7d4d3948eaa1bba1"
+      ],
+      "note": "证据语义无法标识结果 commit"
+    }
+  ]
+}

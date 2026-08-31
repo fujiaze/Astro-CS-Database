@@ -1,0 +1,139 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "R0-004",
+  "status": "PASS",
+  "parent_commit": "d7b202ecba65bcf715126e81222a566d62956b0d",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "audit",
+  "changed_paths": [
+    "tools/quality/known_failures_baseline.py",
+    "evidence/v6_1_rework/tasks/R0-004/KNOWN_FAILURES_BASELINE.json",
+    "evidence/v6_1_rework/tasks/R0-004/PLAN.md",
+    "evidence/v6_1_rework/tasks/R0-004/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/R0-004/logs/c01.log",
+    "evidence/v6_1_rework/tasks/R0-004/logs/c02.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "read-only reproduction; no code change"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "-B",
+        "工程控制/.../scripts/known_failure_scan.py",
+        "."
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 1,
+      "started_utc": "2026-08-31T04:18:17Z",
+      "duration_seconds": 4.0,
+      "log_path": "evidence/v6_1_rework/tasks/R0-004/logs/c01.log",
+      "log_sha256": "a3aea60ac7443937e8cce891da8ee44b4667813a75e4fc0492572c86d429758f"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/known_failures_baseline.py",
+        "--repo",
+        "."
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:18:17Z",
+      "duration_seconds": 8.0,
+      "log_path": "evidence/v6_1_rework/tasks/R0-004/logs/c02.log",
+      "log_sha256": "fac32824adb4aa5541fc8575fa4b393e17a6667c1fa6b1dbd0e51e19cb7ffb37"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-ALL-40-REPRODUCED",
+      "description": "F-001..F-040 全部 REPRODUCED（40/40）",
+      "result": "PASS",
+      "evidence_sha256": "dbe859b83c88a89958f84b8f90f84b7995b823899782a8e475b0caeee9031679"
+    },
+    {
+      "test_id": "T-INDEPENDENT-SCAN",
+      "description": "控制包 known_failure_scan.py 独立命中 18 项",
+      "result": "PASS",
+      "evidence_sha256": "a3aea60ac7443937e8cce891da8ee44b4667813a75e4fc0492572c86d429758f"
+    },
+    {
+      "test_id": "T-STATUS-LEGAL",
+      "description": "状态集合合法且无靠文档关闭",
+      "result": "PASS",
+      "evidence_sha256": "dbe859b83c88a89958f84b8f90f84b7995b823899782a8e475b0caeee9031679"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-004/KNOWN_FAILURES_BASELINE.json",
+      "sha256": "dbe859b83c88a89958f84b8f90f84b7995b823899782a8e475b0caeee9031679"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-004/PLAN.md",
+      "sha256": "7e27fb9a302ca3e4b7aa6ae11d3092dc2373028269cbf360d7a4de695a14ffec"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-004/TASK_RESULT.json",
+      "sha256": "85d004c25891ffa081c3e73aca91a3a85a15903bfda09c4578b54a4e24fcd401"
+    }
+  ],
+  "findings": [
+    "F-001",
+    "F-002",
+    "F-003",
+    "F-004",
+    "F-005",
+    "F-006",
+    "F-007",
+    "F-008",
+    "F-009",
+    "F-010",
+    "F-011",
+    "F-012",
+    "F-013",
+    "F-014",
+    "F-015",
+    "F-016",
+    "F-017",
+    "F-018",
+    "F-019",
+    "F-020",
+    "F-021",
+    "F-022",
+    "F-023",
+    "F-024",
+    "F-025",
+    "F-026",
+    "F-027",
+    "F-028",
+    "F-029",
+    "F-030",
+    "F-031",
+    "F-032",
+    "F-033",
+    "F-034",
+    "F-035",
+    "F-036",
+    "F-037",
+    "F-038",
+    "F-039",
+    "F-040"
+  ],
+  "limitations": [
+    "F-032/033/036/037 以仓库 V5 审核包与上轮 evidence 为复现依据（审核结论独立判定）"
+  ],
+  "expected_commit_subject": "R0-004: 复现并冻结 40 项已知问题 (40/40 REPRODUCED, KNOWN_FAILURES_BASELINE.json)",
+  "created_utc": "2026-08-31T04:18:17Z"
+}
