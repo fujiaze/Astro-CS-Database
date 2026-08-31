@@ -1,0 +1,137 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "RT-001",
+  "status": "PASS",
+  "parent_commit": "545bd4d47c13b8edcd1adfd3a27e0b42a8e9426f",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "architecture",
+  "changed_paths": [
+    "include/astrocs/core/runtime.h",
+    "include/astrocs/core/context.h",
+    "lib/core/src/context.cpp",
+    "lib/core/src/runtime.cpp",
+    "CMakeLists.txt",
+    "tests/unit/CMakeLists.txt",
+    "tests/unit/rt001_abi_test.cpp",
+    "docs/contracts/RT-001.md",
+    "evidence/v6_1_rework/tasks/RT-001/PLAN.md",
+    "evidence/v6_1_rework/tasks/RT-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/RT-001/logs/c01.log",
+    "evidence/v6_1_rework/tasks/RT-001/logs/c02.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": true,
+    "binary": true,
+    "reason": "Runtime/module public contract frozen; new public headers + core library growth"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "rt001_abi_test",
+        "-j2"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:51:03Z",
+      "duration_seconds": 120.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-001/logs/c01.log",
+      "log_sha256": "7e332142a6dc085d80bc9c43826c9d4b357630ea0e25925d25d89f1e66a14e00"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "core_contracts_test core_artifact_test core_module_test core_pipeline_test core_context_test core_scheduler_test core_checkpoint_test core_logging_test",
+        "-j2"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:51:03Z",
+      "duration_seconds": 240.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-001/logs/c01.log",
+      "log_sha256": "7e332142a6dc085d80bc9c43826c9d4b357630ea0e25925d25d89f1e66a14e00"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "ASTROCS_REPO=$(pwd)",
+        "ctest",
+        "--test-dir",
+        "run/temp/build_v61",
+        "-R",
+        "core_|rt001"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:51:03Z",
+      "duration_seconds": 3.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-001/logs/c01.log",
+      "log_sha256": "7e332142a6dc085d80bc9c43826c9d4b357630ea0e25925d25d89f1e66a14e00"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "./run/temp/build_v61/tests/unit/rt001_abi_test"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:51:03Z",
+      "duration_seconds": 0.1,
+      "log_path": "evidence/v6_1_rework/tasks/RT-001/logs/c02.log",
+      "log_sha256": "f2d9c477d43c0261c23c1ce082c1f3c0cbeaa16bc686c52433444fa29624316e"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-ABI-LAYOUT",
+      "description": "enum 值/offset/size/factory 签名 GCC 验证 PASS",
+      "result": "PASS",
+      "evidence_sha256": "f2d9c477d43c0261c23c1ce082c1f3c0cbeaa16bc686c52433444fa29624316e"
+    },
+    {
+      "test_id": "T-CORE-9",
+      "description": "9 个 core 测试全 PASS（含 pipeline fixtures）",
+      "result": "PASS",
+      "evidence_sha256": "7e332142a6dc085d80bc9c43826c9d4b357630ea0e25925d25d89f1e66a14e00"
+    },
+    {
+      "test_id": "T-FACTORY-NEG",
+      "description": "create_runtime(0)/create_thread_budget(0) → Error(RESOURCE)",
+      "result": "PASS",
+      "evidence_sha256": "f2d9c477d43c0261c23c1ce082c1f3c0cbeaa16bc686c52433444fa29624316e"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-001/PLAN.md",
+      "sha256": "da9c18ed1a2beec13a4bc76858fce6af0b9b16370eecb352dc0db4ee522124d5"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-001/TASK_RESULT.json",
+      "sha256": "2d88090eb4373a806e17c7335e09331ca9a8116edc1103ed5702cf49953096fe"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-001/logs/c01.log",
+      "sha256": "7e332142a6dc085d80bc9c43826c9d4b357630ea0e25925d25d89f1e66a14e00"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "ThreadBudget 原子实现已落地；RunContext 接入 ThreadBudget 与并发同步由 RT-002/RT-003 完成"
+  ],
+  "expected_commit_subject": "RT-001: 冻结 Runtime 与模块公共合同 (Runtime/ModulePlan/IModule/ThreadBudget/RAII lease, ABI layout 测试)",
+  "created_utc": "2026-08-31T04:51:03Z"
+}
