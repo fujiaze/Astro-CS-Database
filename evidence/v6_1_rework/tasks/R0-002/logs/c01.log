@@ -1,0 +1,3 @@
+SOURCE_INDEX_PASS targets=58 files=1120 missing=0 vendored=239
+  SOURCE_INDEX.csv    -> /home/lighthouse/Astro CS Database/evidence/v6_1_rework/tasks/R0-002/SOURCE_INDEX.csv
+  TARGET_SOURCE_GRAPH -> /home/lighthouse/Astro CS Database/evidence/v6_1_rework/tasks/R0-002/TARGET_SOURCE_GRAPH.json
