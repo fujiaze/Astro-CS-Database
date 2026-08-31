@@ -1,0 +1,11 @@
+SELFTEST_PASS illegal_state: caught R0-001: invalid status 'REVIEW_PENDING'
+SELFTEST_PASS two_in_progress: caught more than one task is IN_PROGRESS
+SELFTEST_PASS pass_with_waiting_dep: caught R0-001: PASS with non-PASS dependencies ['R0-002']
+SELFTEST_PASS unknown_dep: caught R0-002: unknown dependency NO-SUCH
+SELFTEST_PASS cycle: caught dependency cycle: ['R0-001', 'R0-002']
+SELFTEST_PASS rel_early_pass: caught REL-004 is Owner-only and cannot be marked PASS by the Agent
+SELFTEST_PASS waiting_windows_non_win: caught R0-001: WAITING_WINDOWS is legal only for a Windows task
+SELFTEST_PASS blocked_no_reason: caught R0-001: BLOCKED requires BLOCKED_REASON (object/command/time)
+SELFTEST_PASS bad_task_id: caught line 2: invalid task_id 'bad'
+SELFTEST_PASS missing_task: caught R0-003: unknown dependency R0-002
+SELFTEST_PASS total=10

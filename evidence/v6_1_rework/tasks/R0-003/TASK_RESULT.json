@@ -1,0 +1,138 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "R0-003",
+  "status": "PASS",
+  "parent_commit": "31b10cab42d77276b91397fea987e5484ba7e524",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "governance",
+  "changed_paths": [
+    "tools/quality/validate_task_ledger.py",
+    "tools/quality/check_task_result_schema.py",
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/R0-003/PLAN.md",
+    "evidence/v6_1_rework/tasks/R0-003/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/R0-003/ledger_state.json",
+    "evidence/v6_1_rework/tasks/R0-003/logs/c01.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "evidence/ledger governance only"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/validate_task_ledger.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:14:17Z",
+      "duration_seconds": 3.1,
+      "log_path": "evidence/v6_1_rework/tasks/R0-003/logs/c01.log",
+      "log_sha256": "7127fce5544915082221152efe28b5c807016d4fd8fb7f03a5b00997b6ad01d5"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/validate_task_ledger.py",
+        "evidence/v6_1_rework/TASK_LEDGER.csv",
+        "--output",
+        "evidence/v6_1_rework/tasks/R0-003/ledger_state.json"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:14:17Z",
+      "duration_seconds": 1.2,
+      "log_path": "evidence/v6_1_rework/tasks/R0-003/logs/c01.log",
+      "log_sha256": "7127fce5544915082221152efe28b5c807016d4fd8fb7f03a5b00997b6ad01d5"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/validate_task_ledger.py",
+        "工程控制/AstroCS_V6_1_REWORK_CONTROL_20260831/03_REWORK_TASK_LEDGER.csv",
+        "--baseline-sha256",
+        "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:14:17Z",
+      "duration_seconds": 1.1,
+      "log_path": "evidence/v6_1_rework/tasks/R0-003/logs/c01.log",
+      "log_sha256": "7127fce5544915082221152efe28b5c807016d4fd8fb7f03a5b00997b6ad01d5"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_task_result_schema.py"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 1,
+      "started_utc": "2026-08-31T04:14:17Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/R0-003/logs/c01.log",
+      "log_sha256": "7127fce5544915082221152efe28b5c807016d4fd8fb7f03a5b00997b6ad01d5"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-SELFTEST-10",
+      "description": "validate_task_ledger.py 10 个负例全部被抓住",
+      "result": "PASS",
+      "evidence_sha256": "7127fce5544915082221152efe28b5c807016d4fd8fb7f03a5b00997b6ad01d5"
+    },
+    {
+      "test_id": "T-LIVE-LEDGER",
+      "description": "工作台账 67 任务结构/状态验证 PASS",
+      "result": "PASS",
+      "evidence_sha256": "29fef48c29ad300fdf6eb2c7ca6d54ec3cf865ff083b758a3422489a1ee0a7bd"
+    },
+    {
+      "test_id": "T-FROZEN-HASH",
+      "description": "冻结台账 hash 与 baseline 一致",
+      "result": "PASS",
+      "evidence_sha256": "29fef48c29ad300fdf6eb2c7ca6d54ec3cf865ff083b758a3422489a1ee0a7bd"
+    },
+    {
+      "test_id": "T-SCHEMA-R003",
+      "description": "R0-003 TASK_RESULT 符合 schema",
+      "result": "PASS",
+      "evidence_sha256": "9515457233b0efeff94e3347bb57b34441997b48b56eb23354d47aa28bcf1883"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-003/PLAN.md",
+      "sha256": "6803932505c8c46991d6dcdf9e3f0b9b04561ffede3f6a5d610b6a758bed13db"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-003/ledger_state.json",
+      "sha256": "29fef48c29ad300fdf6eb2c7ca6d54ec3cf865ff083b758a3422489a1ee0a7bd"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/R0-003/TASK_RESULT.json",
+      "sha256": "9515457233b0efeff94e3347bb57b34441997b48b56eb23354d47aa28bcf1883"
+    },
+    {
+      "path": "evidence/v6_1_rework/TASK_LEDGER.csv",
+      "sha256": "23e51ec978fa45eb5862a4e3e309080c7d2d9617d39e5bb7e4c0a4f0ea3048b2"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "R0-001/R0-002 的 TASK_RESULT 缺少 started_utc/duration_seconds，由 GOV-001 修复"
+  ],
+  "expected_commit_subject": "R0-003: V6.1 证据台账与状态机验证器 (10 负例 PASS, 冻结台账 hash 未变)",
+  "created_utc": "2026-08-31T04:14:17Z"
+}
