@@ -14,7 +14,7 @@ RT-002,G2,实现全局原子ThreadBudget租约,RT-001,Linux,architecture,yes,yes
 RT-003,G2,实现并发安全RunContext,RT-002,Linux,architecture,yes,yes,log/metric/artifact/checkpoint/cancel,TSan targeted无race; artifact重复写确定性失败,PASS
 RT-004,G2,实现schema驱动PipelineIR解析校验,RT-001,Linux,architecture,no,yes,JSON schema; DAG; ports units coordinates,错误枚举全可触发; malformed/unknown/unit/cycle负测,PASS
 RT-005,G2,实现可执行ModuleRegistry,RT-004,Linux,architecture,no,yes,descriptor; factory; plan; execute; inspect,production modules可注册/创建/执行; duplicate/mismatch拒绝,PASS
-RT-006,G2,实现唯一Runtime调度器,RT-002;RT-003;RT-005,Linux,architecture,yes,yes,DAG scheduling; lease executor; backpressure,独立node并发; nested不超卖; fail/cancel/checkpoint正确,NOT_STARTED
+RT-006,G2,实现唯一Runtime调度器,RT-002;RT-003;RT-005,Linux,architecture,yes,yes,DAG scheduling; lease executor; backpressure,独立node并发; nested不超卖; fail/cancel/checkpoint正确,PASS
 RT-007,G2,实现类型化ArtifactStore与跨阶段绑定,RT-004;RT-005,Linux,architecture,no,yes,artifact ID/hash/schema/unit/provenance,producer-consumer严格匹配; 禁路径猜测; tamper负测,NOT_STARTED
 RT-008,G2,将CLI接入唯一Runtime,RT-006;RT-007,Linux,architecture,yes,yes,thin handlers; presets; runtime public API,CLI无session/科学/I/O内部include或直接调用; 1->2->3真实Artifact链,NOT_STARTED
 RT-009,G2,生成真实静态与observed运行图,RT-008;CHK-002,Linux,documentation,yes,yes,DOT/JSON/SVG; trace sidecar,图由同IR和trace派生; hash/source commit齐; 无敏感路径,NOT_STARTED
