@@ -1,0 +1,106 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P1-001",
+  "status": "PASS",
+  "parent_commit": "0b58d3f4c82ee317865d7a3a5f63b2cc3e96423d",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "architecture",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P1-001/PLAN.md",
+    "evidence/v6_1_rework/tasks/P1-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P1-001/logs/c01_modules_test.log",
+    "evidence/v6_1_rework/tasks/P1-001/logs/c02_rt005.log",
+    "lib/core/src/module_adapters.cpp",
+    "tests/unit/CMakeLists.txt",
+    "tests/unit/p1001_modules_test.cpp",
+    "tests/unit/rt005_registry_test.cpp",
+    "tests/unit/rt008_runtime_client_test.cpp"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": true,
+    "binary": true,
+    "reason": "ModuleRegistry 新增 7 个 Phase1 模块(8 类齐); 端口/执行类/合同声明; 工厂委托 Runtime adapter"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "p1001_modules_test"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T03:00:00Z",
+      "duration_seconds": 0.2,
+      "log_path": "evidence/v6_1_rework/tasks/P1-001/logs/c01_modules_test.log",
+      "log_sha256": "97773b112e87f8332f28a22cfd0d955be9a2da33b6aa56b9cbfa375d1f9ac675"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "rt005_registry_test"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T03:00:10Z",
+      "duration_seconds": 0.2,
+      "log_path": "evidence/v6_1_rework/tasks/P1-001/logs/c02_rt005.log",
+      "log_sha256": "6a639a6ea770da1731a4b9a45bcbd7e5d9d6560003b735d9499d7a2e07a49cb1"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-REGISTER-8",
+      "description": "8 类 Phase1 模块全注册(calibration/cosmetic/star-psf/wcs-platesolve/photometry/noise-snr/drizzle/writer); factory 可创建",
+      "result": "PASS",
+      "evidence_sha256": "97773b112e87f8332f28a22cfd0d955be9a2da33b6aa56b9cbfa375d1f9ac675"
+    },
+    {
+      "test_id": "T-PORTS-CLASS",
+      "description": "每模块标准 DATA 端口(输入+输出)与执行类(cpu_heavy/io); 合同引用前缀合规",
+      "result": "PASS",
+      "evidence_sha256": "97773b112e87f8332f28a22cfd0d955be9a2da33b6aa56b9cbfa375d1f9ac675"
+    },
+    {
+      "test_id": "T-RUNTIME-DELEGATION",
+      "description": "工厂委托 p1_session adapter(唯一 Runtime 执行路径); plan 返回非空计划, cpu_heavy 标记正确",
+      "result": "PASS",
+      "evidence_sha256": "97773b112e87f8332f28a22cfd0d955be9a2da33b6aa56b9cbfa375d1f9ac675"
+    },
+    {
+      "test_id": "T-REGRESSION",
+      "description": "ctest 56/56 PASS; rt005/rt008 同步 size==10 PASS; test_cli_protocol 10/10 PASS",
+      "result": "PASS",
+      "evidence_sha256": "6a639a6ea770da1731a4b9a45bcbd7e5d9d6560003b735d9499d7a2e07a49cb1"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-001/PLAN.md",
+      "sha256": "15d0d4865f399de816f051a30fb732279542149369ff741eb8904110af64eb5f"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-001/TASK_RESULT.json",
+      "sha256": "1ff07570c9fb80d25e3d0015bc8040d09d9d7de6dcafb98ac0b36a3111638da1"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-001/logs/c01_modules_test.log",
+      "sha256": "97773b112e87f8332f28a22cfd0d955be9a2da33b6aa56b9cbfa375d1f9ac675"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-001/logs/c02_rt005.log",
+      "sha256": "6a639a6ea770da1731a4b9a45bcbd7e5d9d6560003b735d9499d7a2e07a49cb1"
+    }
+  ],
+  "findings": [
+    "F-002",
+    "F-019"
+  ],
+  "expected_commit_subject": "P1-001: Phase1 8 类模块注册 (cosmetic/star-psf/wcs-platesolve/photometry/noise-snr/drizzle/writer, 端口+执行类, Runtime 委托)",
+  "created_utc": "2026-09-01T03:05:00Z"
+}

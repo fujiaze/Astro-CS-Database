@@ -25,7 +25,7 @@ CPU-004,G3,实现按kernel自适应路由,CPU-003;RT-006,Linux+Windows,performan
 MON-001,G3,把资源监测接入每个heavy node,RT-006;CPU-002,Linux+Windows,performance,yes,yes,samples/summary/worker balance,无需操作者额外脚本; init/active/flush分段; 开销<2%,PASS
 MON-002,G3,把资源门接入生产控制流,MON-001,Linux+Windows,performance,yes,yes,first10s; final gate; exit code,低CPU且非IO/内存自动失败; 不能只emit summary,PASS
 MON-003,G3,完成2核真实资源基准,MON-002;CPU-004,Linux,validation,yes,yes,>=10s synthetic heavy per kernel,active worker p50>=2; normalized CPU p50>=90 mean>=85或内存瓶颈证据,PASS
-P1-001,G4,迁移Phase1到Registry和IR,RT-008;CPU-004,Linux,architecture,yes,yes,calibration/stars/wcs/phot/noise/drizzle modules,每节点标准端口; 无session手写顺序; trace与IR一致,NOT_STARTED
+P1-001,G4,迁移Phase1到Registry和IR,RT-008;CPU-004,Linux,architecture,yes,yes,calibration/stars/wcs/phot/noise/drizzle modules,每节点标准端口; 无session手写顺序; trace与IR一致,PASS
 P1-002,G4,重写Phase1生产路径合成Oracle,P1-001,Linux,science,yes,yes,calibration/star/WCS/phot/noise/drizzle,测试调用production module/CLI; 独立reference; 容差预冻结,NOT_STARTED
 P1-003,G4,移除CLI直连Drizzle与重复FITS解析,P1-001,Linux,architecture,yes,yes,cmd_drizzle; spawn_frame_from_fits,生产callgraph无hp_drizzle直连; wrapper仅通过preset/runtime,NOT_STARTED
 P1-004,G4,Phase1数值与资源联合门,P1-002;P1-003;MON-003,Linux,validation,yes,yes,heavy synthetic and artifact verify,科学Oracle+资源门同跑同commit; 2核利用达标,NOT_STARTED
