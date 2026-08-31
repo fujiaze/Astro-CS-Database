@@ -1,0 +1,14 @@
+  - CLI includes banned internal header: p1_session.h
+  - CLI includes banned internal header: p2_session.h
+  - CLI includes banned internal header: p3_session.h
+  - CLI includes banned internal header: hp_drizzle_api.h
+  - CLI includes banned internal header: aio_pipeline.h
+  - CLI includes banned internal header: aio_fits.h
+  - CLI includes banned internal header: astro_image_io.h
+  - CLI includes banned internal header: fitsio.h
+  - CLI direct call to banned symbol p[123]_session_(?:create|validate|run|inspect|destroy): ['p1_session_create', 'p1_session_destroy', 'p1_session_inspect', 'p1_session_run', 'p1_session_validate']
+  - CLI direct call to banned symbol hp_drizzle_run_hips: ['hp_drizzle_run_hips']
+  - CLI direct call to banned symbol spawn_frame_from_fits: ['spawn_frame_from_fits']
+  - CLI direct call to banned symbol \bfits_read_: ['fits_read_']
+  - CLI direct call to banned symbol \bfits_open_: ['fits_open_']
+REACH_FAIL

@@ -1,0 +1,127 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "CHK-001",
+  "status": "PASS",
+  "parent_commit": "99a7920065c2a92d74134a13bbd5d126c0a14e23",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "quality",
+  "changed_paths": [
+    "tools/quality/check_prod_reachability.py",
+    "evidence/v6_1_rework/tasks/CHK-001/PLAN.md",
+    "evidence/v6_1_rework/tasks/CHK-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/CHK-001/PROD_REACHABILITY.json",
+    "evidence/v6_1_rework/tasks/CHK-001/PROD_REACHABILITY.dot",
+    "evidence/v6_1_rework/tasks/CHK-001/logs/c01.log",
+    "evidence/v6_1_rework/tasks/CHK-001/logs/c02.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "new checker only; no production code changed"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_prod_reachability.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:38:46Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/CHK-001/logs/c01.log",
+      "log_sha256": "c3fb551ea648aa52f7d8bdc02b211a5580ef056730c9e72f59c6cf0a2197a961"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_prod_reachability.py",
+        "--repo",
+        ".",
+        "--binary",
+        "run/temp/build_v61/astrocs",
+        "--compile-commands",
+        "run/temp/build_v61/compile_commands.json"
+      ],
+      "timeout_seconds": 180,
+      "exit_code": 1,
+      "started_utc": "2026-08-31T04:38:46Z",
+      "duration_seconds": 5.0,
+      "log_path": "evidence/v6_1_rework/tasks/CHK-001/logs/c02.log",
+      "log_sha256": "6929f5a7fc1a9b796e25c8d522c64cb36e06063c2a6be8b0b633b6ab83b7e774"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "nm",
+        "-C",
+        "run/temp/build_v61/astrocs"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T04:38:46Z",
+      "duration_seconds": 2.0,
+      "log_path": "evidence/v6_1_rework/tasks/CHK-001/logs/c02.log",
+      "log_sha256": "6929f5a7fc1a9b796e25c8d522c64cb36e06063c2a6be8b0b633b6ab83b7e774"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-NEGATIVE-DRIZZLE",
+      "description": "伪造 CLI 直连 p3_session+hp_drizzle 被抓",
+      "result": "PASS",
+      "evidence_sha256": "c3fb551ea648aa52f7d8bdc02b211a5580ef056730c9e72f59c6cf0a2197a961"
+    },
+    {
+      "test_id": "T-REAL-BASELINE",
+      "description": "真实二进制检测出 CLI 直连 session/drizzle/FITS（RT-008 修复基线）",
+      "result": "PASS",
+      "evidence_sha256": "6929f5a7fc1a9b796e25c8d522c64cb36e06063c2a6be8b0b633b6ab83b7e774"
+    },
+    {
+      "test_id": "T-GRAPH",
+      "description": "PROD_REACHABILITY.json/dot 生成（127 节点 256 边 3712 符号）",
+      "result": "PASS",
+      "evidence_sha256": "a3cd9e39976d882125d23e7c7fb8c90806e7337be98d030a1689c582049e3dfe"
+    },
+    {
+      "test_id": "T-ACR-CLEAN",
+      "description": "生产二进制 0 ACR 符号",
+      "result": "PASS",
+      "evidence_sha256": "6929f5a7fc1a9b796e25c8d522c64cb36e06063c2a6be8b0b633b6ab83b7e774"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/CHK-001/PROD_REACHABILITY.json",
+      "sha256": "a3cd9e39976d882125d23e7c7fb8c90806e7337be98d030a1689c582049e3dfe"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CHK-001/PLAN.md",
+      "sha256": "653c4b4b3a0ba5f63a1982a9388bac0386806507dffc80662a84a52f20ed2809"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CHK-001/TASK_RESULT.json",
+      "sha256": "c0e449beb9821e3a7da7aac77391cddcf8fef8c1b25a8dbbde8e403ecd317a06"
+    }
+  ],
+  "findings": [
+    "F-001",
+    "F-006",
+    "F-017",
+    "F-018"
+  ],
+  "limitations": [
+    "当前真实状态 FAIL 为预期基线；CLI 直连修复由 RT-008 完成，届时本检查器必须转 PASS"
+  ],
+  "expected_commit_subject": "CHK-001: 生产可达调用图检查器 (compile_commands+nm, 负例抓 drizzle/session 直连, JSON/DOT 图)",
+  "created_utc": "2026-08-31T04:38:46Z"
+}
