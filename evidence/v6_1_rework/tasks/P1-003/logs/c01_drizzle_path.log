@@ -1,0 +1,16 @@
+test_01_cli_binary_no_drizzle_direct_symbols (__main__.TestP1003DrizzlePath.test_01_cli_binary_no_drizzle_direct_symbols)
+CLI 二进制不含 hp_drizzle_run_hips/spawn_frame_from_fits 符号(nm 证明不可绕过)。 ... ok
+test_02_cli_source_no_direct_drizzle_call (__main__.TestP1003DrizzlePath.test_02_cli_source_no_direct_drizzle_call)
+CLI 源码(commands.cpp)无 hp_drizzle_run_hips / spawn_frame_from_fits 生产调用。 ... /home/lighthouse/Astro CS Database/tests/cli/test_p1003_drizzle_path.py:32: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/cli/commands.cpp' mode='r' encoding='utf-8'>
+  text = open(src, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_03_drizzle_command_rejects_production (__main__.TestP1003DrizzlePath.test_03_drizzle_command_rejects_production)
+cmd_drizzle 拒绝生产调用(仅测试 preset), 退出码 ARGS(2)。 ... ok
+test_04_prod_callgraph_no_hp_drizzle (__main__.TestP1003DrizzlePath.test_04_prod_callgraph_no_hp_drizzle)
+生产可达性检查: CLI 生产路径无 hp_drizzle 直连(REACH_PASS)。 ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.203s
+
+OK

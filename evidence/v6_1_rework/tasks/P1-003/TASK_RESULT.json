@@ -1,0 +1,80 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P1-003",
+  "status": "PASS",
+  "parent_commit": "21df35cf729922f19bf22fce7c279b2879c50dde",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "architecture",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P1-003/PLAN.md",
+    "evidence/v6_1_rework/tasks/P1-003/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P1-003/logs/c01_drizzle_path.log",
+    "tests/cli/test_p1003_drizzle_path.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "验证任务: CLI 无 hp_drizzle_run_hips/spawn_frame_from_fits 直连(nm+源码+callgraph 证明); cmd_drizzle 仅测试 preset"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/cli/test_p1003_drizzle_path.py"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T03:30:00Z",
+      "duration_seconds": 0.5,
+      "log_path": "evidence/v6_1_rework/tasks/P1-003/logs/c01_drizzle_path.log",
+      "log_sha256": "8c5e7777d1d66e9340992a817b0ed360e514997d365240c7e248d925d232e68f"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-NO-DIRECT-SYMBOLS",
+      "description": "CLI 二进制 nm 无 hp_drizzle_run_hips/spawn_frame_from_fits; commands.cpp 无直连调用",
+      "result": "PASS",
+      "evidence_sha256": "8c5e7777d1d66e9340992a817b0ed360e514997d365240c7e248d925d232e68f"
+    },
+    {
+      "test_id": "T-CMD-DRIZZLE-REJECT",
+      "description": "cmd_drizzle 生产调用 → ARGS(2), 提示 test synthetic --group drizzle / phase2 run",
+      "result": "PASS",
+      "evidence_sha256": "8c5e7777d1d66e9340992a817b0ed360e514997d365240c7e248d925d232e68f"
+    },
+    {
+      "test_id": "T-CALLGRAPH",
+      "description": "check_prod_reachability REACH_PASS acr=0; 生产路径仅 Runtime 拥有者",
+      "result": "PASS",
+      "evidence_sha256": "8c5e7777d1d66e9340992a817b0ed360e514997d365240c7e248d925d232e68f"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-003/PLAN.md",
+      "sha256": "2721b93ef982c61be070701734348ac667bd8a9c15a64b20487630a16a2bb158"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-003/TASK_RESULT.json",
+      "sha256": "46f7933c8201fdae1e9e29748df41aa133a7525675f6ae75df0428bde2d36948"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P1-003/logs/c01_drizzle_path.log",
+      "sha256": "8c5e7777d1d66e9340992a817b0ed360e514997d365240c7e248d925d232e68f"
+    }
+  ],
+  "findings": [
+    "F-039",
+    "F-040"
+  ],
+  "expected_commit_subject": "P1-003: Drizzle 路径清理验证 (CLI 无 hp_drizzle_run_hips/spawn_frame_from_fits 直连, cmd_drizzle 仅 preset, callgraph REACH_PASS)",
+  "created_utc": "2026-09-01T03:35:00Z"
+}
