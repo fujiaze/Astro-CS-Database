@@ -1,0 +1,83 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P2-001",
+  "status": "PASS",
+  "parent_commit": "157a1d06893a4e57f2aa4b6686a1ebb598bd89bf",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "performance",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P2-001/PLAN.md",
+    "evidence/v6_1_rework/tasks/P2-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P2-001/logs/c01_parallel_sampler.log",
+    "lib/phase2/include/astro/phase2/sampler.h",
+    "lib/phase2/src/sampler.cpp",
+    "lib/phase2_session/p2_session.cpp",
+    "tests/backend/test_p2001_parallel_sampler.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": true,
+    "binary": true,
+    "reason": "sampler 并行执行方式: OpenMP 条件 → std::thread + Runtime lease; 科学逻辑 pass1_cell 不变"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p2001_parallel_sampler.py"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T06:00:00Z",
+      "duration_seconds": 45.0,
+      "log_path": "evidence/v6_1_rework/tasks/P2-001/logs/c01_parallel_sampler.log",
+      "log_sha256": "bcd11101453ebd953bce932fb2076178a301659bb5c3332629736f0b06f2b3d1"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-NO-OPENMP-GATE",
+      "description": "sampler.cpp 无 P2_ENABLE_OPENMP 条件; 无 hardware_concurrency() 生产调用; p2_session 传 budget.max_workers",
+      "result": "PASS",
+      "evidence_sha256": "bcd11101453ebd953bce932fb2076178a301659bb5c3332629736f0b06f2b3d1"
+    },
+    {
+      "test_id": "T-MULTI-WORKER",
+      "description": "生产 phase2 run(默认多 worker)成功; sample stage 完成",
+      "result": "PASS",
+      "evidence_sha256": "bcd11101453ebd953bce932fb2076178a301659bb5c3332629736f0b06f2b3d1"
+    },
+    {
+      "test_id": "T-N-EQUALS-1",
+      "description": "4-worker 与 1-worker obs=1536 一致(并行=执行方式, 科学结果不变)",
+      "result": "PASS",
+      "evidence_sha256": "bcd11101453ebd953bce932fb2076178a301659bb5c3332629736f0b06f2b3d1"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-001/PLAN.md",
+      "sha256": "1b872c16c7cc1cdce160ecae832afcd7392712416ed1ae7d9ae61fc41216e7bc"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-001/TASK_RESULT.json",
+      "sha256": "56b9e209fc2c49ad9a8a72bf1f3acfd021155b132aee26d1aeff93ef99a141e1"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-001/logs/c01_parallel_sampler.log",
+      "sha256": "bcd11101453ebd953bce932fb2076178a301659bb5c3332629736f0b06f2b3d1"
+    }
+  ],
+  "findings": [
+    "F-003",
+    "F-015"
+  ],
+  "expected_commit_subject": "P2-001: 并行化生产 Coverage/Sampler (std::thread + Runtime lease 多 worker, 移除 OpenMP 默认关闭与 _MSC_VER 排除, N==1 一致)",
+  "created_utc": "2026-09-01T06:05:00Z"
+}

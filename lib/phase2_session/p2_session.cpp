@@ -147,11 +147,12 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
                                 {"target_order", cov.target_order}});
     s->log(ACS_LOG_INFO, "phase2", "stage coverage ok: cells=" + std::to_string(cov.n_union_cells));
 
-    // ── 阶段 2: sample(预算绑定 §3: sampler=1 串行 reference — 确定性) ──
+    // ── 阶段 2: sample(P2-001: 预算绑定 §3 — sampler 走 Runtime lease 多 worker;
+    // 1 worker 仅作 reference; 生产 N-worker 并行同生产符号) ──
     if (s->cancelled()) { s->stage("sample", "cancelled"); return ACS_ERR_CANCELLED; }
     s->stage("sample", "running");
     P2SamplerConfig sc = p2_sampler_default_config();
-    sc.cpu_workers = 1;                     // 合同 §3: sampler=1(串行=确定性 reference)
+    sc.cpu_workers = static_cast<int>(s->host->budget.max_workers);
     std::uint64_t n_obs = 0, n_controls = 0;
     P2SampleStats stats{};
     rc = p2_sample_controls(&cov, hips.data(), &sc, nullptr, 0, &n_obs, &n_controls, &stats,
