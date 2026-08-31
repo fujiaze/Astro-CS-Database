@@ -47,6 +47,7 @@ target_link_libraries(astrocs_io PUBLIC astrocs_core)
 
 add_library(astrocs_core STATIC
   lib/core/src/artifact.cpp
+  lib/core/src/artifact_store.cpp
   lib/core/src/module.cpp
   lib/core/src/pipeline.cpp
   lib/core/src/context.cpp

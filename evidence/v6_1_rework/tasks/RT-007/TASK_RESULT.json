@@ -1,0 +1,167 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "RT-007",
+  "status": "PASS",
+  "parent_commit": "d0114cd4584450acec7b1f039dc1d11daaddc594",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "architecture",
+  "changed_paths": [
+    "include/astrocs/core/artifact_store.h",
+    "lib/core/src/artifact_store.cpp",
+    "CMakeLists.txt",
+    "tests/unit/rt007_artifact_store_test.cpp",
+    "tests/unit/CMakeLists.txt",
+    "evidence/v6_1_rework/tasks/RT-007/PLAN.md",
+    "evidence/v6_1_rework/tasks/RT-007/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/RT-007/logs/c01.log",
+    "evidence/v6_1_rework/tasks/RT-007/logs/c02.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": true,
+    "public_api": true,
+    "pipeline": true,
+    "binary": true,
+    "reason": "New typed ArtifactStore with role binding and tamper detection; new public header"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "rt007_artifact_store_test",
+        "-j2"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:29:45Z",
+      "duration_seconds": 90.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-007/logs/c01.log",
+      "log_sha256": "231c179de393975cc1fe4a1ed19bc1009e2b727d7d32673422e6d5479ac5f326"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "./run/temp/build_v61/tests/unit/rt007_artifact_store_test"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:29:45Z",
+      "duration_seconds": 0.2,
+      "log_path": "evidence/v6_1_rework/tasks/RT-007/logs/c01.log",
+      "log_sha256": "231c179de393975cc1fe4a1ed19bc1009e2b727d7d32673422e6d5479ac5f326"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "ASTROCS_REPO=$(pwd)",
+        "ctest",
+        "--test-dir",
+        "run/temp/build_v61",
+        "-R",
+        "core_|rt0"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:29:45Z",
+      "duration_seconds": 1.1,
+      "log_path": "evidence/v6_1_rework/tasks/RT-007/logs/c02.log",
+      "log_sha256": "aaaab9df7ed0e938c5187f3ebf8aca69115cfd9f55bbdfaac41c5eeabcdc4df3"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "astrocs",
+        "-j2"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:29:45Z",
+      "duration_seconds": 240.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-007/logs/c02.log",
+      "log_sha256": "aaaab9df7ed0e938c5187f3ebf8aca69115cfd9f55bbdfaac41c5eeabcdc4df3"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-P1-P2-BIND",
+      "description": "P1 output 绑定 P2 input 成功；当 P3 input 失败",
+      "result": "PASS",
+      "evidence_sha256": "231c179de393975cc1fe4a1ed19bc1009e2b727d7d32673422e6d5479ac5f326"
+    },
+    {
+      "test_id": "T-P2-P3-BIND",
+      "description": "P2 HiPS 绑定 P3 input 成功；当 P1 产物失败",
+      "result": "PASS",
+      "evidence_sha256": "231c179de393975cc1fe4a1ed19bc1009e2b727d7d32673422e6d5479ac5f326"
+    },
+    {
+      "test_id": "T-TAMPER",
+      "description": "篡改 path/hash/unit/schema/换 producer → 唯一 producer 硬失败",
+      "result": "PASS",
+      "evidence_sha256": "231c179de393975cc1fe4a1ed19bc1009e2b727d7d32673422e6d5479ac5f326"
+    },
+    {
+      "test_id": "T-UNIQUE-PRODUCER",
+      "description": "duplicate id 拒绝",
+      "result": "PASS",
+      "evidence_sha256": "231c179de393975cc1fe4a1ed19bc1009e2b727d7d32673422e6d5479ac5f326"
+    },
+    {
+      "test_id": "T-VALIDATE-BEFORE",
+      "description": "消费前完整验证（hash/path/role 缺失拒）",
+      "result": "PASS",
+      "evidence_sha256": "231c179de393975cc1fe4a1ed19bc1009e2b727d7d32673422e6d5479ac5f326"
+    },
+    {
+      "test_id": "T-JSON-ROUNDTRIP",
+      "description": "descriptor JSON roundtrip 一致（含 unit 名称映射）",
+      "result": "PASS",
+      "evidence_sha256": "231c179de393975cc1fe4a1ed19bc1009e2b727d7d32673422e6d5479ac5f326"
+    },
+    {
+      "test_id": "T-CORE-14",
+      "description": "14/14 core+rt 测试全 PASS",
+      "result": "PASS",
+      "evidence_sha256": "aaaab9df7ed0e938c5187f3ebf8aca69115cfd9f55bbdfaac41c5eeabcdc4df3"
+    },
+    {
+      "test_id": "T-CLI-LINK",
+      "description": "CLI 重链接成功",
+      "result": "PASS",
+      "evidence_sha256": "aaaab9df7ed0e938c5187f3ebf8aca69115cfd9f55bbdfaac41c5eeabcdc4df3"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-007/PLAN.md",
+      "sha256": "bcebcc1854a06f8bf6538d719b275369515067eb744696f969a755dca840561f"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-007/TASK_RESULT.json",
+      "sha256": "97190eefc08120cbf615037ca92e4a3305b25f04b8ab25effd17e130b4d56fe8"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-007/logs/c01.log",
+      "sha256": "231c179de393975cc1fe4a1ed19bc1009e2b727d7d32673422e6d5479ac5f326"
+    }
+  ],
+  "findings": [
+    "F-007",
+    "F-008"
+  ],
+  "limitations": [
+    "ArtifactStore 尚未接入 Runtime/RunContext（RT-008 接线时替换内嵌 map）"
+  ],
+  "expected_commit_subject": "RT-007: 类型化 ArtifactStore (role 绑定 P1→P2→P3, 篡改检测, 唯一 producer, JSON roundtrip)",
+  "created_utc": "2026-08-31T05:29:45Z"
+}
