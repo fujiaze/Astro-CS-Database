@@ -30,7 +30,7 @@ static bool has_key(const std::string& json, const char* k) {
 
 int main() {
   // 1) 生成 quick profile (需要真实 backend; 通过 generate_profile_json)
-  std::string build_id = "0.10.0-alpha.1";
+  std::string build_id = "0.10.0-alpha.2";
   std::string commit = "test-commit-abcdef";
   std::string prof = astrocs::backend_host::generate_profile_json(
       "quick", build_id, commit, std::string(64, 'a'));

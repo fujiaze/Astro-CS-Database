@@ -224,7 +224,8 @@ target_include_directories(astrocs_phase3_session PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/healpix
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include
+  ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(astrocs_phase3_session PUBLIC astrocs_contracts astrocs_aio astrocs_common)
 
 # app/astrocs_cli: 薄 CLI (显式链接各库; 无 GLOB; ACR 不链)

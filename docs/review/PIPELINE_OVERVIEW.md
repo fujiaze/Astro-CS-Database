@@ -1,6 +1,6 @@
 # PIPELINE_OVERVIEW.md — AstroCS 处理链总览（L0 负责人层）
 
-> 目标版本: 0.10.0-alpha.1  V6 重构
+> 目标版本: 0.10.0-alpha.2  V6 重构
 > 权威: `docs/contracts/ARCH-001.md`、`docs/refactor/P1/P2/P3_SYMBOL_MAP.md`、`CLI_COMMAND_LAYER.md`
 > 本文件只汇总权威结构, 不重复维护实现细节。
 

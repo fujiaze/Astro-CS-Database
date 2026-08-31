@@ -1,6 +1,6 @@
 # CHANGE_REVIEW.md — AstroCS 变更审查（L0 负责人层）
 
-> 目标版本: 0.10.0-alpha.1  V6 重构
+> 目标版本: 0.10.0-alpha.2  V6 重构
 > 权威: `evidence/refactor/TASK_LEDGER.csv`、`evidence/refactor/tasks/*/TASK_RESULT.json`
 
 ## 变更纪律

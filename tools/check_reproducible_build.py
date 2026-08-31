@@ -30,7 +30,7 @@ def main():
     sbom = REPO / "dist" / "astrocs-alpha" / "SBOM.json"
     if sbom.is_file():
         doc = json.loads(sbom.read_text())
-        if doc.get("version") != "0.10.0-alpha.1":
+        if doc.get("version") != "0.10.0-alpha.2":
             errors.append("SBOM version 不一致")
         if not doc.get("components"):
             errors.append("SBOM 组件空")
@@ -47,7 +47,7 @@ def main():
         print("QA-005_VIOLATION:")
         for e in errors: print("  " + e)
         return 1
-    print("QA-005_PASS: 工具链锁定, build id 可追溯 (0.10.0-alpha.1+g<commit>), SBOM 完整")
+    print("QA-005_PASS: 工具链锁定, build id 可追溯 (0.10.0-alpha.2+g<commit>), SBOM 完整")
     return 0
 
 if __name__ == "__main__":

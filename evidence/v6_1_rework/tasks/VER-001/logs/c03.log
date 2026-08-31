@@ -1,0 +1,14 @@
+/home/lighthouse/Astro CS Database/tests/version/test_version_consistency.py:45: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/schemas/version.schema.json' mode='r' encoding='utf-8'>
+  schema = json.load(open(os.path.join(REPO, "schemas", "version.schema.json"), encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+..../home/lighthouse/Astro CS Database/tests/version/test_version_consistency.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpn0cnw5b9/docs/FORGED.md' mode='w' encoding='UTF-8'>
+  open(forged, "w").write("发布版本: 1.2.3 正式版\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/version/test_version_consistency.py:83: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpn0cnw5b9/docs/OK.md' mode='w' encoding='UTF-8'>
+  open(ok_doc, "w").write(f"当前版本 {cur}\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+.
+----------------------------------------------------------------------
+Ran 5 tests in 0.167s
+
+OK

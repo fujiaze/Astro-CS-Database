@@ -10,7 +10,7 @@
 - 解析: parse_args → Parsed (路径/标志/值); 未知路径拒; 缺失值拒。
 
 ## 稳定出口
-- `--version` → `0.10.0-alpha.1+g<commit>` (版本单源 VERSION)
+- `--version` → `0.10.0-alpha.2+g<commit>` (版本单源 VERSION)
 - `--help` / `-h` → 用法 + 规则表
 - 退出码: 0=OK, 非 0=错误 (exit_codes.h 单一来源)
 

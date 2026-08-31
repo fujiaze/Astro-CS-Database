@@ -1,0 +1,1 @@
+VERSION_CONSISTENCY_PASS base=0.10.0-alpha.2 扫描范围: docs, schemas, launch, tests, build.sh, toolchain.ps1, README.md, CHANGELOG.md, VERSION, tools/gen_version.py

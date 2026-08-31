@@ -83,7 +83,7 @@ int main() {
     astrocs::phase3::P3Provenance prov{};
     prov.hips_id = "ivo://astrocs/p3";
     prov.manifest_hash = "aa";
-    prov.software_version = "0.10.0-alpha.1";
+    prov.software_version = "0.10.0-alpha.2";
     prov.run_id = "p3-006";
     prov.order_sel_used = "0";
     prov.sampler_used = "bilinear";

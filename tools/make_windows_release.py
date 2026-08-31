@@ -9,7 +9,7 @@
       ├─ vcomp140.dll
       ├─ vcruntime140.dll
       ├─ vcruntime140_1.dll
-      ├─ VERSION                   (0.10.0-alpha.1+g<commit12>)
+      ├─ VERSION                   (0.10.0-alpha.2+g<commit12>)
       ├─ backends.manifest.json    (05 §7; builtin baseline 无 shipped DSO → 空 backend 表)
       ├─ SBOM.spdx.json            (SPDX 2.3, 包名 alpha)
       ├─ LICENSES/NOTICE.txt       (本包静态自带 libs 来源标注)
@@ -63,7 +63,7 @@ def main() -> int:
             print(f"ERR: dll not found {d}", file=sys.stderr)
             return 2
 
-    base = open(VERSION_FILE, encoding="utf-8").read().strip() if os.path.isfile(VERSION_FILE) else "0.10.0-alpha.1"
+    base = open(VERSION_FILE, encoding="utf-8").read().strip() if os.path.isfile(VERSION_FILE) else "0.10.0-alpha.2"
     commit = git("rev-parse", "HEAD")
     c12 = commit[:12]
     pkg_version = f"{base}+g{c12}"
