@@ -1,0 +1,3 @@
+COMMITS_GEN_PASS tasks=4 out=/home/lighthouse/Astro CS Database/evidence/v6_1_rework/COMMITS.csv
+COMMITS_CHECK_PASS
+SELFTEST_PASS tamper/swap/unpushed all caught + real PASS

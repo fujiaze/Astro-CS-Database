@@ -33,7 +33,10 @@
       ],
       "timeout_seconds": 60,
       "exit_code": 0,
-      "log_path": "evidence/v6_1_rework/tasks/R0-001/logs/identity.log"
+      "log_path": "evidence/v6_1_rework/tasks/R0-001/logs/identity.log",
+      "started_utc": "2026-08-31T04:20:06Z",
+      "duration_seconds": 2.0,
+      "log_sha256": "1c61e7838d392968d9031d2949b93084773068e0021a105b543697bdbd7d7721"
     },
     {
       "command_id": "c02",
@@ -46,7 +49,10 @@
       ],
       "timeout_seconds": 30,
       "exit_code": 0,
-      "log_path": "evidence/v6_1_rework/tasks/R0-001/logs/identity.log"
+      "log_path": "evidence/v6_1_rework/tasks/R0-001/logs/identity.log",
+      "started_utc": "2026-08-31T04:20:06Z",
+      "duration_seconds": 2.0,
+      "log_sha256": "1c61e7838d392968d9031d2949b93084773068e0021a105b543697bdbd7d7721"
     },
     {
       "command_id": "c03",
@@ -59,7 +65,10 @@
       ],
       "timeout_seconds": 30,
       "exit_code": 0,
-      "log_path": "evidence/v6_1_rework/tasks/R0-001/logs/identity.log"
+      "log_path": "evidence/v6_1_rework/tasks/R0-001/logs/identity.log",
+      "started_utc": "2026-08-31T04:20:06Z",
+      "duration_seconds": 2.0,
+      "log_sha256": "1c61e7838d392968d9031d2949b93084773068e0021a105b543697bdbd7d7721"
     }
   ],
   "tests": [
