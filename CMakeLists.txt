@@ -54,7 +54,9 @@ add_library(astrocs_core STATIC
   lib/core/src/scheduler.cpp
   lib/core/src/checkpoint.cpp
   lib/core/src/logging.cpp)
-target_include_directories(astrocs_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(astrocs_core PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 target_link_libraries(astrocs_core PUBLIC astrocs_contracts Threads::Threads)
 find_package(Threads REQUIRED)
 

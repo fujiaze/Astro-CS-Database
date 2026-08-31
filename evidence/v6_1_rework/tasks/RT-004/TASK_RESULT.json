@@ -1,0 +1,194 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "RT-004",
+  "status": "PASS",
+  "parent_commit": "a03077ec048d9a150af8e0c46a674a6a0f7dee38",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "architecture",
+  "changed_paths": [
+    "include/astrocs/core/pipeline.h",
+    "lib/core/src/pipeline.cpp",
+    "tests/unit/core_pipeline_test.cpp",
+    "CMakeLists.txt",
+    "evidence/v6_1_rework/tasks/RT-004/PLAN.md",
+    "evidence/v6_1_rework/tasks/RT-004/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/RT-004/logs/c01.log",
+    "evidence/v6_1_rework/tasks/RT-004/logs/c02.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": true,
+    "binary": true,
+    "reason": "PipelineIR parsing rewritten to nlohmann; validate signature takes ModuleRegistry; IrError enum extended (append-only)"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "core_pipeline_test",
+        "-j2"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:06:39Z",
+      "duration_seconds": 90.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-004/logs/c01.log",
+      "log_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "ASTROCS_REPO=$(pwd)",
+        "./run/temp/build_v61/tests/unit/core_pipeline_test"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:06:39Z",
+      "duration_seconds": 0.2,
+      "log_path": "evidence/v6_1_rework/tasks/RT-004/logs/c01.log",
+      "log_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "ASTROCS_REPO=$(pwd)",
+        "ctest",
+        "--test-dir",
+        "run/temp/build_v61",
+        "-R",
+        "core_|rt0"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:06:39Z",
+      "duration_seconds": 1.1,
+      "log_path": "evidence/v6_1_rework/tasks/RT-004/logs/c02.log",
+      "log_sha256": "a038fdd904b357369ec0176b1ede216e67477100ecd646ab8010835daa7c1bf0"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "cmake",
+        "--build",
+        "run/temp/build_v61",
+        "--target",
+        "astrocs",
+        "-j2"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-08-31T05:06:39Z",
+      "duration_seconds": 300.0,
+      "log_path": "evidence/v6_1_rework/tasks/RT-004/logs/c02.log",
+      "log_sha256": "a038fdd904b357369ec0176b1ede216e67477100ecd646ab8010835daa7c1bf0"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-PARSE-VALID",
+      "description": "valid IR 解析成功（config inline 提取）",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-PARSE-REJECT",
+      "description": "bad schema/非 JSON/缺 nodes/cpu_heavy serial 全拒",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-UNKNOWN-MODULE",
+      "description": "未注册模块触发 UNKNOWN_MODULE",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-MISSING-PORT",
+      "description": "非法端口触发 MISSING_PORT",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-CYCLE",
+      "description": "环触发 CYCLE",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-DUP-PRODUCER",
+      "description": "重复 producer 触发 DUPLICATE_PRODUCER",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-UNIT-MISMATCH",
+      "description": "ADU→electron 触发 UNIT_MISMATCH",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-COORD-MISMATCH",
+      "description": "PIXEL→HEALPIX 触发 COORDINATE_MISMATCH",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-DATA-MISMATCH",
+      "description": "DATA-X→DATA-Y 触发 DATA_MISMATCH",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-UNPRODUCED",
+      "description": "output 未产出触发 UNPRODUCED_OUTPUT",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-UNCONSUMED",
+      "description": "内部产物未消费触发 UNCONSUMED",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-CTRL-FIXTURES",
+      "description": "控制包 valid/invalid fixtures 通过",
+      "result": "PASS",
+      "evidence_sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    },
+    {
+      "test_id": "T-CLI-LINK",
+      "description": "CLI 用新 core 重新链接成功",
+      "result": "PASS",
+      "evidence_sha256": "a038fdd904b357369ec0176b1ede216e67477100ecd646ab8010835daa7c1bf0"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-004/PLAN.md",
+      "sha256": "97d13b400757a0d466a28ba77650dda5a3eaeff1478ed4430f8a654d75fbd128"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-004/TASK_RESULT.json",
+      "sha256": "542635a027b1e85fb30f59e0590809129b821057c04ffbc96ec67bb780d7d0b7"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/RT-004/logs/c01.log",
+      "sha256": "0481f29664bed7d6cebb17bfdaacc5226bdd73d9d1a5684761870589f5cbfddb"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "SERIAL_HEAVY 静态层面仅检查模块声明与节点 class 一致性；运行时串行检测由 CHK-003/MON-002 覆盖"
+  ],
+  "expected_commit_subject": "RT-004: nlohmann 驱动的 PipelineIR 解析+ModuleRegistry 静态验证 (9 错误种类全 fixture)",
+  "created_utc": "2026-08-31T05:06:39Z"
+}
