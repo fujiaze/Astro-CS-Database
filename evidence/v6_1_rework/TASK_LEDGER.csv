@@ -34,7 +34,7 @@ P2-002,G5,并行化生产UPM求解,P2-001,Linux+Windows,architecture,yes,yes,con
 P2-003,G5,建立调用生产UPM的三块接缝Oracle,P2-002,Linux,science,yes,yes,mini HiPS; masks; stars; gradients; disconnected graph,真实p2 pipeline估计校正; before/after metrics; flux/source preserved,PASS
 P2-004,G5,重建排异积分生产Oracle,P2-002,Linux,science,yes,yes,all methods; cosmic/hot/streak/stars; ivar,调用production reject/integrate; reason/frame identity/variance/support,PASS
 P2-005,G5,完成block内存计划与并行I O,P2-001;RT-007,Linux,architecture,yes,yes,bounded cache; block edges; worker IO,峰值RAM受plan约束; 小块/full reference等价; no shared fitsfile,PASS
-P2-006,G5,组装Canonical Phase2 Pipeline,P2-003;P2-004;P2-005,Linux,architecture,yes,yes,coverage/sampler/upm/reject/integrate/write,Registry/IR执行; artifact chain; ACR absent; trace exact,NOT_STARTED
+P2-006,G5,组装Canonical Phase2 Pipeline,P2-003;P2-004;P2-005,Linux,architecture,yes,yes,coverage/sampler/upm/reject/integrate/write,Registry/IR执行; artifact chain; ACR absent; trace exact,PASS
 P2-007,G5,Phase2接缝与资源联合门,P2-006;MON-003,Linux,validation,yes,yes,production synthetic >=10s,seam metrics pass and CPU/resource pass in same run,NOT_STARTED
 P3-001,G6,核实并冻结Phase3科学算法API,CHK-003,Linux,science,no,yes,HiPS/WCS/domain/unit/order/interpolation/coverage,SCI->ALG推导; Dec极区条件正确; primary references; no contradiction,NOT_STARTED
 P3-002,G6,实现properties order unit与请求语义,P3-001;RT-007,Linux,science,yes,yes,properties; order selection; bitpix/max memory,order真正驱动采样; BUNIT传播; invalid/missing显式; no fixed 20,NOT_STARTED

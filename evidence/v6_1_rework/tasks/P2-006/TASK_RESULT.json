@@ -1,0 +1,90 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P2-006",
+  "status": "PASS",
+  "parent_commit": "2b44f9a8c59e24275dad73b5f8310b45958dcdcf",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "pipeline",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P2-006/PLAN.md",
+    "evidence/v6_1_rework/tasks/P2-006/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P2-006/logs/c01_canonical_pipeline.log",
+    "lib/core/src/module_adapters.cpp",
+    "cli/runtime_client.cpp",
+    "tests/backend/test_p2006_canonical_pipeline.py",
+    "tests/unit/rt005_registry_test.cpp",
+    "tests/unit/rt008_runtime_client_test.cpp"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": true,
+    "binary": false,
+    "reason": "Phase2 IR 从单节点 res 扩展为 7 节点链(coverage..write); 注册 7 子模块(工厂委托 P2Api); 无算法/科学语义变更"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p2006_canonical_pipeline.py"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T12:00:00Z",
+      "duration_seconds": 6.0,
+      "log_path": "evidence/v6_1_rework/tasks/P2-006/logs/c01_canonical_pipeline.log",
+      "log_sha256": "007e13f089fcd4c029e0c1af1716b92f12359415b138fdd04a093d5fec342311"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-IR-7NODE",
+      "description": "静态 IR 7 节点链(coverage→...→write), 端口/模块完整",
+      "result": "PASS",
+      "evidence_sha256": "007e13f089fcd4c029e0c1af1716b92f12359415b138fdd04a093d5fec342311"
+    },
+    {
+      "test_id": "T-TRACE-MATCH",
+      "description": "observed trace 7 节点全部 COMPLETED, 与 static 逐节点匹配",
+      "result": "PASS",
+      "evidence_sha256": "007e13f089fcd4c029e0c1af1716b92f12359415b138fdd04a093d5fec342311"
+    },
+    {
+      "test_id": "T-GRAPH-BIDIR",
+      "description": "check_pipeline_graph 双向一致(PIPELINE_GRAPH_PASS ir=7 trace=7)",
+      "result": "PASS",
+      "evidence_sha256": "007e13f089fcd4c029e0c1af1716b92f12359415b138fdd04a093d5fec342311"
+    },
+    {
+      "test_id": "T-OUTPUT-NAMING",
+      "description": "输出命名无歧义; mosaic 在 write 节点输出; graph 产物齐全",
+      "result": "PASS",
+      "evidence_sha256": "007e13f089fcd4c029e0c1af1716b92f12359415b138fdd04a093d5fec342311"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-006/PLAN.md",
+      "sha256": "d386327b95b18fa6a99a8c2779d358dea8805f8a17ad0f0bd62086483db4e60c"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-006/TASK_RESULT.json",
+      "sha256": "dc5b47e5d50003b3a188f7f452135072bd4325a5306bf7b925fd0911ff299db0"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-006/logs/c01_canonical_pipeline.log",
+      "sha256": "007e13f089fcd4c029e0c1af1716b92f12359415b138fdd04a093d5fec342311"
+    }
+  ],
+  "findings": [
+    "F-012",
+    "F-018"
+  ],
+  "expected_commit_subject": "P2-006: Canonical Phase2 Pipeline (IR 7 节点链 coverage..write; observed trace 逐节点匹配 static graph)",
+  "created_utc": "2026-09-01T12:05:00Z"
+}

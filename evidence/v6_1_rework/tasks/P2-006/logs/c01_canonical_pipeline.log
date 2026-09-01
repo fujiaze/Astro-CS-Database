@@ -1,0 +1,28 @@
+/home/lighthouse/Astro CS Database/tests/backend/test_p2006_canonical_pipeline.py:40: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2006_00ckyiex/cfg.json' mode='w' encoding='UTF-8'>
+  json.dump({"schema_version": "1",
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+test_01_ir_seven_node_chain (__main__.TestP2006CanonicalPipeline.test_01_ir_seven_node_chain)
+静态 IR 含 7 节点链(coverage→...→write), 端口/模块完整。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p2006_canonical_pipeline.py:53: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2006_00ckyiex/out/graph/static_graph.json' mode='r' encoding='utf-8'>
+  ir = json.load(open(os.path.join(self.gdir, "static_graph.json"), encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_02_observed_trace_matches (__main__.TestP2006CanonicalPipeline.test_02_observed_trace_matches)
+observed trace 7 节点全部 COMPLETED, 与 static 逐节点匹配。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p2006_canonical_pipeline.py:62: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2006_00ckyiex/out/graph/observed_trace.json' mode='r' encoding='utf-8'>
+  tr = json.load(open(os.path.join(self.gdir, "observed_trace.json"), encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_03_graph_bidirectional (__main__.TestP2006CanonicalPipeline.test_03_graph_bidirectional)
+static graph 与 observed trace 双向一致(PIPELINE_GRAPH_PASS)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p2006_canonical_pipeline.py:74: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2006_00ckyiex/mods.json' mode='w' encoding='UTF-8'>
+  json.dump(mods, open(mp, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_04_output_naming_unambiguous (__main__.TestP2006CanonicalPipeline.test_04_output_naming_unambiguous)
+输出命名无歧义: graph 产物齐全; mosaic 在 write 节点输出。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p2006_canonical_pipeline.py:89: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2006_00ckyiex/out/graph/static_graph.json' mode='r' encoding='utf-8'>
+  ir = json.load(open(os.path.join(self.gdir, "static_graph.json"), encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 5.347s
+
+OK

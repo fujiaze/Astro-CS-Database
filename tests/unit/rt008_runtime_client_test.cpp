@@ -19,10 +19,12 @@ static void test_ir_builder_3phase() {
   std::string ir = astrocs::cli::build_pipeline_ir({1, 2, 3}, cfg, &err);
   CHECK(!ir.empty());
   CHECK(err.empty());
-  // 三个 node + outputs
+  // 三个 phase node + outputs; P2-006 (G5): phase2 为 7 节点链(coverage..write)
   CHECK(ir.find("\"cal\"") != std::string::npos);
-  CHECK(ir.find("\"res\"") != std::string::npos);
+  CHECK(ir.find("\"coverage\"") != std::string::npos);
+  CHECK(ir.find("\"write\"") != std::string::npos);
   CHECK(ir.find("\"hips\"") != std::string::npos);
+  CHECK(ir.find("\"res\"") == std::string::npos);  // 旧单节点 res 已移除
 }
 
 static void test_ir_builder_single_phase() {
@@ -54,7 +56,7 @@ static void test_register_modules() {
   astrocs::core::ModuleRegistry reg;
   auto r = astrocs::cli::register_cli_modules(reg);
   CHECK(r.ok());
-  CHECK(reg.size() == 10);  // P1-001: 8 类 Phase1 + Phase2/3
+  CHECK(reg.size() == 17);  // P1-001: 8 类 Phase1 + Phase2/3 + P2-006: 7 节点链
 }
 
 static void test_run_pipeline_validation_error() {

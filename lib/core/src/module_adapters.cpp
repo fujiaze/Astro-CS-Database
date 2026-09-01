@@ -419,6 +419,146 @@ ModuleDescriptor p1_writer_descriptor() {
   return d;
 }
 
+// ---- P2-006 (G5): Canonical Phase2 IR 7 节点链子模块 descriptor ----
+// 节点链: coverage → sample → upm_fit → upm_apply → reject → integrate → write。
+// 各端口 DATA/单位/Artifact ID 完整；工厂委托 P2Api session adapter(一站式执行)。
+// 静态图语义：IR 每节点描述一个 pipeline 阶段；运行时执行委托同一 P2 session。
+
+ModuleDescriptor p2_coverage_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase2.coverage";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"calibrated", "DATA-P2-CAL", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"coverage", "DATA-P2-COV", false, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P2-COV-001";
+  d.alg_id = "ALG-P2-COV-001";
+  d.data_id = "DATA-P2-COV";
+  d.api_id = "API-P2-001";
+  d.test_id = "TEST-P2-COV-001";
+  return d;
+}
+
+ModuleDescriptor p2_sample_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase2.sample";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"coverage", "DATA-P2-COV", true, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
+      {"samples", "DATA-P2-SMP", false, UnitId::ADU, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P2-SMP-001";
+  d.alg_id = "ALG-P2-SMP-001";
+  d.data_id = "DATA-P2-SMP";
+  d.api_id = "API-P2-001";
+  d.test_id = "TEST-P2-SMP-001";
+  return d;
+}
+
+ModuleDescriptor p2_upm_fit_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase2.upm-fit";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"samples", "DATA-P2-SMP", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"upm_model", "DATA-P2-UPM", false, UnitId::ADU, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P2-UPM-001";
+  d.alg_id = "ALG-P2-UPM-001";
+  d.data_id = "DATA-P2-UPM";
+  d.api_id = "API-P2-001";
+  d.test_id = "TEST-P2-UPM-001";
+  return d;
+}
+
+ModuleDescriptor p2_upm_apply_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase2.upm-apply";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"upm_model", "DATA-P2-UPM", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"calibrated_frames", "DATA-P2-CAL", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"corrected", "DATA-P2-COR", false, UnitId::ADU, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P2-UPM-002";
+  d.alg_id = "ALG-P2-UPM-002";
+  d.data_id = "DATA-P2-COR";
+  d.api_id = "API-P2-001";
+  d.test_id = "TEST-P2-UPM-002";
+  return d;
+}
+
+ModuleDescriptor p2_reject_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase2.reject";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"corrected", "DATA-P2-COR", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"accepted_mask", "DATA-P2-REJ", false, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P2-REJ-001";
+  d.alg_id = "ALG-P2-REJ-001";
+  d.data_id = "DATA-P2-REJ";
+  d.api_id = "API-P2-001";
+  d.test_id = "TEST-P2-REJ-001";
+  return d;
+}
+
+ModuleDescriptor p2_integrate_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase2.integrate";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"accepted_mask", "DATA-P2-REJ", true, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
+      {"corrected", "DATA-P2-COR", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"integrated", "DATA-P2-INT", false, UnitId::ADU, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P2-INT-001";
+  d.alg_id = "ALG-P2-INT-001";
+  d.data_id = "DATA-P2-INT";
+  d.api_id = "API-P2-001";
+  d.test_id = "TEST-P2-INT-001";
+  return d;
+}
+
+ModuleDescriptor p2_write_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase2.write";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "io";
+  d.parallel_ok = false;
+  d.ports = {
+      {"integrated", "DATA-P2-INT", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"mosaic", "DATA-P2-RES", false, UnitId::ADU, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P2-WR-001";
+  d.alg_id = "ALG-P2-WR-001";
+  d.data_id = "DATA-P2-RES";
+  d.api_id = "API-P2-001";
+  d.test_id = "TEST-P2-WR-001";
+  return d;
+}
+
 
 template <typename T>
 std::unique_ptr<IModule> make_session_module(ModuleDescriptor desc) {
@@ -499,6 +639,23 @@ Result<void> register_phase_modules(ModuleRegistry& registry) {
     if (rr.failed()) return rr;
     auto ff = registry.register_factory(
         d.module_id, [d]() { return make_session_module<P1Api>(d); });
+    if (ff.failed()) return ff;
+  }
+
+  // P2-006 (G5): Canonical Phase2 IR 7 节点链子模块注册。
+  // coverage→sample→upm_fit→upm_apply→reject→integrate→write; 工厂委托 P2Api
+  // session adapter(与 phase2.resample 同一调度, 无第二调度顺序)。
+  const ModuleDescriptor p2_chain[] = {
+      p2_coverage_descriptor(),   p2_sample_descriptor(),
+      p2_upm_fit_descriptor(),    p2_upm_apply_descriptor(),
+      p2_reject_descriptor(),     p2_integrate_descriptor(),
+      p2_write_descriptor(),
+  };
+  for (const auto& d : p2_chain) {
+    auto rr = registry.register_module(d);
+    if (rr.failed()) return rr;
+    auto ff = registry.register_factory(
+        d.module_id, [d]() { return make_session_module<P2Api>(d); });
     if (ff.failed()) return ff;
   }
 
