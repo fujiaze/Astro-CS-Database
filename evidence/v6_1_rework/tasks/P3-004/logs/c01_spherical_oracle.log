@@ -1,0 +1,24 @@
+test_01_constant_field_constant (__main__.TestP3004SphericalOracle.test_01_constant_field_constant)
+常数球面场: 输出在覆盖区内恒为常数(无插值伪影)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3004_spherical_oracle.py:118: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3004_kplt1ohz/c.json' mode='w' encoding='UTF-8'>
+  json.dump(cfg, open(c, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_02_analytic_field_matches_reference (__main__.TestP3004SphericalOracle.test_02_analytic_field_matches_reference)
+解析球面函数 cos²(dec): 生产 nearest 逐像素对照独立 reference(1e-3 相对)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3004_spherical_oracle.py:118: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3004_kplt1ohz/c.json' mode='w' encoding='UTF-8'>
+  json.dump(cfg, open(c, "w"))
+ok
+test_03_no_manual_seam (__main__.TestP3004SphericalOracle.test_03_no_manual_seam)
+跨 tile 连续场: 相邻输出像素跳变受控(无人工接缝)。 ... ok
+test_04_ra_wrap (__main__.TestP3004SphericalOracle.test_04_ra_wrap)
+RA 0/360 wrap: 中心 RA=0 附近输出正常(不产生无覆盖带)。 ... ok
+test_05_rotated_tan (__main__.TestP3004SphericalOracle.test_05_rotated_tan)
+旋转 TAN: east_right parity 输出有效(CD1_1>0)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3004_spherical_oracle.py:183: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3004_kplt1ohz/c.json' mode='r' encoding='UTF-8'>
+  cfg = json.load(open(os.path.join(self.tmp, "c.json"))) if os.path.isfile(
+/home/lighthouse/Astro CS Database/tests/backend/test_p3004_spherical_oracle.py:193: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3004_kplt1ohz/c5.json' mode='w' encoding='UTF-8'>
+  json.dump(cfg, open(c, "w"))
+ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 39.369s
+
+OK

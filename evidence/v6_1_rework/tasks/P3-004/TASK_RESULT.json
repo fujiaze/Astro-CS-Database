@@ -1,0 +1,94 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P3-004",
+  "status": "PASS",
+  "parent_commit": "7d773cbbdc1e3d1d15ddd7f2d655d12f9c45c655",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "validation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P3-004/PLAN.md",
+    "evidence/v6_1_rework/tasks/P3-004/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P3-004/logs/c01_spherical_oracle.log",
+    "tests/backend/phase2_fixture_main.cpp",
+    "tests/backend/test_p2003_seam_oracle.py",
+    "tests/backend/test_p3004_spherical_oracle.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "验证任务: 独立球面 Oracle(常数/解析场/RA wrap/旋转 TAN)对照生产; fixture 加 ANALYTIC 生成器; 无生产代码变更"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p3004_spherical_oracle.py"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T17:00:00Z",
+      "duration_seconds": 41.0,
+      "log_path": "evidence/v6_1_rework/tasks/P3-004/logs/c01_spherical_oracle.log",
+      "log_sha256": "58203a92d2655a2c5c0aea25f77ca81309ae140c95e1debdb48b2e75e4ceae11"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-CONSTANT-FIELD",
+      "description": "常数球面场输出恒定(无插值伪影)",
+      "result": "PASS",
+      "evidence_sha256": "58203a92d2655a2c5c0aea25f77ca81309ae140c95e1debdb48b2e75e4ceae11"
+    },
+    {
+      "test_id": "T-ANALYTIC-REF",
+      "description": "解析球面函数 cos²(dec): 生产 nearest vs 独立 TAN+cos² reference(1% 内, 像素粒度)",
+      "result": "PASS",
+      "evidence_sha256": "58203a92d2655a2c5c0aea25f77ca81309ae140c95e1debdb48b2e75e4ceae11"
+    },
+    {
+      "test_id": "T-NO-SEAM",
+      "description": "跨 tile 连续场(相邻像素跳变 <0.05, 无人工接缝)",
+      "result": "PASS",
+      "evidence_sha256": "58203a92d2655a2c5c0aea25f77ca81309ae140c95e1debdb48b2e75e4ceae11"
+    },
+    {
+      "test_id": "T-RA-WRAP",
+      "description": "RA 0/360 wrap 中心覆盖正常",
+      "result": "PASS",
+      "evidence_sha256": "58203a92d2655a2c5c0aea25f77ca81309ae140c95e1debdb48b2e75e4ceae11"
+    },
+    {
+      "test_id": "T-ROTATED-TAN",
+      "description": "旋转 TAN(east_right, CD1_1>0)输出有效",
+      "result": "PASS",
+      "evidence_sha256": "58203a92d2655a2c5c0aea25f77ca81309ae140c95e1debdb48b2e75e4ceae11"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-004/PLAN.md",
+      "sha256": "184077236e450edd14678e7d5252428fa7764fcd12d5fe20d6153e6d4fa8264f"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-004/TASK_RESULT.json",
+      "sha256": "e0dd29d8a66dd759f60ade13133a7850785a65c5dd2401a7fc6114f4293c6101"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-004/logs/c01_spherical_oracle.log",
+      "sha256": "58203a92d2655a2c5c0aea25f77ca81309ae140c95e1debdb48b2e75e4ceae11"
+    }
+  ],
+  "findings": [
+    "F-011",
+    "F-025"
+  ],
+  "expected_commit_subject": "P3-004: 独立球面重采样 Oracle (常数/解析场 cos²dec vs 独立 TAN reference; RA wrap; 旋转 TAN; 无人工接缝)",
+  "created_utc": "2026-09-01T17:05:00Z"
+}
