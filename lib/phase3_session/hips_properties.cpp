@@ -102,6 +102,8 @@ bool hips_properties_parse(const std::string& text, HipsProperties* out,
             out->creator_did = val;
         } else if (key == "obs_title") {
             out->obs_title = val;
+        } else if (key == "BUNIT" || key == "bunit") {
+            out->bunit = val;   // 可缺; 缺省 ADU(SCI 合同), 绝不 Jy/beam 默认
         }
         // 未知键: 保留忽略(HiPS 允许扩展键), 但值仍不得含 NUL
         if (val.find('\0') != std::string::npos) return fail("value contains NUL");

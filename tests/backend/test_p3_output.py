@@ -101,7 +101,9 @@ class TestP3Output(unittest.TestCase):
             self.assertIn(kw, head, f"missing keyword {kw}")
         # provenance 值
         self.assertIn("ivo://astrocs/test_p3", head)
-        self.assertIn("Jy/beam", head)
+        # P3-002: BUNIT 来源输入合同(缺省 ADU 面亮度), 绝不 Jy/beam 默认
+        self.assertIn("ADU", head)
+        self.assertNotIn("Jy/beam", head)
         self.assertIn("bilinear", head)
 
     def test_03_cancel_no_partial_file(self):

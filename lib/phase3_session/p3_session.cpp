@@ -160,19 +160,23 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
         return (wst == P3_WCS_UNSUPPORTED) ? ACS_ERR_UNSUPPORTED : ACS_ERR_PARAM;
     }
 
-    // sampler open (P3-001 properties 严格校验 + 打开 signal)
+    // sampler open (P3-001 properties 严格校验 + 打开 signal; P3-002 暴露实际 order/BUNIT)
     P3Sampler samp{};
     std::string serr;
-    const P3ResampleStatus sst = p3_sampler_open(hips_dir.c_str(), &samp, &serr);
+    int input_order = 20;
+    std::string bunit;
+    const P3ResampleStatus sst = p3_sampler_open_ex(hips_dir.c_str(), &samp, &input_order,
+                                                    &bunit, &serr);
     if (sst != P3_RS_OK) {
         s->last_error = "sampler open: " + serr;
         return (sst == P3_RS_IO) ? ACS_ERR_IO : (sst == P3_RS_UNSUPPORTED) ? ACS_ERR_UNSUPPORTED
                                                                           : ACS_ERR_PARAM;
     }
 
-    // order select (P3-003): max_order=20 冻结内存守卫
+    // order select (P3-002/003): 上限=输入实际 order(禁仅写 metadata), 不超冻结 20
+    const int max_order = (input_order >= 0 && input_order <= 20) ? input_order : 20;
     int order_sel = -1;
-    p3_order_select(20, scale, &order_sel);
+    p3_order_select(max_order, scale, &order_sel);
 
     // 输出平面: S/C
     const long nelem = (long)wpx * hpx;
@@ -225,7 +229,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
 
     P3OutputResult ores{};
     const P3OutputStatus ost = p3_output_write_atomic(
-        sig.data(), cov.data(), wpx, hpx, &wcs, "Jy/beam", opath.c_str(), &prov, -1, &ores);
+        sig.data(), cov.data(), wpx, hpx, &wcs, bunit.c_str(), opath.c_str(), &prov, -1, &ores);
     p3_sampler_close(&samp);
     if (ost != P3_OUT_OK) {
         s->last_error = "output write failed";

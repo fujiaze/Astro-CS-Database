@@ -100,7 +100,13 @@ P3ResampleStatus p3_resample_check_mode(const char* input_mode) {
 }
 
 P3ResampleStatus p3_sampler_open(const char* product_dir, P3Sampler* out,
-                                       std::string* err) {
+                                        std::string* err) {
+    return p3_sampler_open_ex(product_dir, out, nullptr, nullptr, err);
+}
+
+P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
+                                    int* out_order, std::string* out_bunit,
+                                    std::string* err) {
     if (!product_dir || !out) return P3_RS_PARAM;
     // product_dir = HiPS 根(内含 signal/ 子产品); 严格校验 signal/properties(P3-001)
     const std::string signal_dir = std::string(product_dir) + "/signal";
@@ -118,9 +124,11 @@ P3ResampleStatus p3_sampler_open(const char* product_dir, P3Sampler* out,
     s->leaf_nside = kTileWidth << p.order;
     s->root = product_dir;
     out->impl = s;
+    // P3-002: 暴露输入实际 order 与 BUNIT(缺省 ADU, 绝不 Jy/beam)
+    if (out_order) *out_order = p.order;
+    if (out_bunit) *out_bunit = p.bunit.empty() ? std::string("ADU") : p.bunit;
     return P3_RS_OK;
 }
-
 P3ResampleStatus p3_sample_nearest(P3Sampler* s, double ra_deg, double dec_deg,
                                          float* value, int* coverage) {
     if (!s || !s->impl || !value || !coverage) return P3_RS_PARAM;
