@@ -55,7 +55,7 @@ LNX-001,G8,Linux干净GCC与Clang构建,QA-001;P3-006,Linux,validation,no,yes,fr
 LNX-002,G8,Linux全合成科学测试,LNX-001,Linux,validation,yes,yes,all production oracles; pipeline integration,机器summary逐test; no CHECK true; no rerun masking,PASS
 LNX-003,G8,Linuxsanitizer现场复验,LNX-002;QA-002,Linux,validation,yes,yes,production paths under sanitizers,ASan/UBSan/LSan/targeted TSan pass; hashes current,PASS
 LNX-004,G8,Linux 2c2g资源恢复验证,LNX-003;MON-003,Linux,validation,yes,yes,P1/P2/P3 >=10s; cancel/resume; memory pressure,real samples summaries balance; no low utilization; bounded RAM,PASS
-LNX-005,G8,尝试少量真实数据辅助冒烟,LNX-004,Linux,validation,yes,yes,Fatduck hashed 1R/panel+masters if online,online则P1/P2/P3 smoke; offline记录NOT_RUN不阻塞Windows; 禁伪PASS实测,NOT_STARTED
+LNX-005,G8,尝试少量真实数据辅助冒烟,LNX-004,Linux,validation,yes,yes,Fatduck hashed 1R/panel+masters if online,online则P1/P2/P3 smoke; offline记录NOT_RUN不阻塞Windows; 禁伪PASS实测,WAITING_WINDOWS
 WIN-001,G9,Windows在线探测与MSVC干净构建,LNX-004;QA-003,Windows,validation,no,yes,SSH timeouts; clean Release/Debug,online build pass; offline WAITING_WINDOWS; no Linux stop,NOT_STARTED
 WIN-002,G9,Windows CPU provider benchmark,WIN-001;CPU-003,Windows,validation,yes,yes,baseline/AVX2/AVX512; memory/thread/block,correctness before timing; profile verified; actual DLL loaded,NOT_STARTED
 WIN-003,G9,Windows全合成科学资源验证,WIN-001;LNX-002,Windows,validation,yes,yes,same production registry/oracles,MSVC tolerance; no serial heavy; resource gates pass,NOT_STARTED
