@@ -1,0 +1,80 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P2-005",
+  "status": "PASS",
+  "parent_commit": "01b8d8dab566f8d1662f4975501be5e8c20ef00d",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "validation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P2-005/PLAN.md",
+    "evidence/v6_1_rework/tasks/P2-005/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P2-005/logs/c01_block_io.log",
+    "tests/backend/test_p2005_block_io.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "验证任务: block plan 有界(禁 35GB 稠密 cache)/峰值 RSS/覆盖完整; 无生产代码变更"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p2005_block_io.py"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T11:00:00Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/P2-005/logs/c01_block_io.log",
+      "log_sha256": "a606d71c3f35de26ea86669d4d431333eecfa51aa812c0ecd05b6308cc9b9454"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-PLAN-BOUNDED",
+      "description": "大输出(69GB 全量) + 极小预算 → 缩块; estimated_peak ≤ 预算; 无 35GB 稠密 cache",
+      "result": "PASS",
+      "evidence_sha256": "a606d71c3f35de26ea86669d4d431333eecfa51aa812c0ecd05b6308cc9b9454"
+    },
+    {
+      "test_id": "T-PEAK-RSS",
+      "description": "峰值 RSS(VmHWM) ≤ plan 容差(256MB 分配 → <1GB)",
+      "result": "PASS",
+      "evidence_sha256": "a606d71c3f35de26ea86669d4d431333eecfa51aa812c0ecd05b6308cc9b9454"
+    },
+    {
+      "test_id": "T-COVERAGE",
+      "description": "小块/full 等价; 覆盖无重复/遗漏(n_blocks×block_pixels ≥ output)",
+      "result": "PASS",
+      "evidence_sha256": "a606d71c3f35de26ea86669d4d431333eecfa51aa812c0ecd05b6308cc9b9454"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-005/PLAN.md",
+      "sha256": "4f9fd20360f8bb0de4e71dcd74a47ab8808cf8a7049e65202c095d957e3d350a"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-005/TASK_RESULT.json",
+      "sha256": "cc737b4df3b1fa60014ae60aa81d84ed302d91273aa941c992e3ae00b05777e5"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-005/logs/c01_block_io.log",
+      "sha256": "a606d71c3f35de26ea86669d4d431333eecfa51aa812c0ecd05b6308cc9b9454"
+    }
+  ],
+  "findings": [
+    "F-004",
+    "F-016"
+  ],
+  "expected_commit_subject": "P2-005: Block/IO 内存计划验证 (block plan 有界/禁 35GB 稠密 cache/峰值 RSS ≤ 容差/覆盖完整)",
+  "created_utc": "2026-09-01T11:05:00Z"
+}
