@@ -56,12 +56,12 @@ LNX-002,G8,Linux全合成科学测试,LNX-001,Linux,validation,yes,yes,all produ
 LNX-003,G8,Linuxsanitizer现场复验,LNX-002;QA-002,Linux,validation,yes,yes,production paths under sanitizers,ASan/UBSan/LSan/targeted TSan pass; hashes current,PASS
 LNX-004,G8,Linux 2c2g资源恢复验证,LNX-003;MON-003,Linux,validation,yes,yes,P1/P2/P3 >=10s; cancel/resume; memory pressure,real samples summaries balance; no low utilization; bounded RAM,PASS
 LNX-005,G8,尝试少量真实数据辅助冒烟,LNX-004,Linux,validation,yes,yes,Fatduck hashed 1R/panel+masters if online,online则P1/P2/P3 smoke; offline记录NOT_RUN不阻塞Windows; 禁伪PASS实测,WAITING_WINDOWS
-WIN-001,G9,Windows在线探测与MSVC干净构建,LNX-004;QA-003,Windows,validation,no,yes,SSH timeouts; clean Release/Debug,online build pass; offline WAITING_WINDOWS; no Linux stop,NOT_STARTED
-WIN-002,G9,Windows CPU provider benchmark,WIN-001;CPU-003,Windows,validation,yes,yes,baseline/AVX2/AVX512; memory/thread/block,correctness before timing; profile verified; actual DLL loaded,NOT_STARTED
-WIN-003,G9,Windows全合成科学资源验证,WIN-001;LNX-002,Windows,validation,yes,yes,same production registry/oracles,MSVC tolerance; no serial heavy; resource gates pass,NOT_STARTED
-WIN-004,G9,Windows少量真实三板块验证,WIN-002;WIN-003,Windows,validation,yes,yes,1 hashed R/panel plus masters,P1->P2->P3 artifact identity; seam/units/resources,NOT_STARTED
-WIN-005,G9,Windows银心32R最终一次全链,WIN-004;DOC-005,Windows,validation,yes,yes,11+11+10 frozen manifest; final candidate,all inputs contribute; numerical/resource/artifact gates; no rerun unless failed cause fixed,NOT_STARTED
-WIN-006,G9,生成真实HiPS与Phase3审核视图,WIN-005;P3-006,Windows,validation,yes,yes,locked center/FOV/stretch; seam/support/FITS,views from WIN-005 artifacts/current commit; metrics and WCS verify,NOT_STARTED
+WIN-001,G9,Windows在线探测与MSVC干净构建,LNX-004;QA-003,Windows,validation,no,yes,SSH timeouts; clean Release/Debug,online build pass; offline WAITING_WINDOWS; no Linux stop,WAITING_WINDOWS
+WIN-002,G9,Windows CPU provider benchmark,WIN-001;CPU-003,Windows,validation,yes,yes,baseline/AVX2/AVX512; memory/thread/block,correctness before timing; profile verified; actual DLL loaded,WAITING_WINDOWS
+WIN-003,G9,Windows全合成科学资源验证,WIN-001;LNX-002,Windows,validation,yes,yes,same production registry/oracles,MSVC tolerance; no serial heavy; resource gates pass,WAITING_WINDOWS
+WIN-004,G9,Windows少量真实三板块验证,WIN-002;WIN-003,Windows,validation,yes,yes,1 hashed R/panel plus masters,P1->P2->P3 artifact identity; seam/units/resources,WAITING_WINDOWS
+WIN-005,G9,Windows银心32R最终一次全链,WIN-004;DOC-005,Windows,validation,yes,yes,11+11+10 frozen manifest; final candidate,all inputs contribute; numerical/resource/artifact gates; no rerun unless failed cause fixed,WAITING_WINDOWS
+WIN-006,G9,生成真实HiPS与Phase3审核视图,WIN-005;P3-006,Windows,validation,yes,yes,locked center/FOV/stretch; seam/support/FITS,views from WIN-005 artifacts/current commit; metrics and WCS verify,WAITING_WINDOWS
 REL-001,G10,生成Linux Windows alpha.2发布包,WIN-006;LNX-004;QA-003;VER-001,Linux+Windows,release,no,yes,single CLI; provider DLL/so; configs/licenses,clean install/run smoke; checksums; no data/build/history,NOT_STARTED
 REL-002,G10,最终文档与真相校验,REL-001;DOC-006,Linux,release,no,yes,L0-L3; version/API/IR/status,all current; no false implementation; no P0/P1 open,NOT_STARTED
 REL-003,G10,生成严格白名单审核包,REL-002,Linux,release,no,yes,full self-owned source; summaries; evidence; previews,validate_return_audit PASS; source/evidence/artifact commit equal,NOT_STARTED

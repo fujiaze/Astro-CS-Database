@@ -1,0 +1,63 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "WIN-005",
+  "status": "WAITING_WINDOWS",
+  "parent_commit": "73282a1f1cbe6901f0233bcf3bf98fa88b12224c",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "verification",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/WIN-005/TASK_RESULT.json"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "Fatduck 离线 WAITING_WINDOWS 登记 (非伪造 PASS); 下一在线窗口 07:00 北京时间执行"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "ssh",
+        "-i",
+        "~/.ssh/id_ed25519_fatduck",
+        "-o",
+        "ConnectTimeout=15",
+        "fujia@100.104.10.71",
+        "pwsh hostname"
+      ],
+      "timeout_seconds": 25,
+      "exit_code": 255,
+      "started_utc": "2026-09-02T01:53:00Z",
+      "duration_seconds": 25.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-005/logs/c01_fatduck_offline_probe.log",
+      "log_sha256": "97805fd13751b64dfa198315dadbb019b4d51ca0c72497579d88254b7390a7a8"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-OFFLINE-PROBE",
+      "description": "Fatduck 离线探测 (SSH Connection timed out EXIT=255, 北京时间 01:53 不在窗口)",
+      "result": "WAITING",
+      "evidence_sha256": "97805fd13751b64dfa198315dadbb019b4d51ca0c72497579d88254b7390a7a8"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-005/logs/c01_fatduck_offline_probe.log",
+      "sha256": "97805fd13751b64dfa198315dadbb019b4d51ca0c72497579d88254b7390a7a8"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Fatduck 离线: 32R 11+11+10 hash manifest 全链 待在线窗口 (07:00-23:30 北京时间) 执行",
+    "不阻塞 Linux 其余任务; 不放弃、不降级、不伪造 (AGENTS.md)"
+  ],
+  "expected_commit_subject": "WIN-005: Fatduck 离线 WAITING_WINDOWS 登记 (32R 11+11+10 hash manifest 全链)",
+  "created_utc": "2026-09-02T08:00:00Z"
+}
