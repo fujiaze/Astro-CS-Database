@@ -1,0 +1,92 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "DOC-005",
+  "status": "PASS",
+  "parent_commit": "47d59806f358e5bbc0d9b2a57e917d164987fa2c",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "documentation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/DOC-005/PLAN.md",
+    "evidence/v6_1_rework/tasks/DOC-005/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/DOC-005/logs/c01_l0_docs.log",
+    "evidence/v6_1_rework/tasks/DOC-005/logs/c02_final_trace.log",
+    "REVIEW.md"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "文档: REVIEW.md 更新为 V6.1 当前进度+组件状态表(IMPLEMENTED/DORMANT/NOT_INCLUDED/EXPERIMENTAL)"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/check_l0_docs.py"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T00:00:00Z",
+      "duration_seconds": 3.0,
+      "log_path": "evidence/v6_1_rework/tasks/DOC-005/logs/c01_l0_docs.log",
+      "log_sha256": "93d2dcc86124e2c99e09324edc5e5957e2e56e3e84b66eadfbd1e6399da1900c"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/check_final_traceability.py"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T00:01:00Z",
+      "duration_seconds": 3.0,
+      "log_path": "evidence/v6_1_rework/tasks/DOC-005/logs/c02_final_trace.log",
+      "log_sha256": "9d6158dc35f016f98fdc2ab251768313c78062d3397876e05255f38936ca5bba"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-L0-DOCS",
+      "description": "REVIEW.md + 5 L0 文档链接完整, 简洁可审",
+      "result": "PASS",
+      "evidence_sha256": "93d2dcc86124e2c99e09324edc5e5957e2e56e3e84b66eadfbd1e6399da1900c"
+    },
+    {
+      "test_id": "T-FINAL-TRACE",
+      "description": "追溯 66 claims, VERSION 单源, RELEASE_STATUS 诚实(不矛盾)",
+      "result": "PASS",
+      "evidence_sha256": "9d6158dc35f016f98fdc2ab251768313c78062d3397876e05255f38936ca5bba"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-005/PLAN.md",
+      "sha256": "481081b7fe6b3017f60e765c658796db5b477a9d2b35483db9993889145c00fd"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-005/TASK_RESULT.json",
+      "sha256": "e7f9003ce32012f5df808b02bcf122b06a3be10ad3810156130b30daf3cf1c09"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-005/logs/c01_l0_docs.log",
+      "sha256": "93d2dcc86124e2c99e09324edc5e5957e2e56e3e84b66eadfbd1e6399da1900c"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-005/logs/c02_final_trace.log",
+      "sha256": "9d6158dc35f016f98fdc2ab251768313c78062d3397876e05255f38936ca5bba"
+    }
+  ],
+  "findings": [
+    "F-019",
+    "F-032"
+  ],
+  "expected_commit_subject": "DOC-005: 重建 L0 负责人文档 (REVIEW.md V6.1 进度+组件状态表; 5 L0 链接完整; 追溯诚实)",
+  "created_utc": "2026-09-02T00:05:00Z"
+}
