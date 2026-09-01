@@ -1,285 +1,6 @@
 {
   "schema": "astrocs.prod-reachability/v1",
   "nodes": {
-    "lib/core/src/artifact.cpp": {
-      "kind": "lib"
-    },
-    "lib/core/src/artifact_store.cpp": {
-      "kind": "lib"
-    },
-    "lib/core/src/module.cpp": {
-      "kind": "lib"
-    },
-    "lib/core/src/pipeline.cpp": {
-      "kind": "lib"
-    },
-    "lib/core/src/context.cpp": {
-      "kind": "lib"
-    },
-    "lib/core/src/runtime.cpp": {
-      "kind": "lib"
-    },
-    "lib/core/src/scheduler.cpp": {
-      "kind": "lib"
-    },
-    "lib/core/src/checkpoint.cpp": {
-      "kind": "lib"
-    },
-    "lib/core/src/logging.cpp": {
-      "kind": "lib"
-    },
-    "lib/io/src/io_adapter.cpp": {
-      "kind": "lib"
-    },
-    "lib/common/crypto/sha256.cpp": {
-      "kind": "lib"
-    },
-    "lib/common/healpix/healpix_core.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/buffers.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/cfileio.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/checksum.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/drvrfile.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/drvrmem.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/drvrnet.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/editcol.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/edithdu.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/eval_f.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/eval_l.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/eval_y.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/fits_hcompress.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/fits_hdecompress.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/fitscore.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcol.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcolb.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcold.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcole.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcoli.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcolj.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcolk.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcoll.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcols.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcolsb.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcolui.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcoluj.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getcoluk.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/getkey.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/group.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/grparser.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/histo.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/imcompress.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/iraffits.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/modkey.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/pliocomp.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcol.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcolb.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcold.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcole.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcoli.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcolj.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcolk.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcoll.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcols.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcolsb.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcolu.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcolui.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcoluj.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putcoluk.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/putkey.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/quantize.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/region.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/ricecomp.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/scalnull.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/simplerng.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/swapproc.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/wcssub.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/wcsutil.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/zcompress.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/third_party/cfitsio/zuncompress.c": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/aio_fits.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/aio_api.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/aio_log.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/aio_compressor.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/aio_xisf.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/aio_pipeline.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/hips/aio_hips_reader.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/hips/aio_hips_writer.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/healpix/aio_healpix_io.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/hiss_codec.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/hiss_common.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/hiss_reader.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/hiss_stream_writer.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/hiss_tile_model.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/hiss_transform.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/hiss_writer.cpp": {
-      "kind": "lib"
-    },
-    "lib/astro_image_io/src/aio_upm.cpp": {
-      "kind": "lib"
-    },
-    "lib/calibration/src/calibrator.cpp": {
-      "kind": "lib"
-    },
-    "lib/calibration/src/master_generator.cpp": {
-      "kind": "lib"
-    },
-    "lib/calibration/src/cosmetic_corrector.cpp": {
-      "kind": "lib"
-    },
-    "lib/calibration/src/ac_api.cpp": {
-      "kind": "lib"
-    },
     "lib/phase2/src/upm.cpp": {
       "kind": "lib"
     },
@@ -301,425 +22,41 @@
     "lib/phase2/src/integrate.cpp": {
       "kind": "lib"
     },
+    "lib/phase2/src/acr_kernels.cpp": {
+      "kind": "lib"
+    },
+    "lib/acr/api/kernel_registry.cpp": {
+      "kind": "lib"
+    },
     "lib/phase2/src/cuda_bridge_stub.cpp": {
       "kind": "lib"
     },
-    "lib/healpix_db/healpix_drizzle/fits_reader.cpp": {
+    "lib/acr/scheduler/device_executor.cpp": {
       "kind": "lib"
     },
-    "lib/healpix_db/healpix_drizzle/wcs_sip.cpp": {
+    "lib/common/healpix/healpix_core.cpp": {
       "kind": "lib"
     },
-    "lib/healpix_db/healpix_drizzle/poly_clip.cpp": {
+    "lib/common/crypto/sha256.cpp": {
       "kind": "lib"
     },
-    "lib/healpix_db/healpix_drizzle/spherical_overlap.cpp": {
+    "lib/phase2/tests/synthetic_gate.cpp": {
       "kind": "lib"
     },
-    "lib/healpix_db/healpix_drizzle/drizzle_engine.cpp": {
+    "lib/phase2/tests/ivar_wiring_test.cpp": {
       "kind": "lib"
     },
-    "lib/healpix_db/healpix_drizzle/reverse_drizzle.cpp": {
+    "lib/phase2/tools/stage2.cpp": {
       "kind": "lib"
     },
-    "lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp": {
+    "lib/phase2/tools/calibrated_pair_diag.cpp": {
       "kind": "lib"
     },
-    "lib/healpix_db/healpix_drizzle/astro_sphere_sink.cpp": {
+    "lib/phase2/tools/rejection_cli.cpp": {
       "kind": "lib"
-    },
-    "lib/healpix_db/healpix_drizzle/snr_evaluator.cpp": {
-      "kind": "lib"
-    },
-    "lib/backend_host/cpu_features.cpp": {
-      "kind": "lib"
-    },
-    "lib/backend_host/hardware_inspect.cpp": {
-      "kind": "lib"
-    },
-    "lib/backend_host/backend_loader.cpp": {
-      "kind": "lib"
-    },
-    "lib/backend_host/baseline_backend.cpp": {
-      "kind": "lib"
-    },
-    "lib/backend_host/profile_gen.cpp": {
-      "kind": "lib"
-    },
-    "lib/backend_host/host_services.cpp": {
-      "kind": "lib"
-    },
-    "lib/backend_host/bench_harness.cpp": {
-      "kind": "lib"
-    },
-    "lib/phase1/wcs/wcs_tan.cpp": {
-      "kind": "lib"
-    },
-    "lib/phase1/photometry/photometer.cpp": {
-      "kind": "lib"
-    },
-    "lib/phase1/noise/noise_model.cpp": {
-      "kind": "lib"
-    },
-    "lib/phase1/stars/star_detector.cpp": {
-      "kind": "lib"
-    },
-    "lib/phase1_session/p1_session.cpp": {
-      "kind": "lib"
-    },
-    "lib/phase2_session/p2_session.cpp": {
-      "kind": "lib"
-    },
-    "lib/phase3_session/p3_session.cpp": {
-      "kind": "lib"
-    },
-    "lib/phase3_session/p3_wcs.cpp": {
-      "kind": "lib"
-    },
-    "lib/phase3_session/hips_properties.cpp": {
-      "kind": "lib"
-    },
-    "lib/phase3_session/p3_output.cpp": {
-      "kind": "lib"
-    },
-    "lib/phase3_session/p3_resample.cpp": {
-      "kind": "lib"
-    },
-    "lib/core/src/module_adapters.cpp": {
-      "kind": "lib"
-    },
-    "cli/runtime_client.cpp": {
-      "kind": "cli"
-    },
-    "cli/main.cpp": {
-      "kind": "cli"
-    },
-    "cli/parser.cpp": {
-      "kind": "cli"
-    },
-    "cli/commands.cpp": {
-      "kind": "cli"
     }
   },
   "edges": {
-    "lib/core/src/artifact.cpp": [
-      "include/astrocs/core/artifact.h"
-    ],
-    "lib/core/src/artifact_store.cpp": [
-      "include/astrocs/core/artifact_store.h"
-    ],
-    "lib/core/src/module.cpp": [
-      "include/astrocs/core/module.h"
-    ],
-    "lib/core/src/pipeline.cpp": [
-      "include/astrocs/core/pipeline.h"
-    ],
-    "lib/core/src/context.cpp": [
-      "include/astrocs/core/context.h"
-    ],
-    "lib/core/src/runtime.cpp": [
-      "include/astrocs/core/runtime.h"
-    ],
-    "lib/core/src/scheduler.cpp": [
-      "include/astrocs/core/scheduler.h"
-    ],
-    "lib/core/src/checkpoint.cpp": [
-      "include/astrocs/core/checkpoint.h",
-      "lib/orchestrator/cpp/include/checkpoint.h"
-    ],
-    "lib/core/src/logging.cpp": [
-      "include/astrocs/core/logging.h"
-    ],
-    "lib/io/src/io_adapter.cpp": [
-      "include/astrocs/io/io_adapter.h",
-      "lib/astro_image_io/third_party/cfitsio/win_compat/unistd.h"
-    ],
-    "lib/common/crypto/sha256.cpp": [
-      "lib/common/crypto/sha256.h"
-    ],
-    "lib/common/healpix/healpix_core.cpp": [
-      "lib/common/healpix/healpix_core.h",
-      "lib/healpix_db/archive/legacy/healpix_stack/healpix_core.h",
-      "lib/healpix_db/healpix_drizzle/healpix_core.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/buffers.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/cfileio.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h",
-      "lib/astro_image_io/third_party/cfitsio/group.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/checksum.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/drvrfile.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h",
-      "lib/astro_image_io/third_party/cfitsio/group.h",
-      "lib/astro_image_io/third_party/cfitsio/win_compat/unistd.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/drvrmem.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/drvrnet.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h",
-      "lib/astro_image_io/third_party/cfitsio/win_compat/unistd.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/editcol.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/edithdu.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/eval_f.c": [
-      "lib/astro_image_io/third_party/cfitsio/eval_defs.h",
-      "lib/astro_image_io/third_party/cfitsio/region.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/eval_l.c": [
-      "lib/astro_image_io/third_party/cfitsio/eval_defs.h",
-      "lib/astro_image_io/third_party/cfitsio/eval_tab.h",
-      "lib/astro_image_io/third_party/cfitsio/win_compat/unistd.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/eval_y.c": [
-      "lib/astro_image_io/third_party/cfitsio/eval_defs.h",
-      "lib/astro_image_io/third_party/cfitsio/eval_tab.h",
-      "lib/astro_image_io/third_party/cfitsio/region.h",
-      "lib/astro_image_io/third_party/cfitsio/simplerng.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/fits_hcompress.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/fits_hdecompress.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/fitscore.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcol.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcolb.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcold.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcole.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcoli.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcolj.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcolk.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcoll.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcols.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcolsb.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcolui.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcoluj.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getcoluk.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/getkey.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/group.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h",
-      "lib/astro_image_io/third_party/cfitsio/group.h",
-      "lib/astro_image_io/third_party/cfitsio/win_compat/unistd.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/grparser.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h",
-      "lib/astro_image_io/third_party/cfitsio/grparser.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/histo.c": [
-      "lib/astro_image_io/third_party/cfitsio/eval_defs.h",
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/imcompress.c": [],
-    "lib/astro_image_io/third_party/cfitsio/iraffits.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/modkey.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/pliocomp.c": [],
-    "lib/astro_image_io/third_party/cfitsio/putcol.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcolb.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcold.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcole.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcoli.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcolj.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcolk.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcoll.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcols.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcolsb.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcolu.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcolui.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcoluj.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putcoluk.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/putkey.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/quantize.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/region.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h",
-      "lib/astro_image_io/third_party/cfitsio/region.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/ricecomp.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/scalnull.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/simplerng.c": [],
-    "lib/astro_image_io/third_party/cfitsio/swapproc.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/wcssub.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/wcsutil.c": [
-      "lib/astro_image_io/third_party/cfitsio/fitsio2.h"
-    ],
-    "lib/astro_image_io/third_party/cfitsio/zcompress.c": [],
-    "lib/astro_image_io/third_party/cfitsio/zuncompress.c": [],
-    "lib/astro_image_io/src/aio_fits.cpp": [
-      "lib/astro_image_io/src/aio_cfitsio_mutex.h",
-      "lib/astro_image_io/src/aio_fits.h",
-      "lib/astro_image_io/src/aio_log.h",
-      "lib/astro_image_io/src/aio_util.h",
-      "lib/astro_image_io/third_party/cfitsio/fitsio.h"
-    ],
-    "lib/astro_image_io/src/aio_api.cpp": [
-      "lib/astro_image_io/include/astro_image_io.h",
-      "lib/astro_image_io/src/aio_fits.h",
-      "lib/astro_image_io/src/aio_log.h",
-      "lib/astro_image_io/src/aio_xisf.h"
-    ],
-    "lib/astro_image_io/src/aio_log.cpp": [
-      "lib/astro_image_io/src/aio_log.h"
-    ],
-    "lib/astro_image_io/src/aio_compressor.cpp": [
-      "lib/astro_image_io/include/astro_image_io.h",
-      "lib/astro_image_io/src/aio_compressor.h"
-    ],
-    "lib/astro_image_io/src/aio_xisf.cpp": [
-      "lib/astro_image_io/src/aio_log.h",
-      "lib/astro_image_io/src/aio_util.h",
-      "lib/astro_image_io/src/aio_xisf.h"
-    ],
-    "lib/astro_image_io/src/aio_pipeline.cpp": [
-      "lib/astro_image_io/include/aio_pipeline.h",
-      "lib/astro_image_io/include/astro_image_io.h",
-      "lib/astro_image_io/src/aio_log.h"
-    ],
-    "lib/astro_image_io/src/hips/aio_hips_reader.cpp": [
-      "lib/astro_image_io/include/aio_hips_reader.h",
-      "lib/astro_image_io/src/aio_cfitsio_mutex.h",
-      "lib/astro_image_io/third_party/cfitsio/fitsio.h",
-      "lib/common/healpix/healpix_core.h",
-      "lib/healpix_db/archive/legacy/healpix_stack/healpix_core.h",
-      "lib/healpix_db/healpix_drizzle/healpix_core.h"
-    ],
-    "lib/astro_image_io/src/hips/aio_hips_writer.cpp": [
-      "lib/astro_image_io/include/aio_hips.h",
-      "lib/astro_image_io/third_party/cfitsio/fitsio.h",
-      "lib/common/healpix/healpix_core.h",
-      "lib/healpix_db/archive/legacy/healpix_stack/healpix_core.h",
-      "lib/healpix_db/healpix_drizzle/healpix_core.h"
-    ],
-    "lib/astro_image_io/src/healpix/aio_healpix_io.cpp": [
-      "lib/astro_image_io/include/aio_healpix_io.h",
-      "lib/astro_image_io/include/hiss_format.h",
-      "lib/astro_image_io/src/hiss_tile_model.h"
-    ],
-    "lib/astro_image_io/src/hiss_codec.cpp": [
-      "lib/astro_image_io/include/hiss_format.h"
-    ],
-    "lib/astro_image_io/src/hiss_common.cpp": [
-      "lib/astro_image_io/include/hiss_format.h"
-    ],
-    "lib/astro_image_io/src/hiss_reader.cpp": [
-      "lib/astro_image_io/include/hiss_format.h",
-      "lib/astro_image_io/src/aio_util.h",
-      "lib/astro_image_io/src/hiss_transform.h"
-    ],
-    "lib/astro_image_io/src/hiss_stream_writer.cpp": [
-      "lib/astro_image_io/src/aio_util.h",
-      "lib/astro_image_io/src/hiss_stream_writer.h"
-    ],
-    "lib/astro_image_io/src/hiss_tile_model.cpp": [
-      "lib/astro_image_io/src/hiss_tile_model.h"
-    ],
-    "lib/astro_image_io/src/hiss_transform.cpp": [
-      "lib/astro_image_io/src/hiss_transform.h"
-    ],
-    "lib/astro_image_io/src/hiss_writer.cpp": [
-      "lib/astro_image_io/include/hiss_format.h",
-      "lib/astro_image_io/src/hiss_stream_writer.h",
-      "lib/astro_image_io/src/hiss_tile_model.h",
-      "lib/astro_image_io/src/hiss_transform.h"
-    ],
-    "lib/astro_image_io/src/aio_upm.cpp": [
-      "lib/astro_image_io/include/aio_upm.h",
-      "lib/common/crypto/sha256.h"
-    ],
-    "lib/calibration/src/calibrator.cpp": [
-      "lib/calibration/include/astro_calibration.h"
-    ],
-    "lib/calibration/src/master_generator.cpp": [
-      "lib/calibration/include/astro_calibration.h"
-    ],
-    "lib/calibration/src/cosmetic_corrector.cpp": [
-      "lib/calibration/include/astro_calibration.h"
-    ],
-    "lib/calibration/src/ac_api.cpp": [
-      "lib/calibration/include/astro_calibration.h"
-    ],
     "lib/phase2/src/upm.cpp": [
       "lib/astro_image_io/include/aio_upm.h",
       "lib/common/crypto/sha256.h",
@@ -753,183 +90,90 @@
     "lib/phase2/src/integrate.cpp": [
       "lib/phase2/include/astro/phase2/integrate.h"
     ],
+    "lib/phase2/src/acr_kernels.cpp": [
+      "lib/acr/backends/cuda/bridge/cuda_bridge_api.hpp",
+      "lib/acr/include/astro/compute/kernel_registry.hpp",
+      "lib/acr/include/astro/compute/task_traits.hpp",
+      "lib/phase2/include/astro/phase2/integrate.h",
+      "lib/phase2/include/astro/phase2/rejection.h"
+    ],
+    "lib/acr/api/kernel_registry.cpp": [
+      "lib/acr/include/astro/compute/kernel_registry.hpp"
+    ],
     "lib/phase2/src/cuda_bridge_stub.cpp": [
       "lib/acr/backends/cuda/bridge/cuda_bridge_api.hpp"
     ],
-    "lib/healpix_db/healpix_drizzle/fits_reader.cpp": [
-      "lib/healpix_db/healpix_drizzle/fits_reader.h"
+    "lib/acr/scheduler/device_executor.cpp": [
+      "lib/acr/cost/cost_estimator.hpp",
+      "lib/acr/include/astro/compute/kernel_registry.hpp",
+      "lib/acr/scheduler/device_executor.hpp"
     ],
-    "lib/healpix_db/healpix_drizzle/wcs_sip.cpp": [
-      "lib/healpix_db/healpix_drizzle/wcs_sip.h"
-    ],
-    "lib/healpix_db/healpix_drizzle/poly_clip.cpp": [
-      "lib/healpix_db/healpix_drizzle/poly_clip.h"
-    ],
-    "lib/healpix_db/healpix_drizzle/spherical_overlap.cpp": [
-      "lib/healpix_db/healpix_drizzle/spherical_overlap.h"
-    ],
-    "lib/healpix_db/healpix_drizzle/drizzle_engine.cpp": [
-      "lib/astro_image_io/include/aio_healpix_io.h",
-      "lib/astro_image_io/include/hiss_format.h",
-      "lib/astro_image_io/src/hiss_tile_model.h",
+    "lib/common/healpix/healpix_core.cpp": [
       "lib/common/healpix/healpix_core.h",
       "lib/healpix_db/archive/legacy/healpix_stack/healpix_core.h",
-      "lib/healpix_db/healpix_drizzle/drizzle_engine.h",
-      "lib/healpix_db/healpix_drizzle/healpix_core.h",
-      "lib/healpix_db/healpix_drizzle/spherical_overlap.h"
+      "lib/healpix_db/healpix_drizzle/healpix_core.h"
     ],
-    "lib/healpix_db/healpix_drizzle/reverse_drizzle.cpp": [
-      "lib/common/healpix/healpix_core.h",
-      "lib/healpix_db/archive/legacy/healpix_stack/healpix_core.h",
-      "lib/healpix_db/healpix_drizzle/healpix_core.h",
-      "lib/healpix_db/healpix_drizzle/reverse_drizzle.h",
-      "lib/healpix_db/healpix_drizzle/spherical_overlap.h",
-      "lib/healpix_db/healpix_drizzle/wcs_sip.h"
-    ],
-    "lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp": [
-      "lib/astro_image_io/include/aio_healpix_io.h",
-      "lib/astro_image_io/include/astro_image_io.h",
-      "lib/healpix_db/archive/legacy/healpix_stack/gradient/snr_evaluator.h",
-      "lib/healpix_db/healpix_drizzle/astro_sphere_sink.h",
-      "lib/healpix_db/healpix_drizzle/drizzle_engine.h",
-      "lib/healpix_db/healpix_drizzle/fits_reader.h",
-      "lib/healpix_db/healpix_drizzle/hp_drizzle_api.h",
-      "lib/healpix_db/healpix_drizzle/reverse_drizzle.h",
-      "lib/healpix_db/healpix_drizzle/snr_evaluator.h",
-      "lib/healpix_db/healpix_drizzle/wcs_sip.h"
-    ],
-    "lib/healpix_db/healpix_drizzle/astro_sphere_sink.cpp": [
-      "lib/astro_image_io/include/hiss_format.h",
-      "lib/healpix_db/healpix_drizzle/astro_sphere_sink.h"
-    ],
-    "lib/healpix_db/healpix_drizzle/snr_evaluator.cpp": [
-      "lib/healpix_db/archive/legacy/healpix_stack/gradient/nanoflann.hpp",
-      "lib/healpix_db/archive/legacy/healpix_stack/gradient/snr_evaluator.h",
-      "lib/healpix_db/healpix_drizzle/nanoflann.hpp",
-      "lib/healpix_db/healpix_drizzle/snr_evaluator.h"
-    ],
-    "lib/backend_host/cpu_features.cpp": [
-      "lib/astro_image_io/third_party/cfitsio/win_compat/unistd.h",
-      "lib/backend_host/cpu_features.h"
-    ],
-    "lib/backend_host/hardware_inspect.cpp": [
-      "lib/astro_image_io/third_party/cfitsio/win_compat/unistd.h",
-      "lib/backend_host/backend_loader.h",
-      "lib/backend_host/cpu_features.h",
-      "lib/backend_host/hardware_inspect.h",
+    "lib/common/crypto/sha256.cpp": [
       "lib/common/crypto/sha256.h"
     ],
-    "lib/backend_host/backend_loader.cpp": [
-      "lib/backend_host/backend_loader.h",
-      "lib/backend_host/cpu_features.h",
-      "lib/common/crypto/sha256.h"
-    ],
-    "lib/backend_host/baseline_backend.cpp": [
-      "include/astrocs/common_abi_v1.h",
-      "lib/backend_host/baseline_kernels.h"
-    ],
-    "lib/backend_host/profile_gen.cpp": [
-      "include/astrocs/common_abi_v1.h",
-      "lib/backend_host/baseline_kernels.h",
-      "lib/backend_host/bench_harness.h",
-      "lib/backend_host/hardware_inspect.h",
-      "lib/backend_host/profile_gen.h",
-      "lib/common/crypto/sha256.h"
-    ],
-    "lib/backend_host/host_services.cpp": [
-      "include/astrocs/common_abi_v1.h"
-    ],
-    "lib/backend_host/bench_harness.cpp": [
-      "lib/backend_host/bench_harness.h",
-      "lib/common/crypto/sha256.h"
-    ],
-    "lib/phase1/wcs/wcs_tan.cpp": [
-      "lib/phase1/wcs/wcs_tan.h"
-    ],
-    "lib/phase1/photometry/photometer.cpp": [
-      "lib/phase1/photometry/photometer.h"
-    ],
-    "lib/phase1/noise/noise_model.cpp": [
-      "lib/phase1/noise/noise_model.h"
-    ],
-    "lib/phase1/stars/star_detector.cpp": [
-      "lib/phase1/stars/star_detector.h",
-      "lib/star_detector/include/star_detector.h"
-    ],
-    "lib/phase1_session/p1_session.cpp": [
-      "lib/astro_image_io/include/astro_image_io.h",
-      "lib/calibration/include/astro_calibration.h",
-      "lib/phase1_session/p1_session.h"
-    ],
-    "lib/phase2_session/p2_session.cpp": [
-      "lib/phase2/include/astro/phase2/coverage.h",
-      "lib/phase2/include/astro/phase2/sampler.h",
-      "lib/phase2/include/astro/phase2/upm.h",
-      "lib/phase2_session/p2_session.h"
-    ],
-    "lib/phase3_session/p3_session.cpp": [
-      "lib/phase3_session/p3_output.h",
-      "lib/phase3_session/p3_resample.h",
-      "lib/phase3_session/p3_session.h",
-      "lib/phase3_session/p3_wcs.h"
-    ],
-    "lib/phase3_session/p3_wcs.cpp": [
-      "lib/phase3_session/p3_wcs.h"
-    ],
-    "lib/phase3_session/hips_properties.cpp": [
-      "lib/common/dirent_win.h",
-      "lib/phase3_session/hips_properties.h"
-    ],
-    "lib/phase3_session/p3_output.cpp": [
-      "lib/astro_image_io/include/astro_image_io.h",
-      "lib/astro_image_io/src/aio_cfitsio_mutex.h",
-      "lib/astro_image_io/src/aio_fits.h",
-      "lib/astro_image_io/third_party/cfitsio/fitsio.h",
-      "lib/astro_image_io/third_party/cfitsio/win_compat/unistd.h",
+    "lib/phase2/tests/synthetic_gate.cpp": [
+      "lib/acr/backends/cuda/bridge/cuda_bridge_api.hpp",
+      "lib/acr/include/astro/compute/kernel_registry.hpp",
+      "lib/acr/include/astro/compute/task_traits.hpp",
+      "lib/astro_image_io/include/aio_hips_reader.h",
       "lib/common/crypto/sha256.h",
-      "lib/phase3_session/p3_output.h"
+      "lib/common/healpix/healpix_core.h",
+      "lib/healpix_db/archive/legacy/healpix_stack/healpix_core.h",
+      "lib/healpix_db/healpix_drizzle/healpix_core.h",
+      "lib/phase2/include/astro/phase2/acr_kernels.h",
+      "lib/phase2/include/astro/phase2/block.h",
+      "lib/phase2/include/astro/phase2/coverage.h",
+      "lib/phase2/include/astro/phase2/integrate.h",
+      "lib/phase2/include/astro/phase2/rejection.h",
+      "lib/phase2/include/astro/phase2/sampler.h",
+      "lib/phase2/include/astro/phase2/stage2_common.h",
+      "lib/phase2/include/astro/phase2/upm.h"
     ],
-    "lib/phase3_session/p3_resample.cpp": [
+    "lib/phase2/tests/ivar_wiring_test.cpp": [
+      "lib/astro_image_io/include/aio_hips.h",
       "lib/astro_image_io/include/aio_hips_reader.h",
       "lib/common/healpix/healpix_core.h",
       "lib/healpix_db/archive/legacy/healpix_stack/healpix_core.h",
       "lib/healpix_db/healpix_drizzle/healpix_core.h",
-      "lib/phase3_session/hips_properties.h",
-      "lib/phase3_session/p3_resample.h"
+      "lib/phase2/include/astro/phase2/sampler.h",
+      "lib/phase2/include/astro/phase2/upm.h"
     ],
-    "lib/core/src/module_adapters.cpp": [
-      "include/astrocs/common_abi_v1.h",
-      "include/astrocs/core/context.h",
-      "include/astrocs/core/module_adapters.h"
+    "lib/phase2/tools/stage2.cpp": [
+      "lib/acr/backends/cuda/bridge/cuda_bridge_api.hpp",
+      "lib/acr/include/astro/compute/kernel_registry.hpp",
+      "lib/acr/include/astro/compute/task_traits.hpp",
+      "lib/astro_image_io/include/aio_hips.h",
+      "lib/astro_image_io/include/aio_hips_reader.h",
+      "lib/astro_image_io/include/aio_upm.h",
+      "lib/common/crypto/sha256.h",
+      "lib/common/healpix/healpix_core.h",
+      "lib/healpix_db/archive/legacy/healpix_stack/healpix_core.h",
+      "lib/healpix_db/healpix_drizzle/healpix_core.h",
+      "lib/phase2/include/astro/phase2/acr_kernels.h",
+      "lib/phase2/include/astro/phase2/block.h",
+      "lib/phase2/include/astro/phase2/coverage.h",
+      "lib/phase2/include/astro/phase2/integrate.h",
+      "lib/phase2/include/astro/phase2/rejection.h",
+      "lib/phase2/include/astro/phase2/sampler.h",
+      "lib/phase2/include/astro/phase2/stage2_common.h",
+      "lib/phase2/include/astro/phase2/upm.h"
     ],
-    "cli/runtime_client.cpp": [
-      "cli/runtime_client.h",
-      "include/astrocs/core/context.h"
+    "lib/phase2/tools/calibrated_pair_diag.cpp": [
+      "lib/astro_image_io/include/aio_hips_reader.h",
+      "lib/common/healpix/healpix_core.h",
+      "lib/healpix_db/archive/legacy/healpix_stack/healpix_core.h",
+      "lib/healpix_db/healpix_drizzle/healpix_core.h",
+      "lib/phase2/include/astro/phase2/sampler.h",
+      "lib/phase2/include/astro/phase2/upm.h"
     ],
-    "cli/main.cpp": [
-      "cli/cancel_token.h",
-      "cli/cli_common.h",
-      "cli/exit_codes.h",
-      "cli/jsonl.h"
-    ],
-    "cli/parser.cpp": [
-      "cli/cli_common.h",
-      "cli/exit_codes.h",
-      "lib/common/crypto/sha256.h"
-    ],
-    "cli/commands.cpp": [
-      "cli/cancel_token.h",
-      "cli/cli_common.h",
-      "cli/exit_codes.h",
-      "cli/jsonl.h",
-      "cli/monitor.h",
-      "cli/resource_events.h",
-      "cli/runtime_client.h",
-      "lib/backend_host/backend_loader.h",
-      "lib/backend_host/hardware_inspect.h",
-      "lib/backend_host/profile_gen.h",
-      "lib/common/crypto/sha256.h"
+    "lib/phase2/tools/rejection_cli.cpp": [
+      "lib/phase2/include/astro/phase2/rejection.h"
     ]
   },
-  "linked_symbol_count": 3656
+  "linked_symbol_count": 3939
 }
