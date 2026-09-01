@@ -269,12 +269,12 @@ float SnrEvaluator::evaluate(double ra, double dec) const {
     Vec3 q = radecToVec3(ra, dec);
     double q_arr[3] = { q.x, q.y, q.z };
 
-    // K 近邻搜索 (nanoflann IndexType = unsigned int)
-    int k = std::min((int)n_points_, DEFAULT_KNN);
+    // K 近邻搜索 (nanoflann Size=size_t; IndexType=uint32_t)
+    const size_t k = static_cast<size_t>(std::min((int)n_points_, DEFAULT_KNN));
     std::vector<uint32_t> indices(k);
     std::vector<double> dists_sq(k);
 
-    int found = impl_->tree->knnSearch(q_arr, k, indices.data(), dists_sq.data());
+    const int found = static_cast<int>(impl_->tree->knnSearch(q_arr, k, indices.data(), dists_sq.data()));
     if (found <= 0) return 0.0f;
 
     // IDW 评估: 用球面大圆距离 (度) 计算权重
@@ -328,12 +328,12 @@ void SnrEvaluator::evaluateBatch(const double* ra_arr,
         Vec3 q = radecToVec3(ra, dec);
         double q_arr[3] = { q.x, q.y, q.z };
 
-        // 每线程独立缓冲区 (nanoflann IndexType = unsigned int)
+        // 每线程独立缓冲区 (nanoflann Size=size_t)
         uint32_t idx_buf[16];
         double dist_buf[16];
-        int k_use = std::min(k, 16);
+        const size_t k_use = static_cast<size_t>(std::min(k, 16));
 
-        int found = impl_->tree->knnSearch(q_arr, k_use, idx_buf, dist_buf);
+        const int found = static_cast<int>(impl_->tree->knnSearch(q_arr, k_use, idx_buf, dist_buf));
         if (found <= 0) {
             out_snr[i] = 0.0f;
             continue;

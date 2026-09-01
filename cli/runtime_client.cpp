@@ -34,7 +34,7 @@ nlohmann::json phase_config(const nlohmann::json& doc, int phase,
                doc.contains("coverage_output")) {
       pdoc = doc;  // phase3 格式 config 直通；不自动补 output_dir
     } else {
-      *err = "run config missing 'phase3' object for --phases 3";
+      if (err) *err = "run config missing 'phase3' object for --phases 3";
       return {};
     }
   } else if (phase == 2) {
@@ -45,7 +45,7 @@ nlohmann::json phase_config(const nlohmann::json& doc, int phase,
     } else if (doc.contains("hips_paths")) {
       pdoc = doc;  // phase2 格式 config 直通；不自动补 output_dir
     } else {
-      *err = "run config missing 'inputs.lights' for --phases 2";
+      if (err) *err = "run config missing 'inputs.lights' for --phases 2";
       return {};
     }
   } else {
@@ -56,7 +56,7 @@ nlohmann::json phase_config(const nlohmann::json& doc, int phase,
     } else if (doc.contains("input_lights")) {
       pdoc = doc;  // phase1 格式 config 直通；不自动补 output_dir
     } else {
-      *err = "run config missing 'inputs.lights' for --phases 1";
+      if (err) *err = "run config missing 'inputs.lights' for --phases 1";
       return {};
     }
   }
@@ -89,7 +89,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
     n["module_id"] = "astrocs.phase1.calibration";
     n["module_api"] = "1.x";
     nlohmann::json pc = phase_config(doc, 1, out_dir, err);
-    if (!err->empty()) return nlohmann::json();
+    if (err && !err->empty()) return nlohmann::json();
     n["config"] = pc;
     n["inputs"] = {{"frames", "artifact:in"}};
     n["outputs"] = {{"calibrated", "artifact:cal"}};
@@ -101,7 +101,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   // 端口名与 core module_adapters 的 descriptor 端口一致(DATA/单位/Artifact ID)。
   auto phase2_nodes = [&]() -> std::vector<nlohmann::json> {
     nlohmann::json pc = phase_config(doc, 2, out_dir, err);
-    if (!err->empty()) return {};
+    if (err && !err->empty()) return {};
     // node_id, module_id, input 端口, output 端口
     const std::vector<std::tuple<std::string, std::string, std::string, std::string>> chain = {
         {"coverage", "astrocs.phase2.coverage", "calibrated", "coverage"},
@@ -134,7 +134,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   // 端口名与 core module_adapters 的 descriptor 端口一致。
   auto phase3_nodes = [&]() -> std::vector<nlohmann::json> {
     nlohmann::json pc = phase_config(doc, 3, out_dir, err);
-    if (!err->empty()) return {};
+    if (err && !err->empty()) return {};
     const std::vector<std::tuple<std::string, std::string, std::string, std::string>> chain = {
         {"properties", "astrocs.phase3.properties", "hips", "props"},
         {"wcs", "astrocs.phase3.wcs", "props", "wcs_plan"},
@@ -173,7 +173,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   if (want3) {
     for (auto& n : phase3_nodes()) ir["nodes"].push_back(n);
   }
-  if (!err->empty()) return "";  // 任一 phase config 缺失 → 整体失败
+  if (err && !err->empty()) return "";  // 任一 phase config 缺失 → 整体失败
   if (ir["nodes"].empty()) {
     if (err) *err = "no phases requested";
     return "";

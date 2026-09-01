@@ -1391,7 +1391,7 @@ int p2_upm_materialize_dense_n(const void* model, int target_order,
                                const char* cache_path, int workers) {
     if (model == nullptr || cache_path == nullptr) return 1;
     const Model* m = static_cast<const Model*>(model);
-    if (target_order < 0) target_order = m->info.target_order;
+    if (target_order < 0) target_order = static_cast<int>(m->info.target_order);
     // 唯一 AIO：稠密缓存 = 空间求值缓存（frame × tile 的 C_i(p) 值）
     // 收集 coverage tiles（cell_index 的 tile 键，排序）
     std::set<std::uint64_t> tile_set;

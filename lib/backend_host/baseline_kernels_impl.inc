@@ -178,8 +178,9 @@ struct OpComputer {
                 fx = std::min(std::max(fx, 0.0f), 1.0f);
                 fy = std::min(std::max(fy, 0.0f), 1.0f);
                 const size_t r0 = static_cast<size_t>(y0i) * iw, r1 = r0 + iw;
-                const float v00 = p->in0.data[r0 + x0], v10 = p->in0.data[r0 + x0 + 1];
-                const float v01 = p->in0.data[r1 + x0], v11 = p->in0.data[r1 + x0 + 1];
+                const size_t x0s = static_cast<size_t>(x0);
+                const float v00 = p->in0.data[r0 + x0s], v10 = p->in0.data[r0 + x0s + 1];
+                const float v01 = p->in0.data[r1 + x0s], v11 = p->in0.data[r1 + x0s + 1];
                 p->out0.data[i] = (1 - fx) * (1 - fy) * v00 + fx * (1 - fy) * v10 +
                                   (1 - fx) * fy * v01 + fx * fy * v11;
             }

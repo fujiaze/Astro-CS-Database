@@ -119,7 +119,7 @@ int main() {
   }
 
   if (failures == 0) {
-    std::printf("CPU-003 TESTS PASS (v2 profile 字段全/Oracle 门/winner/AVX512<3%/verify 正负例)\n");
+    std::printf("CPU-003 TESTS PASS (v2 profile 字段全/Oracle 门/winner/AVX512<3%%/verify 正负例)\n");
     return 0;
   }
   std::fprintf(stderr, "CPU-003 TESTS FAIL (%d)\n", failures);

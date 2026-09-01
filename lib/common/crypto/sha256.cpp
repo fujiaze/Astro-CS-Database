@@ -32,6 +32,7 @@ Sha256::Sha256() {
     h_[0] = 0x6a09e667u; h_[1] = 0xbb67ae85u; h_[2] = 0x3c6ef372u;
     h_[3] = 0xa54ff53au; h_[4] = 0x510e527fu; h_[5] = 0x9b05688cu;
     h_[6] = 0x1f83d9abu; h_[7] = 0x5be0cd19u;
+    std::memset(block_, 0, sizeof(block_));   // QA-001: 静态分析初始化告警清零
 }
 
 void Sha256::process_block(const unsigned char* p) {

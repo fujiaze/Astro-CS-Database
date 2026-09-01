@@ -32,6 +32,12 @@ file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h
 # vendored cfitsio 显式清单 (BLD-001 禁 GLOB; 由 tools/gen_cfitsio_list.py 生成)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cfitsio_sources.cmake)
 
+# OpenMP 探测提前: 遗留模块 (calibration/aio/drizzle) 含 omp pragma, 编译需 -fopenmp
+# (QA-001: 自有遗留 target target-local 编译, 不污染主程序; 第三方 cfitsio 仍 -w 隔离)
+if(UNIX)
+  find_package(OpenMP QUIET)
+endif()
+
 # ── 显式 target 依赖图 (依赖方向见 ARCH-001 §3) ──
 
 # core/contracts: 公共类型 (DATA/API/MOD)
@@ -94,6 +100,11 @@ target_include_directories(astrocs_aio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common)
 target_compile_definitions(astrocs_aio PRIVATE AIO_ENABLE_FITS AIO_ENABLE_XISF)
 target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio z)
+# QA-001: aio_fits.cpp 含 omp pragma → -fopenmp 编译消除 unknown-pragmas
+if(UNIX AND OpenMP_CXX_FOUND)
+  target_compile_options(astrocs_aio PRIVATE -fopenmp)
+  target_link_libraries(astrocs_aio PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 # io/hips: HiPS reader/writer + hiss (无科学积分)
 add_library(astrocs_hips STATIC
@@ -127,6 +138,11 @@ target_include_directories(astrocs_calibration PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/calibration/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include)
 target_link_libraries(astrocs_calibration PUBLIC astrocs_aio astrocs_common)
+# QA-001: calibrator/cosmetic_corrector/master_generator 含 omp pragma → -fopenmp
+if(UNIX AND OpenMP_CXX_FOUND)
+  target_compile_options(astrocs_calibration PRIVATE -fopenmp)
+  target_link_libraries(astrocs_calibration PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 # modules/phase2 (纯 CPU 生产模块; ACR 源不在此列 — LEG-004)
 add_library(astrocs_phase2 STATIC
@@ -167,6 +183,12 @@ target_include_directories(astrocs_drizzle PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/healpix)
 target_compile_definitions(astrocs_drizzle PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(astrocs_drizzle PUBLIC astrocs_contracts astrocs_common astrocs_aio astrocs_hips)
+# QA-001: drizzle_engine/snr_evaluator 含 omp pragma → -fopenmp 编译消除 unknown-pragmas
+# (omp 并行仅为遗留 drizzle 内部; 生产调度走 Runtime lease, 见 MON/CHK 系列)
+if(UNIX AND OpenMP_CXX_FOUND)
+  target_compile_options(astrocs_drizzle PRIVATE -fopenmp)
+  target_link_libraries(astrocs_drizzle PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 # backends/cpu: provider ABI + baseline (AVX2/512 见 CPU-003/004)
 add_library(astrocs_cpu STATIC
@@ -284,6 +306,23 @@ if(UNIX)
   if(OpenMP_CXX_FOUND)
     target_link_libraries(astrocs PRIVATE OpenMP::OpenMP_CXX)
   endif()
+endif()
+
+# ── QA-001: 自有生产 targets 分层严格 warning (GCC/Clang; MSVC 用 /W4) ──
+# 第三方 (cfitsio) 与遗留 (aio/hips/drizzle/calibration) 已 target-local 隔离:
+#  - cfitsio: -w (第三方)
+#  - aio/hips/drizzle/calibration: -fopenmp 编译 omp pragma (遗留, 无 -Wconversion 惩罚)
+# 自有生产: core/common/phase2/phase3/cpu/CLI 全量 -Wall -Wextra -Wpedantic -Wconversion
+if(NOT MSVC)
+  foreach(tgt astrocs_core astrocs_common astrocs_phase2 astrocs_phase3_session
+              astrocs_cpu astrocs_phase1_wcs astrocs_phase1_phot astrocs_phase1_noise
+              astrocs_phase1_stars astrocs_phase1_session astrocs_phase2_session
+              astrocs_module_adapters astrocs_cli_runtime astrocs_cpu_avx2 astrocs_cpu_avx512)
+    if(TARGET ${tgt})
+      target_compile_options(${tgt} PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
+    endif()
+  endforeach()
+  target_compile_options(astrocs PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 endif()
 
 # RT-005 可执行模块适配器: Phase1/2/3 session → IModule (core 不依赖会话库)

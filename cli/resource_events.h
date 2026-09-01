@@ -37,7 +37,7 @@ inline std::vector<T> downsample_curve(const std::vector<T>& src, std::size_t ma
     const std::size_t n = src.size();
     for (std::size_t i = 0; i < max_points; ++i) {
         const std::size_t idx = static_cast<std::size_t>(
-            static_cast<double>(i) * (n - 1) / static_cast<double>(max_points - 1));
+            static_cast<double>(i) * static_cast<double>(n - 1) / static_cast<double>(max_points - 1));
         out.push_back(src[std::min(idx, n - 1)]);
     }
     return out;

@@ -192,13 +192,14 @@ double median_of(std::vector<double> v) {
     if (v.empty()) return 0.0;
     const std::size_t n = v.size();
     const std::size_t mid = n / 2;
-    std::nth_element(v.begin(), v.begin() + mid, v.end());
+    const auto mid_it = v.begin() + static_cast<std::ptrdiff_t>(mid);
+    std::nth_element(v.begin(), mid_it, v.end());
     if (n % 2 == 1) return v[mid];
     const double a = v[mid];
     // nth_element 后 [begin, mid) 全部 ≤ v[mid]；偶数下中位数为
     // [begin, mid) 的最大值（排序后 v[mid-1]）。min_element 是错误的
     // （P0-01：会污染 y_ik / MAD / SNR 邻域中位数）。
-    const double b = *std::max_element(v.begin(), v.begin() + mid);
+    const double b = *std::max_element(v.begin(), mid_it);
     return 0.5 * (a + b);
 }
 
@@ -409,8 +410,10 @@ std::uint64_t p2_frame_id(const char* hips_path) {
                        << v;
                     return os.str();
                 };
-                const std::string seg = fmt(ra[i]) + "," + fmt(dec[i]) + "," +
-                           fmt(snr[i]) + "," + std::to_string(qf[i]) + ";";
+                const std::string seg = fmt(ra[static_cast<size_t>(i)]) + "," +
+                           fmt(dec[static_cast<size_t>(i)]) + "," +
+                           fmt(snr[static_cast<size_t>(i)]) + "," +
+                           std::to_string(qf[static_cast<size_t>(i)]) + ";";
                 sha.update(seg.data(), seg.size());
             }
         }
@@ -638,12 +641,12 @@ static int p2_sample_controls_impl(
     std::fprintf(stderr, "[sampler] enter n_union=%llu grid=%d n_frames=%llu target_order=%d\n",
         (unsigned long long)n_union, grid, (unsigned long long)n_frames, coverage->target_order);
     std::fflush(stderr);
-    if ((std::size_t)n_union * (std::size_t)grid * grid > (std::size_t)200 * 1000 * 1000) {
-        if (err && err_size) std::snprintf(err, err_size, "cells too large %llu", (unsigned long long)n_union * (std::size_t)grid * grid);
+    if ((std::size_t)n_union * (std::size_t)grid * (std::size_t)grid > (std::size_t)200 * 1000 * 1000) {
+        if (err && err_size) std::snprintf(err, err_size, "cells too large %llu", (unsigned long long)((std::size_t)n_union * (std::size_t)grid * (std::size_t)grid));
         for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
         return 1;
     }
-    try { cells.resize(n_union * (std::size_t)grid * grid); } catch (const std::exception& e) {
+    try { cells.resize(n_union * (std::size_t)grid * (std::size_t)grid); } catch (const std::exception& e) {
         if (err && err_size) std::snprintf(err, err_size, "cells resize failed: %s", e.what());
         std::fprintf(stderr, "[sampler] cells resize failed: %s\n", e.what()); std::fflush(stderr);
         for (std::uint64_t i = 0; i < n_frames; ++i) { if (sig[i]) aio_hips_close(sig[i]); if (sup[i]) aio_hips_close(sup[i]); if (ivr[i]) aio_hips_close(ivr[i]); }
@@ -702,7 +705,8 @@ static int p2_sample_controls_impl(
             if (tile_ipix >= npix) {
                 std::fprintf(stderr, "[sampler] skip out-of-range tile %llu >= %llu at c=%llu\n", (unsigned long long)tile_ipix, (unsigned long long)npix, (unsigned long long)c); std::fflush(stderr);
                 for (int gy = 0; gy < grid; ++gy) for (int gx = 0; gx < grid; ++gx) {
-                    const std::size_t idx = (std::size_t)c * grid * grid + (std::size_t)(gy * grid + gx);
+                    const std::size_t idx = (std::size_t)c * (std::size_t)grid * (std::size_t)grid +
+                                             (std::size_t)(gy * grid + gx);
                     if (idx < cells.size()) { cells[idx].tile = -1; }
                 }
                 return 0;
@@ -863,7 +867,8 @@ static int p2_sample_controls_impl(
                         if (veto) ++local_veto;
                     }
                 }
-                const std::size_t idx = (std::size_t)c * grid * grid + (std::size_t)(gy * grid + gx);
+                const std::size_t idx = (std::size_t)c * (std::size_t)grid * (std::size_t)grid +
+                                         (std::size_t)(gy * grid + gx);
                 cells[idx] = std::move(cs);
                 cv += local_veto;
                 ci += local_insupp;
@@ -1022,7 +1027,7 @@ static int p2_sample_controls_impl(
                 continue;
             }
             P2ControlObservation o{};
-            o.frame_id = fid_cache[cs.frames[fi]];
+            o.frame_id = fid_cache[static_cast<std::size_t>(cs.frames[fi])];
             o.control_id = (std::uint64_t)ci;
             o.leaf_ipix = cs.leaf;
             o.ra_deg = cs.ra;
@@ -1040,7 +1045,7 @@ static int p2_sample_controls_impl(
             // estimator)），science 权重一律使用 control_ivar。
             o.ivar = 0.0;
             {
-                AioHipsDataset* iv = ivr[cs.frames[fi]];
+                AioHipsDataset* iv = ivr[static_cast<std::size_t>(cs.frames[fi])];
                 if (iv) {
                     float v = 0.0f;
                     if (aio_hips_read_leaf_f32(iv, cs.leaf, &v) == 0 &&

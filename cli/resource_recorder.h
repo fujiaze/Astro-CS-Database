@@ -165,11 +165,11 @@ inline std::vector<ResStageStats> ResourceRecorder::stage_stats() const {
             if (r->rss_bytes > st_.rss_peak_bytes) st_.rss_peak_bytes = r->rss_bytes;
         }
         st_.wall_seconds = recs.back()->elapsed_seconds - recs.front()->elapsed_seconds;
-        st_.cpu_pct_mean = sum_cpu / recs.size();
+        st_.cpu_pct_mean = sum_cpu / static_cast<double>(recs.size());
         st_.cpu_pct_p50 = percentile_sorted(cpus, 0.50);
         st_.cpu_pct_p95 = percentile_sorted(cpus, 0.95);
         st_.cpu_pct_peak = *std::max_element(cpus.begin(), cpus.end());
-        st_.workers_mean = sum_w / recs.size();
+        st_.workers_mean = sum_w / static_cast<double>(recs.size());
         st_.workers_p50 = percentile_sorted(workers, 0.50);
         st_.workers_peak = *std::max_element(workers.begin(), workers.end());
         const double dt = std::max(0.001, st_.wall_seconds);

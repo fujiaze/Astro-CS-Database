@@ -139,7 +139,7 @@ Result<void> ArtifactStore::bind_as_input(const std::string& id,
   ArtifactDescriptor d;
   if (!get(id, &d)) {
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "bind: artifact not found: " + id));
+        "bind: artifact not found: " + id + " (consumer " + consumer_node + ")"));
   }
   // 消费前完整验证
   std::string err;
@@ -151,7 +151,8 @@ Result<void> ArtifactStore::bind_as_input(const std::string& id,
   if (d.role != expected_role) {
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "bind: " + id + " role " + artifact_role_name(d.role) +
-        " != expected " + artifact_role_name(expected_role)));
+        " != expected " + artifact_role_name(expected_role) +
+        " (consumer " + consumer_node + ")"));
   }
   return Result<void>::success();
 }

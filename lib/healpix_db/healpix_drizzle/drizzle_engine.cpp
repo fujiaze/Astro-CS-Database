@@ -1401,7 +1401,7 @@ void DrizzleEngine::processPixelSharedTiled(
         drop_corners = spherical::build_drop_polygon_adaptive<Scalar>(
             Scalar(px), Scalar(py), Scalar(config.pixfrac),
             wcsPixelToSkyCallback, const_cast<WcsSip*>(&wcs),
-            max_edge_rad);
+            Scalar(max_edge_rad));
         if (drop_corners.empty()) return;
     }
 
@@ -1642,8 +1642,8 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 #endif
     // 不再调用全局 omp_set_num_threads（会改变进程后续
     // 阶段的全局 OpenMP 行为）；线程数经 parallel 子句局部限定。
-    std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> threadTiles(num_threads);
-    std::vector<DrizzleOpCounters> threadCounters(num_threads);
+    std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> threadTiles(static_cast<size_t>(num_threads));
+    std::vector<DrizzleOpCounters> threadCounters(static_cast<size_t>(num_threads));
 
     // 整帧 run 常量（nside/hp_res/阈值 cos/位运算 shift/mask）
     const double THRESH_60ARCSEC = 60.0 * (M_PI / 180.0) / 3600.0;
@@ -1675,7 +1675,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 #else
         int tid = 0;  // 串行退化
 #endif
-        auto& tileMap = threadTiles[tid];
+        auto& tileMap = threadTiles[static_cast<size_t>(tid)];
 
         // 每线程 target-ipix geometry cache 随 run generation 切换
         // 时 clear（避免跨 run NSIDE 不同导致几何污染；容量有界见类定义）
@@ -1689,17 +1689,17 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         if (shared_vertices) {
             auto t_wcs0 = fine ? std::chrono::high_resolution_clock::now()
                                : std::chrono::time_point<std::chrono::high_resolution_clock>{};
-            bot_ra.resize(img.width + 1); bot_dec.resize(img.width + 1);
-            top_ra.resize(img.width + 1); top_dec.resize(img.width + 1);
-            bot_vec.resize(img.width + 1);
-            top_vec.resize(img.width + 1);
+            bot_ra.resize(static_cast<size_t>(img.width) + 1); bot_dec.resize(static_cast<size_t>(img.width) + 1);
+            top_ra.resize(static_cast<size_t>(img.width) + 1); top_dec.resize(static_cast<size_t>(img.width) + 1);
+            bot_vec.resize(static_cast<size_t>(img.width) + 1);
+            top_vec.resize(static_cast<size_t>(img.width) + 1);
             for (int vx = 0; vx <= img.width; vx++) {
-                wcs.pixelToSky(vx - 0.5, y - 0.5, bot_ra[vx], bot_dec[vx]);
-                wcs.pixelToSky(vx - 0.5, y + 0.5, top_ra[vx], top_dec[vx]);
-                bot_vec[vx] = spherical::radec_to_vec<double>(
-                    bot_ra[vx], bot_dec[vx]);
-                top_vec[vx] = spherical::radec_to_vec<double>(
-                    top_ra[vx], top_dec[vx]);
+                wcs.pixelToSky(vx - 0.5, y - 0.5, bot_ra[static_cast<size_t>(vx)], bot_dec[static_cast<size_t>(vx)]);
+                wcs.pixelToSky(vx - 0.5, y + 0.5, top_ra[static_cast<size_t>(vx)], top_dec[static_cast<size_t>(vx)]);
+                bot_vec[static_cast<size_t>(vx)] = spherical::radec_to_vec<double>(
+                    bot_ra[static_cast<size_t>(vx)], bot_dec[static_cast<size_t>(vx)]);
+                top_vec[static_cast<size_t>(vx)] = spherical::radec_to_vec<double>(
+                    top_ra[static_cast<size_t>(vx)], top_dec[static_cast<size_t>(vx)]);
             }
             if (fine) {
                 prof_wcs_s += std::chrono::duration<double>(
@@ -1708,37 +1708,37 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         }
 
         for (int x = 0; x < img.width; x++) {
-            Scalar pixelValue = pixels[(size_t)y * img.width + x];
+            Scalar pixelValue = pixels[(size_t)y * (size_t)img.width + (size_t)x];
             if (!std::isfinite(pixelValue)) continue;
 
             float snrValue = 1.0f;
             if (snrData) {
-                snrValue = snrData[(size_t)y * img.width + x];
+                snrValue = snrData[(size_t)y * (size_t)img.width + (size_t)x];
                 if (!std::isfinite(snrValue)) continue;
             }
 
             float weightValue = 1.0f;
             if (weightData) {
-                weightValue = weightData[(size_t)y * img.width + x];
+                weightValue = weightData[(size_t)y * (size_t)img.width + (size_t)x];
                 if (!std::isfinite(weightValue) || weightValue <= 0.0f) continue;
             }
 
             float varianceValue = 0.0f;
             if (varianceData) {
-                varianceValue = varianceData[(size_t)y * img.width + x];
+                varianceValue = varianceData[(size_t)y * (size_t)img.width + (size_t)x];
                 if (!std::isfinite(varianceValue) || varianceValue <= 0.0f) continue;
             }
 
             nSourcePixels++;
-            threadCounters[tid].source_pixels++;
+            threadCounters[static_cast<size_t>(tid)].source_pixels++;
 
             if (shared_vertices) {
-                spherical::Vec3 cv[4] = {bot_vec[x], bot_vec[x + 1],
-                                         top_vec[x + 1], top_vec[x]};
+                spherical::Vec3 cv[4] = {bot_vec[static_cast<size_t>(x)], bot_vec[static_cast<size_t>(x) + 1],
+                                         top_vec[static_cast<size_t>(x) + 1], top_vec[static_cast<size_t>(x)]};
                 auto t_g = fine ? std::chrono::high_resolution_clock::now()
                                 : std::chrono::time_point<std::chrono::high_resolution_clock>{};
                 processPixelSharedTiled((double)x, (double)y, pixelValue, snrValue, weightValue,
-                                        varianceValue, threadCounters[tid],
+                                        varianceValue, threadCounters[static_cast<size_t>(tid)],
                                         cv, wcs, config, hp, (uint32_t)shift, mask,
                                         rctx, tileMap);
                 if (fine) {
@@ -1749,7 +1749,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
                 auto t_g = fine ? std::chrono::high_resolution_clock::now()
                                 : std::chrono::time_point<std::chrono::high_resolution_clock>{};
                 processPixelTiled((double)x, (double)y, pixelValue, snrValue, weightValue,
-                                  varianceValue, threadCounters[tid],
+                                  varianceValue, threadCounters[static_cast<size_t>(tid)],
                                   wcs, config, hp, (uint32_t)shift, mask, rctx, tileMap);
                 if (fine) {
                     prof_geom_s += std::chrono::duration<double>(
@@ -1761,7 +1761,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 
     // 6. 合并所有线程的 tile 到线程 0 (仅按 parent 合并 touched leaf, 不逐 key)
     for (int t = 1; t < num_threads; t++) {
-        for (auto& [parent, tile] : threadTiles[t]) {
+        for (auto& [parent, tile] : threadTiles[static_cast<size_t>(t)]) {
             if (tile.touched.empty()) continue;
             auto& dst = threadTiles[0][parent];
             if (dst.touched.empty()) dst.parent_ipix = parent;
@@ -1781,7 +1781,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     // 6b. 合并线程操作计数
     DrizzleOpCounters totalOps;
     for (int t = 0; t < num_threads; t++) {
-        merge_op_counters(totalOps, threadCounters[t]);
+        merge_op_counters(totalOps, threadCounters[static_cast<size_t>(t)]);
     }
     // 共享顶点路径的 pix2radec: 每行 2×(width+1) 次 (行级顶点缓存)
     if (shared_vertices) {

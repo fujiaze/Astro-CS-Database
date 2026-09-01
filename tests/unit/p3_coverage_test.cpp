@@ -18,8 +18,8 @@ static int failures = 0;
 // 采样模型: value = 有覆盖? 插值 : NaN; coverage mask 独立于值
 struct TileSampler {
   int w, h;
-  std::vector<double> val;    // 像素值
-  std::vector<uint8_t> cov;   // coverage mask (0/1)
+  std::vector<double> val{};    // 像素值 (默认空, 避免缺省聚合初始化 warning)
+  std::vector<uint8_t> cov{};   // coverage mask (0/1)
   // 采样: 4 邻居全部有覆盖才插值; 否则 NaN (边界/零覆盖语义)
   double sample(double x, double y) const {
     if (x < 0 || x >= w - 1 || y < 0 || y >= h - 1) return NAN;  // 边界缺失

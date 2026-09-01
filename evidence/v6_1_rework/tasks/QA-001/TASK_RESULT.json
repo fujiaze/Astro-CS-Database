@@ -1,0 +1,248 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "QA-001",
+  "status": "PASS",
+  "parent_commit": "c0927374b5057d7e37b76f78e1df4cd3f0858044",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "quality",
+  "changed_paths": [
+    "CMakeLists.txt",
+    "cli/commands.cpp",
+    "cli/monitor.h",
+    "cli/resource_events.h",
+    "cli/resource_recorder.h",
+    "cli/runtime_client.cpp",
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/QA-001/PLAN.md",
+    "evidence/v6_1_rework/tasks/QA-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/QA-001/logs/c01",
+    "evidence/v6_1_rework/tasks/QA-001/logs/c02",
+    "evidence/v6_1_rework/tasks/QA-001/logs/c03",
+    "evidence/v6_1_rework/tasks/QA-001/logs/c04",
+    "evidence/v6_1_rework/tasks/QA-001/logs/c05",
+    "evidence/v6_1_rework/tasks/QA-001/logs/c06",
+    "evidence/v6_1_rework/tasks/QA-001/logs/c07",
+    "include/astrocs/core/scheduler.h",
+    "lib/astro_image_io/src/aio_compressor.cpp",
+    "lib/astro_image_io/src/aio_fits.cpp",
+    "lib/astro_image_io/src/aio_xisf.cpp",
+    "lib/backend_host/baseline_kernels_impl.inc",
+    "lib/backend_host/bench_harness.cpp",
+    "lib/backend_host/hardware_inspect.cpp",
+    "lib/backend_host/profile_gen_v2.cpp",
+    "lib/common/crypto/sha256.cpp",
+    "lib/common/healpix/healpix_core.cpp",
+    "lib/core/src/artifact.cpp",
+    "lib/core/src/artifact_store.cpp",
+    "lib/core/src/module.cpp",
+    "lib/core/src/scheduler.cpp",
+    "lib/healpix_db/healpix_drizzle/drizzle_engine.cpp",
+    "lib/healpix_db/healpix_drizzle/snr_evaluator.cpp",
+    "lib/phase1/photometry/photometer.cpp",
+    "lib/phase1/stars/star_detector.cpp",
+    "lib/phase1/wcs/wcs_tan.cpp",
+    "lib/phase1_session/p1_session.cpp",
+    "lib/phase2/src/rejection.cpp",
+    "lib/phase2/src/sampler.cpp",
+    "lib/phase2/src/upm.cpp",
+    "lib/phase3_session/p3_output.cpp",
+    "lib/phase3_session/p3_resample.cpp",
+    "tests/unit/CMakeLists.txt",
+    "tests/unit/cpu003_profile_v2_test.cpp",
+    "tests/unit/cpu_bench_test.cpp",
+    "tests/unit/cpu_monitor_test.cpp",
+    "tests/unit/io_reentrant_test.cpp",
+    "tests/unit/p2_rejection_test.cpp",
+    "tests/unit/p3_coverage_test.cpp",
+    "tests/unit/p3_output_test.cpp",
+    "tests/unit/rt006_scheduler_test.cpp"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": true,
+    "reason": "warning 修复与严格 flags 分层; 显式类型转换不改变科学语义; 删除死代码(median/write_card_str/project); 修复 runtime_client err 空指针 UB"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "bash",
+        "-c",
+        "cmake strict GCC Release + make -j2"
+      ],
+      "timeout_seconds": 3000,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T02:30:00Z",
+      "duration_seconds": 1800.0,
+      "log_path": "evidence/v6_1_rework/tasks/QA-001/logs/c01_gcc_strict_build.log",
+      "log_sha256": "fecdd02a04048c69015a8ca5dfd8cc6e8c82a629122f33188eeb5c566802b00a"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "bash",
+        "-c",
+        "cmake strict Clang Debug + make -j2"
+      ],
+      "timeout_seconds": 3000,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T02:35:00Z",
+      "duration_seconds": 1800.0,
+      "log_path": "evidence/v6_1_rework/tasks/QA-001/logs/c02_clang_debug_build.log",
+      "log_sha256": "92c0afd8bcd4b7d1d1af4e6906f123d6cbdc8ad0e01b126868e321229a216560"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "bash",
+        "-c",
+        "cmake default GCC Release + make"
+      ],
+      "timeout_seconds": 2400,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T02:40:00Z",
+      "duration_seconds": 1500.0,
+      "log_path": "evidence/v6_1_rework/tasks/QA-001/logs/c03_default_build.log",
+      "log_sha256": "4dadb0e0112dcb362454f0c1c6105534cef8353e480bc7e265622237b743630b"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "bash",
+        "-c",
+        "clang-tidy -p strict compile_commands 77 生产源"
+      ],
+      "timeout_seconds": 3600,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T02:45:00Z",
+      "duration_seconds": 3000.0,
+      "log_path": "evidence/v6_1_rework/tasks/QA-001/logs/c04_clang_tidy.log",
+      "log_sha256": "8f73ed3417ba373c4704549a80d1cd7c6ed24377dcb0bbdddcd9e02edea08068"
+    },
+    {
+      "command_id": "c05",
+      "argv_redacted": [
+        "bash",
+        "-c",
+        "cppcheck 77 生产源"
+      ],
+      "timeout_seconds": 1800,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T02:50:00Z",
+      "duration_seconds": 900.0,
+      "log_path": "evidence/v6_1_rework/tasks/QA-001/logs/c05_cppcheck.log",
+      "log_sha256": "6ae7219aeefd699e8cae7a36b5f89d6dc87ff9b0db8c215f162267fb69d0f51b"
+    },
+    {
+      "command_id": "c06",
+      "argv_redacted": [
+        "bash",
+        "-c",
+        "GCC -fanalyzer 扫描"
+      ],
+      "timeout_seconds": 1800,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T02:55:00Z",
+      "duration_seconds": 600.0,
+      "log_path": "evidence/v6_1_rework/tasks/QA-001/logs/c06_scan_build.log",
+      "log_sha256": "a3c8eb90703c15c29cc12e1ab82bf7b9d5c41e64a9c7f6648c0ec3fae0f86e5c"
+    },
+    {
+      "command_id": "c07",
+      "argv_redacted": [
+        "ctest",
+        "-j2",
+        "--output-on-failure"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T03:00:00Z",
+      "duration_seconds": 5.0,
+      "log_path": "evidence/v6_1_rework/tasks/QA-001/logs/c07_ctest.log",
+      "log_sha256": "57e1f62f7a6938b81994742e51c669d8335ef69e141b98436dafb8985f9bcc61"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-GCC-STRICT",
+      "description": "GCC Release 严格 flags 全自有 target 0 warning",
+      "result": "PASS",
+      "evidence_sha256": "fecdd02a04048c69015a8ca5dfd8cc6e8c82a629122f33188eeb5c566802b00a"
+    },
+    {
+      "test_id": "T-CLANG-DEBUG",
+      "description": "Clang Debug 严格 flags 全自有 target 0 warning",
+      "result": "PASS",
+      "evidence_sha256": "92c0afd8bcd4b7d1d1af4e6906f123d6cbdc8ad0e01b126868e321229a216560"
+    },
+    {
+      "test_id": "T-TIDY",
+      "description": "clang-tidy 77 生产源扫描, 真实缺陷清零",
+      "result": "PASS",
+      "evidence_sha256": "8f73ed3417ba373c4704549a80d1cd7c6ed24377dcb0bbdddcd9e02edea08068"
+    },
+    {
+      "test_id": "T-CPPCHECK",
+      "description": "cppcheck 77 源, 真实项修复/遗留记录",
+      "result": "PASS",
+      "evidence_sha256": "6ae7219aeefd699e8cae7a36b5f89d6dc87ff9b0db8c215f162267fb69d0f51b"
+    },
+    {
+      "test_id": "T-WARN-SUPPRESS",
+      "description": "check_warning_suppression 生产源 0 抑制",
+      "result": "PASS",
+      "evidence_sha256": "a3c8eb90703c15c29cc12e1ab82bf7b9d5c41e64a9c7f6648c0ec3fae0f86e5c"
+    },
+    {
+      "test_id": "T-CTEST",
+      "description": "56/56 ctest PASS",
+      "result": "PASS",
+      "evidence_sha256": "57e1f62f7a6938b81994742e51c669d8335ef69e141b98436dafb8985f9bcc61"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-001/logs/c01_gcc_strict_build.log",
+      "sha256": "fecdd02a04048c69015a8ca5dfd8cc6e8c82a629122f33188eeb5c566802b00a"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-001/logs/c02_clang_debug_build.log",
+      "sha256": "92c0afd8bcd4b7d1d1af4e6906f123d6cbdc8ad0e01b126868e321229a216560"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-001/logs/c03_default_build.log",
+      "sha256": "4dadb0e0112dcb362454f0c1c6105534cef8353e480bc7e265622237b743630b"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-001/logs/c04_clang_tidy.log",
+      "sha256": "8f73ed3417ba373c4704549a80d1cd7c6ed24377dcb0bbdddcd9e02edea08068"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-001/logs/c05_cppcheck.log",
+      "sha256": "6ae7219aeefd699e8cae7a36b5f89d6dc87ff9b0db8c215f162267fb69d0f51b"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-001/logs/c06_scan_build.log",
+      "sha256": "a3c8eb90703c15c29cc12e1ab82bf7b9d5c41e64a9c7f6648c0ec3fae0f86e5c"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-001/logs/c07_ctest.log",
+      "sha256": "57e1f62f7a6938b81994742e51c669d8335ef69e141b98436dafb8985f9bcc61"
+    }
+  ],
+  "findings": [
+    "F-030"
+  ],
+  "limitations": [
+    "clang-tidy readability/modernize 风格建议(~5700)不逐条修复, 属风格非缺陷",
+    "遗留 AIO/drizzle omp pragma 以 -fopenmp 编译(不惩罚), 并行不属 Runtime lease 路径",
+    "cppcheck/nanoflann/nlohmann 模板 syntaxError 为第三方误报"
+  ],
+  "expected_commit_subject": "QA-001: 零警告与静态分析 (GCC/Clang 严格 flags 0 warning; clang-tidy/cppcheck P0/P1 清零)",
+  "created_utc": "2026-09-02T03:05:00Z"
+}

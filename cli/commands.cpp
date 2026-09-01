@@ -61,8 +61,6 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "runtime_client.h"
 
 // CLI→host 的取消/日志桥接(定义于后段, 此处前向声明供 cmd_run_pipeline 使用)
-static int cli_cancel_probe(void*);
-static void cli_session_log(void*, int, const char*, const char*);
 // MON-002 资源/backend 事件发射(定义于后段, 前向声明供 cmd_run_pipeline 使用)
 static void emit_resource_summary(astrocs::JsonlEmitter&, const std::string&,
                                   const astrocs::ProcessMonitor::Summary&, const std::string&,
@@ -445,8 +443,8 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
     // RT-009: 渲染 DOT/SVG/L0（best-effort; 工具缺失/失败不失败 run）。
     // 仅当 tools/quality/gen_run_graphs.py 存在时调用; timeout 30s 防悬挂。
     {
-        const std::string repo = std::getenv("ASTROCS_REPO")
-                                     ? std::getenv("ASTROCS_REPO") : ".";
+        const char* env_repo = std::getenv("ASTROCS_REPO");
+        const std::string repo = (env_repo && env_repo[0]) ? env_repo : ".";
         const std::string renderer = repo + "/tools/quality/gen_run_graphs.py";
         std::error_code ec;
         if (std::filesystem::is_regular_file(std::filesystem::u8path(renderer), ec)) {
@@ -672,6 +670,7 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
     // (禁止仅 emit event 不改变退出状态; CPU-heavy active≥10s: worker p50≥2 / CPU p50≥90% / mean≥85%)
     {
         const astrocs::ProcessMonitor::Summary mon_s2 = proc_mon.summary();
+        (void)mon_s2;
         const auto gstats = recorder.stage_stats();
         const astrocs::ResStageStats* act = nullptr;
         for (const auto& s : gstats) if (std::string(s.stage) == "active") act = &s;
@@ -727,12 +726,6 @@ int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
 }
 
 // phase1 run: CLI-004 — 进程内调用 p1_session(无 shell-out); cancel/budget/monitor 注入
-static int cli_cancel_probe(void*) { return astrocs::is_cancelled() ? 1 : 0; }
-static void cli_session_log(void*, int level, const char* component, const char* msg) {
-    static const char* kLv[] = {"DEBUG", "INFO", "WARN", "ERROR"};
-    std::fprintf(stderr, "[astrocs:%s][%s] %s\n",
-                 kLv[level & 3], component ? component : "phase1", msg ? msg : "");
-}
 
 // MON-002: 发射资源分层事件(summary 强制; timeseries 详略受 --resource-detail 控制)。
 // summary 事件内嵌指标; 原始 timeseries 只记录留存路径+样本数(不内嵌几十 MB 数据)。

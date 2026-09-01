@@ -12,38 +12,73 @@ namespace astrocs::core {
 using nlohmann::json;
 
 bool ModuleDescriptor::validate(std::string* err) const {
-  if (module_id.empty()) { if (err) *err = "module_id empty"; return false; }
-  if (module_id.rfind("astrocs.", 0) != 0) {
-    if (err) *err = "module_id must be namespaced astrocs.*: " + module_id; return false;
+  if (module_id.empty()) {
+    if (err) *err = "module_id empty";
+    return false;
   }
-  if (version.empty()) { if (err) *err = "version empty"; return false; }
-  if (abi != "c++17" && abi != "c") { if (err) *err = "abi must be c++17 or c"; return false; }
-  if (ports.empty()) { if (err) *err = "ports empty"; return false; }
+  if (module_id.rfind("astrocs.", 0) != 0) {
+    if (err) *err = "module_id must be namespaced astrocs.*: " + module_id;
+    return false;
+  }
+  if (version.empty()) {
+    if (err) *err = "version empty";
+    return false;
+  }
+  if (abi != "c++17" && abi != "c") {
+    if (err) *err = "abi must be c++17 or c";
+    return false;
+  }
+  if (ports.empty()) {
+    if (err) *err = "ports empty";
+    return false;
+  }
   bool has_input = false, has_output = false;
   std::set<std::string> port_names;
   for (const auto& p : ports) {
     if (p.data_schema_id.rfind("DATA-", 0) != 0) {
-      if (err) *err = "port " + p.name + " bad data_schema_id"; return false;
+      if (err) *err = "port " + p.name + " bad data_schema_id";
+      return false;
     }
     if (!port_names.insert(p.name).second) {
-      if (err) *err = "duplicate port name: " + p.name; return false;
+      if (err) *err = "duplicate port name: " + p.name;
+      return false;
     }
     if (p.is_input) has_input = true; else has_output = true;
   }
-  if (!has_input || !has_output) { if (err) *err = "module needs both input and output ports"; return false; }
+  if (!has_input || !has_output) {
+    if (err) *err = "module needs both input and output ports";
+    return false;
+  }
   // heavy+serial 拒绝（RT-005: cpu_heavy 必须 parallel_ok）
   if (execution_class == "cpu_heavy" && !parallel_ok) {
-    if (err) *err = "cpu_heavy module must be parallel_ok (heavy+serial rejected)"; return false;
+    if (err) *err = "cpu_heavy module must be parallel_ok (heavy+serial rejected)";
+    return false;
   }
   // ACR production 拒绝（ACR 不接生产）
   if (module_id.rfind("astrocs.acr.", 0) == 0) {
-    if (err) *err = "ACR module cannot be registered for production: " + module_id; return false;
+    if (err) *err = "ACR module cannot be registered for production: " + module_id;
+    return false;
   }
-  if (sci_id.rfind("SCI-", 0) != 0 && !sci_id.empty()) { if (err) *err = "bad sci_id"; return false; }
-  if (alg_id.rfind("ALG-", 0) != 0 && !alg_id.empty()) { if (err) *err = "bad alg_id"; return false; }
-  if (data_id.rfind("DATA-", 0) != 0 && !data_id.empty()) { if (err) *err = "bad data_id"; return false; }
-  if (api_id.rfind("API-", 0) != 0 && !api_id.empty()) { if (err) *err = "bad api_id"; return false; }
-  if (test_id.rfind("TEST-", 0) != 0 && !test_id.empty()) { if (err) *err = "bad test_id"; return false; }
+  if (sci_id.rfind("SCI-", 0) != 0 && !sci_id.empty()) {
+    if (err) *err = "bad sci_id";
+    return false;
+  }
+  if (alg_id.rfind("ALG-", 0) != 0 && !alg_id.empty()) {
+    if (err) *err = "bad alg_id";
+    return false;
+  }
+  if (data_id.rfind("DATA-", 0) != 0 && !data_id.empty()) {
+    if (err) *err = "bad data_id";
+    return false;
+  }
+  if (api_id.rfind("API-", 0) != 0 && !api_id.empty()) {
+    if (err) *err = "bad api_id";
+    return false;
+  }
+  if (test_id.rfind("TEST-", 0) != 0 && !test_id.empty()) {
+    if (err) *err = "bad test_id";
+    return false;
+  }
   return true;
 }
 

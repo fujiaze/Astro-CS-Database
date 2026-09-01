@@ -26,6 +26,7 @@ static void test_diamond_concurrency() {
   Scheduler sched(4, 2);  // 2 worker
   std::atomic<int> parallel_peak{0}, cur{0};
   auto heavy = [&](const std::string& id, RunContext&) -> Result<void> {
+    (void)id;
     int c = cur.fetch_add(1) + 1;
     int p = parallel_peak.load();
     while (c > p && !parallel_peak.compare_exchange_weak(p, c)) {}
@@ -53,6 +54,7 @@ static void test_memory_backpressure() {
   Scheduler sched(2, 2, /*memory_limit=*/1000);
   std::atomic<int> peak_mem{0}, cur_mem{0};
   auto big = [&](const std::string& id, RunContext&) -> Result<void> {
+    (void)id;
     int c = cur_mem.fetch_add(600) + 600;  // 每节点 600
     int p = peak_mem.load();
     while (c > p && !peak_mem.compare_exchange_weak(p, c)) {}

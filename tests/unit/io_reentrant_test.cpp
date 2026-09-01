@@ -26,7 +26,7 @@ static std::string make_fits(const std::string& path) {
   char cpath[512];
   std::snprintf(cpath, sizeof(cpath), "!%s", path.c_str());
   if (fits_create_file(&fptr, cpath, &status)) return "create";
-  long naxis = 2;
+  int naxis = 2;
   long naxes[2] = {32, 16};
   if (fits_create_img(fptr, FLOAT_IMG, naxis, naxes, &status)) {
     fits_close_file(fptr, &status); return "img";

@@ -1,4 +1,4 @@
-// lib/backend_host/hardware_inspect.cpp — 硬件画像采集实现 (06 §2) — BENCH-001
+// lib/backend_host/hardware_inspect.cpp — 硬件画像采集实现 — BENCH-001
 // Linux: /proc/cpuinfo + sched_getaffinity + /sys topology/cache/node + cgroup v2 + uname。
 // Windows: Job Object/affinity 分支(随 WIN/FAT 域实测)。
 #include "hardware_inspect.h"
@@ -135,7 +135,6 @@ uint64_t mem_total_bytes() {
     GlobalMemoryStatusEx(&s);
     return s.ullTotalPhys;
 #else
-    const std::string m = read_file_trim("/proc/meminfo");
     std::ifstream f("/proc/meminfo");
     std::string line;
     while (std::getline(f, line))
@@ -191,7 +190,7 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
     uint32_t avail = aff_count;
     if (cgroup_limit > 0 && cgroup_limit < avail) avail = cgroup_limit;   // ∩ 约束
 
-    // ── CPU 身份(06 §2) ──
+    // ── CPU 身份 ──
 #if !defined(_WIN32)
     const std::string vendor = cpuinfo_field("vendor_id");
     const std::string model_name = cpuinfo_field("model name");
@@ -252,7 +251,7 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
     const bool smt_known = !sib.empty();
     const bool smt = smt_known && sib.find(',') != std::string::npos;
 
-    // ── OS/构建/hash(06 §2) ──
+    // ── OS/构建/hash ──
     nlohmann::json os = {{"name",
 #if defined(_WIN32)
                           "windows"
@@ -325,7 +324,7 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
         qh.update(qsrc.data(), qsrc.size());
         j["quota_signature"] = qh.final_hex();
     }
-    j["physical_packages"] = nullptr;   // 拓扑受限容器不可读; 可得时填充(06 §2)
+    j["physical_packages"] = nullptr;   // 拓扑受限容器不可读; 可得时填充
     j["smt"] = {{"known", smt_known}, {"enabled", smt}};
     j["numa_nodes"] = numa_nodes;
     j["ram_bytes"] = mem_total_bytes();

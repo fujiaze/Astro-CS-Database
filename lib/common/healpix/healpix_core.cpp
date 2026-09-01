@@ -30,7 +30,6 @@ constexpr double kRoot3 = 1.73205080756887729352744634150587237;
 
 // ---- base face 区域判断 ----
 inline bool is_north_polar(int base) { return base >= 0 && base <= 3; }
-inline bool is_equatorial(int base) { return base >= 4 && base <= 7; }
 inline bool is_south_polar(int base) { return base >= 8 && base <= 11; }
 
 // ---- 位交错 (NESTED) ----

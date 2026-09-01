@@ -10,8 +10,7 @@ namespace astrocs::core {
 
 Scheduler::Scheduler(uint32_t available_cpu, uint32_t budget,
                      uint64_t memory_limit_bytes)
-    : available_cpu_(available_cpu),
-      budget_(std::max<uint32_t>(1, std::min(budget, std::max<uint32_t>(1, available_cpu)))),
+    : budget_(std::max<uint32_t>(1, std::min(budget, std::max<uint32_t>(1, available_cpu)))),
       memory_limit_bytes_(memory_limit_bytes) {}
 
 Scheduler::~Scheduler() = default;

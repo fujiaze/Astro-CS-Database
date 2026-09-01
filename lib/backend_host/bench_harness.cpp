@@ -16,7 +16,7 @@ using Clock = std::chrono::steady_clock;
 
 double percentile_sorted(std::vector<double>& sorted, double q) {  // q∈[0,1]
     if (sorted.empty()) return 0;
-    const auto idx = static_cast<size_t>(q * (sorted.size() - 1) + 0.5);
+    const auto idx = static_cast<size_t>(std::llround(q * static_cast<double>(sorted.size() - 1)));
     return sorted[std::min(idx, sorted.size() - 1)];
 }
 
@@ -54,7 +54,7 @@ BenchResult bench_kernel(const astrocs_host_services_v1* host,
             return r;   // 禁用: 不预热、不计时、不进入候选
         }
     }
-    {   // correctness hash(06 §4)
+    {   // correctness hash
         crypto::Sha256 h;
         h.update(out.data(), static_cast<size_t>(n) * sizeof(float));
         r.correctness_hash = h.final_hex();
@@ -79,7 +79,7 @@ BenchResult bench_kernel(const astrocs_host_services_v1* host,
     r.median_ns = percentile_sorted(samples_ns, 0.5);
     double mad_acc = 0;
     for (double x : samples_ns) mad_acc += std::fabs(x - r.median_ns);
-    r.mad_ns = mad_acc / samples_ns.size();
+    r.mad_ns = mad_acc / static_cast<double>(samples_ns.size());
     r.p05_ns = percentile_sorted(samples_ns, 0.05);
     r.p95_ns = percentile_sorted(samples_ns, 0.95);
     r.workers = p.workers_used;
@@ -90,7 +90,7 @@ BenchResult bench_kernel(const astrocs_host_services_v1* host,
 std::string select_winner(const std::vector<BenchResult>& results) {
     const BenchResult* best = nullptr;
     for (const auto& r : results) {
-        if (r.verdict != "OK") continue;               // 错误路径结构性不可胜出(06 §1)
+        if (r.verdict != "OK") continue;               // 错误路径结构性不可胜出
         if (!best || r.median_ns < best->median_ns) best = &r;
     }
     return best ? best->backend_id : std::string();
@@ -184,10 +184,11 @@ MemoryReport bench_memory(uint64_t n, int reps) {
         return med_ns(t);
     };
     auto time_triad = [&](auto& A, const auto& B, const auto& C, double q, uint64_t bytes_moved) {
+        using Elem = typename std::decay_t<decltype(A)>::value_type;
         std::vector<double> t;
         for (int r = 0; r < reps; ++r) {
             const auto t0 = Clock::now();
-            for (uint64_t i = 0; i < n; ++i) A[i] = B[i] + q * C[i];
+            for (uint64_t i = 0; i < n; ++i) A[i] = static_cast<Elem>(B[i] + q * C[i]);
             const auto t1 = Clock::now();
             t.push_back(std::chrono::duration<double, std::nano>(t1 - t0).count());
         }
@@ -213,7 +214,7 @@ std::string select_with_noise_margin(const std::vector<BenchResult>& results,
     }
     if (!best) return {};
     if (best->backend_id == conservative_backend_id) return conservative_backend_id;
-    // 保守路径存在且收益不足裕量 → 更保守(06 §4)
+    // 保守路径存在且收益不足裕量 → 更保守
     for (const auto& r : results)
         if (r.backend_id == conservative_backend_id && r.verdict == "OK") {
             const double gain = (r.median_ns - best->median_ns) / r.median_ns;
@@ -225,7 +226,7 @@ std::string select_with_noise_margin(const std::vector<BenchResult>& results,
 NoProfilePolicy no_profile_policy(uint32_t available_cpus) {
     NoProfilePolicy p;
     p.backend_id = "baseline";
-    p.workers = available_cpus > 0 ? available_cpus : 1;   // ≥1; 可用≥2 时不得退 1(06 §6)
+    p.workers = available_cpus > 0 ? available_cpus : 1;   // ≥1; 可用≥2 时不得退 1
     p.reason = "no_valid_profile";
     return p;
 }
