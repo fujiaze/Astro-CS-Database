@@ -52,7 +52,8 @@ int main() {
   // 3) eligibility 过滤: cosmic/hot/streak 分类经 quality 层 (kernel 不知 support)
   {
     P2EligibilityInput in{};
-    // 默认参数可构造
+    // 默认参数可构造 (compile-time 检查)
+    (void)in;
     CHECK(P2_STATUS_INVALID_METHOD == 6);   // AUTO 进 kernel → 明确错误
   }
 

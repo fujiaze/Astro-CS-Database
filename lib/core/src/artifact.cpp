@@ -50,7 +50,7 @@ std::string Provenance::to_json() const {
 std::string Provenance::science_hash() const {
   uint64_t h = 1469598103934665603ULL;
   auto mix = [&h](const std::string& s) {
-    for (unsigned char c : s) { h ^= c; h *= 1099511628211ULL; }
+    for (char ch : s) { h ^= static_cast<unsigned char>(ch); h *= 1099511628211ULL; }
     h ^= 0xff;
     h *= 1099511628211ULL;
   };
@@ -68,15 +68,26 @@ std::string Provenance::science_hash() const {
 }
 
 bool DataArtifactDescriptor::validate(std::string* err) const {
-  if (id.id.empty()) { if (err) *err = "artifact id empty"; return false; }
-  if (data_schema_id.size() < 5 || data_schema_id.rfind("DATA-", 0) != 0) {
-    if (err) *err = "data_schema_id must start with DATA-: " + data_schema_id; return false;
+  if (id.id.empty()) {
+    if (err) *err = "artifact id empty";
+    return false;
   }
-  if (shape.dims.empty()) { if (err) *err = "shape empty"; return false; }
-  if (shape.num_elements() == 0) { if (err) *err = "shape zero elements"; return false; }
+  if (data_schema_id.size() < 5 || data_schema_id.rfind("DATA-", 0) != 0) {
+    if (err) *err = "data_schema_id must start with DATA-: " + data_schema_id;
+    return false;
+  }
+  if (shape.dims.empty()) {
+    if (err) *err = "shape empty";
+    return false;
+  }
+  if (shape.num_elements() == 0) {
+    if (err) *err = "shape zero elements";
+    return false;
+  }
   if (unit == UnitId::UNKNOWN && coordinate != CoordinateFrame::PIXEL) {
     // PIXEL 坐标允许 UNKNOWN; 天球/科学坐标必须有单位
-    if (err) *err = "science coordinate requires unit"; return false;
+    if (err) *err = "science coordinate requires unit";
+    return false;
   }
   return true;
 }

@@ -22,21 +22,6 @@ static int failures = 0;
     }                                                                     \
   } while (0)
 
-static acs_status ok_kernel(const astrocs_host_services_v1*, const void*, uint32_t,
-                            const void*, void*) { return ACS_OK; }
-static acs_status slow_kernel(const astrocs_host_services_v1*, const void*, uint32_t,
-                              const void*, void*) { return ACS_OK; }
-
-// 独立 scalar Oracle 参考: calibration y=(a-b-k*c)*d
-static std::vector<double> oracle_ref(uint32_t n) {
-  std::vector<double> ref(n);
-  for (uint32_t i = 0; i < n; ++i) {
-    double a = static_cast<double>(i % 100), b = static_cast<double>(i % 50);
-    ref[i] = (a - b - 2.0) * 2.0;
-  }
-  return ref;
-}
-
 int main() {
   // 1) Oracle 门: 错误 backend(返回 OK 但输出错)不能胜出
   {

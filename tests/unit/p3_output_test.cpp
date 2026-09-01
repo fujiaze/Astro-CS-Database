@@ -28,7 +28,7 @@ int main() {
   std::vector<float> cov(static_cast<size_t>(w) * h);
   for (int y = 0; y < h; ++y)
     for (int x = 0; x < w; ++x) {
-      sig[static_cast<size_t>(y) * w + x] = 100.0f + 0.5f * x;
+      sig[static_cast<size_t>(y) * w + x] = 100.0f + 0.5f * static_cast<float>(x);
       cov[static_cast<size_t>(y) * w + x] = (x < 40) ? 1.0f : 0.0f;  // mask
     }
 

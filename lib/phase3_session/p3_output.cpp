@@ -54,18 +54,15 @@ namespace astrocs::phase3 {
 namespace {
 std::string g_last_err;
 
-int write_card_str(fitsfile* f, const char* key, const char* val) {
-    int status = 0;
-    fits_write_key(f, TSTRING, key, (void*)val, nullptr, &status);
-    return status;
-}
-
 // FITS DATASUM(32-bit checksum) 辅助: 计算字节和
 uint32_t fdatasum(const void* buf, size_t n) {
     const unsigned char* p = (const unsigned char*)buf;
     uint32_t sum = 0;
     for (size_t i = 0; i + 4 <= n; i += 4) {
-        uint32_t w = p[i] | (p[i + 1] << 8) | (p[i + 2] << 16) | (p[i + 3] << 24);
+        const uint32_t w = static_cast<uint32_t>(p[i]) |
+                           (static_cast<uint32_t>(p[i + 1]) << 8) |
+                           (static_cast<uint32_t>(p[i + 2]) << 16) |
+                           (static_cast<uint32_t>(p[i + 3]) << 24);
         sum += w;
     }
     return sum;
@@ -189,9 +186,7 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
     fits_write_pix(f, TFLOAT, fpix, nelem, (void*)coverage, &status);
 
     // 写 DATASUM(CHECKSUM) — FITS 标准 32-bit 校验
-    const uint32_t dsig = fdatasum(signal, (size_t)nelem * sizeof(float));
-    const uint32_t dscov = fdatasum(coverage, (size_t)nelem * sizeof(float));
-    const uint32_t dsum = dsig;
+    const uint32_t dsum = fdatasum(signal, (size_t)nelem * sizeof(float));
     {
         uint32_t dv = dsum;
         fits_write_key(f, TINT, (char*)"DATASUM", &dv, nullptr, &status);
@@ -233,6 +228,9 @@ P3OutputStatus p3_output_verify(const char* output_path, const P3WcsDescriptor* 
                                 const float* signal, const float* coverage,
                                 int width, int height, P3OutputResult* result) {
     if (!output_path || !result || width < 1 || height < 1) return P3_OUT_PARAM;
+    // wcs 由 p3_output_write_atomic 写盘时已写入 header; verify 聚焦像素/尺寸/checksum
+    // (WCS 一致性由写路径单点保证, 见 p3_output_write_atomic)
+    (void)wcs;
     std::memset(result, 0, sizeof(*result));
     long nelem = (long)width * height;
     int ok = 1, covok = 1;

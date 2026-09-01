@@ -33,13 +33,12 @@ void WcsTan::pix2sky(double x, double y, double* ra, double* dec) const {
 
 void WcsTan::sky2pix(double ra, double dec, double* x, double* y) const {
   const double dec0 = crval2 * M_PI / 180.0;
-  const double ra0 = crval1 * M_PI / 180.0;
   double dra = (ra - crval1) * M_PI / 180.0;
   while (dra > M_PI) dra -= 2 * M_PI;
   while (dra < -M_PI) dra += 2 * M_PI;
   const double ddec = dec * M_PI / 180.0;
   // 标准 TAN: xi = cos(dec)*sin(dra) / (sin(dec0)*sin(dec) + cos(dec0)*cos(dec)*cos(dra))
-  //        eta = (cos(dec0)*sin(dec) - sin(dec0)*cos(dec)*cos(dra)) / 同分母
+  // eta = (cos(dec0)*sin(dec) - sin(dec0)*cos(dec)*cos(dra)) / 同分母
   const double c0 = std::cos(dec0), s0 = std::sin(dec0);
   const double cd = std::cos(ddec), sd = std::sin(ddec);
   const double den = s0 * sd + c0 * cd * std::cos(dra);

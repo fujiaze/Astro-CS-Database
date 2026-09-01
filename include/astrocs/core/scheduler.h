@@ -60,10 +60,8 @@ class Scheduler {
   void cancel() { cancel_.store(true, std::memory_order_release); }
 
  private:
-  uint32_t available_cpu_;
   uint32_t budget_;
   uint64_t memory_limit_bytes_;
-  uint64_t memory_used_ = 0;
   std::map<std::string, NodeSpec> nodes_;
   std::map<std::string, NodeStatus> status_;
   std::atomic<bool> cancel_{false};

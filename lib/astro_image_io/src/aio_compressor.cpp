@@ -61,6 +61,7 @@ size_t compressZstd(const void* src, size_t srcSize,
     return outSize;
 #else
     // 无 zstd 库: fallback 到不压缩 (直接拷贝)
+    (void)level;   // 仅 fallback 路径未使用 (QA-001)
     fprintf(stderr, "[aio][compressor] 警告: 未编译 zstd 支持, fallback 到不压缩 (srcSize=%zu)\n",
             srcSize);
     if (dstCapacity < srcSize) {

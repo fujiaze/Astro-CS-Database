@@ -6,10 +6,10 @@
 // - AveragedSigma/LinearFit/ESD/RCR 接口冻结，后续子任务按论文/Oracle 独立实现；
 // - 输出 accepted mask + low/high 计数 + 迭代数 + status。
 // - 排异阈值/迭代冻结锚点 SCI-REJ-*/ALG-REJ-001..008：
-//   sigma/winsorized/averaged 4.0/3.0/8、linear_fit 5.0/3.5/8、ESD alpha 0.05/max 10、
-//   percentile 0.2/0.1、minmax 1/1/4 等与 docs/science/REJECTION.md、
-//   docs/algorithms/REJECTION_ALGORITHMS.md 一致（见本文件 p2_reject_plan_resolve）；
-//   本文件为阈值/迭代权威实现，禁止阈值漂移。
+// sigma/winsorized/averaged 4.0/3.0/8、linear_fit 5.0/3.5/8、ESD alpha 0.05/max 10、
+// percentile 0.2/0.1、minmax 1/1/4 等与 docs/science/REJECTION.md、
+// docs/algorithms/REJECTION_ALGORITHMS.md 一致（见本文件 p2_reject_plan_resolve）；
+// 本文件为阈值/迭代权威实现，禁止阈值漂移。
 #include "astro/phase2/rejection.h"
 
 #include <algorithm>
@@ -25,24 +25,6 @@
 #include <vector>
 
 namespace {
-
-inline double median(std::vector<double> v) {
-    if (v.empty()) return 0.0;
-    const std::size_t n = v.size();
-    const std::size_t mid = n / 2;
-    std::nth_element(v.begin(), v.begin() + mid, v.end());
-    if (n % 2 == 1) return v[mid];
-    const double a = v[mid];
-    // nth_element 后 [begin, mid) 全部 ≤ v[mid]；第 mid 小（即排序后
-    // v[mid-1]）是前 mid 个元素的最大值。
-    const double b = *std::max_element(v.begin(), v.begin() + mid);
-    return 0.5 * (a + b);
-}
-
-inline double mad(std::vector<double> v, double med) {
-    for (auto& x : v) x = std::fabs(x - med);
-    return 1.4826 * median(std::move(v));
-}
 
 // 正则化不完全 beta I_x(a,b)（Lentz 连分数，Numerical Recipes betai/betacf 算法）
 double ibeta_cf(double a, double b, double x) {
@@ -110,11 +92,6 @@ double t_quantile(double p, double nu) {
         if (cdf < p) lo = mid; else hi = mid;
     }
     return 0.5 * (lo + hi);
-}
-
-// 官方公开 Chauvenet 经验修正因子（RCR.cpp nCorrect 近似公式）
-inline double rcr_n_correct(std::size_t n) {
-    return std::pow(1.2591, std::pow((double)n, 0.2052));
 }
 
 // =====：完整 sequential RCR =====
@@ -1227,7 +1204,7 @@ int p2_collect_candidate_stack(const P2EligibilityGatherInput* in,
         }
         if (ok) {
             out->values[cnt] = v;
-            //显式保留原始 slot 映射（eligible → original）
+            // 显式保留原始 slot 映射（eligible → original）
             if (out->source_indices != nullptr)
                 out->source_indices[cnt] = s;
             if (in->weights != nullptr && out->weights != nullptr)
@@ -1692,12 +1669,12 @@ void reject_minmax_impl(const double* w, std::uint32_t n,
     accept.resize(n);
     accept.fill(1);
     for (int k = 0; k < k_low; ++k) {
-        reason[order[k]] = P2_REASON_REJECTED_LOW;
-        accept[order[k]] = 0;
+        reason[order[static_cast<std::size_t>(k)]] = P2_REASON_REJECTED_LOW;
+        accept[order[static_cast<std::size_t>(k)]] = 0;
     }
     for (int k = 0; k < k_high; ++k) {
-        reason[order[n - 1 - (std::size_t)k]] = P2_REASON_REJECTED_HIGH;
-        accept[order[n - 1 - (std::size_t)k]] = 0;
+        reason[order[n - 1 - static_cast<std::size_t>(k)]] = P2_REASON_REJECTED_HIGH;
+        accept[order[n - 1 - static_cast<std::size_t>(k)]] = 0;
     }
     *iterations = 1;
 }
@@ -1855,10 +1832,10 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
     out->rejected_low = rej_low;
     out->rejected_high = rej_high;
     out->iterations = iterations;
-    // V17F1 容错：小栈全拒回退为 UNDERDETERMINED（不 hard fail）
+    // 容错：小栈全拒回退为 UNDERDETERMINED（不 hard fail）
     // 根因：wbpp_2_9_1 percentile (low 0.2 / high 0.1, scale=|median|)
     // 在 N=4 时阈值过严可导致全 rejected（tile 116446 N_B=4），而
-    // n=2 走 underdetermined_n 白名单绕过；该状态按 SCIENCE_FREEZE V17
+    // n=2 走 underdetermined_n 白名单绕过；该状态按 SCIENCE_FREEZE
     // 仍 hard fail。仅调容错路径、阈值冻结不变：N<=4 且全拒时降级为
     // 全接受 UNDERDETERMINED（保留中位数/放宽阈值的等价可继续语义），
     // 保证 32 帧 mosaic 可落盘且不破坏 2 帧语义。

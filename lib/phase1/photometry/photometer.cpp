@@ -37,7 +37,7 @@ astrocs::core::Result<PhotometryResult> Photometer::measure(
       const double d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
       const double d = std::sqrt(d2);
       if (d >= sky_inner_ && d <= sky_outer_) {
-        sky_vals.push_back(image[static_cast<size_t>(y) * w + x]);
+        sky_vals.push_back(image[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)]);
       }
     }
   if (sky_vals.empty()) {
@@ -50,15 +50,13 @@ astrocs::core::Result<PhotometryResult> Photometer::measure(
 
   // 2) aperture 积分 (背景扣除)
   double sum = 0;
-  long n_in = 0;
-  double sq = 0;
+  int n_in = 0;
   for (int y = 0; y < h; ++y)
     for (int x = 0; x < w; ++x) {
       const double d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
       if (d2 <= aperture_radius_ * aperture_radius_) {
-        const double v = image[static_cast<size_t>(y) * w + x] - r.background;
+        const double v = image[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)] - r.background;
         sum += v;
-        sq += v * v;
         ++n_in;
       }
     }

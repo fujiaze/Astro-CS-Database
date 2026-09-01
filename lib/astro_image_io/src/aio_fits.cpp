@@ -1055,7 +1055,7 @@ int fits_detect(const char *path) {
     const char *ext = strrchr(path, '.');
     if (!ext) return 0;
     std::string e = ext;
-    for (auto &c : e) c = tolower(c);
+    for (auto &c : e) c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
     // .fz = fpack 压缩 FITS (CFITSIO 透明解压)
     return (e == ".fits" || e == ".fit" || e == ".fts" || e == ".fz") ? 1 : 0;
 }

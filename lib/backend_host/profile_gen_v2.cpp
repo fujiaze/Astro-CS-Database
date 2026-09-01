@@ -1,10 +1,10 @@
 // lib/backend_host/profile_gen_v2.cpp — cpu_profile.json (v2) 生成与复读 (CPU-003)
-// 规格: V6.1 控制包 CPU-003 (G3); schemas/cpu_profile.schema.json (v2)
+// 规格: CPU-003 (G3); schemas/cpu_profile.schema.json (v2)
 // 流程(固定顺序, 08 §4): 能力/配额 → 加载可用 provider(manifest 预检) →
-//   provider correctness/self-test(失败永久剔除, 不计时) → memory 带宽基线 →
-//   每代表 kernel small/medium/large → workers 1..available → block 候选 →
-//   3 warmup + 7 measure → median/MAD → winner → AVX512 相对 AVX2 提升<3% 选 AVX2 →
-//   保存全部原始候选 → profile JSON。
+// provider correctness/self-test(失败永久剔除, 不计时) → memory 带宽基线 →
+// 每代表 kernel small/medium/large → workers 1..available → block 候选 →
+// 3 warmup + 7 measure → median/MAD → winner → AVX512 相对 AVX2 提升<3% 选 AVX2 →
+// 保存全部原始候选 → profile JSON。
 // Oracle: 独立标量参考(与 kernel 实现不同路径; 逐元素公式在下方冻结)。
 #include "profile_gen.h"
 
@@ -106,7 +106,7 @@ std::vector<double> oracle_ref(const KernelSpec& sp, uint32_t w, uint32_t N,
     case ACS_KOP_PSF_BATCH: {
         const double cx = in0[0], cy = in0[1];
         for (uint32_t i = 0; i < N; ++i) {
-            const double x = i % w, y = i / w;
+            const double x = static_cast<double>(i % w), y = static_cast<double>(i) / static_cast<double>(w);
             ref[i] = sp.k * std::exp(-((x - cx) * (x - cx) + (y - cy) * (y - cy)) * 0.5);
         }
         break;
@@ -179,7 +179,8 @@ std::vector<double> oracle_ref(const KernelSpec& sp, uint32_t w, uint32_t N,
         if (iw < 2 || ih < 2) break;
         const double s = sp.k;
         for (uint32_t i = 0; i < N; ++i) {
-            const double x = (i % w) * s, y = (i / w) * s;
+            const double x = static_cast<double>(i % w) * s,
+                         y = static_cast<double>(i) / static_cast<double>(w) * s;
             int x0 = static_cast<int>(std::floor(x)), y0i = static_cast<int>(std::floor(y));
             double fx = x - std::floor(x), fy = y - std::floor(y);
             x0 = std::min(std::max(x0, 0), static_cast<int>(iw) - 2);
@@ -187,8 +188,9 @@ std::vector<double> oracle_ref(const KernelSpec& sp, uint32_t w, uint32_t N,
             fx = std::min(std::max(fx, 0.0), 1.0);
             fy = std::min(std::max(fy, 0.0), 1.0);
             const size_t r0 = static_cast<size_t>(y0i) * iw, r1 = r0 + iw;
-            ref[i] = (1 - fx) * (1 - fy) * in0[r0 + x0] + fx * (1 - fy) * in0[r0 + x0 + 1] +
-                     (1 - fx) * fy * in0[r1 + x0] + fx * fy * in0[r1 + x0 + 1];
+            const size_t x0s = static_cast<size_t>(x0);
+            ref[i] = (1 - fx) * (1 - fy) * in0[r0 + x0s] + fx * (1 - fy) * in0[r0 + x0s + 1] +
+                     (1 - fx) * fy * in0[r1 + x0s] + fx * fy * in0[r1 + x0s + 1];
         }
         break;
     }
@@ -241,7 +243,10 @@ Inputs build_inputs(const KernelSpec& sp, const std::string& sc) {
         }
         for (uint32_t i = 0; i < N; ++i) r.in3[i] = lcg_f();
     }
-    if (sp.op == ACS_KOP_PSF_BATCH) { r.in0[0] = base * 0.37f; r.in0[1] = base * 0.53f; }
+    if (sp.op == ACS_KOP_PSF_BATCH) {
+        r.in0[0] = static_cast<float>(base) * 0.37f;
+        r.in0[1] = static_cast<float>(base) * 0.53f;
+    }
     if (sp.op == ACS_KOP_HIPS_BULK) {
         // 源图 = 输出网格; kernel 经 aux0/aux1 读取源宽/高
         for (uint32_t i = 0; i < static_cast<uint32_t>(r.in0.size()); ++i)
@@ -320,7 +325,6 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
     const nlohmann::json hw = nlohmann::json::parse(hw_json);
     const uint32_t avail = static_cast<uint32_t>(hw.value("available_logical_cpus", 1u));
     astrocs_host_state_set_budget_v1(state, avail, avail, &host);
-    const uint64_t detected = astrocs_cpu_detect_features_v1();
 
     // ── 2. 加载可用 provider(manifest 预检; 无 manifest=仅内置 baseline) ──
     struct LoadedProvider {
@@ -356,7 +360,7 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
                     lp.ok = true;
                     providers.push_back(std::move(lp));
                 } else {
-                    LoadedProvider bad;
+                    LoadedProvider bad{};
                     bad.id = e.backend_id;
                     bad.ok = false;
                     bad.fail_reason = reason;
@@ -376,7 +380,7 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
         : std::vector<std::string>{"medium"};
     const std::vector<uint32_t> workers_cand = worker_candidates(avail);
     // block 候选: 由 L2 与元素尺寸派生(L2 实测或保守 256KB)
-    uint64_t l2_bytes = 256u * 1024u;
+    uint64_t l2_bytes = 256ull * 1024ull;
     for (const auto& c : hw.value("cache", nlohmann::json::array())) {
         if (c.value("level", std::string()) == "2") {
             const std::string s = c.value("size", "256K");

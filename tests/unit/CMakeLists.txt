@@ -378,3 +378,9 @@ target_include_directories(p3_assembly_test PRIVATE
 target_link_libraries(p3_assembly_test PRIVATE astrocs_phase3_session astrocs_hips astrocs_aio astrocs_common)
 add_test(NAME p3_assembly COMMAND p3_assembly_test)
 
+# 依赖 ASTROCS_REPO 定位仓库内资源文件的测试统一注入仓库根路径，
+# 保证 ctest 无论从哪个工作目录启动均可解析 (QA-001 ctest 回归全绿)
+set_tests_properties(
+  core_pipeline cpu_provider cpu_bench io_adapter p1_ir_facade p2_ir_facade
+  PROPERTIES ENVIRONMENT "ASTROCS_REPO=${CMAKE_SOURCE_DIR}")
+

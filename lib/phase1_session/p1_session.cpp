@@ -1,6 +1,6 @@
 // lib/phase1_session/p1_session.cpp — Phase1 进程内会话实现 (API-P1-001) — CLI-004
 // 阶段序列: io_read → calibrate → cosmetic → io_write; 与 PHASE1_API_V1 §1 合同一致。
-// 线程: ac_set_num_threads(budget.max_workers) 注入(V5 迁移整改点; 禁硬编码核数)。
+// 线程: ac_set_num_threads(budget.max_workers) 注入( 迁移整改点; 禁硬编码核数)。
 // 取消: 帧粒度(每帧前查 cancel); 取消→清理+ACS_ERR_CANCELLED, 不留伪完整产物。
 #include "p1_session.h"
 
@@ -158,7 +158,7 @@ acs_status p1_session_run(acs_handle h, const acs_span_u8 config_json, int async
         s->last_error = "config parse failed (validate first)";
         return ACS_ERR_PARAM;
     }
-    // 线程预算注入(V5 迁移整改点): worker 数=预算快照, 禁硬编码
+    // 线程预算注入( 迁移整改点): worker 数=预算快照, 禁硬编码
     ac_set_num_threads(static_cast<int>(s->host->budget.max_workers));
     s->log(ACS_LOG_INFO, "phase1", "session run: omp threads=" +
                std::to_string(s->host->budget.max_workers) +
@@ -239,7 +239,7 @@ acs_status p1_session_run(acs_handle h, const acs_span_u8 config_json, int async
                 return ACS_ERR_PARAM;
             }
             W = image_w(light.get()); H = image_h(light.get());
-            std::vector<float> out(static_cast<size_t>(W) * H, 0.0f);
+            std::vector<float> out(static_cast<size_t>(W) * static_cast<size_t>(H), 0.0f);
             const int rc = ac_calibrate_frame(
                 image_px(light.get()), W, H,
                 dark ? image_px(dark.get()) : nullptr,
@@ -289,7 +289,7 @@ acs_status p1_session_run(acs_handle h, const acs_span_u8 config_json, int async
             if (s->cancelled()) { st["status"] = "cancelled"; return ACS_ERR_CANCELLED; }
             auto im = read_image(a.get<std::string>(), &err);
             if (!im) { s->last_error = err; st["status"] = "fail"; return ACS_ERR_IO; }
-            std::vector<float> fixed(static_cast<size_t>(image_w(im.get())) * image_h(im.get()));
+            std::vector<float> fixed(static_cast<size_t>(image_w(im.get())) * static_cast<size_t>(image_h(im.get())));
             int hot = 0, cold = 0;
             const int rc = ac_correct_frame(
                 image_px(im.get()), image_w(im.get()), image_h(im.get()),

@@ -49,12 +49,13 @@ struct P3SamplerImpl {
 static bool read_leaf(P3SamplerImpl* s, uint64_t leaf_ipix, float* out) {
     // leaf nside = 512·2^K → tile_order=K 的父 ipix; 局部 512² 由 nested_local 映射
     const int tile_order = s->order;
-    const uint32_t leaf_order = tile_order + 9;
+    const uint32_t leaf_order = static_cast<uint32_t>(tile_order) + 9;
     const uint64_t tip = astrocs::healpix::leaf_to_tile_nest(leaf_ipix, leaf_order,
-                                                             tile_order);   // 传"阶"非 nside
+                                                             static_cast<uint32_t>(tile_order));   // 传"阶"非 nside
     if (const float* hit = s->cache.get(tip)) {
         // 缓存命中: leaf→tile 内标准 HiPS 排列索引
-        const uint64_t first = astrocs::healpix::tile_to_leaf_nest(tip, tile_order, leaf_order);
+        const uint64_t first = astrocs::healpix::tile_to_leaf_nest(
+            tip, static_cast<uint32_t>(tile_order), leaf_order);
         const uint64_t local = leaf_ipix - first;
         const uint64_t fits_index = astrocs::healpix::nested_local_to_fits_index(
             local, 9, kTileWidth);
@@ -68,7 +69,8 @@ static bool read_leaf(P3SamplerImpl* s, uint64_t leaf_ipix, float* out) {
         return false;   // 缺 tile
     }
     s->cache.put(tip, std::move(tile));
-    const uint64_t first = astrocs::healpix::tile_to_leaf_nest(tip, tile_order, leaf_order);
+    const uint64_t first = astrocs::healpix::tile_to_leaf_nest(
+        tip, static_cast<uint32_t>(tile_order), leaf_order);
     const uint64_t local = leaf_ipix - first;
     const uint64_t fits_index = astrocs::healpix::nested_local_to_fits_index(local, 9,
                                                                              kTileWidth);
@@ -162,17 +164,6 @@ P3ResampleStatus p3_sample_bilinear(P3Sampler* s, double ra_deg, double dec_deg,
     std::vector<P> pts;
     pts.reserve(9);
     const double d0r = dec_deg * M_PI / 180.0, a0r = ra_deg * M_PI / 180.0;
-    auto project = [&](double ra, double dec) {
-        const double ar = ra * M_PI / 180.0, dr = dec * M_PI / 180.0;
-        const double den = std::sin(d0r) * std::sin(dr) +
-                           std::cos(d0r) * std::cos(dr) * std::cos(ar - a0r);
-        if (den <= 0) return false;
-        const double xi = std::cos(dr) * std::sin(ar - a0r) / den;
-        const double eta = (std::sin(dr) * std::cos(d0r) -
-                            std::cos(dr) * std::sin(d0r) * std::cos(ar - a0r)) / den;
-        return true;
-    };
-    (void)project;
     auto add_pt = [&](uint64_t ip) {
         double ra = 0, dec = 0;
         astrocs::healpix::pix2ang_nest(nside, ip, ra, dec);

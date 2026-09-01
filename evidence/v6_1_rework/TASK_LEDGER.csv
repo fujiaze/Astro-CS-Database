@@ -48,7 +48,7 @@ DOC-003,G7,重建全公共API AST语义检查,DOC-001,Linux,documentation,no,yes
 DOC-004,G7,补齐所有生产模块README,DOC-001,Linux,documentation,no,yes,core/io/runtime/cpu/P1/P2/P3 modules,职责/端口/合同/符号/并行/内存/错误/test齐,PASS
 DOC-005,G7,重建L0负责人文档,DOC-002;DOC-003;DOC-004,Linux,documentation,no,yes,REVIEW plus 5 docs,状态由ledger/evidence生成; owner只读L0可判断风险,PASS
 DOC-006,G7,统一注释命名与代码可读性,DOC-005,Linux,quality,no,yes,comments; vague names; CLI split; dead code,注释准确无审计历史; main thin; warnings fixed; no unrelated format,PASS
-QA-001,G7,完成零警告静态分析,DOC-006,Linux,quality,no,yes,GCC/Clang warnings; clang-tidy/cppcheck scoped,自有生产源码zero warning; P0/P1 static findings closed,NOT_STARTED
+QA-001,G7,完成零警告静态分析,DOC-006,Linux,quality,no,yes,GCC/Clang warnings; clang-tidy/cppcheck scoped,自有生产源码zero warning; P0/P1 static findings closed,PASS
 QA-002,G7,完成sanitizer与线程安全,QA-001;RT-003,Linux,quality,yes,yes,ASan UBSan LSan targeted TSan,所有权/并发生产链覆盖; 不禁LSan; suppressions逐项,NOT_STARTED
 QA-003,G7,完成依赖许可SBOM与可复现构建,QA-002,Linux,quality,no,yes,locks; licenses; flags; build IDs,双平台依赖清单; provider hashes; reproducibility metadata,NOT_STARTED
 LNX-001,G8,Linux干净GCC与Clang构建,QA-001;P3-006,Linux,validation,no,yes,fresh dirs; Release/Debug; CLI/package,完整自有源码; zero warning; no hidden old build,NOT_STARTED

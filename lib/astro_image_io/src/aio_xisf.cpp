@@ -666,6 +666,6 @@ int xisf_detect(const char *path) {
     const char *ext = strrchr(path, '.');
     if (!ext) return 0;
     std::string e = ext;
-    for (auto &c : e) c = tolower(c);
+    for (auto &c : e) c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
     return (e == ".xisf") ? 1 : 0;
 }

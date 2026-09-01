@@ -16,7 +16,7 @@ StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_
 bool StarDetector::estimate_background(const float* image, int w, int h,
                                        double* bg, double* sigma) {
   if (!image || w <= 0 || h <= 0 || !bg || !sigma) return false;
-  const size_t n = static_cast<size_t>(w) * h;
+  const size_t n = static_cast<size_t>(w) * static_cast<size_t>(h);
   std::vector<double> vals(n);
   for (size_t i = 0; i < n; ++i) vals[i] = image[i];
   // sigma-clip 2 轮: median ± 3σ
@@ -65,13 +65,13 @@ astrocs::core::Result<StarCatalog> StarDetector::detect(const float* image, int 
   std::vector<Cand> cands;
   for (int y = 1; y < h - 1; ++y) {
     for (int x = 1; x < w - 1; ++x) {
-      const double v = image[static_cast<size_t>(y) * w + x];
+      const double v = image[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)];
       if (v < thr) continue;
       bool local_max = true;
       for (int dy = -1; dy <= 1 && local_max; ++dy)
         for (int dx = -1; dx <= 1; ++dx) {
           if (dx == 0 && dy == 0) continue;
-          if (image[static_cast<size_t>(y + dy) * w + x + dx] >= v) { local_max = false; break; }
+          if (image[static_cast<size_t>(y + dy) * static_cast<size_t>(w) + static_cast<size_t>(x + dx)] >= v) { local_max = false; break; }
         }
       if (local_max) cands.push_back({x, y, v});
     }
@@ -107,7 +107,7 @@ astrocs::core::Result<StarCatalog> StarDetector::detect(const float* image, int 
       for (int dx = -2; dx <= 2; ++dx) {
         int ny = c.y + dy, nx = c.x + dx;
         if (ny < 0 || ny >= h || nx < 0 || nx >= w) { s.quality |= 2; continue; }  // 边缘
-        const double v = image[static_cast<size_t>(ny) * w + nx] - cat.background;
+        const double v = image[static_cast<size_t>(ny) * static_cast<size_t>(w) + static_cast<size_t>(nx)] - cat.background;
         if (v <= 0) continue;
         const double px = nx, py = ny;
         m00 += v; m10 += v * px; m01 += v * py;
@@ -127,7 +127,7 @@ astrocs::core::Result<StarCatalog> StarDetector::detect(const float* image, int 
     const double b = std::sqrt(std::max(b2, 1e-12));
     s.fwhm_px = 2.3548 * 0.5 * (a + b);
     s.ellipticity = (a >= b) ? (1.0 - b / a) : (1.0 - a / b);
-    const double peak = image[static_cast<size_t>(c.y) * w + c.x];
+    const double peak = image[static_cast<size_t>(c.y) * static_cast<size_t>(w) + static_cast<size_t>(c.x)];
     s.snr = (peak - cat.background) / cat.noise_sigma;
     // 饱和: 绝对幅值接近/超过 16bit 满井 (ADU 域; 不因高 SNR 误判)
     if (peak > 50000.0) s.quality |= 1;

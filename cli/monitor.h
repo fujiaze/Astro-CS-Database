@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <cinttypes>
 #include <cstring>
 #include <string>
 #include <thread>
@@ -62,11 +63,11 @@ inline bool read_proc_self(ProcSample& s) {
     if (f) {
         char line[512];
         while (std::fgets(line, sizeof(line), f)) {
-            if (std::strncmp(line, "VmRSS:", 6) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 6, "%llu", &v) == 1) s.rss_bytes = v * 1024; }
-            else if (std::strncmp(line, "VmSize:", 7) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 7, "%llu", &v) == 1) s.vms_bytes = v * 1024; }
+            if (std::strncmp(line, "VmRSS:", 6) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 6, "%" SCNu64, &v) == 1) s.rss_bytes = v * 1024; }
+            else if (std::strncmp(line, "VmSize:", 7) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 7, "%" SCNu64, &v) == 1) s.vms_bytes = v * 1024; }
             else if (std::strncmp(line, "Threads:", 8) == 0) { std::uint32_t v = 0; if (std::sscanf(line + 8, "%u", &v) == 1) s.threads = v; }
-            else if (std::strncmp(line, "voluntary_ctxt_switches:", 24) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 24, "%llu", &v) == 1) s.ctx_switches += v; }
-            else if (std::strncmp(line, "nonvoluntary_ctxt_switches:", 27) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 27, "%llu", &v) == 1) s.ctx_switches += v; }
+            else if (std::strncmp(line, "voluntary_ctxt_switches:", 24) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 24, "%" SCNu64, &v) == 1) s.ctx_switches += v; }
+            else if (std::strncmp(line, "nonvoluntary_ctxt_switches:", 27) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 27, "%" SCNu64, &v) == 1) s.ctx_switches += v; }
         }
         std::fclose(f);
         ok = true;
@@ -76,10 +77,10 @@ inline bool read_proc_self(ProcSample& s) {
     if (f) {
         char line[256];
         while (std::fgets(line, sizeof(line), f)) {
-            if (std::strncmp(line, "read_bytes:", 11) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 11, "%llu", &v) == 1) s.read_bytes = v; }
-            else if (std::strncmp(line, "write_bytes:", 12) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 12, "%llu", &v) == 1) s.write_bytes = v; }
-            else if (std::strncmp(line, "rchar:", 6) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 6, "%llu", &v) == 1) s.read_ops = v; }
-            else if (std::strncmp(line, "wchar:", 6) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 6, "%llu", &v) == 1) s.write_ops = v; }
+            if (std::strncmp(line, "read_bytes:", 11) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 11, "%" SCNu64, &v) == 1) s.read_bytes = v; }
+            else if (std::strncmp(line, "write_bytes:", 12) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 12, "%" SCNu64, &v) == 1) s.write_bytes = v; }
+            else if (std::strncmp(line, "rchar:", 6) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 6, "%" SCNu64, &v) == 1) s.read_ops = v; }
+            else if (std::strncmp(line, "wchar:", 6) == 0) { std::uint64_t v = 0; if (std::sscanf(line + 6, "%" SCNu64, &v) == 1) s.write_ops = v; }
         }
         std::fclose(f);
     }
@@ -125,8 +126,8 @@ inline void read_cpu_time(ProcSample& s) {
                     while (*p == ' ') ++p;
                     if (!*p) break;
                     long val = std::strtol(p, &end, 10);
-                    if (field == 14) s.user_seconds = val / 100.0;   // utime(clock ticks)
-                    if (field == 15) s.sys_seconds = val / 100.0;    // stime
+                    if (field == 14) s.user_seconds = static_cast<double>(val) / 100.0;   // utime(clock ticks)
+                    if (field == 15) s.sys_seconds = static_cast<double>(val) / 100.0;    // stime
                     p = end;
                     ++field;
                 }
@@ -173,7 +174,8 @@ public:
             const auto a = SteadyClock::now();
             tick();
             const auto b = SteadyClock::now();
-            overhead_ns_ += std::chrono::duration_cast<SteadyNs>(b - a).count();
+            overhead_ns_ += static_cast<uint64_t>(
+                std::chrono::duration_cast<SteadyNs>(b - a).count());
             // 睡眠到下一个采样点(扣除采样耗时), 而非固定 interval, 避免漂移
             const auto wake = a + period;
             const auto now = SteadyClock::now();
@@ -218,18 +220,18 @@ public:
                 s.total_write_bytes += sm.d_write_bytes;
                 s.total_ctx_switches += sm.d_ctx_switches;
             }
-            s.avg_equivalent_cores = sum_eq / samples_.size();
+            s.avg_equivalent_cores = sum_eq / static_cast<double>(samples_.size());
             // RSS 斜率: 末采样 - 首采样 / 墙钟
             const auto& first = samples_.front();
             const auto& last = samples_.back();
-            const double dt = std::max(0.001, (double)samples_.size() * interval_);
+            const double dt = std::max(0.001, static_cast<double>(samples_.size()) * interval_);
             s.rss_slope_bytes_per_s =
                 static_cast<int64_t>((static_cast<double>(last.rss_bytes) -
                                       static_cast<double>(first.rss_bytes)) / dt);
         }
         s.peak_rss_bytes = peaks_rss;
         s.avg_cpu_percent = s.avg_equivalent_cores * 100.0;  // 等价核数(%) = 等价核数 × 100
-        if (n_ > 0) s.sample_overhead_ms = static_cast<double>(overhead_ns_) / n_ / 1e6;
+        if (n_ > 0) s.sample_overhead_ms = static_cast<double>(overhead_ns_) / static_cast<double>(n_) / 1e6;
         return s;
     }
 
