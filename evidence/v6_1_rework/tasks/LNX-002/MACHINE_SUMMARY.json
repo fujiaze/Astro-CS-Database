@@ -1,0 +1,106 @@
+{
+  "schema": "astrocs.machine-summary/v1",
+  "task_id": "LNX-002",
+  "source_commit": "84a4ae9eb33f1a6c17d2a35e0e2a3d74a9245c9f",
+  "host": "vm-bj (Debian, 2c/3GB)",
+  "command": "astrocs test synthetic --group all (ASTROCS_TEST_BIN_DIR=/tmp/acs_bins, ASTROCS_REPO=/tmp/acs_repo)",
+  "exit_code": 0,
+  "registry": "真实 test registry (CLI-003 kMap)",
+  "tests": [
+    {
+      "name": "p1_calibration_test",
+      "group": "calibration",
+      "executable": "/tmp/acs_bins/p1_calibration_test",
+      "binary_sha256_prefix": "8dea4f775e0edf0a",
+      "production_symbols": 66,
+      "seed": "fixed(测试内合成)",
+      "tolerance": "1e-4 相对",
+      "duration_ms": 5,
+      "result": "PASS",
+      "output_sha256": ""
+    },
+    {
+      "name": "p1_stars_test",
+      "group": "wcs_psf",
+      "executable": "/tmp/acs_bins/p1_stars_test",
+      "binary_sha256_prefix": "93216357d3d05c2a",
+      "production_symbols": 26,
+      "seed": "fixed(测试内合成)",
+      "tolerance": "completeness/fp 计数",
+      "duration_ms": 8,
+      "result": "PASS",
+      "output_sha256": ""
+    },
+    {
+      "name": "p1_noise_test",
+      "group": "noise_snr",
+      "executable": "/tmp/acs_bins/p1_noise_test",
+      "binary_sha256_prefix": "518b6b09ceadcc4a",
+      "production_symbols": 27,
+      "seed": "MC fixed",
+      "tolerance": "Poisson 统计",
+      "duration_ms": 9,
+      "result": "PASS",
+      "output_sha256": ""
+    },
+    {
+      "name": "p1_nside_test",
+      "group": "drizzle",
+      "executable": "/tmp/acs_bins/p1_nside_test",
+      "binary_sha256_prefix": "2e3b4221be51411e",
+      "production_symbols": 1461,
+      "seed": "fixed",
+      "tolerance": "NSIDE 公式 roundtrip",
+      "duration_ms": 6,
+      "result": "PASS",
+      "output_sha256": ""
+    },
+    {
+      "name": "p2_upm_synthetic_test",
+      "group": "upm",
+      "executable": "/tmp/acs_bins/p2_upm_synthetic_test",
+      "binary_sha256_prefix": "fe5c3a1483611daf",
+      "production_symbols": 16,
+      "seed": "fixed",
+      "tolerance": "gauge 闭合/接缝",
+      "duration_ms": 4,
+      "result": "PASS",
+      "output_sha256": ""
+    },
+    {
+      "name": "p2_output_semantics_test",
+      "group": "rejection_integration",
+      "executable": "/tmp/acs_bins/p2_output_semantics_test",
+      "binary_sha256_prefix": "eccf899fd04baa64",
+      "production_symbols": 10,
+      "seed": "fixed",
+      "tolerance": "ivar/权重语义",
+      "duration_ms": 3,
+      "result": "PASS",
+      "output_sha256": ""
+    },
+    {
+      "name": "p1_ir_facade_test",
+      "group": "pipeline",
+      "executable": "/tmp/acs_bins/p1_ir_facade_test",
+      "binary_sha256_prefix": "565146241cb1f364",
+      "production_symbols": 66,
+      "seed": "fixed",
+      "tolerance": "IR 节点存在性",
+      "duration_ms": 9,
+      "result": "PASS",
+      "output_sha256": ""
+    }
+  ],
+  "module_tests": {
+    "ctest": {
+      "total": 56,
+      "passed": 56,
+      "failed": 0
+    }
+  },
+  "no_not_run": true,
+  "no_check_true": true,
+  "no_old_logs": true,
+  "generated_utc": "2026-09-02T05:20:00Z"
+}

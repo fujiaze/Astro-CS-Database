@@ -52,7 +52,7 @@ QA-001,G7,完成零警告静态分析,DOC-006,Linux,quality,no,yes,GCC/Clang war
 QA-002,G7,完成sanitizer与线程安全,QA-001;RT-003,Linux,quality,yes,yes,ASan UBSan LSan targeted TSan,所有权/并发生产链覆盖; 不禁LSan; suppressions逐项,PASS
 QA-003,G7,完成依赖许可SBOM与可复现构建,QA-002,Linux,quality,no,yes,locks; licenses; flags; build IDs,双平台依赖清单; provider hashes; reproducibility metadata,PASS
 LNX-001,G8,Linux干净GCC与Clang构建,QA-001;P3-006,Linux,validation,no,yes,fresh dirs; Release/Debug; CLI/package,完整自有源码; zero warning; no hidden old build,PASS
-LNX-002,G8,Linux全合成科学测试,LNX-001,Linux,validation,yes,yes,all production oracles; pipeline integration,机器summary逐test; no CHECK true; no rerun masking,NOT_STARTED
+LNX-002,G8,Linux全合成科学测试,LNX-001,Linux,validation,yes,yes,all production oracles; pipeline integration,机器summary逐test; no CHECK true; no rerun masking,PASS
 LNX-003,G8,Linuxsanitizer现场复验,LNX-002;QA-002,Linux,validation,yes,yes,production paths under sanitizers,ASan/UBSan/LSan/targeted TSan pass; hashes current,NOT_STARTED
 LNX-004,G8,Linux 2c2g资源恢复验证,LNX-003;MON-003,Linux,validation,yes,yes,P1/P2/P3 >=10s; cancel/resume; memory pressure,real samples summaries balance; no low utilization; bounded RAM,NOT_STARTED
 LNX-005,G8,尝试少量真实数据辅助冒烟,LNX-004,Linux,validation,yes,yes,Fatduck hashed 1R/panel+masters if online,online则P1/P2/P3 smoke; offline记录NOT_RUN不阻塞Windows; 禁伪PASS实测,NOT_STARTED

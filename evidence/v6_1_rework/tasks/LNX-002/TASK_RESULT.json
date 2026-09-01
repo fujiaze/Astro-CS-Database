@@ -1,0 +1,102 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "LNX-002",
+  "status": "PASS",
+  "parent_commit": "84a4ae9d598c1eff65885c350fa61edf4b6671e5",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "verification",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/LNX-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/LNX-002/MACHINE_SUMMARY.json",
+    "evidence/v6_1_rework/tasks/LNX-002/logs/c01_synthetic_all.log",
+    "evidence/v6_1_rework/tasks/LNX-002/logs/c02_module_ctest.log",
+    "evidence/v6_1_rework/tasks/LNX-002/MACHINE_SUMMARY.json"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "纯验证任务: astrocs test synthetic --group all 走真实 registry; 无源码变更"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "astrocs",
+        "test",
+        "synthetic",
+        "--group",
+        "all"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T05:10:00Z",
+      "duration_seconds": 60.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-002/logs/c01_synthetic_all.log",
+      "log_sha256": "deea7d3f026cd6f5b22a670d0e8911d6adf8e84ca115c819eddb077749318975"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "ctest",
+        "-j2",
+        "模块测试防聚合器漏项"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T05:15:00Z",
+      "duration_seconds": 20.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-002/logs/c02_module_ctest.log",
+      "log_sha256": "2a7a09935be7ad8ec827057f3d4f632c2a213854483891f5a2601296a149089c"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-SYNTHETIC-ALL",
+      "description": "astrocs test synthetic --group all: 7 组全 PASS (真实 registry)",
+      "result": "PASS",
+      "evidence_sha256": "deea7d3f026cd6f5b22a670d0e8911d6adf8e84ca115c819eddb077749318975"
+    },
+    {
+      "test_id": "T-MODULE",
+      "description": "模块测试 56/56 PASS (防聚合器漏项)",
+      "result": "PASS",
+      "evidence_sha256": "2a7a09935be7ad8ec827057f3d4f632c2a213854483891f5a2601296a149089c"
+    },
+    {
+      "test_id": "T-MACHINE-SUMMARY",
+      "description": "每 test executable/符号/seed/tolerance/duration/hash 记录; 无 NOT_RUN/CHECK(true)/旧日志",
+      "result": "PASS",
+      "evidence_sha256": "eee1178708a1eb5c929856acb197c90ecd5869898e618ddc8d867ec08e4fb4b3"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-002/logs/c01_synthetic_all.log",
+      "sha256": "deea7d3f026cd6f5b22a670d0e8911d6adf8e84ca115c819eddb077749318975"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-002/logs/c02_module_ctest.log",
+      "sha256": "2a7a09935be7ad8ec827057f3d4f632c2a213854483891f5a2601296a149089c"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-002/MACHINE_SUMMARY.json",
+      "sha256": "eee1178708a1eb5c929856acb197c90ecd5869898e618ddc8d867ec08e4fb4b3"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-002/MACHINE_SUMMARY.json",
+      "sha256": "eee1178708a1eb5c929856acb197c90ecd5869898e618ddc8d867ec08e4fb4b3"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "CLI synthetic 路径需 ASTROCS_TEST_BIN_DIR 覆盖 (默认 build/root-cmake); ASTROCS_REPO 需无空格路径 (system() sh 解析)"
+  ],
+  "expected_commit_subject": "LNX-002: Linux 全合成科学测试 (astrocs test synthetic all 7/7 PASS, 模块 56/56, machine summary)",
+  "created_utc": "2026-09-02T05:25:00Z"
+}
