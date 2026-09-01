@@ -1,0 +1,107 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "DOC-006",
+  "status": "PASS",
+  "parent_commit": "54caf70e413535579e2ed1b8bbf8f7eee5f4e295",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "quality",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/DOC-006/PLAN.md",
+    "evidence/v6_1_rework/tasks/DOC-006/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/DOC-006/logs/c01_hygiene.log",
+    "evidence/v6_1_rework/tasks/DOC-006/logs/c02_taskid_scan.log",
+    "lib/phase2/src/sampler.cpp",
+    "lib/phase2/src/upm.cpp",
+    "lib/phase2/include/astro/phase2/upm.h",
+    "lib/phase2/include/astro/phase2/sampler.h",
+    "lib/phase2_session/p2_session.cpp",
+    "lib/phase3_session/p3_session.cpp",
+    "lib/phase3_session/p3_session.h",
+    "lib/phase3_session/p3_resample.cpp",
+    "lib/phase3_session/p3_resample.h",
+    "lib/phase3_session/p3_output.cpp",
+    "lib/phase3_session/p3_output.h",
+    "lib/phase3_session/p3_wcs.cpp",
+    "lib/phase1/wcs/wcs_tan.h",
+    "lib/phase1/noise/noise_model.h",
+    "lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "注释卫生: 删除任务号注释(保留合同 ID 与技术含义), 无逻辑变更"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_comment_hygiene.py"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T01:00:00Z",
+      "duration_seconds": 2.0,
+      "log_path": "evidence/v6_1_rework/tasks/DOC-006/logs/c01_hygiene.log",
+      "log_sha256": "632b6184b27f13e35c32826ffcdc5c070485f8cb58e852ac3c07753c3a40bcfa"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "bash",
+        "-c",
+        "grep 任务号注释残留扫描"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T01:01:00Z",
+      "duration_seconds": 2.0,
+      "log_path": "evidence/v6_1_rework/tasks/DOC-006/logs/c02_taskid_scan.log",
+      "log_sha256": "64e4d16ea561be50b1afaa364b806ed6acecca03eed7104453482b9a87f2de7b"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-HYGIENE",
+      "description": "comment hygiene 501 扫描 0 违规",
+      "result": "PASS",
+      "evidence_sha256": "632b6184b27f13e35c32826ffcdc5c070485f8cb58e852ac3c07753c3a40bcfa"
+    },
+    {
+      "test_id": "T-TASKID-CLEAN",
+      "description": "lib/ cli/ 任务号注释残留 0(保留合同 ID)",
+      "result": "PASS",
+      "evidence_sha256": "64e4d16ea561be50b1afaa364b806ed6acecca03eed7104453482b9a87f2de7b"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-006/PLAN.md",
+      "sha256": "ba64ff1b7e56656f5b5694eafd125c052b7d2a3a3fedd4e32d78f1e996bf3408"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-006/TASK_RESULT.json",
+      "sha256": "3b0e4657097638d2d6f8b1541f5f6fa04a3d11e8ba9fa4f7ae1aee5b048a6f3c"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-006/logs/c01_hygiene.log",
+      "sha256": "632b6184b27f13e35c32826ffcdc5c070485f8cb58e852ac3c07753c3a40bcfa"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-006/logs/c02_taskid_scan.log",
+      "sha256": "64e4d16ea561be50b1afaa364b806ed6acecca03eed7104453482b9a87f2de7b"
+    }
+  ],
+  "findings": [
+    "F-020",
+    "F-033"
+  ],
+  "expected_commit_subject": "DOC-006: 统一注释命名与代码可读性 (任务号注释 0 残留, 保留合同 ID; hygiene 0 违规)",
+  "created_utc": "2026-09-02T01:05:00Z"
+}

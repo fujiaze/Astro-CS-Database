@@ -47,7 +47,7 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
                                       const char* bunit,
                                       const char* output_path,
                                       const P3Provenance* prov,
-                                      int bitpix,             // P3-005: -32|-64 真实决定 buffer
+                                      int bitpix,             // -32|-64 真实决定 buffer
                                       int cancelled_at_row,   // -1=不取消
                                       P3OutputResult* result);
 

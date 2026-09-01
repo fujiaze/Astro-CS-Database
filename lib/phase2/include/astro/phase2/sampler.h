@@ -51,9 +51,9 @@ typedef struct {
     // （UPMW-005 control_median_mc_test，pixfrac=0.8 实证 1.3883），
     // 冻结保守值 1.4（>= 实证，余量 <1%）。<=0 时回退冻结默认。
     double control_k_corr;                // 默认 1.4
-    // CON-004 并行采样 worker 数（0=auto：omp_get_max_threads()/hardware_concurrency；1=串行默认）。
+    // CON-004 并行采样 worker 数（0=auto：omp_get_max_threads/hardware_concurrency；1=串行默认）。
     // 仅 P2_ENABLE_OPENMP 且 >1 时启用并行第一遍；否则恒串行（默认行为不变）。
-    int cpu_workers;                      // P2-001: 来自 Runtime lease(p2_session 传 budget.max_workers); 1=串行 reference
+    int cpu_workers;                      // 来自 Runtime lease(p2_session 传 budget.max_workers); 1=串行 reference
 } P2SamplerConfig;
 
 // sampler 默认配置单一来源（null cfg 时使用；显式 cfg 覆盖）。
@@ -114,9 +114,9 @@ P2_API int p2_sample_controls(
     char* err, std::size_t err_size);
 
 // 含 frame_id 缓存的重载（性能：stage2 已算 frame_id 时透传，避免二次 500MB payload 哈希）。
-//  @param frame_ids 长度 n_inputs，与 hips_paths 同序；0 视为非法（p2_frame_id 失败哨兵），实现将直接拒绝。
-//  @note out_n_controls = n_geometry_controls (= n_union * grid*grid，含空覆盖占位)，
-//        与 out_stats.accepted_controls / overlap_controls (≥1/≥2 clean) 区分；日志应并列表述。
+// @param frame_ids 长度 n_inputs，与 hips_paths 同序；0 视为非法（p2_frame_id 失败哨兵），实现将直接拒绝。
+// @note out_n_controls = n_geometry_controls (= n_union * grid*grid，含空覆盖占位)，
+// 与 out_stats.accepted_controls / overlap_controls (≥1/≥2 clean) 区分；日志应并列表述。
 P2_API int p2_sample_controls_cached(
     const P2CoverageResult* coverage,
     const char* const* hips_paths,

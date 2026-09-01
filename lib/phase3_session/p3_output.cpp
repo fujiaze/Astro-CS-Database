@@ -211,7 +211,7 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
         return P3_OUT_IO;
     }
 
-    // 计算 sha256(重新读出的完整文件) 并独立重开验证 (P3-005: 重开验证)
+    // 计算 sha256(重新读出的完整文件) 并独立重开验证(重开验证)
     if (result) {
         std::string h = astrocs::crypto::sha256_file(output_path);
         std::snprintf(result->sha256, sizeof(result->sha256), "%s", h.c_str());
@@ -284,7 +284,7 @@ P3OutputStatus p3_output_verify(const char* output_path, const P3WcsDescriptor* 
     for (long i = 0; i < nelem; ++i) if (coverage[i] > 0.5f) ++covn;
     result->covered_px = covn;
     result->total_px = nelem;
-    // 重算 checksum (P3-005: 独立重开 + checksum)
+    // 重算 checksum (独立重开 + checksum)
     {
         std::string h = astrocs::crypto::sha256_file(output_path);
         std::snprintf(result->sha256, sizeof(result->sha256), "%s", h.c_str());

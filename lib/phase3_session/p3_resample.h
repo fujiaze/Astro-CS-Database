@@ -31,7 +31,7 @@ struct P3Sampler {
 };
 P3ResampleStatus p3_sampler_open(const char* product_dir, P3Sampler* out,
                                        std::string* err);
-/* 打开并暴露输入实际 order 与 BUNIT(P3-002): order_sel 上限须来自输入实际 order,
+/* 打开并暴露输入实际 order 与 BUNIT: order_sel 上限须来自输入实际 order,
  * 禁止仅写 metadata; BUNIT 来源输入合同(缺省 ADU, 绝不 Jy/beam 默认)。 */
 P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
                                     int* out_order, std::string* out_bunit,

@@ -140,7 +140,7 @@ struct FrameData {
     std::set<std::uint64_t> tiles;          // order=K tile ipix
     std::vector<double> snr_ra, snr_dec, snr;
     std::vector<std::uint32_t> quality;     // Phase1 SNR catalogue quality
-    double kcorr = kControlCorrDefault;     //：per-frame k_corr
+    double kcorr = kControlCorrDefault;     // per-frame k_corr
 };
 
 inline std::uint64_t leaf_of_tile(std::uint64_t tile_ipix, int leaf_shift) {
@@ -306,7 +306,7 @@ P2SamplerConfig p2_sampler_default_config(void) {
     c.background_neighbor_radius = 2;
     c.background_catalog_veto = 1;
     c.control_k_corr = kControlCorrDefault;
-    c.cpu_workers = 1;                  // P2-001: 默认 1(串行 reference); 生产由 p2_session 传 lease
+    c.cpu_workers = 1;                  // 默认 1(串行 reference); 生产由 p2_session 传 lease
     return c;
 }
 
@@ -625,7 +625,7 @@ static int p2_sample_controls_impl(
 
     // 第一遍：每个 union cell 的 64 controls（hotfix：串行；
     // 保留 tile 级复用——每 cell 覆盖帧的 signal/support tile 只读一次，
-    // 消除 64× 重读；P2-001: 并行由 std::thread + Runtime lease 驱动。
+    // 消除 64× 重读；并行由 std::thread + Runtime lease 驱动。
     const std::uint64_t n_union = coverage->n_union_cells;
     // 边界：714*64=45696，32 帧候选约 1.4M；reserve 前检查溢出
     if (n_union > (std::size_t)1e6) {
@@ -873,8 +873,8 @@ static int p2_sample_controls_impl(
     };
 
     // worker 数：来自 Runtime lease(p2_session 传 cfg.cpu_workers=budget.max_workers)。
-    // 无 hardware_concurrency()(模块不得自行开线程); 1 => 串行 reference。
-    // P2-001: 生产默认 N-worker 并行(std::thread, 跨 Linux/MSVC 一致); OpenMP 条件已移除。
+    // 无 hardware_concurrency(模块不得自行开线程); 1 => 串行 reference。
+    // 生产默认 N-worker 并行(std::thread, 跨 Linux/MSVC 一致); OpenMP 条件已移除。
     const int workers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
     const bool par = (workers > 1);
 
@@ -929,7 +929,7 @@ static int p2_sample_controls_impl(
     }
 #if defined(_WIN32) && defined(_MSC_VER)
     } catch (...) {
-        // /EHa: catch(...) 亦捕获结构化异常(AV); _exception_code() 仅限 __except, 此处取不到 code
+        // /EHa: catch(...) 亦捕获结构化异常(AV); _exception_code 仅限 __except, 此处取不到 code
         if (err && err_size)
             std::snprintf(err, err_size, "SEH/C++ exception at %s (AV outside try/catch)", "sampler first pass");
         std::fprintf(stderr, "[sampler] exception caught in first pass\n");
