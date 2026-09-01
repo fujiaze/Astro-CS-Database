@@ -26,7 +26,7 @@ static void test_register_three_phase_modules() {
   CHECK(r.ok());
   if (r.failed()) return;
   // P1-001 (G4): 8 类 Phase1 + Phase2/3 = 10; P2-006 (G5): +7 节点链 = 17
-  CHECK(reg.size() == 17);
+  CHECK(reg.size() == 22);   // P2-006 7 子模块 + P3-006 5 子模块 + 既有 10
   CHECK(reg.has_factory("astrocs.phase1.calibration"));
   CHECK(reg.has_factory("astrocs.phase2.resample"));
   CHECK(reg.has_factory("astrocs.phase3.resample"));

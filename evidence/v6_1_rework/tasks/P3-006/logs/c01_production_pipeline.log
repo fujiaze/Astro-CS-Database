@@ -1,0 +1,21 @@
+/home/lighthouse/Astro CS Database/tests/backend/test_p3006_production_pipeline.py:40: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3006_pyxf623n/big/c.json' mode='w' encoding='UTF-8'>
+  json.dump(cfg, open(os.path.join(cls.big, "c.json"), "w"))
+test_01_ir_chain_5_nodes (__main__.TestP3006ProductionPipeline.test_01_ir_chain_5_nodes)
+IR 5 节点链: properties→wcs→resample2→writer→verify(端口/Artifact 正确)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3006_production_pipeline.py:49: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/graph/static_graph.json' mode='r' encoding='utf-8'>
+  d = json.load(open(gpath, encoding="utf-8"))
+ok
+test_02_production_route_ge10s (__main__.TestP3006ProductionPipeline.test_02_production_route_ge10s)
+完整合成运行 ≥10s(大图 bilinear 并行)。 ... ok
+test_03_science_valid (__main__.TestP3006ProductionPipeline.test_03_science_valid)
+科学门: 输出 FITS 有效(关键字/值/coverage 扩展)。 ... ok
+test_04_resource_gate (__main__.TestP3006ProductionPipeline.test_04_resource_gate)
+资源门: phase3 run 事件含 worker 数(≥2)与 cpu 利用率(高)。 ... ok
+test_05_registry_implemented (__main__.TestP3006ProductionPipeline.test_05_registry_implemented)
+SCI/ALG/MOD 状态 IMPLEMENTED(控制包台账标记)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3006_production_pipeline.py:95: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/evidence/v6_1_rework/TASK_LEDGER.csv' mode='r' encoding='utf-8'>
+  rows = list(csv.reader(open(ledger, encoding="utf-8")))
+ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 41.709s
+
+OK

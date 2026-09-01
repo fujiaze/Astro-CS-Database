@@ -129,18 +129,35 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
     }
     return nodes;
   };
-  auto phase3_node = [&]() {
-    nlohmann::json n;
-    n["node_id"] = "hips";
-    n["module_id"] = "astrocs.phase3.resample";
-    n["module_api"] = "1.x";
+  // P3-006 (G6): Canonical Phase3 IR 链
+  // source(artifact:hips_in) → properties → wcs → resample2 → writer → verify。
+  // 端口名与 core module_adapters 的 descriptor 端口一致。
+  auto phase3_nodes = [&]() -> std::vector<nlohmann::json> {
     nlohmann::json pc = phase_config(doc, 3, out_dir, err);
-    if (!err->empty()) return nlohmann::json();
-    n["config"] = pc;
-    n["inputs"] = {{"hips", "artifact:hips_in"}};
-    n["outputs"] = {{"tile", "artifact:tile"}};
-    n["resources"] = {{"class", "cpu_heavy"}, {"parallel", true}};
-    return n;
+    if (!err->empty()) return {};
+    const std::vector<std::tuple<std::string, std::string, std::string, std::string>> chain = {
+        {"properties", "astrocs.phase3.properties", "hips", "props"},
+        {"wcs", "astrocs.phase3.wcs", "props", "wcs_plan"},
+        {"resample2", "astrocs.phase3.resample2", "wcs_plan", "resampled"},
+        {"writer", "astrocs.phase3.writer", "resampled", "fits"},
+        {"verify", "astrocs.phase3.verify", "fits", "verified"},
+    };
+    std::vector<nlohmann::json> nodes;
+    std::string prev = "artifact:hips_in";
+    for (const auto& [nid, mod, in_port, out_port] : chain) {
+      nlohmann::json n;
+      n["node_id"] = nid;
+      n["module_id"] = mod;
+      n["module_api"] = "1.x";
+      n["config"] = pc;
+      n["inputs"] = {{in_port, prev}};
+      n["outputs"] = {{out_port, "artifact:" + nid}};
+      n["resources"] = {{"class", "cpu_heavy"}, {"parallel", true}};
+      if (nid == "writer") n["resources"] = {{"class", "io"}, {"parallel", false}};
+      nodes.push_back(n);
+      prev = "artifact:" + nid;
+    }
+    return nodes;
   };
 
   bool want1 = false, want2 = false, want3 = false;
@@ -153,14 +170,16 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   if (want2) {
     for (auto& n : phase2_nodes()) ir["nodes"].push_back(n);
   }
-  if (want3) ir["nodes"].push_back(phase3_node());
+  if (want3) {
+    for (auto& n : phase3_nodes()) ir["nodes"].push_back(n);
+  }
   if (!err->empty()) return "";  // 任一 phase config 缺失 → 整体失败
   if (ir["nodes"].empty()) {
     if (err) *err = "no phases requested";
     return "";
   }
   if (want2) outs["mosaic"] = "artifact:write";
-  if (want3) outs["tile"] = "artifact:tile";
+  if (want3) outs["verified"] = "artifact:verify";
   if (want1 && !want2 && !want3) outs["calibrated"] = "artifact:cal";
   ir["outputs"] = outs;
   return ir.dump();

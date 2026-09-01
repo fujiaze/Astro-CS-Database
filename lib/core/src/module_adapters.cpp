@@ -284,6 +284,106 @@ ModuleDescriptor phase3_descriptor() {
   return d;
 }
 
+// ---- P3-006 (G6): Canonical Phase3 IR 链子模块 descriptor ----
+// source→properties→wcs→resample→writer→verify; 端口 DATA/单位/Artifact ID 完整。
+// 工厂委托 P3Api session adapter(一站式执行)。
+
+ModuleDescriptor p3_properties_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase3.properties";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"hips", "DATA-HIPS-001", true, UnitId::ADU, CoordinateFrame::HEALPIX},
+      {"props", "DATA-P3-PROPS", false, UnitId::DIMENSIONLESS, CoordinateFrame::HEALPIX},
+  };
+  d.sci_id = "SCI-P3-PROPS-001";
+  d.alg_id = "ALG-P3-001";
+  d.data_id = "DATA-P3-PROPS";
+  d.api_id = "API-P3-001";
+  d.test_id = "TEST-P3-PROPS-001";
+  return d;
+}
+
+ModuleDescriptor p3_wcs_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase3.wcs";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"props", "DATA-P3-PROPS", true, UnitId::DIMENSIONLESS, CoordinateFrame::HEALPIX},
+      {"wcs_plan", "DATA-P3-WCS", false, UnitId::DEGREE, CoordinateFrame::ICRS},
+  };
+  d.sci_id = "SCI-P3-WCS-001";
+  d.alg_id = "ALG-P3-002";
+  d.data_id = "DATA-P3-WCS";
+  d.api_id = "API-P3-001";
+  d.test_id = "TEST-P3-WCS-001";
+  return d;
+}
+
+ModuleDescriptor p3_resample2_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase3.resample2";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "cpu_heavy";
+  d.parallel_ok = true;
+  d.ports = {
+      {"wcs_plan", "DATA-P3-WCS", true, UnitId::DEGREE, CoordinateFrame::ICRS},
+      {"hips", "DATA-HIPS-001", true, UnitId::ADU, CoordinateFrame::HEALPIX},
+      {"resampled", "DATA-P3-RES", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P3-RES-001";
+  d.alg_id = "ALG-P3-003";
+  d.data_id = "DATA-P3-RES";
+  d.api_id = "API-P3-001";
+  d.test_id = "TEST-P3-RES-001";
+  return d;
+}
+
+ModuleDescriptor p3_writer_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase3.writer";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "io";
+  d.parallel_ok = false;
+  d.ports = {
+      {"resampled", "DATA-P3-RES", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
+      {"fits", "DATA-P3-FITS", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P3-WR-001";
+  d.alg_id = "ALG-P3-004";
+  d.data_id = "DATA-P3-FITS";
+  d.api_id = "API-P3-001";
+  d.test_id = "TEST-P3-WR-001";
+  return d;
+}
+
+ModuleDescriptor p3_verify_descriptor() {
+  ModuleDescriptor d;
+  d.module_id = "astrocs.phase3.verify";
+  d.version = "1.0.0";
+  d.abi = "c++17";
+  d.execution_class = "io";   // 读回校验非计算 heavy(heavy+serial 资源门禁止)
+  d.parallel_ok = false;
+  d.ports = {
+      {"fits", "DATA-P3-FITS", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
+      {"verified", "DATA-P3-VER", false, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
+  };
+  d.sci_id = "SCI-P3-VER-001";
+  d.alg_id = "ALG-P3-005";
+  d.data_id = "DATA-P3-VER";
+  d.api_id = "API-P3-001";
+  d.test_id = "TEST-P3-VER-001";
+  return d;
+}
+
 ModuleDescriptor p1_cosmetic_descriptor() {
   ModuleDescriptor d;
   d.module_id = "astrocs.phase1.cosmetic";
@@ -656,6 +756,19 @@ Result<void> register_phase_modules(ModuleRegistry& registry) {
     if (rr.failed()) return rr;
     auto ff = registry.register_factory(
         d.module_id, [d]() { return make_session_module<P2Api>(d); });
+    if (ff.failed()) return ff;
+  }
+  // P3-006 (G6): Canonical Phase3 IR 链子模块注册(source→properties→wcs→resample→writer→verify)
+  const ModuleDescriptor p3_chain[] = {
+      p3_properties_descriptor(), p3_wcs_descriptor(),
+      p3_resample2_descriptor(),  p3_writer_descriptor(),
+      p3_verify_descriptor(),
+  };
+  for (const auto& d : p3_chain) {
+    auto rr = registry.register_module(d);
+    if (rr.failed()) return rr;
+    auto ff = registry.register_factory(
+        d.module_id, [d]() { return make_session_module<P3Api>(d); });
     if (ff.failed()) return ff;
   }
 
