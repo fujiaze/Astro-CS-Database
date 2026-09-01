@@ -1,0 +1,119 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "DOC-003",
+  "status": "PASS",
+  "parent_commit": "0756ecdf6905c12ed4e6bb4273fda169166e2884",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "documentation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/DOC-003/PLAN.md",
+    "evidence/v6_1_rework/tasks/DOC-003/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/DOC-003/logs/c01_api_docs.log",
+    "evidence/v6_1_rework/tasks/DOC-003/logs/c02_abi.log",
+    "evidence/v6_1_rework/tasks/DOC-003/logs/c03_ast.log",
+    "lib/phase3_session/p3_resample.h",
+    "lib/phase3_session/p3_resample.cpp",
+    "lib/phase3_session/p3_session.cpp",
+    "docs/api/CLI_PROTOCOL_V1.md"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": false,
+    "binary": false,
+    "reason": "max_tiles 内存守卫从文档实现到代码(p3_sampler_set_max_tiles + session BUDGET 拒绝); CLI_PROTOCOL_V1 benchmark events-jsonl 同步"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/check_api_docs.py"
+      ],
+      "timeout_seconds": 180,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T22:00:00Z",
+      "duration_seconds": 10.0,
+      "log_path": "evidence/v6_1_rework/tasks/DOC-003/logs/c01_api_docs.log",
+      "log_sha256": "693eb1c48a1cbd1fda15f2438d5776089adaa88837a9045a14ca4af148a551cb"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/check_abi_boundary.py"
+      ],
+      "timeout_seconds": 180,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T22:01:00Z",
+      "duration_seconds": 5.0,
+      "log_path": "evidence/v6_1_rework/tasks/DOC-003/logs/c02_abi.log",
+      "log_sha256": "6caca46bfa69b4890680208a1a0649102385e944b695d8ee0a6b2127fcea0225"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "python3",
+        "tools/check_ast_api.py"
+      ],
+      "timeout_seconds": 180,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T22:02:00Z",
+      "duration_seconds": 5.0,
+      "log_path": "evidence/v6_1_rework/tasks/DOC-003/logs/c03_ast.log",
+      "log_sha256": "52e79292dbdfd229b1da1944a7c2fa2592c2a38707e1b9766c3c211a59892382"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-API-DOCS",
+      "description": "命令树=CLI --help; 退出码单源; phase3 字段代码实现(max_tiles 已实现)",
+      "result": "PASS",
+      "evidence_sha256": "693eb1c48a1cbd1fda15f2438d5776089adaa88837a9045a14ca4af148a551cb"
+    },
+    {
+      "test_id": "T-ABI",
+      "description": "11 个 ABI 结构 size/version; 8 头无 STL/异常跨边界",
+      "result": "PASS",
+      "evidence_sha256": "6caca46bfa69b4890680208a1a0649102385e944b695d8ee0a6b2127fcea0225"
+    },
+    {
+      "test_id": "T-AST",
+      "description": "AST public 符号与声明一致(参数/cv/noexcept)",
+      "result": "PASS",
+      "evidence_sha256": "52e79292dbdfd229b1da1944a7c2fa2592c2a38707e1b9766c3c211a59892382"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-003/PLAN.md",
+      "sha256": "de712129dd251ccbc275da3602be45392b925235c559e6cb6483d6db0747b01f"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-003/TASK_RESULT.json",
+      "sha256": "2b4586edbe4470b94c1ea5d582d23b8737e501db957bd97b106d3e5deeedb5bf"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-003/logs/c01_api_docs.log",
+      "sha256": "693eb1c48a1cbd1fda15f2438d5776089adaa88837a9045a14ca4af148a551cb"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-003/logs/c02_abi.log",
+      "sha256": "6caca46bfa69b4890680208a1a0649102385e944b695d8ee0a6b2127fcea0225"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-003/logs/c03_ast.log",
+      "sha256": "52e79292dbdfd229b1da1944a7c2fa2592c2a38707e1b9766c3c211a59892382"
+    }
+  ],
+  "findings": [
+    "F-017",
+    "F-030"
+  ],
+  "expected_commit_subject": "DOC-003: 重建全公共 API AST 语义检查 (API docs/ABI/AST 全 PASS; max_tiles 守卫实现; CLI doc 同步)",
+  "created_utc": "2026-09-01T22:05:00Z"
+}

@@ -11,7 +11,7 @@ astrocs hardware inspect --json
 astrocs config init --output <path>
 astrocs config validate --config <path>
 astrocs config show-effective --config <path> [--cpu-profile <path>] --json
-astrocs benchmark cpu (--quick|--full) [--output <path>]     # 唯一用户 benchmark 入口,禁另发 benchmark exe
+astrocs benchmark cpu (--quick|--full) [--output <path>] [--events-jsonl]     # 唯一用户 benchmark 入口,禁另发 benchmark exe
 astrocs doctor --json
 astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|pipeline>
 astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]
