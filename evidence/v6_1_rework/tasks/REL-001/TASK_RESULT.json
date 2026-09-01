@@ -1,0 +1,94 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "REL-001",
+  "status": "WAITING_WINDOWS",
+  "parent_commit": "e10459690ec38faa3beebf0bddffcac6ba46def7",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "release",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/REL-001/TASK_RESULT.json",
+    "dist/astrocs-alpha.2-linux/",
+    "evidence/v6_1_rework/tasks/REL-001/logs/c01_bench_quick.log",
+    "evidence/v6_1_rework/tasks/REL-001/logs/c02_linux_package_verify.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": false,
+    "binary": true,
+    "reason": "REL-001 IN_PROGRESS: Linux amd64 alpha.2 发布包完成 (dist/astrocs-alpha.2-linux: astrocs+baseline/AVX2/AVX512 provider+schemas+SBOM+checksums, 干净目录 install/run/doctor/profile verify/small smoke 全 PASS); Windows 侧依赖 WIN-006 (Fatduck 在线) 待窗口"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "astrocs",
+        "benchmark",
+        "cpu",
+        "--quick"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T02:00:00Z",
+      "duration_seconds": 60.0,
+      "log_path": "evidence/v6_1_rework/tasks/REL-001/logs/c01_bench_quick.log",
+      "log_sha256": "f0377a8b4f3a6ab4b6bfa71ef31be45dc3288ed90ad42fe54a7dbd87e69ac6d0"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "astrocs",
+        "doctor",
+        "--json",
+        "+",
+        "verify",
+        "profile",
+        "--json",
+        "+",
+        "sha256sum",
+        "-c"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T02:03:00Z",
+      "duration_seconds": 10.0,
+      "log_path": "evidence/v6_1_rework/tasks/REL-001/logs/c02_linux_package_verify.log",
+      "log_sha256": "fab550a7f9778472c37186246789aa967bff61ad8bc99ffa8666940c12f9dcfe"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-LINUX-PKG",
+      "description": "Linux alpha.2 包: version/doctor/profile verify/checksums 全 PASS",
+      "result": "PASS",
+      "evidence_sha256": "fab550a7f9778472c37186246789aa967bff61ad8bc99ffa8666940c12f9dcfe"
+    },
+    {
+      "test_id": "T-WINDOWS-PENDING",
+      "description": "Windows amd64 包依赖 WIN-006 (Fatduck 离线, WAITING_WINDOWS)",
+      "result": "WAITING",
+      "evidence_sha256": ""
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/REL-001/logs/c01_bench_quick.log",
+      "sha256": "f0377a8b4f3a6ab4b6bfa71ef31be45dc3288ed90ad42fe54a7dbd87e69ac6d0"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/REL-001/logs/c02_linux_package_verify.log",
+      "sha256": "fab550a7f9778472c37186246789aa967bff61ad8bc99ffa8666940c12f9dcfe"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Windows 侧待 Fatduck 在线 (07:00-23:30 北京时间) 后构建 astrocs.exe alpha.2 包; 不伪造 Windows PASS"
+  ],
+  "expected_commit_subject": "REL-001: Linux alpha.2 发布包完成, Windows 待 Fatduck (WAITING_WINDOWS)",
+  "created_utc": "2026-09-02T08:10:00Z",
+  "experiment_status": "LINUX_DONE_WINDOWS_PENDING"
+}
