@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
                         "run-1", "0", "bilinear"};
         P3OutputResult r{};
         const P3OutputStatus st = p3_output_write_atomic(
-            sig.data(), cov.data(), W, H, &w, "Jy/beam", out, &pv, cancel, &r);
+            sig.data(), cov.data(), W, H, &w, "ADU", out, &pv, cancel, &r);  // P3-002: 面亮度 ADU, 非 Jy/beam
         if (st == P3_OUT_CANCELLED) { std::printf("CANCELLED\n"); return 0; }
         if (st != P3_OUT_OK) { std::printf("FAIL %d\n", (int)st); return 1; }
         std::printf("OK %s %ld %ld\n", r.sha256, r.covered_px, r.total_px);

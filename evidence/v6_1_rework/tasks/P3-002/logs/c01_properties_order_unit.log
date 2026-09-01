@@ -1,0 +1,37 @@
+test_01_order_sel_from_input (__main__.TestP3002PropertiesOrderUnit.test_01_order_sel_from_input)
+order_sel 上限来自输入实际 order(非固定 20), reader 用该 order。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3002_properties_order_unit.py:26: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_session.cpp' mode='r' encoding='utf-8'>
+  s = open(SESS, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3002_properties_order_unit.py:32: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_resample.cpp' mode='r' encoding='utf-8'>
+  r = open(RES, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_02_bunit_from_contract (__main__.TestP3002PropertiesOrderUnit.test_02_bunit_from_contract)
+BUNIT 来源输入合同: 缺省 ADU, 绝不 Jy/beam 默认。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3002_properties_order_unit.py:38: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_session.cpp' mode='r' encoding='utf-8'>
+  s = open(SESS, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3002_properties_order_unit.py:41: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_resample.cpp' mode='r' encoding='utf-8'>
+  r = open(RES, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3002_properties_order_unit.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/hips_properties.h' mode='r' encoding='utf-8'>
+  h = open(PROPS_H, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3002_properties_order_unit.py:45: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/hips_properties.cpp' mode='r' encoding='utf-8'>
+  c = open(PROPS_C, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_03_bitpix_from_request (__main__.TestP3002PropertiesOrderUnit.test_03_bitpix_from_request)
+BITPIX 来自 request(-32|-64), 非法拒绝。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3002_properties_order_unit.py:50: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_session.cpp' mode='r' encoding='utf-8'>
+  s = open(SESS, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_04_unsupported_inputs_rejected (__main__.TestP3002PropertiesOrderUnit.test_04_unsupported_inputs_rejected)
+不支持输入显式错误(variance/weight/ivar/flux-per-pixel)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3002_properties_order_unit.py:55: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_resample.cpp' mode='r' encoding='utf-8'>
+  r = open(RES, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.003s
+
+OK
