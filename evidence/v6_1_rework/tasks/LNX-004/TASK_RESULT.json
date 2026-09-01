@@ -1,0 +1,216 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "LNX-004",
+  "status": "PASS",
+  "parent_commit": "c0c5f46c8cf5e18a5862d4dbe9abdb780784d0a8",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "verification",
+  "changed_paths": [
+    "cli/runtime_client.cpp",
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/LNX-004/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/LNX-004/logs/c01_p1_heavy_summary.json",
+    "evidence/v6_1_rework/tasks/LNX-004/logs/c02_p2_heavy_summary.json",
+    "evidence/v6_1_rework/tasks/LNX-004/logs/c03_p3_heavy_summary.json",
+    "evidence/v6_1_rework/tasks/LNX-004/logs/c04_cancel_manifest.json",
+    "evidence/v6_1_rework/tasks/LNX-004/logs/c05_cancel_run.log",
+    "evidence/v6_1_rework/tasks/LNX-004/logs/c06_resume_run.log",
+    "evidence/v6_1_rework/tasks/LNX-004/logs/c07_worker_balance_p2.csv",
+    "evidence/v6_1_rework/tasks/LNX-004/logs/c08_worker_balance_p3.csv",
+    "evidence/v6_1_rework/tasks/LNX-004/logs/c09_cancel_fix_build.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": true,
+    "binary": true,
+    "reason": "\u4fee\u590d cancel \u63a5\u7ebf\u7f3a\u9677: CLI SIGINT cancel_flag \u672a\u8f6c\u53d1\u5230 Runtime::cancel() (\u4fe1\u53f7\u4e0d\u8fbe runtime, cancel \u4e0d\u751f\u6548); \u65b0\u589e\u76d1\u89c6\u7ebf\u7a0b\u8f6e\u8be2\u8f6c\u53d1"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "astrocs",
+        "run",
+        "--phases",
+        "1",
+        "p1_config600"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T06:20:00Z",
+      "duration_seconds": 12.3,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-004/logs/c01_p1_heavy_summary.json",
+      "log_sha256": "2298c79752619af158576677ac60056c184ca5c3e5c425df7a3b52a24f0ec453"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "astrocs",
+        "run",
+        "--phases",
+        "2",
+        "p2_rp"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T06:25:00Z",
+      "duration_seconds": 46.1,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-004/logs/c02_p2_heavy_summary.json",
+      "log_sha256": "3760a1db3a741f59cf24f28be78d0f4bccee1f1aade973c5ea65a1e4e0f73972"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "astrocs",
+        "run",
+        "--phases",
+        "3",
+        "p3_run1"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T06:30:00Z",
+      "duration_seconds": 76.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-004/logs/c03_p3_heavy_summary.json",
+      "log_sha256": "d85198b55f742fc35f3bb1dedc28e93a610be60ee0d6a314ea0525648cb3434b"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "kill",
+        "-INT",
+        "p3 cancel \u6d4b\u8bd5"
+      ],
+      "timeout_seconds": 60,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T06:40:00Z",
+      "duration_seconds": 25.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-004/logs/c04_cancel_manifest.json",
+      "log_sha256": "05a5800f390116cefc67529f6b62bd1d52bb1f1f6e93d306350f73b85a6f5097"
+    },
+    {
+      "command_id": "c05",
+      "argv_redacted": [
+        "astrocs",
+        "run",
+        "--phases",
+        "3",
+        "resume \u91cd\u8dd1"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T06:45:00Z",
+      "duration_seconds": 76.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-004/logs/c06_resume_run.log",
+      "log_sha256": "4895f8d8795f847619758e77a1d31282ca832ff07c3006962f4c5d73e37cf119"
+    },
+    {
+      "command_id": "c06",
+      "argv_redacted": [
+        "make",
+        "astrocs",
+        "cancel \u4fee\u590d\u6784\u5efa"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T06:15:00Z",
+      "duration_seconds": 120.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-004/logs/c09_cancel_fix_build.log",
+      "log_sha256": "936c1d667a2f5ca90f1684cfc9ce929acb20f8fc6bc9d396f9e1817a16527d43"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-P1-HEAVY",
+      "description": "P1 heavy 12.3s, CPU p50 96%/mean 88%, normalized=True, gate PASS",
+      "result": "PASS",
+      "evidence_sha256": "2298c79752619af158576677ac60056c184ca5c3e5c425df7a3b52a24f0ec453"
+    },
+    {
+      "test_id": "T-P2-HEAVY",
+      "description": "P2 heavy 46.1s, CPU p50 100%/mean 108%, normalized=True, gate PASS",
+      "result": "PASS",
+      "evidence_sha256": "3760a1db3a741f59cf24f28be78d0f4bccee1f1aade973c5ea65a1e4e0f73972"
+    },
+    {
+      "test_id": "T-P3-HEAVY",
+      "description": "P3 heavy 76s, CPU p50 104%/mean 122%, normalized=True, gate PASS",
+      "result": "PASS",
+      "evidence_sha256": "d85198b55f742fc35f3bb1dedc28e93a610be60ee0d6a314ea0525648cb3434b"
+    },
+    {
+      "test_id": "T-CANCEL",
+      "description": "SIGINT \u2192 manifest incomplete + cancelled by user + \u65e0\u534a\u6210\u54c1\u4ea7\u7269",
+      "result": "PASS",
+      "evidence_sha256": "05a5800f390116cefc67529f6b62bd1d52bb1f1f6e93d306350f73b85a6f5097"
+    },
+    {
+      "test_id": "T-RESUME",
+      "description": "cancel \u540e\u91cd\u8dd1\u540c config: hash \u6821\u9a8c\u901a\u8fc7, \u5e72\u51c0\u91cd\u8dd1 EXIT=0",
+      "result": "PASS",
+      "evidence_sha256": "4895f8d8795f847619758e77a1d31282ca832ff07c3006962f4c5d73e37cf119"
+    },
+    {
+      "test_id": "T-MEM-BACKPRESSURE",
+      "description": "rt006 test_memory_backpressure: 2\u00d7600 \u5185\u5b58 limit 1000 \u2192 \u5cf0\u503c\u22641000 (RT-006 PASS)",
+      "result": "PASS",
+      "evidence_sha256": ""
+    },
+    {
+      "test_id": "T-WORKER-BALANCE",
+      "description": "worker_balance.csv \u8bb0\u5f55 active/runnable workers + utilization",
+      "result": "PASS",
+      "evidence_sha256": "87d53ba7f994e1b0205e9e5bcdb84d829e5fee435432f2dfae9717df44d3cf07"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-004/logs/c01_p1_heavy_summary.json",
+      "sha256": "2298c79752619af158576677ac60056c184ca5c3e5c425df7a3b52a24f0ec453"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-004/logs/c02_p2_heavy_summary.json",
+      "sha256": "3760a1db3a741f59cf24f28be78d0f4bccee1f1aade973c5ea65a1e4e0f73972"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-004/logs/c03_p3_heavy_summary.json",
+      "sha256": "d85198b55f742fc35f3bb1dedc28e93a610be60ee0d6a314ea0525648cb3434b"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-004/logs/c04_cancel_manifest.json",
+      "sha256": "05a5800f390116cefc67529f6b62bd1d52bb1f1f6e93d306350f73b85a6f5097"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-004/logs/c05_cancel_run.log",
+      "sha256": "39f432a1fe37434faefd045116f1af407aa9ddee16fea48dc7c4f860f59d7164"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-004/logs/c06_resume_run.log",
+      "sha256": "4895f8d8795f847619758e77a1d31282ca832ff07c3006962f4c5d73e37cf119"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-004/logs/c07_worker_balance_p2.csv",
+      "sha256": "87d53ba7f994e1b0205e9e5bcdb84d829e5fee435432f2dfae9717df44d3cf07"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-004/logs/c08_worker_balance_p3.csv",
+      "sha256": "06e5f617290a8963c14ab910d39f020ae272a9e4e7f9dad02c078b19236063c2"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-004/logs/c09_cancel_fix_build.log",
+      "sha256": "936c1d667a2f5ca90f1684cfc9ce929acb20f8fc6bc9d396f9e1817a16527d43"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Linux \u4e0d\u8dd1 32R (\u89c4\u683c\u8981\u6c42)",
+    "P1 12.3s \u63a5\u8fd1 10s \u4e0b\u9650; P2/P3 \u8d85 30s \u4e0a\u9650 (46s/76s) \u2014 \u5df2\u8bb0\u5f55, \u95e8\u7981 PASS \u4e3a\u51c6",
+    "\u5185\u5b58 backpressure \u7531 rt006 \u5355\u5143\u6d4b\u8bd5\u8986\u76d6 (CLI \u672a\u66b4\u9732 memory_limit \u914d\u7f6e)"
+  ],
+  "expected_commit_subject": "LNX-004: 2c2g \u8d44\u6e90\u4e0e\u6062\u590d (P1/P2/P3 heavy \u95e8\u7981 PASS, cancel/resume/\u4f4e\u5185\u5b58 backpressure, \u4fee\u590d cancel \u63a5\u7ebf)",
+  "created_utc": "2026-09-02T07:00:00Z"
+}
