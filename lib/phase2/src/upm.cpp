@@ -47,12 +47,8 @@ extern "C" {
 #include <set>
 #include <string>
 #include <vector>
-
-#if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
-#include <omp.h>
 #include <atomic>
 #include <thread>
-#endif
 
 namespace {
 
@@ -236,7 +232,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         cfg.quality_mode = 0;
         cfg.use_ivar_weight = 1;   // ivar 科学权重默认开启
         cfg.control_reliability = 1.0;
-        cfg.cpu_workers = 0;       // CON-005: 默认 0(auto) => 默认构建 P2_ENABLE_OPENMP=OFF 串行
+        cfg.cpu_workers = 1;       // P2-002: 默认 1(串行 reference); 生产由 p2_session 传 lease(budget.max_workers)
     }
     if (cfg.huber_delta <= 0.0) cfg.huber_delta = 1.345;
     if (cfg.max_iterations <= 0) cfg.max_iterations = 100;
@@ -512,32 +508,36 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     std::vector<double> raw_w(n_obs, 0.0);
     auto compute_raw = [&]() -> int {
         std::vector<double> sums(K, 0.0);
-#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
-        // CON-005: 逐 observation 并行 + 逐 control 定序规约（tid 升序 = obs 索引升序求和顺序）。
-        const int cworkers = (cfg.cpu_workers > 0) ? cfg.cpu_workers
-                             : (int)std::max(1u, std::thread::hardware_concurrency());
-        const bool rpar = (cworkers > 1);
-        if (rpar) {
+        // P2-002: 并行 worker 数来自 Runtime lease(cfg.cpu_workers, p2_session 传
+        // budget.max_workers)。无 hardware_concurrency(); 1 => 串行 reference。
+        // 规约: worker-local tsums + 按 worker 顺序(与 OpenMP tid 升序语义一致)合并,
+        // 定义 determinism class D1(worker 数无关, 同一 worker 数下位精确)。
+        const int cworkers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
+        if (cworkers > 1) {
             std::vector<std::vector<double>> tsums((std::size_t)cworkers,
                                                    std::vector<double>(K, 0.0));
             std::atomic<int> rcfail{0};
-            #pragma omp parallel num_threads(cworkers)
             {
-                const int tid = omp_get_thread_num();
-                const std::uint64_t start = (n_obs * (std::uint64_t)tid) / (std::uint64_t)cworkers;
-                const std::uint64_t end = (n_obs * (std::uint64_t)(tid + 1)) / (std::uint64_t)cworkers;
-                for (std::uint64_t i = start; i < end; ++i) {
-                    const int rc = p2_upm_raw_weight(&obs[i], &cfg, &raw_w[i]);
-                    if (rc != 0) { rcfail.store(rc); continue; }
-                    tsums[(std::size_t)tid][m->control_by_id[obs[i].control_id]] += raw_w[i];
+                std::vector<std::thread> pool;
+                pool.reserve((std::size_t)cworkers);
+                for (int tid = 0; tid < cworkers; ++tid) {
+                    pool.emplace_back([&, tid]() {
+                        const std::uint64_t start = (n_obs * (std::uint64_t)tid) / (std::uint64_t)cworkers;
+                        const std::uint64_t end = (n_obs * (std::uint64_t)(tid + 1)) / (std::uint64_t)cworkers;
+                        for (std::uint64_t i = start; i < end; ++i) {
+                            const int rc = p2_upm_raw_weight(&obs[i], &cfg, &raw_w[i]);
+                            if (rc != 0) { rcfail.store(rc); continue; }
+                            tsums[(std::size_t)tid][m->control_by_id[obs[i].control_id]] += raw_w[i];
+                        }
+                    });
                 }
+                for (auto& th : pool) th.join();
             }
             if (rcfail.load() != 0) return rcfail.load();
             for (int t = 0; t < cworkers; ++t)
                 for (std::size_t k = 0; k < K; ++k)
                     sums[k] += tsums[(std::size_t)t][k];
         } else
-#endif
         {
             for (std::uint64_t i = 0; i < n_obs; ++i) {
                 // 单一 production raw weight 实现（与
@@ -610,75 +610,156 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             }
         }
         std::vector<double> w(n_obs);
-#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
-        // CON-005: 逐 obs 独立 w 计算（per-obs 写 w[i] 不相交）
-        #pragma omp parallel for schedule(static)
-#endif
-        for (std::uint64_t i = 0; i < n_obs; ++i) {
-            const std::size_t ck = m->control_by_id[obs[i].control_id];
-            // Huber 作用于标准化残差 z = r / sigma_eff。
-            // 此前 huber_delta=1.345 直接与 ~0.002 raw residual 比较，
-            // 所有残差都落在线性区，robust 几乎永不生效。现在
-            // sigma_eff = max(观测 uncertainty, sigma_floor)，delta 保持
-            // dimensionless 1.345；污染观测（patch 星污染 → residual 大
-            // 而 uncertainty 有限）会被强烈降权。
-            const double r = obs[i].value - M[ck] -
-                             m->C[m->frame_index[obs[i].frame_id]][ck];
-            const double sigma_eff =
-                std::max(std::fabs(obs[i].uncertainty), cfg.sigma_floor);
-            w[i] = raw_w[i] * huber_w(r / sigma_eff, cfg.huber_delta);
+        // P2-002: 逐 obs 独立 w 计算(per-obs 写 w[i] 不相交); std::thread + lease worker。
+        {
+            const int cworkers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
+            if (cworkers > 1) {
+                std::vector<std::thread> pool;
+                pool.reserve((std::size_t)cworkers);
+                for (int tid = 0; tid < cworkers; ++tid) {
+                    pool.emplace_back([&, tid]() {
+                        const std::uint64_t start = (n_obs * (std::uint64_t)tid) / (std::uint64_t)cworkers;
+                        const std::uint64_t end = (n_obs * (std::uint64_t)(tid + 1)) / (std::uint64_t)cworkers;
+                        for (std::uint64_t i = start; i < end; ++i) {
+                            const std::size_t ck = m->control_by_id[obs[i].control_id];
+                            const double r = obs[i].value - M[ck] -
+                                             m->C[m->frame_index[obs[i].frame_id]][ck];
+                            const double sigma_eff =
+                                std::max(std::fabs(obs[i].uncertainty), cfg.sigma_floor);
+                            w[i] = raw_w[i] * huber_w(r / sigma_eff, cfg.huber_delta);
+                        }
+                    });
+                }
+                for (auto& th : pool) th.join();
+            } else {
+                for (std::uint64_t i = 0; i < n_obs; ++i) {
+                    const std::size_t ck = m->control_by_id[obs[i].control_id];
+                    // Huber 作用于标准化残差 z = r / sigma_eff。
+                    // 此前 huber_delta=1.345 直接与 ~0.002 raw residual 比较，
+                    // 所有残差都落在线性区，robust 几乎永不生效。现在
+                    // sigma_eff = max(观测 uncertainty, sigma_floor)，delta 保持
+                    // dimensionless 1.345；污染观测（patch 星污染 → residual 大
+                    // 而 uncertainty 有限）会被强烈降权。
+                    const double r = obs[i].value - M[ck] -
+                                     m->C[m->frame_index[obs[i].frame_id]][ck];
+                    const double sigma_eff =
+                        std::max(std::fabs(obs[i].uncertainty), cfg.sigma_floor);
+                    w[i] = raw_w[i] * huber_w(r / sigma_eff, cfg.huber_delta);
+                }
+            }
         }
         // 2. M 更新（固定 C）：每分量 gauge = 分量内最小 frame_id C=0 →
         // M 由该分量参考帧观测定义；参考帧未覆盖节点用全部帧（延拓）。
         double max_dM = 0.0;
-#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
-        // CON-005: 逐 control 独立 M 更新（每 control 的 obs 聚合整块由单线程完成，
-        // 逐 k 写 M[k] 不相交；仅 max 归约 => 1T/2T 位精确）
-        #pragma omp parallel for schedule(static) reduction(max:max_dM)
-#endif
-        for (std::size_t k = 0; k < m->controls.size(); ++k) {
-            double num = 0.0, den = 0.0;
-            const std::size_t comp = m->control_component[k];
-            // 无观测几何节点不参与数据图，component=sentinel；
-            // 其 M 由全部帧加权（无参考帧语义）定义。
-            if (comp == kNoData) {
-                for (std::size_t ii : m->controls[k].obs_idx) {
-                    const auto& o = obs[ii];
-                    const double c =
-                        m->C[m->frame_index[o.frame_id]][k];
-                    num += w[ii] * (o.value - c);
-                    den += w[ii];
+        // P2-002: 逐 control 独立 M 更新(每 control 的 obs 聚合整块由单线程完成,
+        // 逐 k 写 M[k] 不相交); max 归约用 per-worker 局部 + join 合并(位精确)。
+        {
+            const std::size_t nK = m->controls.size();
+            const int cworkers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
+            if (cworkers > 1) {
+                std::vector<double> tmax((std::size_t)cworkers, 0.0);
+                std::vector<std::thread> pool;
+                pool.reserve((std::size_t)cworkers);
+                for (int tid = 0; tid < cworkers; ++tid) {
+                    pool.emplace_back([&, tid]() {
+                        const std::uint64_t start = (nK * (std::uint64_t)tid) / (std::uint64_t)cworkers;
+                        const std::uint64_t end = (nK * (std::uint64_t)(tid + 1)) / (std::uint64_t)cworkers;
+                        double lmax = 0.0;
+                        for (std::size_t k = start; k < end; ++k) {
+                            double num = 0.0, den = 0.0;
+                            const std::size_t comp = m->control_component[k];
+                            // 无观测几何节点不参与数据图，component=sentinel；
+                            // 其 M 由全部帧加权（无参考帧语义）定义。
+                            if (comp == kNoData) {
+                                for (std::size_t ii : m->controls[k].obs_idx) {
+                                    const auto& o = obs[ii];
+                                    const double c =
+                                        m->C[m->frame_index[o.frame_id]][k];
+                                    num += w[ii] * (o.value - c);
+                                    den += w[ii];
+                                }
+                                if (den > 1e-12) {
+                                    const double Mnew = num / den;
+                                    lmax = std::max(lmax, std::fabs(Mnew - M[k]));
+                                    M[k] = Mnew;
+                                }
+                                continue;
+                            }
+                            const std::size_t rf =
+                                m->frame_index[m->component_ref_frame[comp]];
+                            for (std::size_t ii : m->controls[k].obs_idx) {
+                                if (m->frame_index[obs[ii].frame_id] != rf) continue;
+                                const auto& o = obs[ii];
+                                const double c = m->C[rf][k];
+                                num += w[ii] * (o.value - c);
+                                den += w[ii];
+                            }
+                            if (den <= 1e-12) {
+                                // 参考帧未覆盖：全部帧加权（含 C 补偿）
+                                for (std::size_t ii : m->controls[k].obs_idx) {
+                                    const auto& o = obs[ii];
+                                    const double c = m->C[m->frame_index[o.frame_id]][k];
+                                    num += w[ii] * (o.value - c);
+                                    den += w[ii];
+                                }
+                            }
+                            if (den > 1e-12) {
+                                const double Mnew = num / den;
+                                lmax = std::max(lmax, std::fabs(Mnew - M[k]));
+                                M[k] = Mnew;
+                            }
+                        }
+                        tmax[(std::size_t)tid] = lmax;
+                    });
                 }
-                if (den > 1e-12) {
-                    const double Mnew = num / den;
-                    max_dM =
-                        std::max(max_dM, std::fabs(Mnew - M[k]));
-                    M[k] = Mnew;
+                for (auto& th : pool) th.join();
+                for (double v : tmax) max_dM = std::max(max_dM, v);
+            } else {
+                for (std::size_t k = 0; k < nK; ++k) {
+                    double num = 0.0, den = 0.0;
+                    const std::size_t comp = m->control_component[k];
+                    // 无观测几何节点不参与数据图，component=sentinel；
+                    // 其 M 由全部帧加权（无参考帧语义）定义。
+                    if (comp == kNoData) {
+                        for (std::size_t ii : m->controls[k].obs_idx) {
+                            const auto& o = obs[ii];
+                            const double c =
+                                m->C[m->frame_index[o.frame_id]][k];
+                            num += w[ii] * (o.value - c);
+                            den += w[ii];
+                        }
+                        if (den > 1e-12) {
+                            const double Mnew = num / den;
+                            max_dM =
+                                std::max(max_dM, std::fabs(Mnew - M[k]));
+                            M[k] = Mnew;
+                        }
+                        continue;
+                    }
+                    const std::size_t rf =
+                        m->frame_index[m->component_ref_frame[comp]];
+                    for (std::size_t ii : m->controls[k].obs_idx) {
+                        if (m->frame_index[obs[ii].frame_id] != rf) continue;
+                        const auto& o = obs[ii];
+                        const double c = m->C[rf][k];
+                        num += w[ii] * (o.value - c);
+                        den += w[ii];
+                    }
+                    if (den <= 1e-12) {
+                        // 参考帧未覆盖：全部帧加权（含 C 补偿）
+                        for (std::size_t ii : m->controls[k].obs_idx) {
+                            const auto& o = obs[ii];
+                            const double c = m->C[m->frame_index[o.frame_id]][k];
+                            num += w[ii] * (o.value - c);
+                            den += w[ii];
+                        }
+                    }
+                    if (den > 1e-12) {
+                        const double Mnew = num / den;
+                        max_dM = std::max(max_dM, std::fabs(Mnew - M[k]));
+                        M[k] = Mnew;
+                    }
                 }
-                continue;
-            }
-            const std::size_t rf =
-                m->frame_index[m->component_ref_frame[comp]];
-            for (std::size_t ii : m->controls[k].obs_idx) {
-                if (m->frame_index[obs[ii].frame_id] != rf) continue;
-                const auto& o = obs[ii];
-                const double c = m->C[rf][k];
-                num += w[ii] * (o.value - c);
-                den += w[ii];
-            }
-            if (den <= 1e-12) {
-                // 参考帧未覆盖：全部帧加权（含 C 补偿）
-                for (std::size_t ii : m->controls[k].obs_idx) {
-                    const auto& o = obs[ii];
-                    const double c = m->C[m->frame_index[o.frame_id]][k];
-                    num += w[ii] * (o.value - c);
-                    den += w[ii];
-                }
-            }
-            if (den > 1e-12) {
-                const double Mnew = num / den;
-                max_dM = std::max(max_dM, std::fabs(Mnew - M[k]));
-                M[k] = Mnew;
             }
         }
         // 3. C 更新（固定 M；逐帧 CG + 参考帧 gauge）
@@ -686,46 +767,94 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         std::vector<std::uint64_t> fids;
         fids.reserve(m->frame_index.size());
         for (const auto& kv : m->frame_index) fids.push_back(kv.first);
-#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)
-        // CON-005: 逐 frame 独立 C 更新 + CG（每 frame 的 rhs/obs_w/C[f]/x 全 per-frame；
-        // cg_solve_frame 读只读共享 adj/K/lambda_s/anchor，写各 frame 自身；仅 max 归约）
-        #pragma omp parallel for schedule(static) reduction(max:max_dC)
-        for (std::size_t fi_ = 0; fi_ < fids.size(); ++fi_) {
-            const std::uint64_t frame_id = fids[fi_];
-#else
-        for (std::size_t fi_ = 0; fi_ < fids.size(); ++fi_) {
-            const std::uint64_t frame_id = fids[fi_];
-#endif
-            const std::size_t f = m->frame_index[frame_id];
-            if (frame_id ==
-                m->component_ref_frame[m->frame_component[f]]) {
-                // 该分量参考帧 gauge：C=0（每分量独立，非全局最小帧）
-                for (std::size_t k = 0; k < K; ++k) m->C[f][k] = 0.0;
-                continue;
-            }
-            // rhs[k] = Σ_i w_ik (y_ik - M_k)（仅该帧观测）
-            std::vector<double> rhs(K, 0.0);
-            for (std::size_t k = 0; k < K; ++k) {
-                for (std::size_t ii : m->controls[k].obs_idx) {
-                    const auto& o = obs[ii];
-                    if (m->frame_index[o.frame_id] != f) continue;
-                    rhs[k] += w[ii] * (o.value - M[k]);
+        // P2-002: 逐 frame 独立 C 更新 + CG（每 frame 的 rhs/obs_w/C[f]/x 全 per-frame；
+        // cg_solve_frame 读只读共享 adj/K/lambda_s/anchor，写各 frame 自身；仅 max 归约
+        // 用 per-worker 局部 + join 合并）。取消点在迭代边界(上层循环)检查。
+        {
+            const std::size_t nf = fids.size();
+            const int cworkers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
+            if (cworkers > 1) {
+                std::vector<double> tmax((std::size_t)cworkers, 0.0);
+                std::vector<std::thread> pool;
+                pool.reserve((std::size_t)cworkers);
+                for (int tid = 0; tid < cworkers; ++tid) {
+                    pool.emplace_back([&, tid]() {
+                        const std::uint64_t start = (nf * (std::uint64_t)tid) / (std::uint64_t)cworkers;
+                        const std::uint64_t end = (nf * (std::uint64_t)(tid + 1)) / (std::uint64_t)cworkers;
+                        double lmax = 0.0;
+                        for (std::size_t fi_ = start; fi_ < end; ++fi_) {
+                            const std::uint64_t frame_id = fids[fi_];
+                            const std::size_t f = m->frame_index[frame_id];
+                            if (frame_id ==
+                                m->component_ref_frame[m->frame_component[f]]) {
+                                // 该分量参考帧 gauge：C=0（每分量独立，非全局最小帧）
+                                for (std::size_t k = 0; k < K; ++k) m->C[f][k] = 0.0;
+                                continue;
+                            }
+                            // rhs[k] = Σ_i w_ik (y_ik - M_k)（仅该帧观测）
+                            std::vector<double> rhs(K, 0.0);
+                            for (std::size_t k = 0; k < K; ++k) {
+                                for (std::size_t ii : m->controls[k].obs_idx) {
+                                    const auto& o = obs[ii];
+                                    if (m->frame_index[o.frame_id] != f) continue;
+                                    rhs[k] += w[ii] * (o.value - M[k]);
+                                }
+                            }
+                            // obs_w 按当前权重更新（per-frame per-control 聚合）
+                            for (std::size_t k = 0; k < K; ++k) {
+                                m->obs_w[f][k] = 0.0;
+                                for (std::size_t ii : m->controls[k].obs_idx) {
+                                    const auto& o = obs[ii];
+                                    if (m->frame_index[o.frame_id] != f) continue;
+                                    m->obs_w[f][k] += w[ii];
+                                }
+                            }
+                            std::vector<double> x = m->C[f];
+                            cg_solve_frame(f, x, rhs);
+                            for (std::size_t k = 0; k < K; ++k)
+                                lmax = std::max(lmax, std::fabs(x[k] - m->C[f][k]));
+                            m->C[f] = std::move(x);
+                        }
+                        tmax[(std::size_t)tid] = lmax;
+                    });
+                }
+                for (auto& th : pool) th.join();
+                for (double v : tmax) max_dC = std::max(max_dC, v);
+            } else {
+                for (std::size_t fi_ = 0; fi_ < nf; ++fi_) {
+                    const std::uint64_t frame_id = fids[fi_];
+                    const std::size_t f = m->frame_index[frame_id];
+                    if (frame_id ==
+                        m->component_ref_frame[m->frame_component[f]]) {
+                        // 该分量参考帧 gauge：C=0（每分量独立，非全局最小帧）
+                        for (std::size_t k = 0; k < K; ++k) m->C[f][k] = 0.0;
+                        continue;
+                    }
+                    // rhs[k] = Σ_i w_ik (y_ik - M_k)（仅该帧观测）
+                    std::vector<double> rhs(K, 0.0);
+                    for (std::size_t k = 0; k < K; ++k) {
+                        for (std::size_t ii : m->controls[k].obs_idx) {
+                            const auto& o = obs[ii];
+                            if (m->frame_index[o.frame_id] != f) continue;
+                            rhs[k] += w[ii] * (o.value - M[k]);
+                        }
+                    }
+                    // obs_w 按当前权重更新（per-frame per-control 聚合）
+                    for (std::size_t k = 0; k < K; ++k) {
+                        m->obs_w[f][k] = 0.0;
+                        for (std::size_t ii : m->controls[k].obs_idx) {
+                            const auto& o = obs[ii];
+                            if (m->frame_index[o.frame_id] != f) continue;
+                            m->obs_w[f][k] += w[ii];
+                        }
+                    }
+                    std::vector<double> x = m->C[f];
+                    cg_solve_frame(f, x, rhs);
+                    for (std::size_t k = 0; k < K; ++k)
+                        max_dC = std::max(max_dC, std::fabs(x[k] - m->C[f][k]));
+                    m->C[f] = std::move(x);
                 }
             }
-            // obs_w 按当前权重更新（per-frame per-control 聚合）
-            for (std::size_t k = 0; k < K; ++k) {
-                m->obs_w[f][k] = 0.0;
-                for (std::size_t ii : m->controls[k].obs_idx) {
-                    const auto& o = obs[ii];
-                    if (m->frame_index[o.frame_id] != f) continue;
-                    m->obs_w[f][k] += w[ii];
-                }
-            }
-            std::vector<double> x = m->C[f];
-            cg_solve_frame(f, x, rhs);
-            for (std::size_t k = 0; k < K; ++k)
-                max_dC = std::max(max_dC, std::fabs(x[k] - m->C[f][k]));
-            m->C[f] = std::move(x);
         }
         // 4. objective + 收敛
         m->iterations = iter + 1;
@@ -1345,22 +1474,31 @@ int p2_upm_materialize_dense_n(const void* model, int target_order,
             out[local] = top + ty * (bot - top);
         }
     };
-#if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
-    int nw = (workers > 0) ? workers : omp_get_max_threads();
-    if (nw < 1) nw = 1;
-#else
-    int nw = 1;
-#endif
+    // P2-002: dense tile 求值并行(std::thread; workers 由调用方传 lease, 无 OpenMP)。
+    const int nw = (workers > 0) ? workers : 1;
     for (std::size_t f = 0; f < m->C.size(); ++f) {
         for (std::size_t base = 0; base < tiles.size(); base += kChunk) {
             const std::size_t n = std::min(kChunk, tiles.size() - base);
             std::vector<double> buf(n * kLeafPx);
-#if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)
-            #pragma omp parallel for schedule(dynamic) num_threads(nw)
-#endif
-            for (std::int64_t j = 0; j < (std::int64_t)n; ++j) {
-                compute_tile(f, tiles[base + (std::size_t)j],
-                             buf.data() + (std::size_t)j * kLeafPx, kLeafPx);
+            if (nw > 1) {
+                std::vector<std::thread> pool;
+                pool.reserve((std::size_t)nw);
+                for (int tid = 0; tid < nw; ++tid) {
+                    pool.emplace_back([&, tid]() {
+                        const std::int64_t start = (std::int64_t)((n * (std::uint64_t)tid) / (std::uint64_t)nw);
+                        const std::int64_t end = (std::int64_t)((n * (std::uint64_t)(tid + 1)) / (std::uint64_t)nw);
+                        for (std::int64_t j = start; j < end; ++j) {
+                            compute_tile(f, tiles[base + (std::size_t)j],
+                                         buf.data() + (std::size_t)j * kLeafPx, kLeafPx);
+                        }
+                    });
+                }
+                for (auto& th : pool) th.join();
+            } else {
+                for (std::int64_t j = 0; j < (std::int64_t)n; ++j) {
+                    compute_tile(f, tiles[base + (std::size_t)j],
+                                 buf.data() + (std::size_t)j * kLeafPx, kLeafPx);
+                }
             }
             for (std::size_t j = 0; j < n; ++j) {
                 const std::uint64_t tile = tiles[base + j];

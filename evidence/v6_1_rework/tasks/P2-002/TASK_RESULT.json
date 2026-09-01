@@ -1,0 +1,82 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P2-002",
+  "status": "PASS",
+  "parent_commit": "e8a07e02b83b806b45ea4a77b34491d351326151",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "performance",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P2-002/PLAN.md",
+    "evidence/v6_1_rework/tasks/P2-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P2-002/logs/c01_parallel_upm.log",
+    "lib/phase2/include/astro/phase2/upm.h",
+    "lib/phase2/src/upm.cpp",
+    "tests/backend/test_p2002_parallel_upm.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": true,
+    "binary": true,
+    "reason": "UPM 4 处 OpenMP → std::thread + Runtime lease; 科学求解迭代逻辑不变; N==1 persist 一致"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p2002_parallel_upm.py"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T07:00:00Z",
+      "duration_seconds": 55.0,
+      "log_path": "evidence/v6_1_rework/tasks/P2-002/logs/c01_parallel_upm.log",
+      "log_sha256": "c53223e7bb5b0cc16e8fa41fcea75648fa8b0a2591a939b604f64285f44052e2"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-NO-OPENMP-GATE",
+      "description": "upm.cpp 无 P2_ENABLE_OPENMP/omp_get/hardware_concurrency 生产残留",
+      "result": "PASS",
+      "evidence_sha256": "c53223e7bb5b0cc16e8fa41fcea75648fa8b0a2591a939b604f64285f44052e2"
+    },
+    {
+      "test_id": "T-MULTI-WORKER-UPM",
+      "description": "生产 phase2 run(UPM 多 worker)成功; persist 文件生成",
+      "result": "PASS",
+      "evidence_sha256": "c53223e7bb5b0cc16e8fa41fcea75648fa8b0a2591a939b604f64285f44052e2"
+    },
+    {
+      "test_id": "T-UPM-N-EQUALS-1",
+      "description": "4-worker 与 1-worker UPM persist 模型 sha256 完全一致(并行=执行方式)",
+      "result": "PASS",
+      "evidence_sha256": "c53223e7bb5b0cc16e8fa41fcea75648fa8b0a2591a939b604f64285f44052e2"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-002/PLAN.md",
+      "sha256": "e758155c0ca3504546f78615bd695aaba43627294e513c2ce147f4bbea70da3d"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-002/TASK_RESULT.json",
+      "sha256": "167e8b20de6b9b312335b838510775c38a008eae57f47f5fefb8f956f8c0cfc0"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-002/logs/c01_parallel_upm.log",
+      "sha256": "c53223e7bb5b0cc16e8fa41fcea75648fa8b0a2591a939b604f64285f44052e2"
+    }
+  ],
+  "findings": [
+    "F-003",
+    "F-015"
+  ],
+  "expected_commit_subject": "P2-002: 并行化生产 UPM 求解 (per-obs/control/frame CG 走 Runtime lease, worker-local 规约, N==1 persist 一致)",
+  "created_utc": "2026-09-01T07:05:00Z"
+}
