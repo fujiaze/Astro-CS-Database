@@ -1,0 +1,24 @@
+/home/lighthouse/Astro CS Database/tests/backend/test_p2007_joint_gate.py:31: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2007_1a3paqv4/cfg.json' mode='w' encoding='UTF-8'>
+  json.dump({"schema_version": "1",
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+test_01_workload_ten_seconds (__main__.TestP2007JointGate.test_01_workload_ten_seconds)
+production seam workload(6 块) ≥10s(active_wall)。 ... ok
+test_02_resource_gate_workers (__main__.TestP2007JointGate.test_02_resource_gate_workers)
+Runtime 多 worker: workers_p50 ≥ 2(avail≥2)。 ... ok
+test_03_resource_gate_cpu (__main__.TestP2007JointGate.test_03_resource_gate_cpu)
+CPU 门: p50 ≥ 90% 且 mean ≥ 85%。 ... ok
+test_04_resource_summary_bounded_rss (__main__.TestP2007JointGate.test_04_resource_summary_bounded_rss)
+资源摘要: 峰值 RSS 有界(<512MB), n_samples>0。 ... ok
+test_05_science_seam_corrected (__main__.TestP2007JointGate.test_05_science_seam_corrected)
+科学: UPM 校正场非空(seam 被检测校正), 幅度有界不拟合源。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p2007_joint_gate.py:88: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2007_1a3paqv4/cfg2.json' mode='w' encoding='UTF-8'>
+  json.dump({"hips_paths": paths, "output_dir": out2,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p2007_joint_gate.py:97: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2007_1a3paqv4/upm.bin' mode='r' encoding='utf-8'>
+  m = json.load(open(model, encoding="utf-8"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 30.399s
+
+OK
