@@ -1,0 +1,180 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "LNX-001",
+  "status": "PASS",
+  "parent_commit": "591f541ebd1a5b0b0cfef53d0ff0197f8d3a1b9c",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "verification",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/LNX-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/LNX-001/logs/c01_gcc_configure.log",
+    "evidence/v6_1_rework/tasks/LNX-001/logs/c02_gcc_build.log",
+    "evidence/v6_1_rework/tasks/LNX-001/logs/c03_gcc_ctest.log",
+    "evidence/v6_1_rework/tasks/LNX-001/logs/c04_clang_configure.log",
+    "evidence/v6_1_rework/tasks/LNX-001/logs/c05_clang_build.log",
+    "evidence/v6_1_rework/tasks/LNX-001/logs/c06_clang_ctest.log",
+    "evidence/v6_1_rework/tasks/LNX-001/logs/c07_link_map.map",
+    "evidence/v6_1_rework/tasks/LNX-001/logs/c08_compile_commands_gcc.json"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "全新目录干净构建验证: 无源码变更, 纯验证任务"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "cmake",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "GCC 14.2.0 全新目录"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T04:40:00Z",
+      "duration_seconds": 30.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-001/logs/c01_gcc_configure.log",
+      "log_sha256": "a6d3c6e4f2e493436fe2e592c29ed9faf6b549efd1325ce67b3f5402a3bb9cff"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "/usr/bin/time",
+        "-v",
+        "make",
+        "-j2",
+        "GCC Release"
+      ],
+      "timeout_seconds": 3000,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T04:41:00Z",
+      "duration_seconds": 369.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-001/logs/c02_gcc_build.log",
+      "log_sha256": "a06e164ece536fd40164df2e0602016693c02229a39c3ed08a78bc999cae7f28"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "ctest",
+        "-j2"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T04:50:00Z",
+      "duration_seconds": 4.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-001/logs/c03_gcc_ctest.log",
+      "log_sha256": "a00330fb0209f8c91a13fe3896e93008dea60c966a7207c42e87fedfa1070613"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "cmake",
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DCMAKE_CXX_COMPILER=clang++",
+        "Clang 19.1.7 全新目录"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T04:45:00Z",
+      "duration_seconds": 30.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-001/logs/c04_clang_configure.log",
+      "log_sha256": "6dffc59a50deb6545e7ba41b2bac52b99c78ff8c1f159357629ccafe270b43a4"
+    },
+    {
+      "command_id": "c05",
+      "argv_redacted": [
+        "/usr/bin/time",
+        "-v",
+        "make",
+        "-j2",
+        "Clang Debug"
+      ],
+      "timeout_seconds": 3000,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T04:46:00Z",
+      "duration_seconds": 400.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-001/logs/c05_clang_build.log",
+      "log_sha256": "af7775650378d7d49cb731b94fb27c274a7dbffc1e7f860e619cee62b9af7e50"
+    },
+    {
+      "command_id": "c06",
+      "argv_redacted": [
+        "ctest",
+        "-j2",
+        "Clang Debug"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T04:55:00Z",
+      "duration_seconds": 20.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-001/logs/c06_clang_ctest.log",
+      "log_sha256": "9b3b4863503beea2f4c21a4d23ab35202c1d64b6e174306e2e3d7ed936715dda"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-GCC-RELEASE-CLEAN",
+      "description": "全新目录 GCC 14.2.0 Release: 0 warning, 56/56 ctest PASS",
+      "result": "PASS",
+      "evidence_sha256": "a00330fb0209f8c91a13fe3896e93008dea60c966a7207c42e87fedfa1070613"
+    },
+    {
+      "test_id": "T-CLANG-DEBUG-CLEAN",
+      "description": "全新目录 Clang 19.1.7 Debug: 0 warning, 56/56 ctest PASS",
+      "result": "PASS",
+      "evidence_sha256": "9b3b4863503beea2f4c21a4d23ab35202c1d64b6e174306e2e3d7ed936715dda"
+    },
+    {
+      "test_id": "T-ARTIFACTS",
+      "description": "compile_commands.json + link map + /usr/bin/time -v 已保存",
+      "result": "PASS",
+      "evidence_sha256": "f5d462bd25a2b7839f79bac94d6168dc02ae2cd3c86f4442fca06abcc17e36a3"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-001/logs/c01_gcc_configure.log",
+      "sha256": "a6d3c6e4f2e493436fe2e592c29ed9faf6b549efd1325ce67b3f5402a3bb9cff"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-001/logs/c02_gcc_build.log",
+      "sha256": "a06e164ece536fd40164df2e0602016693c02229a39c3ed08a78bc999cae7f28"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-001/logs/c03_gcc_ctest.log",
+      "sha256": "a00330fb0209f8c91a13fe3896e93008dea60c966a7207c42e87fedfa1070613"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-001/logs/c04_clang_configure.log",
+      "sha256": "6dffc59a50deb6545e7ba41b2bac52b99c78ff8c1f159357629ccafe270b43a4"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-001/logs/c05_clang_build.log",
+      "sha256": "af7775650378d7d49cb731b94fb27c274a7dbffc1e7f860e619cee62b9af7e50"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-001/logs/c06_clang_ctest.log",
+      "sha256": "9b3b4863503beea2f4c21a4d23ab35202c1d64b6e174306e2e3d7ed936715dda"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-001/logs/c07_link_map.map",
+      "sha256": "62ebb8ac88dd6cafb19ea6e28f0f815fafcd0e8f9423b234e233f87ebba4a2f2"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-001/logs/c08_compile_commands_gcc.json",
+      "sha256": "f5d462bd25a2b7839f79bac94d6168dc02ae2cd3c86f4442fca06abcc17e36a3"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "link map 仅 astrocs 可执行目标 (库以 .a 静态打包)"
+  ],
+  "expected_commit_subject": "LNX-001: Linux 干净构建 (GCC Release + Clang Debug 全新目录 0 warning, 56/56 PASS, compile_commands/link map/time-v)",
+  "created_utc": "2026-09-02T05:00:00Z"
+}
