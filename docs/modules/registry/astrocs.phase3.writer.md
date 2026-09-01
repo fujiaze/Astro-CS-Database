@@ -1,0 +1,56 @@
+---
+id: MOD-astrocs-phase3-writer
+version: 1.0.0
+status: ACTIVE
+owner: astrocs-core
+source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
+upstream: [SCI-P3-WR-001, ALG-P3-004, API-P3-001]
+downstream: [TEST-P3-WR-001]
+---
+
+# 模块 astrocs.phase3.writer
+
+## 职责与明确非职责
+
+Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由
+SCI/ALG 合同定义(见链接); 不做 SCI/ALG 之外的扩展。
+
+## 输入输出端口、DATA、单位、坐标、invalid
+
+| 端口 | DATA | 必/可 | 单位 | 坐标 |
+|---|---|---|---|---|
+| `resampled` | `DATA-P3-RES` | 必 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::PIXEL` |
+| `fits` | `DATA-P3-FITS` | 可 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::PIXEL` |
+
+invalid = NaN/coverage=0(按 DATA 合同)。
+
+## 公共 header、核心 symbol 与生命周期
+
+由 `API-P3-001` 公共 API 定义(phase session extern "C"); 生命周期 create→validate→
+run→inspect→destroy。
+
+## Registry descriptor 与配置 schema
+
+module_id=`astrocs.phase3.writer`; execution_class=`io`;
+parallel_ok=False; 配置=phase config JSON(按 PHASE API 文档)。
+
+## Execution class、并行轴、ThreadBudget lease、确定性
+
+`io`; parallel=否(heavy+serial 资源门禁止); worker 数=ThreadBudget.max_workers(禁 hardware_concurrency);
+确定性=固定顺序输出(1/N 等价已验)。
+
+## 内存/cache/I-O/所有权
+
+cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 buffer。
+
+## 错误、日志、指标、取消和 checkpoint
+
+错误码=ACS_ERR_*(API 合同); 取消=host cancel 回调; 无 checkpoint(Phase3 原子写)。
+
+## 独立 synthetic 验证命令与容差
+
+`TEST-P3-WR-001` 对应测试(逐任务 TASK_RESULT 证据); 容差=验收冻结。
+
+## 已知限制
+
+见 docs/KNOWN_LIMITATIONS.md 与 `ALG-P3-004` 合同边界。
