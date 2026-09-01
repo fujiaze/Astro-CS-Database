@@ -917,7 +917,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
         }
     }
 
-    // 5.6 (P1-003/DRZ-014): 读取 "variance" 块 (逐像素方差图,
+    // 5.6: 读取 "variance" 块 (逐像素方差图,
     // FLOAT32/64 [H,W], 由 SNR 阶段 NoiseWeightModelV1 填充)
     // → 方差传播 sumVarNum += v_j × w_jp²
     const float* variancePtr = nullptr;

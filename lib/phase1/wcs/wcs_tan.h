@@ -1,4 +1,4 @@
-// AstroCS Phase1 — P1-004 WCS TAN 投影 (SCI-WCS-001)
+// AstroCS Phase1 — WCS TAN 投影 (SCI-WCS-001)
 // pixel <-> sky roundtrip (ICRS, deg)。合同: 已知 WCS 参数往返误差 < 1e-6 deg。
 #pragma once
 

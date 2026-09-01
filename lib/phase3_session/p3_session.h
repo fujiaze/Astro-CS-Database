@@ -1,7 +1,7 @@
 // lib/phase3_session/p3_session.h — Phase3 进程内会话 (API-P3-001 冻结合同) — CLI-006
 // 五段式: create→validate→run→inspect(+destroy); opaque handle, owner=创建者。
 // 不 shell-out: CLI handler 直调本会话; cancel/线程预算经 host services 注入。
-// 组装: HiPSReader(P3-001)→WCS(P3-002)→Resampler(P3-003)→FitsWriter(P3-004)。
+// 组装: HiPSReader→WCS→Resampler→FitsWriter。
 #ifndef ASTROCS_P3_SESSION_H
 #define ASTROCS_P3_SESSION_H
 

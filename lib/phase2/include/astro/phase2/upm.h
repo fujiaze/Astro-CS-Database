@@ -88,7 +88,7 @@ typedef struct {
     const char* input_manifest_hash;  // 输入稳定 manifest（可空；非空时参与模型 hash）
     // CON-005 并行观察/聚合 worker 数（0=auto；1=串行默认）。仅 P2_ENABLE_OPENMP
     // 且 >1 时并行 compute_raw/聚合；gauge/连通分量/收敛/归并保持固定顺序。
-    int    cpu_workers;          // P2-002: 来自 Runtime lease(p2_session 传 budget.max_workers); 1=串行 reference
+    int    cpu_workers;          // 来自 Runtime lease(p2_session 传 budget.max_workers); 1=串行 reference
 } P2UpmBuildConfig;
 
 // ===== 构建 / 持久化 / 求值 =====

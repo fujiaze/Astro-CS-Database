@@ -21,10 +21,10 @@
 // - calibrate_block 真正使用 leaf_ipix 查找所在 control cell；
 // - 断开分量各自 gauge（不虚构跨组件约束）。
 // - 持久化绑定 SCI-UPM-PERSIST-001/ALG-UPM-FRAME-BIND-001/DATA-UPM-MODEL-001：
-//   parameter_rows[index]↔frame_id_by_index[index] 同长无重复；save 经
-//   frames[]+C[] 行序显式持久化（原子写 aio_upm_write_sparse，ENG-IO-001），
-//   open 强校验 frames 存在/数组/无重复/类型非法一律拒绝，save→open 后
-//   frame_id→theta 绑定不变，禁止从有序容器遍历重建。
+// parameter_rows[index]↔frame_id_by_index[index] 同长无重复；save 经
+// frames[]+C[] 行序显式持久化（原子写 aio_upm_write_sparse，ENG-IO-001），
+// open 强校验 frames 存在/数组/无重复/类型非法一律拒绝，save→open 后
+// frame_id→theta 绑定不变，禁止从有序容器遍历重建。
 #include "astro/phase2/upm.h"
 #include "astro/phase2/sampler.h"
 
@@ -232,7 +232,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         cfg.quality_mode = 0;
         cfg.use_ivar_weight = 1;   // ivar 科学权重默认开启
         cfg.control_reliability = 1.0;
-        cfg.cpu_workers = 1;       // P2-002: 默认 1(串行 reference); 生产由 p2_session 传 lease(budget.max_workers)
+        cfg.cpu_workers = 1;       // 默认 1(串行 reference); 生产由 p2_session 传 lease(budget.max_workers)
     }
     if (cfg.huber_delta <= 0.0) cfg.huber_delta = 1.345;
     if (cfg.max_iterations <= 0) cfg.max_iterations = 100;
@@ -508,8 +508,8 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     std::vector<double> raw_w(n_obs, 0.0);
     auto compute_raw = [&]() -> int {
         std::vector<double> sums(K, 0.0);
-        // P2-002: 并行 worker 数来自 Runtime lease(cfg.cpu_workers, p2_session 传
-        // budget.max_workers)。无 hardware_concurrency(); 1 => 串行 reference。
+        // 并行 worker 数来自 Runtime lease(cfg.cpu_workers, p2_session 传
+        // budget.max_workers)。无 hardware_concurrency; 1 => 串行 reference。
         // 规约: worker-local tsums + 按 worker 顺序(与 OpenMP tid 升序语义一致)合并,
         // 定义 determinism class D1(worker 数无关, 同一 worker 数下位精确)。
         const int cworkers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
@@ -610,7 +610,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             }
         }
         std::vector<double> w(n_obs);
-        // P2-002: 逐 obs 独立 w 计算(per-obs 写 w[i] 不相交); std::thread + lease worker。
+        // 逐 obs 独立 w 计算(per-obs 写 w[i] 不相交); std::thread + lease worker。
         {
             const int cworkers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
             if (cworkers > 1) {
@@ -651,7 +651,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         // 2. M 更新（固定 C）：每分量 gauge = 分量内最小 frame_id C=0 →
         // M 由该分量参考帧观测定义；参考帧未覆盖节点用全部帧（延拓）。
         double max_dM = 0.0;
-        // P2-002: 逐 control 独立 M 更新(每 control 的 obs 聚合整块由单线程完成,
+        // 逐 control 独立 M 更新(每 control 的 obs 聚合整块由单线程完成,
         // 逐 k 写 M[k] 不相交); max 归约用 per-worker 局部 + join 合并(位精确)。
         {
             const std::size_t nK = m->controls.size();
@@ -767,7 +767,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         std::vector<std::uint64_t> fids;
         fids.reserve(m->frame_index.size());
         for (const auto& kv : m->frame_index) fids.push_back(kv.first);
-        // P2-002: 逐 frame 独立 C 更新 + CG（每 frame 的 rhs/obs_w/C[f]/x 全 per-frame；
+        // 逐 frame 独立 C 更新 + CG（每 frame 的 rhs/obs_w/C[f]/x 全 per-frame；
         // cg_solve_frame 读只读共享 adj/K/lambda_s/anchor，写各 frame 自身；仅 max 归约
         // 用 per-worker 局部 + join 合并）。取消点在迭代边界(上层循环)检查。
         {
@@ -1247,7 +1247,7 @@ int p2_upm_calibrate_block(const void* model, std::uint64_t frame_id,
     }
     const Model* m = static_cast<const Model*>(model);
     const auto it = m->frame_index.find(frame_id);
-    //未知 frame_id 必须显式失败，禁止回退 frame 0 参数
+    // 未知 frame_id 必须显式失败，禁止回退 frame 0 参数
     // （错误帧校准会静默制造错误科学结果）。
     if (it == m->frame_index.end()) return 1;
     const std::size_t fi = it->second;
@@ -1273,7 +1273,7 @@ double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
     if (model == nullptr) return 0.0;
     const Model* m = static_cast<const Model*>(model);
     const auto it = m->frame_index.find(frame_id);
-    //未知 frame_id 返回 NaN（显式不可用），禁止用
+    // 未知 frame_id 返回 NaN（显式不可用），禁止用
     // frame 0 参数伪装有效结果。
     if (it == m->frame_index.end())
         return std::numeric_limits<double>::quiet_NaN();
@@ -1474,7 +1474,7 @@ int p2_upm_materialize_dense_n(const void* model, int target_order,
             out[local] = top + ty * (bot - top);
         }
     };
-    // P2-002: dense tile 求值并行(std::thread; workers 由调用方传 lease, 无 OpenMP)。
+    // dense tile 求值并行(std::thread; workers 由调用方传 lease, 无 OpenMP)。
     const int nw = (workers > 0) ? workers : 1;
     for (std::size_t f = 0; f < m->C.size(); ++f) {
         for (std::size_t base = 0; base < tiles.size(); base += kChunk) {

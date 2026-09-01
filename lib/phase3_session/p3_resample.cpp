@@ -115,7 +115,7 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
                                     int* out_order, std::string* out_bunit,
                                     std::string* err) {
     if (!product_dir || !out) return P3_RS_PARAM;
-    // product_dir = HiPS 根(内含 signal/ 子产品); 严格校验 signal/properties(P3-001)
+    // product_dir = HiPS 根(内含 signal/ 子产品); 严格校验 signal/properties
     const std::string signal_dir = std::string(product_dir) + "/signal";
     HipsProperties p{};
     if (!hips_product_validate(signal_dir, &p, err))
@@ -131,7 +131,7 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
     s->leaf_nside = kTileWidth << p.order;
     s->root = product_dir;
     out->impl = s;
-    // P3-002: 暴露输入实际 order 与 BUNIT(缺省 ADU, 绝不 Jy/beam)
+    // 暴露输入实际 order 与 BUNIT(缺省 ADU, 绝不 Jy/beam)
     if (out_order) *out_order = p.order;
     if (out_bunit) *out_bunit = p.bunit.empty() ? std::string("ADU") : p.bunit;
     return P3_RS_OK;

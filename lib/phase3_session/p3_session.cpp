@@ -155,7 +155,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
     const std::string sampler = doc.value("sampler", std::string("bilinear"));
     const std::string parity = doc.value("longitude_parity", std::string("east_left"));
 
-    // WCS (P3-002)
+    // WCS
     P3WcsDescriptor wcs{};
     const P3WcsStatus wst = p3_wcs_make(ra, dec, scale, wpx, hpx, parity.c_str(), 0.0, &wcs);
     if (wst != P3_WCS_OK) {
@@ -163,7 +163,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
         return (wst == P3_WCS_UNSUPPORTED) ? ACS_ERR_UNSUPPORTED : ACS_ERR_PARAM;
     }
 
-    // sampler open (P3-001 properties 严格校验 + 打开 signal; P3-002 暴露实际 order/BUNIT)
+    // sampler open (properties 严格校验 + 打开 signal; 暴露实际 order/BUNIT)
     P3Sampler samp{};
     std::string serr;
     int input_order = 20;
@@ -193,7 +193,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
         p3_sampler_set_max_tiles(&samp, (int)std::max<int64_t>(1, mt));
     }
 
-    // order select (P3-002/003): 上限=输入实际 order(禁仅写 metadata), 不超冻结 20
+    // order select: 上限=输入实际 order(禁仅写 metadata), 不超冻结 20
     const int max_order = (input_order >= 0 && input_order <= 20) ? input_order : 20;
     int order_sel = -1;
     p3_order_select(max_order, scale, &order_sel);
@@ -204,7 +204,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
     std::vector<float> cov((size_t)nelem, 0.0f);
     int cancelled_row = -1;
 
-    // P3-003: 按 row-band 生成 work units, Runtime lease 多 worker 并行采样。
+    // 按 row-band 生成 work units, Runtime lease 多 worker 并行采样。
     // 每 worker 独立 sampler+bounded cache(P3Sampler 自含 cache); 输出 buffer 不重叠
     // (每 worker 专属行带); 禁 hardware_concurrency(worker 数=budget.max_workers)。
     // 串行阈值: worker 数 <2 或 budget 未注入 → 单线程(小图, <5s)。

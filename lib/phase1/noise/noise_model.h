@@ -1,4 +1,4 @@
-// AstroCS Phase1 — P1-005 Noise/SNR (SCI-NOISE-001)
+// AstroCS Phase1 — Noise/SNR (SCI-NOISE-001)
 // SCI 公式 reference: σ_bg = 1.482602218505602·MAD; variance; ivar=1/variance。
 // 合同: variance 与 inverse variance 不混; blank sky/低高信号/负值/零 gain/无效 read noise。
 #pragma once
