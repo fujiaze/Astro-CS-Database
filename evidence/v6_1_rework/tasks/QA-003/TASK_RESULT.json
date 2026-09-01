@@ -1,0 +1,56 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "QA-003",
+  "status": "PASS",
+  "parent_commit": "8003297fe6043620ab66ab0e5effc5b015c9721a",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "documentation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/QA-003/SBOM.json",
+    "evidence/v6_1_rework/tasks/QA-003/DEPENDENCY_LOCK.md",
+    "evidence/v6_1_rework/tasks/QA-003/TASK_RESULT.json"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "文档/清单交付物: CycloneDX 1.5 SBOM + 依赖锁 (nlohmann 3.12.0 MIT / cfitsio 4.6.4 NASA / zlib 1.3.1 / libgomp / pthread), 编译链 metadata, provider build IDs, source commit"
+  },
+  "commands": [],
+  "tests": [
+    {
+      "test_id": "T-SBOM-VALID",
+      "description": "CycloneDX 1.5 JSON 合法, 5 components, 依赖边完整",
+      "result": "PASS",
+      "evidence_sha256": "7f6a9b67fa23c90c42083a952df1eb098a68caf58c7b6e47aa38662638523d51"
+    },
+    {
+      "test_id": "T-LOCK-COMPLETE",
+      "description": "G7 checklist 依赖锁/许可/SBOM/编译器/flags/provider build ID 全覆盖",
+      "result": "PASS",
+      "evidence_sha256": "b7fdee618d2349540ef8a18be77375cdc99440525a61d144bc716c39a804947b"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-003/SBOM.json",
+      "sha256": "7f6a9b67fa23c90c42083a952df1eb098a68caf58c7b6e47aa38662638523d51"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-003/DEPENDENCY_LOCK.md",
+      "sha256": "b7fdee618d2349540ef8a18be77375cdc99440525a61d144bc716c39a804947b"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "zlib 为系统包 (Debian zlib1g 1.3.1), 双平台重建时 Windows 侧用 zlib 对应版本 (WIN-001 记录)",
+    "Windows toolchain (MSVC) 版本由 WIN-001 补录"
+  ],
+  "expected_commit_subject": "QA-003: 依赖许可 SBOM 与可复现构建 (CycloneDX 1.5, nlohmann/cfitsio/zlib 锁定, 编译链 metadata)",
+  "created_utc": "2026-09-02T04:35:00Z"
+}
