@@ -2,10 +2,14 @@
 #include "runtime_client.h"
 
 #include "astrocs/core/context.h"
+#include "cancel_token.h"
 
 #include <nlohmann/json.hpp>
 
+#include <atomic>
+#include <chrono>
 #include <cstdio>
+#include <thread>
 
 namespace astrocs::cli {
 
@@ -211,6 +215,7 @@ const std::string& last_pipeline_ir_json() {
 
 int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
                  uint32_t budget, std::string* fail_reason) {
+  astrocs::core::Result<void> rt_ret;   // cancel 监视线程作用域外保存 run 结果
   ModuleRegistry reg;
   auto rr = register_cli_modules(reg);
   if (rr.failed()) {
@@ -234,7 +239,24 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     return 4;  // 静态验证失败 → 科学/配置错误
   }
   astrocs::core::RunContext ctx;
-  auto r = rt.value()->run(ctx);
+  // QA-002/LNX-004: cancel 接线 — SIGINT/SIGTERM 置位 CLI cancel_flag 后，
+  // 本监视线程轮询并转发到 Runtime::cancel()（scheduler 安全点协作取消）。
+  // 此前 cancel_flag 无人消费 → 信号不达 runtime（真实缺陷，本修复闭合）。
+  {
+    std::atomic<bool> stop{false};
+    std::thread cancel_watch([rt = rt.value().get(), &stop]() {
+      while (!stop.load(std::memory_order_acquire)) {
+        if (astrocs::is_cancelled()) {
+          rt->cancel();
+          return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      }
+    });
+    rt_ret = rt.value()->run(ctx);
+    stop.store(true, std::memory_order_release);
+    cancel_watch.join();
+  }
   // RT-008: 保留最近一次 Runtime 实例的节点 manifest，供 collect_node_manifests 读取
   {
     std::lock_guard<std::mutex> lock(g_man_mu);
@@ -246,14 +268,14 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     g_trace = rt.value()->node_trace();
     g_ir_json = ir_json;
   }
-  if (r.failed()) {
-    if (fail_reason) *fail_reason = r.error().message();
+  if (rt_ret.failed()) {
+    if (fail_reason) *fail_reason = rt_ret.error().message();
     // RT-008: 退出码映射保持 CLI 合同（04）:
     //   失败 manifest 的 error_kind==input → 3(INPUT)；DATA(参数/配置/数据) → 2(ARGS)；
     //   IO → 7；CANCELLED → 9；RESOURCE → 5；其余 → 70
     // 先看失败节点 manifest 是否带 error_kind
-    if (r.error().domain() == astrocs::core::ErrorDomain::DATA ||
-        r.error().domain() == astrocs::core::ErrorDomain::IO) {
+    if (rt_ret.error().domain() == astrocs::core::ErrorDomain::DATA ||
+        rt_ret.error().domain() == astrocs::core::ErrorDomain::IO) {
       bool input_err = false;
       {
         std::lock_guard<std::mutex> lock(g_man_mu);
@@ -266,7 +288,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
       }
       if (input_err) return 3;
     }
-    switch (r.error().domain()) {
+    switch (rt_ret.error().domain()) {
       case astrocs::core::ErrorDomain::DATA: return 2;
       case astrocs::core::ErrorDomain::IO: return 7;
       case astrocs::core::ErrorDomain::CANCELLED: return 9;
