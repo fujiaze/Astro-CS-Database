@@ -37,6 +37,10 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
                                     int* out_order, std::string* out_bunit,
                                     std::string* err);
 
+/* P3-006/DOC-003: 配置 tile cache 容量上限(内存守卫 ARCH-P3 §3)。
+ * max_tiles≤0 → 恢复默认(8); 请求可降不可升超物理内存守卫由上层校验。 */
+void p3_sampler_set_max_tiles(P3Sampler* s, int max_tiles);
+
 /* nearest: 返回含样本方向的叶级像素值; coverage: 1=有值, 0=tile 缺失。
  * tile 内 NaN → *value=NaN, coverage=1(§4 非错误语义)。 */
 P3ResampleStatus p3_sample_nearest(P3Sampler* s, double ra_deg, double dec_deg,

@@ -22,13 +22,14 @@ constexpr int kReaderBuf = 512 * 512;
 struct TileCache {
     std::vector<uint64_t> keys;
     std::vector<std::vector<float>> tiles;
+    size_t cap = 8;   // 默认; 可配置(max_tiles)
     const float* get(uint64_t k) const {
         for (size_t i = 0; i < keys.size(); ++i)
             if (keys[i] == k) return tiles[i].data();
         return nullptr;
     }
     void put(uint64_t k, std::vector<float>&& t) {
-        if (keys.size() == 8) { keys.erase(keys.begin()); tiles.erase(tiles.begin()); }
+        if (keys.size() >= cap) { keys.erase(keys.begin()); tiles.erase(tiles.begin()); }
         keys.push_back(k);
         tiles.push_back(std::move(t));
     }
@@ -97,6 +98,12 @@ P3ResampleStatus p3_resample_check_mode(const char* input_mode) {
         return P3_RS_UNSUPPORTED;
     if (m == "surface_brightness") return P3_RS_OK;
     return P3_RS_PARAM;
+}
+
+void p3_sampler_set_max_tiles(P3Sampler* s, int max_tiles) {
+    if (!s || !s->impl) return;
+    if (max_tiles <= 0) { s->impl->cache.cap = 8; return; }
+    s->impl->cache.cap = static_cast<size_t>(max_tiles);
 }
 
 P3ResampleStatus p3_sampler_open(const char* product_dir, P3Sampler* out,

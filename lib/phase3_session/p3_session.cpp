@@ -176,6 +176,23 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
                                                                           : ACS_ERR_PARAM;
     }
 
+    // P3-006/DOC-003: max_tiles 内存守卫(ARCH-P3 §3): 请求可降不可升, 默认 min(1024, ceil(W·H/W²)+16)
+    {
+        const int64_t wh = (int64_t)wpx * hpx;
+        int64_t default_max = 1024;
+        if (wpx > 0 && hpx > 0) {
+            const int64_t per_tile = (int64_t)512 * 512;
+            const int64_t need = (wh + per_tile - 1) / per_tile + 16;
+            default_max = std::min<int64_t>(1024, std::max<int64_t>(8, need));
+        }
+        int64_t mt = doc.value("max_tiles", (int)default_max);
+        if (mt > default_max) {
+            s->last_error = "max_tiles 超默认内存守卫(可降不可升)";
+            return ACS_ERR_BUDGET;
+        }
+        p3_sampler_set_max_tiles(&samp, (int)std::max<int64_t>(1, mt));
+    }
+
     // order select (P3-002/003): 上限=输入实际 order(禁仅写 metadata), 不超冻结 20
     const int max_order = (input_order >= 0 && input_order <= 20) ? input_order : 20;
     int order_sel = -1;
