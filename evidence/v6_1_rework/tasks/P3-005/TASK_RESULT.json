@@ -1,0 +1,92 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P3-005",
+  "status": "PASS",
+  "parent_commit": "052f44c38efcd992bd1cee2c330906299e19edf4",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "algorithm",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P3-005/PLAN.md",
+    "evidence/v6_1_rework/tasks/P3-005/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P3-005/logs/c01_fits_output.log",
+    "lib/phase3_session/p3_output.h",
+    "lib/phase3_session/p3_output.cpp",
+    "lib/phase3_session/p3_session.cpp",
+    "tests/backend/p3_output_probe_main.cpp",
+    "tests/unit/p3_output_test.cpp",
+    "tests/unit/p3_assembly_test.cpp",
+    "tests/backend/test_p3005_fits_output.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": true,
+    "data_semantics": true,
+    "public_api": true,
+    "pipeline": false,
+    "binary": false,
+    "reason": "p3_output_write_atomic 加 bitpix 参数(原硬编码 -32); session 传 request bitpix 使 -64 真实生效"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p3005_fits_output.py"
+      ],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T18:00:00Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/P3-005/logs/c01_fits_output.log",
+      "log_sha256": "eba9740c41ac8916e9f153d5db7d3147e9ecca5339e0f4e58042f460e0568b2a"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-BITPIX-32",
+      "description": "request -32 → 输出 BITPIX=-32, f32 buffer(itemsize 4)",
+      "result": "PASS",
+      "evidence_sha256": "eba9740c41ac8916e9f153d5db7d3147e9ecca5339e0f4e58042f460e0568b2a"
+    },
+    {
+      "test_id": "T-BITPIX-64",
+      "description": "request -64 → 输出 BITPIX=-64, f64 buffer(itemsize 8)",
+      "result": "PASS",
+      "evidence_sha256": "eba9740c41ac8916e9f153d5db7d3147e9ecca5339e0f4e58042f460e0568b2a"
+    },
+    {
+      "test_id": "T-KEYWORDS",
+      "description": "CRPIX/CRVAL/CD/CTYPE/CUNIT/BUNIT(ADU)/coverage/provenance 关键字齐全",
+      "result": "PASS",
+      "evidence_sha256": "eba9740c41ac8916e9f153d5db7d3147e9ecca5339e0f4e58042f460e0568b2a"
+    },
+    {
+      "test_id": "T-ROUNDTRIP",
+      "description": "f64 精度值 roundtrip(覆盖区正值)",
+      "result": "PASS",
+      "evidence_sha256": "eba9740c41ac8916e9f153d5db7d3147e9ecca5339e0f4e58042f460e0568b2a"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-005/PLAN.md",
+      "sha256": "902a65213119734ffd1362d2cce004b4e65c3b1fe8ea4e146688bf825be63125"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-005/TASK_RESULT.json",
+      "sha256": "4f060ba58397ee813a4ac0bde492f88f40104b8d47ff0097e99bb46ce443041a"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-005/logs/c01_fits_output.log",
+      "sha256": "eba9740c41ac8916e9f153d5db7d3147e9ecca5339e0f4e58042f460e0568b2a"
+    }
+  ],
+  "findings": [
+    "F-013",
+    "F-026"
+  ],
+  "expected_commit_subject": "P3-005: FITS 输出校验与 provenance (bitpix -32/-64 真实决定 buffer; 关键字/coverage/provenance 完整)",
+  "created_utc": "2026-09-01T18:05:00Z"
+}
