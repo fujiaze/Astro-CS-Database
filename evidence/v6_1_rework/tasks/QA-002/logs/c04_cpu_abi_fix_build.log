@@ -1,0 +1,9 @@
+-- AstroCS 0.10.0-alpha.2+ge25f3f0cb986e703d7f04bd207a40dcaf399da22 root target graph ready (ACR=OFF)
+-- Configuring done (0.2s)
+-- Generating done (0.5s)
+-- Build files have been written to: /home/lighthouse/Astro CS Database/run/temp/qa002_asan
+[ 28%] Built target astrocs_common
+[ 85%] Built target astrocs_cpu
+[ 85%] Building CXX object tests/unit/CMakeFiles/cpu_abi_test.dir/cpu_abi_test.cpp.o
+[100%] Linking CXX executable cpu_abi_test
+[100%] Built target cpu_abi_test

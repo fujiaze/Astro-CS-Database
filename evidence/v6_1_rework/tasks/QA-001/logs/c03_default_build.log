@@ -1,0 +1,126 @@
+[  1%] Building CXX object CMakeFiles/astrocs_common.dir/lib/common/crypto/sha256.cpp.o
+[  4%] Built target astrocs_core
+[ 26%] Built target astrocs_cfitsio
+[ 26%] Built target astrocs_phase1_wcs
+[ 27%] Built target astrocs_phase1_phot
+[ 27%] Built target astrocs_phase1_noise
+[ 28%] Built target astrocs_phase1_stars
+[ 28%] Built target core_contracts_test
+[ 29%] Built target core_artifact_test
+[ 30%] Built target core_module_test
+[ 31%] Built target core_pipeline_test
+[ 32%] Built target core_context_test
+[ 33%] Linking CXX static library libastrocs_common.a
+[ 33%] Built target core_scheduler_test
+[ 34%] Built target core_checkpoint_test
+[ 34%] Built target astrocs_common
+[ 35%] Built target core_logging_test
+[ 35%] Built target rt001_abi_test
+[ 36%] Built target rt002_budget_test
+[ 37%] Built target rt003_context_test
+[ 38%] Built target rt007_artifact_store_test
+[ 39%] Built target io_reentrant_test
+[ 39%] Built target cpu_monitor_test
+[ 39%] Built target p1_stars_test
+[ 40%] Built target p1_wcs_phot_test
+[ 41%] Built target p1_noise_test
+[ 41%] Built target p2_upm_synthetic_test
+[ 41%] Built target p2_ir_facade_test
+[ 42%] Built target p2_seam_gate_test
+[ 42%] Built target p3_interp_test
+[ 43%] Built target p3_coverage_test
+[ 44%] Built target astrocs_io
+[ 47%] Built target astrocs_aio
+[ 47%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/hardware_inspect.cpp.o
+[ 48%] Built target astrocs_cpu_avx2
+[ 48%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/profile_gen_v2.cpp.o
+[ 48%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/bench_harness.cpp.o
+[ 48%] Built target astrocs_cpu_avx512
+[ 49%] Building CXX object CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_session.cpp.o
+[ 50%] Linking CXX static library libastrocs_cpu.a
+[ 53%] Built target astrocs_cpu
+[ 54%] Built target io_adapter_test
+[ 54%] Linking CXX executable io_ownership_test
+[ 54%] Built target io_ownership_test
+[ 55%] Linking CXX executable cpu_abi_test
+[ 55%] Built target cpu_abi_test
+[ 56%] Linking CXX executable cpu_lease_test
+[ 56%] Built target cpu_lease_test
+[ 56%] Linking CXX executable cpu_features_test
+[ 57%] Built target cpu_features_test
+[ 57%] Linking CXX executable cpu_provider_test
+[ 58%] Built target cpu_provider_test
+[ 58%] Linking CXX executable cpu_fallback_test
+[ 58%] Built target cpu_fallback_test
+[ 59%] Linking CXX executable cpu_bench_test
+[ 59%] Built target cpu_bench_test
+[ 59%] Linking CXX executable cpu_profile_test
+[ 60%] Built target cpu_profile_test
+[ 60%] Linking CXX executable cpu003_profile_v2_test
+[ 60%] Built target cpu003_profile_v2_test
+[ 60%] Linking CXX executable cpu004_routing_test
+[ 61%] Built target cpu004_routing_test
+[ 62%] Linking CXX executable mon001_recorder_test
+[ 62%] Built target mon001_recorder_test
+[ 62%] Linking CXX executable mon002_gate_test
+[ 62%] Built target mon002_gate_test
+[ 63%] Linking CXX executable cpu001_provider_selftest_baseline
+[ 63%] Built target cpu001_provider_selftest_baseline
+[ 63%] Linking CXX executable cpu001_provider_selftest_avx2
+[ 64%] Built target cpu001_provider_selftest_avx2
+[ 64%] Linking CXX executable cpu001_provider_selftest_avx512
+[ 66%] Built target cpu001_provider_selftest_avx512
+[ 66%] Linking CXX executable cpu001_negative_test
+[ 67%] Built target cpu001_negative_test
+[ 71%] Built target astrocs_hips
+[ 73%] Built target astrocs_calibration
+[ 77%] Built target astrocs_phase2
+[ 81%] Built target astrocs_drizzle
+[ 82%] Built target astrocs_phase1_session
+[ 82%] Built target astrocs_phase2_session
+[ 82%] Linking CXX executable p1_calibration_test
+[ 83%] Built target p1_calibration_test
+[ 84%] Linking CXX executable p1_hips_writer_test
+[ 84%] Built target p1_hips_writer_test
+[ 84%] Linking CXX executable p1_ir_facade_test
+[ 84%] Built target p1_ir_facade_test
+[ 85%] Linking CXX executable p1_resource_test
+[ 85%] Built target p1_resource_test
+[ 85%] Linking CXX executable p2_workers_test
+[ 86%] Built target p2_workers_test
+[ 87%] Linking CXX executable p2_block_plan_test
+[ 87%] Built target p2_block_plan_test
+[ 87%] Linking CXX executable p2_rejection_test
+[ 88%] Built target p2_rejection_test
+[ 88%] Linking CXX executable p2_output_semantics_test
+[ 89%] Built target p2_output_semantics_test
+[ 89%] Linking CXX static library libastrocs_phase3_session.a
+[ 90%] Built target astrocs_phase3_session
+[ 91%] Linking CXX executable p1_nside_test
+[ 92%] Built target astrocs_module_adapters
+[ 93%] Linking CXX executable p3_wcs_test
+[ 93%] Built target p3_wcs_test
+[ 93%] Built target p1_nside_test
+[ 93%] Linking CXX executable p3_output_test
+[ 94%] Linking CXX executable p3_assembly_test
+[ 95%] Built target p3_output_test
+[ 95%] Building CXX object CMakeFiles/astrocs_cli_runtime.dir/cli/runtime_client.cpp.o
+[ 95%] Built target p3_assembly_test
+[ 96%] Linking CXX executable rt005_registry_test
+[ 96%] Built target rt005_registry_test
+[ 96%] Linking CXX executable rt006_scheduler_test
+[ 96%] Built target rt006_scheduler_test
+[ 96%] Linking CXX executable p1001_modules_test
+[ 97%] Built target p1001_modules_test
+[ 97%] Linking CXX static library libastrocs_cli_runtime.a
+[ 97%] Built target astrocs_cli_runtime
+[ 98%] Linking CXX executable rt008_runtime_client_test
+[ 99%] Building CXX object CMakeFiles/astrocs.dir/cli/commands.cpp.o
+[ 99%] Built target rt008_runtime_client_test
+[ 99%] Building CXX object CMakeFiles/astrocs.dir/cli/main.cpp.o
+[100%] Linking CXX executable rt009_node_trace_test
+[100%] Built target rt009_node_trace_test
+[100%] Building CXX object CMakeFiles/astrocs.dir/cli/parser.cpp.o
+[100%] Building CXX object CMakeFiles/astrocs.dir/cli/runtime_client.cpp.o
+[100%] Linking CXX executable astrocs
+[100%] Built target astrocs
