@@ -265,8 +265,10 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
         opath = doc["output_dir"].get<std::string>() + "/output_phase3.fits";
 
     P3OutputResult ores{};
+    const int out_bitpix = doc.value("bitpix", -32);
     const P3OutputStatus ost = p3_output_write_atomic(
-        sig.data(), cov.data(), wpx, hpx, &wcs, bunit.c_str(), opath.c_str(), &prov, -1, &ores);
+        sig.data(), cov.data(), wpx, hpx, &wcs, bunit.c_str(), opath.c_str(), &prov,
+        out_bitpix, -1, &ores);
     p3_sampler_close(&samp);
     if (ost != P3_OUT_OK) {
         s->last_error = "output write failed";

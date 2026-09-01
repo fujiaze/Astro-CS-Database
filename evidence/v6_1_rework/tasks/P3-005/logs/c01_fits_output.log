@@ -1,0 +1,23 @@
+test_01_bitpix_32_real (__main__.TestP3005FitsOutput.test_01_bitpix_32_real)
+request -32 → 输出 BITPIX=-32(真实 buffer)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3005_fits_output.py:41: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3005_kv8n4jua/o32/c.json' mode='w' encoding='UTF-8'>
+  json.dump(cfg, open(c, "w"))
+ok
+test_02_bitpix_64_real (__main__.TestP3005FitsOutput.test_02_bitpix_64_real)
+request -64 → 输出 BITPIX=-64(真实 f64 buffer)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3005_fits_output.py:41: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3005_kv8n4jua/o64/c.json' mode='w' encoding='UTF-8'>
+  json.dump(cfg, open(c, "w"))
+ok
+test_03_header_keywords_complete (__main__.TestP3005FitsOutput.test_03_header_keywords_complete)
+CRPIX/CRVAL/CD/CTYPE/CUNIT/BUNIT/coverage/provenance 关键字完整。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3005_fits_output.py:41: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3005_kv8n4jua/o3/c.json' mode='w' encoding='UTF-8'>
+  json.dump(cfg, open(c, "w"))
+/home/lighthouse/Astro CS Database/tests/backend/test_p3005_fits_output.py:77: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/p3005_kv8n4jua/o3/output_phase3.fits'>
+  self.assertTrue(len(fits.open(f)) >= 2, "应含 coverage 扩展")
+ok
+test_04_values_roundtrip (__main__.TestP3005FitsOutput.test_04_values_roundtrip)
+值 roundtrip: -64 输出在 f64 精度内保留值。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3005_fits_output.py:41: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3005_kv8n4jua/o4/c.json' mode='w' encoding='UTF-8'>
+  json.dump(cfg, open(c, "w"))
+ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.046s
+
+OK

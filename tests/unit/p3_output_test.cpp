@@ -50,7 +50,7 @@ int main() {
   // 1) 原子写 (不硬编码 version/run_id: 来自 prov)
   CHECK(astrocs::phase3::p3_output_write_atomic(
             sig.data(), cov.data(), w, h, &wcs, "ADU", out.c_str(),
-            &prov, -1, &res) == astrocs::phase3::P3_OUT_OK);
+            &prov, -32, -1, &res) == astrocs::phase3::P3_OUT_OK);
   CHECK(res.coverage_ok == 1);
   CHECK(res.reopen_ok == 1);
   CHECK(std::strlen(res.sha256) == 64);

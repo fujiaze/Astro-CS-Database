@@ -92,6 +92,7 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
                                       const char* bunit,
                                       const char* output_path,
                                       const P3Provenance* prov,
+                                      int bitpix,
                                       int cancelled_at_row,
                                       P3OutputResult* result) {
     if (!signal || !coverage || !wcs || !output_path || width < 1 || height < 1)
@@ -112,7 +113,11 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
         g_last_err = "fits_create_file(tmp): " + std::to_string(status);
         return P3_OUT_IO;
     }
-    const int bitpix = -32;
+    if (bitpix != -32 && bitpix != -64) {
+        ::unlink(tmp.c_str());
+        g_last_err = "bitpix must be -32|-64";
+        return P3_OUT_PARAM;
+    }
     if (fits_create_img(f, bitpix, 2, naxes, &status)) {
         ::unlink(tmp.c_str());
         g_last_err = "fits_create_img: " + std::to_string(status);

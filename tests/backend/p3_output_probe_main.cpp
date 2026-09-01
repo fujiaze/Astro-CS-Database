@@ -42,6 +42,7 @@ int main(int argc, char** argv) {
         const int W = atoi(argv[3]), H = atoi(argv[4]);
         const int cancel = atoi(argv[5]);
         const int seed = atoi(argv[6]);
+        const int bitpix = (argc >= 8) ? atoi(argv[7]) : -32;   // P3-005: -32|-64
         std::vector<float> sig, cov;
         fill(W, H, seed, sig, cov);
         P3WcsDescriptor w{};
@@ -53,7 +54,7 @@ int main(int argc, char** argv) {
                         "run-1", "0", "bilinear"};
         P3OutputResult r{};
         const P3OutputStatus st = p3_output_write_atomic(
-            sig.data(), cov.data(), W, H, &w, "ADU", out, &pv, cancel, &r);  // P3-002: 面亮度 ADU, 非 Jy/beam
+            sig.data(), cov.data(), W, H, &w, "ADU", out, &pv, bitpix, cancel, &r);  // P3-002: 面亮度 ADU, 非 Jy/beam
         if (st == P3_OUT_CANCELLED) { std::printf("CANCELLED\n"); return 0; }
         if (st != P3_OUT_OK) { std::printf("FAIL %d\n", (int)st); return 1; }
         std::printf("OK %s %ld %ld\n", r.sha256, r.covered_px, r.total_px);
