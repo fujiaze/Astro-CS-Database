@@ -1,0 +1,24 @@
+[  3%] Built target astrocs_common
+[ 45%] Built target astrocs_cfitsio
+[ 50%] Built target astrocs_core
+[ 58%] Built target astrocs_cpu
+[ 64%] Built target astrocs_aio
+[ 69%] Built target astrocs_calibration
+[ 75%] Built target astrocs_hips
+[ 77%] Built target astrocs_phase1_session
+[ 81%] Built target astrocs_phase3_session
+[ 88%] Built target astrocs_phase2
+[ 90%] Building CXX object CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/fits_reader.cpp.o
+[ 90%] Built target astrocs_phase2_session
+[ 92%] Building CXX object CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/spherical_overlap.cpp.o
+[ 92%] Building CXX object CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/reverse_drizzle.cpp.o
+[ 94%] Built target astrocs_module_adapters
+[ 96%] Building CXX object CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp.o
+[ 96%] Building CXX object CMakeFiles/astrocs_cli_runtime.dir/cli/runtime_client.cpp.o
+[ 96%] Linking CXX static library libastrocs_drizzle.a
+[ 98%] Built target astrocs_drizzle
+[ 98%] Linking CXX static library libastrocs_cli_runtime.a
+[ 98%] Built target astrocs_cli_runtime
+[ 98%] Building CXX object CMakeFiles/astrocs.dir/cli/runtime_client.cpp.o
+[ 98%] Linking CXX executable astrocs
+[100%] Built target astrocs

@@ -1,0 +1,35 @@
+{
+  "artifacts": [
+    {
+      "path": "run/lnx004/p3_cancel/output_phase3.fits",
+      "role": "phase3_output",
+      "sha256": "fc97d5e954bf35378f7437f7e02af14aa997f6f94dc082a53e5f30f1ec098456",
+      "size_bytes": 535680
+    },
+    {
+      "path": "run/lnx004/p3_cancel/output_phase3.fits",
+      "role": "phase3_output",
+      "sha256": "fc97d5e954bf35378f7437f7e02af14aa997f6f94dc082a53e5f30f1ec098456",
+      "size_bytes": 535680
+    }
+  ],
+  "astrocs_version": "0.10.0-alpha.2+g591f541f552e5f8a3ef733da2c9e48b10d4a2e7a",
+  "config_path": "run/lnx004/p3_cancel.json",
+  "config_sha256": "47acc2e39b90eb75dfe2a82f33e37b43eca7ab8de013a70c0480b3f000575fd5",
+  "cpu_profile_path": null,
+  "cpu_profile_sha256": null,
+  "finished_utc": "2026-09-01T17:46:35Z",
+  "kind": "astrocs_run_manifest",
+  "phases": [
+    3
+  ],
+  "platform": {
+    "arch": "amd64",
+    "os": "linux"
+  },
+  "run_id": "1207ebe55bef",
+  "schema_version": "1",
+  "started_utc": "2026-09-01T17:46:35Z",
+  "status": "incomplete",
+  "summary": "cancelled by user"
+}
