@@ -56,7 +56,7 @@ static void test_register_modules() {
   astrocs::core::ModuleRegistry reg;
   auto r = astrocs::cli::register_cli_modules(reg);
   CHECK(r.ok());
-  CHECK(reg.size() == 17);  // P1-001: 8 类 Phase1 + Phase2/3 + P2-006: 7 节点链
+  CHECK(reg.size() == 22);  // P1-001: 8 类 Phase1 + Phase2/3 + P2-006: 7 节点链
 }
 
 static void test_run_pipeline_validation_error() {

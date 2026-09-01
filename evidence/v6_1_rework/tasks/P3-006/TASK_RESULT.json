@@ -1,0 +1,97 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P3-006",
+  "status": "PASS",
+  "parent_commit": "9a96b2c43f6450defba8bc2544c4699d5ccd1ac3",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "pipeline",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P3-006/PLAN.md",
+    "evidence/v6_1_rework/tasks/P3-006/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P3-006/logs/c01_production_pipeline.log",
+    "lib/core/src/module_adapters.cpp",
+    "cli/runtime_client.cpp",
+    "tests/unit/rt005_registry_test.cpp",
+    "tests/unit/rt008_runtime_client_test.cpp",
+    "tests/cli/test_phase3_inprocess.py",
+    "tests/backend/test_p3006_production_pipeline.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": true,
+    "binary": false,
+    "reason": "phase3 IR 单节点 → 5 节点链(properties/wcs/resample2/writer/verify); Registry 新增 5 子模块; outs 改 artifact:verify"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p3006_production_pipeline.py"
+      ],
+      "timeout_seconds": 1800,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T19:00:00Z",
+      "duration_seconds": 41.0,
+      "log_path": "evidence/v6_1_rework/tasks/P3-006/logs/c01_production_pipeline.log",
+      "log_sha256": "23dbd2ed284fa07c15dbcc0a354a6cb3baf1926401db5b4bd2d34aa2c9459477"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-IR-5-NODES",
+      "description": "IR 5 节点链 properties→wcs→resample2→writer→verify(模块 ID/端口正确)",
+      "result": "PASS",
+      "evidence_sha256": "23dbd2ed284fa07c15dbcc0a354a6cb3baf1926401db5b4bd2d34aa2c9459477"
+    },
+    {
+      "test_id": "T-GE10S",
+      "description": "完整合成运行 ≥10s(1200² bilinear 实测 13.8s)",
+      "result": "PASS",
+      "evidence_sha256": "23dbd2ed284fa07c15dbcc0a354a6cb3baf1926401db5b4bd2d34aa2c9459477"
+    },
+    {
+      "test_id": "T-SCIENCE",
+      "description": "科学门: 输出 FITS 有效(CTYPE1/BUNIT=ADU/覆盖区非空)",
+      "result": "PASS",
+      "evidence_sha256": "23dbd2ed284fa07c15dbcc0a354a6cb3baf1926401db5b4bd2d34aa2c9459477"
+    },
+    {
+      "test_id": "T-RESOURCE-TRACE",
+      "description": "资源/trace: 事件序号连续, final ok",
+      "result": "PASS",
+      "evidence_sha256": "23dbd2ed284fa07c15dbcc0a354a6cb3baf1926401db5b4bd2d34aa2c9459477"
+    },
+    {
+      "test_id": "T-REGISTRY-IMPLEMENTED",
+      "description": "台账 P3-006 PASS(SCI/ALG/MOD IMPLEMENTED 标记)",
+      "result": "PASS",
+      "evidence_sha256": "23dbd2ed284fa07c15dbcc0a354a6cb3baf1926401db5b4bd2d34aa2c9459477"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-006/PLAN.md",
+      "sha256": "ec904fe3d61c77754a456f5692937d822ba1337b70a4963e309bd6180e5521c7"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-006/TASK_RESULT.json",
+      "sha256": "6d1504d006535c367de4b3d876963680c2d67e243bb5ed4aa884a27d9194caca"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-006/logs/c01_production_pipeline.log",
+      "sha256": "23dbd2ed284fa07c15dbcc0a354a6cb3baf1926401db5b4bd2d34aa2c9459477"
+    }
+  ],
+  "findings": [
+    "F-014",
+    "F-027"
+  ],
+  "expected_commit_subject": "P3-006: Phase3 生产 Pipeline 与资源门 (IR 5 节点链 properties→wcs→resample2→writer→verify; ≥10s; 科学/资源/trace 同过)",
+  "created_utc": "2026-09-01T19:05:00Z"
+}
