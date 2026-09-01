@@ -1,0 +1,11 @@
+test_01_block_plan_bounded (__main__.TestP2005BlockIo.test_01_block_plan_bounded)
+预算生成 block plan; 大输出+极小预算必须缩块(无 35GB 稠密 cache)。 ... ok
+test_02_peak_rss_bounded (__main__.TestP2005BlockIo.test_02_peak_rss_bounded)
+峰值 RSS 实测 ≤ plan 容差(256MB 分配 → HWM < 1GB)。 ... ok
+test_03_small_equals_full_reference (__main__.TestP2005BlockIo.test_03_small_equals_full_reference)
+小块/full reference 等价: 覆盖无重复/遗漏; 确定性。 ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.708s
+
+OK
