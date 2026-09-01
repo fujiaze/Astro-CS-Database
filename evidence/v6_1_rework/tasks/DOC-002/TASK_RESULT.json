@@ -1,0 +1,115 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "DOC-002",
+  "status": "PASS",
+  "parent_commit": "635481e1d345c29d1ec7b11c384a09bd0fd107ad",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "documentation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/DOC-002/PLAN.md",
+    "evidence/v6_1_rework/tasks/DOC-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/DOC-002/logs/c01_traceability.log",
+    "evidence/v6_1_rework/tasks/DOC-002/logs/c02_final_trace.log",
+    "evidence/v6_1_rework/tasks/DOC-002/logs/c03_data_artifacts.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "文档复验: 追溯矩阵/最终追溯/DATA artifact 3 项全 PASS, 无生产代码变更"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/check_traceability.py"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T21:00:00Z",
+      "duration_seconds": 5.0,
+      "log_path": "evidence/v6_1_rework/tasks/DOC-002/logs/c01_traceability.log",
+      "log_sha256": "9f6cceb6d6dced9611b3854271417d4628a23b05cb3a7657690f348cee82b4b3"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "python3",
+        "tools/check_final_traceability.py"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T21:01:00Z",
+      "duration_seconds": 5.0,
+      "log_path": "evidence/v6_1_rework/tasks/DOC-002/logs/c02_final_trace.log",
+      "log_sha256": "9d6158dc35f016f98fdc2ab251768313c78062d3397876e05255f38936ca5bba"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "python3",
+        "tools/check_data_artifacts.py"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T21:02:00Z",
+      "duration_seconds": 5.0,
+      "log_path": "evidence/v6_1_rework/tasks/DOC-002/logs/c03_data_artifacts.log",
+      "log_sha256": "6a3db1ea6a771203f26c582644c993c777580a0b253b72fcdd385fea07954b5a"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-TRACEABILITY",
+      "description": "追溯矩阵 63 行全 ok, 0 断链, symbols 13/13",
+      "result": "PASS",
+      "evidence_sha256": "9f6cceb6d6dced9611b3854271417d4628a23b05cb3a7657690f348cee82b4b3"
+    },
+    {
+      "test_id": "T-FINAL-TRACE",
+      "description": "最终追溯 66 claims, VERSION 单源, 旧入口标退出, phase3 真实",
+      "result": "PASS",
+      "evidence_sha256": "9d6158dc35f016f98fdc2ab251768313c78062d3397876e05255f38936ca5bba"
+    },
+    {
+      "test_id": "T-DATA-ARTIFACTS",
+      "description": "DATA artifact 18 schemas 一致",
+      "result": "PASS",
+      "evidence_sha256": "6a3db1ea6a771203f26c582644c993c777580a0b253b72fcdd385fea07954b5a"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-002/PLAN.md",
+      "sha256": "11113f17904dbb0bee11ca40d94f111f4cd905ef8ca993e168362c0b8632913f"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-002/TASK_RESULT.json",
+      "sha256": "83b19b5dead728b6031b90cf8109545d4b5fd87ae06e1967023b8e7597ce8203"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-002/logs/c01_traceability.log",
+      "sha256": "9f6cceb6d6dced9611b3854271417d4628a23b05cb3a7657690f348cee82b4b3"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-002/logs/c02_final_trace.log",
+      "sha256": "9d6158dc35f016f98fdc2ab251768313c78062d3397876e05255f38936ca5bba"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-002/logs/c03_data_artifacts.log",
+      "sha256": "6a3db1ea6a771203f26c582644c993c777580a0b253b72fcdd385fea07954b5a"
+    }
+  ],
+  "findings": [
+    "F-016",
+    "F-029"
+  ],
+  "expected_commit_subject": "DOC-002: 重建当前版本追溯矩阵 (63 行追溯/66 claims 最终追溯/18 DATA artifact 全 PASS)",
+  "created_utc": "2026-09-01T21:05:00Z"
+}

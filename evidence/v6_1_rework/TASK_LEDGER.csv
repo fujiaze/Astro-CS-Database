@@ -43,7 +43,7 @@ P3-004,G6,建立独立球面重采样Oracle,P3-003,Linux,science,yes,yes,nearest
 P3-005,G6,修复FITS输出校验与provenance,P3-001;RT-007,Linux,science,yes,yes,BITPIX/BUNIT/WCS/checksum/atomicity/version/run/missing,CFITSIO checksum verify; mismatch hard fail; fsync order; reopen independent,PASS
 P3-006,G6,组装Phase3生产Pipeline与资源门,P3-004;P3-005;MON-003,Linux,validation,yes,yes,registry/IR/session removal; full synthetic,SCI/ALG/API/CODE/TEST闭合; 2核利用达标; status IMPLEMENTED,PASS
 DOC-001,G7,重建合同front matter与完整图,P1-004;P2-007;P3-006,Linux,documentation,no,yes,SCI ALG DATA ARCH API MOD TEST,每active模块完整链; 双向依赖; DRAFT不得宣称implemented,PASS
-DOC-002,G7,重建当前版本追溯矩阵,RT-009;P1-004;P2-007;P3-006,Linux,documentation,no,yes,current source only; symbols/tests/evidence,无V5默认表/硬编码计数; 每行路径符号真实,NOT_STARTED
+DOC-002,G7,重建当前版本追溯矩阵,RT-009;P1-004;P2-007;P3-006,Linux,documentation,no,yes,current source only; symbols/tests/evidence,无V5默认表/硬编码计数; 每行路径符号真实,PASS
 DOC-003,G7,重建全公共API AST语义检查,DOC-001,Linux,documentation,no,yes,all public headers; ABI/layout/signatures; semantics,参数类型/cv/noexcept/layout全比; 占位字段拒绝; negative fixture,NOT_STARTED
 DOC-004,G7,补齐所有生产模块README,DOC-001,Linux,documentation,no,yes,core/io/runtime/cpu/P1/P2/P3 modules,职责/端口/合同/符号/并行/内存/错误/test齐,NOT_STARTED
 DOC-005,G7,重建L0负责人文档,DOC-002;DOC-003;DOC-004,Linux,documentation,no,yes,REVIEW plus 5 docs,状态由ledger/evidence生成; owner只读L0可判断风险,NOT_STARTED
