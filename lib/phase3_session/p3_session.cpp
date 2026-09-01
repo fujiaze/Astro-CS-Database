@@ -101,7 +101,7 @@ static acs_status parse_request(SessionState* s, const acs_span_u8 req, json* ou
         }
     }
     const double dec = doc["center"]["dec_deg"].get<double>();
-    if (std::fabs(dec) < 5.0) { s->last_error = "|center.dec_deg| must be ≥ 5°"; return ACS_ERR_PARAM; }
+    if (std::fabs(dec) > 85.0) { s->last_error = "abs(center.dec_deg) must be <= 85° (TAN pole excluded)"; return ACS_ERR_PARAM; }
     const double scale = doc.value("scale_deg_per_px", 0.0);
     if (!(scale > 0.0)) { s->last_error = "scale_deg_per_px must be > 0"; return ACS_ERR_PARAM; }
     const int wpx = doc.value("width_px", 0);

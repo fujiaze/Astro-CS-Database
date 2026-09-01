@@ -15,7 +15,7 @@ extern "C" {
 
 acs_status p3_session_create(const astrocs_host_services_v1* host, acs_handle* out);
 
-/* 纯读; 无 IO; 幂等。显式拒清单全查(projection≠TAN/frame≠ICRS/W·H 越界/|dec|<5°/sampler 非法/
+/* 纯读; 无 IO; 幂等。显式拒清单全查(projection≠TAN/frame≠ICRS/W·H 越界/abs(dec)<=85°/sampler 非法/
  * longitude_parity 非法/bitpix 非法/coverage_output 非法/scale≤0/缺 source.hips_dir&properties)。 */
 acs_status p3_session_validate(acs_handle h, const acs_span_u8 request_json);
 

@@ -1,0 +1,43 @@
+test_01_pole_condition_single (__main__.TestP3001ScienceFreeze.test_01_pole_condition_single)
+极区条件统一为 abs(dec)<=85°(无第二套 |dec|>=5° 条件)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3001_science_freeze.py:29: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/docs/science/PHASE3_HIPS_TO_FITS.md' mode='r' encoding='utf-8'>
+  s = open(p, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3001_science_freeze.py:29: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/docs/api/PHASE3_API_V1.md' mode='r' encoding='utf-8'>
+  s = open(p, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3001_science_freeze.py:29: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_wcs.cpp' mode='r' encoding='utf-8'>
+  s = open(p, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3001_science_freeze.py:29: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_wcs.h' mode='r' encoding='utf-8'>
+  s = open(p, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3001_science_freeze.py:36: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_session.cpp' mode='r' encoding='utf-8'>
+  sc = open(SESS, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3001_science_freeze.py:38: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_wcs.cpp' mode='r' encoding='utf-8'>
+  sw = open(WCS_C, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_02_frozen_items_present (__main__.TestP3001ScienceFreeze.test_02_frozen_items_present)
+冻结项齐全(SCI 文档): NESTED/ICRS/TAN/单位/pixel center/CD parity/order/nearest/bilinear/coverage/NaN/BITPIX。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3001_science_freeze.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/docs/science/PHASE3_HIPS_TO_FITS.md' mode='r' encoding='utf-8'>
+  s = open(SCI, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_03_session_rejects_pole (__main__.TestP3001ScienceFreeze.test_03_session_rejects_pole)
+生产 session 拒绝 |dec|>85°(ACS_ERR_PARAM), 85° 内接受。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3001_science_freeze.py:52: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_session.cpp' mode='r' encoding='utf-8'>
+  sc = open(SESS, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3001_science_freeze.py:56: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_wcs.cpp' mode='r' encoding='utf-8'>
+  sw = open(WCS_C, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_04_sci_frozen (__main__.TestP3001ScienceFreeze.test_04_sci_frozen)
+SCI 文档状态 FROZEN。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3001_science_freeze.py:61: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/docs/science/PHASE3_HIPS_TO_FITS.md' mode='r' encoding='utf-8'>
+  s = open(SCI, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.006s
+
+OK

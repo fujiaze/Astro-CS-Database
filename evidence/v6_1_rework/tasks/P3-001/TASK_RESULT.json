@@ -1,0 +1,92 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P3-001",
+  "status": "PASS",
+  "parent_commit": "9d03a5b76f34965242bebd6309888839cb34586c",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "documentation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P3-001/PLAN.md",
+    "evidence/v6_1_rework/tasks/P3-001/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P3-001/logs/c01_science_freeze.log",
+    "docs/science/PHASE3_HIPS_TO_FITS.md",
+    "docs/api/PHASE3_API_V1.md",
+    "lib/phase3_session/p3_session.cpp",
+    "lib/phase3_session/p3_session.h",
+    "lib/phase3_session/p3_wcs.cpp",
+    "lib/phase3_session/p3_wcs.h",
+    "tests/backend/test_p3001_science_freeze.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "文档+条件统一: 极区条件统一为 abs(dec)<=85°(SCI/API/session/WCS 一致); 拒绝语义 fabs>85 不变(原 fabs<5 等价); 无科学/算法变更"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p3001_science_freeze.py"
+      ],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T14:00:00Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/P3-001/logs/c01_science_freeze.log",
+      "log_sha256": "5630109528ba96af9aa17709fba6aa02cb7ae8044450529da7d01e6dc00d5cf3"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-POLE-SINGLE",
+      "description": "极区条件统一 abs(dec)<=85°(SCI/API/session/WCS 无第二套 |dec|>=5°)",
+      "result": "PASS",
+      "evidence_sha256": "5630109528ba96af9aa17709fba6aa02cb7ae8044450529da7d01e6dc00d5cf3"
+    },
+    {
+      "test_id": "T-FROZEN-ITEMS",
+      "description": "冻结项齐全: NESTED/ICRS/TAN/ADU/像素中心/CD parity/order/nearest/bilinear/coverage/NaN/BITPIX",
+      "result": "PASS",
+      "evidence_sha256": "5630109528ba96af9aa17709fba6aa02cb7ae8044450529da7d01e6dc00d5cf3"
+    },
+    {
+      "test_id": "T-SESSION-REJECT",
+      "description": "session 拒绝 abs(dec)>85(ACS_ERR_PARAM); WCS kMaxAbsDec=85.0",
+      "result": "PASS",
+      "evidence_sha256": "5630109528ba96af9aa17709fba6aa02cb7ae8044450529da7d01e6dc00d5cf3"
+    },
+    {
+      "test_id": "T-SCI-FROZEN",
+      "description": "SCI 文档状态 FROZEN(先文档后代码)",
+      "result": "PASS",
+      "evidence_sha256": "5630109528ba96af9aa17709fba6aa02cb7ae8044450529da7d01e6dc00d5cf3"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-001/PLAN.md",
+      "sha256": "f7e556e38bdd6991818a533f4c699629da8ef52798946b65ad0e2e947c4b1c43"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-001/TASK_RESULT.json",
+      "sha256": "a221e81aa2d6cfc1e2dcbd2cab681ef68639c30df72298b3269bfbc9029c9960"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-001/logs/c01_science_freeze.log",
+      "sha256": "5630109528ba96af9aa17709fba6aa02cb7ae8044450529da7d01e6dc00d5cf3"
+    }
+  ],
+  "findings": [
+    "F-007",
+    "F-023"
+  ],
+  "expected_commit_subject": "P3-001: Phase3 科学与算法冻结 (abs(dec)<=85° 单一条件统一 SCI/API/session/WCS; 冻结项审计)",
+  "created_utc": "2026-09-01T14:05:00Z"
+}

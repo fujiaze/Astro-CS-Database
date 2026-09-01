@@ -18,7 +18,7 @@ acs_status p3_session_destroy(acs_handle);
 | 字段 | 类型/单位 | 约束(ALG-P3/SCI-P3 冻结) |
 |---|---|---|
 | `source.hips_dir` | UTF-8 path | 必须含合法 properties(ALG-P3-001) |
-| `center` | {ra_deg, dec_deg} ICRS | `|dec|≥5°`;输出四角同半球 |
+| `center` | {ra_deg, dec_deg} ICRS | `abs(dec)<=85°`;输出四角同半球 |
 | `scale_deg_per_px` | deg/px | >0 |
 | `width_px`/`height_px` | px | ∈[1,20000] |
 | `projection` | 枚举 | **仅 "TAN"**,其他→UNSUPPORTED |
@@ -41,7 +41,7 @@ acs_status p3_session_destroy(acs_handle);
 | 多通道/RGBA、JPEG/PNG lossy tile、int+BLANK | ACS_ERR_UNSUPPORTED |
 | variance/weight/ivar/flux-per-pixel 输入模式 | ACS_ERR_UNSUPPORTED |
 | properties 非法/缺键 | ACS_ERR_PARAM |
-| 中心距极点<5°/输出跨 TAN 半球/W/H 越界 | ACS_ERR_PARAM |
+| abs(dec)>85°(距极点<5°)/输出跨 TAN 半球/W/H 越界 | ACS_ERR_PARAM |
 | tile 文件缺失 | **非错误**:coverage=0+provenance.missing(SCI-P3 §8) |
 | tile 内 NaN | 非错误:S=NaN+C=1(§8) |
 | IO/运行失败 | ACS_ERR_IO/安全中止(ARCH-P3 §4) |

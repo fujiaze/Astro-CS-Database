@@ -33,7 +33,7 @@
 ## 4 输入有效域
 
 - properties 必需键存在且合法: `hips_order`(int≥0), `hips_tile_width`(2 的幂，默认 512), `hips_frame`='icrs'?/equatorial, `hips_order`≥0, 数据属性含 float FITS tiles；**合法转换=仅恒等 ICRS**。
-- 视场约束: `center` 距极点 `|Dec|≥5°`（TAN 极点退化显式拒）；`W_out,H_out∈[1,20000]`；`s_out>0`；输出四角与中心同半球（TAN 半球约束，越界显式拒）。
+- 视场约束: `abs(dec)<=85°`（距极点 ≥5°；TAN 极点退化显式拒，单一条件，SCI/API/session 三处一致）；`W_out,H_out∈[1,20000]`；`s_out>0`；输出四角与中心同半球（TAN 半球约束，越界显式拒）。
 - 拒绝项（§1）逐一显式错误，**无静默默认**。
 
 ## 5 连续定义
@@ -73,7 +73,7 @@ coverage:
 | 缺 tile（目录存在但文件缺失） | 该足迹 coverage=0, S=NaN，provenance 记录 missing，不中断 |
 | tile 内 NaN | 传播为输出 NaN（C=1，值 NaN），mask 语义经 coverage+NaN 判定 |
 | 跨 `RA=0/360` | RA 归一 [0,360) wrap，采样按球面角差，无接缝跳变 |
-| 极区 tile/输出中心 `\|Dec\|<5°` | 显式拒绝（TAN 退化） |
+| 极区 tile/输出中心 `abs(dec)>85°` | 显式拒绝（TAN 退化；`abs(dec)<=85°` 单一条件） |
 | properties 非法/缺失键 | 显式错误（无 silent default） |
 | JPEG/PNG/int+BLANK/多通道 tile | 显式拒绝（alpha 范围外） |
 
