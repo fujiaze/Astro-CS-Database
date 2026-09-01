@@ -93,7 +93,7 @@ int main() {
   }
 
   if (failures == 0) {
-    std::printf("CPU-008 TESTS PASS (采样字段/间隔/开销<2%/阈值/mixed 拆份)\n");
+    std::printf("CPU-008 TESTS PASS (采样字段/间隔/开销<2%%/阈值/mixed 拆份)\n");
     return 0;
   }
   std::fprintf(stderr, "CPU-008 TESTS FAIL (%d)\n", failures);

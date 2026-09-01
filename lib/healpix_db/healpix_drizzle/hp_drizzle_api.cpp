@@ -120,7 +120,7 @@ HP_DRIZZLE_API int hp_drizzle_reverse_run(
         return 5;
     }
 
-    const size_t npix = (size_t)in->target_width * in->target_height;
+    const size_t npix = (size_t)in->target_width * (size_t)in->target_height;
     if (rin.output_fp64) {
         std::memcpy(signal_out, rout.signal.data(), npix * sizeof(double));
         std::memcpy(coverage_out, rout.coverage.data(), npix * sizeof(double));
@@ -238,10 +238,10 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
         if (snrImg.channels == 1) {
             snrData = std::move(snrImg.pixels);
         } else {
-            size_t plane = (size_t)snrImg.width * snrImg.height;
+            size_t plane = (size_t)snrImg.width * (size_t)snrImg.height;
             snrData.resize(plane);
             for (size_t i = 0; i < plane; i++) {
-                snrData[i] = snrImg.pixels[i * snrImg.channels + 0];
+                snrData[i] = snrImg.pixels[i * (size_t)snrImg.channels + 0];
             }
         }
         snrPtr = snrData.data();
@@ -269,10 +269,10 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
         if (weightImg.channels == 1) {
             weightData = std::move(weightImg.pixels);
         } else {
-            size_t plane = (size_t)weightImg.width * weightImg.height;
+            size_t plane = (size_t)weightImg.width * (size_t)weightImg.height;
             weightData.resize(plane);
             for (size_t i = 0; i < plane; i++) {
-                weightData[i] = weightImg.pixels[i * weightImg.channels + 0];
+                weightData[i] = weightImg.pixels[i * (size_t)weightImg.channels + 0];
             }
         }
         weightPtr = weightData.data();
@@ -492,11 +492,11 @@ static int run_drizzle_internal(PipelineFrame* frame,
     img.channels = 1;
     if (data_is_f64) {
         const double* pixels_f64 = (const double*)data_blk->data;
-        img.pixels_f64.assign(pixels_f64, pixels_f64 + (size_t)width * height);
+        img.pixels_f64.assign(pixels_f64, pixels_f64 + (size_t)width * (size_t)height);
         img.use_f64 = true;
     } else {
         const float* pixels_f32 = (const float*)data_blk->data;
-        img.pixels.assign(pixels_f32, pixels_f32 + (size_t)width * height);
+        img.pixels.assign(pixels_f32, pixels_f32 + (size_t)width * (size_t)height);
         img.use_f64 = false;
     }
     img.bzero = 0.0;
@@ -649,7 +649,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
             const uint8_t* raw = (const uint8_t*)snr_blk->data;
             size_t raw_size = (size_t)snr_blk->count;
             bool is_v1 = (raw_size >= 28 && std::memcmp(raw, "SNRM", 4) == 0);
-            size_t nPix = (size_t)width * height;
+            size_t nPix = (size_t)width * (size_t)height;
             if (is_v1) {
                 // 版本化 v1/v2 头: magic4 + version4 + vd1 + res1 + stride2 + n4 + payload8 + cs4
                 uint32_t version = 0, n_points = 0, stored_cs = 0;

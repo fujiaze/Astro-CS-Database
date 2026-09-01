@@ -34,7 +34,7 @@ public:
         return astrocs::healpix::pixel_resolution_arcsec((uint32_t)m_nside);
     }
 
-    // theta: 0=北极, π=南极; phi: 0~2π  -> NESTED
+    // theta: 0=北极, π=南极; phi: 0~2π -> NESTED
     int64_t ang2pix(double theta_rad, double phi_rad) const {
         double dec = 90.0 - theta_rad * 180.0 / 3.14159265358979323846;
         double ra  = phi_rad * 180.0 / 3.14159265358979323846;
@@ -92,7 +92,7 @@ public:
         int shift = b - a;
         int n = 1 << (2 * shift);
         std::vector<int64_t> out;
-        out.reserve(n);
+        out.reserve(static_cast<size_t>(n));
         int64_t base = ipix_coarse << (2 * shift);
         for (int i = 0; i < n; ++i) out.push_back(base | i);
         return out;

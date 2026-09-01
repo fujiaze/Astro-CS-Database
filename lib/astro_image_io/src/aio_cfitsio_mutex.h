@@ -1,6 +1,6 @@
 // aio_cfitsio_mutex.h — RT-008: cfitsio 进程级串行化互斥量（共享单例）。
 // cfitsio 的 FptrTable / handleTable / fits_already_open 在并行访问下非线程安全
-//（_REENTRANT 锁未覆盖全部表路径）。所有 cfitsio 打开/关闭临界区必须共用
+// （_REENTRANT 锁未覆盖全部表路径）。所有 cfitsio 打开/关闭临界区必须共用
 // 同一把进程级锁，否则跨编译单元的 cfitsio 访问仍会竞争。
 #pragma once
 

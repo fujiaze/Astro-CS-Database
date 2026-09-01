@@ -86,8 +86,8 @@ static void parse_card(const char card[80], AIOFITSKeyword &kw) {
     }
 
     if (slash_pos >= 0) {
-        val = rest.substr(0, slash_pos);
-        cmt = rest.substr(slash_pos + 1);
+        val = rest.substr(0, static_cast<size_t>(slash_pos));
+        cmt = rest.substr(static_cast<size_t>(slash_pos) + 1);
     } else {
         val = rest;
         cmt = "";
@@ -171,7 +171,7 @@ static int parse_fits_header(FILE *fp, FITSHeader &hdr) {
 
     int bytes_per_pixel = std::abs(hdr.bitpix) / 8;
     if (bytes_per_pixel == 0) bytes_per_pixel = 1;
-    hdr.data_size = (size_t)axes[0] * axes[1] * axes[2] * bytes_per_pixel;
+    hdr.data_size = (size_t)axes[0] * (size_t)axes[1] * (size_t)axes[2] * (size_t)bytes_per_pixel;
 
     return 0;
 }
@@ -527,7 +527,7 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
     int w = (naxis >= 1) ? (int)naxes[0] : 1;
     int h = (naxis >= 2) ? (int)naxes[1] : 1;
     int c = (naxis >= 3 && naxes[2] > 1) ? (int)naxes[2] : 1;
-    size_t n_pixels = (size_t)w * h * c;
+    size_t n_pixels = (size_t)w * (size_t)h * (size_t)c;
     bool is_fp64 = (aio_internal_is_fp64() != 0);
 
     if (!header_only) {
@@ -547,7 +547,7 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
                 return -1;
             }
             if (c > 1) {
-                double *gray = (double *)malloc((size_t)w * h * sizeof(double));
+                double *gray = (double *)malloc((size_t)w * (size_t)h * sizeof(double));
                 if (gray) {
                     for (int y = 0; y < h; y++)
                         for (int x = 0; x < w; x++)
@@ -576,7 +576,7 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
                 return -1;
             }
             if (c > 1) {
-                float *gray = (float *)malloc((size_t)w * h * sizeof(float));
+                float *gray = (float *)malloc((size_t)w * (size_t)h * sizeof(float));
                 if (gray) {
                     for (int y = 0; y < h; y++)
                         for (int x = 0; x < w; x++)
@@ -592,7 +592,7 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
         }
     } else {
         // 与普通 FITS header-only 行为一致: 分配零缓冲
-        out->data = (float *)calloc((size_t)w * h, sizeof(float));
+        out->data = (float *)calloc((size_t)w * (size_t)h, sizeof(float));
         out->data_f64 = nullptr;
         out->dtype = is_fp64 ? 1 : 0;
     }
@@ -693,10 +693,10 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
 
     out->keyword_count = (int)hdr.keywords.size();
     if (out->keyword_count > 0) {
-        out->keywords = (AIOFITSKeyword *)malloc(out->keyword_count * sizeof(AIOFITSKeyword));
+        out->keywords = (AIOFITSKeyword *)malloc(static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
         if (out->keywords) {
             std::memcpy(out->keywords, hdr.keywords.data(),
-                        out->keyword_count * sizeof(AIOFITSKeyword));
+                        static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
         } else {
             out->keyword_count = 0;   // OOM 防护: 无关键字, 防 null 写
         }
@@ -752,7 +752,7 @@ int fits_read_file(const char *path, AIOImageData *out) {
     int w = hdr.naxis1;
     int h = (hdr.naxis >= 2) ? hdr.naxis2 : 1;
     int c = (hdr.naxis >= 3 && hdr.naxis3 > 1) ? hdr.naxis3 : 1;
-    size_t n_pixels = (size_t)w * h * c;
+    size_t n_pixels = (size_t)w * (size_t)h * (size_t)c;
 
     std::vector<uint8_t> raw(hdr.data_size);
     size_t nread = std::fread(raw.data(), 1, hdr.data_size, fp);
@@ -781,7 +781,7 @@ int fits_read_file(const char *path, AIOImageData *out) {
         }
 
         if (c > 1) {
-            double *gray = (double *)malloc((size_t)w * h * sizeof(double));
+            double *gray = (double *)malloc((size_t)w * (size_t)h * sizeof(double));
             if (gray) {
                 for (int y = 0; y < h; y++)
                     for (int x = 0; x < w; x++)
@@ -811,7 +811,7 @@ int fits_read_file(const char *path, AIOImageData *out) {
         }
 
         if (c > 1) {
-            float *gray = (float *)malloc((size_t)w * h * sizeof(float));
+            float *gray = (float *)malloc((size_t)w * (size_t)h * sizeof(float));
             if (gray) {
                 for (int y = 0; y < h; y++)
                     for (int x = 0; x < w; x++)
@@ -836,9 +836,9 @@ int fits_read_file(const char *path, AIOImageData *out) {
 
     out->keyword_count = (int)hdr.keywords.size();
     if (out->keyword_count > 0) {
-        out->keywords = (AIOFITSKeyword *)malloc(out->keyword_count * sizeof(AIOFITSKeyword));
+        out->keywords = (AIOFITSKeyword *)malloc(static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
         if (out->keywords) {
-            std::memcpy(out->keywords, hdr.keywords.data(), out->keyword_count * sizeof(AIOFITSKeyword));
+            std::memcpy(out->keywords, hdr.keywords.data(), static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
         } else {
             out->keyword_count = 0;   // OOM 防护: 无关键字, 防 null 写
         }
@@ -883,7 +883,7 @@ int fits_read_header_only(const char *path, AIOImageData *out) {
     int w = hdr.naxis1;
     int h = (hdr.naxis >= 2) ? hdr.naxis2 : 1;
 
-    out->data = (float *)calloc((size_t)w * h, sizeof(float));
+    out->data = (float *)calloc((size_t)w * (size_t)h, sizeof(float));
     out->width = w;
     out->height = h;
     out->channels = (hdr.naxis >= 3 && hdr.naxis3 > 1) ? hdr.naxis3 : 1;
@@ -894,9 +894,9 @@ int fits_read_header_only(const char *path, AIOImageData *out) {
 
     out->keyword_count = (int)hdr.keywords.size();
     if (out->keyword_count > 0) {
-        out->keywords = (AIOFITSKeyword *)malloc(out->keyword_count * sizeof(AIOFITSKeyword));
+        out->keywords = (AIOFITSKeyword *)malloc(static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
         if (out->keywords) {
-            std::memcpy(out->keywords, hdr.keywords.data(), out->keyword_count * sizeof(AIOFITSKeyword));
+            std::memcpy(out->keywords, hdr.keywords.data(), static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
         } else {
             out->keyword_count = 0;   // OOM 防护: 无关键字, 防 null 写
         }
@@ -1017,14 +1017,14 @@ int fits_write_file(const AIOImageData *image, const char *path) {
 
     std::fwrite(header_buf.data(), 1, padded, fp);
 
-    size_t n_pixels = (size_t)image->width * image->height;
+    size_t n_pixels = (size_t)image->width * (size_t)image->height;
     int do_swap = needs_swap();
 
     if (image->float_sample || image->bits_per_sample == 32) {
         if (do_swap) {
             std::vector<float> buf(n_pixels);
             std::memcpy(buf.data(), image->data, n_pixels * sizeof(float));
-            for (size_t i = 0; i < n_pixels; i++) swap_bytes_32(&buf[i]);
+            for (size_t i = 0; i < n_pixels; i++) swap_bytes_32(&buf[static_cast<size_t>(i)]);
             std::fwrite(buf.data(), sizeof(float), n_pixels, fp);
         } else {
             std::fwrite(image->data, sizeof(float), n_pixels, fp);
@@ -1033,8 +1033,8 @@ int fits_write_file(const AIOImageData *image, const char *path) {
         std::vector<int16_t> buf(n_pixels);
         #pragma omp parallel for schedule(static)
         for (long long i = 0; i < (long long)n_pixels; i++) {
-            buf[i] = (int16_t)std::round(image->data[i]);
-            if (do_swap) swap_bytes_16(&buf[i]);
+            buf[static_cast<size_t>(i)] = (int16_t)std::round(image->data[i]);
+            if (do_swap) swap_bytes_16(&buf[static_cast<size_t>(i)]);
         }
         std::fwrite(buf.data(), sizeof(int16_t), n_pixels, fp);
     }

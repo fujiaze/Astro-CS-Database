@@ -435,7 +435,7 @@ void cuda_launcher(const KernelInvocation& inv, void*, FocusedOp op) {
     if (!api.loaded()) throw std::runtime_error("cuda bridge not loaded");
     void* h = get_tls_handle();
     if (!h) throw std::runtime_error("no cuda handle");
-    //输入已驻留 → resident 提交路径。
+    // 输入已驻留 → resident 提交路径。
     // 不创建每 token host vector、不逐块 H2D；d_x 已在 worker 启动前
     // prefetch 整帧，桥接 resident 提交用 d_x + begin 复用。
     if (inv.input_resident) {

@@ -67,7 +67,7 @@ struct DispatcherConfig {
     // 26 §2/§9：MemoryBudget 独立开关（与利用率控制彻底解耦）。
     // 默认开启；关闭诊断采样不得关闭内存保护。
     bool enable_memory_budget{true};
-    //路由模式与 OperationProfile 驱动规划。
+    // 路由模式与 OperationProfile 驱动规划。
     // route_mode 默认 AutoMixed；CpuOnly/GpuOnly 用于对照/回退。
     // operation_profile 为空时走保守 CPU fallback（不伪造 GPU 路由）。
     RouteMode route_mode{RouteMode::AutoMixed};

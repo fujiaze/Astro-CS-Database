@@ -1,5 +1,5 @@
 // lib/backend_host/cpu_routing.h — CPU-004 (G3) 逐 kernel 自适应路由
-// 规格: V6.1 控制包 CPU-004; 08_CPU_RESOURCE_ACCEPTANCE.md §4
+// 规格: CPU-004; 08_CPU_RESOURCE_ACCEPTANCE.md §4
 // Runtime 按 kernel ID + workload class 读取 profile; 核对 arch/CPU/XCR0/OS ABI/quota/
 // runtime/provider/benchmark schema/build IDs。无 profile、stale、损坏或 unsupported
 // provider 时逐 kernel 回 baseline; 保守意味着最低 ISA, 不意味着单线程。

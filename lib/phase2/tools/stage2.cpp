@@ -1341,7 +1341,7 @@ int main(int argc, char** argv) {
                 gout.values = stack.data();
                 gout.support = support_v.data();
                 gout.frame_ids = fid_stack.data();
-                //compact eligible → 原始 frame slot 稳定映射
+                // compact eligible → 原始 frame slot 稳定映射
                 std::vector<std::uint32_t> src_idx(depth);
                 gout.source_indices = src_idx.data();
                 std::uint32_t n_valid = 0;
@@ -1376,7 +1376,7 @@ int main(int argc, char** argv) {
                     }
                 } else if (cfg.weight_mode == 0) {
                     for (std::uint32_t s = 0; s < n_valid; ++s) {
-                        //统一经 source_indices 取原 slot
+                        // 统一经 source_indices 取原 slot
                         const std::uint32_t orig = src_idx[s];
                         const std::uint64_t fid =
                             frame_id_cache[frames[orig]];

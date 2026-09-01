@@ -1,6 +1,6 @@
 // ============================================================================
 // 球面 HEALPix 重叠计算模块实现 (WP-D 步骤3-4)
-// 文档锚点: docs/algorithms/DRIZZLE_GEOMETRY.md §V19R3 bounded target-ipix geometry cache
+// 文档锚点: docs/algorithms/DRIZZLE_GEOMETRY.md § bounded target-ipix geometry cache
 // ALG-DRZ-GEOM-CACHE-001: TargetGeomCache LRU 8192 线程私有 run generation 切换清空
 //
 // 替换 drizzle_engine.cpp 中的局部切平面近似 + 人工 HEALPix 菱形近似,
@@ -316,8 +316,8 @@ std::vector<Vec3T<T>> sutherland_hodgman_spherical(
 
         int m = (int)input.size();
         for (int i = 0; i < m; i++) {
-            const Vec3T<T>& S = input[(i - 1 + m) % m];  // 前一顶点 (S-H 经典: S=E_prev)
-            const Vec3T<T>& E = input[i];                 // 当前顶点
+            const Vec3T<T>& S = input[(size_t)((i - 1 + m) % m)];  // 前一顶点 (S-H 经典: S=E_prev)
+            const Vec3T<T>& E = input[(size_t)i];                  // 当前顶点
             // 注: Sutherland-Hodgman 经典实现遍历边 (S, E) = (input[i-1], input[i])
             // 这里改写为更直观的 (S, E) = (current, next) 等价形式, 但保持顶点遍历顺序一致
             bool S_in = is_inside<T>(S, nrm);
@@ -449,8 +449,8 @@ std::vector<Vec3T<T>> get_healpix_boundary(
 
     int Ns = hp.getNside();
     int64_t npix_per_bighp = (int64_t)Ns * Ns;
-    int bighp = (int)(ipix / npix_per_bighp);
-    int64_t local_idx = ipix % npix_per_bighp;
+    int bighp = (int)(ipix / (uint64_t)npix_per_bighp);
+    int64_t local_idx = (int64_t)(ipix % (uint64_t)npix_per_bighp);
 
     // NESTED 解码: x 位填偶数位, y 位填奇数位
     int xv = 0, yv = 0;
@@ -501,8 +501,8 @@ void get_healpix_boundary4(const healpix::HealpixCore& hp, uint64_t ipix,
     (void)nside;
     int Ns = hp.getNside();
     int64_t npix_per_bighp = (int64_t)Ns * Ns;
-    int bighp = (int)(ipix / npix_per_bighp);
-    int64_t local_idx = ipix % npix_per_bighp;
+    int bighp = (int)(ipix / (uint64_t)npix_per_bighp);
+    int64_t local_idx = (int64_t)(ipix % (uint64_t)npix_per_bighp);
 
     int xv = 0, yv = 0;
     {
@@ -632,7 +632,7 @@ std::vector<Vec3T<T>> get_healpix_boundary_sampled(
     int samples_per_edge)
 {
     (void)nside;
-    (void)samples_per_edge;  //: 自适应细分, 不再依赖固定采样数
+    (void)samples_per_edge;  // 自适应细分, 不再依赖固定采样数
 
     int Ns = hp.getNside();
     // 性能: 高 NSIDE (小像素) 时 4 角已足够 — HEALPix 边偏离大圆弧的偏差
@@ -643,8 +643,8 @@ std::vector<Vec3T<T>> get_healpix_boundary_sampled(
         return get_healpix_boundary<T>(hp, ipix, Ns);
     }
     int64_t npix_per_bighp = (int64_t)Ns * Ns;
-    int bighp = (int)(ipix / npix_per_bighp);
-    int64_t local_idx = ipix % npix_per_bighp;
+    int bighp = (int)(ipix / (uint64_t)npix_per_bighp);
+    int64_t local_idx = (int64_t)(ipix % (uint64_t)npix_per_bighp);
 
     // NESTED 解码: x 位填偶数位, y 位填奇数位
     int xv = 0, yv = 0;
@@ -804,7 +804,7 @@ std::vector<Vec3T<T>> build_drop_polygon_sampled(
         {px - half, py + half}   // 3: 左上
     };
 
-    result.reserve((size_t)4 * samples_per_edge);
+    result.reserve((size_t)4 * (size_t)samples_per_edge);
 
     // 遍历 4 条边, 每边采样 samples_per_edge 段
     for (int edge = 0; edge < 4; edge++) {
@@ -1058,14 +1058,14 @@ void build_drop_geometry_into(DropGeometryT<Scalar>& g,
     int nd = (int)drop_corners.size();
     if (nd < 3) return;
     // double 角点缓存 (drop_area / 完全包含判定的几何源)
-    g.corners_d.resize(nd);
+    g.corners_d.resize((size_t)nd);
     if (corners_dbl && (int)corners_dbl->size() == nd) {
         g.corners_d = *corners_dbl;
     } else {
         for (int j = 0; j < nd; j++)
-            g.corners_d[j] = {double(drop_corners[j].x),
-                              double(drop_corners[j].y),
-                              double(drop_corners[j].z)};
+            g.corners_d[(size_t)j] = {double(drop_corners[(size_t)j].x),
+                                      double(drop_corners[(size_t)j].y),
+                                      double(drop_corners[(size_t)j].z)};
     }
     // drop 面积 (double 源, 构建时一次; 供小 drop 完全包含快路径)
     // 尺度感知: max_angle 暂以临时中心近似估计 (下面精确计算后不重复)
@@ -1123,17 +1123,17 @@ void build_drop_geometry_into(DropGeometryT<Scalar>& g,
     }
     g.max_angle = max_angle;
 
-    g.clip_normals.reserve(nd);
-    g.clip_normals_d.reserve(nd);
+    g.clip_normals.reserve((size_t)nd);
+    g.clip_normals_d.reserve((size_t)nd);
     for (int j = 0; j < nd; j++) {
         Vec3 P1, P2;
         if (corners_dbl && (int)corners_dbl->size() == nd) {
-            P1 = (*corners_dbl)[j];
-            P2 = (*corners_dbl)[(j + 1) % nd];
+            P1 = (*corners_dbl)[(size_t)j];
+            P2 = (*corners_dbl)[(size_t)((j + 1) % nd)];
         } else {
-            P1 = {double(drop_corners[j].x), double(drop_corners[j].y), double(drop_corners[j].z)};
-            P2 = {double(drop_corners[(j + 1) % nd].x), double(drop_corners[(j + 1) % nd].y),
-                  double(drop_corners[(j + 1) % nd].z)};
+            P1 = {double(drop_corners[(size_t)j].x), double(drop_corners[(size_t)j].y), double(drop_corners[(size_t)j].z)};
+            P2 = {double(drop_corners[(size_t)((j + 1) % nd)].x), double(drop_corners[(size_t)((j + 1) % nd)].y),
+                  double(drop_corners[(size_t)((j + 1) % nd)].z)};
         }
         double nx = P1.y * P2.z - P1.z * P2.y;
         double ny = P1.z * P2.x - P1.x * P2.z;
@@ -1637,7 +1637,7 @@ void query_candidate_pixels_fast(
         return;
     }
     // 快速路径统计: 单 face 内部枚举 (无跨 face)
-    candidates.reserve((size_t)(x1 - x0 + 1) * (y1 - y0 + 1));
+    candidates.reserve((size_t)(x1 - x0 + 1) * (size_t)(y1 - y0 + 1));
     // NESTED morton 交织 (标准位操作, 纯数学, 不依赖 healpix_core 私有接口)
     auto morton = [](int x, int y) -> uint64_t {
         auto spread = [](uint32_t v) -> uint64_t {

@@ -125,7 +125,7 @@ struct KernelInvocation {
     // （08）：分块契约与路由模式
     PartitionKind partition{PartitionKind::IndependentOutputTiles};
     RouteMode mode{RouteMode::AutoMixed};
-    //输入是否已在设备显存（launcher 用 resident 路径）
+    // 输入是否已在设备显存（launcher 用 resident 路径）
     bool input_resident{false};
     // ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §3）：调用方声明的输入/输出驻留策略。
     // 默认 MaterializeHost（结果必须回到 host）；PreferDevice/KeepDevice 由

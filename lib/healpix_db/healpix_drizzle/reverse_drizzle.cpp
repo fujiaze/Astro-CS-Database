@@ -134,7 +134,7 @@ static bool run_typed(const ReverseDrizzleInput& in, ReverseDrizzleOutput& out,
                       double src_scale_rad, double footprint_radius_px,
                       std::string& /*error_msg*/) {
     const int W = in.target_width, H = in.target_height;
-    const size_t npix = (size_t)W * H;
+    const size_t npix = (size_t)W * (size_t)H;
     ReverseAccum<T> acc;
     acc.signal.assign(npix, T(0));
     acc.coverage.assign(npix, T(0));
@@ -207,7 +207,7 @@ static bool run_typed(const ReverseDrizzleInput& in, ReverseDrizzleOutput& out,
                 if (fp.size() < 3) continue;
                 const double ov = overlap_drop_target(drop, fp);
                 if (ov <= 1e-20 || !std::isfinite(ov)) continue;
-                const size_t idx = (size_t)py * W + px;
+                const size_t idx = (size_t)py * (size_t)W + (size_t)px;
                 const double pixel_area = spherical::spherical_polygon_area(fp);
                 if (pixel_area <= 0.0 || !std::isfinite(pixel_area)) continue;
                 const double w = ov / drop_area;
@@ -260,7 +260,7 @@ bool ReverseDrizzle::run(const ReverseDrizzleInput& in,
         return false;
     }
     if (in.target_width <= 0 || in.target_height <= 0 ||
-        (size_t)in.target_width * in.target_height > (size_t)1 << 26) {
+        (size_t)in.target_width * (size_t)in.target_height > (size_t)1 << 26) {
         error_msg = "ReverseDrizzle: 输出尺寸非法";
         return false;
     }
@@ -336,7 +336,7 @@ bool ReverseDrizzle::run(const ReverseDrizzleInput& in,
         }
     }
 
-    const size_t npix = (size_t)in.target_width * in.target_height;
+    const size_t npix = (size_t)in.target_width * (size_t)in.target_height;
     out.signal.assign(npix, 0.0);
     out.coverage.assign(npix, 0.0);
     out.signal_f32.assign(npix, 0.0f);

@@ -282,7 +282,7 @@ float SnrEvaluator::evaluate(double ra, double dec) const {
     double ws_sum = 0.0;
 
     for (int i = 0; i < found; i++) {
-        uint32_t idx = indices[i];
+    uint32_t idx = indices[static_cast<size_t>(i)];
         double gamma = greatCircleDistanceDeg(ra, dec,
                                                impl_->ra_arr[idx],
                                                impl_->dec_arr[idx]);

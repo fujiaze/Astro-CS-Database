@@ -4,7 +4,7 @@
 // Phase1 JSON 入口重构后, 本文件仅保留:
 // 1. SIGINT 信号处理 (p04004_register/unregister_signal_handler)
 // 2. sha256_impl::sha256 — 已归一到 lib/common/crypto (B4-02)，此处仅为
-//    test_orchestrator_cli 兼容的 deprecated 转发 shim（新代码用 astrocs::crypto）
+// test_orchestrator_cli 兼容的 deprecated 转发 shim（新代码用 astrocs::crypto）
 // 3. CliCommand::output_jsonl_event_ex (JSONL 事件输出, 供 main.cpp 调用)
 //
 // 已删除:

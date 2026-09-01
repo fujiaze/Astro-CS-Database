@@ -667,7 +667,7 @@ int HissWriter::add_tile(uint64_t parent_ipix,
         int ret = compress_and_append(
             pimpl_->stream,
             SubblockType::OCCUPANCY,
-            (uint16_t)SubblockFlags::REQUIRED,  //: occupancy 标记 required
+            (uint16_t)SubblockFlags::REQUIRED,  // occupancy 标记 required
             occ_data.data(), occ_data.size(),
             pimpl_->codec_for(SubblockType::OCCUPANCY),
             pimpl_->transform_for(SubblockType::OCCUPANCY),

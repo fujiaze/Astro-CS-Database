@@ -1,4 +1,4 @@
-// lib/backend_host/hardware_inspect.h — 硬件画像采集 (06 §2) — BENCH-001
+// lib/backend_host/hardware_inspect.h — 硬件画像采集 — BENCH-001
 // 输出 JSON 与 cpu_profile.schema.json 的 hardware 对象同构(vendor/family/model/stepping/
 // feature_bits/xcr0/available_logical_cpus/affinity 等); available_cpus 受 affinity∩cgroup
 // 约束(禁 hardware_concurrency/nproc 单独作为 worker 数)。

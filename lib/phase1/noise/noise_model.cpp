@@ -54,7 +54,7 @@ astrocs::core::Result<NoiseResult> NoiseModel::gain_variance(
               : (read_noise_e <= 0.0) ? "invalid read_noise" : "invalid signal";
     return astrocs::core::Result<NoiseResult>::ok(r);
   }
-  // variance = signal/gain + read_noise²  (e⁻ 域 → ADU²)
+  // variance = signal/gain + read_noise² (e⁻ 域 → ADU²)
   double var = signal / gain + read_noise_e * read_noise_e / (gain * gain);
   if (var < kVarianceFloor) var = kVarianceFloor;
   r.variance = var;

@@ -20,7 +20,7 @@ struct BenchResult {
     int samples = 0;
     double median_ns = 0, mad_ns = 0, p05_ns = 0, p95_ns = 0;
     uint32_t workers = 0;
-    std::string correctness_hash;   // 输出 sha256(06 §4); Oracle 失败时为空
+    std::string correctness_hash;   // 输出 sha256; Oracle 失败时为空
 };
 
 /* 对单 kernel 做完整 harness 流程。

@@ -9,30 +9,30 @@
 //
 // 语义（冻结）：
 // - 稀疏模型为权威形态：JSON 文本（format=astrocs-upm-v2，
-//   读兼容 astrocs-upm-v1，见 docs/modules/astro_image_io.md），
-//   model_hash 由 phase2 计算（内容哈希）并随 JSON 保存；
+// 读兼容 astrocs-upm-v1，见 docs/modules/astro_image_io.md），
+// model_hash 由 phase2 计算（内容哈希）并随 JSON 保存；
 // - dense cache 是同一 UPM 的**空间求值缓存**：按
-//   (frame_id, target_order, tile) 保存 C_i(p) 的 evaluated values，
-//   固定 512B 头部 JSON 行（source_hash/target_order/precision/
-//   frame_count/tile_count/leaf_order/checksum）+ tile 表 + 逐
-//   (frame,tile) 的 512×512 校正值块（float/double，流式写）；
+// (frame_id, target_order, tile) 保存 C_i(p) 的 evaluated values，
+// 固定 512B 头部 JSON 行（source_hash/target_order/precision/
+// frame_count/tile_count/leaf_order/checksum）+ tile 表 + 逐
+// (frame,tile) 的 512×512 校正值块（float/double，流式写）；
 // - 任何读取入口先校验 source_hash 与调用方模型 hash 一致，
-//   不一致返回 2（stale cache）——"stale hash 必须拒绝加载"；
+// 不一致返回 2（stale cache）——"stale hash 必须拒绝加载"；
 // - checksum = SHA-256（文件除头部 checksum 槽置 '0' 外的字节），
-//   读取时校验完整性；
+// 读取时校验完整性；
 // - 本模块只做容器/文件层，不解释模型科学语义。
 //
 // 调用顺序/所有权（与 docs/architecture/OWNERSHIP_AND_LIFETIME.md 一致）：
 // - sparse: aio_upm_write_sparse 原子写；aio_upm_open →
-//   aio_upm_read_info / aio_upm_read_all / aio_upm_read_all_dynamic
-//   → aio_upm_close；aio_upm_read_all_dynamic 以 new char[] 分配，
-//   调用方须以 delete[] 释放 *out（out_len 为有效长度，不含 '\0'）
-//   —— OWNERSHIP 锚点 lib/astro_image_io/src/aio_upm.cpp:163；
+// aio_upm_read_info / aio_upm_read_all / aio_upm_read_all_dynamic
+// → aio_upm_close；aio_upm_read_all_dynamic 以 new char[] 分配，
+// 调用方须以 delete[] 释放 *out（out_len 为有效长度，不含 '\0'）
+// —— OWNERSHIP 锚点 lib/astro_image_io/src/aio_upm.cpp:163；
 // - dense 写: aio_upm_dense_begin → aio_upm_dense_write_tile*（frame_index 单调）
-//   → 二选一 aio_upm_dense_end（提交/回填 checksum 并释放）/
-//   aio_upm_dense_abort（关闭并删除部分文件并释放），end/abort 后句柄失效；
+// → 二选一 aio_upm_dense_end（提交/回填 checksum 并释放）/
+// aio_upm_dense_abort（关闭并删除部分文件并释放），end/abort 后句柄失效；
 // - 错误串 aio_upm_last_error 为 thread_local g_upm_error
-//   （lib/astro_image_io/src/aio_upm.cpp:21），多线程隔离。
+// （lib/astro_image_io/src/aio_upm.cpp:21），多线程隔离。
 // ============================================================================
 
 #ifndef AIO_UPM_H

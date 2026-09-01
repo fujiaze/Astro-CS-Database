@@ -1,4 +1,4 @@
-// lib/backend_host/profile_gen.cpp — cpu_profile.json 生成实现 (06 §5) — BENCH-004/005
+// lib/backend_host/profile_gen.cpp — cpu_profile.json 生成实现 — BENCH-004/005
 #include "profile_gen.h"
 
 #include <algorithm>

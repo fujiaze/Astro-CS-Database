@@ -71,7 +71,7 @@ public:
     // 最小有效块大小
     virtual std::size_t min_effective_chunk() const = 0;
 
-    //真实驻留执行接口。
+    // 真实驻留执行接口。
     // prefetch_input：上传 host 输入到设备并保留（真实一次传输）；
     // input_resident：查询该 host 输入是否已在设备显存。
     // 默认返回 false（无真实 device buffer 缓存的 executor 不支持）。
