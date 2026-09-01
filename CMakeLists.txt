@@ -5,12 +5,27 @@ project(astrocs VERSION 0.10.0 LANGUAGES C CXX)
 # ── 选项 (03/BLD-001 冻结) ──
 option(ASTROCS_ENABLE_ACR "Build dormant ACR tree (default OFF, production exclusion)" OFF)
 option(ASTROCS_BUILD_TESTS "Build tests" ON)
-option(ASTROCS_ENABLE_SANITIZERS "Enable ASan/UBSan (GCC/Clang)" OFF)
+# QA-002: sanitizer 选项 (ASan/UBSan/LSan 或 TSan; 生产默认 OFF)
+option(ASTROCS_ENABLE_SANITIZERS "Enable ASan/UBSan/LSan (GCC/Clang, production OFF)" OFF)
+option(ASTROCS_ENABLE_TSAN "Enable ThreadSanitizer (targeted, mutually exclusive with ASan)" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# ── QA-002: sanitizer 接线 (GCC/Clang; MSVC 不支持) ──
+# ASan+UBSan: -fsanitize=address,undefined; LSan 随 ASan 内建, detect_leaks=1 由运行期验证。
+# TSan: -fsanitize=thread; 与 ASan 互斥 (单选)。
+if(NOT MSVC)
+  if(ASTROCS_ENABLE_TSAN)
+    add_compile_options(-fsanitize=thread -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=thread)
+  elseif(ASTROCS_ENABLE_SANITIZERS)
+    add_compile_options(-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=address,undefined)
+  endif()
 endif()
 
 # 版本单源: 根 VERSION 文件 (VER-001)
@@ -181,6 +196,10 @@ target_include_directories(astrocs_drizzle PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/healpix)
+# QA-001: nanoflann.hpp (BSD-3, vendored 第三方) 经本 target 引号 include 引入;
+# 仅对该第三方头做 -isystem 隔离, drizzle 自有 .cpp 仍参与严格 warning 分层.
+target_include_directories(astrocs_drizzle SYSTEM PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/healpix_db/healpix_drizzle)
 target_compile_definitions(astrocs_drizzle PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(astrocs_drizzle PUBLIC astrocs_contracts astrocs_common astrocs_aio astrocs_hips)
 # QA-001: drizzle_engine/snr_evaluator 含 omp pragma → -fopenmp 编译消除 unknown-pragmas

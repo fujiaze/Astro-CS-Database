@@ -16,6 +16,7 @@ static int failures = 0;
 
 // 引用 host_services 默认构造 (链接 astrocs_cpu)
 extern "C" int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
+extern "C" void astrocs_host_services_destroy_state_v1(void* state);   // QA-002: LSan 释放
 
 static void test_host_services_handshake() {
   astrocs_host_services_v1 hs;
@@ -29,6 +30,7 @@ static void test_host_services_handshake() {
   CHECK(hs.logger.struct_size == sizeof(acs_logger));
   CHECK(hs.cancel.struct_size == sizeof(acs_cancel));
   CHECK(hs.budget.struct_size == sizeof(acs_thread_budget));
+  astrocs_host_services_destroy_state_v1(state);   // QA-002: 释放 HostState
 }
 
 static void test_allocator_contract() {
@@ -45,6 +47,7 @@ static void test_allocator_contract() {
   CHECK(bad == nullptr);
   // free(nullptr) 安全
   hs.allocator.free(hs.allocator.user_data, nullptr);
+  astrocs_host_services_destroy_state_v1(state);   // QA-002: 释放 HostState
 }
 
 static void test_span_head() {

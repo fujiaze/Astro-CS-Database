@@ -29,21 +29,24 @@ int main() {
   const int w = 512, h = 512;
   const size_t n = static_cast<size_t>(w) * h;
   std::vector<float> light(n, 200.0f), dark(n, 50.0f), flat(n, 1.0f);
-  std::vector<float> out(n, 0.0f);
+  // QA-002: 每 worker 独立 out 缓冲 (生产语义: 每 worker 处理独立帧)。
+  // 旧版共享 out 且 calibrate 内部 OpenMP 嵌套 → TSan 报真实数据竞争。
+  std::vector<float> out_a(n, 0.0f), out_b(n, 0.0f);
   // 并行校准 (2 worker 模拟 2 核; 与 CORE-006 lease 语义一致)
   ProcessMonitor mon(0.05);
   const int frames = 6;
   for (int f = 0; f < frames; ++f) {
-    auto worker = [&](size_t y0, size_t y1) {
+    auto worker = [&](std::vector<float>& out, size_t y0, size_t y1) {
+      (void)y0; (void)y1;
       float k = 0;
       // 按行带切片调用校准 (每片独立 2D 域)
-      const size_t rowbytes = static_cast<size_t>(w) * sizeof(float);
+      const size_t rowbytes = static_cast<size_t>(w) * sizeof(float); (void)rowbytes;
       ac_calibrate_frame(light.data(), static_cast<int>(w), static_cast<int>(h),
                          dark.data(), flat.data(), nullptr, out.data(), 0, 1.0f, &k);
     };
-    // 实际并行 (2 线程)
-    std::thread t1([&]{ worker(0, n / 2); });
-    worker(n / 2, n);
+    // 实际并行 (2 线程, 独立帧缓冲)
+    std::thread t1([&]{ worker(out_a, 0, n / 2); });
+    worker(out_b, n / 2, n);
     t1.join();
     mon.tick();
   }
@@ -56,11 +59,13 @@ int main() {
          frames, (unsigned long long)s.n_samples,
          (unsigned long long)s.peak_rss_bytes, s.avg_cpu_percent);
 
-  // 3) 多 frame 结果正确 (每帧校准公式正确)
-  for (size_t i = 0; i < 16; ++i) {
-    if (std::fabs(out[i] - 150.0f) > 1e-4f) {  // (200-50)/1
-      std::fprintf(stderr, "frame output mismatch at %zu: %f\n", i, out[i]);
-      ++failures; break;
+  // 3) 多 frame 结果正确 (每帧校准公式正确; 两 worker 独立缓冲均验证)
+  for (const std::vector<float>& buf : {out_a, out_b}) {
+    for (size_t i = 0; i < 16; ++i) {
+      if (std::fabs(buf[i] - 150.0f) > 1e-4f) {  // (200-50)/1
+        std::fprintf(stderr, "frame output mismatch at %zu: %f\n", i, buf[i]);
+        ++failures; break;
+      }
     }
   }
 
