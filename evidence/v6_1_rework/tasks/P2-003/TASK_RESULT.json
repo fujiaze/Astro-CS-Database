@@ -1,0 +1,87 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P2-003",
+  "status": "PASS",
+  "parent_commit": "eb116a2574b2d1e880bd08ecd8d439fd8323d88a",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "validation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P2-003/PLAN.md",
+    "evidence/v6_1_rework/tasks/P2-003/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P2-003/logs/c01_seam_oracle.log",
+    "tests/backend/phase2_fixture_main.cpp",
+    "tests/backend/test_p2003_seam_oracle.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "验证任务: 三块 mini HiPS + 正式 phase2 run 端到端; 校正下降/源不拟合断言; 无生产代码变更"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p2003_seam_oracle.py"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T09:00:00Z",
+      "duration_seconds": 55.0,
+      "log_path": "evidence/v6_1_rework/tasks/P2-003/logs/c01_seam_oracle.log",
+      "log_sha256": "7921fd5ceab2d4f6109c781c3d177917a013345fdb3082c4c3e904b6e3db47b5"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-MINI-HIPS",
+      "description": "三块 mini HiPS(平滑背景+偏移+星+扩展+mask)生成正确; 背景差异/空间偏移/mask support 验证",
+      "result": "PASS",
+      "evidence_sha256": "7921fd5ceab2d4f6109c781c3d177917a013345fdb3082c4c3e904b6e3db47b5"
+    },
+    {
+      "test_id": "T-BEFORE-AFTER",
+      "description": "M(latent)非零反映背景; C 校正空间残差; 校正后帧间 RMS 下降(seam 消除)",
+      "result": "PASS",
+      "evidence_sha256": "7921fd5ceab2d4f6109c781c3d177917a013345fdb3082c4c3e904b6e3db47b5"
+    },
+    {
+      "test_id": "T-SOURCES-NOT-FITTED",
+      "description": "UPM 校正场(平滑)空间变化 << 星幅度(2.0); 源不被拟合",
+      "result": "PASS",
+      "evidence_sha256": "7921fd5ceab2d4f6109c781c3d177917a013345fdb3082c4c3e904b6e3db47b5"
+    },
+    {
+      "test_id": "T-UPM-METRICS",
+      "description": "component_count=1/gauge/frames=3/controls>100 指标合理",
+      "result": "PASS",
+      "evidence_sha256": "7921fd5ceab2d4f6109c781c3d177917a013345fdb3082c4c3e904b6e3db47b5"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-003/PLAN.md",
+      "sha256": "85fd863070f1bf03363182d954bb7e0a88b8eca37581a6f81184d841ae806534"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-003/TASK_RESULT.json",
+      "sha256": "ac082acb407f9175ac440c6107846f29c0d94fb870db70a1d3c6886833d2c24f"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-003/logs/c01_seam_oracle.log",
+      "sha256": "7921fd5ceab2d4f6109c781c3d177917a013345fdb3082c4c3e904b6e3db47b5"
+    }
+  ],
+  "findings": [
+    "F-008",
+    "F-020"
+  ],
+  "expected_commit_subject": "P2-003: 生产接缝 Oracle (三块 mini HiPS + phase2 run 端到端; M 吸收背景差/C 校空间残差, before→after 下降, 源不拟合)",
+  "created_utc": "2026-09-01T09:05:00Z"
+}

@@ -1,0 +1,15 @@
+/home/lighthouse/Astro CS Database/tests/backend/test_p2003_seam_oracle.py:109: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p2003_w2wmzy9q/run/upm.bin' mode='r' encoding='UTF-8'>
+  cls.model = json.load(open(cls.model_path))
+test_01_three_mini_hips (__main__.TestP2003SeamOracle.test_01_three_mini_hips)
+三块 mini HiPS 生成: 常量/线性梯度/低阶平滑背景 + 不同偏移。 ... ok
+test_02_upm_correction_before_after (__main__.TestP2003SeamOracle.test_02_upm_correction_before_after)
+before→after 下降: M(latent)吸收背景差, C 校正空间残差 → 帧间 seam 下降。 ... ok
+test_03_sources_not_fitted (__main__.TestP2003SeamOracle.test_03_sources_not_fitted)
+源不被拟合: UPM 校正场(平滑场)幅度远小于星/扩展源幅度。 ... ok
+test_04_upm_metrics (__main__.TestP2003SeamOracle.test_04_upm_metrics)
+UPM 指标报告: component/gauge 存在且合理。 ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 65.289s
+
+OK
