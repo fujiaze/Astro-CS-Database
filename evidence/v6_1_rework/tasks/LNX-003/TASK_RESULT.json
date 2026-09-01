@@ -1,0 +1,161 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "LNX-003",
+  "status": "PASS",
+  "parent_commit": "25dc4562b7cc5cabbacc0e000a7b8f7849d2232c",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "verification",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/LNX-003/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/LNX-003/logs/c01_asan_configure.log",
+    "evidence/v6_1_rework/tasks/LNX-003/logs/c02_asan_build.log",
+    "evidence/v6_1_rework/tasks/LNX-003/logs/c03_asan_ctest.log",
+    "evidence/v6_1_rework/tasks/LNX-003/logs/c04_tsan_configure.log",
+    "evidence/v6_1_rework/tasks/LNX-003/logs/c05_tsan_build.log",
+    "evidence/v6_1_rework/tasks/LNX-003/logs/c06_tsan_targeted.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "纯验证任务: 新 build 目录复验 QA-002 sanitizer 矩阵, 无源码变更 (git diff 591f541..HEAD 除 evidence 外为 0)"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "cmake",
+        "-DASTROCS_ENABLE_SANITIZERS=ON",
+        "新目录"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T05:40:00Z",
+      "duration_seconds": 30.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-003/logs/c01_asan_configure.log",
+      "log_sha256": "b4b5d262d09e74ca7351cfd7299c6c47f473932c17fa3fd6df69016cdcaa56ed"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "make",
+        "-j2",
+        "ASan"
+      ],
+      "timeout_seconds": 3000,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T05:41:00Z",
+      "duration_seconds": 1800.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-003/logs/c02_asan_build.log",
+      "log_sha256": "5ba78abd62668e1e8748ebe349971c8dc2b4881ecf2a87d6473e078d4534ed8b"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "ctest",
+        "-j2",
+        "ASan+LSan detect_leaks=1"
+      ],
+      "timeout_seconds": 1200,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T06:00:00Z",
+      "duration_seconds": 25.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-003/logs/c03_asan_ctest.log",
+      "log_sha256": "2906a55ed92f3fdc8ef1943e0d6897108fb7f747938326209ef09294c3f36f7a"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": [
+        "cmake",
+        "-DASTROCS_ENABLE_TSAN=ON",
+        "新目录"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T05:45:00Z",
+      "duration_seconds": 30.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-003/logs/c04_tsan_configure.log",
+      "log_sha256": "acc14425814760916c5beb1f6625f5b9b359e2ed3f98482dcdc94ad273301a46"
+    },
+    {
+      "command_id": "c05",
+      "argv_redacted": [
+        "make",
+        "-j2",
+        "TSan"
+      ],
+      "timeout_seconds": 3000,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T05:46:00Z",
+      "duration_seconds": 1800.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-003/logs/c05_tsan_build.log",
+      "log_sha256": "67d1dee8241052ae650af6c94b1245616548952099b379dbc0597273904fafb1"
+    },
+    {
+      "command_id": "c06",
+      "argv_redacted": [
+        "bash",
+        "-c",
+        "28 定向测试 TSan"
+      ],
+      "timeout_seconds": 1200,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T06:05:00Z",
+      "duration_seconds": 600.0,
+      "log_path": "evidence/v6_1_rework/tasks/LNX-003/logs/c06_tsan_targeted.log",
+      "log_sha256": "e6ef8b78661dee0d51664f641c205b55b06b3d516831cacee1aa7367f4175960"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-ASAN-RESITE",
+      "description": "新 build 目录 ASan/UBSan/LSan 56/56 PASS (binary hash 绑定 commit 25dc456)",
+      "result": "PASS",
+      "evidence_sha256": "2906a55ed92f3fdc8ef1943e0d6897108fb7f747938326209ef09294c3f36f7a"
+    },
+    {
+      "test_id": "T-TSAN-RESITE",
+      "description": "新 build 目录 TSan 定向 28/28 PASS",
+      "result": "PASS",
+      "evidence_sha256": "e6ef8b78661dee0d51664f641c205b55b06b3d516831cacee1aa7367f4175960"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-003/logs/c01_asan_configure.log",
+      "sha256": "b4b5d262d09e74ca7351cfd7299c6c47f473932c17fa3fd6df69016cdcaa56ed"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-003/logs/c02_asan_build.log",
+      "sha256": "5ba78abd62668e1e8748ebe349971c8dc2b4881ecf2a87d6473e078d4534ed8b"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-003/logs/c03_asan_ctest.log",
+      "sha256": "2906a55ed92f3fdc8ef1943e0d6897108fb7f747938326209ef09294c3f36f7a"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-003/logs/c04_tsan_configure.log",
+      "sha256": "acc14425814760916c5beb1f6625f5b9b359e2ed3f98482dcdc94ad273301a46"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-003/logs/c05_tsan_build.log",
+      "sha256": "67d1dee8241052ae650af6c94b1245616548952099b379dbc0597273904fafb1"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/LNX-003/logs/c06_tsan_targeted.log",
+      "sha256": "e6ef8b78661dee0d51664f641c205b55b06b3d516831cacee1aa7367f4175960"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "mon001 需清理 root 残留 /tmp 文件 (sudo 运行产物); 清理后 PASS",
+    "源码与 LNX-001 一致 (git diff 591f541..HEAD 仅 evidence); binary hash 绑定当前 commit"
+  ],
+  "expected_commit_subject": "LNX-003: Sanitizer 现场复验 (新 build 目录 ASan/LSan 56/56, TSan 28/28, 绑定 commit)",
+  "created_utc": "2026-09-02T06:15:00Z"
+}
