@@ -96,18 +96,38 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
     n["resources"] = {{"class", "cpu_heavy"}, {"parallel", true}};
     return n;
   };
-  auto phase2_node = [&]() {
-    nlohmann::json n;
-    n["node_id"] = "res";
-    n["module_id"] = "astrocs.phase2.resample";
-    n["module_api"] = "1.x";
+  // P2-006 (G5): Canonical Phase2 IR 7 节点链
+  // coverage → sample → upm_fit → upm_apply → reject → integrate → write。
+  // 端口名与 core module_adapters 的 descriptor 端口一致(DATA/单位/Artifact ID)。
+  auto phase2_nodes = [&]() -> std::vector<nlohmann::json> {
     nlohmann::json pc = phase_config(doc, 2, out_dir, err);
-    if (!err->empty()) return nlohmann::json();
-    n["config"] = pc;
-    n["inputs"] = {{"calibrated", "artifact:cal"}};
-    n["outputs"] = {{"resampled", "artifact:res"}};
-    n["resources"] = {{"class", "cpu_heavy"}, {"parallel", true}};
-    return n;
+    if (!err->empty()) return {};
+    // node_id, module_id, input 端口, output 端口
+    const std::vector<std::tuple<std::string, std::string, std::string, std::string>> chain = {
+        {"coverage", "astrocs.phase2.coverage", "calibrated", "coverage"},
+        {"sample", "astrocs.phase2.sample", "coverage", "samples"},
+        {"upm_fit", "astrocs.phase2.upm-fit", "samples", "upm_model"},
+        {"upm_apply", "astrocs.phase2.upm-apply", "upm_model", "corrected"},
+        {"reject", "astrocs.phase2.reject", "corrected", "accepted_mask"},
+        {"integrate", "astrocs.phase2.integrate", "accepted_mask", "integrated"},
+        {"write", "astrocs.phase2.write", "integrated", "mosaic"},
+    };
+    std::vector<nlohmann::json> nodes;
+    std::string prev = "artifact:cal";
+    for (const auto& [nid, mod, in_port, out_port] : chain) {
+      nlohmann::json n;
+      n["node_id"] = nid;
+      n["module_id"] = mod;
+      n["module_api"] = "1.x";
+      n["config"] = pc;
+      n["inputs"] = {{in_port, prev}};
+      n["outputs"] = {{out_port, "artifact:" + nid}};
+      n["resources"] = {{"class", "cpu_heavy"}, {"parallel", true}};
+      if (nid == "write") n["resources"] = {{"class", "io"}, {"parallel", false}};
+      nodes.push_back(n);
+      prev = "artifact:" + nid;
+    }
+    return nodes;
   };
   auto phase3_node = [&]() {
     nlohmann::json n;
@@ -130,14 +150,16 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
     if (ph == 3) want3 = true;
   }
   if (want1) ir["nodes"].push_back(phase1_node());
-  if (want2) ir["nodes"].push_back(phase2_node());
+  if (want2) {
+    for (auto& n : phase2_nodes()) ir["nodes"].push_back(n);
+  }
   if (want3) ir["nodes"].push_back(phase3_node());
   if (!err->empty()) return "";  // 任一 phase config 缺失 → 整体失败
   if (ir["nodes"].empty()) {
     if (err) *err = "no phases requested";
     return "";
   }
-  if (want2) outs["resampled"] = "artifact:res";
+  if (want2) outs["mosaic"] = "artifact:write";
   if (want3) outs["tile"] = "artifact:tile";
   if (want1 && !want2 && !want3) outs["calibrated"] = "artifact:cal";
   ir["outputs"] = outs;
