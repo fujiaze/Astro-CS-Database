@@ -1,0 +1,321 @@
+[  1%] Building CXX object CMakeFiles/astrocs_common.dir/lib/common/crypto/sha256.cpp.o
+[  0%] Building CXX object CMakeFiles/astrocs_core.dir/lib/core/src/artifact.cpp.o
+[  1%] Building CXX object CMakeFiles/astrocs_common.dir/lib/common/healpix/healpix_core.cpp.o
+[  2%] Linking CXX static library libastrocs_common.a
+[  2%] Building CXX object CMakeFiles/astrocs_core.dir/lib/core/src/artifact_store.cpp.o
+[  2%] Built target astrocs_common
+[ 24%] Built target astrocs_cfitsio
+[ 25%] Building CXX object CMakeFiles/astrocs_core.dir/lib/core/src/module.cpp.o
+[ 26%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/cpu_features.cpp.o
+[ 26%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/hardware_inspect.cpp.o
+[ 26%] Building CXX object CMakeFiles/astrocs_core.dir/lib/core/src/pipeline.cpp.o
+[ 26%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/backend_loader.cpp.o
+[ 26%] Building CXX object CMakeFiles/astrocs_core.dir/lib/core/src/context.cpp.o
+[ 27%] Building CXX object CMakeFiles/astrocs_core.dir/lib/core/src/runtime.cpp.o
+[ 28%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/baseline_backend.cpp.o
+[ 28%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/profile_gen.cpp.o
+[ 28%] Building CXX object CMakeFiles/astrocs_core.dir/lib/core/src/scheduler.cpp.o
+[ 28%] Building CXX object CMakeFiles/astrocs_core.dir/lib/core/src/checkpoint.cpp.o
+[ 28%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/profile_gen_v2.cpp.o
+[ 29%] Building CXX object CMakeFiles/astrocs_core.dir/lib/core/src/logging.cpp.o
+[ 29%] Linking CXX static library libastrocs_core.a
+[ 29%] Built target astrocs_core
+[ 29%] Building CXX object CMakeFiles/astrocs_cpu_avx2.dir/lib/backend_host/avx2_backend.cpp.o
+[ 30%] Linking CXX static library libastrocs_cpu_avx2.a
+[ 30%] Built target astrocs_cpu_avx2
+[ 30%] Building CXX object CMakeFiles/astrocs_cpu_avx512.dir/lib/backend_host/avx512_backend.cpp.o
+[ 30%] Linking CXX static library libastrocs_cpu_avx512.a
+[ 30%] Built target astrocs_cpu_avx512
+[ 31%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/cpu_routing.cpp.o
+[ 31%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/host_services.cpp.o
+[ 31%] Building CXX object CMakeFiles/astrocs_cpu.dir/lib/backend_host/bench_harness.cpp.o
+[ 31%] Building CXX object CMakeFiles/astrocs_phase1_wcs.dir/lib/phase1/wcs/wcs_tan.cpp.o
+/home/lighthouse/Astro CS Database/lib/phase1/wcs/wcs_tan.cpp: In member function ‘void astrocs::phase1::WcsTan::sky2pix(double, double, double*, double*) const’:
+/home/lighthouse/Astro CS Database/lib/phase1/wcs/wcs_tan.cpp:36:16: warning: unused variable ‘ra0’ [-Wunused-variable]
+   36 |   const double ra0 = crval1 * M_PI / 180.0;
+      |                ^~~
+[ 32%] Linking CXX static library libastrocs_cpu.a
+[ 32%] Linking CXX static library libastrocs_phase1_wcs.a
+[ 32%] Built target astrocs_phase1_wcs
+[ 32%] Built target astrocs_cpu
+[ 32%] Building CXX object CMakeFiles/astrocs_phase1_noise.dir/lib/phase1/noise/noise_model.cpp.o
+[ 33%] Building CXX object CMakeFiles/astrocs_phase1_phot.dir/lib/phase1/photometry/photometer.cpp.o
+/home/lighthouse/Astro CS Database/lib/phase1/photometry/photometer.cpp: In member function ‘astrocs::core::Result<astrocs::phase1::PhotometryResult> astrocs::phase1::Photometer::measure(const float*, int, int, double, double) const’:
+/home/lighthouse/Astro CS Database/lib/phase1/photometry/photometer.cpp:81:49: warning: conversion from ‘long int’ to ‘double’ may change value [-Wconversion]
+   81 |   r.flux_error = std::sqrt(std::max(sum, 0.0) + n_in * sky_sigma * sky_sigma);
+      |                                                 ^~~~
+[ 33%] Linking CXX static library libastrocs_phase1_phot.a
+[ 33%] Linking CXX static library libastrocs_phase1_noise.a
+[ 33%] Built target astrocs_phase1_phot
+[ 33%] Building CXX object CMakeFiles/astrocs_phase1_stars.dir/lib/phase1/stars/star_detector.cpp.o
+[ 33%] Built target astrocs_phase1_noise
+[ 33%] Building CXX object tests/unit/CMakeFiles/core_contracts_test.dir/core_contracts_test.cpp.o
+[ 33%] Linking CXX executable core_contracts_test
+[ 33%] Built target core_contracts_test
+[ 34%] Building CXX object tests/unit/CMakeFiles/core_artifact_test.dir/core_artifact_test.cpp.o
+[ 34%] Linking CXX executable core_artifact_test
+[ 35%] Linking CXX static library libastrocs_phase1_stars.a
+[ 35%] Built target core_artifact_test
+[ 35%] Building CXX object tests/unit/CMakeFiles/core_module_test.dir/core_module_test.cpp.o
+[ 35%] Built target astrocs_phase1_stars
+[ 35%] Building CXX object tests/unit/CMakeFiles/core_pipeline_test.dir/core_pipeline_test.cpp.o
+[ 36%] Linking CXX executable core_module_test
+[ 36%] Built target core_module_test
+[ 36%] Building CXX object tests/unit/CMakeFiles/core_context_test.dir/core_context_test.cpp.o
+[ 37%] Linking CXX executable core_pipeline_test
+[ 37%] Built target core_pipeline_test
+[ 37%] Building CXX object tests/unit/CMakeFiles/core_scheduler_test.dir/core_scheduler_test.cpp.o
+[ 38%] Linking CXX executable core_context_test
+[ 38%] Built target core_context_test
+[ 39%] Building CXX object tests/unit/CMakeFiles/core_checkpoint_test.dir/core_checkpoint_test.cpp.o
+[ 39%] Linking CXX executable core_checkpoint_test
+[ 39%] Built target core_checkpoint_test
+[ 40%] Building CXX object tests/unit/CMakeFiles/core_logging_test.dir/core_logging_test.cpp.o
+[ 40%] Linking CXX executable core_scheduler_test
+[ 40%] Built target core_scheduler_test
+[ 40%] Building CXX object tests/unit/CMakeFiles/rt001_abi_test.dir/rt001_abi_test.cpp.o
+[ 40%] Linking CXX executable core_logging_test
+[ 40%] Built target core_logging_test
+[ 41%] Building CXX object tests/unit/CMakeFiles/rt002_budget_test.dir/rt002_budget_test.cpp.o
+[ 41%] Linking CXX executable rt001_abi_test
+[ 41%] Built target rt001_abi_test
+[ 42%] Building CXX object tests/unit/CMakeFiles/rt003_context_test.dir/rt003_context_test.cpp.o
+[ 42%] Linking CXX executable rt002_budget_test
+[ 42%] Built target rt002_budget_test
+[ 43%] Building CXX object tests/unit/CMakeFiles/rt007_artifact_store_test.dir/rt007_artifact_store_test.cpp.o
+[ 43%] Linking CXX executable rt003_context_test
+[ 43%] Built target rt003_context_test
+[ 44%] Building CXX object tests/unit/CMakeFiles/io_reentrant_test.dir/io_reentrant_test.cpp.o
+[ 44%] Linking CXX executable rt007_artifact_store_test
+[ 44%] Built target rt007_artifact_store_test
+/home/lighthouse/Astro CS Database/tests/unit/io_reentrant_test.cpp: In function ‘std::string make_fits(const std::string&)’:
+/home/lighthouse/Astro CS Database/tests/unit/io_reentrant_test.cpp:31:40: warning: conversion from ‘long int’ to ‘int’ may change value [-Wconversion]
+   31 |   if (fits_create_img(fptr, FLOAT_IMG, naxis, naxes, &status)) {
+      |                                        ^~~~~
+[ 44%] Building CXX object tests/unit/CMakeFiles/cpu_abi_test.dir/cpu_abi_test.cpp.o
+[ 45%] Linking CXX executable cpu_abi_test
+[ 45%] Built target cpu_abi_test
+[ 45%] Building CXX object tests/unit/CMakeFiles/cpu_lease_test.dir/cpu_lease_test.cpp.o
+[ 45%] Linking CXX executable io_reentrant_test
+[ 45%] Built target io_reentrant_test
+[ 46%] Building CXX object tests/unit/CMakeFiles/cpu_features_test.dir/cpu_features_test.cpp.o
+[ 47%] Linking CXX executable cpu_lease_test
+[ 47%] Built target cpu_lease_test
+[ 48%] Building CXX object tests/unit/CMakeFiles/cpu_provider_test.dir/cpu_provider_test.cpp.o
+[ 48%] Linking CXX executable cpu_features_test
+[ 48%] Built target cpu_features_test
+[ 48%] Building CXX object tests/unit/CMakeFiles/cpu_fallback_test.dir/cpu_fallback_test.cpp.o
+[ 48%] Linking CXX executable cpu_provider_test
+[ 48%] Built target cpu_provider_test
+[ 48%] Building CXX object tests/unit/CMakeFiles/cpu_bench_test.dir/cpu_bench_test.cpp.o
+[ 48%] Linking CXX executable cpu_fallback_test
+[ 48%] Built target cpu_fallback_test
+[ 49%] Building CXX object tests/unit/CMakeFiles/cpu_profile_test.dir/cpu_profile_test.cpp.o
+/home/lighthouse/Astro CS Database/tests/unit/cpu_bench_test.cpp:31:28: warning: ‘std::vector<double> oracle_ref(uint32_t)’ defined but not used [-Wunused-function]
+   31 | static std::vector<double> oracle_ref(uint32_t n) {
+      |                            ^~~~~~~~~~
+/home/lighthouse/Astro CS Database/tests/unit/cpu_bench_test.cpp:27:19: warning: ‘acs_status slow_kernel(const astrocs_host_services_v1*, const void*, uint32_t, const void*, void*)’ defined but not used [-Wunused-function]
+   27 | static acs_status slow_kernel(const astrocs_host_services_v1*, const void*, uint32_t,
+      |                   ^~~~~~~~~~~
+/home/lighthouse/Astro CS Database/tests/unit/cpu_bench_test.cpp:25:19: warning: ‘acs_status ok_kernel(const astrocs_host_services_v1*, const void*, uint32_t, const void*, void*)’ defined but not used [-Wunused-function]
+   25 | static acs_status ok_kernel(const astrocs_host_services_v1*, const void*, uint32_t,
+      |                   ^~~~~~~~~
+[ 49%] Linking CXX executable cpu_profile_test
+[ 50%] Linking CXX executable cpu_bench_test
+[ 50%] Built target cpu_profile_test
+[ 50%] Built target cpu_bench_test
+[ 51%] Building CXX object tests/unit/CMakeFiles/cpu004_routing_test.dir/cpu004_routing_test.cpp.o
+[ 51%] Building CXX object tests/unit/CMakeFiles/cpu003_profile_v2_test.dir/cpu003_profile_v2_test.cpp.o
+/home/lighthouse/Astro CS Database/tests/unit/cpu003_profile_v2_test.cpp: In function ‘int main()’:
+/home/lighthouse/Astro CS Database/tests/unit/cpu003_profile_v2_test.cpp:122:82: warning: unknown conversion type character ‘/’ in format [-Wformat=]
+  122 |     std::printf("CPU-003 TESTS PASS (v2 profile 字段全/Oracle 门/winner/AVX512<3%/verify 正负例)\n");
+      |                                                                                  ^
+[ 51%] Linking CXX executable cpu004_routing_test
+[ 51%] Built target cpu004_routing_test
+[ 51%] Building CXX object tests/unit/CMakeFiles/mon001_recorder_test.dir/mon001_recorder_test.cpp.o
+[ 51%] Linking CXX executable cpu003_profile_v2_test
+[ 51%] Built target cpu003_profile_v2_test
+[ 51%] Building CXX object tests/unit/CMakeFiles/mon002_gate_test.dir/mon002_gate_test.cpp.o
+[ 51%] Linking CXX executable mon002_gate_test
+[ 51%] Built target mon002_gate_test
+[ 51%] Building CXX object tests/unit/CMakeFiles/cpu001_provider_selftest_baseline.dir/cpu001_provider_selftest.cpp.o
+[ 52%] Linking CXX executable cpu001_provider_selftest_baseline
+[ 52%] Built target cpu001_provider_selftest_baseline
+[ 52%] Building CXX object tests/unit/CMakeFiles/cpu001_provider_selftest_avx2.dir/cpu001_provider_selftest.cpp.o
+[ 53%] Linking CXX executable mon001_recorder_test
+[ 53%] Built target mon001_recorder_test
+[ 54%] Building CXX object tests/unit/CMakeFiles/cpu001_provider_selftest_avx2.dir/__/__/lib/backend_host/host_services.cpp.o
+[ 55%] Building CXX object tests/unit/CMakeFiles/cpu001_provider_selftest_avx512.dir/cpu001_provider_selftest.cpp.o
+[ 55%] Building CXX object tests/unit/CMakeFiles/cpu001_provider_selftest_avx2.dir/__/__/lib/backend_host/cpu_features.cpp.o
+[ 55%] Building CXX object tests/unit/CMakeFiles/cpu001_provider_selftest_avx512.dir/__/__/lib/backend_host/host_services.cpp.o
+[ 56%] Building CXX object tests/unit/CMakeFiles/cpu001_provider_selftest_avx512.dir/__/__/lib/backend_host/cpu_features.cpp.o
+[ 56%] Linking CXX executable cpu001_provider_selftest_avx2
+[ 56%] Built target cpu001_provider_selftest_avx2
+[ 57%] Building CXX object tests/unit/CMakeFiles/cpu001_negative_test.dir/cpu001_negative_test.cpp.o
+[ 57%] Linking CXX executable cpu001_provider_selftest_avx512
+[ 57%] Linking CXX executable cpu001_negative_test
+[ 57%] Built target cpu001_provider_selftest_avx512
+[ 57%] Building CXX object tests/unit/CMakeFiles/cpu_monitor_test.dir/cpu_monitor_test.cpp.o
+[ 57%] Built target cpu001_negative_test
+[ 57%] Building CXX object tests/unit/CMakeFiles/p1_stars_test.dir/p1_stars_test.cpp.o
+[ 57%] Linking CXX executable cpu_monitor_test
+[ 57%] Linking CXX executable p1_stars_test
+[ 57%] Built target cpu_monitor_test
+[ 58%] Building CXX object tests/unit/CMakeFiles/p1_wcs_phot_test.dir/p1_wcs_phot_test.cpp.o
+[ 58%] Built target p1_stars_test
+[ 59%] Building CXX object tests/unit/CMakeFiles/p1_noise_test.dir/p1_noise_test.cpp.o
+[ 59%] Linking CXX executable p1_wcs_phot_test
+[ 59%] Built target p1_wcs_phot_test
+[ 59%] Building CXX object tests/unit/CMakeFiles/p2_upm_synthetic_test.dir/p2_upm_synthetic_test.cpp.o
+[ 59%] Linking CXX executable p1_noise_test
+[ 59%] Built target p1_noise_test
+[ 59%] Building CXX object tests/unit/CMakeFiles/p2_ir_facade_test.dir/p2_ir_facade_test.cpp.o
+[ 59%] Linking CXX executable p2_upm_synthetic_test
+[ 59%] Built target p2_upm_synthetic_test
+[ 59%] Building CXX object tests/unit/CMakeFiles/p2_seam_gate_test.dir/p2_seam_gate_test.cpp.o
+[ 59%] Linking CXX executable p2_ir_facade_test
+[ 59%] Built target p2_ir_facade_test
+[ 59%] Building CXX object tests/unit/CMakeFiles/p3_interp_test.dir/p3_interp_test.cpp.o
+[ 60%] Linking CXX executable p2_seam_gate_test
+[ 60%] Built target p2_seam_gate_test
+[ 60%] Building CXX object tests/unit/CMakeFiles/p3_coverage_test.dir/p3_coverage_test.cpp.o
+[ 60%] Linking CXX executable p3_interp_test
+[ 60%] Built target p3_interp_test
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp: In function ‘int main()’:
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:42:23: warning: missing initializer for member ‘TileSampler::val’ [-Wmissing-field-initializers]
+   42 |     TileSampler t{4, 4};
+      |                       ^
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:42:23: warning: missing initializer for member ‘TileSampler::cov’ [-Wmissing-field-initializers]
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:51:23: warning: missing initializer for member ‘TileSampler::val’ [-Wmissing-field-initializers]
+   51 |     TileSampler t{4, 4};
+      |                       ^
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:51:23: warning: missing initializer for member ‘TileSampler::cov’ [-Wmissing-field-initializers]
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:62:23: warning: missing initializer for member ‘TileSampler::val’ [-Wmissing-field-initializers]
+   62 |     TileSampler t{4, 4};
+      |                       ^
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:62:23: warning: missing initializer for member ‘TileSampler::cov’ [-Wmissing-field-initializers]
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:72:23: warning: missing initializer for member ‘TileSampler::val’ [-Wmissing-field-initializers]
+   72 |     TileSampler t{4, 4};
+      |                       ^
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:72:23: warning: missing initializer for member ‘TileSampler::cov’ [-Wmissing-field-initializers]
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:82:23: warning: missing initializer for member ‘TileSampler::val’ [-Wmissing-field-initializers]
+   82 |     TileSampler t{4, 4};
+      |                       ^
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:82:23: warning: missing initializer for member ‘TileSampler::cov’ [-Wmissing-field-initializers]
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:92:23: warning: missing initializer for member ‘TileSampler::val’ [-Wmissing-field-initializers]
+   92 |     TileSampler t{4, 4};
+      |                       ^
+/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp:92:23: warning: missing initializer for member ‘TileSampler::cov’ [-Wmissing-field-initializers]
+[ 61%] Building CXX object CMakeFiles/astrocs_io.dir/lib/io/src/io_adapter.cpp.o
+[ 62%] Linking CXX executable p3_coverage_test
+[ 62%] Built target p3_coverage_test
+[ 65%] Built target astrocs_aio
+[ 69%] Built target astrocs_hips
+[ 71%] Built target astrocs_calibration
+[ 72%] Building CXX object CMakeFiles/astrocs_phase2.dir/lib/phase2/src/upm.cpp.o
+[ 72%] Linking CXX static library libastrocs_io.a
+[ 72%] Built target astrocs_io
+[ 72%] Building CXX object CMakeFiles/astrocs_phase2.dir/lib/phase2/src/stage2_common.cpp.o
+[ 72%] Building CXX object CMakeFiles/astrocs_phase2.dir/lib/phase2/src/rejection.cpp.o
+[ 73%] Building CXX object CMakeFiles/astrocs_phase2.dir/lib/phase2/src/coverage.cpp.o
+[ 77%] Built target astrocs_drizzle
+[ 78%] Building CXX object CMakeFiles/astrocs_phase1_session.dir/lib/phase1_session/p1_session.cpp.o
+[ 78%] Building CXX object CMakeFiles/astrocs_phase2.dir/lib/phase2/src/sampler.cpp.o
+[ 78%] Linking CXX static library libastrocs_phase1_session.a
+[ 78%] Built target astrocs_phase1_session
+[ 79%] Building CXX object CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_session.cpp.o
+[ 79%] Building CXX object CMakeFiles/astrocs_phase2.dir/lib/phase2/src/block.cpp.o
+[ 80%] Building CXX object CMakeFiles/astrocs_phase2.dir/lib/phase2/src/integrate.cpp.o
+[ 80%] Building CXX object CMakeFiles/astrocs_phase2.dir/lib/phase2/src/cuda_bridge_stub.cpp.o
+[ 81%] Linking CXX static library libastrocs_phase2.a
+[ 81%] Built target astrocs_phase2
+[ 81%] Building CXX object CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_wcs.cpp.o
+[ 81%] Building CXX object tests/unit/CMakeFiles/io_adapter_test.dir/io_adapter_test.cpp.o
+[ 82%] Linking CXX executable io_adapter_test
+[ 82%] Built target io_adapter_test
+[ 82%] Building CXX object tests/unit/CMakeFiles/io_ownership_test.dir/io_ownership_test.cpp.o
+[ 82%] Linking CXX executable io_ownership_test
+[ 82%] Built target io_ownership_test
+[ 82%] Building CXX object CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/hips_properties.cpp.o
+[ 83%] Building CXX object tests/unit/CMakeFiles/p1_calibration_test.dir/p1_calibration_test.cpp.o
+[ 83%] Linking CXX executable p1_calibration_test
+[ 83%] Built target p1_calibration_test
+[ 84%] Building CXX object CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_output.cpp.o
+[ 84%] Building CXX object tests/unit/CMakeFiles/p1_hips_writer_test.dir/p1_hips_writer_test.cpp.o
+[ 84%] Building CXX object CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_resample.cpp.o
+[ 85%] Linking CXX executable p1_hips_writer_test
+[ 85%] Built target p1_hips_writer_test
+[ 85%] Building CXX object tests/unit/CMakeFiles/p1_ir_facade_test.dir/p1_ir_facade_test.cpp.o
+[ 85%] Linking CXX static library libastrocs_phase3_session.a
+[ 85%] Built target astrocs_phase3_session
+[ 85%] Building CXX object tests/unit/CMakeFiles/p1_resource_test.dir/p1_resource_test.cpp.o
+[ 85%] Linking CXX executable p1_ir_facade_test
+[ 85%] Built target p1_ir_facade_test
+[ 86%] Building CXX object tests/unit/CMakeFiles/p2_workers_test.dir/p2_workers_test.cpp.o
+[ 87%] Linking CXX executable p1_resource_test
+[ 87%] Built target p1_resource_test
+[ 87%] Building CXX object tests/unit/CMakeFiles/p2_block_plan_test.dir/p2_block_plan_test.cpp.o
+[ 88%] Linking CXX executable p2_block_plan_test
+[ 88%] Built target p2_block_plan_test
+[ 89%] Building CXX object tests/unit/CMakeFiles/p2_rejection_test.dir/p2_rejection_test.cpp.o
+/home/lighthouse/Astro CS Database/tests/unit/p2_rejection_test.cpp: In function ‘int main()’:
+/home/lighthouse/Astro CS Database/tests/unit/p2_rejection_test.cpp:54:24: warning: unused variable ‘in’ [-Wunused-variable]
+   54 |     P2EligibilityInput in{};
+      |                        ^~
+[ 89%] Linking CXX executable p2_rejection_test
+[ 89%] Built target p2_rejection_test
+[ 90%] Building CXX object tests/unit/CMakeFiles/p2_output_semantics_test.dir/p2_output_semantics_test.cpp.o
+[ 90%] Linking CXX executable p2_output_semantics_test
+[ 90%] Built target p2_output_semantics_test
+[ 90%] Building CXX object tests/unit/CMakeFiles/p3_wcs_test.dir/p3_wcs_test.cpp.o
+[ 91%] Linking CXX executable p3_wcs_test
+[ 91%] Built target p3_wcs_test
+[ 91%] Linking CXX executable p2_workers_test
+[ 92%] Building CXX object tests/unit/CMakeFiles/p3_output_test.dir/p3_output_test.cpp.o
+[ 92%] Built target p2_workers_test
+[ 92%] Building CXX object tests/unit/CMakeFiles/p3_assembly_test.dir/p3_assembly_test.cpp.o
+/home/lighthouse/Astro CS Database/tests/unit/p3_output_test.cpp: In function ‘int main()’:
+/home/lighthouse/Astro CS Database/tests/unit/p3_output_test.cpp:31:61: warning: conversion from ‘int’ to ‘float’ may change value [-Wconversion]
+   31 |       sig[static_cast<size_t>(y) * w + x] = 100.0f + 0.5f * x;
+      |                                                             ^
+[ 92%] Linking CXX executable p3_output_test
+[ 93%] Linking CXX executable p3_assembly_test
+[ 93%] Built target p3_output_test
+[ 93%] Building CXX object CMakeFiles/astrocs_phase2_session.dir/lib/phase2_session/p2_session.cpp.o
+[ 93%] Built target p3_assembly_test
+[ 93%] Building CXX object tests/unit/CMakeFiles/p1_nside_test.dir/p1_nside_test.cpp.o
+[ 94%] Linking CXX executable p1_nside_test
+[ 94%] Built target p1_nside_test
+[ 94%] Linking CXX static library libastrocs_phase2_session.a
+[ 94%] Built target astrocs_phase2_session
+[ 95%] Built target astrocs_module_adapters
+[ 95%] Built target astrocs_cli_runtime
+[ 95%] Building CXX object tests/unit/CMakeFiles/rt005_registry_test.dir/rt005_registry_test.cpp.o
+[ 95%] Building CXX object tests/unit/CMakeFiles/rt006_scheduler_test.dir/rt006_scheduler_test.cpp.o
+/home/lighthouse/Astro CS Database/tests/unit/rt006_scheduler_test.cpp: In lambda function:
+/home/lighthouse/Astro CS Database/tests/unit/rt006_scheduler_test.cpp:28:39: warning: unused parameter ‘id’ [-Wunused-parameter]
+   28 |   auto heavy = [&](const std::string& id, RunContext&) -> Result<void> {
+      |                    ~~~~~~~~~~~~~~~~~~~^~
+/home/lighthouse/Astro CS Database/tests/unit/rt006_scheduler_test.cpp: In lambda function:
+/home/lighthouse/Astro CS Database/tests/unit/rt006_scheduler_test.cpp:55:37: warning: unused parameter ‘id’ [-Wunused-parameter]
+   55 |   auto big = [&](const std::string& id, RunContext&) -> Result<void> {
+      |                  ~~~~~~~~~~~~~~~~~~~^~
+[ 96%] Linking CXX executable rt005_registry_test
+[ 96%] Built target rt005_registry_test
+[ 96%] Linking CXX executable rt006_scheduler_test
+[ 96%] Building CXX object tests/unit/CMakeFiles/rt008_runtime_client_test.dir/rt008_runtime_client_test.cpp.o
+[ 96%] Built target rt006_scheduler_test
+[ 96%] Building CXX object tests/unit/CMakeFiles/rt009_node_trace_test.dir/rt009_node_trace_test.cpp.o
+[ 97%] Linking CXX executable rt008_runtime_client_test
+[ 98%] Linking CXX executable rt009_node_trace_test
+[ 98%] Built target rt008_runtime_client_test
+[ 99%] Building CXX object tests/unit/CMakeFiles/p1001_modules_test.dir/p1001_modules_test.cpp.o
+[ 99%] Built target rt009_node_trace_test
+[100%] Building CXX object CMakeFiles/astrocs.dir/cli/commands.cpp.o
+[100%] Linking CXX executable p1001_modules_test
+[100%] Built target p1001_modules_test
+[100%] Building CXX object CMakeFiles/astrocs.dir/cli/main.cpp.o
+[100%] Building CXX object CMakeFiles/astrocs.dir/cli/parser.cpp.o
+[100%] Building CXX object CMakeFiles/astrocs.dir/cli/runtime_client.cpp.o
+[100%] Linking CXX executable astrocs
+[100%] Built target astrocs

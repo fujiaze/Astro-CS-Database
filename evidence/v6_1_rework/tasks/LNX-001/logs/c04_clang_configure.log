@@ -1,0 +1,19 @@
+-- The C compiler identification is Clang 19.1.7
+-- The CXX compiler identification is Clang 19.1.7
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- AstroCS 0.10.0-alpha.2+g591f541f552e5f8a3ef733da2c9e48b10d4a2e7a root target graph ready (ACR=OFF)
+-- Configuring done (8.5s)
+-- Generating done (0.5s)
+-- Build files have been written to: /home/lighthouse/Astro CS Database/run/temp/lnx001_clang_debug

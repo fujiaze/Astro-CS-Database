@@ -1,0 +1,1190 @@
+[
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_core.dir/lib/core/src/artifact.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/core/src/artifact.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/core/src/artifact.cpp",
+  "output": "CMakeFiles/astrocs_core.dir/lib/core/src/artifact.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_core.dir/lib/core/src/artifact_store.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/core/src/artifact_store.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/core/src/artifact_store.cpp",
+  "output": "CMakeFiles/astrocs_core.dir/lib/core/src/artifact_store.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_core.dir/lib/core/src/module.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/core/src/module.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/core/src/module.cpp",
+  "output": "CMakeFiles/astrocs_core.dir/lib/core/src/module.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_core.dir/lib/core/src/pipeline.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/core/src/pipeline.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/core/src/pipeline.cpp",
+  "output": "CMakeFiles/astrocs_core.dir/lib/core/src/pipeline.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_core.dir/lib/core/src/context.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/core/src/context.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/core/src/context.cpp",
+  "output": "CMakeFiles/astrocs_core.dir/lib/core/src/context.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_core.dir/lib/core/src/runtime.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/core/src/runtime.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/core/src/runtime.cpp",
+  "output": "CMakeFiles/astrocs_core.dir/lib/core/src/runtime.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_core.dir/lib/core/src/scheduler.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/core/src/scheduler.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/core/src/scheduler.cpp",
+  "output": "CMakeFiles/astrocs_core.dir/lib/core/src/scheduler.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_core.dir/lib/core/src/checkpoint.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/core/src/checkpoint.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/core/src/checkpoint.cpp",
+  "output": "CMakeFiles/astrocs_core.dir/lib/core/src/checkpoint.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_core.dir/lib/core/src/logging.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/core/src/logging.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/core/src/logging.cpp",
+  "output": "CMakeFiles/astrocs_core.dir/lib/core/src/logging.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_io.dir/lib/io/src/io_adapter.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/io/src/io_adapter.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/io/src/io_adapter.cpp",
+  "output": "CMakeFiles/astrocs_io.dir/lib/io/src/io_adapter.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_common.dir/lib/common/crypto/sha256.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/common/crypto/sha256.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/common/crypto/sha256.cpp",
+  "output": "CMakeFiles/astrocs_common.dir/lib/common/crypto/sha256.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_common.dir/lib/common/healpix/healpix_core.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/common/healpix/healpix_core.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/common/healpix/healpix_core.cpp",
+  "output": "CMakeFiles/astrocs_common.dir/lib/common/healpix/healpix_core.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/buffers.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/buffers.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/buffers.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/buffers.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/cfileio.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/cfileio.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/cfileio.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/cfileio.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/checksum.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/checksum.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/checksum.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/checksum.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/drvrfile.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/drvrfile.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/drvrfile.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/drvrfile.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/drvrmem.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/drvrmem.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/drvrmem.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/drvrmem.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/drvrnet.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/drvrnet.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/drvrnet.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/drvrnet.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/editcol.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/editcol.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/editcol.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/editcol.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/edithdu.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/edithdu.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/edithdu.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/edithdu.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/eval_f.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/eval_f.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/eval_f.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/eval_f.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/eval_l.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/eval_l.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/eval_l.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/eval_l.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/eval_y.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/eval_y.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/eval_y.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/eval_y.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/fits_hcompress.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/fits_hcompress.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/fits_hcompress.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/fits_hcompress.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/fits_hdecompress.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/fits_hdecompress.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/fits_hdecompress.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/fits_hdecompress.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/fitscore.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/fitscore.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/fitscore.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/fitscore.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcol.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcol.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcol.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcol.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcolb.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcolb.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcolb.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcolb.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcold.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcold.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcold.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcold.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcole.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcole.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcole.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcole.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcoli.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcoli.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcoli.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcoli.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcolj.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcolj.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcolj.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcolj.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcolk.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcolk.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcolk.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcolk.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcoll.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcoll.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcoll.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcoll.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcols.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcols.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcols.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcols.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcolsb.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcolsb.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcolsb.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcolsb.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcolui.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcolui.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcolui.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcolui.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcoluj.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcoluj.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcoluj.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcoluj.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcoluk.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcoluk.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getcoluk.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getcoluk.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getkey.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getkey.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/getkey.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/getkey.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/group.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/group.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/group.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/group.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/grparser.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/grparser.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/grparser.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/grparser.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/histo.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/histo.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/histo.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/histo.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/imcompress.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/imcompress.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/imcompress.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/imcompress.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/iraffits.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/iraffits.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/iraffits.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/iraffits.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/modkey.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/modkey.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/modkey.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/modkey.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/pliocomp.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/pliocomp.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/pliocomp.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/pliocomp.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcol.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcol.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcol.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcol.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolb.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolb.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolb.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolb.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcold.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcold.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcold.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcold.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcole.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcole.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcole.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcole.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcoli.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcoli.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcoli.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcoli.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolj.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolj.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolj.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolj.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolk.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolk.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolk.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolk.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcoll.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcoll.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcoll.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcoll.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcols.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcols.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcols.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcols.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolsb.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolsb.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolsb.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolsb.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolu.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolu.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolu.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolu.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolui.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolui.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcolui.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcolui.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcoluj.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcoluj.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcoluj.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcoluj.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcoluk.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcoluk.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putcoluk.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putcoluk.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putkey.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putkey.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/putkey.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/putkey.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/quantize.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/quantize.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/quantize.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/quantize.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/region.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/region.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/region.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/region.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/ricecomp.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/ricecomp.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/ricecomp.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/ricecomp.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/scalnull.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/scalnull.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/scalnull.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/scalnull.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/simplerng.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/simplerng.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/simplerng.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/simplerng.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/swapproc.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/swapproc.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/swapproc.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/swapproc.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/wcssub.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/wcssub.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/wcssub.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/wcssub.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/wcsutil.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/wcsutil.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/wcsutil.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/wcsutil.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/zcompress.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/zcompress.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/zcompress.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/zcompress.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/cc -D_REENTRANT -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -w -o CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/zuncompress.c.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/zuncompress.c\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio/zuncompress.c",
+  "output": "CMakeFiles/astrocs_cfitsio.dir/lib/astro_image_io/third_party/cfitsio/zuncompress.c.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_fits.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_fits.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_fits.cpp",
+  "output": "CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_fits.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_api.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_api.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_api.cpp",
+  "output": "CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_api.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_log.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_log.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_log.cpp",
+  "output": "CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_log.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_compressor.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_compressor.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_compressor.cpp",
+  "output": "CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_compressor.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_xisf.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_xisf.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_xisf.cpp",
+  "output": "CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_xisf.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_pipeline.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_pipeline.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_pipeline.cpp",
+  "output": "CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_pipeline.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hips/aio_hips_reader.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hips/aio_hips_reader.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hips/aio_hips_reader.cpp",
+  "output": "CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hips/aio_hips_reader.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hips/aio_hips_writer.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hips/aio_hips_writer.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hips/aio_hips_writer.cpp",
+  "output": "CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hips/aio_hips_writer.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/healpix/aio_healpix_io.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/healpix/aio_healpix_io.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/healpix/aio_healpix_io.cpp",
+  "output": "CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/healpix/aio_healpix_io.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_codec.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_codec.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_codec.cpp",
+  "output": "CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_codec.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_common.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_common.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_common.cpp",
+  "output": "CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_common.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_reader.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_reader.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_reader.cpp",
+  "output": "CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_reader.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_stream_writer.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_stream_writer.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_stream_writer.cpp",
+  "output": "CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_stream_writer.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_tile_model.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_tile_model.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_tile_model.cpp",
+  "output": "CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_tile_model.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_transform.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_transform.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_transform.cpp",
+  "output": "CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_transform.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_writer.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_writer.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/hiss_writer.cpp",
+  "output": "CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/hiss_writer.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/aio_upm.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_upm.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/astro_image_io/src/aio_upm.cpp",
+  "output": "CMakeFiles/astrocs_hips.dir/lib/astro_image_io/src/aio_upm.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_calibration.dir/lib/calibration/src/calibrator.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/calibration/src/calibrator.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/calibration/src/calibrator.cpp",
+  "output": "CMakeFiles/astrocs_calibration.dir/lib/calibration/src/calibrator.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_calibration.dir/lib/calibration/src/master_generator.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/calibration/src/master_generator.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/calibration/src/master_generator.cpp",
+  "output": "CMakeFiles/astrocs_calibration.dir/lib/calibration/src/master_generator.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_calibration.dir/lib/calibration/src/cosmetic_corrector.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/calibration/src/cosmetic_corrector.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/calibration/src/cosmetic_corrector.cpp",
+  "output": "CMakeFiles/astrocs_calibration.dir/lib/calibration/src/cosmetic_corrector.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_calibration.dir/lib/calibration/src/ac_api.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/calibration/src/ac_api.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/calibration/src/ac_api.cpp",
+  "output": "CMakeFiles/astrocs_calibration.dir/lib/calibration/src/ac_api.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase2.dir/lib/phase2/src/upm.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase2/src/upm.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase2/src/upm.cpp",
+  "output": "CMakeFiles/astrocs_phase2.dir/lib/phase2/src/upm.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase2.dir/lib/phase2/src/stage2_common.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase2/src/stage2_common.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase2/src/stage2_common.cpp",
+  "output": "CMakeFiles/astrocs_phase2.dir/lib/phase2/src/stage2_common.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase2.dir/lib/phase2/src/rejection.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase2/src/rejection.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase2/src/rejection.cpp",
+  "output": "CMakeFiles/astrocs_phase2.dir/lib/phase2/src/rejection.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase2.dir/lib/phase2/src/coverage.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase2/src/coverage.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase2/src/coverage.cpp",
+  "output": "CMakeFiles/astrocs_phase2.dir/lib/phase2/src/coverage.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase2.dir/lib/phase2/src/sampler.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase2/src/sampler.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase2/src/sampler.cpp",
+  "output": "CMakeFiles/astrocs_phase2.dir/lib/phase2/src/sampler.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase2.dir/lib/phase2/src/block.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase2/src/block.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase2/src/block.cpp",
+  "output": "CMakeFiles/astrocs_phase2.dir/lib/phase2/src/block.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase2.dir/lib/phase2/src/integrate.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase2/src/integrate.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase2/src/integrate.cpp",
+  "output": "CMakeFiles/astrocs_phase2.dir/lib/phase2/src/integrate.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase2.dir/lib/phase2/src/cuda_bridge_stub.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase2/src/cuda_bridge_stub.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase2/src/cuda_bridge_stub.cpp",
+  "output": "CMakeFiles/astrocs_phase2.dir/lib/phase2/src/cuda_bridge_stub.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -isystem \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/fits_reader.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/fits_reader.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/fits_reader.cpp",
+  "output": "CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/fits_reader.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -isystem \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/wcs_sip.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/wcs_sip.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/wcs_sip.cpp",
+  "output": "CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/wcs_sip.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -isystem \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/poly_clip.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/poly_clip.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/poly_clip.cpp",
+  "output": "CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/poly_clip.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -isystem \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/spherical_overlap.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/spherical_overlap.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/spherical_overlap.cpp",
+  "output": "CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/spherical_overlap.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -isystem \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/drizzle_engine.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/drizzle_engine.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/drizzle_engine.cpp",
+  "output": "CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/drizzle_engine.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -isystem \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/reverse_drizzle.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/reverse_drizzle.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/reverse_drizzle.cpp",
+  "output": "CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/reverse_drizzle.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -isystem \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp",
+  "output": "CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -isystem \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/astro_sphere_sink.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/astro_sphere_sink.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/astro_sphere_sink.cpp",
+  "output": "CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/astro_sphere_sink.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++ -DAIO_ENABLE_FITS -DAIO_ENABLE_HEALPIX -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -isystem \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -fopenmp -o CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/snr_evaluator.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/snr_evaluator.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle/snr_evaluator.cpp",
+  "output": "CMakeFiles/astrocs_drizzle.dir/lib/healpix_db/healpix_drizzle/snr_evaluator.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_cpu.dir/lib/backend_host/cpu_features.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/cpu_features.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/cpu_features.cpp",
+  "output": "CMakeFiles/astrocs_cpu.dir/lib/backend_host/cpu_features.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_cpu.dir/lib/backend_host/hardware_inspect.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/hardware_inspect.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/hardware_inspect.cpp",
+  "output": "CMakeFiles/astrocs_cpu.dir/lib/backend_host/hardware_inspect.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_cpu.dir/lib/backend_host/backend_loader.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/backend_loader.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/backend_loader.cpp",
+  "output": "CMakeFiles/astrocs_cpu.dir/lib/backend_host/backend_loader.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_cpu.dir/lib/backend_host/baseline_backend.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/baseline_backend.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/baseline_backend.cpp",
+  "output": "CMakeFiles/astrocs_cpu.dir/lib/backend_host/baseline_backend.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_cpu.dir/lib/backend_host/profile_gen.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/profile_gen.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/profile_gen.cpp",
+  "output": "CMakeFiles/astrocs_cpu.dir/lib/backend_host/profile_gen.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_cpu.dir/lib/backend_host/profile_gen_v2.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/profile_gen_v2.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/profile_gen_v2.cpp",
+  "output": "CMakeFiles/astrocs_cpu.dir/lib/backend_host/profile_gen_v2.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_cpu.dir/lib/backend_host/cpu_routing.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/cpu_routing.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/cpu_routing.cpp",
+  "output": "CMakeFiles/astrocs_cpu.dir/lib/backend_host/cpu_routing.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_cpu.dir/lib/backend_host/host_services.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/host_services.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/host_services.cpp",
+  "output": "CMakeFiles/astrocs_cpu.dir/lib/backend_host/host_services.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_cpu.dir/lib/backend_host/bench_harness.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/bench_harness.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/bench_harness.cpp",
+  "output": "CMakeFiles/astrocs_cpu.dir/lib/backend_host/bench_harness.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -mavx2 -mfma -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_cpu_avx2.dir/lib/backend_host/avx2_backend.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/avx2_backend.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/avx2_backend.cpp",
+  "output": "CMakeFiles/astrocs_cpu_avx2.dir/lib/backend_host/avx2_backend.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -mavx512f -mavx512bw -mavx512vl -mavx512dq -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_cpu_avx512.dir/lib/backend_host/avx512_backend.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/avx512_backend.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/avx512_backend.cpp",
+  "output": "CMakeFiles/astrocs_cpu_avx512.dir/lib/backend_host/avx512_backend.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase1/wcs\" -I\"/home/lighthouse/Astro CS Database/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase1_wcs.dir/lib/phase1/wcs/wcs_tan.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase1/wcs/wcs_tan.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase1/wcs/wcs_tan.cpp",
+  "output": "CMakeFiles/astrocs_phase1_wcs.dir/lib/phase1/wcs/wcs_tan.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase1/photometry\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase1_phot.dir/lib/phase1/photometry/photometer.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase1/photometry/photometer.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase1/photometry/photometer.cpp",
+  "output": "CMakeFiles/astrocs_phase1_phot.dir/lib/phase1/photometry/photometer.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase1/noise\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase1_noise.dir/lib/phase1/noise/noise_model.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase1/noise/noise_model.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase1/noise/noise_model.cpp",
+  "output": "CMakeFiles/astrocs_phase1_noise.dir/lib/phase1/noise/noise_model.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase1/stars\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase1_stars.dir/lib/phase1/stars/star_detector.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase1/stars/star_detector.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase1/stars/star_detector.cpp",
+  "output": "CMakeFiles/astrocs_phase1_stars.dir/lib/phase1/stars/star_detector.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase1_session.dir/lib/phase1_session/p1_session.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase1_session/p1_session.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase1_session/p1_session.cpp",
+  "output": "CMakeFiles/astrocs_phase1_session.dir/lib/phase1_session/p1_session.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase2_session.dir/lib/phase2_session/p2_session.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase2_session/p2_session.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase2_session/p2_session.cpp",
+  "output": "CMakeFiles/astrocs_phase2_session.dir/lib/phase2_session/p2_session.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_session.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase3_session/p3_session.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase3_session/p3_session.cpp",
+  "output": "CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_session.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_wcs.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase3_session/p3_wcs.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase3_session/p3_wcs.cpp",
+  "output": "CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_wcs.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/hips_properties.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase3_session/hips_properties.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase3_session/hips_properties.cpp",
+  "output": "CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/hips_properties.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_output.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase3_session/p3_output.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase3_session/p3_output.cpp",
+  "output": "CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_output.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -o CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_resample.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/phase3_session/p3_resample.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/phase3_session/p3_resample.cpp",
+  "output": "CMakeFiles/astrocs_phase3_session.dir/lib/phase3_session/p3_resample.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_module_adapters.dir/lib/core/src/module_adapters.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/core/src/module_adapters.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/core/src/module_adapters.cpp",
+  "output": "CMakeFiles/astrocs_module_adapters.dir/lib/core/src/module_adapters.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/cli\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/astrocs_cli_runtime.dir/cli/runtime_client.cpp.o -c \"/home/lighthouse/Astro CS Database/cli/runtime_client.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/cli/runtime_client.cpp",
+  "output": "CMakeFiles/astrocs_cli_runtime.dir/cli/runtime_client.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/cli\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -fopenmp -o CMakeFiles/astrocs.dir/cli/main.cpp.o -c \"/home/lighthouse/Astro CS Database/cli/main.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/cli/main.cpp",
+  "output": "CMakeFiles/astrocs.dir/cli/main.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/cli\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -fopenmp -o CMakeFiles/astrocs.dir/cli/parser.cpp.o -c \"/home/lighthouse/Astro CS Database/cli/parser.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/cli/parser.cpp",
+  "output": "CMakeFiles/astrocs.dir/cli/parser.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/cli\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -fopenmp -o CMakeFiles/astrocs.dir/cli/commands.cpp.o -c \"/home/lighthouse/Astro CS Database/cli/commands.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/cli/commands.cpp",
+  "output": "CMakeFiles/astrocs.dir/cli/commands.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/cli\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/healpix_db/healpix_drizzle\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -O3 -DNDEBUG -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion -fopenmp -o CMakeFiles/astrocs.dir/cli/runtime_client.cpp.o -c \"/home/lighthouse/Astro CS Database/cli/runtime_client.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/cli/runtime_client.cpp",
+  "output": "CMakeFiles/astrocs.dir/cli/runtime_client.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/core_contracts_test.dir/core_contracts_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/core_contracts_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/core_contracts_test.cpp",
+  "output": "tests/unit/CMakeFiles/core_contracts_test.dir/core_contracts_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/core_artifact_test.dir/core_artifact_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/core_artifact_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/core_artifact_test.cpp",
+  "output": "tests/unit/CMakeFiles/core_artifact_test.dir/core_artifact_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/core_module_test.dir/core_module_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/core_module_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/core_module_test.cpp",
+  "output": "tests/unit/CMakeFiles/core_module_test.dir/core_module_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/core_pipeline_test.dir/core_pipeline_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/core_pipeline_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/core_pipeline_test.cpp",
+  "output": "tests/unit/CMakeFiles/core_pipeline_test.dir/core_pipeline_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/core_context_test.dir/core_context_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/core_context_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/core_context_test.cpp",
+  "output": "tests/unit/CMakeFiles/core_context_test.dir/core_context_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/core_scheduler_test.dir/core_scheduler_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/core_scheduler_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/core_scheduler_test.cpp",
+  "output": "tests/unit/CMakeFiles/core_scheduler_test.dir/core_scheduler_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/core_checkpoint_test.dir/core_checkpoint_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/core_checkpoint_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/core_checkpoint_test.cpp",
+  "output": "tests/unit/CMakeFiles/core_checkpoint_test.dir/core_checkpoint_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/core_logging_test.dir/core_logging_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/core_logging_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/core_logging_test.cpp",
+  "output": "tests/unit/CMakeFiles/core_logging_test.dir/core_logging_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/rt001_abi_test.dir/rt001_abi_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/rt001_abi_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/rt001_abi_test.cpp",
+  "output": "tests/unit/CMakeFiles/rt001_abi_test.dir/rt001_abi_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/rt002_budget_test.dir/rt002_budget_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/rt002_budget_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/rt002_budget_test.cpp",
+  "output": "tests/unit/CMakeFiles/rt002_budget_test.dir/rt002_budget_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/rt003_context_test.dir/rt003_context_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/rt003_context_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/rt003_context_test.cpp",
+  "output": "tests/unit/CMakeFiles/rt003_context_test.dir/rt003_context_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../third_party\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/rt005_registry_test.dir/rt005_registry_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/rt005_registry_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/rt005_registry_test.cpp",
+  "output": "tests/unit/CMakeFiles/rt005_registry_test.dir/rt005_registry_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../third_party\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/rt006_scheduler_test.dir/rt006_scheduler_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/rt006_scheduler_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/rt006_scheduler_test.cpp",
+  "output": "tests/unit/CMakeFiles/rt006_scheduler_test.dir/rt006_scheduler_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../third_party\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/rt007_artifact_store_test.dir/rt007_artifact_store_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/rt007_artifact_store_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/rt007_artifact_store_test.cpp",
+  "output": "tests/unit/CMakeFiles/rt007_artifact_store_test.dir/rt007_artifact_store_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../cli\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../third_party\" -I\"/home/lighthouse/Astro CS Database/cli\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/rt008_runtime_client_test.dir/rt008_runtime_client_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/rt008_runtime_client_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/rt008_runtime_client_test.cpp",
+  "output": "tests/unit/CMakeFiles/rt008_runtime_client_test.dir/rt008_runtime_client_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../cli\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../third_party\" -I\"/home/lighthouse/Astro CS Database/cli\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/rt009_node_trace_test.dir/rt009_node_trace_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/rt009_node_trace_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/rt009_node_trace_test.cpp",
+  "output": "tests/unit/CMakeFiles/rt009_node_trace_test.dir/rt009_node_trace_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/io_adapter_test.dir/io_adapter_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/io_adapter_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/io_adapter_test.cpp",
+  "output": "tests/unit/CMakeFiles/io_adapter_test.dir/io_adapter_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/io_ownership_test.dir/io_ownership_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/io_ownership_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/io_ownership_test.cpp",
+  "output": "tests/unit/CMakeFiles/io_ownership_test.dir/io_ownership_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/io_reentrant_test.dir/io_reentrant_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/io_reentrant_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/io_reentrant_test.cpp",
+  "output": "tests/unit/CMakeFiles/io_reentrant_test.dir/io_reentrant_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu_abi_test.dir/cpu_abi_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu_abi_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu_abi_test.cpp",
+  "output": "tests/unit/CMakeFiles/cpu_abi_test.dir/cpu_abi_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu_lease_test.dir/cpu_lease_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu_lease_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu_lease_test.cpp",
+  "output": "tests/unit/CMakeFiles/cpu_lease_test.dir/cpu_lease_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu_features_test.dir/cpu_features_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu_features_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu_features_test.cpp",
+  "output": "tests/unit/CMakeFiles/cpu_features_test.dir/cpu_features_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu_provider_test.dir/cpu_provider_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu_provider_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu_provider_test.cpp",
+  "output": "tests/unit/CMakeFiles/cpu_provider_test.dir/cpu_provider_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu_fallback_test.dir/cpu_fallback_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu_fallback_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu_fallback_test.cpp",
+  "output": "tests/unit/CMakeFiles/cpu_fallback_test.dir/cpu_fallback_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu_bench_test.dir/cpu_bench_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu_bench_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu_bench_test.cpp",
+  "output": "tests/unit/CMakeFiles/cpu_bench_test.dir/cpu_bench_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu_profile_test.dir/cpu_profile_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu_profile_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu_profile_test.cpp",
+  "output": "tests/unit/CMakeFiles/cpu_profile_test.dir/cpu_profile_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu003_profile_v2_test.dir/cpu003_profile_v2_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu003_profile_v2_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu003_profile_v2_test.cpp",
+  "output": "tests/unit/CMakeFiles/cpu003_profile_v2_test.dir/cpu003_profile_v2_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu004_routing_test.dir/cpu004_routing_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu004_routing_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu004_routing_test.cpp",
+  "output": "tests/unit/CMakeFiles/cpu004_routing_test.dir/cpu004_routing_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../cli\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/mon001_recorder_test.dir/mon001_recorder_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/mon001_recorder_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/mon001_recorder_test.cpp",
+  "output": "tests/unit/CMakeFiles/mon001_recorder_test.dir/mon001_recorder_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../cli\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/mon002_gate_test.dir/mon002_gate_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/mon002_gate_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/mon002_gate_test.cpp",
+  "output": "tests/unit/CMakeFiles/mon002_gate_test.dir/mon002_gate_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../third_party\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/third_party\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase1_session\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/phase2_session\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p1001_modules_test.dir/p1001_modules_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p1001_modules_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p1001_modules_test.cpp",
+  "output": "tests/unit/CMakeFiles/p1001_modules_test.dir/p1001_modules_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu001_provider_selftest_baseline.dir/cpu001_provider_selftest.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu001_provider_selftest.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu001_provider_selftest.cpp",
+  "output": "tests/unit/CMakeFiles/cpu001_provider_selftest_baseline.dir/cpu001_provider_selftest.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu001_provider_selftest_avx2.dir/cpu001_provider_selftest.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu001_provider_selftest.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu001_provider_selftest.cpp",
+  "output": "tests/unit/CMakeFiles/cpu001_provider_selftest_avx2.dir/cpu001_provider_selftest.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu001_provider_selftest_avx2.dir/__/__/lib/backend_host/host_services.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/host_services.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/host_services.cpp",
+  "output": "tests/unit/CMakeFiles/cpu001_provider_selftest_avx2.dir/__/__/lib/backend_host/host_services.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu001_provider_selftest_avx2.dir/__/__/lib/backend_host/cpu_features.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/cpu_features.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/cpu_features.cpp",
+  "output": "tests/unit/CMakeFiles/cpu001_provider_selftest_avx2.dir/__/__/lib/backend_host/cpu_features.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu001_provider_selftest_avx512.dir/cpu001_provider_selftest.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu001_provider_selftest.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu001_provider_selftest.cpp",
+  "output": "tests/unit/CMakeFiles/cpu001_provider_selftest_avx512.dir/cpu001_provider_selftest.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu001_provider_selftest_avx512.dir/__/__/lib/backend_host/host_services.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/host_services.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/host_services.cpp",
+  "output": "tests/unit/CMakeFiles/cpu001_provider_selftest_avx512.dir/__/__/lib/backend_host/host_services.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu001_provider_selftest_avx512.dir/__/__/lib/backend_host/cpu_features.cpp.o -c \"/home/lighthouse/Astro CS Database/lib/backend_host/cpu_features.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/lib/backend_host/cpu_features.cpp",
+  "output": "tests/unit/CMakeFiles/cpu001_provider_selftest_avx512.dir/__/__/lib/backend_host/cpu_features.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/backend_host\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu001_negative_test.dir/cpu001_negative_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu001_negative_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu001_negative_test.cpp",
+  "output": "tests/unit/CMakeFiles/cpu001_negative_test.dir/cpu001_negative_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../cli\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/cpu_monitor_test.dir/cpu_monitor_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/cpu_monitor_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/cpu_monitor_test.cpp",
+  "output": "tests/unit/CMakeFiles/cpu_monitor_test.dir/cpu_monitor_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -o CMakeFiles/p1_calibration_test.dir/p1_calibration_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p1_calibration_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p1_calibration_test.cpp",
+  "output": "tests/unit/CMakeFiles/p1_calibration_test.dir/p1_calibration_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase1/stars\" -I\"/home/lighthouse/Astro CS Database/lib/phase1/stars\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p1_stars_test.dir/p1_stars_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p1_stars_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p1_stars_test.cpp",
+  "output": "tests/unit/CMakeFiles/p1_stars_test.dir/p1_stars_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase1/wcs\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase1/photometry\" -I\"/home/lighthouse/Astro CS Database/lib/phase1/wcs\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/phase1/photometry\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p1_wcs_phot_test.dir/p1_wcs_phot_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p1_wcs_phot_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p1_wcs_phot_test.cpp",
+  "output": "tests/unit/CMakeFiles/p1_wcs_phot_test.dir/p1_wcs_phot_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase1/noise\" -I\"/home/lighthouse/Astro CS Database/lib/phase1/noise\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p1_noise_test.dir/p1_noise_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p1_noise_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p1_noise_test.cpp",
+  "output": "tests/unit/CMakeFiles/p1_noise_test.dir/p1_noise_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p1_nside_test.dir/p1_nside_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p1_nside_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p1_nside_test.cpp",
+  "output": "tests/unit/CMakeFiles/p1_nside_test.dir/p1_nside_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p1_hips_writer_test.dir/p1_hips_writer_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p1_hips_writer_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p1_hips_writer_test.cpp",
+  "output": "tests/unit/CMakeFiles/p1_hips_writer_test.dir/p1_hips_writer_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -o CMakeFiles/p1_ir_facade_test.dir/p1_ir_facade_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p1_ir_facade_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p1_ir_facade_test.cpp",
+  "output": "tests/unit/CMakeFiles/p1_ir_facade_test.dir/p1_ir_facade_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../cli\" -I\"/home/lighthouse/Astro CS Database/lib/calibration/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -o CMakeFiles/p1_resource_test.dir/p1_resource_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p1_resource_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p1_resource_test.cpp",
+  "output": "tests/unit/CMakeFiles/p1_resource_test.dir/p1_resource_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../cli\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -fopenmp -o CMakeFiles/p2_workers_test.dir/p2_workers_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p2_workers_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p2_workers_test.cpp",
+  "output": "tests/unit/CMakeFiles/p2_workers_test.dir/p2_workers_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p2_upm_synthetic_test.dir/p2_upm_synthetic_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p2_upm_synthetic_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p2_upm_synthetic_test.cpp",
+  "output": "tests/unit/CMakeFiles/p2_upm_synthetic_test.dir/p2_upm_synthetic_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p2_block_plan_test.dir/p2_block_plan_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p2_block_plan_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p2_block_plan_test.cpp",
+  "output": "tests/unit/CMakeFiles/p2_block_plan_test.dir/p2_block_plan_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p2_rejection_test.dir/p2_rejection_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p2_rejection_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p2_rejection_test.cpp",
+  "output": "tests/unit/CMakeFiles/p2_rejection_test.dir/p2_rejection_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/phase2/include\" -I\"/home/lighthouse/Astro CS Database/lib/acr/backends/cuda/bridge\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p2_output_semantics_test.dir/p2_output_semantics_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p2_output_semantics_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p2_output_semantics_test.cpp",
+  "output": "tests/unit/CMakeFiles/p2_output_semantics_test.dir/p2_output_semantics_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p2_ir_facade_test.dir/p2_ir_facade_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p2_ir_facade_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p2_ir_facade_test.cpp",
+  "output": "tests/unit/CMakeFiles/p2_ir_facade_test.dir/p2_ir_facade_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../cli\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p2_seam_gate_test.dir/p2_seam_gate_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p2_seam_gate_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p2_seam_gate_test.cpp",
+  "output": "tests/unit/CMakeFiles/p2_seam_gate_test.dir/p2_seam_gate_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p3_wcs_test.dir/p3_wcs_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p3_wcs_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p3_wcs_test.cpp",
+  "output": "tests/unit/CMakeFiles/p3_wcs_test.dir/p3_wcs_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p3_interp_test.dir/p3_interp_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p3_interp_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p3_interp_test.cpp",
+  "output": "tests/unit/CMakeFiles/p3_interp_test.dir/p3_interp_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p3_coverage_test.dir/p3_coverage_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p3_coverage_test.cpp",
+  "output": "tests/unit/CMakeFiles/p3_coverage_test.dir/p3_coverage_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p3_output_test.dir/p3_output_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p3_output_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p3_output_test.cpp",
+  "output": "tests/unit/CMakeFiles/p3_output_test.dir/p3_output_test.cpp.o"
+},
+{
+  "directory": "/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release/tests/unit",
+  "command": "/usr/bin/c++  -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/tests/unit/../../lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/phase3_session\" -I\"/home/lighthouse/Astro CS Database/lib/common\" -I\"/home/lighthouse/Astro CS Database/lib/common/crypto\" -I\"/home/lighthouse/Astro CS Database/lib/common/healpix\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/include\" -I\"/home/lighthouse/Astro CS Database/run/temp/lnx001_gcc_release\" -I\"/home/lighthouse/Astro CS Database/include\" -I\"/home/lighthouse/Astro CS Database/lib/common/include\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/src\" -I\"/home/lighthouse/Astro CS Database/lib/astro_image_io/third_party/cfitsio\" -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles/p3_assembly_test.dir/p3_assembly_test.cpp.o -c \"/home/lighthouse/Astro CS Database/tests/unit/p3_assembly_test.cpp\"",
+  "file": "/home/lighthouse/Astro CS Database/tests/unit/p3_assembly_test.cpp",
+  "output": "tests/unit/CMakeFiles/p3_assembly_test.dir/p3_assembly_test.cpp.o"
+}
+]

@@ -1,0 +1,13 @@
+-- AstroCS 0.10.0-alpha.2+ge25f3f0cb986e703d7f04bd207a40dcaf399da22 root target graph ready (ACR=OFF)
+-- Configuring done (0.1s)
+-- Generating done (0.5s)
+-- Build files have been written to: /home/lighthouse/Astro CS Database/run/temp/qa002_tsan
+[  6%] Built target astrocs_common
+[ 80%] Built target astrocs_cfitsio
+[ 80%] Building CXX object CMakeFiles/astrocs_aio.dir/lib/astro_image_io/src/aio_xisf.cpp.o
+[ 83%] Linking CXX static library libastrocs_aio.a
+[ 90%] Built target astrocs_aio
+[ 96%] Built target astrocs_calibration
+[ 96%] Building CXX object tests/unit/CMakeFiles/p1_resource_test.dir/p1_resource_test.cpp.o
+[100%] Linking CXX executable p1_resource_test
+[100%] Built target p1_resource_test

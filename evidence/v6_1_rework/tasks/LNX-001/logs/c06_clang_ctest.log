@@ -1,0 +1,117 @@
+Test project /home/lighthouse/Astro CS Database/run/temp/lnx001_clang_debug
+      Start  1: core_contracts
+      Start  2: core_artifact
+ 1/56 Test  #1: core_contracts ...................   Passed    0.01 sec
+      Start  3: core_module
+ 2/56 Test  #3: core_module ......................   Passed    0.01 sec
+      Start  4: core_pipeline
+ 3/56 Test  #2: core_artifact ....................   Passed    0.01 sec
+      Start  5: core_context
+ 4/56 Test  #5: core_context .....................   Passed    0.01 sec
+      Start  6: core_scheduler
+ 5/56 Test  #4: core_pipeline ....................   Passed    0.02 sec
+      Start  7: core_checkpoint
+ 6/56 Test  #7: core_checkpoint ..................   Passed    0.02 sec
+      Start  8: core_logging
+ 7/56 Test  #8: core_logging .....................   Passed    0.01 sec
+      Start  9: rt001_abi
+ 8/56 Test  #9: rt001_abi ........................   Passed    0.01 sec
+      Start 10: rt002_budget
+ 9/56 Test #10: rt002_budget .....................   Passed    0.04 sec
+      Start 11: rt003_context
+10/56 Test #11: rt003_context ....................   Passed    0.02 sec
+      Start 12: rt005_registry
+11/56 Test #12: rt005_registry ...................   Passed    0.02 sec
+      Start 13: rt006_scheduler
+12/56 Test #13: rt006_scheduler ..................   Passed    0.12 sec
+      Start 14: rt007_artifact_store
+13/56 Test #14: rt007_artifact_store .............   Passed    0.01 sec
+      Start 15: rt008_runtime_client
+14/56 Test #15: rt008_runtime_client .............   Passed    0.02 sec
+      Start 16: rt009_node_trace
+15/56 Test #16: rt009_node_trace .................   Passed    0.02 sec
+      Start 17: io_adapter
+16/56 Test #17: io_adapter .......................   Passed    0.02 sec
+      Start 18: io_ownership
+17/56 Test #18: io_ownership .....................   Passed    0.01 sec
+      Start 19: io_reentrant
+18/56 Test #19: io_reentrant .....................   Passed    0.02 sec
+      Start 20: cpu_abi
+19/56 Test #20: cpu_abi ..........................   Passed    0.01 sec
+      Start 21: cpu_lease
+20/56 Test #21: cpu_lease ........................   Passed    0.08 sec
+      Start 22: cpu_features
+21/56 Test #22: cpu_features .....................   Passed    0.01 sec
+      Start 23: cpu_provider
+22/56 Test #23: cpu_provider .....................   Passed    0.01 sec
+      Start 24: cpu_fallback
+23/56 Test #24: cpu_fallback .....................   Passed    0.01 sec
+      Start 25: cpu_bench
+24/56 Test #25: cpu_bench ........................   Passed    0.01 sec
+      Start 26: cpu_profile
+25/56 Test  #6: core_scheduler ...................   Passed    0.87 sec
+      Start 27: cpu003_profile_v2
+26/56 Test #26: cpu_profile ......................   Passed    2.34 sec
+      Start 28: cpu004_routing
+27/56 Test #28: cpu004_routing ...................   Passed    0.02 sec
+      Start 29: mon001_recorder
+28/56 Test #29: mon001_recorder ..................   Passed    0.04 sec
+      Start 30: mon002_gate
+29/56 Test #30: mon002_gate ......................   Passed    0.01 sec
+      Start 31: p1001_modules
+30/56 Test #31: p1001_modules ....................   Passed    0.01 sec
+      Start 32: cpu001_selftest_baseline
+31/56 Test #32: cpu001_selftest_baseline .........   Passed    0.01 sec
+      Start 33: cpu001_selftest_avx2
+32/56 Test #33: cpu001_selftest_avx2 .............   Passed    0.01 sec
+      Start 34: cpu001_selftest_avx512
+33/56 Test #34: cpu001_selftest_avx512 ...........   Passed    0.01 sec
+      Start 35: cpu001_negative
+34/56 Test #35: cpu001_negative ..................   Passed    0.01 sec
+      Start 36: cpu_monitor
+35/56 Test #36: cpu_monitor ......................   Passed    0.95 sec
+      Start 37: p1_calibration
+36/56 Test #37: p1_calibration ...................   Passed    0.01 sec
+      Start 38: p1_stars
+37/56 Test #38: p1_stars .........................   Passed    0.12 sec
+      Start 39: p1_wcs_phot
+38/56 Test #39: p1_wcs_phot ......................   Passed    0.01 sec
+      Start 40: p1_noise
+39/56 Test #40: p1_noise .........................   Passed    0.07 sec
+      Start 41: p1_nside
+40/56 Test #41: p1_nside .........................   Passed    0.01 sec
+      Start 42: p1_hips_writer
+41/56 Test #42: p1_hips_writer ...................   Passed    0.28 sec
+      Start 43: p1_ir_facade
+42/56 Test #43: p1_ir_facade .....................   Passed    0.01 sec
+      Start 44: p1_resource
+43/56 Test #44: p1_resource ......................   Passed    0.12 sec
+      Start 45: p2_workers
+44/56 Test #45: p2_workers .......................   Passed    0.01 sec
+      Start 46: p2_upm_synthetic
+45/56 Test #46: p2_upm_synthetic .................   Passed    0.01 sec
+      Start 47: p2_block_plan
+46/56 Test #47: p2_block_plan ....................   Passed    0.01 sec
+      Start 48: p2_rejection
+47/56 Test #48: p2_rejection .....................   Passed    0.01 sec
+      Start 49: p2_output_semantics
+48/56 Test #49: p2_output_semantics ..............   Passed    0.01 sec
+      Start 50: p2_ir_facade
+49/56 Test #50: p2_ir_facade .....................   Passed    0.01 sec
+      Start 51: p2_seam_gate
+50/56 Test #51: p2_seam_gate .....................   Passed    0.01 sec
+      Start 52: p3_wcs
+51/56 Test #52: p3_wcs ...........................   Passed    0.01 sec
+      Start 53: p3_interp
+52/56 Test #53: p3_interp ........................   Passed    0.01 sec
+      Start 54: p3_coverage
+53/56 Test #54: p3_coverage ......................   Passed    0.01 sec
+      Start 55: p3_output
+54/56 Test #55: p3_output ........................   Passed    0.06 sec
+      Start 56: p3_assembly
+55/56 Test #56: p3_assembly ......................   Passed    0.28 sec
+56/56 Test #27: cpu003_profile_v2 ................   Passed   18.97 sec
+
+100% tests passed, 0 tests failed out of 56
+
+Total Test time (real) =  19.88 sec
