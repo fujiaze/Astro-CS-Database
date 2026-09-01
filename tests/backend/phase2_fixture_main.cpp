@@ -148,6 +148,16 @@ int main(int argc, char** argv) {
         if (!write_seam_frame(dir + "/SEAM0.hips", 2, +10)) return 3;
         if (!write_seam_frame(dir + "/SEAM1.hips", 3, -5)) return 3;
         if (!write_seam_frame(dir + "/SEAM2.hips", 2, +3)) return 3;
+    } else if (mode == "--make-seam6") {
+        // P2-007 (G5): 六块 seam HiPS(≥10s production workload 联合门)
+        // 模式轮换(平滑/空间偏移/常量/梯度), 偏移交替, 保证 UPM 可求解且 run ≥10s
+        const int offs[6] = {+10, -5, +3, -8, +6, -2};
+        const int modes[6] = {2, 3, 0, 1, 3, 2};
+        char name[64];
+        for (int i = 0; i < 6; ++i) {
+            std::snprintf(name, sizeof(name), "SEAM%d.hips", i);
+            if (!write_seam_frame(dir + "/" + name, modes[i], offs[i])) return 3;
+        }
     } else {
         return 2;
     }

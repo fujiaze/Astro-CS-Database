@@ -1,0 +1,93 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P2-007",
+  "status": "PASS",
+  "parent_commit": "2cb602582238d5e2745e0717b21b0dca63c1c432",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "validation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P2-007/PLAN.md",
+    "evidence/v6_1_rework/tasks/P2-007/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P2-007/logs/c01_joint_gate.log",
+    "tests/backend/phase2_fixture_main.cpp",
+    "tests/backend/test_p2007_joint_gate.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "验证任务: 6 块 seam workload ≥10s + 资源门(workers≥2/CPU≥90%) + 科学证据(UPM 校正场); fixture 加 seam6 生成器, 无生产代码变更"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p2007_joint_gate.py"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T13:00:00Z",
+      "duration_seconds": 31.0,
+      "log_path": "evidence/v6_1_rework/tasks/P2-007/logs/c01_joint_gate.log",
+      "log_sha256": "a8419d184364a143d076eba8bc47c62b160d6bb5e4c0543dd2d0086c77cf34e0"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-WORKLOAD-10S",
+      "description": "production seam workload(6 块) active_wall≥10s(实测 14.51s)",
+      "result": "PASS",
+      "evidence_sha256": "a8419d184364a143d076eba8bc47c62b160d6bb5e4c0543dd2d0086c77cf34e0"
+    },
+    {
+      "test_id": "T-WORKERS-GATE",
+      "description": "Runtime 多 worker: workers_p50≥2",
+      "result": "PASS",
+      "evidence_sha256": "a8419d184364a143d076eba8bc47c62b160d6bb5e4c0543dd2d0086c77cf34e0"
+    },
+    {
+      "test_id": "T-CPU-GATE",
+      "description": "CPU p50≥90% 且 mean≥85%(实测 100%/113%)",
+      "result": "PASS",
+      "evidence_sha256": "a8419d184364a143d076eba8bc47c62b160d6bb5e4c0543dd2d0086c77cf34e0"
+    },
+    {
+      "test_id": "T-RSS-BOUNDED",
+      "description": "资源摘要 peak_rss<512MB(实测 39.7MB), n_samples>0",
+      "result": "PASS",
+      "evidence_sha256": "a8419d184364a143d076eba8bc47c62b160d6bb5e4c0543dd2d0086c77cf34e0"
+    },
+    {
+      "test_id": "T-SCIENCE-JOINT",
+      "description": "科学+联合: UPM 校正场非空, C 空间变化<0.2(不拟合星); gate 必须 ok(数值好不替代资源门)",
+      "result": "PASS",
+      "evidence_sha256": "a8419d184364a143d076eba8bc47c62b160d6bb5e4c0543dd2d0086c77cf34e0"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-007/PLAN.md",
+      "sha256": "6e5333f28f2903d581a12c2c027779875fc77266f6827d665f0fac39ee842133"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-007/TASK_RESULT.json",
+      "sha256": "dc382280314a634ebfe4debc4c5d75f6c808da4b1df671191ed4b22194808122"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P2-007/logs/c01_joint_gate.log",
+      "sha256": "a8419d184364a143d076eba8bc47c62b160d6bb5e4c0543dd2d0086c77cf34e0"
+    }
+  ],
+  "findings": [
+    "F-014",
+    "F-022"
+  ],
+  "expected_commit_subject": "P2-007: Phase2 接缝与资源联合门 (6 块 seam workload ≥10s; workers≥2/CPU≥90% 达门; 科学+资源双证)",
+  "created_utc": "2026-09-01T13:05:00Z"
+}
