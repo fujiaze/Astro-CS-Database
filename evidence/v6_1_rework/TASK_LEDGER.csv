@@ -31,7 +31,7 @@ P1-003,G4,移除CLI直连Drizzle与重复FITS解析,P1-001,Linux,architecture,ye
 P1-004,G4,Phase1数值与资源联合门,P1-002;P1-003;MON-003,Linux,validation,yes,yes,heavy synthetic and artifact verify,科学Oracle+资源门同跑同commit; 2核利用达标,PASS
 P2-001,G5,并行化生产Coverage与Sampler,RT-008;MON-003,Linux+Windows,architecture,yes,yes,worker-local readers; deterministic chunks,Linux/MSVC均实际N worker; Runtime lease唯一来源; 1/N等价,PASS
 P2-002,G5,并行化生产UPM求解,P2-001,Linux+Windows,architecture,yes,yes,control weights; IRLS; per-frame solve; reductions,无模块hardware_concurrency; fixed merge; 2核资源门; MSVC生效,PASS
-P2-003,G5,建立调用生产UPM的三块接缝Oracle,P2-002,Linux,science,yes,yes,mini HiPS; masks; stars; gradients; disconnected graph,真实p2 pipeline估计校正; before/after metrics; flux/source preserved,NOT_STARTED
+P2-003,G5,建立调用生产UPM的三块接缝Oracle,P2-002,Linux,science,yes,yes,mini HiPS; masks; stars; gradients; disconnected graph,真实p2 pipeline估计校正; before/after metrics; flux/source preserved,PASS
 P2-004,G5,重建排异积分生产Oracle,P2-002,Linux,science,yes,yes,all methods; cosmic/hot/streak/stars; ivar,调用production reject/integrate; reason/frame identity/variance/support,NOT_STARTED
 P2-005,G5,完成block内存计划与并行I O,P2-001;RT-007,Linux,architecture,yes,yes,bounded cache; block edges; worker IO,峰值RAM受plan约束; 小块/full reference等价; no shared fitsfile,NOT_STARTED
 P2-006,G5,组装Canonical Phase2 Pipeline,P2-003;P2-004;P2-005,Linux,architecture,yes,yes,coverage/sampler/upm/reject/integrate/write,Registry/IR执行; artifact chain; ACR absent; trace exact,NOT_STARTED
