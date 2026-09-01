@@ -38,7 +38,7 @@ P2-006,G5,组装Canonical Phase2 Pipeline,P2-003;P2-004;P2-005,Linux,architectur
 P2-007,G5,Phase2接缝与资源联合门,P2-006;MON-003,Linux,validation,yes,yes,production synthetic >=10s,seam metrics pass and CPU/resource pass in same run,PASS
 P3-001,G6,核实并冻结Phase3科学算法API,CHK-003,Linux,science,no,yes,HiPS/WCS/domain/unit/order/interpolation/coverage,SCI->ALG推导; Dec极区条件正确; primary references; no contradiction,PASS
 P3-002,G6,实现properties order unit与请求语义,P3-001;RT-007,Linux,science,yes,yes,properties; order selection; bitpix/max memory,order真正驱动采样; BUNIT传播; invalid/missing显式; no fixed 20,PASS
-P3-003,G6,实现Runtime并行tile resampler,P3-002;RT-006;CPU-004,Linux+Windows,architecture,yes,yes,output tiles; per-worker cache; ordered writer,无serial pixel production loop; lease>=2; no shared cache race,NOT_STARTED
+P3-003,G6,实现Runtime并行tile resampler,P3-002;RT-006;CPU-004,Linux+Windows,architecture,yes,yes,output tiles; per-worker cache; ordered writer,无serial pixel production loop; lease>=2; no shared cache race,PASS
 P3-004,G6,建立独立球面重采样Oracle,P3-003,Linux,science,yes,yes,nearest/bilinear; cross-tile; RA wrap; boundaries,Oracle不调用production lookup/WCS; constant/analytic/impulse/continuity,NOT_STARTED
 P3-005,G6,修复FITS输出校验与provenance,P3-001;RT-007,Linux,science,yes,yes,BITPIX/BUNIT/WCS/checksum/atomicity/version/run/missing,CFITSIO checksum verify; mismatch hard fail; fsync order; reopen independent,NOT_STARTED
 P3-006,G6,组装Phase3生产Pipeline与资源门,P3-004;P3-005;MON-003,Linux,validation,yes,yes,registry/IR/session removal; full synthetic,SCI/ALG/API/CODE/TEST闭合; 2核利用达标; status IMPLEMENTED,NOT_STARTED

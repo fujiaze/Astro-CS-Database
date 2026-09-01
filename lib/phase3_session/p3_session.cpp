@@ -3,9 +3,12 @@
 #include "p3_session.h"
 #include "version_generated.h"
 
+#include <atomic>
 #include <cmath>
 #include <cstring>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "nlohmann/json.hpp"
@@ -184,28 +187,62 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
     std::vector<float> cov((size_t)nelem, 0.0f);
     int cancelled_row = -1;
 
-    // 行带粒度采样 + 取消点 (禁硬编码线程数: 单线程串行, budget 有多核可扩——P3 采样线程由上层注入)
-    for (int y = 0; y < hpx; ++y) {
-        if (s->cancelled()) { cancelled_row = y; break; }
-        for (int x = 0; x < wpx; ++x) {
-            double px_ra = 0, px_dec = 0;
-            if (p3_wcs_pix2world(&wcs, (double)x, (double)y, &px_ra, &px_dec) != P3_WCS_OK)
-                continue;   // 半球外像素保持 NaN/0
-            float v = 0; int c = 0;
-            const P3ResampleStatus rst = (sampler == "nearest")
-                                             ? p3_sample_nearest(&samp, px_ra, px_dec, &v, &c)
-                                             : p3_sample_bilinear(&samp, px_ra, px_dec, &v, &c);
-            if (rst != P3_RS_OK) continue;
-            const long i = (long)y * wpx + x;
-            sig[(size_t)i] = (c == 1) ? v : std::nanf("");
-            cov[(size_t)i] = (c == 1) ? 1.0f : 0.0f;
+    // P3-003: 按 row-band 生成 work units, Runtime lease 多 worker 并行采样。
+    // 每 worker 独立 sampler+bounded cache(P3Sampler 自含 cache); 输出 buffer 不重叠
+    // (每 worker 专属行带); 禁 hardware_concurrency(worker 数=budget.max_workers)。
+    // 串行阈值: worker 数 <2 或 budget 未注入 → 单线程(小图, <5s)。
+    uint32_t n_workers = 1;
+    if (s->host && s->host->budget.max_workers > 0)
+        n_workers = s->host->budget.max_workers;
+    if (n_workers > (uint32_t)hpx) n_workers = (uint32_t)hpx;  // 行带不空
+    const int rows_per_worker = hpx / (int)n_workers;
+    std::atomic<int> cancelled_at{-1};
+    auto worker = [&](int wid, int y0, int y1) {
+        // 每 worker 独立 sampler(独立 tile cache; 读共享只读 HiPS 无写锁)
+        P3Sampler w_samp{};
+        std::string wserr;
+        if (p3_sampler_open_ex(hips_dir.c_str(), &w_samp, nullptr, nullptr, &wserr) !=
+            P3_RS_OK) {
+            cancelled_at.store(-2);  // open 失败(罕见; 主线程已有有效 samp)
+            return;
         }
+        P3WcsDescriptor w_wcs = wcs;   // 值拷贝, worker 本地
+        for (int y = y0; y < y1 && cancelled_at.load() < 0; ++y) {
+            if (s->cancelled()) { cancelled_at.store(y); break; }
+            for (int x = 0; x < wpx; ++x) {
+                double px_ra = 0, px_dec = 0;
+                if (p3_wcs_pix2world(&w_wcs, (double)x, (double)y, &px_ra, &px_dec) != P3_WCS_OK)
+                    continue;   // 半球外像素保持 NaN/0
+                float v = 0; int c = 0;
+                const P3ResampleStatus rst = (sampler == "nearest")
+                                                 ? p3_sample_nearest(&w_samp, px_ra, px_dec, &v, &c)
+                                                 : p3_sample_bilinear(&w_samp, px_ra, px_dec, &v, &c);
+                if (rst != P3_RS_OK) continue;
+                const long i = (long)y * wpx + x;
+                sig[(size_t)i] = (c == 1) ? v : std::nanf("");
+                cov[(size_t)i] = (c == 1) ? 1.0f : 0.0f;
+            }
+        }
+        p3_sampler_close(&w_samp);
+    };
+    if (n_workers >= 2 && rows_per_worker >= 1) {
+        std::vector<std::thread> pool;
+        for (uint32_t w = 0; w < n_workers; ++w) {
+            const int y0 = (int)w * rows_per_worker;
+            const int y1 = (w == n_workers - 1) ? hpx : y0 + rows_per_worker;
+            pool.emplace_back(worker, (int)w, y0, y1);
+        }
+        for (auto& t : pool) t.join();
+    } else {
+        worker(0, 0, hpx);
     }
+    cancelled_row = cancelled_at.load();
     if (cancelled_row >= 0) {
         p3_sampler_close(&samp);
         s->last_error = "cancelled at row " + std::to_string(cancelled_row);
         return ACS_ERR_CANCELLED;
     }
+    if (cancelled_row == -2) { p3_sampler_close(&samp); return ACS_ERR_IO; }
 
     // provenance
     const std::string order_sel_str = std::to_string(order_sel);

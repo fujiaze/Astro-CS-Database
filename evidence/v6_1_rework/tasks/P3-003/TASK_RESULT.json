@@ -1,0 +1,93 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "P3-003",
+  "status": "PASS",
+  "parent_commit": "01803fd7bf377e41c81c252611554a52926f1f47",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "algorithm",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/P3-003/PLAN.md",
+    "evidence/v6_1_rework/tasks/P3-003/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/P3-003/logs/c01_parallel_resampler.log",
+    "lib/phase3_session/p3_session.cpp",
+    "tests/backend/test_p3003_parallel_resampler.py"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": true,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "P3 采样串行双循环 → std::thread 多 worker row-band(worker 数=budget.max_workers, 禁 hardware_concurrency); 1/N 等价验证"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tests/backend/test_p3003_parallel_resampler.py"
+      ],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T16:00:00Z",
+      "duration_seconds": 1.0,
+      "log_path": "evidence/v6_1_rework/tasks/P3-003/logs/c01_parallel_resampler.log",
+      "log_sha256": "0c63596fe21bbeb1c4eb7c2ee3f59fb404b0520ca076c48696cd68d8173e5e22"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-1N-EQUIV",
+      "description": "并行(budget=2)与单线程输出 FITS 逐字节一致(1/N 等价)",
+      "result": "PASS",
+      "evidence_sha256": "0c63596fe21bbeb1c4eb7c2ee3f59fb404b0520ca076c48696cd68d8173e5e22"
+    },
+    {
+      "test_id": "T-NO-HW-CONCURRENCY",
+      "description": "代码无 hardware_concurrency; worker 数=budget.max_workers; row-band work units",
+      "result": "PASS",
+      "evidence_sha256": "0c63596fe21bbeb1c4eb7c2ee3f59fb404b0520ca076c48696cd68d8173e5e22"
+    },
+    {
+      "test_id": "T-WORKER-SAMPLER",
+      "description": "每 worker 独立 sampler+bounded cache(无共享写锁)",
+      "result": "PASS",
+      "evidence_sha256": "0c63596fe21bbeb1c4eb7c2ee3f59fb404b0520ca076c48696cd68d8173e5e22"
+    },
+    {
+      "test_id": "T-CANCEL",
+      "description": "采样循环含取消点; 并行下 cancelled_at 传播; CANCELLED 语义",
+      "result": "PASS",
+      "evidence_sha256": "0c63596fe21bbeb1c4eb7c2ee3f59fb404b0520ca076c48696cd68d8173e5e22"
+    },
+    {
+      "test_id": "T-BOTH-SAMPLERS",
+      "description": "nearest 与 bilinear 均支持并行采样且输出有效",
+      "result": "PASS",
+      "evidence_sha256": "0c63596fe21bbeb1c4eb7c2ee3f59fb404b0520ca076c48696cd68d8173e5e22"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-003/PLAN.md",
+      "sha256": "1ec8634544b5612e9c040f5e7b8264b597e7300d460e07ddbf9c0d0f34766440"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-003/TASK_RESULT.json",
+      "sha256": "b80cb482ec15cffa08bf44de9039f9dd44087a3c8c46bc1d735c61f08966149a"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/P3-003/logs/c01_parallel_resampler.log",
+      "sha256": "0c63596fe21bbeb1c4eb7c2ee3f59fb404b0520ca076c48696cd68d8173e5e22"
+    }
+  ],
+  "findings": [
+    "F-010",
+    "F-024"
+  ],
+  "expected_commit_subject": "P3-003: Runtime 并行 tile resampler (row-band work units; 每 worker 独立 sampler+cache; 1/N 等价; 禁 hardware_concurrency)",
+  "created_utc": "2026-09-01T16:05:00Z"
+}
