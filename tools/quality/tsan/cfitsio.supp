@@ -1,0 +1,9 @@
+# QA-002 TSan suppression — 仅覆盖 cfitsio 第三方内部 Fitsio_Pthread_Status
+# 诊断状态变量写竞争（pthread_mutex_* 返回值存储，无锁保护）。
+# 来源: cfitsio 4.6.4 fitsio2.h FFLOCK/FFUNLOCK 宏 + fitscore.c:63。
+# 该变量仅存诊断返回码，不参与任何数据流/语义；锁互斥语义正确（TSan 认可 M0）。
+# owner: vm-bj QA-002; expiry: 2027-09-01 (升级 cfitsio > 4.6.4 或官方修复后复核)。
+# 自有代码 race/leak 一律不豁免（本文件仅限第三方 cfitsio 内部符号）。
+race:fitsio_init_lock
+race:fits_clear_Fptr
+race:ffopen

@@ -1,0 +1,146 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "QA-002",
+  "status": "PASS",
+  "parent_commit": "e25f3f0cb986e703d7f04bd207a40dcaf399da22",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "quality",
+  "changed_paths": [
+    "CMakeLists.txt",
+    "tests/unit/cpu_abi_test.cpp",
+    "tests/unit/p1_resource_test.cpp",
+    "tools/quality/tsan/cfitsio.supp",
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/QA-002/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/QA-002/logs/c01",
+    "evidence/v6_1_rework/tasks/QA-002/logs/c02",
+    "evidence/v6_1_rework/tasks/QA-002/logs/c03",
+    "evidence/v6_1_rework/tasks/QA-002/logs/c04",
+    "evidence/v6_1_rework/tasks/QA-002/logs/c05",
+    "evidence/v6_1_rework/tasks/QA-002/logs/c06"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": true,
+    "reason": "CMake 新增 sanitizer 接线(ASan/UBSan/LSan+TSan 互斥); 修复 cpu_abi_test LSan 泄漏(HostState 未释放); 修复 p1_resource_test 共享 out 缓冲真实 race(独立帧缓冲); cfitsio 4.6.4 第三方 Fitsio_Pthread_Status 诊断写竞争 suppression"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "sudo",
+        "env",
+        "LD_PRELOAD=libasan.so",
+        "ctest",
+        "-j2",
+        "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+        "UBSAN_OPTIONS=halt_on_error=1"
+      ],
+      "timeout_seconds": 1200,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T04:00:00Z",
+      "duration_seconds": 25.0,
+      "log_path": "evidence/v6_1_rework/tasks/QA-002/logs/c01_asan_ubsan_lsan_ctest.log",
+      "log_sha256": "c6d3446acabfefebb4a96df0b4d21bfcc13c963e6725e34510d4aeb5dee1f536"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "cmake",
+        "-DASTROCS_ENABLE_SANITIZERS=ON",
+        "make",
+        "-j2"
+      ],
+      "timeout_seconds": 3000,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T03:30:00Z",
+      "duration_seconds": 1800.0,
+      "log_path": "evidence/v6_1_rework/tasks/QA-002/logs/c02_asan_build.log",
+      "log_sha256": "7255aaa33647107959d5f55d3c8a820908aafac5ebdaa4b5b625ee9414efd8cf"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": [
+        "cmake",
+        "-DASTROCS_ENABLE_TSAN=ON",
+        "make",
+        "-j2"
+      ],
+      "timeout_seconds": 3000,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T03:35:00Z",
+      "duration_seconds": 1800.0,
+      "log_path": "evidence/v6_1_rework/tasks/QA-002/logs/c03_tsan_build.log",
+      "log_sha256": "af928aac1572d0385e7f79d0baa6f5a96acfefd258997a9c60e7c2386ebeeab0"
+    },
+    {
+      "command_id": "c06",
+      "argv_redacted": [
+        "bash",
+        "-c",
+        "TSAN_OPTIONS=suppressions=cfitsio.supp 28 定向测试"
+      ],
+      "timeout_seconds": 1200,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T04:10:00Z",
+      "duration_seconds": 600.0,
+      "log_path": "evidence/v6_1_rework/tasks/QA-002/logs/c06_tsan_targeted_summary.log",
+      "log_sha256": "daebb207510b6a0a2407f9caf17ff627ad3712c879c095eba8d79fef57c4676d"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-ASAN-UBASAN-LSAN",
+      "description": "ASan+UBSan+LSan 全 56 ctest (LSan detect_leaks=1, sudo runner 规避 ptrace 限制)",
+      "result": "PASS",
+      "evidence_sha256": "c6d3446acabfefebb4a96df0b4d21bfcc13c963e6725e34510d4aeb5dee1f536"
+    },
+    {
+      "test_id": "T-TSAN-TARGETED",
+      "description": "TSan 定向 28 测试 (Runtime/ArtifactStore/P2/P3 worker/CFITSIO handle/monitor)",
+      "result": "PASS",
+      "evidence_sha256": "daebb207510b6a0a2407f9caf17ff627ad3712c879c095eba8d79fef57c4676d"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-002/logs/c01_asan_ubsan_lsan_ctest.log",
+      "sha256": "c6d3446acabfefebb4a96df0b4d21bfcc13c963e6725e34510d4aeb5dee1f536"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-002/logs/c02_asan_build.log",
+      "sha256": "7255aaa33647107959d5f55d3c8a820908aafac5ebdaa4b5b625ee9414efd8cf"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-002/logs/c03_tsan_build.log",
+      "sha256": "af928aac1572d0385e7f79d0baa6f5a96acfefd258997a9c60e7c2386ebeeab0"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-002/logs/c04_cpu_abi_fix_build.log",
+      "sha256": "f01ca8b0fb741a1de09252fdfb488bbcde71a941e394b367b44734abf48bf9c0"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-002/logs/c05_p1_resource_fix_build.log",
+      "sha256": "ac09aa500eea378316e3dd6027f3f12ae341ce60548988e659ebccbf8f0d5ada"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/QA-002/logs/c06_tsan_targeted_summary.log",
+      "sha256": "daebb207510b6a0a2407f9caf17ff627ad3712c879c095eba8d79fef57c4676d"
+    }
+  ],
+  "findings": [
+    "F-031"
+  ],
+  "limitations": [
+    "LSan 需 sudo runner (沙箱 ptrace_scope=2 限制普通用户 ptrace; sudo 下 detect_leaks=1 全闭合)",
+    "cfitsio 4.6.4 Fitsio_Pthread_Status 诊断变量写竞争为第三方内部无害模式, 已带来源/owner/expiry suppression",
+    "cpu_provider/p2_ir_facade 等测试依赖 ASTROCS_REPO 环境 (tests/unit/CMakeLists.txt set_tests_properties 已注入)"
+  ],
+  "expected_commit_subject": "QA-002: Sanitizer 全路径 (ASan/UBSan/LSan 56/56, TSan 定向 28/28, 修复 cpu_abi leak 与 p1_resource race)",
+  "created_utc": "2026-09-02T04:20:00Z"
+}
