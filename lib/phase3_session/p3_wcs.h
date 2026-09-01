@@ -1,6 +1,6 @@
 // lib/phase3_session/p3_wcs.h — FITS-WCS 输出描述符 + TAN 投影正反变换 (ALG-P3-002) — P3-002
 // 覆盖: CRPIX(pixel-center)/CD 关键字正确性、east_left|east_right、旋转 PA、
-// RA wrap、TAN 半球守卫(输出四角同半球)、|dec|≥5° 极点守卫。
+// RA wrap、TAN 半球守卫(输出四角同半球)、abs(dec)<=85° 极点守卫(单一条件)。
 #ifndef ASTROCS_P3_WCS_H
 #define ASTROCS_P3_WCS_H
 
@@ -21,7 +21,7 @@ struct P3WcsDescriptor {
 
 enum P3WcsStatus {
     P3_WCS_OK = 0,
-    P3_WCS_PARAM = 1,          // |dec|<5°/W,H 越界/极点守卫
+    P3_WCS_PARAM = 1,          // abs(dec)>85°/W,H 越界/极点守卫
     P3_WCS_UNSUPPORTED = 2,    // projection≠TAN
     P3_WCS_HEMISPHERE = 3      // 输出跨 TAN 半球
 };
@@ -38,7 +38,7 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
 P3WcsStatus p3_wcs_pix2world(const P3WcsDescriptor* d, double x, double y,
                              double* ra_deg, double* dec_deg);
 
-/* 反变换(world→pixel); |dec|≥5° 守卫内部隐含(切平面远离极点)。 */
+/* 反变换(world→pixel); abs(dec)<=85° 守卫内部隐含(切平面远离极点)。 */
 P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double ra_deg, double dec_deg,
                              double* x, double* y);
 

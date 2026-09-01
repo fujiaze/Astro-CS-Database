@@ -12,7 +12,7 @@ namespace astrocs::phase3 {
 namespace {
 constexpr double kDeg = 180.0 / M_PI;
 constexpr double kRad = M_PI / 180.0;
-constexpr double kMinDecFromPole = 5.0;   // API §4: 中心距极点 ≥5°
+constexpr double kMaxAbsDec = 85.0;       // SCI/API/session 单一条件: abs(dec)<=85°
 // 最大尺寸来自配置/资源合同 (PHASE3_API_V1 §2 默认 20000), 可被
 // 编译期配置覆盖; 不硬编码业务值 (P3-002: 最大尺寸来自资源/配置合同)。
 #ifndef ASTROCS_P3_MAX_SIDE
@@ -37,7 +37,7 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
     if (parity == nullptr) parity = "east_left";
     const std::string par = parity;
     if (par != "east_left" && par != "east_right") return P3_WCS_PARAM;
-    if (std::fabs(centre_dec_deg) > 90.0 - kMinDecFromPole) return P3_WCS_PARAM;
+    if (std::fabs(centre_dec_deg) > kMaxAbsDec) return P3_WCS_PARAM;
     if (!(scale_deg_per_px > 0.0)) return P3_WCS_PARAM;
     if (width_px < 1 || width_px > kMaxSide || height_px < 1 || height_px > kMaxSide)
         return P3_WCS_PARAM;
@@ -100,7 +100,7 @@ P3WcsStatus p3_wcs_pix2world(const P3WcsDescriptor* d, double x, double y,
 P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double ra_deg, double dec_deg,
                              double* x, double* y) {
     if (!d || !x || !y) return P3_WCS_PARAM;
-    if (std::fabs(dec_deg) > 90.0 - kMinDecFromPole) return P3_WCS_PARAM;   // 极点邻域拒
+    if (std::fabs(dec_deg) > kMaxAbsDec) return P3_WCS_PARAM;   // 极点邻域拒
     const double a0 = d->crval_ra_deg * kRad;
     const double d0 = d->crval_dec_deg * kRad;
     const double a = ra_deg * kRad;
