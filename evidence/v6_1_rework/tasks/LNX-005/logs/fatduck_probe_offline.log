@@ -1,0 +1,5 @@
+=== Fatduck 在线探测 2026-09-01T16:35:37Z (UTC) ===
+cmd: ssh -i ~/.ssh/id_ed25519_fatduck -o ConnectTimeout=8 -o BatchMode=yes fujia@100.104.10.71 pwsh hostname
+rc=255
+out: Connection timed out (100.104.10.71:22)
+判定: OFFLINE (FATDUCK_ACCESS.md 时间窗 07:00-23:30 北京时间外或机器关机)

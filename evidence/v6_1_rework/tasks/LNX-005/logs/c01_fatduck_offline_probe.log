@@ -1,0 +1,10 @@
+=== Fatduck 离线探测 2026-09-01T17:53:03Z UTC ===
+北京时间: 2026-09-02 01:53:03 CST
+---
+ssh: connect to host 100.104.10.71 port 22: Connection timed out
+SSH_EXIT=255
+---
+DNS 解析:
+tailscale IP (直连, 无 DNS)
+---
+在线窗口: 07:00-23:30 北京时间 (FATDUCK_ACCESS.md)
