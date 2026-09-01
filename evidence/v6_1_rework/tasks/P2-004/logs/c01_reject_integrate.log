@@ -1,0 +1,15 @@
+test_01_cosmic_ray_rejected (__main__.TestP2004RejectIntegrate.test_01_cosmic_ray_rejected)
+cosmic ray(+20σ 尖峰)被 sigma 方法拒绝; 正常样本保留。 ... ok
+test_02_auto_resolves (__main__.TestP2004RejectIntegrate.test_02_auto_resolves)
+AUTO 解析为具体方法(winsorized_sigma)+语义 id, 非 AUTO 本身。 ... ok
+test_03_integration_weighted_mean (__main__.TestP2004RejectIntegrate.test_03_integration_weighted_mean)
+integration 加权均值解析解(2.5); n_used/n_accepted/n_finite 计数正确。 ... ok
+test_04_all_rejected_and_invalid (__main__.TestP2004RejectIntegrate.test_04_all_rejected_and_invalid)
+all-rejected→ALL_REJECTED; NaN/负权重→INVALID_INPUT; 零权重→ZERO_VALID_WEIGHT。 ... ok
+test_05_low_samples_and_frame_identity (__main__.TestP2004RejectIntegrate.test_05_low_samples_and_frame_identity)
+低样本→MIN_SAMPLES; 多帧+support 积分正常(signal 10.75, support 0.5)。 ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 6.937s
+
+OK
