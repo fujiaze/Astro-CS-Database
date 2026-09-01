@@ -67,7 +67,8 @@ class TestP2003SeamOracle(unittest.TestCase):
                 f"-I{os.path.join(AIO, 'include')}",
                 f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-                f"-I{os.path.join(REPO, 'lib', 'common')}"]
+                f"-I{os.path.join(REPO, 'lib', 'common')}",
+                f"-I{os.path.join(REPO, 'lib', 'common', 'healpix')}"]
         srcs = [FIXTURE_SRC,
                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),

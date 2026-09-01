@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "aio_hips.h"
+#include "healpix_core.h"
 
 namespace {
 constexpr uint32_t TW = 512;  // nside=512 → 叶级 order 0(tile 全域)
@@ -127,9 +128,42 @@ static bool write_frame_custom(const std::string& path, bool per_tile,
     return true;
 }
 
+// P3-004: 解析球面场 cos²(dec)(独立 Oracle 用; 每像素按 tile 中心 RA/Dec 计算)
+static bool write_analytic_frame(const std::string& path) {
+    AioHipsProductSet* ps = aio_hips_product_begin(
+        path.c_str(), 512, 512, AIO_HIPS_FLOAT32,
+        AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
+        "ivo://astrocs/test", "P3 analytic cos2dec", "R", 60.0,
+        "2026-08-28T00:00:00Z", 0);
+    if (!ps) return false;
+    std::vector<float> sig(TW * TW), area(TW * TW, AREA);
+    for (uint64_t ipix = 0; ipix < 12; ++ipix) {
+        // 逐像素 cos²(dec): tile order=0, tile 内 512² 像素 → leaf nside=512(2^9)
+        const uint64_t leaf_nside = 512u;
+        for (uint64_t p = 0; p < TW * TW; ++p) {
+            const uint64_t leaf = (ipix << 18u) | p;   // order0 tile → leaf 位移 18
+            double ra = 0, dec = 0;
+            astrocs::healpix::pix2ang_nest(static_cast<uint32_t>(leaf_nside), leaf, ra, dec);
+            const double v = std::cos(dec * M_PI / 180.0) * std::cos(dec * M_PI / 180.0);
+            sig[p] = static_cast<float>(v);
+        }
+        AstroSphereTileView view{};
+        view.parent_ipix = ipix;
+        view.leaf_order = 9;
+        view.width = TW;
+        view.data_type = AIO_HIPS_FLOAT32;
+        view.flux_sum = sig.data();
+        view.covered_area = area.data();
+        view.valid_mask = nullptr;
+        if (aio_hips_write_signal_support_tile(ps, &view) != 0) { aio_hips_abort(ps); return false; }
+    }
+    if (aio_hips_finalize(ps) != 0) { aio_hips_abort(ps); return false; }
+    return true;
+}
+
 int main(int argc, char** argv) {
     if (argc < 3) {
-        std::fprintf(stderr, "usage: --make <dir> | --make-field <dir> | --make-nan <dir> | --make-seam <dir>\n");
+        std::fprintf(stderr, "usage: --make <dir> | --make-field <dir> | --make-nan <dir> | --make-seam <dir> | --make-analytic <dir>\n");
         return 2;
     }
     const std::string mode = argv[1], dir = argv[2];
@@ -140,6 +174,8 @@ int main(int argc, char** argv) {
         if (!write_frame_custom(dir + "/FIELD.hips", true, false)) return 3;
     } else if (mode == "--make-nan") {
         if (!write_frame_custom(dir + "/NAN.hips", false, true)) return 3;
+    } else if (mode == "--make-analytic") {
+        if (!write_analytic_frame(dir + "/ANALYTIC.hips")) return 3;
     } else if (mode == "--make-const") {
         if (!write_frame(dir + "/CONST.hips", 2.5f)) return 3;
     } else if (mode == "--make-seam") {
