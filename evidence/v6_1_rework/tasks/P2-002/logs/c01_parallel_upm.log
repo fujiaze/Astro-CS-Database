@@ -1,0 +1,14 @@
+test_01_no_openmp_gate (__main__.TestP2002ParallelUpm.test_01_no_openmp_gate)
+upm.cpp 无 P2_ENABLE_OPENMP / hardware_concurrency 生产调用残留。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p2002_parallel_upm.py:95: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase2/src/upm.cpp' mode='r' encoding='utf-8'>
+  encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_02_multi_worker_upm_run (__main__.TestP2002ParallelUpm.test_02_multi_worker_upm_run)
+生产 phase2 run(UPM 多 worker)成功执行。 ... ok
+test_03_upm_parallel_equals_reference (__main__.TestP2002ParallelUpm.test_03_upm_parallel_equals_reference)
+UPM 4-worker 与 1-worker 的 persist 模型一致(并行=执行方式)。 ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 44.072s
+
+OK
