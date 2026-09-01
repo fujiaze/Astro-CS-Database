@@ -1,0 +1,36 @@
+test_01_parallel_equals_serial (__main__.TestP3003ParallelResampler.test_01_parallel_equals_serial)
+并行(budget=2)与单 worker 输出 1/N 等价(FITS 字节一致)。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3003_parallel_resampler.py:49: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3003_tlruo8hv/c1.json' mode='w' encoding='UTF-8'>
+  c1 = os.path.join(self.tmp, "c1.json"); json.dump(self._cfg(out1), open(c1, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3003_parallel_resampler.py:50: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3003_tlruo8hv/c2.json' mode='w' encoding='UTF-8'>
+  c2 = os.path.join(self.tmp, "c2.json"); json.dump(self._cfg(out2), open(c2, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_02_no_hardware_concurrency (__main__.TestP3003ParallelResampler.test_02_no_hardware_concurrency)
+并行实现无 hardware_concurrency; worker 数来自 budget.max_workers。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3003_parallel_resampler.py:65: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_session.cpp' mode='r' encoding='utf-8'>
+  s = open(SESS, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_03_worker_local_sampler (__main__.TestP3003ParallelResampler.test_03_worker_local_sampler)
+每 worker 独立 sampler+bounded cache。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3003_parallel_resampler.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_session.cpp' mode='r' encoding='utf-8'>
+  s = open(SESS, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_04_cancel_checked (__main__.TestP3003ParallelResampler.test_04_cancel_checked)
+取消: session 采样循环含取消点(host cancel 回调), 取消无部分文件语义。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3003_parallel_resampler.py:83: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/lighthouse/Astro CS Database/lib/phase3_session/p3_session.cpp' mode='r' encoding='utf-8'>
+  s = open(SESS, encoding="utf-8").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_05_both_samplers_parallel (__main__.TestP3003ParallelResampler.test_05_both_samplers_parallel)
+nearest 与 bilinear 均支持并行采样且输出有效。 ... /home/lighthouse/Astro CS Database/tests/backend/test_p3003_parallel_resampler.py:93: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3003_tlruo8hv/c_nearest.json' mode='w' encoding='UTF-8'>
+  json.dump(self._cfg(out, sampler=smp), open(c, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/lighthouse/Astro CS Database/tests/backend/test_p3003_parallel_resampler.py:93: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3003_tlruo8hv/c_bilinear.json' mode='w' encoding='UTF-8'>
+  json.dump(self._cfg(out, sampler=smp), open(c, "w"))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.061s
+
+OK
