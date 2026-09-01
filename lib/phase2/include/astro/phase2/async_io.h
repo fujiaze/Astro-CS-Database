@@ -5,12 +5,12 @@
 // 生产者满时阻塞（背压），消费者空时阻塞；支持 close/cancel/错误传播。
 //
 // Reader 线程安全约束（与 ASYNC_IO_CONTRACT.md 一致）：
-//   - cfitsio 同一数据集句柄不保证跨线程并发读安全；
-//   - 因此每个读取线程必须持有独立 reader/AioHipsDataset 句柄（CON-004 的
-//     per-worker reader 形态），或把全部 cfitsio 调用串行化到单一 IO 线程
-//     （“有界预取队列 + 单一 IO 线程”形态），二者都禁止跨线程共享句柄并发读；
-//   - 共享句柄只允许串行读取；若在异步队列中共享，需由 reader 层串行锁并计入
-//     串行时间预算。本队列不为你自动建立跨线程句柄共享，调用方必须遵守上述约束。
+// - cfitsio 同一数据集句柄不保证跨线程并发读安全；
+// - 因此每个读取线程必须持有独立 reader/AioHipsDataset 句柄（CON-004 的
+// per-worker reader 形态），或把全部 cfitsio 调用串行化到单一 IO 线程
+// （“有界预取队列 + 单一 IO 线程”形态），二者都禁止跨线程共享句柄并发读；
+// - 共享句柄只允许串行读取；若在异步队列中共享，需由 reader 层串行锁并计入
+// 串行时间预算。本队列不为你自动建立跨线程句柄共享，调用方必须遵守上述约束。
 #pragma once
 
 #include <condition_variable>

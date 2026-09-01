@@ -215,6 +215,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
     const int rows_per_worker = hpx / (int)n_workers;
     std::atomic<int> cancelled_at{-1};
     auto worker = [&](int wid, int y0, int y1) {
+        (void)wid;
         // 每 worker 独立 sampler(独立 tile cache; 读共享只读 HiPS 无写锁)
         P3Sampler w_samp{};
         std::string wserr;

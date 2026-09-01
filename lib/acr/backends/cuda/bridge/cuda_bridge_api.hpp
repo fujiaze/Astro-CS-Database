@@ -31,7 +31,7 @@ struct BridgeApi {
     int (*submit_conv3x3)(void*, std::size_t, std::size_t,
                           float*, const float*, std::size_t, std::size_t,
                           const float*, std::uint64_t*, const char**){nullptr};
-    //目标合成 Operation
+    // 目标合成 Operation
     int (*submit_dense_accumulate_fp64acc)(void*, std::size_t, std::size_t,
                                            float*, const float*,
                                            std::uint64_t*, const char**){nullptr};
@@ -47,7 +47,7 @@ struct BridgeApi {
                         std::uint64_t*, const char**){nullptr};
     int (*transfer_d2h)(void*, std::size_t, void*,
                         std::uint64_t*, const char**){nullptr};
-    //resident 持久上传与提交
+    // resident 持久上传与提交
     int (*upload_persistent)(void*, std::size_t, std::size_t,
                              const float*, std::uint64_t*, const char**){nullptr};
     int (*upload_persistent_slot)(void*, int, std::size_t, std::size_t,

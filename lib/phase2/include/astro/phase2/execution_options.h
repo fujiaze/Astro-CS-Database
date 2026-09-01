@@ -1,8 +1,8 @@
 // lib/phase2/include/astro/phase2/execution_options.h — 全局执行预算唯一来源
 //
 // CON-002 global worker budget contract:
-//   并行/IO/GPU 路由/确定性/内存预算的唯一 ExecutionOptions 对象。所有嵌套模块
-//   只能从该预算借用，不得各自创建等规模线程池。
+// 并行/IO/GPU 路由/确定性/内存预算的唯一 ExecutionOptions 对象。所有嵌套模块
+// 只能从该预算借用，不得各自创建等规模线程池。
 #pragma once
 
 #include <cstdint>
@@ -11,7 +11,7 @@
 
 namespace astro::phase2 {
 
-// 唯一执行预算对象。cpu_workers=0 表示 auto（=default_cpu_workers()）。
+// 唯一执行预算对象。cpu_workers=0 表示 auto（=default_cpu_workers）。
 struct ExecutionOptions {
     int    cpu_workers = 0;         // 0 => max(1, hardware_concurrency)
     int    io_workers = 0;          // 0 => auto (cpu_workers/2, 至少 1)

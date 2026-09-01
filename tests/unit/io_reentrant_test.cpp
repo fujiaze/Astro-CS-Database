@@ -81,7 +81,7 @@ int main() {
   std::atomic<int> mismatches{0};
   std::vector<std::thread> workers;
   for (int w = 0; w < 4; ++w) {
-    workers.emplace_back([&, w] {
+    workers.emplace_back([&] {
       for (int round = 0; round < 5; ++round) {
         uint64_t h = read_hash(path);
         if (h != ref) ++mismatches;
@@ -96,7 +96,7 @@ int main() {
     std::atomic<int> mm{0};
     std::vector<std::thread> w2;
     for (int w = 0; w < wcount; ++w) {
-      w2.emplace_back([&, w] {
+      w2.emplace_back([&] {
         for (int round = 0; round < 3; ++round) {
           if (read_hash(path) != ref) ++mm;
         }

@@ -1,4 +1,4 @@
-// lib/backend_host/cpu_features.h — CPU/OS 状态检测 (05 §3) — ABI-002
+// lib/backend_host/cpu_features.h — CPU/OS 状态检测 — ABI-002
 // 检测序: CPUID feature bits + OSXSAVE + XGETBV(XCR0) + affinity 可用 CPU。
 #pragma once
 #include <stdint.h>

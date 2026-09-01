@@ -1,5 +1,5 @@
 // lib/backend_host/backend_loader.h — backend manifest/预检/安全加载 (05 §3/§6/§7) — ABI-002
-// 策略: 预检失败→回退 baseline; 计算 stage 不静默换 backend(05 §6); 安全路径白名单。
+// 策略: 预检失败→回退 baseline; 计算 stage 不静默换 backend; 安全路径白名单。
 #ifndef ASTROCS_BACKEND_LOADER_H
 #define ASTROCS_BACKEND_LOADER_H
 

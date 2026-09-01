@@ -34,7 +34,7 @@ int main() {
     for (int i = 0; i < 6; ++i) {
         astrocs::ProcSample s;
         s.d_cpu_seconds = 0.22;  // ~88% 单核(0.22/0.25)
-        s.rss_bytes = 200 + i * 10; s.vms_bytes = 2000;
+        s.rss_bytes = static_cast<uint64_t>(200 + i * 10); s.vms_bytes = 2000;
         rec.record(s);
     }
     rec.set_stage(astrocs::ResStage::Flush);

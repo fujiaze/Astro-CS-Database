@@ -466,8 +466,8 @@ int xisf_read_file(const char *path, AIOImageData *out) {
     int w = img_info.width;
     int h = img_info.height;
     int c = img_info.channels;
-    size_t n_pixels = (size_t)w * h * c;
-    size_t expected_bytes = n_pixels * sf.dtype_size;
+    size_t n_pixels = (size_t)w * (size_t)h * (size_t)c;
+    size_t expected_bytes = n_pixels * static_cast<size_t>(sf.dtype_size);
 
     if (img_info.data_size <= 0 || img_info.data_offset <= 0) {
         aio_log(AIO_LOG_ERROR, "XISF", "Invalid data location: offset=%lld size=%lld",
@@ -538,7 +538,7 @@ int xisf_read_file(const char *path, AIOImageData *out) {
         }
 
         if (c > 1) {
-            double *gray = (double *)malloc((size_t)w * h * sizeof(double));
+            double *gray = (double *)malloc((size_t)w * (size_t)h * sizeof(double));
             if (gray) {
                 for (int y = 0; y < h; y++)
                     for (int x = 0; x < w; x++)
@@ -561,7 +561,7 @@ int xisf_read_file(const char *path, AIOImageData *out) {
         }
 
         if (c > 1) {
-            float *gray = (float *)malloc((size_t)w * h * sizeof(float));
+            float *gray = (float *)malloc((size_t)w * (size_t)h * sizeof(float));
             if (gray) {
                 for (int y = 0; y < h; y++)
                     for (int x = 0; x < w; x++)
@@ -589,8 +589,8 @@ int xisf_read_file(const char *path, AIOImageData *out) {
 
     out->keyword_count = (int)keywords.size();
     if (out->keyword_count > 0) {
-        out->keywords = (AIOFITSKeyword *)malloc(out->keyword_count * sizeof(AIOFITSKeyword));
-        std::memcpy(out->keywords, keywords.data(), out->keyword_count * sizeof(AIOFITSKeyword));
+        out->keywords = (AIOFITSKeyword *)malloc(static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
+        std::memcpy(out->keywords, keywords.data(), static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
     } else {
         out->keywords = nullptr;
     }
@@ -639,7 +639,7 @@ int xisf_read_header_only(const char *path, AIOImageData *out) {
     int w = img_info.width;
     int h = img_info.height;
 
-    out->data = (float *)calloc((size_t)w * h, sizeof(float));
+    out->data = (float *)calloc((size_t)w * (size_t)h, sizeof(float));
     out->width = w;
     out->height = h;
     out->channels = img_info.channels;
@@ -652,8 +652,8 @@ int xisf_read_header_only(const char *path, AIOImageData *out) {
     parse_fits_keywords(xml_text, keywords);
     out->keyword_count = (int)keywords.size();
     if (out->keyword_count > 0) {
-        out->keywords = (AIOFITSKeyword *)malloc(out->keyword_count * sizeof(AIOFITSKeyword));
-        std::memcpy(out->keywords, keywords.data(), out->keyword_count * sizeof(AIOFITSKeyword));
+        out->keywords = (AIOFITSKeyword *)malloc(static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
+        std::memcpy(out->keywords, keywords.data(), static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
     } else {
         out->keywords = nullptr;
     }

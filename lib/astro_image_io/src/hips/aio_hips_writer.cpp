@@ -341,7 +341,7 @@ struct AncestorAcc {
 // ============================================================================
 struct AioHipsProductSet {
     std::string out_dir;
-    //Drizzle provenance（默认未设置 → properties 不写）
+    // Drizzle provenance（默认未设置 → properties 不写）
     bool drizzle_prov_set = false;
     double drizzle_pixfrac = 0.0;
     double drizzle_scale_arcsec = 0.0;

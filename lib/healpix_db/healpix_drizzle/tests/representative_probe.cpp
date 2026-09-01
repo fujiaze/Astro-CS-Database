@@ -1,5 +1,5 @@
 // ============================================================================
-// representative_probe.cpp — V19R4 DRIZZLE_REALISTIC_SINGLE_FRAME_PROBE
+// representative_probe.cpp — DRIZZLE_REALISTIC_SINGLE_FRAME_PROBE
 //
 // 一次代表性 single-frame / bounded production probe（不跑 16 帧）：
 // 1024×1024 合成帧（WCS 300"/px、nside=512、pixfrac=0.8、tile_depth=9），

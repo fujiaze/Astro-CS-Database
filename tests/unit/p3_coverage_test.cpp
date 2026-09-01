@@ -24,14 +24,14 @@ struct TileSampler {
   double sample(double x, double y) const {
     if (x < 0 || x >= w - 1 || y < 0 || y >= h - 1) return NAN;  // 边界缺失
     int x0 = (int)x, y0 = (int)y;
-    if (!cov[(size_t)y0 * w + x0] || !cov[(size_t)y0 * w + x0 + 1] ||
-        !cov[(size_t)(y0 + 1) * w + x0] || !cov[(size_t)(y0 + 1) * w + x0 + 1])
+    if (!cov[(size_t)y0 * (size_t)w + (size_t)x0] || !cov[(size_t)y0 * (size_t)w + (size_t)x0 + 1] ||
+        !cov[(size_t)(y0 + 1) * (size_t)w + (size_t)x0] || !cov[(size_t)(y0 + 1) * (size_t)w + (size_t)x0 + 1])
       return NAN;   // 邻居覆盖不全 → 不插值 (零覆盖不生成值)
     double fx = x - x0, fy = y - y0;
-    double v00 = val[(size_t)y0 * w + x0];
-    double v10 = val[(size_t)y0 * w + x0 + 1];
-    double v01 = val[(size_t)(y0 + 1) * w + x0];
-    double v11 = val[(size_t)(y0 + 1) * w + x0 + 1];
+    double v00 = val[(size_t)y0 * (size_t)w + (size_t)x0];
+    double v10 = val[(size_t)y0 * (size_t)w + (size_t)x0 + 1];
+    double v01 = val[(size_t)(y0 + 1) * (size_t)w + (size_t)x0];
+    double v11 = val[(size_t)(y0 + 1) * (size_t)w + (size_t)x0 + 1];
     return (v00 * (1 - fx) + v10 * fx) * (1 - fy) + (v01 * (1 - fx) + v11 * fx) * fy;
   }
 };
@@ -91,7 +91,7 @@ int main() {
   {
     TileSampler t{4, 4};
     t.val.assign(16, 0.0); t.cov.assign(16, 1);
-    for (int i = 0; i < 16; ++i) { t.val[i] = (double)i; }
+    for (int i = 0; i < 16; ++i) { t.val[static_cast<size_t>(i)] = (double)i; }
     double a = t.sample(2.3, 1.7);
     double b = t.sample(2.3, 1.7);
     CHECK(a == b);   // 确定性 (1-thread reference 可复现)

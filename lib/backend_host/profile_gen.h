@@ -1,6 +1,6 @@
 // lib/backend_host/profile_gen.h — cpu_profile.json 生成与复读 (BENCH-004/005 + CPU-003)
-// V5 API: generate_profile_json(旧 schema, 保留供旧测试/后端测试)
-// V6.1 CPU-003: generate_profile_v2 / verify_profile_v2(新 v2 schema)
+// API: generate_profile_json(旧 schema, 保留供旧测试/后端测试)
+// CPU-003: generate_profile_v2 / verify_profile_v2(新 v2 schema)
 #ifndef ASTROCS_PROFILE_GEN_H
 #define ASTROCS_PROFILE_GEN_H
 
@@ -20,7 +20,7 @@ std::string generate_profile_json(const std::string& mode, const std::string& bu
 
 /* ── V6.1 CPU-003 API(v2 schema; schemas/cpu_profile.schema.json) ── */
 
-// 单 kernel 单候选的原始测量(全量保存, 供复读与审计)
+// 单 kernel 单候选的原始测量(全量保存, 供复读与)
 struct RawCandidate {
     std::string kernel_id;        // 如 "calibration-pixel-transform"
     std::string size_class;       // "small"|"medium"|"large"

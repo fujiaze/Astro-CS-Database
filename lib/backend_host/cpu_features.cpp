@@ -1,4 +1,4 @@
-// lib/backend_host/cpu_features.cpp — CPUID/OSXSAVE/XGETBV/affinity 实测 (05 §3) — ABI-002
+// lib/backend_host/cpu_features.cpp — CPUID/OSXSAVE/XGETBV/affinity 实测 — ABI-002
 #include "cpu_features.h"
 
 #if defined(__x86_64__) || defined(__i386__)

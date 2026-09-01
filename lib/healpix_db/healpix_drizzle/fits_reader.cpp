@@ -113,7 +113,7 @@ static FitsCard parseCard(const char card[80]) {
     }
 
     std::string val_str;
-    if (slash_pos >= 0) val_str = rest.substr(0, slash_pos);
+    if (slash_pos >= 0) val_str = rest.substr(0, (size_t)slash_pos);
     else                 val_str = rest;
     val_str = trimStr(val_str);
 
@@ -416,15 +416,15 @@ bool readFits(const std::string& path, FitsImage& img, std::string& error_msg) {
     }
 
     int bytes_per_pixel = std::abs(bitpix) / 8;
-    size_t n_pixels = (size_t)width * height * naxis3;
-    size_t data_size = n_pixels * bytes_per_pixel;
+    size_t n_pixels = (size_t)width * (size_t)height * (size_t)naxis3;
+    size_t data_size = n_pixels * (size_t)bytes_per_pixel;
 
     std::vector<uint8_t> raw(data_size);
     size_t got = std::fread(raw.data(), 1, data_size, fp);
     std::fclose(fp);
     if (got < data_size) {
         fprintf(stderr, "[fits_reader] 警告: 数据读取不完整 (%zu/%zu 字节)\n", got, data_size);
-        n_pixels = got / bytes_per_pixel;  // 按实际读取量处理
+        n_pixels = got / (size_t)bytes_per_pixel;  // 按实际读取量处理
     }
 
     // -------- 转换为 float32 (FITS 大端序 -> 主机浮点) --------
@@ -499,7 +499,7 @@ bool readFits(const std::string& path, FitsImage& img, std::string& error_msg) {
     // -------- RGB 平面排列 -> HWC 交错排列 --------
     // FITS NAXIS3=3 时数据为 3 个独立平面 (R, G, B), 转为 HWC 交错以方便后续处理
     if (channels == 3 && naxis3 == 3) {
-        size_t plane_size = (size_t)width * height;
+        size_t plane_size = (size_t)width * (size_t)height;
         if (n_pixels >= plane_size * 3) {
             std::vector<float> interleaved(plane_size * 3);
             for (size_t i = 0; i < plane_size; i++) {

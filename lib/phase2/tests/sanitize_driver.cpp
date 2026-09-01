@@ -39,7 +39,7 @@ int main() {
             o.value = 10.0 + 0.3 * f + 0.1 * k;
             o.snr = 5.0 + f;
             o.support = 1.0;
-            //production 权重要求 control_ivar（显式填充）
+            // production 权重要求 control_ivar（显式填充）
             o.control_variance = 1.0;
             o.control_ivar = 1.0;
             obs.push_back(o);
@@ -195,7 +195,7 @@ int main() {
         p2_upm_close(fm);
     }
 
-    //integration 零权重合同（ZERO_VALID_WEIGHT 可达路径）
+    // integration 零权重合同（ZERO_VALID_WEIGHT 可达路径）
     {
         double vals[2] = {10.0, 12.0};
         double w[2] = {1.0, 0.0};
@@ -212,7 +212,7 @@ int main() {
         if (p2_validate_candidate_weights(w, 2) != 0) return 24;
     }
 
-    //ACR CPU/reference（synthetic mosaic_reject，CPU launcher）
+    // ACR CPU/reference（synthetic mosaic_reject，CPU launcher）
     {
         astro::compute::phase2::register_phase2_acr_kernels();
         const astro::compute::KernelRegistration* reg =

@@ -24,7 +24,7 @@ void acr_launch_conv3x3(float* y, const float* x,
                         size_t begin, size_t n,
                         size_t width, size_t height,
                         const float* k, cudaStream_t stream);
-//目标合成内核 launch
+// 目标合成内核 launch
 void acr_launch_dense_accumulate_fp64acc(float* y, const float* x,
                                          size_t begin, size_t n,
                                          cudaStream_t stream);
@@ -86,7 +86,7 @@ struct CudaExecutorHandle {
     size_t d_kernel_capacity{0};
     float* d_image{nullptr};   // 卷积整图输入（独立缓冲）
     size_t d_image_capacity{0};
-    //chain 中间值 + drizzle 输出桶（独立容量）
+    // chain 中间值 + drizzle 输出桶（独立容量）
     float* d_z{nullptr};
     size_t d_z_capacity{0};
     float* d_count{nullptr};   // mosaic_reject 诊断计数（reject/valid 独立缓冲）

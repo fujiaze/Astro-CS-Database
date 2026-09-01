@@ -182,7 +182,7 @@ std::vector<float> read_support_tile(const std::string& hips) {
 }
 
 // 期望加权均值：per-pixel eligible frames（support>0）按自身 ivar 加权
-//calibrated = raw − C_frame(leaf)（生产 UPM 模型求值，非假设 offset=0）
+// calibrated = raw − C_frame(leaf)（生产 UPM 模型求值，非假设 offset=0）
 std::vector<double> expected_weighted_mean(
     const std::vector<std::vector<float>>& signals,
     const std::vector<std::vector<float>>& supports,

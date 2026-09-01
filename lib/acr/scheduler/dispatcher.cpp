@@ -146,13 +146,13 @@ struct Dispatcher::Impl {
     CurrentState current_state;
     // 26 §2/§9：只保留 MemoryBudget（独立开关，与利用率解耦）
     std::unique_ptr<utilization::MemoryBudgetController> mem_ctrl;
-    //OperationProfile 驱动的 Mixed 路由规划
+    // OperationProfile 驱动的 Mixed 路由规划
     MixedRoutePlanner planner;
-    //数据驻留状态（Host/Device/Both/dirty）
+    // 数据驻留状态（Host/Device/Both/dirty）
     ResidencyManager residency;
-    //真实 pinned staging reservation ledger
+    // 真实 pinned staging reservation ledger
     utilization::StagingLedger staging_ledger;
-    //dispatcher 级桥接句柄（整帧上传复用）
+    // dispatcher 级桥接句柄（整帧上传复用）
     void* bridge_handle{nullptr};
 
     // 惰性获取 dispatcher 桥接句柄（用于真实整帧上传/下载）
@@ -948,7 +948,7 @@ struct Dispatcher::Impl {
                              : std::vector<DeviceExecutor*>{};
         std::vector<DeviceExecutor*> supported;
         const std::size_t task_size = end - begin;
-        //Auto 模式在 worker 启动前执行收益门。
+        // Auto 模式在 worker 启动前执行收益门。
         // GPU 只有在当前路径（host/resident）eligible 且任务规模达到
         // min_profitable_items 时才进入 worker 集合；不满足则不启动 worker。
         const auto auto_plan = (plan_profile != nullptr)
@@ -1301,7 +1301,7 @@ struct Dispatcher::Impl {
                             }
                             break;
                         }
-                        //OperationProfile 驱动规划
+                        // OperationProfile 驱动规划
                         // 决定 CPU/GPU 独立块大小与边际收益门；无合格 Profile
                         // 时回退旧 CostEstimator 路径（保守 CPU fallback）。
                         std::size_t requested = 0;
@@ -1578,7 +1578,7 @@ struct Dispatcher::Impl {
                                 token.size());
                         }
                         // 首轮公平门（仅影响每个 executor 的第一块之前）。
-                        //OperationProfile 规划模式下
+                        // OperationProfile 规划模式下
                         // 禁用强制公平门——由 planner 的边际收益门决定设备是否
                         // 参与，避免慢设备被公平门阻塞导致死锁。
                         if (!plan_profile &&
@@ -1603,7 +1603,7 @@ struct Dispatcher::Impl {
                         inv.domain = WorkDomain{token.begin, token.end};
                         inv.token_id = token.id;
                         inv.attempt = token.attempt;
-                        //输入已 prefetch → launcher 走 resident 路径
+                        // 输入已 prefetch → launcher 走 resident 路径
                         inv.input_resident = data_resident;
                         SubmitHandle handle = exec->submit(token, inv);
                         if (handle.status == SubmitStatus::Ok) {
@@ -1780,7 +1780,7 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
     impl_->cfg = cfg;
     impl_->bdr_cache.clear();  // 配置变化 → 决策缓存失效
     impl_->executors = cfg.executors;  // F-fix 6 + F-fix 7
-    //OperationProfile 驱动规划（nullptr=保守 CPU fallback）
+    // OperationProfile 驱动规划（nullptr=保守 CPU fallback）
     impl_->planner.set_profile(cfg.operation_profile);
     impl_->fallback_policy.set_strategy(cfg.fallback_strategy);
     MixedRunnerConfig mcfg;
@@ -1805,7 +1805,7 @@ void Dispatcher::configure(const DispatcherConfig& cfg) {
         for (const auto& bn : mcfg.gpu_backends) {
             impl_->mem_ctrl->register_backend(bn);
         }
-        //pinned ledger limit 来自 MemoryBudget 配置
+        // pinned ledger limit 来自 MemoryBudget 配置
         const auto& mcfg_budget = cfg.memory_budget_explicit
             ? cfg.memory_budget : utilization::MemoryBudgetConfig{};
         const std::uint64_t total_ram = impl_->mem_ctrl->sample().total_ram;
@@ -2493,7 +2493,7 @@ CostAwareResult Dispatcher::dispatch_invocation(
     result.transfer_stats.frames_upload_count = slot_after.first;
     result.transfer_stats.weights_upload_count = slot_after.second;
 
-    //真实驻留驱动。
+    // 真实驻留驱动。
     // - 输入已在 worker 启动前 prefetch（真实一次上传）；
     // - 输出经同步桥接真实 D2H 一次；
     // - 不再执行后补传输入。
