@@ -9,7 +9,7 @@
 
 ## 2 编译隔离(05 §2)
 
-- baseline 必须在最低 amd64 合同 CPU 上加载;变体 TU 局部编译选项;主 CLI 与 baseline 零 AVX 污染;**禁止全局 `-march=native`/`/arch:AVX2`/`-mavx*`**;CI 反汇编/对象扫描 baseline opcode;变体与 baseline 共享同一数学合同头(单一 `common/backend_math_contract.h`,禁止复制漂移)。
+- baseline 必须在最低 amd64 合同 CPU 上加载;变体 TU 局部编译选项;主 CLI 与 baseline 零 AVX 污染;**禁止全局 `-march=native`/`/arch:AVX2`/`-mavx*`**;CI 反汇编/对象扫描 baseline opcode;变体与 baseline 共享同一数学合同头(单一 `lib/backend_host/baseline_kernels.h`,禁止复制漂移;V6.1 实际实现,CPU-BACKEND-ARCH-001)。
 
 ## 3 CPU/OS 状态检测与信任边界(05 §3)
 
