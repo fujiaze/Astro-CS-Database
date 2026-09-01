@@ -1,0 +1,96 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "DOC-004",
+  "status": "PASS",
+  "parent_commit": "5ecc60df2d5021d18be04e0e6359d45b7b125b33",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "documentation",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/DOC-004/PLAN.md",
+    "evidence/v6_1_rework/tasks/DOC-004/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/DOC-004/logs/c01_module_readmes.log",
+    "tools/quality/gen_module_readmes.py",
+    "docs/modules/registry/astrocs.phase1.calibration.md",
+    "docs/modules/registry/astrocs.phase1.cosmetic.md",
+    "docs/modules/registry/astrocs.phase1.drizzle.md",
+    "docs/modules/registry/astrocs.phase1.noise-snr.md",
+    "docs/modules/registry/astrocs.phase1.photometry.md",
+    "docs/modules/registry/astrocs.phase1.star-psf.md",
+    "docs/modules/registry/astrocs.phase1.wcs-platesolve.md",
+    "docs/modules/registry/astrocs.phase1.writer.md",
+    "docs/modules/registry/astrocs.phase2.coverage.md",
+    "docs/modules/registry/astrocs.phase2.integrate.md",
+    "docs/modules/registry/astrocs.phase2.reject.md",
+    "docs/modules/registry/astrocs.phase2.resample.md",
+    "docs/modules/registry/astrocs.phase2.sample.md",
+    "docs/modules/registry/astrocs.phase2.upm-apply.md",
+    "docs/modules/registry/astrocs.phase2.upm-fit.md",
+    "docs/modules/registry/astrocs.phase2.write.md",
+    "docs/modules/registry/astrocs.phase3.properties.md",
+    "docs/modules/registry/astrocs.phase3.resample.md",
+    "docs/modules/registry/astrocs.phase3.resample2.md",
+    "docs/modules/registry/astrocs.phase3.verify.md",
+    "docs/modules/registry/astrocs.phase3.wcs.md",
+    "docs/modules/registry/astrocs.phase3.writer.md"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "文档: 22 个 registry 模块 README(以 module_adapters.cpp descriptor 为源生成) + 生成器工具"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "python3",
+        "tools/quality/gen_module_readmes.py"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-01T23:00:00Z",
+      "duration_seconds": 2.0,
+      "log_path": "evidence/v6_1_rework/tasks/DOC-004/logs/c01_module_readmes.log",
+      "log_sha256": "3fd789cbd5e17c07eb06339435bd9b9f51288b08b1bf2405d2c1230c342ce2cb"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-22-README",
+      "description": "22 个 registry production 模块各一份 README(唯一源=module_adapters.cpp)",
+      "result": "PASS",
+      "evidence_sha256": "3fd789cbd5e17c07eb06339435bd9b9f51288b08b1bf2405d2c1230c342ce2cb"
+    },
+    {
+      "test_id": "T-FRONT-MATTER",
+      "description": "22/22 README front matter 完整(id/status/owner/source_commit/upstream/downstream)",
+      "result": "PASS",
+      "evidence_sha256": "3fd789cbd5e17c07eb06339435bd9b9f51288b08b1bf2405d2c1230c342ce2cb"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-004/PLAN.md",
+      "sha256": "f04ce65de3553eb3f58879d57a275304760f1c0eefc9169ec2638fed50dc589b"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-004/TASK_RESULT.json",
+      "sha256": "026d1a56cb445a145aae83a1a71ca6ede0e70e6074c12089efc11ff53f3b4434"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/DOC-004/logs/c01_module_readmes.log",
+      "sha256": "3fd789cbd5e17c07eb06339435bd9b9f51288b08b1bf2405d2c1230c342ce2cb"
+    }
+  ],
+  "findings": [
+    "F-018",
+    "F-031"
+  ],
+  "expected_commit_subject": "DOC-004: 补齐所有生产模块 README (22 个 registry 模块 README, 生成器 gen_module_readmes 以 descriptor 为源)",
+  "created_utc": "2026-09-01T23:05:00Z"
+}
