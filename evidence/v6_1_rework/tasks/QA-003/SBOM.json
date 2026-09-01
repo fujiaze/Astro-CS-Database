@@ -1,0 +1,195 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:astrocs-qa003-v61-20260901",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-02T04:30:00Z",
+    "tools": [
+      {
+        "vendor": "AstroCS",
+        "name": "qa003-sbom-gen",
+        "version": "0.10.0-alpha.2"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "astrocs-cli",
+      "name": "astrocs",
+      "version": "0.10.0-alpha.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "Proprietary"
+          }
+        }
+      ],
+      "purl": "pkg:generic/astrocs@0.10.0-alpha.2",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/fujiaze/Astro-CS-Database"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "nlohmann-json",
+      "name": "nlohmann/json",
+      "version": "3.12.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "supplier": {
+        "name": "Niels Lohmann"
+      },
+      "purl": "pkg:github/nlohmann/json@3.12.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a1af42c0cffb386530b94c6cb46ceb3b0f58f8922321539831f9a28e286a67d8"
+        }
+      ],
+      "description": "vendored at third_party/nlohmann/json.hpp; no patch; header-only"
+    },
+    {
+      "type": "library",
+      "bom-ref": "cfitsio",
+      "name": "cfitsio",
+      "version": "4.6.4",
+      "licenses": [
+        {
+          "license": {
+            "name": "NASA HEASARC (free use/modify/distribute with notice)"
+          }
+        }
+      ],
+      "supplier": {
+        "name": "NASA HEASARC / William Pence"
+      },
+      "purl": "pkg:generic/cfitsio@4.6.4",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8dc7deee039d1997e9e203d9e997d64f651023d19724863aa97521a275d1a7ec"
+        }
+      ],
+      "description": "vendored at lib/astro_image_io/third_party/cfitsio; license at licenses/License.txt",
+      "patches": [
+        {
+          "description": "thread-reentrant: FFLOCK/_REENTRANT 用于并发读 (见 lib/astro_image_io/src/aio_cfitsio_mutex.h)",
+          "origin": "astrocs-v6.1",
+          "applied": true
+        },
+        {
+          "description": "禁止编译期 -w 之外无源码 patch (第三方源码原样 vendored)",
+          "origin": "none",
+          "applied": false
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "zlib",
+      "name": "zlib",
+      "version": "1.3.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Zlib"
+          }
+        }
+      ],
+      "supplier": {
+        "name": "Mark Adler / Jean-loup Gailly"
+      },
+      "purl": "pkg:deb/debian/zlib1g@1.3.1",
+      "description": "system package (zlib1g 1:1.3.dfsg+really1.3.1-1+b1); linked via find_package(ZLIB) in cfitsio/CMakeLists.txt"
+    },
+    {
+      "type": "library",
+      "bom-ref": "openmp",
+      "name": "libgomp (GCC OpenMP)",
+      "version": "14.2.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-3.0-with-GCC-exception"
+          }
+        }
+      ],
+      "supplier": {
+        "name": "GNU Project"
+      },
+      "description": "find_package(OpenMP) 遗留 omp pragma 模块 (calibration/aio/drizzle) -fopenmp 编译"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pthread",
+      "name": "glibc pthread",
+      "version": "system",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later"
+          }
+        }
+      ],
+      "supplier": {
+        "name": "GNU Project"
+      },
+      "description": "find_package(Threads REQUIRED)"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "astrocs-cli",
+      "dependsOn": [
+        "nlohmann-json",
+        "cfitsio",
+        "zlib",
+        "openmp",
+        "pthread"
+      ]
+    }
+  ],
+  "build": {
+    "source_commit": "8003297fe6043620ab66ab0e5effc5b015c9721a",
+    "compiler_gcc": "gcc (Debian 14.2.0-19) 14.2.0",
+    "compiler_clang": "clang 19.1.7",
+    "cmake": "3.31.6",
+    "arch": "amd64",
+    "flags": {
+      "own_targets": [
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Wconversion"
+      ],
+      "cfitsio_thirdparty": [
+        "-w"
+      ],
+      "legacy_omp": [
+        "-fopenmp"
+      ],
+      "sanitizer_asan": [
+        "-fsanitize=address,undefined"
+      ],
+      "sanitizer_tsan": [
+        "-fsanitize=thread"
+      ]
+    },
+    "provider_build_ids": [
+      "baseline",
+      "avx2",
+      "avx512"
+    ],
+    "reproducibility": "Release 构建: -O3 全 target; 双平台由各自 toolchain (GCC/Clang + MSVC) 从同一 source_commit 重建; install/run/doctor/profile verify/small synthetic smoke 验证"
+  }
+}
