@@ -1,0 +1,114 @@
+{
+  "$schema": "https://cmake.org/cmake/help/v3.31/schema/presets.schema.json",
+  "version": 10,
+  "$comment": "AstroCS BLD-001 frozen toolchain presets. Formal Windows generator is Visual Studio 17 2022 (x64 / v143 / 14.44.35207 / SDK 10.0.26100.0 / CMake 3.31.12) per 09_WINDOWS_TOOLCHAIN_LOCK.md. Machine validation: cmake/toolchain/verify_toolchain.py against packaging/schemas/preset-contract.schema.json.",
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 31,
+    "patch": 0
+  },
+  "vendor": {
+    "astrocs.org/toolchain/1": {
+      "doc": "09_WINDOWS_TOOLCHAIN_LOCK.md",
+      "frozen_utc": "2026-09-02T00:00:00Z",
+      "contract_schema": "packaging/schemas/preset-contract.schema.json",
+      "windows_formal": {
+        "generator": "Visual Studio 17 2022",
+        "architecture": "x64",
+        "toolset": "v143,host=x64,version=14.44.35207",
+        "sdk": "10.0.26100.0",
+        "cmake_pin": "3.31.12",
+        "note": "cmakeMinimumRequired.patch is 0 so any 3.31.x parses the file; the exact 3.31.12 install pin is enforced by the toolchain verifier and machine acceptance."
+      }
+    }
+  },
+  "configurePresets": [
+    {
+      "name": "base-msvc",
+      "hidden": true,
+      "displayName": "AstroCS Windows x64 MSVC base (frozen)",
+      "description": "Hidden base for the single formal Windows preset. VS 17 2022 x64 only, host x64, toolset v143 pinned to 14.44.35207, SDK 10.0.26100.0, DLL CRT everywhere (/MD /MDd). Never edits this preset to another generator.",
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "toolset": {
+        "value": "v143,host=x64,version=14.44.35207",
+        "strategy": "set"
+      },
+      "binaryDir": "${sourceDir}/build/win-msvc-17.14.39-x64",
+      "installDir": "${sourceDir}/build/win-install",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_VERSION": "10.0.26100.0",
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL",
+        "CMAKE_GENERATOR_INSTANCE": "C:/AstroCS/toolchains/vs2022-17.14.39",
+        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "ASTROCS_ENABLE_ACR": "OFF"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "win-msvc-17.14.39-x64",
+      "inherits": "base-msvc",
+      "displayName": "AstroCS Windows x64 正式发布工具链 (VS17 2022 v143 14.44.35207 SDK 26100)",
+      "description": "正式 Windows 构建：Visual Studio 17 2022 / x64 / host x64 / v143 version=14.44.35207 / Windows SDK 10.0.26100.0 / CMake 3.31.12 / C++17 / CRT /MD /MDd / ACR OFF。仅 AMD64；不含 Win32/ARM/ARM64。只在 Windows 主机生效。",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "linux-control",
+      "displayName": "AstroCS Linux 控制节点轻验证 (非发布产物)",
+      "description": "Linux amd64 控制节点的轻验证配置，仅供静态检查/轻量编译/小合成实验；不是发布产物，不驱动 Windows 工具链。不固定 Ninja/MinGW，不写死并行度。",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/linux-control",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ASTROCS_ENABLE_ACR": "OFF",
+        "ASTROCS_BUILD_TESTS": "ON"
+      },
+      "condition": {
+        "type": "notEquals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "win-rel",
+      "configurePreset": "win-msvc-17.14.39-x64",
+      "displayName": "Windows 正式构建 (RelWithDebInfo; 并行度由 executor 决定，不写死)",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "linux",
+      "configurePreset": "linux-control",
+      "displayName": "Linux 轻验证构建"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "win-rel",
+      "configurePreset": "win-msvc-17.14.39-x64",
+      "displayName": "Windows 正式测试 (RelWithDebInfo)",
+      "configuration": "RelWithDebInfo",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux",
+      "configurePreset": "linux-control",
+      "displayName": "Linux 轻验证测试"
+    }
+  ]
+}
