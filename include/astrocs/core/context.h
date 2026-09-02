@@ -14,6 +14,13 @@
 #include <string>
 #include <vector>
 
+// Windows 头 (windows.h 经 monitor.h 等引入) 定义 ERROR 为宏 (值 0),
+// 与 LogLevel::ERROR 枚举值冲突 (C2143, 见 WIN-001 Fatduck MSVC 复现)。
+// 宏在 windows.h 内的用途已展开完毕, undef 仅恢复本头枚举语义 (同 hiss_reader 先例)。
+#ifdef ERROR
+#undef ERROR
+#endif
+
 namespace astrocs::core {
 
 // 日志级别 (CORE-008 统一日志)
