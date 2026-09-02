@@ -44,7 +44,8 @@ AstroCS 从多帧天文 CCD 图像估计统一天球辐射场 (HiPS signal) 及�
 - 科学定义 = 算法 = 接口 = 代码 = 测试（六层追溯, TRACE-001）。
 - 生产仅纯 CPU; ACR dormant; 旧 Orchestrator/PipelineEngine 调度/Stage2/drizzle
   直连全部退出。
-- 版本单源 0.10.0-alpha.1; CLI `--version` 输出 `0.10.0-alpha.1+g<commit>`。
+- 产品版本单源 0.11.0-alpha.1（根 VERSION, GOV-003）; CLI `--version`
+  输出 `0.11.0-alpha.1+g<commit>`（生成链见 docs/governance/VERSION_NAMESPACES.md）。
 - 每个结论回溯 `evidence/v6_1_rework/tasks/*/TASK_RESULT.json` 自引用 hash 与
   COMMITS.csv 提交链。
 - 最终发布需负责人审核（REL-001..004 全部 PASS 后由 Owner 批准，
