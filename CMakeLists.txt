@@ -26,6 +26,10 @@ if(NOT MSVC)
     add_compile_options(-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -g)
     add_link_options(-fsanitize=address,undefined)
   endif()
+else()
+  # WIN-001: MSVC 全局源码选项 — 源码 UTF-8 (中文注释/字符串) 必需 /utf-8,
+  # 否则 MSVC 按系统 ANSI 代码页误读 → 注释边界错乱 → 级联语法错误 (contracts.h C2144)。
+  add_compile_options(/utf-8 /W4 /EHsc)
 endif()
 
 # 版本单源: 根 VERSION 文件 (VER-001)
