@@ -1,0 +1,314 @@
+{
+  "registry_schema": "astrocs.module-ports-registry/v1",
+  "registry_version": 1,
+  "owner": "SA-RT-05",
+  "frozen_at": "2026-09-02T00:00:00Z",
+  "note": "RT-001 每 node 唯一真实 operation 绑定表（AUD-001 IRF-0007 修复：IR 节点 id 与 CLI 收集端/真实执行符号不匹配）。单一真源：typed DAG compiler 按 (module_id, operation) 绑定到唯一真实 operation 与 DLL/入口（entry 在本轮为声明名，真实 DLL 绑定属 ABI-00x/RT-002+ 接线）；未知 module_id/operation、module 声明端口与注册表端口不一致即拒绝。phase 字段声明该 module 所属产品 Phase（禁止跨 Phase edge）。",
+  "modules": [
+    {
+      "module_id": "astrocs.phase1.calibration",
+      "phase": "phase1",
+      "operations": [
+        {
+          "operation": "calibrate",
+          "entry": "astrocs_phase1_calibrate_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "frames", "direction": "input", "data_schema_id": "DATA-P1-FRAME", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "calibrated", "direction": "output", "data_schema_id": "DATA-P1-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase1.cosmetic",
+      "phase": "phase1",
+      "operations": [
+        {
+          "operation": "cosmetic_correct",
+          "entry": "astrocs_phase1_cosmetic_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "calibrated", "direction": "input", "data_schema_id": "DATA-P1-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "cleaned", "direction": "output", "data_schema_id": "DATA-P1-COSMETIC", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase1.star-psf",
+      "phase": "phase1",
+      "operations": [
+        {
+          "operation": "detect_sources",
+          "entry": "astrocs_phase1_starpsf_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "cleaned", "direction": "input", "data_schema_id": "DATA-P1-COSMETIC", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "sources", "direction": "output", "data_schema_id": "DATA-P1-SOURCES", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N,2]" },
+            { "name": "psf", "direction": "output", "data_schema_id": "DATA-P1-PSF", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[K,K]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase1.wcs-platesolve",
+      "phase": "phase1",
+      "operations": [
+        {
+          "operation": "plate_solve",
+          "entry": "astrocs_phase1_wcs_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "sources", "direction": "input", "data_schema_id": "DATA-P1-SOURCES", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N,2]" },
+            { "name": "wcs", "direction": "output", "data_schema_id": "DATA-P1-WCS", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[1]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase1.photometry",
+      "phase": "phase1",
+      "operations": [
+        {
+          "operation": "measure_flux",
+          "entry": "astrocs_phase1_photometry_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "psf", "direction": "input", "data_schema_id": "DATA-P1-PSF", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[K,K]" },
+            { "name": "sources", "direction": "input", "data_schema_id": "DATA-P1-SOURCES", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N,2]" },
+            { "name": "fluxes", "direction": "output", "data_schema_id": "DATA-P1-FLUX", "unit": "ELECTRON", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase1.noise-snr",
+      "phase": "phase1",
+      "operations": [
+        {
+          "operation": "estimate_snr",
+          "entry": "astrocs_phase1_noisesnr_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "fluxes", "direction": "input", "data_schema_id": "DATA-P1-FLUX", "unit": "ELECTRON", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N]" },
+            { "name": "snr", "direction": "output", "data_schema_id": "DATA-P1-SNR", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase1.drizzle",
+      "phase": "phase1",
+      "operations": [
+        {
+          "operation": "drizzle_stack",
+          "entry": "astrocs_phase1_drizzle_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "calibrated", "direction": "input", "data_schema_id": "DATA-P1-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "stacked", "direction": "output", "data_schema_id": "DATA-P1-STACK", "unit": "ADU", "coordinate": "ICRS", "scalar": "f32", "shape_hint": "[H,W]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase1.writer",
+      "phase": "phase1",
+      "operations": [
+        {
+          "operation": "write_hips",
+          "entry": "astrocs_phase1_writer_v1",
+          "resource_class": "io",
+          "ports": [
+            { "name": "stacked", "direction": "input", "data_schema_id": "DATA-P1-STACK", "unit": "ADU", "coordinate": "ICRS", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "fits", "direction": "output", "data_schema_id": "DATA-P1-FITS", "unit": "ADU", "coordinate": "ICRS", "scalar": "f32", "shape_hint": "[H,W]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase2.coverage",
+      "phase": "phase2",
+      "operations": [
+        {
+          "operation": "compute_coverage",
+          "entry": "astrocs_phase2_coverage_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "calibrated", "direction": "input", "data_schema_id": "DATA-P2-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "coverage", "direction": "output", "data_schema_id": "DATA-P2-COV", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase2.sample",
+      "phase": "phase2",
+      "operations": [
+        {
+          "operation": "sample_frames",
+          "entry": "astrocs_phase2_sample_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "coverage", "direction": "input", "data_schema_id": "DATA-P2-COV", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "samples", "direction": "output", "data_schema_id": "DATA-P2-SMP", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[N]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase2.upm-fit",
+      "phase": "phase2",
+      "operations": [
+        {
+          "operation": "fit_upm",
+          "entry": "astrocs_phase2_upmfit_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "samples", "direction": "input", "data_schema_id": "DATA-P2-SMP", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[N]" },
+            { "name": "upm_model", "direction": "output", "data_schema_id": "DATA-P2-UPM", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f64", "shape_hint": "[1]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase2.upm-apply",
+      "phase": "phase2",
+      "operations": [
+        {
+          "operation": "apply_upm",
+          "entry": "astrocs_phase2_upmapply_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "upm_model", "direction": "input", "data_schema_id": "DATA-P2-UPM", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f64", "shape_hint": "[1]" },
+            { "name": "calibrated_frames", "direction": "input", "data_schema_id": "DATA-P2-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "corrected", "direction": "output", "data_schema_id": "DATA-P2-COR", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase2.reject",
+      "phase": "phase2",
+      "operations": [
+        {
+          "operation": "reject_outliers",
+          "entry": "astrocs_phase2_reject_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "corrected", "direction": "input", "data_schema_id": "DATA-P2-COR", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "accepted_mask", "direction": "output", "data_schema_id": "DATA-P2-REJ", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "u8", "shape_hint": "[H,W]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase2.integrate",
+      "phase": "phase2",
+      "operations": [
+        {
+          "operation": "integrate_frames",
+          "entry": "astrocs_phase2_integrate_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "accepted_mask", "direction": "input", "data_schema_id": "DATA-P2-REJ", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "u8", "shape_hint": "[H,W]" },
+            { "name": "corrected", "direction": "input", "data_schema_id": "DATA-P2-COR", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "integrated", "direction": "output", "data_schema_id": "DATA-P2-INT", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase2.write",
+      "phase": "phase2",
+      "operations": [
+        {
+          "operation": "write_mosaic",
+          "entry": "astrocs_phase2_write_v1",
+          "resource_class": "io",
+          "ports": [
+            { "name": "integrated", "direction": "input", "data_schema_id": "DATA-P2-INT", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "mosaic", "direction": "output", "data_schema_id": "DATA-P2-RES", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase3.properties",
+      "phase": "phase3",
+      "operations": [
+        {
+          "operation": "read_properties",
+          "entry": "astrocs_phase3_properties_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "hips", "direction": "input", "data_schema_id": "DATA-HIPS-001", "unit": "ADU", "coordinate": "HEALPIX", "scalar": "f32", "shape_hint": "[]" },
+            { "name": "props", "direction": "output", "data_schema_id": "DATA-P3-PROPS", "unit": "DIMENSIONLESS", "coordinate": "HEALPIX", "scalar": "f32", "shape_hint": "[1]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase3.wcs",
+      "phase": "phase3",
+      "operations": [
+        {
+          "operation": "build_wcs",
+          "entry": "astrocs_phase3_wcs_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "props", "direction": "input", "data_schema_id": "DATA-P3-PROPS", "unit": "DIMENSIONLESS", "coordinate": "HEALPIX", "scalar": "f32", "shape_hint": "[1]" },
+            { "name": "wcs_plan", "direction": "output", "data_schema_id": "DATA-P3-WCS", "unit": "DEGREE", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[1]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase3.resample2",
+      "phase": "phase3",
+      "operations": [
+        {
+          "operation": "resample_projection",
+          "entry": "astrocs_phase3_resample_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            { "name": "wcs_plan", "direction": "input", "data_schema_id": "DATA-P3-WCS", "unit": "DEGREE", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[1]" },
+            { "name": "hips", "direction": "input", "data_schema_id": "DATA-HIPS-001", "unit": "ADU", "coordinate": "HEALPIX", "scalar": "f32", "shape_hint": "[]" },
+            { "name": "resampled", "direction": "output", "data_schema_id": "DATA-P3-RES", "unit": "SURFACE_BRIGHTNESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase3.writer",
+      "phase": "phase3",
+      "operations": [
+        {
+          "operation": "write_fits",
+          "entry": "astrocs_phase3_writer_v1",
+          "resource_class": "io",
+          "ports": [
+            { "name": "resampled", "direction": "input", "data_schema_id": "DATA-P3-RES", "unit": "SURFACE_BRIGHTNESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "fits", "direction": "output", "data_schema_id": "DATA-P3-FITS", "unit": "SURFACE_BRIGHTNESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": "astrocs.phase3.verify",
+      "phase": "phase3",
+      "operations": [
+        {
+          "operation": "verify_output",
+          "entry": "astrocs_phase3_verify_v1",
+          "resource_class": "io",
+          "ports": [
+            { "name": "fits", "direction": "input", "data_schema_id": "DATA-P3-FITS", "unit": "SURFACE_BRIGHTNESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "verified", "direction": "output", "data_schema_id": "DATA-P3-VER", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "u8", "shape_hint": "[1]" }
+          ]
+        }
+      ]
+    }
+  ]
+}
