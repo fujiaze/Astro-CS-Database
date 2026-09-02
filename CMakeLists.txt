@@ -356,7 +356,6 @@ if(MSVC)
 else()
   target_link_libraries(astrocs PRIVATE m z)
 endif()
-endif()
 
 # ── QA-001: 自有生产 targets 分层严格 warning (GCC/Clang; MSVC 用 /W4) ──
 # 第三方 (cfitsio) 与遗留 (aio/hips/drizzle/calibration) 已 target-local 隔离:
