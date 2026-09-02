@@ -1,0 +1,25 @@
+{
+  "manifest_schema": "astrocs.artifact-manifest/v1",
+  "manifest_version": 1,
+  "artifact_id": "run-r1-phase1-frame-000001",
+  "type_id": "astrocs.phase1.frame_hips.v1",
+  "schema_version": 1,
+  "storage_uri": "run:r1/phase1/frame_000001",
+  "content_digest": { "algorithm": "sha256", "hex": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" },
+  "size": 104857600,
+  "producer": {
+    "module_id": "astrocs.phase1.frame_hips",
+    "module_build_id": "g065c81d-linux-amd64-gcc14",
+    "entry": "astrocs_phase1_frame_hips_v1",
+    "science_contract_ids": ["SCI-DRZ-014"]
+  },
+  "run": { "run_id": "r1", "phase": "phase1", "session_id": "s1" },
+  "node": { "node_id": "frame_hips", "pipeline_id": "p1-frame" },
+  "input_digests": [
+    { "artifact_id": "calibrated-frame-000001", "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    { "artifact_id": "master-dark-000001", "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+  ],
+  "config_digest": { "algorithm": "sha256", "hex": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" },
+  "status": "COMPLETE",
+  "created_utc": "2026-09-02T08:15:00Z"
+}

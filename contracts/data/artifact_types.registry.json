@@ -1,0 +1,42 @@
+{
+  "registry_schema": "astrocs.artifact-types-registry/v1",
+  "registry_version": 1,
+  "owner": "SA-DATA-06",
+  "frozen_at": "2026-09-02T00:00:00Z",
+  "doc_ref": "docs/interfaces/data/DATA-001_ARTIFACT_CONTRACT.md",
+  "note": "单一真源：全部已知 artifact type_id。manifest 的 type_id 必须登记于本表，未登记即拒绝。type_id 语义与 content 见 docs/interfaces/data/DATA-001_ARTIFACT_CONTRACT.md §3。DATA-003 接入生产 Store 后由 Store 实施本表。",
+  "types": [
+    {
+      "type_id": "astrocs.phase1.frame_hips.v1",
+      "schema_version": 1,
+      "schema_uri": "https://astrocs.local/schemas/artifact-manifest-v1.json",
+      "kind": "directory",
+      "content_role": "Phase1 输出：properties + FITS tiles + SCI/variance/support/mask + frame metadata + manifest/hash",
+      "note": "13_DATA_PIPELINE_AND_ARTIFACT_STANDARD §2；Phase2 可消费。"
+    },
+    {
+      "type_id": "astrocs.phase2.mosaic_hips.v1",
+      "schema_version": 1,
+      "schema_uri": "https://astrocs.local/schemas/artifact-manifest-v1.json",
+      "kind": "directory",
+      "content_role": "Phase2 输出：mosaic HiPS + UPM/rejection/integration provenance + planes + manifest/hash",
+      "note": "13_DATA_PIPELINE_AND_ARTIFACT_STANDARD §2；Phase3 可消费。"
+    },
+    {
+      "type_id": "astrocs.phase3.planar_fits.v1",
+      "schema_version": 1,
+      "schema_uri": "https://astrocs.local/schemas/artifact-manifest-v1.json",
+      "kind": "dataset",
+      "content_role": "Phase3 输出：SCI/SUPPORT/MASK + WCS + provenance + checksum",
+      "note": "13_DATA_PIPELINE_AND_ARTIFACT_STANDARD §2；外部消费。"
+    },
+    {
+      "type_id": "astrocs.calibrated_frame.v1",
+      "schema_version": 1,
+      "schema_uri": "https://astrocs.local/schemas/artifact-manifest-v1.json",
+      "kind": "dataset",
+      "content_role": "Phase1 内部：标定数据 + units + variance + mask + frame identity",
+      "note": "13_DATA_PIPELINE_AND_ARTIFACT_STANDARD §2；Phase1 内部交换。"
+    }
+  ]
+}
