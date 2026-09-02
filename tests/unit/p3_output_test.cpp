@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <vector>
 
 static int failures = 0;
@@ -69,11 +70,13 @@ int main() {
   {
     std::string tmp = dir + "/.astrocs_p3_out_test.";   // 前缀匹配
     bool found = false;
-    // 检查目录中是否有 .tmp 残留
-    std::string cmd = "ls " + dir + " 2>/dev/null | grep -c '\\.astrocs_p3_out_test\\..*\\.tmp' || true";
-    FILE* p = popen(cmd.c_str(), "r");
-    char buf[64] = {0};
-    if (p) { if (fgets(buf, sizeof(buf), p)) found = (std::atoi(buf) > 0); pclose(p); }
+    // 检查目录中是否有 .tmp 残留 (跨平台: filesystem 遍历, WIN-001 替代 popen/ls)
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(dir, ec)) {
+      if (ec) break;
+      if (entry.path().filename().string().rfind(".astrocs_p3_out_test.", 0) == 0 &&
+          entry.path().extension() == ".tmp") { found = true; break; }
+    }
     CHECK(!found);
   }
 
