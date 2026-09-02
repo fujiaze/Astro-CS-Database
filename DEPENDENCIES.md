@@ -54,3 +54,34 @@ Linux preset `linux-control` 仅供静态检查/轻量编译/小合成实验；L
 - build id = VERSION + g<commit> (cli/version_generated.h.in)
 - 同 commit 重构建 → 相同 build id
 - SBOM: dist/astrocs-alpha/SBOM.json（BLD-004 完善）
+
+## 依赖锁定 (BLD-004)
+
+依赖权威锁文件：`packaging/dependency-lock.json`（schema:
+`packaging/schemas/dependency-lock.schema.json`）。机器校验入口：
+`packaging/gen_sbom_input.py --root .`（lock <-> 本文一致性 + fresh
+configure 无机器绝对路径扫描 + SBOM 输入生成）。
+
+### 生产依赖 (vendored/系统标准库)
+- cfitsio `4.6.4` — vendored `lib/astro_image_io/third_party/cfitsio`
+  (60 C 源显式清单, BLD-001 禁 GLOB); 来源 heasarc; hash 见 lock。
+- nlohmann-json `3.12.0` — vendored `third_party/nlohmann_json`; 来源
+  nlohmann/json (MIT); hash 见 lock。
+- zlib / zstd / lz4 — Linux 链接系统发行版库; MSVC 经 `ACS_ZLIB_ROOT`
+  显式 cache 变量 (默认空, 不硬编码用户路径), 无则 cfitsio zcompress
+  路径降级。
+- OpenMP / Threads (pthread) / libm / libdl — 平台标准, 版本随工具链。
+
+### test-only oracle (仅测试, 非产品运行依赖)
+- astropy (>=5, 控制节点 7.x) — FITS/天体测量科学 oracle
+- numpy — 数值 oracle
+- pytest — 契约测试运行器
+- astrometry.net — 外部求解器 (仅 P* 集成 oracle)
+
+### 机器路径政策 (BLD-004)
+`machine_absolute_path: FORBIDDEN` (F:/、C:/Users/<user>、/home/<user>
+不得进入 CMake 构建输入); `msys2_mingw: FORBIDDEN`; `vcpkg: NOT_USED`
+(若引入必须 manifest + baseline)。冻结 Windows 工具链安装约定
+`C:/AstroCS/toolchains/...` 由 preset 显式声明, 属白名单例外。
+遗留 Windows 开发脚本 (toolchain.ps1 等) 含 C:\msys64 / C:\Users\fujia
+→ 非 CMake 构建输入, 由 WIN-*/CLI 系列清理或归档 (known_limits)。

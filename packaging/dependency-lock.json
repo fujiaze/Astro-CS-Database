@@ -1,0 +1,149 @@
+{
+  "lock_schema": "astrocs.dependency-lock/v1",
+  "lock_version": 1,
+  "doc_status": "ACTIVE_NORMATIVE",
+  "target_version": "0.11.0-alpha.1",
+  "owner": "SA-BLD-02",
+  "policy": {
+    "vcpkg": "NOT_USED",
+    "vcpkg_policy": "本项目生产依赖采用 vendored 源码(third_party/ 与 lib/*/third_party/) 与系统标准库; 不采用 vcpkg 管理。若未来引入 vcpkg, 必须按 vcpkg.json manifest + vcpkg-configuration.json baseline 双重锁定(09/BLD-004 契约), 本锁文件同步记录 vcpkg triplet/baseline commit。",
+    "msys2_mingw": "FORBIDDEN",
+    "machine_absolute_path": "FORBIDDEN",
+    "machine_absolute_path_policy": "CMake/构建输入不得读取 F:/、C:/Users/<user>、/home/<user> 等机器绝对路径(fresh configure 可复现); Windows 正式工具链安装位置 C:/AstroCS/toolchains/... 为冻结安装约定(09_WINDOWS_TOOLCHAIN_LOCK.md), 由 preset 显式声明, 不属于隐式读取。"
+  },
+  "production_dependencies": [
+    {
+      "name": "cfitsio",
+      "version": "4.6.4",
+      "usage": "production",
+      "vendored_path": "lib/astro_image_io/third_party/cfitsio",
+      "source": "https://heasarc.gsfc.nasa.gov/fitsio/fitsio.html",
+      "upstream_ref": "cfitsio 4.6.4 (ChangeLog 'Version 4.6.4 - Apr 2026', 安全修复版; fitsio.h CFITSIO_VERSION=4.6.4)",
+      "provenance_note": "vendored 自仓库引入 commit 5d5be0a (历史迁移); 树内 168 git 追踪文件含 docs/示例; 生产编译集 = cmake/cfitsio_sources.cmake 显式 60 C 源 (BLD-001 禁 GLOB)",
+      "file_sha256": "8dc7deee039d1997e9e203d9e997d64f651023d19724863aa97521a275d1a7ec",
+      "file_sha256_of": "lib/astro_image_io/third_party/cfitsio/fitsio.h",
+      "aggregate_sha256": "890d728c62194c558b49d86b68b65ac5be63f1503ef2442f3a98925b945c186b",
+      "aggregate_sha256_of": "sha256(排序后 60 生产源 git-blob-hex 拼接)",
+      "license": "NASA/USG 许可 (vendored licenses/License.txt; BLD-003 只读复制至 packaging/licenses/CFITSIO_LICENSE.txt)",
+      "license_file_sha256": "7d4fff8fb7a2044eb6b33df24515f68bda852aa1a1e85a15397187b86e098658",
+      "build": "STATIC astrocs_cfitsio (根 CMakeLists; SYSTEM 隔离, -w; _REENTRANT; MSVC 需 zlib → ACS_ZLIB_ROOT)"
+    },
+    {
+      "name": "nlohmann-json",
+      "version": "3.12.0",
+      "usage": "production",
+      "vendored_path": "third_party/nlohmann/json.hpp",
+      "source": "https://github.com/nlohmann/json/releases/tag/v3.12.0",
+      "upstream_ref": "single header json.hpp v3.12.0 (头内 NLOHMANN_JSON_VERSION 3.12.0)",
+      "file_sha256": "a1af42c0cffb386530b94c6cb46ceb3b0f58f8922321539831f9a28e286a67d8",
+      "license": "MIT (头部 SPDX-License-Identifier: MIT)",
+      "build": "header-only; 经 -isystem/显式 include 使用"
+    }
+  ],
+  "system_dependencies": [
+    {
+      "name": "zlib",
+      "version": "system",
+      "usage": "production(linux z)/production-optional(msvc)",
+      "policy": "Linux: 链接系统 z (astrocs_cfitsio/astrocs_aio/CLI); MSVC: cfitsio zcompress.c 需 zlib → ACS_ZLIB_ROOT cache 变量显式指定(默认空, 不硬编码用户路径); 无 ACS_ZLIB_ROOT 时 cfitsio 降级(不编译 zcompress 路径)",
+      "source": "发行版/用户显式 MSVC 构建 (zlib 1.3.x; BLD-004 不 vendored)"
+    },
+    {
+      "name": "zstd",
+      "version": "system-optional",
+      "usage": "production-optional",
+      "policy": "aio_compressor.cpp 条件编译 HAS_ZSTD; 未定义时安全 fallback 不压缩; Linux cli/CMakeLists 链接 zstd (遗留 compat); 根产品构建未强制",
+      "source": "发行版"
+    },
+    {
+      "name": "lz4",
+      "version": "system-optional",
+      "usage": "production-optional",
+      "policy": "aio_compressor.cpp 条件编译 HAS_LZ4; 未定义时安全 fallback 不压缩",
+      "source": "发行版"
+    },
+    {
+      "name": "OpenMP",
+      "version": "system-optional",
+      "usage": "production-optional",
+      "policy": "仅遗留 target (astrocs_aio/calibration/drizzle) omp pragma 需要; find_package(OpenMP QUIET) UNIX only; 生产不依赖",
+      "source": "编译器运行时"
+    },
+    {
+      "name": "Threads (pthread)",
+      "version": "system",
+      "usage": "production",
+      "policy": "find_package(Threads REQUIRED); astrocs_core 依赖; Windows 用 win32_pthread_shim (cmake/win32_pthread_shim, SRWLock 自旋映射, 零 windows.h 依赖)"
+    },
+    {
+      "name": "libm / libdl",
+      "version": "system",
+      "usage": "production (UNIX)",
+      "policy": "m/z/dl 链接见根 CMakeLists; CMAKE_DL_LIBS"
+    }
+  ],
+  "test_only_oracles": [
+    {
+      "name": "astropy",
+      "version": ">=5 (控制节点现值 7.x; IO-001 记录 astropy7 兼容)",
+      "usage": "test-only",
+      "consumers": [
+        "tests/io/test_fits_stream_contract.py",
+        "tests/io/test_hips_input_contract.py",
+        "tests/io/make_hips_fixture.py",
+        "tests/backend/test_p3004_spherical_oracle.py",
+        "tests/backend/test_p3005_fits_output.py",
+        "tests/backend/test_p3006_production_pipeline.py",
+        "tests/backend/test_p2003_seam_oracle.py",
+        "tools/astrometry_oracle/*.py"
+      ],
+      "policy": "独立 FITS/WCS oracle (读写交叉/角距), 绝不链接进生产 DLL/EXE"
+    },
+    {
+      "name": "numpy",
+      "version": "system",
+      "usage": "test-only",
+      "consumers": [
+        "tests/**/*.py",
+        "tools/astrometry_oracle/*.py"
+      ],
+      "policy": "测试 fixture/oracle 计算"
+    },
+    {
+      "name": "pytest",
+      "version": "system",
+      "usage": "test-only",
+      "consumers": [
+        "tests/io/",
+        "tests/backend/",
+        "tests/artifact/"
+      ],
+      "policy": "python 测试 harness"
+    },
+    {
+      "name": "astrometry.net",
+      "version": "external tool",
+      "usage": "test-only oracle (real 模式)",
+      "consumers": [
+        "tools/astrometry_oracle/compare_astrometry.py (real 模式)"
+      ],
+      "policy": "非构建依赖; real 数据 WCS oracle 由 Fatduck 侧提供结果 JSON, 控制节点不安装",
+      "note": "外部求解器 (仅 P* 集成 oracle)"
+    }
+  ],
+  "machine_path_scan": {
+    "cmake_scope": [
+      "CMakeLists.txt",
+      "CMakePresets.json",
+      "cmake/**",
+      "packaging/**",
+      "DEPENDENCIES.md",
+      "cli/CMakeLists.txt (legacy compat)"
+    ],
+    "remaining_known": [
+      "CMakePresets.json CMAKE_GENERATOR_INSTANCE=C:/AstroCS/toolchains/vs2022-17.14.39 → 冻结 Windows 工具链安装约定 (09 §2.1), 非隐式用户路径",
+      "packaging/schemas/preset-contract.json vs_installation 同上一并冻结",
+      "toolchain.ps1 / tools/quality/v19r3_static.py 等遗留 Windows 开发脚本含 C:\\msys64、C:\\Users\\fujia → 非 CMake 构建输入 (owner 不在 SA-BLD-02; 记录 known_limits, 由 WIN-*/CLI 系列清理或归档)"
+    ]
+  }
+}

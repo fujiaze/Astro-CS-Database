@@ -190,16 +190,23 @@ set_property(SOURCE ${P3_SRCS} APPEND PROPERTY INCLUDE_DIRECTORIES
 add_executable(astrocs main.cpp parser.cpp commands.cpp runtime_client.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto/sha256.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/cpu_features.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/hardware_inspect.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/backend_loader.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/bench_harness.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/profile_gen.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/profile_gen_v2.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/cpu_routing.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/baseline_backend.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/host_services.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase1_session/p1_session.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase2_session/p2_session.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/phase3_session/p3_session.cpp ${P3_SRCS} ${P2_SRCS} ${AIO_SRCS} ${CFITSIO_SRCS} ${CAL_SRCS} ${DRIZZLE_SRCS} ${HISS_SRCS} ${CMAKE_CURRENT_SOURCE_DIR}/../lib/core/src/artifact.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/core/src/artifact_store.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/core/src/module.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/core/src/pipeline.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/core/src/context.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/core/src/runtime.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/core/src/scheduler.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/core/src/checkpoint.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/core/src/logging.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/core/src/module_adapters.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix/healpix_core.cpp ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h)
 if(MSVC)
   # gomp/m 为 Unix 库, MSVC 不用; zstd/lz4 在CLI走 fallback(HAS_* 未定义), 仅 cfitsio 需 zlib(z)。
-  # zlib: 由 MSVC 从源码构建(zlib.h+zlib.lib), 用 -DACS_ZLIB_ROOT=... 指定。
-  set(ACS_ZLIB_ROOT "C:/Users/fujia/zlib-msvc" CACHE PATH "MSVC 编译的 zlib 根目录")
-  target_include_directories(astrocs PRIVATE "${ACS_ZLIB_ROOT}/include")
-  # 优先静态 zlib(libzs.lib), 避免 libz.dll 运行时缺失; 其次 zlib.lib 导入库
-  if(EXISTS "${ACS_ZLIB_ROOT}/lib/libzs.lib")
-    target_link_libraries(astrocs PRIVATE "${ACS_ZLIB_ROOT}/lib/libzs.lib")
-  elseif(EXISTS "${ACS_ZLIB_ROOT}/lib/zlibstatic.lib")
-    target_link_libraries(astrocs PRIVATE "${ACS_ZLIB_ROOT}/lib/zlibstatic.lib")
-  else()
-    target_link_libraries(astrocs PRIVATE "${ACS_ZLIB_ROOT}/lib/libz.lib")
+  # zlib: 由 MSVC 从源码构建(zlib.h+zlib.lib), 用 -DACS_ZLIB_ROOT=... 显式指定。
+  # BLD-004: 默认空, 不硬编码机器用户路径 (F:/ C:/Users/<user> 禁入构建输入);
+  # 无 ACS_ZLIB_ROOT 时降级处理 (不编译 zcompress 路径, 见 lock policy)。
+  set(ACS_ZLIB_ROOT "" CACHE PATH "MSVC 编译的 zlib 根目录 (BLD-004: 显式指定, 默认空)")
+  if(NOT ACS_ZLIB_ROOT)
+    message(WARNING "BLD-004: ACS_ZLIB_ROOT 未指定 — MSVC zlib 路径降级, cfitsio zcompress 不编译")
+  endif()
+  if(ACS_ZLIB_ROOT)
+    target_include_directories(astrocs PRIVATE "${ACS_ZLIB_ROOT}/include")
+    # 优先静态 zlib(libzs.lib), 避免 libz.dll 运行时缺失; 其次 zlib.lib 导入库
+    if(EXISTS "${ACS_ZLIB_ROOT}/lib/libzs.lib")
+      target_link_libraries(astrocs PRIVATE "${ACS_ZLIB_ROOT}/lib/libzs.lib")
+    elseif(EXISTS "${ACS_ZLIB_ROOT}/lib/zlibstatic.lib")
+      target_link_libraries(astrocs PRIVATE "${ACS_ZLIB_ROOT}/lib/zlibstatic.lib")
+    else()
+      target_link_libraries(astrocs PRIVATE "${ACS_ZLIB_ROOT}/lib/libz.lib")
+    endif()
   endif()
 else()
   target_link_libraries(astrocs PRIVATE gomp z zstd lz4 m)
