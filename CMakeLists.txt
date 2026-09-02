@@ -100,7 +100,22 @@ target_include_directories(astrocs_common PUBLIC
 add_library(astrocs_cfitsio STATIC ${ASTROCS_CFITSIO_SOURCES})
 target_include_directories(astrocs_cfitsio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio)
-target_compile_options(astrocs_cfitsio PRIVATE -w)
+if(MSVC)
+  # WIN-001: cfitsio 依赖适配 — 源码 `-w` 为 GCC 旗标 (MSVC 忽略并告警 D9002);
+  # _REENTRANT 需 pthread.h (MSYS2 mingw64); zcompress.c 需 zlib (ACS_ZLIB_ROOT,
+  # MSVC 编译的 zlib 安装, 见 fatduck C:/Users/fujia/zlib-msvc)。
+  target_compile_options(astrocs_cfitsio PRIVATE /w)
+  if(EXISTS "C:/msys64/mingw64/include/pthread.h")
+    target_include_directories(astrocs_cfitsio PRIVATE "C:/msys64/mingw64/include")
+  endif()
+  set(ACS_ZLIB_ROOT "" CACHE PATH "MSVC zlib install root (include/zlib.h + lib/zlib.lib)")
+  if(ACS_ZLIB_ROOT)
+    target_include_directories(astrocs_cfitsio PRIVATE "${ACS_ZLIB_ROOT}/include")
+    target_link_libraries(astrocs_cfitsio PUBLIC "${ACS_ZLIB_ROOT}/lib/zlib.lib")
+  endif()
+else()
+  target_compile_options(astrocs_cfitsio PRIVATE -w)
+endif()
 # IO-003: CFITSIO 显式 reentrant 构建 (fits_is_reentrant() 必须返回 1)
 target_compile_definitions(astrocs_cfitsio PRIVATE _REENTRANT)
 
@@ -118,7 +133,11 @@ target_include_directories(astrocs_aio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common)
 target_compile_definitions(astrocs_aio PRIVATE AIO_ENABLE_FITS AIO_ENABLE_XISF)
-target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio z)
+if(MSVC AND ACS_ZLIB_ROOT)
+  target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio "${ACS_ZLIB_ROOT}/lib/zlib.lib")
+else()
+  target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio z)
+endif()
 # QA-001: aio_fits.cpp 含 omp pragma → -fopenmp 编译消除 unknown-pragmas
 if(UNIX AND OpenMP_CXX_FOUND)
   target_compile_options(astrocs_aio PRIVATE -fopenmp)
@@ -226,7 +245,8 @@ add_library(astrocs_cpu STATIC
   lib/backend_host/bench_harness.cpp)
 target_include_directories(astrocs_cpu PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/backend_host
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 target_link_libraries(astrocs_cpu PUBLIC astrocs_contracts astrocs_common)
 
 # CPU-001 (G3): 独立 provider 变体 target — 真实独立编译单元 (05 §2)
