@@ -57,8 +57,39 @@ static inline int pthread_mutexattr_settype(pthread_mutexattr_t* a, int type) {
   return 0;
 }
 
-// cfitsio _REENTRANT 用 strtok_r (POSIX); MSVC 提供 strtok_s (C11 Annex K)。
-// 语义兼容 (分割 + 保存 next token 指针)。
+// cfitsio _REENTRANT 用 strtok_r (POSIX); 手写实现 (纯 C, 无 strtok_s 依赖,
+// 避免与 MSVC UCRT string.h 的 strtok_s 声明冲突 C2040)。
 static inline char* strtok_r(char* str, const char* delim, char** saveptr) {
-  return strtok_s(str, delim, saveptr);
+  if (str == nullptr) str = *saveptr;
+  if (str == nullptr) return nullptr;
+  // 跳过前导分隔符
+  while (*str != '\0') {
+    const char* d = delim;
+    int is_delim = 0;
+    while (*d != '\0') {
+      if (*str == *d) { is_delim = 1; break; }
+      ++d;
+    }
+    if (!is_delim) break;
+    ++str;
+  }
+  if (*str == '\0') { *saveptr = nullptr; return nullptr; }
+  char* token = str;
+  // 找下一个分隔符
+  while (*str != '\0') {
+    const char* d = delim;
+    int is_delim = 0;
+    while (*d != '\0') {
+      if (*str == *d) { is_delim = 1; break; }
+      ++d;
+    }
+    if (is_delim) {
+      *str = '\0';
+      *saveptr = str + 1;
+      return token;
+    }
+    ++str;
+  }
+  *saveptr = nullptr;
+  return token;
 }
