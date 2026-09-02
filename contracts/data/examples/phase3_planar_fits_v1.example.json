@@ -1,0 +1,43 @@
+{
+  "exchange_schema": "astrocs.phase-product-exchange/v1",
+  "exchange_version": 1,
+  "product_role": "phase3_planar_fits_v1",
+  "type_id": "astrocs.phase3.planar_fits.v1",
+  "schema_version": 1,
+  "origin": "astrocs",
+  "artifact_manifest": {
+    "manifest_schema": "astrocs.artifact-manifest/v1",
+    "manifest_version": 1,
+    "artifact_id": "run-r3-phase3-planar-000001",
+    "type_id": "astrocs.phase3.planar_fits.v1",
+    "schema_version": 1,
+    "storage_uri": "run:r3/phase3/planar_000001",
+    "content_digest": { "algorithm": "sha256", "hex": "2222222222222222222222222222222222222222222222222222222222222222" },
+    "size": 268435456,
+    "producer": {
+      "module_id": "astrocs.phase3.fits_writer",
+      "module_build_id": "g065c81d-linux-amd64-gcc14",
+      "entry": "astrocs_phase3_fits_writer_v1",
+      "science_contract_ids": ["SCI-P3-001"]
+    },
+    "run": { "run_id": "r3", "phase": "phase3", "session_id": "s3" },
+    "node": { "node_id": "fits_stream_writer", "pipeline_id": "p3-planar" },
+    "input_digests": [
+      { "artifact_id": "run-r2-phase2-mosaic-000001", "digest": "1111111111111111111111111111111111111111111111111111111111111111" }
+    ],
+    "config_digest": { "algorithm": "sha256", "hex": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" },
+    "status": "COMPLETE",
+    "created_utc": "2026-09-02T11:05:00Z"
+  },
+  "product_content": {
+    "content_schema": "astrocs.phase-product-content/v1",
+    "coordinate": { "frame": "icrs", "ra_unit": "deg", "dec_unit": "deg" },
+    "geometry": { "format": "fits", "fits": { "projection": "TAN", "wcs": "present" } },
+    "planes": [
+      { "plane_id": "signal", "units": "ADU", "dtype": "float32", "invalid_policy": "nan_or_support_le_0" },
+      { "plane_id": "support", "units": "dimensionless", "dtype": "float32", "invalid_policy": "nan_or_support_le_0" },
+      { "plane_id": "mask", "units": "bitmask", "dtype": "u8", "invalid_policy": "nan_or_support_le_0" }
+    ],
+    "invalid_policy": "nan_or_support_le_0"
+  }
+}
