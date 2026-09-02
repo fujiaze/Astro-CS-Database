@@ -1,0 +1,95 @@
+{
+  "contract_schema": "astrocs.module-lifecycle-contract/v1",
+  "contract_version": 1,
+  "contract_id": "CONTRACT-ABI002-LIFECYCLE-V1",
+  "doc_status": "ACTIVE_NORMATIVE",
+  "title": "AstroCS 模块 C ABI v1 生命周期/错误/版本协商语义合同（ABI-002 冻结数据）",
+  "description": "ABI-002 冻结语义的机器可校验数据形态（权威源 = include/astrocs/abi/lifecycle_v1.h 合同头；本文件与头文件必须一致，一致性由 tests/abi/test_abi002_lifecycle.py 机器校验）。冻结依据：ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7 控制包 tasks/02_ABI_BUILD_CLI_TASKS.md ABI-002 节、12_DLL_ABI_AND_LOADER_STANDARD.md §2/§4、11_MODULE_SOURCE_TEST_STANDARD.md §6；回调形状 A = module_api_v1.h（ABI-001 冻结）。",
+  "frozen_at": "2026-09-02T00:00:00Z",
+  "owner": "SA-ABI-03",
+  "target_version": "0.11.0-alpha.1",
+  "abi_version": 1,
+  "states": [
+    { "id": "CREATED", "enum": 1, "description": "create 成功返回后；唯一可 destroy 的状态" },
+    { "id": "EXECUTING", "enum": 2, "description": "execute 运行中（同实例串行窗口）" },
+    { "id": "CANCELLING", "enum": 3, "description": "execute 运行中且 cancel 已请求（等待安全点响应）" },
+    { "id": "DESTROYED", "enum": 4, "description": "destroy 已返回；句柄失效；实例操作全部拒绝" }
+  ],
+  "operations": [
+    { "id": "QUERY", "enum": 1, "scope": "module_level", "required_callback": false, "module_api_field": null },
+    { "id": "DESCRIBE", "enum": 2, "scope": "module_level", "required_callback": true, "module_api_field": "describe" },
+    { "id": "VALIDATE_CONFIG", "enum": 3, "scope": "module_level", "required_callback": true, "module_api_field": "validate_config" },
+    { "id": "PLAN", "enum": 4, "scope": "module_level", "required_callback": true, "module_api_field": "plan" },
+    { "id": "SELF_TEST", "enum": 5, "scope": "module_level", "required_callback": false, "module_api_field": null },
+    { "id": "CREATE", "enum": 6, "scope": "module_level", "required_callback": true, "module_api_field": "create" },
+    { "id": "EXECUTE", "enum": 7, "scope": "instance_level", "required_callback": true, "module_api_field": "execute" },
+    { "id": "INSPECT", "enum": 8, "scope": "instance_level", "required_callback": true, "module_api_field": "inspect" },
+    { "id": "REQUEST_CANCEL", "enum": 9, "scope": "instance_level", "required_callback": false, "module_api_field": "request_cancel" },
+    { "id": "DESTROY", "enum": 10, "scope": "instance_level", "required_callback": true, "module_api_field": "destroy" }
+  ],
+  "transitions": [
+    { "from_state": "CREATED", "op": "EXECUTE", "to_state": "EXECUTING" },
+    { "from_state": "CREATED", "op": "INSPECT", "to_state": "CREATED", "note": "自环：const 只读诊断" },
+    { "from_state": "CREATED", "op": "REQUEST_CANCEL", "to_state": "CREATED", "note": "自环：无运行可取消，置位幂等（下个 execute 生效）" },
+    { "from_state": "CREATED", "op": "DESTROY", "to_state": "DESTROYED" },
+    { "from_state": "EXECUTING", "op": "INSPECT", "to_state": "EXECUTING", "note": "自环：只读并发" },
+    { "from_state": "EXECUTING", "op": "REQUEST_CANCEL", "to_state": "CANCELLING" },
+    { "from_state": "CANCELLING", "op": "INSPECT", "to_state": "CANCELLING", "note": "自环：只读并发" },
+    { "from_state": "CANCELLING", "op": "REQUEST_CANCEL", "to_state": "CANCELLING", "note": "幂等置位" }
+  ],
+  "concurrency": {
+    "same_instance": {
+      "execute": "mutex_serialized",
+      "inspect": "concurrent_readonly",
+      "request_cancel": "atomic_idempotent",
+      "destroy": "exclusive_created_only"
+    },
+    "cross_instance": "parallel_safe",
+    "module_level_ops": "parallel_safe",
+    "forbidden": ["module 私建线程池", "裸 std::async", "直接文件 I/O", "写 stdout"]
+  },
+  "error_mapping": [
+    { "status": "ACS_ERR_ABI_MISMATCH", "domain": "CONFIG", "detail_code": "NONE", "when": "host_abi != 1 / abi major != 1 / 对端 struct_size 太旧（< 自身 sizeof）" },
+    { "status": "ACS_ERR_PARAM", "domain": "CONFIG", "detail_code": "NULL_CALLBACK", "when": "module vtable 缺必填回调 / host.allocator==NULL" },
+    { "status": "ACS_ERR_PARAM", "domain": "CONFIG", "detail_code": "NULL_CONFIG", "when": "create/execute 的 config 空串或 NULL span" },
+    { "status": "ACS_ERR_PARAM", "domain": "CONFIG", "detail_code": "CONFIG_SCHEMA", "when": "config JSON 违反 module 声明 schema" },
+    { "status": "ACS_ERR_PARAM", "domain": "CONFIG", "detail_code": "BUFFER_TOO_SMALL", "when": "输出 JSON 缓冲不足（strbuf.size=所需；尽力写前缀+NUL）" },
+    { "status": "ACS_ERR_PARAM", "domain": "CONFIG", "detail_code": "UNSUPPORTED_OP", "when": "本 build 不支持该操作（退 baseline/降级路径）" },
+    { "status": "ACS_ERR_STATE", "domain": "CONFIG", "detail_code": "ILLEGAL_STATE", "when": "状态机时序违例（EXECUTING 并发 execute、执行中 destroy、destroy 后访问等）" },
+    { "status": "ACS_ERR_STATE", "domain": "CONFIG", "detail_code": "DOUBLE_DESTROY", "when": "destroy(non-NULL) 后再 destroy（double destroy 检测）" },
+    { "status": "ACS_ERR_SELFTEST", "domain": "INTERNAL", "detail_code": "NONE", "when": "加载后 self_test 失败，不得 create/execute" },
+    { "status": "ACS_ERR_CANCELLED", "domain": "CANCELLED", "detail_code": "NONE", "when": "execute 在安全点响应 cancel（本实例 request_cancel 或 host cancel 任一命中）" },
+    { "status": "ACS_ERR_IO", "domain": "IO", "detail_code": "MODULE_SPECIFIC", "when": "execute 期经 host artifact service 的 I/O 失败" },
+    { "status": "ACS_ERR_NOMEM", "domain": "RESOURCE", "detail_code": "MODULE_SPECIFIC", "when": "host allocator 分配失败" },
+    { "status": "ACS_ERR_BUDGET", "domain": "RESOURCE", "detail_code": "MODULE_SPECIFIC", "when": "executor/ThreadBudget 租借不足" }
+  ],
+  "diagnostics": {
+    "max_utf8": 4096,
+    "rules": [
+      "err!=NULL 时必须写 status 与 domain",
+      "message_utf8 借入 UTF-8 span（所有权=module，有效至调用返回或所属句柄销毁），超 4096 字节前缀截断（message_bytes=4096）",
+      "输出 strbuf 不足 → BUFFER_TOO_SMALL 且 strbuf.size=所需总字节(不含 NUL)，cap>0 时尽力写前缀并写 NUL",
+      "文本公共格式 UTF-8；Windows 内部路径 UTF-16 由 io.dll 处理，module 不得泄漏原始路径进 err.message"
+    ]
+  },
+  "version_negotiation": {
+    "wire_value": 1,
+    "major": 1,
+    "minor": 0,
+    "rules": [
+      "astrocs_module_query_v1 / astrocs_provider_query_v1 的 host_abi 参数必须 == 1；其他值（未来 major=2、minor 漂移、0、垃圾）一律 → ACS_ERR_ABI_MISMATCH，不降级猜测",
+      "对端 struct_size < 自身 sizeof → 拒绝（ACS_ERR_ABI_MISMATCH）；对端 >= 自身 sizeof → 兼容（按自身视图读取，忽略扩展尾字段）",
+      "data schema（config_schema_ver / manifest schema_version）与 ABI 分离，协商在 config/plan 期（DATA-001/002），不属本 ABI 层"
+    ]
+  },
+  "tail_extension": {
+    "rule": "peer_struct_size >= self_struct_size → compatible（按自身视图读取，忽略对端尾扩展）；peer_struct_size < self_struct_size → ACS_ERR_ABI_MISMATCH。扩展只允许追加尾部字段（12 §1，禁止头部/中部插入）",
+    "front_ok": false
+  },
+  "self_test": {
+    "call_order": "query 成功后、首次 create 前由 host 驱动一次；幂等可重入",
+    "required_callbacks": ["describe", "validate_config", "plan", "create", "execute", "inspect", "destroy"],
+    "optional_callbacks": ["request_cancel"],
+    "failure_status": "ACS_ERR_SELFTEST"
+  }
+}
