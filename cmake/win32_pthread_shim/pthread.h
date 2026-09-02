@@ -60,8 +60,8 @@ static inline int pthread_mutexattr_settype(pthread_mutexattr_t* a, int type) {
 // cfitsio _REENTRANT 用 strtok_r (POSIX); 手写实现 (纯 C, 无 strtok_s 依赖,
 // 避免与 MSVC UCRT string.h 的 strtok_s 声明冲突 C2040)。
 static inline char* strtok_r(char* str, const char* delim, char** saveptr) {
-  if (str == nullptr) str = *saveptr;
-  if (str == nullptr) return nullptr;
+  if (str == NULL) str = *saveptr;
+  if (str == NULL) return NULL;
   // 跳过前导分隔符
   while (*str != '\0') {
     const char* d = delim;
@@ -73,7 +73,7 @@ static inline char* strtok_r(char* str, const char* delim, char** saveptr) {
     if (!is_delim) break;
     ++str;
   }
-  if (*str == '\0') { *saveptr = nullptr; return nullptr; }
+  if (*str == '\0') { *saveptr = NULL; return NULL; }
   char* token = str;
   // 找下一个分隔符
   while (*str != '\0') {
@@ -90,6 +90,6 @@ static inline char* strtok_r(char* str, const char* delim, char** saveptr) {
     }
     ++str;
   }
-  *saveptr = nullptr;
+  *saveptr = NULL;
   return token;
 }
