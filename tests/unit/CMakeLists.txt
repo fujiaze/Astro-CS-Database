@@ -107,7 +107,11 @@ add_test(NAME io_ownership COMMAND io_ownership_test)
 add_executable(io_reentrant_test io_reentrant_test.cpp)
 target_include_directories(io_reentrant_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/third_party/cfitsio)
-target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio z m)
+if(MSVC AND ACS_ZLIB_ROOT)
+  target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio "${ACS_ZLIB_ROOT}/lib/libz.lib")
+else()
+  target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio z m)
+endif()
 add_test(NAME io_reentrant COMMAND io_reentrant_test)
 
 add_executable(cpu_abi_test cpu_abi_test.cpp)
