@@ -1,0 +1,89 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "REL-003",
+  "status": "NOT_STARTED",
+  "experiment_status": "LINUX_PACKAGE_PASS_WINDOWS_PENDING",
+  "parent_commit": "faad602da55538687eb1ac0c7c77116362ad7aae",
+  "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
+  "change_class": "release",
+  "changed_paths": [
+    "evidence/v6_1_rework/TASK_LEDGER.csv",
+    "evidence/v6_1_rework/tasks/REL-003/TASK_RESULT.json",
+    "dist/audit/AstroCS_V6_1_AUDIT_20260902T042239Z_faad602da555.zip"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": false,
+    "pipeline": false,
+    "binary": false,
+    "reason": "REL-003 Linux 侧完成: 审核包 staging 全组件构建 (1309 文件, source 快照 1245, FINDINGS 36/40 CLOSED, COMMITS 57, TEST/RESOURCE/TRACEABILITY 表, 文档集), package_audit 打包 validator 解包前后双 PASS (NOT_READY 诚实状态); Windows/32R 视图 (WIN-006) 待 Fatduck"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": [
+        "package_audit.py",
+        "--staging",
+        "v61_staging",
+        "--validator",
+        "validate_return_audit.py"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T04:22:00Z",
+      "duration_seconds": 60.0,
+      "log_path": "dist/audit/AstroCS_V6_1_AUDIT_20260902T042239Z_faad602da555.zip",
+      "log_sha256": "98216e5fef43e104163aee1a97fd4f249c03c9ab1264a88b1a8fe586c3bdefaa"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": [
+        "validate_return_audit.py",
+        "AstroCS_V6_1_AUDIT_*.zip"
+      ],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "started_utc": "2026-09-02T04:22:40Z",
+      "duration_seconds": 30.0,
+      "log_path": "dist/audit/AstroCS_V6_1_AUDIT_20260902T042239Z_faad602da555.zip",
+      "log_sha256": "98216e5fef43e104163aee1a97fd4f249c03c9ab1264a88b1a8fe586c3bdefaa"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-PACKAGE-BUILD",
+      "description": "package_audit 打包 1309 文件/13.5MB, validator AUDIT_PACKAGE_PASS verdict=NOT_READY",
+      "result": "PASS",
+      "evidence_sha256": "98216e5fef43e104163aee1a97fd4f249c03c9ab1264a88b1a8fe586c3bdefaa"
+    },
+    {
+      "test_id": "T-UNZIP-VALIDATE",
+      "description": "解包后 validate_return_audit 复验 PASS (规格: 打包前和解包后各跑)",
+      "result": "PASS",
+      "evidence_sha256": "98216e5fef43e104163aee1a97fd4f249c03c9ab1264a88b1a8fe586c3bdefaa"
+    },
+    {
+      "test_id": "T-WINDOWS-PENDING",
+      "description": "Windows/32R + 六张真实视图 (WIN-006) 待 Fatduck 在线 → READY_FOR_OWNER_REVIEW",
+      "result": "WAITING",
+      "evidence_sha256": ""
+    }
+  ],
+  "evidence": [
+    {
+      "path": "dist/audit/AstroCS_V6_1_AUDIT_20260902T042239Z_faad602da555.zip",
+      "sha256": "98216e5fef43e104163aee1a97fd4f249c03c9ab1264a88b1a8fe586c3bdefaa"
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "NOT_READY 诚实状态: Windows/32R 门未过 (Fatduck 离线), READY_FOR_OWNER_REVIEW 须 WIN-001..006 + 六张 32R 视图后由 validator 重新判定",
+    "F-032/033/036 (REL-003 审核包要求) 与 F-037 (WIN-006) 保持 OPEN — 待 Windows 完成关闭",
+    "REL-004 保持 NOT_STARTED (Owner 任务)"
+  ],
+  "expected_commit_subject": "REL-003: 审核包 Linux 侧完成 (validator 双 PASS NOT_READY, Windows/32R 待 Fatduck)",
+  "created_utc": "2026-09-02T12:25:00Z"
+}
