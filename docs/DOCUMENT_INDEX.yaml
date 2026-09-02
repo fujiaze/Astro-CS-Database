@@ -1,6 +1,8 @@
 # AstroCS 文档机器索引（DOCUMENT_INDEX）
 #
 # 建立：GOV-002（SA-GOV-01，wave W1）  2026-09-02
+# 更新：GOV-004 补登 docs/owner 与 interfaces/governance 文件；GOV-005 收敛
+#       base_product_version=0.11.0-alpha.1 并登记 GOV-005 新增归档文件
 # 校验：tools/doccheck/check_doc_index.py（exit 0 = PASS）
 # 规则：
 #   1. 每项唯一 status ∈ {ACTIVE_NORMATIVE, ACTIVE_INFORMATIVE, GENERATED, ARCHIVED_NON_NORMATIVE}
@@ -13,7 +15,7 @@ doc_index:
   authoring_task: "GOV-002"
   authoring_owner: "SA-GOV-01"
   base_main_sha: "065c81deb0a7b6e0c09a4cba5c5c9291e3a5547d"
-  base_product_version: "0.10.0-alpha.2"
+  base_product_version: "0.11.0-alpha.1"
   coverage: "docs/**（含 docs/archive/**）、engineering/control/archive/**（目录级聚合）、仓库根治理文档"
   active:
     - path: "AGENTS.md"
@@ -205,6 +207,9 @@ doc_index:
     - path: "docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md"
       status: ACTIVE_NORMATIVE
       notes: "IO-001 FITS 流式接口冻结合同（GOV-002 base 之后集成，补登）"
+    - path: "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md"
+      status: ACTIVE_NORMATIVE
+      notes: "IO-002 HiPS 输入合同（IO-002 集成后补登）"
     - path: "docs/owner/ARCHITECTURE_OVERVIEW.md"
       status: ACTIVE_NORMATIVE
       notes: "GOV-004 L0 负责人架构总览"
@@ -382,6 +387,9 @@ doc_index:
       status: ARCHIVED_NON_NORMATIVE
     - path: "docs/archive/history/README.md"
       status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/memory_V18R2-V19_operational_log_2026-08-21.md"
+      status: ARCHIVED_NON_NORMATIVE
+      notes: "GOV-005 归档：原根 memory.md 历史操作日志主体（2026-07-24 至 2026-08-21），含 ARCHIVED 头与替代链接（根 memory.md/docs）"
     - path: "docs/archive/history/v19/ARCHITECTURE.md"
       status: ARCHIVED_NON_NORMATIVE
     - path: "docs/archive/history/v19/BUILD_RELEASE.md"
