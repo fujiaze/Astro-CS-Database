@@ -1,0 +1,414 @@
+# AstroCS 文档机器索引（DOCUMENT_INDEX）
+#
+# 建立：GOV-002（SA-GOV-01，wave W1）  2026-09-02
+# 校验：tools/doccheck/check_doc_index.py（exit 0 = PASS）
+# 规则：
+#   1. 每项唯一 status ∈ {ACTIVE_NORMATIVE, ACTIVE_INFORMATIVE, GENERATED, ARCHIVED_NON_NORMATIVE}
+#   2. active 区段不包含任何 archive 路径（docs/archive/**、engineering/control/archive/**）
+#   3. archived 区段全部 ARCHIVED_NON_NORMATIVE；archive 文件头含 ARCHIVED 标记与替代链接
+#   4. status 按 path 唯一；同 path 不得跨区段
+
+doc_index:
+  version: "1.0.0"
+  authoring_task: "GOV-002"
+  authoring_owner: "SA-GOV-01"
+  base_main_sha: "065c81deb0a7b6e0c09a4cba5c5c9291e3a5547d"
+  base_product_version: "0.10.0-alpha.2"
+  coverage: "docs/**（含 docs/archive/**）、engineering/control/archive/**（目录级聚合）、仓库根治理文档"
+  active:
+    - path: "AGENTS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "AstroCS_ENGINEERING_CONSTRAINTS.md"
+      status: ACTIVE_NORMATIVE
+      notes: "仓库根权威输入（GOV-001 冻结）"
+    - path: "CHANGELOG.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "DEPENDENCIES.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "FATDUCK_ACCESS.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "HANDOVER.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "README.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "REVIEW.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "VERSION"
+      status: ACTIVE_NORMATIVE
+    - path: "VISUAL_CHECK_README.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/API_REFERENCE.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/ARCHITECTURE.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/DEVELOPER_GUIDE.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/GLOSSARY.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/KNOWN_LIMITATIONS.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/README-DOCS.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/RELEASE_STATUS.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/TRACEABILITY.csv"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/TROUBLESHOOTING.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/VERSIONING.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/algorithms/ACR_EQUIVALENCE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/CALIBRATION_ALGORITHMS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/DRIZZLE_GEOMETRY.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/GAIA_QUERY.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/HEALPIX_MAPPING.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/INTEGRATION_ALGORITHMS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/NOISE_ESTIMATION.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/PHASE2_SAMPLER.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/PHASE3_RESAMPLE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/PHOTOMETRIC_FIT.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/PLATESOLVE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/REJECTION_ALGORITHMS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/STAR_PSF_ALGORITHMS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/UPM_SOLVER.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/api/CLI_PROTOCOL_V1.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/api/COMMON_ABI_V1.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/api/MANIFEST_VERIFY_V1.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/api/PHASE1_API_V1.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/api/PHASE2_API_V1.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/api/PHASE3_API_V1.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/ARCHITECTURE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/ASYNC_IO_CONTRACT.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/BUILD_GRAPH.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/CACHE_POLICY.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/COMPATIBILITY_POLICY.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/CPU_BACKEND_ARCH.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/DATA_FLOW.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/DEPENDENCY_RULES.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/ERROR_MODEL.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/EXECUTION_MODEL.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/IO_AND_ATOMICITY.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/ISA_BIT_MANIP_VARIANTS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/ISA_VARIANTS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/MODULE_MAP.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md"
+      status: ACTIVE_NORMATIVE
+      notes: "LOG-001 结构化日志合同（GOV-002 base 之后集成，补登）"
+    - path: "docs/architecture/OWNERSHIP_AND_LIFETIME.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/PERFORMANCE_MODEL.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/PHASE3_MODULE_ARCH.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/PIPELINE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv"
+      status: GENERATED
+      notes: "机器生成清单（api/execution/production inventory）"
+    - path: "docs/architecture/THREADING_MODEL.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/THREAD_BUDGET_ARCH.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/api_inventory.csv"
+      status: GENERATED
+      notes: "机器生成清单（api/execution/production inventory）"
+    - path: "docs/architecture/execution_inventory.csv"
+      status: GENERATED
+      notes: "机器生成清单（api/execution/production inventory）"
+    - path: "docs/architecture/execution_options_contract.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/production_call_paths_stage1.csv"
+      status: GENERATED
+      notes: "机器生成清单（api/execution/production inventory）"
+    - path: "docs/architecture/production_call_paths_stage2.csv"
+      status: GENERATED
+      notes: "机器生成清单（api/execution/production inventory）"
+    - path: "docs/audit/doc_classification.csv"
+      status: ACTIVE_INFORMATIVE
+      notes: "V19R2 文档分类/清单历史快照；权威分类见本 DOCUMENT_INDEX.yaml"
+    - path: "docs/audit/inventory.csv"
+      status: ACTIVE_INFORMATIVE
+      notes: "V19R2 文档分类/清单历史快照；权威分类见本 DOCUMENT_INDEX.yaml"
+    - path: "docs/audit/risk_verification_T012.csv"
+      status: ACTIVE_INFORMATIVE
+      notes: "V19R2 文档分类/清单历史快照；权威分类见本 DOCUMENT_INDEX.yaml"
+    - path: "docs/backlog/NEXT_STAGE.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/browser/HIPS_BROWSER.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/contracts/API-001.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/API_CONTRACTS.csv"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/ARCH-001.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/DATA_ARTIFACTS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/DATA_SEMANTICS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/INDEX.yaml"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/PUBLIC_API.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/RT-001.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/TEST_MATRIX.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/development/CODE_STYLE.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/development/CONFIG_SCHEMA.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/development/TESTING.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/diagnostics/TROUBLESHOOTING.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/acr.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/astro_image_io.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/calibration.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/common.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/dynamic_psf.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/gaia_xpsd_client.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/healpix_browser_qt.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/healpix_drizzle.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/orchestrator.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/phase2.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/photometric_calib.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/plate_solve.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/registry/astrocs.phase1.calibration.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase1.cosmetic.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase1.drizzle.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase1.noise-snr.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase1.photometry.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase1.star-psf.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase1.wcs-platesolve.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase1.writer.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase2.coverage.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase2.integrate.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase2.reject.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase2.resample.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase2.sample.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase2.upm-apply.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase2.upm-fit.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase2.write.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase3.properties.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase3.resample.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase3.resample2.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase3.verify.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase3.wcs.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase3.writer.md"
+      status: GENERATED
+      notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/snr_estimator.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/star_detector.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/performance/BASELINE.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/performance/OPTIMIZATION.md"
+      status: ACTIVE_INFORMATIVE
+    - path: "docs/science/ACR_EQUIVALENCE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/ASTROMETRY.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/CALIBRATION.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/CONTROL_WEIGHT_SNR.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/DRIZZLE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/INTEGRATION.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/NOISE_MODEL.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/PHASE2_UPM.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/PHASE3_HIPS_TO_FITS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/PHOTOMETRY.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/PSF.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/REJECTION.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/SCIENCE_SCOPE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/UNCERTAINTY_AND_COVARIANCE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/API_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/BENCHMARK_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/CODE_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/COMMENT_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/CONCURRENCY_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/C_ABI_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/DOCUMENTATION_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/ERROR_HANDLING_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/IO_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/NUMERIC_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/RELEASE_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/standards/TEST_STANDARD.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/validation/SCIENCE_FREEZE.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "V17 冻结历史快照；当前科学权威以 docs/science 与约束文件为准"
+    - path: "memory.md"
+      status: ACTIVE_INFORMATIVE
+  archived:
+    - path: "docs/archive/PRE_RELEASE_EVIDENCE_INDEX.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/README.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/ARCHITECTURE.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/BUILD_RELEASE.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/CONFIG_REFERENCE.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/DATA_CONTRACTS.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/DIAGNOSTICS.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/DRIZZLE.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/ERROR_TAXONOMY.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/MODULE_INDEX.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/PERFORMANCE.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/PHASE2.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/README.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/SCIENTIFIC_ALGORITHMS.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/SNR_NOISE_MODEL.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/history/v19/TESTING_AND_ACCEPTANCE.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/phase2_PRODUCTION_WIRING.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/refactor/CLI_COMMAND_LAYER.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/refactor/CLI_RUN_PRESET.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/refactor/P1_SYMBOL_MAP.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/refactor/P2_SYMBOL_MAP.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/refactor/P3_STATUS.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/review/ARCHITECTURE_OVERVIEW.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/review/CHANGE_REVIEW.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/review/PIPELINE_OVERVIEW.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/review/RELEASE_STATUS.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "docs/archive/review/SCIENCE_OVERVIEW.md"
+      status: ARCHIVED_NON_NORMATIVE
+    - path: "engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/"
+      status: ARCHIVED_NON_NORMATIVE
+      replacement: "AstroCS_ENGINEERING_CONSTRAINTS.md; docs/DOCUMENT_INDEX.yaml; 工作根 control/active/AstroCS_V7_MODULAR_REFOUNDATION_CONTROL_20260902_FINAL3/"
+      notes: "目录级聚合：V1.3 Recovery + V3/V4/V5/V6/V6.1 历史控制包（tasks/evidence/docs/checklists 等）。目录内全部文件不再作当前权威；目录级 README_ARCHIVED.md 说明替代。"
