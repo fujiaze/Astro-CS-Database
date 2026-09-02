@@ -29,7 +29,9 @@ if(NOT MSVC)
 else()
   # WIN-001: MSVC 全局源码选项 — 源码 UTF-8 (中文注释/字符串) 必需 /utf-8,
   # 否则 MSVC 按系统 ANSI 代码页误读 → 注释边界错乱 → 级联语法错误 (contracts.h C2144)。
+  # NOMINMAX: windows.h 的 min/max 宏会破坏 std::min/std::max (C2589, monitor/recorder)。
   add_compile_options(/utf-8 /W4 /EHsc)
+  add_compile_definitions(NOMINMAX)
 endif()
 
 # 版本单源: 根 VERSION 文件 (VER-001)
@@ -102,12 +104,12 @@ target_include_directories(astrocs_cfitsio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio)
 if(MSVC)
   # WIN-001: cfitsio 依赖适配 — 源码 `-w` 为 GCC 旗标 (MSVC 忽略并告警 D9002);
-  # _REENTRANT 需 pthread.h (MSYS2 mingw64); zcompress.c 需 zlib (ACS_ZLIB_ROOT,
-  # MSVC 编译的 zlib 安装, 见 fatduck C:/Users/fujia/zlib-msvc)。
+  # _REENTRANT 需 pthread.h → 用 cmake/win32_pthread_shim (SRWLOCK 映射, MSVC 专用);
+  # zcompress.c 需 zlib (ACS_ZLIB_ROOT, MSVC 编译的 zlib 安装, 见 fatduck C:/Users/fujia/zlib-msvc)。
+  # 注意: 不可用 MSYS2 mingw64 include (gcc 头无法被 MSVC 编译)。
   target_compile_options(astrocs_cfitsio PRIVATE /w)
-  if(EXISTS "C:/msys64/mingw64/include/pthread.h")
-    target_include_directories(astrocs_cfitsio PRIVATE "C:/msys64/mingw64/include")
-  endif()
+  target_include_directories(astrocs_cfitsio PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/win32_pthread_shim)
   set(ACS_ZLIB_ROOT "" CACHE PATH "MSVC zlib install root (include/zlib.h + lib/zlib.lib)")
   if(ACS_ZLIB_ROOT)
     target_include_directories(astrocs_cfitsio PRIVATE "${ACS_ZLIB_ROOT}/include")
