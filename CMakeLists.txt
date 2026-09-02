@@ -110,6 +110,7 @@ if(MSVC)
   target_compile_options(astrocs_cfitsio PRIVATE /w)
   target_include_directories(astrocs_cfitsio PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/win32_pthread_shim)
+  target_link_libraries(astrocs_cfitsio PUBLIC kernel32)  # SRWLock API (shim)
   set(ACS_ZLIB_ROOT "" CACHE PATH "MSVC zlib install root (include/zlib.h + lib/zlib.lib)")
   if(ACS_ZLIB_ROOT)
     target_include_directories(astrocs_cfitsio PRIVATE "${ACS_ZLIB_ROOT}/include")
