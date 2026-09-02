@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "product_version": "0.11.0-alpha.1",
+  "source_commit": "caee3e67e5a209a9e47b514f42b2b63f3dc4da4e",
+  "platform": "linux-amd64",
+  "note": "BLD-003 骨架 product manifest 示例: source_commit 为 BLD-003 base main SHA, 前台集成后应更新为实际 main SHA; sha256 由 ABI-004/打包填充 (SKELETON 不伪装实现完成)。Windows 形态由 WIN-* 生成。",
+  "units": [
+    { "unit_id": "PLATFORM-CLI", "kind": "exe", "rel_path": "astrocs", "abi_version": 1, "module_id": null, "sha256": null, "status": "SKELETON" },
+    { "unit_id": "PLATFORM-RUNTIME", "kind": "runtime", "rel_path": "libastrocs_runtime.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "SKELETON" },
+    { "unit_id": "PLATFORM-IO", "kind": "io", "rel_path": "libastrocs_io.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "SKELETON" },
+    { "unit_id": "MOD-NOOP", "kind": "module", "rel_path": "modules/astrocs_noop.so", "abi_version": 1, "module_id": "astrocs.conformance.noop", "sha256": null, "status": "SKELETON" },
+    { "unit_id": "PROV-CPU-BASELINE", "kind": "provider", "rel_path": "providers/astrocs_cpu_baseline.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "SKELETON" }
+  ]
+}

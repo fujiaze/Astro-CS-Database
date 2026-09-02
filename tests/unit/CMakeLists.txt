@@ -94,7 +94,7 @@ add_test(NAME rt009_node_trace COMMAND rt009_node_trace_test)
 
 add_executable(io_adapter_test io_adapter_test.cpp)
 target_include_directories(io_adapter_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
-target_link_libraries(io_adapter_test PRIVATE astrocs_io)
+target_link_libraries(io_adapter_test PRIVATE astrocs_io_adapter)  # BLD-003: 原 astrocs_io STATIC 更名
 add_test(NAME io_adapter COMMAND io_adapter_test)
 
 add_executable(io_ownership_test io_ownership_test.cpp)
