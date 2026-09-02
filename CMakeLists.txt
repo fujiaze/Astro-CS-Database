@@ -30,8 +30,9 @@ else()
   # WIN-001: MSVC 全局源码选项 — 源码 UTF-8 (中文注释/字符串) 必需 /utf-8,
   # 否则 MSVC 按系统 ANSI 代码页误读 → 注释边界错乱 → 级联语法错误 (contracts.h C2144)。
   # NOMINMAX: windows.h 的 min/max 宏会破坏 std::min/std::max (C2589, monitor/recorder)。
+  # _USE_MATH_DEFINES: MSVC 需此宏才暴露 M_PI (wcs_tan.cpp 等)。
   add_compile_options(/utf-8 /W4 /EHsc)
-  add_compile_definitions(NOMINMAX)
+  add_compile_definitions(NOMINMAX _USE_MATH_DEFINES)
 endif()
 
 # 版本单源: 根 VERSION 文件 (VER-001)
