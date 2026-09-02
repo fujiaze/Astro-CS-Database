@@ -1,3 +1,11 @@
+# cli/CMakeLists.txt — COMPATIBILITY 声明 (BLD-002, 非产品事实源)
+#
+# 唯一产品事实源 = 根 CMakeLists.txt (唯一 project / 唯一 add_executable(astrocs))。
+# 本文件仅保留给遗留 tests/cli 独立构建与 CLI 调试 (compatibility target):
+#   - 不声明 install 规则 (禁止正式 install, BLD-002);
+#   - 不作为任何发布/安装构建入口;
+#   - 产品二进制一律由根 CMakeLists.txt 产出。
+# 历史: 本文件曾为第二产品事实源 (V6 前 cli 独立工程 + install), BLD-002 移除其正式性。
 cmake_minimum_required(VERSION 3.16)
 project(astrocs_cli LANGUAGES CXX C)
 
@@ -213,5 +221,5 @@ target_compile_options(astrocs PRIVATE
 #       _USE_MATH_DEFINES 暴露 M_PI(POSIX)
 target_compile_definitions(astrocs PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_WIN32_WINNT=0x0A00;NOMINMAX;_USE_MATH_DEFINES>)
 
-# 发布安装规则: 恰一个 exe (04/CLI-001)
-install(TARGETS astrocs RUNTIME DESTINATION bin)
+# BLD-002: 禁止正式 install —— 本文件为 compatibility 声明 (非产品事实源),
+# 安装/发布规则只允许存在于根 CMakeLists.txt (唯一产品入口)。

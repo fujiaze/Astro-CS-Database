@@ -1,3 +1,13 @@
+# lib/phase2/CMakeLists.txt — COMPATIBILITY 声明 (BLD-002, 非产品事实源)
+#
+# 唯一产品事实源 = 根 CMakeLists.txt (唯一 project / 唯一 add_executable(astrocs))。
+# 本文件仅保留给 lib/phase2 模块自测与工具按需构建 (compatibility target):
+#   - phase2 STATIC 库的正式产品源集由根 CMakeLists.txt 的 astrocs_phase2 声明
+#     (lib/phase2/src/*.cpp 显式列表, 无 GLOB); 本文件不再作为生产 target 事实源;
+#   - astrocs-stage2 / calibrated_pair_diag / rejection_cli 为按需工具
+#     (EXCLUDE_FROM_ALL, 非正式 ALL target), 不进入默认构建与任何 install;
+#   - 禁止正式 install (BLD-002): 安装/发布规则只允许存在于根 CMakeLists.txt;
+#   - 本文件保留 enable_testing()/GTest 分支仅供模块独立自测 (tests/cli 不依赖)。
 cmake_minimum_required(VERSION 3.24)
 project(astro_phase2 LANGUAGES CXX)
 
@@ -88,6 +98,8 @@ if(GTest_FOUND)
     gtest_discover_tests(phase2_async_io DISCOVERY_MODE PRE_TEST)
 endif()
 
+# BLD-002: 以下工具降级为 compatibility (EXCLUDE_FROM_ALL) —— 非正式 ALL target,
+# 仅按需显式构建 (cmake --build --target ...); 不进入任何 install/发布树。
 add_executable(astrocs-stage2 tools/stage2.cpp)
 target_link_libraries(astrocs-stage2 PRIVATE phase2
     ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
@@ -95,13 +107,16 @@ if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
     # CON-006: stage2 工具本身有逐 pixel integration 并行代码，也需要编译宏。
     target_compile_definitions(astrocs-stage2 PRIVATE P2_ENABLE_OPENMP=1)
 endif()
+set_target_properties(astrocs-stage2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 add_executable(calibrated_pair_diag tools/calibrated_pair_diag.cpp)
 target_link_libraries(calibrated_pair_diag PRIVATE phase2
     ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
+set_target_properties(calibrated_pair_diag PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 add_executable(rejection_cli tools/rejection_cli.cpp)
 target_link_libraries(rejection_cli PRIVATE phase2)
+set_target_properties(rejection_cli PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 # V17：CUDA bridge DLL（nvcc 构建产物）复制到各 exe 目录（bridge loader
 # 搜索路径 1 = exe 目录），保证 clean build 与增量 build 环境一致
