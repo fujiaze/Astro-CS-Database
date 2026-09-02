@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "astrocs://astrocs/config/module-dll-contract/v1",
+  "title": "AstroCS Windows 产品拓扑与 DLL 边界合同（ARC-001）",
+  "description": "机器可校验的 DLL 产品边界合同：唯一责任、依赖方向、导出入口、host service、CMake target 计划与安装树一一对应。冻结现状权威 = ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7 控制包 03_TARGET_PRODUCT_AND_ARCHITECTURE.md §4/§4.1、12_DLL_ABI_AND_LOADER_STANDARD.md、tasks/MODULE_MIGRATION_MATRIX.csv。目标版本 0.11.0-alpha.1；入口统一 astrocs_module_query_v1。",
+  "type": "object",
+  "required": [
+    "contract_id",
+    "contract_version",
+    "doc_status",
+    "target_version",
+    "entrypoint_abi",
+    "dll_units",
+    "forbidden_dependencies",
+    "dependency_matrix",
+    "install_tree",
+    "aggregation_policy"
+  ],
+  "properties": {
+    "contract_id": { "const": "CONTRACT-ARC001-DLL-BOUNDARY-V1" },
+    "contract_version": { "const": 1 },
+    "doc_status": { "const": "ACTIVE_NORMATIVE" },
+    "target_version": { "const": "0.11.0-alpha.1" },
+    "entrypoint_abi": { "const": "astrocs_module_query_v1" },
+    "dll_units": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/dll_unit" }
+    },
+    "forbidden_dependencies": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/forbidden_rule" }
+    },
+    "dependency_matrix": {
+      "type": "object",
+      "required": ["allowed_kinds", "forbidden_pairs"],
+      "properties": {
+        "allowed_kinds": {
+          "type": "object",
+          "required": [
+            "cli_to_runtime",
+            "cli_to_io",
+            "runtime_to_io",
+            "module_to_runtime",
+            "module_to_catalog",
+            "catalog_to_io",
+            "provider_to_runtime"
+          ],
+          "properties": {
+            "cli_to_runtime": { "const": true, "description": "exe → runtime.dll host service 调用（loader/registry/executor/artifact/thread 等）" },
+            "cli_to_io": { "const": true, "description": "exe → io.dll host service 调用（product manifest/config JSON 解析、UTF-16 path）" },
+            "runtime_to_io": { "const": true, "description": "runtime.dll → io.dll（ArtifactStore 持久化、原子/流式写、FITS/HiPS 数据平面；io 是唯一直接 I/O 层）" },
+            "module_to_runtime": { "const": true, "description": "module DLL → runtime.dll host service（allocator/logger/metrics/cancel/executor/ThreadLease/ArtifactStore）——module 的一切文件访问仅经 host，禁止直接依赖 io.dll 或第三方 I/O" },
+            "module_to_catalog": { "const": true, "description": "数据消费 module（p1.wcs / p1.photometry）→ catalog DLL 的模块查询；仅当 module 数据合同需要 catalog 数据" },
+            "catalog_to_io": { "const": true, "description": "catalog DLL → io.dll（Gaia 缓存/数据文件读写的平台 I/O 服务）" },
+            "provider_to_runtime": { "const": true, "description": "provider DLL → runtime host service（provider self-test、ThreadLease、注册）；provider 不得依赖任何 module" }
+          },
+          "additionalProperties": false
+        },
+        "forbidden_pairs": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z0-9_]+->[A-Z0-9_]+$" },
+          "description": "显式禁止的依赖方向（见 forbidden_dependencies 每条 rule_id）"
+        }
+      },
+      "additionalProperties": false
+    },
+    "install_tree": {
+      "type": "object",
+      "required": ["root_layout", "units"],
+      "properties": {
+        "root_layout": {
+          "type": "string",
+          "pattern": "^AstroCS-0\\.11\\.0-alpha\\.1-win-x64/$"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["unit_id", "install_path"],
+            "properties": {
+              "unit_id": { "type": "string", "pattern": "^[A-Z0-9-]+$" },
+              "install_path": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "aggregation_policy": {
+      "type": "object",
+      "required": ["min_module_scope", "common_policy", "forbidden_aggregations"],
+      "properties": {
+        "min_module_scope": {
+          "type": "string",
+          "description": "冻结：module DLL 粒度 = 一个明确科学/工程操作（03_TARGET §4.1），最低聚合粒度是 MODULE_MIGRATION_MATRIX.csv 的科学/服务交付单元；禁止'每小函数一个 DLL'",
+          "minLength": 1
+        },
+        "common_policy": {
+          "type": "string",
+          "description": "冻结：common/contracts 只保留 POD/value/header contracts，不得成为万能 DLL；跨 DLL 公共代码只能是 header-only 合同或 runtime/io 的稳定 C ABI 服务",
+          "minLength": 1
+        },
+        "forbidden_aggregations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "unit_kind": {
+      "type": "string",
+      "enum": ["exe", "runtime", "io", "module", "service_module", "provider", "catalog"]
+    },
+    "phase_scope": {
+      "type": "string",
+      "enum": ["platform", "service", "phase1", "phase2", "phase3", "cpu"]
+    },
+    "dependency_entry": {
+      "type": "object",
+      "required": ["target_unit_id", "kind"],
+      "properties": {
+        "target_unit_id": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": ["host_service", "c_abi", "manifest_declared", "typed_artifact", "none"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "export_entry": {
+      "type": "object",
+      "required": ["symbol", "kind"],
+      "properties": {
+        "symbol": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": ["module_query_v1", "host_service_v1", "loader_entry", "main", "provider_entry_v1"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "forbidden_rule": {
+      "type": "object",
+      "required": ["rule_id", "from", "to", "policy"],
+      "properties": {
+        "rule_id": { "type": "string", "pattern": "^FORBID-[A-Z0-9-]+$" },
+        "from": { "type": "string", "description": "依赖方单元 kind 或 unit_id" },
+        "to": { "type": "string", "description": "被依赖目标 kind/类别（如 science、third_party_io、private_pool、stl_cpp_abi）" },
+        "policy": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "dll_unit": {
+      "type": "object",
+      "required": [
+        "unit_id",
+        "kind",
+        "phase_scope",
+        "dll_name",
+        "cmake_target",
+        "install_path",
+        "module_id",
+        "unique_responsibility",
+        "not_responsible",
+        "exports",
+        "host_services",
+        "depends_on",
+        "resource_class"
+      ],
+      "properties": {
+        "unit_id": { "type": "string", "pattern": "^[A-Z0-9-]+$" },
+        "kind": { "$ref": "#/$defs/unit_kind" },
+        "phase_scope": { "$ref": "#/$defs/phase_scope" },
+        "dll_name": { "type": "string", "pattern": "^astrocs_[a-z0-9_]+\\.dll$|^astrocs\\.exe$" },
+        "cmake_target": { "type": "string", "minLength": 1 },
+        "install_path": { "type": "string" },
+        "module_id": { "type": ["string", "null"], "description": "module DLL 必须有 module_id；平台单元为 null" },
+        "unique_responsibility": { "type": "string", "minLength": 10 },
+        "not_responsible": { "type": "string", "minLength": 5 },
+        "exports": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/export_entry" } },
+        "host_services": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "该 DLL 作为 host 提供的服务名集合（runtime/io/exe 层面）或作为 client 消费的 host 服务名集合（module/provider 层面）"
+        },
+        "depends_on": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/dependency_entry" }
+        },
+        "resource_class": { "enum": ["cpu_heavy", "io_bounded", "metadata"] }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "module" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "exports": { "items": { "properties": { "kind": { "const": "module_query_v1" } }, "required": ["kind"] } },
+              "module_id": { "pattern": "^astrocs\\.(p1|p2|p3)\\.[a-z0-9_]+$" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "service_module" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "exports": { "items": { "properties": { "kind": { "const": "module_query_v1" } }, "required": ["kind"] } },
+              "module_id": { "pattern": "^astrocs\\.catalog\\.gaia$" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "provider" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "exports": { "items": { "properties": { "kind": { "const": "provider_entry_v1" } }, "required": ["kind"] } },
+              "module_id": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "exe" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "exports": { "items": { "properties": { "kind": { "const": "main" } }, "required": ["kind"] } },
+              "module_id": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "runtime" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "exports": { "items": { "properties": { "kind": { "const": "host_service_v1" } }, "required": ["kind"] } },
+              "module_id": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "io" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "exports": { "items": { "properties": { "kind": { "const": "host_service_v1" } }, "required": ["kind"] } },
+              "module_id": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "catalog" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "exports": { "items": { "properties": { "kind": { "const": "module_query_v1" } }, "required": ["kind"] } },
+              "module_id": { "pattern": "^astrocs\\.catalog\\.gaia$" }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}
