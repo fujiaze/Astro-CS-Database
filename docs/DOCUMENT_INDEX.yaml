@@ -196,6 +196,30 @@ doc_index:
       status: ACTIVE_INFORMATIVE
     - path: "docs/diagnostics/TROUBLESHOOTING.md"
       status: ACTIVE_INFORMATIVE
+    - path: "docs/governance/VERSION_NAMESPACES.md"
+      status: ACTIVE_NORMATIVE
+      notes: "GOV-003 版本命名空间权威（GOV-002 base 之后集成，补登）"
+    - path: "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md"
+      status: ACTIVE_NORMATIVE
+      notes: "DATA-002 三阶段产品交换合同（GOV-002 base 之后集成，补登）"
+    - path: "docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md"
+      status: ACTIVE_NORMATIVE
+      notes: "IO-001 FITS 流式接口冻结合同（GOV-002 base 之后集成，补登）"
+    - path: "docs/owner/ARCHITECTURE_OVERVIEW.md"
+      status: ACTIVE_NORMATIVE
+      notes: "GOV-004 L0 负责人架构总览"
+    - path: "docs/owner/CHANGE_REVIEW.md"
+      status: ACTIVE_NORMATIVE
+      notes: "GOV-004 L0 负责人变更审查"
+    - path: "docs/owner/PIPELINE_OVERVIEW.md"
+      status: ACTIVE_NORMATIVE
+      notes: "GOV-004 L0 负责人管线总览"
+    - path: "docs/owner/RELEASE_STATUS.md"
+      status: ACTIVE_NORMATIVE
+      notes: "GOV-004 L0 负责人发布状态"
+    - path: "docs/owner/SCIENCE_OVERVIEW.md"
+      status: ACTIVE_NORMATIVE
+      notes: "GOV-004 L0 负责人科学总览"
     - path: "docs/modules/acr.md"
       status: ACTIVE_INFORMATIVE
     - path: "docs/modules/astro_image_io.md"
