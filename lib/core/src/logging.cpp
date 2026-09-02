@@ -11,7 +11,11 @@ std::string utc_now() {
   char buf[32];
   std::time_t t = std::time(nullptr);
   std::tm tm{};
+#ifdef _WIN32
+  gmtime_s(&tm, &t);   // MSVC: gmtime_r 不存在 (WIN-001)
+#else
   gmtime_r(&t, &tm);
+#endif
   std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &tm);
   return buf;
 }
