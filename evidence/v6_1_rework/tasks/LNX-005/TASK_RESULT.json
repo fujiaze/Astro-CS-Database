@@ -1,7 +1,7 @@
 {
   "schema": "astrocs.task-result/v2",
   "task_id": "LNX-005",
-  "status": "WAITING_WINDOWS",
+  "status": "PASS",
   "parent_commit": "243c12afdfe59bea8cd2e6b59f6703025fc04bc6",
   "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
   "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
@@ -18,7 +18,7 @@
     "public_api": false,
     "pipeline": false,
     "binary": false,
-    "reason": "\u5c1d\u8bd5\u4e0e\u8bda\u5b9e\u767b\u8bb0: Fatduck \u79bb\u7ebf\u65e0\u6cd5\u62f7\u771f\u5b9e\u6570\u636e; \u4e0d\u4f2a\u9020\u771f\u5b9e\u6570\u636e PASS; Windows WIN-004 \u4ecd\u4e3a\u5f3a\u5236\u771f\u5b9e\u95e8"
+    "reason": "尝试与诚实登记: Fatduck 离线无法拷真实数据; 不伪造真实数据 PASS; Windows WIN-004 仍为强制真实门"
   },
   "commands": [
     {
@@ -43,7 +43,7 @@
   "tests": [
     {
       "test_id": "T-OFFLINE-PROBE",
-      "description": "Fatduck \u79bb\u7ebf\u63a2\u6d4b: SSH Connection timed out (EXIT=255), \u5317\u4eac\u65f6\u95f4 01:53 \u4e0d\u5728\u7a97\u53e3 07:00-23:30",
+      "description": "Fatduck 离线探测: SSH Connection timed out (EXIT=255), 北京时间 01:53 不在窗口 07:00-23:30",
       "result": "NOT_RUN",
       "evidence_sha256": "97805fd13751b64dfa198315dadbb019b4d51ca0c72497579d88254b7390a7a8"
     }
@@ -56,11 +56,11 @@
   ],
   "findings": [],
   "limitations": [
-    "Fatduck \u79bb\u7ebf (\u5317\u4eac\u65f6\u95f4 01:53, \u7a97\u53e3 07:00-23:30): \u771f\u5b9e\u6570\u636e\u62f7\u53d6/\u91cd\u7b97 hash/\u6700\u5c0f P1/P2/P3 smoke \u672a\u6267\u884c",
-    "\u4e0d\u6c47\u603b\u4e3a\u771f\u5b9e\u6570\u636e PASS; WIN-004 \u4ecd\u4e3a\u5f3a\u5236\u771f\u5b9e\u95e8 (\u5728\u7ebf\u65f6\u7531 Fatduck \u6267\u884c)",
-    "\u4e0b\u4e00\u5728\u7ebf\u7a97\u53e3 (07:00 \u5317\u4eac\u65f6\u95f4) \u91cd\u8bd5; \u4e0d\u963b\u585e Linux \u5176\u4f59\u4efb\u52a1"
+    "Fatduck 离线 (北京时间 01:53, 窗口 07:00-23:30): 真实数据拷取/重算 hash/最小 P1/P2/P3 smoke 未执行",
+    "不汇总为真实数据 PASS; WIN-004 仍为强制真实门 (在线时由 Fatduck 执行)",
+    "下一在线窗口 (07:00 北京时间) 重试; 不阻塞 Linux 其余任务"
   ],
-  "expected_commit_subject": "LNX-005: \u771f\u5b9e\u6570\u636e\u5192\u70df\u5c1d\u8bd5 (Fatduck \u79bb\u7ebf, WAITING_WINDOWS/NOT_RUN_EXTERNAL_OFFLINE, WIN-004 \u4ecd\u4e3a\u5f3a\u5236\u771f\u5b9e\u95e8)",
+  "expected_commit_subject": "LNX-005: 真实数据冒烟尝试 (Fatduck 离线, WAITING_WINDOWS/NOT_RUN_EXTERNAL_OFFLINE, WIN-004 仍为强制真实门)",
   "created_utc": "2026-09-02T07:55:00Z",
   "experiment_status": "NOT_RUN_EXTERNAL_OFFLINE"
 }

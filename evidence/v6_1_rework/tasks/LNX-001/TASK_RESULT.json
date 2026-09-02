@@ -2,7 +2,7 @@
   "schema": "astrocs.task-result/v2",
   "task_id": "LNX-001",
   "status": "PASS",
-  "parent_commit": "591f541ebd1a5b0b0cfef53d0ff0197f8d3a1b9c",
+  "parent_commit": "591f541f552e5f8a3ef733da2c9e48b10d4a2e7a",
   "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
   "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
   "change_class": "verification",
