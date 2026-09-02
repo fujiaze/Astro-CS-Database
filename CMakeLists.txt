@@ -77,9 +77,101 @@ target_include_directories(astrocs_contracts INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/include)
 
 # io adapter (IO-001: 依赖方向 core <- io; 不 include runtime/模块)
-add_library(astrocs_io STATIC lib/io/src/io_adapter.cpp)
-target_include_directories(astrocs_io PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(astrocs_io PUBLIC astrocs_core)
+# BLD-003: 更名 astrocs_io_adapter —— ARC-001 冻结的 DLL target 计划
+# (install_tree 一一对应) 中 "astrocs_io" 是平台 SHARED DLL (astrocs_io.dll/.so,
+# FITS/HiPS/原子流式 I/O 宿主服务), 见下 "BLD-003 平台 SHARED 骨架" 段落;
+# 本 STATIC 为 legacy 文件适配器 (ArtifactTransaction/FileIoAdapter, IO-001),
+# 保留原名会导致 target 重名 (CMake fatal)。
+add_library(astrocs_io_adapter STATIC lib/io/src/io_adapter.cpp)
+target_include_directories(astrocs_io_adapter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(astrocs_io_adapter PUBLIC astrocs_core)
+
+# ── BLD-003 平台 SHARED 骨架 (G2: SHARED runtime/io/noop/baseline targets) ──
+# 契约 (BLD-003 + 03_TARGET §4.1 + ARC-001):
+#   - 唯一 install 规则源 = cmake/install_layout.cmake (文末 include);
+#     install 树与 ARC-001 dll_units 计划一一对应; clean install 仅白名单。
+#   - astrocs_runtime / astrocs_io: 平台 SHARED DLL 骨架。当前以已冻结、
+#     自包含的 C ABI 源 (DATA-001 artifact / IO-001 fits stream) 起步,
+#     使 target 真实可编译、可安装、可被 ABI-003 loader 加载验证;
+#     loader/registry/DAG/scheduler/ArtifactStore 接线由 ABI-003/004 与
+#     RT-002 等后续向本 target 追加源, 本任务不伪装平台实现完成。
+#   - astrocs_noop: conformance module SHARED (modules/conformance/noop),
+#     仅可加载性骨架 (SKELETON), 语义由 ABI-005 填充; 见其 README。
+#   - astrocs_cpu_baseline: baseline backend DSO。Linux 以 legacy backend
+#     ABI 源 (baseline_backend.cpp, SA-CPU-09 已有) 编译为 .so 技术预览,
+#     仅验证 provider 安装路径/RPATH/加载; 正式 provider ABI
+#     (astrocs_provider_query_v1, module_api_v1.h 冻结) 与 Windows DLL 由
+#     CPU-002 (providers/cpu/baseline) 交付, 本任务不伪装 provider 完成。
+# 导出可见性 (12 §1/ABI-006): module DLL 只导出批准 C ABI 入口; C 源 DLL
+# 使用 ASTROCS_ABI_SHARED/EXPORTS + -fvisibility=hidden 控制 (各 target)。
+
+# astrocs_runtime: runtime 平台 DLL 骨架 (artifact C ABI, DATA-001 冻结源)
+# 导出: 源为冻结 C ABI (无 ASTROCS_EXPORT 标注, SA-IO-07/DATA-06 头所有
+# 顶层函数即 API) → Linux 默认全导出; Windows 经 WINDOWS_EXPORT_ALL_SYMBOLS
+# (C 源, 导出全部顶层 API; ABI-006 收紧为精确导出清单, 正式 DLL 由 WIN-* 复核)。
+add_library(astrocs_runtime SHARED runtime/artifact_store/artifact_abi_v1.c)
+target_include_directories(astrocs_runtime PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+if(MSVC)
+  set_property(TARGET astrocs_runtime PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
+else()
+  target_compile_options(astrocs_runtime PRIVATE -Wall -Wextra)
+endif()
+if(WIN32)
+  set_target_properties(astrocs_runtime PROPERTIES OUTPUT_NAME "astrocs_runtime")
+endif()
+
+# astrocs_io: io 平台 DLL 骨架 (FITS stream C ABI, IO-001 冻结源)
+add_library(astrocs_io SHARED runtime/io/fits_core.c)
+target_include_directories(astrocs_io PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/modules/services/io/include)
+if(MSVC)
+  set_property(TARGET astrocs_io PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
+else()
+  target_compile_options(astrocs_io PRIVATE -Wall -Wextra)
+endif()
+if(WIN32)
+  set_target_properties(astrocs_io PROPERTIES OUTPUT_NAME "astrocs_io")
+endif()
+# fits_core.c 需数学库 (Linux); Windows CRT 自带
+if(NOT WIN32)
+  target_link_libraries(astrocs_io PRIVATE m)
+endif()
+
+# astrocs_noop: conformance module SHARED (模块 CMakeLists 只声明本 target,
+# BLD-002: 子目录 CMakeLists 非产品事实源; 见 modules/conformance/noop/README)
+add_subdirectory(modules/conformance/noop)
+
+# astrocs_cpu_baseline: baseline backend DSO 技术预览 (Linux; legacy ABI,
+# 无导出标注 → 默认全导出)。正式 provider ABI/Windows DLL → CPU-002
+# (providers/cpu/baseline)
+add_library(astrocs_cpu_baseline SHARED
+  lib/backend_host/baseline_backend.cpp)
+target_include_directories(astrocs_cpu_baseline PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/backend_host
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+if(MSVC)
+  set_property(TARGET astrocs_cpu_baseline PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
+else()
+  target_compile_options(astrocs_cpu_baseline PRIVATE -Wall -Wextra)
+endif()
+# 命名对齐 install-tree contract (BLD-003): providers/astrocs_cpu_baseline.so
+# (PREFIX="" 去 lib 前缀; Windows 同 astrocs_cpu_baseline.dll)
+set_target_properties(astrocs_cpu_baseline PROPERTIES
+  OUTPUT_NAME "astrocs_cpu_baseline"
+  PREFIX "")
+
+# RPATH (12 §6): install 后 SHARED 依赖以 $ORIGIN 解析; 禁 LD_LIBRARY_PATH 语义
+foreach(tgt astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline)
+  if(UNIX AND NOT APPLE)
+    set_target_properties(${tgt} PROPERTIES
+      INSTALL_RPATH "$ORIGIN" BUILD_RPATH_USE_ORIGIN YES)
+  endif()
+endforeach()
+
 
 add_library(astrocs_core STATIC
   lib/core/src/artifact.cpp
@@ -405,5 +497,9 @@ if(ASTROCS_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests/unit)
 endif()
+
+# ── BLD-003 模块化安装骨架: 唯一 install 规则源 (白名单 install 树) ──
+# include 于全部 target 声明之后; 本文件只允许在根 CMake 出现 (BLD-002)。
+include(cmake/install_layout.cmake)
 
 message(STATUS "AstroCS ${ASTROCS_VERSION_STRING} root target graph ready (ACR=${ASTROCS_ENABLE_ACR})")

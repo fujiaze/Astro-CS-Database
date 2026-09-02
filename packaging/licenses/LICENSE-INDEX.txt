@@ -1,0 +1,23 @@
+AstroCS 安装树 licenses/ 目录 — 许可证收集 (BLD-003)
+=====================================================
+本目录是随安装树分发的许可证白名单收集。规则:
+  - 每份第三方许可证文本对应一个受发行约束的文件/目录, 只读复制,
+    不修改原文; 来源与 hash 见 packaging/licenses/ 下各文件头部 (若为
+    本项目生成的索引说明) 或本索引。
+  - 项目自有代码许可证声明: 仓库根无独立 LICENSE 文件 (历史缺失);
+    项目许可证归属与最终 SPDX 声明由 BLD-004 (依赖与许可证边界) 与
+    GOV-*/PKG-* 系列确定, 本任务不发明许可证, 不写 "LICENSED" 无证据
+    声明 (16_SCIENCE_DOCUMENT_AND_TRACEABILITY_STANDARD / 18_AUDIT)。
+
+文件清单:
+  CFITSIO_LICENSE.txt  — cfitsio 第三方许可证 (来源
+      lib/astro_image_io/third_party/cfitsio/licenses/License.txt,
+      NASA/USG 许可, cfitsio 官方 vendored 副本; BLD-003 只读复制)
+  nlohmann_json.MIT.txt — nlohmann/json (单头, MIT), 头部 SPDX 声明
+      (来源 third_party/nlohmann/json.hpp 头部 SPDX-FileCopyrightText)
+
+已知限制:
+  - zlib/zstd/lz4 等其余第三方若进入发行安装树, 其许可证由 BLD-004
+    (依赖锁/许可证边界) 收集, 本目录同步扩展。
+  - 仓库自身许可证 (本项目代码) 无根 LICENSE 文件, 属历史缺口;
+    由 BLD-004/GOV 系列与负责人裁定, 不得在本任务伪造。

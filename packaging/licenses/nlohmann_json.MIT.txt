@@ -1,0 +1,9 @@
+nlohmann/json — MIT License
+===========================
+JSON for Modern C++ (单头 third_party/nlohmann/json.hpp, v3.12.0 vendored)。
+文件头部 SPDX 声明:
+    SPDX-FileCopyrightText: 2013-2026 Niels Lohmann <https://nlohmann.me>
+    SPDX-License-Identifier: MIT
+本项目以只读方式复制其 SPDX 头作为许可证记录 (BLD-003); 完整 MIT 文本
+随第三方源保留于 third_party/nlohmann/json.hpp。BLD-004 将按依赖锁
+规范收集完整文本与 hash。

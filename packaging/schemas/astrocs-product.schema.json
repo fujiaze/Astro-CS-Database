@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "astrocs://astrocs/packaging/astrocs-product/v1",
+  "title": "AstroCS 产品 manifest (BLD-003 骨架)",
+  "description": "安装树顶层 astrocs.product.json: 登记 exe/DLL/模块/provider 与其相对路径、ABI、状态。BLD-003 建立骨架字段与模块行; ABI-004 动态 registry/manifest 三方校验 (module.yaml/DLL descriptor/product manifest) 将完善 hash/entry; 缺 DLL 时宿主必须报错而非静态 fallback (BLD-003 失败路径)。",
+  "type": "object",
+  "required": ["schema_version", "product_version", "source_commit", "platform", "units"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "product_version": { "type": "string", "pattern": "^0\\.11\\.0-alpha\\.1" },
+    "source_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "platform": { "enum": ["windows-amd64", "linux-amd64"] },
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["unit_id", "kind", "rel_path", "abi_version", "status"],
+        "properties": {
+          "unit_id": { "type": "string", "pattern": "^[A-Z0-9-]+$" },
+          "kind": { "type": "string", "enum": ["exe", "runtime", "io", "module", "provider"] },
+          "rel_path": { "type": "string" },
+          "module_id": { "type": "string" },
+          "abi_version": { "type": "integer", "const": 1 },
+          "sha256": { "type": ["string", "null"], "description": "构建产物 hash; BLD-003 骨架为 null, ABI-004/打包时填充" },
+          "status": { "enum": ["SKELETON", "IMPLEMENTED"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

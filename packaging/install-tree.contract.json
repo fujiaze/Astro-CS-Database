@@ -1,0 +1,20 @@
+{
+  "contract_id": "CONTRACT-BLD003-INSTALL-TREE-V1",
+  "contract_version": 1,
+  "doc_status": "ACTIVE_NORMATIVE",
+  "target_version": "0.11.0-alpha.1",
+  "root_layout": "<prefix>/ (Linux 技术预览; Windows: AstroCS-0.11.0-alpha.1-win-x64/ 由 WIN-* 验证)",
+  "units": [
+    { "unit_id": "PLATFORM-CLI", "kind": "exe", "install_path": "astrocs", "required": true },
+    { "unit_id": "PLATFORM-RUNTIME", "kind": "runtime", "install_path": "libastrocs_runtime.so", "required": true },
+    { "unit_id": "PLATFORM-IO", "kind": "io", "install_path": "libastrocs_io.so", "required": true },
+    { "unit_id": "MOD-NOOP", "kind": "module", "install_path": "modules/astrocs_noop.so", "required": true },
+    { "unit_id": "PROV-CPU-BASELINE", "kind": "provider", "install_path": "providers/astrocs_cpu_baseline.so", "required": true },
+    { "unit_id": "LIC-CFITSIO", "kind": "license", "install_path": "licenses/CFITSIO_LICENSE.txt", "required": false },
+    { "unit_id": "LIC-NLOHMANN", "kind": "license", "install_path": "licenses/nlohmann_json.MIT.txt", "required": false },
+    { "unit_id": "LIC-INDEX", "kind": "license", "install_path": "licenses/LICENSE-INDEX.txt", "required": false },
+    { "unit_id": "SCHEMA-INSTALL-TREE", "kind": "schema", "install_path": "schemas/install-tree-contract.schema.json", "required": false },
+    { "unit_id": "SCHEMA-PRODUCT", "kind": "schema", "install_path": "schemas/astrocs-product.schema.json", "required": false },
+    { "unit_id": "MANIFEST-PRODUCT", "kind": "manifest", "install_path": "astrocs.product.json", "required": true }
+  ]
+}

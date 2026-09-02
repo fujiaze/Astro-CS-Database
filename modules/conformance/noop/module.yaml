@@ -1,0 +1,28 @@
+# AstroCS noop conformance module — 元数据 (BLD-003 SKELETON)
+# 状态: SKELETON — 可加载性骨架, 语义由 ABI-005 填充 (见 README.md)。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4; conformance 模块无科学/算法/
+# 数据合同 → 显式 NONE 引用并注释原因, 不伪装迁移完成。
+id: MOD-NOOP-SKELETON
+module_id: astrocs.conformance.noop
+module_version: 0.11.0-alpha.1
+abi_version: 1
+phase_scope: service
+dll_name: astrocs_noop.dll
+module_status: SKELETON
+entrypoint: astrocs_module_query_v1
+node_operations: []
+input_ports: []
+output_ports: []
+science_contracts: []
+algorithm_contracts: []
+data_contracts: []
+api_contracts:
+  - API-ABI-001
+source_symbols:
+  - astrocs_module_query_v1
+test_ids:
+  - TEST-BLD003-NOOP-HANDSHAKE
+threading_model: host_executor_lease
+resource_class: metadata
+cpu_providers: []
+determinism: fixed_reduction_order
