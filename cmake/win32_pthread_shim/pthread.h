@@ -1,35 +1,51 @@
 // MSVC pthread shim — WIN-001: 让 vendored cfitsio 在 Windows/MSVC 编译通过。
 // cfitsio _REENTRANT 模式仅用 pthread_mutex_t + init/lock/unlock + attr。
-// 映射到 SRWLOCK (轻量读写锁语义兼容 mutex); attr 为 no-op。
+// 本 shim 不 include <windows.h> (避免与 SDK 头/include 顺序冲突, winnt.h C2059),
+// 直接声明 SRWLOCK API (kernel32 导出, C 函数签名; 与 MSVC 头声明一致)。
 // 仅用于 cfitsio 编译 (include 路径最先注入), 不污染其他代码。
 #pragma once
 
-#include <windows.h>
+#ifndef _WIN32
+#error "win32_pthread_shim/pthread.h is MSVC/Windows only"
+#endif
 
-typedef struct pthread_mutex_t {
-  SRWLOCK lock;
-  int     initialized;
-} pthread_mutex_t;
+typedef struct _SRWLOCK {
+  void* Ptr;
+} SRWLOCK;
+
+#define SRWLOCK_INIT { 0 }
+
+typedef SRWLOCK pthread_mutex_t;
 
 typedef struct pthread_mutexattr_t {
   int type;
 } pthread_mutexattr_t;
 
-#define PTHREAD_MUTEX_INITIALIZER \
-  { SRWLOCK_INIT, 1 }
+#define PTHREAD_MUTEX_INITIALIZER SRWLOCK_INIT
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void __stdcall InitializeSRWLock(SRWLOCK* lock);
+void __stdcall AcquireSRWLockExclusive(SRWLOCK* lock);
+void __stdcall ReleaseSRWLockExclusive(SRWLOCK* lock);
+
+#ifdef __cplusplus
+}
+#endif
 
 static inline int pthread_mutex_init(pthread_mutex_t* m, const pthread_mutexattr_t* a) {
   (void)a;
-  InitializeSRWLock(&m->lock);
-  m->initialized = 1;
+  InitializeSRWLock(m);
   return 0;
 }
 static inline int pthread_mutex_lock(pthread_mutex_t* m) {
-  AcquireSRWLockExclusive(&m->lock);
+  AcquireSRWLockExclusive(m);
   return 0;
 }
 static inline int pthread_mutex_unlock(pthread_mutex_t* m) {
-  ReleaseSRWLockExclusive(&m->lock);
+  ReleaseSRWLockExclusive(m);
   return 0;
 }
 static inline int pthread_mutexattr_init(pthread_mutexattr_t* a) {
