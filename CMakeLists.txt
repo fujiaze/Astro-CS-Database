@@ -115,7 +115,7 @@ if(MSVC)
   set(ACS_ZLIB_ROOT "" CACHE PATH "MSVC zlib install root (include/zlib.h + lib/zlib.lib)")
   if(ACS_ZLIB_ROOT)
     target_include_directories(astrocs_cfitsio PRIVATE "${ACS_ZLIB_ROOT}/include")
-    target_link_libraries(astrocs_cfitsio PUBLIC "${ACS_ZLIB_ROOT}/lib/zlib.lib")
+    target_link_libraries(astrocs_cfitsio PUBLIC "${ACS_ZLIB_ROOT}/lib/libz.lib")
   endif()
 else()
   target_compile_options(astrocs_cfitsio PRIVATE -w)
@@ -135,10 +135,11 @@ target_include_directories(astrocs_aio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 target_compile_definitions(astrocs_aio PRIVATE AIO_ENABLE_FITS AIO_ENABLE_XISF)
 if(MSVC AND ACS_ZLIB_ROOT)
-  target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio "${ACS_ZLIB_ROOT}/lib/zlib.lib")
+  target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio "${ACS_ZLIB_ROOT}/lib/libz.lib")
 else()
   target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio z)
 endif()
