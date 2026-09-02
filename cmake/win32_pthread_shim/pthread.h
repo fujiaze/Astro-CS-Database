@@ -56,3 +56,9 @@ static inline int pthread_mutexattr_settype(pthread_mutexattr_t* a, int type) {
   a->type = type;
   return 0;
 }
+
+// cfitsio _REENTRANT 用 strtok_r (POSIX); MSVC 提供 strtok_s (C11 Annex K)。
+// 语义兼容 (分割 + 保存 next token 指针)。
+static inline char* strtok_r(char* str, const char* delim, char** saveptr) {
+  return strtok_s(str, delim, saveptr);
+}

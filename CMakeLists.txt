@@ -348,12 +348,14 @@ target_link_libraries(astrocs PRIVATE
   astrocs_contracts astrocs_core astrocs_cli_runtime astrocs_common astrocs_cfitsio astrocs_aio astrocs_hips
   astrocs_calibration astrocs_phase2 astrocs_drizzle astrocs_cpu
   astrocs_phase1_session astrocs_phase2_session astrocs_phase3_session
-  ${CMAKE_DL_LIBS} m z)
-if(UNIX)
-  find_package(OpenMP QUIET)
-  if(OpenMP_CXX_FOUND)
-    target_link_libraries(astrocs PRIVATE OpenMP::OpenMP_CXX)
+  ${CMAKE_DL_LIBS})
+if(MSVC)
+  if(ACS_ZLIB_ROOT)
+    target_link_libraries(astrocs PRIVATE "${ACS_ZLIB_ROOT}/lib/libz.lib")
   endif()
+else()
+  target_link_libraries(astrocs PRIVATE m z)
+endif()
 endif()
 
 # ── QA-001: 自有生产 targets 分层严格 warning (GCC/Clang; MSVC 用 /W4) ──
