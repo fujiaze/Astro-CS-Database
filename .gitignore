@@ -35,8 +35,10 @@ Debug/
 *.exp
 *.ilk
 
-# 归档目录
+# 归档目录（GOV-002 起归档文件须受 Git 跟踪）
 archive/
+!docs/archive/
+!engineering/control/archive/
 
 # 测试数据与图像 (testdata 目录内容全部忽略，仅 index.json 入仓库)
 testdata/*
