@@ -1,4 +1,12 @@
-# AstroCS 根 CMake — BLD-001 显式 target 图 (V6)
+# AstroCS 根 CMake — 唯一产品构建入口与唯一产品事实源 (BLD-002)
+# ── 契约 (BLD-002 唯一根 CMake 构建图) ──
+# 1) 本文件是仓库唯一 project() 与唯一产品事实源: 产品可执行 astrocs 只在此声明
+#    (add_executable(astrocs ...)), 显式源列表, 禁 GLOB (QA-002)。
+# 2) 子目录 CMakeLists 只声明本模块 target (tests/unit 为测试, 见文末 add_subdirectory)。
+# 3) cli/CMakeLists.txt 与 lib/phase2/CMakeLists.txt 已降级为 compatibility 声明
+#    (BLD-002): 保留给遗留 tests/cli 独立构建与模块自测/工具按需构建, 不是产品事实源,
+#    禁止正式 install; 产品安装/发布构建一律以本文件为入口。
+# 4) 正式构建入口: 本文件 (Windows preset win-msvc-17.14.39-x64 / Linux linux-control)。
 cmake_minimum_required(VERSION 3.24)
 project(astrocs VERSION 0.10.0 LANGUAGES C CXX)
 
