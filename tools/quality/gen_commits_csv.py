@@ -109,6 +109,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"COMMITS_GEN_FAIL: bad TASK_RESULT {result_path}: {exc}", file=sys.stderr)
             return 1
         task_id = doc.get("task_id", "")
+        # COMMITS.csv 只记录 PASS 任务 (validator: expected = PASS ∧ commit_required=yes);
+        # WAITING_WINDOWS/NOT_RUN 即使有 commit 也不应出现在 COMMITS。
+        status = doc.get("status", "")
+        if status != "PASS":
+            continue
         if task_id not in commit_of:
             print(f"COMMITS_GEN_FAIL: no first-parent commit for task {task_id}", file=sys.stderr)
             return 1
