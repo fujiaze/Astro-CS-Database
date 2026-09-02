@@ -27,6 +27,14 @@
 
 #ifdef _WIN32
 #define HISS_EXPORT __declspec(dllexport)
+// Windows 头 (windows.h 经其他头引入) 把 OPTIONAL/REQUIRED 定义为宏,
+// 与 SubblockFlags::OPTIONAL/REQUIRED 枚举值冲突 (C2143, 见 hiss_reader.cpp 同款先例)。
+#ifdef OPTIONAL
+#undef OPTIONAL
+#endif
+#ifdef REQUIRED
+#undef REQUIRED
+#endif
 #else
 #define HISS_EXPORT __attribute__((visibility("default")))
 #endif
