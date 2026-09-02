@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/artifact-manifest-v1.json",
+  "title": "AstroCS Artifact Manifest v1 (DATA-001 冻结)",
+  "description": "类型化产物 manifest：artifact_id/type_id/schema_version/storage_uri/content_digest/size/producer/run/node/input_digests/config_digest/status。严格拒绝：缺字段、未知 type_id（对照 contracts/data/artifact_types.registry.json）、type_id↔schema_version 不匹配、非字符串/非规范 URI、NaN（JSON 无 NaN，但经宽松解析来的 NaN 字符串/非有限数在此拒绝）、producer 重复、status 非法值。单位/坐标/dtype/shape/plane/invalid 策略/所有权语义见 docs/interfaces/data/DATA-001_ARTIFACT_CONTRACT.md。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_schema",
+    "manifest_version",
+    "artifact_id",
+    "type_id",
+    "schema_version",
+    "storage_uri",
+    "content_digest",
+    "size",
+    "producer",
+    "run",
+    "node",
+    "input_digests",
+    "config_digest",
+    "status",
+    "created_utc"
+  ],
+  "properties": {
+    "manifest_schema": {
+      "const": "astrocs.artifact-manifest/v1",
+      "description": "本 manifest 文档的 schema 标识。"
+    },
+    "manifest_version": {
+      "const": 1,
+      "description": "manifest 文档结构版本（与 schema_version 独立：schema_version 指 type_id 对应数据产品 schema 版本）。"
+    },
+    "artifact_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "稳定产物标识（唯一），仅字母数字与 - _，不含路径/斜杠/空格。"
+    },
+    "type_id": {
+      "type": "string",
+      "pattern": "^astrocs\\.[a-z0-9]+\\.[a-z0-9_]+\\.v[0-9]+$",
+      "description": "产物类型；必须登记于 contracts/data/artifact_types.registry.json（未知 type 拒绝）。"
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "type_id 数据 schema 版本；必须与注册表中该 type_id 的 schema_version 一致。"
+    },
+    "storage_uri": {
+      "type": "string",
+      "pattern": "^(file|https?)://[^\\s]+$|^[a-z][a-z0-9]*:[A-Za-z0-9._/+-]+$",
+      "minLength": 1,
+      "maxLength": 1024,
+      "description": "逻辑存储位置，必须是 URI 形态：file://、https://、http:// 或 run 相对 scheme（如 run:r1/out/x）。禁止裸路径。绝对路径需脱敏（工程约束 13 标准 §5）。"
+    },
+    "content_digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "hex"],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "hex": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "description": "内容摘要：sha256 + 64 hex。固定字段，禁止改为其它算法（未来扩展须升 manifest_version）。"
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807,
+      "description": "payload 字节数（int64 上限）。"
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module_id", "module_build_id"],
+      "properties": {
+        "module_id": {
+          "type": "string",
+          "pattern": "^astrocs\\.[a-z0-9_.-]+$",
+          "description": "产生本产物的模块标识；非空且唯一（同一 manifest 内 module_id 只允许一个生产者语义，由字段唯一性 + 文档 §5 规则保证）。"
+        },
+        "module_build_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "entry": { "type": "string", "minLength": 1 },
+        "science_contract_ids": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^SCI-[A-Z0-9-]+$" },
+          "description": "本产物依据的科学合同 ID（可空；审计溯源用）。"
+        }
+      },
+      "description": "产物生产者。module_id 必须与 13 标准 §1 的 producer 语义一致。"
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "phase"],
+      "properties": {
+        "run_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "phase": { "enum": ["phase1", "phase2", "phase3"] },
+        "session_id": { "type": "string", "minLength": 1, "maxLength": 128 }
+      },
+      "description": "产生 run 上下文：run_id + phase（phase1/2/3 独立进程）。跨 phase 只经磁盘 manifest 交换。"
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "pipeline_id"],
+      "properties": {
+        "node_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]*$" },
+        "pipeline_id": { "type": "string", "minLength": 1 },
+        "input_port": { "type": "string", "minLength": 1 }
+      },
+      "description": "运行图节点（RT-001 node_id 语义）。"
+    },
+    "input_digests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["artifact_id", "digest"],
+        "properties": {
+          "artifact_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      },
+      "description": "输入产物摘要列表（可为空数组）。artifact_id 禁止重复。"
+    },
+    "config_digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "hex"],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "hex": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "description": "运行配置摘要（模块 config 序列化的 sha256）。"
+    },
+    "status": {
+      "enum": ["COMPLETE", "INCOMPLETE", "FAILED", "CANCELLED", "PENDING"],
+      "description": "产物发布状态。仅 COMPLETE 可作为成功输入（13 标准 §3：INCOMPLETE 不得被 inspect/run 当成功输入）。"
+    },
+    "created_utc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "description": "创建时间 UTC，格式 YYYY-MM-DDTHH:MM:SSZ。禁止伪造（DATA_SEMANTICS §5 hips_creation_date 同义）。"
+    }
+  }
+}
