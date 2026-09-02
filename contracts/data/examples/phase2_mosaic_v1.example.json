@@ -1,0 +1,44 @@
+{
+  "exchange_schema": "astrocs.phase-product-exchange/v1",
+  "exchange_version": 1,
+  "product_role": "phase2_mosaic_v1",
+  "type_id": "astrocs.phase2.mosaic_hips.v1",
+  "schema_version": 1,
+  "origin": "astrocs",
+  "artifact_manifest": {
+    "manifest_schema": "astrocs.artifact-manifest/v1",
+    "manifest_version": 1,
+    "artifact_id": "run-r2-phase2-mosaic-000001",
+    "type_id": "astrocs.phase2.mosaic_hips.v1",
+    "schema_version": 1,
+    "storage_uri": "run:r2/phase2/mosaic_000001",
+    "content_digest": { "algorithm": "sha256", "hex": "1111111111111111111111111111111111111111111111111111111111111111" },
+    "size": 524288000,
+    "producer": {
+      "module_id": "astrocs.phase2.hips_writer",
+      "module_build_id": "g065c81d-linux-amd64-gcc14",
+      "entry": "astrocs_phase2_hips_writer_v1",
+      "science_contract_ids": ["SCI-UPM-WEIGHT-001", "SCI-REJ-001"]
+    },
+    "run": { "run_id": "r2", "phase": "phase2", "session_id": "s2" },
+    "node": { "node_id": "hips_writer", "pipeline_id": "p2-mosaic" },
+    "input_digests": [
+      { "artifact_id": "run-r1-phase1-frame-000001", "digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" },
+      { "artifact_id": "run-r1-phase1-frame-000002", "digest": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789" }
+    ],
+    "config_digest": { "algorithm": "sha256", "hex": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" },
+    "status": "COMPLETE",
+    "created_utc": "2026-09-02T09:40:00Z"
+  },
+  "product_content": {
+    "content_schema": "astrocs.phase-product-content/v1",
+    "coordinate": { "frame": "icrs", "ra_unit": "deg", "dec_unit": "deg" },
+    "geometry": { "format": "hips", "hips": { "ordering": "nested", "tile_width": 512 } },
+    "planes": [
+      { "plane_id": "signal", "units": "ADU", "dtype": "float32", "invalid_policy": "nan_or_support_le_0" },
+      { "plane_id": "support", "units": "dimensionless", "dtype": "float32", "invalid_policy": "nan_or_support_le_0" },
+      { "plane_id": "mask", "units": "bitmask", "dtype": "u8", "invalid_policy": "nan_or_support_le_0" }
+    ],
+    "invalid_policy": "nan_or_support_le_0"
+  }
+}

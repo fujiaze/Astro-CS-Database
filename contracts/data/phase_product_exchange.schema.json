@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/phase-product-exchange-v1.json",
+  "title": "AstroCS Phase Product Exchange v1 (DATA-002 冻结)",
+  "description": "三阶段产品交换合同：定义 phase1_product_v1 / phase2_mosaic_v1 / phase3_planar_fits_v1 的角色↔type 绑定、交换候选对象的强证据要求（manifest/hash/schema/units 缺一拒绝）、origin 语义（astrocs 产品 vs external_fixture）与输入/输出兼容矩阵。权威语义与阶段边界见 docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md；角色↔type 绑定不得与 contracts/data/artifact_types.registry.json 冲突（本 schema 不重复登记 type_id，只绑定 DATA-001 已冻结 type）。跨 Phase 仅磁盘交换：任何阶段进程不得接受另一阶段进程内对象/句柄/run 上下文；本文件描述交换对象文档形态与资格规则，机器执行见 runtime/artifact_store/phase_product_exchange_validator.py（与本文档一一对应，须同步修改）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "exchange_schema",
+    "exchange_version",
+    "product_role",
+    "type_id",
+    "schema_version",
+    "origin",
+    "artifact_manifest",
+    "product_content"
+  ],
+  "properties": {
+    "exchange_schema": {
+      "const": "astrocs.phase-product-exchange/v1",
+      "description": "本交换对象文档的 schema 标识。"
+    },
+    "exchange_version": {
+      "const": 1,
+      "description": "交换对象文档结构版本（与 type_id 的 schema_version 独立）。"
+    },
+    "product_role": {
+      "enum": ["phase1_product_v1", "phase2_mosaic_v1", "phase3_planar_fits_v1"],
+      "description": "阶段产品角色（本任务冻结命名）。role↔type_id 绑定见本 schema role_binding 表与 contracts/data/phase_product_exchange_matrix.json roles[]。"
+    },
+    "type_id": {
+      "type": "string",
+      "pattern": "^astrocs\\.[a-z0-9]+\\.[a-z0-9_]+\\.v[0-9]+$",
+      "description": "产物类型；必须与 product_role 绑定一致（role 不允许与 type 解耦）且登记于 artifact_types.registry.json。"
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "type_id 数据 schema 版本；必须与注册表中该 type_id 的 schema_version 一致。"
+    },
+    "origin": {
+      "enum": ["astrocs", "external_fixture"],
+      "description": "来源：astrocs=本产品任一 AstroCS phase run 的原子发布产物；external_fixture=AstroCS 之外生成、但完整满足本交换合同（含 manifest/hash/schema/units）的合同兼容 HiPS/FITS 测试或审核对象。origin 只描述来源，不放松任何证据要求。"
+    },
+    "artifact_manifest": {
+      "type": "object",
+      "description": "DATA-001 冻结合并 manifest（字段约束与校验权威 = contracts/data/artifact_manifest.schema.json + runtime/artifact_store/artifact_manifest_validator.py）。交换资格要求 status=COMPLETE、content_digest=sha256(64hex)。本对象缺任一 DATA-001 必填字段即拒绝（缺 manifest/hash 语义由 DATA-001 严格校验保证）。",
+      "properties": {
+        "manifest_schema": { "const": "astrocs.artifact-manifest/v1" },
+        "manifest_version": { "const": 1 },
+        "artifact_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$", "minLength": 1, "maxLength": 128 },
+        "type_id": { "type": "string", "pattern": "^astrocs\\.[a-z0-9]+\\.[a-z0-9_]+\\.v[0-9]+$" },
+        "schema_version": { "type": "integer", "minimum": 1 },
+        "storage_uri": { "type": "string", "minLength": 1 },
+        "content_digest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["algorithm", "hex"],
+          "properties": {
+            "algorithm": { "const": "sha256" },
+            "hex": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          }
+        },
+        "size": { "type": "integer", "minimum": 0 },
+        "producer": { "type": "object" },
+        "run": {
+          "type": "object",
+          "description": "仅溯源。交换资格判定绝不引用 producer.run.run_id 或要求 artifact_id/run 跨 phase 匹配（R-NO-RUN-BINDING）。",
+          "required": ["run_id", "phase"],
+          "properties": {
+            "run_id": { "type": "string", "minLength": 1 },
+            "phase": { "enum": ["phase1", "phase2", "phase3"] },
+            "session_id": { "type": "string", "minLength": 1 }
+          }
+        },
+        "node": { "type": "object" },
+        "input_digests": { "type": "array" },
+        "config_digest": {
+          "type": "object",
+          "required": ["algorithm", "hex"],
+          "properties": {
+            "algorithm": { "const": "sha256" },
+            "hex": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          }
+        },
+        "status": { "enum": ["COMPLETE", "INCOMPLETE", "FAILED", "CANCELLED", "PENDING"] },
+        "created_utc": { "type": "string" }
+      },
+      "required": [
+        "manifest_schema", "manifest_version", "artifact_id", "type_id", "schema_version",
+        "storage_uri", "content_digest", "size", "producer", "run", "node",
+        "input_digests", "config_digest", "status", "created_utc"
+      ],
+      "additionalProperties": false
+    },
+    "product_content": {
+      "$ref": "#/$defs/product_content",
+      "description": "产品内容证据：units/coordinate/dtype/planes/invalid 显式声明（DATA-001 manifest 无 units 字段，本块是交换层科学内容证据载体）。缺本块或其中 units/plane 声明即拒绝（缺 units 语义）。"
+    }
+  },
+  "if": {
+    "properties": { "product_role": { "const": "phase1_product_v1" } }
+  },
+  "then": {
+    "properties": {
+      "type_id": { "const": "astrocs.phase1.frame_hips.v1" }
+    }
+  },
+  "else": {
+    "if": {
+      "properties": { "product_role": { "const": "phase2_mosaic_v1" } }
+    },
+    "then": {
+      "properties": {
+        "type_id": { "const": "astrocs.phase2.mosaic_hips.v1" }
+      }
+    },
+    "else": {
+      "if": {
+        "properties": { "product_role": { "const": "phase3_planar_fits_v1" } }
+      },
+      "then": {
+        "properties": {
+          "type_id": { "const": "astrocs.phase3.planar_fits.v1" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "role_binding": {
+      "description": "product_role ↔ registry type_id ↔ schema_version 冻结绑定（本表与 contracts/data/phase_product_exchange_matrix.json roles[] 一一对应；type_id 本体登记于 artifact_types.registry.json，此处不重复登记）。",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "type_id", "registry_schema_version", "producer_phase", "content_summary"],
+        "properties": {
+          "role": {
+            "enum": ["phase1_product_v1", "phase2_mosaic_v1", "phase3_planar_fits_v1"]
+          },
+          "type_id": {
+            "enum": [
+              "astrocs.phase1.frame_hips.v1",
+              "astrocs.phase2.mosaic_hips.v1",
+              "astrocs.phase3.planar_fits.v1"
+            ]
+          },
+          "registry_schema_version": { "const": 1 },
+          "producer_phase": { "enum": ["phase1", "phase2", "phase3"] },
+          "content_summary": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "plane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plane_id", "units", "dtype", "invalid_policy"],
+      "description": "单个数据平面声明。plane_id 命名统一小写：signal(=SCI)、support(=SUPPORT)、variance、ivar、mask(=MASK)。units 必填非空且必须与产物实际单位一致（科学单位值权威 = properties BUNIT / docs/contracts/DATA_ARTIFACTS.md / docs/contracts/DATA_SEMANTICS.md；本层只强制显式声明，禁止空/缺失/占位）。dtype ∈ {float32,float64,u8}；invalid_policy 描述无效值语义（如 nan_or_support_le_0）。",
+      "properties": {
+        "plane_id": {
+          "type": "string",
+          "enum": ["signal", "support", "variance", "ivar", "mask"]
+        },
+        "units": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "dtype": { "enum": ["float32", "float64", "u8"] },
+        "invalid_policy": { "type": "string", "minLength": 1, "maxLength": 128 }
+      }
+    },
+    "product_content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "content_schema",
+        "coordinate",
+        "geometry",
+        "planes",
+        "invalid_policy"
+      ],
+      "properties": {
+        "content_schema": {
+          "const": "astrocs.phase-product-content/v1",
+          "description": "product_content 块结构标识。"
+        },
+        "coordinate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["frame", "ra_unit", "dec_unit"],
+          "properties": {
+            "frame": {
+              "const": "icrs",
+              "description": "唯一允许坐标 frame：ICRS/equatorial（DATA_SEMANTICS §1；Phase3 输入仅 ICRS，SCI-P3 §3a）。galactic/ecliptic 显式拒绝。"
+            },
+            "ra_unit": { "const": "deg" },
+            "dec_unit": { "const": "deg" }
+          },
+          "description": "天空坐标声明：ICRS，度（RA 0..360 / Dec -90..90）。"
+        },
+        "geometry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["format"],
+          "properties": {
+            "format": { "enum": ["hips", "fits"] },
+            "hips": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ordering", "tile_width"],
+              "properties": {
+                "ordering": { "const": "nested" },
+                "tile_width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "HiPS tile 宽；NESTED 唯一（DATA_SEMANTICS §2）；512 默认（leaf_order=tile_order+9）。"
+                }
+              },
+              "description": "HiPS 几何（phase1/phase2 产品）。"
+            },
+            "fits": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["projection", "wcs"],
+              "properties": {
+                "projection": { "const": "TAN", "description": "alpha 冻结输出投影仅 TAN（SCI-P3 §9a.3）。" },
+                "wcs": { "const": "present", "description": "合法 FITS-WCS header（CTYPE RA---TAN/DEC--TAN、CUNIT=deg、CRPIX/CRVAL/CD-only，1-based）。" }
+              },
+              "description": "平面 FITS 几何（phase3 产品）。"
+            }
+          },
+          "description": "format 必须与 product_role 匹配：phase1/phase2 → hips；phase3 → fits（role↔format 绑定见兼容矩阵）。"
+        },
+        "planes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/plane" },
+          "uniqueItems": true,
+          "description": "平面声明数组，每平面必须显式 units/dtype/invalid_policy。至少含产品核心平面（见各 role 最小平面集）。"
+        },
+        "invalid_policy": {
+          "type": "string",
+          "enum": ["nan_or_support_le_0"],
+          "description": "无效值全局策略：NaN 或 support<=0 视为无效（DATA_SEMANTICS §4；无有效样本必须显式 status，禁止静默输出 0/±Inf）。"
+        }
+      },
+      "description": "产品内容证据块。"
+    }
+  }
+}

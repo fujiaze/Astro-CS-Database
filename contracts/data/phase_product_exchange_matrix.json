@@ -1,0 +1,141 @@
+{
+  "matrix_schema": "astrocs.phase-product-exchange-matrix/v1",
+  "matrix_version": 1,
+  "title": "AstroCS 三阶段产品交换兼容矩阵 (DATA-002 冻结)",
+  "frozen_at": "2026-09-02T00:00:00Z",
+  "owner": "SA-DATA-06",
+  "doc_ref": "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md",
+  "normative_rule_doc_ref": "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md",
+  "exchange_medium": {
+    "mode": "disk_only",
+    "rule_id": "R-DISK-ONLY",
+    "rule": "跨 Phase 仅磁盘交换：任一 Phase 进程只接受另一 Phase 通过原子发布 + 完整 manifest（hash/provenance）产生的磁盘产品；禁止进程内对象/句柄/run 上下文直传，禁止单进程自动串联（约束 A4/A6，RT-002 phase-isolated runtime）。exchange 对象中的 artifact_manifest.run.run_id 仅溯源，绝不作为接收方进程内匹配依据。"
+  },
+  "no_run_id_dependency": {
+    "rule_id": "R-NO-RUN-BINDING",
+    "rule": "接收方（Phase2 消费 Phase1 产品、Phase3 消费任一兼容 HiPS）不得要求输入 artifact 的 producer.run.run_id / artifact_id 与自身 run/session 相同或可解析；消费资格仅依据 manifest 完整性（COMPLETE + content_digest=sha256）+ 内容证据（units/coordinate/dtype/planes/invalid 显式声明）。Phase2 不要求 Phase1 run ID；Phase3 不要求输入来自 Phase2。"
+  },
+  "no_implicit_name_binding": {
+    "rule_id": "R-NO-NAME-BINDING",
+    "rule": "无隐式 artifact name binding：输入资格、角色识别、单位/坐标/平面语义绝不根据文件名、目录名、storage_uri 尾段或任何路径猜测；产品角色由 exchange.product_role + artifact_manifest.type_id（schema 层约束一致）判定；科学内容语义只来自 manifest 与 product_content 显式字段。artifact_id 是稳定标识但不是输入资格或语义来源。"
+  },
+  "evidence_requirements": {
+    "rule_id": "R-EVIDENCE-REQUIRED",
+    "rule": "交换对象必须具备：artifact_manifest（DATA-001 完整字段，status=COMPLETE，content_digest 为 sha256/64hex）、type_id↔schema_version 与注册表一致、product_content 显式声明 units/coordinate/dtype/planes/invalid_policy。缺 manifest / 缺 content_digest / 缺 schema（role↔type 不一致或未登记）/ 缺 units（plane 无 units 或 product_content 缺失）任一 → 拒绝（不得静默猜测补缺）。"
+  },
+  "roles": [
+    {
+      "role": "phase1_product_v1",
+      "type_id": "astrocs.phase1.frame_hips.v1",
+      "registry_schema_version": 1,
+      "producer_phase": "phase1",
+      "consumer_phases": ["phase2"],
+      "content_format": "hips",
+      "min_planes": ["signal", "support", "variance", "mask"],
+      "content_summary": "Phase1 输出：单帧标准化 HiPS（properties + FITS tiles + SCI/variance/support/mask + frame metadata）+ manifest/hash。Phase2 可消费；Phase3 亦可将任一合同兼容 HiPS 作为输入（见 phase3 输入）。"
+    },
+    {
+      "role": "phase2_mosaic_v1",
+      "type_id": "astrocs.phase2.mosaic_hips.v1",
+      "registry_schema_version": 1,
+      "producer_phase": "phase2",
+      "consumer_phases": ["phase3"],
+      "content_format": "hips",
+      "min_planes": ["signal", "support", "mask"],
+      "content_summary": "Phase2 输出：马赛克 HiPS + UPM/rejection/integration provenance + planes + manifest/hash。Phase3 可消费。"
+    },
+    {
+      "role": "phase3_planar_fits_v1",
+      "type_id": "astrocs.phase3.planar_fits.v1",
+      "registry_schema_version": 1,
+      "producer_phase": "phase3",
+      "consumer_phases": ["external"],
+      "content_format": "fits",
+      "min_planes": ["signal", "support", "mask"],
+      "content_summary": "Phase3 输出：平面 FITS（SCI/SUPPORT/MASK + WCS + provenance + checksum）。外部消费。"
+    }
+  ],
+  "compatibility_edges": [
+    {
+      "edge_id": "E-P1-OUT-P2-IN",
+      "from_role": "phase1_product_v1",
+      "to_role": "phase2_input",
+      "direction": "phase1_output -> phase2_input",
+      "medium": "disk",
+      "rule_ids": ["R-DISK-ONLY", "R-NO-RUN-BINDING", "R-NO-NAME-BINDING", "R-EVIDENCE-REQUIRED"],
+      "note": "Phase2 输入集合 = 任意数量合同兼容 frame HiPS。帧数由输入集合决定，Phase2 不要求 Phase1 run ID / session 可解析（不依赖同一进程内上下文）。"
+    },
+    {
+      "edge_id": "E-P2-OUT-P3-IN",
+      "from_role": "phase2_mosaic_v1",
+      "to_role": "phase3_input",
+      "direction": "phase2_output -> phase3_input",
+      "medium": "disk",
+      "rule_ids": ["R-DISK-ONLY", "R-NO-RUN-BINDING", "R-NO-NAME-BINDING", "R-EVIDENCE-REQUIRED"],
+      "note": "Phase3 接受任一合同兼容 HiPS（phase2 mosaic 或 phase1 frame），两者同为 hips 格式且 frame=ICRS；Phase3 不要求输入由 Phase2 产生。"
+    },
+    {
+      "edge_id": "E-P1-OUT-P3-IN",
+      "from_role": "phase1_product_v1",
+      "to_role": "phase3_input",
+      "direction": "phase1_output -> phase3_input (any compatible hips)",
+      "medium": "disk",
+      "rule_ids": ["R-DISK-ONLY", "R-NO-RUN-BINDING", "R-NO-NAME-BINDING", "R-EVIDENCE-REQUIRED"],
+      "note": "phase3 输入 = 任一合同兼容 HiPS（phase1 frame 或 phase2 mosaic，或 external_fixture HiPS），无 producer 归属限制。"
+    },
+    {
+      "edge_id": "E-FIXTURE-P3-IN",
+      "from_role": "external_fixture",
+      "to_role": "phase3_input",
+      "direction": "external_fixture -> phase3_input",
+      "medium": "disk",
+      "rule_ids": ["R-DISK-ONLY", "R-NO-RUN-BINDING", "R-NO-NAME-BINDING", "R-EVIDENCE-REQUIRED"],
+      "note": "Phase3 可接受外部 fixture：origin=external_fixture 的交换对象（AstroCS 之外生成但完整满足证据要求）。origin=external_fixture 允许 artifact_manifest.run.phase=phase3 自述（fixture 生成进程），但不得携带 / 依赖任何 AstroCS phase run 内部标识。验收 D2：Phase3 接受外部 fixture。"
+    },
+    {
+      "edge_id": "E-P2-IN-NO-RUN-BIND",
+      "from_role": "phase1_product_v1",
+      "to_role": "phase2_input",
+      "direction": "phase2 输入不要求 Phase1 run ID 匹配",
+      "medium": "disk",
+      "rule_ids": ["R-NO-RUN-BINDING"],
+      "note": "验收 D3：Phase2 不要求 Phase1 run ID。"
+    },
+    {
+      "edge_id": "E-P3-OUT-EXT",
+      "from_role": "phase3_planar_fits_v1",
+      "to_role": "external_consumer",
+      "direction": "phase3_output -> external consumer",
+      "medium": "disk",
+      "rule_ids": ["R-EVIDENCE-REQUIRED"],
+      "note": "Phase3 输出面向外部消费（平面 FITS + WCS/coverage/validity/provenance）。"
+    }
+  ],
+  "rejection_conditions": [
+    {
+      "rejection_id": "X-NO-MANIFEST",
+      "rule_ids": ["R-EVIDENCE-REQUIRED"],
+      "condition": "交换对象缺 artifact_manifest（或缺 DATA-001 必填字段）→ 拒绝。验收 D4a：缺 manifest 拒绝。"
+    },
+    {
+      "rejection_id": "X-NO-HASH",
+      "rule_ids": ["R-EVIDENCE-REQUIRED"],
+      "condition": "manifest 缺 content_digest（或非 sha256/64hex）→ 拒绝。验收 D4b：缺 hash 拒绝。"
+    },
+    {
+      "rejection_id": "X-NO-SCHEMA",
+      "rule_ids": ["R-EVIDENCE-REQUIRED"],
+      "condition": "type_id 未登记于 artifact_types.registry.json，或 role↔type_id↔schema_version 不一致 → 拒绝。验收 D4c：缺 schema 拒绝。"
+    },
+    {
+      "rejection_id": "X-NO-UNITS",
+      "rule_ids": ["R-EVIDENCE-REQUIRED"],
+      "condition": "product_content 缺失，或任一必需 plane 缺 units（或 units 为空/占位）→ 拒绝。验收 D4d：缺 units 拒绝。"
+    },
+    {
+      "rejection_id": "X-NAME-BINDING",
+      "rule_ids": ["R-NO-NAME-BINDING"],
+      "condition": "任何把 artifact 语义绑定到 artifact_id/storage_uri/文件名的尝试（validator 拒绝以路径派生态）→ 拒绝。validator 不读取任何文件内容/路径；只校验交换对象文档字段。"
+    }
+  ]
+}
