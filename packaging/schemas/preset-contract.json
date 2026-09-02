@@ -1,0 +1,64 @@
+{
+  "contract_version": 1,
+  "description": "AstroCS BLD-001 frozen toolchain contract (09_WINDOWS_TOOLCHAIN_LOCK.md). Single source of truth read by cmake/toolchain/verify_toolchain.py. The formal Windows surface (CMakePresets.json windows presets + packaging/windows/.vsconfig) must match every field below exactly; drift fails fast with a non-zero exit. This file is NOT a CMake presets schema: CMakePresets.json is validated by CMake itself (schema version 10) at parse/configure time.",
+  "windows": {
+    "formal_generator": "Visual Studio 17 2022",
+    "architecture": "x64",
+    "toolset": "v143",
+    "toolset_version": "14.44.35207",
+    "compiler_family": "19.44",
+    "sdk_version": "10.0.26100.0",
+    "sdk_servicing_bundle": "10.0.26100.9169",
+    "cmake_version": "3.31.12",
+    "vs_buildtools_version": "17.14.39",
+    "vs_installationVersion": "17.14.37614.0",
+    "vs_installation": "C:/AstroCS/toolchains/vs2022-17.14.39",
+    "cpp_standard": 17,
+    "crt_debug": "/MDd",
+    "crt_release": "/MD",
+    "configs": [
+      "Debug",
+      "RelWithDebInfo",
+      "Release"
+    ]
+  },
+  "forbidden": {
+    "evergreen": [
+      "latest",
+      "evergreen",
+      "aka.ms"
+    ],
+    "mingw_msys": [
+      "mingw",
+      "msys"
+    ],
+    "vs2026": [
+      "vs2026",
+      "Visual Studio 18"
+    ],
+    "future_toolset": [
+      "v144",
+      "v145"
+    ],
+    "ninja_generator": [
+      "Ninja",
+      "ninja"
+    ],
+    "non_x64_arch": [
+      "Win32",
+      "ARM64",
+      "ARM"
+    ],
+    "static_crt": [
+      "/MT"
+    ]
+  },
+  "preset_names": {
+    "windows_formal": "win-msvc-17.14.39-x64",
+    "linux_light": "linux-control"
+  },
+  "linux_light": {
+    "role": "light validation only; NOT a release artifact and NOT a Windows driver",
+    "generator_policy": "never overrides the Windows formal generator; never hardcodes a forbidden generator on the Linux control node"
+  }
+}
