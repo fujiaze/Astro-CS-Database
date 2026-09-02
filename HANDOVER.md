@@ -1,98 +1,96 @@
-# AstroCS 项目交接文档
+# AstroCS 项目交接文档（HANDOVER）
 
-**更新**: 2026-08-15（V18R2 资源驱动性能优化 + 代码收尾）
-**分支**: main ｜ **HEAD**: `77fc48e`（V18R2 性能提交）
+> 更新：2026-09-02（GOV-005 现状收敛；历史轮次交接内容移入 CHANGELOG 历史节与
+> `docs/archive/history/`，不再在本文件冒充当前状态）。
+> 分支：main ｜ 本交接基线 HEAD：`6affe3009985452f5bc0bdf654aa95a4b61b2d2e`
+> （`docs(owner): GOV-004 建立负责人审查入口`；后续集成由前台在 main 串行推进）。
+> 权威：根 `AstroCS_ENGINEERING_CONSTRAINTS.md`（冻结约束）、`REVIEW.md` +
+> `docs/owner/`（L0 负责人入口）、`docs/` 分层文档体系；本文件只做交接定位，
+> 不复制权威内容。
 
 ## 1. 项目总览
 
-AstroCS 是天体图像处理内核（C++17/DLL）：将真实 FITS 经校准、plate
-solve、PSF、测光、SNR、Drizzle 投影为标准化 IVOA HiPS 球面数据库，
-再由 Phase2 以 UPM 全局校准 + 稳健排异 + 加权积分生成连续马赛克。
+AstroCS 是天文 CCD 图像校准与标准化数据库系统：Phase1 把单帧 FITS 经校准/
+定标/星点/WCS/测光/噪声/SNR/Drizzle 建成标准化 IVOA HiPS（signal/variance/
+ivar/snr/support + manifest）；Phase2 把一组合同兼容 HiPS 经 UPM 联合光度模型
+（背景稳健采样、Huber、ivar 科学权重）叠加为马赛克 HiPS；Phase3 把任一合同
+兼容 HiPS 投影为平面 FITS（WCS/coverage/validity/provenance）。三 Phase 是
+隔离命令，跨 Phase 仅磁盘产品交换（DATA-002）。
 
 - 主仓库: https://github.com/fujiaze/Astro-CS-Database
-- Wiki: https://github.com/fujiaze/Astro-CS-Database.wiki.git（独立 submodule）
-- 权威规范: `工程控制/` + `docs/`；代码唯一修改入口 `lib/`
-- 运行产物统一写 `run/`；原始数据只读 `testdata/`
+- 产品版本唯一源：根 `VERSION` = `0.11.0-alpha.1`（GOV-003）；
+  生成串 `0.11.0-alpha.1+g<commit12>`（docs/governance/VERSION_NAMESPACES.md）。
+- 权威文档：`docs/`（L0–L5）+ `AstroCS_ENGINEERING_CONSTRAINTS.md`；
+  唯一产品构建入口：根 `CMakeLists.txt`（BLD-002）。
+- 正式平台 Windows x64；Linux amd64 为控制/静态分析/轻量编译节点（约束 §B）。
 
-## 2. 生产入口（唯一）
+## 2. 生产入口（当前基线）
 
 ```text
-Phase1  : lib/orchestrator/cpp/orchestrator.exe <stage1.json>
-Phase2  : lib/phase2/tools/astrocs-stage2.exe <stage2.json>
-Browser : lib/healpix_db/healpix_browser_qt/healpix_browser_qt.exe
-工具链  : toolchain.ps1（check/build/run/review）
+构建   : 根 CMakeLists.txt（Windows preset win-msvc-17.14.39-x64 / Linux linux-control）
+命令   : astrocs phase1 run --config <path>
+          astrocs phase2 run --config <path>
+          astrocs phase3 run --config <path>
+          astrocs verify / doctor / benchmark cpu（docs/api/CLI_PROTOCOL_V1.md）
+遗留   : astrocs run --phases 1,2,3 仍在 cli 中（与约束 §A.4 冲突，W4 待删，见 §6）
 ```
 
-## 3. 当前状态（V18R2，2026-08-15）
+> 旧轮次入口（`lib/orchestrator/cpp/orchestrator.exe`、`astrocs-stage2.exe`、
+> `healpix_browser_qt.exe`、`toolchain.ps1 run` 等）是历史时代产物（旧 V 轮次），
+> 当前基线已迁至唯一 `astrocs` CLI + 根 CMake；历史细节见 CHANGELOG 历史节与
+> `docs/archive/history/`，不冒充当前入口。
 
-### 性能（资源驱动，before 冻结基线 129.7/126.1/126.65s）
+## 3. 当前状态（2026-09-02，GOV-005 基线；权威口径见 docs/owner/RELEASE_STATUS.md）
 
-```text
-最终完整 16 帧 wall median 67.35s（-47%），16/16 rc=0
-RSS 峰值 37.5GB → 1.2GB（-97%）
-进程退出延迟 40s → 0.7s
+- 合同面（工程约束/文档边界/版本单源/ABI v1/数据产物/三阶段交换合同/Runtime 图/
+  Windows 工具链 preset/DLL 边界 schema/结构化日志/FITS 流式接口/L0 入口）已
+  冻结入 main（PASS，静态可核；各集成验收由前台在各自集成提交执行）。
+- 执行面未完成（NOT_VERIFIED，如实）：Windows DLL 化发布安装树（astrocs.exe +
+  runtime/io/科学模块/provider DLL）未产出/验证；MSVC 编译/测试与真实数据
+  （BASS/32R/接缝）最终验收未跑（Fatduck 侧）；Phase3 SIN/ZEA/CAR/AIT 投影、
+  `healpix_interp4`、流式 FITS 输出接入不在当前基线。
+- 发布结论：NOT_READY_FOR_RELEASE（未到 READY_FOR_OWNER_REVIEW；发布裁定权
+  只在项目负责人，约束 §H）。
 
-关键修复（根因）：
-  - gaia 极区查询 RA 环绕 bbox 退化 → 全树遍历 16.3GB/13s/查询
-    → 极投影平面剪枝：35MB/0.03s，星集 899/899 逐颗一致
-  - spectrum 查询同病（PHOTOMETRIC 17.8s → <1s）
-  - Drizzle：fine profiler 门控、thread-local scratch、行级 Vec3 缓存、
-    安全余量 dot 预判、run constants、4 角 boundary array
-  - HiPS：dtype scratch 复用、hierarchy NESTED 直通
-  - SNR model RAII（消除 HiPS-only 路径 malloc 泄漏）
-```
-
-### 代码收尾（V18R2 已提交）
+## 4. 模块地图（权威：docs/architecture/MODULE_MAP.md、docs/modules/*.md）
 
 ```text
-SHA-256 归一化到 lib/common/crypto（删除 orchestrator + ACR 3 份重复实现）
-lib/data_pipeline 删除（canonical = astro_image_io PipelineFrame）
-drizzle omp_set_num_threads → parallel num_threads 子句（无全局副作用）
-orchestrator logger 默认路径清理（run/logs 由 config 注入）
-```
-
-## 4. 模块地图
-
-```text
-lib/common            HEALPix core（唯一 NESTED 映射）、crypto（唯一 SHA-256）
-lib/astro_image_io    FITS/XISF/HiPS 读写（唯一 I/O）、PipelineFrame
-lib/calibration       master bias/dark/flat
-lib/plate_solve/cpp/ipv  plate solve（ipv_solver.dll + star_detector）
-lib/gaia_xpsd_client  Gaia DR3/DR3SP 本地 mmap 查询（XPSD）
-lib/dynamic_psf       PSF 拟合
-lib/photometric_calib 测光校准（GaiaDR3SP 光谱）
-lib/snr_estimator     SNR catalogue
-lib/healpix_db/healpix_drizzle  Drizzle（order-7 HiPS 直写）
-lib/healpix_db/healpix_browser_qt  HiPS 浏览器
-lib/phase2            UPM/采样/排异/积分/马赛克（astrocs-stage2）
-lib/acr               异构计算基座（KernelRegistry 后端；同一科学 contract）
-lib/star_detector     星点检测（SDET）
+产品骨架   cli/（astrocs 可执行源）；lib/core（runtime/类型化运行图/模块注册表）；
+           lib/io（IO-001）；lib/common（sha256/HEALPix）；modules/services/io
+阶段会话   lib/phase1_session / lib/phase2_session / lib/phase3_session
+科学模块   lib/astro_image_io、calibration、dynamic_psf、star_detector、
+           plate_solve、photometric_calib、snr_estimator、gaia_xpsd_client、
+           healpix_db（healpix_drizzle + healpix_browser_qt）、phase2、
+           orchestrator、acr（dormant）
+公共接口   include/astrocs/（contracts/abi/core/io）；contracts/（data-schema）
+运行图     runtime/（typed_dag、artifact_store；RT-001）
 ```
 
 ## 5. 数据与外部依赖
 
 ```text
-testdata/     7 数据集、710 亮场、27 母版（只读）
-GaiaDR3/      41.9GB 星表（本地，gitignored，禁止删除）
-GaiaDR3SP/    64.7GB 光谱 XPSD（本地，gitignored，禁止删除）
-BASS DR3/     BASS DR3 备用数据集索引（China-VO 镜像，直连无代理；
-              downloads/ 未存在；V19 才下载实测）
-siril-1.4.3/  Siril 源码（oracle 参考，GPL ORACLE ONLY）
+testdata/    测试数据（只读）
+BASS DR3/    BASS DR3 备用数据集索引（真实数据验收待 Windows/Fatduck 阶段）
+lib/astro_image_io/third_party/cfitsio   vendored CFITSIO（显式源清单，BLD-001）
 ```
 
-## 6. 冻结与待办
+> 真实数据（GaiaDR3/GaiaDR3SP/BASS）大体积文件本地化且 gitignored，不进入仓库
+> 与发布包；32R/真实数据最终验收按约束 §E.5 只在最终候选提交 Windows 上执行一次。
 
-```text
-已冻结：Phase1 基础算法（V14 后）、Phase2 排异/积分语义（V17）、
-        WBPP 2.9.1 路由政策、HiPS 序列化（V11）
-V18R2 完成：性能收尾（资源驱动）+ 代码收尾（重复实现/API/docs）
-V19 计划（未执行）：GC/t4/16-exposure 回归、2×2/3×3 合成、
-        BASS real 2×2/3×3、最终 foundation freeze
-```
+## 6. 冻结与待办（如实）
+
+- 已冻结：工程约束（GOV-001）、文档边界/归档（GOV-002）、产品版本单源
+  （GOV-003）、L0 负责人入口（GOV-004）、ABI v1 / DATA-001/002 / RT-001 /
+  LOG-001 / ARC-001 / BLD-001/002 / IO-001 合同面。
+- 待办（按控制包任务图 Wave）：W3 模块 DLL 迁移（§F.1 每节点唯一 operation）；
+  W4 删除遗留 `run --phases 1,2,3` 与伪/旧路由；W5 Linux 验证；W6 Windows 正式
+  验证（DLL 发布树 + MSVC + 32R/真实数据）；W7 文档收敛；W8 独立终审。
+- 开放问题清单：根 memory.md §5（与 REVIEW/docs/owner 同口径）。
 
 ## 7. 历史与归档
 
-```text
-历史控制包/审核包归档在 archive_deliverables/（ACR 包禁止删除）
-审核包命名：AstroCS_Review_<主题>_<版本>.zip
-```
+- 历史轮次（V1–V19/V18R2/V19R2/V19R8/V19R6R2-W1、旧 11 子仓结构、旧 F 盘路径、
+  旧 16 线程约定、Python 调 DLL 时代）只存在于 CHANGELOG.md 历史节与
+  `docs/archive/**`、`engineering/control/archive/**`（ARCHIVED_NON_NORMATIVE）。
+- 历史操作记忆本体：`docs/archive/history/memory_V18R2-V19_operational_log_2026-08-21.md`。
+- 归档不删除、不冒充现状；追溯用途见 `docs/archive/history/README.md`。

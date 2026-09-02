@@ -1,5 +1,55 @@
 # AstroCS Changelog
 
+## [0.11.0-alpha.1] 2026-09-02 — Current Alpha（GOV-005 文档收敛基线）
+
+> 当前产品版本节：根 `VERSION` = `0.11.0-alpha.1`（GOV-003 唯一源；生成串
+> `0.11.0-alpha.1+g<commit12>`）。本节记录当前 alpha 集成事实；历史轮次节
+> （下方 V19R8…V12）仅供追溯，不冒充当前状态（约束 §F.8 / VERSION_NAMESPACES
+> history 命名空间）。基线提交 `6affe3009985452f5bc0bdf654aa95a4b61b2d2e`。
+
+### GOV-001 → GOV-005 治理链（W0/W1 集成，均 scientific_change=NO）
+
+- GOV-001 冻结 Alpha 工程约束：`AstroCS_ENGINEERING_CONSTRAINTS.md` 入 main。
+- GOV-002 文档边界与归档：`docs/DOCUMENT_INDEX.yaml`；854+27 文件迁
+  `engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/` 与
+  `docs/archive/`。
+- GOV-003 产品版本单源：根 `VERSION` = `0.11.0-alpha.1`；五个版本命名空间
+  （product/module/ABI/data-schema/doc-revision + history 受管空间）；
+  CMake/CLI 生成链。
+- GOV-004 L0 负责人入口：`REVIEW.md` + `docs/owner/`（SCIENCE/PIPELINE/
+  ARCHITECTURE/RELEASE_STATUS/CHANGE_REVIEW）。
+- GOV-005（本提交）旧现状清理与记忆收敛：
+  - README/HANDOVER 重写：移除 V18/V19/F 盘/旧 exe/旧线程数/旧仓库形态等
+    stale-active 表述，指向当前约束/L0/docs 权威；
+  - memory.md 收敛为只含稳定目标、当前 SHA/版本、模块索引、开放问题；
+    原 2256 行操作日志归档至
+    `docs/archive/history/memory_V18R2-V19_operational_log_2026-08-21.md`
+    （ARCHIVED_NON_NORMATIVE，含 ARCHIVED 头与替代链接）；
+  - `docs/DOCUMENT_INDEX.yaml`：base_product_version 收敛为 `0.11.0-alpha.1`，
+    登记新增归档文件；`docs/archive/history/README.md` 补登记；
+  - 验收：控制包 `validators/validate_docs.py`（--candidate-root）与三个
+    doccheck 检查器全 PASS（详见 returns/GOV-005）。
+
+### 同波合同面集成（GOV 之外，供追溯）
+
+- ABI-001 C ABI v1 / ARC-001 DLL 边界 schema / LOG-001 结构化日志 /
+  DATA-001 类型化产物 / RT-001 类型化运行图 / DATA-002 三阶段产品交换 /
+  BLD-001 Windows 工具链 preset / BLD-002 唯一根 CMake / IO-001 FITS 流式接口
+  / ABI-002 / RT-002（提交链见 `docs/owner/CHANGE_REVIEW.md` §1）。
+
+### 未完成 / 未验证（如实，详见 docs/owner/RELEASE_STATUS.md 与 memory.md §5）
+
+- Windows DLL 化发布安装树、MSVC 编译/测试/32R/真实数据最终验收：NOT_VERIFIED。
+- Phase3 SIN/ZEA/CAR/AIT、`healpix_interp4`、流式 FITS 接入：不在基线（NOT_VERIFIED）。
+- 遗留 `astrocs run --phases 1,2,3`：FAIL（未删，冲突约束 §A.4，W4 范围）。
+- 约束 §F.1 每节点唯一真实模块 operation：进行中/未达成（W3/W4）。
+- 版本收敛他人路径遗留（docs/VERSIONING.md、CMake project 字面量、tests/tools
+  硬编码）：check_version_namespaces.py `out_of_scope` 登记，待前台/QA 协调。
+
+---
+<!-- 以下为历史轮次节（history 命名空间）：V1–V19/V18R2/V19R2/V19R8 等，
+     仅供追溯，不代表当前状态。 -->
+
 ## [V19R8 Quality Closure 94/95] 2026-08-22 vm-bj — B4 28/28 + B5 8/8 + C 11/11 + D 4/6 (D-01/02 PASS, D-04 22files SHA 22/22 OK, D-05 clean HEAD)
 - Evidence: c02 39/39 noise, c03 4000MC 8/8 variance (p50=1.001), c04 79/10 phase2 35.7s, c05 28/28 pipeline, c10 smoke 28/28, machine 9/9, build 0 warnings
 

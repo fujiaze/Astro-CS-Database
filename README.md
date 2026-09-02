@@ -1,54 +1,73 @@
-# AstroCS Normalization Database
+# AstroCS — 天文 CCD 图像校准与标准化数据库
+
+> 目标产品：`0.11.0-alpha.1`（根 `VERSION`，GOV-003 唯一源）。
+> 当前基线提交：`6affe3009985452f5bc0bdf654aa95a4b61b2d2e`（GOV-005 工作树检出基）。
+> 负责人入口：`REVIEW.md` + `docs/owner/`（L0，GOV-004）；现状/发布口径见
+> `docs/owner/RELEASE_STATUS.md` 与 `docs/KNOWN_LIMITATIONS.md`。
+> 本 README 只给项目定位与入口，不复制权威文档内容；科学/算法/架构/发布权威
+> 见 `docs/` 分层体系与 `AstroCS_ENGINEERING_CONSTRAINTS.md`（根冻结约束）。
 
 ## 是什么
 
-天文 CCD 图像校准与标准化数据库系统：Phase1 把单帧 FITS 经校准/定标/
-Drizzle 建成标准 IVOA HiPS（signal/support/variance/ivar/snr）；Phase2
-把多帧 HiPS 经 UPM 联合光度模型（background-clean 采样、稳健 Huber、
-ivar 科学权重）叠加为无缝马赛克。
+AstroCS 是天文 CCD 图像校准与标准化数据库系统。产品模型（约束 §A）为三个隔离
+命令，不是固定顺序流水线：
 
-**当前状态 (V19R2)**: `PRE_RELEASE_ENGINEERING_FOUNDATION=PASS`;
-`FINAL_REAL_DATA_VALIDATION=PENDING`。SNR/Noise 按三层模型科学重构
-(SNR-001..015), Drizzle 已实现方差传播与操作计数, Phase2 默认 ivar 权重,
-全仓逐文件审计/可追溯冻结已闭环（详见 reports/v19r2/）。
+- **Phase1**：单帧 light + masters/catalog/config → 单帧标准化 IVOA HiPS + manifest
+  （校准/定标/星点/WCS/测光/噪声/SNR/Drizzle/投影）。
+- **Phase2**：任意一组合同兼容 HiPS → 马赛克 HiPS + UPM/rejection/integration
+  provenance（联合光度模型、稳健排异、ivar 加权叠加）。
+- **Phase3**：任一合同兼容 HiPS（不要求来自 Phase2）→ 平面 FITS +
+  WCS/coverage/validity/provenance。
 
-## 输入 / 输出
+阶段间只通过原子发布、哈希与 provenance 完整的磁盘产品/manifest 交换
+（DATA-002）。正式平台为 Windows x64（用户只面对 `astrocs.exe`，运行时/I/O/
+科学模块/CPU provider 以 DLL 交付）；Linux amd64 仅作控制/静态分析/轻量编译/
+小合成节点（约束 §B）。ACR 为 DORMANT（生产构建默认排除，§C）。
 
-- Phase1 输入：lights FITS + masterBias/Dark/Flat + GaiaDR3/DR3SP 星表；
-  输出：单帧 HiPS（signal/support/snr + V19 variance/ivar）。
-- Phase2 输入：Phase1 输出（≥2 帧）；输出：马赛克 HiPS。
+## 当前状态（如实，详见 docs/owner/）
 
-## 生产 CLI
+- Alpha 架构收敛进行中：工程约束/文档边界/版本单源/ABI v1/数据产物/Runtime 图/
+  Windows 工具链 preset/DLL schema/FITS 流接口已冻结入 main（合同面 PASS）。
+- Windows DLL 化发布安装树、MSVC 编译/测试/32R/真实数据最终验收未完成
+  （NOT_VERIFIED）；Phase3 SIN/ZEA/CAR/AIT、`healpix_interp4`、流式 FITS 接入
+  未实现（NOT_VERIFIED）。当前状态 **NOT_READY_FOR_RELEASE**。
+- 遗留 `astrocs run --phases 1,2,3` 进程内连跑与约束 §A.4 冲突，未删除
+  （FAIL，W4 范围）；约束 §F.1 每节点唯一模块 operation 未达成（W3/W4）。
+  以上均如实登记于 REVIEW/docs/owner，不冒充已实现。
 
-```powershell
-.\toolchain.ps1 check | build
-.\toolchain.ps1 run <stage1.json>      # Phase1
-lib\phase2\build\astrocs-stage2.exe <stage2.json>   # Phase2
-lib\healpix_db\healpix_browser_qt\build\healpix_browser_qt.exe --hips <root>
+## 仓库布局（模块索引权威：docs/architecture/MODULE_MAP.md、docs/modules/）
+
+```text
+cli/                    astrocs CLI（phase1/2/3 run、verify、doctor 等；唯一可执行源）
+lib/core lib/io         运行时/类型化运行图/模块注册表；IO-001 流式 FITS 适配
+lib/common              sha256 / HEALPix core
+lib/phase{1,2,3}_session 三阶段会话实现（p1/p2/p3_session）
+lib/<module>/           科学模块树（astro_image_io/calibration/dynamic_psf/
+                        star_detector/plate_solve/photometric_calib/snr_estimator/
+                        gaia_xpsd_client/healpix_db/phase2/orchestrator/acr）
+modules/services/io     IO-001 流式 FITS 模块服务（头 + 自测）
+include/astrocs         公共头（contracts/abi/core/io）
+contracts/              类型化产物/data-schema/module_dll_contract schema
+docs/                   文档体系（science/algorithms/architecture/standards/
+                        modules/contracts/owner/governance/...）
+runtime/                运行图/artifact_store/typed_dag 等（RT-001）
+engineering/control/archive/  历史控制包归档（GOV-002）
 ```
 
-## 数据语义 / 冻结状态 / 测试 / 基准
+## 快速入口
 
-- 数据语义：`docs/contracts/DATA_SEMANTICS.md`（唯一权威）
-- 接口：`docs/contracts/PUBLIC_API.md`
-- 配置：`docs/development/CONFIG_SCHEMA.md`
-- 科学冻结：`docs/validation/SCIENCE_FREEZE.md`
-- 测试：`docs/development/TESTING.md`
-- 性能：`docs/performance/BASELINE.md` / `OPTIMIZATION.md`
-- 浏览器：`docs/browser/HIPS_BROWSER.md`
-- 下一阶段：`docs/backlog/NEXT_STAGE.md`
+- 构建入口：根 `CMakeLists.txt`（唯一 `project(astrocs)`，BLD-002）；
+  Windows preset `win-msvc-17.14.39-x64` / Linux `linux-control`（CMakePresets.json）。
+- 命令面：`astrocs phase1/2/3 run --config <path>`（docs/api/CLI_PROTOCOL_V1.md）。
+- 文档：`docs/README-DOCS.md`（L0–L5 分层）、`docs/DEVELOPER_GUIDE.md`、
+  `docs/RELEASE_STATUS.md`、`docs/KNOWN_LIMITATIONS.md`。
+- 记忆：根 `memory.md`（唯一项目记忆：稳定目标/当前 SHA/版本/模块索引/开放问题）。
+- 变更历史：`CHANGELOG.md`（含当前 alpha 节；历史轮次节仅供追溯）。
 
-历史 V1–V19 审核过程归档在 `archive_deliverables/` 与工程控制记录，
-不进入本文档。
+## 历史说明
 
-## 文档体系（V19R2 L0-L5）
-
-- 入口：`docs/README-DOCS.md`、`docs/DEVELOPER_GUIDE.md`、
-  `docs/RELEASE_STATUS.md`、`docs/KNOWN_LIMITATIONS.md`、`CHANGELOG.md`
-- 科学规范：`docs/science/`（定义/公式/单位/假设/域/误差/ID）
-- 算法规范：`docs/algorithms/`（输入/输出/不变量/复杂度/oracle）
-- 架构/标准/模块：`docs/architecture/`、`docs/standards/`、`docs/modules/`
-- 数据/接口契约：`docs/contracts/`
-- 追溯矩阵：`docs/TRACEABILITY.csv`
-- 历史：`docs/history/`（V19 扁平文档快照，非 current authority）
-- 变更记录：`CHANGELOG.md`
+V1–V19/V18R2/V19R2/V19R8/V19R6R2-W1 等历史轮次（含旧 11 子仓结构、旧 F 盘路径、
+旧 16 线程约定、Python 调 DLL 时代）不是当前状态：历史只存在于 CHANGELOG.md
+历史节与 `docs/archive/**`、`engineering/control/archive/**`
+（ARCHIVED_NON_NORMATIVE），详见根 memory.md §4 与
+`docs/archive/history/README.md`。
