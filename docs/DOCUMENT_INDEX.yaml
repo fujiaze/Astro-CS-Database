@@ -234,6 +234,9 @@ doc_index:
     - path: "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md"
       status: ACTIVE_NORMATIVE
       notes: "IO-002 HiPS 输入合同（IO-002 集成后补登）"
+    - path: "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md"
+      status: ACTIVE_NORMATIVE
+      notes: "IO-003 原子产物发布合同（IO-003 集成补登）"
     - path: "docs/owner/ARCHITECTURE_OVERVIEW.md"
       status: ACTIVE_NORMATIVE
       notes: "GOV-004 L0 负责人架构总览"
