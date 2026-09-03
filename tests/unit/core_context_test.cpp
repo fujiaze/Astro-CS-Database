@@ -36,13 +36,21 @@ static void test_log() {
 }
 
 static void test_budget_lease() {
+  // RT-003: 真实 ThreadBudget 经 set_budget 注入 (scheduler 语义); 旧
+  // set_thread_budget 仅记录计数, 不再作为伪授权源
+  auto b = create_thread_budget(4);
+  CHECK(b.ok());
   RunContext ctx;
-  ctx.set_thread_budget(4);
+  ctx.set_budget(b.value());
   CHECK(ctx.thread_budget() == 4);
   auto lease = ctx.acquire_lease(8);
-  CHECK(lease.size() == 4);  // 不超过 budget
+  CHECK(lease.size() == 4);  // 超预算请求 cap 到 budget (非伪授权)
   auto lease2 = ctx.acquire_lease(2);
-  CHECK(lease2.size() == 2);
+  // 真实原子预算已用 4/4 → 空租约 (非伪授权 cap)
+  CHECK(!lease2.acquired());
+  { auto _ = std::move(lease); }  // RAII 归还
+  auto lease3 = ctx.acquire_lease(2);
+  CHECK(lease3.size() == 2);
 }
 
 static void test_artifact_store() {
