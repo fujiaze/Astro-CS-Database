@@ -1,5 +1,45 @@
 cmake_minimum_required(VERSION 3.24)
 
+# ══ ACR-001 dormant build guard (SA-ACR-13; 冻结约束 §C.1) ══
+# 约束 AstroCS_ENGINEERING_CONSTRAINTS.md §C.1: ACR 是正式发布后的 CPU/GPU 异构
+# 更新；本轮保留源码、接口与隔离测试，但生产构建/加载/路由/benchmark/发布包
+# 均不得依赖或包含 ACR/CUDA；当前唯一生产计算后端是纯 CPU（§C.2）。
+#
+# 本文件 = ACR 隔离实验树的唯一合法构建入口（standalone）：
+#   * 合法入口: 独立 configure（cmake -S lib/acr -B <dir> [选项]）。此时
+#     CMAKE_SOURCE_DIR == CMAKE_CURRENT_SOURCE_DIR → guard PASS，产出 ACR
+#     实验 targets（acr-* 工具 / acr-test-classic / qualification / tests），
+#     全部位于用户显式指定的独立 build 目录；本文件不含任何 install 规则，
+#     不进入产品安装树/产品 manifest（BLD-003 白名单 install 唯一源 =
+#     cmake/install_layout.cmake，其中无 ACR 条目）。
+#   * 禁止入口: 被生产构建 add_subdirectory() 引入。ACR 含独立 project()、
+#     FetchContent、全局 C++20/输出目录/编译选项设定，并入产品构建图会向生产
+#     泄漏编译标准、编译器选项与第三方依赖解析 → 直接 FATAL（机器负测见
+#     lib/acr/ci/check_acr_dormant.py NEG-ACR-001）。
+#
+# 机器断言（lib/acr/ci/check_acr_dormant.py，ACR-001 验收）：
+#   1) 默认/Release 根 configure target graph 无 ACR target（根 CMakeLists
+#     从不 add_subdirectory 本目录）；
+#   2) release preset（CMakePresets.json win-msvc-17.14.39-x64 / linux-control）
+#      ASTROCS_ENABLE_ACR=OFF（正式路径不接受 ON；cmake/toolchain/
+#      verify_toolchain.py 对 formal path 强制 OFF）；
+#   3) 显式 -DASTROCS_ENABLE_ACR=ON 的根 configure 仍不引入 ACR target ——
+#      ACR 实验树只能独立 configure（本 guard 即隔离实验 target 的机器边界）；
+#   4) install-tree contract / product manifest / install_layout 零 ACR/CUDA 条目。
+if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  message(FATAL_ERROR
+    "ACR-001 guard: lib/acr must be configured STANDALONE "
+    "(cmake -S lib/acr -B <build-dir> ...). "
+    "It must never be add_subdirectory()'d into the product build: its "
+    "project()/FetchContent/global C++20 and output-dir settings would leak "
+    "into the production target graph. "
+    "CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} "
+    "CMAKE_SOURCE_DIR=${CMAKE_SOURCE_DIR}")
+endif()
+message(STATUS "ACR-001 guard PASS: standalone experimental build tree "
+               "(isolated from product build/install/product manifest; "
+               "ACR/CUDA never linked/loaded by production)")
+
 # ACR_BUILD_* 选项（ADR-009 CPU-only build gate）
 option(ACR_BUILD_TESTS        "Build ACR unit tests"               ON)
 option(ACR_BUILD_BENCHMARK    "Build acr-benchmark tool"           ON)
