@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "astrocs://control/traceability-matrix/v1",
+  "title": "AstroCS 模块八层追溯矩阵 (DOC-001)",
+  "description": "每模块一行的机器追溯合同：SCI→ALG→DATA/API/ARCH→MOD/SRC→TEST→EVIDENCE 八层全显式；空缺=显式 MISSING/NONE；禁止空字符串。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "version", "authoring_task", "authoring_owner", "base_main_sha", "modules"],
+  "properties": {
+    "schema": { "const": "astrocs.traceability-matrix/v1" },
+    "version": { "type": "string", "minLength": 1 },
+    "authoring_task": { "const": "DOC-001" },
+    "authoring_owner": { "const": "SA-QA-29" },
+    "base_main_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "module_id", "module_kind", "module_anchor",
+          "science_id", "science_doc", "science_status",
+          "algorithm_id", "algorithm_doc", "algorithm_status",
+          "data_id", "data_status",
+          "api_id", "api_status",
+          "arch_id", "arch_status",
+          "src_id", "src_path", "src_status",
+          "test_id", "test_path", "test_status",
+          "evidence_id", "evidence_status",
+          "notes"
+        ],
+        "properties": {
+          "module_id": { "type": "string", "pattern": "^MOD-[A-Za-z0-9]+(-[A-Za-z0-9]+)*$", "minLength": 1 },
+          "module_kind": { "enum": ["phase1", "phase2", "phase3", "service", "conformance", "provider"] },
+          "module_anchor": { "type": "string", "minLength": 1 },
+          "science_id": { "type": "string", "pattern": "^SCI-[A-Z0-9]+(-[A-Z0-9]+)*$", "minLength": 1 },
+          "science_doc": { "type": "string", "minLength": 1 },
+          "science_status": { "enum": ["VERIFIED", "MISSING"] },
+          "algorithm_id": { "type": "string", "pattern": "^ALG-[A-Z0-9]+(-[A-Z0-9]+)*$", "minLength": 1 },
+          "algorithm_doc": { "type": "string", "minLength": 1 },
+          "algorithm_status": { "enum": ["VERIFIED", "MISSING"] },
+          "data_id": { "type": "string", "pattern": "^DATA-[A-Z0-9]+(-[A-Z0-9]+)*$", "minLength": 1 },
+          "data_status": { "enum": ["VERIFIED", "MISSING", "NONE"] },
+          "api_id": { "type": "string", "pattern": "^API-[A-Z0-9]+(-[A-Z0-9]+)*$", "minLength": 1 },
+          "api_status": { "enum": ["VERIFIED", "MISSING", "NONE"] },
+          "arch_id": { "type": "string", "pattern": "^ARCH-[A-Z0-9]+(-[A-Z0-9]+)*$", "minLength": 1 },
+          "arch_status": { "enum": ["VERIFIED", "MISSING", "NONE"] },
+          "src_id": { "type": "string", "pattern": "^SRC-[A-Z0-9]+(-[A-Z0-9]+)*$", "minLength": 1 },
+          "src_path": { "type": "string", "minLength": 1 },
+          "src_status": { "enum": ["VERIFIED", "MISSING"] },
+          "test_id": { "type": "string", "pattern": "^TEST-[A-Z0-9]+(-[A-Z0-9]+)*$", "minLength": 1 },
+          "test_path": { "type": "string", "minLength": 1 },
+          "test_status": { "enum": ["VERIFIED", "MISSING", "NONE"] },
+          "evidence_id": { "type": "string", "pattern": "^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$", "minLength": 1 },
+          "evidence_status": { "enum": ["VERIFIED", "MISSING"] },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

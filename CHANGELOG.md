@@ -30,6 +30,25 @@
   - 验收：控制包 `validators/validate_docs.py`（--candidate-root）与三个
     doccheck 检查器全 PASS（详见 returns/GOV-005）。
 
+### DOC-001 机器追溯合同（SA-QA-29，wave W1，scientific_change=NO）
+
+- `docs/traceability/TRACEABILITY_SPEC.md`：八层追溯合同标准——ID 格式
+  （SCI/ALG/DATA/API/ARCH/MOD/SRC/TEST/EVID 正则）、唯一性域、跨层
+  parent→child 链（SCI→ALG→DATA/API/ARCH→MOD/SRC→TEST→EVIDENCE）、
+  SOURCE SYMBOL 表达（`path::symbol`）；空缺必须显式 `MISSING`/`NONE`，
+  禁止空字符串通过。
+- `schemas/traceability_matrix.schema.json` + `docs/traceability/TRACEABILITY_LAYERS.csv`：
+  JSON/CSV schema（每层必填、状态取值域、ID pattern、模块行键唯一）。
+- `docs/traceability/TRACEABILITY_MATRIX.json`（权威）+ `TRACEABILITY_MATRIX.csv`
+  （同构视图）：覆盖 25 个已注册模块（services/io、conformance/noop、
+  providers/cpu、22 个 registry phase 模块），每行八层全显式；无科学/算法
+  合同的模块行显式 `SCI-MISSING`/`ALG-MISSING`（不伪 PASS）。
+- `tools/traceability/check_traceability_matrix.py`（机器闭环）：
+  `TRACEABILITY_MATRIX_PASS modules=25 errors=0`；空串/断链/重复/悬空引用
+  输出具体模块与路径并以非 0 退出，不崩溃。
+- 试金石：`tests/traceability/test_traceability_matrix.py` + 六类负面 fixture
+  （空串/断链/重复/悬空/坏 ID/缺列）4 项测试 PASS。
+
 ### 同波合同面集成（GOV 之外，供追溯）
 
 - ABI-001 C ABI v1 / ARC-001 DLL 边界 schema / LOG-001 结构化日志 /

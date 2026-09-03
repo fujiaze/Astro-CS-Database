@@ -1,0 +1,10 @@
+layer_code,layer_name,column_group,status_values,required_for_module,notes
+SCI,science_definition,science_id;science_doc,VERIFIED;MISSING,every_module,id/doc 空缺显式 MISSING; 空串禁止
+ALG,algorithm_definition,algorithm_id;algorithm_doc,VERIFIED;MISSING,every_module,id/doc 空缺显式 MISSING; 空串禁止
+DATA,data_contract,data_id,VERIFIED;MISSING;NONE,every_module,NONE 仅模块文档显式声明无数据合同并在 notes 给原因
+API,api_contract,api_id,VERIFIED;MISSING;NONE,every_module,API-ABI-001 等真实 ID 或显式占位
+ARCH,architecture,arch_id,VERIFIED;MISSING;NONE,every_module,架构锚 ARCH-001 / ARCH-* 或显式占位
+MOD,module,module_id,VERIFIED,every_module,行键=module_id; 行存在即 MOD VERIFIED
+SRC,implementation,src_id;src_path,VERIFIED;MISSING,every_module,src_path 用 SOURCE SYMBOL path::symbol 或 path::MISSING
+TEST,test_verification,test_id;test_path,VERIFIED;MISSING;NONE,every_module,NONE 仅模块文档显式声明无需测试并在 notes 给原因
+EVIDENCE,evidence,evidence_id,VERIFIED;MISSING,every_module,evidence 锚 EVID-* 或显式 MISSING

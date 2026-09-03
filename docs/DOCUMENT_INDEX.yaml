@@ -57,6 +57,18 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/TROUBLESHOOTING.md"
       status: ACTIVE_INFORMATIVE
+    - path: "docs/traceability/TRACEABILITY_LAYERS.csv"
+      status: ACTIVE_NORMATIVE
+      notes: "DOC-001 机器追溯合同 CSV schema（八层必填/取值域/空串禁止）"
+    - path: "docs/traceability/TRACEABILITY_MATRIX.csv"
+      status: ACTIVE_NORMATIVE
+      notes: "DOC-001 八层追溯矩阵 CSV 视图（与 JSON 同构，gen_traceability_csv.py 生成）"
+    - path: "docs/traceability/TRACEABILITY_MATRIX.json"
+      status: ACTIVE_NORMATIVE
+      notes: "DOC-001 八层追溯矩阵权威 JSON（机器真相；空缺显式 MISSING）"
+    - path: "docs/traceability/TRACEABILITY_SPEC.md"
+      status: ACTIVE_NORMATIVE
+      notes: "DOC-001 机器追溯合同标准（ID 格式/唯一性/跨层链/SOURCE SYMBOL）"
     - path: "docs/VERSIONING.md"
       status: ACTIVE_INFORMATIVE
     - path: "docs/algorithms/ACR_EQUIVALENCE.md"
