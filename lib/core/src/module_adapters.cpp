@@ -4,6 +4,7 @@
 #include "astrocs/common_abi_v1.h"
 #include "astrocs/core/context.h"
 
+#include <algorithm>
 #include <cstring>
 
 // session C ABI（与 lib/phaseN_session/*.h 一致；避免把会话头拉进 core 依赖图）
@@ -150,8 +151,16 @@ struct SessionModule : public IModule {
   }
 
   Result<void> execute(RunContext& ctx) override {
+    // RT-003: 模块 host API 预算源 = RunContext 注入的唯一 ThreadBudget。
+    // 先原子预留（RAII：session 结束/异常/取消统一归还），再用授权数初始化
+    // host services（host budget.max_workers 与 ThreadBudget lease 同源，不超卖）。
+    // 预算耗尽 → 空租约 → host 以 1 worker 串行执行（不伪造 ThreadLease::make）。
+    const uint32_t host_workers =
+        ctx.budget() ? std::min(workers_, ctx.budget()->budget()) : workers_;
+    ThreadLease lease = ctx.acquire_lease(host_workers);
+    const uint32_t cap = lease.acquired() ? lease.size() : 1u;
     HostSession hs;
-    if (!hs.init(workers_)) {
+    if (!hs.init(cap)) {
       return Result<void>::fail(Error(ErrorDomain::RESOURCE,
           desc_.module_id + ": host services init failed"));
     }

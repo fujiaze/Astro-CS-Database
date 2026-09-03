@@ -160,11 +160,20 @@ class RunContext {
   // ── 预算/线程租约 (Runtime 唯一授权) ──
   void set_thread_budget(uint32_t budget) { thread_budget_ = budget; }
   uint32_t thread_budget() const noexcept { return thread_budget_; }
-  // RT-003 起经 ThreadBudget 原子预留；此处为预算上限语义（不超卖请求值）。
-  ThreadLease acquire_lease(uint32_t requested) const {
-    const uint32_t n = requested <= thread_budget_ ? requested : thread_budget_;
-    return ThreadLease::make(n);
+
+  // RT-003: Scheduler/Runtime 注入真实 ThreadBudget（唯一全局预算对象）。
+  // 注入后 acquire_lease 经原子预留；未注入时（仅测试/非调度上下文）返回空租约
+  // （拒绝伪授权——绝不退回 ThreadLease::make）。
+  void set_budget(std::shared_ptr<ThreadBudget> budget) {
+    budget_ = std::move(budget);
+    if (budget_) thread_budget_ = budget_->budget();
   }
+  std::shared_ptr<ThreadBudget> budget() const noexcept { return budget_; }
+
+  // RT-003: 经注入的 ThreadBudget 原子预留 requested（cap 到预算上限）。
+  // 预算耗尽 → 空租约（NONBLOCK）；租约 RAII 析构自动归还。
+  // 无注入预算 → 空租约（不伪造授权）。
+  ThreadLease acquire_lease(uint32_t requested) const;
 
   // ── artifact 存取 (模块经此读写; 禁止直接路径猜测) ──
   // 线程安全；duplicate id 写 → 确定性失败（唯一 producer）
@@ -189,6 +198,7 @@ class RunContext {
   std::map<std::string, uint64_t> metrics_;
   std::vector<Metrics> ticks_;
   uint32_t thread_budget_ = 1;
+  std::shared_ptr<ThreadBudget> budget_;  // RT-003: Scheduler 注入的唯一预算对象
   std::map<std::string, DataArtifactDescriptor> artifacts_;
   CancellationToken cancel_;
   std::vector<std::string> checkpoints_;

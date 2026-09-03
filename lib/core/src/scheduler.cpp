@@ -11,7 +11,11 @@ namespace astrocs::core {
 Scheduler::Scheduler(uint32_t available_cpu, uint32_t budget,
                      uint64_t memory_limit_bytes)
     : budget_(std::max<uint32_t>(1, std::min(budget, std::max<uint32_t>(1, available_cpu)))),
-      memory_limit_bytes_(memory_limit_bytes) {}
+      memory_limit_bytes_(memory_limit_bytes) {
+  // RT-003: 创建唯一 ThreadBudget（run 间复用；budget 由可用资源/上限计算注入）。
+  auto b = create_thread_budget(budget_);
+  if (b.ok()) budget_obj_ = b.value();
+}
 
 Scheduler::~Scheduler() = default;
 
@@ -62,8 +66,9 @@ Result<void> Scheduler::run(
     auto b = build();
     if (b.failed()) return b;
   }
-  // RT-003: worker 启动前单线程设置 budget
+  // RT-003: worker 启动前单线程注入真实 ThreadBudget（run 间复用；重复 run 不泄漏）
   ctx.set_thread_budget(budget_);
+  if (budget_obj_) ctx.set_budget(budget_obj_);
   std::mutex mtx;
   std::condition_variable cv;
   std::map<std::string, NodeStatus> status = status_;
