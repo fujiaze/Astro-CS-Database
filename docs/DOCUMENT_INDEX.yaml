@@ -99,6 +99,9 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/api/PHASE3_API_V1.md"
       status: ACTIVE_NORMATIVE
+    - path: "docs/architecture/abi/ABI_003_SECURE_LOADER.md"
+      status: ACTIVE_NORMATIVE
+      notes: "ABI-003 受限安全 loader（ABI-003 集成后补登）"
     - path: "docs/architecture/ARCHITECTURE.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/architecture/ASYNC_IO_CONTRACT.md"
@@ -204,6 +207,15 @@ doc_index:
     - path: "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md"
       status: ACTIVE_NORMATIVE
       notes: "DATA-002 三阶段产品交换合同（GOV-002 base 之后集成，补登）"
+    - path: "docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md"
+      status: ACTIVE_NORMATIVE
+      notes: "DATA-003 生产 ArtifactStore 合同（DATA-003 集成后补登）"
+    - path: "docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md"
+      status: ACTIVE_NORMATIVE
+      notes: "DATA-004 产物溯源语义（DATA-004 集成补登）"
+    - path: "docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md"
+      status: ACTIVE_NORMATIVE
+      notes: "CPU-001 ISA 能力探测（CPU-001 集成后补登）"
     - path: "docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md"
       status: ACTIVE_NORMATIVE
       notes: "IO-001 FITS 流式接口冻结合同（GOV-002 base 之后集成，补登）"
