@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.invalid/schemas/cpu-capability-v1.json",
+  "title": "AstroCS CPU capability probe v1 (CPU-001)",
+  "description": "acs_cap_serialize_json_v1 输出的稳定 schema; Windows/Linux 同一 schema (CPU-001 验收)。hw_features = 硬件支持 (CPUID 位); os_safe_features = 硬件 ∩ OS 状态位 (OSXSAVE/XGETBV) ∩ 组包含后可安全执行。加载判定只依据 os_safe。",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind",
+    "architecture",
+    "vendor",
+    "brand",
+    "family",
+    "model",
+    "stepping",
+    "cpuid",
+    "os_state",
+    "features",
+    "hw_features_bitmask",
+    "os_safe_features_bitmask",
+    "judgement"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "kind": { "const": "astrocs_cpu_capability" },
+    "architecture": { "const": "amd64" },
+    "vendor": { "type": "string" },
+    "brand": { "type": "string" },
+    "family": { "type": "integer", "minimum": 0 },
+    "model": { "type": "integer", "minimum": 0 },
+    "stepping": { "type": "integer", "minimum": 0 },
+    "cpuid": {
+      "type": "object",
+      "required": ["max_leaf", "leaf1_ecx", "leaf1_edx", "leaf7_ebx", "leaf7_ecx", "leaf7_edx"],
+      "additionalProperties": false,
+      "properties": {
+        "max_leaf": { "type": "integer", "minimum": 0 },
+        "leaf1_ecx": { "type": "integer", "minimum": 0 },
+        "leaf1_edx": { "type": "integer", "minimum": 0 },
+        "leaf7_ebx": { "type": "integer", "minimum": 0 },
+        "leaf7_ecx": { "type": "integer", "minimum": 0 },
+        "leaf7_edx": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "os_state": {
+      "type": "object",
+      "required": ["osxsave", "xcr0"],
+      "additionalProperties": false,
+      "properties": {
+        "osxsave": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "xcr0": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "features": {
+      "type": "object",
+      "required": ["hw", "os_safe"],
+      "additionalProperties": false,
+      "properties": {
+        "hw": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["sse2", "sse4_1", "sse4_2", "avx", "avx2", "fma", "bmi1", "bmi2", "avx512f", "avx512cd", "avx512bw", "avx512dq", "avx512vl"] }
+        },
+        "os_safe": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["sse2", "sse4_1", "sse4_2", "avx", "avx2", "fma", "bmi1", "bmi2", "avx512f", "avx512cd", "avx512bw", "avx512dq", "avx512vl"] }
+        }
+      }
+    },
+    "hw_features_bitmask": { "type": "integer", "minimum": 0 },
+    "os_safe_features_bitmask": { "type": "integer", "minimum": 0 },
+    "judgement": {
+      "type": "object",
+      "required": ["os_saves_xmm_ymm", "os_saves_opmask_zmm", "avx_family_os_safe", "avx512_subset_os_safe"],
+      "additionalProperties": false,
+      "properties": {
+        "os_saves_xmm_ymm": { "type": "boolean" },
+        "os_saves_opmask_zmm": { "type": "boolean" },
+        "avx_family_os_safe": { "type": "boolean" },
+        "avx512_subset_os_safe": { "type": "boolean" }
+      }
+    }
+  }
+}
