@@ -28,6 +28,8 @@ enum class NodeStatus : uint8_t {
 
 // Scheduler: 唯一拥有全局执行顺序、线程预算与内存回压 (ARCH-001 §1)
 // 禁止第二套全局调度器; 模块只投递 work, 不建私有 pool
+// RT-003: Scheduler 创建并持有唯一 ThreadBudget；run() 注入 RunContext，
+// 模块经 ctx.acquire_lease/ctx.budget() 原子预留（禁止 ThreadLease::make 伪授权）。
 class Scheduler {
  public:
   struct NodeSpec {
@@ -59,9 +61,13 @@ class Scheduler {
   uint64_t memory_limit() const { return memory_limit_bytes_; }
   void cancel() { cancel_.store(true, std::memory_order_release); }
 
+  // RT-003: Scheduler 持有的唯一 ThreadBudget（run 间复用；重复 run 不泄漏）。
+  std::shared_ptr<ThreadBudget> thread_budget() const noexcept { return budget_obj_; }
+
  private:
   uint32_t budget_;
   uint64_t memory_limit_bytes_;
+  std::shared_ptr<ThreadBudget> budget_obj_;  // RT-003: 唯一全局预算（run 间复用）
   std::map<std::string, NodeSpec> nodes_;
   std::map<std::string, NodeStatus> status_;
   std::atomic<bool> cancel_{false};

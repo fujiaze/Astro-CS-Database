@@ -136,4 +136,19 @@ Result<std::shared_ptr<ThreadBudget>> create_thread_budget(uint32_t budget) noex
   return Result<std::shared_ptr<ThreadBudget>>::ok(std::move(b));
 }
 
+// ── RT-003: RunContext::acquire_lease 接真实 ThreadBudget 原子预留 ──
+// 消灭伪授权：不再退回 ThreadLease::make。lease RAII 析构自动归还；
+// 取消/异常路径经 ThreadLease 析构统一回收。
+ThreadLease RunContext::acquire_lease(uint32_t requested) const {
+  auto b = budget();
+  if (!b) {
+    // 未注入预算（非调度/测试构造上下文）→ 空租约，不伪造授权
+    return ThreadLease();
+  }
+  if (requested == 0) requested = 1;
+  const uint32_t cap = b->budget();
+  const uint32_t want = requested < cap ? requested : cap;
+  return b->acquire(1u, want, AcquirePolicy::NONBLOCK);
+}
+
 }  // namespace astrocs::core
