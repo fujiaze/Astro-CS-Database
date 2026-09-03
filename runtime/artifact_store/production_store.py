@@ -37,9 +37,43 @@ from typing import Any, Dict, Optional
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from artifact_manifest_validator import Validator as ManifestValidator  # noqa: E402
+from provenance import (  # noqa: E402
+    ProvenanceError,
+    PROVENANCE_SCHEMA,
+    assert_not_superseded,
+    assert_privacy_clean,
+    assert_revision_is_manifest_data_schema,
+    build_revision,
+    make_provenance_doc,
+    provenance_dict_to_digest,
+    scan_privacy,
+    validate_history,
+    validate_provenance,
+    version_ge,
+)
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _COMPLETE = "COMPLETE"
+
+
+def _validate_cap_digest(obj: Any, what: str) -> Dict[str, Any]:
+    """校验 provider/worker digest 形态 {algorithm, hex(1..128 hex 小写)}。"""
+    if not isinstance(obj, dict):
+        raise ValueError(f"{what} must be an object {{algorithm, hex}}")
+    alg = obj.get("algorithm")
+    if not isinstance(alg, str) or not alg:
+        raise ValueError(f"{what}.algorithm required non-empty")
+    hx = obj.get("hex")
+    if not isinstance(hx, str) or not re.match(r"^[0-9a-f]{1,128}$", hx.strip().lower()):
+        raise ValueError(f"{what}.hex must be lowercase hex (1..128 chars)")
+    return {"algorithm": alg, "hex": hx.strip().lower()}
+
+
+def _build_history_payload(history: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """把 Store 级 history 复制为发布物旁路（不共享可变引用）。"""
+    if history is None:
+        return None
+    return {k: (list(v) if isinstance(v, list) else v) for k, v in history.items()}
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -263,15 +297,32 @@ class InterruptIO(StoreIO):
 class ArtifactStore:
     """DATA-003 生产 ArtifactStore：真实目录 + 原子发布 + 唯一 producer + 校验读。
 
+    DATA-004 provenance 接线（溯源/版本语义在此实施）:
+      - 发布时旁路写 provenance sidecar `{aid}.provenance.json`（完整 provenance
+        文档，含确定性 digest）；恢复索引要求 内容 + COMPLETE manifest + hash
+        sidecar + provenance sidecar 四者齐全才是成功对象（缺 provenance 的旧
+        run 对象 = 无完整溯源 → 非成功对象，不允许消费；DATA-002 R-DISK-ONLY
+        交换需要 hash/provenance 完整）；
+      - publish 前 provenance 语义检查：revision.data_schema 必须与 manifest
+        type_id/schema_version 一致；doc_revision 必须当前；发布版本不得是
+        history 中已替换版本（旧 product 版本不静默接收）；provenance 文档
+        privacy 扫描通过（不泄露绝对用户路径/凭据）；
+      - 同输入配置 ⇒ 同 provenance digest：digest 公式只消费溯源输入
+        （artifact_id/revision/source_commit/config_digest/provider/worker/
+        input hashes/science ids），运行事实（created_utc/run_id/phase）仅
+        旁路记录不参与 digest——验证器可复算核对。
+
     约定:
       - store_root 下每 run 独立目录（RT-002 run 私有 Store）：
         {root}/runs/{run_id}/objects/{artifact_id}              = 已发布内容
         {root}/runs/{run_id}/stage/                             = 临时对象（未发布）
         {root}/runs/{run_id}/manifests/{artifact_id}.manifest.json = COMPLETE manifest
         {root}/runs/{run_id}/manifests/{artifact_id}.manifest.sha256 = manifest hash sidecar
+        {root}/runs/{run_id}/manifests/{artifact_id}.provenance.json = provenance sidecar
       - 模块 execute 的读写全部经本 Store；storage_uri 解析只在本 Store 内。
       - content digest = 发布内容字节 sha256（DATA-001 manifest.content_digest）；
-        manifest hash = manifest 规范 JSON 的 sha256（sidecar，可重算）。
+        manifest hash = manifest 规范 JSON 的 sha256（sidecar，可重算）；
+        provenance digest = DATA-004 确定性溯源摘要（provenance sidecar 内）。
     """
 
     def __init__(self, store_root: pathlib.Path, run_id: str,
@@ -284,6 +335,13 @@ class ArtifactStore:
         self._objects: Dict[str, pathlib.Path] = {}
         self._manifests: Dict[str, Dict[str, Any]] = {}
         self._manifest_digests: Dict[str, str] = {}
+        self._provenance: Dict[str, Dict[str, Any]] = {}
+        self._history: Dict[str, Dict[str, Any]] = {}      # per-artifact（读恢复）
+        self._history_global: Optional[Dict[str, Any]] = None  # run 级旧版本链
+        self._strategy: Optional[str] = None
+        self._source_commit: Optional[str] = None
+        self._provider_digest: Optional[Dict[str, Any]] = None
+        self._worker_digest: Optional[Dict[str, Any]] = None
         self._run_dir = self.store_root / "runs" / run_id
         self._stage_dir = self._run_dir / "stage"
         self._objects_dir = self._run_dir / "objects"
@@ -294,9 +352,17 @@ class ArtifactStore:
     def start(self) -> "ArtifactStore":
         """初始化真实 Store 目录结构（run 私有；恢复时只索引成功对象）。
 
-        恢复语义（RT-007/RT-002）: 只索引 内容 + COMPLETE manifest + hash sidecar
-        三者齐全的已发布对象；无 COMPLETE manifest 的残留（中断/磁盘满/cancel）
-        = 无成功对象，不索引、不允许消费（可恢复：新 run/新 Store 重发）。
+        恢复语义（RT-007/RT-002 基线 + DATA-004 溯源加载）:
+          - 成功对象基线（DATA-003 冻结）: 内容 + COMPLETE manifest + hash
+            sidecar 三者齐全；无 COMPLETE manifest 的残留（中断/磁盘满/cancel）
+            = 无成功对象，不索引、不允许消费（可恢复：新 run/新 Store 重发）；
+          - provenance sidecar（DATA-004）: 存在则随对象加载（_provenance /
+            history 索引），供 read_provenance / bind_product_input 消费；
+            不存在 = DATA-003 冻结期对象（无溯源增强），不阻断基线索引；
+          - provenance 配置的 Store（with_provenance 设置 source_commit）发布
+            的对象总是携带 provenance sidecar（4 件齐全）——绑定消费见
+            bind_product_input（要求 provenance 完整，DATA-002 R-DISK-ONLY
+            "hash/provenance 完整"的交换资格由该消费门强制）。
         """
         self._stage_dir.mkdir(parents=True, exist_ok=True)
         self._objects_dir.mkdir(parents=True, exist_ok=True)
@@ -318,6 +384,56 @@ class ArtifactStore:
             self._objects[aid] = obj
             self._manifests[aid] = doc
             self._manifest_digests[aid] = sha.read_text(encoding="utf-8").strip()
+            prov_path = self._manifests_dir / f"{aid}.provenance.json"
+            if prov_path.is_file():
+                try:
+                    prov_doc = json.loads(prov_path.read_text(encoding="utf-8"))
+                except Exception:
+                    prov_doc = None  # 损坏 provenance 不加载（对象仍按基线索引）
+                if isinstance(prov_doc, dict):
+                    self._provenance[aid] = prov_doc
+                    hist = prov_doc.get("history")
+                    if isinstance(hist, dict):
+                        self._history[aid] = hist
+        return self
+
+    # ── DATA-004 provenance 配置（history/strategy/provider/worker/source 注入） ──
+    def with_provenance(self, *, source_commit: str,
+                        provider_digest: Optional[Dict[str, Any]] = None,
+                        worker_digest: Optional[Dict[str, Any]] = None,
+                        strategy: Optional[str] = None,
+                        history: Optional[Dict[str, Any]] = None) -> "ArtifactStore":
+        """注入 provenance 事实源：source commit / provider hash / worker hash /
+        计算策略 / 旧 product 版本链（history）。
+
+        - source_commit: 产生本 run 产物的源码 commit（40 hex；由调用方/运行图
+          提供，本 Store 绝不自行猜 git）；
+        - provider_digest / worker_digest: 计算后端能力摘要（{algorithm, hex}，
+          如 CPU ISA/OS 能力、worker 拓扑；调用方从真实探测/计划填写）；
+        - strategy: 计算策略/实现类别标识（字符串，如 "drizzle-v1"）；仅溯源，
+          不参与 digest 公式；
+        - history: 本 run 发布物的旧 product 版本链（build_history 输出；发布时
+          provenance 语义检查确保不把已替换版本静默重发）。
+        返回 self（链式）。运行事实（run_id/created_utc/phase）在发布时旁路写入
+        provenance sidecar，不参与 digest。
+        """
+        if not isinstance(source_commit, str) or len(source_commit) != 40 \
+                or not all(ch in "0123456789abcdef" for ch in source_commit.lower()):
+            raise ValueError("source_commit must be 40 lowercase hex")
+        self._source_commit = source_commit.lower()
+        if provider_digest is not None:
+            self._provider_digest = _validate_cap_digest(provider_digest, "provider_digest")
+        if worker_digest is not None:
+            self._worker_digest = _validate_cap_digest(worker_digest, "worker_digest")
+        if strategy is not None:
+            if not isinstance(strategy, str) or not strategy or not strategy.strip():
+                raise ValueError("strategy required non-empty when present")
+            self._strategy = strategy.strip()
+        if history is not None:
+            herrs = validate_history(history)
+            if herrs:
+                raise ValueError("history invalid: " + "; ".join(herrs))
+            self._history_global = _build_history_payload(history)  # run 级旧链
         return self
 
     # ── 取消/中止（cancel/fail → 无成功对象） ──
@@ -381,13 +497,18 @@ class ArtifactStore:
         return ManifestRead(dict(manifest_doc))
 
     def publish(self, artifact_id: str) -> Digest:
-        """原子发布暂存对象 + manifest + hash sidecar（唯一 producer）。
+        """原子发布暂存对象 + manifest + hash sidecar + provenance sidecar。
 
-        顺序: 内容已在 stage_bytes 时 fsync；此处计算内容 sha256 → 与 manifest
-        content_digest 核对（完整校验，篡改/错误 schema 拒绝）→ size 核对 →
-        manifest 规范 JSON hash → fsync 目录 → 原子 rename 内容 → 原子 rename
-        manifest（= 完成标记）→ 原子写 hash sidecar。cancel/fail（未调用 publish
-        或 publish 前废弃）→ 无 COMPLETE manifest。
+        DATA-004 语义（source_commit 配置的 Store）:
+          - publish 前 provenance 语义门: revision.data_schema 必须与 manifest
+            type_id/schema_version 一致（新数据旧 schema / 旧数据新 schema 拒）；
+            发布版本不得是 history 中已替换版本（旧 product 版本不静默接收）；
+            隐私扫描通过（不泄露绝对用户路径/凭据）；
+          - 发布顺序: 内容已在 stage_bytes 时 fsync；此处计算内容 sha256 → 与
+            manifest content_digest 核对（篡改/错误 schema 拒绝）→ size 核对 →
+            manifest 规范 JSON hash → fsync 目录 → 原子 rename 内容 → 原子
+            rename manifest（= 完成标记）→ hash sidecar → provenance sidecar
+            （同一原子区；cancel/fail → 无 COMPLETE manifest、无溯源旁路）。
         """
         if artifact_id not in self._manifests:
             raise RuntimeError(
@@ -422,6 +543,11 @@ class ArtifactStore:
                 f"manifest size {size} != staged content {len(raw)} "
                 f"(错误 schema 拒绝)")
 
+        # DATA-004: provenance sidecar 构造（source_commit 配置的 Store 才写）
+        provenance_doc: Optional[Dict[str, Any]] = None
+        if self._source_commit is not None:
+            provenance_doc = self._build_publish_provenance(artifact_id, doc)
+
         # manifest hash = 规范 JSON sha256（sidecar 持久化；可重算）
         manifest_json = canonical_manifest_json(doc)
         manifest_hex = hashlib.sha256(manifest_json.encode("utf-8")).hexdigest()
@@ -433,6 +559,15 @@ class ArtifactStore:
             f.write(manifest_json)
             f.flush()
             os.fsync(f.fileno())
+        # provenance sidecar tmp（若有）
+        tmp_prov = None
+        if provenance_doc is not None:
+            tmp_prov = self._stage_dir / f"{artifact_id}.provenance.json.tmp"
+            with open(tmp_prov, "w", encoding="utf-8") as f:
+                f.write(json.dumps(provenance_doc, ensure_ascii=False,
+                                   separators=(",", ":")))
+                f.flush()
+                os.fsync(f.fileno())
         self._fsync_dir(self._objects_dir)
         self._fsync_dir(self._manifests_dir)
         # 原子 publish: 先内容后 manifest（manifest rename = 完成标记）
@@ -448,11 +583,79 @@ class ArtifactStore:
             f.flush()
             os.fsync(f.fileno())
         self.io.atomic_publish(tmp_sha, sha_path)
+        # provenance sidecar（DATA-004；同一原子区）
+        if provenance_doc is not None and tmp_prov is not None:
+            prov_final = self._manifests_dir / f"{artifact_id}.provenance.json"
+            self.io.atomic_publish(tmp_prov, prov_final)
+            self._fsync_dir(self._manifests_dir)
 
         self._objects[artifact_id] = final_obj
         self._manifests[artifact_id] = doc
         self._manifest_digests[artifact_id] = manifest_hex
+        if provenance_doc is not None:
+            self._provenance[artifact_id] = provenance_doc
+            hist = provenance_doc.get("history")
+            if isinstance(hist, dict):
+                self._history[artifact_id] = hist
         return Digest(content_hex, len(raw))
+
+    def _build_publish_provenance(self, artifact_id: str,
+                                  manifest_doc: Dict[str, Any]) -> Dict[str, Any]:
+        """构造本次发布的 provenance sidecar 文档（含语义门 + 隐私扫描）。
+
+        revision 从 manifest 冻结字段派生（DATA-004 冻结语义，不发明新值）:
+          - revision.data_schema = f"v{schema_version}"（必须与 manifest 登记一致）；
+          - revision.product = manifest producer.module_build_id（构建产物标识）；
+          - revision.module = manifest producer.module_id（模块标识）；
+          - revision.abi = manifest manifest_schema 形态 v1（DATA-001 ABI/文档形态）。
+        science_ids 从 manifest producer.science_contract_ids 透传（SCI-*）；
+        input hashes 从 manifest input_digests 透传；config hash = manifest
+        config_digest；provider/worker digest = Store 配置；history = Store 级
+        旧版本链（run 级）。digest 公式只消费上述溯源输入。
+        """
+        assert self._source_commit is not None
+        prod = manifest_doc.get("producer", {})
+        if not isinstance(prod, dict):
+            prod = {}
+        sci_ids = prod.get("science_contract_ids")
+        if not isinstance(sci_ids, list):
+            sci_ids = None
+        sv = manifest_doc.get("schema_version")
+        if not isinstance(sv, int):
+            raise ProvenanceError("manifest schema_version missing (provenance 无法绑定 data_schema revision)")
+        revision = build_revision(
+            product=prod.get("module_build_id") if isinstance(prod.get("module_build_id"), str) else None,
+            module=prod.get("module_id") if isinstance(prod.get("module_id"), str) else None,
+            abi="v1",
+            data_schema=f"v{sv}",
+        )
+        # 语义门 1: data_schema revision ↔ manifest type_id/schema_version 一致
+        assert_revision_is_manifest_data_schema(revision, manifest_doc)
+        # 语义门 2: 发布版本不得是 history 已替换版本（旧 product 版本不静默接收）
+        hist = self._history.get(artifact_id)
+        if hist is None:
+            hist = self._history_global  # run 级（with_provenance 注入）
+        if hist is not None:
+            assert_not_superseded(revision, hist, category="product")
+        try:
+            return make_provenance_doc(
+                artifact_id=artifact_id,
+                revision=revision,
+                source_commit=self._source_commit,
+                config_digest=manifest_doc.get("config_digest", {}),
+                provider_digest=self._provider_digest,
+                worker_digest=self._worker_digest,
+                input_digests=manifest_doc.get("input_digests"),
+                science_ids=sci_ids,
+                history=hist,
+                doc_revision="v1",
+                created_utc=utc_now_z(),
+                run_id=self.run_id,
+                phase=(manifest_doc.get("run") or {}).get("phase")
+                if isinstance(manifest_doc.get("run"), dict) else None,
+            )
+        except ProvenanceError as exc:
+            raise ValueError(f"provenance publish rejected: {exc}") from exc
 
     # ── 读路径（消费前必须经 Store 校验；模块只拿 handle/reader） ──
     def get_digest(self, artifact_id: str) -> Optional[Digest]:
@@ -518,6 +721,80 @@ class ArtifactStore:
                 f"artifact {artifact_id!r} content hash mismatch at consume "
                 f"(篡改/损坏 → 拒绝)")
         return data
+
+    # ── DATA-004 provenance 读路径（跨 Phase 消费前溯源校验） ──
+    def read_provenance(self, artifact_id: str) -> Optional[Dict[str, Any]]:
+        """已发布对象的 provenance sidecar 文档（DATA-004；无 → None）。"""
+        prov = self._provenance.get(artifact_id)
+        if prov is None:
+            return None
+        return dict(prov)
+
+    def provenance_digest_hex(self, artifact_id: str) -> Optional[str]:
+        """已发布对象 provenance digest（provenance_digest 旁路字段）。"""
+        prov = self._provenance.get(artifact_id)
+        if prov is None:
+            return None
+        pd = prov.get("provenance_digest")
+        return pd if isinstance(pd, str) and _HEX64.match(pd) else None
+
+    def provenance_digest_recompute(self, artifact_id: str) -> Optional[str]:
+        """按 provenance 文档公式复算 digest（可复算验收：== 旁路 digest）。"""
+        prov = self._provenance.get(artifact_id)
+        if prov is None:
+            return None
+        try:
+            return provenance_dict_to_digest(prov)
+        except ProvenanceError:
+            return None
+
+    def bind_product_input(self, artifact_id: str, expected_type_id: str,
+                           min_product_version: Optional[str] = None) -> ManifestRead:
+        """DATA-004 跨 Phase 产品输入绑定（provenance 完整才放行）。
+
+        在 DATA-002/003 消费资格（存在 + COMPLETE + type_id 匹配）之上要求：
+          - provenance sidecar 存在且语义校验通过（缺 provenance = 无完整溯源，
+            不做 R-DISK-ONLY 交换输入——旧 run 无溯源旁路的对象拒绝绑定）；
+          - digest 可复算且与旁路一致（篡改/不完整 provenance → 拒绝）；
+          - data_schema revision 与 manifest type_id/schema_version 一致；
+          - （可选）输入 product 版本 >= min_product_version（旧 product 版本
+            不被静默接收：低于阈值显式拒绝，须显式升级后重发布）。
+        """
+        read = self.bind_as_input(artifact_id, expected_type_id)
+        prov = self._provenance.get(artifact_id)
+        if prov is None:
+            raise ValueError(
+                f"bind_product_input: artifact {artifact_id!r} lacks provenance "
+                f"sidecar (DATA-004: 无完整溯源的产品不做跨 Phase 交换输入)")
+        errs = validate_provenance(prov)
+        if errs:
+            raise ValueError(
+                f"bind_product_input: provenance invalid for {artifact_id!r}: "
+                + "; ".join(errs))
+        digest = prov.get("provenance_digest")
+        recomputed = provenance_dict_to_digest(prov)
+        if digest != recomputed:
+            raise ValueError(
+                f"bind_product_input: provenance digest mismatch for {artifact_id!r} "
+                f"(篡改/不完整 provenance → 拒绝)")
+        rev = prov.get("revision")
+        if not isinstance(rev, dict):
+            raise ValueError(f"bind_product_input: revision missing for {artifact_id!r}")
+        try:
+            assert_revision_is_manifest_data_schema(rev, self._manifests[artifact_id])
+        except ProvenanceError as exc:
+            raise ValueError(f"bind_product_input: {exc}") from exc
+        if min_product_version is not None:
+            pver = rev.get("product")
+            if pver is None:
+                raise ValueError(
+                    f"bind_product_input: {artifact_id!r} revision lacks product "
+                    f"version (无法执行 min_product_version 门)")
+            if not version_ge(pver, min_product_version):
+                raise ValueError(
+                    f"bind_product_input: {artifact_id!r} product version {pver!r} "
+                    f"< required {min_product_version!r} (旧 product 版本不静默接收)")
+        return read
 
     # ── manifest hash 重算 ──
     @staticmethod
