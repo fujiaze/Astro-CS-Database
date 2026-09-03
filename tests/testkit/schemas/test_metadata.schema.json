@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "astrocs://control/test-metadata/v1",
+  "title": "AstroCS 测试元数据 (TST-001)",
+  "description": "每测试一对象的机器合同：module:<module_id> 选择、五类 label、seed、tolerance source、current commit、provider/workers；期望来源禁止生产函数；未知状态写 MISSING，禁止空字符串。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "test_id", "label", "type", "language", "command",
+    "expected_exit", "tolerance_source", "expectation_source", "current_commit"
+  ],
+  "properties": {
+    "schema": { "const": "astrocs.test-metadata/v1" },
+    "test_id": { "type": "string", "pattern": "^TEST-[A-Z0-9]+(-[A-Z0-9]+)*$", "minLength": 1 },
+    "label": { "type": "string", "pattern": "^(module:|unit:|properties:|oracle:|fixtures:|negative:|performance:|integration:).+", "minLength": 1 },
+    "module_id": { "type": "string", "pattern": "^MOD-[A-Za-z0-9]+(-[A-Za-z0-9]+)*$", "minLength": 1 },
+    "type": { "enum": ["unit", "properties", "oracle", "fixtures", "negative", "performance", "integration"] },
+    "language": { "enum": ["C", "C++", "Python", "shell"] },
+    "command": { "type": "string", "minLength": 1 },
+    "expected_exit": { "type": "integer" },
+    "seed": { "type": ["integer", "null"] },
+    "tolerance_source": { "type": "string", "minLength": 1 },
+    "oracle": { "type": "string", "minLength": 1 },
+    "expectation_source": { "enum": ["INDEPENDENT_ORACLE", "PROPERTY_INVARIANT", "PRE_FROZEN_VALUES", "FIXTURE_HASH", "MISSING"] },
+    "current_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "config_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "providers": { "type": "array", "items": { "enum": ["baseline", "avx2", "avx512"] } },
+    "workers": { "type": ["integer", "null"] },
+    "fixtures": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "input_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "output_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "notes": { "type": "string" }
+  }
+}
