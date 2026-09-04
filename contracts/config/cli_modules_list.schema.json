@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "astrocs://astrocs/contracts/config/cli-modules-list-v1.json",
+  "title": "astrocs modules list --json 输出合同 (CLI-001 冻结)",
+  "description": "稳定机器输出: 从 exe 旁 astrocs.product.json 扫描登记 unit。stdout 恰一个 JSON 文档, 无混杂进度文字。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "manifest", "manifest_present", "units", "verdict"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "kind": { "const": "astrocs_modules_list" },
+    "manifest": { "type": ["string", "null"], "description": "product manifest 绝对/相对路径; 不存在为 null" },
+    "manifest_present": { "type": "boolean", "description": "false → 未发现 product manifest(host 未装配完整安装树)" },
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unit_id", "kind", "rel_path", "abi_version", "status", "present"],
+        "properties": {
+          "unit_id": { "type": "string" },
+          "kind": { "type": "string", "enum": ["exe", "runtime", "io", "module", "provider"] },
+          "rel_path": { "type": "string" },
+          "module_id": { "type": ["string", "null"] },
+          "abi_version": { "type": ["integer", "null"] },
+          "status": { "type": "string", "enum": ["SKELETON", "IMPLEMENTED"] },
+          "sha256": { "type": ["string", "null"] },
+          "present": { "type": "boolean", "description": "安装树内文件是否存在(缺 DLL → false)" }
+        }
+      }
+    },
+    "issues": { "type": "array", "items": { "type": "object" } },
+    "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+  }
+}

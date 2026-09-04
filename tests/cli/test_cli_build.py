@@ -44,7 +44,7 @@ class TestCliBuild(unittest.TestCase):
         r = self.run_cli("--version")
         self.assertEqual(r.returncode, 0)
         self.assertRegex(r.stdout.strip(),
-                         r"^astrocs 0\.10\.0-alpha\.2\+g[0-9a-f]{12}(\.dirty)?$")
+                         r"^astrocs 0\.11\.0-alpha\.1\+g[0-9a-f]{12}(\.dirty)?$")
 
     def test_02_version_json_single_document(self):
         r = self.run_cli("--version", "--json")
@@ -54,7 +54,7 @@ class TestCliBuild(unittest.TestCase):
         doc = json.loads(lines[0])
         self.assertEqual(doc["name"], "astrocs")
         self.assertEqual(doc["schema_version"], "1")
-        self.assertRegex(doc["version"], r"^0\.10\.0-alpha\.2\+g[0-9a-f]{12}")
+        self.assertRegex(doc["version"], r"^0\.11\.0-alpha\.1\+g[0-9a-f]{12}")
 
     def test_03_help_matches_contract(self):
         r = self.run_cli("--help")
@@ -68,9 +68,12 @@ class TestCliBuild(unittest.TestCase):
         self.assertIn("unknown command", r.stderr)
 
     def test_05_single_exe_rule(self):
-        cm = open(os.path.join(CLI, "CMakeLists.txt"), encoding="utf-8").read()
+        # 仅统计非注释行(文件头 BLD-002 注释含字面 add_executable(astrocs); 与 test_06 同式)
+        cm = "\n".join(l for l in open(os.path.join(CLI, "CMakeLists.txt"), encoding="utf-8")
+                       if not l.lstrip().startswith("#"))
         self.assertEqual(len(re.findall(r"add_executable\(", cm)), 1, "恰一个 target")
-        self.assertIn("install(TARGETS astrocs", cm)
+        # BLD-002: compatibility target 禁止正式 install (02_ABI_BUILD_CLI_TASKS §BLD-002)
+        self.assertNotIn("install(TARGETS astrocs", cm)
         self.assertNotIn("march=native", cm)
 
     def test_06_no_global_arch_flags(self):

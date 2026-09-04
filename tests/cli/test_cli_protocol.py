@@ -9,7 +9,11 @@ EXE = os.path.join(BUILD, "astrocs")
 
 HELP_LINES = [
     "astrocs --version [--json]",
+    "astrocs version [--json]",
     "astrocs hardware inspect --json",
+    "astrocs modules list [--json]",
+    "astrocs modules verify [--json]",
+    "astrocs selftest [--module <ID>] [--provider <ID>] [--json]",
     "astrocs config init --output <path>",
     "astrocs config validate --config <path>",
     "astrocs config show-effective --config <path> [--cpu-profile <path>] --json",
@@ -67,7 +71,7 @@ class TestGolden(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         doc = json.loads(lines[0])
         self.assertEqual(doc["name"], "astrocs")
-        self.assertRegex(doc["version"], r"^0\.10\.0-alpha\.2\+g[0-9a-f]{12}(\.dirty)?$")
+        self.assertRegex(doc["version"], r"^0\.11\.0-alpha\.1\+g[0-9a-f]{12}(\.dirty)?$")
 
     # ── parser 拒绝面(全部 → 2, 诊断在 stderr) ──
     def test_03_parser_rejects(self):

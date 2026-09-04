@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "astrocs://astrocs/contracts/config/cli-selftest-v1.json",
+  "title": "astrocs selftest --json 输出合同 (CLI-001 冻结)",
+  "description": "稳定机器输出: 宿主自检(版本/CPU 基线/退出码表一致性) + 可选 module/provider 装配校验。缺 DLL/未装配 → verdict FAIL, 退出非零(5)。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "checks", "verdict"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "kind": { "const": "astrocs_selftest" },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "status"],
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+          "detail": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+  }
+}
