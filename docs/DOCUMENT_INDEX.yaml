@@ -145,6 +145,9 @@ doc_index:
     - path: "docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md"
       status: ACTIVE_NORMATIVE
       notes: "LOG-001 结构化日志合同（GOV-002 base 之后集成，补登）"
+    - path: "docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md"
+      status: ACTIVE_NORMATIVE
+      notes: "LOG-002 资源监控 CSV 合同（GOV-002 base 之后集成，补登）"
     - path: "docs/architecture/OWNERSHIP_AND_LIFETIME.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/architecture/PERFORMANCE_MODEL.md"
