@@ -148,6 +148,9 @@ doc_index:
     - path: "docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md"
       status: ACTIVE_NORMATIVE
       notes: "LOG-002 资源监控 CSV 合同（GOV-002 base 之后集成，补登）"
+    - path: "docs/architecture/observability/RUN_GRAPH_CONTRACT.md"
+      status: ACTIVE_NORMATIVE
+      notes: "LOG-003 运行图渲染工具合同（tools/graph 生成 DOT/SVG/JSON，机器验证与 trace 一致）"
     - path: "docs/architecture/OWNERSHIP_AND_LIFETIME.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/architecture/PERFORMANCE_MODEL.md"
