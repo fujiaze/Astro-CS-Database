@@ -23,12 +23,21 @@ const std::set<std::string> kBoolFlags = {"--json", "--events-jsonl", "--quick",
 const std::set<std::string> kValueFlags = {"--output", "--config", "--cpu-profile",
                                            "--run-manifest", "--group", "--phases",
                                            "--resource-detail", "--nside", "--pixfrac",
-                                           "--preset", "--profile"};
+                                           "--preset", "--profile", "--module",
+                                           "--provider"};
 
-// 04 §1 命令树: 每条命令允许的旗标(严格白名单, 未知即 2)
-// struct CmdRule 定义见 cli_common.h; 此处定义 kRules 表(extern 声明)
+// 命令树: 每条命令允许的旗标(严格白名单, 未知即 2)
+// 04 §1(V5 冻结命令树) + 03 §3(V7 统一命令面; CLI-001 冻结 version/modules/selftest)
+// 注意: kRules 表驱动最长匹配——`version`/`verify`/`verify profile` 前缀互斥,
+// `modules list`/`modules verify` 与 `selftest` 均须逐条显式登记。
+// phase1/2/3 validate|plan|inspect 与 config validate --phase 属 CLI-003 语义域,
+// 本任务(CLI-001 骨架)不提前登记, 避免与后续语义任务冲突。
 const CmdRule kRules[] = {
     {"hardware inspect",            {"--json"}},
+    {"version",                     {"--json"}},
+    {"modules list",                {"--json"}},
+    {"modules verify",              {"--json"}},
+    {"selftest",                    {"--json", "--module", "--provider"}},
     {"config init",                 {"--output"}},
     {"config validate",             {"--config"}},
     {"config show-effective",       {"--config", "--cpu-profile", "--json"}},
@@ -48,7 +57,11 @@ const CmdRule kRules[] = {
 
 const char* kHelp =
     "astrocs --version [--json]\n"
+    "astrocs version [--json]\n"
     "astrocs hardware inspect --json\n"
+    "astrocs modules list [--json]\n"
+    "astrocs modules verify [--json]\n"
+    "astrocs selftest [--module <ID>] [--provider <ID>] [--json]\n"
     "astrocs config init --output <path>\n"
     "astrocs config validate --config <path>\n"
     "astrocs config show-effective --config <path> [--cpu-profile <path>] --json\n"

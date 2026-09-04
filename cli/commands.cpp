@@ -1220,6 +1220,411 @@ static int cmd_graph(const Parsed& p, astrocs::JsonlEmitter& ev) {
     return astrocs::OK;
 }
 
+// ═══════════════════════ CLI-001: V7 统一命令面 ═══════════════════════
+// 契约: 03_TARGET_PRODUCT_AND_ARCHITECTURE.md §3 (version/modules/selftest)。
+// stdout JSON schema: contracts/config/cli_modules_list.schema.json,
+//                     contracts/config/cli_selftest.schema.json。
+// 稳定退出码: OK=0; 缺 product manifest/坏 manifest/缺 DLL → BACKEND=5
+// (backend ABI/装配/加载失败, exit_codes.h 唯一源); 参数错 → 2。
+// 机器输出纪律: --json 模式 stdout 恰一个 JSON 文档, 无混杂进度文字(04 §3)。
+
+// 可执行文件所在目录(manifest/模块 发现根; UTF-8 路径安全)。
+static std::string cli_exe_dir() {
+#if defined(_WIN32)
+    wchar_t buf[MAX_PATH];
+    const DWORD n = GetModuleFileNameW(nullptr, buf, MAX_PATH);
+    if (n == 0) return ".";
+    std::wstring ws(buf, n);
+    int len = WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    std::string s(len > 0 ? len - 1 : 0, '\0');
+    if (len > 1) WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, s.data(), len, nullptr, nullptr);
+    const std::filesystem::path p(std::filesystem::u8path(s));
+    const auto parent = p.parent_path();
+    return parent.empty() ? "." : parent.string();
+#else
+    std::error_code ec;
+    const auto p = std::filesystem::canonical("/proc/self/exe", ec);
+    if (ec) return ".";
+    const auto parent = p.parent_path();
+    return parent.empty() ? "." : parent.string();
+#endif
+}
+
+// 定位 product manifest: 优先 exe 旁 astrocs.product.json; 回退 CWD。
+static std::string locate_product_manifest() {
+    const std::string dir = cli_exe_dir();
+    const std::string cand_exe = dir + "/astrocs.product.json";
+    std::error_code ec;
+    if (std::filesystem::is_regular_file(std::filesystem::u8path(cand_exe), ec)) return cand_exe;
+    const std::string cand_cwd = "astrocs.product.json";
+    if (std::filesystem::is_regular_file(std::filesystem::u8path(cand_cwd), ec)) return cand_cwd;
+    return "";
+}
+
+// manifest 所在目录(绝对; rel_path 相对它解析, 与 ABI-004 registry 语义一致)。
+// manifest 可为 exe 旁(安装树)或 CWD(开发/测试树)。
+static std::string product_manifest_base_dir(const std::string& mpath) {
+    std::error_code ec;
+    std::filesystem::path p = std::filesystem::u8path(mpath);
+    if (p.is_relative()) {
+        p = std::filesystem::absolute(p, ec);
+        if (ec) p = std::filesystem::u8path(mpath);
+    }
+    const auto parent = p.parent_path();
+    return parent.empty() ? "." : parent.string();
+}
+
+// rel_path(manifest 相对) 在安装树内是否实际存在(UTF-8 安全)。
+static bool unit_file_present(const std::string& base_dir, const std::string& rel) {
+    if (rel.empty()) return false;
+    std::error_code ec;
+    return std::filesystem::is_regular_file(
+        std::filesystem::u8path(base_dir + "/" + rel), ec);
+}
+
+// 解析 product manifest → units[] 数组; 返回 OK; 坏/缺失 → 相应退出码, err 填充。
+// 只做最小语义校验(不引入 schema 引擎; schema 机器门在 tests/contracts 侧)。
+static int load_product_manifest(const std::string& path, nlohmann::json* units_out,
+                                 std::string* err) {
+    units_out->clear();
+    std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
+    if (!f) {
+        if (err) *err = "product manifest unreadable";
+        return astrocs::BACKEND;   // 05: 装配/加载失败(manifest 是安装树事实源)
+    }
+    std::stringstream buf; buf << f.rdbuf();
+    nlohmann::json doc;
+    try {
+        doc = nlohmann::json::parse(buf.str());
+    } catch (const nlohmann::json::parse_error& e) {
+        if (err) *err = std::string("product manifest malformed JSON: ") + sanitize(e.what());
+        return astrocs::BACKEND;
+    }
+    if (!doc.is_object() || !doc.contains("units") || !doc["units"].is_array()) {
+        if (err) *err = "product manifest missing 'units' array";
+        return astrocs::BACKEND;
+    }
+    *units_out = doc["units"];
+    return astrocs::OK;
+}
+
+// modules list: 扫描 manifest 登记的 unit; 逐个检查安装树文件存在性。
+// 无 product manifest = 宿主未按安装树装配 → BACKEND(5), 明示原因(非静默 PASS)。
+static int cmd_modules_list(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    (void)ev;
+    const bool json = p.flags.count("--json") > 0;
+    const std::string mpath = locate_product_manifest();
+    nlohmann::json units = nlohmann::json::array();
+    nlohmann::json issues = nlohmann::json::array();
+    bool present = false;
+    int rc = astrocs::OK;
+    if (mpath.empty()) {
+        // 无 product manifest: 宿主未按安装树装配(纯开发单 exe 场景)。
+        // modules list 属装配查询: 无 manifest → BACKEND(缺装配事实源), 明示原因。
+        rc = astrocs::BACKEND;
+        issues.push_back({{"kind", "manifest"},
+                          {"detail", "no product manifest (not an installed tree)"}});
+    } else {
+        present = true;
+        std::string err;
+        rc = load_product_manifest(mpath, &units, &err);
+        if (rc != astrocs::OK) {
+            issues.push_back({{"kind", "manifest"}, {"detail", err}});
+        } else {
+            const std::string dir = product_manifest_base_dir(mpath);
+            nlohmann::json cleaned = nlohmann::json::array();
+            for (const auto& u : units) {
+                if (!u.is_object()) continue;
+                const std::string rel = u.value("rel_path", std::string());
+                const std::string kind = u.value("kind", std::string());
+                const bool file_present = unit_file_present(dir, rel);
+                nlohmann::json e = {
+                    {"unit_id", u.value("unit_id", std::string())},
+                    {"kind", kind},
+                    {"rel_path", rel},
+                    {"module_id", u.contains("module_id") && !u["module_id"].is_null()
+                                      ? nlohmann::json(u["module_id"].get<std::string>())
+                                      : nlohmann::json(nullptr)},
+                    {"abi_version", u.contains("abi_version") && !u["abi_version"].is_null()
+                                        ? nlohmann::json(u["abi_version"].get<int>())
+                                        : nlohmann::json(nullptr)},
+                    {"status", u.value("status", std::string())},
+                    {"sha256", u.contains("sha256") && !u["sha256"].is_null()
+                                   ? nlohmann::json(u["sha256"].get<std::string>())
+                                   : nlohmann::json(nullptr)},
+                    {"present", file_present},
+                };
+                cleaned.push_back(e);
+                // 缺 DLL/模块文件 → issue(list 报告; verify 判 FAIL)
+                if (!file_present && (kind == "module" || kind == "provider" ||
+                                      kind == "runtime" || kind == "io")) {
+                    issues.push_back({{"kind", "missing_unit_file"},
+                                      {"unit_id", u.value("unit_id", std::string())},
+                                      {"rel_path", rel}});
+                }
+            }
+            units = cleaned;
+        }
+    }
+    const bool fail = rc != astrocs::OK || !issues.empty();
+    nlohmann::json doc = {
+        {"schema_version", 1},
+        {"kind", "astrocs_modules_list"},
+        {"manifest", present ? nlohmann::json(mpath) : nlohmann::json(nullptr)},
+        {"manifest_present", present},
+        {"units", units},
+        {"issues", issues},
+        {"verdict", fail ? "FAIL" : "PASS"},
+    };
+    if (json) {
+        std::printf("%s\n", doc.dump(2).c_str());
+        return fail ? astrocs::BACKEND : astrocs::OK;
+    }
+    if (!present) {
+        // 人类模式: 无 manifest → 简短错误(退出 5)
+        std::fprintf(stderr, "astrocs: modules list: no product manifest "
+                             "(not an installed tree; run from an install root)\n");
+        return astrocs::BACKEND;
+    }
+    std::printf("manifest: %s\n", mpath.c_str());
+    for (const auto& u : units) {
+        std::printf("%s\t%s\t%s\t%s\n",
+                    u.value("kind", std::string()).c_str(),
+                    u.value("unit_id", std::string()).c_str(),
+                    u.value("status", std::string()).c_str(),
+                    u.value("present", false) ? "present" : "MISSING");
+    }
+    if (fail) {
+        std::fprintf(stderr, "astrocs: modules list: one or more declared units missing\n");
+        return astrocs::BACKEND;
+    }
+    return astrocs::OK;
+}
+
+// modules verify: 独立实现(list 之上把"缺文件"视为失败 = 装配完整性门)。
+// 输出复用 cli_modules_list.schema(契约一致; verdict FAIL + issues 非空)。
+static int cmd_modules_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    (void)ev;
+    const bool json = p.flags.count("--json") > 0;
+    const std::string mpath = locate_product_manifest();
+    nlohmann::json units = nlohmann::json::array();
+    nlohmann::json issues = nlohmann::json::array();
+    if (mpath.empty()) {
+        issues.push_back({{"kind", "manifest"}, {"detail", "no product manifest"}});
+        if (json) {
+            nlohmann::json doc = {
+                {"schema_version", 1}, {"kind", "astrocs_modules_list"},
+                {"manifest", nullptr}, {"manifest_present", false},
+                {"units", nlohmann::json::array()},
+                {"issues", issues}, {"verdict", "FAIL"},
+            };
+            std::printf("%s\n", doc.dump(2).c_str());
+        } else {
+            std::fprintf(stderr, "astrocs: modules verify FAIL: no product manifest "
+                                 "(not an installed tree)\n");
+        }
+        return astrocs::BACKEND;   // 缺装配事实源 → 5
+    }
+    std::string err;
+    const int rc = load_product_manifest(mpath, &units, &err);
+    const std::string dir = product_manifest_base_dir(mpath);
+    if (rc != astrocs::OK) {
+        issues.push_back({{"kind", "manifest"}, {"detail", err}});
+    } else {
+        nlohmann::json cleaned = nlohmann::json::array();
+        for (const auto& u : units) {
+            if (!u.is_object()) continue;
+            const std::string rel = u.value("rel_path", std::string());
+            const std::string kind = u.value("kind", std::string());
+            const bool file_present = unit_file_present(dir, rel);
+            cleaned.push_back(nlohmann::json{
+                {"unit_id", u.value("unit_id", std::string())},
+                {"kind", kind},
+                {"rel_path", rel},
+                {"module_id", u.contains("module_id") && !u["module_id"].is_null()
+                                  ? nlohmann::json(u["module_id"].get<std::string>())
+                                  : nlohmann::json(nullptr)},
+                {"abi_version", u.contains("abi_version") && !u["abi_version"].is_null()
+                                    ? nlohmann::json(u["abi_version"].get<int>())
+                                    : nlohmann::json(nullptr)},
+                {"status", u.value("status", std::string())},
+                {"sha256", u.contains("sha256") && !u["sha256"].is_null()
+                               ? nlohmann::json(u["sha256"].get<std::string>())
+                               : nlohmann::json(nullptr)},
+                {"present", file_present},
+            });
+            if (!file_present &&
+                (kind == "module" || kind == "provider" || kind == "runtime" ||
+                 kind == "io" || kind == "exe")) {
+                issues.push_back({{"kind", "missing_unit_file"},
+                                  {"unit_id", u.value("unit_id", std::string())},
+                                  {"rel_path", rel}});
+            }
+        }
+        units = cleaned;
+    }
+    const bool fail = !issues.empty();
+    if (json || fail) {
+        nlohmann::json doc = {
+            {"schema_version", 1},
+            {"kind", "astrocs_modules_list"},
+            {"manifest", nlohmann::json(mpath)},
+            {"manifest_present", true},
+            {"units", units},
+            {"issues", issues},
+            {"verdict", fail ? "FAIL" : "PASS"},
+        };
+        std::printf("%s\n", doc.dump(2).c_str());
+    } else {
+        std::printf("modules verify OK (%zu units present)\n", units.size());
+    }
+    return fail ? astrocs::BACKEND : astrocs::OK;
+}
+
+// selftest: 宿主自检 + 可选 module/provider 装配校验。--module 时缺该 DLL → 5。
+static int cmd_selftest(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    (void)ev;
+    const bool json = p.flags.count("--json") > 0;
+    const std::string want_mod = p.values.count("--module") ? p.values.at("--module") : "";
+    const std::string want_prov = p.values.count("--provider") ? p.values.at("--provider") : "";
+    nlohmann::json checks = nlohmann::json::array();
+
+    // 1) 宿主基线(与 doctor baseline_selftest 同源; 独立重跑不缓存)
+    {
+        astrocs_host_services_v1 host;
+        void* hstate = nullptr;
+        astrocs_host_services_default_v1(&host, &hstate);
+        astrocs_backend_api_v1 api{};
+        std::memset(&api, 0, sizeof(api));
+        const int grc = astrocs_backend_get_api_v1(ACS_ABI_VERSION_V1,
+                                                   sizeof(astrocs_host_services_v1), &host, &api);
+        checks.push_back(nlohmann::json{
+            {"name", "host_baseline"},
+            {"status", (grc == ACS_OK && api.self_test &&
+                        api.self_test(&host) == ACS_OK) ? "pass" : "fail"}});
+    }
+    // 2) 退出码表一致性: 单源由 tools/check_cli_command_layer +
+    // tests/cli test_10_exit_codes_single_source 机器门保证(数值唯一在
+    // cli/exit_codes.h)。本命令不重列数值, 仅做可编译引用证明头已含表。
+    {
+        // 引用 exit_codes 枚举成员(数值单源); probe 无科学含义
+        const long probe = static_cast<long>(astrocs::ARGS) + static_cast<long>(astrocs::INTERNAL);
+        checks.push_back(nlohmann::json{{"name", "exit_code_table"},
+                                        {"status", probe > 0 ? "pass" : "fail"}});
+    }
+    // 3) 装配完整性: 找 manifest; 记录缺文件 unit
+    {
+        const std::string mpath = locate_product_manifest();
+        if (mpath.empty()) {
+            checks.push_back(nlohmann::json{{"name", "product_manifest"},
+                                            {"status", "skipped"},
+                                            {"detail", "no installed tree (dev single-exe)"}});
+        } else {
+            nlohmann::json units;
+            std::string err;
+            const int rc = load_product_manifest(mpath, &units, &err);
+            if (rc != astrocs::OK) {
+                checks.push_back(nlohmann::json{{"name", "product_manifest"},
+                                                {"status", "fail"}, {"detail", err}});
+            } else {
+                const std::string dir = product_manifest_base_dir(mpath);
+                bool all_present = true;
+                std::vector<std::string> missing;
+                for (const auto& u : units) {
+                    if (!u.is_object()) continue;
+                    const std::string kind = u.value("kind", std::string());
+                    if (kind != "module" && kind != "provider") continue;
+                    const std::string rel = u.value("rel_path", std::string());
+                    if (rel.empty()) continue;
+                    if (!unit_file_present(dir, rel)) {
+                        all_present = false;
+                        missing.push_back(u.value("unit_id", rel));
+                    }
+                }
+                // 过滤 --module/--provider 定向选择: 未装配/未找到 → 明确 fail。
+                // 模块按 module_id(唯一登记身份)精确匹配; provider 按 unit_id 或
+                // 其 module_id 精确匹配——绝不"任意 provider 兜底"(否则未登记
+                // provider ID 会静默 PASS, 违背 缺 DLL/未登记→非零 契约)。
+                if (!want_mod.empty()) {
+                    bool found = false;
+                    for (const auto& u : units) {
+                        if (!u.is_object()) continue;
+                        if (u.value("kind", std::string()) != "module") continue;
+                        const std::string mid =
+                            u.contains("module_id") && !u["module_id"].is_null()
+                                ? u["module_id"].get<std::string>() : std::string();
+                        if (mid != want_mod) continue;
+                        found = true;
+                        const std::string rel = u.value("rel_path", std::string());
+                        const bool fp = unit_file_present(dir, rel);
+                        checks.push_back(nlohmann::json{
+                            {"name", "module_assembly:" + want_mod},
+                            {"status", fp ? "pass" : "fail"},
+                            {"detail", fp ? std::string("present") : ("missing: " + rel)}});
+                        if (!fp) all_present = false;
+                    }
+                    if (!found) {
+                        checks.push_back(nlohmann::json{
+                            {"name", "module_assembly:" + want_mod},
+                            {"status", "fail"},
+                            {"detail", "module not declared in product manifest"}});
+                        all_present = false;
+                    }
+                }
+                if (!want_prov.empty()) {
+                    bool found = false;
+                    for (const auto& u : units) {
+                        if (!u.is_object()) continue;
+                        if (u.value("kind", std::string()) != "provider") continue;
+                        const std::string uid = u.value("unit_id", std::string());
+                        const std::string mid =
+                            u.contains("module_id") && !u["module_id"].is_null()
+                                ? u["module_id"].get<std::string>() : std::string();
+                        if (uid != want_prov && mid != want_prov) continue;
+                        found = true;
+                        const std::string rel = u.value("rel_path", std::string());
+                        const bool fp = unit_file_present(dir, rel);
+                        checks.push_back(nlohmann::json{
+                            {"name", "provider_assembly:" + want_prov},
+                            {"status", fp ? "pass" : "fail"},
+                            {"detail", fp ? std::string("present") : ("missing: " + rel)}});
+                        if (!fp) all_present = false;
+                    }
+                    if (!found) {
+                        checks.push_back(nlohmann::json{
+                            {"name", "provider_assembly:" + want_prov},
+                            {"status", "fail"},
+                            {"detail", "provider not declared in product manifest"}});
+                        all_present = false;
+                    }
+                }
+                if (want_mod.empty() && want_prov.empty()) {
+                    checks.push_back(nlohmann::json{
+                        {"name", "module_assembly"},
+                        {"status", all_present ? "pass" : "fail"},
+                        {"detail", all_present ? std::string("all declared units present")
+                                               : ("missing: " + missing.front())}});
+                }
+            }
+        }
+    }
+    bool all = true;
+    for (const auto& c : checks)
+        if (c.value("status", "") == "fail") all = false;
+    nlohmann::json doc = {{"schema_version", 1}, {"kind", "astrocs_selftest"},
+                          {"checks", checks}, {"verdict", all ? "PASS" : "FAIL"}};
+    if (json || all) {
+        std::printf("%s\n", doc.dump(2).c_str());
+    }
+    if (!json && !all) {
+        for (const auto& c : checks)
+            if (c.value("status", "") == "fail")
+                std::fprintf(stderr, "astrocs: selftest FAIL: %s\n",
+                             c.value("name", "").c_str());
+    }
+    return all ? astrocs::OK : astrocs::BACKEND;
+}
+
 // dispatch: 外部可见（cli_common.h 声明；main.cpp 调用）。
 int dispatch(const Parsed& p) {
     const std::string joined = p.join();
@@ -1228,7 +1633,7 @@ int dispatch(const Parsed& p) {
         (joined == "run") ? "pipeline" : (joined.rfind("phase", 0) == 0 ? joined.substr(0, 6) : joined);
     astrocs::JsonlEmitter ev(events, astrocs::make_run_id(), phase_name);
 
-    if (joined == "--version") {
+    if (joined == "--version" || joined == "version") {
         if (p.flags.count("--json")) {
             std::printf("{\"schema_version\":\"1\",\"name\":\"astrocs\",\"version\":\"%s\"}\n",
                         ASTROCS_VERSION_STRING);
@@ -1241,6 +1646,9 @@ int dispatch(const Parsed& p) {
         std::fputs(kHelp, stdout);
         return astrocs::OK;
     }
+    if (joined == "modules list")            return cmd_modules_list(p, ev);
+    if (joined == "modules verify")          return cmd_modules_verify(p, ev);
+    if (joined == "selftest")                return cmd_selftest(p, ev);
     if (joined == "benchmark cpu") {
         const bool quick = p.flags.count("--quick") > 0;
         const bool full = p.flags.count("--full") > 0;
