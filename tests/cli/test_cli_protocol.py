@@ -24,7 +24,6 @@ HELP_LINES = [
     "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]",
     "astrocs phase2 run --config <path> [--cpu-profile <path>] [--events-jsonl]",
     "astrocs phase3 run --config <path> [--cpu-profile <path>] [--events-jsonl]",
-    "astrocs run --phases <1|2|3|1,2|1,2,3> --config <path> [--cpu-profile <path>] [--events-jsonl]",
     "astrocs verify --run-manifest <path> --json",
 ]
 
@@ -87,9 +86,13 @@ class TestGolden(unittest.TestCase):
             ("test", "synthetic", "--group", "nope"),      # 枚举外
             ("benchmark", "cpu"),                          # quick/full 皆无
             ("benchmark", "cpu", "--quick", "--full"),     # quick/full 皆有
-            ("run", "--phases", "2,1", "--config", self.cfg),   # 非升序
-            ("run", "--phases", "1,1", "--config", self.cfg),   # 重复
-            ("run", "--phases", "4", "--config", self.cfg),     # 越界
+            # CLI-002: 顶层 run/--phases/连续管线已删除 → 未知命令/未知旗标(2)
+            ("run",),                                      # 顶层 run 已移除 → unknown command
+            ("run", "--phases", "2,1", "--config", self.cfg),   # --phases 已移除 → unknown flag
+            ("run", "--phases", "1,1", "--config", self.cfg),   # 同上
+            ("run", "--phases", "4", "--config", self.cfg),     # 同上
+            ("graph",),                                    # 顶层 graph 已移除 → unknown command
+            ("graph", "--preset", "1,2,3", "--config", self.cfg, "--output", self.tmp),  # 同上
         ]
         for case in cases:
             r = run(*case)
@@ -148,10 +151,12 @@ class TestGolden(unittest.TestCase):
 
     # ── cancel → 9 ──
     def test_07_cancel_exit_9_no_fake_artifacts(self):
-        # phase2 run 已真接线(CLI-005)需会话配置; 取消语义改由 run 管线 stub-wait 证明(同钩子)
+        # CLI-002: 顶层 run 已移除; 取消语义经 phase1 run 生产 sleep 钩子证明(同钩子)。
+        # config init 默认(空 inputs.lights)下 phase1 run 在 sleep 后即达 Runtime 且失败(3),
+        # 取消窗在 sleep 段 → exit 9 + incomplete manifest。
         env = {"ASTROCS_TEST_SLEEP_MS": "8000"}
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-        p = subprocess.Popen([built(), "run", "--phases", "1", "--config", self.cfg,
+        p = subprocess.Popen([built(), "phase1", "run", "--config", self.cfg,
                               "--events-jsonl"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                              env={**os.environ, **env}, creationflags=creationflags)
@@ -288,19 +293,20 @@ class TestManifestVerify(unittest.TestCase):
         self.assertEqual(r.returncode, 2)
 
     def test_08_run_writes_incomplete_manifest(self):
-        # run 已是真实现: 用 config init 默认(空 inputs.lights + 无 phase3)跑 1,2,3,
-        # 阶段1 因空 input_lights 而失败 → 科学失败(4), 必写 "incomplete" manifest, 禁 "complete"。
-        out = run("run", "--phases", "1,2,3", "--config", self.cfg, "--events-jsonl")
-        self.assertEqual(out.returncode, 4, out.stderr[-200:])  # 阶段配置/科学失败(非 not-wired 2)
+        # CLI-002: 顶层 run --phases 已移除; 等价不完整 manifest 语义经 phase1 run 证明:
+        # config init 默认(空 inputs.lights)下 phase1 空输入 → Runtime DATA 失败(3),
+        # 必写 "incomplete" manifest, 禁 "complete"。
+        out = run("phase1", "run", "--config", self.cfg, "--events-jsonl")
+        self.assertEqual(out.returncode, 3, out.stderr[-200:])  # 空输入 DATA → INPUT(3)
         artifacts = [json.loads(l) for l in out.stdout.splitlines() if l.strip()]
         mf = [e for e in artifacts if e["kind"] == "artifact" and e.get("role") == "run_manifest"]
-        self.assertTrue(mf, "run 必须写 manifest 事件")
+        self.assertTrue(mf, "phase1 run 必须写 manifest 事件")
         mpath = mf[-1]["path"]
         doc = json.loads(open(mpath, encoding="utf-8").read())
         self.assertEqual(doc["kind"], "astrocs_run_manifest")
         self.assertEqual(doc["status"], "incomplete", "不完整运行禁止 complete")
         self.assertEqual(doc["platform"]["arch"], "amd64")
-        self.assertEqual(doc["phases"], [1, 2, 3])
+        self.assertEqual(doc["phases"], [1])
         self.assertEqual(doc["config_sha256"],
                          hashlib.sha256(open(self.cfg, "rb").read()).hexdigest())
         r = run("verify", "--run-manifest", mpath, "--json")
@@ -355,9 +361,11 @@ class TestManifestVerify(unittest.TestCase):
             json.dump(doc, f)
 
     def test_10_cancel_writes_incomplete_manifest(self):
+        # CLI-002: 顶层 run 已移除; 取消留 incomplete manifest 语义经 phase2 run 证明
+        # (phase2 走 Runtime 单 phase 子图; sleep 钩子窗内 SIGINT → 9 + incomplete)。
         env = {"ASTROCS_TEST_SLEEP_MS": "8000"}
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-        p = subprocess.Popen([built(), "run", "--phases", "1,2", "--config", self.cfg,
+        p = subprocess.Popen([built(), "phase2", "run", "--config", self.cfg,
                               "--events-jsonl"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                              env={**os.environ, **env}, creationflags=creationflags)

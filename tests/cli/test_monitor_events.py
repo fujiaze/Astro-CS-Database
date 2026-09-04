@@ -79,16 +79,16 @@ class TestMonitorEvents(unittest.TestCase):
 
     def test_01_resource_detail_flag_accepted(self):
         """--resource-detail summary|timeseries 必须被 run 接受, 非法值→2。"""
-        r = self._run("run", "--phases", "3", "--config", self.rcfg,
+        r = self._run("phase3", "run", "--config", self.rcfg,
                       "--events-jsonl", "--resource-detail", "summary")
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
-        r2 = self._run("run", "--phases", "3", "--config", self.rcfg,
+        r2 = self._run("phase3", "run", "--config", self.rcfg,
                        "--events-jsonl", "--resource-detail", "bogus")
         self.assertNotEqual(r2.returncode, 0)  # 非法 detail 应 fail(非静默)
 
     def test_02_resource_summary_emitted_with_mandatory_metrics(self):
         """run 成功 → resource summary 事件必含 07 §2 指标(peak_rss/n_samples/wall/details)。"""
-        r = self._run("run", "--phases", "3", "--config", self.rcfg,
+        r = self._run("phase3", "run", "--config", self.rcfg,
                       "--events-jsonl", "--resource-detail", "summary")
         evs = self._events(r)
         res = [e for e in evs if e["kind"] == "resource" and "resource summary" in e["message"]]
@@ -101,7 +101,7 @@ class TestMonitorEvents(unittest.TestCase):
 
     def test_03_backend_event_emitted(self):
         """backend 事件含 backend_id/workers_used/available_cpus(07 §2 必采)。"""
-        r = self._run("run", "--phases", "3", "--config", self.rcfg,
+        r = self._run("phase3", "run", "--config", self.rcfg,
                       "--events-jsonl", "--resource-detail", "summary")
         be = [e for e in self._events(r) if e["kind"] == "backend"]
         self.assertTrue(be, "必须发出 backend 事件")
@@ -112,7 +112,7 @@ class TestMonitorEvents(unittest.TestCase):
 
     def test_04_tier_downsample_present_only_when_timeseries(self):
         """timeseries 内嵌 downsample_max/curve 标记; summary 不内嵌曲线数据(分层小型化)。"""
-        r = self._run("run", "--phases", "3", "--config", self.rcfg,
+        r = self._run("phase3", "run", "--config", self.rcfg,
                       "--events-jsonl", "--resource-detail", "timeseries")
         res = [e for e in self._events(r) if e["kind"] == "resource" and "resource summary" in e["message"]]
         self.assertTrue(res)
