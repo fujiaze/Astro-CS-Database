@@ -2,10 +2,12 @@
 """SYN-009 独立合成 Oracle — CLI Phase1/2/3 端到端合成 pipeline(单 CLI)。
 验收(03 L131 + CLI-007): 合成帧经过 Phase1→2→3; 中断/resume hash mismatch;
                         单 CLI、artifact chain、events、资源与科学不变量全过。
-方法(independent, 驱动生产 CLI `astrocs run --phases ...`, 不调用库内部):
+方法(independent, 驱动生产 CLI `astrocs phaseN run ...`, 不调用库内部):
   - 用 phase1/phase2/phase3 fixture 生成合成数据(FITS 灯场 + 主帧; F1/F2/FIELD/NAN HiPS)。
-  - 单二进制 `astrocs run --phases 1|2|3|2,3` 逐相(生产 session)驱动,
-    校验 events(sequence 单调/final) / run manifest(complete + verify 通过) / 逐阶段 artifact。
+  - CLI-002: 顶层 `astrocs run --phases` 连续管线已移除; 各 phase 经独立命令
+    `astrocs phase1 run` / `phase2 run` / `phase3 run` 逐相驱动(每命令全新 Runtime、
+    run_id、manifest 的进程隔离生产 session), 校验 events(sequence 单调/final) /
+    run manifest(complete + verify 通过) / 逐阶段 artifact。
   - 科学不变量(各 phase 由 SYN-001..008 独立 Oracle 定义):
       phase1 帧校准值 = (200-100-1*(150-100))/1.25 = 40(精确);
       phase2 overlap_controls>0; phase3 output_phase3.fits 存在 + verify。
@@ -104,17 +106,18 @@ class TestPhase123Pipeline(unittest.TestCase):
         json.dump(doc, open(cfg, "w"))
         return cfg
 
-    def _run(self, phases, cfg):
-        return subprocess.run([EXE, "run", "--phases", phases, "--config", cfg, "--events-jsonl"],
+    def _run(self, phase_cmd, cfg):
+        # CLI-002: phaseN run 单相生产 session(每命令全新 Runtime/run_id/manifest)
+        return subprocess.run([EXE, phase_cmd, "run", "--config", cfg, "--events-jsonl"],
                               capture_output=True, text=True, timeout=300)
 
-    # ── phase1 单独(pipeline run --phases 1, 用 master 的 phase1 run 做数值 Oracle) ──
+    # ── phase1 单独(phase1 run, 用 master 的 phase1 run 做数值 Oracle) ──
     def test_01_phase1_single_invariants(self):
-        # 1a. pipeline run --phases 1: 完整 + 事件 + manifest complete + verify + 资源/backend
+        # 1a. phase1 run: 完整 + 事件 + manifest complete + verify + 资源/backend
         out = os.path.join(self.tmp, "out1"); os.makedirs(out)
         cfg = self._config(out, [os.path.join(self.p1data, "light_1.fits"),
                                  os.path.join(self.p1data, "light_2.fits")])
-        r = self._run("1", cfg)
+        r = self._run("phase1", cfg)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
         events = jsonl_lines(r.stdout)
         self.assertEqual([e["sequence"] for e in events], list(range(len(events))), "sequence 单调")
@@ -151,7 +154,7 @@ class TestPhase123Pipeline(unittest.TestCase):
         out = os.path.join(self.tmp, "out2"); os.makedirs(out)
         cfg = self._config(out, [os.path.join(self.hips, "F1.hips"),
                                  os.path.join(self.hips, "F2.hips")])
-        r = self._run("2", cfg)
+        r = self._run("phase2", cfg)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
         events = jsonl_lines(r.stdout)
         self.assertEqual(events[-1]["status"], "ok")
@@ -169,7 +172,7 @@ class TestPhase123Pipeline(unittest.TestCase):
                "width_px": 20, "height_px": 20, "sampler": "bilinear",
                "projection": "TAN", "coverage_output": "mask"}
         cfg = self._config(out, [], phase3=ph3)
-        r = self._run("3", cfg)
+        r = self._run("phase3", cfg)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
         events = jsonl_lines(r.stdout)
         self.assertEqual(events[-1]["status"], "ok")
@@ -180,24 +183,36 @@ class TestPhase123Pipeline(unittest.TestCase):
                         "phase3 output 应在 manifest artifact chain")
         self.assertTrue(os.path.isfile(os.path.join(out, "output_phase3.fits")), "phase3 FITS 已写出")
 
-    # ── 组合 2,3(共享 HiPS 输入) ──
-    def test_04_combined_23_artifact_chain(self):
+    # ── phase2/3 各自独立命令(共享 HiPS 输入, 进程隔离两次运行) ──
+    def test_04_phase2_phase3_isolated_commands(self):
         out = os.path.join(self.tmp, "out23"); os.makedirs(out)
         ph3 = {"source": {"hips_dir": os.path.join(self.hips, "FIELD.hips")},
                "center": {"ra_deg": 0.0, "dec_deg": 30.0}, "scale_deg_per_px": 0.05,
                "width_px": 20, "height_px": 20, "sampler": "bilinear",
                "projection": "TAN", "coverage_output": "mask"}
-        cfg = self._config(out, [os.path.join(self.hips, "F1.hips"),
-                                 os.path.join(self.hips, "F2.hips")], phase3=ph3)
-        r = self._run("2,3", cfg)
-        self.assertEqual(r.returncode, 0, r.stderr[-400:])
-        events = jsonl_lines(r.stdout)
-        self.assertEqual(events[-1]["status"], "ok")
-        m = [e for e in events if e["kind"] == "artifact" and e.get("role") == "run_manifest"][-1]
-        man = json.load(open(m["path"], encoding="utf-8"))
-        self.assertEqual(man["status"], "complete")
-        self.assertEqual([e["stage"] for e in events if e["kind"] == "stage_end"],
-                         ["run_phase2", "run_phase3"])
+        cfg2 = self._config(os.path.join(self.tmp, "out23p2"),
+                            [os.path.join(self.hips, "F1.hips"),
+                             os.path.join(self.hips, "F2.hips")])
+        os.makedirs(os.path.join(self.tmp, "out23p2"), exist_ok=True)
+        cfg3 = self._config(os.path.join(self.tmp, "out23p3"), [], phase3=ph3)
+        os.makedirs(os.path.join(self.tmp, "out23p3"), exist_ok=True)
+        # CLI-002: 连续管线不再存在; 每次 phaseN run 独立进程 + 独立 run_id/manifest
+        r2 = self._run("phase2", cfg2)
+        self.assertEqual(r2.returncode, 0, r2.stderr[-400:])
+        r3 = self._run("phase3", cfg3)
+        self.assertEqual(r3.returncode, 0, r3.stderr[-400:])
+        ev2 = jsonl_lines(r2.stdout); ev3 = jsonl_lines(r3.stdout)
+        self.assertEqual(ev2[-1]["status"], "ok"); self.assertEqual(ev3[-1]["status"], "ok")
+        rid2 = {e["run_id"] for e in ev2}; rid3 = {e["run_id"] for e in ev3}
+        self.assertEqual(len(rid2), 1); self.assertEqual(len(rid3), 1)
+        self.assertNotEqual(rid2, rid3, "CLI-002: 两次运行必须不同 run_id(进程隔离)")
+        m2 = [e for e in ev2 if e["kind"] == "artifact" and e.get("role") == "run_manifest"][-1]
+        m3 = [e for e in ev3 if e["kind"] == "artifact" and e.get("role") == "run_manifest"][-1]
+        man2 = json.load(open(m2["path"], encoding="utf-8"))
+        man3 = json.load(open(m3["path"], encoding="utf-8"))
+        self.assertEqual(man2["status"], "complete")
+        self.assertEqual(man3["status"], "complete")
+        self.assertEqual(man2["phases"], [2]); self.assertEqual(man3["phases"], [3])
 
     # ── 中断 → exit 9 + incomplete manifest ──
     def test_05_cancel_interrupt(self):
@@ -209,7 +224,8 @@ class TestPhase123Pipeline(unittest.TestCase):
         cfg = self._config(out, [os.path.join(self.hips, "F1.hips"),
                                  os.path.join(self.hips, "F2.hips")], phase3=ph3)
         env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="4000")
-        p = subprocess.Popen([EXE, "run", "--phases", "2,3", "--config", cfg, "--events-jsonl"],
+        # CLI-002: phase3 run 独立命令承载取消语义(与 run --phases 3 同钩子)
+        p = subprocess.Popen([EXE, "phase3", "run", "--config", cfg, "--events-jsonl"],
                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env)
         time.sleep(1.0)
         p.send_signal(signal.SIGINT)
@@ -227,7 +243,7 @@ class TestPhase123Pipeline(unittest.TestCase):
                "projection": "TAN", "coverage_output": "mask"}
         cfg = self._config(out, [], phase3=ph3)
         # 第一次完整跑
-        r1 = self._run("3", cfg)
+        r1 = self._run("phase3", cfg)
         self.assertEqual(r1.returncode, 0, r1.stderr[-400:])
         man = [e for e in jsonl_lines(r1.stdout) if e.get("role") == "run_manifest"][-1]
         m = json.load(open(man["path"], encoding="utf-8"))
@@ -236,7 +252,7 @@ class TestPhase123Pipeline(unittest.TestCase):
         with open(art["path"], "ab") as fh:
             fh.write(b"TAMPER")
         # 重跑 → 应 8
-        r2 = self._run("3", cfg)
+        r2 = self._run("phase3", cfg)
         self.assertEqual(r2.returncode, 8, r2.stdout[-300:] + r2.stderr[-300:])
         ev = [e for e in jsonl_lines(r2.stdout) if e["kind"] == "final"]
         self.assertEqual(ev[-1]["status"], "resume_hash_mismatch")
@@ -249,8 +265,10 @@ class TestPhase123Pipeline(unittest.TestCase):
                "width_px": 20, "height_px": 20, "sampler": "bilinear",
                "projection": "TAN", "coverage_output": "mask"}
         cfg = self._config(out, [os.path.join(self.hips, "F1.hips")], phase3=ph3)
-        r = self._run("3", cfg)
+        r = self._run("phase3", cfg)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
+        # CLI-002: 顶层 graph --preset 已移除(连续管线命令面不存在);
+        # phase3 run 单相运行图产物(static/observed/sidecar; 路径脱敏)
         gdir = os.path.join(out, "graph")
         for name in ("static_graph.json", "observed_trace.json", "graph_sidecar.json",
                      "static_graph.dot", "observed_graph.dot", "static_graph.svg",
@@ -259,8 +277,8 @@ class TestPhase123Pipeline(unittest.TestCase):
         tr = json.load(open(os.path.join(gdir, "observed_trace.json"), encoding="utf-8"))
         self.assertEqual(tr["schema"], "astrocs.observed-trace/v1")
         nodes = {n["node_id"]: n for n in tr["nodes"]}
-        self.assertIn("hips", nodes)
-        hn = nodes["hips"]
+        self.assertIn("properties", nodes)
+        hn = nodes["properties"]
         self.assertEqual(hn["status"], "COMPLETED")
         self.assertTrue(hn["duration_ms"] >= 0)
         self.assertGreaterEqual(hn["workers"], 1)
@@ -289,15 +307,12 @@ class TestPhase123Pipeline(unittest.TestCase):
                            capture_output=True, text=True, timeout=120)
         self.assertEqual(c.returncode, 0, c.stderr[-400:])
         self.assertIn("PIPELINE_GRAPH_PASS", c.stdout)
-        # 静态-only graph 命令(每个正式 preset 预生成静态图)
-        gout = os.path.join(self.tmp, "gstatic"); os.makedirs(gout, exist_ok=True)
+        # CLI-002: `astrocs graph` 命令已移除 → 未知命令 exit 2
         g = subprocess.run([EXE, "graph", "--preset", "1,2,3", "--config", cfg,
-                            "--output", gout],
+                            "--output", os.path.join(self.tmp, "gstatic")],
                            capture_output=True, text=True, timeout=120)
-        self.assertEqual(g.returncode, 0, g.stderr[-400:])
-        self.assertTrue(os.path.isfile(os.path.join(gout, "graph", "static_graph.dot")))
-        self.assertTrue(os.path.isfile(os.path.join(gout, "graph", "l0_graph.json")))
-        self.assertTrue(os.path.isfile(os.path.join(gout, "graph", "static_graph.svg")))
+        self.assertEqual(g.returncode, 2, g.stderr[-200:])
+        self.assertIn("unknown command", g.stderr)
 
 
 if __name__ == "__main__":

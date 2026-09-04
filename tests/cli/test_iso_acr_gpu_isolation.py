@@ -114,7 +114,8 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
             cfg[bad] = "acr" if bad in ("backend", "mixed_backend") else "cuda"
             cp = os.path.join(self.tmp, f"bad_{bad}.json")
             json.dump(cfg, open(cp, "w"))
-            r = subprocess.run([EXE, "run", "--phases", "3", "--config", cp],
+            # CLI-002: run --phases 3 已移除 → phase3 run 单相入口(等价拒绝面)
+            r = subprocess.run([EXE, "phase3", "run", "--config", cp],
                                capture_output=True, text=True, timeout=120)
             self.assertNotEqual(r.returncode, 0, f"{bad} 应被拒绝")
             self.assertIn("unknown key", r.stderr, f"{bad} 拒绝信息应为明确错误而非静默 fallback")
@@ -164,7 +165,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
                               "projection": "TAN", "sampler": "nearest",
                               "coverage_output": "mask", "max_tiles": 64}},
                   open(cfg, "w"))
-        r = subprocess.run([EXE, "run", "--phases", "3", "--config", cfg],
+        r = subprocess.run([EXE, "phase3", "run", "--config", cfg],
                            capture_output=True, text=True, timeout=300)
         if r.returncode != 0:
             self.skipTest(f"phase3 run 未成功: {r.stderr[-200:]}")

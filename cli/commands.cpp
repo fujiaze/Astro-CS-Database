@@ -60,8 +60,9 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "cli_common.h"
 #include "runtime_client.h"
 
-// CLI→host 的取消/日志桥接(定义于后段, 此处前向声明供 cmd_run_pipeline 使用)
-// MON-002 资源/backend 事件发射(定义于后段, 前向声明供 cmd_run_pipeline 使用)
+// MON-002 资源/backend 事件发射(定义于后段, 此处前向声明供 phase run 共用引擎使用)
+// 注: cmd_run_pipeline / cmd_graph 已随 CLI-002 移除; 下述 helper(write_run_graphs /
+// emit_resource_summary / emit_backend_event) 保留, 供后续 phase run 共用引擎复用。
 static void emit_resource_summary(astrocs::JsonlEmitter&, const std::string&,
                                   const astrocs::ProcessMonitor::Summary&, const std::string&,
                                   std::size_t, const std::string&);
@@ -457,274 +458,6 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
             {{"role", "graph_dir"}, {"path", gdir}});
 }
 
-int cmd_run_pipeline(const Parsed& p, astrocs::JsonlEmitter& ev) {
-    const std::string cfg = need_value(p, "--config");
-    nlohmann::json doc;
-    int rc = validate_config_full(cfg, &doc);
-    if (rc != astrocs::OK) return rc;
-    bool ok = false;
-    const std::string cfg_sha = file_sha256(cfg, &ok);
-    if (!ok) return astrocs::INPUT;
-    std::ifstream cf(std::filesystem::u8path(cfg), std::ios::binary);
-    std::stringstream cb; cb << cf.rdbuf();
-    const std::string cfg_text = cb.str();  // RT-008: Runtime 需要完整 config 文本
-    // MON-002: --resource-detail summary|timeseries(07 §1); summary 默认强制。
-    std::string resource_detail = p.values.count("--resource-detail")
-                                      ? p.values.at("--resource-detail") : std::string("summary");
-    if (resource_detail != "summary" && resource_detail != "timeseries")
-        parse_fail("invalid --resource-detail (summary|timeseries)");
-    // MON-002: 进程监控(07 §1 强制): run 阶段采样, 摘要内嵌于 resource 事件。
-    astrocs::ProcessMonitor proc_mon(0.25);
-    // --phases: 1|2|3 的非空升序无重复逗号子集(04 示例: 1,2,3) — 先于任何写操作
-    std::vector<int> phases;
-    int last = 0;
-    for (char c : p.values.at("--phases")) {
-        if (c == ',') continue;
-        if (c < '1' || c > '3') parse_fail("invalid --phases");
-        const int v = c - '0';
-        if (v <= last) parse_fail("invalid --phases (must be ascending, unique)");
-        last = v;
-        phases.push_back(v);
-    }
-    if (phases.empty() || phases.size() > 3) parse_fail("invalid --phases");
-    // 取消检查点(真实 sleep 钩子沿用 cmd_stub 语义; 内核取消点在 CODE 域接线)
-    const char* sleep_ms = std::getenv("ASTROCS_TEST_SLEEP_MS");
-    if (sleep_ms) {
-        const long ms = std::strtol(sleep_ms, nullptr, 10);
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
-        ev.stage("run_wait", true);
-        while (std::chrono::steady_clock::now() < deadline) {
-            if (astrocs::is_cancelled()) {
-                ev.stage("run_wait", false);
-                rc = write_run_manifest(doc.value("output_dir", "."), ev, "incomplete",
-                                        "cancelled by user", cfg, cfg_sha, phases);
-                if (rc != astrocs::OK) return rc;
-                ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
-                std::fprintf(stderr, "astrocs: cancelled\n");
-                return astrocs::CANCELLED;               // 04: 取消 → 9, manifest=incomplete
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        }
-        ev.stage("run_wait", false);
-    }
-    if (std::getenv("ASTROCS_TEST_CRASH")) throw std::runtime_error("selftest-crash");
-    // ── RT-008: real orchestrator via Runtime (唯一执行路径) ──
-    // run --phases 解析 preset→IR→Runtime: P1/P2/P3 节点一次调度, 经 ArtifactStore 连续。
-    // 单 phase 命令(phase1/2/3 run)走同一 IR 子图(见 runtime_client), 不是第二条路径。
-    const std::string out_dir = doc.value("output_dir", std::string("."));
-    nlohmann::json all_artifacts = nlohmann::json::array();
-    std::string fail_reason;
-    int fail_phase = 0;
-
-    // resume / hash-mismatch: 校验 output_dir 中所有 prior astrocs_run_*.json 记录的 artifact 哈希链;
-    // 任一 prior artifact 磁盘 sha 与其记录不符 → 8(绝不静默跳过验证)→不进入新一轮运行。
-    {
-        bool mismatch = false;
-        std::error_code ec;
-        for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::u8path(out_dir), ec)) {
-            const std::string fn = entry.path().filename().u8string();
-            if (!entry.is_regular_file() || fn.rfind("astrocs_run_", 0) != 0 || fn.size() <= 14 ||
-                fn.substr(fn.size() - 5) != ".json")
-                continue;
-            try {
-                std::ifstream pf(entry.path(), std::ios::binary);
-                nlohmann::json pm = nlohmann::json::parse(
-                    std::string(std::istreambuf_iterator<char>(pf), {}));
-                if (pm.value("kind", std::string()) != "astrocs_run_manifest") continue;
-                for (const auto& a : pm.value("artifacts", nlohmann::json::array())) {
-                    const std::string ap = a.value("path", std::string());
-                    if (ap.empty()) continue;
-                    if (!std::filesystem::exists(std::filesystem::u8path(ap), ec)) { mismatch = true; break; }
-                    bool ok = false; const std::string sha = file_sha256(ap, &ok);
-                    if (!ok || sha != a.value("sha256", std::string())) { mismatch = true; break; }
-                }
-            } catch (...) { mismatch = true; }
-            if (ec) { mismatch = false; ec.clear(); }   // 目录遍历错误不算哈希不匹配
-            if (mismatch) break;
-        }
-        if (mismatch) {
-            rc = write_run_manifest(out_dir, ev, "incomplete", "resume hash mismatch",
-                                    cfg, cfg_sha, phases);
-            if (rc != astrocs::OK) return rc;
-            ev.emit_final(astrocs::INTEGRITY, "resume_hash_mismatch", nullptr,
-                          "prior artifact hash mismatch");
-            std::fprintf(stderr, "astrocs: resume hash mismatch\n");
-            return astrocs::INTEGRITY;   // 04/07: 输出完整性/验证失败 → 8
-        }
-    }
-
-    // MON-002: 背景采样线程(进程 CPU/RSS 在 run 期间累计), 000 后 join; 禁硬编码。
-    // MON-001: 记录器(样本/阶段分段/worker balance)随采样线程写入。
-    std::atomic<bool> mon_stop{false};
-    astrocs::ResourceRecorder recorder(0.25);
-    std::thread mon_thread([&proc_mon, &recorder, &mon_stop]() {
-        while (!mon_stop.load()) {
-            proc_mon.tick();
-            recorder.record(proc_mon.last_sample());
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
-        }
-    });
-
-    // RT-008: 通过 Runtime 执行全部 phase(单次调度; IR 由 runtime_client 构建)。
-    recorder.set_stage(astrocs::ResStage::Active);
-    for (int phase : phases) ev.stage(("run_phase" + std::to_string(phase)).c_str(), true);
-    {
-        const uint32_t budget = cli_affinity_cpu_count();
-        // MON-001: active 阶段注入实际 worker 租约数(available 核; 禁硬编码)
-        recorder.set_workers(budget, budget);
-        const int rrc = astrocs::cli::run_pipeline(phases, cfg_text, budget, &fail_reason);
-        recorder.set_stage(astrocs::ResStage::Flush);
-        if (rrc != astrocs::OK && fail_reason.empty()) {
-            fail_reason = "runtime pipeline failed (exit " + std::to_string(rrc) + ")";
-        }
-        // 失败时按首个失败 phase 定位(manifest 不变量与旧行为一致)
-        if (!fail_reason.empty()) {
-            for (int ph : phases) {
-                // Runtime 节点失败信息在 fail_reason 中; 定位不到具体 phase 时用最小 phase
-                if (fail_phase == 0) fail_phase = ph;
-            }
-        }
-        // 收集节点 manifest(cal=1, res=2, hips=3) → artifact 哈希链
-        std::vector<std::pair<std::string, std::string>> mans;
-        astrocs::cli::collect_node_manifests(&mans);
-        for (const auto& [nid, mtext] : mans) {
-            int phase = (nid == "cal") ? 1 : (nid == "res") ? 2 : 3;
-            nlohmann::json m;
-            try { m = nlohmann::json::parse(mtext); } catch (...) { continue; }
-            const std::string role = (phase == 1) ? "phase1_output"
-                                     : (phase == 2) ? "phase2_output" : "phase3_output";
-            for (const auto& a : m.value("artifacts", nlohmann::json::array())) {
-                const std::string ap = a.get<std::string>();
-                bool sok = false; const std::string sha = file_sha256(ap, &sok);
-                std::error_code ec2;
-                const auto sz = std::filesystem::file_size(std::filesystem::u8path(ap), ec2);
-                all_artifacts.push_back({{"role", role}, {"path", ap},
-                                         {"sha256", sok ? sha : ""},
-                                         {"size_bytes", ec2 ? 0ULL : static_cast<unsigned long long>(sz)}});
-            }
-            // phase3 附加 output_fits_path 产物
-            if (phase == 3) {
-                const std::string op = m.value("output_fits_path", std::string());
-                if (!op.empty()) {
-                    bool sok = false; const std::string sha = file_sha256(op, &sok);
-                    std::error_code ec2;
-                    const auto sz = std::filesystem::file_size(std::filesystem::u8path(op), ec2);
-                    all_artifacts.push_back({{"role", "phase3_output"}, {"path", op},
-                                             {"sha256", sok ? sha : ""},
-                                             {"size_bytes", ec2 ? 0ULL : static_cast<unsigned long long>(sz)}});
-                }
-            }
-        }
-    }
-    for (int phase : phases) ev.stage(("run_phase" + std::to_string(phase)).c_str(), false);
-    mon_stop.store(true);
-    mon_thread.join();
-    // MON-001: 自动生成 resource_samples.csv / resource_summary.json / worker_balance.csv
-    // (无需操作者额外脚本; 开销<2% 由 summary.sample_overhead_ms 度量)。
-    // P1-004: resource summary 引用 run_id(science manifest 同 run_id, 联合门)。
-    {
-        const astrocs::ProcessMonitor::Summary mon_s = proc_mon.summary();
-        const bool wrote = recorder.write_all(out_dir, mon_s.wall_seconds, mon_s.sample_overhead_ms,
-                                              ev.run_id());
-        if (!wrote) {
-            std::fprintf(stderr, "astrocs: warning: resource files not written to %s\n",
-                         sanitize(out_dir).c_str());
-        }
-    }
-    // MON-002: first-10s 快速失败 — 首 10s 内若"低 CPU + 非 IO"则协作取消(exit 10)。
-    // (监控线程已覆盖首 10s; 用 active 窗早期 CPU 快照判定; 仅对 ≥10s 任务生效)
-    {
-        const auto gstats0 = recorder.stage_stats();
-        const astrocs::ResStageStats* act0 = nullptr;
-        for (const auto& s : gstats0) if (std::string(s.stage) == "active") act0 = &s;
-        if (act0 && act0->wall_seconds >= 10.0 && act0->cpu_pct_p50 < 20.0) {
-            const std::string d0 = "first-10s low CPU p50 " +
-                                   std::to_string(act0->cpu_pct_p50) + "% (fast fail)";
-            write_run_manifest(out_dir, ev, "incomplete", "resource gate failed: " + d0,
-                               cfg, cfg_sha, phases, all_artifacts);
-            ev.emit("gate", "error", "pipeline", "resource gate failed", {{"diagnosis", d0}});
-            ev.emit_final(astrocs::RESOURCE, "resource_gate_failed", nullptr, d0);
-            std::fprintf(stderr, "astrocs: resource gate failed: %s\n", sanitize(d0).c_str());
-            return astrocs::RESOURCE;
-        }
-    }
-
-    // 取消检查(任一阶段取消)
-    if (astrocs::is_cancelled()) {
-        rc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
-                                cfg, cfg_sha, phases, all_artifacts);
-        if (rc != astrocs::OK) return rc;
-        ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
-        return astrocs::CANCELLED;
-    }
-    if (!fail_reason.empty()) {
-        rc = write_run_manifest(out_dir, ev, "incomplete", "phase" + std::to_string(fail_phase) +
-                                " failed: " + fail_reason, cfg, cfg_sha, phases, all_artifacts);
-        if (rc != astrocs::OK) return rc;
-        ev.emit_final(astrocs::SCIENCE, "run_failed", nullptr, fail_reason);
-        std::fprintf(stderr, "astrocs: run failed: %s\n", sanitize(fail_reason).c_str());
-        return astrocs::SCIENCE;
-    }
-
-    // MON-002: 资源门禁 — 生产控制流在结束时调用 gate; 失败 → RESOURCE(10) + diagnosis。
-    // (禁止仅 emit event 不改变退出状态; CPU-heavy active≥10s: worker p50≥2 / CPU p50≥90% / mean≥85%)
-    {
-        const astrocs::ProcessMonitor::Summary mon_s2 = proc_mon.summary();
-        (void)mon_s2;
-        const auto gstats = recorder.stage_stats();
-        const astrocs::ResStageStats* act = nullptr;
-        for (const auto& s : gstats) if (std::string(s.stage) == "active") act = &s;
-        const uint32_t avail = std::max(1u, cli_affinity_cpu_count());
-        const double cpu_p50 = act ? act->cpu_pct_p50 : 0.0;
-        const double cpu_mean = act ? act->cpu_pct_mean : 0.0;
-        const double worker_p50 = act ? act->workers_p50 : 1.0;
-        const double active_wall = act ? act->wall_seconds : 0.0;
-        std::string diag;
-        bool gate_pass = true;
-        if (active_wall >= 10.0) {   // 08 §8: CPU-heavy 需 active≥10s 才判
-            if (avail >= 2 && worker_p50 < 2.0) {
-                gate_pass = false;
-                diag = "worker p50 " + std::to_string(worker_p50) +
-                       " < 2 with " + std::to_string(avail) + " available cpus";
-            } else if (cpu_p50 < 90.0 || cpu_mean < 85.0) {
-                gate_pass = false;
-                diag = "compute CPU p50 " + std::to_string(cpu_p50) +
-                       "% / mean " + std::to_string(cpu_mean) + "% below gate (90/85)";
-            }
-        }
-        if (gate_pass) {
-            ev.emit("gate", "info", "pipeline", "resource gate ok",
-                    {{"active_wall_seconds", active_wall}, {"workers_p50", worker_p50},
-                     {"cpu_p50", cpu_p50}, {"cpu_mean", cpu_mean}});
-        } else {
-            // 统一 RESOURCE exit code + diagnosis; manifest=incomplete
-            write_run_manifest(out_dir, ev, "incomplete", "resource gate failed: " + diag,
-                               cfg, cfg_sha, phases, all_artifacts);
-            ev.emit("gate", "error", "pipeline", "resource gate failed", {{"diagnosis", diag}});
-            ev.emit_final(astrocs::RESOURCE, "resource_gate_failed", nullptr, diag);
-            std::fprintf(stderr, "astrocs: resource gate failed: %s\n", sanitize(diag).c_str());
-            return astrocs::RESOURCE;
-        }
-    }
-
-    // (resume/hash-mismatch 校验移到 phase 循环之前执行)
-    rc = write_run_manifest(out_dir, ev, "complete", "run ok", cfg, cfg_sha, phases, all_artifacts);
-    if (rc != astrocs::OK) return rc;
-    // RT-009: 运行图产物（静态 IR / observed trace / sidecar；不失败 run）
-    write_run_graphs(out_dir, ev, cfg, cfg_sha, phases);
-    // MON-002: 结束监控, 发射资源分层事件(07 §1 强制 summary) + backend 事件(07 §2 必采)。
-    const auto proc_summary = proc_mon.summary();
-    emit_resource_summary(ev, "pipeline", proc_summary, out_dir, proc_summary.n_samples,
-                          resource_detail);
-    // backend 选择: 从 config 读取(无则 baseline); workers 取 affinity(有效核)。禁硬编码。
-    emit_backend_event(ev, "pipeline", doc.value("backend", "baseline"), "ok",
-                       std::max(1u, proc_mon.n_cores_hint()), proc_mon.n_cores_hint());
-    ev.emit("resource", "info", "pipeline", "run summary",
-            {{"n_phases", phases.size()}, {"n_artifacts", all_artifacts.size()}});
-    ev.emit_final(astrocs::OK, "ok", nullptr, "run complete");
-    return astrocs::OK;
-}
-
 // phase1 run: CLI-004 — 进程内调用 p1_session(无 shell-out); cancel/budget/monitor 注入
 
 // MON-002: 发射资源分层事件(summary 强制; timeseries 详略受 --resource-detail 控制)。
@@ -783,6 +516,10 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     bool ok = false;
     const std::string cfg_sha = file_sha256(cfg, &ok);
     if (!ok) return astrocs::INPUT;
+    // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
+    nlohmann::json cfg_doc;
+    const int vrc2 = validate_config_full(cfg, &cfg_doc);
+    if (vrc2 != astrocs::OK) return vrc2;
 
     // RT-008: phase2 走 Runtime 单 phase IR 子图（与 run --phases 2 同一路径）。
     ev.stage("phase2_session", true);
@@ -879,6 +616,10 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     bool ok = false;
     const std::string cfg_sha = file_sha256(cfg, &ok);
     if (!ok) return astrocs::INPUT;
+    // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
+    nlohmann::json cfg_doc3;
+    const int vrc3 = validate_config_full(cfg, &cfg_doc3);
+    if (vrc3 != astrocs::OK) return vrc3;
 
     // RT-008: phase3 走 Runtime 单 phase IR 子图（与 run --phases 3 同一路径）。
     ev.stage("phase3_session", true);
@@ -974,6 +715,10 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     bool ok = false;
     const std::string cfg_sha = file_sha256(cfg, &ok);
     if (!ok) return astrocs::INPUT;
+    // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
+    nlohmann::json cfg_doc1;
+    const int vrc1 = validate_config_full(cfg, &cfg_doc1);
+    if (vrc1 != astrocs::OK) return vrc1;
 
     // RT-008: phase1 走 Runtime 单 phase IR 子图（与 run --phases 1 同一路径，不是第二条）。
     // 退出码映射保持旧协议：配置错→2; 输入缺→3; 科学失败→70; IO→7; 取消→9。
@@ -1162,64 +907,6 @@ int cmd_drizzle(const Parsed& p, astrocs::JsonlEmitter& ev) {
 
 // RT-009: `graph --preset 1,2,3 --config cfg.json --output DIR` 生成静态图
 // （IR → static JSON/DOT/SVG + L0）。不执行科学计算; 只构图。
-static int cmd_graph(const Parsed& p, astrocs::JsonlEmitter& ev) {
-    const std::string cfg = need_value(p, "--config");
-    std::string preset = "1,2,3";
-    if (p.values.count("--preset")) preset = p.values.at("--preset");
-    if (p.values.count("--phases")) preset = p.values.at("--phases");
-    const std::string out_dir = p.values.count("--output") ? p.values.at("--output") : ".";
-    std::vector<int> phases;
-    {
-        std::stringstream ss(preset);
-        std::string tok;
-        while (std::getline(ss, tok, ',')) {
-            char* end = nullptr;
-            long v = std::strtol(tok.c_str(), &end, 10);
-            if (!end || *end != '\0' || v < 1 || v > 3) {
-                parse_fail("invalid preset '" + preset + "' (expect 1,2,3 子集)");
-            }
-            phases.push_back(static_cast<int>(v));
-        }
-        std::sort(phases.begin(), phases.end());
-        phases.erase(std::unique(phases.begin(), phases.end()), phases.end());
-    }
-    nlohmann::json doc;
-    int rc = validate_config_full(cfg, &doc);
-    if (rc != astrocs::OK) return rc;
-    std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
-    const std::string cfg_text(std::istreambuf_iterator<char>(f), {});
-    std::string err;
-    const std::string ir_json = astrocs::cli::build_pipeline_ir(phases, cfg_text, &err);
-    if (ir_json.empty()) {
-        std::fprintf(stderr, "astrocs: graph IR build failed: %s\n", sanitize(err).c_str());
-        return astrocs::ARGS;
-    }
-    std::error_code ec;
-    std::filesystem::create_directories(std::filesystem::u8path(out_dir + "/graph"), ec);
-    if (ec) { std::fprintf(stderr, "astrocs: cannot create graph dir\n"); return astrocs::IO; }
-    const std::string gdir = out_dir + "/graph";
-    const std::string static_path = gdir + "/static_graph.json";
-    {
-        std::ofstream fo(std::filesystem::u8path(static_path), std::ios::binary | std::ios::trunc);
-        if (!fo) { std::fprintf(stderr, "astrocs: cannot write static graph\n"); return astrocs::IO; }
-        fo << ir_json << "\n";
-    }
-    // 渲染 DOT/SVG/L0（best-effort; 工具缺失不失败）
-    {
-        const std::string repo = std::getenv("ASTROCS_REPO") ? std::getenv("ASTROCS_REPO") : ".";
-        const std::string renderer = repo + "/tools/quality/gen_run_graphs.py";
-        if (std::filesystem::is_regular_file(std::filesystem::u8path(renderer), ec)) {
-            const std::string cmd = "timeout 30s python3 '" + renderer +
-                                    "' --graph-dir " + gdir + " >/dev/null 2>&1";
-            std::system(cmd.c_str());
-        }
-    }
-    std::printf("%s\n", static_path.c_str());
-    ev.emit("artifact", "info", "graph", "static graph written",
-            {{"role", "static_graph"}, {"path", static_path}});
-    return astrocs::OK;
-}
-
 // ═══════════════════════ CLI-001: V7 统一命令面 ═══════════════════════
 // 契约: 03_TARGET_PRODUCT_AND_ARCHITECTURE.md §3 (version/modules/selftest)。
 // stdout JSON schema: contracts/config/cli_modules_list.schema.json,
@@ -1630,7 +1317,7 @@ int dispatch(const Parsed& p) {
     const std::string joined = p.join();
     const bool events = p.flags.count("--events-jsonl") > 0;
     const std::string phase_name =
-        (joined == "run") ? "pipeline" : (joined.rfind("phase", 0) == 0 ? joined.substr(0, 6) : joined);
+        (joined.rfind("phase", 0) == 0 ? joined.substr(0, 6) : joined);
     astrocs::JsonlEmitter ev(events, astrocs::make_run_id(), phase_name);
 
     if (joined == "--version" || joined == "version") {
@@ -1790,8 +1477,6 @@ int dispatch(const Parsed& p) {
     if (joined == "verify")                return cmd_verify(p, ev);
     if (joined == "verify profile")        return cmd_verify_profile(p, ev);
     if (joined == "benchmark verify-profile") return cmd_verify_profile(p, ev);
-    if (joined == "run")                   return cmd_run_pipeline(p, ev);
-    if (joined == "graph")                 return cmd_graph(p, ev);
     if (joined == "drizzle")               return cmd_drizzle(p, ev);
     if (joined == "test synthetic") {
         const std::string g = need_value(p, "--group");

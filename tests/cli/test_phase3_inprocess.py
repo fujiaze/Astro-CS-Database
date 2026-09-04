@@ -145,7 +145,7 @@ class TestPhase3InProcess(unittest.TestCase):
             json.loads(line)   # 任何非 JSON 行都会抛异常 → 失败
 
     def test_07_run_phases3_complete(self):
-        """CLI-007: run --phases 3 生产编排 → complete manifest + phase3_output artifact。"""
+        """CLI-002: phase3 run 生产编排 → complete manifest + phase3_output artifact。"""
         run_dir = os.path.join(self.tmp, "run7")
         os.makedirs(run_dir, exist_ok=True)
         rcfg = os.path.join(run_dir, "rcfg.json")
@@ -163,7 +163,8 @@ class TestPhase3InProcess(unittest.TestCase):
                 "coverage_output": "mask", "max_tiles": 64,
             },
         }, open(rcfg, "w"))
-        r = self._run("run", "--phases", "3", "--config", rcfg, "--events-jsonl")
+        # CLI-002: 顶层 run --phases 已移除; phase3 run 单相(等价的完整生产 manifest 语义)
+        r = self._run("phase3", "run", "--config", rcfg, "--events-jsonl")
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
         mf = [e for e in (json.loads(l) for l in r.stdout.splitlines() if l.strip())
               if e["kind"] == "artifact" and e.get("role") == "run_manifest"][-1]
@@ -173,10 +174,10 @@ class TestPhase3InProcess(unittest.TestCase):
         arts = m.get("artifacts", [])
         self.assertTrue(any(a["role"] == "phase3_output" and
                             os.path.isfile(a["path"]) for a in arts),
-                        "run 的 manifest 必须记录 phase3_output artifact")
+                        "phase3 run 的 manifest 必须记录 phase3_output artifact")
 
     def test_08_run_resume_hash_mismatch(self):
-        """CLI-007: prior manifest artifact 磁盘 hash 不符 → run 退 8(不静默跳过验证)。"""
+        """CLI-002: prior manifest artifact 磁盘 hash 不符 → phase3 run 退 8(不静默跳过验证)。"""
         run_dir = os.path.join(self.tmp, "run8")
         os.makedirs(run_dir, exist_ok=True)
         stable = os.path.join(run_dir, "stable.fits")
@@ -210,7 +211,7 @@ class TestPhase3InProcess(unittest.TestCase):
         # 篡改 stable.fits → 磁盘 hash 与 prior 记录不符
         with open(stable, "wb") as f:
             f.write(b"TAMPERED!")
-        r = self._run("run", "--phases", "3", "--config", rcfg, "--events-jsonl")
+        r = self._run("phase3", "run", "--config", rcfg, "--events-jsonl")
         self.assertEqual(r.returncode, 8, r.stderr[-300:])
         self.assertIn("hash mismatch", r.stderr)
 

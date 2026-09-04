@@ -21,9 +21,9 @@
 
 const std::set<std::string> kBoolFlags = {"--json", "--events-jsonl", "--quick", "--full"};
 const std::set<std::string> kValueFlags = {"--output", "--config", "--cpu-profile",
-                                           "--run-manifest", "--group", "--phases",
+                                           "--run-manifest", "--group",
                                            "--resource-detail", "--nside", "--pixfrac",
-                                           "--preset", "--profile", "--module",
+                                           "--profile", "--module",
                                            "--provider"};
 
 // 命令树: 每条命令允许的旗标(严格白名单, 未知即 2)
@@ -48,11 +48,9 @@ const CmdRule kRules[] = {
     {"phase1 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
     {"phase2 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
     {"phase3 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
-    {"run",                         {"--phases", "--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
     {"drizzle",                     {"--config", "--events-jsonl", "--nside", "--pixfrac"}},
     {"verify",                      {"--run-manifest", "--json"}},
     {"verify profile",              {"--profile", "--json"}},
-    {"graph",                       {"--config", "--preset", "--phases", "--output"}},
 };
 
 const char* kHelp =
@@ -72,7 +70,6 @@ const char* kHelp =
     "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
     "astrocs phase2 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
     "astrocs phase3 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
-    "astrocs run --phases <1|2|3|1,2|1,2,3> --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
     "astrocs verify --run-manifest <path> --json\n";
 
 [[noreturn]] void parse_fail(const std::string& msg) { throw ParseError(msg); }
