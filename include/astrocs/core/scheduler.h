@@ -59,7 +59,15 @@ class Scheduler {
 
   uint32_t max_concurrency() const { return budget_; }
   uint64_t memory_limit() const { return memory_limit_bytes_; }
-  void cancel() { cancel_.store(true, std::memory_order_release); }
+
+  // RT-007: 统一取消 token —— 置位本调度器取消, 并立即取消当前运行 run 的
+  // RunContext token（若正在 run）。run 外调用只置位本调度器（下次 run 起始清除,
+  // 见 run() 边界语义注释）。线程安全: 任意线程可调用; 幂等。
+  void cancel() {
+    cancel_.store(true, std::memory_order_release);
+    std::lock_guard<std::mutex> lock(run_mu_);
+    if (active_token_) active_token_->cancel();
+  }
 
   // RT-003: Scheduler 持有的唯一 ThreadBudget（run 间复用；重复 run 不泄漏）。
   std::shared_ptr<ThreadBudget> thread_budget() const noexcept { return budget_obj_; }
@@ -82,6 +90,8 @@ class Scheduler {
   bool built_ = false;
   std::shared_ptr<TraceStore> obs_store_;  // RT-006: run 观测汇（可选）
   std::string obs_run_id_;                 // RT-006: run 观测 id（可选）
+  std::mutex run_mu_;            // RT-007: 保护 active_token_（cancel() 与 run() 桥锁）
+  CancellationToken* active_token_ = nullptr;  // RT-007: 当前 run 的活动 ctx token
 };
 
 }  // namespace astrocs::core
