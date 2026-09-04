@@ -28,6 +28,7 @@
 
 #include "astrocs/core/context.h"
 #include "astrocs/core/contracts.h"
+#include "astrocs/core/trace.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -79,10 +80,34 @@ class CpuHeavyExecutor {
   // worker 数（= 预算上限）；诊断/测试用。
   uint32_t worker_count() const noexcept { return worker_count_; }
 
+  // RT-006: 累计真实执行任务计数（worker 完成一次任务 +1；观测，非配置）。
+  uint64_t tasks_executed() const noexcept { return tasks_executed_.load(std::memory_order_relaxed); }
+  // RT-006: 累计真实 provider 选择计数（set_provider 每置位一次 +1）。
+  uint64_t provider_sets() const noexcept { return provider_sets_.load(std::memory_order_relaxed); }
+
+  // RT-006: 注入 trace 汇（任务执行/完成在 worker 观测点写 WORKER_TASK 事件）。
+  // 线程安全：可在 worker 启动前或运行中调用；nullptr 解除观测。
+  void set_trace_store(std::shared_ptr<TraceStore> store) {
+    std::lock_guard<std::mutex> lock(obs_mu_);
+    trace_store_ = std::move(store);
+  }
+
+  // RT-006: 观测当前真实 provider（provider 后端在任务内经 ctx.set_provider
+  // 置位后，由 executor 在任务结束收集并计数；不替代 ctx.provider()）。
+  std::string observed_provider() const noexcept {
+    std::lock_guard<std::mutex> lock(obs_mu_);
+    return observed_provider_;
+  }
+
  private:
   struct Impl;
   std::unique_ptr<Impl> impl_;
   uint32_t worker_count_ = 0;
+  std::atomic<uint64_t> tasks_executed_{0};   // RT-006: 真实任务执行计数
+  std::atomic<uint64_t> provider_sets_{0};    // RT-006: 真实 provider 置位计数
+  mutable std::mutex obs_mu_;                 // RT-006: trace_store/observed_provider 保护
+  std::shared_ptr<TraceStore> trace_store_;   // RT-006: 注入观测汇
+  std::string observed_provider_;             // RT-006: 最近观测 provider（obs_mu_ 保护）
 
   void worker_loop();          // RT-004: worker 主循环（取任务→acquire lease→执行）
   void io_worker_loop();       // RT-004: I/O worker 主循环（有界并发）

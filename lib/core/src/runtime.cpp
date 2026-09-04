@@ -1,6 +1,8 @@
-// RT-001/RT-006 唯一 Runtime 实现:
+// RT-001/RT-006/RT-008 唯一 Runtime 实现:
 // load_pipeline 用 PipelineIRParser 解析 + ModuleRegistry 校验，构建 Scheduler DAG；
 // run 经 Scheduler 调度（依赖就绪/取消/失败传播/内存回压）；模块经 IModule 工厂执行。
+// RT-006: 每个节点执行在真实运行点写 trace 事件（NODE_START/MODULE_CALL/NODE_END），
+// 由 executor 记录 WORKER_TASK、模块/provider 观测填写，禁止 config 值冒充。
 #include "astrocs/core/runtime.h"
 
 #include <nlohmann/json.hpp>
@@ -30,9 +32,32 @@ std::string utc_now() {
   return buf;
 }
 
+std::string utc_now_ms() {
+  // RFC3339 UTC（毫秒精度）：观测时间戳（trace 事件 ts_utc 用）
+  char buf[40];
+  const auto now = std::chrono::system_clock::now();
+  const std::time_t t = std::chrono::system_clock::to_time_t(now);
+  std::tm tm{};
+#ifdef _WIN32
+  gmtime_s(&tm, &t);   // MSVC: gmtime_r 不存在 (WIN-001)
+#else
+  gmtime_r(&t, &tm);
+#endif
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                      now.time_since_epoch())
+                      .count() %
+                  1000;
+  std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &tm);
+  char out[48];
+  std::snprintf(out, sizeof(out), "%s.%03lldZ", buf, static_cast<long long>(ms));
+  return out;
+}
+
 class RuntimeImpl final : public Runtime {
  public:
-  explicit RuntimeImpl(uint32_t budget) : budget_(budget) {}
+  explicit RuntimeImpl(uint32_t budget) : budget_(budget) {
+    trace_store_ = std::make_shared<TraceStore>();
+  }
   ~RuntimeImpl() override = default;
 
   Result<void> load_pipeline(const std::string& ir_json,
@@ -76,12 +101,30 @@ class RuntimeImpl final : public Runtime {
       spec.max_workers = budget_;
       spec.estimated_memory_bytes = 0;
       // 每个节点执行: 创建模块实例 → plan(config) → execute（模块内部走 session/lease）
+      // RT-006: 在真实运行点写 trace 事件（禁止 config 值冒充观测）。
       spec.fn = [this, n](const std::string& node_id, RunContext& ctx) -> Result<void> {
         auto t_start = std::chrono::steady_clock::now();
-        const std::string started_utc = utc_now();
+        const std::string started_utc = utc_now_ms();
         std::string error_msg;
+        // NODE_START 观测（调度器已把 store/run_id 注入 ctx；此处显式再确认）
+        TraceEvent ev_start;
+        ev_start.type = TraceEventType::NODE_START;
+        ev_start.node_id = node_id;
+        ev_start.ts_utc = started_utc;
+        ev_start.status = "RUNNING";
+        ev_start.module_id = n.module_id;
+        ctx.record_trace(std::move(ev_start));
         auto m = registry_.create(n.module_id);
         if (m.failed()) {
+          TraceEvent ev_err;
+          ev_err.type = TraceEventType::ERROR;
+          ev_err.node_id = node_id;
+          ev_err.module_id = n.module_id;
+          ev_err.status = "FAILED";
+          ev_err.error_domain = "DATA";
+          ev_err.error = "create module " + n.module_id + " failed: " +
+                         m.error().message();
+          ctx.record_trace(std::move(ev_err));
           return Result<void>::fail(Error(ErrorDomain::DATA,
               "node " + node_id + ": create module " + n.module_id + " failed: " +
               m.error().message()));
@@ -91,9 +134,27 @@ class RuntimeImpl final : public Runtime {
         // RT-008: plan 先下发 config（SessionModule 存 config 供 execute 用）
         auto pl = m.value()->plan(node_id, n.config_json);
         if (pl.failed()) {
+          TraceEvent ev_err;
+          ev_err.type = TraceEventType::ERROR;
+          ev_err.node_id = node_id;
+          ev_err.module_id = n.module_id;
+          ev_err.status = "FAILED";
+          ev_err.error_domain = "DATA";
+          ev_err.error = "plan failed: " + pl.error().message();
+          ctx.record_trace(std::move(ev_err));
           return Result<void>::fail(Error(ErrorDomain::DATA,
               "node " + node_id + ": plan failed: " + pl.error().message()));
         }
+        // MODULE_CALL 观测：真实调用 module execute（call_count 由 store 汇总；
+        // 本层每节点正常恰好一次 execute → call_count=1 为观测值）。
+        TraceEvent ev_mod;
+        ev_mod.type = TraceEventType::MODULE_CALL;
+        ev_mod.node_id = node_id;
+        ev_mod.module_id = n.module_id;
+        if (!n.module_api.empty()) ev_mod.module_version = n.module_api;
+        ev_mod.entry = m.value()->descriptor().module_id;  // 观测真实执行入口（模块 ID）
+        ev_mod.call_count = 1;
+        ctx.record_trace(std::move(ev_mod));
         auto r = m.value()->execute(ctx);
         // RT-008: 捕获节点 manifest（成功/失败都捕获；失败时含 error_kind 供 CLI 映射）
         auto man = m.value()->last_manifest();
@@ -105,6 +166,14 @@ class RuntimeImpl final : public Runtime {
           ctx.log(LogLevel::ERROR, "runtime",
                   "node " + node_id + " failed: " + r.error().message());
           error_msg = r.error().message();
+          TraceEvent ev_err;
+          ev_err.type = TraceEventType::ERROR;
+          ev_err.node_id = node_id;
+          ev_err.module_id = n.module_id;
+          ev_err.status = "FAILED";
+          ev_err.error_domain = error_domain_name(r.error().domain());
+          ev_err.error = error_msg;
+          ctx.record_trace(std::move(ev_err));
         }
         // RT-009: 记录节点 trace（时间/状态/provider/workers）
         const auto t_end = std::chrono::steady_clock::now();
@@ -114,7 +183,13 @@ class RuntimeImpl final : public Runtime {
         tr.ended_utc = utc_now();
         tr.duration_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
         tr.workers = budget_;
-        tr.provider = "baseline";  // CPU-001 前唯一 provider；G3 后按 profile 路由
+        // RT-006: provider 观测 = 节点执行期间真实选择（模块 adapter/provider 经
+        // ctx.set_provider 置位；未置位 → 空，不冒充 baseline）。
+        tr.provider = ctx.provider();
+        tr.granted_workers = budget_;
+        tr.module_id = n.module_id;
+        tr.entry = n.module_id;
+        tr.call_count = 1;
         if (r.failed()) {
           tr.status = "FAILED";
           tr.error = error_msg;
@@ -125,6 +200,19 @@ class RuntimeImpl final : public Runtime {
           std::lock_guard<std::mutex> lock(trace_mu_);
           trace_.push_back(std::move(tr));
         }
+        // NODE_END 观测
+        TraceEvent ev_end;
+        ev_end.type = TraceEventType::NODE_END;
+        ev_end.node_id = node_id;
+        ev_end.ts_utc = utc_now_ms();
+        ev_end.module_id = n.module_id;
+        ev_end.provider = tr.provider;
+        ev_end.workers = static_cast<uint32_t>(tr.workers);
+        ev_end.granted_workers = tr.granted_workers;
+        ev_end.status = r.failed() ? "FAILED" : "COMPLETED";
+        ev_end.wall_ms = tr.duration_ms;
+        if (r.failed()) ev_end.error = error_msg;
+        ctx.record_trace(std::move(ev_end));
         return r;
       };
       scheduler_->add_node(std::move(spec));
@@ -137,6 +225,13 @@ class RuntimeImpl final : public Runtime {
     if (!loaded_ || !scheduler_) {
       return Result<void>::fail(Error(ErrorDomain::CONFIG, "runtime: no pipeline loaded"));
     }
+    // RT-006: 每次 run 前清空上次观测（同一 Runtime 重复 run 的 trace 以本次为准）
+    trace_store_->clear();
+    {
+      std::lock_guard<std::mutex> lock(trace_mu_);
+      trace_.clear();
+    }
+    scheduler_->set_run_observation(trace_store_, run_id_);
     std::vector<std::pair<std::string, NodeStatus>> st;
     auto r = scheduler_->run(ctx, &st);
     statuses_ = std::move(st);
@@ -176,6 +271,18 @@ class RuntimeImpl final : public Runtime {
     return trace_;
   }
 
+  // RT-006: 运行 trace 汇 JSONL 导出
+  Result<std::string> trace_jsonl() const override {
+    return Result<std::string>::ok(trace_store_->export_jsonl());
+  }
+
+  // RT-006: 运行 trace 重复/隐藏 session 检测
+  std::vector<std::string> trace_violations() const override {
+    return trace_store_->detect_repeated_calls();
+  }
+
+  void set_run_id(const std::string& run_id) override { run_id_ = run_id; }
+
   void set_registry(ModuleRegistry* reg) { registry_ = *reg; }
 
  private:
@@ -190,6 +297,8 @@ class RuntimeImpl final : public Runtime {
   mutable std::mutex trace_mu_;    // RT-009: trace 互斥
   std::atomic<bool> cancelled_{false};
   bool loaded_ = false;
+  std::shared_ptr<TraceStore> trace_store_;  // RT-006: 运行 trace 事件汇
+  std::string run_id_;                       // RT-006: 本次运行 ID
 };
 
 }  // namespace

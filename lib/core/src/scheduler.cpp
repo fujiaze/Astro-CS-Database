@@ -69,6 +69,11 @@ Result<void> Scheduler::run(
   // RT-003: worker 启动前单线程注入真实 ThreadBudget（run 间复用；重复 run 不泄漏）
   ctx.set_thread_budget(budget_);
   if (budget_obj_) ctx.set_budget(budget_obj_);
+  // RT-006: 注入运行 trace 汇（run 内模块/节点经 ctx.record_trace 观测）
+  if (obs_store_) {
+    ctx.set_trace_store(obs_store_);
+    ctx.set_run_id(obs_run_id_);
+  }
   std::mutex mtx;
   std::condition_variable cv;
   std::map<std::string, NodeStatus> status = status_;
@@ -150,7 +155,11 @@ Result<void> Scheduler::run(
       {
         auto it = nodes_.find(node_id);
         if (it != nodes_.end() && it->second.fn) {
+          // RT-006: 节点执行期间线程本地归属当前 node（观测事件按节点归属；
+          // 并发节点在各自 worker 线程，无交叉）。
+          trace_set_current_node(node_id);
           auto r = it->second.fn(node_id, ctx);
+          trace_set_current_node("");
           node_ok = r.ok();
           if (r.failed() && fail_node.empty()) {
             std::lock_guard<std::mutex> lk(mtx);

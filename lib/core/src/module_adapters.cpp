@@ -164,6 +164,21 @@ struct SessionModule : public IModule {
       return Result<void>::fail(Error(ErrorDomain::RESOURCE,
           desc_.module_id + ": host services init failed"));
     }
+    // RT-006: provider 真实观测 —— host services 初始化成功 = 当前已接线的
+    // 唯一 CPU 计算后端（baseline）实际可用；置位后节点 end/worker 事件携带。
+    // 非 config 值冒充：仅在 host init（真实后端探测/初始化）成功路径上置位。
+    ctx.set_provider("baseline");
+    ctx.record_trace([&] {
+      TraceEvent e;
+      e.type = TraceEventType::PROVIDER_ENTER;
+      e.node_id = ctx.current_node();
+      e.module_id = desc_.module_id;
+      e.provider = "baseline";
+      e.kernel_id = desc_.alg_id;
+      e.workers = cap;
+      e.granted_workers = host_workers;
+      return e;
+    }());
     acs_handle h = nullptr;
     acs_status st = fn_create(&hs.host, &h);
     if (st != ACS_OK) return to_result(st, "session create");

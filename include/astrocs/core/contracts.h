@@ -160,4 +160,72 @@ class CancellationToken {
   std::atomic<bool> cancelled_{false};
 };
 
+// ── RT-006 运行 trace 事件（真实观测；禁止 config 值冒充观测） ──
+// trace 事件由 executor/scheduler/provider/module/monitor 在真实运行点填写：
+//   event_type ∈ {module_call, provider_enter, provider_leave, worker_task,
+//                 node_start, node_end, artifact_publish, checkpoint, error}
+// 观测字段（observer_filled）与实际值同列；配置/预计值必须放 planned/config 前缀
+// 字段或单独字段，绝不覆盖观测值（14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md §4）。
+enum class TraceEventType : uint8_t {
+  MODULE_CALL = 0,      // 节点执行真实 module（含 DLL entry）调用
+  PROVIDER_ENTER = 1,   // provider/kernel 进入（provider 观测）
+  PROVIDER_LEAVE = 2,   // provider/kernel 离开（含 cpu/wall 计时）
+  WORKER_TASK = 3,      // executor worker 领取/完成真实任务
+  NODE_START = 4,       // scheduler 节点开始（node fn 入口）
+  NODE_END = 5,         // scheduler 节点结束（状态/耗时）
+  ARTIFACT_PUBLISH = 6, // ArtifactStore 原子发布（真实 hash/size）
+  CHECKPOINT = 7,       // 节点 checkpoint（顺序可追溯）
+  ERROR = 8,            // 真实错误（错误码/域/节点）
+};
+
+constexpr const char* trace_event_type_name(TraceEventType t) noexcept {
+  switch (t) {
+    case TraceEventType::MODULE_CALL: return "module_call";
+    case TraceEventType::PROVIDER_ENTER: return "provider_enter";
+    case TraceEventType::PROVIDER_LEAVE: return "provider_leave";
+    case TraceEventType::WORKER_TASK: return "worker_task";
+    case TraceEventType::NODE_START: return "node_start";
+    case TraceEventType::NODE_END: return "node_end";
+    case TraceEventType::ARTIFACT_PUBLISH: return "artifact_publish";
+    case TraceEventType::CHECKPOINT: return "checkpoint";
+    case TraceEventType::ERROR: return "error";
+  }
+  return "unknown";
+}
+
+// 单条运行 trace 记录（RT-006 冻结字段；JSONL 一事件一行，可重放到图）
+struct TraceEvent {
+  TraceEventType type = TraceEventType::MODULE_CALL;
+  std::string ts_utc;         // RFC3339 UTC（观测时刻）
+  std::string run_id;         // 本次运行 ID
+  std::string node_id;        // 所属节点
+  std::string module_id;      // 真实 module ID（MODULE_CALL）
+  std::string module_version; // module 版本
+  std::string dll_name;       // 真实 DLL 名（缺失/未知时为空）
+  std::string dll_sha256;     // DLL 内容 hash（真实观测）
+  std::string build_id;       // build id / 源码 commit（真实）
+  std::string entry;          // 真实导出入口（如 astrocs_phase2_*_v1）
+  uint64_t call_count = 0;    // 累计调用计数（该 node/module）
+  uint32_t workers = 0;       // 实际 workers（租约数；node_end/worker_task）
+  uint32_t granted_workers = 0; // 授予租约上限（观测）
+  std::string provider;       // provider ID（baseline/avx2/avx512/...）
+  std::string kernel_id;      // provider kernel ID
+  std::string status;         // 终态字符串（COMPLETED/FAILED/CANCELLED/SKIPPED...）
+  std::string error;          // 错误消息（ERROR 事件）
+  std::string error_domain;   // 错误域（ERROR 事件）
+  std::string artifact_id;    // 发布/读取 artifact id
+  std::string artifact_sha256;// artifact 内容 hash
+  uint64_t artifact_size = 0; // artifact 字节数
+  double cpu_ms = 0.0;        // CPU 时间观测（ms）
+  double wall_ms = 0.0;       // wall 时间观测（ms）
+  uint64_t seq = 0;           // 全局递增序号（顺序可追溯）
+
+  // 稳定 JSONL（转义正确；nlohmann dump 单行）
+  std::string to_jsonl() const;
+  // 从 JSONL 行解析（供重放；非法行 → false）
+  static bool from_jsonl(const std::string& line, TraceEvent* out);
+  // 与另一事件按语义键去重（同 run/node/module/entry 连续调用 → 重复检测用）
+  bool same_call_site(const TraceEvent& o) const noexcept;
+};
+
 }  // namespace astrocs::core
