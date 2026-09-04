@@ -3,6 +3,7 @@
 
 #include "astrocs/core/artifact.h"
 #include "astrocs/core/contracts.h"
+#include "astrocs/core/trace.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -134,6 +135,15 @@ class ThreadBudget {
 // 失败返回 Error(RESOURCE)。
 Result<std::shared_ptr<ThreadBudget>> create_thread_budget(uint32_t budget) noexcept;
 
+// ── RT-006 线程本地观测（scheduler worker 执行节点期间的当前节点/provider） ──
+// scheduler 的 worker 线程各自顺序执行节点 fn；节点归属按线程本地判定，
+// 避免并发节点共享 RunContext 时的交叉归属。executor worker 任务线程亦同。
+// 定义在 context.cpp（thread_local）；头内声明供 RunContext inline 转发。
+void trace_set_current_node(const std::string& node_id);
+const std::string& trace_current_node();
+void trace_set_provider(const std::string& provider);
+const std::string& trace_provider();
+
 // RunContext: 模块访问服务的唯一通道 (CORE-005: 模块只能通过 context 访问服务)
 // 禁止 singleton/global scheduler (G2 checklist)
 // RT-003: 日志/metrics/artifact/checkpoint/cancel 全部线程安全；
@@ -192,6 +202,25 @@ class RunContext {
   // 返回 checkpoint 序列快照（拷贝）；线程安全
   std::vector<std::string> checkpoints() const;
 
+  // ── RT-006 运行 trace（真实观测汇；线程安全） ──
+  // 注入 TraceStore（Scheduler/Runtime 每 run 注入）；未注入时 record_trace
+  // 为无操作（不伪造观测）。store() 返回空指针即表示无观测汇。
+  void set_trace_store(std::shared_ptr<TraceStore> store) {
+    trace_store_ = std::move(store);
+  }
+  std::shared_ptr<TraceStore> trace_store() const noexcept { return trace_store_; }
+  void set_run_id(const std::string& run_id) { run_id_ = run_id; }
+  const std::string& run_id() const noexcept { return run_id_; }
+  // 记录一条真实 trace 事件（executor/module/provider 在运行点填写；
+  // node_id 自动回退线程本地 trace_current_node()）。
+  void record_trace(TraceEvent e) const;
+  // 当前执行节点（线程本地；scheduler worker 在 node fn 前设置）
+  void set_current_node(const std::string& node_id) { trace_set_current_node(node_id); }
+  const std::string& current_node() const noexcept { return trace_current_node(); }
+  // 当前 provider（线程本地；模块/provider 后端在真实选择点置位，node end 观测）
+  void set_provider(const std::string& provider) { trace_set_provider(provider); }
+  const std::string& provider() const noexcept { return trace_provider(); }
+
  private:
   mutable std::mutex mu_;
   std::vector<std::string> log_entries_;
@@ -202,6 +231,8 @@ class RunContext {
   std::map<std::string, DataArtifactDescriptor> artifacts_;
   CancellationToken cancel_;
   std::vector<std::string> checkpoints_;
+  std::shared_ptr<TraceStore> trace_store_;  // RT-006: 运行 trace 汇（每 run）
+  std::string run_id_;                       // RT-006: 本次运行 ID
 };
 
 }  // namespace astrocs::core

@@ -102,10 +102,46 @@ void CpuHeavyExecutor::worker_loop() {
     // RT-003: 把唯一预算注入任务上下文（模块/任务经 ctx.acquire_lease 拿 lease）
     ctx.set_budget(impl_->budget);
     ctx.set_thread_budget(impl_->budget ? impl_->budget->budget() : 1u);
+    // RT-006: 任务观测起始（真实时间点；trace 汇注入后才写）
+    const auto t_start = std::chrono::steady_clock::now();
+    std::shared_ptr<TraceStore> obs_store;
+    {
+      std::lock_guard<std::mutex> lock(obs_mu_);
+      obs_store = trace_store_;
+    }
+    if (obs_store) {
+      TraceEvent e;
+      e.type = TraceEventType::WORKER_TASK;
+      e.status = "STARTED";
+      e.workers = static_cast<uint32_t>(lease.size());
+      e.granted_workers = impl_->budget ? impl_->budget->budget() : 1u;
+      e.provider = observed_provider_;
+      obs_store->record(std::move(e));
+    }
     try {
       task(ctx);                          // lease RAII：任务结束/异常自动归还
     } catch (...) {
       // 异常不得杀死 worker；lease 经析构回收
+    }
+    // RT-006: 任务观测结束（真实完成；计数+1；收集任务内 provider 置位观测）
+    tasks_executed_.fetch_add(1, std::memory_order_relaxed);
+    {
+      std::lock_guard<std::mutex> lock(obs_mu_);
+      if (!ctx.provider().empty() && ctx.provider() != observed_provider_) {
+        observed_provider_ = ctx.provider();
+        provider_sets_.fetch_add(1, std::memory_order_relaxed);
+      }
+      if (obs_store) {
+        TraceEvent e;
+        e.type = TraceEventType::WORKER_TASK;
+        e.status = "COMPLETED";
+        e.workers = static_cast<uint32_t>(lease.size());
+        e.provider = observed_provider_;
+        e.wall_ms = std::chrono::duration<double, std::milli>(
+                        std::chrono::steady_clock::now() - t_start)
+                        .count();
+        obs_store->record(std::move(e));
+      }
     }
     impl_->running.fetch_sub(1);
     if (lease.acquired()) lease.release();  // 显式归还 → available+1

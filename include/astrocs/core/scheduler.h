@@ -64,6 +64,14 @@ class Scheduler {
   // RT-003: Scheduler 持有的唯一 ThreadBudget（run 间复用；重复 run 不泄漏）。
   std::shared_ptr<ThreadBudget> thread_budget() const noexcept { return budget_obj_; }
 
+  // RT-006: 注入运行 trace 汇（run 内所有节点事件写入；nullptr 解除）。
+  // run() 开始时把 store 与 run_id 注入 ctx（模块/节点经 ctx.record_trace 观测）。
+  void set_run_observation(std::shared_ptr<TraceStore> store, std::string run_id) {
+    obs_store_ = std::move(store);
+    obs_run_id_ = std::move(run_id);
+  }
+  const std::string& observation_run_id() const noexcept { return obs_run_id_; }
+
  private:
   uint32_t budget_;
   uint64_t memory_limit_bytes_;
@@ -72,6 +80,8 @@ class Scheduler {
   std::map<std::string, NodeStatus> status_;
   std::atomic<bool> cancel_{false};
   bool built_ = false;
+  std::shared_ptr<TraceStore> obs_store_;  // RT-006: run 观测汇（可选）
+  std::string obs_run_id_;                 // RT-006: run 观测 id（可选）
 };
 
 }  // namespace astrocs::core

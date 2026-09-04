@@ -19,6 +19,7 @@
 #include "astrocs/core/module.h"
 #include "astrocs/core/pipeline.h"
 #include "astrocs/core/scheduler.h"
+#include "astrocs/core/trace.h"
 
 #include <cstdint>
 #include <memory>
@@ -73,8 +74,20 @@ class Runtime {
     uint32_t workers = 0;
     std::string provider;    // 当前 provider ID（baseline/avx2/avx512）
     std::string error;       // 失败消息（成功时为空）
+    // RT-006: 真实观测扩展（尾加；不破坏 RT-009 既有 ABI 用法）
+    uint32_t granted_workers = 0;   // 授予租约上限（观测）
+    std::string module_id;          // 真实执行 module
+    std::string entry;              // 真实导出入口（可空）
+    uint64_t call_count = 0;        // 节点真实 module 调用计数（1 次/正常 run）
   };
   virtual std::vector<NodeTrace> node_trace() const = 0;
+
+  // RT-006: 运行 trace 汇（JSONL 导出；run 完成后调用）。
+  virtual Result<std::string> trace_jsonl() const = 0;
+  // RT-006: 运行 trace 重复/隐藏 session 检测（run 完成后调用）。
+  virtual std::vector<std::string> trace_violations() const = 0;
+  // RT-006: 注入运行标识（可空；默认空）。run 前调用。
+  virtual void set_run_id(const std::string& run_id) = 0;
 };
 
 // ── 工厂（C++ 边界；ownership: 调用者独占销毁） ──
