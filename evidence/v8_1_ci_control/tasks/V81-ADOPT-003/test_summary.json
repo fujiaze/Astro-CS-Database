@@ -1,0 +1,42 @@
+{
+  "acceptance_command": "python3 ci/reconcile_state.py --current-first --strict",
+  "acceptance_timeout_s": 900,
+  "acceptance_exit_code": 0,
+  "acceptance_checks_passed": 8,
+  "acceptance_checks_failed": 0,
+  "negative_tests": [
+    {
+      "name": "missing_task+bad_status",
+      "expected_exit": "nonzero",
+      "exit_code": 1,
+      "log": "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/logs/negative_missing_task_and_bad_status.log"
+    },
+    {
+      "name": "recon_csv_row_short",
+      "expected_exit": "nonzero",
+      "exit_code": 1,
+      "log": "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/logs/negative_recon_row_short.log"
+    }
+  ],
+  "post_negative_rerun": {
+    "exit_code": 0,
+    "log": "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/logs/acceptance_rerun.log"
+  },
+  "counts_v71_191": {
+    "CLOSED": 51,
+    "READY": 13,
+    "NOT_STARTED": 125,
+    "DISPATCHED": 0,
+    "FATDUCK_PENDING": 2,
+    "WAITING_RESOURCE": 0,
+    "total": 193,
+    "v71_total": 191,
+    "adopt_seed": 2
+  },
+  "diff_vs_review_snapshot": 16,
+  "task_state_sha256": "898e52b2c06409a99268824c1f4b33f32c4e6593e158b39d5dc85a8c02e08cef",
+  "commit_ledger_sha256": "9a8925378045041a21a910640799f404c9e12896fbb2e2422128713357281eef",
+  "state_reconciliation_sha256": "7d7b5e21e2d15dbd5d98e8098874ae9f5e65d1cd257b35de4a1619f2f883debd",
+  "commit_ledger_lines": 1522,
+  "reconciliation_rows": 191
+}

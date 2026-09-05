@@ -1,0 +1,54 @@
+{
+  "task_id": "V81-ADOPT-003",
+  "owner": "SA-ADOPT-31",
+  "base_sha": "af9ecdc5e56d8102e81e23548079b603ea6a7eee",
+  "mode": "write",
+  "goal": "Reconcile current task evidence with V7.1 and review claims",
+  "allowed_paths": [
+    "evidence/v8_1_ci_control/**",
+    "ci/reconcile_state.py"
+  ],
+  "explicit_write_grant": "evidence/v8_1_ci_control/TASK_STATE.json 由本任务重建（ADOPT-003 规格输出）；此外不得改任何既有 tracked 文件",
+  "forbidden": [
+    "branch",
+    "git_worktree",
+    "extra_clone",
+    "history_rewrite",
+    "scope_expansion",
+    "git_reset",
+    "git_stash",
+    "git_clean",
+    "commit",
+    "push",
+    "modify_control_package"
+  ],
+  "inputs": [
+    "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/baseline/V7_1_STATIC_TASK_LEDGER.csv",
+    "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/baseline/REVIEW_CLAIMED_TASK_STATE.csv",
+    "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/baseline/REVIEW_SUMMARY.json",
+    "evidence/refactor/TASK_LEDGER.csv 与 evidence/refactor/tasks/*、evidence/v6_1_rework/",
+    "git log（46+2 个原子提交，含 [TASK-ID] 尾注）",
+    "evidence/v8_1_ci_control/TASK_STATE.json（当前 seed，ADOPT-001/002 已 CLOSED）"
+  ],
+  "commands": [
+    "外连接三方任务清单（当前证据优先）",
+    "对 claimed CLOSED 仅做当前 SHA 快检",
+    "消解 CLI-002 缺失差异",
+    "CPU-006 旧 DISPATCHED 无当前可验证修改则回 READY",
+    "WIN-002 → FATDUCK_PENDING"
+  ],
+  "acceptance_command": [
+    "python3 ci/reconcile_state.py --current-first --strict"
+  ],
+  "outputs": [
+    "evidence/v8_1_ci_control/TASK_STATE.json",
+    "evidence/v8_1_ci_control/COMMIT_LEDGER.jsonl",
+    "evidence/v8_1_ci_control/STATE_RECONCILIATION.csv",
+    "ci/reconcile_state.py",
+    "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/"
+  ],
+  "heavy": false,
+  "requires_resource_monitor": false,
+  "timeout_s": 900,
+  "acquired_utc": "2026-09-05T10:10:08Z"
+}

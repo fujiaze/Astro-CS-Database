@@ -1,0 +1,14 @@
+evidence/v8_1_ci_control/TASK_STATE.json
+evidence/v8_1_ci_control/COMMIT_LEDGER.jsonl
+evidence/v8_1_ci_control/STATE_RECONCILIATION.csv
+ci/reconcile_state.py
+evidence/v8_1_ci_control/tasks/V81-ADOPT-003/TASK_RESULT.json
+evidence/v8_1_ci_control/tasks/V81-ADOPT-003/commands.jsonl
+evidence/v8_1_ci_control/tasks/V81-ADOPT-003/changed_files.txt
+evidence/v8_1_ci_control/tasks/V81-ADOPT-003/test_summary.json
+evidence/v8_1_ci_control/tasks/V81-ADOPT-003/findings.csv
+evidence/v8_1_ci_control/tasks/V81-ADOPT-003/artifacts/gen_cmd_log.jsonl
+evidence/v8_1_ci_control/tasks/V81-ADOPT-003/logs/acceptance_run.log
+evidence/v8_1_ci_control/tasks/V81-ADOPT-003/logs/acceptance_rerun.log
+evidence/v8_1_ci_control/tasks/V81-ADOPT-003/logs/negative_missing_task_and_bad_status.log
+evidence/v8_1_ci_control/tasks/V81-ADOPT-003/logs/negative_recon_row_short.log
