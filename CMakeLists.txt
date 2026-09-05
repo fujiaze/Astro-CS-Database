@@ -501,6 +501,67 @@ if(ASTROCS_BUILD_TESTS)
   add_subdirectory(tests/unit)
 endif()
 
+# ── QA-006: linux-deep 附加质量目标 (V8-CI-005; 默认 OFF, 仅 linux-deep CI 开) ──
+# 与 QA-002 sanitizer 选项同模式: 生产默认 OFF, 不进默认构建图。
+#   ASTROCS_BUILD_COVERAGE  : LLVM source-based 插桩 + ccov 目标 (llvm-profdata/llvm-cov)
+#   ASTROCS_SANITIZE_RUNTIME: qa-sanitize 目标 (clang + ASan/UBSan/LSan, 复用 QA-002 接线)
+#   ASTROCS_SANITIZE_THREAD : qa-sanitize-tsan 目标 (clang + TSan; 与上一个互斥, 单选)
+if(NOT WIN32 AND NOT MSVC)
+  option(ASTROCS_BUILD_COVERAGE "Build instrumented for coverage + ccov target (deep CI)" OFF)
+  option(ASTROCS_SANITIZE_RUNTIME "Add qa-sanitize custom target (clang ASan+UBSan+LSan)" OFF)
+  option(ASTROCS_SANITIZE_THREAD "Add qa-sanitize-tsan custom target (clang TSan)" OFF)
+  if(ASTROCS_SANITIZE_THREAD AND ASTROCS_SANITIZE_RUNTIME)
+    message(FATAL_ERROR "qa-sanitize 与 qa-sanitize-tsan 互斥 (QA-006): 单选")
+  endif()
+  if(ASTROCS_BUILD_COVERAGE)
+    find_program(ASTROCS_LLVM_PROFDATA llvm-profdata)
+    find_program(ASTROCS_LLVM_COV llvm-cov)
+    if(NOT ASTROCS_LLVM_PROFDATA OR NOT ASTROCS_LLVM_COV)
+      message(FATAL_ERROR "ASTROCS_BUILD_COVERAGE=ON 需要 llvm-profdata/llvm-cov (linux-deep CI host 提供)")
+    endif()
+    add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
+    add_link_options(-fprofile-instr-generate)
+    # 报告合并逻辑在 cmake/qa_coverage_report.sh（多目标 -object 列表展开）
+    add_custom_target(ccov
+      COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} -j2
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/coverage
+      COMMAND ${CMAKE_COMMAND} -E env
+              LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/%p-%m.profraw
+              ${CMAKE_CTEST_COMMAND} --test-dir ${CMAKE_BINARY_DIR} --output-on-failure
+      COMMAND /bin/sh ${CMAKE_SOURCE_DIR}/cmake/qa_coverage_report.sh
+              ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMENT "QA-006 覆盖基线测量 (lib+cli, LLVM source-based; ctest 全量)"
+      VERBATIM)
+  endif()
+  if(ASTROCS_SANITIZE_RUNTIME OR ASTROCS_SANITIZE_THREAD)
+    find_program(ASTROCS_QA_CLANG clang)
+    if(NOT ASTROCS_QA_CLANG)
+      message(FATAL_ERROR "qa-sanitize/qa-sanitize-tsan 需要 clang 工具链 (linux-deep CI host 提供)")
+    endif()
+    if(ASTROCS_SANITIZE_THREAD)
+      set(_QA_SAN_OPT -DASTROCS_ENABLE_TSAN=ON)
+      set(_QA_SAN_TGT qa-sanitize-tsan)
+      set(_QA_SAN_ENV ${CMAKE_COMMAND} -E env)
+    else()
+      set(_QA_SAN_OPT -DASTROCS_ENABLE_SANITIZERS=ON)
+      set(_QA_SAN_TGT qa-sanitize)
+      set(_QA_SAN_ENV ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=1:abort_on_error=1)
+    endif()
+    # 独立 build dir 用 clang 重新配置, 复用本文件 QA-002 sanitizer 接线 (不重复实现)
+    add_custom_target(${_QA_SAN_TGT}
+      COMMAND ${CMAKE_COMMAND} -S ${CMAKE_SOURCE_DIR} -B ${CMAKE_BINARY_DIR}/qa-sanitize
+              -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+              ${_QA_SAN_OPT}
+      COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/qa-sanitize -j2
+      COMMAND ${_QA_SAN_ENV}
+              ${CMAKE_CTEST_COMMAND} --test-dir ${CMAKE_BINARY_DIR}/qa-sanitize
+              --output-on-failure -j2
+      COMMENT "QA-006 clang sanitizer 全量单元 (CTest; 违例=非零退出=检查 FAIL)"
+      VERBATIM)
+  endif()
+endif()
+
 # ── BLD-003 模块化安装骨架: 唯一 install 规则源 (白名单 install 树) ──
 # include 于全部 target 声明之后; 本文件只允许在根 CMake 出现 (BLD-002)。
 include(cmake/install_layout.cmake)

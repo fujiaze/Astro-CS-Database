@@ -1,0 +1,35 @@
+M  AGENTS.md
+M  CMakeLists.txt
+M  ci/checks.json
+M  ci/checks.schema.json
+M  ci/run.py
+M  ci/validate_registry.py
+A  ci/resource_monitor.py
+A  ci/tests/test_deep_profiles.py
+A  cmake/qa_coverage_report.sh
+A  docs/quality/coverage_baseline_v1.md
+A  docs/quality/complexity_baseline_v1.md
+A  tools/quality/ci_coverage_runner.py
+A  tools/quality/deep_ci_driver.py
+A  tools/quality/check_complexity.py
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/TASK_RESULT.json
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/TEST_EVIDENCE.json
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/CHANGED_FILES.txt
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/logs/validate_strict.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/logs/plan_fast.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/logs/plan_linux-main.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/logs/plan_linux-deep.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/logs/deep_run.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/logs/discover.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/logs/coverage_outside.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/logs/driver_outside.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/logs/complexity_run.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/artifacts/CI_RESULT_linux_deep_local.json
+A  evidence/v8_1_ci_control/tasks/V8-CI-005/artifacts/complexity_local.json
+
+# 说明（SA-CI-32）：
+# - AGENTS.md / CMakeLists.txt 的 M 含此前任务（V8-CI-003 监控、QA-002/QA-006 接线）
+#   在工作区的累积改动；本任务直接改动的是 ci/* 四件 + 新增 9 文件 + evidence/。
+# - ci/resource_monitor.py 为 V8-CI-003 已交付但尚未 commit 的 shim（本任务
+#   prerequisite 探测依赖其在位）。
+# - 工作区其他未跟踪文件（zip/astrocs_run_*/工程控制//graph/ 等）非本任务产物。

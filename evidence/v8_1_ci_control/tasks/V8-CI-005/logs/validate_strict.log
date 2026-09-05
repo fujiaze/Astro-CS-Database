@@ -1,0 +1,10 @@
+$ python3 ci/validate_registry.py --registry ci/checks.json --strict
+{
+  "registry": "/workspace/Astro CS Database/ci/checks.json",
+  "strict": true,
+  "checks": 77,
+  "errors": [],
+  "error_count": 0,
+  "verdict": "PASS"
+}
+exit=0

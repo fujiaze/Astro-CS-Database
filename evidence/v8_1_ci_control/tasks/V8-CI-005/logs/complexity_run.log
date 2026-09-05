@@ -1,0 +1,5 @@
+$ timeout 120 python3 tools/quality/check_complexity.py --paths lib,cli,include --output run/ci/complexity/complexity.json (stdout 前 3 行)
+{
+  "check": "CX-DEEP",
+  "generated_utc": "2026-09-05T20:16:45Z",
+pipe-exit=0

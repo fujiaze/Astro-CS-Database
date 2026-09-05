@@ -1,0 +1,76 @@
+{
+  "acceptance_cmds": [
+    {
+      "cmd": "python3 ci/validate_registry.py --registry ci/checks.json --strict",
+      "exit": 0,
+      "verdict": "PASS",
+      "checks": 77,
+      "errors": 0,
+      "log": "logs/validate_strict.log"
+    },
+    {
+      "cmd": "timeout 120 python3 ci/run.py --profile fast --plan-only",
+      "exit": 0,
+      "selected_count": 57,
+      "new_ids_selected": 0,
+      "log": "logs/plan_fast.log"
+    },
+    {
+      "cmd": "timeout 120 python3 ci/run.py --profile linux-main --plan-only",
+      "exit": 0,
+      "selected_count": 71,
+      "note": "70 既有 + BUILD-GCC-RELEASE",
+      "log": "logs/plan_linux-main.log"
+    },
+    {
+      "cmd": "timeout 120 python3 ci/run.py --profile linux-deep --plan-only",
+      "exit": 0,
+      "selected_count": 7,
+      "selected_ids": ["BUILD-GCC-RELEASE", "DEEP-CLANG-BUILD", "DEEP-SAN-ASAN",
+                       "DEEP-SAN-TSAN", "DEEP-COV-CPP", "DEEP-COV-PY", "DEEP-COMPLEXITY"],
+      "log": "logs/plan_linux-deep.log"
+    },
+    {
+      "cmd": "timeout 900 python3 ci/run.py --profile linux-deep",
+      "exit": 0,
+      "overall_verdict": "PASS",
+      "verdicts": {"pass": 1, "skipped_waivable": 6, "fail": 0},
+      "result_json": "artifacts/CI_RESULT_linux_deep_local.json",
+      "log": "logs/deep_run.log"
+    },
+    {
+      "cmd": "PYTHONDONTWRITEBYTECODE=1 timeout 600 python3 -m unittest discover -s ci/tests -p test_*.py",
+      "exit": 0,
+      "tests": 96,
+      "result": "OK",
+      "log": "logs/discover.log",
+      "note": "基线 78 + 本任务新增 18（ci/tests/test_deep_profiles.py）"
+    },
+    {
+      "cmd": "python3 tools/quality/ci_coverage_runner.py --output-dir /tmp/astrocs-outside-cov",
+      "exit": 2,
+      "stderr": "ci_coverage_runner: --output-dir 必须位于仓库内（仓库根 /workspace/Astro CS Database），实际 /tmp/astrocs-outside-cov",
+      "log": "logs/coverage_outside.log"
+    },
+    {
+      "cmd": "timeout 60 python3 tools/quality/deep_ci_driver.py build-gcc-release --build-dir /tmp/astrocs-outside",
+      "exit": 1,
+      "stderr": "deep_ci_driver: --build-dir 必须位于仓库内（/workspace/Astro CS Database），实际 /tmp/astrocs-outside",
+      "log": "logs/driver_outside.log"
+    },
+    {
+      "cmd": "timeout 120 python3 tools/quality/check_complexity.py --paths lib,cli,include --output run/ci/complexity/complexity.json",
+      "exit": 0,
+      "totals": {"files": 375, "lines": 139881, "functions_approx": 1858,
+                 "branch_tokens": 19182, "max_file_cyclomatic": 1048},
+      "threshold": null,
+      "log": "logs/complexity_run.log",
+      "artifact": "artifacts/complexity_local.json"
+    }
+  ],
+  "unittest_total": 96,
+  "baseline_checks": 70,
+  "registry_checks_after": 77,
+  "generated_utc": "2026-09-05T20:17:30Z",
+  "owner": "SA-CI-32"
+}
