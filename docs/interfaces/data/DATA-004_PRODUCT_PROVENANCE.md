@@ -39,7 +39,7 @@ sidecar 旁路持久化，manifest hash 语义不变）。
 
 | 类别 | 键 | 语义 | 来源/绑定 | 版本示例 |
 |---|---|---|---|---|
-| product | `revision.product` | 产物版本（构建产物标识） | manifest `producer.module_build_id` | `0.11.0-alpha.1-linux-amd64-gcc14` |
+| product | `revision.product` | 产物版本（构建产物标识） | manifest `producer.module_build_id` | `0.11.0-alpha.2-linux-amd64-gcc14` |
 | module | `revision.module` | 模块标识/版本 | manifest `producer.module_id` | `astrocs.phase1.frame_hips` |
 | ABI | `revision.abi` | C ABI / 文档形态版本 | DATA-001 manifest_schema 形态（v1） | `v1` |
 | data schema | `revision.data_schema` | type_id 数据 schema revision | manifest `type_id.schema_version` → `v{sv}` | `v1` |

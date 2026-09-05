@@ -18,7 +18,7 @@ source_package_readme_sha256: b1dfb88846903f635e841f8cd6b06d587cecd08d45cd15e41c
 source_package_readme_relpath: 00_READ_FIRST.md
 source_main_sha: c1696156583c68c9a3a65287639c726937e9f6e7
 source_main_version: 0.10.0-alpha.2
-target_main_version: 0.11.0-alpha.1
+target_main_version: 0.11.0-alpha.2
 authoring_task: GOV-001
 authoring_owner: SA-GOV-01
 audit_note: 修复审计 P1（02_CURRENT_BASELINE_AUDIT.md §4.10）——
@@ -30,7 +30,7 @@ content_rule: 科学公式、权重/variance/ivar/SNR 定义、排异规则、�
 
 ## A. 产品与阶段
 
-1. 当前为 Alpha 预发布架构收敛，目标版本 `0.11.0-alpha.1`；版本仍可继续 alpha，不冒充稳定版。
+1. 当前为 Alpha 预发布架构收敛，目标版本 `0.11.0-alpha.2`；版本仍可继续 alpha，不冒充稳定版。
 2. 仅 `main` 形成正式开发历史。SubAgent 可使用 detached worktree，但不建立正式分支、不直接提交。
 3. Phase1、Phase2、Phase3 是三个隔离产品命令，不是固定顺序流水线：
    - Phase1：单帧 light + masters/catalog/config → 单帧标准化 HiPS + manifest；

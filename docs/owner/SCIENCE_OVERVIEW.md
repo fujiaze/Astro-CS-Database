@@ -2,7 +2,7 @@
 
 > 文档 ID：DOC-GOV-OWNER-SCIENCE-001
 > 状态：ACTIVE_NORMATIVE（GOV-004 建立，SA-GOV-01）
-> 目标产品：`0.11.0-alpha.1`（根 VERSION，GOV-003 唯一源）
+> 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003 唯一源）
 > 基线提交：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`
 > 用途：项目负责人 L0 审查入口之一。本文只**汇总权威来源**（不复制公式/函数清单），
 > 科学公式与默认容差的唯一权威是 `docs/science/` 与 `docs/algorithms/`。

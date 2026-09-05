@@ -5,7 +5,7 @@
 > 的唯一来源与生成链。任何把 ABI/模块/数据 schema/文档修订号误当作产品
 > 版本、或在非定义点手抄产品版本的行为，都视为违反本合同的漂移。
 
-状态: ACTIVE_NORMATIVE  版本: 1
+状态: ACTIVE_NORMATIVE  版本: 2
 
 ## 1. 五个版本命名空间（总表）
 
@@ -15,7 +15,7 @@ AstroCS 的"版本号"不是一个量，而是五个生命周期独立的命名�
 
 | 命名空间 | 权威定义点 | 当前值 | 递增规则/生命周期 |
 |---|---|---|---|
-| product | 仓库根 `VERSION`（唯一事实源，单行 `MAJOR.MINOR.PATCH-alpha.N`） | `0.11.0-alpha.1` | 产品发布语义；`MAJOR.MINOR.PATCH` 只由负责人指令变更，`alpha.N` 只在外部审核通过后提升；禁止 stable/rc/beta |
+| product | 仓库根 `VERSION`（唯一事实源，单行 `MAJOR.MINOR.PATCH-alpha.N`） | `0.11.0-alpha.2` | 产品发布语义；`MAJOR.MINOR.PATCH` 只由负责人指令变更，`alpha.N` 只在外部审核通过后提升；禁止 stable/rc/beta |
 | module | 各模块 `module.yaml`（module_version 字段；DATA-001 建立类型化产物合同时登记于 module manifest） | 逐模块独立（当前以 manifest 为准） | 模块接口/产物变更时由模块 owner 递增，与产品版本无关 |
 | ABI | `include/astrocs/common_abi_v1.h` 的 `ACS_ABI_VERSION_V1`（C ABI 冻结）与 `cli/version_generated.h` 暴露的 `abi_version` | ABI v1（头常量 `1u`；gen_version 输出 `abi_version=0` 表示 CLI 侧尚未对 ABI-001 冻结置 1） | ABI-001 冻结后 CLI 报告从 0 → 1；任何破坏二进制兼容的变更必须递增 |
 | data-schema | `contracts/data/artifact_types.registry.json` 的 `schema_version`（type_id 数据产品 schema）与各 schema 文件 `$schema` 版本 | type_id schema_version = 1（DATA-001 冻结） | 数据产品结构变更时按 registry 递增 |
@@ -55,7 +55,7 @@ AstroCS 的"版本号"不是一个量，而是五个生命周期独立的命名�
 | CMake 主版本串 | 根 `CMakeLists.txt` `file(READ …/VERSION)` + `git rev-parse HEAD` → `ASTROCS_VERSION_STRING`（`X.Y.Z-alpha.N+g<sha>`）→ `configure_file` 生成 `cli/version_generated.h` | 已接线（VER-001 遗留）；`project(astrocs VERSION …)` 字面量字段需 BLD-002 改读生成值（见 known_limits） |
 | CLI `astrocs --version[ --json]` | 编译期注入 `ASTROCS_VERSION_STRING`；`--json` 输出 `{"schema_version":"1","name":"astrocs","version":"<生成串>"}` | 已接线；验收需重建 CLI 验证 |
 | CLI JSON 报告 `astrocs_version` 字段 | `ASTROCS_VERSION_STRING`（doctor/hardware/verify 等共用） | 已接线 |
-| L0 文档（REVIEW.md 等） | 只引用当前产品基础号 `0.11.0-alpha.1`（由本任务与 GOV-005 收敛） | 本任务更新允许路径内引用 |
+| L0 文档（REVIEW.md 等） | 只引用当前产品基础号 `0.11.0-alpha.2`（GOV-003/GOV-005 收敛，V81-ADOPT-006 升至 alpha.2） | 本任务更新允许路径内引用 |
 | 打包脚本 | `tools/gen_version.py` 读 VERSION + git HEAD → 版本串与 build_id | 已接线（`make_linux_release.py`/`make_windows_release.py` 调用）；硬编码回退串属他人路径清理项 |
 | `tools/gen_version.py --json` | 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象（schemas/version.schema.json） | 已接线 |
 
@@ -74,13 +74,13 @@ known_limits 登记，待 GOV-005/前台统一收敛。
 
 ## 5. 当前产品版本值
 
-- 根 `VERSION`：`0.11.0-alpha.1`
-- 生成串形态（clean main）：`0.11.0-alpha.1+g<commit12>`
-- 生成串形态（dirty 工作树）：`0.11.0-alpha.1+g<commit12>.dirty`
+- 根 `VERSION`：`0.11.0-alpha.2`
+- 生成串形态（clean main）：`0.11.0-alpha.2+g<commit12>`
+- 生成串形态（dirty 工作树）：`0.11.0-alpha.2+g<commit12>.dirty`
 - CLI `astrocs --version --json` 预期（schema_version="1" 顶层对象）：
-  `{"schema_version":"1","name":"astrocs","version":"0.11.0-alpha.1+g<commit12>"}`
+  `{"schema_version":"1","name":"astrocs","version":"0.11.0-alpha.2+g<commit12>"}`
 - `tools/gen_version.py --json` 预期（schemas/version.schema.json）：
-  `{"version":"0.11.0-alpha.1+g<commit12>[.dirty]","prerelease":"alpha",
+  `{"version":"0.11.0-alpha.2+g<commit12>[.dirty]","prerelease":"alpha",
   "commit":"<sha>","dirty":<bool>,"build_id":"g<commit12>[.dirty]",
   "abi_version":"0","cli_schema_version":"0"}`
 
@@ -96,4 +96,4 @@ known_limits 登记，待 GOV-005/前台统一收敛。
 authoring_task: GOV-003
 authoring_owner: SA-GOV-01
 base_main_sha: b7b2dea70dbcdacdcf6eb762609a908abdeab697
-product_version: 0.11.0-alpha.1
+product_version: 0.11.0-alpha.2

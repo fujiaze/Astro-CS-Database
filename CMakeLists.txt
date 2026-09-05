@@ -8,7 +8,10 @@
 #    禁止正式 install; 产品安装/发布构建一律以本文件为入口。
 # 4) 正式构建入口: 本文件 (Windows preset win-msvc-17.14.39-x64 / Linux linux-control)。
 cmake_minimum_required(VERSION 3.24)
-project(astrocs VERSION 0.10.0 LANGUAGES C CXX)
+# project() VERSION 只接受数字三元组(CMake 语法); alpha 后缀由根 VERSION 唯一承载,
+# 生成串 ASTROCS_VERSION_STRING = VERSION + g<commit> (V81-ADOPT-006 统一规则)。
+# 同步规则: 此三元组必须 == 根 VERSION 的 major.minor.patch (ci/check_version.py 校验)。
+project(astrocs VERSION 0.11.0 LANGUAGES C CXX)
 
 # ── 选项 (03/BLD-001 冻结) ──
 option(ASTROCS_ENABLE_ACR "Build dormant ACR tree (default OFF, production exclusion)" OFF)

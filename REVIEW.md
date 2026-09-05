@@ -1,8 +1,9 @@
 # REVIEW.md — AstroCS 项目负责人审查入口（L0）
 
-> 目标产品：**0.11.0-alpha.1**（根 VERSION，GOV-003 唯一源；
-> 生成串 `0.11.0-alpha.1+g<commit12>`，见 `docs/governance/VERSION_NAMESPACES.md`）
-> 基线提交：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`
+> 目标产品：**0.11.0-alpha.2**（根 VERSION，GOV-003 唯一源；
+> 生成串 `0.11.0-alpha.2+g<commit12>`，见 `docs/governance/VERSION_NAMESPACES.md`）
+> 基线提交（GOV-004 建立时点，历史值；当前 HEAD 以 `git rev-parse HEAD` 为准）：
+> `caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`
 > 建立：GOV-004（SA-GOV-01）。项目负责人只需阅读本文件及 `docs/owner/` 5 份顶层文档，
 > 底层文档/源码/日志通过证据 ID 追溯，不要求逐文件阅读（约束 §F.7）。
 
@@ -64,8 +65,8 @@ healpix_interp4、流式 FITS 接入）未完成。
 
 ## 5. 关键结论（每条可回溯）
 
-- 产品版本单源 `0.11.0-alpha.1`（根 VERSION，GOV-003）；CLI `--version` 由生成链
-  输出 `0.11.0-alpha.1+g<commit>`（生成链见 `docs/governance/VERSION_NAMESPACES.md`）。
+- 产品版本单源 `0.11.0-alpha.2`（根 VERSION，GOV-003）；CLI `--version` 由生成链
+  输出 `0.11.0-alpha.2+g<commit>`（生成链见 `docs/governance/VERSION_NAMESPACES.md`）。
 - 科学定义=算法=接口=代码=测试全链闭合是目标（约束 §F.6）；已集成的各任务
   `scientific_change=NO`，未改公式/容差。
 - 三 Phase 隔离是产品模型：独立命令 phase1/2/3 run；跨 Phase 仅磁盘交换（DATA-002）；

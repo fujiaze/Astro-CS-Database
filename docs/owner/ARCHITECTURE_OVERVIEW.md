@@ -2,7 +2,7 @@
 
 > 文档 ID：DOC-GOV-OWNER-ARCHITECTURE-001
 > 状态：ACTIVE_NORMATIVE（GOV-004 建立，SA-GOV-01）
-> 目标产品：`0.11.0-alpha.1`（根 VERSION，GOV-003）
+> 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003）
 > 基线提交：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`
 > 权威：`AstroCS_ENGINEERING_CONSTRAINTS.md` §B/C/D/F、`docs/contracts/ARCH-001.md`、
 > `docs/architecture/*.md`、`docs/api/*`、`contracts/config/module_dll_contract.schema.json`。
