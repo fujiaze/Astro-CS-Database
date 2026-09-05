@@ -1,0 +1,47 @@
+test_affinity_fallback_when_unavailable (ci.tests.test_resource_probe.TestComputeSemantics.test_affinity_fallback_when_unavailable)
+sched_getaffinity 不可得 → fallback os.cpu_count 注入值。 ... ok
+test_compute_effective (ci.tests.test_resource_probe.TestComputeSemantics.test_compute_effective) ... ok
+test_derive_max_workers (ci.tests.test_resource_probe.TestComputeSemantics.test_derive_max_workers) ... ok
+test_shrinking_affinity_changes_effective_and_workers (ci.tests.test_resource_probe.TestComputeSemantics.test_shrinking_affinity_changes_effective_and_workers)
+注入缩容 affinity：effective/max_workers 必须跟随变化（非硬编码核数）。 ... ok
+test_cgroup_v1 (ci.tests.test_resource_probe.TestFakeProcTree.test_cgroup_v1) ... ok
+test_cgroup_v2_relative_path (ci.tests.test_resource_probe.TestFakeProcTree.test_cgroup_v2_relative_path) ... ok
+test_cgroup_v2_unlimited_falls_back_to_root (ci.tests.test_resource_probe.TestFakeProcTree.test_cgroup_v2_unlimited_falls_back_to_root) ... ok
+test_logical_falls_back_to_affinity (ci.tests.test_resource_probe.TestFakeProcTree.test_logical_falls_back_to_affinity) ... ok
+test_logical_falls_back_to_cpuinfo (ci.tests.test_resource_probe.TestFakeProcTree.test_logical_falls_back_to_cpuinfo)
+os.cpu_count 不可得 → /proc/cpuinfo processor 计数。 ... ok
+test_meminfo_bytes (ci.tests.test_resource_probe.TestFakeProcTree.test_meminfo_bytes) ... ok
+test_no_cgroup_quota_is_none (ci.tests.test_resource_probe.TestFakeProcTree.test_no_cgroup_quota_is_none)
+无 v2/v1 文件（本宿主实况）→ quota=None 不报错，effective=affinity。 ... ok
+test_physical_from_cpuinfo_and_sysfs (ci.tests.test_resource_probe.TestFakeProcTree.test_physical_from_cpuinfo_and_sysfs) ... ok
+test_quota_below_affinity_caps_workers (ci.tests.test_resource_probe.TestFakeProcTree.test_quota_below_affinity_caps_workers)
+quota < affinity：effective 取 quota（交集语义），worker 被封顶。 ... ok
+test_parse_cfs_quota (ci.tests.test_resource_probe.TestParsers.test_parse_cfs_quota) ... ok
+test_parse_cpu_max (ci.tests.test_resource_probe.TestParsers.test_parse_cpu_max) ... ok
+test_parse_cpuinfo_logical (ci.tests.test_resource_probe.TestParsers.test_parse_cpuinfo_logical) ... ok
+test_parse_cpuinfo_physical (ci.tests.test_resource_probe.TestParsers.test_parse_cpuinfo_physical) ... ok
+test_parse_meminfo (ci.tests.test_resource_probe.TestParsers.test_parse_meminfo) ... ok
+test_fields_present (ci.tests.test_resource_probe.TestProbeHost.test_fields_present) ... ok
+test_self_consistent_values (ci.tests.test_resource_probe.TestProbeHost.test_self_consistent_values) ... ok
+test_sources_annotated (ci.tests.test_resource_probe.TestProbeHost.test_sources_annotated) ... ok
+test_busy_loop_high_cpu (ci.tests.test_run_monitored.TestBusyLoop.test_busy_loop_high_cpu) ... ok
+test_low_cpu_unavailable_fails_closed (ci.tests.test_run_monitored.TestEvaluateMisc.test_low_cpu_unavailable_fails_closed) ... ok
+test_no_thresholds_no_violations (ci.tests.test_run_monitored.TestEvaluateMisc.test_no_thresholds_no_violations) ... ok
+test_rss_unavailable_fails_closed (ci.tests.test_run_monitored.TestEvaluateMisc.test_rss_unavailable_fails_closed) ... ok
+test_memory_growth_leak_flagged (ci.tests.test_run_monitored.TestMemoryGrowth.test_memory_growth_leak_flagged) ... ok
+test_output_file_complete_fields (ci.tests.test_run_monitored.TestOutputJson.test_output_file_complete_fields) ... ok
+test_evaluate_min_progress (ci.tests.test_run_monitored.TestProgress.test_evaluate_min_progress) ... ok
+test_parse_progress_line (ci.tests.test_run_monitored.TestProgress.test_parse_progress_line) ... ok
+test_progress_file_overrides_stdout (ci.tests.test_run_monitored.TestProgress.test_progress_file_overrides_stdout)
+两途径并存 → 以 progress-file 为准（文档化约定）。 ... ok
+test_progress_from_progress_file (ci.tests.test_run_monitored.TestProgress.test_progress_from_progress_file) ... ok
+test_progress_from_stdout (ci.tests.test_run_monitored.TestProgress.test_progress_from_stdout) ... ok
+test_progress_none_when_absent (ci.tests.test_run_monitored.TestProgress.test_progress_none_when_absent) ... ok
+test_sleep_low_cpu_flagged (ci.tests.test_run_monitored.TestSleepIdle.test_sleep_low_cpu_flagged) ... ok
+test_threads_max_counted (ci.tests.test_run_monitored.TestThreads.test_threads_max_counted) ... ok
+test_timeout_kills_child (ci.tests.test_run_monitored.TestTimeoutKill.test_timeout_kills_child) ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 13.978s
+
+OK

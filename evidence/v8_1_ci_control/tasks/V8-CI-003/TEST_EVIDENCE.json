@@ -1,0 +1,11 @@
+{
+  "acceptance_cmd": "python3 -m unittest ci.tests.test_resource_probe ci.tests.test_run_monitored",
+  "ran": 36,
+  "ok": true,
+  "discover_ran": 65,
+  "discover_ok": true,
+  "plan_only_exit": 0,
+  "plan_only_selected": 57,
+  "duration_seconds": 13.978,
+  "timestamp_utc": "2026-09-05T17:17:53Z"
+}

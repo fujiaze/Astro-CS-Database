@@ -1,0 +1,17 @@
+{
+  "cpu_affinity": 16,
+  "cpu_affinity_source": "sched_getaffinity",
+  "cpu_logical": 16,
+  "cpu_logical_source": "cpu_count",
+  "cpu_physical": 8,
+  "cpu_physical_source": "procfs",
+  "cgroup_quota_cores": null,
+  "cgroup_quota_source": "unavailable",
+  "mem_total_bytes": 16767508480,
+  "mem_available_bytes": 14218760192,
+  "mem_source": "procfs",
+  "effective_cpu_cores": 16.0,
+  "effective_source": "affinity",
+  "max_workers": 16,
+  "max_workers_source": "derived"
+}
