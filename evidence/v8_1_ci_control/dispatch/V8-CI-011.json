@@ -1,0 +1,35 @@
+{
+  "task_id": "V8-CI-011",
+  "owner": "SA-CI-32",
+  "mode": "write",
+  "base_sha": "1e50d49e25c4192dc1a0285fc3a10d77629195f3",
+  "goal": "Configure and verify GitHub repository settings via API with live read-back confirmation",
+  "spec_ref": "工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/tasks/02_CI_TASKS.md#V8-CI-011",
+  "allowed_paths": [
+    "evidence/v8_1_ci_control/tasks/V8-CI-011/**"
+  ],
+  "prohibited": [
+    "commit",
+    "push",
+    "branch",
+    "worktree",
+    "clone",
+    "history_rewrite",
+    "scope_expansion",
+    "modify_control_package",
+    "modify_TASK_STATE",
+    "modify_WRITE_LEASE",
+    "write_credentials_to_files_or_logs",
+    "create_new_issues"
+  ],
+  "requirements": [
+    "凭据只从既有环境读取（git credential fill / 仓库 remote 凭据），token 仅存于进程环境，绝不写入任何文件/日志/输出",
+    "逐项配置并现场读回确认（API GET 复读）：1 Actions 已启用（现读即证）2 默认 workflow token 只读（PUT actions/permissions/workflow default_workflow_permissions=read 后 GET 复读）3 allowed actions 策略与 ci/actions.lock.json 一致（PUT selected-actions：allowed_actions=selected 且仅官方 actions/checkout|upload-artifact|download-artifact，与 lock 表 action 名单严格一致；API 不支持 SHA 级白名单时读回实际策略并登记差异与理由）4 artifact retention 14 天（PUT actions/permissions/artifact-and-log-retention days=14 后 GET 复读）5 Fatduck runner 现读确认：repository-level runner 列表当前无 fatduck-realdata label（FATDUCK_PENDING 装机后由 V8-FAT-001 建），登记期望终态 6 公开 fork/PR workflow 不匹配 Fatduck：现读 workflow 定义与 runner label 语义确认并登记",
+    "任何 PUT 前先 GET 记录现值（可回滚参考）；PUT 失败或权限不足：如实登记所需设置项，不阻塞",
+    "Issues 可用于单一 Owner Review：读回 issues 权限现状登记（无需新建 issue 验证）",
+    "证据 evidence/v8_1_ci_control/tasks/V8-CI-011/：TASK_RESULT.json（逐项 configured/读回值/结论）、SETTINGS_MATRIX.md（6 项矩阵：项/操作/读回/结论）、CHANGED_FILES.txt、logs/（API 请求响应 JSONL，脱敏无 token）"
+  ],
+  "acceptance_command": "python3 ci/verify_actions_lock.py --offline && python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+  "timeout_s": 900,
+  "dispatched_utc": "2026-09-06T00:05:00Z"
+}
