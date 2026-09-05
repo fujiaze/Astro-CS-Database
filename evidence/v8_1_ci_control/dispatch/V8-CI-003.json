@@ -1,0 +1,12 @@
+{
+  "task_id": "V8-CI-003",
+  "owner": "SA-CI-32",
+  "mode": "write",
+  "base_sha": "0acfb5141a9b92bff5f04e1bb3b296fca88a66b0",
+  "goal": "Implement dynamic resource probe and monitored heavy runner",
+  "allowed_paths": ["ci/**", "tools/monitoring/**"],
+  "prohibited": ["commit", "push", "branch", "worktree", "clone", "history_rewrite", "scope_expansion", "modify_control_package", "modify_TASK_STATE", "modify_WRITE_LEASE"],
+  "acceptance_command": "python3 -m unittest ci.tests.test_resource_probe ci.tests.test_run_monitored",
+  "timeout_s": 900,
+  "acquired_utc": "2026-09-05T16:44:38Z"
+}

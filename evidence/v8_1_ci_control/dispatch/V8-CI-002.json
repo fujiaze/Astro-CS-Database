@@ -1,0 +1,49 @@
+{
+  "task_id": "V8-CI-002",
+  "owner": "SA-CI-32",
+  "base_sha": "0acfb5141a9b92bff5f04e1bb3b296fca88a66b0",
+  "mode": "write",
+  "goal": "Implement deterministic CI runner and result schemas",
+  "allowed_paths": [
+    "ci/**",
+    "tests/ci/**",
+    "ci/tests/**",
+    "evidence/v8_1_ci_control/tasks/V8-CI-002/**"
+  ],
+  "forbidden": [
+    "branch",
+    "git_worktree",
+    "extra_clone",
+    "history_rewrite",
+    "scope_expansion",
+    "commit",
+    "push",
+    "modify_control_package",
+    "modify ci/checks.json 内容语义（除非登记修正）"
+  ],
+  "inputs": [
+    "ci/checks.json",
+    "ci/checks.schema.json(控制包)",
+    "ci/ci_result.schema.json(控制包)",
+    "tasks/02_CI_TASKS.md V8-CI-002 节",
+    "07_CI_MACHINE_CONTRACT.md",
+    "evidence/v8_1_ci_control/tasks/V8-CI-001/INVENTORY_REPORT.md 差异表"
+  ],
+  "commands": [
+    "实现 ci/run.py",
+    "单元测试覆盖 13 类场景",
+    "生成 CI_RESULT schema 对齐控制包"
+  ],
+  "acceptance_command": [
+    "python3 -m unittest discover -s ci/tests -p test_*.py"
+  ],
+  "outputs": [
+    "ci/run.py",
+    "ci/tests/**",
+    "evidence/v8_1_ci_control/tasks/V8-CI-002/"
+  ],
+  "heavy": false,
+  "requires_resource_monitor": false,
+  "timeout_s": 900,
+  "acquired_utc": "2026-09-05T13:00:50Z"
+}

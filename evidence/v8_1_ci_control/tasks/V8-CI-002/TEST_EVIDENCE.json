@@ -1,0 +1,18 @@
+{
+  "unittest_cmd": "PYTHONDONTWRITEBYTECODE=1 timeout 900 python3 -m unittest discover -s ci/tests -p \"test_*.py\" -v",
+  "unittest_exit": 0,
+  "ran": 29,
+  "ok": true,
+  "log": "logs/unittest.log",
+  "plan_only_cmd": "timeout 120 python3 ci/run.py --profile fast --plan-only",
+  "plan_only_exit": 0,
+  "plan_only_selected": 57,
+  "plan_only_log": "logs/plan_only.log",
+  "timestamp_utc": "2026-09-05T16:31:50Z",
+  "scenario_categories_covered": 13,
+  "test_files": [
+    "ci/tests/test_runner_selection.py",
+    "ci/tests/test_runner_execution.py",
+    "ci/tests/test_runner_contract.py"
+  ]
+}
