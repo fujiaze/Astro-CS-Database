@@ -1,0 +1,241 @@
+{
+  "task_id": "V8-CI-008",
+  "arbitrated_utc": "2026-09-05T22:47:49Z",
+  "overall": "PASS",
+  "items": [
+    {
+      "name": "validate_registry_strict",
+      "argv": [
+        "/usr/bin/python3",
+        "ci/validate_registry.py",
+        "--registry",
+        "ci/checks.json",
+        "--strict"
+      ],
+      "exit": 0,
+      "seconds": 0.0,
+      "stdout_tail": [
+        "  \"strict\": true,",
+        "  \"checks\": 80,",
+        "  \"errors\": [],",
+        "  \"error_count\": 0,",
+        "  \"verdict\": \"PASS\"",
+        "}"
+      ],
+      "stderr_tail": [],
+      "verdict": "PASS",
+      "detail": "80 checks, 0 errors"
+    },
+    {
+      "name": "verify_actions_lock_online",
+      "argv": [
+        "/usr/bin/python3",
+        "ci/verify_actions_lock.py",
+        "--log",
+        "evidence/v8_1_ci_control/tasks/V8-CI-008/logs/verify_actions_lock_online.jsonl"
+      ],
+      "exit": 0,
+      "seconds": 2.6,
+      "stdout_tail": [
+        "verify_actions_lock: OK actions/checkout@v7.0.1 -> 3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "verify_actions_lock: OK actions/upload-artifact@v5.0.0 -> 330a01c490aca151604b8cf639adc76d48f6c5d4",
+        "verify_actions_lock: OK actions/download-artifact@v8.0.1 -> 3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+        "verify_actions_lock: OK actions/upload-artifact@v4.6.2 -> ea165f8d65b6e75b540449e92b4886f43607fa02",
+        "verify_actions_lock: PASS (4 entries)"
+      ],
+      "stderr_tail": [],
+      "verdict": "PASS",
+      "detail": "在线逐 tag 复验 4 entries"
+    },
+    {
+      "name": "verify_actions_lock_offline",
+      "argv": [
+        "/usr/bin/python3",
+        "ci/verify_actions_lock.py",
+        "--offline"
+      ],
+      "exit": 0,
+      "seconds": 0.1,
+      "stdout_tail": [
+        "verify_actions_lock: PASS (offline, 4 entries)"
+      ],
+      "stderr_tail": [],
+      "verdict": "PASS",
+      "detail": "离线结构复验 PASS"
+    },
+    {
+      "name": "unittest_discover",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_*.py"
+      ],
+      "exit": 0,
+      "seconds": 22.2,
+      "stdout_tail": [],
+      "stderr_tail": [
+        "....................................................................................................................................................................................",
+        "----------------------------------------------------------------------",
+        "Ran 180 tests in 22.080s",
+        "",
+        "OK"
+      ],
+      "verdict": "PASS",
+      "detail": "Ran 180 tests in 22.080s, OK (>=151+29 新增)"
+    },
+    {
+      "name": "select_candidate_schedule_local",
+      "argv": [
+        "/usr/bin/python3",
+        "ci/select_candidate.py",
+        "--event",
+        "schedule",
+        "--json"
+      ],
+      "exit": 2,
+      "seconds": 0.1,
+      "stdout_tail": [
+        "  \"verdict\": \"env_unavailable\",",
+        "  \"reason_code\": \"repository_context_missing\",",
+        "  \"detail\": \"无 --repository 且无 GITHUB_REPOSITORY（hosted 环境才注入）\",",
+        "  \"event\": \"schedule\",",
+        "  \"utc\": \"2026-09-05T22:47:49Z\"",
+        "}"
+      ],
+      "stderr_tail": [],
+      "verdict": "PASS",
+      "detail": "本机无 hosted 上下文 -> 结构化 exit 2（hosted 才可真查）"
+    },
+    {
+      "name": "yaml_safe_load",
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "import yaml; d=yaml.safe_load(open('.github/workflows/fatduck.yml')); print('yaml OK', len(d['jobs']), 'jobs')"
+      ],
+      "exit": 0,
+      "seconds": 0.0,
+      "stdout_tail": [
+        "yaml OK 3 jobs"
+      ],
+      "stderr_tail": [],
+      "verdict": "PASS",
+      "detail": "fatduck.yml 可解析且 3 job"
+    },
+    {
+      "name": "plan_only_fast",
+      "argv": [
+        "/usr/bin/python3",
+        "ci/run.py",
+        "--profile",
+        "fast",
+        "--plan-only"
+      ],
+      "exit": 0,
+      "seconds": 0.1,
+      "stdout_tail": [
+        "        \"-t\",",
+        "        \"tests/contracts\"",
+        "      ]",
+        "    }",
+        "  ]",
+        "}"
+      ],
+      "stderr_tail": [],
+      "verdict": "PASS",
+      "detail": "fast selected_count=57 (期望 57)"
+    },
+    {
+      "name": "plan_only_linux-main",
+      "argv": [
+        "/usr/bin/python3",
+        "ci/run.py",
+        "--profile",
+        "linux-main",
+        "--plan-only"
+      ],
+      "exit": 0,
+      "seconds": 0.1,
+      "stdout_tail": [
+        "        \"--output\",",
+        "        \"run/ci/build-gcc-release-summary.json\"",
+        "      ]",
+        "    }",
+        "  ]",
+        "}"
+      ],
+      "stderr_tail": [],
+      "verdict": "PASS",
+      "detail": "linux-main selected_count=71 (期望 71)"
+    },
+    {
+      "name": "plan_only_linux-deep",
+      "argv": [
+        "/usr/bin/python3",
+        "ci/run.py",
+        "--profile",
+        "linux-deep",
+        "--plan-only"
+      ],
+      "exit": 0,
+      "seconds": 0.1,
+      "stdout_tail": [
+        "        \"--output\",",
+        "        \"run/ci/complexity/complexity.json\"",
+        "      ]",
+        "    }",
+        "  ]",
+        "}"
+      ],
+      "stderr_tail": [],
+      "verdict": "PASS",
+      "detail": "linux-deep selected_count=7 (期望 7)"
+    },
+    {
+      "name": "plan_only_windows-main",
+      "argv": [
+        "/usr/bin/python3",
+        "ci/run.py",
+        "--profile",
+        "windows-main",
+        "--plan-only"
+      ],
+      "exit": 0,
+      "seconds": 0.1,
+      "stdout_tail": [
+        "        \"--zip\",",
+        "        \"artifacts/candidate/AstroCS-candidate.zip\"",
+        "      ]",
+        "    }",
+        "  ]",
+        "}"
+      ],
+      "stderr_tail": [],
+      "verdict": "PASS",
+      "detail": "windows-main selected_count=61 (期望 61)"
+    }
+  ],
+  "plan_only": {
+    "fast": {
+      "expected": 57,
+      "got": 57
+    },
+    "linux-main": {
+      "expected": 71,
+      "got": 71
+    },
+    "linux-deep": {
+      "expected": 7,
+      "got": 7
+    },
+    "windows-main": {
+      "expected": 61,
+      "got": 61
+    }
+  }
+}

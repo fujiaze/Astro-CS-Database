@@ -1,0 +1,7 @@
+{
+  "verdict": "env_unavailable",
+  "reason_code": "repository_context_missing",
+  "detail": "无 --repository 且无 GITHUB_REPOSITORY（hosted 环境才注入）",
+  "event": "schedule",
+  "utc": "2026-09-05T22:47:57Z"
+}

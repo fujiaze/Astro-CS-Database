@@ -1,0 +1,58 @@
+# V8-CI-008 变更文件清单
+# 仓库: /workspace/Astro CS Database   HEAD: 164419875d25292f03ca66a33ca07c688b066ec9
+# 生成: 2026-09-05T22:50:17Z   owner: SA-CI-32
+# 允许路径域: ci/**  .github/workflows/**  evidence/v8_1_ci_control/tasks/V8-CI-008/**
+
+[created] .github/workflows/fatduck.yml
+    Fatduck 真实数据校验 workflow（三 job）：
+    select-candidate（ubuntu-24.04, timeout 15）：仅 workflow_run(AstroCS Windows CI, completed, branches main)+
+    schedule(0 */6 * * *) 触发；checkout 锁定 SHA（persist-credentials false, fetch-depth 1）后跑
+    ci/select_candidate.py（--event/--head-branch/--conclusion/--run-id, GITHUB_TOKEN env, JSONL 日志上传留证）；
+    rc=3 -> ::notice:: 无候选并跳过下游（select job 本身 success）；rc∉{0,3} -> 失败；gate 仅 rc=0 且
+    has_candidate=true 时放行。fatduck-validate（[self-hosted, fatduck-realdata], timeout 1440, 仅 gate 通过时跑，
+    permissions contents: read）：download-artifact v8 跨 run 下载 candidate zip 与 windows-ci 证据（run-id+
+    github-token）-> 单一 pwsh 步骤固定调用 D:\AstroCSRunner\harness\run_validation.ps1 -CandidateZip/-SourceSha/
+    -ResultDir -> upload-artifact 仅上传固定 publish 白名单 public 子目录（retention 14, if-no-files-found: error）。
+    notify-owner（ubuntu-24.04, timeout 15, if: always(), permissions contents: read + issues: write）：校验成功时
+    下载 fatduck-public-<sha> 并 gh api POST /repos/{repo}/issues/<n>/comments 追加评论（含 JPG artifact 页链接
+    #artifacts、astrocs-cli review open --run、FATDUCK_PUBLIC_SUMMARY.json 截断摘要）；变量缺失/非法 -> 结构化
+    skip + ::notice::、不调 gh；绝不新建 Issue。concurrency fatduck-<head_sha||'schedule'>, cancel-in-progress false。
+[created] ci/select_candidate.py
+    候选选择器（仅 stdlib urllib/json/os/argparse）：token 只读 GITHUB_TOKEN/GH_TOKEN 环境变量、不落盘；
+    gh_api 带 timeout 与 ≤2 次退避重试（网络类），4xx 业务错误不重试；逐请求 JSONL 审计日志（--log）；
+    --event workflow_run（本地先验 branch/conclusion，失败 exit 3 零 API）与 --event schedule（最近 success）；
+    要求同 SHA linux success + candidate artifact 匹配（记录 digest）；exit 0=candidate / 2=env, network
+    (repository_context_missing|network_unavailable|api_error) / 3=no-candidate (head_branch_not_main|
+    trigger_run_not_success|trigger_run_not_windows_workflow|no_success_windows_run|linux_not_green|
+    candidate_artifact_missing)；--json 机读输出；自动写 GITHUB_OUTPUT（has_candidate/source_sha/windows_run_id/
+    artifact_name/artifact_digest/artifact_size/no_candidate_reason）。
+[created] ci/tests/test_fatduck_workflow.py
+    29 个离线单测：YAML 形状/触发器/权限矩阵/concurrency/锁定 SHA/validate job 禁项与固定 harness 形态/
+    notify 单一评论与 skip 路径（bash 实跑 + mock gh）；select_candidate 进程内 mock gh_api 全分支
+    （2 happy + 5 个 exit 3 reason_code 区分 + 2 个 exit 2 + GITHUB_OUTPUT 断言，零网络）。
+[modified] ci/actions.lock.json    (+10/-2 行)
+    追加 actions/download-artifact v8.0.1 -> 3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c（在线实查，used_by
+    fatduck.yml）；checkout v7.0.1 与 upload-artifact v5.0.0 的 used_by 追加 fatduck.yml。
+    复验：verify_actions_lock.py 在线 PASS (4 entries)、--offline PASS (offline, 4 entries)。
+[created] evidence/v8_1_ci_control/tasks/V8-CI-008/TASK_RESULT.json
+[created] evidence/v8_1_ci_control/tasks/V8-CI-008/TEST_EVIDENCE.json
+[created] evidence/v8_1_ci_control/tasks/V8-CI-008/CHANGED_FILES.txt
+[created] evidence/v8_1_ci_control/tasks/V8-CI-008/acceptance.log
+    10 项验收独立进程仲裁重跑结果（overall=PASS）。
+[created-untracked-logs] evidence/v8_1_ci_control/tasks/V8-CI-008/logs/download_artifact_tag_query.jsonl
+    download-artifact v8.0.1 tag->SHA 在线实查原始记录（releases/latest 与 refs/tags 解引用）。
+[created-untracked-logs] evidence/v8_1_ci_control/tasks/V8-CI-008/logs/verify_actions_lock_online.jsonl
+    verify_actions_lock 在线复验逐 entry JSONL（4 entries 全一致）。
+[created-untracked-logs] evidence/v8_1_ci_control/tasks/V8-CI-008/logs/select_candidate_local.json
+    select_candidate --event schedule 本机结构化输出（exit 2 repository_context_missing，预期受限路径）。
+[created-untracked-logs] evidence/v8_1_ci_control/tasks/V8-CI-008/logs/select_candidate_local.err
+    同上 stderr（空）。
+[created-untracked-logs] evidence/v8_1_ci_control/tasks/V8-CI-008/logs/unittest.log
+    全量单测摘要（Ran 180 tests, OK）。
+    # 注：logs/ 被 .gitignore 忽略——已写盘留证，不入 git（本任务也不做任何 git 写操作）。
+
+[not-touched] 冻结约束 / science / algorithms / tolerances / AGENTS.md / .gitignore / 工程控制/ /
+              TASK_STATE / WRITE_LEASE / dispatch / adoption / ci-linux.yml / ci-windows.yml / ci/checks.json /
+              ci/run.py / ci/validate_registry.py / ci/verify_actions_lock.py / 其余既有 workflow 与 checks 项。
+[git-ops] 无任何 git 写操作（未 add/commit/push/branch/worktree/clone；仅只读 git status/diff 查询）。
+          工作区既有噪声（AGENTS.md 既有改动、dist/ 下 zip 删除、历史未跟踪 zip/artifacts）非本任务所为。
