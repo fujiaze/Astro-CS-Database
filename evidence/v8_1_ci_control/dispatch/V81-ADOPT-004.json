@@ -1,0 +1,59 @@
+{
+  "task_id": "V81-ADOPT-004",
+  "owner": "SA-ADOPT-31",
+  "base_sha": "98c2354fcd59423e80ae9592f19b5b9094d20fc1",
+  "mode": "write",
+  "goal": "Inventory existing local toolchain without requiring hosted CI versions",
+  "allowed_paths": [
+    "ci/verify_toolchain.py",
+    "ci/toolchain.policy.json",
+    "ci/toolchain.lock.json",
+    "docs/operations/TOOLCHAIN_AGENT_HOST.md",
+    "evidence/v8_1_ci_control/tasks/V81-ADOPT-004/**"
+  ],
+  "allowed_paths_note": "ci/toolchain.policy.json 自控制包 ci/toolchain.policy.json 原样复制（验收输入），不得改内容",
+  "forbidden": [
+    "branch",
+    "git_worktree",
+    "extra_clone",
+    "history_rewrite",
+    "scope_expansion",
+    "commit",
+    "push",
+    "modify_control_package",
+    "install_or_reconfigure_server",
+    "modify_existing_tracked_files"
+  ],
+  "inputs": [
+    "CMakePresets.json",
+    "CMakeLists.txt",
+    "AGENTS.md",
+    "build.sh",
+    "toolchain.ps1",
+    "控制包 ci/toolchain.policy.json"
+  ],
+  "commands": [
+    "cmake --version",
+    "gcc/g++/clang/clang++ --version",
+    "ninja --version",
+    "make --version",
+    "python3 --version",
+    "ccache --version（若有）",
+    "git --version",
+    "zstd/xz（若有）",
+    "cp -r 控制包 ci/toolchain.policy.json → 仓库 ci/"
+  ],
+  "acceptance_command": [
+    "python3 ci/verify_toolchain.py --policy ci/toolchain.policy.json --actual ci/toolchain.lock.json --scope agent-host"
+  ],
+  "outputs": [
+    "ci/toolchain.lock.json",
+    "ci/verify_toolchain.py",
+    "docs/operations/TOOLCHAIN_AGENT_HOST.md",
+    "evidence/v8_1_ci_control/tasks/V81-ADOPT-004/"
+  ],
+  "heavy": false,
+  "requires_resource_monitor": false,
+  "timeout_s": 1800,
+  "acquired_utc": "2026-09-05T10:48:53Z"
+}

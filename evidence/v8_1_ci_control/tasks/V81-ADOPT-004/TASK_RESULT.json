@@ -1,0 +1,57 @@
+{
+  "task_id": "V81-ADOPT-004",
+  "owner": "SA-ADOPT-31",
+  "mode": "write",
+  "base_sha": "98c2354fcd59423e80ae9592f19b5b9094d20fc1",
+  "git_head_at_completion": "98c2354fcd59423e80ae9592f19b5b9094d20fc1",
+  "status": "RETURNED",
+  "completed_utc": "2026-09-05T10:59:48Z",
+  "goal": "Inventory existing local toolchain without requiring hosted CI versions",
+  "acceptance_command": "python3 ci/verify_toolchain.py --policy ci/toolchain.policy.json --actual ci/toolchain.lock.json --scope agent-host",
+  "acceptance_exit_code": 0,
+  "summary": {
+    "measured_present": {
+      "python3": "3.13.5 (/usr/bin/python3)",
+      "git": "2.47.3 (/usr/bin/git)",
+      "zstd": "1.5.7 (/usr/bin/zstd)",
+      "xz_additional": "5.8.1 (/usr/bin/xz)"
+    },
+    "missing_tools": [
+      "cmake",
+      "gcc",
+      "g++",
+      "clang",
+      "clang++",
+      "ninja",
+      "make",
+      "ccache",
+      "pytest"
+    ],
+    "cmake_presets_found": [
+      "base-msvc",
+      "win-msvc-17.14.39-x64",
+      "linux-control"
+    ],
+    "policy_verbatim_copy_sha256": "7c66e1a5ff33c192653b60f2b71ffbd856d1af6821b520f8c301ae98d2881469",
+    "hosted_ci_versions_required": false,
+    "host_reprovisioning": false,
+    "acr": false,
+    "fabrication_guard": "every version in lock comes from captured stdout in logs/; verifier re-checks regex + placeholders + consistency; two negative selftest cases exit 1"
+  },
+  "outputs": {
+    "ci/verify_toolchain.py": "new",
+    "ci/toolchain.policy.json": "new (verbatim copy from control package)",
+    "ci/toolchain.lock.json": "new (schema_version=2, scope=agent-host)",
+    "docs/operations/TOOLCHAIN_AGENT_HOST.md": "new",
+    "evidence/v8_1_ci_control/tasks/V81-ADOPT-004/": "TASK_RESULT.json, commands.jsonl, changed_files.txt, test_summary.json, findings.csv, logs/"
+  },
+  "constraints_respected": {
+    "no_commit_no_push": true,
+    "no_branch_worktree_clone": true,
+    "no_control_package_modification": true,
+    "no_existing_tracked_file_modified": true,
+    "no_install_no_reprovision": true,
+    "all_external_commands_timeout_plus_logs": true
+  },
+  "note_for_integrator": "acceptance first run exit 1 (verifier gxx vs g++ naming) fixed in verifier alias mapping; final exit 0; negative cases in logs/verify_negative_cases.log"
+}

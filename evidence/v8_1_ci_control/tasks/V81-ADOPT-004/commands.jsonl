@@ -1,0 +1,20 @@
+{"key":"cmake","cmd":"cmake --version","log":"cmake.log","exit_code":127,"which_path":"","started_utc":"2026-09-05T10:50:29Z","finished_utc":"2026-09-05T10:50:29Z"}
+{"key":"gcc","cmd":"gcc --version","log":"gcc.log","exit_code":127,"which_path":"","started_utc":"2026-09-05T10:50:29Z","finished_utc":"2026-09-05T10:50:29Z"}
+{"key":"g++","cmd":"g++ --version","log":"gxx.log","exit_code":127,"which_path":"","started_utc":"2026-09-05T10:50:29Z","finished_utc":"2026-09-05T10:50:29Z"}
+{"key":"clang","cmd":"clang --version","log":"clang.log","exit_code":127,"which_path":"","started_utc":"2026-09-05T10:50:29Z","finished_utc":"2026-09-05T10:50:29Z"}
+{"key":"clang++","cmd":"clang++ --version","log":"clangxx.log","exit_code":127,"which_path":"","started_utc":"2026-09-05T10:50:29Z","finished_utc":"2026-09-05T10:50:29Z"}
+{"key":"ninja","cmd":"ninja --version","log":"ninja.log","exit_code":127,"which_path":"","started_utc":"2026-09-05T10:50:29Z","finished_utc":"2026-09-05T10:50:29Z"}
+{"key":"make","cmd":"make --version","log":"make.log","exit_code":127,"which_path":"","started_utc":"2026-09-05T10:50:29Z","finished_utc":"2026-09-05T10:50:29Z"}
+{"key":"python3","cmd":"python3 --version","log":"python3.log","exit_code":0,"which_path":"/usr/bin/python3","started_utc":"2026-09-05T10:50:30Z","finished_utc":"2026-09-05T10:50:30Z"}
+{"key":"git","cmd":"git --version","log":"git.log","exit_code":0,"which_path":"/usr/bin/git","started_utc":"2026-09-05T10:50:30Z","finished_utc":"2026-09-05T10:50:30Z"}
+{"key":"ccache","cmd":"ccache --version","log":"ccache.log","exit_code":127,"which_path":"","started_utc":"2026-09-05T10:50:30Z","finished_utc":"2026-09-05T10:50:30Z"}
+{"key":"zstd","cmd":"zstd --version","log":"zstd.log","exit_code":0,"which_path":"/usr/bin/zstd","started_utc":"2026-09-05T10:50:30Z","finished_utc":"2026-09-05T10:50:30Z"}
+{"key":"pytest","cmd":"pytest --version","log":"pytest.log","exit_code":127,"which_path":"","started_utc":"2026-09-05T10:50:30Z","finished_utc":"2026-09-05T10:50:30Z"}
+{"key":"pytest|m","cmd":"python3 -m pytest --version","log":"pytest_module.log","exit_code":1,"which_path":"","started_utc":"2026-09-05T10:50:30Z","finished_utc":"2026-09-05T10:50:30Z"}
+{"key":"xz","cmd":"xz --version","log":"xz.log","exit_code":0,"which_path":"/usr/bin/xz","started_utc":"2026-09-05T10:50:30Z","finished_utc":"2026-09-05T10:50:30Z"}
+{"key":"deep_probe","cmd":"bash run/v81adopt004_probe.sh","log":"deep_probe.log","exit_code":0,"finished_utc":"2026-09-05T10:51:35Z"}
+{"key":"llvm_probe","cmd":"ls /usr/lib/llvm* + dpkg -l","log":"deep_probe.log","exit_code":0}
+{"key":"policy_copy","cmd":"cp control/ci/toolchain.policy.json ci/toolchain.policy.json","log":"policy_copy.log","exit_code":0}
+{"key":"acceptance","cmd":"python3 ci/verify_toolchain.py --policy ci/toolchain.policy.json --actual ci/toolchain.lock.json --scope agent-host","log":"verify_toolchain.log","exit_code":1}
+{"key":"acceptance_retry","cmd":"python3 ci/verify_toolchain.py --policy ci/toolchain.policy.json --actual ci/toolchain.lock.json --scope agent-host","log":"verify_toolchain.log","exit_code":0,"note":"fixed gxx/g++ alias mapping in verifier"}
+{"key":"negative_selftest","cmd":"verify_toolchain.py against two corrupted lock copies (placeholder version / inconsistent present)","log":"verify_negative_cases.log","exit_code":0,"expect":"both non-zero"}
