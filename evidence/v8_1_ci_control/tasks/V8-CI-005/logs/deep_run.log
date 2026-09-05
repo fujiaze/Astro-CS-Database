@@ -1,0 +1,4 @@
+$ timeout 900 python3 ci/run.py --profile linux-deep
+verdict=PASS total=7 pass=1 fail=0 known_fail=0 skipped_waivable=6
+result: /workspace/Astro CS Database/artifacts/ci/d41f451618c1/20260905T201606Z-29bb0665/CI_RESULT.json
+exit=0

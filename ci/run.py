@@ -428,7 +428,9 @@ def probe_prerequisite(check: dict, repo: Path, platform: str) -> tuple[bool, st
     覆盖：command[0] 可执行性、``python3 -m <mod>`` 模块存在性、
     command 中引用的仓库相对路径存在性（排除登记 outputs）、
     requires_monitor 检查统一监控包装器（V8-CI-003 产物）是否存在、
-    platform 适用性。
+    ``prerequisite_tools`` 登记的外部工具逐一 ``shutil.which`` 探测
+    （V8-CI-005：cmake/clang/llvm/pytest 等缺失时 waivable 检查跳过、
+    非 waivable 检查 FAIL(prerequisite)）、platform 适用性。
     """
     command = check["command"]
     exe = command[0]
@@ -437,6 +439,10 @@ def probe_prerequisite(check: dict, repo: Path, platform: str) -> tuple[bool, st
             return False, f"command 可执行文件不存在：{exe}"
     elif shutil.which(exe) is None:
         return False, f"command 可执行文件不在 PATH：{exe}"
+
+    for tool in check.get("prerequisite_tools", []):
+        if shutil.which(tool) is None:
+            return False, f"依赖工具不在 PATH：{tool}"
 
     outputs = set(check.get("outputs", []))
     for idx, arg in enumerate(command):

@@ -1,0 +1,22 @@
+{
+  "task_id": "V8-CI-005",
+  "owner": "SA-CI-32",
+  "status": "PASS",
+  "base_sha": "d41f451618c139436cc0409cf6bf93f98c83eac4",
+  "attempt": 1,
+  "deliverables": [
+    "ci/checks.json",
+    "ci/checks.schema.json",
+    "ci/run.py",
+    "ci/validate_registry.py",
+    "ci/tests/test_deep_profiles.py",
+    "tools/quality/deep_ci_driver.py",
+    "tools/quality/ci_coverage_runner.py",
+    "tools/quality/check_complexity.py",
+    "docs/quality/coverage_baseline_v1.md",
+    "docs/quality/complexity_baseline_v1.md",
+    "cmake/qa_coverage_report.sh",
+    "CMakeLists.txt"
+  ],
+  "notes": "V8-CI-005 Linux hosted main/deep profile 完成。registry 70→77（新增 BUILD-GCC-RELEASE、DEEP-CLANG-BUILD、DEEP-SAN-ASAN、DEEP-SAN-TSAN、DEEP-COV-CPP、DEEP-COV-PY、DEEP-COMPLEXITY 七项）：6 项 heavy 检查 command 自含 ci/resource_monitor.py 统一监控包裹前缀（--timeout 3500/1700 --output run/ci/monitor/<ID>.json --），prerequisite_tools 登记 cmake/clang/llvm-profdata/llvm-cov/pytest；DEEP-COMPLEXITY 复用既有占位测量器 check_complexity.py（单一事实源，增强：branch token 文件级圈复杂度、排除 lib/acr（ACR dormant 约束 §C）/legacy/third_party，阈值 null 恒 exit 0 只记录不判门禁）。机制面：checks.schema.json 增可选 prerequisite_tools（非空字符串数组）；run.py probe_prerequisite 对该字段逐工具 shutil.which，缺失→waivable 检查 SKIPPED(waivable)（理由含工具名）、非 waivable FAIL(prerequisite)；validate_registry --strict R2 同步校验该字段类型。工具面：deep_ci_driver.py 五子命令（build-gcc-release/build-clang/qa-sanitize/qa-sanitize-tsan/coverage-cpp）argv 数组 shell=False 逐步超时（configure 300s/build 2400s/ccov 3000s，step 超时 124），sanitize 走根 CMakeLists QA-002/QA-006 接线 -DASTROCS_ENABLE_SANITIZERS=ON / -DASTROCS_SANITIZE_THREAD=ON 独立 build dir + qa-* custom target，coverage 走 -DASTROCS_BUILD_COVERAGE=ON + ccov target 并把 build/coverage 产物归集 run/ci/coverage-cpp；--build-dir/--output-dir 仓库外受控报错；ci_coverage_runner.py --output-dir 仓库外 exit 2。基线文档两份（coverage_baseline_v1.md 阈值 null 待冻结、complexity_baseline_v1.md 记录首次实测 totals files=375/lines=139881/functions≈1858/max_file_cyc=1048 且排除项显式登记）。[自我验证全过] validate --strict PASS checks=77 errors=0（logs/validate_strict.log）；plan-only fast=57（不含新项）/linux-main=71（含 BUILD-GCC-RELEASE）/linux-deep=7（logs/plan_*.log）；linux-deep 真跑总体 PASS：DEEP-COMPLEXITY 实跑 PASS + 6 项 SKIPPED(waivable)（理由=依赖工具不在 PATH：cmake/pytest，artifacts/CI_RESULT_linux_deep_local.json，run.py exit 0）；unittest discover ci/tests 96 tests OK（基线 78 + 新增 18：probe 三分支真跑、strict 接受/拒绝、主注册表 strict PASS、三 profile 选择数、heavy command 监控前缀、complexity/driver/coverage_runner 行为）；ci_coverage_runner --output-dir /tmp exit 2、deep_ci_driver --build-dir /tmp exit 1、check_complexity 恒 exit 0（logs/*.log）。[hosted 预期，本地无法实测] 容器无 cmake/clang/gcc/llvm/pytest，6 项 heavy 的真实构建/插桩/sanitizer/coverage 执行在 GitHub ubuntu-24.04 runner 上首次落地；预期风险见 TASK_RESULT.notes 与报告第 5 节。本任务未修改控制包、冻结约束、TASK_STATE.json。"
+}

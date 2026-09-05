@@ -2,8 +2,8 @@
   "schema_version": "v8.1",
   "round": "V8.1_EXISTING_WORKSPACE_CI",
   "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
-  "updated_utc": "2026-09-05T18:00:31Z",
-  "main_sha": "b2d31bfe6fff7e073dac6c718f2ecd4b65b4e8eb",
+  "updated_utc": "2026-09-05T20:54:34Z",
+  "main_sha": "d41f451618c139436cc0409cf6bf93f98c83eac4",
   "reconciled_by": {
     "task_id": "V81-ADOPT-003",
     "owner": "SA-ADOPT-31"
@@ -44,8 +44,8 @@
     "WAITING_RESOURCE"
   ],
   "counts": {
-    "CLOSED": 51,
-    "READY": 13,
+    "CLOSED": 52,
+    "READY": 12,
     "NOT_STARTED": 125,
     "DISPATCHED": 0,
     "FATDUCK_PENDING": 2,
@@ -2415,6 +2415,15 @@
       "closed_utc": "2026-09-05T18:00:31Z",
       "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-003/",
       "summary": "动态资源探测(affinity/cgroup quota/meminfo)+统一监控wrapper(CPU/RSS/PSS/IO/threads/progress)+36单测; 集成于 df01ea7b"
+    },
+    "V8-CI-004": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "c583e59d21b675e09be9878cf84a448975537a52",
+      "pushed": true,
+      "closed_utc": "2026-09-05T20:54:34Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-004/",
+      "summary": "changed path→checks 映射 ci/impact_map.json(25 规则/13 BASE)+test_impact_map 13 单测; fast 全量实测 57 项 41/16 移交 G-FIX; 集成于 c583e59d"
     }
   },
   "adopt_seed_tasks": {

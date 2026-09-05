@@ -1,0 +1,137 @@
+{
+  "changed_from": null,
+  "checks": [
+    {
+      "dirty_checked": false,
+      "dirty_violations": [],
+      "duration_seconds": 0.0,
+      "exit_code": null,
+      "id": "BUILD-GCC-RELEASE",
+      "log": null,
+      "reason": "prerequisite 未满足（waivable）：依赖工具不在 PATH：cmake",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "SKIPPED(waivable)",
+      "waivable": true
+    },
+    {
+      "dirty_checked": false,
+      "dirty_violations": [],
+      "duration_seconds": 0.0,
+      "exit_code": null,
+      "id": "DEEP-CLANG-BUILD",
+      "log": null,
+      "reason": "prerequisite 未满足（waivable）：依赖工具不在 PATH：cmake",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "SKIPPED(waivable)",
+      "waivable": true
+    },
+    {
+      "dirty_checked": false,
+      "dirty_violations": [],
+      "duration_seconds": 0.0,
+      "exit_code": null,
+      "id": "DEEP-SAN-ASAN",
+      "log": null,
+      "reason": "prerequisite 未满足（waivable）：依赖工具不在 PATH：cmake",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "SKIPPED(waivable)",
+      "waivable": true
+    },
+    {
+      "dirty_checked": false,
+      "dirty_violations": [],
+      "duration_seconds": 0.0,
+      "exit_code": null,
+      "id": "DEEP-SAN-TSAN",
+      "log": null,
+      "reason": "prerequisite 未满足（waivable）：依赖工具不在 PATH：cmake",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "SKIPPED(waivable)",
+      "waivable": true
+    },
+    {
+      "dirty_checked": false,
+      "dirty_violations": [],
+      "duration_seconds": 0.0,
+      "exit_code": null,
+      "id": "DEEP-COV-CPP",
+      "log": null,
+      "reason": "prerequisite 未满足（waivable）：依赖工具不在 PATH：cmake",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "SKIPPED(waivable)",
+      "waivable": true
+    },
+    {
+      "dirty_checked": false,
+      "dirty_violations": [],
+      "duration_seconds": 0.0,
+      "exit_code": null,
+      "id": "DEEP-COV-PY",
+      "log": null,
+      "reason": "prerequisite 未满足（waivable）：依赖工具不在 PATH：pytest",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "SKIPPED(waivable)",
+      "waivable": true
+    },
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.381,
+      "exit_code": 0,
+      "id": "DEEP-COMPLEXITY",
+      "log": "logs/DEEP-COMPLEXITY.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": true
+    }
+  ],
+  "finished_utc": "2026-09-05T20:16:07Z",
+  "generated_by": "ci/run.py (V8-CI-002)",
+  "known_failures": {
+    "baseline_path": null,
+    "count_increased": [],
+    "enabled": false,
+    "expired": [],
+    "invalid": [],
+    "matched": [],
+    "new_failures": [],
+    "signature_changed": []
+  },
+  "profile": "linux-deep",
+  "run_id": "20260905T201606Z-29bb0665",
+  "schema_version": 1,
+  "selection": {
+    "changed_files_count": 0,
+    "mode": "profile",
+    "selected_by": {
+      "BUILD-GCC-RELEASE": "profile:linux-deep",
+      "DEEP-CLANG-BUILD": "profile:linux-deep",
+      "DEEP-COMPLEXITY": "profile:linux-deep",
+      "DEEP-COV-CPP": "profile:linux-deep",
+      "DEEP-COV-PY": "profile:linux-deep",
+      "DEEP-SAN-ASAN": "profile:linux-deep",
+      "DEEP-SAN-TSAN": "profile:linux-deep"
+    }
+  },
+  "source_sha": "d41f451618c139436cc0409cf6bf93f98c83eac4",
+  "started_utc": "2026-09-05T20:16:06Z",
+  "strict_workspace": true,
+  "summary": {
+    "fail": 0,
+    "fail_detail": {},
+    "known_fail": 0,
+    "pass": 1,
+    "skipped_waivable": 6,
+    "total": 7
+  },
+  "verdict": "PASS",
+  "verdict_reason": "全部非 waivable 检查 PASS；6 项 SKIPPED(waivable)"
+}

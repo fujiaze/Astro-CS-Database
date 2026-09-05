@@ -9,6 +9,7 @@
   R1  registry 可解析且为对象，含 schema_version==1 与非空 checks 数组；
   R2  每项必需字段齐备且类型正确（id/profiles/platform/command/timeout_seconds/
       heavy/mutates_workspace/outputs/waivable/changed_paths/requires_monitor）；
+      可选 prerequisite_tools 必须是非空字符串数组（外部工具名，如 cmake/clang）；
   R3  id 唯一无重复；
   R4  command[0] ∈ {python3, python} 且 command[1] 指向仓库内存在的文件；
   R5  profiles 值 ⊆ {fast, linux-main, windows-main, linux-deep, fatduck} 且非空；
@@ -37,6 +38,8 @@ ID_RE = re.compile(r"^[A-Z0-9][A-Z0-9_.-]+$")
 
 BOOL_FIELDS = ("heavy", "mutates_workspace", "waivable", "requires_monitor")
 STR_LIST_FIELDS = ("profiles", "command", "outputs", "changed_paths")
+# 可选字段：依赖的外部工具名（探测逻辑见 ci/run.py probe_prerequisite）
+OPT_STR_LIST_FIELDS = ("prerequisite_tools",)
 REQUIRED = ("id", "profiles", "platform", "command", "timeout_seconds",
             "heavy", "mutates_workspace", "outputs", "waivable") + BOOL_FIELDS[:0]
 REQUIRED = ("id", "profiles", "platform", "command", "timeout_seconds",
@@ -73,9 +76,13 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
         if missing:
             errors.append(f"R2 {where}: missing fields {missing}")
             continue
-        extra = [f for f in c if f not in REQUIRED]
+        extra = [f for f in c if f not in REQUIRED + OPT_STR_LIST_FIELDS]
         if extra:
             errors.append(f"R2 {where}: unexpected fields {extra}")
+        for f in OPT_STR_LIST_FIELDS:
+            if f in c and (not isinstance(c[f], list) or not c[f]
+                           or not all(isinstance(x, str) and x for x in c[f])):
+                errors.append(f"R2 {where}.{f}: must be non-empty array of non-empty strings")
         cid = c["id"]
         if not isinstance(cid, str) or not ID_RE.match(cid):
             errors.append(f"R2 {where}: bad id {cid!r} (must match {ID_RE.pattern})")
