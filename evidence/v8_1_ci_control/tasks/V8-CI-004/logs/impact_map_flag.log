@@ -1,0 +1,894 @@
+{
+  "schema_version": 1,
+  "mode": "plan-only",
+  "profile": "fast",
+  "source_sha": "b2d31bfe6fff7e073dac6c718f2ecd4b65b4e8eb",
+  "platform_runtime": "linux",
+  "changed_from": null,
+  "focus": null,
+  "selection_mode": "profile",
+  "selected_count": 57,
+  "checks": [
+    {
+      "id": "VERSION-CONSISTENCY",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "ci/check_version.py",
+        "--expected",
+        "0.11.0-alpha.2"
+      ]
+    },
+    {
+      "id": "TRACEABILITY-CODE",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_traceability.py"
+      ]
+    },
+    {
+      "id": "PRODUCTION-GRAPH",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/check_pipeline_graph.py",
+        "--selftest"
+      ]
+    },
+    {
+      "id": "NO-SERIAL-HEAVY",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/check_serial_heavy.py"
+      ]
+    },
+    {
+      "id": "ACR-DORMANT",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_legacy_exit.py"
+      ]
+    },
+    {
+      "id": "ABI-BOUNDARY",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_abi_boundary.py"
+      ]
+    },
+    {
+      "id": "AGENTS-GOV",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_agents_gov.py"
+      ]
+    },
+    {
+      "id": "AIO-OWNERSHIP",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_aio_ownership.py"
+      ]
+    },
+    {
+      "id": "API-DOCS",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_api_docs.py"
+      ]
+    },
+    {
+      "id": "CLI-COMMAND-LAYER",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_cli_command_layer.py"
+      ]
+    },
+    {
+      "id": "CLI-RUN-PRESET",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_cli_run_preset.py"
+      ]
+    },
+    {
+      "id": "CONTRACT-GRAPH",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_contract_graph.py"
+      ]
+    },
+    {
+      "id": "DATA-ARTIFACTS",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_data_artifacts.py"
+      ]
+    },
+    {
+      "id": "DUPLICATION",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_duplication.py"
+      ]
+    },
+    {
+      "id": "DOC-L0",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_l0_docs.py"
+      ]
+    },
+    {
+      "id": "GLOSSARY-DOCS",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_glossary.py"
+      ]
+    },
+    {
+      "id": "MODULE-READMES",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_module_readmes.py"
+      ]
+    },
+    {
+      "id": "P3-STATUS",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_p3_status.py"
+      ]
+    },
+    {
+      "id": "PIPELINE-TRACE",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_pipeline_trace.py"
+      ]
+    },
+    {
+      "id": "SERIAL-HARDCODE",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_serial_hardcode.py"
+      ]
+    },
+    {
+      "id": "UNIT-CLOSURE",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_unit_closure.py"
+      ]
+    },
+    {
+      "id": "WARNING-SUPPRESSION",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/check_warning_suppression.py"
+      ]
+    },
+    {
+      "id": "THREAD-BUDGET",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/arch/check_thread_budget.py"
+      ]
+    },
+    {
+      "id": "TASK-RESULT-SCHEMA",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/check_task_result_schema.py"
+      ]
+    },
+    {
+      "id": "ISA-LEAK-SELFTEST",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/check_isa_leak.py",
+        "--selftest"
+      ]
+    },
+    {
+      "id": "SERIAL-HEAVY-SELFTEST",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/check_serial_heavy.py",
+        "--selftest"
+      ]
+    },
+    {
+      "id": "PROD-REACH-SELFTEST",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/check_prod_reachability.py",
+        "--selftest"
+      ]
+    },
+    {
+      "id": "KNOWN-FAILURES-BASELINE",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/known_failures_baseline.py",
+        "--output",
+        "artifacts/KNOWN_FAILURES_BASELINE.json"
+      ]
+    },
+    {
+      "id": "CON-API-CONTRACTS",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_api_contracts.py"
+      ]
+    },
+    {
+      "id": "CON-BUILD-GRAPH",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_build_graph.py"
+      ]
+    },
+    {
+      "id": "CON-COMMENTS",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_comments.py"
+      ]
+    },
+    {
+      "id": "CON-CONFIG-CONTRACTS",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_config_contracts.py"
+      ]
+    },
+    {
+      "id": "CON-DOC-SYMBOLS",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_doc_symbols.py"
+      ]
+    },
+    {
+      "id": "CON-EXECUTION-CONTRACTS",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_execution_contracts.py"
+      ]
+    },
+    {
+      "id": "CON-FORBIDDEN-PATTERNS",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_forbidden_patterns.py"
+      ]
+    },
+    {
+      "id": "CON-FULL-INTEGRATION",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_full_integration.py"
+      ]
+    },
+    {
+      "id": "CON-SCIENCE-UNITS",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_science_units.py"
+      ]
+    },
+    {
+      "id": "CON-TEST-CONTRACTS",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_test_contracts.py"
+      ]
+    },
+    {
+      "id": "CON-TRACEABILITY",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_traceability.py"
+      ]
+    },
+    {
+      "id": "DOC-INDEX",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/doccheck/check_doc_index.py",
+        "--strict"
+      ]
+    },
+    {
+      "id": "VERSION-NAMESPACES",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/doccheck/check_version_namespaces.py"
+      ]
+    },
+    {
+      "id": "ENG-CONSTRAINTS",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/doccheck/check_engineering_constraints.py"
+      ]
+    },
+    {
+      "id": "LOG-CONTRACT-SELFCHECK",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/monitoring/check_log_contract.py",
+        "--selfcheck"
+      ]
+    },
+    {
+      "id": "TRACEABILITY-MATRIX",
+      "platform": "any",
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/traceability/check_traceability_matrix.py"
+      ]
+    },
+    {
+      "id": "TESTKIT-LIST",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": true,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "tools/testkit/check_testkit.py",
+        "--list"
+      ]
+    },
+    {
+      "id": "WORKSPACE-ADOPTION",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": true,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "ci/verify_workspace_adoption.py",
+        "--repo-root-from-git",
+        "--preserve-dirty"
+      ]
+    },
+    {
+      "id": "RECONCILE-STATE",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": true,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "ci/reconcile_state.py",
+        "--strict"
+      ]
+    },
+    {
+      "id": "TOOLCHAIN-VERIFY",
+      "platform": "any",
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "ci/verify_toolchain.py",
+        "--policy",
+        "ci/toolchain.policy.json",
+        "--actual",
+        "ci/toolchain.lock.json",
+        "--scope",
+        "agent-host"
+      ]
+    },
+    {
+      "id": "UT-VERSION",
+      "platform": "any",
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/version",
+        "-t",
+        "tests/version"
+      ]
+    },
+    {
+      "id": "UT-GLOSSARY",
+      "platform": "any",
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/glossary",
+        "-t",
+        "tests/glossary"
+      ]
+    },
+    {
+      "id": "UT-MONITORING",
+      "platform": "any",
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/monitoring",
+        "-t",
+        "tests/monitoring"
+      ]
+    },
+    {
+      "id": "UT-PIPELINE",
+      "platform": "any",
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/pipeline",
+        "-t",
+        "tests/pipeline"
+      ]
+    },
+    {
+      "id": "UT-RUNTIME",
+      "platform": "any",
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/runtime",
+        "-t",
+        "tests/runtime"
+      ]
+    },
+    {
+      "id": "UT-SCIENCELINT",
+      "platform": "any",
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/sciencelint",
+        "-t",
+        "tests/sciencelint"
+      ]
+    },
+    {
+      "id": "UT-TRACEABILITY",
+      "platform": "any",
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/traceability",
+        "-t",
+        "tests/traceability"
+      ]
+    },
+    {
+      "id": "UT-ARTIFACT",
+      "platform": "any",
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/artifact",
+        "-t",
+        "tests/artifact"
+      ]
+    },
+    {
+      "id": "UT-CONTRACTS",
+      "platform": "any",
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "selected_by": "profile:fast",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/contracts",
+        "-t",
+        "tests/contracts"
+      ]
+    }
+  ]
+}

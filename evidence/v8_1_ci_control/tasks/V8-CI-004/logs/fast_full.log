@@ -1,0 +1,3 @@
+verdict=FAIL total=57 pass=41 fail=16 known_fail=0 skipped_waivable=0
+result: /tmp/v8ci004_fast_full/CI_RESULT.json
+exit=1 wall=
