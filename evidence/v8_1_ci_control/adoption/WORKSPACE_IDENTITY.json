@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "task_id": "V81-ADOPT-001",
+  "owner": "FG-000",
+  "generated_utc": "2026-09-05T09:47:58Z",
+  "repo_root": "/workspace/Astro CS Database",
+  "discovered_by": "git rev-parse --show-toplevel (cwd=/workspace/Astro CS Database, agent workspace)",
+  "branch": "main",
+  "head_sha": "257ae1f4efbaf5822ea6d7c42882e15f2c416b36",
+  "main_sha": "257ae1f4efbaf5822ea6d7c42882e15f2c416b36",
+  "origin_main_sha": "257ae1f4efbaf5822ea6d7c42882e15f2c416b36",
+  "remote_origin_fetch": "https://github.com/fujiaze/Astro-CS-Database.git",
+  "remote_origin_push": "https://github.com/fujiaze/Astro-CS-Database.git",
+  "worktrees_existing": [
+    {
+      "path": "/workspace/Astro CS Database",
+      "head": "257ae1f4efbaf5822ea6d7c42882e15f2c416b36",
+      "branch": "refs/heads/main",
+      "disposition": "AUTHORITATIVE_MAIN_WORKSPACE_KEEP"
+    },
+    {
+      "path": "/home/lighthouse/astrocs_v7_work/worktrees/** (SA-ABI-03/ABI-001..004 等 8 个 detached)",
+      "head": "various",
+      "branch": null,
+      "disposition": "HISTORICAL_PRUNABLE_GITDIR_MISSING_RECORD_ONLY_DO_NOT_DELETE_THIS_ROUND"
+    }
+  ],
+  "worktree_count": 9,
+  "worktree_new_created_this_round": false,
+  "worktree_deleted_this_round": false,
+  "submodules": [],
+  "control_package": {
+    "zip_name": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905.zip",
+    "zip_sha256": "77a4b03a622c63cc3bf9622351dc2363a0f35adef46ca79aea4e749b48fd6eff",
+    "active_dir": "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
+    "validate_control_exit": 0,
+    "validate_control_output": "CONTROL_PASS files=56",
+    "selftest_exit": 0,
+    "selftest_output": "SELFTEST_PASS cases=13 (NEGATIVE_PASS x13)"
+  },
+  "existing_evidence_dir": "evidence/",
+  "evidence_output_dir": "evidence/v8_1_ci_control/adoption",
+  "source_sha": "257ae1f4efbaf5822ea6d7c42882e15f2c416b36"
+}

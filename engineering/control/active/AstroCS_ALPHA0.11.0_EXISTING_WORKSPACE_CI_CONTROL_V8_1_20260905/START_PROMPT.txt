@@ -1,0 +1,1 @@
+严格执行00_READ_FIRST.md：在现有main工作区原地接入双平台CI和Fatduck终验；禁止克隆、迁移、分支及worktree。

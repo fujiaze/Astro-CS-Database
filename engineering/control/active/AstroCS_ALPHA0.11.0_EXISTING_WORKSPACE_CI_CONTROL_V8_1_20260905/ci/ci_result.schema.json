@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "source_sha", "profile", "started_utc", "finished_utc", "checks", "verdict"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "source_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "profile": {"enum": ["fast", "linux-main", "linux-deep", "windows-main", "fatduck"]},
+    "started_utc": {"type": "string"},
+    "finished_utc": {"type": "string"},
+    "checks": {"type": "array", "items": {"type": "object", "required": ["id", "exit_code", "duration_seconds", "verdict"]}},
+    "verdict": {"enum": ["PASS", "FAIL", "FATDUCK_PENDING"]}
+  },
+  "additionalProperties": true
+}

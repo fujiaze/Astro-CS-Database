@@ -1,0 +1,6 @@
+gate,required_tasks,automatic_result,blocks,manual_owner_action
+G-ADOPT,V81-ADOPT-001|V81-ADOPT-002|V81-ADOPT-003|V81-ADOPT-004|V81-ADOPT-005|V81-ADOPT-006,Existing main workspace frozen in place with changes preserved and state reconciled,G-CI,None
+G-CI,V8-CI-001|V8-CI-002|V8-CI-003|V8-CI-004|V8-CI-005|V8-CI-006|V8-CI-007|V8-CI-008|V8-CI-009|V8-CI-010|V8-CI-011|V8-CI-012|V8-CIQA-001,Same SHA hosted Linux Windows and one deep run PASS plus CIQA PASS,G-FIX,None
+G-FIX,V8-RT-001|V8-RT-002|V8-P2-001|V8-P2-002|V8-CPU-001|V8-CPU-002|V8-CPU-003|V8-MON-001|V8-MON-002|V8-SCI-001|V8-DOC-001|V8-RES-001|V8-AUD-001,P0 architecture performance science and traceability complete with no P0/P1,G-FAT,None
+G-FAT,V8-FAT-001|V8-FAT-002|V8-FAT-003,Verified candidate ran locally and only whitelisted public outputs uploaded,G-REL,Fatduck eventually online
+G-REL,V8-AUD-002,Audit package valid and no release blocker,release,Owner reviews JPG/local result and decides alpha release

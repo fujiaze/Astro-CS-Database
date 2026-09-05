@@ -1,0 +1,90 @@
+name: AstroCS Fatduck Real Data
+
+on:
+  workflow_run:
+    workflows: ["AstroCS Windows CI"]
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: "23 */6 * * *"
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: fatduck-latest-candidate
+  cancel-in-progress: false
+
+jobs:
+  select-candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      source_sha: ${{ steps.select.outputs.source_sha }}
+      run_id: ${{ steps.select.outputs.run_id }}
+      artifact_name: ${{ steps.select.outputs.artifact_name }}
+    steps:
+      - name: Checkout trusted selector only
+        uses: actions/checkout@__CHECKOUT_FULL_SHA__ # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Select latest main candidate with both CI results PASS
+        id: select
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ci/select_candidate.py --branch main --require linux-ci windows-ci --github-output "$GITHUB_OUTPUT"
+
+  fatduck-validate:
+    needs: select-candidate
+    runs-on: [self-hosted, Windows, X64, fatduck-realdata]
+    timeout-minutes: 1440
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Download candidate only
+        uses: actions/download-artifact@__DOWNLOAD_FULL_SHA__ # v4
+        with:
+          name: ${{ needs.select-candidate.outputs.artifact_name }}
+          path: D:\AstroCSRunner\candidate\${{ needs.select-candidate.outputs.source_sha }}
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.select-candidate.outputs.run_id }}
+      - name: Run locked local harness
+        shell: cmd
+        run: >-
+          D:\AstroCSRunner\harness\run-validation.cmd
+          --source-sha ${{ needs.select-candidate.outputs.source_sha }}
+          --candidate D:\AstroCSRunner\candidate\${{ needs.select-candidate.outputs.source_sha }}
+          --publish D:\AstroCSRunner\publish\${{ needs.select-candidate.outputs.source_sha }}
+      - name: Upload whitelisted review output
+        uses: actions/upload-artifact@__UPLOAD_FULL_SHA__ # v4
+        with:
+          name: fatduck-review-${{ needs.select-candidate.outputs.source_sha }}
+          path: D:\AstroCSRunner\publish\${{ needs.select-candidate.outputs.source_sha }}\
+          retention-days: 14
+          if-no-files-found: error
+
+  notify-owner:
+    needs: [select-candidate, fatduck-validate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout notification code
+        uses: actions/checkout@__CHECKOUT_FULL_SHA__ # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Download public result
+        uses: actions/download-artifact@__DOWNLOAD_FULL_SHA__ # v4
+        with:
+          name: fatduck-review-${{ needs.select-candidate.outputs.source_sha }}
+          path: review
+      - name: Update single Owner Visual Review issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ci/notify_owner.py --source-sha "${{ needs.select-candidate.outputs.source_sha }}" --review review

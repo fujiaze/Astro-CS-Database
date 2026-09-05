@@ -1,0 +1,24 @@
+{
+  "task_id": "V81-ADOPT-001",
+  "owner": "FG-000",
+  "base_sha": "257ae1f4efbaf5822ea6d7c42882e15f2c416b36",
+  "source_sha": "257ae1f4efbaf5822ea6d7c42882e15f2c416b36",
+  "status": "PASS",
+  "mode": "read",
+  "heavy": false,
+  "changed_files": [
+    "evidence/v8_1_ci_control/adoption/WORKSPACE_IDENTITY.json",
+    "evidence/v8_1_ci_control/adoption/commands.jsonl",
+    "evidence/v8_1_ci_control/adoption/TASK_RESULT.json",
+    "evidence/v8_1_ci_control/adoption/test_summary.json",
+    "evidence/v8_1_ci_control/adoption/findings.csv"
+  ],
+  "acceptance": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B validators/validate_control.py --root .",
+    "exit": 0,
+    "result": "CONTROL_PASS files=56"
+  },
+  "summary": "控制包 V8.1 自检 CONTROL_PASS/SELFTEST_PASS；现有根目录 /workspace/Astro CS Database 由 git rev-parse 发现；branch=main；HEAD=main=origin/main=257ae1f4efbaf5822ea6d7c42882e15f2c416b36；9 个 worktree 仅记录（8 个历史 prunable，未新增未删除）；无 submodule。",
+  "known_limits": [],
+  "review_notes": []
+}

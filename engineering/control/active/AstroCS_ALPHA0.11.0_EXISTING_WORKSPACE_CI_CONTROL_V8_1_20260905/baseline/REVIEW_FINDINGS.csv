@@ -1,0 +1,2 @@
+finding_id,task_id,gate_id,severity,main_sha,status,description
+FIND-INTERIM-0001,,G0-G8,INFO,257ae1f4efbaf5822ea6d7c42882e15f2c416b36,OPEN,"Interim checkpoint at 257ae1f4efba: CPU-006 DISPATCHED (WIP preserved), W2 CLI-004 onward pending, Windows node offline."

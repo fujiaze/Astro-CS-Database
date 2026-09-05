@@ -1,0 +1,11 @@
+{
+ "repo_origin_url": "github.com/fujiaze/Astro-CS-Database",
+ "main_sha": "257ae1f4efbaf5822ea6d7c42882e15f2c416b36",
+ "main_sha12": "257ae1f4efba",
+ "commit_time_utc": "2026-09-05T13:44:20+08:00",
+ "commit_subject": "test(cli): CLI-003 固化阶段子命令语义",
+ "control_pack": "AstroCS_V7_MODULAR_REFOUNDATION_CONTROL_20260902_FINAL3",
+ "product_version": "0.11.0-alpha.1",
+ "package_kind": "INTERIM_CHECKPOINT",
+ "generated_utc": "20260905T055927Z"
+}

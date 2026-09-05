@@ -1,0 +1,45 @@
+name: AstroCS Windows CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 330
+    steps:
+      - name: Checkout exact SHA
+        uses: actions/checkout@__CHECKOUT_FULL_SHA__ # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Bootstrap locked toolchain
+        run: python ci/bootstrap.py --policy ci/toolchain.policy.json --platform windows
+      - name: Run MSVC tests and package candidate
+        run: python ci/run.py --profile windows-main
+      - name: Validate candidate
+        run: python ci/validate_candidate.py artifacts/candidate/AstroCS-candidate.zip
+      - name: Upload candidate
+        uses: actions/upload-artifact@__UPLOAD_FULL_SHA__ # v4
+        with:
+          name: astrocs-windows-candidate-${{ github.sha }}
+          path: artifacts/candidate/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Upload public CI evidence
+        if: always()
+        uses: actions/upload-artifact@__UPLOAD_FULL_SHA__ # v4
+        with:
+          name: windows-ci-${{ github.sha }}
+          path: artifacts/ci-public/
+          retention-days: 14
+          if-no-files-found: error

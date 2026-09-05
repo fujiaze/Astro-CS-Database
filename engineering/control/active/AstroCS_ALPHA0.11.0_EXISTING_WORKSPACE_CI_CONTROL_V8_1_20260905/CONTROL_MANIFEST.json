@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
+  "files": [
+    {
+      "path": "00_READ_FIRST.md",
+      "size": 3132,
+      "sha256": "43909e444e5f1eba77528de219667a0bfd7d840026ff57b4855c9927a9afde0a"
+    },
+    {
+      "path": "01_FROZEN_CONSTRAINTS.md",
+      "size": 3311,
+      "sha256": "a97525207eb081e90b8fe7b39a6fbaad64751c2c38ed8470d7a825c5095887f7"
+    },
+    {
+      "path": "02_CURRENT_STATE_AUDIT.md",
+      "size": 2748,
+      "sha256": "b248af62c8f7e6976a056db3f0270adfdae3139e48c9bf2043295fec1112528d"
+    },
+    {
+      "path": "03_VM_AND_CI_ARCHITECTURE.md",
+      "size": 2308,
+      "sha256": "c72cdda925e39ce8e6df13607e182db1926780d3a31261476b468f7bd6a3f5f6"
+    },
+    {
+      "path": "04_FOREGROUND_AGENT_RUNBOOK.md",
+      "size": 3257,
+      "sha256": "2fbcbe522adfe8baef725d7a61f313882b35f4db8873d7e642e46e23dd57cd70"
+    },
+    {
+      "path": "05_FIXED_SUBAGENT_BINDINGS.yaml",
+      "size": 2105,
+      "sha256": "90e6098a317ae1c8b5a0ce5e3fd52cc8384ab05bb961c7db19964909414fdf81"
+    },
+    {
+      "path": "06_TASK_GRAPH_AND_GATES.md",
+      "size": 1225,
+      "sha256": "6e2951ab71ad0ec31a692faea0e1eb7333bcf1aaa4ba79c829ce634523b55254"
+    },
+    {
+      "path": "07_CI_MACHINE_CONTRACT.md",
+      "size": 2516,
+      "sha256": "9f7693d5e2724d60b4218050386218f7b5ba237824ed063bff2aeb54ba49b45e"
+    },
+    {
+      "path": "08_MAIN_ONLY_GIT_PROTOCOL.md",
+      "size": 1527,
+      "sha256": "d008c59d99c8cadc077898980c0e698965c60340ca1a02d6c965c91bd0efa19b"
+    },
+    {
+      "path": "09_WINDOWS_AND_FATDUCK_VALIDATION.md",
+      "size": 3046,
+      "sha256": "7d94008d84474054cd20ccc38fd40559226fa4842e979fa07b2f8f657967b41b"
+    },
+    {
+      "path": "10_SECURITY_AND_RUNNER.md",
+      "size": 1893,
+      "sha256": "deb1d6b2d8ba29a61c8413464bdeedf888f8de99438975050b4704e54aa601a2"
+    },
+    {
+      "path": "11_EVIDENCE_AND_AUDIT_PACKAGE.md",
+      "size": 2094,
+      "sha256": "eb57575fe8aafef6624ec995feb3d35bd972b434a9bd9754812f16035ba9dd19"
+    },
+    {
+      "path": "12_FAILURE_POLICY.md",
+      "size": 995,
+      "sha256": "7de91fddb3752e7bc5181dfaeaad3a25ecb9e45c7127944aed5b4e8c1aaf1005"
+    },
+    {
+      "path": "13_PRIMARY_REFERENCES.md",
+      "size": 1905,
+      "sha256": "fe84450b184b0dccc0ac519df5b39e47378e5f99a36d548950d3fa3c7b8b98d2"
+    },
+    {
+      "path": "14_TOKEN_EFFICIENT_EXECUTION.md",
+      "size": 1288,
+      "sha256": "c567e34f3f21b95721f77aeb0346924541519d000fd37a410de3a591113c71b3"
+    },
+    {
+      "path": "15_SUPERSESSION_NOTICE.md",
+      "size": 501,
+      "sha256": "64cbc830a68e1cd1dd8079a26cd9186a190112defb41f77b3f96bdffb4f55997"
+    },
+    {
+      "path": "CONTROL_TASK_LEDGER.csv",
+      "size": 8291,
+      "sha256": "ee6a5d7ea620764d5054a9669b089e8b9919106b8f586b56023acb796090d90e"
+    },
+    {
+      "path": "CURRENT_CHECKPOINT.json",
+      "size": 688,
+      "sha256": "b1ebbf5c9e67c5463a329325c22a2481703b388f7fa49d2d7210d5ee9ec174af"
+    },
+    {
+      "path": "GATE_REQUIREMENTS.csv",
+      "size": 969,
+      "sha256": "f3ff497f0911597ec2bab56fbe10542615c1709ad8d2a13cbfccd9cc7646df3c"
+    },
+    {
+      "path": "LUNA_INDEPENDENT_REVIEW.md",
+      "size": 1403,
+      "sha256": "a92e63030d03567c089a2776378db091a58a1a8b39d293d8c7999d890de93b22"
+    },
+    {
+      "path": "README.md",
+      "size": 662,
+      "sha256": "e1f1073d039e7868d70ae312def27dfe631de5e25d6c0c384642af8b84c996a9"
+    },
+    {
+      "path": "START_PROMPT.txt",
+      "size": 140,
+      "sha256": "047e557981bd2c6f258825046fb79f09289d25f5bb302fc9277e04958b92eb0e"
+    },
+    {
+      "path": "VERSION",
+      "size": 4,
+      "sha256": "d1dc366fd4706e69f9c98684cf1eb1868b07934619dabf6841179a930e90f66b"
+    },
+    {
+      "path": "baseline/AstroCS_ALPHA3_MODULAR_REFOUNDATION_CONTROL_V7_1_20260902_FINAL3.zip",
+      "size": 209978,
+      "sha256": "005448fb3b6892d3063d23149692fbd9226a892a2c1891e4cb8d14a80e8491c3"
+    },
+    {
+      "path": "baseline/README.md",
+      "size": 940,
+      "sha256": "3c402d22cbe6a8227ccb267d74bb3809bca9b9c65c30492fd0751202a2dcb9ab"
+    },
+    {
+      "path": "baseline/REVIEW_CLAIMED_TASK_STATE.csv",
+      "size": 12360,
+      "sha256": "4aef1ba040371997965daf5b180351091f0c8abddf59ae15d9d001a87bb271bb"
+    },
+    {
+      "path": "baseline/REVIEW_FINDINGS.csv",
+      "size": 265,
+      "sha256": "1b02671fe1c2fb0523fade23dc6320b63385003f1f2a16ca2c02f56d32919024"
+    },
+    {
+      "path": "baseline/REVIEW_IDENTITY.json",
+      "size": 459,
+      "sha256": "fbe051219d5a2f11edbe34da26936ead4202933450d4309c1632bb8b49e7c925"
+    },
+    {
+      "path": "baseline/REVIEW_SUMMARY.json",
+      "size": 753,
+      "sha256": "b4d4dc7d66dbe1f0e4cc8d7663e0a73d64b4241f9d52dca4285b379772b1035f"
+    },
+    {
+      "path": "baseline/V7_1_FIXED_SUBAGENT_BINDINGS.yaml",
+      "size": 6075,
+      "sha256": "8d0148a7fdccc48ff08d201b03e0eaea53e5b3d13013ec42ea10635faab1ee65"
+    },
+    {
+      "path": "baseline/V7_1_STATIC_TASK_LEDGER.csv",
+      "size": 40677,
+      "sha256": "524ab719b840eb05c50c1529335fe103f8d56b513d97478435b454f81cd39d9f"
+    },
+    {
+      "path": "ci/actions.lock.template.json",
+      "size": 515,
+      "sha256": "f74461edb2665ae70a495bfa1419748a9686d2f8d1b755ef4b3d78c946951411"
+    },
+    {
+      "path": "ci/checks.schema.json",
+      "size": 1307,
+      "sha256": "e5503e6e5ff8a71cc4504c88c6aa78c0075e5031097d49d4c939495b6bd6fcd8"
+    },
+    {
+      "path": "ci/checks.seed.json",
+      "size": 3873,
+      "sha256": "a178d9768d2ac4ea276aa4a256d542f7b3d92e0e0d9e7045cf58714dbe8725d1"
+    },
+    {
+      "path": "ci/ci_result.schema.json",
+      "size": 709,
+      "sha256": "91fba1dc6955f0ecfd73b97383ff065c0c455a10202c964960a0c8ba54911933"
+    },
+    {
+      "path": "ci/host_layout.json",
+      "size": 570,
+      "sha256": "1ccf2a01f7fed6941c8f19d0fbae72a3a06b78e74c320882def9532d43ef57b1"
+    },
+    {
+      "path": "ci/impact_map.seed.json",
+      "size": 628,
+      "sha256": "3109dee37f3091f171400dbe2895b8b06e50cac026134e21fcd2df596b07e557"
+    },
+    {
+      "path": "ci/publish_policy.json",
+      "size": 953,
+      "sha256": "8e2df19a4fa04872fd045a275be07274bc274c80af0c996aac49eeabb3b236e3"
+    },
+    {
+      "path": "ci/toolchain.policy.json",
+      "size": 1106,
+      "sha256": "7c66e1a5ff33c192653b60f2b71ffbd856d1af6821b520f8c301ae98d2881469"
+    },
+    {
+      "path": "tasks/01_WORKSPACE_ADOPTION_TASKS.md",
+      "size": 2485,
+      "sha256": "812e190595825204b9a303cc97e7a835feb9b8ee147994081698cd14cc5ddc81"
+    },
+    {
+      "path": "tasks/02_CI_TASKS.md",
+      "size": 4978,
+      "sha256": "20da885324562f975e6a9f261fe3507a90064ad8d33beab39aae4d2667bbbc5c"
+    },
+    {
+      "path": "tasks/03_P0_REMEDIATION_TASKS.md",
+      "size": 5979,
+      "sha256": "2ec54d82356c4e57b29fd278f2d1434c7a205e4c35a07ad63b75795847638cbf"
+    },
+    {
+      "path": "tasks/04_FATDUCK_AND_RELEASE_TASKS.md",
+      "size": 1531,
+      "sha256": "858bae64df7c2e46c7018137fdfb61e704c428a780aaa56bcfe7cba54ac6fd46"
+    },
+    {
+      "path": "templates/AGENTS_VM_APPEND.md",
+      "size": 521,
+      "sha256": "384216eff9a4bc1e70cf140844e8c0f6b9697298cb0c2e791c16ef82ca1f7343"
+    },
+    {
+      "path": "templates/DISPATCH.json",
+      "size": 583,
+      "sha256": "da0770e876061fd68e23b12b3af317d42710743d9ad619a10cda3c01a4da9e62"
+    },
+    {
+      "path": "templates/FATDUCK_HARNESS_CONTRACT.md",
+      "size": 1219,
+      "sha256": "fa806583c5f6b8e23ca13b873d33849bdd0b7bef1800ee1b4e7169156f643a47"
+    },
+    {
+      "path": "templates/OWNER_REVIEW_ISSUE.md",
+      "size": 450,
+      "sha256": "de62689f7448aa2869c7168507cf06b32d27d26058cfd0447841ef8b8d613a6a"
+    },
+    {
+      "path": "templates/fatduck-realdata.yml",
+      "size": 3182,
+      "sha256": "1a3eeb62e467e1658fef470047e50900fd08cf6a6b80796e4635ea3140de74e9"
+    },
+    {
+      "path": "templates/linux-ci.yml",
+      "size": 1365,
+      "sha256": "5fabc1c880977965db826b9ce1b209285168a84e85de2f2edbc1c85d3e0901c0"
+    },
+    {
+      "path": "templates/windows-ci.yml",
+      "size": 1349,
+      "sha256": "078724652ff78f34802d0441cb01e281e656738cd6e51853244ad8573b28cb27"
+    },
+    {
+      "path": "validators/build_manifest.py",
+      "size": 1223,
+      "sha256": "54ed1019c790d78bb3157eea7f665849566166f87c1990b6cc6a2a4ea1cf8de0"
+    },
+    {
+      "path": "validators/next_tasks.py",
+      "size": 1605,
+      "sha256": "8ab907a1362822697b1ff211224e092615ec2a78b41b91ecf2ce982234fbd2cf"
+    },
+    {
+      "path": "validators/selftest.py",
+      "size": 5129,
+      "sha256": "feeb596d78142219e529c615da44abdea8bc6dd707ea2573d7a5a6fe0a35b1e6"
+    },
+    {
+      "path": "validators/validate_control.py",
+      "size": 14035,
+      "sha256": "4277f7b44e066cdb018d716c3ba893392cce6c0d782722385a8ecdf9ea249cb7"
+    }
+  ]
+}

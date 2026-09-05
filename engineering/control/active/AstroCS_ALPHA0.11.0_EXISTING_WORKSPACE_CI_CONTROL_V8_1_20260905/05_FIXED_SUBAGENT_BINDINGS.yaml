@@ -1,0 +1,73 @@
+schema_version: 2
+policy:
+  fixed_binding: true
+  repo_root: DISCOVER_WITH_GIT_REV_PARSE_SHOW_TOPLEVEL
+  use_existing_workspace: true
+  create_or_clone_repo: false
+  relocate_repo: false
+  branches_allowed: [main]
+  create_branch_allowed: false
+  git_worktree_allowed: false
+  extra_development_clones_allowed: false
+  concurrent_read_only_tasks: true
+  concurrent_tracked_write_tasks: false
+  foreground_roles: [dispatch, machine_acceptance, commit, push, state, packaging]
+agents:
+  - id: FG-000
+    role: foreground_orchestrator
+    write: true
+    owns: [dispatch, acceptance, git_integration, audit_packaging]
+  - id: SA-ADOPT-31
+    role: existing_workspace_adoption
+    write: true
+    owns: [ADOPT]
+  - id: SA-CI-32
+    role: ci_implementation
+    write: true
+    owns: [CI]
+  - id: SA-CIQ-33
+    role: ci_independent_qa
+    write: false
+    owns: [CIQA]
+  - id: SA-DOC-05
+    role: documents_traceability
+    write: true
+    owns: [DOC, TRACE]
+  - id: SA-CLI-09
+    role: cli
+    write: true
+    owns: [CLI]
+  - id: SA-CPU-06
+    role: cpu_provider_performance
+    write: true
+    owns: [CPU, BENCH, MON]
+  - id: SA-ARCH-03
+    role: architecture_scheduler_pipeline
+    write: true
+    owns: [ARCH, PIPE, SCHED, RT]
+  - id: SA-P1-11
+    role: phase1
+    write: true
+    owns: [P1]
+  - id: SA-P2-12
+    role: phase2
+    write: true
+    owns: [P2]
+  - id: SA-P3-13
+    role: phase3
+    write: true
+    owns: [P3]
+  - id: SA-FAT-90
+    role: fatduck_runner_and_realdata
+    write: false
+    owns: [FAT]
+  - id: SA-AUD-99
+    role: independent_release_auditor
+    write: false
+    owns: [AUD, REL]
+rules:
+  - Existing V7.1 module bindings remain authoritative for task IDs not overridden here.
+  - A write-capable agent may modify tracked files only while holding the exact task lease.
+  - Independent QA and release auditor may not fix findings they report.
+  - No agent may create or clone a repository, move the existing repository, create a branch or worktree, or rewrite history.
+  - Read-only agents may inspect concurrently; all tracked writes in the shared existing workspace are serialized.

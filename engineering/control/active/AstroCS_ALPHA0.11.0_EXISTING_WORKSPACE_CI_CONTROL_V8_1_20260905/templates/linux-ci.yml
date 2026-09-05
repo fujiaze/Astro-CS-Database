@@ -1,0 +1,47 @@
+name: AstroCS Linux CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      profile:
+        type: choice
+        options: [linux-main, linux-deep]
+        default: linux-main
+  schedule:
+    - cron: "17 19 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-ci-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    steps:
+      - name: Checkout exact SHA
+        uses: actions/checkout@__CHECKOUT_FULL_SHA__ # v7.0.1; V8-CI-007 resolves full SHA
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Bootstrap locked toolchain
+        run: python3 ci/bootstrap.py --policy ci/toolchain.policy.json --platform linux
+      - name: Select profile
+        id: profile
+        shell: bash
+        run: python3 ci/select_profile.py --event "$GITHUB_EVENT_NAME" --requested "${{ inputs.profile }}" >> "$GITHUB_OUTPUT"
+      - name: Run registered checks
+        run: python3 ci/run.py --profile "${{ steps.profile.outputs.profile }}"
+      - name: Upload small evidence
+        if: always()
+        uses: actions/upload-artifact@__UPLOAD_FULL_SHA__ # v4
+        with:
+          name: linux-ci-${{ github.sha }}
+          path: artifacts/ci-public/
+          retention-days: 14
+          if-no-files-found: error

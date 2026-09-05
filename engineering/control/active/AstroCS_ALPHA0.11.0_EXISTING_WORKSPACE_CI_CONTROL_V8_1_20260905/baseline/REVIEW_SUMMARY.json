@@ -1,0 +1,27 @@
+{
+ "package_kind": "INTERIM_CHECKPOINT",
+ "main_sha": "257ae1f4efbaf5822ea6d7c42882e15f2c416b36",
+ "generated_utc": "20260905T055927Z",
+ "counts": {
+  "total_tasks": 190,
+  "closed": 51,
+  "not_started": 137,
+  "dispatched": 1,
+  "waiting_resource": 1,
+  "commits": 46
+ },
+ "gates": {
+  "G0": "NOT_READY",
+  "G1": "NOT_READY",
+  "G2": "NOT_READY",
+  "G3": "NOT_READY",
+  "G4": "NOT_READY",
+  "G5": "NOT_READY",
+  "G6": "NOT_READY",
+  "G7": "NOT_READY",
+  "G8": "NOT_READY"
+ },
+ "verdict": "NOT_READY",
+ "verdict_reason": "中途换环境 checkpoint：W2 剩 CLI-004；W3-W8 未做；CPU-006 DISPATCHED(WIP 保留)；Windows 离线；G8 终审未执行。",
+ "note": "计数由 TASK_STATE.json / COMMIT_LEDGER.jsonl / gates 机器重算，非手填。"
+}

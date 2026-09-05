@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "checks"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "profiles", "platform", "command", "timeout_seconds", "heavy", "mutates_workspace", "outputs", "waivable"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9_.-]+$"},
+          "profiles": {"type": "array", "minItems": 1, "items": {"enum": ["fast", "linux-main", "linux-deep", "windows-main", "fatduck"]}},
+          "platform": {"enum": ["any", "linux", "windows", "fatduck"]},
+          "command": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "timeout_seconds": {"type": "integer", "minimum": 1},
+          "heavy": {"type": "boolean"},
+          "mutates_workspace": {"type": "boolean"},
+          "outputs": {"type": "array", "items": {"type": "string"}},
+          "waivable": {"type": "boolean"},
+          "changed_paths": {"type": "array", "items": {"type": "string"}},
+          "requires_monitor": {"type": "boolean"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

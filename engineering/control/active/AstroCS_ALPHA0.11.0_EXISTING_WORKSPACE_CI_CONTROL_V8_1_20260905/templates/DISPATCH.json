@@ -1,0 +1,15 @@
+{
+  "task_id": "<from CONTROL_TASK_LEDGER.csv>",
+  "owner": "<fixed owner>",
+  "base_sha": "<40 hex>",
+  "mode": "read|write",
+  "goal": "<exact goal>",
+  "allowed_paths": ["<exact paths>"],
+  "forbidden": ["branch", "git_worktree", "extra_clone", "history_rewrite", "scope_expansion"],
+  "inputs": ["<task spec and active contracts only>"],
+  "commands": ["<exact commands with timeout>"],
+  "acceptance_command": ["<exact argv>"],
+  "outputs": ["TASK_RESULT.json", "changed_files.txt", "test_summary.json", "findings.csv"],
+  "heavy": false,
+  "requires_resource_monitor": false
+}
