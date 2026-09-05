@@ -1,0 +1,28 @@
+{
+  "task_id": "V8-CI-005",
+  "owner": "SA-CI-32",
+  "mode": "write",
+  "base_sha": "c583e59d21b675e09be9878cf84a448975537a52",
+  "goal": "Implement GitHub Linux main and deep CI profiles",
+  "allowed_paths": [
+    "ci/**",
+    "CMakePresets.json",
+    "CMakeLists.txt",
+    "tests/**"
+  ],
+  "prohibited": [
+    "commit",
+    "push",
+    "branch",
+    "worktree",
+    "clone",
+    "history_rewrite",
+    "scope_expansion",
+    "modify_control_package",
+    "modify_TASK_STATE",
+    "modify_WRITE_LEASE"
+  ],
+  "acceptance_command": "python3 ci/run.py --profile linux-main --plan-only && python3 ci/run.py --profile linux-deep --plan-only",
+  "timeout_s": 1200,
+  "dispatched_utc": "2026-09-05T18:01:14Z"
+}
