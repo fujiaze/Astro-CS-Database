@@ -1,0 +1,33 @@
+{
+  "task_id": "V8-CI-008",
+  "generated_utc": "2026-09-05T22:50:17Z",
+  "test_files": ["ci/tests/test_fatduck_workflow.py"],
+  "test_counts": {
+    "new_tests_in_test_fatduck_workflow": 29,
+    "full_suite_total": 180,
+    "baseline_before_task": 151,
+    "full_suite_cmd": "python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+    "full_suite_result": "Ran 180 tests in ~22s, OK (exit 0)（logs/unittest.log）",
+    "network_usage": "none — 全部 29 个新用例离线：YAML/lock/权限等用断言直读文件；select_candidate 用 mock.patch.object(SC, 'gh_api') 进程内替身，不发真实 HTTP；notify 用提取脚本 + 临时目录 mock gh CLI（PATH 注入），零网络、零仓库写入"
+  },
+  "coverage_by_area": [
+    {"area": "workflow YAML 形状与触发器 (fatduck.yml 实文件 yaml.safe_load)", "cases": 13, "detail": "解析 OK 且恰好 3 job（名字精确匹配）/ 无手动触发（on 键无 workflow_dispatch/workflow_call/push/pull_request/release 且原文无 workflow_dispatch 词）/ workflow_run 仅 [AstroCS Windows CI]+types[completed]+branches[main] / schedule 恰为 cron \"0 */6 * * *\" / runs-on 矩阵（ubuntu-24.04 | [self-hosted, fatduck-realdata] | ubuntu-24.04）/ 权限矩阵：顶层与 select/validate 均 contents: read，仅 notify-owner 含 issues: write（全 workflow 唯一 issues 写者）/ concurrency group 含 fatduck- 与 head_sha||'schedule' 且 cancel-in-progress: False / 全部 uses 40 位 SHA 且都在 ci/actions.lock.json 内 / validate job 无 actions/checkout、恰 1 个 run 步骤且 shell: pwsh、该步骤无 python/pip、git 词仅在 github-token 键内（\\bgit\\b 边界断言）、无仓库相对路径 ci/ / 固定 harness 入口与参数形态（run_validation.ps1 -CandidateZip 固定路径 -SourceSha -ResultDir）/ 两次 download-artifact 均带 run-id + github-token 且 artifact 名覆盖 candidate 与 windows-ci 证据 / 上传仅固定 publish 白名单 public 子目录 + if-no-files-found: error + if: success() / validate 的 has_candidate gate 与 notify 的 always() 及按 fatduck-validate.result 条件 / notify 无 checkout、无 issue create、POST .../issues/$issue/comments、vars.ASTROCS_OWNER_REVIEW_ISSUE 注入、#artifacts 与 astrocs-cli review open、两条 skip 词 / select 步骤接 ci/select_candidate.py --event/--head-branch/--conclusion/--run-id + GITHUB_TOKEN env + outputs has_candidate 接 gate"},
+    {"area": "select_candidate 逻辑（进程内 mock gh_api，零网络）", "cases": 13, "detail": "workflow_run happy path（exit 0，verdict/source_sha/windows_run_id/artifact_name/artifact_digest/artifact_size 全断言）/ schedule happy path（exit 0，event=schedule）/ head_branch!=main exit 3 + gh_api 零调用断言 / conclusion=failure exit 3 零调用 / 触发 run 非本校 workflow exit 3 trigger_run_not_windows_workflow / windows 无 success run exit 3 no_success_windows_run / linux 同 SHA 不绿 exit 3 linux_not_green / candidate artifact 不匹配 exit 3 candidate_artifact_missing / 网络异常 exit 2 network_unavailable / 缺 GITHUB_REPOSITORY exit 2 repository_context_missing（env 清理恢复）/ github_output_lines candidate+no_candidate 双态行断言（has_candidate/source_sha/windows_run_id/artifact_digest/no_candidate_reason）/ append_github_output 真写临时 GITHUB_OUTPUT 文件并复核内容 / mock 工厂按 URL 子串路由（artifacts 长前缀优先避免误匹配）"},
+    {"area": "notify 命令构造（bash 实跑 + mock gh CLI）", "cases": 3, "detail": "OWNER_REVIEW_ISSUE 缺失 -> stdout notify=skipped_missing_issue_variable 且 gh 调用日志为空 / 非数字 abc -> notify=skipped_invalid_issue_variable 且零 gh 调用 / issue=7 -> exit 0、argv 含 --method POST 与 /repos/.../issues/7/comments、无 issues create、评论体含 #artifacts、astrocs-cli review open --run、fatduck-public- 与 source SHA"}
+  ],
+  "new_tests_total": 29,
+  "new_tests_total_note": "unittest 实测 29 个 test 方法（13 YAML 形状 + 13 选择器 + 3 notify 实跑）；coverage_by_area 的 cases 为按断言块归并的覆盖点计数。",
+  "acceptance_artbitration": {
+    "log": "acceptance.log",
+    "arbitrated_utc": "2026-09-05T22:47:00Z",
+    "overall": "PASS",
+    "items": 10
+  },
+  "verification_log_files": [
+    "logs/unittest.log",
+    "logs/verify_actions_lock_online.jsonl",
+    "logs/download_artifact_tag_query.jsonl",
+    "logs/select_candidate_local.json",
+    "logs/select_candidate_local.err"
+  ]
+}

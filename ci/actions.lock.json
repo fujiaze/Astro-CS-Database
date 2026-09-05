@@ -10,14 +10,22 @@
       "tag": "v7.0.1",
       "commit_sha": "3d3c42e5aac5ba805825da76410c181273ba90b1",
       "verified_utc": "2026-09-05T21:58:29Z",
-      "used_by": [".github/workflows/ci-linux.yml", ".github/workflows/ci-windows.yml"]
+      "used_by": [".github/workflows/ci-linux.yml", ".github/workflows/ci-windows.yml", ".github/workflows/fatduck.yml"]
     },
     {
       "action": "actions/upload-artifact",
       "tag": "v5.0.0",
       "commit_sha": "330a01c490aca151604b8cf639adc76d48f6c5d4",
       "verified_utc": "2026-09-05T21:58:29Z",
-      "used_by": [".github/workflows/ci-linux.yml", ".github/workflows/ci-windows.yml"]
+      "used_by": [".github/workflows/ci-linux.yml", ".github/workflows/ci-windows.yml", ".github/workflows/fatduck.yml"]
+    },
+    {
+      "action": "actions/download-artifact",
+      "tag": "v8.0.1",
+      "commit_sha": "3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+      "verified_utc": "2026-09-05T22:55:00Z",
+      "used_by": [".github/workflows/fatduck.yml"],
+      "note": "V8-CI-008 新增：官方最新稳定 release（releases/latest，非 prerelease），tag->SHA 经 api.github.com 在线查询并复验"
     },
     {
       "action": "actions/upload-artifact",

@@ -1,0 +1,83 @@
+{
+  "task_id": "V8-CI-008",
+  "task_name": "Fatduck workflow",
+  "owner": "SA-CI-32",
+  "control_pack": "V8.1",
+  "repo": "/workspace/Astro CS Database",
+  "base_head_sha": "164419875d25292f03ca66a33ca07c688b066ec9",
+  "generated_utc": "2026-09-05T22:50:17Z",
+  "status": "DONE",
+  "verdict": "PASS",
+  "summary": "Fatduck 真实数据校验闭环落地：.github/workflows/fatduck.yml 三 job（select-candidate / fatduck-validate / notify-owner）仅由 workflow_run(AstroCS Windows CI completed, branches main) + schedule(0 */6 * * *) 触发，全部 uses 锁定完整 SHA 并登记 ci/actions.lock.json；新增 ci/select_candidate.py（stdlib urllib + GITHUB_TOKEN 环境变量，结构化 verdict：candidate / no_candidate(exit 3) / env_unavailable(exit 2)，JSONL 审计日志，GITHUB_OUTPUT 适配）；fatduck-validate 仅做两次跨 run 下载 + 一次固定 pwsh harness 调用 + 白名单 public 目录上传，零 checkout、零仓库脚本、零网络上传；notify-owner 仅向 vars.ASTROCS_OWNER_REVIEW_ISSUE 指定的单一既有 Issue 追加评论（缺失/非法时结构化 skip，绝不新建 Issue），评论含 JPG artifact 页链接与 astrocs-cli review open 本地打开命令。29 个新增离线单测全绿，全套 180 单测通过，10 项验收独立仲裁重跑 overall=PASS。",
+  "deliverables": [
+    {"path": ".github/workflows/fatduck.yml", "kind": "created", "desc": "三 job workflow：触发器仅 workflow_run(workflows: [\"AstroCS Windows CI\"], types: [completed], branches: [main]) + schedule(cron \"0 */6 * * *\")，无任何手动/推送触发；顶层 permissions contents: read；concurrency group fatduck-${{ github.event.workflow_run.head_sha || 'schedule' }} 且 cancel-in-progress: false；select-candidate(ubuntu-24.04, timeout 15) checkout(锁 SHA, persist-credentials false) 后跑 ci/select_candidate.py，rc=3 -> ::notice:: 并跳过下游，rc∉{0,3} -> 直接失败；gate 步骤仅 sel rc=0 且 has_candidate=true 时 proceed=true；上传 select 日志(if: always(), if-no-files-found: error)。fatduck-validate([self-hosted, fatduck-realdata], timeout 1440, if has_candidate=='true')：download-artifact v8 跨 run 下载 candidate zip 与 windows-ci 证据(均带 run-id + github-token) -> 单一 pwsh 步骤固定调用 D:\\AstroCSRunner\\harness\\run_validation.ps1 -CandidateZip/-SourceSha/-ResultDir -> upload-artifact 仅上传固定 publish 白名单 public 子目录(retention 14, if-no-files-found: error, if: success())。notify-owner(ubuntu-24.04, timeout 15, if: always(), permissions contents: read + issues: write)：校验通过时下载 fatduck-public-<sha> 并用 gh api POST /repos/{repo}/issues/<n>/comments 追加评论（body 含 source SHA、artifact 名与 $RUN_URL#artifacts JPG 链接、astrocs-cli review open --run <sha>、截断的 FATDUCK_PUBLIC_SUMMARY.json 摘要），变量缺失/非数字时 ::notice:: + 结构化 skip 输出、不调 gh。"},
+    {"path": "ci/select_candidate.py", "kind": "created", "desc": "候选选择器：仅 stdlib(urllib.request/json/os/argparse)；token 仅从 GITHUB_TOKEN/ GH_TOKEN 环境变量读取，绝不落盘；gh_api() 带 timeout、≤2 次线性退避重试（URLError/超时/5xx/429/403->network）、4xx 其余->api_error 不重试；每请求一行 JSONL 审计日志（--log），不记录 token。--event workflow_run：先本地校验 head_branch==main 且 conclusion==success（失败 exit 3 且零 API 调用），再查 run 详情确认 name=='AstroCS Windows CI'；--event schedule：查 ci-windows.yml 最近 success run（branch=main）；两者均要求同 SHA 的 ci-linux.yml success run（head_sha= 过滤）与 artifact astrocs-windows-candidate-<sha>（记录 digest，可空）。退出码：0=candidate（--json 输出 verdict/source_sha/windows_run_id/artifact_name/artifact_digest/artifact_size 等）；2=env/network（repository_context_missing / network_unavailable / api_error）；3=no-candidate（head_branch_not_main / trigger_run_not_success / trigger_run_not_windows_workflow / no_success_windows_run / linux_not_green / candidate_artifact_missing）。自动写 GITHUB_OUTPUT（has_candidate/source_sha/windows_run_id/artifact_name/artifact_digest/artifact_size/no_candidate_reason）。"},
+    {"path": "ci/actions.lock.json", "kind": "modified", "desc": "追加条目 actions/download-artifact v8.0.1 -> 3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c（api.github.com releases/latest 与 refs/tags 在线实查，verified_utc 2026-09-05T22:55:00Z，used_by [.github/workflows/fatduck.yml]，note 记录跨 run 下载用途）；并在 actions/checkout v7.0.1 与 actions/upload-artifact v5.0.0 的 used_by 追加 .github/workflows/fatduck.yml。verify_actions_lock 在线与 --offline 双模式复验 PASS (4 entries)。"},
+    {"path": "ci/tests/test_fatduck_workflow.py", "kind": "created", "desc": "29 个离线单测：workflow YAML 形状（恰好 3 job / 无手动与推送触发器词与键 / workflow_run 三字段 / cron 0 */6 * * * / runs-on 矩阵 / 权限矩阵仅 notify-owner issues: write / concurrency cancel-in-progress false / uses 全部 40 位 SHA 且在 actions.lock 内 / validate job 无 checkout、run 步骤无 python/pip/git 词与仓库路径 ci/、恰一 pwsh 步骤且固定 run_validation.ps1 -CandidateZip/-SourceSha/-ResultDir 形态 / 两次下载均带 run-id+github-token / 上传仅 publish public 白名单 / gate 与 always 条件 / notify 单一评论 + vars.ASTROCS_OWNER_REVIEW_ISSUE + skip 路径词）；select_candidate 进程内 mock gh_api 零网络（workflow_run 与 schedule 两条 happy path 含 GITHUB_OUTPUT 断言；head_branch_not_main/conclusion!=success 零 API 调用 exit 3；windows 非本校 workflow/无 success run/linux 不绿/artifact 缺失 exit 3 分 reason_code；网络失败 exit 2 network_unavailable；缺 repository exit 2；github_output_lines 与 append_github_output 落盘）；notify bash 实跑（提取脚本 + mock gh CLI 于 PATH，临时目录，零网络零写仓库）：变量缺失 -> skipped_missing_issue_variable 且 gh 零调用、非数字 -> skipped_invalid_issue_variable、issue=7 -> gh api POST .../issues/7/comments 且无 create、body 含 #artifacts JPG 链接与 astrocs-cli review open --run。"},
+    {"path": "evidence/v8_1_ci_control/tasks/V8-CI-008/TASK_RESULT.json", "kind": "created", "desc": "本文件。"},
+    {"path": "evidence/v8_1_ci_control/tasks/V8-CI-008/TEST_EVIDENCE.json", "kind": "created", "desc": "测试证据：用例分布、计数、零网络声明、验收引用。"},
+    {"path": "evidence/v8_1_ci_control/tasks/V8-CI-008/CHANGED_FILES.txt", "kind": "created", "desc": "变更文件清单（含 created/modified/logs 与未触碰域声明）。"},
+    {"path": "evidence/v8_1_ci_control/tasks/V8-CI-008/acceptance.log", "kind": "created", "desc": "10 项验收独立进程仲裁重跑结果（overall=PASS）。"}
+  ],
+  "evidence": {
+    "acceptance": "acceptance.log",
+    "test": "TEST_EVIDENCE.json",
+    "changed_files": "CHANGED_FILES.txt",
+    "logs_dir": "logs/（.gitignore 忽略，仅存盘不入 git）",
+    "logs": [
+      "logs/download_artifact_tag_query.jsonl（releases/latest -> v8.0.1 与 refs/tags 解引用实查记录）",
+      "logs/verify_actions_lock_online.jsonl（verify_actions_lock 在线复验逐 entry JSONL）",
+      "logs/select_candidate_local.json（--event schedule 本机结构化输出：exit 2 repository_context_missing，hosted 才可真查）",
+      "logs/select_candidate_local.err（stderr，空）",
+      "logs/unittest.log（全量单测摘要 Ran 180 tests, OK）"
+    ]
+  },
+  "acceptance_summary": {
+    "arbitrated_utc": "2026-09-05T22:47:00Z",
+    "method": "独立进程逐项重跑（/tmp/v8ci008_acceptance.py），结果落 acceptance.log",
+    "items": {
+      "validate_registry_strict": {"exit": 0, "verdict": "PASS", "detail": "80 checks, 0 errors"},
+      "verify_actions_lock_online": {"exit": 0, "verdict": "PASS", "detail": "4 entries 全部 tag->SHA 在线实查一致（含新增 download-artifact v8.0.1）"},
+      "verify_actions_lock_offline": {"exit": 0, "verdict": "PASS", "detail": "PASS (offline, 4 entries)"},
+      "unittest_discover": {"exit": 0, "verdict": "PASS", "detail": "Ran 180 tests, OK（基线 151 + 新增 29）"},
+      "select_candidate_schedule_local": {"exit": 2, "verdict": "PASS", "detail": "本机无 hosted 上下文 -> 结构化 exit 2 repository_context_missing（预期路径；hosted 注入 GITHUB_TOKEN/GITHUB_REPOSITORY 后才可真查）"},
+      "yaml_safe_load": {"exit": 0, "verdict": "PASS", "detail": "fatduck.yml 可解析且 3 jobs"},
+      "plan_only_fast": {"exit": 0, "verdict": "PASS", "detail": "selected_count=57 不变"},
+      "plan_only_linux-main": {"exit": 0, "verdict": "PASS", "detail": "selected_count=71 不变"},
+      "plan_only_linux-deep": {"exit": 0, "verdict": "PASS", "detail": "selected_count=7 不变"},
+      "plan_only_windows-main": {"exit": 0, "verdict": "PASS", "detail": "selected_count=61 不变"}
+    },
+    "overall": "PASS"
+  },
+  "action_lock": {
+    "verified_utc": "2026-09-05T22:55:00Z",
+    "entries": [
+      {"action": "actions/checkout", "tag": "v7.0.1", "commit_sha": "3d3c42e5aac5ba805825da76410c181273ba90b1", "used_by": [".github/workflows/ci-linux.yml", ".github/workflows/ci-windows.yml", ".github/workflows/fatduck.yml"]},
+      {"action": "actions/upload-artifact", "tag": "v5.0.0", "commit_sha": "330a01c490aca151604b8cf639adc76d48f6c5d4", "used_by": [".github/workflows/ci-linux.yml", ".github/workflows/ci-windows.yml", ".github/workflows/fatduck.yml"]},
+      {"action": "actions/download-artifact", "tag": "v8.0.1", "commit_sha": "3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c", "used_by": [".github/workflows/fatduck.yml"], "note": "V8-CI-008 新增：跨 run 下载 candidate/证据（run-id + github-token）与同 run 公开结果"},
+      {"action": "actions/upload-artifact", "tag": "v4.6.2", "commit_sha": "ea165f8d65b6e75b540449e92b4886f43607fa02", "used_by": [], "note": "参考条目，当前 workflow 未引用（V8-CI-007 原状未动）"}
+    ]
+  },
+  "key_decisions": [
+    "无候选处理采用『skip downstream』而非 neutral：GitHub 无可靠的 job 级 neutral 机制；select-candidate rc=3 保持 job success 并发 ::notice::，fatduck-validate 由 has_candidate=='true' gate 跳过，notify-owner if: always() 走 skip 输出。选择器把『今天没有合格候选』当作正常态，把环境/网络故障（exit 2）当作失败态，两者在 Actions UI 可区分。",
+    "harness 调用采用派发指令规定的固定 pwsh 单入口：& 'D:\\AstroCSRunner\\harness\\run_validation.ps1' -CandidateZip <固定 incoming 路径> -SourceSha <sha> -ResultDir <固定 publish 路径>；工程控制模板 FATDUCK_HARNESS_CONTRACT.md 的 run-validation.cmd --source-sha/--candidate/--publish 形态被指令字面取代，FAT-001 provisioning 必须按 ps1 形态落盘（差异已在此声明）。",
+    "fatduck-validate 时限取控制包模板值 timeout-minutes: 1440（全天窗，对齐 FAT-002 正式 32R 分段验证时长），高于派发建议的 330；其余与模板的差异（permissions 用 contents: read、runs-on 标签用派发规定的 [self-hosted, fatduck-realdata]、notify 用 gh api 而非模板的 ci/notify_owner.py）均按派发指令字面执行，模板仅作语义参考。",
+    "JPG 引用方式：GitHub artifact 无逐文件 URL，评论体给出 artifact 名 fatduck-public-<sha> + 运行页锚点 $RUN_URL#artifacts（JPG 在该 artifact 内），并附本地打开命令 astrocs-cli review open --run <source_sha>；评论同时引用 FATDUCK_PUBLIC_SUMMARY.json 截断摘要（head -c 2000，缺失时明确占位文本），该文件名是 FAT-001 harness 必须遵守的约定。",
+    "双触发语义：workflow_run 仅在默认分支生效且仅订阅 AstroCS Windows CI 的 completed，另有 branches: [main] 过滤与选择器脚本双重校验（head_branch==main、conclusion==success、run name 匹配），PR/fork/tag 场景一律 head_branch_not_main/trigger_run_not_success exit 3 跳过；schedule 每 6 小时刷新最近合格候选，两路事件汇入同一 select_candidate.py，行为一致可测。",
+    "跨 run 下载用 download-artifact v8 的 run-id + github-token 参数（v4 不支持跨 run）；同 run 的 fatduck-public-<sha> 下载只给 name + path。windows CI 侧 artifact 名约定 astrocs-windows-candidate-<sha> / windows-ci-<sha>（与 ci-windows.yml 现状一致）。",
+    "选择器健壮性：token 仅读环境变量且不落任何文件/日志；HTTP 层网络类失败≤2 次退避重试后归一为 exit 2；4xx 业务错误不重试；本地校验失败的 exit 3 分支零 API 调用（测试有零调用断言）；每次 API 请求写一行 JSONL 审计日志。"
+  ],
+  "hosted_first_run_expectations": [
+    "FAT-001 未 provisioning 前首轮必现：select-candidate 成功选出候选（若当日 Windows CI 绿）-> fatduck-validate 因无 [self-hosted, fatduck-realdata] runner 排队至 timeout 1440 -> notify-owner always() 报告 validate result != success 的 skip/失败评论路径；属预期，不阻塞主 CI。",
+    "harness 侧需先满足：D:\\AstroCSRunner\\harness\\run_validation.ps1 存在且接受 -CandidateZip/-SourceSha/-ResultDir；D:\\AstroCSRunner\\runs\\incoming 与 D:\\AstroCSRunner\\runs\\publish\\<sha>\\public 可写；public 子目录含 FATDUCK_PUBLIC_SUMMARY.json（约定名）。",
+    "vars.ASTROCS_OWNER_REVIEW_ISSUE 未配置时通知走 skipped_missing_issue_variable，配置非法数字走 skipped_invalid_issue_variable；均 exit 0 仅 ::notice::。"
+  ],
+  "residual_risks": [
+    "FATDUCK_PUBLIC_SUMMARY.json 命名/结构是单向约定，harness 若不产出则评论摘要为占位文本（不失败）。",
+    "schedule 触发的 run 无 workflow_run 上下文，选择器靠 API 查最近 success run，存在与刚完成 run 的竞态窗口（最多 6 小时延迟，幂等无害）。",
+    "notify-owner 假定 GitHub token 具备向既有 Issue 评论的权限（issues: write 已授予）；若 Issue 属于别的仓库则 404（gh api 非零退出使 notify 步骤失败，属可见故障）。",
+    "本机（agent 宿主）只能验证选择器的受限路径与 mock 行为；真实 GitHub API 选择链路需在 hosted 首跑验证（已在本机做匿名连通性确认，api.github.com 可达）。"
+  ],
+  "not_touched": "冻结约束 / science / algorithms / tolerances / AGENTS.md / .gitignore / 工程控制/ / TASK_STATE / WRITE_LEASE / dispatch / adoption / ci-linux.yml / ci-windows.yml / ci/checks.json / ci/run.py / 其余既有 workflow 与 checks 项。",
+  "git_ops": "无任何 git 写操作（未 add/commit/push/branch/worktree/clone；仅只读 git status/diff 查询）。工作区既有噪声（AGENTS.md 的已有改动、dist/ 下一 zip 删除、历史未跟踪 zip/artifacts）非本任务所为、未触碰。"
+}
