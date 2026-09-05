@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "root": "D:\\AstroCSRunner\\publish\\<source_sha>",
+  "allowed_extensions": [".jpg", ".jpeg", ".json", ".csv", ".xml", ".log"],
+  "forbidden_extensions": [".fit", ".fits", ".fts", ".xisf", ".hiss", ".hips", ".npy", ".npz", ".bin", ".db"],
+  "forbidden_name_patterns": ["testdata", "raw", "master", "light", "dark", "flat", "bias"],
+  "forbidden_content_patterns": ["SIMPLE  =", "BITPIX", "NAXIS", "C:\\\\Users\\\\", "/home/", "/srv/", "D:\\\\AstroCSRunner\\\\testdata"],
+  "jpeg_strip_metadata": true,
+  "derived_science_image_upload_allowed": true,
+  "owner_authorization": "Owner instruction 2026-09-05: derived JPG review images may be uploaded; raw scientific data may not be uploaded.",
+  "max_file_bytes": 10485760,
+  "max_bundle_bytes": 52428800,
+  "required_files": ["FATDUCK_FINAL_SUMMARY.json", "resource_summary.json", "owner_review.json"],
+  "raw_data_upload_allowed": false,
+  "full_hips_upload_allowed": false
+}

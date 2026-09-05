@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "repo_root": "DISCOVER_AT_RUNTIME_WITH_GIT_REV_PARSE_SHOW_TOPLEVEL",
+  "use_existing_workspace": true,
+  "create_or_clone_repo": false,
+  "relocate_repo": false,
+  "allowed_branch": "main",
+  "create_branch_allowed": false,
+  "git_worktree_allowed": false,
+  "extra_development_clones_allowed": false,
+  "delete_existing_worktrees_allowed": false,
+  "control_root_policy": "USE_EXISTING_PROJECT_CONVENTION",
+  "new_paths_policy": "REPOSITORY_INTERNAL_MINIMUM_ONLY_IF_MISSING",
+  "linux_vm_self_hosted_runner": false,
+  "github_ci": "hosted"
+}

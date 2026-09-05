@@ -1,0 +1,20 @@
+{
+  "schema_version": 2,
+  "control_package": "V8.1",
+  "supersedes": "V8.0 VM migration package",
+  "product_current_at_review": "0.11.0-alpha.1",
+  "product_target": "0.11.0-alpha.2",
+  "review_sha": "257ae1f4efbaf5822ea6d7c42882e15f2c416b36",
+  "current_workspace_sha": "DISCOVER_AT_RUNTIME",
+  "review_claims": {
+    "tasks_total": 190,
+    "closed": 51,
+    "not_started": 137,
+    "dispatched": ["CPU-006"],
+    "waiting_resource": ["WIN-002"]
+  },
+  "trust": "CURRENT_EXISTING_WORKSPACE_FIRST_THEN_V81_ADOPT_003_RECONCILIATION",
+  "first_task": "V81-ADOPT-001",
+  "active_gate": "G-ADOPT",
+  "source_of_truth_after_adoption": "CURRENT_PROJECT_EVIDENCE_DIRECTORY/TASK_STATE.json"
+}

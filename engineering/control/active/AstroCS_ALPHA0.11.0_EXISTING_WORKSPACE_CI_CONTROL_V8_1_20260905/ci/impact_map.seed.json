@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "rules": [
+    {"paths": ["docs/science/**", "docs/algorithms/**"], "checks": ["TRACEABILITY", "SYNTHETIC-SCIENCE"]},
+    {"paths": ["lib/phase2/**"], "checks": ["PRODUCTION-GRAPH", "NO-SERIAL-HEAVY", "SYNTHETIC-SCIENCE", "LINUX-BUILD-TEST", "WINDOWS-BUILD-PACKAGE"]},
+    {"paths": ["lib/runtime/**", "lib/core/**", "cli/**"], "checks": ["PRODUCTION-GRAPH", "NO-SERIAL-HEAVY", "ACR-DORMANT", "LINUX-BUILD-TEST", "WINDOWS-BUILD-PACKAGE"]},
+    {"paths": [".github/workflows/**", "ci/**"], "checks": ["VERSION-CONSISTENCY", "TRACEABILITY"]}
+  ],
+  "fallback": ["VERSION-CONSISTENCY", "TRACEABILITY"]
+}

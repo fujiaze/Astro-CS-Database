@@ -1,0 +1,5 @@
+{
+  "validate_control": "PASS files=56",
+  "selftest": "PASS cases=13",
+  "package_sha256": "77a4b03a622c63cc3bf9622351dc2363a0f35adef46ca79aea4e749b48fd6eff"
+}

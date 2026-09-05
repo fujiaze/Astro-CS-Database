@@ -1,0 +1,3 @@
+finding_id,severity,detail,disposition
+F-A001-1,INFO,worktree 列表含 8 个历史 prunable 条目（gitdir 不存在），按冻结约束只记录不清理,RECORD_ONLY
+F-A001-2,INFO,仓库 ci/ 目录尚不存在；ADOPT-002/003/006 验收命令所需 ci/*.py 验收脚本由各任务按最小必要原则随任务创建,RESOLVED_IN_SCOPE_NOTE

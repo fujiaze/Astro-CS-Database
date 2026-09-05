@@ -1,0 +1,7 @@
+{"seq": 1, "cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -B validators/validate_control.py --root .", "cwd": "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905", "exit": 0, "stdout": "CONTROL_PASS files=56", "stderr": ""}
+{"seq": 2, "cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -B validators/selftest.py --root .", "cwd": "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905", "exit": 0, "stdout": "NEGATIVE_PASS long_prompt...SELFTEST_PASS cases=13", "stderr": ""}
+{"seq": 3, "cmd": "git rev-parse --show-toplevel", "cwd": ".", "exit": 0, "stdout": "/workspace/Astro CS Database", "stderr": ""}
+{"seq": 4, "cmd": "git branch --show-current", "cwd": ".", "exit": 0, "stdout": "main", "stderr": ""}
+{"seq": 5, "cmd": "git worktree list --porcelain", "cwd": ".", "exit": 0, "stdout": "9 worktrees (1 authoritative main + 8 historical prunable)", "stderr": ""}
+{"seq": 6, "cmd": "git fetch origin --prune", "cwd": ".", "exit": 0, "stdout": "", "stderr": ""}
+{"seq": 7, "cmd": "sha256sum AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905.zip", "cwd": ".", "exit": 0, "stdout": "77a4b03a622c63cc3bf9622351dc2363a0f35adef46ca79aea4e749b48fd6eff", "stderr": ""}

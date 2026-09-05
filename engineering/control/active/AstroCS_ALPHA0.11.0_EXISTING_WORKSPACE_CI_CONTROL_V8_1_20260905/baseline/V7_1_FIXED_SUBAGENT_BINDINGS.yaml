@@ -1,0 +1,50 @@
+schema_version: 1
+policy: fixed_owner_detached_worktree_foreground_integrates
+foreground:
+  id: FG-000
+  may_edit_source: false
+  duties: [validate, freeze, dispatch, reclaim, verify_on_main, integrate_serially, commit, push, gate, package]
+  forbidden: [large_implementation, scientific_decision, tolerance_relaxation, branch_creation, force_push]
+owners:
+  - {id: SA-AUD-99, role: independent_read_only_auditor, write: ["$WORK/reports/independent_review/**"], source_read_only: true}
+  - {id: SA-GOV-01, role: governance_version_active_docs, write: ["AGENTS.md", "VERSION", "README.md", "REVIEW.md", "HANDOVER.md", "memory.md", "docs/owner/**", "docs/governance/**", "docs/archive/**", "engineering/control/**", "tools/doccheck/**"]}
+  - {id: SA-BLD-02, role: cmake_msvc_dependencies_install_layout, write: ["CMakeLists.txt", "CMakePresets.json", "cmake/**", "packaging/**", "DEPENDENCIES.md", "vcpkg.json", "vcpkg-configuration.json"]}
+  - {id: SA-ABI-03, role: c_abi_loader_registry, write: ["include/astrocs/abi/**", "runtime/module_loader/**", "runtime/registry/**", "tests/abi/**", "contracts/config/module*.schema.json"]}
+  - {id: SA-CLI-04, role: single_cli_command_surface, write: ["apps/cli/**", "cli/**", "tests/cli/**", "contracts/config/cli*.schema.json"]}
+  - {id: SA-RT-05, role: dag_scheduler_cancel_async, write: ["runtime/pipeline/**", "runtime/scheduler/**", "runtime/core/**", "lib/core/**", "lib/orchestrator/**", "tests/pipeline/**", "tests/runtime/**"]}
+  - {id: SA-DATA-06, role: data_contract_artifact_store_provenance, write: ["include/astrocs/contracts/**", "contracts/data/**", "runtime/artifact_store/**", "lib/common/**", "tests/artifact/**", "docs/interfaces/data/**"]}
+  - {id: SA-IO-07, role: fits_hips_manifest_stream_io, write: ["runtime/io/**", "lib/io/**", "lib/astro_image_io/**", "lib/healpix_db/**", "modules/services/io/**", "tests/io/**", "docs/interfaces/io/**"]}
+  - {id: SA-LOG-08, role: structured_log_metrics_runtime_graph, write: ["runtime/logging/**", "runtime/monitoring/**", "tools/monitoring/**", "tools/graph/**", "tests/monitoring/**", "docs/architecture/observability/**"]}
+  - {id: SA-CPU-09, role: cpu_detect_dispatch_benchmark_profile, write: ["providers/cpu/common/**", "lib/backend_host/**", "apps/cli/src/*benchmark*", "contracts/config/cpu_profile*.schema.json", "tests/cpu/dispatch/**", "docs/architecture/cpu/**"]}
+  - {id: SA-CPU-B10, role: baseline_provider, write: ["providers/cpu/baseline/**", "tests/cpu/baseline/**"]}
+  - {id: SA-CPU-A11, role: avx2_fma_provider, write: ["providers/cpu/avx2/**", "tests/cpu/avx2/**"]}
+  - {id: SA-CPU-X12, role: avx512_provider, write: ["providers/cpu/avx512/**", "tests/cpu/avx512/**"]}
+  - {id: SA-ACR-13, role: acr_dormancy_guard, write: ["lib/acr/**", "docs/archive/acr/**", "tests/build/acr_off/**"]}
+  - {id: SA-P1-C14, role: p1_calibration_cosmetic, write: ["modules/phase1/calibration/**", "modules/phase1/cosmetic/**", "lib/calibration/**"]}
+  - {id: SA-P1-S15, role: p1_star_psf, write: ["modules/phase1/star_detection/**", "modules/phase1/psf/**", "lib/star_detector/**", "lib/dynamic_psf/**"]}
+  - {id: SA-P1-W16, role: p1_catalog_wcs_plate_solve, write: ["modules/phase1/wcs/**", "modules/services/catalog_gaia/**", "lib/gaia_xpsd_client/**", "lib/plate_solve/**", "lib/phase1/wcs/**"]}
+  - {id: SA-P1-N17, role: p1_photometry_noise_snr, write: ["modules/phase1/photometry/**", "modules/phase1/noise/**", "lib/photometric_calib/**", "lib/snr_estimator/**", "lib/phase1/noise/**"]}
+  - {id: SA-P1-D18, role: p1_drizzle_hips_writer, write: ["modules/phase1/drizzle/**", "modules/phase1/hips_writer/**", "lib/phase1/drizzle/**"]}
+  - {id: SA-P1-R19, role: phase1_assembly_only, write: ["modules/phase1/session/**", "lib/phase1_session/**", "contracts/pipeline/phase1*.json", "tests/integration/phase1/**"]}
+  - {id: SA-P2-S20, role: p2_coverage_sampling, write: ["modules/phase2/coverage/**", "modules/phase2/sampling/**", "lib/phase2/src/*coverage*", "lib/phase2/src/*sample*"]}
+  - {id: SA-P2-U21, role: p2_upm_fit_apply_persist, write: ["modules/phase2/upm/**", "lib/phase2/src/*upm*"]}
+  - {id: SA-P2-R22, role: p2_rejection, write: ["modules/phase2/rejection/**", "lib/phase2/src/*reject*"]}
+  - {id: SA-P2-I23, role: p2_integration_hips_writer, write: ["modules/phase2/integration/**", "modules/phase2/hips_writer/**", "lib/phase2/src/*integrat*", "lib/phase2/src/*write*"]}
+  - {id: SA-P2-X24, role: phase2_assembly_only, write: ["modules/phase2/session/**", "lib/phase2_session/**", "contracts/pipeline/phase2*.json", "tests/integration/phase2/**"]}
+  - {id: SA-P3-P25, role: p3_projection_wcs, write: ["modules/phase3/projection/**", "lib/phase3_session/src/*projection*", "docs/science/phase3/**", "docs/algorithms/phase3_projection*", "tests/phase3/projection/**"]}
+  - {id: SA-P3-S26, role: p3_healpix_resample_coverage, write: ["modules/phase3/resample/**", "lib/phase3_session/src/*sampl*", "docs/algorithms/phase3_resample*", "tests/phase3/resample/**"]}
+  - {id: SA-P3-F27, role: p3_streaming_fits, write: ["modules/phase3/fits_writer/**", "lib/phase3_session/src/*fits*", "tests/phase3/fits/**"]}
+  - {id: SA-P3-X28, role: phase3_assembly_only, write: ["modules/phase3/session/**", "lib/phase3_session/**", "contracts/pipeline/phase3*.json", "tests/integration/phase3/**"]}
+  - {id: SA-QA-29, role: machine_traceability_static_quality, write: ["tools/traceability/**", "tools/doccheck/**", "tools/quality/**", "tests/conformance/**", "docs/generated/**", "contracts/traceability/**"]}
+  - {id: SA-WIN-30, role: windows_build_realdata_resource_evidence, write: ["$WORK/reports/windows/**", "$WORK/install/windows/**"], source_read_only: true}
+  - {id: SA-PKG-31, role: source_release_audit_packaging, write: ["tools/packaging/**", "packaging/**", "$WORK/audit/**", "$WORK/reports/packaging/**"]}
+global_forbidden_globs:
+  - ".git/**"
+  - "testdata/**"
+  - "build/**"
+  - "**/*.fits"
+  - "**/Norder*/**"
+  - "**/*.zip"
+  - "**/*.tar.gz"
+owner_transfer:
+  allowed_only_if: foreground_records_reason_and_new_scope_then_independent_auditor_reviews
