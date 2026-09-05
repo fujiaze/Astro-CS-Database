@@ -1,0 +1,17 @@
+{
+  "schema_version": "v8.1",
+  "round": "V8.1_EXISTING_WORKSPACE_CI",
+  "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
+  "updated_utc": "2026-09-05T09:54:20Z",
+  "main_sha": "a4fdee3f446de08cda50889a223740237b2da4a0",
+  "tasks": {
+    "V81-ADOPT-001": {
+      "status": "CLOSED",
+      "owner": "FG-000",
+      "commit": "a4fdee3f446de08cda50889a223740237b2da4a0",
+      "pushed": true,
+      "closed_utc": "2026-09-05T09:54:20Z",
+      "evidence": "evidence/v8_1_ci_control/adoption/"
+    }
+  }
+}

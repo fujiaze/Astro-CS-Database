@@ -1,0 +1,37 @@
+{
+  "task_id": "V81-ADOPT-002",
+  "owner": "SA-ADOPT-31",
+  "generated_utc": "2026-09-05T10:06:00Z",
+  "acceptance_command": "python3 ci/verify_workspace_adoption.py --repo-root-from-git --preserve-dirty",
+  "acceptance_exit_code": 0,
+  "acceptance_result": "PASS",
+  "checks_total": 15,
+  "checks_passed": 15,
+  "checks_failed": 0,
+  "check_details": [
+    {"name": "仓库根发现 (git rev-parse --show-toplevel)", "result": "PASS", "detail": "/workspace/Astro CS Database"},
+    {"name": "证据文件存在: PREEXISTING_CHANGES.md", "result": "PASS", "detail": "evidence/v8_1_ci_control/adoption/PREEXISTING_CHANGES.md"},
+    {"name": "证据文件存在: REMOTE_RELATION.json", "result": "PASS", "detail": "evidence/v8_1_ci_control/adoption/REMOTE_RELATION.json"},
+    {"name": "PREEXISTING_CHANGES.md 关键字段 (task_id/owner/tracked 删除路径)", "result": "PASS", "detail": "3/3 命中"},
+    {"name": "REMOTE_RELATION.json JSON object 解析", "result": "PASS", "detail": "json.loads OK"},
+    {"name": "REMOTE_RELATION.json 字符串字段齐备", "result": "PASS", "detail": "11 项 required 字段全部为非空字符串"},
+    {"name": "REMOTE_RELATION.json 整数字段齐备", "result": "PASS", "detail": "ahead/behind/fetch_exit_code"},
+    {"name": "HEAD == main == origin/main", "result": "PASS", "detail": "a4fdee3f446de08cda50889a223740237b2da4a0"},
+    {"name": "实测 ahead/behind (git rev-list --left-right --count HEAD...origin/main)", "result": "PASS", "detail": "0/0"},
+    {"name": "REMOTE_RELATION.ahead 与实测一致", "result": "PASS", "detail": "0 == 0"},
+    {"name": "REMOTE_RELATION.behind 与实测一致", "result": "PASS", "detail": "0 == 0"},
+    {"name": "REMOTE_RELATION SHA 字段与实测一致", "result": "PASS", "detail": "head_sha/local_main_sha/origin_main_sha 全一致"},
+    {"name": "relation 分类正确", "result": "PASS", "detail": "SYNCED (ahead==0 and behind==0)"},
+    {"name": "脚本语法自检 (ast.parse)", "result": "PASS", "detail": "AST_OK"},
+    {"name": "缺参负向测试", "result": "PASS", "detail": "exit 2（预期非零）"}
+  ],
+  "negative_tests": [
+    {"command": "python3 ci/verify_workspace_adoption.py（缺 --repo-root-from-git --preserve-dirty）", "expected": "非零退出", "actual_exit_code": 2, "result": "PASS"}
+  ],
+  "script_side_effects": "none（脚本仅调用只读 git 命令并打印，无任何文件写入/删除/移动）",
+  "post_task_baseline": {
+    "tracked_modified_entries": "1 (dist/audit/AstroCS_V6_1_AUDIT_20260902T042239Z_faad602da555.zip 删除，与任务前一致)",
+    "new_untracked_vs_preset": "仅 ci/（本任务验收脚本目录）",
+    "evidence": "evidence/v8_1_ci_control/tasks/V81-ADOPT-002/logs/status_porcelain_v2_after_task.txt"
+  }
+}

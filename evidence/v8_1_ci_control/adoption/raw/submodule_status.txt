@@ -1,0 +1,3 @@
+== cmd: git submodule status ==
+致命错误：在 .gitmodules 中没有发现路径 'AstroCS.wiki' 的子模组映射
+== exit=128 ==

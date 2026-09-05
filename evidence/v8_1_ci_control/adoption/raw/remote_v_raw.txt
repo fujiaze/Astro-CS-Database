@@ -1,0 +1,4 @@
+== cmd: git remote -v ==
+origin	https://github.com/fujiaze/Astro-CS-Database.git (fetch)
+origin	https://github.com/fujiaze/Astro-CS-Database.git (push)
+== exit=0 ==
