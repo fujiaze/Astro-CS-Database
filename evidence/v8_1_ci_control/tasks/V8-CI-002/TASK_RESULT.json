@@ -1,0 +1,39 @@
+{
+  "task_id": "V8-CI-002",
+  "owner": "SA-CI-32",
+  "status": "RETURNED",
+  "attempt": 3,
+  "base_sha": "0acfb5141a9b92bff5f04e1bb3b296fca88a66b0",
+  "deliverables": [
+    "ci/tests/test_runner_selection.py",
+    "ci/tests/test_runner_execution.py",
+    "ci/tests/test_runner_contract.py",
+    "ci/tests/_helpers.py (增量：新增 write_ci_result_schema()，不改任何既有签名)"
+  ],
+  "verification": {
+    "unittest_cmd": "PYTHONDONTWRITEBYTECODE=1 timeout 900 python3 -m unittest discover -s ci/tests -p \"test_*.py\" -v",
+    "unittest_exit": 0,
+    "tests_ran": 29,
+    "tests_ok": true,
+    "plan_only_cmd": "timeout 120 python3 ci/run.py --profile fast --plan-only",
+    "plan_only_exit": 0,
+    "plan_only_selected": 57,
+    "git_status_scope": "仅 ci/tests/** 新增（改动均未跟踪文件）；预存在 dist/audit 删除与 WRITE_LEASE.json 修改未触碰"
+  },
+  "scenario_coverage": {
+    "1_profile_plan_only": "test_runner_selection.TestProfileSelection (3)",
+    "2_check_override_unknown": "test_runner_selection.TestExplicitCheck (2)",
+    "3_registry_invalid": "test_runner_selection.TestRegistryValidation (2)",
+    "4_pass_path_ci_result_structure": "test_runner_execution.TestPassPath (1)",
+    "5_fail_path": "test_runner_execution.TestFailPath (1)",
+    "6_timeout": "test_runner_execution.TestTimeout (1)",
+    "7_signal": "test_runner_execution.TestSignal (1)",
+    "8_dirty_vs_mutates": "test_runner_execution.TestWorkspacePurity (3)",
+    "9_log_capture": "test_runner_execution.TestLogCapture (1)",
+    "10_empty_selection": "test_runner_selection.TestEmptySelection (2)",
+    "11_changed_from_impact_map": "test_runner_selection.TestChangedFromImpactMap (2)",
+    "12_focus": "test_runner_selection.TestFocusFilter (2)",
+    "13_known_failures": "test_runner_contract.TestKnownFailuresBaseline + TestKnownFailuresSignature + TestNoBaselineFile (8)"
+  },
+  "notes": "13 场景类别全覆盖，29 个测试方法全部通过（exit 0）。测试仅在 tempfile.TemporaryDirectory fixture 仓库运行，未触碰主仓库受保护文件。fixture 布局差异备注：(a) registry/impact_map/known_failures 经 --registry/--impact-map/--known-failures 注入或写在 fixture repo 内；(b) 执行模式测试调用 _helpers.write_ci_result_schema() 复制主仓库 ci/ci_result.schema.json 到 fixture（runner 在 write_outputs 前从 <repo>/ci/ci_result.schema.json 加载，run.py:1049）；(c) 已知失败基线经 --known-failures 注入，条目含 check_id/owner/reproducer/source_sha/expiry/reason。基线合同以源码为准：结构非法条目记入 known_failures.invalid（条目被丢弃）使 verdict=FAIL 而非 runner 错误；JSON 语法坏为 RunnerError exit 2；signature 不一致降级 FAIL。"
+}

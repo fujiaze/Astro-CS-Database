@@ -2,8 +2,8 @@
   "schema_version": "v8.1",
   "round": "V8.1_EXISTING_WORKSPACE_CI",
   "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
-  "updated_utc": "2026-09-05T12:07:19Z",
-  "main_sha": "b4f923ccbcde51e1a9112aba04815351169091c7",
+  "updated_utc": "2026-09-05T16:44:17Z",
+  "main_sha": "0acfb5141a9b92bff5f04e1bb3b296fca88a66b0",
   "reconciled_by": {
     "task_id": "V81-ADOPT-003",
     "owner": "SA-ADOPT-31"
@@ -2388,6 +2388,15 @@
       "closed_utc": "2026-09-05T12:07:19Z",
       "evidence": "evidence/v8_1_ci_control/tasks/V81-ADOPT-006/",
       "summary": "版本统一 alpha.2（16 文件+check_version.py+11 用例）；前台集成协调项：冻结约束 AstroCS_ENGINEERING_CONSTRAINTS.md target_main_version/§A.1 两行版本号同步 alpha.2（控制包 V8.1 目标版本授权，已留痕），GOV-003 由 FAIL 转 PASS"
+    },
+    "V8-CI-001": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "0acfb5141a9b92bff5f04e1bb3b296fca88a66b0",
+      "pushed": true,
+      "closed_utc": "2026-09-05T13:00:50Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-001/",
+      "summary": "检查器与测试资产盘点注册 registry 70 项（fast 57/linux-main 70/windows-main 58）+ validate_registry 6 负向拦截 + INVENTORY_REPORT；条目于 V8-CI-002 集成时补登"
     }
   },
   "adopt_seed_tasks": {

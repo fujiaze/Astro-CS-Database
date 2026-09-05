@@ -1,0 +1,39 @@
+test_exact_match_is_known_fail_overall_fail (test_runner_contract.TestKnownFailuresBaseline.test_exact_match_is_known_fail_overall_fail) ... ok
+test_expired_entry_keeps_fail (test_runner_contract.TestKnownFailuresBaseline.test_expired_entry_keeps_fail)
+基线条目已过期 → expired 记录、检查维持 FAIL。 ... ok
+test_malformed_json_baseline_is_runner_error (test_runner_contract.TestKnownFailuresBaseline.test_malformed_json_baseline_is_runner_error)
+基线文件 JSON 语法坏 → RunnerError → exit 2（runner 配置错误）。 ... ok
+test_registered_but_not_occurring_fails (test_runner_contract.TestKnownFailuresBaseline.test_registered_but_not_occurring_fails)
+基线登记一条未发生的失败（检查实际 PASS）→ expired 非空 → verdict FAIL。 ... ok
+test_structure_invalid_baseline_fails (test_runner_contract.TestKnownFailuresBaseline.test_structure_invalid_baseline_fails)
+基线结构非法（缺必填字段 / source_sha 非法）→ known_failures.invalid → FAIL。 ... ok
+test_unmatched_failure_counts_as_new (test_runner_contract.TestKnownFailuresBaseline.test_unmatched_failure_counts_as_new)
+失败检查未登记基线 → new_failures、verdict FAIL（fail>=1）。 ... ok
+test_signature_mismatch_downgrades_to_fail (test_runner_contract.TestKnownFailuresSignature.test_signature_mismatch_downgrades_to_fail) ... ok
+test_missing_baseline_file_skips_baseline_logic (test_runner_contract.TestNoBaselineFile.test_missing_baseline_file_skips_baseline_logic) ... ok
+test_nonzero_exit_fails (test_runner_execution.TestFailPath.test_nonzero_exit_fails) ... ok
+test_stderr_captured_into_log_file (test_runner_execution.TestLogCapture.test_stderr_captured_into_log_file) ... ok
+test_pass_verdict_and_ci_result_structure (test_runner_execution.TestPassPath.test_pass_verdict_and_ci_result_structure) ... ok
+test_sigterm_yields_signal_verdict (test_runner_execution.TestSignal.test_sigterm_yields_signal_verdict) ... ok
+test_timeout_kills_process (test_runner_execution.TestTimeout.test_timeout_kills_process) ... ok
+test_clean_check_passes_untouched_workspace (test_runner_execution.TestWorkspacePurity.test_clean_check_passes_untouched_workspace) ... ok
+test_dirty_violation_for_non_mutating_check (test_runner_execution.TestWorkspacePurity.test_dirty_violation_for_non_mutating_check) ... ok
+test_mutating_check_exempt_from_dirty (test_runner_execution.TestWorkspacePurity.test_mutating_check_exempt_from_dirty) ... ok
+test_changed_from_maps_modified_path (test_runner_selection.TestChangedFromImpactMap.test_changed_from_maps_modified_path) ... ok
+test_changed_from_unmapped_path_empty_fails (test_runner_selection.TestChangedFromImpactMap.test_changed_from_unmapped_path_empty_fails) ... ok
+test_empty_fast_selection_fails (test_runner_selection.TestEmptySelection.test_empty_fast_selection_fails) ... ok
+test_fatduck_empty_profile_pending (test_runner_selection.TestEmptySelection.test_fatduck_empty_profile_pending) ... ok
+test_check_flag_overrides_profile (test_runner_selection.TestExplicitCheck.test_check_flag_overrides_profile) ... ok
+test_check_unknown_id_returns_runner_error (test_runner_selection.TestExplicitCheck.test_check_unknown_id_returns_runner_error) ... ok
+test_focus_by_check_id (test_runner_selection.TestFocusFilter.test_focus_by_check_id) ... ok
+test_focus_by_path_prefix (test_runner_selection.TestFocusFilter.test_focus_by_path_prefix) ... ok
+test_plan_only_does_not_execute (test_runner_selection.TestProfileSelection.test_plan_only_does_not_execute) ... ok
+test_plan_only_selects_profile_subset (test_runner_selection.TestProfileSelection.test_plan_only_selects_profile_subset) ... ok
+test_profile_execution_runs_only_selected (test_runner_selection.TestProfileSelection.test_profile_execution_runs_only_selected) ... ok
+test_registry_empty_checks_list (test_runner_selection.TestRegistryValidation.test_registry_empty_checks_list) ... ok
+test_registry_missing_required_field (test_runner_selection.TestRegistryValidation.test_registry_missing_required_field) ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 3.518s
+
+OK

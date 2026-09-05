@@ -1,0 +1,821 @@
+diff --git a/ci/tests/_helpers.py b/ci/tests/_helpers.py
+new file mode 100644
+index 00000000..c1a01a13
+--- /dev/null
++++ b/ci/tests/_helpers.py
+@@ -0,0 +1,102 @@
++# -*- coding: utf-8 -*-
++"""V8-CI-002 单测共享 fixture 工具（owner=SA-CI-32）。
++
++所有测试在 tempfile 临时目录中构建独立 git 仓库并注入小型 checks fixture，
++绝不写主工作区 tracked 文件；所有外部命令均带 timeout。
++"""
++from __future__ import annotations
++
++import json
++import subprocess
++import sys
++from pathlib import Path
++
++REPO = Path(__file__).resolve().parents[2]   # 主仓库根（只读引用）
++RUNNER = REPO / "ci" / "run.py"
++
++
++def sh(argv: list[str], cwd: Path, timeout: float = 60) -> subprocess.CompletedProcess:
++    """运行外部命令（统一 timeout，纪律要求）。"""
++    return subprocess.run(argv, cwd=str(cwd), capture_output=True, text=True, timeout=timeout)
++
++
++def make_repo(root: Path) -> Path:
++    """在临时目录构建最小 git 仓库（main 分支，两个 tracked 文件，一次初始提交）。"""
++    root.mkdir(parents=True, exist_ok=True)
++    sh(["git", "init", "-q", "-b", "main"], cwd=root)
++    sh(["git", "config", "user.email", "ci-test@astrocs.invalid"], cwd=root)
++    sh(["git", "config", "user.name", "CI Fixture"], cwd=root)
++    (root / "A.txt").write_text("A\n", encoding="utf-8")
++    (root / "B.txt").write_text("B\n", encoding="utf-8")
++    sh(["git", "add", "-A"], cwd=root)
++    sh(["git", "commit", "-q", "-m", "init"], cwd=root)
++    return root
++
++
++def write_registry(repo: Path, checks: list[dict], *, with_schema: bool = False) -> Path:
++    """向 fixture 仓库写入 ci/checks.json（可选复制主仓库 registry schema 副本）。"""
++    reg_dir = repo / "ci"
++    reg_dir.mkdir(parents=True, exist_ok=True)
++    path = reg_dir / "checks.json"
++    path.write_text(
++        json.dumps({"schema_version": 1, "checks": checks}, ensure_ascii=False, indent=1),
++        encoding="utf-8",
++    )
++    if with_schema:
++        src = REPO / "ci" / "checks.schema.json"
++        if src.is_file():
++            (reg_dir / "checks.schema.json").write_text(src.read_text(encoding="utf-8"),
++                                                        encoding="utf-8")
++    return path
++
++
++def check(**overrides) -> dict:
++    """构造一个合法的最小检查条目（字段集与控制包 checks.schema.json 对齐）。"""
++    base = {
++        "id": "T-OK",
++        "profiles": ["fast"],
++        "platform": "any",
++        "command": ["python3", "-c", "print('ok')"],
++        "timeout_seconds": 30,
++        "heavy": False,
++        "mutates_workspace": False,
++        "outputs": [],
++        "waivable": False,
++        "changed_paths": [],
++        "requires_monitor": False,
++    }
++    base.update(overrides)
++    return base
++
++
++def run_runner(args: list[str], repo: Path, timeout: float = 150) -> subprocess.CompletedProcess:
++    """调用 ci/run.py（--repo-root 指向 fixture 仓库）。"""
++    return sh([sys.executable, str(RUNNER), "--repo-root", str(repo), *args],
++              cwd=repo, timeout=timeout)
++
++
++def write_ci_result_schema(repo: Path) -> Path:
++    """向 fixture 仓库复制主仓库 ci/ci_result.schema.json。
++
++    runner 在 write_outputs 前从 <repo>/ci/ci_result.schema.json 加载结果 schema
++    自校验（run.py:1049），fixture 仓库必须带副本；执行模式测试统一调用。
++    （V8-CI-002 attempt3 最小扩展：新增函数，不改任何既有签名。）
++    """
++    reg_dir = repo / "ci"
++    reg_dir.mkdir(parents=True, exist_ok=True)
++    dst = reg_dir / "ci_result.schema.json"
++    dst.write_text((REPO / "ci" / "ci_result.schema.json").read_text(encoding="utf-8"),
++                   encoding="utf-8")
++    return dst
++
++
++def load_json(path: Path) -> dict:
++    return json.loads(Path(path).read_text(encoding="utf-8"))
++
++
++def load_check_result(out_root: Path, check_id: str) -> dict:
++    return load_json(Path(out_root) / "checks" / f"{check_id}.json")
++
++
++def load_ci_result(out_root: Path) -> dict:
++    return load_json(Path(out_root) / "CI_RESULT.json")
+diff --git a/ci/tests/test_runner_contract.py b/ci/tests/test_runner_contract.py
+new file mode 100644
+index 00000000..f76d7e8a
+--- /dev/null
++++ b/ci/tests/test_runner_contract.py
+@@ -0,0 +1,205 @@
++# -*- coding: utf-8 -*-
++"""V8-CI-002 单测：known_failures 基线合同（07 合同）。
++
++对应场景 13：精确匹配 → KNOWN_FAIL（总 verdict 仍 FAIL、计数分离）；
++过期条目 → FAIL；结构非法 → FAIL（内部校验），JSON 语法坏 → RunnerError exit 2。
++匹配键以源码为准：check_id 精确相等 + expiry 未过期（signature 缺省不参与匹配）。
++"""
++from __future__ import annotations
++
++import json
++import sys
++import tempfile
++import unittest
++from pathlib import Path
++
++_REPO = Path(__file__).resolve().parents[2]
++if str(_REPO) not in sys.path:
++    sys.path.insert(0, str(_REPO))
++
++from ci.tests import _helpers as H  # noqa: E402
++
++SHA40 = "a" * 40
++FAIL_CMD = ["python3", "-c", "raise SystemExit(7)"]
++# 未来时间戳：绕开时钟偏移；过期测试用明确的过去时间戳
++FAR_FUTURE = "2999-01-01T00:00:00Z"
++PAST = "2000-01-01T00:00:00Z"
++
++
++def kf_entry(**overrides) -> dict:
++    base = {
++        "check_id": "CHK-KF",
++        "owner": "SA-CI-32",
++        "reproducer": "ci/tests/test_runner_contract.py",
++        "source_sha": SHA40,
++        "expiry": FAR_FUTURE,
++        "reason": "单元测试已知失败（fixture）",
++    }
++    base.update(overrides)
++    return base
++
++
++def run_with_baseline(repo: Path, out_root: Path, baseline: dict | list | str,
++                      arg_name: str = "--known-failures"):
++    """写基线文件并执行 runner（exit 码透传）。"""
++    H.write_ci_result_schema(repo)
++    kf = repo / "ci" / "kf_fixture.json"
++    if isinstance(baseline, str):
++        kf.write_text(baseline, encoding="utf-8")  # 语法非法
++    else:
++        kf.write_text(json.dumps(baseline, ensure_ascii=False, indent=1),
++                      encoding="utf-8")
++    return H.run_runner(["--profile", "fast", arg_name, str(kf),
++                         "--output-root", str(out_root)], repo)
++
++
++class TestKnownFailuresBaseline(unittest.TestCase):
++    """known_failures 精确匹配 / 过期 / 结构非法 / JSON 语法坏。"""
++
++    def test_exact_match_is_known_fail_overall_fail(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-KF", command=FAIL_CMD)])
++            proc = run_with_baseline(repo, out_root, [kf_entry()])
++            self.assertEqual(proc.returncode, 1, f"KNOWN_FAIL 总 verdict 仍 FAIL：{proc.stderr}")
++            per = H.load_check_result(out_root, "CHK-KF")
++            self.assertEqual(per["verdict"], "KNOWN_FAIL")
++            self.assertEqual(per["exit_code"], 7)
++            self.assertEqual(per["known_failure"]["owner"], "SA-CI-32")
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")          # 总 verdict 不放行
++            self.assertEqual(ci["summary"]["known_fail"], 1)  # 计数分离
++            self.assertEqual(ci["summary"]["fail"], 0)
++            self.assertNotIn("FAIL", ci["summary"]["fail_detail"])
++            self.assertEqual(ci["known_failures"]["matched"], ["CHK-KF"])
++            self.assertEqual(ci["known_failures"]["new_failures"], [])
++
++    def test_unmatched_failure_counts_as_new(self):
++        """失败检查未登记基线 → new_failures、verdict FAIL（fail>=1）。"""
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-NEW", command=FAIL_CMD)])
++            proc = run_with_baseline(repo, out_root, [kf_entry(check_id="CHK-OTHER")])
++            self.assertEqual(proc.returncode, 1, proc.stderr)
++            per = H.load_check_result(out_root, "CHK-NEW")
++            self.assertEqual(per["verdict"], "FAIL")
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")
++            self.assertEqual(ci["summary"]["fail"], 1)
++            self.assertEqual(ci["known_failures"]["new_failures"], ["CHK-NEW"])
++            self.assertEqual(ci["known_failures"]["matched"], [])
++
++    def test_expired_entry_keeps_fail(self):
++        """基线条目已过期 → expired 记录、检查维持 FAIL。"""
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-KF", command=FAIL_CMD)])
++            proc = run_with_baseline(repo, out_root, [kf_entry(expiry=PAST)])
++            self.assertEqual(proc.returncode, 1, proc.stderr)
++            per = H.load_check_result(out_root, "CHK-KF")
++            self.assertEqual(per["verdict"], "FAIL")
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")
++            self.assertEqual(ci["summary"]["fail"], 1)
++            self.assertEqual(ci["summary"]["known_fail"], 0)
++            self.assertEqual(ci["known_failures"]["expired"][0]["check_id"], "CHK-KF")
++
++    def test_registered_but_not_occurring_fails(self):
++        """基线登记一条未发生的失败（检查实际 PASS）→ expired 非空 → verdict FAIL。
++
++        源码实现：expired 条目无论检查结果如何都使总 verdict=FAIL（build_ci_result
++        对 known_summary.expired 非空即 FAIL）。
++        """
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-OK", command=["python3", "-c", "print('ok')"])])
++            proc = run_with_baseline(repo, out_root, [kf_entry(check_id="CHK-GHOST", expiry=PAST)])
++            self.assertEqual(proc.returncode, 1, f"过期基线必须 FAIL：{proc.stderr}")
++            per = H.load_check_result(out_root, "CHK-OK")
++            self.assertEqual(per["verdict"], "PASS")  # 检查本身 PASS
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")   # 基线过期拖垮整体
++            self.assertEqual(ci["known_failures"]["expired"][0]["check_id"], "CHK-GHOST")
++
++    def test_structure_invalid_baseline_fails(self):
++        """基线结构非法（缺必填字段 / source_sha 非法）→ known_failures.invalid → FAIL。
++
++        源码实现：结构错误条目被丢弃，但 invalid 非空使总 verdict=FAIL。
++        """
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-OK", command=["python3", "-c", "print('ok')"])])
++            bad = kf_entry()  # 缺 reason
++            bad.pop("reason")
++            proc = run_with_baseline(repo, out_root, [bad])
++            self.assertEqual(proc.returncode, 1, f"结构非法基线必须 FAIL：{proc.stderr}")
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")
++            self.assertEqual(ci["summary"]["pass"], 1)
++            self.assertTrue(ci["known_failures"]["invalid"], "invalid 列表应记录结构错误")
++            # 条目被丢弃 → 检查自身 PASS；仅 invalid 拖垮整体
++            self.assertEqual(H.load_check_result(out_root, "CHK-OK")["verdict"], "PASS")
++
++    def test_malformed_json_baseline_is_runner_error(self):
++        """基线文件 JSON 语法坏 → RunnerError → exit 2（runner 配置错误）。"""
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-OK", command=["python3", "-c", "print('ok')"])])
++            proc = run_with_baseline(repo, out_root, "{not-valid-json")
++            self.assertEqual(proc.returncode, 2, f"JSON 语法坏应为 exit 2：{proc.stderr}")
++            self.assertTrue(proc.stderr.strip())
++
++
++class TestKnownFailuresSignature(unittest.TestCase):
++    """签名变化：基线登记 signature 与实际日志不一致 → 判回 FAIL（signature_changed）。"""
++
++    def test_signature_mismatch_downgrades_to_fail(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-SIG", command=FAIL_CMD)])
++            proc = run_with_baseline(repo, out_root, [kf_entry(check_id="CHK-SIG",
++                                                       signature="deadbeefdeadbeef")])
++            self.assertEqual(proc.returncode, 1, proc.stderr)
++            per = H.load_check_result(out_root, "CHK-SIG")
++            self.assertEqual(per["verdict"], "FAIL")  # KNOWN_FAIL 被降级
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")
++            self.assertIn("CHK-SIG", ci["known_failures"]["signature_changed"])
++            self.assertEqual(ci["summary"]["fail"], 1)
++            self.assertEqual(ci["summary"]["known_fail"], 0)
++
++
++class TestNoBaselineFile(unittest.TestCase):
++    """无基线文件：known_failures 逻辑整体跳过（enabled=false），不拖累 verdict。"""
++
++    def test_missing_baseline_file_skips_baseline_logic(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="FAIL-NAKED", command=FAIL_CMD)])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 1, proc.stderr)
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")
++            self.assertFalse(ci["known_failures"]["enabled"])
++            self.assertEqual(ci["known_failures"]["baseline_path"], None)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/ci/tests/test_runner_execution.py b/ci/tests/test_runner_execution.py
+new file mode 100644
+index 00000000..41acf10e
+--- /dev/null
++++ b/ci/tests/test_runner_execution.py
+@@ -0,0 +1,235 @@
++# -*- coding: utf-8 -*-
++"""V8-CI-002 单测：单检查执行语义（PASS / FAIL / TIMEOUT / SIGNAL / dirty / 日志捕获）。
++
++对应场景：4 PASS 路径 + CI_RESULT schema 结构、5 FAIL 路径、6 TIMEOUT、
++7 SIGNAL、8 工作区纯净性（dirty 检查与 mutates_workspace 对照）、9 日志捕获。
++"""
++from __future__ import annotations
++
++import sys
++import tempfile
++import unittest
++from pathlib import Path
++
++_REPO = Path(__file__).resolve().parents[2]
++if str(_REPO) not in sys.path:
++    sys.path.insert(0, str(_REPO))
++
++from ci.tests import _helpers as H  # noqa: E402
++
++
++class TestPassPath(unittest.TestCase):
++    """场景 4：命令 exit 0 → PASS；CI_RESULT.json 满足 ci_result.schema.json 结构。"""
++
++    def test_pass_verdict_and_ci_result_structure(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-PASS",
++                                            command=["python3", "-c", "print('ok')"])])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++
++            per = H.load_check_result(out_root, "CHK-PASS")
++            self.assertEqual(per["verdict"], "PASS")
++            self.assertEqual(per["exit_code"], 0)
++            self.assertIsNone(per["signal"])
++            self.assertFalse(per["timed_out"])
++            self.assertIsInstance(per["duration_seconds"], (int, float))
++            self.assertTrue(per["started_utc"].endswith("Z"))
++
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "PASS")
++            self.assertEqual(ci["summary"]["pass"], 1)
++            self.assertEqual(ci["summary"]["fail"], 0)
++            self.assertEqual(ci["summary"]["known_fail"], 0)
++            # 结构断言对齐 ci/ci_result.schema.json（不 import jsonschema）
++            self.assertEqual(ci["schema_version"], 1)
++            self.assertIn(ci["profile"], ("fast", "linux-main", "linux-deep",
++                                          "windows-main", "fatduck"))
++            self.assertRegex(ci["source_sha"], r"^[0-9a-f]{40}$")
++            self.assertTrue(ci["started_utc"] and ci["finished_utc"])
++            self.assertIsInstance(ci["checks"], list)
++            for entry in ci["checks"]:
++                for key in ("id", "exit_code", "duration_seconds", "verdict"):
++                    self.assertIn(key, entry)
++            self.assertEqual(ci["checks"][0]["verdict"], "PASS")
++            self.assertEqual(ci["checks"][0]["id"], "CHK-PASS")
++            self.assertEqual(ci["source_sha"],
++                             H.sh(["git", "rev-parse", "HEAD"], cwd=repo).stdout.strip())
++
++
++class TestFailPath(unittest.TestCase):
++    """场景 5：命令 exit 3 → FAIL，CI 退出码 1，summary 计数分离。"""
++
++    def test_nonzero_exit_fails(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-FAIL3",
++                                            command=["python3", "-c", "raise SystemExit(3)"])])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 1, f"FAIL 必须 exit 1：{proc.stderr}")
++            per = H.load_check_result(out_root, "CHK-FAIL3")
++            self.assertEqual(per["verdict"], "FAIL")
++            self.assertEqual(per["exit_code"], 3)
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")
++            self.assertGreaterEqual(ci["summary"]["fail"], 1)
++            self.assertEqual(ci["summary"]["fail_detail"].get("FAIL"), 1)
++            self.assertEqual(ci["summary"]["pass"], 0)
++
++
++class TestTimeout(unittest.TestCase):
++    """场景 6：超过登记 timeout_seconds → TIMEOUT，CI 退出码 1（外层 150s 不触发）。"""
++
++    def test_timeout_kills_process(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-SLOW",
++                                            command=["python3", "-c", "import time; time.sleep(30)"],
++                                            timeout_seconds=1)])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 1, f"TIMEOUT 必须 exit 1：{proc.stderr}")
++            per = H.load_check_result(out_root, "CHK-SLOW")
++            self.assertEqual(per["verdict"], "TIMEOUT")
++            self.assertTrue(per["timed_out"])
++            self.assertLess(per["duration_seconds"], 20,
++                            "检查超时必须在登记 timeout 量级被终止，而非外层 timeout")
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")
++            self.assertEqual(ci["summary"]["fail_detail"].get("TIMEOUT"), 1)
++
++
++class TestSignal(unittest.TestCase):
++    """场景 7：进程被信号终止（SIGTERM）→ verdict SIGNAL。
++
++    run.py 实现：Popen 未 setpgid，子进程自杀 SIGTERM 后 returncode=-15；
++    -15 仅在非 timeout 路径判为 SIGNAL（源码 execute_check verdict 顺序）。
++    """
++
++    def test_sigterm_yields_signal_verdict(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            code = "import os, signal; os.kill(os.getpid(), signal.SIGTERM)"
++            H.write_registry(repo, [H.check(id="CHK-SIG",
++                                            command=["python3", "-c", code],
++                                            timeout_seconds=30)])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 1, f"SIGNAL 必须 exit 1：{proc.stderr}")
++            per = H.load_check_result(out_root, "CHK-SIG")
++            self.assertEqual(per["verdict"], "SIGNAL")
++            self.assertEqual(per["signal"], 15)
++            self.assertFalse(per["timed_out"])
++            self.assertEqual(per["exit_code"], -15)
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")
++            self.assertEqual(ci["summary"]["fail_detail"].get("SIGNAL"), 1)
++
++
++class TestWorkspacePurity(unittest.TestCase):
++    """场景 8：mutates_workspace=false 的检查产生未跟踪文件 → FAIL(dirty)；
++    mutates_workspace=true 同类命令不触发 dirty；纯净组保持 PASS。"""
++
++    CREATE = ["python3", "-c", "open('X.txt','w').write('x')"]
++
++    def test_dirty_violation_for_non_mutating_check(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-DIRTY", command=self.CREATE,
++                                            mutates_workspace=False)])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 1, f"dirty 必须 exit 1：{proc.stderr}")
++            per = H.load_check_result(out_root, "CHK-DIRTY")
++            self.assertEqual(per["verdict"], "FAIL(dirty)")
++            self.assertEqual(per["exit_code"], 0)  # 命令本身成功，违规在纯净性
++            self.assertTrue(per["dirty"]["checked"])
++            self.assertIn("X.txt", per["dirty"]["violations"])
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")
++            self.assertEqual(ci["summary"]["fail_detail"].get("FAIL(dirty)"), 1)
++
++    def test_mutating_check_exempt_from_dirty(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            # 单独一组：mutates_workspace=true 的同类命令不触发 dirty，verdict PASS
++            H.write_registry(repo, [H.check(id="CHK-MUT", command=self.CREATE,
++                                            mutates_workspace=True)])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++            per = H.load_check_result(out_root, "CHK-MUT")
++            self.assertEqual(per["verdict"], "PASS")
++            self.assertFalse(per["dirty"]["checked"])
++            self.assertEqual(per["dirty"]["violations"], [])
++            self.assertTrue((repo / "X.txt").is_file())
++
++    def test_clean_check_passes_untouched_workspace(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-CLEAN",
++                                            command=["python3", "-c", "print('clean')"],
++                                            mutates_workspace=False)])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++            per = H.load_check_result(out_root, "CHK-CLEAN")
++            self.assertEqual(per["verdict"], "PASS")
++            self.assertTrue(per["dirty"]["checked"])
++            self.assertEqual(per["dirty"]["violations"], [])
++
++
++class TestLogCapture(unittest.TestCase):
++    """场景 9：命令输出（含 stderr）捕获到 out_root/logs/<check-id>.log。
++
++    run.py 实现写 logs/<check-id>.log（zstd 附加 .log.zst 且保留原始 .log，
++    本机 zstd 探测已确认源文件保留）。
++    """
++
++    def test_stderr_captured_into_log_file(self):
++        marker = "boom-to-stderr-V8CI002"
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(
++                id="CHK-LOG",
++                command=["python3", "-c",
++                         f"import sys; print('out-line'); print({marker!r}, file=sys.stderr)"],
++            )])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++            per = H.load_check_result(out_root, "CHK-LOG")
++            self.assertEqual(per["verdict"], "PASS")
++            log_rel = per.get("log")
++            self.assertTrue(log_rel, "per-check 结果必须记录 log 路径")
++            log_abs = out_root / log_rel if not Path(log_rel).is_absolute() else Path(log_rel)
++            self.assertTrue(log_abs.is_file(), f"日志文件缺失：{log_abs}")
++            self.assertEqual(Path(log_rel).as_posix(), "logs/CHK-LOG.log")
++            text = log_abs.read_text(encoding="utf-8")
++            self.assertIn(marker, text)
++            self.assertIn("out-line", text)
++            self.assertIn("===== STDERR =====", text)
++            self.assertIn(marker, per["stderr_tail"])
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/ci/tests/test_runner_selection.py b/ci/tests/test_runner_selection.py
+new file mode 100644
+index 00000000..85c4811c
+--- /dev/null
++++ b/ci/tests/test_runner_selection.py
+@@ -0,0 +1,255 @@
++# -*- coding: utf-8 -*-
++"""V8-CI-002 单测：检查选择（profile / --check / --focus / --changed-from / plan-only / registry 校验）。
++
++对应场景：1 profile 选择与 plan-only、2 --check 显式指定、3 registry 非法 → exit 2、
++10 空集不 PASS（含 fatduck 例外）、11 --changed-from + impact_map、12 --focus。
++"""
++from __future__ import annotations
++
++import json
++import sys
++import tempfile
++import unittest
++from pathlib import Path
++
++_REPO = Path(__file__).resolve().parents[2]
++if str(_REPO) not in sys.path:
++    sys.path.insert(0, str(_REPO))
++
++from ci.tests import _helpers as H  # noqa: E402
++
++
++class TestProfileSelection(unittest.TestCase):
++    """场景 1：--profile 只选 profiles 含该 profile 的检查；--plan-only 只出清单不执行。"""
++
++    def test_plan_only_selects_profile_subset(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [
++                H.check(id="CHK-F", profiles=["fast"]),
++                H.check(id="CHK-L", profiles=["linux-deep"]),
++            ])
++            # fast → 只含 CHK-F
++            proc = H.run_runner(["--profile", "fast", "--plan-only",
++                                 "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++            plan = json.loads(proc.stdout)  # stdout 必须是可解析 JSON
++            self.assertEqual(plan["selected_count"], 1)
++            self.assertEqual([c["id"] for c in plan["checks"]], ["CHK-F"])
++            self.assertEqual(plan["profile"], "fast")
++            self.assertIn("CHK-F", proc.stdout)
++            # linux-deep → 只含 CHK-L
++            proc2 = H.run_runner(["--profile", "linux-deep", "--plan-only",
++                                  "--output-root", str(out_root)], repo)
++            self.assertEqual(proc2.returncode, 0, proc2.stderr)
++            plan2 = json.loads(proc2.stdout)
++            self.assertEqual([c["id"] for c in plan2["checks"]], ["CHK-L"])
++
++    def test_plan_only_does_not_execute(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-P")])
++            proc = H.run_runner(["--profile", "fast", "--plan-only",
++                                 "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++            self.assertFalse(out_root.exists(), "plan-only 不得创建 out_root")
++
++    def test_profile_execution_runs_only_selected(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [
++                H.check(id="CHK-F", profiles=["fast"]),
++                H.check(id="CHK-L", profiles=["linux-deep"]),
++            ])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "PASS")
++            self.assertEqual([c["id"] for c in ci["checks"]], ["CHK-F"])
++            self.assertEqual(ci["summary"]["total"], 1)
++
++
++class TestExplicitCheck(unittest.TestCase):
++    """场景 2：--check 优先于 profile；未知 id → exit 2。"""
++
++    def test_check_flag_overrides_profile(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [
++                H.check(id="CHK-A"),
++                H.check(id="CHK-B"),
++            ])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--check", "CHK-B",
++                                 "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++            ci = H.load_ci_result(out_root)
++            self.assertEqual([c["id"] for c in ci["checks"]], ["CHK-B"])
++            self.assertEqual(ci["summary"]["total"], 1)
++            self.assertEqual(H.load_check_result(out_root, "CHK-B")["verdict"], "PASS")
++
++    def test_check_unknown_id_returns_runner_error(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-A")])
++            proc = H.run_runner(["--check", "NO-SUCH-CHECK",
++                                 "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 2, f"未知 --check 应为 runner 错误 exit 2：{proc.stderr}")
++            self.assertTrue(proc.stderr.strip(), "RunnerError 信息应写入 stderr")
++
++
++class TestRegistryValidation(unittest.TestCase):
++    """场景 3：registry 非法（缺必填字段 / 空 checks）→ RunnerError → exit 2，而非 FAIL。"""
++
++    def test_registry_missing_required_field(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            bad = H.check(id="CHK-BAD")
++            bad.pop("timeout_seconds")  # 必填字段缺失
++            H.write_registry(repo, [bad])
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 2, f"缺字段应为 exit 2：{proc.stderr}")
++            self.assertTrue(proc.stderr.strip())
++            self.assertFalse((out_root / "CI_RESULT.json").exists(),
++                             "runner 错误路径不得产出 CI_RESULT.json")
++
++    def test_registry_empty_checks_list(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [])
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 2, f"空 checks 应为 exit 2：{proc.stderr}")
++            self.assertTrue(proc.stderr.strip())
++
++
++class TestEmptySelection(unittest.TestCase):
++    """场景 10：空集不 PASS；fatduck profile 空集例外 → FATDUCK_PENDING。"""
++
++    def test_empty_fast_selection_fails(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-D", profiles=["linux-deep"])])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 1, f"空集必须 FAIL exit 1：{proc.stderr}")
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FAIL")
++            self.assertIn("no_checks_selected", ci.get("verdict_reason", ""))
++            self.assertEqual(ci["summary"]["total"], 0)
++            self.assertEqual(ci["checks"], [])
++
++    def test_fatduck_empty_profile_pending(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-F", profiles=["fast"])])
++            H.write_ci_result_schema(repo)
++            proc = H.run_runner(["--profile", "fatduck", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, f"fatduck 空集应 FATDUCK_PENDING exit 0：{proc.stderr}")
++            ci = H.load_ci_result(out_root)
++            self.assertEqual(ci["verdict"], "FATDUCK_PENDING")
++
++
++class TestChangedFromImpactMap(unittest.TestCase):
++    """场景 11：--changed-from 经 ci/impact_map.json 过滤；未命中路径 → 空集 FAIL。"""
++
++    def _write_impact_map(self, repo: Path) -> None:
++        (repo / "ci" / "impact_map.json").write_text(json.dumps({
++            "rules": [
++                {"paths": ["A.txt"], "checks": ["CHK-A"]},
++                {"paths": ["B.txt"], "checks": ["CHK-B"]},
++            ],
++            "fallback": [],
++        }, ensure_ascii=False, indent=1), encoding="utf-8")
++
++    def test_changed_from_maps_modified_path(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-A"), H.check(id="CHK-B")])
++            self._write_impact_map(repo)
++            (repo / "A.txt").write_text("A-changed\n", encoding="utf-8")  # 工作区未提交修改
++            proc = H.run_runner(["--profile", "fast", "--changed-from", "HEAD",
++                                 "--plan-only", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++            plan = json.loads(proc.stdout)
++            self.assertEqual([c["id"] for c in plan["checks"]], ["CHK-A"])
++
++    def test_changed_from_unmapped_path_empty_fails(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, [H.check(id="CHK-A"), H.check(id="CHK-B")])
++            self._write_impact_map(repo)
++            (repo / "C.txt").write_text("unmapped\n", encoding="utf-8")  # 未命中任何 rule
++            # plan-only 侧：选中 0 项
++            proc = H.run_runner(["--profile", "fast", "--changed-from", "HEAD",
++                                 "--plan-only", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++            self.assertEqual(json.loads(proc.stdout)["selected_count"], 0)
++            # 执行侧：空集 → FAIL exit 1
++            out2 = root / "out2"
++            H.write_ci_result_schema(repo)
++            proc2 = H.run_runner(["--profile", "fast", "--changed-from", "HEAD",
++                                  "--output-root", str(out2)], repo)
++            self.assertEqual(proc2.returncode, 1, f"未命中路径空集应 FAIL exit 1：{proc2.stderr}")
++            ci = H.load_ci_result(out2)
++            self.assertEqual(ci["verdict"], "FAIL")
++            self.assertIn("no_checks_selected", ci.get("verdict_reason", ""))
++
++
++class TestFocusFilter(unittest.TestCase):
++    """场景 12：--focus 按检查 id 或路径前缀过滤。"""
++
++    REGISTRY = [
++        H.check(id="CHK-CLI", changed_paths=["src/cli/**"]),
++        H.check(id="CHK-DOC", changed_paths=["docs/**"]),
++    ]
++
++    def test_focus_by_check_id(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, self.REGISTRY)
++            proc = H.run_runner(["--profile", "fast", "--focus", "CHK-DOC",
++                                 "--plan-only", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++            plan = json.loads(proc.stdout)
++            self.assertEqual([c["id"] for c in plan["checks"]], ["CHK-DOC"])
++
++    def test_focus_by_path_prefix(self):
++        with tempfile.TemporaryDirectory() as td:
++            root = Path(td)
++            repo = H.make_repo(root / "repo")
++            out_root = root / "out"
++            H.write_registry(repo, self.REGISTRY)
++            proc = H.run_runner(["--profile", "fast", "--focus", "src/cli/foo.py",
++                                 "--plan-only", "--output-root", str(out_root)], repo)
++            self.assertEqual(proc.returncode, 0, proc.stderr)
++            plan = json.loads(proc.stdout)
++            self.assertEqual([c["id"] for c in plan["checks"]], ["CHK-CLI"])
++
++
++if __name__ == "__main__":
++    unittest.main()
