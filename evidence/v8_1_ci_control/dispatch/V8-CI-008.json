@@ -1,0 +1,42 @@
+{
+  "task_id": "V8-CI-008",
+  "owner": "SA-CI-32",
+  "mode": "write",
+  "base_sha": "a032c0cc722a4a3521b1f4fbacf24b4328424815",
+  "goal": "Implement Fatduck workflow: select-candidate / fatduck-validate / notify-owner three jobs",
+  "spec_ref": "工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/tasks/02_CI_TASKS.md#V8-CI-008",
+  "allowed_paths": [
+    "ci/**",
+    ".github/workflows/**",
+    "evidence/v8_1_ci_control/tasks/V8-CI-008/**"
+  ],
+  "prohibited": [
+    "commit",
+    "push",
+    "branch",
+    "worktree",
+    "clone",
+    "history_rewrite",
+    "scope_expansion",
+    "modify_control_package",
+    "modify_TASK_STATE",
+    "modify_WRITE_LEASE",
+    "modify_.gitignore",
+    "touch_AstroCS_ENGINEERING_CONSTRAINTS",
+    "fatduck_job_checkout_or_install",
+    "fatduck_job_repo_script_or_network_upload"
+  ],
+  "requirements": [
+    "三个 job：GitHub-hosted select-candidate（最新 main 且 Linux/Windows CI 均 PASS 的候选，输出 SHA/run/artifact digest）；fatduck-validate（self-hosted [self-hosted, fatduck-realdata]：只下载、校验、调用固定本地 harness、校验 publish 白名单、上传公开目录）；GitHub-hosted notify-owner（下载公开结果，更新单一 Owner Review Issue，仅此 job 有 issues: write）",
+    "触发仅为 Windows CI 成功(workflow_run)与每 6 小时 schedule；不开放手动触发(workflow_dispatch 不得出现)",
+    "concurrency 只保留最新 pending，不取消 running(cancel-in-progress: false)",
+    "fatduck-validate job 中禁止 checkout、安装、任意 repo script、任意网络上传；harness 调用为固定路径固定入口（harness.lock.json 由 V8-FAT-001 装机生成，workflow 引用固定形态命令）",
+    "所有 action 锁 ci/actions.lock.json 已有 SHA；新引用 action（如 download-artifact）必须在线查询官方 tag→SHA 并追加进 actions.lock.json（used_by 登记），verify_actions_lock 复验通过",
+    "Owner Review Issue 编号经 repository variable ASTROCS_OWNER_REVIEW_ISSUE 读取，缺省时 notify-owner 结构化跳过（不伪造评论）",
+    "ci/select_candidate.py：GITHUB_TOKEN 查询 ci-windows/ci-linux workflow run 与 candidate artifact digest（urllib + token env，无第三方依赖）；离线可测",
+    "新增单测离线覆盖：workflow YAML 断言（无 checkout/no dispatch/权限矩阵/concurrency/触发器/fatduck job 禁项）；select_candidate 解析逻辑 mock；notify_owner 命令构造"
+  ],
+  "acceptance_command": "python3 ci/validate_registry.py --registry ci/checks.json --strict && python3 ci/verify_actions_lock.py && python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+  "timeout_s": 1200,
+  "dispatched_utc": "2026-09-05T22:32:00Z"
+}
