@@ -2,8 +2,8 @@
   "schema_version": "v8.1",
   "round": "V8.1_EXISTING_WORKSPACE_CI",
   "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
-  "updated_utc": "2026-09-05T10:40:31Z",
-  "main_sha": "af9ecdc5e56d8102e81e23548079b603ea6a7eee",
+  "updated_utc": "2026-09-05T10:48:53Z",
+  "main_sha": "98c2354fcd59423e80ae9592f19b5b9094d20fc1",
   "reconciled_by": {
     "task_id": "V81-ADOPT-003",
     "owner": "SA-ADOPT-31"
@@ -2352,6 +2352,15 @@
       "review_claim": "NOT_STARTED",
       "current_evidence": "none",
       "note": ""
+    },
+    "V81-ADOPT-003": {
+      "status": "CLOSED",
+      "owner": "SA-ADOPT-31",
+      "commit": "98c2354fcd59423e80ae9592f19b5b9094d20fc1",
+      "pushed": true,
+      "closed_utc": "2026-09-05T10:48:53Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/",
+      "summary": "191 项对账完成：CLOSED=51 READY=13 NOT_STARTED=125 FATDUCK_PENDING=2；CLI-002 消解 CLOSED；CPU-006 回 READY；WIN-001/002 FATDUCK_PENDING"
     }
   },
   "adopt_seed_tasks": {

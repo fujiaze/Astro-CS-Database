@@ -1,0 +1,138 @@
+{
+  "schema_version": 2,
+  "scope": "agent-host",
+  "generated_utc": "2026-09-05T10:55:28Z",
+  "repo_root_discovered": "/workspace/Astro CS Database",
+  "git_head_sha": "98c2354fcd59423e80ae9592f19b5b9094d20fc1",
+  "hosted_ci_versions_required": false,
+  "host_reprovisioning": false,
+  "acr": false,
+  "inventory_source": "measured live on agent host; every version below comes verbatim from captured stdout (evidence/v8_1_ci_control/tasks/V81-ADOPT-004/logs/)",
+  "cmake": {
+    "path": null,
+    "version": null,
+    "version_line": null,
+    "present": false,
+    "source_cmd": "cmake --version"
+  },
+  "compilers": {
+    "gcc": {
+      "path": null,
+      "version": null,
+      "version_line": null,
+      "present": false,
+      "source_cmd": "gcc --version"
+    },
+    "gxx": {
+      "path": null,
+      "version": null,
+      "version_line": null,
+      "present": false,
+      "source_cmd": "g++ --version"
+    },
+    "clang": {
+      "path": null,
+      "version": null,
+      "version_line": null,
+      "present": false,
+      "source_cmd": "clang --version"
+    },
+    "clang++": {
+      "path": null,
+      "version": null,
+      "version_line": null,
+      "present": false,
+      "source_cmd": "clang++ --version"
+    }
+  },
+  "generator": {
+    "ninja": {
+      "path": null,
+      "version": null,
+      "version_line": null,
+      "present": false,
+      "source_cmd": "ninja --version"
+    },
+    "make": {
+      "path": null,
+      "version": null,
+      "version_line": null,
+      "present": false,
+      "source_cmd": "make --version"
+    }
+  },
+  "python": {
+    "path": "/usr/bin/python3",
+    "version": "3.13.5",
+    "version_line": "Python 3.13.5",
+    "present": true,
+    "source_cmd": "python3 --version"
+  },
+  "git": {
+    "path": "/usr/bin/git",
+    "version": "2.47.3",
+    "version_line": "git version 2.47.3",
+    "present": true,
+    "source_cmd": "git --version"
+  },
+  "optional": {
+    "ccache": {
+      "path": null,
+      "version": null,
+      "version_line": null,
+      "present": false,
+      "source_cmd": "ccache --version"
+    },
+    "zstd": {
+      "path": "/usr/bin/zstd",
+      "version": "1.5.7",
+      "version_line": "*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***",
+      "present": true,
+      "source_cmd": "zstd --version"
+    },
+    "pytest": {
+      "path": null,
+      "version": null,
+      "version_line": null,
+      "present": false,
+      "source_cmd": "pytest --version (module form also checked: python3 -m pytest --version -> No module named pytest)"
+    }
+  },
+  "additional_observed": {
+    "xz": {
+      "path": "/usr/bin/xz",
+      "version": "5.8.1",
+      "version_line": "xz (XZ Utils) 5.8.1\nliblzma 5.8.1",
+      "present": true,
+      "source_cmd": "xz --version"
+    }
+  },
+  "cmake_presets_found": [
+    "base-msvc",
+    "win-msvc-17.14.39-x64",
+    "linux-control"
+  ],
+  "cmake_minimum_required_observed": {
+    "CMakePresets.json": "3.31.0",
+    "CMakeLists.txt": "3.24"
+  },
+  "missing_tools": [
+    "cmake",
+    "gcc",
+    "g++",
+    "clang",
+    "clang++",
+    "ninja",
+    "make",
+    "ccache",
+    "pytest"
+  ],
+  "toolchain_constraints_read": {
+    "CMakePresets.json": "cmakeMinimumRequired 3.31.0; Windows formal frozen: Visual Studio 17 2022 / x64 / v143 14.44.35207 / SDK 10.0.26100.0 / cmake_pin 3.31.12; configurePresets: base-msvc(hidden), win-msvc-17.14.39-x64, linux-control(Unix Makefiles, non-Windows host)",
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.24); CMAKE_CXX_STANDARD 17 REQUIRED; sanitizer GCC/Clang only (QA-002); MSVC /utf-8 branch; OpenMP linked on UNIX when found; version single-source root VERSION (VER-001)",
+    "AGENTS.md": "Linux amd64 = agent control node (control/static analysis/light build/small synthetic experiments), bash+git+Linux toolchain, no Git Bash/PowerShell as dev default; Windows x64 = formal dev/client/release platform via remote node, offline does not block Linux tasks; external commands need timeout + saved logs",
+    "build.sh": "BLD-001 root Linux configure/build/test entry; requires cmake (default generator => make toolchain), nproc; builds lib/phase2 targets with P2_ENABLE_OPENMP=ON",
+    "toolchain.ps1": "Windows-side unified toolchain entry (MSYS2 MinGW64 C:\\msys64\\mingw64\\bin, formal Python 3.12 path, gh CLI; check/build via g++/make). Windows-host concerns only; not applicable to this Linux agent host inventory"
+  },
+  "policy_file_sha256": "7c66e1a5ff33c192653b60f2b71ffbd856d1af6821b520f8c301ae98d2881469"
+}

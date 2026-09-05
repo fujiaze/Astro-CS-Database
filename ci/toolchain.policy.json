@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "agent_host": {
+    "purpose": "static_analysis_light_build_and_control",
+    "repo_root": "DISCOVER_AT_RUNTIME",
+    "require_exact_hosted_versions": false,
+    "cmake": "project_minimum_or_newer",
+    "compiler": "any_project_supported_x86_64_compiler",
+    "generator": "existing_supported_generator",
+    "missing_optional_tools": "record_and_continue_independent_tasks",
+    "host_reprovisioning": false,
+    "acr": false
+  },
+  "linux_hosted": {
+    "runner": "ubuntu-24.04",
+    "architecture": "x86_64",
+    "primary_compiler": "gcc-14",
+    "secondary_compiler": "clang-19",
+    "cmake": "3.31.12",
+    "generator": "Ninja",
+    "acr": false
+  },
+  "windows_hosted": {
+    "runner": "windows-2022",
+    "architecture": "x64",
+    "visual_studio_major": 17,
+    "platform_toolset": "v143",
+    "minimum_target_os": "Windows 10",
+    "cmake": "3.31.12",
+    "acr": false,
+    "record_observed_patch_versions": true
+  },
+  "fatduck": {
+    "build_source": "github_windows_candidate_only",
+    "compile_allowed": false,
+    "checkout_allowed": false,
+    "acr": false
+  }
+}

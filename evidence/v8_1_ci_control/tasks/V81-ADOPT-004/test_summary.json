@@ -1,0 +1,43 @@
+{
+  "task_id": "V81-ADOPT-004",
+  "owner": "SA-ADOPT-31",
+  "mode": "write",
+  "generated_utc": "2026-09-05T10:59:48Z",
+  "acceptance_command": "python3 ci/verify_toolchain.py --policy ci/toolchain.policy.json --actual ci/toolchain.lock.json --scope agent-host",
+  "acceptance_exit_code": 0,
+  "acceptance_checks_total": 50,
+  "acceptance_checks_failed": 0,
+  "negative_selftest": {
+    "cases": [
+      {"name": "placeholder_version", "file": "run/v81adopt004_neg/lock_bad_placeholder.json", "expected": "non-zero exit", "observed_exit": 1},
+      {"name": "inconsistent_present_flag", "file": "run/v81adopt004_neg/lock_bad_inconsistent.json", "expected": "non-zero exit", "observed_exit": 1}
+    ],
+    "log": "logs/verify_negative_cases.log",
+    "conclusion": "verifier rejects fabricated placeholder versions and present/missing_tools inconsistencies (exit 1)"
+  },
+  "toolchain_measured": {
+    "cmake": null,
+    "gcc": null,
+    "gxx": null,
+    "clang": null,
+    "clang++": null,
+    "ninja": null,
+    "make": null,
+    "python3": "3.13.5 (/usr/bin/python3)",
+    "git": "2.47.3 (/usr/bin/git)",
+    "ccache": null,
+    "zstd": "1.5.7 (/usr/bin/zstd)",
+    "pytest": null,
+    "additional_observed": {"xz": "5.8.1 (/usr/bin/xz)"}
+  },
+  "missing_tools": ["cmake", "gcc", "g++", "clang", "clang++", "ninja", "make", "ccache", "pytest"],
+  "policy": {
+    "copied_from": "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/ci/toolchain.policy.json",
+    "sha256": "7c66e1a5ff33c192653b60f2b71ffbd856d1af6821b520f8c301ae98d2881469",
+    "verbatim_copy_verified": true
+  },
+  "cmake_presets_found": ["base-msvc", "win-msvc-17.14.39-x64", "linux-control"],
+  "hosted_ci_versions_required": false,
+  "host_reprovisioning": false,
+  "acr": false
+}

@@ -1,0 +1,11 @@
+finding_id,severity,category,detail,evidence_ref
+F-001,info,toolchain_present,"python3 3.13.5 at /usr/bin/python3 (Python 3.13.5)","logs/python3.log"
+F-002,info,toolchain_present,"git 2.47.3 at /usr/bin/git","logs/git.log"
+F-003,info,toolchain_present,"zstd 1.5.7 at /usr/bin/zstd; xz 5.8.1 at /usr/bin/xz (decompression tools available)","logs/zstd.log; logs/xz.log"
+F-004,high,toolchain_missing,"Build drivers absent on agent host: cmake/gcc/g++/clang/clang++/ninja/make all missing from PATH and standard locations; linux-control preset and build.sh (BLD-001) cannot run locally until toolchain provisioned by control plane (host_reprovisioning=false, not installed by this task)","logs/cmake.log; logs/gcc.log; logs/deep_probe.log"
+F-005,medium,toolchain_missing,"pytest missing (CLI and python3 -m both absent) - python-side test execution unavailable on agent host","logs/pytest.log; logs/pytest_module.log"
+F-006,medium,toolchain_missing,"ccache missing - no compile caching layer present","logs/ccache.log"
+F-007,info,constraint_read,"CMakePresets.json: cmakeMinimumRequired 3.31.0; Windows formal frozen (VS17 2022/x64/v143 14.44.35207/SDK 26100/cmake 3.31.12); linux-control preset uses Unix Makefiles","ci/toolchain.lock.json toolchain_constraints_read"
+F-008,info,constraint_read,"CMakeLists.txt: cmake_minimum_required 3.24; C++17 REQUIRED; OpenMP on UNIX; sanitizer GCC/Clang only; version single-source VERSION (currently project 0.10.0 pre V81-ADOPT-006)","CMakeLists.txt:10-21"
+F-009,info,policy_relation,"policy agent_host: require_exact_hosted_versions=false / host_reprovisioning=false / acr=false - host versions need not match hosted CI; linux_hosted gcc-14/clang-19/cmake 3.31.12 recorded as CI strategy only, NOT installed locally","ci/toolchain.policy.json; logs/deep_probe.log"
+F-010,low,dpkg_note,"dpkg has gcc-14-base/libgcc-s1 runtime base packages only - no compiler driver installed","logs/deep_probe.log"
