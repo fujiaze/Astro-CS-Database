@@ -1,0 +1,55 @@
+{
+  "acceptance_cmd": "timeout 900 python3 ci/run.py --profile fast",
+  "full_exit": 1,
+  "full_verdicts": {
+    "PASS": 41,
+    "FAIL": 16
+  },
+  "full_total": 57,
+  "full_verdict_overall": "FAIL",
+  "full_verdict_reason": "16 项 FAIL 为主仓库 main@b2d31bfe 固有状态（WORKSPACE-ADOPTION SHA 记录漂移、AGENTS-GOV 治理关键词缺失、TASK-RESULT-SCHEMA 1/65 bad status、UT-VERSION tests/version 2 failures、DOC/CON/ENG/P3/CLI/serial 内容性不满足），与 V8-CI-004 新增文件无内容交集；按纪律如实报告，不做 green-wash。",
+  "wall_seconds": 24.1,
+  "wall_measure": "run_id 20260905T174707Z-62210a92 起始时刻 → CI_RESULT.json mtime；Σ 检查执行时长 21.3s",
+  "slowest_top5": [
+    ["UT-MONITORING", 7.07],
+    ["API-DOCS", 5.8],
+    ["CON-FULL-INTEGRATION", 1.47],
+    ["UT-TRACEABILITY", 1.16],
+    ["TRACEABILITY-MATRIX", 0.7]
+  ],
+  "changed_from_head1": {
+    "cmd": "timeout 120 python3 ci/run.py --profile fast --changed-from HEAD~1 --plan-only",
+    "exit": 0,
+    "selected": 32,
+    "selected_lt_57": true
+  },
+  "changed_from_base": {
+    "ref": "459da629 (V8-CI-002 早基)",
+    "cmd": "timeout 120 python3 ci/run.py --profile fast --changed-from 459da629 --plan-only",
+    "exit": 0,
+    "selected": 33
+  },
+  "impact_map_flag": {
+    "cmd": "timeout 120 python3 ci/run.py --profile fast --impact-map ci/impact_map.json --plan-only",
+    "exit": 0,
+    "selected": 57
+  },
+  "discover": {
+    "cmd": "PYTHONDONTWRITEBYTECODE=1 timeout 600 python3 -m unittest discover -s ci/tests -p test_*.py",
+    "ran": 78,
+    "ok": true,
+    "note": "含新增 test_impact_map 13 项（一致性 8 + 行为 5）全绿"
+  },
+  "workspace_final_state": "git status 仅新增 ci/impact_map.json(M)、ci/tests/test_impact_map.py(A)、evidence/v8_1_ci_control/tasks/V8-CI-004/**(A)；预存在脏项未触碰",
+  "timestamp_utc": "2026-09-05T17:47:07Z",
+  "logs": [
+    "logs/fast_full.log",
+    "logs/fast_changed_head1.log",
+    "logs/fast_changed_base.log",
+    "logs/impact_map_flag.log",
+    "logs/discover.log"
+  ],
+  "artifacts": [
+    "artifacts/CI_RESULT_fast_full.json"
+  ]
+}

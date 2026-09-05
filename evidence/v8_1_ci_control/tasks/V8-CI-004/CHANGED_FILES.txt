@@ -1,0 +1,11 @@
+M  ci/impact_map.json
+A  ci/tests/test_impact_map.py
+A  evidence/v8_1_ci_control/tasks/V8-CI-004/TASK_RESULT.json
+A  evidence/v8_1_ci_control/tasks/V8-CI-004/TEST_EVIDENCE.json
+A  evidence/v8_1_ci_control/tasks/V8-CI-004/CHANGED_FILES.txt
+A  evidence/v8_1_ci_control/tasks/V8-CI-004/artifacts/CI_RESULT_fast_full.json
+A  evidence/v8_1_ci_control/tasks/V8-CI-004/logs/fast_full.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-004/logs/fast_changed_head1.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-004/logs/fast_changed_base.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-004/logs/impact_map_flag.log
+A  evidence/v8_1_ci_control/tasks/V8-CI-004/logs/discover.log
