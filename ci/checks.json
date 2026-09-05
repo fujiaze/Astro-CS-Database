@@ -1,0 +1,1815 @@
+{
+  "schema_version": 1,
+  "checks": [
+    {
+      "id": "VERSION-CONSISTENCY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/check_version.py",
+        "--expected",
+        "0.11.0-alpha.2"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "VERSION",
+        "CMakeLists.txt",
+        "cli/**",
+        "docs/governance/**",
+        "docs/VERSIONING.md",
+        "docs/DOCUMENT_INDEX.yaml",
+        "README.md",
+        "REVIEW.md",
+        "HANDOVER.md"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "TRACEABILITY",
+      "profiles": [
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/check_traceability.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": true,
+      "outputs": [
+        "reports/v19r2/evidence/quality/traceability_check.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/TRACEABILITY.csv",
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "TRACEABILITY-CODE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_traceability.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/TRACEABILITY.csv",
+        "docs/**",
+        "lib/**",
+        "cli/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "PRODUCTION-GRAPH",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/check_pipeline_graph.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tools/quality/check_pipeline_graph.py",
+        "graph/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "NO-SERIAL-HEAVY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/check_serial_heavy.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "cli/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "ACR-DORMANT",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_legacy_exit.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/phase2/**",
+        "legacy/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "ABI-BOUNDARY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_abi_boundary.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "include/**",
+        "lib/**",
+        "cli/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "AGENTS-GOV",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_agents_gov.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "AGENTS.md",
+        "memory.md",
+        "docs/governance/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "AIO-OWNERSHIP",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_aio_ownership.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "API-DOCS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_api_docs.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "include/**",
+        "lib/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CLI-COMMAND-LAYER",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_cli_command_layer.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "cli/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CLI-RUN-PRESET",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_cli_run_preset.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "cli/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CONTRACT-GRAPH",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_contract_graph.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/contracts/**",
+        "lib/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "DATA-ARTIFACTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_data_artifacts.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "contracts/**",
+        "testdata/**",
+        "lib/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "DUPLICATION",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_duplication.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "cli/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "DOC-L0",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_l0_docs.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "GLOSSARY-DOCS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_glossary.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "docs/glossary/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "MODULE-READMES",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_module_readmes.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "modules/**",
+        "lib/**",
+        "README.md"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "P3-STATUS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_p3_status.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "cli/main.cpp",
+        "lib/phase3_session/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "PIPELINE-TRACE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_pipeline_trace.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "docs/architecture/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "SERIAL-HARDCODE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_serial_hardcode.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UNIT-CLOSURE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_unit_closure.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "docs/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "WARNING-SUPPRESSION",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/check_warning_suppression.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "cli/**",
+        "third_party/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "THREAD-BUDGET",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/arch/check_thread_budget.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "AST-API",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/check_ast_api.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "include/**",
+        "lib/**",
+        "cli/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "TASK-RESULT-SCHEMA",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/check_task_result_schema.py"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "evidence/**",
+        "engineering/control/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "ISA-LEAK-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/check_isa_leak.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tools/quality/check_isa_leak.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "SERIAL-HEAVY-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/check_serial_heavy.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tools/quality/check_serial_heavy.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "PROD-REACH-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/check_prod_reachability.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tools/quality/check_prod_reachability.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "KNOWN-FAILURES-BASELINE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/known_failures_baseline.py",
+        "--output",
+        "artifacts/KNOWN_FAILURES_BASELINE.json"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "artifacts/KNOWN_FAILURES_BASELINE.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "cli/**",
+        "CMakeLists.txt",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-API-CONTRACTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_api_contracts.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-BUILD-GRAPH",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_build_graph.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-COMMENTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_comments.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-CONFIG-CONTRACTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_config_contracts.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-DOC-SYMBOLS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_doc_symbols.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-EXECUTION-CONTRACTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_execution_contracts.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-FORBIDDEN-PATTERNS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_forbidden_patterns.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-FULL-INTEGRATION",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_full_integration.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-SCIENCE-UNITS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_science_units.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-TEST-CONTRACTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_test_contracts.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-TRACEABILITY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/contracts/check_traceability.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "DOC-INDEX",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/doccheck/check_doc_index.py",
+        "--strict"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "docs/DOCUMENT_INDEX.yaml",
+        "engineering/control/archive/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "VERSION-NAMESPACES",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/doccheck/check_version_namespaces.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "engineering/**",
+        "README.md"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "ENG-CONSTRAINTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/doccheck/check_engineering_constraints.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "AstroCS_ENGINEERING_CONSTRAINTS.md",
+        "AGENTS.md",
+        "docs/governance/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "LOG-CONTRACT-SELFCHECK",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/monitoring/check_log_contract.py",
+        "--selfcheck"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "runtime/logging/**",
+        "schemas/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "TRACEABILITY-MATRIX",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/traceability/check_traceability_matrix.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "schemas/traceability_matrix.schema.json",
+        "docs/**",
+        "evidence/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "TESTKIT-LIST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/testkit/check_testkit.py",
+        "--list"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": true,
+      "changed_paths": [
+        "tests/testkit/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "WORKSPACE-ADOPTION",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/verify_workspace_adoption.py",
+        "--repo-root-from-git",
+        "--preserve-dirty"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": true,
+      "changed_paths": [
+        "evidence/v8_1_ci_control/**",
+        ".git/HEAD"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "RECONCILE-STATE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/reconcile_state.py",
+        "--strict"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": true,
+      "changed_paths": [
+        "evidence/v8_1_ci_control/**",
+        "engineering/control/CONTROL_TASK_LEDGER.csv"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "TOOLCHAIN-VERIFY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/verify_toolchain.py",
+        "--policy",
+        "ci/toolchain.policy.json",
+        "--actual",
+        "ci/toolchain.lock.json",
+        "--scope",
+        "agent-host"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "ci/toolchain.policy.json",
+        "ci/toolchain.lock.json"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-API",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/api",
+        "-t",
+        "tests/api"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/api/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-ARCH",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/arch",
+        "-t",
+        "tests/arch"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": true,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/arch/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-BACKEND",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/backend",
+        "-t",
+        "tests/backend"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/backend/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-CLI",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/cli",
+        "-t",
+        "tests/cli"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/cli/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-VERSION",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/version",
+        "-t",
+        "tests/version"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/version/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-GLOSSARY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/glossary",
+        "-t",
+        "tests/glossary"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/glossary/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-MONITORING",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/monitoring",
+        "-t",
+        "tests/monitoring"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/monitoring/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-PIPELINE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/pipeline",
+        "-t",
+        "tests/pipeline"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/pipeline/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-RUNTIME",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/runtime",
+        "-t",
+        "tests/runtime"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/runtime/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-SCIENCELINT",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/sciencelint",
+        "-t",
+        "tests/sciencelint"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/sciencelint/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-TRACEABILITY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/traceability",
+        "-t",
+        "tests/traceability"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/traceability/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-ABI",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/abi",
+        "-t",
+        "tests/abi"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/abi/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-ARTIFACT",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/artifact",
+        "-t",
+        "tests/artifact"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/artifact/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-CONTRACTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/contracts",
+        "-t",
+        "tests/contracts"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/contracts/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-IO",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/io",
+        "-t",
+        "tests/io"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/io/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-QUALITY",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/quality",
+        "-t",
+        "tests/quality"
+      ],
+      "timeout_seconds": 1800,
+      "heavy": true,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/quality/**",
+        "lib/**",
+        "cli/**",
+        "include/**"
+      ],
+      "requires_monitor": true
+    },
+    {
+      "id": "UT-CPU-BASELINE",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tests/cpu/baseline/run_provider_oracle_checks.py"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/cpu/baseline/**",
+        "providers/**",
+        "lib/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-CPU-DISPATCH",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tests/cpu/dispatch/run_cpu_capability_checks.py"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/cpu/dispatch/**",
+        "providers/**",
+        "lib/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-CPU-AVX2",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tests/cpu/avx2/run_provider_avx2_checks.py"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/cpu/avx2/**",
+        "providers/**",
+        "lib/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "UT-CPU-AVX512",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tests/cpu/avx512/run_provider_avx512_checks.py"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/cpu/avx512/**",
+        "providers/**",
+        "lib/**"
+      ],
+      "requires_monitor": false
+    }
+  ]
+}

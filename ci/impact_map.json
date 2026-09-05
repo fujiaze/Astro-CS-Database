@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "rules": [
+    {"paths": ["docs/science/**", "docs/algorithms/**"], "checks": ["CON-SCIENCE-UNITS", "TRACEABILITY", "TRACEABILITY-CODE", "UT-SCIENCELINT", "GLOSSARY-DOCS"]},
+    {"paths": ["lib/phase2/**"], "checks": ["NO-SERIAL-HEAVY", "SERIAL-HARDCODE", "THREAD-BUDGET", "PROD-REACH-SELFTEST", "CON-API-CONTRACTS", "CON-BUILD-GRAPH", "CON-EXECUTION-CONTRACTS", "UT-BACKEND", "UT-PIPELINE", "TRACEABILITY"]},
+    {"paths": ["lib/runtime/**", "lib/core/**"], "checks": ["NO-SERIAL-HEAVY", "SERIAL-HARDCODE", "THREAD-BUDGET", "ACR-DORMANT", "CON-API-CONTRACTS", "CON-BUILD-GRAPH", "UT-RUNTIME", "UT-BACKEND", "TRACEABILITY"]},
+    {"paths": ["cli/**"], "checks": ["ACR-DORMANT", "NO-SERIAL-HEAVY", "THREAD-BUDGET", "P3-STATUS", "UT-CLI", "UT-VERSION", "CON-API-CONTRACTS", "TRACEABILITY"]},
+    {"paths": ["include/**"], "checks": ["ABI-BOUNDARY", "AST-API", "CON-API-CONTRACTS", "UT-API", "UT-BACKEND"]},
+    {"paths": ["providers/**"], "checks": ["UT-CPU-BASELINE", "UT-CPU-DISPATCH", "UT-CPU-AVX2", "UT-CPU-AVX512", "ISA-LEAK-SELFTEST"]},
+    {"paths": ["runtime/logging/**", "schemas/**"], "checks": ["LOG-CONTRACT-SELFCHECK", "TRACEABILITY-MATRIX"]},
+    {"paths": ["contracts/**", "testdata/**"], "checks": ["CON-CONFIG-CONTRACTS", "CON-API-CONTRACTS", "DATA-ARTIFACTS", "UT-CONTRACTS"]},
+    {"paths": ["docs/**", "docs/DOCUMENT_INDEX.yaml"], "checks": ["DOC-INDEX", "VERSION-NAMESPACES", "DOC-L0", "GLOSSARY-DOCS", "MODULE-READMES", "CON-DOC-SYMBOLS", "TRACEABILITY-MATRIX", "VERSION-CONSISTENCY"]},
+    {"paths": ["AGENTS.md", "memory.md", "AstroCS_ENGINEERING_CONSTRAINTS.md"], "checks": ["AGENTS-GOV", "ENG-CONSTRAINTS"]},
+    {"paths": ["VERSION", "CMakeLists.txt", "cmake/**"], "checks": ["VERSION-CONSISTENCY", "NO-SERIAL-HEAVY", "THREAD-BUDGET", "ACR-DORMANT", "CON-BUILD-GRAPH"]},
+    {"paths": ["tests/**", "tests/testkit/**"], "checks": ["CON-TEST-CONTRACTS", "UNIT-CLOSURE", "TESTKIT-LIST"]},
+    {"paths": ["evidence/**"], "checks": ["TASK-RESULT-SCHEMA", "RECONCILE-STATE", "TRACEABILITY-MATRIX"]},
+    {"paths": [".github/workflows/**", "ci/**"], "checks": ["VERSION-CONSISTENCY", "TOOLCHAIN-VERIFY", "WORKSPACE-ADOPTION", "RECONCILE-STATE", "TESTKIT-LIST"]}
+  ],
+  "fallback": ["VERSION-CONSISTENCY", "VERSION-NAMESPACES", "DOC-INDEX", "TRACEABILITY-CODE"]
+}

@@ -1,0 +1,74 @@
+{
+  "task_id": "V8-CI-001",
+  "owner": "SA-CI-32",
+  "mode": "write",
+  "base_sha": "b4f923ccbcde51e1a9112aba04815351169091c7",
+  "git_head_at_completion": "b4f923ccbcde51e1a9112aba04815351169091c7",
+  "status": "RETURNED",
+  "completed_utc": "2026-09-05T12:45:00Z",
+  "goal": "Inventory and classify existing checkers and tests",
+  "acceptance_command": "python3 ci/validate_registry.py --registry ci/checks.json --strict",
+  "acceptance_exit_code": 0,
+  "summary": {
+    "registry_checks_total": 70,
+    "registry_duplicates": 0,
+    "categories": {
+      "doc_governance": 9,
+      "contracts_suite": 11,
+      "static_source_arch_graph": 20,
+      "traceability": 4,
+      "unittest_suites": 20,
+      "monitoring_ci_meta": 6
+    },
+    "profiles": {"fast": 57, "linux-main": 70, "windows-main": 58, "linux-deep": 0, "fatduck": 0},
+    "platform": {"any": 64, "linux": 6},
+    "mutates_workspace_true": 2,
+    "heavy": 1,
+    "waivable": 3,
+    "unittest_cases_measured": 554,
+    "unittest_dirs_no_init_py": ["tests/abi", "tests/artifact", "tests/contracts", "tests/io", "tests/quality"],
+    "ctest_tests_defined": 56,
+    "impact_map_rules": 14,
+    "impact_map_fallback": 4,
+    "validation": {
+      "positive": "PASS 70 checks 0 errors (logs/validate_positive.log)",
+      "negative_cases": 6,
+      "negative_all_blocked_exit_1": true,
+      "negative_evidence": "logs/validate_negative_*.log"
+    }
+  },
+  "missing_prerequisites": {
+    "tools": ["cmake", "gcc", "g++", "clang", "clang++", "ninja", "make", "ccache", "pytest"],
+    "python_libs": ["numpy (tests/io)"],
+    "impacted": "tests/unit CTest(56), tests/cpu x4 drivers, UT-BACKEND/UT-ABI/UT-CLI(需构建产物), AST-API(clang), UT-QUALITY(打包超时→heavy hosted)",
+    "policy": "全部如实登记 ENV_FAIL-prerequisite / hosted-only，无任何虚构 PASS"
+  },
+  "seed_diff_summary": {
+    "command_parameter_fixes": ["VERSION-CONSISTENCY 补 --expected", "TRACEABILITY/PRODUCTION-GRAPH/NO-SERIAL-HEAVY 去 --strict", "ACR-DORMANT 改 tools/check_legacy_exit.py"],
+    "executors_not_yet_existing": ["ci/run_synthetic.py", "ci/build_test.py", "ci/run_deep.py", "ci/run.py", ".github/workflows/*"],
+    "preset_mismatch": "seed 的 --preset linux-ci-gcc 不在 CMakePresets.json（实际: base-msvc, win-msvc-17.14.39-x64, linux-control）"
+  },
+  "side_effect_incidents": [
+    {"script": "tools/quality/known_failures_baseline.py", "impact": "覆盖已跟踪 evidence/v6_1_rework/tasks/R0-004/KNOWN_FAILURES_BASELINE.json", "recovery": "git show HEAD 回写恢复 clean", "evidence": "commands.jsonl INCIDENT-q13-baseline-restore"},
+    {"script": "tools/docs_machine_consistency.py", "impact": "无视 --help 覆盖 reports/v19r3/evidence/quality/docs_consistency.json", "recovery": "同上", "evidence": "commands.jsonl INCIDENT-w04-docs-machine-restore"},
+    {"script": "tests/arch/test_inventory.py (unittest)", "impact": "重写 docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv（幂等性 FAIL）", "recovery": "同上；UT-ARCH 登记 mutates=true 不入 fast", "evidence": "commands.jsonl INCIDENT-tests-arch-inventory-restore"}
+  ],
+  "outputs": {
+    "ci/checks.json": "new (70 entries, schema-conformant, all commands verified on disk)",
+    "ci/impact_map.json": "new (14 rules + fallback, aligned with registry ids)",
+    "ci/INVENTORY_REPORT.md": "new",
+    "ci/validate_registry.py": "new (8 rules R1-R8, --strict, JSON summary)",
+    "tests/test_index.csv": "new (22 rows covering all tests/ dirs incl. tests/unit CTest hosted-only)",
+    "evidence/v8_1_ci_control/tasks/V8-CI-001/": "TASK_RESULT.json, commands.jsonl, changed_files.txt, test_summary.json, findings.csv, logs/ (100+ files)"
+  },
+  "constraints_respected": {
+    "no_commit_no_push": true,
+    "no_branch_worktree_clone": true,
+    "no_control_package_modification": true,
+    "allowed_paths_only": true,
+    "all_external_commands_timeout_plus_logs": true,
+    "no_unexecuted_pass_claims": true,
+    "incident_files_restored": true
+  },
+  "note_for_integrator": "验收命令首跑 exit 1（17 errors：-B 旗标被 R4 误判、--output 类路径误校验），修正校验器规则（-s 目录式 discover 分支 + INPUT_FLAGS 白名单）后 exit 0；负向 6 类全部 exit 1。三处越权写均当场恢复，git status 与 base 相比仅剩本任务 allowed_paths 的新增文件与接管前既有 untracked。"
+}

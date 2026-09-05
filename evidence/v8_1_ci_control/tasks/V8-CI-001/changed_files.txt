@@ -1,0 +1,11 @@
+ci/checks.json
+ci/impact_map.json
+ci/INVENTORY_REPORT.md
+ci/validate_registry.py
+tests/test_index.csv
+evidence/v8_1_ci_control/tasks/V8-CI-001/TASK_RESULT.json
+evidence/v8_1_ci_control/tasks/V8-CI-001/commands.jsonl
+evidence/v8_1_ci_control/tasks/V8-CI-001/changed_files.txt
+evidence/v8_1_ci_control/tasks/V8-CI-001/test_summary.json
+evidence/v8_1_ci_control/tasks/V8-CI-001/findings.csv
+evidence/v8_1_ci_control/tasks/V8-CI-001/logs/ (101 files: t*.log q*.log c*.log d*.log g*.log u*.log w*.log unittest_*.log validate_positive.log validate_negative_*.log)
