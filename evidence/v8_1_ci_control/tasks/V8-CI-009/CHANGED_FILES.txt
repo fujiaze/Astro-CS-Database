@@ -1,0 +1,27 @@
+# CHANGED_FILES.txt — V8-CI-009（owner=SA-CI-32，base 72df03191e1d12cc733f506dc8f85a5c6c75556b）
+
+新增（allowed_paths 内）：
+  ci/tests/test_negative_guards.py
+  evidence/v8_1_ci_control/tasks/V8-CI-009/TASK_RESULT.json
+  evidence/v8_1_ci_control/tasks/V8-CI-009/TEST_EVIDENCE.json
+  evidence/v8_1_ci_control/tasks/V8-CI-009/NEGATIVE_MATRIX.md
+  evidence/v8_1_ci_control/tasks/V8-CI-009/CHANGED_FILES.txt
+  evidence/v8_1_ci_control/tasks/V8-CI-009/logs/inject_n01_n05_runner.sh
+  evidence/v8_1_ci_control/tasks/V8-CI-009/logs/inject_n07_n09_n10_registry.sh
+  evidence/v8_1_ci_control/tasks/V8-CI-009/logs/inject_n11_validate_candidate.py
+  evidence/v8_1_ci_control/tasks/V8-CI-009/logs/inject_n06_n12_n13_fatduck.py
+  evidence/v8_1_ci_control/tasks/V8-CI-009/logs/unittest_negative.log
+  evidence/v8_1_ci_control/tasks/V8-CI-009/logs/acceptance.log
+  evidence/v8_1_ci_control/tasks/V8-CI-009/logs/injection_replays.log
+  evidence/v8_1_ci_control/tasks/V8-CI-009/logs/gap_fix_round.log
+
+修改（GAP 补齐轮，allowed_paths 内）：
+  ci/validate_registry.py        （增 R9 hardcoded_core_in_command，+26 行）
+  ci/validate_candidate.py       （增 path_escape_in_zip 校验，+25 行）
+  ci/tests/test_negative_guards.py（G2/G3 用例翻红为拒绝断言、G1 改 POLICY 登记式，34→36 用例）
+
+说明（GAP 补齐轮）：三处修改均在任务允许面内（前台裁决：GAP-G2/G3 最小修复采纳、
+GAP-G1 POLICY 不实现）。ci/checks.json / ci/checks.schema.json / ci/run.py /
+.github/workflows 零 diff（git diff --name-only -- ci/ 仅上述两守卫脚本与测试文件）。
+git status 中其余条目（AGENTS.md 修改、dist/audit zip 删除、若干未跟踪 zip/json、
+graph/、工程控制/ 等）为本任务开始前既有工作区状态，本任务未触碰。

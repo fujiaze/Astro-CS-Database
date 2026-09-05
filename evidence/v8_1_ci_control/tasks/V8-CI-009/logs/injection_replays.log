@@ -1,0 +1,78 @@
+=== inject_n01_n05_runner.sh 2026-09-05T23:37:32Z ===
+== N01a 非法 JSON registry → 期望 exit 2 ==
+ci/run.py：JSON 解析失败 /tmp/tmp.8859C9Hk0V/n01a/ci/checks.json：Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+exit=2
+== N01b 伪造 PASS 遇真实失败 → 期望 exit 1，per-check FAIL ==
+verdict=FAIL total=1 pass=0 fail=1 known_fail=0 skipped_waivable=0
+result: /tmp/tmp.8859C9Hk0V/n01b/artifacts/ci/forged/CI_RESULT.json
+exit=1
+{
+  "command": [
+    "python3",
+    "-c",
+    "import sys;sys.exit(3)"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.014,
+  "exit_code": 3,
+  "finished_utc": "2026-09-05T23:37:32Z",
+  "heavy": false,
+  "id": "N-T",
+  "log": "logs/N-T.log",
+  "log_zst": "logs/N-T.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令非零退出：3",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-05T23:37:32Z",
+  "stderr_tail": "",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 30,
+  "verdict": "FAIL",
+  "waivable": false
+}
+== N02 非零退出 → 期望 exit 1, verdict FAIL ==
+exit=1
+== N03 超时 → 期望 exit 1, verdict TIMEOUT ==
+exit=1
+== N04 dirty workspace → 期望 exit 1, verdict FAIL(dirty) ==
+exit=1
+== N05 未登记检查 ID → 期望 exit 2 ==
+ci/run.py：--check 指定了未登记的检查 ID：['N-GHOST']
+exit=2
+== N04-GAP-G1 过期 WRITE_LEASE 放行 → 现状 exit 0（GAP） ==
+exit=0（0 = GAP-G1 现状放行）
+replay done.
+
+=== inject_n11_validate_candidate.py ===
+N11[fits] exit=1  期望: exit 1 excluded_entry_in_zip
+      信号: excluded_entry_in_zip
+N11[header] exit=1  期望: exit 1 excluded_entry_in_zip
+      信号: excluded_entry_in_zip
+N11[escape] exit=0  期望: 现状 exit 0（GAP-G3：路径逃逸无守卫）
+      信号: （无拒绝信号）
+
+=== inject_n06_n12_n13_fatduck.py ===
+N06a pull_request 触发器: 拒绝 → AssertionError: 触发器白名单外：['pull_request', 'schedule', 'workflow_run']
+N06b workflow_dispatch 触发器: 拒绝 → AssertionError: 触发器白名单外：['schedule', 'workflow_dispatch', 'workflow_run']
+N07  tag 引用 uses: 拒绝 → AssertionError: 未锁 SHA：actions/checkout@v7.0.1
+N12a validate 注入 checkout（锁定 SHA）: 拒绝 → AssertionError: 
+N12b validate 注入额外 run 步: 拒绝 → AssertionError: 
+N12c validate run 引用 ci/ 仓库路径: 拒绝 → AssertionError: 
+N13a validate job 注入 issues:write: 拒绝 → AssertionError: issues:write 越界：['fatduck-validate', 'notify-owner']
+N13b 顶层注入 issues:write: 拒绝 → AssertionError: 顶层 permissions 越界
+sanity: 真实 fatduck.yml 通过镜像断言（守卫非空洞）

@@ -1,0 +1,123 @@
+{
+  "task_id": "V8-CI-009",
+  "task_name": "负向测试（守卫链拒绝路径全覆盖 + GAP 登记）",
+  "owner": "SA-CI-32",
+  "mode": "write",
+  "control_pack": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
+  "base_head_sha": "72df03191e1d12cc733f506dc8f85a5c6c75556b",
+  "generated_utc": "2026-09-05T23:38:15Z",
+  "gap_fix_round_utc": "2026-09-05T23:55:00Z",
+  "status": "DONE",
+  "summary": "13 类负向样例全部落为离线用例（ci/tests/test_negative_guards.py，36 用例，tempfile 隔离，零 git 写操作）。GAP 补齐轮（前台裁决）：GAP-G1 → POLICY(控制面保障)，不实现（WRITE_LEASE 校验由前台 dispatch 流程人工保障，不进 ci/run.py，hosted runner 无 lease 文件），用例改写为 POLICY 锚点登记式；GAP-G2 → 最小修复采纳，ci/validate_registry.py 增 R9 hardcoded_core_in_command（真实 registry 80 条 0 撞线），registry 维度用例翻红为拒绝断言，执行链 env 直通维度 POLICY 登记；GAP-G3 → 最小修复采纳，ci/validate_candidate.py 增 path_escape_in_zip（成员名 + SHA256SUMS 登记 relpath 双通道），用例翻红为拒绝断言。gaps_open=0，policy_rulings=[GAP-G1]。",
+  "counts": {
+    "classes_total": 13,
+    "classes_rejected": 12,
+    "classes_with_policy_ruling": 2,
+    "gaps_total": 3,
+    "gaps_open": 0,
+    "gaps_fixed_by_guard": 2,
+    "policy_rulings_count": 1,
+    "test_cases": 36
+  },
+  "rejected": {
+    "count": 12,
+    "classes": ["N01", "N02", "N03", "N05", "N06", "N07", "N08", "N09", "N10", "N11", "N12", "N13"],
+    "note": "N04 主体（dirty 维度）REJECTED、WRITE_LEASE 维度 POLICY(控制面保障)；N08 硬编码线程维度 REJECTED(本轮补齐 R9)、env 直通维度 POLICY；N11 全维度 REJECTED（c 维度本轮补齐 path_escape_in_zip）。"
+  },
+  "policy_rulings": [
+    {
+      "ruling_id": "GAP-G1",
+      "class": "N04",
+      "dimension": "WRITE_LEASE / base_sha 写操作路径",
+      "decision": "POLICY(控制面保障)",
+      "rationale": "WRITE_LEASE 是控制面状态，其校验由前台 dispatch 流程人工保障，不进 ci/run.py（hosted runner 上无 lease 文件）。",
+      "guard_written": false,
+      "test_case": "TestN04DirtyWorkspaceAndLease.test_write_lease_control_plane_policy__GAP_G1（锚点断言：run.py 无 WRITE_LEASE 消费；裁决变更时翻红提示更新矩阵）"
+    }
+  ],
+  "gaps": [
+    {
+      "gap_id": "GAP-G1",
+      "class": "N04",
+      "dimension": "WRITE_LEASE / base_sha 写操作路径",
+      "evidence": "ci/ 全树无 WRITE_LEASE 消费逻辑；fixture 预置过期 WRITE_LEASE.json（base_sha 不符、expires 2020）后 ci/run.py exit 0 放行（原 test_expired_write_lease_unchecked__GAP_G1，本轮改写）。",
+      "minimal_fix": "前台裁决 POLICY：不实现。WRITE_LEASE 校验由前台 dispatch 流程保障。",
+      "guard_written": false,
+      "resolution": "POLICY(控制面保障)",
+      "resolved": true
+    },
+    {
+      "gap_id": "GAP-G2",
+      "class": "N08",
+      "dimension": "硬编码线程 / check 命令资源参数（registry 维度）",
+      "evidence": "validate_registry --strict 对真实脚本携带 -j4、--threads=64、--jobs=4、NPROC=8、OMP_NUM_THREADS=8 的 command 原为 exit 0（原登记式用例，本轮翻红）。",
+      "minimal_fix": "ci/validate_registry.py 增 R9 hardcoded_core_in_command：command 全元素命中 -j<N>/--jobs/--threads/NPROC/OMP_NUM_THREADS/MKL_NUM_THREADS/NUMEXPR_NUM_THREADS 即拒绝；ci/resource_monitor.py 前缀与 -- 之间 monitor 自身参数（--timeout/--output）白名单放行，-- 之后子命令恢复扫描。",
+      "guard_written": true,
+      "resolution": "REJECTED(本轮补齐，R9)",
+      "resolved": true,
+      "r9_scan_real_registry": "80 checks / 0 hits（模式全量 grep 与 --strict 校验双重确认，见 logs/gap_fix_round.log [A]）",
+      "env_dimension_note": "执行链 env 直通（run.py 不清洗子进程环境变量）→ POLICY：R9 已从 registry 源头封锁硬编码线程参数通道，hosted runner 干净环境由控制面保障；登记于 TestN08HardcodedCore.test_execution_chain_thread_env_policy__GAP_G2。"
+    },
+    {
+      "gap_id": "GAP-G3",
+      "class": "N11",
+      "dimension": "candidate zip 成员路径逃逸（绝对路径 / '..' 段）",
+      "evidence": "SHA256SUMS 双向完备的 /abs/escape.dll、../escape.dll 成员原被 validate_candidate.py exit 0 放行（原登记式用例，本轮翻红）。",
+      "minimal_fix": "ci/validate_candidate.py 增 _zip_path_escape：zip 成员名与 SHA256SUMS 登记 relpath 经 PurePosixPath 判定 is_absolute() or '..' in parts → err(path_escape_in_zip) exit 1（成员判定先于一切内容判定）。",
+      "guard_written": true,
+      "resolution": "REJECTED(本轮补齐，path_escape_in_zip)",
+      "resolved": true,
+      "replay": "member_escape 包 4 处 path_escape_in_zip、sums_escape 包（逃逸路径仅出现在 SHA256SUMS 登记行）2 处 path_escape_in_zip、正常包 PASS——见 logs/gap_fix_round.log [C]"
+    }
+  ],
+  "verification": {
+    "validate_registry_cmd": "python3 ci/validate_registry.py --registry ci/checks.json --strict",
+    "validate_registry_exit": 0,
+    "validate_registry_verdict": "PASS (80 checks, 0 errors — R9 不撞线)",
+    "verify_actions_lock_cmd": "python3 ci/verify_actions_lock.py --offline",
+    "verify_actions_lock_exit": 0,
+    "unittest_cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+    "unittest_exit": 0,
+    "tests_ran": 216,
+    "tests_ok": true,
+    "tests_breakdown": "180 既有 + 36（ci/tests/test_negative_guards.py：原 34 中 G2/G3 翻红、G1/env 改 POLICY 登记，另新增 R9 白名单正例与 SHA256SUMS 登记逃逸 2 用例）",
+    "plan_only_cmd": "python3 ci/run.py --profile fast --plan-only",
+    "plan_only_exit": 0,
+    "plan_only_selected": 57,
+    "git_diff_stat_scope": "ci/validate_candidate.py (+34/-3)、ci/validate_registry.py (+32/-1)、未跟踪 ci/tests/test_negative_guards.py 与 evidence/v8_1_ci_control/tasks/V8-CI-009/**；其余（AGENTS.md 修改、dist/audit 删除）为任务开始前既有工作区状态",
+    "evidence_log": "logs/gap_fix_round.log（R9 全量扫描、注入样例复测、G3 三包复测、验收逐条输出）"
+  },
+  "scenario_coverage": {
+    "N01_fake_pass_json": "TestN01FakePassJson (4)",
+    "N02_nonzero_exit": "TestN02NonZeroExit.test_nonzero_exit_verdict_fail (1)",
+    "N03_timeout": "TestN02NonZeroExit.test_timeout_verdict_timeout + test_sigkill_verdict_signal (2)",
+    "N04_dirty_workspace_lease": "TestN04DirtyWorkspaceAndLease (2; b=POLICY[GAP-G1])",
+    "N05_unregistered_script": "TestN05UnregisteredScript (2)",
+    "N06_pr_fork_trigger": "TestN06PrForkTriggerFatduck (2)",
+    "N07_tag_action": "TestN07TagAction (3)",
+    "N08_hardcoded_core": "TestN08HardcodedCore (4; R9 拒绝 ×2 + R9 白名单正例 + env 维度 POLICY)",
+    "N09_heavy_no_monitor": "TestN09HeavyNoMonitor (2)",
+    "N10_version_drift": "TestN10VersionDrift (2)",
+    "N11_fits_headers_abs_path": "TestN11ArtifactExfil (4; c=GAP-G3 本轮补齐，含 SHA256SUMS 登记逃逸路径)",
+    "N12_fatduck_checkout": "TestN12FatduckCheckout (3)",
+    "N13_issue_write_token": "TestN13IssueTokenFatduck (2)",
+    "mirror_sanity": "_MirrorSanity.test_mirror_passes_real_fatduck_yml (1)"
+  },
+  "deliverables": [
+    "ci/validate_registry.py（R9 hardcoded_core_in_command）",
+    "ci/validate_candidate.py（path_escape_in_zip）",
+    "ci/tests/test_negative_guards.py",
+    "evidence/v8_1_ci_control/tasks/V8-CI-009/TASK_RESULT.json",
+    "evidence/v8_1_ci_control/tasks/V8-CI-009/TEST_EVIDENCE.json",
+    "evidence/v8_1_ci_control/tasks/V8-CI-009/NEGATIVE_MATRIX.md",
+    "evidence/v8_1_ci_control/tasks/V8-CI-009/CHANGED_FILES.txt",
+    "evidence/v8_1_ci_control/tasks/V8-CI-009/logs/"
+  ],
+  "notes": "GAP 补齐轮在前台裁决（G1 POLICY 不实现；G2/G3 最小修复采纳）范围内执行：ci/checks.json、ci/checks.schema.json、ci/run.py、.github/workflows 零改动；ci/tests 既有其他测试文件零改动。R9 与 path_escape_in_zip 均为最小 diff（各 ≤40 行），错误行格式对齐既有 R1..R8 / err 结构。POLICY 用例写法：不注入、不断言拒绝，以静态锚点断言登记裁决现状（run.py 无 WRITE_LEASE/OMP_NUM_THREADS 处理），裁决变更时自动翻红提示更新矩阵。所有注入仅在 tempfile 临时副本/fixture 仓库执行；无 git 写操作。",
+  "residual_risks": [
+    "GAP-G2 env 维度：run.py 子进程继承宿主环境（OMP_NUM_THREADS 直通）——R9 已封 registry 参数通道，宿主环境保障属控制面（POLICY 登记）",
+    "R9 模式为词法白名单式（-j/-jN/--jobs/--threads/NPROC/*_NUM_THREADS），其他库自有线程参数拼写（如 -t/--parallel）不在扫描范围；出现新拼写时需按同风格扩展 HARDCODED_THREAD_RE",
+    "zip 路径逃逸判定采用 PurePosixPath（is_absolute / '..' 段）；Windows 盘符形如 'C:\\x' 的成员名不在本轮最小修复范围（SHA256SUMS 生成器不产出该形态，如实登记）",
+    "测试层守卫（类 6/7/12/13）依赖 pytest/unittest 执行，无进程级退出码；CI 未跑 ci/tests 前该层不生效"
+  ]
+}

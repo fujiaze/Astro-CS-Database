@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "task_id": "V8-CI-009",
+  "owner": "SA-CI-32",
+  "base_head_sha": "72df03191e1d12cc733f506dc8f85a5c6c75556b",
+  "generated_utc": "2026-09-05T23:38:15Z",
+  "gap_fix_round_utc": "2026-09-05T23:55:00Z",
+  "offline": true,
+  "isolation": "全部注入在 tempfile.TemporaryDirectory / fixture 仓库（git init -b main）进行；GAP 补齐轮修改面限于 ci/validate_registry.py、ci/validate_candidate.py、ci/tests/test_negative_guards.py 与本证据目录；ci/checks.json、ci/checks.schema.json、ci/run.py、.github/workflows 零改动",
+  "test_suite": {
+    "path": "ci/tests/test_negative_guards.py",
+    "runner_cmd": "python3 -m unittest discover -s ci/tests -p 'test_negative_guards.py'",
+    "runner_exit": 0,
+    "cases": 36,
+    "full_discover_cmd": "python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+    "full_discover_exit": 0,
+    "full_discover_total": 216,
+    "gap_fix_round_note": "G2/G3 登记式用例翻红为拒绝断言；G1 与 G2-env 维度改写为 POLICY 锚点登记式；新增 R9 monitor 白名单正例与 SHA256SUMS 登记逃逸路径 2 用例（34→36）"
+  },
+  "acceptance_matrix": [
+    {
+      "cmd": "python3 ci/validate_registry.py --registry ci/checks.json --strict",
+      "exit_code": 0,
+      "expected": "exit 0（R9 全量扫描 80 条 0 撞线）",
+      "observed": "verdict=PASS, checks=80, errors=[]（见 logs/gap_fix_round.log [A]）",
+      "pass": true
+    },
+    {
+      "cmd": "python3 ci/verify_actions_lock.py --offline",
+      "exit_code": 0,
+      "expected": "exit 0",
+      "observed": "PASS (offline, 4 entries)",
+      "pass": true
+    },
+    {
+      "cmd": "python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+      "exit_code": 0,
+      "expected": "全绿（180 既有 + 36 = 216 tests OK，总数不减）",
+      "observed": "Ran 216 tests in 24.364s / OK",
+      "pass": true
+    },
+    {
+      "cmd": "python3 ci/validate_candidate.py <构造的逃逸zip>（单测内等价：TestN11ArtifactExfil.test_absolute_and_dotdot_members_rejected__GAP_G3_fixed 等）",
+      "exit_code": 1,
+      "expected": "exit 1 path_escape_in_zip",
+      "observed": "member_escape 包 4 处 path_escape_in_zip；sums_escape 包（SHA256SUMS 登记逃逸路径）2 处；正常包 PASS（见 logs/gap_fix_round.log [C]）",
+      "pass": true
+    },
+    {
+      "cmd": "git diff --stat",
+      "expected": "仅允许面 3 文件 + 证据目录",
+      "observed": "ci/validate_candidate.py (+34/-3)、ci/validate_registry.py (+32/-1)、未跟踪 ci/tests/test_negative_guards.py 与 evidence/v8_1_ci_control/tasks/V8-CI-009/**；AGENTS.md 修改与 dist/audit zip 删除及若干未跟踪 zip/json 为任务开始前既有状态",
+      "pass": true
+    },
+    {
+      "cmd": "python3 ci/run.py --profile fast --plan-only",
+      "exit_code": 0,
+      "expected": "selected = 57",
+      "observed": "plan checks = 57",
+      "pass": true
+    }
+  ],
+  "injection_replays": [
+    {
+      "log": "logs/inject_n01_n05_runner.sh",
+      "covers": ["N01 假PASS JSON", "N02 非零退出", "N03 超时/信号", "N04 dirty", "N05 未登记脚本/ID"]
+    },
+    {
+      "log": "logs/inject_n07_n09_n10_registry.sh",
+      "covers": ["N07 短SHA lock", "N08 硬编码线程(GAP-G2)", "N09 heavy无monitor", "N10 版本漂移"]
+    },
+    {
+      "log": "logs/inject_n11_validate_candidate.py",
+      "covers": ["N11 FITS/header 拒绝", "N11 绝对路径/'..' 逃逸(GAP-G3)"]
+    },
+    {
+      "log": "logs/inject_n06_n12_n13_fatduck.py",
+      "covers": ["N06 PR/fork 触发器注入", "N07 tag 引用 uses", "N12 checkout/额外run步注入", "N13 issues:write 注入"]
+    },
+    {
+      "log": "logs/injection_replays.log",
+      "covers": "上述四个脚本的一次完整离线重放记录（含 N04-GAP-G1 / N08-GAP-G2 / N11-GAP-G3 现状放行证据）"
+    }
+  ],
+  "guard_map": {
+    "N01": "ci/run.py load_registry + write_outputs（原子重算覆盖）",
+    "N02": "ci/run.py 执行判定（verdict 仅由执行计算）",
+    "N03": "ci/run.py 超时/信号捕获 → TIMEOUT/SIGNAL",
+    "N04": "ci/run.py detect_dirty（FAIL(dirty)）；WRITE_LEASE 维度 = POLICY(控制面保障)[GAP-G1 裁决]",
+    "N05": "ci/run.py select_checks 未登记 ID（exit 2）；validate_registry R4（file not found）",
+    "N06": "ci/tests/test_fatduck_workflow.py 触发器白名单（镜像断言）",
+    "N07": "40-hex 完整 SHA + actions.lock 成员断言 + verify_actions_lock.LockInvalid",
+    "N08": "validate_registry R9 hardcoded_core_in_command（本轮补齐）；env 直通维度 = POLICY",
+    "N09": "validate_registry --strict R7/R8",
+    "N10": "ci/bootstrap.py 逐项探测（exit 2 + --json 机读 failures）",
+    "N11": "ci/validate_candidate.py 排除规则 + path_escape_in_zip（本轮补齐）",
+    "N12": "test_fatduck_workflow 形状守卫（镜像断言）",
+    "N13": "permissions 矩阵守卫（仅 notify-owner 持 issues:write；镜像断言含顶层）"
+  },
+  "exit_code_semantics": {
+    "ci/run.py": "0=PASS/FATDUCK_PENDING, 1=FAIL, 2=RunnerError（registry 非法/未登记 ID）",
+    "validate_registry --strict": "0=合法, 1=违规（R1–R9）",
+    "verify_actions_lock --offline": "0=PASS, 3=lock_invalid",
+    "bootstrap": "0=OK, 2=控制失败（结构化 --json 报告）",
+    "validate_candidate": "0=PASS, 1=FAIL（结构化 errors，含 path_escape_in_zip）",
+    "select_candidate（未注入，需求口径）": "workflow_run head_branch≠main → exit 3 no-candidate（本地契约校验先于网络，--repository o/r 可离线复现）"
+  }
+}

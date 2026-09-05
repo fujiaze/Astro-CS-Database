@@ -1,0 +1,59 @@
+# gap_fix_round.log — V8-CI-009 GAP 补齐轮（owner=SA-CI-32，base 72df03191e1d12cc733f506dc8f85a5c6c75556b）
+# 生成时间: 2026-09-05T23:52:41Z
+
+===[A] R9 全量扫描真实 registry：ci/checks.json 80 条，先模式全量 grep，再逐条 R9 判定 ===
+[grep] checks=80 hardcoded_thread_hits=[]
+--- python3 ci/validate_registry.py --registry ci/checks.json --strict ---
+{
+  "registry": "/workspace/Astro CS Database/ci/checks.json",
+  "strict": true,
+  "checks": 80,
+  "errors": [],
+  "error_count": 0,
+  "verdict": "PASS"
+}
+exit=0
+
+===[B] R9 注入样例复测（validate_registry 副本注入，--strict）===
+N-J4_-j4               exit=1 verdict=FAIL R9_errors=["R9 checks[0] (N-J4): hardcoded_core_in_command: '-j4'"]
+N-JOBS_--jobs=4        exit=1 verdict=FAIL R9_errors=["R9 checks[0] (N-JOBS): hardcoded_core_in_command: '--jobs=4'"]
+N-THR_--threads=64     exit=1 verdict=FAIL R9_errors=["R9 checks[0] (N-THR): hardcoded_core_in_command: '--threads=64'"]
+N-OMP_env_assign       exit=1 verdict=FAIL R9_errors=["R9 checks[0] (N-OMP): hardcoded_core_in_command: 'OMP_NUM_THREADS=8'"]
+N-NPROC_NPROC=8        exit=1 verdict=FAIL R9_errors=["R9 checks[0] (N-NPROC): hardcoded_core_in_command: 'NPROC=8'"]
+N-MON_monitor_ok       exit=0 verdict=PASS R9_errors=[]
+
+===[C] G3 双 zip 复测（validate_candidate：正常包 / 成员逃逸包 / SHA256SUMS 登记逃逸包）===
+good            exit=0 verdict=PASS codes=[]
+member_escape   exit=1 verdict=FAIL codes=['path_escape_in_zip', 'path_escape_in_zip', 'path_escape_in_zip', 'path_escape_in_zip']
+sums_escape     exit=1 verdict=FAIL codes=['path_escape_in_zip', 'path_escape_in_zip']
+
+===[D] 验收命令逐条（同 acceptance_gapfix.log）===
+=== [1] validate_registry --strict ===
+  "verdict": "PASS"
+exit=0
+=== [2] verify_actions_lock --offline ===
+exit=0
+=== [3] unittest discover ci/tests ===
+Ran 216 tests in 24.364s
+OK
+exit=0
+=== [4] run.py --profile fast --plan-only ===
+  "selected_count": 57,
+exit=0
+=== [5] git diff --stat (allowed scope) ===
+=== [6] untracked in scope ===
+=== [7] negative_guards 单独重放（G2/G3 翻红用例信号）===
+Ran 36 tests in 2.480s
+OK
+exit=0
+=== END 2026-09-05T23:51:35Z ===
+
+===[E] 允许面 diff 确认 ===
+ ci/validate_candidate.py | 34 +++++++++++++++++++++++++++++++---
+ ci/validate_registry.py  | 32 +++++++++++++++++++++++++++++++-
+ 2 files changed, 62 insertions(+), 4 deletions(-)
+ M ci/validate_candidate.py
+ M ci/validate_registry.py
+?? ci/tests/test_negative_guards.py
+?? evidence/v8_1_ci_control/tasks/V8-CI-009/
+=== END 2026-09-05T23:52:41Z ===

@@ -1,0 +1,39 @@
+test_duplicate_check_id_rejected_exit2 (test_negative_guards.TestN01FakePassJson.test_duplicate_check_id_rejected_exit2) ... ok
+test_forged_pass_overwritten_by_execution (test_negative_guards.TestN01FakePassJson.test_forged_pass_overwritten_by_execution) ... ok
+test_forged_pass_real_fail_still_fail (test_negative_guards.TestN01FakePassJson.test_forged_pass_real_fail_still_fail) ... ok
+test_invalid_json_registry_rejected_exit2 (test_negative_guards.TestN01FakePassJson.test_invalid_json_registry_rejected_exit2) ... ok
+test_nonzero_exit_verdict_fail (test_negative_guards.TestN02NonZeroExit.test_nonzero_exit_verdict_fail) ... ok
+test_sigkill_verdict_signal (test_negative_guards.TestN02NonZeroExit.test_sigkill_verdict_signal) ... ok
+test_timeout_verdict_timeout (test_negative_guards.TestN02NonZeroExit.test_timeout_verdict_timeout) ... ok
+test_plan_only_has_no_verdict (test_negative_guards.TestN03VerdictSource.test_plan_only_has_no_verdict) ... ok
+test_summary_recomputed_from_execution (test_negative_guards.TestN03VerdictSource.test_summary_recomputed_from_execution) ... ok
+test_expired_write_lease_unchecked__GAP_G1 (test_negative_guards.TestN04DirtyWorkspaceAndLease.test_expired_write_lease_unchecked__GAP_G1) ... ok
+test_workspace_mutation_rejected_fail_dirty (test_negative_guards.TestN04DirtyWorkspaceAndLease.test_workspace_mutation_rejected_fail_dirty) ... ok
+test_unknown_check_id_rejected_exit2 (test_negative_guards.TestN05UnregisteredScript.test_unknown_check_id_rejected_exit2) ... ok
+test_unregistered_relative_script_rejected_by_r4 (test_negative_guards.TestN05UnregisteredScript.test_unregistered_relative_script_rejected_by_r4) ... ok
+test_pull_request_trigger_rejected (test_negative_guards.TestN06PrForkTriggerFatduck.test_pull_request_trigger_rejected) ... ok
+test_workflow_dispatch_trigger_rejected (test_negative_guards.TestN06PrForkTriggerFatduck.test_workflow_dispatch_trigger_rejected) ... ok
+test_tag_pinned_use_rejected (test_negative_guards.TestN07TagAction.test_tag_pinned_use_rejected) ... ok
+test_tampered_lock_short_sha_rejected (test_negative_guards.TestN07TagAction.test_tampered_lock_short_sha_rejected) ... ok
+test_workflow_run_branch_dev_rejected (test_negative_guards.TestN07TagAction.test_workflow_run_branch_dev_rejected) ... ok
+test_execution_chain_accepts_thread_env__GAP_G2 (test_negative_guards.TestN08HardcodedCore.test_execution_chain_accepts_thread_env__GAP_G2) ... ok
+test_registry_j4_argument_unguarded__GAP_G2 (test_negative_guards.TestN08HardcodedCore.test_registry_j4_argument_unguarded__GAP_G2) ... ok
+test_registry_threads_argument_unguarded__GAP_G2 (test_negative_guards.TestN08HardcodedCore.test_registry_threads_argument_unguarded__GAP_G2) ... ok
+test_heavy_in_fast_profile_rejected_r8 (test_negative_guards.TestN09HeavyNoMonitor.test_heavy_in_fast_profile_rejected_r8) ... ok
+test_heavy_without_monitor_rejected_r7 (test_negative_guards.TestN09HeavyNoMonitor.test_heavy_without_monitor_rejected_r7) ... ok
+test_real_policy_on_this_host_rejected_exit2 (test_negative_guards.TestN10VersionDrift.test_real_policy_on_this_host_rejected_exit2) ... ok
+test_strict_policy_rejected_exit2 (test_negative_guards.TestN10VersionDrift.test_strict_policy_rejected_exit2) ... ok
+test_absolute_and_dotdot_members_unguarded__GAP_G4 (test_negative_guards.TestN11ArtifactExfil.test_absolute_and_dotdot_members_unguarded__GAP_G4) ... ok
+test_fits_member_rejected (test_negative_guards.TestN11ArtifactExfil.test_fits_member_rejected) ... ok
+test_header_member_rejected (test_negative_guards.TestN11ArtifactExfil.test_header_member_rejected) ... ok
+test_checkout_step_rejected (test_negative_guards.TestN12FatduckCheckout.test_checkout_step_rejected) ... ok
+test_extra_run_step_rejected (test_negative_guards.TestN12FatduckCheckout.test_extra_run_step_rejected) ... ok
+test_repo_relative_ci_path_rejected (test_negative_guards.TestN12FatduckCheckout.test_repo_relative_ci_path_rejected) ... ok
+test_issues_write_on_validate_job_rejected (test_negative_guards.TestN13IssueTokenFatduck.test_issues_write_on_validate_job_rejected) ... ok
+test_top_level_issues_write_rejected (test_negative_guards.TestN13IssueTokenFatduck.test_top_level_issues_write_rejected) ... ok
+test_mirror_passes_real_fatduck_yml (test_negative_guards._MirrorSanity.test_mirror_passes_real_fatduck_yml) ... ok
+
+----------------------------------------------------------------------
+Ran 34 tests in 2.547s
+
+OK

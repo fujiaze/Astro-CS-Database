@@ -1,0 +1,40 @@
+=== unittest (negative suite) 2026-09-05T23:35:44Z ===
+test_mirror_passes_real_fatduck_yml (test_negative_guards._MirrorSanity.test_mirror_passes_real_fatduck_yml) ... ok
+
+----------------------------------------------------------------------
+Ran 34 tests in 2.702s
+
+OK
+
+=== unittest (full discover) ===
+Ran 214 tests in 24.432s
+
+OK
+
+=== validate_registry --strict ===
+{
+  "registry": "/workspace/Astro CS Database/ci/checks.json",
+  "strict": true,
+  "checks": 80,
+  "errors": [],
+  "error_count": 0,
+  "verdict": "PASS"
+}
+exit=0
+
+=== verify_actions_lock --offline ===
+verify_actions_lock: PASS (offline, 4 entries)
+exit=0
+
+=== run.py --plan-only ===
+exit=0
+plan checks = 57
+
+=== git status (filtered) ===
+?? ci/tests/test_negative_guards.py
+?? evidence/v8_1_ci_control/tasks/V8-CI-009/
+?? "\345\214\205\350\247\204\350\214\203.md"
+?? "\345\267\245\347\250\213\346\216\247\345\210\266/"
+
+=== git diff ci/ ===
+0
