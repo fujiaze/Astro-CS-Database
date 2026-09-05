@@ -2218,7 +2218,9 @@
         "--candidate-dir",
         "run/ci/win-candidate",
         "--output",
-        "run/ci/win-package-summary.json"
+        "run/ci/win-package-summary.json",
+        "--zip",
+        "artifacts/candidate/AstroCS-candidate.zip"
       ],
       "timeout_seconds": 1800,
       "heavy": true,
@@ -2226,7 +2228,8 @@
       "outputs": [
         "run/ci/monitor/WIN-PACKAGE-CANDIDATE.json",
         "run/ci/win-package-summary.json",
-        "run/ci/win-candidate"
+        "run/ci/win-candidate",
+        "artifacts/candidate/AstroCS-candidate.zip"
       ],
       "waivable": true,
       "changed_paths": [

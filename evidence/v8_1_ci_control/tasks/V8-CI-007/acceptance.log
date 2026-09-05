@@ -1,0 +1,79 @@
+{
+ "arbitrated_utc": "2026-09-05T22:19:17Z",
+ "task_id": "V8-CI-007",
+ "verdict": "PASS",
+ "results": [
+  {
+   "item": "registry_strict",
+   "cmd": "/usr/bin/python3 ci/validate_registry.py --registry ci/checks.json --strict",
+   "exit_code": 0,
+   "expected_exit": 0,
+   "exit_ok": true,
+   "verdict": "PASS",
+   "detail": "checks=80 errors=0",
+   "stdout_tail": "{\n  \"registry\": \"/workspace/Astro CS Database/ci/checks.json\",\n  \"strict\": true,\n  \"checks\": 80,\n  \"errors\": [],\n  \"error_count\": 0,\n  \"verdict\": \"PASS\"\n}\n"
+  },
+  {
+   "item": "verify_actions_lock_online",
+   "cmd": "/usr/bin/python3 ci/verify_actions_lock.py --json",
+   "exit_code": 0,
+   "expected_exit": 0,
+   "exit_ok": true,
+   "verdict": "PASS",
+   "detail": "PASS entries=3",
+   "stdout_tail": "aca151604b8cf639adc76d48f6c5d4\",\n      \"observed_sha\": \"330a01c490aca151604b8cf639adc76d48f6c5d4\",\n      \"ok\": true,\n      \"reason\": null\n    },\n    {\n      \"action\": \"actions/upload-artifact\",\n      \"tag\": \"v4.6.2\",\n      \"expected_sha\": \"ea165f8d65b6e75b540449e92b4886f43607fa02\",\n      \"observed_sha\": \"ea165f8d65b6e75b540449e92b4886f43607fa02\",\n      \"ok\": true,\n      \"reason\": null\n    }\n  ]\n}\n"
+  },
+  {
+   "item": "verify_actions_lock_offline",
+   "cmd": "/usr/bin/python3 ci/verify_actions_lock.py --offline",
+   "exit_code": 0,
+   "expected_exit": 0,
+   "exit_ok": true,
+   "verdict": "PASS",
+   "detail": "PASS",
+   "stdout_tail": "verify_actions_lock: PASS (offline, 3 entries)\n"
+  },
+  {
+   "item": "unittest_all",
+   "cmd": "/usr/bin/python3 -m unittest discover -s ci/tests -p test_*.py",
+   "exit_code": 0,
+   "expected_exit": 0,
+   "exit_ok": true,
+   "verdict": "PASS",
+   "detail": "ran=151 all OK",
+   "stdout_tail": ""
+  },
+  {
+   "item": "plan_counts",
+   "cmd": "/usr/bin/python3 -c import json,subprocess,sys\nbase={'fast':57,'linux-main':71,'linux-deep':7,'windows-main':61}\nout={}\nfor p in base:\n    r=subprocess.run([sys.executable,'ci/run.py','--profile',p,'--plan-only'],capture_output=True,text=True)\n    out[p]=json.loads(r.stdout)['selected_count']\nprint(json.dumps(out)); sys.exit(0 if out==base else 1)",
+   "exit_code": 0,
+   "expected_exit": 0,
+   "exit_ok": true,
+   "verdict": "PASS",
+   "detail": "counts={\"fast\": 57, \"linux-main\": 71, \"linux-deep\": 7, \"windows-main\": 61} base=57/71/7/61",
+   "stdout_tail": "{\"fast\": 57, \"linux-main\": 71, \"linux-deep\": 7, \"windows-main\": 61}\n"
+  },
+  {
+   "item": "no_placeholders",
+   "cmd": [
+    "grep -R \"__.*__\" .github/workflows/"
+   ],
+   "exit_code": 1,
+   "expected_exit": 1,
+   "exit_ok": true,
+   "verdict": "PASS",
+   "detail": "exit 1 = 无未替换占位符",
+   "stdout_tail": ""
+  },
+  {
+   "item": "yaml_parse",
+   "cmd": "/usr/bin/python3 -c import yaml\nfor f in ['.github/workflows/ci-linux.yml','.github/workflows/ci-windows.yml']:\n    yaml.safe_load(open(f))\nprint('yaml OK')",
+   "exit_code": 0,
+   "expected_exit": 0,
+   "exit_ok": true,
+   "verdict": "PASS",
+   "detail": "yaml OK",
+   "stdout_tail": "yaml OK\n"
+  }
+ ]
+}

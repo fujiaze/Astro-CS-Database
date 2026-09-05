@@ -1,0 +1,36 @@
+{
+  "task_id": "V8-CI-007",
+  "generated_utc": "2026-09-05T22:22:33Z",
+  "test_files": ["ci/tests/test_workflow_lock.py"],
+  "test_counts": {
+    "new_tests_in_test_workflow_lock": 38,
+    "full_suite_total": 151,
+    "baseline_required": ">=125",
+    "full_suite_cmd": "python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+    "full_suite_result": "Ran 151 tests in ~22s, OK (exit 0)",
+    "network_usage": "none — 全部用例离线；verify_actions_lock 相关用例使用 --offline 模式或 mock load_lock / mock 探测函数，不发真实 HTTP"
+  },
+  "coverage_by_area": [
+    {"area": "actions.lock 结构 (VAL.load_lock)", "cases": 4, "detail": "真实锁可加载且 SHA 40 位 / 短 SHA 拒绝 / 重复 (action,tag) 拒绝 / 缺 verified_utc 拒绝 (LockInvalid)"},
+    {"area": "workflow YAML (yaml.safe_load 实文件)", "cases": 10, "detail": "单 job + runs-on(ubuntu-24.04|windows-2022) + timeout 330 + checkout 用锁内 SHA / 无 __XXX__ 占位符残留 / uses 全部 40 位 SHA 且在 actions.lock 内 / permissions contents:read + concurrency cancel-in-progress:false / linux 触发器 push(main)+dispatch(options 两 profile)+schedule(cron 5 段) / windows validate 步骤指向 artifacts/candidate/AstroCS-candidate.zip / upload-artifact 步骤存在且 if: always() + if-no-files-found / 无算法-科学参数字样(tolera|snr|psf|benchmark|--iter|threshold) / 每 step 有 name"},
+    {"area": "verify_actions_lock --offline", "cases": 3, "detail": "真实锁 offline exit 0 + verdict PASS / 畸形 SHA exit 3 LOCK_INVALID / 缺锁文件 exit 3"},
+    {"area": "bootstrap", "cases": 4, "detail": "本地宿主(非 hosted) exit 2 + stderr 结构化 FAIL + stdout JSON items[]{tool,required,observed,ok} / mock 全命中 -> 全 ok / mock cmake 3.30.0 低于 3.31.12 -> 仅 cmake 项 ok=False / 缺 policy 文件 exit 2"},
+    {"area": "select_profile", "cases": 7, "detail": "push->linux-main / schedule->linux-deep / dispatch 两个白名单值 / dispatch 空 requested exit 2 / dispatch 非白名单(fast) exit 2 / 未知事件(cron) exit 2 / --json 形状(profile,event,reason)"},
+    {"area": "validate_candidate", "cases": 9, "detail": "最小合法 zip(两产物+三清单+双向 SHA256SUMS) exit 0 / 缺 SOURCE_MANIFEST -> manifest_missing / 篡改文件 -> sums_hash_mismatch / .py 成员 -> excluded_entry_in_zip / CMakeFiles 成员 -> excluded_entry_in_zip / manifest 登记 testdata 路径 -> source_manifest_excluded / provenance 缺 acr_enabled -> provenance_missing_field / zip 有未登记成员 -> sums_missing_entry / 缺 zip 文件 -> FAIL exit 1"},
+    {"area": "回归", "cases": 2, "detail": "plan-only selected_count fast=57 linux-main=71 linux-deep=7 windows-main=61 / validate_registry --strict exit 0"}
+  ],
+  "new_tests_total": 38,
+  "new_tests_total_note": "loadTestsFromModule 实测 38 个 test 方法；coverage_by_area 的 cases 为按断言块归并的覆盖点计数（其中 YAML 区 10 项与回归区 2 项由 9 个方法分别断言），故各 area 合计 39 与方法数 38 差 1 属归并口径，方法数以 38 为准",
+  "acceptance_artbitration": {
+    "log": "acceptance.log",
+    "arbitrated_utc": "2026-09-05T22:19:17Z",
+    "overall": "PASS",
+    "items": 7
+  },
+  "verification_log_files": [
+    "logs/unittest.log",
+    "logs/verify_actions_lock.log",
+    "logs/checkout-tags.log",
+    "logs/latest-tags.log"
+  ]
+}

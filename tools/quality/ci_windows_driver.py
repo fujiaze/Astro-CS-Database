@@ -50,6 +50,7 @@ import re
 import shutil
 import subprocess
 import sys
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -59,6 +60,7 @@ __all__ = [
     "main", "run_step", "parse_stages", "stage_plan", "build_candidate",
     "verify_candidate", "expected_windows_artifacts", "prune_candidate",
     "build_dir_from_preset", "EXCLUDE_PATTERNS", "DOC_WHITELIST",
+    "pack_candidate_zip",
 ]
 
 # ---------------------------------------------------------------------- 常量 ----
@@ -73,6 +75,8 @@ DEFAULT_BUILD_DIR = "build/win-msvc-17.14.39-x64"  # preset binaryDir 的仓库�
 DEFAULT_CANDIDATE = "run/ci/win-candidate"         # candidate 目录（run/ 全局 ignore）
 DEFAULT_JUNIT = "run/ci/win-test-junit.xml"
 DEFAULT_OUTPUT = "run/ci/win-driver-summary.json"
+# V8-CI-007 连带：--zip 打包输出（candidate zip 交 ci/validate_candidate.py 校验）
+DEFAULT_ZIP = "artifacts/candidate/AstroCS-candidate.zip"
 
 # 逐阶段默认 timeout 秒（逐阶段超时纪律；checks.json 的外层 timeout 更大）
 STAGE_TIMEOUTS = {
@@ -575,6 +579,35 @@ def verify_candidate(candidate: Path, *, run_binaries: bool | None = None,
 
 # ----------------------------------------------------------- package 组装 ----
 
+def pack_candidate_zip(candidate: Path, zip_out: Path) -> dict:
+    """V8-CI-007 连带：把组装完成的 candidate 目录打包为 zip。
+
+    - zip 根 = candidate 根（BUILD_PROVENANCE.json / SOURCE_MANIFEST.json /
+      SHA256SUMS / 产物树均在 zip 根下）；
+    - 成员名统一 posix 相对路径、sorted 排序、固定时间戳（1980-01-01），
+      使同内容 candidate 产出字节可复现的 zip（SHA 可比对）；
+    - ZIP_DEFLATED 压缩；文件读取后即写，不驻留内存全量。
+    """
+    if not candidate.is_dir():
+        raise SystemExit(f"ci_windows_driver: candidate 目录不存在，无法打包：{candidate}")
+    members = sorted(p for p in candidate.rglob("*") if p.is_file())
+    zip_out.parent.mkdir(parents=True, exist_ok=True)
+    if zip_out.exists():
+        zip_out.unlink()
+    with zipfile.ZipFile(zip_out, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for path in members:
+            arcname = path.relative_to(candidate).as_posix()
+            info = zipfile.ZipInfo(arcname, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            zf.writestr(info, path.read_bytes())
+    return {
+        "zip": str(zip_out),
+        "file_count": len(members),
+        "bytes": zip_out.stat().st_size,
+    }
+
+
 def build_candidate(candidate: Path, *, source_repo: Path | None = None,
                     preset: str = DEFAULT_PRESET, test_preset: str = DEFAULT_TEST_PRESET,
                     build_dir: str = DEFAULT_BUILD_DIR,
@@ -705,6 +738,11 @@ def build_parser() -> argparse.ArgumentParser:
                     help="默认从 CMakePresets.json binaryDir 推导（单一事实源）")
     ap.add_argument("--candidate-dir", dest="candidate_dir", default=DEFAULT_CANDIDATE)
     ap.add_argument("--junit", default=DEFAULT_JUNIT)
+    # V8-CI-007 连带：package 成功后把 candidate 打包为 zip（validate_candidate 输入）
+    ap.add_argument("--zip", dest="zip_out", nargs="?", const=DEFAULT_ZIP,
+                    default=None,
+                    help=f"package 成功后打包 candidate 为 zip "
+                         f"（默认 {DEFAULT_ZIP}；不传 = 只出目录）")
     ap.add_argument("--output", default=DEFAULT_OUTPUT, help="JSON summary 路径")
     ap.add_argument("--no-summary", action="store_true")
     ap.add_argument("--require-tools", nargs="*", default=["cmake"],
@@ -748,6 +786,14 @@ def main(argv: list[str] | None = None) -> int:
     rc, _summary = _run_stages(stages, plan, output=output, candidate=candidate,
                                build_dir=str(build), preset=args.preset,
                                test_preset=args.test_preset, cmake_ver=cmake_ver)
+    # V8-CI-007 连带：package 成功且请求 --zip 时打包 candidate
+    if args.zip_out and rc == 0 and "package" in stages:
+        zip_path = _ensure_inside_repo(args.zip_out, "zip")
+        packed = pack_candidate_zip(candidate, zip_path)
+        print(json.dumps({"driver": "ci_windows_driver.py", "task_id": TASK_ID,
+                          "candidate_zip": packed["zip"],
+                          "zip_file_count": packed["file_count"],
+                          "zip_bytes": packed["bytes"]}, ensure_ascii=False))
     return rc
 
 

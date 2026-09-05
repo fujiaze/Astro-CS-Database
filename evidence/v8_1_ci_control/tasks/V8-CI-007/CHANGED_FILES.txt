@@ -1,0 +1,58 @@
+# V8-CI-007 变更文件清单
+# 仓库: /workspace/Astro CS Database   HEAD: a90dbb9099727f83b308c3a50a647c1b6198fe2f
+# 生成: 2026-09-05T22:22:33Z   owner: SA-CI-32
+# 允许路径域: ci/**  tools/**  tests/**  .github/workflows/**  evidence/v8_1_ci_control/tasks/V8-CI-007/**
+
+[created] .github/workflows/ci-linux.yml
+    Linux hosted workflow：ubuntu-24.04；push(main)+workflow_dispatch(linux-main|linux-deep)+schedule(cron 17 19 * * *)；
+    checkout 用 actions.lock 完整 SHA；bootstrap 锁定工具链探测；select_profile 路由；跑注册 checks；上传公开证据(if: always())。
+[created] .github/workflows/ci-windows.yml
+    Windows hosted workflow：windows-2022；push(main)+workflow_dispatch；bootstrap(windows) -> windows-main 全量 -> validate_candidate
+    校验 candidate zip -> 上传 zip 与公开证据；锁定 SHA / permissions contents:read / concurrency 不取消 / timeout 330。
+[created] ci/actions.lock.json
+    action 锁定表 schema_version 1：checkout v7.0.1、upload-artifact v5.0.0（在用）、upload-artifact v4.6.2（参考条目 used_by=[]）。
+[created] ci/verify_actions_lock.py
+    在线逐 tag 匿名实查 commit SHA（annotated 解引用+退避）并比对锁表；--offline 结构校验；--json/--log；
+    exit 0=PASS / 1=SHA_MISMATCH / 2=NETWORK_UNAVAILABLE / 3=LOCK_INVALID。
+[created] ci/bootstrap.py
+    --policy --platform linux|windows 逐项 {tool,required,observed,ok[,detail]} 探测；hosted runner 判定；vswhere 探测 VS17；
+    失败 -> 结构化 stderr(verdict/failed_tools/repair) + exit 2 无 traceback；--json。
+[created] ci/select_profile.py
+    事件->profile：push->linux-main；schedule->linux-deep；workflow_dispatch->requested(白名单)；无效 exit 2；
+    成功输出 profile=<id>（GITHUB_OUTPUT 兼容）；--json 仅机读 JSON。
+[created] ci/validate_candidate.py
+    candidate zip 校验：SOURCE_MANIFEST 结构/排除、SHA256SUMS 双向完备+哈希复算、zip 成员排除（源码后缀/CMakeFiles/Testing 等）、
+    BUILD_PROVENANCE 必填字段(source_sha,built_utc,preset,acr_enabled)；违规 exit 1 结构化错误码；--json。
+[created] ci/tests/test_workflow_lock.py
+    38 个离线单测：锁结构 / YAML 形状-占位符-锁定 SHA / verify --offline / bootstrap 三态+mock / select_profile 全规则 /
+    validate_candidate 合法+7 拒绝路径 / registry strict / profile 计数回归。
+[created] evidence/v8_1_ci_control/tasks/V8-CI-007/TASK_RESULT.json
+[created] evidence/v8_1_ci_control/tasks/V8-CI-007/TEST_EVIDENCE.json
+[created] evidence/v8_1_ci_control/tasks/V8-CI-007/CHANGED_FILES.txt
+[created] evidence/v8_1_ci_control/tasks/V8-CI-007/acceptance.log
+    七项验收独立进程仲裁重跑结果（overall=PASS）。
+[created-untracked-logs] evidence/v8_1_ci_control/tasks/V8-CI-007/logs/verify_actions_lock.log
+    在线复验最终 PASS 报告（2026-09-05T22:17:04Z）。
+[created-untracked-logs] evidence/v8_1_ci_control/tasks/V8-CI-007/logs/checkout-tags.log
+    逐 tag curl api.github.com 实查原始响应（含 checkout v5/v6/v7 与 upload-artifact v4.6.2/v5.0.0）。
+[created-untracked-logs] evidence/v8_1_ci_control/tasks/V8-CI-007/logs/latest-tags.log
+    repos/*/tags 列表参考抓取。
+[created-untracked-logs] evidence/v8_1_ci_control/tasks/V8-CI-007/logs/unittest.log
+    全量单测摘要（Ran 151 tests, OK）。
+    # 注：logs/ 被 .gitignore 第 18 行规则忽略——已写盘留证，不入 git。
+
+[modified] tools/quality/ci_windows_driver.py    (+46 行)
+    连带变更：+pack_candidate_zip()（确定性打包：排序成员/固定时间戳(1980,1,1)/posix arcname/0o644）；
+    +CLI --zip [OUT]（默认 artifacts/candidate/AstroCS-candidate.zip，仅 rc=0 且含 package stage 时执行）；
+    __all__ 追加；打包后打印 JSON 摘要。
+[modified] ci/checks.json    (+5/-2 行)
+    连带变更：WIN-PACKAGE-CANDIDATE command 追加 "--zip","artifacts/candidate/AstroCS-candidate.zip"；
+    outputs 追加 "artifacts/candidate/AstroCS-candidate.zip"。validate_registry --strict：80 checks, 0 errors。
+
+[unchanged-restored] ci/toolchain.policy.json
+    过程中曾被误覆盖，已按 HEAD 原文（V81-ADOPT-004，schema_version 2）恢复；最终与 HEAD 无 diff，0 字节变更。
+    bootstrap 兼容读取其 linux_hosted/windows_hosted 节；fatduck 节不触碰（V8-CI-008 域）。
+
+[not-touched] 冻结约束 / science / algorithms / tolerances / AGENTS.md / .gitignore / 工程控制/ /
+              TASK_STATE / WRITE_LEASE / dispatch / adoption / ci/run.py / ci/validate_registry.py / 其余 checks 项。
+[git-ops] 无任何 git 写操作（未 add/commit/push/branch；仅只读 git 查询）。

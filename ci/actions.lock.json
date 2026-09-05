@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "task_id": "V8-CI-007",
+  "description": "GitHub Actions 锁定清单：workflow 引用的 action 全部锁定完整 commit SHA（在线查 api.github.com 生成，机器可复验）",
+  "source": "https://api.github.com",
+  "generated_utc": "2026-09-05T21:58:29Z",
+  "entries": [
+    {
+      "action": "actions/checkout",
+      "tag": "v7.0.1",
+      "commit_sha": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "verified_utc": "2026-09-05T21:58:29Z",
+      "used_by": [".github/workflows/ci-linux.yml", ".github/workflows/ci-windows.yml"]
+    },
+    {
+      "action": "actions/upload-artifact",
+      "tag": "v5.0.0",
+      "commit_sha": "330a01c490aca151604b8cf639adc76d48f6c5d4",
+      "verified_utc": "2026-09-05T21:58:29Z",
+      "used_by": [".github/workflows/ci-linux.yml", ".github/workflows/ci-windows.yml"]
+    },
+    {
+      "action": "actions/upload-artifact",
+      "tag": "v4.6.2",
+      "commit_sha": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "verified_utc": "2026-09-05T21:58:29Z",
+      "used_by": [],
+      "note": "模板注释 v4 系已验证参考条目（workflow 未使用，保留供复验）"
+    }
+  ]
+}
