@@ -1,0 +1,26 @@
+{
+  "task_id": "V8-CI-004",
+  "owner": "SA-CI-32",
+  "mode": "write",
+  "base_sha": "df01ea7b5dc3269b9ee1b23544305a4ac1ed5276",
+  "goal": "Implement fast changed-scope profile",
+  "allowed_paths": [
+    "ci/**",
+    "tools/quality/**"
+  ],
+  "prohibited": [
+    "commit",
+    "push",
+    "branch",
+    "worktree",
+    "clone",
+    "history_rewrite",
+    "scope_expansion",
+    "modify_control_package",
+    "modify_TASK_STATE",
+    "modify_WRITE_LEASE"
+  ],
+  "acceptance_command": "python3 ci/run.py --profile fast",
+  "timeout_s": 900,
+  "dispatched_utc": "2026-09-05T17:25:19Z"
+}
