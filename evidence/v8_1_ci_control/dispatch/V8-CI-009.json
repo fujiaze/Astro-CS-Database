@@ -1,0 +1,38 @@
+{
+  "task_id": "V8-CI-009",
+  "owner": "SA-CI-32",
+  "mode": "write",
+  "base_sha": "9b3fe93e0877bcd249f8ca89b3d66bea2df3913b",
+  "goal": "Negative test wave: inject 13 guard-violation sample classes and confirm each is rejected by the existing guard chain",
+  "spec_ref": "工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/tasks/02_CI_TASKS.md#V8-CI-009",
+  "allowed_paths": [
+    "ci/**",
+    "evidence/v8_1_ci_control/tasks/V8-CI-009/**"
+  ],
+  "prohibited": [
+    "commit",
+    "push",
+    "branch",
+    "worktree",
+    "clone",
+    "history_rewrite",
+    "scope_expansion",
+    "modify_control_package",
+    "modify_TASK_STATE",
+    "modify_WRITE_LEASE",
+    "modify_.gitignore",
+    "touch_AstroCS_ENGINEERING_CONSTRAINTS",
+    "mutate_guard_scripts_themselves_to_pass",
+    "weaken_existing_tests"
+  ],
+  "requirements": [
+    "13 类负向样例逐一注入并确认拒绝（每类记录：注入方式/被哪个守卫以何退出码拒绝/证据日志）：1 假 PASS JSON（伪造 verdict PASS 的结果文件喂结果消费路径）2 非零退出（检查脚本退出非 0 时 run.py 不得记 PASS）3 timeout（命令超时→TIMEOUT/FAIL 而非 PASS）4 dirty workspace（WRITE_LEASE/base_sha 不符或工作区脏时拒绝写操作路径）5 未登记脚本（未在 checks.json 登记的可执行脚本被执行链拒绝）6 PR/fork 触发 Fatduck（head_branch 非 main 或 fork run 注入 select_candidate → exit 3）7 tag action（workflow 引用 tag 而非 SHA → verify_actions_lock/单测守卫拒绝）8 hardcoded core（硬编码线程数/check 命令 → 守卫拒绝，核对现有约束扫描）9 heavy 无 monitor（heavy 检查缺 ci/resource_monitor.py 前缀 → validate_registry --strict 拒绝）10 版本漂移（toolchain 版本不满足 policy → bootstrap exit 2）11 上传 FITS/headers/绝对路径（validate_candidate：zip 含 FITS/header 类文件或绝对路径成员 → exit 1）12 Fatduck checkout（fatduck.yml validate job 注入 checkout 步骤 → 单测守卫拒绝）13 Issue 写 token 落到 Fatduck（validate job 注入 issues:write/gh token → 单测守卫拒绝）",
+    "注入一律在临时副本（tmp 目录复制目标文件/workflow/registry 后改动）或构造样例上执行，绝不改动仓库内既有守卫脚本与已交付 workflow/registry 的生效内容",
+    "全部落为离线可重放的负向测试套件 ci/tests/test_negative_guards.py（每类 ≥1 用例，断言拒绝路径与退出码），纳入 unittest discover 全绿",
+    "守卫缺口若确有存在（某类注入当前无守卫覆盖）：如实登记 GAP，不得为通过而现写宽松守卫或跳过；每条 GAP 给最小守卫补齐建议交前台裁决",
+    "证据 evidence/v8_1_ci_control/tasks/V8-CI-009/：TASK_RESULT.json、TEST_EVIDENCE.json、NEGATIVE_MATRIX.md（13 行矩阵：样例/注入/守卫/退出码/结论）、CHANGED_FILES.txt、logs/"
+  ],
+  "acceptance_command": "python3 ci/validate_registry.py --registry ci/checks.json --strict && python3 ci/verify_actions_lock.py --offline && python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+  "timeout_s": 1200,
+  "dispatched_utc": "2026-09-05T23:00:00Z"
+}
