@@ -2,8 +2,8 @@
 
 > 文档 ID：DOC-GOV-OWNER-RELEASE-001
 > 状态：ACTIVE_NORMATIVE（GOV-004 建立，SA-GOV-01）
-> 目标产品：`0.11.0-alpha.1`（根 VERSION，GOV-003 唯一源；生成串
-> `0.11.0-alpha.1+g<commit12>`，见 `docs/governance/VERSION_NAMESPACES.md`）
+> 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003 唯一源；生成串
+> `0.11.0-alpha.2+g<commit12>`，见 `docs/governance/VERSION_NAMESPACES.md`）
 > 基线提交：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`
 > 状态词约定同 SCIENCE_OVERVIEW；最终发布裁定只属项目负责人（约束 §H），
 > 本 Agent 至多声明 READY_FOR_OWNER_REVIEW，不替代批准。
@@ -19,7 +19,7 @@ Alpha 架构收敛进行中：合同面（工程约束/版本/文档边界/ABI v
 
 ## 2. 版本与发布面
 
-- 产品版本唯一源：根 `VERSION` = `0.11.0-alpha.1`（GOV-003）。
+- 产品版本唯一源：根 `VERSION` = `0.11.0-alpha.2`（GOV-003）。
   版本命名空间：product / module / ABI(v1) / data-schema(schema_version=1) /
   doc-revision / history（机器检查器 `tools/doccheck/check_version_namespaces.py`）。
 - Windows 正式发布候选：**未产生**。DLL 化安装树（astrocs.exe + astrocs_runtime.dll +

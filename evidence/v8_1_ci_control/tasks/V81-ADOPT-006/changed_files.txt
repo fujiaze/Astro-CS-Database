@@ -1,0 +1,28 @@
+# V81-ADOPT-006 changed files (base 1ecbf10ebbedf3cce52252a07405b9356014a4fc)
+# --- 修改 (14 个已跟踪文件) ---
+VERSION
+CMakeLists.txt
+README.md
+REVIEW.md
+HANDOVER.md
+docs/DOCUMENT_INDEX.yaml
+docs/VERSIONING.md
+docs/governance/VERSION_NAMESPACES.md
+docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md
+docs/owner/ARCHITECTURE_OVERVIEW.md
+docs/owner/CHANGE_REVIEW.md
+docs/owner/PIPELINE_OVERVIEW.md
+docs/owner/RELEASE_STATUS.md
+docs/owner/SCIENCE_OVERVIEW.md
+# --- 新增 (2 个文件) ---
+ci/check_version.py
+tests/version/test_adopt006_version_gate.py
+# --- 证据 (本任务返回包, 不计入产品改动) ---
+evidence/v8_1_ci_control/tasks/V81-ADOPT-006/TASK_RESULT.json
+evidence/v8_1_ci_control/tasks/V81-ADOPT-006/commands.jsonl
+evidence/v8_1_ci_control/tasks/V81-ADOPT-006/changed_files.txt
+evidence/v8_1_ci_control/tasks/V81-ADOPT-006/test_summary.json
+evidence/v8_1_ci_control/tasks/V81-ADOPT-006/findings.csv
+evidence/v8_1_ci_control/tasks/V81-ADOPT-006/logs/**
+# --- 非本任务产物 (预存未跟踪, 未触碰) ---
+# docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md  (本任务开始前已存在)

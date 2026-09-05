@@ -1,0 +1,78 @@
+{
+  "task_id": "V81-ADOPT-006",
+  "owner": "SA-DOC-05",
+  "mode": "write",
+  "base_sha": "1ecbf10ebbedf3cce52252a07405b9356014a4fc",
+  "goal": "Unify active alpha version sources to 0.11.0-alpha.2 without rewriting archives",
+  "acquired_utc": "2026-09-05T11:09:01Z",
+  "acceptance": {
+    "command": "python3 ci/check_version.py --expected 0.11.0-alpha.2",
+    "exit_code": 0,
+    "verdict": "VERSION_CHECK_PASS",
+    "checks_passed": 11,
+    "checks_failed": 0,
+    "evidence": "logs/acceptance_final.json"
+  },
+  "negative_samples": [
+    {
+      "name": "expected 格式非法",
+      "command": "python3 ci/check_version.py --expected 0.0.0",
+      "exit_code": 1,
+      "fails": ["expected_format"],
+      "evidence": "logs/negative_expected_000.json"
+    },
+    {
+      "name": "expected 落后一版 (直接漂移样例)",
+      "command": "python3 ci/check_version.py --expected 0.11.0-alpha.1",
+      "exit_code": 1,
+      "fails": ["version_file", "doc_scan_active_docs (11 份活动文档 21 处漂移)"],
+      "evidence": "logs/negative_expected_alpha1.json"
+    },
+    {
+      "name": "/tmp fake 树 CMake project() 漂移 (0.10.0)",
+      "command": "python3 ci/check_version.py --expected 0.11.0-alpha.2 --root /tmp/acs_drift_*",
+      "exit_code": 1,
+      "fails": ["cmake_project_base", "chain_root_read_version", "chain_configure_file_root", "chain_configure_file_cli", "doc_set_complete"],
+      "evidence": "logs/negative_fake_tree_cmake_drift.json"
+    },
+    {
+      "name": "unittest mutation 套件 (VERSION/项目三元组/CLI 手抄/活动文档/缺文件 5 类漂移)",
+      "command": "python3 tests/version/test_adopt006_version_gate.py",
+      "exit_code": 0,
+      "result": "11 tests OK (含 5 个 mutation 负向用例全部确认非零退出)",
+      "evidence": "logs/unittest_and_neg3.log"
+    }
+  ],
+  "machine_tests": {
+    "new": "tests/version/test_adopt006_version_gate.py",
+    "suites": [
+      {"suite": "tests/version/test_adopt006_version_gate.py", "result": "Ran 11 tests, OK", "exit_code": 0},
+      {"suite": "tools/doccheck/check_doc_index.py --strict", "result": "DOC_INDEX_PASS", "exit_code": 0},
+      {"suite": "tests/artifact/test_provenance.py", "result": "Ran 61 tests, OK", "exit_code": 0},
+      {"suite": "tests/version/test_version_consistency.py", "result": "Ran 5 tests, FAILED (failures=2)", "exit_code": 1, "note": "基线同为此 2 失败 (test_01 硬编码 0.10.0-alpha.2 断言 + test_04 依赖遗留检查器, GOV-003 known_limits 登记项); 本任务未引入新失败"},
+      {"suite": "tests/abi/test_abi002_lifecycle.py", "result": "Ran 18 tests, FAILED (errors=9)", "exit_code": 1, "note": "9 errors 全部为 FileNotFoundError: 本机无 gcc/g++ (环境预存, 编译类用例); test_33 合同锁定断言 (JSON 数据类) PASS; 与本任务改动无关"},
+      {"suite": "tools/doccheck/check_version_namespaces.py", "result": "VERSION_NAMESPACES_FAIL, active_scan 漂移=1", "exit_code": 1, "note": "基线为 PASS; 升版后唯一硬判项 = AstroCS_ENGINEERING_CONSTRAINTS.md:33 (冻结约束文件 §A.1 仍写 alpha.1; 负责人冻结文件本任务禁改) — 集成时必须由负责人/前台处理, 见 findings.csv"},
+      {"suite": "tools/check_version_consistency.py (VER-001 遗留)", "result": "VERSION_CONSISTENCY_FAIL (71)", "exit_code": 1, "note": "基线即 FAIL (他人路径/归档口径, GOV-003 known_limits 登记); 本任务文件贡献命中=0 (曾引入 4 处已全部修复: 测试漂移 token 运行期拼接 + DATA-004 示例升版)"}
+    ]
+  },
+  "generation_chain": {
+    "gen_version_json": "0.11.0-alpha.2+g1ecbf10ebbed.dirty",
+    "note": ".dirty 属预期 (工作树未提交, commit 由前台串行执行); ABI v1 / schema_version=1 / cli_schema_version=0 等其他命名空间未动",
+    "evidence": "logs/gen_version_after.json"
+  },
+  "changed_files": {
+    "modified": 14,
+    "added": 2,
+    "list": "changed_files.txt",
+    "diff_stat": "logs/git_diff_stat.log"
+  },
+  "no_op_items": [
+    {"item": "CHANGELOG.md 历史节 / memory.md 日志", "result": "NO-OP", "basis": "GOV-003 §2/§4 history/日志命名空间 (warnings-only), 历史归档禁改"},
+    {"item": "docs/archive/**", "result": "NO-OP", "basis": "归档禁改"},
+    {"item": "contracts/** packaging/** modules/**", "result": "NO-OP", "basis": "allowed_paths 未覆盖 (scope_expansion 禁止); 漂移登记于 findings.csv 待对应 owner 协调"},
+    {"item": "AstroCS_ENGINEERING_CONSTRAINTS.md", "result": "NO-OP", "basis": "负责人冻结文件禁改; 其 §A.1 旧目标版本号升版后成为 GOV-003 检查器唯一硬判项, 上报负责人处理"},
+    {"item": "docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md (预存未跟踪文件)", "result": "NO-OP", "basis": "非本任务产物, 未触碰"}
+  ],
+  "verdict": "DONE_WITH_INTEGRATION_ITEMS",
+  "integration_items_summary": "唯一高优先集成项: 冻结约束 §A.1 (AstroCS_ENGINEERING_CONSTRAINTS.md:33) 仍写 0.11.0-alpha.1, 使 GOV-003 检查器由基线 PASS 转 FAIL (漂移=1); 需负责人/前台在集成时修订该行 (或授权专用任务), 其余为预存他人路径项"
+}

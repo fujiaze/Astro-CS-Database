@@ -3,7 +3,7 @@
 > 文档 ID：DOC-GOV-OWNER-CHANGE-001
 > 状态：ACTIVE_NORMATIVE（GOV-004 建立，SA-GOV-01）
 > 基线提交：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004 工作树检出的基）
-> 目标产品：`0.11.0-alpha.1`（根 VERSION）
+> 目标产品：`0.11.0-alpha.2`（根 VERSION）
 > 状态词约定同 SCIENCE_OVERVIEW；本文件汇总"本轮已集成到 main 的变化"与
 > GOV-004 本次文档骨架变化，供负责人逐项审查。
 
@@ -13,7 +13,7 @@
 |---|---|---|---|
 | `065c81d` | GOV-001 冻结工程约束（根约束文件 + AGENTS.md 精简 + 机器索引） | NO | governance |
 | `b7b2dea` | GOV-002 归档非当前工程文档（DOCUMENT_INDEX.yaml；854+27 文件迁 archive） | NO | governance |
-| `39e7731` | GOV-003 统一版本事实源（VERSION=0.11.0-alpha.1；5 版本命名空间；生成链） | NO | build/version |
+| `39e7731` | GOV-003 统一版本事实源（根 VERSION 单源化，当时基线值见 CHANGELOG 历史节；5 版本命名空间；生成链） | NO | build/version |
 | `bbe2e59` | LOG-001 统一结构化日志接口（schema/JSONL/脱敏） | NO | logging |
 | `1c3d1dc` | ARC-001 冻结 DLL 产品边界（module_dll_contract schema） | NO | architecture |
 | `76b85d4` | ABI-001 定义模块 C ABI v1（4 纯 C 头） | NO | abi |

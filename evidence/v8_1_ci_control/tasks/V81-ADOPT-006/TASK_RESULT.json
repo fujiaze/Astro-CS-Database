@@ -1,0 +1,60 @@
+{
+  "task_id": "V81-ADOPT-006",
+  "owner": "SA-DOC-05",
+  "mode": "write",
+  "base_sha": "1ecbf10ebbedf3cce52252a07405b9356014a4fc",
+  "goal": "Unify active alpha version sources to 0.11.0-alpha.2 without rewriting archives",
+  "acquired_utc": "2026-09-05T11:09:01Z",
+  "finished_utc": "2026-09-05T12:02:Z",
+  "spec_refs": [
+    "evidence/v8_1_ci_control/dispatch/V81-ADOPT-006.json",
+    "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/tasks/01_WORKSPACE_ADOPTION_TASKS.md#V81-ADOPT-006",
+    "docs/governance/VERSION_NAMESPACES.md (GOV-003, 版本命名空间权威)"
+  ],
+  "acceptance_command": "python3 ci/check_version.py --expected 0.11.0-alpha.2",
+  "acceptance_exit_code": 0,
+  "result_summary": {
+    "version_source": "VERSION = 0.11.0-alpha.2 (唯一事实源)",
+    "cmake_project": "project(astrocs VERSION 0.11.0) — 数字三元组==基础号, alpha 后缀由 VERSION/生成链承载 (修 BLD-002 登记的 0.10.0 漂移)",
+    "cli": "cli/** 无手抄版本常量; 版本串由根/CLI CMake file(READ VERSION)+git commit 生成链注入 @ASTROCS_VERSION_STRING@ (verify_toolchain/版本注入模板核对通过)",
+    "configs": "configs/** 无版本字段 (盘点确认, 无需改)",
+    "active_docs": "README/REVIEW/HANDOVER/docs/governance/docs/owner/DOCUMENT_INDEX/VERSIONING/DATA-004 当前版本声明统一 0.11.0-alpha.2; 旧 SHA 6affe300/caee3e67 标注为历史检出基并指向 git rev-parse HEAD",
+    "archives": "docs/archive/**、CHANGELOG 历史节、memory.md 未触碰 (history 命名空间)",
+    "scientific_content": "未改动 (scientific_change=NO)"
+  },
+  "deliverables": {
+    "ci/check_version.py": "新增只读版本一致性 CI 快速门: --expected 参数; 11 项检查 (expected 格式/VERSION 文件/project() 三元组/生成链 5 点/CLI 字面量扫描/活动文档扫描/文档面完整性); JSON 摘要到 stdout; 任一 FAIL exit 1; 规则写死注释无豁免",
+    "tests/version/test_adopt006_version_gate.py": "新增 11 用例机器测试: 统一面 3 + 门面 8 (含 /tmp fake 树 mutation 负向样例 5 类: VERSION 文件/project 三元组/CLI 手抄/活动文档/文档面缺失)",
+    "version_unification": "14 个已跟踪文件修改 (清单见 changed_files.txt)",
+    "evidence": "本目录 (TASK_RESULT.json/commands.jsonl/changed_files.txt/test_summary.json/findings.csv/logs/**)"
+  },
+  "checks": {
+    "acceptance_gate": {"command": "python3 ci/check_version.py --expected 0.11.0-alpha.2", "exit_code": 0, "verdict": "VERSION_CHECK_PASS", "evidence": "logs/acceptance_final.json"},
+    "negative_samples": {"all_exit_nonzero": true, "cases": 3, "evidence": "logs/negative_samples_run.log + logs/unittest_and_neg3.log"},
+    "machine_tests": {"suite": "tests/version/test_adopt006_version_gate.py", "result": "11/11 OK", "exit_code": 0},
+    "generation_chain": {"gen_version": "0.11.0-alpha.2+g1ecbf10ebbed.dirty (dirty=未提交, 预期)", "evidence": "logs/gen_version_after.json"},
+    "doc_index": {"command": "python3 tools/doccheck/check_doc_index.py --strict", "exit_code": 0, "verdict": "DOC_INDEX_PASS"},
+    "gov003_checker": {"command": "python3 tools/doccheck/check_version_namespaces.py", "exit_code": 1, "note": "改前 PASS → 改后 FAIL(漂移=1); 唯一硬判项=AstroCS_ENGINEERING_CONSTRAINTS.md:33 §A.1 (负责人冻结文件, 本任务禁改) — 集成协调项, 见 findings.csv HIGH", "evidence": "logs/gov003_final.json"},
+    "legacy_checker": {"command": "python3 tools/check_version_consistency.py", "exit_code": 1, "note": "基线即 FAIL(他人路径/归档口径, GOV-003 known_limits 登记); 本任务文件贡献命中=0", "evidence": "logs/check_version_consistency_final.log"},
+    "regression": {"tests/version/test_version_consistency.py": "FAILED(failures=2) 与基线相同, 无新失败", "tests/artifact/test_provenance.py": "61 OK", "tests/abi/test_abi002_lifecycle.py": "errors=9 全为 FileNotFoundError(本机无 gcc/g++, 环境预存); JSON 断言用例 PASS"}
+  },
+  "owner_scope_compliance": {
+    "allowed_paths_respected": true,
+    "forbidden_operations": "未 commit/push/branch/worktree/reset; 未改控制包、docs/archive/**、冻结约束、科学内容",
+    "out_of_scope_drift_reported": "packaging/**、contracts/**(ABI 冻结合同)、modules/conformance/**、tests fixture 等他人路径的 alpha.1 残留逐项登记 findings.csv"
+  },
+  "changed_files": {"modified": 14, "added": 2, "evidence": "changed_files.txt + logs/git_diff_stat.log"},
+  "verdict": "DONE_WITH_INTEGRATION_ITEMS",
+  "integration_items": [
+    {"priority": "HIGH", "item": "AstroCS_ENGINEERING_CONSTRAINTS.md:33 (§A.1) 目标版本仍写 0.11.0-alpha.1 → GOV-003 检查器在 main 上将 FAIL; 需负责人修订或前台授权专用任务", "action_by": "负责人/前台"},
+    {"priority": "MEDIUM", "item": "packaging/contracts 活动合同 product_version/target_version 仍 alpha.1 (astrocs.product.json 与 schema pattern 锁死联动; module_lifecycle_contract 为 ABI-002 冻结, test_33 锁定); 需打包/ABI owner 一并收敛", "action_by": "前台协调对应 owner"},
+    {"priority": "MEDIUM", "item": "modules/conformance/{echo,noop} module_version=0.11.0-alpha.1 及对应测试常量; 需模块 owner 确认模块版本随产品版策略", "action_by": "SA-ABI-03"},
+    {"priority": "LOW", "item": "VER-001/QA/打包遗留硬编码 0.10.0-alpha.2 (GOV-003 known_limits 全部登记, 基线预存)", "action_by": "QA/打包 owner"}
+  ],
+  "no_op_items": [
+    {"item": "docs/archive/** 与 CHANGELOG 历史节/memory.md", "basis": "history 命名空间/归档禁改 (GOV-003 §2/§4)"},
+    {"item": "AstroCS_ENGINEERING_CONSTRAINTS.md", "basis": "负责人冻结文件禁改; 集成项已上报"},
+    {"item": "configs/**", "basis": "盘点确认无版本字段"},
+    {"item": "docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md", "basis": "预存未跟踪文件, 非本任务产物未触碰"}
+  ]
+}

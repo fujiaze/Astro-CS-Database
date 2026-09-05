@@ -2,7 +2,8 @@
 #
 # 建立：GOV-002（SA-GOV-01，wave W1）  2026-09-02
 # 更新：GOV-004 补登 docs/owner 与 interfaces/governance 文件；GOV-005 收敛
-#       base_product_version=0.11.0-alpha.1 并登记 GOV-005 新增归档文件
+#       base_product_version 至当时源值并登记 GOV-005 新增归档文件；
+#       V81-ADOPT-006（SA-DOC-05）base_product_version 随根 VERSION 统一升 alpha.2
 # 校验：tools/doccheck/check_doc_index.py（exit 0 = PASS）
 # 规则：
 #   1. 每项唯一 status ∈ {ACTIVE_NORMATIVE, ACTIVE_INFORMATIVE, GENERATED, ARCHIVED_NON_NORMATIVE}
@@ -15,7 +16,7 @@ doc_index:
   authoring_task: "GOV-002"
   authoring_owner: "SA-GOV-01"
   base_main_sha: "065c81deb0a7b6e0c09a4cba5c5c9291e3a5547d"
-  base_product_version: "0.11.0-alpha.1"
+  base_product_version: "0.11.0-alpha.2"
   coverage: "docs/**（含 docs/archive/**）、engineering/control/archive/**（目录级聚合）、仓库根治理文档"
   active:
     - path: "AGENTS.md"

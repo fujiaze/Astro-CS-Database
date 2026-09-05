@@ -2,7 +2,8 @@
 
 > 更新：2026-09-02（GOV-005 现状收敛；历史轮次交接内容移入 CHANGELOG 历史节与
 > `docs/archive/history/`，不再在本文件冒充当前状态）。
-> 分支：main ｜ 本交接基线 HEAD：`6affe3009985452f5bc0bdf654aa95a4b61b2d2e`
+> 分支：main ｜ 本交接基线 HEAD（2026-09-02 交接时点，历史值；当前 HEAD 以
+> `git rev-parse HEAD` 为准）：`6affe3009985452f5bc0bdf654aa95a4b61b2d2e`
 > （`docs(owner): GOV-004 建立负责人审查入口`；后续集成由前台在 main 串行推进）。
 > 权威：根 `AstroCS_ENGINEERING_CONSTRAINTS.md`（冻结约束）、`REVIEW.md` +
 > `docs/owner/`（L0 负责人入口）、`docs/` 分层文档体系；本文件只做交接定位，
@@ -18,8 +19,8 @@ ivar/snr/support + manifest）；Phase2 把一组合同兼容 HiPS 经 UPM 联�
 隔离命令，跨 Phase 仅磁盘产品交换（DATA-002）。
 
 - 主仓库: https://github.com/fujiaze/Astro-CS-Database
-- 产品版本唯一源：根 `VERSION` = `0.11.0-alpha.1`（GOV-003）；
-  生成串 `0.11.0-alpha.1+g<commit12>`（docs/governance/VERSION_NAMESPACES.md）。
+- 产品版本唯一源：根 `VERSION` = `0.11.0-alpha.2`（GOV-003）；
+  生成串 `0.11.0-alpha.2+g<commit12>`（docs/governance/VERSION_NAMESPACES.md）。
 - 权威文档：`docs/`（L0–L5）+ `AstroCS_ENGINEERING_CONSTRAINTS.md`；
   唯一产品构建入口：根 `CMakeLists.txt`（BLD-002）。
 - 正式平台 Windows x64；Linux amd64 为控制/静态分析/轻量编译节点（约束 §B）。

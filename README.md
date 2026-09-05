@@ -1,7 +1,8 @@
 # AstroCS — 天文 CCD 图像校准与标准化数据库
 
-> 目标产品：`0.11.0-alpha.1`（根 `VERSION`，GOV-003 唯一源）。
-> 当前基线提交：`6affe3009985452f5bc0bdf654aa95a4b61b2d2e`（GOV-005 工作树检出基）。
+> 目标产品：`0.11.0-alpha.2`（根 `VERSION`，GOV-003 唯一源）。
+> 检出基提交：`6affe3009985452f5bc0bdf654aa95a4b61b2d2e`（GOV-005 工作树检出基，
+> 2026-09-02 时点历史值；当前 HEAD 以 `git rev-parse HEAD` 为准）。
 > 负责人入口：`REVIEW.md` + `docs/owner/`（L0，GOV-004）；现状/发布口径见
 > `docs/owner/RELEASE_STATUS.md` 与 `docs/KNOWN_LIMITATIONS.md`。
 > 本 README 只给项目定位与入口，不复制权威文档内容；科学/算法/架构/发布权威
