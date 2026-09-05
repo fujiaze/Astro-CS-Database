@@ -1,0 +1,53 @@
+{
+  "task_id": "V8-CI-001",
+  "owner": "SA-CI-32",
+  "base_sha": "b4f923ccbcde51e1a9112aba04815351169091c7",
+  "mode": "write",
+  "goal": "Inventory and classify existing checkers and tests",
+  "allowed_paths": [
+    "ci/**",
+    "tests/test_index.csv",
+    "evidence/v8_1_ci_control/tasks/V8-CI-001/**"
+  ],
+  "forbidden": [
+    "branch",
+    "git_worktree",
+    "extra_clone",
+    "history_rewrite",
+    "scope_expansion",
+    "commit",
+    "push",
+    "modify_control_package"
+  ],
+  "inputs": [
+    "控制包 tasks/02_CI_TASKS.md V8-CI-001 节",
+    "ci/checks.schema.json",
+    "ci/checks.seed.json",
+    "ci/impact_map.seed.json",
+    "tools/quality/**",
+    "tools/doccheck/**",
+    "tools/**",
+    "tests/**",
+    "CMakeLists.txt/CTest（若已配置）"
+  ],
+  "commands": [
+    "盘点真实检查器与测试",
+    "逐项登记命令/输入/输出/timeout/平台/mutates/heavy",
+    "生成 checks.json/impact_map.json/INVENTORY_REPORT.md"
+  ],
+  "acceptance_command": [
+    "python3 ci/validate_registry.py --registry ci/checks.json --strict"
+  ],
+  "outputs": [
+    "ci/checks.json",
+    "ci/impact_map.json",
+    "ci/INVENTORY_REPORT.md",
+    "ci/validate_registry.py",
+    "tests/test_index.csv",
+    "evidence/v8_1_ci_control/tasks/V8-CI-001/"
+  ],
+  "heavy": false,
+  "requires_resource_monitor": false,
+  "timeout_s": 900,
+  "acquired_utc": "2026-09-05T12:07:19Z"
+}

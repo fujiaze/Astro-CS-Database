@@ -1,0 +1,30 @@
+{
+  "task_id": "V8-CI-001",
+  "owner": "SA-CI-32",
+  "generated_utc": "2026-09-05T12:45:00Z",
+  "environment": {"python3": "3.13.5", "git": "2.47.3", "cmake": null, "gcc": null, "pytest": null},
+  "test_suites": [
+    {"path": "tests/api", "type": "unittest", "runner": "discover -s tests/api -t tests/api", "cases": 42, "pass": 21, "fail": 0, "error": 2, "skipped": 19, "exit_code": 1, "local_runnable": true, "detail": "errors: 工程控制归档合同文件缺失 + 头文件编译缺 cc"},
+    {"path": "tests/arch", "type": "unittest", "runner": "discover -s tests/arch -t tests/arch", "cases": 29, "pass": 24, "fail": 2, "error": 0, "skipped": 3, "exit_code": 1, "local_runnable": true, "detail": "inventory 幂等性 FAIL + thread_budget 注释行误报；本套有工作区写副作用"},
+    {"path": "tests/artifact", "type": "unittest", "runner": "discover 目录式", "cases": 137, "pass": 137, "fail": 0, "error": 0, "skipped": 0, "exit_code": 0, "local_runnable": true, "detail": "缺 __init__.py，根级 discover ImportError；目录式 OK"},
+    {"path": "tests/abi", "type": "unittest", "runner": "discover 目录式", "cases": 18, "pass": 0, "fail": 0, "error": 9, "skipped": 9, "exit_code": 1, "local_runnable": false, "detail": "ENV_FAIL-prerequisite: gcc 缺失 (FileNotFoundError x9)"},
+    {"path": "tests/backend", "type": "unittest", "runner": "discover -s tests/backend -t tests/backend", "cases": 70, "pass": 12, "fail": 0, "error": 29, "skipped": 50, "exit_code": 1, "local_runnable": false, "detail": "ENV_FAIL-prerequisite: g++ 缺失 x29"},
+    {"path": "tests/cli", "type": "unittest", "runner": "discover -s tests/cli -t tests/cli", "cases": 74, "pass": 55, "fail": 1, "error": 9, "skipped": 72, "exit_code": 1, "local_runnable": false, "detail": "setUpClass 需先构建 astrocs 二进制 (cmake/gcc 缺失)"},
+    {"path": "tests/contracts", "type": "unittest", "runner": "discover 目录式", "cases": 9, "pass": 9, "fail": 0, "error": 0, "skipped": 0, "exit_code": 0, "local_runnable": true, "detail": "缺 __init__.py；目录式 OK"},
+    {"path": "tests/glossary", "type": "unittest", "runner": "discover -s tests/glossary -t tests/glossary", "cases": 5, "pass": 5, "fail": 0, "error": 0, "skipped": 0, "exit_code": 0, "local_runnable": true},
+    {"path": "tests/io", "type": "unittest", "runner": "discover 目录式", "cases": 3, "pass": 0, "fail": 0, "error": 3, "skipped": 0, "exit_code": 1, "local_runnable": false, "detail": "ModuleNotFoundError: numpy (库缺失非编译器)"},
+    {"path": "tests/monitoring", "type": "unittest", "runner": "discover -s tests/monitoring -t tests/monitoring", "cases": 60, "pass": 60, "fail": 0, "error": 0, "skipped": 0, "exit_code": 0, "local_runnable": true},
+    {"path": "tests/pipeline", "type": "unittest", "runner": "discover -s tests/pipeline -t tests/pipeline", "cases": 6, "pass": 6, "fail": 0, "error": 0, "skipped": 0, "exit_code": 0, "local_runnable": true},
+    {"path": "tests/runtime", "type": "unittest", "runner": "discover -s tests/runtime -t tests/runtime", "cases": 70, "pass": 70, "fail": 0, "error": 0, "skipped": 9, "exit_code": 0, "local_runnable": true},
+    {"path": "tests/sciencelint", "type": "unittest", "runner": "discover -s tests/sciencelint -t tests/sciencelint", "cases": 6, "pass": 6, "fail": 0, "error": 0, "skipped": 0, "exit_code": 0, "local_runnable": true},
+    {"path": "tests/traceability", "type": "unittest", "runner": "discover -s tests/traceability -t tests/traceability", "cases": 9, "pass": 9, "fail": 0, "error": 0, "skipped": 0, "exit_code": 0, "local_runnable": true},
+    {"path": "tests/version", "type": "unittest", "runner": "discover -s tests/version -t tests/version", "cases": 16, "pass": 14, "fail": 2, "error": 0, "skipped": 0, "exit_code": 1, "local_runnable": true, "detail": "调 tools/check_version_consistency.py 硬编码期望 0.10.0-alpha.2 已过期"},
+    {"path": "tests/quality", "type": "unittest", "runner": "discover 目录式", "cases": null, "pass": null, "fail": null, "error": null, "skipped": null, "exit_code": 124, "local_runnable": false, "detail": "test_linux_release 全量打包 >30s 超时；heavy，需 hosted/受控执行"},
+    {"path": "tests/cpu/baseline", "type": "script", "runner": "python3 tests/cpu/baseline/run_provider_oracle_checks.py", "cases": null, "exit_code": null, "local_runnable": false, "detail": "需 gcc 编译 provider；未实测 ENV_FAIL-prerequisite"},
+    {"path": "tests/cpu/dispatch", "type": "script", "runner": "python3 tests/cpu/dispatch/run_cpu_capability_checks.py", "cases": null, "exit_code": null, "local_runnable": false, "detail": "需 gcc/clang；未实测"},
+    {"path": "tests/cpu/avx2", "type": "script", "runner": "python3 tests/cpu/avx2/run_provider_avx2_checks.py", "cases": null, "exit_code": null, "local_runnable": false, "detail": "需 gcc；未实测"},
+    {"path": "tests/cpu/avx512", "type": "script", "runner": "python3 tests/cpu/avx512/run_provider_avx512_checks.py", "cases": null, "exit_code": null, "local_runnable": false, "detail": "需 gcc；未实测"},
+    {"path": "tests/unit", "type": "ctest", "runner": "cmake --preset linux-control && ctest", "cases": 56, "exit_code": null, "local_runnable": false, "detail": "56 add_test / 54 cpp；本机 cmake/gcc/ninja/make 全缺失 → hosted-only"}
+  ],
+  "totals": {"unittest_cases_measured": 554, "suites_local_ok": 8, "suites_content_fail": 3, "suites_env_fail": 6, "ctest_hosted_only": 1}
+}
