@@ -1,0 +1,56 @@
+== graph/ 顶层 ==
+l0_graph.dot
+l0_graph.json
+static_graph.dot
+static_graph.json
+static_graph.svg
+...
+5
+== 工程控制/ 顶层 ==
+AstroCS_V6_1_REWORK_CONTROL_20260831
+AstroCS_V7_MODULAR_REFOUNDATION_CONTROL_20260902_FINAL3
+...
+2
+== artifacts/prerelease_v5/ ==
+artifacts/prerelease_v5/:
+ABI-001
+ABI-002
+ABI-003
+ALG-001
+ALG-002
+ALG-003
+ALG-004
+ALG-005
+ALG-006
+ALG-007
+API-001
+API-002
+API-003
+API-004
+API-005
+ARCH-001
+ARCH-002
+ARCH-003
+ARCH-004
+ARCH-005
+AUDIT_PACKAGE_587fe0e341a7.zip
+AUDIT_REVIEW
+audit_src
+BASE-001
+BENCH-001
+BENCH-002
+BENCH-003
+BENCH-004
+BENCH-005
+== docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md 前5行 ==
+# CPU AVX2/FMA provider（热点 kernel 后端）(CPU-003)
+
+> ID: DOC-ARCH-CPU-003 · owner: SA-CPU-A11 · 状态: FROZEN (CPU-003, 2026-09-03)
+> 上游: 15_CPU_PROVIDER_AND_RESOURCE_STANDARD.md §1/§2/§6 ·
+>       AstroCS_ENGINEERING_CONSTRAINTS.md §C4-C6 · docs/architecture/CPU_BACKEND_ARCH.md
+== 包规范.md 前5行 ==
+# 控制包 / Worker 返回包 / 审核包通用格式
+
+版本：1.0  
+原则：**简单、可读、可机器检查；项目自己的规范可覆盖本文默认项。**
+

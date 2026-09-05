@@ -1,0 +1,34 @@
+{
+  "task_id": "V81-ADOPT-002",
+  "owner": "SA-ADOPT-31",
+  "mode": "read",
+  "generated_utc": "2026-09-05T10:00:09Z",
+  "repo_root": "/workspace/Astro CS Database",
+  "base_sha": "a4fdee3f446de08cda50889a223740237b2da4a0",
+  "head_sha": "a4fdee3f446de08cda50889a223740237b2da4a0",
+  "local_main_sha": "a4fdee3f446de08cda50889a223740237b2da4a0",
+  "origin_main_sha": "a4fdee3f446de08cda50889a223740237b2da4a0",
+  "current_branch": "main",
+  "remote_name": "origin",
+  "remote_url_sanitized": "https://github.com/fujiaze/Astro-CS-Database.git",
+  "fetch_command": "git fetch origin --prune",
+  "fetch_exit_code": 0,
+  "fetch_pruned_refs": [],
+  "ahead": 0,
+  "behind": 0,
+  "relation": "SYNCED",
+  "head_equals_main": true,
+  "head_equals_origin_main": true,
+  "worktree_clean": false,
+  "dirty_summary": {
+    "tracked_modified_or_deleted": 1,
+    "untracked_entries": 90,
+    "staged_entries": 0,
+    "conflicted_entries": 0
+  },
+  "notes": [
+    "ahead/behind 由 git rev-list --left-right --count HEAD...origin/main 计算，fetch 后为 0/0。",
+    "worktree 非干净（1 项 tracked 删除 + 90 项 untracked），但与远端无冲突；按规格 SYNCED 分支：继续。",
+    "只读任务，本 JSON 不修改任何 tracked 文件。"
+  ]
+}

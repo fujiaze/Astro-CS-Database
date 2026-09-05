@@ -1,0 +1,4 @@
+origin	https://github.com/fujiaze/Astro-CS-Database.git (fetch)
+origin	https://github.com/fujiaze/Astro-CS-Database.git (push)
+== cmd: git config --get-regexp 'remote\..*\.url' (脱敏) ==
+remote.origin.url https://github.com/fujiaze/Astro-CS-Database.git

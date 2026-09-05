@@ -1,0 +1,49 @@
+{
+  "task_id": "V81-ADOPT-002",
+  "owner": "SA-ADOPT-31",
+  "base_sha": "a4fdee3f446de08cda50889a223740237b2da4a0",
+  "mode": "read",
+  "goal": "Freeze existing workspace changes and remote relation without mutation",
+  "allowed_paths": [
+    "evidence/v8_1_ci_control/**",
+    "ci/verify_workspace_adoption.py"
+  ],
+  "allowed_paths_note": "F-A001-2 范围说明：本任务验收命令所需 ci/verify_workspace_adoption.py 按最小必要原则随任务创建（不修改既有 ci 文件）",
+  "forbidden": [
+    "branch",
+    "git_worktree",
+    "extra_clone",
+    "history_rewrite",
+    "scope_expansion",
+    "git_reset",
+    "git_stash",
+    "git_clean",
+    "git_rebase",
+    "commit",
+    "push",
+    "modify_control_package",
+    "modify_TASK_STATE"
+  ],
+  "commands": [
+    "git status --porcelain=v2",
+    "git diff --stat",
+    "git remote -v (脱敏)",
+    "git fetch origin --prune",
+    "git rev-list --left-right --count HEAD...origin/main",
+    "git worktree list --porcelain",
+    "git submodule status"
+  ],
+  "acceptance_command": [
+    "python3 ci/verify_workspace_adoption.py --repo-root-from-git --preserve-dirty"
+  ],
+  "outputs": [
+    "evidence/v8_1_ci_control/adoption/PREEXISTING_CHANGES.md",
+    "evidence/v8_1_ci_control/adoption/REMOTE_RELATION.json",
+    "ci/verify_workspace_adoption.py",
+    "evidence/v8_1_ci_control/tasks/V81-ADOPT-002/{TASK_RESULT.json,commands.jsonl,changed_files.txt,test_summary.json,findings.csv}"
+  ],
+  "heavy": false,
+  "requires_resource_monitor": false,
+  "timeout_s": 600,
+  "acquired_utc": "2026-09-05T09:54:20Z"
+}

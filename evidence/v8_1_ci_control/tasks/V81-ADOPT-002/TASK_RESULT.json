@@ -1,0 +1,61 @@
+{
+  "task_id": "V81-ADOPT-002",
+  "owner": "SA-ADOPT-31",
+  "dispatch_file": "evidence/v8_1_ci_control/dispatch/V81-ADOPT-002.json",
+  "mode": "read",
+  "goal": "Freeze existing workspace changes and remote relation without mutation",
+  "base_sha": "a4fdee3f446de08cda50889a223740237b2da4a0",
+  "head_sha_at_finish": "a4fdee3f446de08cda50889a223740237b2da4a0",
+  "status": "RETURNED",
+  "result": "PASS",
+  "acceptance": {
+    "command": "python3 ci/verify_workspace_adoption.py --repo-root-from-git --preserve-dirty",
+    "timeout_s": 600,
+    "exit_code": 0,
+    "checks_passed": 15,
+    "checks_failed": 0,
+    "log": "evidence/v8_1_ci_control/tasks/V81-ADOPT-002/logs/acceptance_run.log",
+    "negative_test": {
+      "command": "python3 ci/verify_workspace_adoption.py (缺参)",
+      "exit_code": 2,
+      "expected": "非零退出（argparse 用法错误）",
+      "log": "evidence/v8_1_ci_control/tasks/V81-ADOPT-002/logs/acceptance_negative_missing_args.log"
+    }
+  },
+  "changed_files": [
+    "ci/verify_workspace_adoption.py",
+    "evidence/v8_1_ci_control/adoption/PREEXISTING_CHANGES.md",
+    "evidence/v8_1_ci_control/adoption/REMOTE_RELATION.json",
+    "evidence/v8_1_ci_control/adoption/raw/identity_before_fetch.txt",
+    "evidence/v8_1_ci_control/adoption/raw/status_porcelain_v2.txt",
+    "evidence/v8_1_ci_control/adoption/raw/diff_stat.txt",
+    "evidence/v8_1_ci_control/adoption/raw/diff_stat_head.txt",
+    "evidence/v8_1_ci_control/adoption/raw/submodule_status.txt",
+    "evidence/v8_1_ci_control/adoption/raw/worktree_list.txt",
+    "evidence/v8_1_ci_control/adoption/raw/remote_v_raw.txt",
+    "evidence/v8_1_ci_control/adoption/raw/remote_v_sanitized.txt",
+    "evidence/v8_1_ci_control/adoption/raw/fetch_origin_prune.txt",
+    "evidence/v8_1_ci_control/adoption/raw/identity_after_fetch.txt",
+    "evidence/v8_1_ci_control/adoption/raw/index_gitlink_check.txt",
+    "evidence/v8_1_ci_control/adoption/raw/untracked_categories_peek.txt",
+    "evidence/v8_1_ci_control/tasks/V81-ADOPT-002/TASK_RESULT.json",
+    "evidence/v8_1_ci_control/tasks/V81-ADOPT-002/commands.jsonl",
+    "evidence/v8_1_ci_control/tasks/V81-ADOPT-002/changed_files.txt",
+    "evidence/v8_1_ci_control/tasks/V81-ADOPT-002/test_summary.json",
+    "evidence/v8_1_ci_control/tasks/V81-ADOPT-002/findings.csv"
+  ],
+  "key_conclusions": {
+    "preexisting_tracked_changes": "唯一 1 项：dist/audit/AstroCS_V6_1_AUDIT_20260902T042239Z_faad602da555.zip 未暂存删除（Bin 4243274 -> 0），归属=来源未知，冻结保留、待控制面裁决；未还原、未提交。",
+    "preexisting_untracked": "90 项，分 5 类：根部历史控制包/审核材料 11（用户遗留）、artifacts/prerelease_v5/ 27（生成证据）、astrocs_run_*.json 44（生成证据）、治理/解压目录与文档 4（用户遗留）、evidence/v8_1_ci_control 运行文件 4（当前任务链成果）；全部保留原样，无源码改动。",
+    "remote_relation": "git fetch origin --prune exit 0（无 pruned refs）；HEAD=main=origin/main=a4fdee3f446de08cda50889a223740237b2da4a0，ahead/behind=0/0，relation=SYNCED，按规格继续。",
+    "structural_findings": "index 中存在 AstroCS.wiki gitlink（mode 160000）但无 .gitmodules 映射，git submodule status exit 128；git worktree list 列出 40 条 prunable detached 残留注册记录（目录已不存在），均只记录、未修复（不 prune）。"
+  },
+  "known_limits": [
+    "本任务为只读冻结：除新增 evidence 输出与 ci/verify_workspace_adoption.py 外，未修改任何既有 tracked 文件；未运行 git worktree prune，prunable 记录仍在。",
+    "dist/audit zip 删除的来源判定基于工作区状态与 HEAD 提交内容推断，无操作者审计线索，最终归属需控制面/owner 确认。",
+    "astrocs_run_*.json 与 artifacts/prerelease_v5/ 的生成来源按文件命名/内容模式归类，未逐文件打开验证。",
+    "submodule gitlink 异常与 .gitmodules 缺失为既有仓库结构问题，超出本任务范围，未处理。",
+    "REMOTE_RELATION.json 的 dirty_summary 反映冻结时刻（本任务产品文件写入前）状态；之后新增的本任务产品文件不计入预存修改。"
+  ],
+  "finished_utc": "2026-09-05T10:06:00Z"
+}

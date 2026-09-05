@@ -1,0 +1,10 @@
+== cmd: git rev-parse --show-toplevel ==
+/workspace/Astro CS Database
+== cmd: git rev-parse HEAD ==
+a4fdee3f446de08cda50889a223740237b2da4a0
+== cmd: git branch --show-current ==
+main
+== cmd: git rev-parse main ==
+a4fdee3f446de08cda50889a223740237b2da4a0
+== cmd: git rev-parse origin/main ==
+a4fdee3f446de08cda50889a223740237b2da4a0

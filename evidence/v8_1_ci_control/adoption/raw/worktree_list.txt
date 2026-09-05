@@ -1,0 +1,211 @@
+== cmd: git worktree list --porcelain ==
+worktree /workspace/Astro CS Database
+HEAD a4fdee3f446de08cda50889a223740237b2da4a0
+branch refs/heads/main
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-ABI-03/ABI-001
+HEAD b7b2dea70dbcdacdcf6eb762609a908abdeab697
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-ABI-03/ABI-002
+HEAD 3e7f7581fd066def5bc817f3b32311049ed0c264
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-ABI-03/ABI-003
+HEAD 0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-ABI-03/ABI-004
+HEAD a37aeb58418378f1f40355dfc72d80e7d973204a
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-ABI-03/ABI-005
+HEAD deef06d84f7c5990cdfa54b4c2f0b9f60d58e15c
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-ABI-03/ARC-001
+HEAD 065c81deb0a7b6e0c09a4cba5c5c9291e3a5547d
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-ACR-13/ACR-001
+HEAD 0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-AUD-99/AUD-001
+HEAD c1696156583c68c9a3a65287639c726937e9f6e7
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-BLD-02/BLD-001
+HEAD 065c81deb0a7b6e0c09a4cba5c5c9291e3a5547d
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-BLD-02/BLD-002
+HEAD 2df77afe3f800f3685561906589bb5c411df83e1
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-BLD-02/BLD-003
+HEAD caee3e67e5a209a9e47b514f42b2b63f3dc4da4e
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-BLD-02/BLD-004
+HEAD 46b0d8e1d1320126bd35f2c85d6b69b4506faa5e
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-BLD-02/LNX-002
+HEAD 2a8676bf7546a34af0468d5086e4edd54182a008
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-CLI-04/CLI-003
+HEAD de2d6d7f2288f1882d84fd189d82ff86aa3bef7d
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-CPU-09/CPU-001
+HEAD 46b0d8e1d1320126bd35f2c85d6b69b4506faa5e
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-CPU-09/CPU-006
+HEAD de2d6d7f2288f1882d84fd189d82ff86aa3bef7d
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-CPU-A11/CPU-003
+HEAD a37aeb58418378f1f40355dfc72d80e7d973204a
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-CPU-B10/CPU-002
+HEAD 0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-CPU-X12/CPU-004
+HEAD deef06d84f7c5990cdfa54b4c2f0b9f60d58e15c
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-DATA-06/DATA-001
+HEAD 065c81deb0a7b6e0c09a4cba5c5c9291e3a5547d
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-DATA-06/DATA-002
+HEAD b7b2dea70dbcdacdcf6eb762609a908abdeab697
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-DATA-06/DATA-003
+HEAD 46b0d8e1d1320126bd35f2c85d6b69b4506faa5e
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-DATA-06/DATA-004
+HEAD 0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-GOV-01/GOV-001
+HEAD c1696156583c68c9a3a65287639c726937e9f6e7
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-GOV-01/GOV-002
+HEAD 065c81deb0a7b6e0c09a4cba5c5c9291e3a5547d
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-GOV-01/GOV-003
+HEAD b7b2dea70dbcdacdcf6eb762609a908abdeab697
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-GOV-01/GOV-004
+HEAD caee3e67e5a209a9e47b514f42b2b63f3dc4da4e
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-GOV-01/GOV-005
+HEAD 6affe3009985452f5bc0bdf654aa95a4b61b2d2e
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-IO-07/IO-001
+HEAD b7b2dea70dbcdacdcf6eb762609a908abdeab697
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-IO-07/IO-002
+HEAD caee3e67e5a209a9e47b514f42b2b63f3dc4da4e
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-IO-07/IO-003
+HEAD deef06d84f7c5990cdfa54b4c2f0b9f60d58e15c
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-LOG-08/LOG-001
+HEAD 065c81deb0a7b6e0c09a4cba5c5c9291e3a5547d
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-QA-29/DOC-001
+HEAD 0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-QA-29/TST-001
+HEAD 2a8676bf7546a34af0468d5086e4edd54182a008
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-RT-05/RT-001
+HEAD b7b2dea70dbcdacdcf6eb762609a908abdeab697
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-RT-05/RT-002
+HEAD 3e7f7581fd066def5bc817f3b32311049ed0c264
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-RT-05/RT-003
+HEAD 0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-RT-05/RT-004
+HEAD a37aeb58418378f1f40355dfc72d80e7d973204a
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-RT-05/RT-005
+HEAD deef06d84f7c5990cdfa54b4c2f0b9f60d58e15c
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /home/lighthouse/astrocs_v7_work/worktrees/SA-WIN-30/WIN-002
+HEAD b7b2dea70dbcdacdcf6eb762609a908abdeab697
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+worktree /tmp/base_e78_build
+HEAD e78dac6aee3f6794af2484562c20b78c30a170f7
+detached
+prunable gitdir 文件指向一个不存在的位置
+
+== exit=0 ==

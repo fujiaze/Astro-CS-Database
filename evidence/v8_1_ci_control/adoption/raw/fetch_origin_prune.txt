@@ -1,0 +1,2 @@
+== cmd: git fetch origin --prune ==
+== fetch exit=0 ==

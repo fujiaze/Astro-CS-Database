@@ -1,0 +1,49 @@
+== cmd: git ls-files -s | grep ^160000 (gitlinks) ==
+160000 901725847ded7d1185a98b995df8fce9a7e20a1e 0	AstroCS.wiki
+== cmd: ls .gitmodules ==
+ls: 无法访问 '.gitmodules': 没有那个文件或目录
+== cmd: git ls-tree HEAD --name-only | head -50 ==
+.clang-format
+.editorconfig
+.gitattributes
+.gitignore
+AGENTS.md
+AstroCS.wiki
+AstroCS_ENGINEERING_CONSTRAINTS.md
+BASS DR3
+CHANGELOG.md
+CMakeLists.txt
+CMakePresets.json
+DEPENDENCIES.md
+FATDUCK_ACCESS.md
+HANDOVER.md
+README.md
+REVIEW.md
+VERSION
+VISUAL_CHECK_README.md
+artifacts
+build.sh
+cli
+cmake
+contracts
+dist
+docs
+engineering
+evidence
+include
+launch
+lib
+memory.md
+modules
+packaging
+providers
+reports
+run
+runtime
+schemas
+scripts
+testdata
+tests
+third_party
+toolchain.ps1
+tools
