@@ -1,0 +1,24 @@
+{
+  "task_id": "V8-CI-006",
+  "owner": "SA-CI-32",
+  "status": "DONE",
+  "base_sha": "e1fde0936b1bc0d0e01cd7e223d77cbf3f7985e6",
+  "head_sha": "f5d579bc74e84ed26518bf91f7a0190164022bc8",
+  "attempt": 1,
+  "generated_utc": "2026-02-13T00:00:00Z",
+  "deliverables": [
+    "tools/quality/ci_windows_driver.py (new)",
+    "ci/checks.json (+3: WIN-BUILD-RELEASE / WIN-TEST-UNIT / WIN-PACKAGE-CANDIDATE)",
+    "ci/tests/test_windows_ci.py (new, 17 cases)",
+    "ci/tests/test_deep_profiles.py (registry count 77 -> 80)",
+    "evidence/v8_1_ci_control/tasks/V8-CI-006/ (TASK_RESULT.json, TEST_EVIDENCE.json, CHANGED_FILES.txt, logs/)"
+  ],
+  "notes": "五阶段链 configure/build/test/install/package 全部经 CMakePresets.json 既有冻结 preset 承载（configure=win-msvc-17.14.39-x64, test=win-rel, build config=RelWithDebInfo），驱动不另设工具链事实源；build_dir 由 preset binaryDir 推导（--build-dir 可覆盖）。所有子进程 argv 数组 + shell=False + 逐阶段 timeout（STAGE_TIMEOUTS），JSON summary 落 run/ci/win-*-summary.json；cmake 不在 PATH 时受控 exit 3（与 deep_ci_driver 同模式）。package 阶段组装 candidate：install 树（cmake --install --prefix run/ci/win-candidate，BLD-003 白名单规则唯一源）+ 文档白名单 README.md→README.txt + 三清单 BUILD_PROVENANCE.json（source_sha/built_utc/host OS/runner env/preset/toolchain cmake+cl 探测/acr_enabled=false，全部运行时探测不硬编码）、SOURCE_MANIFEST.json（git ls-files 路径+SHA256，只列清单绝不复制源码）、SHA256SUMS（candidate 全部产物文件，不含自身）；排除规则 EXCLUDE_PATTERNS/SUFFIXES/DIR_PARTS 覆盖 CMakeCache/CMakeFiles/Testing/CTest 日志/install_manifest/*.obj|lib|exp|ilk/源码后缀/testdata 目录。candidate 校验（verify_candidate）覆盖 DLL 名称（install-tree contract 推导 Windows 形态，含 lib 前缀剥离映射）、dumpbin /EXPORTS 导出 ABI、DLL 加载+模块注册（modules list/verify）、CLI 入口（version --json）、合成 Oracle（selftest）；非 Windows 宿主全部登记 executed=false + verdict=null（hosted-only）并写明 hosted 预期，绝不伪造 PASS。checks.json 注册三项 platform=windows/profiles=[windows-main]/waivable=true/heavy+requires_monitor，command 自含 ci/resource_monitor.py --timeout N --output run/ci/monitor/<ID>.json -- 包裹前缀，outputs 登记监控 JSON+驱动 summary JSON（WIN-PACKAGE-CANDIDATE 另含 candidate 目录）。自验：validate_registry --strict exit 0（80 项）；windows-main plan-only 61（>58，含 3 新 id）；fast/linux-main/linux-deep 57/71/7 不变；ci/tests 113 tests OK（新增 17，修改计数断言 1）；驱动受控退出码 1/2/3/124 实测留档。hosted windows-2022 预期与风险详见 TEST_EVIDENCE.json 与任务报告。",
+  "self_check": {
+    "validate_registry_strict": "exit 0, checks=80",
+    "plan_windows_main": "selected_count=61 (baseline 58 + 3 new)",
+    "plan_fast_linux_main_linux_deep": "57 / 71 / 7 unchanged",
+    "unittest": "Ran 113 tests, OK",
+    "driver_exit_codes_observed": {"bad_stage": 1, "outside_repo": 2, "cmake_missing": 3}
+  }
+}

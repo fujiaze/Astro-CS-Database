@@ -6,7 +6,7 @@
    工具齐备 → 正常执行 PASS；工具缺失 + waivable → SKIPPED(waivable)（理由含工具名）；
    工具缺失 + 不可 waivable → FAIL(prerequisite)；无该字段的检查不受影响。
 2. 注册表结构 —— validate_registry --strict 接受合法 prerequisite_tools、
-   拒绝空数组/非字符串/非字符串数组元素；主仓库 ci/checks.json（77 项）strict PASS。
+   拒绝空数组/非字符串/非字符串数组元素；主仓库 ci/checks.json（80 项）strict PASS。
 3. profile 选择（只读主仓库 plan-only）——fast=57（不含新 deep 项）、
    linux-main=71（含 BUILD-GCC-RELEASE）、linux-deep=7（7 个新 id 全选，
    command 自含 ci/resource_monitor.py 包裹前缀）。
@@ -117,10 +117,12 @@ class TestRegistryStrict(unittest.TestCase):
         errors, n = self._validate(data)
         self.assertEqual((errors, n), ([], 1))
 
-    def test_main_registry_strict_pass_77(self):
+    def test_main_registry_strict_pass_80(self):
+        # V8-CI-006 注册 WIN-BUILD-RELEASE / WIN-TEST-UNIT /
+        # WIN-PACKAGE-CANDIDATE 三项 windows-main 检查后 77 → 80。
         errors, n = VR.validate(REGISTRY_PATH, strict=True)
         self.assertEqual(errors, [])
-        self.assertEqual(n, 77)
+        self.assertEqual(n, 80)
 
     @staticmethod
     def _validate(data: dict):
