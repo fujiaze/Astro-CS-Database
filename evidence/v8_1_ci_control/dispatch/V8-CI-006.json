@@ -1,0 +1,43 @@
+{
+  "task_id": "V8-CI-006",
+  "owner": "SA-CI-32",
+  "mode": "write",
+  "base_sha": "e1fde093d3eab590619618732b6b67bbe287c12d",
+  "goal": "Implement GitHub Windows main CI: configure/build/test/install/package candidate with provenance manifests",
+  "spec_ref": "工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/tasks/02_CI_TASKS.md#V8-CI-006",
+  "allowed_paths": [
+    "ci/**",
+    "tools/**",
+    "cmake/**",
+    "CMakePresets.json",
+    "CMakeLists.txt",
+    "tests/**",
+    "evidence/v8_1_ci_control/tasks/V8-CI-006/**"
+  ],
+  "prohibited": [
+    "commit",
+    "push",
+    "branch",
+    "worktree",
+    "clone",
+    "history_rewrite",
+    "scope_expansion",
+    "modify_control_package",
+    "modify_TASK_STATE",
+    "modify_WRITE_LEASE",
+    "modify_.gitignore",
+    "touch_AstroCS_ENGINEERING_CONSTRAINTS",
+    "touch_science_tolerance"
+  ],
+  "requirements": [
+    "windows-2022 / VS 2022 v143 / Win10 minimum target / ACR OFF（复用 preset win-msvc-17.14.39-x64）",
+    "configure/build/test/install/package 全链驱动 tools/quality/ci_windows_driver.py（argv 数组, shell=False, 逐阶段超时, JSON summary）",
+    "candidate 含 BUILD_PROVENANCE.json / SOURCE_MANIFEST.json / SHA256SUMS；不含源码、测试数据、build cache",
+    "验证 DLL 名称、导出 ABI、加载、注册、CLI 入口、合成 Oracle（可执行则执行，受限则登记产物与 hosted 预期）",
+    "ci/checks.json 注册 windows-main 新检查（heavy 项 command 自含统一监控 wrapper ci/resource_monitor.py；waivable=true 便于本机 Linux 跳过，hosted 真跑）",
+    "新增单测不依赖 MSVC 存在；本地 plan-only windows-main 选择数 > 58，fast/linux-main/linux-deep 回归不变"
+  ],
+  "acceptance_command": "python3 ci/validate_registry.py --registry ci/checks.json --strict && python3 ci/run.py --profile windows-main --plan-only && python3 ci/run.py --profile fast --plan-only && python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+  "timeout_s": 1200,
+  "dispatched_utc": "2026-09-05T20:56:40Z"
+}
