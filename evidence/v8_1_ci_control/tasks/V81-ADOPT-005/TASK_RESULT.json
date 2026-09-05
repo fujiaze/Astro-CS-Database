@@ -1,0 +1,76 @@
+{
+  "task_id": "V81-ADOPT-005",
+  "owner": "SA-DOC-05",
+  "mode": "write",
+  "base_sha": "becc85a087c70d5769688c7b34466c5333704d5d",
+  "goal": "Validate existing governance locations and restore the active index only",
+  "acquired_utc": "2026-09-05T11:02:14Z",
+  "check_tool": {
+    "acceptance_command_in_dispatch": "python3 tools/quality/check_doc_index.py --strict",
+    "actual_tool": "tools/doccheck/check_doc_index.py",
+    "note": "派发包 acceptance_command 所写 tools/quality/ 路径不存在；实际检查脚本为 tools/doccheck/check_doc_index.py（支持 --strict 参数），已按其实际接口使用 --strict 等价严格模式。"
+  },
+  "checks": {
+    "initial": {
+      "command": "python3 tools/doccheck/check_doc_index.py --strict",
+      "exit_code": 1,
+      "verdict": "DOC_INDEX_FAIL",
+      "fails": [
+        {"check": "docs_fully_covered", "detail": "未覆盖=['docs/operations/TOOLCHAIN_AGENT_HOST.md']，共 1 项"}
+      ],
+      "evidence": "logs/doc_index_initial.json"
+    },
+    "after_fix": {
+      "command": "python3 tools/doccheck/check_doc_index.py --strict",
+      "exit_code": 0,
+      "verdict": "DOC_INDEX_PASS",
+      "fails": [],
+      "coverage_detail": "覆盖 177 文件",
+      "evidence": "logs/doc_index_after_fix.json"
+    }
+  },
+  "governance_inventory": {
+    "conclusion": "沿用现有治理/证据/日志/归档目录规范，未重新规划、未移动任何目录。",
+    "locations": {
+      "active_control": "engineering/control/active/**（当前控制包 AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905）",
+      "legacy_control_archive": "engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/（目录级 README_ARCHIVED.md，索引已登记目录级聚合）",
+      "evidence": "evidence/**（本轮 v8_1_ci_control 证据树：dispatch/、tasks/、TASK_STATE.json、WRITE_LEASE.json）",
+      "doc_archive": "docs/archive/**（文件头含 ARCHIVED 标记，索引 archived 区段登记）",
+      "run": "run/（临时操作与临时文件）",
+      "reports": "reports/（报告）"
+    },
+    "evidence_dir_registration_required": false,
+    "evidence_dir_registration_basis": "AstroCS_ENGINEERING_CONSTRAINTS.md（冻结）无证据目录登记强制条款；AGENTS.md 目录规范仅列 run/、工程控制/、reports/；memory.md 自身规则限定只保留稳定目标/SHA/模块索引/开放问题，不复制长文。故不对 AGENTS.md / memory.md 做补记（最小改动原则：能不改就不改）。"
+  },
+  "changed_files": [
+    {
+      "path": "docs/DOCUMENT_INDEX.yaml",
+      "reason": "活动索引补登 docs/operations/TOOLCHAIN_AGENT_HOST.md（status=ACTIVE_INFORMATIVE，V81-ADOPT-004 新增的工具链实测快照文档，属信息性记录非规范权威），插入 docs/owner/ 与 docs/modules/ 区段之间，+3 行最小修改，消除 check_doc_index --strict 唯一 FAIL（docs_fully_covered 缺登）。"
+    }
+  ],
+  "no_op_items": [
+    {
+      "item": "AGENTS.md 补记 evidence/v8_1_ci_control/",
+      "result": "NO-OP",
+      "basis": "规则不要求登记证据目录（冻结约束/AGENTS.md 均无此条款），最小化原则不添加。"
+    },
+    {
+      "item": "memory.md 补记",
+      "result": "NO-OP",
+      "basis": "同上；且 memory.md 自身收敛规则禁止承载过程性记录。"
+    },
+    {
+      "item": "新建 ci/verify_governance_index.py 或修改 tools/quality/check_doc_index.py",
+      "result": "NO-OP",
+      "basis": "tools/doccheck/check_doc_index.py 已存在且功能完备（--strict 严格模式可用），复用即可，不新建重复脚本。"
+    }
+  ],
+  "invariants_respected": [
+    "未 commit / 未 push（HEAD 保持 becc85a087c70d5769688c7b34466c5333704d5d）",
+    "未修改 AstroCS_ENGINEERING_CONSTRAINTS.md（冻结文件）",
+    "未移动/删除任何现有文件或目录；未改动历史归档",
+    "未重写科学/权威内容；控制包目录只读",
+    "所有外部命令带 timeout 并落盘日志"
+  ],
+  "status": "RETURNED"
+}

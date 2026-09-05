@@ -1,0 +1,10 @@
+{
+  "task_id": "V81-ADOPT-005",
+  "acceptance_command": "python3 tools/doccheck/check_doc_index.py --strict",
+  "runs": [
+    {"phase": "initial", "exit_code": 1, "verdict": "DOC_INDEX_FAIL", "fail_count": 1, "fails": ["docs_fully_covered: 未覆盖 docs/operations/TOOLCHAIN_AGENT_HOST.md（共1项）"]},
+    {"phase": "after_fix", "exit_code": 0, "verdict": "DOC_INDEX_PASS", "fail_count": 0, "coverage": "覆盖 177 文件"}
+  ],
+  "final_pass": true,
+  "evidence_logs": ["logs/doc_index_initial.json", "logs/doc_index_after_fix.json"]
+}

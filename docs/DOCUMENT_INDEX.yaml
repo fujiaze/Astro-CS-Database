@@ -258,6 +258,9 @@ doc_index:
     - path: "docs/owner/SCIENCE_OVERVIEW.md"
       status: ACTIVE_NORMATIVE
       notes: "GOV-004 L0 负责人科学总览"
+    - path: "docs/operations/TOOLCHAIN_AGENT_HOST.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "V81-ADOPT-004 Agent 主机工具链实测快照（V81-ADOPT-005 补登）"
     - path: "docs/modules/acr.md"
       status: ACTIVE_INFORMATIVE
     - path: "docs/modules/astro_image_io.md"
