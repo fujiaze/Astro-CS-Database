@@ -1,0 +1,44 @@
+{
+  "task_id": "V8-CI-007",
+  "owner": "SA-CI-32",
+  "mode": "write",
+  "base_sha": "847a7a6b08ab347c2158046efb6a996e2035cfbe",
+  "goal": "Install Linux/Windows hosted CI workflows with action lock, bootstrap, profile selector and candidate validator",
+  "spec_ref": "工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/tasks/02_CI_TASKS.md#V8-CI-007",
+  "allowed_paths": [
+    "ci/**",
+    "tools/**",
+    "tests/**",
+    ".github/workflows/**",
+    "evidence/v8_1_ci_control/tasks/V8-CI-007/**"
+  ],
+  "prohibited": [
+    "commit",
+    "push",
+    "branch",
+    "worktree",
+    "clone",
+    "history_rewrite",
+    "scope_expansion",
+    "modify_control_package",
+    "modify_TASK_STATE",
+    "modify_WRITE_LEASE",
+    "modify_.gitignore",
+    "touch_AstroCS_ENGINEERING_CONSTRAINTS",
+    "touch_science_tolerance",
+    "enable_workflow_with_unresolved_placeholder"
+  ],
+  "requirements": [
+    "workflow 触发仅 main push / manual / 可选 schedule；permissions 最小（contents: read）；YAML 不含算法命令；占位符未替换不得启用",
+    "所有 action 引用锁完整 commit SHA：在线查询官方 tag 生成 ci/actions.lock.json 并机器复验（复验脚本查 GitHub API 比对）",
+    "ci/bootstrap.py --policy ci/toolchain.policy.json --platform linux|windows：hosted 工具链校验（版本匹配 policy 记录观测版本，缺失/不匹配受控报错并给出修复项）",
+    "ci/select_profile.py --event <event> --requested <input>：push→linux-main、schedule→linux-deep、manual→requested；输出 GITHUB_OUTPUT 兼容 profile=<id>",
+    "ci/validate_candidate.py <candidate.zip>：校验 BUILD_PROVENANCE.json/SOURCE_MANIFEST.json/SHA256SUMS 三清单一致性、SHA256SUMS 与产物逐项相符、排除规则（源码/测试数据/build cache 不在 candidate）",
+    "windows workflow 期望 candidate zip：若 ci_windows_driver.py 需补 zip 打包步骤属必要连带（tools/** 在 allowlist），登记说明",
+    "新增单测覆盖 bootstrap/select_profile/validate_candidate/actions.lock 复验逻辑（占位符残留→拒绝启用）；不依赖真实 GitHub runner",
+    "模板占位符替换来源：actions/checkout 与 actions/upload-artifact 官方 tag→commit SHA（在线查询 api.github.com）"
+  ],
+  "acceptance_command": "python3 ci/validate_registry.py --registry ci/checks.json --strict && python3 -m unittest discover -s ci/tests -p 'test_*.py' && python3 ci/verify_actions_lock.py",
+  "timeout_s": 1200,
+  "dispatched_utc": "2026-09-05T21:50:00Z"
+}
