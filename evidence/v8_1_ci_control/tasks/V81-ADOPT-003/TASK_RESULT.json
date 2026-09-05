@@ -1,0 +1,68 @@
+{
+  "task_id": "V81-ADOPT-003",
+  "owner": "SA-ADOPT-31",
+  "dispatch_file": "evidence/v8_1_ci_control/dispatch/V81-ADOPT-003.json",
+  "mode": "write",
+  "goal": "Reconcile current task evidence with V7.1 and review claims",
+  "base_sha": "af9ecdc5e56d8102e81e23548079b603ea6a7eee",
+  "head_sha_at_finish": "af9ecdc5e56d8102e81e23548079b603ea6a7eee",
+  "status": "RETURNED",
+  "result": "PASS",
+  "acceptance": {
+    "command": "python3 ci/reconcile_state.py --current-first --strict",
+    "timeout_s": 900,
+    "exit_code": 0,
+    "checks_passed": 8,
+    "checks_failed": 0,
+    "log": "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/logs/acceptance_run.log",
+    "negative_tests": [
+      {
+        "command": "negative: TASK_STATE 缺 V7.1 任务 + 非法 status 枚举",
+        "exit_code": 1,
+        "expected": "非零退出",
+        "log": "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/logs/negative_missing_task_and_bad_status.log"
+      },
+      {
+        "command": "negative: STATE_RECONCILIATION.csv 缺行(190)",
+        "exit_code": 1,
+        "expected": "非零退出",
+        "log": "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/logs/negative_recon_row_short.log"
+      }
+    ],
+    "post_negative_rerun": {
+      "exit_code": 0,
+      "log": "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/logs/acceptance_rerun.log"
+    }
+  },
+  "outputs": {
+    "evidence/v8_1_ci_control/TASK_STATE.json": "重建（规格授权）：schema_version=v8.1, tasks=191(V7.1 全量), adopt_seed_tasks=2 保留",
+    "evidence/v8_1_ci_control/COMMIT_LEDGER.jsonl": "main 全量 1522 提交 {sha,subject,task_id,date}",
+    "evidence/v8_1_ci_control/STATE_RECONCILIATION.csv": "191 行+表头, 9 列规格列名",
+    "ci/reconcile_state.py": "验收脚本(新建): --current-first --strict"
+  },
+  "counts": {
+    "v71_total": 191,
+    "CLOSED": 51,
+    "READY": 13,
+    "NOT_STARTED": 125,
+    "DISPATCHED": 0,
+    "FATDUCK_PENDING": 2,
+    "WAITING_RESOURCE": 0
+  },
+  "key_resolutions": {
+    "CLI-002": "审核快照缺行；当前证据（V7.1 提交 de2d6d7f+refactor 证据目录+台账 PASS）消解为 CLOSED，closed_commit=de2d6d7f2288f1882d84fd189d82ff86aa3bef7d",
+    "CPU-006": "claimed DISPATCHED 无当前可验证修改（V7.1 轮无提交、工作树源码干净）→ READY",
+    "WIN-001": "claimed CLOSED 但 claimed SHA 2df77af 实为 DATA-001 提交错配、无 V7.1 提交、Fatduck 离线 → FATDUCK_PENDING",
+    "WIN-002": "规格规则 → FATDUCK_PENDING",
+    "READY 13": "当前证据 PASS（refactor 台账）但无 V7.1 提交 → READY + evidence_no_commit 标注"
+  },
+  "diff_vs_review_snapshot": 16,
+  "constraints_respected": {
+    "no_commit_push": true,
+    "no_branch_worktree_clone": true,
+    "no_reset_stash_clean_rebase_checkout": true,
+    "control_package_untouched": true,
+    "wrote_only_allowed_paths": "evidence/v8_1_ci_control/**、ci/reconcile_state.py"
+  },
+  "finished_utc": "2026-09-05T10:18:00Z"
+}

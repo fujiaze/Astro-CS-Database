@@ -1,0 +1,192 @@
+task_id,v71_status,review_claim,current_evidence,final_status,source_of_status,commit,evidence_path,note
+CTL-001,control,CLOSED,claimed:no-commit(control validation),CLOSED,review_claim_no_commit_task,,engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/baseline/,"review claimed CLOSED, no-commit evidence/control task; accepted after current-evidence check"
+ID-001,evidence,CLOSED,claimed:c1696156583c68c9; reachable:true,CLOSED,review_claim+sha_ok+adoption_evidence,,evidence/v8_1_ci_control/adoption/,review claimed CLOSED with claimed sha reachable on main; V8.1 ADOPT-001 re-froze workspace identity at current HEAD (evidence/v8_1_ci_control/adoption/) → CLOSED 维持
+ID-002,evidence,CLOSED,claimed:c1696156583c68c9; reachable:true,CLOSED,review_claim+sha_ok+adoption_evidence,,evidence/v8_1_ci_control/adoption/,review claimed CLOSED with claimed sha reachable on main; V8.1 ADOPT-001 re-froze workspace identity at current HEAD (evidence/v8_1_ci_control/adoption/) → CLOSED 维持
+ID-003,evidence,CLOSED,claimed:c1696156583c68c9; reachable:true,CLOSED,review_claim+sha_ok+adoption_evidence,,evidence/v8_1_ci_control/adoption/,review claimed CLOSED with claimed sha reachable on main; V8.1 ADOPT-001 re-froze workspace identity at current HEAD (evidence/v8_1_ci_control/adoption/) → CLOSED 维持
+AUD-001,audit,CLOSED,claimed:f260b804880898f69aa9ffd0f78b6df1eeb8bc94,CLOSED,review_claim_no_commit_task,,engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/baseline/,"review claimed CLOSED, no-commit evidence/control task; accepted after current-evidence check"
+GOV-001,implementation,CLOSED,v71_commit:065c81deb0a7; refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit++v61_ledger_pass+v61_dir,065c81deb0a7b6e0c09a4cba5c5c9291e3a5547d,evidence/v6_1_rework/tasks/GOV-001/,
+GOV-002,implementation,CLOSED,v71_commit:b7b2dea70dbc; refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit++v61_ledger_pass+v61_dir,b7b2dea70dbcdacdcf6eb762609a908abdeab697,evidence/v6_1_rework/tasks/GOV-002/,
+GOV-003,implementation,CLOSED,v71_commit:39e773176961; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,39e773176961f184f93d4b405c3e33e58884b262,git-commit:39e773176961,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+GOV-004,implementation,CLOSED,v71_commit:6affe3009985; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,6affe3009985452f5bc0bdf654aa95a4b61b2d2e,git-commit:6affe3009985,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+GOV-005,implementation,CLOSED,v71_commit:9bc3d0fd9857; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,9bc3d0fd98573d417b81616aac492afea9bfc327,git-commit:9bc3d0fd9857,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+DOC-001,implementation,CLOSED,v71_commit:2a8676bf7546; refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit+refactor_ledger_pass+refactor_dir+v61_ledger_pass+v61_dir,2a8676bf7546a34af0468d5086e4edd54182a008,evidence/refactor/tasks/DOC-001/,
+TST-001,implementation,CLOSED,v71_commit:b09e4b2c609a; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,b09e4b2c609a6f57f11eb42a39db69a8083164a5,git-commit:b09e4b2c609a,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+ARC-001,implementation,CLOSED,v71_commit:1c3d1dc9a2e7; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,1c3d1dc9a2e73c2f0b3d5f61ab3e92a1b8a209c5,git-commit:1c3d1dc9a2e7,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+BLD-001,implementation,CLOSED,v71_commit:f260b8048808; refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,CLOSED,git_commit+refactor_ledger_pass+refactor_dir,f260b804880898f69aa9ffd0f78b6df1eeb8bc94,evidence/refactor/tasks/BLD-001/,
+BLD-002,implementation,CLOSED,v71_commit:3e7f7581fd06; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,3e7f7581fd066def5bc817f3b32311049ed0c264,git-commit:3e7f7581fd06,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+BLD-003,implementation,CLOSED,v71_commit:46b0d8e1d132; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,46b0d8e1d1320126bd35f2c85d6b69b4506faa5e,git-commit:46b0d8e1d132,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+BLD-004,implementation,CLOSED,v71_commit:64a2f9967306; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,64a2f99673065759e7638d2eb7e5277cb850747a,git-commit:64a2f9967306,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+ABI-001,implementation,CLOSED,v71_commit:76b85d45a54c; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,76b85d45a54c76afc2b6ec327d43a56c5ba7b5e2,git-commit:76b85d45a54c,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+ABI-002,implementation,CLOSED,v71_commit:5de0813307d6; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,5de0813307d6756dc6162ca08d7524ea8fa76b16,git-commit:5de0813307d6,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+ABI-003,implementation,CLOSED,v71_commit:da5ca10800e1; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,da5ca10800e12f1a19f614c40cb1828bede9b962,git-commit:da5ca10800e1,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+ABI-004,implementation,CLOSED,v71_commit:40b5687bed31; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,40b5687bed31810eeca10d6d74080bddae366b2a,git-commit:40b5687bed31,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+ABI-005,implementation,CLOSED,v71_commit:d9c39803e18b; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,d9c39803e18bab7c2ff72ebeea150bc8d7a5ad4d,git-commit:d9c39803e18b,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+ABI-006,audit,CLOSED,claimed:b99fcd80d41f16610ff5a4b26f487a93e46e5aa4,CLOSED,review_claim_no_commit_task,,engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/baseline/,"review claimed CLOSED, no-commit evidence/control task; accepted after current-evidence check"
+CLI-001,implementation,CLOSED,v71_commit:10a5972390cb; refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,CLOSED,git_commit+refactor_ledger_pass+refactor_dir,10a5972390cbc214507ff4dedf347ef6a8c17bf3,evidence/refactor/tasks/CLI-001/,
+CLI-002,implementation,MISSING_IN_REVIEW_SNAPSHOT,v71_commit:de2d6d7f2288; refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,CLOSED,git_commit+refactor_ledger_pass+snapshot_gap_resolved,de2d6d7f2288f1882d84fd189d82ff86aa3bef7d,evidence/refactor/tasks/CLI-002/,审核快照缺 CLI-002 行（声称 190 任务）：以当前证据为准消解——V7.1 提交 de2d6d7f 'refactor(cli): CLI-002 隔离三个阶段入口' 在 main 可达，evidence/refactor/tasks/CLI-002/ 存在，refactor 台账 CLI-002 PASS → CLOSED；快照缺行属登记遗漏，非任务缺失
+CLI-003,implementation,CLOSED,v71_commit:257ae1f4efba; refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,CLOSED,git_commit+refactor_ledger_pass+refactor_dir,257ae1f4efbaf5822ea6d7c42882e15f2c416b36,evidence/refactor/tasks/CLI-003/,
+CLI-004,implementation,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+DATA-001,implementation,CLOSED,v71_commit:2df77afe3f80; refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,CLOSED,git_commit+refactor_ledger_pass+refactor_dir,2df77afe3f800f3685561906589bb5c411df83e1,evidence/refactor/tasks/DATA-001/,
+DATA-002,implementation,CLOSED,v71_commit:c1ee791a9632; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,c1ee791a96322a9d369455ac251f02694ff68e6e,git-commit:c1ee791a9632,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+DATA-003,implementation,CLOSED,v71_commit:c1e023392ff9; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,c1e023392ff9377762d06e01a8b3fd928d87644d,git-commit:c1e023392ff9,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+DATA-004,implementation,CLOSED,v71_commit:1df9a7ee6d1c; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,1df9a7ee6d1c80b1ac94ce1f719b7c35da5f95e1,git-commit:1df9a7ee6d1c,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+IO-001,implementation,CLOSED,v71_commit:caee3e67e5a2; refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,CLOSED,git_commit+refactor_ledger_pass+refactor_dir,caee3e67e5a209a9e47b514f42b2b63f3dc4da4e,evidence/refactor/tasks/IO-001/,
+IO-002,implementation,CLOSED,v71_commit:316d4175747d; refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,CLOSED,git_commit+refactor_ledger_pass+refactor_dir,316d4175747db05952a7c0fb5db64b7609ae54d9,evidence/refactor/tasks/IO-002/,
+IO-003,implementation,CLOSED,v71_commit:442958df2e53; refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,CLOSED,git_commit+refactor_ledger_pass+refactor_dir,442958df2e53713f13ee52a144038d86a99966bc,evidence/refactor/tasks/IO-003/,
+RT-001,implementation,CLOSED,v71_commit:5d38ebd7124b; refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit++v61_ledger_pass+v61_dir,5d38ebd7124b0ee668c8844d501adcc2614c1c8d,evidence/v6_1_rework/tasks/RT-001/,
+RT-002,implementation,CLOSED,v71_commit:56ab85ba91f3; refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit++v61_ledger_pass+v61_dir,56ab85ba91f3e1347c890ab3d7d80c19f1ddca8e,evidence/v6_1_rework/tasks/RT-002/,
+RT-003,implementation,CLOSED,v71_commit:a37aeb584183; refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit++v61_ledger_pass+v61_dir,a37aeb58418378f1f40355dfc72d80e7d973204a,evidence/v6_1_rework/tasks/RT-003/,
+RT-004,implementation,CLOSED,v71_commit:deef06d84f7c; refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit++v61_ledger_pass+v61_dir,deef06d84f7c5990cdfa54b4c2f0b9f60d58e15c,evidence/v6_1_rework/tasks/RT-004/,
+RT-005,implementation,CLOSED,v71_commit:4bb34b680950; refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit++v61_ledger_pass+v61_dir,4bb34b680950e25d30aaff1205313d522e2f9b53,evidence/v6_1_rework/tasks/RT-005/,
+RT-006,implementation,CLOSED,v71_commit:b2e3b0af087e; refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit++v61_ledger_pass+v61_dir,b2e3b0af087e3d754a3895f960771b645413e9c0,evidence/v6_1_rework/tasks/RT-006/,
+RT-007,implementation,CLOSED,v71_commit:e78dac6aee3f; refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit++v61_ledger_pass+v61_dir,e78dac6aee3f6794af2484562c20b78c30a170f7,evidence/v6_1_rework/tasks/RT-007/,
+LOG-001,implementation,CLOSED,v71_commit:bbe2e59efe0c; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,bbe2e59efe0caabed78aafa491b748ff4e7497fa,git-commit:bbe2e59efe0c,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+LOG-002,implementation,CLOSED,v71_commit:3b6fc397c4b6; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,3b6fc397c4b64f296eae7c702e6b91a0836c87b3,git-commit:3b6fc397c4b6,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+LOG-003,implementation,CLOSED,v71_commit:0b0d269480fd; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,0b0d269480fd0de16a1b679d4c585e248609ef32,git-commit:0b0d269480fd,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+CPU-001,implementation,CLOSED,v71_commit:0d32c07d65c6; refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit+refactor_ledger_pass+refactor_dir+v61_ledger_pass+v61_dir,0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da,evidence/refactor/tasks/CPU-001/,
+CPU-002,implementation,CLOSED,v71_commit:c20a94c99fc8; refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit+refactor_ledger_pass+refactor_dir+v61_ledger_pass+v61_dir,c20a94c99fc8148fa5ec799f08fa1167e5642b58,evidence/refactor/tasks/CPU-002/,
+CPU-003,implementation,CLOSED,v71_commit:d823895f2f49; refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit+refactor_ledger_pass+refactor_dir+v61_ledger_pass+v61_dir,d823895f2f49653b2722bfc1e646202b3fffcddb,evidence/refactor/tasks/CPU-003/,
+CPU-004,implementation,CLOSED,v71_commit:b99fcd80d41f; refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true,CLOSED,git_commit+refactor_ledger_pass+refactor_dir+v61_ledger_pass+v61_dir,b99fcd80d41f16610ff5a4b26f487a93e46e5aa4,evidence/refactor/tasks/CPU-004/,
+CPU-005,implementation,CLOSED,v71_commit:9096d08dadbb; refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,CLOSED,git_commit+refactor_ledger_pass+refactor_dir,9096d08dadbbccd7e583fb8c9ce011fa2037fb46,evidence/refactor/tasks/CPU-005/,
+CPU-006,implementation,DISPATCHED,refactor_ledger:PASS; refactor_dir:true,READY,spec_rule_cpu006+refactor_ledger_pass,,evidence/refactor/tasks/CPU-006/,"evidence_no_commit; review claimed DISPATCHED not inherited: no V7.1 commit, worktree source-clean (no WIP); HEAD 'astrocs benchmark cpu' belongs to earlier round (refactor CPU-006 PASS), not verifiable V7.1 CPU-006 work → READY per 02_CURRENT_STATE_AUDIT rule 7"
+CPU-007,implementation,NOT_STARTED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,READY,refactor_ledger_pass_no_commit,,evidence/refactor/tasks/CPU-007/,evidence_no_commit
+CPU-008,implementation,NOT_STARTED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,READY,refactor_ledger_pass_no_commit,,evidence/refactor/tasks/CPU-008/,evidence_no_commit
+MON-001,implementation,NOT_STARTED,refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true,READY,v61_ledger_pass_no_commit,,evidence/v6_1_rework/tasks/MON-001/,evidence_no_commit
+MON-002,implementation,NOT_STARTED,refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true,READY,v61_ledger_pass_no_commit,,evidence/v6_1_rework/tasks/MON-002/,evidence_no_commit
+ACR-001,implementation,CLOSED,v71_commit:9cc5cb512d7c; artifacts_in_head:true,CLOSED,git_commit+artifact_verified,9cc5cb512d7c611e238f627871e13dfa7763dcee,git-commit:9cc5cb512d7c,当前证据无独立任务目录（refactor/v61 台账无同名行），以 V7.1 原子提交 + 产物在 HEAD 可验证为 CLOSED 依据
+P1-SEAM-001,implementation,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-REAL-SAMPLE,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-LEGACY-RETIRE,implementation,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-NODE-CALL-001,implementation,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-IMPL-COMPLETE-001,implementation,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-SEAM-001,implementation,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-REAL-032R,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-LEGACY-RETIRE,implementation,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-PERF-001,implementation,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-SESSION,implementation,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-REAL-SAMPLE,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+QA-001,evidence,NOT_STARTED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true,READY,refactor_ledger_pass_no_commit,,evidence/refactor/tasks/QA-001/,evidence_no_commit
+QA-002,evidence,NOT_STARTED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true,READY,refactor_ledger_pass_no_commit,,evidence/refactor/tasks/QA-002/,evidence_no_commit
+QA-003,evidence,NOT_STARTED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true,READY,refactor_ledger_pass_no_commit,,evidence/refactor/tasks/QA-003/,evidence_no_commit
+QA-004,evidence,NOT_STARTED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,READY,refactor_ledger_pass_no_commit,,evidence/refactor/tasks/QA-004/,evidence_no_commit
+QA-005,evidence,NOT_STARTED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false,READY,refactor_ledger_pass_no_commit,,evidence/refactor/tasks/QA-005/,evidence_no_commit
+QA-006,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+QA-007,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+QA-008,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+LNX-001,evidence,CLOSED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true; claimed:(empty),CLOSED,review_claim+current_ledger_evidence,,evidence/refactor/tasks/LNX-001/,"review claimed CLOSED, no V7.1 commit (evidence-only task); current ledger PASS + evidence dir verified → CLOSED 维持"
+LNX-002,evidence,CLOSED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true; claimed:a37aeb5,CLOSED,review_claim+current_ledger_evidence,,evidence/refactor/tasks/LNX-002/,"review claimed CLOSED, no V7.1 commit (evidence-only task); current ledger PASS + evidence dir verified → CLOSED 维持"
+LNX-003,evidence,NOT_STARTED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true,READY,refactor_ledger_pass_no_commit,,evidence/refactor/tasks/LNX-003/,evidence_no_commit
+LNX-004,evidence,NOT_STARTED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true,READY,refactor_ledger_pass_no_commit,,evidence/refactor/tasks/LNX-004/,evidence_no_commit
+LNX-005,evidence,NOT_STARTED,refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true,READY,refactor_ledger_pass_no_commit,,evidence/refactor/tasks/LNX-005/,evidence_no_commit
+LNX-006,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-001,evidence,CLOSED,no_v71_commit; refactor_ledger:WAITING_WINDOWS; v61_ledger:WAITING_WINDOWS,FATDUCK_PENDING,review_claim_downgraded_current_first,,,"review claimed CLOSED but integrated_main_sha=2df77af is DATA-001 commit (mismatch); no V7.1 WIN-001 commit; Fatduck offline (windows identity evidence needs Windows) → FATDUCK_PENDING, 事实优先级：当前证据 > 审核快照"
+WIN-002,evidence,WAITING_RESOURCE,none,FATDUCK_PENDING,spec_rule_win002,,,Windows 真实数据/资源类（V7.1 台账 resource_class=WINDOWS_HEAVY），Fatduck 离线 → FATDUCK_PENDING；review claimed WAITING_RESOURCE 与之相容，按 V8.1 状态枚举登记
+WIN-003,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-004,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-005,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-006,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-007,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-008,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-009,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-010,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-011,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-012,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-013,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+WIN-014,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+AUD-002,audit,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+AUD-003,audit,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+AUD-004,audit,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+AUD-005,audit,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+FG-VERIFY-001,gate,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+PKG-001,gate,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+PKG-002,gate,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+PKG-003,gate,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+GATE-OWNER-001,gate,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+CAT-GAIA-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+CAT-GAIA-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+CAT-GAIA-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+CAT-GAIA-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-CAL-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-CAL-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-CAL-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-CAL-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-COS-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-COS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-COS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-COS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-STAR-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-STAR-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-STAR-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-STAR-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-PSF-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-PSF-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-PSF-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-PSF-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-WCS-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-WCS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-WCS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-WCS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-PHOT-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-PHOT-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-PHOT-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-PHOT-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-NOISE-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-NOISE-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-NOISE-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-NOISE-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-DRZ-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-DRZ-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-DRZ-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-DRZ-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-HIPS-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-HIPS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-HIPS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-HIPS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-COV-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-COV-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-COV-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-COV-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-SAMP-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-SAMP-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-SAMP-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-SAMP-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-UPM-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-UPM-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-UPM-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-UPM-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-REJ-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-REJ-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-REJ-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-REJ-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-INT-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-INT-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-INT-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-INT-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-HIPS-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-HIPS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-HIPS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-HIPS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-PROJ-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-PROJ-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-PROJ-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-PROJ-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-RSMP-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-RSMP-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-RSMP-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-RSMP-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-FITS-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-FITS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-FITS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-FITS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-SESSION-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-SESSION-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-SESSION-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-SESSION-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-SESSION-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-SESSION-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-SESSION-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-SESSION-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-REJ-ACCEPT,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-INT-ACCEPT,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-ASSEMBLY-ACCEPT,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-PERF-DESIGN,evidence,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
