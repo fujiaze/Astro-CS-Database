@@ -1,0 +1,8 @@
+{
+  "registry": "/workspace/Astro CS Database/ci/checks.json",
+  "strict": true,
+  "checks": 80,
+  "errors": [],
+  "error_count": 0,
+  "verdict": "PASS"
+}

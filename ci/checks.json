@@ -2101,6 +2101,151 @@
         "include/**"
       ],
       "requires_monitor": false
+    },
+    {
+      "id": "WIN-BUILD-RELEASE",
+      "profiles": [
+        "windows-main"
+      ],
+      "platform": "windows",
+      "command": [
+        "python3",
+        "ci/resource_monitor.py",
+        "--timeout",
+        "3500",
+        "--output",
+        "run/ci/monitor/WIN-BUILD-RELEASE.json",
+        "--",
+        "python3",
+        "tools/quality/ci_windows_driver.py",
+        "--stages",
+        "configure,build",
+        "--output",
+        "run/ci/win-build-summary.json"
+      ],
+      "timeout_seconds": 3600,
+      "heavy": true,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/monitor/WIN-BUILD-RELEASE.json",
+        "run/ci/win-build-summary.json"
+      ],
+      "waivable": true,
+      "changed_paths": [
+        "lib/**",
+        "cli/**",
+        "include/**",
+        "runtime/**",
+        "modules/**",
+        "providers/**",
+        "tests/**",
+        "CMakeLists.txt",
+        "cmake/**",
+        "CMakePresets.json"
+      ],
+      "requires_monitor": true,
+      "prerequisite_tools": [
+        "cmake"
+      ]
+    },
+    {
+      "id": "WIN-TEST-UNIT",
+      "profiles": [
+        "windows-main"
+      ],
+      "platform": "windows",
+      "command": [
+        "python3",
+        "ci/resource_monitor.py",
+        "--timeout",
+        "2300",
+        "--output",
+        "run/ci/monitor/WIN-TEST-UNIT.json",
+        "--",
+        "python3",
+        "tools/quality/ci_windows_driver.py",
+        "--stages",
+        "test",
+        "--junit",
+        "run/ci/win-test-junit.xml",
+        "--output",
+        "run/ci/win-test-summary.json"
+      ],
+      "timeout_seconds": 2400,
+      "heavy": true,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/monitor/WIN-TEST-UNIT.json",
+        "run/ci/win-test-summary.json",
+        "run/ci/win-test-junit.xml"
+      ],
+      "waivable": true,
+      "changed_paths": [
+        "lib/**",
+        "cli/**",
+        "include/**",
+        "runtime/**",
+        "modules/**",
+        "providers/**",
+        "tests/**",
+        "CMakeLists.txt",
+        "cmake/**",
+        "CMakePresets.json"
+      ],
+      "requires_monitor": true,
+      "prerequisite_tools": [
+        "cmake"
+      ]
+    },
+    {
+      "id": "WIN-PACKAGE-CANDIDATE",
+      "profiles": [
+        "windows-main"
+      ],
+      "platform": "windows",
+      "command": [
+        "python3",
+        "ci/resource_monitor.py",
+        "--timeout",
+        "1700",
+        "--output",
+        "run/ci/monitor/WIN-PACKAGE-CANDIDATE.json",
+        "--",
+        "python3",
+        "tools/quality/ci_windows_driver.py",
+        "--stages",
+        "install,package",
+        "--candidate-dir",
+        "run/ci/win-candidate",
+        "--output",
+        "run/ci/win-package-summary.json"
+      ],
+      "timeout_seconds": 1800,
+      "heavy": true,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/monitor/WIN-PACKAGE-CANDIDATE.json",
+        "run/ci/win-package-summary.json",
+        "run/ci/win-candidate"
+      ],
+      "waivable": true,
+      "changed_paths": [
+        "lib/**",
+        "cli/**",
+        "include/**",
+        "runtime/**",
+        "modules/**",
+        "providers/**",
+        "packaging/**",
+        "CMakeLists.txt",
+        "cmake/**",
+        "CMakePresets.json"
+      ],
+      "requires_monitor": true,
+      "prerequisite_tools": [
+        "cmake",
+        "dumpbin"
+      ]
     }
   ]
 }

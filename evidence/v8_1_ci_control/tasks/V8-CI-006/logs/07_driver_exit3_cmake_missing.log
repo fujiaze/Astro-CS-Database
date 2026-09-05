@@ -1,0 +1,1 @@
+{"driver": "ci_windows_driver.py", "task_id": "V8-CI-006", "error": "依赖工具不在 PATH（受控报错，参照 V8-CI-005 deep 驱动模式）", "missing_tools": ["cmake"], "hosted_note": "windows-main 检查在 GitHub windows-2022 runner 上真跑；本机 Linux 由 run.py probe_prerequisite → SKIPPED(waivable) 拦截"}

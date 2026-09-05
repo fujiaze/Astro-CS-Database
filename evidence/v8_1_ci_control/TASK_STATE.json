@@ -2,8 +2,8 @@
   "schema_version": "v8.1",
   "round": "V8.1_EXISTING_WORKSPACE_CI",
   "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
-  "updated_utc": "2026-09-05T20:54:34Z",
-  "main_sha": "d41f451618c139436cc0409cf6bf93f98c83eac4",
+  "updated_utc": "2026-09-05T21:41:14Z",
+  "main_sha": "f5d579bc74e84ed26518bf91f7a0190164022bc8",
   "reconciled_by": {
     "task_id": "V81-ADOPT-003",
     "owner": "SA-ADOPT-31"
@@ -44,8 +44,8 @@
     "WAITING_RESOURCE"
   ],
   "counts": {
-    "CLOSED": 52,
-    "READY": 12,
+    "CLOSED": 53,
+    "READY": 11,
     "NOT_STARTED": 125,
     "DISPATCHED": 0,
     "FATDUCK_PENDING": 2,
@@ -2424,6 +2424,15 @@
       "closed_utc": "2026-09-05T20:54:34Z",
       "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-004/",
       "summary": "changed path→checks 映射 ci/impact_map.json(25 规则/13 BASE)+test_impact_map 13 单测; fast 全量实测 57 项 41/16 移交 G-FIX; 集成于 c583e59d"
+    },
+    "V8-CI-005": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "e1fde093d3eab590619618732b6b67bbe287c12d",
+      "pushed": true,
+      "closed_utc": "2026-09-05T21:41:14Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-005/",
+      "summary": "linux-deep 检查注册 77 项(BUILD-GCC-RELEASE + 6 deep)+prerequisite_tools 探测+deep_ci_driver/coverage/complexity 驱动链+QA-006 接线; 单测 96/96; 本地 deep 实跑 PASS(6 waivable); 集成于 e1fde093"
     }
   },
   "adopt_seed_tasks": {

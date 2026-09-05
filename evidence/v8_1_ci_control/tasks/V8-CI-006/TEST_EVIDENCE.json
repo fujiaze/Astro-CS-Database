@@ -1,0 +1,76 @@
+{
+  "task_id": "V8-CI-006",
+  "owner": "SA-CI-32",
+  "acceptance_cmds": [
+    {
+      "cmd": "python3 ci/validate_registry.py --registry ci/checks.json --strict",
+      "exit": 0,
+      "verdict": "PASS",
+      "checks": 80,
+      "log": "logs/01_validate_registry_strict.log"
+    },
+    {
+      "cmd": "python3 ci/run.py --profile windows-main --plan-only",
+      "exit": 0,
+      "selected_count": 61,
+      "required": ">58 with WIN-* ids",
+      "new_ids_present": ["WIN-BUILD-RELEASE", "WIN-TEST-UNIT", "WIN-PACKAGE-CANDIDATE"],
+      "log": "logs/02_plan_windows_main.log"
+    },
+    {
+      "cmd": "python3 ci/run.py --profile fast --plan-only",
+      "exit": 0,
+      "selected_count": 57,
+      "note": "baseline unchanged, no WIN-* ids",
+      "log": "logs/03_plan_fast.log"
+    },
+    {
+      "cmd": "python3 ci/run.py --profile linux-main --plan-only",
+      "exit": 0,
+      "selected_count": 71,
+      "note": "baseline unchanged",
+      "log": "logs/03_plan_linux-main.log"
+    },
+    {
+      "cmd": "python3 ci/run.py --profile linux-deep --plan-only",
+      "exit": 0,
+      "selected_count": 7,
+      "note": "baseline unchanged",
+      "log": "logs/03_plan_linux-deep.log"
+    },
+    {
+      "cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+      "exit": 0,
+      "tests": 113,
+      "result": "OK",
+      "note": "baseline 96 + 17 new (test_windows_ci.py), 1 count assertion updated (test_deep_profiles 77->80)",
+      "log": "logs/04_unittest_all.log"
+    },
+    {
+      "cmd": "python3 tools/quality/ci_windows_driver.py --stages bogus  (受控退出码留档)",
+      "exit": 1,
+      "log": "logs/07_driver_exit3_cmake_missing.log (同批亦留 exit=3)"
+    },
+    {
+      "cmd": "python3 tools/quality/ci_windows_driver.py --stages configure  (本机无 cmake → 受控 exit 3)",
+      "exit": 3,
+      "log": "logs/07_driver_exit3_cmake_missing.log"
+    }
+  ],
+  "unittest_total": 113,
+  "baseline_checks": 77,
+  "final_checks": 80,
+  "hosted_windows_2022_expectations": [
+    "WIN-BUILD-RELEASE: resource_monitor 包裹 ci_windows_driver --stages configure,build；cmake --preset win-msvc-17.14.39-x64（VS 17 2022 x64, toolset v143 host=x64 14.44.35207, SDK 10.0.26100.0, ACR OFF）+ cmake --build RelWithDebInfo --parallel N（N=NUMBER_OF_PROCESSORS 探测）；预计 PASS 并产出 run/ci/monitor/WIN-BUILD-RELEASE.json 与 run/ci/win-build-summary.json",
+    "WIN-TEST-UNIT: ctest --preset win-rel --output-junit run/ci/win-test-junit.xml；全部单测应 PASS（Windows 特有失败需在 runner 上归因，非本任务范围）",
+    "WIN-PACKAGE-CANDIDATE: cmake --install --prefix run/ci/win-candidate + candidate 组装 + 三清单 + verify_candidate；dumpbin /EXPORTS 四 DLL、astrocs.exe version --json / modules list / modules verify / selftest 应全部 executed 且 PASS；任何失败 exit 5",
+    "驱动 summary JSON（run/ci/win-*-summary.json）逐阶段记录 argv/exit/duration/timed_out/output_tail"
+  ],
+  "hosted_risks": [
+    "tools/monitoring/run_monitored.py 为 Linux /proc 采样实现（V8-CI-003 交付）；在 windows-2022 上 psutil 若可用则可采样，若不可用监控 shim 可能降级——三项 WIN-* 的监控 JSON 产出是 hosted 验证点之一，注册表契约（requires_monitor + wrapper 前缀）已按 V8-CI-003 满足",
+    "preset win-msvc-17.14.39-x64 带 CMAKE_GENERATOR_INSTANCE=C:/AstroCS/toolchains/vs2022-17.14.39 与 .vsconfig 组件锁（7 项）：GitHub runner 需预装该布局或以 --preset 覆盖入口另行提供（驱动 --preset 参数已支持）；若 runner 无此目录，configure 阶段将失败（受控 exit，可归因）",
+    "runner 镜像自带的 cmake 版本与 preset 最低要求（>=3.16/3.20 视 CMakeLists 而定）需在 hosted 首跑确认；驱动把 cmake 版本写入 BUILD_PROVENANCE.json 供追溯",
+    "verify_candidate 的 dumpbin 依赖 VS 环境（prerequisite_tools 已含 dumpbin 探测；dumpbin 不在 PATH 时对应项登记 executed=false 而非伪造 PASS，检查不通过 exit 5 由 hosted 归因）"
+  ],
+  "git_ignored_paths_note": "已核实：.gitignore:18 `logs/` 命中 evidence/v8_1_ci_control/tasks/V8-CI-006/logs/（git check-ignore 实测命中）；按纪律正常写入、绝不 git add"
+}
