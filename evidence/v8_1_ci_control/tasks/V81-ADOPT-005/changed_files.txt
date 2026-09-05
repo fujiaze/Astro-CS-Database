@@ -1,0 +1,11 @@
+docs/DOCUMENT_INDEX.yaml
+evidence/v8_1_ci_control/tasks/V81-ADOPT-005/TASK_RESULT.json
+evidence/v8_1_ci_control/tasks/V81-ADOPT-005/commands.jsonl
+evidence/v8_1_ci_control/tasks/V81-ADOPT-005/changed_files.txt
+evidence/v8_1_ci_control/tasks/V81-ADOPT-005/test_summary.json
+evidence/v8_1_ci_control/tasks/V81-ADOPT-005/findings.csv
+evidence/v8_1_ci_control/tasks/V81-ADOPT-005/logs/doc_index_initial.json
+evidence/v8_1_ci_control/tasks/V81-ADOPT-005/logs/doc_index_initial.stdout.log
+evidence/v8_1_ci_control/tasks/V81-ADOPT-005/logs/doc_index_after_fix.json
+evidence/v8_1_ci_control/tasks/V81-ADOPT-005/logs/doc_index_after_fix.stdout.log
+evidence/v8_1_ci_control/tasks/V81-ADOPT-005/logs/git_diff_after_fix.log

@@ -1,0 +1,6 @@
+finding_id,severity,location,description,action_taken
+F-001,MEDIUM,docs/DOCUMENT_INDEX.yaml,"初次检查 exit 1：check_doc_index --strict 报 docs_fully_covered 缺登 docs/operations/TOOLCHAIN_AGENT_HOST.md（V81-ADOPT-004 新增文档未入活动索引），全部 FAIL 共 1 项",已在 active 区段补登（ACTIVE_INFORMATIVE），复检 exit 0
+F-002,INFO,AGENTS.md,"盘点发现 AGENTS.md 目录规范（run/、工程控制/、reports/）未要求登记 evidence/ 子目录",NO-OP：规则无登记要求，遵循最小改动
+F-003,INFO,memory.md,"memory.md 自身收敛规则限定只保留稳定目标/SHA/模块索引/开放问题，不承载过程性记录",NO-OP：不做 evidence 目录补记
+F-004,INFO,dispatch/acceptance_command,"派发包 acceptance_command 写 tools/quality/check_doc_index.py，该路径不存在；实际脚本为 tools/doccheck/check_doc_index.py",按实际脚本执行 --strict 等价严格模式并在 TASK_RESULT.json 说明
+F-005,INFO,evidence/v8_1_ci_control/,"git status 显示 TASK_STATE.json / WRITE_LEASE.json 已修改、多个根级控制 zip 未跟踪——均为前台/其他任务工作区状态",NO-OP：非本任务写域，不处理
