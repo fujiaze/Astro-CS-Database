@@ -19,7 +19,10 @@
 5. zip 成员本身不得命中排除模式（源码 .py/.h/.cpp/.c/.hpp/.f90 等、
    测试数据 testdata、构建缓存 CMakeFiles/CMakeCache.txt/Testing 等）；
 6. BUILD_PROVENANCE.json 必填字段：``source_sha`` / ``built_utc`` /
-   ``preset`` / ``acr_enabled``（driver 字段名，acr 开关）。
+   ``preset`` / ``acr_enabled``（driver 字段名，acr 开关）；
+7. 路径逃逸（V8-CI-009 GAP-G3 补齐）：zip 成员名与 SHA256SUMS 登记的
+   relpath 经 PurePosixPath 判定不得为绝对路径或含 ``..`` 段
+   （code=``path_escape_in_zip``，防 zip-slip 解包逃逸）。
 
 任一违规 -> stdout/stderr 结构化错误 + exit 1（无 traceback）；
 全部通过 -> PASS 摘要 + exit 0。``--json`` 输出完整机读报告。
@@ -109,6 +112,19 @@ def _sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _zip_path_escape(relpath: str) -> str | None:
+    """zip 成员 / SHA256SUMS 登记路径的逃逸判定（V8-CI-009 GAP-G3 补齐）。
+
+    绝对路径或含 ``..`` 段即逃逸（zip-slip），返回原因；否则返回 None。
+    """
+    pure = PurePosixPath(relpath)
+    if pure.is_absolute():
+        return "absolute path"
+    if ".." in pure.parts:
+        return "'..' segment"
+    return None
+
+
 def validate_zip(zip_path: Path) -> dict:
     """完整校验一个 candidate zip，返回机读报告（verdict/errors/counts）。"""
     errors: list[dict] = []
@@ -129,7 +145,14 @@ def validate_zip(zip_path: Path) -> dict:
 
     counts = {"zip_entries": len(names)}
 
-    # 2. 三个清单在 zip 根
+    # 2. zip 成员路径逃逸（GAP-G3）：绝对路径 / '..' 段在任何内容判定之前拒绝
+    for member in sorted(names):
+        reason = _zip_path_escape(member)
+        if reason:
+            err("path_escape_in_zip",
+                f"zip 成员路径逃逸（{reason}）：{member}")
+
+    # 3. 三个清单在 zip 根
     name_set = set(names)
     for manifest in MANIFEST_NAMES:
         if manifest not in name_set:
@@ -186,8 +209,13 @@ def validate_zip(zip_path: Path) -> dict:
             sums_entries[m.group(2)] = m.group(1)
         if not lines:
             err("sums_invalid", "SHA256SUMS 为空（candidate 无任何登记产物）")
-        # 每行 -> zip 实际文件
+        # 每行 -> zip 实际文件（GAP-G3：登记路径本身先做逃逸判定）
         for relpath, expected in sorted(sums_entries.items()):
+            reason = _zip_path_escape(relpath)
+            if reason:
+                err("path_escape_in_zip",
+                    f"SHA256SUMS 登记路径逃逸（{reason}）：{relpath}")
+                continue
             if relpath not in blobs:
                 err("sums_missing_entry",
                     f"SHA256SUMS 登记的文件不在 zip 内：{relpath}")

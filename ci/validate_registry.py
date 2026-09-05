@@ -16,7 +16,11 @@
   R6  command[1] 引用的脚本文件确实存在于仓库（与 R4 互补：非 python 命令时
       检查 command 中出现的仓库相对路径文件存在）；
   R7  heavy=true 的项 requires_monitor=true；
-  R8  mutates_workspace=true 的项不得出现在 fast profile。
+  R8  mutates_workspace=true 的项不得出现在 fast profile；
+  R9  命令元素不得硬编码线程/核心数（-j<N>/--jobs/--threads/NPROC/
+      OMP_NUM_THREADS/MKL_NUM_THREADS/NUMEXPR_NUM_THREADS）→
+      hardcoded_core_in_command；ci/resource_monitor.py 前缀的 monitor
+      自身参数（--timeout/--output/--）白名单放行，-- 之后的子命令仍扫描。
 
 输出: stdout 一份 JSON 摘要 {"registry", "checks", "errors", "verdict"}；
       全部通过 exit 0，任一 FAIL exit 1。本脚本只读，不写任何文件。
@@ -45,6 +49,18 @@ REQUIRED = ("id", "profiles", "platform", "command", "timeout_seconds",
 REQUIRED = ("id", "profiles", "platform", "command", "timeout_seconds",
             "heavy", "mutates_workspace", "outputs", "waivable",
             "changed_paths", "requires_monitor")
+
+# R9（V8-CI-009 GAP-G2 补齐）：硬编码线程/核心数模式。命令元素显式携带
+# 线程参数或 *_NUM_THREADS/NPROC 赋值即违规——线程选择一律经
+# ci/resource_monitor.py（逐内核 benchmark）注入，禁止写死在 check 命令里。
+HARDCODED_THREAD_RE = re.compile(
+    r"(?:^|[\s=])-j(?:\d|\s|$)"
+    r"|(?:^|[\s=])--jobs(?:\d|[=\s]|$)"
+    r"|(?:^|[\s=])--threads(?:\d|[=\s]|$)"
+    r"|\b(?:NPROC|OMP_NUM_THREADS|MKL_NUM_THREADS|NUMEXPR_NUM_THREADS)\b",
+    re.IGNORECASE,
+)
+MONITOR_SCRIPT = "ci/resource_monitor.py"
 
 
 def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]:
@@ -155,6 +171,20 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
         # R8 fast 不得写工作区
         if c.get("mutates_workspace") is True and isinstance(profs, list) and "fast" in profs:
             errors.append(f"R8 {where} ({cid}): mutates_workspace=true must not be in fast profile")
+
+        # R9 硬编码线程/核心数（GAP-G2）：ci/resource_monitor.py 与其 `--`
+        # 之间的元素是 monitor 自身参数（--timeout/--output/--），白名单放行；
+        # `--` 之后为被监视子命令，恢复逐一扫描。非 monitor 命令全元素扫描。
+        if isinstance(cmd, list) and all(isinstance(x, str) for x in cmd):
+            monitor_ctx = False
+            for tok in cmd:
+                if tok == MONITOR_SCRIPT:
+                    monitor_ctx = True
+                elif monitor_ctx and tok == "--":
+                    monitor_ctx = False
+                elif not monitor_ctx and HARDCODED_THREAD_RE.search(tok):
+                    errors.append(
+                        f"R9 {where} ({cid}): hardcoded_core_in_command: {tok!r}")
 
     return errors, len(checks)
 
