@@ -1,0 +1,14 @@
+{
+  "task_id": "V8-CI-003",
+  "owner": "SA-CI-32",
+  "status": "RETURNED",
+  "base_sha": "c5924da537220239b00e4ae8970bc5eb17e908c9",
+  "attempt": 1,
+  "deliverables": [
+    "tools/monitoring/resource_probe.py",
+    "tools/monitoring/run_monitored.py",
+    "ci/tests/test_resource_probe.py",
+    "ci/tests/test_run_monitored.py"
+  ],
+  "notes": "资源探测：affinity(sched_getaffinity)/cpu_count/cpuinfo fallback、cgroup v2+v1 quota、meminfo，全部 source 注记、quota 不可得→effective=affinity、非硬编码（缩容 affinity 即改变 max_workers）。进度约定：stdout 'PROGRESS: done/total' 或 --progress-file（文件优先）；heavy wrapper argv 数组启动、start_new_session+killpg、超时 SIGKILL、evaluate(min_cpu_percent/max_rss_growth_kb/min_progress) fail-closed。"
+}
