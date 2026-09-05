@@ -1,0 +1,80 @@
+{
+  "task_id": "V8-CI-007",
+  "task_name": "Workflow 与 action 锁",
+  "owner": "SA-CI-32",
+  "control_pack": "V8.1",
+  "repo": "/workspace/Astro CS Database",
+  "base_head_sha": "a90dbb9099727f83b308c3a50a647c1b6198fe2f",
+  "generated_utc": "2026-09-05T22:22:33Z",
+  "status": "DONE",
+  "verdict": "PASS",
+  "summary": "GitHub Actions 双 workflow（ci-linux/ci-windows）以完整 40 位 commit SHA 锁定全部第三方 action；新增 ci/actions.lock.json（tag->SHA 锁定表，在线实查核验）、verify_actions_lock.py（在线复验/离线结构检查）、bootstrap.py + toolchain.policy.json（hosted 工具链逐项探测）、select_profile.py（事件->profile 路由）、validate_candidate.py（Windows candidate zip 结构/哈希/清单/溯源校验）；连带 ci_windows_driver.py 增加 --zip 打包与 WIN-PACKAGE-CANDIDATE 登记更新；38 个新离线单测全绿，全套验收 7 项仲裁重跑 PASS。",
+  "deliverables": [
+    {"path": "ci/actions.lock.json", "kind": "created", "desc": "action 锁定表：schema_version 1，entries 3 条（checkout v7.0.1 / upload-artifact v5.0.0 / upload-artifact v4.6.2 参考条目），含 used_by 与 note"},
+    {"path": "ci/verify_actions_lock.py", "kind": "created", "desc": "匿名 api.github.com 逐 tag 实查 commit SHA（annotated tag 解引用 + 2 次线性退避）；--offline 结构校验；--json/--log JSONL 日志；exit 0=PASS / 1=SHA_MISMATCH / 2=NETWORK_UNAVAILABLE / 3=LOCK_INVALID"},
+    {"path": ".github/workflows/ci-linux.yml", "kind": "created", "desc": "ubuntu-24.04；push(main)+workflow_dispatch(linux-main/linux-deep)+schedule(cron 17 19 * * *)；checkout/bootstrap/select_profile/run checks/upload evidence( if: always() )；permissions contents: read；concurrency cancel-in-progress: false；timeout-minutes 330"},
+    {"path": ".github/workflows/ci-windows.yml", "kind": "created", "desc": "windows-2022；push(main)+workflow_dispatch；checkout/bootstrap/windows-main 全量跑 + validate_candidate.py 校验 candidate zip + 上传 artifact 与公开证据；锁定 SHA、permissions、concurrency、timeout 同 ci-linux"},
+    {"path": "ci/bootstrap.py", "kind": "created", "desc": "--policy --platform linux|windows 逐项 {tool,required,observed,ok[,detail]}；hosted runner 探测（GITHUB_ACTIONS/ImageOS/RUNNER_OS、/etc/os-release）；vswhere 探测 VS17；失败 -> 结构化 stderr JSON（verdict/failed_tools/repair）+ exit 2，无 traceback；--json"},
+    {"path": "ci/toolchain.policy.json", "kind": "restored_unchanged", "desc": "保持 V81-ADOPT-004 原文（schema_version 2，含 agent_host/linux_hosted/windows_hosted/fatduck 节）未做任何修改；bootstrap 只读取 linux_hosted/windows_hosted 两节，fatduck 节不触碰（V8-CI-008 域）"},
+    {"path": "ci/select_profile.py", "kind": "created", "desc": "push->linux-main；schedule->linux-deep；workflow_dispatch->requested（白名单 linux-main/linux-deep）；无效 event/requested -> stderr 单行 INVALID + exit 2；成功输出 'profile=<id>'（GITHUB_OUTPUT 兼容）；--json 仅输出机读 JSON"},
+    {"path": "ci/validate_candidate.py", "kind": "created", "desc": "candidate zip 校验：zip 可读/SOURCE_MANIFEST 结构与排除（build-cache/testdata 模式）/SHA256SUMS 双向完备与哈希复算/zip 成员排除（源码后缀+CMakeFiles+Testing 等）/BUILD_PROVENANCE 必填字段(source_sha,built_utc,preset,acr_enabled)；违规 exit 1 + 错误码结构化 JSON；--json"},
+    {"path": "ci/tests/test_workflow_lock.py", "kind": "created", "desc": "38 个离线单测（不发真实 HTTP）：锁结构/YAML 形状与占位符与锁定 SHA/verify --offline/bootstrap 三态与 mock 探测/select_profile 全规则/validate_candidate 合法+7 条拒绝路径/registry strict/profile 计数回归 57-71-7-61"},
+    {"path": "tools/quality/ci_windows_driver.py", "kind": "modified", "desc": "连带变更：+pack_candidate_zip()（确定性 zip：排序成员、固定时间戳、posix arcname、0o644）+ CLI --zip [OUT]（默认 artifacts/candidate/AstroCS-candidate.zip，仅 rc=0 且含 package stage 时打包）+ --help 与 JSON 摘要"},
+    {"path": "ci/checks.json", "kind": "modified", "desc": "WIN-PACKAGE-CANDIDATE command 追加 --zip artifacts/candidate/AstroCS-candidate.zip，outputs 追加该 zip 路径（+5/-2 行）；validate_registry --strict 80 checks 0 errors"}
+  ],
+  "evidence": {
+    "acceptance": "acceptance.log",
+    "test": "TEST_EVIDENCE.json",
+    "changed_files": "CHANGED_FILES.txt",
+    "logs_dir": "logs/（.gitignore 忽略，仅存盘不入 git）",
+    "logs": [
+      "logs/verify_actions_lock.log（在线复验 PASS 报告）",
+      "logs/checkout-tags.log（逐 tag curl 实查记录）",
+      "logs/latest-tags.log（tags 列表参考抓取）",
+      "logs/unittest.log（unittest 摘要）"
+    ]
+  },
+  "acceptance_summary": {
+    "arbitrated_utc": "2026-09-05T22:19:17Z",
+    "method": "独立进程逐项重跑（/tmp/v8ci007_acceptance.py），结果落 acceptance.log",
+    "items": {
+      "validate_registry_strict": {"exit": 0, "verdict": "PASS", "detail": "80 checks, 0 errors"},
+      "verify_actions_lock_online": {"exit": 0, "verdict": "PASS", "detail": "3 entries 全部 tag->SHA 在线实查一致"},
+      "verify_actions_lock_offline": {"exit": 0, "verdict": "PASS"},
+      "unittest_discover": {"exit": 0, "verdict": "PASS", "detail": "Ran 151 tests, OK（基线 >=125 达标）"},
+      "plan_only_counts": {"exit": 0, "verdict": "PASS", "detail": "fast=57 linux-main=71 linux-deep=7 windows-main=61 全部不变"},
+      "grep_placeholder_workflows": {"exit": 1, "verdict": "PASS", "detail": "grep -R '__.*__' .github/workflows/ 无匹配（exit 1 即无残留）"},
+      "yaml_safe_load": {"exit": 0, "verdict": "PASS", "detail": "两 workflow 均可解析"}
+    },
+    "overall": "PASS"
+  },
+  "action_lock": {
+    "verified_utc": "2026-09-05T22:17:04Z",
+    "entries": [
+      {"action": "actions/checkout", "tag": "v7.0.1", "commit_sha": "3d3c42e5aac5ba805825da76410c181273ba90b1", "used_by": ["ci-linux.yml", "ci-windows.yml"]},
+      {"action": "actions/upload-artifact", "tag": "v5.0.0", "commit_sha": "330a01c490aca151604b8cf639adc76d48f6c5d4", "used_by": ["ci-linux.yml", "ci-windows.yml"]},
+      {"action": "actions/upload-artifact", "tag": "v4.6.2", "commit_sha": "ea165f8d65b6e75b540449e92b4886f43607fa02", "used_by": [], "note": "参考条目，当前 workflow 未引用"}
+    ]
+  },
+  "key_decisions": [
+    "bootstrap：缺失/版本不足工具 -> 该项 ok=false 并继续探测全部项，最后统一 verdict=FAIL + 结构化 stderr（含逐工具 repair 建议）+ exit 2；不中断、不 traceback。本地宿主必然 FAIL（非 hosted runner），属预期路径。",
+    "select_profile：仅 push/schedule/workflow_dispatch 三事件；dispatch 白名单 [linux-main, linux-deep]；空/未知 requested 与未知 event 均受控 exit 2；--json 模式只输出 JSON 不混排 profile= 行。",
+    "validate_candidate：SOURCE_MANIFEST 描述源文件（.py/.c/.h 合法，仅登记不复制），源码后缀排除只适用于 zip 成员；build-cache/testdata 模式对 manifest 与 zip 成员均排除；SHA256SUMS 与 zip 实文件双向完备（不多不少）。",
+    "连带变更：ci_windows_driver.py --zip 生成确定性 zip（排序、固定时间戳、无 platform extra field），WIN-PACKAGE-CANDIDATE command/outputs 同步登记，validate_candidate 在 windows workflow 内对该 zip 校验。",
+    "toolchain.policy.json 保持原文不改：发现误覆盖后已从 HEAD 恢复（schema_version 2 原文），bootstrap 兼容读取其 linux_hosted/windows_hosted 节。",
+    "verify_actions_lock 仅匿名访问 api.github.com（无 Authorization 头），annotated tag 自动解引用至 commit，重试 2 次线性退避；单测一律 --offline 或 mock，不发真实 HTTP。"
+  ],
+  "hosted_first_run_expectation": [
+    "ci-linux push 首跑：checkout(锁定 SHA) -> bootstrap 应全 PASS（ubuntu-24.04 runner 自带 gcc-13/clang-18 需注意：ImageOS=ubuntu24 命中 runner 项；gcc-14/clang-19/cmake 3.31.12 在 24.04 镜像内置版本可能低于 policy 要求 -> bootstrap 可能 FAIL exit 2，届时按 repair 提示改用 apt/mutable 工具链或调 policy，属首次真实探测的预期校准点）",
+    "ci-windows push 首跑：vswhere 探测 VS17 应 PASS；windows-main 全量跑后生成 artifacts/candidate/AstroCS-candidate.zip，validate_candidate 应 PASS（打包确定性已本地单测覆盖）",
+    "schedule(cron 17 19 * * *) 触发 linux-deep 7 checks，不受 dispatch 白名单影响"
+  ],
+  "residual_risks": [
+    "upload-artifact v4.x 系列在 repo 同名 artifact 重复上传时可能冲突（两 workflow 的 artifact 名已错开：linux 用 ci-public-evidence-linux / windows 用 candidate+ci-public-evidence-windows，无冲突）",
+    "gcc-14/clang-19/cmake 精确版本是否已在 ubuntu-24.04 镜像内，需 hosted 首跑 bootstrap 实测；若缺，policy 措施为 hosted 预装或放宽为最小版本（由负责人决策，本任务不擅自放宽）",
+    "GitHub API 匿名限流（60 req/h/IP）：verify_actions_lock 3 entries 每次仅 3 请求，正常节奏无忧；CI 内每跑一次 workflow 消耗 3 次配额",
+    "actions.lock.json 为参考条目保留 upload-artifact v4.6.2（used_by=[]），后续若引用需重新在线复验该条"
+  ],
+  "violations": [],
+  "notes": "未触碰：冻结约束、science/algorithm/tolerances、AGENTS.md、TASK_STATE/WRITE_LEASE/dispatch/adoption、.gitignore、工程控制/；未执行任何 git 写操作。"
+}

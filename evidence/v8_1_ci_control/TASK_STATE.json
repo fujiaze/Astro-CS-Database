@@ -2,8 +2,8 @@
   "schema_version": "v8.1",
   "round": "V8.1_EXISTING_WORKSPACE_CI",
   "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
-  "updated_utc": "2026-09-05T21:41:14Z",
-  "main_sha": "f5d579bc74e84ed26518bf91f7a0190164022bc8",
+  "updated_utc": "2026-09-05T22:27:32Z",
+  "main_sha": "a90dbb9099727f83b308c3a50a647c1b6198fe2f",
   "reconciled_by": {
     "task_id": "V81-ADOPT-003",
     "owner": "SA-ADOPT-31"
@@ -44,8 +44,8 @@
     "WAITING_RESOURCE"
   ],
   "counts": {
-    "CLOSED": 53,
-    "READY": 11,
+    "CLOSED": 54,
+    "READY": 10,
     "NOT_STARTED": 125,
     "DISPATCHED": 0,
     "FATDUCK_PENDING": 2,
@@ -2433,6 +2433,15 @@
       "closed_utc": "2026-09-05T21:41:14Z",
       "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-005/",
       "summary": "linux-deep 检查注册 77 项(BUILD-GCC-RELEASE + 6 deep)+prerequisite_tools 探测+deep_ci_driver/coverage/complexity 驱动链+QA-006 接线; 单测 96/96; 本地 deep 实跑 PASS(6 waivable); 集成于 e1fde093"
+    },
+    "V8-CI-006": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "847a7a6b08ab347c2158046efb6a996e2035cfbe",
+      "pushed": true,
+      "closed_utc": "2026-09-05T22:27:32Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-006/",
+      "summary": "Windows 构建驱动 ci_windows_driver.py 五阶段+candidate 三清单(BUILD_PROVENANCE/SOURCE_MANIFEST/SHA256SUMS)+WIN-* 三检查注册(80 项); 单测 113/113; verify_candidate hosted-only 登记; 集成于 847a7a6b"
     }
   },
   "adopt_seed_tasks": {

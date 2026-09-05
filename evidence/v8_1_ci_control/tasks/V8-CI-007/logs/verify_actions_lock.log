@@ -1,0 +1,32 @@
+{
+  "verdict": "PASS",
+  "mode": "online",
+  "utc": "2026-09-05T22:01:00Z",
+  "entry_count": 3,
+  "entries": [
+    {
+      "action": "actions/checkout",
+      "tag": "v7.0.1",
+      "expected_sha": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "observed_sha": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ok": true,
+      "reason": null
+    },
+    {
+      "action": "actions/upload-artifact",
+      "tag": "v5.0.0",
+      "expected_sha": "330a01c490aca151604b8cf639adc76d48f6c5d4",
+      "observed_sha": "330a01c490aca151604b8cf639adc76d48f6c5d4",
+      "ok": true,
+      "reason": null
+    },
+    {
+      "action": "actions/upload-artifact",
+      "tag": "v4.6.2",
+      "expected_sha": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "observed_sha": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "ok": true,
+      "reason": null
+    }
+  ]
+}
