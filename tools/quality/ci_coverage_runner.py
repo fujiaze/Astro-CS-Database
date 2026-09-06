@@ -48,13 +48,15 @@ PYTEST_ERROR_LINE_RE = re.compile(
     r"ERROR|ERRORS|Interrupted|short test summary|no tests ran|"
     r"ModuleNotFoundError|ImportError|No module named|cannot import|"
     r"Traceback|^E   |in <module>", re.IGNORECASE)
-PYTEST_TAIL_CAP = 50
+# F9-c (V8-CI-012 R6.5): cap 50→120。轮 4 hosted 实证 cap 50 窗内仅见 6/7 收集
+# 错误且丢失 pytest "Interrupted: N errors" 汇总行, 精确计数核验需更大窗口。
+PYTEST_TAIL_CAP = 120
 
 
 def collect_error_lines(lines: list[str]) -> list[str]:
-    """按 pytest 收集/导入错误关键词定位并截取错误窗（保序；cap 50 行）。
+    """按 pytest 收集/导入错误关键词定位并截取错误窗（保序；cap 120 行）。
 
-    语义：取第一个关键词命中行起的连续 50 行（保留 import traceback 的
+    语义：取第一个关键词命中行起的连续 120 行（保留 import traceback 的
     源码上下文行，如 "    import yaml"——纯过滤会丢掉 E 行之外的定性
     依据）；无命中返回空表（调用方退化原始尾窗）。
     """

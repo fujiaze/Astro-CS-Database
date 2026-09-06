@@ -22,7 +22,9 @@
     "deep_coverage_tools": {
       "purpose": "V8-CI-012 F-D3 登记：linux-deep coverage 双检查工具在 hosted 镜像（本批次）缺位，由 ci-linux.yml 安装步补齐后 DEEP-COV-* 才可实跑",
       "installed_by": "ci-linux.yml step 'Install deep coverage tools'（profile=linux-deep 时执行；仅安装验证工具，不拉业务依赖）",
-      "apt_packages": ["llvm-18", "python3-pytest", "python3-pytest-cov"],
+      "apt_packages": ["llvm-18", "python3-pytest", "python3-pytest-cov",
+                        "python3-numpy", "python3-astropy", "python3-scipy",
+                        "python3-yaml"],
       "path_tools": ["llvm-profdata", "llvm-cov", "pytest"],
       "path_tool_source": "llvm-18 无后缀二进制位于 /usr/lib/llvm-18/bin（安装步加入 GITHUB_PATH）；pytest 位于 /usr/bin",
       "module_tools": ["pytest-cov"],
