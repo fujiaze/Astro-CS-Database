@@ -516,21 +516,45 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                                   const std::string& cfg_text, uint32_t budget,
                                   std::string& fail_reason) {
     astrocs::ProcessMonitor mon(0.5);
+    // MON-001: 记录器(样本/阶段分段/worker balance)随采样线程写入; interval 与采样
+    // 周期一致(0.5s), 保证 cpu_pct=ΔCPU秒/区间墙钟 的 normalized 口径成立。
+    astrocs::ResourceRecorder recorder(0.5);
     std::atomic<bool> sampling{true};
-    std::thread sampler([&mon, &sampling] {
+    std::thread sampler([&mon, &recorder, &sampling] {
         using SteadyNs = std::chrono::steady_clock::duration;
         const auto period = std::chrono::duration_cast<SteadyNs>(std::chrono::duration<double>(0.5));
         auto next = std::chrono::steady_clock::now();
         while (sampling.load(std::memory_order_relaxed)) {
             mon.tick();
+            recorder.record(mon.last_sample());
             next += period;
             std::this_thread::sleep_until(next);
         }
     });
+    recorder.set_stage(astrocs::ResStage::Active);
+    // MON-001: active 阶段注入实际 worker 租约数(cli_affinity 分配核; 禁硬编码)。
+    recorder.set_workers(budget, budget);
     const int rrc = astrocs::cli::run_pipeline({phase.back() - '0'}, cfg_text, budget,
                                                &fail_reason);
+    recorder.set_stage(astrocs::ResStage::Flush);
     sampling.store(false, std::memory_order_relaxed);
     sampler.join();
+    // MON-001: run 收尾自动生成 resource_samples.csv / resource_summary.json /
+    // worker_balance.csv(无需操作者脚本; 管线失败也留资源证据)。开销占比由
+    // summary.sample_overhead_ms(真实累计采样 wall / 总 wall 口径的原料)度量。
+    {
+        const astrocs::ProcessMonitor::Summary mon_s = mon.summary();
+        const std::string res_out_dir = [&] {
+            try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
+            catch (...) { return std::string("."); }
+        }();
+        const bool wrote = recorder.write_all(res_out_dir, mon_s.wall_seconds,
+                                              mon_s.sample_overhead_ms);
+        if (!wrote) {
+            std::fprintf(stderr, "astrocs: warning: resource files not written to %s\n",
+                         sanitize(res_out_dir).c_str());
+        }
+    }
     if (rrc != astrocs::OK) return rrc;  // 管线自身失败: 保留原退出码
 
     const auto s = mon.summary();
