@@ -235,6 +235,9 @@ doc_index:
     - path: "docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md"
       status: ACTIVE_NORMATIVE
       notes: "CPU-001 ISA 能力探测（CPU-001 集成后补登）"
+    - path: "docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md"
+      status: ACTIVE_NORMATIVE
+      notes: "CPU-003 AVX2/FMA provider 热点 kernel 后端冻结合同（CPU-003 集成后补登）"
     - path: "docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md"
       status: ACTIVE_NORMATIVE
       notes: "IO-001 FITS 流式接口冻结合同（GOV-002 base 之后集成，补登）"
@@ -360,6 +363,12 @@ doc_index:
       status: ACTIVE_INFORMATIVE
     - path: "docs/performance/OPTIMIZATION.md"
       status: ACTIVE_INFORMATIVE
+    - path: "docs/quality/complexity_baseline_v1.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "V8-CI-005 首次 deep CI 复杂度基线测量记录（补登）"
+    - path: "docs/quality/coverage_baseline_v1.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "V8-CI-005 首次 deep CI 覆盖率基线测量记录（补登）"
     - path: "docs/science/ACR_EQUIVALENCE.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/science/ASTROMETRY.md"

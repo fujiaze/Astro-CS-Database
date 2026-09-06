@@ -7,6 +7,11 @@ CLI = os.path.join(REPO, "cli")
 BUILD = os.path.join(REPO, "build", "cli")
 EXE = os.path.join(BUILD, "astrocs")
 
+def _repo_version():
+    """版本单源: 根 VERSION 文件(cli/CMakeLists.txt 与 tools/gen_version.py 同源读取)。"""
+    with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as fh:
+        return fh.read().strip()
+
 HELP_LINES = [
     "astrocs --version [--json]",
     "astrocs version [--json]",
@@ -70,7 +75,7 @@ class TestGolden(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         doc = json.loads(lines[0])
         self.assertEqual(doc["name"], "astrocs")
-        self.assertRegex(doc["version"], r"^0\.11\.0-alpha\.1\+g[0-9a-f]{12}(\.dirty)?$")
+        self.assertRegex(doc["version"], r"^" + re.escape(_repo_version()) + r"\+g[0-9a-f]{12}(\.dirty)?$")
 
     # ── parser 拒绝面(全部 → 2, 诊断在 stderr) ──
     def test_03_parser_rejects(self):

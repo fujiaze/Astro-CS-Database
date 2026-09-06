@@ -5,6 +5,11 @@ import json, os, re, shutil, subprocess, tempfile, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CLI = os.path.join(REPO, "cli")
 
+def _repo_version():
+    """版本单源: 根 VERSION 文件(cli/CMakeLists.txt 与 tools/gen_version.py 同源读取)。"""
+    with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as fh:
+        return fh.read().strip()
+
 EXPECTED_HELP_LINES = [
     "astrocs --version [--json]",
     "astrocs hardware inspect --json",
@@ -43,7 +48,7 @@ class TestCliBuild(unittest.TestCase):
         r = self.run_cli("--version")
         self.assertEqual(r.returncode, 0)
         self.assertRegex(r.stdout.strip(),
-                         r"^astrocs 0\.11\.0-alpha\.1\+g[0-9a-f]{12}(\.dirty)?$")
+                         r"^astrocs " + re.escape(_repo_version()) + r"\+g[0-9a-f]{12}(\.dirty)?$")
 
     def test_02_version_json_single_document(self):
         r = self.run_cli("--version", "--json")
@@ -53,7 +58,7 @@ class TestCliBuild(unittest.TestCase):
         doc = json.loads(lines[0])
         self.assertEqual(doc["name"], "astrocs")
         self.assertEqual(doc["schema_version"], "1")
-        self.assertRegex(doc["version"], r"^0\.11\.0-alpha\.1\+g[0-9a-f]{12}")
+        self.assertRegex(doc["version"], r"^" + re.escape(_repo_version()) + r"\+g[0-9a-f]{12}")
 
     def test_03_help_matches_contract(self):
         r = self.run_cli("--help")
