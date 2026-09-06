@@ -62,7 +62,11 @@ def check_banned_aliases(errors, roots=None):
                 if not fn.endswith(".md"):
                     continue
                 full = os.path.join(dirpath, fn)
-                rel = os.path.relpath(full, REPO)
+                try:
+                    rel = os.path.relpath(full, REPO)
+                except ValueError:
+                    # Windows 跨盘符（C: vs D:）relpath 抛 ValueError → 回退绝对路径
+                    rel = full
                 for ln, line in enumerate(open(full, encoding="utf-8", errors="replace"), 1):
                     if rel == "docs/GLOSSARY.md":
                         continue

@@ -51,7 +51,12 @@ IO = _SELF / "io"
 SYSTEM_STAT = _PROC / "stat"
 LOADAVG = _PROC / "loadavg"
 
-_CLK_TCK = os.sysconf("SC_CLK_TCK") or 100  # 实际在 Linux 恒为 100
+try:
+    _CLK_TCK = os.sysconf("SC_CLK_TCK") or 100  # 实际在 Linux 恒为 100
+except (AttributeError, ValueError, OSError):
+    # 非 POSIX 平台（如 Windows runner）无 os.sysconf：MON-001 检查在
+    # linux profile 执行，此处仅保证 import 不炸。
+    _CLK_TCK = 100
 
 
 def _read_uint(file: pathlib.Path, key: str) -> Optional[int]:

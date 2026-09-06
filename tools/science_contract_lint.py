@@ -17,7 +17,11 @@ CLAIM_RE_ALG = re.compile(r"^>\s*ID:\s*(ALG-[A-Z0-9]{2,8}-\d{3})\s")
 KINDS = {"sci": (SECTIONS_SCI, CLAIM_RE_SCI), "alg": (SECTIONS_ALG, CLAIM_RE_ALG)}
 
 def check_file(path, errors, kind="sci"):
-    rel = os.path.relpath(path, REPO)
+    try:
+        rel = os.path.relpath(path, REPO)
+    except ValueError:
+        # Windows 跨盘符回退绝对路径
+        rel = str(path)
     text = open(path, encoding="utf-8").read()
     lines = text.splitlines()
     sections, claim_re = KINDS[kind]
