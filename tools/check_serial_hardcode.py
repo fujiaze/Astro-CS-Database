@@ -19,9 +19,23 @@ PROD_FILES = [
     "lib/core", "lib/io", "lib/cpu", "lib/calibration/src", "cli/main.cpp",
 ]
 EXEMPT_SUBSTR = ("test", "tool", "README", "fixture", "cfitsio", "third_party")
+# 显式登记(必须带 lease 覆盖说明, 同 tools/arch/check_thread_budget.py 惯例):
+# 这些文件中的 workers=1 是"串行 reference 默认值", 生产路径由 ThreadBudget
+# lease 注入覆盖 (约束 §D 已满足); 默认值改非 1 反而违反 §D。
+REGISTERED = {
+    "upm.cpp": "cpu_workers=1 串行 reference 默认; 生产由 p2_session 传 lease(ThreadBudget)",
+    "sampler.cpp": "cpu_workers=1 串行 reference 默认; 生产由 p2_session 传 lease",
+    "p3_session.cpp": "n_workers=1 默认; 紧随 host budget.max_workers>0 覆盖(ThreadBudget)",
+}
+# 线程数字段 (排除 min_/max_ 前缀 — min/max_useful_workers 是"有用 worker
+# 数量"语义下限/上限, 非线程数; 头文件 plan_estimator.h:73 注明 ≥1)。捕获
+# 运算符以区分赋值(=)与比较(==/!=/<=/>=, 后者不是硬编码)。
+WORKER_ONE_RE = re.compile(
+    r"(?<!\w)(min_useful_workers|max_useful_workers|min_workers|max_workers"
+    r"|cpu_workers|n_workers|num_workers|workers)\s*(==|!=|<=|>=|=)\s*1\b")
 
 def main():
-    errors = []
+    errors, registered = [], []
     for d in PROD_FILES:
         base = REPO / d
         files = [base] if base.is_file() else (base.rglob("*.cpp") if base.is_dir() else [])
@@ -34,8 +48,19 @@ def main():
                 # 去注释 (// 和 /* */ 简化)
                 code = re.sub(r"//.*$", "", line)
                 code = re.sub(r"/\*.*?\*/", "", code)
-                if "workers" in code and re.search(r"=\s*1\b", code):
-                    errors.append(f"{rel}:{ln} workers=1 硬编码")
+                m = WORKER_ONE_RE.search(code)
+                if m:
+                    op = m.group(2)
+                    if op != "=":
+                        pass  # 比较/上下限判定不是硬编码
+                    elif m.group(1).startswith(("min_", "max_")):
+                        pass  # min/max_useful_workers 语义下限(≥1), 非线程数
+                    else:
+                        reg = next((v for k, v in REGISTERED.items() if k in rel), None)
+                        if reg is None:
+                            errors.append(f"{rel}:{ln} workers=1 硬编码")
+                        else:
+                            registered.append(f"{rel}:{ln} workers=1 [{reg}]")
                 if re.search(r"nside\s*=\s*2048\b", code) or re.search(r'"2048"', code):
                     errors.append(f"{rel}:{ln} nside=2048 硬编码")
                 if re.search(r"omp_set_num_threads\(\s*\d+\s*\)", code):
@@ -51,7 +76,9 @@ def main():
         print("QA-002_VIOLATION:")
         for e in errors: print("  " + e)
         return 1
-    print("QA-002_PASS: 无 workers=1/nside=2048/OMP 线程数硬编码; 无生产 GLOB")
+    print(f"QA-002_PASS: 无 workers=1/nside=2048/OMP 线程数硬编码; 无生产 GLOB"
+          f"; lease 覆盖默认登记 {len(registered)} 处")
+    for r in registered: print("  [登记] " + r)
     return 0
 
 if __name__ == "__main__":
