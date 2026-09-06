@@ -53,10 +53,11 @@ def main():
         if a == "--commit" and i + 1 < len(args):
             commit = args[i + 1]
 
+    # SCHEMA 断链修复 (V8-CI-012 R6.5): 产品 schema 唯一事实源 = schemas/
+    # (旧 工程控制/RELEASE_V5 路径为 untracked 控制包布局, tracked 工作区不存在)。
     schema = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                         "..", "工程控制", "RELEASE_V5",
-                                         "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828",
-                                         "schemas", "cpu_profile.schema.json"), encoding="utf-8"))
+                                         "..", "schemas", "cpu_profile.schema.json"),
+                             encoding="utf-8"))
     d = json.load(open(profile_path, encoding="utf-8"))
     err = validate_schema(d, schema)
     if err:

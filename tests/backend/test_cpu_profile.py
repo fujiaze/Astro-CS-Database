@@ -5,10 +5,12 @@ import hashlib, json, os, re, shutil, subprocess, tempfile, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 HOST = os.path.join(REPO, "lib", "backend_host")
 INC = os.path.join(REPO, "include")
+# SCHEMA 断链修复 (DEEP-COV-PY/CODE_FAIL, V8-CI-012 R6.5): 旧路径 工程控制/RELEASE_V5/
+# 为 untracked 控制包布局, tracked 工作区与 hosted checkout 永不存在 → import 期
+# FileNotFoundError。产品 schema 唯一事实源 = schemas/ (与姊妹 hardware_inspect.schema
+# 同构), 内容取 tracked archive RELEASE_V5 的 v1 副本 (ad740dbd, 与本测试消费语义匹配)。
 SCHEMA = json.load(open(os.path.join(
-    REPO, "工程控制", "RELEASE_V5",
-    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828",
-    "schemas", "cpu_profile.schema.json"), encoding="utf-8"))
+    REPO, "schemas", "cpu_profile.schema.json"), encoding="utf-8"))
 COMMIT = subprocess.run(["git", "-C", REPO, "rev-parse", "HEAD"],
                         capture_output=True, text=True).stdout.strip()
 
@@ -40,7 +42,9 @@ class TestCpuProfile(unittest.TestCase):
         cls.profile = os.path.join(cls.tmp, "cpu_profile.json")
         cls.hw = os.path.join(cls.tmp, "hw.json")
         # 由被测 CLI 自身产出硬件画像(fixture 真实性: 与生产路径同一实现)
-        exe = os.path.join(REPO, "build", "cli", "astrocs")
+        # V6.1 布局路径修复 (V8-CI-012 R6.5.3): 旧 build/cli/astrocs 为 V6.1 独立
+        # cli 构建布局; BLD-002 后唯一产品事实源 = 根 CMake, 产物 build/astrocs。
+        exe = os.path.join(REPO, "build", "astrocs")
         r2 = subprocess.run([exe, "hardware", "inspect", "--json"],
                             capture_output=True, text=True, timeout=60)
         assert r2.returncode == 0, r2.stderr
