@@ -96,3 +96,48 @@ evidence/v8_1_ci_control/tasks/V8-CI-012/CHANGED_FILES.txt（本文件，追加�
 evidence/v8_1_ci_control/tasks/V8-CI-012/logs/repair_round2.log（修复轮 2 执行日志：修复前基线 265 tests OK→修复→验收 275 tests OK/strict PASS/plan-only 57-71-7-61 不变/--offline exit 0/diff 范围）
 
 未修改：ci/checks.json、.github/workflows/**、业务源码（lib/cli/include/cmake）；业务域失败（core_pipeline/cpu001_selftest_avx512）维持登记不修；未触碰派发单、控制包、TASK_STATE、WRITE_LEASE。
+
+## 观察轮 3（终验轮；SHA=485b8b86；hosted run 34021360340 + push 34021356525 对照；只读观察 + /tmp 下载 + evidence 落盘）
+
+修改（tracked）：
+evidence/v8_1_ci_control/tasks/V8-CI-012/DEEP_BASELINE_REPORT.md（追加轮 3 段 R4.1-R4.8 + 冻结基线终表 6.1/6.2/6.3：7 项终态/资源/coverage 双数值口径/时长红线/verify_remote_run 实战/遗留 F8 F9）
+evidence/v8_1_ci_control/tasks/V8-CI-012/TASK_RESULT.json（追加 observation_round3 块：run 终态、checks_final、coverage_baseline、fix_round2_hosted_verification、push_regression、requirements_closure、closure_decision）
+evidence/v8_1_ci_control/tasks/V8-CI-012/CHANGED_FILES.txt（本文件，追加本段）
+
+新增（untracked，均在本任务 evidence 目录内）：
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/api/run_34021360340.json（dispatch run API trace）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/api/jobs_34021360340.json（job 101454437511 + steps conclusion）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/api/artifacts_34021360340.json（artifact 9985775765 = 237,669B/21 members）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/api/run_push_34021356429.json（windows push trace，口径外）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/api/artifacts_push_34021356429.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/api/run_push_linux_34021356525.json（linux push #19 对照 trace）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/api/artifacts_push_linux_34021356525.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/api/runs_head2ca_page1_final.json（轮询 head=2ca7361e page1 终态全量）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/api/joblog_101454437511.log（job 原始日志，含 step5 工具安装与 step6 命令行证据）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/linux_ci_485b8b86.zip（dispatch artifact 原包）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/artifact_485b8b86/（解包：CI_RESULT + 7 checks + 12 logs + BOOTSTRAP_DIAG）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/linux_ci_push_485b8b86.zip（push #19 artifact 原包，回归对照）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/round3/verify_remote_run_invocation_round3.txt（实战 exit 1 输出实录）
+
+未修改：工作树源码与 ci/**、.github/workflows/**、CMakeLists.txt（F8/F9 只登记修复队列，不修）；未触碰派发单、控制包、TASK_STATE、WRITE_LEASE；git 零写操作（无 commit/push/branch）；token 全程内联未落盘（logs/round3 脱敏断言 0 命中）。
+
+---
+
+## 修复轮 3（F8/F9 coverage 收敛轮）改动清单 — SA-CI-32（base_sha 485b8b86 不动）
+
+修改（3 个文件，git diff --stat 净改动）：
+tools/quality/deep_ci_driver.py（+8/−1：F8 修复 — cmd_coverage_cpp configure 显式 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++，与 sanitizer 分支同构）
+tools/quality/ci_coverage_runner.py（+44/−1：F9-a 修复 — pytest 失败采集 summary["pytest_tail"]：PYTEST_ERROR_LINE_RE + collect_error_lines 首个命中行起连续 50 行窗 + 无命中兜底 + timeout 分支采集；rc=0 恒空）
+ci/tests/test_deep_profiles.py（+96：新增单测 5 — F8 clang 强制 1 + F9-a pytest_tail 4）
+
+追加/新增（证据，均在任务目录内）：
+evidence/v8_1_ci_control/tasks/V8-CI-012/DEEP_BASELINE_REPORT.md（追加修复轮 3 段 R5.1-R5.6）
+evidence/v8_1_ci_control/tasks/V8-CI-012/TASK_RESULT.json（追加 repair_round3 块 + evidence_files 3 项）
+evidence/v8_1_ci_control/tasks/V8-CI-012/CHANGED_FILES.txt（本文件，追加本段）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/repair_round3.log（新增：执行日志 §1-§10：diff 定位/F9-b 限制证据/实跑/strict/plan-only/unittest 280/净改动面）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/repair_round3_f9b_collect_probe.json（新增：F9-b 收集定性探针输出 105 模块 98 ok/7 fail）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/repair_round3_f9b_collect_probe.stderr（新增：探针 stderr 空）
+
+工具（run/ 全局 ignore，不入 git）：run/repair_round3/f9b_collect_probe.py（仅 stdlib 的 pytest collection 等价 import 探针）
+
+未修改：业务源码、CMakeLists.txt、.github/workflows/ci-linux.yml（numpy 缺项只登记为 install 步建议）、ci/checks.json；业务失败 core_pipeline/cpu001_selftest_avx512/core_pipeline(TSan 3 id) 维持登记；git 零写操作（HEAD=485b8b86 未动）；token 零涉入（本轮无网络操作）。

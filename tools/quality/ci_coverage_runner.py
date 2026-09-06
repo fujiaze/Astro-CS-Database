@@ -31,12 +31,46 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+
+# V8-CI-012 修复轮 3（F9-a）：pytest 失败（尤其收集期 exit 2）时采集
+# stdout/stderr 错误行尾窗进 summary["pytest_tail"]（复用 ci_windows_driver
+# collect_error_lines 思路：关键词正则过滤 + cap 50 行防风暴，保序）。
+# 修复前 hosted 不采 pytest stdout、stderr_tail 常为空 → 收集失败的具体
+# 模块与 import 错误原文不可见（轮 3 hosted 实证 exit 2 全程黑箱）。
+PYTEST_ERROR_LINE_RE = re.compile(
+    r"ERROR|ERRORS|Interrupted|short test summary|no tests ran|"
+    r"ModuleNotFoundError|ImportError|No module named|cannot import|"
+    r"Traceback|^E   |in <module>", re.IGNORECASE)
+PYTEST_TAIL_CAP = 50
+
+
+def collect_error_lines(lines: list[str]) -> list[str]:
+    """按 pytest 收集/导入错误关键词定位并截取错误窗（保序；cap 50 行）。
+
+    语义：取第一个关键词命中行起的连续 50 行（保留 import traceback 的
+    源码上下文行，如 "    import yaml"——纯过滤会丢掉 E 行之外的定性
+    依据）；无命中返回空表（调用方退化原始尾窗）。
+    """
+    for idx, ln in enumerate(lines):
+        if PYTEST_ERROR_LINE_RE.search(ln):
+            return lines[idx:idx + PYTEST_TAIL_CAP]
+    return []
+
+
+def _lines_of(chunk: str | bytes | None) -> list[str]:
+    """子进程输出块 → 行列表（bytes 防御性 decode；空块 → 空表）。"""
+    if not chunk:
+        return []
+    if isinstance(chunk, bytes):
+        chunk = chunk.decode("utf-8", errors="replace")
+    return chunk.strip().splitlines()
 
 
 def _as_repo_rel(p: Path) -> str:
@@ -99,6 +133,7 @@ def main(argv: list[str] | None = None) -> int:
     env = dict(os.environ)
     env["COVERAGE_FILE"] = str(out_dir / ".coverage")
     entry = {"command": pytest_argv, "timeout_seconds": args.timeout}
+    pytest_tail: list[str] = []
     try:
         proc = subprocess.run(pytest_argv, cwd=str(REPO), capture_output=True,
                               text=True, timeout=args.timeout, env=env)
@@ -106,13 +141,20 @@ def main(argv: list[str] | None = None) -> int:
         tail = (proc.stderr or "").strip().splitlines()[-8:]
         entry.update({"exit_code": exit_code, "timed_out": False,
                       "stderr_tail": "\n".join(tail)})
+        if exit_code != 0:
+            # F9-a：失败（含收集期 exit 2）时过滤采集错误行；过滤为空则
+            # 退化原始尾窗，保证 pytest_tail 在失败时永不为空（hosted 可见）。
+            combined = _lines_of(proc.stdout) + _lines_of(proc.stderr)
+            pytest_tail = collect_error_lines(combined) or combined[-PYTEST_TAIL_CAP:]
     except FileNotFoundError:
         entry.update({"exit_code": 3, "timed_out": False,
                       "stderr_tail": "pytest 不可用（依赖缺失，CI 环境需提供）"})
         exit_code = 3
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
         entry.update({"exit_code": 124, "timed_out": True,
                       "stderr_tail": f"pytest 超时（{args.timeout}s）"})
+        pytest_tail = collect_error_lines(
+            _lines_of(exc.stdout) + _lines_of(exc.stderr))
         exit_code = 124
 
     summary = {
@@ -125,6 +167,7 @@ def main(argv: list[str] | None = None) -> int:
             "json": f"{_as_repo_rel(out_dir)}/coverage.json",
         },
         "pytest": entry,
+        "pytest_tail": pytest_tail,
         "exit_code": exit_code,
     }
     (out_dir / "coverage-summary.json").write_text(

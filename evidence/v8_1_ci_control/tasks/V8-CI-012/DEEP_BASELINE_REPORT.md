@@ -302,3 +302,175 @@ hosted host_probe 与基线同形（4 核 affinity / 16 GiB / available ≥15 Gi
 3. verify_remote_run exit 1 的 CI_RESULT 比对仍以人工/单测覆盖为主（302 真实跨主机路径无本地真网验证；fixture transport 已按轮 2 三连实验的线上行为建模）。
 4. F6 修复未放松"仓库外输出目录 exit 2"契约；若后续需要仓库外报告落点，属控制面契约变更，须显式决策。
 5. TSan 3 失败与 COV-CPP/ASan 的 2 失败（core_pipeline/cpu001_selftest_avx512）维持业务域登记，不在本轮修复面。
+
+---
+
+# 观察轮 3（终验轮，SA-CI-32，mode=read-only）
+
+- 源 SHA：`485b8b86d7130f067e85b90aa04da36407983801`（修复轮 2 提交，= 本地 HEAD = 远端 main）
+- 观察窗口：2026-09-06T08:15Z 起跑 ~ 08:45Z 完成核验；API 同轮 1/2 纪律（`git credential fill` 内联 token、curl `--max-time 15`、轮询 60s 间隔上限 120 分钟，实际第 12 次 iter 命中 completed）
+- **总体判定：V8-CI-012_R3_COVERAGE_BASELINE_STILL_PENDING —— deep 端到端 7/7 实跑（COV-CPP/COV-PY 从 SKIPPED(waivable) 转 FAIL，prerequisite 全过）；修复轮 2 三处修复全部 hosted 生效（step5 安装步 success、stop_on_failure=False 报告步照跑、F6 pytest 真跑、verify_remote_run 实战 exit 1）；但 C++ coverage 数值与 Python coverage 数值仍双双未产出（profraw 生成链断裂 + pytest 收集期 exit 2），verdict FAIL（3P/4F/0S）如实；机器基线其余口径（资源/时长/complexity/回归差集）全部冻结**
+
+## R4.1 run 终态与时长
+
+| 项 | 值 |
+|---|---|
+| dispatch run（主对象） | 34021360340，run #20，workflow_dispatch，inputs.profile=linux-deep，head_sha=485b8b86d713 ✓（预期一致） |
+| 终态 | completed / **failure**（08:15:44Z → 08:28:05Z，run 窗口 **741s = 12m21s**） |
+| job | 101454437511（linux），08:15:48Z → 08:28:05Z = **737s = 12m17s**，GitHub Actions hosted |
+| 步骤链 | 1 Set up ✓ → 2 Checkout exact SHA ✓（joblog L99 拉取 485b8b86）→ 3 Bootstrap ✓（L150 `bootstrap: PASS (6 items)`）→ 4 Select profile ✓（L153 `select_profile.py --requested "linux-deep"`）→ **5 Install deep coverage tools ✓（L252 `deep coverage tools ready: pytest=/usr/bin/pytest, llvm-18 bin=/usr/lib/llvm-18/bin`；llvm-18 + python3-pytest 7.4.4 + pytest-cov 4.1.0 落装）** → 6 Run registered checks **failure**（L254 `python3 ci/run.py --profile "linux-deep"`；verdict=FAIL 3P/4F/0S 透传）→ 7 Collect diagnostics ✓ → 8 Upload evidence ✓ |
+| artifact | 9985775765 `linux-ci-485b8b86d7130f067e85b90aa04da36407983801`，237,669 B，21 members（CI_RESULT + 7 checks + 12 logs + BOOTSTRAP_DIAG；**无 coverage 目录**，见 R4.3/R4.4） |
+| summary | `verdict=FAIL total=7 pass=3 fail=4 known_fail=0 skipped_waivable=0`（对照轮 1：3P/2F/2S → 3P/4F/0S，COV 双项按预期转 FAIL） |
+
+同 SHA 同窗并发 run（head_sha 过滤 page-1 全量）：push #17 = 34021356429（**ci-windows.yml** push，08:19:23 completed/failure，artifact windows-ci-* 160,651 B）；push **#19 = 34021356525（ci-linux.yml push，回归对照主对象）** 08:15:39→08:30:10 completed/failure，artifact 223,686 B / 215 members，CI_RESULT 71 项 **48P/21F/2T/0S**；#16 = 34021526493（workflow_run 触发类 workflow，08:19:25→08:19:41 failure，16s，口径外旁支仅记录）。
+
+## R4.2 修复轮 2 三处修复域 hosted 闭环判定
+
+| 修复域 | hosted 表现 | 判定 |
+|---|---|---|
+| ci-linux.yml「Install deep coverage tools」步 | step5 success；llvm-profdata/llvm-cov（/usr/lib/llvm-18/bin）+ pytest/pytest-cov 就位（joblog L167-252）；COV 双检查 prerequisite 全过（`prerequisite.ok=true`，轮 1 为 `llvm-profdata 不在 PATH`） | ✓ 生效 |
+| COV-CPP `stop_on_failure=False` | ctest 55/57（Error 8 → gmake Error 2）后 **`coverage-merge-report` 步照跑**（log 明确出现 qa_coverage_report.sh 的报错与 driver 收尾行），driver rc 恒记首个失败步 = 2，`copied_outputs: [], verdict: "FAIL"`（修复轮 2 新增 verdict 字段） | ✓ 生效（机制层） |
+| F6 `ci_coverage_runner.py` 路径契约 | 不再 0.253s ValueError 秒败：pytest 真跑 **2.842s**（monitor 采样 pids=2、io_read 15MB），coverage-summary JSON 产出且 outputs 落点 `run/ci/coverage-py/coverage.xml|coverage.json` 全程 repo-relative；pytest argv 形态含 `--cov=lib --cov=cli --cov=tools --cov-branch --cov-report=xml:... --cov-report=json:...`（覆盖面契约兑现） | ✓ 生效（机制层） |
+| verify_remote_run.py F5 | 实战 **exit 1**（预期）：`profile_evidence=OK(observed=linux-deep)` —— artifact zip 经 302 跨主机剥凭据下载成功、CI_RESULT.profile 双证；run/jobs conclusion=failure 如实读出 → FAIL 判定 | ✓ 生效（实战闭环） |
+
+三处修复均达成"机制生效"；数值产出仍被下一层阻断（R4.3/R4.4）。
+
+## R4.3 DEEP-COV-CPP：stop_on_failure=False 生效但 coverage 数值未产出（新瓶颈：profraw 生成链断裂）
+
+实测链（log 原文为证）：
+1. `cmake -S . -B run/ci/build-cov -DCMAKE_BUILD_TYPE=Debug -DASTROCS_BUILD_COVERAGE=ON`（无编译器指定）→ configure 成功；
+2. `cmake --build run/ci/build-cov --target ccov` → 构建 100% 完成（编译警告同轮 1，无 error）；
+3. ctest 全量 57 项：**55 passed, 2 failed out of 57**（失败 = core_pipeline、cpu001_selftest_avx512，与业务域既有清单一致）→ Error 8 → gmake Error 2；
+4. **coverage-merge-report 步照跑**（stop_on_failure=False 生效）：`qa_coverage_report.sh run/ci/build-cov …` → `error: run/ci/build-cov/coverage/*.profraw: No such file or directory`；
+5. driver 收尾 `copied_outputs: [], verdict: "FAIL"`，rc=2；CI_RESULT `outputs_missing: []`（`run/ci/coverage-cpp/` 与 `build-cov-summary.json` 目录型产物成立，但 **coverage.json / astrocs.profdata 未产出**，artifact 包内无 coverage 目录）。
+
+根因定位（证据链完整）：`CMakeLists.txt` ASTROCS_BUILD_COVERAGE 分支仅 `add_compile_options(-fprofile-instr-generate -fcoverage-mapping)`，**不设 CMAKE_C/CXX_COMPILER=clang**（同文件 qa-sanitize/qa-sanitize-tsan 分支均显式 `-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++`，对照成立）；COV-CPP configure 无编译器指定 → hosted 默认 `cc`，本 round log 明确 `The C compiler identification is GNU`（GNU 13.3.0）。`-fprofile-instr-generate/-fcoverage-mapping` 为 clang 专属旗标：GNU 侧未被拒绝但也不产生 clang 运行时插桩语义（本地无 GNU 工具链无法等价复现该静默形态，不影响归属——qa_coverage_report.sh 的 llvm-profdata 合并链只认 clang profile 文件，profraw 零产出与该错配自洽）。**新 finding（F8，本轮登记）：coverage 构建工具链未强制 clang → profraw 生成链断裂 → C++ 行/分支覆盖率数值无法产出。** 修复归属 CMakeLists.txt（源码/构建面），不在 SA-CI-32 观察轮权限内，登记待下轮。
+
+## R4.4 DEEP-COV-PY：F6 生效但 pytest 收集期 exit 2 透传（数值未产出）
+
+实测链：prerequisite ok → pytest 真跑 2.842s（非秒败）→ runner `coverage-summary.json` 产出（outputs 双路径 repo-relative 正确）→ **pytest exit_code=2 透传**（monitor JSON 与 checks JSON 双证）→ FAIL rc=2。pytest exit 2 语义 = 收集期失败（`Interrupted: N errors during collection` / `No tests ran` 类，非断言失败即 exit 1）；hosted `stderr_tail` 为空、runner 不采 pytest stdout → 收集失败的具体模块不可见（观测面缺口，同轮 2 R3.4 遗留第 3 条同族）。本地对照：容器 `/usr/bin/python3` 无 pytest 模块（`-m pytest` 即 exit 2/无收集），hosted 已显式落装 pytest 7.4.4 但收集面仍空转——F6 修复面（路径契约）与 pytest 装配面均已过，**收集期失败是 tests 侧 import/依赖问题（新 finding F9，本轮登记）**，定性需下轮在 hosted 采集 pytest stdout/stderr 后收口。coverage.xml/coverage.json 未产出 → **Python 行/分支覆盖率数值缺位**，artifact 包内无 coverage 目录与此一致。
+
+## R4.5 deep 7 项逐项对照（轮 1 基线 → 轮 2 → 轮 3 终表）
+
+轮 2 为本地修复轮（无 hosted run），verdict 列轮 2 以"修复面预期"记；资源/时长为轮 3 hosted 实测终值。
+
+| # | id | verdict 轮1 | 轮2 | **轮3 终** | exit 轮1→轮3 | CI 时长 s 轮1→轮3 | monitor 时长 s | cpu_avg % | peak_rss KiB | peak_pss KiB | threads_max | samples | timed_out |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | BUILD-GCC-RELEASE | PASS | PASS(预期) | **PASS** | 0→0 | 122.506→**138.984** | 138.884 | 191.02 | 847,672 | 800,096 | 14 | 669 | false |
+| 2 | DEEP-CLANG-BUILD | PASS | PASS(预期) | **PASS** | 0→0 | 83.032→**88.694** | 88.628 | 183.84 | 536,324 | 439,345 | 14 | 419 | false |
+| 3 | DEEP-SAN-ASAN | FAIL | FAIL(预期) | **FAIL** | 2→2 | 110.147→**211.772** | 211.705 | 186.13 | 739,348 | 616,146 | 19 | 994 | false |
+| 4 | DEEP-SAN-TSAN | FAIL | FAIL(预期) | **FAIL** | 2→2 | 192.572→**187.897** | 187.832 | 187.80 | 604,208 | 530,520 | 19 | 885 | false |
+| 5 | DEEP-COV-CPP | SKIPPED(waivable) | FAIL(预期) | **FAIL** | null→2 | 0.0→**84.880** | 84.822 | 181.68 | 858,744 | 813,151 | 14 | 411 | false |
+| 6 | DEEP-COV-PY | SKIPPED(waivable) | FAIL(预期) | **FAIL** | null→2 | 0.0→**2.898** | 2.842 | 96.19 | 78,268 | 62,242 | 2 | 15 | false |
+| 7 | DEEP-COMPLEXITY | PASS | PASS(预期) | **PASS** | 0→0 | 0.339→**0.336** | —(no monitor) | — | — | — | — | — | false |
+
+- ASAN/TSAN 时长上抬（110→212 / 193→188）为修复轮 1 sanitizer 接线生效后的真跑形态（轮 1 是 configure 早败短时长）；失败集逐 id 与轮 1/2 一致：ASAN = {core_pipeline, cpu001_selftest_avx512}、TSAN = {core_pipeline, io_reentrant, cpu001_selftest_avx512}，且 **0 条 sanitizer 运行时报告**（无 AddressSanitizer/ThreadSanitizer/LeakSanitizer SUMMARY 行）→ 维持业务域功能性失败定性，无回归。
+- 非 coverage 5 项 verdict 与轮 2 预期**差集为空**；complexity 数值逐字段与轮 1 一致（lib 339 files / 133,486 lines / 1,790 fn_approx / 18,411 branch_tokens，全局 lines 139,881 / fn 1,858 / branch 19,182 / max_file_cyclomatic 1,048 / excluded_total 307 / placeholder=true → 全等）。
+- 资源红线：全部 timed_out=false；cpu_avg 96.19-191.02%（COV-PY 单核 pytest 形态 96% 正常，其余双核满载形态 182-191%）；峰值内存 DEEP-COV-CPP 858,744 KiB ≈ 839 MiB ≪ 16 GiB；无 OOM/低利用率/泄漏信号 → **RESOURCE_FAIL 零命中**（三轮一致）。
+
+## R4.6 冻结基线终表（V8-CI-012 机器基线收口版）
+
+### 6.1 deep 7 项最终 verdict（hosted linux-deep，SHA 485b8b86，run 34021360340）
+
+| id | 最终 verdict | exit | CI 时长 s | cpu_avg % | peak_rss KiB | threads_max | 定性 |
+|---|---|---|---|---|---|---|---|
+| BUILD-GCC-RELEASE | PASS | 0 | 138.984 | 191.02 | 847,672 | 14 | 机器基线冻结 |
+| DEEP-CLANG-BUILD | PASS | 0 | 88.694 | 183.84 | 536,324 | 14 | 机器基线冻结 |
+| DEEP-SAN-ASAN | FAIL | 2 | 211.772 | 186.13 | 739,348 | 19 | 业务域 2 失败（无 sanitizer 报告） |
+| DEEP-SAN-TSAN | FAIL | 2 | 187.897 | 187.80 | 604,208 | 19 | 业务域 3 失败（无 sanitizer 报告） |
+| DEEP-COV-CPP | FAIL | 2 | 84.880 | 181.68 | 858,744 | 14 | F8 工具链错配（数值缺位） |
+| DEEP-COV-PY | FAIL | 2 | 2.898 | 96.19 | 78,268 | 2 | F9 pytest 收集失败（数值缺位） |
+| DEEP-COMPLEXITY | PASS | 0 | 0.336 | — | — | — | 数值基线冻结（与轮 1 全等） |
+
+### 6.2 coverage 双数值口径（本轮冻结状态）
+
+| 指标 | 数值 | 口径 |
+|---|---|---|
+| C++ 行覆盖率 | **未产出** | profraw 零产出（F8：GNU cc 下 clang 插桩旗标不生效 → LLVM_PROFILE_FILE 无从落盘）；qa_coverage_report.sh 在 `set -eu` glob 空展开处失败；`astrocs.profdata`/`coverage.json` 均未生成。修复前置：CMake coverage 分支强制 clang 工具链；修复后仍需与失败清单一同解读（ASAN/COV-CPP 共有的 core_pipeline/cpu001_selftest_avx512 2 失败测试覆盖部分缺省） |
+| C++ 分支覆盖率 | **未产出** | 同上（同源同口径） |
+| Python 行覆盖率 | **未产出** | pytest 收集期 exit 2 透传（F9）；pytest-cov xml/json 报告未写；观测面需下轮采集 pytest stdout/stderr 定性收集失败模块 |
+| Python 分支覆盖率 | **未产出** | 同上（argv 已含 `--cov-branch`，契约在、数值待产出） |
+| 数值冻结判定 | **COVERAGE_BASELINE_PENDING** | 轮 1 待 F-D3 → 轮 3 待 F8/F9；除 coverage 外全部机器基线口径本轮冻结 |
+
+### 6.3 时长红线
+
+- 最慢检查：**DEEP-SAN-ASAN 211.772s**（CI_RESULT 口径；monitor 口径 211.705s）。
+- job 总时长：**737s（12m17s）**；6h 上限（21,600s）占用 **3.4%**，余量 **20,863s ≈ 5h47m**（对照轮 1 job 518s/2.4%——上抬来自 coverage 工具安装步 ~12s 与 COV 双检查真跑 88s）。
+- run 窗口 741s；push #19（71 项 main profile）988s；hosted 资源形态三轮一致（4 vCPU affinity / 16 GiB）。
+
+## R4.7 verify_remote_run.py 实战（F5 闭环验证）
+
+- 命令：`python3 ci/verify_remote_run.py --sha 485b8b86d7130f067e85b90aa04da36407983801 --workflows linux-ci --profile linux-deep`（GITHUB_TOKEN 经 `git credential fill` 内联注入环境，未落盘；输出与 exit 落盘 `logs/round3/verify_remote_run_invocation_round3.txt`）。
+- 结果：**exit 1（预期达成）**。结构级核验全过：workflow linux-ci 唯一指认、head_sha 匹配、run 唯一（34021360340）、completed、`profile_evidence=OK(observed=linux-deep)`（302 跨主机剥凭据下载 artifact 成功 + CI_RESULT.profile 双证 = F5 修复实战生效）；jobs conclusion=failure 如实读出 → FAIL 判定（理由：job 失败：linux=failure）。exit 2 环境类失败零出现 → F5 无残留。
+
+## R4.8 遗留（登记待后续轮，不在本轮修复面）
+
+1. **F8**：CMake ASTROCS_BUILD_COVERAGE 分支未强制 clang 工具链（对照同文件 sanitizer 分支显式 clang）；hosted GNU cc 下插桩失效 → profraw 零产出。修复归属 CMakeLists.txt（构建面源码）。
+2. **F9**：DEEP-COV-PY pytest 收集期 exit 2，具体失败模块因 runner 不采 pytest stdout/stderr 而不可见；需 hosted 采集 pytest 输出后定性（tests 侧依赖/import 面）。
+3. F8/F9 修复后的 coverage 数值基线（C++ 行/分支、Python 行/分支）待补测冻结；数值解读仍须与业务域失败清单（core_pipeline/cpu001_selftest_avx512）一同进行。
+4. coverage 产物（run/ci/coverage-*/）不在 artifact 打包清单内（本轮 artifact 21 members 无 coverage 目录）；数值产出轮需同步扩 artifact 归集面。
+5. TSan 3 失败与 ASan/COV-CPP 共有 2 失败维持业务域登记；UT-BACKEND/UT-CLI TIMEOUT 维持 main-profile 既有登记。
+
+---
+
+# 修复轮 3（F8/F9 coverage 收敛轮）— SA-CI-32
+
+base_sha `485b8b86` 不动；无 git 写操作；执行日志 `logs/repair_round3.log`。
+改动面（净）：`tools/quality/deep_ci_driver.py`（+8/−1）、`tools/quality/ci_coverage_runner.py`（+44/−1）、`ci/tests/test_deep_profiles.py`（+96，新增单测 5）。前轮遗留的未提交工作区项（V8-CI-010 证据、zip 变更等）不属于本轮。
+
+## R5.1 F8 修复（profraw 断产根因：coverage 构建工具链未强制 clang）
+
+- 根因复核（与前轮 R4 定性一致）：`cmd_coverage_cpp` configure cache 只传 `-DCMAKE_BUILD_TYPE=Debug -DASTROCS_BUILD_COVERAGE=ON`，无编译器指定 → hosted 默认 GNU cc（轮 3 hosted log `The C compiler identification is GNU 13.3.0`）→ clang 专属 `-fprofile-instr-generate/-fcoverage-mapping` 无插桩语义 → profraw 零产出 → `qa_coverage_report.sh` 合并链断 → C++ 覆盖率数值缺位。
+- 修复：coverage-cpp 分支 configure 显式追加 `-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++`，与同文件 `cmd_qa_sanitize` sanitizer 分支（L135）及 `build-clang`（L111）同构；SANITIZE 系旗标不误入（单测交叉断言）。
+- 单测：`TestCoverageCppDriver.test_coverage_cpp_configure_forces_clang_toolchain`（mock run_step 捕获 configure argv，零落盘零触网；断言 clang 双旗标 + `ASTROCS_BUILD_COVERAGE=ON` 存在、SANITIZE 系旗标缺席）。
+
+## R5.2 F9-a 修复（pytest 失败观测面：summary["pytest_tail"]）
+
+- 缺口复核：runner 失败时只透传 exit code + stderr 尾 8 行（hosted stderr 为空 → 收集期 exit 2 全程黑箱，失败模块不可见）。
+- 修复（复用 `ci_windows_driver.collect_error_lines` 思路）：新增 `PYTEST_ERROR_LINE_RE`（ERROR/ERRORS/Interrupted/short test summary/ModuleNotFoundError/ImportError/No module named/cannot import/Traceback/`E   `/`in <module>`）+ `collect_error_lines()`：取 stdout+stderr 合流行中**首个关键词命中行起的连续 50 行**（`PYTEST_TAIL_CAP=50`；保留 import traceback 源码上下文行，如 `    import yaml`——逐行过滤会丢掉 E 行之外的定性依据）；无命中退化原始尾窗（失败时 pytest_tail 永不为空黑箱）；timeout 分支亦采集（bytes 防御性 decode）；成功（rc=0）路径 pytest_tail 恒空，不噪声化。字段落 `summary["pytest_tail"]`（stdout JSON 与落盘 `coverage-summary.json` 同步），`stderr_tail` 语义不变。
+- 单测（4）：`test_coverage_runner_failure_collects_pytest_tail`（模拟收集期 exit 2：6 条错误行全入选、30 条噪声不入选）、`test_coverage_runner_pytest_tail_capped_at_50`（60 行错误风暴 → 恰 50 行、保序）、`test_coverage_runner_pytest_tail_fallback_on_unfiltered`（无关键词命中 → 原始尾窗兜底）、`test_coverage_runner_success_has_empty_pytest_tail`（rc=0 → pytest_tail=[]）。本机真实形态实跑（无 pytest）：exit 1 透传 + `pytest_tail=["/usr/bin/python3: No module named pytest"]`（日志 §5），失败分支行为与设计一致。
+
+## R5.3 F9-b 本地定性（收集期 exit 2 复现与归因）
+
+- 本机限制：`/usr/bin/python3` 无 pytest 模块，且无 pip/ensurepip（最小容器）→ `python3 -m pytest --collect-only -q` 无法执行（`--version` 即 `No module named pytest`；证据日志 §4）。替代定性：`run/repair_round3/f9b_collect_probe.py`（仅 stdlib）以与 pytest collection 同构的 import 语义（rootdir 插 `sys.path[0]`，tests 为包形态——`tests/__init__.py` 等 12 个 `__init__.py` 均被 git 跟踪，pytest 将按包形态 import `tests.<域>.<模块>`）对 `tests/**/test_*.py` 全量 105 个模块逐一 `importlib.import_module`；输出落 `logs/repair_round3_f9b_collect_probe.json`。
+- 实测（0.2s）：**105 个模块中 98 个可导入、7 个收集失败**，失败原文：
+
+| # | 失败模块 | import 错误原文 | 判定 |
+|---|---|---|---|
+| 1 | tests.backend.test_cpu_profile | `FileNotFoundError: [Errno 2] No such file or directory: '.../工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/schemas/cpu_profile.schema.json'` | **CODE_FAIL**（业务域登记） |
+| 2 | tests.backend.test_p2003_seam_oracle | `ModuleNotFoundError: No module named 'numpy'` | **ENV_FAIL**（依赖缺失） |
+| 3 | tests.backend.test_p3005_fits_output | 同上 | ENV_FAIL |
+| 4 | tests.backend.test_p3006_production_pipeline | 同上 | ENV_FAIL |
+| 5 | tests.io.test_fits_stream_contract | 同上 | ENV_FAIL |
+| 6 | tests.io.test_hips_input_contract | 同上 | ENV_FAIL |
+| 7 | tests.io.test_hips_output_contract | 同上 | ENV_FAIL |
+
+- 归因说明：
+  1. **ENV_FAIL（6/7，主因）**：6 个测试模块（backend 3 + io 3，另有 fixture 脚本 `tests/io/hips_output_fixture.py`）顶层 `import numpy`。hosted 安装步（F-D3）按 policy 明确"仅安装验证工具，不联网拉任何业务依赖"（llvm-18 / python3-pytest / python3-pytest-cov），numpy 不在安装面 → hosted 收集期对这 6 个模块必然 ModuleNotFoundError。**裁决建议（本机不改 hosted 安装面 yml）**：DEEP-COV-PY 解除前置需在 `ci-linux.yml` deep coverage 安装步补 `python3-numpy`（ubuntu-24.04 包名）或部署任务提供等价依赖源；属 install 步/凭据补充项，`ci/checks.json` 不改（prerequisite 探测不变，waiver 解除靠安装面补齐）。
+  2. **CODE_FAIL（1/7，登记不修）**：`tests/backend/test_cpu_profile.py` L8-11 在**模块顶层**（import 期，即 pytest collection 期）执行 `json.load(open(工程控制/RELEASE_V5/.../schemas/cpu_profile.schema.json))`。该 V5 控制包目录路径本机不存在（现工作区为 V6.1 布局 `工程控制/AstroCS_V6_1_REWORK_CONTROL_20260831/`），且 `git ls-files 工程控制` = 0（整目录不被 git 跟踪）→ hosted git checkout 上该路径**结构性缺失**，收集错误必然复现。两重缺陷叠加：①收集期做文件 IO（import 炸）；②硬编码过时控制包资产路径。归属业务域（tests/backend 域 finding 登记），不在本轮 CI 接入面修复范围。
+  3. hosted 收集期 exit 2 与本探针形态自洽：pytest 收集期 ≥1 个 error 即 `Interrupted: N errors during collection` → exit 2；hosted 预期 N≥7（numpy 6 + schema 1）。hosted 实际 N 与逐模块原文待第四轮 pytest_tail 采集后闭环（本探针为本机等价定性，非 hosted 原文）。
+- 业务失败登记不变：core_pipeline / cpu001_selftest_avx512 / core_pipeline(TSan 3 id) 维持原登记；本探针发现的 7 个收集失败为其上游同源（收集期失败 → 这些模块内测试从未被执行，coverage 数值缺位的测试面组成部分）。
+
+## R5.4 验收实测（日志 logs/repair_round3.log）
+
+| 项 | 结果 |
+|---|---|
+| `validate_registry.py --registry ci/checks.json --strict` | exit 0，80 checks，errors=0，verdict PASS |
+| unittest 全量（ci/tests discover） | **Ran 280 tests — OK**（26.5s）；275 基线 → 280（+5 = F8 1 + F9-a 4），0 失败/错误/跳过 |
+| plan-only 数值口径 | fast=57 / linux-main=71 / linux-deep=7 / windows-main=61（四 profile 与基线全等） |
+| git diff --stat（本轮净改动） | 仅 `deep_ci_driver.py`（+8/−1）、`ci_coverage_runner.py`（+44/−1）、`test_deep_profiles.py`（+96）；证据文件本轮新增（DEEP_BASELINE_REPORT.md / TASK_RESULT.json / logs/repair_round3*）；无业务源码、无 yml、无 checks.json 改动；HEAD=485b8b86 未动，零 git 写操作 |
+| 失败分支实跑（本机） | ci_coverage_runner exit 1 + pytest_tail 捕获 No module named pytest（§5）；coverage-cpp 路径 mock 单测 rc=0/8/1 三形态不回归 |
+
+## R5.5 hosted 第四轮预期（coverage 双数值产出条件）
+
+- **DEEP-COV-CPP（F8 修复后）**：configure 步将带 `-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++` → hosted 编译器识别为 Clang（18.x，与 `llvm-18` 安装步同代）→ `-fprofile-instr-generate/-fcoverage-mapping` 生效 → `LLVM_PROFILE_FILE` 落盘 profraw → `qa_coverage_report.sh` profdata 合并 + llvm-cov export 链打通 → `build/coverage/astrocs.profdata` 与 `coverage.json` 产出，driver 归集 `*.profraw + coverage.json + astrocs.profdata` 到 `run/ci/coverage-cpp` → **C++ 行/分支覆盖率双数值预期产出**。预期 verdict：仍 **FAIL**（ccov 内 ctest 既有业务失败 core_pipeline / cpu001_selftest_avx512 → Error 8 非零透传，verdict FAIL 但数值照常产出——轮 2 修复语义）；若 clang-18 与 profdata 版本错配或 `qa_coverage_report.sh` 另有断点则维持 FAIL 且数值缺位，输出尾窗可定位。
+- **DEEP-COV-PY（F9-a/F9-b 定性后）**：runner 失败时必落 `pytest_tail` → hosted 收集失败定性从黑箱变白箱。数值产出前提（二选一，均为 hosted 侧动作，本机不改）：①安装步补 numpy（6 个 numpy 模块恢复收集）+ 处理 test_cpu_profile 收集错误（业务域修复或收集豁免）→ 105−1=104 模块全收集 → pytest-cov xml/json 报告写出 → **Python 行/分支覆盖率双数值产出**；预期 verdict 仍 **FAIL**（其余既有测试失败透传，exit 1）；②不补依赖 → 仍 exit 2，但 `pytest_tail` 将带出 `ModuleNotFoundError: No module named 'numpy'` 等逐模块原文（N≥7），F9 定性闭环、数值继续缺位。hosted 实际收集错误数 N 与本探针预测（7）的对照即第四轮 F9 验证点。
+- 数值冻结判定维持 **COVERAGE_BASELINE_PENDING**：待第四轮 hosted 双检查实跑后按 R5.5 条件收口；数值解读仍与业务域失败清单（core_pipeline / cpu001_selftest_avx512）一同进行（失败测试覆盖部分缺省，数值口径注明）。
+
+## R5.6 遗留风险（登记）
+
+1. **test_cpu_profile 收集错误为结构性**：hosted checkout 永无 `工程控制/`（git 不跟踪）→ 只要该模块在收集根内，DEEP-COV-PY 收集期至少 1 error 持续存在，直至业务域修复（路径改 V6.1 布局或资产入库或收集豁免）。补 numpy 只能把 7 降到 1，**单靠依赖补齐不能让 pytest 收集期归零** → Python coverage 数值产出必须叠加业务域修复（第四轮起为业务域任务前置）。
+2. **CI yml 安装面未改**（裁决边界）：numpy 缺项只登记不修，DEEP-COV-PY 第四轮若仍不补 `python3-numpy`，预期收集错误从 7 → 1（仅 test_cpu_profile），pytest_tail 应精确印证；此时 Python 数值仍缺位。
+3. **clang 版本耦合**：coverage 构建改 clang-18 后，业务失败清单可能较 GNU 轮漂移（不同编译器行为差异）；core_pipeline / cpu001_selftest_avx512 既有失败归属判定在第四轮复核一次，防止 F8 修复引入新失败被误归业务域。
+4. pytest_tail cap 50 行：若 hosted 收集错误行极多（>50 行窗）可能截断部分模块原文；已保序取首个命中行起窗，配合探针预测清单（7 模块名已知）可人工对账，风险可控。
+5. 前轮遗留 4（coverage 产物不在 artifact 打包清单）不变：数值产出轮需同步扩 artifact 归集面，否则 hosted 数值仍需经 CI_RESULT JSON 间接读取。

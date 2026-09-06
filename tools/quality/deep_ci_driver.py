@@ -157,7 +157,14 @@ def cmd_coverage_cpp(args: argparse.Namespace) -> int:
     """
     build_dir = _ensure_inside_repo(args.build_dir, "build-dir")
     out_dir = _ensure_inside_repo(args.output_dir, "output-dir")
-    cache = ["-DCMAKE_BUILD_TYPE=Debug", "-DASTROCS_BUILD_COVERAGE=ON"]
+    # V8-CI-012 修复轮 3（F8）：coverage 构建强制 clang 工具链（与上方
+    # sanitizer 分支同构）。旧行为只传 -fprofile-instr-generate/-fcoverage-
+    # mapping（CMakeLists ASTROCS_BUILD_COVERAGE 分支），不指定编译器 →
+    # hosted 默认 GNU cc → clang 专属插桩旗标无插桩语义 → profraw 零产出
+    # → qa_coverage_report.sh 合并链断 → C++ 覆盖率数值缺位（轮 3 hosted
+    # 实证 C compiler identification is GNU 13.3.0）。
+    cache = ["-DCMAKE_BUILD_TYPE=Debug", "-DASTROCS_BUILD_COVERAGE=ON",
+             "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++"]
     steps: list[dict] = []
     _cmake_configure_steps(str(build_dir), cache, steps)
     steps.append({"name": "ccov-target", "timeout": 3000,

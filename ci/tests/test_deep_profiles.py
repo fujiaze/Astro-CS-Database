@@ -335,6 +335,79 @@ class TestToolBehaviour(unittest.TestCase):
         self.assertNotIn("Traceback", proc.stderr)
         self.assertFalse((REPO.parent / "outside-cov-escape").exists())
 
+    def _coverage_runner_with_fake_pytest(self, returncode: int,
+                                          stdout: str, stderr: str = "",
+                                          tmp_tag: str = "f9a"):
+        """进程内 mock pytest 子进程，返回落盘 coverage-summary.json 载荷。"""
+        from importlib.util import spec_from_file_location, module_from_spec
+        spec = spec_from_file_location(
+            f"ccr_{tmp_tag}", REPO / "tools/quality/ci_coverage_runner.py")
+        mod = module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        fake = mock.Mock(returncode=returncode, stdout=stdout, stderr=stderr)
+        with tempfile.TemporaryDirectory() as td:
+            repo_root = Path(td) / "repo-root"
+            (repo_root / "tests").mkdir(parents=True)
+            with mock.patch.object(mod, "REPO", repo_root), \
+                 mock.patch.object(mod.subprocess, "run", return_value=fake):
+                rc = mod.main(["--output-dir", "run/ci/coverage-py",
+                               "--tests", "tests"])
+            summary = json.loads(
+                (repo_root / "run/ci/coverage-py/coverage-summary.json")
+                .read_text(encoding="utf-8"))
+        return rc, summary
+
+    def test_coverage_runner_failure_collects_pytest_tail(self):
+        """V8-CI-012 修复轮 3（F9-a）：pytest 失败时 summary 采 pytest_tail。
+
+        收集期 exit 2（hosted 实证形态）：stdout 含收集错误行（pytest -q
+        把收集错误写 stdout）与大量噪声行；修复前 runner 只采 stderr 8 行
+        且 hosted stderr 为空 → 失败模块不可见。断言：过滤行入选、纯噪声
+        不入选、exit code 透传、stderr_tail 语义不变。
+        """
+        noise = [f"collected-noise {i}" for i in range(30)]
+        err_lines = [
+            "ERROR collecting tests/legacy/test_dep.py",
+            "tests/legacy/test_dep.py:3: in <module>",
+            "    import yaml",
+            "E   ModuleNotFoundError: No module named 'yaml'",
+            "========== short test summary info ==========",
+            "Interrupted: 1 error during collection",
+        ]
+        rc, summary = self._coverage_runner_with_fake_pytest(
+            2, "\n".join(noise + err_lines))
+        self.assertEqual(rc, 2)
+        tail = summary["pytest_tail"]
+        for want in err_lines:
+            self.assertIn(want, tail)
+        self.assertNotIn(noise[0], tail)
+        self.assertEqual(summary["pytest"]["exit_code"], 2)
+        self.assertIn("stderr_tail", summary["pytest"])
+
+    def test_coverage_runner_pytest_tail_capped_at_50(self):
+        """F9-a cap：错误行风暴下 pytest_tail 恰 50 行（防 hosted 日志爆炸）。"""
+        storm = [f"ERROR tests/t{i}.py" for i in range(60)]
+        rc, summary = self._coverage_runner_with_fake_pytest(
+            2, "\n".join(storm), tmp_tag="f9a_cap")
+        self.assertEqual(rc, 2)
+        self.assertEqual(len(summary["pytest_tail"]), 50)
+        self.assertEqual(summary["pytest_tail"][0], storm[0])  # 保序取前 50
+
+    def test_coverage_runner_pytest_tail_fallback_on_unfiltered(self):
+        """F9-a 退化：失败但无关键词命中 → 原始尾窗兜底（永不为空黑箱）。"""
+        plain = [f"plain-line-{i}" for i in range(30)]
+        rc, summary = self._coverage_runner_with_fake_pytest(
+            4, "\n".join(plain), tmp_tag="f9a_fb")
+        self.assertEqual(rc, 4)
+        self.assertEqual(summary["pytest_tail"], plain[-50:])
+
+    def test_coverage_runner_success_has_empty_pytest_tail(self):
+        """F9-a 回归：pytest 全过（rc=0）→ pytest_tail 空（不噪声化成功路径）。"""
+        rc, summary = self._coverage_runner_with_fake_pytest(
+            0, "5 passed in 0.1s", tmp_tag="f9a_ok")
+        self.assertEqual(rc, 0)
+        self.assertEqual(summary["pytest_tail"], [])
+
 
 class TestCoverageCppDriver(unittest.TestCase):
     """V8-CI-012 修复轮 2：COV-CPP ctest 失败仍产出 coverage 报告（verdict 仍 FAIL）。
@@ -432,6 +505,29 @@ class TestCoverageCppDriver(unittest.TestCase):
         self.assertEqual(rc, 1)
         payload = json.loads(out.splitlines()[-1])
         self.assertEqual(payload["verdict"], "FAIL")
+
+    def test_coverage_cpp_configure_forces_clang_toolchain(self):
+        """V8-CI-012 修复轮 3（F8）：coverage-cpp configure 显式 clang。
+
+        旧行为不指定编译器 → hosted 默认 GNU cc → clang 专属
+        -fprofile-instr-generate/-fcoverage-mapping 无插桩语义 →
+        profraw 零产出 → C++ 覆盖率数值缺位（轮 3 hosted 实证 C compiler
+        identification is GNU）。与 sanitizer 分支同构：注入 run_step 捕获
+        configure argv（不触网、不真跑 cmake、零落盘）断言旗标存在且
+        SANITIZE/SANITIZER 旗标不误入。
+        """
+        mod = self._load_driver_mod()
+        captured, _, rc, _, _ = self._coverage_cmd(
+            mod, {"cmake-configure": 0, "cmake-build": 0, "ccov-target": 0,
+                  "coverage-merge-report": 0})
+        self.assertEqual(rc, 0)
+        configure = next(a for a in captured if "-S" in a)
+        self.assertIn("-DCMAKE_C_COMPILER=clang", configure)
+        self.assertIn("-DCMAKE_CXX_COMPILER=clang++", configure)
+        self.assertIn("-DASTROCS_BUILD_COVERAGE=ON", configure)
+        self.assertNotIn("-DASTROCS_SANITIZE_RUNTIME=ON", configure)
+        self.assertNotIn("-DASTROCS_SANITIZE_THREAD=ON", configure)
+        self.assertNotIn("-DASTROCS_ENABLE_SANITIZERS=ON", configure)
 
 
 class TestDeepCoverageToolsInstall(unittest.TestCase):
