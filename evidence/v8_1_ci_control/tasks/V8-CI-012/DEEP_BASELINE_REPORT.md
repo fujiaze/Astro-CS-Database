@@ -612,3 +612,24 @@ base_sha `485b8b86` 不动；无 git 写操作；执行日志 `logs/repair_round
 
 - verify_toolchain 防抄袭哨兵 1 项 FAIL：agent-host cmake 3.31.6 与 policy.linux_hosted.cmake（minimum floor）巧合同值，判据（version≠hosted）无法区分实测同值与抄录同值；lock 数据 verbatim 实测，59/60 PASS。哨兵逻辑升级另立任务。
 - 工具链 lock 的 policy_file_sha256 记录工作树值（apt_packages 扩充后），与最终提交的 policy 一致性随 commit 固化。
+
+### 7.6 R7 批次 3 与 UT-BACKEND 修复后全量账（2026-09-06 收口）
+
+批次 3（f20e0976，12 文件）：EXE 路径收敛 build/astrocs ×11（V6.1 run/temp/astrocs 遗留，hosted 从不产出）；
+新增 tests/backend/fixture_common.py —— F1/F2.hips 共享 fixture 制备（历史路径 run/temp/p2003_dbg/f1f2
+从无生成方），p2006/p3003/p3004/p3005/p3006 接入；version_generated.h include 由 run/temp/build_v61（V6.1
+手工目录）改指根构建 build/；p2001/p2002 补 healpix include、p3003 补 third_party 层级；p1002 GSL 缺依赖
+（hosted runner-images Ubuntu2404 apt 清单实读核对不预装）补 libgsl-dev 入 deep 安装面（d4a54632）。
+
+UT-BACKEND 全量（agent-host 16 核，unittest discover，658s）：
+- 修复前（R7.2 快照）：9F/16E/7S（126 tests 计口径；本轮 discover 口径 184 tests）
+- 修复后：**25F/4E/4S** —— errors（setUpClass 级）16→4，断链修复直接生效；
+  failures 增加系被遮蔽测试真正执行后断言可见，非回归。
+
+剩余失败全部定性为产品面工作（登记 UT-BACKEND 治理任务面，不属断链修复面）：
+1. `run --phases N` CLI 命令已在 V8 移除（commands.cpp L519 注释"已移除的 run 路径"），p1004/p2006/p2007/p3006 仍引用 → exit 2 usage；
+2. phase2 config 双契约缺口：parser kAllowedKeys 仅收 run 格式（顶层 inputs），runtime_client 的 phase2 直通分支（顶层 hips_paths）永不可达；p2001/p2002/p2003 定制参数（upm/sampler）在 run 格式下被丢弃 → 契约缺口（产品面修复，涉 CLI-002 语义，不在测试面擅改）；
+3. p2007 seam6 数据（run/temp/p2007_seam6/seam6/SEAM*.hips）从无生成方（V6.1 手工产物）；
+4. phase3_reproject 3 项业务语义（|dec|<5 拒绝 got 0、BUNIT ADU vs Jy、WCS roundtrip）→ 业务域任务面。
+
+V8-CI-012 R7 本地收口至此闭环：6+1+2 个 commit（54a8f9a7..f20e0976），远端 run 复验进行中。
