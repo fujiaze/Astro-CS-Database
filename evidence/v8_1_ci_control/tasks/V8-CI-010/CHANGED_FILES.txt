@@ -1,0 +1,35 @@
+evidence/v8_1_ci_control/tasks/V8-CI-010/TASK_RESULT.json
+evidence/v8_1_ci_control/tasks/V8-CI-010/HOSTED_RUN_REPORT.md
+evidence/v8_1_ci_control/tasks/V8-CI-010/CHANGED_FILES.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/plan_linux-main_local_25259880.json
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/plan_windows-main_local_25259880.json
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/runs_api_trace_ci-linux.json
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/runs_api_trace_ci-windows.json
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/jobs_api_trace_34000648632.json
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/jobs_api_trace_34000648616.json
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/artifacts_api_trace_34000648616.json
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/branches_main_api_trace.json
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/candidate_artifact_query.json
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648632/0_linux.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648632/linux/1_Set up job.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648632/linux/2_Checkout exact SHA.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648632/linux/3_Bootstrap locked toolchain.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648632/linux/6_Upload small evidence.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648632/linux/12_Post Checkout exact SHA.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648632/linux/13_Complete job.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648632/linux/system.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/0_windows.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/windows/1_Set up job.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/windows/2_Checkout exact SHA.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/windows/3_Bootstrap locked toolchain.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/windows/7_Upload public CI evidence.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/windows/14_Post Checkout exact SHA.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/windows/15_Complete job.txt
+evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/windows/system.txt
+
+# 说明：
+# 1) 以上为 SA-CI-32 本任务创建的全部磁盘产物（29 项）。
+# 2) 根 .gitignore 第 18 行全局 `logs/` 规则使 logs/** 不进入 git status
+#    （与 tasks/V8-CI-005 等既有证据目录口径一致），已用 glob 全量清点落盘。
+# 3) git status --porcelain 相对任务初始快照（89 行遗留变更）的唯一增量为
+#    ?? evidence/v8_1_ci_control/tasks/V8-CI-010/ ，零其他变更。

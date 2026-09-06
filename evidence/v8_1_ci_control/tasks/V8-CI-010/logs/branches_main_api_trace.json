@@ -1,0 +1,103 @@
+{
+  "name": "main",
+  "commit": {
+    "sha": "25259880615bcde34c4a6dc9377d072528fc7fba",
+    "node_id": "C_kwDOUD6SgtoAKDI1MjU5ODgwNjE1YmNkZTM0YzRhNmRjOTM3N2QwNzI1MjhmYzdmYmE",
+    "commit": {
+      "author": {
+        "name": "付家泽",
+        "email": "fujiaze@126.com",
+        "date": "2026-09-06T00:11:40Z"
+      },
+      "committer": {
+        "name": "付家泽",
+        "email": "fujiaze@126.com",
+        "date": "2026-09-06T00:11:40Z"
+      },
+      "message": "fix(ci): 移除失效 AstroCS.wiki gitlink 修复 hosted checkout [V8-CI-010]\n\n- 根因: 索引含 160000 gitlink 但仓库无 .gitmodules → actions/checkout fatal\n  'No url found for submodule path AstroCS.wiki' → 双平台 workflow run 34000501601/34000501567 首步即败\n- 该 gitlink 源自历史 chore(wiki) sync 提交(a2cd3f3f), wiki 内容经 GitHub wiki 页同步, 不应作为 submodule 引用\n- 修复仅移除索引登记; 磁盘 AstroCS.wiki/ 目录保留(owner 本地 wiki clone, 转为未跟踪)\n- 归属: V8-CI-010 hosted 双平台验证发现的 P0 阻塞",
+      "tree": {
+        "sha": "bbf3822e12c882c3a9b8040cf53c60b28ecbd9e5",
+        "url": "https://api.github.com/repos/fujiaze/Astro-CS-Database/git/trees/bbf3822e12c882c3a9b8040cf53c60b28ecbd9e5"
+      },
+      "url": "https://api.github.com/repos/fujiaze/Astro-CS-Database/git/commits/25259880615bcde34c4a6dc9377d072528fc7fba",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/fujiaze/Astro-CS-Database/commits/25259880615bcde34c4a6dc9377d072528fc7fba",
+    "html_url": "https://github.com/fujiaze/Astro-CS-Database/commit/25259880615bcde34c4a6dc9377d072528fc7fba",
+    "comments_url": "https://api.github.com/repos/fujiaze/Astro-CS-Database/commits/25259880615bcde34c4a6dc9377d072528fc7fba/comments",
+    "author": {
+      "login": "fujiaze",
+      "id": 61765617,
+      "node_id": "MDQ6VXNlcjYxNzY1NjE3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/61765617?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/fujiaze",
+      "html_url": "https://github.com/fujiaze",
+      "followers_url": "https://api.github.com/users/fujiaze/followers",
+      "following_url": "https://api.github.com/users/fujiaze/following{/other_user}",
+      "gists_url": "https://api.github.com/users/fujiaze/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/fujiaze/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/fujiaze/subscriptions",
+      "organizations_url": "https://api.github.com/users/fujiaze/orgs",
+      "repos_url": "https://api.github.com/users/fujiaze/repos",
+      "events_url": "https://api.github.com/users/fujiaze/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/fujiaze/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "fujiaze",
+      "id": 61765617,
+      "node_id": "MDQ6VXNlcjYxNzY1NjE3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/61765617?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/fujiaze",
+      "html_url": "https://github.com/fujiaze",
+      "followers_url": "https://api.github.com/users/fujiaze/followers",
+      "following_url": "https://api.github.com/users/fujiaze/following{/other_user}",
+      "gists_url": "https://api.github.com/users/fujiaze/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/fujiaze/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/fujiaze/subscriptions",
+      "organizations_url": "https://api.github.com/users/fujiaze/orgs",
+      "repos_url": "https://api.github.com/users/fujiaze/repos",
+      "events_url": "https://api.github.com/users/fujiaze/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/fujiaze/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "396e880bb49126cd0682e32a3a6c44d2e38bc404",
+        "url": "https://api.github.com/repos/fujiaze/Astro-CS-Database/commits/396e880bb49126cd0682e32a3a6c44d2e38bc404",
+        "html_url": "https://github.com/fujiaze/Astro-CS-Database/commit/396e880bb49126cd0682e32a3a6c44d2e38bc404"
+      }
+    ]
+  },
+  "_links": {
+    "self": "https://api.github.com/repos/fujiaze/Astro-CS-Database/branches/main",
+    "html": "https://github.com/fujiaze/Astro-CS-Database/tree/main"
+  },
+  "protected": false,
+  "protection": {
+    "enabled": false,
+    "required_status_checks": {
+      "enforcement_level": "off",
+      "contexts": [
+
+      ],
+      "checks": [
+
+      ]
+    }
+  },
+  "protection_url": "https://api.github.com/repos/fujiaze/Astro-CS-Database/branches/main/protection"
+}

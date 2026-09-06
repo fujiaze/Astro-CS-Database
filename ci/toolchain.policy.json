@@ -15,10 +15,18 @@
     "runner": "ubuntu-24.04",
     "architecture": "x86_64",
     "primary_compiler": "gcc-14",
-    "secondary_compiler": "clang-19",
-    "cmake": "3.31.12",
+    "secondary_compiler": "clang-18",
+    "cmake": "3.31.6",
     "generator": "Ninja",
-    "acr": false
+    "acr": false,
+    "observed_from": {
+      "image": "ubuntu-24.04",
+      "image_batch": "20260831.293.1",
+      "observed_utc": "2026-09-06",
+      "cmake": "3.31.6",
+      "secondary_compiler": "18.1.3",
+      "semantics": "cmake/secondary_compiler 为最低要求下限（minimum floor），非精确锁定"
+    }
   },
   "windows_hosted": {
     "runner": "windows-2022",
@@ -26,9 +34,16 @@
     "visual_studio_major": 17,
     "platform_toolset": "v143",
     "minimum_target_os": "Windows 10",
-    "cmake": "3.31.12",
+    "cmake": "3.31.6",
     "acr": false,
-    "record_observed_patch_versions": true
+    "record_observed_patch_versions": true,
+    "observed_from": {
+      "image": "windows-2022",
+      "image_batch": "20260830.290.1",
+      "observed_utc": "2026-09-06",
+      "cmake": "3.31.6",
+      "semantics": "cmake 为最低要求下限（minimum floor），非精确锁定"
+    }
   },
   "fatduck": {
     "build_source": "github_windows_candidate_only",

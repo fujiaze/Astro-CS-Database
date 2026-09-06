@@ -1,0 +1,14 @@
+﻿2026-09-06T00:12:03.7161817Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-06T00:12:03.7163684Z ##[group]Run actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+2026-09-06T00:12:03.7164060Z with:
+2026-09-06T00:12:03.7164302Z   name: windows-ci-25259880615bcde34c4a6dc9377d072528fc7fba
+2026-09-06T00:12:03.7164619Z   path: artifacts/ci-public/
+2026-09-06T00:12:03.7164834Z   retention-days: 14
+2026-09-06T00:12:03.7165029Z   if-no-files-found: error
+2026-09-06T00:12:03.7165437Z   compression-level: 6
+2026-09-06T00:12:03.7165631Z   overwrite: false
+2026-09-06T00:12:03.7165820Z   include-hidden-files: false
+2026-09-06T00:12:03.7166037Z ##[endgroup]
+2026-09-06T00:12:03.8956028Z (node:7120) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-06T00:12:03.8956852Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-06T00:12:03.9007928Z ##[error]No files were found with the provided path: artifacts/ci-public/. No artifacts will be uploaded.

@@ -1,0 +1,6 @@
+﻿2026-09-06T00:11:54.1839316Z ##[group]Run python3 ci/bootstrap.py --policy ci/toolchain.policy.json --platform linux
+2026-09-06T00:11:54.1840300Z [36;1mpython3 ci/bootstrap.py --policy ci/toolchain.policy.json --platform linux[0m
+2026-09-06T00:11:54.1876172Z shell: /usr/bin/bash -e {0}
+2026-09-06T00:11:54.1876505Z ##[endgroup]
+2026-09-06T00:11:54.7346443Z {"verdict": "FAIL", "platform": "linux", "failed_tools": [{"tool": "clang-19", "required": "clang-19", "observed": {"present": false, "version_line": null}, "repair": "clang-19 不在 PATH 或版本不可解析"}, {"tool": "cmake", "required": ">=3.31.12", "observed": {"present": true, "version_line": "cmake version 3.31.6"}, "repair": "在 GitHub hosted runner 上复验或补齐该工具"}]}
+2026-09-06T00:11:54.7405744Z ##[error]Process completed with exit code 2.

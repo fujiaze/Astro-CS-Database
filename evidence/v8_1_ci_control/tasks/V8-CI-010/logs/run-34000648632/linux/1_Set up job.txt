@@ -1,0 +1,31 @@
+﻿2026-09-06T00:11:49.0041697Z Current runner version: '2.337.0'
+2026-09-06T00:11:49.0063465Z ##[group]Runner Image Provisioner
+2026-09-06T00:11:49.0064316Z Hosted Compute Agent
+2026-09-06T00:11:49.0064803Z Version: 20260828.587
+2026-09-06T00:11:49.0065407Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-06T00:11:49.0066041Z Build Date: 2026-08-28T16:44:25Z
+2026-09-06T00:11:49.0066629Z Worker ID: {b66863cf-36ef-47fd-88c2-175bc70362e8}
+2026-09-06T00:11:49.0067268Z Azure Region: westus3
+2026-09-06T00:11:49.0067740Z ##[endgroup]
+2026-09-06T00:11:49.0068923Z ##[group]Operating System
+2026-09-06T00:11:49.0069470Z Ubuntu
+2026-09-06T00:11:49.0070200Z 24.04.4
+2026-09-06T00:11:49.0070720Z LTS
+2026-09-06T00:11:49.0071148Z ##[endgroup]
+2026-09-06T00:11:49.0071650Z ##[group]Runner Image
+2026-09-06T00:11:49.0072173Z Image: ubuntu-24.04
+2026-09-06T00:11:49.0072637Z Version: 20260831.293.1
+2026-09-06T00:11:49.0073530Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260831.293/images/ubuntu/Ubuntu2404-Readme.md
+2026-09-06T00:11:49.0075296Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260831.293
+2026-09-06T00:11:49.0076144Z ##[endgroup]
+2026-09-06T00:11:49.0077025Z ##[group]GITHUB_TOKEN Permissions
+2026-09-06T00:11:49.0078835Z Contents: read
+2026-09-06T00:11:49.0079333Z Metadata: read
+2026-09-06T00:11:49.0080163Z ##[endgroup]
+2026-09-06T00:11:49.0081912Z Secret source: Actions
+2026-09-06T00:11:49.0082979Z Prepare workflow directory
+2026-09-06T00:11:49.0367432Z Prepare all required actions
+2026-09-06T00:11:49.0424319Z Getting action download info
+2026-09-06T00:11:49.3285659Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-09-06T00:11:49.4518676Z Download action repository 'actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4' (SHA:330a01c490aca151604b8cf639adc76d48f6c5d4)
+2026-09-06T00:11:49.7837834Z Complete job name: linux

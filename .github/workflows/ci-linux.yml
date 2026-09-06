@@ -37,11 +37,54 @@ jobs:
         run: python3 ci/select_profile.py --event "$GITHUB_EVENT_NAME" --requested "${{ inputs.profile }}" >> "$GITHUB_OUTPUT"
       - name: Run registered checks
         run: python3 ci/run.py --profile "${{ steps.profile.outputs.profile }}"
+      - name: Collect bootstrap diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, sys
+          from datetime import datetime, timezone
+          from pathlib import Path
+          diag = {
+              "schema_version": 1,
+              "purpose": "bootstrap diagnostics collected after a failed step (does not mask the primary cause)",
+              "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "bootstrap_exit_code": None,
+              "report": None,
+              "stderr_fail_payload": None,
+          }
+          try:
+              res = subprocess.run(
+                  [sys.executable, "ci/bootstrap.py",
+                   "--policy", "ci/toolchain.policy.json", "--platform", "linux", "--json"],
+                  capture_output=True, text=True, timeout=120)
+              diag["bootstrap_exit_code"] = res.returncode
+              if res.stdout.strip():
+                  try:
+                      diag["report"] = json.loads(res.stdout)
+                  except json.JSONDecodeError:
+                      pass
+              for line in reversed((res.stderr or "").strip().splitlines()):
+                  try:
+                      cand = json.loads(line)
+                  except json.JSONDecodeError:
+                      continue
+                  if isinstance(cand, dict) and cand.get("verdict") == "FAIL":
+                      diag["stderr_fail_payload"] = cand
+                      break
+          except Exception as exc:  # noqa: BLE001
+              diag["collection_error"] = repr(exc)
+          Path("artifacts/ci").mkdir(parents=True, exist_ok=True)
+          (Path("artifacts/ci") / "BOOTSTRAP_DIAG.json").write_text(
+              json.dumps(diag, ensure_ascii=False, indent=2), encoding="utf-8")
+          print("BOOTSTRAP_DIAG.json written (bootstrap_exit_code=%s)"
+                % diag["bootstrap_exit_code"])
+          PY
       - name: Upload small evidence
         if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (ci/actions.lock.json)
         with:
           name: linux-ci-${{ github.sha }}
-          path: artifacts/ci-public/
+          path: artifacts/ci/
           retention-days: 14
           if-no-files-found: error

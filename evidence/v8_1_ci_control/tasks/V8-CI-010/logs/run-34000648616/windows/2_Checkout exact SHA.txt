@@ -1,0 +1,131 @@
+﻿2026-09-06T00:11:51.4769548Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-09-06T00:11:51.4770793Z with:
+2026-09-06T00:11:51.4771207Z   persist-credentials: false
+2026-09-06T00:11:51.4771683Z   fetch-depth: 1
+2026-09-06T00:11:51.4772120Z   repository: fujiaze/Astro-CS-Database
+2026-09-06T00:11:51.4776348Z   token: ***
+2026-09-06T00:11:51.4776759Z   ssh-strict: true
+2026-09-06T00:11:51.4777157Z   ssh-user: git
+2026-09-06T00:11:51.4777541Z   clean: true
+2026-09-06T00:11:51.4777955Z   sparse-checkout-cone-mode: true
+2026-09-06T00:11:51.4778457Z   fetch-tags: false
+2026-09-06T00:11:51.4778881Z   show-progress: true
+2026-09-06T00:11:51.4779298Z   lfs: false
+2026-09-06T00:11:51.4779672Z   submodules: false
+2026-09-06T00:11:51.4780082Z   set-safe-directory: true
+2026-09-06T00:11:51.4780557Z   allow-unsafe-pr-checkout: false
+2026-09-06T00:11:51.4781251Z ##[endgroup]
+2026-09-06T00:11:51.6176567Z Syncing repository: fujiaze/Astro-CS-Database
+2026-09-06T00:11:51.6178318Z ##[group]Getting Git version info
+2026-09-06T00:11:51.6179100Z Working directory is 'D:\a\Astro-CS-Database\Astro-CS-Database'
+2026-09-06T00:11:51.7175543Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-09-06T00:11:52.1311911Z git version 2.55.0.windows.5
+2026-09-06T00:11:52.1349294Z ##[endgroup]
+2026-09-06T00:11:52.1364371Z Temporarily overriding HOME='D:\a\_temp\eab3bc46-afae-46f0-8c09-c075b98b5556' before making global git config changes
+2026-09-06T00:11:52.1365777Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-06T00:11:52.1374841Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\Astro-CS-Database\Astro-CS-Database
+2026-09-06T00:11:52.2092252Z Deleting the contents of 'D:\a\Astro-CS-Database\Astro-CS-Database'
+2026-09-06T00:11:52.2096158Z ##[group]Determining repository object format
+2026-09-06T00:11:52.2098580Z ##[endgroup]
+2026-09-06T00:11:52.2099653Z ##[group]Initializing the repository
+2026-09-06T00:11:52.2107729Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\Astro-CS-Database\Astro-CS-Database
+2026-09-06T00:11:52.2933600Z Initialized empty Git repository in D:/a/Astro-CS-Database/Astro-CS-Database/.git/
+2026-09-06T00:11:52.2965765Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/fujiaze/Astro-CS-Database
+2026-09-06T00:11:52.3401337Z ##[endgroup]
+2026-09-06T00:11:52.3403777Z ##[group]Disabling automatic garbage collection
+2026-09-06T00:11:52.3408920Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-09-06T00:11:52.3668947Z ##[endgroup]
+2026-09-06T00:11:52.3670234Z ##[group]Setting up auth
+2026-09-06T00:11:52.3671089Z Removing SSH command configuration
+2026-09-06T00:11:52.3679481Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T00:11:52.3902509Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-09-06T00:11:53.7851565Z Removing HTTP extra header
+2026-09-06T00:11:53.7860482Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T00:11:53.8076183Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-09-06T00:11:54.2374855Z Removing includeIf entries pointing to credentials config files
+2026-09-06T00:11:54.2384994Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T00:11:54.2607558Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-09-06T00:11:54.6901748Z [command]"C:\Program Files\Git\bin\git.exe" config --file D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-09-06T00:11:54.7132269Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git.path D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:11:54.7369417Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:11:54.7645905Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:11:54.7868954Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:11:54.8082068Z ##[endgroup]
+2026-09-06T00:11:54.8082512Z ##[group]Fetching the repository
+2026-09-06T00:11:54.8097923Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +25259880615bcde34c4a6dc9377d072528fc7fba:refs/remotes/origin/main
+2026-09-06T00:11:57.8024911Z From https://github.com/fujiaze/Astro-CS-Database
+2026-09-06T00:11:57.8026824Z  * [new ref]         25259880615bcde34c4a6dc9377d072528fc7fba -> origin/main
+2026-09-06T00:11:57.8070940Z [command]"C:\Program Files\Git\bin\git.exe" branch --list --remote origin/main
+2026-09-06T00:11:57.8348651Z   origin/main
+2026-09-06T00:11:57.8379760Z [command]"C:\Program Files\Git\bin\git.exe" rev-parse refs/remotes/origin/main
+2026-09-06T00:11:57.8629471Z 25259880615bcde34c4a6dc9377d072528fc7fba
+2026-09-06T00:11:57.8651403Z ##[endgroup]
+2026-09-06T00:11:57.8651900Z ##[group]Determining the checkout info
+2026-09-06T00:11:57.8654331Z ##[endgroup]
+2026-09-06T00:11:57.8661848Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-09-06T00:11:57.9021828Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-09-06T00:11:57.9243135Z ##[group]Checking out the ref
+2026-09-06T00:11:57.9252498Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force -B main refs/remotes/origin/main
+2026-09-06T00:11:58.9611561Z Updating files:  72% (3129/4292)
+2026-09-06T00:11:58.9753275Z Updating files:  73% (3134/4292)
+2026-09-06T00:11:58.9882903Z Updating files:  74% (3177/4292)
+2026-09-06T00:11:58.9993083Z Updating files:  75% (3219/4292)
+2026-09-06T00:11:59.0110249Z Updating files:  76% (3262/4292)
+2026-09-06T00:11:59.0190033Z Updating files:  77% (3305/4292)
+2026-09-06T00:11:59.0268003Z Updating files:  78% (3348/4292)
+2026-09-06T00:11:59.0341997Z Updating files:  79% (3391/4292)
+2026-09-06T00:11:59.0405973Z Updating files:  80% (3434/4292)
+2026-09-06T00:11:59.0476977Z Updating files:  81% (3477/4292)
+2026-09-06T00:11:59.0547561Z Updating files:  82% (3520/4292)
+2026-09-06T00:11:59.0647940Z Updating files:  83% (3563/4292)
+2026-09-06T00:11:59.0728114Z Updating files:  84% (3606/4292)
+2026-09-06T00:11:59.0809445Z Updating files:  85% (3649/4292)
+2026-09-06T00:11:59.0905192Z Updating files:  86% (3692/4292)
+2026-09-06T00:11:59.1018046Z Updating files:  87% (3735/4292)
+2026-09-06T00:11:59.1108009Z Updating files:  88% (3777/4292)
+2026-09-06T00:11:59.1218270Z Updating files:  89% (3820/4292)
+2026-09-06T00:11:59.1324915Z Updating files:  90% (3863/4292)
+2026-09-06T00:11:59.1406249Z Updating files:  91% (3906/4292)
+2026-09-06T00:11:59.1499341Z Updating files:  92% (3949/4292)
+2026-09-06T00:11:59.1604564Z Updating files:  93% (3992/4292)
+2026-09-06T00:11:59.1696665Z Updating files:  94% (4035/4292)
+2026-09-06T00:11:59.1771707Z Updating files:  95% (4078/4292)
+2026-09-06T00:11:59.1880718Z Updating files:  96% (4121/4292)
+2026-09-06T00:11:59.1967899Z Updating files:  97% (4164/4292)
+2026-09-06T00:11:59.2064443Z Updating files:  98% (4207/4292)
+2026-09-06T00:11:59.2151409Z Updating files:  99% (4250/4292)
+2026-09-06T00:11:59.2152142Z Updating files: 100% (4292/4292)
+2026-09-06T00:11:59.2152761Z Updating files: 100% (4292/4292), done.
+2026-09-06T00:11:59.2320867Z Switched to a new branch 'main'
+2026-09-06T00:11:59.2342658Z branch 'main' set up to track 'origin/main'.
+2026-09-06T00:11:59.2435252Z ##[endgroup]
+2026-09-06T00:11:59.2699894Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-09-06T00:11:59.2905085Z 25259880615bcde34c4a6dc9377d072528fc7fba
+2026-09-06T00:11:59.2934776Z ##[group]Removing auth
+2026-09-06T00:11:59.2935059Z Removing SSH command configuration
+2026-09-06T00:11:59.2942104Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T00:11:59.3167364Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-09-06T00:11:59.7814213Z Removing HTTP extra header
+2026-09-06T00:11:59.7822080Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T00:11:59.8047902Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-09-06T00:12:00.2370999Z Removing includeIf entries pointing to credentials config files
+2026-09-06T00:12:00.2381163Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T00:12:00.2576061Z includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git.path
+2026-09-06T00:12:00.2576879Z includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path
+2026-09-06T00:12:00.2579354Z includeif.gitdir:/github/workspace/.git.path
+2026-09-06T00:12:00.2580117Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-06T00:12:00.2606945Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git.path
+2026-09-06T00:12:00.2803612Z D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:12:00.2834247Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git.path D\:\\a\\_temp\\git\-credentials\-d379d5c7\-6b53\-4ba5\-983f\-f1225688374d\.config
+2026-09-06T00:12:00.3065022Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path
+2026-09-06T00:12:00.3258820Z D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:12:00.3293757Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path D\:\\a\\_temp\\git\-credentials\-d379d5c7\-6b53\-4ba5\-983f\-f1225688374d\.config
+2026-09-06T00:12:00.3511442Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-09-06T00:12:00.3705725Z /github/runner_temp/git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:12:00.3731706Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-d379d5c7\-6b53\-4ba5\-983f\-f1225688374d\.config
+2026-09-06T00:12:00.3948352Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-06T00:12:00.4137680Z /github/runner_temp/git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:12:00.4164386Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-d379d5c7\-6b53\-4ba5\-983f\-f1225688374d\.config
+2026-09-06T00:12:00.4376239Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-09-06T00:12:00.8761621Z Removing credentials config 'D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config'
+2026-09-06T00:12:00.8772863Z ##[endgroup]
