@@ -1,0 +1,98 @@
+# V8-CI-012 修复轮 2 执行日志（SA-CI-32）
+# base HEAD=2ca7361e37fa51c9586214deb23a8bf4a9eb93ca（修复轮 1 提交）
+# 执行窗口：2026-09-06 UTC（容器内 /workspace/Astro CS Database 原地工作；零 git 写操作）
+# 凭据纪律：本轮零在线操作、零 token 使用；修复不动凭据面（token 仍仅内存传递）
+
+==================================================================== [1] 修复前基线 ==
+$ python3 -m unittest discover -s ci/tests
+Ran 265 tests in 26.440s
+OK
+$ python3 ci/validate_registry.py --registry ci/checks.json --strict
+  "verdict": "PASS"          → exit 0
+$ python3 ci/run.py --plan-only --profile <p>  → exit 0
+fast=57 / linux-deep=7 / linux-main=71 / windows-main=61（与轮 2 观察完全一致）
+$ git log --oneline -1
+2ca7361e fix(ci): V8-CI-012 修复轮 1 ASan 目标旗标/coverage 工具链/远端验证器 [V8-CI-012]
+
+==================================================================== [2] F5 修复（verify_remote_run.py 重定向凭据纪律）==
+根因（轮 2 R2.5 三连实验）：artifact zip 端点 302 → productionresultssa18.blob.core.windows.net
+（跨主机）；urllib 默认 HTTPRedirectHandler 自动跟随并原样转发 Authorization → Azure 端点 401。
+修复（ci/verify_remote_run.py）：
+  - _http_get_bytes 自实现重定向循环：301/302/307 手动跟随；同主机保留全部请求头；
+    跨主机（netloc 比对）剥离 Authorization 后再跟随；上限 5 跳，耗尽按最后 3xx 返回
+    （调用方按非 2xx 报错）；Location 相对路径经 urllib.parse.urljoin 解析。
+  - _http_get 保持 urllib 默认行为（仅 api.github.com JSON 端点，无跨主机重定向需求）。
+  - 凭据纪律不变：token 仍仅经 _build_headers() 内存进入 headers dict，零落盘。
+单测（ci/tests/test_verify_remote_run.py 新增 _FakeRedirectOpener 可注入 transport + 4 用例）：
+$ python3 -m unittest ci.tests.test_verify_remote_run
+Ran 26 tests in 0.327s OK
+  test_cross_host_302_strips_authorization       — 首跳 Authorization=Bearer …，二跳 blob 端点=None
+  test_same_host_302_keeps_authorization         — 同主机 302 保留凭据（不过度剥离）
+  test_redirect_loop_capped_at_5                 — 6 请求后停；非 2xx → exit 2
+  test_302_cross_host_without_token_adds_no_header — 无 token 全程无 Authorization
+
+==================================================================== [3] F6 修复（ci_coverage_runner.py 非仓库子路径）==
+根因（比轮 2 报告更精确）：L50 校验步把 out_dir 改写为仓库相对路径（relative_to 的返回值
+赋回 out_dir），而 L62/63（--cov-report 组装）与 L94/95（outputs 登记）对其再调
+relative_to(REPO)（绝对形式）→ 必然 ValueError。任何相对路径调用都触发（hosted 报错
+消息 self='run/ci/coverage-py' + traceback L62 完全吻合）；本地绝对路径调用侥幸存活。
+修复（tools/quality/ci_coverage_runner.py）：
+  - 校验步不再回写：out_dir 全程保持绝对形式；仓库外仍受控 exit 2（契约不变：
+    outputs 登记 + mutates_workspace=false 依赖）。
+  - 新增 _as_repo_rel(p)：仓库内子路径 → 仓库相对 posix（报告落点与 checks.json
+    outputs 一致）；非子路径退化 os.path.relpath；仍失败给绝对 posix —— 永不抛 ValueError。
+  - 不吞异常：退出码与报告语义逐字保留。
+单测（ci/tests/test_deep_profiles.py 新增 3 用例）：
+$ python3 -m unittest ci.tests.test_deep_profiles
+Ran 28 tests in 1.806s OK
+  test_coverage_runner_repo_relative_output_dir_hosted_shape — 进程内 mock：相对输出目录
+      argv 含 --cov-report=xml:run/ci/coverage-py/coverage.xml、cwd=repo、COVERAGE_FILE 正确
+  test_coverage_runner_repo_relative_output_dir_subprocess — 端到端（本地无 pytest exit 1 /
+      有 pytest 收集失败 4/5；均非 2、无 ValueError/Traceback）
+  test_coverage_runner_escape_subpath_still_controlled_exit2 — ../ 书写逃逸仍 exit 2 且零副作用
+冒烟（mock subprocess 回放 hosted 形态）：
+$ --output-dir run/ci/coverage-py → rc=0（透传），outputs={run/ci/coverage-py/coverage.xml,…}
+$ --output-dir /tmp/outside-astrocs-cov → rc=2（受控报错，契约保留）
+
+==================================================================== [4] COV-CPP 修复（deep_ci_driver.py：failing tests 不阻止覆盖率测量）==
+根因（轮 2 R2.4）：ccov 自定义目标第 3 步 ctest 失败（既有 core_pipeline /
+cpu001_selftest_avx512 两失败 → Error 8）使 CMake 中断第 4 步 qa_coverage_report.sh
+（llvm-profdata merge + llvm-cov report/export → coverage.json）；driver 层 cmd_coverage_cpp
+又在 ccov-target 非零时早退 → profraw/coverage.json 归集也跳过 → 覆盖率数值永不产出。
+修复（tools/quality/deep_ci_driver.py）：
+  - cmd_coverage_cpp 增补第 4 步 coverage-merge-report（直接调 cmake/qa_coverage_report.sh，
+    与 ccov 目标第 4 步同参 <build_dir> <source_dir>，timeout 300）；
+  - _run_steps 增 stop_on_failure 参数（默认 True 保持原语义；coverage-cpp 传 False）：
+    失败后继续，rc 恒记首个失败步骤退出码（verdict 仍 FAIL；12_FAILURE_POLICY 归属不变）；
+  - 归集后缀扩 .profraw（原始剖析数据一并落盘）；输出 JSON 增 verdict 字段（PASS/FAIL）。
+单测（ci/tests/test_deep_profiles.py 新增 TestCoverageCppDriver 3 用例）：
+  test_ctest_failure_still_runs_merge_report_and_collects — ccov-target=8 → merge/report
+      照跑、.profraw/.profdata/coverage.json 归集、rc=8、verdict=FAIL
+  test_all_pass_verdict_pass_and_rc0 — 正向路径 rc=0/PASS（回归）
+  test_merge_report_failure_surfaced — merge 自身失败 rc=1/FAIL（报告不可得如实上报）
+
+==================================================================== [5] 修复后验收 ==
+$ python3 ci/validate_registry.py --registry ci/checks.json --strict
+  "verdict": "PASS"          → exit 0（errors=[]）
+$ python3 -m unittest discover -s ci/tests
+Ran 275 tests in 26.317s
+OK        （265 基线 → 275：F5 +4 / F6 +3 / COV-CPP +3；0 失败 0 错误 0 跳过）
+$ python3 ci/run.py --plan-only --profile <p> → exit 0
+fast=57 / linux-deep=7 / linux-main=71 / windows-main=61（全部不变）
+$ python3 ci/verify_remote_run.py --offline --sha 2ca7361e…b93ca --workflows linux-ci --profile linux-deep
+verify_remote_run: PASS (mode=offline, workflows=1)   → exit 0
+$ git diff --stat（tracked）
+ ci/tests/test_deep_profiles.py        | 153 +-
+ ci/tests/test_verify_remote_run.py    | 133 +-
+ ci/verify_remote_run.py               |  62 +-
+ tools/quality/ci_coverage_runner.py   |  46 +-
+ tools/quality/deep_ci_driver.py       |  49 +-
+ evidence/v8_1_ci_control/tasks/V8-CI-012/{DEEP_BASELINE_REPORT.md,TASK_RESULT.json,CHANGED_FILES.txt}（本轮证据）
+ 其余 M/D（dist zip 删除、PRODUCTION_EXECUTION_INVENTORY.csv、V8-CI-010 evidence）为任务
+ 起点快照既有基线噪声，本轮零触碰；ci/checks.json / .github/workflows 零改动。
+本轮临时产物已清理（run/ci/coverage-py、run/ci/test-f6-*、run/ci/test-covcpp-*、
+outside-cov-escape[首轮失败用例遗留，已删并复验零副作用]）。
+
+==================================================================== [6] 零 git 写操作声明 ==
+本轮未执行任何 git add/commit/push/branch/stash/checkout；工作区改动全部停留在
+working tree，交由控制方决定提交。

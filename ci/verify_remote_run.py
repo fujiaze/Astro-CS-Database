@@ -44,6 +44,7 @@ import re
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 from datetime import datetime, timezone
@@ -91,7 +92,12 @@ def _build_headers() -> dict:
 
 
 def _http_get(url: str, timeout: float) -> tuple[int, bytes]:
-    """GET 一个 URL，返回 (status, body bytes)；网络异常归一为 ApiError。"""
+    """GET 一个 URL，返回 (status, body bytes)；网络异常归一为 ApiError。
+
+    仅用于 api.github.com JSON 端点（同主机、无跨主机重定向需求），
+    保留 urllib 默认行为；artifact zip 二进制下载走 _http_get_bytes
+    （自实现重定向，见 F5）。
+    """
     request = urllib.request.Request(url, headers=_build_headers(), method="GET")
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -102,9 +108,59 @@ def _http_get(url: str, timeout: float) -> tuple[int, bytes]:
         raise ApiError(f"网络不可达：{exc}") from exc
 
 
+# 重定向跟随语义（F5）：GitHub artifact zip 端点 302 → Azure Blob 存储端点
+# （跨主机）。urllib 默认 HTTPRedirectHandler 自动跟随并原样转发全部请求头，
+# Authorization 跨主机发往存储端点 → 401（轮 2 实证）。凭据不跨主机转发
+# （RFC 6797/9110 安全语义）：自实现重定向循环，301/302/307 手动跟随，
+# 同主机保留全部请求头，跨主机剥离 Authorization 后再跟随；上限 5 跳，
+# 耗尽后按最后 3xx 返回（调用方按非 2xx 报错）。凭据纪律不变：token 仍
+# 只经 _build_headers() 内存进入 headers dict，零落盘、不进 stdout/stderr。
+_REDIRECT_STATUSES = (301, 302, 307)
+_REDIRECT_LIMIT = 5
+_OPENER: urllib.request.OpenerDirector | None = None
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """redirect_request 返回 None：禁止 opener 自动跟随，3xx 交外层循环。"""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _get_opener() -> urllib.request.OpenerDirector:
+    """惰性构建禁用自动重定向的 opener（单测可注入替代 _OPENER）。"""
+    global _OPENER
+    if _OPENER is None:
+        _OPENER = urllib.request.build_opener(_NoRedirect)
+    return _OPENER
+
+
 def _http_get_bytes(url: str, timeout: float) -> tuple[int, bytes]:
-    """artifact zip 等二进制下载（与 _http_get 同形，便于独立注入）。"""
-    return _http_get(url, timeout)
+    """artifact zip 等二进制下载：自实现重定向循环（F5，见上注释）。"""
+    current = url
+    headers = _build_headers()
+    redirects = 0
+    while True:
+        request = urllib.request.Request(current, headers=headers, method="GET")
+        try:
+            with _get_opener().open(request, timeout=timeout) as response:
+                return response.status, response.read()
+        except urllib.error.HTTPError as exc:
+            if exc.code in _REDIRECT_STATUSES and redirects < _REDIRECT_LIMIT:
+                location = exc.headers.get("Location") if exc.headers else None
+                if location:
+                    redirects += 1
+                    next_url = urllib.parse.urljoin(current, location)
+                    if (urllib.parse.urlsplit(next_url).netloc
+                            != urllib.parse.urlsplit(url).netloc):
+                        # 跨主机：剥离 Authorization（其余头保留）
+                        headers = {k: v for k, v in headers.items()
+                                   if k.lower() != "authorization"}
+                    current = next_url
+                    continue
+            return exc.code, exc.read()
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise ApiError(f"网络不可达：{exc}") from exc
 
 
 def _get_json(url: str, timeout: float) -> tuple[int, dict]:

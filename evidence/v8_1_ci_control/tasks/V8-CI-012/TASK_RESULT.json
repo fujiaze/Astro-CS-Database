@@ -445,5 +445,411 @@
       "no credential persistence",
       "no workflow cancellation"
     ]
+  },
+  "observation_round2": {
+    "round": "observation_round2 (定向重验收口轮)",
+    "mode": "read",
+    "observed_utc": "2026-09-06T07:14Z 起跑 / 本块 2026-09-06T07:55Z 前完成核验（观察窗口约 40 分钟，远低于 150 分钟单轮上限）",
+    "overall_verdict": "REPAIR_ROUND1_VERIFIED_WITH_NEW_CODE_FAIL",
+    "summary": "dispatch run 34018610663 completed/failure（3P/4F/0S，12m23s=6h 红线 3.42%）。F-D1 修复验证成功：ASan 分支 -DASTROCS_SANITIZE_RUNTIME=ON 生效，qa-sanitize 目标首次真跑全量 ctest 55/57（基线轮 0 ctest 早退），2 失败 core_pipeline/cpu001_selftest_avx512 均 CODE_FAIL 无 sanitizer 违例签名；F-D2 维持 3/57 逐 id 与基线一致；F-D3 验证成功：Install deep coverage tools step success，DEEP-COV-CPP/PY 从 SKIPPED 变实跑（SKIPPED 清零）——COV-CPP 插桩构建成功但 ctest 2 失败阻断 coverage 报告步（数值未产出），COV-PY 暴露新 F6（ci_coverage_runner.py relative_to ValueError 秒败）；F-D4 实战 exit 2：结构级验证全过，artifact zip 302 重定向跨主机转发 Authorization 致 401（三连实验实证）= 新 F5；push run 71 项逐 id verdict 差集空=无回归；无 RESOURCE_FAIL（峰值 RSS 858,676 KiB，timed_out 全 false）。",
+    "runs": [
+      {
+        "workflow": "ci-linux.yml",
+        "role": "dispatch_run_primary",
+        "run_id": 34018610663,
+        "run_number": 18,
+        "event": "workflow_dispatch",
+        "inputs_profile": "linux-deep",
+        "head_branch": "main",
+        "head_sha": "2ca7361e37fa51c9586214deb23a8bf4a9eb93ca",
+        "status": "completed",
+        "conclusion": "failure",
+        "run_started_at": "2026-09-06T07:14:28Z",
+        "run_completed_at": "2026-09-06T07:26:51Z",
+        "job_id": 101446926625,
+        "job_started_at": "2026-09-06T07:14:31Z",
+        "job_completed_at": "2026-09-06T07:26:50Z",
+        "job_duration_seconds": 739,
+        "runner": "ubuntu-24.04",
+        "six_hour_limit": {
+          "limit_seconds": 21600,
+          "used_seconds": 739,
+          "usage_ratio": "3.42%",
+          "headroom_seconds": 20861
+        },
+        "slowest_check": {
+          "id": "DEEP-SAN-ASAN",
+          "duration_seconds": 221.983
+        },
+        "profile_verified": "linux-deep (CI_RESULT.profile + verify_remote_run 结构核验 + 手动 artifact 下载三重一致)",
+        "checks_total": 7,
+        "checks_plan_baseline": 7,
+        "summary": {
+          "verdict": "FAIL",
+          "total": 7,
+          "pass": 3,
+          "fail": 4,
+          "fail_detail": {
+            "FAIL": 4
+          },
+          "known_fail": 0,
+          "skipped_waivable": 0
+        },
+        "artifact": {
+          "id": 9984892499,
+          "name": "linux-ci-2ca7361e37fa51c9586214deb23a8bf4a9eb93ca",
+          "bytes": 235079,
+          "zip_root_layout": "2ca7361e37fa/20260906T071449Z-924e6fe9/（基线轮为扁平结构，已记录）",
+          "members": 21
+        },
+        "steps": [
+          {
+            "no": 1,
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "no": 2,
+            "name": "Checkout exact SHA",
+            "conclusion": "success"
+          },
+          {
+            "no": 3,
+            "name": "Bootstrap locked toolchain",
+            "conclusion": "success"
+          },
+          {
+            "no": 4,
+            "name": "Select profile",
+            "conclusion": "success",
+            "note": "profile=linux-deep"
+          },
+          {
+            "no": 5,
+            "name": "Install deep coverage tools",
+            "conclusion": "success",
+            "note": "F-D3 修复 hosted 首跑通过（llvm-18/pytest/pytest-cov）"
+          },
+          {
+            "no": 6,
+            "name": "Run registered checks",
+            "conclusion": "failure",
+            "note": "FAIL 3P/4F/0S"
+          },
+          {
+            "no": 7,
+            "name": "Collect bootstrap diagnostics",
+            "conclusion": "success"
+          },
+          {
+            "no": 8,
+            "name": "Upload small evidence",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "workflow": "ci-linux.yml",
+        "role": "push_run_same_sha",
+        "run_id": 34018605310,
+        "run_number": 17,
+        "event": "push",
+        "head_sha": "2ca7361e37fa51c9586214deb23a8bf4a9eb93ca",
+        "status": "completed",
+        "conclusion": "failure",
+        "run_started_at": "2026-09-06T07:14:21Z",
+        "run_completed_at": "2026-09-06T07:29:07Z",
+        "job_id": 101446910806,
+        "job_duration_seconds": 884,
+        "checks": {
+          "total": 71,
+          "summary": "48P/21F/2T/0S",
+          "regression_vs_d416fc9d": "逐 id verdict 差集为空 → 无回归"
+        }
+      }
+    ],
+    "deep_checks_round2": [
+      {
+        "id": "BUILD-GCC-RELEASE",
+        "verdict": "PASS",
+        "exit": 0,
+        "duration_seconds": 119.404,
+        "note": "回归 PASS，gcc 13.3.0"
+      },
+      {
+        "id": "DEEP-CLANG-BUILD",
+        "verdict": "PASS",
+        "exit": 0,
+        "duration_seconds": 91.205,
+        "note": "回归 PASS，clang 18.1.3"
+      },
+      {
+        "id": "DEEP-SAN-ASAN",
+        "verdict": "FAIL",
+        "exit": 2,
+        "duration_seconds": 221.983,
+        "note": "F-D1 修复验证成功：SANITIZE_RUNTIME 旗标生效，真跑 ctest 55/57；失败=core_pipeline(CODE_FAIL,三分支交叉复现)+cpu001_selftest_avx512(CODE_FAIL,hosted CPU 环境依赖)；无 ASan/UBSan/LSan 运行时签名；cpu_avg 185.41% peak RSS 749,764 KiB"
+      },
+      {
+        "id": "DEEP-SAN-TSAN",
+        "verdict": "FAIL",
+        "exit": 2,
+        "duration_seconds": 200.93,
+        "note": "F-D2 维持已知失败：54/57，失败 id=core_pipeline/io_reentrant/cpu001_selftest_avx512 与基线逐 id 一致；无 sanitizer 报告"
+      },
+      {
+        "id": "DEEP-COV-CPP",
+        "verdict": "FAIL",
+        "exit": 2,
+        "duration_seconds": 81.589,
+        "note": "F-D3 生效（llvm-18 就位）；插桩构建成功；ccov ctest 55/57（同两失败 id）→ Error 8 → exit 2，llvm-profdata merge/llvm-cov report 步未到达 → coverage 数值未产出；归属=C++ 既有失败阻断（CODE_FAIL 传导）"
+      },
+      {
+        "id": "DEEP-COV-PY",
+        "verdict": "FAIL",
+        "exit": 1,
+        "duration_seconds": 0.253,
+        "note": "F-D3 生效（pytest/pytest-cov 就位）；新 F6：ci_coverage_runner.py:62 relative_to(REPO) ValueError（hosted 相对路径调用）；coverage 数值未产出"
+      },
+      {
+        "id": "DEEP-COMPLEXITY",
+        "verdict": "PASS",
+        "exit": 0,
+        "duration_seconds": 0.343,
+        "note": "回归 PASS；375 files/139,881 lines/functions≈1858/branch_tokens 19,182/max_file_cyclomatic 1048"
+      }
+    ],
+    "asan_realrun": {
+      "target": "qa-sanitize",
+      "configure_flag": "-DASTROCS_SANITIZE_RUNTIME=ON（修复后）",
+      "baseline_comparison": "修复轮前：No rule to make target 'qa-sanitize' 早退 0 ctest / 修复后：57 ctest 全量 222s",
+      "ctest_summary": "96% tests passed, 2 tests failed out of 57",
+      "failed_tests": [
+        {
+          "id": 5,
+          "name": "core_pipeline",
+          "classification": "CODE_FAIL",
+          "finding": {
+            "scope": "ASan 真跑全量 ctest",
+            "observed": "Failed",
+            "expected": "PASS",
+            "evidence": "run 34018610663 logs/round2 artifact DEEP-SAN-ASAN.log",
+            "disposition": "修复队列（TSan/COV-CPP 同 id 交叉复现，非 sanitizer 特异）"
+          }
+        },
+        {
+          "id": 35,
+          "name": "cpu001_selftest_avx512",
+          "classification": "CODE_FAIL",
+          "finding": {
+            "scope": "ASan 真跑全量 ctest",
+            "observed": "Failed",
+            "expected": "PASS",
+            "evidence": "run 34018610663 logs/round2 artifact DEEP-SAN-ASAN.log",
+            "disposition": "修复队列（hosted CPU AVX-512 探测环境依赖，三分支同 id 复现）"
+          }
+        }
+      ],
+      "sanitizer_reports": {
+        "AddressSanitizer": 0,
+        "UndefinedBehaviorSanitizer": 0,
+        "LeakSanitizer": 0,
+        "note": "ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 生效，--output-on-failure 无违例签名 → 全部失败为功能性"
+      }
+    },
+    "coverage_baseline": {
+      "DEEP-COV-CPP": {
+        "line_coverage": null,
+        "branch_coverage": null,
+        "status": "BLOCKED_BEFORE_REPORT_STEP",
+        "blocker": "ccov ctest 2 失败（core_pipeline/cpu001_selftest_avx512）"
+      },
+      "DEEP-COV-PY": {
+        "line_coverage": null,
+        "branch_coverage": null,
+        "status": "BLOCKED_BEFORE_PYTEST",
+        "blocker": "F6 relative_to ValueError"
+      },
+      "frozen_note": "coverage 数值基线双项维持 pending；冻结基线表仅新增 install 步生效事实与阻断链证据"
+    },
+    "verify_remote_run_round2": {
+      "command": "GITHUB_TOKEN=<credential fill 内联> python3 ci/verify_remote_run.py --sha 2ca7361e37fa51c9586214deb23a8bf4a9eb93ca --workflows linux-ci --profile linux-deep",
+      "exit_code": 2,
+      "stdout_saved": "logs/round2/verify_remote_run_invocation_round2.json",
+      "structural_checks_passed": [
+        "workflow 键 linux-ci 词集唯一指认 ci-linux.yml",
+        "dispatch>push 选取命中 run 34018610663",
+        "head_sha 匹配",
+        "status=completed",
+        "jobs conclusion 核验读出 failure"
+      ],
+      "failure": "artifact zip 下载 401",
+      "root_cause": "302 → productionresultssa18.blob.core.windows.net；urllib 默认重定向跟随跨主机转发 Authorization → Azure 端点拒收（三连实验：第一跳 302/默认跟随 401/第二跳剥离凭据 200=235,079 bytes）",
+      "finding": "F5（HIGH/CODE_FAIL）：_http_get_bytes 重定向凭据转发缺陷 + 单测无 302 用例；修复方向：二跳手动跟随或 302 剥离凭据头"
+    },
+    "resource_summary_round2": [
+      {
+        "id": "BUILD-GCC-RELEASE",
+        "cpu_avg": 211.41,
+        "peak_rss_kib": 849384,
+        "threads_max": 13,
+        "timed_out": false
+      },
+      {
+        "id": "DEEP-CLANG-BUILD",
+        "cpu_avg": 177.05,
+        "peak_rss_kib": 515356,
+        "threads_max": 14,
+        "timed_out": false
+      },
+      {
+        "id": "DEEP-SAN-ASAN",
+        "cpu_avg": 185.41,
+        "peak_rss_kib": 749764,
+        "threads_max": 19,
+        "timed_out": false
+      },
+      {
+        "id": "DEEP-SAN-TSAN",
+        "cpu_avg": 186.95,
+        "peak_rss_kib": 564584,
+        "threads_max": 19,
+        "timed_out": false
+      },
+      {
+        "id": "DEEP-COV-CPP",
+        "cpu_avg": 182.88,
+        "peak_rss_kib": 858676,
+        "threads_max": 16,
+        "timed_out": false
+      },
+      {
+        "id": "DEEP-COV-PY",
+        "cpu_avg": null,
+        "peak_rss_kib": 3212,
+        "threads_max": 1,
+        "timed_out": false
+      }
+    ],
+    "findings_round2": [
+      {
+        "id": "F5",
+        "severity": "HIGH",
+        "owner_domain": "ci/verify_remote_run.py",
+        "classification": "CODE_FAIL",
+        "disposition": "修复队列（F-D4 收口残留）"
+      },
+      {
+        "id": "F6",
+        "severity": "HIGH",
+        "owner_domain": "tools/quality/ci_coverage_runner.py:62",
+        "classification": "CODE_FAIL",
+        "disposition": "修复队列"
+      },
+      {
+        "id": "F7",
+        "severity": "INFO",
+        "owner_domain": "GitHub artifacts API 时序",
+        "classification": "ENV/TIMING",
+        "disposition": "记录不修（artifacts 列表最终一致延迟：首查 total 0 → 数分钟后 1）"
+      }
+    ],
+    "failure_policy_round2": {
+      "CODE_FAIL": [
+        "DEEP-SAN-ASAN: core_pipeline",
+        "DEEP-SAN-ASAN: cpu001_selftest_avx512",
+        "DEEP-SAN-TSAN: 3/57 既有（F-D2 维持）",
+        "DEEP-COV-CPP: ccov ctest 2 失败传导",
+        "DEEP-COV-PY: F6 relative_to",
+        "verify_remote_run: F5 302 凭据转发"
+      ],
+      "RESOURCE_FAIL": [],
+      "ENV_FAIL": [],
+      "note": "基线轮 2 项 ENV_FAIL（coverage SKIPPED）清零——工具链就位后全部转为真实 CODE_FAIL 面"
+    },
+    "prohibited_compliance": [
+      "no commit",
+      "no push",
+      "no branch",
+      "no worktree",
+      "no clone",
+      "no control-package modification",
+      "no TASK_STATE/WRITE_LEASE modification",
+      "no credential persistence（trace 落盘前逐文件正则断言 CLEAN）",
+      "no workflow cancellation"
+    ]
+  },
+  "repair_round2": {
+    "round": 2,
+    "mode": "repair（F5/F6/COV-CPP 三处接入域修复；业务域失败只登记不修）",
+    "base_sha": "2ca7361e37fa51c9586214deb23a8bf4a9eb93ca",
+    "executed_utc": "2026-09-06",
+    "execution_log": "logs/repair_round2.log",
+    "fixes": {
+      "F5": {
+        "target": "ci/verify_remote_run.py _http_get_bytes",
+        "change": "自实现重定向循环：301/302/307 手动跟随；同主机保留全部请求头；跨主机（netloc 比对）剥离 Authorization 再跟随；上限 5 跳，耗尽按最后 3xx 返回（调用方按非 2xx 归 exit 2）；Location 相对路径 urljoin；_http_get 维持 urllib 默认（api.github.com JSON 端点无跨主机重定向需求）",
+        "basis": "轮 2 R2.5 三连在线实验：①302 Location host=blob.core.windows.net ②默认跟随 401 ③二跳剥离 Authorization 200（235,079 bytes）；凭据纪律不变（token 仅经 _build_headers() 内存进 headers dict，零落盘）",
+        "tests": [
+          "ci/tests/test_verify_remote_run.py::TestRedirectCredentialDiscipline（_FakeRedirectOpener 可注入 transport）",
+          "test_cross_host_302_strips_authorization（首跳 Authorization=Bearer…，二跳 blob 端点=None，全链 verdict=PASS）",
+          "test_same_host_302_keeps_authorization（同主机 302 保留凭据，相对 Location urljoin）",
+          "test_redirect_loop_capped_at_5（6 请求后停，非 2xx → exit 2）",
+          "test_302_cross_host_without_token_adds_no_header（无 token 全程无 Authorization）"
+        ]
+      },
+      "F6": {
+        "target": "tools/quality/ci_coverage_runner.py",
+        "change": "校验步不再把 relative_to 返回值回写 out_dir（全程绝对）；仓库外仍受控 exit 2（契约不放松）；新增 _as_repo_rel：仓库内子路径 → 仓库相对 posix（报告落点与 checks.json outputs 一致）、非子路径退化 os.path.relpath、仍失败给绝对 posix——永不抛 ValueError；退出码/报告语义逐字保留，不吞异常",
+        "basis": "根因精化：L50 校验成功后 out_dir 已是仓库相对路径，L62/63（--cov-report 组装）与 L94/95（outputs）对其再调 relative_to(REPO)（绝对形式）必然 ValueError；hosted 报错消息 self='run/ci/coverage-py' + traceback L62 完全吻合——任何相对路径调用都触发（hosted checks.json 以相对路径 run/ci/coverage-py 调用），非『仓库外路径』误用",
+        "tests": [
+          "ci/tests/test_deep_profiles.py::test_coverage_runner_repo_relative_output_dir_hosted_shape（进程内 mock：argv 含 --cov-report=xml:run/ci/coverage-py/coverage.xml、cwd=repo、COVERAGE_FILE 绝对、收集根相对形态）",
+          "test_coverage_runner_repo_relative_output_dir_subprocess（端到端 hosted argv 形态：无 pytest exit 1 / 有 pytest 收集失败 4/5，均非 2、无 ValueError/Traceback）",
+          "test_coverage_runner_escape_subpath_still_controlled_exit2（../ 书写逃逸 resolve 后仓库外 → 仍 exit 2 且零 mkdir 副作用）"
+        ]
+      },
+      "COV-CPP": {
+        "target": "tools/quality/deep_ci_driver.py cmd_coverage_cpp / _run_steps",
+        "change": "cmd_coverage_cpp 增第 4 步 coverage-merge-report（直接调 cmake/qa_coverage_report.sh，同参 <build_dir> <source_dir>，timeout 300）；_run_steps 增 stop_on_failure 参数（默认 True 保持其他子命令原语义；coverage-cpp 传 False）——失败后继续执行，rc 恒记首个失败步骤退出码（verdict 仍 FAIL，12_FAILURE_POLICY 归属不变）；归集后缀扩 .profraw；输出 JSON 增 verdict 字段",
+        "basis": "failing tests 不应阻止覆盖率测量（业界标准语义）；轮 2 R2.4：ccov 目标第 3 步 ctest Error 8 中断第 4 步 qa_coverage_report.sh（profdata merge + llvm-cov export → coverage.json），driver 层早退连 profraw 归集也跳过 → 覆盖率数值永不产出",
+        "tests": [
+          "ci/tests/test_deep_profiles.py::TestCoverageCppDriver::test_ctest_failure_still_runs_merge_report_and_collects（ccov-target=8 → merge/report 照跑 + .profraw/.profdata/coverage.json 归集 + rc=8 + verdict=FAIL）",
+          "test_all_pass_verdict_pass_and_rc0（正向回归 rc=0/PASS）",
+          "test_merge_report_failure_surfaced（merge 自身失败 rc=1/FAIL，报告不可得如实上报）"
+        ]
+      }
+    },
+    "acceptance": {
+      "validate_registry_strict": "exit 0；checks=80，errors=[]，verdict=PASS",
+      "unittest": "基线口径 ci/tests discover：Ran 275 tests — OK（26.3s）；265 基线 → 275（+10 = F5 4 + F6 3 + COV-CPP 3）",
+      "plan_only_counts": "fast=57 / linux-main=71 / linux-deep=7 / windows-main=61 全部不变（exit 0）",
+      "verify_remote_run_offline": "exit 0；PASS (mode=offline, workflows=1)",
+      "git_diff_scope": "本轮 tracked 修改恰为 ci/verify_remote_run.py、tools/quality/ci_coverage_runner.py、tools/quality/deep_ci_driver.py、ci/tests/test_deep_profiles.py、ci/tests/test_verify_remote_run.py 五文件 + 本轮证据三件套与 logs/repair_round2.log；ci/checks.json 与 .github/workflows 零改动；其余 M/D（dist zip 删除、PRODUCTION_EXECUTION_INVENTORY.csv、V8-CI-010 evidence）为任务起点快照既有基线噪声，本轮零触碰",
+      "workspace_hygiene": "测试临时产物全清理（run/ci/coverage-py、run/ci/test-f6-*、run/ci/test-covcpp-*、outside-cov-escape 首轮失败用例遗留），逃逸用例复验零副作用"
+    },
+    "next_hosted_deep_run_expectation": {
+      "DEEP-COV-CPP": "仍 FAIL（exit=首个失败步骤码，两既有业务失败未修，FAIL 判定正确）；但 ctest Error 8 后继续 coverage-merge-report → run/ci/coverage-cpp/coverage.json + astrocs.profdata + *.profraw 归集上传 → 覆盖率行/分支数值首次产出（失败测试未覆盖部分如实缺省）",
+      "DEEP-COV-PY": "F6 修复后 pytest 实跑不再 0.25s 秒败；退出码=pytest 透传（全过→PASS 且 coverage.xml/json 产出；既有失败如实 FAIL）；报告落 run/ci/coverage-py/（hosted 相对路径调用已单测验证可达报告步）",
+      "verify_remote_run": "应 exit 1 而非 2：F5 修复后 artifact zip 302 跨主机剥离 Authorization 下载成功 → 结构级核验全走通 → run/jobs conclusion=failure 如实读出 → 归类『有失败 verdict』（jobs 仍 FAIL 属正确判定）；exit 2 仅应出现在网络/下载/非 2xx 等环境问题",
+      "其余 5 项": "无预期变化"
+    },
+    "residual_risks": [
+      "COV-CPP 数值口径受既有失败集影响（失败测试覆盖部分缺省），基线数值须与失败清单一同解读",
+      ".profraw 全量归集使 artifact 体积上升（57 测试 %p-%m 命名）；预估远低于 artifact 2 GiB 红线，首轮实跑核实",
+      "verify_remote_run 302 真实跨主机路径无本地真网验证（fixture transport 按轮 2 三连实验线上行为建模），hosted 第三轮首跑闭环",
+      "F6 未放松『仓库外输出目录 exit 2』契约；如需仓库外报告落点属控制面契约变更，须显式决策",
+      "TSan 3 失败与 ASan/COV-CPP 的 core_pipeline/cpu001_selftest_avx512 2 失败维持业务域登记，不在本轮修复面"
+    ],
+    "prohibited_compliance": [
+      "no commit",
+      "no push",
+      "no branch",
+      "no worktree",
+      "no clone",
+      "no control-package modification",
+      "no TASK_STATE/WRITE_LEASE modification",
+      "no credential persistence",
+      "no workflow cancellation"
+    ]
   }
 }
