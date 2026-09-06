@@ -14,7 +14,7 @@ import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EXE = os.path.join(REPO, "run", "temp", "astrocs")
+EXE = os.path.join(REPO, "build", "astrocs")
 SEAM6 = os.path.join(REPO, "run", "temp", "p2007_seam6", "seam6")
 
 

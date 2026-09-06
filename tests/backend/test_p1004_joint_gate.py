@@ -14,7 +14,7 @@ import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EXE = os.path.join(REPO, "run", "temp", "astrocs")
+EXE = os.path.join(REPO, "build", "astrocs")
 TMP = "/tmp/mon001_run_out"  # 复用 MON-001 配置的 output_dir
 
 P1_ORACLES = [

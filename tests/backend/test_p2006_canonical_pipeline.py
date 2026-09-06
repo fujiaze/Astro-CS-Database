@@ -15,8 +15,10 @@ import sys
 import tempfile
 import unittest
 
+from tests.backend.fixture_common import ensure_f1f2_hips  # noqa: E402
+
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EXE = os.path.join(REPO, "run", "temp", "astrocs")
+EXE = os.path.join(REPO, "build", "astrocs")
 
 CHAIN = ["coverage", "sample", "upm_fit", "upm_apply", "reject", "integrate", "write"]
 MODULES = {
@@ -36,6 +38,7 @@ class TestP2006CanonicalPipeline(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="p2006_")
         cls.out = os.path.join(cls.tmp, "out")
         os.makedirs(cls.out, exist_ok=True)
+        ensure_f1f2_hips()
         cls.cfg = os.path.join(cls.tmp, "cfg.json")
         json.dump({"schema_version": "1",
                    "inputs": {"lights": [os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2", "F1.hips"),

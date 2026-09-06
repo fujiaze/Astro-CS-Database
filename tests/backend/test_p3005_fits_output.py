@@ -12,11 +12,13 @@ import subprocess
 import tempfile
 import unittest
 
+from tests.backend.fixture_common import ensure_f1f2_hips  # noqa: E402
+
 import numpy as np
 from astropy.io import fits
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EXE = os.path.join(REPO, "run", "temp", "astrocs")
+EXE = os.path.join(REPO, "build", "astrocs")
 
 
 class TestP3005FitsOutput(unittest.TestCase):
@@ -24,6 +26,7 @@ class TestP3005FitsOutput(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="p3005_")
         cls.hips = os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2", "F1.hips")
+        ensure_f1f2_hips()
         assert os.path.isdir(cls.hips)
 
     def _run(self, out, bitpix):
