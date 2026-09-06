@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "astrocs://astrocs/config/module-dll-contract/v1",
   "title": "AstroCS Windows 产品拓扑与 DLL 边界合同（ARC-001）",
-  "description": "机器可校验的 DLL 产品边界合同：唯一责任、依赖方向、导出入口、host service、CMake target 计划与安装树一一对应。冻结现状权威 = ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7 控制包 03_TARGET_PRODUCT_AND_ARCHITECTURE.md §4/§4.1、12_DLL_ABI_AND_LOADER_STANDARD.md、tasks/MODULE_MIGRATION_MATRIX.csv。目标版本 0.11.0-alpha.1；入口统一 astrocs_module_query_v1。",
+  "description": "机器可校验的 DLL 产品边界合同：唯一责任、依赖方向、导出入口、host service、CMake target 计划与安装树一一对应。冻结现状权威 = ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7 控制包 03_TARGET_PRODUCT_AND_ARCHITECTURE.md §4/§4.1、12_DLL_ABI_AND_LOADER_STANDARD.md、tasks/MODULE_MIGRATION_MATRIX.csv。目标版本 0.11.0-alpha.2；入口统一 astrocs_module_query_v1。",
   "type": "object",
   "required": [
     "contract_id",
@@ -20,7 +20,7 @@
     "contract_id": { "const": "CONTRACT-ARC001-DLL-BOUNDARY-V1" },
     "contract_version": { "const": 1 },
     "doc_status": { "const": "ACTIVE_NORMATIVE" },
-    "target_version": { "const": "0.11.0-alpha.1" },
+    "target_version": { "const": "0.11.0-alpha.2" },
     "entrypoint_abi": { "const": "astrocs_module_query_v1" },
     "dll_units": {
       "type": "array",

@@ -23,7 +23,7 @@ extern "C" {
 
 /* echo 模块静态标识 (module.yaml / product manifest / DLL descriptor 三方一致) */
 #define ASTROCS_ECHO_MODULE_ID "astrocs.conformance.echo"
-#define ASTROCS_ECHO_MODULE_VERSION "0.11.0-alpha.1"
+#define ASTROCS_ECHO_MODULE_VERSION "0.11.0-alpha.2"
 #define ASTROCS_ECHO_ABI_VERSION 1u
 #define ASTROCS_ECHO_BUILD_ID "ABI-005-echo"
 

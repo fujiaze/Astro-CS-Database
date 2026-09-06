@@ -1582,3 +1582,4 @@
 {"sha": "f32b403189deb3f348cad093d6b2a8461b63ca04", "subject": "fix(quality): CON-DOC-SYMBOLS 符号对账 7 项收敛 + ledger 增量补登（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-06T23:07:18+08:00"}
 {"sha": "5e457d425fc81c70a29a7d81d0cb85b4f0a47062", "subject": "fix(hosted): 浅克隆 checkout/zlib static 库名/CLI-PRESET 断言同步/THREAD-BUDGET 登记（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-06T23:12:32+08:00"}
 {"sha": "efd15baab026d541548f1856d73390ddf94a688e", "subject": "fix(ci): bootstrap 工具链 floor 前缀幂等化（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-06T23:20:47+08:00"}
+{"sha": "0d548519c5e7119b037760a840e97734eca5fc2e", "subject": "fix(checkers/tests): UT-VERSION 版本单源收敛 66 处漂移（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-06T23:21:53+08:00"}

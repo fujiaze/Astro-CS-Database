@@ -188,12 +188,13 @@ def main():
                  yaml_root, base1, "0"])
         check("P1 dump entries=1 loaded", "entries=1" in r.stdout and
               "loaded=1" in r.stdout and "mask=0" in r.stdout, r.stdout)
+        # 版本断言走根 VERSION 单源 (NOOP_VER=_repo_version(), 防 alpha 字面量快照漂移)
         check("P1 module_id三方一致 (manifest/dll/yaml)",
               re.search(r"module_id=astrocs\.conformance\.noop\|"
                         r"mid_dll=astrocs\.conformance\.noop\|"
                         r"mid_yaml=astrocs\.conformance\.noop\|"
-                        r"ver_dll=0\.11\.0-alpha\.1\|"
-                        r"ver_yaml=0\.11\.0-alpha\.1\|", r.stdout), r.stdout)
+                        r"ver_dll=" + re.escape(NOOP_VER) + r"\|"
+                        r"ver_yaml=" + re.escape(NOOP_VER) + r"\|", r.stdout), r.stdout)
         check("P1 hash 实际=登记",
               re.search(r"sha_reg=([0-9a-f]{12})", r.stdout) and
               re.search(r"sha_act=([0-9a-f]{12})", r.stdout) and
