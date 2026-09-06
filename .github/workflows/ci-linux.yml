@@ -35,6 +35,29 @@ jobs:
         id: profile
         shell: bash
         run: python3 ci/select_profile.py --event "$GITHUB_EVENT_NAME" --requested "${{ inputs.profile }}" >> "$GITHUB_OUTPUT"
+      - name: Install deep coverage tools
+        if: steps.profile.outputs.profile == 'linux-deep'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # V8-CI-012 F-D3：hosted 镜像（本批次）缺 llvm-profdata/llvm-cov/pytest，
+          # DEEP-COV-* 双检查 prerequisite 探测失败 → waivable 跳过，coverage 基线缺位。
+          # 工具清单实读依据：DEEP-COV-CPP = cmake + llvm-profdata + llvm-cov
+          # （CMakeLists.txt ASTROCS_BUILD_COVERAGE find_program 硬依赖）；
+          # DEEP-COV-PY = pytest（tools/quality/ci_coverage_runner.py 以 --cov 调用，
+          # 需 pytest-cov 插件随装）。版本对齐 clang-18 时代包名（llvm-18）。
+          # 仅安装验证工具，不联网拉任何业务依赖；apt 双超时保护，最小输出。
+          timeout 240 sudo apt-get update -qq
+          timeout 480 sudo DEBIAN_FRONTEND=noninteractive \
+            apt-get install -y -qq --no-install-recommends \
+            llvm-18 python3-pytest python3-pytest-cov
+          # llvm-18 无后缀可执行在 /usr/lib/llvm-18/bin，GITHUB_PATH 对后续步生效
+          echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
+          # 本步内 PATH 尚未刷新，按落点直接核验；缺失时显式报错不静默
+          test -x /usr/lib/llvm-18/bin/llvm-profdata
+          test -x /usr/lib/llvm-18/bin/llvm-cov
+          command -v pytest
+          echo "deep coverage tools ready: pytest=$(command -v pytest), llvm-18 bin=/usr/lib/llvm-18/bin"
       - name: Run registered checks
         run: python3 ci/run.py --profile "${{ steps.profile.outputs.profile }}"
       - name: Collect bootstrap diagnostics

@@ -1,0 +1,9 @@
+V8-CI-012 派发单验收命令如实执行记录（2026-09-06T06:1xZ，控制节点 /workspace/Astro CS Database @ d416fc9d）
+$ python3 ci/verify_remote_run.py --sha d416fc9df7767b6a407994048203667a0ef8cbaa --workflows linux-ci --profile linux-deep
+stderr/stdout:
+python3: can't open file '/workspace/Astro CS Database/ci/verify_remote_run.py': [Errno 2] No such file or directory
+（python3 exit 2）
+事实：ci/verify_remote_run.py 在 d416fc9d 工作树与全仓均不存在（find/glob 复核 0 命中）；
+ci/ 下现有 verify_actions_lock.py / verify_toolchain.py / verify_workspace_adoption.py 三个 verify_* 工具。
+派发单 ledger_command 与 requirements 第 6 项引用了缺失脚本 → 按 12_FAILURE_POLICY 归 CODE_FAIL（文档/工具链引用与仓库不符），
+等效核验以手工 GitHub API（runs/jobs/artifacts）完成，见 api/ trace 与 DEEP_BASELINE_REPORT.md。

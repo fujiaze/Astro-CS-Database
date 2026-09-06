@@ -1,0 +1,138 @@
+{
+  "changed_from": null,
+  "checks": [
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 122.506,
+      "exit_code": 0,
+      "id": "BUILD-GCC-RELEASE",
+      "log": "logs/BUILD-GCC-RELEASE.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": true
+    },
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 83.032,
+      "exit_code": 0,
+      "id": "DEEP-CLANG-BUILD",
+      "log": "logs/DEEP-CLANG-BUILD.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": true
+    },
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 110.147,
+      "exit_code": 2,
+      "id": "DEEP-SAN-ASAN",
+      "log": "logs/DEEP-SAN-ASAN.log",
+      "reason": "命令非零退出：2",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "FAIL",
+      "waivable": true
+    },
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 192.572,
+      "exit_code": 2,
+      "id": "DEEP-SAN-TSAN",
+      "log": "logs/DEEP-SAN-TSAN.log",
+      "reason": "命令非零退出：2",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "FAIL",
+      "waivable": true
+    },
+    {
+      "dirty_checked": false,
+      "dirty_violations": [],
+      "duration_seconds": 0.0,
+      "exit_code": null,
+      "id": "DEEP-COV-CPP",
+      "log": null,
+      "reason": "prerequisite 未满足（waivable）：依赖工具不在 PATH：llvm-profdata",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "SKIPPED(waivable)",
+      "waivable": true
+    },
+    {
+      "dirty_checked": false,
+      "dirty_violations": [],
+      "duration_seconds": 0.0,
+      "exit_code": null,
+      "id": "DEEP-COV-PY",
+      "log": null,
+      "reason": "prerequisite 未满足（waivable）：依赖工具不在 PATH：pytest",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "SKIPPED(waivable)",
+      "waivable": true
+    },
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.339,
+      "exit_code": 0,
+      "id": "DEEP-COMPLEXITY",
+      "log": "logs/DEEP-COMPLEXITY.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": true
+    }
+  ],
+  "finished_utc": "2026-09-06T06:04:30Z",
+  "generated_by": "ci/run.py (V8-CI-002)",
+  "known_failures": {
+    "baseline_path": null,
+    "count_increased": [],
+    "enabled": false,
+    "expired": [],
+    "invalid": [],
+    "matched": [],
+    "new_failures": [],
+    "signature_changed": []
+  },
+  "profile": "linux-deep",
+  "run_id": "20260906T055600Z-8bbd4068",
+  "schema_version": 1,
+  "selection": {
+    "changed_files_count": 0,
+    "mode": "profile",
+    "selected_by": {
+      "BUILD-GCC-RELEASE": "profile:linux-deep",
+      "DEEP-CLANG-BUILD": "profile:linux-deep",
+      "DEEP-COMPLEXITY": "profile:linux-deep",
+      "DEEP-COV-CPP": "profile:linux-deep",
+      "DEEP-COV-PY": "profile:linux-deep",
+      "DEEP-SAN-ASAN": "profile:linux-deep",
+      "DEEP-SAN-TSAN": "profile:linux-deep"
+    }
+  },
+  "source_sha": "d416fc9df7767b6a407994048203667a0ef8cbaa",
+  "started_utc": "2026-09-06T05:56:00Z",
+  "strict_workspace": true,
+  "summary": {
+    "fail": 2,
+    "fail_detail": {
+      "FAIL": 2
+    },
+    "known_fail": 0,
+    "pass": 3,
+    "skipped_waivable": 2,
+    "total": 7
+  },
+  "verdict": "FAIL"
+}

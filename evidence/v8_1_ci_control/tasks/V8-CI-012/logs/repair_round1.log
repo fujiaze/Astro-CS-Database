@@ -1,0 +1,184 @@
+V8-CI-012 修复轮 1 执行日志（SA-CI-32，mode=repair，本地 Linux amd64 控制节点）
+仓库：/workspace/Astro CS Database @ d416fc9df7767b6a407994048203667a0ef8cbaa（原地工作，零 git 写操作）
+前轮依据：evidence/v8_1_ci_control/tasks/V8-CI-012/DEEP_BASELINE_REPORT.md + TASK_RESULT.json（F-D1..D4）
+
+════════════════════════════════════════════════════════════════
+[0] 任务起点快照（只读记录）
+════════════════════════════════════════════════════════════════
+$ git rev-parse HEAD
+d416fc9df7767b6a407994048203667a0ef8cbaa
+$ git status --porcelain | wc -l
+93
+基线既有 M/D（前轮遗留，本轮不触碰）：
+ D dist/audit/AstroCS_V6_1_AUDIT_20260902T042239Z_faad602da555.zip
+ M docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv
+ M evidence/v8_1_ci_control/tasks/V8-CI-010/{CHANGED_FILES.txt,HOSTED_RUN_REPORT.md,TASK_RESULT.json}
+
+════════════════════════════════════════════════════════════════
+[1] F-D1（P1）：deep_ci_driver.py ASan 分支 CMake 选项错配
+════════════════════════════════════════════════════════════════
+根因实读：
+- tools/quality/deep_ci_driver.py:128-129（修复前）：ASan 分支向外层 configure
+  传 -DASTROCS_ENABLE_SANITIZERS=ON；
+- CMakeLists.txt:511-513：qa-sanitize 自定义目标仅由 ASTROCS_SANITIZE_RUNTIME=ON
+  生成（ASTROCS_SANITIZE_THREAD AND SANITIZE_RUNTIME 互斥单选）；
+- CMakeLists.txt:542-549：目标内部重配置时 TSan→-DASTROCS_ENABLE_TSAN=ON、
+  ASan→-DASTROCS_ENABLE_SANITIZERS=ON（ASan+UBSan 共存走 QA-002 接线，
+  -fsanitize=address,undefined，无独立 SANITIZE_UNDEFINED 变量）；
+  即 TSan 分支（driver 传 SANITIZE_THREAD）为正确同构参照。
+- 故障形态：外层 build 不存在 qa-sanitize 目标 →
+  "No rule to make target 'qa-sanitize'" → exit 2（hosted DEEP-SAN-ASAN FAIL 实证）。
+
+修复 diff（tools/quality/deep_ci_driver.py，+8/-1）：
+- cmd_qa_sanitize cache 三元组：ASan 分支改传 -DASTROCS_SANITIZE_RUNTIME=ON；
+- 补注释说明 QA-006 两层接线（外层定义目标、内层 QA-002 旗标）。
+
+单测（ci/tests/test_deep_profiles.py +53）：
+- test_driver_qa_sanitize_cache_flag_sanitizer_runtime：注入 run_step 捕获
+  configure argv，断言含 -DASTROCS_SANITIZE_RUNTIME=ON、不含 ENABLE_SANITIZERS/
+  SANITIZE_THREAD；qa-target 步目标为 qa-sanitize（非 tsan）。
+- test_driver_qa_sanitize_cache_flag_tsan_unchanged：TSan 分支仍传
+  SANITIZE_THREAD=ON（基线行为不回归，同构交叉印证）。
+$ python3 -m unittest ci.tests.test_deep_profiles
+Ran 22 tests in 1.693s
+OK
+
+════════════════════════════════════════════════════════════════
+[2] F-D3（P2）：hosted coverage 双检查工具缺位（ENV_FAIL）
+════════════════════════════════════════════════════════════════
+工具需求清单实读结果（决定安装清单的唯一依据）：
+- DEEP-COV-CPP（ci/checks.json prerequisite_tools=["cmake","llvm-profdata","llvm-cov"]，
+  command=deep_ci_driver.py coverage-cpp）：
+  deep_ci_driver.py configure 传 -DASTROCS_BUILD_COVERAGE=ON →
+  CMakeLists.txt:516-521 find_program(llvm-profdata/llvm-cov) 缺一即
+  FATAL_ERROR；报告合并走 cmake/qa_coverage_report.sh（llvm 工具链）。
+  → 需 llvm-profdata + llvm-cov（同包 llvm-18）。
+- DEEP-COV-PY（prerequisite_tools=["pytest"]，command=ci_coverage_runner.py）：
+  tools/quality/ci_coverage_runner.py:57-66 以
+  python3 -m pytest --cov=lib --cov=cli --cov=tools --cov-branch 运行
+  → 除 pytest 外隐式依赖 pytest-cov 插件（无可执行名，不进
+  prerequisite_tools——run.py:443-445 用 shutil.which 探测，
+  which("pytest-cov") 恒 None 会造成永久 SKIPPED 的新缺陷，故不登记）。
+- gcov/lcov 不在依赖面（C++ 覆盖为 LLVM source-based 路线）。
+
+改动 1（.github/workflows/ci-linux.yml，+23）：
+- 新增步 "Install deep coverage tools"，插于 Select profile 之后、
+  Run registered checks 之前；
+- 条件 if: steps.profile.outputs.profile == 'linux-deep'（main push 不安装）；
+- run: |
+    timeout 240 sudo apt-get update -qq
+    timeout 480 sudo DEBIAN_FRONTEND=noninteractive \
+      apt-get install -y -qq --no-install-recommends \
+      llvm-18 python3-pytest python3-pytest-cov
+    echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
+    test -x /usr/lib/llvm-18/bin/llvm-profdata
+    test -x /usr/lib/llvm-18/bin/llvm-cov
+    command -v pytest
+- 版本对齐 clang-18 时代包名 llvm-18（hosted clang 18.1.3 同代）；
+  仅安装验证工具，不联网拉业务依赖；update/install 双 timeout；-qq 最小输出；
+  本步内 PATH 未刷新故按落点 test -x 核验，GITHUB_PATH 对后续步生效
+  （prerequisite 探测发生在下一步 Run registered checks）。
+
+改动 2（ci/toolchain.policy.json，+20）：
+- linux_hosted 增补 deep_coverage_tools 登记：apt_packages / path_tools /
+  path_tool_source（/usr/lib/llvm-18/bin 入 GITHUB_PATH；pytest 在 /usr/bin）/
+  module_tools=["pytest-cov"]（含不登记进 prerequisite_tools 的机制说明）/
+  consumers（两检查依赖面）/ observed_from（ubuntu-24.04 image_batch
+  20260831.293.1，llvm 18.1.3，minimum floor 语义）。
+- bootstrap.py check_linux 只按名读键，未知键透传不受影响（实测 --json OK）。
+
+改动 3（ci/checks.json）：零改动。
+- DEEP-COV-CPP 已登记 cmake/llvm-profdata/llvm-cov；DEEP-COV-PY 已登记 pytest；
+- 曾试追加 pytest-cov 后撤销：which 探测机制下必为永久 SKIPPED（见上）；
+- 曾试向 DEEP-COV-CPP 追加 pytest 后撤销：实读 driver coverage-cpp 路径
+  仅 cmake/ctest/llvm 工具链，无 pytest 依赖，最小改动原则不扩面。
+
+单测（ci/tests/test_deep_profiles.py TestDeepCoverageToolsInstall）：
+- test_install_step_gated_on_deep_profile：安装步存在、deep 门控、
+  位于 Select profile 与 Run registered checks 之间、GITHUB_PATH 落点、
+  包清单与 policy 一致、双 timeout、无凭据字面量；
+- test_policy_registers_deep_coverage_tools：policy deep_coverage_tools
+  字段与 checks.json 两检查 prerequisite_tools 逐一对照。
+
+════════════════════════════════════════════════════════════════
+[3] F-D4（P2）：新建 ci/verify_remote_run.py（stdlib-only）
+════════════════════════════════════════════════════════════════
+CLI 合同：
+  python3 ci/verify_remote_run.py --sha <40hex> --workflows <name>...
+      [--profile <id>] [--timeout 15] [--repo owner/repo] [--offline] [--json]
+- workflow 键唯一指认：数字 id / path / 文件名 / 主干 / name 全名精确匹配，
+  未中则词集包含唯一匹配（台账写法 "linux-ci" 以 {linux,ci} 唯一指认
+  ci-linux.yml，name "AstroCS Linux CI"）；0/多匹配 → 用法错误 exit 3。
+- run 选取：GET workflows/{id}/runs?head_sha=<sha>，
+  event 优先 workflow_dispatch > push，同 event 取 API 序最前（最新）。
+- 核验：run 存在、head_sha 匹配、status=completed、jobs 逐个
+  conclusion==success；--profile 时经 artifacts 列表→名称含 SHA 的
+  artifact zip（内存解压）→ CI_RESULT.json 的 profile 字段一致性
+  （summary 仅透传，不判阈值）。
+- 仓库标识：--repo > GITHUB_REPOSITORY > git remote origin（只读）。
+- Exit code（与 verify_actions_lock.py 同风格）：
+  0=PASS；1=有失败 verdict（run 缺失/未完成、sha 不符、job 失败、
+  profile 证据不一致/不可判）；2=API/环境（网络、非 2xx、仓库不可解析、
+  artifact 下载失败）；3=用法错误（参数形态、键无法唯一解析）。
+- --offline 结构模式：仅校验参数并输出报告契约，零网络。
+- 凭据：仅环境 GITHUB_TOKEN → Authorization 头内联；零落盘（无文件写入）；
+  token 不进 stdout/stderr；中文报错；请求带 --timeout（默认 15s）。
+- 传输接缝 _http_get/_http_get_bytes 模块函数可注入（单测 monkeypatch，
+  不做真网络）。
+
+单测 ci/tests/test_verify_remote_run.py（22 用例，fixture 假 API）：
+离线 5（契约/坏 sha/缺 workflows/坏 timeout/零触网）；在线 10（dispatch 优先、
+push 回退、无 run、head_sha 不符、未完成、job 失败、profile 不一致、
+CI_RESULT 缺失、artifact 缺失、无 --profile 不请求 zip）；
+API/用法 5（URLError→2、非 2xx→2、键无匹配→3、键歧义→3、--repo 非法→3）；
+凭据纪律 2（Authorization 仅 env token 注入、token 不进输出）。
+$ python3 -m unittest ci.tests.test_verify_remote_run
+Ran 22 tests in 0.320s
+OK
+CLI 冒烟：
+$ python3 ci/verify_remote_run.py --offline --sha d416fc9d... --workflows linux-ci --profile linux-deep
+verify_remote_run: OK linux-ci -> run=None event=None status=None conclusion=None
+verify_remote_run: PASS (mode=offline, workflows=1)   # exit 0
+$ python3 ci/verify_remote_run.py --offline --sha xyz --workflows linux-ci
+verify_remote_run: 用法错误: --sha 必须是 40 位完整 commit SHA（小写 hex）  # exit 3
+（在线核验待修复项入 main 后于 hosted/控制节点按台账命令实测，本仓库容器不出网）
+
+════════════════════════════════════════════════════════════════
+[4] 验收实测（逐条）
+════════════════════════════════════════════════════════════════
+(1) validate_registry --strict：
+$ python3 ci/validate_registry.py --registry ci/checks.json --strict
+{"checks": 80, "errors": [], "error_count": 0, "verdict": "PASS"}  exit 0
+(2) unittest 全绿（基线口径 = ci/tests discover；基线 239 → 265，+26）：
+$ python3 -B -m unittest discover -s ci/tests -t ci/tests
+Ran 265 tests in 26.459s
+OK
+（增量构成：driver 2 + verify_remote_run 22 + 安装步/policy 守卫 2）
+(3) plan-only 计数不变：
+$ python3 ci/run.py --profile fast --plan-only          → selected_count = 57
+$ python3 ci/run.py --profile linux-main --plan-only    → selected_count = 71
+$ python3 ci/run.py --profile linux-deep --plan-only    → selected_count = 7
+$ python3 ci/run.py --profile windows-main --plan-only  → selected_count = 61
+(4) verify_actions_lock --offline：
+$ python3 ci/verify_actions_lock.py --offline
+verify_actions_lock: PASS (offline, 4 entries)          exit 0
+(5) git diff --stat（本轮引入的 tracked 改动恰为 4 文件 + 2 新增脚本/测试；
+    工作树其余 M/D 均为任务起点快照既有基线噪声，未触碰）：
+ .github/workflows/ci-linux.yml  | 23 ++++++++++++++++++
+ ci/tests/test_deep_profiles.py  | 53 ++++++++++++++++++++++++++++++ + 2 守卫
+ ci/toolchain.policy.json        | 20 ++++++++++++++++
+ tools/quality/deep_ci_driver.py |  8 ++++++-
+新增（untracked）：ci/verify_remote_run.py、ci/tests/test_verify_remote_run.py、
+本轮证据 evidence/v8_1_ci_control/tasks/V8-CI-012/{logs/repair_round1.log, 本文件同目录更新}
+ci/checks.json：零改动（git status 干净）。
+(6) ci/tests stdout 纯净性：JSON 泄漏修复后 stdout 无杂散报告
+    （grep -c '^{}' = 0），保证 UT-OUTPUT 解析面不受污染。
+
+════════════════════════════════════════════════════════════════
+[5] 纪律
+════════════════════════════════════════════════════════════════
+- 零 git 写操作（无 add/commit/push/branch/stash；git checkout -- ci/checks.json
+  为工作树恢复用途，未改 HEAD/索引——该文件未 add 过）；
+- 本容器不出网，无任何真实 GitHub API 调用（verify_remote_run 仅离线/注入测试）；
+- 所有外部命令带 timeout；凭据零使用零落盘；
+- 禁改面（command/timeout/science/工程约束）未触碰。

@@ -19,6 +19,26 @@
     "cmake": "3.31.6",
     "generator": "Ninja",
     "acr": false,
+    "deep_coverage_tools": {
+      "purpose": "V8-CI-012 F-D3 登记：linux-deep coverage 双检查工具在 hosted 镜像（本批次）缺位，由 ci-linux.yml 安装步补齐后 DEEP-COV-* 才可实跑",
+      "installed_by": "ci-linux.yml step 'Install deep coverage tools'（profile=linux-deep 时执行；仅安装验证工具，不拉业务依赖）",
+      "apt_packages": ["llvm-18", "python3-pytest", "python3-pytest-cov"],
+      "path_tools": ["llvm-profdata", "llvm-cov", "pytest"],
+      "path_tool_source": "llvm-18 无后缀二进制位于 /usr/lib/llvm-18/bin（安装步加入 GITHUB_PATH）；pytest 位于 /usr/bin",
+      "module_tools": ["pytest-cov"],
+      "module_tool_note": "pytest-cov 仅为 pytest 插件（无可执行名），故不登记进 checks.json prerequisite_tools（shutil.which 探测机制不适用），由安装步保证",
+      "consumers": {
+        "DEEP-COV-CPP": "CMakeLists.txt ASTROCS_BUILD_COVERAGE find_program(llvm-profdata/llvm-cov) + cmake/qa_coverage_report.sh",
+        "DEEP-COV-PY": "tools/quality/ci_coverage_runner.py（pytest --cov=lib/cli/tools 需 pytest-cov）"
+      },
+      "observed_from": {
+        "image": "ubuntu-24.04",
+        "image_batch": "20260831.293.1",
+        "observed_utc": "2026-09-06",
+        "llvm": "18.1.3",
+        "semantics": "llvm-18/pytest 为最低要求下限（minimum floor），非精确锁定"
+      }
+    },
     "observed_from": {
       "image": "ubuntu-24.04",
       "image_batch": "20260831.293.1",

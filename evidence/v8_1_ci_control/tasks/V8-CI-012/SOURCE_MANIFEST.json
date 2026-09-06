@@ -1,0 +1,106 @@
+{
+ "schema_version": 1,
+ "purpose": "V8-CI-012 观察域源清单（mode=read）：登记本次 hosted 观察所依赖的 CI 链源文件在源 SHA 下的哈希，供基线复核；参照 V8-CI-006 SOURCE_MANIFEST 语义（git 路径+SHA256，仅登记不复制）",
+ "generated_utc": "2026-09-06T06:17Z",
+ "generated_by": "SA-CI-32 (V8-CI-012)",
+ "source_sha": "d416fc9df7767b6a407994048203667a0ef8cbaa",
+ "note": "hosted artifact（linux-ci-d416fc9d）本身不含 SOURCE_MANIFEST.json（打包仅 artifacts/ci/ 下 CI_RESULT/checks/logs）；本文件为控制节点观察域补充登记，哈希经 git show HEAD:<path> 计算与工作树无关",
+ "files": [
+  {
+   "path": ".github/workflows/ci-linux.yml",
+   "bytes": 3409,
+   "sha256": "128465e5abc4c992fc521aa3fc51bee24e4ff8523b43a203504686635084345f",
+   "git_blob_sha1": "eadfb5c7995cef277754a338f5c4d3af9257bc1f"
+  },
+  {
+   "path": "ci/run.py",
+   "bytes": 47932,
+   "sha256": "3b0aa00147d26517b2e911913e711abe83324548dd6c055ee2a42b2b638b0e99",
+   "git_blob_sha1": "39d094a5df5e03f5822d930782dcc2b63824a4d9"
+  },
+  {
+   "path": "ci/select_profile.py",
+   "bytes": 3836,
+   "sha256": "23fac7e0ea55828d96d1479fd0bda08e7b2859bbfa1198b8316dc643eed71bc0",
+   "git_blob_sha1": "b7864869f68c04ef3af899ffd1c9242221f882dc"
+  },
+  {
+   "path": "ci/bootstrap.py",
+   "bytes": 16021,
+   "sha256": "d4a57b6ca840c566512ab39d29d3d7d7a769cd0b0063b7c48bcfe9ced4e46c6a",
+   "git_blob_sha1": "314e2328cfb09195bdd737c140832338f8f17512"
+  },
+  {
+   "path": "ci/resource_monitor.py",
+   "bytes": 3647,
+   "sha256": "0ff80104f0d076c933e2a5684919ad747545bfbe1b2df41c1b0c80b2e847045c",
+   "git_blob_sha1": "0b335273c4039c2adfaf82ab9df73365b86ddb75"
+  },
+  {
+   "path": "ci/checks.json",
+   "bytes": 48500,
+   "sha256": "1b5ebfd2564136aad3614f3a622696fdb3962c15fead78197549f9db94905059",
+   "git_blob_sha1": "b0d89f3a6ab1e6bad43f6a47a065f3bfe1f4ba13"
+  },
+  {
+   "path": "ci/checks.schema.json",
+   "bytes": 2398,
+   "sha256": "d02f2f691399d9648b34dcd736414707f97dead7903edd8758b30685b9a1563a",
+   "git_blob_sha1": "030390313ed38e2024b64c8b8c65897ef3bbd70c"
+  },
+  {
+   "path": "ci/ci_result.schema.json",
+   "bytes": 709,
+   "sha256": "91fba1dc6955f0ecfd73b97383ff065c0c455a10202c964960a0c8ba54911933",
+   "git_blob_sha1": "def85862ca57abd52960e44b24f6ce135a5118bc"
+  },
+  {
+   "path": "ci/toolchain.policy.json",
+   "bytes": 1655,
+   "sha256": "a0239b6245b27d1593762757e5b0af5789d0bf6ec6c964c348aedf80a5999314",
+   "git_blob_sha1": "dff68cbc4bfbd3d689f79ee879b582cdf85540da"
+  },
+  {
+   "path": "ci/toolchain.lock.json",
+   "bytes": 4496,
+   "sha256": "4743ff800ed428817033a80fd64821328a57abe676f92c3f0fe53e7d02329893",
+   "git_blob_sha1": "59d4633d7584db4e7d4f74dd8be199148493b14c"
+  },
+  {
+   "path": "ci/actions.lock.json",
+   "bytes": 1630,
+   "sha256": "3dfd2bee6a2a5d055c78ff9922ac9d485847ac21530e930dc95defc463d6c484",
+   "git_blob_sha1": "d004f33ce0aa14114594cd4dcef2abc9d844f71c"
+  },
+  {
+   "path": "tools/quality/deep_ci_driver.py",
+   "bytes": 10225,
+   "sha256": "2ab054b24cdb781441b670d4464be240d44d0e778994bfa645033a580fd1686f",
+   "git_blob_sha1": "e9f96ec93e331e81178b88e5a4b6abc47296aa08"
+  },
+  {
+   "path": "tools/quality/check_complexity.py",
+   "bytes": 5696,
+   "sha256": "e991c5863849f70ee5ef06807ea23540663d3d92858836d52ed0a441cd077338",
+   "git_blob_sha1": "741fa5fe015383a4a5621e2f10f5d5eaed2b7280"
+  },
+  {
+   "path": "tools/quality/ci_coverage_runner.py",
+   "bytes": 4899,
+   "sha256": "d2f3bf14b3e9a7722084bd5be7c0262a5729121fa4eba54f60a1da9ffcd069b8",
+   "git_blob_sha1": "7f0f3ee185b2c2bfaec9a5d7d26ba50d6d2a14ac"
+  },
+  {
+   "path": "CMakeLists.txt",
+   "bytes": 28942,
+   "sha256": "2259f7aafaaca359e2cd923944b6ace97381acefab295235500b78f2a1a87959",
+   "git_blob_sha1": "d51018f321e73f1fb238bb171f0c0bb7fd876e39"
+  },
+  {
+   "path": "cmake/qa_coverage_report.sh",
+   "bytes": 1262,
+   "sha256": "f5dd7bd0048cade3d0987503307ca39a955624ebc86d1acb3e0eccf78ab61902",
+   "git_blob_sha1": "be7503efa90786e16553aa170a870f977b5d0275"
+  }
+ ]
+}
