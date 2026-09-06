@@ -35,17 +35,24 @@ def main():
             if not any(x in srcs for x in ("CFITSIO", "AIO", "DRIZZLE", "HISS", "SAMPLER")):
                 errors.append(f"{cm.name}: 非豁免源抑制 {srcs.strip()[:60]}")
     # 生产警告计数 (重新编译 phase1 模块)；构建目录缺失时结构性跳过
-    # （windows runner 无 build/root-cmake，警告计数检查属 linux 构建面）。
-    build_dir = REPO / "build" / "root-cmake"
-    if not (build_dir / "Makefile").exists() and not build_dir.exists():
-        print("QA-001_SKIP: build/root-cmake 缺失（非 linux 构建环境），仅静态检查")
+    # （windows runner 无构建树；探测顺序 build/root-cmake → build/，
+    #   适配当前 Ninja 单配置布局 build/）。
+    build_dir = None
+    for cand in (REPO / "build" / "root-cmake", REPO / "build"):
+        if (cand / "Makefile").exists() or (cand / "build.ninja").exists():
+            build_dir = cand
+            break
+    if build_dir is None:
+        print("QA-001_SKIP: 无可用构建树 (build/root-cmake 与 build/ 均缺失), 仅静态检查")
         if errors:
             print("QA-001_WARN_VIOLATION:")
             for e in errors: print("  " + e)
             return 1
         return 0
+    rel_src = REPO / "lib" / "phase1" / "noise" / "noise_model.cpp"
+    rel_src.touch()
     r = subprocess.run(["bash","-c",
-        "cd "+str(REPO)+" && touch lib/phase1/noise/noise_model.cpp && make -C build/root-cmake astrocs 2>&1 "
+        "cd "+str(REPO)+" && cmake --build "+str(build_dir.relative_to(REPO))+" --target astrocs 2>&1 "
         "| grep -v 'WSL\\|适用于 Linux' | grep -c 'warning:' || true"],
         capture_output=True, text=True, timeout=600)
     warn = r.stdout.strip()

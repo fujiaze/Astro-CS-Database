@@ -19,8 +19,14 @@ def main():
         p = REPO / src
         if p.exists():
             pass  # 源码保留 (LEG-002), 生产不链
-    bin_path = REPO / "build" / "root-cmake" / "astrocs"
-    if bin_path.exists():
+    # 构建目录探测: build/root-cmake → build/ (适配当前 Ninja 单配置布局)
+    bin_path = None
+    for rel in ("build/root-cmake/astrocs", "build/astrocs", "build/cli/astrocs"):
+        p = REPO / rel
+        if p.exists():
+            bin_path = p
+            break
+    if bin_path is not None:
         out = subprocess.run(["nm", str(bin_path)], capture_output=True, text=True).stdout.lower()
         for sym in ("orchestrat", "pipeline_engine_run"):
             if sym in out:
