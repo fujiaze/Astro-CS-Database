@@ -93,7 +93,7 @@ def validate_one(doc: dict, path: Path) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--schema", type=Path,
-                        default=Path("工程控制/AstroCS_V6_1_REWORK_CONTROL_20260831/schemas/task_result.schema.json"))
+                        default=Path(__file__).resolve().parents[2] / "schemas" / "task_result.schema.json")
     parser.add_argument("--results-dir", type=Path, default=Path("evidence/v6_1_rework/tasks"))
     args = parser.parse_args(argv)
 
