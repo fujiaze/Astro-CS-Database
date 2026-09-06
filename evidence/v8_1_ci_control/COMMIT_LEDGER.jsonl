@@ -1580,3 +1580,4 @@
 {"sha": "6cf2a327ffcf1140db053ea150103079b6c92f19", "subject": "fix(governance): RECONCILE-STATE 台账同步 + UT-BACKEND/UT-CLI timeout 治理 + test_05 mutation 修复（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-06T22:59:04+08:00"}
 {"sha": "ddd6d0be9ad72e258e6fc6506d7a0d8c645d92b3", "subject": "fix(checkers): reconcile_state commit_ledger 自参照豁免语义（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-06T23:04:15+08:00"}
 {"sha": "f32b403189deb3f348cad093d6b2a8461b63ca04", "subject": "fix(quality): CON-DOC-SYMBOLS 符号对账 7 项收敛 + ledger 增量补登（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-06T23:07:18+08:00"}
+{"sha": "5e457d425fc81c70a29a7d81d0cb85b4f0a47062", "subject": "fix(hosted): 浅克隆 checkout/zlib static 库名/CLI-PRESET 断言同步/THREAD-BUDGET 登记（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-06T23:12:32+08:00"}
