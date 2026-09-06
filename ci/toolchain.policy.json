@@ -16,7 +16,8 @@
     "architecture": "x86_64",
     "primary_compiler": "gcc-14",
     "secondary_compiler": "clang-18",
-    "cmake": "3.31.6",
+    "cmake": ">=3.31.6",
+    "cmake_semantics": "最低要求下限（minimum floor）非精确锁定；hosted 镜像实测 3.31.6（V8-CI-010 HOSTED_RUN_REPORT），host lock 同值是独立实测非复制（verify_toolchain 哨兵按等值检查，floor 前缀使其恒可区分）",
     "generator": "Ninja",
     "acr": false,
     "deep_coverage_tools": {

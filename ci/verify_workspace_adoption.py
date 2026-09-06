@@ -197,22 +197,33 @@ def main(argv: Optional[List[str]] = None) -> int:
                             f"[FAIL] REMOTE_RELATION.{key}={recorded!r} 与实测 {actual} 不一致"
                         )
 
-            # JSON 内部一致性
+            # JSON 内部一致性：SHA 字段语义 = adoption 记录时点的仓库状态。
+            # 被追踪 JSON 无法记录其自身提交的 SHA（自指），main 在收养之后
+            # 正常前进不构成漂移；故合法判定为「记录时点 sha 是当前 HEAD 的
+            # 祖先」（伪造记录或历史重写都会 FAIL），而非与实测 HEAD 等值。
             if remote_data:
                 expect = {
                     "head_sha": head,
                     "local_main_sha": main_ref,
                     "origin_main_sha": origin_main,
                 }
-                mismatch = [
-                    f"{k}: json={remote_data.get(k)!r} actual={v!r}"
-                    for k, v in expect.items()
-                    if remote_data.get(k) != v
-                ]
+                mismatch = []
+                for k, v in expect.items():
+                    recorded = remote_data.get(k)
+                    if not isinstance(recorded, str) or len(recorded) != 40:
+                        mismatch.append(f"{k}: json={recorded!r} 非 40hex")
+                        continue
+                    anc = subprocess.run(
+                        ["git", "merge-base", "--is-ancestor", recorded, head],
+                        cwd=repo_root, capture_output=True, text=True)
+                    if anc.returncode == 0:
+                        print(f"[PASS] REMOTE_RELATION.{k}={recorded[:12]}… 是当前 HEAD 祖先（记录时点合法）")
+                    else:
+                        mismatch.append(f"{k}: json={recorded!r} 不在当前 HEAD 历史 (rc={anc.returncode})")
                 if mismatch:
                     failures.append("[FAIL] REMOTE_RELATION SHA 字段与实测不一致: " + "; ".join(mismatch))
                 else:
-                    print("[PASS] REMOTE_RELATION SHA 字段与实测一致")
+                    print("[PASS] REMOTE_RELATION SHA 字段全部为当前 HEAD 祖先")
 
                 expected_relation = "SYNCED" if (actual_ahead == 0 and actual_behind == 0) else None
                 if expected_relation is not None:

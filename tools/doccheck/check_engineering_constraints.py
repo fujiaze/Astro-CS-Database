@@ -6,9 +6,9 @@
   1. AstroCS_ENGINEERING_CONSTRAINTS.md 存在于仓库根；
   2. 该文件受 Git 跟踪（git ls-files --error-unmatch）；
   3. 文件头 YAML 机器索引块完整（doc_id/status/source_*_sha256/source_main_sha）；
-  4. source_main_sha 与仓库当前 HEAD 或 --base-sha 一致；
+  4. source_main_sha 是当前 HEAD 的祖先提交（--base-sha 给定时改为与其严格相等）；
   5. 给定 --control-root 时，上游 01_OWNER_FROZEN_CONSTRAINTS.md 的 SHA-256
-     与文件头 source_control_sha256 一致（修订关系）；
+     与文件头 source_control_sha256 一致（修订关系）；未给定时结构性跳过；
   6. AGENTS.md 精简指针化：引用约束文件、memory.md、Linux/Windows 角色；
      "Git Bash"/"PowerShell"/"pwsh" 只允许出现在禁止性条款（禁止作为默认开发环境）；
   7. 输出稳定排序 JSON 的 machine_index（本文件登记的机器可读条目）。
@@ -105,14 +105,27 @@ def main() -> int:
                          "missing=" + ",".join(missing) if missing else "ok"))
 
     sha_ok = False
+    sha_detail = ""
     if header.get("source_main_sha"):
-        expected = args.base_sha or head_sha(root)
-        sha_ok = bool(expected) and header["source_main_sha"] == expected
-    results.append(check("source_main_sha_matches", sha_ok,
-                         f"header={header.get('source_main_sha')} expected={args.base_sha or head_sha(root)}"))
+        src = header["source_main_sha"]
+        if args.base_sha:
+            # 显式给定 base-sha：严格相等（外部仲裁模式，保持旧语义）
+            sha_ok = src == args.base_sha
+            sha_detail = f"header={src} expected={args.base_sha}"
+        else:
+            # 默认语义：约束头 source_main_sha 记录冻结时点的 main 提交，
+            # main 之后正常前进不构成漂移；用 merge-base --is-ancestor 判定
+            # 冻结时点是否在当前 HEAD 历史内（sha 伪造或历史被重写都会 FAIL）。
+            r = subprocess.run(
+                ["git", "merge-base", "--is-ancestor", src, "HEAD"],
+                cwd=root, capture_output=True, text=True)
+            sha_ok = r.returncode == 0
+            sha_detail = f"header={src} ancestor_of_HEAD={sha_ok}" + (
+                "" if sha_ok else " (merge-base --is-ancestor rc=%d: sha 不在当前 HEAD 历史)" % r.returncode)
+    results.append(check("source_main_sha_matches", sha_ok, sha_detail))
 
-    upstream_ok = False
-    upstream_detail = "control-root 未提供，跳过上游 hash 校验"
+    upstream_ok = True  # 未提供 --control-root 时结构性跳过（无治理包 ≠ 违规）
+    upstream_detail = "control-root 未提供，结构性跳过（治理包不入库，见检查器 docstring 第 5 条）"
     if args.control_root:
         up = os.path.join(os.path.abspath(args.control_root),
                           header.get("source_control_relpath", ""))
