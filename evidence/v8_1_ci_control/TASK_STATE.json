@@ -2,7 +2,7 @@
   "schema_version": "v8.1",
   "round": "V8.1_EXISTING_WORKSPACE_CI",
   "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
-  "updated_utc": "2026-09-06T12:20:00Z",
+  "updated_utc": "2026-09-06T13:05:00Z",
   "main_sha": "b8a83efa",
   "reconciled_by": {
     "task_id": "V81-ADOPT-003",
@@ -2491,11 +2491,11 @@
     "V8-CI-012": {
       "status": "CLOSED",
       "owner": "SA-CI-32",
-      "commit": "b8a83efa",
+      "commit": "f20e0976684322e1629cd339e3277e8b606bf8a3",
       "pushed": false,
       "closed_utc": "2026-09-06T12:20:00Z",
       "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-012/",
-      "summary": "hosted linux-deep 端到端 4 轮 + 基线冻结（SAN ASan/TSan 业务域失败集合、COMPLEXITY/构建资源数值冻结、coverage 数值待 R6.5）; R6.5 本地收口: F8-b 插桩作用域前移(58 profraw)、F8-c llvm-cov --sources、cpu_profile/task_result/CLI04 三族 untracked 断链 rehome、numpy×6 安装面闭包、F9-c pytest_tail 120; 集成于 54a8f9a7..b8a83efa 六原子 commit"
+      "summary": "hosted linux-deep 端到端 4 轮 + 基线冻结（SAN ASan/TSan 业务域失败集合、COMPLEXITY/构建资源数值冻结、coverage 数值待 R6.5）; R6.5 本地收口: F8-b 插桩作用域前移(58 profraw)、F8-c llvm-cov --sources、cpu_profile/task_result/CLI04 三族 untracked 断链 rehome、numpy×6 安装面闭包、F9-c pytest_tail 120; 集成于 54a8f9a7..b8a83efa 六原子 commit；R7 批次2/3 追加收口（断链修复+共享 fixture 制备，54a8f9a7..f20e0976）"
     }
   },
   "adopt_seed_tasks": {
