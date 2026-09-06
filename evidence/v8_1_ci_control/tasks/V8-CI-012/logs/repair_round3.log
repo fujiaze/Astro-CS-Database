@@ -1,0 +1,79 @@
+# V8-CI-012 修复轮 3（F8/F9）执行日志 — SA-CI-32
+base_sha: 485b8b86d7130f067e85b90aa04da36407983801 (HEAD 不动，无 git 写操作)
+executed_utc: 2026-09-06T08:58Z
+
+## [1] F8 修复：deep_ci_driver.py cmd_coverage_cpp configure 强制 clang
+$ git diff --stat tools/quality/deep_ci_driver.py
+ tools/quality/deep_ci_driver.py | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+$ grep -n 'CMAKE_C_COMPILER' tools/quality/deep_ci_driver.py
+111:        cache += ["-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++"]
+135:             "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++",
+167:             "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++"]
+
+## [2] F9-a 修复：ci_coverage_runner.py pytest_tail 采集
+ tools/quality/ci_coverage_runner.py | 45 ++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 44 insertions(+), 1 deletion(-)
+
+## [3] 新增单测（5）
+ ci/tests/test_deep_profiles.py | 96 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 96 insertions(+)
+
+## [4] F9-b 本地定性：pytest 不可用证据 + stdlib 等价收集探针
+$ python3 -m pytest --version
+/usr/bin/python3: No module named pytest
+  (本机 /usr/bin/python3 无 pytest 模块且无 pip/ensurepip → 无法装 pytest；
+   以 run/repair_round3/f9b_collect_probe.py stdlib 等价复刻 pytest collection
+   import 语义，输出落 logs/repair_round3_f9b_collect_probe.json)
+
+## [5] 本机真实形态实跑 ci_coverage_runner.py（无 pytest → exit 1，pytest_tail 捕获）
+    "timed_out": false,
+    "stderr_tail": "/usr/bin/python3: No module named pytest"
+  },
+  "pytest_tail": [
+    "/usr/bin/python3: No module named pytest"
+  ],
+  "exit_code": 1
+}
+
+## [6] 验收：validate_registry --strict
+{
+  "registry": "/workspace/Astro CS Database/ci/checks.json",
+  "strict": true,
+  "checks": 80,
+  "errors": [],
+  "error_count": 0,
+  "verdict": "PASS"
+}
+
+## [7] 验收：plan-only 数值口径
+  fast: 57
+  linux-main: 71
+  linux-deep: 7
+  windows-main: 61
+
+## [8] 验收：unittest 全量
+Ran 280 tests in 26.497s
+
+OK
+
+## [9] git diff --stat（全部本轮改动面）
+ ci/tests/test_deep_profiles.py                     |   96 +
+ ...CS_V6_1_AUDIT_20260902T042239Z_faad602da555.zip |  Bin 4243274 -> 0 bytes
+ .../PRODUCTION_EXECUTION_INVENTORY.csv             |   43 +-
+ .../tasks/V8-CI-010/CHANGED_FILES.txt              |   12 +
+ .../tasks/V8-CI-010/HOSTED_RUN_REPORT.md           |   83 +
+ .../tasks/V8-CI-010/TASK_RESULT.json               | 3172 +++++++++++---------
+ .../tasks/V8-CI-012/CHANGED_FILES.txt              |   24 +
+ .../tasks/V8-CI-012/DEEP_BASELINE_REPORT.md        |  108 +
+ .../tasks/V8-CI-012/TASK_RESULT.json               |  119 +
+ tools/quality/ci_coverage_runner.py                |   45 +-
+ tools/quality/deep_ci_driver.py                    |    9 +-
+ 11 files changed, 2294 insertions(+), 1417 deletions(-)
+
+## [10] 本轮实际改动面（排除前轮遗留未提交项；round3 净改动）
+ ci/tests/test_deep_profiles.py      | 96 +++++++++++++++++++++++++++++++++++++
+ tools/quality/ci_coverage_runner.py | 45 ++++++++++++++++-
+ tools/quality/deep_ci_driver.py     |  9 +++-
+ 3 files changed, 148 insertions(+), 2 deletions(-)
+新增（本轮）：evidence/v8_1_ci_control/tasks/V8-CI-012/logs/repair_round3.log、logs/repair_round3_f9b_collect_probe.json、logs/repair_round3_f9b_collect_probe.stderr、run/repair_round3/f9b_collect_probe.py（run/ 全局 ignore，不入 git）

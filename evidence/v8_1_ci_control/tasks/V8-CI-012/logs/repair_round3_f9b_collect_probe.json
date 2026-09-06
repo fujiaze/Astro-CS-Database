@@ -1,0 +1,51 @@
+{
+  "probe": "f9b_collect_probe",
+  "elapsed_s": 0.2,
+  "total": 105,
+  "imported_ok": 98,
+  "failed": 7,
+  "failures": [
+    {
+      "module": "tests.backend.test_cpu_profile",
+      "exc_type": "FileNotFoundError",
+      "exc_line": "FileNotFoundError: [Errno 2] No such file or directory: '/workspace/Astro CS Database/工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/schemas/cpu_profile.schema.json'",
+      "stderr_tail": []
+    },
+    {
+      "module": "tests.backend.test_p2003_seam_oracle",
+      "exc_type": "ModuleNotFoundError",
+      "exc_line": "ModuleNotFoundError: No module named 'numpy'",
+      "stderr_tail": []
+    },
+    {
+      "module": "tests.backend.test_p3005_fits_output",
+      "exc_type": "ModuleNotFoundError",
+      "exc_line": "ModuleNotFoundError: No module named 'numpy'",
+      "stderr_tail": []
+    },
+    {
+      "module": "tests.backend.test_p3006_production_pipeline",
+      "exc_type": "ModuleNotFoundError",
+      "exc_line": "ModuleNotFoundError: No module named 'numpy'",
+      "stderr_tail": []
+    },
+    {
+      "module": "tests.io.test_fits_stream_contract",
+      "exc_type": "ModuleNotFoundError",
+      "exc_line": "ModuleNotFoundError: No module named 'numpy'",
+      "stderr_tail": []
+    },
+    {
+      "module": "tests.io.test_hips_input_contract",
+      "exc_type": "ModuleNotFoundError",
+      "exc_line": "ModuleNotFoundError: No module named 'numpy'",
+      "stderr_tail": []
+    },
+    {
+      "module": "tests.io.test_hips_output_contract",
+      "exc_type": "ModuleNotFoundError",
+      "exc_line": "ModuleNotFoundError: No module named 'numpy'",
+      "stderr_tail": []
+    }
+  ]
+}
