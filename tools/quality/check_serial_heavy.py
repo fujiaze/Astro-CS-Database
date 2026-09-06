@@ -26,8 +26,8 @@ import sys
 
 # 允许串行的 I/O/metadata 白名单: 文件名 → {owner, reason, expiry, test}
 ALLOWLIST: dict[str, dict[str, str]] = {
-    "cli/main.cpp": {"owner": "astrocs-cli", "reason": "CLI 解析/参数/元数据 <5s",
-                     "expiry": "RT-008", "test": "check_cli_command_layer.py"},
+    "cli/commands.cpp": {"owner": "astrocs-cli", "reason": "CLI 解析/参数/元数据 <5s",
+                         "expiry": "RT-008", "test": "check_cli_command_layer.py"},
     "lib/astro_image_io/src/hips/aio_hips_reader.cpp": {
         "owner": "astrocs-io", "reason": "HiPS properties/manifest 解析 <5s",
         "expiry": "P2-005", "test": "io_ownership_test"},
@@ -100,11 +100,12 @@ def scan(repo: pathlib.Path, cmake_path: pathlib.Path) -> list[str]:
         if not base.is_dir():
             continue
         for p in base.rglob("*.cpp"):
-            if p.name == "resource_gate.h" or "resource_gate" not in p.name:
-                txt = read_text(p)
-                if ("evaluate_gate" in txt or "fast_fail_first10s" in txt or
-                        ("below gate (90/85)" in txt and "RESOURCE" in txt and "resource gate failed" in txt)):
-                    gate_caller = True
+            if "resource_gate" in p.name:
+                continue   # gate 判定定义文件本身 (resource_gate.h/.cpp) 不算生产 caller
+            txt = read_text(p)
+            if ("evaluate_gate" in txt or "fast_fail_first10s" in txt or
+                    ("below gate (90/85)" in txt and "RESOURCE" in txt and "resource gate failed" in txt)):
+                gate_caller = True
     if not gate_caller:
         errors.append("resource gate (evaluate_gate/fast_fail_first10s or 90/85 inline) has no production caller")
 
