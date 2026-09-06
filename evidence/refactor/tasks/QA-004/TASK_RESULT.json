@@ -1,55 +1,76 @@
 {
-  "schema": "astrocs.task-result/v1",
-  "task_id": "QA-004",
-  "status": "PASS",
-  "start_commit": "6a7bdb4948448bef54fabfce9e4f7c3ebef7a3b3",
-  "source_commit": "6a7bdb4948448bef54fabfce9e4f7c3ebef7a3b3",
-  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
-  "change_class": "quality",
-  "science_changed": false,
-  "files_changed": [
-    "tools/check_duplication.py",
-    "evidence/refactor/tasks/QA-004/DUPLICATION_REVIEW.md",
-    "evidence/refactor/tasks/QA-004/TASK_RESULT.json",
-    "evidence/refactor/tasks/QA-004/logs/c01.log"
+ "schema": "astrocs.task-result/v1",
+ "task_id": "QA-004",
+ "status": "PASS",
+ "start_commit": "6a7bdb4948448bef54fabfce9e4f7c3ebef7a3b3",
+ "source_commit": "6a7bdb4948448bef54fabfce9e4f7c3ebef7a3b3",
+ "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+ "change_class": "quality",
+ "science_changed": false,
+ "files_changed": [
+  "tools/check_duplication.py",
+  "evidence/refactor/tasks/QA-004/DUPLICATION_REVIEW.md",
+  "evidence/refactor/tasks/QA-004/TASK_RESULT.json",
+  "evidence/refactor/tasks/QA-004/logs/c01.log"
+ ],
+ "commands": [
+  {
+   "command_id": "c01",
+   "timeout_seconds": 120,
+   "exit_code": 0,
+   "log_sha256": "5ed67fcd0a5c4573d159ffb9999ee80840027440c0c014f17b043d99ac979b4b"
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-SCHEDULER",
+   "description": "无第二调度器 (orchestrator/pipeline_engine 符号=0, LEG-002/003 已删职责)",
+   "result": "PASS"
+  },
+  {
+   "id": "T-IO-SINGLE",
+   "description": "I/O 单例 (phase1/2/3 不直连 cfitsio, 经 aio)",
+   "result": "PASS"
+  },
+  {
+   "id": "T-WCS",
+   "description": "WCS 层分离 KEEP (P1 帧/P3 HiPS; 同层无重复)",
+   "result": "PASS"
+  },
+  {
+   "id": "T-CONFIG",
+   "description": "config 按层 KEEP (CLI 命令层 + session 各解析)",
+   "result": "PASS"
+  }
+ ],
+ "metrics": {
+  "duplicate_new": 0,
+  "deleted_schedulers": 2,
+  "ownership": "任务 owner (P1/P2/P3/CLI/IO/CPU)"
+ },
+ "findings": [
+  "QA-004: 重复实现审查完成(DUPLICATION_REVIEW.md): WCS KEEP 层分离/weight KEEP 合同分层/config KEEP 按层/I-O KEEP 单例/scheduler 2 个 DELETE(LEG-002/003 已退); 新发现重复 0; 所有权按控制包任务"
+ ],
+ "created_utc": "2026-08-30T18:26:25Z",
+ "reverify": {
+  "observed_head_sha": "3da0670b1d1ad0f574bba70f96790223f7a9f3c0",
+  "reverify_utc": "2026-09-07T04:45:00Z",
+  "verdict": "PASS",
+  "fixes": [
+   "tools/check_duplication.py: nm 检查的二进制路径探测 build/root-cmake/astrocs→[build/root-cmake, build/, build/cli/] 前缀探测(适配当前布局); 修复后第二调度器符号检查实际执行(orchestrat=0, pipeline_engine_run=0); 扫描规则本身未动"
   ],
   "commands": [
-    {
-      "command_id": "c01",
-      "timeout_seconds": 120,
-      "exit_code": 0,
-      "log_sha256": "5ed67fcd0a5c4573d159ffb9999ee80840027440c0c014f17b043d99ac979b4b"
-    }
+   {
+    "command_id": "c01",
+    "command": "python3 tools/check_duplication.py",
+    "timeout_seconds": 120,
+    "expected_exit_code": 0,
+    "exit_code": 0,
+    "log_path": "run/local/main23_fix/QA004_SUB1.log"
+   }
   ],
-  "tests": [
-    {
-      "id": "T-SCHEDULER",
-      "description": "无第二调度器 (orchestrator/pipeline_engine 符号=0, LEG-002/003 已删职责)",
-      "result": "PASS"
-    },
-    {
-      "id": "T-IO-SINGLE",
-      "description": "I/O 单例 (phase1/2/3 不直连 cfitsio, 经 aio)",
-      "result": "PASS"
-    },
-    {
-      "id": "T-WCS",
-      "description": "WCS 层分离 KEEP (P1 帧/P3 HiPS; 同层无重复)",
-      "result": "PASS"
-    },
-    {
-      "id": "T-CONFIG",
-      "description": "config 按层 KEEP (CLI 命令层 + session 各解析)",
-      "result": "PASS"
-    }
-  ],
-  "metrics": {
-    "duplicate_new": 0,
-    "deleted_schedulers": 2,
-    "ownership": "任务 owner (P1/P2/P3/CLI/IO/CPU)"
-  },
-  "findings": [
-    "QA-004: 重复实现审查完成(DUPLICATION_REVIEW.md): WCS KEEP 层分离/weight KEEP 合同分层/config KEEP 按层/I-O KEEP 单例/scheduler 2 个 DELETE(LEG-002/003 已退); 新发现重复 0; 所有权按控制包任务"
-  ],
-  "created_utc": "2026-08-30T18:26:25Z"
+  "notes": [
+   "HEAD=3da0670b 复验; 历史命令原文按当前仓库布局适配(见 commands[].command); build/root-cmake 为指向 ../build 的适配 symlink(CLI synthetic 测试二进制路径, build/ 在 .gitignore)"
+  ]
+ }
 }

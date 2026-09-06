@@ -1,62 +1,93 @@
 {
-  "schema": "astrocs.task-result/v1",
-  "task_id": "QA-001",
-  "status": "PASS",
-  "start_commit": "38f62f2af7cbea267937ed88cbd0d3aa03c1a24c",
-  "source_commit": "38f62f2af7cbea267937ed88cbd0d3aa03c1a24c",
-  "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
-  "change_class": "quality",
-  "science_changed": false,
-  "files_changed": [
-    "cli/CMakeLists.txt",
-    "tools/check_warning_suppression.py",
-    "evidence/refactor/tasks/QA-001/TASK_RESULT.json",
-    "evidence/refactor/tasks/QA-001/logs/c01.log",
-    "evidence/refactor/tasks/QA-001/logs/c02.log"
+ "schema": "astrocs.task-result/v1",
+ "task_id": "QA-001",
+ "status": "PASS",
+ "start_commit": "38f62f2af7cbea267937ed88cbd0d3aa03c1a24c",
+ "source_commit": "38f62f2af7cbea267937ed88cbd0d3aa03c1a24c",
+ "control_sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+ "change_class": "quality",
+ "science_changed": false,
+ "files_changed": [
+  "cli/CMakeLists.txt",
+  "tools/check_warning_suppression.py",
+  "evidence/refactor/tasks/QA-001/TASK_RESULT.json",
+  "evidence/refactor/tasks/QA-001/logs/c01.log",
+  "evidence/refactor/tasks/QA-001/logs/c02.log"
+ ],
+ "commands": [
+  {
+   "command_id": "c01",
+   "timeout_seconds": 120,
+   "exit_code": 0,
+   "log_sha256": "271b526c27c2a3500c2ac7f8a14be9c4850f1d4235c3ca6168ba20ca51f38c3b"
+  },
+  {
+   "command_id": "c02",
+   "timeout_seconds": 600,
+   "exit_code": 0,
+   "log_sha256": "9de521f385f43f69617502ec6219a5b89ba523193b393b774f17efd30bea7a9f"
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-NO-SUPPRESS",
+   "description": "P2/P3 生产源 -w 抑制移除 (cli/CMakeLists.txt); V6 模块零抑制指令",
+   "result": "PASS"
+  },
+  {
+   "id": "T-ZERO-WARN",
+   "description": "去抑制后 GCC Release 生产构建零警告零错误",
+   "result": "PASS"
+  },
+  {
+   "id": "T-THIRD-PARTY",
+   "description": "-w 仅限第三方豁免 (cfitsio/AIO/drizzle/HISS)",
+   "result": "PASS"
+  },
+  {
+   "id": "T-REGRESSION",
+   "description": "去抑制后全模块 7 组合成测试 PASS",
+   "result": "PASS"
+  }
+ ],
+ "metrics": {
+  "suppressed_prod_srcs": 0,
+  "warnings": 0,
+  "exempt": "cfitsio/AIO/drizzle/HISS"
+ },
+ "findings": [
+  "QA-001: 生产编译警告抑制清零(P2_SRCS/P3_SRCS -w 移除; sampler /EHa 保留去抑制); 去抑制后 GCC Release 生产构建零警告; -w 仅第三方豁免(cfitsio/AIO/drizzle/HISS V5 遗留); 全模块合成回归 PASS"
+ ],
+ "created_utc": "2026-08-30T18:18:04Z",
+ "reverify": {
+  "observed_head_sha": "3da0670b1d1ad0f574bba70f96790223f7a9f3c0",
+  "reverify_utc": "2026-09-07T04:45:00Z",
+  "verdict": "PASS",
+  "fixes": [
+   "tools/check_warning_suppression.py: 构建目录探测 build/root-cmake→[build/root-cmake, build/](适配当前 Ninja 单配置布局, 保留 windows 无构建树 SKIP 语义); 重编译命令 make -C build/root-cmake→cmake --build <dir> --target astrocs(生成器无关); 静态抑制扫描与豁免规则未动"
   ],
   "commands": [
-    {
-      "command_id": "c01",
-      "timeout_seconds": 120,
-      "exit_code": 0,
-      "log_sha256": "271b526c27c2a3500c2ac7f8a14be9c4850f1d4235c3ca6168ba20ca51f38c3b"
-    },
-    {
-      "command_id": "c02",
-      "timeout_seconds": 600,
-      "exit_code": 0,
-      "log_sha256": "9de521f385f43f69617502ec6219a5b89ba523193b393b774f17efd30bea7a9f"
-    }
+   {
+    "command_id": "c01",
+    "command": "python3 tools/check_warning_suppression.py",
+    "timeout_seconds": 120,
+    "expected_exit_code": 0,
+    "exit_code": 0,
+    "log_path": "run/local/main23_fix/QA001_SUB1.log"
+   },
+   {
+    "command_id": "c02",
+    "command": "./build/astrocs test synthetic --group all",
+    "timeout_seconds": 600,
+    "expected_exit_code": 0,
+    "exit_code": 0,
+    "log_path": "run/local/main23_fix/QA001_SUB2.log"
+   }
   ],
-  "tests": [
-    {
-      "id": "T-NO-SUPPRESS",
-      "description": "P2/P3 生产源 -w 抑制移除 (cli/CMakeLists.txt); V6 模块零抑制指令",
-      "result": "PASS"
-    },
-    {
-      "id": "T-ZERO-WARN",
-      "description": "去抑制后 GCC Release 生产构建零警告零错误",
-      "result": "PASS"
-    },
-    {
-      "id": "T-THIRD-PARTY",
-      "description": "-w 仅限第三方豁免 (cfitsio/AIO/drizzle/HISS)",
-      "result": "PASS"
-    },
-    {
-      "id": "T-REGRESSION",
-      "description": "去抑制后全模块 7 组合成测试 PASS",
-      "result": "PASS"
-    }
-  ],
-  "metrics": {
-    "suppressed_prod_srcs": 0,
-    "warnings": 0,
-    "exempt": "cfitsio/AIO/drizzle/HISS"
-  },
-  "findings": [
-    "QA-001: 生产编译警告抑制清零(P2_SRCS/P3_SRCS -w 移除; sampler /EHa 保留去抑制); 去抑制后 GCC Release 生产构建零警告; -w 仅第三方豁免(cfitsio/AIO/drizzle/HISS V5 遗留); 全模块合成回归 PASS"
-  ],
-  "created_utc": "2026-08-30T18:18:04Z"
+  "notes": [
+   "HEAD=3da0670b 复验; 历史命令原文按当前仓库布局适配(见 commands[].command); build/root-cmake 为指向 ../build 的适配 symlink(CLI synthetic 测试二进制路径, build/ 在 .gitignore)",
+   "c02 历史原文 'astrocs test synthetic all'; 本会话 CLI 重构(cli/commands.cpp)后 group 需 --group 旗标, 输出与历史一致(7 tests PASS)",
+   "QA-001_PASS: 生产警告=0(touch noise_model.cpp 重编译验证); 观察: build/asan 全量编译暴露工作树未提交 cli/commands.cpp 3 处 -Wunused-function(不在本 checker 检查面, 属用户工作树状态, 已如实上报)"
+  ]
+ }
 }
