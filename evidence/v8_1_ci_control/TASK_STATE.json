@@ -2,8 +2,8 @@
   "schema_version": "v8.1",
   "round": "V8.1_EXISTING_WORKSPACE_CI",
   "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
-  "updated_utc": "2026-09-06T00:08:19Z",
-  "main_sha": "2c1ffef10b0feb36e779b68e08e7e1b147371c6d",
+  "updated_utc": "2026-09-06T12:20:00Z",
+  "main_sha": "b8a83efa",
   "reconciled_by": {
     "task_id": "V81-ADOPT-003",
     "owner": "SA-ADOPT-31"
@@ -44,13 +44,13 @@
     "WAITING_RESOURCE"
   ],
   "counts": {
-    "CLOSED": 57,
+    "CLOSED": 60,
     "READY": 7,
     "NOT_STARTED": 125,
     "DISPATCHED": 0,
     "FATDUCK_PENDING": 2,
     "WAITING_RESOURCE": 0,
-    "total": 193,
+    "total": 207,
     "v71_total": 191,
     "adopt_seed": 2
   },
@@ -2469,6 +2469,33 @@
       "closed_utc": "2026-09-06T00:08:19Z",
       "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-009/",
       "summary": "13 类负向注入矩阵 36 用例全离线; GAP-G2(R9 hardcoded_core 扫描)/GAP-G3(zip path_escape)守卫补齐, GAP-G1 前台裁决 POLICY 控制面保障; gaps_open=0; 216 tests OK; 集成于 1e50d49e"
+    },
+    "V8-CI-010": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "05f182745f0a6d0ac6e5a2b032417a46a046ea8d",
+      "pushed": true,
+      "closed_utc": "2026-09-06T06:20:00Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-010/",
+      "summary": "hosted linux-main/windows-main push run 验证与修复轮 1-5（error_lines 可观测性、junit 上传、MSVC preset、bootstrap UTF-8）; verdict RUNS_PARTIAL_PROGRESS_THEN_FAILURE_OBSERVED; UT-BACKEND hosted 2 核 TIMEOUT(-9) 登记为后续波次; 集成于 05f18274+证据轮 5 刷新"
+    },
+    "V8-CI-011": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "db09fbc75b6abb25ad3061c325a76ef0ee729b08",
+      "pushed": true,
+      "closed_utc": "2026-09-06T00:55:00Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-011/",
+      "summary": "GitHub 仓库设置 API 配置与现场复读 PASS（base 2c1ffef1）; 集成于 db09fbc7"
+    },
+    "V8-CI-012": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "b8a83efa",
+      "pushed": false,
+      "closed_utc": "2026-09-06T12:20:00Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-012/",
+      "summary": "hosted linux-deep 端到端 4 轮 + 基线冻结（SAN ASan/TSan 业务域失败集合、COMPLEXITY/构建资源数值冻结、coverage 数值待 R6.5）; R6.5 本地收口: F8-b 插桩作用域前移(58 profraw)、F8-c llvm-cov --sources、cpu_profile/task_result/CLI04 三族 untracked 断链 rehome、numpy×6 安装面闭包、F9-c pytest_tail 120; 集成于 54a8f9a7..b8a83efa 六原子 commit"
     }
   },
   "adopt_seed_tasks": {

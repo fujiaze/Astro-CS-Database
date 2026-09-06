@@ -474,3 +474,141 @@ base_sha `485b8b86` 不动；无 git 写操作；执行日志 `logs/repair_round
 3. **clang 版本耦合**：coverage 构建改 clang-18 后，业务失败清单可能较 GNU 轮漂移（不同编译器行为差异）；core_pipeline / cpu001_selftest_avx512 既有失败归属判定在第四轮复核一次，防止 F8 修复引入新失败被误归业务域。
 4. pytest_tail cap 50 行：若 hosted 收集错误行极多（>50 行窗）可能截断部分模块原文；已保序取首个命中行起窗，配合探针预测清单（7 模块名已知）可人工对账，风险可控。
 5. 前轮遗留 4（coverage 产物不在 artifact 打包清单）不变：数值产出轮需同步扩 artifact 归集面，否则 hosted 数值仍需经 CI_RESULT JSON 间接读取。
+
+---
+
+# 观察轮 4（终局轮）— SA-CI-32，mode=read
+
+观察窗口 2026-09-06T09:05Z ~ 09:35Z；仓库原地只读（HEAD=52e71804 本地=远端 main=观察对象三一致）；API 经 `git credential fill` 内联 token（仅内存，零落盘），curl 全部 `--max-time 15`（artifact 下载 300s）；执行要点 `/tmp/r4/poll_state.log`（脱敏后归档 logs/round4/api/）。
+
+## R6.1 run 发现与终态
+
+- **dispatch run 首查未出现**：push 后 3 分钟（09:05Z 起）head_sha=52e71804 下仅 push run #21（34023649656，event=push，09:05:19Z 起跑）。与轮 1「随派发 chore 同批触发 dispatch」形态不同（本轮 push 为主提交，无伴随 dispatch）。
+- **SA 经 REST API 主动触发**（token 域内使用，非 git 写操作）：`POST /actions/workflows/ci-linux.yml/dispatches {ref:main, inputs.profile:linux-deep}` → HTTP 204；90s 后 dispatch run #22 出现（logs/round4/api/runs_head52e_page1.json）。
+- dispatch run（主对象）：**34023949880** #22 workflow_dispatch / linux-deep，head_sha 52e718048312fa05c694c5a32e7dec52263bf0cc ✓ → completed / **failure**；run 窗口 09:11:36→09:23:36Z = **720s**；job 101461486015：09:11:39→09:23:35Z = **716s（11m56s）**。
+- push run（回归对照）：34023649656 #21 push / linux-main，completed / **failure**；run 窗口 873s。
+- 6h 红线（21,600s）：job 716s 占 **3.3%**，余量 **20,884s ≈ 5h48m**（轮 3 为 737s/3.4%——本轮 coverage 工具安装步复用、时长形态稳定）。
+
+## R6.2 deep 7 项终表（SHA 52e71804，run 34023949880）
+
+| # | id | verdict | exit | CI 时长 s | monitor 时长 s | cpu_avg % | peak_rss KiB | threads_max | 对照轮 3 |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | BUILD-GCC-RELEASE | **PASS** | 0 | 124.545 | 124.480 | 188.55 | 850,440 | 14 | 同 PASS ✓ |
+| 2 | DEEP-CLANG-BUILD | **PASS** | 0 | 81.632 | 81.574 | 178.78 | 533,388 | 14 | 同 PASS ✓ |
+| 3 | DEEP-SAN-ASAN | **FAIL** | 2 | 202.039 | 201.976 | 184.81 | 730,848 | 19 | 同 FAIL(2) ✓ |
+| 4 | DEEP-SAN-TSAN | **FAIL** | 2 | 189.183 | 189.120 | 186.65 | 586,152 | 19 | 同 FAIL(3) ✓ |
+| 5 | DEEP-COV-CPP | **FAIL** | 2 | 86.729 | 86.670 | 199.63 | 525,492 | 12 | FAIL 保持（性质变：F8 修复生效，profraw 仍零产出） |
+| 6 | DEEP-COV-PY | **FAIL** | 2 | 2.895 | 2.840 | 95.88 | 77,332 | 2 | FAIL 保持（性质变：pytest_tail 白箱化生效，收集错误原文可读） |
+| 7 | DEEP-COMPLEXITY | **PASS** | 0 | 0.337 | — | — | — | — | 同 PASS，数值与轮 1 全等 ✓ |
+
+- 汇总：verdict=FAIL total=7 pass=3 fail=4 known_fail=0 skipped_waivable=0（轮 3 同为 3P/4F；两项 coverage 由 SKIPPED(waivable)→FAIL 的转变发生在轮 2，本轮维持）。
+- **非 coverage 5 项 verdict/exit 差集为空**；ASan 失败原文 `5 - core_pipeline (Failed)` / `35 - cpu001_selftest_avx512 (Failed)`，`Error 8` 透传，0 条 sanitizer SUMMARY → 与轮 1-3 业务域定性一致、无漂移；TSan 3 失败（core_pipeline×2 + cpu001_selftest_avx512）同前轮全等，0 条 sanitizer 报告。
+- complexity 数值逐字段与轮 1 冻结值全等（global lines 139,881 / fn 1,858 / branch 19,182 / max_file_cyclomatic 1,048 / excluded 307 / placeholder=true）。
+- 资源红线：全部 timed_out=false；cpu_avg 95.88-199.63%（COV-PY 单核 96% 正常，其余双核满载形态）；峰值内存 BUILD-GCC-RELEASE 850,440 KiB ≈ 830 MiB ≪ 16 GiB；无 OOM/低利用率/泄漏信号 → **RESOURCE_FAIL 零命中（四轮一致）**。
+- push run #21 回归对照：71 项 48P/21F/2T（TIMEOUT=UT-BACKEND/UT-CLI 既有登记），逐项 verdict/exit 与轮 3 push 对照 **差集为空** ✓。
+
+## R6.3 coverage 双数值终判
+
+### DEEP-COV-CPP（F8 修复验证 + 新断点定位）
+
+证据链（logs/DEEP-COV-CPP.log 全量，见 logs/round4/artifact_52e71804/）：
+1. **clang 工具链强制生效**：`The C/CXX compiler identification is Clang 18.1.3`；configure 参数含 `ASTROCS_BUILD_COVERAGE=ON`；无 GNU 识别行（轮 3 根因消除）✓。
+2. **插桩构建全绿**：57/57 lib 目标 100% Built，0 warning（`-fprofile-instr-generate -fcoverage-mapping` 旗标在编译行可见）✓。
+3. **ctest 实跑**：96% tests passed, **2 failed out of 57**（core_pipeline / cpu001_selftest_avx512 = 既有业务域清单）→ `Error 8` → **verdict FAIL 为正确语义**（业务失败透传，非 coverage 机制故障）✓。
+4. **profraw 仍零产出 → 数值缺位（第 4 轮）**：`llvm-profdata merge` 报 `run/ci/build-cov/coverage/*.profraw: No such file or directory`；`copied_outputs=[]`；artifact 23 members 无 coverage 目录。
+5. **新断点定性 F8-b（观察结论，不属本轮修复面）**：coverage 插桩旗标加于根 CMakeLists.txt L522-523（`if(ASTROCS_BUILD_COVERAGE)` 块），而 `add_subdirectory(tests/unit)` 在 L501 先行执行 → lib 目标带插桩编译、`tests/unit/*_test` 可执行**未经插桩链接**（无 `__llvm_profile` runtime）→ 测试进程不落 profraw。F8（工具链未强制 clang）与 F8-b（旗标作用域在 add_subdirectory(tests/unit) 之前）是两个独立缺陷；本轮只修掉了前者。
+- **verdict：FAIL（预期达成）**——业务 ctest Error 8 透传语义正确；C++ 行/分支覆盖数值：**未产出**。
+
+### DEEP-COV-PY（F9-a/F9-b 修复验证 + F9-b 探针对账）
+
+- **pytest_tail 白箱化生效**（F9-a 实战验证）：runner summary `pytest_tail` 50 项（cap 50 生效）、`exit_code=2`、stderr_tail 空（pytest 错误走 stdout）；collect_error_lines 正则命中起窗（首行 `==== ERRORS ====`），经 resource_monitor stdout 尾窗 84 行完整归档。
+- **窗内实证收集错误 6 处原文**：
+  1. `tests/backend/test_cpu_profile.py:8` — FileNotFoundError: `工程控制/RELEASE_V5/.../schemas/cpu_profile.schema.json`（**CODE_FAIL，结构性**：hosted checkout 永无 `工程控制/`，与 F9-b 预测定性逐字一致）；
+  2-6. `test_p2003_seam_oracle` / `test_p3005_fits_output` / `test_p3006_production_pipeline` / `test_fits_stream_contract` / `test_hips_input_contract` — 全部 `ModuleNotFoundError: No module named 'numpy'`（ENV_FAIL）。
+- **F9-b 对账**：探针预测 7 失败（6 numpy + 1 cpu_profile）；窗内命中 5 numpy + 1 cpu_profile；第 6 个 numpy（test_hips_output_contract，探针序末位）与 pytest `Interrupted: N errors` 汇总行落在 cap 50 项窗外 → **方向一致（numpy 未补 → ENV_FAIL 留存），精确 N=7 待 CI 安装面补 python3-numpy 后由同窗复核**。
+- 数值预期达成情况：numpy 未补（裁决边界维持：CI yml 安装面不属本轮修复面）→ Python 行/分支覆盖数值 **未产出**（pytest 收集期 exit 2，pytest-cov xml/json 未写）；argv 契约（--cov=lib,cli,tools --cov-branch --cov-report=xml/json）逐参数在位 ✓。
+- **verdict：FAIL（预期达成）**；阻断清单冻结为 **numpy×6（ENV_FAIL）+ test_cpu_profile×1（CODE_FAIL，业务域）**。
+
+### COVERAGE_BASELINE 终态（轮 4 冻结口径）
+
+| 指标 | 数值 | 状态 |
+|---|---|---|
+| C++ 行覆盖率 | 未产出（第 4 轮） | **FROZEN_CPP_PENDING**：机制链已收敛至单点 F8-b（tests/unit 插桩作用域）；修复后数值可产出，解读须与业务失败清单（core_pipeline / cpu001_selftest_avx512，clang-18 下与 GNU 轮一致无漂移）同框 |
+| C++ 分支覆盖率 | 未产出 | 同上同口径 |
+| Python 行覆盖率 | 未产出 | **PENDING_PY**：双前置 = CI 安装面补 python3-numpy（6 项 ENV_FAIL 归零）+ 业务域 test_cpu_profile 路径修复（结构性 CODE_FAIL） |
+| Python 分支覆盖率 | 未产出 | 同上（argv 契约在位） |
+
+## R6.4 verify_remote_run.py 实战（第 2 次）
+
+- 命令：`python3 ci/verify_remote_run.py --sha 52e718048312fa05c694c5a32e7dec52263bf0cc --workflows linux-ci --profile linux-deep`（GITHUB_TOKEN 经 `git credential fill` 内联注入并 export，未落盘）。
+- 结果：**exit 1（预期达成）**：workflow 唯一指认、head_sha 匹配、run 唯一（34023949880）、completed、`profile_evidence=OK(observed=linux-deep)`（302 跨主机剥凭据 artifact 下载 + CI_RESULT.profile 双证）、jobs conclusion=failure → FAIL 判定；exit 2 环境类失败零出现。
+- 首次执行因调用侧 shell 变量未 export（token 未传至子进程，非脚本缺陷）匿名 401 → exit 2，已在落档文件头如实记录并作废重跑。
+
+## R6.5 轮 4 遗留（登记，不在本轮修复面）
+
+1. **F8-b（新）**：根 CMakeLists.txt coverage 分支 `add_compile_options/add_link_options(-fprofile-instr-generate ...)` 位于 `add_subdirectory(tests/unit)`（L501）之后，`*_test` 可执行未插桩 → profraw 零产出。修复归属构建面（将 tests/unit 的 add_subdirectory 移入插桩作用域内，或对 tests 目标显式补旗标），修复后预期 profraw 产出 + 数值产出（verdict 仍 FAIL，属业务 Error 8 透传）。
+2. **F9-c**：pytest_tail cap 50 项致窗内仅见 6/7 收集错误与无 `Interrupted: N errors` 汇总行；精确计数核验需扩窗（cap 50→120）或依赖 numpy 补齐后复核。
+3. numpy 缺项（ENV_FAIL×6）与 test_cpu_profile 结构性 CODE_FAIL 维持登记：前者属 CI 安装面任务，后者属业务域任务（V6.1 布局路径 / 资产入库 / 收集豁免三选一）。
+4. coverage 产物目录仍不在 artifact 打包清单（run/ci/coverage-*/）→ 数值产出轮需同步扩归集面。
+
+## R6.6 冻结基线终表 v_final（V8-CI-012 收口版）
+
+### 6.6.a deep 7 项最终状态（hosted linux-deep，SHA 52e71804，run 34023949880，2026-09-06）
+
+| id | 最终状态 | 定性 |
+|---|---|---|
+| BUILD-GCC-RELEASE | PASS（124.5s / 188.55% / 850,440 KiB） | 机器基线冻结 |
+| DEEP-CLANG-BUILD | PASS（81.6s / 178.78% / 533,388 KiB） | 机器基线冻结 |
+| DEEP-SAN-ASAN | FAIL(2)：core_pipeline、cpu001_selftest_avx512 | 业务域冻结（0 sanitizer 报告，四轮一致） |
+| DEEP-SAN-TSAN | FAIL(3)：core_pipeline×2、cpu001_selftest_avx512 | 业务域冻结（0 sanitizer 报告，四轮一致） |
+| DEEP-COV-CPP | FAIL，数值未产出 | F8-b 单点待修（tests/unit 插桩作用域）；Error 8 透传语义正确 |
+| DEEP-COV-PY | FAIL，数值未产出 | PENDING_PY：numpy×6 ENV_FAIL（CI 安装面）+ test_cpu_profile CODE_FAIL（业务域） |
+| DEEP-COMPLEXITY | PASS，数值与轮 1 全等 | 数值基线冻结（lines 139,881 / fn 1,858 / branch 19,182 / max_cc 1,048） |
+
+### 6.6.b 资源与时长红线（四轮一致口径）
+
+- 最慢检查 DEEP-SAN-ASAN 202.039s（CI 口径）；job 716s = 6h 上限 3.3%，余量 20,884s ≈ 5h48m；run 窗口 720s。
+- hosted 资源形态：4 vCPU affinity / 16 GiB（host_probe cpu_logical=4 / effective_cpu_cores=4.0 / mem_available ≥15.0 GiB）；全检查 timed_out=false，峰值 rss ≤ 830 MiB → RESOURCE_FAIL 零命中。
+- push run（71 项 main profile）873s，48P/21F/2T 与轮 3 差集为空。
+
+### 6.6.c 收口判定
+
+**COVERAGE_BASELINE = FROZEN_CPP_PENDING_PY**：deep 机器基线（5 项 verdict/资源/时长红线/complexity 数值/push 回归差集空）全部冻结收口；coverage 双数值登记为 CPP 单点构建面待修（F8-b）+ PY 双前置（python3-numpy 安装面 + test_cpu_profile 业务域），均属后续独立任务面，不阻塞本观察任务闭环。
+
+## R7 R6.5 遗留执行落地（本地 agent-host 收口轮，SA-CI-32 控制面执行）
+
+前置：用户指令"本地也装上该装的工具链，而不是全靠远端 ci。本地通过再推送"。agent-host（Debian 13，16C/15GiB）补装 cmake 3.31.6（与 hosted 同版）/ gcc,g++ 14.2.0 / clang,clang++ 18.1.8（update-alternatives 无后缀注册）/ ninja 1.12.1 / llvm-profdata,llvm-cov 18.1.8 / python3-numpy,astropy,scipy,yaml,pytest,pytest-cov；V81-ADOPT-004 lock 刷新（ci/toolchain.lock.json，missing_tools 9→ccache）。
+
+### 7.1 修复面（六原子 commit，54a8f9a7..b8a83efa）
+
+| commit | 内容 | 对应登记 |
+|---|---|---|
+| 54a8f9a7 | F8-b 插桩作用域前移 + F8-c `llvm-cov --sources` | R6.5-1 |
+| b0733710 | cpu_profile schema rehome（schemas/ 单一事实源 + 双读取点）+ exe 路径 V6.1 布局修正（R6.5.3 三选一落定） | R6.5-3 |
+| 06e288ab | CI 安装面闭包 numpy/astropy/scipy/yaml + F9-c pytest_tail cap 50→120 | R6.5-2/3 |
+| b6001684 | V81-ADOPT-004 工具链 lock 刷新（补装后 9 项 missing 清零） | — |
+| f2ea0928 | 断链批次 2：test_cli_protocol LEDGER_04 → tracked 副本（sha 17040e7b 双副本一致）+ task_result.schema v2 rehome + checker default 改指（V6_1=v2 代际，archive CV6=v1 不可替代） | R6.5-3 扩展（UT-API/DEEP-COV-PY 面 6 项 setUpClass FileNotFoundError，本地 DEEP-COV-PY 修复前快照实证） |
+| b8a83efa | test_version_consistency test_01 过期字面量改单源派生（0.10.0-alpha.2 硬编码 vs VERSION 单源矛盾） | UT-VERSION 1/2 败修复 |
+
+### 7.2 本地验证结果（agent-host 16 核）
+
+- **F8-b/F8-c**：coverage 构建（ASTROCS_BUILD_COVERAGE=ON，clang）profraw **58 个**（hosted 四轮 0）；qa_coverage_report.sh merge/report 通过，coverage.json 产出（132 源文件）；ctest 业务失败集合 = 冻结基线一致（core_pipeline / cpu001_selftest_avx512，Error 8 透传）。
+- **test_cpu_profile**：7/7 passed（修复前 import 期 FileNotFoundError）。
+- **test_cli_protocol**：6/6 OK（修复前 setUpClass FileNotFoundError ×6）。
+- **numpy×6 修复面**：5 测试面 26 passed（import 修复后下一层断言全过）；p3006 13 errors 为测试间耦合（p2003_dbg 产物），业务域既有问题维持登记。
+- **DEEP-COMPLEXITY**：五字段与冻结基线全等（lines 139,881 / fn 1,858 / branch 19,182 / max 1,048 / excluded 307）。
+- **DEEP-CLANG-BUILD**：本地 PASS 112.7s，资源形态一致（双核 -j2 满载）；F8-b 编译警告集合零变化（预期：旗标仅在 COVERAGE=ON 分支生效）。
+- **UT-BACKEND 全套**（126 tests）：9F/16E/7S——hosted 侧同检查四轮全部 TIMEOUT(-9)（2 核 900s 跑不完），运行期面被超时遮蔽；失败构成：abi_loader g++ 探针族 9、aio fixture 自编译族（p200x/p300x setUpClass）12、hardware_inspect V6.1 路径 1、p3006 耦合族内含。**登记为 UT-BACKEND 治理独立任务面（超时/分片/fixture 缓存 + 上述失败集合），不属本轮断链修复面。**
+
+### 7.3 coverage 数值（修复后 DEEP-COV-PY 本地复跑）
+
+（本节数值由后台复跑 bash-28 回填：pytest 收集错误清零后的 coverage 数值与 tail。）
+
+### 7.4 R6.5-4（归集面扩法）决策登记
+
+方案 A（gzip 明细 + 摘要双轨，≈30MB/run）评审通过；实施面 = qa_coverage_report.sh 落盘+gzip、deep_ci_driver.py L181 后缀集合、checks.json outputs 文件级收紧、yml 新增 Upload coverage evidence step——归后续数值产出轮实施（本轮 checks.json 禁改）。
+
+### 7.5 已知边界
+
+- verify_toolchain 防抄袭哨兵 1 项 FAIL：agent-host cmake 3.31.6 与 policy.linux_hosted.cmake（minimum floor）巧合同值，判据（version≠hosted）无法区分实测同值与抄录同值；lock 数据 verbatim 实测，59/60 PASS。哨兵逻辑升级另立任务。
+- 工具链 lock 的 policy_file_sha256 记录工作树值（apt_packages 扩充后），与最终提交的 policy 一致性随 commit 固化。
