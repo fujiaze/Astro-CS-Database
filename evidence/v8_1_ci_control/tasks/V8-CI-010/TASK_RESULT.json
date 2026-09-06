@@ -1174,5 +1174,299 @@
       "windows-main plan-only 61 项计数不变，但 WIN-* 检查 probe 在 hosted 的真实执行面（cmake/dumpbin prerequisite_tools）由 hosted 轮确认"
     ],
     "logs": "logs/repair_round4.log（preset 本机尝试 + 结构级验证 + 全部验收命令输出，.gitignore 内本机留档）"
+  },
+  "observation_round4": {
+    "round": 4,
+    "owner": "SA-CI-32",
+    "mode": "read",
+    "observed_head_sha": "7e974087ddb108f519e91f4aedaa018a97d1e5f6",
+    "executed_utc": "2026-09-06（04:23Z push 触发发现 → 04:48Z 终态留档 → 05:0xZ 收口）",
+    "runs": {
+      "linux": {
+        "workflow": "ci-linux.yml",
+        "run_id": 34011382022,
+        "job_id": 101427716498,
+        "runner": "GitHub Actions 1000000567 / ubuntu-24.04",
+        "status": "completed/failure",
+        "started_utc": "2026-09-06T04:23:39Z",
+        "completed_utc": "2026-09-06T04:38:14Z",
+        "duration_approx": "14m35s",
+        "steps": "Checkout✓ Bootstrap✓ SelectProfile✓ RunRegisteredChecks✗ DiagStep✓ UploadSmallEvidence✓",
+        "verdict_line": "verdict=FAIL total=71 pass=48 fail=23 known_fail=0 skipped_waivable=0",
+        "verdict_distribution": {
+          "PASS": 48,
+          "FAIL": 21,
+          "TIMEOUT": 2,
+          "SKIPPED(waivable)": 0
+        },
+        "fail_detail": {
+          "FAIL": 21,
+          "TIMEOUT": 2,
+          "TIMEOUT_ids": [
+            "UT-BACKEND",
+            "UT-CLI"
+          ],
+          "note": "FAIL 21 项 id 集合与轮 3 差集为空（已知归属 F-R2-03/04/09/10 + UT-CPU-AVX512 全部维持原判）"
+        },
+        "artifact": {
+          "name": "linux-ci-7e974087…",
+          "id": 9982744581,
+          "size_bytes": 224281,
+          "members": 215
+        }
+      },
+      "windows": {
+        "workflow": "ci-windows.yml",
+        "run_id": 34011381969,
+        "job_id": 101427716562,
+        "runner": "GitHub Actions 1000000568 / windows-2022",
+        "status": "completed/failure",
+        "started_utc": "2026-09-06T04:23:38Z",
+        "completed_utc": "2026-09-06T04:27:24Z",
+        "duration_approx": "3m46s",
+        "steps": "Bootstrap✓ RunMSVCTestsAndPackageCandidate✗ ValidateUploadCandidate-skipped DiagStep✓ UploadEvidence✓",
+        "verdict_line": "verdict=FAIL total=61 pass=32 fail=28 known_fail=0 skipped_waivable=1",
+        "verdict_distribution": {
+          "PASS": 32,
+          "FAIL": 28,
+          "TIMEOUT": 0,
+          "SKIPPED(waivable)": 1
+        },
+        "fail_detail": {
+          "FAIL": 28,
+          "note": "与轮 3 唯一差集 WIN-TEST-UNIT：FAIL(missing_output)→FAIL exit 8（ctest 真实执行、8 用例失败、junit/summary/monitor 三件产出齐）；WIN-PACKAGE-CANDIDATE 维持 SKIPPED(waivable)（dumpbin=F-R2-05）",
+          "WIN-BUILD-RELEASE": {
+            "configure": "exit 0，Configuring done (20.9s)，vswhere 发现 VS Enterprise 17.14.37614.0 / MSVC 14.44.35207",
+            "build": "exit 1，82.6s 真实编译后失败；错误行未留痕（F-R4-01）"
+          },
+          "WIN-TEST-UNIT": {
+            "exit_code": 8,
+            "duration_seconds": 4.437,
+            "outputs_missing": []
+          }
+        },
+        "artifact": {
+          "name": "windows-ci-7e974087…",
+          "id": 9982604873,
+          "size_bytes": 159723,
+          "members": 184,
+          "contains": [
+            "artifacts/ci/BOOTSTRAP_DIAG.json",
+            "run/ci/win-build-summary.json",
+            "artifacts/ci/7e974087ddb1/20260906T042352Z-8ba2eeeb/（CI_RESULT.json + 61 checks + logs）"
+          ]
+        }
+      }
+    },
+    "fix_effectiveness_round4": [
+      {
+        "fix": "F-R3-03 run/ 前缀预检豁免",
+        "verdict": "生效",
+        "evidence": "BUILD-GCC-RELEASE SKIPPED→PASS（duration 119.65s、exit 0、configure GNU 13.3.0 + build -j 2 至 [100%] Built target astrocs、outputs_missing=[]）；linux skipped_waivable 1→0"
+      },
+      {
+        "fix": "F-R3-02b preset 可移植化（GENERATOR_INSTANCE 移除 + toolset 去 pin）",
+        "verdict": "生效（configure 通过）",
+        "evidence": "windows configure exit 0（20.9s），vswhere 自动发现 VS；build 真实编译 82.6s 后 exit 1（非 preset 回归，归属见 F-R4-01）；hosted MSVC 14.44.35207 与历史基准同值零漂移（F-R4-03）"
+      },
+      {
+        "fix": "F-R3-01 诊断步 subprocess 显式 utf-8",
+        "verdict": "生效",
+        "evidence": "windows BOOTSTRAP_DIAG.json report 5/5 items ok（runner/architecture/visual_studio/platform_toolset/cmake），collection_error 消失；stderr_fail_payload=null 为 bootstrap exit 0 正常语义"
+      },
+      {
+        "fix": "F-R3-02 evidence 上传多路径",
+        "verdict": "生效",
+        "evidence": "windows artifact 根含 run/ci/win-build-summary.json（driver stages argv/output_tail 留痕）；members 183→184"
+      }
+    ],
+    "comparison_vs_round3": {
+      "linux_main": {
+        "r3": "47P/21F/2T/1S",
+        "r4": "48P/21F/2T/0S",
+        "moves": "BUILD-GCC-RELEASE SKIPPED→PASS（唯一闭合）；FAIL+TIMEOUT id 集合与轮 3 差集为空"
+      },
+      "windows_main": {
+        "r3": "32P/27F+1mo/1S",
+        "r4": "32P/28F/1S",
+        "moves": "WIN-TEST-UNIT missing_output→exit 8 真实测试失败（修复解锁后的真实失败面，非回归级联）；WIN-BUILD-RELEASE FAIL 形态从 0.4s configure 即败→82.6s 真实编译后失败；其余 27 FAIL id 与轮 3 完全一致"
+      },
+      "known_attributions_unchanged": [
+        "F-R2-03 PyYAML/CONTRACT-GRAPH",
+        "F-R2-04 numpy/UT-IO",
+        "F-R2-05 dumpbin",
+        "F-R2-09 基线态 17+2 项",
+        "F-R2-10 UT-BACKEND/UT-CLI timeout exit -9",
+        "UT-CPU-AVX512"
+      ],
+      "new_unattributed_failures": "零"
+    },
+    "resource_summary": {
+      "linux": {
+        "source": "linux artifact 内 logs/BUILD-GCC-RELEASE.log 的 monitor JSON（run/ci/monitor/BUILD-GCC-RELEASE.json 链路，log 全文解析）",
+        "check": "BUILD-GCC-RELEASE",
+        "duration_seconds": 119.588,
+        "exit_code": 0,
+        "timed_out": false,
+        "cpu_percent_avg": 192.77,
+        "cpu_percent_median": 200.69,
+        "samples": 576,
+        "samples_nonempty_cpu": 574,
+        "peak_rss_kb": 849076,
+        "peak_pss_kb": 801553,
+        "rss_start_kb": 2452,
+        "io_read_bytes": 2420399283,
+        "io_write_bytes": 233043056,
+        "threads_max": 14,
+        "host_probe": {
+          "cpu_affinity": 4,
+          "cpu_logical": 4,
+          "cpu_physical": 2,
+          "mem_total": 16766414848,
+          "effective_cpu_cores": 4.0,
+          "max_workers": 4
+        },
+        "note": "首轮 linux 实测数字落地（轮 3 为空采）；192.77% ≈ -j 2 双线程对 4 核满载；3500s 预算未触发"
+      },
+      "windows": {
+        "WIN-BUILD-RELEASE": {
+          "duration_seconds": 82.469,
+          "samples": 347,
+          "exit_code": 1
+        },
+        "WIN-TEST-UNIT": {
+          "duration_seconds": 4.437,
+          "samples": 23,
+          "exit_code": 8
+        },
+        "cpu_percent_avg": null,
+        "peak_rss_kb": null,
+        "threads_max": 0,
+        "note": "cpu/rss null、threads_max 0 为 Linux /proc 采样探针在 windows 宿主无 psutil 的登记语义（host_probe 4 核探测成功，非回归，维持轮 2/3 判定）"
+      }
+    },
+    "findings_round4": [
+      {
+        "id": "F-R4-01",
+        "severity": "major",
+        "category": "observability",
+        "finding": "WIN-BUILD-RELEASE build exit 1 的真实错误行未留痕：ci_windows_driver.run_step output_tail 固定保留最后 25 行，MSVC --parallel 4 下 error 行被后续 warning/link 行冲出窗口（build.output_tail 25 行全为 warning C4996 与链接进行行、job log 无 error C/fatal/MSB 行、monitor stdout_tail 仅驱动横幅）",
+        "attribution": "tools/quality/ci_windows_driver.py（前台域）",
+        "suggestion": "stage 失败时全量落盘或输出 error/warning 过滤窗口（与 F-R3-02(a) 同域二次缺口）",
+        "impact": "build 失败归属无法从本轮 hosted 证据定位，需观测面修复后定向重验"
+      },
+      {
+        "id": "F-R4-02",
+        "severity": "minor",
+        "category": "evidence-contract",
+        "finding": "run/ci/win-test-junit.xml 与 win-test-summary.json 已产出但不在 evidence artifact 上传多路径内（当前仅 artifacts/ci/ + win-build-summary.json），ctest exit 8 的 8 个失败用例名无法离线定位",
+        "attribution": ".github/workflows/ci-windows.yml 上传步",
+        "suggestion": "path 追加 run/ci/win-test-junit.xml（+win-test-summary.json）",
+        "impact": "8 用例名归属待 F-R4-02 修复后下一轮留痕判定（是否并入 F-R2-09 基线态现无法判定）"
+      },
+      {
+        "id": "F-R4-03",
+        "severity": "info",
+        "category": "expected-confirmation",
+        "finding": "preset toolset 放宽后版本等价改为观测证明：hosted 实测 VS 17.14.37614.0 / MSVC 14.44.35207 与历史基准同值零漂移；preset 契约（禁硬编码/禁 version pin）TOOLCHAIN_CONTRACT_PASS",
+        "attribution": "无（预期内兑现）",
+        "suggestion": null,
+        "impact": "无"
+      }
+    ],
+    "candidate_deep_check": {
+      "verdict": "NOT_EXECUTABLE（轮 2 起同态）",
+      "note": "candidate zip 未产出：WIN-PACKAGE-CANDIDATE 维持 dumpbin skip（F-R2-05 登记预期）+ 上游 WIN-BUILD-RELEASE 真实编译失败（错误行被 F-R4-01 截断）；SHA256SUMS/BUILD_PROVENANCE/candidate 内容三件套持续无法核验"
+    },
+    "closability_vs_requirements": {
+      "req1_hosted_bootstrap_pass": "MET —— HEAD=7e974087 完整 SHA 双 run（push 触发）终态/时长/步骤/汇总行/artifact 全记录（连续三届 bootstrap PASS）",
+      "req2_full_execution_71_61": "MET —— linux 71/71 全部真实执行（skipped_waivable 0，BUILD-GCC-RELEASE 实跑 PASS）；windows 60/61 实跑 + 1 项 SKIPPED(waivable)（dumpbin=F-R2-05 登记预期，非误 SKIP）；missing_output 类别消失",
+      "req3_resource_summary": "MET —— linux 首轮完整 monitor 数字（192.77% avg / 849 MiB peak / 14 threads / 576 采样 / 超时 0）；windows monitor JSON 产出，null 字段为宿主探针登记语义",
+      "req4_candidate_pipeline": "NOT_MET —— candidate zip 未产出：WIN-BUILD-RELEASE 真实编译失败（F-R4-01 遮蔽归属）+ WIN-TEST-UNIT 8 用例失败（F-R4-02 遮蔽用例名）+ dumpbin（F-R2-05 登记预期）；三件套核验持续 NOT_EXECUTABLE",
+      "req5_failure_attribution_findings": "MET —— 本轮零无主失败：21F+2T 维持已知归属引用；新观察 F-R4-01/02/03 归属明确；前台修复轮 1-4 commit 均原子且未 amend",
+      "req6_evidence_chain_acceptance": "MET —— logs/round4/ 全量留档（API trace/jobs/artifacts/双 job log/双 artifact zip+解包/git status 快照）；trace 无凭据断言 PASS；unittest 235 OK；git status 89 行与初始快照一致",
+      "overall": "NOT_CLOSABLE（差距收敛）—— 修复轮 4 的 CLOSABLE_PENDING_HOSTED 四项条件全部实证生效；req1/2/3/5/6 全 MET，唯一 NOT_MET 集中 req4 候选链。最小后续动作：① ci_windows_driver.run_step 失败时保留 error 过滤窗口或全量日志（F-R4-01）+ ci-windows.yml 上传多路径追加 win-test-junit.xml（F-R4-02）；② hosted 定向重验 windows 读 build 真实错误行与 8 用例名并归属（源码域修复提交 / 并入 F-R2-09 裁决）；③ dumpbin→candidate 链按 F-R2-05 既定裁决处理后补核验三件套 → V8-CI-010 关闭"
+    },
+    "evidence_files": [
+      "logs/round4/runs_api_trace_headsha_all.json",
+      "logs/round4/run_api_trace_34011382022.json",
+      "logs/round4/jobs_api_trace_34011382022.json",
+      "logs/round4/artifacts_api_trace_34011382022.json",
+      "logs/round4/run_api_trace_34011381969.json",
+      "logs/round4/jobs_api_trace_34011381969.json",
+      "logs/round4/artifacts_api_trace_34011381969.json",
+      "logs/round4/job_log_101427716498_linux.log",
+      "logs/round4/job_log_101427716562_windows.log",
+      "logs/round4/linux-artifact-7e974087.zip + linux-artifact-7e974087/（解包）",
+      "logs/round4/windows-artifact-7e974087.zip + windows-artifact-7e974087/（解包）",
+      "logs/round4/git_status_after_round4.txt",
+      "HOSTED_RUN_REPORT.md（R29-R36）"
+    ],
+    "credential_discipline_round4": {
+      "token_handling": "仅 git credential fill 内联进程内存（awk -F= 提取），未落盘；全部 curl --max-time 15",
+      "sanitize_scan": "round4/ 全量 grep ghp_/github_pat_/ghs_/gho_/Authorization:/password= 无命中；runner 自掩码 basic *** 2 处×2 log 统一 [REDACTED] 化",
+      "git_write": "零（89 行遗留与初始一致；3 行 evidence/.../V8-CI-010/** 证据增量为被跟踪文件的本轮记录，派发允许域内）"
+    },
+    "acceptance_round4_observation": {
+      "git_status_porcelain": "89 行遗留与任务初始快照逐行一致（非本轮产物）+ 增量恰 3 行 M evidence/v8_1_ci_control/tasks/V8-CI-010/{CHANGED_FILES.txt,HOSTED_RUN_REPORT.md,TASK_RESULT.json}（被跟踪的证据文件，全部落在派发允许域 evidence/.../V8-CI-010/** 内）；logs/** 按 .gitignore 不入 status",
+      "unittest": "python3 -m unittest discover -s ci/tests -p 'test_*.py' → Ran 235 tests in 26.072s OK（两 run 终态后实测）"
+    },
+    "residual_risks": [
+      "F-R4-01 未修复前，windows build 失败归属链断在观测面（本轮已以 25 行尾部+全文 grep 证明非工具输出遗漏层面可定位）",
+      "WIN-TEST-UNIT 8 用例名未留痕，是否落入 F-R2-09 基线态无法本轮判定",
+      "DEEP-* 5 项与 linux-deep profile 本轮未触发（V8-CI-012 域）；BUILD-GCC-RELEASE 同型实跑为间接证明",
+      "linux BUILD-GCC-RELEASE 119.65s 使 job 总时长增至 14m35s，距 GitHub 托管 6h 上限余量充足，无风险"
+    ]
+  },
+  "repair_round5": {
+    "round": 5,
+    "round_label": "repair_round5",
+    "owner": "SA-CI-32",
+    "mode": "write",
+    "executed_utc": "修复轮 5 本机执行；HEAD=7e974087（原地修复，未产生新提交）",
+    "base_head_sha": "7e974087",
+    "fixes": [
+      {
+        "id": "F-R4-01",
+        "file": "tools/quality/ci_windows_driver.py",
+        "change": "run_step 输出新增 error_lines 字段（失败时按 ERROR_LINE_RE=error C\\d+|error LNK\\d+|fatal error|: error |/error MSB\\d+|LINK : fatal /i 全量过滤收集，cap 50 保序；成功恒 []）；output_tail 语义不变（仍最后 25 行）；run_flow stage_res 透传；schema additionalProperties=true 兼容零改动",
+        "tests": [
+          "test_run_step_collects_error_lines_on_failure（5 类 error 行收集+warning 不收+保序）",
+          "test_run_step_error_lines_cap_50（60→50 截断）",
+          "test_run_step_success_has_empty_error_lines",
+          "test_collect_error_lines_pure_function",
+          "test_run_step_captures_output_and_exit_code 补 error_lines==[] 断言"
+        ]
+      },
+      {
+        "id": "F-R4-02",
+        "file": ".github/workflows/ci-windows.yml",
+        "change": "evidence 上传多路径追加 run/ci/win-test-junit.xml（driver DEFAULT_JUNIT，与 checks.json WIN-TEST-UNIT outputs 契约一致）+ run/ci/win-test-summary.json（同检查 outputs 第二件）；artifacts/ci/ 与 win-build-summary.json 不动",
+        "tests": [
+          "test_workflow_lock.py test_evidence_upload_path_matches_run_output_dir 补两正向断言（注明 F-R4-02）"
+        ]
+      }
+    ],
+    "acceptance": {
+      "validate_registry_strict": "PASS, error_count 0, checks 80, exit 0",
+      "unittest_ci_tests": "Ran 239 tests — OK（235 存量 + 4 新增）",
+      "plan_only_counts": {
+        "fast": 57,
+        "linux-main": 71,
+        "linux-deep": 7,
+        "windows-main": 61,
+        "note": "四口径与轮 4 一致"
+      },
+      "git_diff_scope": "ci_windows_driver.py(+20)/ci-windows.yml(+4)/test_windows_ci.py(+57)/test_workflow_lock.py(+6)/evidence V8-CI-010 三件 —— 全部在派发允许域",
+      "repo_root_tests_baseline": "45 ERROR（loader/setUpClass 环境性存量）+ 4 FAIL（version/thread_budget/drizzle 存量门）与本轮改动零交集；PRODUCTION_EXECUTION_INVENTORY.csv 漂移为 arch 库存再生成测试对 HEAD 库存滞后的确定性重写（HEAD 基线复跑同样产生），非本轮产物"
+    },
+    "workspace_incidents": "round3 遗留 stash 一次性处置：round3 未提交 AGENTS.md 改动被项目负责人权威更新取代（现盘=HEAD：含『节点与角色』节、无 subagent 派发条目），stash 版备份 run/AGENTS_stash_backup_round3.md 后弃用；stash f1f94148 内容全部经 checkout 恢复或同源证实后 drop；csv 漂移保留并上报（见 acceptance.repo_root_tests_baseline）；全程零 git 写操作（无 commit/push/branch）",
+    "hosted_reverify_expectation": "下一轮 hosted windows：build 失败时 stages[build].error_lines 直接给出 error C/LNK/fatal/MSB 行（cap 50 保序）→ 编译失败归属可判定；artifact 含 run/ci/win-test-junit.xml（JUnit XML testcase name 离线可读）+ win-test-summary.json → WIN-TEST-UNIT exit 8 的 8 用例名可定位并对照 F-R2-09 裁决",
+    "evidence_files": [
+      "evidence/v8_1_ci_control/tasks/V8-CI-010/HOSTED_RUN_REPORT.md（+R37）",
+      "evidence/v8_1_ci_control/tasks/V8-CI-010/TASK_RESULT.json（+repair_round5）",
+      "evidence/v8_1_ci_control/tasks/V8-CI-010/logs/repair_round5.log（logs/** 不入 git status）"
+    ],
+    "verdict": "PASS_LOCAL —— 两项前台裁决修复落地并通过本地验收；hosted 定向重验待控制面触发"
   }
 }

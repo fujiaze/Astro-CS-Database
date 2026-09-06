@@ -60,7 +60,7 @@ __all__ = [
     "main", "run_step", "parse_stages", "stage_plan", "build_candidate",
     "verify_candidate", "expected_windows_artifacts", "prune_candidate",
     "build_dir_from_preset", "EXCLUDE_PATTERNS", "DOC_WHITELIST",
-    "pack_candidate_zip",
+    "pack_candidate_zip", "collect_error_lines", "ERROR_LINE_RE",
 ]
 
 # ---------------------------------------------------------------------- 常量 ----
@@ -87,6 +87,21 @@ STAGE_TIMEOUTS = {
     "package": 600,
 }
 STAGE_ORDER = ("configure", "build", "test", "install", "package")
+
+# V8-CI-010 F-R4-01：MSVC/MSBuild/链接器错误行过滤窗口。--parallel N 下
+# error 行可能被后续 warning/link 行冲出 output_tail 的固定 25 行窗口，
+# build 失败归属无法从 summary 定位；失败（exit≠0）时按此正则全量过滤
+# 收集 error_lines（保序，cap 50 行防 warning 风暴），output_tail 语义不变。
+ERROR_LINE_RE = re.compile(
+    r"error C\d+|error LNK\d+|fatal error|: error |/error MSB\d+|LINK : fatal",
+    re.IGNORECASE)
+ERROR_LINES_CAP = 50
+
+
+def collect_error_lines(lines: list[str]) -> list[str]:
+    """按编译错误关键词过滤收集错误行（保序；cap ERROR_LINES_CAP 行）。"""
+    hits = [ln for ln in lines if ERROR_LINE_RE.search(ln)]
+    return hits[:ERROR_LINES_CAP]
 
 # candidate 排除规则（build cache / CTest 日志 / 源码 / 测试数据；fnmatch 全路径匹配）
 EXCLUDE_PATTERNS = (
@@ -158,7 +173,7 @@ def run_step(argv: list[str], *, timeout: int, cwd: Path | None = None,
         )
     except FileNotFoundError:
         return {"argv": argv, "exit_code": 127, "timed_out": False,
-                "output_tail": f"可执行不存在：{argv[0]}"}
+                "output_tail": f"可执行不存在：{argv[0]}", "error_lines": []}
     try:
         out, _ = proc.communicate(timeout=timeout)
         exit_code, timed_out = proc.returncode, False
@@ -177,8 +192,10 @@ def run_step(argv: list[str], *, timeout: int, cwd: Path | None = None,
     text = (out or b"").decode("utf-8", "replace")
     lines = text.splitlines()
     tail = lines[-25:] if len(lines) > 25 else lines
+    # F-R4-01：失败时额外收集编译/链接错误行（成功恒为 []，schema 兼容）
+    error_lines = collect_error_lines(lines) if exit_code != 0 else []
     return {"argv": argv, "exit_code": exit_code, "timed_out": timed_out,
-            "output_tail": "\n".join(tail)}
+            "output_tail": "\n".join(tail), "error_lines": error_lines}
 
 
 def parse_stages(spec: str) -> list[str]:
@@ -714,7 +731,8 @@ def _run_stages(stages: list[str], plan: list[dict], *, output: Path | None,
                          "exit_code": res["exit_code"],
                          "timed_out": res["timed_out"],
                          "timeout": step["timeout"],
-                         "output_tail": res["output_tail"]}
+                         "output_tail": res["output_tail"],
+                         "error_lines": res["error_lines"]}
         summary["stages"].append(stage_res)
         if stage_res["exit_code"] != 0:
             rc = stage_res["exit_code"]

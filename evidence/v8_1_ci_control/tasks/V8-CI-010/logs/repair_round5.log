@@ -1,0 +1,52 @@
+# V8-CI-010 修复轮 5 本地验证日志（SA-CI-32，2026-09-06T05:11:51Z）@ HEAD=7e974087（原地修复，未产生新提交）
+
+## [1] git diff --stat（范围核验：仅 driver/yml/两测试/evidence 增量；csv 与 AGENTS.md 说明见下）
+ .github/workflows/ci-windows.yml                   |   4 +
+ ci/tests/test_windows_ci.py                        |  57 +++++
+ ci/tests/test_workflow_lock.py                     |   6 +
+ .../PRODUCTION_EXECUTION_INVENTORY.csv             |  43 +++-
+ .../tasks/V8-CI-010/CHANGED_FILES.txt              |  11 +
+ .../tasks/V8-CI-010/HOSTED_RUN_REPORT.md           | 133 +++++++++++
+ .../tasks/V8-CI-010/TASK_RESULT.json               | 245 ++++++++++++++++++++-
+ tools/quality/ci_windows_driver.py                 |  26 ++-
+ 8 files changed, 512 insertions(+), 13 deletions(-)
+
+## [2] validate_registry --strict
+{
+  "registry": "/workspace/Astro CS Database/ci/checks.json",
+  "strict": true,
+  "checks": 80,
+  "errors": [],
+  "error_count": 0,
+  "verdict": "PASS"
+}
+exit=0
+
+## [3] plan-only 四口径（57/71/7/61 不变性）
+--profile fast -> 57
+--profile linux-main -> 71
+--profile linux-deep -> 7
+--profile windows-main -> 61
+
+## [4] ci/tests 全量单测
+Ran 239 tests in 26.154s
+
+OK
+
+## [5] 修复轮 5 新增/更新用例（定向）
+Ran 5 tests in 0.053s
+
+OK
+Ran 2 tests in 0.008s
+
+OK
+
+## [6] 仓库根 tests/ 基线对照（与本轮改动无交集说明）
+
+FAILED (failures=4, errors=45, skipped=153)
+基线（stash 恢复后 HEAD 原状复跑）：FAILED (failures=4, errors=45, skipped=153)；45 ERROR=loader/setUpClass 环境性存量、4 FAIL=version/thread_budget/drizzle 存量门；本轮改动文件（driver/yml/ci/tests）与 tests/ 零交集（grep 证实）。
+
+## [7] 工作区事件留档（round3 遗留 stash 一次性处置）
+- git stash 对照发现 round3 未提交 AGENTS.md 改动（+subagent 派发条目 / 删『节点与角色』节）；项目负责人已发布权威更新（含『节点与角色』节、无该条目），stash 版已备份 run/AGENTS_stash_backup_round3.md 后弃用；AGENTS.md 恢复 HEAD 权威版。
+- docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv 工作区漂移为 tests/arch/test_inventory.py::test_05_regeneration_idempotent 运行生成器重写所致（HEAD 基线复跑 tools/arch/build_production_execution_inventory.py 同样产生 43 行漂移=库存滞后，phase2 CMakeLists 行号列），非本轮产物，保留现状上报。
+- stash 已 drop（f1f9414845c4284c239d636c8f1167e8695bfd9c，内容全部经 checkout 恢复或同源证实）。

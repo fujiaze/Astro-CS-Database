@@ -612,3 +612,189 @@ remaining_known 首条与 preset-contract.json vs_installation 为描述性/基�
 15/15）；CLOSABLE_PENDING_HOSTED —— 待控制面触发一轮 hosted 定向重验
 （linux BUILD-GCC-RELEASE 实跑 + monitor JSON；windows configure 通过 +
 junit 产出 + BOOTSTRAP_DIAG 回填 + win-build-summary 上传）后即可关闭。**
+
+---
+
+# 观察轮 4（定向重验收口轮，SA-CI-32，2026-09-06 04:23Z~05:0xZ，mode=read）
+
+观察对象：SHA `7e974087ddb108f519e91f4aedaa018a97d1e5f6`（修复轮 4 push）触发的
+ci-linux.yml / ci-windows.yml runs。本段编号 R29 起。
+
+## R29. run 终态与时长
+
+| | linux（34011382022） | windows（34011381969） |
+| --- | --- | --- |
+| workflow / 触发 | ci-linux.yml / push | ci-windows.yml / push |
+| job | 101427716498（ubuntu-24.04，runner 1000000567） | 101427716562（windows-2022，runner 1000000568） |
+| 终态 | completed / **failure** | completed / **failure** |
+| 时段（UTC，job 口径） | 04:23:39 → 04:38:14（≈14m35s，轮 3 12m11s 的增量即 BUILD-GCC-RELEASE 实跑 119.65s） | 04:23:38 → 04:27:24（≈3m46s，轮 3 2m20s 的增量即 configure+build 真实执行 82.6s + ctest 4.5s） |
+| 步骤 | Checkout ✓ / Bootstrap ✓ / Select profile ✓ / Run registered checks ✗ / 诊断步 ✓ / Upload small evidence ✓ | Bootstrap ✓ / Run MSVC tests and package candidate ✗ / Validate+Upload candidate skipped / 诊断步 ✓ / Upload evidence ✓ |
+| 汇总行 | `verdict=FAIL total=71 pass=48 fail=23 known_fail=0 skipped_waivable=0`（FAIL 21 + TIMEOUT 2） | `verdict=FAIL total=61 pass=32 fail=28 known_fail=0 skipped_waivable=1` |
+| artifact | linux-ci-7e974087…（id 9982744581，224,281 B，215 members） | windows-ci-7e974087…（id 9982604873，159,723 B，184 members） |
+
+## R30. 四项修复 hosted 生效判定（定向核验清单逐项）
+
+| # | 修复项 | 判定 | hosted 证据（本轮实测） |
+| --- | --- | --- | --- |
+| 1 | F-R3-03：run/ 前缀预检豁免 | **生效** | BUILD-GCC-RELEASE **PASS**，duration 119.65s、exit 0、prerequisite ok、outputs_missing=[]；真实执行 cmake configure（GNU 13.3.0，build dir run/ci/build-gcc-release）+ `cmake --build -j 2` 至 **[100%] Built target astrocs**（仅既有 -Wunused-function warning）；linux `skipped_waivable` 1→0，「仓库路径不存在」假 SKIP 形态消失 |
+| 2 | preset 可移植化（GENERATOR_INSTANCE 移除 + toolset 去 pin） | **生效（configure 通过）** | vswhere 自动发现 VS：configure exit 0，「-- Configuring done (20.9s) -- Generating done (0.4s)」，cl.exe = MSVC **14.44.35207**（VS Enterprise installation 17.14.37614.0，与历史基准同值）；轮 3 的 0.4s 即败形态消失；build 阶段真实编译 82.6s（exit 1，归属见 R33/F-R4-01，非 preset 回归——错误行截断问题） |
+| 2b | WIN-TEST-UNIT junit 产出（F-R3-02 级联解锁） | **生效** | ctest `--preset win-rel --output-junit run/ci/win-test-junit.xml` 真实执行 4.5s、**exit 8（8 个用例真实失败）**；outputs_missing=[]（monitor JSON + win-test-summary.json + junit 三件齐），FAIL(missing_output) 类别消失 |
+| 3 | F-R3-01：诊断步 subprocess 显式 utf-8 | **生效** | windows BOOTSTRAP_DIAG.json report 非 null：5/5 items ok=true（runner windows-2022/AMD64/VS present 17.14.37614.0/toolset v143/cmake 3.31.6）；`collection_error` 字段消失，UnicodeDecodeError 无；stderr_fail_payload=null 为本步 bootstrap exit 0 的正常语义（无失败载荷可填），非轮 3 的双 null 故障形态 |
+| 4 | F-R3-02：evidence artifact 含 win-build-summary.json | **生效** | windows artifact 解包根含 **run/ci/win-build-summary.json**（driver 版本/task_id/stages argv/output_tail 全量留痕）；artifact 184 members（轮 3 183） |
+
+- **DEEP-\* 5 项**（DEEP-CLANG-BUILD / DEEP-SAN-ASAN / DEEP-SAN-TSAN /
+  DEEP-COV-CPP / DEEP-COV-PY）：属 linux-deep profile（V8-CI-012 触发域），
+  linux-main 71 项不含；本轮 hosted 无直接执行证据。同根因解锁由
+  BUILD-GCC-RELEASE 同型实跑 + test_run_prefix_probe.py 4 用例间接成立；
+  linux-deep 首跑时预期不再被误 SKIP。
+
+## R31. check 分布对照（轮 4 vs 轮 3，逐 id 闭合）
+
+| profile | 轮 3 | 轮 4 | 移位 |
+| --- | --- | --- | --- |
+| linux-main（71） | 47P / 21F / 2T / 1S | 48P / 21F / 2T / **0S** | 唯一闭合：BUILD-GCC-RELEASE SKIPPED→**PASS**；FAIL 21 + TIMEOUT 2（UT-BACKEND、UT-CLI）的 id 集合与轮 3 **差集为空** |
+| windows-main（61） | 32P / 27F+1mo / 1S | 32P / 28F / 1S | FAIL id 集合唯一差集：WIN-TEST-UNIT（FAIL(missing_output)→**FAIL exit 8 真实测试失败**，修复解锁后的真实失败面，非回归级联）；WIN-BUILD-RELEASE 维持 FAIL 但形态从 0.4s configure 即败→82.6s 真实编译后失败 |
+
+- 已知归属全部维持原判（只引用）：F-R2-03 PyYAML/CONTRACT-GRAPH、
+  F-R2-04 numpy/UT-IO、F-R2-05 dumpbin、F-R2-09 基线态 17+2 项、
+  F-R2-10 UT-BACKEND/UT-CLI timeout（exit -9 signal 9）、UT-CPU-AVX512。
+- **无新增无主失败**；两平台 verdict 仍 FAIL 的构成全部落在
+  已知归属 ∪ 新 FINDINGS（R33）。
+
+## R32. resource summary（首轮 linux 实测数字）
+
+- **linux BUILD-GCC-RELEASE monitor JSON**（run/ci/monitor/BUILD-GCC-RELEASE.json，
+  经 log 全文解析）：duration 119.588s；**samples 576**（574 非空 CPU）；
+  **cpu_percent_avg 192.77% / median 200.69%**（-j 2 双线程对 4 affinity 核 ≈2 核满载）；
+  **peak_rss_kb 849,076（≈829 MiB）**、peak_pss_kb 801,553、rss_start 2,452；
+  io_read 2,420,399,283 B（≈2.25 GiB）/ io_write 233,043,056 B（≈222 MiB）；
+  **threads_max 14**；**timed_out=false**（3500s 预算未触发，超时计数 0）。
+- host_probe：cpu_affinity 4 / cpu_logical 4 / cpu_physical 2（procfs）/
+  mem_total 16,766,414,848 B（16 GB）/ effective_cpu_cores 4.0 / max_workers 4。
+- **windows**（host 探针语义维持轮 2/3 判定）：WIN-BUILD-RELEASE 347 samples /
+  WIN-TEST-UNIT 23 samples；cpu/rss null、threads_max 0 为 Linux /proc 采样
+  探针在 windows 宿主无 psutil 的既有语义（host_probe 4 核探测成功，
+  非回归）；WIN-BUILD-RELEASE duration 82.469s、WIN-TEST-UNIT 4.437s。
+
+## R33. 轮 4 新观察（新 FINDINGS）
+
+1. **F-R4-01（major，observability）**：WIN-BUILD-RELEASE build exit 1 的
+   **真实错误行未留痕**。ci_windows_driver.run_step output_tail 固定保留
+   最后 25 行，MSVC `--parallel 4` 下 error 行被后续 warning/link 行冲出
+   窗口——win-build-summary.json build.output_tail 25 行全为 warning C4996
+   与链接进行行（0 error 行）、job log 无 error C/fatal/MSB 行、monitor JSON
+   stdout_tail 仅驱动横幅。build 失败归属无法从本轮 hosted 证据定位。
+   归属：tools/quality/ci_windows_driver.py（前台域）。建议：stage 失败时
+   全量落盘或输出 error/warning 过滤窗口（与 F-R3-02(a) 同域二次缺口）。
+2. **F-R4-02（minor，evidence-contract）**：run/ci/win-test-junit.xml 与
+   win-test-summary.json 已产出但不在 evidence artifact 上传多路径内
+   （当前仅 artifacts/ci/ + win-build-summary.json）→ ctest exit 8 的 8 个
+   失败用例名无法离线定位。归属：.github/workflows/ci-windows.yml 上传步。
+   最小修：path 追加 run/ci/win-test-junit.xml（+win-test-summary.json）。
+3. **F-R4-03（info，预期内兑现）**：toolset 放宽后的版本等价改为观测证明——
+   本轮 hosted 实测 VS 17.14.37614.0 / MSVC 14.44.35207 **与历史基准同值，
+   零漂移**；preset 契约（禁硬编码/禁 version pin）TOOLCHAIN_CONTRACT_PASS。
+
+## R34. findings_round4（登记口径）
+
+- F-R4-01 / F-R4-02：新登记，归属与建议如 R33；均不改源码（观察轮纪律）。
+- WIN-TEST-UNIT exit 8 的 8 用例名：**归属待 F-R4-02 修复后下一轮留痕定位**
+  （是否落入 F-R2-09 基线态，现无法判定）。
+- 其余全部维持轮 2/3 归属引用。
+
+## R35. closability_vs_requirements（对照派发单六条）
+
+| # | 派发单要求 | 判定 | 理由 |
+| --- | --- | --- | --- |
+| 1 | 记录 main 完整 SHA 并等待该 SHA 双平台 workflows | **MET** | HEAD=7e974087 完整 SHA 双 run（push 触发）终态/时长/步骤/汇总行全记录（R29） |
+| 2 | 核验 check 数量（71/61） | **MET** | linux 71/71 全部真实执行（skipped_waivable 0，BUILD-GCC-RELEASE 实跑 PASS）；windows 61 项中 60 实跑 + 1 项 SKIPPED(waivable)（dumpbin=F-R2-05 登记预期，非误 SKIP）；missing_output 类别消失；两 profile 数量与 plan-only 基线一致 |
+| 3 | 核验 resource summary | **MET** | linux 首轮产出完整 monitor 数字（R32：192.77% avg / 849 MiB peak / 14 threads / 576 采样 / 超时 0）；windows monitor JSON 产出，null 字段为宿主探针登记语义 |
+| 4 | 核验 artifact digest / source manifest / candidate 内容 | **NOT_MET** | candidate zip 仍未产出：WIN-PACKAGE-CANDIDATE 维持 dumpbin skip（F-R2-05 登记预期）+ 上游 WIN-BUILD-RELEASE 真实编译失败（错误行被 F-R4-01 截断，归属链断在观测面）；三件套核验持续 NOT_EXECUTABLE（轮 2 起同态） |
+| 5 | 失败创建归属明确的修复提交，不 amend | **MET** | 本轮零无主失败：21F+2T 维持已知归属引用；新观察 F-R4-01/02/03 归属明确；前台修复轮 1-4 commit 均原子且未 amend |
+| 6 | 证据链与验收 | **MET** | logs/round4/ 全量留档（API trace/jobs/artifacts/双 job log/双 artifact zip+解包/git status 快照）；trace 无凭据断言 PASS；unittest 235 OK；git status 89 行与初始快照一致 |
+
+- **收口判定：NOT_CLOSABLE（差距收敛）** —— 修复轮 4 的 CLOSABLE_PENDING_HOSTED
+  四项条件全部实证生效（R30）；req1/2/3/5/6 全 MET；唯一 NOT_MET 集中在
+  **req4 候选链**：WIN-BUILD-RELEASE 真实编译失败（F-R4-01 遮蔽归属）+
+  WIN-TEST-UNIT 8 用例失败（F-R4-02 遮蔽用例名）+ dumpbin（F-R2-05 登记预期）。
+- **最小后续动作**（前台，一个观测面修复轮 + 一轮定向重验即可闭环）：
+  1. ci_windows_driver.run_step 失败时保留 error 过滤窗口或全量日志
+     （F-R4-01）；ci-windows.yml 上传多路径追加 win-test-junit.xml
+     （F-R4-02）；
+  2. hosted 定向重验 windows：读 build 真实错误行与 8 用例名 → 归属
+     （源码域修复提交 / 并入 F-R2-09 基线态裁决）；
+  3. dumpbin→candidate 链按 F-R2-05 既定裁决处理后，补核验
+     SHA256SUMS/BUILD_PROVENANCE/candidate 内容三件套 → V8-CI-010 关闭。
+
+## R36. 验收与凭据纪律（本轮实测）
+
+- `git status --porcelain`：89 行遗留与任务初始快照逐行一致（非本轮产物）+
+  增量恰 3 行 ` M evidence/v8_1_ci_control/tasks/V8-CI-010/{CHANGED_FILES.txt,
+  HOSTED_RUN_REPORT.md,TASK_RESULT.json}`——全部落在派发允许域
+  evidence/.../V8-CI-010/** 内；logs/** 按 .gitignore 不入 status；零 git
+  写操作（终态快照留档 logs/round4/git_status_after_round4.txt）。
+- `python3 -m unittest discover -s ci/tests -p 'test_*.py'`：**Ran 235 tests
+  in 26.072s — OK**（两 run 终态后实测）。
+- 凭据：token 仅 `git credential fill` 内联进程内存；全部 curl --max-time 15；
+  round4/ 落盘前后全量 grep ghp_/github_pat_/ghs_/gho_/Authorization:/
+  password= 无命中；runner 自掩码 `basic ***` 2 处 ×2 log 统一 [REDACTED] 化。
+
+**观察轮 4 判定：FIX_ROUND4_ALL_EFFECTIVE —— 四项修复 hosted 全部生效验证
+（BUILD-GCC-RELEASE 实跑 PASS + linux resource 数字落地；windows configure
+通过 + junit 产出；BOOTSTRAP_DIAG 回填；win-build-summary 上传）；剩余失败
+全部已知归属或新登记观测面缺口。V8-CI-010 未达关闭条件（req4 候选链 +
+windows 失败定位依赖 F-R4-01/02 修复后定向重验）；按 R35 最小后续动作
+推进后即可关闭。**
+
+## R37. 修复轮 5（F-R4-01 / F-R4-02 前台裁决执行，@ HEAD 7e974087，mode=write，git 只读纪律不变）
+
+**1. F-R4-01 修复（tools/quality/ci_windows_driver.py，输出 schema 向后兼容）**
+- 常量新增 `ERROR_LINE_RE`（`error C\d+|error LNK\d+|fatal error|: error |/error MSB\d+|LINK : fatal`，IGNORECASE）
+  与 `ERROR_LINES_CAP = 50`；新增纯函数 `collect_error_lines(lines)`（保序过滤、cap 50）。
+- `run_step`：除 output_tail 外新增 **error_lines** 字段——失败（exit≠0）时对全量输出按上述正则过滤收集
+  （cap 50 保序），**output_tail 语义不变**（仍最后 25 行）；成功（exit 0）时 `error_lines=[]`；
+  FileNotFoundError 分支同样补 `error_lines: []`。
+- `run_flow`：stage_res 透传 `error_lines`（win-build-summary.json stages[] 逐级留痕）；ci_result.schema.json
+  additionalProperties=true，schema 兼容零改动。
+
+**2. F-R4-02 修复（.github/workflows/ci-windows.yml evidence 上传步）**
+- driver 实际 junit 路径确认：`DEFAULT_JUNIT = "run/ci/win-test-junit.xml"`（checks.json WIN-TEST-UNIT
+  command `--junit run/ci/win-test-junit.xml`、outputs 三件套契约一致）。
+- 上传多路径追加 `run/ci/win-test-junit.xml` + `run/ci/win-test-summary.json`（该 summary 为同检查
+  outputs 契约第二件，ctest 失败上下文一并离线可读）；`artifacts/ci/`、`run/ci/win-build-summary.json` 原路径不动。
+
+**3. 单测（ci/tests）**
+- test_windows_ci.py：+4 新用例——`test_run_step_collects_error_lines_on_failure`（9 行混合输出中收 5 行
+  error：C2065/LNK2019/C1083/MSB1009/LNK1104，warning 与噪声行不收、保序）、
+  `test_run_step_error_lines_cap_50`（60 行 error 截断至 50 保序）、`test_run_step_success_has_empty_error_lines`、
+  `test_collect_error_lines_pure_function`；`test_run_step_captures_output_and_exit_code` 补
+  error_lines==[] 断言。
+- test_workflow_lock.py：`test_evidence_upload_path_matches_run_output_dir` 补两条正向断言
+  （win-test-junit.xml / win-test-summary.json，注明 F-R4-02 与 checks.json outputs 契约）。
+
+**4. 验收实测（logs/repair_round5.log 全文留档）**
+- `validate_registry --strict --registry ci/checks.json`：**verdict PASS，error_count 0，checks 80，exit 0**。
+- `python3 -m unittest discover -s ci/tests -t ci/tests`：**Ran 239 tests — OK**（235 + 新增 4）。
+- plan-only 四口径不变：**fast 57 / linux-main 71 / linux-deep 7 / windows-main 61**。
+- `git diff --stat`：ci_windows_driver.py(+20) / ci-windows.yml(+4) / test_windows_ci.py(+57) /
+  test_workflow_lock.py(+6) / evidence/**V8-CI-010/**(三件更新) —— 全部在派发允许域。
+- 仓库根 tests/（非本轮域）基线对照：45 ERROR（loader/setUpClass 环境性存量）+ 4 FAIL
+  （version/thread_budget/drizzle 存量门）与本轮改动零交集；PRODUCTION_EXECUTION_INVENTORY.csv
+  工作区漂移为 arch 库存再生成测试对 HEAD 库存滞后的确定性重写（HEAD 基线复跑同样产生），非本轮产物。
+
+**5. hosted 重跑预期（windows 定向重验读数能力）**
+- F-R4-01：WIN-BUILD-RELEASE 失败时 win-build-summary.json 的 stages[build].error_lines 将直接给出
+  `error Cxxxx / LNKxxxx / fatal error / MSBxxxx` 行（cap 50 保序），不再依赖被 --parallel warning 冲出的
+  output_tail 25 行窗口——编译失败归属（源码域修复 vs F-R2-09 基线态）可判定；成功时字段空列表、
+  summary 体积零影响。
+- F-R4-02：windows artifact 将含 run/ci/win-test-junit.xml（JUnit XML，`<testcase name=… classname=…>` 离线
+  可读）+ win-test-summary.json，WIN-TEST-UNIT exit 8 的 8 个失败用例名可离线定位并对照 F-R2-09 裁决。
+
+**6. 工作区事件留档（round3 遗留 stash 一次性处置，见 logs/repair_round5.log §7）**
+- round3 未提交的 AGENTS.md 工作区改动被项目负责人权威更新取代（现盘=HEAD：含「节点与角色」节、
+  无 subagent 派发条目）；stash 版已备份 run/AGENTS_stash_backup_round3.md 后弃用。
+- csv 漂移归因与保留理由如上 §4；stash 已 drop，全部内容经 checkout 恢复或同源证实。
+
+**修复轮 5 判定：PASS_LOCAL —— 两项前台裁决修复全部落地、单测 239 OK、注册表 strict PASS、
+plan-only 四口径不变、diff 范围合规；hosted 定向重验（windows build 错误行 + junit 用例名）待
+控制面触发后即可完成归属判定。**
