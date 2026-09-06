@@ -1,7 +1,7 @@
 {
   "schema": "astrocs.task-result/v2",
   "task_id": "REL-003",
-  "status": "NOT_STARTED",
+  "status": "FAIL",
   "experiment_status": "LINUX_PACKAGE_PASS_WINDOWS_PENDING",
   "parent_commit": "faad602da55538687eb1ac0c7c77116362ad7aae",
   "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
