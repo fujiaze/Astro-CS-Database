@@ -1520,3 +1520,60 @@
 {"sha": "850973a744c903d005ef84813c3c3b08c73044ef", "subject": "feat: Star Detector - astronomical star detector with PSF fitting filter, FWHM clipping and roundness filter", "task_id": null, "date": "2026-05-24T15:50:54+08:00"}
 {"sha": "802becc268ffb1908678d11da3f2361a6e82d414", "subject": "Initial commit: Astro Image IO", "task_id": null, "date": "2026-05-24T10:13:54+08:00"}
 {"sha": "4a2750bd1048eb4995703b6105c79b9b5f9b5646", "subject": "Initial commit: Gaia DR3 XPSD Client", "task_id": null, "date": "2026-05-24T10:13:53+08:00"}
+{"sha": "80f2727dcfdc5c112de32449e2c63226f7d7d0b8", "subject": "fix(windows): 2dbf193c 托管实测收尾 —— zlib 链接名探测 + 监控测试平台解耦 [V8-CI-012 后续]", "task_id": "V8-CI-012", "date": "2026-09-06T22:24:09+08:00"}
+{"sha": "0b60f02a125ac7c59caafea0fb5d1990ccfddd9b", "subject": "fix(cli): MON-004 资源门禁生产接线 —— evaluate_gate 进入 phase1/2/3 run 路径 [V8-CI-012 后续]", "task_id": "V8-CI-012", "date": "2026-09-06T22:23:07+08:00"}
+{"sha": "3a4b265bba577970da2e577032eb8f4f19d090f2", "subject": "fix(checkers): MAIN23 波次1 CLI 检查器目标重定位 4 项 + 协议文档对齐（subagent 交付）[V8-CI-012 后续]", "task_id": "V8-CI-012", "date": "2026-09-06T22:22:50+08:00"}
+{"sha": "04993f77baea009781bcee0f6e8289af00d2317a", "subject": "fix(governance/evidence/tests): 波次1 治理与测试常量（TASK-RESULT-SCHEMA/DOC-INDEX/UT-CLI version 正则）[V8-CI-012 后续]", "task_id": "V8-CI-012", "date": "2026-09-06T21:53:01+08:00"}
+{"sha": "e4f77ccbc7fd60f4f0c0b8a2436ea65fd09b8162", "subject": "fix(checkers): 波次1 检查器语义修正 4 项（ENG-CONSTRAINTS/TOOLCHAIN-VERIFY/WORKSPACE-ADOPTION/SERIAL-HARDCODE）[V8-CI-012 后续]", "task_id": "V8-CI-012", "date": "2026-09-06T21:52:50+08:00"}
+{"sha": "2dbf193cd2b2b938d6ca7b79a4f1806ef581b5e6", "subject": "fix(gov): 恢复 AGENTS.md 治理短块（15720f5e 引入、065c81de 重写时脱落）[V8-CI-012 后续]", "task_id": "V8-CI-012", "date": "2026-09-06T21:47:27+08:00"}
+{"sha": "63721d70c3f8e3cd137fa907de983b9d8bbfc59a", "subject": "fix(windows): P0-A hosted Windows CI 12 项收敛 [V8-CI-012 后续]", "task_id": "V8-CI-012", "date": "2026-09-06T21:29:31+08:00"}
+{"sha": "d524ea73a894317580be48131e2167e0565179e0", "subject": "fix(ci): 落地 V8-CIQA-001 验收器 verify_ciqa_report.py（关闭 CIQA P1-GAP-1）[V8-CI-012 后续]", "task_id": "V8-CI-012", "date": "2026-09-06T21:13:51+08:00"}
+{"sha": "af12a52867b0db583abd7296cf696e969dea91e1", "subject": "fix(ci): fatduck 候选认定绑定 workflow path（关闭 CIQA P1-GAP-2）[V8-CI-012 后续]", "task_id": "V8-CI-012", "date": "2026-09-06T21:12:01+08:00"}
+{"sha": "58d91a4cee0c527e94bcd6570d797e7624cc3128", "subject": "fix(ci): deep 防线测试合同同步 + CIQA 独立攻击审查报告入档 [V8-CI-012 后续]", "task_id": "V8-CI-012", "date": "2026-09-06T21:09:21+08:00"}
+{"sha": "8689aec1dc53b47828c8a65f10a5af7627f1c1d8", "subject": "fix(ci): fatduck no-candidate 路径 upload 改 ignore（消除结构性红叉）[V8-CI-012 后续]", "task_id": "V8-CI-012", "date": "2026-09-06T21:02:08+08:00"}
+{"sha": "736c8eab0fcce637fcb9fb51ad9d93856464020a", "subject": "chore(evidence): R7.7 hosted 复验差分（UT-API 净转 PASS，零新增失败）[V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T20:35:25+08:00"}
+{"sha": "ddb6d92b86dbdb20703ef3804742815895eb5f41", "subject": "chore(evidence): R7 批次 3 与 UT-BACKEND 修复后全量账收口 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T20:13:26+08:00"}
+{"sha": "f20e0976684322e1629cd339e3277e8b606bf8a3", "subject": "fix(tests): backend fixture 断链修复批次 3（共享 fixture + 路径收敛）[V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T20:01:26+08:00"}
+{"sha": "d4a54632e00aed44dc582262a726e021e897fd7c", "subject": "fix(ci): deep 安装面补 libgsl-dev（p1002 sdet fixture 依赖）[V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T19:04:51+08:00"}
+{"sha": "b56dd98760b385b8157fa4a60974cf5cdf467c73", "subject": "fix(backend): hardware_inspect V6.1 布局收敛与版本单源化 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T18:46:56+08:00"}
+{"sha": "a2d47a65d1cf758d8885cde0f2ed413dda2aac9e", "subject": "chore(evidence): V8-CI-010/011/012 状态闭合与 R7 本地收口轮落档 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T18:41:40+08:00"}
+{"sha": "b8a83efa1f98b32d6098a5ffae4c6ae2056cc0a2", "subject": "fix(version): test_01 过期版本字面量改由单源派生 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T18:30:34+08:00"}
+{"sha": "f2ea0928bcdcba0289fb3c62e2058591ae47f1f2", "subject": "fix(tests): 工程控制 untracked 断链修复批次 2（CLI 协议合同 + task_result schema rehome）[V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T18:30:00+08:00"}
+{"sha": "b6001684d2820faf90b8c4a9125ff8b5bbce3db0", "subject": "fix(chore): 刷新 Agent 主机工具链 lock：补装后 9 项 missing 清零 [V81-ADOPT-004]", "task_id": "V8-CI-012", "date": "2026-09-06T18:20:12+08:00"}
+{"sha": "06e288ab11acb66caa8952b067293bd3d16db77a", "subject": "fix(ci): coverage 安装面闭包与 F9-c pytest_tail 扩窗 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T18:20:01+08:00"}
+{"sha": "b0733710800a90f9519559b4251272e64f5b63cb", "subject": "fix(backend): cpu_profile.schema 断链修复与 V6.1 布局路径收敛 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T18:19:53+08:00"}
+{"sha": "54a8f9a7c115f7ae8503cf2ff08236ff8d9a4ea0", "subject": "fix(build): F8-b/F8-c coverage 插桩作用域前移与 llvm-cov --sources 语法修复 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T18:19:39+08:00"}
+{"sha": "52e718048312fa05c694c5a32e7dec52263bf0cc", "subject": "fix(ci): V8-CI-012 修复轮 3 coverage clang 强制与 pytest 失败可观测 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T17:05:15+08:00"}
+{"sha": "485b8b86d7130f067e85b90aa04da36407983801", "subject": "fix(ci): V8-CI-012 修复轮 2 重定向剥凭据/coverage 路径与报告步解耦 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T16:15:35+08:00"}
+{"sha": "2ca7361e37fa51c9586214deb23a8bf4a9eb93ca", "subject": "fix(ci): V8-CI-012 修复轮 1 ASan 目标旗标/coverage 工具链/远端验证器 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T15:14:16+08:00"}
+{"sha": "d416fc9df7767b6a407994048203667a0ef8cbaa", "subject": "chore(ci): V8-CI-012 派发单回填 base_sha 与派发时刻 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T13:55:42+08:00"}
+{"sha": "ff4d20668e5fe00a71acb53c5f884db4444f6025", "subject": "chore(ci): V8-CI-012 分发与写租约 [V8-CI-012]", "task_id": "V8-CI-012", "date": "2026-09-06T13:55:32+08:00"}
+{"sha": "05f182745f0ac0c145208b675de2345f5225139d", "subject": "fix(ci): V8-CI-010 修复轮 5 失败可观测性 error_lines 与 junit 上传 [V8-CI-010]", "task_id": "V8-CI-012", "date": "2026-09-06T13:15:33+08:00"}
+{"sha": "7e974087ddb108f519e91f4aedaa018a97d1e5f6", "subject": "fix(ci): V8-CI-010 修复轮 4 run/ 预检豁免与 MSVC preset 可移植化 [V8-CI-010]", "task_id": "V8-CI-012", "date": "2026-09-06T12:23:32+08:00"}
+{"sha": "77da09effe1f997f3149f4845ac8c3a471d47038", "subject": "fix(ci): V8-CI-010 修复轮 3 monitor shim 导入链与 bootstrap UTF-8 [V8-CI-010]", "task_id": "V8-CI-012", "date": "2026-09-06T11:09:07+08:00"}
+{"sha": "2508a37938b31cb9e00c3a16356cf929a7155ebc", "subject": "fix(ci): V8-CI-010 修复轮 2 工具链 policy 校准与产物路径对齐 [V8-CI-010]", "task_id": "V8-CI-012", "date": "2026-09-06T10:00:39+08:00"}
+{"sha": "25259880615bcde34c4a6dc9377d072528fc7fba", "subject": "fix(ci): 移除失效 AstroCS.wiki gitlink 修复 hosted checkout [V8-CI-010]", "task_id": "V8-CI-012", "date": "2026-09-06T08:11:40+08:00"}
+{"sha": "396e880bb49126cd0682e32a3a6c44d2e38bc404", "subject": "chore(ci): V8-CI-010 分发与写租约 [V8-CI-010]", "task_id": "V8-CI-012", "date": "2026-09-06T08:11:21+08:00"}
+{"sha": "db09fbc75b6abb25ad3061c325a76ef0ee729b08", "subject": "feat(ci): V8-CI-011 GitHub 仓库设置 API 配置与现场复读 [V8-CI-011]", "task_id": "V8-CI-012", "date": "2026-09-06T08:08:19+08:00"}
+{"sha": "2c1ffef10b0feb36e779b68e08e7e1b147371c6d", "subject": "chore(ci): V8-CI-011 分发与写租约 [V8-CI-011]", "task_id": "V8-CI-012", "date": "2026-09-06T07:59:12+08:00"}
+{"sha": "1e50d49e25c4192dc1a0285fc3a10d77629195f3", "subject": "feat(ci): V8-CI-009 负向测试矩阵与守卫补齐 [V8-CI-009]", "task_id": "V8-CI-012", "date": "2026-09-06T07:57:21+08:00"}
+{"sha": "72df03191e1d12cc733f506dc8f85a5c6c75556b", "subject": "chore(ci): V8-CI-009 分发与写租约 [V8-CI-009]", "task_id": "V8-CI-012", "date": "2026-09-06T06:56:26+08:00"}
+{"sha": "9b3fe93e0877bcd249f8ca89b3d66bea2df3913b", "subject": "feat(ci): V8-CI-008 Fatduck 三 job workflow 与候选选择器 [V8-CI-008]", "task_id": "V8-CI-012", "date": "2026-09-06T06:55:40+08:00"}
+{"sha": "164419875d25292f03ca66a33ca07c688b066ec9", "subject": "chore(ci): V8-CI-008 分发与写租约 [V8-CI-008]", "task_id": "V8-CI-012", "date": "2026-09-06T06:29:51+08:00"}
+{"sha": "a032c0cc722a4a3521b1f4fbacf24b4328424815", "subject": "feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007]", "task_id": "V8-CI-012", "date": "2026-09-06T06:27:40+08:00"}
+{"sha": "a90dbb9099727f83b308c3a50a647c1b6198fe2f", "subject": "chore(ci): V8-CI-007 分发与写租约 [V8-CI-007]", "task_id": "V8-CI-012", "date": "2026-09-06T05:43:33+08:00"}
+{"sha": "847a7a6b08ab347c2158046efb6a996e2035cfbe", "subject": "feat(ci): V8-CI-006 Windows 构建驱动与 candidate 打包链 [V8-CI-006]", "task_id": "V8-CI-012", "date": "2026-09-06T05:41:44+08:00"}
+{"sha": "f5d579bc74e84ed26518bf91f7a0190164022bc8", "subject": "chore(ci): V8-CI-006 分发与写租约 [V8-CI-006]", "task_id": "V8-CI-012", "date": "2026-09-06T04:59:15+08:00"}
+{"sha": "e1fde093d3eab590619618732b6b67bbe287c12d", "subject": "feat(ci): V8-CI-005 linux-deep 检查注册与 deep 构建驱动链 [V8-CI-005]", "task_id": "V8-CI-012", "date": "2026-09-06T04:56:30+08:00"}
+{"sha": "d41f451618c139436cc0409cf6bf93f98c83eac4", "subject": "chore(ci): V8-CI-005 分发与写租约 [V8-CI-005]", "task_id": "V8-CI-012", "date": "2026-09-06T02:01:14+08:00"}
+{"sha": "c583e59d21b675e09be9878cf84a448975537a52", "subject": "feat(ci): V8-CI-004 changed path→checks 映射与 fast profile 实测 [V8-CI-004]", "task_id": "V8-CI-012", "date": "2026-09-06T02:00:31+08:00"}
+{"sha": "b2d31bfe6fff7e073dac6c718f2ecd4b65b4e8eb", "subject": "chore(ci): V8-CI-004 分发与写租约 [V8-CI-004]", "task_id": "V8-CI-012", "date": "2026-09-06T01:25:19+08:00"}
+{"sha": "df01ea7b5dc3269b9ee1b23544305a4ac1ed5276", "subject": "feat(ci): V8-CI-003 动态资源探测与统一监控 wrapper [V8-CI-003]", "task_id": "V8-CI-012", "date": "2026-09-06T01:20:22+08:00"}
+{"sha": "c5924da537220239b00e4ae8970bc5eb17e908c9", "subject": "chore(ci): V8-CI-003 分发与写租约 base 对齐 459da629 [V8-CI-003]", "task_id": "V8-CI-012", "date": "2026-09-06T00:48:07+08:00"}
+{"sha": "459da6290c2c67a377f51cb863f54336508a7036", "subject": "feat(ci): V8-CI-002 统一确定性 CI 执行器、结果 schema 与 29 项单测 [V8-CI-002]", "task_id": "V8-CI-012", "date": "2026-09-06T00:45:52+08:00"}
+{"sha": "0acfb5141a9b92bff5f04e1bb3b296fca88a66b0", "subject": "feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001]", "task_id": "V8-CI-012", "date": "2026-09-05T21:00:27+08:00"}
+{"sha": "b4f923ccbcde51e1a9112aba04815351169091c7", "subject": "chore(version): V81-ADOPT-006 统一活动版本源至 0.11.0-alpha.2 并同步冻结约束版本行 [V81-ADOPT-006]", "task_id": "V8-CI-012", "date": "2026-09-05T20:06:55+08:00"}
+{"sha": "1ecbf10ebbedf3cce52252a07405b9356014a4fc", "subject": "docs(index): V81-ADOPT-005 补登工具链快照恢复活动索引 [V81-ADOPT-005]", "task_id": "V8-CI-012", "date": "2026-09-05T19:08:23+08:00"}
+{"sha": "becc85a087c70d5769688c7b34466c5333704d5d", "subject": "chore(ci): V81-ADOPT-004 Agent 主机工具链盘点与锁存 [V81-ADOPT-004]", "task_id": "V8-CI-012", "date": "2026-09-05T19:01:50+08:00"}
+{"sha": "98c2354fcd59423e80ae9592f19b5b9094d20fc1", "subject": "chore(evidence): V81-ADOPT-003 任务证据对账重建 TASK_STATE 191 项 [V81-ADOPT-003]", "task_id": "V8-CI-012", "date": "2026-09-05T18:48:28+08:00"}
+{"sha": "7e7b639d6bfe8699543f8040c7a651f9c1de53b7", "subject": "fix(docs): DOC-L0 五份 L0 评审汇总层重建于 docs/review/（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-06T22:50:51+08:00"}

@@ -87,17 +87,21 @@ class TestDocMachineCheck(unittest.TestCase):
         self.assertNotEqual(rc, 0, "exit code 8 缺失应使 checker FAIL")
 
     def test_05_command_tree_mutation_fails(self):
-        """命令树: 删掉文档 CLI §1 一行命令 → 该命令在 doc 缺失(help 有) — 需反向:
-        把 doc 的 run 行改成帮助中不存在的文本 → 命令树 doc vs help 不一致 → FAIL。"""
+        """命令树: 把 doc CLI §1 的 phase1 行改为 CLI --help 中不存在的文本
+        (加非法 --min-obs 选项) → 命令树 doc vs help 不一致 → FAIL。
+        (原 mutation 针对的 `astrocs run --phases <...>` 废弃行已从文档删除,
+         replace 静默无效; 改用现行 phase1 行保证 mutation 真实生效。)"""
         dst = os.path.join(self.tmp, "docs", "api")
         shutil.rmtree(dst, ignore_errors=True)
         shutil.copytree(os.path.join(REPO, "docs", "api"), dst)
         p = os.path.join(dst, "CLI_PROTOCOL_V1.md")
         t = open(p, encoding="utf-8").read()
-        t = t.replace("astrocs run --phases <1|2|3|1,2|1,2,3>",
-                      "astrocs run --phases <1|2|3|1,2|1,2,3,9>")   # 加入非法 phase 9
+        old = "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]"
+        new = "astrocs phase1 run --config <path> --min-obs 9 [--events-jsonl]"
+        self.assertIn(old, t, "前置: 文档应包含现行 phase1 命令行(否则本 mutation 无效)")
+        t = t.replace(old, new)
         open(p, "w", encoding="utf-8").write(t)
-        self._expect_fail(dst, "command tree run-phase mutation", None)
+        self._expect_fail(dst, "command tree phase1 mutation", None)
 
     def test_06_schema_field_mutation_fails(self):
         """Phase3 schema: 在临时 schema 删字段 → 引用字段未提及 → 需反向。用文档侧:
