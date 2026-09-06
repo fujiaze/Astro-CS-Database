@@ -1,0 +1,12 @@
+# V8-CI-011 CHANGED_FILES（SA-CI-32，仅证据目录）
+
+evidence/v8_1_ci_control/tasks/V8-CI-011/TASK_RESULT.json        （新增）
+evidence/v8_1_ci_control/tasks/V8-CI-011/SETTINGS_MATRIX.md      （新增）
+evidence/v8_1_ci_control/tasks/V8-CI-011/CHANGED_FILES.txt       （新增，本文件）
+evidence/v8_1_ci_control/tasks/V8-CI-011/logs/api_trace.jsonl    （新增，12 条 API 请求记录，脱敏）
+
+说明：
+- 仓库源码/workflow/台账零改动；仓库设置仅按矩阵改 actions 相关四项（第 1 项只读未动 enabled）。
+- logs/ 目录命中仓库 .gitignore:18 全局 `logs/` 规则，`git status --porcelain` 不显示该文件，但文件已落盘于证据目录。
+- 工作区中 M AGENTS.md 与 D dist/audit/*.zip 为本任务开始前既有状态，非本任务产生。
+- 无 git 写操作（未 commit/push/branch）。
