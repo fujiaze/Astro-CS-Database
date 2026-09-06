@@ -123,6 +123,16 @@ public:
 
     uint64_t n_samples() const { return n_; }
 
+    // MON-002 first-10s gate: 取 elapsed<=max_elapsed 的样本只读快照
+    // (供采样线程在 10s 边界评估 fast_fail_first10s; 不暴露内部引用, 保持线程安全)。
+    std::vector<ResRecord> records_upto(double max_elapsed) const {
+        std::lock_guard<std::mutex> lk(mu_);
+        std::vector<ResRecord> out;
+        for (const auto& r : records_)
+            if (r.elapsed_seconds <= max_elapsed) out.push_back(r);
+        return out;
+    }
+
 private:
     double interval_;
     SteadyClock::time_point t0_{SteadyClock::now()};

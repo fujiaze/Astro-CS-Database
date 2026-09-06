@@ -100,5 +100,80 @@
     "F-012"
   ],
   "expected_commit_subject": "MON-002: 资源门禁接入生产控制流 (first-10s 快速失败 + 结束 evaluate_gate → RESOURCE(10)+diagnosis)",
-  "created_utc": "2026-09-01T02:00:00Z"
+  "created_utc": "2026-09-01T02:00:00Z",
+  "reverify": {
+    "round": "reverify-1",
+    "owner": "MON-002-subagent",
+    "mode": "reverify+minimal-repair",
+    "observed_head_sha": "ab84dc16a0d633c0852e749b8111ada8874639a8",
+    "reverified_utc": "2026-09-06T20:10:48Z",
+    "gap_found": "逐条对照 04_TASK_SPECIFICATIONS §MON-002 复验发现三缺口: (1) 调用点缺失 — run_with_resource_gate 仅在 run_pipeline 结束后调用一次 evaluate_gate, 无 first-10s gate 调用点(fast_fail_first10s 为死代码, 生产无调用); (2) 阈值缺失/豁免矛盾 — evaluate_gate 无 CPU p50>=90%/mean>=85% 判定; Compute kind wall<5s 一刀切豁免(mon002_gate_test 用例4 断言 wall=2s+selected_workers=1 期望 Ok)直接违反规格 'heavy 任务即使短于 5 秒也不能因固定豁免而掩盖单线程'(5s/5% 豁免规格原文仅限 I/O 串行); worker 判定只用租约数 selected_workers/max_active_threads, 无采样 worker p50 权威判定; (3) 诊断类别缺失 — GateDiag 无内存持续增长/无进度/异常 IO 等待类别(RESOURCE 退出码注释明示 '资源利用率或内存增长门禁失败', 代码层无对应判定)。",
+    "repair": "最小补齐(全部在 cli/ 与 tests/): [resource_gate.h] GateDiag 尾部追加 CpuP50Low/CpuMeanLow/MemoryGrowth/ProgressStall/IoWaitHigh(既有枚举值与 gate_diag_name 旧值输出不变); 阈值常量 kWorkerP50Min=2.0/kCpuP50MinPercent=90.0/kCpuMeanMinPercent=85.0; GateConfig 追加采样统计字段 workers_p50/cpu_p50_percent/cpu_mean_percent(负=未采样跳过, 向后兼容)与横切字段 rss_slope_measured/rss_slope_mb_per_s/memory_growth_limit_mb_per_s(默认32, 调用方可覆盖)/progress_stalled/io_wait_high_percent; evaluate_gate 横切异常(MemoryGrowth/ProgressStall/IoWaitHigh)最前 → Compute 分支单线程判定前移且不受 wall<5s 固定豁免(采样 workers_p50 权威于租约, 未采样回退 selected/max_active), wall<5s 只跳过统计判据, CPU p50/mean 判定仅调用方提供 active window>=10s 采样时生效; diag_message 全部带实测值 vs 阈值。5s/5% 豁免仍仅在 Io 分支。 [resource_recorder.h] 追加 records_upto(max_elapsed) 只读快照访问器(供 first-10s 评估)。 [runtime_client.h/.cpp] run_pipeline 追加可选 cancel_ext 外部协作取消源(默认 nullptr 向后兼容), 与信号 cancel_flag 等价转发 Runtime::cancel(); 开头追加 ASTROCS_TEST_PIPELINE_SLEEP_MS 假 workload 测试钩子(不设则零影响)。 [commands.cpp] run_with_resource_gate: 采样线程 10s 边界调用 fast_fail_first10s(前 10s 样本 cpu p50<20% + 非IO(<1MB/s) + 带宽未测) → 失败置位 cancel_ext 协作取消 run_pipeline, 收尾把 gate 触发的 CANCELLED 归并为 RESOURCE(10)+diagnosis(用户 SIGINT 时 first10s=Ok 不受影响仍 9); 结束时 gate 从 ResourceRecorder stage_stats 填充 workers_p50/cpu p50/mean(active wall>=10s 才填)/rss_slope, has_stage_annotation=true(recorder 已按 init/active/flush 分段, 接线对齐 07 §1); first-10s 已失败而结束判定通过时 FastFailFirst10s 兜底; resource 事件 payload 增加 workers_p50/cpu_p50_percent/cpu_mean_percent/first_10s_gate; 失败路径维持 return astrocs::RESOURCE(10)。 [mon002_gate_test.cpp] 用例4 按新规格反转为 SingleThreaded(注释注明规格依据), 新增 4b 短任务多核 Ok/4c 伪造采样 workers_p50=1 必须 FAIL/CPU p50/mean/横切诊断/diagnosis 实测值/RESOURCE==10 共 18 组。",
+    "first_10s_semantics": "规格 'first 10 s 和结束时调用 gate' 映射: first-10s gate 在采样线程跨过 10s 边界后首次采样时真实调用(fast_fail_first10s, 07 §4 三条件), 失败即经 cancel_ext → Runtime::cancel() 协作提前终止 run(冒烟 SUB5: 10s 处终止, 不跑完全程), 结束时 gate 用全程 active 窗统计评估; 两处调用, 失败统一 RESOURCE(10)。协作取消经 run_pipeline 已有 cancel_watch(QA-002/LNX-004)转发, 未改 Runtime 接口。",
+    "memory_bound_status": "如实说明: memory kind 分支为框架实现 — evaluate_gate 判 achieved_memory_bandwidth_frac<required(未测=FAIL), 阈值语义为 pre-frozen(BENCH-003 写入), '带宽>=80% 本机 benchmark' 由调用方经 required_memory_bandwidth_frac 注入, CLI 生产 run kind=Compute 不走该分支; 规格中 '已检查搬运/布局' 前提无对应字段/判定(需 BENCH-003 与 MON-003 生产带宽 benchmark 落地), 本轮按任务约束不做大改, 保持未测量即 FAIL 的保守语义。",
+    "spec_checklist": {
+      "call_points_first10s_and_end": "PASS — first-10s: 采样线程 10s 边界调 fast_fail_first10s(SUB5 冒烟 10s 处协作取消); 结束: evaluate_gate(全程 active 窗统计)",
+      "resource_exit_code_and_diagnosis": "PASS — SUB5 exit=10 + resource_gate error 事件 + stderr diagnosis; 单测 RESOURCE==10",
+      "worker_p50_ge2_available_ge2": "PASS — 采样 workers_p50<2 → SingleThreaded(4c 伪造采样 FAIL); 未采样回退 selected/max_active; 单核机 available<2 豁免语义保留",
+      "cpu_p50_ge90_mean_ge85": "PASS — kCpuP50MinPercent=90/kCpuMeanMinPercent=85; active wall>=10s 才提供采样(规格前置); 用例 12/13",
+      "short_task_not_mask_single_thread": "PASS — Compute wall<5s 固定豁免移除(单线程判定前移); 5s/5% 豁免仅 Io 分支(用例 7 保留); 用例 4 反转+4b 多核短任务 Ok",
+      "emit_must_change_exit_status": "PASS — gate 失败唯一出口 return astrocs::RESOURCE(10); grep 无仅 emit 不 return 的 gate 路径; first-10s CANCELLED 归并 10",
+      "diag_categories_memory_growth_progress_io_wait": "PASS — MemoryGrowth(rss_slope>阈值, 负斜率不误判)/ProgressStall/IoWaitHigh 横切判定+具体消息(实测 vs 阈值); 生产填充: rss_slope 来自 recorder stage_stats, progress_stalled/iowait 生产暂无数据源(默认关, 框架就绪)",
+      "negative_tests_real_executed": "PASS — mon002_gate ctest 真实执行(伪造采样/伪造租约喂 evaluate_gate 必须 FAIL: 用例 2/3/4/4c/6/8/9/12/13/14/15/16)"
+    },
+    "commands": [
+      {
+        "command_id": "rv1",
+        "argv_redacted": ["cmake", "--build", "build", "--parallel", "8"],
+        "timeout_seconds": 900,
+        "exit_code": 0,
+        "started_utc": "2026-09-06T20:00:00Z",
+        "duration_seconds": 8.0,
+        "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/reverify/MON002_SUB1_build.log",
+        "log_sha256": "8fd443fee0253883cac98f2d4ccd742ec00e0f3aaec65d5fd714d900691b7f5c"
+      },
+      {
+        "command_id": "rv2",
+        "argv_redacted": ["ctest", "--test-dir", "build", "-R", "cpu_monitor|p1_resource|mon001|mon002|resource", "--output-on-failure"],
+        "timeout_seconds": 600,
+        "exit_code": 0,
+        "started_utc": "2026-09-06T20:02:00Z",
+        "duration_seconds": 0.9,
+        "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/reverify/MON002_SUB2_ctest.log",
+        "log_sha256": "dcc45eeebbd461062cac1afac921fed987c6eb07193419550138a93730ae68e3"
+      },
+      {
+        "command_id": "rv3",
+        "argv_redacted": ["python3", "-m", "pytest", "tests/monitoring/", "-q"],
+        "timeout_seconds": 300,
+        "exit_code": 0,
+        "started_utc": "2026-09-06T20:03:00Z",
+        "duration_seconds": 7.1,
+        "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/reverify/MON002_SUB3_pytest_monitoring.log",
+        "log_sha256": "1779b5eff785ec7e111d79c2703c0d207e85340e520a11c8029d5915032e8279"
+      },
+      {
+        "command_id": "rv4",
+        "argv_redacted": ["./build/astrocs", "phase1", "run", "--config", "<cfg>", "--events-jsonl"],
+        "timeout_seconds": 120,
+        "exit_code": 0,
+        "started_utc": "2026-09-06T20:04:05Z",
+        "duration_seconds": 0.6,
+        "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/reverify/MON002_SUB4_smoke_gate_ok.log",
+        "log_sha256": "a84a2d92ca83cdf49f7b4d2ea48e55b0b1ff6fc0f3f44c33890fbbf789b225bb"
+      },
+      {
+        "command_id": "rv5",
+        "argv_redacted": ["ASTROCS_TEST_PIPELINE_SLEEP_MS=14000", "./build/astrocs", "phase1", "run", "--config", "<cfg>", "--events-jsonl"],
+        "timeout_seconds": 120,
+        "exit_code": 10,
+        "started_utc": "2026-09-06T20:04:06Z",
+        "duration_seconds": 10.2,
+        "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/reverify/MON002_SUB5_smoke_gate_fail_exit10.log",
+        "log_sha256": "1c4733d28fe7e0c505792aa3678d8640b91851203c2a48bdbf8e9371e0e01ba8"
+      }
+    ],
+    "notes": "rv4: 合成 FITS fixture(run/local/main23_fix/smoke/make_fits.py, 64x64 FP32 常量 light x2)成功 run → resource gate verdict=ok + workers_p50=16 + exit 0(短任务向后兼容; first_10s_gate=ok 未触发)。rv5: 低 CPU 假 workload 钩子(ASTROCS_TEST_PIPELINE_SLEEP_MS, 测试专用)下 first-10s gate 于 10s 边界判定 FAIL → 协作取消提前终止(final 时间戳距 start 约 10s, 未跑满 14s) → manifest incomplete + final exit_code=10 + stderr/事件 diagnosis, 端到端证明 gate FAIL 路径 exit 10 且非仅 emit。本地完整日志(含 # cmd 与 rc)另存 run/local/main23_fix/MON002_SUB*.log。rv2 正则较任务书追加 mon002(mon002_gate 测试名不含 resource 子串)。test_cli_protocol 既有环境性失败 test_06_show_effective_stale_profile_5(cpu profile source_commit 与当前 HEAD 不匹配)经 stash 对照确认与本次改动无关; 未做任何持久 git 操作(工作树由用户自管, 本任务改动仅限 cli/、tests/unit/mon002_gate_test.cpp、evidence/v6_1_rework/tasks/MON-002/、run/local/main23_fix/)。",
+    "verdict": "PASS"
+  }
 }

@@ -520,13 +520,51 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // 周期一致(0.5s), 保证 cpu_pct=ΔCPU秒/区间墙钟 的 normalized 口径成立。
     astrocs::ResourceRecorder recorder(0.5);
     std::atomic<bool> sampling{true};
-    std::thread sampler([&mon, &recorder, &sampling] {
+    // MON-002 first-10s gate: 采样线程在 10s 边界调用一次 fast_fail_first10s(07 §4);
+    // 失败置位外部协作取消源 → run_pipeline 内 cancel_watch 转发 Runtime::cancel()。
+    std::atomic<int> first10s_diag{static_cast<int>(astrocs::GateDiag::Ok)};
+    std::atomic<bool> first10s_done{false};
+    std::atomic<bool> first10s_cancel{false};
+    std::thread sampler([&mon, &recorder, &sampling, &first10s_diag, &first10s_done,
+                         &first10s_cancel] {
         using SteadyNs = std::chrono::steady_clock::duration;
         const auto period = std::chrono::duration_cast<SteadyNs>(std::chrono::duration<double>(0.5));
         auto next = std::chrono::steady_clock::now();
+        unsigned tick = 0;
         while (sampling.load(std::memory_order_relaxed)) {
             mon.tick();
             recorder.record(mon.last_sample());
+            ++tick;
+            // MON-002: first 10s gate 调用点 —— 跨过 10s 边界后首次采样即评估:
+            // 低 CPU+非 IO+非内存带宽饱和 → 快速失败(协作取消), 收尾归并 RESOURCE(10)。
+            if (!first10s_done.load(std::memory_order_relaxed) &&
+                static_cast<double>(tick) * 0.5 >= 10.0) {
+                first10s_done.store(true, std::memory_order_relaxed);
+                const auto recs = recorder.records_upto(10.0);
+                if (recs.size() >= 2) {
+                    std::vector<double> cpus;
+                    uint64_t io_bytes = 0;
+                    for (const auto& r : recs) {
+                        cpus.push_back(r.cpu_pct);
+                        io_bytes += r.read_bytes + r.write_bytes;
+                    }
+                    astrocs::GateConfig f10;
+                    f10.first10s_low_cpu =
+                        astrocs::percentile_sorted(cpus, 0.50) < 20.0;
+                    const double win = std::max(0.5, recs.back().elapsed_seconds -
+                                                          recs.front().elapsed_seconds);
+                    // 非 IO 密集: 进程 read+write < 1MB/s
+                    f10.first10s_non_io = static_cast<double>(io_bytes) < 1e6 * win;
+                    // 内存带宽未测: CPU 低时必然未饱和(07 §4 保守取真)
+                    f10.first10s_mem_not_saturated = true;
+                    if (astrocs::fast_fail_first10s(f10)) {
+                        first10s_diag.store(
+                            static_cast<int>(astrocs::GateDiag::FastFailFirst10s),
+                            std::memory_order_relaxed);
+                        first10s_cancel.store(true, std::memory_order_relaxed);
+                    }
+                }
+            }
             next += period;
             std::this_thread::sleep_until(next);
         }
@@ -535,7 +573,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // MON-001: active 阶段注入实际 worker 租约数(cli_affinity 分配核; 禁硬编码)。
     recorder.set_workers(budget, budget);
     const int rrc = astrocs::cli::run_pipeline({phase.back() - '0'}, cfg_text, budget,
-                                               &fail_reason);
+                                               &fail_reason, &first10s_cancel);
     recorder.set_stage(astrocs::ResStage::Flush);
     sampling.store(false, std::memory_order_relaxed);
     sampler.join();
@@ -555,6 +593,20 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                          sanitize(res_out_dir).c_str());
         }
     }
+    // MON-002: first-10s gate 快速失败 → 统一 RESOURCE(10)+diagnosis(规格: 失败返回
+    // 统一 RESOURCE exit code; 禁止仅 emit event 不改变退出状态)。仅归并 gate 触发的
+    // 协作取消(CANCELLED); 用户 SIGINT(first10s=Ok)仍保留 9 语义。
+    const astrocs::GateDiag f10 =
+        static_cast<astrocs::GateDiag>(first10s_diag.load(std::memory_order_relaxed));
+    if (rrc != astrocs::OK && rrc == astrocs::CANCELLED &&
+        f10 == astrocs::GateDiag::FastFailFirst10s) {
+        const std::string why = "resource gate FAILED: fast_fail_first_10s (" +
+                                astrocs::diag_message(f10, astrocs::GateConfig{}) + ")";
+        ev.emit("resource_gate", "error", phase, why, {});
+        std::fprintf(stderr, "astrocs: %s\n", why.c_str());
+        fail_reason = "resource gate failed (first-10s): fast_fail_first_10s";
+        return astrocs::RESOURCE;  // exit_codes.h:17 = 10
+    }
     if (rrc != astrocs::OK) return rrc;  // 管线自身失败: 保留原退出码
 
     const auto s = mon.summary();
@@ -566,7 +618,26 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     g.avg_equivalent_cores = s.avg_equivalent_cores;
     g.wall_seconds = s.wall_seconds;
     g.cpu_percent = s.avg_cpu_percent;
-    const astrocs::GateDiag d = astrocs::evaluate_gate(g);
+    // MON-001 记录器已按 init/active/flush 分段标注(07 §1 stage 标注)
+    g.has_stage_annotation = true;
+    // MON-002: active 窗口采样统计 → gate 阈值输入(worker p50/CPU p50/mean)。
+    // CPU 判据仅 active window>=10s 时提供(规格前置); rss_slope 供横切 memory_growth。
+    const auto stats = recorder.stage_stats();
+    const auto& act = stats[static_cast<std::size_t>(astrocs::ResStage::Active)];
+    if (act.n_samples > 0) {
+        g.workers_p50 = act.workers_p50;
+        if (act.wall_seconds >= 10.0) {
+            g.cpu_p50_percent = act.cpu_pct_p50;
+            g.cpu_mean_percent = act.cpu_pct_mean;
+        }
+        g.rss_slope_measured = true;
+        g.rss_slope_mb_per_s =
+            static_cast<double>(act.rss_slope_bytes_per_s) / (1024.0 * 1024.0);
+    }
+    // MON-002: 结束时 gate 调用; first-10s 已失败而结束判定通过时, 快速失败兜底生效。
+    astrocs::GateDiag d = astrocs::evaluate_gate(g);
+    if (d == astrocs::GateDiag::Ok && f10 == astrocs::GateDiag::FastFailFirst10s)
+        d = astrocs::GateDiag::FastFailFirst10s;
     ev.emit("resource", "info", phase, "resource gate", {
         {"verdict", astrocs::gate_diag_name(d)},
         {"wall_seconds", s.wall_seconds},
@@ -574,6 +645,10 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"max_active_threads", s.max_threads},
         {"selected_workers", g.selected_workers},
         {"available_cpus", g.available_cpus},
+        {"workers_p50", g.workers_p50},
+        {"cpu_p50_percent", g.cpu_p50_percent},
+        {"cpu_mean_percent", g.cpu_mean_percent},
+        {"first_10s_gate", astrocs::gate_diag_name(f10)},
     });
     if (d != astrocs::GateDiag::Ok) {
         const std::string why = "resource gate FAILED: " + std::string(astrocs::gate_diag_name(d)) +

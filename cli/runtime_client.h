@@ -6,6 +6,7 @@
 #include "astrocs/core/module_adapters.h"
 #include "astrocs/core/runtime.h"
 
+#include <atomic>
 #include <map>
 #include <string>
 #include <vector>
@@ -19,9 +20,12 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
                               const std::string& config_json, std::string* err);
 
 // 执行一次 pipeline（同步；取消经 Runtime::cancel）
+// MON-002: cancel_ext 为可选外部协作取消源（first-10s gate 快速失败置位）——
+// 与信号 cancel_flag 等价转发 rt->cancel()，但不影响 CLI 全局取消态（exit 语义仍由 gate 判定）。
 // 返回: exit code（astrocs::OK=0；科学失败=4；IO=7；...）
 int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
-                 uint32_t budget, std::string* fail_reason);
+                 uint32_t budget, std::string* fail_reason,
+                 std::atomic<bool>* cancel_ext = nullptr);
 
 // 执行后收集每个节点的 session manifest 摘要（node_id → JSON 文本）。
 // 供 CLI 写 run manifest 时逐 artifact 验证（ArtifactStore 绑定语义）。

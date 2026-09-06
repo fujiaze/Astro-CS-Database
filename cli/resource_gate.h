@@ -43,6 +43,11 @@ enum class GateDiag {
     MixedUnsplit,            // mixed 未拆出 compute/io 子区间
     FastFailFirst10s,        // 首 10s 低 CPU+非 IO+非内存带宽饱和 → 协作取消(07 §4)
     GlobalLockDegradation,   // N-worker 相对 1-worker 无正向加速(全局锁退化)
+    CpuP50Low,               // MON-002: CPU p50 < 90%(active window>=10s)
+    CpuMeanLow,              // MON-002: CPU mean < 85%(active window>=10s)
+    MemoryGrowth,            // 内存持续增长: rss_slope 超阈值(RESOURCE 门类别)
+    ProgressStall,           // 无进度(progress 停滞)
+    IoWaitHigh,              // 异常 IO 等待(iowait 占比超阈值)
 };
 
 inline const char* gate_diag_name(GateDiag d) {
@@ -57,9 +62,21 @@ inline const char* gate_diag_name(GateDiag d) {
     case GateDiag::MixedUnsplit:            return "mixed_unsplit";
     case GateDiag::FastFailFirst10s:        return "fast_fail_first_10s";
     case GateDiag::GlobalLockDegradation:   return "global_lock_degradation";
+    case GateDiag::CpuP50Low:               return "cpu_p50_low";
+    case GateDiag::CpuMeanLow:              return "cpu_mean_low";
+    case GateDiag::MemoryGrowth:            return "memory_growth";
+    case GateDiag::ProgressStall:           return "progress_stall";
+    case GateDiag::IoWaitHigh:              return "io_wait_high";
     default:                                return "unknown";
     }
 }
+
+// MON-002 阈值(04_TASK_SPECIFICATIONS §MON-002, CPU-heavy active window>=10s):
+// worker p50>=2(available>=2)、CPU p50>=90%、mean>=85%。判定集中本头文件,
+// 不散落硬编码; 诊断消息引用常量保证口径一致。
+inline constexpr double kWorkerP50Min = 2.0;
+inline constexpr double kCpuP50MinPercent = 90.0;
+inline constexpr double kCpuMeanMinPercent = 85.0;
 
 struct GateConfig {
     ResKind kind = ResKind::Unknown;
@@ -90,6 +107,16 @@ struct GateConfig {
     double cpu_percent = 0.0;       // 可用于诊断的 CPU%
     double iowait_percent = 0.0;    // 可得时
     double mem_bandwidth_percent = -1.0;  // -1=未测
+    // MON-002 复验追加: active 窗口采样统计(负值=未采样, 跳过对应判定)。
+    double workers_p50 = -1.0;        // active workers p50(采样; 优先于 selected_workers)
+    double cpu_p50_percent = -1.0;    // CPU p50%(normalized: 100%=全部分配核)
+    double cpu_mean_percent = -1.0;   // CPU mean%(同上)
+    // 横切诊断: 内存持续增长(rss_slope 可为负=收缩, 用显式开关而非负哨兵)
+    bool rss_slope_measured = false;
+    double rss_slope_mb_per_s = 0.0;
+    double memory_growth_limit_mb_per_s = 32.0;  // 调用方可覆盖(泄漏敏感场景调低)
+    bool progress_stalled = false;    // 无进度(采样/节点注入)
+    double io_wait_high_percent = 50.0;  // 异常 IO 等待阈值(iowait 占比)
 };
 
 // 核心公式: compute 且 wall>=5s 时, avg_equivalent_cores 下限 = 0.80 * min(selected_workers, available_cpus)。
@@ -100,7 +127,21 @@ inline double compute_cores_threshold(const GateConfig& g) {
 }
 
 // 逐项门禁判定; 返回 GateDiag(Ok 表示通过)。顺序: 使首错可诊断。
+// MON-002 复验(v6_1_rework)判定顺序:
+//   横切异常(memory_growth/progress_stall/io_wait_high, 对所有 kind 生效; 默认关闭)
+//   → mixed 拆份 → 无标注>5s(P1, 07 §1) → kind 判据。
+// Compute: 单线程判定前移且不受 wall<5s 固定豁免(MON-002: heavy 任务即使短于 5 秒
+//   也不能因固定豁免而掩盖单线程); wall<5s 豁免只跳过统计判据(短窗 mean/p50 样本
+//   不足)。I/O 串行 5s/5% 豁免仅在 Io 分支(io_is_short_serial), 不对 Compute 生效。
+// CPU p50/mean 阈值仅当调用方提供 active window>=10s 采样时判定(负=未采样跳过)。
 inline GateDiag evaluate_gate(const GateConfig& g) {
+    // 横切异常(任何 kind; rss 未测/progress 未注/iowait=0 时不触发, 向后兼容)
+    if (g.rss_slope_measured && g.rss_slope_mb_per_s > g.memory_growth_limit_mb_per_s)
+        return GateDiag::MemoryGrowth;
+    if (g.progress_stalled)
+        return GateDiag::ProgressStall;
+    if (g.iowait_percent > g.io_wait_high_percent)
+        return GateDiag::IoWaitHigh;
     // mixed 必须拆份(07 §3): 未拆 start+emit 就 FAIL
     if (g.kind == ResKind::Mixed) {
         if (!g.mixed_has_compute_subrange || !g.mixed_has_io_subrange)
@@ -113,11 +154,17 @@ inline GateDiag evaluate_gate(const GateConfig& g) {
         return GateDiag::UnannotatedPriority;
 
     if (g.kind == ResKind::Compute) {
-        if (g.wall_seconds < 5.0) return GateDiag::Ok;  // 短任务豁免
-        if (g.available_cpus >= 2 && g.selected_workers < 2)
-            return GateDiag::SingleThreaded;
-        if (g.available_cpus >= 2 && g.max_active_threads < 2)
-            return GateDiag::SingleThreaded;
+        // MON-002: worker p50>=2(available>=2)。采样 p50 权威; 未采样回退
+        // selected_workers/max_active_threads。单线程判定不因 wall<5s 豁免。
+        if (g.available_cpus >= 2) {
+            if (g.workers_p50 >= 0.0) {
+                if (g.workers_p50 < kWorkerP50Min) return GateDiag::SingleThreaded;
+            } else if (g.selected_workers < 2 || g.max_active_threads < 2) {
+                return GateDiag::SingleThreaded;
+            }
+        }
+        // 短任务: 单线程已判; 跳过统计判据(短窗 mean/p50 样本不足)。
+        if (g.wall_seconds < 5.0) return GateDiag::Ok;
         const double thr = compute_cores_threshold(g);
         if (thr > 0 && g.avg_equivalent_cores < thr)
             return GateDiag::LowAvgCores;
@@ -128,6 +175,11 @@ inline GateDiag evaluate_gate(const GateConfig& g) {
         // N-worker 相对 1-worker 正向加速(全局锁退化)→ FAIL
         if (g.one_worker_ns > 0 && g.n_worker_ns > 0 && g.n_worker_ns > g.one_worker_ns)
             return GateDiag::GlobalLockDegradation;
+        // MON-002: CPU p50>=90%、mean>=85%(调用方在 active window>=10s 时提供)
+        if (g.cpu_p50_percent >= 0.0 && g.cpu_p50_percent < kCpuP50MinPercent)
+            return GateDiag::CpuP50Low;
+        if (g.cpu_mean_percent >= 0.0 && g.cpu_mean_percent < kCpuMeanMinPercent)
+            return GateDiag::CpuMeanLow;
         return GateDiag::Ok;
     }
     if (g.kind == ResKind::Memory) {
@@ -159,10 +211,21 @@ inline bool fast_fail_first10s(const GateConfig& g) {
 }
 
 // 诊断字符串: 失败判定给出可操作说明。
+// 诊断字符串: 失败判定给出可操作说明, 含各指标实测值 vs 阈值(MON-002 diagnosis)。
 inline std::string diag_message(GateDiag d, const GateConfig& g) {
     switch (d) {
-    case GateDiag::SingleThreaded:
-        return "compute 门禁: available_cpus>=2 但 selected_workers/max_active_threads<2";
+    case GateDiag::SingleThreaded: {
+        // MON-002: 采样 worker p50 优先呈现; 未采样呈现 selected/max_active 回退值
+        if (g.workers_p50 >= 0.0)
+            return "compute 门禁: worker p50 " + std::to_string(g.workers_p50) +
+                   " < " + std::to_string(kWorkerP50Min) +
+                   " (available_cpus=" + std::to_string(g.available_cpus) +
+                   ", selected_workers=" + std::to_string(g.selected_workers) +
+                   ", max_active_threads=" + std::to_string(g.max_active_threads) + ")";
+        return "compute 门禁: available_cpus=" + std::to_string(g.available_cpus) +
+               ">=2 但 selected_workers=" + std::to_string(g.selected_workers) +
+               "/max_active_threads=" + std::to_string(g.max_active_threads) + " < 2";
+    }
     case GateDiag::LowAvgCores: {
         const double thr = compute_cores_threshold(g);
         return "compute 门禁: avg_equivalent_cores " + std::to_string(g.avg_equivalent_cores) +
@@ -171,9 +234,13 @@ inline std::string diag_message(GateDiag d, const GateConfig& g) {
     case GateDiag::UnannotatedPriority:
         return "stage 未标注且 wall>5s → P1(07 §1)";
     case GateDiag::ComputeIoMemAllLow:
-        return "CPU/io/mem 带宽皆低: 禁止'单线程算法正常'解释(07 §3)";
+        return "CPU/io/mem 带宽皆低: cpu=" + std::to_string(g.cpu_percent) +
+               "% iowait=" + std::to_string(g.iowait_percent) +
+               "% → 禁止'单线程算法正常'解释(07 §3)";
     case GateDiag::MemoryBandwidthLow:
-        return "memory 门禁: 带宽比例未达 pre-frozen 阈值(须 BENCH-003 写入)";
+        return "memory 门禁: 带宽比例 " + std::to_string(g.achieved_memory_bandwidth_frac) +
+               " 未达 pre-frozen 阈值 " + std::to_string(g.required_memory_bandwidth_frac) +
+               "(须 BENCH-003 写入)";
     case GateDiag::IoMissingEvidence:
         return "io 门禁: 缺 bytes/ops/await 证据(允许低 CPU 但须证据)";
     case GateDiag::MixedUnsplit:
@@ -182,6 +249,20 @@ inline std::string diag_message(GateDiag d, const GateConfig& g) {
         return "first-10s 快速失败: 低 CPU+非 IO+非内存带宽饱和(07 §4)";
     case GateDiag::GlobalLockDegradation:
         return "compute 门禁: N-worker 相对 1-worker 无正向加速(全局锁退化)";
+    case GateDiag::CpuP50Low:
+        return "compute 门禁(MON-002): CPU p50 " + std::to_string(g.cpu_p50_percent) +
+               "% < " + std::to_string(kCpuP50MinPercent) + "% 阈值(active window>=10s)";
+    case GateDiag::CpuMeanLow:
+        return "compute 门禁(MON-002): CPU mean " + std::to_string(g.cpu_mean_percent) +
+               "% < " + std::to_string(kCpuMeanMinPercent) + "% 阈值(active window>=10s)";
+    case GateDiag::MemoryGrowth:
+        return "资源门禁(MON-002): 内存持续增长 rss_slope " + std::to_string(g.rss_slope_mb_per_s) +
+               " MB/s > 阈值 " + std::to_string(g.memory_growth_limit_mb_per_s) + " MB/s";
+    case GateDiag::ProgressStall:
+        return "资源门禁(MON-002): 无进度(progress 停滞)";
+    case GateDiag::IoWaitHigh:
+        return "资源门禁(MON-002): 异常 IO 等待 iowait " + std::to_string(g.iowait_percent) +
+               "% > " + std::to_string(g.io_wait_high_percent) + "%";
     default: return "ok";
     }
 }
