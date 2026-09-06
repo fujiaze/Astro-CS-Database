@@ -233,14 +233,23 @@ if(MSVC)
   target_include_directories(astrocs_cfitsio PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/win32_pthread_shim)
   target_link_libraries(astrocs_cfitsio PUBLIC kernel32)  # SRWLock API (shim)
-  set(ACS_ZLIB_ROOT "$ENV{ACS_ZLIB_ROOT}" CACHE PATH "MSVC zlib install root (include/zlib.h + lib/zlib.lib)；hosted runner 经 vcpkg 注入 env")
+  set(ACS_ZLIB_ROOT "$ENV{ACS_ZLIB_ROOT}" CACHE PATH "MSVC zlib install root (include/zlib.h + lib/<zlib>.lib)；hosted runner 经 vcpkg 注入 env")
   if(ACS_ZLIB_ROOT)
-    # 库文件名跨来源不同：fatduck 本机 zlib-msvc 布局为 libz.lib，
-    # vcpkg x64-windows-static-md triplet 为 zlib.lib —— find_library 探测。
-    find_library(ACS_ZLIB_LIBRARY NAMES z libz zlib
+    # HOSTFIX-23④ (run 34039050194): env 层确定性优先 —— hosted runner 的
+    # "Provide zlib (vcpkg)" 步骤列出 installed/x64-windows-static-md/lib 下
+    # 首个 zlib 匹配 *.lib 并以 GITHUB_ENV ACS_ZLIB_LIB 注入文件全名，
+    # 直接拼路径命中，find_library 仅作回退探测。
+    if(ENV{ACS_ZLIB_LIB})
+      set(ACS_ZLIB_LIBRARY "${ACS_ZLIB_ROOT}/lib/$ENV{ACS_ZLIB_LIB}")
+    endif()
+    # 库文件名跨来源不同：fatduck 本机 zlib-msvc 布局为 libz.lib；
+    # vcpkg zlib 1.3.2 x64-windows-static-md (上游 madler/zlib v1.3.2
+    # CMakeLists: zlibstatic OUTPUT_NAME z${zlib_static_suffix}, WIN32 下
+    # suffix="s") 实际产物为 zs.lib —— NAMES 覆盖 z/libz/zlib/zlibstatic/zs。
+    find_library(ACS_ZLIB_LIBRARY NAMES z libz zlib zlibstatic zs
       HINTS "${ACS_ZLIB_ROOT}/lib" NO_DEFAULT_PATH)
     if(NOT ACS_ZLIB_LIBRARY)
-      message(FATAL_ERROR "ACS_ZLIB_ROOT=${ACS_ZLIB_ROOT} 下未找到 zlib 链接库 (z libz zlib)")
+      message(FATAL_ERROR "ACS_ZLIB_ROOT=${ACS_ZLIB_ROOT} 下未找到 zlib 链接库 (z libz zlib zlibstatic zs; 或经 ACS_ZLIB_LIB 注入确切文件名)")
     endif()
   endif()
   if(ACS_ZLIB_ROOT)
