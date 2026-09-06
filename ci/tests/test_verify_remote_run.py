@@ -339,6 +339,139 @@ class TestCredentialDiscipline(unittest.TestCase):
         self.assertNotIn("tok-secret-123", out.getvalue())
 
 
+# -------------------------------------------------------- 重定向凭据纪律 ----
+
+class _FakeRedirectResponse:
+    """fake opener 返回的假 2xx 响应（context manager 形态）。"""
+
+    def __init__(self, status: int, body: bytes):
+        self.status = status
+        self._body = body
+
+    def read(self) -> bytes:
+        return self._body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        return False
+
+
+class _FakeRedirectOpener:
+    """可注入 transport：按脚本序列返回响应/抛 3xx HTTPError，并记录每跳请求。
+
+    entries 元素：(status, body, location|None)。status∈{301,302,307} 且
+    location 非空时抛对应 HTTPError（含 Location 头）；否则返回 2xx 响应。
+    requests 列表记录每跳 (full_url, Authorization|None)。
+    """
+
+    def __init__(self, entries):
+        self.entries = list(entries)
+        self.requests: list[tuple[str, str | None]] = []
+
+    def open(self, request, timeout=None):
+        self.requests.append((request.get_full_url(),
+                              request.get_header("Authorization")))
+        status, body, location = self.entries.pop(0)
+        if status in (301, 302, 307) and location:
+            headers = {"Location": location}
+            raise urllib.error.HTTPError(request.get_full_url(), status,
+                                         "redirect", headers, io.BytesIO(b""))
+        return _FakeRedirectResponse(status, body)
+
+
+class TestRedirectCredentialDiscipline(unittest.TestCase):
+    """F5：artifact zip 302 → Azure Blob 跨主机重定向必须剥离 Authorization。"""
+
+    ZIP_BODY = _ci_result_zip("linux-deep")
+
+    def test_cross_host_302_strips_authorization(self):
+        # 首跳 api.github.com 带 Authorization；302 → blob 端点二跳必须无
+        # Authorization（跨主机剥离）；最终拿到 zip 并 PASS。
+        opener = _FakeRedirectOpener([
+            (302, b"", "https://productionresultssa.blob.core.windows.net/x?sig=1"),
+            (200, self.ZIP_BODY, None)])
+        world = _fake_world()
+        fake_get, _, _ = world
+        VRR = _load_module()
+        out = io.StringIO()
+        with mock.patch.dict(os.environ, {"GITHUB_TOKEN": "tok-secret-123"}), \
+             mock.patch.object(VRR, "_http_get", side_effect=fake_get), \
+             mock.patch.object(VRR, "_OPENER", opener), \
+             mock.patch("sys.stdout", out), \
+             mock.patch("sys.stderr", out):
+            rc = VRR.main(["--sha", SHA, "--workflows", "linux-ci", "--json",
+                           "--repo", REPO_ID, "--profile", "linux-deep"])
+        self.assertEqual(rc, 0, out.getvalue())
+        self.assertEqual(len(opener.requests), 2)
+        first_url, first_auth = opener.requests[0]
+        second_url, second_auth = opener.requests[1]
+        self.assertIn("/actions/artifacts/777/zip", first_url)
+        self.assertEqual(first_auth, "Bearer tok-secret-123")   # 首跳带凭据
+        self.assertIn("blob.core.windows.net", second_url)
+        self.assertIsNone(second_auth)                          # 二跳已剥离
+        report = json.loads(out.getvalue())
+        self.assertEqual(report["verdict"], "PASS")
+
+    def test_same_host_302_keeps_authorization(self):
+        # 同主机 302（Location 相对路径）保留 Authorization，不做过度剥离。
+        opener = _FakeRedirectOpener([
+            (302, b"", "/repos/astrocs/astrocs/actions/artifacts/777/zip?again=1"),
+            (200, self.ZIP_BODY, None)])
+        world = _fake_world()
+        fake_get, _, _ = world
+        VRR = _load_module()
+        with mock.patch.dict(os.environ, {"GITHUB_TOKEN": "tok-secret-123"}), \
+             mock.patch.object(VRR, "_http_get", side_effect=fake_get), \
+             mock.patch.object(VRR, "_OPENER", opener):
+            rc = VRR.main(["--sha", SHA, "--workflows", "linux-ci",
+                           "--repo", REPO_ID, "--profile", "linux-deep"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(len(opener.requests), 2)
+        second_url, second_auth = opener.requests[1]
+        self.assertTrue(second_url.startswith("https://api.github.com/"))
+        self.assertEqual(second_auth, "Bearer tok-secret-123")  # 同主机保留
+
+    def test_redirect_loop_capped_at_5(self):
+        # 302 无限互跳：上限 5 跳后按最后 3xx 返回（非 2xx → ApiError → exit 2）。
+        opener = _FakeRedirectOpener([
+            (302, b"", "https://blob.invalid/hop1"),
+            (302, b"", "https://blob.invalid/hop2"),
+            (302, b"", "https://blob.invalid/hop3"),
+            (302, b"", "https://blob.invalid/hop4"),
+            (302, b"", "https://blob.invalid/hop5"),
+            (302, b"", "https://blob.invalid/hop6")])
+        world = _fake_world()
+        fake_get, _, _ = world
+        VRR = _load_module()
+        with mock.patch.dict(os.environ, {"GITHUB_TOKEN": "tok-secret-123"}), \
+             mock.patch.object(VRR, "_http_get", side_effect=fake_get), \
+             mock.patch.object(VRR, "_OPENER", opener):
+            rc = VRR.main(["--sha", SHA, "--workflows", "linux-ci",
+                           "--repo", REPO_ID, "--profile", "linux-deep"])
+        self.assertEqual(rc, 2)                       # 非重定向凭据问题的 401 同类
+        self.assertEqual(len(opener.requests), 6)     # 首跳 + 5 跳跟随
+
+    def test_302_cross_host_without_token_adds_no_header(self):
+        # 无 GITHUB_TOKEN：全程无 Authorization，302 跟随正常取 zip。
+        opener = _FakeRedirectOpener([
+            (302, b"", "https://blob.core.windows.net/z"),
+            (200, self.ZIP_BODY, None)])
+        world = _fake_world()
+        fake_get, _, _ = world
+        VRR = _load_module()
+        env = {k: v for k, v in os.environ.items() if k != "GITHUB_TOKEN"}
+        with mock.patch.dict(os.environ, env, clear=True), \
+             mock.patch.object(VRR, "_http_get", side_effect=fake_get), \
+             mock.patch.object(VRR, "_OPENER", opener):
+            rc = VRR.main(["--sha", SHA, "--workflows", "linux-ci",
+                           "--repo", REPO_ID, "--profile", "linux-deep"])
+        self.assertEqual(rc, 0)
+        self.assertIsNone(opener.requests[0][1])
+        self.assertIsNone(opener.requests[1][1])
+
+
 # ---------------------------------------------------------------- 辅助 ----
 
 if __name__ == "__main__":

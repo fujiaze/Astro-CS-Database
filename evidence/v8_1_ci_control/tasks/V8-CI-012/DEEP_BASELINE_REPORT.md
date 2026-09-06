@@ -176,3 +176,129 @@ TSan 三用例（core_pipeline/io_reentrant/cpu001_selftest_avx512）归属业�
 3. pytest-cov 版本随 apt（noble 为 4.1.0 代），`--cov` 参数面与 ci_coverage_runner.py 固定参数兼容性已按现有用法确认，但首次 deep 实跑前无法在本容器真验证 pytest-cov 行为。
 4. DEEP-COV-PY 实跑将首次暴露 tests 全量在 pytest-cov 下的真实退出码——若存在环境相关既有失败（本地 tests/api 两例属工程控制缺失/无 cc 噪声），将如实 FAIL，属 coverage 门首次投产的预期信息量。
 5. F-D2 未动，DEEP-SAN-TSAN 预期维持 3/57 失败（已知失败基线待业务域修复后重冻结）。
+
+---
+
+# V8-CI-012 定向重验收口轮（观察轮 2，SA-CI-32，mode=read）
+
+- 观察对象：workflow_dispatch run **34018610663**（run #18，ci-linux.yml，inputs.profile=linux-deep，head_sha `2ca7361e37fa51c9586214deb23a8bf4a9eb93ca` = 修复轮 1 = 本地 HEAD = 远端 main，双一致）
+- 观察窗口：2026-09-06T07:14Z ~ 07:55Z（控制节点 Linux amd64，仓库原地只读；API 经 `git credential fill` 内联 token，curl 每请求 `--max-time 15`；trace 落盘前逐文件正则断言无凭据）
+- **总体判定：REPAIR_ROUND1_VERIFIED_WITH_NEW_CODE_FAIL —— F-D1/F-D3 修复经 hosted 实跑闭环验证（ASan 旗标生效真跑全量 ctest、coverage 工具安装步成功且双检查从 SKIPPED 变实跑）；F-D4 实战暴露 302 凭据转发缺陷（新 F5）；发现新 F6（ci_coverage_runner.py 路径缺陷致 COV-PY 秒败）；时长红线富余不变；push run 71 项回归差集为空；无 RESOURCE_FAIL**
+
+## R2.1 run 终态与时长红线
+
+| 项 | 值 |
+|---|---|
+| 终态 | completed / **failure**（4F：ASAN/TSAN/COV-CPP/COV-PY） |
+| run 窗口 | run_started_at 2026-09-06T07:14:28Z → updated 07:26:51Z = **12m23s** |
+| job 101446926625 | 07:14:31Z → 07:26:50Z = **739s = 12m19s** |
+| 6h 红线占用 | 739s / 21600s = **3.42%**，余量 20861s（最慢检查 DEEP-SAN-ASAN 221.983s） |
+| 步骤 | checkout/bootstrap/select_profile/**Install deep coverage tools=success（F-D3 首跑即过）**/checks(failure)/diag/upload 全链就位 |
+| 同 SHA push run | 34018605310（#17）：07:14:21→07:29:07（14m46s），71 项 48P/21F/2T/0S，与 d416fc9d 基线逐 id verdict 差集**空** → 无回归 |
+
+## R2.2 deep 7 项对照表（基线轮 d416fc9d vs 轮 2 2ca7361e）
+
+| # | id | 基线轮 verdict / exit / 时长 | 轮 2 verdict / exit / 时长 | 判读 |
+|---|---|---|---|---|
+| 1 | BUILD-GCC-RELEASE | PASS / 0 / 122.506s | **PASS** / 0 / 119.404s（gcc 13.3.0） | 回归 ✓（峰值 RSS 849,384 KiB 与基线 848,876 同量级） |
+| 2 | DEEP-CLANG-BUILD | PASS / 0 / 83.032s | **PASS** / 0 / 91.205s（clang 18.1.3） | 回归 ✓ |
+| 3 | DEEP-SAN-ASAN | FAIL / 2 / 110.147s（CMake 错配早退，0 ctest） | **FAIL** / 2 / 221.983s（**真跑全量**：55/57 通过） | **F-D1 修复验证成功**（旗标生效）；残留 2 失败见 R2.3 |
+| 4 | DEEP-SAN-TSAN | FAIL / 2 / 192.572s（3/57） | **FAIL** / 2 / 200.930s（54/57，3 失败：core_pipeline / io_reentrant / cpu001_selftest_avx512） | **F-D2 维持已知失败**，逐 id 与基线一致；无 sanitizer 报告 |
+| 5 | DEEP-COV-CPP | SKIPPED(waivable) / llvm-profdata 缺失 | **FAIL** / 2 / 81.589s（install 生效；插桩构建成功；ccov 实跑 ctest 55/57 后 ccov 目标 Error 8） | 前进：工具链生效；失败=C++ 测试既有失败阻断报告步（见 R2.4） |
+| 6 | DEEP-COV-PY | SKIPPED(waivable) / pytest 缺失 | **FAIL** / 1 / 0.253s（pytest/pytest-cov 就位后**新缺陷暴露**：`relative_to` ValueError 秒败） | 新 F6（见 R2.4） |
+| 7 | DEEP-COMPLEXITY | PASS / 0 / 0.339s | **PASS** / 0 / 0.343s（375 files / 139,881 lines / functions≈1858 / max_cyclo 1048） | 回归 ✓ |
+| 汇总 | | FAIL 3P/2F/2S(waivable) | **FAIL 3P/4F/0S**（fail_detail FAIL=4） | SKIPPED 清零 = coverage 门首次投产 |
+
+## R2.3 ASan 真跑结果逐条（F-D1 修复后）
+
+- 旗标验证：cmake-configure 行带 `-DASTROCS_SANITIZE_RUNTIME=ON`（CMakeLists qa-sanitize 生成条件对齐），`qa-sanitize` 目标成功执行到 ctest 全量；对照基线轮 `No rule to make target 'qa-sanitize'` 早退（110s 内 0 测试）→ **修复前 0 ctest vs 修复后 57 ctest，违例面首次真实暴露**。
+- ctest 终局：`96% tests passed, 2 tests failed out of 57`，FAILED：`5 - core_pipeline`、`35 - cpu001_selftest_avx512`（`--output-on-failure` 下无 AddressSanitizer/UBSan/LeakSanitizer 运行时签名；`ASAN_OPTIONS=detect_leaks=1:abort_on_error=1` 生效，无 abort/exit 化违例）→ **无 sanitizer 违例报告，0/2 属功能性失败**。
+- 资源：cpu_avg 185.41%、peak RSS 749,764 KiB、peak PSS 626,824 KiB、threads_max 19、timed_out=false、1045 采样 —— 无 OOM/泄漏信号。
+- **归属（12_FAILURE_POLICY）**：
+  - `core_pipeline`（57 项中 #5）→ **CODE_FAIL**：ASan Debug 全量下功能性失败，与 TSan/COV-CPP 分支同 id 交叉复现（非 sanitizer 环境特异），finding 五元组＝{scope: ASan 真跑全量 ctest；observed: core_pipeline Failed；expected: PASS；evidence: run 34018610663 log DEEP-SAN-ASAN.log；disposition: 修复队列}；
+  - `cpu001_selftest_avx512`（#35）→ **CODE_FAIL**：hosted runner CPU 特征相关自检失败（AVX-512 探测在 ubuntu-24.04 hosted CPU 上环境依赖），三分支（ASan/TSan/COV-CPP）同 id 复现 → 同入修复队列；
+  - LSan 零报告（detect_leaks=1 无泄漏输出）；Ubsan 零 `runtime error:`；**RESOURCE_FAIL 零命中**。
+
+## R2.4 coverage 首批实跑结果
+
+- **install 步生效确认**：hosted step 5「Install deep coverage tools」success（apt llvm-18 / python3-pytest / python3-pytest-cov，`/usr/lib/llvm-18/bin` 入 PATH）；双检查从 SKIPPED(waivable) 变实跑 → F-D3 修复验证成功。
+- **DEEP-COV-CPP**：llvm-profdata/llvm-cov 就位（ccov 目标 CMake find_program 过），GNU 13.3.0 `-fprofile-instr-generate -fcoverage-mapping` 插桩构建 81.5s 完成（cpu_avg 182.88%、peak RSS 858,676 KiB），ccov 目标 ctest 实跑 55/57（同 core_pipeline / cpu001_selftest_avx512 两失败）→ `Error 8` → `CMakeFiles/ccov.dir/all Error 2` → driver exit 2；**qa_coverage_report.sh（llvm-profdata merge + llvm-cov report/export → coverage.json）未到达 → 行/分支覆盖率数值本轮未产出**；失败归属＝C++ 测试既有失败阻断（CODE_FAIL 传导），非 coverage 工具链缺陷。
+- **DEEP-COV-PY**：pytest/pytest-cov 就位后 0.253s 即败——`ci_coverage_runner.py:62` 对非仓库子路径输出目录调 `Path.relative_to(REPO)` 抛 `ValueError: 'run/ci/coverage-py' is not in the subpath of '/home/runner/work/.../Astro-CS-Database'`（hosted 以相对路径 `run/ci/coverage-py` 调用）→ **新 F6**（CODE_FAIL，属首轮实跑暴露的脚本缺陷；本地复现同构成立）。
+- **coverage 数值基线状态**：C++/Python 双项数值均**未产出**（COV-CPP 被 ctest 失败阻断在报告步之前；COV-PY 被 F6 阻断在 pytest 启动之前）→ 冻结基线表数值列维持 F-D3 状态「pending」，附本轮阻断证据；后续清障依赖 core_pipeline/cpu001_selftest_avx512 归零与 F6 修复。
+
+## R2.5 verify_remote_run.py 实战（F-D4 首跑）
+
+- 命令：`GITHUB_TOKEN=<credential fill 内联> python3 ci/verify_remote_run.py --sha 2ca7361e37fa51c9586214deb23a8bf4a9eb93ca --workflows linux-ci --profile linux-deep` → **exit 2**，输出 `API_UNAVAILABLE: artifact 下载非 2xx（status=401，artifact=linux-ci-2ca7361e37fa51c9586214deb23a8bf4a9eb93ca…）`（如实落档 `logs/round2/verify_remote_run_invocation_round2.txt` 与 `.json`；token 零落盘）。
+- 结构级验证全部通过：workflow 键 "linux-ci" 词集唯一指认 ci-linux.yml ✓；run 选取 dispatch>push 命中 34018610663 ✓；head_sha 匹配 ✓；status=completed ✓；jobs conclusion 核验正确读出 failure ✓；artifacts 列表与 CI_RESULT.zip 内 profile=linux-deep 一致性本体正确（手动同路径 curl 带 token 下载同 artifact 200，解包 CI_RESULT.profile=linux-deep ✓）。
+- **根因实证（新 F5）**：artifact zip 端点 302 → `productionresultssa18.blob.core.windows.net`；脚本 `_http_get_bytes` 经 urllib 默认重定向跟随，**Authorization 头跨主机转发至 Azure 存储端点 → 401**。三连在线实验：①第一跳 302（Location host=blob.core.windows.net）；②默认跟随（脚本同路径）=401；③第二跳剥离 Authorization = 200（235,079 bytes）。→ 修复方向（后续 repair 轮）：二跳手动跟随或 302 时剥离凭据头；单测 fixture 补 302 用例。
+- 脚本其余行为（含 exit 2 归类、报错文案）符合设计契约；缺陷仅限重定向凭据转发，未发现其他偏差。
+
+## R2.6 资源红线复核（6 项监控检查）
+
+| id | exit | dur s | cpu_avg % | peak RSS KiB | peak PSS KiB | thr max | timed_out |
+|---|---|---|---|---|---|---|---|
+| BUILD-GCC-RELEASE | 0 | 119.3 | 211.41 | 849,384 | 801,702 | 13 | false |
+| DEEP-CLANG-BUILD | 0 | 91.1 | 177.05 | 515,356 | 419,700 | 14 | false |
+| DEEP-SAN-ASAN | 2 | 221.9 | 185.41 | 749,764 | 626,824 | 19 | false |
+| DEEP-SAN-TSAN | 2 | 200.9 | 186.95 | 564,584 | 528,242 | 19 | false |
+| DEEP-COV-CPP | 2 | 81.5 | 182.88 | 858,676 | 813,131 | 16 | false |
+| DEEP-COV-PY | 1 | 0.2 | — | 3,212 | 731 | 1 | false |
+
+hosted host_probe 与基线同形（4 核 affinity / 16 GiB / available ≥15 GiB）；全部 timed_out=false；峰值内存 DEEP-COV-CPP 858,676 KiB（838 MiB）取代 BUILD-GCC-RELEASE 成为最耗内存检查 ≪ 16 GiB；**最慢检查 = DEEP-SAN-ASAN 221.983s**；RESOURCE_FAIL 零命中。
+
+## R2.7 本轮 FINDINGS 增量
+
+| id | severity | 归属 | 内容 | 状态 |
+|---|---|---|---|---|
+| **F5** | HIGH | CODE_FAIL（ci/verify_remote_run.py） | artifact zip 302 重定向跨主机转发 Authorization → Azure 端点 401（三连实验实证，R2.5）；单测 fixture 无 302 用例 | 修复队列（F-D4 收口残留） |
+| **F6** | HIGH | CODE_FAIL（tools/quality/ci_coverage_runner.py:62） | 非仓库子路径输出目录 `relative_to(REPO)` ValueError 秒败（hosted 以相对路径 run/ci/coverage-py 调用；pytest/pytest-cov 就位后首轮实跑暴露） | 修复队列 |
+| F7 | INFO | ENV/时序 | 首查 run artifacts API total_count=0（上传步已 success），数分钟后重查=1 —— artifact 索引最终一致延迟；对 verify_remote_run 的 artifact 证据步骤构成时序风险 | 记录（不修） |
+| — | — | — | F-D1（ASan 旗标）→ **已验证修复生效**；F-D2 维持（TSan 3/57 与基线逐 id 一致）；F-D3 → **已验证修复生效**（install 步 success，SKIPPED 清零）；F-D4 → 结构验证通过但实战暴露 F5 | — |
+
+## R2.8 证据清单（本轮增量）
+
+- `logs/round2/api/`：runs_head2ca7361e_page1.json、run_34018610663.json、jobs_34018610663.json（含 inprogress 快照）、artifacts_34018610663.json、joblog_101446926625.log、artifacts_push_34018605310.json、jobs_push_34018605310.json（全部经脱敏断言 CLEAN）
+- `logs/round2/linux_ci_2ca7361e.zip`（dispatch artifact 原始包）+ `artifact_2ca7361e/`（解包：CI_RESULT + 7 checks + 6 检查 log 含 .zst 全量）
+- `logs/round2/linux_ci_push_2ca7361e.zip` + `artifact_push_2ca7361e_CI_RESULT.json`（回归对照）
+- `logs/round2/verify_remote_run_invocation_round2.txt/.json`（F-D4 实战 exit 2 原始输出）
+- artifact 解包路径差异记录：轮 2 包内根为 `2ca7361e37fa/20260906T071449Z-924e6fe9/`（基线轮为扁平结构），CI_RESULT.run_id=20260906T071449Z-924e6fe9。
+
+## R3. 修复轮 2（F5/F6/COV-CPP；SA-CI-32；base=2ca7361e 原地修复，零 git 写操作）
+
+### R3.1 三处修复 diff 摘要
+
+| # | 目标 | 根因（精化） | 修复 | 单测 |
+|---|---|---|---|---|
+| F5 | ci/verify_remote_run.py | artifact zip 端点 302 → `*.blob.core.windows.net` 跨主机；urllib 默认 HTTPRedirectHandler 自动跟随并原样转发 Authorization → Azure 端点 401（轮 2 R2.5 三连实验实证） | `_http_get_bytes` 自实现重定向循环：301/302/307 手动跟随；同主机保留全部请求头；跨主机（netloc 比对）剥离 Authorization 再跟随；上限 5 跳，耗尽按最后 3xx 返回（调用方按非 2xx 归 exit 2）；Location 相对路径 urljoin；`_http_get` 维持 urllib 默认（api.github.com JSON 端点无跨主机重定向需求）；凭据纪律不变：token 仅经 `_build_headers()` 内存进 headers dict，零落盘 | `test_verify_remote_run.py` 新增 `_FakeRedirectOpener` 可注入 transport + 4 用例：跨主机 302 二跳无 Authorization（首跳有）/同主机 302 保留/5 跳上限（6 请求后按 3xx → exit 2）/无 token 全程无头 |
+| F6 | tools/quality/ci_coverage_runner.py | L50 校验步把 `relative_to` 的返回值（仓库相对路径）赋回 `out_dir`，而 L62/63（--cov-report 组装）与 L94/95（outputs 登记）再对其调 `relative_to(REPO)`（绝对）→ 必然 ValueError；任何相对路径调用都触发（hosted 报错 self=`run/ci/coverage-py` + traceback L62 完全吻合），非"仓库外路径" | 校验步不再回写，`out_dir` 全程绝对；仓库外仍受控 exit 2（契约不变：outputs 登记 + mutates_workspace=false 依赖，不放松）；新增 `_as_repo_rel`：仓库内子路径 → 仓库相对 posix（报告落点与 checks.json outputs 串一致）、非子路径退化 `os.path.relpath`、仍失败给绝对 posix——永不抛 ValueError；不吞异常 | `test_deep_profiles.py` +3：hosted 形态进程内断言（argv 含 `--cov-report=xml:run/ci/coverage-py/coverage.xml`、cwd、COVERAGE_FILE）/端到端 hosted argv 形态（无 pytest exit 1、有 pytest 4/5，均非 2 且无 ValueError/Traceback）/`../` 逃逸仍 exit 2 且零副作用 |
+| COV-CPP | tools/quality/deep_ci_driver.py | ccov 自定义目标第 3 步 ctest 失败（既有 core_pipeline/cpu001_selftest_avx512 → Error 8）中断第 4 步 qa_coverage_report.sh（profdata merge + llvm-cov report/export → coverage.json）；driver 层 `cmd_coverage_cpp` 在 ccov-target 非零时早退 → 连 profraw 归集都跳过 → 覆盖率数值永不产出 | `cmd_coverage_cpp` 增第 4 步 `coverage-merge-report`（直接调 cmake/qa_coverage_report.sh，同参 `<build_dir> <source_dir>`，timeout 300）；`_run_steps` 增 `stop_on_failure` 参数（默认 True 保持其他子命令原语义；coverage-cpp 传 False）——失败后继续，rc 恒记首个失败步骤退出码（verdict 仍 FAIL，12_FAILURE_POLICY 归属不变）；归集后缀扩 `.profraw`；输出 JSON 增 verdict 字段 | `TestCoverageCppDriver` 3 用例：ccov-target=8 → merge/report 照跑 + .profraw/.profdata/coverage.json 归集 + rc=8/FAIL；全过 rc=0/PASS（正向回归）；merge 自身失败 rc=1/FAIL（报告不可得如实上报） |
+
+### R3.2 验收实测（逐条）
+
+| 项 | 结果 |
+|---|---|
+| validate_registry --strict | exit 0；checks=80，errors=[]，verdict=PASS |
+| unittest（ci/tests discover） | **Ran 275 tests — OK**（26.3s）；265 基线 → 275（+10 = F5 4 + F6 3 + COV-CPP 3），0 失败/错误/跳过 |
+| plan-only 计数 | fast=57 / linux-main=71 / linux-deep=7 / windows-main=61，全部不变，exit 0 |
+| verify_remote_run --offline | exit 0；`PASS (mode=offline, workflows=1)` |
+| git diff --stat | 本轮 tracked 修改恰为 ci/verify_remote_run.py（+62/-x）、tools/quality/ci_coverage_runner.py、tools/quality/deep_ci_driver.py、ci/tests/test_deep_profiles.py、ci/tests/test_verify_remote_run.py 五文件 + 本轮证据（DEEP_BASELINE_REPORT.md/TASK_RESULT.json/CHANGED_FILES.txt/logs/repair_round2.log）；ci/checks.json 与 .github/workflows 零改动；其余 M/D（dist zip 删除、PRODUCTION_EXECUTION_INVENTORY.csv、V8-CI-010 evidence）为任务起点快照既有基线噪声，本轮零触碰 |
+| 临时产物 | run/ci/coverage-py、run/ci/test-f6-*、run/ci/test-covcpp-*、outside-cov-escape（首轮失败用例遗留）均已清理并复验零副作用 |
+
+执行日志：`logs/repair_round2.log`（修复前基线/三处修复/验收/diff 范围全记录）。
+
+### R3.3 hosted 第三轮预期（供下一观察轮对照）
+
+| id | 预期 | 数值产出路径 |
+|---|---|---|
+| DEEP-COV-CPP | 仍 **FAIL**（exit=ccov 首个失败步骤码，非 0——两既有业务失败未修，FAIL 判定正确）但不再是"报告步被阻断"：ctest Error 8 后 driver 继续 `coverage-merge-report`（qa_coverage_report.sh：llvm-profdata merge → llvm-cov report/export → coverage.json），产物归集 `run/ci/coverage-cpp/`（coverage.json + astrocs.profdata + *.profraw）随 CI_RESULT.zip 上传；覆盖率行/分支数值**首次产出**（对 lib+cli，失败测试未覆盖部分如实缺省） | `run/ci/coverage-cpp/coverage.json` |
+| DEEP-COV-PY | F6 修复后 pytest 实跑（不再 0.25s 秒败）：退出码=pytest 透传（tests 全量在 pytest-cov 下若全过则 PASS 且产出 coverage.xml/json；若存在既有失败如实 FAIL）；报告落 `run/ci/coverage-py/`（hosted 相对路径调用已验证可达报告步） | `run/ci/coverage-py/coverage.xml`、`coverage-summary.json` |
+| verify_remote_run | 应 **exit 1** 而非 2：F5 修复后 artifact zip 经 302 跨主机剥离 Authorization 下载成功 → 结构级核验全部走通 → run/jobs conclusion=failure 如实读出 → 归类为"有失败 verdict"（jobs 仍 FAIL 属正确判定，exit 1 = 脚本工作正常）；exit 2 仅应出现在网络/下载/非 2xx 等环境问题 | — |
+| 其余 5 项 | 无预期变化（BUILD/CLANG/SAN 两项/COMPLEXITY 均为业务域或已稳定路径） | — |
+
+### R3.4 遗留风险
+
+1. COV-CPP 数值首产的对照面：coverage.json 由 qa_coverage_report.sh 对 `tests/unit/*_test` 全体可执行 merge 产出，失败测试（core_pipeline/cpu001_selftest_avx512）覆盖部分缺省——数值口径受既有失败集影响，基线数值须与失败清单一同解读。
+2. `.profraw` 全量归集使 artifact 体积上升（hosted 57 测试 + %p-%m 命名）；若超 artifact 2 GiB 红线需再收口（当前预估远低于红线，首轮实跑核实）。
+3. verify_remote_run exit 1 的 CI_RESULT 比对仍以人工/单测覆盖为主（302 真实跨主机路径无本地真网验证；fixture transport 已按轮 2 三连实验的线上行为建模）。
+4. F6 修复未放松"仓库外输出目录 exit 2"契约；若后续需要仓库外报告落点，属控制面契约变更，须显式决策。
+5. TSan 3 失败与 COV-CPP/ASan 的 2 失败（core_pipeline/cpu001_selftest_avx512）维持业务域登记，不在本轮修复面。

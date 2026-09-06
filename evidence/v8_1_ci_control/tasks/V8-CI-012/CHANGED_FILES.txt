@@ -52,3 +52,47 @@ evidence/v8_1_ci_control/tasks/V8-CI-012/CHANGED_FILES.txt        （本文件�
 
 未修改：ci/checks.json（DEEP-COV-* prerequisite_tools 与实读需求一致；pytest-cov 因 which 探测机制不登记）；F-D2（TSan 三用例）业务域只登记不修。
 工作树其余 M/D（dist zip 删除、INVENTORY.csv、V8-CI-010 evidence）为任务起点既有基线噪声，本轮未触碰。
+
+────────────────────────────────────────────────────────────────
+V8-CI-012 观察轮 2（定向重验收口轮）增量清单（SA-CI-32，mode=read）
+仓库基点 2ca7361e37fa51c9586214deb23a8bf4a9eb93ca（= 本地 HEAD = 远端 main，双一致）；对工作树源码零修改、零 git 写操作；全部增量位于 evidence/v8_1_ci_control/tasks/V8-CI-012/，未 git add。
+
+修改（既有文件追加）：
+DEEP_BASELINE_REPORT.md   （追加轮 2 段：§R2.1-R2.8 run 终态/对照表/ASan 真跑/coverage/verify_remote_run 实战/资源红线/FINDINGS/证据清单）
+TASK_RESULT.json          （追加 observation_round2 块：runs/deep_checks_round2/asan_realrun/coverage_baseline/verify_remote_run_round2/findings_round2/failure_policy_round2）
+CHANGED_FILES.txt         （本文件，追加本段）
+
+新增（untracked）：
+logs/round2/api/runs_head2ca7361e_page1.json        （head_sha=2ca7361e 的 runs 列表：dispatch 34018610663 + push 34018605310 + Windows run）
+logs/round2/api/run_34018610663.json                （dispatch run trace：completed/failure 07:14:28→07:26:51）
+logs/round2/api/jobs_34018610663.json               （job 101446926625 步骤终态：Install deep coverage tools=success）
+logs/round2/api/jobs_34018610663_inprogress.json    （执行中快照：step 5 首跑成功证据）
+logs/round2/api/artifacts_34018610663.json          （artifact 9984892499 元数据）
+logs/round2/api/joblog_101446926625.log             （dispatch run job 全量日志，runner 自掩码保留原样）
+logs/round2/api/artifacts_push_34018605310.json     （push run artifact 列表：首查 0/重查 1 = F7 时序观察）
+logs/round2/api/jobs_push_34018605310.json          （push run job 101446910806 步骤终态）
+logs/round2/linux_ci_2ca7361e.zip                   （dispatch artifact 原始包 235,079 bytes）
+logs/round2/artifact_2ca7361e/…                     （解包：CI_RESULT.json + 7 checks + 6 检查 log 含 .zst；包内根 2ca7361e37fa/20260906T071449Z-924e6fe9/）
+logs/round2/linux_ci_push_2ca7361e.zip              （push artifact 原始包 223,819 bytes）
+logs/round2/artifact_push_2ca7361e_CI_RESULT.json   （push run CI_RESULT 提取：71 项 48P/21F/2T/0S，与 d416fc9d 基线差集空）
+logs/round2/verify_remote_run_invocation_round2.txt （F-D4 实战记录：exit 2 + 根因三连实验 F5）
+logs/round2/verify_remote_run_invocation_round2.json（同上结构化）
+
+未修改：工作树源码与 ci/**（观察轮不改代码，F5/F6 只登记修复队列）；未触碰派发单、控制包、TASK_STATE、WRITE_LEASE。
+
+## 修复轮 2（SA-CI-32；base=2ca7361e；F5/F6/COV-CPP 三处接入域修复 + 单测）
+
+修改（tracked）：
+ci/verify_remote_run.py    （F5：_http_get_bytes 自实现重定向循环——301/302/307 手动跟随、跨主机剥离 Authorization、上限 5 跳；_http_get 维持 urllib 默认）
+tools/quality/ci_coverage_runner.py（F6：校验步不回写 out_dir（全程绝对）；新增 _as_repo_rel——仓库内相对 posix/非子路径 os.path.relpath 退化/永不抛 ValueError；仓库外仍受控 exit 2 契约不变）
+tools/quality/deep_ci_driver.py     （COV-CPP：cmd_coverage_cpp 增 coverage-merge-report 步 + _run_steps 增 stop_on_failure（coverage-cpp=False）——ctest 失败仍产出 coverage 报告，rc 恒记首个失败步骤=FAIL）
+ci/tests/test_verify_remote_run.py  （+TestRedirectCredentialDiscipline 4 用例 + _FakeRedirectOpener 可注入 transport）
+ci/tests/test_deep_profiles.py      （+F6 3 用例 + TestCoverageCppDriver 3 用例）
+evidence/v8_1_ci_control/tasks/V8-CI-012/DEEP_BASELINE_REPORT.md（追加 R3 修复轮 2 段：R3.1 diff 摘要/R3.2 验收实测/R3.3 hosted 第三轮预期/R3.4 遗留风险）
+evidence/v8_1_ci_control/tasks/V8-CI-012/TASK_RESULT.json（追加 repair_round2 块）
+evidence/v8_1_ci_control/tasks/V8-CI-012/CHANGED_FILES.txt（本文件，追加本段）
+
+新增（untracked）：
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/repair_round2.log（修复轮 2 执行日志：修复前基线 265 tests OK→修复→验收 275 tests OK/strict PASS/plan-only 57-71-7-61 不变/--offline exit 0/diff 范围）
+
+未修改：ci/checks.json、.github/workflows/**、业务源码（lib/cli/include/cmake）；业务域失败（core_pipeline/cpu001_selftest_avx512）维持登记不修；未触碰派发单、控制包、TASK_STATE、WRITE_LEASE。

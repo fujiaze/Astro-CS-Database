@@ -17,7 +17,9 @@
                       复用根 CMakeLists QA-002/QA-006 接线，独立 build dir）
   qa-sanitize-tsan  : clang TSan 同上（DEEP-SAN-TSAN；与 ASan 分 build dir，单选）
   coverage-cpp      : LLVM source-based 覆盖（DEEP-COV-CPP，ccov 目标，产物拷贝到
-                      --output-dir 供 run.py outputs 校验）
+                      --output-dir 供 run.py outputs 校验；V8-CI-012 修复轮 2：
+                      ctest 失败仍执行 merge/report 与产物归集——failing tests
+                      不阻止覆盖率测量，驱动退出码仍取首个失败步骤）
 
 复杂度基线测量（DEEP-COMPLEXITY）由 tools/quality/check_complexity.py 承担
 （单一事实源，本驱动不重复实现）。
@@ -141,7 +143,18 @@ def cmd_qa_sanitize(args: argparse.Namespace) -> int:
 
 
 def cmd_coverage_cpp(args: argparse.Namespace) -> int:
-    """coverage-cpp：ccov 目标（插桩 + ctest + llvm 报告），产物归集 output-dir。"""
+    """coverage-cpp：ccov 目标（插桩 + ctest + llvm 报告），产物归集 output-dir。
+
+    V8-CI-012 修复轮 2（COV-CPP）：ccov 目标内部 ctest 失败时（本仓库
+    core_pipeline / cpu001_selftest_avx512 既有失败，Error 8）不再跳过
+    coverage 报告与产物归集——failing tests 不应阻止覆盖率测量（业界
+    标准语义）。实现：ccov-target 步失败后继续执行独立的 merge/report
+    步（直接调 cmake/qa_coverage_report.sh，与 ccov 目标第 4 步同参），
+    归集 build/coverage/*.profraw + coverage.json 到 --output-dir；
+    最终退出码仍取首个失败步骤退出码（verdict 仍 FAIL，覆盖数值照常
+    产出，12_FAILURE_POLICY 归属不变）。merge/report 步自身失败时以
+    其退出码替代（报错误导出覆盖数据不可得，需如实上报）。
+    """
     build_dir = _ensure_inside_repo(args.build_dir, "build-dir")
     out_dir = _ensure_inside_repo(args.output_dir, "output-dir")
     cache = ["-DCMAKE_BUILD_TYPE=Debug", "-DASTROCS_BUILD_COVERAGE=ON"]
@@ -149,23 +162,31 @@ def cmd_coverage_cpp(args: argparse.Namespace) -> int:
     _cmake_configure_steps(str(build_dir), cache, steps)
     steps.append({"name": "ccov-target", "timeout": 3000,
                   "argv": ["cmake", "--build", str(build_dir), "--target", "ccov"]})
-    rc = _run_steps(steps, args.output)
-    if rc != 0:
-        return rc
+    steps.append({"name": "coverage-merge-report", "timeout": 300,
+                  "argv": ["/bin/sh", str(REPO / "cmake" / "qa_coverage_report.sh"),
+                           str(build_dir), str(REPO)]})
+    rc = _run_steps(steps, args.output, stop_on_failure=False)
     cov_src = build_dir / "coverage"
     copied = []
     if cov_src.is_dir():
         out_dir.mkdir(parents=True, exist_ok=True)
         for f in sorted(cov_src.iterdir()):
-            if f.is_file() and f.suffix in (".json", ".profdata"):
+            if f.is_file() and f.suffix in (".json", ".profdata", ".profraw"):
                 (out_dir / f.name).write_bytes(f.read_bytes())
                 copied.append(f"{out_dir}/{f.name}")
     print(json.dumps({"driver": "deep_ci_driver.py", "subcommand": "coverage-cpp",
-                      "copied_outputs": copied}, ensure_ascii=False))
-    return 0
+                      "copied_outputs": copied,
+                      "verdict": "FAIL" if rc != 0 else "PASS"},
+                     ensure_ascii=False))
+    return rc
 
 
-def _run_steps(steps: list[dict], output: str | None) -> int:
+def _run_steps(steps: list[dict], output: str | None,
+               stop_on_failure: bool = True) -> int:
+    """顺序执行步骤；stop_on_failure=False 时失败后继续（coverage 语义）。
+
+    rc 始终记首个失败步骤退出码；summary["failed_step"] 同名记录。
+    """
     summary = {"driver": "deep_ci_driver.py", "generated_utc": utc_iso(),
                "steps": [], "exit_code": 0}
     rc = 0
@@ -176,10 +197,12 @@ def _run_steps(steps: list[dict], output: str | None) -> int:
         summary["steps"].append(res)
         print(res["output_tail"], flush=True)
         if res["exit_code"] != 0:
-            rc = res["exit_code"]
-            summary["exit_code"] = rc
-            summary["failed_step"] = step["name"]
-            break
+            if rc == 0:
+                rc = res["exit_code"]
+                summary["exit_code"] = rc
+                summary["failed_step"] = step["name"]
+            if stop_on_failure:
+                break
     _append_summary(_resolve(output) if output else None, summary)
     return rc
 

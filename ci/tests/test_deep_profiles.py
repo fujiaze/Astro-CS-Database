@@ -18,7 +18,9 @@ fixture 全部落 tempfile；只读主仓库资产，不修改任何被检文件
 """
 from __future__ import annotations
 
+import io
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -279,6 +281,157 @@ class TestToolBehaviour(unittest.TestCase):
                     cwd=REPO, timeout=120)
         self.assertEqual(proc.returncode, 2)
         self.assertIn("仓库内", proc.stderr)
+
+    def test_coverage_runner_repo_relative_output_dir_hosted_shape(self):
+        """V8-CI-012 F6：仓库相对 --output-dir（hosted 实跑形态）不再 ValueError。
+
+        修复前：校验步把 out_dir 改写为仓库相对路径，--cov-report 组装处对
+        绝对 REPO 再调 relative_to → ValueError 秒败（hosted run 实证）。
+        进程内 mock subprocess（不真跑 pytest），REPO 用真实临时仓库。
+        """
+        from importlib.util import spec_from_file_location, module_from_spec
+        spec = spec_from_file_location(
+            "ccr_f6", REPO / "tools/quality/ci_coverage_runner.py")
+        mod = module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        fake = mock.Mock(returncode=0, stdout="", stderr="")
+        with tempfile.TemporaryDirectory() as td:
+            repo_root = Path(td) / "repo-root"
+            (repo_root / "tests").mkdir(parents=True)
+            with mock.patch.object(mod, "REPO", repo_root), \
+                 mock.patch.object(mod.subprocess, "run", return_value=fake) as run:
+                rc = mod.main(["--output-dir", "run/ci/coverage-py",
+                               "--tests", "tests"])
+            self.assertEqual(rc, 0)
+            argv = run.call_args.args[0]
+            self.assertEqual(run.call_args.kwargs["cwd"], str(repo_root))
+            self.assertIn("--cov-report=xml:run/ci/coverage-py/coverage.xml", argv)
+            self.assertIn("--cov-report=json:run/ci/coverage-py/coverage.json",
+                          argv)
+            self.assertEqual(argv[argv.index("-m") + 2], "tests")  # 收集根相对形态
+            self.assertEqual(run.call_args.kwargs["env"]["COVERAGE_FILE"],
+                             str(repo_root / "run/ci/coverage-py/.coverage"))
+
+    def test_coverage_runner_repo_relative_output_dir_subprocess(self):
+        """F6 端到端（hosted argv 形态，经真实仓库 run/ 承载，测试后清理）。"""
+        out_rel = "run/ci/test-f6-ut-cov"
+        self.addCleanup(shutil.rmtree, REPO / out_rel, ignore_errors=True)
+        proc = H.sh(["python3", str(REPO / "tools/quality/ci_coverage_runner.py"),
+                     "--output-dir", out_rel, "--tests", "tests-nonexistent-xyz"],
+                    cwd=REPO, timeout=120)
+        # 本地无 pytest → 1（No module named pytest）/ 3（解释器缺失）；
+        # 有 pytest 无收集根 → 4/5；均非 2 且无未捕获异常
+        self.assertIn(proc.returncode, (1, 3, 4, 5), proc.stderr[-400:])
+        self.assertNotIn("ValueError", proc.stderr)
+        self.assertNotIn("Traceback", proc.stderr)
+
+    def test_coverage_runner_escape_subpath_still_controlled_exit2(self):
+        """F6 邻域：书写仓库相对但 resolve 后逃逸出仓库 → 仍受控 exit 2。"""
+        proc = H.sh(["python3", str(REPO / "tools/quality/ci_coverage_runner.py"),
+                     "--output-dir", "../outside-cov-escape"],
+                    cwd=REPO, timeout=120)
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("仓库内", proc.stderr)
+        self.assertNotIn("Traceback", proc.stderr)
+        self.assertFalse((REPO.parent / "outside-cov-escape").exists())
+
+
+class TestCoverageCppDriver(unittest.TestCase):
+    """V8-CI-012 修复轮 2：COV-CPP ctest 失败仍产出 coverage 报告（verdict 仍 FAIL）。
+
+    修复前：cmd_coverage_cpp 在 ccov-target（内含 ctest）非零时早退，
+    qa_coverage_report.sh（profdata merge + llvm-cov export）与 profraw
+    归集均被跳过 → 覆盖率数值永不产出（轮 2 hosted 实证 Error 8 阻断）。
+    """
+
+    def _coverage_cmd(self, mod, results: dict[str, int]):
+        """构造 args + mock run_step（按步骤名回放退出码）；返回 (captured, out)。"""
+        build_dir = REPO / "run/ci/test-covcpp-ut"
+        out_dir = REPO / "run/ci/test-covcpp-ut-out"
+        self.addCleanup(shutil.rmtree, build_dir, ignore_errors=True)
+        self.addCleanup(shutil.rmtree, out_dir, ignore_errors=True)
+        cov_dir = build_dir / "coverage"
+        cov_dir.mkdir(parents=True, exist_ok=True)
+        (cov_dir / "42-1234.profraw").write_bytes(b"fake-profraw")
+        (cov_dir / "astrocs.profdata").write_bytes(b"fake-profdata")
+        (cov_dir / "coverage.json").write_text("{}", encoding="utf-8")
+        (cov_dir / "unrelated.txt").write_text("skip", encoding="utf-8")
+
+        def step_name(argv: list[str]) -> str:
+            if argv[0] == "/bin/sh":
+                return "coverage-merge-report"
+            if "--target" in argv:
+                return "ccov-target"
+            if "-S" in argv:
+                return "cmake-configure"
+            return "cmake-build"
+
+        def fake_run_step(argv, **kw):
+            name = step_name(argv)
+            code = results.get(name, 0)
+            return {"argv": argv, "exit_code": code, "timed_out": False,
+                    "output_tail": f"{name} rc={code}"}
+
+        captured: list[list[str]] = []
+        out = io.StringIO()
+        with mock.patch.object(mod, "run_step",
+                               side_effect=lambda argv, **kw:
+                                   (captured.append(argv),
+                                    fake_run_step(argv, **kw))[1]), \
+             mock.patch("sys.stdout", out):
+            args = mod.build_parser().parse_args(
+                ["coverage-cpp", "--build-dir", "run/ci/test-covcpp-ut",
+                 "--output-dir", "run/ci/test-covcpp-ut-out"])
+            rc = mod.cmd_coverage_cpp(args)
+        return captured, out.getvalue(), rc, cov_dir, out_dir
+
+    def _load_driver_mod(self):
+        from importlib.util import spec_from_file_location, module_from_spec
+        spec = spec_from_file_location(
+            "dcd_covcpp", REPO / "tools/quality/deep_ci_driver.py")
+        mod = module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_ctest_failure_still_runs_merge_report_and_collects(self):
+        """ccov-target 失败（ctest Error 8）→ merge/report 照跑 + 产物归集 + rc=8。"""
+        mod = self._load_driver_mod()
+        captured, out, rc, cov_dir, out_dir = self._coverage_cmd(
+            mod, {"cmake-configure": 0, "cmake-build": 0, "ccov-target": 8,
+                  "coverage-merge-report": 0})
+        self.assertEqual(rc, 8)                     # 首个失败步骤退出码 = FAIL
+        names = [argv for argv in captured]
+        merge = [a for a in names if a[0] == "/bin/sh"]
+        self.assertEqual(len(merge), 1)             # 失败后 merge/report 仍执行
+        self.assertIn("qa_coverage_report.sh", merge[0][1])
+        payload = json.loads(out.splitlines()[-1])
+        self.assertEqual(payload["verdict"], "FAIL")
+        copied = set(payload["copied_outputs"])
+        self.assertIn("run/ci/test-covcpp-ut-out/astrocs.profdata", copied)
+        self.assertIn("run/ci/test-covcpp-ut-out/coverage.json", copied)
+        self.assertIn("run/ci/test-covcpp-ut-out/42-1234.profraw", copied)
+        self.assertNotIn("run/ci/test-covcpp-ut-out/unrelated.txt", copied)
+        self.assertTrue((out_dir / "coverage.json").exists())
+
+    def test_all_pass_verdict_pass_and_rc0(self):
+        """全步骤成功 → rc 0 / verdict PASS（回归：正向路径不破坏）。"""
+        mod = self._load_driver_mod()
+        captured, out, rc, _, out_dir = self._coverage_cmd(mod, {})
+        self.assertEqual(rc, 0)
+        payload = json.loads(out.splitlines()[-1])
+        self.assertEqual(payload["verdict"], "PASS")
+        self.assertEqual(len(captured), 4)          # configure/build/ccov/merge
+        self.assertTrue((out_dir / "astrocs.profdata").exists())
+
+    def test_merge_report_failure_surfaced(self):
+        """merge/report 自身失败 → 以其退出码上报（报告不可得必须如实失败）。"""
+        mod = self._load_driver_mod()
+        captured, out, rc, _, _ = self._coverage_cmd(
+            mod, {"cmake-configure": 0, "cmake-build": 0, "ccov-target": 0,
+                  "coverage-merge-report": 1})
+        self.assertEqual(rc, 1)
+        payload = json.loads(out.splitlines()[-1])
+        self.assertEqual(payload["verdict"], "FAIL")
 
 
 class TestDeepCoverageToolsInstall(unittest.TestCase):
