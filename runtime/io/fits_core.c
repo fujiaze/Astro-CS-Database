@@ -40,6 +40,13 @@
 #include <unistd.h>
 #endif
 
+/* UCRT (MSVC) errno.h 不定义 POSIX EDQUOT (磁盘配额超限, Linux errno 122)。
+ * fio_errno_code() 用它把配额满与 ENOSPC 同类归为 ACS_FIO_ERR_DISKFULL。
+ * 仅在未定义时补值, Linux/POSIX 路径零改动; 122 为 Linux 同值, UCRT 无占用者。 */
+#if defined(_WIN32) && !defined(EDQUOT)
+#define EDQUOT 122
+#endif
+
 /* 大文件偏移 seek (POSIX fseeko / Windows _fseeki64) */
 #if defined(_WIN32)
 #define fio_fseek _fseeki64
