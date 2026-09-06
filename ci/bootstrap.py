@@ -84,6 +84,17 @@ def _version_tuple(text: str | None) -> tuple[int, ...] | None:
     return tuple(int(x) for x in m.group(1).split(".")) if m else None
 
 
+def _floor_required(value: str) -> str:
+    """policy required 值幂等规范化为 floor 形态（``>=x.y.z``）。
+
+    TOOLCHAIN-VERIFY 哨兵按等值消费 policy 原值（可含 ``>=`` 前缀），
+    报告 items[].required 不得重复加前缀：值已以 ``>=`` 开头则原样返回，
+    否则加 ``>=`` 前缀（兼容无前缀的裸版本 policy 值）。
+    """
+    text = str(value)
+    return text if text.startswith(">=") else f">={text}"
+
+
 def _cmake_min_from(policy_section: dict) -> tuple[int, ...]:
     """cmake 下限由 policy ``cmake`` 字段驱动（最低要求语义）。
 
@@ -204,7 +215,7 @@ def check_linux(policy_section: dict) -> list[dict]:
     present, text = probe_command_version("cmake")
     ver = _version_tuple(text)
     items.append(_item(
-        "cmake", f">={required_cmake}",
+        "cmake", _floor_required(required_cmake),
         {"present": present, "version_line": text},
         present and ver is not None and ver >= _cmake_min_from(policy_section),
         None if (present and ver is not None) else
@@ -260,7 +271,7 @@ def check_windows(policy_section: dict) -> list[dict]:
     present, text = probe_command_version("cmake")
     ver = _version_tuple(text)
     items.append(_item(
-        "cmake", f">={required_cmake}",
+        "cmake", _floor_required(required_cmake),
         {"present": present, "version_line": text},
         present and ver is not None and ver >= _cmake_min_from(policy_section),
         None if (present and ver is not None) else
