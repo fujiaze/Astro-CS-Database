@@ -24,7 +24,7 @@
       "installed_by": "ci-linux.yml step 'Install deep coverage tools'（profile=linux-deep 时执行；仅安装验证工具，不拉业务依赖）",
       "apt_packages": ["llvm-18", "python3-pytest", "python3-pytest-cov",
                         "python3-numpy", "python3-astropy", "python3-scipy",
-                        "python3-yaml"],
+                        "python3-yaml", "libgsl-dev"],
       "path_tools": ["llvm-profdata", "llvm-cov", "pytest"],
       "path_tool_source": "llvm-18 无后缀二进制位于 /usr/lib/llvm-18/bin（安装步加入 GITHUB_PATH）；pytest 位于 /usr/bin",
       "module_tools": ["pytest-cov"],
