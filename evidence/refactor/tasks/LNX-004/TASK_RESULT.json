@@ -30,5 +30,25 @@
   "findings": [
     "LNX-004: 2 核 P2-002 resource PASS + SIGINT cancel 正常"
   ],
-  "created_utc": "2026-08-30T18:15:01Z"
+  "created_utc": "2026-08-30T18:15:01Z",
+  "reverify": {
+    "observed_head_sha": "f0bc039a5ac07069362665b7bf0c4f2bb8802184",
+    "reverify_utc": "2026-09-06T20:51:31Z",
+    "verdict": "PASS",
+    "fixes": [],
+    "commands": [
+      {
+        "command_id": "c01",
+        "command": "taskset -c 0,1 ctest --test-dir build -R 'p1_resource|^p2_workers$|^core_scheduler$' --output-on-failure",
+        "timeout_seconds": 900,
+        "expected_exit_code": 0,
+        "exit_code": 0,
+        "log_path": "run/local/main23_fix/LNX004_SUB1.log"
+      }
+    ],
+    "notes": [
+      "HEAD=f0bc039a 复验; 历史为 2 核平台冒烟(P2-002 resource PASS + SIGINT cancel 正常), 当前 16 核环境用 taskset -c 0,1 等效限制 2 核",
+      "验收适配: p2_workers(P2-002) + p1_resource(resource) + core_scheduler(cancel 单测) 3/3 Passed; 历史日志仅记 P2-002 一行, cancel 证据补 core_scheduler ctest 目标(含 sched.cancel 线程取消测试); 无修复"
+    ]
+  }
 }

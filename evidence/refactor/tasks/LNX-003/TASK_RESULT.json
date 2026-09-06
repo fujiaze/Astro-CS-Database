@@ -30,5 +30,25 @@
   "findings": [
     "LNX-003: Linux 全组合成科学测试 — 7 组合成门全 PASS"
   ],
-  "created_utc": "2026-08-30T18:15:01Z"
+  "created_utc": "2026-08-30T18:15:01Z",
+  "reverify": {
+    "observed_head_sha": "f0bc039a5ac07069362665b7bf0c4f2bb8802184",
+    "reverify_utc": "2026-09-06T20:51:31Z",
+    "verdict": "PASS",
+    "fixes": [],
+    "commands": [
+      {
+        "command_id": "c01",
+        "command": "./build/astrocs test synthetic --group all",
+        "timeout_seconds": 900,
+        "expected_exit_code": 0,
+        "exit_code": 0,
+        "log_path": "run/local/main23_fix/LNX003_SUB1.log"
+      }
+    ],
+    "notes": [
+      "HEAD=f0bc039a 复验; 历史 CLI 原文 'test synthetic all' 按当前 CLI 语法适配为 'test synthetic --group all' (本会话 CLI 参数化改动)",
+      "7 组合成门全 PASS (P1-002/P1-003/P1-005/P1-006/P2-003/P2-006/P1-008), 与历史输出逐项一致; 无修复"
+    ]
+  }
 }

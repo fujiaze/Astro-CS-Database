@@ -57,5 +57,34 @@
   "findings": [
     "CPU-006: benchmark 顺序链(能力探测→Oracle→warmup→计时→median/MAD→选择)由 harness 实现; Oracle 门保证速度不能使错误路径胜出; worker/block 候选全派生无硬编码; median 稳健统计验证; select_winner 语义验证"
   ],
-  "created_utc": "2026-08-30T16:41:59Z"
+  "created_utc": "2026-08-30T16:41:59Z",
+  "reverify": {
+    "observed_head_sha": "f0bc039a5ac07069362665b7bf0c4f2bb8802184",
+    "reverify_utc": "2026-09-06T20:51:31Z",
+    "verdict": "PASS",
+    "fixes": [],
+    "commands": [
+      {
+        "command_id": "c01",
+        "command": "cmake --build build --target cpu_bench_test && ctest --test-dir build -R '^cpu_bench$' --output-on-failure",
+        "timeout_seconds": 1350,
+        "expected_exit_code": 0,
+        "exit_code": 0,
+        "log_path": "run/local/main23_fix/CPU006_SUB1.log"
+      },
+      {
+        "command_id": "c02",
+        "command": "test $(grep -c harness tests/unit/cpu_bench_test.cpp) -gt 0",
+        "timeout_seconds": 90,
+        "expected_exit_code": 0,
+        "exit_code": 0,
+        "log_path": "run/local/main23_fix/CPU006_SUB2.log"
+      }
+    ],
+    "notes": [
+      "HEAD=f0bc039a 复验; 历史 c01 在 build/root-cmake(make) 下构建+直跑测试二进制, 当前布局适配为 build/ ninja 树 ctest 目标 cpu_bench, 验收语义等价(oracle 门/winner/候选派生/统计稳健)",
+      "历史 c02 为源文件 harness 统计要素 grep 计数>0 (历史值 10); 当前文件 grep -c harness = 3 >0, 阈值判定等价, pattern 按当前源码适配",
+      "cpu_bench ctest Passed; 无修复"
+    ]
+  }
 }
