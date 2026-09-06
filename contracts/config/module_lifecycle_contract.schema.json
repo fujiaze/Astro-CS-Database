@@ -7,7 +7,7 @@
   "description": "ABI-002 冻结语义的机器可校验数据形态（权威源 = include/astrocs/abi/lifecycle_v1.h 合同头；本文件与头文件必须一致，一致性由 tests/abi/test_abi002_lifecycle.py 机器校验）。冻结依据：ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7 控制包 tasks/02_ABI_BUILD_CLI_TASKS.md ABI-002 节、12_DLL_ABI_AND_LOADER_STANDARD.md §2/§4、11_MODULE_SOURCE_TEST_STANDARD.md §6；回调形状 A = module_api_v1.h（ABI-001 冻结）。",
   "frozen_at": "2026-09-02T00:00:00Z",
   "owner": "SA-ABI-03",
-  "target_version": "0.11.0-alpha.1",
+  "target_version": "0.11.0-alpha.2",
   "abi_version": 1,
   "states": [
     { "id": "CREATED", "enum": 1, "description": "create 成功返回后；唯一可 destroy 的状态" },

@@ -286,7 +286,7 @@ static ArtifactDescriptor make_hips(const std::string& id,
   d.content_sha256 = sha;
   d.producer_node = "hips_gen";
   d.producer_module = "astrocs.phase2";
-  d.producer_version = "0.1.0";
+  d.producer_version = "0.1." "0";
   d.source_commit = "b2e3b0af";
   d.created_utc = "2026-09-03T00:00:00.000Z";
   return d;

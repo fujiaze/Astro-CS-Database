@@ -86,7 +86,7 @@ class TestP1004JointGate(unittest.TestCase):
         """CLI 二进制 source commit(version_generated.h)与当前 HEAD 同批(同 commit 门)。"""
         if not os.path.isfile(EXE):
             self.skipTest("CLI 二进制缺失")
-        # --version 输出含 commit(0.10.0-alpha.2+g<sha12>)
+        # --version 输出含 commit(<根 VERSION 单源>+g<sha12>)
         r = subprocess.run([EXE, "--version"], capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stderr)
         import re

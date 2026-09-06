@@ -31,6 +31,11 @@ import unittest
 REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "runtime" / "artifact_store"))
 
+def _repo_version():
+    """读根 VERSION 文件（单一版本源），防 alpha 版本字面量硬编码漂移。"""
+    return (REPO / "VERSION").read_text(encoding="utf-8").strip()
+
+
 from provenance import (  # noqa: E402
     ProvenanceError,
     REVISION_CATEGORIES,
@@ -73,7 +78,7 @@ def base_manifest(artifact_id: str = "frame-000001",
                   content_hex: str = "0" * 64,
                   size: int = 0,
                   status: str = "COMPLETE",
-                  product_version: str = "0.11.0-alpha.1-linux-amd64-gcc14",
+                  product_version: str = _repo_version() + "-linux-amd64-gcc14",
                   science_ids: list | None = None,
                   inputs: list | None = None) -> dict:
     """构造完整 DATA-001 manifest（冻结字段序；DATA-004 复用 producer 字段）。"""
@@ -103,9 +108,10 @@ def base_manifest(artifact_id: str = "frame-000001",
 
 
 def prov_kwargs(artifact_id: str = "frame-a", product: str = "1.2.0",
-                module: str = "0.11.0-alpha.1", abi: str = "v1",
+                module: str = None, abi: str = "v1",
                 data_schema: str = "v1") -> dict:
-    """常用 provenance digest 参数集。"""
+    """常用 provenance digest 参数集（module 缺省取根 VERSION 单源）。"""
+    module = _repo_version() if module is None else module
     return dict(
         artifact_id=artifact_id,
         revision=build_revision(product=product, module=module, abi=abi,
@@ -182,7 +188,7 @@ class TestRevisionCategories(unittest.TestCase):
 
     def test_parse_version_semver(self):
         self.assertEqual(parse_version("1.2.3"), (1, 2, 3))
-        self.assertEqual(parse_version("0.11.0-alpha.1"), (0, 11, 0))
+        self.assertEqual(parse_version(_repo_version()), (0, 11, 0))
         self.assertEqual(parse_version("v1"), (1,))
 
     def test_version_comparison(self):
@@ -578,7 +584,7 @@ class TestStoreProvenanceIntegration(unittest.TestCase):
         self.assertEqual(prov["artifact_id"], "frame-p")
         self.assertEqual(prov["revision"]["data_schema"], "v1")
         self.assertEqual(prov["revision"]["product"],
-                         "0.11.0-alpha.1-linux-amd64-gcc14")
+                         _repo_version() + "-linux-amd64-gcc14")
         self.assertEqual(prov["revision"]["module"], "astrocs.phase1.frame_hips")
         self.assertEqual(prov["revision"]["abi"], "v1")
         self.assertEqual(prov["science_ids"], ["SCI-CW-001"])

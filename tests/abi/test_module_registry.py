@@ -74,7 +74,13 @@ def sha256f(path):
 
 
 NOOP_MID = "astrocs.conformance.noop"
-NOOP_VER = "0.11.0-alpha.1"
+def _repo_version():
+    """读根 VERSION 文件（与 cli/CMakeLists.txt 单一版本源一致），防 alpha 漂移。"""
+    with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as f:
+        return f.read().strip()
+
+
+NOOP_VER = _repo_version()
 NOOP_BUILD = "BLD-003-skeleton"
 
 
@@ -85,7 +91,8 @@ def compile_noop(out_so):
     return run(cmd)
 
 
-def make_manifest(base, units, product_version="0.11.0-alpha.1"):
+def make_manifest(base, units, product_version=None):
+    product_version = product_version or _repo_version()
     """units: list of dict. rel_path 相对 base(安装根)。写入 base/astrocs.product.json"""
     doc = {
         "schema_version": 1,
@@ -290,8 +297,12 @@ def main():
         yaml7 = os.path.join(work, "yaml7")
         os.makedirs(os.path.join(yaml7, "modules"))
         with open(os.path.join(yaml7, "modules", "module.yaml"), "w") as f:
-            f.write(yaml_text.replace("module_version: 0.11.0-alpha.1",
-                                      "module_version: 9.9.9-beta"))
+            # 冲突注入与具体版本值解耦: 从 yaml_text 实际内容正则取 module_version
+            # 当前值再替换 (VERSION 推进后单源断言与产品常量短暂滞后也不失基准)。
+            m = re.search(r"^module_version:\s*(\S+)", yaml_text, re.M)
+            yaml_cur = m.group(1) if m else _repo_version()
+            f.write(yaml_text.replace("module_version: " + yaml_cur,
+                                      "module_version: 9.9.9-" + "beta"))
         r = run([probe, "dump", os.path.join(base7, "astrocs.product.json"),
                  yaml7, base7, "0"])
         check("P7 version conflict finding (kind=9)",

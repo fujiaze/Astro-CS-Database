@@ -50,7 +50,13 @@ TIMEOUT = 300
 CC = os.environ.get("CC", "gcc")
 
 ECHO_MID = "astrocs.conformance.echo"
-ECHO_VER = "0.11.0-alpha.1"
+def _repo_version():
+    """读根 VERSION 文件（与 cli/CMakeLists.txt 单一版本源一致），防 alpha 漂移。"""
+    with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as f:
+        return f.read().strip()
+
+
+ECHO_VER = _repo_version()
 ECHO_BUILD = "ABI-005-echo"
 
 FAILURES = []
@@ -96,7 +102,8 @@ def compile_echo(out_so):
     return r
 
 
-def make_manifest(base, units, product_version="0.11.0-alpha.1"):
+def make_manifest(base, units, product_version=None):
+    product_version = product_version or _repo_version()
     doc = {
         "schema_version": 1,
         "product_version": product_version,

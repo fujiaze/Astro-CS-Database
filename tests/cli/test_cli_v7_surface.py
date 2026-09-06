@@ -21,6 +21,7 @@
 """
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -28,6 +29,12 @@ import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+def _repo_version():
+    """读根 VERSION 文件（单一版本源），防 alpha 版本字面量硬编码漂移。"""
+    with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as f:
+        return f.read().strip()
+
 BUILD = os.path.join(REPO, "build", "cli")
 EXE = os.path.join(BUILD, "astrocs")
 
@@ -122,7 +129,8 @@ class TestVersionSurface(unittest.TestCase):
     def test_01_version_plain(self):
         r = run("version")
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertRegex(r.stdout.strip(), r"^astrocs 0\.11\.0-alpha\.1\+g[0-9a-f]{12}")
+        self.assertRegex(r.stdout.strip(),
+                         r"^astrocs " + re.escape(_repo_version()) + r"\+g[0-9a-f]{12}")
         self.assertEqual(r.stderr, "")
 
     def test_02_version_json_single_document(self):
@@ -133,7 +141,8 @@ class TestVersionSurface(unittest.TestCase):
         doc = json.loads(lines[0])
         self.assertEqual(doc["name"], "astrocs")
         self.assertEqual(doc["schema_version"], "1")
-        self.assertRegex(doc["version"], r"^0\.11\.0-alpha\.1\+g[0-9a-f]{12}")
+        self.assertRegex(doc["version"],
+                         r"^" + re.escape(_repo_version()) + r"\+g[0-9a-f]{12}")
 
     def test_03_version_matches_dash_version(self):
         a = run("--version", "--json")
@@ -167,7 +176,7 @@ class TestModulesSurface(unittest.TestCase):
             shutil.copy(EXE, os.path.join(t, "astrocs"))
         manifest = {
             "schema_version": 1,
-            "product_version": "0.11.0-alpha.1",
+            "product_version": _repo_version(),
             "source_commit": "0" * 40,
             "platform": "linux-amd64",
             "note": "CLI-001 test fixture",
@@ -311,7 +320,7 @@ class TestSelftestSurface(unittest.TestCase):
             os.makedirs(t)
             shutil.copy(EXE, os.path.join(t, "astrocs"))
         manifest = {
-            "schema_version": 1, "product_version": "0.11.0-alpha.1",
+            "schema_version": 1, "product_version": _repo_version(),
             "source_commit": "0" * 40, "platform": "linux-amd64",
             "note": "CLI-001 selftest fixture",
             "units": [

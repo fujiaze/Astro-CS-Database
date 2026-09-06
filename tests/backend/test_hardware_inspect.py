@@ -75,7 +75,7 @@ class TestHardwareInspect(unittest.TestCase):
         self.assertEqual(d["page_size"], os.sysconf("SC_PAGESIZE"))
         self.assertIn(platform.machine(), ("x86_64",))
         # 单源语义 (V8-CI-012 R7): 版本字面量改由 VERSION 单源派生（旧硬编码
-        # 0.10.0-alpha.2 随 VER-001 推进即挂），与 build 前缀 +12 位短哈希核对。
+        # alpha 版本字面量随 VER-001 推进即挂），与 build 前缀 +12 位短哈希核对。
         self.assertRegex(d["astrocs_build"],
                          re.escape(gen_version.read_base_version()) + r"\+g[0-9a-f]{12}")
 

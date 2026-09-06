@@ -10,17 +10,25 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_RE = re.compile(r"(?<![\w.])(\d+\.\d+\.\d+)(?![\d.])")  # 排除 127.0.0.1 等 IP/更长子串
 PRERELEASE_BAD = re.compile(r"\b\d+\.\d+\.\d+-(stable|rc|beta)\b", re.IGNORECASE)
 SCAN_ROOTS = ["docs", "schemas", "launch", "tests"]
-SCAN_FILES = ["build.sh", "toolchain.ps1", "README.md", "CHANGELOG.md", "VERSION",
+# CHANGELOG.md 是 history 命名空间驻留点 (GOV-003 §2/§4, 与 ci/check_version.py
+# [5] 口径一致): 条目记录"当时的版本号"属天然历史事实, 不进本检查。
+SCAN_FILES = ["build.sh", "toolchain.ps1", "README.md", "VERSION",
               "tools/gen_version.py"]
 SELF_FIXTURE = os.path.join("tests", "version", "test_version_consistency.py")  # mutation 样本自身
 PROBE_FIXTURES = {  # 版本探针工具：内含 '0.1.0' 等被扫描 token，属扫描器自身而非产品
     os.path.join("tools", "quality", "known_failures_baseline.py"),
 }
+TEST_FIXTURES = {  # 单元测试合成数据文件: 内含 semver 解析/比较/取代逻辑的合成 token
+    os.path.join("tests", "artifact", "test_provenance.py"),  # parse_version/version_gt 等合成版本
+    os.path.join("tests", "abi", "test_secure_loader.py"),  # loader 探针 fixture 0.0.0-test 等非法版本样本
+}
 # 行内豁免: 非产品版本的数字三元组(外部工具/格式版本/协议版本/示例占位)
 EXEMPT = ("hips_version", "DatabaseVersion", "schema_version", "cap.version", "driver",
           "X.Y.Z", "MAJOR.MINOR.PATCH", "healpix", "cfitsio", "fitsio", "opencl", "example",
           "g++", "gcc", "cmake", "ninja", "mingw", "msys2", "siril", "wbpp", "pcl", "rcr",
-          "python", '"version":', '"版本":', "version: ", "clang", "ivoa")
+          "python", '"version":', '"版本":', "version: ", "clang", "ivoa",
+          # 外部工具链版本表 (git/zstd/xz): GOV-003 §3 豁免表"外部组件版本"同口径
+          "git", "zstd", "xz")
 # 合同文档 front matter 的 "状态: ACTIVE  版本: 1.0.0" 是文档修订号，不是产品版本
 CONTRACT_DOC_VERSION = re.compile(r"状态:\s*\w+\s+版本:\s*\d+\.\d+\.\d+")
 SKIP_DIRS = {".git", "build", "run", "reports", "archive", "testdata", "工程控制",
@@ -38,7 +46,10 @@ def base_version():
 def iter_files():
     for root in SCAN_ROOTS:
         for dirpath, dirnames, filenames in os.walk(os.path.join(REPO, root)):
-            dirnames[:] = [d for d in dirnames if d not in ("__pycache__",)]
+            # 归档命名空间 (docs/archive/ 等) 是历史记录, 天然记录旧版本号,
+            # 绝不可改成当前版本 —— 目录名命中 SKIP_DIRS 即整树剪枝。
+            dirnames[:] = [d for d in dirnames
+                           if d not in SKIP_DIRS and d != "__pycache__"]
             for fn in filenames:
                 if fn.endswith((".py", ".md", ".json", ".sh", ".ps1")):
                     yield os.path.join(dirpath, fn)
@@ -51,8 +62,8 @@ def check_file(path, base_num, alpha_n, errors):
     rel = os.path.relpath(path, REPO)
     if rel == "VERSION" or rel == os.path.join("tools", "gen_version.py"):
         return  # 唯一定义点自身豁免
-    if rel == SELF_FIXTURE or rel in PROBE_FIXTURES:
-        return  # mutation/probe 测试样本文件(内含故意伪造版本 token)
+    if rel == SELF_FIXTURE or rel in PROBE_FIXTURES or rel in TEST_FIXTURES:
+        return  # mutation/probe/合成数据测试样本文件(内含故意伪造或合成版本 token)
     alpha_full = re.compile(r"(\d+\.\d+\.\d+)-alpha\.(\d+)")
     with open(path, encoding="utf-8", errors="replace") as f:
         for i, line in enumerate(f, 1):

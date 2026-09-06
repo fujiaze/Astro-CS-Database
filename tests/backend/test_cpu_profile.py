@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """BENCH-004 测试: profile schema/mutation/stale/AVX512 slower/噪声裕量/无 profile 多线程。"""
-import hashlib, json, os, re, shutil, subprocess, tempfile, unittest
+import hashlib, json, os, re, shutil, subprocess, sys, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 HOST = os.path.join(REPO, "lib", "backend_host")
@@ -13,6 +13,8 @@ SCHEMA = json.load(open(os.path.join(
     REPO, "schemas", "cpu_profile.schema.json"), encoding="utf-8"))
 COMMIT = subprocess.run(["git", "-C", REPO, "rev-parse", "HEAD"],
                         capture_output=True, text=True).stdout.strip()
+sys.path.insert(0, os.path.join(REPO, "tools"))
+import gen_version  # noqa: E402  # 版本单源派生（与 VER-001 根 VERSION 一致）
 
 
 def common_srcs():
@@ -50,7 +52,7 @@ class TestCpuProfile(unittest.TestCase):
         assert r2.returncode == 0, r2.stderr
         open(cls.hw, "w", encoding="utf-8").write(r2.stdout)
         r3 = subprocess.run([cls.gen, "--out", cls.profile, "--mode", "quick",
-                             "--version", "0.10.0-alpha.2", "--commit", COMMIT,
+                             "--version", gen_version.read_base_version(), "--commit", COMMIT,
                              "--backend-sha", "0"], capture_output=True, text=True, timeout=300)
         assert r3.returncode == 0, r3.stderr
 
