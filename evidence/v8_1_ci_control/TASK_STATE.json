@@ -2,8 +2,8 @@
   "schema_version": "v8.1",
   "round": "V8.1_EXISTING_WORKSPACE_CI",
   "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
-  "updated_utc": "2026-09-05T23:57:14Z",
-  "main_sha": "72df03191e1d12cc733f506dc8f85a5c6c75556b",
+  "updated_utc": "2026-09-06T00:08:19Z",
+  "main_sha": "2c1ffef10b0feb36e779b68e08e7e1b147371c6d",
   "reconciled_by": {
     "task_id": "V81-ADOPT-003",
     "owner": "SA-ADOPT-31"
@@ -44,8 +44,8 @@
     "WAITING_RESOURCE"
   ],
   "counts": {
-    "CLOSED": 56,
-    "READY": 8,
+    "CLOSED": 57,
+    "READY": 7,
     "NOT_STARTED": 125,
     "DISPATCHED": 0,
     "FATDUCK_PENDING": 2,
@@ -2460,6 +2460,15 @@
       "closed_utc": "2026-09-05T23:57:14Z",
       "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-008/",
       "summary": "Fatduck 三 job workflow(select-candidate/fatduck-validate/notify-owner)+select_candidate.py+download-artifact v8.0.1 锁定; validate job 零 checkout/零 repo script/固定 harness 入口; 仅 notify-owner issues:write; +29 单测(180 OK); 集成于 9b3fe93e"
+    },
+    "V8-CI-009": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "1e50d49e25c4192dc1a0285fc3a10d77629195f3",
+      "pushed": true,
+      "closed_utc": "2026-09-06T00:08:19Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-009/",
+      "summary": "13 类负向注入矩阵 36 用例全离线; GAP-G2(R9 hardcoded_core 扫描)/GAP-G3(zip path_escape)守卫补齐, GAP-G1 前台裁决 POLICY 控制面保障; gaps_open=0; 216 tests OK; 集成于 1e50d49e"
     }
   },
   "adopt_seed_tasks": {

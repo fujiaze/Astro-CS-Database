@@ -1,0 +1,70 @@
+{
+  "task_id": "V8-CI-011",
+  "owner": "SA-CI-32",
+  "base_sha": "2c1ffef10b0feb36e779b68e08e7e1b147371c6d",
+  "repo": "fujiaze/Astro-CS-Database",
+  "executed_utc": "2026-09-06T08:03:00Z",
+  "credentials_discipline": "token 仅经 git credential fill 内联注入进程环境，未写入任何文件/日志/输出；api_trace.jsonl 仅含 method/path/status/request_body/response_body，grep token 模式零匹配",
+  "items": [
+    {
+      "item": "1. Actions enabled",
+      "before": {"enabled": true, "allowed_actions": "all", "sha_pinning_required": false},
+      "action": "READ_ONLY_CONFIRMED（workflows 在跑即证；未改动 enabled）",
+      "after": {"enabled": true, "allowed_actions": "selected", "sha_pinning_required": false},
+      "status": "READ_ONLY_CONFIRMED",
+      "note": "allowed_actions 由 all→selected 属第 3 项配置；enabled 保持 true"
+    },
+    {
+      "item": "2. 默认 workflow token 只读",
+      "before": {"default_workflow_permissions": "read", "can_approve_pull_request_reviews": false},
+      "action": "PUT /actions/permissions/workflow {default_workflow_permissions=read, can_approve_pull_request_reviews=false}（幂等确认，HTTP 204）→ GET 复读",
+      "after": {"default_workflow_permissions": "read", "can_approve_pull_request_reviews": false},
+      "status": "CONFIGURED"
+    },
+    {
+      "item": "3. allowed actions 策略与 ci/actions.lock.json 一致",
+      "before": {"allowed_actions": "all", "selected_actions_get": "HTTP 409 Conflict（未 selected 时不可读）"},
+      "action": "PUT /actions/permissions {enabled=true, allowed_actions=selected}（204）→ 首次 PUT selected-actions 以任务指令语义 {enabled_actions:[...]} 返回 204 但复读 patterns_allowed=[]（语义不符：该 API 实际字段为 patterns_allowed，空名单等于禁用全部可复用 action，正在跑的 workflow 会失败）→ 立即以正确语义修正 PUT {github_owned_allowed=true, verified_allowed=false, patterns_allowed=[actions/checkout@*, actions/upload-artifact@*, actions/download-artifact@*]}（204）→ GET 复读",
+      "after": {"github_owned_allowed": true, "verified_allowed": false,
+                "patterns_allowed": ["actions/checkout@*", "actions/upload-artifact@*", "actions/download-artifact@*"]},
+      "status": "CONFIGURED",
+      "note": "白名单 3 个 action 名与 ci/actions.lock.json entries 使用中的 3 项严格一致；API 仅支持 action名@通配模式，不支持 commit SHA 级白名单（sha_pinning_required 为账户/组织级强制开关且会拒绝已固定 SHA 的调用之外的全部写法，未启用）；SHA 级锁定由 actions.lock.json + ci/verify_actions_lock.py（PASS offline, 4 entries）在源码层保障，形成双层机制"
+    },
+    {
+      "item": "4. artifact retention 14 天",
+      "before": {"days": 90, "maximum_allowed_days": 90},
+      "action": "PUT /actions/permissions/artifact-and-log-retention {days:14}（HTTP 204）→ GET 复读",
+      "after": {"days": 14, "maximum_allowed_days": 90},
+      "status": "CONFIGURED"
+    },
+    {
+      "item": "5. Fatduck runner",
+      "before": {"total_count": 0, "runners": []},
+      "action": "READ_ONLY_CONFIRMED（API 无法代建 runner）；期望终态登记：V8-FAT-001 装机后在 fujiaze/Astro-CS-Database 建 repository-level self-hosted runner，labels 仅 [self-hosted, fatduck-realdata]，无 push 权限、无个人目录权限、checkout_allowed=false、compile_allowed=false（toolchain.policy.json fatduck 节 / 04_FATDUCK_AND_RELEASE_TASKS.md）",
+      "after": {"total_count": 0, "runners": [], "expected_terminal_state": "repository-level, labels=[self-hosted, fatduck-realdata], no push/no personal-dir permissions (V8-FAT-001)"},
+      "status": "READ_ONLY_CONFIRMED",
+      "note": "FATDUCK_PENDING：当前无任何 runner，无 fatduck-realdata label，fatduck-validate 不会误调度"
+    },
+    {
+      "item": "6. 公开 fork/PR workflow 不匹配 Fatduck",
+      "before": {"repo_private": false, "fatduck_workflow_run": {"workflows": ["AstroCS Windows CI"], "types": ["completed"], "branches": ["main"]}, "fatduck_validate_runs_on": "自托管独有 label（fatduck-realdata，当前无 runner）", "candidate_gate": "ci/select_candidate.py 校验 head_branch==main 且 conclusion==success，无 candidate artifact 即 exit 3 skip"},
+      "action": "READ_ONLY_CONFIRMED 两道防线并登记：防线一 workflow_run 触发限定 branches:[main]（.github/workflows/fatduck.yml）且 select_candidate.py 显式复校 head_branch==main + conclusion==success（双重校验，fork PR 分支≠main 直接 exit 3）；防线二 fatduck-validate runs-on 独有 label fatduck-realdata，仓库当前 runner 数=0，任何 fork 触发的 run 拿不到该 label 的 success windows run → 无 candidate artifact → select exit 3 skip",
+      "after": "两道防线源码与设置均在场，fork/PR 数据不可能进入 Fatduck",
+      "status": "READ_ONLY_CONFIRMED"
+    }
+  ],
+  "issues_single_owner_review": {
+    "has_issues": true, "has_wiki": true, "has_projects": true, "has_discussions": false,
+    "open_issues_count": 0, "default_branch": "main",
+    "permission_admin_true": true,
+    "action": "只读读回登记，未新建/修改/关闭任何 issue"
+  },
+  "api_semantics_deviation": "派发指令给定 PUT {enabled_actions:[...]} 与 GitHub API 实际语义不符（API 字段为 patterns_allowed 数组，glob 模式）；首次 PUT 后复读 patterns_allowed=[] 已即时修正并全程落 trace，最终读回与 lock 表一致",
+  "verification": {
+    "verify_actions_lock_offline": "PASS (offline, 4 entries), exit 0",
+    "unittest": "Ran 216 tests, OK",
+    "git_status_scope": "本任务仅新增 evidence/v8_1_ci_control/tasks/V8-CI-011/**（logs/ 命中 .gitignore:18 全局 logs/ 规则故 porcelain 不显示，文件已落盘）；工作区另见任务开始前既有 M AGENTS.md 与 D dist/audit/*.zip，非本任务产生",
+    "token_leak_grep": "对证据目录做 token 模式（ghp 前缀 / github_pat 前缀 / password 等号）全文件扫描：零匹配，token 未落盘"
+  },
+  "result": "PASS"
+}
