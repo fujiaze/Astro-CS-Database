@@ -34,9 +34,19 @@ def main():
             # ${P2_SRCS}/${P3_SRCS} 已去抑制; 剩余豁免 = 第三方/遗留 (CFITSIO/AIO/DRIZZLE/HISS)
             if not any(x in srcs for x in ("CFITSIO", "AIO", "DRIZZLE", "HISS", "SAMPLER")):
                 errors.append(f"{cm.name}: 非豁免源抑制 {srcs.strip()[:60]}")
-    # 生产警告计数 (重新编译 phase1 模块)
+    # 生产警告计数 (重新编译 phase1 模块)；构建目录缺失时结构性跳过
+    # （windows runner 无 build/root-cmake，警告计数检查属 linux 构建面）。
+    build_dir = REPO / "build" / "root-cmake"
+    if not (build_dir / "Makefile").exists() and not build_dir.exists():
+        print("QA-001_SKIP: build/root-cmake 缺失（非 linux 构建环境），仅静态检查")
+        if errors:
+            print("QA-001_WARN_VIOLATION:")
+            for e in errors: print("  " + e)
+            return 1
+        return 0
     r = subprocess.run(["bash","-c",
-        "cd "+str(REPO)+" && touch lib/phase1/noise/noise_model.cpp && make -C build/root-cmake astrocs 2>&1 | grep -c 'warning:' || true"],
+        "cd "+str(REPO)+" && touch lib/phase1/noise/noise_model.cpp && make -C build/root-cmake astrocs 2>&1 "
+        "| grep -v 'WSL\\|适用于 Linux' | grep -c 'warning:' || true"],
         capture_output=True, text=True, timeout=600)
     warn = r.stdout.strip()
     if warn not in ("", "0"):

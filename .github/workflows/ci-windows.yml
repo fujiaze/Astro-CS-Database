@@ -22,6 +22,17 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 1
+      # WIN-001 hosted 化：runner 预装 vcpkg 提供 MSVC zlib（cfitsio zcompress.c
+      # 依赖，ACS_ZLIB_ROOT 消费点；triplet x64-windows-static-md 对齐 /MD CRT）。
+      # PyYAML：CONTRACT-GRAPH / DOC-INDEX 的 yaml 解析依赖（agent-host 有而
+      # hosted runner 无的验证侧依赖，不属业务安装面）。
+      - name: Provide zlib (vcpkg) and PyYAML
+        shell: pwsh
+        run: |
+          $vcpkg = "$env:VCPKG_INSTALLATION_ROOT"
+          & "$vcpkg\vcpkg.exe" install zlib --triplet x64-windows-static-md
+          "ACS_ZLIB_ROOT=$vcpkg\installed\x64-windows-static-md" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          python -m pip install --quiet PyYAML
       - name: Bootstrap locked toolchain
         run: python ci/bootstrap.py --policy ci/toolchain.policy.json --platform windows
       - name: Run MSVC tests and package candidate

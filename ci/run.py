@@ -633,6 +633,9 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
 
     env = dict(os.environ)
     env.setdefault("PYTHONIOENCODING", "utf-8")
+    # Windows hosted runner 默认 cp1252：检查/测试统一 UTF-8 模式
+    # （PYTHONIOENCODING 只管 stdio，PYTHONUTF8 覆盖 open() 默认编码）。
+    env.setdefault("PYTHONUTF8", "1")
     env["ASTROCS_CI_CHECK_ID"] = cid
     timed_out = False
     stdout_b, stderr_b = b"", b""

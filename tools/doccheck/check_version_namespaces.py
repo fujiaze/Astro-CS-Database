@@ -120,7 +120,11 @@ def exempt_line(line: str) -> bool:
 
 def scan_file(path: str, base_num: str, alpha_n: int, errors: list, warnings: list,
               log_ok: bool = False):
-    rel = os.path.relpath(path, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    try:
+        rel = os.path.relpath(path, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    except ValueError:
+        # Windows 跨盘符回退绝对路径
+        rel = str(path)
     # 归档不扫描: history 命名空间只进 archive/CHANGELOG
     if is_archived_path(rel):
         return

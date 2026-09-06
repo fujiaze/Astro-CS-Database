@@ -38,6 +38,9 @@ def scan():
                 for ln, line in enumerate(open(full, encoding="utf-8", errors="replace"), 1):
                     if "/tests/" in rel.replace("\\", "/"):
                         continue
+                    # 注释行不构成线程创建（executor.cpp:18 文档注释提及 std::thread 被误报）
+                    if line.lstrip().startswith("//") or line.lstrip().startswith("*"):
+                        continue
                     row_exempt = is_exempt or "watchdog" in line
                     for name, rx in PATTERNS.items():
                         if rx.search(line):
