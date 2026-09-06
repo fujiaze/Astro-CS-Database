@@ -1,4 +1,9 @@
 symbol,header,signature,export
+ACS_ERR_CANCELLED,include/astrocs/abi/status_codes.h,enum acs_status { ACS_ERR_CANCELLED = 6 },
+ACS_ERR_BUDGET,include/astrocs/abi/status_codes.h,enum acs_status { ACS_ERR_BUDGET = 8 },
+ACS_ERR_IO,include/astrocs/abi/status_codes.h,enum acs_status { ACS_ERR_IO = 4 },
+ACS_ERR_UNSUPPORTED,include/astrocs/abi/status_codes.h,enum acs_status { ACS_ERR_UNSUPPORTED = 5 },
+ACS_CPU_AVX2_REQUIRED_FEATURES,providers/cpu/avx2/include/astrocs/cpu/avx2_provider_v1.h,"#define ACS_CPU_AVX2_REQUIRED_FEATURES (ACS_CAP_FEAT_AVX | ACS_CAP_FEAT_AVX2 | ACS_CAP_FEAT_FMA)",
 aio_hcsd_read,lib/astro_image_io/include/aio_healpix_io.h,"AIO_EXPORT int aio_hcsd_read(const char* path, uint32_t* nside, int* nested, uint64_t* n_pix, uint64_t** ipix, float** pixel, char** meta_json);",
 aio_hcsd_read_leaf,lib/astro_image_io/include/aio_healpix_io.h,"AIO_EXPORT int aio_hcsd_read_leaf(const char* path, uint64_t leaf_ipix_at_nside64, uint64_t* n_pix, uint64_t** ipix, float** pixel);",
 aio_hcsd_write,lib/astro_image_io/include/aio_healpix_io.h,"AIO_EXPORT int aio_hcsd_write(const char* path, uint32_t nside, int nested, uint64_t n_pix, const uint64_t* ipix, const float* pixel, const char* meta_json);",
