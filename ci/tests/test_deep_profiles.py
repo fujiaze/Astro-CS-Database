@@ -145,7 +145,9 @@ class TestProfileSelection(unittest.TestCase):
     def plan(cls, profile: str) -> dict:
         proc = subprocess.run(
             [sys.executable, str(H.RUNNER), "--profile", profile, "--plan-only"],
-            cwd=str(REPO), capture_output=True, text=True, timeout=120)
+            cwd=str(REPO), capture_output=True, text=True,
+            encoding="utf-8", errors="replace",  # F-R2-06 接入侧：cp1252 不脆断
+            timeout=120)
         assert proc.returncode == 0, proc.stderr[-400:]
         return json.loads(proc.stdout)
 

@@ -9,7 +9,8 @@
 - stderr 输出结构化 JSON（``verdict=FAIL`` + 逐项失败清单，无 traceback）；
 - exit 2（受控失败）。
 
-``--json`` 在 stdout 输出完整报告（三态均可机读）。
+``--json`` 在 stdout 输出完整报告（三态均可机读）。stdout/stderr 强制
+UTF-8（V8-CI-010 F-R2-02：cp1252 控制台下中文 JSON 不再编码崩溃）。
 fatduck 节在本脚本不使用（V8-CI-008 域）：--platform 仅接受
 linux|windows。
 
@@ -302,7 +303,34 @@ def _structured_stderr(report: dict) -> str:
     }, ensure_ascii=False)
 
 
+def _force_utf8_stdio() -> None:
+    """V8-CI-010 F-R2-02：本脚本 stdout/stderr 强制 UTF-8 输出。
+
+    hosted windows 诊断步在 pwsh 子进程下默认 cp1252 控制台，--json 报告
+    与 stderr 的中文 repair 文案（ensure_ascii=False 的非 ASCII 字符）在
+    strict 编码下 UnicodeEncodeError → 整个 --json 输出丢失（hosted 实测
+    bootstrap_exit_code=1、report=null、stderr_fail_payload=null）。
+
+    实现约束（与"直接执行语义完全一致"）：仅原地改写既有 TextIOWrapper
+    的 encoding（reconfigure），绝不替换流对象——替换会丢掉与外部使用方
+    （argparse/stdlib 保存的引用）共享的缓冲绑定，造成输出乱序（--help
+    空行错位实测）。reconfigure 不可用（AttributeError，如流被替换为
+    无 reconfigure 的对象）时静默保留原流，不在探测流程内引入新失败面。
+    仅影响 bootstrap 自身输出流编码；探测子进程（probe_command_version，
+    capture_output bytes 侧）与诊断步采集逻辑不受影响。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:  # pragma: no cover - 防御分支
+            continue
+        try:
+            reconfigure(encoding="utf-8")
+        except (ValueError, OSError):
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _force_utf8_stdio()
     parser = argparse.ArgumentParser(
         prog="ci/bootstrap.py",
         description="V8-CI-007：hosted runner 工具链 bootstrap 门禁（逐项探测 policy 节）。")

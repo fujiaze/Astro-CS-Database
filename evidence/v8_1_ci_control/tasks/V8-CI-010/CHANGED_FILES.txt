@@ -33,3 +33,28 @@ evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/windows/system.txt
 #    （与 tasks/V8-CI-005 等既有证据目录口径一致），已用 glob 全量清点落盘。
 # 3) git status --porcelain 相对任务初始快照（89 行遗留变更）的唯一增量为
 #    ?? evidence/v8_1_ci_control/tasks/V8-CI-010/ ，零其他变更。
+
+## 轮 2 增量（观察轮 2 @ SHA 2508a37938b31cb9e00c3a16356cf929a7155ebc，2026-09-06）
+- HOSTED_RUN_REPORT.md 追加「观察轮 2」段（R5-R12：终态/bootstrap 实测/71+61 check 分布与根因/candidate NOT_PRODUCED/resource summary NOT_COLLECTED/F-R2-01..F-R2-10/验收/风险）
+- TASK_RESULT.json：+observation_round2 块；overall_verdict 更新为 RUNS_PARTIAL_PROGRESS_THEN_FAILURE_OBSERVED
+- logs/round2/（407 项，logs/** 不入 git status）：
+  - API trace：runs_api_trace_round2_initial.json、jobs_api_trace_34005360732/53.json、artifacts_api_trace_34005360753.json、candidate_artifact_query_34005360732.json
+  - job 全量日志：job_log_101411411452_linux.log、job_log_101411411185_windows.log（runner 自掩码 AUTHORIZATION basic *** 已 [REDACTED] 化）
+  - artifact 原始 zip + 解包：linux-ci-artifact-9980906245.zip、linux-artifact-2508a37938b3/（CI_RESULT/BOOTSTRAP_DIAG/71 checks/logs）、windows-ci-artifact-9980773767.zip、win-artifact-2508a37938b3/（CI_RESULT/BOOTSTRAP_DIAG/61 checks/logs）
+  - 本地对照：plan_linux-main_local_2508a379.json、plan_windows-main_local_2508a379.json（plan-only selected_count 71/61 一致性）
+  - poll_round2.sh.txt（轮询脚本留档）
+- git status 实际增量：仅 M TASK_RESULT.json（+ HOSTED_RUN_REPORT.md/CHANGED_FILES.txt 本轮更新，属 evidence 顶层 M）
+
+# 修复轮 3 增量（SA-CI-32，@ HEAD 2508a379，2026-09-06）
+- ci/resource_monitor.py：F-R2-01 最小修 —— main() runpy 前注入被包装脚本目录入 sys.path、finally 恢复（不改监控采集与输出 schema）
+- ci/bootstrap.py：F-R2-02 修复 —— _force_utf8_stdio()（main 入口对自身 stdout/stderr 原地 reconfigure UTF-8，不替换流对象）
+- ci/tests/_helpers.py：F-R2-06 接入侧 —— sh() 显式 encoding="utf-8", errors="replace"
+- ci/tests/test_deep_profiles.py：F-R2-06 接入侧 —— plan() subprocess 显式 UTF-8
+- ci/tests/test_workflow_lock.py：F-R2-06 接入侧 —— run_script() 显式 UTF-8
+- ci/tests/test_fatduck_workflow.py：F-R2-06 接入侧 —— bash 子进程显式 UTF-8
+- ci/tests/test_windows_ci.py：F-R2-06 接入侧 —— runner 集成 subprocess 显式 UTF-8 + 假工具 stub 按 os.name 写 .exe
+- ci/tests/test_resource_monitor_shim.py：新增（F-R2-01 回归 7 项：path0/argv0 等价、同目录导入、sys.path 无残留、退出码透传等）
+- ci/tests/test_bootstrap_utf8.py：新增（F-R2-02 回归 4 项：cp1252 子进程双流、in-process reconfigure、无 reconfigure 防御面）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/HOSTED_RUN_REPORT.md：+修复轮 3 段（R13-R19）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/TASK_RESULT.json：findings_round2[].resolution_round3 + repair_round3 块
+- logs/repair_round3.log（logs/** 不入 git status）：复现-修复-复验三段 + 验收逐条

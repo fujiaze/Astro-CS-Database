@@ -64,7 +64,8 @@ def run_script(script: Path, *args: str, timeout: float = 120):
     """带 timeout 跑仓库内脚本（纪律：外部命令全部 timeout）。"""
     return subprocess.run(
         [sys.executable, str(script), *args], cwd=str(_REPO),
-        capture_output=True, text=True, timeout=timeout)
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        timeout=timeout)  # F-R2-06 接入侧：显式 UTF-8 解码（cp1252 不脆断）
 
 
 def _sha256(data: bytes) -> str:

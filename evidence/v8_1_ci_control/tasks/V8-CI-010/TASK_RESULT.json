@@ -6,7 +6,7 @@
   "observed_head_sha": "25259880615bcde34c4a6dc9377d072528fc7fba",
   "remote_main_sha": "25259880615bcde34c4a6dc9377d072528fc7fba",
   "observed_utc": "2026-09-06T00:11:45Z 起跑 / 本报告 2026-09-06T01:35Z 前完成核验",
-  "overall_verdict": "RUNS_FAILURE_OBSERVED",
+  "overall_verdict": "RUNS_PARTIAL_PROGRESS_THEN_FAILURE_OBSERVED",
   "summary": "修复提交 25259880 的两个 hosted run 已 completed 但 conclusion=failure。此前 gitlink checkout fatal 已修复（两平台 Checkout exact SHA 均 success）；新失败点为 Bootstrap locked toolchain：policy 锁定 cmake>=3.31.12 而 ubuntu-24.04/windows-2022 hosted 镜像（20260830/20260831 批次）实测均为 cmake 3.31.6，且 ubuntu-24.04 镜像无 clang-19。检查执行/打包/上传/artifact 全部未发生。",
   "runs": [
     {
@@ -26,14 +26,49 @@
       "runner_image_provisioner": "20260828.587",
       "runner_app_version": "2.337.0",
       "steps": [
-        {"no": 1, "name": "Set up job", "conclusion": "success"},
-        {"no": 2, "name": "Checkout exact SHA", "conclusion": "success", "note": "V8-CI-010 修复目标验证点：gitlink 移除后 checkout 成功"},
-        {"no": 3, "name": "Bootstrap locked toolchain", "conclusion": "failure", "exit_code": 2},
-        {"no": 4, "name": "Select profile", "conclusion": "skipped"},
-        {"no": 5, "name": "Run registered checks", "conclusion": "skipped"},
-        {"no": 6, "name": "Upload small evidence", "conclusion": "failure", "note": "if-no-files-found: error；bootstrap 失败致 artifacts/ci-public/ 不存在"},
-        {"no": 12, "name": "Post Checkout exact SHA", "conclusion": "success"},
-        {"no": 13, "name": "Complete job", "conclusion": "success"}
+        {
+          "no": 1,
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "no": 2,
+          "name": "Checkout exact SHA",
+          "conclusion": "success",
+          "note": "V8-CI-010 修复目标验证点：gitlink 移除后 checkout 成功"
+        },
+        {
+          "no": 3,
+          "name": "Bootstrap locked toolchain",
+          "conclusion": "failure",
+          "exit_code": 2
+        },
+        {
+          "no": 4,
+          "name": "Select profile",
+          "conclusion": "skipped"
+        },
+        {
+          "no": 5,
+          "name": "Run registered checks",
+          "conclusion": "skipped"
+        },
+        {
+          "no": 6,
+          "name": "Upload small evidence",
+          "conclusion": "failure",
+          "note": "if-no-files-found: error；bootstrap 失败致 artifacts/ci-public/ 不存在"
+        },
+        {
+          "no": 12,
+          "name": "Post Checkout exact SHA",
+          "conclusion": "success"
+        },
+        {
+          "no": 13,
+          "name": "Complete job",
+          "conclusion": "success"
+        }
       ],
       "artifacts": "无（upload 失败）"
     },
@@ -54,45 +89,172 @@
       "runner_image_provisioner": "20260828.587",
       "runner_app_version": "2.337.0",
       "steps": [
-        {"no": 1, "name": "Set up job", "conclusion": "success"},
-        {"no": 2, "name": "Checkout exact SHA", "conclusion": "success", "note": "gitlink 移除后 Windows checkout 亦成功"},
-        {"no": 3, "name": "Bootstrap locked toolchain", "conclusion": "failure", "exit_code": 1},
-        {"no": 4, "name": "Run MSVC tests and package candidate", "conclusion": "skipped"},
-        {"no": 5, "name": "Validate candidate", "conclusion": "skipped"},
-        {"no": 6, "name": "Upload candidate", "conclusion": "skipped"},
-        {"no": 7, "name": "Upload public CI evidence", "conclusion": "failure", "note": "artifacts/ci-public/ 不存在"},
-        {"no": 14, "name": "Post Checkout exact SHA", "conclusion": "success"},
-        {"no": 15, "name": "Complete job", "conclusion": "success"}
+        {
+          "no": 1,
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "no": 2,
+          "name": "Checkout exact SHA",
+          "conclusion": "success",
+          "note": "gitlink 移除后 Windows checkout 亦成功"
+        },
+        {
+          "no": 3,
+          "name": "Bootstrap locked toolchain",
+          "conclusion": "failure",
+          "exit_code": 1
+        },
+        {
+          "no": 4,
+          "name": "Run MSVC tests and package candidate",
+          "conclusion": "skipped"
+        },
+        {
+          "no": 5,
+          "name": "Validate candidate",
+          "conclusion": "skipped"
+        },
+        {
+          "no": 6,
+          "name": "Upload candidate",
+          "conclusion": "skipped"
+        },
+        {
+          "no": 7,
+          "name": "Upload public CI evidence",
+          "conclusion": "failure",
+          "note": "artifacts/ci-public/ 不存在"
+        },
+        {
+          "no": 14,
+          "name": "Post Checkout exact SHA",
+          "conclusion": "success"
+        },
+        {
+          "no": 15,
+          "name": "Complete job",
+          "conclusion": "success"
+        }
       ],
       "artifacts": "API total_count=0（含精确名 astrocs-windows-candidate-25259880… 过滤查询亦 0，见 logs/candidate_artifact_query.json）"
     }
   ],
   "bootstrap_observations": {
     "linux_run_34000648632": {
-      "stderr_structured_json": {"verdict": "FAIL", "platform": "linux", "failed_tools": [
-        {"tool": "clang-19", "required": "clang-19", "observed": {"present": false, "version_line": null}},
-        {"tool": "cmake", "required": ">=3.31.12", "observed": {"present": true, "version_line": "cmake version 3.31.6"}}
-      ]},
+      "stderr_structured_json": {
+        "verdict": "FAIL",
+        "platform": "linux",
+        "failed_tools": [
+          {
+            "tool": "clang-19",
+            "required": "clang-19",
+            "observed": {
+              "present": false,
+              "version_line": null
+            }
+          },
+          {
+            "tool": "cmake",
+            "required": ">=3.31.12",
+            "observed": {
+              "present": true,
+              "version_line": "cmake version 3.31.6"
+            }
+          }
+        ]
+      },
       "tool_table": [
-        {"tool": "runner", "required": "ubuntu-24.04", "observed": "ImageOS=ubuntu24（探测通过）", "ok": true},
-        {"tool": "architecture", "required": "x86_64", "observed": "x86_64", "ok": true},
-        {"tool": "gcc-14", "required": "gcc-14", "observed": "日志未逐项打印通过项；stderr 仅列 failed_tools，gcc-14 不在失败清单", "ok": true, "note": "推断通过（结构化输出只列失败项）"},
-        {"tool": "clang-19", "required": "clang-19", "observed": "present=false（不在 PATH）", "ok": false},
-        {"tool": "cmake", "required": ">=3.31.12", "observed": "cmake version 3.31.6", "ok": false},
-        {"tool": "Ninja", "required": "Ninja present", "observed": "不在失败清单", "ok": true, "note": "推断通过"}
+        {
+          "tool": "runner",
+          "required": "ubuntu-24.04",
+          "observed": "ImageOS=ubuntu24（探测通过）",
+          "ok": true
+        },
+        {
+          "tool": "architecture",
+          "required": "x86_64",
+          "observed": "x86_64",
+          "ok": true
+        },
+        {
+          "tool": "gcc-14",
+          "required": "gcc-14",
+          "observed": "日志未逐项打印通过项；stderr 仅列 failed_tools，gcc-14 不在失败清单",
+          "ok": true,
+          "note": "推断通过（结构化输出只列失败项）"
+        },
+        {
+          "tool": "clang-19",
+          "required": "clang-19",
+          "observed": "present=false（不在 PATH）",
+          "ok": false
+        },
+        {
+          "tool": "cmake",
+          "required": ">=3.31.12",
+          "observed": "cmake version 3.31.6",
+          "ok": false
+        },
+        {
+          "tool": "Ninja",
+          "required": "Ninja present",
+          "observed": "不在失败清单",
+          "ok": true,
+          "note": "推断通过"
+        }
       ],
       "log_source": "logs/run-34000648632/linux/3_Bootstrap locked toolchain.txt"
     },
     "windows_run_34000648616": {
-      "stderr_structured_json": {"verdict": "FAIL", "platform": "windows", "failed_tools": [
-        {"tool": "cmake", "required": ">=3.31.12", "observed": {"present": true, "version_line": "cmake version 3.31.6"}}
-      ]},
+      "stderr_structured_json": {
+        "verdict": "FAIL",
+        "platform": "windows",
+        "failed_tools": [
+          {
+            "tool": "cmake",
+            "required": ">=3.31.12",
+            "observed": {
+              "present": true,
+              "version_line": "cmake version 3.31.6"
+            }
+          }
+        ]
+      },
       "tool_table": [
-        {"tool": "runner", "required": "windows-2022", "observed": "ImageOS=win22（探测通过）", "ok": true},
-        {"tool": "architecture", "required": "AMD64", "observed": "AMD64", "ok": true},
-        {"tool": "visual_studio", "required": "VS 17.x", "observed": "不在失败清单", "ok": true, "note": "推断通过（vswhere 命中 VS 17）"},
-        {"tool": "platform_toolset", "required": "v143", "observed": "不在失败清单", "ok": true, "note": "推断通过"},
-        {"tool": "cmake", "required": ">=3.31.12", "observed": "cmake version 3.31.6", "ok": false}
+        {
+          "tool": "runner",
+          "required": "windows-2022",
+          "observed": "ImageOS=win22（探测通过）",
+          "ok": true
+        },
+        {
+          "tool": "architecture",
+          "required": "AMD64",
+          "observed": "AMD64",
+          "ok": true
+        },
+        {
+          "tool": "visual_studio",
+          "required": "VS 17.x",
+          "observed": "不在失败清单",
+          "ok": true,
+          "note": "推断通过（vswhere 命中 VS 17）"
+        },
+        {
+          "tool": "platform_toolset",
+          "required": "v143",
+          "observed": "不在失败清单",
+          "ok": true,
+          "note": "推断通过"
+        },
+        {
+          "tool": "cmake",
+          "required": ">=3.31.12",
+          "observed": "cmake version 3.31.6",
+          "ok": false
+        }
       ],
       "log_source": "logs/run-34000648616/windows/3_Bootstrap locked toolchain.txt"
     }
@@ -103,7 +265,10 @@
       "windows-main": 61,
       "registry_total": 80,
       "method": "本地只读 python3 ci/run.py --profile {linux-main,windows-main} --plan-only @ SHA 25259880",
-      "evidence": ["logs/plan_linux-main_local_25259880.json", "logs/plan_windows-main_local_25259880.json"],
+      "evidence": [
+        "logs/plan_linux-main_local_25259880.json",
+        "logs/plan_windows-main_local_25259880.json"
+      ],
       "matches_dispatch": true
     },
     "linux_hosted_actual": {
@@ -121,10 +286,22 @@
     "verdict": "NOT_EXECUTABLE",
     "reason": "Windows run 未产生 artifact astrocs-windows-candidate-<sha>（API total_count=0，精确名过滤亦 0），下载无对象；/tmp/dsh-candidate/ 为空",
     "items": [
-      {"item": "SHA256SUMS 与 zip 实体逐项相符", "result": "NOT_EXECUTABLE（无 artifact）"},
-      {"item": "validate_candidate.py <zip> --json verdict PASS", "result": "NOT_EXECUTABLE（无 zip 可喂）"},
-      {"item": "BUILD_PROVENANCE.json source_sha==25259880…", "result": "NOT_EXECUTABLE（无 artifact）"},
-      {"item": "zip 内无源码/测试数据/FITS 成员", "result": "NOT_EXECUTABLE（无 artifact）"}
+      {
+        "item": "SHA256SUMS 与 zip 实体逐项相符",
+        "result": "NOT_EXECUTABLE（无 artifact）"
+      },
+      {
+        "item": "validate_candidate.py <zip> --json verdict PASS",
+        "result": "NOT_EXECUTABLE（无 zip 可喂）"
+      },
+      {
+        "item": "BUILD_PROVENANCE.json source_sha==25259880…",
+        "result": "NOT_EXECUTABLE（无 artifact）"
+      },
+      {
+        "item": "zip 内无源码/测试数据/FITS 成员",
+        "result": "NOT_EXECUTABLE（无 artifact）"
+      }
     ],
     "evidence": "logs/candidate_artifact_query.json"
   },
@@ -177,19 +354,62 @@
     "verdict": "REPAIR_APPLIED_LOCAL_ACCEPTED",
     "summary": "按前台裁决执行 F1/F2/F3 修复：policy hosted cmake 3.31.12->3.31.6（最低要求语义）、secondary clang-19->clang-18，两 hosted 节加 observed_from 镜像批次记录；bootstrap cmake 下限改为 policy 驱动（_cmake_min_from，格式不兼容回退 fallback）、--json 透传 observed_from；两 workflow evidence 上传路径 artifacts/ci-public/（无生产者）-> artifacts/ci/（run.py 实际输出目录，契约 07），各加 if: failure() 的 Collect bootstrap diagnostics 步（重探 bootstrap 写 artifacts/ci/BOOTSTRAP_DIAG.json，保留 always() 上传语义，不掩盖主因）。禁改文件（ci/run.py、ci/checks.json、ci/actions.lock.json、fatduck.yml、schema）零 diff，未做任何 git 写操作。",
     "changed_files": [
-      {"path": "ci/toolchain.policy.json", "delta": "+19/-6", "note": "linux_hosted.cmake 3.31.6、secondary_compiler clang-18、observed_from(20260831.293.1)；windows_hosted.cmake 3.31.6、observed_from(20260830.290.1)；schema_version=2 与 fatduck 节未动"},
-      {"path": "ci/bootstrap.py", "delta": "+28/-7", "note": "删除 _CMAKE_MIN 硬编码 -> _CMAKE_FALLBACK_MIN=(3,31,6) + _cmake_min_from(policy)；clang fallback clang-19->clang-18；build_report 透传 observed_from"},
-      {"path": ".github/workflows/ci-linux.yml", "delta": "+44/-1", "note": "Upload small evidence path -> artifacts/ci/；新增 Collect bootstrap diagnostics (if: failure(), bash heredoc)"},
-      {"path": ".github/workflows/ci-windows.yml", "delta": "+44/-1", "note": "Upload public CI evidence path -> artifacts/ci/；新增 Collect bootstrap diagnostics (if: failure(), pwsh heredoc)"},
-      {"path": "ci/tests/test_workflow_lock.py", "delta": "+56/-7", "note": "clang mock 19.1.0->18.1.3；新增 test_evidence_upload_path_matches_run_output_dir、test_collect_bootstrap_diagnostics_step_on_failure、test_report_carries_observed_from_and_policy_driven_versions、test_cmake_min_from_policy_and_fallback"}
+      {
+        "path": "ci/toolchain.policy.json",
+        "delta": "+19/-6",
+        "note": "linux_hosted.cmake 3.31.6、secondary_compiler clang-18、observed_from(20260831.293.1)；windows_hosted.cmake 3.31.6、observed_from(20260830.290.1)；schema_version=2 与 fatduck 节未动"
+      },
+      {
+        "path": "ci/bootstrap.py",
+        "delta": "+28/-7",
+        "note": "删除 _CMAKE_MIN 硬编码 -> _CMAKE_FALLBACK_MIN=(3,31,6) + _cmake_min_from(policy)；clang fallback clang-19->clang-18；build_report 透传 observed_from"
+      },
+      {
+        "path": ".github/workflows/ci-linux.yml",
+        "delta": "+44/-1",
+        "note": "Upload small evidence path -> artifacts/ci/；新增 Collect bootstrap diagnostics (if: failure(), bash heredoc)"
+      },
+      {
+        "path": ".github/workflows/ci-windows.yml",
+        "delta": "+44/-1",
+        "note": "Upload public CI evidence path -> artifacts/ci/；新增 Collect bootstrap diagnostics (if: failure(), pwsh heredoc)"
+      },
+      {
+        "path": "ci/tests/test_workflow_lock.py",
+        "delta": "+56/-7",
+        "note": "clang mock 19.1.0->18.1.3；新增 test_evidence_upload_path_matches_run_output_dir、test_collect_bootstrap_diagnostics_step_on_failure、test_report_carries_observed_from_and_policy_driven_versions、test_cmake_min_from_policy_and_fallback"
+      }
     ],
     "acceptance_round2": {
-      "validate_registry_strict": {"exit_code": 0, "note": "80 checks, error_count=0, PASS"},
-      "verify_actions_lock_online": {"exit_code": 0, "note": "PASS (4 entries)，uses SHA 未动"},
-      "unittest_ci_tests": {"exit_code": 0, "summary": "Ran 220 tests in 25.215s — OK（基线 216 + 新增 4，零失败）"},
-      "bootstrap_local_linux_json": {"exit_code": 2, "note": "本机 exit 2 属预期（非 hosted、缺 gcc-14）；JSON cmake required=\">=3.31.6\"、clang-18、observed_from.image_batch=20260831.293.1（logs/repair_round2_bootstrap_local.json）"},
-      "plan_only_counts": {"fast": 57, "linux-main": 71, "linux-deep": 7, "windows-main": 61},
-      "forbidden_files_untouched": {"ci/run.py": 0, "ci/checks.json": 0, "ci/actions.lock.json": 0, ".github/workflows/fatduck.yml": 0, "unit": "diff 行数相对 HEAD"},
+      "validate_registry_strict": {
+        "exit_code": 0,
+        "note": "80 checks, error_count=0, PASS"
+      },
+      "verify_actions_lock_online": {
+        "exit_code": 0,
+        "note": "PASS (4 entries)，uses SHA 未动"
+      },
+      "unittest_ci_tests": {
+        "exit_code": 0,
+        "summary": "Ran 220 tests in 25.215s — OK（基线 216 + 新增 4，零失败）"
+      },
+      "bootstrap_local_linux_json": {
+        "exit_code": 2,
+        "note": "本机 exit 2 属预期（非 hosted、缺 gcc-14）；JSON cmake required=\">=3.31.6\"、clang-18、observed_from.image_batch=20260831.293.1（logs/repair_round2_bootstrap_local.json）"
+      },
+      "plan_only_counts": {
+        "fast": 57,
+        "linux-main": 71,
+        "linux-deep": 7,
+        "windows-main": 61
+      },
+      "forbidden_files_untouched": {
+        "ci/run.py": 0,
+        "ci/checks.json": 0,
+        "ci/actions.lock.json": 0,
+        ".github/workflows/fatduck.yml": 0,
+        "unit": "diff 行数相对 HEAD"
+      },
       "log": "logs/repair_round2.log"
     },
     "hosted_rerun_expectation": {
@@ -198,8 +418,14 @@
     }
   },
   "acceptance": {
-    "verify_actions_lock_offline": {"exit_code": 0, "output": "verify_actions_lock: PASS (offline, 4 entries)"},
-    "unittest_ci_tests": {"exit_code": 0, "summary": "Ran 216 tests in 24.773s — OK"},
+    "verify_actions_lock_offline": {
+      "exit_code": 0,
+      "output": "verify_actions_lock: PASS (offline, 4 entries)"
+    },
+    "unittest_ci_tests": {
+      "exit_code": 0,
+      "summary": "Ran 216 tests in 24.773s — OK"
+    },
     "git_status_delta": "仅新增 evidence/v8_1_ci_control/tasks/V8-CI-010/**（对照初始快照 89 行遗留状态零额外变更；初始快照见本文件 git_status_baseline_note）",
     "git_status_baseline_note": "任务开始时工作区已有 89 行未提交变更（其他任务遗留，未跟踪 zip/artifacts 等），本任务未触碰"
   },
@@ -210,9 +436,458 @@
     "api_timeout": "所有 curl --max-time 15"
   },
   "polling_log": [
-    {"utc": "2026-09-06T01:29Z", "result": "两 run 均 completed/failure（首查即终态，未再进入 60-90s 轮询循环）"},
-    {"utc": "2026-09-06T01:31Z", "result": "jobs API 复核 steps 终态"},
-    {"utc": "2026-09-06T01:33Z", "result": "logs zip 下载解压、artifacts API 复核"},
-    {"utc": "2026-09-06T01:35Z", "result": "candidate 精确名过滤查询 total_count=0，证据落盘"}
-  ]
+    {
+      "utc": "2026-09-06T01:29Z",
+      "result": "两 run 均 completed/failure（首查即终态，未再进入 60-90s 轮询循环）"
+    },
+    {
+      "utc": "2026-09-06T01:31Z",
+      "result": "jobs API 复核 steps 终态"
+    },
+    {
+      "utc": "2026-09-06T01:33Z",
+      "result": "logs zip 下载解压、artifacts API 复核"
+    },
+    {
+      "utc": "2026-09-06T01:35Z",
+      "result": "candidate 精确名过滤查询 total_count=0，证据落盘"
+    }
+  ],
+  "observation_round2": {
+    "round": "observation-round2",
+    "owner": "SA-CI-32",
+    "mode": "read",
+    "observed_head_sha": "2508a37938b31cb9e00c3a16356cf929a7155ebc",
+    "remote_main_sha": "2508a37938b31cb9e00c3a16356cf929a7155ebc（push 修复轮 2 触发）",
+    "executed_utc": "2026-09-06T01:57Z 启动轮询 / 02:13Z 两 run completed / 报告落盘 2026-09-06",
+    "runs": {
+      "linux": {
+        "run_id": 34005360753,
+        "workflow": ".github/workflows/ci-linux.yml",
+        "event": "push",
+        "head_branch": "main",
+        "head_sha": "2508a37938b31cb9e00c3a16356cf929a7155ebc",
+        "status": "completed",
+        "conclusion": "failure",
+        "run_started_at": "2026-09-06T02:00:47Z",
+        "job_completed_at": "2026-09-06T02:13:08Z",
+        "duration": "≈12m21s（job 02:00:50→02:13:08）",
+        "runner": "GitHub Actions 1000000558",
+        "image": "ubuntu-24.04（runner 镜像 20260831.293.1，Hosted Compute Agent 20260828.587）",
+        "steps": {
+          "checkout_exact_sha": "success",
+          "bootstrap_locked_toolchain": "success — bootstrap: PASS (6 items, platform=linux)",
+          "select_profile": "success（linux-main）",
+          "run_registered_checks": "failure — verdict=FAIL total=71 pass=47 fail=23 known_fail=0 skipped_waivable=1",
+          "collect_bootstrap_diagnostics": "success — bootstrap_exit_code=0，report 含全量 6 项工具链实测",
+          "upload_small_evidence": "success — artifact linux-ci-2508a37938b31cb9e00c3a16356cf929a7155ebc（id 9980906245，188056 bytes，213 members）"
+        },
+        "ci_result": "artifacts/ci/2508a37938b3/20260906T020057Z-fba9f658/CI_RESULT.json"
+      },
+      "windows": {
+        "run_id": 34005360732,
+        "workflow": ".github/workflows/ci-windows.yml",
+        "event": "push",
+        "head_branch": "main",
+        "head_sha": "2508a37938b31cb9e00c3a16356cf929a7155ebc",
+        "status": "completed",
+        "conclusion": "failure",
+        "run_started_at": "2026-09-06T02:00:47Z",
+        "job_completed_at": "2026-09-06T02:02:56Z",
+        "duration": "≈2m07s（job 02:00:49→02:02:56）",
+        "runner": "GitHub Actions 1000000552",
+        "image": "windows-2022（20260830.290.1）",
+        "steps": {
+          "checkout_exact_sha": "success",
+          "bootstrap_locked_toolchain": "success — bootstrap: PASS (5 items, platform=windows)",
+          "run_msvc_tests_and_package_candidate": "failure — verdict=FAIL total=61 pass=32 fail=28 known_fail=0 skipped_waivable=1",
+          "validate_candidate": "skipped（上游 run 步失败，非 always()）",
+          "upload_candidate": "skipped",
+          "collect_bootstrap_diagnostics": "success（步骤本身）但 bootstrap_exit_code=1、report=null、stderr_fail_payload=null — pwsh 子进程下 bootstrap --json 输出编码崩溃（F-R2-02 复现证实）",
+          "upload_public_ci_evidence": "success — artifact windows-ci-2508a37938b31cb9e00c3a16356cf929a7155ebc（id 9980773767，149036 bytes，183 members，含 CI_RESULT.json + BOOTSTRAP_DIAG.json + 61×checks/*.json + logs）"
+        },
+        "ci_result": "artifacts/ci/2508a37938b3/20260906T020112Z-feba407a/CI_RESULT.json"
+      }
+    },
+    "bootstrap_toolchain_observed": {
+      "linux": {
+        "runner": "ubuntu-24.04 / ImageOS=ubuntu24 OK",
+        "architecture": "x86_64 OK",
+        "gcc-14": "14.2.0（Ubuntu 14.2.0-4ubuntu2~24.04.1）",
+        "clang-18": "18.1.3（Ubuntu clang version 18.1.3 (1ubuntu1)）— F2 修复验证点，实测在 PATH",
+        "cmake": "3.31.6（required >=3.31.6 policy 驱动）— F1 修复验证点",
+        "Ninja": "1.13.2",
+        "source": "linux artifact BOOTSTRAP_DIAG.json report.items（6/6 ok）"
+      },
+      "windows": {
+        "runner": "windows-2022 / ImageOS=win22 OK",
+        "architecture": "AMD64 OK",
+        "vs_v143": "bootstrap PASS 推断 VS 17.x/v143 就绪；逐项版本实测不可得（诊断步 report=null，见 F-R2-02）",
+        "cmake": "bootstrap PASS 推断 ≥3.31.6；具体版本不可得（同上）"
+      }
+    },
+    "check_distribution": {
+      "linux_main": {
+        "total": 71,
+        "pass": 47,
+        "fail": 21,
+        "timeout": 2,
+        "skipped_waivable": 1,
+        "detail_note": "summary.fail=23 = FAIL 21 + TIMEOUT 2（UT-BACKEND、UT-CLI 超 300s 被 run.py 终止）",
+        "fail_ids": [
+          "AGENTS-GOV",
+          "CLI-COMMAND-LAYER",
+          "CLI-RUN-PRESET",
+          "CON-DOC-SYMBOLS",
+          "CON-FULL-INTEGRATION",
+          "DOC-INDEX",
+          "DOC-L0",
+          "ENG-CONSTRAINTS",
+          "NO-SERIAL-HEAVY",
+          "P3-STATUS",
+          "RECONCILE-STATE(waivable)",
+          "SERIAL-HARDCODE",
+          "TASK-RESULT-SCHEMA",
+          "THREAD-BUDGET",
+          "UT-API",
+          "UT-ARCH",
+          "UT-CPU-AVX512",
+          "UT-IO",
+          "UT-QUALITY",
+          "UT-VERSION",
+          "WORKSPACE-ADOPTION(waivable)"
+        ],
+        "timeout_ids": [
+          "UT-BACKEND",
+          "UT-CLI"
+        ],
+        "skipped_ids": {
+          "BUILD-GCC-RELEASE": "prerequisite 未满足（waivable）：run/ci/build-gcc-release 前置产物不存在"
+        },
+        "deep_note": "DEEP-* 7 项不在 linux-main profile（plan-only 复算 71 项中无 DEEP id，DEEP-* 属 linux-deep profile，hosted workflow 未运行该 profile）"
+      },
+      "windows_main": {
+        "total": 61,
+        "pass": 32,
+        "fail": 28,
+        "skipped_waivable": 1,
+        "fail_ids": [
+          "AGENTS-GOV",
+          "CLI-COMMAND-LAYER",
+          "CLI-RUN-PRESET",
+          "CON-DOC-SYMBOLS",
+          "CON-FULL-INTEGRATION",
+          "CONTRACT-GRAPH",
+          "DOC-INDEX",
+          "DOC-L0",
+          "ENG-CONSTRAINTS",
+          "NO-SERIAL-HEAVY",
+          "P3-STATUS",
+          "RECONCILE-STATE(waivable)",
+          "SERIAL-HARDCODE",
+          "TASK-RESULT-SCHEMA",
+          "THREAD-BUDGET",
+          "UT-CONTRACTS",
+          "UT-GLOSSARY",
+          "UT-MONITORING",
+          "UT-PIPELINE",
+          "UT-RUNTIME",
+          "UT-SCIENCELINT",
+          "UT-TRACEABILITY",
+          "UT-VERSION",
+          "VERSION-NAMESPACES",
+          "WARNING-SUPPRESSION",
+          "WIN-BUILD-RELEASE",
+          "WIN-TEST-UNIT",
+          "WORKSPACE-ADOPTION(waivable)"
+        ],
+        "skipped_ids": {
+          "WIN-PACKAGE-CANDIDATE": "prerequisite 未满足（waivable）：依赖工具不在 PATH：dumpbin"
+        }
+      }
+    },
+    "failure_root_causes": {
+      "cross_platform_common_clean_checkout_failures": {
+        "ids": [
+          "AGENTS-GOV",
+          "CLI-COMMAND-LAYER",
+          "CLI-RUN-PRESET",
+          "DOC-L0",
+          "P3-STATUS",
+          "NO-SERIAL-HEAVY",
+          "SERIAL-HARDCODE",
+          "THREAD-BUDGET",
+          "RECONCILE-STATE(w)",
+          "WORKSPACE-ADOPTION(w)",
+          "CON-DOC-SYMBOLS",
+          "CON-FULL-INTEGRATION",
+          "DOC-INDEX",
+          "ENG-CONSTRAINTS",
+          "UT-VERSION",
+          "UT-ARCH",
+          "UT-QUALITY"
+        ],
+        "evidence": "控制节点本地 linux 同命令复跑同 verdict（TOOLS 脚本逐一对照，exit 1）——仓库治理/文档/源码状态类检查在干净 checkout 上本就 FAIL，非本轮 CI 引入",
+        "note": "与 2508a379 变更无关（该提交只动 ci/ 与 workflow）"
+      },
+      "workspace_only_files_dependency": {
+        "ids": [
+          "TASK-RESULT-SCHEMA",
+          "UT-API"
+        ],
+        "root_cause": "检查/测试引用未入库的工作区路径：工程控制/（顶层 0 项入 git）下 task_result.schema.json 与 工程控制/RELEASE_V5/.../04_CLI_COMMAND_AND_PROTOCOL_CONTRACT.md；hosted 干净 checkout 无该目录 → schema missing exit 2 / setUpClass FileNotFoundError",
+        "local_note": "控制节点有未入库副本故 TASK-RESULT-SCHEMA 本地为另一根因（bad status）"
+      },
+      "windows_specific": {
+        "CONTRACT-GRAPH": "hosted windows 无 PyYAML → CONTRACT_GRAPH_FAIL 需要 pyyaml（exit 2）；linux 镜像自带 → linux CONTRACT-GRAPH PASS，交叉证实",
+        "UT_x8_cp1252": "UT-CONTRACTS/GLOSSARY/MONITORING/PIPELINE/RUNTIME/SCIENCELINT/TRACEABILITY/UT-VERSION：cp1252 默认编码 UnicodeDecode/EncodeError（子进程未显式 encoding='utf-8'）+ Windows-hosted Python 在 C: 与 D: 跨盘 os.path.relpath ValueError + stderr=None 断言（TypeError）",
+        "VERSION-NAMESPACES": "C:/D: 跨盘 relpath ValueError（同族）",
+        "WARNING-SUPPRESSION": "windows-2022 镜像 WSL 空发行版提示（wslstore URL）被计入生产构建警告，非零警告 → FAIL"
+      },
+      "shim_import_chain_broken": {
+        "ids": [
+          "WIN-BUILD-RELEASE",
+          "WIN-TEST-UNIT"
+        ],
+        "root_cause": "ci/resource_monitor.py -- <cmd> 桥接链：python3 ci/resource_monitor.py 启动时 sys.path[0]=ci/；runpy.run_path(tools/monitoring/run_monitored.py) 执行环境内 repo root 与 tools/monitoring 均不可导入 → from tools.monitoring import resource_probe ImportError → fallback import resource_probe 亦 ModuleNotFoundError → exit 1",
+        "local_repro": "控制节点 linux 同命令复现同 traceback（exit 1）——跨平台 shim 缺陷，windows-main profile 首次实跑踩中",
+        "impact": "凡经 resource_monitor shim 包装的检查必败：WIN-BUILD-RELEASE/WIN-TEST-UNIT（windows-main）；BUILD-GCC-RELEASE（linux-main，本轮因前置产物缺失先 SKIP）；DEEP-*（linux-deep）若被运行同样踩中"
+      },
+      "linux_specific": {
+        "UT-IO": "hosted ubuntu-24.04 镜像 python3.12 无 numpy → 3 个 test 模块 ImportError（tests/io/test_fits_stream_contract 等 import numpy as np）",
+        "UT-CPU-AVX512": "providers/cpu/avx512/src/avx512_provider.cpp:92 std::memset 在 gcc-14 -mavx512* 下 always_inline target option mismatch → avx512 .so 编译失败（真实源码缺陷，跨编译器共性）",
+        "UT-BACKEND/UT-CLI": "TIMEOUT：登记 300s 不够（hosted runner 含 g++ 编译型用例真实执行；windows-main 无此两项）"
+      }
+    },
+    "resource_summary": {
+      "linux": "NOT_COLLECTED — linux-main 无 heavy/监控包装检查实跑（BUILD-GCC-RELEASE SKIP；DEEP-* 不在本 profile）；无 monitor JSON 产生",
+      "windows": "NOT_COLLECTED — WIN-* 3 项死于 shim 导入失败，未进入监控层",
+      "timeout_count": {
+        "linux": 2,
+        "windows": 0
+      },
+      "note": "峰值内存/CPU 利用率无从记录：监控包装器（run_monitored）在两平台均未成功进入执行阶段"
+    },
+    "candidate_deep_check": {
+      "artifact_query": "runs/34005360732/artifacts?name=astrocs-windows-candidate-2508a37938b31cb9e00c3a16356cf929a7155ebc → total_count=0（candidate_artifact_query_34005360732.json）",
+      "verdict": "NOT_PRODUCED",
+      "reason": "Run MSVC tests and package candidate verdict=FAIL → Validate candidate / Upload candidate skipped → run.py 从未执行 package 阶段；/tmp/dsh-candidate2/ 无下载对象",
+      "items": {
+        "SHA256SUMS 逐项相符": "NOT_EXECUTABLE（无 artifact）",
+        "validate_candidate.py --json PASS": "NOT_EXECUTABLE（无 artifact）",
+        "BUILD_PROVENANCE.source_sha==2508a379": "NOT_EXECUTABLE（无 artifact）",
+        "无源码/测试数据/FITS 成员": "NOT_EXECUTABLE（无 artifact）"
+      }
+    },
+    "findings_round2": [
+      {
+        "id": "F-R2-01",
+        "module": "ci/resource_monitor.py + tools/monitoring/run_monitored.py",
+        "severity": "blocker(监控链)",
+        "root_cause": "shim runpy 链 sys.path 断裂，双导入路径均失败",
+        "evidence": "hosted win logs WIN-BUILD-RELEASE/WIN-TEST-UNIT traceback + 本地 linux 复现",
+        "suggestion": "resource_monitor.main() 在 runpy 前 sys.path.insert(0, str(REPO))（或改 subprocess 调用 run_monitored.py）",
+        "resolution_round3": {
+          "status": "FIXED_round3",
+          "round": 3,
+          "fix": "ci/resource_monitor.py main() 在 runpy.run_path 前将被包装脚本目录(tools/monitoring)注入 sys.path[0]，finally 恢复；不污染调用方、不改监控采集与输出 schema",
+          "local_verify": "复现(ModuleNotFoundError: resource_probe, exit 1)→修复→复验(包装 bootstrap/driver/run_monitored 三链 exit 0，剔除空行后与直接执行逐行一致；sys.path 无残留)",
+          "tests": "ci/tests/test_resource_monitor_shim.py 7 项全绿",
+          "hosted_confirm_pending": [
+            "WIN-BUILD-RELEASE",
+            "WIN-TEST-UNIT",
+            "BUILD-GCC-RELEASE",
+            "DEEP-*"
+          ]
+        }
+      },
+      {
+        "id": "F-R2-02",
+        "module": "ci/bootstrap.py --json 输出 + ci-windows.yml 诊断步",
+        "severity": "diagnostic-loss",
+        "root_cause": "pwsh 子进程默认 cp1252，bootstrap --json 非纯 ASCII（中文 repair 文案）stdout 编码崩溃 exit 1 → report/stderr_fail_payload 双 null",
+        "evidence": "本地 PYTHONIOENCODING=cp1252 复现 exit=1 stdout=0B + UnicodeEncodeError；hosted BOOTSTRAP_DIAG.json 同值",
+        "suggestion": "bootstrap --json 路径 sys.stdout.reconfigure(encoding='utf-8')（或 ensure_ascii=True）；诊断步 subprocess env 注入 PYTHONIOENCODING=utf-8",
+        "resolution_round3": {
+          "status": "FIXED_round3",
+          "round": 3,
+          "fix": "ci/bootstrap.py 新增 _force_utf8_stdio()（main 入口）：自身 stdout/stderr 原地 reconfigure(encoding='utf-8')，不替换流对象；探测子进程与诊断步不受影响",
+          "local_verify": "复现(PYTHONIOENCODING=cp1252 --json: exit=1/stdout=0B/UnicodeEncodeError)→修复→复验(exit=2 受控失败、stdout 2056B 完整 JSON、stderr FAIL payload 中文保真、UnicodeEncodeError=0)",
+          "tests": "ci/tests/test_bootstrap_utf8.py 4 项全绿（含 in-process cp1252 流替换面）",
+          "hosted_confirm_pending": [
+            "windows 诊断步 Collect bootstrap diagnostics（report/stderr_fail_payload 预期不再双 null）"
+          ]
+        }
+      },
+      {
+        "id": "F-R2-03",
+        "module": "ci-windows.yml（依赖声明）",
+        "severity": "major",
+        "root_cause": "hosted windows 镜像无 PyYAML，CONTRACT-GRAPH 硬依赖 → exit 2",
+        "evidence": "win logs/CONTRACT-GRAPH.log + linux 同项 PASS 交叉证实",
+        "suggestion": "ci-windows.yml bootstrap 后加 pip install pyyaml（或 policy 将 PyYAML 声明为 windows 依赖）",
+        "resolution_round3": {
+          "status": "NOT_FIXED_round3",
+          "round": 3,
+          "ownership_registered": "镜像缺口（windows hosted 无 PyYAML）→ workflow 安装步候选（登记不做，安装步属 workflow 变更域）"
+        }
+      },
+      {
+        "id": "F-R2-04",
+        "module": "ci-linux.yml（依赖声明）",
+        "severity": "major",
+        "root_cause": "hosted ubuntu-24.04 python3.12 无 numpy，UT-IO 3 模块 ImportError",
+        "evidence": "linux logs/UT-IO.log ImportError: numpy",
+        "suggestion": "ci-linux.yml 安装 numpy（requirements 固化）",
+        "resolution_round3": {
+          "status": "NOT_FIXED_round3",
+          "round": 3,
+          "ownership_registered": "镜像缺口（ubuntu-24.04 python3.12 无 numpy）→ workflow 安装步候选（登记不做）"
+        }
+      },
+      {
+        "id": "F-R2-05",
+        "module": "windows-main profile / checks.json",
+        "severity": "major(candidate 管线)",
+        "root_cause": "dumpbin 不在 hosted PATH → WIN-PACKAGE-CANDIDATE prerequisite SKIPPED(waivable) → candidate 管线断",
+        "evidence": "win CI_RESULT skipped reason",
+        "suggestion": "package 前经 VsDevCmd/vswhere 注入 dumpbin PATH，或前置步显式定位 VS 工具链",
+        "resolution_round3": {
+          "status": "NOT_FIXED_round3",
+          "round": 3,
+          "ownership_registered": "dumpbin 不在 hosted PATH → WIN-PACKAGE-CANDIDATE 检查前提（V8-CI-006 域已 waivable，不属监控/接入域）"
+        }
+      },
+      {
+        "id": "F-R2-06",
+        "module": "tests/*（windows 兼容）",
+        "severity": "major",
+        "root_cause": "subprocess text=True 未显式 encoding（cp1252 崩）、C:/D: 跨盘 os.path.relpath、r.stderr None 断言",
+        "evidence": "8 项 UT + VERSION-NAMESPACES 日志",
+        "suggestion": "统一 encoding='utf-8', errors='replace'；临时产物与仓库同盘（TEMP 重定向 D:\\a\\_temp）或 relpath 前 os.path.commonpath 保护",
+        "resolution_round3": {
+          "status": "FIXED_CI-SIDE_round3",
+          "round": 3,
+          "fix": "ci/tests 接入侧 6 处：_helpers.sh/test_deep_profiles.plan/test_workflow_lock.run_script/test_fatduck bash/test_windows_ci runner 集成显式 encoding='utf-8',errors='replace'；test_windows_ci 假工具 stub 按 os.name 写 .exe（which+PATHEXT）；跨盘 relpath 经复核 ci/tests 无 os.path.relpath 用法（Path.relative_to 同根安全）",
+          "not_touched": "tests/* 业务侧 UT windows 适配不在本轮范围；被测业务代码零改动"
+        }
+      },
+      {
+        "id": "F-R2-07",
+        "module": "tools/check_warning_suppression.py",
+        "severity": "minor",
+        "root_cause": "windows 镜像 WSL 空发行版提示被计入生产构建警告",
+        "evidence": "win logs/WARNING-SUPPRESSION.log",
+        "suggestion": "过滤 WSL/系统噪音行，或生产构建输出与镜像噪音分类",
+        "resolution_round3": {
+          "status": "NOT_FIXED_round3",
+          "round": 3,
+          "ownership_registered": "未列入本轮前台裁决范围，维持轮 2 建议（check_warning_suppression WSL 噪音过滤）"
+        }
+      },
+      {
+        "id": "F-R2-08",
+        "module": "providers/cpu/avx512/src/avx512_provider.cpp",
+        "severity": "major(build)",
+        "root_cause": "gcc-14 -mavx512* 下 std::memset always_inline target option mismatch，avx512 .so 编译失败",
+        "evidence": "linux logs/UT-CPU-AVX512.log（avx512_provider.cpp:92）",
+        "suggestion": "改 __builtin_memset / 局部 optimize pragma / 编译标志复核（属源码修复，归后续任务）",
+        "resolution_round3": {
+          "status": "NOT_FIXED_round3",
+          "round": 3,
+          "ownership_registered": "avx512 std::memset target option mismatch → G-FIX 波任务链"
+        }
+      },
+      {
+        "id": "F-R2-09",
+        "module": "repo 内容（非 CI 代码）",
+        "severity": "major(基线状态)",
+        "root_cause": "约 20 项治理/文档/源码状态类检查在干净 checkout 上本就 FAIL（AGENTS-GOV 10 缺失、DOC-L0 5 文档缺失、SERIAL-HARDCODE 5+、CLI 层缺失、P3 注册缺失等）+ 检查依赖未入库的 工程控制/ 文件",
+        "evidence": "本地同命令对照 exit 1；git ls-tree 2508a379 工程控制=0",
+        "suggestion": "归控制包侧决策：known_failures baseline（enabled=false 现状）或分任务修复；检查引用路径必须入库",
+        "resolution_round3": {
+          "status": "NOT_FIXED_round3",
+          "round": 3,
+          "ownership_registered": "基线态失败（治理/文档/源码状态类 ~20 项）→ G-FIX 波任务链"
+        }
+      },
+      {
+        "id": "F-R2-10",
+        "module": "checks.json timeout 登记",
+        "severity": "minor",
+        "root_cause": "UT-BACKEND/UT-CLI 登记 300s 在 hosted 2 核 runner 不够（真实编译型用例执行）",
+        "evidence": "linux TIMEOUT×2；windows-main 无此两项无法对照",
+        "suggestion": "按 hosted 实测提高登记 timeout 或拆分编译型用例（走登记变更流程）",
+        "resolution_round3": {
+          "status": "NOT_FIXED_round3",
+          "round": 3,
+          "ownership_registered": "UT-BACKEND/UT-CLI timeout 300s hosted 不足 → G-FIX 波任务链（按 AGENTS 纪律走登记变更流程）"
+        }
+      }
+    ],
+    "verdict_comparison_vs_round1": {
+      "checkout": "两平台 success（轮 1 已验证，本轮保持）",
+      "bootstrap": "轮 1 双平台 failure（cmake 3.31.12 锁定 vs 3.31.6；clang-19 缺失）→ 轮 2 双平台 **PASS**：F1（cmake 下限 3.31.6 policy 驱动）与 F2（clang-18）修复均验证生效",
+      "checks_executed": "轮 1 0/71、0/61 → 轮 2 linux 71 实跑（47 PASS）、windows 61 实跑（32 PASS）——计数回归达成",
+      "artifact_pipeline": "轮 1 Upload failure（空跑）→ 轮 2 两平台 evidence artifact 各 1 个 success（F3+产物路径修复验证生效）",
+      "candidate": "两轮均 NOT_PRODUCED（轮 1 bootstrap 前置断；轮 2 package 检查 dumpbin prerequisite + 上游 UT 失败）"
+    },
+    "acceptance_round2": null,
+    "residual_risks": [
+      "镜像批次漂移：policy observed_from 记录的批次会随 GitHub 更新变化，minimum-floor 语义下风险可控但需复验",
+      "windows bootstrap 逐项版本无实测记录（诊断步 F-R2-02 修复后下一观察轮补全）",
+      "resource summary 数字仍缺：需 shim 修复 + heavy 检查真实执行后才有峰值内存/CPU 数据",
+      "known_failures baseline enabled=false 且 71/61 中 ~1/3 为基线态失败：candidate 管线在 UT 基线未收敛前无法端到端打通",
+      "UT-BACKEND/UT-CLI hosted 实跑性能未标定，timeout 调整需 benchmark 依据"
+    ]
+  },
+  "repair_round3": {
+    "round": 3,
+    "owner": "SA-CI-32",
+    "mode": "原地修复轮（无 git 写操作，本地验证）",
+    "executed_utc": "2026-09-06T03:05:00Z",
+    "base_head_sha": "2508a37938b31cb9e00c3a16356cf929a7155ebc",
+    "scope": [
+      "F-R2-01 FIXED",
+      "F-R2-02 FIXED",
+      "F-R2-06 接入侧 FIXED_CI-SIDE",
+      "F-R2-03/04/05/07/08/09/10 NOT_FIXED 归属登记"
+    ],
+    "changed_files": [
+      "ci/resource_monitor.py",
+      "ci/bootstrap.py",
+      "ci/tests/_helpers.py",
+      "ci/tests/test_deep_profiles.py",
+      "ci/tests/test_fatduck_workflow.py",
+      "ci/tests/test_windows_ci.py",
+      "ci/tests/test_workflow_lock.py",
+      "ci/tests/test_resource_monitor_shim.py (新增)",
+      "ci/tests/test_bootstrap_utf8.py (新增)",
+      "evidence/v8_1_ci_control/tasks/V8-CI-010/{HOSTED_RUN_REPORT.md,TASK_RESULT.json,CHANGED_FILES.txt}"
+    ],
+    "logs": "logs/repair_round3.log（复现-修复-复验三段 + 验收逐条；logs/** 不入 git status）",
+    "verdict": "LOCAL_ACCEPTANCE_ALL_GREEN",
+    "acceptance_round3": {
+      "validate_registry_strict": "exit 0 PASS (checks=80, error_count=0)",
+      "unittest_discover": "Ran 231 tests — OK（220 基线 + 11 新增）",
+      "shim_wrapped_bootstrap_help": "exit 0, wrapped_exit_code=0（包装链语义验证通过）",
+      "plan_only_windows_main": "selected_count=61 不变",
+      "bootstrap_cp1252_json": "stdout UTF-8 JSON 无 UnicodeEncodeError",
+      "git_diff_scope": "仅 resource_monitor.py/bootstrap.py/ci/tests 5 文件(+74/-9) + 2 新增测试 + 证据三件"
+    },
+    "hosted_rerun_expectation": {
+      "ci-windows.yml": [
+        "WIN-BUILD-RELEASE / WIN-TEST-UNIT：shim 修复后进入监控包装层，被包装脚本 import 失败消失；exit 由监控链透传（cmake/ctest 真实结果决定，不再必败）",
+        "Bootstrap diagnostics 诊断步：F-R2-02 修复后 BOOTSTRAP_DIAG.json 的 report/stderr_fail_payload 不再双 null，windows 工具链逐项版本可回填",
+        "CONTRACT-GRAPH：仍因镜像缺 PyYAML exit 2（F-R2-03 未修，登记中）",
+        "WIN-PACKAGE-CANDIDATE：仍因 dumpbin prerequisite SKIPPED(waivable)（F-R2-05 未修）",
+        "tests/* 业务侧 UT windows 失败维持（F-R2-06 业务侧不在本轮）"
+      ],
+      "ci-linux.yml": [
+        "BUILD-GCC-RELEASE / DEEP-*：潜在受 shim 缺陷影响项解除，monitor JSON 有望产出 resource summary 数字",
+        "UT-IO 仍因缺 numpy FAIL（F-R2-04 未修，登记中）；UT-BACKEND/UT-CLI timeout 维持（F-R2-10 未修）",
+        "基线态失败项维持（F-R2-09 未修）"
+      ]
+    }
+  }
 }
