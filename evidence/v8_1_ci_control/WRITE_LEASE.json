@@ -1,6 +1,6 @@
 {
-  "task_id": "V8-CI-010",
+  "task_id": "V8-CI-012",
   "owner": "SA-CI-32",
-  "base_sha": "db09fbc75b6abb25ad3061c325a76ef0ee729b08",
-  "acquired_utc": "2026-09-06T00:30:00Z"
+  "base_sha": "PENDING_CHORE_COMMIT",
+  "acquired_utc": "PENDING"
 }

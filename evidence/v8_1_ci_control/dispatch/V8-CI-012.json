@@ -1,0 +1,22 @@
+{
+  "task_id": "V8-CI-012",
+  "owner": "SA-CI-32",
+  "mode": "read",
+  "base_sha": "PENDING_CHORE_COMMIT",
+  "goal": "First hosted Linux deep CI baseline: dispatch linux-deep on same SHA as V8-CI-010 final observation round, freeze measured quality baselines, verify job duration under runner limit",
+  "spec_ref": "工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/CONTROL_TASK_LEDGER.csv#V8-CI-012",
+  "ledger_command": "python3 ci/verify_remote_run.py --sha HEAD --workflows linux-ci --profile linux-deep",
+  "allowed_paths": ["evidence/v8_1_ci_control/tasks/V8-CI-012/**"],
+  "prohibited": ["commit", "push", "branch", "worktree", "clone", "modify_control_package", "modify_TASK_STATE", "modify_WRITE_LEASE", "write_credentials_to_files_or_logs", "cancel_workflow_runs"],
+  "requirements": [
+    "观察 V8-CI-012 chore 推送触发的 linux push run 与手动 workflow_dispatch(inputs.profile=linux-deep) run, 记录两 run id 与 SHA",
+    "deep run 核验: select_profile 输出 profile=linux-deep; 实跑 check 数=7(linux-deep plan 基线); 逐项 verdict 落表(BUILD/clang、ASan+UBSan、TSan、coverage C++、coverage Python、complexity 等)",
+    "sanitizer/science 失败必须归属清楚并进修复队列(12_FAILURE_POLICY); coverage/complexity 仅冻结机器基线数值(不判成败)",
+    "resource summary: 逐检查峰值内存/CPU 利用率/超时计数; 记录最慢检查 id 与时长",
+    "确认单 job 时长 < GitHub runner 6h 限制(记 started_at/completed_at 差值)",
+    "CI_RESULT.json 与 SOURCE_MANIFEST.json 落 evidence; 验收命令 verify_remote_run.py 结果如实记录(失败也落档)"
+  ],
+  "acceptance_command": "python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+  "timeout_s": 21600,
+  "dispatched_utc": "PENDING"
+}
