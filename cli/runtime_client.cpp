@@ -9,6 +9,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
 #include <thread>
 
 namespace astrocs::cli {
@@ -214,7 +215,23 @@ const std::string& last_pipeline_ir_json() {
 }
 
 int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
-                 uint32_t budget, std::string* fail_reason) {
+                 uint32_t budget, std::string* fail_reason,
+                 std::atomic<bool>* cancel_ext) {
+  // MON-002 测试钩子(非用户接口): 假 workload(低 CPU 睡眠)供资源门禁 first-10s/
+  // RESOURCE(10) 端到端验证; 不设环境变量时零影响。循环响应信号与外部取消源,
+  // 保证 gate 快速失败后本钩子立即让路协作取消。
+  if (const char* sl = std::getenv("ASTROCS_TEST_PIPELINE_SLEEP_MS")) {
+    const long ms = std::strtol(sl, nullptr, 10);
+    if (ms > 0) {
+      const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
+      while (std::chrono::steady_clock::now() < deadline) {
+        if (astrocs::is_cancelled() ||
+            (cancel_ext && cancel_ext->load(std::memory_order_relaxed)))
+          break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+      }
+    }
+  }
   astrocs::core::Result<void> rt_ret;   // cancel 监视线程作用域外保存 run 结果
   ModuleRegistry reg;
   auto rr = register_cli_modules(reg);
@@ -244,9 +261,10 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
   // 此前 cancel_flag 无人消费 → 信号不达 runtime（真实缺陷，本修复闭合）。
   {
     std::atomic<bool> stop{false};
-    std::thread cancel_watch([rt = rt.value().get(), &stop]() {
+    std::thread cancel_watch([rt = rt.value().get(), &stop, cancel_ext]() {
       while (!stop.load(std::memory_order_acquire)) {
-        if (astrocs::is_cancelled()) {
+        if (astrocs::is_cancelled() ||
+            (cancel_ext && cancel_ext->load(std::memory_order_relaxed))) {
           rt->cancel();
           return;
         }
