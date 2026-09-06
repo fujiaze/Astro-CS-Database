@@ -19,6 +19,7 @@
 #if defined(_WIN32)
 #include <windows.h>
 #include <psapi.h>
+#include <tlhelp32.h>
 // WIN-001: windows.h 噪音宏 (ERROR/OPTIONAL/REQUIRED/interface/NEAR/FAR/small/DELETE/YIELD/
 // TRUE/FALSE 等) 会污染其后 include 的 AstroCS 头 (enum 值/标识符, C2143/C2065 级联)。
 // windows.h 内宏用途已展开完毕; undef 恢复干净命名空间 (monitor.h 是主 CLI 链唯一
@@ -90,8 +91,9 @@ struct ProcSample {
 inline bool read_proc_self(ProcSample& s) {
 #if defined(_WIN32)
     // MON-004 (WIN hosted): /proc 不存在, 用 Win32 进程/系统采样补齐指标。
-    // 语义映射: rss=WorkingSetSize, vms=PagefileUsage, threads=ThreadCount,
-    // page_faults=PageFaultCount, read/write bytes=IO_COUNTERS 传输字节,
+    // 语义映射: rss=WorkingSetSize, vms=PagefileUsage, page_faults=PageFaultCount,
+    // threads=Thread32 快照按 pid 过滤计数 (PROCESS_MEMORY_COUNTERS_EX 无线程/IO
+    // 成员, 不能走 pmc), read/write bytes/ops=GetProcessIoCounters(IO_COUNTERS),
     // sys_mem_avail=GlobalMemoryStatusEx.ullAvailPhys;
     // ctx_switches 无 Win32 廉价等价 → 保持 0 (摘要侧为单调增量, 0 无害)。
     HANDLE proc = GetCurrentProcess();
@@ -102,12 +104,34 @@ inline bool read_proc_self(ProcSample& s) {
                              sizeof(pmc))) {
         s.rss_bytes = static_cast<std::uint64_t>(pmc.WorkingSetSize);
         s.vms_bytes = static_cast<std::uint64_t>(pmc.PagefileUsage);
-        s.threads = static_cast<std::uint32_t>(pmc.ThreadCount);
         s.page_faults = static_cast<std::uint64_t>(pmc.PageFaultCount);
-        s.read_bytes = static_cast<std::uint64_t>(pmc.IoInfo.ReadTransferCount);
-        s.write_bytes = static_cast<std::uint64_t>(pmc.IoInfo.WriteTransferCount);
-        s.read_ops = static_cast<std::uint64_t>(pmc.IoInfo.ReadOperationCount);
-        s.write_ops = static_cast<std::uint64_t>(pmc.IoInfo.WriteOperationCount);
+    }
+    // threads: 全系统线程快照按 owner pid 过滤计数。快照失败(INVALID_HANDLE_VALUE)
+    // 时 threads 保持 0, 不抛错; 采样线程内执行, 无共享状态竞争。
+    // 开销: 0.5s 周期下数千线程节点快照毫秒级(<周期 1%), 每样本全量计数保证
+    // summary.max_threads 峰值语义不被降频低估。
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    if (snap != INVALID_HANDLE_VALUE) {
+        THREADENTRY32 te;
+        te.dwSize = sizeof(te);
+        const DWORD pid = GetCurrentProcessId();
+        std::uint32_t n_threads = 0;
+        if (Thread32First(snap, &te)) {
+            do {
+                if (te.th32OwnerProcessID == pid) ++n_threads;
+            } while (Thread32Next(snap, &te));
+        }
+        CloseHandle(snap);
+        s.threads = n_threads;
+    }
+    // 进程 IO 计数(传输字节 + 操作次数); 失败时各字段保持 0。
+    IO_COUNTERS ioc;
+    ZeroMemory(&ioc, sizeof(ioc));
+    if (GetProcessIoCounters(proc, &ioc)) {
+        s.read_bytes = static_cast<std::uint64_t>(ioc.ReadTransferCount);
+        s.write_bytes = static_cast<std::uint64_t>(ioc.WriteTransferCount);
+        s.read_ops = static_cast<std::uint64_t>(ioc.ReadOperationCount);
+        s.write_ops = static_cast<std::uint64_t>(ioc.WriteOperationCount);
     }
     MEMORYSTATUSEX ms;
     ZeroMemory(&ms, sizeof(ms));
