@@ -1,0 +1,71 @@
+=== which cmake ===
+cmake 不在 PATH
+=== cmake --preset win-msvc-17.14.39-x64 ===
+bash: 行 1: cmake: 未找到命令
+exit=127
+PASS preset JSON 可解析（schema version 10）
+PASS preset 名不变 win-msvc-17.14.39-x64
+PASS binaryDir 不变 | ${sourceDir}/build/win-msvc-17.14.39-x64
+PASS generator 不变 Visual Studio 17 2022
+PASS architecture x64 不变
+PASS toolset 放宽为 v143,host=x64 | v143,host=x64
+PASS toolset 不含 version= pin
+PASS CMAKE_GENERATOR_INSTANCE 已移除 | ['ASTROCS_ENABLE_ACR', 'CMAKE_CXX_STANDARD', 'CMAKE_CXX_STANDARD_REQUIRED', 'CMAKE_MSVC_RUNTIME_LIBRARY', 'CMAKE_SYSTEM_VERSION']
+PASS CMAKE_SYSTEM_VERSION 不变
+PASS CRT DLL 策略不变
+PASS ACR OFF 不变
+PASS 全文件无本地私有实例路径
+PASS build_dir_from_preset 不变
+PASS driver _toolchain_from_presets 探测正常 | {"generator": "Visual Studio 17 2022", "toolset": "v143,host=x64"}
+PASS cmake/toolchain/verify_toolchain.py TOOLCHAIN_CONTRACT_PASS | TOOLCHAIN_CONTRACT_PASS
+
+SUMMARY: 15/15 PASS
+
+=== 验收 1: validate_registry --strict ===
+{
+  "registry": "/workspace/Astro CS Database/ci/checks.json",
+  "strict": true,
+  "checks": 80,
+  "errors": [],
+  "error_count": 0,
+  "verdict": "PASS"
+}
+exit=0
+
+=== 验收 2: unittest 全量 ===
+----------------------------------------------------------------------
+Ran 235 tests in 25.783s
+
+FAILED (failures=1)
+
+=== 验收 2(重): unittest 全量 ===
+----------------------------------------------------------------------
+Ran 235 tests in 25.892s
+
+OK
+
+=== 验收 3: 四 profile plan-only ===
+fast=57
+linux-main=71
+linux-deep=7
+windows-main=61
+
+=== 验收 5: BUILD-GCC-RELEASE 进计划 ===
+selected_count= 1
+ids= ['BUILD-GCC-RELEASE']
+
+=== 验收 4: git diff --stat（tracked 改动，相对 HEAD）===
+ .github/workflows/ci-windows.yml                   |  10 +-
+ AGENTS.md                                          |   8 +-
+ CMakePresets.json                                  |  11 +-
+ ci/run.py                                          |   6 +
+ ci/tests/test_workflow_lock.py                     |  19 +-
+ cmake/toolchain/verify_toolchain.py                |  27 ++-
+ ...CS_V6_1_AUDIT_20260902T042239Z_faad602da555.zip | Bin 4243274 -> 0 bytes
+ .../tasks/V8-CI-010/CHANGED_FILES.txt              |  10 +
+ .../tasks/V8-CI-010/HOSTED_RUN_REPORT.md           | 167 +++++++++++++++++
+ .../tasks/V8-CI-010/TASK_RESULT.json               | 205 ++++++++++++++++++++-
+ 10 files changed, 438 insertions(+), 25 deletions(-)
+
+--- 本轮新增文件 ---
+?? ci/tests/test_run_prefix_probe.py

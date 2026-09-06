@@ -347,3 +347,268 @@ registry 总数 80。基线数字与派发单一致；hosted 侧因 bootstrap �
    语义已在库内标注）；windows 宿主上 monitor JSON 的 cpu/rss 字段可用性待 hosted
    实测（不阻塞本轮 scope）。
 3. R12 其余遗留项不变（基线态失败、timeout 标定、镜像批次漂移）。
+
+---
+
+# 观察轮 3（SA-CI-32，@ HEAD 77da09effe1f997f3149f4845ac8c3a471d47038，2026-09-06）
+
+只读观察：push 触发 ci-linux.yml / ci-windows.yml（run 34008273326 / 34008273413），
+API trace + 双平台 artifact 全量解包留档 logs/round3/。零 git 写操作；无源码修改；
+token 内联不落盘。对照基线 = 轮 2（同 profile，HEAD 2508a379）。
+
+## R20. run 终态与时长
+
+| | linux（34008273326） | windows（34008273413） |
+| --- | --- | --- |
+| workflow / 触发 | ci-linux.yml / push | ci-windows.yml / push |
+| job | 101419369057（ubuntu-24.04，镜像 20260831.293.1） | 101419369159（windows-2022，镜像 20260830.290.1） |
+| 终态 | completed / **failure** | completed / **failure** |
+| 时段（UTC） | 03:09:11 → 03:21:22（≈12m11s） | 03:09:14 → 03:11:34（≈2m20s） |
+| 步骤 | Checkout ✓ / Bootstrap ✓ / Select profile ✓ / Run registered checks ✗ / 诊断步 ✓ / Upload evidence ✓ | Bootstrap ✓（5 items）/ Run MSVC tests and package candidate ✗ / Validate+Upload candidate skipped / 诊断步 ✓ / Upload evidence ✓ |
+| 汇总行 | `verdict=FAIL total=71 pass=47 fail=23 known_fail=0 skipped_waivable=1`（FAIL 21 + TIMEOUT 2） | `verdict=FAIL total=61 pass=32 fail=28 known_fail=0 skipped_waivable=1`（FAIL 27 + FAIL(missing_output) 1） |
+
+## R21. check 分布对照（轮 3 vs 轮 2，逐 id 闭合）
+
+| profile | PASS | FAIL | TIMEOUT | SKIP(waivable) | 合计 | 轮 2 分布 |
+| --- | --- | --- | --- | --- | --- | --- |
+| linux-main | 47 | 21 | 2 | 1 | 71 | 47/21/2/1 —— **完全一致** |
+| windows-main | 32 | 27 | 0 | 1（+missing_output 1 计入 fail 28） | 61 | 32/28/0/1 —— **fail id 集合完全一致** |
+
+- linux 非 PASS 24 项逐一对照轮 2 fail_ids/timeout_ids/skipped_ids：差集为空
+  （AGENTS-GOV、CLI-COMMAND-LAYER、CLI-RUN-PRESET、CON-DOC-SYMBOLS、
+  CON-FULL-INTEGRATION、DOC-INDEX、DOC-L0、ENG-CONSTRAINTS、NO-SERIAL-HEAVY、
+  P3-STATUS、RECONCILE-STATE、SERIAL-HARDCODE、TASK-RESULT-SCHEMA、THREAD-BUDGET、
+  UT-API、UT-ARCH、UT-BACKEND(T)、UT-CLI(T)、UT-CPU-AVX512、UT-IO、UT-QUALITY、
+  UT-VERSION、WORKSPACE-ADOPTION + BUILD-GCC-RELEASE（两轮均 SKIPPED(waivable)
+  同 reason，见 R23——**非本轮变化**，轮 2 观察已登记于 skipped_ids）。
+- windows 28 个 fail id 与轮 2 完全一致；唯一 verdict 类别变化：WIN-TEST-UNIT
+  FAIL → **FAIL(missing_output)**（见 R24）。本轮无新失败 id，轮 2 登记的
+  F-R2-03（PyYAML/CONTRACT-GRAPH，hosted 实测 `CONTRACT_GRAPH_FAIL: 需要 PyYAML`）、
+  F-R2-04（numpy/UT-IO errors=3）、F-R2-05（dumpbin）、F-R2-09（基线态 17+2 项）、
+  F-R2-10（UT-BACKEND/UT-CLI timeout 300s，exit -9 signal 9）全部维持原判。
+
+## R22. resource summary（F-R2-01 shim 效果判定）
+
+- **windows：包装层修复确认生效。** WIN-BUILD-RELEASE / WIN-TEST-UNIT 经
+  ci/resource_monitor.py 包装真实执行（轮 2 死于 shim ModuleNotFoundError，本轮
+  monitor JSON 均产出，且 --output 指向 run/ci/monitor/*.json 的落盘链未再报错）。
+  monitor 数字（hosted 实测，两检查 host_probe 一致）：
+
+  | 字段 | WIN-BUILD-RELEASE | WIN-TEST-UNIT |
+  | --- | --- | --- |
+  | 被包装 exit_code | 1（configure 即败，见 R24） | 0（ctest 空跑，见 R24） |
+  | duration_seconds | 0.422 | 0.813 |
+  | cpu_samples（采样数） | 3（@0/0.219/0.422s） | 5（@0…0.813s） |
+  | cpu_percent_avg / median | null | null |
+  | peak_rss_kb / rss_start_kb | null | null |
+  | threads_max | 0 | 0 |
+  | io_read/write_bytes | null | null |
+  | host_probe | affinity=4、logical=4、effective=4.0、max_workers=4（derived） | 同左 |
+
+  cpu/rss/threads null 与 0 与轮 2 预期一致（run_monitored 采集探针为 Linux
+  /proc 语义，windows 宿主无 psutil），非回归；host_probe 4 核探测成功（affinity
+  fallback:cpu_count）说明监控进程本体存活并完成采样循环。
+- **linux：数字未产出，非 shim 缺陷。** linux-main 中唯一 monitor 包装检查
+  BUILD-GCC-RELEASE 未真实执行 —— run.py 前置预检命中 F-R3-03（R23，两轮同因）→
+  SKIPPED(waivable)，monitor JSON 不存在。DEEP-* 不在本 profile。结论：
+  F-R2-01 shim 修复在两平台包装链路均验证打通（windows 端到端实跑、linux 端
+  registry 复验 requires_monitor 包装器就绪检查通过——即监控脚本自身不再触发
+  ModuleNotFoundError 类前置失败）。
+
+## R23. linux BUILD-GCC-RELEASE 持续误 SKIP（新发现 F-R3-03，根因本轮定位）
+
+- 现象：轮 2 与轮 3 **均** `SKIPPED(waivable) reason=prerequisite 未满足
+  （waivable）：command 引用的仓库路径不存在：run/ci/build-gcc-release`（轮 2
+  登记 skipped_ids，非本轮迁移）。但轮 2 仅登记现象，未定位根因；本轮据
+  artifact + registry + run.py 源读定位如下。
+- 根因链（读源实证，非改动）：ci/checks.json 注册 command 为
+  `ci/resource_monitor.py tools/quality/deep_ci_driver.py build-gcc-release --build-dir run/ci/build-gcc-release`；
+  ci/run.py probe_prerequisite（448-470 行）对 command 中含 `/` 的参数逐一做
+  仓库路径存在性探测（仅豁免 `outputs` 登记项），而 `run/ci/build-gcc-release`
+  是**运行时产物目录**（--build-dir 输出，非登记 output）——hosted 干净 checkout
+  上必然不存在 → 前置预检把「本轮要生成的目录」误判为「必须预先存在的输入」。
+  同 command 中 `run/ci/monitor/BUILD-GCC-RELEASE.json` 与
+  `run/ci/build-gcc-release-summary.json` 因已登记 outputs 被豁免，唯 build-dir
+  漏登记。
+- 影响面：registry 全量扫描，同形态 build-dir 位置参数（未登记 outputs）共 5 处：
+  BUILD-GCC-RELEASE（run/ci/build-gcc-release）、DEEP-CLANG-BUILD（build-clang）、
+  DEEP-SAN-ASAN（build-qa-asan）、DEEP-SAN-TSAN（build-qa-tsan）、
+  DEEP-COV-CPP（build-cov）——DEEP-* 4 项同踩但属 linux-deep profile 本轮未触发，
+  linux-main 仅 BUILD-GCC-RELEASE 一处中招。`python3 -B` 参数不受影响
+  （`-B` 以 `-` 开头被预检跳过）。
+- 连带效果：该项 skip 后 linux-main 无任何监控包装检查实跑 → resource summary
+  linux 侧无 monitor JSON（R22）。F-R2-08（gcc 实编译失败链）从未在 hosted
+  linux-main 有机会暴露——被预检 SKIP 遮蔽，失败本体未消失。
+
+## R24. windows WIN-BUILD-RELEASE / WIN-TEST-UNIT / candidate 管线
+
+- WIN-BUILD-RELEASE：包装执行成功，内部 `ci_windows_driver.py --stages
+  configure,build` exit 1 —— configure 阶段 `cmake --preset
+  win-msvc-17.14.39-x64` **0.422s 即败**。stdout_tail 仅驱动横幅
+  `[ci_windows_driver] configure: cmake --preset win-msvc-17.14.39-x64`，stderr 空；
+  cmake 真实错误行只进 driver summary JSON（落 run/ci/win-build-summary.json，
+  不在 evidence artifact 契约内）→ **hosted 观测盲点**（新发现 F-R3-02）。
+  根因强假设：CMakePresets.json hidden `base-msvc` 硬编码
+  `CMAKE_GENERATOR_INSTANCE=C:/AstroCS/toolchains/vs2022-17.14.39`，hosted
+  windows-2022 runner 无该目录 → configure 立即 exit 1（0.42s 与 generator
+  instance 探测失败的耗时特征一致；preset 为冻结文件，改动权在前台）。
+- WIN-TEST-UNIT：exit 0（0.813s，monitor samples 5）但登记 output
+  `run/ci/win-test-junit.xml` 未产出 → verdict=**FAIL(missing_output)**（轮 3
+  新出现类别）。stdout_tail 仅 ctest 调用横幅，ctest 自身输出（含是否
+  "No tests found"）同样只进 run/ci/win-test-summary.json（F-R3-02 盲点延伸）；
+  「configure 失败 → build 目录无测试 → ctest 空跑 exit 0」为机制级联推断
+  （依据：0.813s 时长 + exit 0 + junit 缺失 + 与 WIN-BUILD 同 preset 链）。
+  判定：**测试未真实运行**，R13 的「测试实际执行」预期只达成半程
+  （包装层 ✓ / cmake 链 ✗）。
+- WIN-PACKAGE-CANDIDATE：SKIPPED(waivable)（dumpbin 不在 PATH）维持轮 2 预期
+  （F-R2-05）；Validate candidate / Upload candidate 两步 skipped，candidate
+  artifact 为 0，evidence artifact 恰 1 个（id 9981668901）——管线链路
+  「configure 败 → package 未执行 → candidate 缺失」闭环成立，无悬空状态。
+
+## R25. bootstrap 与诊断步（F-R2-02 收口 + 新发现 F-R3-01）
+
+- linux：BOOTSTRAP_DIAG.json **完整回填**（report 非空，bootstrap_exit_code=0；
+  gcc-14 14.2.0-4ubuntu2~24.04.1、clang-18 18.1.3、cmake 3.31.6（policy 最低
+  >=3.31.6 恰好达标）、Ninja 1.13.2、镜像 20260831.293.1、ok=true）——轮 2
+  修复（policy 下限 + _force_utf8_stdio）hosted 侧验证通过。**F-R2-02 在
+  linux 侧收口。**
+- windows：bootstrap 主步 PASS（exit 0，5 items），但 BOOTSTRAP_DIAG.json
+  report=null、stderr_fail_payload=null，collection_error=
+  `AttributeError("'NoneType' object has no attribute 'strip'")`。job log
+  217-229 行铁证：`Exception in thread Thread-1 (_readerthread): UnicodeDecodeError:
+  'charmap' codec can't decode byte 0x81 in position 350` —— 诊断步
+  （ci-windows.yml Collect bootstrap diagnostics）`subprocess.run(...,
+  text=True)` 未显式 encoding，windows cp1252 控制台下 bootstrap --json 输出
+  的 UTF-8 字节流 decode 炸 → stdout=None → .strip() 抛 AttributeError。
+  **新发现 F-R3-01**（与 F-R2-06 同族：业务侧 UTF-8 已修，诊断接入侧漏网；
+  ci-linux.yml 诊断步为 bash heredoc 无此问题，linux 侧完好的原因）。
+- BOOTSTRAP_DIAG 出现本身属预期：诊断步 `if: failure()` 由 run.py check 失败
+  触发（非 bootstrap 失败），两平台一致。
+
+## R26. 观察轮 3 FINDINGS（新增 3 项）
+
+| id | 模块 | severity | 根因 | 建议（仅登记，改动权在前台） |
+| --- | --- | --- | --- | --- |
+| F-R3-01 | .github/workflows/ci-windows.yml 诊断步（接入侧） | major(diagnostic-loss) | `subprocess.run(text=True)` 无 encoding → cp1252 下 UnicodeDecodeError → report/stderr 双 null（job log 217-229） | subprocess.run 增加 `encoding="utf-8", errors="replace"`（与 F-R2-06 同族修法）；ci-linux.yml bash 侧无需改动 |
+| F-R3-02 | tools/quality/ci_windows_driver.py（观测面） | minor(observability) | cmake 错误输出只进 run/ci/*-summary.json（未上传），evidence 侧 WIN-BUILD stderr 为空 → hosted 无法定位 configure 失败行 | summary JSON 并入 evidence artifact 契约目录，或驱动在 stage 失败时把 output_tail 回显 stderr（同 F-R3-01 接入侧修法族） |
+| F-R3-03 | ci/run.py probe_prerequisite + ci/checks.json（登记域） | minor(false-skip) | `run/ci/build-gcc-release` 是 --build-dir 运行时产物，被路径预检误判为须预先存在的输入 → BUILD-GCC-RELEASE 两轮持续误 SKIP（轮 2 仅登记现象，本轮定位根因；连带 linux resource summary 空采） | 方案 A：run.py 预检豁免 `--build-dir`/`--*-dir` 类 flag 的紧邻参数；方案 B：checks.json 把 build-dir 补入 outputs 登记（outputs 语义为「检查产物」，build 目录可归入）。倾向 A（不稀释 outputs 语义）；均属冻结登记域，改动权在前台 |
+
+## R27. V8-CI-010 关闭差距（对照派发单 requirements 1-6）
+
+1. hosted 双平台 bootstrap PASS —— **已达成并连续两轮保持**（F1/F2 修复收口）。
+2. 71/61 项全量执行与计数回归 —— 项数达成，但 linux BUILD-GCC-RELEASE 被
+   F-R3-03 误 SKIP（未真实执行）、windows WIN-TEST-UNIT 因 configure 级联
+   missing_output（测试未实跑）→ **未完全达成**。
+3. 监控包装检查真实执行并产出 resource summary —— windows 侧达成（cpu/rss
+   null 为宿主探针语义限制，已在 R22 说明）；linux 侧被 F-R3-03 遮蔽 → 部分。
+4. candidate 管线 —— WIN-PACKAGE dumpbin skip 属登记预期，但 configure 失败
+   （preset CMAKE_GENERATOR_INSTANCE）使 candidate 链路在 hosted 永远无法
+   打通 → **阻塞**，需前台处理 preset 或 CI 侧生成器参数。
+5. 失败归属与 FINDINGS 登记 —— 已完成（轮 2 十项维持 + 本轮 F-R3-01/02/03）。
+6. 证据链与验收 —— logs/round3/ 全量留档（API trace、job log、双平台 artifact
+   zip+解包、BOOTSTRAP_DIAG），trace 无凭据断言 PASS，`git status --porcelain`
+   89 行与任务初始快照一致（零越界新增），unittest 231 OK。
+
+**观察轮 3 总判定：NOT_CLOSABLE —— 剩余差距集中在 F-R3-03（误 SKIP）、
+windows preset generator instance（configure 即败级联）、F-R3-01（诊断步接入
+侧 encoding）；三者均为前台可修项，修复后建议一轮定向重验（linux 看
+BUILD-GCC-RELEASE 实跑 + monitor JSON；windows 看 configure 通过 + junit 产出 +
+BOOTSTRAP_DIAG 回填）。**
+
+---
+
+## R28. 修复轮 4（收口轮，SA-CI-32 本机执行；HEAD=77da09ef）
+
+按前台四项裁决落地，全部属 CI 接入/工具链配置侧。本节为本机修复与验收记录，
+hosted 定向重验待控制面触发。
+
+### 四项修复
+
+| # | 裁决项 | 文件 | 修法 | 自验 |
+| --- | --- | --- | --- | --- |
+| 1 | F-R3-03（核心） | `ci/run.py` | probe_prerequisite 路径探测循环中，outputs/绝对路径排除之后新增：仓库相对参数 `run`、`run/`、`run\` 前缀一律跳过探测（注释说明 run/ 为 AGENTS.md 定义的运行时产物目录，与 outputs 排除同语义）；其余探测语义（command[0]、prerequisite_tools、python -m、含空白参数、绝对路径、outputs、requires_monitor、platform 门控）不变 | 主仓库 7 个携带 run/ 前缀参数的检查 probe 全通过；非 run/ 不存在路径仍被拒（回归保护用例） |
+| 2 | preset 硬编码 | `CMakePresets.json` + `cmake/toolchain/verify_toolchain.py` | base-msvc 移除 `CMAKE_GENERATOR_INSTANCE`（cmake 经 vswhere 自动发现 VS 实例，双端安全）；toolset `v143,host=x64,version=14.44.35207` → `v143,host=x64`（去固定 MSVC build 号；hosted 用镜像自带 v143 最新，本地用本地 VS 默认）；vendor.windows_formal/$comment/description 同步；**preset 名与 binaryDir 不变**。校验器同步两处断言保持 fail-fast：version= 键由『必须匹配』改『禁止出现』、GENERATOR_INSTANCE 由『必须存在』改『禁止硬编码』；contract.windows.toolset_version/vs_installation 保留为本地冻结安装基准记录 | 校验器实跑 `TOOLCHAIN_CONTRACT_PASS`；driver `build_dir_from_preset`/`_toolchain_from_presets` 消费面实测正常；全文件无本地私有实例路径 |
+| 3 | F-R3-01 | `.github/workflows/ci-windows.yml` | 诊断步 subprocess.run 补 `encoding="utf-8", errors="replace"`（与 ci/tests/_helpers.py F-R2-06 同法）→ BOOTSTRAP_DIAG 双 null 根因消除 | YAML 解析通过；pyyaml 解析内嵌 python 体确认实参在位 |
+| 4 | F-R3-02 | `.github/workflows/ci-windows.yml` | Upload public CI evidence 步 path 改多路径：`artifacts/ci/` + `run/ci/win-build-summary.json`（逐行展开；某路径缺失仅 warning，artifacts/ci/ 有内容即不触发 if-no-files-found: error）→ cmake 真实错误证据随 artifact 上传 | YAML 解析通过；test_workflow_lock 正向断言新路径在 windows evidence 上传集合 |
+
+引用点核查（裁决要求）：ci_windows_driver.py 仅引用 preset 名与 binaryDir，
+无 GENERATOR_INSTANCE/toolset version 引用；ci/checks.json 中的 run/ 路径全部
+位于 outputs（探测豁免不受影响）；packaging/gen_sbom_input.py 机器路径扫描对
+`C:/AstroCS/toolchains/` 白名单，preset 移除该行后无影响。dependency-lock.json
+remaining_known 首条与 preset-contract.json vs_installation 为描述性/基准记录
+（无机器校验其内容），未改动，列入遗留风险。
+
+### 单测
+
+- 新增 `ci/tests/test_run_prefix_probe.py`（4 项）：① 受试 id 自洽（7 个检查
+  确携带 run/ 前缀参数）；② 主仓库真实登记 probe 全通过（mock which 放行
+  prerequisite_tools）；③ fixture 端到端——command 引用不存在且未登记的
+  `run/ci/...` 路径真跑 PASS（waivable=False 硬失败面，修复前同类参数
+  FAIL(prerequisite)）；④ 回归保护——非 run/ 不存在路径仍 FAIL(prerequisite)
+  且理由含「仓库路径不存在」。
+- 因果验证：临时回退修复（stash/pop，已恢复无遗留）后新测试 2 项失败，
+  修复后全绿。
+- 同步：`test_workflow_lock.py::test_evidence_upload_path_matches_run_output_dir`
+  按多路径逐行解析，并正向断言 F-R3-02 新路径。
+
+### preset 本地验证
+
+- `cmake --preset win-msvc-17.14.39-x64`：本机无 cmake（`which cmake` 无结果，
+  报错原文 `cmake: 未找到命令`，exit 127），无法获得 cmake 解析报错；
+  裁决预期（报 generator/VS 发现类错误而非 CMAKE_GENERATOR_INSTANCE 路径错误）
+  无法在本机实证，留待 hosted windows-2022 轮。
+- 结构级替代验证 15/15 PASS（logs/repair_round4.log）：JSON 可解析；preset 名、
+  binaryDir、generator、architecture、SDK、CRT、ACR 全部不变；toolset
+  `v143,host=x64` 无 version= pin；GENERATOR_INSTANCE 已移除；
+  `cmake/toolchain/verify_toolchain.py` → `TOOLCHAIN_CONTRACT_PASS`。
+
+### 验收逐条实测（logs/repair_round4.log 全量留档）
+
+1. `python3 ci/validate_registry.py --registry ci/checks.json --strict` →
+   verdict PASS，exit 0。
+2. `python3 -m unittest discover -s ci/tests -p 'test_*.py'` → Ran 235 tests,
+   OK（231 基线 + 新增 4；test_workflow_lock 同步后重跑确认）。
+3. plan-only：fast=57 / linux-main=71 / linux-deep=7 / windows-main=61，
+   四 profile 不变。注意 plan-only 不探测 runtime 产物，BUILD-GCC-RELEASE
+   实跑解锁以单测（端到端用例）+ hosted 轮验证。
+4. `git diff --stat`：本轮新增改动 = ci/run.py(+6)、CMakePresets.json(11 行±)、
+   cmake/toolchain/verify_toolchain.py(27 行±)、ci-windows.yml(10 行±)、
+   ci/tests/test_workflow_lock.py(19 行±) + 新增测试/证据；diff 中 AGENTS.md
+   与 dist/audit zip 删除为修复轮 1-3 遗留工作区状态（非本轮产生）。
+5. `python3 ci/run.py --profile linux-main --check BUILD-GCC-RELEASE --plan-only`
+   → selected_count=1，BUILD-GCC-RELEASE 在计划中（不再因 run/ 前缀被预检拒）。
+
+### hosted 定向重验预期（哪些 id 状态会变）
+
+- **linux**：BUILD-GCC-RELEASE 由 SKIPPED(waivable)（理由「仓库路径不存在」）
+  变为真实执行——PASS 或真实 FAIL；若 hosted 缺 gcc/cmake 则按
+  prerequisite_tools 语义 SKIPPED（理由含工具名，可区分）。DEEP-CLANG-BUILD、
+  DEEP-SAN-ASAN、DEEP-SAN-TSAN、DEEP-COV-CPP、DEEP-COV-PY 同理；linux resource
+  summary 不再空采。
+- **windows**：WIN-BUILD-RELEASE configure 不再 0.4s 即败（GENERATOR_INSTANCE
+  指向不存在目录）→ configure/build 真实执行；WIN-TEST-UNIT 不再级联
+  missing_output（junit 应真实产出）；WIN-PACKAGE-CANDIDATE 链路解锁
+  （dumpbin skip 仍属登记预期）；BOOTSTRAP_DIAG 回填（report/stderr 不再双
+  null）；evidence artifact 新增 run/ci/win-build-summary.json。
+- **toolset 说明**：hosted v143 = windows-2022 镜像自带最新，本地 = 本地 VS
+  默认；两端 compiler 实际版本可能与历史 14.44.35207 基准不同，属裁决放宽的
+  预期行为，driver summary 的 preset_formal 会如实记录。
+
+### 修复轮 4 遗留风险
+
+1. BUILD-GCC-RELEASE 真实执行将首次在 hosted 产出 `run/ci/build-gcc-release`
+   目录；其 --build-dir 中间产物未登记 outputs，detect_dirty 的豁免仅覆盖
+   outputs 登记项与输出目录前缀——若 hosted 轮 FAIL(dirty)，属登记域
+   （outputs 语义）问题，改动权在前台。
+2. preset 放宽后 hosted 与本地 MSVC build 号可漂移（.vsconfig 组件锁不变，
+   仍由 verify_toolchain 守护）；如需版本等价证明需另行固定安装面。
+3. dependency-lock.json remaining_known 首条文字与 preset-contract.json
+   vs_installation 记录已与 preset 现状不完全一致（描述性/基准记录，无机器
+   校验），文字同步属文档域，未在本轮裁决范围。
+4. cmake preset 真实解析未在本机实证（无 cmake）；结构级验证不能替代
+   hosted configure 实跑。
+
+**修复轮 4 判定：PASS_LOCAL（四项修复落地 + 本地验收全绿 + preset 结构级
+15/15）；CLOSABLE_PENDING_HOSTED —— 待控制面触发一轮 hosted 定向重验
+（linux BUILD-GCC-RELEASE 实跑 + monitor JSON；windows configure 通过 +
+junit 产出 + BOOTSTRAP_DIAG 回填 + win-build-summary 上传）后即可关闭。**

@@ -14,7 +14,10 @@ Rules enforced here (any violation exits non-zero, i.e. FAIL fast):
   1. Contract file parses and is self-consistent (its consts are the
      single source of truth; drift anywhere fails).
   2. The formal Windows preset generator is EXACTLY "Visual Studio 17 2022"
-     with architecture x64 and toolset v143 pinned to 14.44.35207.
+     with architecture x64 and toolset v143 host=x64 with no pinned
+      version (V8-CI-010 F-R3-02b: MSVC build number no longer pinned --
+      hosted mirror default v143 / local VS default v143; no
+      CMAKE_GENERATOR_INSTANCE override, VS discovered via vswhere).
   3. CMAKE_SYSTEM_VERSION is exactly 10.0.26100.0 and the DLL CRT policy
      (/MD /MDd) is applied; ACR is OFF on the formal path.
   4. Forbidden tokens (latest/evergreen, MinGW/MSYS, VS2026, v144/v145,
@@ -187,9 +190,13 @@ class Verifier:
                     kv[k.strip()] = v.strip()
             if kv.get("host") != "x64":
                 self.fail(f"formal toolset host must be x64, got '{kv.get('host')}'")
-            if kv.get("version") != w.get("toolset_version"):
-                self.fail(f"formal toolset version must be '{w.get('toolset_version')}', "
-                          f"got '{kv.get('version')}'")
+            # V8-CI-010 F-R3-02b: the MSVC build number is no longer pinned in
+            # the preset -- the hosted windows-2022 mirror uses its own latest
+            # v143 and the local VS uses its default v143.  A "version=" key is
+            # still forbidden (keeps the toolset un-pinned by contract).
+            if "version" in kv:
+                self.fail("formal toolset must not pin a version= build number "
+                          "(un-pinned v143 by contract since F-R3-02b)")
 
         # 3) cache variables
         cv = win.get("cacheVariables") or {}
@@ -202,9 +209,15 @@ class Verifier:
         acr = cv.get("ASTROCS_ENABLE_ACR")
         if str(acr).upper() not in ("OFF", "FALSE", "0"):
             self.fail(f"ASTROCS_ENABLE_ACR must be OFF on formal path, got '{acr}'")
-        inst = cv.get("CMAKE_GENERATOR_INSTANCE")
-        if not isinstance(inst, str) or not inst:
-            self.fail("CMAKE_GENERATOR_INSTANCE missing (isolated VS install path required)")
+        # V8-CI-010 F-R3-02b: the VS install path is no longer hardcoded in
+        # the preset.  cmake discovers the instance via vswhere, which is
+        # correct both on the hosted windows-2022 runner (mirror layout) and
+        # on the local toolchain node (isolated install).  Reintroducing a
+        # machine-specific CMAKE_GENERATOR_INSTANCE cache variable would fail
+        # hosted configure in under a second and is forbidden here.
+        if "CMAKE_GENERATOR_INSTANCE" in cv:
+            self.fail("CMAKE_GENERATOR_INSTANCE must not be hardcoded (vswhere "
+                      "discovery since F-R3-02b)")
 
         # 4) forbidden tokens on the windows preset CONFIG surface.
         #    Scan only actual configuration keys (generator/architecture/

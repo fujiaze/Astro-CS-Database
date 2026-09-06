@@ -889,5 +889,290 @@
         "基线态失败项维持（F-R2-09 未修）"
       ]
     }
+  },
+  "observation_round3": {
+    "round": 3,
+    "owner": "SA-CI-32",
+    "mode": "read",
+    "observed_head_sha": "77da09effe1f997f3149f4845ac8c3a471d47038",
+    "executed_utc": "2026-09-06T03:4xZ ~ 05:0xZ（push 触发 run 已终态后抓取，无长轮询）",
+    "runs": {
+      "linux": {
+        "workflow": "ci-linux.yml",
+        "run_id": 34008273326,
+        "job_id": 101419369057,
+        "runner": "GitHub Actions 1000000563 / ubuntu-24.04 / image 20260831.293.1",
+        "status": "completed/failure",
+        "started_utc": "2026-09-06T03:09:11Z",
+        "completed_utc": "2026-09-06T03:21:22Z",
+        "duration_approx": "12m11s",
+        "steps": "Checkout✓ Bootstrap✓ SelectProfile✓ RunRegisteredChecks✗ DiagStep✓ UploadSmallEvidence✓",
+        "verdict_line": "verdict=FAIL total=71 pass=47 fail=23 known_fail=0 skipped_waivable=1",
+        "verdict_distribution": {
+          "PASS": 47,
+          "FAIL": 21,
+          "TIMEOUT": 2,
+          "SKIPPED(waivable)": 1
+        },
+        "fail_detail": {
+          "FAIL": 21,
+          "TIMEOUT": 2
+        }
+      },
+      "windows": {
+        "workflow": "ci-windows.yml",
+        "run_id": 34008273413,
+        "job_id": 101419369159,
+        "runner": "GitHub Actions 1000000564 / windows-2022 / image 20260830.290.1",
+        "status": "completed/failure",
+        "started_utc": "2026-09-06T03:09:14Z",
+        "completed_utc": "2026-09-06T03:11:34Z",
+        "duration_approx": "2m20s",
+        "steps": "Bootstrap✓(5 items) RunMSVCTests+PackageCandidate✗ ValidateCandidate[skipped] UploadCandidate[skipped] DiagStep✓ UploadEvidence✓",
+        "verdict_line": "verdict=FAIL total=61 pass=32 fail=28 known_fail=0 skipped_waivable=1",
+        "verdict_distribution": {
+          "PASS": 32,
+          "FAIL(missing_output)": 1,
+          "FAIL": 27,
+          "SKIPPED(waivable)": 1
+        },
+        "fail_detail": {
+          "FAIL": 27,
+          "FAIL(missing_output)": 1
+        }
+      }
+    },
+    "comparison_vs_round2": {
+      "linux_main": {
+        "verdict": "完全一致（PASS 47 / FAIL 21 / TIMEOUT 2 / SKIPPED(waivable) 1）",
+        "per_id_diff": "轮 2 fail_ids(21)+timeout_ids(2)+skipped_ids(BUILD-GCC-RELEASE) 与轮 3 非 PASS 24 项差集为空；唯一标注：BUILD-GCC-RELEASE 两轮均 SKIPPED(waivable) 同 reason（轮 2 登记 skipped_ids），非本轮变化",
+        "new_failures": "无",
+        "registered_findings_status": "F-R2-03（CONTRACT-GRAPH PyYAML，实测 CONTRACT_GRAPH_FAIL: 需要 PyYAML）/F-R2-04（UT-IO numpy，errors=3）/F-R2-05（dumpbin）/F-R2-09（基线态）/F-R2-10（UT-BACKEND/UT-CLI timeout 300s，exit -9 signal 9）全部维持原判"
+      },
+      "windows_main": {
+        "verdict": "fail id 集合与轮 2 完全一致；唯一变化 WIN-TEST-UNIT FAIL → FAIL(missing_output)（新 verdict 类别，见 findings_round3 F-R3-02 级联说明）",
+        "per_id_diff": "28 个 fail id 逐一对照差集为空",
+        "new_failures": "无新 id（WIN-TEST-UNIT 为类别迁移非新失败）"
+      }
+    },
+    "resource_summary": {
+      "linux": "NOT_COLLECTED —— linux-main 唯一 monitor 包装检查 BUILD-GCC-RELEASE 被 F-R3-03 误 SKIP（run/ci/build-gcc-release 为 --build-dir 运行时产物、未登记 outputs，预检误判），monitor JSON 未产生；DEEP-* 不在本 profile",
+      "windows": {
+        "shim_effect": "F-R2-01 修复确认生效：WIN-BUILD-RELEASE / WIN-TEST-UNIT 经 ci/resource_monitor.py 包装真实执行并产出 monitor JSON（轮 2 死于 shim ModuleNotFoundError）",
+        "WIN-BUILD-RELEASE": {
+          "wrapped_exit_code": 1,
+          "duration_seconds": 0.422,
+          "samples": 3,
+          "cpu_percent_avg": null,
+          "cpu_percent_median": null,
+          "peak_rss_kb": null,
+          "threads_max": 0,
+          "io_read_bytes": null,
+          "io_write_bytes": null,
+          "host_probe": {
+            "cpu_affinity": 4,
+            "cpu_logical": 4,
+            "effective_cpu_cores": 4.0,
+            "max_workers": 4,
+            "affinity_source": "fallback:cpu_count"
+          },
+          "stdout_tail": [
+            "[ci_windows_driver] configure: cmake --preset win-msvc-17.14.39-x64"
+          ],
+          "note": "cpu/rss/threads null|0 与轮 2 预期一致：run_monitored 采集探针为 Linux /proc 语义，windows 宿主无 psutil，非回归；host_probe 4 核探测成功证明监控进程存活完成采样"
+        },
+        "WIN-TEST-UNIT": {
+          "wrapped_exit_code": 0,
+          "duration_seconds": 0.813,
+          "samples": 5,
+          "cpu_percent_avg": null,
+          "cpu_percent_median": null,
+          "peak_rss_kb": null,
+          "threads_max": 0,
+          "host_probe": {
+            "cpu_affinity": 4,
+            "cpu_logical": 4,
+            "effective_cpu_cores": 4.0,
+            "max_workers": 4
+          },
+          "stdout_tail": [
+            "[ci_windows_driver] test: ctest --preset win-rel --output-junit run/ci/win-test-junit.xml"
+          ]
+        }
+      },
+      "timeout_count": {
+        "linux": 2,
+        "windows": 0
+      },
+      "note": "监控包装链两平台均打通：windows 端到端实跑、linux 端 requires_monitor 前置检查确认包装器就绪（未再触发导入类失败）"
+    },
+    "findings_round3": [
+      {
+        "id": "F-R3-01",
+        "module": ".github/workflows/ci-windows.yml 诊断步（Collect bootstrap diagnostics，python 接入侧）",
+        "severity": "major(diagnostic-loss)",
+        "evidence": "windows BOOTSTRAP_DIAG.json report=null、stderr_fail_payload=null、collection_error=AttributeError(\"'NoneType' object has no attribute 'strip'\")；job_log_101419369159_windows.log 217-229 行：Exception in thread Thread-1 (_readerthread): UnicodeDecodeError: 'charmap' codec can't decode byte 0x81 in position 350",
+        "root_cause": "诊断步 subprocess.run(text=True) 未显式 encoding，windows cp1252 控制台下 bootstrap --json 的 UTF-8 输出 decode 崩溃 → stdout=None → .strip() 抛 AttributeError。与 F-R2-06 同族（业务侧 UTF-8 已修，诊断接入侧漏网）；ci-linux.yml 诊断步为 bash heredoc 无此问题，linux 侧 BOOTSTRAP_DIAG 完整回填（report 6/6 items ok=true：gcc-14 14.2.0、clang-18 18.1.3、cmake 3.31.6、Ninja 1.13.2、runner image 20260831.293.1）即 F-R2-02 在 linux 侧收口",
+        "suggestion": "诊断步 subprocess.run 增加 encoding=\"utf-8\", errors=\"replace\"（与 F-R2-06 接入侧同族修法）；ci-linux.yml 无需改动",
+        "owner_suggestion": "前台（修复派发）"
+      },
+      {
+        "id": "F-R3-02",
+        "module": "tools/quality/ci_windows_driver.py 观测面 + windows preset configure 失败",
+        "severity": "major(build+observability)",
+        "evidence": "WIN-BUILD-RELEASE monitor JSON：configure 0.422s exit 1、stdout_tail 仅驱动横幅、stderr 空；cmake 真实错误行只落 run/ci/win-build-summary.json（不在 evidence artifact 契约内）",
+        "root_cause": "两层：(a) 观测盲点——driver 把 stage 输出写入 summary JSON 而非回显 stderr，hosted 无法看到 configure 失败行；(b) configure 即败根因强假设——CMakePresets.json hidden base-msvc 硬编码 CMAKE_GENERATOR_INSTANCE=C:/AstroCS/toolchains/vs2022-17.14.39，hosted windows-2022 runner 无该目录（0.42s 即败与 generator instance 解析失败特征一致）。级联：WIN-TEST-UNIT ctest 空跑 exit 0（0.813s）但 junit 未产出 → FAIL(missing_output)（新 verdict 类别），测试未真实运行",
+        "suggestion": "(a) driver 在 stage 失败时把 output_tail 回显 stderr，或把 *-summary.json 纳入 evidence artifact；(b) preset CMAKE_GENERATOR_INSTANCE 属冻结文件，改动权在前台（CI 侧生成器参数化或 preset 放宽）",
+        "owner_suggestion": "前台（(a) 驱动观测面；(b) preset 域）"
+      },
+      {
+        "id": "F-R3-03",
+        "module": "ci/run.py probe_prerequisite + ci/checks.json（登记域）",
+        "severity": "minor(false-skip)",
+        "evidence": "BUILD-GCC-RELEASE 两轮均 SKIPPED(waivable) reason=command 引用的仓库路径不存在：run/ci/build-gcc-release（轮 2 登记 skipped_ids 未定位根因，本轮定位）；registry 扫描同形态未登记 build-dir 参数共 5 处",
+        "root_cause": "run.py 前置预检（448-470 行）对 command 中含 / 的参数逐一做仓库存在性探测（仅豁免 outputs 登记项），run/ci/build-gcc-release 是 --build-dir 运行时产物目录 → 干净 checkout 必然不存在 → 误判为缺失输入。同踩项：DEEP-CLANG-BUILD(build-clang)、DEEP-SAN-ASAN(build-qa-asan)、DEEP-SAN-TSAN(build-qa-tsan)、DEEP-COV-CPP(build-cov)（linux-deep profile 本轮未触发）。连带 linux resource summary 空采（linux-main 唯一 monitor 包装项被 SKIP），F-R2-08 gcc 编译失败链从未在 hosted linux-main 有机会暴露",
+        "suggestion": "方案 A：run.py 预检豁免 --build-dir / --*-dir 类 flag 的紧邻参数；方案 B：checks.json 把 build-dir 补入 outputs 登记。倾向 A（不稀释 outputs 语义）；run.py/checks.json 属冻结登记域，改动权在前台",
+        "owner_suggestion": "前台（修复派发）"
+      }
+    ],
+    "candidate_deep_check": {
+      "pipeline_state": "WIN-PACKAGE-CANDIDATE SKIPPED(waivable)（dumpbin 不在 PATH，F-R2-05 维持）；Validate candidate / Upload candidate 两步 skipped；candidate artifact = 0；evidence artifact 恰 1 个（id 9981668901）",
+      "closure": "configure 败 → package 未执行 → candidate 缺失，链路闭环无悬空；candidate 管线在 hosted 打通的前提是 preset CMAKE_GENERATOR_INSTANCE 问题解决（F-R3-02b）"
+    },
+    "verdict_comparison_vs_round2": {
+      "bootstrap": "两平台均 PASS 维持（F1/F2 修复连续两轮验证）；linux BOOTSTRAP_DIAG 完整回填 = F-R2-02 linux 侧收口；windows 诊断步仍双 null（F-R3-01，接入侧 encoding）",
+      "checks_executed": "linux 71 实跑维持（BUILD-GCC-RELEASE 两轮同因 SKIP）；windows 61 项项数维持，WIN-BUILD/WIN-TEST 进入监控包装真实执行（F-R2-01 修复生效），但 cmake configure 即败（F-R3-02）→ 测试仍未实跑",
+      "artifact_pipeline": "两平台 evidence artifact 各 1 个维持；candidate 仍为 0（预期内，dumpbin + configure 两因）",
+      "resource_summary": "轮 2 双平台 NOT_COLLECTED → 轮 3 windows 侧 monitor JSON 产出（数字见 resource_summary.windows），linux 侧因 F-R3-03 仍空采"
+    },
+    "closability_vs_requirements": {
+      "req1_hosted_bootstrap_pass": "达成（连续两轮）",
+      "req2_full_execution_71_61": "未完全达成：BUILD-GCC-RELEASE 误 SKIP（F-R3-03）+ WIN-TEST-UNIT missing_output（F-R3-02 级联）",
+      "req3_resource_summary": "部分达成：windows monitor JSON 产出（cpu/rss null 为宿主探针语义）；linux 空采（F-R3-03）",
+      "req4_candidate_pipeline": "阻塞：configure 即败（preset CMAKE_GENERATOR_INSTANCE）+ dumpbin skip（F-R2-05）",
+      "req5_failure_attribution_findings": "完成（轮 2 十项维持 + F-R3-01/02/03）",
+      "req6_evidence_chain_acceptance": "完成（logs/round3/ 全量留档；trace 无凭据断言 PASS；git status 89 行与初始快照一致；unittest 231 OK）",
+      "overall": "NOT_CLOSABLE —— 差距集中三点：F-R3-03 误 SKIP、windows preset CMAKE_GENERATOR_INSTANCE（configure 即败级联）、F-R3-01 诊断步 encoding；修复后建议一轮定向重验（linux 看 BUILD-GCC-RELEASE 实跑+monitor JSON；windows 看 configure 通过+junit 产出+BOOTSTRAP_DIAG 回填）"
+    },
+    "evidence_files": {
+      "dir": "logs/round3/",
+      "api_traces": [
+        "runs_api_trace_ci-linux_headsha.json",
+        "runs_api_trace_push_recent.json",
+        "run_api_trace_34008273326.json",
+        "jobs_api_trace_34008273326.json",
+        "artifacts_api_trace_34008273326.json",
+        "run_api_trace_34008273413.json",
+        "jobs_api_trace_34008273413.json",
+        "artifacts_api_trace_34008273413.json",
+        "run_linux_34008273326_poll.json"
+      ],
+      "job_logs": [
+        "job_log_101419369057_linux.log（AUTHORIZATION 行已 [REDACTED] 化）",
+        "job_log_101419369159_windows.log（同）"
+      ],
+      "artifacts": [
+        "linux-ci-77da09effe1f....zip (id 9981794198, 188080B) + 解包（BOOTSTRAP_DIAG + 71 checks + logs + CI_RESULT）",
+        "windows-ci-77da09effe1f....zip (id 9981668901, 149863B) + 解包（BOOTSTRAP_DIAG + 61 checks + logs + CI_RESULT）"
+      ]
+    },
+    "credential_discipline_round3": {
+      "token_source": "git credential fill 内联，仅进程内存",
+      "files_written_with_token": 0,
+      "sanitization_scan": "logs/round3/ 全量 grep（ghp_/github_pat_/ghs_/gho_/Authorization 头/password=）无命中；job log 中 GitHub runner 自掩码 basic *** 已统一 [REDACTED] 化",
+      "api_timeout": "所有 curl --max-time 15"
+    },
+    "acceptance_round3_observation": {
+      "git_status": "89 行，与任务初始快照逐行一致（零越界新增；evidence/ 不入 git status）",
+      "unittest": "Ran 231 tests — OK",
+      "git_writes": "0（只读观察，无 commit/push/branch）"
+    },
+    "residual_risks": [
+      "windows preset CMAKE_GENERATOR_INSTANCE 根因为强假设（错误行被观测盲点遮蔽），前台修复观测面后可实证",
+      "linux BUILD-GCC-RELEASE 解锁后可能暴露 F-R2-08 gcc 编译失败链（FAIL 形态回归），属预期归属非新故障",
+      "DEEP-* 4 项同踩 F-R3-03（linux-deep profile），解锁时一并修复"
+    ]
+  },
+  "repair_round4": {
+    "round": 4,
+    "round_label": "repair_round4",
+    "owner": "SA-CI-32",
+    "mode": "write",
+    "executed_utc": "修复轮 4（收口轮）本机执行；HEAD=77da09ef（原地修复，未产生新提交）",
+    "base_head_sha": "77da09ef",
+    "verdict": "PASS_LOCAL —— 四项前台裁决修复全部落地并通过本地验收（validate_registry strict PASS / unittest 235 OK / 四 profile plan-only 57/71/7/61 不变 / BUILD-GCC-RELEASE 进计划 / diff 范围符合裁决）；hosted 定向重验待控制面触发",
+    "summary": "按前台四项裁决执行修复轮 4：(1) F-R3-03 核心——ci/run.py probe_prerequisite 路径探测循环跳过 run/ 前缀仓库相对参数（run/ 为 AGENTS.md 定义的运行时产物目录，与 outputs 排除同语义，附注释），BUILD-GCC-RELEASE 与 DEEP-* 误 SKIP 根因消除，其他探测语义不变；(2) preset 硬编码——CMakePresets.json base-msvc 移除 CMAKE_GENERATOR_INSTANCE（cmake 经 vswhere 自动发现 VS 实例，双端安全），toolset 由 v143,host=x64,version=14.44.35207 放宽为 v143,host=x64（去固定 MSVC build 号），preset 名与 binaryDir 不变；配套同步 cmake/toolchain/verify_toolchain.py 两处合约断言（version= pin 由『必须匹配』改为『禁止出现』，GENERATOR_INSTANCE 由『必须存在』改为『禁止硬编码』），保持 BLD-001 fail-fast 漂移检测语义，机器校验器实跑 TOOLCHAIN_CONTRACT_PASS；(3) F-R3-01——ci-windows.yml 诊断步 subprocess.run 补 encoding=\"utf-8\", errors=\"replace\"（与 ci/tests/_helpers.py F-R2-06 同法），BOOTSTRAP_DIAG 双 null 根因消除；(4) F-R3-02——ci-windows.yml evidence 上传步 path 由单一路径改为多路径（artifacts/ci/ 与 run/ci/win-build-summary.json 逐行展开），cmake 真实错误证据随 artifact 上传，artifacts/ci/ 有内容即满足 if-no-files-found: error。",
+    "changed_files": [
+      "ci/run.py",
+      "CMakePresets.json",
+      "cmake/toolchain/verify_toolchain.py",
+      ".github/workflows/ci-windows.yml",
+      "ci/tests/test_run_prefix_probe.py（新增，F-R3-03 单测 4 项）",
+      "ci/tests/test_workflow_lock.py（evidence path 断言同步多路径解析 + F-R3-02 新路径正向断言）",
+      "evidence/v8_1_ci_control/tasks/V8-CI-010/HOSTED_RUN_REPORT.md（修复轮 4 段）",
+      "evidence/v8_1_ci_control/tasks/V8-CI-010/TASK_RESULT.json（repair_round4 块）",
+      "logs/repair_round4.log（.gitignore 内，本机留档）"
+    ],
+    "fixes": [
+      {
+        "id": "F-R3-03",
+        "file": "ci/run.py",
+        "change": "probe_prerequisite 路径探测循环：outputs/绝对路径排除之后新增 run/ 前缀豁免——arg == 'run' or arg.startswith('run/') or arg.startswith('run\\\\') 时 continue，注释说明 run/ 为运行时产物目录（AGENTS.md 临时操作目录），与 outputs 排除同语义",
+        "semantic_guard": "command[0] 可执行性、prerequisite_tools、python -m 模块、含空白参数、绝对路径、outputs 排除、requires_monitor、platform 门控全部不变；非 run/ 前缀且不存在的仓库路径仍被拒（test_non_run_missing_path_still_rejected 回归保护）"
+      },
+      {
+        "id": "F-R3-02b-preset",
+        "file": "CMakePresets.json",
+        "change": "base-msvc cacheVariables 移除 CMAKE_GENERATOR_INSTANCE='C:/AstroCS/toolchains/vs2022-17.14.39'；toolset value 'v143,host=x64,version=14.44.35207' → 'v143,host=x64'（vendor.windows_formal.toolset 同步）；$comment 与 description 更新（vswhere 自动发现 + 不固定 build 号）；preset 名 win-msvc-17.14.39-x64 与 binaryDir build/win-msvc-17.14.39-x64 不变",
+        "reference_check": "tools/quality/ci_windows_driver.py 仅引用 preset 名与 binaryDir（build_dir_from_preset/_toolchain_from_presets 实测正常），无 GENERATOR_INSTANCE/toolset version 引用点；packaging/gen_sbom_input.py 机器路径扫描对 C:/AstroCS/toolchains/ 白名单，preset 移除该行后无影响；packaging/dependency-lock.json remaining_known 登记行为描述性文字（机器扫描不校验其内容），未改动"
+      },
+      {
+        "id": "F-R3-02b-verifier-sync",
+        "file": "cmake/toolchain/verify_toolchain.py",
+        "change": "合约校验器随 preset 同步（保持 fail-fast 漂移检测）：toolset 断言由『version 必须等于 contract.windows.toolset_version』改为『禁止 version= 键』（un-pinned by contract）；GENERATOR_INSTANCE 断言由『必须存在』改为『禁止出现在 cacheVariables』（vswhere discovery since F-R3-02b）；docstring 同步；contract.windows.toolset_version/vs_installation 保留为本地冻结安装基准记录（required_consts 自洽检查不变）",
+        "note": "该脚本不被 ci/checks.json 引用（TOOLCHAIN-VERIFY 用的是 ci/verify_toolchain.py，另一脚本），属本地机器验收工具；不同步则 BLD-001 校验器对新 preset 报漂移 FAIL",
+        "verification": "python3 cmake/toolchain/verify_toolchain.py --root . → TOOLCHAIN_CONTRACT_PASS"
+      },
+      {
+        "id": "F-R3-01",
+        "file": ".github/workflows/ci-windows.yml",
+        "change": "Collect bootstrap diagnostics 步内嵌 python 的 subprocess.run 增加 encoding=\"utf-8\", errors=\"replace\"（capture_output/text/timeout 不变），与 ci/tests/_helpers.py F-R2-06 同法"
+      },
+      {
+        "id": "F-R3-02",
+        "file": ".github/workflows/ci-windows.yml",
+        "change": "Upload public CI evidence 步 path: artifacts/ci/ → 多路径（artifacts/ci/ + run/ci/win-build-summary.json，YAML 逐行形式，upload-artifact v5 按行展开）；附注释：某路径缺失仅 warning，artifacts/ci/ 有内容即满足 if-no-files-found: error"
+      }
+    ],
+    "tests": {
+      "new": "ci/tests/test_run_prefix_probe.py 4 项：受试登记自洽（7 id 确携带 run/ 前缀参数）、主仓库真实登记 probe 全通过（mock which 放行 prerequisite_tools）、fixture 端到端 run/ 前缀参数真跑 PASS（waivable=False 硬失败面）、非 run/ 不存在路径仍 FAIL(prerequisite) 回归保护",
+      "regression_check": "git stash 临时回退修复后新测试 2 项失败（端到端 PASS 判定 + 真实登记 probe），恢复后全绿——修复因果成立；stash 已弹回，无遗留",
+      "synced": "ci/tests/test_workflow_lock.py test_evidence_upload_path_matches_run_output_dir 按多路径逐行解析同步，并正向断言 run/ci/win-build-summary.json 在 windows evidence 上传集合（F-R3-02）"
+    },
+    "preset_local_validation": {
+      "command": "cmake --preset win-msvc-17.14.39-x64",
+      "result": "本机无 cmake（which cmake 无结果，cmake: 未找到命令，exit 127），无法获得 cmake preset 解析报错原文；裁决预期（报 generator/VS 发现类错误而非 CMAKE_GENERATOR_INSTANCE 路径错误）无法在本机实证，留待 hosted windows-2022 轮",
+      "structural_alternative": "Python 结构级验证 15/15 PASS（logs/repair_round4.log）：JSON 可解析、preset 名/binaryDir/generator/architecture 不变、toolset=v143,host=x64 且无 version= pin、CMAKE_GENERATOR_INSTANCE 已移除、全文件无本地私有实例路径、driver build_dir_from_preset 与 _toolchain_from_presets 消费面正常、cmake/toolchain/verify_toolchain.py TOOLCHAIN_CONTRACT_PASS"
+    },
+    "acceptance": {
+      "validate_registry_strict": "python3 ci/validate_registry.py --registry ci/checks.json --strict → verdict PASS, exit 0",
+      "unittest": "python3 -m unittest discover -s ci/tests -p 'test_*.py' → Ran 235 tests, OK（231 基线 + 新增 4；含 test_workflow_lock 同步后重跑确认）",
+      "plan_only_counts": "fast=57 / linux-main=71 / linux-deep=7 / windows-main=61，四 profile 不变",
+      "build_gcc_release_in_plan": "python3 ci/run.py --profile linux-main --check BUILD-GCC-RELEASE --plan-only → selected_count=1, ids=['BUILD-GCC-RELEASE']（不再因 run/ 前缀被预检拒）",
+      "diff_scope": "git diff --stat：本轮新增改动 = ci/run.py(+6) / CMakePresets.json(11 行±) / cmake/toolchain/verify_toolchain.py(27 行±) / .github/workflows/ci-windows.yml(10 行±) / ci/tests/test_workflow_lock.py(19 行±)；diff 中 AGENTS.md(8 行±) 与 dist/audit zip 删除为修复轮 1-3 遗留工作区状态（非本轮产生，git 只读纪律未触碰）；evidence/* 为证据更新"
+    },
+    "hosted_revalidation_expectation": {
+      "linux": "BUILD-GCC-RELEASE 由 SKIPPED(waivable)（仓库路径不存在）变为真实执行（PASS 或真实 FAIL——若 gcc/cmake 工具链在 hosted 缺失则按 prerequisite_tools 语义 SKIPPED，理由含工具名而非路径不存在）；DEEP-CLANG-BUILD/DEEP-SAN-ASAN/DEEP-SAN-TSAN/DEEP-COV-CPP/DEEP-COV-PY（linux-deep 7 项中带 run/ 参数者）同理由变化；linux resource summary 不再空采",
+      "windows": "WIN-BUILD-RELEASE configure 不再因 CMAKE_GENERATOR_INSTANCE 指向不存在目录在 0.4s 即败（vswhere 自动发现 VS 实例）→ configure/build 真实执行；WIN-TEST-UNIT 不再级联 missing_output（junit 应真实产出）；WIN-PACKAGE-CANDIDATE 链路解锁（dumpbin skip 仍属登记预期）；WIN-BUILD-RELEASE 不再因 platform 门控外原因 waivable 跳过；BOOTSTRAP_DIAG 回填（encoding 修复后 report/stderr 不再双 null）；evidence artifact 含 run/ci/win-build-summary.json（cmake 错误可定位）",
+      "toolset_note": "hosted v143 = windows-2022 镜像自带最新（无 version= pin），本地 = 本地 VS 默认 v143；两端 compiler 实际版本可能与历史 14.44.35207 基准不同，属裁决放宽的预期行为，记录于 summary preset_formal 供比对"
+    },
+    "residual_risks": [
+      "BUILD-GCC-RELEASE 真实执行将首次在 hosted 产出 run/ci/build-gcc-release 目录；其 --build-dir 中间产物未登记 outputs，dirty 快照若把 run/ 未跟踪文件计入会 FAIL(dirty)——detect_dirty 的 ignore 仅覆盖 outputs 登记项与输出目录前缀，需 hosted 轮实证；若命中，属登记域（outputs 语义）问题，改动权在前台",
+      "preset 放宽后 hosted 与本地 MSVC build 号可漂移（镜像自带 v143 最新 vs 本地 VS 默认），若后续需要版本等价证明需另行固定安装面（.vsconfig 组件锁不变，仍由 verify_toolchain 守护）",
+      "packaging/dependency-lock.json remaining_known 首条登记文字仍描述已移除的 GENERATOR_INSTANCE（描述性、无机器校验）；packaging/schemas/preset-contract.json vs_installation/toolset_version 保留为本地冻结安装基准记录——两者如需文字同步属文档域，未在本轮裁决范围",
+      "cmake preset 真实解析（cmake >= 3.31 对 version 10 presets）未在本机实证（无 cmake）；结构级验证不能替代 hosted configure 实跑",
+      "windows-main plan-only 61 项计数不变，但 WIN-* 检查 probe 在 hosted 的真实执行面（cmake/dumpbin prerequisite_tools）由 hosted 轮确认"
+    ],
+    "logs": "logs/repair_round4.log（preset 本机尝试 + 结构级验证 + 全部验收命令输出，.gitignore 内本机留档）"
   }
 }

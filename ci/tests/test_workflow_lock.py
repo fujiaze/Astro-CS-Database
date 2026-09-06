@@ -187,15 +187,30 @@ class TestWorkflowYaml(unittest.TestCase):
                 self.assertTrue(s["with"].get("if-no-files-found"), name)
 
     def test_evidence_upload_path_matches_run_output_dir(self):
-        """evidence 上传路径 = run.py 实际输出目录 artifacts/ci/（契约 07）。"""
+        """evidence 上传路径 = run.py 实际输出目录 artifacts/ci/（契约 07）。
+
+        V8-CI-010 F-R3-02 接入侧：path 支持多路径列表（逐行展开）——
+        ci-windows.yml 额外上传 run/ci/win-build-summary.json（cmake 真实
+        错误证据），artifacts/ci/ 仍必须在上传集合内。
+        """
         for name, doc in self.docs.items():
             uploads = [s for s in doc["jobs"][{"ci-linux.yml": "linux",
                                                "ci-windows.yml": "windows"}[name]]["steps"]
                        if s.get("uses", "").startswith("actions/upload-artifact")]
-            paths = {s["with"]["path"] for s in uploads}
+            paths = {ln.strip()
+                     for s in uploads
+                     for ln in str(s["with"]["path"]).splitlines()
+                     if ln.strip()}
             self.assertIn("artifacts/ci/", paths, f"{name} 缺 artifacts/ci/ 上传路径")
             self.assertNotIn("artifacts/ci-public/", paths,
                              f"{name} 仍上传无生产者的 artifacts/ci-public/")
+        win_doc = self.docs["ci-windows.yml"]
+        win_paths = {ln.strip()
+                     for s in win_doc["jobs"]["windows"]["steps"]
+                     if s.get("uses", "").startswith("actions/upload-artifact")
+                     for ln in str(s["with"]["path"]).splitlines() if ln.strip()}
+        self.assertIn("run/ci/win-build-summary.json", win_paths,
+                      "ci-windows.yml 缺 run/ci/win-build-summary.json 上传（F-R3-02）")
 
     def test_collect_bootstrap_diagnostics_step_on_failure(self):
         """两平台各有一个 if: failure() 的 bootstrap 诊断步，产出 BOOTSTRAP_DIAG.json。"""
