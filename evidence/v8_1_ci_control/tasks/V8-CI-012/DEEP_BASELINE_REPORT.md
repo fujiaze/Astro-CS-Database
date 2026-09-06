@@ -633,3 +633,13 @@ UT-BACKEND 全量（agent-host 16 核，unittest discover，658s）：
 4. phase3_reproject 3 项业务语义（|dec|<5 拒绝 got 0、BUNIT ADU vs Jy、WCS roundtrip）→ 业务域任务面。
 
 V8-CI-012 R7 本地收口至此闭环：6+1+2 个 commit（54a8f9a7..f20e0976），远端 run 复验进行中。
+
+### 7.7 推送后 hosted 复验差分（run 34032470710 @ddb6d92b，linux-main，2026-09-06）
+
+对照冻结基线（run @52e71804，71 项，48P/23 非PASS）：本轮非 PASS 23 项与基线交集 22。
+- **净改善：UT-API FAIL → PASS**（f2ea0928 CLI 协议合同 tracked 化 + task_result schema v2 rehome）。
+- UT-CLI FAIL → TIMEOUT：同一 hosted 资源治理面（300s 上限），形态变化非新增失败。
+- 其余 21 项与基线逐一对应（governance/docs 族 + UT-BACKEND TIMEOUT），零新增失败。
+- TASK_STATE V8-CI-012.commit=f20e0976（最后代码 commit；本轮差分对象 ddb6d92b 仅含 evidence/ 追记）。
+
+R7 全程收口：本地 9 commit（54a8f9a7..ddb6d92b）全部推送；hosted 差分零回归、净改善 1 项。
