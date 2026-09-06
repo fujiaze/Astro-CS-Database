@@ -48,6 +48,7 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "jsonl.h"
 #include "monitor.h"
 #include "resource_events.h"
+#include "resource_gate.h"
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -504,6 +505,62 @@ static void emit_backend_event(astrocs::JsonlEmitter& ev, const std::string& pha
     return astrocs::is_unannotated_priority(annotation, wall_seconds);
 }
 
+// MON-004 资源门禁生产接线(cli/resource_gate.h 唯一生产调用点; 冻结约束:
+// 重计算禁止单线程并自动资源监控, 低利用率/异常内存增长为失败):
+// 后台线程对 run_pipeline 执行期采样(ProcessMonitor::tick), 结束后按 07 合同
+// evaluate_gate 判定 —— 失败发 resource_gate FAIL 事件并返回 RESOURCE(10)。
+// 短任务豁免(wall<5s)由 evaluate_gate 内建, 冒烟小测不受影响。
+// kind 固定 Compute: phase1/2/3 均为 cpu_heavy 合成管线(runtime_client.cpp
+// resources.class=cpu_heavy); io/mem 类判据属 benchmark 专用路径, 不在 CLI run。
+static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& phase,
+                                  const std::string& cfg_text, uint32_t budget,
+                                  std::string& fail_reason) {
+    astrocs::ProcessMonitor mon(0.5);
+    std::atomic<bool> sampling{true};
+    std::thread sampler([&mon, &sampling] {
+        using SteadyNs = std::chrono::steady_clock::duration;
+        const auto period = std::chrono::duration_cast<SteadyNs>(std::chrono::duration<double>(0.5));
+        auto next = std::chrono::steady_clock::now();
+        while (sampling.load(std::memory_order_relaxed)) {
+            mon.tick();
+            next += period;
+            std::this_thread::sleep_until(next);
+        }
+    });
+    const int rrc = astrocs::cli::run_pipeline({phase.back() - '0'}, cfg_text, budget,
+                                               &fail_reason);
+    sampling.store(false, std::memory_order_relaxed);
+    sampler.join();
+    if (rrc != astrocs::OK) return rrc;  // 管线自身失败: 保留原退出码
+
+    const auto s = mon.summary();
+    astrocs::GateConfig g;
+    g.kind = astrocs::ResKind::Compute;
+    g.available_cpus = cli_affinity_cpu_count();
+    g.selected_workers = budget;
+    g.max_active_threads = s.max_threads;
+    g.avg_equivalent_cores = s.avg_equivalent_cores;
+    g.wall_seconds = s.wall_seconds;
+    g.cpu_percent = s.avg_cpu_percent;
+    const astrocs::GateDiag d = astrocs::evaluate_gate(g);
+    ev.emit("resource", "info", phase, "resource gate", {
+        {"verdict", astrocs::gate_diag_name(d)},
+        {"wall_seconds", s.wall_seconds},
+        {"avg_equivalent_cores", s.avg_equivalent_cores},
+        {"max_active_threads", s.max_threads},
+        {"selected_workers", g.selected_workers},
+        {"available_cpus", g.available_cpus},
+    });
+    if (d != astrocs::GateDiag::Ok) {
+        const std::string why = "resource gate FAILED: " + std::string(astrocs::gate_diag_name(d)) +
+                                " (" + astrocs::diag_message(d, g) + ")";
+        ev.emit("resource_gate", "error", phase, why, {});
+        std::fprintf(stderr, "astrocs: %s\n", why.c_str());
+        return astrocs::RESOURCE;  // exit_codes.h:17 = 10
+    }
+    return astrocs::OK;
+}
+
 int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const std::string cfg = need_value(p, "--config");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
@@ -541,7 +598,7 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
-    const int rrc = astrocs::cli::run_pipeline({2}, cfg_text, budget, &fail_reason);
+    const int rrc = run_with_resource_gate(ev, "phase2", cfg_text, budget, fail_reason);
     ev.stage("phase2_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
@@ -641,7 +698,7 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
-    const int rrc = astrocs::cli::run_pipeline({3}, cfg_text, budget, &fail_reason);
+    const int rrc = run_with_resource_gate(ev, "phase3", cfg_text, budget, fail_reason);
     ev.stage("phase3_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
@@ -742,7 +799,7 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
-    const int rrc = astrocs::cli::run_pipeline({1}, cfg_text, budget, &fail_reason);
+    const int rrc = run_with_resource_gate(ev, "phase1", cfg_text, budget, fail_reason);
     ev.stage("phase1_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
