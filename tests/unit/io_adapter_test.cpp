@@ -20,8 +20,18 @@ static int failures = 0;
   } while (0)
 
 static std::string tmp_dir() {
+  // 跨平台临时目录: Linux 用 TMPDIR(/tmp); Windows 无 /proc 也没有 "/tmp",
+  // MSVC 会把 "/tmp/x" 解析到当前盘根 (runner 上不存在) → begin 失败 →
+  // Result::value() on error 抛 std::logic_error → terminate (0xc0000409)。
+  // 回退顺序 TMPDIR → TEMP → TMP → "."(最后手段), 与 Windows runner 环境一致。
   const char* d = std::getenv("TMPDIR");
-  return d ? d : "/tmp";
+  if (!d || !*d) d = std::getenv("TEMP");
+  if (!d || !*d) d = std::getenv("TMP");
+#if defined(_WIN32)
+  return (d && *d) ? std::string(d) : std::string(".");
+#else
+  return (d && *d) ? std::string(d) : std::string("/tmp");
+#endif
 }
 
 static std::string read_file(const std::string& p) {

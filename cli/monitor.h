@@ -88,6 +88,35 @@ struct ProcSample {
 
 // /proc 采样(无依赖 /proc 的字段保持 0)。返回 false 仅当无法打开关键文件。
 inline bool read_proc_self(ProcSample& s) {
+#if defined(_WIN32)
+    // MON-004 (WIN hosted): /proc 不存在, 用 Win32 进程/系统采样补齐指标。
+    // 语义映射: rss=WorkingSetSize, vms=PagefileUsage, threads=ThreadCount,
+    // page_faults=PageFaultCount, read/write bytes=IO_COUNTERS 传输字节,
+    // sys_mem_avail=GlobalMemoryStatusEx.ullAvailPhys;
+    // ctx_switches 无 Win32 廉价等价 → 保持 0 (摘要侧为单调增量, 0 无害)。
+    HANDLE proc = GetCurrentProcess();
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    ZeroMemory(&pmc, sizeof(pmc));
+    pmc.cb = sizeof(pmc);
+    if (GetProcessMemoryInfo(proc, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc),
+                             sizeof(pmc))) {
+        s.rss_bytes = static_cast<std::uint64_t>(pmc.WorkingSetSize);
+        s.vms_bytes = static_cast<std::uint64_t>(pmc.PagefileUsage);
+        s.threads = static_cast<std::uint32_t>(pmc.ThreadCount);
+        s.page_faults = static_cast<std::uint64_t>(pmc.PageFaultCount);
+        s.read_bytes = static_cast<std::uint64_t>(pmc.IoInfo.ReadTransferCount);
+        s.write_bytes = static_cast<std::uint64_t>(pmc.IoInfo.WriteTransferCount);
+        s.read_ops = static_cast<std::uint64_t>(pmc.IoInfo.ReadOperationCount);
+        s.write_ops = static_cast<std::uint64_t>(pmc.IoInfo.WriteOperationCount);
+    }
+    MEMORYSTATUSEX ms;
+    ZeroMemory(&ms, sizeof(ms));
+    ms.dwLength = sizeof(ms);
+    if (GlobalMemoryStatusEx(&ms)) {
+        s.sys_mem_avail = static_cast<std::uint64_t>(ms.ullAvailPhys);
+    }
+    return true;
+#else
     bool ok = false;
     // /proc/self/status
     std::FILE* f = std::fopen("/proc/self/status", "r");
@@ -125,6 +154,7 @@ inline bool read_proc_self(ProcSample& s) {
 #endif
     (void)ok;
     return true;
+#endif  /* _WIN32 */
 }
 
 inline void read_cpu_time(ProcSample& s) {

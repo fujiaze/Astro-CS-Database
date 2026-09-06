@@ -58,8 +58,22 @@ def iter_files():
         if os.path.isfile(p):
             yield p
 
+def _rel_to_repo(path):
+    """path 相对仓库根的显示路径。
+
+    Windows 下临时文件与仓库可能在不同盘符 (C:\\Users\\...\\Temp vs D:\\repo),
+    os.path.relpath 会抛 ValueError: path is on mount 'C:', start on mount 'D:'
+    (UT-VERSION run 5e457d425fc8 test_05 实证)。此时回退 os.path.abspath 原样:
+    仓库外文件的绝对路径不命中任何豁免表条目, mutation 合同语义不变。
+    """
+    try:
+        return os.path.relpath(path, REPO)
+    except ValueError:
+        return os.path.abspath(path)
+
+
 def check_file(path, base_num, alpha_n, errors):
-    rel = os.path.relpath(path, REPO)
+    rel = _rel_to_repo(path)
     if rel == "VERSION" or rel == os.path.join("tools", "gen_version.py"):
         return  # 唯一定义点自身豁免
     if rel == SELF_FIXTURE or rel in PROBE_FIXTURES or rel in TEST_FIXTURES:

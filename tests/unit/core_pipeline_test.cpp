@@ -328,15 +328,34 @@ static void test_validate_unconsumed() {
 
 static void test_control_package_fixtures() {
   PipelineIRParser parser;
-  std::string base = std::string(std::getenv("ASTROCS_REPO") ? std::getenv("ASTROCS_REPO") : "../..")
-      + "/工程控制/CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/fixtures/";
-  auto v = parser.parse(read_file(std::string(base) + "valid_pipeline.json"));
+  // fixture 定位: 控制包解压布局演进过 (V6 控制包 fixtures 先在 工程控制/<pkg>/,
+  // V6.1 重构后归档迁移到 engineering/control/archive/...), 候选按新旧顺序探测,
+  // 首个存在者生效, 避免 single-path 硬编码随归档迁移后全平台 fixture 缺失。
+  static const char* kFixtureRoots[] = {
+      "/工程控制/CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/fixtures",
+      "/engineering/control/archive/2026-09-02_legacy_"
+      "工程控制_v1.3-to-v6.1/CONTROL_V6/"
+      "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/fixtures",
+  };
+  const char* repo = std::getenv("ASTROCS_REPO");
+  std::string base;
+  for (const char* cand : kFixtureRoots) {
+    std::string probe = std::string(repo ? repo : "../..") + cand + "/valid_pipeline.json";
+    std::ifstream f(probe);
+    if (f.good()) { base = std::string(repo ? repo : "../..") + cand + "/"; break; }
+  }
+  CHECK(!base.empty());
+  if (base.empty()) {
+    std::fprintf(stderr, "core_pipeline: 控制包 fixtures 目录缺失 (候选见 kFixtureRoots)\n");
+    return;
+  }
+  auto v = parser.parse(read_file(base + "valid_pipeline.json"));
   CHECK(v.ok());
   if (v.ok()) {
     auto issues = parser.validate(v.value(), make_registry());
     CHECK(issues.empty());
   }
-  auto inv = parser.parse(read_file(std::string(base) + "invalid_pipeline_serial_heavy.json"));
+  auto inv = parser.parse(read_file(base + "invalid_pipeline_serial_heavy.json"));
   CHECK(inv.failed());  // cpu_heavy serial 必须拒
 }
 

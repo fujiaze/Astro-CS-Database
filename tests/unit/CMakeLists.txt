@@ -108,7 +108,11 @@ add_executable(io_reentrant_test io_reentrant_test.cpp)
 target_include_directories(io_reentrant_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/third_party/cfitsio)
 if(MSVC AND ACS_ZLIB_ROOT)
-  target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio "${ACS_ZLIB_ROOT}/lib/libz.lib")
+  # HOSTFIX (WIN-BUILD LNK1104): 不可硬编码 libz.lib —— fatduck 本机 zlib-msvc
+  # 布局是 libz.lib, hosted runner 的 vcpkg x64-windows-static-md 实际产物是
+  # zs.lib/zlib.lib; 父 CMakeLists 的 ACS_ZLIB_LIBRARY (ACS_ZLIB_LIB 注入 /
+  # find_library z/libz/zlib/zlibstatic/zs) 是唯一已解析的 zlib 库路径, 直接复用。
+  target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio "${ACS_ZLIB_LIBRARY}")
 else()
   target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio z m)
 endif()

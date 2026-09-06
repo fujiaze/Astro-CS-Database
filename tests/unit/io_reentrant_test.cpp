@@ -68,8 +68,15 @@ int main() {
   // 1) doctor 现场校验: fits_is_reentrant() 必须返回 1 (显式 reentrant 构建)
   CHECK(fits_is_reentrant() == 1);
 
-  // 2) 合成 FITS 供并发读
-  std::string path = std::string(std::getenv("TMPDIR") ? std::getenv("TMPDIR") : "/tmp")
+  // 2) 合成 FITS 供并发读 (跨平台临时目录: Windows 回退 TEMP/TMP/".")
+  const char* tmpenv = std::getenv("TMPDIR");
+  if (!tmpenv || !*tmpenv) tmpenv = std::getenv("TEMP");
+  if (!tmpenv || !*tmpenv) tmpenv = std::getenv("TMP");
+#if defined(_WIN32)
+  std::string path = std::string((tmpenv && *tmpenv) ? tmpenv : ".")
+#else
+  std::string path = std::string((tmpenv && *tmpenv) ? tmpenv : "/tmp")
+#endif
                      + "/astrocs_io003_tile.fits";
   std::remove(path.c_str());
   std::string err = make_fits(path);
