@@ -187,10 +187,14 @@ class TestNegativeNoMonitor(unittest.TestCase):
         g.assert_ready()  # 不抛
 
     def test_run_heavy_monitor_attached_succeeds(self):
+        # 采样源用 fake raw 注入（同 TestTamperDetection 惯例）：本测试验证
+        # HeavyRunGuard attach/CSV 契约，不验证平台采样器 —— Windows PDH
+        # backend 是显式 not-implemented stub，真采样仅在 Linux 控制节点。
         with tempfile.TemporaryDirectory() as td:
             csv = pathlib.Path(td) / "ok.csv"
             g = HeavyRunGuard("cpu_heavy", "run-ok")
-            m = g.create_monitor(csv, interval_s=1.0)
+            m = g.create_monitor(csv, interval_s=1.0,
+                                 collect_raw=_fake_raw_factory())
             m.start()
             time.sleep(0.05)
             m.stop()
