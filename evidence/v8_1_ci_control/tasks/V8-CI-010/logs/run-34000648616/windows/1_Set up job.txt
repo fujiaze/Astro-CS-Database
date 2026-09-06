@@ -1,0 +1,31 @@
+﻿2026-09-06T00:11:50.4123616Z Current runner version: '2.337.0'
+2026-09-06T00:11:50.4287880Z ##[group]Runner Image Provisioner
+2026-09-06T00:11:50.4288671Z Hosted Compute Agent
+2026-09-06T00:11:50.4289180Z Version: 20260828.587
+2026-09-06T00:11:50.4289792Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-06T00:11:50.4290874Z Build Date: 2026-08-28T16:44:25Z
+2026-09-06T00:11:50.4291534Z Worker ID: {9dae64e2-ba5d-497b-bf9d-01aec3b50463}
+2026-09-06T00:11:50.4292200Z Azure Region: westus2
+2026-09-06T00:11:50.4292693Z ##[endgroup]
+2026-09-06T00:11:50.4294052Z ##[group]Operating System
+2026-09-06T00:11:50.4294649Z Microsoft Windows Server 2022
+2026-09-06T00:11:50.4295211Z 10.0.20348
+2026-09-06T00:11:50.4295679Z Datacenter
+2026-09-06T00:11:50.4296144Z ##[endgroup]
+2026-09-06T00:11:50.4296636Z ##[group]Runner Image
+2026-09-06T00:11:50.4297187Z Image: windows-2022
+2026-09-06T00:11:50.4297969Z Version: 20260830.290.1
+2026-09-06T00:11:50.4299005Z Included Software: https://github.com/actions/runner-images/blob/win22/20260830.290/images/windows/Windows2022-Readme.md
+2026-09-06T00:11:50.4301090Z Image Release: https://github.com/actions/runner-images/releases/tag/win22%2F20260830.290
+2026-09-06T00:11:50.4301963Z ##[endgroup]
+2026-09-06T00:11:50.4302955Z ##[group]GITHUB_TOKEN Permissions
+2026-09-06T00:11:50.4304886Z Contents: read
+2026-09-06T00:11:50.4305458Z Metadata: read
+2026-09-06T00:11:50.4305963Z ##[endgroup]
+2026-09-06T00:11:50.4308052Z Secret source: Actions
+2026-09-06T00:11:50.4309079Z Prepare workflow directory
+2026-09-06T00:11:50.4634887Z Prepare all required actions
+2026-09-06T00:11:50.4681208Z Getting action download info
+2026-09-06T00:11:50.8489253Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-09-06T00:11:50.9658043Z Download action repository 'actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4' (SHA:330a01c490aca151604b8cf639adc76d48f6c5d4)
+2026-09-06T00:11:51.3122058Z Complete job name: windows

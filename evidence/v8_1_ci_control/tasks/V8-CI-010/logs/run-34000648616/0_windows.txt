@@ -1,0 +1,199 @@
+﻿2026-09-06T00:11:50.4263621Z Current runner version: '2.337.0'
+2026-09-06T00:11:50.4287906Z ##[group]Runner Image Provisioner
+2026-09-06T00:11:50.4288676Z Hosted Compute Agent
+2026-09-06T00:11:50.4289184Z Version: 20260828.587
+2026-09-06T00:11:50.4289795Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-06T00:11:50.4290885Z Build Date: 2026-08-28T16:44:25Z
+2026-09-06T00:11:50.4291537Z Worker ID: {9dae64e2-ba5d-497b-bf9d-01aec3b50463}
+2026-09-06T00:11:50.4292203Z Azure Region: westus2
+2026-09-06T00:11:50.4292696Z ##[endgroup]
+2026-09-06T00:11:50.4294063Z ##[group]Operating System
+2026-09-06T00:11:50.4294652Z Microsoft Windows Server 2022
+2026-09-06T00:11:50.4295214Z 10.0.20348
+2026-09-06T00:11:50.4295682Z Datacenter
+2026-09-06T00:11:50.4296147Z ##[endgroup]
+2026-09-06T00:11:50.4296639Z ##[group]Runner Image
+2026-09-06T00:11:50.4297190Z Image: windows-2022
+2026-09-06T00:11:50.4297974Z Version: 20260830.290.1
+2026-09-06T00:11:50.4299614Z Included Software: https://github.com/actions/runner-images/blob/win22/20260830.290/images/windows/Windows2022-Readme.md
+2026-09-06T00:11:50.4301094Z Image Release: https://github.com/actions/runner-images/releases/tag/win22%2F20260830.290
+2026-09-06T00:11:50.4301967Z ##[endgroup]
+2026-09-06T00:11:50.4302959Z ##[group]GITHUB_TOKEN Permissions
+2026-09-06T00:11:50.4304907Z Contents: read
+2026-09-06T00:11:50.4305461Z Metadata: read
+2026-09-06T00:11:50.4305966Z ##[endgroup]
+2026-09-06T00:11:50.4308069Z Secret source: Actions
+2026-09-06T00:11:50.4309085Z Prepare workflow directory
+2026-09-06T00:11:50.4634916Z Prepare all required actions
+2026-09-06T00:11:50.4681254Z Getting action download info
+2026-09-06T00:11:50.8489290Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-09-06T00:11:50.9658075Z Download action repository 'actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4' (SHA:330a01c490aca151604b8cf639adc76d48f6c5d4)
+2026-09-06T00:11:51.3122103Z Complete job name: windows
+2026-09-06T00:11:51.4769596Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-09-06T00:11:51.4770800Z with:
+2026-09-06T00:11:51.4771211Z   persist-credentials: false
+2026-09-06T00:11:51.4771687Z   fetch-depth: 1
+2026-09-06T00:11:51.4772124Z   repository: fujiaze/Astro-CS-Database
+2026-09-06T00:11:51.4776352Z   token: ***
+2026-09-06T00:11:51.4776763Z   ssh-strict: true
+2026-09-06T00:11:51.4777160Z   ssh-user: git
+2026-09-06T00:11:51.4777545Z   clean: true
+2026-09-06T00:11:51.4777959Z   sparse-checkout-cone-mode: true
+2026-09-06T00:11:51.4778460Z   fetch-tags: false
+2026-09-06T00:11:51.4778885Z   show-progress: true
+2026-09-06T00:11:51.4779301Z   lfs: false
+2026-09-06T00:11:51.4779674Z   submodules: false
+2026-09-06T00:11:51.4780085Z   set-safe-directory: true
+2026-09-06T00:11:51.4780560Z   allow-unsafe-pr-checkout: false
+2026-09-06T00:11:51.4781256Z ##[endgroup]
+2026-09-06T00:11:51.6176620Z Syncing repository: fujiaze/Astro-CS-Database
+2026-09-06T00:11:51.6178387Z ##[group]Getting Git version info
+2026-09-06T00:11:51.6179112Z Working directory is 'D:\a\Astro-CS-Database\Astro-CS-Database'
+2026-09-06T00:11:51.7175611Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-09-06T00:11:52.1311992Z git version 2.55.0.windows.5
+2026-09-06T00:11:52.1349329Z ##[endgroup]
+2026-09-06T00:11:52.1364415Z Temporarily overriding HOME='D:\a\_temp\eab3bc46-afae-46f0-8c09-c075b98b5556' before making global git config changes
+2026-09-06T00:11:52.1365784Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-06T00:11:52.1374872Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\Astro-CS-Database\Astro-CS-Database
+2026-09-06T00:11:52.2092313Z Deleting the contents of 'D:\a\Astro-CS-Database\Astro-CS-Database'
+2026-09-06T00:11:52.2096186Z ##[group]Determining repository object format
+2026-09-06T00:11:52.2098614Z ##[endgroup]
+2026-09-06T00:11:52.2099668Z ##[group]Initializing the repository
+2026-09-06T00:11:52.2107795Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\Astro-CS-Database\Astro-CS-Database
+2026-09-06T00:11:52.2933649Z Initialized empty Git repository in D:/a/Astro-CS-Database/Astro-CS-Database/.git/
+2026-09-06T00:11:52.2965827Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/fujiaze/Astro-CS-Database
+2026-09-06T00:11:52.3401494Z ##[endgroup]
+2026-09-06T00:11:52.3403802Z ##[group]Disabling automatic garbage collection
+2026-09-06T00:11:52.3408970Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-09-06T00:11:52.3668989Z ##[endgroup]
+2026-09-06T00:11:52.3670242Z ##[group]Setting up auth
+2026-09-06T00:11:52.3671094Z Removing SSH command configuration
+2026-09-06T00:11:52.3679513Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T00:11:52.3902627Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-09-06T00:11:53.7851637Z Removing HTTP extra header
+2026-09-06T00:11:53.7860502Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T00:11:53.8076224Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-09-06T00:11:54.2374911Z Removing includeIf entries pointing to credentials config files
+2026-09-06T00:11:54.2385022Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T00:11:54.2607596Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-09-06T00:11:54.6904684Z [command]"C:\Program Files\Git\bin\git.exe" config --file D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-09-06T00:11:54.7132310Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git.path D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:11:54.7369472Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:11:54.7645958Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:11:54.7869062Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:11:54.8082101Z ##[endgroup]
+2026-09-06T00:11:54.8082516Z ##[group]Fetching the repository
+2026-09-06T00:11:54.8097962Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +25259880615bcde34c4a6dc9377d072528fc7fba:refs/remotes/origin/main
+2026-09-06T00:11:57.8025076Z From https://github.com/fujiaze/Astro-CS-Database
+2026-09-06T00:11:57.8026836Z  * [new ref]         25259880615bcde34c4a6dc9377d072528fc7fba -> origin/main
+2026-09-06T00:11:57.8070958Z [command]"C:\Program Files\Git\bin\git.exe" branch --list --remote origin/main
+2026-09-06T00:11:57.8348693Z   origin/main
+2026-09-06T00:11:57.8379778Z [command]"C:\Program Files\Git\bin\git.exe" rev-parse refs/remotes/origin/main
+2026-09-06T00:11:57.8629511Z 25259880615bcde34c4a6dc9377d072528fc7fba
+2026-09-06T00:11:57.8651419Z ##[endgroup]
+2026-09-06T00:11:57.8651962Z ##[group]Determining the checkout info
+2026-09-06T00:11:57.8654342Z ##[endgroup]
+2026-09-06T00:11:57.8661862Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-09-06T00:11:57.9021863Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-09-06T00:11:57.9243167Z ##[group]Checking out the ref
+2026-09-06T00:11:57.9252513Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force -B main refs/remotes/origin/main
+2026-09-06T00:11:58.9611594Z Updating files:  72% (3129/4292)
+2026-09-06T00:11:58.9753296Z Updating files:  73% (3134/4292)
+2026-09-06T00:11:58.9882917Z Updating files:  74% (3177/4292)
+2026-09-06T00:11:58.9993098Z Updating files:  75% (3219/4292)
+2026-09-06T00:11:59.0110275Z Updating files:  76% (3262/4292)
+2026-09-06T00:11:59.0190047Z Updating files:  77% (3305/4292)
+2026-09-06T00:11:59.0268017Z Updating files:  78% (3348/4292)
+2026-09-06T00:11:59.0342013Z Updating files:  79% (3391/4292)
+2026-09-06T00:11:59.0406060Z Updating files:  80% (3434/4292)
+2026-09-06T00:11:59.0476990Z Updating files:  81% (3477/4292)
+2026-09-06T00:11:59.0547576Z Updating files:  82% (3520/4292)
+2026-09-06T00:11:59.0647956Z Updating files:  83% (3563/4292)
+2026-09-06T00:11:59.0728130Z Updating files:  84% (3606/4292)
+2026-09-06T00:11:59.0809460Z Updating files:  85% (3649/4292)
+2026-09-06T00:11:59.0905209Z Updating files:  86% (3692/4292)
+2026-09-06T00:11:59.1018062Z Updating files:  87% (3735/4292)
+2026-09-06T00:11:59.1108021Z Updating files:  88% (3777/4292)
+2026-09-06T00:11:59.1218284Z Updating files:  89% (3820/4292)
+2026-09-06T00:11:59.1324930Z Updating files:  90% (3863/4292)
+2026-09-06T00:11:59.1406261Z Updating files:  91% (3906/4292)
+2026-09-06T00:11:59.1499356Z Updating files:  92% (3949/4292)
+2026-09-06T00:11:59.1604588Z Updating files:  93% (3992/4292)
+2026-09-06T00:11:59.1696678Z Updating files:  94% (4035/4292)
+2026-09-06T00:11:59.1771726Z Updating files:  95% (4078/4292)
+2026-09-06T00:11:59.1882154Z Updating files:  96% (4121/4292)
+2026-09-06T00:11:59.1967918Z Updating files:  97% (4164/4292)
+2026-09-06T00:11:59.2064458Z Updating files:  98% (4207/4292)
+2026-09-06T00:11:59.2151427Z Updating files:  99% (4250/4292)
+2026-09-06T00:11:59.2152158Z Updating files: 100% (4292/4292)
+2026-09-06T00:11:59.2152765Z Updating files: 100% (4292/4292), done.
+2026-09-06T00:11:59.2320890Z Switched to a new branch 'main'
+2026-09-06T00:11:59.2342672Z branch 'main' set up to track 'origin/main'.
+2026-09-06T00:11:59.2435267Z ##[endgroup]
+2026-09-06T00:11:59.2699927Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-09-06T00:11:59.2905122Z 25259880615bcde34c4a6dc9377d072528fc7fba
+2026-09-06T00:11:59.2934792Z ##[group]Removing auth
+2026-09-06T00:11:59.2935062Z Removing SSH command configuration
+2026-09-06T00:11:59.2942118Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T00:11:59.3167471Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-09-06T00:11:59.7814241Z Removing HTTP extra header
+2026-09-06T00:11:59.7822099Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T00:11:59.8047935Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-09-06T00:12:00.2371030Z Removing includeIf entries pointing to credentials config files
+2026-09-06T00:12:00.2381214Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T00:12:00.2576080Z includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git.path
+2026-09-06T00:12:00.2577204Z includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path
+2026-09-06T00:12:00.2579372Z includeif.gitdir:/github/workspace/.git.path
+2026-09-06T00:12:00.2580122Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-06T00:12:00.2606962Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git.path
+2026-09-06T00:12:00.2803631Z D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:12:00.2834262Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git.path D\:\\a\\_temp\\git\-credentials\-d379d5c7\-6b53\-4ba5\-983f\-f1225688374d\.config
+2026-09-06T00:12:00.3065045Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path
+2026-09-06T00:12:00.3258841Z D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:12:00.3293789Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:D:/a/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path D\:\\a\\_temp\\git\-credentials\-d379d5c7\-6b53\-4ba5\-983f\-f1225688374d\.config
+2026-09-06T00:12:00.3511464Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-09-06T00:12:00.3705740Z /github/runner_temp/git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:12:00.3731719Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-d379d5c7\-6b53\-4ba5\-983f\-f1225688374d\.config
+2026-09-06T00:12:00.3948373Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-06T00:12:00.4137702Z /github/runner_temp/git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config
+2026-09-06T00:12:00.4164639Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-d379d5c7\-6b53\-4ba5\-983f\-f1225688374d\.config
+2026-09-06T00:12:00.4376257Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-09-06T00:12:00.8761657Z Removing credentials config 'D:\a\_temp\git-credentials-d379d5c7-6b53-4ba5-983f-f1225688374d.config'
+2026-09-06T00:12:00.8772873Z ##[endgroup]
+2026-09-06T00:12:00.9080405Z ##[group]Run python ci/bootstrap.py --policy ci/toolchain.policy.json --platform windows
+2026-09-06T00:12:00.9081177Z [36;1mpython ci/bootstrap.py --policy ci/toolchain.policy.json --platform windows[0m
+2026-09-06T00:12:01.0468959Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-09-06T00:12:01.0469595Z ##[endgroup]
+2026-09-06T00:12:03.5764589Z {"verdict": "FAIL", "platform": "windows", "failed_tools": [{"tool": "cmake", "required": ">=3.31.12", "observed": {"present": true, "version_line": "cmake version 3.31.6"}, "repair": "\u5728 GitHub hosted runner \u4e0a\u590d\u9a8c\u6216\u8865\u9f50\u8be5\u5de5\u5177"}]}
+2026-09-06T00:12:03.6951508Z ##[error]Process completed with exit code 1.
+2026-09-06T00:12:03.7161836Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-06T00:12:03.7163694Z ##[group]Run actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+2026-09-06T00:12:03.7164062Z with:
+2026-09-06T00:12:03.7164305Z   name: windows-ci-25259880615bcde34c4a6dc9377d072528fc7fba
+2026-09-06T00:12:03.7164621Z   path: artifacts/ci-public/
+2026-09-06T00:12:03.7164836Z   retention-days: 14
+2026-09-06T00:12:03.7165032Z   if-no-files-found: error
+2026-09-06T00:12:03.7165440Z   compression-level: 6
+2026-09-06T00:12:03.7165633Z   overwrite: false
+2026-09-06T00:12:03.7165823Z   include-hidden-files: false
+2026-09-06T00:12:03.7166039Z ##[endgroup]
+2026-09-06T00:12:03.8956130Z (node:7120) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-06T00:12:03.8956855Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-06T00:12:03.9007947Z ##[error]No files were found with the provided path: artifacts/ci-public/. No artifacts will be uploaded.
+2026-09-06T00:12:03.9364527Z Post job cleanup.
+2026-09-06T00:12:04.1330219Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-09-06T00:12:04.1562750Z git version 2.55.0.windows.5
+2026-09-06T00:12:04.1624562Z Temporarily overriding HOME='D:\a\_temp\a8a3adf9-2e4e-41dd-a0c5-d3ed7e24b08d' before making global git config changes
+2026-09-06T00:12:04.1625836Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-06T00:12:04.1636423Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\Astro-CS-Database\Astro-CS-Database
+2026-09-06T00:12:04.1886953Z Removing SSH command configuration
+2026-09-06T00:12:04.1903791Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T00:12:04.2219005Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-09-06T00:12:04.6943746Z Removing HTTP extra header
+2026-09-06T00:12:04.6953976Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T00:12:04.7182306Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-09-06T00:12:05.2118638Z Removing includeIf entries pointing to credentials config files
+2026-09-06T00:12:05.2129436Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T00:12:05.2357601Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-09-06T00:12:05.6957754Z Cleaning up orphan processes
+2026-09-06T00:12:05.7201188Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

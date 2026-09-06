@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "task_id": "V8-CI-007",
+  "generated_utc": "2026-09-06T01:58:19Z",
+  "platform": "linux",
+  "policy": "ci/toolchain.policy.json",
+  "observed_from": {
+    "image": "ubuntu-24.04",
+    "image_batch": "20260831.293.1",
+    "observed_utc": "2026-09-06",
+    "cmake": "3.31.6",
+    "secondary_compiler": "18.1.3",
+    "semantics": "cmake/secondary_compiler 为最低要求下限（minimum floor），非精确锁定"
+  },
+  "items": [
+    {
+      "tool": "runner",
+      "required": "ubuntu-24.04",
+      "observed": {
+        "hosted": false,
+        "image_os": null,
+        "runner_os": null,
+        "runner_name": null,
+        "os_release_id": "debian",
+        "os_release_version": "13"
+      },
+      "ok": false,
+      "detail": "非 GitHub hosted ubuntu-24.04 runner（预期在 hosted 上复验）"
+    },
+    {
+      "tool": "architecture",
+      "required": "x86_64",
+      "observed": "x86_64",
+      "ok": true
+    },
+    {
+      "tool": "gcc-14",
+      "required": "gcc-14",
+      "observed": {
+        "present": false,
+        "version_line": null
+      },
+      "ok": false,
+      "detail": "gcc-14 不在 PATH 或版本不可解析（hosted ubuntu-24.04 预装；本地属预期缺失路径）"
+    },
+    {
+      "tool": "clang-18",
+      "required": "clang-18",
+      "observed": {
+        "present": false,
+        "version_line": null
+      },
+      "ok": false,
+      "detail": "clang-18 不在 PATH 或版本不可解析"
+    },
+    {
+      "tool": "cmake",
+      "required": ">=3.31.6",
+      "observed": {
+        "present": false,
+        "version_line": null
+      },
+      "ok": false,
+      "detail": "cmake 不在 PATH 或版本 < 3.31.6"
+    },
+    {
+      "tool": "Ninja",
+      "required": "Ninja present",
+      "observed": {
+        "present": false,
+        "version_line": null
+      },
+      "ok": false,
+      "detail": "ninja 不在 PATH（hosted ubuntu-24.04 预装）"
+    }
+  ],
+  "ok": false,
+  "failures": [
+    "runner",
+    "gcc-14",
+    "clang-18",
+    "cmake",
+    "Ninja"
+  ]
+}

@@ -4,12 +4,14 @@
 覆盖：
 1. actions.lock 结构校验（合法/短 SHA/重复条目/缺字段 -> LockInvalid）；
 2. workflow YAML —— 可解析、runs-on/permissions/concurrency/timeout 形状、
-   触发器（push main + dispatch choice + schedule cron）、if: always() 上传、
-   无未替换占位符（__XXX_FULL_SHA__ 等）、uses 全部命中锁内完整 SHA、
-   无算法命令/科学参数字样；
+   触发器（push main + dispatch choice + schedule cron）、if: always() 上传
+   （路径=run.py 输出目录 artifacts/ci/）、if: failure() bootstrap 诊断步
+   （BOOTSTRAP_DIAG.json）、无未替换占位符（__XXX_FULL_SHA__ 等）、
+   uses 全部命中锁内完整 SHA、无算法命令/科学参数字样；
 3. verify_actions_lock --offline 结构检查（真实锁 exit 0；坏结构 exit 3）；
 4. bootstrap --json —— 真实 policy 在本地宿主（缺 gcc-14 属预期）-> exit 2 +
-   结构化 stderr + items[] 形状；mock 探测全通过 -> PASS；policy 缺失 exit 2；
+   结构化 stderr + items[] 形状 + observed_from 透传（policy 驱动 cmake
+   下限/clang-18 期望）；mock 探测全通过 -> PASS；policy 缺失 exit 2；
    mock 单项版本不足 -> exit 2 且该 item ok=False；
 5. select_profile 三事件规则 + dispatch 白名单 + 未知事件/空请求 exit 2 +
    GITHUB_OUTPUT 兼容单行输出 + --json 形状；
@@ -183,6 +185,31 @@ class TestWorkflowYaml(unittest.TestCase):
             for s in uploads:
                 self.assertTrue(s["with"].get("if-no-files-found"), name)
 
+    def test_evidence_upload_path_matches_run_output_dir(self):
+        """evidence 上传路径 = run.py 实际输出目录 artifacts/ci/（契约 07）。"""
+        for name, doc in self.docs.items():
+            uploads = [s for s in doc["jobs"][{"ci-linux.yml": "linux",
+                                               "ci-windows.yml": "windows"}[name]]["steps"]
+                       if s.get("uses", "").startswith("actions/upload-artifact")]
+            paths = {s["with"]["path"] for s in uploads}
+            self.assertIn("artifacts/ci/", paths, f"{name} 缺 artifacts/ci/ 上传路径")
+            self.assertNotIn("artifacts/ci-public/", paths,
+                             f"{name} 仍上传无生产者的 artifacts/ci-public/")
+
+    def test_collect_bootstrap_diagnostics_step_on_failure(self):
+        """两平台各有一个 if: failure() 的 bootstrap 诊断步，产出 BOOTSTRAP_DIAG.json。"""
+        for name, doc in self.docs.items():
+            steps = doc["jobs"][{"ci-linux.yml": "linux",
+                                 "ci-windows.yml": "windows"}[name]]["steps"]
+            diags = [s for s in steps if s.get("name") == "Collect bootstrap diagnostics"]
+            self.assertEqual(len(diags), 1, name)
+            self.assertEqual(diags[0].get("if"), "failure()", name)
+            self.assertIn("run", diags[0], name)
+            self.assertNotIn("uses", diags[0], name)
+            body = str(diags[0]["run"])
+            self.assertIn("BOOTSTRAP_DIAG.json", body, name)
+            self.assertIn("artifacts/ci", body, name)
+
     def test_no_algorithm_or_science_params(self):
         banned = ("toleran", "snr", "psf", "benchmark", "--iter", "threshold")
         for name in self.docs:
@@ -256,7 +283,7 @@ class TestBootstrap(unittest.TestCase):
         with mock.patch.object(BS, "probe_command_version",
                                side_effect=lambda tool, args=("--version",): {
                                    "gcc-14": (True, "gcc-14 (test) 14.2.0"),
-                                   "clang-19": (True, "clang version 19.1.0"),
+                                   "clang-18": (True, "clang version 18.1.3"),
                                    "cmake": (True, "cmake version 3.31.12"),
                                    "ninja": (True, "1.12.1"),
                                }[tool]), \
@@ -277,7 +304,7 @@ class TestBootstrap(unittest.TestCase):
         with mock.patch.object(BS, "probe_command_version",
                                side_effect=lambda tool, args=("--version",): {
                                    "gcc-14": (True, "gcc-14 (test) 14.2.0"),
-                                   "clang-19": (True, "clang version 19.1.0"),
+                                   "clang-18": (True, "clang version 18.1.3"),
                                    "cmake": (True, "cmake version 3.30.0"),
                                    "ninja": (True, "1.12.1"),
                                }[tool]), \
@@ -298,6 +325,30 @@ class TestBootstrap(unittest.TestCase):
                          "--platform", "linux", "--json")
         self.assertEqual(res.returncode, 2)
         self.assertIn("FAIL", res.stderr)
+
+    def test_report_carries_observed_from_and_policy_driven_versions(self):
+        """--json 透传 observed_from；cmake 下限与 secondary 跟随 policy（修复轮 2）。"""
+        res = run_script(_REPO / "ci" / "bootstrap.py",
+                         "--policy", "ci/toolchain.policy.json",
+                         "--platform", "linux", "--json")
+        report = json.loads(res.stdout)
+        obs = report["observed_from"]
+        self.assertIsInstance(obs, dict)
+        self.assertEqual(obs["cmake"], "3.31.6")
+        self.assertEqual(obs["image_batch"], "20260831.293.1")
+        cmake_item = next(it for it in report["items"] if it["tool"] == "cmake")
+        self.assertEqual(cmake_item["required"], ">=3.31.6")
+        secondary = next(it for it in report["items"]
+                         if it["tool"].startswith("clang-"))
+        self.assertEqual(secondary["tool"], "clang-18")
+
+    def test_cmake_min_from_policy_and_fallback(self):
+        """cmake 下限由 policy 字段推导；非版本格式/缺失字段回退 fallback。"""
+        self.assertEqual(BS._cmake_min_from({"cmake": "3.31.6"}), (3, 31, 6))
+        self.assertEqual(
+            BS._cmake_min_from({"cmake": "project_minimum_or_newer"}),
+            BS._CMAKE_FALLBACK_MIN)
+        self.assertEqual(BS._cmake_min_from({}), BS._CMAKE_FALLBACK_MIN)
 
 
 # -------------------------------------------------------------- select_profile ----

@@ -1,0 +1,6 @@
+﻿2026-09-06T00:12:00.9080385Z ##[group]Run python ci/bootstrap.py --policy ci/toolchain.policy.json --platform windows
+2026-09-06T00:12:00.9081174Z [36;1mpython ci/bootstrap.py --policy ci/toolchain.policy.json --platform windows[0m
+2026-09-06T00:12:01.0468941Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-09-06T00:12:01.0469589Z ##[endgroup]
+2026-09-06T00:12:03.5764556Z {"verdict": "FAIL", "platform": "windows", "failed_tools": [{"tool": "cmake", "required": ">=3.31.12", "observed": {"present": true, "version_line": "cmake version 3.31.6"}, "repair": "\u5728 GitHub hosted runner \u4e0a\u590d\u9a8c\u6216\u8865\u9f50\u8be5\u5de5\u5177"}]}
+2026-09-06T00:12:03.6951484Z ##[error]Process completed with exit code 1.

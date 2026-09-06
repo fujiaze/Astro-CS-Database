@@ -14,6 +14,9 @@ fatduck 节在本脚本不使用（V8-CI-008 域）：--platform 仅接受
 linux|windows。
 
 Exit code：0=全部满足；2=受控失败（缺失/版本不足/policy 非法）。
+cmake 下限与 secondary_compiler 均由 policy 对应节驱动
+（``cmake`` 字段按最低要求语义解析，解析失败回退 fallback）；policy 节的
+``observed_from``（hosted 镜像批次观测来源）随 ``--json`` 报告透传。
 所有外部探测命令带 timeout（30s）；不做任何写操作。
 """
 from __future__ import annotations
@@ -39,7 +42,7 @@ PROBE_TIMEOUT_S = 30
 _EXIT_OK = 0
 _EXIT_CONTROLLED_FAIL = 2
 
-_CMAKE_MIN = (3, 31, 12)
+_CMAKE_FALLBACK_MIN = (3, 31, 6)  # policy 缺 cmake 字段时的 fallback 下限
 _LINUX_ARCH_OK = {"x86_64", "amd64"}
 _WIN_ARCH_OK = {"amd64", "x86_64"}
 
@@ -78,6 +81,17 @@ def _version_tuple(text: str | None) -> tuple[int, ...] | None:
         return None
     m = re.search(r"(\d+(?:\.\d+)+)", text)
     return tuple(int(x) for x in m.group(1).split(".")) if m else None
+
+
+def _cmake_min_from(policy_section: dict) -> tuple[int, ...]:
+    """cmake 下限由 policy ``cmake`` 字段驱动（最低要求语义）。
+
+    兼容非版本格式（如 ``project_minimum_or_newer``）：解析失败时回退
+    ``_CMAKE_FALLBACK_MIN``，不使探测流程崩溃。
+    """
+    required = policy_section.get("cmake", "3.31.6")
+    ver = _version_tuple(str(required))
+    return ver if ver is not None else _CMAKE_FALLBACK_MIN
 
 
 def probe_runner() -> dict:
@@ -145,7 +159,7 @@ def _item(tool: str, required: str, observed, ok: bool,
 # ---------------------------------------------------------------- 节校验器 ----
 
 def check_linux(policy_section: dict) -> list[dict]:
-    """linux_hosted 节逐项探测（runner/architecture/gcc-14/clang-19/cmake/Ninja）。"""
+    """linux_hosted 节逐项探测（runner/architecture/primary/secondary/cmake/Ninja）。"""
     items: list[dict] = []
     runner = probe_hosted_linux_runner()
     runner_ok = (runner["image_os"] or "").lower().startswith("ubuntu24") \
@@ -175,7 +189,7 @@ def check_linux(policy_section: dict) -> list[dict]:
         f"{required_primary} 不在 PATH 或版本不可解析（hosted ubuntu-24.04 预装；"
         "本地属预期缺失路径）"))
 
-    required_secondary = policy_section.get("secondary_compiler", "clang-19")
+    required_secondary = policy_section.get("secondary_compiler", "clang-18")
     present, text = probe_command_version(required_secondary)
     major = _major_of(text)
     items.append(_item(
@@ -185,13 +199,13 @@ def check_linux(policy_section: dict) -> list[dict]:
         None if (present and major is not None) else
         f"{required_secondary} 不在 PATH 或版本不可解析"))
 
-    required_cmake = policy_section.get("cmake", "3.31.12")
+    required_cmake = policy_section.get("cmake", "3.31.6")
     present, text = probe_command_version("cmake")
     ver = _version_tuple(text)
     items.append(_item(
         "cmake", f">={required_cmake}",
         {"present": present, "version_line": text},
-        present and ver is not None and ver >= _CMAKE_MIN,
+        present and ver is not None and ver >= _cmake_min_from(policy_section),
         None if (present and ver is not None) else
         f"cmake 不在 PATH 或版本 < {required_cmake}"))
 
@@ -241,13 +255,13 @@ def check_windows(policy_section: dict) -> list[dict]:
         None if toolset_ok else
         f"未确认 {required_toolset} 工具集（需 VS 17 + VC.Tools.x86.x64 组件）"))
 
-    required_cmake = policy_section.get("cmake", "3.31.12")
+    required_cmake = policy_section.get("cmake", "3.31.6")
     present, text = probe_command_version("cmake")
     ver = _version_tuple(text)
     items.append(_item(
         "cmake", f">={required_cmake}",
         {"present": present, "version_line": text},
-        present and ver is not None and ver >= _CMAKE_MIN,
+        present and ver is not None and ver >= _cmake_min_from(policy_section),
         None if (present and ver is not None) else
         f"cmake 不在 PATH 或版本 < {required_cmake}"))
     return items
@@ -259,7 +273,8 @@ CHECKERS = {"linux": check_linux, "windows": check_windows}
 # --------------------------------------------------------------------- CLI ----
 
 def build_report(platform_name: str, policy_path: Path,
-                 items: list[dict]) -> dict:
+                 items: list[dict],
+                 policy_section: dict | None = None) -> dict:
     failures = [it["tool"] for it in items if not it["ok"]]
     return {
         "schema_version": SCHEMA_VERSION,
@@ -267,6 +282,7 @@ def build_report(platform_name: str, policy_path: Path,
         "generated_utc": utc_iso(),
         "platform": platform_name,
         "policy": str(policy_path),
+        "observed_from": (policy_section or {}).get("observed_from"),
         "items": items,
         "ok": not failures,
         "failures": failures,
@@ -323,7 +339,8 @@ def main(argv: list[str] | None = None) -> int:
         return _EXIT_CONTROLLED_FAIL
 
     items = CHECKERS[args.platform](section)
-    report = build_report(args.platform, policy_path, items)
+    report = build_report(args.platform, policy_path, items,
+                          policy_section=section)
 
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
