@@ -2,7 +2,7 @@
   "task_id": "V8-CI-012",
   "owner": "SA-CI-32",
   "mode": "read",
-  "base_sha": "PENDING_CHORE_COMMIT",
+  "base_sha": "ff4d20668e5fe00a71acb53c5f884db4444f6025",
   "goal": "First hosted Linux deep CI baseline: dispatch linux-deep on same SHA as V8-CI-010 final observation round, freeze measured quality baselines, verify job duration under runner limit",
   "spec_ref": "工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/CONTROL_TASK_LEDGER.csv#V8-CI-012",
   "ledger_command": "python3 ci/verify_remote_run.py --sha HEAD --workflows linux-ci --profile linux-deep",
@@ -18,5 +18,5 @@
   ],
   "acceptance_command": "python3 -m unittest discover -s ci/tests -p 'test_*.py'",
   "timeout_s": 21600,
-  "dispatched_utc": "PENDING"
+  "dispatched_utc": "2026-09-06T05:55:42Z"
 }
