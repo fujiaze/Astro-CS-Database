@@ -20,9 +20,24 @@ def main():
     for tok in ('{"phase1 run"', '{"phase2 run"', '{"phase3 run"'):
         if tok not in PARSER:
             errors.append(f"missing command rule: {tok}")
-    for tok in ("run_pipeline({1}", "run_pipeline({2}", "run_pipeline({3}"):
-        if tok not in CMDS:
-            errors.append(f"missing per-phase run_pipeline dispatch: {tok}")
+    # 1b) 逐 phase run_pipeline 调度 —— 接受两种等价形态:
+    #   (a) 旧字面量: 各 phase 分支内直接 run_pipeline({N}, ...)。
+    #   (b) 新形态 (MON-004 资源门接线后, run 34039050194): 各 phase 分支经
+    #       run_with_resource_gate(ev, "phaseN", ...) 进入统一 helper, helper
+    #       内单点 run_pipeline({phase.back() - '0'}, ...) —— phase1/2/3 各自
+    #       gate → run_pipeline 的逐 phase 路由语义不变, 仅字面量收敛进 helper。
+    # 注释盲区加固: dispatch 规则在剥离 // 行注释后的代码文本上匹配,
+    # 注释掉的 run_with_resource_gate / run_pipeline 调用不构成合规证据。
+    code_only = re.sub(r"//[^\n]*", "", CMDS)
+    legacy_dispatch = all(tok in code_only for tok in
+                          ("run_pipeline({1}", "run_pipeline({2}", "run_pipeline({3}"))
+    gated_phases = sorted(set(re.findall(
+        r'run_with_resource_gate\s*\(\s*ev\s*,\s*"phase([123])"', code_only)))
+    helper_dispatch = re.search(r'run_pipeline\s*\(\s*\{', code_only) is not None
+    if not legacy_dispatch and not (gated_phases == ["1", "2", "3"] and helper_dispatch):
+        errors.append("missing per-phase run_pipeline dispatch "
+                      "(legacy: run_pipeline({1|2|3} x3; or gated: "
+                      'run_with_resource_gate(ev,"phaseN") x3 + helper run_pipeline({...)')
     # 2) artifact 收集 + manifest
     if '"artifacts", artifacts' not in CMDS:
         errors.append("no artifact collection into run manifest")

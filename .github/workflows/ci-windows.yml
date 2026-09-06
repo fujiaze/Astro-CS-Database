@@ -21,7 +21,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (ci/actions.lock.json)
         with:
           persist-credentials: false
-          fetch-depth: 1
+          # HOSTFIX-23①: 默认 fetch-depth: 1 是浅克隆, REMOTE_RELATION 的
+          # git merge-base --is-ancestor <旧SHA> HEAD 解析祖先对象 rc=128;
+          # 全历史克隆后该检查与 WORKSPACE-ADOPTION 均可解析 HEAD 祖先链。
+          fetch-depth: 0
       # WIN-001 hosted 化：runner 预装 vcpkg 提供 MSVC zlib（cfitsio zcompress.c
       # 依赖，ACS_ZLIB_ROOT 消费点；triplet x64-windows-static-md 对齐 /MD CRT）。
       # PyYAML：CONTRACT-GRAPH / DOC-INDEX 的 yaml 解析依赖（agent-host 有而
@@ -32,6 +35,19 @@ jobs:
           $vcpkg = "$env:VCPKG_INSTALLATION_ROOT"
           & "$vcpkg\vcpkg.exe" install zlib --triplet x64-windows-static-md
           "ACS_ZLIB_ROOT=$vcpkg\installed\x64-windows-static-md" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          # HOSTFIX-23④: 确定性注入 zlib 静态库名（上游 madler/zlib v1.3.2
+          # WIN32 静态产物为 zs.lib，find_library 的 z/libz/zlib 均未命中）。
+          # 列出 triplet lib 下首个 zlib 家族 *.lib 文件全名写入 GITHUB_ENV，
+          # CMake 端 $ENV{ACS_ZLIB_LIB} 直连，find_library 降级为回退探测。
+          $zlibLib = Get-ChildItem -Path "$vcpkg\installed\x64-windows-static-md\lib" -Filter *.lib |
+            Where-Object { $_.Name -match '^(lib)?z(s|static)?\.lib$|^(lib)?zlib(static|d)?\.lib$' } |
+            Sort-Object Name | Select-Object -First 1
+          if ($zlibLib) {
+            "ACS_ZLIB_LIB=$($zlibLib.Name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Host "ACS_ZLIB_LIB resolved: $($zlibLib.FullName)"
+          } else {
+            Write-Host "::warning::no zlib *.lib under $vcpkg\installed\x64-windows-static-md\lib (find_library fallback will try)"
+          }
           python -m pip install --quiet PyYAML
       - name: Bootstrap locked toolchain
         run: python ci/bootstrap.py --policy ci/toolchain.policy.json --platform windows

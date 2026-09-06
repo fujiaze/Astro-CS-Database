@@ -15,6 +15,22 @@ REGISTERED = {
     "ac_api.cpp": "预算注入旧形态: n 来自 orchestrator set_num_threads(ARCH-003 host callback 取代)",
     "acr/examples": "ACR dormant 非生产路径(V5 不接入)",
     "baseline_backend.cpp": "ABI-003: per-call worker std::thread 由 host budget 租借驱动(ARCH-004 §1; 无持久池)",
+    # HOSTFIX-23③ (run 34039050194, hosted Windows): weighted_integration
+    # benchmark 两处 omp_set_num_threads —— 线程源 = benchmark 参数/lease,
+    # 非硬编码字面量 (冻结约束 §5: 线程由逐内核 benchmark 选择, 这两处正是
+    # 该机制的示范代码):
+    #   weighted_integration_benchmark.cpp:228  omp_set_num_threads(e.openmp_threads)
+    #     —— e.openmp_threads = std::thread::hardware_concurrency() 环境探测,
+    #        benchmark 自描述 Env, 不是编译期字面量;
+    #   weighted_integration_kernels.cpp:37    if (threads > 0) omp_set_num_threads(threads)
+    #     —— threads 为调用方传入的逐内核 benchmark 线程租借, >0 才生效。
+    # 登记键用文件名级(不含路径分隔符): hosted Windows 下 os.path.relpath
+    # 产生反斜杠路径 lib\acr\examples\..., 目录级键 "acr/examples" 用
+    # `k in rel` 子串匹配失配 → 托管报 "未登记"; 文件名键两种分隔符都命中。
+    # 注: 文件级登记只豁免 omp_set_num_threads 的"未登记"项, hardcoded_num_threads
+    # 字面量扫描独立生效, 本文件内再出现 omp_set_num_threads(<数字>) 仍 FAIL。
+    "weighted_integration_benchmark.cpp": "ACR benchmark 示范代码: 线程源=benchmark Env(e.openmp_threads, hardware_concurrency 探测), 非硬编码; dormant 非生产路径(V5 不接入)",
+    "weighted_integration_kernels.cpp": "ACR benchmark 示范代码: 线程源=逐内核 benchmark 线程租借参数(threads>0 才设置), 非硬编码; dormant 非生产路径(V5 不接入)",
 }
 PATTERNS = {
     "std::thread": re.compile(r"std::thread\s*\(|std::thread\s+\w+"),

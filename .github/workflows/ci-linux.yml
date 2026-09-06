@@ -28,7 +28,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (ci/actions.lock.json)
         with:
           persist-credentials: false
-          fetch-depth: 1
+          # HOSTFIX-23①: 默认 fetch-depth: 1 是浅克隆, REMOTE_RELATION 的
+          # git merge-base --is-ancestor <旧SHA> HEAD 解析祖先对象 rc=128;
+          # 全历史克隆后该检查与 WORKSPACE-ADOPTION 均可解析 HEAD 祖先链。
+          fetch-depth: 0
       - name: Bootstrap locked toolchain
         run: python3 ci/bootstrap.py --policy ci/toolchain.policy.json --platform linux
       - name: Select profile
