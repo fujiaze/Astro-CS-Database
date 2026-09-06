@@ -85,7 +85,9 @@ jobs:
           name: fatduck-select-log-${{ github.run_id }}
           path: artifacts/select_candidate_log.jsonl
           retention-days: 14
-          if-no-files-found: error
+          # no-candidate（rc=3）是设计内正常路径：log 文件从未创建，不能按 error 处理；
+          # rc=0 时 log 必然存在（逐条 API 查询落盘），rc=2 时 step sel 已自行 exit 2。
+          if-no-files-found: ignore
 
   fatduck-validate:
     name: Fatduck real-data validation (self-hosted)
