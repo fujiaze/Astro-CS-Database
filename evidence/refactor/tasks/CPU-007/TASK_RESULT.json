@@ -52,5 +52,34 @@
   "findings": [
     "CPU-007: profile 关键字段完整性验证(CPU signature/fingerprint/xcr0/quota/build IDs/benchmark version/UTC/结果 hash); CLI validate_cpu_profile 已实现 cpu_signature stale 判定(变化→拒+rerun 提示); tools/validate_cpu_profile.py schema 校验; 无效 profile 回退 baseline + warning 由 CLI 处理"
   ],
-  "created_utc": "2026-08-30T16:43:12Z"
+  "created_utc": "2026-08-30T16:43:12Z",
+  "reverify": {
+    "observed_head_sha": "f0bc039a5ac07069362665b7bf0c4f2bb8802184",
+    "reverify_utc": "2026-09-06T20:51:31Z",
+    "verdict": "PASS",
+    "fixes": [],
+    "commands": [
+      {
+        "command_id": "c01",
+        "command": "cmake --build build --target cpu_profile_test && ctest --test-dir build -R '^cpu_profile$' --output-on-failure",
+        "timeout_seconds": 1350,
+        "expected_exit_code": 0,
+        "exit_code": 0,
+        "log_path": "run/local/main23_fix/CPU007_SUB1.log"
+      },
+      {
+        "command_id": "c02",
+        "command": "test $(grep -ci stale tests/unit/cpu_profile_test.cpp) -gt 0",
+        "timeout_seconds": 90,
+        "expected_exit_code": 0,
+        "exit_code": 0,
+        "log_path": "run/local/main23_fix/CPU007_SUB2.log"
+      }
+    ],
+    "notes": [
+      "HEAD=f0bc039a 复验; 历史 c01 在 build/root-cmake(make) 下构建+直跑测试二进制, 当前布局适配为 build/ ninja 树 ctest 目标 cpu_profile, 验收语义等价(profile 关键字段/fingerprint/xcr0/quota/build+result hash/stale 判定)",
+      "历史 c02 为 CLI stale 判定点 grep 计数>0 (历史值 5); 当前文件 grep -ci stale = 2 >0, 阈值判定等价, pattern 按当前源码适配",
+      "cpu_profile ctest Passed; 无修复"
+    ]
+  }
 }
