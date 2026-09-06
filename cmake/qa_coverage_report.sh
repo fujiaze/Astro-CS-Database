@@ -26,9 +26,11 @@ if [ -z "$objects" ]; then
   exit 1
 fi
 
+# F8-c: llvm-cov(>=18) 位置参数一律按 covered binary 解析, 源过滤必须经 --sources
+# 显式标记; 旧写法 "$SRC_DIR/lib" 会被当作 binary 加载 (Is a directory)。
 # shellcheck disable=SC2086
-llvm-cov report $objects -instr-profile="$profdata" "$SRC_DIR/lib" "$SRC_DIR/cli"
+llvm-cov report $objects -instr-profile="$profdata" --sources "$SRC_DIR/lib" "$SRC_DIR/cli"
 # shellcheck disable=SC2086
-llvm-cov export $objects -instr-profile="$profdata" "$SRC_DIR/lib" "$SRC_DIR/cli" \
+llvm-cov export $objects -instr-profile="$profdata" --sources "$SRC_DIR/lib" "$SRC_DIR/cli" \
   > "$COV_DIR/coverage.json"
 echo "qa_coverage_report: coverage.json 已写出 ($COV_DIR/coverage.json)"

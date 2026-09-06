@@ -71,6 +71,24 @@ if(UNIX)
   find_package(OpenMP QUIET)
 endif()
 
+# ── QA-006 覆盖插桩作用域 (F8-b 修复, V8-CI-012 R6.5): 必须位于首个 add_library/
+# add_subdirectory 之前。目录级 add_compile_options/add_link_options 只影响其后声明的
+# target; 原位置在 lib/tests/unit 之后导致 *_test 可执行未插桩链接 (无 __llvm_profile
+# runtime) → 测试进程零 profraw。前移后 lib/cli/tests/unit 全部插桩编译链接,
+# *_test 落 profraw, llvm-cov 经 *_test objects 报 lib/cli 覆盖。
+if(NOT WIN32 AND NOT MSVC)
+  option(ASTROCS_BUILD_COVERAGE "Build instrumented for coverage + ccov target (deep CI)" OFF)
+  if(ASTROCS_BUILD_COVERAGE)
+    find_program(ASTROCS_LLVM_PROFDATA llvm-profdata)
+    find_program(ASTROCS_LLVM_COV llvm-cov)
+    if(NOT ASTROCS_LLVM_PROFDATA OR NOT ASTROCS_LLVM_COV)
+      message(FATAL_ERROR "ASTROCS_BUILD_COVERAGE=ON 需要 llvm-profdata/llvm-cov (linux-deep CI host 提供)")
+    endif()
+    add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
+    add_link_options(-fprofile-instr-generate)
+  endif()
+endif()
+
 # ── 显式 target 依赖图 (依赖方向见 ARCH-001 §3) ──
 
 # core/contracts: 公共类型 (DATA/API/MOD)
@@ -503,24 +521,17 @@ endif()
 
 # ── QA-006: linux-deep 附加质量目标 (V8-CI-005; 默认 OFF, 仅 linux-deep CI 开) ──
 # 与 QA-002 sanitizer 选项同模式: 生产默认 OFF, 不进默认构建图。
-#   ASTROCS_BUILD_COVERAGE  : LLVM source-based 插桩 + ccov 目标 (llvm-profdata/llvm-cov)
 #   ASTROCS_SANITIZE_RUNTIME: qa-sanitize 目标 (clang + ASan/UBSan/LSan, 复用 QA-002 接线)
 #   ASTROCS_SANITIZE_THREAD : qa-sanitize-tsan 目标 (clang + TSan; 与上一个互斥, 单选)
+#   ASTROCS_BUILD_COVERAGE  : 插桩作用域已前移至 target 声明前 (见上文 F8-b 注释);
+#                             此处仅声明 ccov 自定义目标 (构建+ctest+报告合并)。
 if(NOT WIN32 AND NOT MSVC)
-  option(ASTROCS_BUILD_COVERAGE "Build instrumented for coverage + ccov target (deep CI)" OFF)
   option(ASTROCS_SANITIZE_RUNTIME "Add qa-sanitize custom target (clang ASan+UBSan+LSan)" OFF)
   option(ASTROCS_SANITIZE_THREAD "Add qa-sanitize-tsan custom target (clang TSan)" OFF)
   if(ASTROCS_SANITIZE_THREAD AND ASTROCS_SANITIZE_RUNTIME)
     message(FATAL_ERROR "qa-sanitize 与 qa-sanitize-tsan 互斥 (QA-006): 单选")
   endif()
   if(ASTROCS_BUILD_COVERAGE)
-    find_program(ASTROCS_LLVM_PROFDATA llvm-profdata)
-    find_program(ASTROCS_LLVM_COV llvm-cov)
-    if(NOT ASTROCS_LLVM_PROFDATA OR NOT ASTROCS_LLVM_COV)
-      message(FATAL_ERROR "ASTROCS_BUILD_COVERAGE=ON 需要 llvm-profdata/llvm-cov (linux-deep CI host 提供)")
-    endif()
-    add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
-    add_link_options(-fprofile-instr-generate)
     # 报告合并逻辑在 cmake/qa_coverage_report.sh（多目标 -object 列表展开）
     add_custom_target(ccov
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} -j2
