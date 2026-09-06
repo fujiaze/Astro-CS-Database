@@ -98,3 +98,15 @@ evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/windows/system.txt
 - ci/tests/test_workflow_lock.py：test_evidence_upload_path_matches_run_output_dir 补两条 F-R4-02 正向断言
 - HOSTED_RUN_REPORT.md：+修复轮 5 段（R37）；TASK_RESULT.json：+repair_round5 块
 - logs/repair_round5.log（logs/** 不入 git status）：验收逐条实测 + 工作区事件留档
+
+# 观察轮 5 增量（SA-CI-32，@ HEAD 05f182745f0a，2026-09-06，mode=read，CODE_FAIL 定位轮）
+- （源码零改动、git 零写操作；本轮全部为 evidence 与 logs 增量）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/HOSTED_RUN_REPORT.md：+观察轮 5 段（R38：两 run 终态/windows 编译错误 19 行三簇清单/ctest 4F+16NR 明细/归属判定表 F-R5-01·02·03/linux 回归对照/BUILD-GCC-RELEASE resource 复采/req4 收口判定/验收与凭据纪律）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/TASK_RESULT.json：+observation_round5 块（runs/build_error_lines/test_fail_cases/attribution_round5/regression_vs_round4/resource_summary_round5/findings_round5/closability_vs_requirements/evidence_files/credential_discipline_round5/acceptance/residual_risks）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/logs/round5/（logs/** 不入 git status）：
+  - API trace：run_api_trace_34013538062.json / run_api_trace_34013538075.json（轮询终态）、runs_list_trace_ci-{windows,linux}.json、jobs_api_trace_*.json、artifacts_api_trace_*.json、round5_metadata.json
+  - job 全量日志：job_log_101433329052_windows.log（23,080 B）、job_log_101433329156_linux.log（22,661 B）（runner 自掩码 basic *** 已 [REDACTED] 化）
+  - artifact 原始 zip + 解包：windows-artifact-05f18274.zip（id 9983240021，161,068 B，185 members）→ windows-artifact-05f18274/；linux-artifact-05f18274.zip（id 9983375976，226,387 B，215 members）→ linux-artifact-05f18274/（含 CI_RESULT.json / checks/BUILD-GCC-RELEASE.json / logs/BUILD-GCC-RELEASE.log）
+  - round5_local_repro/：控制节点无 C 编译器（仅 gcc-14-base 运行库），编译级本地复现不可行；留 tu.c 与共享域判定说明
+  - git_status_after_round5.txt：任务收口时 git status --porcelain 快照（89 行遗留与任务初始快照一致 + 3 行 evidence/.../V8-CI-010/** 被跟踪证据文件 M 增量，派发允许域内）
+  - 脱敏断言：logs/round5/ 全量 grep ghp_/github_pat_/ghs_/gho_/Authorization: Bearer/password= 无命中；basic *** 2 处已替换

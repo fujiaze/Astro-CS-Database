@@ -798,3 +798,86 @@ windows 失败定位依赖 F-R4-01/02 修复后定向重验）；按 R35 最小�
 **修复轮 5 判定：PASS_LOCAL —— 两项前台裁决修复全部落地、单测 239 OK、注册表 strict PASS、
 plan-only 四口径不变、diff 范围合规；hosted 定向重验（windows build 错误行 + junit 用例名）待
 控制面触发后即可完成归属判定。**
+
+# 观察轮 5（CODE_FAIL 定位轮，SA-CI-32，2026-09-06 05:15Z~05:4xZ，mode=read）
+## R38. run 终态、windows 编译错误清单、ctest 明细、归属判定与回归对照
+
+**1. 两 run 终态（HEAD=05f182745f0a，push 触发，run #13）**
+- windows 34013538062（ci-windows.yml）：completed / **failure**，run_started_at 2026-09-06T05:15:37Z，
+  05:20Z 窗口内终态（快照 05:31:40Z 双 completed），runner windows-2022（Image 20260830.290.1），job 101433329052。
+- linux 34013538075（ci-linux.yml）：completed / **failure**，completed_at 2026-09-06T05:30:42Z，job 101433329156。
+- artifact：windows-artifact-05f18274（id 9983240021，161,068 B，185 members）、
+  linux-artifact-05f18274（id 9983375976，226,387 B，215 members）——两包均完整落盘 logs/round5/。
+
+**2. F-R4-01 生效判定：error_lines 首轮读数（win-build-summary.json stages[build].error_lines，19 行）**
+configure exit=0 error_lines=[]；build exit=1 failed_stage=build error_lines=**19 行**（cap 50 未触发），三簇：
+- **簇 A1（1 行）**：`vcruntime_c11_stdatomic.h(16,1): error C1189: #error: "C atomics require C11 or later"`
+  [astrocs_io.vcxproj]（触发点 runtime/io/fits_core.c:29 `#include <stdatomic.h>`）。
+- **簇 A2（17 行）**：`include/astrocs/abi/status_codes.h(146,1)/(147,1)/(148,1): error C2143/C2091/C2059`
+  系列 [astrocs_noop.vcxproj]——146-148 行为 ACS_STATIC_ASSERT(sizeof(acs_head)==8u 等)；
+  L69-71 宏分支 __cplusplus→static_assert / 否则 _Static_assert（头注释声明"C11 与 C++17 双可编译"）。
+- **簇 B（1 行）**：`lib/astro_image_io/third_party/cfitsio/zcompress.c(6,10): error C1083: Cannot open
+  include file: 'zlib.h'` [astrocs_cfitsio.vcxproj]。
+
+**3. F-R4-02 生效判定：win-test-summary.json 已入包，win-test-junit.xml 仍缺失**
+- win-test-summary.json 出现在 artifact run/ci/ 下（修复第二路径生效）；**win-test-junit.xml 未产出
+  （artifact 全 185 members 无该文件）**——WIN-TEST-UNIT command 明确带 `--junit run/ci/win-test-junit.xml`
+  且 driver 转发为 `ctest --preset win-rel --output-junit run/ci/win-test-junit.xml`，ctest exit 8 时
+  JUnit 未落盘，根因待查证（登记 F-R5-03）。
+- monitor 数字（log 内嵌 resource_monitor JSON）：WIN-BUILD-RELEASE exit=1 dur=89.906s samples=404；
+  WIN-TEST-UNIT exit=8 dur=5.234s samples=27；cpu/rss null、threads_max 0 为 Linux /proc 探针在 windows
+  宿主无 psutil 的登记语义（与轮 2-4 一致，非回归）。
+
+**4. WIN-TEST-UNIT ctest 异常明细（win-test-summary.json stages[test].output_tail 精确提取，非此前笔记的 16 项）**
+- **Failed 3**：mon001_recorder、cpu001_negative、cpu_monitor。
+- **崩溃 1**：io_adapter（Exit code 0xc0000409 = STATUS_STACK_BUFFER_OVERRUN 快速失败路径）。
+- **Not Run 19**：rt005_registry、rt006_scheduler、rt008_runtime_client、rt009_node_trace、io_ownership、
+  io_reentrant、p1001_modules、p1_calibration、p1_nside、p1_hips_writer、p1_ir_facade、p1_resource、
+  p2_workers、p2_block_plan、p2_rejection、p2_output_semantics、p3_wcs、p3_output、p3_assembly。
+- io_adapter 崩溃先于 io_ownership/io_reentrant 及 p1/p2/p3 大批用例 → Not Run 主体为**崩溃级联**
+  （ctest 序贯继续但依赖面未执行）；rt005/rt006/rt008/rt009 为同 run 内独立 Not Run（序号 13-17 连续，
+  与 runtime 用例组相邻）。exit 8 与"异常 4+级联 19"的映射口径属 ctest 退出码语义，不影响归属判定。
+
+**5. 归属判定表（12_FAILURE_POLICY 四类；本地无 C 编译器，按共享域判定，证据见 logs/round5/round5_local_repro/）**
+| 簇 | 错误 | 判定 | 责任域 | 依据 |
+|---|---|---|---|---|
+| A1 | fits_core.c stdatomic → C1189 | **CODE_FAIL（构建配置域）** | 源码 C11 依赖 + 构建系统 | C1189 为 MSVC 自有宏在「编译器 C 模式非 C11」时触发；status_codes.h L69-71/_Static_assert 同理；全 CMakeLists.txt/cmake/CMakePresets.json **零** C_STANDARD/CMAKE_C_STANDARD/std 命中（grep 实测）→ fatduck 本机 toolchain 恰好默认 C11+，hosted MSVC C 模式默认非 C11，差异即爆点 |
+| A2 | status_codes.h 146-148 _Static_assert → C2143/C2091/C2059 | **CODE_FAIL（同簇 A1，单 finding 合并）** | 同上 | 同一配置根因的第二表现（C 模式非 C11 下 C11 关键字语法错误链） |
+| B | zcompress.c zlib.h → C1083 | **ENV_FAIL** | hosted windows runner 缺 zlib | CMakeLists.txt L212-225：zcompress.c 仅 MSVC 分支加入，依赖 ACS_ZLIB_ROOT 缓存变量（fatduck 本地 C:/Users/fujia/zlib-msvc，不入库）；hosted 无该组件，属「缺组件」非源码缺陷 |
+| WIN-TEST-UNIT 4+19 | io_adapter 0xc0000409 等 | **维持轮 2/3 归属（F-R2-06 同族 + 本轮新增观察点）** | tests/* windows 兼容域 | 状态分布与轮 4 完全一致（逐 id 差集空，见 §7）；本轮新信息仅为用例名精确清单（F-R4-02 半生效），归属裁决不升级 |
+| F-R5-03 | win-test-junit.xml 未产出 | **CODE_FAIL（诊断链，severity minor）** | driver --junit 链/ctest --output-junit 行为 | 上传路径已含（F-R4-02 生效），文件本身未落盘；待查证项，不阻塞 req4 |
+
+**6. BUILD-GCC-RELEASE resource 复采（linux artifact checks/BUILD-GCC-RELEASE.json + logs/BUILD-GCC-RELEASE.log monitor JSON）**
+- 轮 5：duration 129.996s，exit 0，cpu_avg **189.0%**（samples 625），peak_rss **849,956 KiB**，threads_max 14。
+- 轮 4 对照：119.588s / 192.77%（samples 576）/ 849,076 KiB / 14。
+- 结论：**资源轮廓一致**（cpu 差 3.8pp 采样口径内、rss 差 +0.1%、线程持平），无 RESOURCE_FAIL 信号；
+  时长 +10.4s 为 hosted runner 负载波动。3500s 预算未触发，timed_out=false。
+
+**7. linux 回归对照（CI_RESULT.json 逐 id×verdict 差集）**
+- 轮 5 = 71 项 PASS 48 / FAIL 21 / TIMEOUT 2 / SKIPPED 0，**与轮 4 逐项差集为空**（脚本比对）。
+- windows 同口径：61 项 PASS 32 / FAIL 28 / SKIPPED(waivable) 1，与轮 4 逐项差集亦为**空**。
+- linux 21 FAIL/TIMEOUT 集合维持轮 2-4 判定：16 项与 windows 共有（F-R2-09 基线态 + 工程控制/ 依赖）、
+  UT-IO（F-R2-04）、UT-CPU-AVX512（F-R2-08）、UT-BACKEND/UT-CLI（F-R2-10 超时预算）。
+
+**8. closability_vs_requirements（req4 收口判定）**
+- **req4（WIN-BUILD-RELEASE/WIN-TEST-UNIT 真实 exit 与错误定位）：本轮 MET**——真实 exit=1/8 已固定；
+  19 行 error_lines 完整离线可读（F-R4-01 生效）；用例失败名精确清单落地（F-R4-02 summary 路径生效）；
+  编译错误归属判定完成（A 簇 CODE_FAIL、B 簇 ENV_FAIL）。residual：win-test-junit.xml 未产出（F-R5-03，
+  minor，诊断链完整性项，不阻塞 req4 本体）。
+- req1/2/3/5/6 维持轮 4 MET 判定不变；**V8-CI-010 六项 requirements 全部 MET，任务具备关闭条件**；
+  遗留修复建议移交：F-R5-01（C_STANDARD 门）、F-R5-02（zlib 获取策略）、F-R5-03（junit 链）、F-R2-06/09 族。
+
+**9. 验收与凭据纪律（本轮实测）**
+- `git status --porcelain`：89 行遗留与任务初始快照逐行一致（git_status_after_round5.txt 留档）+ 3 行
+  evidence/.../V8-CI-010/** 被跟踪证据文件 M 增量——**全部在派发允许域**。
+- `python3 -m unittest discover -s ci/tests -p 'test_*.py'`：**Ran 239 tests — OK**。
+- logs/round5/ 全量脱敏断言：ghp_/github_pat_/ghs_/gho_/Authorization: Bearer/password= 零命中；
+  runner 自掩码 `basic ***` 2 处（windows L79 / linux L92）已 [REDACTED] 化。
+- 凭据纪律执行：token 仅经 `git credential fill` 内联读取（轮询脚本内），curl 全部 --max-time 15，
+  轮询 sleep 75s 后台 job 执行；API trace 落盘前后均经脱敏 grep 复核。
+- 本轮局限：控制节点无 C 编译器（仅 gcc-14-base 运行库），编译级本地复现不可行，归属按共享域判定
+  （round5_local_repro/README.txt 留证）；jobs/runs/artifacts trace 与 job log、两 artifact zip+解包全量
+  落盘 logs/round5/ 供上级复核。
+
+**观察轮 5 判定：PASS_OBSERVED —— F-R4-01/02 修复生效获首轮 hosted 读数，windows 编译错误 19 行三簇
+归属判定完成（CODE_FAIL A 簇 / ENV_FAIL B 簇），两平台对轮 4 零回归，req4 收口，V8-CI-010 具备关闭条件。**

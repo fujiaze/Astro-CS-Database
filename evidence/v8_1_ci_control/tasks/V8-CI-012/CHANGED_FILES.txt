@@ -141,3 +141,28 @@ evidence/v8_1_ci_control/tasks/V8-CI-012/logs/repair_round3_f9b_collect_probe.st
 工具（run/ 全局 ignore，不入 git）：run/repair_round3/f9b_collect_probe.py（仅 stdlib 的 pytest collection 等价 import 探针）
 
 未修改：业务源码、CMakeLists.txt、.github/workflows/ci-linux.yml（numpy 缺项只登记为 install 步建议）、ci/checks.json；业务失败 core_pipeline/cpu001_selftest_avx512/core_pipeline(TSan 3 id) 维持登记；git 零写操作（HEAD=485b8b86 未动）；token 零涉入（本轮无网络操作）。
+
+────────────────────────────────────────────────────────────────
+V8-CI-012 观察轮 4（终局轮）增量清单（SA-CI-32，mode=read）
+仓库基点 52e718048312fa05c694c5a32e7dec52263bf0cc（本地=远端 main=观察对象三一致）；零源码修改、零 git 写操作；dispatch run 经 REST API 主动触发（token 域内，非 git 写）。全部增量位于 evidence/v8_1_ci_control/tasks/V8-CI-012/：
+
+修改（既有文件追加）：
+DEEP_BASELINE_REPORT.md（追加观察轮 4 段 R6.1-R6.6 + 冻结基线终表 v_final）
+TASK_RESULT.json（追加 observation_round4 块 + evidence_files 6 项）
+CHANGED_FILES.txt（本文件，追加本段）
+
+新增（logs/round4/，落盘前 36 文件脱敏扫描零命中）：
+logs/round4/api/runs_head52e_page1.json（dispatch+push run 发现 trace，head_sha=52e71804）
+logs/round4/api/runs_head52e_poll.json（轮询中间态）
+logs/round4/api/run_push_34023649656.json / jobs_push_34023649656.json（push run 快照）
+logs/round4/api/run_dispatch_final.json / run_push_final.json（双 run 终态 trace）
+logs/round4/api/jobs_34023949880.json / joblog_101461486015.log（dispatch job 详情与全量日志，runner 自掩码保留原样）
+logs/round4/api/artifacts_dispatch.json / artifacts_push.json（artifact 清单 trace）
+logs/round4/api/poll_state.log（轮询执行要点，无凭据）
+logs/round4/linux_ci_52e71804.zip（dispatch artifact 原始包 229,837 B）
+logs/round4/linux_ci_push_52e71804.zip（push artifact 原始包 223,703 B）
+logs/round4/artifact_52e71804/（CI_RESULT.json + checks/ 7 项 + logs/ 7 项 .log/.log.zst + BOOTSTRAP_DIAG.json）
+logs/round4/artifact_push_52e71804/CI_RESULT.json
+logs/round4/verify_remote_run_invocation_round4.txt（实战记录：exit 1 预期达成；含首跑未 export 作废说明）
+
+未修改：业务源码、CMakeLists.txt、.github/workflows/ci-linux.yml、ci/verify_remote_run.py、tools/quality/*、ci/checks.json；git 零写操作（HEAD=52e71804 未动）；token 仅 git credential fill 内联零落盘。
