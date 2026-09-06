@@ -245,9 +245,13 @@ def select_candidate(*, event: str, head_branch: str, conclusion: str,
             raise NoCandidate("trigger_run_not_success", "run_id 缺失")
         run = _workflow_run_detail(api, repository, run_id, timeout=timeout,
                                    log_file=log_file)
-        if run.get("name") != "AstroCS Windows CI":
+        # workflow 身份绑定文件路径（path 是 GitHub Actions 的真实身份键）；
+        # display name 可被同名外部 workflow 伪造（V8-CIQA-001 P1-GAP-2）。
+        expected_path = f".github/workflows/{WINDOWS_WORKFLOW}"
+        run_path = run.get("path") or ""
+        if run_path != expected_path:
             raise NoCandidate("trigger_run_not_windows_workflow",
-                              f"run name={run.get('name')!r}")
+                              f"run path={run_path!r}（预期 {expected_path}）")
         head_sha = run.get("head_sha") or ""
         windows_run = run
     elif event == "schedule":

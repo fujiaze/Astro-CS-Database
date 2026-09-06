@@ -273,6 +273,7 @@ class TestSelectCandidateLogic(unittest.TestCase):
 
     def _happy_routes(self, windows_first: bool):
         run_shape = {"id": 777 if windows_first else None, "name": "AstroCS Windows CI",
+                     "path": ".github/workflows/ci-windows.yml",
                      "head_sha": _S, "head_branch": "main",
                      "html_url": "https://github.invalid/o/r/actions/runs/777"}
         if windows_first:
@@ -361,6 +362,23 @@ class TestSelectCandidateLogic(unittest.TestCase):
         self.assertEqual(rc, 3)
         self.assertEqual(json.loads(out)["reason_code"],
                          "trigger_run_not_windows_workflow")
+
+    def test_same_name_wrong_path_rejected_exit3(self):
+        """V8-CIQA-001 P1-GAP-2 冒名负向：display name 相同但 path 不同必须拒绝。"""
+        routes = {"/actions/runs/777": (200, {
+            "name": "AstroCS Windows CI",
+            "path": ".github/workflows/evil-impersonation.yml",
+            "head_sha": _S})}
+        argv = ["--event", "workflow_run", "--head-branch", "main",
+                "--conclusion", "success", "--run-id", "777",
+                "--repository", "o/r", "--json"]
+        with mock.patch.object(SC, "gh_api", side_effect=_fake_gh_api(routes)):
+            rc, out, _ = self._run(argv)
+        self.assertEqual(rc, 3)
+        report = json.loads(out)
+        self.assertEqual(report["reason_code"],
+                         "trigger_run_not_windows_workflow")
+        self.assertIn("evil-impersonation", report.get("detail", ""))
 
     def test_no_success_windows_run_exit3(self):
         routes = {"ci-windows.yml/runs": (200, {"workflow_runs": []})}
