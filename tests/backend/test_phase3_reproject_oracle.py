@@ -26,8 +26,9 @@ CASTRO = os.path.join(C, "healpix")
 
 FITS_INCS = [f"-I{INC}", f"-I{HOST}", f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
              f"-I{CASTRO}", f"-I{os.path.join(REPO, 'third_party', 'nlohmann')}",
+             f"-I{os.path.join(REPO, 'third_party')}",  # nlohmann/json.hpp 以 <nlohmann/json.hpp> 引用
              f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}", f"-I{C}", f"-I{os.path.join(C, 'crypto')}",
-             f"-I{os.path.join(REPO, 'run', 'temp', 'build_v61')}"]  # version_generated.h(CMake 生成)
+             f"-I{os.path.join(REPO, 'build')}"]  # version_generated.h(根 CMake configure_file 生成)
 FITS_SRCS = [os.path.join(HOST, "p3_resample.cpp"), os.path.join(HOST, "hips_properties.cpp"),
              os.path.join(CASTRO, "healpix_core.cpp"),
              os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),

@@ -16,8 +16,10 @@ import subprocess
 import tempfile
 import unittest
 
+from tests.backend.fixture_common import ensure_f1f2_hips  # noqa: E402
+
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EXE = os.path.join(REPO, "run", "temp", "astrocs")
+EXE = os.path.join(REPO, "build", "astrocs")
 HOST = os.path.join(REPO, "lib", "phase3_session")
 
 
@@ -65,6 +67,7 @@ class TestP3004SphericalOracle(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="p3004_")
         cls.hips = os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2", "F1.hips")
+        ensure_f1f2_hips()
         assert os.path.isdir(cls.hips), f"缺 fixture {cls.hips}"
         # 解析场 HiPS(cos²dec): 用 P3-004 专用 fixture 生成
         cls.analytic = os.path.join(cls.tmp, "ANALYTIC.hips")

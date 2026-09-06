@@ -17,7 +17,7 @@ import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EXE = os.path.join(REPO, "run", "temp", "astrocs")
+EXE = os.path.join(REPO, "build", "astrocs")
 FIXTURE_SRC = os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp")
 AIO = os.path.join(REPO, "lib", "astro_image_io")
 
@@ -49,7 +49,8 @@ class TestP2002ParallelUpm(unittest.TestCase):
                 f"-I{os.path.join(AIO, 'include')}",
                 f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-                f"-I{os.path.join(REPO, 'lib', 'common')}"]
+                f"-I{os.path.join(REPO, 'lib', 'common')}",
+                f"-I{os.path.join(REPO, 'lib', 'common', 'healpix')}"]
         srcs = [FIXTURE_SRC,
                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),

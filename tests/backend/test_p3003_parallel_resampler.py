@@ -17,8 +17,10 @@ import sys
 import tempfile
 import unittest
 
+from tests.backend.fixture_common import ensure_f1f2_hips  # noqa: E402
+
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EXE = os.path.join(REPO, "run", "temp", "astrocs")
+EXE = os.path.join(REPO, "build", "astrocs")
 SESS = os.path.join(REPO, "lib", "phase3_session", "p3_session.cpp")
 
 
@@ -27,6 +29,7 @@ class TestP3003ParallelResampler(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="p3003_")
         cls.hips = os.path.join(REPO, "run", "temp", "p3_data")
+        ensure_f1f2_hips()
         # 用已有 F1 HiPS(或建 FIELD)
         os.makedirs(cls.hips, exist_ok=True)
 
