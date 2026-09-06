@@ -38,6 +38,21 @@ jobs:
         id: profile
         shell: bash
         run: python3 ci/select_profile.py --event "$GITHUB_EVENT_NAME" --requested "${{ inputs.profile }}" >> "$GITHUB_OUTPUT"
+      - name: Install linux-main python deps (numpy for UT-IO)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # HOSTFIX-23③：UT-IO（checks.json profiles=[linux-main]）三测试模块
+          # fixture 依赖 numpy，此前唯一装 numpy 的步骤（Install deep coverage
+          # tools）带 deep-only if，linux-main 跑 UT-IO 时
+          # ModuleNotFoundError: No module named 'numpy' → 3 tests 0 ran。
+          # tests/io 全量 imports 实读：第三方依赖仅 numpy（其余为 stdlib 与
+          # 仓库本地模块 fits_verify/hips_output_store/make_hips_fixture）。
+          # 仅装验证侧 fixture 依赖，不联网拉任何业务依赖；apt 双超时保护。
+          timeout 240 sudo apt-get update -qq
+          timeout 480 sudo DEBIAN_FRONTEND=noninteractive \
+            apt-get install -y -qq --no-install-recommends python3-numpy
+          python3 -c "import numpy; print('numpy ready:', numpy.__version__)"
       - name: Install deep coverage tools
         if: steps.profile.outputs.profile == 'linux-deep'
         shell: bash
