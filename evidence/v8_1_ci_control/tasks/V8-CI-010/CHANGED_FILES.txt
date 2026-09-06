@@ -58,3 +58,24 @@ evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/windows/system.txt
 - evidence/v8_1_ci_control/tasks/V8-CI-010/HOSTED_RUN_REPORT.md：+修复轮 3 段（R13-R19）
 - evidence/v8_1_ci_control/tasks/V8-CI-010/TASK_RESULT.json：findings_round2[].resolution_round3 + repair_round3 块
 - logs/repair_round3.log（logs/** 不入 git status）：复现-修复-复验三段 + 验收逐条
+
+# 观察轮 3 增量（SA-CI-32，@ HEAD 77da09effe1f，2026-09-06，mode=read）
+- （源码零改动；本轮全部为 evidence 与 logs 增量）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/HOSTED_RUN_REPORT.md：+观察轮 3 段（R20-R27：run 终态/分布对照/resource summary/持续误 SKIP 根因/windows cmake 链/诊断步/findings/关闭差距）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/TASK_RESULT.json：+observation_round3 块（runs/comparison_vs_round2/resource_summary.windows 实测数字/findings_round3 F-R3-01·02·03/closability_vs_requirements/evidence_files）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/logs/round3/（logs/** 不入 git status）：
+  - API trace：runs_api_trace_ci-linux_headsha.json、runs_api_trace_push_recent.json、run_api_trace_34008273326/34008273413.json、jobs_api_trace_34008273326/34008273413.json、artifacts_api_trace_34008273326/34008273413.json、run_linux_34008273326_poll.json
+  - job 全量日志：job_log_101419369057_linux.log、job_log_101419369159_windows.log（GitHub runner 自掩码 basic *** 已 [REDACTED] 化）
+  - artifact 原始 zip + 解包：linux-ci-77da09effe1f….zip（id 9981794198）→ linux-artifact-77da09effe1f/（BOOTSTRAP_DIAG + 71 checks + logs + CI_RESULT.json）；windows-ci-77da09effe1f….zip（id 9981668901）→ windows-artifact-77da09effe1f/（BOOTSTRAP_DIAG + 61 checks + logs + CI_RESULT.json）
+  - 脱敏断言：logs/round3/ 全量 grep ghp_/github_pat_/Authorization 头/password= 无命中
+
+# 修复轮 4 增量（SA-CI-32，@ HEAD 77da09ef，2026-09-06，mode=write，git 只读纪律不变）
+- ci/run.py：F-R3-03 最小修 —— probe_prerequisite 路径探测循环跳过 run/ 前缀仓库相对参数（与 outputs 排除同语义，附注释）；其余探测语义不变
+- CMakePresets.json：F-R3-02b —— base-msvc 移除 CMAKE_GENERATOR_INSTANCE（vswhere 自动发现）；toolset 放宽为 v143,host=x64（去 version= pin）；preset 名与 binaryDir 不变
+- cmake/toolchain/verify_toolchain.py：F-R3-02b 配套同步 —— version= 键『必须匹配』改『禁止出现』、GENERATOR_INSTANCE『必须存在』改『禁止硬编码』（保持 fail-fast 漂移检测；实跑 TOOLCHAIN_CONTRACT_PASS）
+- .github/workflows/ci-windows.yml：F-R3-01 诊断步 subprocess.run 补 encoding="utf-8", errors="replace"；F-R3-02 evidence 上传 path 改多路径（artifacts/ci/ + run/ci/win-build-summary.json）
+- ci/tests/test_run_prefix_probe.py：新增（F-R3-03 回归 4 项：登记自洽 / 真实登记 probe 通过 / fixture 端到端 PASS / 非 run/ 缺路径仍拒）
+- ci/tests/test_workflow_lock.py：test_evidence_upload_path_matches_run_output_dir 同步多路径逐行解析 + 正向断言 run/ci/win-build-summary.json（F-R3-02）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/HOSTED_RUN_REPORT.md：+修复轮 4 段（R28）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/TASK_RESULT.json：+repair_round4 块
+- logs/repair_round4.log（logs/** 不入 git status）：preset 本机尝试（cmake 缺失 exit 127 原文）+ 结构级验证 15/15 + 验收逐条

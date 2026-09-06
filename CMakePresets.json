@@ -1,7 +1,7 @@
 {
   "$schema": "https://cmake.org/cmake/help/v3.31/schema/presets.schema.json",
   "version": 10,
-  "$comment": "AstroCS BLD-001 frozen toolchain presets. Formal Windows generator is Visual Studio 17 2022 (x64 / v143 / 14.44.35207 / SDK 10.0.26100.0 / CMake 3.31.12) per 09_WINDOWS_TOOLCHAIN_LOCK.md. Machine validation: cmake/toolchain/verify_toolchain.py against packaging/schemas/preset-contract.schema.json.",
+  "$comment": "AstroCS BLD-001 frozen toolchain presets. Formal Windows generator is Visual Studio 17 2022 (x64 / v143 host=x64 without a pinned MSVC build number / SDK 10.0.26100.0 / CMake 3.31.12) per 09_WINDOWS_TOOLCHAIN_LOCK.md. V8-CI-010 F-R3-02b: VS instance is discovered by cmake via vswhere (no CMAKE_GENERATOR_INSTANCE override); toolset carries no version= pin so the hosted mirror default v143 and the local VS default v143 both resolve. Machine validation: cmake/toolchain/verify_toolchain.py against packaging/schemas/preset-contract.schema.json.",
   "cmakeMinimumRequired": {
     "major": 3,
     "minor": 31,
@@ -15,7 +15,7 @@
       "windows_formal": {
         "generator": "Visual Studio 17 2022",
         "architecture": "x64",
-        "toolset": "v143,host=x64,version=14.44.35207",
+        "toolset": "v143,host=x64",
         "sdk": "10.0.26100.0",
         "cmake_pin": "3.31.12",
         "note": "cmakeMinimumRequired.patch is 0 so any 3.31.x parses the file; the exact 3.31.12 install pin is enforced by the toolchain verifier and machine acceptance."
@@ -27,14 +27,14 @@
       "name": "base-msvc",
       "hidden": true,
       "displayName": "AstroCS Windows x64 MSVC base (frozen)",
-      "description": "Hidden base for the single formal Windows preset. VS 17 2022 x64 only, host x64, toolset v143 pinned to 14.44.35207, SDK 10.0.26100.0, DLL CRT everywhere (/MD /MDd). Never edits this preset to another generator.",
+      "description": "Hidden base for the single formal Windows preset. VS 17 2022 x64 only, host x64, toolset v143 without a version pin (hosted mirror default / local VS default), SDK 10.0.26100.0, DLL CRT everywhere (/MD /MDd). VS instance is NOT pinned: cmake discovers it via vswhere (V8-CI-010 F-R3-02b — a hardcoded CMAKE_GENERATOR_INSTANCE local path made hosted configure fail in 0.4s). Never edits this preset to another generator.",
       "generator": "Visual Studio 17 2022",
       "architecture": {
         "value": "x64",
         "strategy": "set"
       },
       "toolset": {
-        "value": "v143,host=x64,version=14.44.35207",
+        "value": "v143,host=x64",
         "strategy": "set"
       },
       "binaryDir": "${sourceDir}/build/win-msvc-17.14.39-x64",
@@ -42,7 +42,6 @@
       "cacheVariables": {
         "CMAKE_SYSTEM_VERSION": "10.0.26100.0",
         "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL",
-        "CMAKE_GENERATOR_INSTANCE": "C:/AstroCS/toolchains/vs2022-17.14.39",
         "CMAKE_CXX_STANDARD": "17",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "ASTROCS_ENABLE_ACR": "OFF"
@@ -57,7 +56,7 @@
       "name": "win-msvc-17.14.39-x64",
       "inherits": "base-msvc",
       "displayName": "AstroCS Windows x64 正式发布工具链 (VS17 2022 v143 14.44.35207 SDK 26100)",
-      "description": "正式 Windows 构建：Visual Studio 17 2022 / x64 / host x64 / v143 version=14.44.35207 / Windows SDK 10.0.26100.0 / CMake 3.31.12 / C++17 / CRT /MD /MDd / ACR OFF。仅 AMD64；不含 Win32/ARM/ARM64。只在 Windows 主机生效。",
+      "description": "正式 Windows 构建：Visual Studio 17 2022 / x64 / host x64 / v143（不固定 build 号，cmake 经 vswhere 自动发现 VS 实例）/ Windows SDK 10.0.26100.0 / CMake 3.31.12 / C++17 / CRT /MD /MDd / ACR OFF。仅 AMD64；不含 Win32/ARM/ARM64。只在 Windows 主机生效。",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",

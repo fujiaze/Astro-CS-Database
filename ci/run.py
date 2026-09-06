@@ -468,6 +468,12 @@ def probe_prerequisite(check: dict, repo: Path, platform: str) -> tuple[bool, st
             continue
         if arg in outputs or arg.startswith("/"):
             continue  # 登记输出路径运行时才生成；绝对路径属环境特定
+        if arg == "run" or arg.startswith("run/") or arg.startswith("run\\"):
+            # run/ 是运行时产物目录（AGENTS.md 临时操作目录，运行时生成），
+            # 与 outputs 排除同语义：非仓库静态输入，不探测存在性。
+            # V8-CI-010 F-R3-03：否则 BUILD-GCC-RELEASE/DEEP-* 的
+            # --build-dir run/ci/... 在首轮被误判缺失输入 → 持续误 SKIP。
+            continue
         if not _script_exists(repo, arg):
             return False, f"command 引用的仓库路径不存在：{arg}"
 
