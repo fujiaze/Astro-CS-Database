@@ -47,10 +47,15 @@ jobs:
           # DEEP-COV-PY = pytest（tools/quality/ci_coverage_runner.py 以 --cov 调用，
           # 需 pytest-cov 插件随装）。版本对齐 clang-18 时代包名（llvm-18）。
           # 仅安装验证工具，不联网拉任何业务依赖；apt 双超时保护，最小输出。
+          # V8-CI-012 R6.5（numpy×6 ENV_FAIL）：hosted 镜像缺 python3-numpy，
+          # tests/io + tests/backend 6 项收集期 ModuleNotFoundError → 覆盖率数值
+          # 缺位。numpy/astropy/scipy/yaml 均为验证侧依赖（Fixture 生成/数值断言，
+          # 本地 agent-host 实测闭包），不属业务安装面。
           timeout 240 sudo apt-get update -qq
           timeout 480 sudo DEBIAN_FRONTEND=noninteractive \
             apt-get install -y -qq --no-install-recommends \
-            llvm-18 python3-pytest python3-pytest-cov
+            llvm-18 python3-pytest python3-pytest-cov \
+            python3-numpy python3-astropy python3-scipy python3-yaml
           # llvm-18 无后缀可执行在 /usr/lib/llvm-18/bin，GITHUB_PATH 对后续步生效
           echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
           # 本步内 PATH 尚未刷新，按落点直接核验；缺失时显式报错不静默
