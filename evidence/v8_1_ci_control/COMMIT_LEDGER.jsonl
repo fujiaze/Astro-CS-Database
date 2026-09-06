@@ -1585,3 +1585,4 @@
 {"sha": "0d548519c5e7119b037760a840e97734eca5fc2e", "subject": "fix(checkers/tests): UT-VERSION 版本单源收敛 66 处漂移（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-06T23:21:53+08:00"}
 {"sha": "f896d1bb86e02505614a2ee5894159c4a56be906", "subject": "fix(conformance): 探针模块版本单源 alpha.1→alpha.2 + registry 断言动态化 + bootstrap_utf8 动态断言（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-06T23:35:10+08:00"}
 {"sha": "e51a423aaed26f9c12589ba1bbfe8e9883768581", "subject": "fix(windows): ctest 7 失败根因闭环 + monitor Win32 采样 + driver 全量日志 tee（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-07T00:37:06+08:00"}
+{"sha": "1938b7aa87c16f6df2d1b4805534167d746fa397", "subject": "fix(wave4): UT-API 断言同步 / UT-IO numpy 环境依赖 / UT-CPU-AVX512 fortified memset（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-07T01:02:25+08:00"}

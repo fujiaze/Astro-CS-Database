@@ -42,9 +42,9 @@ exe_target,acr-status,lib/acr/tools/acr_status/CMakeLists.txt,tool,no,-,非发�
 exe_target,healpix_browser_qt,lib/healpix_db/healpix_browser_qt/CMakeLists.txt,tool,no,-,非发布目标,lib/healpix_db/healpix_browser_qt/CMakeLists.txt:83,
 exe_target,browser_cli,lib/healpix_db/healpix_browser_qt/CMakeLists.txt,tool,no,-,非发布目标,lib/healpix_db/healpix_browser_qt/CMakeLists.txt:101,
 exe_target,test_healpix_math,lib/healpix_db/healpix_browser_qt/CMakeLists.txt,test,no,-,非发布目标,lib/healpix_db/healpix_browser_qt/CMakeLists.txt:130,
-exe_target,astrocs-stage2,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:91,
-exe_target,calibrated_pair_diag,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:99,
-exe_target,rejection_cli,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:103,
+exe_target,astrocs-stage2,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:103,
+exe_target,calibrated_pair_diag,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:112,
+exe_target,rejection_cli,lib/phase2/CMakeLists.txt,tool,no,-,非发布目标,lib/phase2/CMakeLists.txt:117,
 openmp_kernel,weighted_integration_kernels.cpp,lib/acr/examples/weighted_integration/weighted_integration_kernels.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/acr/examples/weighted_integration/weighted_integration_kernels.cpp (1 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,aio_fits.cpp,lib/astro_image_io/src/aio_fits.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/astro_image_io/src/aio_fits.cpp (1 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,aio_pipeline_engine.cpp,lib/astro_image_io/src/aio_pipeline_engine.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/astro_image_io/src/aio_pipeline_engine.cpp (3 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
@@ -59,8 +59,6 @@ openmp_kernel,drizzle_engine.cpp,lib/healpix_db/healpix_drizzle/drizzle_engine.c
 openmp_kernel,snr_evaluator.cpp,lib/healpix_db/healpix_drizzle/snr_evaluator.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/healpix_db/healpix_drizzle/snr_evaluator.cpp (1 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,reference_overlap.cpp,lib/healpix_db/healpix_drizzle/tests/reference_overlap.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/healpix_db/healpix_drizzle/tests/reference_overlap.cpp (3 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,acr_kernels.cpp,lib/phase2/src/acr_kernels.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/phase2/src/acr_kernels.cpp (2 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
-openmp_kernel,sampler.cpp,lib/phase2/src/sampler.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/phase2/src/sampler.cpp (2 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
-openmp_kernel,upm.cpp,lib/phase2/src/upm.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/phase2/src/upm.cpp (5 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,stage2.cpp,lib/phase2/tools/stage2.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/phase2/tools/stage2.cpp (2 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,image_corrector.cpp,lib/photometric_calib/cpp/src/image_corrector.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/photometric_calib/cpp/src/image_corrector.cpp (1 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,pc_api.cpp,lib/photometric_calib/cpp/src/pc_api.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/photometric_calib/cpp/src/pc_api.cpp (19 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
@@ -100,6 +98,11 @@ thread_creation,std::thread ta_thread([&] {,lib/acr/tests/unit/test_work_pool.cp
 thread_creation,std::vector<std::thread> workers;,lib/acr/tests/unit/test_work_pool.cpp:142,test,no,-,std::async,lib/acr/tests/unit/test_work_pool.cpp:142,
 thread_creation,std::thread b([&] {,lib/acr/tests/unit/test_work_pool.cpp:227,test,no,-,std::thread 显式创建,lib/acr/tests/unit/test_work_pool.cpp:227,
 thread_creation,std::vector<std::thread> workers;,lib/acr/tests/unit/test_work_pool.cpp:263,test,no,-,std::async,lib/acr/tests/unit/test_work_pool.cpp:263,
+thread_creation,//   - worker 生命周期：Impl 持有 std::vector<std::thread>，构造创建、析构,lib/core/src/executor.cpp:10,production,yes,-,std::async,lib/core/src/executor.cpp:10,
+thread_creation,//     scheduler 不再自建 std::thread 池（RT-004 消灭 per-run 池）。,lib/core/src/executor.cpp:18,production,yes,-,std::thread 显式创建,lib/core/src/executor.cpp:18,
+thread_creation,std::vector<std::thread> workers;       // 唯一共享池 worker（join,lib/core/src/executor.cpp:37,production,yes,-,std::async,lib/core/src/executor.cpp:37,
+thread_creation,std::vector<std::thread> workers;       // I/O worker（join 生,lib/core/src/executor.cpp:203,production,yes,-,std::async,lib/core/src/executor.cpp:203,
+thread_creation,std::vector<std::thread> pool;,lib/core/src/scheduler.cpp:265,production,yes,-,std::async,lib/core/src/scheduler.cpp:265,
 thread_creation,* @param thread_count count of std::async threads,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1407,production,yes,-,std::async,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1407,
 thread_creation,right_future = std::async(,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1433,production,yes,-,std::async,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1433,
 thread_creation,*     build using `std::async` (unless NANOFLANN_NO_THREADS ,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1811,production,yes,-,std::async,lib/healpix_db/healpix_drizzle/nanoflann.hpp:1811,
@@ -118,8 +121,16 @@ thread_creation,std::vector<std::thread> threads;,lib/orchestrator/cpp/tests/tes
 thread_creation,std::thread stdout_thread([&]() {,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:200,test,no,-,std::thread 显式创建,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:200,
 thread_creation,std::thread stderr_thread([&]() {,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:208,test,no,-,std::thread 显式创建,lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp:208,
 thread_creation,const unsigned hc = std::thread::hardware_concurrency();,lib/phase2/include/astro/phase2/execution_options.h:24,production,yes,-,std::async,lib/phase2/include/astro/phase2/execution_options.h:24,
-thread_creation,const int workers = (cfg.cpu_workers > 0) ? cfg.cpu_workers ,lib/phase2/src/sampler.cpp:881,production,yes,-,std::async,lib/phase2/src/sampler.cpp:881,
-thread_creation,": (int)std::max(1u, std::thread::hardware_concurrency());",lib/phase2/src/upm.cpp:518,production,yes,-,std::async,lib/phase2/src/upm.cpp:518,
+thread_creation,// 消除 64× 重读；并行由 std::thread + Runtime lease 驱动。,lib/phase2/src/sampler.cpp:631,production,yes,-,std::thread 显式创建,lib/phase2/src/sampler.cpp:631,
+thread_creation,"// 生产默认 N-worker 并行(std::thread, 跨 Linux/MSVC 一致); OpenMP 条件",lib/phase2/src/sampler.cpp:882,production,yes,-,std::async,lib/phase2/src/sampler.cpp:882,
+thread_creation,std::vector<std::thread> pool;,lib/phase2/src/sampler.cpp:890,production,yes,-,std::async,lib/phase2/src/sampler.cpp:890,
+thread_creation,std::vector<std::thread> pool;,lib/phase2/src/upm.cpp:521,production,yes,-,std::async,lib/phase2/src/upm.cpp:521,
+thread_creation,// 逐 obs 独立 w 计算(per-obs 写 w[i] 不相交); std::thread + lease wo,lib/phase2/src/upm.cpp:613,production,yes,-,std::thread 显式创建,lib/phase2/src/upm.cpp:613,
+thread_creation,std::vector<std::thread> pool;,lib/phase2/src/upm.cpp:617,production,yes,-,std::async,lib/phase2/src/upm.cpp:617,
+thread_creation,std::vector<std::thread> pool;,lib/phase2/src/upm.cpp:661,production,yes,-,std::async,lib/phase2/src/upm.cpp:661,
+thread_creation,std::vector<std::thread> pool;,lib/phase2/src/upm.cpp:778,production,yes,-,std::async,lib/phase2/src/upm.cpp:778,
+thread_creation,"// dense tile 求值并行(std::thread; workers 由调用方传 lease, 无 OpenM",lib/phase2/src/upm.cpp:1477,production,yes,-,std::async,lib/phase2/src/upm.cpp:1477,
+thread_creation,std::vector<std::thread> pool;,lib/phase2/src/upm.cpp:1484,production,yes,-,std::async,lib/phase2/src/upm.cpp:1484,
 thread_creation,std::thread producer([&] {,lib/phase2/tests/async_io_test.cpp:59,test,no,-,std::thread 显式创建,lib/phase2/tests/async_io_test.cpp:59,
 thread_creation,std::thread producer([&] { pushed = q.push(1); });,lib/phase2/tests/async_io_test.cpp:90,test,no,-,std::thread 显式创建,lib/phase2/tests/async_io_test.cpp:90,
 thread_creation,std::thread reader([&] {,lib/phase2/tests/async_io_test.cpp:110,test,no,-,std::thread 显式创建,lib/phase2/tests/async_io_test.cpp:110,
@@ -132,6 +143,7 @@ thread_creation,std::thread reader([&] {,lib/phase2/tests/async_io_test.cpp:192,
 thread_creation,std::vector<std::thread> workers;,lib/phase2/tests/async_io_test.cpp:200,test,no,-,std::async,lib/phase2/tests/async_io_test.cpp:200,
 thread_creation,std::thread consumer([&] { consumer_returned_null = (q.pop(),lib/phase2/tests/async_io_test.cpp:223,test,no,-,std::thread 显式创建,lib/phase2/tests/async_io_test.cpp:223,
 thread_creation,const unsigned h = std::thread::hardware_concurrency();,lib/phase2/tests/execution_options_test.cpp:12,test,no,-,std::async,lib/phase2/tests/execution_options_test.cpp:12,
+thread_creation,std::vector<std::thread> pool;,lib/phase3_session/p3_session.cpp:247,production,yes,-,std::async,lib/phase3_session/p3_session.cpp:247,
 lock,kernel_registry.cpp,lib/acr/api/kernel_registry.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/acr/api/kernel_registry.cpp (3 sites),
 lock,acr_cuda_bridge_host.cpp,lib/acr/backends/cuda/bridge/acr_cuda_bridge_host.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/acr/backends/cuda/bridge/acr_cuda_bridge_host.cpp (25 sites),
 lock,runtime.cpp,lib/acr/core/runtime.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/acr/core/runtime.cpp (5 sites),
@@ -155,8 +167,17 @@ lock,memory_budget.cpp,lib/acr/utilization/memory_budget.cpp,production,yes,Phas
 lock,staging_ledger.cpp,lib/acr/utilization/staging_ledger.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/acr/utilization/staging_ledger.cpp (7 sites),
 lock,system_metrics.cpp,lib/acr/utilization/system_metrics.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/acr/utilization/system_metrics.cpp (10 sites),
 lock,hiss_format.h,lib/astro_image_io/include/hiss_format.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/astro_image_io/include/hiss_format.h (1 sites),
+lock,aio_cfitsio_mutex.h,lib/astro_image_io/src/aio_cfitsio_mutex.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/astro_image_io/src/aio_cfitsio_mutex.h (2 sites),
+lock,aio_fits.cpp,lib/astro_image_io/src/aio_fits.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/astro_image_io/src/aio_fits.cpp (1 sites),
 lock,aio_log.cpp,lib/astro_image_io/src/aio_log.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/astro_image_io/src/aio_log.cpp (2 sites),
+lock,aio_hips_reader.cpp,lib/astro_image_io/src/hips/aio_hips_reader.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/astro_image_io/src/hips/aio_hips_reader.cpp (3 sites),
 lock,hiss_codec.cpp,lib/astro_image_io/src/hiss_codec.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/astro_image_io/src/hiss_codec.cpp (8 sites),
+lock,artifact_store.cpp,lib/core/src/artifact_store.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/core/src/artifact_store.cpp (3 sites),
+lock,context.cpp,lib/core/src/context.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/core/src/context.cpp (17 sites),
+lock,executor.cpp,lib/core/src/executor.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/core/src/executor.cpp (16 sites),
+lock,logging.cpp,lib/core/src/logging.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/core/src/logging.cpp (6 sites),
+lock,runtime.cpp,lib/core/src/runtime.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/core/src/runtime.cpp (7 sites),
+lock,scheduler.cpp,lib/core/src/scheduler.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/core/src/scheduler.cpp (7 sites),
 lock,dpsf_log.cpp,lib/dynamic_psf/src/dpsf_log.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/dynamic_psf/src/dpsf_log.cpp (2 sites),
 lock,gaia_client.c,lib/gaia_xpsd_client/src/gaia_client.c,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/gaia_xpsd_client/src/gaia_client.c (1 sites),
 lock,browser_backend.cpp,lib/healpix_db/healpix_browser_qt/core/browser_backend.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/healpix_db/healpix_browser_qt/core/browser_backend.cpp (13 sites),
@@ -176,9 +197,14 @@ lock,acr_kernels.cpp,lib/phase2/src/acr_kernels.cpp,production,yes,Phase1/2,mute
 lock,sampler.cpp,lib/phase2/src/sampler.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/phase2/src/sampler.cpp (4 sites),
 lock,async_io_test.cpp,lib/phase2/tests/async_io_test.cpp,test,no,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/phase2/tests/async_io_test.cpp (2 sites),
 lock,stage2.cpp,lib/phase2/tools/stage2.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/phase2/tools/stage2.cpp (3 sites),
+lock,p3_output.cpp,lib/phase3_session/p3_output.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/phase3_session/p3_output.cpp (1 sites),
 lock,ipv_log.h,lib/plate_solve/cpp/ipv/include/ipv_log.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/plate_solve/cpp/ipv/include/ipv_log.h (4 sites),
 lock,sdet_log.cpp,lib/star_detector/src/sdet_log.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/star_detector/src/sdet_log.cpp (2 sites),
-queue,std::queue<int> q;,lib/calibration/src/cosmetic_corrector.cpp:71,production,yes,-,队列语义,lib/calibration/src/cosmetic_corrector.cpp:71,
+queue,std::queue<int> q;,lib/calibration/src/cosmetic_corrector.cpp:73,production,yes,-,队列语义,lib/calibration/src/cosmetic_corrector.cpp:73,
+queue,std::queue<ExecutorTask> tasks;         // 待执行任务（尚,lib/core/src/executor.cpp:36,production,yes,-,队列语义,lib/core/src/executor.cpp:36,
+queue,"std::queue<std::pair<IoTaskClass, ExecutorTask>> t",lib/core/src/executor.cpp:202,production,yes,-,队列语义,lib/core/src/executor.cpp:202,
+queue,std::queue<std::string> ready;,lib/core/src/scheduler.cpp:55,production,yes,-,队列语义,lib/core/src/scheduler.cpp:55,
+queue,std::queue<std::string> ready;,lib/core/src/scheduler.cpp:110,production,yes,-,队列语义,lib/core/src/scheduler.cpp:110,
 acr_boundary,"std::string acr_route = ""auto"";",lib/phase2/include/astro/phase2/stage2_common.h:95,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/include/astro/phase2/stage2_common.h:95,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,// CON-007: ACR 块路由资格。acr_route=cpu/auto/cuda 只要满足科学/ivar 条件,lib/phase2/include/astro/phase2/stage2_common.h:110,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/include/astro/phase2/stage2_common.h:110,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"bool p2_acr_block_eligible(const P2Stage2Config& cfg,",lib/phase2/include/astro/phase2/stage2_common.h:113,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/phase2/include/astro/phase2/stage2_common.h:113,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
@@ -212,6 +238,7 @@ io_writer,dataflow_fuzz.cpp,lib/astro_image_io/tests/dataflow_fuzz.cpp,productio
 io_writer,hips_sanitize_driver.cpp,lib/astro_image_io/tests/hips_sanitize_driver.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/astro_image_io/tests/hips_sanitize_driver.cpp,
 io_writer,pipeline_frame_contract_test.cpp,lib/astro_image_io/tests/pipeline_frame_contract_test.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/astro_image_io/tests/pipeline_frame_contract_test.cpp,
 io_writer,drizzle_engine.cpp,lib/healpix_db/healpix_drizzle/drizzle_engine.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/healpix_db/healpix_drizzle/drizzle_engine.cpp,
+io_writer,io_adapter.cpp,lib/io/src/io_adapter.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/io/src/io_adapter.cpp,
 io_writer,checkpoint.h,lib/orchestrator/cpp/include/checkpoint.h,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/orchestrator/cpp/include/checkpoint.h,
 io_writer,checkpoint.cpp,lib/orchestrator/cpp/src/checkpoint.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/orchestrator/cpp/src/checkpoint.cpp,
 io_writer,orchestrator.cpp,lib/orchestrator/cpp/src/orchestrator.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/orchestrator/cpp/src/orchestrator.cpp,
