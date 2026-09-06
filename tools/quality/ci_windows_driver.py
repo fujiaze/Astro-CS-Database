@@ -50,6 +50,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -61,6 +62,7 @@ __all__ = [
     "verify_candidate", "expected_windows_artifacts", "prune_candidate",
     "build_dir_from_preset", "EXCLUDE_PATTERNS", "DOC_WHITELIST",
     "pack_candidate_zip", "collect_error_lines", "ERROR_LINE_RE",
+    "STAGE_LOG_TEMPLATE",
 ]
 
 # ---------------------------------------------------------------------- 常量 ----
@@ -96,6 +98,12 @@ ERROR_LINE_RE = re.compile(
     r"error C\d+|error LNK\d+|fatal error|: error |/error MSB\d+|LINK : fatal",
     re.IGNORECASE)
 ERROR_LINES_CAP = 50
+
+# F-R4-03：逐阶段全量 tee 日志（相对仓库根）。run 5e457d425fc8 实证：build
+# exit 1 时 output_tail 25 行只见成功链接行（astrocs.vcxproj -> ...astrocs.exe），
+# 真实 error（astrocs_io C1189 / io_reentrant_test LNK1104）仅靠 error_lines
+# 幸存；全量日志 win-stage-<name>.log 保证下一轮可完整还原失败上下文。
+STAGE_LOG_TEMPLATE = "run/ci/win-stage-{name}.log"
 
 
 def collect_error_lines(lines: list[str]) -> list[str]:
@@ -160,11 +168,23 @@ def detect_jobs() -> int | None:
 
 
 def run_step(argv: list[str], *, timeout: int, cwd: Path | None = None,
-             env: dict[str, str] | None = None) -> dict:
+             env: dict[str, str] | None = None,
+             log_path: Path | None = None) -> dict:
     """执行一步：argv 数组、shell=False、超时杀进程组；返回结果 dict。
 
     Windows 超时先 taskkill /F /T（杀进程树）再回退 proc.kill()。
+    F-R4-03：log_path 提供时把合并输出全量 tee 到该文件（UTF-8, errors=replace），
+    读线程边读边落盘并 flush——进程崩溃或超时被杀也保留已产出部分日志；
+    tee 自身失败（OSError）不阻断主流程，只丢日志。
     """
+    logfh = None
+    if log_path is not None:
+        try:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            logfh = log_path.open("w", encoding="utf-8", errors="replace")
+            logfh.write(f"$ {' '.join(argv)}\n")
+        except OSError:
+            logfh = None
     try:
         proc = subprocess.Popen(
             argv, cwd=str(cwd or REPO), env=env,
@@ -172,10 +192,27 @@ def run_step(argv: list[str], *, timeout: int, cwd: Path | None = None,
             start_new_session=(os.name == "posix"),
         )
     except FileNotFoundError:
+        if logfh is not None:
+            logfh.write(f"可执行不存在：{argv[0]}\n")
+            logfh.close()
         return {"argv": argv, "exit_code": 127, "timed_out": False,
                 "output_tail": f"可执行不存在：{argv[0]}", "error_lines": []}
+    lines: list[str] = []
+
+    def _pump() -> None:
+        # 单读线程持续排空管道（避免 communicate 与大输出互锁）并 tee 落盘。
+        assert proc.stdout is not None
+        for raw in iter(proc.stdout.readline, b""):
+            text = raw.decode("utf-8", "replace").rstrip("\r\n")
+            lines.append(text)
+            if logfh is not None:
+                logfh.write(text + "\n")
+                logfh.flush()
+
+    pump = threading.Thread(target=_pump, daemon=True)
+    pump.start()
     try:
-        out, _ = proc.communicate(timeout=timeout)
+        proc.wait(timeout=timeout)
         exit_code, timed_out = proc.returncode, False
     except subprocess.TimeoutExpired:
         timed_out = True
@@ -187,15 +224,26 @@ def run_step(argv: list[str], *, timeout: int, cwd: Path | None = None,
                 proc.kill()
         else:
             proc.kill()
-        out, _ = proc.communicate()
+        proc.wait()
         exit_code = 124
-    text = (out or b"").decode("utf-8", "replace")
-    lines = text.splitlines()
+    pump.join(timeout=10)
+    if logfh is not None:
+        if timed_out:
+            logfh.write(f"\n[ci_windows_driver] TIMED_OUT after {timeout}s\n")
+        logfh.close()
+    try:
+        if proc.stdout is not None:
+            proc.stdout.close()
+    except Exception:
+        pass
     tail = lines[-25:] if len(lines) > 25 else lines
     # F-R4-01：失败时额外收集编译/链接错误行（成功恒为 []，schema 兼容）
     error_lines = collect_error_lines(lines) if exit_code != 0 else []
-    return {"argv": argv, "exit_code": exit_code, "timed_out": timed_out,
-            "output_tail": "\n".join(tail), "error_lines": error_lines}
+    result = {"argv": argv, "exit_code": exit_code, "timed_out": timed_out,
+              "output_tail": "\n".join(tail), "error_lines": error_lines}
+    if log_path is not None:
+        result["log_path"] = str(log_path)
+    return result
 
 
 def parse_stages(spec: str) -> list[str]:
@@ -294,8 +342,11 @@ def stage_plan(stages: list[str], *, preset: str = DEFAULT_PRESET,
                 argv += ["--parallel", str(jobs)]  # 探测所得并行度
             plan.append({"name": stage, "timeout": timeout, "argv": argv})
         elif stage == "test":
+            # --output-on-failure: 失败用例的 stderr/断言细节进 stage tee 日志
+            # 与 junit（run 5e457d425fc8 的 7 failed 无断言细节可查，即缺此项）。
             plan.append({"name": stage, "timeout": timeout,
                          "argv": ["ctest", "--preset", test_preset,
+                                  "--output-on-failure",
                                   "--output-junit", junit]})
         elif stage == "install":
             plan.append({"name": stage, "timeout": timeout,
@@ -726,13 +777,18 @@ def _run_stages(stages: list[str], plan: list[dict], *, output: Path | None,
                              "timed_out": False, "timeout": step["timeout"],
                              "output_tail": str(exc)}
         else:
-            res = run_step(step["argv"], timeout=step["timeout"])
+            # F-R4-03：子进程阶段全量 tee 到 run/ci/win-stage-<name>.log，
+            # summary 记录 log 路径（相对仓库根）供 artifact 上传与离线诊断。
+            log_rel = STAGE_LOG_TEMPLATE.format(name=step["name"])
+            res = run_step(step["argv"], timeout=step["timeout"],
+                           log_path=_resolve(log_rel))
             stage_res = {"name": step["name"], "argv": step["argv"],
                          "exit_code": res["exit_code"],
                          "timed_out": res["timed_out"],
                          "timeout": step["timeout"],
                          "output_tail": res["output_tail"],
-                         "error_lines": res["error_lines"]}
+                         "error_lines": res["error_lines"],
+                         "log": log_rel}
         summary["stages"].append(stage_res)
         if stage_res["exit_code"] != 0:
             rc = stage_res["exit_code"]

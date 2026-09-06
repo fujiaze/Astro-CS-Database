@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <system_error>
@@ -81,11 +82,18 @@ Result<void> ArtifactTransaction::commit() {
     abort();
     return Result<void>::fail(Error(ErrorDomain::IO, e));
   }
-  // rename (原子; Windows 失败给确定错误)
-  if (std::rename(tmp_.c_str(), target_.c_str()) != 0) {
-    std::string e = err_msg("rename failed (Windows: target may exist / locked)", target_);
-    abort();
-    return Result<void>::fail(Error(ErrorDomain::IO, e));
+  // rename (原子替换; 覆盖已存在目标是 atomic_write 的核心用途):
+  // UCRT std::rename 不替换已存在目标 (MOVEFILE 无 REPLACE_EXISTING), Windows
+  // 覆盖写必失败; std::filesystem::rename 两侧语义一致 (POSIX 替换 / MSVC STL
+  // 带 MOVEFILE_REPLACE_EXISTING)。失败给确定错误并保留事务现场 (abort 由调用方决定)。
+  {
+    std::error_code ec;
+    std::filesystem::rename(tmp_, target_, ec);
+    if (ec) {
+      std::string e = "rename failed: " + target_ + ": " + ec.message();
+      abort();
+      return Result<void>::fail(Error(ErrorDomain::IO, e));
+    }
   }
   active_ = false;
   tmp_.clear();

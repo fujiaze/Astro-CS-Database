@@ -28,8 +28,16 @@ int main() {
   const uint64_t detected = astrocs_cpu_detect_features_v1();
   CHECK((detected & ACS_FEAT_SSE2) != 0);   // amd64 基线恒置位
 
+  // 跨平台临时目录 (同 io_adapter_test): Windows 无 TMPDIR 时回退 TEMP/TMP/".",
+  // 避免 "/tmp" 落到当前盘根不存在目录 → fopen 失败 → sha256 空串连锁失败。
   const char* d = std::getenv("TMPDIR");
-  const std::string dir = d ? d : "/tmp";
+  if (!d || !*d) d = std::getenv("TEMP");
+  if (!d || !*d) d = std::getenv("TMP");
+#if defined(_WIN32)
+  const std::string dir = (d && *d) ? std::string(d) : std::string(".");
+#else
+  const std::string dir = (d && *d) ? std::string(d) : std::string("/tmp");
+#endif
   const std::string fpath = dir + "/cpu001_negative.so";
   {   // 写占位文件(仅 preflight, 不 dlopen)
     std::FILE* f = std::fopen(fpath.c_str(), "wb");

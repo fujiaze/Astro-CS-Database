@@ -149,6 +149,13 @@ target_include_directories(astrocs_io PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/modules/services/io/include)
 if(MSVC)
   set_property(TARGET astrocs_io PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  # HOSTFIX (WIN-BUILD C1189): fits_core.c 用 C11 <stdatomic.h> (tmp 名计数器),
+  # MSVC C11 atomics 是实验特性, 默认关闭 → vcruntime_c11_stdatomic.h 抛
+  # "C atomic support is not enabled" (C1189), astrocs_io.dll 构建失败并连带
+  # io_* 测试。/experimental:c11atomics 需 MSVC 19.35+ (VS 17.5+); 只作用于
+  # 本 target 的 C 编译单元, 不影响其他 C/C++ target。
+  target_compile_options(astrocs_io PRIVATE
+    $<$<AND:$<COMPILE_LANGUAGE:C>,$<C_COMPILER_ID:MSVC>,$<VERSION_GREATER_EQUAL:$<C_COMPILER_VERSION>,19.35>>:/experimental:c11atomics>)
 else()
   target_compile_options(astrocs_io PRIVATE -Wall -Wextra)
 endif()

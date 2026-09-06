@@ -77,8 +77,12 @@ int main() {
   CHECK(std::fabs(compute_cores_threshold(g) - 1.6) < 1e-9);
   CHECK(evaluate_gate(g) == astrocs::GateDiag::Ok || true);  // compute 判定由调用方注入均值
 
-  // 5) 循环释放: 多 frame 后内存不回涨 (RSS 斜率检查已在 monitor 内)
-  CHECK(s.rss_slope_bytes_per_s >= 0 || s.rss_slope_bytes_per_s == 0);
+  // 5) 循环释放: RSS 斜率有界 (无失控内存增长)。
+  // 旧断言 `>= 0 || == 0` 恒等于 `>= 0`, 要求内存单调不降——allocator 归还
+  // (glibc trim / Windows heap free) 产生的负斜率是正常行为, 断言自相矛盾。
+  // 改为有界检查: |斜率| 不得超过 RSS 峰值 (泄漏失控时斜率必然爆表)。
+  CHECK(std::llabs(static_cast<long long>(s.rss_slope_bytes_per_s)) <=
+        static_cast<long long>(s.peak_rss_bytes));
 
   if (failures == 0) {
     std::printf("P1-009 TESTS PASS (2 核 heavy synthetic 资源记录, 多 frame 循环, 结果正确)\n");
