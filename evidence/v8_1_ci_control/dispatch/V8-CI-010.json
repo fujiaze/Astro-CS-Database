@@ -1,0 +1,33 @@
+{
+  "task_id": "V8-CI-010",
+  "owner": "SA-CI-32",
+  "mode": "read",
+  "base_sha": "db09fbc75b6abb25ad3061c325a76ef0ee729b08",
+  "goal": "Observe dual-platform hosted workflows on latest main SHA, verify check counts, artifacts, manifests; record findings for repair loop",
+  "spec_ref": "工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/tasks/02_CI_TASKS.md#V8-CI-010",
+  "allowed_paths": [
+    "evidence/v8_1_ci_control/tasks/V8-CI-010/**"
+  ],
+  "prohibited": [
+    "commit",
+    "push",
+    "branch",
+    "worktree",
+    "clone",
+    "modify_control_package",
+    "modify_TASK_STATE",
+    "modify_WRITE_LEASE",
+    "write_credentials_to_files_or_logs",
+    "cancel_workflow_runs"
+  ],
+  "requirements": [
+    "记录最新 main 完整 SHA（当前 db09fbc7 或修复提交后的新 SHA，以 git rev-parse 为准）并通过 GitHub API 轮询该 SHA 的 ci-linux.yml/ci-windows.yml runs 至 completed（轮询间隔 ≥60s，timeout ≤15s，凭据 git credential fill 内联不落盘）",
+    "已知失败根因（前台已定位）：AstroCS.wiki gitlink 无 .gitmodules 支撑 → actions/checkout fatal，runs 34000501601/34000501567 失败；前台将推送移除 gitlink 的修复提交，子 agent 观察修复 SHA 的新 runs",
+    "runs 成功后核验：1 Linux run check 数量与 plan-only 一致（71）且全部 PASS/预期 SKIP 2 Windows run check 数量（61）与 candidate artifact 存在 3 下载 candidate artifact：SHA256SUMS 与 zip 实体逐项相符、validate_candidate.py 全绿 4 BUILD_PROVENANCE.json source_sha 与 run head_sha 一致 5 resource summary（ci/resource_monitor 输出）存在且数字合理 6 artifact digest 逐项落 TASK_RESULT",
+    "任一 check 失败：归属明确（模块/检查 id/根因假设）写入 FINDINGS，交前台修复派发，不自行改源码",
+    "证据 evidence/v8_1_ci_control/tasks/V8-CI-010/：TASK_RESULT.json、HOSTED_RUN_REPORT.md、CHANGED_FILES.txt、logs/（runs API trace、artifact 清单、validate 输出）"
+  ],
+  "acceptance_command": "python3 ci/verify_actions_lock.py --offline && python3 -m unittest discover -s ci/tests -p 'test_*.py'",
+  "timeout_s": 3600,
+  "dispatched_utc": "2026-09-06T00:30:00Z"
+}
