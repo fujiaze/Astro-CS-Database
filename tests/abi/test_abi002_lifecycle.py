@@ -32,6 +32,13 @@ HDR = os.path.join(REPO, "include", "astrocs", "abi", "lifecycle_v1.h")
 PROBE = os.path.join(REPO, "tests", "abi", "abi002_lifecycle_probe.c")
 SCHEMA = os.path.join(REPO, "contracts", "config", "module_lifecycle_contract.schema.json")
 
+def _repo_version():
+    """读根 VERSION 文件（与 cli/CMakeLists.txt 单一版本源一致），防 alpha 漂移。"""
+    with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as f:
+        return f.read().strip()
+
+
+
 INC = os.path.join(REPO, "include")
 TIMEOUT = 120
 
@@ -337,7 +344,7 @@ class TestAbi002SchemaConsistency(unittest.TestCase):
         schema = json.load(open(SCHEMA, encoding="utf-8"))
         self.assertEqual(schema["contract_id"], "CONTRACT-ABI002-LIFECYCLE-V1")
         self.assertEqual(schema["doc_status"], "ACTIVE_NORMATIVE")
-        self.assertEqual(schema["target_version"], "0.11.0-alpha.1")
+        self.assertEqual(schema["target_version"], _repo_version())  # schema 冻结数据字段与根 VERSION 单源同步
         self.assertEqual(schema["contract_version"], 1)
         self.assertEqual(schema["owner"], "SA-ABI-03")
         # 无多余顶层字段（冻结数据形态契约）

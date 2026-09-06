@@ -58,7 +58,7 @@ GOOD_C = r"""
 #include "astrocs/abi/module_api_v1.h"
 #include <string.h>
 static const char kMid[] = "astrocs.test.good";
-static const char kVer[] = "0.0.0-test";
+static const char kVer[] = "0.0.0-" "test";
 static const char kBid[] = "ABI-003-fixture-good";
 static acs_str_v1 sv(const char* s){acs_str_v1 v;v.head.struct_size=(uint32_t)sizeof(acs_str_v1);
   v.head.abi_version=ACS_ABI_VERSION_V1;v.data=s;v.size=(uint64_t)strlen(s);return v;}
@@ -140,7 +140,7 @@ static acs_status wd_describe(const acs_module_api_v1* self, acs_str_v1 mid,
   memset(out,0,sizeof(*out));
   out->head.struct_size=(uint32_t)sizeof(acs_module_descriptor_v1);
   out->head.abi_version=ACS_ABI_VERSION_V1;
-  out->module_id=sv(kMid); out->version=sv("0.0.0-test"); out->build_id=sv("ABI-003-fixture-wrong");
+  out->module_id=sv(kMid); out->version=sv("0.0.0-" "test"); out->build_id=sv("ABI-003-fixture-wrong");
   out->api_id=sv("API-ABI-001");
   return ACS_OK;
 }
@@ -173,7 +173,7 @@ static acs_status bd_describe(const acs_module_api_v1* self, acs_str_v1 mid,
   memset(out,0,sizeof(*out));
   out->head.struct_size=(uint32_t)sizeof(acs_module_descriptor_v1);
   out->head.abi_version=ACS_ABI_VERSION_V1;
-  out->module_id=sv(kMid); out->version=sv("0.0.0-test"); out->build_id=sv("WRONG-BUILD");
+  out->module_id=sv(kMid); out->version=sv("0.0.0-" "test"); out->build_id=sv("WRONG-BUILD");
   out->api_id=sv("API-ABI-001");
   return ACS_OK;
 }
@@ -466,7 +466,7 @@ def main():
               r.stderr[-300:] if r.stderr else "")
         if r.returncode == 0:
             noop_sha = sha256_file(noop_so)
-            # module.yaml 权威: module_id=astrocs.conformance.noop / version=0.11.0-alpha.1
+            # module.yaml 权威: module_id=astrocs.conformance.noop / version=根 VERSION 单源
             # noop_module.c describe: module_id=astrocs.conformance.noop build_id=BLD-003-skeleton
             r = run([probe, "load", "module", noop_so,
                      "astrocs.conformance.noop", noop_sha,

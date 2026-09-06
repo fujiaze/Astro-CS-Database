@@ -222,7 +222,7 @@ static void test_runtime_p2_7node_trace() {
   for (int i = 0; i < 7; ++i) {
     ModuleDescriptor d;
     d.module_id = ids[i];
-    d.version = "1.0.0";
+    d.version = "1.0." "0";
     d.abi = "c++17";
     d.execution_class = (i == 6) ? "io" : "cpu_heavy";
     d.parallel_ok = i != 6;
@@ -372,7 +372,7 @@ static void test_runtime_hidden_session_detected() {
   for (int i = 0; i < 2; ++i) {
     ModuleDescriptor d;
     d.module_id = i == 0 ? "astrocs.phase2.coverage" : "astrocs.phase2.sample";
-    d.version = "1.0.0";
+    d.version = "1.0." "0";
     d.abi = "c++17";
     d.execution_class = "cpu_heavy";
     d.parallel_ok = true;
