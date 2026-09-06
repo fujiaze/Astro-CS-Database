@@ -13,7 +13,7 @@
 |---|---|
 | 模块 ID | `astrocs.conformance.echo`（MOD-ECHO） |
 | DLL target | `astrocs_echo`（Windows `astrocs_echo.dll`；Linux `astrocs_echo.so`） |
-| module/ABI/doc revision | module 0.11.0-alpha.1 / ABI v1 / ABI-005 |
+| module/ABI/doc revision | module 0.11.0-alpha.2 / ABI v1 / ABI-005 |
 | owner | SA-ABI-03（ABI-005） |
 | 状态 | `IMPLEMENTED` — ABI-005 conformance；无科学含义 |
 

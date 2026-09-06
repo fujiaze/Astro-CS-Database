@@ -32,7 +32,7 @@
 /* ───────── 静态字符串 (descriptor 输出; 所有权=module 静态, 调用方不得 free) ───────── */
 
 static const char kModuleId[] = "astrocs.conformance.noop";
-static const char kVersion[] = "0.11.0-alpha.1";
+static const char kVersion[] = "0.11.0-alpha.2";
 static const char kBuildId[] = "BLD-003-skeleton";
 static const char kSciId[] = "SCI-NONE";        /* conformance: 无科学合同 */
 static const char kAlgId[] = "ALG-NONE";        /* conformance: 无算法合同 */

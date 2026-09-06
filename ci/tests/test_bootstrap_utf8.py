@@ -72,8 +72,25 @@ class TestBootstrapUtf8UnderCp1252(unittest.TestCase):
             payload = json.loads(err_text)
             self.assertEqual(payload["verdict"], "FAIL")
             repairs = " ".join(e["repair"] for e in payload["failed_tools"])
+            # runner/architecture 为探测宿主自身属性（本地必 FAIL），文案非环境依赖
             self.assertIn("非 GitHub hosted", repairs)
-            self.assertIn("不在 PATH 或版本不可解析", repairs)
+            # 工具链缺失文案是环境依赖面：hosted 预装 gcc-14/clang-18/cmake/ninja，
+            # dev 机装齐后 failed_tools 仅剩 runner 项 → 按宿主实况动态选择断言
+            tool_failures = [e for e in payload["failed_tools"]
+                             if e["tool"] not in ("runner", "architecture")]
+            if tool_failures:
+                # 宿主存在工具缺失项：探测缺失文案（"…不在 PATH…"族，
+                # 覆盖 gcc-14/clang-18「不在 PATH 或版本不可解析」、
+                # cmake「不在 PATH 或版本 < x」、ninja「不在 PATH」变体）必须保真
+                for e in tool_failures:
+                    self.assertIn("不在 PATH", e["repair"], e)
+            else:
+                # 宿主工具装齐：failed_tools 非空且每项 repair 非空字符串
+                # （核心意图不变：CP1252 下中文 repair payload 不失真）
+                self.assertTrue(payload["failed_tools"])
+                for e in payload["failed_tools"]:
+                    self.assertIsInstance(e["repair"], str)
+                    self.assertTrue(e["repair"], e)
 
     def test_help_text_survives_cp1252(self):
         with tempfile.TemporaryDirectory() as td:

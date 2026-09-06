@@ -12,7 +12,7 @@
 |---|---|
 | 模块 ID | `astrocs.conformance.noop` |
 | DLL target | `astrocs_noop`（Windows `astrocs_noop.dll`；Linux `libastrocs_noop.so`） |
-| module/ABI/doc revision | module 0.11.0-alpha.1 / ABI v1 / BLD-003 |
+| module/ABI/doc revision | module 0.11.0-alpha.2 / ABI v1 / BLD-003 |
 | owner | SA-BLD-02（target/布局）；语义 owner SA-ABI-03（ABI-005） |
 | 状态 | `SKELETON` — 可加载性骨架；非完整实现 |
 
