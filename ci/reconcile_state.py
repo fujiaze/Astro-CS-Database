@@ -10,7 +10,10 @@
   2 v71_coverage           191 个 V7.1 task_id 全部在 state.tasks 且状态合法；
   3 reconciliation_match   STATE_RECONCILIATION.csv 行数与 TASK_STATE 任务数一致，
                            每行 final_status 与 TASK_STATE 一致；
-  4 commit_ledger          COMMIT_LEDGER.jsonl 每行 SHA 存在于 git log 且行数一致；
+  4 commit_ledger          COMMIT_LEDGER.jsonl 每行 SHA 存在于 git log；缺失集
+                            （git log - ledger）为空或恰为 {HEAD}（自参照豁免，
+                            ledger 是 git 跟踪文件、提交时冻结、无法包含自身 SHA）；
+                            多条缺失或历史提交漏登仍 FAIL；
   5 seed_integrity         V81-ADOPT-001/002 seed 记录未被覆盖丢失（CLOSED + commit 匹配）；
   6 current_first (--current-first)  关键状态来源可追溯到当前证据，而非盲信审核快照。
 
@@ -149,16 +152,36 @@ def main() -> int:
           + (f" mismatches={mism[:5]}" if mism else ""))
 
     # ---- 4 commit_ledger ----
+    # 自参照豁免语义：COMMIT_LEDGER.jsonl 是 git 跟踪文件，其内容在该提交时冻结，
+    # 无法包含"包含它自己的那个提交"的 SHA（SHA 依赖全部内容，自指）。
+    # 因此缺失集（git log − ledger）为空或恰为 {HEAD} 时 PASS；
+    # 缺失 >1 条（多次提交未补登）或缺失的不是 HEAD（历史提交漏登）仍 FAIL。
     try:
         git_shas = set(run_git(root, ["log", "--format=%H"]).split())
+        head = run_git(root, ["rev-parse", "HEAD"]).strip()
         n_main = int(run_git(root, ["rev-list", "--count", "main"]).strip())
         entries = [json.loads(line) for line in
                    ledger_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        ledger_shas = {e.get("sha") for e in entries}
         bad_sha = [e["sha"][:12] for e in entries if e.get("sha") not in git_shas]
         bad_keys = [i for i, e in enumerate(entries)
                     if not {"sha", "subject", "task_id", "date"} <= set(e)]
-        check("commit_ledger", not bad_sha and not bad_keys and len(entries) == n_main,
-              f"lines={len(entries)} git_main={n_main} bad_sha={bad_sha[:5]} bad_keys={bad_keys[:5]}")
+        missing = git_shas - ledger_shas
+        missing_head_only = missing == {head}
+        ledger_ok = (not missing or missing_head_only) and not bad_sha and not bad_keys
+        if not missing:
+            missing_note = "missing=0"
+        elif missing_head_only:
+            missing_note = (f"missing=1 (HEAD={head[:12]}; HEAD 自身允许缺席(自参照豁免): "
+                            "ledger 提交时冻结无法包含自身 SHA)")
+        else:
+            missing_note = (f"missing={len(missing)} (HEAD 自身允许缺席(自参照豁免), "
+                            f"其余必须逐条对齐) missing_shas="
+                            f"{[s[:12] for s in sorted(missing)][:5]}")
+        check("commit_ledger", ledger_ok,
+              f"lines={len(entries)} git_main={n_main} {missing_note}"
+              + (f" bad_sha={bad_sha[:5]}" if bad_sha else "")
+              + (f" bad_keys={bad_keys[:5]}" if bad_keys else ""))
     except Exception as exc:  # noqa: BLE001
         check("commit_ledger", False, str(exc))
 
