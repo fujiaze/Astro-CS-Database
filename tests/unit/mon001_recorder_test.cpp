@@ -4,9 +4,12 @@
 #include "resource_recorder.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <string>
+#include <system_error>
 #include <vector>
 
 static int failures = 0;
@@ -64,10 +67,24 @@ int main() {
         CHECK(astrocs::percentile_sorted(v, 0.95) == 4.0);
     }
 
-    // 三产物写入
-    const std::string dir = "/tmp/mon001_test_out";
-    std::system(("rm -rf " + dir).c_str());
-    std::system(("mkdir -p " + dir).c_str());
+    // 三产物写入 — 跨平台临时目录: 原实现 "/tmp" + std::system("rm -rf/mkdir -p")
+    // 是 POSIX 命令, Windows cmd.exe 报 "The syntax of the command is incorrect"
+    // 且 MSVC 会把 "/tmp/..." 解析到当前盘根 (runner 上不存在) → fopen 失败
+    // → write_all 起连锁 9 CHECK 全挂。改 std::filesystem, 回退链与
+    // io_adapter_test::tmp_dir() 同款 (TMPDIR → TEMP → TMP → ".")。
+    const char* d = std::getenv("TMPDIR");
+    if (!d || !*d) d = std::getenv("TEMP");
+    if (!d || !*d) d = std::getenv("TMP");
+#if defined(_WIN32)
+    const std::string tmp_base = (d && *d) ? std::string(d) : std::string(".");
+#else
+    const std::string tmp_base = (d && *d) ? std::string(d) : std::string("/tmp");
+#endif
+    const std::string dir = tmp_base + "/mon001_test_out";
+    std::error_code fs_ec;
+    std::filesystem::remove_all(dir, fs_ec);
+    std::filesystem::create_directories(dir, fs_ec);
+    CHECK(!fs_ec);
     CHECK(rec.write_all(dir, 2.5, 0.1));
     std::ifstream csv(dir + "/resource_samples.csv");
     std::string line;
