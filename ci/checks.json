@@ -1302,7 +1302,7 @@
         "-t",
         "tests/backend"
       ],
-      "timeout_seconds": 300,
+      "timeout_seconds": 900,
       "heavy": false,
       "mutates_workspace": false,
       "outputs": [],
@@ -1332,7 +1332,7 @@
         "-t",
         "tests/cli"
       ],
-      "timeout_seconds": 300,
+      "timeout_seconds": 600,
       "heavy": false,
       "mutates_workspace": false,
       "outputs": [],

@@ -2,11 +2,12 @@
   "schema_version": "v8.1",
   "round": "V8.1_EXISTING_WORKSPACE_CI",
   "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
-  "updated_utc": "2026-09-06T13:05:00Z",
-  "main_sha": "b8a83efa",
+  "updated_utc": "2026-09-06T14:49:59Z",
+  "main_sha": "80f2727d",
   "reconciled_by": {
-    "task_id": "V81-ADOPT-003",
-    "owner": "SA-ADOPT-31"
+    "task_id": "MAIN23-W3-RECONCILE",
+    "owner": "SA-MAIN23-W3",
+    "note": "MAIN23 波次3 RECONCILE-STATE 治理（台账同步，仅 evidence 层）"
   },
   "sources": {
     "v71_static_ledger": {
@@ -44,15 +45,15 @@
     "WAITING_RESOURCE"
   ],
   "counts": {
-    "CLOSED": 60,
-    "READY": 7,
+    "CLOSED": 51,
+    "READY": 13,
     "NOT_STARTED": 125,
     "DISPATCHED": 0,
     "FATDUCK_PENDING": 2,
     "WAITING_RESOURCE": 0,
-    "total": 207,
+    "total": 191,
     "v71_total": 191,
-    "adopt_seed": 2
+    "adopt_seed": 18
   },
   "key_resolutions": {
     "CLI-002": "审核快照缺行 → 当前证据（de2d6d7f 提交 + refactor 证据）消解为 CLOSED",
@@ -2352,150 +2353,6 @@
       "review_claim": "NOT_STARTED",
       "current_evidence": "none",
       "note": ""
-    },
-    "V81-ADOPT-003": {
-      "status": "CLOSED",
-      "owner": "SA-ADOPT-31",
-      "commit": "98c2354fcd59423e80ae9592f19b5b9094d20fc1",
-      "pushed": true,
-      "closed_utc": "2026-09-05T10:48:53Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/",
-      "summary": "191 项对账完成：CLOSED=51 READY=13 NOT_STARTED=125 FATDUCK_PENDING=2；CLI-002 消解 CLOSED；CPU-006 回 READY；WIN-001/002 FATDUCK_PENDING"
-    },
-    "V81-ADOPT-004": {
-      "status": "CLOSED",
-      "owner": "SA-ADOPT-31",
-      "commit": "becc85a087c70d5769688c7b34466c5333704d5d",
-      "pushed": true,
-      "closed_utc": "2026-09-05T11:02:14Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V81-ADOPT-004/",
-      "summary": "50/50 PASS；python3=3.13.5 git=2.47.3；missing: cmake/gcc/g++/clang/ninja/make/ccache/pytest（ENV_FAIL F-004 记录：FIX wave 需本机工具链时由控制面决策安装，dsh 无 sudo）"
-    },
-    "V81-ADOPT-005": {
-      "status": "CLOSED",
-      "owner": "SA-DOC-05",
-      "commit": "1ecbf10ebbedf3cce52252a07405b9356014a4fc",
-      "pushed": true,
-      "closed_utc": "2026-09-05T11:09:01Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V81-ADOPT-005/",
-      "summary": "DOC_INDEX_PASS 177 文件；最小修复=索引补登 TOOLCHAIN_AGENT_HOST.md 3 行；AGENTS/memory NO-OP 有据"
-    },
-    "V81-ADOPT-006": {
-      "status": "CLOSED",
-      "owner": "SA-DOC-05",
-      "commit": "b4f923ccbcde51e1a9112aba04815351169091c7",
-      "pushed": true,
-      "closed_utc": "2026-09-05T12:07:19Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V81-ADOPT-006/",
-      "summary": "版本统一 alpha.2（16 文件+check_version.py+11 用例）；前台集成协调项：冻结约束 AstroCS_ENGINEERING_CONSTRAINTS.md target_main_version/§A.1 两行版本号同步 alpha.2（控制包 V8.1 目标版本授权，已留痕），GOV-003 由 FAIL 转 PASS"
-    },
-    "V8-CI-001": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "0acfb5141a9b92bff5f04e1bb3b296fca88a66b0",
-      "pushed": true,
-      "closed_utc": "2026-09-05T13:00:50Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-001/",
-      "summary": "检查器与测试资产盘点注册 registry 70 项（fast 57/linux-main 70/windows-main 58）+ validate_registry 6 负向拦截 + INVENTORY_REPORT；条目于 V8-CI-002 集成时补登"
-    },
-    "V8-CI-002": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "459da6290c2c67a377f51cb863f54336508a7036",
-      "pushed": true,
-      "closed_utc": "2026-09-05T17:20:22Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-002/",
-      "summary": "统一确定性执行器 ci/run.py + ci_result/checks schema 控制包副本 + 29 单测覆盖 13 类场景；集成于 459da629"
-    },
-    "V8-CI-003": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "df01ea7b5dc3269b9ee1b23544305a4ac1ed5276",
-      "pushed": true,
-      "closed_utc": "2026-09-05T18:00:31Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-003/",
-      "summary": "动态资源探测(affinity/cgroup quota/meminfo)+统一监控wrapper(CPU/RSS/PSS/IO/threads/progress)+36单测; 集成于 df01ea7b"
-    },
-    "V8-CI-004": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "c583e59d21b675e09be9878cf84a448975537a52",
-      "pushed": true,
-      "closed_utc": "2026-09-05T20:54:34Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-004/",
-      "summary": "changed path→checks 映射 ci/impact_map.json(25 规则/13 BASE)+test_impact_map 13 单测; fast 全量实测 57 项 41/16 移交 G-FIX; 集成于 c583e59d"
-    },
-    "V8-CI-005": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "e1fde093d3eab590619618732b6b67bbe287c12d",
-      "pushed": true,
-      "closed_utc": "2026-09-05T21:41:14Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-005/",
-      "summary": "linux-deep 检查注册 77 项(BUILD-GCC-RELEASE + 6 deep)+prerequisite_tools 探测+deep_ci_driver/coverage/complexity 驱动链+QA-006 接线; 单测 96/96; 本地 deep 实跑 PASS(6 waivable); 集成于 e1fde093"
-    },
-    "V8-CI-006": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "847a7a6b08ab347c2158046efb6a996e2035cfbe",
-      "pushed": true,
-      "closed_utc": "2026-09-05T22:27:32Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-006/",
-      "summary": "Windows 构建驱动 ci_windows_driver.py 五阶段+candidate 三清单(BUILD_PROVENANCE/SOURCE_MANIFEST/SHA256SUMS)+WIN-* 三检查注册(80 项); 单测 113/113; verify_candidate hosted-only 登记; 集成于 847a7a6b"
-    },
-    "V8-CI-007": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "a032c0cc722a4a3521b1f4fbacf24b4328424815",
-      "pushed": true,
-      "closed_utc": "2026-09-05T22:55:33Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-007/",
-      "summary": "双平台 workflow(ci-linux/ci-windows)+actions.lock.json(checkout v7.0.1/upload-artifact v5.0.0 在线锁定)+bootstrap/select_profile/validate_candidate+verify_actions_lock 在线复验; 单测 151/151; toolchain.policy 误覆盖纠偏 0 diff; 集成于 a032c0cc"
-    },
-    "V8-CI-008": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "9b3fe93e0877bcd249f8ca89b3d66bea2df3913b",
-      "pushed": true,
-      "closed_utc": "2026-09-05T23:57:14Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-008/",
-      "summary": "Fatduck 三 job workflow(select-candidate/fatduck-validate/notify-owner)+select_candidate.py+download-artifact v8.0.1 锁定; validate job 零 checkout/零 repo script/固定 harness 入口; 仅 notify-owner issues:write; +29 单测(180 OK); 集成于 9b3fe93e"
-    },
-    "V8-CI-009": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "1e50d49e25c4192dc1a0285fc3a10d77629195f3",
-      "pushed": true,
-      "closed_utc": "2026-09-06T00:08:19Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-009/",
-      "summary": "13 类负向注入矩阵 36 用例全离线; GAP-G2(R9 hardcoded_core 扫描)/GAP-G3(zip path_escape)守卫补齐, GAP-G1 前台裁决 POLICY 控制面保障; gaps_open=0; 216 tests OK; 集成于 1e50d49e"
-    },
-    "V8-CI-010": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "05f182745f0a6d0ac6e5a2b032417a46a046ea8d",
-      "pushed": true,
-      "closed_utc": "2026-09-06T06:20:00Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-010/",
-      "summary": "hosted linux-main/windows-main push run 验证与修复轮 1-5（error_lines 可观测性、junit 上传、MSVC preset、bootstrap UTF-8）; verdict RUNS_PARTIAL_PROGRESS_THEN_FAILURE_OBSERVED; UT-BACKEND hosted 2 核 TIMEOUT(-9) 登记为后续波次; 集成于 05f18274+证据轮 5 刷新"
-    },
-    "V8-CI-011": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "db09fbc75b6abb25ad3061c325a76ef0ee729b08",
-      "pushed": true,
-      "closed_utc": "2026-09-06T00:55:00Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-011/",
-      "summary": "GitHub 仓库设置 API 配置与现场复读 PASS（base 2c1ffef1）; 集成于 db09fbc7"
-    },
-    "V8-CI-012": {
-      "status": "CLOSED",
-      "owner": "SA-CI-32",
-      "commit": "f20e0976684322e1629cd339e3277e8b606bf8a3",
-      "pushed": false,
-      "closed_utc": "2026-09-06T12:20:00Z",
-      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-012/",
-      "summary": "hosted linux-deep 端到端 4 轮 + 基线冻结（SAN ASan/TSan 业务域失败集合、COMPLEXITY/构建资源数值冻结、coverage 数值待 R6.5）; R6.5 本地收口: F8-b 插桩作用域前移(58 profraw)、F8-c llvm-cov --sources、cpu_profile/task_result/CLI04 三族 untracked 断链 rehome、numpy×6 安装面闭包、F9-c pytest_tail 120; 集成于 54a8f9a7..b8a83efa 六原子 commit；R7 批次2/3 追加收口（断链修复+共享 fixture 制备，54a8f9a7..f20e0976）"
     }
   },
   "adopt_seed_tasks": {
@@ -2523,6 +2380,214 @@
       "evidence_path": "evidence/v8_1_ci_control/tasks/V81-ADOPT-002/",
       "source_of_status": "v81_adopt_seed",
       "note": "V81-ADOPT seed 记录，重建时原样保留（规格授权）"
+    },
+    "V81-ADOPT-003": {
+      "status": "CLOSED",
+      "owner": "SA-ADOPT-31",
+      "commit": "98c2354fcd59423e80ae9592f19b5b9094d20fc1",
+      "pushed": true,
+      "closed_utc": "2026-09-05T10:48:53Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/",
+      "summary": "191 项对账完成：CLOSED=51 READY=13 NOT_STARTED=125 FATDUCK_PENDING=2；CLI-002 消解 CLOSED；CPU-006 回 READY；WIN-001/002 FATDUCK_PENDING",
+      "closed_commit": "98c2354fcd59423e80ae9592f19b5b9094d20fc1",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V81-ADOPT-003/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V81-ADOPT-004": {
+      "status": "CLOSED",
+      "owner": "SA-ADOPT-31",
+      "commit": "becc85a087c70d5769688c7b34466c5333704d5d",
+      "pushed": true,
+      "closed_utc": "2026-09-05T11:02:14Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V81-ADOPT-004/",
+      "summary": "50/50 PASS；python3=3.13.5 git=2.47.3；missing: cmake/gcc/g++/clang/ninja/make/ccache/pytest（ENV_FAIL F-004 记录：FIX wave 需本机工具链时由控制面决策安装，dsh 无 sudo）",
+      "closed_commit": "becc85a087c70d5769688c7b34466c5333704d5d",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V81-ADOPT-004/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V81-ADOPT-005": {
+      "status": "CLOSED",
+      "owner": "SA-DOC-05",
+      "commit": "1ecbf10ebbedf3cce52252a07405b9356014a4fc",
+      "pushed": true,
+      "closed_utc": "2026-09-05T11:09:01Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V81-ADOPT-005/",
+      "summary": "DOC_INDEX_PASS 177 文件；最小修复=索引补登 TOOLCHAIN_AGENT_HOST.md 3 行；AGENTS/memory NO-OP 有据",
+      "closed_commit": "1ecbf10ebbedf3cce52252a07405b9356014a4fc",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V81-ADOPT-005/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V81-ADOPT-006": {
+      "status": "CLOSED",
+      "owner": "SA-DOC-05",
+      "commit": "b4f923ccbcde51e1a9112aba04815351169091c7",
+      "pushed": true,
+      "closed_utc": "2026-09-05T12:07:19Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V81-ADOPT-006/",
+      "summary": "版本统一 alpha.2（16 文件+check_version.py+11 用例）；前台集成协调项：冻结约束 AstroCS_ENGINEERING_CONSTRAINTS.md target_main_version/§A.1 两行版本号同步 alpha.2（控制包 V8.1 目标版本授权，已留痕），GOV-003 由 FAIL 转 PASS",
+      "closed_commit": "b4f923ccbcde51e1a9112aba04815351169091c7",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V81-ADOPT-006/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V8-CI-001": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "0acfb5141a9b92bff5f04e1bb3b296fca88a66b0",
+      "pushed": true,
+      "closed_utc": "2026-09-05T13:00:50Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-001/",
+      "summary": "检查器与测试资产盘点注册 registry 70 项（fast 57/linux-main 70/windows-main 58）+ validate_registry 6 负向拦截 + INVENTORY_REPORT；条目于 V8-CI-002 集成时补登",
+      "closed_commit": "0acfb5141a9b92bff5f04e1bb3b296fca88a66b0",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-001/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V8-CI-002": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "459da6290c2c67a377f51cb863f54336508a7036",
+      "pushed": true,
+      "closed_utc": "2026-09-05T17:20:22Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-002/",
+      "summary": "统一确定性执行器 ci/run.py + ci_result/checks schema 控制包副本 + 29 单测覆盖 13 类场景；集成于 459da629",
+      "closed_commit": "459da6290c2c67a377f51cb863f54336508a7036",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-002/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V8-CI-003": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "df01ea7b5dc3269b9ee1b23544305a4ac1ed5276",
+      "pushed": true,
+      "closed_utc": "2026-09-05T18:00:31Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-003/",
+      "summary": "动态资源探测(affinity/cgroup quota/meminfo)+统一监控wrapper(CPU/RSS/PSS/IO/threads/progress)+36单测; 集成于 df01ea7b",
+      "closed_commit": "df01ea7b5dc3269b9ee1b23544305a4ac1ed5276",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-003/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V8-CI-004": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "c583e59d21b675e09be9878cf84a448975537a52",
+      "pushed": true,
+      "closed_utc": "2026-09-05T20:54:34Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-004/",
+      "summary": "changed path→checks 映射 ci/impact_map.json(25 规则/13 BASE)+test_impact_map 13 单测; fast 全量实测 57 项 41/16 移交 G-FIX; 集成于 c583e59d",
+      "closed_commit": "c583e59d21b675e09be9878cf84a448975537a52",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-004/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V8-CI-005": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "e1fde093d3eab590619618732b6b67bbe287c12d",
+      "pushed": true,
+      "closed_utc": "2026-09-05T21:41:14Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-005/",
+      "summary": "linux-deep 检查注册 77 项(BUILD-GCC-RELEASE + 6 deep)+prerequisite_tools 探测+deep_ci_driver/coverage/complexity 驱动链+QA-006 接线; 单测 96/96; 本地 deep 实跑 PASS(6 waivable); 集成于 e1fde093",
+      "closed_commit": "e1fde093d3eab590619618732b6b67bbe287c12d",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-005/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V8-CI-006": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "847a7a6b08ab347c2158046efb6a996e2035cfbe",
+      "pushed": true,
+      "closed_utc": "2026-09-05T22:27:32Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-006/",
+      "summary": "Windows 构建驱动 ci_windows_driver.py 五阶段+candidate 三清单(BUILD_PROVENANCE/SOURCE_MANIFEST/SHA256SUMS)+WIN-* 三检查注册(80 项); 单测 113/113; verify_candidate hosted-only 登记; 集成于 847a7a6b",
+      "closed_commit": "847a7a6b08ab347c2158046efb6a996e2035cfbe",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-006/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V8-CI-007": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "a032c0cc722a4a3521b1f4fbacf24b4328424815",
+      "pushed": true,
+      "closed_utc": "2026-09-05T22:55:33Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-007/",
+      "summary": "双平台 workflow(ci-linux/ci-windows)+actions.lock.json(checkout v7.0.1/upload-artifact v5.0.0 在线锁定)+bootstrap/select_profile/validate_candidate+verify_actions_lock 在线复验; 单测 151/151; toolchain.policy 误覆盖纠偏 0 diff; 集成于 a032c0cc",
+      "closed_commit": "a032c0cc722a4a3521b1f4fbacf24b4328424815",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-007/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V8-CI-008": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "9b3fe93e0877bcd249f8ca89b3d66bea2df3913b",
+      "pushed": true,
+      "closed_utc": "2026-09-05T23:57:14Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-008/",
+      "summary": "Fatduck 三 job workflow(select-candidate/fatduck-validate/notify-owner)+select_candidate.py+download-artifact v8.0.1 锁定; validate job 零 checkout/零 repo script/固定 harness 入口; 仅 notify-owner issues:write; +29 单测(180 OK); 集成于 9b3fe93e",
+      "closed_commit": "9b3fe93e0877bcd249f8ca89b3d66bea2df3913b",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-008/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V8-CI-009": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "1e50d49e25c4192dc1a0285fc3a10d77629195f3",
+      "pushed": true,
+      "closed_utc": "2026-09-06T00:08:19Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-009/",
+      "summary": "13 类负向注入矩阵 36 用例全离线; GAP-G2(R9 hardcoded_core 扫描)/GAP-G3(zip path_escape)守卫补齐, GAP-G1 前台裁决 POLICY 控制面保障; gaps_open=0; 216 tests OK; 集成于 1e50d49e",
+      "closed_commit": "1e50d49e25c4192dc1a0285fc3a10d77629195f3",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-009/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V8-CI-010": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "05f182745f0a6d0ac6e5a2b032417a46a046ea8d",
+      "pushed": true,
+      "closed_utc": "2026-09-06T06:20:00Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-010/",
+      "summary": "hosted linux-main/windows-main push run 验证与修复轮 1-5（error_lines 可观测性、junit 上传、MSVC preset、bootstrap UTF-8）; verdict RUNS_PARTIAL_PROGRESS_THEN_FAILURE_OBSERVED; UT-BACKEND hosted 2 核 TIMEOUT(-9) 登记为后续波次; 集成于 05f18274+证据轮 5 刷新",
+      "closed_commit": "05f182745f0ac0c145208b675de2345f5225139d",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-010/",
+      "source_of_status": "git_commit_corrected_sha+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; closed_commit 由 05f182745f0a6d0a 修正为 git 实际 SHA"
+    },
+    "V8-CI-011": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "db09fbc75b6abb25ad3061c325a76ef0ee729b08",
+      "pushed": true,
+      "closed_utc": "2026-09-06T00:55:00Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-011/",
+      "summary": "GitHub 仓库设置 API 配置与现场复读 PASS（base 2c1ffef1）; 集成于 db09fbc7",
+      "closed_commit": "db09fbc75b6abb25ad3061c325a76ef0ee729b08",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-011/",
+      "source_of_status": "git_commit+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; "
+    },
+    "V8-CI-012": {
+      "status": "CLOSED",
+      "owner": "SA-CI-32",
+      "commit": "f20e0976684322e1629cd339e3277e8b606bf8a3",
+      "pushed": false,
+      "closed_utc": "2026-09-06T12:20:00Z",
+      "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-012/",
+      "summary": "hosted linux-deep 端到端 4 轮 + 基线冻结（SAN ASan/TSan 业务域失败集合、COMPLEXITY/构建资源数值冻结、coverage 数值待 R6.5）; R6.5 本地收口: F8-b 插桩作用域前移(58 profraw)、F8-c llvm-cov --sources、cpu_profile/task_result/CLI04 三族 untracked 断链 rehome、numpy×6 安装面闭包、F9-c pytest_tail 120; 集成于 54a8f9a7..b8a83efa 六原子 commit；R7 批次2/3 追加收口（断链修复+共享 fixture 制备，54a8f9a7..f20e0976）",
+      "closed_commit": "f20e0976684322e1629cd339e3277e8b606bf8a3",
+      "evidence_path": "evidence/v8_1_ci_control/tasks/V8-CI-012/",
+      "source_of_status": "git_commit_pending_push+artifact_verified",
+      "reconcile_wave3_note": "MAIN23 波次3 台账同步: 补齐规范五字段并移入 adopt_seed_tasks; ; MAIN23 波次1/3 后续修复轮（P0-A Windows 收敛 63721d70、波次1 检查器语义修正 e4f77ccb/04993f77、CLI 检查器重定位 3a4b265b、MON-004 gate 接线 0b60f02a、Windows zlib 链接名+监控测试平台解耦 80f2727d、UT-BACKEND/UT-CLI timeout 治理 900/600）——[V8-CI-012 后续] 系列提交归并本任务，COMMIT_LEDGER 已登记"
     }
   },
   "gates": {
