@@ -49,6 +49,19 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     # runpy 运行 run_monitored.py 的 __main__，SystemExit 透传其退出码。
     sys.argv = [str(MONITORED)] + argv
+    # V8-CI-010 F-R2-01 修复：与直接执行 ``python3 tools/monitoring/run_monitored.py``
+    # 对齐 sys.path/模块解析语义。脚本模式下解释器会把被执行脚本所在目录置于
+    # sys.path[0]；而 runpy.run_path 不做该注入——本 shim 自身被调用时
+    # sys.path[0] 是本文件所在 ci/ 目录，run_monitored 的同目录导入
+    # （fallback ``import resource_probe``）与依赖 repo 根的包导入双双
+    # ModuleNotFoundError，凡经 shim 包装的检查必败（hosted WIN-BUILD-RELEASE
+    # / WIN-TEST-UNIT 实踩，linux 控制节点同命令可复现）。最小修：仅注入被
+    # 包装脚本目录（即"目标脚本目录入 sys.path"），不改监控采集逻辑与输出
+    # schema；执行后恢复 sys.path，不污染调用方（单测 in-process 复用）。
+    monitor_dir = str(MONITORED.parent)
+    path_injected = monitor_dir not in sys.path
+    if path_injected:
+        sys.path.insert(0, monitor_dir)
     try:
         runpy.run_path(str(MONITORED), run_name="__main__")
     except SystemExit as exc:
@@ -56,6 +69,12 @@ def main(argv: list[str] | None = None) -> int:
         if code is None:
             return 0
         return code if isinstance(code, int) else 2
+    finally:
+        if path_injected:
+            try:
+                sys.path.remove(monitor_dir)
+            except ValueError:  # 已被包装脚本改动：不强求恢复
+                pass
     return 0
 
 

@@ -317,16 +317,21 @@ class TestPlatformGating(unittest.TestCase):
             # 收敛为 platform_mismatch（which 只探测存在性，假脚本不会被执行）
             fake_bin = root / "bin"
             fake_bin.mkdir()
+            # F-R2-06 接入侧：windows shutil.which 依赖 PATHEXT，无扩展名
+            # 假脚本对 which("cmake") 不可见 → prerequisite 误判缺失；按
+            # 平台写 <tool>.exe（posix 维持无扩展名 stub，行为不变）
             for tool in ("cmake", "dumpbin"):
-                fake = fake_bin / tool
-                fake.write_text("#!/bin/sh\nexit 1\n")
+                fake = fake_bin / (f"{tool}.exe" if os.name == "nt" else tool)
+                fake.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
                 fake.chmod(0o755)
             env = dict(os.environ, PATH=f"{fake_bin}{os.pathsep}{os.environ['PATH']}")
             out = root / "out"
             proc = subprocess.run(
                 [sys.executable, str(H.RUNNER), "--repo-root", str(repo),
                  "--profile", "windows-main", "--output-root", str(out)],
-                cwd=str(repo), capture_output=True, text=True, timeout=150, env=env)
+                cwd=str(repo), capture_output=True, text=True,
+                encoding="utf-8", errors="replace",  # F-R2-06 接入侧：cp1252 不脆断
+                timeout=150, env=env)
             per = [H.load_check_result(out, cid) for cid in _WIN_IDS]
             for entry in per:
                 self.assertEqual(entry["verdict"], "SKIPPED(waivable)", entry["id"])

@@ -16,8 +16,16 @@ RUNNER = REPO / "ci" / "run.py"
 
 
 def sh(argv: list[str], cwd: Path, timeout: float = 60) -> subprocess.CompletedProcess:
-    """运行外部命令（统一 timeout，纪律要求）。"""
-    return subprocess.run(argv, cwd=str(cwd), capture_output=True, text=True, timeout=timeout)
+    """运行外部命令（统一 timeout，纪律要求）。
+
+    V8-CI-010 F-R2-06（接入侧）：显式 encoding="utf-8"——windows cp1252
+    locale 下 text=True 默认按 locale 解码，runner/plan 输出中的中文
+    reason/detail 会 UnicodeDecodeError 崩测试；errors="replace" 保证
+    坏字节不脆断（测试断言仍按内容判定）。
+    """
+    return subprocess.run(argv, cwd=str(cwd), capture_output=True,
+                          text=True, encoding="utf-8", errors="replace",
+                          timeout=timeout)
 
 
 def make_repo(root: Path) -> Path:

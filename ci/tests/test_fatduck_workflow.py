@@ -500,7 +500,9 @@ class TestNotifyCommandConstruction(unittest.TestCase):
             env.update(env_extra)
             import subprocess
             proc = subprocess.run(["bash", str(script_path)], env=env,
-                                  capture_output=True, text=True, timeout=60)
+                                  capture_output=True, text=True,
+                                  encoding="utf-8", errors="replace",
+                                  timeout=60)
             calls = call_log.read_text(encoding="utf-8") if call_log.exists() else ""
             body = body_dump.read_text(encoding="utf-8") if body_dump.exists() else ""
         return proc, calls, body
