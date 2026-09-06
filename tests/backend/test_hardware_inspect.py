@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
 """BENCH-001 测试: 硬件画像 schema/实机比对/affinity 约束(fixture=taskset 单 CPU vs 实机)。"""
-import json, os, platform, re, shutil, subprocess, tempfile, unittest
+import json, os, platform, re, shutil, subprocess, sys, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CLI = os.path.join(REPO, "cli")
-BUILD = os.path.join(REPO, "build", "cli")
-EXE = os.path.join(BUILD, "astrocs")
+sys.path.insert(0, os.path.join(REPO, "tools"))
+import gen_version  # noqa: E402
 SCHEMA = json.load(open(os.path.join(REPO, "schemas", "hardware_inspect.schema.json"),
                         encoding="utf-8"))
+# V6.1 布局路径修复 (V8-CI-012 R7): 旧 built() 经 V6.1 独立 cli 构建
+# (cmake -S cli -B build/cli) 在 BLD-002 根构建布局下编译失败；改为复用
+# 根构建产品 build/astrocs（与 test_cpu_profile 同型），缺失时按根 CMake 构建。
+BUILD = os.path.join(REPO, "build")
+EXE = os.path.join(BUILD, "astrocs")
 
 
 def built():
     if not os.path.isfile(EXE):
-        subprocess.run(["cmake", "-S", CLI, "-B", BUILD], check=True, capture_output=True, timeout=120)
-        subprocess.run(["cmake", "--build", BUILD, "-j2"], check=True, capture_output=True, timeout=300)
+        subprocess.run(["cmake", "-S", REPO, "-B", BUILD],
+                       check=True, capture_output=True, timeout=300)
+        subprocess.run(["cmake", "--build", BUILD, "-j2"],
+                       check=True, capture_output=True, timeout=1800)
     return EXE
 
 
@@ -68,7 +74,10 @@ class TestHardwareInspect(unittest.TestCase):
         self.assertGreater(d["ram_bytes"], 0)
         self.assertEqual(d["page_size"], os.sysconf("SC_PAGESIZE"))
         self.assertIn(platform.machine(), ("x86_64",))
-        self.assertRegex(d["astrocs_build"], r"^0\.10\.0-alpha\.2\+g[0-9a-f]{12}")
+        # 单源语义 (V8-CI-012 R7): 版本字面量改由 VERSION 单源派生（旧硬编码
+        # 0.10.0-alpha.2 随 VER-001 推进即挂），与 build 前缀 +12 位短哈希核对。
+        self.assertRegex(d["astrocs_build"],
+                         re.escape(gen_version.read_base_version()) + r"\+g[0-9a-f]{12}")
 
     def test_04_affinity_one_cpu_fixture(self):
         """fixture: taskset 单 CPU 下 available_cpus 必须降为 1(mock 环境 vs 实机比对)。"""
