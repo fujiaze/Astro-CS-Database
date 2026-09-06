@@ -3,8 +3,13 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <string>
+
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 using namespace astrocs::core;
 
@@ -17,8 +22,33 @@ static int failures = 0;
     }                                                                     \
   } while (0)
 
+// ── Windows 窄路径编码墙 ──
+// 编译期: 根 CMakeLists 的 /utf-8 (WIN-001) 已保证中文字面量为 UTF-8 字节;
+// 运行期: Windows 窄字符 std::ifstream 经 CreateFileA 按 ACP (简中系统 GBK)
+// 解释路径字节 — UTF-8 字节被再误解为 GBK → 打不开磁盘上真实存在 (Git
+// checkout 为 UTF-8 名) 的 "工程控制" 目录 → 探测全空 → CHECK 失败。
+// 修法: 把 UTF-8 字节显式转 UTF-16, 经 fs::path(宽) / CreateFileW 打开;
+// 非 Windows 路径语义不变 (fopen 按 UTF-8 字节, 本就正确)。
+#if defined(_WIN32)
+static std::filesystem::path utf8_path(const std::string& u8) {
+  if (u8.empty()) return std::filesystem::path();
+  const int n = MultiByteToWideChar(CP_UTF8, 0, u8.c_str(),
+                                    static_cast<int>(u8.size()), nullptr, 0);
+  std::wstring wide(n > 0 ? n : 0, L'\0');
+  if (n > 0) {
+    MultiByteToWideChar(CP_UTF8, 0, u8.c_str(), static_cast<int>(u8.size()),
+                        &wide[0], n);
+  }
+  return std::filesystem::path(wide);
+}
+#else
+static std::filesystem::path utf8_path(const std::string& u8) {
+  return std::filesystem::path(u8);
+}
+#endif
+
 static std::string read_file(const std::string& path) {
-  std::ifstream f(path);
+  std::ifstream f(utf8_path(path));
   return std::string((std::istreambuf_iterator<char>(f)),
                      std::istreambuf_iterator<char>());
 }
@@ -340,8 +370,10 @@ static void test_control_package_fixtures() {
   const char* repo = std::getenv("ASTROCS_REPO");
   std::string base;
   for (const char* cand : kFixtureRoots) {
-    std::string probe = std::string(repo ? repo : "../..") + cand + "/valid_pipeline.json";
-    std::ifstream f(probe);
+    // 探测/读取统一走 utf8_path: Windows 下窄路径按 ACP 解释, UTF-8 中文段
+    // 必须转宽 (CreateFileW) 才能命中磁盘真实目录名; kFixtureRoots 机制不动。
+    std::ifstream f(utf8_path(std::string(repo ? repo : "../..") + cand +
+                              "/valid_pipeline.json"));
     if (f.good()) { base = std::string(repo ? repo : "../..") + cand + "/"; break; }
   }
   CHECK(!base.empty());

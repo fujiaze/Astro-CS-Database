@@ -63,6 +63,16 @@ int main(int argc, char** argv) {
 
   // feature 声明: baseline required=0; avx2=AVX2|FMA; avx512=AVX512F(检测面位)
   const uint64_t detected = astrocs_cpu_detect_features_v1();
+  // 诊断增强 (WIN-TEST-UNIT avx512 环境判定): 无条件打印 detected/required 位面。
+  // 检测机制本身已被 baseline/avx2 两 selftest 通过证实 (同份 cpu_features.cpp
+  // 的 cpuid/xgetbv 路径) — 若 avx512 模式 detected 缺 ACS_FEAT_AVX512F,
+  // 只能是 (a) runner CPU 无 AVX-512 (CPUID leaf7 ebx bit16=0) 或
+  // (b) OS XCR0 未启用 opmask|ZMM_Hi256|Hi16_ZMM (bit5..7 != 111b),
+  // 均为宿主环境事实, 断言保持 FAIL 不放宽, 位面值用于真机闭环定论。
+  std::printf("cpu001: %s detected=0x%016llx required=0x%016llx "
+              "(bit0=SSE2 bit1=SSE4.1 bit2=AVX bit3=AVX2 bit4=FMA bit5=AVX512F)\n",
+              mode.c_str(), (unsigned long long)detected,
+              (unsigned long long)api.required_features);
   if (mode == "baseline") {
     CHECK(api.required_features == 0);
   } else if (mode == "avx2") {
