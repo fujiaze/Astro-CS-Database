@@ -1,0 +1,25 @@
+{
+  "total_count": 1,
+  "artifacts": [
+    {
+      "id": 9984029011,
+      "node_id": "MDg6QXJ0aWZhY3Q5OTg0MDI5MDEx",
+      "name": "linux-ci-d416fc9df7767b6a407994048203667a0ef8cbaa",
+      "size_in_bytes": 225601,
+      "url": "https://api.github.com/repos/fujiaze/Astro-CS-Database/actions/artifacts/9984029011",
+      "archive_download_url": "https://api.github.com/repos/fujiaze/Astro-CS-Database/actions/artifacts/9984029011/zip",
+      "expired": false,
+      "digest": "sha256:1c2c881af6e1626de10638d847ebb6eff6844df75de33eea2a0c6aee987dc75a",
+      "created_at": "2026-09-06T06:25:02Z",
+      "updated_at": "2026-09-06T06:25:02Z",
+      "expires_at": "2026-09-20T05:55:46Z",
+      "workflow_run": {
+        "id": 34015190353,
+        "repository_id": 1346278018,
+        "head_repository_id": 1346278018,
+        "head_branch": "main",
+        "head_sha": "d416fc9df7767b6a407994048203667a0ef8cbaa"
+      }
+    }
+  ]
+}

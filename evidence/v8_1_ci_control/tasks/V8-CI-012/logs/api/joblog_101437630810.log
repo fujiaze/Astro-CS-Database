@@ -1,0 +1,246 @@
+﻿2026-09-06T05:55:54.8083290Z Current runner version: '2.337.0'
+2026-09-06T05:55:54.8120301Z ##[group]Runner Image Provisioner
+2026-09-06T05:55:54.8121782Z Hosted Compute Agent
+2026-09-06T05:55:54.8122737Z Version: 20260828.587
+2026-09-06T05:55:54.8123807Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-06T05:55:54.8125132Z Build Date: 2026-08-28T16:44:25Z
+2026-09-06T05:55:54.8126271Z Worker ID: {2aae2287-5e32-4c6c-a42c-d4d553ed7813}
+2026-09-06T05:55:54.8127388Z Azure Region: eastus
+2026-09-06T05:55:54.8128409Z ##[endgroup]
+2026-09-06T05:55:54.8130790Z ##[group]Operating System
+2026-09-06T05:55:54.8131923Z Ubuntu
+2026-09-06T05:55:54.8132791Z 24.04.4
+2026-09-06T05:55:54.8133615Z LTS
+2026-09-06T05:55:54.8134756Z ##[endgroup]
+2026-09-06T05:55:54.8135699Z ##[group]Runner Image
+2026-09-06T05:55:54.8136754Z Image: ubuntu-24.04
+2026-09-06T05:55:54.8137624Z Version: 20260831.293.1
+2026-09-06T05:55:54.8139752Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260831.293/images/ubuntu/Ubuntu2404-Readme.md
+2026-09-06T05:55:54.8142346Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260831.293
+2026-09-06T05:55:54.8143891Z ##[endgroup]
+2026-09-06T05:55:54.8145831Z ##[group]GITHUB_TOKEN Permissions
+2026-09-06T05:55:54.8149009Z Contents: read
+2026-09-06T05:55:54.8149912Z Metadata: read
+2026-09-06T05:55:54.8151320Z ##[endgroup]
+2026-09-06T05:55:54.8155039Z Secret source: Actions
+2026-09-06T05:55:54.8156883Z Prepare workflow directory
+2026-09-06T05:55:54.8614152Z Prepare all required actions
+2026-09-06T05:55:54.8682264Z Getting action download info
+2026-09-06T05:55:55.0495403Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-09-06T05:55:55.1948238Z Download action repository 'actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4' (SHA:330a01c490aca151604b8cf639adc76d48f6c5d4)
+2026-09-06T05:55:55.5037013Z Complete job name: linux
+2026-09-06T05:55:55.5804946Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-09-06T05:55:55.5806127Z with:
+2026-09-06T05:55:55.5806590Z   persist-credentials: false
+2026-09-06T05:55:55.5807112Z   fetch-depth: 1
+2026-09-06T05:55:55.5807595Z   repository: fujiaze/Astro-CS-Database
+2026-09-06T05:55:55.5811475Z   token: ***
+2026-09-06T05:55:55.5811919Z   ssh-strict: true
+2026-09-06T05:55:55.5812371Z   ssh-user: git
+2026-09-06T05:55:55.5812800Z   clean: true
+2026-09-06T05:55:55.5813263Z   sparse-checkout-cone-mode: true
+2026-09-06T05:55:55.5813792Z   fetch-tags: false
+2026-09-06T05:55:55.5814241Z   show-progress: true
+2026-09-06T05:55:55.5814877Z   lfs: false
+2026-09-06T05:55:55.5815293Z   submodules: false
+2026-09-06T05:55:55.5815743Z   set-safe-directory: true
+2026-09-06T05:55:55.5816257Z   allow-unsafe-pr-checkout: false
+2026-09-06T05:55:55.5816980Z ##[endgroup]
+2026-09-06T05:55:55.6817448Z Syncing repository: fujiaze/Astro-CS-Database
+2026-09-06T05:55:55.6820749Z ##[group]Getting Git version info
+2026-09-06T05:55:55.6821977Z Working directory is '/home/runner/work/Astro-CS-Database/Astro-CS-Database'
+2026-09-06T05:55:55.6823754Z [command]/usr/bin/git version
+2026-09-06T05:55:55.6878726Z git version 2.55.0
+2026-09-06T05:55:55.6901512Z ##[endgroup]
+2026-09-06T05:55:55.6913866Z Temporarily overriding HOME='/home/runner/work/_temp/0e06fd67-cda5-460d-bd97-44e6aa69e039' before making global git config changes
+2026-09-06T05:55:55.6915837Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-06T05:55:55.6923011Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Astro-CS-Database/Astro-CS-Database
+2026-09-06T05:55:55.6976633Z Deleting the contents of '/home/runner/work/Astro-CS-Database/Astro-CS-Database'
+2026-09-06T05:55:55.6978236Z ##[group]Determining repository object format
+2026-09-06T05:55:55.6980450Z ##[endgroup]
+2026-09-06T05:55:55.6981563Z ##[group]Initializing the repository
+2026-09-06T05:55:55.6986214Z [command]/usr/bin/git init /home/runner/work/Astro-CS-Database/Astro-CS-Database
+2026-09-06T05:55:55.7078711Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-06T05:55:55.7083858Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-06T05:55:55.7086023Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-06T05:55:55.7086792Z hint: call:
+2026-09-06T05:55:55.7087210Z hint:
+2026-09-06T05:55:55.7087753Z hint: 	git config --global init.defaultBranch <name>
+2026-09-06T05:55:55.7088387Z hint:
+2026-09-06T05:55:55.7088985Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-06T05:55:55.7089919Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-06T05:55:55.7090812Z hint:
+2026-09-06T05:55:55.7091438Z hint: 	git branch -m <name>
+2026-09-06T05:55:55.7092189Z hint:
+2026-09-06T05:55:55.7093229Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-06T05:55:55.7094323Z Initialized empty Git repository in /home/runner/work/Astro-CS-Database/Astro-CS-Database/.git/
+2026-09-06T05:55:55.7107138Z [command]/usr/bin/git remote add origin https://github.com/fujiaze/Astro-CS-Database
+2026-09-06T05:55:55.7142694Z ##[endgroup]
+2026-09-06T05:55:55.7143489Z ##[group]Disabling automatic garbage collection
+2026-09-06T05:55:55.7146849Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-06T05:55:55.7181213Z ##[endgroup]
+2026-09-06T05:55:55.7182318Z ##[group]Setting up auth
+2026-09-06T05:55:55.7183187Z Removing SSH command configuration
+2026-09-06T05:55:55.7188419Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T05:55:55.7224030Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-06T05:55:55.7572241Z Removing HTTP extra header
+2026-09-06T05:55:55.7580177Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T05:55:55.7625735Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-06T05:55:55.7885054Z Removing includeIf entries pointing to credentials config files
+2026-09-06T05:55:55.7896600Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T05:55:55.7942393Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-06T05:55:55.8212537Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-45c7c0fb-30fb-46b8-9dd2-745ea4e68e69.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-06T05:55:55.8259513Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/Astro-CS-Database/Astro-CS-Database/.git.path /home/runner/work/_temp/git-credentials-45c7c0fb-30fb-46b8-9dd2-745ea4e68e69.config
+2026-09-06T05:55:55.8300582Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-45c7c0fb-30fb-46b8-9dd2-745ea4e68e69.config
+2026-09-06T05:55:55.8343188Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-45c7c0fb-30fb-46b8-9dd2-745ea4e68e69.config
+2026-09-06T05:55:55.8383111Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-45c7c0fb-30fb-46b8-9dd2-745ea4e68e69.config
+2026-09-06T05:55:55.8419982Z ##[endgroup]
+2026-09-06T05:55:55.8421565Z ##[group]Fetching the repository
+2026-09-06T05:55:55.8426075Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +d416fc9df7767b6a407994048203667a0ef8cbaa:refs/remotes/origin/main
+2026-09-06T05:55:58.2539712Z From https://github.com/fujiaze/Astro-CS-Database
+2026-09-06T05:55:58.2541046Z  * [new ref]         d416fc9df7767b6a407994048203667a0ef8cbaa -> origin/main
+2026-09-06T05:55:58.2552139Z [command]/usr/bin/git branch --list --remote origin/main
+2026-09-06T05:55:58.2587237Z   origin/main
+2026-09-06T05:55:58.2597699Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-09-06T05:55:58.2630080Z d416fc9df7767b6a407994048203667a0ef8cbaa
+2026-09-06T05:55:58.2641944Z ##[endgroup]
+2026-09-06T05:55:58.2643186Z ##[group]Determining the checkout info
+2026-09-06T05:55:58.2644927Z ##[endgroup]
+2026-09-06T05:55:58.2658462Z [command]/usr/bin/git sparse-checkout disable
+2026-09-06T05:55:58.2703621Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-06T05:55:58.2738792Z ##[group]Checking out the ref
+2026-09-06T05:55:58.2742748Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-09-06T05:55:58.9024800Z Switched to a new branch 'main'
+2026-09-06T05:55:58.9026899Z branch 'main' set up to track 'origin/main'.
+2026-09-06T05:55:58.9059998Z ##[endgroup]
+2026-09-06T05:55:58.9112944Z [command]/usr/bin/git log -1 --format=%H
+2026-09-06T05:55:58.9144507Z d416fc9df7767b6a407994048203667a0ef8cbaa
+2026-09-06T05:55:58.9155195Z ##[group]Removing auth
+2026-09-06T05:55:58.9156428Z Removing SSH command configuration
+2026-09-06T05:55:58.9159693Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T05:55:58.9199971Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-06T05:55:58.9457581Z Removing HTTP extra header
+2026-09-06T05:55:58.9460243Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T05:55:58.9500031Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-06T05:55:58.9752638Z Removing includeIf entries pointing to credentials config files
+2026-09-06T05:55:58.9755350Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T05:55:58.9788603Z includeif.gitdir:/home/runner/work/Astro-CS-Database/Astro-CS-Database/.git.path
+2026-09-06T05:55:58.9792083Z includeif.gitdir:/home/runner/work/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path
+2026-09-06T05:55:58.9794913Z includeif.gitdir:/github/workspace/.git.path
+2026-09-06T05:55:58.9797126Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-06T05:55:58.9801998Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/Astro-CS-Database/Astro-CS-Database/.git.path
+2026-09-06T05:55:58.9828703Z /home/runner/work/_temp/git-credentials-45c7c0fb-30fb-46b8-9dd2-745ea4e68e69.config
+2026-09-06T05:55:58.9840223Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/Astro-CS-Database/Astro-CS-Database/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-45c7c0fb\-30fb\-46b8\-9dd2\-745ea4e68e69\.config
+2026-09-06T05:55:58.9888337Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path
+2026-09-06T05:55:58.9952543Z /home/runner/work/_temp/git-credentials-45c7c0fb-30fb-46b8-9dd2-745ea4e68e69.config
+2026-09-06T05:55:58.9964286Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/Astro-CS-Database/Astro-CS-Database/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-45c7c0fb\-30fb\-46b8\-9dd2\-745ea4e68e69\.config
+2026-09-06T05:55:59.0009202Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-09-06T05:55:59.0057057Z /github/runner_temp/git-credentials-45c7c0fb-30fb-46b8-9dd2-745ea4e68e69.config
+2026-09-06T05:55:59.0068146Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-45c7c0fb\-30fb\-46b8\-9dd2\-745ea4e68e69\.config
+2026-09-06T05:55:59.0139451Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-06T05:55:59.0169352Z /github/runner_temp/git-credentials-45c7c0fb-30fb-46b8-9dd2-745ea4e68e69.config
+2026-09-06T05:55:59.0177861Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-45c7c0fb\-30fb\-46b8\-9dd2\-745ea4e68e69\.config
+2026-09-06T05:55:59.0218869Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-06T05:55:59.0470913Z Removing credentials config '/home/runner/work/_temp/git-credentials-45c7c0fb-30fb-46b8-9dd2-745ea4e68e69.config'
+2026-09-06T05:55:59.0480614Z ##[endgroup]
+2026-09-06T05:55:59.0731916Z ##[group]Run python3 ci/bootstrap.py --policy ci/toolchain.policy.json --platform linux
+2026-09-06T05:55:59.0734795Z [36;1mpython3 ci/bootstrap.py --policy ci/toolchain.policy.json --platform linux[0m
+2026-09-06T05:55:59.0782071Z shell: /usr/bin/bash -e {0}
+2026-09-06T05:55:59.0783208Z ##[endgroup]
+2026-09-06T05:56:00.1408478Z bootstrap: PASS (6 items, platform=linux)
+2026-09-06T05:56:00.1540261Z ##[group]Run python3 ci/select_profile.py --event "$GITHUB_EVENT_NAME" --requested "linux-deep" >> "$GITHUB_OUTPUT"
+2026-09-06T05:56:00.1541126Z [36;1mpython3 ci/select_profile.py --event "$GITHUB_EVENT_NAME" --requested "linux-deep" >> "$GITHUB_OUTPUT"[0m
+2026-09-06T05:56:00.1586542Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-09-06T05:56:00.1586938Z ##[endgroup]
+2026-09-06T05:56:00.2093114Z ##[group]Run python3 ci/run.py --profile "linux-deep"
+2026-09-06T05:56:00.2093534Z [36;1mpython3 ci/run.py --profile "linux-deep"[0m
+2026-09-06T05:56:00.2136372Z shell: /usr/bin/bash -e {0}
+2026-09-06T05:56:00.2136652Z ##[endgroup]
+2026-09-06T06:04:30.0869187Z verdict=FAIL total=7 pass=3 fail=2 known_fail=0 skipped_waivable=2
+2026-09-06T06:04:30.0932180Z result: /home/runner/work/Astro-CS-Database/Astro-CS-Database/artifacts/ci/d416fc9df776/20260906T055600Z-8bbd4068/CI_RESULT.json
+2026-09-06T06:04:30.0945660Z ##[error]Process completed with exit code 1.
+2026-09-06T06:04:30.0999183Z ##[group]Run python3 - <<'PY'
+2026-09-06T06:04:30.0999539Z [36;1mpython3 - <<'PY'[0m
+2026-09-06T06:04:30.0999814Z [36;1mimport json, subprocess, sys[0m
+2026-09-06T06:04:30.1000154Z [36;1mfrom datetime import datetime, timezone[0m
+2026-09-06T06:04:30.1000476Z [36;1mfrom pathlib import Path[0m
+2026-09-06T06:04:30.1000756Z [36;1mdiag = {[0m
+2026-09-06T06:04:30.1000981Z [36;1m    "schema_version": 1,[0m
+2026-09-06T06:04:30.1001459Z [36;1m    "purpose": "bootstrap diagnostics collected after a failed step (does not mask the primary cause)",[0m
+2026-09-06T06:04:30.1002092Z [36;1m    "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),[0m
+2026-09-06T06:04:30.1002534Z [36;1m    "bootstrap_exit_code": None,[0m
+2026-09-06T06:04:30.1002818Z [36;1m    "report": None,[0m
+2026-09-06T06:04:30.1003070Z [36;1m    "stderr_fail_payload": None,[0m
+2026-09-06T06:04:30.1003330Z [36;1m}[0m
+2026-09-06T06:04:30.1003529Z [36;1mtry:[0m
+2026-09-06T06:04:30.1003770Z [36;1m    res = subprocess.run([0m
+2026-09-06T06:04:30.1004067Z [36;1m        [sys.executable, "ci/bootstrap.py",[0m
+2026-09-06T06:04:30.1004811Z [36;1m         "--policy", "ci/toolchain.policy.json", "--platform", "linux", "--json"],[0m
+2026-09-06T06:04:30.1005292Z [36;1m        capture_output=True, text=True, timeout=120)[0m
+2026-09-06T06:04:30.1005698Z [36;1m    diag["bootstrap_exit_code"] = res.returncode[0m
+2026-09-06T06:04:30.1006029Z [36;1m    if res.stdout.strip():[0m
+2026-09-06T06:04:30.1006290Z [36;1m        try:[0m
+2026-09-06T06:04:30.1006558Z [36;1m            diag["report"] = json.loads(res.stdout)[0m
+2026-09-06T06:04:30.1006885Z [36;1m        except json.JSONDecodeError:[0m
+2026-09-06T06:04:30.1007414Z [36;1m            pass[0m
+2026-09-06T06:04:30.1007750Z [36;1m    for line in reversed((res.stderr or "").strip().splitlines()):[0m
+2026-09-06T06:04:30.1008108Z [36;1m        try:[0m
+2026-09-06T06:04:30.1008342Z [36;1m            cand = json.loads(line)[0m
+2026-09-06T06:04:30.1008645Z [36;1m        except json.JSONDecodeError:[0m
+2026-09-06T06:04:30.1008926Z [36;1m            continue[0m
+2026-09-06T06:04:30.1009254Z [36;1m        if isinstance(cand, dict) and cand.get("verdict") == "FAIL":[0m
+2026-09-06T06:04:30.1009649Z [36;1m            diag["stderr_fail_payload"] = cand[0m
+2026-09-06T06:04:30.1009941Z [36;1m            break[0m
+2026-09-06T06:04:30.1010204Z [36;1mexcept Exception as exc:  # noqa: BLE001[0m
+2026-09-06T06:04:30.1010525Z [36;1m    diag["collection_error"] = repr(exc)[0m
+2026-09-06T06:04:30.1010878Z [36;1mPath("artifacts/ci").mkdir(parents=True, exist_ok=True)[0m
+2026-09-06T06:04:30.1011287Z [36;1m(Path("artifacts/ci") / "BOOTSTRAP_DIAG.json").write_text([0m
+2026-09-06T06:04:30.1011738Z [36;1m    json.dumps(diag, ensure_ascii=False, indent=2), encoding="utf-8")[0m
+2026-09-06T06:04:30.1012198Z [36;1mprint("BOOTSTRAP_DIAG.json written (bootstrap_exit_code=%s)"[0m
+2026-09-06T06:04:30.1012583Z [36;1m      % diag["bootstrap_exit_code"])[0m
+2026-09-06T06:04:30.1012853Z [36;1mPY[0m
+2026-09-06T06:04:30.1052591Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-09-06T06:04:30.1052962Z ##[endgroup]
+2026-09-06T06:04:30.2111332Z BOOTSTRAP_DIAG.json written (bootstrap_exit_code=0)
+2026-09-06T06:04:30.2266090Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-06T06:04:30.2268874Z ##[group]Run actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+2026-09-06T06:04:30.2269626Z with:
+2026-09-06T06:04:30.2270061Z   name: linux-ci-d416fc9df7767b6a407994048203667a0ef8cbaa
+2026-09-06T06:04:30.2270574Z   path: artifacts/ci/
+2026-09-06T06:04:30.2270920Z   retention-days: 14
+2026-09-06T06:04:30.2271282Z   if-no-files-found: error
+2026-09-06T06:04:30.2271659Z   compression-level: 6
+2026-09-06T06:04:30.2272000Z   overwrite: false
+2026-09-06T06:04:30.2272339Z   include-hidden-files: false
+2026-09-06T06:04:30.2272725Z ##[endgroup]
+2026-09-06T06:04:30.4238353Z (node:12840) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-06T06:04:30.4239812Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-06T06:04:30.4416203Z With the provided path, there will be 19 files uploaded
+2026-09-06T06:04:30.4417456Z Artifact name is valid!
+2026-09-06T06:04:30.4418087Z Root directory input is valid!
+2026-09-06T06:04:30.6143426Z Beginning upload of artifact content to blob storage
+2026-09-06T06:04:30.6657646Z (node:12840) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-09-06T06:04:30.7074022Z Uploaded bytes 172108
+2026-09-06T06:04:30.7260855Z Finished uploading artifact content to blob storage!
+2026-09-06T06:04:30.7261809Z SHA256 digest of uploaded artifact zip is 02df4d84bda1a9219c3649ea940760155cb555ff03066642a931c9cdd6cc8273
+2026-09-06T06:04:30.7263798Z Finalizing artifact upload
+2026-09-06T06:04:30.9336162Z Artifact linux-ci-d416fc9df7767b6a407994048203667a0ef8cbaa.zip successfully finalized. Artifact ID 9983769034
+2026-09-06T06:04:30.9337603Z Artifact linux-ci-d416fc9df7767b6a407994048203667a0ef8cbaa has been successfully uploaded! Final size is 172108 bytes. Artifact ID is 9983769034
+2026-09-06T06:04:30.9343231Z Artifact download URL: https://github.com/fujiaze/Astro-CS-Database/actions/runs/34015193694/artifacts/9983769034
+2026-09-06T06:04:30.9600177Z Post job cleanup.
+2026-09-06T06:04:31.0453789Z [command]/usr/bin/git version
+2026-09-06T06:04:31.0507723Z git version 2.55.0
+2026-09-06T06:04:31.0554053Z Temporarily overriding HOME='/home/runner/work/_temp/e13da2df-ad0b-41eb-b87b-d369ff571763' before making global git config changes
+2026-09-06T06:04:31.0556518Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-06T06:04:31.0558490Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Astro-CS-Database/Astro-CS-Database
+2026-09-06T06:04:31.0600184Z Removing SSH command configuration
+2026-09-06T06:04:31.0608196Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T06:04:31.0657408Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-06T06:04:31.0934070Z Removing HTTP extra header
+2026-09-06T06:04:31.0942335Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T06:04:31.0986912Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-06T06:04:31.1283430Z Removing includeIf entries pointing to credentials config files
+2026-09-06T06:04:31.1294304Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T06:04:31.1358772Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-06T06:04:31.1860613Z Cleaning up orphan processes
+2026-09-06T06:04:31.2174012Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

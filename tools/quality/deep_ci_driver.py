@@ -123,10 +123,16 @@ def cmd_qa_sanitize(args: argparse.Namespace) -> int:
     """
     target = "qa-sanitize-tsan" if args.tsan else "qa-sanitize"
     build_dir = _ensure_inside_repo(args.build_dir, "build-dir")
+    # QA-006 接线（V8-CI-012 F-D1 修复）：外层 build 只需让自定义目标存在，
+    # 即传 -DASTROCS_SANITIZE{RUNTIME,THREAD}=ON（与 CMakeLists.txt L511-561
+    # 的 option 名对齐）；ASan+UBSan 共存由目标内部重配置时传
+    # -DASTROCS_ENABLE_SANITIZERS=ON（复用 QA-002 接线，无独立 UNDEFINED 变量）。
+    # 旧行为误传 ENABLE_SANITIZERS → 目标从未定义 → "No rule to make target
+    # 'qa-sanitize'"（exit 2）；TSan 分支传 SANITIZE_THREAD 为正确同构参照。
     cache = ["-DCMAKE_BUILD_TYPE=Debug",
              "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++",
              "-DASTROCS_SANITIZE_THREAD=ON" if args.tsan
-             else "-DASTROCS_ENABLE_SANITIZERS=ON"]
+             else "-DASTROCS_SANITIZE_RUNTIME=ON"]
     steps: list[dict] = []
     _cmake_configure_steps(str(build_dir), cache, steps)
     steps.append({"name": "qa-target", "timeout": 2400,

@@ -24,6 +24,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 CI_DIR = Path(__file__).resolve().parents[1]
 REPO = CI_DIR.parent
@@ -220,12 +221,107 @@ class TestToolBehaviour(unittest.TestCase):
         self.assertEqual(res["exit_code"], 124)
         self.assertTrue(res["timed_out"])
 
+    def test_driver_qa_sanitize_cache_flag_sanitizer_runtime(self):
+        """V8-CI-012 F-D1：qa-sanitize 传 -DASTROCS_SANITIZE_RUNTIME=ON。
+
+        CMakeLists.txt 的 qa-sanitize 自定义目标由 SANITIZE_RUNTIME option
+        生成；旧行为误传 ENABLE_SANITIZERS（QA-002 旗标）→ 目标从未定义 →
+        hosted "No rule to make target 'qa-sanitize'" exit 2。注入 run_step
+        捕获 configure argv（不触网、不真跑 cmake、零落盘）。
+        """
+        from importlib.util import spec_from_file_location, module_from_spec
+        spec = spec_from_file_location(
+            "dcd_f1a", REPO / "tools/quality/deep_ci_driver.py")
+        mod = module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        captured: list[list[str]] = []
+        with mock.patch.object(mod, "run_step",
+                               side_effect=lambda argv, **kw:
+                                   (captured.append(argv),
+                                    {"argv": argv, "exit_code": 0,
+                                     "timed_out": False, "output_tail": ""})[1]):
+            args = mod.build_parser().parse_args(
+                ["qa-sanitize", "--build-dir", "run/ci/build-qa-asan-ut"])
+            self.assertEqual(mod.cmd_qa_sanitize(args), 0)
+        configure = captured[0]
+        self.assertIn("-DASTROCS_SANITIZE_RUNTIME=ON", configure)
+        self.assertNotIn("-DASTROCS_ENABLE_SANITIZERS=ON", configure)
+        self.assertNotIn("-DASTROCS_SANITIZE_THREAD=ON", configure)
+        self.assertIn("--target", captured[-1])
+        self.assertIn("qa-sanitize", captured[-1])
+        self.assertNotIn("qa-sanitize-tsan", captured[-1])
+
+    def test_driver_qa_sanitize_cache_flag_tsan_unchanged(self):
+        """TSan 分支同构交叉印证：仍传 SANITIZE_THREAD=ON（基线行为不回归）。"""
+        from importlib.util import spec_from_file_location, module_from_spec
+        spec = spec_from_file_location(
+            "dcd_f1b", REPO / "tools/quality/deep_ci_driver.py")
+        mod = module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        captured: list[list[str]] = []
+        with mock.patch.object(mod, "run_step",
+                               side_effect=lambda argv, **kw:
+                                   (captured.append(argv),
+                                    {"argv": argv, "exit_code": 0,
+                                     "timed_out": False, "output_tail": ""})[1]):
+            args = mod.build_parser().parse_args(
+                ["qa-sanitize-tsan", "--build-dir", "run/ci/build-qa-tsan-ut"])
+            self.assertEqual(mod.cmd_qa_sanitize(args), 0)
+        configure = captured[0]
+        self.assertIn("-DASTROCS_SANITIZE_THREAD=ON", configure)
+        self.assertNotIn("-DASTROCS_SANITIZE_RUNTIME=ON", configure)
+        self.assertNotIn("-DASTROCS_ENABLE_SANITIZERS=ON", configure)
+        self.assertIn("qa-sanitize-tsan", captured[-1])
+
     def test_coverage_runner_outside_output_dir_exit_2(self):
         proc = H.sh(["python3", str(REPO / "tools/quality/ci_coverage_runner.py"),
                      "--output-dir", "/tmp/astrocs-outside-cov"],
                     cwd=REPO, timeout=120)
         self.assertEqual(proc.returncode, 2)
         self.assertIn("仓库内", proc.stderr)
+
+
+class TestDeepCoverageToolsInstall(unittest.TestCase):
+    """V8-CI-012 F-D3：ci-linux.yml deep 路径 coverage 工具安装步（纯文本断言）。"""
+
+    def test_install_step_gated_on_deep_profile(self):
+        yml = (REPO / ".github" / "workflows" / "ci-linux.yml").read_text(
+            encoding="utf-8")
+        self.assertIn("Install deep coverage tools", yml)
+        # 仅 linux-deep 生效：main push 不安装（时长与镜像漂移风险最小化）
+        self.assertIn(
+            "if: steps.profile.outputs.profile == 'linux-deep'", yml)
+        # 安装步必须位于 Select profile 之后、Run registered checks 之前
+        self.assertLess(yml.index("Select profile"),
+                        yml.index("Install deep coverage tools"))
+        self.assertLess(yml.index("Install deep coverage tools"),
+                        yml.index("Run registered checks"))
+        # llvm-18 无后缀二进制落点必须进 GITHUB_PATH（prerequisite 探测按名字）
+        self.assertIn('/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"', yml)
+        # 工具清单与 policy 登记一致（llvm-18 + pytest + pytest-cov 插件）
+        self.assertIn("llvm-18 python3-pytest python3-pytest-cov", yml)
+        # apt 双超时保护（update/install 各自 timeout；install 命令折行）
+        self.assertRegex(yml, r"timeout 240 sudo apt-get update")
+        self.assertIn("timeout 480 sudo DEBIAN_FRONTEND=noninteractive", yml)
+        self.assertIn("apt-get install -y -qq --no-install-recommends", yml)
+        # 凭据纪律：不出现 token 字面量
+        self.assertNotIn("github_pat", yml)
+
+    def test_policy_registers_deep_coverage_tools(self):
+        policy = json.loads(
+            (CI_DIR / "toolchain.policy.json").read_text(encoding="utf-8"))
+        section = policy["linux_hosted"]["deep_coverage_tools"]
+        self.assertEqual(section["apt_packages"],
+                         ["llvm-18", "python3-pytest", "python3-pytest-cov"])
+        self.assertEqual(section["path_tools"],
+                         ["llvm-profdata", "llvm-cov", "pytest"])
+        self.assertEqual(section["module_tools"], ["pytest-cov"])
+        # 与 checks.json prerequisite_tools 对应（纯文本字段读，无网络）
+        checks = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
+        by_id = {c["id"]: c.get("prerequisite_tools") for c in checks["checks"]}
+        self.assertEqual(by_id["DEEP-COV-CPP"],
+                         ["cmake", "llvm-profdata", "llvm-cov"])
+        self.assertEqual(by_id["DEEP-COV-PY"], ["pytest"])
 
 
 if __name__ == "__main__":

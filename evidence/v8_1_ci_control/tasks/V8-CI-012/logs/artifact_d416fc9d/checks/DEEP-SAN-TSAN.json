@@ -1,0 +1,53 @@
+{
+  "command": [
+    "python3",
+    "ci/resource_monitor.py",
+    "--timeout",
+    "3500",
+    "--output",
+    "run/ci/monitor/DEEP-SAN-TSAN.json",
+    "--",
+    "python3",
+    "tools/quality/deep_ci_driver.py",
+    "qa-sanitize-tsan",
+    "--build-dir",
+    "run/ci/build-qa-tsan",
+    "--output",
+    "run/ci/build-qa-tsan-summary.json"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 192.572,
+  "exit_code": 2,
+  "finished_utc": "2026-09-06T06:04:29Z",
+  "heavy": true,
+  "id": "DEEP-SAN-TSAN",
+  "log": "logs/DEEP-SAN-TSAN.log",
+  "log_zst": "logs/DEEP-SAN-TSAN.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [
+    "run/ci/monitor/DEEP-SAN-TSAN.json",
+    "run/ci/build-qa-tsan-summary.json"
+  ],
+  "outputs_missing": [],
+  "platform_registered": "linux",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令非零退出：2",
+  "requires_monitor": true,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T06:01:17Z",
+  "stderr_tail": "",
+  "stdout_tail": "h ready (ACR=OFF)\", \"-- Configuring done (1.4s)\", \"-- Generating done (0.1s)\", \"-- Build files have been written to: /home/runner/work/Astro-CS-Database/Astro-CS-Database/run/ci/build-qa-tsan\", \"[deep_ci_driver] cmake-build: cmake --build run/ci/build-qa-tsan -j 2\", \"[ 97%] Built target p1001_modules_test\", \"[ 97%] Linking CXX static library libastrocs_cli_runtime.a\", \"[ 97%] Built target astrocs_cli_runtime\", \"[ 97%] Building CXX object CMakeFiles/astrocs.dir/cli/main.cpp.o\", \"[ 97%] Building CXX object tests/unit/CMakeFiles/rt008_runtime_client_test.dir/rt008_runtime_client_test.cpp.o\", \"[ 98%] Linking CXX executable rt008_runtime_client_test\", \"[ 98%] Built target rt008_runtime_client_test\", \"[ 98%] Building CXX object tests/unit/CMakeFiles/rt009_node_trace_test.dir/rt009_node_trace_test.cpp.o\", \"[ 99%] Linking CXX executable rt009_node_trace_test\", \"[ 99%] Building CXX object CMakeFiles/astrocs.dir/cli/parser.cpp.o\", \"[ 99%] Built target rt009_node_trace_test\", \"[100%] Building CXX object CMakeFiles/astrocs.dir/cli/commands.cpp.o\", \"[100%] Building CXX object CMakeFiles/astrocs.dir/cli/runtime_client.cpp.o\", \"/home/runner/work/Astro-CS-Database/Astro-CS-Database/cli/commands.cpp:465:13: warning: unused function 'emit_resource_summary' [-Wunused-function]\", \"  465 | static void emit_resource_summary(astrocs::JsonlEmitter& ev, const std::string& phase,\", \"      |             ^~~~~~~~~~~~~~~~~~~~~\", \"/home/runner/work/Astro-CS-Database/Astro-CS-Database/cli/commands.cpp:494:13: warning: unused function 'emit_backend_event' [-Wunused-function]\", \"  494 | static void emit_backend_event(astrocs::JsonlEmitter& ev, const std::string& phase,\", \"      |             ^~~~~~~~~~~~~~~~~~\", \"/home/runner/work/Astro-CS-Database/Astro-CS-Database/cli/commands.cpp:330:13: warning: unused function 'write_run_graphs' [-Wunused-function]\", \"  330 | static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& ev,\", \"      |             ^~~~~~~~~~~~~~~~\", \"3 warnings generated.\", \"[100%] Linking CXX executable astrocs\", \"[100%] Built target astrocs\", \"[deep_ci_driver] qa-target: cmake --build run/ci/build-qa-tsan --target qa-sanitize-tsan\", \"      Start 53: p3_wcs\", \"52/57 Test #53: p3_wcs ............................   Passed    0.01 sec\", \"      Start 54: p3_interp\", \"53/57 Test #54: p3_interp .........................   Passed    0.01 sec\", \"      Start 55: p3_coverage\", \"54/57 Test #55: p3_coverage .......................   Passed    0.01 sec\", \"      Start 56: p3_output\", \"55/57 Test #56: p3_output .........................   Passed    0.07 sec\", \"      Start 57: p3_assembly\", \"56/57 Test #57: p3_assembly .......................   Passed    0.26 sec\", \"57/57 Test #28: cpu003_profile_v2 .................   Passed   19.69 sec\", \"95% tests passed, 3 tests failed out of 57\", \"Total Test time (real) =  20.93 sec\", \"The following tests FAILED:\", \"\\t  5 - core_pipeline (Failed)\", \"\\t 20 - io_reentrant (Failed)\", \"\\t 35 - cpu001_selftest_avx512 (Failed)\", \"Errors while running CTest\", \"gmake[3]: *** [CMakeFiles/qa-sanitize-tsan.dir/build.make:73: CMakeFiles/qa-sanitize-tsan] Error 8\", \"gmake[2]: *** [CMakeFiles/Makefile2:1227: CMakeFiles/qa-sanitize-tsan.dir/all] Error 2\", \"gmake[1]: *** [CMakeFiles/Makefile2:1234: CMakeFiles/qa-sanitize-tsan.dir/rule] Error 2\", \"gmake: *** [Makefile:504: qa-sanitize-tsan] Error 2\"], \"stderr_tail\": [], \"poll_interval\": 0.2, \"timeout_seconds\": 3500.0, \"started_utc\": \"2026-09-06T06:01:17.146367+00:00\", \"finished_utc\": \"2026-09-06T06:04:29.654559+00:00\", \"host_probe\": {\"cpu_affinity\": 4, \"cpu_affinity_source\": \"sched_getaffinity\", \"cpu_logical\": 4, \"cpu_logical_source\": \"cpu_count\", \"cpu_physical\": 2, \"cpu_physical_source\": \"procfs\", \"cgroup_quota_cores\": null, \"cgroup_quota_source\": \"unavailable\", \"mem_total_bytes\": 16766410752, \"mem_available_bytes\": 15689768960, \"mem_source\": \"procfs\", \"effective_cpu_cores\": 4.0, \"effective_source\": \"affinity\", \"max_workers\": 4, \"max_workers_source\": \"derived\"}}\n",
+  "timed_out": false,
+  "timeout_seconds": 3600,
+  "verdict": "FAIL",
+  "waivable": true
+}

@@ -1,0 +1,44 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/check_complexity.py",
+    "--paths",
+    "lib,cli,include",
+    "--output",
+    "run/ci/complexity/complexity.json"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.339,
+  "exit_code": 0,
+  "finished_utc": "2026-09-06T06:04:30Z",
+  "heavy": false,
+  "id": "DEEP-COMPLEXITY",
+  "log": "logs/DEEP-COMPLEXITY.log",
+  "log_zst": "logs/DEEP-COMPLEXITY.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [
+    "run/ci/complexity/complexity.json"
+  ],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T06:04:29Z",
+  "stderr_tail": "",
+  "stdout_tail": "lpix_db/archive/legacy/healpix_stack/ahps_writer.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/ahps_writer.h\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/corrected_stacker.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/corrected_stacker.h\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/gradient_fitter.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/gradient_fitter.h\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/gradient_sampler.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/gradient_sampler.h\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/nanoflann.hpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/snr_evaluator.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/snr_evaluator.h\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/spherical_spline.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/spherical_spline.h\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/test_gradient_sampler.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/gradient/test_snr_evaluator.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/healpix_core.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/healpix_core.h\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/hp_stack_api.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/hp_stack_api.h\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/hp_stack_hiss.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/hp_stack_hiss.h\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/simple_test.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/stack_db.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/stack_db.h\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/stack_engine.cpp\",\n        \"lib/healpix_db/archive/legacy/healpix_stack/stack_engine.h\",\n        \"lib/orchestrator/cpp/third_party/json-schema-validator/json-patch.cpp\",\n        \"lib/orchestrator/cpp/third_party/json-schema-validator/json-patch.hpp\",\n        \"lib/orchestrator/cpp/third_party/json-schema-validator/json-schema-draft7.json.cpp\",\n        \"lib/orchestrator/cpp/third_party/json-schema-validator/json-uri.cpp\",\n        \"lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp\",\n        \"lib/orchestrator/cpp/third_party/json-schema-validator/nlohmann/json-schema.hpp\",\n        \"lib/orchestrator/cpp/third_party/json-schema-validator/smtp-address-validator.cpp\",\n        \"lib/orchestrator/cpp/third_party/json-schema-validator/smtp-address-validator.hpp\",\n        \"lib/orchestrator/cpp/third_party/json-schema-validator/string-format-check.cpp\"\n      ]\n    },\n    {\n      \"path\": \"cli\",\n      \"exists\": true,\n      \"files\": 14,\n      \"lines\": 3494,\n      \"functions_approx\": 63,\n      \"branch_tokens\": 704,\n      \"max_file_cyclomatic\": 332,\n      \"top5_files\": [\n        [\n          \"cli/commands.cpp\",\n          332\n        ],\n        [\n          \"cli/parser.cpp\",\n          108\n        ],\n        [\n          \"cli/runtime_client.cpp\",\n          80\n        ],\n        [\n          \"cli/resource_gate.h\",\n          60\n        ],\n        [\n          \"cli/monitor.h\",\n          53\n        ]\n      ],\n      \"excluded\": []\n    },\n    {\n      \"path\": \"include\",\n      \"exists\": true,\n      \"files\": 22,\n      \"lines\": 2901,\n      \"functions_approx\": 5,\n      \"branch_tokens\": 67,\n      \"max_file_cyclomatic\": 29,\n      \"top5_files\": [\n        [\n          \"include/astrocs/core/contracts.h\",\n          29\n        ],\n        [\n          \"include/astrocs/core/artifact.h\",\n          17\n        ],\n        [\n          \"include/astrocs/abi/status_codes.h\",\n          8\n        ],\n        [\n          \"include/astrocs/core/artifact_store.h\",\n          7\n        ],\n        [\n          \"include/astrocs/core/context.h\",\n          7\n        ]\n      ],\n      \"excluded\": []\n    }\n  ]\n}\n",
+  "timed_out": false,
+  "timeout_seconds": 600,
+  "verdict": "PASS",
+  "waivable": true
+}

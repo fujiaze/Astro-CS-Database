@@ -1,0 +1,53 @@
+{
+  "command": [
+    "python3",
+    "ci/resource_monitor.py",
+    "--timeout",
+    "3500",
+    "--output",
+    "run/ci/monitor/DEEP-CLANG-BUILD.json",
+    "--",
+    "python3",
+    "tools/quality/deep_ci_driver.py",
+    "build-clang",
+    "--build-dir",
+    "run/ci/build-clang",
+    "--output",
+    "run/ci/build-clang-summary.json"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 83.032,
+  "exit_code": 0,
+  "finished_utc": "2026-09-06T05:59:26Z",
+  "heavy": true,
+  "id": "DEEP-CLANG-BUILD",
+  "log": "logs/DEEP-CLANG-BUILD.log",
+  "log_zst": "logs/DEEP-CLANG-BUILD.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [
+    "run/ci/monitor/DEEP-CLANG-BUILD.json",
+    "run/ci/build-clang-summary.json"
+  ],
+  "outputs_missing": [],
+  "platform_registered": "linux",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": true,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T05:58:03Z",
+  "stderr_tail": "",
+  "stdout_tail": "ss_kb\": null, \"pss_kb\": null, \"threads\": 0, \"io_read_bytes\": null, \"io_write_bytes\": null, \"pids\": 1}], \"samples\": 393, \"peak_rss_kb\": 552692, \"rss_start_kb\": 2012, \"peak_pss_kb\": 455740, \"io_read_bytes\": 3604521887, \"io_write_bytes\": 861941861, \"threads_max\": 12, \"progress\": null, \"stdout_tail\": [\"[deep_ci_driver] cmake-configure: cmake -S . -B run/ci/build-clang -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++\", \"-- The C compiler identification is Clang 18.1.3\", \"-- The CXX compiler identification is Clang 18.1.3\", \"-- Detecting C compiler ABI info\", \"-- Detecting C compiler ABI info - done\", \"-- Check for working C compiler: /usr/bin/clang - skipped\", \"-- Detecting C compile features\", \"-- Detecting C compile features - done\", \"-- Detecting CXX compiler ABI info\", \"-- Detecting CXX compiler ABI info - done\", \"-- Check for working CXX compiler: /usr/bin/clang++ - skipped\", \"-- Detecting CXX compile features\", \"-- Detecting CXX compile features - done\", \"-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\", \"-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\", \"-- Found Threads: TRUE\", \"-- BLD-003 install layout ready (module_dir=modules provider_dir=providers)\", \"-- AstroCS 0.11.0-alpha.2+gd416fc9df7767b6a407994048203667a0ef8cbaa root target graph ready (ACR=OFF)\", \"-- Configuring done (2.8s)\", \"-- Generating done (0.1s)\", \"-- Build files have been written to: /home/runner/work/Astro-CS-Database/Astro-CS-Database/run/ci/build-clang\", \"[deep_ci_driver] cmake-build: cmake --build run/ci/build-clang -j 2\", \"[ 97%] Linking CXX static library libastrocs_cli_runtime.a\", \"[ 97%] Built target p1001_modules_test\", \"[ 97%] Built target astrocs_cli_runtime\", \"[ 97%] Building CXX object CMakeFiles/astrocs.dir/cli/main.cpp.o\", \"[ 97%] Building CXX object tests/unit/CMakeFiles/rt008_runtime_client_test.dir/rt008_runtime_client_test.cpp.o\", \"[ 98%] Linking CXX executable rt008_runtime_client_test\", \"[ 98%] Built target rt008_runtime_client_test\", \"[ 98%] Building CXX object tests/unit/CMakeFiles/rt009_node_trace_test.dir/rt009_node_trace_test.cpp.o\", \"[ 99%] Linking CXX executable rt009_node_trace_test\", \"[ 99%] Building CXX object CMakeFiles/astrocs.dir/cli/parser.cpp.o\", \"[ 99%] Built target rt009_node_trace_test\", \"[100%] Building CXX object CMakeFiles/astrocs.dir/cli/commands.cpp.o\", \"[100%] Building CXX object CMakeFiles/astrocs.dir/cli/runtime_client.cpp.o\", \"/home/runner/work/Astro-CS-Database/Astro-CS-Database/cli/commands.cpp:465:13: warning: unused function 'emit_resource_summary' [-Wunused-function]\", \"  465 | static void emit_resource_summary(astrocs::JsonlEmitter& ev, const std::string& phase,\", \"      |             ^~~~~~~~~~~~~~~~~~~~~\", \"/home/runner/work/Astro-CS-Database/Astro-CS-Database/cli/commands.cpp:494:13: warning: unused function 'emit_backend_event' [-Wunused-function]\", \"  494 | static void emit_backend_event(astrocs::JsonlEmitter& ev, const std::string& phase,\", \"      |             ^~~~~~~~~~~~~~~~~~\", \"/home/runner/work/Astro-CS-Database/Astro-CS-Database/cli/commands.cpp:330:13: warning: unused function 'write_run_graphs' [-Wunused-function]\", \"  330 | static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& ev,\", \"      |             ^~~~~~~~~~~~~~~~\", \"3 warnings generated.\", \"[100%] Linking CXX executable astrocs\", \"[100%] Built target astrocs\"], \"stderr_tail\": [], \"poll_interval\": 0.2, \"timeout_seconds\": 3500.0, \"started_utc\": \"2026-09-06T05:58:03.872565+00:00\", \"finished_utc\": \"2026-09-06T05:59:26.846071+00:00\", \"host_probe\": {\"cpu_affinity\": 4, \"cpu_affinity_source\": \"sched_getaffinity\", \"cpu_logical\": 4, \"cpu_logical_source\": \"cpu_count\", \"cpu_physical\": 2, \"cpu_physical_source\": \"procfs\", \"cgroup_quota_cores\": null, \"cgroup_quota_source\": \"unavailable\", \"mem_total_bytes\": 16766410752, \"mem_available_bytes\": 15207804928, \"mem_source\": \"procfs\", \"effective_cpu_cores\": 4.0, \"effective_source\": \"affinity\", \"max_workers\": 4, \"max_workers_source\": \"derived\"}}\n",
+  "timed_out": false,
+  "timeout_seconds": 3600,
+  "verdict": "PASS",
+  "waivable": true
+}

@@ -1,0 +1,54 @@
+V8-CI-012 观察轮（mode=read）产出文件清单
+仓库：/workspace/Astro CS Database @ d416fc9df7767b6a407994048203667a0ef8cbaa
+本轮对工作树源码零修改、零 git 写操作；全部增量位于 evidence/v8_1_ci_control/tasks/V8-CI-012/（纯新增，未 git add）。
+
+新增文件：
+evidence/v8_1_ci_control/tasks/V8-CI-012/TASK_RESULT.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/DEEP_BASELINE_REPORT.md
+evidence/v8_1_ci_control/tasks/V8-CI-012/SOURCE_MANIFEST.json        （观察域：CI 链 16 源文件 @d416fc9d SHA256 登记）
+evidence/v8_1_ci_control/tasks/V8-CI-012/CHANGED_FILES.txt          （本文件）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/plan_linux-deep_local_d416fc9d.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/linux_ci_d416fc9d.zip               （dispatch run artifact 原始包）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/linux_ci_push_d416fc9d.zip          （push run artifact 原始包）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/linux_ci_ff4d2066.zip               （参照 run artifact 原始包）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/runs_page1.json                 （workflow runs 列表，total 16）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/run_34015193694.json            （dispatch run trace）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/run_34015190353.json            （push run trace）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/run_34015182811.json            （参照 run trace）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/jobs_34015193694.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/jobs_34015190353.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/jobs_34015182811.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/artifacts_34015193694.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/artifacts_34015190353.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/artifacts_34015182811.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/joblog_101437630810.log         （dispatch run job 全量日志，runner 自掩码保留原样）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/api/verify_remote_run_invocation.txt（验收命令如实执行记录：脚本缺失）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/artifact_d416fc9d/CI_RESULT.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/artifact_d416fc9d/BOOTSTRAP_DIAG.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/artifact_d416fc9d/checks/…          （7 项 checks JSON）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/artifact_d416fc9d/logs/…            （BUILD-GCC-RELEASE / DEEP-CLANG-BUILD / DEEP-SAN-ASAN / DEEP-SAN-TSAN / DEEP-COMPLEXITY 各 .log 与 .log.zst）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/artifact_push_d416fc9d/CI_RESULT.json
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/artifact_ff4d2066/CI_RESULT.json
+
+未修改既有文件；未触碰派发单、控制包、TASK_STATE、WRITE_LEASE。
+
+────────────────────────────────────────────────────────────────
+V8-CI-012 修复轮 1 增量清单（SA-CI-32，mode=repair，接入域 F-D1/D3/D4）
+仓库基点仍为 d416fc9df7767b6a407994048203667a0ef8cbaa；零 git 写操作（无 add/commit/push）；未触碰 ci/checks.json、command/timeout 与禁改面。
+
+修改（tracked，git diff --stat +103/-1）：
+tools/quality/deep_ci_driver.py        （F-D1：cmd_qa_sanitize ASan 分支改传 -DASTROCS_SANITIZE_RUNTIME=ON，+8/-1 含接线注释）
+.github/workflows/ci-linux.yml         （F-D3：新增步 Install deep coverage tools，if profile==linux-deep，apt 装 llvm-18/python3-pytest/python3-pytest-cov，/usr/lib/llvm-18/bin 入 GITHUB_PATH，+23）
+ci/toolchain.policy.json               （F-D3：linux_hosted.deep_coverage_tools 登记，+20）
+ci/tests/test_deep_profiles.py         （F-D1 单测 2 例 + F-D3 守卫 2 例，+55）
+
+新增（untracked）：
+ci/verify_remote_run.py                （F-D4：stdlib-only，CLI --sha/--workflows/--profile/--timeout/--repo/--offline/--json，exit 0/1/2/3，GITHUB_TOKEN 仅环境注入，零落盘）
+ci/tests/test_verify_remote_run.py     （F-D4 单测 22 例：离线 5/在线 10/API·用法 5/凭据纪律 2，fixture 假 API 零真网络）
+evidence/v8_1_ci_control/tasks/V8-CI-012/logs/repair_round1.log   （修复轮 1 执行日志）
+evidence/v8_1_ci_control/tasks/V8-CI-012/TASK_RESULT.json         （追加 repair_round1 块）
+evidence/v8_1_ci_control/tasks/V8-CI-012/DEEP_BASELINE_REPORT.md  （追加 §11 修复轮 1 段）
+evidence/v8_1_ci_control/tasks/V8-CI-012/CHANGED_FILES.txt        （本文件，追加本段）
+
+未修改：ci/checks.json（DEEP-COV-* prerequisite_tools 与实读需求一致；pytest-cov 因 which 探测机制不登记）；F-D2（TSan 三用例）业务域只登记不修。
+工作树其余 M/D（dist zip 删除、INVENTORY.csv、V8-CI-010 evidence）为任务起点既有基线噪声，本轮未触碰。

@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "purpose": "bootstrap diagnostics collected after a failed step (does not mask the primary cause)",
+  "generated_utc": "2026-09-06T06:04:30Z",
+  "bootstrap_exit_code": 0,
+  "report": {
+    "schema_version": 1,
+    "task_id": "V8-CI-007",
+    "generated_utc": "2026-09-06T06:04:30Z",
+    "platform": "linux",
+    "policy": "ci/toolchain.policy.json",
+    "observed_from": {
+      "image": "ubuntu-24.04",
+      "image_batch": "20260831.293.1",
+      "observed_utc": "2026-09-06",
+      "cmake": "3.31.6",
+      "secondary_compiler": "18.1.3",
+      "semantics": "cmake/secondary_compiler 为最低要求下限（minimum floor），非精确锁定"
+    },
+    "items": [
+      {
+        "tool": "runner",
+        "required": "ubuntu-24.04",
+        "observed": {
+          "hosted": true,
+          "image_os": "ubuntu24",
+          "runner_os": "Linux",
+          "runner_name": "GitHub Actions 1000000577",
+          "os_release_id": "ubuntu",
+          "os_release_version": "24.04"
+        },
+        "ok": true
+      },
+      {
+        "tool": "architecture",
+        "required": "x86_64",
+        "observed": "x86_64",
+        "ok": true
+      },
+      {
+        "tool": "gcc-14",
+        "required": "gcc-14",
+        "observed": {
+          "present": true,
+          "version_line": "gcc-14 (Ubuntu 14.2.0-4ubuntu2~24.04.1) 14.2.0"
+        },
+        "ok": true
+      },
+      {
+        "tool": "clang-18",
+        "required": "clang-18",
+        "observed": {
+          "present": true,
+          "version_line": "Ubuntu clang version 18.1.3 (1ubuntu1)"
+        },
+        "ok": true
+      },
+      {
+        "tool": "cmake",
+        "required": ">=3.31.6",
+        "observed": {
+          "present": true,
+          "version_line": "cmake version 3.31.6"
+        },
+        "ok": true
+      },
+      {
+        "tool": "Ninja",
+        "required": "Ninja present",
+        "observed": {
+          "present": true,
+          "version_line": "1.13.2"
+        },
+        "ok": true
+      }
+    ],
+    "ok": true,
+    "failures": []
+  },
+  "stderr_fail_payload": null
+}

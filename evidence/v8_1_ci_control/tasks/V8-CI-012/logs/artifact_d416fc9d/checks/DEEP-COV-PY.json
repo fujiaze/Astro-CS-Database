@@ -1,0 +1,51 @@
+{
+  "command": [
+    "python3",
+    "ci/resource_monitor.py",
+    "--timeout",
+    "1700",
+    "--output",
+    "run/ci/monitor/DEEP-COV-PY.json",
+    "--",
+    "python3",
+    "tools/quality/ci_coverage_runner.py",
+    "--output-dir",
+    "run/ci/coverage-py"
+  ],
+  "dirty": {
+    "checked": false,
+    "violations": []
+  },
+  "duration_seconds": 0.0,
+  "exit_code": null,
+  "finished_utc": "2026-09-06T06:04:29Z",
+  "heavy": true,
+  "id": "DEEP-COV-PY",
+  "log": null,
+  "log_zst": null,
+  "mutates_workspace": false,
+  "outputs_expected": [
+    "run/ci/monitor/DEEP-COV-PY.json",
+    "run/ci/coverage-py",
+    "run/ci/coverage-py/coverage-summary.json"
+  ],
+  "outputs_missing": [],
+  "platform_registered": "linux",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": false,
+    "reason": "依赖工具不在 PATH：pytest"
+  },
+  "reason": "prerequisite 未满足（waivable）：依赖工具不在 PATH：pytest",
+  "requires_monitor": true,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T06:04:29Z",
+  "stderr_tail": "",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 1800,
+  "verdict": "SKIPPED(waivable)",
+  "waivable": true
+}
