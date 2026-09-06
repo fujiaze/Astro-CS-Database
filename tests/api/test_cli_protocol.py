@@ -4,9 +4,11 @@ import json, os, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOC = os.path.join(REPO, "docs", "api", "CLI_PROTOCOL_V1.md")
-LEDGER_04 = os.path.join(REPO, "工程控制", "RELEASE_V5",
-                         "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828",
-                         "04_CLI_COMMAND_AND_PROTOCOL_CONTRACT.md")
+# 断链修复: 旧 LEDGER_04 指向 untracked 控制包布局 工程控制/RELEASE_V5/，
+# tracked 工作区与 hosted checkout 永不存在 → setUpClass FileNotFoundError。
+# 改指 tracked 同资产副本（sha256 17040e7b… 与 archive 副本逐字节一致）。
+LEDGER_04 = os.path.join(REPO, "artifacts", "prerelease_v5", "AUDIT_REVIEW",
+                         "control", "04_CLI_COMMAND_AND_PROTOCOL_CONTRACT.md")
 
 class TestCliProtocol(unittest.TestCase):
     @classmethod
