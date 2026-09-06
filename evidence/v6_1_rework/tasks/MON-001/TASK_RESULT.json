@@ -134,6 +134,79 @@
     "F-011",
     "F-012"
   ],
+  "reverify": {
+    "round": "reverify-1",
+    "owner": "MON-001-subagent",
+    "mode": "reverify+minimal-repair",
+    "observed_head_sha": "6825cb53e43c5e1bd0a78a699fcce02eebe40245",
+    "reverified_utc": "2026-09-07T02:40:00Z",
+    "gap_found": "CLI-002(de2d6d7f) 删除顶层 run --phases/cmd_run_pipeline 后, MON-001 三产物接入点随之中断; phase1/2/3 唯一管线入口 run_with_resource_gate(MON-004 接线)只做 ProcessMonitor 采样+gate 判定, 不再生成 resource_samples.csv/resource_summary.json/worker_balance.csv; cli/commands.cpp 仅剩 resource_recorder.h 的 include, ResourceRecorder 无任何生产使用点(git log -S 证实 5b13e214 引入/de2d6d7f 移除)。",
+    "repair": "cli/commands.cpp run_with_resource_gate 恢复 MON-001 接入(语义对齐 5b13e214 原实现): sampler 线程 tick 后 recorder.record(mon.last_sample()); interval=0.5 与采样周期一致保证 cpu_pct=ΔCPU秒/区间墙钟×100 口径; run_pipeline 前 set_stage(Active)+set_workers(budget,budget), 后 set_stage(Flush); sampler join 后 write_all 至 cfg output_dir(解析失败回退 .), 管线失败也留资源证据; 写失败仅 warning 不改退出码。未触碰 resource_recorder.h/monitor.h/resource_gate.h(Windows 采样与 gate 判定逻辑原样)。无 git 操作。",
+    "windows_semantics_static_review": "Win32 采样(e51a423a/6825cb53)下 MON-001 口径成立: (1) normalized: 两平台共单一路径 ResourceRecorder::record, cpu_pct=ΔCPU秒/interval×100; Win32 CPU 源 GetProcessTimes(user+sys, FILETIME 100ns→秒), Linux 源 /proc/stat utime+stime(clock tick→秒), 同公式同源, summary 声明 normalized_cpu_100pct_all_allocated_cores=true。(2) rss=WorkingSetSize(字节)对齐 Linux VmRSS; commit=PagefileUsage 对齐 VmSize(recorder 注释声明近似 commit); page_faults=PageFaultCount 对齐 minor+major。(3) io=GetProcessIoCounters Read/WriteTransferCount 真实传输字节, 与 /proc/self/io read_bytes/write_bytes 字节同义。(4) ops 无伪造: 规格 rchar/wchar 只能记字节——三产物样本仅含 read_bytes/write_bytes 无 ops 字段; ProcSample.read_ops(Linux=rchar 字节, 注释如实标注)与 Win32 ReadOperationCount 全仓库无消费点(grep 证实), GateConfig.io_ops 为调用方注入且生产 CLI kind=Compute 不填, 无 rchar 冒充 ops 的路径。(5) 采样开销: ProcessMonitor overhead 以每样本真实墙钟差累计(run_for), 未出现'每样本平均再除总 wall'的错误口径; CLI 生产 sampler 周期自写循环, summary.sample_overhead_ms 与历史 PASS 同口径。",
+    "spec_checklist": {
+      "auto_three_artifacts": "PASS — CLI 端到端冒烟(sub5) phase3 run rc=0 后 output_dir 三产物真实生成",
+      "sample_fields": "PASS — csv header 15 列: elapsed_seconds,stage,cpu_pct,system_cpu_pct,active_workers,runnable_workers,rss_bytes,pss_bytes,commit_bytes,page_faults,read_bytes,write_bytes,queue_depth,lock_wait_ns,progress",
+      "stage_init_active_flush": "PASS — summary stages 含 init/active/flush 三条目; active 段 workers=16/16",
+      "stats_mean_p50_p95_peak_slope": "PASS — stage_stats: cpu_pct mean/p50/p95/peak + workers mean/p50/peak + rss_peak + rss_slope_bytes_per_s",
+      "normalized_unified": "PASS — 两平台同一 record 公式 + summary normalized 声明",
+      "overhead_real_wall": "PASS — overhead_ns_ 为逐样本真实墙钟差累计, 无平均再除总 wall 口径",
+      "worker_balance": "PASS — worker_balance.csv 每样本 active/runnable/utilization_pct"
+    },
+    "commands": [
+      {
+        "command_id": "rv1",
+        "argv_redacted": ["cmake", "--build", "build", "--parallel", "8"],
+        "timeout_seconds": 600,
+        "exit_code": 0,
+        "started_utc": "2026-09-07T02:26:00Z",
+        "duration_seconds": 15.0,
+        "log_path": "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_SUB1_build.log",
+        "log_sha256": "c224374f1d8ee3065e9dc526db82cd1bc89c28c787cb7c94cccb8c94c220e2d9"
+      },
+      {
+        "command_id": "rv2",
+        "argv_redacted": ["ctest", "--test-dir", "build", "-R", "mon001"],
+        "timeout_seconds": 300,
+        "exit_code": 0,
+        "started_utc": "2026-09-07T02:27:00Z",
+        "duration_seconds": 0.5,
+        "log_path": "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_SUB2_ctest.log",
+        "log_sha256": "93b93ab8196bbfccf47414adea8d377a90209b3af5e005d12526ef0acea2844b"
+      },
+      {
+        "command_id": "rv3",
+        "argv_redacted": ["python3", "-m", "pytest", "tests/monitoring/", "-q"],
+        "timeout_seconds": 300,
+        "exit_code": 0,
+        "started_utc": "2026-09-07T02:28:00Z",
+        "duration_seconds": 7.1,
+        "log_path": "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_SUB3_pytest_monitoring.log",
+        "log_sha256": "8c03ef356eae9d16eb6b3885a83e9f74e44b80bcc2aa12aa335f6d681d0bf94f"
+      },
+      {
+        "command_id": "rv4",
+        "argv_redacted": ["./build/astrocs", "phase2", "run", "--config", "<cfg>", "--events-jsonl"],
+        "timeout_seconds": 300,
+        "exit_code": 3,
+        "started_utc": "2026-09-07T02:30:00Z",
+        "duration_seconds": 0.7,
+        "log_path": "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_SUB4_smoke_run.log",
+        "log_sha256": "f80940f045d70349967033b867f9c02f997481a94ffd453b9fcdec1f650a3de0"
+      },
+      {
+        "command_id": "rv5",
+        "argv_redacted": ["./build/astrocs", "phase3", "run", "--config", "<cfg>", "--events-jsonl"],
+        "timeout_seconds": 300,
+        "exit_code": 0,
+        "started_utc": "2026-09-07T02:31:00Z",
+        "duration_seconds": 17.0,
+        "log_path": "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_SUB5_smoke_phase3.log",
+        "log_sha256": "6ebc572ddec9195b636510ac15a8e2284545b2b91bcb938e099a9ca6448971dd"
+      }
+    ],
+    "notes": "rv4: phase2 run rc=3(node coverage failed: session run: PARAM)为 PLAN.md 遗留说明中同类预存在遗留(输入 hips 与 V6.1 sampler 参数不兼容, 属 P3 范畴), 该 run 同时证明管线失败时三产物仍自动生成(失败分支证据)。rv5: phase3 run rc=0, final status=ok, resource gate verdict=ok, output_phase3.fits 写出, 三产物字段齐(冒烟产物拷贝于 logs/reverify/ 根下)。本地完整日志(含 # cmd 行与 rc)另存 run/local/main23_fix/。",
+    "verdict": "PASS"
+  },
   "expected_commit_subject": "MON-001: 资源监测接入每个 heavy node (resource_samples.csv/resource_summary.json/worker_balance.csv 自动生成, init/active/flush 分段, p50/p95 统计)",
   "created_utc": "2026-09-01T01:40:00Z"
 }

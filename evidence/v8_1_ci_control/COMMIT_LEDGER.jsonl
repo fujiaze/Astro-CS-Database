@@ -1587,3 +1587,4 @@
 {"sha": "e51a423aaed26f9c12589ba1bbfe8e9883768581", "subject": "fix(windows): ctest 7 失败根因闭环 + monitor Win32 采样 + driver 全量日志 tee（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-07T00:37:06+08:00"}
 {"sha": "1938b7aa87c16f6df2d1b4805534167d746fa397", "subject": "fix(wave4): UT-API 断言同步 / UT-IO numpy 环境依赖 / UT-CPU-AVX512 fortified memset（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-07T01:02:25+08:00"}
 {"sha": "f5e4b647969c78d7214158abb8251624e925968f", "subject": "fix(inventory): PRODUCTION_EXECUTION_INVENTORY.csv 重新生成同步（负责人确认, subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-07T01:18:26+08:00"}
+{"sha": "6825cb53e43c5e1bd0a78a699fcce02eebe40245", "subject": "fix(windows): MSVC C2065 EDQUOT + monitor.h Win32 采样 API 修正（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-07T01:36:29+08:00"}
