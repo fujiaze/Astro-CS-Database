@@ -384,14 +384,14 @@ class TestToolBehaviour(unittest.TestCase):
         self.assertEqual(summary["pytest"]["exit_code"], 2)
         self.assertIn("stderr_tail", summary["pytest"])
 
-    def test_coverage_runner_pytest_tail_capped_at_50(self):
-        """F9-a cap：错误行风暴下 pytest_tail 恰 50 行（防 hosted 日志爆炸）。"""
-        storm = [f"ERROR tests/t{i}.py" for i in range(60)]
+    def test_coverage_runner_pytest_tail_capped_at_120(self):
+        """F9-a cap（R7 合同 50→120）：错误行风暴下 pytest_tail 恰 120 行（防 hosted 日志爆炸）。"""
+        storm = [f"ERROR tests/t{i}.py" for i in range(200)]
         rc, summary = self._coverage_runner_with_fake_pytest(
             2, "\n".join(storm), tmp_tag="f9a_cap")
         self.assertEqual(rc, 2)
-        self.assertEqual(len(summary["pytest_tail"]), 50)
-        self.assertEqual(summary["pytest_tail"][0], storm[0])  # 保序取前 50
+        self.assertEqual(len(summary["pytest_tail"]), 120)
+        self.assertEqual(summary["pytest_tail"][0], storm[0])  # 保序取前 120
 
     def test_coverage_runner_pytest_tail_fallback_on_unfiltered(self):
         """F9-a 退化：失败但无关键词命中 → 原始尾窗兜底（永不为空黑箱）。"""
@@ -561,7 +561,9 @@ class TestDeepCoverageToolsInstall(unittest.TestCase):
             (CI_DIR / "toolchain.policy.json").read_text(encoding="utf-8"))
         section = policy["linux_hosted"]["deep_coverage_tools"]
         self.assertEqual(section["apt_packages"],
-                         ["llvm-18", "python3-pytest", "python3-pytest-cov"])
+                         ["llvm-18", "python3-pytest", "python3-pytest-cov",
+                          "python3-numpy", "python3-astropy", "python3-scipy",
+                          "python3-yaml", "libgsl-dev"])
         self.assertEqual(section["path_tools"],
                          ["llvm-profdata", "llvm-cov", "pytest"])
         self.assertEqual(section["module_tools"], ["pytest-cov"])
