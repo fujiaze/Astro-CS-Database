@@ -17,9 +17,12 @@ class TestCliProtocol(unittest.TestCase):
         cls.s04 = open(LEDGER_04, encoding="utf-8").read()
 
     def test_01_command_tree_covers_04(self):
+        # CLI-002 三入口隔离改造: 04 §1 的顶层 `astrocs run --phases 1,2,3` 已移除,
+        # 现行命令树 = phase1/2/3 run 三独立入口(等价 manifest 语义, §1 golden);
+        # 04 冻结文本仍留旧行属上游演进滞后, 断言权威 = 当前 help golden(CLI_PROTOCOL_V1.md §1)。
         for cmd in ("--version", "hardware inspect", "config init", "config validate",
                     "config show-effective", "benchmark cpu", "doctor", "test synthetic",
-                    "phase1 run", "phase2 run", "phase3 run", "run --phases", "verify --run-manifest"):
+                    "phase1 run", "phase2 run", "phase3 run", "verify --run-manifest"):
             self.assertIn(cmd, self.s, f"缺命令 {cmd}")
         self.assertIn("禁另发 benchmark exe", self.s)
 

@@ -89,7 +89,14 @@ extern "C" ACS_CPU_AVX512_CAP_GATE_NOEVEX
 int acs_cpu_avx512_cap_gate(acs_cap_result_v1* out) {
     if (out == nullptr) return ACS_ERR_PARAM;
     acs_cap_result_v1 c;
-    std::memset(&c, 0, sizeof(c));
+    /* HOSTFIX-23④: 本函数带 no-avx512* target attribute。glibc
+     * string_fortified.h 的 always_inline memset (-D_FORTIFY_SOURCE>=2 下
+     * 由 std::memset 展开的 __builtin___memset_chk) 不继承调用方 target
+     * options，inline 进本函数报 "target specific option mismatch"。
+     * __builtin_memset 是编译器内建、不经 fortify 宏重载，遵守当前函数
+     * target 展开(通用 SSE2 mov / rep stosb)，EVEX 门禁语义不变
+     * (tests/cpu/avx512/check_avx512_illegal_instr.py: cap_gate 零 %zmm)。 */
+    __builtin_memset(&c, 0, sizeof(c));
     c.struct_size = (uint32_t)sizeof(acs_cap_result_v1);
     c.abi_version = ACS_CAP_ABI_VERSION_V1;
     const int rc = acs_cap_detect_v1(&c);
