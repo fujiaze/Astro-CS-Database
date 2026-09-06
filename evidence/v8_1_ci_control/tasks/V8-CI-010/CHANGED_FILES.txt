@@ -79,3 +79,22 @@ evidence/v8_1_ci_control/tasks/V8-CI-010/logs/run-34000648616/windows/system.txt
 - evidence/v8_1_ci_control/tasks/V8-CI-010/HOSTED_RUN_REPORT.md：+修复轮 4 段（R28）
 - evidence/v8_1_ci_control/tasks/V8-CI-010/TASK_RESULT.json：+repair_round4 块
 - logs/repair_round4.log（logs/** 不入 git status）：preset 本机尝试（cmake 缺失 exit 127 原文）+ 结构级验证 15/15 + 验收逐条
+
+# 观察轮 4 增量（SA-CI-32，@ HEAD 7e974087，2026-09-06，mode=read）
+- （源码零改动、git 零写操作；本轮全部为 evidence 与 logs 增量）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/HOSTED_RUN_REPORT.md：+观察轮 4 段（R29-R36：run 终态/四项修复生效判定表/分布对照/linux resource summary 首轮数字/F-R4-01·02·03/closability 六条判定/验收与凭据纪律）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/TASK_RESULT.json：+observation_round4 块（runs/fix_effectiveness_round4/comparison_vs_round3/resource_summary/findings_round4/candidate_deep_check/closability_vs_requirements/evidence_files/credential_discipline_round4/acceptance/residual_risks）
+- evidence/v8_1_ci_control/tasks/V8-CI-010/logs/round4/（logs/** 不入 git status）：
+  - API trace：runs_api_trace_headsha_all.json、run/jobs/artifacts_api_trace_34011382022.json（linux）、run/jobs/artifacts_api_trace_34011381969.json（windows）、run_api_trace_*_poll.json
+  - job 全量日志：job_log_101427716498_linux.log（22,660 B）、job_log_101427716562_windows.log（24,870 B）（runner 自掩码 basic *** 已 [REDACTED] 化）
+  - artifact 原始 zip + 解包：linux-ci-7e974087….zip（id 9982744581，224,281 B，215 members）→ linux-artifact-7e974087/；windows-ci-7e974087….zip（id 9982604873，159,723 B，184 members）→ windows-artifact-7e974087/（含 run/ci/win-build-summary.json）
+  - git_status_after_round4.txt：任务收口时 git status --porcelain 快照（89 行遗留与初始一致 + 3 行 evidence/.../V8-CI-010/** 被跟踪证据文件 M 增量，派发允许域内）
+  - 脱敏断言：logs/round4/ 全量 grep ghp_/github_pat_/ghs_/gho_/Authorization 头/password= 无命中
+
+# 修复轮 5 增量（SA-CI-32，@ HEAD 7e974087，2026-09-06）
+- tools/quality/ci_windows_driver.py：F-R4-01 —— run_step 新增 error_lines 字段（失败时 ERROR_LINE_RE 过滤收集 cap 50 保序；成功恒 []；output_tail 语义不变）；collect_error_lines 纯函数 + ERROR_LINE_RE/ERROR_LINES_CAP 常量
+- .github/workflows/ci-windows.yml：F-R4-02 —— evidence 上传多路径追加 run/ci/win-test-junit.xml + run/ci/win-test-summary.json
+- ci/tests/test_windows_ci.py：+4 用例（error_lines 收集/cap/成功空/纯函数）+ 既有用例补 error_lines 断言
+- ci/tests/test_workflow_lock.py：test_evidence_upload_path_matches_run_output_dir 补两条 F-R4-02 正向断言
+- HOSTED_RUN_REPORT.md：+修复轮 5 段（R37）；TASK_RESULT.json：+repair_round5 块
+- logs/repair_round5.log（logs/** 不入 git status）：验收逐条实测 + 工作区事件留档

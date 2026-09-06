@@ -87,8 +87,12 @@ jobs:
           # F-R3-02: cmake 真实错误落 run/ci/win-build-summary.json，一并上传；
           # 多路径模式下某路径缺失仅 warning，artifacts/ci/ 有内容即满足
           # if-no-files-found: error（不再因单一路径为空而丢弃全部证据）。
+          # F-R4-02: 追加 ctest junit 与 driver test 汇总，ctest 失败用例名
+          # 可离线定位（路径 = checks.json WIN-TEST-UNIT outputs 契约）。
           path: |
             artifacts/ci/
             run/ci/win-build-summary.json
+            run/ci/win-test-junit.xml
+            run/ci/win-test-summary.json
           retention-days: 14
           if-no-files-found: error

@@ -211,6 +211,12 @@ class TestWorkflowYaml(unittest.TestCase):
                      for ln in str(s["with"]["path"]).splitlines() if ln.strip()}
         self.assertIn("run/ci/win-build-summary.json", win_paths,
                       "ci-windows.yml 缺 run/ci/win-build-summary.json 上传（F-R3-02）")
+        # F-R4-02: ctest junit 与 driver test 汇总随 evidence artifact 上传，
+        # ctest 失败用例名可离线定位（路径 = checks.json WIN-TEST-UNIT outputs）
+        self.assertIn("run/ci/win-test-junit.xml", win_paths,
+                      "ci-windows.yml 缺 run/ci/win-test-junit.xml 上传（F-R4-02）")
+        self.assertIn("run/ci/win-test-summary.json", win_paths,
+                      "ci-windows.yml 缺 run/ci/win-test-summary.json 上传（F-R4-02）")
 
     def test_collect_bootstrap_diagnostics_step_on_failure(self):
         """两平台各有一个 if: failure() 的 bootstrap 诊断步，产出 BOOTSTRAP_DIAG.json。"""

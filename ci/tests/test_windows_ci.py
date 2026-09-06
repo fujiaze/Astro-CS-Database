@@ -177,6 +177,63 @@ class TestDriverStages(unittest.TestCase):
         self.assertEqual(res["exit_code"], 3)
         self.assertFalse(res["timed_out"])
         self.assertIn("hello-driver", res["output_tail"])
+        # F-R4-01：失败但无错误关键词时 error_lines 恒为空列表（schema 兼容）
+        self.assertEqual(res["error_lines"], [])
+
+    def test_run_step_success_has_empty_error_lines(self):
+        """F-R4-01：成功（exit 0）时 error_lines 恒为 []。"""
+        res = DRV.run_step([sys.executable, "-c", "print('ok')"], timeout=30)
+        self.assertEqual(res["exit_code"], 0)
+        self.assertEqual(res["error_lines"], [])
+
+    def test_run_step_collects_error_lines_on_failure(self):
+        """F-R4-01：失败时按编译/链接错误关键词过滤收集，warning 不收、保序。"""
+        script = (
+            "import sys\n"
+            "print('foo.cpp(12): warning C4996: deprecation')\n"
+            "print('foo.cpp(30): error C2065: undeclared identifier')\n"
+            "print('  Link: warning LNK4098 clash')\n"
+            "print('bar.obj : error LNK2019: unresolved external symbol')\n"
+            "print('C:/x/include/z.h(5): fatal error C1083: cannot open file')\n"
+            "print('MSBUILD : error MSB1009: project file missing')\n"
+            "print('LINK : fatal error LNK1104: cannot open file')\n"
+            "print('plain stderr noise line')\n"
+            "raise SystemExit(1)\n"
+        )
+        res = DRV.run_step([sys.executable, "-c", script], timeout=30)
+        self.assertEqual(res["exit_code"], 1)
+        errs = res["error_lines"]
+        self.assertEqual(len(errs), 5, errs)
+        self.assertIn("error C2065", errs[0])
+        self.assertIn("error LNK2019", errs[1])
+        self.assertIn("fatal error C1083", errs[2])
+        self.assertIn("error MSB1009", errs[3])
+        self.assertIn("LINK : fatal error LNK1104", errs[4])
+        # warning 行与噪声行不进入 error_lines
+        self.assertFalse(any("warning" in ln and "error" not in ln.lower()
+                             for ln in errs), errs)
+        self.assertFalse(any("plain stderr noise" in ln for ln in errs))
+        # output_tail 语义不变：仍保留最后 25 行（含全部 9 行输出）
+        self.assertIn("warning C4996", res["output_tail"])
+        self.assertIn("plain stderr noise line", res["output_tail"])
+
+    def test_run_step_error_lines_cap_50(self):
+        """F-R4-01：error 行超 50 行时截断至 cap，保序取前 50 行。"""
+        n = 60
+        script = "\n".join(f"print('e{i}: error C2001: boom keep-order {i}')"
+                           for i in range(n))
+        res = DRV.run_step([sys.executable, "-c",
+                            script + "\nraise SystemExit(2)"], timeout=30)
+        self.assertEqual(res["exit_code"], 2)
+        self.assertEqual(len(res["error_lines"]), DRV.ERROR_LINES_CAP)
+        self.assertIn("keep-order 0", res["error_lines"][0])
+        self.assertIn("keep-order 49", res["error_lines"][-1])
+
+    def test_collect_error_lines_pure_function(self):
+        """collect_error_lines 纯函数：保序过滤、cap、空输入。"""
+        self.assertEqual(DRV.collect_error_lines([]), [])
+        lines = ["x", "a : error C1234: bad", "y", "b : fatal error nope"]
+        self.assertEqual(DRV.collect_error_lines(lines), lines[1::2])
 
     def test_build_dir_from_preset_single_source(self):
         self.assertEqual(DRV.build_dir_from_preset("win-msvc-17.14.39-x64"),
