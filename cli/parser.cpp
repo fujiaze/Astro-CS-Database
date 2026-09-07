@@ -251,7 +251,11 @@ std::string local_cpu_signature() {
 
 // pipeline_config.json v1 全量校验(合同: docs/api/MANIFEST_VERIFY_V1.md §1)
 // 返回 0 有效(doc 填充); 否则对应退出码, 诊断写 stderr。
-int validate_config_full(const std::string& path, nlohmann::json* doc_out) {
+// session_mode=true (phaseN run): 追加接受 RT-008 平铺直通会话格式
+// (runtime_client phase_config 平铺分支), 未知键拒绝面与 V1 同强度;
+// config validate 顶层命令面恒为 V1 合同 (CLI-003 golden, session_mode=false)。
+int validate_config_full(const std::string& path, nlohmann::json* doc_out,
+                         bool session_mode) {
     std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
     if (!f) {
         std::fprintf(stderr, "astrocs: config not found '%s'\n", path.c_str());
@@ -271,49 +275,74 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out) {
     }
     static const std::set<std::string> kAllowedKeys = {"schema_version", "inputs",
                                                        "output_dir", "phase3"};
+    static const std::set<std::string> kSessionKeys = {
+        // phase1 平铺 (p1_session 消费面)
+        "input_lights", "master_bias", "master_dark", "master_flat",
+        "dark_optimization", "dark_scale_factor", "cosmetic",
+        // phase2 平铺 (p2_session 消费面)
+        "hips_paths", "upm", "upm_save_path", "persist_upm",
+        // phase3 平铺 (p3_session 消费面)
+        "source", "center", "scale_deg_per_px", "width_px", "height_px",
+        "projection", "sampler", "longitude_parity", "bitpix",
+        "coverage_output", "max_tiles", "frame",
+        // phase3 平铺直通特征键 (runtime_client phase_config 平铺判定)
+        "output_fits_path", "sampler_used", "mode",
+    };
     for (auto it = doc.begin(); it != doc.end(); ++it) {
-        if (!kAllowedKeys.count(it.key())) {
+        const bool allowed = kAllowedKeys.count(it.key()) != 0 ||
+                             (session_mode && kSessionKeys.count(it.key()) != 0);
+        if (!allowed) {
             std::fprintf(stderr, "astrocs: config has unknown key '%s'\n", it.key().c_str());
             return astrocs::INPUT;                   // 防拼写静默忽略 → 3
         }
     }
+    // 平铺会话格式特征: 任一 session 键出现即脱离 V1 顶层必填面
+    const bool flat_session = session_mode &&
+        std::any_of(kSessionKeys.begin(), kSessionKeys.end(),
+                    [&](const std::string& k) { return doc.contains(k) != 0; });
     if (!doc.contains("schema_version")) {
-        std::fprintf(stderr, "astrocs: config missing 'schema_version'\n");
-        return astrocs::INPUT;
-    }
-    if (!doc["schema_version"].is_string() || doc["schema_version"].get<std::string>() != "1") {
+        if (!flat_session) {
+            std::fprintf(stderr, "astrocs: config missing 'schema_version'\n");
+            return astrocs::INPUT;
+        }
+    } else if (!doc["schema_version"].is_string() ||
+               doc["schema_version"].get<std::string>() != "1") {
         std::fprintf(stderr, "astrocs: config schema_version must be \"1\"\n");
         return astrocs::ARGS;                        // 版本错=配置错 → 2
     }
-    if (!doc.contains("inputs") || !doc["inputs"].is_object()) {
+    if (!flat_session && (!doc.contains("inputs") || !doc["inputs"].is_object())) {
         std::fprintf(stderr, "astrocs: config missing 'inputs' object\n");
         return astrocs::INPUT;
     }
-    for (const char* k : {"lights", "darks", "flats", "bias"}) {
-        auto it = doc["inputs"].find(k);
-        if (it == doc["inputs"].end() || !it->is_array()) {
-            std::fprintf(stderr, "astrocs: config inputs.%s must be an array\n", k);
-            return astrocs::INPUT;
-        }
-        for (const auto& e : *it) {
-            if (!e.is_string() || e.get<std::string>().empty()) {
-                std::fprintf(stderr, "astrocs: config inputs.%s has empty path\n", k);
+    if (!flat_session) {
+        for (const char* k : {"lights", "darks", "flats", "bias"}) {
+            auto it = doc["inputs"].find(k);
+            if (it == doc["inputs"].end() || !it->is_array()) {
+                std::fprintf(stderr, "astrocs: config inputs.%s must be an array\n", k);
                 return astrocs::INPUT;
             }
-            std::error_code ec;
-            if (!std::filesystem::exists(std::filesystem::u8path(e.get<std::string>()), ec)) {
-                std::fprintf(stderr, "astrocs: config input not found '%s'\n",
-                             e.get<std::string>().c_str());
-                return astrocs::INPUT;
+            for (const auto& e : *it) {
+                if (!e.is_string() || e.get<std::string>().empty()) {
+                    std::fprintf(stderr, "astrocs: config inputs.%s has empty path\n", k);
+                    return astrocs::INPUT;
+                }
+                std::error_code ec;
+                if (!std::filesystem::exists(std::filesystem::u8path(e.get<std::string>()), ec)) {
+                    std::fprintf(stderr, "astrocs: config input not found '%s'\n",
+                                 e.get<std::string>().c_str());
+                    return astrocs::INPUT;
+                }
             }
         }
     }
-    if (!doc.contains("output_dir") || !doc["output_dir"].is_string()) {
+    if (!flat_session && (!doc.contains("output_dir") || !doc["output_dir"].is_string())) {
         std::fprintf(stderr, "astrocs: config missing 'output_dir'\n");
         return astrocs::INPUT;
     }
     std::error_code ec;
-    if (!std::filesystem::exists(std::filesystem::u8path(doc["output_dir"].get<std::string>()), ec)) {
+    // 平铺会话格式: session 自建输出目录, CLI 仅要求为字符串; V1 顶层格式仍要求已存在。
+    if (!flat_session &&
+        !std::filesystem::exists(std::filesystem::u8path(doc["output_dir"].get<std::string>()), ec)) {
         std::fprintf(stderr, "astrocs: config output_dir not found\n");
         return astrocs::INPUT;
     }

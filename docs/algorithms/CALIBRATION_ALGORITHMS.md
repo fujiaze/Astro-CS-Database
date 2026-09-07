@@ -14,8 +14,9 @@
   （无 pedestal、无 gain、无 read-noise 建模、负值保留、bad_mask 极性 1=坏点、
   variance 不传播）。
 - 生产源: `lib/calibration/include/astro_calibration.h`（唯一公共头，14 个
-  `AC_API` 符号）+ `lib/calibration/src/{master_generator,calibrator,
-  cosmetic_corrector,ac_api}.cpp`（CMake `astrocs_calibration` 静态库唯一构建
+  `AC_API` 符号）+ `lib/calibration/src/master_generator.cpp`、
+  `lib/calibration/src/calibrator.cpp`、`lib/calibration/src/cosmetic_corrector.cpp`、
+  `lib/calibration/src/ac_api.cpp`（CMake `astrocs_calibration` 静态库唯一构建
   清单，CMakeLists.txt:321-333）。
 - 负责: master bias/dark/flat 生成（sigma-clip 合并）、单帧校准算术、
   热像素/冷像素检测与插值修复；Gaia 测光比例标量应用（现状未接线）。
@@ -38,7 +39,7 @@ flat_norm = max(flat / median(flat), 0.1)   （median<=0 时不归一，保持�
 （ALG-CAL-002 步骤 3）；`calibrate`（ALG-CAL-003）对入参 flat 仅施加
 floor 0.1，即约定入参 master_flat 已是 median≈1.0 的归一化平场。
 
-## 3 离散公式（与源码逐一锚定）
+## 3 离散公式与伪代码（与源码逐一锚定）
 
 ### 3.1 ALG-CAL-001 MasterBias/MasterDark 生成 `ac::generate_master`
 
@@ -229,7 +230,7 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 ## 6 确定性与归约（修正旧文档）
 
 - **线程模型（现状）**: OpenMP 默认 team（`omp_get_max_threads()`）；
-  `ac_set_num_threads(n>0)` 全局改写 OpenMP ICV（进程级副作用，见
+  `ac_set_num_threads` 以 `n>0` 调用时全局改写 OpenMP ICV（进程级副作用，见
   DISP-CAL-002；API-P1-001 §2 已标注 V5 迁移整改点=由 p1 budget 注入取代）。
   无 ThreadLease、无 host executor 接线——迁移目标见 §8。
 - **逐像素独立**: 校准/检测/插值均无跨像素归约；输出 bitwise 与线程数
@@ -243,6 +244,9 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 - **无 ISA 变体**: 无 SIMD 显式向量化、无逐内核 benchmark 注册、无
   provider 选择；编译期仅 `-O2/-O3` 级优化与 OpenMP。旧文档 §5b/§7 的
   ISA 注册陈述与源码不符，已删除。
+
+### 6.1 SIMD 安全（现状：无 SIMD 显式向量化，合同见约束 C.4-C.8）
+
 - **fast-math**: CMake 主构建不加 fast-math；遗留 build.ps1/Makefile 通道
   使用 `-O3 -march=native -ffast-math`（仅遗留通道，不作为确定性合同依据）。
 
@@ -305,7 +309,8 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 - FIX-CAL-F 负面: NULL 指针、w=0/h=0/n_frames=0、NaN 注入 dark/bias、
   photscal=NaN/Inf（apply_photometry）、window=4（cc 通道）。
 
-**独立 oracle**（不复用实现代码）:
+### 9.1 独立 Oracle（不复用实现代码）
+
 - Python/NumPy 复算 F1–F4 全部分支（float32 位级模拟 mean 帧序累加用
   numpy 顺序求和验证一致性），常量场期望 max_abs==0。
 - 坏点 oracle: scipy.ndimage.label 独立复算连通域过滤（8 连通），IDW
