@@ -94,6 +94,54 @@
 - plan/execute/cancel/inspect 迁移语义见 ALG-GAIA-001 §3.1（astrocs.catalog.gaia，
   C ABI adapter 由 CAT-GAIA-IMPL 建立；本节描述现状 C API，不声明 DLL 化完成）。
 
+## astro_calibration C API（API-CAL-001）
+
+> ID: API-CAL-001  状态: CONTRACT_READY（P1-CAL-DOC 冻结，2026-09-07）
+> 头: lib/calibration/include/astro_calibration.h（唯一权威签名源，禁止手抄他版）
+> SRC: lib/calibration/src/（CMake astrocs_calibration，4 个 cpp）；
+> SCI: SCI-CAL-001；ALG: ALG-CAL-001..004；DATA: DATA-P1-CAL（DATA_SEMANTICS §9）。
+> 编排级合同（p1_session 五段式）见 API-P1-001；本节冻结现状模块级 C API。
+
+- 导出符号（12 个函数 + 2 工具，全部当前真实存在，`AC_API` 导出）：
+  `ac_generate_master_bias`、`ac_generate_master_dark`、`ac_generate_master_flat`、
+  `ac_calibrate_frame`、`ac_correct_frame`、`ac_generate_master_bias_f64`、
+  `ac_generate_master_dark_f64`、`ac_generate_master_flat_f64`、
+  `ac_calibrate_frame_f64`、`ac_correct_frame_f64`、`ac_set_num_threads`、
+  `ac_version`。
+- 返回码（10 个科学函数）：`AC_OK=0` 成功；`AC_ERR_PARAM=-1` 空指针或
+  n_frames/width/height 非正；`AC_ERR_MEMORY=-2`/`AC_ERR_INTERNAL=-3`
+  定义但**从未返回**（现状无异常屏障，DISP-CAL-001）。`ac_version` 返回
+  静态串，调用方不得 free；`ac_set_num_threads` 无返回值。
+- 单位/dtype/shape：全 ADU；`[h][w]` 行主序 0-based（stack 为
+  `[n_frames][h][w]`）；f32 ABI float32、f64 ABI double；掩码 1=坏点。
+  NULL 语义：master_bias/dark/flat 可空（条件分支见 DATA_SEMANTICS §9.1）。
+- 线程安全：全部函数 reentrant、threadsafe（无共享可变全局；
+  API-P1-001 §2 登记一致）；内部 OpenMP 并行（默认 team）。
+  **例外**：`ac_set_num_threads` 进程级改写 OpenMP ICV，并发调用竞态且
+  影响其他模块的并行度（DISP-CAL-002，迁移后由 host ThreadLease 取代，
+  新代码禁止调用）。
+- FP64 ABI 语义：仅 `ac_calibrate_frame_f64` 真双精度（像素算术 double）；
+  4 个 `ac_generate_master_*_f64`/`ac_correct_frame_f64` 内部降级 float32
+  执行（统计/mask 路径，头文件声明），除接口 dtype 外不提供额外精度。
+- 所有权：全部缓冲调用方分配/释放（模块零 malloc 输出）；无句柄/生命周期
+  对象（无 create/destroy）；日志写 stderr（master 生成与 photometry 通道），
+  不影响返回码。
+- 取消：模块内无取消检查点（DISP-CAL-008）；取消由调用方（phase1_session）
+  在帧粒度实现。
+- 已登记现状缺陷（不得静默使用，P1-CAL-IMPL/INT 处理）：
+  `generate_master_flat` 负 median 未防护；extern "C" 无异常屏障
+  （bad_alloc 可穿越）；bilinear 实为 IDW；NaN 未在 cosmetic 统计过滤；
+  w·h int31 溢出无防护；AC_METHOD_BILINEAR/combine 等 enum 越界值不报错
+  （按实现默认分支执行）。完整清单见 ALG-CAL 文档 §10（DISP-CAL-001..011）。
+- 遗留通道（不在本合同）：Makefile 产物 cosmetic_corrector.dll 的
+  `cc_correct_median/cc_detect_hot/cc_detect_cold/cc_last_error`
+  （window 奇数 3..15，Python ctypes 专用）与 `ac::optimize_dark_k`、
+  `calibration::apply_photometry`（未编译未接线）——迁移去留由
+  P1-CAL-IMPL 决定（ALG-CAL §4.1）。
+- plan/execute/cancel/inspect 迁移语义见 ALG-CAL-003 文档 §8
+  （astrocs.p1.calibration / astrocs_p1_calibration.dll，C ABI adapter 由
+  P1-CAL-IMPL 建立；本节描述现状 API，不声明 DLL 化完成）。
+
 ## On-disk 格式
 
 - HiPS：IVOA 1.4（signal/support/snr 产品，NESTED，512 tile）。
