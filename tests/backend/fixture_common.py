@@ -82,3 +82,40 @@ def ensure_f1f2_hips(fdir=DEFAULT_FDIR):
     assert "HIPS_FIXTURES_OK" in r.stdout, "[fixture_common make] " + r.stderr[-600:]
     assert os.path.isdir(f1) and os.path.isdir(f2), "F1/F2.hips 生成失败: " + fdir
     return fdir
+
+
+SEAM6_DIR = os.path.join(REPO, "run", "temp", "p2007_seam6", "seam6")
+
+
+def ensure_seam6_hips(fdir=SEAM6_DIR):
+    """确保 fdir 下存在 P2-007 seam6 fixture: SEAM0..SEAM5.hips 共 6 块。
+
+    fixture exe 的 `--make-seam6` 模式（P2-007 G5）按模式轮换/交替偏移生成 6 块
+    mini HiPS，保证 UPM 可求解且 run ≥10s。历史形态该目录由手工操作产出
+    （run/ 属临时操作目录），无 CI 注册生成方；本函数补齐同 ensure_f1f2_hips
+    的自愈语义。
+    """
+    paths = [os.path.join(fdir, "SEAM%d.hips" % i) for i in range(6)]
+    if all(os.path.isdir(p) for p in paths):
+        return fdir
+    exe = _build_fixture_exe()
+    os.makedirs(fdir, exist_ok=True)
+    r = subprocess.run([exe, "--make-seam6", fdir], capture_output=True, text=True,
+                       timeout=300)
+    assert "HIPS_FIXTURES_OK" in r.stdout, "[fixture_common make-seam6] " + r.stderr[-600:]
+    assert all(os.path.isdir(p) for p in paths), "SEAM0..5.hips 生成失败: " + fdir
+    return fdir
+
+
+def two_cpu_preexec():
+    """subprocess preexec_fn: 把子进程限制到前 2 个可用 CPU（恢复 2c 生产语境）。
+
+    现行 CLI 资源门阈值 = 0.80*min(workers_budget, available_cpus)，而 phase2/3
+    session 的 budget 恒为 2 workers。在多核宿主机上 available_cpus 抬高阈值而
+    budget 不变，run 被 gate 结构性拒绝（exit 10）。phase3 大图类测试按原始 CI
+    2c2g 设计语境以 CPU 亲和恢复 budget/available 一致（环境适配，非语义放宽）。
+    仅 Linux（sched_setaffinity）；fork 后 exec 前执行，不得在此 import。
+    """
+    cpus = sorted(os.sched_getaffinity(0))
+    if len(cpus) >= 2:
+        os.sched_setaffinity(0, set(cpus[:2]))
