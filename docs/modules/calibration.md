@@ -7,6 +7,12 @@
 > （ALG-CAL-001..006）；数据语义见 docs/contracts/DATA_SEMANTICS.md §9
 > （DATA-P1-CAL）；API 合同见 docs/contracts/PUBLIC_API.md（API-CAL-001）
 > 与 docs/api/PHASE1_API_V1.md（API-P1-001）。
+> P1-COS-DOC 增补（2026-09-07）：cosmetic 域合同已独立冻结为
+> astrocs.p1.cosmetic（lib/cosmetic/，ALG-COS-001..005 =
+> docs/algorithms/COSMETIC_ALGORITHMS.md，DATA-P1-COS = DATA_SEMANTICS
+> §10，API-COS-001 = PUBLIC_API.md）——与本页 P1-CAL 合同共享同一编译
+> 目标 astrocs_calibration 与头文件；本页仅保留 P1-CAL 视角摘要，
+> cosmetic 域以 lib/cosmetic/README.md 为权威。
 
 ## 职责
 
@@ -23,17 +29,23 @@ astrocs_p1_calibration.dll 由 P1-CAL-IMPL 建立。
 
 ## Production callers
 
-当前唯一生产调用点：`lib/phase1_session/p1_session.cpp:243` 调
-`ac_calibrate_frame`（calibrate stage；master 由配置传入，帧粒度取消在
-session 层）。`ac_generate_master_*`、`ac_correct_frame`、`ac_set_num_threads`
-当前无生产调用方（master 由外部预生成；cosmetic 待接线）。
+当前生产调用点（P1-COS-DOC 增补核对，2026-09-07）：
+`lib/phase1_session/p1_session.cpp:243` 调 `ac_calibrate_frame`
+（calibrate stage）与 `:294` 调 `ac_correct_frame`（cosmetic stage，
+2026-09-01 c5629be6 引入；master_dark/master_bias 传 nullptr → 检测
+全禁用、恒等 pass，DISP-COS-009——cosmetic 域现状与整改见
+lib/cosmetic/README.md）。`ac_generate_master_*`、`ac_set_num_threads`
+当前无生产调用方（master 由外部预生成；ac_set_num_threads 由
+session budget 注入通道持有）。
 
 ## Public API
 
 astro_calibration.h：12 个科学/工具导出（5 f32 科学 + 5 f64 变体 +
 ac_set_num_threads + ac_version）。登记合同 API-CAL-001
-（docs/contracts/PUBLIC_API.md）。遗留通道（cc_* DLL、optimize_dark_k、
-apply_photometry）未编译进 CMake 主构建，属计划迁移旧符号。
+（docs/contracts/PUBLIC_API.md；cosmetic 路径 ac_correct_frame(+_f64)/
+ac_set_num_threads 另由 API-COS-001 独立登记，模块级合同视角）。
+遗留通道（cc_* DLL、optimize_dark_k、apply_photometry）未编译进
+CMake 主构建，属计划迁移旧符号。
 
 ## Data contract
 
@@ -71,6 +83,9 @@ ALG-CAL §8。无全局状态（除 OpenMP ICV）。
 
 SCI-CAL-001（docs/science/CALIBRATION.md，FROZEN）；ALG-CAL-001..006
 （docs/algorithms/CALIBRATION_ALGORITHMS.md，CONTRACT_READY）。
+cosmetic 域：SCI-CAL-001 共享 + ALG-COS-001..005
+（docs/algorithms/COSMETIC_ALGORITHMS.md，CONTRACT_READY，
+MOD-astrocs-phase1-cosmetic）。
 
 ## 性能特征
 

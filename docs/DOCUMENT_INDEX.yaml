@@ -77,6 +77,9 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/algorithms/CALIBRATION_ALGORITHMS.md"
       status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/COSMETIC_ALGORITHMS.md"
+      status: ACTIVE_NORMATIVE
+      notes: "ALG-COS-001..005（P1-COS-DOC 冻结：坏点检测/修复逐公式源码锚定 + TEST-COS-DESIGN-001 + DISP-COS-001..011）"
     - path: "docs/algorithms/DRIZZLE_GEOMETRY.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/algorithms/GAIA_QUERY.md"
