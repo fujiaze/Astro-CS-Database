@@ -372,10 +372,13 @@ std::string Orchestrator::stage_name_v2(PipelineStageV2 stage) {
 // ============================================================================
 
 // request_cancel - 设置取消 token, 通知各 stage 停止
-// 线程安全: atomic store, 可由信号处理器或其他线程调用
+// Bug 狩猎 R5 P1-2: 本函数是 SIGINT 信号处理器的调用路径, 必须 async-signal-safe:
+// 只做原子 store, 禁止 logging/锁/复杂逻辑 (旧实现在此调用 LOG_WARN, 而 Logger
+// 持非递归 std::mutex —— 信号中断主线程持锁写日志时, handler 内再次加锁 =
+// 非递归 mutex 重入死锁/UB)。收到取消请求的日志由主循环消费取消标志时输出
+// (check_stage_continue / run_v2 stage 循环的 is_cancelled() 分支)。
 void Orchestrator::request_cancel() {
     cancel_token_.store(true, std::memory_order_release);
-    LOG_WARN("orchestrator", "P04-004: 收到取消请求, cancel_token=true");
 }
 
 // reset_cancel_timeout - 重置取消/超时标志 (新一轮运行前调用)
@@ -419,24 +422,57 @@ std::map<std::string, double> Orchestrator::parse_stage_timeouts(const std::stri
     return result;
 }
 
-// cleanup_partial_output - 删除部分生成的输出文件 (原子性保证)
-// 删除指定路径的文件, 确保失败/取消/超时后无残留部分输出
+// cleanup_partial_output - 删除部分生成的输出 (原子性保证, P04-004 / IO-003)
+// Bug 狩猎 R5 P1-1: 旧实现用 fs::remove() 只能删空文件/空目录, 对 HiPS 目录树
+// (properties + NorderK/DirD/*.fits + manifest) 必然失败 (EISDIR/目录非空),
+// 失败/取消/超时后部分输出残留, 违反 IO_003_ATOMIC_OUTPUT_PUBLISH.md §4/§6
+// "任何失败不产生成功对象、残留可清理恢复" 的原子输出承诺。
+// 修复: fs::remove_all 递归删除整棵树; 清理失败逐项记录错误, 不静默吞掉。
+// overwrite 语义不变: 本函数只在失败/取消/超时清理路径调用 (AtomicOutputGuard
+// 与 allow_partial_output==false 分支), 不触碰成功发布对象与 overwrite 分支。
 bool Orchestrator::cleanup_partial_output(const std::string& path) {
     if (path.empty()) {
         return true;  // 空路径视为无操作
     }
-    std::error_code ec;
-    if (!fs::exists(path, ec)) {
-        return true;  // 文件不存在, 视为成功
+    std::error_code exists_ec;
+    if (!fs::exists(path, exists_ec)) {
+        if (exists_ec) {
+            LOG_ERROR("orchestrator", "P04-004: 原子清理 - 存在性检查失败: " + path
+                      + " (ec=" + exists_ec.message() + ")");
+            return false;
+        }
+        return true;  // 不存在, 视为成功
     }
-    bool removed = fs::remove(path, ec);
-    if (removed && !ec) {
-        LOG_WARN("orchestrator", "P04-004: 原子清理 - 已删除部分输出: " + path);
-        return true;
-    } else {
-        LOG_ERROR("orchestrator", "P04-004: 原子清理失败 - 无法删除: " + path + " (ec=" + ec.message() + ")");
+    std::error_code kind_ec;
+    const bool is_dir = fs::is_directory(path, kind_ec);
+    if (kind_ec) {
+        LOG_ERROR("orchestrator", "P04-004: 原子清理 - 类型检查失败: " + path
+                  + " (ec=" + kind_ec.message() + ")");
         return false;
     }
+    std::error_code ec;
+    if (is_dir) {
+        // 目录树 (HiPS tile / 马赛克输出): 递归删除全部内容
+        const auto removed = fs::remove_all(path, ec);
+        if (ec) {
+            // remove_all 尽力删除可删项后返回失败: 不静默, 记录残留事实
+            LOG_ERROR("orchestrator", "P04-004: 原子清理失败 - 目录树删除出错: " + path
+                      + " (ec=" + ec.message() + ")");
+            return false;
+        }
+        LOG_WARN("orchestrator", "P04-004: 原子清理 - 已删除部分输出目录树: " + path
+                 + " (条目数=" + std::to_string(removed) + ")");
+        return true;
+    }
+    // 单文件输出 (旧契约形态, 保持兼容)
+    const bool removed = fs::remove(path, ec);
+    if (removed && !ec) {
+        LOG_WARN("orchestrator", "P04-004: 原子清理 - 已删除部分输出文件: " + path);
+        return true;
+    }
+    LOG_ERROR("orchestrator", "P04-004: 原子清理失败 - 无法删除: " + path
+              + " (ec=" + ec.message() + ")");
+    return false;
 }
 
 // check_stage_continue - 检查 stage 是否应继续执行 (取消/超时检查)

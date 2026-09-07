@@ -15,6 +15,8 @@ CXXFLAGS = -O2 -std=c++17 -Wall -fopenmp -DAIO_ENABLE_HEALPIX
 # Makefile 位于 lib/orchestrator/cpp/, ../../ 解析到 lib/
 # -I../../common/include: PrecisionContext / AstroScalarType 双精度 ABI 头文件
 # -Ithird_party/json-schema-validator: nlohmann-json-schema-validator v2.4.0 (vendor, 正式 Schema validator)
+# -I../../../third_party: 根 vendor nlohmann/json.hpp (Linux 下无 pacman 系统头;
+#   Windows MSYS2 同样命中 vendor 头, 双平台一致, 修复 R5 批次 B 回归)
 INCLUDES = -Iinclude \
            -I../../common \
            -I../../common/include \
@@ -26,7 +28,8 @@ INCLUDES = -Iinclude \
            -I../../healpix_db/healpix_drizzle \
                      -I../../gaia_xpsd_client/src \
            -I../../star_detector/include \
-           -Ithird_party/json-schema-validator
+           -Ithird_party/json-schema-validator \
+           -I../../../third_party
 # -Wl,--stack,33554432: 设置 EXE 主线程栈为 32MB
 # (P13-002: nanoflann divideTree 递归在偏斜 3D 数据上深度可达数百层,
 #  DLL 中的代码使用调用线程的栈, -Wl,--stack 对 DLL 无效, 必须设置 EXE 栈)
@@ -82,8 +85,9 @@ TEST_DLL_LOADER = $(TEST_DIR)/test_dll_loader.exe
 TEST_CHECKPOINT = $(TEST_DIR)/test_checkpoint.exe
 TEST_LOGGER = $(TEST_DIR)/test_logger.exe
 TEST_ORCHESTRATOR_CLI = $(TEST_DIR)/test_orchestrator_cli.exe
+TEST_P1_BATCHB = $(TEST_DIR)/test_p1_batchB_fixes.exe
 
-.PHONY: all clean test_dll_loader test_checkpoint test_logger test_orchestrator_cli run_test run_integration_test
+.PHONY: all clean test_dll_loader test_checkpoint test_logger test_orchestrator_cli test_p1_batchB run_test run_integration_test
 
 all: $(TARGET)
 
@@ -146,6 +150,33 @@ $(TEST_ORCHESTRATOR_CLI): $(TEST_DIR)/test_orchestrator_cli.cpp \
 	    $(SRC_DIR)/checkpoint.cpp $(SRC_DIR)/logger.cpp \
 	    $(SRC_DIR)/cli_command.cpp $(SRC_DIR)/json_config.cpp $(JSV_SRCS) \
 	    $(INCLUDES) $(LDFLAGS) -lm
+
+# ============================================================================
+# Bug 狩猎 R5 P1 批次 B 修复验证: cleanup 目录树 / SIGINT 纯 atomic / JSONL 转义
+# ============================================================================
+test_p1_batchB: $(TEST_P1_BATCHB)
+
+$(TEST_P1_BATCHB): $(TEST_DIR)/test_p1_batchB_fixes.cpp \
+                   $(SRC_DIR)/orchestrator.cpp \
+                   ../../common/healpix/healpix_core.cpp \
+                   ../../common/crypto/sha256.cpp \
+                   $(SRC_DIR)/dll_loader.cpp \
+                   $(SRC_DIR)/checkpoint.cpp \
+                   $(SRC_DIR)/logger.cpp \
+                   $(SRC_DIR)/cli_command.cpp \
+                   $(SRC_DIR)/json_config.cpp \
+                   $(JSV_SRCS) \
+                   $(INCDIR)/orchestrator.h \
+                   $(INCDIR)/cli_command.h \
+                   $(INCDIR)/logger.h
+	@$(MKDIR_TESTDIR)
+	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_p1_batchB_fixes.cpp \
+	    $(SRC_DIR)/orchestrator.cpp ../../common/healpix/healpix_core.cpp \
+	    ../../common/crypto/sha256.cpp \
+	    $(SRC_DIR)/dll_loader.cpp \
+	    $(SRC_DIR)/checkpoint.cpp $(SRC_DIR)/logger.cpp \
+	    $(SRC_DIR)/cli_command.cpp $(SRC_DIR)/json_config.cpp $(JSV_SRCS) \
+	    $(INCLUDES) -I../../../third_party $(LDFLAGS) -lm
 
 # ============================================================================
 # 运行测试 (需要在项目根目录执行, 以便加载各模块 DLL)

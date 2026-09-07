@@ -22,6 +22,14 @@ void p04004_unregister_signal_handler();
 
 class CliCommand {
 public:
+    // JSON 字符串转义 (Bug 狩猎 R5 P1-3 统一转义入口)
+    // 转义: " \\ \n \r \t 及 <0x20 控制字符 (\uXXXX); 其余字节原样保留
+    // (UTF-8 多字节序列不拆分, 输出仍为合法 JSON 字符串)。
+    // 所有进入 JSONL 事件行的字符串字段 (含调用方手工拼接的 result_json/
+    // error_json 内的字符串值) 必须经本函数转义 —— Windows 反斜杠路径、
+    // 引号与错误消息文本不转义会产出非法 JSON, 破坏事件流解析。
+    static std::string json_escape_string(const std::string& s);
+
     // 扩展 JSONL 事件输出 (含数字 exit_code + 持续时间 + 关键指标)
     // 输出字段: schema_version/type/job_id/timestamp/stage/duration_ms/status/
     // progress/message/result/error/exit_code/effective_config_hash
@@ -30,6 +38,8 @@ public:
     // duration_ms: -1 表示不输出; >=0 时输出 (stage_end/stage_completed)
     // status: "" 表示不输出; "ok"/"failed"/"degraded" 时输出
     // extra_json: 额外字段 JSON 片段 (如 ",\"rms_arcsec\":0.33,\"n_pairs\":45")
+    // 注意: result_json/error_json/extra_json 按"已序列化 JSON 对象文本"原样
+    // 输出 —— 调用方必须用 json_escape_string 转义其中的字符串字面值后再拼接
     static void output_jsonl_event_ex(const std::string& event_type,
                                       const std::string& job_id,
                                       const std::string& stage = "",

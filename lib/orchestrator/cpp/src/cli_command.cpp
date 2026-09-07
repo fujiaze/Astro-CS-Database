@@ -39,7 +39,11 @@
 // ============================================================================
 // 全局取消信号支持
 // 通过全局指针在 SIGINT/Ctrl+C 信号处理器中调用 orch->request_cancel
-// 注意: 信号处理器中只能调用 async-signal-safe 函数, atomic store 是安全的
+// async-signal-safe 论证 (Bug 狩猎 R5 P1-2): handler 全路径只做 atomic
+// load/store —— request_cancel() 已改为纯 cancel_token_ 原子 store (无锁、
+// 无 logging、无内存分配); 之前在 handler 路径内经 request_cancel 调用
+// LOG_WARN 会重入 Logger 非递归 mutex (中断主线程持锁写日志时死锁/UB),
+// 该日志已移至主循环消费取消标志的分支 (check_stage_continue 等)。
 // ============================================================================
 static std::atomic<Orchestrator*> g_active_orchestrator{nullptr};
 static std::atomic<bool> g_cancel_on_signal_enabled{false};
@@ -47,7 +51,7 @@ static std::atomic<bool> g_cancel_on_signal_enabled{false};
 // SIGINT 信号处理器 (Ctrl+C)
 // 设置 cancel_token_, 让正在执行的 stage 在下一个检查点停止
 static void p04004_sigint_handler(int sig) {
-    (void)sig;
+    (void)sig;  // async-signal-safe: 仅下方两个 atomic load + 一个 atomic store
     Orchestrator* orch = g_active_orchestrator.load(std::memory_order_acquire);
     if (orch != nullptr && g_cancel_on_signal_enabled.load(std::memory_order_acquire)) {
         orch->request_cancel();
@@ -88,8 +92,12 @@ std::string sha256(const std::string& input) {
 // 辅助函数 (供 output_jsonl_event_ex 使用)
 // ============================================================================
 
-// JSON 字符串转义
-static std::string json_escape(const std::string& s) {
+// JSON 字符串转义 (P1-3 权威实现, 经 CliCommand::json_escape_string 对外暴露)
+// 覆盖: " \\ \n \r \t 与全部 <0x20 控制字符 (\uXXXX);
+// 0x7F (DEL) 与 UTF-8 多字节序列按 RFC 8259 原样保留 (输出仍为合法 JSON)。
+// Windows 反斜杠路径 ('C:\\data\\a.fits')、引号与错误消息文本必须经此转义,
+// 否则手工字符串拼接产出非法 JSON。
+std::string CliCommand::json_escape_string(const std::string& s) {
     std::string r;
     r.reserve(s.size() + 8);
     for (char c : s) {
@@ -147,23 +155,23 @@ void CliCommand::output_jsonl_event_ex(const std::string& event_type,
                                        const std::string& extra_json) {
     std::cout << "{";
     std::cout << "\"schema_version\":1,";
-    std::cout << "\"type\":\"" << json_escape(event_type) << "\",";
-    std::cout << "\"job_id\":\"" << json_escape(job_id) << "\",";
+    std::cout << "\"type\":\"" << CliCommand::json_escape_string(event_type) << "\",";
+    std::cout << "\"job_id\":\"" << CliCommand::json_escape_string(job_id) << "\",";
     std::cout << "\"timestamp\":\"" << get_utc_timestamp() << "\"";
     if (!stage.empty()) {
-        std::cout << ",\"stage\":\"" << json_escape(stage) << "\"";
+        std::cout << ",\"stage\":\"" << CliCommand::json_escape_string(stage) << "\"";
     }
     if (duration_ms >= 0.0) {
         std::cout << ",\"duration_ms\":" << duration_ms;
     }
     if (!status.empty()) {
-        std::cout << ",\"status\":\"" << json_escape(status) << "\"";
+        std::cout << ",\"status\":\"" << CliCommand::json_escape_string(status) << "\"";
     }
     if (progress >= 0.0) {
         std::cout << ",\"progress\":" << progress;
     }
     if (!message.empty()) {
-        std::cout << ",\"message\":\"" << json_escape(message) << "\"";
+        std::cout << ",\"message\":\"" << CliCommand::json_escape_string(message) << "\"";
     }
     if (!result_json.empty()) {
         std::cout << ",\"result\":" << result_json;

@@ -316,10 +316,13 @@ int main(int argc, char* argv[]) {
         LOG_INFO("main", "job_id: " + job_id);
 
         // 4. 输出 accepted 事件
+        // P1-3: 手工拼接的 result_json 内字符串值必须经 json_escape_string
+        // 转义 (config_sha256 为 hex 常规安全, 但转义是拼接点统一纪律)
         CliCommand::output_jsonl_event_ex(
             "accepted", job_id, "", -1.0,
             "stage1 job accepted",
-            std::string("{\"config_sha256\":\"") + config.config_sha256 + "\"}",
+            std::string("{\"config_sha256\":\"")
+                + CliCommand::json_escape_string(config.config_sha256) + "\"}",
             "", -1, -1.0, "ok");
 
         // 5. 创建 Orchestrator 并注册 SIGINT 处理器
@@ -353,16 +356,23 @@ int main(int argc, char* argv[]) {
 
         // 9. 输出结果事件
         if (result.success) {
+            // P1-3: output_hips_path 是磁盘路径, Windows 反斜杠 (C:\data\hips)
+            // 不转义会产出非法 JSON (控制字符注入同理); completed_to_gate 同理
             CliCommand::output_jsonl_event_ex(
                 "completed", job_id, "", 1.0,
                 "stage1 completed successfully",
-                std::string("{\"output_hips\":\"") + result.output_hips_path
-                + "\",\"completed_to_gate\":\"" + result.completed_to_gate + "\"}",
+                std::string("{\"output_hips\":\"")
+                    + CliCommand::json_escape_string(result.output_hips_path)
+                + "\",\"completed_to_gate\":\""
+                    + CliCommand::json_escape_string(result.completed_to_gate) + "\"}",
                 "", result.exit_code, -1.0, "ok");
         } else {
+            // P1-3: error_msg 是任意文本 (可含路径/引号/换行), 必须转义
             std::string error_json = std::string("{\"code\":\"") +
-                AstroCsExitCode::error_code_string(result.exit_code) +
-                "\",\"message\":\"" + result.error_msg + "\"}";
+                CliCommand::json_escape_string(
+                    AstroCsExitCode::error_code_string(result.exit_code)) +
+                "\",\"message\":\"" +
+                CliCommand::json_escape_string(result.error_msg) + "\"}";
             CliCommand::output_jsonl_event_ex(
                 "failed", job_id, "", -1.0,
                 "stage1 failed",
