@@ -1620,3 +1620,7 @@
 {"sha": "09a7a95fc48d2147d724cb11d8a9655226a6686e", "subject": "fix(ci): V8.1 CI 双平台收敛——parser session-mode/Windows junit 落点/linux fixture+构建树步", "task_id": "UNTAGGED", "date": "2026-09-08T01:55:00+08:00"}
 {"sha": "9ae1f1d4d676c33f854f3b98843354666305c80f", "subject": "chore(state): P1-SESSION-DOC 台账 CLOSED 同步（fg_verified_commit, commit bb075b93）", "task_id": "UNTAGGED", "date": "2026-09-08T00:04:37+08:00"}
 {"sha": "cb9cf6dd55c597ef05daa92f14e55211781bcb51", "subject": "chore(state): V8.1-CI 台账行追加 (commit 09a7a95f)", "task_id": "UNTAGGED", "date": "2026-09-08T01:36:35+08:00"}
+{"sha": "9149948898e3e79b0b213c7231b3085005da133e", "subject": "fix(ci): COMMIT_LEDGER 补登 9ae1f1d4d676/cb9cf6dd55c5——RECONCILE-STATE commit_ledger missing=2 修复", "task_id": "UNTAGGED", "date": "2026-09-08T02:30:00+08:00"}
+{"sha": "d92062a769a8d85e4d330b80267a47c724fa31a6", "subject": "docs(P1-STAR-DOC): star_detector 模块合同冻结——ALG-STARDET-001/SCI-P1-STAR-001/DATA-P1-STAR/API-STAR-001/trace（控制包 10/140, wave W1）", "task_id": "UNTAGGED", "date": "2026-09-08T02:30:00+08:00"}
+{"sha": "fe4ca3837d3abe44c6d223447712d37a21ec3652", "subject": "Merge branch 'main' of https://github.com/fujiaze/Astro-CS-Database", "task_id": "UNTAGGED", "date": "2026-09-08T02:30:00+08:00"}
+{"sha": "58cbabf31781d0678cfd01963e3b4288b3858f29", "subject": "Merge remote-tracking branch 'origin/main'", "task_id": "UNTAGGED", "date": "2026-09-08T02:30:00+08:00"}
