@@ -48,14 +48,34 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
     out->crpix_y = (height_px + 1) / 2.0;
     out->width_px = width_px;
     out->height_px = height_px;
-    // CD = R(−PA)·diag(±s, s): east_left → CD1_1=−s(x 增 → RA 减), east_right 反号
+    // G1 (ALG-P3-002, docs/algorithms/PHASE3_RESAMPLE.md §2) 冻结输出 WCS 构造
+    // (FITS 1-based, CD-only, 对角, PA=0 精确形式):
+    //   east_left:  CD = diag(−s, +s)   (x 增 → RA 减, 北朝上)
+    //   east_right: CD = diag(+s, −s)   (x 增 → RA 增, y 增 → Dec 减)
+    // PA≠0 推广 = G1 对角形式与图像平面旋转的一致复合:
+    //   CD = R(−PA)·diag(sgn_x·s, sgn_y·s),
+    //   R(−PA) = [[cos PA, sin PA], [−sin PA, cos PA]]
+    //   (sgn_x, sgn_y): east_left=(−1,+1), east_right=(+1,−1)。
+    // 推导: TAN 切平面中间坐标 (ξ,η) 沿 (东,北) 为右手系 (det>0); 输出图像
+    // 两种 parity 均要求 det(CD) = sgn_x·sgn_y·s² = −s² <0 (平面映像镜像一次,
+    // 保持天球手性, 与 SCI-P3-001 §9a-4 收紧 CD1_1 符号后的 G1 一致)。
+    // 展开式:
+    //   CD1_1 = sgn_x·s·cosPA;  CD1_2 = sgn_y·s·sinPA
+    //   CD2_1 = −sgn_x·s·sinPA; CD2_2 = sgn_y·s·cosPA
+    // P0 修复 (bughunt_p0_wcs): 旧实现 east_right 分支误用 sgn_y=+1,
+    // 使 PA=0 时 CD=diag(+s,+s), 违反 G1 冻结的 diag(+s,−s) (y 镜像错误)。
+    // PA=0 时 cos=1/sin=0 精确退化到 G1 对角形式; PA 语义不变 (天北相对
+    // +y 的位置角, 逆时针为正), east_left 分支与旧实现逐元素 bitwise 一致。
     const double pa = rotation_pa_deg * kRad;
-    const double sgn = (par == "east_left") ? -1.0 : 1.0;
+    const double sgn_x = (par == "east_left") ? -1.0 : 1.0;
+    const double sgn_y = -sgn_x;
     const double s = scale_deg_per_px;
-    out->cd[0][0] = sgn * s * std::cos(pa);
-    out->cd[0][1] = s * std::sin(pa);
-    out->cd[1][0] = -sgn * s * std::sin(pa);
-    out->cd[1][1] = s * std::cos(pa);
+    const double cp = std::cos(pa);
+    const double sp = std::sin(pa);
+    out->cd[0][0] = sgn_x * s * cp;
+    out->cd[0][1] = sgn_y * s * sp;
+    out->cd[1][0] = -sgn_x * s * sp;
+    out->cd[1][1] = sgn_y * s * cp;
 
     // 输出四角同半球守卫(四角 world 变换全部成功)
     const double corners[4][2] = {{0, 0}, {double(width_px - 1), 0},
