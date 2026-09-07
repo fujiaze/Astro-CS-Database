@@ -1638,3 +1638,4 @@
 {"sha": "48e2f75f52ea09860a35db8d86b6dabb6043d56c", "subject": "chore(state): 台账补登 e17788e6/fdd76dac", "task_id": "UNTAGGED", "date": "2026-09-08T06:00:00+08:00"}
 {"sha": "21b325a6f79190fb2059ea48e7b87eeac0efbc07", "subject": "fix(core): P0 budget 注入链打通——host budget 权威优先消除 workers_=2 截断，多核宿主并行度 2→N（bug 狩猎 R3，MON-002 实测 p50=114%，确定性 1-N 核查通过）", "task_id": "UNTAGGED", "date": "2026-09-08T06:30:00+08:00"}
 {"sha": "4d919013c2a69fadb752615898c370bf5b59bf97", "subject": "chore(state): 台账补登 48e2f75f——reconcile commit_ledger missing 修复", "task_id": "UNTAGGED", "date": "2026-09-08T07:00:00+08:00"}
+{"sha": "ed787ed67f333198689324edc94c51d662985cd6", "subject": "chore(state): 台账补登 21b325a6——reconcile commit_ledger missing 修复", "task_id": "UNTAGGED", "date": "2026-09-08T07:30:00+08:00"}
