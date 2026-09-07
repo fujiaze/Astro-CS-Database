@@ -71,7 +71,23 @@ bool parse_backends_manifest(const std::string& json_text,
         e.backend_id = b.value("backend_id", "");
         e.sha256 = b.value("sha256", "");
         e.abi_version = b.value("abi_version", 0u);
-        e.required_features = b.value("required_features_bits", 0ull);
+        // P0(bug 狩猎 R5): required_features_bits 字段缺失/类型非法 → 硬失败
+        // 拒载整个 manifest。此前 b.value("required_features_bits", 0ull) 对
+        // 缺失/拼错字段静默默认 0 → 预检 ISA 门 (required ⊆ detected) 恒真,
+        // AVX/AVX512 DSO 可在无对应 ISA 机器通过加载、kernel 首调 SIGILL。
+        // 硬失败依据: ① 生成器 tools/gen_provider_manifests.py 对每个条目
+        // (含 baseline, bits=0) 一律显式写出该字段 —— "缺失"不在合法生成面内;
+        // ② 本模块合同 (backend_loader.h): "结构非法→err 非空, 不猜"。
+        // 类型取严格白名单: 仅无符号整数 (负数/浮点/字符串/布尔均拒)。
+        if (!b.contains("required_features_bits") ||
+            !b["required_features_bits"].is_number_unsigned()) {
+            if (err) *err = "manifest entry missing/invalid required_features_bits "
+                            "(unsigned integer required): " + e.file;
+            std::fprintf(stderr, "[backend_loader] parse_backends_manifest: %s\n",
+                         err ? err->c_str() : "required_features_bits invalid");
+            return false;
+        }
+        e.required_features = b["required_features_bits"].get<uint64_t>();
         if (e.file.empty() || e.backend_id.empty() || e.sha256.size() != 64 ||
             e.abi_version != ACS_ABI_VERSION_V1) {
             if (err) *err = "manifest entry incomplete: " + e.file;

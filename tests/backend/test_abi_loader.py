@@ -110,6 +110,48 @@ class TestBackendLoader(unittest.TestCase):
         run = self._load(self.manifest)
         self.assertIn("FALLBACK malformed", run.stdout)
 
+    def test_06a_missing_required_features_bits_rejected(self):
+        """P0(bug 狩猎 R5): required_features_bits 字段缺失 → 硬失败拒载。
+
+        此前 b.value("required_features_bits", 0ull) 缺失静默默认 0 →
+        ISA 预检门恒真 → AVX/AVX512 DSO 可在无 ISA 机器加载、首调 SIGILL。
+        生成器对每个条目(含 baseline bits=0)显式写该字段, 缺失即结构非法
+        (backend_loader.h: "结构非法→err 非空, 不猜")。"""
+        self._write_manifest({"file": "fixture.so", "backend_id": "fixture",
+                              "sha256": self.good_sha, "abi_version": 1})
+        run = self._load(self.manifest)
+        self.assertEqual(run.returncode, 0, "拒载不是崩溃")
+        self.assertIn("FALLBACK malformed", run.stdout)
+        self.assertIn("required_features_bits", run.stdout)
+        self.assertNotIn("LOADED", run.stdout)
+
+    def test_06b_wrong_type_required_features_bits_rejected(self):
+        """P0(bug 狩猎 R5): required_features_bits 类型非法(字符串) → 硬失败。
+
+        严格类型白名单: 仅无符号整数; 负数/浮点/字符串/布尔均拒, 杜绝
+        隐式数值转换把恶意值洗成 0 或近似值。"""
+        for evil in ("\"0\"", "-1", "0.5", "true", "null"):
+            doc = {"schema_version": "1", "kind": "astrocs_backends_manifest",
+                   "backends": [{"file": "fixture.so", "backend_id": "fixture",
+                                 "sha256": self.good_sha, "abi_version": 1,
+                                 "required_features_bits": json.loads(evil)}]}
+            with open(self.manifest, "w", encoding="utf-8") as f:
+                json.dump(doc, f)
+            run = self._load(self.manifest)
+            self.assertIn("FALLBACK malformed", run.stdout,
+                          f"required_features_bits={evil} 必须拒载")
+            self.assertNotIn("LOADED", run.stdout)
+
+    def test_06c_explicit_zero_bits_still_loads(self):
+        """P0(bug 狩猎 R5): baseline 显式 required_features_bits=0 仍正常加载
+        (防矫枉过正: 硬失败只针对字段缺失/类型非法, 不针对合法显式 0)。"""
+        self._write_manifest({"file": "fixture.so", "backend_id": "fixture",
+                              "sha256": self.good_sha, "abi_version": 1,
+                              "required_features_bits": 0})
+        run = self._load(self.manifest)
+        self.assertIn("LOADED backend_id=fixture", run.stdout)
+        self.assertIn("SELFTEST_OK", run.stdout)
+
     def test_07_path_injection_rejected(self):
         for evil in ("/tmp/evil.so", "../evil.so", "sub/dir.so", "..\\evil.so",
                      "C:/evil.so", ".hidden.so", ".."):
