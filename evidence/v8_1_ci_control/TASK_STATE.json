@@ -45,9 +45,9 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 57,
+  "CLOSED": 58,
   "READY": 13,
-  "NOT_STARTED": 119,
+  "NOT_STARTED": 118,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
@@ -1588,15 +1588,15 @@
   },
   "P1-PHOT-DOC": {
    "owner": "SA-P1-N17",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "87bb7b7f",
+   "evidence_path": "lib/photometric_calib/; docs/algorithms/PHOTOMETRIC_FIT.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json",
+   "source_of_status": "fg_verified_commit",
    "wave": "W1",
    "kind": "module-doc",
    "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "current_evidence": "commit:87bb7b7f traceability 27行0错 + pytest 4P + contract_graph 44 + doc_index PASS + selfcheck 51项 ALL_PASS",
+   "note": "module-doc 冻结; 缺陷清单 DISP-PHOT-001..009 归 P1-PHOT-IMPL/INT; SCI-PHOT-001 未动; descriptor 占位 ID 对齐归 P1-PHOT-INT; v19r3_traceability.py 写副作用已恢复并提示"
   },
   "P1-PHOT-TEST": {
    "owner": "SA-P1-N17",
