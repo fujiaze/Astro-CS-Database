@@ -63,6 +63,15 @@ V_KNOWN = "KNOWN_FAIL"
 V_SKIP_WAIVABLE = "SKIPPED(waivable)"
 V_SKIP_PLATFORM = "SKIPPED(waivable)"  # platform 不匹配且 waivable=true 时复用该标记
 
+# SKIP 退出码（ctest 惯例同码）：检查命令以 exit 77 结束时按 SKIPPED 计, 非 FAIL。
+# 治理先例 = tests/unit/cpu001_selftest_avx512（16867c25）：宿主缺 ACS_FEAT_AVX512F
+# 时 provider 按激活合同处于未激活分支, 测试 SKIP 而非把宿主环境事实记成 FAIL；
+# runner 侧 tests/cpu/avx512/run_provider_avx512_checks.py 复审 N1 采用同一语义
+# （同 API astrocs_cpu_detect_features_v1 前置 gate, exit 77）。
+# verdict 复用 V_SKIP_WAIVABLE：run.py 现有唯一 SKIP 标记, summary 的
+# skipped_waivable 计数与 "PASS + N skipped" 判定直接复用, 无需新增值域。
+SKIP_EXIT_CODE = 77
+
 HARD_FAILURE_VERDICTS = (V_FAIL, V_TIMEOUT, V_SIGNAL, V_MISSING_OUTPUT, V_DIRTY, V_PREREQ)
 
 
@@ -736,6 +745,15 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
     elif result["dirty"]["violations"]:
         result["verdict"] = V_DIRTY
         result["reason"] = result["reason"] or "mutates_workspace=false 的检查修改了工作区"
+    elif returncode == SKIP_EXIT_CODE and not timed_out:
+        # SKIP 退出码（SKIP_EXIT_CODE 注释：ctest SKIP_RETURN_CODE 77 同语义,
+        # cpu001_selftest_avx512 / run_provider_avx512_checks.py 先例）——
+        # 合同化 skip, 不记 FAIL。
+        result["verdict"] = V_SKIP_WAIVABLE
+        result["reason"] = result["reason"] or (
+            f"命令以 SKIP 退出码 {SKIP_EXIT_CODE} 结束"
+            "（ctest SKIP_RETURN_CODE 同语义, 如宿主能力 gate）"
+        )
     elif returncode != 0:
         result["verdict"] = V_FAIL
         result["reason"] = result["reason"] or f"命令非零退出：{returncode}"
@@ -844,10 +862,25 @@ def build_ci_result(*, repo: Path, profile: str, selected_meta: dict, check_resu
     known_fail = [r for r in executed if r["verdict"] == V_KNOWN]
     passed = [r for r in executed if r["verdict"] == V_PASS]
     skipped = [r for r in check_results if r["verdict"] == V_SKIP_WAIVABLE]
+    # 合同化 SKIP（exit 77）= 命令真实执行并产出 SKIP 证据, 与选择阶段排除
+    # （platform/prerequisite, exit_code=None）不同: 后者保持冻结语义
+    # （全部排除 → FAIL no_checks_selected, test_windows_ci.py 冻结）。
+    skipped_executed = [
+        r for r in skipped if r["exit_code"] == SKIP_EXIT_CODE
+    ]
 
     if profile == "fatduck" and not executed:
         verdict = "FATDUCK_PENDING"
         verdict_reason = "fatduck profile 无本机可执行检查，等待 Fatduck harness 结果"
+    elif not executed and skipped_executed:
+        # 至少一项检查真实运行并以 SKIP 退出码结束（SKIP_EXIT_CODE, 如宿主缺
+        # AVX-512F 的合同化 skip）→ 整体 PASS 而非 no_checks_selected FAIL：
+        # 跳过是证据, 不是空选。
+        verdict = "PASS"
+        verdict_reason = (
+            f"选中检查全部合同化 SKIP（{len(skipped_executed)} 项 exit "
+            f"{SKIP_EXIT_CODE}, ctest SKIP_RETURN_CODE 语义）"
+        )
     elif not executed and not known_summary.get("expired"):
         verdict = "FAIL"
         verdict_reason = "未选中任何可执行检查（no_checks_selected），不允许空集 PASS"
