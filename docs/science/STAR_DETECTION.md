@@ -54,3 +54,19 @@ F1 合成场统计（质心/FWHM/召回/虚警）、F2 饱和/混合/边缘专�
 （线程数 bitwise 一致+全序断言）、F4 FP64 独立 oracle 与 FP32 量化容差、
 F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-001 由 P1-STAR-TEST 按本设计
 落地，容差冻结不得放宽。
+
+## 5 物理量和单位（units）
+
+- 像素坐标: 质心 c=(cx,cy) 单位 px（像素，0-based 索引+0.5 中心约定，
+  见 §2 SCI-ASTROMETRY-001）；容差 |Δc|≤0.3 px 同量纲比较。
+- FWHM/孔径尺寸: 单位 px；σ 派生量 σ=FWHM/(2√(2ln2)) 同为 px。
+- 亮度/流量: 原始读出量单位 ADU（模拟数字单元）；粗测光
+  mag=−2.5·log10(Σ_box(pixel−B_fit)) 中 pixel 与 B_fit 均为 ADU，
+  mag 无量纲（星等）；dynrange=饱和平台量纲同 ADU。
+- 角度量: PA/位置角单位 deg；虚警密度单位 1/千像素（0.1/千像素，§1）；
+  SNR 无量纲（5σ 阈值中 σ 为背景噪声 ADU RMS）。
+- 时间量: 无本域时间物理量（检测为单帧快照流程，无曝光时间归一化项）。
+
+单位约定与 docs/science/PHOTOMETRY.md（ADU/mag）、ASTROMETRY.md（px/deg）
+一致；本节为 checker（check_science_units.py）声明本页物理量与单位完备性，
+不改任何既有语义。
