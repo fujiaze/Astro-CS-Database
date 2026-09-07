@@ -1630,3 +1630,4 @@
 {"sha": "a5a01cf225b66a8445c3dc19518f8789643f442b", "subject": "fix(ci): Windows candidate 链打通——dumpbin PATH 注入+validate 守卫；RT-009 write_run_graphs 接线+benchmark cli_sha .exe 探测", "task_id": "UNTAGGED", "date": "2026-09-08T02:30:45+08:00"}
 {"sha": "ddfb6dbe98ea9ccd713952ab41da7934bd9a29d9", "subject": "fix(tests): P0 backend 4 测试 CLI-002 入口迁移——run --phases/graph 死入口→phase1/2/3 run 存活面+fixture 自建（bug 狩猎 R1 P0，198 collected 0 error）", "task_id": "UNTAGGED", "date": "2026-09-08T02:27:43+08:00"}
 {"sha": "aa78585970503e18e9b0cd0d4e22f88e0d1e89c1", "subject": "fix(ci): Windows evidence 补传 win-package-summary/monitor json（outputs 契约路径）——package exit 5 离线定位", "task_id": "UNTAGGED", "date": "2026-09-08T02:50:18+08:00"}
+{"sha": "a769d20290685d55528be10b0e45ad55f0643657", "subject": "fix(ci): package 失败时 verification_details 逐项落 summary+candidate 树上传——exported_abi/dll_load 离线定位", "task_id": "UNTAGGED", "date": "2026-09-08T03:07:43+08:00"}
