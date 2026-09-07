@@ -28,6 +28,7 @@
 #include <string>
 #include <new>
 #include <memory>
+#include <mutex>    // B4-P1-4: 全局句柄读写互斥
 
 // ---------------------------------------------------------------------------
 // 内部辅助: 全局句柄存储
@@ -40,8 +41,18 @@
 namespace {
 
 // 全局句柄存储 (内部链接)
+// B4-P1-4: 进程级单例, 原实现无同步 —— 多 solver 实例并发 create/destroy
+// 时对句柄的读写构成数据竞争 (撕裂读/丢失写), OMP 并行 select 阶段同时
+// get_*_handle() 也与 set 形成交错。修复: 文件内 static + std::mutex 保护
+// 全部读写; 访问器签名不变 (ipv_select.h 契约), 跨 C ABI 入口点行为不变
+// (B4 任务规格: C ABI 入口点签名冻结, 文件内 static state + lock)。
 void* g_gaia_handle    = nullptr;
 void* g_detector_handle = nullptr;
+
+std::mutex& g_handle_mutex() {
+    static std::mutex m;   // 函数局部 static: 跨翻译单元首次调用线程安全初始化
+    return m;
+}
 
 } // namespace
 
@@ -49,14 +60,32 @@ void* g_detector_handle = nullptr;
 namespace ipv {
 
 void* get_gaia_client_handle() {
+    std::lock_guard<std::mutex> lk(g_handle_mutex());
     return g_gaia_handle;
 }
 
 void* get_star_detector_handle() {
+    std::lock_guard<std::mutex> lk(g_handle_mutex());
     return g_detector_handle;
 }
 
 } // namespace ipv
+
+// B4-P1-4: 句柄写入的集中入口 (文件内部使用, 不进头文件 —— 保持公共
+// ABI 面不变)。所有原先直接写 g_*_handle 的位置改为经此写入。
+namespace {
+
+void set_gaia_handle_internal(void* h) {
+    std::lock_guard<std::mutex> lk(g_handle_mutex());
+    g_gaia_handle = h;
+}
+
+void set_detector_handle_internal(void* h) {
+    std::lock_guard<std::mutex> lk(g_handle_mutex());
+    g_detector_handle = h;
+}
+
+} // namespace
 
 // ---------------------------------------------------------------------------
 // 内部辅助: POD 参数 <-> IPVSolverParams 转换
@@ -263,7 +292,7 @@ IPV_API void ipv_set_gaia_handle(void* solver, intptr_t handle) {
         ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
         s->set_gaia_handle(handle);
         // 同步设置全局访问器 (供 ipv_select 使用)
-        g_gaia_handle = reinterpret_cast<void*>(handle);
+        set_gaia_handle_internal(reinterpret_cast<void*>(handle));   // B4-P1-4: 加锁写入
     } catch (...) {
         // 吞掉异常, 防止泄漏到 C 边界
     }
@@ -276,7 +305,7 @@ IPV_API void ipv_set_detector_handle(void* solver, intptr_t handle) {
         ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
         s->set_detector_handle(handle);
         // 同步设置全局访问器 (供 ipv_select 使用)
-        g_detector_handle = reinterpret_cast<void*>(handle);
+        set_detector_handle_internal(reinterpret_cast<void*>(handle));  // B4-P1-4: 加锁写入
     } catch (...) {
         // 吞掉异常, 防止泄漏到 C 边界
     }

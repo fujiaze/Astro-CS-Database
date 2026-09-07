@@ -395,6 +395,11 @@ void IPVSolver::solve(
     // 失败结果 (聚合体零初始化)
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
+    // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
+    // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
+    // 成功求解的陈旧诊断 (污染 WCS Gate v2 的 get_last_inlier_* 输出)。
+    last_inliers_ = SolveInlierCache{};
 
     // 1. 初始化日志
     if (params.log_dir != nullptr && params.log_dir[0] != '\0') {
@@ -779,6 +784,11 @@ void IPVSolver::solve_from_memory(
     // 失败结果 (聚合体零初始化)
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
+    // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
+    // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
+    // 成功求解的陈旧诊断 (污染 WCS Gate v2 的 get_last_inlier_* 输出)。
+    last_inliers_ = SolveInlierCache{};
 
     // 1. 初始化日志
     if (params.log_dir != nullptr && params.log_dir[0] != '\0') {
@@ -1136,6 +1146,11 @@ void IPVSolver::solve_post_select(
 ) {
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
+    // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
+    // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
+    // 成功求解的陈旧诊断 (污染 WCS Gate v2 的 get_last_inlier_* 输出)。
+    last_inliers_ = SolveInlierCache{};
 
     // 1. triangle_match (n_target=60, 与 solve_from_memory 一致)
     auto t_sel_start = std::chrono::steady_clock::now();
@@ -1400,6 +1415,11 @@ void IPVSolver::solve_from_detections_v1(
     // 失败结果
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
+    // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
+    // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
+    // 成功求解的陈旧诊断 (污染 WCS Gate v2 的 get_last_inlier_* 输出)。
+    last_inliers_ = SolveInlierCache{};
 
     // 1. 初始化日志
     if (params.log_dir != nullptr && params.log_dir[0] != '\0') {
@@ -1464,6 +1484,11 @@ void IPVSolver::solve_from_memory_with_callback(
     // 失败结果
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
+    // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
+    // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
+    // 成功求解的陈旧诊断 (污染 WCS Gate v2 的 get_last_inlier_* 输出)。
+    last_inliers_ = SolveInlierCache{};
 
     // 1. 初始化日志
     if (params.log_dir != nullptr && params.log_dir[0] != '\0') {
@@ -1525,6 +1550,11 @@ void IPVSolver::solve_from_memory_with_callback_f64(
     // 失败结果
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
+    // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
+    // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
+    // 成功求解的陈旧诊断 (污染 WCS Gate v2 的 get_last_inlier_* 输出)。
+    last_inliers_ = SolveInlierCache{};
 
     // 1. 初始化日志
     if (params.log_dir != nullptr && params.log_dir[0] != '\0') {
