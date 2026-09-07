@@ -777,6 +777,11 @@ def _run_stages(stages: list[str], plan: list[dict], *, output: Path | None,
                 if failed:
                     stage_res["exit_code"] = 5
                     stage_res["failed_verification"] = failed
+                    # 失败时逐项带 detail（dumpbin 退出码/符号数/exe 输出尾），
+                    # 否则 summary 只见 item 名无法离线定位根因。
+                    stage_res["verification_details"] = [
+                        c for c in verification.get("checks", [])
+                        if c.get("executed") and c.get("verdict") is False]
                 summary["candidate"] = {
                     "dir": pkg["candidate_dir"],
                     "file_count": pkg["artifact_file_count"],
