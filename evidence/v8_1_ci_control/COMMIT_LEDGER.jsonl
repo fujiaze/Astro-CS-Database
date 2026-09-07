@@ -1603,3 +1603,4 @@
 {"sha": "b1b07b3633e89fa6abcad2ec6301f8dc3be7cae7", "subject": "chore(state): P1-CAL-DOC 台账 CLOSED 同步（fg_verified_commit, commit 925fb26e）", "task_id": "UNTAGGED", "date": "2026-09-07T15:20:00+08:00"}
 {"sha": "e4bcef83be18a319761851403d56fec69fadc033", "subject": "chore(state): COMMIT_LEDGER 行1602 字段schema修正（tag→task_id+date，恢复 reconcile PASS）", "task_id": "UNTAGGED", "date": "2026-09-07T16:05:00+08:00"}
 {"sha": "4b87aef6f14f8259ba60bfcf87a4b89e73cf6961", "subject": "docs(P1-COS-DOC): cosmetic 模块合同冻结——ALG-COS-001..005/DATA-P1-COS/API-COS-001/trace（控制包 3/140, wave W1）", "task_id": "UNTAGGED", "date": "2026-09-07T16:10:00+08:00"}
+{"sha": "a59b17e7e47179cfb9bc196227a68369484819c8", "subject": "chore(state): P1-COS-DOC 台账 CLOSED 同步（fg_verified_commit, commit 4b87aef6）", "task_id": "UNTAGGED", "date": "2026-09-07T16:40:00+08:00"}
