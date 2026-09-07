@@ -1,0 +1,122 @@
+# AstroCS phase1_session module — 元数据 (P1-SESSION-DOC 冻结, 2026-09-07)
+# 状态: CONTRACT_READY —— assembly 层：p1_session 函数族是 Phase1 进程内
+# 装配会话的唯一实现（lib/phase1_session/p1_session.cpp:90-371，五导出 C API
+# + astrocs::phase1::last_error，唯一权威签名头 lib/phase1_session/p1_session.h）。
+# 只描述装配：四段 io_read→calibrate→cosmetic→io_write（p1_session.cpp:168/
+# 195/283/319），科学实现全部委托既有冻结 C API（ac_calibrate_frame :243 /
+# ac_correct_frame :294，见 lib/calibration；算法权威 docs/algorithms/
+# CALIBRATION_ALGORITHMS.md 与 COSMETIC_ALGORITHMS.md），本层无算法公式。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 逐符号
+# grep 实测于 p1_session.cpp（P1-SESSION-DOC, 2026-09-07），禁止手抄他版。
+# registry 关系（lib/core/src/module_adapters.cpp 实测）：无独立
+# astrocs.phase1.session descriptor；p1_session 五函数经 P1Api（:693-700）
+# 被 8 个 Phase1 descriptor 工厂委托——astrocs.phase1.calibration（:254，
+# :728-735 注册）+ p1_more[] 7 子模块（:755-770）。descriptor 占位词汇
+# （ALG-002/ALG-004/ALG-005、TEST-P1-*-001）不作冻结依据（P1-PSF-DOC 先例）。
+# 构建=根 CMakeLists.txt:448-452（STATIC 库 astrocs_phase1_session，链接
+# astrocs_contracts/astrocs_calibration/astrocs_aio）+ :496/:514/:530 编入
+# astrocs 主可执行。MODULE_MIGRATION_MATRIX 无 P1-SESSION 行：assembly 层
+# 不设独立 DLL 迁移目标 → dll_name=MISSING（11 号标准：未知/不适用显式
+# MISSING，禁止空串）。
+# entrypoint=p1_session_run：真实导出符号（p1_session.cpp:149 定义，
+# p1_session.h:23 声明；验收口径=登记符号可见，符号存在性由 selfcheck 与
+# tools/check_p1_symbol_map.py 复核）。
+# threading_model=host_executor_lease：B 线 registry 通道经 SessionModule
+# ThreadLease 租借（module_adapters.cpp:156-162）+ ac_set_num_threads(
+# budget.max_workers) 注入（p1_session.cpp:162-165，迁移整改点，禁硬编码
+# 核数）；p1_session 自身 threadsafe:no（handle 级，p1_session.h:15）。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase1-session
+module_id: astrocs.phase1.session
+owner: SA-P1-R19
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase1
+dll_name: MISSING
+module_status: CONTRACT_READY
+entrypoint: p1_session_run
+node_operations: [io_read, calibrate, cosmetic, io_write]
+input_ports:
+  - frames
+output_ports:
+  - calibrated
+science_contracts: []
+algorithm_contracts:
+  - ALG-CAL-001
+  - ALG-COS-001
+data_contracts:
+  - DATA-P1-SESSION
+  - DATA-P1-CAL
+  - DATA-P1-COSMETIC
+api_contracts:
+  - API-P1-001
+  - API-P1-SESSION
+doc_links:
+  sci: docs/science/CALIBRATION.md
+  alg: docs/algorithms/CALIBRATION_ALGORITHMS.md
+  data: docs/contracts/DATA_SEMANTICS.md#§16
+  api: docs/contracts/PUBLIC_API.md#API-P1-SESSION
+contract_ids:
+  sci: MISSING
+  alg: MISSING
+  data: DATA-P1-SESSION
+  api: API-P1-SESSION
+  mod: MOD-astrocs-phase1-session
+  src: SRC-P1-SESSION-001
+  test: TEST-P1-SESSION-001
+exports:
+  - p1_session_create
+  - p1_session_validate
+  - p1_session_run
+  - p1_session_inspect
+  - p1_session_destroy
+source_symbols:
+  - p1_session_create
+  - p1_session_validate
+  - p1_session_run
+  - p1_session_inspect
+  - p1_session_destroy
+  - last_error
+test_ids:
+  - TEST-P1-SESSION-001
+threading_model: host_executor_lease
+resource_class: cpu_heavy
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+upstream:
+  - DATA-SEMANTICS-001
+  - ARCH-001
+  - API-P1-001
+  - API-CAL-001
+  - API-COS-001
+downstream:
+  - DATA-P1-SESSION
+  - API-P1-SESSION
+  - TEST-P1-SESSION-001
+legacy_paths: [lib/phase1_session]
+scientific_change: false
+notes: >-
+  装配层合同（P1-SESSION-DOC 冻结，2026-09-07，SA-P1-R19）：SCI/ALG 置空
+  （science_contracts=[]；contract_ids.sci/alg=MISSING）——assembly 不定义
+  科学与算法，科学权威=SCI-CAL-001（docs/science/CALIBRATION.md）+
+  ALG-CAL-001..006 / ALG-COS-001..005（algorithm_contracts 仅引用既有
+  冻结 ALG，不新设装配算法；INDEX.yaml 无 ALG-P1-SESSION 条目，决策见
+  控制报告）。四段编排与 manifest/artifact schema 权威=DATA_SEMANTICS §16
+  （DATA-P1-SESSION）；入口符号/时序/并发合同权威=PUBLIC_API.md
+  API-P1-SESSION；编排级上游合同=API-P1-001（docs/api/PHASE1_API_V1.md，
+  FROZEN）。
+  如实差距（登记不改码）：API-P1-001 §1 冻结序列为校准→检测/PSF→plate
+  solve→测光→SNR→Drizzle→HiPS 7-stage，现行 run 仅落 CAL+COS 4 段；
+  star-psf/wcs/photometry/noise-snr/drizzle/writer 六 descriptor 的工厂
+  委托 P1Api 仅提供 registry 注册与兼容 adapter 通道，p1_session 内无对应
+  执行段（lib/core/src/module_adapters.cpp:755-770 p1_more[] 注册循环）；
+  A 线 CLI 生产 7-stage 全链=production_call_paths_stage1.csv（DLL 显式
+  加载，与本静态库并存，无第二调度顺序）。补齐归后续 P1-SESSION-IMPL/INT。
+  已知限制：cosmetic master 实参 nullptr→检测禁用恒等 pass（:295-296，
+  DISP-COS-009，整改归 P1-COS-INT）；dark_scale_factor 键 validate 不验、
+  run value() 兜底 1.0（:225）；async_io_depth∈{0,1,2} 强校验（:152）但
+  预读 worker 未按 depth 启用（PHASE1_API_V1 §1 预留语义）；校准输出仅
+  FITS（aio_write_fits :262），XISF 仅读侧探测（aio_read :71-74）。
+  禁止声明 IMPLEMENTED 于未验证证据处；本 manifest 由 P1-SESSION-DOC
+  自包含自检（run/local/agent_p1_session_doc/selfcheck.py）复核。

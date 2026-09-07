@@ -339,6 +339,14 @@ contracts:
     path: docs/contracts/DATA_ARTIFACTS.md
     upstream: [DATA-SEMANTICS-001]
     downstream: []
+  - id: DATA-P1-SESSION
+    type: DATA
+    status: ACTIVE
+    owner: SA-P1-R19
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [DATA-SEMANTICS-001, ARCH-001]
+    downstream: []
 
   # ── ARCH 架构 ──
   - id: ARCH-001
@@ -366,6 +374,14 @@ contracts:
     version: 1.0.0
     path: docs/contracts/API-001.md
     upstream: [ARCH-001]
+    downstream: []
+  - id: API-P1-SESSION
+    type: API
+    status: ACTIVE
+    owner: SA-P1-R19
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ARCH-001, API-001]
     downstream: []
 
   # ── TEST 测试矩阵 ──

@@ -632,3 +632,98 @@ cx/cy/fitRadius/sx/sy/fwhm 像素；theta 弧度；B/A/flux/mad ADU
   astrocs_p1_psf.dll，C ABI adapter 由 P1-PSF-IMPL 建立；本节描述现状 API，
   不声明 DLL 化完成）；测试设计 TEST-PSF-DESIGN-001（§11.4）由 P1-PSF-TEST
   执行落 TEST-P1-PSF-001 + EVIDENCE。
+
+## Phase1 装配会话 C API（API-P1-SESSION）
+
+> ID: API-P1-SESSION  状态: CONTRACT_READY（P1-SESSION-DOC 冻结，2026-09-07）
+> 模块: lib/phase1_session（MOD-astrocs-phase1-session；assembly 层，唯一
+> 权威签名头 lib/phase1_session/p1_session.h:16-37，禁止手抄他版）。
+> 编排级上游合同 API-P1-001（docs/api/PHASE1_API_V1.md FROZEN）；数据面
+> DATA-P1-SESSION（DATA_SEMANTICS §16）。registry 关系：五函数经 P1Api
+> （lib/core/src/module_adapters.cpp:693-700）被 8 个 Phase1 descriptor
+> 工厂委托（:728-735/:755-770）。
+
+### 范围界定
+
+本节只登记装配会话入口符号与调用时序；不定义任何算法（校准/cosmetic
+算法委托 API-CAL-001 / API-COS-001 既有符号，其余阶段执行现状见
+"生产调用方与编排现状"）。不含 Phase2/3 接口。
+
+### 导出符号（p1_session.cpp 实测行号锚，5 C API + 1 C++ 诊断全部当前真实存在）
+
+| 符号 | 锚 | 语义 |
+|---|---|---|
+| `p1_session_create` | p1_session.h:16 / p1_session.cpp:90 | host services 单结构注入（struct_size/ABI 校验 :91-93）；opaque handle，owner=创建者 |
+| `p1_session_validate` | p1_session.h:19 / :103 | 纯读无 IO 幂等；config 键集校验（DATA-P1-SESSION §16.1）；缺必需键/类型错→PARAM，无 silent default |
+| `p1_session_run` | p1_session.h:23 / :149 | 四段执行 io_read→calibrate→cosmetic→io_write（:168/:195/:283/:319）；async_io_depth∈{0,1,2}（:152） |
+| `p1_session_inspect` | p1_session.h:26 / :339 | manifest JSON（dump(2)）；out=host alloc，调用方经 host free 释放（:349-357） |
+| `p1_session_destroy` | p1_session.h:28 / :358 | 唯一释放对（delete SessionState） |
+| `astrocs::phase1::last_error` | p1_session.h:36 / :368 | C++ 诊断：脱敏摘要，handle 空→空串；非科学接口 |
+
+### 签名要点与内存所有权
+
+- handle：`acs_handle` opaque；生命周期=唯一 create/destroy 对。
+- config：`acs_span_u8`（调用方内存，会话内解析为 JSON，不持久持有）。
+- inspect 输出：`acs_span_u8` host allocator 分配（16 对齐，:351），
+  调用方必须 host free；内容 UTF-8 JSON 文本（DATA-P1-SESSION §16.3）。
+- host services：`astrocs_host_services_v1`（common_abi_v1.h:110-117）
+  allocator/logger/cancel/budget 四通道；budget.max_workers 注入
+  `ac_set_num_threads`（p1_session.cpp:162-165，迁移整改点）。
+
+### 调用时序
+
+create →（可选）validate → run → inspect → destroy；validate 可独立
+调用（幂等）；run 前 config 必先 validate（run 内二次解析失败仍 PARAM，
+:155-159）；destroy 后 handle 一律失效；inspect 于 run 前调用返回
+created 状态 manifest（:342-343）。B 线 registry 通道经 SessionModule
+等价执行（execute 内 create→validate→run→inspect 捕获→destroy，
+module_adapters.cpp:153-216）。
+
+### 返回码
+
+ACS_OK；ACS_ERR_ABI_MISMATCH（host 结构/ABI :91-93）；ACS_ERR_PARAM
+（config/键集/类型/尺寸匹配 :110-143/:218-221/:236-239/:152）；ACS_ERR_IO
+（文件读写 :183-187/:233-235/:261-267/:306-310/:323-327）；ACS_ERR_INTERNAL
+（ac_* 委托非 OK :249-253/:301-305）；ACS_ERR_NOMEM（:96/:351）；
+ACS_ERR_CANCELLED（文件/帧粒度取消点 :177-181/:228-231/:289）。取消语义：
+清理后短路返回，不留伪完整产物（p1_session.cpp:4 注释合同）。
+
+### 单位/dtype/shape
+
+见 DATA-P1-SESSION（DATA_SEMANTICS §16）：像素 float32 ADU [h,w]；
+manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-based
+像素），本节不新增科学单位。
+
+### 线程安全与确定性
+
+- p1_session.h:15 并发合同：reentrant:yes；threadsafe:no（handle 级——
+  单 handle 单线程）；内部并行=omp，worker 数=host budget.max_workers
+  注入（:162-165），禁硬编码核数。
+- B 线 registry 通道：ThreadLease 租借+RAII 归还（module_adapters.cpp:
+  156-162），预算耗尽→1 worker 串行；determinism=fixed_reduction_order
+  （module.yaml；阶段序固定 :168-330，逐段短路返回）。
+
+### 生产调用方与编排现状
+
+- 唯一生产调用方=lib/core/src/module_adapters.cpp（P1Api 五函数指针
+  :694-699；astrocs.phase1.calibration 注册 :728-735；p1_more[] 7 子
+  descriptor 注册 :755-770）。无 CLI/测试外的其他直接调用方（生产可达
+  性由 tools/quality/check_prod_reachability.py:42 与
+  tools/check_pipeline_trace.py:16 登记锚）。
+- 如实差距：API-P1-001 冻结 7-stage 序列 vs 现行 4 段（CAL+COS）——
+  star-psf/wcs/photometry/noise-snr/drizzle/writer 六 descriptor 的工厂
+  委托仅提供 registry 兼容通道，p1_session 内无对应执行段；完整 7-stage
+  生产链现状=A 线 orchestrator DLL 链（production_call_paths_stage1.csv，
+  如 PHOTOMETRIC 生产调用 orchestrator.cpp:2474→:2714/:2790）。补齐归
+  P1-SESSION-IMPL，本节不宣称 session 已完成 7-stage。
+
+### 已登记现状缺陷与迁移语义
+
+- cosmetic master 实参 nullptr→检测禁用恒等 pass（:295-296，DISP-COS-009，
+  整改归 P1-COS-INT）；dark_scale_factor 键 validate 不验（:225 run 兜底
+  1.0）；async_io_depth 预读未按 depth 启用（PHASE1_API_V1 §1 预留）；
+  输出仅 FITS。整改归 P1-SESSION-IMPL，登记不改码。
+- 迁移：MODULE_MIGRATION_MATRIX 无 P1-SESSION 行（assembly 层不设独立
+  DLL）；registry descriptor 占位词汇（ALG-002/004/005、TEST-P1-*-001）
+  不作冻结依据（P1-PSF-DOC 先例）。测试锚 TEST-P1-SESSION-001=
+  tests/unit/p1_ir_facade_test.cpp（facade/canonical 节点集/委托语义）。

@@ -706,6 +706,32 @@
    "evidence_id": "EVID-MISSING",
    "evidence_status": "MISSING",
    "notes": "CAT-GAIA-DOC (SA-P1-W16, wave W1) 冻结: Gaia XPSD 星表服务 (matrix CAT-GAIA, dll 目标 astrocs_catalog_gaia.dll 未建, adapter=CAT-GAIA-IMPL)。SCI=SCI-AST-001 下游 ALG-GAIA-001(docs/algorithms/GAIA_QUERY.md, 与 docs/contracts/INDEX.yaml 一致); DATA-GAIA-001=DATA_SEMANTICS.md §8; API-GAIA-001=PUBLIC_API.md gaia_client 节; ARCH-001 承载 service 边界。TEST 层锚=ALG 文档 §5 冻结测试设计 TEST-GAIA-DESIGN-001 (fixture/oracle/不变量 I1-I5/负面/串并行/ISA/资源+冻结容差), 可执行 TEST-GAIA-* 由 CAT-GAIA-TEST 落地后更新本行; EVID 待 INT/验收补。无网络 I/O, network errors never alter scientific identity 由零网络结构性满足。"
+  },
+  {
+   "module_id": "MOD-astrocs-phase1-session",
+   "module_kind": "phase1",
+   "module_anchor": "docs/modules/registry/astrocs.phase1.session.md",
+   "science_id": "SCI-CAL-001",
+   "science_doc": "docs/science/CALIBRATION.md",
+   "science_status": "VERIFIED",
+   "algorithm_id": "ALG-CAL-001",
+   "algorithm_doc": "docs/algorithms/CALIBRATION_ALGORITHMS.md",
+   "algorithm_status": "VERIFIED",
+   "data_id": "DATA-P1-SESSION",
+   "data_status": "VERIFIED",
+   "api_id": "API-P1-SESSION",
+   "api_status": "VERIFIED",
+   "arch_id": "ARCH-001",
+   "arch_status": "VERIFIED",
+   "src_id": "SRC-P1-SESSION-001",
+   "src_path": "lib/phase1_session/p1_session.cpp::p1_session_create,p1_session_validate,p1_session_run,p1_session_inspect,p1_session_destroy",
+   "src_status": "VERIFIED",
+   "test_id": "TEST-P1-SESSION-001",
+   "test_path": "tests/unit/p1_ir_facade_test.cpp",
+   "test_status": "VERIFIED",
+   "evidence_id": "EVID-MISSING",
+   "evidence_status": "MISSING",
+   "notes": "P1-SESSION-DOC (SA-P1-R19) 冻结: Phase1 进程内装配会话 (assembly 层, matrix 无 P1-SESSION 行 → 不设独立 DLL, 现状=静态库 astrocs_phase1_session 根 CMakeLists.txt:448-452)。合同: DATA-P1-SESSION=DATA_SEMANTICS.md §16 新建 (config 键集/host services/manifest/校准 artifact schema, 单位/dtype/shape 逐项); API-P1-SESSION=PUBLIC_API.md 新建 (五导出 C API p1_session_create/validate/run/inspect/destroy + astrocs::phase1::last_error, p1_session.h:16-37); 编排级上游 API-P1-001(docs/api/PHASE1_API_V1.md FROZEN); ARCH-001 承载 assembly 边界。四段 canonical 节点 io_read→calibrate→cosmetic→io_write (p1_session.cpp:168/:195/:283/:319, facade 测试 :33-40 断言), 科学实现委托既有冻结 C API ac_calibrate_frame(:243)/ac_correct_frame(:294) → SCI/ALG 锚=被委托域既有冻结合同 SCI-CAL-001+ALG-CAL-001(docs/algorithms/CALIBRATION_ALGORITHMS.md, INDEX.yaml 既有), 不新设装配 ALG (INDEX.yaml 无 ALG-P1-SESSION 条目; 归档映射表 ALG-P1-SESSION-001 为 P1-001 旧词汇不进现行 INDEX); algorithm_contracts 另引 ALG-COS-001 (lib/phase1_session/module.yaml)。registry: 无独立 session descriptor, 五函数经 P1Api(module_adapters.cpp:693-700) 被 8 个 Phase1 descriptor 工厂委托(:728-735/:755-770); descriptor 占位词汇(ALG-002/ALG-004/ALG-005/TEST-P1-*-001)不作冻结依据(P1-PSF-DOC 先例)。如实差距: API-P1-001 冻结 7-stage 序列 vs 现状 4 段(CAL+COS), 检测/PSF/WCS/测光/SNR/Drizzle/HiPS 无执行段, 补齐归 P1-SESSION-IMPL, 本行不宣称 session 完成 7-stage。SRC 锚=p1_session.cpp 五导出符号(path::symbol 口径, p1_session.h:16-28)。TEST 锚=tests/unit/p1_ir_facade_test.cpp(facade 语义/canonical 节点集/委托+TEST-P1-SESSION-001 词汇已登记该文件与 registry 页); 生命周期登记 tests/api/test_p1_api.py 为旁证; EVID 待 INT/验收补。已知现状缺陷(登记不改码): cosmetic master 实参 nullptr→DISP-COS-009 恒等 pass(:295-296, 整改归 P1-COS-INT); dark_scale_factor validate 不验(:225 run 兜底 1.0); async_io_depth∈{0,1,2} 强校验(:152)但预读未按 depth 启用; 输出仅 FITS(aio_write_fits :262)。取消=io_read 文件粒度(:177-181)/calibrate 帧粒度(:228-231)/cosmetic 帧粒度(:289); 并发=budget.max_workers 注入 ac_set_num_threads(:162-165)+B 线 ThreadLease(module_adapters.cpp:156-162); determinism=fixed_reduction_order(module.yaml)。"
   }
  ]
 }
