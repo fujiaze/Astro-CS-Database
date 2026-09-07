@@ -766,3 +766,102 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   语义同 PSF 先例。
 - 释放纪律：ipv_solve_destroy（ipv_entry.cpp:249）整句柄释放；gaia/
   detector 句柄由调用方（orchestrator init :1621-1643）管理。
+
+## 19. Phase2 coverage（lib/phase2）模块输入/输出数据（DATA-COV-001）
+
+> ID: DATA-COV-001  状态: CONTRACT_READY（P2-COV-DOC 冻结，2026-09-07）
+> 模块: lib/phase2 coverage sources（astrocs.p2.coverage，迁移目标
+> astrocs_p2_coverage.dll；现行实现生产源 lib/phase2/src/coverage.cpp
+> 239 行 + 唯一权威签名头 lib/phase2/include/astro/phase2/coverage.h，
+> 2 个 C ABI 导出，SRC-COV-001）。本节是该模块单位/dtype/shape/invalid
+> 的唯一权威；ALG: ALG-COV-001（docs/algorithms/PHASE2_COVERAGE.md）；
+> 编排级合同 API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，所有权图
+> Coverage 行）；descriptor astrocs.phase2.coverage
+> （module_adapters.cpp:561-576）为编排层词汇（端口坐标 PIXEL 登记与
+> NESTED 球面实际不符，以本节为准修订），由 P2-COV-INT 对齐，不得反向
+> 作为冻结依据。registry 端口语义沿用 DATA-P2-COV 端口名（本节冻结后
+> 为其权威定义）。
+
+### 19.1 输入（p2_coverage_build，coverage.cpp:144）
+
+| 参数/字段 | dtype/shape | 单位/域 | invalid / NULL 语义 |
+|---|---|---|---|
+| hips_paths | `const char* const*` `[n_inputs]` | 文件系统路径（HiPS 目录） | NULL/空串 → rc=1 "input %llu path NULL or empty"（:165-170）；顶层 NULL → rc=1 "no inputs"（:154-157，status 不一致=DISP-COV-001） |
+| n_inputs | uint64 标量 | 无量纲 | 0 → rc=1 "no inputs"（:154-157） |
+| out | P2CoverageResult* 调用方分配 | — | NULL → rc=1（:147）；两阶段协议：先 union_cells=NULL 容量查询，再分配 K 后二次调用（§19.2） |
+
+每帧 HiPS 兼容域（inspect_frame :59-140 逐项校验，全部经 AIO
+`aio_hips_open(path, AIO_HIPS_RD_SIGNAL)` :61 只读 properties/Moc.fits，
+不读像素）:
+
+| properties 键 | 值域 | 拒绝行为 |
+|---|---|---|
+| hips_order | int ≥0（叶级 order） | 缺失/负 → rc=1 "missing hips_order"（:88-92） |
+| hips_tile_width | 必须 =512 | 其他 → rc=1 "unsupported tile_width=%d"（:93-97） |
+| hips_version | 非空 | 缺失 → rc=1 "missing hips_version"（:98-102） |
+| hips_frame | ∈ {equatorial, icrs} | 其他 → rc=1 "unsupported hips_frame=%s"（:103-108） |
+| obs_filter | 字符串（passband 名） | 与基准帧非空不一致 → rc=1 "filter mismatch"（:181-193）；**空串静默放行**（DISP-COV-003） |
+| （Moc.fits） | 叶级 NESTED tile ipix 列表 | AIO 层读取，aio_hips_reader.cpp:141/:166-170 |
+
+### 19.2 输出（P2CoverageResult，coverage.h:40-48，rc=0 时唯一权威）
+
+| 字段 | dtype/shape | 单位/值域 | invalid |
+|---|---|---|---|
+| n_inputs | uint64 标量 | 无量纲 | 回填实际帧数（:216） |
+| inputs | P2HipsInputInfo `[n_inputs]` 调用方分配（coverage.h:31-38） | — | union_cells/inputs 非空才回填（:219-228）；两阶段第一次调用不写 |
+| n_union_cells | uint64 标量 K | 无量纲 | 两阶段第一次调用即有效（容量查询，:218） |
+| union_cells | P2MocCell `[K]` 调用方分配（coverage.h:26-29） | order=uint64（=target_order，:221）、ipix=uint64（NESTED 父单元索引，<12·4^order，去重升序 :212-214） | 第二次调用回填（:219-224）；K=0 合法（空 MOC，rc=0） |
+| target_order | int 标量 | 无量纲（HEALPix order） | = min(逐帧 hips_order)（:194-196，冻结：禁低 order 插值伪装分辨率） |
+| status | int | 0=ok（:229） | 错误路径 1（:172-179/:198-202）；"no inputs" 分支 rc=1 而 status=0（DISP-COV-001） |
+| error | char[512] | — | rc=1 时载因；"no inputs" 分支错误信息在 memset 之后写入（:154-163 顺序），有效 |
+
+P2HipsInputInfo 逐字段（coverage.h:31-38，回填锚 :113-143）:
+
+| 字段 | dtype/shape | 单位/值域 | invalid |
+|---|---|---|---|
+| hips_path | char[1024] | 路径字符串 | 调用方输入原样回填（:127） |
+| frame_id | char[64] | 无量纲标识 | 路径基名截断（:113-118，DISP-COV-002 唯一性风险）；不保证全局唯一 |
+| max_leaf_order | int | 无量纲（HEALPix order） | = 该帧 properties hips_order（:141-143） |
+| n_tiles | int | 无量纲 | 该帧叶级 tile 数（AIO Moc.fits，:139） |
+| filter_passband | char[64] | 无量纲字符串 | properties obs_filter（:110）；缺失=空串（DISP-COV-003） |
+| frame_type | char[32] | "equatorial"/"icrs" | properties hips_frame（:119-121） |
+
+### 19.3 数据语义（唯一权威，对齐 docs/api/PHASE2_API_V1.md 所有权图）
+
+- **coverage 是几何集合量，非权重**（P2-COV 合同红线，ALG-COV-001 §7）:
+  union MOC cell / target_order / n_tiles / 覆盖帧数为 NESTED
+  equatorial/ICRS 球面几何登记，无量纲整数；禁止被任何下游作为科学
+  权重/置信度使用（科学权重唯一冻结式 `w_UPM = quality_factor ×
+  geometric_reliability × control_ivar`，docs/science/PHASE2_UPM.md §5，
+  support 仅 eligibility/coverage 语义）。
+- **coverage/support/validity 分离**（matrix P2-COV 专项）: 本模块输出
+  仅 coverage；support（样本级 [0,1]，SCI-INT-001 §2）与 validity
+  （finite/accepted 标志，SCI-INT-001 §5）不在本节合同域，任何把
+  union cell 计数当 support 数值或 validity 判定的消费均违反本节。
+- **无交集/depth/missing-tiles 输出**（DISP-COV-004，如实登记）:
+  现状仅 union（coverage.cpp:204-214）；intersection/逐 cell depth/
+  missing tile 列表不输出，下游以逐帧 tile 集合自行推导；语义澄清:
+  覆盖度几何 ≠ UPM 权重因子 geometric_reliability（乘数恒 1.0 缺陷
+  归 P2-UPM 域，PUBLIC_API.md API-UPM-001 DISP-UPM-003）。
+- **所有权**（对齐 API-P2-001 §1 所有权图 Coverage 行
+  docs/api/PHASE2_API_V1.md:15）: P2CoverageResult 及其数组全部调用方
+  分配；`p2_coverage_free` 仅 memset 清零 POD（coverage.cpp:233-237），
+  不释放堆、无所有权转移；重复 build 幂等（每次全量重扫，无缓存，
+  DISP-COV-005）。
+- **dtype/确定性**: 全链路整数（无浮点），bitwise 确定；输出 MOC
+  升序唯一（sort+unique :212-214）；determinism=fixed_reduction_order
+  （module.yaml）；坐标契约 = HEALPix NESTED 父单元索引（z-order 2D
+  移位 `t >> 2·(order_f−target_order)`，:207-209），禁止以 PIXEL 坐标
+  解读（registry descriptor 像素登记由 P2-COV-INT 修订）。
+
+### 19.4 错误/边界
+
+- C ABI: rc=0 成功（含 K=0）/1 失败（error[512] 载因）；错误码映射
+  （API-P2-001 §4）: INVALID_INPUT 类 → ACS_ERR_PARAM（编排层，
+  p2_session.cpp:125-141 map_rc 落 ACS_ERR_STATE 由 map_rc 表实现）。
+- 全部拒绝路径显式 rc=1（§19.1 表）；并发合同 reentrant=yes /
+  threadsafe=no（独立对象）/ internal_parallel=none / 取消点=无
+  （API-P2-001 §2 行 1）；阶段级取消由编排 session 阶段边界提供
+  （p2_session.cpp:120）。
+- 释放纪律: p2_coverage_free（:233-237）调用方收尾（PHASE2_API_V1 §1
+  表行登记）；无隐藏全局状态（单文件静态函数，无模块级可变状态）。

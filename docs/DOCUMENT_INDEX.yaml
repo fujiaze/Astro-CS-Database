@@ -96,6 +96,9 @@ doc_index:
       notes: "P1-NOISE-DOC 冻结（2026-09-07）：§13 CONTRACT_READY 增补（逐符号源码锚 §13.1 / DISP-NOISE-001..009 §13.3 / TEST-NOISE-DESIGN-001 §13.4），ALG-NOISE-001..003 根公式不变"
     - path: "docs/algorithms/PHASE2_SAMPLER.md"
       status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/PHASE2_COVERAGE.md"
+      status: ACTIVE_NORMATIVE
+      notes: "P2-COV-DOC 冻结 (2026-09-07, SA-P2-S20): ALG-COV-001 coverage union/target_order 逐公式源码行号锚定(coverage.cpp:20/59/144/233)+三概念分离与 no-use-as-weight 负向条款(§7)+DISP-COV-001..005(§11.3)+TEST-COV-DESIGN-001 冻结容差(§11.4)+SCI 层零改动声明(§11.5, SCI-P2-COV-001→共享 FROZEN PHASE2_UPM/INTEGRATION)"
     - path: "docs/algorithms/PHASE3_RESAMPLE.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/algorithms/PHOTOMETRIC_FIT.md"
@@ -217,12 +220,12 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/contracts/DATA_SEMANTICS.md"
       status: ACTIVE_NORMATIVE
-      notes: "P1-WCS-DOC (2026-09-07) 追加 §18 DATA-P1-WCS: detections [n,6] +0.5 契约/IpvWcsResult 唯一权威/编排写回 KV 键表/inlier [n,9]/失败-置信度语义(DISP-WCS-001)"
+      notes: "P1-WCS-DOC (2026-09-07) 追加 §18 DATA-P1-WCS: detections [n,6] +0.5 契约/IpvWcsResult 唯一权威/编排写回 KV 键表/inlier [n,9]/失败-置信度语义(DISP-WCS-001); P2-COV-DOC (2026-09-07) 追加 §19 DATA-COV-001: HiPS 兼容域/union MOC P2MocCell[K] NESTED 坐标契约/P2HipsInputInfo 逐字段/coverage≠support≠validity 与 no-use-as-weight 负向条款"
     - path: "docs/contracts/INDEX.yaml"
       status: ACTIVE_NORMATIVE
     - path: "docs/contracts/PUBLIC_API.md"
       status: ACTIVE_NORMATIVE
-      notes: "P1-WCS-DOC (2026-09-07) 追加 API-WCS-001: WCS 求解 C API 12 导出符号锚(ipv_api.h/ipv_entry.cpp)+IpvWcsResult 内存所有权+失败-置信度语义(DISP-WCS-001 退化禁冒充解)+生产调用方 run_stage_platesolve"
+      notes: "P1-WCS-DOC (2026-09-07) 追加 API-WCS-001: WCS 求解 C API 12 导出符号锚(ipv_api.h/ipv_entry.cpp)+IpvWcsResult 内存所有权+失败-置信度语义(DISP-WCS-001 退化禁冒充解)+生产调用方 run_stage_platesolve; P2-COV-DOC (2026-09-07) 追加 API-COV-001: p2_coverage_build/p2_coverage_free 2 导出符号锚(coverage.h:52/:56)+两阶段容量协议+调用方所有权(纯 memset 释放)+生产调用方 p2_session coverage 阶段"
     - path: "docs/contracts/RT-001.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/contracts/TEST_MATRIX.md"
@@ -306,6 +309,7 @@ doc_index:
       notes: "P1-SESSION-DOC (2026-09-07) 新建: Phase1 装配会话模块页——合同落位 lib/phase1_session/README.md + module.yaml (astrocs.phase1.session, CONTRACT_READY, 静态库不设 DLL); 合同 ID=DATA-P1-SESSION/API-P1-SESSION; 编排上游 API-P1-001; 现状 4 段 vs 冻结 7-stage 差距如实登记"
     - path: "docs/modules/phase2.md"
       status: ACTIVE_INFORMATIVE
+      notes: "P2-COV-DOC (2026-09-07) 事实修订: 追加 Coverage 子模块合同节——astrocs.p2.coverage 合同落位 lib/phase2/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 合同 ID=ALG-COV-001/DATA-COV-001/API-COV-001/TEST-COV-DESIGN-001; coverage 禁作隐式科学权重负向条款"
     - path: "docs/modules/photometric_calib.md"
       status: ACTIVE_INFORMATIVE
       notes: "P1-PHOT-DOC (2026-09-07) 事实修订: 头部增补块——合同落位 lib/photometric_calib/README.md r1 + module.yaml (astrocs.p1.photometry, CONTRACT_READY, entrypoint=MISSING); 合同 ID=SCI-PHOT-001/ALG-PHOT-001..002/DATA-P1-PHOT/API-PHOT-001; NO_DATA 表述按退化语义修订"
@@ -346,8 +350,8 @@ doc_index:
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"
     - path: "docs/modules/registry/astrocs.phase2.coverage.md"
-      status: GENERATED
-      notes: "tools/quality/gen_module_readmes.py 生成"
+      status: ACTIVE_INFORMATIVE
+      notes: "P2-COV-DOC (2026-09-07) 重写为手写合同页 (registry 页保留先例 astrocs.phase1.session.md/astrocs.phase1.star-detection.md): MOD-astrocs-phase2-coverage/astrocs.p2.coverage 合同——SCI-P2-COV-001(共享 FROZEN)/ALG-COV-001/DATA-COV-001/API-COV-001/API-P2-001; 旧 descriptor 派生词汇 (coverage 坐标 PIXEL) 由 P2-COV-INT 对齐修订"
     - path: "docs/modules/registry/astrocs.phase2.integrate.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"

@@ -241,6 +241,30 @@ contracts:
     path: docs/algorithms/PHASE2_SAMPLER.md
     upstream: [SCI-NOISE-001, SCI-CW-001]
     downstream: []
+  - id: ALG-COV-001
+    type: ALG
+    status: ACTIVE
+    owner: SA-P2-S20
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_COVERAGE.md
+    upstream: [SCI-UPM-001]
+    downstream: [DATA-COV-001, API-COV-001]
+  - id: DATA-COV-001
+    type: DATA
+    status: ACTIVE
+    owner: SA-P2-S20
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-COV-001]
+    downstream: []
+  - id: API-COV-001
+    type: API
+    status: ACTIVE
+    owner: SA-P2-S20
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ALG-COV-001]
+    downstream: []
   - id: ALG-REJ-001
     type: ALG
     status: ACTIVE

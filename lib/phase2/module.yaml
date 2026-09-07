@@ -1,0 +1,93 @@
+# AstroCS phase2 coverage module — 元数据 (P2-COV-DOC 冻结, 2026-09-07)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase2/src/coverage.cpp
+# 239 行 + 唯一权威签名头 lib/phase2/include/astro/phase2/coverage.h 59 行；
+# C ABI 导出 p2_coverage_build :144 / p2_coverage_free :233，内部链接
+# parse_props :20 / inspect_frame :59；行号 grep 实测），模块化迁移
+# （独立模块源 astrocs_p2_coverage.dll / C ABI adapter /
+# plan-execute-cancel-inspect / ThreadLease 接线）由 P2-COV-IMPL 执行；
+# 可执行测试由 P2-COV-TEST 建立（TEST-COV-DESIGN-001 → TEST-P2-COV-001）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码
+# 核对清单（P2-COV-DOC，2026-09-07，grep 实测），禁止手抄他版。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P2-COV 行 owner=SA-P2-S20、
+# target=astrocs_p2_coverage.dll、module_id=astrocs.p2.coverage、
+# legacy_paths="lib/phase2 coverage sources"、depends_on_int=
+# IO-003;DATA-004;RT-006。本目录 lib/phase2/ 既是 coverage 生产实现
+# 所在又是迁移落码目标（合同三件套 README.md r1 + module.yaml +
+# memory.md 落位于此；phase2 其余源 sampler/upm/rejection/integrate
+# 分别归 P2-SAMP/P2-UPM/P2-REJ/P2-INT 各自 DOC 任务）。
+# dll_target=astrocs_p2_coverage.dll 为迁移目标合同值（尚未存在）。
+# 现状构建=根 CMakeLists.txt astrocs_phase2 STATIC（:337-345，含
+# src/coverage.cpp :341，无独立 DLL target）+ lib/phase2/CMakeLists.txt
+# phase2 STATIC 兼容自测 target（:42-46）+ phase2_synthetic_gate（:77）。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4
+# 值域）；现状实现单线程（coverage.cpp 全文无 OpenMP pragma，实测），
+# internal_parallel=none，输出 bitwise 与线程数无关，但 ThreadLease/
+# 取消检查点无接线（阶段级取消由编排 session 阶段边界提供
+# p2_session.cpp:120；迁移整改点 DISP-COV-005，见
+# docs/algorithms/PHASE2_COVERAGE.md §11.3 与
+# docs/contracts/PUBLIC_API.md API-COV-001）。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# （lib/core/src/module_adapters.cpp:561-576 p2_coverage_descriptor 的
+# module_id=astrocs.phase2.coverage、sci_id=SCI-P2-COV-001/
+# alg_id=ALG-P2-COV-001/data_id=DATA-P2-COV/api_id=API-P2-001/
+# test_id=TEST-P2-COV-001、ports calibrated/coverage、coverage 坐标
+# PIXEL 与 NESTED 球面实际不符）由 P2-COV-INT 对齐本 manifest 与
+# lib/phase2/README.md（r1），不得反向作为冻结依据。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase2-coverage
+module_id: astrocs.p2.coverage
+owner: SA-P2-S20
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase2
+dll_name: astrocs_p2_coverage.dll
+dll_target: astrocs_p2_coverage.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [coverage]
+input_ports:
+  - calibrated
+output_ports:
+  - coverage
+science_contracts:
+  - SCI-P2-COV-001
+algorithm_contracts:
+  - ALG-COV-001
+data_contracts:
+  - DATA-COV-001
+api_contracts:
+  - API-P2-001
+  - API-COV-001
+doc_links:
+  sci: docs/science/PHASE2_UPM.md
+  sci_extra: docs/science/INTEGRATION.md
+  alg: docs/algorithms/PHASE2_COVERAGE.md
+  data: docs/contracts/DATA_SEMANTICS.md#§19
+  api: docs/contracts/PUBLIC_API.md#API-COV-001
+contract_ids:
+  sci: SCI-P2-COV-001
+  alg: ALG-COV-001
+  data: DATA-COV-001
+  api: API-COV-001
+  arch: ARCH-001
+  test: TEST-COV-DESIGN-001
+source_symbols:
+  - p2_coverage_build
+  - p2_coverage_free
+test_ids:
+  - TEST-P2-COV-001
+threading_model: host_executor_lease
+resource_class: cpu_heavy
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+scientific_change: false
+depends_on:
+  - astro_image_io
+legacy_paths: lib/phase2 coverage sources
+known_defects:
+  - DISP-COV-001
+  - DISP-COV-002
+  - DISP-COV-003
+  - DISP-COV-004
+  - DISP-COV-005

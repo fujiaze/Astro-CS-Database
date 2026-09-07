@@ -24,6 +24,14 @@ static inline void aio_safe_copy(char* dst, std::size_t cap, const char* src) {
 
 static const uint8_t XISF_MAGIC[8] = {'X', 'I', 'S', 'F', '0', '1', '0', '0'};
 
+// P0-4 无界分配防护: XML 头长度上限 (长度字段来自文件 8 字节, 不可信)。
+// 合法 XISF XML 头通常 <1MB, 64MB 余量充足; 超限视为恶意/损坏文件硬失败。
+static const uint64_t XISF_MAX_XML_HEADER_BYTES = 64ull * 1024 * 1024;
+
+// P0-2: header_only 几何校验口径 (与 xisf_read_file W1-AIO-001 同源):
+// w/h/c ∈ [1, 65535], 防恶意 geometry 触发巨量 calloc 或 size_t 回绕。
+static const int XISF_MAX_DIM = 65535;
+
 struct XISFSampleFormat {
     int dtype_size;
     int is_float;
@@ -443,6 +451,16 @@ int xisf_read_file(const char *path, AIOImageData *out) {
 
     aio_log(AIO_LOG_INFO, "XISF", "XML header length: %llu bytes", (unsigned long long)xml_length);
 
+    // P0-4 无界分配防护: xml_length 直接来自文件 8 字节, 恶意/损坏文件可触发
+    // 巨量 std::string 分配 (bad_alloc 跨 C 边界) 或磁盘打满。合法 XISF XML
+    // 头远小于 64MB (标准头通常 <1MB), 超限硬失败。
+    if (xml_length > XISF_MAX_XML_HEADER_BYTES) {
+        aio_log(AIO_LOG_ERROR, "XISF", "XML header length %llu exceeds limit %d",
+                (unsigned long long)xml_length, XISF_MAX_XML_HEADER_BYTES);
+        std::fclose(fp);
+        return -1;
+    }
+
     std::string xml_text(xml_length, '\0');
     if (std::fread(&xml_text[0], 1, xml_length, fp) != xml_length) {
         aio_log(AIO_LOG_ERROR, "XISF", "Cannot read XML header");
@@ -540,9 +558,14 @@ int xisf_read_file(const char *path, AIOImageData *out) {
         if (c > 1) {
             double *gray = (double *)malloc((size_t)w * (size_t)h * sizeof(double));
             if (gray) {
-                for (int y = 0; y < h; y++)
+                // P0-3: 索引运算全部用 size_t, 防大图 (w=h=65535) 时 int 乘法
+                // 有符号溢出 (UB) 产生负索引。取第 0 通道语义不变 (通道 0 基址
+                // 偏移为 0, row+x 即原 0*w*h+y*w+x)。
+                for (int y = 0; y < h; y++) {
+                    const size_t row = (size_t)y * (size_t)w;
                     for (int x = 0; x < w; x++)
-                        gray[y * w + x] = pixel_data_f64[0 * w * h + y * w + x];
+                        gray[row + (size_t)x] = pixel_data_f64[row + (size_t)x];
+                }
                 free(pixel_data_f64);
                 pixel_data_f64 = gray;
                 c = 1;
@@ -563,9 +586,13 @@ int xisf_read_file(const char *path, AIOImageData *out) {
         if (c > 1) {
             float *gray = (float *)malloc((size_t)w * (size_t)h * sizeof(float));
             if (gray) {
-                for (int y = 0; y < h; y++)
+                // P0-3: 索引运算全部用 size_t, 防大图 (w=h=65535) 时 int 乘法
+                // 有符号溢出 (UB) 产生负索引。取第 0 通道语义不变。
+                for (int y = 0; y < h; y++) {
+                    const size_t row = (size_t)y * (size_t)w;
                     for (int x = 0; x < w; x++)
-                        gray[y * w + x] = pixel_data[0 * w * h + y * w + x];
+                        gray[row + (size_t)x] = pixel_data[row + (size_t)x];
+                }
                 free(pixel_data);
                 pixel_data = gray;
                 c = 1;
@@ -589,7 +616,14 @@ int xisf_read_file(const char *path, AIOImageData *out) {
 
     out->keyword_count = (int)keywords.size();
     if (out->keyword_count > 0) {
+        // P0-2: malloc NULL 检查 —— OOM 时走既有错误返回路径 (out 由上层
+        // aio_free_image_data 释放), 禁止对 NULL 指针 memcpy。
         out->keywords = (AIOFITSKeyword *)malloc(static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
+        if (!out->keywords) {
+            aio_log(AIO_LOG_ERROR, "XISF", "Keyword array allocation failed (%d keywords)",
+                    out->keyword_count);
+            return -1;
+        }
         std::memcpy(out->keywords, keywords.data(), static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
     } else {
         out->keywords = nullptr;
@@ -625,6 +659,14 @@ int xisf_read_header_only(const char *path, AIOImageData *out) {
     uint64_t xml_length = 0;
     for (int i = 0; i < 8; i++) xml_length |= ((uint64_t)len_bytes[i]) << (8 * i);
 
+    // P0-4 无界分配防护: 同 xisf_read_file, xml_length 来自文件 8 字节, 超限硬失败。
+    if (xml_length > XISF_MAX_XML_HEADER_BYTES) {
+        aio_log(AIO_LOG_ERROR, "XISF", "XML header length %llu exceeds limit %d",
+                (unsigned long long)xml_length, XISF_MAX_XML_HEADER_BYTES);
+        std::fclose(fp);
+        return -1;
+    }
+
     std::string xml_text(xml_length, '\0');
     if (std::fread(&xml_text[0], 1, xml_length, fp) != xml_length) {
         std::fclose(fp);
@@ -638,11 +680,25 @@ int xisf_read_header_only(const char *path, AIOImageData *out) {
     XISFSampleFormat sf = parse_sample_format(img_info.sample_format);
     int w = img_info.width;
     int h = img_info.height;
+    int c = img_info.channels;
 
+    // P0-2: header_only 此前对 geometry 零校验直接 calloc, 恶意
+    // geometry="999999999:999999999:1" 触发巨量分配/NULL 解引用崩溃。
+    // 对齐 xisf_read_file 既有校验口径 (W1-AIO-001): w/h/c ∈ [1, 65535]。
+    if (w <= 0 || h <= 0 || c <= 0 || w > XISF_MAX_DIM || h > XISF_MAX_DIM || c > XISF_MAX_DIM) {
+        aio_log(AIO_LOG_ERROR, "XISF", "Invalid geometry: %dx%dx%d", w, h, c);
+        return -1;
+    }
+
+    // P0-2: calloc NULL 检查 —— 失败走既有错误返回路径 (out 由上层释放)。
     out->data = (float *)calloc((size_t)w * (size_t)h, sizeof(float));
+    if (!out->data) {
+        aio_log(AIO_LOG_ERROR, "XISF", "Pixel buffer allocation failed (%dx%d)", w, h);
+        return -1;
+    }
     out->width = w;
     out->height = h;
-    out->channels = img_info.channels;
+    out->channels = c;
     out->bits_per_sample = sf.bits_per_sample;
     out->float_sample = sf.is_float;
     strncpy(out->source_format, "xisf", sizeof(out->source_format) - 1);
@@ -652,13 +708,20 @@ int xisf_read_header_only(const char *path, AIOImageData *out) {
     parse_fits_keywords(xml_text, keywords);
     out->keyword_count = (int)keywords.size();
     if (out->keyword_count > 0) {
+        // P0-2: malloc NULL 检查 —— OOM 时走既有错误返回路径 (out 由上层
+        // aio_free_image_data 释放), 禁止对 NULL 指针 memcpy。
         out->keywords = (AIOFITSKeyword *)malloc(static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
+        if (!out->keywords) {
+            aio_log(AIO_LOG_ERROR, "XISF", "Keyword array allocation failed (%d keywords)",
+                    out->keyword_count);
+            return -1;
+        }
         std::memcpy(out->keywords, keywords.data(), static_cast<size_t>(out->keyword_count) * sizeof(AIOFITSKeyword));
     } else {
         out->keywords = nullptr;
     }
 
-    build_xisf_metadata(keywords, w, h, img_info.channels, sf, out->metadata);
+    build_xisf_metadata(keywords, w, h, c, sf, out->metadata);
     return 0;
 }
 
