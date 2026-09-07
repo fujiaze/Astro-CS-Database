@@ -32,17 +32,42 @@ def main():
             if w != []:
                 findings.append({"id":"INTEG-WAIVERS-NONEMPTY","severity":"P1","observed":f"waivers {w}","expected":"[]"})
         except: pass
-    # Check P0/P1: if T407 has findings, it's known debt pending T500
+    # Check P0/P1: 豁免必须条件化, 否则 DELIVERED 永远可达。
+    # 豁免白名单口径(来自 T411/T500 上下文): 仅 T407 的 FORBID-HARDCODE-THREADS
+    # (hardcoded num_threads(16)) 属挂账债务 pending T500, 额度上限 10 条;
+    # T407 的任何其他 finding(如 FORBID-ABS-PATH / FORBID-DETACH)不可豁免。
+    HARDCODE_THREAD_DEBT_CAP = 10
     failing = [r for r in data.get("results",[]) if not r.get("passed")]
+    debt_count = 0
     if failing:
         for f in failing:
-            if f["tool"]=="check_forbidden_patterns":
-                findings.append({"id":"INTEG-P1-DEBT","severity":"P1","symbol":f["tool"],"observed":"10 hardcoded(16) pending T500","expected":"P1=0 after T500"})
+            tool = f["tool"]
+            if tool == "check_forbidden_patterns":
+                # generate_contract_report 的汇总不含明细; 直接取 T407 输出以判定豁免范围
+                fp_findings = []
+                try:
+                    fp_out = subprocess.run([sys.executable, str(repo / "tools/quality/contracts/check_forbidden_patterns.py"), "--repo", str(repo)], capture_output=True, text=True, timeout=60)
+                    fp_data = json.loads(fp_out.stdout.strip().split("\n")[-1])
+                    fp_findings = fp_data.get("findings", [])
+                except Exception as e:
+                    findings.append({"id":"INTEG-P1-FAIL","severity":"P1","symbol":tool,"observed":f"cannot obtain T407 findings: {e}","expected":"parsable findings"})
+                    continue
+                hw = [x for x in fp_findings if x.get("id")=="FORBID-HARDCODE-THREADS"]
+                others = [x for x in fp_findings if x.get("id")!="FORBID-HARDCODE-THREADS"]
+                debt_count = len(hw)
+                for x in others:
+                    findings.append({"id":"INTEG-P1-FAIL","severity":"P1","symbol":tool,"observed":f"{x.get('id')} {x.get('file','')}","expected":"PASS"})
+                if debt_count > HARDCODE_THREAD_DEBT_CAP:
+                    findings.append({"id":"INTEG-P1-FAIL","severity":"P1","symbol":tool,"observed":f"FORBID-HARDCODE-THREADS count {debt_count} > waiver cap {HARDCODE_THREAD_DEBT_CAP}","expected":f"<={HARDCODE_THREAD_DEBT_CAP} pending T500"})
+                    debt_count = HARDCODE_THREAD_DEBT_CAP  # 超额部分不再享受豁免
+                if debt_count > 0:
+                    findings.append({"id":"INTEG-P1-DEBT","severity":"P1","symbol":tool,"observed":f"{debt_count} hardcoded threads findings pending T500 (waiver scope: FORBID-HARDCODE-THREADS only, cap {HARDCODE_THREAD_DEBT_CAP})","expected":"P1=0 after T500"})
             else:
                 findings.append({"id":"INTEG-P1-FAIL","severity":"P1","symbol":f["tool"],"observed":"checker FAIL","expected":"PASS"})
     status = "PASS" if not [f for f in findings if f["severity"]=="P1" and f["id"]!="INTEG-P1-DEBT"] else "FAIL"
-    # For T411 delivered: if only T407 debt, mark as DELIVERED not full PASS
-    if findings and all(f["id"]=="INTEG-P1-DEBT" for f in findings):
+    # DELIVERED 仅当全部 P1 finding 都是白名单内的挂账债务 (且数量在额度内);
+    # 其他任何失败(其他工具 FAIL / T407 其他 id)都保持 FAIL, 豁免不适用。
+    if findings and all(f["id"]=="INTEG-P1-DEBT" for f in findings) and debt_count <= HARDCODE_THREAD_DEBT_CAP:
         status="DELIVERED"
     result = {"tool":"check_full_integration","status":status,"findings":findings,"passed": status in ("PASS","DELIVERED"),"report":data}
     if args.out_json:

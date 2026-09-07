@@ -44,6 +44,31 @@ def main():
     for c in required:
         if c not in rows[0]:
             print(f"FAIL: missing column {c}", file=sys.stderr); return 3
+    # 真实签名比对 (口径: 归一化文本全等 + 参数个数一致):
+    #   - 归一化(空白折叠)后全等 => 通过;
+    #   - 参数个数不同           => API-SIG-ARITY (P1);
+    #   - 参数个数相同但文本不同 => API-SIG-TEXT (P1);
+    #   - AST 实测无该符号签名   => API-SIG-NOREF (P1)。
+    # 覆盖口径: docs/contracts/API_CONTRACTS.csv 全部行 vs extract_cpp_api.py
+    # 头文件实测(含 include/lib 头文件), 覆盖率 = rows 中实际比对的行数比例。
+    def _arity(sig_text: str):
+        m = re.match(r".*?\b\w[\w:]*\s*\((.*)\)", normalize_sig(sig_text))
+        if not m:
+            return None
+        inner = m.group(1).strip()
+        if inner in ("", "void"):
+            return 0
+        depth, n = 0, 1
+        for ch in inner:
+            if ch in "(<[":
+                depth += 1
+            elif ch in ")>]":
+                depth -= 1
+            elif ch == "," and depth == 0:
+                n += 1
+        return n
+
+    sig_base = None
     for i, r in enumerate(rows, start=2):
         sym = r["symbol"].strip()
         sig = r["full_signature"].strip()
@@ -64,13 +89,31 @@ def main():
                 findings.append({"id":"API-MISSING-AST","severity":"P1","file":str(api_csv),"line":i,"symbol":sym,"header":hdr,"observed":"symbol not in AST extract","expected":"exists in include headers"})
                 status="FAIL"
                 continue
-        # Check signature normalization match (allow whitespace differences, but catch param order/type mismatches)
-        ast_sig = ast_syms.get(sym, {}).get("signature") or ast_syms.get(base, {}).get("signature") if 'base' in locals() else None
-        if ast_sig:
-            if normalize_sig(sig) != normalize_sig(ast_sig):
-                # For now, only flag if length differs significantly (real mismatch), not whitespace
-                # Do strict compare for ordering: check if sig contains symbol and header file exists
-                pass  # Keep soft for initial gate; detailed const/noexcept checks deferred to T500
+        # Locate the actually-extracted signature in headers
+        sig_base = None
+        ast_sig = None
+        if sym in ast_syms:
+            ast_sig = ast_syms[sym].get("signature")
+        else:
+            sig_base = sym.split("::")[-1]
+            if sig_base in ast_syms:
+                ast_sig = ast_syms[sig_base].get("signature")
+        if not ast_sig:
+            findings.append({"id":"API-SIG-NOREF","severity":"P1","file":str(api_csv),"line":i,"symbol":sym,"header":hdr,"observed":"no measured signature in headers","expected":"extractable signature"})
+            status="FAIL"
+            continue
+        if normalize_sig(sig) != normalize_sig(ast_sig):
+            # 文本不同: 用参数个数区分"结构性不同"与"仅表述不同"
+            ka, kb = _arity(sig), _arity(ast_sig)
+            if ka is None or kb is None:
+                findings.append({"id":"API-SIG-UNPARSABLE","severity":"P1","file":str(api_csv),"line":i,"symbol":sym,"observed":f"arity unparsable csv={ka} ast={kb}","expected":"parsable signature"})
+                status="FAIL"
+            elif ka != kb:
+                findings.append({"id":"API-SIG-ARITY","severity":"P1","file":str(api_csv),"line":i,"symbol":sym,"observed":f"param count csv={ka} vs header={kb}","expected":"matching signature"})
+                status="FAIL"
+            else:
+                findings.append({"id":"API-SIG-TEXT","severity":"P1","file":str(api_csv),"line":i,"symbol":sym,"observed":f"csv={normalize_sig(sig)[:120]}","expected":f"header={normalize_sig(ast_sig)[:120]}"})
+                status="FAIL"
         # Check header exists
         if hdr and not (repo / hdr).exists():
             findings.append({"id":"API-BAD-HEADER","severity":"P1","file":str(api_csv),"line":i,"symbol":sym,"header":hdr,"observed":"header not found","expected":"exists"})
@@ -80,7 +123,8 @@ def main():
         findings.append({"id":"API-COUNT-LOW","severity":"P1","symbol":"count","observed":f"{len(rows)} < 300","expected":"≥300"})
         status="FAIL"
 
-    result = {"tool":"check_api_contracts","status":status,"rows":len(rows),"ast_symbols":len(ast_syms),"findings":findings,"passed": status=="PASS"}
+    result = {"tool":"check_api_contracts","status":status,"rows":len(rows),"ast_symbols":len(ast_syms),"findings":findings,"passed": status=="PASS",
+              "coverage":{"compared_rows": len(rows) - sum(1 for f in findings if f["id"] in ("API-EMPTY-SYM","API-EMPTY-SIG","API-MISSING-AST")), "basis": "normalized-text + arity vs extract_cpp_api.py header measurement"}}
     if args.out_json:
         pathlib.Path(args.out_json).parent.mkdir(parents=True, exist_ok=True)
         pathlib.Path(args.out_json).write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")

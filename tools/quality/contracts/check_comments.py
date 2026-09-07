@@ -23,11 +23,12 @@ def main():
     repo = pathlib.Path(args.repo)
     findings = []
     status = "PASS"
-    # Scan source files in lib/*/src/**/*.cpp
+    # Scan source files in lib/**/*.cpp|*.h|*.hpp
     srcs = list((repo / "lib").rglob("*.cpp")) + list((repo / "lib").rglob("*.h")) + list((repo / "lib").rglob("*.hpp"))
     # Exclude third_party
     srcs = [p for p in srcs if "third_party" not in str(p) and "archive" not in str(p)]
-    for src in srcs[:50]:  # Check first 50 for performance
+    total = len(srcs)
+    for src in srcs:  # 全量扫描: 不允许静默截断(原实现只扫前 50 个文件, 属恒 PASS 空转)
         text = src.read_text(encoding="utf-8", errors="ignore")
         # Extract comments
         comments = re.findall(r'//.*|/\*.*?\*/', text, re.S)
@@ -48,7 +49,7 @@ def main():
     # Additional: check that no source file claims wrong thread model (e.g., says parallel but is serial)
     # Heuristic: if doc says parallel but source has OFF, that's already covered in EXEC checker; skip here
 
-    result = {"tool":"check_comments","status":status,"files_scanned":len(srcs[:50]),"findings":findings,"passed": status=="PASS"}
+    result = {"tool":"check_comments","status":status,"files_scanned":total,"coverage":{"scanned":total,"total":total,"ratio":1.0,"mode":"full"},"findings":findings,"passed": status=="PASS"}
     if args.out_json:
         pathlib.Path(args.out_json).parent.mkdir(parents=True, exist_ok=True)
         pathlib.Path(args.out_json).write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -57,7 +58,7 @@ def main():
     if args.out_junit:
         pathlib.Path(args.out_junit).parent.mkdir(parents=True, exist_ok=True)
         failures = len([f for f in findings if f["severity"] in ("P0","P1")])
-        junit = f'<testsuite name="check_comments" tests="{len(srcs[:50])}" failures="{failures}"><testcase classname="comments" name="hygiene"/></testsuite>'
+        junit = f'<testsuite name="check_comments" tests="{total}" failures="{failures}"><testcase classname="comments" name="hygiene"/></testsuite>'
         pathlib.Path(args.out_junit).write_text(junit, encoding="utf-8")
     return 0 if status=="PASS" else 1
 

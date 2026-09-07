@@ -59,12 +59,19 @@ def validate(root: pathlib.Path, index_path: pathlib.Path) -> list[str]:
         for dep in c.get("upstream", []) + c.get("downstream", []):
             if dep not in by_id:
                 errors.append(f"{cid}: 悬空引用 {dep}")
-    # 双向一致性: downstream 反向必须出现在 upstream
+    # 双向一致性 (两个方向都必须成立, 单方向断言会漏检半边):
+    #   (a) downstream 方向: X.downstream 含 Y  =>  Y.upstream 必须含 X;
+    #   (b) upstream 方向:   X.upstream 含 Y    =>  Y.downstream 必须含 X。
     for c in contracts:
         cid = c["id"]
         for d in c.get("downstream", []):
             if cid not in by_id.get(d, {}).get("upstream", []):
                 errors.append(f"{cid}: downstream {d} 未在 {d}.upstream 反向声明")
+        for u in c.get("upstream", []):
+            if cid not in by_id.get(u, {}).get("downstream", []):
+                errors.append(
+                    f"{cid}: upstream {u} 未在 {u}.downstream 回写 "
+                    f"(半边: 仅 {cid} 单向引用)" )
     # ACTIVE 不得依赖 OBSOLETE/CONFLICT
     for c in contracts:
         if c.get("status") == "ACTIVE":
@@ -88,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if errors:
         print(f"CONTRACT_GRAPH_FAIL ({len(errors)}):")
-        for e in errors[:30]:
+        for e in errors:  # 全量输出: 验收日志必须包含完整违反清单, 不允许截断
             print(" ", e)
         return 1
     n = len(load_index((root / args.index) if not args.index.is_absolute() else args.index).get("contracts", []))
