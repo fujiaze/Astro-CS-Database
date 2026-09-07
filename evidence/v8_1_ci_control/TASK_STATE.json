@@ -45,9 +45,9 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 55,
+  "CLOSED": 56,
   "READY": 13,
-  "NOT_STARTED": 121,
+  "NOT_STARTED": 120,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
@@ -1732,15 +1732,15 @@
   },
   "P1-HIPS-DOC": {
    "owner": "SA-P1-D18",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "943b023a",
+   "evidence_path": "lib/hips/; docs/algorithms/HIPS_WRITER.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json",
+   "source_of_status": "fg_verified_commit",
    "wave": "W1",
    "kind": "module-doc",
    "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "current_evidence": "commit:943b023a traceability 27行0错 + pytest 4P + contract_graph 37 + doc_index PASS + selfcheck 87/0 ALL_PASS",
+   "note": "module-doc 冻结; 缺陷清单 DISP-HIPS-001..012 归 P1-HIPS-IMPL/INT; SCI 未动; registry 无 descriptor entrypoint=MISSING; gen_module_readmes.py 覆写风险已提示"
   },
   "P1-HIPS-TEST": {
    "owner": "SA-P1-D18",
