@@ -674,7 +674,7 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     if (!ok) return astrocs::INPUT;
     // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
     nlohmann::json cfg_doc;
-    const int vrc2 = validate_config_full(cfg, &cfg_doc);
+    const int vrc2 = validate_config_full(cfg, &cfg_doc, /*session_mode=*/true);
     if (vrc2 != astrocs::OK) return vrc2;
 
     // RT-008: phase2 走 Runtime 单 phase IR 子图（与 run --phases 2 同一路径）。
@@ -774,7 +774,7 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     if (!ok) return astrocs::INPUT;
     // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
     nlohmann::json cfg_doc3;
-    const int vrc3 = validate_config_full(cfg, &cfg_doc3);
+    const int vrc3 = validate_config_full(cfg, &cfg_doc3, /*session_mode=*/true);
     if (vrc3 != astrocs::OK) return vrc3;
 
     // RT-008: phase3 走 Runtime 单 phase IR 子图（与 run --phases 3 同一路径）。
@@ -873,7 +873,7 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     if (!ok) return astrocs::INPUT;
     // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
     nlohmann::json cfg_doc1;
-    const int vrc1 = validate_config_full(cfg, &cfg_doc1);
+    const int vrc1 = validate_config_full(cfg, &cfg_doc1, /*session_mode=*/true);
     if (vrc1 != astrocs::OK) return vrc1;
 
     // RT-008: phase1 走 Runtime 单 phase IR 子图（与 run --phases 1 同一路径，不是第二条）。

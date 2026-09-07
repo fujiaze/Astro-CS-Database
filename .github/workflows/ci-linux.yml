@@ -23,6 +23,11 @@ jobs:
   linux:
     runs-on: ubuntu-24.04
     timeout-minutes: 330
+    env:
+      # V8.1-CI：cmd_test_synthetic 的 unit 门二进制目录重定向
+      # （默认 build/root-cmake/tests/unit 为 V6.1 布局，hosted 无此树）。
+      # 仅被 astrocs test synthetic 读取；相对路径按进程 cwd=仓库根解析。
+      ASTROCS_TEST_BIN_DIR: build/linux-control/tests/unit
     steps:
       - name: Checkout exact SHA
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (ci/actions.lock.json)
@@ -39,6 +44,7 @@ jobs:
         shell: bash
         run: python3 ci/select_profile.py --event "$GITHUB_EVENT_NAME" --requested "${{ inputs.profile }}" >> "$GITHUB_OUTPUT"
       - name: Install linux-main python deps (numpy for UT-IO)
+        if: steps.profile.outputs.profile == 'linux-main'
         shell: bash
         run: |
           set -euo pipefail
@@ -49,10 +55,56 @@ jobs:
           # tests/io 全量 imports 实读：第三方依赖仅 numpy（其余为 stdlib 与
           # 仓库本地模块 fits_verify/hips_output_store/make_hips_fixture）。
           # 仅装验证侧 fixture 依赖，不联网拉任何业务依赖；apt 双超时保护。
+          # V8.1-CI（本批次）：追加 python3-astropy——tests/io/make_hips_fixture.py
+          # Moc.fits 段是 try-import（缺 astropy 时静默不写 Moc.fits），UT-IO
+          # 的 MOC 断言用例在 hosted 镜像缺 astropy 时必然 FAIL；
+          # 追加 nlohmann-json3-dev——UT-BACKEND abi_loader/backend_loader.cpp
+          # 系统头 `#include <nlohmann/json.hpp>`（third_party/nlohmann 仅根图
+          # CMake include 路径，tests 自编译 g++ 直调不含该路径），hosted 镜像
+          # 无此包 → 7 tests 编译 assert 失败。
           timeout 240 sudo apt-get update -qq
           timeout 480 sudo DEBIAN_FRONTEND=noninteractive \
-            apt-get install -y -qq --no-install-recommends python3-numpy
-          python3 -c "import numpy; print('numpy ready:', numpy.__version__)"
+            apt-get install -y -qq --no-install-recommends \
+            python3-numpy python3-astropy nlohmann-json3-dev
+          python3 -c "import numpy, astropy; print('numpy ready:', numpy.__version__, '/ astropy ready:', astropy.__version__)"
+          test -f /usr/include/nlohmann/json.hpp
+      - name: Prepare linux-main run/temp fixtures
+        if: steps.profile.outputs.profile == 'linux-main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # V8.1-CI：UT-BACKEND p1004 联合门读 run/temp/mon001_cfg.json（V6.1
+          # 手工 MON-001 残留，从无入库/生成方 → hosted 恒缺失，test_02/03 必
+          # FAIL）；p1004 workload 顶层 run 走 phase3，需 HiPS fixture。
+          # ci/prepare_linux_fixtures.py 用仓库 vendored AIO/healpix 源自编译
+          # fixture 生成 FIELD.hips + V1 顶层 config（不联网拉业务数据）；
+          # f1f2/p2006 族 fixture 由 tests/backend/fixture_common.ensure_f1f2_hips
+          # 自举（无需此步）。
+          timeout 600 python3 ci/prepare_linux_fixtures.py
+      - name: Build root graph for UT-BACKEND/UT-CLI build-tree gates
+        if: steps.profile.outputs.profile == 'linux-main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # V8.1-CI：UT-CLI test_cli_single_install（BLD-002 后）扫描根图构建树
+          # build/{astrocs,libastrocs_runtime.so}；UT-BACKEND p1004/p2006/p3006
+          # 调 build/astrocs 顶层入口；cli 子图 build/cli/astrocs 供 phaseN run
+          # in-process 测试。linux-control preset（Unix Makefiles, 测试 ON）。
+          # 这是验证侧构建树，非发布产物面（BLD-002 install 白名单不受影响）。
+          timeout 2400 cmake --preset linux-control
+          timeout 2400 cmake --build build/linux-control -j 2 --target astrocs
+          # UT-BACKEND p2006 族 `astrocs test synthetic` 依赖 unit 门二进制；
+          # cmd_test_synthetic 默认找 build/root-cmake/tests/unit（V6.1 布局），
+          # linux-control 树在 build/linux-control/tests/unit → job env
+          # ASTROCS_TEST_BIN_DIR 重定向（仅 cmd_test_synthetic 读取，无副作用面）。
+          timeout 1200 cmake --build build/linux-control -j 2 \
+            --target p1_ir_facade_test p2_upm_synthetic_test
+          # cli 子图 build/cli/astrocs 供 phaseN in-process 测试（UT-CLI 面 EXE）
+          mkdir -p build/cli && cmake -S cli -B build/cli -DCMAKE_BUILD_TYPE=Release \
+            -DASTROCS_ENABLE_ACR=OFF >/dev/null
+          timeout 2400 cmake --build build/cli -j 2 --target astrocs
+          mkdir -p build && cp -f build/linux-control/astrocs build/astrocs
+          ./build/astrocs version --json && ./build/cli/astrocs version --json
       - name: Install deep coverage tools
         if: steps.profile.outputs.profile == 'linux-deep'
         shell: bash
