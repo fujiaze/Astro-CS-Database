@@ -54,7 +54,7 @@ struct ProfileBundle {
 };
 
 /* 生成 v2 profile。mode: "quick"(1 代表 kernel medium) | "full"(12 kernel × 3 规模)。
- * build_id: "0.10.0-alpha.2+g<hash12>"; commit: 40hex; cli_sha256: 运行二进制实测。
+ * build_id: "X.Y.Z[-pre]+g<hash12>"(纯 base 版本由调用方派生, 单源 VER-001); commit: 40hex; cli_sha256: 运行二进制实测。
  * backends_dir: 含 backends.manifest.json 与 provider DSO 的目录(空=仅内置 baseline)。
  * reentrant=yes; threadsafe=no(串行测量)。 */
 ProfileBundle generate_profile_v2(const std::string& mode, const std::string& build_id,
@@ -63,7 +63,9 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
                                   const std::string& backends_dir);
 
 /* 独立复读: 解析并校验 v2 profile 文本。返回 "" 表示合法, 否则返回错误描述。
- * 校验: schema/必填字段/版本/commit/指纹/workers/block/median 合理性。
+ * 校验: schema/必填字段/版本格式/commit/指纹/workers/block/median 合理性。
+ * astrocs_version 仅做 semver 形态校验(N3, 不钉死版本字面量); build 绑定语义由
+ * expected_commit(source_commit)与 benchmark_binary_sha256 等指纹承担。
  * expected_commit 非空时须匹配 build.source_commit。 */
 std::string verify_profile_v2(const std::string& json_text,
                               const std::string& expected_commit);

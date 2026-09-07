@@ -568,7 +568,9 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
     };
     nlohmann::json provider_ids = nlohmann::json::object();
     for (const auto& p : providers) provider_ids[p.id] = p.ok ? "loaded" : p.fail_reason;
-    // astrocs_version: schema const 要求纯 "0.10.0-alpha.2"(去 +g<hash> 后缀)
+    // astrocs_version: 记录纯 base 版本(去 +g<hash> 后缀; 来源 ASTROCS_VERSION_STRING
+    // → build_id, 版本单源 VER-001)。verify 侧仅做 semver 形态格式校验, 不钉死版本
+    // 字面量(N3: 字面量比较在版本 bump 后令自生成 profile 恒 verify 失败)。
     std::string ver = build_id;
     const auto plus = ver.find('+');
     if (plus != std::string::npos) ver = ver.substr(0, plus);
@@ -604,6 +606,37 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
     return bundle;
 }
 
+namespace {
+// N3: astrocs_version 仅做 semver 形态格式校验 ^\d+\.\d+\.\d+[-+.0-9A-Za-z]*$。
+// 版本与 build 的绑定语义(约束 C.7)由 source_commit==expected_commit +
+// benchmark_binary_sha256 + runtime_build_id + provider_build_ids 承担(全部保留);
+// base 版本由 source_commit 唯一决定(VERSION 为 git 跟踪单源), 版本字面量比较是
+// commit 校验的冗余子集, 且每次版本 bump 后令自生成 profile 恒 verify 失败
+// (N3: CPU-005 路由 select 正路径静默失活) —— 故不再钉死具体版本。
+bool valid_semver_base(const std::string& v) {
+    size_t i = 0;
+    for (int seg = 0; seg < 3; ++seg) {
+        const size_t start = i;
+        while (i < v.size() && v[i] >= '0' && v[i] <= '9') ++i;
+        if (i == start) return false;                    // 每段至少 1 位数字
+        if (seg < 2) {
+            if (i >= v.size() || v[i] != '.') return false;
+            ++i;
+        }
+    }
+    if (i < v.size()) {
+        if (v[i] != '-' && v[i] != '+') return false;    // 仅允许 -pre / +meta 后缀
+        for (++i; i < v.size(); ++i) {
+            const char c = v[i];
+            const bool ok = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') ||
+                            (c >= 'A' && c <= 'Z') || c == '.' || c == '-' || c == '+';
+            if (!ok) return false;
+        }
+    }
+    return true;
+}
+}  // namespace
+
 std::string verify_profile_v2(const std::string& json_text, const std::string& expected_commit) {
     nlohmann::json d;
     try {
@@ -629,8 +662,8 @@ std::string verify_profile_v2(const std::string& json_text, const std::string& e
                           "runtime_build_id", "provider_build_ids"}) {
         if (!bd.contains(k) || bd[k].is_null()) return std::string("build missing '") + k + "'";
     }
-    if (bd.value("astrocs_version", "") != "0.10.0-alpha.2")
-        return "build.astrocs_version != 0.10.0-alpha.2";
+    if (!valid_semver_base(bd.value("astrocs_version", "")))
+        return "build.astrocs_version not semver-like (X.Y.Z[-pre][+meta])";
     const std::string sc = bd.value("source_commit", "");
     if (sc.size() != 40 || sc.find_first_not_of("0123456789abcdef") != std::string::npos)
         return "build.source_commit not 40hex";

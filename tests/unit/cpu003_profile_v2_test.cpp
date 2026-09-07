@@ -30,7 +30,8 @@ static int failures = 0;
 int main() {
   // 1) quick profile 生成: v2 字段完整
   {
-    std::string build_id = "0.10.0-alpha.2+gabcdef123456";
+    // 合成 build_id 用中性占位版本, 与任何具体发布版本解耦(N3: verify 不钉死版本)
+    std::string build_id = "0.0.0-alpha.0+gabcdef123456";
     std::string commit = "abcdef1234567890abcdef1234567890abcdef12";
     std::string cli_sha = std::string(64, 'a');
     auto pb = astrocs::backend_host::generate_profile_v2("quick", build_id, commit, cli_sha, "");
@@ -66,7 +67,7 @@ int main() {
 
   // 2) 复读正例: 生成的 profile 可被独立 verify 通过
   {
-    std::string build_id = "0.10.0-alpha.2+gabcdef123456";
+    std::string build_id = "0.0.0-alpha.0+gabcdef123456";
     std::string commit = "abcdef1234567890abcdef1234567890abcdef12";
     std::string cli_sha = std::string(64, 'b');
     auto pb = astrocs::backend_host::generate_profile_v2("quick", build_id, commit, cli_sha, "");
@@ -83,6 +84,33 @@ int main() {
         : pb.json;
     const std::string err3 = astrocs::backend_host::verify_profile_v2(bad, commit);
     CHECK(!err3.empty());
+  }
+
+  // 2b) astrocs_version 仅格式校验(N3): 非法形态必须拒; 任意合法版本(含非本构建
+  //     字面量)必须过 —— 版本不再钉死, build 绑定由 source_commit 校验承担。
+  {
+    const std::string build_id = "0.0.0-alpha.0+gabcdef123456";
+    const std::string commit = "abcdef1234567890abcdef1234567890abcdef12";
+    auto pb = astrocs::backend_host::generate_profile_v2("quick", build_id, commit,
+                                                         std::string(64, 'c'), "");
+    const std::string orig = "\"astrocs_version\": \"0.0.0-alpha.0\"";
+    const auto pos = pb.json.find(orig);
+    CHECK(pos != std::string::npos);
+    auto tamper = [&](const std::string& v) {
+      const std::string repl = "\"astrocs_version\": \"" + v + "\"";
+      return pb.json.substr(0, pos) + repl + pb.json.substr(pos + orig.size());
+    };
+    // 非法形态 → 拒
+    CHECK(!astrocs::backend_host::verify_profile_v2(tamper("not-a-version"), commit).empty());
+    CHECK(!astrocs::backend_host::verify_profile_v2(tamper("1.2"), commit).empty());
+    CHECK(!astrocs::backend_host::verify_profile_v2(tamper(""), commit).empty());
+    CHECK(!astrocs::backend_host::verify_profile_v2(tamper("1.2.x.3"), commit).empty());
+    CHECK(!astrocs::backend_host::verify_profile_v2(tamper("1.2.3 bad"), commit).empty());
+    // 任意合法 semver(非本构建字面量) → 过 (N3 核心语义)
+    CHECK(astrocs::backend_host::verify_profile_v2(tamper("99.99.99-alpha.9"), commit).empty());
+    CHECK(astrocs::backend_host::verify_profile_v2(tamper("0.11.0-alpha.2"), commit).empty());
+    CHECK(astrocs::backend_host::verify_profile_v2(tamper("0.0.0-alpha.0+gabcdef123456"),
+                                                   commit).empty());
   }
 
   // 3) worker 候选: {1, 中位, 全部} 派生(avail=2 → {1,2})
