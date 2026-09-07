@@ -159,6 +159,12 @@ typedef struct {
     uint8_t *mmap_data;
     size_t mmap_size;
     BlockCache block_cache;  /* 解压块缓存 (保留到关闭) */
+#ifdef _WIN32
+    CRITICAL_SECTION bc_lock;   /* B4-P1-2: block_cache 互斥锁 */
+#else
+    pthread_mutex_t bc_lock;    /* B4-P1-2: block_cache 互斥锁 */
+#endif
+    int bc_lock_ok;
 } XPSDFileInternal;
 
 struct GaiaClient {
@@ -211,6 +217,27 @@ typedef struct {
 } PhotometryStarCollector;
 
 /* ===== 缓存辅助函数 ===== */
+
+/* B4-P1-2: block_cache 锁封装。
+ * 合同 docs/algorithms/GAIA_QUERY.md §4 单写者约定原本依赖
+ * "并行轴=文件, 每文件仅单线程访问 block_cache"; 但 match 类查询
+ * (gaia_client_query_spectrum_by_coords 等) 并行轴=坐标, 多线程并发
+ * 读写同一文件的 block_cache (lookup 写 last_access / insert 淘汰+free /
+ * 哈希表结构写) = 无同步数据竞争 (UAF)。修复: block_cache 读写全部
+ * 持 per-file 锁; 解压缓冲使用调用方线程局部 scratch, 不共享。 */
+#ifdef _WIN32
+typedef CRITICAL_SECTION BcLock;
+static int bc_lock_init(BcLock *l)       { InitializeCriticalSection(l); return 0; }
+static void bc_lock_destroy(BcLock *l)   { DeleteCriticalSection(l); }
+static void bc_lock_acquire(BcLock *l)   { EnterCriticalSection(l); }
+static void bc_lock_release(BcLock *l)   { LeaveCriticalSection(l); }
+#else
+typedef pthread_mutex_t BcLock;
+static int bc_lock_init(BcLock *l)       { return pthread_mutex_init(l, NULL); }
+static void bc_lock_destroy(BcLock *l)   { pthread_mutex_destroy(l); }
+static void bc_lock_acquire(BcLock *l)   { pthread_mutex_lock(l); }
+static void bc_lock_release(BcLock *l)   { pthread_mutex_unlock(l); }
+#endif
 
 static void cache_lock(GaiaClient *client) {
     if (client->cache_lock_initialized) {
@@ -293,8 +320,8 @@ static uint32_t block_hash(uint64_t key) {
     return (uint32_t)(h & BLOCK_CACHE_MASK);
 }
 
-/* 查找解压块缓存, 命中返回指针, 未命中返回NULL */
-static uint8_t *block_cache_lookup(BlockCache *bc, uint64_t block_offset, uint32_t *data_size) {
+/* 查找解压块缓存 (B4-P1-2: 无锁内核, 前提=调用方已持 xf->bc_lock), 命中返回指针, 未命中返回NULL */
+static uint8_t *block_cache_lookup_locked(BlockCache *bc, uint64_t block_offset, uint32_t *data_size) {
     if (!bc->entries) return NULL;
     uint32_t idx = block_hash(block_offset);
     for (int probe = 0; probe < bc->capacity; probe++) {
@@ -309,10 +336,20 @@ static uint8_t *block_cache_lookup(BlockCache *bc, uint64_t block_offset, uint32
     return NULL;
 }
 
-/* 插入解压块缓存 */
-static void block_cache_insert(BlockCache *bc, uint64_t block_offset,
-                                const uint8_t *data, uint32_t data_size) {
-    if (!bc->entries || data_size == 0) return;
+/* 查找解压块缓存 (B4-P1-2: 持 xf->bc_lock) */
+static uint8_t *block_cache_lookup(XPSDFileInternal *xf, uint64_t block_offset, uint32_t *data_size) {
+    uint8_t *result = NULL;
+    if (xf->bc_lock_ok) bc_lock_acquire(&xf->bc_lock);
+    result = block_cache_lookup_locked(&xf->block_cache, block_offset, data_size);
+    if (xf->bc_lock_ok) bc_lock_release(&xf->bc_lock);
+    return result;
+}
+
+/* 插入解压块缓存 (B4-P1-2: 无锁内核, 前提=调用方已持 xf->bc_lock)。
+ * 返回: 成功=缓存内副本指针 (锁保护下读取安全); 失败=NULL (调用方回退 scratch) */
+static uint8_t *block_cache_insert_locked(BlockCache *bc, uint64_t block_offset,
+                                           const uint8_t *data, uint32_t data_size) {
+    if (!bc->entries || data_size == 0) return NULL;
 
     /* 内存压力检查: 超限则淘汰最旧的1/4 */
     if (bc->total_memory + data_size > BLOCK_CACHE_MAX_MEMORY || check_memory_pressure()) {
@@ -346,7 +383,7 @@ static void block_cache_insert(BlockCache *bc, uint64_t block_offset,
         if (bc->entries[i].block_offset == 0) {
             /* 空槽, 插入 */
             uint8_t *copy = (uint8_t *)malloc(data_size);
-            if (!copy) return;
+            if (!copy) return NULL;
             memcpy(copy, data, data_size);
             bc->entries[i].block_offset = block_offset;
             bc->entries[i].data = copy;
@@ -354,14 +391,14 @@ static void block_cache_insert(BlockCache *bc, uint64_t block_offset,
             bc->entries[i].last_access = time(NULL);
             bc->count++;
             bc->total_memory += data_size;
-            return;
+            return copy;
         }
         if (bc->entries[i].block_offset == block_offset) {
-            /* 已存在, 更新 */
+            /* 已存在, 更新 (B4-P1-2: 返回缓存内权威副本, 调用方不得读 scratch 旧数据) */
             if (bc->entries[i].data_size == data_size) {
                 memcpy(bc->entries[i].data, data, data_size);
                 bc->entries[i].last_access = time(NULL);
-                return;
+                return bc->entries[i].data;
             }
             /* 大小不同, 替换 */
             free(bc->entries[i].data);
@@ -372,7 +409,7 @@ static void block_cache_insert(BlockCache *bc, uint64_t block_offset,
                 bc->entries[i].block_offset = 0;
                 bc->entries[i].data_size = 0;
                 bc->count--;
-                return;
+                return NULL;
             }
             memcpy(copy, data, data_size);
             bc->total_memory -= bc->entries[i].data_size;
@@ -380,10 +417,21 @@ static void block_cache_insert(BlockCache *bc, uint64_t block_offset,
             bc->entries[i].data_size = data_size;
             bc->entries[i].last_access = time(NULL);
             bc->total_memory += data_size;
-            return;
+            return copy;
         }
     }
     /* 哈希表满, 不插入 */
+    return NULL;
+}
+
+/* 插入解压块缓存 (B4-P1-2: 持 xf->bc_lock) */
+static uint8_t *block_cache_insert(XPSDFileInternal *xf, uint64_t block_offset,
+                                    const uint8_t *data, uint32_t data_size) {
+    uint8_t *result = NULL;
+    if (xf->bc_lock_ok) bc_lock_acquire(&xf->bc_lock);
+    result = block_cache_insert_locked(&xf->block_cache, block_offset, data, data_size);
+    if (xf->bc_lock_ok) bc_lock_release(&xf->bc_lock);
+    return result;
 }
 
 /* ===== 查询结果缓存函数 ===== */
@@ -810,7 +858,13 @@ static uint32_t find_max_block_size(QTNode *nodes, int node_count) {
     return max_bs;
 }
 
-/* ===== 修改后的read_leaf_block: 优先查缓存 ===== */
+/* ===== 修改后的read_leaf_block: 优先查缓存 =====
+ * B4-P1-2: 所有 block_cache 访问持 xf->bc_lock (见文件头注释)。
+ * 插入成功返回缓存内权威副本; 插入失败返回线程私有 scratch。
+ * 注: 持锁只消除缓存结构性竞争 (free/memcpy/哈希表写); 调用方拿到
+ * 返回指针后的读取窗口内, 并发淘汰仍可能释放该块 —— 这是缓存所有权
+ * 设计的固有语义, 与单写者时代一致 (命中返回的指针同样可被淘汰),
+ * 不在本修复范围内放大或缩小。 */
 static uint8_t *read_leaf_block(XPSDFileInternal *xf, uint64_t block_offset,
                                  uint32_t compressed_size, uint32_t block_size,
                                  uint8_t *scratch) {
@@ -818,7 +872,7 @@ static uint8_t *read_leaf_block(XPSDFileInternal *xf, uint64_t block_offset,
 
     /* 1. 查解压块缓存 */
     uint32_t cached_size = 0;
-    uint8_t *cached = block_cache_lookup(&xf->block_cache, block_offset, &cached_size);
+    uint8_t *cached = block_cache_lookup(xf, block_offset, &cached_size);
     if (cached && cached_size == block_size) {
         return cached;  /* 缓存命中, 直接返回 */
     }
@@ -847,13 +901,12 @@ static uint8_t *read_leaf_block(XPSDFileInternal *xf, uint64_t block_offset,
             byte_unshuffle(scratch, block_size, xf->item_size);
     }
 
-    /* 3. 存入解压块缓存 */
-    block_cache_insert(&xf->block_cache, block_offset, scratch, block_size);
-
-    /* 4. 返回缓存中的数据 (确保后续读的是缓存指针) */
-    cached = block_cache_lookup(&xf->block_cache, block_offset, &cached_size);
-    if (cached && cached_size == block_size) {
-        return cached;
+    /* 3. 存入解压块缓存, 返回缓存内权威副本 (B4-P1-2: 锁内完成插入+取指针,
+     *    消除"insert后并发重查"窗口; 修复前 re-lookup 可能拿到其他线程
+     *    淘汰中的条目) */
+    uint8_t *authoritative = block_cache_insert(xf, block_offset, scratch, block_size);
+    if (authoritative) {
+        return authoritative;
     }
 
     return scratch;  /* 回退: 返回scratch (缓存插入失败时) */
@@ -992,15 +1045,26 @@ static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
         tree_search = tree_tag + 4;
     }
 
-    /* 初始化解压块缓存 */
+    /* 初始化解压块缓存 (B4-P1-2: Win 侧锁初始化无失败语义) */
     block_cache_init(&xf->block_cache);
+#ifdef _WIN32
+    bc_lock_init(&xf->bc_lock);
+    xf->bc_lock_ok = 1;
+#else
+    xf->bc_lock_ok = (bc_lock_init(&xf->bc_lock) == 0);
+#endif
 
     return 0;
 }
 
 static void close_xpsd_file(XPSDFileInternal *xf) {
-    /* 释放解压块缓存 */
+    /* 释放解压块缓存 (B4-P1-2: 先锁再释放, 期间无其他线程可访问;
+     * OpenMP 区结束即隐式 barrier, 所有工作线程已汇合) */
+    if (xf->bc_lock_ok) bc_lock_acquire(&xf->bc_lock);
     block_cache_free(&xf->block_cache);
+    if (xf->bc_lock_ok) bc_lock_release(&xf->bc_lock);
+    if (xf->bc_lock_ok) bc_lock_destroy(&xf->bc_lock);
+    xf->bc_lock_ok = 0;
 
     for (int t = 0; t < xf->tree_count; t++) {
         if (xf->trees[t].nodes) free(xf->trees[t].nodes);
@@ -1080,18 +1144,24 @@ static void spec_collector_push(SpectrumStarCollector *sc, double ra, double dec
     if (sc->count >= sc->capacity) {
         int new_cap = sc->capacity * 2;
         if (new_cap == 0) new_cap = 16;
+        /* B4-P1-3: realloc 返回值是旧 stars 缓冲的唯一引用。旧指针在 realloc
+         * 调用后立即失效, 必须马上提交到 sc->stars (单一所有权)。修复前:
+         * spectra realloc 失败路径 free(new_stars) —— 此时 new_stars 是唯一
+         * 存活引用, 而 sc->stars 已悬垂, 后续 spec_collector_free(sc->stars)
+         * = double free。修复后: 失败路径不 free 任何块, 仅暂不提升 capacity
+         * (stars 多占一倍内存, 由 spec_collector_free 统一释放, 无泄漏无重放) */
         SpectrumStar *new_stars = (SpectrumStar *)realloc(sc->stars, (size_t)new_cap * sizeof(SpectrumStar));
-        if (!new_stars) return;
-        uint8_t *new_spectra = NULL;
+        if (!new_stars) return;  /* realloc 失败: 旧块未动, sc->stars 仍有效 */
+        sc->stars = new_stars;   /* 立即转移所有权 */
         if (sc->spectrum_count > 0) {
-            new_spectra = (uint8_t *)realloc(sc->spectra, (size_t)new_cap * sc->spectrum_count);
+            uint8_t *new_spectra = (uint8_t *)realloc(sc->spectra, (size_t)new_cap * sc->spectrum_count);
             if (!new_spectra) {
-                free(new_stars);
+                /* spectra 扩容失败: sc->spectra 仍指旧有效块, capacity 不提升,
+                 * 本条不入队; 下次 push 自动重试扩容 */
                 return;
             }
+            sc->spectra = new_spectra;
         }
-        sc->stars = new_stars;
-        sc->spectra = new_spectra;
         sc->capacity = new_cap;
     }
     sc->stars[sc->count].ra = ra;

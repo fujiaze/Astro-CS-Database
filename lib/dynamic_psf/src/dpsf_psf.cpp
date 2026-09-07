@@ -187,6 +187,18 @@ static int lm_solve(int m, int n, double* x, void* userdata,
     return DPSF_FIT_ITERATION_LIMIT;
 }
 
+// B4-P1-1: NaN-safe 全序比较器 (严格弱序)。
+// 有限值上与 a < b 逐位等价 (正常路径行为零变化); NaN 视为最大, 排在末尾。
+// 保证含 NaN 输入时 std::sort 不再违反严格弱序 (否则 UB), NaN 永不参与
+// a<b 语义比较。注意: NaN 本身仍不应进入统计——上游采样阶段已过滤 (见下)。
+static bool dpsf_nan_safe_less(double a, double b) {
+    const bool a_nan = std::isnan(a);
+    const bool b_nan = std::isnan(b);
+    if (!a_nan && !b_nan) return a < b;   // 与原排序语义完全一致
+    if (a_nan && b_nan) return false;     // NaN ~ NaN 等价
+    return a_nan;                          // NaN > 任何有限值
+}
+
 static double compute_trimmed_mad(const SamplePixel* samples, int m, const double* params) {
     double B = params[0], A = params[1], x0 = params[2], y0 = params[3];
     double sx = params[4], sy = params[5], theta = params[6];
@@ -209,7 +221,7 @@ static double compute_trimmed_mad(const SamplePixel* samples, int m, const doubl
         abs_res[i] = std::abs(samples[i].val - model);
     }
 
-    std::sort(abs_res.begin(), abs_res.end());
+    std::sort(abs_res.begin(), abs_res.end(), dpsf_nan_safe_less);
     int lo = static_cast<int>(m * 0.1);
     int hi = static_cast<int>(m * 0.9);
     if (lo >= hi) return abs_res[m / 2];
@@ -243,25 +255,44 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
         return DPSF_FIT_INVALID_PARAMS;
     }
 
+    // B4-P1-1: 采样阶段过滤非有限像素 (NaN/Inf, 含坏像元标记)。
+    // NaN 不得进入后续 median/MAD 统计与 LM 拟合 (统计语义污染), 也不得
+    // 进入任何 std::sort (比较语义)。跳过计数登记到日志, 不改变有限样本路径。
+    int n_nonfinite = 0;
     std::vector<SamplePixel> samples;
     samples.reserve((std::size_t)rw * (std::size_t)rh);
     for (int y = rect_y0; y < rect_y1; y++) {
         for (int x = rect_x0; x < rect_x1; x++) {
+            double v = static_cast<double>(image[y * width + x]);
+            if (!std::isfinite(v)) {
+                ++n_nonfinite;
+                continue;
+            }
             SamplePixel sp;
             sp.dx = static_cast<double>(x) - cx;
             sp.dy = static_cast<double>(y) - cy;
-            sp.val = static_cast<double>(image[y * width + x]);
+            sp.val = v;
             samples.push_back(sp);
         }
     }
+    if (n_nonfinite > 0) {
+        dpsf_log(LOG_WARN, "DPSF", "Skipped %d non-finite pixels in rect [%d,%d]-[%d,%d]",
+               n_nonfinite, rect_x0, rect_y0, rect_x1, rect_y1);
+    }
     int m = static_cast<int>(samples.size());
+    if (m == 0) {
+        dpsf_log(LOG_WARN, "DPSF", "All pixels non-finite in rect [%d,%d]-[%d,%d]",
+               rect_x0, rect_y0, rect_x1, rect_y1);
+        result->status = DPSF_FIT_INVALID_PARAMS;
+        return DPSF_FIT_INVALID_PARAMS;
+    }
 
     dpsf_log(LOG_DEBUG, "DPSF", "Sampled %d pixels from rect [%d,%d]-[%d,%d], center=(%.2f,%.2f)",
            m, rect_x0, rect_y0, rect_x1, rect_y1, cx, cy);
 
     std::vector<double> vals(m);
     for (int i = 0; i < m; i++) vals[i] = samples[i].val;
-    std::sort(vals.begin(), vals.end());
+    std::sort(vals.begin(), vals.end(), dpsf_nan_safe_less);
 
     double median_val = (m % 2 == 0)
         ? (vals[m / 2 - 1] + vals[m / 2]) / 2.0
@@ -281,7 +312,7 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
 
     std::vector<double> abs_dev_lh(nh);
     for (int i = 0; i < nh; i++) abs_dev_lh[i] = std::abs(lower_half[i] - med_lh);
-    std::sort(abs_dev_lh.begin(), abs_dev_lh.end());
+    std::sort(abs_dev_lh.begin(), abs_dev_lh.end(), dpsf_nan_safe_less);
     double mad_lh = (nh % 2 == 0)
         ? (abs_dev_lh[nh / 2 - 1] + abs_dev_lh[nh / 2]) / 2.0
         : abs_dev_lh[nh / 2];
@@ -296,7 +327,7 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
     if (filtered.empty()) filtered.push_back(med_lh);
 
     int nf = static_cast<int>(filtered.size());
-    std::sort(filtered.begin(), filtered.end());
+    std::sort(filtered.begin(), filtered.end(), dpsf_nan_safe_less);
     double bkg0 = (nf % 2 == 0)
         ? (filtered[nf / 2 - 1] + filtered[nf / 2]) / 2.0
         : filtered[nf / 2];
