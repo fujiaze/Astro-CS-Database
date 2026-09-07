@@ -10,10 +10,11 @@
    issues: write；
 5. concurrency group fatduck-<head_sha||schedule> 且 cancel-in-progress false；
 6. fatduck-validate job 禁项：无 actions/checkout、run 步骤无
-   python/pip/git 词、恰一个 run 步骤（固定本地 harness 入口
-   D:\AstroCSRunner\harness\run_validation.ps1，固定 -CandidateZip/-SourceSha/
-   -ResultDir 形态，无仓库相对路径 ci/）；download-artifact 指定 run-id 与
-   github-token；upload 仅固定 publish 白名单目录（if-no-files-found: error）；
+   python/pip/git 词、恰两个 run 步骤（独立 digest 复核步 +
+   固定本地 harness 入口 D:\AstroCSRunner\harness\run_validation.ps1，固定
+   -CandidateZip/-SourceSha/-ResultDir 形态，无仓库相对路径 ci/）；
+   download-artifact 指定 run-id 与 github-token；upload 仅固定 publish
+   白名单目录（if-no-files-found: error）；
 7. 所有 uses 锁定完整 SHA 且存在于 ci/actions.lock.json；
 8. notify-owner：无 checkout、只评论单一固定 Issue（绝不新建）、变量缺失时
    结构化 skip（bash 实跑提取脚本 + mock gh CLI，两条路径）；
@@ -26,6 +27,7 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
@@ -35,6 +37,7 @@ import stat
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest import mock
 
@@ -155,21 +158,50 @@ class TestFatduckWorkflowYaml(unittest.TestCase):
             self.assertFalse(u.startswith("actions/checkout"),
                              f"fatduck-validate 出现 checkout: {u}")
         run_steps = [s for s in job["steps"] if "run" in s]
-        self.assertEqual(len(run_steps), 1,
-                         "fatduck-validate 只允许一个 run 步骤（固定 harness）")
+        self.assertEqual(len(run_steps), 2,
+                         "fatduck-validate 允许两个 run 步骤：digest 复核 + 固定 harness")
+        # 复核步在前（download 之后、harness 之前）
         script = run_steps[0]["run"]
-        self.assertFalse(re.search(r"\bpython3?\b", script),
-                         "fatduck-validate run 步骤出现 python")
-        self.assertFalse(re.search(r"\bpip3?\b", script),
-                         "fatduck-validate run 步骤出现 pip")
-        self.assertFalse(re.search(r"\bgit\b", script),
-                         "fatduck-validate run 步骤出现 git 调用")
-        self.assertNotIn("ci/", script, "fatduck-validate 出现仓库相对路径")
+        self.assertIn("Get-FileHash", script,
+                      "第一步必须是独立 digest 复核步")
         self.assertEqual(run_steps[0].get("shell"), "pwsh")
+        # harness 步仍是唯一固定入口
+        harness = run_steps[1]["run"]
+        self.assertFalse(re.search(r"\bpython3?\b", harness),
+                         "fatduck-validate run 步骤出现 python")
+        self.assertFalse(re.search(r"\bpip3?\b", harness),
+                         "fatduck-validate run 步骤出现 pip")
+        self.assertFalse(re.search(r"\bgit\b", harness),
+                         "fatduck-validate run 步骤出现 git 调用")
+        self.assertNotIn("ci/", harness, "fatduck-validate 出现仓库相对路径")
+        self.assertEqual(run_steps[1].get("shell"), "pwsh")
+
+    def test_validate_job_digest_recheck_anchored_to_selector_output(self):
+        """V8-CIQA-001 P2-GAP-3：复核步锚定 select 阶段验证链输出，fail-closed。"""
+        steps = self.doc["jobs"]["fatduck-validate"]["steps"]
+        recheck = next(s for s in steps if s.get("name", "").startswith(
+            "Verify candidate zip digest"))
+        script = recheck["run"]
+        self.assertIn("needs.select-candidate.outputs.artifact_member_sha256",
+                      script, "复核锚必须来自 select-candidate 验证链输出")
+        self.assertIn("artifact_member_sha256", script)
+        self.assertIn("Get-FileHash", script)
+        self.assertIn("throw", script,
+                      "锚缺失/格式非法/不一致必须 throw fail 本 job")
+        self.assertIn("AstroCS-candidate.zip", script)
+        # 步序：两个 download 步之后、harness 步之前
+        dl_idx = [i for i, s in enumerate(steps)
+                  if s.get("uses", "").startswith("actions/download-artifact")]
+        recheck_idx = next(i for i, s in enumerate(steps)
+                           if s.get("name", "").startswith("Verify candidate zip digest"))
+        harness_idx = next(i for i, s in enumerate(steps) if "run" in s
+                           and "run_validation.ps1" in s.get("run", ""))
+        self.assertLess(max(dl_idx), recheck_idx)
+        self.assertLess(recheck_idx, harness_idx)
 
     def test_validate_job_fixed_harness_entry_and_args(self):
         script = next(s["run"] for s in self.doc["jobs"]["fatduck-validate"]["steps"]
-                      if "run" in s)
+                       if "run" in s and "run_validation.ps1" in s["run"])
         self.assertIn("& 'D:\\AstroCSRunner\\harness\\run_validation.ps1'", script)
         self.assertIn("-CandidateZip 'D:\\AstroCSRunner\\runs\\incoming\\AstroCS-candidate.zip'",
                       script)
@@ -244,6 +276,9 @@ class TestFatduckWorkflowYaml(unittest.TestCase):
         self.assertIn("GITHUB_TOKEN", sel.get("env", {}))
         self.assertEqual(job["outputs"]["has_candidate"],
                          "${{ steps.gate.outputs.proceed }}")
+        # V8-CIQA-001 P2-GAP-3：验证链锚透传到 job outputs 供复核步消费
+        self.assertEqual(job["outputs"]["artifact_member_sha256"],
+                         "${{ steps.sel.outputs.artifact_member_sha256 }}")
 
 
 # -------------------------------------------------- select_candidate 逻辑 ----
@@ -271,40 +306,56 @@ class TestSelectCandidateLogic(unittest.TestCase):
             rc = SC.main(argv)
         return rc, out.getvalue(), err.getvalue()
 
-    def _happy_routes(self, windows_first: bool):
+    def _happy_setup(self, windows_first: bool):
+        """契约保真 mock：返回 (gh_api routes, bundle bytes)。
+
+        bundle 为真实 zip（内含 AstroCS-candidate.zip 成员），digest 由其
+        SHA256 实算；下载端点 /actions/artifacts/55/zip 返回 bundle 字节。
+        """
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            zf.writestr("AstroCS-candidate.zip", b"candidate-payload")
+        bundle = buf.getvalue()
+        bundle_digest = "sha256:" + hashlib.sha256(bundle).hexdigest()
         run_shape = {"id": 777 if windows_first else None, "name": "AstroCS Windows CI",
                      "path": ".github/workflows/ci-windows.yml",
                      "head_sha": _S, "head_branch": "main",
                      "html_url": "https://github.invalid/o/r/actions/runs/777"}
+        artifacts = {"artifacts": [
+            {"id": 55, "name": f"astrocs-windows-candidate-{_S}",
+             "digest": bundle_digest, "size_in_bytes": len(bundle),
+             "expired": False}]}
+        zip_route = {"/actions/artifacts/55/zip": (200, bundle)}
         if windows_first:
             detail = dict(run_shape, id=777)
-            return {
+            routes = {
                 # 先长后短：artifacts URL 含 "/actions/runs/777" 子串，必须先匹配
-                "/actions/runs/777/artifacts": (200, {"artifacts": [
-                    {"id": 55, "name": f"astrocs-windows-candidate-{_S}",
-                     "digest": "sha256:abc", "size_in_bytes": 1234,
-                     "expired": False}]}),
+                "/actions/runs/777/artifacts": (200, artifacts),
                 "ci-linux.yml/runs": (200, {"workflow_runs": [
                     {"id": 9, "head_sha": _S}]}),
                 "/actions/runs/777": (200, detail),
+                **zip_route,
             }
-        return {
-            "ci-windows.yml/runs": (200, {"workflow_runs": [
-                {"id": 777, "head_sha": _S, "html_url": "u"}]}),
-            "ci-linux.yml/runs": (200, {"workflow_runs": [
-                {"id": 9, "head_sha": _S}]}),
-            "/actions/runs/777/artifacts": (200, {"artifacts": [
-                {"id": 55, "name": f"astrocs-windows-candidate-{_S}",
-                 "digest": "sha256:abc", "size_in_bytes": 1234,
-                 "expired": False}]}),
-        }
+        else:
+            routes = {
+                "ci-windows.yml/runs": (200, {"workflow_runs": [
+                    {"id": 777, "head_sha": _S, "html_url": "u"}]}),
+                "ci-linux.yml/runs": (200, {"workflow_runs": [
+                    {"id": 9, "head_sha": _S}]}),
+                "/actions/runs/777/artifacts": (200, artifacts),
+                **zip_route,
+            }
+        return routes, bundle
 
     def test_workflow_run_happy_path(self):
         argv = ["--event", "workflow_run", "--head-branch", "main",
                 "--conclusion", "success", "--run-id", "777",
                 "--repository", "o/r", "--json"]
+        routes, bundle = self._happy_setup(True)
         with mock.patch.object(SC, "gh_api",
-                               side_effect=_fake_gh_api(self._happy_routes(True))):
+                               side_effect=_fake_gh_api(routes)), \
+                mock.patch.object(SC, "download_artifact_sha256",
+                                  return_value=bundle):
             rc, out, _ = self._run(argv)
         self.assertEqual(rc, 0)
         report = json.loads(out)
@@ -313,19 +364,146 @@ class TestSelectCandidateLogic(unittest.TestCase):
         self.assertEqual(report["windows_run_id"], "777")
         self.assertEqual(report["artifact_name"],
                          f"astrocs-windows-candidate-{_S}")
-        self.assertEqual(report["artifact_digest"], "sha256:abc")
-        self.assertEqual(report["artifact_size"], 1234)
+        # digest 为 bundle 实算值，且新增成员哈希锚（V8-CIQA-001 P2-GAP-3）
+        self.assertEqual(report["artifact_digest"],
+                         "sha256:" + hashlib.sha256(bundle).hexdigest())
+        self.assertTrue(report["artifact_member_sha256"].startswith("sha256:"))
+        with zipfile.ZipFile(io.BytesIO(bundle)) as zf:
+            member = zf.read("AstroCS-candidate.zip")
+        self.assertEqual(report["artifact_member_sha256"],
+                         "sha256:" + hashlib.sha256(member).hexdigest())
 
     def test_schedule_happy_path(self):
         argv = ["--event", "schedule", "--repository", "o/r", "--json"]
+        routes, bundle = self._happy_setup(False)
         with mock.patch.object(SC, "gh_api",
-                               side_effect=_fake_gh_api(self._happy_routes(False))):
+                               side_effect=_fake_gh_api(routes)), \
+                mock.patch.object(SC, "download_artifact_sha256",
+                                  return_value=bundle):
             rc, out, _ = self._run(argv)
         self.assertEqual(rc, 0)
         report = json.loads(out)
         self.assertEqual(report["verdict"], "candidate")
         self.assertEqual(report["event"], "schedule")
         self.assertEqual(report["source_sha"], _S)
+
+    # ------- V8-CIQA-001 P2-GAP-3：artifact digest 强制校验链（负向回归） -------
+
+    _WF_RUN_ARGV = ["--event", "workflow_run", "--head-branch", "main",
+                    "--conclusion", "success", "--run-id", "777",
+                    "--repository", "o/r", "--json"]
+
+    @staticmethod
+    def _bundle(members: dict) -> bytes:
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            for name, data in members.items():
+                zf.writestr(name, data)
+        return buf.getvalue()
+
+    def _artifact(self, digest) -> dict:
+        return {"id": 55, "name": f"astrocs-windows-candidate-{_S}",
+                "digest": digest, "size_in_bytes": 1234, "expired": False}
+
+    def _routes_with_artifact(self, artifact: dict, bundle):
+        routes = {
+            "ci-windows.yml/runs": (200, {"workflow_runs": [
+                {"id": 777, "head_sha": _S, "html_url": "u"}]}),
+            "ci-linux.yml/runs": (200, {"workflow_runs": [
+                {"id": 9, "head_sha": _S}]}),
+            # 先长后短：artifacts URL 含 "/actions/runs/777" 子串，必须先匹配
+            "/actions/runs/777/artifacts": (200, {"artifacts": [artifact]}),
+            "/actions/runs/777": (200, {
+                "id": 777, "name": "AstroCS Windows CI",
+                "path": ".github/workflows/ci-windows.yml",
+                "head_sha": _S, "html_url": "u"}),
+        }
+        return routes, bundle
+
+    def _run_with(self, routes, bundle=None):
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(
+                SC, "gh_api", side_effect=_fake_gh_api(routes)))
+            if bundle is not None:
+                stack.enter_context(mock.patch.object(
+                    SC, "download_artifact_sha256", return_value=bundle))
+            return self._run(self._WF_RUN_ARGV)
+
+    def test_digest_null_rejected_exit3(self):
+        """ATT-008 场景 F-a：digest=null 必须拒绝（artifact_digest_missing）。"""
+        routes, bundle = self._routes_with_artifact(self._artifact(None),
+                                                    self._bundle({}))
+        rc, out, err = self._run_with(routes, bundle)
+        self.assertEqual(rc, 3)
+        report = json.loads(out)
+        self.assertEqual(report["verdict"], "no_candidate")
+        self.assertEqual(report["reason_code"], "artifact_digest_missing")
+        self.assertIn("None", report["detail"])
+
+    def test_digest_empty_rejected_exit3(self):
+        routes, bundle = self._routes_with_artifact(self._artifact(""),
+                                                    self._bundle({}))
+        rc, out, _ = self._run_with(routes, bundle)
+        self.assertEqual(rc, 3)
+        self.assertEqual(json.loads(out)["reason_code"],
+                         "artifact_digest_missing")
+
+    def test_digest_invalid_format_rejected_exit3(self):
+        """短伪 digest（如 sha256:abc）格式非法即拒，不触发下载。"""
+        routes, bundle = self._routes_with_artifact(self._artifact("sha256:abc"),
+                                                    self._bundle({}))
+        rc, out, _ = self._run_with(routes, bundle)
+        self.assertEqual(rc, 3)
+        self.assertEqual(json.loads(out)["reason_code"],
+                         "artifact_digest_invalid")
+
+    def test_digest_forged_hex_rejected_exit3(self):
+        """ATT-008 场景 F-b：64hex 伪 digest 格式合法但内容不符 -> mismatch。"""
+        forged = "deadbeef" * 8
+        routes, bundle = self._routes_with_artifact(
+            self._artifact(forged), self._bundle({"AstroCS-candidate.zip": b"x"}))
+        rc, out, _ = self._run_with(routes, bundle)
+        self.assertEqual(rc, 3)
+        report = json.loads(out)
+        self.assertEqual(report["reason_code"], "artifact_digest_mismatch")
+        self.assertIn(forged, report["detail"])
+
+    def test_bundle_without_candidate_zip_rejected_exit3(self):
+        """digest 与 bundle 一致但缺 AstroCS-candidate.zip 成员 -> 拒绝。"""
+        bundle = self._bundle({"evil.txt": b"not-a-candidate"})
+        routes, _ = self._routes_with_artifact(
+            self._artifact("sha256:" + hashlib.sha256(bundle).hexdigest()),
+            bundle)
+        rc, out, _ = self._run_with(routes, bundle)
+        self.assertEqual(rc, 3)
+        self.assertEqual(json.loads(out)["reason_code"],
+                         "artifact_content_missing")
+
+    def test_download_failure_is_env_exit2(self):
+        """bundle 下载失败属环境层：exit 2（network_unavailable），不伪造候选。"""
+        routes, bundle = self._routes_with_artifact(
+            self._artifact("sha256:" + "a" * 64), self._bundle({}))
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(
+                SC, "gh_api", side_effect=_fake_gh_api(routes)))
+            stack.enter_context(mock.patch.object(
+                SC, "download_artifact_sha256",
+                side_effect=SC.EnvUnavailable("network_unavailable", "boom")))
+            rc, out, _ = self._run(self._WF_RUN_ARGV)
+        self.assertEqual(rc, 2)
+        self.assertEqual(json.loads(out)["reason_code"], "network_unavailable")
+
+    def test_bare_hex_and_uppercase_digest_accepted(self):
+        """兼容路径：裸 64hex 与 SHA256:/大写归一后接受。"""
+        bundle = self._bundle({"AstroCS-candidate.zip": b"payload"})
+        hex_lower = hashlib.sha256(bundle).hexdigest()
+        for digest in (hex_lower, "SHA256:" + hex_lower.upper()):
+            routes, _ = self._routes_with_artifact(self._artifact(digest), bundle)
+            rc, out, _ = self._run_with(routes, bundle)
+            self.assertEqual(rc, 0, f"digest={digest!r} 应被接受")
+            report = json.loads(out)
+            self.assertEqual(report["artifact_member_sha256"],
+                             "sha256:" + hashlib.sha256(b"payload").hexdigest())
 
     def test_head_branch_not_main_exit3_no_api_call(self):
         argv = ["--event", "workflow_run", "--head-branch", "feature/x",

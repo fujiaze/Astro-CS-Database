@@ -1609,3 +1609,4 @@
 {"sha": "943b023adac75812dd166290e3592f11013344af", "subject": "docs(P1-HIPS-DOC): HiPS writer 模块合同冻结——ALG-HIPS-001..005/DATA-P1-HIPS/API-HIPS-001/trace（控制包 5/140, wave W1）", "task_id": "UNTAGGED", "date": "2026-09-07T18:35:00+08:00"}
 {"sha": "ad155f966c308fd8ca004867544cacb0e75d6856", "subject": "chore(state): P1-HIPS-DOC 台账 CLOSED 同步（fg_verified_commit, commit 943b023a）", "task_id": "UNTAGGED", "date": "2026-09-07T19:10:00+08:00"}
 {"sha": "a1b0e555a59e725a38041589979493b573b25a90", "subject": "docs(P1-NOISE-DOC): noise/snr 模块合同冻结——ALG-NOISE-001..003/DATA-P1-NOISE/API-NOISE-001/trace（控制包 6/140, wave W1）", "task_id": "UNTAGGED", "date": "2026-09-07T19:15:00+08:00"}
+{"sha": "95c41faaa0e1d4d9f2a5f6e6900de47d1527f739", "subject": "chore(state): P1-NOISE-DOC 台账 CLOSED 同步（fg_verified_commit, commit a1b0e555）", "task_id": "UNTAGGED", "date": "2026-09-07T19:45:00+08:00"}

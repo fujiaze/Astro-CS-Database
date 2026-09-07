@@ -37,6 +37,10 @@ jobs:
       source_sha: ${{ steps.sel.outputs.source_sha }}
       windows_run_id: ${{ steps.sel.outputs.windows_run_id }}
       artifact_name: ${{ steps.sel.outputs.artifact_name }}
+      # V8-CIQA-001 P2-GAP-3：digest 验证链锚（AstroCS-candidate.zip 成员哈希，
+      # 由 select_candidate.py 从已验证 artifact bundle 实算），供 fatduck-validate
+      # 独立复核步比对 download-artifact 落盘产物。
+      artifact_member_sha256: ${{ steps.sel.outputs.artifact_member_sha256 }}
       no_candidate_reason: ${{ steps.sel.outputs.no_candidate_reason }}
     steps:
       - name: Checkout exact SHA (hosted job only)
@@ -117,6 +121,34 @@ jobs:
           run-id: ${{ needs.select-candidate.outputs.windows_run_id }}
           github-token: ${{ github.token }}
           path: 'D:\AstroCSRunner\runs\incoming\ci-evidence'
+      # V8-CIQA-001 P2-GAP-3：独立内容级复核步。select 阶段已将 artifact digest
+      # 与下载 bundle 实算 SHA256 闭环；此处对 download-artifact 落盘的
+      # AstroCS-candidate.zip 再复算一次并与验证链锚比对，双端任一被篡改
+      # （API 返回与落盘内容不一致）即 fail 本 job。锚缺失同样 fail（fail-closed）。
+      - name: Verify candidate zip digest (independent recheck)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $zip = 'D:\AstroCSRunner\runs\incoming\AstroCS-candidate.zip'
+          $anchor = '${{ needs.select-candidate.outputs.artifact_member_sha256 }}'.Trim()
+          if ([string]::IsNullOrWhiteSpace($anchor)) {
+            throw "candidate digest anchor missing (artifact_member_sha256 empty) - refuse to validate"
+          }
+          if (-not (Test-Path -LiteralPath $zip)) {
+            throw "candidate zip not found: $zip"
+          }
+          $actual = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $expected = $anchor
+          if ($expected -match '^sha256:(?<hex>[0-9a-fA-F]{64})$') {
+            $expected = $Matches['hex'].ToLowerInvariant()
+          }
+          if ($expected -notmatch '^[0-9a-f]{64}$') {
+            throw "invalid digest anchor format: $anchor"
+          }
+          if ($actual -ne $expected) {
+            throw "candidate zip digest mismatch: expected=$expected actual=$actual"
+          }
+          Write-Host "candidate zip digest verified: sha256=$actual"
       - name: Run fixed local validation harness
         shell: pwsh
         run: >

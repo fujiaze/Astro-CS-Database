@@ -141,7 +141,9 @@ class TestWorkspacePurity(unittest.TestCase):
     """场景 8：mutates_workspace=false 的检查产生未跟踪文件 → FAIL(dirty)；
     mutates_workspace=true 同类命令不触发 dirty；纯净组保持 PASS。"""
 
-    CREATE = ["python3", "-c", "open('X.txt','w').write('x')"]
+    # V8-CIQA-001 P2-GAP-4：检查命令须留 stdout 痕迹（空 outputs + 全空输出
+    # 会被 runner 判 FAIL(empty_outputs)），dirty 豁免语义不受影响。
+    CREATE = ["python3", "-c", "open('X.txt','w').write('x');print('X.txt written')"]
 
     def test_dirty_violation_for_non_mutating_check(self):
         with tempfile.TemporaryDirectory() as td:

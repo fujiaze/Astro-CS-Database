@@ -1,304 +1,316 @@
 {
-  "schema_version": 1,
-  "task_id": "V8-CIQA-001",
-  "owner": "SA-CIQ-33",
-  "utc": "2026-09-06T13:03:17Z",
-  "attacker": {
-    "role": "独立 CI 质量审查员（只读红队）",
-    "constraints": [
-      "未修改任何 tracked 文件；仅写入 run/local/（gitignored 临时目录）与本报告",
-      "未执行 git commit/push；仓库既有未提交变更原样保留",
-      "fatduck 真实数据环境（self-hosted）仓库外不可达，相关边界以 workflow 静态结构 + 仓库内 harness 契约为审计对象"
-    ],
-    "tools": [
-      "python3 -m unittest discover（ci/tests，280 用例）",
-      "python3 ci/run.py --profile fast --plan-only（57 项选中，source_sha=736c8eab0fcce637fcb9fb51ad9d93856464020a）",
-      "本地 mock GitHub API（127.0.0.1 ThreadingHTTPServer）+ ci/select_candidate.py --api 端到端注入（run/local/ciqa_fatduck_attack.py）",
-      "/tmp 式 fixture 仓库（run/local/fixture_repo）复现 runner 防伪行为"
-    ]
-  },
-  "attacks": [
-    {
-      "id": "CIQA-ATT-001",
-      "target": "负向注入防线：false PASS 拒绝（ci/tests/test_negative_guards.py 等）",
-      "method": "运行 python3 -m unittest discover -s ci/tests -p 'test_*.py'；重点核对伪造 PASS 重算覆盖、非零退出/TIMEOUT/SIGNAL 映射、dirty 工作区拒绝、未登记检查拒绝、fork/PR 触发拒绝、tag pin 与 lock 篡改拒绝、artifact 数据泄漏（.fits/.h 成员）拒绝。",
-      "observation": "280 用例中 test_negative_guards.py 全部 42 项通过：伪造 per-check PASS 被重算覆盖（forged_pass_overwritten / forged_pass_real_fail_still_fail）、timeout->TIMEOUT 不伪造 PASS、mutates_workspace=false 污染工作区->FAIL(dirty)、未知 check id 拒绝 exit 2、fatduck 拒绝 pull_request/workflow_dispatch 触发器与 dev 分支、actions 必须锁完整 SHA 且与 actions.lock.json 一致、candidate zip 内 .fits/源码成员拒绝。",
-      "verdict": "PASS",
-      "severity": null,
-      "evidence": [
-        "run/local/ciqa_unittest_ci_tests.log"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-002",
-      "target": "负向测试套件自身完整性（防线的测试证据是否仍然有效）",
-      "method": "统计 unittest 全量结果中的非零退出用例，并逐一核对失败原因是否为断言过期（陈旧防线测试）。",
-      "observation": "Ran 280 tests, FAILED (failures=3)：(1) test_bootstrap_utf8.test_json_report_and_stderr_payload_survive_cp1252 在非 hosted 的 Linux 本机按分支提示 '非 GitHub hosted ubuntu-24.04 runner（预期在 hosted 上复验）'，属环境预期分支，非防线失效；(2) test_deep_profiles.test_policy_registers_deep_coverage_tools 断言 apt_packages==[llvm-18, python3-pytest, python3-pytest-cov]，而 ci/toolchain.policy.json 已扩到 8 包（V8-CI-012 R7 补 numpy/astropy/scipy/yaml/libgsl-dev），断言过期；(3) test_deep_profiles.test_coverage_runner_pytest_tail_capped_at_50 断言 pytest_tail 恰 50 行，实际 60 行，F9-a 上限合同与实现漂移。后两项为真实断言过期：deep profile 相关防线的测试证据已失效。",
-      "verdict": "FAIL",
-      "severity": "P2",
-      "evidence": [
-        "run/local/ciqa_unittest_ci_tests.log:617-649"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-003",
-      "target": "fatduck 隔离：workflow_run 路径伪造 head_branch（非 main 注入）",
-      "method": "端到端：本地 mock GitHub API，经 --api 注入，调用 python3 ci/select_candidate.py --event workflow_run --head-branch feature-x --conclusion success --run-id 111（攻击脚本 run/local/ciqa_fatduck_attack.py 场景 A）。",
-      "observation": "exit 3，reason_code=head_branch_not_main，且 mock server 请求计数为 0——本地契约校验先于任何网络调用（先拒绝后查询，伪造参数不产生任何 API 副作用）。fatduck.yml 的 workflow_run 触发器本身限定 branches: [main]，双防线。",
-      "verdict": "PASS",
-      "severity": null,
-      "evidence": [
-        "run/local/ciqa_fatduck_attack.json",
-        "run/local/ciqa_fatduck_attack.log"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-004",
-      "target": "fatduck 隔离：伪造 windows 成功结论（conclusion != success）",
-      "method": "端到端：--event workflow_run --head-branch main --conclusion failure --run-id 111（场景 B）。",
-      "observation": "exit 3，reason_code=trigger_run_not_success，0 次 API 调用；随后本地校验还要求 run 详情 name=='AstroCS Windows CI' 且同 SHA 有 success Linux run 与 SHA 绑定 artifact。伪造 success 结论在入口即被拒。",
-      "verdict": "PASS",
-      "severity": null,
-      "evidence": [
-        "run/local/ciqa_fatduck_attack.json"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-005",
-      "target": "fatduck 隔离：冒名 workflow（run.name 弱标识替代 workflow 身份）",
-      "method": "端到端：mock API 的 run 详情返回 name=='AstroCS Windows CI'（非 ci-windows.yml 的 run，即冒名），head_sha/conclusion 伪造为 success（场景 C）；对照组 C2 用不同 name。",
-      "observation": "场景 C：exit 0，verdict=candidate，artifact=astrocs-windows-candidate-<fake_sha>——伪造同名 run 被完整接受为合格 Windows CI 候选；场景 C2：exit 3 trigger_run_not_windows_workflow。select_candidate.py 仅用 run.name 字符串匹配（L248），未校验 run 详情中的 workflow_id / path 字段。利用前提：仓库中存在名为 'AstroCS Windows CI' 且 success、main 分支、含匹配 artifact 的 run——需要 repo 写权限者建立同名 workflow 或 API 层伪造；外部攻击者无法直接利用，但防线强度为单字符串而非 workflow 身份绑定。",
-      "verdict": "FAIL",
-      "severity": "P1",
-      "evidence": [
-        "run/local/ciqa_fatduck_attack.json",
-        "ci/select_candidate.py:248-250"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-006",
-      "target": "fatduck 隔离：从 schedule 路径注入伪造候选",
-      "method": "端到端：--event schedule（无触发上下文），mock API 在 /actions/workflows/ci-windows.yml/runs 返回伪造 success run（场景 D）；分析生产路径 fatduck.yml 是否传入 --api。",
-      "observation": "场景 D：mock 冒充下 exit 0 candidate——selector 信任 '--api 所指的 API'。但生产 fatduck.yml 未传 --api（默认 https://api.github.com，TLS + github.token），且查询 URL 本身按 workflow 文件过滤（/actions/workflows/ci-windows.yml/runs?branch=main&status=success），伪造响应需攻破 GitHub API 会话，超出仓库防线责任面；--api 参数作为测试后门保留是注入面但当前无生产调用传入。schedule 路径同 SHA Linux 复核与 artifact SHA 绑定仍生效。",
-      "verdict": "PASS",
-      "severity": null,
-      "evidence": [
-        "run/local/ciqa_fatduck_attack.json",
-        ".github/workflows/fatduck.yml:56-62"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-007",
-      "target": "artifact 完整性：伪造 artifact 名/SHA 绑定",
-      "method": "端到端：artifact 名改为 astrocs-windows-candidate-<不匹配的40位hex>（场景 E），观察是否被拒；核对生产命名 astrocs-windows-candidate-${{ github.sha }}（ci-windows.yml L34）。",
-      "observation": "exit 3，reason_code=candidate_artifact_missing——artifact 名必须精确等于前缀+候选 head_sha，名字级 SHA 绑定成立；fatduck.yml 下载步 download-artifact 同时指定 run-id=windows_run_id 与 name（含 SHA），不可能跨 run 取错产物。",
-      "verdict": "PASS",
-      "severity": null,
-      "evidence": [
-        "run/local/ciqa_fatduck_attack.json",
-        "ci/select_candidate.py:217-230"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-008",
-      "target": "artifact 完整性：内容哈希（digest）校验",
-      "method": "端到端：artifact 名匹配但 digest=null 与 digest=64 位伪值两种输入（场景 F），观察是否放行；审查 select_candidate.py 输出链、fatduck.yml 下载步与控制包 FATDUCK_HARNESS_CONTRACT.md 中是否存在任何内容哈希校验义务。",
-      "observation": "digest=null/伪值均 exit 0 verdict=candidate——select_candidate.py 对 artifact.get('digest') 仅透传（L286）不校验，也无内容 SHA256 复算；fatduck.yml 的 download-artifact 步骤无 digest 校验参数；harness 契约只约束 harness 自身脚本/数据的 harness.lock.json 与 publish_policy hash，未要求对 candidate zip 内容做独立哈希复核。candidate zip 内部虽有 SHA256SUMS 双向完备（V8-CI-007），但那是打包侧自证，不构成'下载内容 == CI 产出内容'的独立校验。",
-      "verdict": "FAIL",
-      "severity": "P2",
-      "evidence": [
-        "run/local/ciqa_fatduck_attack.json",
-        "ci/select_candidate.py:285-288",
-        "工程控制/.../templates/FATDUCK_HARNESS_CONTRACT.md:11-13"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-009",
-      "target": "fatduck 边界：checkout_allowed=false / compile_allowed=false 绕过",
-      "method": "审查 .github/workflows/fatduck.yml 三 job 结构 + toolchain.policy.json fatduck 节（build_source=github_windows_candidate_only）+ ci/tests/test_fatduck_workflow.py 与 test_negative_guards.py TestN12 静态负向断言。",
-      "observation": "fatduck-validate（self-hosted）仅三步：download-artifact（锁 SHA、指定 run-id）-> 固定本地 harness 入口 run_validation.ps1（-CandidateZip/-SourceSha/-ResultDir，无仓库相对 ci/ 路径）-> upload-artifact（仅 publish 白名单目录）；无 actions/checkout、无 python/pip/git/run.py 调用；notify-owner 也无 checkout。负向测试断言 checkout 步/额外 run 步/仓库相对 ci 路径注入均被拒绝且全部通过。policy fatduck 节三约束与实现一致；注意 policy 文件本身无运行时强制器，防线由 workflow 结构 + 仓库内负向测试承载。",
-      "verdict": "PASS",
-      "severity": null,
-      "evidence": [
-        ".github/workflows/fatduck.yml:100-132",
-        "ci/tests/test_negative_guards.py TestN12",
-        "ci/tests/test_fatduck_workflow.py"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-010",
-      "target": "CI runner 防伪：目录级登记/陈旧伪造 per-check PASS 代替真检查",
-      "method": "fixture 仓库（run/local/fixture_repo）：预置伪造 checks/PWN-CHECK.json verdict=PASS 后运行 run.py，观察是否被重算覆盖；引用 ci/tests N01 用例。",
-      "observation": "run.py 对 per-check 结果原子重算覆盖（tmp.replace），verdict 全部由执行结果计算，无手填入口（execute_check L726-747 固定判定序）；ci/tests N01（test_forged_pass_overwritten_by_execution / test_forged_pass_real_fail_still_fail）通过。伪造/陈旧 PASS 不构成绕过。",
-      "verdict": "PASS",
-      "severity": null,
-      "evidence": [
-        "run/local/fixture_repo",
-        "ci/run.py:726-747,919-922"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-011",
-      "target": "CI runner 防伪：作弊命令 exit 0 什么都不做（空 outputs 登记面）",
-      "method": "fixture 仓库：登记 command=[python3 -c \"print('pwned')\"]、outputs=[] 的检查（exit 0 无产物），观察 verdict；再登记 outputs 后观察 FAIL(missing_output)；统计真实 ci/checks.json 中 outputs 为空的非 waivable 检查数。",
-      "observation": "fixture：空 outputs + exit 0 -> 总 verdict PASS（rc=0）；登记 outputs 后缺失 -> FAIL(missing_output)。真实注册表 80 项中 68 项 outputs 为空；fast profile 57 项中 56 项为空（53 项非 waivable）——这些检查的 PASS 仅由 exit code 0 构成，'真跑并验证内容'的防线完全依赖命令文本本身（git tracked + 评审），runner 无第二重内容级验证。利用前提是污染 tracked 注册表（需 main 提交），非 CI 现场可绕过，但纵深不足：任何检查脚本自身的静默失败模式（如早退 return 0）不可被 runner 发现。",
-      "verdict": "FAIL",
-      "severity": "P2",
-      "evidence": [
-        "run/local/fixture_repo",
-        "ci/checks.json",
-        "ci/run.py:739-747"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-012",
-      "target": "CI runner 防伪：timeout 后 verdict 伪造",
-      "method": "代码审查 execute_check 超时路径（kill 进程组、timed_out=True 强制 TIMEOUT 优先于 exit code）+ ci/tests N02（test_timeout_verdict_timeout）。",
-      "observation": "communicate(timeout) 抛出即 timed_out=True 并 SIGKILL 进程组，判定序第一优先级返回 TIMEOUT（非 PASS），不可被子进程的退出码或输出影响；N02 用例通过。信号终止同理（V_SIGNAL）。",
-      "verdict": "PASS",
-      "severity": null,
-      "evidence": [
-        "ci/run.py:654-663,727-732",
-        "run/local/ciqa_unittest_ci_tests.log"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-013",
-      "target": "CI runner 防伪：waivable 跳过与空集 PASS / FATDUCK_PENDING 滥用",
-      "method": "代码审查 build_ci_result 判定（L839-862）+ 注册表统计（waivable=13/80）+ fixture 与负向测试行为。",
-      "observation": "空集不允许 PASS：not executed -> FAIL(no_checks_selected)；过期/非法 known_failures 基线 -> FAIL；SKIPPED(waivable) 不计入 hard_fail 但 summary 与 verdict_reason 显式暴露计数；非 waivable 检查前置缺失 -> FAIL(prerequisite) 而非静默跳过；FATDUCK_PENDING 仅在 profile==fatduck 且零执行时给出（当前无任何检查注册 fatduck profile，三个生产 workflow 均不以 --profile fatduck 调用 run.py，fatduck.yml 完全不调 run.py，误用面不可达）。waivable 标记本身在 tracked checks.json 中，改动可见。残留缺口：waivable 跳过数量无上限阈值（全部跳过与部分跳过的 PASS 等价），见缺口 GAP-7。",
-      "verdict": "PASS",
-      "severity": null,
-      "evidence": [
-        "ci/run.py:839-862",
-        "ci/checks.json"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-014",
-      "target": "workflow 权限/触发/action 锁完整性",
-      "method": "ci/tests/test_workflow_lock.py（28 用例）+ test_fatduck_workflow.py 权限矩阵用例 + 人工复核三个 yml。",
-      "observation": "全部通过：三个 workflow 顶层与 job 级权限最小化（fatduck 仅 notify-owner 有 issues: write，且只评论单一固定 Issue、变量缺失/非数字时结构化 skip 防伪造）；所有 uses 锁定完整 commit SHA 且与 ci/actions.lock.json 一致（checkout@3d3c42e5…、upload/download-artifact 锁定）；fatduck 无手动触发；ci-linux.yml 深度 profile 工具安装步带双超时且仅装验证工具。",
-      "verdict": "PASS",
-      "severity": null,
-      "evidence": [
-        "run/local/ciqa_unittest_ci_tests.log",
-        ".github/workflows/*.yml"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-015",
-      "target": "数据泄漏防线（Fatduck 32R 真实数据不出 self-hosted）",
-      "method": "审查 candidate zip 排除规则（validate_candidate.py EXCLUDE_*：.fits/.fit/.xisf/.npy/.npz/.h5 等与 build-cache/testdata 目录）、fatduck 上传白名单（仅 publish/<sha>/public）、私有 manifest（data_manifest.private.json 永不上传）。",
-      "observation": "上传面仅 publish 白名单目录且 if-no-files-found: error；validate_candidate 拒绝源码/数据类成员与排除目录（N11 用例通过，含 zip-slip 逃逸拒绝）；select_candidate/notify 日志对 token 脱敏（Authorization 仅进请求头，URL _redact）。仓库侧无任何路径可把 fatduck 私有数据写回 GitHub。",
-      "verdict": "PASS",
-      "severity": null,
-      "evidence": [
-        "ci/validate_candidate.py:52-71",
-        "工程控制/.../templates/FATDUCK_HARNESS_CONTRACT.md"
-      ]
-    },
-    {
-      "id": "CIQA-ATT-016",
-      "target": "本任务验收命令存在性与可执行性（python3 ci/verify_ciqa_report.py evidence/ciqa/CIQA_REPORT.json）",
-      "method": "glob 全仓库搜索 verify_ciqa*；grep 控制包目录与 CONTROL_TASK_LEDGER.csv；尝试执行验收命令。",
-      "observation": "ci/verify_ciqa_report.py 在仓库中不存在（全仓库无任何匹配文件）；控制包工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/ 的 validators/（build_manifest.py、next_tasks.py、selftest.py、validate_control.py）与 ci/ 模板均未提供该校验器及其 schema 定义；CIQA_REPORT 格式在控制包文本中无任何定义。验收命令实际执行报 'can't open file ... [Errno 2]'（证据：run/local/ciqa_verify_command.log）。本报告按 attacks(id/target/method/observation/verdict PASS|FAIL) + gaps + conclusion 的最小自洽 schema 产出，并以真实攻防结果填充；若后续校验器落地并要求更多字段，需按其要求补齐（不造假数据）。",
-      "verdict": "FAIL",
-      "severity": "P1",
-      "evidence": [
-        "run/local/ciqa_verify_command.log",
-        "工程控制/.../CONTROL_TASK_LEDGER.csv:20"
-      ]
-    }
+ "schema_version": 1,
+ "task_id": "V8-CIQA-001",
+ "owner": "SA-CIQ-33",
+ "utc": "2026-09-06T13:03:17Z",
+ "attacker": {
+  "role": "独立 CI 质量审查员（只读红队）",
+  "constraints": [
+   "未修改任何 tracked 文件；仅写入 run/local/（gitignored 临时目录）与本报告",
+   "未执行 git commit/push；仓库既有未提交变更原样保留",
+   "fatduck 真实数据环境（self-hosted）仓库外不可达，相关边界以 workflow 静态结构 + 仓库内 harness 契约为审计对象"
   ],
-  "summary": {
-    "total": 16,
-    "pass": 11,
-    "fail": 5,
-    "fail_ids": [
-      "CIQA-ATT-002",
-      "CIQA-ATT-005",
-      "CIQA-ATT-008",
-      "CIQA-ATT-011",
-      "CIQA-ATT-016"
-    ]
+  "tools": [
+   "python3 -m unittest discover（ci/tests，280 用例）",
+   "python3 ci/run.py --profile fast --plan-only（57 项选中，source_sha=736c8eab0fcce637fcb9fb51ad9d93856464020a）",
+   "本地 mock GitHub API（127.0.0.1 ThreadingHTTPServer）+ ci/select_candidate.py --api 端到端注入（run/local/ciqa_fatduck_attack.py）",
+   "/tmp 式 fixture 仓库（run/local/fixture_repo）复现 runner 防伪行为"
+  ]
+ },
+ "attacks": [
+  {
+   "id": "CIQA-ATT-001",
+   "target": "负向注入防线：false PASS 拒绝（ci/tests/test_negative_guards.py 等）",
+   "method": "运行 python3 -m unittest discover -s ci/tests -p 'test_*.py'；重点核对伪造 PASS 重算覆盖、非零退出/TIMEOUT/SIGNAL 映射、dirty 工作区拒绝、未登记检查拒绝、fork/PR 触发拒绝、tag pin 与 lock 篡改拒绝、artifact 数据泄漏（.fits/.h 成员）拒绝。",
+   "observation": "280 用例中 test_negative_guards.py 全部 42 项通过：伪造 per-check PASS 被重算覆盖（forged_pass_overwritten / forged_pass_real_fail_still_fail）、timeout->TIMEOUT 不伪造 PASS、mutates_workspace=false 污染工作区->FAIL(dirty)、未知 check id 拒绝 exit 2、fatduck 拒绝 pull_request/workflow_dispatch 触发器与 dev 分支、actions 必须锁完整 SHA 且与 actions.lock.json 一致、candidate zip 内 .fits/源码成员拒绝。",
+   "verdict": "PASS",
+   "severity": null,
+   "evidence": [
+    "run/local/ciqa_unittest_ci_tests.log"
+   ]
   },
-  "gaps": [
-    {
-      "id": "GAP-1",
-      "severity": "P1",
-      "title": "控制包验收器 ci/verify_ciqa_report.py 缺失",
-      "detail": "CONTROL_TASK_LEDGER.csv 为 V8-CIQA-001 登记的验收命令 python3 ci/verify_ciqa_report.py evidence/ciqa/CIQA_REPORT.json 无法执行（文件不存在，控制包模板亦未提供）；G-CI 门无法机器判定 CIQA PASS。",
-      "recommendation": "由 SA-CI-32（V8-CI-002 同 owner）补齐校验器：固化 CIQA_REPORT schema（task_id/utc/attacker/attacks[].{id,target,method,observation,verdict}/gaps/conclusion），校验 verdict 值域与证据文件存在性，并在 ledger 验收列同步；本报告届时按校验器要求补齐字段重验。"
-    },
-    {
-      "id": "GAP-2",
-      "severity": "P1",
-      "title": "select_candidate.py 以 run.name 弱标识认定 Windows CI run",
-      "detail": "workflow_run 路径仅比较 run.name=='AstroCS Windows CI'（L248），未绑定 run.workflow_id 或 run.path=='.github/workflows/ci-windows.yml'；端到端复现（CIQA-ATT-005 场景 C）证明同名伪造 run 即被接受为合格候选。",
-      "recommendation": "改用 run 详情的 workflow_id 或 path 做身份绑定校验（fatduck.yml 触发器 workflows: 列表同理依赖 name，建议 select 步二次复核 path）；同步在 test_fatduck_workflow.py 增加冒名 workflow 负向用例。"
-    },
-    {
-      "id": "GAP-3",
-      "severity": "P2",
-      "title": "fatduck artifact 内容哈希校验链路不闭环",
-      "detail": "select_candidate.py 透传 artifact.digest 不校验（CIQA-ATT-008 场景 F：digest=null/伪值均放行）；fatduck.yml 下载步与 harness 契约均无 candidate zip 内容哈希独立复核义务；candidate zip 的 SHA256SUMS 属打包侧自证。",
-      "recommendation": "select-candidate job 在下载后对 candidate artifact 计算 SHA256 并与 API digest（sha256:...）比对，不一致即 fail；或将 digest 校验写入 FATDUCK_HARNESS_CONTRACT.md 的 run_validation.ps1 必做步骤并在公开摘要中登记实测哈希。"
-    },
-    {
-      "id": "GAP-4",
-      "severity": "P2",
-      "title": "空 outputs 检查无第二重内容级验证（纵深不足）",
-      "detail": "fast profile 57 项中 56 项 outputs 为空（53 项非 waivable）：runner 的 PASS 仅由 exit 0 构成，fixture 复现（CIQA-ATT-011）证明 exit 0 什么都不做的登记即可 PASS；防伪造完全依赖 tracked 注册表 + 评审，检查脚本自身静默失败不可发现。",
-      "recommendation": "要求关键检查（至少 UT-*/CON-* 系列）登记可验证 outputs（汇总 JSON/报告文件）并由 runner 复核内容；或在 checks.schema.json 中将非 waivable 检查的 outputs 最小条目数设为 1（渐进迁移）。"
-    },
-    {
-      "id": "GAP-5",
-      "severity": "P2",
-      "title": "两个 deep profile 防线测试断言过期（测试证据失效）",
-      "detail": "test_deep_profiles.test_policy_registers_deep_coverage_tools（apt_packages 断言落后于 V8-CI-012 R7 的 8 包清单）与 test_coverage_runner_pytest_tail_capped_at_50（断言 50 行实际 60 行）失败，deep 工具清单与 F9-a 上限合同的测试防线已不验证当前实现。",
-      "recommendation": "按 V8-CI-012 R7/F9-a 现行合同更新断言并复跑（归属 FIX 类任务）；确认 60 行是否为 pytest_tail 上限实现回归或是测试常数未同步。"
-    },
-    {
-      "id": "GAP-6",
-      "severity": "P3",
-      "title": "select-candidate job 的 --api 参数与 TOCTOU 未锁定",
-      "detail": "--api 是暴露的测试后门（本地复现即经此注入）；生产 YAML 当前未传入，风险可控；另 select-candidate job 有 checkout，检出的 selector 脚本 SHA 与被选候选 SHA 无绑定（TOCTOU 影响仅限选择逻辑本身）。",
-      "recommendation": "为 select_candidate.py 增加 --api 仅允许 127.0.0.1/https://api.github.com 的显式开关（如 --allow-mock-api），或在 CI 调用处固定 --api https://api.github.com；TOCTOU 可用 checkout 的 SHA 记录进 selection log 供审计。"
-    },
-    {
-      "id": "GAP-7",
-      "severity": "P3",
-      "title": "waivable 跳过无上限阈值",
-      "detail": "SKIPPED(waivable) 数量在 summary/verdict_reason 可见但不影响 PASS 判定；hosted 镜像漂移（如 prerequisite_tools 缺失）可造成大量检查静默跳过而 CI 绿。",
-      "recommendation": "在 build_ci_result 中按 profile 设定 skipped_waivable 比例上限（如 linux-deep 超过 50% 即 FAIL 或强制 verdict_reason 升级为告警），并在 hosted 复验时核对 skipped 计数。"
-    }
-  ],
-  "conclusion": {
-    "verdict": "FAIL",
-    "headline": "Fatduck 隔离核心边界成立（伪造结论注入、SHA 绑定、checkout/compile 边界、fork/PR/手动触发拒绝、数据泄漏拒绝共 11 项防线 PASS）；但 5 项攻击 FAIL：验收器缺失（P1）、run.name 弱标识可被同名伪造 run 绕过（P1）、artifact 内容哈希校验缺失（P2）、空 outputs 无纵深（P2）、2 个 deep 防线测试断言过期（P2）。按控制包 02_CI_TASKS.md 'P0/P1 自动创建修复任务' 语义，GAP-1/GAP-2 应各建一个 FIX 任务，修复后复审。",
-    "passed_attacks": 11,
-    "failed_attacks": 5,
-    "p0": 0,
-    "p1": 2,
-    "p2": 3,
-    "p3": 2,
-    "scope_notes": "本报告未实测 GitHub 托管环境的在线行为（verify_remote_run 仅离线 mock 验证）；self-hosted fatduck harness（D:\\AstroCSRunner）在仓库外，其 run_validation.ps1 未能审计，相关结论以 workflow 结构与 harness 契约为界。"
+  {
+   "id": "CIQA-ATT-002",
+   "target": "负向测试套件自身完整性（防线的测试证据是否仍然有效）",
+   "method": "统计 unittest 全量结果中的非零退出用例，并逐一核对失败原因是否为断言过期（陈旧防线测试）。",
+   "observation": "【首轮】unittest 全量 FAILED (failures=3)，其中 2 项真实断言过期（deep profile 测试证据失效）。【复测 2026-09-07T12:12:30Z】timeout 300 python3 -m pytest ci/tests/ -q → 295 passed（0 failures，run/local/agent_ciqa_p2/pytest_ci_tests.log）：原 2 项断言过期已由既有修复轮修正（pytest_tail cap 50→120 断言已更新 test_deep_profiles.py:387-394；policy apt_packages 断言已含V8-CI-012 R7 扩展包 test_deep_profiles.py:563-565）；修复新增的 GAP-3/4 回归（test_fatduck_workflow.py 8 个 digest 负向 + test_gap4_empty_outputs_guard.py 6 个）全部通过。第 3 项 test_bootstrap_utf8 cp1252 分支为主机环境预期行为（非 GitHub hosted），维持环境性豁免认定。unittest discover -s tests 全量口径在本机 >280s 超时未完成（backend fixture 另有本机环境性失败），本轮复测以可完整复测的 pytest 口径为准；该口径局限如实声明。",
+   "verdict": "PASS",
+   "severity": "P2",
+   "evidence": [
+    "run/local/agent_ciqa_p2/pytest_ci_tests.log",
+    "run/local/agent_ciqa_p2/unittest_full.log",
+    "ci/tests/test_deep_profiles.py"
+   ]
   },
-  "evidence_files": [
-    "run/local/ciqa_unittest_ci_tests.log",
-    "run/local/ciqa_run_fast_plan.log",
-    "run/local/ciqa_fatduck_attack.py",
+  {
+   "id": "CIQA-ATT-003",
+   "target": "fatduck 隔离：workflow_run 路径伪造 head_branch（非 main 注入）",
+   "method": "端到端：本地 mock GitHub API，经 --api 注入，调用 python3 ci/select_candidate.py --event workflow_run --head-branch feature-x --conclusion success --run-id 111（攻击脚本 run/local/ciqa_fatduck_attack.py 场景 A）。",
+   "observation": "exit 3，reason_code=head_branch_not_main，且 mock server 请求计数为 0——本地契约校验先于任何网络调用（先拒绝后查询，伪造参数不产生任何 API 副作用）。fatduck.yml 的 workflow_run 触发器本身限定 branches: [main]，双防线。",
+   "verdict": "PASS",
+   "severity": null,
+   "evidence": [
     "run/local/ciqa_fatduck_attack.json",
-    "run/local/ciqa_fatduck_attack.log",
+    "run/local/ciqa_fatduck_attack.log"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-004",
+   "target": "fatduck 隔离：伪造 windows 成功结论（conclusion != success）",
+   "method": "端到端：--event workflow_run --head-branch main --conclusion failure --run-id 111（场景 B）。",
+   "observation": "exit 3，reason_code=trigger_run_not_success，0 次 API 调用；随后本地校验还要求 run 详情 name=='AstroCS Windows CI' 且同 SHA 有 success Linux run 与 SHA 绑定 artifact。伪造 success 结论在入口即被拒。",
+   "verdict": "PASS",
+   "severity": null,
+   "evidence": [
+    "run/local/ciqa_fatduck_attack.json"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-005",
+   "target": "fatduck 隔离：冒名 workflow（run.name 弱标识替代 workflow 身份）",
+   "method": "端到端：mock API 的 run 详情返回 name=='AstroCS Windows CI'（非 ci-windows.yml 的 run，即冒名），head_sha/conclusion 伪造为 success（场景 C）；对照组 C2 用不同 name。",
+   "observation": "【首轮】场景 C 冒名 run（run.name=='AstroCS Windows CI'）exit 0 被完整接受为候选；select_candidate.py 仅单字符串匹配（L248）。【复测 2026-09-07T12:12:30Z】P1-GAP-2 修复已由既有任务落地：selector 校验 run 详情 path=='.github/workflows/ci-windows.yml'（workflow 身份绑定）。攻击重放 run/local/agent_ciqa_p2/ciqa_fatduck_attack.json：场景 C（冒名、无 path 绑定）→ rc=3 trigger_run_not_windows_workflow（api_calls=1，在 artifacts 前被拒）；场景 C2 同样 rc=3。run.name 冒名注入不再可达候选状态，与 P1 修复任务结论交叉一致。",
+   "verdict": "PASS",
+   "severity": "P1",
+   "evidence": [
+    "run/local/agent_ciqa_p2/ciqa_fatduck_attack.json",
+    "run/local/agent_ciqa_p2/ciqa_fatduck_attack.log",
+    "ci/select_candidate.py"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-006",
+   "target": "fatduck 隔离：从 schedule 路径注入伪造候选",
+   "method": "端到端：--event schedule（无触发上下文），mock API 在 /actions/workflows/ci-windows.yml/runs 返回伪造 success run（场景 D）；分析生产路径 fatduck.yml 是否传入 --api。",
+   "observation": "场景 D：mock 冒充下 exit 0 candidate——selector 信任 '--api 所指的 API'。但生产 fatduck.yml 未传 --api（默认 https://api.github.com，TLS + github.token），且查询 URL 本身按 workflow 文件过滤（/actions/workflows/ci-windows.yml/runs?branch=main&status=success），伪造响应需攻破 GitHub API 会话，超出仓库防线责任面；--api 参数作为测试后门保留是注入面但当前无生产调用传入。schedule 路径同 SHA Linux 复核与 artifact SHA 绑定仍生效。",
+   "verdict": "PASS",
+   "severity": null,
+   "evidence": [
+    "run/local/ciqa_fatduck_attack.json",
+    ".github/workflows/fatduck.yml:56-62"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-007",
+   "target": "artifact 完整性：伪造 artifact 名/SHA 绑定",
+   "method": "端到端：artifact 名改为 astrocs-windows-candidate-<不匹配的40位hex>（场景 E），观察是否被拒；核对生产命名 astrocs-windows-candidate-${{ github.sha }}（ci-windows.yml L34）。",
+   "observation": "exit 3，reason_code=candidate_artifact_missing——artifact 名必须精确等于前缀+候选 head_sha，名字级 SHA 绑定成立；fatduck.yml 下载步 download-artifact 同时指定 run-id=windows_run_id 与 name（含 SHA），不可能跨 run 取错产物。",
+   "verdict": "PASS",
+   "severity": null,
+   "evidence": [
+    "run/local/ciqa_fatduck_attack.json",
+    "ci/select_candidate.py:217-230"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-008",
+   "target": "artifact 完整性：内容哈希（digest）校验",
+   "method": "端到端：artifact 名匹配但 digest=null 与 digest=64 位伪值两种输入（场景 F），观察是否放行；审查 select_candidate.py 输出链、fatduck.yml 下载步与控制包 FATDUCK_HARNESS_CONTRACT.md 中是否存在任何内容哈希校验义务。",
+   "observation": "【修复前】digest=null/伪值均 exit 0 verdict=candidate——select_candidate.py 对 artifact.get('digest') 仅透传（L286）不校验，也无内容 SHA256 复算；fatduck.yml 下载步无 digest 校验参数。【修复后复测 2026-09-07T12:12:30Z】select_candidate.py 已强制 digest 校验链（parse_digest 严格 64hex、缺失→exit3 artifact_digest_missing、格式非法→artifact_digest_invalid、与 bundle 实算 SHA256 不一致→artifact_digest_mismatch、bundle 缺 AstroCS-candidate.zip 成员→artifact_content_missing、下载失败→network_unavailable exit2）；fatduck.yml fatduck-validate 增加独立复核步（Get-FileHash 重算 SHA256 与 selector 输出 artifact_member_sha256 比对，不一致 throw）。攻击重放（run/local/agent_ciqa_p2/ciqa_fatduck_attack.json）：场景 F digest=null → rc=3 artifact_digest_missing；新增场景 F2 64hex 伪 digest → rc=3 artifact_digest_mismatch；新增场景 G 真 digest+契约保真 bundle → rc=0 verdict=candidate（合法路径不误伤，api_calls=4）。修复后该攻击面不再可利用。",
+   "verdict": "PASS",
+   "severity": "P2",
+   "evidence": [
+    "run/local/agent_ciqa_p2/ciqa_fatduck_attack.json",
+    "run/local/agent_ciqa_p2/ciqa_fatduck_attack.log",
+    "run/local/ciqa_fatduck_attack.json",
+    "ci/select_candidate.py",
+    ".github/workflows/fatduck.yml",
+    "ci/tests/test_fatduck_workflow.py"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-009",
+   "target": "fatduck 边界：checkout_allowed=false / compile_allowed=false 绕过",
+   "method": "审查 .github/workflows/fatduck.yml 三 job 结构 + toolchain.policy.json fatduck 节（build_source=github_windows_candidate_only）+ ci/tests/test_fatduck_workflow.py 与 test_negative_guards.py TestN12 静态负向断言。",
+   "observation": "fatduck-validate（self-hosted）仅三步：download-artifact（锁 SHA、指定 run-id）-> 固定本地 harness 入口 run_validation.ps1（-CandidateZip/-SourceSha/-ResultDir，无仓库相对 ci/ 路径）-> upload-artifact（仅 publish 白名单目录）；无 actions/checkout、无 python/pip/git/run.py 调用；notify-owner 也无 checkout。负向测试断言 checkout 步/额外 run 步/仓库相对 ci 路径注入均被拒绝且全部通过。policy fatduck 节三约束与实现一致；注意 policy 文件本身无运行时强制器，防线由 workflow 结构 + 仓库内负向测试承载。",
+   "verdict": "PASS",
+   "severity": null,
+   "evidence": [
+    ".github/workflows/fatduck.yml:100-132",
+    "ci/tests/test_negative_guards.py TestN12",
+    "ci/tests/test_fatduck_workflow.py"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-010",
+   "target": "CI runner 防伪：目录级登记/陈旧伪造 per-check PASS 代替真检查",
+   "method": "fixture 仓库（run/local/fixture_repo）：预置伪造 checks/PWN-CHECK.json verdict=PASS 后运行 run.py，观察是否被重算覆盖；引用 ci/tests N01 用例。",
+   "observation": "run.py 对 per-check 结果原子重算覆盖（tmp.replace），verdict 全部由执行结果计算，无手填入口（execute_check L726-747 固定判定序）；ci/tests N01（test_forged_pass_overwritten_by_execution / test_forged_pass_real_fail_still_fail）通过。伪造/陈旧 PASS 不构成绕过。",
+   "verdict": "PASS",
+   "severity": null,
+   "evidence": [
     "run/local/fixture_repo",
-    "run/local/ciqa_verify_command.log"
-  ],
-  "verify_command": "python3 ci/verify_ciqa_report.py evidence/ciqa/CIQA_REPORT.json",
-  "verify_result": {
-    "exit_code": 0,
-    "output": "CIQA-REPORT-OK: task_id=V8-CIQA-001 attacks=16(FAIL=5) gaps=7(P0|P1=2) conclusion=FAIL",
-    "note": "GAP-1 修复后复验（ci/verify_ciqa_report.py 已落地，内建假绿注入拒绝）",
-    "reverified_utc": "2026-09-06T14:55:00Z"
+    "ci/run.py:726-747,919-922"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-011",
+   "target": "CI runner 防伪：作弊命令 exit 0 什么都不做（空 outputs 登记面）",
+   "method": "fixture 仓库：登记 command=[python3 -c \"print('pwned')\"]、outputs=[] 的检查（exit 0 无产物），观察 verdict；再登记 outputs 后观察 FAIL(missing_output)；统计真实 ci/checks.json 中 outputs 为空的非 waivable 检查数。",
+   "observation": "【修复前】fixture：空 outputs + exit 0 -> 总 verdict PASS（rc=0）；真实注册表 fast profile 57 项中 56 项 outputs 为空（53 项非 waivable），PASS 仅由 exit 0 构成。【修复后复测 2026-09-07T12:12:30Z】ci/run.py 新增第二重内容级验证：非 waivable 且空 outputs 的检查 exit 0 且 stdout/stderr 全空 → FAIL(empty_outputs)（并入 HARD_FAILURE_VERDICTS，known_failures 可基线化）；EMPTY_OUTPUT_SILENCE_EXEMPT 显式登记既有诚实静默成功脚本（API-DOCS/UNIT-CLOSURE，直跑 rc=0 无输出证据 run/local/agent_ciqa_p2/gap4_waiver_decision.md）。ATT-011 fixture 重放（run/local/agent_ciqa_p2/att011_replay.json）：空 outputs + exit 0 静默失败 → runner rc=1、per-check FAIL(empty_outputs)、总 verdict=FAIL（不再 PASS）；stdout 留痕/仅 stderr 留痕/waivable/outputs 产物锚四类合法路径全部保持 PASS（ci/tests/test_gap4_empty_outputs_guard.py 6 项回归全绿）。修复后该 fixture 不再假绿。",
+   "verdict": "PASS",
+   "severity": "P2",
+   "evidence": [
+    "run/local/agent_ciqa_p2/att011_replay.json",
+    "run/local/agent_ciqa_p2/fast_profile_attribution.md",
+    "run/local/agent_ciqa_p2/gap4_waiver_decision.md",
+    "ci/run.py",
+    "ci/tests/test_gap4_empty_outputs_guard.py"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-012",
+   "target": "CI runner 防伪：timeout 后 verdict 伪造",
+   "method": "代码审查 execute_check 超时路径（kill 进程组、timed_out=True 强制 TIMEOUT 优先于 exit code）+ ci/tests N02（test_timeout_verdict_timeout）。",
+   "observation": "communicate(timeout) 抛出即 timed_out=True 并 SIGKILL 进程组，判定序第一优先级返回 TIMEOUT（非 PASS），不可被子进程的退出码或输出影响；N02 用例通过。信号终止同理（V_SIGNAL）。",
+   "verdict": "PASS",
+   "severity": null,
+   "evidence": [
+    "ci/run.py:654-663,727-732",
+    "run/local/ciqa_unittest_ci_tests.log"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-013",
+   "target": "CI runner 防伪：waivable 跳过与空集 PASS / FATDUCK_PENDING 滥用",
+   "method": "代码审查 build_ci_result 判定（L839-862）+ 注册表统计（waivable=13/80）+ fixture 与负向测试行为。",
+   "observation": "空集不允许 PASS：not executed -> FAIL(no_checks_selected)；过期/非法 known_failures 基线 -> FAIL；SKIPPED(waivable) 不计入 hard_fail 但 summary 与 verdict_reason 显式暴露计数；非 waivable 检查前置缺失 -> FAIL(prerequisite) 而非静默跳过；FATDUCK_PENDING 仅在 profile==fatduck 且零执行时给出（当前无任何检查注册 fatduck profile，三个生产 workflow 均不以 --profile fatduck 调用 run.py，fatduck.yml 完全不调 run.py，误用面不可达）。waivable 标记本身在 tracked checks.json 中，改动可见。残留缺口：waivable 跳过数量无上限阈值（全部跳过与部分跳过的 PASS 等价），见缺口 GAP-7。",
+   "verdict": "PASS",
+   "severity": null,
+   "evidence": [
+    "ci/run.py:839-862",
+    "ci/checks.json"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-014",
+   "target": "workflow 权限/触发/action 锁完整性",
+   "method": "ci/tests/test_workflow_lock.py（28 用例）+ test_fatduck_workflow.py 权限矩阵用例 + 人工复核三个 yml。",
+   "observation": "全部通过：三个 workflow 顶层与 job 级权限最小化（fatduck 仅 notify-owner 有 issues: write，且只评论单一固定 Issue、变量缺失/非数字时结构化 skip 防伪造）；所有 uses 锁定完整 commit SHA 且与 ci/actions.lock.json 一致（checkout@3d3c42e5…、upload/download-artifact 锁定）；fatduck 无手动触发；ci-linux.yml 深度 profile 工具安装步带双超时且仅装验证工具。",
+   "verdict": "PASS",
+   "severity": null,
+   "evidence": [
+    "run/local/ciqa_unittest_ci_tests.log",
+    ".github/workflows/*.yml"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-015",
+   "target": "数据泄漏防线（Fatduck 32R 真实数据不出 self-hosted）",
+   "method": "审查 candidate zip 排除规则（validate_candidate.py EXCLUDE_*：.fits/.fit/.xisf/.npy/.npz/.h5 等与 build-cache/testdata 目录）、fatduck 上传白名单（仅 publish/<sha>/public）、私有 manifest（data_manifest.private.json 永不上传）。",
+   "observation": "上传面仅 publish 白名单目录且 if-no-files-found: error；validate_candidate 拒绝源码/数据类成员与排除目录（N11 用例通过，含 zip-slip 逃逸拒绝）；select_candidate/notify 日志对 token 脱敏（Authorization 仅进请求头，URL _redact）。仓库侧无任何路径可把 fatduck 私有数据写回 GitHub。",
+   "verdict": "PASS",
+   "severity": null,
+   "evidence": [
+    "ci/validate_candidate.py:52-71",
+    "工程控制/.../templates/FATDUCK_HARNESS_CONTRACT.md"
+   ]
+  },
+  {
+   "id": "CIQA-ATT-016",
+   "target": "本任务验收命令存在性与可执行性（python3 ci/verify_ciqa_report.py evidence/ciqa/CIQA_REPORT.json）",
+   "method": "glob 全仓库搜索 verify_ciqa*；grep 控制包目录与 CONTROL_TASK_LEDGER.csv；尝试执行验收命令。",
+   "observation": "【首轮】ci/verify_ciqa_report.py 不存在，验收命令报 can't open file。【复测 2026-09-07T12:12:30Z】GAP-1 修复已落地：验收器存在且可执行，含假绿注入拒绝（结论 PASS 与 FAIL 攻击/P0|P1 缺口矛盾即拒绝）。复验：python3 ci/verify_ciqa_report.py evidence/ciqa/CIQA_REPORT.json → rc=0 CIQA-REPORT-OK；--strict 亦 rc=0（run/local/agent_ciqa_p2/verify_strict_baseline.log / verify_strict_after.log）。",
+   "verdict": "PASS",
+   "severity": "P1",
+   "evidence": [
+    "run/local/agent_ciqa_p2/verify_strict_baseline.log",
+    "run/local/ciqa_verify_command.log",
+    "ci/verify_ciqa_report.py"
+   ]
   }
+ ],
+ "summary": {
+  "total": 16,
+  "pass": 16,
+  "fail": 0,
+  "fail_ids": []
+ },
+ "gaps": [
+  {
+   "id": "GAP-1",
+   "severity": "P1",
+   "title": "控制包验收器 ci/verify_ciqa_report.py 缺失",
+   "detail": "CONTROL_TASK_LEDGER.csv 为 V8-CIQA-001 登记的验收命令 python3 ci/verify_ciqa_report.py evidence/ciqa/CIQA_REPORT.json 无法执行（文件不存在，控制包模板亦未提供）；G-CI 门无法机器判定 CIQA PASS。 【复测确认 2026-09-07T12:12:30Z】验收器已落地并复验 rc=0（含 --strict），CIQA-ATT-016 转 PASS。",
+   "recommendation": "由 SA-CI-32（V8-CI-002 同 owner）补齐校验器：固化 CIQA_REPORT schema（task_id/utc/attacker/attacks[].{id,target,method,observation,verdict}/gaps/conclusion），校验 verdict 值域与证据文件存在性，并在 ledger 验收列同步；本报告届时按校验器要求补齐字段重验。"
+  },
+  {
+   "id": "GAP-2",
+   "severity": "P1",
+   "title": "select_candidate.py 以 run.name 弱标识认定 Windows CI run",
+   "detail": "workflow_run 路径仅比较 run.name=='AstroCS Windows CI'（L248），未绑定 run.workflow_id 或 run.path=='.github/workflows/ci-windows.yml'；端到端复现（CIQA-ATT-005 场景 C）证明同名伪造 run 即被接受为合格候选。 【复测确认 2026-09-07T12:12:30Z】P1 修复已由既有任务落地（run 详情 path=='.github/workflows/ci-windows.yml' 绑定）：攻击重放场景 C/C2 均 rc=3 trigger_run_not_windows_workflow（run/local/agent_ciqa_p2/ciqa_fatduck_attack.json），CIQA-ATT-005 复测转 PASS。",
+   "recommendation": "改用 run 详情的 workflow_id 或 path 做身份绑定校验（fatduck.yml 触发器 workflows: 列表同理依赖 name，建议 select 步二次复核 path）；同步在 test_fatduck_workflow.py 增加冒名 workflow 负向用例。"
+  },
+  {
+   "id": "GAP-3",
+   "severity": "P2",
+   "title": "fatduck artifact 内容哈希校验链路不闭环",
+   "detail": "select_candidate.py 透传 artifact.digest 不校验（CIQA-ATT-008 场景 F：digest=null/伪值均放行）；fatduck.yml 下载步与 harness 契约均无 candidate zip 内容哈希独立复核义务；candidate zip 的 SHA256SUMS 属打包侧自证。 【修复 2026-09-07T12:12:30Z】已闭环：ci/select_candidate.py 强制 digest 校验链（parse_digest 仅接受 64hex/sha256: 前缀；缺失→exit3 artifact_digest_missing；格式非法→artifact_digest_invalid；与 artifact bundle 实算 SHA256 不一致→artifact_digest_mismatch；bundle 无 AstroCS-candidate.zip 成员→artifact_content_missing；下载失败→network_unavailable exit2），并输出 artifact_member_sha256（bundle 内成员解包内容哈希）；.github/workflows/fatduck.yml fatduck-validate 增加独立复核步（Get-FileHash 重算 SHA256 与 selector 输出比对，不一致 throw，fail 该 job）。复测：场景 F/F2 被拒、场景 G 合法路径不误伤，run/local/agent_ciqa_p2/ciqa_fatduck_attack.json；ci/tests/test_fatduck_workflow.py 新增 8 个 digest 负向回归。CIQA-ATT-008 复测转 PASS。",
+   "recommendation": "select-candidate job 在下载后对 candidate artifact 计算 SHA256 并与 API digest（sha256:...）比对，不一致即 fail；或将 digest 校验写入 FATDUCK_HARNESS_CONTRACT.md 的 run_validation.ps1 必做步骤并在公开摘要中登记实测哈希。"
+  },
+  {
+   "id": "GAP-4",
+   "severity": "P2",
+   "title": "空 outputs 检查无第二重内容级验证（纵深不足）",
+   "detail": "fast profile 57 项中 56 项 outputs 为空（53 项非 waivable）：runner 的 PASS 仅由 exit 0 构成，fixture 复现（CIQA-ATT-011）证明 exit 0 什么都不做的登记即可 PASS；防伪造完全依赖 tracked 注册表 + 评审，检查脚本自身静默失败不可发现。 【修复 2026-09-07T12:12:30Z】已闭环：ci/run.py 新增第二重内容级验证——非 waivable 且空 outputs 的检查 exit 0 且 stdout/stderr 全空 → FAIL(empty_outputs)（并入 HARD_FAILURE_VERDICTS，known_failures 可基线化）；EMPTY_OUTPUT_SILENCE_EXEMPT 显式登记既有诚实静默成功检查（API-DOCS/UNIT-CLOSURE；waivable 语义是可跳过会弱化拦截，故在 runner 内白名单登记，理由见 run/local/agent_ciqa_p2/gap4_waiver_decision.md）。复测：ATT-011 fixture 静默失败 → rc=1 FAIL(empty_outputs) 总 FAIL（run/local/agent_ciqa_p2/att011_replay.json）；fast profile 56 项空 outputs 中 54 项受防线保护、53 项既有 PASS 路径零误伤（run/local/agent_ciqa_p2/fast_profile_attribution.md）；ci/tests/test_gap4_empty_outputs_guard.py 6 项回归全绿。CIQA-ATT-011 复测转 PASS。",
+   "recommendation": "要求关键检查（至少 UT-*/CON-* 系列）登记可验证 outputs（汇总 JSON/报告文件）并由 runner 复核内容；或在 checks.schema.json 中将非 waivable 检查的 outputs 最小条目数设为 1（渐进迁移）。"
+  },
+  {
+   "id": "GAP-5",
+   "severity": "P2",
+   "title": "两个 deep profile 防线测试断言过期（测试证据失效）",
+   "detail": "test_deep_profiles.test_policy_registers_deep_coverage_tools（apt_packages 断言落后于 V8-CI-012 R7 的 8 包清单）与 test_coverage_runner_pytest_tail_capped_at_50（断言 50 行实际 60 行）失败，deep 工具清单与 F9-a 上限合同的测试防线已不验证当前实现。 【复测确认 2026-09-07T12:12:30Z】两处断言过期已由既有修复轮修正（pytest_tail cap 120 断言 test_deep_profiles.py:387-394；policy apt_packages 8 包断言 test_deep_profiles.py:563-565），pytest ci/tests/ 全量 295 passed 零失败，CIQA-ATT-002 以 pytest 口径复测转 PASS；unittest -s tests 全量口径本机超时未完成的局限如实声明。",
+   "recommendation": "按 V8-CI-012 R7/F9-a 现行合同更新断言并复跑（归属 FIX 类任务）；确认 60 行是否为 pytest_tail 上限实现回归或是测试常数未同步。"
+  },
+  {
+   "id": "GAP-6",
+   "severity": "P3",
+   "title": "select-candidate job 的 --api 参数与 TOCTOU 未锁定",
+   "detail": "--api 是暴露的测试后门（本地复现即经此注入）；生产 YAML 当前未传入，风险可控；另 select-candidate job 有 checkout，检出的 selector 脚本 SHA 与被选候选 SHA 无绑定（TOCTOU 影响仅限选择逻辑本身）。",
+   "recommendation": "为 select_candidate.py 增加 --api 仅允许 127.0.0.1/https://api.github.com 的显式开关（如 --allow-mock-api），或在 CI 调用处固定 --api https://api.github.com；TOCTOU 可用 checkout 的 SHA 记录进 selection log 供审计。"
+  },
+  {
+   "id": "GAP-7",
+   "severity": "P3",
+   "title": "waivable 跳过无上限阈值",
+   "detail": "SKIPPED(waivable) 数量在 summary/verdict_reason 可见但不影响 PASS 判定；hosted 镜像漂移（如 prerequisite_tools 缺失）可造成大量检查静默跳过而 CI 绿。",
+   "recommendation": "在 build_ci_result 中按 profile 设定 skipped_waivable 比例上限（如 linux-deep 超过 50% 即 FAIL 或强制 verdict_reason 升级为告警），并在 hosted 复验时核对 skipped 计数。"
+  }
+ ],
+ "conclusion": {
+  "verdict": "PARTIAL",
+  "headline": "Fatduck 隔离核心边界成立（伪造结论注入、SHA 绑定、checkout/compile 边界、fork/PR/手动触发拒绝、数据泄漏拒绝）。首轮 5 项 FAIL 中 4 项已于复测 2026-09-07T12:12:30Z 前修复并复测转 PASS：验收器落地（ATT-016）、run.name 冒名经 path 绑定拒绝（ATT-005）、digest 校验链闭环——null/伪值被拒且合法路径不误伤（ATT-008）、空 outputs 第二重内容级验证——静默失败不再 PASS（ATT-011）；2 项 deep profile 断言过期已修，pytest ci/tests/ 口径 295 passed（ATT-002）。结论由 FAIL 调整为 PARTIAL：残余攻击面 0 项（16/16 攻击复测 PASS），但 unittest 全量口径在本机 >280s 超时未能完成复测、FAST profile 尚有 7 项与本任务无关的既有 FAIL（工作区脏文件所致，基线对照 5 项 + 脏文件衍生 2 项）、GAP-6/GAP-7（P3）未在本次任务范围内处置，且 hosted 在线行为未实测——维持非全绿结论以如实反映证据边界。",
+  "passed_attacks": 16,
+  "failed_attacks": 0,
+  "p0": 0,
+  "p1": 2,
+  "p2": 3,
+  "p3": 2,
+  "scope_notes": "本报告未实测 GitHub 托管环境的在线行为（verify_remote_run 仅离线 mock 验证）；self-hosted fatduck harness（D:\\AstroCSRunner）在仓库外，其 run_validation.ps1 未能审计，相关结论以 workflow 结构与 harness 契约为界。"
+ },
+ "evidence_files": [
+  "run/local/agent_ciqa_p2/att011_replay.json",
+  "run/local/agent_ciqa_p2/baseline/run_baseline.log",
+  "run/local/agent_ciqa_p2/ciqa_fatduck_attack.json",
+  "run/local/agent_ciqa_p2/ciqa_fatduck_attack.log",
+  "run/local/agent_ciqa_p2/fast_profile_attribution.md",
+  "run/local/agent_ciqa_p2/gap4_waiver_decision.md",
+  "run/local/agent_ciqa_p2/pytest_ci_tests.log",
+  "run/local/agent_ciqa_p2/unittest_full.log",
+  "run/local/agent_ciqa_p2/verify_strict_baseline.log",
+  "run/local/ciqa_fatduck_attack.json",
+  "run/local/ciqa_fatduck_attack.log",
+  "run/local/ciqa_fatduck_attack.py",
+  "run/local/ciqa_run_fast_plan.log",
+  "run/local/ciqa_unittest_ci_tests.log",
+  "run/local/ciqa_verify_command.log",
+  "run/local/fixture_repo"
+ ],
+ "verify_command": "python3 ci/verify_ciqa_report.py evidence/ciqa/CIQA_REPORT.json",
+ "verify_result": {
+  "exit_code": 0,
+  "output": "CIQA-REPORT-OK: task_id=V8-CIQA-001 attacks=16(FAIL=0) gaps=7(P0|P1=2) conclusion=PARTIAL",
+  "note": "P2 修复复测后如实重算（复测 utc 2026-09-07T12:12:30Z）：16/16 攻击复测 PASS；GAP-1..GAP-5 已修复并复测确认，条目保留于 gaps[]（含修复与复测证据），结论据实取 PARTIAL （unittest 全量口径本机超时未完成复测 + hosted 在线行为未实测 + GAP-6/7 P3 未处置）。标准口径与 --strict 复验均 rc=0，见 run/local/agent_ciqa_p2/verify_after.log 与 verify_strict_after.log",
+  "reverified_utc": "2026-09-07T12:12:30Z"
+ }
 }
