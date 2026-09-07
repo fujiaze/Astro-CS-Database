@@ -47,6 +47,9 @@ struct HostSession {
   void* state = nullptr;
   bool valid = false;
 
+  // P0 修复: workers 参数 = execute 路径的调用方 budget 权威（经 ThreadLease
+  // 原子预留授权，不超卖）；validate/inspect 路径传缺省值 2（非调度上下文，
+  // 仅影响 host budget 上限，不影响门禁语义）。
   bool init(uint32_t workers) {
     if (astrocs_host_services_default_v1(&host, &state) != 0) return false;
     astrocs_host_state_set_budget_v1(state, workers, workers, &host);
@@ -155,8 +158,15 @@ struct SessionModule : public IModule {
     // 先原子预留（RAII：session 结束/异常/取消统一归还），再用授权数初始化
     // host services（host budget.max_workers 与 ThreadBudget lease 同源，不超卖）。
     // 预算耗尽 → 空租约 → host 以 1 worker 串行执行（不伪造 ThreadLease::make）。
+    // P0 修复(budget 注入链断裂): 调用方 budget 权威优先 —— ctx.budget() 是
+    // Scheduler 注入的唯一 ThreadBudget（budget=CLI cli_affinity_cpu_count 的
+    // 可用核数，与 MON-001 recorder.set_workers(budget,budget) 及 gate 侧
+    // available_cpus/selected_workers 同源）。workers_=2 仅作 ThreadBudget 未
+    // 注入上下文（validate_config/inspect/非调度测试）的缺省，不得截断权威
+    // 预算；否则 session 层 worker 恒 2，多核宿主 compute+wall≥5s 任务恒
+    // LowAvgCores/CpuP50Low（gate exit 10），违反"重计算禁止单线程"注入语义。
     const uint32_t host_workers =
-        ctx.budget() ? std::min(workers_, ctx.budget()->budget()) : workers_;
+        ctx.budget() ? ctx.budget()->budget() : workers_;
     ThreadLease lease = ctx.acquire_lease(host_workers);
     const uint32_t cap = lease.acquired() ? lease.size() : 1u;
     HostSession hs;

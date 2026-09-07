@@ -110,10 +110,12 @@ def ensure_seam6_hips(fdir=SEAM6_DIR):
 def two_cpu_preexec():
     """subprocess preexec_fn: 把子进程限制到前 2 个可用 CPU（恢复 2c 生产语境）。
 
-    现行 CLI 资源门阈值 = 0.80*min(workers_budget, available_cpus)，而 phase2/3
-    session 的 budget 恒为 2 workers。在多核宿主机上 available_cpus 抬高阈值而
-    budget 不变，run 被 gate 结构性拒绝（exit 10）。phase3 大图类测试按原始 CI
-    2c2g 设计语境以 CPU 亲和恢复 budget/available 一致（环境适配，非语义放宽）。
+    用途(实测语境适配, 非语义放宽): phase3 大图类测试(p1004/p3006)按原始 CI
+    2c2g 设计语境运行 — 2c 下 gate 阈值 = 0.80*2 = 1.6 核, 大图 workload 可达;
+    16c 全核下阈值 12.8 核超出 mini fixture 算力。budget 注入链 P0 修复后
+    (module_adapters execute 以 ctx.budget() 权威注入) session budget = 真机
+    分配核数(2c 语境下=2), 不再有 budget 恒 2 与 available 不一致问题; 此
+    helper 仅提供确定性的小核数运行语境。
     仅 Linux（sched_setaffinity）；fork 后 exec 前执行，不得在此 import。
     """
     cpus = sorted(os.sched_getaffinity(0))
