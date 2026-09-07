@@ -278,7 +278,9 @@ public:
     PrecisionMode get_precision() const { return config_.precision; }
 
     // 取消 token - 请求取消当前运行
-    // 线程安全: 设置 cancel_token_ 为 true, 各 stage 检查后停止
+    // async-signal-safe: 只做 cancel_token_ 原子 store, 无锁/无 logging,
+    // 可由 SIGINT 信号处理器直接调用 (P1-2); 取消的日志由消费点
+    // (check_stage_continue 等 is_cancelled() 分支) 输出
     void request_cancel();
 
     // 检查取消 token 是否被设置
@@ -326,6 +328,13 @@ public:
     TaskResult run_stage2(const std::string& hiss_dir,
                           const std::string& output_hcsd,
                           const std::string& config_json = "");
+
+    // 原子输出清理 - 删除部分生成的输出文件/目录树 (P04-004 / IO-003)
+    // path: 要删除的路径 (通常为 current_output_file_; 可为单文件或 HiPS 目录树)
+    // 目录树用 fs::remove_all 递归删除; 返回: true 如果不存在或成功删除;
+    // false 如果删除失败 (错误经 LOG_ERROR 上报, 不静默)。
+    // public: 供单元测试直接验证目录树清理行为 (test_p1_batchB_fixes)
+    bool cleanup_partial_output(const std::string& path);
 
 private:
     OrchestratorConfig config_;
@@ -443,11 +452,6 @@ private:
     // 格式: {"stage_timeouts":{"READ_FITS":10.0,"CALIBRATE":60.0,...}}
     // 返回: 解析得到的 stage->seconds 映射 (空 map 表示未配置或解析失败)
     static std::map<std::string, double> parse_stage_timeouts(const std::string& config_json);
-
-    // 原子输出清理 - 删除部分生成的输出文件
-    // path: 要删除的文件路径 (通常为 current_output_file_)
-    // 返回: true 如果文件不存在或成功删除; false 如果删除失败
-    bool cleanup_partial_output(const std::string& path);
 
     // 检查 stage 是否应继续执行 (取消/超时检查)
     // 返回: true 继续; false 应停止 (取消或超时)
