@@ -117,6 +117,23 @@ else()
   target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio z m)
 endif()
 add_test(NAME io_reentrant COMMAND io_reentrant_test)
+# QA-002 (DEEP-SAN-TSAN io_reentrant 根因修复): vendored cfitsio 4.6.4 内部
+# FFLOCK/FFUNLOCK 宏把 pthread_mutex_* 返回值写入全局诊断状态
+# Fitsio_Pthread_Status (fitsio2.h:25-26) — 该写自身不受任何锁保护, 是上游
+# 固有模式(仅存诊断返回码, 不参与数据流; 锁互斥语义正确)。TSan 对该写写
+# 竞争必然报 race (ffopen/fits_store_Fptr/fits_clear_Fptr, 全部位于
+# third_party 内部), 测试进程以非零退出码收场 → ctest FAIL。
+# 治理: 仓库既有先例 tools/quality/tsan/cfitsio.supp (QA-002, owner+expiry
+# 注明仅限第三方 cfitsio 内部符号, 自有代码 race 一律不豁免) — configure 时
+# 复制进 build 树再挂到测试环境。必须走 build 树副本: sanitizer flag 解析按
+# 空白切 token, 源树路径若含空格 (如本地 checkout) 会破坏 TSAN_OPTIONS。
+# 非 TSan 构建下该环境变量无运行时消费, 无副作用。
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tsan)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/quality/tsan/cfitsio.supp
+  ${CMAKE_BINARY_DIR}/tsan/cfitsio.supp COPYONLY)
+set_tests_properties(io_reentrant PROPERTIES
+  ENVIRONMENT "TSAN_OPTIONS=suppressions=${CMAKE_BINARY_DIR}/tsan/cfitsio.supp")
 
 add_executable(cpu_abi_test cpu_abi_test.cpp)
 target_include_directories(cpu_abi_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
@@ -241,6 +258,13 @@ target_link_libraries(cpu001_provider_selftest_avx512 PRIVATE
   astrocs_cpu_avx512 astrocs_contracts astrocs_common)
 add_test(NAME cpu001_selftest_avx512
   COMMAND cpu001_provider_selftest_avx512 avx512)
+# CPU-001 avx512 治理 (DEEP-SAN-ASAN/TSAN/COV + WIN-TEST-UNIT 同一失败):
+# provider 激活合同 = required ⊆ detected 否则拒绝 (backend_loader.cpp ⑤
+# "unsupported ISA...不尝试执行"); CPU-004 capability gate 同语义 (无 AVX-512
+# hw/OS ZMM state → 拒绝)。无 AVX-512F 硬件的 host 上 avx512 provider 本就不
+# 激活 — selftest 对"backend 未激活"走 SKIP (返回 77) 而非 FAIL;
+# 有硬件时全部断言 (含 self_test/kernel 表) 不变, avx2/baseline 不动。
+set_tests_properties(cpu001_selftest_avx512 PROPERTIES SKIP_RETURN_CODE 77)
 
 # 负例: feature bits 不满足的 provider 加载被拒(用 astrocs_cpu 内的 backend_loader 预检)
 add_executable(cpu001_negative_test cpu001_negative_test.cpp)

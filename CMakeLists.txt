@@ -578,7 +578,15 @@ if(NOT WIN32 AND NOT MSVC)
     if(ASTROCS_SANITIZE_THREAD)
       set(_QA_SAN_OPT -DASTROCS_ENABLE_TSAN=ON)
       set(_QA_SAN_TGT qa-sanitize-tsan)
-      set(_QA_SAN_ENV ${CMAKE_COMMAND} -E env)
+      # TSan suppression: vendored cfitsio 4.6.4 内部诊断状态写竞争
+      # (Fitsio_Pthread_Status, fitsio2.h FFLOCK/FFUNLOCK 宏, 上游固有模式)
+      # — 仓库既有先例 tools/quality/tsan/cfitsio.supp (QA-002, 仅限第三方
+      # 符号)。全量 ctest 环境统一挂载 (与下方 ASan 分支 ASAN_OPTIONS 同
+      # 模式); 路径取 qa-sanitize 子 build 树副本 (tests/unit configure 时
+      # 生成, 不含空格) — sanitizer flag 解析按空白切 token, 源树路径含
+      # 空格会破坏 TSAN_OPTIONS。非 TSan 构建不消费该环境变量, 无副作用。
+      set(_QA_SAN_ENV ${CMAKE_COMMAND} -E env
+        TSAN_OPTIONS=suppressions=${CMAKE_BINARY_DIR}/qa-sanitize/tsan/cfitsio.supp)
     else()
       set(_QA_SAN_OPT -DASTROCS_ENABLE_SANITIZERS=ON)
       set(_QA_SAN_TGT qa-sanitize)
