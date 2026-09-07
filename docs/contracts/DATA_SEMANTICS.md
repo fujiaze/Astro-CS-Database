@@ -786,7 +786,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 
 | 参数/字段 | dtype/shape | 单位/域 | invalid / NULL 语义 |
 |---|---|---|---|
-| hips_paths | `const char* const*` `[n_inputs]` | 文件系统路径（HiPS 目录） | NULL/空串 → rc=1 "input %llu path NULL or empty"（:165-170）；顶层 NULL → rc=1 "no inputs"（:154-157，status 不一致=DISP-COV-001） |
+| hips_paths | `const char* const*` `[n_inputs]` | 文件系统路径（HiPS 目录） | NULL/空串 → rc=1 "empty path at index %llu"（:165-170）；顶层 NULL → rc=1 "no inputs"（:154-157，status 不一致=DISP-COV-001） |
 | n_inputs | uint64 标量 | 无量纲 | 0 → rc=1 "no inputs"（:154-157） |
 | out | P2CoverageResult* 调用方分配 | — | NULL → rc=1（:147）；两阶段协议：先 union_cells=NULL 容量查询，再分配 K 后二次调用（§19.2） |
 
@@ -812,19 +812,19 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 | n_union_cells | uint64 标量 K | 无量纲 | 两阶段第一次调用即有效（容量查询，:218） |
 | union_cells | P2MocCell `[K]` 调用方分配（coverage.h:26-29） | order=uint64（=target_order，:221）、ipix=uint64（NESTED 父单元索引，<12·4^order，去重升序 :212-214） | 第二次调用回填（:219-224）；K=0 合法（空 MOC，rc=0） |
 | target_order | int 标量 | 无量纲（HEALPix order） | = min(逐帧 hips_order)（:194-196，冻结：禁低 order 插值伪装分辨率） |
-| status | int | 0=ok（:229） | 错误路径 1（:172-179/:198-202）；"no inputs" 分支 rc=1 而 status=0（DISP-COV-001） |
-| error | char[512] | — | rc=1 时载因；"no inputs" 分支错误信息在 memset 之后写入（:154-163 顺序），有效 |
+| status | int | 0=ok（:229） | 错误路径 1（:168/:177/:190/:200）；"no inputs" 分支 rc=1 而 status=0（DISP-COV-001） |
+| error | char[512] | — | rc=1 时载因；memset（:151）先于各错误分支 strncpy（如 :155），error 有效 |
 
 P2HipsInputInfo 逐字段（coverage.h:31-38，回填锚 :113-143）:
 
 | 字段 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
-| hips_path | char[1024] | 路径字符串 | 调用方输入原样回填（:127） |
+| hips_path | char[1024] | 路径字符串 | 调用方输入原样回填（:111） |
 | frame_id | char[64] | 无量纲标识 | 路径基名截断（:113-118，DISP-COV-002 唯一性风险）；不保证全局唯一 |
-| max_leaf_order | int | 无量纲（HEALPix order） | = 该帧 properties hips_order（:141-143） |
-| n_tiles | int | 无量纲 | 该帧叶级 tile 数（AIO Moc.fits，:139） |
-| filter_passband | char[64] | 无量纲字符串 | properties obs_filter（:110）；缺失=空串（DISP-COV-003） |
-| frame_type | char[32] | "equatorial"/"icrs" | properties hips_frame（:119-121） |
+| max_leaf_order | int | 无量纲（HEALPix order） | = 该帧 properties hips_order（:119） |
+| n_tiles | int | 无量纲 | 该帧叶级 tile 数（AIO Moc.fits 读取，回填 :136；初值 :120） |
+| filter_passband | char[64] | 无量纲字符串 | properties obs_filter（:86/:121-123）；缺失=空串（DISP-COV-003） |
+| frame_type | char[32] | "equatorial"/"icrs" | properties hips_frame（:85/:124-126） |
 
 ### 19.3 数据语义（唯一权威，对齐 docs/api/PHASE2_API_V1.md 所有权图）
 
@@ -862,6 +862,7 @@ P2HipsInputInfo 逐字段（coverage.h:31-38，回填锚 :113-143）:
 - 全部拒绝路径显式 rc=1（§19.1 表）；并发合同 reentrant=yes /
   threadsafe=no（独立对象）/ internal_parallel=none / 取消点=无
   （API-P2-001 §2 行 1）；阶段级取消由编排 session 阶段边界提供
-  （p2_session.cpp:120）。
-- 释放纪律: p2_coverage_free（:233-237）调用方收尾（PHASE2_API_V1 §1
-  表行登记）；无隐藏全局状态（单文件静态函数，无模块级可变状态）。
+  （p2_session.cpp:119-121）。
+- 释放纪律: p2_coverage_free（:233-237，memset :235）调用方收尾
+  （PHASE2_API_V1 §1 表行登记）；无隐藏全局状态（单文件 static/匿名
+  ns 函数，无模块级可变状态）。
