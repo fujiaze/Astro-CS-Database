@@ -41,3 +41,14 @@ coadd/独立性/MC 协方差）。
 ## Source files
 
 lib/snr_estimator/cpp/。
+
+---
+
+> **P1-NOISE-DOC 增补（2026-09-07）**：本页为 P1-005 期 legacy
+> ACTIVE_INFORMATIVE 摘要，部分表述已过时（"patch OpenMP" 实测现状为
+> 单线程顺序；"ALG-NOISE-MAD-001" 占位 ID 已由 ALG-NOISE-001..003 取代）。
+> 模块合同权威已冻结于 `lib/snr_estimator/README.md`（r1，
+> CONTRACT_READY）+ `lib/snr_estimator/module.yaml`（MOD-astrocs-phase1-
+> noise-snr），逐符号源码锚定与 DISP-NOISE-001..009 登记
+> 见 `docs/algorithms/NOISE_ESTIMATION.md` §13；本页不据此更新正文，
+> 冲突时以冻结合同为准。

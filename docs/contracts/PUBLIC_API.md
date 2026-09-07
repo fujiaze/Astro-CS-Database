@@ -344,3 +344,78 @@
   lib/hips/module.yaml（astrocs.p1.hips_writer / astrocs_p1_hips_writer.dll，
   entrypoint=MISSING——registry 无 descriptor；C ABI adapter 由
   P1-HIPS-IMPL 建立；本节描述现状 API，不声明 DLL 化完成）。
+
+## SNR/Noise C API（API-NOISE-001）
+
+> ID: API-NOISE-001  状态: CONTRACT_READY（P1-NOISE-DOC 冻结，2026-09-07）
+> 头: lib/snr_estimator/cpp/include/snr_estimator.h（唯一权威签名源，禁止
+> 手抄他版；SNR_API extern "C" 导出，_WIN32 下 __declspec(dllexport) :7-11）
+> SRC: lib/snr_estimator/cpp/src/noise_model.cpp（现状构建=cpp/Makefile:5,12
+> g++ -shared → snr_estimator.dll + cpp/build.ps1:29，未编入根 CMake 主
+> 构建；dll_loader.cpp:41/55 加载名与路径吻合）；SCI: SCI-NOISE-001..015；
+> ALG: ALG-NOISE-001..003（NOISE_ESTIMATION §13.1 逐符号锚）；DATA:
+> DATA-P1-NOISE（DATA_SEMANTICS §13）；MOD: astrocs.p1.noise-snr（迁移目标
+> astrocs_p1_noise.dll，落码由 P1-NOISE-IMPL 建立）。编排级合同见
+> API-P1-006（PHASE1_API_V1 §2，多模块共享）；本节只冻结 noise 路径
+> 9 个导出符号的语义。
+>
+> **范围界定**：本节只登记 NoiseWeightModelV1 生产链 + 诊断函数
+> （ALG-NOISE-001..003）；同头三层模型其余符号
+> snr_phot_cal_quality/snr_psf_fit_quality（测光/PSF 质量，P1-PHOT/PSF
+> 合同视角）与旧乘法 SNR 通道 snr_estimate*/snr_extract_model*（legacy
+> diagnostic，头注释 :19-20 降级声明）不属本合同，仅登记边界。
+
+- 导出符号（noise 路径 9 个，全部当前真实存在）：`snr_noise_model_v1`
+  （:143-149）、`snr_noise_model_v1_f64`（:151-157）、
+  `snr_noise_model_v1_default_config`（:115）、
+  `snr_noise_model_v1_fill`（:162-166）、`snr_noise_model_v1_free`
+  （:167-168）、`snr_noise_scale_law`（:173-175）、
+  `snr_noise_gain_variance`（:178-180）——7 个导出 + `snr_estimate`
+  （:200-203）/`snr_estimate_f64`（:215-218）2 个 legacy 诊断导出
+  （范围外登记）。
+- 签名（snr_estimator.h 权威）：
+  `int snr_noise_model_v1(const float* data, int h, int w, const float*
+  source_mask, const double* star_x, const double* star_y, int n_stars,
+  const SnrNoiseModelConfig* cfg, NoiseWeightModelV1* out_model)`
+  （:143-149；f64 变体 data 为 double :151-157）；
+  `int snr_noise_model_v1_fill(const NoiseWeightModelV1* model, int h,
+  int w, float* out_variance, float* out_ivar)`（:162-166）；
+  `void snr_noise_model_v1_free(NoiseWeightModelV1* model)`（:167-168）；
+  `void snr_noise_scale_law(double alpha, double* variance, double* ivar)`
+  （:173-175）；`double snr_noise_gain_variance(double signal, double
+  gain_e_per_adu, double read_noise_e)`（:178-180）。
+- 返回码（build/fill 一致，noise_model.cpp 实测）：`0`=成功（含
+  degenerate=1 全局兜底成功，:267）；`1`=完全退化（ivar_bg_global=0.0，
+  调用方拒绝加权，:225-233）；`3`=nullptr/尺寸非法/内部异常（C ABI
+  try/catch 屏障 :348-364；malloc 失败 :244-254）。
+- 调用时序与所有权：`snr_noise_model_v1[_f64]`（build，写
+  g_model_floor[out_model] :126）→ `snr_noise_model_v1_fill`（读模型 +
+  指针 key 查 floor，:402-405）→ `snr_noise_model_v1_free`（free ctrl
+  数组 + 擦除注册表条目 :431-445）。out_model 由调用方分配/持有，
+  ctrl_* 内部数组由实现 malloc/free；**未 free 即丢弃指针 = 注册表
+  泄漏**（DISP-NOISE-009）；free 幂等（nullptr 安全）。
+- 单位/dtype/shape：data ADU [h·w] 行主序（v1 float32 / f64 float64）；
+  source_mask float32 [h·w]（≠0=源）；star 坐标 double[n_stars] 0-based
+  pixel；fill 输出 float32 [h·w]；variance ADU²、ivar ADU⁻²、σ ADU、
+  gain e⁻/ADU、read_noise e⁻。逐字段语义见 DATA_SEMANTICS §13
+  （DATA-P1-NOISE）。
+- 线程安全：reentrant=yes、threadsafe=yes **以 model 对象隔离为前提**
+  （PHASE1_API_V1 §2 口径）——唯一共享可变状态 g_model_floor 为进程级
+  无锁 unordered_map，并发 build/free 无保护（DISP-NOISE-001）；fill
+  只读模型 + g_model_floor 查询。输出 bitwise 与线程数无关（现状
+  单线程实现，noise_model.cpp:118-267,371-429）。
+- 取消：无取消检查点（noise_model_impl/fill_impl 无 cancel 回调，
+  DISP-NOISE-004；PHASE1_API_V1 §2 "取消点=行带"为计划语义）。
+- 生产调用方：lib/orchestrator/src/orchestrator.cpp:4177（stage6 SNR，
+  必需 stage）→ dll_loader_ 函数指针 snr_noise_model_v1/_f64/
+  _default_config/_fill/_free（orchestrator.cpp:4242-4251）；DLL 装载
+  snr_estimator.dll（dll_loader.cpp:41，lib/snr_estimator/cpp/ :55）。
+- 已登记现状缺陷（不得静默使用，P1-NOISE-IMPL/INT 处理）：ABA 复用与
+  并发无锁（DISP-NOISE-001）、build/fill floor 语义不一致（002）、
+  gain 三字段无效（003）、无取消点（004）、scale_law 无校验（005）、
+  掩膜通道互斥（006）、参数静默钳位（007）、空 patch 计数混同（008）、
+  注册表泄漏路径（009）。完整清单见 NOISE_ESTIMATION §13.3。
+- plan/execute/cancel/inspect 迁移语义见 NOISE_ESTIMATION §13.5 与
+  lib/snr_estimator/module.yaml（astrocs.p1.noise-snr /
+  astrocs_p1_noise.dll，C ABI adapter 由 P1-NOISE-IMPL 建立；本节描述
+  现状 API，不声明 DLL 化完成）。
