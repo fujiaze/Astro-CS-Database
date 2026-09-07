@@ -114,7 +114,7 @@ P1-COS-DOC,module-doc,NOT_STARTED,commit:4b87aef6 traceability 26行0错 + pytes
 P1-COS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-COS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-COS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P1-STAR-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-STAR-DOC,module-doc,NOT_STARTED,commit:d92062a7 traceability 29行0错 + pytest 4P + contract_graph 51 + doc_index PASS + selfcheck 17项 PASS,CLOSED,fg_verified_commit,d92062a7,lib/star_detector/; docs/algorithms/STAR_DETECTION_ALGORITHMS.md; docs/science/STAR_DETECTION.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结; DISP-STAR-001..005 归 P1-STAR-IMPL/INT; SCI-P1-STAR-001 新增冻结层落点(共享 SCI 未动); dll 现状 star_detector.dll 改名归 IMPL; descriptor 占位归 P1-STAR-INT
 P1-STAR-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-STAR-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-STAR-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
