@@ -45,9 +45,9 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 59,
+  "CLOSED": 60,
   "READY": 13,
-  "NOT_STARTED": 117,
+  "NOT_STARTED": 116,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
@@ -2212,15 +2212,15 @@
   },
   "P1-SESSION-DOC": {
    "owner": "SA-P1-R19",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "bb075b93",
+   "evidence_path": "lib/phase1_session/; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json",
+   "source_of_status": "fg_verified_commit",
    "wave": "W1",
    "kind": "module-doc",
    "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "current_evidence": "commit:bb075b93 traceability 28行0错 + pytest 4P + contract_graph 48 + doc_index PASS + selfcheck 46/0 PASS",
+   "note": "module-doc 冻结(assembly 层); 不设 ALG(无装配公式); entrypoint=p1_session_run; API-P1-001 7-stage vs 现状 4 段差距登记归 P1-SESSION-IMPL; cosmetic nullptr 母版 DISP-COS-009 归 P1-COS-INT"
   },
   "P1-SESSION-TEST": {
    "owner": "SA-P1-R19",
