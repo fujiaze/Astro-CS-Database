@@ -122,7 +122,7 @@ P1-PSF-DOC,module-doc,NOT_STARTED,commit:5eb0c19c traceability 27行0错 + pytes
 P1-PSF-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-PSF-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-PSF-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P1-WCS-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-WCS-DOC,module-doc,NOT_STARTED,"commit:3cbd5fd7 traceability 29行0错 warns=4基线 + pytest 4P + contract_graph 53 + doc_index PASS + selfcheck 77 PASS(唯一FAIL为并行IO修复白名单过期,非本任务域)",CLOSED,fg_verified_commit,3cbd5fd7,lib/plate_solve/; docs/algorithms/PLATESOLVE.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,"module-doc 冻结; SCI-WCS-001=共享 ASTROMETRY.md 零改动; DISP-WCS-001..006 (核心=001 CD退化静默坍缩,失败-置信度冻结 success=0); astrocs_p1_wcs.dll/CMake 集成归 P1-WCS-IMPL; descriptor 对齐归 P1-WCS-INT; 证据归 P1-WCS-TEST"
 P1-WCS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-WCS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-WCS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
