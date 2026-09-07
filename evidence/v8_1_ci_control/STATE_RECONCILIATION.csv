@@ -126,7 +126,7 @@ P1-WCS-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-WCS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-WCS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-WCS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P1-PHOT-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-PHOT-DOC,module-doc,NOT_STARTED,commit:87bb7b7f traceability 27行0错 + pytest 4P + contract_graph 44 + doc_index PASS + selfcheck 51项 ALL_PASS,CLOSED,fg_verified_commit,87bb7b7f,lib/photometric_calib/; docs/algorithms/PHOTOMETRIC_FIT.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结; 缺陷清单 DISP-PHOT-001..009 归 P1-PHOT-IMPL/INT; SCI-PHOT-001 未动; descriptor 占位 ID 对齐归 P1-PHOT-INT; v19r3_traceability.py 写副作用已恢复并提示
 P1-PHOT-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-PHOT-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-PHOT-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
