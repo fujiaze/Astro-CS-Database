@@ -168,7 +168,7 @@ contracts:
     version: 1.0.0
     path: docs/algorithms/STAR_PSF_ALGORITHMS.md
     upstream: [SCI-PSF-001]
-    downstream: []
+    downstream: [DATA-P1-PSF, API-PSF-001]
   - id: ALG-NOISE-001
     type: ALG
     status: ACTIVE
@@ -314,6 +314,22 @@ contracts:
     version: 1.0.0
     path: docs/contracts/PUBLIC_API.md
     upstream: [ALG-PHOT-001, ALG-PHOT-002]
+    downstream: []
+  - id: DATA-P1-PSF
+    type: DATA
+    status: ACTIVE
+    owner: SA-P1-S15
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-STARPSF-001]
+    downstream: []
+  - id: API-PSF-001
+    type: API
+    status: ACTIVE
+    owner: SA-P1-S15
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ALG-STARPSF-001]
     downstream: []
   - id: DATA-ARTIFACTS-001
     type: DATA

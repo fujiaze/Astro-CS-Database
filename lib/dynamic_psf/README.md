@@ -1,192 +1,180 @@
-# Dynamic PSF - Moffat4 PSF 拟合引擎
+# AstroCS P1 PSF 模块（astrocs.p1.psf）— 冻结合同 README
 
-版本：v1.1 (含性能修复) | 2026-07-12
+> r1（P1-PSF-DOC，2026-09-07）：由 SRC-PSF-001 源码实测冻结，不信任旧 README。
+> 状态 **CONTRACT_READY**：实现与 C API 已存在于 legacy `lib/dynamic_psf`（SRC-PSF-001
+> VERIFIED），独立模块化迁移（`astrocs_p1_psf.dll`、C ABI adapter、ThreadLease）归
+> **P1-PSF-IMPL**，可执行测试归 **P1-PSF-TEST**（TEST-PSF-DESIGN-001 → TEST-P1-PSF-001）。
+> 本文件为模块唯一合同入口；registry descriptor（lib/core/src/module_adapters.cpp:430-448）
+> 现为占位 ID，以本 README + module.yaml 为冻结依据，由 P1-PSF-INT 对齐。
 
-天文图像中星点的 PSF（Point Spread Function，点扩散函数）拟合引擎，采用 β=4 固定 Moffat 模型与 7 参数 Levenberg-Marquardt 求解器，原生 uint16 输入，OpenMP 16 线程并行批量拟合。
+## 0. 标识
 
-**性能摘要**：C++17 · OpenMP 16 线程 · uint16 原生输入 · 7 参数 LM 求解 · β=4 固定 Moffat · `-O2 -march=native`
+| 项 | 值 | 依据 |
+|---|---|---|
+| MOD ID | `MOD-astrocs-phase1-star-psf` | registry（matrix 行键） |
+| module_id | `astrocs.p1.psf` | MODULE_MIGRATION_MATRIX P1-PSF 行 |
+| DLL target | `astrocs_p1_psf.dll`（合同值，尚未存在） | 同上；现状 `dynamic_psf.dll`（dll_loader.cpp:39） |
+| module/ABI revision | module_version 0.11.0-alpha.2 / abi_version 1 | module.yaml |
+| owner | SA-P1-S15 | matrix 行 |
+| 状态 | CONTRACT_READY（未 IMPLEMENTED） | 本任务冻结 |
+| 遗留路径 | `lib/dynamic_psf`（matrix legacy_paths） | 本目录即生产源 |
+| 上游集成依赖 | P1-STAR-INT（matrix depends_on_int） | matrix 行 |
 
-## GitHub仓库
-- 仓库地址：https://github.com/fujiaze/Dynamic-PSF
-- 默认分支：master
-- 最新commit：a3ae0d6
+## 1. 负责与不负责
 
-## 概述
+**负责**：Phase1 单帧 light 上按权威星表坐标逐星做 Moffat4（β=4 固定）PSF 拟合，
+产出 `psf` 块（DATA-P1-PSF）；uint16/float32/float64 三通道拟合 API；
+`star_det_v1:FLOAT64[N,6]` 检测消费契约（dynamic_psf.h:104）。
 
-### 功能列表
+**不负责**：星检测（star_detector，PSF 阶段消费其检测结果，禁止重检测，
+orchestrator.cpp:1754-1756 注释）；饱和剔除决策（star_det v1 列 [4]/[5] 现状不
+消费，dpsf_psf.cpp:741 仅解包 [0]=x/[1]=y）；下游测光/零点（P1-PHOT）；background
+模型与 cosmetics（P1-COSMETIC，本模块仅消费 `cleaned` 块）。
 
-- **Moffat4 模型**：β=4 固定，7 参数拟合（背景 B、振幅 A、中心 cx/cy、sigma sx/sy、旋转角 θ）
-- **Levenberg-Marquardt 求解器**：数值雅可比 + 高斯消元，自适应阻尼因子迭代收敛
-- **16bit 原生输入**：直接接收 uint16 图像数据，适配业余天文相机 ADC，避免精度损失
-- **批量拟合**：图像数据只传入一次，OpenMP 16 线程并行拟合所有坐标点
-- **参数约束**：sx/sy 下限 0.3px 防止发散，背景约束 50%，θ 四方向消歧
-- **鲁棒背景估计**：下半中位数 + med+2σ clipping，剔除星点信号残余
+## 2. 输入 / 输出 ports、DATA ID、单位、dtype、shape、invalid
 
-### 性能指标
+registry descriptor ports（module_adapters.cpp:437-441）：
 
-| 指标 | 规格 |
-|------|------|
-| 并行线程数 | 16（OpenMP，可配置） |
-| 输入位深 | 16bit uint16 原生（float32 自动转换） |
-| 拟合参数数 | 7（B, A, cx, cy, sx, sy, θ） |
-| 拟合半径 | 默认 8px，可配置 |
-| 最大迭代次数 | 200 |
-| 收敛容差 | 1e-8 |
-| 编译优化 | `-O2 -march=native` |
-| 链接方式 | 静态链接 libgcc/libstdc++，无运行时依赖 |
+| 端口 | DATA ID | 方向 | 必/可 | 单位 | 坐标 | dtype/shape（实现层） | invalid |
+|---|---|---|---|---|---|---|---|
+| `cleaned` | DATA-P1-COSMETIC | 入 | 必 | ADU | PIXEL | uint16/float32/float64 `[height,width]` 行主序（dpsf_fit/dpsf_fit_batch_f32/dpsf_fit_batch_d） | 空指针/`width<=0`/`height<=0` → DPSF_FIT_INVALID_PARAMS 或批 API -1 |
+| `sources` | DATA-P1-SOURCES | 入 | 可 | DIMENSIONLESS | ICRS | star_det v1：`FLOAT64[N,6]`，列 `[0]=x_px [1]=y_px [2]=flux [3]=mag [4]=saturated [5]=has_saturated`（dynamic_psf.h:79-82,104） | `n_detections<=0`/空指针 → -1；[4]/[5] 不消费 |
+| `psf` | DATA-P1-PSF | 出 | 可 | DIMENSIONLESS（θ 为弧度，FWHM 为像素） | PIXEL | `psf_params:FLOAT64[N,9]`：`[0]=B [1]=A [2]=cx [3]=cy [4]=sx [5]=sy [6]=theta [7]=fwhm_x [8]=fwhm_y`（dynamic_psf.h:105） | 拟合失败星 9 字段全 NaN；批 API `out_n_valid` 仅计 DPSF_FIT_OK |
 
-## 使用方法
+坐标：输出 cx/cy 为图像像素坐标（局部 patch 坐标已平移回全图，dpsf_psf.cpp:383、
+755-757）；θ 为弧度，起边 x 轴，sx≥sy 约定经 θ 候选消歧保持（见 §5）。
 
-### 编译
+## 3. SCI / ALG / DATA / API / ARCH / TEST 链接
 
-```bash
-g++ -O2 -march=native -Wall -std=c++17 -fopenmp -shared -o dynamic_psf.dll src/*.cpp -Iinclude -static-libgcc -static-libstdc++ -lm
-```
+| 层 | ID | 状态 | 文档 |
+|---|---|---|---|
+| SCI | SCI-P1-PSF-001（文档合同 SCI-PSF-001） | MISSING→本任务冻结（见 §10） | docs/science/PSF.md；docs/algorithms/STAR_PSF_ALGORITHMS.md §11 |
+| ALG | ALG-STARPSF-001（descriptor 占位 ALG-002 同文档） | MISSING→本任务冻结 | docs/algorithms/STAR_PSF_ALGORITHMS.md#§11 |
+| DATA | DATA-P1-PSF（descriptor 占位 DATA-P1-SOURCES 为编排层误配） | VERIFIED | docs/contracts/DATA_SEMANTICS.md#§15 |
+| API | API-PSF-001（descriptor 占位 API-P1-003 仍有效） | VERIFIED | docs/contracts/PUBLIC_API.md#API-PSF-001；docs/api/PHASE1_API_V1.md |
+| ARCH | ARCH-001 | VERIFIED | docs/architecture/ARCHITECTURE.md |
+| SRC | SRC-PSF-001 | VERIFIED | lib/dynamic_psf/src/dpsf_psf.cpp（本 README 全部行号锚） |
+| TEST | TEST-PSF-DESIGN-001 | VERIFIED（设计） | docs/algorithms/STAR_PSF_ALGORITHMS.md#§11.4 |
+| EVIDENCE | EVID-MISSING | MISSING | 待 P1-PSF-TEST |
 
-或使用 Makefile：
+矩阵现值 `TEST-P1-PSF-001`/`DATA-P1-SOURCES`/`ALG-002`（module_adapters.cpp:442-446
+占位）由 P1-PSF-INT 对齐本合同，不得反向作为冻结依据。
 
-```bash
-make all
-```
+## 4. module.yaml 与 standards
 
-输出 `dynamic_psf.dll`。
+见本目录 `module.yaml`（schema `astrocs.module-manifest/v1`，字段遵循
+11_MODULE_SOURCE_TEST_STANDARD.md §4；必填项无删减，未接项显式 `MISSING`）。
 
-**环境变量**：
-- `DYNAMIC_PSF_LOG_LEVEL`：日志级别（0=INFO, 1=DEBUG, 2=WARN, 3=ERROR），默认 INFO
+## 5. public entry 与实际主要 source symbols（dpsf_psf.cpp 实测行号）
 
-### Python 调用示例
+C API（7 导出，头 lib/dynamic_psf/include/dynamic_psf.h）：
 
-```python
-from dynamic_psf import DynamicPSF, DPSFFitParamsPy
-import numpy as np
+| symbol | 头行 | 定义行 | 语义摘要 |
+|---|---|---|---|
+| `dpsf_fit` | dynamic_psf.h:44 | dpsf_psf.cpp:427 | uint16 单星拟合；空 rect→INVALID_PARAMS（:445-450） |
+| `dpsf_fit_batch` | :49 | dpsf_psf.cpp:482 | uint16 批量，逐星裁 float patch |
+| `dpsf_fit_batch_f` | :59 | dpsf_psf.cpp:580 | float32 图 + (cx[],cy[]) → DPSFFitResult*[] |
+| `dpsf_free_results` | :64 | dpsf_psf.cpp:599 | 释放批量结果 |
+| `dpsf_fit_batch_f32` | :107 | dpsf_psf.cpp:694 | float32 图 + star_det v1 [N,6] → [N,9]，NaN 失败填充 |
+| `dpsf_fit_batch_f64` | :142 | dpsf_psf.cpp:822 | float64 图 + star_det v1 → [N,9]（moffat4_fit_d，不降级） |
+| `dpsf_fit_batch_d` | :181 | dpsf_psf.cpp:612 | float64 图 + (cx[],cy[]) → DPSFFitResult*[] |
 
-image = ...  # np.ndarray, uint16 或 float32（自动转换）
+内部核心（static，同文件）：`moffat4_fit_tmpl`（:225，ImageT=float→`moffat4_fit`
+:409，double→`moffat4_fit_d` :419 薄封装）、`lm_solve`（:104，LM 数值雅可比 +
+`gauss_solve` 高斯消元 :33，λ 初值 1e-3 :112，成功/失败 ×0.1/×10 :180/:182）、
+`compute_trimmed_mad`（:190，10%–90% 截尾 MAD :213-214）、moffat4 残差（:72）。
 
-# 单点拟合
-result = DynamicPSF.fit(image, cx=1000.0, cy=800.0)
-print(f"FWHM: {result.fwhm_x:.2f} x {result.fwhm_y:.2f} px")
+关键常量与语义（冻结）：
+- `MOFFAT4_FWHM_FACTOR=1.230310`（:24，β=4 解析 FWHM 系数）；`NPARAMS=7`（:25）。
+- 参数向量序 `params[0..6] = B,A,x0,y0,sx,sy,theta`（:191-192）。
+- 初值链：`bkg0`=截尾样本中位背景（:300）、`A0=max−bkg0`（:308）、
+  `params={bkg0,A0,0,0,sx0,sx0,0}`（:315）；LM 调用容差 1e-8 / max_iter=200
+  硬编码（:320-321，`DPSFFitParams.maxIter/tolerance` 字段死参数，DISP-PSF-003）。
+- θ 消歧：`thetas[4]={θ, π/2−θ, π/2+θ, π−θ}`（:358）逐候选取 trimmed MAD 最小
+  （:361-368），非重拟；保证 (sx,sy,θ) 参数化对称简并的确定性回选。
+- `fwhm_x/y = MOFFAT4_FWHM_FACTOR·sx/sy`（:339-340）；
+  `flux = 2π·A·sx·sy/3`（β=4 Moffat 解析积分 ∫=2πAα²/(β−1)，:374-375）；
+  `eccentricity=√(1−(sx_min/sx_max)²)`（:378）；`img_cx=cx+x0`（:383）。
+- 步后硬钳位 `sx,sy≥0.3`、`A≥0`（:175-177，DISP-PSF-002）。
 
-# 批量拟合（OpenMP 16 线程并行）
-cx_list = [100.0, 200.0, 300.0]
-cy_list = [400.0, 500.0, 600.0]
-params = DPSFFitParamsPy(fitRadius=10)
-results = DynamicPSF.fit_batch(image, cx_list, cy_list, params=params)
-for r in results:
-    if r.status == 0:
-        print(f"({r.cx:.1f}, {r.cy:.1f}) FWHM={r.fwhm_x:.2f}x{r.fwhm_y:.2f}")
-```
+## 6. config schema / default / 错误码
 
-### C API
+`DPSFFitParams{fitRadius, maxIter, tolerance}`（dynamic_psf.h:38-42）：批 API
+`params=NULL` 用默认 fitRadius=8/maxIter=200/tolerance=1e-8（:717-719、:845-847）；
+仅 `fitRadius` 实际参与裁窗，`maxIter/tolerance` 不被消费（LM 硬编码 1e-8/200，
+:320-321——DISP-PSF-003 登记）。
 
-```c
-#include "dynamic_psf.h"
+`DPSFFitResult` 12 字段 `{B,A,cx,cy,sx,sy,theta,fwhm_x,fwhm_y,mad,flux,eccentricity}`
+（dynamic_psf.h:17-31）。
 
-// 单点拟合
-int dpsf_fit(const uint16_t *image, int width, int height,
-             double cx, double cy,
-             const DPSFFitParams *params,
-             DPSFFitResult *result);
+错误码（dynamic_psf.h:33-36，冻结语义，P1-PSF-TEST 逐码负例）：
 
-// 批量拟合（OpenMP 并行）
-int dpsf_fit_batch(const uint16_t *image, int width, int height,
-                   const double *cx_array, const double *cy_array, int count,
-                   const DPSFFitParams *params,
-                   DPSFFitResult **out_results);
+| 码 | 宏 | 触发 | 输出副作用 |
+|---|---|---|---|
+| 0 | DPSF_FIT_OK | ‖Δx‖<tol·(‖x‖+1e-30)（:163）且通过 §5 验证链 | 全参数有效 |
+| 1 | DPSF_FIT_NO_CONVERGENCE | 非有限/A≤0/sx≤0.3/sy≤0.3（:336-338）；FWHM>rect（:341-346）；背景约束 \|B−bkg0\|/max(bkg0,0.01)>0.5（:349-354） | result 已 memset 0（:229），status 置码；批接口该星不计 valid |
+| 2 | DPSF_FIT_INVALID_PARAMS | 空指针/w≤0/h≤0（:431-434）；rect 面积<9（:236-239）；rect 越界（:240-245）；空 rect（:445-450） | 单星返回码；批 API 整体 -1（:700-707） |
+| 3 | DPSF_FIT_ITERATION_LIMIT | max_iter=200 耗尽（:187） | 单星接口仍回填当前最优参数（:391-403） |
 
-void dpsf_free_results(DPSFFitResult *results);
-```
+批接口：`dpsf_fit_batch_f32/f64` 失败星 9 字段全 NaN（:729-732、:857-860 初始化 NaN，
+失败不覆盖；OK 星写 9 字段 :784-794），`out_n_valid` 只数 `DPSF_FIT_OK`（:804、:925）；`gauss_solve` 奇异→
+λ×10 重试（:150-153）。
 
-### 数据结构
+## 7. threading / parallel axis / lease / memory / I/O / cancel / checkpoint
 
-**DPSFFitParams - 拟合参数**
+现状（登记不改码，DISP-PSF-001..006 见 ALG §11.3）：
+- OpenMP `parallel for schedule(dynamic) reduction(+:success_count)` 4 处
+  （dpsf_psf.cpp:528,635,738,866）；逐星独立、输出按索引写，无跨星共享可变状态，
+  计数 reduction 与星序无关 → 结果确定（determinism=fixed_reduction_order）。
+- 无取消检查点（DISP-PSF-004）；无 checkpoint；I/O 仅日志（dpsf_log，默认
+  threshold LOG_WARN，2026-07-12 性能修复）。
+- 内存：批接口 malloc `results`（调用者 `dpsf_free_results` 释放）/ 调用者预分配
+  `out_psf_params`；每星 patch `std::vector` 局部分配（fitRadius² 量级）。
+- 目标合同：`threading_model=host_executor_lease`（11 号标准 §4），ThreadLease
+  接线与取消检查点归 P1-PSF-IMPL。
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| fitRadius | int | 8 | 采样区半径，自动构建 [cx-r, cx+r+1] × [cy-r, cy+r+1] 采样区 |
-| maxIter | int | 200 | LM 最大迭代次数 |
-| tolerance | double | 1e-8 | 收敛容差 |
+## 8. provider 能力与 fallback
 
-**DPSFFitResult - 拟合结果**
+`cpu_providers: [baseline]`（无 ISA 特化路径；`-march=native` 编译期向量化属
+构建配置，非 provider 选择）。fallback：无（baseline 单通道）。
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| status | int | 0=OK, 1=NoConvergence, 2=InvalidParams, 3=IterLimit |
-| B | double | 背景值 |
-| A | double | 振幅 |
-| cx | double | PSF 中心 x（图像坐标） |
-| cy | double | PSF 中心 y（图像坐标） |
-| sx | double | sigma_x |
-| sy | double | sigma_y |
-| theta | double | 旋转角（弧度） |
-| fwhm_x | double | FWHM_x = 0.8700 × sx |
-| fwhm_y | double | FWHM_y = 0.8700 × sy |
-| mad | double | 拟合残差（trimmed MAD） |
-| flux | double | 通量估计 |
-| eccentricity | double | 偏心率 |
+## 9. oracle / property / boundary / performance / 容差来源（测试设计）
 
-## 架构
+TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS.md §11.4，P1-PSF-TEST 执行）：
+- **oracle**：解析 Moffat4（β=4）合成图上回收 7 参数（参数真值与容差由 fixtures
+  生成器给出，禁止与生产共用同一公式实现）。
+- **property**：`flux=2π·A·sx·sy/3` 解析积分恒等；`fwhm=1.230310·s`；θ 候选消歧
+  确定性；eccentricity∈[0,1)；批输出 NaN 占位与 out_n_valid 一致性。
+- **boundary**：fitRadius 裁到图边（:438-441 clamp）；rect 面积<9；FWHM>rect；
+  背景约束 0.5 阈值边界；max_iter 耗尽路径（ITERATION_LIMIT 仍回填）。
+- **negative**：空指针/空图/空 rect/rect 越界 → 错误码 §6 逐码断言；非有限输入。
+- **degenerate/saturated**：θ 对称简并消歧（4 候选）；饱和列 [4]/[5] 不消费
+  （现状冻结，饱和源直接参与拟合，剔除决策归上游）——P1-PSF-TEST 专项覆盖。
+- **performance**：批 1/N worker 缩放（OpenMP 4 处）、provider=baseline 固定。
+- **容差来源**：fixtures generator 注记 + 11 号标准 §5（测试元数据 seed/commit/
+  hash/tolerance source），不来自本 README 手抄数值。
 
-### 核心算法
+## 10. 构建 / 测试命令、已知限制、未实现项
 
-**Moffat4 模型**（β=4 固定）
+- 构建（现状，Linux/MinGW 通道）：`make -C lib/dynamic_psf` → `dynamic_psf.dll`
+  （Makefile:3-5，`g++ -shared -fopenmp -O2 -march=native -std=c++17`）。
+  未编入根 CMake（根 CMakeLists.txt 无 dynamic_psf 目标）——迁移后 CMake 集成归
+  P1-PSF-IMPL。生产加载：dll_loader.cpp:39,53（`lib/dynamic_psf/dynamic_psf.dll`），
+  PSF 为必需 stage（orchestrator.cpp:2071-2075，DLL 未加载→退出码 2）；
+  orchestrator 现消费 `dpsf_free_results`（:2290）、`dpsf_fit_batch_d`（:2304）、
+  `dpsf_fit_batch_f`（:2327）。
+- 测试：现状无共址单元测试（tests/ 无 dpsf 套件）；测试建立归 P1-PSF-TEST。
+- **已知限制（如实登记）**：① `DPSFFitParams.maxIter/tolerance` 死参数（DISP-PSF-003）；
+  ② 前向差分雅可比（DISP-PSF-002 同族，精度与收敛半径受限）；③ 步后硬钳位
+  （DISP-PSF-002）；④ 饱和列不消费；⑤ θ 消歧仅 4 候选对称集；⑥ 无参数协方差/
+  不确定性输出（科学专项 "covariance" 为迁移整改项，P1-PSF-IMPL 落地，现状不宣称）；
+  ⑦ 批 f32/f64 路径逐星退败静默（仅 n_valid 汇总，DISP-PSF-006）。
+- **未实现（MISSING，禁止宣称 IMPLEMENTED）**：`astrocs_p1_psf.dll` 模块壳、C ABI
+  adapter、plan-execute-cancel-inspect、ThreadLease、共址测试、EVIDENCE 证据链。
 
-```
-I(x,y) = B + A / (1 + Q)^4
-Q = p1*(x-x0)² + 2*p2*(x-x0)(y-y0) + p3*(y-y0)²
-p1 = cos²θ/(2sx²) + sin²θ/(2sy²)
-p2 = sin2θ/(4sx²) - sin2θ/(4sy²)
-p3 = sin²θ/(2sx²) + cos²θ/(2sy²)
-```
+## 11. 历史与记忆
 
-β=4 固定减少了参数空间维度，同时保持对天文 PSF 的良好近似。
-
-**Levenberg-Marquardt 求解器**
-
-- 数值雅可比（前向差分，h = max(|x|×1e-6, 1e-8)）
-- 高斯消元法求解正规方程
-- 自适应阻尼因子 λ（成功 ×0.1，失败 ×10）
-- 每次迭代后强制约束：sx≥0.3, sy≥0.3, A≥0
-
-**背景估计**
-
-1. 采样区像素排序，取下半部分（低于中位数的像素）
-2. 对下半部分做 med+2σ clipping，剔除星点信号残余
-3. clipping 后的中位数作为初始背景 bkg0
-4. 拟合后约束 |B-bkg0|/max(bkg0,0.01) ≤ 0.5
-
-**θ 四方向消歧**
-
-LM 求解器可能收敛到 θ 的等效方向。拟合完成后，测试 θ、π/2-θ、π/2+θ、π-θ 四个方向，选择 trimmed MAD 最小的作为最终 θ。
-
-### 目录结构
-
-```
-dynamic_psf/
-├── include/
-│   └── dynamic_psf.h        # 公共 C API 头文件（导出函数与数据结构）
-├── src/
-│   ├── dpsf_psf.cpp/.h      # PSF 模型与 LM 求解器核心
-│   ├── dpsf_image.cpp/.h    # 图像采样区构建与背景估计
-│   └── dpsf_log.cpp/.h      # 日志输出
-├── python/
-│   └── dynamic_psf.py       # Python ctypes 封装
-├── Makefile                 # 编译脚本
-└── README.md
-```
-
-### 依赖
-
-- **编译依赖**：MinGW-w64 g++ (C++17)、OpenMP
-- **可选依赖**：[Astro-Image-Io](https://github.com/fujiaze/Astro-Image-Io) - FITS/XISF 图像读取（Python 端可选）
-
-## 详细文档链接
-
-- **源码仓库**：https://github.com/fujiaze/Dynamic-PSF
-- **图像读取依赖**：[Astro-Image-Io](https://github.com/fujiaze/Astro-Image-Io)
-
-**参考文献**（算法参考以下开源项目，核心算法已按 MIT 许可重新实现，代码完全独立）：
-
-- [SExtractor](https://github.com/astromatic/sextractor)（Emmanuel Bertin, CEA/AIM/UParisSaclay）— 背景估计算法，GPL v3
-- [PSFEx](https://github.com/astromatic/psfex)（Emmanuel Bertin, IAP/CNRS/UPMC）— PSF 建模方法、chi² 残差计算，GPL v3
-
-**许可**：MIT License
+旧版 README（GitHub 仓库 a3ae0d6/v1.1 性能修复叙事）为过程记录，其中"7 参数 =
+(amplitude,x0,y0,sigma_x,sigma_y,beta,background)"参数序描述与本实现不符
+（实际序 B,A,x0,y0,sx,sy,theta，β 固定为 4 不可拟合），以本 README r1 为准；
+历史细节归本目录 `memory.md`（ARCHIVED_NON_NORMATIVE）。

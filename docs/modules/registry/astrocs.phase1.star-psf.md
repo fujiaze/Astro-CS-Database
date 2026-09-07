@@ -10,6 +10,17 @@ downstream: [TEST-P1-PSF-001]
 
 # 模块 astrocs.phase1.star-psf
 
+> P1-PSF-DOC 事实修订（2026-09-07）：本页 registry descriptor 占位 ID
+> （ALG-002/TEST-P1-PSF-001）保留为编排层词汇，由 P1-PSF-INT 对齐；冻结
+> 合同 = SCI-P1-PSF-001（STAR_PSF_ALGORITHMS §11.5）/ ALG-STARPSF-001
+> （§11.1）/ DATA-P1-PSF（DATA_SEMANTICS §15）/ API-PSF-001（PUBLIC_API
+> PSF 节）；模块级事实以 lib/dynamic_psf/README.md（r1，CONTRACT_READY）+
+> lib/dynamic_psf/module.yaml（astrocs.p1.psf，迁移目标 astrocs_p1_psf.dll，
+> entrypoint=MISSING）为准；现状构建 Makefile:3-5 → dynamic_psf.dll，未编入
+> 根 CMake 主构建。测试设计 TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS §11.4）
+> 已冻结，由 P1-PSF-TEST 执行落 TEST-P1-PSF-001 + EVIDENCE。现状缺陷登记
+> DISP-PSF-001..006（§11.3，登记不改码，整改归 P1-PSF-IMPL/INT）。
+
 ## 职责与明确非职责
 
 Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由
@@ -51,7 +62,12 @@ cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 b
 ## 独立 synthetic 验证命令与容差
 
 `TEST-P1-PSF-001` 对应测试(逐任务 TASK_RESULT 证据); 容差=验收冻结。
+测试设计=TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS §11.4：四状态码负例/
+解析 Moffat4 oracle/θ 消歧确定性/NaN 占位一致性，逐码逐锚），fixture 生成器
+注记容差来源。
 
 ## 已知限制
 
-见 docs/KNOWN_LIMITATIONS.md 与 `ALG-002` 合同边界。
+见 docs/KNOWN_LIMITATIONS.md、`ALG-STARPSF-001` 合同边界与 DISP-PSF-001..006
+（STAR_PSF_ALGORITHMS §11.3；covariance 缺口=DISP-PSF-005，maxIter/tolerance
+死参数=DISP-PSF-003）。
