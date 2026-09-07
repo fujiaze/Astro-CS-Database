@@ -148,6 +148,9 @@ jobs:
             # 明细的证据, 缺它无法离线定位哪一项 verify 挂掉。
             run/ci/win-package-summary.json
             run/ci/monitor/WIN-PACKAGE-CANDIDATE.json
+            # package exit 5 时 candidate 树本体 = DLL/EXE 实物, 离线可跑
+            # dumpbin 复核 exported_abi 与 modules/selftest 行为。
+            run/ci/win-candidate/
             # F-R4-03: driver 逐阶段全量 tee 日志 (win-stage-<name>.log)。
             # build exit 1 时 output_tail 25 行可能只见成功链接行, 真实 error
             # 被冲出窗口; 全量日志保证下一轮可直接定位 (e.g. astrocs_io
