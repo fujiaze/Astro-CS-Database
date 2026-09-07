@@ -83,7 +83,7 @@ static nlohmann::json base_host_json() {
 static nlohmann::json base_build_json(const std::string& commit,
                                       const std::string& bench_sha = std::string(64, 'e')) {
   nlohmann::json b;
-  b["astrocs_version"] = "0.10.0-alpha.2";
+  b["astrocs_version"] = "0.0.0-alpha.0";   // 合法 semver 占位(N3: verify 不钉死版本)
   b["source_commit"] = commit;
   b["benchmark_binary_sha256"] = bench_sha;
   b["runtime_build_id"] = "r1";
