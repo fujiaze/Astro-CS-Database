@@ -203,3 +203,66 @@
 
 详见 `docs/architecture/api_inventory.csv`（API 机器单源清单，与 `check_api_contracts` 的
 `API_CONTRACTS.csv` 一致；完整分类清单）。
+
+## drizzle C API（API-DRZ-001）
+
+> ID: API-DRZ-001  状态: CONTRACT_READY（P1-DRZ-DOC 冻结，2026-09-07）
+> 头: lib/healpix_db/healpix_drizzle/hp_drizzle_api.h（唯一权威签名源，
+> 禁止手抄他版；六导出 :42,62,70,130,139,140）
+> SRC: lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp（CMake 静态库
+> astrocs_drizzle，CMakeLists.txt:356-366）；SCI: SCI-DRZ-001；
+> ALG: ALG-DRZ-001；DATA: DATA-P1-DRZ（DATA_SEMANTICS §11）；
+> MOD: astrocs.p1.drizzle（迁移目标 astrocs_p1_drizzle.dll，落码由
+> P1-DRZ-IMPL 建立）。编排级合同见 API-P1-007（PHASE1_API_V1，
+> 区间 API-P1-001..010 声明，无独立小节）；生产调用方
+> orchestrator.cpp:3256-3371 经函数指针调 hp_drizzle_run_hips。
+
+- 导出符号（6 个，全部当前真实存在，`HP_DRIZZLE_API` extern "C"）：
+  `hp_drizzle_fits_to_ahpx`（文件通道 FITS→.hiss）、
+  `hp_drizzle_run`（PipelineFrame 帧通道）、`hp_drizzle_run_hips`
+  （帧通道 + HiPS 直写薄封装，Phase1 正式末端）、
+  `hp_drizzle_reverse_run`（Sphere→Plane 反向）、
+  `hp_drizzle_reverse_capability`、`hp_drizzle_reverse_version`。
+- 签名（hp_drizzle_api.h :42-51,62-66,70-75,130-134,139-140）：
+  `int hp_drizzle_run(PipelineFrame* frame, int nside, int nested,
+  double pixfrac, const char* output_path, HpDrizzleResult* result,
+  int precision_mode)`；hips 变体增加 `const char* legacy_hiss_path`
+  （:70-75）；reverse: `int hp_drizzle_reverse_run(const
+  HpReverseDrizzleInput* in, void* signal_out, void* coverage_out,
+  HpReverseDrizzleResult* result)`。
+- 返回码：0=成功，非 0=失败；实测语义——文件通道正值 1..11
+  （1=null 参数、2=nside 非 2 幂、3=pixfrac 越界、4=读 FITS 失败、
+  5=无 WCS、6/7=SNR 读/尺寸、8/9=权重读/尺寸、10=drizzle 失败、
+  11=写 HISS 失败，api.cpp:168-352）；帧通道混用负值 -1..-8（参数/
+  块校验）、-9=无 WCS（:541-545）、-12=HiPS dir 空（:1044-1048）、
+  -13=直写失败（:1066-1070）——正负两套并存无集中枚举（登记缺陷，
+  迁移整改点）。reverse 返回 1..6（api.cpp:39-143）。
+- 调用时序与所有权：无句柄对象；frame 及其块由调用方拥有（只读
+  借用）；result 由调用方分配；reverse 的 signal_out/coverage_out
+  由调用方分配（width×height，output_fp64 决定 double/float 视图）；
+  HiPS 目录树由模块写入、编排层负责 overwrite 清理
+  （orchestrator.cpp:3345-3354）。
+- 单位/dtype/shape：data 块 [H][W] 行主序 ADU（f32/f64 二选一）；
+  输出 tile 累加量语义见 DATA_SEMANTICS §11.2；precision_mode
+  0=FP32（默认）/1=FP64/-1=读 header "PRECISION" KV
+  （hp_drizzle_api.h:60）；错误信息经 error_msg[512] 返回。
+- 线程安全：单次 run 内 OpenMP 内部并行（config.threads/omp 默认，
+  schedule(static)+按线程序合并，1/N 确定性，ALG-DRZ-001 §6）；
+  同进程多 run 并发经 per-run generation 原子递增隔离缓存
+  （drizzle_engine.cpp:1659-1660）；ThreadLease 零命中——迁移整改点。
+- 取消：无取消检查点（模块内无 cancellation token；编排取消点=
+  帧/tile 粒度为编排层合同）。
+- stderr 约定：全部诊断/进度日志直写 stderr（[hp_drizzle_api]/
+  [drizzle_engine]/[sink] 前缀），不污染 stdout；G4 trace 由 env
+  ASTROCS_DRIZZLE_TRACE 控制（drizzle_engine.cpp:39-330）。
+- 已登记现状缺陷（不得静默使用，P1-DRZ-IMPL/INT 处理）：错误码
+  正负两套混用；文件通道接受 pixfrac=0.0 而引擎层拒绝（DISP-DRZ-003）；
+  值像素 NaN 静默跳过无计数（DISP-DRZ-004）；shim 对非法 nside 容忍
+  不抛。完整清单见 ALG-DRZ-001 §10（DISP-DRZ-001..008）。
+- 遗留通道（不在本合同）：模块 Makefile 产物 healpix_drizzle.dll
+  （Python ctypes 专用，与 CMake 静态库同源码）——迁移去留由
+  P1-DRZ-IMPL 决定。
+- plan/execute/cancel/inspect 迁移语义见 ALG-DRZ-001 §0 与
+  lib/drizzle/module.yaml（astrocs.p1.drizzle / astrocs_p1_drizzle.dll，
+  C ABI adapter 由 P1-DRZ-IMPL 建立；本节描述现状 API，不声明 DLL 化
+  完成）。

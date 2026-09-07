@@ -216,3 +216,62 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   out_hot=out_cold=0——不做无依据的"已修复"声明（DISP-COS-009）。
 - variance/ivar/coverage 不在本层（§4a/§9.4 同界）。
 
+
+## 11. Phase1 drizzle 模块输入/输出数据（DATA-P1-DRZ）
+
+> ID: DATA-P1-DRZ  状态: CONTRACT_READY（P1-DRZ-DOC 冻结，2026-09-07）
+> 模块: lib/drizzle（astrocs.p1.drizzle，迁移目标；现行实现唯一生产源
+> lib/healpix_db/healpix_drizzle/，经根 CMake 静态库 astrocs_drizzle
+> 编译，CMakeLists.txt:356-366）；SCI: SCI-DRZ-001（含 014/015/016）；
+> ALG: ALG-DRZ-001；上游: DATA-P1-CAL（§9）。本节冻结
+> hp_drizzle_run / hp_drizzle_run_hips 帧通道真实数据语义（P1-DRZ-DOC
+> 源码核对），迁移 DLL astrocs_p1_drizzle.dll 由 P1-DRZ-IMPL 建立
+> （语义不变）。编排现状（registry descriptor
+> lib/core/src/module_adapters.cpp:508-525 p1_drizzle_descriptor）将
+> 本模块登记为 ports calibrated→stacked、data_id=DATA-P1-STACK；本节
+> DATA-P1-DRZ 为按 SCI-DRZ-001 语义新建的模块级合同，descriptor 引用
+> 由 P1-DRZ-INT 对齐。禁止声明 IMPLEMENTED。
+
+### 11.1 输入（PipelineFrame 命名块；文件通道 FITS 另注）
+
+| 块/参数 | dtype/shape | 单位/域 | invalid / NULL 语义 |
+|---|---|---|---|
+| "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（api.cpp:486-503） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；值 NaN/Inf 静默跳过（等效掩膜，不进累加器，无计数暴露——DISP-DRZ-004，drizzle_engine.cpp:1712） |
+| "header" KV: CD1_1..CD2_2 或 CDELT1/2+CRVAL1/2+CRPIX1/2 | double | 度/像素、度、像素（1-based） | 两者均缺 → 无 WCS，帧通道返回 -9（api.cpp:541-545）；CDELT+CROTA2 构造 CD（api.cpp:538） |
+| "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（api.cpp:552-557）；reverse 通道 sip_order 校验 [0,5]（DISP-DRZ-001） |
+| "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；缺省 FP32；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3313-3325） |
+| "snr_model" 块（可选） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h） |
+| nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（api.cpp:398-402）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
+| nested | int 1/0 | — | 仅 1=NESTED；0=RING 硬拒绝（drizzle_engine.cpp:1575-1579） |
+| pixfrac | double | drop 与源像素之比（无量纲） | 引擎层 (0,1] 严格拒绝 ≤0/>1（:1567-1574，不夹逼）；文件通道 API 层接受 0.0 的双轨见 DISP-DRZ-003 |
+| variance 面（可选，帧内块） | float32，随 data 布局 | ADU² | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
+| weight / snr 面（可选，文件通道 FITS） | float32 `[H][W]` | 无量纲 | 读失败 rc=8/9；尺寸不匹配 rc=7/9；非有限/≤0 跳过 |
+
+### 11.2 输出（HEALPix NESTED tile 产品 + 统计）
+
+| 数组/文件 | dtype/shape | 单位/值域 | invalid |
+|---|---|---|---|
+| sumFlux（tile 累加量，HiPS SIGNAL 底数） | float32 或 float64（随 precision_mode）`[512][512]`/tile | ADU·w 加权和（原始和，未归一） | S_p=F_p/D_p 归一不在 drizzle 层——由 aio_hips_writer finalize_tile 完成（aio_hips_writer.cpp:566-631；DISP-DRZ-007） |
+| sumArea（HiPS SUPPORT 底数） | 同上 `[512][512]`/tile | sr（Σa_jp；support=Σarea/A_p 归一在 sink/writer） | covered_area≤0 → variance/ivar 记 NaN（合法，aio_hips_writer.cpp:615-622） |
+| sumVarNum → variance/ivar 产品 | 同上 | ADU²；ivar=1/variance | 仅当 varianceValue>0 累加（drizzle_engine.cpp:1531-1534）；无 variance 输入不产 variance 产品（AIO_HIPS_PRODUCT_ALL 非 V19） |
+| nContrib（tile 内 leaf 计数） | int `[512][512]`/tile | 贡献源像素数 | 0 = touched 集合外（不写） |
+| SNR 控制点子块（有 snr_model 时） | local_ipix + snr | 像素序、无量纲 | 逐 tile 内嵌 HissSnrBlock |
+| HiPS 产品集 | hips_dir 目录树（Norder/Shard 目录 + properties） | — | 直写硬门 tile_depth=9、nside≥512（astro_sphere_sink.cpp:36-51）；overwrite 清理由编排层（orchestrator.cpp:3345-3354） |
+| legacy .hiss（仅 legacy_hiss_compare=true） | HissWriter 文件 | — | 非正式产品；HISS_VERIFY 验证通道（orchestrator.cpp:3397 起） |
+| operation_counts.json | JSON 剖面文件 | — | 与 .hiss 同目录（api.cpp:1074-1117） |
+| HpDrizzleResult 统计 | int64/int/double + error_msg[512] | — | n_healpix_pixels/n_source_pixels/nside/nested/pixfrac/elapsed_sec；错误时 error_msg 非空 |
+
+### 11.3 坐标、面亮度语义与边界
+
+- 坐标: 源平面像素 (x,y) →（WCS/SIP TAN）→ (ra,dec) 度 → NESTED
+  ipix（仅 NESTED；parent=ipix>>2d 位分解）；RA 域 [0,360)、dec
+  [-90,90] 越界拒绝（drizzle_engine.cpp:1169-1171，SNR 面）。
+- 面亮度语义（SCI-DRZ-001 §5）: drizzle 层只产原始累加量
+  （sumFlux/sumArea/sumVarNum）；S=F/D、variance=sumVarNum/D²、
+  ivar=1/variance 的归一与 NaN 语义在 astro_image_io finalize 层
+  （variance = var_num_sum/covered_area²，covered_area≤0 → NaN）。
+- 确定性: 同输入同线程数 bitwise 可复现（schedule(static) + 按线程序
+  合并，drizzle_engine.cpp:1670-1671,1762-1785；1/N 合同见
+  ALG-DRZ-001 §6）。
+- 取消: 模块内无取消机制（长 run 不可中断；编排取消点=帧/tile 粒度
+  为编排层合同，PHASE1_API_V1 头部）。
