@@ -46,6 +46,11 @@ namespace {
 
 using Clock = std::chrono::steady_clock;
 
+// Oracle 数值对照容差(冻结, 唯一出处): 2e-4 相对, |a−b|/max(1,|b|) ≤ tol。
+// 锚: docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md §7 容差冻结节(同 cpu_routing.h:68、
+// 旧接口 profile_gen.cpp:129)。任何 profile 生成路径不得偏离此值。
+constexpr double kOracleRelTol = 2e-4;
+
 // kernel op 语义表(kernel_id → op/aux/scale 描述), 与 backend_table.inc 注册序一致。
 // scale: 每规模域的乘数 → 输出元素数 N = (base * scale)^2, 预算化避免 OOM。
 struct KernelSpec {
@@ -450,7 +455,7 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
                         fill_params(&p, sp, in);
                         (void)blk;   // v1 kernel 无 block 参数; 记录但执行语义一致
                         BenchResult br = bench_kernel(&host, pid.c_str(), entry->fn, p, ref,
-                                                      2e-3, 3, 7);
+                                                      kOracleRelTol, 3, 7);
                         RawCandidate c;
                         c.kernel_id = sp.kernel_id; c.size_class = sc; c.provider = pid;
                         c.workers = w; c.block = blk;
