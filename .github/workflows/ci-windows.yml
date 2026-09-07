@@ -143,6 +143,11 @@ jobs:
             run/ci/win-build-summary.json
             run/ci/win-test-junit.xml
             run/ci/win-test-summary.json
+            # WIN-PACKAGE-CANDIDATE outputs 契约: package 失败(exit 5)时
+            # win-package-summary.json 是唯一含 failed_verification 逐项
+            # 明细的证据, 缺它无法离线定位哪一项 verify 挂掉。
+            run/ci/win-package-summary.json
+            run/ci/monitor/WIN-PACKAGE-CANDIDATE.json
             # F-R4-03: driver 逐阶段全量 tee 日志 (win-stage-<name>.log)。
             # build exit 1 时 output_tail 25 行可能只见成功链接行, 真实 error
             # 被冲出窗口; 全量日志保证下一轮可直接定位 (e.g. astrocs_io
