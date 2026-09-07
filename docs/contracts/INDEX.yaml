@@ -62,7 +62,7 @@ contracts:
     version: 1.0.0
     path: docs/science/DRIZZLE.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-DRZ-001, ALG-HEALPIX-001]
+    downstream: [ALG-DRZ-001, ALG-HEALPIX-001, ALG-HIPS-001]
   - id: SCI-UPM-001
     type: SCI
     status: ACTIVE
@@ -175,6 +175,14 @@ contracts:
     owner: AstroCS
     version: 1.0.0
     path: docs/algorithms/DRIZZLE_GEOMETRY.md
+    upstream: [SCI-DRZ-001]
+    downstream: []
+  - id: ALG-HIPS-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/HIPS_WRITER.md
     upstream: [SCI-DRZ-001]
     downstream: []
   - id: ALG-UPM-001

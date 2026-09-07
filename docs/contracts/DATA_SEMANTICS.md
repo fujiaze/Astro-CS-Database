@@ -275,3 +275,104 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   ALG-DRZ-001 §6）。
 - 取消: 模块内无取消机制（长 run 不可中断；编排取消点=帧/tile 粒度
   为编排层合同，PHASE1_API_V1 头部）。
+
+## 12. Phase1 HiPS writer 模块输入/输出数据（DATA-P1-HIPS）
+
+> ID: DATA-P1-HIPS  状态: CONTRACT_READY（P1-HIPS-DOC 冻结，2026-09-07）
+> 模块: lib/hips（astrocs.p1.hips_writer，迁移目标；现行实现唯一生产源
+> lib/astro_image_io/src/hips/aio_hips_writer.cpp，合同头
+> lib/astro_image_io/include/aio_hips.h，经根 CMake 静态库 astrocs_hips
+> 编译，CMakeLists.txt:298-309）；迁移 DLL astrocs_p1_hips_writer.dll 由
+> P1-HIPS-IMPL 建立（语义不变，禁止声明 IMPLEMENTED）。ALG:
+> ALG-HIPS-001..005；上游: DATA-P1-DRZ（§11，AstroSphereTileView 直供）；
+> SCI: SCI-DRZ-001（:130/:145 共享锚）；发布合同: IO-003（§12.5 对齐
+> 边界）。本节是 HiPS 产品集（signal/support/variance/ivar Image HiPS +
+> SNR Catalogue HiPS）单位/dtype/shape/invalid 的唯一权威；§4/§4a 的
+> 产品位语义在此落地为逐文件语义。
+
+### 12.1 输入（aio_hips_product_begin 参数 + 逐 tile AstroSphereTileView + SNR 点）
+
+| 参数/字段 | dtype/shape | 单位/域 | invalid / NULL 语义 |
+|---|---|---|---|
+| out_dir | 字符串路径 | — | 目录不存在逐级创建（make_dirs）；同 out_dir 重跑覆盖直写（无清理责任，见 §12.5） |
+| nside | int，2 的幂 | — | ≥512 强制（<512 返回 NULL，aio_hips_writer.cpp:399-401）；叶阶 leaf_order=ilog2(nside) |
+| tile_width | int | — | 恒 512（≠512 拒绝 :402；tile_order=leaf_order−9） |
+| data_type | 0=float32 / 1=float64 | — | 其他值拒绝（:403）；决定存储 bitpix −32/−64 与 hierarchy 累加器轨（f32 产品 float 累加，DISP-HIPS-009） |
+| flags | 位或 SIGNAL=1/SUPPORT=2/SNR=4/VARIANCE=8/IVAR=16（ALL=7/ALL_V19=31） | — | 越位拒绝（:404）；variance/ivar 请求须配 var_num_sum 输入 |
+| creator_did / obs_title / obs_filter / exposure_s / obs_date | 字符串/字符串/double(s)/字符串 | —（ADU 无关） | filter/obs_date 可 NULL（不写对应 properties 键）；exposure≤0 不写 obs_exptime/t_min/t_max；缺省 did=ivo://astrocs/phase1、title="AstroCS Phase1"（:414-415） |
+| moc_order | uint | — | 0=auto（=tile_order）；>0 取 min(moc_order, tile_order) 静默钳位（:419，DISP-HIPS-005） |
+| AstroSphereTileView: parent_ipix | uint64 | NESTED ipix（Norder K） | ≥12·4^K 拒绝 rc=−3（:433-437）；width/leaf_order/dtype 不匹配拒绝 rc=−2（:428-431） |
+| AstroSphereTileView: flux_sum | float32 或 float64 `[512×512]` NESTED local 行主序 | ADU（drizzle 层 ADU·w 加权和，§11.2） | 非 NULL 强制；无效像素处理见 §12.4 |
+| AstroSphereTileView: covered_area | 同上 | sr | 归一分母；≤0/非有限 → signal=NaN、support=0 |
+| AstroSphereTileView: valid_mask | uint8 `[512×512]` | — | 可 NULL（=全有效，:466/:606） |
+| AstroSphereTileView: var_num_sum | 同 flux_sum dtype `[512×512]` | ADU²（Σ v_j·w_jp²，drizzle 侧分子） | variance/ivar 产品时强制非 NULL（缺失 rc=−2 :575-576）；≤0/非有限 → 该像素 variance/ivar=NaN |
+| SNR 点（aio_hips_write_snr_points 累计缓存） | AioHipsSnrPoint: star_id int64 / ra,dec double / snr double / quality_flags uint（位 1=PSF_OK,2=saturated,4=has_saturated,8=photo_matched,16=photo_rejected）/ photometric_status uint（0=unmatched,1=used,2=rejected） | 度、度、无量纲 | SNR 产品关闭时忽略；无点 → 不写 snr 目录（:888） |
+
+### 12.2 输出（`<out_dir>` HiPS 产品集目录树）
+
+| 文件/数组 | dtype/shape | 单位/值域 | invalid |
+|---|---|---|---|
+| signal/NorderK/DirD/NpixN.fits | float32 或 float64 `[512×512]` NESTED local（bitpix −32/−64 随 data_type） | ADU（面亮度 signal=flux_sum/covered_area） | 无效像素 IEEE NaN 填充（无 FITS BLANK 整型卡；:483-485） |
+| support/…fits | 同上 | 无量纲 [0,1]（covered_area/A_cell，>1 钳 1.0；A_cell=4π/(12·nside²)） | 无效像素 0.0 |
+| variance/…fits | 同上 | ADU²（var_num_sum/covered_area²） | 无效或 area·vnum≤0/非有限 → NaN（:615-621）；tile 全无效 → 写请求 rc=−5 不落盘（:629-632） |
+| ivar/…fits | 同上 | 1/ADU²（=1/variance，有限域互为倒数） | 同 variance（NaN 对应） |
+| hierarchy 低阶 tiles（signal/support/variance/ivar 同目录树，nside=2^(k+9), k<tile_order） | 同上 `[512×512]` | 同上（父 cell=子像素聚合；f32 产品 float 累加 DISP-HIPS-009） | 空 acc 父 cell 照写全 NaN（DISP-HIPS-011） |
+| Moc.fits（每子产品） | BINTABLE 列 UNIQ（int64 域 4·4^m+(c>>2(K−m))) | 无量纲（UNIQ 编码） | 空集不写（:246）；moc_order<K 低阶 UNIQ 对自家 reader 无效（DISP-HIPS-005） |
+| properties（每子产品） | 文本 key=value 逐行 | — | 直写无原子性/无转义（DISP-HIPS-010）；时间键=真实 UTC（字节不跨运行复现） |
+| snr/NorderK/DirD/NpixN.tsv | 文本列 star_id(ra int64)/ra/dec(%.12f deg)/snr(FP32 %.9g、FP64 %.17g)/quality_flags/photometric_status（SNR-PREC-001 round-trip 精度） | 度、度、无量纲 | 头注释行起；无点不写目录 |
+| snr/metadata.xml + snr/properties + snr/Moc.fits | VOTable 1.3 / 文本 / BINTABLE | — | hips_cat_nrows=点数；hips_initial_ra/dec=源位置中位数（真实值，:960-973） |
+| metadata.fits（每 Image 子产品） | FITS 表头卡 PIXTYPE/ORDERING=NESTED/NSIDE/HIPSTILEWIDTH/DATAPRODTYPE | — | remove+create 直写（:770） |
+| manifest.json（根级） | JSON: format_version/hips_version="1.4"/nside/tile_width/data_type/products/n_leaf_tiles/moc_sky_fraction/astrocs_covered_sky_fraction/signal_dtype | — | 无 COMPLETE 状态字/无哈希清单（§12.5） |
+
+### 12.3 坐标、索引与面亮度/方差语义
+
+- 全局像素 = Norder K 的 NESTED ipix（parent_ipix）+ tile 内局部 NESTED
+  索引（512×512 展平）；FITS 行主序落盘索引 =
+  nested_local_to_fits_index(i,9,512)（三处 scatter :464/:604/:809），
+  映射式=§3 冻结的 (511−x)·512+y（CDS Hipsgen 冻结，共享权威
+  lib/common/healpix/healpix_core.cpp:287-296）。层级 tile 同式。
+- 目录布局：`Norder{K}/Dir{ipix/10000}/Npix{ipix%10000}.fits`（万进制
+  分片，tile_rel_path :135-142）；hierarchy 逐阶同布局（k<K）。
+- 面亮度链（与 §4/§4a、SCI-DRZ-001 :145 一致）：drizzle 层产原始累加量
+  （§11.2）→ writer 归一 signal=flux_sum/covered_area、
+  support=min(covered_area/A_cell,1)、variance=var_num_sum/covered_area²、
+  ivar=1/variance；F=signal×support×A_cell 闭合（gate7 复检同式）。
+- 天区度量：moc_area_sr=Σ A_cell(K)（逐叶 tile 登记制，
+  aio_hips_writer.cpp:530）；hips/moc_sky_fraction=moc_area_sr/4π；
+  astrocs_covered_sky_fraction=covered_area_sr/4π；hips_pixel_scale=
+  3600·180/π·√(π/3)/nside arcsec（:704-705）。
+
+### 12.4 invalid 与精度规则（汇总）
+
+- 无效判定域（signal/support）：`valid && area>0 && isfinite(flux) &&
+  isfinite(area)`（:476,:481-485）；variance/ivar 额外要求 `vnum>0 &&
+  isfinite(vnum)`（:617-621）。违反 → signal=NaN、support=0.0、
+  variance/ivar=NaN。IEEE NaN 填充，不使用 FITS BLANK。
+- 全无效 variance tile：写请求返回 −5、不落盘（调用方预判跳过，
+  astro_sphere_sink.cpp:123-144 计数不 abort）——显式失败而非空产品。
+- 存储 dtype 双轨 f32/f64 由 data_type 一次固化；归一运算在 double 域
+  （:469-477）后截断到存储 dtype；hierarchy 累加器 f32 产品为 float
+  （精度口径 TEST-HIPS-DESIGN-001：f32 路径 rtol=1e-6，f64 bitwise）。
+- SNR TSV 数值 round-trip 无损（FP32 %.9g / FP64 %.17g，SNR-PREC-001）；
+  ra/dec 列 %.12f deg（亚角秒级足够，源为 deg 值）。
+- FITS 完整性：逐 tile DATASUM/CHECKSUM（fits_write_chksum :230，MOC
+  :275）；头卡 NSIDE/FIRSTPIX="0"/LASTPIX="262143"（声明性，DISP-HIPS-012）。
+
+### 12.5 发布/IO-003 对齐边界（原子性与 tree hash 归属）
+
+- C++ writer（本节 12.1-12.4 产出）**不提供**原子发布：文件先
+  `std::remove` 后 create 直写（:185-186/:251/:770）、properties/manifest
+  直写、abort 仅释放句柄不删除文件（:1133-1137，DISP-HIPS-001）、
+  finalize 中途失败（−3..−8）已写子产品残留——writer 层合同如实登记为
+  "非原子、覆盖式、无回滚"。
+- 原子发布语义由 IO-003（docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md；
+  runtime/io/hips_output_store.py）在 Python 发布层承接：临时目录写 →
+  fsync → fitsverify → 逐文件 sha256 清单 → 原子 rename → manifest 置
+  COMPLETE。**整树哈希（tree hash）唯一权威在 IO-003 发布层**；writer 层
+  完整性证据=逐 tile FITS DATASUM/CHECKSUM + manifest 计数字段
+  （n_leaf_tiles 等）。
+- 对齐规则：调用方（P1-HIPS-INT 接线）必须让 writer 输出到发布层 staging
+  区、经 IO-003 门禁后对外可见；不得以 writer 直写目录冒认 IO-003 原子
+  语义；同 out_dir 重跑的旧残留清理由发布层 staging 隔离解决（writer 自身
+  不清理）。对照：HISS 容器有 .partial/atomic_replace（独立通道，
+  hiss_stream_writer.cpp:259-260,:644-655），与本边界无关。

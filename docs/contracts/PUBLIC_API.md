@@ -266,3 +266,81 @@
   lib/drizzle/module.yaml（astrocs.p1.drizzle / astrocs_p1_drizzle.dll，
   C ABI adapter 由 P1-DRZ-IMPL 建立；本节描述现状 API，不声明 DLL 化
   完成）。
+
+## HiPS writer C API（API-HIPS-001）
+
+> ID: API-HIPS-001  状态: CONTRACT_READY（P1-HIPS-DOC 冻结，2026-09-07）
+> 头: lib/astro_image_io/include/aio_hips.h（唯一权威签名源，禁止手抄
+> 他版；九导出 :104,121,130,135,144,149,152,163,177，AIO_HIPS_EXPORT
+> extern "C" :24-30）
+> SRC: lib/astro_image_io/src/hips/aio_hips_writer.cpp（CMake 静态库
+> astrocs_hips，CMakeLists.txt:298-309）；SCI: SCI-DRZ-001；ALG:
+> ALG-HIPS-001..005；DATA: DATA-P1-HIPS（DATA_SEMANTICS §12）；MOD:
+> astrocs.p1.hips_writer（迁移目标 astrocs_p1_hips_writer.dll，落码由
+> P1-HIPS-IMPL 建立）。编排级无独立 hips stage——经 API-P1-007
+> hp_drizzle_run_hips 由 astro_sphere_sink（astro_sphere_sink.cpp:97，
+> P1-DRZ 链）与 lib/phase2/tools/stage2.cpp:592 间接调用；Phase2 读侧
+> 为 aio_hips_reader（SCI-P3-001 链，不属本合同）。
+
+- 导出符号（9 个，全部当前真实存在，`AIO_HIPS_EXPORT` extern "C"）：
+  `aio_hips_product_begin`（创建产品集句柄）、
+  `aio_hips_write_signal_support_tile`、`aio_hips_write_variance_tile`
+  （逐叶 tile 流式写，AstroSphereTileView 直供）、`aio_hips_write_snr_points`
+  （SNR 控制点累计缓存，finalize 时落 TSV tile）、
+  `aio_hips_set_drizzle_provenance`（Phase2 k_corr 选择键）、
+  `aio_hips_finalize`（properties/MOC/hierarchy/manifest 收尾+释放）、
+  `aio_hips_abort`（释放句柄，不删文件——见缺陷登记）、
+  `aio_hips_write`（legacy 兼容批量入口，HISS 中转验证用，support uint8
+  0..255→covered_area=su/255·A_cell、flux_sum=signal·su/255，flags 固定
+  ALL）、`aio_hips_last_error`（thread_local 文本）。
+- 签名（aio_hips.h :104-118,121-123,130-132,135-138,144-145,149,152,
+  163-173,177）：`AioHipsProductSet* aio_hips_product_begin(const char*
+  out_dir, uint32_t nside, uint32_t tile_width, int32_t data_type, int
+  flags, const char* creator_did, const char* obs_title, const char*
+  obs_filter, double exposure_s, const char* obs_date, uint32_t
+  moc_order)`；`int aio_hips_write_signal_support_tile(AioHipsProductSet*
+  ps, const AstroSphereTileView* view)`；variance 变体同型（:130）；
+  `int aio_hips_write_snr_points(AioHipsProductSet* ps, const
+  AioHipsSnrPoint* pts, int n)`；`int aio_hips_set_drizzle_provenance(
+  AioHipsProductSet* ps, double pixfrac, double scale_arcsec)`。
+- 返回码：begin 失败返回 NULL + last_error（nside<512/tile_width≠512/
+  dtype∉{0,1}/flags 越位，writer :399-404）；write/finalize 负码
+  −1 null、−2 参数/视图不匹配或重复 finalize、−3 parent_ipix 越界或
+  signal 子产品失败、−4 support/FITS 失败、−5 全无效 variance tile 或
+  hierarchy 失败、−6 snr 失败、−7 variance FITS、−8 ivar FITS
+  （:513,:521,:632,:648,:658,:1036-1072）；provenance 正码 1=null、
+  2=值域（pixfrac∈(0,1]、scale≥0，:1007-1016）——负正两套并存无集中
+  枚举（登记缺陷 DISP-HIPS-007）。错误文本经 aio_hips_last_error
+  （每次入口 clear，跨调用不可追溯）。
+- 调用时序与所有权：begin →（零或多次）write_* / write_snr_points →
+  finalize（成功路径内部 delete ps）或 abort（仅 delete ps，**不删除
+  已写文件**；aio_hips.h:151 注释"清理已写部分(尽力)"与实现不符，
+  DISP-HIPS-001——残留处置归调用方/IO-003 发布层）。ps 句柄调用方
+  持有至 finalize/abort；view 及其数组调用方拥有、调用期间只读借用
+  （同步消费，无拷贝）；SNR 点数组调用后即可释放（内部拷贝缓存）。
+- 单位/dtype/shape：见 DATA-P1-HIPS（DATA_SEMANTICS §12.1/§12.2）——
+  flux_sum ADU、covered_area sr、[512×512] NESTED local 行主序、
+  data_type 0=f32/1=f64 一次固化；products flags 位域
+  SIGNAL=1/SUPPORT=2/SNR=4/VARIANCE=8/IVAR=16（ALL=7/ALL_V19=31，
+  aio_hips.h:34-43）。
+- 线程安全：单句柄非线程安全（成员 scratch 缓冲与 moc_cells/hier/
+  leaf_ipix_list 无锁累积）；同进程 CFITSIO 裸调未包装
+  aio::cfitsio_mutex（同库 aio_fits/aio_hips_reader 均有包装——
+  DISP-HIPS-006）；现状生产链为 drizzle 合并后单线程串行调用
+  （astro_sphere_sink.cpp:97）。threading_model=host_executor_lease 为
+  迁移合同值，ThreadLease 接线由 P1-HIPS-IMPL 建立（迁移整改点）。
+- 取消：无取消检查点（finalize 长收尾不可中断；模块内无
+  cancellation token；编排取消点=帧/tile 粒度为编排层合同）。
+- stderr 约定：诊断/六段 profile 计时直写 stderr（[hips] 前缀），
+  stdout 不用（writer :368-373,:1030-1076）。
+- 已登记现状缺陷（不得静默使用，P1-HIPS-IMPL/INT 处理）：abort 无
+  清理（DISP-HIPS-001）；无原子发布/remove+create 直写/manifest 无
+  COMPLETE（DISP-HIPS-004，对齐边界=DATA_SEMANTICS §12.5）；
+  estsize/fov 硬编码（DISP-HIPS-002）；moc_order 静默钳位（DISP-HIPS-005）；
+  CFITSIO 无锁（DISP-HIPS-006）；错误码混用（DISP-HIPS-007）；f32
+  hierarchy 累加（DISP-HIPS-009）；fits_str 截断（DISP-HIPS-010）。完整
+  清单见 ALG-HIPS-001 §10（DISP-HIPS-001..012）。
+- plan/execute/cancel/inspect 迁移语义见 ALG-HIPS-001 §0 与
+  lib/hips/module.yaml（astrocs.p1.hips_writer / astrocs_p1_hips_writer.dll，
+  entrypoint=MISSING——registry 无 descriptor；C ABI adapter 由
+  P1-HIPS-IMPL 建立；本节描述现状 API，不声明 DLL 化完成）。
