@@ -946,3 +946,133 @@ focal_length_mm mm；pixel_size_um μm；输出 cd deg/pixel、crval deg
   astrocs_p1_wcs.dll，C ABI adapter 由 P1-WCS-IMPL 建立；本节描述现状
   API，不声明 DLL 化完成）；测试设计 TEST-WCS-DESIGN-001（§11.4）由
   P1-WCS-TEST 执行落 TEST-P1-WCS-001 + EVIDENCE。
+
+## Coverage union C API（API-COV-001）
+
+> ID: API-COV-001  状态: CONTRACT_READY（P2-COV-DOC 冻结，2026-09-07）
+> 头: lib/phase2/include/astro/phase2/coverage.h（唯一权威签名源，59 行，
+> 禁止手抄他版；P2_API 导出宏 :16-20 Windows dllexport/POSIX 默认可见）
+> SRC: lib/phase2/src/coverage.cpp（239 行；生产目标根 CMake
+> astrocs_phase2 静态库 CMakeLists.txt:337-345，独立 self-build
+> lib/phase2/CMakeLists.txt:42-46 phase2 STATIC；astrocs_p2_coverage.dll
+> 为迁移目标合同值，尚未存在，由 P2-COV-IMPL 建立）
+> SCI: SCI-UPM-001/SCI-INT-001/SCI-SCOPE-001（docs/science/ 共享 FROZEN
+> 引用不改动，SCI 层声明=PHASE2_COVERAGE.md §11.5）；ALG: ALG-COV-001
+> （PHASE2_COVERAGE.md §2/§11 逐符号锚）；DATA: DATA-COV-001
+> （DATA_SEMANTICS §19，单位/dtype/shape/坐标契约唯一权威）；编排级
+> 合同 API-P2-001（docs/api/PHASE2_API_V1.md FROZEN §1 所有权图/
+> §2 并发五字段行 1/§4 错误码映射，与本节并行不互斥）；MOD:
+> MOD-astrocs-phase2-coverage（module.yaml CONTRACT_READY，
+> entrypoint=MISSING；编排消费 lib/phase2_session/p2_session.cpp:119-148）
+
+### 范围界定
+
+Phase2 输入发现/兼容校验/coverage union/target_order C ABI：N 个
+Phase1 单帧 HiPS（signal 子目录）→ 逐帧 properties 兼容校验（hips_order/
+tile_width=512/hips_version/hips_frame/obs_filter）+ union MOC（NESTED
+父单元聚合）+ target_order=min(逐帧 order)。不做：逐帧重校准/PlateSolve/
+PSF/Drizzle（coverage.h:6）、像素数据读取（只读 properties+Moc.fits）、
+intersection/depth/missing-tiles 产品（DISP-COV-004）、任何科学权重
+计算（合同红线：coverage 禁作隐式科学权重，PHASE2_COVERAGE.md §7）。
+无取消检查点（API-P2-001 §2 行 1 取消点=无，阶段级取消由编排 session
+阶段边界提供，p2_session.cpp:120）。
+
+### 导出符号（coverage.h/coverage.cpp 实测行号锚，2 个全部当前真实存在）
+
+| 符号 | 头锚 | 定义锚 | 摘要 |
+|---|---|---|---|
+| p2_coverage_build | coverage.h:52 | coverage.cpp:144 | 发现+校验+union MOC+target_order（两阶段容量协议） |
+| p2_coverage_free | coverage.h:56 | coverage.cpp:233 | POD 清零（不释放堆，无所有权转移） |
+
+内部链接符号（非导出，匿名 namespace，登记备查）: parse_props
+（coverage.cpp:20-45，properties KV 解析）、inspect_frame
+（:59-140，单帧校验+叶级 tile 收集）。
+
+核心结构体: P2MocCell 2 字段（coverage.h:26-29，order/ipix 均uint64）；
+P2HipsInputInfo 7 字段（:31-38，hips_path[1024]/frame_id[64]/
+max_leaf_order/n_tiles/filter_passband[64]/frame_type[32]）；P2CoverageResult
+7 字段（:40-48，n_inputs/inputs/n_union_cells/union_cells/target_order/
+status/error[512]）。字段级单位/值域唯一权威=DATA_SEMANTICS §19.2。
+
+### 签名要点与内存所有权
+
+- p2_coverage_build（coverage.h:52-54）: 入参
+  `const char* const* hips_paths, uint64 n_inputs, P2CoverageResult* out`；
+  返回 int rc（0=成功含 K=0 空 union / 1=失败，error[512] 载因）。
+  两阶段协议: 第一次 `out->union_cells=NULL`（及 inputs=NULL）→ rc=0
+  得 n_union_cells=K 容量；调用方分配 K 个 P2MocCell（及 n_inputs 个
+  P2HipsInputInfo）后第二次调用回填数据（coverage.cpp:219-228；每次
+  调用全量重扫，无缓存，DISP-COV-005）。
+- P2CoverageResult 及全部数组由调用方分配（coverage.h:42/:44 注释）；
+  p2_coverage_free 仅 `memset(out,0,sizeof(*out))`（coverage.cpp:233-237）
+  ——与 PHASE2_API_V1 §1 所有权图 Coverage 行（build 创建/调用方持有/
+  p2_coverage_free 释放/下游只读借用，docs/api/PHASE2_API_V1.md:15）
+  一致；无 malloc/无异常跨界。
+- 错误通道: rc=1 + out->error[512]（"no inputs"/"missing hips_order"/
+  "unsupported tile_width"/"missing hips_version"/"unsupported
+  hips_frame"/"filter mismatch"/AIO last_error 透传 :63-65）；错误码
+  编排映射归 API-P2-001 §4（ACS_ERR_PARAM/ACS_ERR_STATE）。
+- "no inputs" 分支 rc=1 而 status=0 不一致（coverage.cpp:154-157 vs
+  memset :158 后置位缺失，DISP-COV-001）；error 字段仍有效（strncpy
+  在 memset 后执行 :154-163）——调用方以 rc 为准，status 语义整改归
+  P2-COV-IMPL。
+
+### 返回码
+
+- rc: 0=成功（含空 union K=0）；1=失败（§5 全部拒绝路径，error 载因）。
+- status: 0=ok（:229）；错误路径=1（:172-179/:198-202），
+  "no inputs" 分支例外=DISP-COV-001（同上，整改门由
+  TEST-COV-DESIGN-001 F5 固化）。
+- 并发合同（API-P2-001 §2 行 1）: reentrant=yes / threadsafe=no
+  （独立对象，无内部锁）/ internal_parallel=none（单线程，无
+  OpenMP，bitwise 确定）/ 取消点=无 / TST-COV-*（TEST-P2-COV-001
+  由 P2-COV-TEST 落地，设计=PHASE2_COVERAGE.md §11.4
+  TEST-COV-DESIGN-001）。
+- thread budget: coverage 阶段未单列预算（PHASE2_API_V1 §3 预算分配
+  冻结清单不含 coverage——阶段级取消/manifest 登记由 session 编排层
+  承担，p2_session.cpp:119-148）；threading_model=host_executor_lease
+  为 module.yaml 合同值，ThreadLease 接线归 P2-COV-IMPL
+  （DISP-COV-005 同族整改域）。
+
+### 单位/dtype/shape
+
+见 DATA_SEMANTICS §19（唯一权威）：输入 hips_paths [n_inputs] 字符串
+数组；输出 P2MocCell [K]（order/ipix 无量纲整数，NESTED 父单元索引
+<12·4^order）、P2HipsInputInfo [n_inputs]（hips_path[1024]/
+frame_id[64]/filter_passband[64]/frame_type[32] 字符串 + order/tiles
+整数）、target_order int（=min 逐帧 hips_order）；全链路整数运算
+bitwise 确定；坐标=HEALPix NESTED equatorial/ICRS（非 PIXEL——
+registry descriptor 像素登记由 P2-COV-INT 修订）。
+
+### 生产调用方与编排现状
+
+- 编排 session: lib/phase2_session/p2_session.cpp:119-148 —— coverage
+  为 Phase2 DAG 首阶段（阶段边界取消检查 :120，manifest 登记
+  n_union_cells/target_order :146-147）；两阶段调用 :125/:138。
+- 下游模块消费: sampler p2_sample_controls*（sampler.cpp:464/:504/:632/
+  :1121/:1138）、UPM 哈希种子（upm.cpp:4070/:4073-4075）、registry
+  descriptor astrocs.phase2.coverage（module_adapters.cpp:561-576，
+  端口 calibrated→coverage、DATA-P2-COV/DIMENSIONLESS/PIXEL——坐标
+  登记以本 API/DATA 合同 NESTED 为准修订，P2-COV-INT 对齐）。
+- 现状构建: 根 CMakeLists.txt astrocs_phase2 STATIC（:337-345，含
+  src/coverage.cpp，无独立 DLL target）；lib/phase2/CMakeLists.txt
+  phase2 STATIC 兼容自测 target（:42-46）+ phase2_synthetic_gate
+  （:77-79）；astrocs_p2_coverage.dll 为迁移目标合同值（尚未存在），
+  CMake 集成归 P2-COV-IMPL。
+- 既有测试基线: Phase2Coverage.RealHipsUnion（synthetic_gate.cpp:3374）
+  / FilterMismatchRejected（:3410）——依赖 Fatduck 本地路径，缺失时
+  GTEST_SKIP（:3378/:3415）；合成 fixture 由 P2-COV-TEST 建立
+  （TEST-COV-DESIGN-001 F1，解除环境依赖）。
+
+### 已登记现状缺陷与迁移语义
+
+- DISP-COV-001..005 全清单见 PHASE2_COVERAGE.md §11.3（001 "no inputs"
+  status 不一致 / 002 frame_id 基名截断唯一性风险 / 003 空 filter
+  静默放行 / 004 intersection/depth/missing-tiles 产品缺失（合同范围
+  缺口，覆盖度几何≠权重因子，关联 R3-A geometric_reliability 乘数
+  恒 1.0=DISP-UPM-003，修正归 P2-UPM 域）/ 005 extern "C" include
+  卫生+两阶段全量重扫+ThreadLease 未接线）。
+- plan/execute/cancel/inspect 迁移语义见 module.yaml（astrocs.p2.coverage
+  / astrocs_p2_coverage.dll，C ABI adapter 由 P2-COV-IMPL 建立；本节
+  描述现状 API，不声明 DLL 化完成）；测试设计 TEST-COV-DESIGN-001
+  （§11.4）由 P2-COV-TEST 执行落 TEST-P2-COV-001 + EVIDENCE。

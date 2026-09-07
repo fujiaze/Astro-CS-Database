@@ -152,3 +152,39 @@ photometric scale、新 runtime I/O DLL。
 - 审核包 AstroCS_Review_TraceableFoundationCorrection_V19R3.zip
   SHA256=2593d6673809b2c22f7012f5305c88821c7742b494774ea5ef0687e680454409
 - 状态：PRE_RELEASE_ENGINEERING_FOUNDATION=PASS；FINAL_REAL_DATA_VALIDATION=PENDING
+
+## P2-COV-DOC 冻结（2026-09-07，SA-P2-S20）
+
+- 范围：astrocs.p2.coverage（matrix P2-COV 行）合同冻结——coverage
+  生产源=本目录 src/coverage.cpp（239 行）+ include/astro/phase2/
+  coverage.h（59 行），legacy 即本目录（legacy_paths="lib/phase2
+  coverage sources"）；sampler/upm/rejection/integrate 归 P2-SAMP/
+  P2-UPM/P2-REJ/P2-INT 各自 DOC。本任务 lib/phase2 生产源零 diff
+  （不改码），仅文档/manifest 落位。
+- 产物：README.md r1 重写（原 42 行构建说明保留 §13）+ module.yaml
+  （CONTRACT_READY，entrypoint=MISSING）+ 本段；ALG-COV-001=
+  docs/algorithms/PHASE2_COVERAGE.md（§2 逐公式行号锚 + §11.3
+  DISP-COV-001..005 + §11.4 TEST-COV-DESIGN-001）；DATA-COV-001=
+  DATA_SEMANTICS.md §19；API-COV-001=PUBLIC_API.md；registry 页
+  docs/modules/registry/astrocs.phase2.coverage.md 事实修订 + 矩阵行
+  MOD-astrocs-phase2-coverage 更新（SCI/ALG/SRC/TEST 转 Verified）。
+- SCI 层：零改动——SCI-P2-COV-001 指向既有 FROZEN 共享 SCI
+  （PHASE2_UPM.md §1 覆盖并集 / INTEGRATION.md §5 support「覆盖并集
+  保守下界」/ SCIENCE_SCOPE.md §处理链第 5 步），状态声明=
+  PHASE2_COVERAGE.md §11.5（P1-WCS-DOC SCI-WCS-001=共享
+  ASTROMETRY.md 先例）。
+- 合同红线（matrix 专项，显式负向条款）：coverage/support/validity
+  三概念分离；**no use as implicit scientific weight**——union cell/
+  n_tiles/覆盖帧数为几何登记量，禁入任何权重式（w_UPM 唯一冻结式
+  PHASE2_UPM.md §5，support 仅 eligibility 语义）。
+- 关键缺陷登记（不改码，整改归 P2-COV-IMPL/INT）：DISP-COV-001
+  "no inputs" 分支 status 不一致（:154-157）、002 frame_id 基名截断
+  （:113-118）、003 空 filter 静默放行（:181/:190）、004
+  intersection/depth/missing-tiles 产品缺失（matrix 四语义仅 union
+  落地；覆盖度几何≠UPM geometric_reliability 权重因子——该乘数恒
+  1.0 为 R3-A 已登记缺陷，修正归 P2-UPM 域）、005 extern "C" 内
+  include（:47-51）+ 两阶段全量重扫 + ThreadLease 未接线。
+- 验收基线（本任务自检）：check_traceability_matrix rc=0 errors=0
+  warns=4（基线不变）；check_contract_graph rc=0 contracts=55；
+  check_doc_index PASS；pytest tests/traceability 4 passed；生产源
+  diff=0。日志 run/local/agent_p2_cov_doc/（不提交）。

@@ -18,12 +18,18 @@
 #include <cstring>
 #include <cmath>
 #include <chrono>
+#include <exception>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
 
 using namespace drizzle;
+
+// P0-4 无界分配防护: snr_model 控制点数上限。n_points 来自文件块头 (u32,
+// 不可信); 合法稀疏控制点 (SNR 采样) 数量级 ~1e3-1e4, 1e7 余量极大, 超限
+// 视为恶意/损坏块拒绝, 防巨量 vector 分配。
+static const uint32_t HP_MAX_SNR_POINTS = 10000000u;
 
 // ============================================================================
 // 反向 Drizzle (Sphere -> Plane) 正式 C ABI (签字修正 REV-101)
@@ -42,6 +48,10 @@ HP_DRIZZLE_API int hp_drizzle_reverse_run(
     void* coverage_out,
     HpReverseDrizzleResult* result)
 {
+    // P0-4: C 边界异常屏障 —— C++ 异常 (vector 分配 bad_alloc 等) 一律拦在
+    // C ABI 内转错误返回 (错误码 7=内部异常, 此前 1-6 已占用), 禁止跨
+    // extern "C" 传播。正常路径与修复前逐行等价。
+    try {
     if (!in || !result) {
         fprintf(stderr, "[hp_drizzle_api] reverse: 参数非法 (in/result 不能为空)\n");
         return 1;
@@ -140,6 +150,15 @@ HP_DRIZZLE_API int hp_drizzle_reverse_run(
     result->n_nonfinite = rout.n_nonfinite;
     result->n_skipped_outside = rout.n_skipped_outside;
     return 0;
+    } catch (const std::exception& e) {
+        fprintf(stderr, "[hp_drizzle_api] reverse: C 边界捕获异常: %s\n", e.what());
+        setReverseErr(result, std::string("reverse: 内部异常: ") + e.what());
+        return 7;
+    } catch (...) {
+        fprintf(stderr, "[hp_drizzle_api] reverse: C 边界捕获未知异常\n");
+        setReverseErr(result, "reverse: 内部未知异常");
+        return 7;
+    }
 }
 
 HP_DRIZZLE_API uint32_t hp_drizzle_reverse_capability(void) {
@@ -173,6 +192,9 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
     HpDrizzleResult* result)
 {
     // 1. 参数校验
+    // P0-4: C 边界异常屏障 —— C++ 异常一律拦在 C ABI 内转错误返回
+    // (错误码 12=内部异常, 此前 1-11 已占用), 禁止跨 extern "C" 传播。
+    try {
     if (!fits_path || !output_path || !result) {
         fprintf(stderr, "[hp_drizzle_api] 参数非法: fits_path/output_path/result 不能为空\n");
         if (result) {
@@ -350,6 +372,15 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
             result->elapsed_sec);
 
     return 0;
+    } catch (const std::exception& e) {
+        fprintf(stderr, "[hp_drizzle_api] fits_to_ahpx: C 边界捕获异常: %s\n", e.what());
+        setErrorMsg(result, std::string("内部异常: ") + e.what());
+        return 12;
+    } catch (...) {
+        fprintf(stderr, "[hp_drizzle_api] fits_to_ahpx: C 边界捕获未知异常\n");
+        setErrorMsg(result, "内部未知异常");
+        return 12;
+    }
 }
 
 // ============================================================================
@@ -369,7 +400,7 @@ static int run_drizzle_internal(PipelineFrame* frame,
                                 bool /*write_legacy_hiss*/,
                                 HpDrizzleResult* result,
                                 int precision_mode)
-{
+try {
     // 0. G4: actual-buffer trace 状态清理 (env 由 drizzleTiledImpl 内读取)
     drizzle_trace::reset();
 
@@ -549,11 +580,29 @@ static int run_drizzle_internal(PipelineFrame* frame,
             wcs.cd[0], wcs.cd[1], wcs.cd[2], wcs.cd[3]);
 
     // 5. 读取 SIP 系数 (若存在 A_ORDER)
+    // P0-1: SIP order 正式支持 [0,5] (6×6 系数数组), 与 hp_drizzle_reverse_run
+    // 同口径 (REV 修正): order<0 或 >5 硬失败返回错误码, 禁止静默截断。
+    // 此前此处 atoi 无上界校验, 恶意 frame header A_ORDER=8 会使循环写入
+    // wcs.sip.a[i*6+j] (i*6+j 最大 8*6+8=56 > 35) 越界写栈对象。
+    // 错误码 -10: 沿用本函数负数错误码风格 (-9 为缺 WCS)。
     const char* a_order_str = aio_frame_kv_get(frame, "header", "A_ORDER");
     if (a_order_str) {
         int a_order = atoi(a_order_str);
         const char* b_order_str = aio_frame_kv_get(frame, "header", "B_ORDER");
         int b_order = b_order_str ? atoi(b_order_str) : a_order;
+        const char* ap_order_str_early = aio_frame_kv_get(frame, "header", "AP_ORDER");
+        int ap_order = ap_order_str_early ? atoi(ap_order_str_early) : 0;
+        const char* bp_order_str_early = aio_frame_kv_get(frame, "header", "BP_ORDER");
+        int bp_order = bp_order_str_early ? atoi(bp_order_str_early) : ap_order;
+        if (a_order < 0 || a_order > 5 || b_order < 0 || b_order > 5 ||
+            ap_order < 0 || ap_order > 5 || bp_order < 0 || bp_order > 5) {
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SIP order 非法 "
+                            "(A=%d B=%d AP=%d BP=%d, 正式支持 [0,5])\n",
+                    a_order, b_order, ap_order, bp_order);
+            setErrorMsg(result, "SIP order 非法: 正式支持 [0,5] (A_ORDER/B_ORDER/"
+                                "AP_ORDER/BP_ORDER 之一越界)");
+            return -10;
+        }
         wcs.sip.order = a_order;
 
         // 读取 A_i_j / B_i_j (跳过 (0,0), i+j<=order)
@@ -664,9 +713,11 @@ static int run_drizzle_internal(PipelineFrame* frame,
                 size_t expect_stride = (vd == 1) ? ((version == 2) ? 40 : 24)
                                                  : ((version == 2) ? 36 : 20);
                 uint64_t expect_payload = (uint64_t)n_points * expect_stride + 24;
+                // P0-4: n_points 来自文件块头 (不可信), 上限防护防巨量 vector 分配
                 bool header_ok = ((version == 1 || version == 2) && (vd == 0 || vd == 1) &&
                                   stride == expect_stride &&
                                   payload_bytes == expect_payload &&
+                                  n_points <= HP_MAX_SNR_POINTS &&
                                   raw_size >= 28 + payload_bytes);
                 if (!header_ok) {
                     fprintf(stderr, "[hp_drizzle_api] snr_model 头非法 (version=%u vd=%u "
@@ -781,9 +832,10 @@ static int run_drizzle_internal(PipelineFrame* frame,
                 uint32_t n_points = 0;
                 std::memcpy(&n_points, raw, 4);
                 size_t expected = 4 + (size_t)n_points * 20 + 24;
-                if (n_points == 0 || raw_size < expected) {
-                    fprintf(stderr, "[hp_drizzle_api] snr_model v0 块不完整 (count=%lld)\n",
-                            (long long)snr_blk->count);
+                // P0-4: n_points 来自文件块头 (不可信), 上限防护防巨量 vector 分配
+                if (n_points == 0 || n_points > HP_MAX_SNR_POINTS || raw_size < expected) {
+                    fprintf(stderr, "[hp_drizzle_api] snr_model v0 块不完整或点数非法 (count=%lld, n=%u)\n",
+                            (long long)snr_blk->count, n_points);
                 } else {
                     std::vector<double> cp_ra(n_points), cp_dec(n_points);
                     std::vector<float> cp_snr(n_points);
@@ -1138,6 +1190,23 @@ static int run_drizzle_internal(PipelineFrame* frame,
     drizzle_trace::reset();
 
     return 0;
+} catch (const std::exception& e) {
+    // P0-4: C 边界异常屏障 —— run_drizzle_internal 是 hp_drizzle_run /
+    // hp_drizzle_run_hips 两个 C 导出入口的唯一实现体, 异常拦在此处转
+    // 错误码 -11 (内部异常; 此前 -1..-10 已占用), 禁止跨 extern "C" 传播。
+    fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: C 边界捕获异常: %s\n", e.what());
+    if (result) {
+        std::memset(result, 0, sizeof(HpDrizzleResult));
+        setErrorMsg(result, std::string("内部异常: ") + e.what());
+    }
+    return -11;
+} catch (...) {
+    fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: C 边界捕获未知异常\n");
+    if (result) {
+        std::memset(result, 0, sizeof(HpDrizzleResult));
+        setErrorMsg(result, "内部未知异常");
+    }
+    return -11;
 }
 
 // ============================================================================

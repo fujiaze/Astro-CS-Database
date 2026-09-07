@@ -28,6 +28,10 @@ static inline void aio_safe_copy(char* dst, std::size_t cap, const char* src) {
 static const size_t FITS_BLOCK_SIZE = 2880;
 static const size_t FITS_CARD_SIZE = 80;
 
+// P0-4 无界分配防护: 单次像素数据分配上限 1GB。合法 CCD 帧/HiPS tile
+// 远小于此 (65535×65535×f32 也不在本产品范围内); 超限视为恶意/损坏头硬失败。
+static const size_t FITS_MAX_DATA_BYTES = (size_t)1 << 30;
+
 static std::string trim_str(const std::string &s) {
     size_t start = s.find_first_not_of(" \t");
     if (start == std::string::npos) return "";
@@ -163,6 +167,24 @@ static int parse_fits_header(FILE *fp, FITSHeader &hdr) {
 
     if (hdr.naxis >= 1 && hdr.naxis1 <= 0) return -1;
     if (hdr.naxis >= 2 && hdr.naxis2 <= 0) return -1;
+
+    // P0-4 无界分配防护: NAXISn 上限 65535 (与 aio_xisf read_file 既有校验
+    // 口径一致)。恶意头 (NAXIS1=999999999) 会使 hdr.data_size 巨量化或 size_t
+    // 乘法回绕, 进而在 fits_read_file 触发巨量 vector 分配、在
+    // fits_read_header_only 触发巨量 calloc。FITS 标准对 NAXISn 无此上限,
+    // 但本项目合法 CCD 帧/HiPS tile 远小于 65535, 与 XISF 路径统一口径。
+    if (hdr.naxis >= 1 && hdr.naxis1 > 65535) {
+        aio_log(AIO_LOG_ERROR, "FITS", "NAXIS1 %d exceeds limit 65535", hdr.naxis1);
+        return -1;
+    }
+    if (hdr.naxis >= 2 && hdr.naxis2 > 65535) {
+        aio_log(AIO_LOG_ERROR, "FITS", "NAXIS2 %d exceeds limit 65535", hdr.naxis2);
+        return -1;
+    }
+    if (hdr.naxis >= 3 && hdr.naxis3 > 65535) {
+        aio_log(AIO_LOG_ERROR, "FITS", "NAXIS3 %d exceeds limit 65535", hdr.naxis3);
+        return -1;
+    }
 
     int axes[3] = {1, 1, 1};
     if (hdr.naxis >= 1) axes[0] = hdr.naxis1;
@@ -462,7 +484,12 @@ static void build_metadata(const FITSHeader &hdr, AIOImageMetadata &meta) {
     const char *ccd_temp = find_kw("CCD-TEMP");
     if (!ccd_temp) ccd_temp = find_kw("TEMP");
     cal.has_ccd_temp = ccd_temp ? 1 : 0;
-    if (ccd_temp) cal.ccd_temp = std::stod(ccd_temp);
+    // P0-4: 对齐 kw_float 模式 —— CCD-TEMP 非法值 (如 'TBD') 解析失败取缺省
+    // 0.0, 禁止 std::stod 异常逃逸到 C 边界 (此前此处是全函数唯一裸 stod)。
+    if (ccd_temp) {
+        try { cal.ccd_temp = std::stod(ccd_temp); }
+        catch (...) { cal.ccd_temp = 0.0; }
+    }
     const char *imagetyp = find_kw("IMAGETYP");
     if (imagetyp) aio_safe_copy(cal.frame_type, AIO_FRAME_TYPE_MAX, imagetyp);
     const char *bunit = find_kw("BUNIT");
@@ -754,6 +781,16 @@ int fits_read_file(const char *path, AIOImageData *out) {
     int c = (hdr.naxis >= 3 && hdr.naxis3 > 1) ? hdr.naxis3 : 1;
     size_t n_pixels = (size_t)w * (size_t)h * (size_t)c;
 
+    // P0-4 无界分配防护: data_size 由恶意头 (NAXISn=999999999) 可膨胀到任意
+    // 大小; naxisn 已在 parse_fits_header 限 65535, 此处再兜底限总分配 1GB,
+    // 超限硬失败, 禁止巨量 vector 分配打爆内存。
+    if (hdr.data_size > FITS_MAX_DATA_BYTES) {
+        aio_log(AIO_LOG_ERROR, "FITS", "Data size %zu exceeds limit %d",
+                hdr.data_size, FITS_MAX_DATA_BYTES);
+        std::fclose(fp);
+        return -1;
+    }
+
     std::vector<uint8_t> raw(hdr.data_size);
     size_t nread = std::fread(raw.data(), 1, hdr.data_size, fp);
     std::fclose(fp);
@@ -883,7 +920,14 @@ int fits_read_header_only(const char *path, AIOImageData *out) {
     int w = hdr.naxis1;
     int h = (hdr.naxis >= 2) ? hdr.naxis2 : 1;
 
+    // P0-2 同口径: header_only 此前对 geometry 零校验直接 calloc, 恶意
+    // NAXIS1/NAXIS2 触发巨量分配/NULL 解引用。naxisn 已在 parse_fits_header
+    // 限 [1,65535] (对齐 xisf_read_file 既有校验口径), calloc 失败走错误返回。
     out->data = (float *)calloc((size_t)w * (size_t)h, sizeof(float));
+    if (!out->data) {
+        aio_log(AIO_LOG_ERROR, "FITS", "Pixel buffer allocation failed (%dx%d)", w, h);
+        return -1;
+    }
     out->width = w;
     out->height = h;
     out->channels = (hdr.naxis >= 3 && hdr.naxis3 > 1) ? hdr.naxis3 : 1;
