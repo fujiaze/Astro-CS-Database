@@ -103,6 +103,7 @@ doc_index:
       notes: "P1-PHOT-DOC (2026-09-07) 追加 §13 冻结增补: ALG-PHOT-001..002 逐符号源码锚定(star_matcher/spectrum_integrator/pc_api/photometer)+实现事实修订(双向匹配/1.0nm 网格/mag_max 静默覆盖)+DISP-PHOT-001..009+TEST-PHOT-DESIGN-001 冻结容差+legacy 通道(§13.5)"
     - path: "docs/algorithms/PLATESOLVE.md"
       status: ACTIVE_NORMATIVE
+      notes: "P1-WCS-DOC (2026-09-07) 追加 §11 冻结增补: ALG-WCS-001 逐符号源码锚定(ipv_solve_from_detections_v1 生产链 12 导出+内核 ipv_select/ipv_triangle/ipv_itertrans/robust_refine/extract_wcs_sip)+像素中心双契约(+0.5 桥接)+DISP-WCS-001..006(CD 退化静默坍缩 R1=001)+TEST-WCS-DESIGN-001 冻结容差+SCI-WCS-001 状态声明(§11.5)"
     - path: "docs/algorithms/REJECTION_ALGORITHMS.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/algorithms/STAR_PSF_ALGORITHMS.md"
@@ -216,10 +217,12 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/contracts/DATA_SEMANTICS.md"
       status: ACTIVE_NORMATIVE
+      notes: "P1-WCS-DOC (2026-09-07) 追加 §18 DATA-P1-WCS: detections [n,6] +0.5 契约/IpvWcsResult 唯一权威/编排写回 KV 键表/inlier [n,9]/失败-置信度语义(DISP-WCS-001)"
     - path: "docs/contracts/INDEX.yaml"
       status: ACTIVE_NORMATIVE
     - path: "docs/contracts/PUBLIC_API.md"
       status: ACTIVE_NORMATIVE
+      notes: "P1-WCS-DOC (2026-09-07) 追加 API-WCS-001: WCS 求解 C API 12 导出符号锚(ipv_api.h/ipv_entry.cpp)+IpvWcsResult 内存所有权+失败-置信度语义(DISP-WCS-001 退化禁冒充解)+生产调用方 run_stage_platesolve"
     - path: "docs/contracts/RT-001.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/contracts/TEST_MATRIX.md"
@@ -308,6 +311,7 @@ doc_index:
       notes: "P1-PHOT-DOC (2026-09-07) 事实修订: 头部增补块——合同落位 lib/photometric_calib/README.md r1 + module.yaml (astrocs.p1.photometry, CONTRACT_READY, entrypoint=MISSING); 合同 ID=SCI-PHOT-001/ALG-PHOT-001..002/DATA-P1-PHOT/API-PHOT-001; NO_DATA 表述按退化语义修订"
     - path: "docs/modules/plate_solve.md"
       status: ACTIVE_INFORMATIVE
+      notes: "P1-WCS-DOC (2026-09-07) 事实修订: 合同落位 lib/plate_solve/ 三件套 (README r1 + module.yaml astrocs.p1.wcs CONTRACT_READY entrypoint=MISSING + memory); 合同 ID=SCI-WCS-001/ALG-WCS-001/DATA-P1-WCS/API-WCS-001/TEST-WCS-DESIGN-001; 旧页 AST-001..008 词汇废止"
     - path: "docs/modules/registry/astrocs.phase1.calibration.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"
@@ -336,8 +340,8 @@ doc_index:
       status: ACTIVE_NORMATIVE
       notes: "P1-STAR-DOC 手写合同页（2026-09-07，registry 无 astrocs.p1.star_detection descriptor——现行占位 descriptor 为 astrocs.phase1.star-psf；gen_module_readmes.py 以 module_adapters.cpp 为源，重生成时须排除/保留本页）"
     - path: "docs/modules/registry/astrocs.phase1.wcs-platesolve.md"
-      status: GENERATED
-      notes: "tools/quality/gen_module_readmes.py 生成"
+      status: ACTIVE_NORMATIVE
+      notes: "P1-WCS-DOC 手写合同页修订 (2026-09-07): upstream 修正 SCI-WCS-001/ALG-WCS-001 (占位 SCI-P1-WCS-001/ALG-002 保留为编排词汇, P1-WCS-INT 对齐); downstream 增 DATA-P1-WCS/API-WCS-001; DISP-WCS-001..006+TEST-WCS-DESIGN-001 冻结引用"
     - path: "docs/modules/registry/astrocs.phase1.writer.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"
