@@ -1648,3 +1648,4 @@
 {"sha": "d3235bdde7734191818b35acc3e784acc05c59d2", "subject": "chore(state): 台账补登 64902198——missing=={HEAD} 单元素豁免态恢复", "task_id": "UNTAGGED", "date": "2026-09-08T11:00:00+08:00"}
 {"sha": "d277e0ec0b33a5b136683523b912e57b33093aef", "subject": "chore(state): 台账补登 f2e439a6——missing=={HEAD} 豁免态（终）", "task_id": "UNTAGGED", "date": "2026-09-08T11:00:00+08:00"}
 {"sha": "71e1c6aa7748ddb484303802da4a994cf425028e", "subject": "chore(state): 台账全量对齐（含 HEAD 预登）——破除豁免追赶循环", "task_id": "UNTAGGED", "date": "2026-09-08T11:30:00+08:00"}
+{"sha": "3cbd5fd7a762b8cd435b75d44fb9f20b2bc9e7ea", "subject": "docs(P1-WCS-DOC): plate_solve 模块合同冻结——SCI-WCS-001/ALG-WCS-001/DATA-P1-WCS/API-WCS-001/trace（控制包 11/140, wave W1）", "task_id": "UNTAGGED", "date": "2026-09-08T12:00:00+08:00"}

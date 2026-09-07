@@ -45,9 +45,9 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 61,
+  "CLOSED": 62,
   "READY": 13,
-  "NOT_STARTED": 115,
+  "NOT_STARTED": 114,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
@@ -1540,15 +1540,15 @@
   },
   "P1-WCS-DOC": {
    "owner": "SA-P1-W16",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "3cbd5fd7",
+   "evidence_path": "lib/plate_solve/; docs/algorithms/PLATESOLVE.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json",
+   "source_of_status": "fg_verified_commit",
    "wave": "W1",
    "kind": "module-doc",
    "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "current_evidence": "commit:3cbd5fd7 traceability 29行0错 warns=4基线 + pytest 4P + contract_graph 53 + doc_index PASS + selfcheck 77 PASS(唯一FAIL为并行IO修复白名单过期,非本任务域)",
+   "note": "module-doc 冻结; SCI-WCS-001=共享 ASTROMETRY.md 零改动; DISP-WCS-001..006 (核心=001 CD退化静默坍缩,失败-置信度冻结 success=0); astrocs_p1_wcs.dll/CMake 集成归 P1-WCS-IMPL; descriptor 对齐归 P1-WCS-INT; 证据归 P1-WCS-TEST"
   },
   "P1-WCS-TEST": {
    "owner": "SA-P1-W16",
