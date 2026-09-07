@@ -1640,3 +1640,4 @@
 {"sha": "4d919013c2a69fadb752615898c370bf5b59bf97", "subject": "chore(state): 台账补登 48e2f75f——reconcile commit_ledger missing 修复", "task_id": "UNTAGGED", "date": "2026-09-08T07:00:00+08:00"}
 {"sha": "ed787ed67f333198689324edc94c51d662985cd6", "subject": "chore(state): 台账补登 21b325a6——reconcile commit_ledger missing 修复", "task_id": "UNTAGGED", "date": "2026-09-08T07:30:00+08:00"}
 {"sha": "9f0311970ec121c6ffe47c277221b34a5492ce18", "subject": "chore(state): 台账缺登全量补齐（追赶合并漂移）——reconcile 收敛", "task_id": "UNTAGGED", "date": "2026-09-08T08:00:00+08:00"}
+{"sha": "cb548e240d134de55dcc23c3d144f461ce37c0a5", "subject": "chore(state): 台账补登 ed787ed6——reconcile 收敛", "task_id": "UNTAGGED", "date": "2026-09-08T08:30:00+08:00"}
