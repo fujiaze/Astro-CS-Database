@@ -1078,3 +1078,115 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   / astrocs_p2_coverage.dll，C ABI adapter 由 P2-COV-IMPL 建立；本节
   描述现状 API，不声明 DLL 化完成）；测试设计 TEST-COV-DESIGN-001
   （§11.4）由 P2-COV-TEST 执行落 TEST-P2-COV-001 + EVIDENCE。
+
+## Phase2 mosaic write 公共消费面（API-P2-HIPS-001）
+
+> ID: API-P2-HIPS-001  状态: CONTRACT_READY（P2-HIPS-DOC 冻结，
+> 2026-09-07）
+> 定位: Phase2 马赛克写出**当前无独立公共 C API**——生产入口=
+> stage2 工具（lib/phase2/tools/stage2.cpp main :112）；编排层经
+> API-P2-001（PHASE2_API_V1 phase session，p2_session）驱动，但
+> p2_session 不执行 HiPS 写（hips_paths/output_dir 校验
+> p2_session.cpp:81-92，coverage 两阶段调用 :125/:138；HiPS 写入仅
+> 发生在 stage2 工具）。本节冻结的是 stage2 配置 schema 的公共消费
+> 面 + 进程退出码 + diagnostics.json 键集。
+> SRC: lib/phase2/tools/stage2.cpp（生产工具 astrocs-stage2，唯一
+> 写入路径）；配置 schema 唯一权威签名源 lib/phase2/include/astro/
+> phase2/stage2_common.h:16-99（P2Stage2Config，完整字段集以头文件
+> 为准，本节冻结公共关键字段消费面语义）；DATA: DATA-P2-HIPS
+> （DATA_SEMANTICS §20，单位/dtype/shape/序合同唯一权威）；复用库
+> ABI: aio_hips_*（本文件既有 API-HIPS-001 节，P1 冻结面）——P2 作为
+> 库消费者经 aio_hips_product_begin（stage2.cpp:592-596）等引用，
+> **不重登记、不新增 C ABI**；ALG: ALG-P2-HIPS-001..004
+> （docs/algorithms/PHASE2_MOSAIC_WRITE.md）；MOD:
+> astrocs.p2.hips_writer（迁移目标 astrocs_p2_hips_writer.dll 为
+> 矩阵合同值，尚未存在——MISSING 语义，由 P2-HIPS-IMPL 建立，本节
+> 不声明 IMPLEMENTED）。
+
+### 入口与调用方式（astrocs-stage2）
+
+- 用法（stage2.cpp:132）:
+  `astrocs-stage2 <stage2.json> [--cpu-workers N] [--io-workers N]
+  [--gpu-route cpu|auto|cuda] [--deterministic 0|1]`
+  （usage 行 :132；CON-002 CLI override 全局 worker 预算，
+  覆盖 config execution block，:155-166）。CLI 科学参数禁止
+  （stage2.cpp:3 头注，唯一参数=stage2.json 路径 + 预算四选项）。
+- 编排层关系: p2_session（API-P2-001，lib/phase2_session/
+  p2_session.cpp）仅做配置校验（:81-92）与 coverage 阶段
+  （:125/:138 两阶段容量协议），**不调用 HiPS 写出**；马赛克写
+  属 stage2 工具职责，编排接入点为 descriptor
+  astrocs.phase2.write 端口表（lib/core/src/module_adapters.cpp
+  :677-694，DATA-P2-HIPS §20.3 编排层词汇注记）。
+
+### 配置 schema 公共消费面（P2Stage2Config 关键字段，stage2_common.h:16-99）
+
+| 字段 | 默认 | 域 | 语义 |
+|---|---|---|---|
+| hips | —（:19） | 路径数组 `[n_frames]` | 每帧 Phase1 HiPS 目录（读 signal/support，weight_mode=2 加读 ivar） |
+| target_order_spec / target_order | "auto" / −1（:20-21） | HEALPix order | auto=cov.target_order；显式值不得高于输入最高 order（stage2.cpp:203-205） |
+| precision | 0（:50） | 0/1 | 0=float32 / 1=float64 输出（stage2.cpp:528） |
+| memory_limit_mb | 24576（:51） | MB | CON-002 内存预算 |
+| reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "wbpp_2_9_1" / 2（:52-54） | 无量纲 | planning 层 rejection 解析（profile 版本化冻结） |
+| reject_normalization | "astrocs_median_center_v1"（:56） | 无量纲 | 判定工作域归一（mask 应用回原始值） |
+| large_scale_enabled（+ min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | astrocs.large_scale_rejection.v1，默认关闭 |
+| weight_mode | 2（:90） | 0/1/2 | 2=ivar（科学默认）/1=等权/0=support×snr²（legacy/诊断） |
+| legacy_allow_weight_fallback | false（:94） | bool | ivar 产品缺失默认 rc=7；true 才允许降级 support 标红（stage2.cpp:565-578） |
+| acr_route | "auto"（:95） | cpu/auto/cuda 族 | 集成执行路由 |
+| out_hips | —（:97） | 路径 | 输出 HiPS 产品集根目录 |
+| diagnostics | true（:98） | bool | true → 落 diagnostics.json（本节键集） |
+
+单位/dtype/shape/序合同唯一权威 = DATA_SEMANTICS §20
+（DATA-P2-HIPS）；本表仅为消费面副本，冲突以 §20 为准。
+
+### 退出码表（stage2 进程级）
+
+| 退出码 | 域 | 锚（stage2.cpp） |
+|---|---|---|
+| 2 | config 解析/CLI 参数错误 | :133/:140/:146/:153/:160-165 |
+| 3 | coverage 构建 / target_order 校验 | :195/:201/:207 |
+| 4 | frame_id / sampler 域 | :227/:283/:288/:292/:298/:303/:310/:315/:319 |
+| 5 | UPM 构建/持久化 | :437/:456/:477/:488 |
+| 6 | 写路径/集成块（rejection resolve、tile 写、large_scale 等） | :517/:546/:589/:601/:653/:687/:793/:1055 等 |
+| 7 | ivar 门（ivar 产品缺失且未显式降级）/ HIPS_VERIFY 回读失败 | :574/:1665 |
+
+### diagnostics.json 键集（stage2.cpp:1697-1749，diagnostics=true 时落 `<out_hips>/diagnostics.json`）
+
+- 版本/路由: stage2_version（:1697）/ acr_requested_route（:1698）/
+  acr_effective_route（:1699）/ acr_workers（:1700）/
+  acr_fallback_reason（:1701）。
+- 输入/UPM 规模: input_frames（:1702）/ component_count（:1703）/
+  observations（:1704）/ unique_controls（:1705）/
+  controls_with_depth_1（:1706）/ controls_with_depth_ge_2（:1707）。
+- 产出统计: tiles_written（:1708）/ output_pixels（:1709）/
+  rejected_samples（:1710）/ fallback_pixels（:1711）/
+  pixels_depth_0/1/ge_2（:1712-1714）/ integrated_pixels（:1727）/
+  zero_coverage_pixels（:1737）/ underdetermined_pixels（:1738）。
+- rejection 明细: reject_normalization（:1715）/ reject_profile
+  （:1716）/ reject_group_level（:1717）/ reject_group_method
+  （:1718）/ large_scale_enabled（:1719）/
+  large_scale_min_structure_pixels（:1720）/
+  large_scale_low_grow_radius_pixels（:1722）/
+  large_scale_high_grow_radius_pixels（:1724）/
+  large_scale_grown_samples（:1726）/ quality_fallback_unknown
+  （:1728）/ local_snr_used（:1729）/ frame_snr_median_fallback
+  （:1730）/ weight_mode（:1731）/ local_ivar_used（:1732）/
+  ivar_product_missing（:1733）/ local_snr_unavailable_controls
+  （:1734）/ upm_sigma_floor（:1735）/ upm_support_power（:1736）/
+  reject_method（:1739）/ reject_underdetermined_n（:1740）/
+  rejection_resolved_methods（:1744）/ rejection_samples_per_pixel
+  （:1745）。
+- provenance/耗时: model_hash（:1746，UPM 持久层 hash，provenance
+  链 DATA-P2-HIPS §20.3）/ runtime_seconds（:1747）。
+
+### 复用库 ABI 与负向条款
+
+- aio_hips_*（API-HIPS-001，P1 冻结面）: P2 为库消费者
+  （aio_hips_product_begin/write_signal_support_tile/finalize/last_
+  error，stage2.cpp:592/:1629/:1638 路径），语义归 API-HIPS-001 与
+  DATA-P1-HIPS §12，本节不重登记。
+- 负向条款: **P2-HIPS-DOC 不新增、不修改任何公共 C 头/C ABI**——
+  p2_* 导出（coverage/sampler/upm/integrate）已由既有节冻结，
+  astrocs_p2_hips_writer.dll 为迁移目标合同值（MISSING），C ABI
+  adapter 由 P2-HIPS-IMPL 建立后方可登记导出符号表。
+- 下游: TEST-P2-HIPS-001（MISSING，P2-HIPS-DOC 登记，由
+  P2-HIPS-TEST 落地 + EVIDENCE）；上游 ALG-P2-HIPS-001..004。
