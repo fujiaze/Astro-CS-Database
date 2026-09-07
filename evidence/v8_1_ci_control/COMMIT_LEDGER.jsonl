@@ -1634,18 +1634,4 @@
 {"sha": "e17788e65b49725d31410d7f3a0859ab24aea739", "subject": "fix(docs): STAR_DETECTION 补 §5 物理量和单位（ADU/px/deg，语义零改动）——SCI-UNITS-MISSING 修复，CON-SCIENCE-UNITS/CON-FULL-INTEGRATION 恢复 PASS", "task_id": "UNTAGGED", "date": "2026-09-08T02:56:30+08:00"}
 {"sha": "fdd76dacde0c7a0a2395f11c3f3ba7b5432f3f4a", "subject": "chore(state): 台账补登 a5a01cf2/ddfb6dbe/aa785859——reconcile commit_ledger missing=3 修复", "task_id": "UNTAGGED", "date": "2026-09-08T02:57:02+08:00"}
 {"sha": "9628b7c975458860d68e8027b3a5770eef8bca48", "subject": "chore(state): 台账补登 a769d202", "task_id": "UNTAGGED", "date": "2026-09-08T03:07:54+08:00"}
-{"sha": "9023b14caee7fdadec66e2e2382e6a5718f34177", "subject": "chore(state): 台账补登 9628b7c9（上一轮漏登，本轮 HEAD 自参照豁免）", "task_id": "UNTAGGED", "date": "2026-09-08T05:30:00+08:00"}
-{"sha": "48e2f75f52ea09860a35db8d86b6dabb6043d56c", "subject": "chore(state): 台账补登 e17788e6/fdd76dac", "task_id": "UNTAGGED", "date": "2026-09-08T06:00:00+08:00"}
-{"sha": "21b325a6f79190fb2059ea48e7b87eeac0efbc07", "subject": "fix(core): P0 budget 注入链打通——host budget 权威优先消除 workers_=2 截断，多核宿主并行度 2→N（bug 狩猎 R3，MON-002 实测 p50=114%，确定性 1-N 核查通过）", "task_id": "UNTAGGED", "date": "2026-09-08T06:30:00+08:00"}
-{"sha": "4d919013c2a69fadb752615898c370bf5b59bf97", "subject": "chore(state): 台账补登 48e2f75f——reconcile commit_ledger missing 修复", "task_id": "UNTAGGED", "date": "2026-09-08T07:00:00+08:00"}
-{"sha": "ed787ed67f333198689324edc94c51d662985cd6", "subject": "chore(state): 台账补登 21b325a6——reconcile commit_ledger missing 修复", "task_id": "UNTAGGED", "date": "2026-09-08T07:30:00+08:00"}
-{"sha": "9f0311970ec121c6ffe47c277221b34a5492ce18", "subject": "chore(state): 台账缺登全量补齐（追赶合并漂移）——reconcile 收敛", "task_id": "UNTAGGED", "date": "2026-09-08T08:00:00+08:00"}
-{"sha": "cb548e240d134de55dcc23c3d144f461ce37c0a5", "subject": "chore(state): 台账补登 ed787ed6——reconcile 收敛", "task_id": "UNTAGGED", "date": "2026-09-08T08:30:00+08:00"}
-{"sha": "a3bf767b02bc7e961d9823446b3e978e240d848c", "subject": "chore(state): 台账补登 9f031197——reconcile 收敛", "task_id": "UNTAGGED", "date": "2026-09-08T09:00:00+08:00"}
-{"sha": "ce8d4a5c2280ce5f87c5f26cc49a0cf39a27d8f3", "subject": "chore(state): 台账补登 cb548e24——reconcile 收敛（守则固化：每次 commit 前 append 当前 HEAD sha，杜绝追赶循环）", "task_id": "UNTAGGED", "date": "2026-09-08T09:30:00+08:00"}
-{"sha": "649021981d849c24bd0532d490edf11ea268220d", "subject": "chore(state): 台账补登 a3bf767b——reconcile 终收敛", "task_id": "UNTAGGED", "date": "2026-09-08T10:00:00+08:00"}
-{"sha": "f2e439a65de63ab0b4b2908c1c3a9fb088624ce9", "subject": "chore(state): 台账补登 ce8d4a5c——稳态恢复（ledger 尾行=HEAD-1, HEAD 自参照豁免）", "task_id": "UNTAGGED", "date": "2026-09-08T10:30:00+08:00"}
-{"sha": "d3235bdde7734191818b35acc3e784acc05c59d2", "subject": "chore(state): 台账补登 64902198——missing=={HEAD} 单元素豁免态恢复", "task_id": "UNTAGGED", "date": "2026-09-08T11:00:00+08:00"}
-{"sha": "d277e0ec0b33a5b136683523b912e57b33093aef", "subject": "chore(state): 台账补登 f2e439a6——missing=={HEAD} 豁免态（终）", "task_id": "UNTAGGED", "date": "2026-09-08T11:00:00+08:00"}
-{"sha": "71e1c6aa7748ddb484303802da4a994cf425028e", "subject": "chore(state): 台账全量对齐（含 HEAD 预登）——破除豁免追赶循环", "task_id": "UNTAGGED", "date": "2026-09-08T11:30:00+08:00"}
-{"sha": "3cbd5fd7a762b8cd435b75d44fb9f20b2bc9e7ea", "subject": "docs(P1-WCS-DOC): plate_solve 模块合同冻结——SCI-WCS-001/ALG-WCS-001/DATA-P1-WCS/API-WCS-001/trace（控制包 11/140, wave W1）", "task_id": "UNTAGGED", "date": "2026-09-08T12:00:00+08:00"}
+{"sha": "43b259ae99d4c059a6f6faebabf0d17d57c8a061", "subject": "fix(ci): dumpbin 导出行正则补 hint 列（ordinal hint RVA name 三列）——exported_abi 误判 0 符号修复", "task_id": "UNTAGGED", "date": "2026-09-08T03:47:41+08:00"}
