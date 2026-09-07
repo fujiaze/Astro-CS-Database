@@ -63,6 +63,37 @@
 - stage2: `lib/phase2/configs/stage2_*.json`（model/integration/output/
   diagnostics 四段；默认值唯一来源见 `CONFIG_SCHEMA.md`）。
 
+## gaia_client C API（API-GAIA-001）
+
+> ID: API-GAIA-001  状态: CONTRACT_READY（CAT-GAIA-DOC 冻结，2026-09-05）
+> 头: lib/gaia_xpsd_client/src/gaia_client.h（唯一权威签名源，禁止手抄他版）
+> SRC: lib/gaia_xpsd_client/src/gaia_client.c；ALG: ALG-GAIA-001；
+> DATA: DATA-GAIA-001。纯 C（无 C++ 边界），`GAIA_EXPORT` 导出。
+
+- 导出符号（12 个，全部当前真实存在）：`gaia_client_create`、
+  `gaia_client_create_ex`、`gaia_client_destroy`、`gaia_client_cone_search`、
+  `gaia_client_cone_search_for_solver`、`gaia_client_get_db_type`、
+  `gaia_client_get_file_count`、`gaia_client_get_total_sources`、
+  `gaia_client_cone_search_with_spectrum`、`gaia_client_query_spectrum_by_coords`、
+  `gaia_client_cone_search_with_photometry`、`gaia_client_get_spectrum_params`。
+- 返回码：搜索/查询族 `0`=成功（含 0 结果）、`-1`=参数错误/分配失败/内部错误；
+  `get_spectrum_params` 返回 `1`=有光谱 / `0`=无；`get_db_type` 返回
+  GaiaDbType（0/1/2，NULL 句柄返回 0）；`create/create_ex` 失败返回 NULL。
+- 所有权：`client` 由 create 分配、destroy 释放；全部 `out_*` 数组由模块
+  malloc、调用方 free（用同一 C 运行时 free）；`out_stars=NULL`/`out_count=0`
+  表示空结果，不需要 free。
+- 线程安全：同一 client 并发查询安全（文件级 OpenMP 并行 + 缓存互斥，
+  ALG-GAIA-001 §4）；`destroy` 不得与在途查询并发；不同 client 互相独立。
+- 参数有效域：ra∈[0,360)、dec∈[-90,90]、radius≥0、mag_low≤mag_high、参数
+  有限（NaN/Inf 输入不显式校验，行为未定义——前置条件，负面测试覆盖）；
+  `query_spectrum_by_coords` 的 `match_radius_arcsec` 单位角秒，其余半径均为度。
+- 已登记现状缺陷（不得静默使用，CAT-GAIA-IMPL 处理）：
+  `GaiaStar.parallax/pmra/pmdec` 输出未初始化；`source_id` 恒 0；空数据目录在
+  Windows 返回 NULL 而 POSIX 返回 file_count=0 的空 client（平台差异）；
+  单文件结果上限 200000 静默截断；无取消检查点。
+- plan/execute/cancel/inspect 迁移语义见 ALG-GAIA-001 §3.1（astrocs.catalog.gaia，
+  C ABI adapter 由 CAT-GAIA-IMPL 建立；本节描述现状 C API，不声明 DLL 化完成）。
+
 ## On-disk 格式
 
 - HiPS：IVOA 1.4（signal/support/snr 产品，NESTED，512 tile）。

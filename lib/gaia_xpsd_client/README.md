@@ -1,341 +1,153 @@
-# Gaia DR3 XPSD Client
-
-版本：v1.0 | 2026-07-12
-
-轻量级 Gaia DR3 本地星表 C 客户端，直接读取 PixInsight XPSD 格式离线星表文件，支持锥形搜索（cone search）与多数据库切换。
-
-**版本 / 性能摘要**：支持 GaiaDR3（18亿星）/ GaiaDR3SP（2.2亿星）双数据库；1° 半径锥形搜索冷启动 ~0.5s、缓存命中 <0.001s；多文件 OpenMP 并行 + mmap 零拷贝 + 二级缓存。
-
-## GitHub仓库
-- 仓库地址：https://github.com/fujiaze/Gaia-DR3-DR3SP-Client-C
-- 默认分支：master
-
----
-
-## 概述
-
-### 功能列表
-
-- **零网络依赖**：纯本地文件读取，离线可用，无需在线 API
-- **XPSD 格式原生解析**：完整解析 PixInsight `.xpsd` 文件（6 棵投影树空间索引 + LZ4/Zlib 压缩数据块）
-- **多数据库支持**：GaiaDR3 完整版与 GaiaDR3SP 光谱版可切换，支持自动检测
-- **多文件并行搜索**：自动加载目录下所有 `.xpsd` 文件，OpenMP 多线程并行
-- **mmap 零拷贝读取**：Windows (MapViewOfFile) / Linux (mmap) 内存映射，大文件无需全量读入
-- **二级缓存加速**：查询结果缓存（60s TTL）+ 解压块缓存（进程级持久），重复查询近乎零耗时
-- **内存压力自适应**：自动检测可用物理内存，不足时按 LRU 策略淘汰缓存
-- **投影反变换支持**：内置 Equirectangular / Azimuthal Equidistant 投影反变换
-- **线程安全**：缓存读写加锁保护，多线程并发安全
-- **跨平台**：Windows (MSVC / MinGW) / Linux (GCC) / macOS (Clang)
-
-### 性能指标
-
-| 操作 | 条件 | 耗时 |
-|------|------|------|
-| 加载 16 个 DR3 XPSD 文件 | SSD, 16线程 | ~3s |
-| 加载 20 个 DR3SP XPSD 文件 | SSD, 16线程 | ~2s |
-| 锥形搜索 (1° 半径, mag<14.6) | 16线程, 冷启动 | ~0.5s |
-| 锥形搜索 (1° 半径, mag<14.6) | 16线程, 缓存命中 | <0.001s |
-| 锥形搜索 (6° 半径, mag<8.5) | 16线程, 冷启动 | ~0.8s |
-| 同参数重复查询 | 无缓存→有缓存 | 0.82s → <0.001s (>800x) |
-| bisection 7次查询 | 无缓存→有缓存 | 5.88s → 0.06s (93x) |
-
-### 数据库对比
-
-| 属性 | GaiaDR3 (GAIA_DB_DR3) | GaiaDR3SP (GAIA_DB_DR3SP) |
-|------|----------------------|---------------------------|
-| 总星数 | ~18亿 | ~2.2亿 |
-| 条目大小 | 32 bytes | 384 bytes (40头部+343光谱+1填充) |
-| 压缩方式 | LZ4-HC + shuffle | Zlib + shuffle |
-| 光谱数据 | 无 | 有 (336-1020nm, 343采样, uint8) |
-| 光谱API | 不适用 | `gaia_client_cone_search_with_spectrum()` / `_with_photometry()` |
-| 适用场景 | Plate solving | 光谱分析 |
-
----
-
-## 使用方法
-
-### 编译
-
-**编译命令（MinGW, 生成 Windows DLL）**：
-
-```bash
-gcc -O2 -march=native -shared -o gaia_client.dll src/gaia_client.c -Isrc -lz -fopenmp -static-libgcc
-```
-
-**其他平台**：
-
-```bash
-# MSVC (Windows)
-cl /O2 /LD src/gaia_client.c /Isrc zlib.lib /openmp
-
-# Linux / macOS
-gcc -O2 -march=native -shared -fPIC -o libgaia_client.so src/gaia_client.c -Isrc -lz -fopenmp
-```
-
-### Python 调用示例
-
-通过 `ctypes` 加载 DLL，声明 `GaiaStar` 结构与 API 签名后即可调用：
-
-```python
-import ctypes, os
-
-class GaiaStar(ctypes.Structure):
-    _fields_ = [
-        ('ra', ctypes.c_double), ('dec', ctypes.c_double),
-        ('magG', ctypes.c_double), ('magBP', ctypes.c_double), ('magRP', ctypes.c_double),
-        ('parallax', ctypes.c_float), ('pmra', ctypes.c_float), ('pmdec', ctypes.c_float),
-        ('source_id', ctypes.c_int64),
-    ]
-
-GAIA_DB_DR3, GAIA_DB_DR3SP = 1, 2
-
-dll = ctypes.CDLL(os.path.abspath('gaia_client.dll'))
-dll.gaia_client_create_ex.argtypes = [ctypes.c_char_p, ctypes.c_int]
-dll.gaia_client_create_ex.restype = ctypes.c_void_p
-dll.gaia_client_cone_search.argtypes = [
-    ctypes.c_void_p, ctypes.c_double, ctypes.c_double, ctypes.c_double,
-    ctypes.c_double, ctypes.c_double,
-    ctypes.POINTER(ctypes.POINTER(GaiaStar)), ctypes.POINTER(ctypes.c_int),
-]
-dll.gaia_client_cone_search.restype = ctypes.c_int
-dll.gaia_client_destroy.argtypes = [ctypes.c_void_p]
-
-client = dll.gaia_client_create_ex(b'/path/to/GaiaDR3', GAIA_DB_DR3)
-
-stars = ctypes.POINTER(GaiaStar)()
-count = ctypes.c_int()
-dll.gaia_client_cone_search(client, 266.4167, -28.9867, 1.0, -1.5, 14.0,
-                            ctypes.byref(stars), ctypes.byref(count))
-for i in range(count.value):
-    print(stars[i].ra, stars[i].dec, stars[i].magG)
-
-dll.gaia_client_destroy(client)
-```
-
-### 核心 API
-
-```c
-typedef enum {
-    GAIA_DB_AUTO = 0,   /* 自动检测（默认） */
-    GAIA_DB_DR3 = 1,    /* GaiaDR3 完整版 */
-    GAIA_DB_DR3SP = 2   /* GaiaDR3SP 光谱版 */
-} GaiaDbType;
-
-/* 创建客户端（指定数据库类型） */
-GaiaClient *client = gaia_client_create_ex("/path/to/GaiaDR3", GAIA_DB_DR3);
-
-/* 锥形搜索: client, ra, dec, radius(度), mag_low, mag_high, &stars, &count */
-gaia_client_cone_search(client, 266.4167, -28.9867, 1.0, -1.5, 14.0, &stars, &count);
-
-/* 精简接口（仅 ra/dec/mag，适用于 plate solving） */
-gaia_client_cone_search_for_solver(client, 266.4, -28.9, 1.0, 14.0,
-                                   &ra_arr, &dec_arr, &mag_arr, &count);
-```
-
-```c
-typedef struct {
-    double ra, dec, magG, magBP, magRP;
-    float  parallax, pmra, pmdec;
-    int64_t source_id;
-} GaiaStar;
-```
-
----
-
-## 光谱与测光接口（DR3SP 专用）
-
-DR3SP 数据库的每颗星记录为 384 字节 = 40 字节头部 + 343 字节光谱（uint8）+ 1 字节填充。
-头部含 magG/magBP/magRP 星等，光谱覆盖 336nm-1020nm（步长 2nm，343 采样点）。
-
-**API 按职责拆分**：光谱查询和测光（BP/RP）查询独立，按需调用，避免不必要的内存开销。
-
-### 三级查询 API
-
-| API | 返回内容 | 适用场景 |
-|-----|---------|---------|
-| `gaia_client_cone_search()` | ra/dec/magG | Plate solving |
-| `gaia_client_cone_search_with_photometry()` | ra/dec/magG/**magBP/magRP** | 颜色分析（不读光谱，省内存） |
-| `gaia_client_cone_search_with_spectrum()` | ra/dec/magG + **343光谱点** | 光谱分析 |
-
-### 光谱 API
-
-```c
-typedef struct {
-    double ra, dec, magG;
-} GaiaSpectrumStar;
-
-int gaia_client_cone_search_with_spectrum(
-    GaiaClient *client,
-    double ra, double dec, double radius_deg,
-    double mag_low, double mag_high,
-    GaiaSpectrumStar **out_stars,
-    uint8_t **out_spectra,
-    int *out_count);
-
-int gaia_client_get_spectrum_params(
-    GaiaClient *client,
-    int *out_start_nm, int *out_step_nm, int *out_count);
-/* 返回值: 1=有光谱, 0=无光谱 */
-```
-
-### 测光 API
-
-```c
-typedef struct {
-    double ra, dec, magG, magBP, magRP;
-} GaiaPhotometryStar;
-
-int gaia_client_cone_search_with_photometry(
-    GaiaClient *client,
-    double ra, double dec, double radius_deg,
-    double mag_low, double mag_high,
-    GaiaPhotometryStar **out_stars,
-    int *out_count);
-```
-
-**内存管理**：`out_stars` 和 `out_spectra` 由 `malloc` 分配，调用方需分别 `free`。
-
-### Python 示例
-
-```python
-import ctypes
-
-class GaiaSpectrumStar(ctypes.Structure):
-    _fields_ = [('ra', ctypes.c_double), ('dec', ctypes.c_double), ('magG', ctypes.c_double)]
-
-class GaiaPhotometryStar(ctypes.Structure):
-    _fields_ = [('ra', ctypes.c_double), ('dec', ctypes.c_double),
-                ('magG', ctypes.c_double), ('magBP', ctypes.c_double), ('magRP', ctypes.c_double)]
-
-# --- 测光查询（BP/RP星等，不读光谱） ---
-phot_stars = ctypes.POINTER(GaiaPhotometryStar)()
-phot_count = ctypes.c_int()
-dll.gaia_client_cone_search_with_photometry(
-    client, 266.4167, -28.9867, 0.5, -2.0, 15.0,
-    ctypes.byref(phot_stars), ctypes.byref(phot_count))
-for i in range(phot_count.value):
-    s = phot_stars[i]
-    print(f"RA={s.ra:.4f}, magG={s.magG:.3f}, magBP={s.magBP:.3f}, magRP={s.magRP:.3f}")
-ctypes.cdll.msvcrt.free(phot_stars)
-
-# --- 光谱查询（343采样点，不含BP/RP） ---
-spec_stars = ctypes.POINTER(GaiaSpectrumStar)()
-spectra = ctypes.POINTER(ctypes.c_uint8)()
-spec_count = ctypes.c_int()
-dll.gaia_client_cone_search_with_spectrum(
-    client, 266.4167, -28.9867, 0.5, -2.0, 15.0,
-    ctypes.byref(spec_stars), ctypes.byref(spectra), ctypes.byref(spec_count))
-for i in range(spec_count.value):
-    s = spec_stars[i]
-    offset = i * 343
-    spectrum = [spectra[offset + j] for j in range(343)]  # 336nm-1020nm
-    print(f"RA={s.ra:.4f}, magG={s.magG:.3f}, spectrum[:5]={spectrum[:5]}")
-ctypes.cdll.msvcrt.free(spec_stars)
-ctypes.cdll.msvcrt.free(spectra)
-```
-
-### DR3SP 星记录头部布局（40 字节）
-
-| 偏移 | 大小 | 字段 | 类型 | 说明 |
-|------|------|------|------|------|
-| 0 | 4 | dx | uint32 | X 位置增量 |
-| 4 | 4 | dy | uint32 | Y 位置增量 |
-| 8-19 | 12 | (保留) | - | 未使用字段 |
-| 20 | 2 | magG_raw | uint16 | magG = raw × 0.001 − 1.5 |
-| 22 | 2 | magBP_raw | uint16 | magBP = raw × 0.001 − 1.5 |
-| 24 | 2 | magRP_raw | uint16 | magRP = raw × 0.001 − 1.5 |
-| 26 | 2 | dra_raw | int16 | RA 修正增量 |
-| 28-39 | 12 | (保留) | - | 未使用字段 |
-| 40-382 | 343 | spectrum | uint8[343] | BP/RP 光谱流量值 |
-| 383 | 1 | (填充) | - | 对齐填充 |
-
----
-
-## 架构
-
-### XPSD 文件格式
-
-XPSD 是 PixInsight 专用的天文星表格式，每个文件内部包含 **6 棵投影树**：
-
-```
-XPSD File
-├── 文件头 (魔数 + 版本 + 元数据)
-├── 6 棵投影树空间索引
-│   ├── 4× Equirectangular 投影树 (覆盖赤道带)
-│   └── 2× AzimuthalEquidistant 投影树 (覆盖南北极区)
-├── 投影参数 (每棵树对应一种投影)
-└── 数据块 (LZ4 或 Zlib 压缩，每块含若干 GaiaStar 记录)
-```
-
-**工作流程**：
-1. 扫描目录，打开所有 `.xpsd` 文件并 mmap 映射
-2. 解析文件头与 6 棵投影树索引
-3. 锥形搜索：查 L1 缓存 → 查 L2 解压块缓存 → 遍历投影树剪枝 → 解压命中数据块 → 投影反变换 → 星等过滤 → 存入缓存 → 返回结果
-
-#### 关键修复：bbox 极区漏检（2026-06-07）
-
-**Bug**：AzimuthalEquidistant 投影树的 bbox 仅由 4 个角点确定。极区投影（中心±90°）4 个角点反投影后 Dec≈±26.4°，完全遗漏极点（Dec=±90°），导致 |Dec|>60° 区域所有查询被错误拒绝、返回 0 结果。
-
-**修复**：在 `search_recursive()` 的 bbox 计算中增加第 5 个采样点 `(0.0, 0.0)`（投影中心即极点本身），确保极区覆盖正确。
-
-```c
-// 旧代码
-double xs[4] = {node->x0, node->x1, node->x1, node->x0};
-// 新代码
-double xs[5] = {node->x0, node->x1, node->x1, node->x0, 0.0};
-```
-
-| 查询位置 | 修复前 | 修复后 |
-|---------|--------|--------|
-| 北天极 Dec=+90° | 0颗 | 8,927颗 |
-| 南天极 Dec=-89° | 0颗 | 13,904颗 |
-| 南天 Dec=-75° | 0颗 | 8,880颗 |
-
-#### 二级缓存机制
-
-| 缓存层级 | TTL / 生命周期 | 容量 | 键 | 效果 |
-|---------|---------------|------|-----|------|
-| L1 查询结果 | 60s | 64 条 | 舍入后 (RA,Dec,radius,mag_high) | 同参数重复查询近乎零耗时 |
-| L2 解压块 | 进程级持久 | 8192 槽 / 最大 4GB | 数据块文件偏移 | 不同 mag_limit 同天区跳过解压 |
-
-内存压力自适应：可用内存 <4GB 触发 LRU 淘汰；L2 超 4GB 淘汰最旧 1/4 条目。
-
-### 目录结构
-
-```
-gaia_xpsd_client/
-├── src/
-│   ├── gaia_client.h              # 公共 API 头文件
-│   └── gaia_client.c              # 完整实现（含缓存）
-├── python/
-│   ├── verify_dr3.py              # DR3 格式验证脚本
-│   ├── verify_global_coverage.py  # 全天区覆盖验证脚本
-│   ├── verify_spectrum.py         # 光谱接口验证测试（基建保留）
-│   └── test_multi_db.py           # 多数据库测试脚本
-├── example/
-│   └── demo.c                     # 使用示例
-├── Makefile                       # 编译脚本
-└── README.md                      # 本文件
-```
-
-### 依赖
-
-| 依赖 | 用途 | 链接选项 |
-|------|------|----------|
-| zlib | XPSD 数据块解压 (DR3SP) | `-lz` |
-| lz4 | XPSD 数据块解压 (DR3) | `-llz4` |
-| OpenMP | 多线程并行搜索（可选） | `-fopenmp` |
-
----
-
-## 详细文档
-
-- **GitHub (C 版)**：https://github.com/fujiaze/Gaia-DR3-DR3SP-Client-C
-- **GitHub (Pyd 版)**：https://github.com/fujiaze/Gaia-DR3SP-Client-Pyd
-- **数据下载（百度网盘）**：https://pan.baidu.com/s/1u8CCMtecsaiz2nVjLsThRg?pwd=fujz （提取码：fujz）
-
-将所有 `.xpsd` 文件放在同一目录下，客户端会自动扫描并加载。
-
-## 许可
-
-MIT License
+# lib/gaia_xpsd_client — astrocs.catalog.gaia（CAT-GAIA）
+
+> 状态: CONTRACT_READY（CAT-GAIA-DOC 冻结，2026-09-05）｜doc revision: r2
+> 本 README 由源码核对后全面重写（CAT-GAIA-DOC）：函数、单位、坐标、dtype、
+> shape、invalid、错误、并发、内存、I/O 均以
+> `src/gaia_client.h` / `src/gaia_client.c`（唯一生产源）为准；
+> 旧版 README 中与源码不符的性能承诺与记录布局已修正或删除。
+
+## 1. 身份
+
+| 字段 | 当前值 |
+|---|---|
+| MOD ID / DLL target | `MOD-astrocs-catalog-gaia` / 现状产物 `gaia_client.dll`（模块 Makefile）；迁移目标 `astrocs_catalog_gaia.dll`（CAT-GAIA-IMPL 建立，尚未存在） |
+| module / ABI / doc revision | `astrocs.catalog.gaia` / C ABI（无版本化 query 入口，迁移缺口） / r2 |
+| owner / phase scope | SA-P1-W16 / service（wave W1） |
+| 文档状态 | CONTRACT_READY（实现存在，模块化迁移未开始；不声明 IMPLEMENTED） |
+| 上游来源 | PixInsight XPSD 格式客户端（历史上游 Gaia-DR3-DR3SP-Client-C，MIT；仅来源说明，非本合同权威） |
+
+## 2. 负责范围
+
+负责：本地 XPSD（Gaia DR3/DR3SP）解析与 mmap 只读加载；锥形搜索
+（J2000/ICRS 度，球面角距）；星等窗过滤；BP/RP 测光与 343 点光谱量化解码；
+两级缓存；极冠保守剪枝与赤道带 bbox 剪枝。
+
+不负责：WCS/SIP 求解与像素投影（plate_solve/ipv）；星等自适应迭代与
+F_syn 积分（photometric_calib）；星匹配/求解；网络访问（结构性零网络）；
+数据目录整理/下载；全局线程池/ThreadLease（现状用 OpenMP 默认 team，
+迁移后由 host 授予）；artifact store 写入；Phase 级行为（禁止整 Phase 编排）。
+
+## 3. 输入与输出（DATA-GAIA-001）
+
+输入 port：`catalog.xpsd_dir`（本地目录路径，≤32 个 `.xpsd`，魔数 `XPSD0100`，
+LZ4 或 zlib+shuffle 压缩块；GaiaDR3 32B 记录 / GaiaDR3SP 384B 记录）。
+模块不写输入文件、不联网。
+
+输出行（单位/坐标/dtype/shape/invalid 全表见 docs/contracts/DATA_SEMANTICS.md §8）：
+
+- `gaia_client_cone_search` → `GaiaStar[out_count]`：ra/dec/magG/magBP/magRP
+  float64（deg, ICRS J2000 / mag）、parallax/pmra/pmdec float32
+  **未初始化（禁用）**、source_id int64 恒 0（占位）。
+- `cone_search_for_solver` → `out_ra/out_dec` float64[n]、`out_mag` float32[n]
+  （内部固定 mag_low=-1.5）。
+- `cone_search_with_photometry` → `GaiaPhotometryStar[n]`（5×float64；DR3 数据
+  BP/RP=0 sentinel）。
+- `cone_search_with_spectrum` / `query_spectrum_by_coords` →
+  `GaiaSpectrumStar[n]`（ra/dec/magG float64 + flux_min/flux_mul float32）
+  + `uint8 out_spectra[n × spec_n]` 行主序（`F(λ)=byte*flux_mul+flux_min`
+  W·m⁻²·nm⁻¹，λ=spectrum_start+j·spectrum_step nm）+ match_idx int32
+  （−1=未匹配，仅 by_coords）。
+- `out_count=0`（含 NULL 数组）= 合法空结果；单文件候选 >200000 静默截断。
+
+## 4. 合同链接
+
+- SCI: `SCI-AST-001`（docs/science/ASTROMETRY.md）
+- ALG: `ALG-GAIA-001`（docs/algorithms/GAIA_QUERY.md）
+- DATA: `DATA-GAIA-001`（docs/contracts/DATA_SEMANTICS.md §8）
+- API: `API-GAIA-001`（docs/contracts/PUBLIC_API.md §gaia_client C API）
+- ARCH: `ARCH-001`（docs/contracts/ARCH-001.md）
+- TEST: `TEST-GAIA-DESIGN-001`（GAIA_QUERY.md §5，设计冻结；可执行
+  TEST-GAIA-* 由 CAT-GAIA-TEST 建立，当前未实现）
+- 追溯: docs/traceability/TRACEABILITY_MATRIX.json `MOD-astrocs-catalog-gaia`
+
+## 5. 实现事实（源码核对）
+
+- Public entry（12 个 `GAIA_EXPORT`，签名以 src/gaia_client.h 为唯一权威）：
+  `gaia_client_create`、`gaia_client_create_ex`、`gaia_client_destroy`、
+  `gaia_client_cone_search`、`gaia_client_cone_search_for_solver`、
+  `gaia_client_get_db_type`、`gaia_client_get_file_count`、
+  `gaia_client_get_total_sources`、`gaia_client_cone_search_with_spectrum`、
+  `gaia_client_query_spectrum_by_coords`、
+  `gaia_client_cone_search_with_photometry`、`gaia_client_get_spectrum_params`。
+- 主要内部符号（迁移清单）：`load_xpsd_file`、`close_xpsd_file`、
+  `search_recursive`、`search_recursive_spectrum`、`search_recursive_photometry`、
+  `bbox_intersects`、`polar_plane_intersects`、`unproject`、`read_leaf_block`、
+  `lz4_decompress`、`byte_unshuffle`、`block_cache_lookup`、`block_cache_insert`、
+  `query_cache_lookup`、`query_cache_insert`、`check_memory_pressure`、
+  `collector_push`/`spec_collector_push`/`phot_collector_push`。
+- 返回码：查询族 `0`=成功（含 0 结果）/`-1`=参数错误或分配失败；
+  `get_spectrum_params` `1`=有光谱/`0`=无；`create*` 失败=NULL。
+- 测试钩子（仅测试编译定义生效）：`GAIA_ALLOC_TEST`（malloc/calloc/realloc/
+  free 包装注入）、`GAIA_POLAR_PRUNE_DISABLED`（极区剪枝 differential
+  reference mode）；诊断 `ASTROCS_GAIA_TRACE=1`（stderr，per-query 统计）。
+- DR3SP 记录布局（源码 1378-1387 / PCL EncodedStarSPData）：32B 头
+  （dx@0 u32、dy@4 u32、magG_raw@20 u16、magBP_raw@22 u16、magRP_raw@24 u16、
+  dra_raw@26 i16）+ flux_min f32@32 + flux_mul f32@36 + uint8 spectrum[343]@40
+  + 1B 填充 = 384B（旧版"28-39 保留"与 fluxMin/fluxMul 冲突，以本条为准）。
+
+### 5.1 配置 schema（迁移合同；现状为 C 参数直传，无配置文件）
+
+| 键 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| catalog.data_dir | string | 必填 | XPSD 数据目录 |
+| catalog.db_type | enum | auto | auto/dr3/dr3sp（GaiaDbType 0/1/2） |
+| catalog.ra / dec / radius_deg | double | — | 查询锥，度，有限值 |
+| catalog.mag_low / mag_high | double | −1.5 / 数据上限 | 闭区间 |
+
+线程/workers 不属于本模块配置（host ThreadBudget 授予，迁移后强制）。
+
+## 6. 并发与资源
+
+- 并行轴=文件：`#pragma omp parallel for schedule(dynamic)`，每文件独立
+  collector/scratch/块缓存单写者；输出按文件序串接。
+- 互斥：client 级 `cache_lock` 包裹查询缓存 lookup/insert；命中路径持锁完成
+  O(N) 输出构造（命中查询串行化）。
+- lease：现状 OpenMP 默认 team（**未接入 host ThreadLease，迁移缺口**）；
+  min/max workers 迁移后为 1..file_count（≤32）。
+- 内存：mmap 全部 XPSD 只读 + 解压块缓存 ≤4GB（8192 槽 LRU 1/4 淘汰）+
+  查询缓存 64 条/60s TTL + 每线程 scratch max(max_block_size, 65536)；
+  可用内存 <4GB 时自适应停止缓存（check_memory_pressure）。
+- I/O：目录枚举（Win32 FindFirstFileA / POSIX opendir）+ 只读 mmap
+  （MapViewOfFile / mmap）；按需解压；trace 走 stderr；无网络、无写盘。
+- cancel/checkpoint：无取消检查点（迁移后=文件循环边界，host 传播）；
+  数据目录内容在 client 生命周期内不得变更（缓存不检测文件变化）。
+
+## 7. provider 能力与 fallback
+
+纯 C99 + OpenMP + zlib/lz4，无 CPU provider/ISA 分层；不使用 AVX 编译选项
+（历史 Makefile `-march=native` 仅为上游本地构建，非 AstroCS 生产 target）。
+fallback：无（baseline 单路径）；ISA 合同=迁移 bitwise 等价。
+
+## 8. 验证（TEST-GAIA-DESIGN-001）
+
+- 设计已冻结（GAIA_QUERY.md §5）：合成 fixture（固定 seed，4 树/LZ4+Zlib/
+  含极区与 RA 环绕）、独立 Python oracle（暴力全枚举 + 标准解压库）、
+  不变量 I1 无假阴性 / I2 无假阳性 / I3 缓存 bitwise 等价 / I4 星等闭区间 /
+  I5 截断上限、负面（NULL、坏魔数、GAIA_ALLOC_TEST 5 失败点）、1/N worker、
+  ISA bitwise、资源（RSS 回落、块缓存 ≤4GB）。
+- 冻结容差：迁移等价 bitwise；oracle 数值位置 |Δ|≤5e-10 deg、星等
+  |Δ|≤1e-9 mag、光谱字节恒等。
+- **当前无可执行测试、无 PASS 声明**（CAT-GAIA-TEST 建立；历史 V18R3 Gate
+  结论为上游/前代证据，不作为本轮验收）。
+
+## 9. 构建与已知限制
+
+- 构建（现状，Linux 技术预览）：
+  `make -C lib/gaia_xpsd_client`（gcc -O2 -march=native -fopenmp -lz）；
+  Windows MSVC/MinGW 命令见历史上游说明。**无 CMake target**（BLD-001 显式
+  target 缺口，CAT-GAIA-IMPL 建立 `astrocs_catalog_gaia` DLL + adapter）。
+- 已知限制/未实现（如实登记，不得静默使用）：
+  1. C ABI adapter / 版本化 query 入口 / plan()/cancel() 不存在；
+  2. OpenMP 默认 team，未接 host ThreadLease；
+  3. `GaiaStar.parallax/pmra/pmdec` 输出未初始化；`source_id` 恒 0；
+  4. 空数据目录 Windows 返回 NULL、POSIX 返回空 client（平台差异）；
+  5. 单文件 200000 星静默截断；
+  6. 缓存不检测数据文件内容变化（目录内容 client 生命周期内须不变）；
+  7. NaN/Inf 参数不显式校验（前置条件：有限值）；
+  8. 可执行测试未建立（设计冻结于 TEST-GAIA-DESIGN-001）。
+- 平台范围：Windows x64（生产）/ Linux amd64（当前构建验证）；最后核对
+  基线：CAT-GAIA-DOC 于源码 2255 行逐函数核对（run/local/agent_cat_gaia_doc/）。
+
+## 10. 许可
+
+MIT（历史上游 Gaia-DR3-DR3SP-Client-C；本仓库内修改遵循 AstroCS 合同）。

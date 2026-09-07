@@ -76,3 +76,50 @@ frame_id / manifest / RA-Dec 度 / NESTED / 512-tile 映射
 ```
 
 契约测试：见 `docs/development/TESTING.md`（cross-stage contract test）。
+
+## 8. Gaia XPSD 星表输入与星表行（DATA-GAIA-001）
+
+> ID: DATA-GAIA-001  状态: CONTRACT_READY（CAT-GAIA-DOC 冻结，2026-09-05）
+> 模块: lib/gaia_xpsd_client（astrocs.catalog.gaia）；ALG: ALG-GAIA-001；
+> SRC: lib/gaia_xpsd_client/src/gaia_client.c
+
+### 8.1 输入：本地 XPSD 数据集目录
+
+- 形态：目录内 ≤32 个 `.xpsd` 文件（MAX_FILES），PixInsight XPSD 格式
+  （魔数 `XPSD0100` + XML 头 + 6 棵投影树四叉索引 + LZ4/zlib(+shuffle) 压缩
+  数据块）；GaiaDR3（32B 记录，无光谱）或 GaiaDR3SP（384B 记录，含光谱）。
+- 来源：离线本地文件（无网络 I/O）；目录路径由调用方提供，模块不写任何
+  输入文件。
+- dataset identity：db_type（由 `DatabaseIdentifier` 含 GaiaDR3SP 与否判定）
+  + file_count，进入查询缓存键（ALG-GAIA-001 §2.7）。
+
+### 8.2 输出：星表行（三个变体）
+
+坐标 frame 一律 ICRS/J2000，RA/Dec 单位度，`RA∈[0,360)`、`Dec∈[-90,90]`；
+星等无量纲（G/BP/RP）；光谱流量 W·m⁻²·nm⁻¹，波长 nm。
+
+| 字段 | dtype | 单位/域 | invalid / sentinel |
+|---|---|---|---|
+| ra, dec | float64 | deg, ICRS J2000 | 无 NaN 值输出（量化解码有界） |
+| magG / magBP / magRP | float64 | mag | `raw×0.001−1.5`；DR3 数据下 BP/RP 恒 0（sentinel，非真值） |
+| flux_min, flux_mul | float32 | W·m⁻²·nm⁻¹ | 无光谱记录时 0（sentinel） |
+| 光谱字节块 | uint8[343]/星 | 行主序 `out_spectra[i*spec_n + j]` | 解码 `byte*flux_mul+flux_min`；`out_spectra=NULL` 表示无光谱 |
+| out_match_idx | int32 | 坐标序 | −1 = 该坐标未匹配 |
+| out_ra/out_dec (solver) | float64 | deg | out_mag float32 mag |
+| out_count | int32 | 行数 | 0 = 空结果（合法，非错误） |
+
+shape 契约：`out_stars` 为 `out_count` 行连续数组（C ABI 顶层 malloc，调用方
+free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spec_count
+= 第一个含光谱文件的 spectrum_count，回退 343）。
+
+明确**不输出**：`source_id`（恒 0 占位）、parallax/pmra/pmdec（输出结构体中
+**未初始化**，调用方不得使用——现状契约，CAT-GAIA-IMPL 迁移时需显式置 0 或
+剔除）、误差列、proper motion 消化坐标。
+
+### 8.3 缓存与溯源语义
+
+- 查询缓存（60s TTL/64 条）键=参数 double 逐位 + dataset identity + version=2：
+  命中即同一查询精确重复，语义与冷路径 bitwise 等价（ALG-GAIA-001 I3）。
+- 模块不产生科学产物文件、不参与 artifact store；溯源由上游调用方在
+  manifest 记录数据目录/db_type/查询参数（cache provenance 责任在调用侧，
+  matrix 科学专项"cache provenance"由此承担）。

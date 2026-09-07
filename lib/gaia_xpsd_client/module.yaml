@@ -1,0 +1,46 @@
+# AstroCS catalog gaia service module — 元数据 (CAT-GAIA-DOC 冻结)
+# 状态: CONTRACT_READY —— 实现存在（lib/gaia_xpsd_client），模块化迁移
+#（C ABI adapter / astrocs_catalog_gaia.dll / plan-execute-cancel-inspect）
+# 由 CAT-GAIA-IMPL 执行；可执行测试由 CAT-GAIA-TEST 建立。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码
+# 核对清单（CAT-GAIA-DOC，2026-09-05），禁止手抄他版。
+id: MOD-astrocs-catalog-gaia
+module_id: astrocs.catalog.gaia
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: service
+dll_name: astrocs_catalog_gaia.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: []
+input_ports:
+  - catalog.xpsd_dir
+output_ports:
+  - catalog.gaia_rows
+science_contracts:
+  - SCI-AST-001
+algorithm_contracts:
+  - ALG-GAIA-001
+data_contracts:
+  - DATA-GAIA-001
+api_contracts:
+  - API-GAIA-001
+source_symbols:
+  - gaia_client_create
+  - gaia_client_create_ex
+  - gaia_client_destroy
+  - gaia_client_cone_search
+  - gaia_client_cone_search_for_solver
+  - gaia_client_get_db_type
+  - gaia_client_get_file_count
+  - gaia_client_get_total_sources
+  - gaia_client_cone_search_with_spectrum
+  - gaia_client_query_spectrum_by_coords
+  - gaia_client_cone_search_with_photometry
+  - gaia_client_get_spectrum_params
+test_ids:
+  - TEST-GAIA-DESIGN-001
+threading_model: host_executor_lease
+resource_class: io_bound
+cpu_providers: []
+determinism: fixed_reduction_order

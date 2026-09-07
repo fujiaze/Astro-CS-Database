@@ -24,6 +24,20 @@ Gaia DR3/DR3SP星表C客户端，解析XPSD格式星表文件，提供锥形查�
 
 ## 进度日志
 
+### 2026-09-05 CAT-GAIA-DOC 冻结合同与 README（W1, SA-P1-W16）
+- 全面重写 README.md + 新建 module.yaml（MOD-astrocs-catalog-gaia，
+  CONTRACT_READY，不声明 IMPLEMENTED）；修订 docs/algorithms/GAIA_QUERY.md
+  （ALG-GAIA-001：真实离散公式/剪枝/复杂度/误差来源 + TEST-GAIA-DESIGN-001
+  测试设计与容差冻结）；docs/contracts/DATA_SEMANTICS.md §8（DATA-GAIA-001）、
+  PUBLIC_API.md（API-GAIA-001）、docs/modules/gaia_xpsd_client.md 事实修订；
+  追溯矩阵加行 MOD-astrocs-catalog-gaia（SRC=gaia_client.c 8 符号）。
+- 如实登记的现状缺陷（迁移处理，不在 DOC 改）：GaiaStar.parallax/pmra/pmdec
+  输出未初始化、source_id 恒 0、空目录 Win NULL vs POSIX 空 client 平台差异、
+  单文件 200000 截断、无取消检查点、OpenMP 默认 team 未接 ThreadLease。
+- 验收全 PASS：traceability matrix（26 行 0 错）+ mutation 试金石 4 passed +
+  contract graph + doc index + manifest/符号/ID/IMPLEMENTED 综合校验；
+  生产源码与 docs/science 零改动。日志 run/local/agent_cat_gaia_doc/。
+
 ### 2026-08-15 V18R3 Code Quality / Gaia Closure
 **状态: 全部 Gate 通过（GAIA_POLAR_PRUNE_FALSE_NEGATIVE=0 / CACHE_SEMANTICS=PASS /
 ALLOCATION_FAULTS=PASS / FULL_FIRST_PARTY_WARNINGS=PASS / STATIC_ANALYSIS=PASS /
