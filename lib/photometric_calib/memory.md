@@ -384,6 +384,79 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
 - Python ctypes 包装层 `python/photometric_calib.py` 的 argtypes 需要同步扩展三个 QE 参数（若 Python 调用方需要使用新接口，否则可继续传 nullptr）
 - `pc_calibrate_simple` 旧接口的 Python 调用方需同步更新签名（追加三个 nullptr 占位参数）
 
+## P1-PHOT-DOC 模块合同冻结（2026-09-07，wave W1，SA-P1-N17）
+
+### 冻结事实（源码核对，行号当日实测）
+
+- 生产链路：orchestrator.cpp:2474 run_stage_photometric（PHOTOMETRIC 必需
+  stage，DLL 未加载退出码 2）→ 函数指针 pc_calibrate_simple_with_gaia_f64_v2
+  （:2714）/_v2（:2790）双通道；dll_loader.cpp:40/:54 加载名与子目录吻合，
+  gaia_client.dll 预加载（:271-281）；photo_stats KV 块
+  （N_MATCHED/SCALE_FACTOR/SIGMA_RESIDUAL + PhotometricDiag 17 字段，
+  orchestrator.cpp:2902-2935）。
+- 核心实现锚（详见 docs/algorithms/PHOTOMETRIC_FIT.md §13.1）：star_matcher
+  matchWithKdTree（:185-333，双向互最近邻唯一配对）/cleanAndScale
+  （:378-605，星等预过滤 + IRLS Tukey c=4.685 + scale=10^(−location) +
+  sigma_residual=MAD/0.6745）；spectrum_integrator
+  compute_f_syn_cached_xpsd（:409-454，XPSD byte 解码）+ 1.0nm 网格 Simpson；
+  像素校正 I_cal=I·scale OpenMP static（image_corrector.cpp:63-77）。
+- 构建现状：cpp/Makefile:11 g++ -shared -fopenmp → photometric_calib.dll
+  （链接 ../../gaia_xpsd_client/gaia_client.dll，-static）+ build.ps1:9
+  MinGW 通道；未编入根 CMake 主构建（与 astrocs_hips/astrocs_drizzle 先例
+  不同）——CMake 集成归 P1-PHOT-IMPL。
+- lib/phase1/photometry/（Photometer aperture 测光）=静态库
+  astrocs_phase1_phot（CMakeLists.txt:429-432，主程序链接 :513）+ 单测
+  tests/unit/p1_wcs_phot_test（tests/unit/CMakeLists.txt:305-310，4 组）；
+  未接 orchestrator 管线（grep 无生产调用方）——计划迁移旧符号，aperture
+  合同并入 README §9。
+- 帧级 QA 下游：sigma_residual(dex)→snr_estimator snr_phot_cal_quality
+  （snr_estimator.h:47-48，noise_model.cpp:276）换算 sigma_mag/sigma_cal_rel。
+- descriptor 现状：lib/core/src/module_adapters.cpp:469-486
+  p1_photometry_descriptor，module_id=astrocs.phase1.photometry、
+  execution_class=cpu_heavy、parallel_ok=true、sci_id=SCI-P1-PHOT-001/
+  alg_id=ALG-002/data_id=DATA-P1-FLUX/api_id=API-P1-005/test_id=
+  TEST-P1-PHOT-001（占位），ports: psf→DATA-P1-PSF(PIXEL 必)、
+  sources→DATA-P1-SOURCES(ICRS 必)、fluxes→DATA-P1-FLUX(ELECTRON/ICRS 可)
+  ——占位 ID 对齐归 P1-PHOT-INT，不得反向作为冻结依据；port DATA 编目为
+  编排层词汇，模块合同 DATA 层=DATA-P1-PHOT（DATA_SEMANTICS §14）。
+
+### 冻结产物（本任务域）
+
+- lib/photometric_calib/README.md 重写 r1（CONTRACT_READY；旧 v2.0 README
+  失实修正——暴力最近邻 3px/scale=median/MAD 清洗/0.1nm 网格与实测
+  双向 KD-tree 2.0px/IRLS scale/1.0nm 网格不符）+ module.yaml 新建
+  （11 号标准 §4 全必填，entrypoint=MISSING）+ 本段追加。
+- docs/algorithms/PHOTOMETRIC_FIT.md §13 冻结增补（ALG-PHOT-001..002 逐
+  符号源码锚定 + §13.2 实现事实修订 + §13.3 DISP-PHOT-001..009 +
+  §13.4 TEST-PHOT-DESIGN-001 冻结容差 + §13.5 legacy 通道与迁移旧符号）；
+  docs/contracts/DATA_SEMANTICS.md §14（DATA-P1-PHOT）；docs/contracts/
+  PUBLIC_API.md API-PHOT-001（6 导出符号头锚）；docs/contracts/INDEX.yaml
+  新 ID 条目与互指；docs/DOCUMENT_INDEX.yaml notes；docs/modules/
+  photometric_calib.md + docs/modules/registry/astrocs.phase1.photometry.md
+  事实修订；docs/traceability/TRACEABILITY_MATRIX.json photometry 行原位
+  更新 + CSV 重生成。
+
+### 纪律记录
+
+- 未改任何生产源码（lib/**/*.c/.h/.cpp 与 CMakeLists.txt 零改动）；未改
+  docs/science/**（SCI-PHOT-001 FROZEN T103 2026-08-23，共享引用不改动）；
+  禁止据代码缺陷反向修改 SCI——DISP-PHOT-001..009 全部登记
+  （PHOTOMETRIC_FIT §13.3），整改归 P1-PHOT-IMPL/INT。
+- 无 git commit/push（子 agent 不提交）；写入一律 LF（core.autocrlf=false，
+  不动 .gitattributes）；未运行 gen_module_readmes.py（合同三件套手写）。
+
+### 待后续任务
+
+- P1-PHOT-IMPL：astrocs_p1_photometry.dll、C ABI adapter、plan/execute/
+  cancel/inspect、ThreadLease/omp_set_num_threads 接线、CMake 主构建集成、
+  DISP-PHOT-001..009 消化、lib/phase1/photometry 旧符号去留登记。
+- P1-PHOT-TEST：TEST-P1-PHOT-001 可执行测试（fixture F1-F6 + 不变量 I1-I6
+  + 负面矩阵，冻结容差不得放宽：注入 location rtol 1e-4/20% 离群
+  Δlocation<0.1 dex/NumPy rtol 1e-9）；p1_wcs_phot_test 4 组对齐重锚。
+- P1-PHOT-INT：descriptor 占位 ID（SCI-P1-PHOT-001/ALG-002/DATA-P1-FLUX/
+  API-P1-005/TEST-P1-PHOT-001）与 port DATA 编目对齐本合同；orchestrator
+  双通道四调用统一。
+
 ## 2026-07-18 GRADIENT_2D 模块归档
 - **决策**: 用户审阅 PROJECT_OVERVIEW.md 后纠正——stage1 不做曲面拟合和图像亮度修正（那是 stage2 马赛克阶段的事），PSF 后只做测光坐标系校准（PHOTOMETRIC 已完成）。
 - **操作**: 

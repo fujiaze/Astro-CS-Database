@@ -1,0 +1,134 @@
+# AstroCS phase1 photometry module — 元数据 (P1-PHOT-DOC 冻结, 2026-09-07)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/photometric_calib/cpp/src/
+# pc_api.cpp（run_with_gaia_impl<T> :755 + v2/_f64_v2 导出 :1048/:1084）、
+# star_matcher.cpp（matchWithKdTree :185 / cleanAndScale :378）、
+# wcs_transform.cpp、spectrum_integrator.cpp、image_corrector.cpp；C API 6 导出
+# 符号唯一权威签名头 lib/photometric_calib/cpp/include/photometric_calib.h），
+# 模块化迁移（独立模块源 astrocs_p1_photometry.dll / C ABI adapter /
+# plan-execute-cancel-inspect / ThreadLease 接线）由 P1-PHOT-IMPL 执行；
+# 可执行测试由 P1-PHOT-TEST 建立（TEST-PHOT-DESIGN-001 → TEST-P1-PHOT-001）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对
+# 清单（P1-PHOT-DOC，2026-09-07，6 个 C API 导出符号 grep 实测），禁止手抄
+# 他版。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P1-PHOT 行 target=astrocs_p1_photometry.dll、
+# module_id=astrocs.p1.photometry、legacy_paths="lib/photometric_calib;
+# lib/phase1/photometry"、depends_on_int=P1-PSF-INT;P1-WCS-INT。本目录
+# lib/photometric_calib/ 既是生产实现所在又是迁移落码目标（合同三件套
+# README.md r1 + module.yaml + memory.md 落位于此）；lib/phase1/photometry/
+# 旧符号 astrocs::phase1::Photometer（aperture 测光，CMakeLists.txt:429-432
+# 静态库 astrocs_phase1_phot，仅单测 tests/unit/p1_wcs_phot_test，未接
+# orchestrator 管线）为计划迁移旧符号，其 aperture 合同并入
+# lib/photometric_calib/README.md §9，去留由 P1-PHOT-IMPL 登记 TASK_RESULT。
+# dll_target=astrocs_p1_photometry.dll 为迁移目标合同值（尚未存在）。现状
+# 构建=lib/photometric_calib/cpp/Makefile:11（g++ -shared -fopenmp →
+# photometric_calib.dll，链接 ../../gaia_xpsd_client/gaia_client.dll）+
+# cpp/build.ps1:9（MinGW 通道）；未编入根 CMake 主构建（无 photometric_calib
+# CMake 目标，与 astrocs_hips/astrocs_drizzle 先例不同）——CMake 集成归
+# P1-PHOT-IMPL。生产调用=orchestrator.cpp:2474 run_stage_photometric →
+# :2714 pc_calibrate_simple_with_gaia_f64_v2 / :2790 _v2（dll_loader.cpp:40/:54
+# 加载名与路径吻合，gaia_client.dll 预加载 :271-281）。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
+# 现状实现为 OpenMP 逐星/逐元素独立并行（pc_api.cpp:931 F_syn
+# schedule(dynamic,64)、:1023/image_corrector.cpp:74 像素 schedule(static)，
+# star_matcher 匹配与 IRLS 单线程），科学结果 bitwise 与线程数无关，但
+# ThreadLease/omp_set_num_threads 无接线（迁移整改点，见
+# docs/contracts/PUBLIC_API.md API-PHOT-001 与
+# docs/algorithms/PHOTOMETRIC_FIT.md §13.3 DISP-PHOT-001..009）。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# （lib/core/src/module_adapters.cpp:469-486 p1_photometry_descriptor 的
+# SCI-P1-PHOT-001/ALG-002/DATA-P1-FLUX/API-P1-005/TEST-P1-PHOT-001）由
+# P1-PHOT-INT 对齐本 manifest 与 lib/photometric_calib/README.md（r1），
+# 不得反向作为冻结依据。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase1-photometry
+module_id: astrocs.p1.photometry
+owner: SA-P1-N17
+language: c++17
+module_version: 1.0.0
+abi_version: 1
+phase_scope: phase1
+dll_name: astrocs_p1_photometry.dll
+dll_target: astrocs_p1_photometry.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: []
+input_ports:
+  - psf
+  - sources
+  - fluxes
+output_ports: []
+science_contracts:
+  - SCI-PHOT-001
+algorithm_contracts:
+  - ALG-PHOT-001
+  - ALG-PHOT-002
+data_contracts:
+  - DATA-P1-PHOT
+api_contracts:
+  - API-P1-005
+  - API-PHOT-001
+doc_links:
+  sci: docs/science/PHOTOMETRY.md
+  alg: docs/algorithms/PHOTOMETRIC_FIT.md#§13
+  data: docs/contracts/DATA_SEMANTICS.md#§14
+  api: docs/contracts/PUBLIC_API.md#API-PHOT-001
+contract_ids:
+  sci: SCI-PHOT-001
+  alg: ALG-PHOT-001..002
+  data: DATA-P1-PHOT
+  api: API-PHOT-001
+  mod: MOD-astrocs-phase1-photometry
+  src: SRC-PHOT-001
+  test: TEST-PHOT-DESIGN-001
+exports:
+  - pc_calibrate_simple
+  - pc_calibrate_simple_with_gaia
+  - pc_calibrate_simple_f64
+  - pc_calibrate_simple_with_gaia_f64
+  - pc_calibrate_simple_with_gaia_v2
+  - pc_calibrate_simple_with_gaia_f64_v2
+source_symbols:
+  - pc_calibrate_simple
+  - pc_calibrate_simple_with_gaia
+  - pc_calibrate_simple_f64
+  - pc_calibrate_simple_with_gaia_f64
+  - pc_calibrate_simple_with_gaia_v2
+  - pc_calibrate_simple_with_gaia_f64_v2
+test_ids:
+  - TEST-PHOT-DESIGN-001
+threading_model: host_executor_lease
+resource_class: cpu_heavy
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+upstream:
+  - SCI-PHOT-001
+  - ALG-PHOT-001..002
+downstream:
+  - DATA-P1-PHOT
+  - API-PHOT-001
+  - P1-PHOT-IMPL
+  - P1-PHOT-TEST
+  - P1-PHOT-INT
+legacy_paths: [lib/photometric_calib, lib/phase1/photometry]
+scientific_change: false
+notes: >-
+  DISP-PHOT-001..009 全部登记（PHOTOMETRIC_FIT §13.3，登记不改码）：
+  001 star_matcher 头注释与 PhotometricDiag 注释称无双向过滤、实现实为
+  双向互最近邻唯一配对且 rejected_ambiguous 实际统计；002 旧 README/
+  docs/algorithm.md 大面积失实（暴力最近邻 3px/scale=median/MAD 清洗/
+  0.1nm 网格/v1.0 曲面拟合叙述），本 README r1 重写修正、legacy 仅存档；
+  003 ImageCorrector::computeScale 死代码无调用方；004 无取消检查点与
+  plan/execute/cancel/inspect 生命周期；005 入参静默失效（mag_max 被自适应
+  mag_max_arr{12..16} 覆盖；pc_calibrate_simple 的 QE 三参数 (void) 丢弃）；
+  006 PhotometricDiag.rejected_quality 为 invalid+mag+irls 混合计数不可归因；
+  007 orchestrator 双通道四调用与 registry descriptor 占位 ID 双轨并存；
+  008 Photometer 全图 O(h·w) 扫描未优化且未接管线；009 帧级 QA 换算
+  （sigma_mag/sigma_cal_rel）落位 snr_estimator（snr_phot_cal_quality），
+  本模块合同仅登记边界。整改归 P1-PHOT-IMPL/INT。matrix 行
+  depends_on_int=P1-PSF-INT;P1-WCS-INT。现状 descriptor 占位 ID
+  （sci_id=SCI-P1-PHOT-001/alg_id=ALG-002/data_id=DATA-P1-FLUX/
+  api_id=API-P1-005/test_id=TEST-P1-PHOT-001，module_adapters.cpp:469-486）
+  与 port DATA 编目（psf→DATA-P1-PSF/sources→DATA-P1-SOURCES/
+  fluxes→DATA-P1-FLUX，编排层词汇）由 P1-PHOT-INT 对齐本合同（模块 DATA
+  层=DATA-P1-PHOT，DATA_SEMANTICS §14），不得反向作为冻结依据。
+  禁止声明 IMPLEMENTED（迁移落码未发生）。
