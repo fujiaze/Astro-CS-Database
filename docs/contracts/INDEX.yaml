@@ -38,7 +38,7 @@ contracts:
     version: 1.0.0
     path: docs/science/PHOTOMETRY.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-PHOT-001]
+    downstream: [ALG-PHOT-001, ALG-PHOT-002]
   - id: SCI-PSF-001
     type: SCI
     status: ACTIVE
@@ -152,7 +152,15 @@ contracts:
     version: 1.0.0
     path: docs/algorithms/PHOTOMETRIC_FIT.md
     upstream: [SCI-PHOT-001]
-    downstream: []
+    downstream: [DATA-P1-PHOT, API-PHOT-001]
+  - id: ALG-PHOT-002
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/PHOTOMETRIC_FIT.md
+    upstream: [SCI-PHOT-001]
+    downstream: [DATA-P1-PHOT, API-PHOT-001]
   - id: ALG-STARPSF-001
     type: ALG
     status: ACTIVE
@@ -290,6 +298,22 @@ contracts:
     version: 1.0.0
     path: docs/contracts/PUBLIC_API.md
     upstream: [ALG-NOISE-001, ALG-NOISE-002, ALG-NOISE-003]
+    downstream: []
+  - id: DATA-P1-PHOT
+    type: DATA
+    status: ACTIVE
+    owner: SA-P1-N17
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-PHOT-001, ALG-PHOT-002]
+    downstream: []
+  - id: API-PHOT-001
+    type: API
+    status: ACTIVE
+    owner: SA-P1-N17
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ALG-PHOT-001, ALG-PHOT-002]
     downstream: []
   - id: DATA-ARTIFACTS-001
     type: DATA

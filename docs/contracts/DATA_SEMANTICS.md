@@ -417,3 +417,61 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 - 量纲不变量：ivar=1/max(variance,floor) 精确互倒（SCI §7）；gain 模型
   var_ADU=max(signal,0)/gain+(rn/gain)² 仅诊断（SNR-005，不入生产——
   §4a/SCI §10 域外引用）。
+
+## 14. Phase1 photometry 模块输入/输出数据（DATA-P1-PHOT）
+
+> ID: DATA-P1-PHOT  状态: CONTRACT_READY（P1-PHOT-DOC 冻结，2026-09-07）
+> 模块: lib/photometric_calib;lib/phase1/photometry（astrocs.p1.photometry，
+> 迁移目标 astrocs_p1_photometry.dll；现行实现唯一生产源
+> lib/photometric_calib/cpp/src/pc_api.cpp，合同头
+> lib/photometric_calib/cpp/include/photometric_calib.h）。
+> ALG: ALG-PHOT-001..002（PHOTOMETRIC_FIT §13.1 逐符号锚）；SCI:
+> SCI-PHOT-001（docs/science/PHOTOMETRY.md，FROZEN T103 2026-08-23，共享
+> 引用不改动）；编排级合同 API-P1-005（PHASE1_API_V1）。本节是该模块
+> 单位/dtype/shape/invalid 的唯一权威；descriptor 端口编目（psf→
+> DATA-P1-PSF/sources→DATA-P1-SOURCES/fluxes→DATA-P1-FLUX，
+> module_adapters.cpp:469-486）为编排层词汇，由 P1-PHOT-INT 对齐，
+> 不得反向作为冻结依据。
+
+
+### 14.1 输入（生产通道 pc_calibrate_simple_with_gaia_v2 / _f64_v2）
+
+| 参数 | dtype/shape | 单位/域 | invalid / NULL 语义 |
+|---|---|---|---|
+| pixels | float32(v2)/float64(f64_v2) `[h·w]` 行主序 | ADU | h·w=0/NULL → rc=−1；NaN 像素参与校正（乘法透传），匹配仅用 PSF/Gaia 表 |
+| width/height | int32 标量 | px | ≤0 → rc=−1 |
+| psf 块（orchestrator :2560 起拆列） | psf_cx/psf_cy double `[n_psf]` px；psf_flux double `[n_psf]` ADU；psf_status int32 `[n_psf]` 0=ok | pixel/ADU | n_psf=0 → 退化 scale=1.0 rc=0；status≠0 行仅记 records status=3/reject=6，不入匹配 |
+| psf_star_ids | int64 `[n_psf]` | — | 原样回传 records.star_id（lineage） |
+| gaia_client_handle | opaque 句柄 | — | NULL → rc=−2；DLL 内锥形搜索（ra/dec/radius），失败 rc=−3 |
+| mag_max | double | mag | 声明但被自适应 mag_max_arr{12..16} 覆盖（DISP-PHOT-005） |
+| match_radius_px | double | px | 合同值 2.0（DISP-PHOT-002：旧文档 3px 失实） |
+| mag_tolerance | double | mag | 合同值 3.0 |
+| filter_wl/trans、qe_wl/trans | double `[count]` | nm / [0,1] | 递增 wl；prepare_filter_cache 失败 → 退化 rc=0（:911-923） |
+| spectrum_wl | double `[343]`（336..1020nm step 2nm） | nm | XPSD 固定网格；uint8 谱 F(λ)=byte·flux_mul+flux_min（spectrum_integrator.cpp:62-64） |
+| WCS/SIP | crval2/crpix2/CD4 元 double；sip_order int32(≤2)；a/b/ap/bp double `[36]`（i*6+j） | deg/px | sip_order=0 → 纯 TAN；无 AP/BP 前向 SIP 牛顿迭代一次（wcs_transform.cpp:219） |
+
+
+### 14.2 输出
+
+| 输出 | dtype/shape | 单位/域 | 语义 |
+|---|---|---|---|
+| out_pixels | 同输入 dtype `[h·w]` | ADU | I_cal=I·scale（f32 通道 ImageCorrector :63-77；f64 内联 pc_api.cpp:1023-1028）；退化=恒等拷贝 |
+| out_scale_factor | double 标量 | 无量纲 | 10^(−location)（IRLS/Tukey，star_matcher.cpp:527-529）；退化/一致集空=1.0 |
+| out_sigma_residual | double 标量 | dex（log10 flux-ratio） | MAD(r_inliers)/0.6745（:551-560）；下游换算 sigma_mag/sigma_cal_rel 由 snr_phot_cal_quality 承担（API-NOISE-001 边界） |
+| out_n_matched | int32 标量 | 颗 | IRLS inliers 数（fit_used） |
+| out_diag | PhotometricDiag（头 :21-45） | 计数/dex/px | 17 字段分阶段诊断；rejected_quality 为混合计数（DISP-PHOT-006） |
+| out_records | PcMatchRecord `[n_psf]`（头 :47-59） | ADU/dex | status 0=unmatched/1=matched+used/2=matched+rejected/3=psf-invalid；reject_reason 0..6；residual=r（未匹配 NaN）；dr3sp_id=位置量化哈希（pc_api.cpp:743-752，XPSD 无 source_id） |
+
+
+### 14.3 坐标与精度规则（汇总）
+
+- 帧内像素坐标 0-based double（PSF cx/cy）；Gaia 投影 WCS TAN+SIP
+  （CRPIX 1-based 内部换算，wcs_transform.cpp:241-242）；match_distance_*
+  单位 px；Gaia 输入 ra/dec ICRS deg。
+- FP64 全链路（f32 输入升 double）；out_pixels f32 通道经 float 截断
+  （诊断级截断在 ImageCorrector，f64 通道全 double）。
+- r 方向恒为 log10(F_instr/F_syn)（F_instr=PSF flux ADU，F_syn=W·m⁻²·nm⁻¹
+  积分值）——scale 为无量纲乘性因子，量纲比进入 log 前由合同锚定，禁止
+  反向（SCI-PHOT-001 §10）。
+- determinism=fixed_reduction_order：F_syn 逐星独立（OpenMP dynamic,64）、
+  像素逐元素独立（static）→ 输出 bitwise 与线程数无关（README §7）。

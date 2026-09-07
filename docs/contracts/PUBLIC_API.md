@@ -419,3 +419,103 @@
   lib/snr_estimator/module.yaml（astrocs.p1.noise-snr /
   astrocs_p1_noise.dll，C ABI adapter 由 P1-NOISE-IMPL 建立；本节描述
   现状 API，不声明 DLL 化完成）。
+
+## Photometric C API（API-PHOT-001）
+
+> ID: API-PHOT-001  状态: CONTRACT_READY（P1-PHOT-DOC 冻结，2026-09-07）
+> 头: lib/photometric_calib/cpp/include/photometric_calib.h（271 行，唯一
+> 权威签名头，PC_API :7-11 `extern "C"` 不抛异常）
+> SRC: lib/photometric_calib/cpp/src/pc_api.cpp
+> SCI: SCI-PHOT-001（docs/science/PHOTOMETRY.md，FROZEN，共享引用不改动）
+> ALG: ALG-PHOT-001..002（docs/algorithms/PHOTOMETRIC_FIT.md，§13 逐符号锚）
+> DATA: DATA-P1-PHOT（DATA_SEMANTICS §14）；编排级合同 API-P1-005
+> （PHASE1_API_V1，descriptor 引用，与本节并行不互斥）
+> MOD: MOD-astrocs-phase1-photometry（module.yaml CONTRACT_READY，
+> entrypoint=MISSING；生产调用 orchestrator.cpp:2474 run_stage_photometric）
+
+
+### 范围界定
+
+帧级测光定标 C ABI：合成测光 F_syn（XPSD uint8 解码 + Akima/Simpson 1.0nm
+积分）、Gaia TAN+SIP 投影、双向最近邻唯一配对（KD-tree，2.0px）、星等预
+过滤 + IRLS/Tukey 稳健零点（scale=10^(−location)，sigma_residual=dex）、
+逐星 PcMatchRecord、I_cal=I·scale。不做逐像素 ivar；帧级 QA 换算
+（sigma_mag/sigma_cal_rel）归 snr_estimator snr_phot_cal_quality
+（API-NOISE-001 范围界定，DISP-PHOT-009）。无取消检查点（DISP-PHOT-004）。
+
+
+### 导出符号（photometric_calib.h 实测行号锚）
+
+| 符号 | 头锚 | 摘要 |
+|---|---|---|
+| pc_calibrate_simple | :103-117 | 直通版：F_syn 由调用方传入（gaia_fsyn），QE 三参数保留不用（DISP-PHOT-005） |
+| pc_calibrate_simple_with_gaia | :153-183 | DLL 内锥形搜索+积分（v2 前旧实现路径封装） |
+| pc_calibrate_simple_f64 | :185-199 | FP64 直通版 |
+| pc_calibrate_simple_with_gaia_f64 | :201-225 | FP64 with-gaia 封装 |
+| pc_calibrate_simple_with_gaia_v2 | :227-245 | per-star PcMatchRecord（生产主路径，float32 像素） |
+| pc_calibrate_simple_with_gaia_f64_v2 | :247-265 | per-star（float64 像素） |
+
+结构体：PhotometricDiag（:21-45，17 字段分阶段诊断）、PcMatchRecord
+（:47-59，status 0/1/2/3 + reject_reason 0..6）。
+
+
+### 签名要点与内存所有权
+
+- gaia_client_handle 为 opaque borrow（调用方经 gaia_client.dll 创建/销毁，
+  dll_loader.cpp:271-281 预加载）；out_pixels/out_scale_factor/
+  out_sigma_residual/out_n_matched/out_diag/out_records 均调用方分配；
+  spec_stars/spectra_buf 为 DLL 内 malloc 的锥搜结果，本调用内 free。
+- 所有出参可 NULL 向后兼容（头 :17 注释）；records 需 n_psf≥1 才有意义。
+
+
+### 返回码（如实登记，含退化语义）
+
+- 0=成功，**含退化恒等校正**（无 Gaia 星 :72-98 / 无 PSF 星 :808-830 /
+  锥搜无光谱星 :868-890 / 滤光片预处理失败 :911-923 → scale=1.0、
+  n_matched=0、sigma_residual=0；调用方须以 out_n_matched/out_diag 判据，
+  不得以 rc=0 推断完成定标）。
+- −1=空指针/宽高非正/参数非法（pc_calibrate_simple 的 −2/−3 为 dims 校验，
+  实际退化路径返回 0——头注释与实现的差异如实登记，README §6）。
+- −2=gaia_client_handle 为空（with-gaia 系）。
+- −3=锥形搜索失败（gaia_client rc≠0，pc_api.cpp:836-866）。
+
+
+### 单位/dtype/shape
+
+见 DATA_SEMANTICS §14（唯一权威）：pixels f32(v2)/f64(f64_v2) `[h·w]`
+ADU；scale 无量纲；sigma_residual dex；records residual=dex；WCS deg/px；
+光谱 uint8 编码 F(λ)=byte·flux_mul+flux_min（W·m⁻²·nm⁻¹）。
+
+
+### 线程安全与确定性
+
+- 无跨调用共享可变状态（模块级单例无）；调用内 OpenMP F_syn
+  schedule(dynamic,64) 逐星独立 + 像素 static 逐元素（star_matcher 单线程）
+  ——reentrant，并发调用安全；线程数 omp_get_max_threads() 未接
+  ThreadBudget（迁移整改点，module.yaml threading_model=host_executor_lease
+  为合同值）。
+- determinism=fixed_reduction_order：输出 bitwise 与线程数无关（README §7）。
+
+
+### 生产调用方与编排现状
+
+- orchestrator.cpp:2474 run_stage_photometric（必需 stage，DLL 未加载退出
+  码 2）→ 函数指针 pc_calibrate_simple_with_gaia_f64_v2（:2714）/_v2
+  （:2790）双通道；写 photo_stats KV 块（:2902-2935，N_MATCHED/
+  SCALE_FACTOR/SIGMA_RESIDUAL + diag 17 字段）。
+- registry descriptor 占位 ID（module_adapters.cpp:469-486，sci_id=
+  SCI-P1-PHOT-001/alg_id=ALG-002/data_id=DATA-P1-FLUX/api_id=API-P1-005/
+  test_id=TEST-P1-PHOT-001）由 P1-PHOT-INT 对齐本合同，不得反向作为冻结
+  依据（DISP-PHOT-007）。
+
+
+### 已登记现状缺陷与迁移语义
+
+- DISP-PHOT-001..009 全清单见 PHOTOMETRIC_FIT §13.3（001 注释失实/
+  002 旧文档失实/003 computeScale 死代码/004 无取消点/005 入参静默失效/
+  006 rejected_quality 混计/007 双轨并存/008 Photometer 未优化/009 QA 换算
+  边界）。
+- plan/execute/cancel/inspect 迁移语义见 PHOTOMETRIC_FIT §13.5 与
+  lib/photometric_calib/module.yaml（astrocs.p1.photometry /
+  astrocs_p1_photometry.dll，C ABI adapter 由 P1-PHOT-IMPL 建立；本节描述
+  现状 API，不声明 DLL 化完成）。

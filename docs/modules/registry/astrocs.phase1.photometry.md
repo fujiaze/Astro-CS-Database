@@ -4,11 +4,30 @@ version: 1.0.0
 status: ACTIVE
 owner: astrocs-core
 source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-P1-PHOT-001, ALG-002, API-P1-005]
+upstream: [SCI-PHOT-001, ALG-PHOT-001, ALG-PHOT-002, API-P1-005]
 downstream: [TEST-P1-PHOT-001]
 ---
 
 # 模块 astrocs.phase1.photometry
+
+> P1-PHOT-DOC 事实修订（2026-09-07，wave W1）：本页由源码核对后修订——
+> 合同 ID 由占位（SCI-P1-PHOT-001/ALG-002/TEST-P1-PHOT-001）更正为真实
+> 冻结 ID（SCI-PHOT-001 / ALG-PHOT-001..002 / DATA-P1-PHOT / API-PHOT-001 /
+> SRC-PHOT-001 / TEST-PHOT-DESIGN-001）；模块级事实以
+> lib/photometric_calib/README.md（r1，CONTRACT_READY）与现行生产实现
+> lib/photometric_calib/cpp/（现状构建=cpp/Makefile:11 g++ -shared
+> -fopenmp → photometric_calib.dll + cpp/build.ps1:9，未编入根 CMake 主
+> 构建）为准；descriptor 占位 ID（module_adapters.cpp:469-486
+> p1_photometry_descriptor）由 P1-PHOT-INT 对齐本页，不得反向作为冻结
+> 依据。port DATA 编目（psf→DATA-P1-PSF/sources→DATA-P1-SOURCES/
+> fluxes→DATA-P1-FLUX）为编排层词汇，模块合同 DATA 层=DATA-P1-PHOT
+> （DATA_SEMANTICS §14）。生产调用=orchestrator.cpp:2474
+> run_stage_photometric → :2714 pc_calibrate_simple_with_gaia_f64_v2 /
+> :2790 _v2（dll_loader.cpp:40/:54）；lib/phase1/photometry（Photometer
+> aperture 旧符号，CMakeLists.txt:429-432 静态库，仅单测
+> tests/unit/p1_wcs_phot_test）为计划迁移旧符号（README §9）。
+> DISP-PHOT-001..009 登记（PHOTOMETRIC_FIT §13.3），整改归
+> P1-PHOT-IMPL/INT。
 
 ## 职责与明确非职责
 
