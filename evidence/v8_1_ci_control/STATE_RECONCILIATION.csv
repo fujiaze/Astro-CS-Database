@@ -138,7 +138,7 @@ P1-DRZ-DOC,module-doc,NOT_STARTED,commit:e53ac984 traceability 26行0错 + pytes
 P1-DRZ-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-DRZ-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-DRZ-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P1-HIPS-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-HIPS-DOC,module-doc,NOT_STARTED,commit:943b023a traceability 27行0错 + pytest 4P + contract_graph 37 + doc_index PASS + selfcheck 87/0 ALL_PASS,CLOSED,fg_verified_commit,943b023a,lib/hips/; docs/algorithms/HIPS_WRITER.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结; 缺陷清单 DISP-HIPS-001..012 归 P1-HIPS-IMPL/INT; SCI 未动; registry 无 descriptor entrypoint=MISSING; gen_module_readmes.py 覆写风险已提示
 P1-HIPS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-HIPS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-HIPS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
