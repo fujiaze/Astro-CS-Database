@@ -18,6 +18,8 @@ extern "C" {
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <exception>
+#include <stdexcept>
 #include <limits>
 #include <vector>
 
@@ -49,6 +51,12 @@ int pc_calibrate_simple(
     double* out_sigma_residual,
     PhotometricDiag* out_diag) {
 
+    // P0(bug 狩猎 R5): C 边界异常屏障 —— C++ 异常 (StarMatcher KdTree/vector
+    // bad_alloc、WcsTransform SIP order 越界拒绝等) 一律拦在 C ABI 内转错误码,
+    // 禁止跨 extern "C" 传播 (对齐 f1cb487c 家族方案: AIO_EXPORT/
+    // HP_DRIZZLE_API 同型; PC_API 合同 "不抛异常")。错误码 -4=内部异常
+    // (0=成功, -1/-2/-3 此前已占用)。正常路径与修复前逐行等价。
+    try {
     std::fprintf(stderr, "[pc_api] ====== 简化版测光校准开始 ======\n");
 #ifdef _OPENMP
     std::fprintf(stderr, "[pc_api] OpenMP线程数: %d\n", omp_get_max_threads());
@@ -139,6 +147,13 @@ int pc_calibrate_simple(
     std::fprintf(stderr, "[pc_api] ====== 测光校准完成: n_matched=%d, scale=%.6e, sigma_residual=%.6f ======\n",
                 n_matched, scale, sigma_residual);
     return 0;
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple: C 边界捕获异常: %s\n", e.what());
+        return -4;
+    } catch (...) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple: C 边界捕获未知异常\n");
+        return -4;
+    }
 }
 
 // ============================================================================
@@ -170,6 +185,8 @@ int pc_calibrate_simple_with_gaia(
     double* out_sigma_residual,
     PhotometricDiag* out_diag) {
 
+    // P0(bug 狩猎 R5): C 边界异常屏障 (同 pc_calibrate_simple 注释; -4=内部异常)
+    try {
     std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia 开始 ======\n");
 #ifdef _OPENMP
     std::fprintf(stderr, "[pc_api] OpenMP线程数: %d\n", omp_get_max_threads());
@@ -385,6 +402,13 @@ int pc_calibrate_simple_with_gaia(
     std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia 完成: n_matched=%d, scale=%.6e, sigma_residual=%.6f ======\n",
                 n_matched, scale, sigma_residual);
     return 0;
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia: C 边界捕获异常: %s\n", e.what());
+        return -4;
+    } catch (...) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia: C 边界捕获未知异常\n");
+        return -4;
+    }
 }
 
 // ============================================================================
@@ -410,6 +434,8 @@ int pc_calibrate_simple_f64(
     double* out_sigma_residual,
     PhotometricDiag* out_diag) {
 
+    // P0(bug 狩猎 R5): C 边界异常屏障 (同 pc_calibrate_simple 注释; -4=内部异常)
+    try {
     std::fprintf(stderr, "[pc_api] ====== 简化版测光校准开始 (FP64) ======\n");
 #ifdef _OPENMP
     std::fprintf(stderr, "[pc_api] OpenMP线程数: %d\n", omp_get_max_threads());
@@ -495,6 +521,13 @@ int pc_calibrate_simple_f64(
     std::fprintf(stderr, "[pc_api] ====== 测光校准完成(FP64): n_matched=%d, scale=%.6e, sigma_residual=%.6f ======\n",
                 n_matched, scale, sigma_residual);
     return 0;
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_f64: C 边界捕获异常: %s\n", e.what());
+        return -4;
+    } catch (...) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_f64: C 边界捕获未知异常\n");
+        return -4;
+    }
 }
 
 // ============================================================================
@@ -524,6 +557,8 @@ int pc_calibrate_simple_with_gaia_f64(
     double* out_sigma_residual,
     PhotometricDiag* out_diag) {
 
+    // P0(bug 狩猎 R5): C 边界异常屏障 (同 pc_calibrate_simple 注释; -4=内部异常)
+    try {
     std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia_f64 开始 ======\n");
 #ifdef _OPENMP
     std::fprintf(stderr, "[pc_api] OpenMP线程数: %d\n", omp_get_max_threads());
@@ -727,6 +762,13 @@ int pc_calibrate_simple_with_gaia_f64(
     std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia_f64 完成: n_matched=%d, scale=%.6e, sigma_residual=%.6f ======\n",
                 n_matched, scale, sigma_residual);
     return 0;
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_f64: C 边界捕获异常: %s\n", e.what());
+        return -4;
+    } catch (...) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_f64: C 边界捕获未知异常\n");
+        return -4;
+    }
 }
 
 // ============================================================================
@@ -1065,6 +1107,9 @@ PC_API int pc_calibrate_simple_with_gaia_v2(
     double* out_sigma_residual,
     PhotometricDiag* out_diag) {
 
+    // P0(bug 狩猎 R5): C 边界异常屏障 (run_with_gaia_impl 内含 KdTree/vector
+    // 分配; -4=内部异常, 0/-1/-2/-3 此前已占用)
+    try {
     return run_with_gaia_impl<float>(
         gaia_client_handle, ra_center, dec_center, radius_deg,
         mag_min, mag_max,
@@ -1079,6 +1124,13 @@ PC_API int pc_calibrate_simple_with_gaia_v2(
         sip_order, sip_a, sip_b, sip_ap, sip_bp,
         out_pixels, out_n_matched, out_scale_factor,
         out_sigma_residual, out_diag);
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_v2: C 边界捕获异常: %s\n", e.what());
+        return -4;
+    } catch (...) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_v2: C 边界捕获未知异常\n");
+        return -4;
+    }
 }
 
 PC_API int pc_calibrate_simple_with_gaia_f64_v2(
@@ -1101,6 +1153,9 @@ PC_API int pc_calibrate_simple_with_gaia_f64_v2(
     double* out_sigma_residual,
     PhotometricDiag* out_diag) {
 
+    // P0(bug 狩猎 R5): C 边界异常屏障 (run_with_gaia_impl 内含 KdTree/vector
+    // 分配; -4=内部异常, 0/-1/-2/-3 此前已占用)
+    try {
     return run_with_gaia_impl<double>(
         gaia_client_handle, ra_center, dec_center, radius_deg,
         mag_min, mag_max,
@@ -1115,4 +1170,11 @@ PC_API int pc_calibrate_simple_with_gaia_f64_v2(
         sip_order, sip_a, sip_b, sip_ap, sip_bp,
         out_pixels, out_n_matched, out_scale_factor,
         out_sigma_residual, out_diag);
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_f64_v2: C 边界捕获异常: %s\n", e.what());
+        return -4;
+    } catch (...) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_f64_v2: C 边界捕获未知异常\n");
+        return -4;
+    }
 }

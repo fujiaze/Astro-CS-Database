@@ -99,6 +99,9 @@ typedef struct {
 // 旧接口仅填充部分字段; 完整诊断请使用 pc_calibrate_simple_with_gaia
 //
 // 返回: 0=成功, <0=失败
+// -1: 空指针参数, -2: 尺寸无效, -3: 无Gaia星/PSF星(退化scale=1.0),
+// -4: 内部异常 (C 边界 try/catch 屏障转错误码; SIP order 越界在此返回,
+//     sip_order 正式支持 [0,5], 越界拒绝不截断)
 // ============================================================================
 PC_API int pc_calibrate_simple(
     const float* pixels, int width, int height,
@@ -146,9 +149,9 @@ PC_API int pc_calibrate_simple(
 // 完整填充所有 8 个阶段字段
 //
 // 返回: 0=成功, <0=失败
-// -1: 空指针/参数无效
-// -2: gaia_client_handle 为空
-// -3: 锥形搜索失败或无光谱星
+// -1: 空指针/参数无效, -2: gaia_client_handle 为空,
+// -3: 锥形搜索失败或无光谱星,
+// -4: 内部异常 (C 边界 try/catch 屏障转错误码; SIP order 越界在此返回)
 // ============================================================================
 PC_API int pc_calibrate_simple_with_gaia(
     void* gaia_client_handle,
@@ -181,6 +184,7 @@ PC_API int pc_calibrate_simple_with_gaia(
 // - 输入 pixels 必须来自 PipelineFrame 的 FLOAT64 data 块 (AIO_BLOCK_FLOAT64)
 // - 输出 out_pixels 写回时也使用 AIO_BLOCK_FLOAT64
 // - 禁止静默转换: float32 数据应走 pc_calibrate_simple_with_gaia, 不要先转 double 再调本接口
+// 返回: 同 pc_calibrate_simple_with_gaia (含 -4=内部异常, SIP order 越界在此返回)
 // ============================================================================
 PC_API int pc_calibrate_simple_f64(
     const double* pixels, int width, int height,
@@ -222,7 +226,7 @@ PC_API int pc_calibrate_simple_with_gaia_f64(
 // 与 pc_calibrate_simple_with_gaia 逻辑完全一致, 额外输出:
 // psf_star_ids - PSF 星 stable star_id [n_psf] (输入, 可为 nullptr)
 // out_records - PcMatchRecord [n_psf] (输出, 可为 nullptr = 与旧版行为一致)
-// 返回码与旧版一致。
+// 返回码与旧版一致 (含 -4=内部异常, SIP order 越界在此返回)。
 // ============================================================================
 PC_API int pc_calibrate_simple_with_gaia_v2(
     void* gaia_client_handle,

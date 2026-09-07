@@ -7,6 +7,7 @@
 
 #include <cstdio>
 #include <cmath>
+#include <stdexcept>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -34,6 +35,19 @@ WcsTransform::WcsTransform(double crval1, double crval2,
       m_sip_a(nullptr), m_sip_b(nullptr),
       m_sip_ap(nullptr), m_sip_bp(nullptr),
       m_has_sip(sip_order > 0) {
+
+    // P0(bug 狩猎 R5): SIP order 外部输入面硬校验 —— 对齐 f1cb487c 已入库
+    // 口径 (healpix_drizzle wcs_sip/hp_drizzle_api): 正式支持 [0,5] (6x6
+    // 系数数组, m_sip_*_buf[36] 按 i*6+j 索引)。此前 sip_order 无上界校验,
+    // 外部 header A_ORDER>=6 时 evalSip 循环 coeffs[i*6+j] (i=order, j=0 →
+    // 6*order > 35) 越界读 36 项成员缓冲 (order=8 → 读至 [48], 出对象)。
+    // 越界一律硬失败抛 std::invalid_argument, 禁止静默截断; 异常由 pc_api
+    // C 边界 try/catch 屏障转错误码 (见 pc_api.cpp)。
+    if (sip_order < 0 || sip_order > 5) {
+        std::fprintf(stderr, "[wcs_transform] 错误: SIP order 非法 (%d, 正式支持 [0,5]), 拒绝构造\n",
+                     sip_order);
+        throw std::invalid_argument("WcsTransform: SIP order 越界 (正式支持 [0,5])");
+    }
 
     // CD矩阵行列式与逆
     m_cdDet = m_cd[0] * m_cd[3] - m_cd[1] * m_cd[2];
@@ -73,6 +87,8 @@ WcsTransform::WcsTransform(double crval1, double crval2,
 // ============================================================================
 // SIP多项式求值
 // coeffs按coeffs[i*6+j]存储, 对应dx^i*dy^j, 下三角i+j<=order
+// 前置条件: order ∈ [0,5] 且 coeffs 指向 36 项缓冲 —— 由构造函数硬校验
+// 保证 (构造层唯一防线, 见上); 此处不做静默截断。
 // ============================================================================
 double WcsTransform::evalSip(const double* coeffs, double dx, double dy, int order) {
     if (order <= 0 || coeffs == nullptr) return 0.0;

@@ -14,6 +14,10 @@ class WcsTransform {
 public:
     // 构造WCS转换器
     // sip_a/b/ap/bp: SIP系数数组(长度36, 按i*6+j索引), 可为nullptr
+    // sip_order 合法域 [0,5] (6x6 系数数组): 0=无SIP, 1-5=SIP阶数。
+    // 越界(<0 或 >5) 硬失败抛 std::invalid_argument, 禁止静默截断 ——
+    // 对齐 f1cb487c 已入库口径 (healpix_drizzle wcs_sip/hp_drizzle_api)。
+    // 异常由 pc_api C 边界 try/catch 屏障转错误码 (见 pc_api.cpp)。
     WcsTransform(double crval1, double crval2,
                  double crpix1, double crpix2,
                  double cd11, double cd12,
