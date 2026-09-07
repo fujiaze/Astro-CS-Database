@@ -519,3 +519,116 @@ ADU；scale 无量纲；sigma_residual dex；records residual=dex；WCS deg/px�
   lib/photometric_calib/module.yaml（astrocs.p1.photometry /
   astrocs_p1_photometry.dll，C ABI adapter 由 P1-PHOT-IMPL 建立；本节描述
   现状 API，不声明 DLL 化完成）。
+
+## PSF 拟合 C API（API-PSF-001）
+
+> ID: API-PSF-001  状态: CONTRACT_READY（P1-PSF-DOC 冻结，2026-09-07）
+> 头: lib/dynamic_psf/include/dynamic_psf.h（唯一权威签名源，禁止手抄他版；
+> DPSF_EXPORT extern "C"（_WIN32 下 __declspec(dllexport) :8，否则
+> __attribute__((visibility("default"))) :10））
+> SRC: lib/dynamic_psf/src/dpsf_psf.cpp（934 行）
+> SCI: SCI-P1-PSF-001（本任务冻结层）；ALG: ALG-STARPSF-001
+> （STAR_PSF_ALGORITHMS §11 逐符号锚）；DATA: DATA-P1-PSF
+> （DATA_SEMANTICS §15，双 [N,9] 布局权威）；编排级合同 API-P1-003
+> （PHASE1_API_V1 §2，descriptor 引用，与本节并行不互斥）
+> MOD: MOD-astrocs-phase1-star-psf（module.yaml CONTRACT_READY，
+> entrypoint=MISSING；生产调用 orchestrator.cpp:2067 run_stage_psf）
+
+
+### 范围界定
+
+Phase1 单帧逐星 Moffat4（β=4 固定）PSF 拟合 C ABI：uint16/float32/float64
+三通道图像输入，star_det v1 `FLOAT64[N,6]` 检测坐标消费，7 参数 LM
+（B,A,x0,y0,sx,sy,theta），4 状态码失败语义（STAR_PSF_ALGORITHMS §11.2）。
+不做星检测（禁重检测，orchestrator.cpp:1754-1756）、不做饱和剔除决策
+（star_det v1 [4]/[5] 不消费）、不做 QA 换算（帧级 PSF 质量归
+snr_estimator snr_psf_fit_quality，snr_estimator.h:79，API-NOISE-001
+范围界定）。无取消检查点（DISP-PSF-004）。
+
+
+### 导出符号（dynamic_psf.h 实测行号锚，7 个全部当前真实存在）
+
+| 符号 | 头锚 | 定义锚 | 摘要 |
+|---|---|---|---|
+| dpsf_fit | :44-47 | dpsf_psf.cpp:427 | uint16 单星拟合，DPSFFitResult 输出 |
+| dpsf_fit_batch | :49-52 | dpsf_psf.cpp:482 | uint16 批量（逐星 float patch），DPSFFitResult*[] |
+| dpsf_fit_batch_f | :59-63 | dpsf_psf.cpp:580 | float32 图 + (cx[],cy[])，DPSFFitResult*[]（FP32 生产通道） |
+| dpsf_free_results | :64 | dpsf_psf.cpp:599 | 释放批量 DPSFFitResult 数组 |
+| dpsf_fit_batch_f32 | :107-115 | dpsf_psf.cpp:694 | float32 图 + star_det v1 → out_psf_params[N,9] |
+| dpsf_fit_batch_f64 | :142-150 | dpsf_psf.cpp:822 | float64 图 + star_det v1 → [N,9]（moffat4_fit_d 不降级） |
+| dpsf_fit_batch_d | :181-188 | dpsf_psf.cpp:612 | float64 图 + (cx[],cy[])，DPSFFitResult*[]（FP64 生产通道） |
+
+schema 宏：`DPSF_STAR_DET_SCHEMA_V1="star_det_v1:FLOAT64[N,6]"`（:104）、
+`DPSF_PSF_PARAMS_SCHEMA="psf_params:FLOAT64[N,9]"`（:105）。结构体：
+DPSFFitResult 12 字段（:17-31）、DPSFFitParams{fitRadius,maxIter,tolerance}
+（:38-42）。错误码 DPSF_FIT_OK/NO_CONVERGENCE/INVALID_PARAMS/ITERATION_LIMIT
+=0/1/2/3（:33-36，语义冻结见 STAR_PSF_ALGORITHMS §11.2）。
+
+
+### 签名要点与内存所有权
+
+- dpsf_fit_batch/_f/_d：`*out_results` 为 DLL 内 malloc 数组，调用方
+  `dpsf_free_results` 释放（:599）；失败（rc≠0）调用方仍须对非 NULL
+  results 释放（orchestrator.cpp:2350-2353 先 free 再返回）。
+- dpsf_fit_batch_f32/_f64：out_psf_params 由调用方预分配（N·9·sizeof(double)），
+  out_n_valid 由 DLL 写；params 可 NULL（默认 fitRadius=8/maxIter=200/
+  tolerance=1e-8，:717-719/:845-847；maxIter/tolerance 为死参数 DISP-PSF-003）。
+- 全部接口不抛异常（C ABI）；批接口逐星失败静默 NaN/不计 valid
+  （DISP-PSF-006），批级 rc∈{0,−1}。
+
+
+### 返回码
+
+- 单星 dpsf_fit/moffat4_fit*：0/1/2/3 四码（§11.2 表：触发锚、输出副作用、
+  ITERATION_LIMIT 仍回填当前最优参数 :391-403）。
+- 批接口：0=批量完成（逐星成败看 out_n_valid/NaN 或 status 列，不要求全成）；
+  −1=参数非法（空指针/尺寸非法/计数≤0，:700-707）。
+
+
+### 单位/dtype/shape
+
+见 DATA_SEMANTICS §15（唯一权威）：image `[h·w]` ADU 行主序；
+cx/cy/fitRadius/sx/sy/fwhm 像素；theta 弧度；B/A/flux/mad ADU
+（flux=2π·A·sx·sy/3 Moffat4 解析积分）；eccentricity 无量纲 [0,1)；
+布局 A（编排 psf 块 status,B,flux,cx,cy,fwhm,A,mad,eccentricity）与
+布局 B（psf_params B,A,cx,cy,sx,sy,theta,fwhm_x,fwhm_y）并存，禁止混用。
+
+
+### 线程安全与确定性
+
+- 批拟合 OpenMP `parallel for schedule(dynamic) reduction(+:success_count)`
+  4 处（dpsf_psf.cpp:528,635,738,866）：逐星独立、输出按索引写、计数
+  reduction 与星序无关 → reentrant、并发调用安全、输出 bitwise 与线程数
+  无关（determinism=fixed_reduction_order）。线程数未接 ThreadBudget
+  （迁移整改点，module.yaml threading_model=host_executor_lease 为合同值，
+  ThreadLease/取消检查点归 P1-PSF-IMPL，DISP-PSF-004）。
+
+
+### 生产调用方与编排现状
+
+- orchestrator.cpp:2067 run_stage_psf（必需 stage，DLL 未加载退出码 2，
+  :2071-2075；frame_ 为空=内部错误）→ 函数指针 dpsf_fit_batch_d（:2304，
+  FP64 通道）/ dpsf_fit_batch_f（:2327，FP32 通道）+ dpsf_free_results
+  （:2290）；编排参数 stage1_cfg psf.fit_radius/max_iterations/tolerance
+  （:2277-2286，max_iterations/tolerance 模块侧不生效）。
+- 产出：psf 块 FLOAT64 [N,9]（布局 A，:2376-2390）+ star_measurements
+  权威块 [N,15]（DATA_SEMANTICS §15.2 附属产出）；PHOTOMETRIC 以 psf 为
+  必需块消费（:2563-2570，缺失退出码 3）。
+- registry descriptor 占位 ID（module_adapters.cpp:430-448，sci_id=
+  SCI-P1-PSF-001/alg_id=ALG-002/data_id=DATA-P1-SOURCES/api_id=API-P1-003/
+  test_id=TEST-P1-PSF-001）由 P1-PSF-INT 对齐本合同，不得反向作为冻结
+  依据（DISP-PSF-001 附注）。
+- 现状构建 lib/dynamic_psf/Makefile:3-5 → dynamic_psf.dll；dll_loader.cpp:39
+  （ModuleId::PSF→dynamic_psf.dll）/:53（lib/dynamic_psf/）；未编入根 CMake
+  主构建——astrocs_p1_psf.dll 迁移由 P1-PSF-IMPL 建立。
+
+
+### 已登记现状缺陷与迁移语义
+
+- DISP-PSF-001..006 全清单见 STAR_PSF_ALGORITHMS §11.3（001 参数序/常数
+  耦合/002 前向差分+硬钳位/003 maxIter+tolerance 死参数/004 无取消点/
+  005 无协方差输出/006 批退败静默）。
+- plan/execute/cancel/inspect 迁移语义见 module.yaml（astrocs.p1.psf /
+  astrocs_p1_psf.dll，C ABI adapter 由 P1-PSF-IMPL 建立；本节描述现状 API，
+  不声明 DLL 化完成）；测试设计 TEST-PSF-DESIGN-001（§11.4）由 P1-PSF-TEST
+  执行落 TEST-P1-PSF-001 + EVIDENCE。

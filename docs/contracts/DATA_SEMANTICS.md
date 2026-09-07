@@ -475,3 +475,79 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   反向（SCI-PHOT-001 §10）。
 - determinism=fixed_reduction_order：F_syn 逐星独立（OpenMP dynamic,64）、
   像素逐元素独立（static）→ 输出 bitwise 与线程数无关（README §7）。
+
+## 15. Phase1 star-psf 模块输入/输出数据（DATA-P1-PSF）
+
+> ID: DATA-P1-PSF  状态: CONTRACT_READY（P1-PSF-DOC 冻结，2026-09-07）
+> 模块: lib/dynamic_psf（astrocs.p1.psf，迁移目标 astrocs_p1_psf.dll；现行实现
+> 唯一生产源 lib/dynamic_psf/src/dpsf_psf.cpp，合同头
+> lib/dynamic_psf/include/dynamic_psf.h）。ALG: ALG-STARPSF-001
+> （STAR_PSF_ALGORITHMS §11 逐符号锚）；SCI: SCI-P1-PSF-001（本任务冻结层，
+> SCI-PSF-001 docs/science/PSF.md 共享引用不改动）；编排级合同 API-P1-003
+> （PHASE1_API_V1 §2）。本节是该模块单位/dtype/shape/invalid 的唯一权威；
+> descriptor 端口编目（psf→DATA-P1-PSF/sources→DATA-P1-SOURCES，
+> module_adapters.cpp:437-441）与本节一致。**双 [N,9] 布局并存**（15.2 A/B）
+> 为冻结事实，禁止混淆。
+
+### 15.1 输入（dpsf_fit_batch_f / _d 生产通道，orchestrator.cpp:2314/:2339）
+
+| 参数/字段 | dtype/shape | 单位/域 | invalid / NULL 语义 |
+|---|---|---|---|
+| image（cleaned 块） | float32（f 通道）/ float64（d 通道）`[h·w]` 行主序 | ADU | NULL/h≤0/w≤0 → rc=−1；FP64 通道不降级（PREC-105 同族约束） |
+| cx_arr / cy_arr（来自 sources 块 star_det v1 [N,6] 列 [0]/[1]，dynamic_psf.h:79-104） | double `[n_stars]` | pixel（0-based） | NULL/count≤0 → −1；越界星 fitRadius 裁窗 clamp（dpsf_psf.cpp:533-536）；空 rect → 该星 INVALID_PARAMS |
+| params（DPSFFitParams） | 结构体（dynamic_psf.h:38-42） | px（fitRadius） | NULL → 默认 fitRadius=8/maxIter=200/tolerance=1e-8（:717-719/:845-847）；maxIter/tolerance 模块侧死参数（DISP-PSF-003，编排配置 psf.max_iterations/tolerance 不生效，orchestrator.cpp:2278-2286） |
+
+饱和列 star_det v1 [4]=saturated/[5]=has_saturated 现状不消费（dpsf_psf.cpp:741
+仅解包 [0]/[1]）；饱和剔除决策归 star_detector 侧，P1-PSF-TEST 专项覆盖。
+
+### 15.2 输出
+
+**布局 A：编排层 `psf` 块（必需块，PHOTOMETRIC 消费，缺失退出码 3，
+orchestrator.cpp:2563-2570）**——DPSFFitResult 序列化（:2376-2387）：
+
+| 列 | dtype/单位 | 语义 / invalid |
+|---|---|---|
+| [0]=status | double（整值 0..3） | 拟合状态码（STAR_PSF_ALGORITHMS §11.2 四码语义）；PHOTOMETRIC 仅 status=0 行入匹配（pc 匹配侧 status≠0 记 reject） |
+| [1]=B | double ADU | 截尾中位背景（拟合收敛值） |
+| [2]=flux | double ADU | Moffat4 解析积分 2π·A·sx·sy/3（dpsf_psf.cpp:374-375） |
+| [3]=cx / [4]=cy | double pixel（0-based 全图坐标） | 中心（局部坐标已回移 :383/:755-757）；非 OK 行=memset 0（单星语义，:229） |
+| [5]=fwhm | double pixel | (fwhm_x+fwhm_y)/2 平均（:2385） |
+| [6]=A | double ADU | 振幅 |
+| [7]=mad | double ADU | 10–90% 截尾均值 \|残差\|（residual_scale，:190-220） |
+| [8]=eccentricity | double [0,1) | √(1−(smin/smax)²)（:378） |
+
+块 schema 注记 "PSF 拟合结果: status,B,flux,cx,cy,fwhm,A,mad,eccentricity"
+（:2389-2390）；dims=[N,9] FLOAT64（:2389）。
+
+**布局 B：批 API `out_psf_params`（dpsf_fit_batch_f32/f64，dynamic_psf.h:84-105）**：
+
+| 列 | dtype/单位 | 语义 / invalid |
+|---|---|---|
+| [0]=B / [1]=A | double ADU | 背景/振幅；失败星 9 字段全 NaN（:729-732/:857-860） |
+| [2]=cx / [3]=cy | double pixel | 全图坐标（局部回移） |
+| [4]=sx / [5]=sy | double pixel | σ 分量 |
+| [6]=theta | double 弧度 | 旋转角（x 轴起边，4 候选消歧后） |
+| [7]=fwhm_x / [8]=fwhm_y | double pixel | 1.230310·sx/sy |
+
+`out_n_valid` 仅计 DPSF_FIT_OK（:804/:925）。两布局列序不同（A=状态/派生量序，
+B=参数序），跨层传递禁止直接复用同一缓冲。
+
+**附属产出：`star_measurements` 权威块 FLOAT64 [N,15]（schema
+astrocs-star-measurements-1，orchestrator.cpp:2403-2411 注释）**：列
+[0]=star_id(int64 as double)，[1]=x，[2]=y，[3]=flux_inst（PSF flux），[4]=
+flux_uncertainty（PSF mad proxy），[5]=background（PSF B），[6]=psf_status，
+[7]=fwhm，[8]=A，[9]=B，[10]=mad，[11]=eccentricity，[12]=mag（detector），
+[13]=saturated，[14]=has_saturated。PSF 不输出独立 background_rms，SNR 使用
+A/B/mad（与冻结 SNR 定义一致）；下游必须经 star_id 连接，禁止数组行号隐式连接
+（:2409-2411）。该块列语义由 P1-STAR-INT 承接（matrix depends_on_int=P1-STAR-INT）。
+
+### 15.3 坐标与精度规则（汇总）
+
+- 像素坐标一律 0-based double 全图系（cx/cy）；θ 弧度 x 轴起边；FWHM/σ 像素；
+  B/A/flux/mad 为 ADU（flux 为解析积分，非计数）；eccentricity 无量纲。
+- 确定性：逐星独立拟合，OpenMP dynamic 调度仅影响线程分配，输出按索引写，
+  bitwise 与线程数无关（fixed_reduction_order，README §7）。
+- FP64 通道（dpsf_fit_batch_d/f64）不降级；FP32 通道不经 uint16 有损转换
+  （PREC-105）。
+- determinism/dtype 变更属科学改动，须走 owner 流程；本节禁止被编排层词汇反向
+  改写（descriptor 占位 ALG-002/TEST-P1-PSF-001 由 P1-PSF-INT 对齐）。

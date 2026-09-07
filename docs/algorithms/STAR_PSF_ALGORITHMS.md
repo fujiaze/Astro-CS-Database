@@ -87,3 +87,83 @@ Batch deterministic: input order fixed, per-star independent, reduction none cro
 - ARC: `THREADING_MODEL.md` OpenMP per-tile
 - API: `dynamic_psf.h: dpsf_fit, dpsf_fit_batch`, `star_detector.h: sdet_detect`
 - TST: `TST-PSF-001` 合成恢复, `TST-PSF-INV` q_psf解耦, `TST-PSF-FAIL` 饱和/平坦拒
+
+## 11 P1-PSF-DOC 冻结附录（2026-09-07，SRC-PSF-001 源码实测）
+
+> 本节为 P1-PSF-DOC 冻结附录：只登记现状与测试设计，不改 §1–§10 科学公式。
+> 实测基准 = `lib/dynamic_psf/src/dpsf_psf.cpp`（934 行，2026-09-07 工作区）与
+> `lib/dynamic_psf/include/dynamic_psf.h`。模块合同入口 =
+> `lib/dynamic_psf/README.md`（r1）+ `lib/dynamic_psf/module.yaml`（CONTRACT_READY）。
+
+### 11.1 实现锚（SRC-PSF-001，VERIFIED）
+
+| 符号/语义 | 锚 |
+|---|---|
+| moffat4 残差（F1 离散式实现，β=4） | dpsf_psf.cpp:72-101 |
+| `lm_solve`（LM 主循环，λ 初值 1e-3 :112；奇异→λ×10 :150-153；收敛判据 ‖Δx‖<tol·(‖x‖+1e-30) :163） | :104-188 |
+| `compute_trimmed_mad`（实为 10–90% 截尾均值 \|残差\|，即 F4 residual_scale；lo≥hi 回退中位） | :190-220 |
+| `moffat4_fit_tmpl`（采样→初值→LM→验证链→θ 消歧→派生量） | :225-407 |
+| 初值链 bkg0 中位/A0=max−B/params={bkg0,A0,0,0,sx0,sx0,0} | :300,308,315 |
+| LM 调用 tol=1e-8 / max_iter=200（硬编码） | :320-321 |
+| 验证链一：非有限/A≤0/sx≤0.3/sy≤0.3 | :336-338 |
+| 验证链二：FWHM>rect 尺寸 | :341-346 |
+| 验证链三：背景约束 \|B−bkg0\|/max(bkg0,0.01)>0.5 | :349-354 |
+| θ 消歧 4 候选 {θ, π/2−θ, π/2+θ, π−θ} trimmed-MAD 最小（§3 一致，实测 :358-368） | :358-373 |
+| F3 flux=2π·A·sx·sy/3（Moffat4 解析积分） | :374-375 |
+| FWHM=1.230310·sx/sy（F2 系数 MOFFAT4_FWHM_FACTOR :24） | :339-340 |
+| eccentricity=√(1−(smin/smax)²)；img_cx=cx+x0 | :378,383 |
+| C API 导出（7 个）：dpsf_fit :427 / dpsf_fit_batch :482 / dpsf_fit_batch_f :580 / dpsf_free_results :599 / dpsf_fit_batch_d :612 / dpsf_fit_batch_f32 :694 / dpsf_fit_batch_f64 :822 | dpsf_psf.cpp |
+| star_det v1 `FLOAT64[N,6]` / `psf_params:FLOAT64[N,9]` schema 宏 | dynamic_psf.h:104-105 |
+| 错误码 OK=0 / NO_CONVERGENCE=1 / INVALID_PARAMS=2 / ITERATION_LIMIT=3 | dynamic_psf.h:33-36 |
+| 批拟合 OpenMP `schedule(dynamic) reduction(+:success_count)` 4 处 | dpsf_psf.cpp:528,635,738,866 |
+
+与 §3 伪代码的出入（如实登记，不改 §3）：实测 LM 参数为 tol=1e-8、max_iter=200
+（:320-321），§3 "iter≤50 tol=1e-6" 为旧稿；`DPSFFitParams.maxIter/tolerance`
+字段不被消费（DISP-PSF-003）。§4 "NaN/Inf patch 跳过 status=BAD" 无对应实现：
+BAD 码不存在（dynamic_psf.h:33-36 仅 0–3），NaN/Inf 经 LM 传导至参数非有限由
+验证链一 (:336-338) 判 NO_CONVERGENCE。§4 饱和掩膜 reject 属 star_detector 侧，
+dynamic_psf 不消费饱和列 [4]/[5]（:741）。
+
+### 11.2 拟合失败语义（冻结，P1-PSF-TEST 逐码负例）
+
+| 码 | 宏 | 触发（实测锚） | 单星接口（dpsf_fit/moffat4_fit） | 批接口（f32/f64 [N,9]） |
+|---|---|---|---|---|
+| 0 | DPSF_FIT_OK | 收敛 :163 且过验证链一~三 | 全参数回填 :391-403 | 计入 out_n_valid；写 9 字段 :784-794/907-916 |
+| 1 | DPSF_FIT_NO_CONVERGENCE | 验证链一 :336-338 / 二 :341-346 / 三 :349-354 | result 已 memset 0（:229）+status | 9 字段全 NaN（:729-732 初始化，失败不覆盖） |
+| 2 | DPSF_FIT_INVALID_PARAMS | 空指针/w≤0/h≤0 :431-434；rect 面积<9 :236-239；rect 越界 :240-245；空 rect :445-450 | 同上 | 批整体 -1（:700-707），不触碰输出 |
+| 3 | DPSF_FIT_ITERATION_LIMIT | max_iter=200 耗尽 :187 | 仍回填当前最优参数 :391-403 | 非 OK→NaN，不计 valid |
+
+`gauss_solve` 奇异（λ×10 重试 :150-153）不单独出码，最终由收敛判据归类。
+简并兜底：验证链一 sx/sy>0.3 判定 + 步后钳位（:175-177）；θ 对称简并由
+4 候选消歧（:358-368）确定性回选，不产生不确定状态。
+
+### 11.3 DISP-PSF-001..006（登记不改码，整改归 P1-PSF-IMPL/INT）
+
+| ID | 内容 | 锚 |
+|---|---|---|
+| DISP-PSF-001 | 参数向量序 B,A,x0,y0,sx,sy,theta 与 MOFFAT4_FWHM_FACTOR=1.230310 常数依赖，重构时序耦合 | :24-25,191-192 |
+| DISP-PSF-002 | 前向差分雅可比（:120 相对 1e-6/绝对 1e-8）+ 步后硬钳位（:175-177）破坏二阶收敛路径 | :120,175-177 |
+| DISP-PSF-003 | `DPSFFitParams.maxIter/tolerance` 死参数（LM 硬编码 1e-8/200）；§3 伪代码参数为旧稿 | :320-321,716-719 |
+| DISP-PSF-004 | 无取消检查点（OpenMP dynamic 4 处批拟合不可中断） | :528,635,738,866 |
+| DISP-PSF-005 | 无参数协方差/不确定性输出（科学专项 covariance 缺口，P1-PSF-IMPL 落地） | DPSFFitResult 12 字段 dynamic_psf.h:16-31 |
+| DISP-PSF-006 | 批 f32/f64 路径逐星退败静默（仅 out_n_valid 汇总，per-star 状态不出批） | :784-804,907-925 |
+
+### 11.4 TEST-PSF-DESIGN-001（测试设计，P1-PSF-TEST 执行）
+
+- unit：4 状态码逐码负例（§11.2 表）；rect 面积<9/越界/空 rect；饱和列不消费断言。
+- oracle：解析 Moffat4（β=4）合成图回收 B,A,cx,cy,sx,sy,θ；flux=2πAsxsy/3 与
+  FWHM=1.230310·σ 恒等复核；独立参考不调用生产 symbol（11 号标准 §5）。
+- property：θ 消歧确定性（同输入同 θ 回选）；eccentricity∈[0,1)；批输出 NaN 占位
+  与 out_n_valid 一致；per-star 独立性（打乱星序不改变逐星结果）。
+- boundary：fitRadius 裁边 clamp（:438-441）；FWHM≈rect 边界；背景约束 0.5 阈值
+  边界；max_iter 边界（ITERATION_LIMIT 仍回填）。
+- performance：1/N worker 缩放、provider=baseline、确定性重跑一致。
+- 容差来源：fixtures generator 注记（11 号标准 §5 元数据），不用本文手抄值。
+- 状态：VERIFIED（设计冻结，dpsf 套件建立后 TEST-P1-PSF-001 落 EVIDENCE）。
+
+### 11.5 SCI-P1-PSF-001 状态声明
+
+科学专项（matrix P1-PSF 行）映射：known Gaussian/Moffat parameters=§2 公式 + §11.1
+参数序/初值/常量锚；fit failure semantics=§11.2（四码语义冻结，无含糊）；degenerate/
+saturated=§11.2 简并兜底 + §11.1 饱和列不消费登记（P1-PSF-TEST 专项）；covariance=
+现状缺失，DISP-PSF-005 显式登记为 P1-PSF-IMPL 整改项，禁止宣称已实现。
