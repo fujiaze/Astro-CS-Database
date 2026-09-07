@@ -376,3 +376,44 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   语义；同 out_dir 重跑的旧残留清理由发布层 staging 隔离解决（writer 自身
   不清理）。对照：HISS 容器有 .partial/atomic_replace（独立通道，
   hiss_stream_writer.cpp:259-260,:644-655），与本边界无关。
+
+## 13. Phase1 noise 模块输入/输出数据（DATA-P1-NOISE）
+
+> ID: DATA-P1-NOISE  状态: CONTRACT_READY（P1-NOISE-DOC 冻结，2026-09-07）
+> 模块: lib/snr_estimator;lib/phase1/noise（astrocs.p1.noise-snr，迁移目标
+> astrocs_p1_noise.dll；现行实现唯一生产源 lib/snr_estimator/cpp/src/
+> noise_model.cpp，合同头 lib/snr_estimator/cpp/include/snr_estimator.h）。
+> ALG: ALG-NOISE-001..003（NOISE_ESTIMATION §13.1 逐符号锚）；SCI:
+> SCI-NOISE-001..015（NOISE_MODEL.md，FROZEN，共享引用不改动）；编排级
+> 合同 API-P1-006（PHASE1_API_V1 §2）。本节是该模块单位/dtype/shape/
+> invalid 的唯一权威；§4a 产品语义（ivar=1/variance、ivar=0 显式不可用）
+> 在此落地为模块级 I/O 语义。
+
+### 13.1 输入（snr_noise_model_v1 / _f64 参数 + SnrNoiseModelConfig）
+
+| 参数/字段 | dtype/shape | 单位/域 | invalid / NULL 语义 |
+|---|---|---|---|
+| data | float32（v1）/ float64（f64）`[h·w]` 行主序 0-based | ADU（或 e⁻，同输入标度） | 非 NULL 强制；h>0/w>0 否则 rc=3（noise_model.cpp:118）；NaN/Inf 与饱和像素过滤不统计（valid_pixel :64-68） |
+| source_mask | float32 `[h·w]` | —（≠0 即源掩膜 1） | 可 NULL（改用 star 坐标通道）；非 NULL 时忽略 star_x/y（互斥，DISP-NOISE-006）；掩膜像素不参与统计 |
+| star_x / star_y | double `[n_stars]` | pixel（0-based） | 可 NULL/n_stars=0；掩膜半径 rmax=max(1,r0)·max(1,scale)（默认 10·6=60 px）统一不按亮度缩放；非有限坐标跳过该星（:148-151） |
+| cfg（SnrNoiseModelConfig） | 结构体按 snr_estimator.h:98-112 | — | 可 NULL（=default_config）；patch_grid_x/y≥2、cosmic_clip_sigma≥1、min_patch_samples≥1（默认 64）、max_clip_rounds≥0 静默钳位（DISP-NOISE-007）；gain_e_per_adu/read_noise_e/use_gain_model 三字段现状零读取（DISP-NOISE-003） |
+| variance_floor | double | ADU² | 默认 1e-12；build 阶段 ≤0 不 clamp（原值直通），fill 阶段 ≤0 回退 1e-12（DISP-NOISE-002） |
+
+### 13.2 输出（NoiseWeightModelV1 + fill 逐像素场）
+
+| 字段/数组 | dtype/shape | 单位/值域 | invalid |
+|---|---|---|---|
+| NoiseWeightModelV1（snr_estimator.h:117-134） | ctrl_* double `[n_control_points]`（patch 中心 0-based 像素坐标/σ/variance/ivar） | σ: ADU；variance: ADU²；ivar: ADU⁻² | 合格 patch 的 max(patch_var, floor) 与 1/var；n_qualified_patches+n_rejected_patches==64（8×8） |
+| sigma_bg_global / variance_bg_global / ivar_bg_global | double 标量 | ADU / ADU² / ADU⁻² | 全局兜底=合格 patch variance 稳健中位数（非退化）；完全退化 rc=1 时 ivar_bg_global==0.0（显式不可用，禁止伪装——§4a） |
+| source / has_spatial_field / degenerate | uint8 标志 | — | source=0（empirical blank-sky 唯一生产基线）；has_spatial_field=1 须 enable_spatial_field==1 且 n_control_points>=4；degenerate=1=无合格 patch 且全帧兜底退化 |
+| fill 输出 out_variance / out_ivar | float32 `[h·w]` 行主序 | ADU² / ADU⁻² | 任一可 NULL（可空输出，双 NULL 拒绝 rc=3 :426）；平面预测 max(a+b·x+c·y, floor)，负预测 clamp 至 floor；无合格 patch 时 ivar=0 拒绝加权（SCI §7） |
+
+### 13.3 坐标与精度规则（汇总）
+
+- 像素域 0-based 坐标（GLOSSARY `pixel_coordinate`），无 WCS/天球参与；
+  patch 中心 ctrl_x_px/ctrl_y_px 为 patch 几何中心（(x0+x1)/2）。
+- FP64 全链路统计（f32 输入升 double 计）；fill 输出 float32 截断
+  （HISS SNR 子块冻结格式，诊断值非科学累加值）。
+- 量纲不变量：ivar=1/max(variance,floor) 精确互倒（SCI §7）；gain 模型
+  var_ADU=max(signal,0)/gain+(rn/gain)² 仅诊断（SNR-005，不入生产——
+  §4a/SCI §10 域外引用）。

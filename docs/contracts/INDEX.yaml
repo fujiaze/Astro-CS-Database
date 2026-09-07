@@ -54,7 +54,7 @@ contracts:
     version: 1.0.0
     path: docs/science/NOISE_MODEL.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-NOISE-001, ALG-UPM-CONTROL-IVAR-001]
+    downstream: [ALG-NOISE-001, ALG-NOISE-002, ALG-NOISE-003, ALG-UPM-CONTROL-IVAR-001]
   - id: SCI-DRZ-001
     type: SCI
     status: ACTIVE
@@ -168,7 +168,23 @@ contracts:
     version: 1.0.0
     path: docs/algorithms/NOISE_ESTIMATION.md
     upstream: [SCI-NOISE-001]
-    downstream: []
+    downstream: [DATA-P1-NOISE, API-NOISE-001]
+  - id: ALG-NOISE-002
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/NOISE_ESTIMATION.md
+    upstream: [SCI-NOISE-001]
+    downstream: [DATA-P1-NOISE, API-NOISE-001]
+  - id: ALG-NOISE-003
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/NOISE_ESTIMATION.md
+    upstream: [SCI-NOISE-001]
+    downstream: [API-NOISE-001]
   - id: ALG-DRZ-001
     type: ALG
     status: ACTIVE
@@ -259,6 +275,22 @@ contracts:
     path: docs/contracts/DATA_SEMANTICS.md
     upstream: []
     downstream: [DATA-ARTIFACTS-001]
+  - id: DATA-P1-NOISE
+    type: DATA
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-NOISE-001, ALG-NOISE-002]
+    downstream: []
+  - id: API-NOISE-001
+    type: API
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ALG-NOISE-001, ALG-NOISE-002, ALG-NOISE-003]
+    downstream: []
   - id: DATA-ARTIFACTS-001
     type: DATA
     status: ACTIVE

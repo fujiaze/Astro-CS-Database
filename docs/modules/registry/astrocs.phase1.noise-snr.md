@@ -4,11 +4,22 @@ version: 1.0.0
 status: ACTIVE
 owner: astrocs-core
 source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-P1-SNR-001, ALG-004, API-P1-006]
+upstream: [SCI-NOISE-001, ALG-NOISE-001, API-NOISE-001]
 downstream: [TEST-P1-SNR-001]
 ---
 
 # 模块 astrocs.phase1.noise-snr
+
+> P1-NOISE-DOC 事实修订（2026-09-07，wave W1）：本页由源码核对后修订——
+> 合同 ID 由占位（SCI-P1-SNR-001/ALG-004/TEST-P1-SNR-001）更正为真实
+> 冻结 ID（SCI-NOISE-001..015 / ALG-NOISE-001..003 / DATA-P1-NOISE /
+> API-NOISE-001）；模块级事实以 lib/snr_estimator/README.md（r1，
+> CONTRACT_READY）与现行生产实现 lib/snr_estimator/cpp/（现状构建=
+> cpp/Makefile:5,12 g++ -shared → snr_estimator.dll + cpp/build.ps1:29，
+> 未编入根 CMake 主构建）为准；descriptor 占位 ID（module_adapters.cpp
+> p1_noise_snr_descriptor）由 P1-NOISE-INT 对齐本页，不得反向作为冻结
+> 依据。port DATA 编目（DATA-P1-FLUX/DATA-P1-SNR）为编排层词汇，模块
+> 合同 DATA 层=DATA-P1-NOISE（DATA_SEMANTICS §13）。
 
 ## 职责与明确非职责
 

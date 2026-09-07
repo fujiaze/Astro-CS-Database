@@ -1,0 +1,114 @@
+# AstroCS phase1 noise-snr module — 元数据 (P1-NOISE-DOC 冻结, 2026-09-07)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/snr_estimator/cpp/src/noise_model.cpp
+# 的 noise_model_impl/fill_impl/free/scale_law/gain_variance + C API
+# snr_noise_model_v1(+_f64/_default_config/_fill/_free)/snr_noise_scale_law/
+# snr_noise_gain_variance，唯一权威签名头 lib/snr_estimator/cpp/include/
+# snr_estimator.h），模块化迁移（独立模块源 astrocs_p1_noise.dll / C ABI adapter /
+# plan-execute-cancel-inspect / ThreadLease 接线）由 P1-NOISE-IMPL 执行；
+# 可执行测试由 P1-NOISE-TEST 建立（TEST-NOISE-DESIGN-001 → TEST-P1-NOISE-001）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对清单
+# （P1-NOISE-DOC，2026-09-07，7 个 noise 路径生产符号，旧乘法 snr_estimate*/
+# snr_extract_model* 为 legacy diagnostic 不入列），禁止手抄他版。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P1-NOISE 行 target=astrocs_p1_noise.dll、
+# module_id=astrocs.p1.noise，legacy_paths="lib/snr_estimator;lib/phase1/noise"、
+# depends_on_int=P1-CAL-INT;P1-PHOT-INT（本目录 lib/snr_estimator/ 既是生产实现
+# 所在又是迁移落码目标；lib/phase1/noise/ 旧符号 NoiseModel::estimate/
+# gain_variance 属计划迁移旧符号，去留由 P1-NOISE-IMPL 登记其 TASK_RESULT）。
+# dll_target=astrocs_p1_noise.dll 为迁移目标合同值（尚未存在）。现状构建=
+# lib/snr_estimator/cpp/Makefile:5,12（g++ -shared → snr_estimator.dll）+
+# cpp/build.ps1:29（MinGW 通道）；未编入根 CMake 主构建（无 snr_estimator CMake
+# 目标，与 astrocs_hips/astrocs_drizzle 先例不同）——CMake 集成归 P1-NOISE-IMPL。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
+# 现状实现为单线程顺序（noise_model_impl 无 omp pragma），唯一共享可变状态
+# g_model_floor 进程级无锁 unordered_map（DISP-NOISE-001），ThreadLease 接线为
+# 迁移整改点（见 docs/contracts/PUBLIC_API.md API-NOISE-001 与
+# docs/algorithms/NOISE_ESTIMATION.md §13.3 DISP-NOISE-001..009）。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# （lib/core/src/module_adapters.cpp:489-503 p1_noise_snr_descriptor 的
+# SCI-P1-SNR-001/ALG-004/DATA-P1-SNR/TEST-P1-SNR-001）由 P1-NOISE-INT 对齐
+# 本 manifest 与 lib/snr_estimator/README.md（r1），不得反向作为冻结依据。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase1-noise-snr
+module_id: astrocs.p1.noise
+owner: SA-P1-N17
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase1
+dll_name: astrocs_p1_noise.dll
+dll_target: astrocs_p1_noise.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: []
+input_ports:
+  - fluxes
+output_ports:
+  - snr
+science_contracts:
+  - SCI-NOISE-001..015
+algorithm_contracts:
+  - ALG-NOISE-001..003
+data_contracts:
+  - DATA-P1-NOISE
+api_contracts:
+  - API-P1-006
+  - API-NOISE-001
+doc_links:
+  sci: docs/science/NOISE_MODEL.md
+  alg: docs/algorithms/NOISE_ESTIMATION.md#§13
+  data: docs/contracts/DATA_SEMANTICS.md#§13
+  api: docs/contracts/PUBLIC_API.md#API-NOISE-001
+contract_ids:
+  sci: SCI-NOISE-001..015
+  alg: ALG-NOISE-001..003
+  data: DATA-P1-NOISE
+  api: API-NOISE-001
+  mod: MOD-astrocs-phase1-noise-snr
+  src: SRC-NOISE-001
+  test: TEST-NOISE-DESIGN-001
+exports:
+  - snr_noise_model_v1
+  - snr_noise_model_v1_f64
+  - snr_noise_model_v1_default_config
+  - snr_noise_model_v1_fill
+  - snr_noise_model_v1_free
+  - snr_noise_scale_law
+  - snr_noise_gain_variance
+source_symbols:
+  - snr_noise_model_v1
+  - snr_noise_model_v1_f64
+  - snr_noise_model_v1_default_config
+  - snr_noise_model_v1_fill
+  - snr_noise_model_v1_free
+  - snr_noise_scale_law
+  - snr_noise_gain_variance
+test_ids:
+  - TEST-NOISE-DESIGN-001
+threading_model: host_executor_lease
+resource_class: cpu_heavy
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+upstream:
+  - SCI-NOISE-001..015
+  - ALG-NOISE-001..003
+downstream:
+  - DATA-P1-NOISE
+  - API-NOISE-001
+  - P1-NOISE-IMPL
+  - P1-NOISE-TEST
+  - P1-NOISE-INT
+legacy_paths: [lib/snr_estimator, lib/phase1/noise]
+scientific_change: false
+notes: >-
+  DISP-NOISE-001..009 全部登记（NOISE_ESTIMATION §13.3，登记不改码）：
+  001 g_model_floor 指针 key ABA/并发无锁；002 build/fill floor 语义不一致；
+  003 cfg gain 三字段零读取（use_gain_model 无效）；004 无取消检查点；
+  005 scale_law alpha 无校验；006 source_mask 与 star 通道互斥；
+  007 参数静默钳位；008 空 patch 与质量拒绝混计数；009 malloc 失败注册表
+  泄漏路径。整改归 P1-NOISE-IMPL/INT。matrix 行 depends_on_int=
+  P1-CAL-INT;P1-PHOT-INT。现状 descriptor 占位 ID（sci_id=SCI-P1-SNR-001/
+  alg_id=ALG-004/data_id=DATA-P1-SNR/test_id=TEST-P1-SNR-001，
+  module_adapters.cpp:489-503）与 port DATA 编目（DATA-P1-FLUX/DATA-P1-SNR，
+  编排层词汇）由 P1-NOISE-INT 对齐本合同（模块 DATA 层=DATA-P1-NOISE，
+  DATA_SEMANTICS §13），不得反向作为冻结依据。禁止声明 IMPLEMENTED
+  （迁移落码未发生）。
