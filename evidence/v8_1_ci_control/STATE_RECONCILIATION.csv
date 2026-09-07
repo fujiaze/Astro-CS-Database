@@ -102,7 +102,7 @@ PKG-001,gate,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 PKG-002,gate,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 PKG-003,gate,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 GATE-OWNER-001,gate,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-CAT-GAIA-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+CAT-GAIA-DOC,module-doc,NOT_STARTED,none,CLOSED,fg_verified_commit,7c3d66e2,lib/gaia_xpsd_client/,module-doc frozen; acceptance checkers rc=0
 CAT-GAIA-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 CAT-GAIA-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 CAT-GAIA-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,

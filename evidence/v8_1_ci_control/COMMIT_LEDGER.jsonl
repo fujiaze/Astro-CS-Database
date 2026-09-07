@@ -1597,3 +1597,4 @@
 {"sha": "96818b52d1e7c5596830b2787f7db0ccd61806d8", "subject": "chore(gov): GOV-001 COMMITS.csv 台账同步（reverify 后 regen）", "task_id": "UNTAGGED", "date": "2026-09-07T11:01:36+08:00"}
 {"sha": "3f56240b38ef379483b6a46c966140218c7452a9", "subject": "fix(ci): UT-CPU-AVX512 无 AVX-512F 宿主合同化 SKIP——runner 宿主 gate + run.py SKIP_EXIT_CODE=77（复审 N1）", "task_id": "UNTAGGED", "date": "2026-09-07T11:01:36+08:00"}
 {"sha": "c4cbafd6b6d7812b65b77d67d4d5b3b1eeb4a2c0", "subject": "fix(cpu): verify_profile_v2 版本字面量钉死改 semver 格式校验——CPU-005 select 正路径恢复（复审 N3）", "task_id": "UNTAGGED", "date": "2026-09-07T11:01:36+08:00"}
+{"sha": "7c3d66e208d40cbedbbbb0db2db9d2f28585d9da", "subject": "docs(CAT-GAIA-DOC): Gaia XPSD 模块合同冻结——README/module.yaml/ALG-DATA-API/trace（控制包 1/140, wave W1）", "task_id": "UNTAGGED", "date": "2026-09-07T11:01:36+08:00"}
