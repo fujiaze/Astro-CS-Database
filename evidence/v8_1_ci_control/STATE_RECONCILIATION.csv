@@ -106,7 +106,7 @@ CAT-GAIA-DOC,module-doc,NOT_STARTED,none,CLOSED,fg_verified_commit,7c3d66e2,lib/
 CAT-GAIA-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 CAT-GAIA-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 CAT-GAIA-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P1-CAL-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-CAL-DOC,module-doc,NOT_STARTED,none,CLOSED,fg_verified_commit,925fb26e,lib/calibration/,module-doc frozen; checkers rc=0
 P1-CAL-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-CAL-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-CAL-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
