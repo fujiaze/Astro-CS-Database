@@ -41,10 +41,12 @@ int main() {
   }
 
   // 2) 功能关闭经 config/IR preset: cosmetic.enabled 开关存在 (默认 true)
+  //    (P1 batchD: run 期读取改经 cosmetic_flag 类型甄别 — validate 合同 number|bool
+  //     均合法, {"enabled":1} 等错型 config 不再抛 type_error.302 穿越 C 边界)
   {
     std::string src = read_file(base + "/lib/phase1_session/p1_session.cpp");
     CHECK(src.find("\"enabled\"") != std::string::npos);         // 开关键
-    CHECK(src.find("value(\"enabled\", true)") != std::string::npos);  // 默认开
+    CHECK(src.find("cosmetic_flag(doc[\"cosmetic\"], \"enabled\", true)") != std::string::npos);  // 默认开
   }
 
   // 3) p1_session 只作 facade: 科学实现委托 ac_* 接口, 不内联算法

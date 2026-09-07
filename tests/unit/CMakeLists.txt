@@ -335,6 +335,17 @@ target_include_directories(p1_ir_facade_test PRIVATE
 target_link_libraries(p1_ir_facade_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
 add_test(NAME p1_ir_facade COMMAND p1_ir_facade_test)
 
+# P1 batchD (bug 狩猎 R6): session manifest 写穿 + cosmetic 值类型合同
+# (源文件共址 lib/phase1_session/tests/, 经本文件注册 — 仓库现行测试装配模式)
+add_executable(p1_session_manifest_test ../../lib/phase1_session/tests/test_p1_session_manifest.cpp)
+target_include_directories(p1_session_manifest_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1_session
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include)
+target_link_libraries(p1_session_manifest_test PRIVATE astrocs_phase1_session)
+add_test(NAME p1_session_manifest COMMAND p1_session_manifest_test)
+
 add_executable(p1_resource_test p1_resource_test.cpp)
 target_include_directories(p1_resource_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include
