@@ -727,3 +727,97 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
   DLL）；registry descriptor 占位词汇（ALG-002/004/005、TEST-P1-*-001）
   不作冻结依据（P1-PSF-DOC 先例）。测试锚 TEST-P1-SESSION-001=
   tests/unit/p1_ir_facade_test.cpp（facade/canonical 节点集/委托语义）。
+
+## 星点检测 C API（API-STAR-001）
+
+> ID: API-STAR-001  状态: CONTRACT_READY（P1-STAR-DOC 冻结，2026-09-07）
+> 模块: lib/star_detector;lib/phase1/stars（MOD-astrocs-phase1-star，matrix
+> P1-STAR，迁移目标 astrocs_p1_star_detection.dll；唯一权威签名头
+> lib/star_detector/include/star_detector.h:1-73，禁止手抄他版）。
+> 编排级上游合同 API-P1-003（PHASE1_API_V1 §2：一帧只做一次权威检测）；
+> 数据面 DATA-P1-STAR（DATA_SEMANTICS §17）；算法权威 ALG-STARDET-001
+> （STAR_DETECTION_ALGORITHMS §11 逐符号锚）；SCI-P1-STAR-001（本任务
+> 冻结层）。
+
+### 范围界定
+
+本节只登记星点检测 9 导出符号 + SDetParams 合同；不定义任何算法
+（ALG-STARDET-001 权威）；不含 Phase2/3 接口。编排级合同 API-P1-003
+引用本模块符号，生产调用点在「生产调用方与编排现状」小节。
+
+### 导出符号（9 C API 全部当前真实存在）
+
+| 符号 | 锚 | 语义 |
+|---|---|---|
+| `sdet_create` | star_detector.h:33 / sdet_api.cpp:954 | handle 创建；params=NULL→默认（structureLayers=5/hotPixelFilterRadius=1/iterativeClipSigma=9.0/iterativeMaxRounds=5/medianFilterDetail=1/maxStars=2000/fitRadius=6/fwhmClipSigma=3.0/maxAxisRatio=2.0，:963-975）；生产实参 orchestrator.cpp:1593-1612（fitRadius=0=自动半径） |
+| `sdet_destroy` | star_detector.h:34 / :984 | 唯一释放对 |
+| `sdet_detect` | star_detector.h:36-40 / :992 | 旧 uint16 入口（仅 x/y；内部旧 CC 路径，非生产，DISP-STAR-005） |
+| `sdet_free_coords` | star_detector.h:42 / :1276 | sdet_detect x/y 专用释放 |
+| `sdet_detect_debug` | star_detector.h:44-50 / :1281 | 诊断入口（CC 路径 + 平滑图/detail/binary 导出 + extras） |
+| `sdet_free_debug_maps` | star_detector.h:52 / :1595 | debug 输出图专用释放 |
+| `sdet_detect_ex` | star_detector.h:54-62 / :2318 | 生产 FP32 入口（uint16→float 转换后 impl<float>；10 数组输出 + extras） |
+| `sdet_detect_ex_f64` | star_detector.h:67-75 / :2343 | 生产 FP64 入口（全程 double 不降级，PREC-105；out_flux/out_mag 仍 float32 ABI 协议） |
+| `sdet_free_detect_ex` | star_detector.h:77-79 / :2357 | 10 数组唯一释放（extras 同组；禁止逐数组 free） |
+
+SDetParams 9 字段（star_detector.h:13-24）：maxStars/maxAxisRatio 生产路径
+完整消费；fitRadius 仅驱动 auto 半径推导（ALG-STARDET-001 §11.1）；fwhmClipSigma
+仅 debug 入口消费；structureLayers/hotPixelFilterRadius/iterativeClipSigma/
+iterativeMaxRounds/medianFilterDetail 仅旧 CC 路径消费——消费面缺口=DISP-STAR-003。
+
+### 签名要点与内存所有权
+
+- handle：opaque `StarDetectorHandle`（star_detector.h:26），owner=创建者；
+  handle 级互斥使用（PHASE1_API_V1 §2 表行 handle 级 no/no，无内部锁）。
+- 输出数组：模块 malloc，调用方只经 `sdet_free_detect_ex` /
+  `sdet_free_coords` / `sdet_free_debug_maps` 释放；n=0 空场 → 输出指针全
+  NULL 且 count=0（合法 rc=0）。
+- extras：`out_extras` 为 float* 逐列指针数组，`sdet_free_detect_ex` 同组
+  释放（:2357-2373）。
+- 返回码：0=成功（含 0 星空场）；−1=参数无效/句柄 NULL/分配失败
+  （sdet_api.cpp:1612、:2264-2270）。错误所有权按 V14 合同：本模块返回码
+  独占定义，调用方只按 0/非 0 分支。
+
+### 调用时序
+
+sdet_create →（多次）sdet_detect_ex / sdet_detect_ex_f64（同 handle 互斥）
+→ sdet_free_detect_ex → sdet_destroy；destroy 后 handle 一律失效。旧
+`sdet_detect`+`sdet_free_coords` 与 `sdet_detect_debug`+`sdet_free_debug_maps`
+为独立释放族，禁止与 detect_ex 族混用。
+
+### 单位/dtype/shape
+
+见 DATA-P1-STAR（DATA_SEMANTICS §17）：x/y double pixel（0-based，像素
+中心=索引+0.5）；flux float ADU（正常星=振幅 A）；mag float（NaN=无效）；
+saturated/has_saturated int 0/1；图像输入 FP32 通道 uint16（DISP-STAR-001
+量化）/ FP64 通道 double；编排序列化 star_det FLOAT64 [N,6]（:2218-2246）。
+
+### 线程安全与确定性
+
+- handle 级互斥（单 handle 单线程）；内部并行=OpenMP（候选拟合 omp for
+  dynamic + reduction，:2042-2044；dedup/sort 串行）；输出 bitwise 与线程数
+  无关（ALG-STARDET-001 §5）；determinism=fixed_reduction_order
+  （module.yaml）。ThreadBudget 接线与取消检查点缺失已登记
+  （ALG-STARDET-001 §11.3），整改归 P1-STAR-IMPL。
+
+### 生产调用方与编排现状
+
+- 唯一生产调用方=lib/orchestrator/cpp/src/orchestrator.cpp：run_stage_psf
+  （PSF/STAR_MEASURE 阶段权威检测，:2067；函数指针装载 :2149-2165；FP64/
+  FP32 通道选择 :2172-2198；star_det 权威块写入 :2237-2246；缓冲释放
+  :2466）；PLATESOLVE fallback 读 star_det 块并禁重检测（:1748-1755、
+  :1826-1829）；sdet_create 参数构造 :1593-1612。
+- API-P1-003（PHASE1_API_V1 §2）表行 `sdet_create/destroy/detect/detect_ex`
+  引用本模块符号；descriptor astrocs.phase1.star-psf
+  （module_adapters.cpp:430-448）为编排层词汇，由 P1-PSF-INT 对齐，
+  不作冻结依据。
+
+### 已登记现状缺陷与迁移语义
+
+- DISP-STAR-001..005 与线程数/取消登记均不改码（ALG-STARDET-001 §11.3），
+  整改归 P1-STAR-IMPL/P1-STAR-INT；本节不宣称缺陷已修复。
+- 迁移：矩阵行 P1-STAR（owner=SA-P1-S15，legacy_paths=
+  lib/star_detector;lib/phase1/stars，迁移目标 astrocs_p1_star_detection.dll；
+  C ABI adapter 由 P1-STAR-IMPL 建立；本节描述现状 API，不声明 DLL 化
+  完成）。测试锚 TEST-STAR-DESIGN-001（ALG-STARDET-001 §11.4）由
+  P1-STAR-TEST 执行落 TEST-P1-STAR-001 + EVIDENCE；registry descriptor
+  占位词汇不作冻结依据（P1-PSF-DOC 先例）。

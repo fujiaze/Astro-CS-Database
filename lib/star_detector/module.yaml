@@ -1,0 +1,157 @@
+# AstroCS phase1 star-detection module — 元数据 (P1-STAR-DOC 冻结, 2026-09-07)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/star_detector/src/sdet_api.cpp 的
+# sdet_detect_impl/peaker 七步候选/sdet_moffat4_fit/sdet_lm_fit(GSL TR-LM)/
+# reject_star/sdet_dedup_stars/sdet_sort_stars + C API sdet_create/sdet_destroy/
+# sdet_detect/sdet_free_coords/sdet_detect_debug/sdet_free_debug_maps/
+# sdet_detect_ex/sdet_detect_ex_f64/sdet_free_detect_ex，唯一权威签名头
+# lib/star_detector/include/star_detector.h:1-73），模块化迁移（独立模块源
+# astrocs_p1_star_detection.dll / C ABI adapter / plan-execute-cancel-inspect /
+# ThreadLease 接线）由 P1-STAR-IMPL 执行；可执行测试由 P1-STAR-TEST 建立
+# （TEST-STAR-DESIGN-001 → TEST-P1-STAR-001）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对清单
+# （P1-STAR-DOC，2026-09-07，9 个导出 C API + 静态核心 sdet_detect_impl/
+# sdet_moffat4_fit/sdet_lm_fit/reject_star，均 grep 实测于 sdet_api.cpp），
+# 禁止手抄他版。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P1-STAR 行 owner=SA-P1-S15、
+# target=astrocs_p1_star_detection.dll、module_id=astrocs.p1.star_detection、
+# legacy_paths="lib/star_detector;lib/phase1/stars"、depends_on_int=
+# "IO-003;DATA-004;RT-006"、科学专项=subpixel centroid;completeness/false
+# positive synthetic fields;saturation/blend/edge;deterministic ordering。
+# dll_target=astrocs_p1_star_detection.dll 为迁移目标合同值（尚未存在）。现状
+# 构建=lib/star_detector/Makefile:39（g++ -shared -fopenmp -O3 -march=native →
+# star_detector.dll）+ lib/orchestrator/cpp/src/orchestrator.cpp:1539-1549
+# （lib/star_detector/star_detector.dll 显式加载，失败即错）；根 CMakeLists.txt:441
+# 另有 astrocs_phase1_stars STATIC（lib/phase1/stars P1-003 桥接层，独立
+# sigma-clip 实现，与生产 sdet_api.cpp 非同一算法路径）——整合与 dll 重命名归
+# P1-STAR-IMPL。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
+# 现状实现为 OpenMP 三处（sdet_api.cpp:448 行差分 static、:2321-2325 入口转换、
+# :2042-2044 候选拟合 dynamic + reduction(+:fit_ok_count)，逐候选独立按索引写回，
+# dedup/sort/maxStars 截断串行 :2224-2242，输出 bitwise 与线程数无关），无取消
+# 检查点，ThreadBudget 接线为迁移整改点（见 docs/contracts/PUBLIC_API.md
+# API-STAR-001 与 docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11.3
+# DISP-STAR-001..005）。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID（lib/core/src/
+# module_adapters.cpp:430-448 p1_star_psf_descriptor：module_id=
+# astrocs.phase1.star-psf、sci_id=SCI-P1-PSF-001、alg_id=ALG-002、
+# data_id=DATA-P1-SOURCES、api_id=API-P1-003、test_id=TEST-P1-PSF-001、
+# ports cleaned/sources/psf）为编排层词汇，由 P1-PSF-INT/P1-STAR-INT 对齐本
+# manifest 与 lib/star_detector/README.md（r1），不得反向作为冻结依据。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase1-star
+module_id: astrocs.p1.star_detection
+owner: SA-P1-S15
+language: c++17
+module_version: 0.11.0-alpha.1
+abi_version: 1
+phase_scope: phase1
+dll_name: astrocs_p1_star_detection.dll
+dll_target: astrocs_p1_star_detection.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [star_detection]
+input_ports:
+  - image
+  - params
+output_ports:
+  - star_det
+science_contracts:
+  - SCI-P1-STAR-001
+algorithm_contracts:
+  - ALG-STARDET-001
+data_contracts:
+  - DATA-P1-STAR
+api_contracts:
+  - API-P1-003
+  - API-STAR-001
+doc_links:
+  sci: docs/science/STAR_DETECTION.md
+  alg: docs/algorithms/STAR_DETECTION_ALGORITHMS.md#§11
+  data: docs/contracts/DATA_SEMANTICS.md#§17
+  api: docs/contracts/PUBLIC_API.md#API-STAR-001
+contract_ids:
+  sci: SCI-P1-STAR-001
+  alg: ALG-STARDET-001
+  data: DATA-P1-STAR
+  api: API-STAR-001
+  mod: MOD-astrocs-phase1-star
+  src: SRC-STAR-001
+  test: TEST-STAR-DESIGN-001
+exports:
+  - sdet_create
+  - sdet_destroy
+  - sdet_detect
+  - sdet_free_coords
+  - sdet_detect_debug
+  - sdet_free_debug_maps
+  - sdet_detect_ex
+  - sdet_detect_ex_f64
+  - sdet_free_detect_ex
+source_symbols:
+  - sdet_create
+  - sdet_destroy
+  - sdet_detect
+  - sdet_free_coords
+  - sdet_detect_debug
+  - sdet_free_debug_maps
+  - sdet_detect_ex
+  - sdet_detect_ex_f64
+  - sdet_free_detect_ex
+  - sdet_detect_impl
+  - sdet_moffat4_fit
+  - sdet_lm_fit
+  - reject_star
+  - sdet_dedup_stars
+  - sdet_sort_stars
+  - sdet_compute_bgnoise
+test_ids:
+  - TEST-STAR-DESIGN-001
+threading_model: host_executor_lease
+resource_class: cpu_heavy
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+upstream:
+  - SCI-P1-STAR-001
+  - ALG-STARDET-001
+  - DATA-P1-COSMETIC
+  - IO-003
+  - DATA-004
+  - RT-006
+  - API-P1-003
+downstream:
+  - DATA-P1-STAR
+  - API-STAR-001
+  - DATA-P1-PSF
+  - P1-STAR-IMPL
+  - P1-STAR-TEST
+  - P1-STAR-INT
+legacy_paths: [lib/star_detector, lib/phase1/stars]
+scientific_change: false
+notes: >-
+  DISP-STAR-001..005 全部登记（STAR_DETECTION_ALGORITHMS §11.3，登记不改码）：
+  001 FP32 通道 uint16 量化（orchestrator.cpp:2179-2187 float clamp [0,65535] 转
+  uint16 后进 sdet_detect_ex；FP64 通道 sdet_detect_ex_f64 全程 double 不降级，
+  PREC-105 同族）；002 全局单阈值 median+5·bgnoise 无局部背景自适应（sdet_api.cpp
+  :1645，旧结构图局部背景路径仅存 sdet_detect:992-1274/debug:1281-1593）；
+  003 SDetParams 9 字段生产消费面缺口（fitRadius 仅驱动 auto 半径日志推导
+  :2024-2026，fwhmClipSigma 仅 debug :1450-1452，structureLayers 等 5 字段仅旧
+  CC 路径消费）；004 饱和星 mag 量纲不一致（振幅 :2175 vs box 流量 :2177-2198）
+  且 has_saturated 恒等于 is_saturated（:2203）；005 双实现并存（生产 peaker
+  impl vs 旧 CC 结构图路径，候选过滤与去重语义漂移）。
+  另登记：ThreadBudget 未接线（OpenMP 三处无 num_threads 注入）、无取消检查点
+  （长帧检测不可中断）——整改归 P1-STAR-IMPL/INT。
+  错误/状态码语义（P1-STAR-DOC 冻结，ALG-STARDET-001 §11.2）：入口 rc 0=成功
+  （含 0 星空场，输出指针全 NULL，:2252-2263）、-1=参数无效/handle NULL/malloc
+  失败（:1612、:2264-2270）；拟合级 SDET_FIT_OK/INVALID_PARAMS/NO_CONVERGENCE
+  （:260-262/:425-429/:597-609，非 OK 候选丢弃 :2139 不出 NaN 行）；质量门
+  reject_star SfError 五码（:177-186，饱和豁免 RMSE :203-206）；编排级
+  STAR_DETECT_FAILED（orchestrator.cpp:2200-2212）、star_det 写块失败→阶段失败
+  （:2242-2247）。释放纪律：十数组必经 sdet_free_detect_ex 整组释放（:2357-2373）。
+  饱和/简并（科学专项）：饱和判定=3×3 邻域双条件（meanhigh-bg>=0.7·dynrange 且
+  pixel0-minhigh<=0.1·dynrange，:1768-1773）；饱和中心=edge-walking（:1784-1812）；
+  边界 2px 内允许丢弃（:1758-1760）；饱和+正常星 d^2<4.0 丢正常星保饱和星
+  （:841-863）；输出全序=mag 升序 stable_sort+NaN 末尾（:941-956）+ maxStars
+  截断保最亮（:2240-2242）。star_det v1 [N,6] 权威块列 [0..5]=x,y,flux,mag,
+  saturated,has_saturated（orchestrator.cpp:2218-2246）；编排一帧一次权威检测
+  （API-P1-003），PLATESOLVE 禁重检测（:1748-1755）。
+  禁止声明 IMPLEMENTED（迁移落码未发生）。

@@ -107,6 +107,9 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/algorithms/STAR_PSF_ALGORITHMS.md"
       status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/STAR_DETECTION_ALGORITHMS.md"
+      status: ACTIVE_NORMATIVE
+      notes: "P1-STAR-DOC (2026-09-07) 冻结: ALG-STARDET-001 逐符号源码锚定(sdet_detect_impl/peaker 七步/sdet_moffat4_fit/sdet_lm_fit/reject_star)+DISP-STAR-001..005+TEST-STAR-DESIGN-001 冻结容差+SCI-P1-STAR-001 状态声明(§11.5)"
     - path: "docs/algorithms/UPM_SOLVER.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/api/CLI_PROTOCOL_V1.md"
@@ -329,6 +332,9 @@ doc_index:
     - path: "docs/modules/registry/astrocs.phase1.star-psf.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase1.star-detection.md"
+      status: ACTIVE_NORMATIVE
+      notes: "P1-STAR-DOC 手写合同页（2026-09-07，registry 无 astrocs.p1.star_detection descriptor——现行占位 descriptor 为 astrocs.phase1.star-psf；gen_module_readmes.py 以 module_adapters.cpp 为源，重生成时须排除/保留本页）"
     - path: "docs/modules/registry/astrocs.phase1.wcs-platesolve.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"
@@ -382,6 +388,7 @@ doc_index:
       notes: "P1-NOISE-DOC 增补（2026-09-07）：legacy 诊断页追加 P1-NOISE-DOC 说明段；noise 模块合同页=lib/snr_estimator/README.md r1（CONTRACT_READY），本页不属 gen_module_readmes.py 生成范围"
     - path: "docs/modules/star_detector.md"
       status: ACTIVE_INFORMATIVE
+      notes: "P1-STAR-DOC 事实修订（2026-09-07）：legacy 诊断页按冻结合同修订；模块合同页=docs/modules/registry/astrocs.phase1.star-detection.md + lib/star_detector/README.md r1（CONTRACT_READY），本页不属 gen_module_readmes.py 生成范围"
     - path: "docs/performance/BASELINE.md"
       status: ACTIVE_INFORMATIVE
     - path: "docs/performance/OPTIMIZATION.md"
@@ -416,6 +423,9 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/science/REJECTION.md"
       status: ACTIVE_NORMATIVE
+    - path: "docs/science/STAR_DETECTION.md"
+      status: ACTIVE_NORMATIVE
+      notes: "P1-STAR-DOC (2026-09-07) 冻结: SCI-P1-STAR-001 冻结层落点（matrix P1-STAR 行 sci_doc），共享 SCI 引用不改动"
     - path: "docs/science/SCIENCE_SCOPE.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/science/UNCERTAINTY_AND_COVARIANCE.md"

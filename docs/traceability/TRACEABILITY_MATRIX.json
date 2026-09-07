@@ -732,6 +732,32 @@
    "evidence_id": "EVID-MISSING",
    "evidence_status": "MISSING",
    "notes": "P1-SESSION-DOC (SA-P1-R19) 冻结: Phase1 进程内装配会话 (assembly 层, matrix 无 P1-SESSION 行 → 不设独立 DLL, 现状=静态库 astrocs_phase1_session 根 CMakeLists.txt:448-452)。合同: DATA-P1-SESSION=DATA_SEMANTICS.md §16 新建 (config 键集/host services/manifest/校准 artifact schema, 单位/dtype/shape 逐项); API-P1-SESSION=PUBLIC_API.md 新建 (五导出 C API p1_session_create/validate/run/inspect/destroy + astrocs::phase1::last_error, p1_session.h:16-37); 编排级上游 API-P1-001(docs/api/PHASE1_API_V1.md FROZEN); ARCH-001 承载 assembly 边界。四段 canonical 节点 io_read→calibrate→cosmetic→io_write (p1_session.cpp:168/:195/:283/:319, facade 测试 :33-40 断言), 科学实现委托既有冻结 C API ac_calibrate_frame(:243)/ac_correct_frame(:294) → SCI/ALG 锚=被委托域既有冻结合同 SCI-CAL-001+ALG-CAL-001(docs/algorithms/CALIBRATION_ALGORITHMS.md, INDEX.yaml 既有), 不新设装配 ALG (INDEX.yaml 无 ALG-P1-SESSION 条目; 归档映射表 ALG-P1-SESSION-001 为 P1-001 旧词汇不进现行 INDEX); algorithm_contracts 另引 ALG-COS-001 (lib/phase1_session/module.yaml)。registry: 无独立 session descriptor, 五函数经 P1Api(module_adapters.cpp:693-700) 被 8 个 Phase1 descriptor 工厂委托(:728-735/:755-770); descriptor 占位词汇(ALG-002/ALG-004/ALG-005/TEST-P1-*-001)不作冻结依据(P1-PSF-DOC 先例)。如实差距: API-P1-001 冻结 7-stage 序列 vs 现状 4 段(CAL+COS), 检测/PSF/WCS/测光/SNR/Drizzle/HiPS 无执行段, 补齐归 P1-SESSION-IMPL, 本行不宣称 session 完成 7-stage。SRC 锚=p1_session.cpp 五导出符号(path::symbol 口径, p1_session.h:16-28)。TEST 锚=tests/unit/p1_ir_facade_test.cpp(facade 语义/canonical 节点集/委托+TEST-P1-SESSION-001 词汇已登记该文件与 registry 页); 生命周期登记 tests/api/test_p1_api.py 为旁证; EVID 待 INT/验收补。已知现状缺陷(登记不改码): cosmetic master 实参 nullptr→DISP-COS-009 恒等 pass(:295-296, 整改归 P1-COS-INT); dark_scale_factor validate 不验(:225 run 兜底 1.0); async_io_depth∈{0,1,2} 强校验(:152)但预读未按 depth 启用; 输出仅 FITS(aio_write_fits :262)。取消=io_read 文件粒度(:177-181)/calibrate 帧粒度(:228-231)/cosmetic 帧粒度(:289); 并发=budget.max_workers 注入 ac_set_num_threads(:162-165)+B 线 ThreadLease(module_adapters.cpp:156-162); determinism=fixed_reduction_order(module.yaml)。"
+  },
+  {
+   "module_id": "MOD-astrocs-phase1-star",
+   "module_kind": "phase1",
+   "module_anchor": "docs/modules/registry/astrocs.phase1.star-detection.md",
+   "science_id": "SCI-P1-STAR-001",
+   "science_doc": "docs/science/STAR_DETECTION.md::SCI-P1-STAR-001",
+   "science_status": "VERIFIED",
+   "algorithm_id": "ALG-STARDET-001",
+   "algorithm_doc": "docs/algorithms/STAR_DETECTION_ALGORITHMS.md::ALG-STARDET-001",
+   "algorithm_status": "VERIFIED",
+   "data_id": "DATA-P1-STAR",
+   "data_status": "VERIFIED",
+   "api_id": "API-STAR-001",
+   "api_status": "VERIFIED",
+   "arch_id": "ARCH-001",
+   "arch_status": "VERIFIED",
+   "src_id": "SRC-STAR-001",
+   "src_path": "lib/star_detector/src/sdet_api.cpp::sdet_detect_impl,sdet_moffat4_fit,sdet_lm_fit,sdet_detect_ex,sdet_detect_ex_f64,sdet_create,sdet_free_detect_ex",
+   "src_status": "VERIFIED",
+   "test_id": "TEST-STAR-DESIGN-001",
+   "test_path": "docs/algorithms/STAR_DETECTION_ALGORITHMS.md::TEST-STAR-DESIGN-001",
+   "test_status": "VERIFIED",
+   "evidence_id": "EVID-MISSING",
+   "evidence_status": "MISSING",
+   "notes": "P1-STAR-DOC (SA-P1-S15) 冻结: astrocs.p1.star_detection (matrix P1-STAR 行, dll_target astrocs_p1_star_detection.dll 合同值未建, 现状 lib/star_detector/Makefile:39 star_detector.dll 经 orchestrator.cpp:1539-1549 显式加载; legacy_paths 第二路径 lib/phase1/stars P1-003 桥接层独立实现)。合同: SCI-P1-STAR-001=docs/science/STAR_DETECTION.md 冻结层(共享 SCI 引用不改动, 落点声明见 ALG 文档 §11.5); ALG-STARDET-001=STAR_DETECTION_ALGORITHMS.md §11 逐符号源码锚定(sdet_detect_impl:1599-2353 peaker 七步+sdet_moffat4_fit/sdet_lm_fit GSL TR-LM+reject_star 五码+dedup/sort/maxStars)+DISP-STAR-001..005 登记不改码(整改归 P1-STAR-IMPL/INT); DATA-P1-STAR=DATA_SEMANTICS.md §17 新建(star_det 权威块 FLOAT64[N,6] 列 x,y,flux,mag,saturated,has_saturated+psf_compat FLOAT32[N,4]+十数组 sdet_free_detect_ex 整组释放); API-STAR-001=PUBLIC_API.md 新建(9 导出 C API, star_detector.h:1-73 唯一权威签名头); 编排上游 API-P1-003 一帧一次权威检测(orchestrator.cpp:2218-2246 star_det 写块, PLATESOLVE 禁重检测 :1748-1755); ARCH-001 承载模块边界。SRC 锚=sdet_api.cpp 7 符号(path::symbol 口径, grep 实测)。TEST 层锚=ALG 文档 §11.4 冻结测试设计 TEST-STAR-DESIGN-001(合成场质心/FWHM/召回虚警/饱和混合边缘/确定性 bitwise/FP64 独立 oracle/负例/回归锚+冻结容差), 可执行 TEST-P1-STAR-001 由 P1-STAR-TEST 落地后更新本行; EVID 待 INT/验收补。registry descriptor 占位 astrocs.phase1.star-psf(module_adapters.cpp:430-448, ALG-002/TEST-P1-PSF-001)由 P1-STAR-INT/P1-PSF-INT 对齐, 不作冻结依据; 合同入口=lib/star_detector/README.md r1(CONTRACT_READY)+module.yaml(entrypoint=MISSING)。"
   }
  ]
 }

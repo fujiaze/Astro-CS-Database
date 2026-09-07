@@ -1,5 +1,11 @@
 # star_detector - 模块开发memory
 
+> 状态注记（P1-STAR-DOC，2026-09-07）：本文档既有内容（V4.54..V5.0 叙事、
+> 性能指标、GitHub 仓库链接）为 ARCHIVED_NON_NORMATIVE 过程记录；模块冻结合同
+> 以 lib/star_detector/README.md r1 + module.yaml（CONTRACT_READY）为准，
+> 其中与冻结合同不一致的旧描述（如排序语义）以 r1 为准。合同冻结追加段见文末
+> 「P1-STAR-DOC 冻结（2026-09-07）」。
+
 ## 模块职责
 天文图像星点检测器，从16bit天文图像中检测星点，采用GSL trust-region LM Gaussian拟合 + halfA边界搜索初始化 + 半阈值饱和星检测，输出坐标/flux/饱和标记及可选拟合参数。
 
@@ -75,3 +81,29 @@
 - 从 Moffat4 改为 Gaussian PSF (model = B + A*exp(-Q))
 - FWHM = 2.3548*σ (Gaussian)，替代 FWHM = 0.87*σ (Moffat4)
 - 同一星点 Gaussian A ≈ 峰值，Moffat4 A 偏高
+
+## P1-STAR-DOC 冻结（2026-09-07）
+
+P1-STAR-DOC 任务完成模块冻结合同（状态 CONTRACT_READY，禁止宣称 IMPLEMENTED），
+产物与权威链：
+
+- **module.yaml（新建）**：schema astrocs.module-manifest/v1，
+  MOD-astrocs-phase1-star / astrocs.p1.star_detection，dll_target=
+  astrocs_p1_star_detection.dll（合同值，尚未存在），entrypoint=MISSING；
+  contract_ids：SCI-P1-STAR-001 / ALG-STARDET-001 / DATA-P1-STAR /
+  API-STAR-001 / SRC-STAR-001 / TEST-STAR-DESIGN-001。
+- **README.md r1（重写）**：SRC-STAR-001 源码实测冻结（sdet_api.cpp 2373 行），
+  9 导出 C API + 内部核心逐符号行号锚；旧 V5.0 性能叙事归 ARCHIVED_NON_NORMATIVE，
+  旧排序描述（饱和星在前按 r 降序）与实现不符已修正。
+- **ALG 权威**：docs/algorithms/STAR_DETECTION_ALGORITHMS.md（ALG-STARDET-001
+  §11 逐符号锚 + DISP-STAR-001..005 + TEST-STAR-DESIGN-001 冻结测试设计 +
+  SCI-P1-STAR-001 状态声明）。
+- **DATA 权威**：docs/contracts/DATA_SEMANTICS.md §17（DATA-P1-STAR）；
+  **API 权威**：docs/contracts/PUBLIC_API.md API-STAR-001。
+- 生产事实要点（实测）：生产路径=sdet_detect_impl（:1599-2353）peaker 七步
+  候选 + Moffat4 GSL TR-LM；双入口 sdet_detect_ex（uint16→float）/…_f64
+  （全程 double）；输出十数组 mag 升序 NaN 末尾 + maxStars 截断；编排在
+  PSF/STAR_MEASURE 一帧一次权威检测产 star_det FLOAT64[N,6]
+  （orchestrator.cpp:2218-2246），PLATESOLVE 禁重检测（:1748-1755）。
+- DISP-STAR-001..005 + ThreadBudget/取消缺失全部登记不改码，整改归
+  P1-STAR-IMPL/INT；可执行测试归 P1-STAR-TEST（容差冻结不得放宽）。

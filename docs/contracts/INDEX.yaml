@@ -331,6 +331,30 @@ contracts:
     path: docs/contracts/PUBLIC_API.md
     upstream: [ALG-STARPSF-001]
     downstream: []
+  - id: ALG-STARDET-001
+    type: ALG
+    status: ACTIVE
+    owner: SA-P1-S15
+    version: 1.0.0
+    path: docs/algorithms/STAR_DETECTION_ALGORITHMS.md
+    upstream: [SCI-PSF-001]
+    downstream: [DATA-P1-STAR, API-STAR-001]
+  - id: DATA-P1-STAR
+    type: DATA
+    status: ACTIVE
+    owner: SA-P1-S15
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-STARDET-001]
+    downstream: []
+  - id: API-STAR-001
+    type: API
+    status: ACTIVE
+    owner: SA-P1-S15
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ALG-STARDET-001]
+    downstream: []
   - id: DATA-ARTIFACTS-001
     type: DATA
     status: ACTIVE
