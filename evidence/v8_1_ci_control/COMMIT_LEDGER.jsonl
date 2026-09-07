@@ -1633,3 +1633,4 @@
 {"sha": "a769d20290685d55528be10b0e45ad55f0643657", "subject": "fix(ci): package 失败时 verification_details 逐项落 summary+candidate 树上传——exported_abi/dll_load 离线定位", "task_id": "UNTAGGED", "date": "2026-09-08T03:07:43+08:00"}
 {"sha": "e17788e65b49725d31410d7f3a0859ab24aea739", "subject": "fix(docs): STAR_DETECTION 补 §5 物理量和单位（ADU/px/deg，语义零改动）——SCI-UNITS-MISSING 修复，CON-SCIENCE-UNITS/CON-FULL-INTEGRATION 恢复 PASS", "task_id": "UNTAGGED", "date": "2026-09-08T02:56:30+08:00"}
 {"sha": "fdd76dacde0c7a0a2395f11c3f3ba7b5432f3f4a", "subject": "chore(state): 台账补登 a5a01cf2/ddfb6dbe/aa785859——reconcile commit_ledger missing=3 修复", "task_id": "UNTAGGED", "date": "2026-09-08T02:57:02+08:00"}
+{"sha": "9628b7c975458860d68e8027b3a5770eef8bca48", "subject": "chore(state): 台账补登 a769d202", "task_id": "UNTAGGED", "date": "2026-09-08T03:07:54+08:00"}
