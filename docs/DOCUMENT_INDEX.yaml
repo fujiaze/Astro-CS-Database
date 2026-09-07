@@ -295,6 +295,9 @@ doc_index:
       status: ACTIVE_INFORMATIVE
     - path: "docs/modules/orchestrator.md"
       status: ACTIVE_INFORMATIVE
+    - path: "docs/modules/phase1_session.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "P1-SESSION-DOC (2026-09-07) 新建: Phase1 装配会话模块页——合同落位 lib/phase1_session/README.md + module.yaml (astrocs.phase1.session, CONTRACT_READY, 静态库不设 DLL); 合同 ID=DATA-P1-SESSION/API-P1-SESSION; 编排上游 API-P1-001; 现状 4 段 vs 冻结 7-stage 差距如实登记"
     - path: "docs/modules/phase2.md"
       status: ACTIVE_INFORMATIVE
     - path: "docs/modules/photometric_calib.md"
@@ -320,6 +323,9 @@ doc_index:
     - path: "docs/modules/registry/astrocs.phase1.photometry.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase1.session.md"
+      status: ACTIVE_NORMATIVE
+      notes: "P1-SESSION-DOC 手写合同页（2026-09-07，registry 无 astrocs.phase1.session descriptor——五函数经 P1Api 被 8 descriptor 工厂委托；gen_module_readmes.py 以 module_adapters.cpp 为源，重生成时须排除/保留本页）"
     - path: "docs/modules/registry/astrocs.phase1.star-psf.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"

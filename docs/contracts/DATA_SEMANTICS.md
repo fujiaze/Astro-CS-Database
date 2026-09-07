@@ -551,3 +551,75 @@ A/B/mad（与冻结 SNR 定义一致）；下游必须经 star_id 连接，禁�
   （PREC-105）。
 - determinism/dtype 变更属科学改动，须走 owner 流程；本节禁止被编排层词汇反向
   改写（descriptor 占位 ALG-002/TEST-P1-PSF-001 由 P1-PSF-INT 对齐）。
+
+## 16. Phase1 装配会话输入/输出数据（DATA-P1-SESSION）
+
+> ID: DATA-P1-SESSION  状态: CONTRACT_READY（P1-SESSION-DOC 冻结，2026-09-07）
+> 模块: lib/phase1_session（MOD-astrocs-phase1-session，module_id=
+> astrocs.phase1.session；assembly 层，迁移矩阵无 P1-SESSION 行，不设独立
+> DLL，现状=静态库 astrocs_phase1_session，根 CMakeLists.txt:448-452）。
+> ALG: 不新设装配算法——本节只登记 config/manifest/artifact 的
+> schema/单位/dtype/shape，科学语义引用既有 DATA-P1-CAL（§9）、
+> DATA-P1-COS（§10）等冻结节。编排级合同 API-P1-001
+> （docs/api/PHASE1_API_V1.md，FROZEN）；入口符号合同 API-P1-SESSION
+> （PUBLIC_API.md）。本节是该会话数据面的唯一权威，禁止被编排层占位
+> 词汇反向改写。
+
+### 16.1 config JSON（p1_session_validate 键集，p1_session.cpp:115-143）
+
+| 键 | 必/可 | dtype | 默认 | 消费段 / 错误 |
+|---|---|---|---|---|
+| input_lights | 必 | UTF-8 string 非空数组 | 无 | io_read；缺失/非数组/空/元素非串 → ACS_ERR_PARAM（:116-127） |
+| output_dir | 必 | string | 无 | calibrate/io_write；缺失/非串 → PARAM（:116-119） |
+| master_bias / master_dark / master_flat | 可 | string 或 null | null（:127-131） | io_read；类型错 → PARAM |
+| cosmetic | 可 | object（值 numeric/bool） | `{}` | cosmetic；非 object/值类型错 → PARAM（:132-140） |
+| cosmetic.enabled | 可 | bool | true（run 开关 :284 `value("enabled", true)`） | cosmetic 段跳过开关 |
+| dark_optimization | 可 | bool | false | calibrate（:141-143） |
+| dark_scale_factor | 可（validate 不验） | float | 1.0（run :225 `value()` 兜底） | calibrate dark 缩放因子 |
+
+config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失败→PARAM）。
+
+### 16.2 host services 数据面（include/astrocs/common_abi_v1.h:110-117）
+
+- `allocator`：handle 内部与 inspect 输出缓冲分配（inspect 缓冲
+  p1_session.cpp:349-357 host alloc，调用方经 host free 释放）。
+- `cancel`（:92-97 单向置位）：检查点=io_read 文件粒度（:177-181）、
+  calibrate 帧粒度（:228-231）、cosmetic 帧粒度（:289）。
+- `budget`（:100-108）：`max_workers` → `ac_set_num_threads` 注入
+  （:162-165）；`available_cpus` 上限快照。
+
+### 16.3 manifest JSON（p1_session_inspect 输出，dump(2) :348）
+
+| 字段 | dtype | 语义 |
+|---|---|---|
+| kind | string，恒 "astrocs_phase1_session" | 会话标识（:98 初始化） |
+| stages | array[object] | 逐段条目（:170/:199/:285/:321 push） |
+| stages[].name | string | io_read / calibrate / cosmetic / io_write（canonical 4 段） |
+| stages[].status | string | running → ok / fail / cancelled |
+| stages[].files | uint64 | io_read 读取文件数（:191） |
+| stages[].frames / .per_frame | uint64 / array | calibrate 成功帧数与逐帧记录（:277-279） |
+| artifacts | array[string] | 已落盘校准帧路径（:274-275 push） |
+| frames | uint64 | 总成功帧数（:333） |
+| status | string | created（未 run 无错 :342-343）→ complete（:334）/ failed（:345） |
+| error / error_kind | string | 脱敏错误摘要（:346）与错误类别（"input" :185/:204-212 等） |
+
+### 16.4 artifact（校准输出帧，:256-269）
+
+| 项 | 值 |
+|---|---|
+| 路径 | `<output_dir>/calibrated_<basename>`（:258-261） |
+| dtype | float32 像素平面（复用 aio_read_fits 读结构覆写像素 :256-258 后 aio_write_fits :262；像素 dtype 随输入帧 float32 通道） |
+| shape | [h, w]（与输入光帧及母版一致；不匹配→PARAM :218-221/:236-239） |
+| 单位 | ADU（与 DATA-P1-CAL 像素语义一致，§9） |
+| 格式 | 仅 FITS（aio_write_fits）；XISF 仅读侧自动探测（aio_read :71-74） |
+| invalid | 像素域 invalid 语义承 DATA-P1-CAL（§9），本层不新增定义 |
+| 释放 | AIOImageData 必经 canonical deleter aio_free_image_data（:56-61，IO-002） |
+
+### 16.5 边界
+
+- 本节不定义校准/cosmetic 公式（ALG-CAL-001..006 / ALG-COS-001..005
+  权威）与任何其他阶段算法；不描述 Phase2/3 数据面。
+- API-P1-001 冻结 7-stage 序列与现状 4 段（CAL+COS）的差距在
+  lib/phase1_session/README.md §3 如实声明；补齐归 P1-SESSION-IMPL。
+- assembly 层禁止声明 IMPLEMENTED 于无证据处；descriptor 端口编目
+  （module_adapters.cpp:254-544）与本节冲突时以本节+各冻结 DATA 节为准。
