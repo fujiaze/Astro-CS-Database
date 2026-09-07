@@ -344,10 +344,16 @@ def stage_plan(stages: list[str], *, preset: str = DEFAULT_PRESET,
         elif stage == "test":
             # --output-on-failure: 失败用例的 stderr/断言细节进 stage tee 日志
             # 与 junit（run 5e457d425fc8 的 7 failed 无断言细节可查，即缺此项）。
+            # WIN-TEST-UNIT missing_output 根因: --output-junit 路径相对 ctest
+            # 进程 cwd（=REPO），ctest 不自建父目录——run/ci/ 不存在时 junit
+            # 写出失败且 ctest 仍 exit 0。driver 在起 test 前显式 mkdir 父目录
+            # （与 _append_summary 的 mkdir 同口径）。
+            junit_path = _resolve(junit)
+            junit_path.parent.mkdir(parents=True, exist_ok=True)
             plan.append({"name": stage, "timeout": timeout,
                          "argv": ["ctest", "--preset", test_preset,
                                   "--output-on-failure",
-                                  "--output-junit", junit]})
+                                  "--output-junit", str(junit_path)]})
         elif stage == "install":
             plan.append({"name": stage, "timeout": timeout,
                          "argv": ["cmake", "--install", build_dir,
@@ -630,8 +636,12 @@ def verify_candidate(candidate: Path, *, run_binaries: bool | None = None,
             res = run_step(argv, timeout=180, cwd=candidate, env=env)
             ok = res["exit_code"] == 0
             if ok and expect_json:
+                # version --json 返回 {"schema_version":"1","name":"astrocs",
+                # "version":...}: "name" 键的值才是 astrocs。旧写法
+                # "astrocs" in dict 检查的是键而非值, 恒假 → cli_entry 必 FAIL。
                 try:
-                    ok = "astrocs" in json.loads(res["output_tail"].splitlines()[-1])
+                    doc = json.loads(res["output_tail"].splitlines()[-1])
+                    ok = doc.get("name") == "astrocs" and bool(doc.get("version"))
                 except Exception:
                     ok = False
             checks.append(_verify_pair(item, ok,
