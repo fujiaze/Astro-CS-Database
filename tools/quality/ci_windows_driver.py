@@ -614,8 +614,11 @@ def verify_candidate(candidate: Path, *, run_binaries: bool | None = None,
             continue
         res = run_step([dumpbin, "/EXPORTS", str(path)],
                        timeout=120, cwd=candidate)
+        # dumpbin x64 导出行=「ordinal hint RVA name」三列数字+符号名；
+        # 旧正则 ^\s+\d+\s+[0-9A-Fa-f]{8} 少匹配 hint 列 → 恒 0 符号 →
+        # exported_abi 全部误 FAIL（exit 0 且符号表非空的实际输出被拒）。
         exports = [ln.strip() for ln in res["output_tail"].splitlines()
-                   if re.match(r"^\s+\d+\s+[0-9A-Fa-f]{8}", ln)]
+                   if re.match(r"^\s+\d+\s+[0-9A-Fa-f]{1,8}\s+[0-9A-Fa-f]{1,8}\s+\w", ln)]
         ok = res["exit_code"] == 0 and bool(exports)
         checks.append(_verify_pair(
             f"exported_abi:{dll}", ok,
