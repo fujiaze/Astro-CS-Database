@@ -1615,3 +1615,4 @@
 {"sha": "77040478ba7e73065757ada5f80702df532556e1", "subject": "chore(state): P1-PHOT-DOC 台账 CLOSED 同步（fg_verified_commit, commit 87bb7b7f）", "task_id": "UNTAGGED", "date": "2026-09-07T21:00:00+08:00"}
 {"sha": "5eb0c19cadfb67f781f90835eae6c692aebb970b", "subject": "docs(P1-PSF-DOC): dynamic_psf 模块合同冻结——ALG-STARPSF-001/DATA-P1-PSF/API-PSF-001/trace（控制包 8/140, wave W1）", "task_id": "UNTAGGED", "date": "2026-09-07T21:05:00+08:00"}
 {"sha": "a8fa7a7659ffcc6c064b33a70d66814776c4ee6b", "subject": "chore(state): P1-PSF-DOC 台账 CLOSED 同步（fg_verified_commit, commit 5eb0c19c）", "task_id": "UNTAGGED", "date": "2026-09-07T23:50:00+08:00"}
+{"sha": "bb075b933965a36440c4645527e71b6952ab1a77", "subject": "docs(P1-SESSION-DOC): Phase1 assembly 合同冻结——DATA-P1-SESSION/API-P1-SESSION/DAG 节点表/trace（控制包 9/140, wave W1）", "task_id": "UNTAGGED", "date": "2026-09-07T23:55:00+08:00"}

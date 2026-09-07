@@ -178,7 +178,7 @@ P3-FITS-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,
 P3-FITS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-FITS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-FITS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P1-SESSION-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-SESSION-DOC,module-doc,NOT_STARTED,commit:bb075b93 traceability 28行0错 + pytest 4P + contract_graph 48 + doc_index PASS + selfcheck 46/0 PASS,CLOSED,fg_verified_commit,bb075b93,lib/phase1_session/; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结(assembly 层); 不设 ALG(无装配公式); entrypoint=p1_session_run; API-P1-001 7-stage vs 现状 4 段差距登记归 P1-SESSION-IMPL; cosmetic nullptr 母版 DISP-COS-009 归 P1-COS-INT
 P1-SESSION-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-SESSION-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-SESSION-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
