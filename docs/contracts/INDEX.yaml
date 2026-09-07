@@ -14,7 +14,7 @@ contracts:
     version: 1.0.0
     path: docs/science/SCIENCE_SCOPE.md
     upstream: []
-    downstream: [SCI-CAL-001, SCI-WCS-001, SCI-PHOT-001, SCI-PSF-001, SCI-NOISE-001, SCI-DRZ-001, SCI-UPM-001, SCI-REJ-001, SCI-INT-001]
+    downstream: [SCI-CAL-001, SCI-WCS-001, SCI-PHOT-001, SCI-PSF-001, SCI-NOISE-001, SCI-DRZ-001, SCI-UPM-001, SCI-REJ-001, SCI-INT-001, SCI-CW-001, SCI-AST-001, SCI-ACR-EQUIV-001, SCI-P3-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
   - id: SCI-CAL-001
     type: SCI
     status: ACTIVE
@@ -30,7 +30,7 @@ contracts:
     version: 1.0.0
     path: docs/science/ASTROMETRY.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-WCS-001]
+    downstream: [ALG-WCS-001, SCI-P3-001]
   - id: SCI-PHOT-001
     type: SCI
     status: ACTIVE
@@ -46,7 +46,7 @@ contracts:
     version: 1.0.0
     path: docs/science/PSF.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-STARPSF-001]
+    downstream: [ALG-STARPSF-001, ALG-STARDET-001]
   - id: SCI-NOISE-001
     type: SCI
     status: ACTIVE
@@ -54,7 +54,7 @@ contracts:
     version: 1.0.0
     path: docs/science/NOISE_MODEL.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-NOISE-001, ALG-NOISE-002, ALG-NOISE-003, ALG-UPM-CONTROL-IVAR-001]
+    downstream: [ALG-NOISE-001, ALG-NOISE-002, ALG-NOISE-003, ALG-UPM-CONTROL-IVAR-001, SCI-CW-001]
   - id: SCI-DRZ-001
     type: SCI
     status: ACTIVE
@@ -62,7 +62,7 @@ contracts:
     version: 1.0.0
     path: docs/science/DRIZZLE.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-DRZ-001, ALG-HEALPIX-001, ALG-HIPS-001]
+    downstream: [ALG-DRZ-001, ALG-HEALPIX-001, ALG-HIPS-001, SCI-P3-001]
   - id: SCI-UPM-001
     type: SCI
     status: ACTIVE
@@ -70,7 +70,7 @@ contracts:
     version: 1.0.0
     path: docs/science/PHASE2_UPM.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-UPM-001]
+    downstream: [ALG-UPM-001, ALG-COV-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
   - id: SCI-REJ-001
     type: SCI
     status: ACTIVE
@@ -78,7 +78,7 @@ contracts:
     version: 1.0.0
     path: docs/science/REJECTION.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-REJ-001]
+    downstream: [ALG-REJ-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
   - id: SCI-INT-001
     type: SCI
     status: ACTIVE
@@ -86,7 +86,7 @@ contracts:
     version: 1.0.0
     path: docs/science/INTEGRATION.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-INT-001]
+    downstream: [ALG-INT-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
   - id: SCI-CW-001
     type: SCI
     status: ACTIVE
@@ -94,7 +94,7 @@ contracts:
     version: 1.0.0
     path: docs/science/CONTROL_WEIGHT_SNR.md
     upstream: [SCI-SCOPE-001, SCI-NOISE-001]
-    downstream: [ALG-CW-001]
+    downstream: [ALG-CW-001, ALG-UPM-CONTROL-IVAR-001]
   - id: SCI-AST-001
     type: SCI
     status: ACTIVE
@@ -117,7 +117,7 @@ contracts:
     owner: AstroCS
     version: 1.0.0
     path: docs/science/PHASE3_HIPS_TO_FITS.md
-    upstream: [SCI-WCS-001, SCI-DRZ-001]
+    upstream: [SCI-WCS-001, SCI-DRZ-001, SCI-SCOPE-001]
     downstream: [ALG-P3-001]
   - id: SCI-ACR-EQUIV-001
     type: SCI
@@ -265,6 +265,54 @@ contracts:
     path: docs/contracts/PUBLIC_API.md
     upstream: [ALG-COV-001]
     downstream: []
+  - id: ALG-P2-HIPS-001
+    type: ALG
+    status: ACTIVE
+    owner: SA-P2-I23
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_MOSAIC_WRITE.md
+    upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001, SCI-SCOPE-001]
+    downstream: [DATA-P2-HIPS, API-P2-HIPS-001]
+  - id: ALG-P2-HIPS-002
+    type: ALG
+    status: ACTIVE
+    owner: SA-P2-I23
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_MOSAIC_WRITE.md
+    upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001, SCI-SCOPE-001]
+    downstream: [DATA-P2-HIPS, API-P2-HIPS-001]
+  - id: ALG-P2-HIPS-003
+    type: ALG
+    status: ACTIVE
+    owner: SA-P2-I23
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_MOSAIC_WRITE.md
+    upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001, SCI-SCOPE-001]
+    downstream: [DATA-P2-HIPS, API-P2-HIPS-001]
+  - id: ALG-P2-HIPS-004
+    type: ALG
+    status: ACTIVE
+    owner: SA-P2-I23
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_MOSAIC_WRITE.md
+    upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001, SCI-SCOPE-001]
+    downstream: [DATA-P2-HIPS, API-P2-HIPS-001]
+  - id: DATA-P2-HIPS
+    type: DATA
+    status: ACTIVE
+    owner: SA-P2-I23
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
+    downstream: []
+  - id: API-P2-HIPS-001
+    type: API
+    status: ACTIVE
+    owner: SA-P2-I23
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
+    downstream: []
   - id: ALG-REJ-001
     type: ALG
     status: ACTIVE
@@ -322,7 +370,7 @@ contracts:
     version: 1.0.0
     path: docs/contracts/DATA_SEMANTICS.md
     upstream: []
-    downstream: [DATA-ARTIFACTS-001]
+    downstream: [DATA-ARTIFACTS-001, DATA-P1-SESSION]
   - id: DATA-P1-NOISE
     type: DATA
     status: ACTIVE
@@ -420,7 +468,7 @@ contracts:
     version: 1.0.0
     path: docs/contracts/ARCH-001.md
     upstream: []
-    downstream: [API-001]
+    downstream: [API-001, DATA-P1-SESSION, API-P1-SESSION]
 
   # ── API 接口 ──
   - id: API-CONTRACTS-001
@@ -438,7 +486,7 @@ contracts:
     version: 1.0.0
     path: docs/contracts/API-001.md
     upstream: [ARCH-001]
-    downstream: []
+    downstream: [API-P1-SESSION]
   - id: API-P1-SESSION
     type: API
     status: ACTIVE

@@ -1,0 +1,113 @@
+# AstroCS phase2 HiPS mosaic writer 模块 — 元数据 (P2-HIPS-DOC 冻结, 2026-09-09)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase2/tools/stage2.cpp
+# 1762 行 + config 层 lib/phase2/include/astro/phase2/stage2_common.h
+# P2Stage2Config :16-99 / p2_stage2_parse_config :102 /
+# p2_stage2_make_upm_cfg :106 / p2_acr_block_eligible :113，行号 grep
+# 实测；工具目标 astrocs-stage2 lib/phase2/CMakeLists.txt:103-110），
+# 模块化迁移（独立模块源 astrocs_p2_hips_writer.dll / C ABI adapter /
+# plan-execute-cancel-inspect / ThreadLease 接线）由 P2-HIPS-IMPL 执行；
+# 可执行测试由 P2-HIPS-TEST 建立（TEST-P2-HIPS-001 MISSING，不冒认）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码
+# 核对清单（P2-HIPS-DOC，2026-09-09，grep 实测），禁止手抄他版。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P2-HIPS 行 owner=SA-P2-I23、
+# target=astrocs_p2_hips_writer.dll、module_id=astrocs.p2.hips_writer、
+# legacy_paths="lib/phase2 write sources;lib/healpix_db"、depends_on_int=
+# P2-INT-INT;IO-003。实测生产写编排源 lib/phase2/tools/stage2.cpp 位于
+# lib/phase2/——该目录三件套已被 P2-COV 域 astrocs.p2.coverage 合同占用
+# （lib/phase2/README.md r1，一目录一套 README/module.yaml/memory.md，
+# 不可覆盖他域合同），故按 lib/hips/（P1-HIPS）先例落独立迁移目标目录
+# lib/hips_p2/（本文件所在，仅合同文件、无源码、不与 legacy 目录重叠）。
+# lib/healpix_db 侧生产参与仅 P1 写通道 astro_sphere_sink.cpp（P1-DRZ
+# 资产，引用不归属）。共用 writer 库 aio_hips_writer.cpp 为 P1-HIPS 域
+# 冻结面（ALG-HIPS-001..005），本模块为库消费者。
+# dll_target=astrocs_p2_hips_writer.dll 为迁移目标合同值（尚未存在）；
+# 现状构建=lib/phase2/CMakeLists.txt astrocs-stage2 工具
+# （:103 add_executable、:104-105 链接 phase2/astrocs_hips 等、:107-108
+# P2_ENABLE_OPENMP（CON-006）、:110 EXCLUDE_FROM_ALL、:126 按需工具）。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4
+# 值域）；现状实现=writer 单句柄串行（parallel_ok=false）+ CPU reference
+# 逐像素 OMP 并行仅内部（CON-006，per-worker scratch + thread id 固定
+# 顺序定序归并，输出与线程数无关），large_scale 激活强制串行；ThreadLease/
+# 取消检查点无接线（迁移整改点，与 DISP-COV-005 同构）。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# （lib/core/src/module_adapters.cpp:677-694 p2_write_descriptor 的
+# module_id=astrocs.phase2.write、sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/
+# data_id=DATA-P2-RES/api_id=API-P2-001/test_id=TEST-P2-WR-001、ports
+# integrated/mosaic、坐标 PIXEL 与 NESTED 球面实际不符）为编排层词汇，
+# 由 P2-XX-INT 对齐本 manifest 与 lib/hips_p2/README.md（r1），不得反向
+# 作为冻结依据。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase2-hips-writer
+module_id: astrocs.p2.hips_writer
+owner: SA-P2-I23
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase2
+dll_name: astrocs_p2_hips_writer.dll
+dll_target: astrocs_p2_hips_writer.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [write]
+input_ports:
+  - integrated
+output_ports:
+  - mosaic
+science_contracts:
+  - SCI-UPM-001
+  - SCI-INT-001
+  - SCI-REJ-001
+algorithm_contracts:
+  - ALG-P2-HIPS-001
+  - ALG-P2-HIPS-002
+  - ALG-P2-HIPS-003
+  - ALG-P2-HIPS-004
+data_contracts:
+  - DATA-P2-HIPS
+api_contracts:
+  - API-P2-001
+  - API-P2-HIPS-001
+doc_links:
+  sci: docs/science/PHASE2_UPM.md
+  sci_extra: docs/science/INTEGRATION.md
+  alg: docs/algorithms/PHASE2_MOSAIC_WRITE.md
+  data: docs/contracts/DATA_SEMANTICS.md#§20
+  api: docs/contracts/PUBLIC_API.md#API-P2-HIPS-001
+contract_ids:
+  sci: SCI-UPM-001
+  alg: ALG-P2-HIPS-001
+  data: DATA-P2-HIPS
+  api: API-P2-HIPS-001
+  arch: ARCH-001
+  test: TEST-P2-HIPS-001
+source_symbols:
+  - main
+  - p2_stage2_parse_config
+  - p2_stage2_make_upm_cfg
+  - p2_acr_block_eligible
+  - p2_frame_id
+  - p2_collect_candidate_stack
+  - p2_reject_stack_ex
+  - p2_integrate_pixel
+  - p2_large_scale_apply
+  - p2_block_plan
+  - aio_hips_product_begin
+  - aio_hips_write_signal_support_tile
+  - aio_hips_finalize
+  - aio_hips_abort
+test_ids:
+  - TEST-P2-HIPS-001
+threading_model: host_executor_lease
+resource_class: io
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+scientific_change: false
+depends_on:
+  - astro_image_io
+  - astrocs_phase2
+legacy_paths: lib/phase2 write sources;lib/healpix_db
+known_defects:
+  - DISP-P2HIPS-001
+  - DISP-P2HIPS-002
+  - DISP-P2HIPS-003
+  - DISP-P2HIPS-004

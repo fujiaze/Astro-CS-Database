@@ -866,3 +866,163 @@ P2HipsInputInfo 逐字段（coverage.h:31-38，回填锚 :113-143）:
 - 释放纪律: p2_coverage_free（:233-237，memset :235）调用方收尾
   （PHASE2_API_V1 §1 表行登记）；无隐藏全局状态（单文件 static/匿名
   ns 函数，无模块级可变状态）。
+
+## 20. Phase2 mosaic write（lib/phase2 tools）模块输入/输出数据（DATA-P2-HIPS）
+
+> ID: DATA-P2-HIPS  状态: CONTRACT_READY（P2-HIPS-DOC 冻结，2026-09-07）
+> 模块: lib/phase2/tools/stage2.cpp 生产工具 astrocs-stage2
+> （astrocs.p2.hips_writer；迁移目标 astrocs_p2_hips_writer.dll 为矩阵
+> 合同值，尚未存在，由 P2-HIPS-IMPL 建立，禁止声明 IMPLEMENTED）。
+> 本节是 Phase2 马赛克（HiPS）输出单位/dtype/shape/invalid 的唯一
+> 权威；ALG: ALG-P2-HIPS-001..004（docs/algorithms/
+> PHASE2_MOSAIC_WRITE.md，算法级逐符号锚由该文档登记）；编排级合同
+> API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN）；§4/§4a 的
+> signal/support/invalid 与 variance/ivar 产品语义在此落地为 Phase2
+> 输出侧逐文件语义；输入读合同: IO-002（docs/interfaces/io/
+> IO_002_HIPS_INPUT_INTERFACE.md）；发布合同: IO-003（docs/interfaces/
+> io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，§20.3 对齐边界）；配置 schema
+> 唯一权威签名源 lib/phase2/include/astro/phase2/stage2_common.h
+> :16-99（P2Stage2Config），公共消费面同步冻结于 PUBLIC_API.md
+> API-P2-HIPS-001。
+
+### 20.1 输入（stage2 配置 schema 公共消费面 + 每帧 Phase1 HiPS 产品）
+
+P2Stage2Config 公共关键字段（唯一签名源 stage2_common.h:16-99，行号
+为该头实测；本表冻结公共消费面语义，完整字段集以头文件为准；单位
+权威=本节，消费面副本见 API-P2-HIPS-001）:
+
+| 字段 | 默认（锚 :16-99） | 单位/域 | 语义/约束 |
+|---|---|---|---|
+| hips | —（:19） | 文件系统路径 `[n_frames]` | 每帧 Phase1 HiPS 目录；空集 → rc=2/3 拒绝 |
+| target_order_spec / target_order | "auto" / −1（:20-21） | 无量纲（HEALPix order） | target_order≥0 显式采用，否则 = cov.target_order；**不得高于输入最高 order**（stage2.cpp:203-205，禁插值伪装分辨率，对齐 §19.2 target_order 冻结语义） |
+| precision | 0（:50） | 无量纲 | 0=float32 / 1=float64 输出 dtype（stage2.cpp:529） |
+| memory_limit_mb | 24576（:51） | MB | 执行内存预算（CON-002 全局执行预算域） |
+| reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "wbpp_2_9_1" / 2（:52-54） | 无量纲 | planning 层解析为显式方法；profile 版本化冻结（WBPP 2.9.1 同名语义） |
+| reject_normalization | "astrocs_median_center_v1"（:56） | 无量纲 | 判定工作域归一；mask 应用回原始 calibrated 值 |
+| large_scale_enabled（及 min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | astrocs.large_scale_rejection.v1，默认关闭（WBPP largeScaleClip 默认一致） |
+| weight_mode | 2（:90） | 无量纲 | 2=ivar 逆方差（科学默认）；1=等权；0=support×snr²（legacy/诊断） |
+| legacy_allow_weight_fallback | false（:94） | bool | ivar 产品缺失 → rc=7 显式科学错误；仅显式 true 允许降级 support 并 diagnostics 标红（stage2.cpp:565-578） |
+| acr_route | "auto"（:95） | 无量纲 | 集成执行路由 |
+| out_hips | —（:97） | 文件系统路径 | 输出 HiPS 产品集根目录 |
+| diagnostics | true（:98） | bool | true → 落 `<out_hips>/diagnostics.json`（§20.3 provenance 链） |
+
+每帧 HiPS 输入产品（读合同 IO-002；与 DATA-P1-HIPS §12.2 输出
+一一对应）:
+
+| 读端（stage2.cpp 锚） | 产品 | dtype/单位 | 消费语义 |
+|---|---|---|---|
+| AIO_HIPS_RD_SIGNAL（:536） | 每帧 signal/ | float32/64，ADU surface brightness | 逐样本积分分母侧科学值（SCI-INT §5 加权积分输入） |
+| AIO_HIPS_RD_SUPPORT（:537） | 每帧 support/ | float32/64，无量纲 [0,1] | eligibility/覆盖支持度（禁作科学权重，§20.3 红线） |
+| AIO_HIPS_RD_IVAR（:557，weight_mode=2 时强制打开） | 每帧 ivar/ | 1/ADU²（§4a，DATA-HIPS-IVAR-001） | 逆方差积分权重；缺失帧 → rc=7 或显式降级标红 |
+
+### 20.2 输出（`<out_hips>` Phase2 马赛克产品集）
+
+产品集注册（aio_hips_product_begin，stage2.cpp:592-596，
+flags=AIO_HIPS_PRODUCT_SIGNAL|AIO_HIPS_PRODUCT_SUPPORT）: **仅
+signal + support 两个 Image HiPS**；无 variance/ivar/snr 产品
+（DISP-P2HIPS-001，如实登记——ivar 为输入侧逐帧产品，Phase2 不
+输出合成 ivar/variance）。几何: NESTED（§2 唯一 ordering），
+`nside = 2^(target_order+9)`（stage2.cpp:525），叶级阶
+K=target_order+9，tile 512×512（tile_order=K−9，§2）；
+`A_cell = 4π/(12·nside²)`（stage2.cpp:527-528）。
+
+| 文件/数组 | dtype/shape | 单位/值域 | invalid |
+|---|---|---|---|
+| signal/NorderK/DirD/NpixN.fits | float32（precision=0 默认）/float64（=1）（stage2.cpp:529）`[512×512]` NESTED local | ADU surface brightness（writer finalize 单位名 "surface brightness"，aio_hips_writer.cpp:1035） | 无效像素 IEEE NaN（writer :483-485 else 分支置 NaN，无 FITS BLANK 整型卡，同 §12.2） |
+| support/…fits | 同上 `[512×512]` | 无量纲 [0,1] = covered_area/A_cell（writer :478，>1 钳 1.0 :479；A_cell 同 §12.2 公式） | 无效像素 0.0（writer else 分支 sup 保持初值 0.0） |
+| Moc.fits（每子产品） | BINTABLE 列 UNIQ | 无量纲（UNIQ 编码） | AIO writer finalize 生成（DATA-P1-HIPS §12.2 同构） |
+| diagnostics.json | JSON 文本 | — | diagnostics=true 时落 `<out_hips>/diagnostics.json`（stage2.cpp:1748-1749）；键集见 API-P2-HIPS-001 |
+
+写出 tile 集: cov.n_union_cells 顺序逐 tile（stage2.cpp:659-660），
+探测读零帧的 tile 跳过（frames.empty() → continue，:669）；写后
+HIPS_VERIFY AIO reader 回读 signal/support tile 数（:1659-1676，
+signal 回读失败 rc=7 :1665）。
+
+### 20.3 数据语义（唯一权威）
+
+- **signal/support 逆变换合同**（matrix 专项）: 加权积分输出
+  signal（SCI-INT §5）与 support，逆变换回 `flux_sum = signal×area`
+  （`area = support×A_cell`；stage2.cpp:1227-1228 chunk 路径 /
+  :1588-1589 CPU 二次积分路径）与 `covered_area = area`，经
+  AstroSphereTileView（flux_sum/covered_area/valid_mask，
+  :1620-1628）进 AIO writer，按 DATA-P1-HIPS §12.2 同一公式落盘
+  （signal=flux_sum/covered_area、support=covered_area/A_cell）——
+  Phase2 输出单位公式与 P1 writer 严格同源，禁止第二套定义。
+- **四概念分离**（matrix P2-HIPS 专项）:
+  - signal = 加权积分信号 → flux_sum 逆变换（ADU surface
+    brightness）——唯一科学信号产品；
+  - support = covered_area/A_cell ∈ [0,1]（样本级支持度）——仅
+    eligibility/覆盖语义，禁止作科学权重（§4；科学权重唯一冻结式
+    `w_UPM = quality_factor × geometric_reliability × control_ivar`，
+    docs/science/PHASE2_UPM.md §5）；
+  - ivar/variance = **输入侧逐帧产品**（§4a，DATA-HIPS-VAR-001/
+    DATA-HIPS-IVAR-001），Phase2 仅作 weight_mode=2 积分权重消费
+    （stage2.cpp:1106-1117），不输出 Phase2 合成 variance/ivar
+    产品（DISP-P2HIPS-001）；weight_mode 语义: 2=逐样本 ivar
+    （ivar 缺失/无效样本 fallback support :1113-1114，计入
+    fallback 统计）、0=support×snr²（legacy/诊断，local snr map
+    → frame snr fallback，赋值 :1136，CPU 路径重复 :1396）、
+    1=等权（std::fill 1.0 :1139，CPU 路径重复 :1399）；
+  - mask（rejection reasons → accepted 标志 + large_scale 连通
+    grow，p2_large_scale_apply :1549 + 二次积分 :1554-1565）:
+    仅供二次积分 accepted 判定，**不输出产品、不进入权重式**。
+  - 红线: **禁 support 冒充 ivar**——weight_mode=2 且 ivar 产品
+    缺失帧 → 默认 rc=7 显式科学错误；仅 legacy_allow_weight_fallback
+    =true 显式降级 support 并 diagnostics 标红（stage2.cpp:565-578）。
+    ivar（1/ADU²）与 support（无量纲）量纲不同，任何静默互换违反
+    本节。
+- **序合同（HIPS-IMG-001，§3）**: 输出 FITS tile 行主序
+  `(511−x)·512+y`；stage2 集成缓冲为 FITS 行主序，写入前按
+  `nested_local_to_fits_index` 逆映射转 NESTED local 序（ACR 路径
+  :1024-1040，CPU 路径 :1607-1619）——writer 约定 view 缓冲为
+  NESTED local 序，漏转表现为 tile 内像素 16px 周期 comb/重复星点
+  （stage2.cpp:1024-1027 注释冻结）。
+- **provenance 链**: input_manifest_hash =
+  sha256(canonical(sorted(frame_id|filter=;order=;frame=;)))
+  （逐帧 meta 拼接 :230-236 + sort :238-239 + sha256 :243-244，
+  stage2.cpp）→ p2_stage2_make_upm_cfg 注入 UPM（:428-430）→ UPM
+  持久层 model_hash + diagnostics.json（:1746-1749）；HiPS
+  properties 未写 provenance/manifest 键（DISP-P2HIPS-002，如实
+  登记）。
+- **原子发布边界（对齐 §12.5）**: stage2 直写 out_hips
+  （aio_hips_product_begin :592 起），非原子、覆盖式、无回滚；原子
+  rename/manifest COMPLETE 发布语义由 IO-003 编排层承接
+  （DISP-P2HIPS-003）——与 DATA-P1-HIPS §12.5 同源对齐，禁止以
+  stage2 直写目录冒认 IO-003 原子发布。
+- **编排层词汇注记**: registry descriptor p2_write_descriptor
+  （lib/core/src/module_adapters.cpp:677-694，module_id=
+  "astrocs.phase2.write" :679）端口表 integrated=DATA-P2-INT in /
+  mosaic=DATA-P2-RES out（UnitId::ADU/CoordinateFrame::PIXEL，
+  :684-687）为编排层词汇，与球面 NESTED 马赛克实际不符（产品为
+  NESTED 球面 tile，非 PIXEL 平面），以本节为准修订，P2-XX-INT
+  对齐，不得反向作为冻结依据；DATA-P2-INT 端口（集成内部视图）在
+  本文档暂无独立节（实测），其 DATA 合同冻结由 P2-XX-INT 归口。
+- **dtype/确定性**: 全浮点输出限 float32/float64 IEEE 域
+  （precision 唯一选择 :528）；整数登记量（nside/order/tile 计数/
+  UNIQ）bitwise 确定；浮点积分确定性受 acr_route/execution
+  预算（CON-002，CLI/退出码同源 API-P2-HIPS-001）控制。
+- **交叉引用**: 上游 ALG-P2-HIPS-001..004（docs/algorithms/
+  PHASE2_MOSAIC_WRITE.md）；同文档相关节: DATA-P2-INT（暂无独立
+  节，见上注记）、DATA-P1-HIPS（§12，单位公式同源）、
+  DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001（§4a，输入侧 ivar/variance）、
+  DATA-COV-001（§19，target_order/union MOC 上游合同）；下游
+  TEST-P2-HIPS-001（MISSING，P2-HIPS-DOC 登记，由 P2-HIPS-TEST
+  落地 + EVIDENCE）。
+
+### 20.4 错误/边界
+
+- 退出码（stage2 工具进程级，与 PUBLIC_API API-P2-HIPS-001 同表）:
+  2=config/CLI 解析（:133/:140/:146/:153/:160-165）；3=coverage/
+  target_order（:195/:201/:207）；4=frame_id/sampler（:227/:283-319）；
+  5=UPM 构建/持久化（:437/:456/:477/:488）；6=写路径/集成块
+  （:517/:546/:589/:601/:653/:687/:793/:1055 等）；7=ivar 门
+  （:574）/HIPS_VERIFY（:1665）。
+- 无隐藏全局状态: stage2 为单进程顺序工具；UPM 句柄收尾
+  p2_upm_close（成功/失败路径均覆盖）；诊断日志经 log/log_flush
+  串行化，不并发写。
+- 取消/重入: 工具无取消检查点（进程级信号由运行环境终止，无部分
+  产品回滚——见 §20.3 原子发布边界）；同 out_hips 重跑覆盖直写
+  （无清理责任，同 §12.1 out_dir 语义）。
+- 并发: aio_hips writer 句柄单线程使用；tile 间顺序写（:660-661
+  循环序），chunk 内多线程仅限积分计算（CON-002 cpu-workers），
+  不改变输出 tile 顺序。
