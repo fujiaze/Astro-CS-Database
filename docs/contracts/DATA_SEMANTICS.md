@@ -623,3 +623,66 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   lib/phase1_session/README.md §3 如实声明；补齐归 P1-SESSION-IMPL。
 - assembly 层禁止声明 IMPLEMENTED 于无证据处；descriptor 端口编目
   （module_adapters.cpp:254-544）与本节冲突时以本节+各冻结 DATA 节为准。
+
+## 17. Phase1 star-detection 模块输入/输出数据（DATA-P1-STAR）
+
+> ID: DATA-P1-STAR  状态: CONTRACT_READY（P1-STAR-DOC 冻结，2026-09-07）
+> 模块: lib/star_detector;lib/phase1/stars（astrocs.p1.star_detection，迁移目标
+> astrocs_p1_star_detection.dll；现行实现唯一生产源
+> lib/star_detector/src/sdet_api.cpp:1599-2353 生产核心 sdet_detect_impl，
+> 合同头 lib/star_detector/include/star_detector.h:1-73）。ALG:
+> ALG-STARDET-001（STAR_DETECTION_ALGORITHMS §11 逐符号锚）；SCI:
+> SCI-P1-STAR-001（docs/science/STAR_DETECTION.md，本任务冻结层，共享 SCI
+> 引用不改动）；编排级合同 API-P1-003（PHASE1_API_V1 §2：一帧只做一次权威
+> 检测，PLATESOLVE 禁重检测）。本节是该模块单位/dtype/shape/invalid 的唯一
+> 权威；descriptor astrocs.phase1.star-psf（module_adapters.cpp:430-448）为
+> 编排层词汇，由 P1-PSF-INT 对齐，不得反向作为冻结依据。
+
+### 17.1 输入（生产通道 sdet_detect_ex / sdet_detect_ex_f64，orchestrator.cpp:2172-2196）
+
+| 参数/字段 | dtype/shape | 单位/域 | invalid / NULL 语义 |
+|---|---|---|---|
+| image | uint16（FP32 通道，float→uint16 clamp [0,65535] 转换，orchestrator.cpp:2179-2187，DISP-STAR-001）/ double（FP64 通道全程不降级，PREC-105 同族）`[h·w]` 行主序 0-based | ADU | NULL / h≤0 / w≤0 → rc=−1（sdet_api.cpp:1612、:2325、:2340） |
+| handle（sdet_create 预建，orchestrator.cpp:1593-1612 参数构造） | StarDetectorHandle | — | NULL → −1；句柄级互斥使用（PHASE1_API_V1 §2 表行 handle 级 no/no）；SDetParams 9 字段生产消费面缺口=DISP-STAR-003（ALG-STARDET-001 §11.1/§11.3） |
+| extra_names / extra_count | const char** / int | — | 可 NULL/0（生产调用传 nullptr,0，orchestrator.cpp:2175-2177、:2195-2196）；名称解析 parse_extra_name（sdet_api.cpp:779-802），不识别名该列全 0 |
+
+### 17.2 输出（malloc 10 数组，唯一释放入口 sdet_free_detect_ex，sdet_api.cpp:2357-2373）
+
+| 数组 | dtype/shape | 单位/值域 | invalid |
+|---|---|---|---|
+| x / y | double `[n]` | pixel（0-based，像素中心=索引+0.5） | n=0 时全 NULL（空场合法 rc=0，:2252-2263）；分配失败 → rc=−1（:2264-2270） |
+| flux | float `[n]` | ADU（正常星=Moffat4 振幅 A，非解析积分流量） | 饱和星拟合失败=0.0f 哨兵（:1519-1531） |
+| mag | float `[n]` | mag（正常星=−2.5·log10(Σ_box(pixel−B_fit))，box 半径=候选 R 钳 [5,200]；饱和星=−2.5·log10(A)，量纲差异=DISP-STAR-004） | box_sum≤0 或拟合失败=NaN（:2177-2198）；NaN 恒排末尾（:941-956） |
+| saturated / has_saturated | int `[n]` | 0/1 | saturated=(A_fit>dynrange)（:2159）；has_saturated 恒=saturated（:2203，DISP-STAR-004） |
+| extras 列（可选） | float `[n]` | 各 extra_name 定义 | — |
+
+- 编排序列化：**star_det 权威块 FLOAT64 `[N,6]`**（列 [0..5]=x,y,flux,mag,
+  saturated,has_saturated；orchestrator.cpp:2218-2246，必需块，写入失败→
+  阶段失败 :2242-2247）+ **star_det_psf_compat 兼容视图 FLOAT32 `[N,4]`**
+  （x,y,flux,mag，:2249-2257）。
+- 消费方合同：PSF 拟合仅取列 [0]/[1]（DATA-P1-PSF §15.1，dpsf_psf.cpp:741
+  现状只解包 x/y）；PLATESOLVE fallback 读 star_det 块显式 DETECTOR_FALLBACK
+  并按「像素中心=索引+0.5」−0.5 转统一契约（orchestrator.cpp:1826-1829）；
+  PLATESOLVE 禁止调用 sdet_detect_ex 重检测（:1748-1755）。
+
+### 17.3 排序/截断/精度规则（汇总）
+
+- 输出全序：mag 升序 stable_sort + NaN 末尾（sdet_api.cpp:941-956）；
+  dedup（饱和优先保、正常星 d²≤1.0，:822-939）；输出层 maxStars 截断保最亮
+  （:2240-2242），候选层截断 maxStars×2（:2028-2034）。
+- FP64 通道（sdet_detect_ex_f64，:2343-2355）全程 double 不降级，仅
+  out_flux/out_mag 按 ABI 保持 float32；FP32 通道经 uint16 量化
+  （DISP-STAR-001）。
+- determinism=fixed_reduction_order（module.yaml；输出 bitwise 与线程数
+  无关，ALG-STARDET-001 §5）；dtype/determinism 变更属科学改动，须走
+  owner 流程；本节禁止被编排层词汇反向改写。
+
+### 17.4 错误/边界
+
+- 入口 rc：0=成功（含 0 星空场：输出指针全 NULL、*out_count=0，非错误，
+  :2252-2263）；−1=参数无效/句柄 NULL/分配失败（:1612、:2264-2270）。
+- 编排级：det_ret≠0 或 det_count≤0 → 退出码 STAR_DETECT_FAILED
+  （orchestrator.cpp:2200-2212）；star_det 写块失败 → 阶段失败
+  （:2242-2247）；缓冲在 PIPELINE 收尾释放（:2466）。
+- 释放纪律：10 数组必须经 sdet_free_detect_ex 整组释放（:2357-2373），
+  禁止逐数组 free（extras 数组同组释放）。

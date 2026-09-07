@@ -1,212 +1,202 @@
-# Star Detector - 天文图像星点检测器
+# AstroCS P1 Star Detection 模块（astrocs.p1.star_detection）— 冻结合同 README
 
-从16bit天文图像中检测星点，参考 Siril `PSF.c` / `star_finder.c` 的方法，采用 GSL trust-region LM Gaussian 拟合 + halfA 边界搜索初始化 + 半阈值饱和星检测，输出坐标/flux/饱和标记及可选拟合参数。
+> r1（P1-STAR-DOC，2026-09-07）：由 SRC-STAR-001 源码实测冻结，不信任旧 README
+> （旧版 V5.0 性能叙事/匹配率表格为过程记录，归本目录 memory.md，
+> ARCHIVED_NON_NORMATIVE）。
+> 状态 **CONTRACT_READY**：实现与 C API 已存在于 legacy `lib/star_detector`
+> （SRC-STAR-001 VERIFIED），独立模块化迁移（`astrocs_p1_star_detection.dll`、
+> C ABI adapter、ThreadLease）归 **P1-STAR-IMPL**，可执行测试归 **P1-STAR-TEST**
+> （TEST-STAR-DESIGN-001 → TEST-P1-STAR-001），descriptor 对齐归 **P1-STAR-INT**。
+> 本文件为模块唯一合同入口。
 
-**V5.0** | 16线程 4500×3600 银心 ~9s | 前60匹配率中位 98.3% | IPv拟合率 100% | 3帧验证全部达标
+## 0. 标识
 
-## 概述
+| 项 | 值 | 依据 |
+|---|---|---|
+| MOD ID | `MOD-astrocs-phase1-star` | registry（matrix 行键） |
+| module_id | `astrocs.p1.star_detection` | MODULE_MIGRATION_MATRIX P1-STAR 行 |
+| DLL target | `astrocs_p1_star_detection.dll`（合同值，尚未存在） | 同上；现状 `star_detector.dll`（Makefile:39） |
+| module/ABI revision | module_version 0.11.0-alpha.1 / abi_version 1 | module.yaml |
+| owner | SA-P1-S15 | matrix 行 |
+| 状态 | CONTRACT_READY（未 IMPLEMENTED） | 本任务冻结 |
+| 遗留路径 | `lib/star_detector;lib/phase1/stars`（matrix legacy_paths） | 本目录即生产源 |
+| 上游集成依赖 | IO-003;DATA-004;RT-006（matrix depends_on_int） | matrix 行 |
 
-### 功能列表
+## 1. 负责与不负责
 
-- **全C++核心算法**：动态背景分离、连通域分析、GSL LM Gaussian 拟合、饱和星检测、去重、排序全部在 C++ 中实现
-- **Python 胶水层**：ctypes 调用 DLL + 结果可视化，不参与核心计算
-- **16bit 原生输入**：直接接收 uint16 图像数据，适配天文相机 ADC
-- **饱和星处理机制**：GSL trust-region LM、halfA 边界搜索初始化、mag_est 候选排序、reject_star 圆度/FWHM 过滤、PSF_ERR_DIVERGED 丢弃
-- **自适应 fitRadius**：基于连通域大小估算 FWHM，fitRadius=0 触发自动模式
-- **半阈值饱和星检测**：独立流程检测 PSF 变形的饱和星，圆盘拟合 + 等效半径
-- **有序输出**：饱和星在前按 r 降序，正常星按 flux 降序
-- **可选参数输出**：`fwhm_x`, `fwhm_y`, `sx`, `sy`, `theta`, `background`, `amplitude`, `r`
+**负责**：Phase1 单帧 light 上的权威星点检测——peaker 七步候选（11×11 局部
+极大/3×3 meanhigh/零交叉 Sr,Sc/振幅 Ar,Ac/盒半径 R/对称门/候选去重）+ Moffat4
+（GSL trust-region LM，7 参数 Gaussian 参数化）逐候选拟合 + 饱和星（edge-walking
+中心、A>dynrange 标记）+ mag 排序去重截断；输出十数组
+`(x,y,flux,saturated,mag,has_saturated[,extras])`（DATA-P1-STAR）；FP32/FP64
+双通道（DISP-STAR-001）；一帧一次权威检测原则（API-P1-003）。
 
-### 性能指标
+**不负责**：PSF 批拟合/θ 消歧（dynamic_psf，DATA-P1-PSF）；plate solve 与
+WCS（ipv/gaia_client，消费 star_det 块禁止重检测 orchestrator.cpp:1748-1755）；
+最终测光（P1-PHOT）；背景/cosmetic 校正（P1-COSMETIC，本模块消费 cleaned 帧）；
+`lib/phase1/stars`（P1-003 桥接层独立 sigma-clip 背景+阈值实现，§10 如实差距）。
 
-测试环境：16线程CPU + 64GB内存
+## 2. 输入 / 输出 ports、DATA ID、单位、dtype、shape、invalid
 
-| 图像 | 分辨率 | 饱和星 | 正常星 | 总计 | 耗时 |
-|------|--------|--------|--------|------|------|
-| Red帧(银心) | 4500×3600 | 129 | 40912 | 41041 | ~9s |
+权威=DATA-P1-STAR（docs/contracts/DATA_SEMANTICS.md §17）；下表为实现层摘要：
 
-各阶段耗时分布：
+| 端口 | DATA ID | 方向 | 必/可 | 单位 | dtype/shape | invalid |
+|---|---|---|---|---|---|---|
+| image | DATA-P1-COSMETIC | 入 | 必 | ADU | FP32 通道 uint16（float→uint16 clamp [0,65535]，DISP-STAR-001）；FP64 通道 double `[h·w]` 行主序 | NULL/h≤0/w≤0 → −1（sdet_api.cpp:1612、:2325、:2340） |
+| params | SDetParams | 入 | 可 | px/mag 无量纲混合 | 结构体 9 字段（star_detector.h:13-24） | NULL→默认（:963-975）；消费面缺口=DISP-STAR-003 |
+| x/y | DATA-P1-STAR | 出 | 必 | pixel（0-based，像素中心=索引+0.5） | double `[n]` | n=0→全 NULL rc=0（:2252-2263） |
+| flux | DATA-P1-STAR | 出 | 必 | ADU（正常星=振幅 A） | float `[n]` | 饱和拟合失败=0.0f 哨兵 |
+| mag | DATA-P1-STAR | 出 | 必 | mag | float `[n]` | box_sum≤0/拟合失败=NaN；NaN 恒排末尾 |
+| saturated/has_saturated | DATA-P1-STAR | 出 | 必 | 0/1 | int `[n]` | saturated=(A>dynrange)（:2159）；has_saturated≡saturated（DISP-STAR-004） |
+| extras | DATA-P1-STAR | 出 | 可 | 各列定义 | float `[n]` | 生产传 nullptr/0 |
+| star_det 块（编排序列化） | DATA-P1-STAR | 出 | 必 | 同上 | FLOAT64 `[N,6]` 列 x,y,flux,mag,saturated,has_saturated（orchestrator.cpp:2237-2246）+ FLOAT32 `[N,4]` 兼容视图 | 写块失败→阶段失败（:2242-2247） |
 
-| 阶段 | 耗时 | 占比 |
-|------|------|------|
-| uint16->float | 17 ms | 0.2% |
-| 动态背景分离 | 447 ms | 5.2% |
-| 连通域分析+候选提取 | 178 ms | 2.1% |
-| Gaussian 拟合 (16线程) | 7875 ms | 91.0% |
-| 饱和星检测 | 37 ms | 0.4% |
-| 去重+排序 | 19 ms | 0.2% |
+## 3. SCI / ALG / DATA / API / ARCH / TEST 链接
 
-V4.66 全帧测试（793帧 IPv vs Siril 对比）：
+| 层 | ID | 状态 | 文档 |
+|---|---|---|---|
+| SCI | SCI-P1-STAR-001（共享 SCI 引用不改动） | FROZEN（本任务） | docs/science/STAR_DETECTION.md |
+| ALG | ALG-STARDET-001 | FROZEN（本任务） | docs/algorithms/STAR_DETECTION_ALGORITHMS.md#§11 |
+| DATA | DATA-P1-STAR | VERIFIED | docs/contracts/DATA_SEMANTICS.md#§17 |
+| API | API-STAR-001（编排占位 API-P1-003 仍有效） | VERIFIED | docs/contracts/PUBLIC_API.md#API-STAR-001；docs/api/PHASE1_API_V1.md |
+| ARCH | ARCH-001 | VERIFIED | docs/architecture/ARCHITECTURE.md |
+| SRC | SRC-STAR-001 | VERIFIED | lib/star_detector/src/sdet_api.cpp（本 README 全部行号锚） |
+| TEST | TEST-STAR-DESIGN-001 | FROZEN（设计） | docs/algorithms/STAR_DETECTION_ALGORITHMS.md#§11.4 |
+| EVIDENCE | EVID-MISSING | MISSING | 待 P1-STAR-TEST |
 
-| 指标 | 数值 |
-|------|------|
-| 前60匹配率中位 | 98.3% |
-| IPv拟合率中位 | 100% |
-| 非饱和星达标率（位置+顺序>90%） | 92.4% |
-| 3帧抽样全部达标 | 3/3 |
+矩阵现值 descriptor 占位词汇（module_adapters.cpp:430-448，module_id=
+astrocs.phase1.star-psf）由 P1-PSF-INT/P1-STAR-INT 对齐本合同，不得反向作为
+冻结依据。
 
-## 效果展示
+## 4. module.yaml 与 standards
 
-![检测效果示例](test_output/example.jpg)
+见本目录 `module.yaml`（schema `astrocs.module-manifest/v1`，字段遵循
+11_MODULE_SOURCE_TEST_STANDARD.md §4；必填项无删减，未接项显式 `MISSING`；
+entrypoint=MISSING）。
 
-*绿色十字 = 正常 PSF 拟合星点，红色圆圈 = 饱和星点（半径=r）*
+## 5. public entry 与实际主要 source symbols（sdet_api.cpp 实测行号）
 
-## 使用方法
+C API（9 导出，头 lib/star_detector/include/star_detector.h:1-73）：
 
-### 编译
+| symbol | 头行 | 定义行 | 语义摘要 |
+|---|---|---|---|
+| `sdet_create` | star_detector.h:33 | sdet_api.cpp:954 | handle 创建；NULL→默认参数（:963-975）；生产实参 orchestrator.cpp:1593-1612 |
+| `sdet_destroy` | :34 | :984 | 唯一释放对 |
+| `sdet_detect` | :36-40 | :992 | 旧 uint16 入口（仅 x/y；内部旧 CC 路径，非生产，DISP-STAR-005） |
+| `sdet_free_coords` | :42 | :1276 | sdet_detect 专用释放 |
+| `sdet_detect_debug` | :44-50 | :1281 | 诊断入口（CC 路径+平滑图导出+extras） |
+| `sdet_free_debug_maps` | :52 | :1595 | debug 图专用释放 |
+| `sdet_detect_ex` | :54-62 | :2318 | 生产 FP32 入口（uint16→float，impl<float>） |
+| `sdet_detect_ex_f64` | :67-75 | :2343 | 生产 FP64 入口（impl<double>，全程不降级，PREC-105） |
+| `sdet_free_detect_ex` | :77-79 | :2357 | 十数组唯一释放（extras 同组） |
 
-依赖：MinGW-w64 g++ (C++17)、OpenMP、GSL (libgsl)
+内部核心（static/template，同文件）：`sdet_detect_impl<T>`（:1599-2353，
+float/double 双实例生产核心）、`sdet_compute_bgnoise`（:440-476，FnNoise1
+行差分+3×5σ clip）、peaker 七步主扫描（:1709-1974，star_finder.c 族对齐
+注释 :1653-1660）、`sdet_moffat4_fit`（:483-620，采样/饱和 mask/bkg0 截尾
+MAD/halfA 初始化）、`sdet_lm_fit`（:262-437，GSL TR-LM 7 参数
+`{B,A,x0,y0,SX,fr,alpha}`，:348-352 trs=LM）、`reject_star`（:189-239，
+SfError 五码 :177-186）、`sdet_dedup_stars`（:822-939）、`sdet_sort_stars`
+（:941-956）、`edge_walking_center`（:627-674）/`sdet_detect_saturated_stars`
+（:675-775，debug 路径）、`get_extra_field`/`parse_extra_name`（:778-819）。
 
-```bash
-g++ -std=c++17 -O3 -march=native -Wall -fopenmp -funroll-loops -ffp-contract=fast \
-    -shared -o star_detector.dll src/*.cpp -Iinclude -Isrc \
-    -static-libgcc -static-libstdc++ -lgsl -lgslcblas -lm
-```
+关键常量与语义（冻结，ALG-STARDET-001 §2 逐条公式锚）：
+- 平滑 σ=2.0（YvV IIR，:1623-1633）；阈值=median+5·bgnoise（:1645）。
+- `SQRT_EXP1=√e`（:1674）、`s_factor=√(−2·ln 0.001)=3.7172`（:1678）、
+  `MAX_BOX_RADIUS=200`（:1679）、norm=65535（:1689）、locthreshold=5·bgnoise
+  （:1693）。
+- R=max(ceil(3.7172·Sr),ceil(3.7172·Sc),r)（:1920-1931）；对称门 dA/dSr/dSc≤2
+  （:1933-1945）；候选曼哈顿去重 0.2·R（:1947-1959）。
+- mag 正常星=−2.5·log10(Σ_box(pixel−B_fit))（:2177-2198）；饱和星=−2.5·log10(A)
+  （:2175）；is_saturated=(A>dynrange)（:2159）。
+- dedup：饱和保、正常星 d²≤1.0（:900-926）；sort mag 升序 NaN 末尾（:941-956）；
+  maxStars 截断（:2240-2242）。
 
-或使用 Makefile：
+## 6. config schema / default / 错误码
 
-```bash
-make all
-```
+`SDetParams` 9 字段（star_detector.h:13-24）默认值（sdet_api.cpp:963-975）：
+structureLayers=5 / hotPixelFilterRadius=1 / iterativeClipSigma=9.0f /
+iterativeMaxRounds=5 / medianFilterDetail=1 / maxStars=2000 / fitRadius=6 /
+fwhmClipSigma=3.0f / maxAxisRatio=2.0f。生产消费面：maxStars/maxAxisRatio
+完整消费；fitRadius 仅驱动 auto 半径日志推导（:2024-2026，实际用 per-candidate
+R）；fwhmClipSigma 仅 debug 入口（:1450-1452）；其余 5 字段仅旧 CC 路径
+（sdet_detector.cpp:14-56）——DISP-STAR-003 登记不改码。
 
-环境变量 `STAR_DETECTOR_LOG_LEVEL`：日志级别（0=INFO, 1=DEBUG, 2=WARN, 3=ERROR），默认 INFO
+错误/返回码（冻结）：
 
-### Python 调用
+| 码 | 层 | 触发 | 输出副作用 |
+|---|---|---|---|
+| 0 | 入口 rc | 成功（含 0 星空场，:2252-2263） | 数组 malloc；空场全 NULL |
+| −1 | 入口 rc | handle/image/输出指针 NULL、h/w≤0（:1612、:2325、:2340）、malloc 失败（:2264-2270） | 部分数组可能为 NULL |
+| SDET_FIT_OK/INVALID_PARAMS/NO_CONVERGENCE | 拟合 | sdet_api.cpp:260-262/:425-429/:597-609 | 非 OK 候选丢弃（:2139），不出 NaN 行 |
+| SF_OK/SF_FWHM_NEG/SF_FWHM_TOO_SMALL/SF_ROUNDNESS_BELOW_CRIT/SF_RMSE_TOO_LARGE/SF_FWHM_TOO_LARGE | 质量门 | :177-186 | 拒绝候选（:2148-2150）；饱和星豁免 RMSE（:203-206） |
+| STAR_DETECT_FAILED | 编排退出码 | det_ret≠0 或 count≤0（orchestrator.cpp:2200-2212） | 阶段失败 |
 
-```python
-from star_detector import StarDetector
+## 7. threading / parallel axis / lease / memory / I/O / cancel / checkpoint
 
-det = StarDetector()
+现状（登记不改码，DISP-STAR 见 ALG-STARDET-001 §11.3）：
+- OpenMP 三处：行差分 `parallel for schedule(static)`（:448）、入口 uint16→float
+  转换（:2321-2325）、候选拟合 `omp parallel + omp for schedule(dynamic)
+  reduction(+:fit_ok_count)`（:2042-2044）；逐候选独立、结果按索引写回；
+  dedup/sort/maxStars 截断串行（:2224-2242）→ 输出 bitwise 与线程数无关
+  （determinism=fixed_reduction_order）。
+- 无取消检查点；无 checkpoint；日志 sdet_log 默认阈值（lib/star_detector/logs/）。
+- 内存：输出十数组模块 malloc（唯一释放 `sdet_free_detect_ex` :2357-2373）；
+  smooth/candidates/fit_results 为函数内 `std::vector` 局部分配（O(N)+O(C)）。
+- 目标合同：`threading_model=host_executor_lease`（11 号标准 §4）；ThreadBudget
+  接线与取消检查点归 P1-STAR-IMPL。
 
-# 基础检测：返回 [(x, y), ...]
-coords = det.detect(image)
+## 8. provider 能力与 fallback
 
-# 扩展检测：正常星 + 饱和星 + 可选参数
-result = det.detect_ex(image, extra_names=['fwhm_x', 'fwhm_y', 'r'])
-# result.x / result.y / result.flux / result.saturated / result.extras
-# 饱和星在前(saturated=1, flux=-1, r有效)，正常星在后(saturated=0, flux=振幅A)
+`cpu_providers: [baseline]`（无 ISA 特化路径；`-march=native -O3` 为构建配置
+Makefile:20-26，非 provider 选择）；GSL gsl_multifit_nlinear 链接（Makefile
+LDLIBS）。fallback：无（baseline 单通道）。
 
-# 调试图像输出（绿色十字=正常星，红色圆圈=饱和星）
-det.detect_debug_image(image, "debug_output.png", extra_names=['r'])
+## 9. oracle / property / boundary / performance / 容差来源（测试设计）
 
-det.close()
-```
+TEST-STAR-DESIGN-001（STAR_DETECTION_ALGORITHMS.md §11.4，P1-STAR-TEST 执行，
+容差冻结不得放宽）：
+- **oracle**：合成高斯星场回收中心/流量/FWHM（F1 |Δc|≤0.3px@SNR≥20、FWHM
+  相对误差≤10%）；FP64 通道独立 Moffat4 复算（F4 |Δc|≤0.05px、A/B≤1e−3）；
+  FP32 通道 uint16 量化容差独立冻结（F4 |Δc|≤0.5px）。
+- **property**：mag 升序全序+NaN 末尾；饱和优先 dedup；输出 bitwise 与线程数
+  无关（F3 线程 1/2/4）；maxStars 截断保最亮。
+- **boundary**：候选为空 rc=0；帧边界 2px 丢弃；R 收缩不出帧；box 钳 [5,200]。
+- **negative**：NULL/空图/0 尺寸 → −1（F5）；非有限输入。
+- **degenerate/saturated**：饱和平台≥3px 检出且 saturated=1；饱和+正常 d<2px
+  保饱和星（F2）。
+- **performance**：批 1/N worker 缩放（OpenMP 3 处）、provider=baseline 固定；
+  现状参考值（旧 README V5.0 叙事，非合同）：16 线程 4500×3600 银心 ~9s。
+- **容差来源**：fixtures generator 注记 + 11 号标准 §5（seed/commit/hash/
+  tolerance source），不来自本 README 手抄数值。
 
-### C API
+## 10. 构建 / 测试命令、已知限制、未实现项
 
-```c
-#include "star_detector.h"
+- 构建（现状）：`make -C lib/star_detector` → `star_detector.dll`
+  （Makefile:39，`g++ -shared -fopenmp -O3 -march=native -std=c++17`，lto/pch
+  目标可选）。未编入根 CMake 主构建；根 CMakeLists.txt:441 另有
+  `astrocs_phase1_stars` STATIC 库（lib/phase1/stars P1-003 桥接层，
+  独立 sigma-clip 背景+3σ 阈值实现，与 sdet_api.cpp 非同一算法路径——
+  matrix legacy_paths 第二路径，如实差距，整合归 P1-STAR-IMPL）。
+- 生产加载：orchestrator.cpp:1539-1549（`lib/star_detector/star_detector.dll`
+  显式加载，失败即错）；生产消费 `sdet_create`（:1593-1612）、
+  `sdet_detect_ex`/`sdet_detect_ex_f64`（:2149-2198）、`sdet_free_detect_ex`
+  （:2204-2213、:2466）。
+- 测试：lib/star_detector/test/sdet_fp64_test.cpp（NON_PRODUCTION_TOOL_ONLY
+  手工合成星图对比程序，非共址测试套件）；共址测试建立归 P1-STAR-TEST。
+- **已知限制（如实登记，DISP-STAR-001..005 + 线程/取消，ALG-STARDET-001
+  §11.3，整改归 P1-STAR-IMPL/INT）**：① FP32 通道 uint16 量化；
+  ② 全局单阈值无局部背景自适应；③ SDetParams 9 字段消费面缺口；
+  ④ 饱和星 mag 量纲不一致 + has_saturated 列未分化；⑤ 双实现并存（生产
+  peaker 路径 vs 旧 CC 路径 :992-1274/:1281-1593）；⑥ ThreadBudget 未接线、
+  无取消检查点。
+- **未实现（MISSING，禁止宣称 IMPLEMENTED）**：`astrocs_p1_star_detection.dll`
+  模块壳、C ABI adapter、plan-execute-cancel-inspect、ThreadLease、共址测试、
+  EVIDENCE 证据链、registry 入口（entrypoint=MISSING）。
 
-StarDetectorHandle sdet_create(const SDetParams *params);
-void sdet_destroy(StarDetectorHandle handle);
+## 11. 历史与记忆
 
-/* 基础检测：仅正常星坐标 */
-int sdet_detect(StarDetectorHandle handle, const uint16_t *image,
-                int width, int height,
-                double **out_x, double **out_y, int *out_count);
-
-/* 扩展检测：正常星 + 饱和星 + 可选参数 */
-int sdet_detect_ex(StarDetectorHandle handle, const uint16_t *image,
-                   int width, int height,
-                   double **out_x, double **out_y,
-                   float **out_flux, int **out_saturated, int *out_count,
-                   const char **extra_names, int extra_count, float ***out_extras);
-
-/* 调试检测：含 detail/smap/binary 调试图输出 */
-int sdet_detect_debug(StarDetectorHandle handle, const uint16_t *image,
-                      int width, int height,
-                      double **out_x, double **out_y, int *out_count,
-                      float **out_detail, float **out_smap, float **out_binary,
-                      const char **extra_names, int extra_count, float ***out_extras);
-```
-
-### 检测参数 SDetParams
-
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| structureLayers | int | 5 | 保留兼容 |
-| hotPixelFilterRadius | int | 1 | 热像素中值滤波半径 |
-| iterativeClipSigma | float | 9.0 | sigma-clip 阈值倍数 |
-| iterativeMaxRounds | int | 5 | sigma-clip 最大迭代轮数 |
-| medianFilterDetail | int | 1 | 是否对细节层做 3×3 中值滤波 |
-| maxStars | int | 2000 | 最大输出星点数，0=不限制 |
-| fitRadius | int | 6 | PSF 拟合采样区半径，0=自动模式 |
-| fwhmClipSigma | float | 3.0 | FWHM 剪裁 sigma 倍数 |
-| maxAxisRatio | float | 2.0 | 最大轴比（长轴/短轴） |
-
-## 架构
-
-### 检测流水线
-
-```
-输入: uint16图像
-  │
-  ├─ 正常星检测 ─────────────────────────────────
-  ├─ 1. 动态背景分离 -> 细节层 (100px块+20px精细化+积分图+OpenMP)
-  ├─ 2. 细节层 >0 二值化
-  ├─ 3. 连通域分析
-  ├─ 4. 候选预过滤 (像素数≤4 / 包围盒<2×2 / 长宽比>3 -> 丢弃)
-  ├─ 5. GSL LM Gaussian 拟合 (halfA 边界搜索初始化, OpenMP 16线程)
-  ├─ 6. FWHM 剪裁 (|fwhm-med| > fwhmClipSigma×MAD -> 剔除)
-  ├─ 7. 圆度过滤 (min/max < 0.5 -> 拒绝, 参考 Siril reject_star 方法)
-  │
-  ├─ 饱和星检测 ─────────────────────────────────
-  ├─ 8. 半阈值二值化: threshold = (max+min)/2
-  ├─ 9. 连通域分析 + 预过滤
-  ├─ 10. 圆盘拟合: 加权重心 + 等效半径 r=sqrt(count/π)
-  │
-  ├─ 合并输出 ───────────────────────────────────
-  ├─ 11. 去重: 饱和星与正常星重叠 <2px -> 丢弃饱和星
-  ├─ 12. 排序: 饱和星(按r降序)在前 + 正常星(按flux降序)在后
-  │
-  └─ 输出: x[], y[], flux[], saturated[], extras{}
-```
-
-算法实现细节（动态背景分离、候选预过滤、自适应 fitRadius、GSL LM Gaussian 拟合、halfA 初始化、半阈值饱和星检测、去重排序）见 [memory.md](memory.md)。
-
-### 目录结构
-
-```
-lib/star_detector/
-├── include/star_detector.h    # 公共 C API 头文件
-├── src/
-│   ├── sdet_api.cpp           # 检测流水线 + GSL LM Gaussian 拟合
-│   ├── sdet_detector.cpp      # 连通域分析、去重算法
-│   ├── sdet_image.cpp         # 图像处理（动态背景、中值滤波、积分图）
-│   ├── sdet_background.cpp    # SExtractor 风格背景估计
-│   ├── sdet_log.cpp           # 日志系统
-│   └── sdet_detector.h        # 内部头文件
-├── python/star_detector.py    # Python 封装（ctypes + 可视化）
-├── test_output/example.jpg    # 示例输出图像
-├── Makefile
-├── README.md
-└── memory.md                  # 详细版本迭代与算法实现
-```
-
-### 依赖
-
-- **GSL (libgsl)**：trust-region LM 非线性最小二乘拟合（`gsl_multifit_nlinear`）
-- **OpenMP**：多线程并行（16线程）
-- **MinGW-w64 g++**：C++17 编译器
-- **astro_image_io**（可选）：FITS/XISF 图像读取，Python 端使用
-
-## 详细文档
-
-- **[memory.md](memory.md)**：版本迭代历史（V4.27-V4.66）与算法实现细节
-  - V4.66：参考 Siril GSL LM 方法 + halfA 边界搜索初始化（3帧全部达标）
-  - V4.63：参考 Siril 方法优化（mag_est 排序、reject_star、去 stall_count）
-  - V4.62：拟合全部候选 + 不收敛兜底
-  - V4.54-V4.57：Gaussian profile 切换 + 候选 Sr/Sc 初始 σ
-  - V4.27：参考 Siril reject_star 方法 + maxStars 默认 2000
-  - 算法详解：动态背景分离、候选预过滤、自适应 fitRadius、Gaussian 拟合、半阈值饱和星检测、去重排序
-- **GitHub 仓库**：https://github.com/fujiaze/Star-Detector-Cpp
-
-## 参考文献
-
-- **[Siril](https://free-astro.org/)**：`PSF.c`（GSL LM Gaussian 拟合、halfA 初始化）、`star_finder.c`（候选排序、reject_star）
-- **[SExtractor](https://github.com/astromatic/sextractor)**：网格化背景估计、sigma-clip、连通域分析
-- **[GSL](https://www.gnu.org/software/gsl/)**：`gsl_multifit_nlinear` trust-region LM
-
-## 许可
-
-MIT License
+旧版 README（V5.0 性能叙事、匹配率表格、目录结构图）为过程记录，其中「有序
+输出：饱和星在前按 r 降序，正常星按 flux 降序」等排序描述与现状实现不符
+（实际 mag 升序+NaN 末尾+饱和星优先去重保留，:822-956），以本 README r1 为准；
+历史细节归本目录 `memory.md`（ARCHIVED_NON_NORMATIVE）。
