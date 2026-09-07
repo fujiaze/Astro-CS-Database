@@ -56,7 +56,8 @@ std::string sanitize(const std::string& s);
 std::string sanitize_path(const std::string& p);
 std::string file_sha256(const std::string& u8path, bool* ok);
 std::string local_cpu_signature();
-int validate_config_full(const std::string& path, nlohmann::json* doc_out);
+int validate_config_full(const std::string& path, nlohmann::json* doc_out,
+                         bool session_mode = false);
 int validate_cpu_profile(const std::string& path, nlohmann::json* prof_out);
 
 // RT-009: 当前 git HEAD 短 SHA（sidecar source_commit；无 git 环境返回 nullopt）。

@@ -18,11 +18,16 @@ class TestCliSingleInstall(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="cli008_")
-        cls.bdir = os.path.join(cls.tmp, "build")
-        subprocess.run(["cmake", "-S", CLI, "-B", cls.bdir],
-                       check=True, capture_output=True, timeout=120)
-        subprocess.run(["cmake", "--build", cls.bdir, "-j2"],
-                       check=True, capture_output=True, timeout=240)
+        # BLD-002 冻结合同 (3e7f7581): 唯一产品事实源 = 根 CMakeLists, cli 子图
+        # 禁止 install 规则。扫描对象改用根图构建树 (CI build 步产出; 漂移修复)。
+        # 断言语义不变: install 树恰一个用户 exe astrocs + 无 legacy exe 泄漏。
+        cls.bdir = os.path.join(REPO, "build")
+        have_tree = all(os.path.isfile(os.path.join(
+            cls.bdir, p)) for p in ("astrocs", "libastrocs_runtime.so"))
+        if not have_tree:
+            raise unittest.SkipTest(
+                "需根图构建树 build/{astrocs,libastrocs_runtime.so} "
+                "(BLD-002; CI 构建步产出)")
         cls.prefix = os.path.join(cls.tmp, "prefix")
         r = subprocess.run(["cmake", "--install", cls.bdir, "--prefix", cls.prefix],
                            capture_output=True, text=True, timeout=120)
