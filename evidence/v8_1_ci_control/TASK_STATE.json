@@ -45,9 +45,9 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 53,
+  "CLOSED": 55,
   "READY": 13,
-  "NOT_STARTED": 123,
+  "NOT_STARTED": 121,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
@@ -1684,15 +1684,15 @@
   },
   "P1-DRZ-DOC": {
    "owner": "SA-P1-D18",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "e53ac984",
+   "evidence_path": "lib/drizzle/; docs/algorithms/DRIZZLE_GEOMETRY.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json",
+   "source_of_status": "fg_verified_commit",
    "wave": "W1",
    "kind": "module-doc",
    "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "current_evidence": "commit:e53ac984 traceability 26行0错 + pytest 4P + contract_graph 36 + doc_index PASS + selfcheck 25/25 ALL_PASS",
+   "note": "module-doc 冻结; 差异清单 DISP-DRZ-001..008 归 P1-DRZ-IMPL/INT; SCI-DRZ-001 未动; ThreadLease 零命中为迁移整改点"
   },
   "P1-DRZ-TEST": {
    "owner": "SA-P1-D18",
