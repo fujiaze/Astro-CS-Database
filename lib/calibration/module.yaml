@@ -1,0 +1,57 @@
+# AstroCS phase1 calibration module — 元数据 (P1-CAL-DOC 冻结, 2026-09-07)
+# 状态: CONTRACT_READY —— 实现存在（lib/calibration，CMake astrocs_calibration），
+# 模块化迁移（C ABI adapter / astrocs_p1_calibration.dll /
+# plan-execute-cancel-inspect / ThreadLease 接线）由 P1-CAL-IMPL 执行；
+# 可执行测试由 P1-CAL-TEST 建立（TEST-P1-CAL-001）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码
+# 核对清单（P1-CAL-DOC，2026-09-07，12 个 AC_API 科学/工具导出），
+# 禁止手抄他版。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
+# 现状实现为 OpenMP 默认 team + ac_set_num_threads 全局 ICV（迁移整改点，
+# 见 docs/contracts/PUBLIC_API.md API-CAL-001 与 ALG-CAL §6/§10）。
+id: MOD-astrocs-phase1-calibration
+module_id: astrocs.p1.calibration
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase1
+dll_name: astrocs_p1_calibration.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: []
+input_ports:
+  - p1.frames
+output_ports:
+  - p1.calibrated
+science_contracts:
+  - SCI-CAL-001
+algorithm_contracts:
+  - ALG-CAL-001
+  - ALG-CAL-002
+  - ALG-CAL-003
+  - ALG-CAL-004
+  - ALG-CAL-005
+  - ALG-CAL-006
+data_contracts:
+  - DATA-P1-CAL
+api_contracts:
+  - API-P1-001
+  - API-CAL-001
+source_symbols:
+  - ac_generate_master_bias
+  - ac_generate_master_dark
+  - ac_generate_master_flat
+  - ac_calibrate_frame
+  - ac_correct_frame
+  - ac_generate_master_bias_f64
+  - ac_generate_master_dark_f64
+  - ac_generate_master_flat_f64
+  - ac_calibrate_frame_f64
+  - ac_correct_frame_f64
+  - ac_set_num_threads
+  - ac_version
+test_ids:
+  - TEST-CAL-DESIGN-001
+threading_model: host_executor_lease
+resource_class: cpu_heavy
+cpu_providers: [baseline]
+determinism: fixed_reduction_order

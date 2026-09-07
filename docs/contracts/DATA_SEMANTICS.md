@@ -123,3 +123,50 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 - 模块不产生科学产物文件、不参与 artifact store；溯源由上游调用方在
   manifest 记录数据目录/db_type/查询参数（cache provenance 责任在调用侧，
   matrix 科学专项"cache provenance"由此承担）。
+
+## 9. Phase1 校准模块输入/输出数据（DATA-P1-CAL）
+
+> ID: DATA-P1-CAL  状态: CONTRACT_READY（P1-CAL-DOC 冻结，2026-09-07）
+> 模块: lib/calibration（astrocs.p1.calibration）；SCI: SCI-CAL-001；
+> ALG: ALG-CAL-001..004；SRC: lib/calibration/include/astro_calibration.h。
+> 本节冻结现有 C API 的真实数据语义（P1-CAL-DOC 源码核对），迁移 DLL
+> astrocs_p1_calibration.dll 由 P1-CAL-IMPL 建立（语义不变）。
+
+### 9.1 输入（内存数组，无文件 I/O）
+
+行主序 `idx = y·w + x`，0-based 像素坐标（无 WCS/坐标变换，frame identity
+沿用 §5：逐像素算术不改变 frame_id）；单位除注明外均为 ADU。
+
+| 数组 | dtype/shape | 单位/域 | invalid / NULL 语义 |
+|---|---|---|---|
+| stack（bias/dark/flat 帧） | float32 或 float64（f64 ABI）`[n_frames][h][w]` 连续 | ADU | 单帧元素可为 NaN（统计跳过，ALG-CAL-001 F1.3）；`n_frames==1` 直接拷贝含 NaN 原样保留 |
+| master_bias / master_dark | `[h][w]` | ADU | 可为 NULL（calibrate: 不减；cosmetic: 不检测对应类） |
+| master_flat | `[h][w]` | 无量纲（约定已 median≈1.0 归一，ALG-CAL-002 产物） | 可为 NULL（跳过除法）；floor 0.1 下界在 calibrate 内施加 |
+| light（data） | `[h][w]` | ADU | NaN 直传输出（ALG-CAL-003，DISP-CAL-004） |
+| 掩码 hot/cold（ac_correct_frame 内部） | char `[h][w]` | 0/1 | 极性 **1=坏点**（SCI-CAL-001 §9a） |
+| sigma_low/sigma_high/hot_sigma/cold_sigma | float，无量纲 | MAD 倍数 | NaN 行为未定义（前置条件，负面测试覆盖）；sigma<=0 = 禁用对应检测 |
+| K（dark_scale_factor） | float/double，无量纲 | =t_light/t_dark | 由调用方计算（曝光秒，FITS EXPTIME）；dark_opt=1 缺 bias/dark 时回退标准分支且 K=1.0 |
+| combine | int 0=mean / 1=median | — | 其他值按 mean 路径（实现按 `==AC_COMBINE_MEDIAN` 判定） |
+| method | int 0=median / 1=IDW（名义 bilinear） | — | 其他值按 IDW 路径 |
+
+### 9.2 输出
+
+| 数组 | dtype/shape | 值域 | invalid |
+|---|---|---|---|
+| out（master 或校准帧） | float32/float64 `[h][w]` | ADU（可负，**不 clamp 不加 pedestal**，§4 负值保留） | 全 NaN 像素列 → NaN（合法输出，非错误）；参数错误时不写 out |
+| actual_k | float*/double* 单值 | 无量纲 | dark_opt=1 生效=入参 K；标准分支=1.0；参数错误=k_init；可 NULL |
+| out_hot / out_cold | int* 单值 | 像素计数 | 结构过滤后掩码像素数；可 NULL |
+| ac_version() | const char* 静态串 | — | `"Astro Calibration C++ v1.0.0"` |
+| 错误码 | int | — | 0=AC_OK；−1=AC_ERR_PARAM（空指针/非正维度）；−2/−3 定义但**从未返回**（DISP-CAL-001） |
+
+### 9.3 落盘产物（调用方侧，非本模块合同）
+
+phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母版
+分组（曝光/滤镜）与文件命名由 orchestrator 层负责（SCI-CAL-001 §4）。
+模块本身零文件/网络 I/O（stderr 日志除外，ALG-CAL 文档 §4）。
+
+### 9.4 variance / mask 边界
+
+本模块不输出 variance/ivar（snr_estimator 独立估计，§4a）；坏点掩码
+1=坏点仅在修复路径内部使用，不作为产品输出；`support`/coverage 概念
+不在本层（Phase2/3 处理）。

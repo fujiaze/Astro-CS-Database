@@ -1,5 +1,38 @@
 # calibration - 模块开发memory
 
+## P1-CAL-DOC 合同冻结记录（2026-09-07，wave W1）
+
+- 任务: P1-CAL-DOC（SA-P1-C14，依赖 GOV-001/ARC-001/DATA-001/DOC-001 已 CLOSED）。
+  模块定位依据: MODULE_MIGRATION_MATRIX.csv P1-CAL 行 → lib/calibration
+  （astrocs.p1.calibration / astrocs_p1_calibration.dll 目标）。
+- 产物: docs/algorithms/CALIBRATION_ALGORITHMS.md 重写为 ALG-CAL-001..006
+  （逐公式源码锚定 + TEST-CAL-DESIGN-001 设计与冻结容差 rtol=1e-6/atol=1e-7）；
+  docs/contracts/DATA_SEMANTICS.md §9（DATA-P1-CAL）；docs/contracts/
+  PUBLIC_API.md（API-CAL-001，12 导出符号 + 缺陷清单）；docs/modules/
+  calibration.md 事实修订；本 README/module.yaml 重写与新建；
+  TRACEABILITY_MATRIX 行 MOD-astrocs-phase1-calibration 更新
+  （SCI-CAL-001/ALG-CAL-001/SRC-CAL-001/TEST-CAL-DESIGN-001 → VERIFIED）。
+- 源码核对结论（一切以源码为准，旧 README/memory 不信任）:
+  - 黄金分割搜索 K 已不存在：calibrate 的 K=k_init 直通（calibrator.cpp:97-99）；
+    独立的 ac::optimize_dark_k（鲁棒回归）未编译未接线。
+  - 生产调用方仅 ac_calibrate_frame（lib/phase1_session/p1_session.cpp:243）。
+  - FP64 ABI 仅 calibrate_f64 真双精度，master/correct 的 _f64 内部降级 float。
+  - normalize_flat/compute_mad 无调用方；apply_photometry 未编译。
+  - 缺陷清单 DISP-CAL-001..011 登记（ALG-CAL §10）：无 extern "C" 异常屏障、
+    负 median 未防护、ac_set_num_threads 全局 ICV、bilinear 实为 IDW、
+    cosmetic 统计不过滤 NaN、无取消检查点、w·h int 溢出等。**未改任何代码**。
+- 验收: check_traceability_matrix rc=0、pytest traceability 全过、
+  check_contract_graph rc=0、check_doc_index rc=0、manifest/符号/ID 自包含
+  校验 ALL PASS；生产源码与 docs/science 零改动（git diff 为空）。
+- 日志: run/local/agent_p1_cal_doc/。
+- 下方"当前版本/GitHub/Python"等历史记录为 **ARCHIVED/NON_NORMATIVE**
+  （旧 Astro-Calibration-Cpp 上游仓库时期内容，路径与产物已不在当前树），
+  现状以本次冻结文档为准；保留仅作历史溯源。
+
+---
+
+## [ARCHIVED/NON_NORMATIVE] 历史记录（旧上游仓库时期，勿作现状依据）
+
 ## 模块职责
 CCD/CMOS标准校准模块，包含主帧生成、图像校准（含暗场优化）、坏点修复三个子模块，提供Light帧的完整校准管线（Bias/Dark/Flat扣除 + 坏点插值修复）。
 
