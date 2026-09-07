@@ -142,6 +142,59 @@
   （astrocs.p1.calibration / astrocs_p1_calibration.dll，C ABI adapter 由
   P1-CAL-IMPL 建立；本节描述现状 API，不声明 DLL 化完成）。
 
+## cosmetic C API（API-COS-001）
+
+> ID: API-COS-001  状态: CONTRACT_READY（P1-COS-DOC 冻结，2026-09-07）
+> 头: lib/calibration/include/astro_calibration.h（唯一权威签名源，禁止手抄他版；
+> ac_correct_frame :97-103、ac_correct_frame_f64 :142-148）
+> SRC: lib/calibration/src/cosmetic_corrector.cpp + ac_api.cpp（CMake
+> astrocs_calibration）；SCI: SCI-CAL-001；ALG: ALG-COS-001..005；
+> DATA: DATA-P1-COS（DATA_SEMANTICS §10）；MOD: astrocs.p1.cosmetic
+> （迁移目标 astrocs_p1_cosmetic.dll，落码由 P1-COS-IMPL 建立）。
+> 与 API-CAL-001 的关系：两合同共享同一头文件与编译目标，本节只冻结
+> cosmetic 路径 3 个符号的语义（模块级合同视角独立）；编排级合同见
+> API-P1-002（PHASE1_API_V1 §2，多模块共享）。
+
+- 导出符号（3 个，全部当前真实存在，`AC_API` 导出）：
+  `ac_correct_frame`（f32）、`ac_correct_frame_f64`、`ac_set_num_threads`
+  （与 API-CAL-001 共享；本合同引用其 ICV 副作用登记，不重复冻结）。
+- 签名（astro_calibration.h :97-103，f64 变体 :142-148，double 参数）：
+  `int ac_correct_frame(const float* data, int width, int height,
+  const float* master_dark, const float* master_bias, float* out,
+  float hot_sigma, float cold_sigma, int method,
+  int max_structure_size, int* out_hot, int* out_cold)`。
+- 返回码：`AC_OK=0`；`AC_ERR_PARAM=-1`（data/out 空指针、width/height
+  非正，ac_api.cpp:108-122 校验）；`AC_ERR_MEMORY=-2`/`AC_ERR_INTERNAL=-3`
+  定义但**从未返回**（无 extern "C" 异常屏障，bad_alloc 可穿越 C ABI，
+  DISP-COS-001）。
+- 调用时序与所有权：无句柄对象；`out` 由调用方分配（w·h float32）；
+  `data/master_dark/master_bias` 只读借用；`out_hot/out_cold` 可 NULL。
+  data 与 out 内存重叠行为未定义（in-place 未登记，DISP-COS-010）。
+- 单位/dtype/shape：全 ADU；`[h][w]` 行主序 0-based；f64 ABI 内部降级
+  float32 执行（统计/mask/插值全程 f32，DISP-COS-004）；
+  method 0=median / 1=IDW（名义 bilinear，DISP-COS-003）；
+  hot/cold_sigma<=0 或 master_dark/bias=NULL → 对应检测禁用（ALG-COS-004）。
+  数据语义逐字段见 DATA_SEMANTICS §10（DATA-P1-COS）。
+- 线程安全：reentrant、threadsafe（无共享可变全局；OpenMP 默认 team，
+  进程级 ICV——ThreadLease 迁移整改点 DISP-COS-008）；输出 bitwise
+  与线程数无关。
+- 取消：无取消检查点（API-P1-002 §2 登记"取消点=无"；帧粒度取消由
+  phase1_session 层实现，DISP-COS-007）。
+- 生产调用方：lib/phase1_session/p1_session.cpp:294-307（cosmetic stage，
+  现传 master_dark/master_bias=nullptr → 检测全禁用、恒等 pass，
+  DISP-COS-009；no fabrication of valid coverage）。
+- 已登记现状缺陷（不得静默使用，P1-COS-IMPL/INT 处理）：
+  NaN 未在检测统计过滤（NaN 源帧检测静默全 false）；w·h int31 溢出
+  无防护；非 0 method 一律按 IDW；镜像边界小帧语义。完整清单见
+  ALG-COS 文档 §10（DISP-COS-001..011）。
+- 遗留通道（不在本合同）：Makefile 产物 cosmetic_corrector.dll 的
+  cc_correct_median/cc_detect_hot/cc_detect_cold/cc_last_error
+  （局部窗口修复，公式与 ac_* 通道不同）——计划迁移旧符号，去留由
+  P1-COS-IMPL 决定。
+- plan/execute/cancel/inspect 迁移语义见 ALG-COS 文档 §0/§8
+  （astrocs.p1.cosmetic / astrocs_p1_cosmetic.dll，C ABI adapter 由
+  P1-COS-IMPL 建立；本节描述现状 API，不声明 DLL 化完成）。
+
 ## On-disk 格式
 
 - HiPS：IVOA 1.4（signal/support/snr 产品，NESTED，512 tile）。

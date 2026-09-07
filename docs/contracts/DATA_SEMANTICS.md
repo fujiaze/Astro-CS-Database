@@ -170,3 +170,49 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 本模块不输出 variance/ivar（snr_estimator 独立估计，§4a）；坏点掩码
 1=坏点仅在修复路径内部使用，不作为产品输出；`support`/coverage 概念
 不在本层（Phase2/3 处理）。
+
+## 10. Phase1 cosmetic 模块输入/输出数据（DATA-P1-COS）
+
+> ID: DATA-P1-COS  状态: CONTRACT_READY（P1-COS-DOC 冻结，2026-09-07）
+> 模块: lib/cosmetic（astrocs.p1.cosmetic，迁移目标；现行实现唯一生产源
+> lib/calibration/src/cosmetic_corrector.cpp，经 astrocs_calibration 编译）；
+> SCI: SCI-CAL-001；ALG: ALG-COS-001..005；上游: DATA-P1-CAL（§9）。
+> 本节冻结 `ac_correct_frame(+_f64)` 的真实数据语义（P1-COS-DOC 源码
+> 核对），迁移 DLL astrocs_p1_cosmetic.dll 由 P1-COS-IMPL 建立
+> （语义不变）。与 §9 的重叠处（掩码极性、method、sigma 语义）以
+> SCI-CAL-001 为共同权威，本节只登记 cosmetic 路径专属细化。
+
+### 10.1 输入（内存数组，无文件 I/O）
+
+行主序 `idx = y·w + x`，0-based；单位 ADU（σ 倍数/计数除外）；
+无坐标变换（frame identity 沿用 §5）。
+
+| 数组 | dtype/shape | 单位/域 | invalid / NULL 语义 |
+|---|---|---|---|
+| data（待修复帧，通常为 §9 校准帧） | float32（f64 ABI 经 double→float 降级，DISP-COS-004）`[h][w]` | ADU | NaN 逐像素透传（检测比较恒 false，不判坏——DISP-COS-002）；与 out 重叠未定义（DISP-COS-010） |
+| master_dark（热检测源） | float32 `[h][w]` | ADU | 可为 NULL（热检测关闭，ALG-COS-004）；含 NaN → 阈值非数值、检测静默全 false（DISP-COS-002） |
+| master_bias（冷检测源） | float32 `[h][w]` | ADU | 可为 NULL（冷检测关闭）；NaN 同上 |
+| hot_sigma / cold_sigma | float，无量纲 | MAD 倍数（σ=1.4826·mad 换算） | <=0 = 禁用对应检测（ALG-COS-004）；mad=0 时阈值=±med（σ=0） |
+| method | int 0=median / 1=IDW（名义 bilinear） | — | 非 0 一律按 IDW 路径（DISP-COS-003） |
+| max_structure_size | int，像素个数 | 连通域尺寸上限 | sizes >= max_size 的 8 连通域不判坏（保留原值）；<=0 → 全域清除（负面现状，ALG §9） |
+| out_hot / out_cold | int* 单值出参 | — | 可 NULL（不输出计数） |
+
+### 10.2 输出
+
+| 数组 | dtype/shape | 值域 | invalid |
+|---|---|---|---|
+| out（修复帧） | float32（f64 ABI 经 float→double 回转）`[h][w]` | ADU（可负；不 clamp；无 pedestal） | 非坏点逐像素恒等；坏点=插值或原值回退（空邻域）；全坏邻域回退原值；NaN 输入透传；参数错误时不写 out |
+| out_hot / out_cold | int 单值 | 像素计数 | ALG-COS-002 结构过滤后掩码像素数（≤候选数）；dark/bias 未接线时=0；可 NULL |
+| 错误码 | int | — | 0=AC_OK；−1=AC_ERR_PARAM（data/out 空指针、w/h 非正）；−2/−3 定义但**从未返回**（DISP-COS-001） |
+
+### 10.3 mask 与 coverage 边界
+
+- 掩码极性 **1=坏点**（SCI-CAL-001 §9a，hot/cold/all_bad 合并掩码均为
+  0/1 char，`all_bad = hot | cold` 位或合并）；掩码为模块内部产物，
+  不作为产品输出（与 §9.4 一致）。
+- **no fabrication of valid coverage**：修复仅发生在被检测判坏的像素，
+  非坏点逐像素恒等；空邻域回退原值而非虚构好值；生产调用现状
+  （p1_session.cpp:294-307 dark/bias 传 NULL）下模块为恒等 pass、
+  out_hot=out_cold=0——不做无依据的"已修复"声明（DISP-COS-009）。
+- variance/ivar/coverage 不在本层（§4a/§9.4 同界）。
+
