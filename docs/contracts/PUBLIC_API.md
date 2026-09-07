@@ -821,3 +821,128 @@ saturated/has_saturated int 0/1；图像输入 FP32 通道 uint16（DISP-STAR-00
   完成）。测试锚 TEST-STAR-DESIGN-001（ALG-STARDET-001 §11.4）由
   P1-STAR-TEST 执行落 TEST-P1-STAR-001 + EVIDENCE；registry descriptor
   占位词汇不作冻结依据（P1-PSF-DOC 先例）。
+
+## WCS 求解 C API（API-WCS-001）
+
+> ID: API-WCS-001  状态: CONTRACT_READY（P1-WCS-DOC 冻结，2026-09-07）
+> 头: lib/plate_solve/cpp/ipv/include/ipv_api.h（唯一权威签名源，禁止手抄
+> 他版；IPV_API extern "C" 导出宏，238 行）
+> SRC: lib/plate_solve/cpp/ipv/src/ipv_entry.cpp（649 行；内核
+> ipv_solver/ipv_select/ipv_triangle/ipv_itertrans/ipv_robust_refine/
+> ipv_wcs/ipv_sip 共 13821 行）
+> SCI: SCI-WCS-001（docs/science/ASTROMETRY.md，共享引用不改动）；
+> ALG: ALG-WCS-001（PLATESOLVE.md §11 逐符号锚）；DATA: DATA-P1-WCS
+> （DATA_SEMANTICS §18，单位/dtype/shape/坐标契约唯一权威）；编排级
+> 合同 API-P1-004（PHASE1_API_V1 §2，descriptor 引用，与本节并行不互斥）
+> MOD: MOD-astrocs-phase1-wcs-platesolve（module.yaml CONTRACT_READY，
+> entrypoint=MISSING；生产调用 orchestrator.cpp:1758 run_stage_platesolve）
+
+### 范围界定
+
+Phase1 单帧天测 WCS 求解 C ABI：星点检测坐标（double [n,6]）+ Gaia DR3SP
+参考星 → TAN+SIP 三角形匹配求解，IpvWcsResult POD 输出（CD/CRVAL/CRPIX/
+SIP A/B/AP/BP/RMS/CTYPE）。不做星点检测（禁重检测，消费 PSF 产出
+star_measurements 权威块，orchestrator.cpp:1748-1755）、不做图像重采样、
+不做参考星缓存管理（gaia 句柄由调用方注入）。像素中心双契约（统一契约
+index-is-center ↔ IPV 接口契约 center=index+0.5）由调用方显式 +0.5 桥接
+（orchestrator.cpp:1867，DATA_SEMANTICS §18.1）。无取消检查点
+（DISP-WCS-005）。
+
+### 导出符号（ipv_api.h/ipv_entry.cpp 实测行号锚，12 个全部当前真实存在）
+
+| 符号 | 头锚 | 定义锚 | 摘要 |
+|---|---|---|---|
+| ipv_solve_create | ipv_api.h:84 | ipv_entry.cpp:237 | 创建 IPVSolver 句柄 |
+| ipv_solve_destroy | :87 | :249 | 释放句柄（整句柄唯一释放入口） |
+| ipv_set_gaia_handle | :90 | :260 | 注入 Gaia DR3SP 客户端句柄（intptr_t） |
+| ipv_set_detector_handle | :93 | :273 | 注入 sdet 句柄（intptr_t） |
+| ipv_get_default_params | :198 | :286 | IpvParams 默认值（log_dir 空=无日志文件） |
+| ipv_get_last_inlier_count | :224 | :314 | 最近一次求解 inlier 计数 |
+| ipv_get_last_inliers | :232 | :328 | inlier 9 列缓冲拷出（ipv_api.h:203-221） |
+| ipv_solve | :97 | :345 | 文件路径入口（legacy，非生产） |
+| ipv_solve_from_memory | :110 | :377 | PipelineFrame 内存入口 |
+| **ipv_solve_from_detections_v1** | :146 | :524 | **生产入口**（检测坐标数组直入，orchestrator 实调） |
+| ipv_solve_from_memory_with_callback | :165 | :566 | 回调进度变体 |
+| ipv_solve_from_memory_with_callback_d | :182 | :610 | 回调变体 FP64 |
+
+核心结构体：IpvWcsResult 16 字段（:39-61，cd[4]/crval[2]/crpix[2]
+1-based/sip_a·b·ap·bp[36]/rms_px/rms_arcsec/n_pairs/success/
+trans_order/ctype1·2[16]/error_msg[256]）；IpvParams（:64-80，log_dir[256]
+等）。inlier 缓冲 9 列（:203-221）=det_x,det_y,gaia_ra,gaia_dec,pred_x,
+pred_y,residual_x,residual_y,residual_dist。
+
+### 签名要点与内存所有权
+
+- ipv_solve_from_detections_v1（:146-163）：入参 solver/detections [n,6]/
+  n_detections/image_width/height/ra0/dec0/focal_length_mm/pixel_size_um/
+  IpvWcsResult*；返回 0=失败/1=成功；NULL 参数 → ret=0（:524 入口校验）。
+- IpvWcsResult 为调用方栈/堆分配 POD（sizeof 固定），DLL 仅写不 malloc；
+  无配套 free 函数（与 dpsf 先例不同，无堆所有权转移）。
+- ipv_get_last_inliers（:232）：调用方预分配 9·max_count double 缓冲，
+  返回实际拷贝数；数据来自求解器内部缓存 cache_last_inliers_
+  （ipv_solver.cpp:744-752，WCS Gate v2 双层闭环）。
+- 全部接口不抛异常（C ABI，try/catch → set_error_msg，ipv_entry.cpp:141、
+  :181-187/:218-224）。
+
+### 返回码
+
+- ret：0=失败（error_msg 载因：NULL 参数/求解失败/C++ 异常）、1=成功
+  （success=1 且 trans_order∈{1,2,3}）。
+- result->success 与 ret 同步；失败时 trans_order=0、n_pairs=0、rms=0
+  （fail_result，ipv_solver.cpp:396-398）——**rms=0 不代表完美解，必须与
+  success 联合解读**（DATA_SEMANTICS §18.2）。
+- 失败-置信度语义（DISP-WCS-001，PLATESOLVE.md §11.3）：CD det 退化坍缩
+  （近似 CRPIX 的解）必须以 success=0 呈现，禁止冒充成功解；现状
+  wcs_tan.cpp:48-51/wcs_transform.cpp:39-49 同族缺陷已登记不改码，整改归
+  P1-WCS-IMPL/P1-PHOT-IMPL。
+
+### 单位/dtype/shape
+
+见 DATA_SEMANTICS §18（唯一权威）：detections [n,6] double（det_x/det_y
+为 +0.5 契约 pixel；flux ADU；mag mag；sat/has_sat 0/1）；ra0/dec0 deg；
+focal_length_mm mm；pixel_size_um μm；输出 cd deg/pixel、crval deg
+（ICRS/J2000）、crpix 1-based pixel、rms_arcsec/rms_px、SIP 无量纲
+（AP[6]−=1、BP[1]−=1 约定，Y-down 符号已折入）。
+
+### 线程安全与确定性
+
+- 句柄级互斥使用（同一 solver 句柄禁止跨线程并发求解）；gaia/detector
+  句柄生存期由调用方保证。
+- OpenMP 并行点：三角形投票（ipv_triangle.cpp:302/:347，线程局部矩阵 +
+  整数归并 collapse(2) schedule(static)）、选星（ipv_select.cpp:810/:1123/
+  :1412/:1756）——投票与拟合归并为整数/单线程浮点，输出 bitwise 与线程数
+  无关（determinism=fixed_reduction_order，ALG-WCS-001 §11.4 F5 冻结断言）。
+  线程数未接 ThreadBudget（迁移整改点，module.yaml
+  threading_model=host_executor_lease 为合同值，ThreadLease/取消检查点归
+  P1-WCS-IMPL，DISP-WCS-005）。
+
+### 生产调用方与编排现状
+
+- orchestrator.cpp:1758 run_stage_platesolve（必需 stage，DLL 未加载
+  :1763-1764 退出码 2）→ init 段 ipv_solve_create/ipv_set_gaia_handle/
+  ipv_set_detector_handle（:1621-1643）→ 消费 star_measurements [N,≥15]
+  权威块（过滤 status∈{0,3}/sat/fwhm∈[0.5,20]/边缘 5px，+0.5 转换 :1867）
+  + star_det fallback（DETECTOR_FALLBACK，<0.5px 去重）→ 调用
+  ipv_solve_from_detections_v1（:1967）→ 失败 → PLATESOLVE_FAILED
+  （:1980）→ WCS 头写回 CTYPE/CRVAL/CRPIX/CD + RADESYS=ICRS/EQUINOX=2000
+  （:2003-2010）+ SIP A/B/AP/BP 写回（:2017-2049）。
+- star_det/star_det_psf_compat/star_measurements 均由上游 PSF/STAR_MEASURE
+  产出，本阶段不重写（:2057）。
+- registry descriptor 占位 ID（module_adapters.cpp:450-464，module_id=
+  astrocs.phase1.wcs-platesolve、ports sources/wcs、sci_id=SCI-P1-WCS-001/
+  alg_id=ALG-002/data_id=DATA-P1-WCS/api_id=API-P1-004/test_id=
+  TEST-P1-WCS-001）由 P1-WCS-INT 对齐本合同，不得反向作为冻结依据。
+- 现状构建 lib/plate_solve/cpp/ipv/build.ps1:27 / Makefile:6（g++
+  -fopenmp -O3 → ipv_solver.dll，MSYS2/MinGW）；未编入根 CMake 主构建
+  （根 CMakeLists.txt 无 ipv 目标）——astrocs_p1_wcs.dll 迁移由
+  P1-WCS-IMPL 建立。
+
+### 已登记现状缺陷与迁移语义
+
+- DISP-WCS-001..006 全清单见 PLATESOLVE.md §11.3（001 CD 退化静默坍缩
+  R1/002 错误通道缺失族/003 双 SIP 拟合路径并存/004 AP/BP 半静默/
+  005 取消点+ThreadBudget 缺失/006 三套 TAN 实现并存）。
+- plan/execute/cancel/inspect 迁移语义见 module.yaml（astrocs.p1.wcs /
+  astrocs_p1_wcs.dll，C ABI adapter 由 P1-WCS-IMPL 建立；本节描述现状
+  API，不声明 DLL 化完成）；测试设计 TEST-WCS-DESIGN-001（§11.4）由
+  P1-WCS-TEST 执行落 TEST-P1-WCS-001 + EVIDENCE。

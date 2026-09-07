@@ -1647,3 +1647,4 @@
 {"sha": "f2e439a65de63ab0b4b2908c1c3a9fb088624ce9", "subject": "chore(state): 台账补登 ce8d4a5c——稳态恢复（ledger 尾行=HEAD-1, HEAD 自参照豁免）", "task_id": "UNTAGGED", "date": "2026-09-08T10:30:00+08:00"}
 {"sha": "d3235bdde7734191818b35acc3e784acc05c59d2", "subject": "chore(state): 台账补登 64902198——missing=={HEAD} 单元素豁免态恢复", "task_id": "UNTAGGED", "date": "2026-09-08T11:00:00+08:00"}
 {"sha": "d277e0ec0b33a5b136683523b912e57b33093aef", "subject": "chore(state): 台账补登 f2e439a6——missing=={HEAD} 豁免态（终）", "task_id": "UNTAGGED", "date": "2026-09-08T11:00:00+08:00"}
+{"sha": "71e1c6aa7748ddb484303802da4a994cf425028e", "subject": "chore(state): 台账全量对齐（含 HEAD 预登）——破除豁免追赶循环", "task_id": "UNTAGGED", "date": "2026-09-08T11:30:00+08:00"}

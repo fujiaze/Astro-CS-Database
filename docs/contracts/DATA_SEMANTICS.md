@@ -686,3 +686,83 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   （:2242-2247）；缓冲在 PIPELINE 收尾释放（:2466）。
 - 释放纪律：10 数组必须经 sdet_free_detect_ex 整组释放（:2357-2373），
   禁止逐数组 free（extras 数组同组释放）。
+
+## 18. Phase1 wcs（plate_solve）模块输入/输出数据（DATA-P1-WCS）
+
+> ID: DATA-P1-WCS  状态: CONTRACT_READY（P1-WCS-DOC 冻结，2026-09-07）
+> 模块: lib/plate_solve;lib/phase1/wcs（astrocs.p1.wcs，迁移目标
+> astrocs_p1_wcs.dll；现行实现生产源 lib/plate_solve/cpp/ipv/
+> ipv_entry.cpp:237-649 12 个 C ABI 导出 + 内核 ipv_solver/ipv_select/
+> ipv_triangle/ipv_itertrans/ipv_robust_refine/ipv_wcs/ipv_sip，合计
+> 13821 行；唯一权威签名头 lib/plate_solve/cpp/ipv/include/ipv_api.h）。
+> ALG: ALG-WCS-001（PLATESOLVE.md §11 逐符号锚）；SCI: SCI-WCS-001
+> （docs/science/ASTROMETRY.md，FROZEN T102 2026-08-23，共享 SCI 引用
+> 不改动）；编排级合同 API-P1-004（PHASE1_API_V1 §2：一帧只做一次权威
+> 求解，PLATESOLVE 消费 PSF 星点禁重检测）。本节是该模块单位/dtype/
+> shape/invalid 的唯一权威；descriptor astrocs.phase1.wcs-platesolve
+> （module_adapters.cpp:450-464）为编排层词汇，由 P1-WCS-INT 对齐，不得
+> 反向作为冻结依据。
+
+### 18.1 输入（生产通道 ipv_solve_from_detections_v1，orchestrator.cpp:1967）
+
+| 参数/字段 | dtype/shape | 单位/域 | invalid / NULL 语义 |
+|---|---|---|---|
+| data 块（图像由 PipelineFrame 提供，求尺寸与边缘过滤用） | AIO_BLOCK 类型 [h·w] | ADU | data 块缺失 → BLOCK_MISSING（orchestrator.cpp:1808-1816） |
+| detections | double `[n,6]` 行主序 | 列 [0..5]=det_x,det_y,flux,mag,sat,has_sat；det_x/det_y 为 pixel（**IPV 接口契约：像素中心=索引+0.5**） | orchestrator 由 star_measurements 统一契约（index-is-center）**+0.5 显式转换**构造（:1867）；NULL/0 星 → ret=0（ipv_entry.cpp:524 入口校验） |
+| n_detections | int | — | 过滤后 0 星 → BLOCK_MISSING（orchestrator.cpp:1895-1900）；<3 星求解器显式失败 |
+| image_width/height | int | pixel | 边缘过滤 5px 裁剪（:1866-1868） |
+| ra0/dec0（OBJCTRA/OBJCTDEC，header 必需；config 可覆盖 initial_ra/initial_dec/focal_length/pixel_size） | double | deg | 缺失 → 阶段失败（:1933-1944 约束注释：必须使用 OBJCTRA/OBJCTDEC 作初始指向） |
+| focal_length_mm/pixel_size_um（FOCALLEN/XPIXSZ） | double | mm / μm | 驱动 s0=206.265·pixel_um/focal_mm（ipv_select.cpp:49,:253）；畸值 → 匹配失败显式 NO_SOLUTION |
+| star_measurements（orchestrator 侧权威源，非 C ABI 直入） | FLOAT64 `[N,≥15]` 行主序 | 列 0 star_id,1 x,2 y,3 flux_inst,4 flux_unc,5 background,6 psf_status,7 fwhm,8 A,9 B,10 mad,11 ecc,12 mag,13 saturated,14 has_saturated（:1846-1849） | 缺失/格式错 → BLOCK_MISSING（:1830-1839）；过滤 status∉{0,3}、sat r[13]、fwhm r[7]∉[0.5,20]、边缘 5px（:1852-1862） |
+| star_det（fallback 源，orchestrator 侧） | FLOAT64 `[N,6]` | DATA-P1-STAR §17.2 编排序列化 | 仅 PSF 有效星不足时补充（显式 DETECTOR_FALLBACK）；坐标已是 +0.5 契约（:1878）；严重饱和（d[4]/d[5]≠0）排除；与 PSF 星 <0.5px 去重（:1891-1897） |
+| gaia 句柄（ipv_set_gaia_handle） | intptr_t | Gaia DR3SP | 调用方保证生存期；句柄级互斥 |
+
+### 18.2 输出（IpvWcsResult POD，ipv_api.h:39-61，success=1 时唯一权威）
+
+| 字段 | dtype/shape | 单位/值域 | invalid |
+|---|---|---|---|
+| success | int | 0/1 | 0=失败（error_msg[256] 填充，ipv_entry.cpp:141 set_error_msg；:181-187/:218-224 异常路径）；**CD det 退化坍缩禁止冒充解**（DISP-WCS-001 失败-置信度语义，PLATESOLVE.md §11.3） |
+| cd[4] | double `[2×2]` | deg/pixel（Y-down，cd12/cd22 已取反 ipv_wcs.cpp:542-544） | trans 线性项 det<1e-15 仅 warn 跳过 SIP（:322-325，DISP-WCS-004） |
+| crval[2] | double | deg（ICRS/J2000） | 收敛失败 → success=0 |
+| crpix[2] | double | pixel，1-based，=(w/2+0.5, h/2+0.5)（ipv_wcs.cpp:274-277） | **退化坍缩时近似 CRPIX 的输出不可判**（DISP-WCS-001） |
+| sip_a/b/ap/bp[36] | double（i*6+j 索引） | 无量纲畸变系数 | order≤1 全 0；AP[6]−=1、BP[1]−=1 约定（:456-461）；网格拟合失败仅 warn（:477） |
+| rms_px / rms_arcsec | double | pixel / arcsec | n_pairs=0 时 =0.0（:513-517），须与 success 联合解读 |
+| n_pairs / n_detected / n_catalog | int | — | 匹配对/检测星/星表星计数 |
+| trans_order | int | 1/2/3 | 失败时 trans_order=0（fail_result，ipv_solver.cpp:396-398） |
+| ctype1/ctype2[16] | char | "RA---TAN(-SIP)"/"DEC--TAN(-SIP)" | — |
+| error_msg[256] | char | — | 空串=无错；NULL 参数/C++ 异常填充（ipv_entry.cpp:181-187/:218-224） |
+
+- 编排写回（唯一权威落位，orchestrator.cpp:2003-2050）：header KV
+  CTYPE1/2、CRVAL1/2、CRPIX1/2、CD1_1/CD1_2/CD2_1/CD2_2、RADESYS=ICRS、
+  EQUINOX=2000.0；sip_order>0 时 A_ORDER/B_ORDER + A_i_j/B_i_j；
+  ap_order>0 时 AP_ORDER/BP_ORDER + AP_i_j/BP_i_j。求解失败 →
+  PLATESOLVE_FAILED（:1980），**不写任何 WCS 头**（失败不留半成品）。
+- inlier 缓冲（ipv_get_last_inliers，ipv_api.h:203-221）：double 9 列
+  `[n,9]` = det_x,det_y,gaia_ra,gaia_dec,pred_x,pred_y,residual_x,
+  residual_y,residual_dist；det_x/det_y 为 +0.5 契约 pixel；gaia_* 为
+  deg（ICRS）；residual_* 为 pixel/pixel/pixel。
+
+### 18.3 排序/截断/精度规则（汇总）
+
+- 输出全序：无排序输出（WCS 头标量 + SIP 系数表）；inlier 缓冲按匹配对
+  序稳定。坐标契约双轨见 §18.1/§18.2（统一契约 ↔ IPV 接口契约由
+  orchestrator :1867 显式桥接；CRPIX 1-based 与 +0.5 契约自洽）。
+- FP64 全链路：detections/IpvWcsResult 全 double，无量化降级（PREC-105
+  同族合规）；Gaia 查询 mag 上限自适应（ipv_select.cpp:429 m_lim）。
+- determinism=fixed_reduction_order（module.yaml；投票矩阵整数归并
+  ipv_triangle.cpp:347-357，线程数无关；§11.4 F5 冻结断言）；
+  dtype/determinism 变更属科学改动，须走 owner 流程；本节禁止被编排层
+  词汇反向改写。
+
+### 18.4 错误/边界
+
+- C ABI：ret=0 失败/1 成功；result->success 同步；error_msg 载因；
+  NULL solver/result/句柄 → ret=0（ipv_entry.cpp:524 入口校验域）。
+- 求解器：三角形 0 匹配 / iter_trans 全阶失败（ipv_solver.cpp:883-921）→
+  fail_result（trans_order=0, success=false）显式返回；极区跨界保守不剪枝
+  （PLATESOLVE.md §4）；RA 环绕 dra=360−dra+cos(dec) 缩放（§4）。
+- 编排级：BLOCK_MISSING（data/star_measurements 缺失、0 有效星）
+  :1814/:1832/:1896；PLATESOLVE_FAILED :1980；DLL 未加载 :1763 退出码 2
+  语义同 PSF 先例。
+- 释放纪律：ipv_solve_destroy（ipv_entry.cpp:249）整句柄释放；gaia/
+  detector 句柄由调用方（orchestrator init :1621-1643）管理。

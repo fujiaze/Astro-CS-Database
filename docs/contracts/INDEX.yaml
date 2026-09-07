@@ -144,6 +144,22 @@ contracts:
     version: 1.0.0
     path: docs/algorithms/PLATESOLVE.md
     upstream: [SCI-WCS-001]
+    downstream: [DATA-P1-WCS, API-WCS-001]
+  - id: DATA-P1-WCS
+    type: DATA
+    status: ACTIVE
+    owner: SA-P1-W16
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-WCS-001]
+    downstream: []
+  - id: API-WCS-001
+    type: API
+    status: ACTIVE
+    owner: SA-P1-W16
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ALG-WCS-001]
     downstream: []
   - id: ALG-PHOT-001
     type: ALG

@@ -61,3 +61,30 @@
   - Q4 象限偏多（两帧一致）
   - SIP_ORDER=3 两帧一致
 - VERDICT: PASS，为 P11-003 全帧复现提供工具基础
+
+### 2026-09-07 P1-WCS-DOC 模块合同冻结（控制包 wave W1）
+- 合同三件套落位本目录：README.md r1 重写（取代 V4.30 营销式旧 README，
+  旧性能指标叙述保留于 GitHub 上游与上文存档）+ module.yaml（11 号标准
+  §4，CONTRACT_READY，entrypoint=MISSING）+ 本节。
+- 合同 ID：SCI=SCI-WCS-001（docs/science/ASTROMETRY.md 共享引用不改）；
+  ALG=ALG-WCS-001（PLATESOLVE.md §11 逐符号锚，12 导出+内核符号链实测）；
+  DATA=DATA-P1-WCS（DATA_SEMANTICS §18）；API=API-WCS-001（PUBLIC_API，
+  12 导出符号锚）；SRC=SRC-WCS-001；TEST=TEST-WCS-DESIGN-001（§11.4
+  冻结容差，可执行 TEST-P1-WCS-001 归 P1-WCS-TEST）。
+- ID 修正记录：descriptor 占位 alg_id=ALG-002/api_id=API-P1-004 为编排层
+  词汇（module_adapters.cpp:450-464），真实合同 ID=ALG-WCS-001/API-WCS-001
+  由本任务注册；SCI 行由占位 SCI-P1-WCS-001 修正为既有 FROZEN SCI-WCS-001
+  （P1-PHOT 先例，不改 docs/science）。
+- DISP-WCS-001..006 登记不改码（PLATESOLVE.md §11.3）；核心为 DISP-WCS-001
+  （hunt R1）：CD 矩阵退化静默坍缩至 CRPIX 无错误通道——域内实例
+  wcs_tan.cpp:48-51（零日志）、域外同族 wcs_transform.cpp:39-49（仅
+  stderr）；失败-置信度语义冻结"退化必须 success=0 禁止冒充解"。
+- 像素中心双契约登记：统一契约（star_measurements index-is-center）↔
+  IPV 接口契约（center=index+0.5），orchestrator.cpp:1867 显式桥接；
+  CRPIX 1-based 与 +0.5 自洽。
+- 验收：traceability checker rc=0 warns=4（与基线逐条一致，无新增）、
+  pytest traceability 全过、contract_graph rc=0、doc_index rc=0、
+  selfcheck ALL PASS、lib/**.c/.h/.cpp/CMakeLists 与 docs/science 零 diff。
+- 遗留：ALG-WCS-002（旧 TST-WCS-INV/FAIL 设计词汇）未在本节逐符号展开
+  （域内唯一生产 ALG=ALG-WCS-001，见 §11.5 状态声明）；构建/CMake/取消点
+  整改归 P1-WCS-IMPL；descriptor ID 对齐归 P1-WCS-INT。
