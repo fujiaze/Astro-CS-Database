@@ -953,7 +953,7 @@ focal_length_mm mm；pixel_size_um μm；输出 cd deg/pixel、crval deg
 > 头: lib/phase2/include/astro/phase2/coverage.h（唯一权威签名源，59 行，
 > 禁止手抄他版；P2_API 导出宏 :16-20 Windows dllexport/POSIX 默认可见）
 > SRC: lib/phase2/src/coverage.cpp（239 行；生产目标根 CMake
-> astrocs_phase2 静态库 CMakeLists.txt:337-345，独立 self-build
+> astrocs_phase2 静态库 CMakeLists.txt:338-346，独立 self-build
 > lib/phase2/CMakeLists.txt:42-46 phase2 STATIC；astrocs_p2_coverage.dll
 > 为迁移目标合同值，尚未存在，由 P2-COV-IMPL 建立）
 > SCI: SCI-UPM-001/SCI-INT-001/SCI-SCOPE-001（docs/science/ 共享 FROZEN
@@ -984,9 +984,9 @@ intersection/depth/missing-tiles 产品（DISP-COV-004）、任何科学权重
 | p2_coverage_build | coverage.h:52 | coverage.cpp:144 | 发现+校验+union MOC+target_order（两阶段容量协议） |
 | p2_coverage_free | coverage.h:56 | coverage.cpp:233 | POD 清零（不释放堆，无所有权转移） |
 
-内部链接符号（非导出，匿名 namespace，登记备查）: parse_props
-（coverage.cpp:20-45，properties KV 解析）、inspect_frame
-（:59-140，单帧校验+叶级 tile 收集）。
+内部链接符号（非导出，登记备查）: inspect_frame（coverage.cpp:59-140，
+匿名 namespace :55-142）、parse_props（coverage.cpp:20-45，文件作用域
+static）。
 
 核心结构体: P2MocCell 2 字段（coverage.h:26-29，order/ipix 均uint64）；
 P2HipsInputInfo 7 字段（:31-38，hips_path[1024]/frame_id[64]/
@@ -1004,23 +1004,23 @@ status/error[512]）。字段级单位/值域唯一权威=DATA_SEMANTICS §19.2�
   P2HipsInputInfo）后第二次调用回填数据（coverage.cpp:219-228；每次
   调用全量重扫，无缓存，DISP-COV-005）。
 - P2CoverageResult 及全部数组由调用方分配（coverage.h:42/:44 注释）；
-  p2_coverage_free 仅 `memset(out,0,sizeof(*out))`（coverage.cpp:233-237）
+  p2_coverage_free 仅 `memset(out,0,sizeof(*out))`（coverage.cpp:235）
   ——与 PHASE2_API_V1 §1 所有权图 Coverage 行（build 创建/调用方持有/
   p2_coverage_free 释放/下游只读借用，docs/api/PHASE2_API_V1.md:15）
   一致；无 malloc/无异常跨界。
-- 错误通道: rc=1 + out->error[512]（"no inputs"/"missing hips_order"/
-  "unsupported tile_width"/"missing hips_version"/"unsupported
-  hips_frame"/"filter mismatch"/AIO last_error 透传 :63-65）；错误码
-  编排映射归 API-P2-001 §4（ACS_ERR_PARAM/ACS_ERR_STATE）。
-- "no inputs" 分支 rc=1 而 status=0 不一致（coverage.cpp:154-157 vs
-  memset :158 后置位缺失，DISP-COV-001）；error 字段仍有效（strncpy
-  在 memset 后执行 :154-163）——调用方以 rc 为准，status 语义整改归
-  P2-COV-IMPL。
+- 错误通道: rc=1 + out->error[512]（"no inputs"/"empty path at index
+  %llu"/"missing hips_order"/"unsupported tile_width"/"missing
+  hips_version"/"unsupported hips_frame"/"filter mismatch"/AIO
+  last_error 透传 :63-64）；错误码编排映射归 API-P2-001 §4
+  （ACS_ERR_PARAM/ACS_ERR_STATE）。
+- "no inputs" 分支 rc=1 而 status=0 不一致（coverage.cpp:154-157；
+  memset :151 先行、strncpy :155 后写，error 有效；status 保持 0，
+  DISP-COV-001）——调用方以 rc 为准，status 语义整改归 P2-COV-IMPL。
 
 ### 返回码
 
 - rc: 0=成功（含空 union K=0）；1=失败（§5 全部拒绝路径，error 载因）。
-- status: 0=ok（:229）；错误路径=1（:172-179/:198-202），
+- status: 0=ok（:229）；错误路径=1（:168/:177/:190/:200），
   "no inputs" 分支例外=DISP-COV-001（同上，整改门由
   TEST-COV-DESIGN-001 F5 固化）。
 - 并发合同（API-P2-001 §2 行 1）: reentrant=yes / threadsafe=no
@@ -1050,18 +1050,20 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   为 Phase2 DAG 首阶段（阶段边界取消检查 :120，manifest 登记
   n_union_cells/target_order :146-147）；两阶段调用 :125/:138。
 - 下游模块消费: sampler p2_sample_controls*（sampler.cpp:464/:504/:632/
-  :1121/:1138）、UPM 哈希种子（upm.cpp:4070/:4073-4075）、registry
+  :1138）、stage2 正式入口（lib/phase2/tools/stage2.cpp:189-200/
+  :212-213）、registry
   descriptor astrocs.phase2.coverage（module_adapters.cpp:561-576，
-  端口 calibrated→coverage、DATA-P2-COV/DIMENSIONLESS/PIXEL——坐标
-  登记以本 API/DATA 合同 NESTED 为准修订，P2-COV-INT 对齐）。
-- 现状构建: 根 CMakeLists.txt astrocs_phase2 STATIC（:337-345，含
+  端口 calibrated=DATA-P2-CAL/ADU/PIXEL→coverage=DATA-P2-COV/
+  DIMENSIONLESS/PIXEL——出端口坐标登记以本 API/DATA 合同 NESTED 为准
+  修订，P2-COV-INT 对齐）。
+- 现状构建: 根 CMakeLists.txt astrocs_phase2 STATIC（:338-346，含
   src/coverage.cpp，无独立 DLL target）；lib/phase2/CMakeLists.txt
   phase2 STATIC 兼容自测 target（:42-46）+ phase2_synthetic_gate
   （:77-79）；astrocs_p2_coverage.dll 为迁移目标合同值（尚未存在），
   CMake 集成归 P2-COV-IMPL。
 - 既有测试基线: Phase2Coverage.RealHipsUnion（synthetic_gate.cpp:3374）
   / FilterMismatchRejected（:3410）——依赖 Fatduck 本地路径，缺失时
-  GTEST_SKIP（:3378/:3415）；合成 fixture 由 P2-COV-TEST 建立
+  GTEST_SKIP（:3376/:3413）；合成 fixture 由 P2-COV-TEST 建立
   （TEST-COV-DESIGN-001 F1，解除环境依赖）。
 
 ### 已登记现状缺陷与迁移语义

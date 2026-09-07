@@ -16,7 +16,7 @@
 # memory.md 落位于此；phase2 其余源 sampler/upm/rejection/integrate
 # 分别归 P2-SAMP/P2-UPM/P2-REJ/P2-INT 各自 DOC 任务）。
 # dll_target=astrocs_p2_coverage.dll 为迁移目标合同值（尚未存在）。
-# 现状构建=根 CMakeLists.txt astrocs_phase2 STATIC（:337-345，含
+# 现状构建=根 CMakeLists.txt astrocs_phase2 STATIC（:338-346，含
 # src/coverage.cpp :341，无独立 DLL target）+ lib/phase2/CMakeLists.txt
 # phase2 STATIC 兼容自测 target（:42-46）+ phase2_synthetic_gate（:77）。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4

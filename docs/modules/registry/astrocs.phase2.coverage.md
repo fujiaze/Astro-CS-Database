@@ -25,11 +25,11 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
   sources"，迁移目标 astrocs_p2_coverage.dll——合同值，尚未存在；
   depends_on_int=IO-003;DATA-004;RT-006）。
 - 层级：Phase2 生产模块（DAG 首节点 coverage）；现状构建根
-  CMakeLists.txt:337-345 astrocs_phase2 STATIC（src/coverage.cpp :341，
+  CMakeLists.txt:338-346 astrocs_phase2 STATIC（src/coverage.cpp :341，
   无独立 DLL target）；lib/phase2/CMakeLists.txt:42 phase2 STATIC 为
   模块自测 compatibility target（非产品事实源）；生产调用=
   lib/phase2_session/p2_session.cpp:119-148 coverage 阶段（两阶段
-  调用 :125/:138，manifest 登记 :146-147）。
+  调用 :125/:138，manifest 登记 :145-147）。
 - 合同：SCI-P2-COV-001（指向既有 FROZEN 共享 SCI：docs/science/
   PHASE2_UPM.md §1 覆盖并集 + docs/science/INTEGRATION.md §5
   support/validity 分离 + docs/science/SCIENCE_SCOPE.md §处理链第 5
@@ -58,7 +58,7 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
 - 并发：reentrant=yes / threadsafe=no（独立对象）/ internal_parallel=
   none（单线程整数集合运算，bitwise 确定，determinism=
   fixed_reduction_order）；ThreadLease/取消检查点未接线（阶段级取消
-  由 session 阶段边界 p2_session.cpp:120 提供；整改归 P2-COV-IMPL）。
+  由 session 阶段边界 p2_session.cpp:119-121（检查 :120）提供；整改归 P2-COV-IMPL）。
 - 错误：rc 0=成功（含 K=0）/1=失败 + error[512] 载因；status 与 rc
   同步（"no inputs" 分支例外=DISP-COV-001）；编排映射 ACS_ERR_PARAM/
   ACS_ERR_STATE（API-P2-001 §4）。
@@ -72,5 +72,5 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
   =整数/bitwise 断言零数值容差），由 P2-COV-TEST 执行落
   TEST-P2-COV-001 + EVIDENCE；legacy gate Phase2Coverage.RealHipsUnion
   （synthetic_gate.cpp:3374）/ FilterMismatchRejected（:3410）依赖
-  Fatduck 本地路径 GTEST_SKIP（:3378/:3415），合成 fixture 归
+  Fatduck 本地路径 GTEST_SKIP（:3376/:3413），合成 fixture 归
   P2-COV-TEST。

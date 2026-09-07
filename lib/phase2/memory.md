@@ -179,7 +179,7 @@ photometric scale、新 runtime I/O DLL。
   PHASE2_UPM.md §5，support 仅 eligibility 语义）。
 - 关键缺陷登记（不改码，整改归 P2-COV-IMPL/INT）：DISP-COV-001
   "no inputs" 分支 status 不一致（:154-157）、002 frame_id 基名截断
-  （:113-118）、003 空 filter 静默放行（:181/:190）、004
+  （:113-118）、003 空 filter 静默放行（:182/:186）、004
   intersection/depth/missing-tiles 产品缺失（matrix 四语义仅 union
   落地；覆盖度几何≠UPM geometric_reliability 权重因子——该乘数恒
   1.0 为 R3-A 已登记缺陷，修正归 P2-UPM 域）、005 extern "C" 内

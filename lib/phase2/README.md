@@ -16,7 +16,7 @@
 - MOD ID: **MOD-astrocs-phase2-coverage**；module_id:
   **astrocs.p2.coverage**；dll_name/dll_target:
   **astrocs_p2_coverage.dll**（迁移目标合同值，尚未存在——现状编入
-  astrocs_phase2 STATIC，根 CMakeLists.txt:337-345；独立 DLL target
+  astrocs_phase2 STATIC，根 CMakeLists.txt:338-346；独立 DLL target
   归 P2-COV-IMPL）。
 - module_version 0.11.0-alpha.2（VERSION 实测）；abi_version 1；
   phase_scope phase2；owner SA-P2-S20；状态 **CONTRACT_READY**
@@ -66,7 +66,7 @@
 
 invalid 语义：路径 NULL/空、hips_order 缺失、tile_width≠512、
 hips_version 缺失、hips_frame 非法、filter mismatch → rc=1 显式拒绝
-（coverage.cpp:154-157/:88-108/:181-193）；空 filter 静默放行现状 =
+（coverage.cpp:154-157/:88-108/:186-192）；空 filter 静默放行现状 =
 DISP-COV-003；K=0（空 MOC）合法 rc=0。
 
 ## 4. SCI/ALG/API/ARCH/TEST 链接
@@ -117,7 +117,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 ## 7. threading/parallel axis/lease/memory/I/O/cancel/checkpoint
 
 - threading_model=host_executor_lease（module.yaml 合同值）；现状
-  单线程、无 OpenMP（coverage.cpp 全文实测 0 处 pragma），
+  单单线程、无 OpenMP（coverage.cpp 全文实测 0 处 pragma），
   internal_parallel=none；ThreadLease/取消检查点未接线
   （DISP-COV-005 整改域，同 DISP-WCS-005 先例）。
 - 并发合同（API-P2-001 §2 行 1）：reentrant=yes / threadsafe=no
@@ -144,12 +144,12 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
   落地（EVIDENCE 届时落 EVID-*）。
 - 既有 legacy gate：Phase2Coverage.RealHipsUnion（synthetic_gate.cpp:
   3374）/ FilterMismatchRejected（:3410）——Fatduck 本地路径依赖，
-  缺失 GTEST_SKIP（:3378/:3415）；合成 fixture 为 P2-COV-TEST 范围。
+  缺失 GTEST_SKIP（:3376/:3413）；合成 fixture 为 P2-COV-TEST 范围。
 - 容差来源：§9 集合运算整数精确，容差=0（bitwise），无经验容差。
 
 ## 10. build/test 命令、已知限制、未实现项
 
-- 构建：根 CMake `astrocs_phase2` STATIC（CMakeLists.txt:337-345，
+- 构建：根 CMake `astrocs_phase2` STATIC（CMakeLists.txt:338-346，
   src/coverage.cpp :341）；独立自测 `lib/phase2/CMakeLists.txt:42`
   phase2 STATIC（compatibility 声明，非产品事实源）+
   `phase2_synthetic_gate`（:77，GTest）；无 DLL target（迁移目标
@@ -176,8 +176,10 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
   （端口坐标 PIXEL→NESTED、coverage 端口产出物=MOC 而非像素图），
   不得反向作为冻结依据。
 - 生产调用链：p2_session 阶段 1（p2_session.cpp:119-148，两阶段调用
-  :125/:138，manifest 登记 n_union_cells/target_order :146-147）→
-  下游 sampler/UPM（sampler.cpp:464-1150、upm.cpp:4070-4075）。
+  :125/:138，manifest 登记 n_union_cells/target_order :145-147）→
+  下游 sampler（sampler.cpp:1121/:1138，impl :463）与 stage2 正式入口
+  （lib/phase2/tools/stage2.cpp:189-200）；UPM 经控制拓扑间接关联
+  （upm.cpp:6-7 注释，不直接消费 P2CoverageResult）。
 
 ## 12. 交叉引用（co-located links）
 
