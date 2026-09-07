@@ -142,7 +142,7 @@ P1-HIPS-DOC,module-doc,NOT_STARTED,commit:943b023a traceability 27行0错 + pyte
 P1-HIPS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-HIPS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-HIPS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P2-COV-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-COV-DOC,module-doc,NOT_STARTED,commit:22fe677a traceability 29行0错 warns=4基线 + pytest traceability 9P + contract_graph 56 + doc_index PASS + selfcheck ALL PASS（锚点校正轮全量 grep 验证）,CLOSED,fg_verified_commit,22fe677a,lib/phase2/; docs/algorithms/PHASE2_COVERAGE.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结; coverage/support/validity 三概念分离+no-implicit-scientific-weight 红线条款; SCI 指向既有 FROZEN SCI 零改动; 初始版产物曾随 f1cb487c staged 泄漏（处置 a 台账注明），22fe677a 为验收完成态
 P2-COV-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-COV-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-COV-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
