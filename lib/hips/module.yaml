@@ -1,0 +1,70 @@
+# AstroCS phase1 HiPS writer 模块 — 元数据 (P1-HIPS-DOC 冻结, 2026-09-07)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/astro_image_io/src/hips/
+# aio_hips_writer.cpp，编译进根 CMakeLists.txt:298-309 静态库 astrocs_hips；
+# C ABI 导出 aio_hips.h 9 符号），模块化迁移（独立模块源 astrocs_p1_hips_writer.dll /
+# C ABI adapter / plan-execute-cancel-inspect / ThreadLease 接线）由 P1-HIPS-IMPL
+# 执行；可执行测试由 P1-HIPS-TEST 建立（TEST-HIPS-DESIGN-001 → TEST-P1-HIPS-001）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对清单
+# （P1-HIPS-DOC，2026-09-07，逐符号在 lib/astro_image_io/include/aio_hips.h
+# 亲核可见），禁止手抄他版。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P1-HIPS 行 target=astrocs_p1_hips_writer.dll、
+# module_id=astrocs.p1.hips_writer，legacy_paths="lib/healpix_db;lib/phase1_session"
+# —— 实测生产 HiPS writer 实现在 lib/astro_image_io/src/hips/aio_hips_writer.cpp
+# （矩阵 legacy 路径中 lib/healpix_db 侧的写通道为 drizzle 侧 sink
+# lib/healpix_db/healpix_drizzle/astro_sphere_sink.cpp 与 archive/legacy/healpix_stack
+# 历史实现；lib/phase1_session 对 HiPS 零引用，grep 退出码 1），与 lib/drizzle/、
+# lib/cosmetic/、lib/calibration/ 先例同构，本目录 lib/hips/ 为迁移目标目录、
+# 不与 legacy 目录重叠、不含源码。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
+# 现状实现为单句柄串行写（无内部并行：write_* 逐 tile 顺序调用，CFITSIO 单
+# 流程写盘，finalize 层次聚合按 k 降序确定性顺序），last_error 线程局部
+# （aio_hips_writer.cpp:48 thread_local）。ThreadLease 接线为迁移整改点
+# （见 docs/contracts/PUBLIC_API.md API-HIPS-001 与 docs/algorithms/HIPS_WRITER.md
+# DISP-HIPS-001..012；含 CFITSIO mutex 包装、abort 事务化、estsize/fov
+# 真实估算等登记项）。
+# entrypoint=MISSING：registry 无 astrocs.p1.hips_writer descriptor（全仓库
+# CMake 无 astrocs_p1_hips_writer 目标）；生产调用现状为 drizzle 侧 sink 通道
+# （astro_sphere_sink.cpp:52 经 aio_hips_product_begin 直写）与编排 DLL 通道
+# （orchestrator.cpp:3257-3361 经 hp_drizzle_run_hips 间接到达本 writer）。
+id: MOD-astrocs-phase1-hips-writer
+module_id: astrocs.p1.hips_writer
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase1
+dll_name: astrocs_p1_hips_writer.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: []
+input_ports:
+  - p1.stacked
+output_ports:
+  - p1.hips
+science_contracts:
+  - SCI-DRZ-001
+algorithm_contracts:
+  - ALG-HIPS-001
+  - ALG-HIPS-002
+  - ALG-HIPS-003
+  - ALG-HIPS-004
+  - ALG-HIPS-005
+data_contracts:
+  - DATA-P1-DRZ
+  - DATA-P1-HIPS
+api_contracts:
+  - API-HIPS-001
+source_symbols:
+  - aio_hips_product_begin
+  - aio_hips_write_signal_support_tile
+  - aio_hips_write_variance_tile
+  - aio_hips_write_snr_points
+  - aio_hips_set_drizzle_provenance
+  - aio_hips_finalize
+  - aio_hips_abort
+  - aio_hips_write
+  - aio_hips_last_error
+test_ids:
+  - TEST-HIPS-DESIGN-001
+threading_model: host_executor_lease
+resource_class: cpu_heavy
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
