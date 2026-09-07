@@ -1636,3 +1636,4 @@
 {"sha": "9628b7c975458860d68e8027b3a5770eef8bca48", "subject": "chore(state): 台账补登 a769d202", "task_id": "UNTAGGED", "date": "2026-09-08T03:07:54+08:00"}
 {"sha": "9023b14caee7fdadec66e2e2382e6a5718f34177", "subject": "chore(state): 台账补登 9628b7c9（上一轮漏登，本轮 HEAD 自参照豁免）", "task_id": "UNTAGGED", "date": "2026-09-08T05:30:00+08:00"}
 {"sha": "48e2f75f52ea09860a35db8d86b6dabb6043d56c", "subject": "chore(state): 台账补登 e17788e6/fdd76dac", "task_id": "UNTAGGED", "date": "2026-09-08T06:00:00+08:00"}
+{"sha": "21b325a6f79190fb2059ea48e7b87eeac0efbc07", "subject": "fix(core): P0 budget 注入链打通——host budget 权威优先消除 workers_=2 截断，多核宿主并行度 2→N（bug 狩猎 R3，MON-002 实测 p50=114%，确定性 1-N 核查通过）", "task_id": "UNTAGGED", "date": "2026-09-08T06:30:00+08:00"}
