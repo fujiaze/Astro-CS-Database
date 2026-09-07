@@ -45,9 +45,9 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 63,
+  "CLOSED": 64,
   "READY": 13,
-  "NOT_STARTED": 113,
+  "NOT_STARTED": 112,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
@@ -2020,15 +2020,15 @@
   },
   "P2-HIPS-DOC": {
    "owner": "SA-P2-I23",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "c0b464cf",
+   "evidence_path": "lib/hips_p2/; docs/algorithms/PHASE2_MOSAIC_WRITE.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json",
+   "source_of_status": "fg_verified_commit",
    "wave": "W1",
    "kind": "module-doc",
    "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "current_evidence": "commit:c0b464cf traceability 29行0错 warns=4 + pytest 9P + contract_graph 62 + doc_index PASS + selfcheck PASS；20 锚实测修正；13 条既有半边反向边补全（追加式）",
+   "note": "module-doc 冻结; SCI-UPM-001 共享 FROZEN 零改动; 可执行 TEST-P2-HIPS-001 MISSING 归 P2-HIPS-TEST（登记面=设计冻结 VERIFIED）; matrix 行 ID 保持 MOD-astrocs-phase2-write（registry 现状），module_id 对齐归 P2-XX-INT"
   },
   "P2-HIPS-TEST": {
    "owner": "SA-P2-I23",
