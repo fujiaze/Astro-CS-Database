@@ -38,6 +38,28 @@ static int failures = 0;
 int main(int argc, char** argv) {
   const std::string mode = (argc > 1) ? argv[1] : "baseline";
 
+  // ── avx512 硬件 gate (SKIP 语义, 前置到任何 provider TU 符号调用之前):
+  // provider 激活合同 = required ⊆ detected, 否则 backend_loader 预检拒绝
+  // 激活 ("unsupported ISA ... 不尝试执行", lib/backend_host/backend_loader.cpp
+  // ⑤); CPU-004 capability gate 同语义 (无 AVX-512 hw / OS 未保存 ZMM → 拒绝)。
+  // 因此无 AVX-512F 的 host 上 avx512 provider 处于"未激活"分支 — selftest
+  // 相应 SKIP (exit 77, ctest SKIP_RETURN_CODE), 而非把宿主环境事实记成 FAIL。
+  // gate 必须在 get_api 之前: Release (-O2) 下 avx512 TU 的非 kernel 符号
+  // (astrocs_backend_get_api_v1 等) 会被 clang 自定向量化出 EVEX 指令, 无
+  // AVX-512 硬件执行即 SIGILL — 前置检测保证该路径不执行任何 avx512 TU 代码
+  // (cpu_features TU 无 ISA 旗标)。检测源与 backend_loader 同为
+  // astrocs_cpu_detect_features_v1, 语义一致。
+  // avx2/baseline 分支不受影响; 有 AVX-512F 时下方全部断言 (backend_id/
+  // required 声明/kernel 表/self_test) 不变, 不放宽。
+  const uint64_t detected_pre = astrocs_cpu_detect_features_v1();
+  if (mode == "avx512" && (detected_pre & ACS_FEAT_AVX512F) == 0) {
+    std::printf("cpu001: avx512 provider NOT ACTIVATED on this host "
+                "(detected=0x%016llx lacks ACS_FEAT_AVX512F) "
+                "— SKIP per provider activation contract\n",
+                (unsigned long long)detected_pre);
+    return 77;  // ctest SKIP_RETURN_CODE (tests/unit/CMakeLists.txt)
+  }
+
   astrocs_host_services_v1 host;
   void* state = nullptr;
   if (astrocs_host_services_default_v1(&host, &state) != ACS_OK) {
@@ -81,6 +103,7 @@ int main(int argc, char** argv) {
   } else if (mode == "avx512") {
     CHECK((api.required_features & ACS_FEAT_AVX512F) == ACS_FEAT_AVX512F);
   }
+
   // 本机必须满足 required, 否则该 provider 在当前机器上不可用(测试环境前提)
   CHECK((detected & api.required_features) == api.required_features);
 
