@@ -1644,3 +1644,4 @@
 {"sha": "a3bf767b02bc7e961d9823446b3e978e240d848c", "subject": "chore(state): 台账补登 9f031197——reconcile 收敛", "task_id": "UNTAGGED", "date": "2026-09-08T09:00:00+08:00"}
 {"sha": "ce8d4a5c2280ce5f87c5f26cc49a0cf39a27d8f3", "subject": "chore(state): 台账补登 cb548e24——reconcile 收敛（守则固化：每次 commit 前 append 当前 HEAD sha，杜绝追赶循环）", "task_id": "UNTAGGED", "date": "2026-09-08T09:30:00+08:00"}
 {"sha": "649021981d849c24bd0532d490edf11ea268220d", "subject": "chore(state): 台账补登 a3bf767b——reconcile 终收敛", "task_id": "UNTAGGED", "date": "2026-09-08T10:00:00+08:00"}
+{"sha": "f2e439a65de63ab0b4b2908c1c3a9fb088624ce9", "subject": "chore(state): 台账补登 ce8d4a5c——稳态恢复（ledger 尾行=HEAD-1, HEAD 自参照豁免）", "task_id": "UNTAGGED", "date": "2026-09-08T10:30:00+08:00"}
