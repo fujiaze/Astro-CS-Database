@@ -1652,3 +1652,4 @@
 {"sha": "0dbaa354f14385508c49a4d7863e7ecbdbd1343a", "subject": "chore(state): P1-WCS-DOC 台账 CLOSED 同步（fg_verified_commit, commit 3cbd5fd7）", "task_id": "UNTAGGED", "date": "2026-09-08T03:44:15+08:00"}
 {"sha": "9276f383980499374fd733cb8ea9a885e2f0680c", "subject": "fix(ci): dumpbin 导出行正则补 hint 列（ordinal hint RVA name 三列）——exported_abi 误判 0 符号修复", "task_id": "UNTAGGED", "date": "2026-09-08T03:48:37+08:00"}
 {"sha": "d8832fc9dc1d0b77110dccfbd93855bec008153e", "subject": "chore(state): 台账补登 dumpbin 正则修复", "task_id": "UNTAGGED", "date": "2026-09-08T03:49:29+08:00"}
+{"sha": "5bd9ed95fc614d6616bf6997aa3943b1266c7e6e", "subject": "chore(state): 台账全量对齐 main（补 18 行+去 rebase 残留坏 SHA）", "task_id": "UNTAGGED", "date": "2026-09-08T12:30:00+08:00"}
