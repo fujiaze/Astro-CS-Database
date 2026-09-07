@@ -1594,3 +1594,4 @@
 {"sha": "4f6e2b6532c3431750b791612a4ca6203ede77b5", "subject": "chore(evidence): CPU-006/007/008 + LNX-003/004/005 复验 reverify 全 PASS（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-07T04:57:17+08:00"}
 {"sha": "da0cf5780992174dc56520bd8305dc653acebea6", "subject": "fix(tests): Windows 残余 3 ctest 修复——ACP 第二层编码墙 + /tmp 遗留 + avx512 诊断（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-07T05:15:51+08:00"}
 {"sha": "16867c25ae4a4ba3703365ed7013b961cc448adf", "subject": "fix(ci): DEEP profile 三失败闭环——cfitsio TSAN 抑制接线 + avx512 selftest 合同化 SKIP（subagent 交付）", "task_id": "UNTAGGED", "date": "2026-09-07T11:01:36+08:00"}
+{"sha": "96818b52d1e7c5596830b2787f7db0ccd61806d8", "subject": "chore(gov): GOV-001 COMMITS.csv 台账同步（reverify 后 regen）", "task_id": "UNTAGGED", "date": "2026-09-07T11:01:36+08:00"}

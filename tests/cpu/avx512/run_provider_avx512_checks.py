@@ -27,7 +27,9 @@ tests/cpu/avx512/run_provider_avx512_checks.py
   8. FMA/AVX-512 归约顺序记录: ULP_MAX 打印入日志 (hips 无跨项/跨线程
      归约, 顺序不变; 差异仅 FMA/EVEX 单次舍入)。
 
-依赖: 仅标准库 + objdump (binutils)。输出退出码 0=全 PASS。
+依赖: 仅标准库 + objdump (binutils)。退出码 0=全 PASS; 77=宿主缺 AVX-512F
+SKIP (前置 gate, astrocs_cpu_detect_features_v1 缺 ACS_FEAT_AVX512F; 与 ctest
+cpu001_selftest_avx512 SKIP_RETURN_CODE 同码同治理语义, 复审 N1); 1=真 FAIL。
 """
 import os
 import struct
@@ -59,6 +61,7 @@ INC_BASE = os.path.join(REPO, "providers", "cpu", "baseline", "include")
 INC_AVX2 = os.path.join(REPO, "providers", "cpu", "avx2", "include")
 INC_AVX512 = os.path.join(REPO, "providers", "cpu", "avx512", "include")
 INC_CAP = os.path.join(REPO, "providers", "cpu", "common", "include")
+INC_HOST = os.path.join(REPO, "lib", "backend_host")  # cpu_features.h 探针 include
 
 FAILURES = []
 HW = os.cpu_count() or 1
@@ -92,9 +95,68 @@ def b2f(u):
     return struct.unpack("<f", struct.pack("<I", u))[0]
 
 
+PROBE_SRC = b'''#include "cpu_features.h"
+#include <cstdio>
+int main() {
+  const unsigned long long d =
+      (unsigned long long)astrocs_cpu_detect_features_v1();
+  std::printf("detected=0x%016llx avx512f=%d\\n", d,
+              (d & ACS_FEAT_AVX512F) ? 1 : 0);
+  return 0;
+}
+'''
+
+
+def host_avx512f_detected(tmp):
+    """宿主 AVX-512F 能力检测 (SKIP gate 前置, 与 ctest 侧同 API 同语义)。
+
+    provider 激活合同 = required ⊆ detected, 否则 backend_loader 预检拒绝激活
+    (lib/backend_host/backend_loader.cpp); ctest 侧 tests/unit/cpu001_selftest_avx512
+    已在 16867c25 合同化: 无 ACS_FEAT_AVX512F → SKIP (exit 77, SKIP_RETURN_CODE)。
+    本 runner 此前无宿主 gate —— 无 AVX-512F 硬件上 oracle main rc=3 (QUERY_FAIL)
+    直接判 FAIL 并跳过后续全部检查, 把宿主环境事实记成 FAIL (复审 N1)。
+    检测复用同一 API astrocs_cpu_detect_features_v1: 编译 lib/backend_host/
+    cpu_features.cpp + 探针 main, 模式同 tests/backend/test_abi_loader.py test_01
+    的 cpu_probe (不发明新机制)。
+    返回 (ok, text): ok=False 表示探针自身不可用 (编译/运行失败), 调用方按
+    FAIL 处理, 绝不误 SKIP; ok=True 时 text 含 "detected=0x... avx512f=0|1"。
+    """
+    src = os.path.join(tmp, "cpu004_host_probe.cpp")
+    with open(src, "wb") as f:
+        f.write(PROBE_SRC)
+    exe = os.path.join(tmp, "cpu004_host_probe")
+    r = run(["g++", "-std=c++17", f"-I{INC_HOST}", src,
+             os.path.join(REPO, "lib", "backend_host", "cpu_features.cpp"),
+             "-o", exe], timeout=120)
+    if r.returncode != 0:
+        return False, "host capability 探针编译失败"
+    r = run([exe], timeout=60)
+    if r.returncode != 0 or "detected=" not in r.stdout:
+        return False, "host capability 探针运行失败"
+    return True, r.stdout.strip()
+
+
 def main():
     tmp = "/tmp/cpu004_avx512"
     os.makedirs(tmp, exist_ok=True)
+
+    # 0b) 宿主 AVX-512F gate (SKIP 语义, 前置到任何 provider 编译/运行之前;
+    #     检测位用 cpu_features.h 的 ACS_FEAT_AVX512F 宏, 不在 python 硬编码)。
+    #     探针不可用 → FAIL (保持证据), 仅确认缺 ACS_FEAT_AVX512F → SKIP 77
+    #     (与 ctest cpu001_selftest_avx512 SKIP_RETURN_CODE 同码同语义)。
+    #     有 AVX-512F 的硬件上永不触发, 后续全部断言不变。
+    ok, probe_out = host_avx512f_detected(tmp)
+    if not ok:
+        fail("host capability 探针: " + probe_out)
+        return 1
+    log("host capability: " + probe_out)
+    detected = int(probe_out.split("detected=")[1].split()[0], 16)
+    if probe_out.split("avx512f=")[1].split()[0] != "1":
+        log(f"SKIP: host lacks AVX-512F (detected={detected:#x}) "
+            f"— provider NOT ACTIVATED per activation contract; "
+            f"exit 77 (ctest SKIP_RETURN_CODE, 同 cpu001_selftest_avx512)")
+        return 77
+
     so_b = os.path.join(tmp, "astrocs_cpu_baseline.so")
     so_a = os.path.join(tmp, "astrocs_cpu_avx2.so")
     so_x = os.path.join(tmp, "astrocs_cpu_avx512.so")
