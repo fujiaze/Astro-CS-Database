@@ -57,6 +57,12 @@ V_FAIL = "FAIL"                        # 非零退出
 V_TIMEOUT = "TIMEOUT"                  # 超过登记 timeout_seconds 被 kill
 V_SIGNAL = "SIGNAL"                    # 被信号终止（非 timeout 路径）
 V_MISSING_OUTPUT = "FAIL(missing_output)"
+# V8-CIQA-001 P2-GAP-4：第二重内容级验证。exit 0 + 登记输出缺失已由
+# V_MISSING_OUTPUT 覆盖；但登记 outputs 为空的检查此前无任何内容级锚——
+# 检查脚本自身静默失败（exit 0 且 stdout/stderr 均为空）会被记 PASS。
+# 对非 waivable 且 outputs 为空的检查，要求 stdout 或 stderr 至少留痕，
+# 否则 FAIL(empty_outputs)（并入硬失败值域，known_failures 可基线化）。
+V_EMPTY_OUTPUT = "FAIL(empty_outputs)"
 V_DIRTY = "FAIL(dirty)"
 V_PREREQ = "FAIL(prerequisite)"
 V_KNOWN = "KNOWN_FAIL"
@@ -72,7 +78,36 @@ V_SKIP_PLATFORM = "SKIPPED(waivable)"  # platform 不匹配且 waivable=true 时
 # skipped_waivable 计数与 "PASS + N skipped" 判定直接复用, 无需新增值域。
 SKIP_EXIT_CODE = 77
 
-HARD_FAILURE_VERDICTS = (V_FAIL, V_TIMEOUT, V_SIGNAL, V_MISSING_OUTPUT, V_DIRTY, V_PREREQ)
+HARD_FAILURE_VERDICTS = (V_FAIL, V_TIMEOUT, V_SIGNAL, V_MISSING_OUTPUT,
+                         V_EMPTY_OUTPUT, V_DIRTY, V_PREREQ)
+
+# V8-CIQA-001 P2-GAP-4 豁免白名单（显式登记，非静默兜底）：注册表里 outputs=[]
+# 且非 waivable、但检查脚本按设计静默成功（rc=0 且无任何输出）的既有检查 id。
+# 证据：run/local/agent_ciqa_p2/fast_profile_attribution.md —— tools/check_api_docs.py
+# 与 tools/check_unit_closure.py 直跑 rc=0 且 stdout/stderr 全空（诚实静默成功风格），
+# 非作弊；按任务语义在此登记豁免（架构上空 outputs 合理 → 白名单显式登记）。
+# 新增检查不得进入本表：新防线要求留痕或登记 waivable。
+EMPTY_OUTPUT_SILENCE_EXEMPT = frozenset({
+    "API-DOCS",        # tools/check_api_docs.py：rc=0 静默成功（P2 复测直跑证据）
+    "UNIT-CLOSURE",    # tools/check_unit_closure.py：rc=0 静默成功（P2 复测直跑证据）
+})
+
+
+def silent_failure(check: dict, stdout_tail: str, stderr_tail: str) -> bool:
+    """V8-CIQA-001 P2-GAP-4：检查脚本自身静默失败判定。
+
+    非 waivable 且登记 outputs 为空的检查，exit 0 且 stdout/stderr 均无任何
+    字节 → 无可复核内容级证据，视为静默失败（不可发现性洞）。outputs 非空
+    或 waivable 检查不受影响（前者有产物锚，后者设计上允许静默）。
+    豁免：EMPTY_OUTPUT_SILENCE_EXEMPT 显式登记的既有检查 id（设计即静默）。
+    """
+    if check.get("waivable"):
+        return False
+    if check.get("outputs"):
+        return False
+    if check.get("id") in EMPTY_OUTPUT_SILENCE_EXEMPT:
+        return False
+    return not stdout_tail and not stderr_tail
 
 
 class RunnerError(Exception):
@@ -763,6 +798,14 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
         if missing:
             result["verdict"] = V_MISSING_OUTPUT
             result["reason"] = f"exit 0 但登记输出缺失：{missing}"
+        elif silent_failure(check, result["stdout_tail"], result["stderr_tail"]):
+            # 第二重内容级验证（V8-CIQA-001 P2-GAP-4）：空 outputs 检查的
+            # stdout/stderr 全空 = 静默失败不可发现，升级为硬失败而非 PASS。
+            result["verdict"] = V_EMPTY_OUTPUT
+            result["reason"] = (
+                "exit 0 且 stdout/stderr 均为空：空 outputs 检查无任何内容级"
+                "证据（静默失败不可发现）；如架构上必须静默，请登记"
+                " waivable 或产生 stdout/stderr 留痕")
         else:
             result["verdict"] = V_PASS
     return result

@@ -184,13 +184,19 @@ def _assert_fatduck_shape(doc: dict) -> None:
             assert not step["uses"].startswith("actions/checkout"), \
                 f"fatduck-validate 出现 checkout：{step['uses']}"
     run_steps = [s for s in validate_job["steps"] if "run" in s]
-    assert len(run_steps) == 1, "fatduck-validate 只允许一个 run 步骤"
-    script = run_steps[0]["run"]
+    # V8-CIQA-001 P2-GAP-3 后为两个 run 步：独立 digest 复核步 + 固定 harness
+    assert len(run_steps) == 2, "fatduck-validate 允许 digest 复核 + harness 两个 run 步骤"
+    assert "Get-FileHash" in run_steps[0]["run"], "首个 run 步必须是 digest 复核"
+    script = run_steps[1]["run"]
     for token in (r"\bpython3?\b", r"\bpip3?\b", r"\bgit\b"):
         import re as _re
         assert not _re.search(token, script), f"run 步骤出现禁用调用：{token}"
     assert "ci/" not in script, "fatduck-validate 出现仓库相对路径"
-    assert run_steps[0].get("shell") == "pwsh", "run 步骤必须固定 pwsh"
+    assert run_steps[1].get("shell") == "pwsh", "run 步骤必须固定 pwsh"
+    for s in run_steps:
+        import re as _re
+        assert not _re.search(r"\bpython3?\b", s["run"]), "复核步不得引入 python"
+        assert s.get("shell") == "pwsh"
 
     import json as _json
     lock_shas = {e["commit_sha"] for e in
