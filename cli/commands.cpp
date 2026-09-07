@@ -852,6 +852,11 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase3 ok", cfg, cfg_sha, {3},
                                        artifacts);
     if (wrc != astrocs::OK) return wrc;
+    // RT-009: phase3 run 成功路径补写运行图产物（static/observed/sidecar + L0 渲染）。
+    // 此前 write_run_graphs 定义后无任何调用点（CLI-002 移除 cmd_run_pipeline/
+    // cmd_graph 时漏接），RT-009 test_07 期望的 out/graph/* 恒缺失。
+    // best-effort: 函数内部只 warning 不失败 run（"不失败 run"合同见其注释）。
+    write_run_graphs(out_dir, ev, cfg, cfg_sha, {3});
     ev.emit("resource", "info", "phase3", "session summary",
             {{"outputs", artifacts.size()}});
     ev.emit_final(astrocs::OK, "ok", nullptr, "phase3 complete");
@@ -1521,8 +1526,19 @@ int dispatch(const Parsed& p) {
             const auto parent = std::filesystem::path(exe_path).parent_path();
             if (!parent.empty()) backends_dir = parent.string();
         }
-        const std::string cli_sha = astrocs::backend_host::file_sha256_hex(
-            backends_dir.empty() ? "." : backends_dir + "/astrocs");
+        // cli_sha 锚定当前 CLI 二进制本体。Windows 可执行名是 astrocs.exe
+        // （GetModuleFileNameA 已给出 exe_path，backends_dir=其父目录），拼
+        // "/astrocs" 无后缀时文件不存在 → file_sha256_hex 空串 → v2 profile
+        // 的 cli_sha 在 Windows 恒空（R2 线索 2）。显式探测 .exe 后缀。
+        std::string cli_bin = backends_dir.empty() ? std::string(".") : backends_dir + "/astrocs";
+#if defined(_WIN32)
+        {
+            std::error_code ec3;
+            if (!std::filesystem::is_regular_file(std::filesystem::u8path(cli_bin), ec3))
+                cli_bin += ".exe";
+        }
+#endif
+        const std::string cli_sha = astrocs::backend_host::file_sha256_hex(cli_bin);
         auto pb = astrocs::backend_host::generate_profile_v2(
             mode, ASTROCS_VERSION_STRING, commit, cli_sha, backends_dir);
         const std::string json = pb.json;
