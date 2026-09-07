@@ -1624,3 +1624,4 @@
 {"sha": "d92062a769a8d85e4d330b80267a47c724fa31a6", "subject": "docs(P1-STAR-DOC): star_detector 模块合同冻结——ALG-STARDET-001/SCI-P1-STAR-001/DATA-P1-STAR/API-STAR-001/trace（控制包 10/140, wave W1）", "task_id": "UNTAGGED", "date": "2026-09-08T02:30:00+08:00"}
 {"sha": "fe4ca3837d3abe44c6d223447712d37a21ec3652", "subject": "Merge branch 'main' of https://github.com/fujiaze/Astro-CS-Database", "task_id": "UNTAGGED", "date": "2026-09-08T02:30:00+08:00"}
 {"sha": "58cbabf31781d0678cfd01963e3b4288b3858f29", "subject": "Merge remote-tracking branch 'origin/main'", "task_id": "UNTAGGED", "date": "2026-09-08T02:30:00+08:00"}
+{"sha": "da91ee9f5fbdf7363e77be7ba339b559536178ea", "subject": "chore(state): COMMIT_LEDGER 补登 merge 链缺失行（fe4ca383/58cbabf3/d92062a7/91499488）恢复 reconcile PASS", "task_id": "UNTAGGED", "date": "2026-09-08T03:00:00+08:00"}
