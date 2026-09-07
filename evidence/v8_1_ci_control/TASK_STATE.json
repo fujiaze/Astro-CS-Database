@@ -1396,15 +1396,15 @@
   },
   "P1-COS-DOC": {
    "owner": "SA-P1-C14",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "4b87aef6",
+   "evidence_path": "lib/cosmetic/; docs/algorithms/COSMETIC_ALGORITHMS.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json",
+   "source_of_status": "fg_verified_commit",
    "wave": "W1",
    "kind": "module-doc",
    "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "current_evidence": "commit:4b87aef6 traceability 26行0错 + pytest 4P + contract_graph 36 + doc_index PASS + selfcheck ALL_PASS",
+   "note": "module-doc 冻结; 缺陷清单 DISP-COS-001..011 归 P1-COS-IMPL/INT; SCI-CAL-001 未动; DISP-COS-009 生产调用 nullptr 母版已登记"
   },
   "P1-COS-TEST": {
    "owner": "SA-P1-C14",
