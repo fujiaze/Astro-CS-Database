@@ -1,0 +1,174 @@
+{
+  "descriptor_schema": "astrocs.module-integration-descriptor/v1",
+  "descriptor_owner_task": "P1-CAL-INT",
+  "descriptor_note": "模块本地集成面 (MODULE_MIGRATION_TEMPLATE <prefix>-INT; 对齐先例 CAT-GAIA-INT 054af3a3)。端口/operation 字段名与 runtime/pipeline/module_ports.registry.json v1 消费格式对齐; 本文件是模块侧声明面, 不是全局注册表。global DAG registration (typed DAG node 接线 + module_ports.registry.json 登记 + install manifest) 由 SA-RT-05 assembly task 消费本表执行; 本任务不改全局 registry/graph。所有 ID/键/词表与 lib/calibration/module.yaml (P1-CAL-DOC 冻结)、lib/calibration/include/astrocs/calibration/types.h (P1-CAL-IMPL adf820ac) 三方一致 (12 §5)。",
+  "module_id": "astrocs.p1.calibration",
+  "module_version": "0.11.0-alpha.2",
+  "abi_version": 1,
+  "config_schema_ver": 1,
+  "phase_scope": "phase1",
+  "build_id": "P1-CAL-IMPL",
+  "contracts": {
+    "sci_id": "SCI-CAL-001",
+    "alg_id": "ALG-CAL-001",
+    "data_id": "DATA-P1-CAL",
+    "api_id": "API-P1-001",
+    "test_id": "TEST-CAL-DESIGN-001",
+    "contracts_note": "四元组按 lib/calibration/include/astrocs/calibration/types.h (P1-CAL-IMPL) + module.yaml science/algorithm/data/api_contracts; ALG-CAL-002..006 为 ALG-CAL-001 族内分段, op 级绑定由 describe().alg_id 顶层承载 (v1 单值字段)。"
+  },
+  "dll": {
+    "cmake_target": "astrocs_p1_calibration",
+    "dll_name_windows": "astrocs_p1_calibration.dll",
+    "dll_name_linux": "astrocs_p1_calibration.so",
+    "unique_entry": "astrocs_module_query_v1",
+    "export_contract": "12 §1/ABI-006: 唯一导出 astrocs_module_query_v1; 12 个 legacy ac_* 符号经 AC_API= 本地化 + version-script/DEF 不进导出面 (nm -D 唯一导出已由 P1-CAL-IMPL 实证)",
+    "loader_rule": "缺 DLL (dlopen/LoadLibrary 失败) 必须失败, 不降级直调 (模板 INT §5)"
+  },
+  "execution": {
+    "resource_class": "cpu_heavy",
+    "threading_model": "host_executor_lease",
+    "parallel_ok": true,
+    "parallel_axis": "op 分组: master 三类=frame, 帧级四类=pixel (plan JSON parallel_axis 按 op 真实输出)",
+    "min_workers": 1,
+    "max_workers_source": "plan 无 max_workers 键 (DLL plan 真实输出键集见 plan_contract); host executor 授权上限 + config.max_workers (可选) 裁剪, 模板 INT §3 运行时观测",
+    "determinism": "fixed_reduction_order",
+    "cpu_providers": ["baseline"],
+    "provider_note": "module.yaml cpu_providers=[baseline] 同值 (三方一致); adapter 科学调用 1:1 转发 legacy AC_API (ac_generate_master_* / ac_calibrate_frame* / ac_correct_frame*), provider 归属 host CPU backend 决定, trace.provider 观测为空是真实值, 禁填 baseline/avx* 预测"
+  },
+  "typed_ports": [
+    {
+      "name": "p1.frames",
+      "direction": "input",
+      "port_kind": "data_plane_manifest",
+      "data_contract": "DATA-P1-CAL",
+      "format": "inline_base64_manifest",
+      "unit": "ADU",
+      "coordinate": "detector pixel grid",
+      "scalar": "f32/f64 (与 op 精度严格一致, 不静默转换)",
+      "shape_hint": "master 三类: [frames x width x height]; 帧级四类: [width x height] (同一数据面, manifest 顶层 width/height/dtype + data_base64 单帧)",
+      "readonly": true,
+      "binding": "manifest \"frames\" (数组逐帧 base64, master) / \"data_base64\" (单帧, 帧级) 唯一数据入口; 模块不自拼路径 (禁任意拼路径, IMPL §2; FORBID-002 artifact 经 host 服务)",
+      "invalid_rule": "dtype 与 op 精度不一致 → PARAM+111; base64 非法/长度不符 → PARAM+112; 必需键缺失 → PARAM+110"
+    },
+    {
+      "name": "p1.master_dark",
+      "direction": "input",
+      "port_kind": "data_plane_manifest",
+      "data_contract": "DATA-P1-CAL",
+      "format": "inline_base64_manifest",
+      "unit": "ADU",
+      "coordinate": "detector pixel grid",
+      "scalar": "f32/f64 (与 op 精度一致)",
+      "shape_hint": "[width x height] 可选参考平面; manifest 键 \"master_dark\"",
+      "readonly": true,
+      "binding": "可选端口: 键缺席/JSON null → legacy NULL 语义 (DEV-2 静默恒等, ALG-CAL §8 冻结行为保持); calibrate_frame(±f64)/correct_frame(±f64) 消费",
+      "invalid_rule": "同 p1.frames (111/112)"
+    },
+    {
+      "name": "p1.master_bias",
+      "direction": "input",
+      "port_kind": "data_plane_manifest",
+      "data_contract": "DATA-P1-CAL",
+      "format": "inline_base64_manifest",
+      "unit": "ADU",
+      "coordinate": "detector pixel grid",
+      "scalar": "f32/f64 (与 op 精度一致)",
+      "shape_hint": "[width x height] 可选参考平面; manifest 键 \"master_bias\"; generate_master_flat(±f64) 亦消费 (legacy 签名 pbias 参数)",
+      "readonly": true,
+      "binding": "可选端口: 键缺席/JSON null → legacy NULL 语义 (DEV-2); calibrate/correct/master_flat 消费",
+      "invalid_rule": "同 p1.frames (111/112)"
+    },
+    {
+      "name": "p1.master_flat",
+      "direction": "input",
+      "port_kind": "data_plane_manifest",
+      "data_contract": "DATA-P1-CAL",
+      "format": "inline_base64_manifest",
+      "unit": "ratio (1.0=transparent)",
+      "coordinate": "detector pixel grid",
+      "scalar": "f32/f64 (与 op 精度一致)",
+      "shape_hint": "[width x height] 可选参考平面; manifest 键 \"master_flat\"",
+      "readonly": true,
+      "binding": "可选端口: 键缺席/JSON null → legacy NULL 语义 (DEV-2); 仅 calibrate_frame(±f64) 消费",
+      "invalid_rule": "同 p1.frames (111/112)"
+    },
+    {
+      "name": "p1.calibrated",
+      "direction": "output",
+      "port_kind": "data_plane_manifest",
+      "data_contract": "DATA-P1-CAL",
+      "format": "inline_base64_manifest",
+      "unit": "ADU (calibrated/ratio-consistent)",
+      "coordinate": "detector pixel grid",
+      "scalar": "f32/f64 (与 op 精度一致)",
+      "shape_hint": "master 三类: [width x height] master 平面; 帧级四类: [width x height] 校正后平面",
+      "sink": "strbuf 两阶段事务 manifest JSON (out_base64; 尺寸查询遍 -> 写入遍, 不足 PARAM+BUFFER_TOO_SMALL 不半写); 键序冻结: schema_version/width/height/dtype/out_base64/op(+calibrate: actual_k / correct: hot,cold)",
+      "invalid_rule": "失败/取消路径不写输出 (事务性); actual_k 仅 calibrate; hot/cold 仅 correct"
+    }
+  ],
+  "typed_ports_note": "端口名与 lib/calibration/module.yaml input_ports/output_ports 逐一同名 (P1-CAL-INT 注册面修正); p1.master_dark/p1.master_bias/p1.master_flat 为可选输入端口 (manifest 键缺席 = legacy NULL 通道, 行为保持 DEV-2 已在 P1-CAL-IMPL/TEST 登记)。master 三类 (bias/dark/flat) 与帧级四类 (calibrate/correct ±f64) 经同一数据面词表; DATA-P1-CAL 平面 dtype 冻结 f32|f64 且与 op 精度严格一致 (BITWISE 口径前提)。",
+  "operations": [
+    { "operation": "calibrate_frame", "config_op": "calibrate_frame", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.frames", "p1.master_dark", "p1.master_bias", "p1.master_flat"], "outputs": ["p1.calibrated"] },
+    { "operation": "calibrate_frame_f64", "config_op": "calibrate_frame_f64", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.frames", "p1.master_dark", "p1.master_bias", "p1.master_flat"], "outputs": ["p1.calibrated"] },
+    { "operation": "correct_frame", "config_op": "correct_frame", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.frames", "p1.master_dark", "p1.master_bias"], "outputs": ["p1.calibrated"] },
+    { "operation": "correct_frame_f64", "config_op": "correct_frame_f64", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.frames", "p1.master_dark", "p1.master_bias"], "outputs": ["p1.calibrated"] },
+    { "operation": "generate_master_bias", "config_op": "generate_master_bias", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.frames"], "outputs": ["p1.calibrated"] },
+    { "operation": "generate_master_dark", "config_op": "generate_master_dark", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.frames"], "outputs": ["p1.calibrated"] },
+    { "operation": "generate_master_flat", "config_op": "generate_master_flat", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.frames", "p1.master_bias"], "outputs": ["p1.calibrated"] },
+    { "operation": "generate_master_bias_f64", "config_op": "generate_master_bias_f64", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.frames"], "outputs": ["p1.calibrated"] },
+    { "operation": "generate_master_dark_f64", "config_op": "generate_master_dark_f64", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.frames"], "outputs": ["p1.calibrated"] },
+    { "operation": "generate_master_flat_f64", "config_op": "generate_master_flat_f64", "entry": "astrocs_module_query_v1", "resource_class": "cpu_heavy", "inputs": ["p1.frames", "p1.master_bias"], "outputs": ["p1.calibrated"] }
+  ],
+  "operations_note": "operation 名=config op 词表 (types.h ASTROCS_CAL_OP_* 10 op; ac_set_num_threads/ac_version 为工具通道不进 op 面)。每 (module_id, operation) 绑定唯一 entry astrocs_module_query_v1 (C ABI 每 DLL 唯一导出面, ABI-001)。inputs 中 p1.master_dark/p1.master_bias/p1.master_flat 为可选端口 (manifest 键缺席 = legacy NULL 通道); generate_master_flat 消费 p1.master_bias (legacy 签名 pbias 参数)。SA-RT-05 全局注册时按本表落 module_ports.registry.json; 同 entry 跨 node 的 hidden-session 判定键须用 (module_id, operation), 原始 entry 扇出语义见 lib/core/src/context.cpp detect_repeated_calls (裁定权在 SA-RT-05/RT-006 演进)。",
+  "plan_contract": {
+    "plan_version": 1,
+    "work_unit": "op 分组 (master=frame, 帧级=pixel; plan JSON work_unit/parallel_axis 按 op 真实输出, 非全局常量)",
+    "keys": ["plan_version", "node_id", "op", "work_unit", "work_units", "parallel_axis", "min_workers", "memory_bytes_estimate", "io_bytes_estimate", "cancel_support"],
+    "real_value_rule": "work_units=数据事实 (12 §4): master → config.frames, 帧级 → width*height (config 元数据真实推导, 不执行科学计算); memory_bytes_estimate=work_units*sizeof(dtype); io_bytes_estimate=0 是真实值 (inline base64 数据面无外部 I/O, 非占位); plan 键集 = DLL cal_plan 真实输出 (无 max_workers 键 —— 并行上限由 host executor 授权 + config.max_workers 裁剪, 运行时观测归 trace); 禁预测值/禁空转假 plan (模板 INT §4); plan JSON 不含观测词 (leased/leased_workers)"
+  },
+  "trace_contract": {
+    "event_type": "module_call",
+    "standard": "RT-006 TraceEvent (include/astrocs/core/contracts.h; 观测值禁止 config 冒充, 14 §4)",
+    "real_value_fields": {
+      "module_id": "describe().module_id (模块静态输出)",
+      "module_version": "describe().version",
+      "dll_name": "实际 dlopen/LoadLibrary 路径",
+      "dll_sha256": "DLL 文件内容 SHA-256 实测 (安装时计算, 本 descriptor 不预填)",
+      "build_id": "describe().build_id = P1-CAL-IMPL",
+      "entry": "dlsym 实际解析的导出符号 astrocs_module_query_v1",
+      "call_count": "该 node module_call 累计 (每节点必须=1)",
+      "workers": "host executor 实际租借数 (观测, 非 config 预测)",
+      "granted_workers": "executor 授权上限观测",
+      "status": "COMPLETED/FAILED/CANCELLED 终态观测",
+      "artifact_size": "输出 manifest 实际字节数观测"
+    },
+    "forbidden": "provider 预测填值 (adapter 面 1:1 转发 legacy, provider 归属 host backend, 空=真实); artifact_id/dll_sha256 预填 (归全局 ArtifactStore/install 时实测)"
+  },
+  "call_count_contract": {
+    "per_node_sequence": "validate_config(1) -> plan(1) -> create(1) -> execute 事务(1 次 host 驱动 = 两阶段 strbuf 2 次 API: 尺寸查询遍 + 写入遍, 每遍完整执行科学计算并成对租借) -> inspect(1) -> destroy(1)",
+    "lease_balance": "每遍 execute 各租借一次: 一个事务 acquire/release = 2/2 (cpu_heavy 硬租约: acquire 失败/executor 缺失 → ACS_ERR_BUDGET+105, 不降级单线程; 观测 want = host max_workers 与 config.max_workers 取小)",
+    "repeat_failure": "执行中同实例重入 → ACS_ERR_STATE (state!=CREATED 护栏, 真实存在); 事务完成后模块 state 回 CREATED (v1 可重复语义), host 重复驱动 = 调用方协议违规, 由 RT-006 runtime call counts / 重放违规检测拒绝 (inspect.exec_count 线性递增可巡检); per-node 恰一次由 RT 驱动协议保证, 模板 INT §5",
+    "local_test": "tests/unit/calibration_integration_test.cpp (CTest name: calibration_integration)"
+  },
+  "failure_contract": {
+    "missing_dll": "loader: 缺 DLL 必须失败 (模板 INT §5)",
+    "duplicate_node_id": "静态图重复 node_id -> SA-RT-05 compiler 拒绝 (全局职责)",
+    "wrong_abi": "astrocs_module_query_v1(host_abi != ACS_ABI_VERSION_V1) -> ACS_ERR_ABI_MISMATCH 不降级",
+    "wrong_abi_id": "describe(module_id 不匹配) -> ACS_ERR_ABI_MISMATCH",
+    "repeated_execute": "执行中同实例重入 → ACS_ERR_STATE (state 护栏, ACS_DIAG_ECODE_ILLEGAL_STATE); 事务完成后 state 回 CREATED (v1 语义), host 重复驱动为调用方协议违规, 由 RT-006 runtime call counts / 重放违规检测拒绝 (inspect.exec_count 线性递增可巡检)",
+    "unknown_op": "ACS_ERR_PARAM + detail=100 (ASTROCS_CAL_ECODE_OP_UNKNOWN)",
+    "missing_config_key": "ACS_ERR_PARAM + detail=101 (op 依赖必需键; 词表外未知键 → CONFIG_SCHEMA)",
+    "wrong_param_type": "ACS_ERR_PARAM + detail=102 (ASTROCS_CAL_ECODE_PARAM_TYPE)",
+    "non_finite_or_range": "ACS_ERR_PARAM + detail=103 (维度<=0/超界/非有限数值, ASTROCS_CAL_ECODE_PARAM_RANGE)",
+    "manifest_invalid": "ACS_ERR_PARAM + detail=110 (必需字段缺失) / 111 (dims 与 config 不一致) / 112 (base64 非法或长度不符)",
+    "legacy_reject": "legacy ac_* 返回非 0 → ACS_ERR_PARAM + detail=120 (ACS_CAL_ECODE_LEGACY_REJECT)",
+    "budget_exhausted": "executor acquire 拒绝/缺失 → ACS_ERR_BUDGET + detail=105 (cpu_heavy 硬租约, 禁单线程)",
+    "cpp_exception": "DLL 边界捕获 C++ 异常 → ACS_ERR_EXCEPTION + detail=130 (模板 IMPL §6, DISP-CAL-001)"
+  },
+  "global_dag_registration": {
+    "owner": "SA-RT-05",
+    "status": "delegated",
+    "delegation": "typed DAG node 接线 (astrocs.typed-dag/v1)、module_ports.registry.json 登记、install manifest、ArtifactStore 端口绑定均由 SA-RT-05 assembly task 执行; 本任务仅交付模块本地集成面 (本 descriptor + 本地集成测试), 不修改 runtime/pipeline/*、graph/*、lib/core 全局注册表 (模板 INT §1: 不直接修改全局 pipeline)",
+    "consumed_by": ["SA-RT-05 assembly", "typed DAG compiler"]
+  }
+}

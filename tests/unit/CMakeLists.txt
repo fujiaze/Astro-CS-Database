@@ -795,3 +795,34 @@ add_dependencies(calibration_adapter_test astrocs_p1_calibration)
 add_test(NAME calibration_adapter COMMAND calibration_adapter_test)
 set_tests_properties(calibration_adapter PROPERTIES
   ENVIRONMENT "ASTROCS_CAL_DLL_PATH=$<TARGET_FILE:astrocs_p1_calibration>")
+
+# P1-CAL-INT: calibration 模块本地集成测试 (integration descriptor + typed
+# ports + 调用计数 + 真实 plan/trace; global DAG registration 归 SA-RT-05
+# 不做)。descriptor/module.yaml 经编译定义注入 (只读, 路径含空格安全);
+# trace JSONL 写到构建目录, 重放检查在测试内完成。对齐 gaia_integration
+# 先例; fixture 头 p1cal_fixtures.hpp (FIX-CAL 谱系)。
+set(CAL_INT_TRACE_OUT ${CMAKE_CURRENT_BINARY_DIR}/calibration_integration_trace.jsonl)
+add_executable(calibration_integration_test calibration_integration_test.cpp)
+target_include_directories(calibration_integration_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/tests/p1cal
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_compile_definitions(calibration_integration_test PRIVATE
+  ASTROCS_CAL_INTEGRATION_JSON="${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/integration/astrocs_p1_calibration.integration.json"
+  ASTROCS_CAL_MODULE_YAML="${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/module.yaml")
+target_link_libraries(calibration_integration_test PRIVATE
+  ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
+# libgomp 必须随可执行文件早装载: DLL (astrocs_p1_calibration) 自链 libgomp,
+# 若测试 TU 无 OMP 符号引用, --as-needed 会把本 target 的 libgomp 从
+# DT_NEEDED 丢弃, libgomp 退化为 dlopen 晚装载 → GOMP 并行区 SEGV (主 build
+# 复现 10/10)。gaia_integration 先例不崩是因其 TU include gaia_client.c
+# (含 omp 符号) 而天然保留 libgomp; 本测试为纯 host stub 无 OMP 引用, 用
+# --no-as-needed 达成同机制 (仅 GNU ld 语义, MSVC 无此选项)。
+if(UNIX AND NOT APPLE)
+  target_link_options(calibration_integration_test PRIVATE
+    "LINKER:--no-as-needed")
+endif()
+add_dependencies(calibration_integration_test astrocs_p1_calibration)
+add_test(NAME calibration_integration COMMAND calibration_integration_test)
+set_tests_properties(calibration_integration PROPERTIES
+  ENVIRONMENT "ASTROCS_CAL_DLL_PATH=$<TARGET_FILE:astrocs_p1_calibration>;ASTROCS_CAL_INT_TRACE_OUT=${CAL_INT_TRACE_OUT}")
