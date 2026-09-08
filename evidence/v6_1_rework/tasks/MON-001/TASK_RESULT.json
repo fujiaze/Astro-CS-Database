@@ -2,14 +2,17 @@
   "schema": "astrocs.task-result/v2",
   "task_id": "MON-001",
   "status": "PASS",
-  "parent_commit": "f10edacc8b93694c061e26e7532137a2caa7a697",
+  "parent_commit": "f9930eb05c4d8c2d24ed37e016763751515e19a1",
+  "parent_commit_note": "reverify-2 观测 head=f9930eb0(CPU-008 闭环点, 依赖 CPU-006 5d4ab05d/LOG-002 均已闭环); 本 TASK_RESULT 产出时工作树未提交(SubAgent 不执行 git commit), result_commit 由前台在含本文件的一次原子 commit 后回填 COMMITS.csv。",
   "control_sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
   "ledger_sha256": "c6f21304d1835ca0816af600c565223cbab129ada5ce7d5a84caf3d285736822",
   "change_class": "performance",
   "changed_paths": [
-    "cli/commands.cpp",
-    "cli/monitor.h",
+    "cli/resource_gate.h",
     "cli/resource_recorder.h",
+    "cli/commands.cpp",
+    "tests/unit/mon001_gate_test.cpp",
+    "tests/unit/CMakeLists.txt",
     "evidence/v6_1_rework/TASK_LEDGER.csv",
     "evidence/v6_1_rework/tasks/MON-001/PLAN.md",
     "evidence/v6_1_rework/tasks/MON-001/TASK_RESULT.json",
@@ -18,8 +21,14 @@
     "evidence/v6_1_rework/tasks/MON-001/logs/resource_samples.csv",
     "evidence/v6_1_rework/tasks/MON-001/logs/resource_summary.json",
     "evidence/v6_1_rework/tasks/MON-001/logs/worker_balance.csv",
-    "tests/unit/CMakeLists.txt",
-    "tests/unit/mon001_recorder_test.cpp"
+    "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_RV2_build.log",
+    "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_RV2_build2.log",
+    "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_RV2_ctest_all.log",
+    "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_RV2_pytest_mon.log",
+    "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_RV2_smoke_events.jsonl",
+    "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_RV2_resource_summary.json",
+    "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_RV2_resource_samples.csv",
+    "evidence/v6_1_rework/tasks/MON-001/logs/reverify/smoke_phase3.log"
   ],
   "impact": {
     "science": false,
@@ -134,7 +143,8 @@
     "F-011",
     "F-012"
   ],
-  "reverify": {
+  "reverify_history": [
+    {
     "round": "reverify-1",
     "owner": "MON-001-subagent",
     "mode": "reverify+minimal-repair",
@@ -206,7 +216,76 @@
     ],
     "notes": "rv4: phase2 run rc=3(node coverage failed: session run: PARAM)为 PLAN.md 遗留说明中同类预存在遗留(输入 hips 与 V6.1 sampler 参数不兼容, 属 P3 范畴), 该 run 同时证明管线失败时三产物仍自动生成(失败分支证据)。rv5: phase3 run rc=0, final status=ok, resource gate verdict=ok, output_phase3.fits 写出, 三产物字段齐(冒烟产物拷贝于 logs/reverify/ 根下)。本地完整日志(含 # cmd 行与 rc)另存 run/local/main23_fix/。",
     "verdict": "PASS"
-  },
-  "expected_commit_subject": "MON-001: 资源监测接入每个 heavy node (resource_samples.csv/resource_summary.json/worker_balance.csv 自动生成, init/active/flush 分段, p50/p95 统计)",
+    },
+    {
+    "round": "reverify-2",
+    "owner": "MON-001-subagent(SA-MON1)",
+    "mode": "V8.1-resume-queue-29-utilization-gate",
+    "observed_head_sha": "f9930eb05c4d8c2d24ed37e016763751515e19a1",
+    "reverified_utc": "2026-09-08T18:35:00Z",
+    "gap_found": "V7 MON-001 验收剩余三条未在 gate 判定面收口: (1)监控缺失直接 FAIL 无判定承载(伪造采样无防线); (2)>=70% 样本 U>=0.75 逐样本门未实现(evaluate_gate 仅 wall>=5s 聚合统计); (3)队列有工作时连续 10s U<0.50 未判定。mini workload 与 0.80*min(selected,available) 门结构失配(批次 P 裁决清单②)未按哨兵纪律落面。",
+    "repair": "cli/resource_gate.h 末位追加 GateDiag::{MonitoringMissing,UtilizationP75Low,QueueStarvedCpu}(既有枚举值不重排, first10s_diag int 持久化兼容)+哨兵纪律 kMon001NotSampled=-1(mon001_sampled)+GateConfig 四字段(monitor_present/util_samples_measured/util_samples_pass_frac/queue_low_run_seconds/heavy_wall_seconds_total)+evaluate_mon001(监控缺失FAIL→70%样本门→队列10s门)+utilization_value(分母=min(selected_workers,available_cpus), 禁硬编码核数)+三条 diag 消息(哨兵场景如实标注 unsampled); cli/resource_recorder.h 补 records_stage(Active) 只读快照; cli/commands.cpp 生产接线: evaluate_gate+first10s 通过后按 active 段逐样本计算 pass_frac 与队列低利用连续 run(采样周期 0.5s), 调 evaluate_mon001 兜底, 三观测字段并入 resource 事件; tests/unit/mon001_gate_test.cpp 新建 17 组(含负向样例: 伪造监控/谎报监控零样本/哨兵误判防线/边界0.70/9.9s/12s)+CMake 注册 mon001_gate。未触碰 evaluate_gate 既有语义与 v6_1_rework MON-001 三产物面; 无 git 操作。",
+    "sentinel_selfcheck": "mini workload 结构失配按批次 P p2007 先例处置: -1=未采样非合法值, 采样缺失跳过对应判定不构成低利用率证据; 端到端冒烟(phase3 40x30px, wall=0.5s)实证: mon001_util_samples_measured=1.0, pass_frac=-1(单样本无法算占比), queue_low_run=-1, verdict=ok 不误杀; abs-floor 放宽方案为负责人裁决项, 本任务不在生产面/测试面自行放宽。",
+    "spec_checklist": {
+      "monitoring_missing_fail": "PASS — monitoring_effective(monitor_present && n_samples>0) 不满足 → MonitoringMissing; 测试2/3/4/16 负向样例",
+      "util_sample_70pct_gate": "PASS — >=70% 样本 U>=0.75; U=ΔCPU/(interval×min(selected,available)), 100%=全部分配核用满(kCpuP50MinPercent 同口径); 测试6/7/9/12/13",
+      "queue_starved_10s_gate": "PASS — 队列有工作(runnable>0)且 U<0.50 连续>=10s → QueueStarvedCpu; 测试8(12s FAIL/9.9s PASS/哨兵跳过)",
+      "no_hardcoded_denominator": "PASS — utilization_value 分母=min(selected,available) 注入值; 测试10/11(available=0 除零保护)",
+      "no_short_slice_evasion": "PASS — evaluate_gate wall<5s 统计豁免不豁免 MON-001 逐样本门(测试12); heavy_wall_seconds_total 累计字段承载单段+累计汇总口径",
+      "sentinel_not_low_evidence": "PASS — -1 哨兵跳过对应判定(p2007 先例), 测试5/15 + 端到端冒烟事件实证",
+      "build_and_full_tests": "PASS — 构建 rc=0; ctest 94/94(1 skip=无AVX-512硬件, 正常); pytest tests/monitoring+tests/cli/test_resource_gate.py 67/67"
+    },
+    "commands": [
+      {
+        "command_id": "rv2c01",
+        "argv_redacted": ["cmake", "--build", "build", "--parallel", "8"],
+        "timeout_seconds": 900,
+        "exit_code": 0,
+        "started_utc": "2026-09-08T18:23:00Z",
+        "duration_seconds": 35.0,
+        "log_path": "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_RV2_build.log",
+        "log_sha256": "756076a3d7ce8f359ec9cc161f419094258f8c6fb3f58e57ff153ac9e173379f"
+      },
+      {
+        "command_id": "rv2c02",
+        "argv_redacted": ["ctest", "--test-dir", "build"],
+        "timeout_seconds": 900,
+        "exit_code": 0,
+        "started_utc": "2026-09-08T18:31:00Z",
+        "duration_seconds": 9.0,
+        "log_path": "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_RV2_ctest_all.log",
+        "log_sha256": "aef10eccfb98a9aa60901997cfe1705a34bfd62de11e990abc11588e69d96640"
+      },
+      {
+        "command_id": "rv2c03",
+        "argv_redacted": ["python3", "-m", "pytest", "tests/monitoring", "tests/cli/test_resource_gate.py", "-q"],
+        "timeout_seconds": 600,
+        "exit_code": 0,
+        "started_utc": "2026-09-08T18:30:56Z",
+        "duration_seconds": 7.7,
+        "log_path": "evidence/v6_1_rework/tasks/MON-001/logs/reverify/MON001_RV2_pytest_mon.log",
+        "log_sha256": "0a102bab3a1125d63565f17a3e9e4d9c6700e9235b60cb7f778c6fd9e370b2b9"
+      },
+      {
+        "command_id": "rv2c04",
+        "argv_redacted": ["./build/astrocs", "phase3", "run", "--config", "<cfg>", "--events-jsonl"],
+        "timeout_seconds": 300,
+        "exit_code": 0,
+        "started_utc": "2026-09-08T18:29:40Z",
+        "duration_seconds": 0.6,
+        "log_path": "evidence/v6_1_rework/tasks/MON-001/logs/reverify/smoke_phase3.log",
+        "log_sha256": "4ac9b802bf37b1db8fae9e6b6526a9316a94cc21a4c6ed6b6cd169bbffeb94c2"
+      }
+    ],
+    "findings": [
+      "裁决项: 资源门 0.80*min(selected,available) 与 mini workload 结构失配(批次 P 裁决清单②)——abs-floor 方案待负责人裁决; 本轮仅按 p2007 哨兵先例做测试侧自洽(-1=未采样非合法值), 生产阈值未放宽。",
+      "生产接线单样本场景 pass_frac/queue_low_run 记 -1 哨兵(无法算占比/连续窗口), 与哨兵纪律一致; 事件字段 mon001_* 已并入 resource 事件供审计。",
+      "v6_1_rework MON-001 首轮三产物面(reverify-1)语义未触碰, 本轮仅收口 V7 验收的 gate 判定面。"
+    ],
+    "commands_note": "rv2c01-04 完整日志(含 # cmd 行/load 上下文/rc)本地另存 run/local/agent_mon001/; rv2c01 双构建日志 MON001_RV2_build.log(新增判定面)/MON001_RV2_build2.log(生产接线)哈希见上; rv2c02 首轮全量 94/94 于 build.log 之前一轮, 终验 94/94 见 MON001_RV2_ctest_all.log; MON001_RV2_smoke_events.jsonl/resource_summary.json/resource_samples.csv 为 rv2c04 冒烟产物拷贝。",
+    "verdict": "PASS"
+    }
+  ],
+  "expected_commit_subject": "MON-001: 资源监测接入每个 heavy node (resource_samples.csv/resource_summary.json/worker_balance.csv 自动生成, init/active/flush 分段, p50/p95 统计) + V7 阈值判定门(监控缺失FAIL/70%样本U>=0.75/队列10s) reverify-2",
   "created_utc": "2026-09-01T01:40:00Z"
 }

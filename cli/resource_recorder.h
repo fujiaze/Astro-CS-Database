@@ -133,6 +133,16 @@ public:
         return out;
     }
 
+    // MON-001: 取指定阶段(init|active|flush)的样本只读快照 —— 逐样本利用率门
+    // (>=70% 样本 U>=0.75)按 active 段判定, 聚合统计(stage_stats)不含样本分布。
+    std::vector<ResRecord> records_stage(ResStage stage) const {
+        std::lock_guard<std::mutex> lk(mu_);
+        std::vector<ResRecord> out;
+        for (const auto& r : records_)
+            if (std::string(r.stage) == res_stage_name(stage)) out.push_back(r);
+        return out;
+    }
+
     // 已记录样本总数快照（MON-002 resource summary 事件 raw_n 字段）。
     std::size_t record_count() const {
         std::lock_guard<std::mutex> lk(mu_);
