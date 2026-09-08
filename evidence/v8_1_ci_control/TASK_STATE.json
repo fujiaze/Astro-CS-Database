@@ -677,13 +677,13 @@
   "CPU-008": {
    "owner": "SA-CPU-09",
    "status": "CLOSED",
-   "closed_commit": "",
-   "evidence_path": "evidence/refactor/tasks/CPU-008/",
-   "source_of_status": "fg_verified_commit",
+   "closed_commit": "aceca50c",
+   "evidence_path": "evidence/v6_1_rework/tasks/CPU-008/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "implementation",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false",
+   "review_claim": "impl_complete",
+   "current_evidence": "构建rc=0+15组单测ALL PASS(6负例:fixed声明拒用/cgroup超配/user_cap越权/内存预算超配/外域schema拒读/损坏回落)+串行全量ctest 93/93;no fixed cores=available 1..48扫描零固定分支",
    "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案); CPU-008: V7.1规格=线程自适应,refactor证据=资源监测+硬门,两者现状均存在"
   },
   "MON-001": {
