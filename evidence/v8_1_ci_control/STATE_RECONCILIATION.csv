@@ -146,7 +146,7 @@ P2-COV-DOC,module-doc,NOT_STARTED,commit:22fe677a traceability 29行0错 warns=4
 P2-COV-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-COV-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-COV-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P2-SAMP-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-SAMP-DOC,module-doc,NOT_STARTED,commit:e654d4c2 traceability 29行0错 warns=4 + pytest 9P + contract_graph 70 + doc_index PASS + selfcheck 70项 ALL PASS；108 锚实测；SCI-P2-SMP-001⇒SCI-UPM-001 映射声明,CLOSED,fg_verified_commit,e654d4c2,lib/phase2_samp/; docs/algorithms/PHASE2_SAMPLER.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md,module-doc 冻结; SCI-UPM-001 共享 FROZEN 零改动; 占位词汇(SCI-P2-SMP-001/astrocs.phase2.sample)归 P2-XX-INT 对齐; 可执行 TEST-P2-SMP-001 MISSING 归 P2-SAMP-TEST; DISP-P2SMP-001..005 整改归 P2-SAMP-IMPL
 P2-SAMP-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-SAMP-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-SAMP-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
