@@ -22,9 +22,10 @@ namespace ac {
     void generate_master(const float* stack, int n_frames, int w, int h,
                          float* out, float sigma_low, float sigma_high,
                          int max_iter, int combine);
-    void generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
-                              const float* bias, float* out,
-                              float sigma_low, float sigma_high, int max_iter);
+    // B13-R13-7: 返回 0 成功 / AC_ERR_PARAM 输入无效 (如负中位数帧)
+    int generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
+                             const float* bias, float* out,
+                             float sigma_low, float sigma_high, int max_iter);
 }
 
 // 从 calibrator.cpp
@@ -85,10 +86,11 @@ AC_API int ac_generate_master_flat(
     float sigma_low, float sigma_high, int max_iterations) {
     if (!flat_stack || !out || n_frames <= 0 || width <= 0 || height <= 0)
         return AC_ERR_PARAM;
-    ac::generate_master_flat(flat_stack, n_frames, width, height,
-                             master_bias, out,
-                             sigma_low, sigma_high, max_iterations);
-    return AC_OK;
+    // B13-R13-7: 负中位数退化输入 → 内层 AC_ERR_PARAM, ABI 如实上报
+    const int rc = ac::generate_master_flat(flat_stack, n_frames, width, height,
+                                            master_bias, out,
+                                            sigma_low, sigma_high, max_iterations);
+    return rc == 0 ? AC_OK : AC_ERR_PARAM;
 }
 
 AC_API int ac_calibrate_frame(
@@ -202,10 +204,12 @@ AC_API int ac_generate_master_flat_f64(
         bias_ptr = bias_f32.data();
     }
     std::vector<float> out_f32(n_pix);
-    ac::generate_master_flat(flat_f32.data(), n_frames, width, height,
-                             bias_ptr, out_f32.data(),
-                             static_cast<float>(sigma_low), static_cast<float>(sigma_high),
-                             max_iterations);
+    // B13-R13-7: 负中位数退化输入 → 内层 AC_ERR_PARAM, 拒绝时不得回拷垃圾
+    const int rc = ac::generate_master_flat(flat_f32.data(), n_frames, width, height,
+                                            bias_ptr, out_f32.data(),
+                                            static_cast<float>(sigma_low), static_cast<float>(sigma_high),
+                                            max_iterations);
+    if (rc != 0) return AC_ERR_PARAM;
     for (int64_t i = 0; i < n_pix; ++i) out[i] = static_cast<double>(out_f32[i]);
     return AC_OK;
 }

@@ -108,6 +108,26 @@ target_include_directories(cli_bench_verdict_test PRIVATE
   ${CMAKE_BINARY_DIR})
 add_test(NAME cli_bench_verdict COMMAND cli_bench_verdict_test)
 
+# B13-R13-4: WideCharToMultiByte 缓冲计算共址单测 (cli_common.h header-only)
+add_executable(cli_wideconv_test cli_wideconv_test.cpp)
+target_include_directories(cli_wideconv_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
+  ${CMAKE_BINARY_DIR})
+add_test(NAME cli_wideconv COMMAND cli_wideconv_test)
+
+# B13-R13-5: gaia_client.c byte_unshuffle malloc 失败返回码化 — 共址测试
+# (#include 源文件访问 static; OOM 注入用 malloc(SIZE_MAX) 标准必败路径)
+add_executable(gaia_unshuffle_test gaia_unshuffle_test.c)
+target_include_directories(gaia_unshuffle_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/src)
+find_package(OpenMP)
+if(OpenMP_C_FOUND)
+  target_link_libraries(gaia_unshuffle_test PRIVATE OpenMP::OpenMP_C)
+endif()
+target_link_libraries(gaia_unshuffle_test PRIVATE z m Threads::Threads)
+add_test(NAME gaia_unshuffle COMMAND gaia_unshuffle_test)
+
 add_executable(io_adapter_test io_adapter_test.cpp)
 target_include_directories(io_adapter_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(io_adapter_test PRIVATE astrocs_io_adapter)  # BLD-003: 原 astrocs_io STATIC 更名
@@ -133,6 +153,20 @@ else()
   target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio z m)
 endif()
 add_test(NAME io_reentrant COMMAND io_reentrant_test)
+
+# B13-R13-3: executor observed_provider_ 数据竞争回归 (TSAN 可复现:
+# nice -n 19 timeout 300 在 TSAN 构建下运行)。executor.cpp 不在 astrocs_core
+# 内 (tests/runtime Python harness 独立编译), 此处按同组源闭包直编。
+add_executable(executor_provider_race_test executor_provider_race_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/core/src/executor.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/core/src/context.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/core/src/artifact.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/core/src/logging.cpp)
+target_include_directories(executor_provider_race_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
+target_link_libraries(executor_provider_race_test PRIVATE Threads::Threads)
+add_test(NAME executor_provider_race COMMAND executor_provider_race_test)
 # QA-002 (DEEP-SAN-TSAN io_reentrant 根因修复): vendored cfitsio 4.6.4 内部
 # FFLOCK/FFUNLOCK 宏把 pthread_mutex_* 返回值写入全局诊断状态
 # Fitsio_Pthread_Status (fitsio2.h:25-26) — 该写自身不受任何锁保护, 是上游
@@ -322,6 +356,13 @@ target_include_directories(p1_calibration_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include)
 target_link_libraries(p1_calibration_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
 add_test(NAME p1_calibration COMMAND p1_calibration_test)
+
+# B13-R13-7: master flat 负中位数拒绝 (SCIENCE: median<=0 不归一化, 修常数 0.1 假主帧)
+add_executable(master_flat_median_test master_flat_median_test.cpp)
+target_include_directories(master_flat_median_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include)
+target_link_libraries(master_flat_median_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+add_test(NAME master_flat_median COMMAND master_flat_median_test)
 
 add_executable(p1_stars_test p1_stars_test.cpp)
 target_include_directories(p1_stars_test PRIVATE
