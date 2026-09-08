@@ -3,6 +3,7 @@
 #include "p3_wcs.h"
 
 #include <cmath>
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -24,10 +25,13 @@ int main() {
   if (!d || !*d) d = std::getenv("TEMP");
   if (!d || !*d) d = std::getenv("TMP");
 #if defined(_WIN32)
-  const std::string dir = (d && *d) ? std::string(d) : std::string(".");
+  const std::string dir0 = (d && *d) ? std::string(d) : std::string(".");
 #else
-  const std::string dir = (d && *d) ? std::string(d) : std::string("/tmp");
+  const std::string dir0 = (d && *d) ? std::string(d) : std::string("/tmp");
 #endif
+  // generic_string: 与 p3_assembly_test 同因 — Windows TEMP 反斜杠路径
+  // 会被 lib 层 path_is_safe 类校验拒绝(R17 实证), 统一正斜杠。
+  const std::string dir = std::filesystem::path(dir0).generic_string();
   const std::string out = dir + "/astrocs_p3_out_test.fits";
   std::remove(out.c_str());
 
@@ -56,9 +60,14 @@ int main() {
 
   astrocs::phase3::P3OutputResult res{};
   // 1) 原子写 (不硬编码 version/run_id: 来自 prov)
-  CHECK(astrocs::phase3::p3_output_write_atomic(
-            sig.data(), cov.data(), w, h, &wcs, "ADU", out.c_str(),
-            &prov, -32, -1, &res) == astrocs::phase3::P3_OUT_OK);
+  {
+    const astrocs::phase3::P3OutputStatus wst = astrocs::phase3::p3_output_write_atomic(
+        sig.data(), cov.data(), w, h, &wcs, "ADU", out.c_str(),
+        &prov, -32, -1, &res);
+    if (wst != astrocs::phase3::P3_OUT_OK)
+      std::fprintf(stderr, "[diag] write_atomic status=%d errno=%d\n", (int)wst, errno);
+    CHECK(wst == astrocs::phase3::P3_OUT_OK);
+  }
   CHECK(res.coverage_ok == 1);
   CHECK(res.reopen_ok == 1);
   CHECK(std::strlen(res.sha256) == 64);

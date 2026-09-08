@@ -28,10 +28,14 @@ int main() {
   if (!d || !*d) d = std::getenv("TEMP");
   if (!d || !*d) d = std::getenv("TMP");
 #if defined(_WIN32)
-  const std::string dir = (d && *d) ? std::string(d) : std::string(".");
+  const std::string dir0 = (d && *d) ? std::string(d) : std::string(".");
 #else
-  const std::string dir = (d && *d) ? std::string(d) : std::string("/tmp");
+  const std::string dir0 = (d && *d) ? std::string(d) : std::string("/tmp");
 #endif
+  // generic_string: Windows TEMP 反斜杠会被 hips_product_validate 的
+  // path_is_safe 拒绝("path contains backslash", 安全语义不许放宽) —
+  // R17(34191327121) p3_sampler_open 实证。正斜杠 Windows API 全接受。
+  const std::string dir = std::filesystem::path(dir0).generic_string();
   const std::string hips = dir + "/astrocs_p3_assembly";
   // rm -rf/mkdir -p 是 POSIX 命令(Windows cmd.exe 报 "The syntax of the
   // command is incorrect.") → fixture 目录缺失连锁失败。改 std::filesystem
@@ -73,7 +77,10 @@ int main() {
   {
     astrocs::phase3::P3Sampler s{};
     std::string err;
-    CHECK(astrocs::phase3::p3_sampler_open(hips.c_str(), &s, &err) == astrocs::phase3::P3_RS_OK);
+    const astrocs::phase3::P3ResampleStatus ost = astrocs::phase3::p3_sampler_open(hips.c_str(), &s, &err);
+    if (ost != astrocs::phase3::P3_RS_OK)
+      std::fprintf(stderr, "[diag] sampler_open status=%d err=%s\n", (int)ost, err.c_str());
+    CHECK(ost == astrocs::phase3::P3_RS_OK);
     // 采样: 峰值在 tile 0 (ipix=0) 中心 → 用 pix2ang 取 tile 0 中心天球坐标
     double ra, dec;
     astrocs::healpix::pix2ang_nest(1, 0, ra, dec);   // Norder0 tile 0 中心
