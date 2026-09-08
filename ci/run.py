@@ -672,6 +672,13 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
         except ValueError:
             ignore_prefixes = []  # 输出目录在仓库外时无需忽略自身产物
     ignore_exact = set(check["outputs"]) if strict_workspace else set()
+    # per-check dirty 豁免（显式登记制）：部分检查的可执行体按设计把运行证据
+    # 写到仓库根/跟踪目录（CLI cancel 合同 write_run_manifest(".")、资源监控
+    # 三件套、benchmark MEASUREMENTS.csv 自动改写）——这些是运行产物而非工作
+    # 区状态漂移，逐检查显式登记，不设全局静默兜底。
+    if strict_workspace:
+        ignore_exact |= set(check.get("dirty_ignore_exact", []))
+        ignore_prefixes += list(check.get("dirty_ignore_prefixes", []))
     dirty_checked = strict_workspace and not check["mutates_workspace"]
     before = snapshot_status(repo) if dirty_checked else {}
 

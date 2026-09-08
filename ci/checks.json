@@ -1313,7 +1313,10 @@
         "cli/**",
         "include/**"
       ],
-      "requires_monitor": false
+      "requires_monitor": false,
+      "dirty_ignore_prefixes": [
+        "artifacts/prerelease_v5/"
+      ]
     },
     {
       "id": "UT-CLI",
@@ -1343,7 +1346,16 @@
         "cli/**",
         "include/**"
       ],
-      "requires_monitor": false
+      "requires_monitor": false,
+      "dirty_ignore_exact": [
+        "resource_samples.csv",
+        "resource_summary.json",
+        "worker_balance.csv"
+      ],
+      "dirty_ignore_prefixes": [
+        "astrocs_run_",
+        "run/"
+      ]
     },
     {
       "id": "UT-VERSION",
