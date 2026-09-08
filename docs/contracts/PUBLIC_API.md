@@ -1974,3 +1974,101 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
   ALG-P3-PROJ-IMPL-001 / DATA-P3-WCS（§28）；域际: API-P3-FITS-001
   （FITS 写出消费面，wcs 字段承载本 descriptor）；镜像: API-P3-001
   （FROZEN 编排面，不因本节改动）。
+
+## Phase3 HiPS 重采样公共消费面（API-P3-RSMP-001）
+
+> ID: API-P3-RSMP-001  状态: CONTRACT_READY（P3-RSMP-DOC 冻结，
+> 2026-09-12）
+> 定位: Phase3 HiPS 重采样域公共消费面——既有内核符号的展开冻结
+> （**不新增、不修改任何 C 头/C ABI**；p3_resample.h 为唯一权威签名
+> 头，58 行，C++ namespace astrocs::phase3；编排面 p3_session.h 五段
+> 式=API-P3-001 FROZEN 不变，本节仅镜像声明）。
+> SRC: lib/phase3_session/p3_resample.cpp（239 行，astrocs_phase3_
+> session 静态库成员，根 CMakeLists.txt:460-465）+ 唯一权威签名头
+> lib/phase3_session/p3_resample.h（58 行）；DATA: DATA-P3-RES
+> （DATA_SEMANTICS §29，单位/dtype/invalid 唯一权威）；ALG:
+> ALG-P3-RSMP-IMPL-001（docs/algorithms/PHASE3_RSMP_IMPL.md，逐符号
+> 锚与 G3/G4 冻结式）；MOD: astrocs.p3.resample（迁移目标
+> astrocs_p3_resample.dll 为矩阵合同值，尚未存在——MISSING 语义
+> （DISP-P3RSMP-005），由 P3-RSMP-IMPL 建立，本节不声明 IMPLEMENTED；
+> descriptor 占位 module_id=astrocs.phase3.resample2，module_adapters.
+> cpp:363-377 p3_resample2_descriptor，由 P3-RSMP-INT 对齐）。
+
+### 内核符号与签名要点（p3_resample.h 实测锚，冻结）
+
+- `P3ResampleStatus p3_sampler_open(const char* hips_dir, P3Sampler*
+  out, char* err)`（h:32-33 声明，实现 p3_resample.cpp:109+）:
+  sampler 构造入口（open_ex 缺参薄封装）——hips_properties_parse
+  严格校验（必需 keys hips_order/hips_tile_width/hips_frame/
+  dataproduct_type；order∈[0,20]；tile_width 必须 512；NESTED 唯一）；
+  失败必须经 err 缓冲带原因（禁静默默认，test_06 冻结）。rc 见
+  P3ResampleStatus 表。
+- `P3ResampleStatus p3_sampler_open_ex(const char* hips_dir,
+  P3Sampler* out, int* out_order, char* out_bunit, char* err)`
+  （h:36-38 声明，实现 :130-159）: 同上校验 + 回填 survey 实际
+  order（int）与 BUNIT（缺省 'ADU'，**绝不 Jy/beam**——SCI §9a-11）；
+  失败路径 properties 解析/目录不可读→IO、frame≠ICRS→UNSUPPORTED。
+- `P3ResampleStatus p3_order_select(int max_order, double
+  scale_deg_per_px, int* out_order)`（h:21 声明，实现 :82-93）: G3
+  order 选择——最小 k 使 pixel_resolution_arcsec(512<<k)/3600 ≤
+  scale_deg_per_px（与 ALG-P3-003 G3 ceil 式数学等价，§6.1）；扫描
+  完未命中→out_order=max_order（欠采样降级，SCI §9a-5）；守卫
+  out_order 空/max_order∉[0,20]/scale≤0→PARAM。
+- `P3ResampleStatus p3_resample_check_mode(const char* input_mode)`
+  （h:25 声明，实现 :95-107）: 输入模式守卫——`surface_brightness`
+  唯一合法；其余→UNSUPPORTED（SCI §9a-8/10 显式拒）。实测: 会话层
+  未接线（DISP-P3RSMP-003），探针消费。
+- `void p3_sampler_set_max_tiles(P3Sampler* s, int max_tiles)`
+  （h:42 声明，实现 :161-168）: tile 缓存容量设置；≤0 恢复默认 8；
+  会话守卫默认 min(1024, ceil(W·H/512²)+16)，请求超默认→
+  ACS_ERR_BUDGET（可降不可升，p3_session.cpp:179-194）。
+- `void p3_sample_nearest(const P3Sampler* s, const P3WcsDescriptor*
+  d, int x, int y, float* value, float* coverage)`（h:46-47 声明，
+  实现 :232-239）: NEAREST 采样——输出像素中心→pix2ang→ang2pix
+  精确 cell；无插值误差（SCI §9a-12）；值语义=DATA-P3-RES §29.2
+  （tile 内 NaN→值 NaN+coverage=1；tile 缺失→coverage=0）。
+- `void p3_sample_bilinear(const P3Sampler* s, const P3WcsDescriptor*
+  d, int x, int y, float* value, float* coverage)`（h:51-52 声明，
+  实现 :196-230）: BILINEAR 采样——leaf 3×3 邻域四象限最近中心、
+  切平面双线性（FP64 权重，Σw=1 精确成立——SCI §9a-7 不变量）；
+  离散化方案与 G4 施工规格差异=DISP-P3RSMP-001 如实登记。
+- `void p3_sampler_close(P3Sampler* s)`（h:54 声明，实现 :170-180）:
+  释放并置空；幂等（可安全重复调用）。
+- `enum P3ResampleStatus`（h:12-17）: OK=0/PARAM=1/UNSUPPORTED=2/
+  IO=3；`struct P3Sampler`（h:29-31，impl 指针+last_error[256]）:
+  消费面数据结构冻结（字段级锚=ALG-P3-RSMP-IMPL-001 §4）。
+- 并发语义: **每 worker 独立 sampler+cache**（自含 TileCache，无
+  共享可变状态）；单一 P3Sampler 实例非线程安全（无内部锁），禁止
+  跨线程共享——合同禁止项（ALG-P3-RSMP-IMPL-001 §7）；确定性
+  bitwise（输出与 tile 装载顺序/worker 数/缓存容量无关）。
+- 会话消费锚（编排面 API-P3-001 镜像）: p3_session.cpp:167-178
+  主 sampler open_ex :171（状态映射 IO→ACS_ERR_IO、UNSUPPORTED→
+  ACS_ERR_UNSUPPORTED、PARAM→ACS_ERR_PARAM，:175-176）/:179-194
+  max_tiles 会话守卫/:196-199 p3_order_select（max_order=输入实际
+  order）/ :217-244 每 worker 独立 open_ex（:222）+逐像素
+  nearest/bilinear 分派（:236-237；缺省 bilinear，:116-119 白名单）/
+  :258-263 取消收尾/:265-277 provenance
+  （order_sel_used/sampler_used 填实际值，:276-277）。
+
+### 交叉引用与登记语义
+
+- 上游: SCI-P3-001（FROZEN，§4/§5/§9a-1/-5/-7/-8/-10）引用不改动；
+  ALG-P3-003（PHASE3_RESAMPLE.md §2 G3/G4 施工规格，公式零改动）；
+  ALG-P3-RSMP-IMPL-001（实现级合同）；DATA-P3-RES（§29）；
+  DATA-P3-WCS（§28，输出平面几何上游）。
+- 整改迁移语义（登记不改码）: DISP 台账五项
+  （DISP-P3RSMP-001 bilinear 离散化方案与 G4 表述差异 /
+  002 cache FIFO vs LRU 表述 / 003 check_mode 会话未接线 /
+  004 provenance.missing_tiles 恒 nullptr / 005 dll 未建）归
+  P3-RSMP-IMPL/INT（ALG-P3-RSMP-IMPL-001 §11）。
+- 测试语义: TEST-P3-RES-001——登记面=TEST-P3-RSMP-DESIGN-001 设计
+  冻结 VERIFIED（ALG-P3-RSMP-IMPL-001 §12 + registry 手写页
+  docs/modules/registry/astrocs.phase3.resample2.md §9，双重陈述）；
+  现状执行测试 tests/backend/p3_resample_probe_main.cpp（探针）+
+  tests/backend/test_p3_resample.py（seam/NaN/无静默默认）+
+  tests/unit/p3_interp_test.cpp / p3_coverage_test.cpp（独立参考
+  实现）=相邻证据引用不冒认；可执行面升级归 P3-RSMP-TEST + EVIDENCE。
+- 下游: TEST-P3-RES-001（登记面如上）；上游 SCI-P3-001（FROZEN）/
+  ALG-P3-RSMP-IMPL-001 / DATA-P3-RES（§29）；域际: API-P3-FITS-001
+  （FITS 写出消费面，resampled 平面为其输入）；镜像: API-P3-001
+  （FROZEN 编排面，不因本节改动）。
