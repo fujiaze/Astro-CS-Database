@@ -5,6 +5,10 @@
 #include <math.h>
 #include <time.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #include <io.h>
@@ -57,6 +61,48 @@ static int gaia_trace_enabled(void) {
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+/* ═════ CAT-GAIA-IMPL 迁移桥段（纯技术接线，不改科学公式/输出位形） ═════
+ * GAIA_QUERY.md §3.1 迁移合同：host executor 租借（并行轴=文件，1..file_count
+ * workers）、cancel 检查点=文件循环边界、plan() 由数据集元数据推导 work_units。
+ *
+ * - worker 租借：adapter 在 execute 期注入租借线程数（0=未注入→行为与历史
+ *   完全一致：OpenMP 默认 team=omp_get_max_threads）。direct 路径（共址测试
+ *   #include 本源）从不注入 → direct-vs-plugin 对比不受租借影响（输出按
+ *   文件序串接，与线程数无关，README §6）。
+ * - cancel 检查点：adapter 注入轮询回调；4 个文件级并行循环在每次迭代
+ *   （=文件循环边界）开头轮询，命中则跳过该文件工作；execute 出口据此返回
+ *   CANCELLED。未注入时零开销零行为变化。
+ * - plan 统计：gaia_client_collect_plan_stats 只读遍历树节点（数据集元数据，
+ *   不解压数据块、不执行查询），供 module_entry.c plan() 真实推导
+ *   work_units/IO/memory/parallel axis/min-max workers（禁空转假 plan）。 */
+static int gaia_leased_workers = 0;   /* adapter execute 期注入; 0=默认 team */
+static int (*gaia_cancel_poll_fn)(void *user_data) = NULL;
+static void *gaia_cancel_poll_ud = NULL;
+
+void gaia_set_worker_lease(int threads) { gaia_leased_workers = threads; }
+
+void gaia_set_cancel_checkpoint(int (*poll_fn)(void *user_data), void *user_data) {
+    gaia_cancel_poll_fn = poll_fn;
+    gaia_cancel_poll_ud = user_data;
+}
+
+/* OpenMP team 大小：租借注入优先；否则与历史行为逐位一致（默认 team）。
+ * #pragma omp num_threads(表达式) 运行期求值；无 _OPENMP 时恒 1。 */
+static int gaia_omp_team_size(void) {
+#ifdef _OPENMP
+    if (gaia_leased_workers >= 1) return gaia_leased_workers;
+    return omp_get_max_threads();
+#else
+    return 1;
+#endif
+}
+
+/* 文件循环边界取消检查点（并行线程内调用；fn 原子读，无共享写） */
+static int gaia_cancel_hit(void) {
+    return gaia_cancel_poll_fn ? gaia_cancel_poll_fn(gaia_cancel_poll_ud) : 0;
+}
+/* ═════ 迁移桥段结束（gaia_client_collect_plan_stats 见 struct GaiaClient 后） ═════ */
 
 #define DEG2RAD (M_PI / 180.0)
 #define RAD2DEG (180.0 / M_PI)
@@ -120,7 +166,12 @@ typedef struct {
     int file_count;                     /* dataset identity: 文件数 */
     double *out_ra;                    /* 缓存的RA数组 */
     double *out_dec;                   /* 缓存的Dec数组 */
-    float *out_mag;                    /* 缓存的Mag数组 */
+    /* KI-1 修复 (CAT-GAIA-IMPL, 纯技术: 不改算法/公式/键语义, scope
+     * scientific_change=false): 缓存内 mag 由 float 提升为 double, 与
+     * GAIA_QUERY.md §5 I3「缓存等价: 冷路径与缓存路径输出 bitwise 一致」
+     * 对齐——缓存命中路径不再引入 float 往返量化误差。内存代价
+     * +4B/星/条目 (64 条上限, 可忽略)。 */
+    double *out_mag;                   /* 缓存的Mag数组 (double, bitwise 往返) */
     int out_count;                     /* 星数 */
     time_t timestamp;                  /* 缓存创建时间 */
     int valid;                         /* 是否有效 */
@@ -180,6 +231,34 @@ struct GaiaClient {
 #endif
     int cache_lock_initialized;
 };
+
+/* CAT-GAIA-IMPL 迁移桥段（续）：plan() 元数据统计——只读遍历树节点，
+ * 不解压数据块、不执行查询（GAIA_QUERY.md §3.1: work_units 由叶块推导）。 */
+int gaia_client_collect_plan_stats(GaiaClient *client, GaiaPlanStats *out_stats) {
+    if (!client || !out_stats) return -1;
+    memset(out_stats, 0, sizeof(*out_stats));
+    out_stats->file_count = client->file_count;
+    out_stats->db_type = client->db_type_detected;
+    uint32_t max_block = 0;
+    for (int f = 0; f < client->file_count; f++) {
+        XPSDFileInternal *xf = &client->files[f];
+        if (xf->has_spectrum) out_stats->spec_file_count++;
+        out_stats->mmap_bytes += (long long)xf->mmap_size;
+        if (xf->global_max_block_size > max_block) max_block = xf->global_max_block_size;
+        for (int t = 0; t < xf->tree_count; t++) {
+            TreeInfo *ti = &xf->trees[t];
+            for (int n = 0; n < ti->node_count; n++) {
+                if (ti->nodes[n].is_leaf) {
+                    out_stats->leaf_blocks++;
+                    out_stats->work_units_bytes += (long long)ti->nodes[n].block_size;
+                    out_stats->compressed_bytes += (long long)ti->nodes[n].compressed_size;
+                }
+            }
+        }
+    }
+    out_stats->max_block_bytes = (long long)max_block;
+    return 0;
+}
 
 /* ===== 简单星结构 ===== */
 typedef struct {
@@ -448,7 +527,7 @@ static void query_cache_free(QueryCache *qc) {
             free(qc->entries[i].out_ra);
             free(qc->entries[i].out_dec);
             free(qc->entries[i].out_mag);
-            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 2 + sizeof(float)));
+            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 3));
             qc->entries[i].valid = 0;
         }
     }
@@ -464,7 +543,7 @@ static void query_cache_evict_expired(QueryCache *qc) {
             free(qc->entries[i].out_ra);
             free(qc->entries[i].out_dec);
             free(qc->entries[i].out_mag);
-            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 2 + sizeof(float)));
+            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 3));
             qc->entries[i].valid = 0;
             qc->count--;
         }
@@ -475,7 +554,7 @@ static void query_cache_evict_expired(QueryCache *qc) {
 static int query_cache_lookup(GaiaClient *client, double ra, double dec,
                                double radius, double mag_low, double mag_high,
                                double **out_ra, double **out_dec,
-                               float **out_mag, int *out_count) {
+                               double **out_mag, int *out_count) {
     QueryCache *qc = &client->query_cache;
     time_t now = time(NULL);
 
@@ -486,7 +565,7 @@ static int query_cache_lookup(GaiaClient *client, double ra, double dec,
             free(qc->entries[i].out_ra);
             free(qc->entries[i].out_dec);
             free(qc->entries[i].out_mag);
-            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 2 + sizeof(float)));
+            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 3));
             qc->entries[i].valid = 0;
             qc->count--;
             continue;
@@ -496,7 +575,7 @@ static int query_cache_lookup(GaiaClient *client, double ra, double dec,
             free(qc->entries[i].out_ra);
             free(qc->entries[i].out_dec);
             free(qc->entries[i].out_mag);
-            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 2 + sizeof(float)));
+            qc->total_memory -= ((size_t)qc->entries[i].out_count * (sizeof(double) * 3));
             qc->entries[i].valid = 0;
             qc->count--;
             continue;
@@ -519,21 +598,22 @@ static int query_cache_lookup(GaiaClient *client, double ra, double dec,
     return 0;  /* 未命中 */
 }
 
-/* 插入查询结果缓存 */
+/* 插入查询结果缓存
+ * KI-1 修复: mag 缓存通道 float→double（bitwise 往返，I3 对齐）。 */
 static void query_cache_insert(GaiaClient *client, double ra, double dec,
                                 double radius, double mag_low, double mag_high,
                                 double *out_ra, double *out_dec,
-                                float *out_mag, int out_count) {
+                                double *out_mag, int out_count) {
     QueryCache *qc = &client->query_cache;
 
     /* V18R3: 事务式替换——先全部分配成功再释放旧条目，分配失败绝不留
      * 半状态（valid=1 但指针 dangling 的条目）。 */
     size_t ra_size = (size_t)out_count * sizeof(double);
     size_t dec_size = (size_t)out_count * sizeof(double);
-    size_t mag_size = (size_t)out_count * sizeof(float);
+    size_t mag_size = (size_t)out_count * sizeof(double);
     double *new_ra = (double *)malloc(ra_size);
     double *new_dec = (double *)malloc(dec_size);
-    float *new_mag = (float *)malloc(mag_size);
+    double *new_mag = (double *)malloc(mag_size);
     if (!new_ra || !new_dec || !new_mag) {
         free(new_ra);
         free(new_dec);
@@ -581,7 +661,7 @@ static void query_cache_insert(GaiaClient *client, double ra, double dec,
         free(qc->entries[slot].out_ra);
         free(qc->entries[slot].out_dec);
         free(qc->entries[slot].out_mag);
-        qc->total_memory -= ((size_t)qc->entries[slot].out_count * (sizeof(double) * 2 + sizeof(float)));
+        qc->total_memory -= ((size_t)qc->entries[slot].out_count * (sizeof(double) * 3));
         qc->count--;
     }
 
@@ -600,7 +680,7 @@ static void query_cache_insert(GaiaClient *client, double ra, double dec,
     qc->entries[slot].timestamp = time(NULL);
     qc->entries[slot].valid = 1;
     qc->entries[slot].version = GAIA_CACHE_VERSION;
-    qc->total_memory += ((size_t)out_count * (sizeof(double) * 2 + sizeof(float)));
+    qc->total_memory += ((size_t)out_count * (sizeof(double) * 3));
     qc->count++;
 }
 
@@ -1740,13 +1820,13 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     /* ===== 查询结果缓存检查 ===== */
     cache_lock(client);
     double *cached_ra = NULL, *cached_dec = NULL;
-    float *cached_mag = NULL;
+    double *cached_mag = NULL;   /* KI-1 修复: 缓存 mag 通道 double (bitwise) */
     int cached_count = 0;
     if (query_cache_lookup(client, ra, dec, radius_deg, mag_low, mag_high,
                             &cached_ra, &cached_dec, &cached_mag, &cached_count)) {
         /* 缓存命中: 构造GaiaStar数组返回 */
         if (cached_count > 0 && !cached_ra) { cache_unlock(client); return -1; }
-        *out_stars = (GaiaStar *)malloc(cached_count * sizeof(GaiaStar));
+        *out_stars = (GaiaStar *)calloc((size_t)cached_count, sizeof(GaiaStar)); /* CAT-GAIA-IMPL: 契约要求 parallax/pmra/pmdec 显式置 0 */
         if (cached_count > 0 && !*out_stars) {
             cache_unlock(client);
             *out_count = 0;
@@ -1777,8 +1857,9 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     if (!sc_arr) return -1;
     for (int i = 0; i < nfiles; i++) collector_init(&sc_arr[i], 4096);
 
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
     for (int f = 0; f < nfiles; f++) {
+        if (gaia_cancel_hit()) continue;   /* 迁移: 文件循环边界取消检查点 */
         XPSDFileInternal *xf = &client->files[f];
         uint32_t scratch_size = xf->global_max_block_size;
         if (scratch_size == 0) scratch_size = 65536;
@@ -1804,7 +1885,7 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
         return 0;
     }
 
-    *out_stars = (GaiaStar *)malloc(total * sizeof(GaiaStar));
+    *out_stars = (GaiaStar *)calloc((size_t)total, sizeof(GaiaStar)); /* CAT-GAIA-IMPL: 未初始化字段显式置 0 */
     if (!*out_stars) {
         for (int f = 0; f < nfiles; f++) collector_free(&sc_arr[f]);
         free(sc_arr);
@@ -1814,10 +1895,11 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     *out_count = total;
     int idx = 0;
 
-    /* 构建缓存数据 (ra/dec/mag数组) */
+    /* 构建缓存数据 (ra/dec/mag数组)。
+     * KI-1 修复: 缓存 mag 通道 float→double（bitwise 往返）。 */
     double *cache_ra = (double *)malloc(total * sizeof(double));
     double *cache_dec = (double *)malloc(total * sizeof(double));
-    float *cache_mag = (float *)malloc(total * sizeof(float));
+    double *cache_mag = (double *)malloc(total * sizeof(double));
     if (total > 0 && (!cache_ra || !cache_dec || !cache_mag)) {
         free(cache_ra);
         free(cache_dec);
@@ -1842,7 +1924,7 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
             if (cache_ra && cache_dec && cache_mag) {
                 cache_ra[idx] = sc_arr[f].stars[i].ra;
                 cache_dec[idx] = sc_arr[f].stars[i].dec;
-                cache_mag[idx] = (float)sc_arr[f].stars[i].magG;
+                cache_mag[idx] = sc_arr[f].stars[i].magG;
             }
             idx++;
         }
@@ -1970,8 +2052,9 @@ int gaia_client_cone_search_with_spectrum(
         spec_collector_init(&sc_arr[i], 4096, spec_count);
     }
 
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
     for (int f = 0; f < nfiles; f++) {
+        if (gaia_cancel_hit()) continue;   /* 迁移: 文件循环边界取消检查点 */
         XPSDFileInternal *xf = &client->files[f];
         uint32_t scratch_size = xf->global_max_block_size;
         if (scratch_size == 0) scratch_size = 65536;
@@ -2010,7 +2093,7 @@ int gaia_client_cone_search_with_spectrum(
         }
     }
 
-    *out_stars = (GaiaSpectrumStar *)malloc(total * sizeof(GaiaSpectrumStar));
+    *out_stars = (GaiaSpectrumStar *)calloc((size_t)total, sizeof(GaiaSpectrumStar)); /* CAT-GAIA-IMPL: 全字段确定性 */
     if (!*out_stars) {
         for (int f = 0; f < nfiles; f++) spec_collector_free(&sc_arr[f]);
         free(sc_arr);
@@ -2042,12 +2125,22 @@ int gaia_client_cone_search_with_spectrum(
             (*out_stars)[idx].flux_min = sc_arr[f].stars[i].flux_min;
             (*out_stars)[idx].flux_mul = sc_arr[f].stars[i].flux_mul;
 
-            if (*out_spectra && sc_arr[f].spectrum_count > 0) {
-                int copy_count = sc_arr[f].spectrum_count;
-                if (copy_count > global_spec_count) copy_count = global_spec_count;
-                memcpy(*out_spectra + (size_t)idx * global_spec_count,
-                       sc_arr[f].spectra + (size_t)i * sc_arr[f].spectrum_count,
-                       copy_count);
+            if (*out_spectra) {
+                if (sc_arr[f].spectrum_count > 0) {
+                    int copy_count = sc_arr[f].spectrum_count;
+                    if (copy_count > global_spec_count) copy_count = global_spec_count;
+                    memcpy(*out_spectra + (size_t)idx * global_spec_count,
+                           sc_arr[f].spectra + (size_t)i * sc_arr[f].spectrum_count,
+                           copy_count);
+                } else {
+                    /* KI-2 修复 (CAT-GAIA-IMPL, 纯技术: 漏拷修复, 不改科学
+                     * 公式): 混合 DB (SP+DR3) 时 DR3 星的光谱区段原样跳过 →
+                     * 返回未初始化内存 (非确定性输出)。按 DATA 合同
+                     * "无光谱数据时为 0" (GaiaSpectrumStar.flux_min/flux_mul
+                     * 恒 0, F(λ)=byte×mul+min≡0) 零填充该星区段, 输出确定。 */
+                    memset(*out_spectra + (size_t)idx * global_spec_count,
+                           0, global_spec_count);
+                }
             }
             idx++;
         }
@@ -2107,7 +2200,7 @@ int gaia_client_query_spectrum_by_coords(
     }
 
     /* 临时数组: 每个坐标的最佳匹配结果 (并行写入) */
-    GaiaSpectrumStar *temp_stars = (GaiaSpectrumStar *)malloc(n_coords * sizeof(GaiaSpectrumStar));
+    GaiaSpectrumStar *temp_stars = (GaiaSpectrumStar *)calloc((size_t)n_coords, sizeof(GaiaSpectrumStar)); /* CAT-GAIA-IMPL */
     uint8_t *temp_spectra = (uint8_t *)malloc((size_t)n_coords * global_spec_count);
     int *found_flags = (int *)calloc(n_coords, sizeof(int));
 
@@ -2123,8 +2216,9 @@ int gaia_client_query_spectrum_by_coords(
     }
 
     /* 并行搜索: 每个坐标独立搜索所有文件，找角距离最近的星 */
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
     for (int i = 0; i < n_coords; i++) {
+        if (gaia_cancel_hit()) continue;   /* 迁移: 坐标迭代边界取消检查点 */
         double ra = ra_list[i];
         double dec = dec_list[i];
         double cos_ra_q = cos(ra * DEG2RAD);
@@ -2176,10 +2270,18 @@ int gaia_client_query_spectrum_by_coords(
                     temp_stars[i].magG = sc.stars[j].magG;
                     temp_stars[i].flux_min = sc.stars[j].flux_min;
                     temp_stars[i].flux_mul = sc.stars[j].flux_mul;
-                    int copy_cnt = sc.spectrum_count;
-                    if (copy_cnt > global_spec_count) copy_cnt = global_spec_count;
-                    memcpy(temp_spectra + (size_t)i * global_spec_count,
-                           sc.spectra + (size_t)j * sc.spectrum_count, copy_cnt);
+                    if (sc.spectrum_count > 0) {
+                        int copy_cnt = sc.spectrum_count;
+                        if (copy_cnt > global_spec_count) copy_cnt = global_spec_count;
+                        memcpy(temp_spectra + (size_t)i * global_spec_count,
+                               sc.spectra + (size_t)j * sc.spectrum_count, copy_cnt);
+                    } else {
+                        /* KI-2 修复 (CAT-GAIA-IMPL): by_coords 命中 DR3 星
+                         * (无光谱) 时原 copy_cnt=0 → 区段未初始化; 按 DATA
+                         * 合同 "无光谱数据时为 0" 零填充。 */
+                        memset(temp_spectra + (size_t)i * global_spec_count,
+                               0, global_spec_count);
+                    }
                     found_flags[i] = 1;
                 }
             }
@@ -2188,9 +2290,9 @@ int gaia_client_query_spectrum_by_coords(
     }
 
     /* 压缩: 将匹配结果紧凑排列到输出数组 */
-    GaiaSpectrumStar *result_stars = (GaiaSpectrumStar *)malloc(n_coords * sizeof(GaiaSpectrumStar));
+    GaiaSpectrumStar *result_stars = (GaiaSpectrumStar *)calloc((size_t)n_coords, sizeof(GaiaSpectrumStar)); /* CAT-GAIA-IMPL */
     uint8_t *result_spectra = (uint8_t *)malloc((size_t)n_coords * global_spec_count);
-    int *match_idx = (int *)malloc(n_coords * sizeof(int));
+    int *match_idx = (int *)calloc((size_t)n_coords, sizeof(int)); /* CAT-GAIA-IMPL */
     if (!result_stars || !result_spectra || !match_idx) {
         free(result_stars);
         free(result_spectra);
@@ -2254,8 +2356,9 @@ int gaia_client_cone_search_with_photometry(
         phot_collector_init(&pc_arr[i], 4096);
     }
 
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
     for (int f = 0; f < nfiles; f++) {
+        if (gaia_cancel_hit()) continue;   /* 迁移: 文件循环边界取消检查点 */
         XPSDFileInternal *xf = &client->files[f];
         uint32_t scratch_size = xf->global_max_block_size;
         if (scratch_size == 0) scratch_size = 65536;
@@ -2282,7 +2385,7 @@ int gaia_client_cone_search_with_photometry(
         return 0;
     }
 
-    *out_stars = (GaiaPhotometryStar *)malloc(total * sizeof(GaiaPhotometryStar));
+    *out_stars = (GaiaPhotometryStar *)calloc((size_t)total, sizeof(GaiaPhotometryStar)); /* CAT-GAIA-IMPL: 全字段确定性 */
     if (!*out_stars) {
         for (int f = 0; f < nfiles; f++) phot_collector_free(&pc_arr[f]);
         free(pc_arr);
