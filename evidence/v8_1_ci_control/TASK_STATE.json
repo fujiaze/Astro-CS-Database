@@ -1408,14 +1408,14 @@
   },
   "P1-COS-TEST": {
    "owner": "SA-P1-C14",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "47e00f8e",
+   "evidence_path": "run/local/agent_p1cos_test/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-test",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
+   "review_claim": "tests_complete",
+   "current_evidence": "前台复跑ctest p1cos_ 6/6 PASS+故障注入跨组演示3组必败+独立oracle非被测符号路径+1024²基线哨兵",
    "note": ""
   },
   "P1-COS-IMPL": {
