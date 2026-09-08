@@ -1,0 +1,128 @@
+# AstroCS phase3 fits_writer 模块 — 元数据 (P3-FITS-DOC 冻结, 2026-09-08)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase3_session/p3_output.cpp
+# 370 行 + 唯一权威签名头 lib/phase3_session/p3_output.h 64 行，
+# 行号 grep/read 实测；编排消费方 lib/phase3_session/p3_session.cpp
+# 329 行 run 段 :287-289 调 p3_output_write_atomic；构建挂载: 根
+# CMakeLists.txt:460-465 astrocs_phase3_session STATIC 五源文件之一；
+# 底座=astrocs_aio STATIC :273-296（aio_fits.cpp + vendored
+# third_party/cfitsio astrocs_cfitsio 静态库 + zlib），
+# cfitsio 进程锁 aio_cfitsio_mutex.h:9-15 RT-008），
+# 模块化迁移（独立模块源 astrocs_p3_fits_writer.dll / C ABI adapter /
+# plan-execute-cancel-inspect / ThreadLease 接线）由 P3-FITS-IMPL 执行；
+# 可执行测试由 P3-FITS-TEST 建立（TEST-P3-WR-001 MISSING，不冒认；
+# 设计冻结面=ALG-P3-FITS-IMPL-001 TEST-DESIGN 节 + registry 手写页
+# §独立 synthetic 验证节；现状执行测试 tests/unit/p3_output_test.cpp
+# 116 行 = 相邻证据，引用不冒认，tests/unit/CMakeLists.txt:442-447）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为
+# 源码核对清单（P3-FITS-DOC，2026-09-08，grep 实测 p3_output.h/p3_wcs.h
+# 声明符号，禁抄他版）。
+# module_id 取 MODULE_MIGRATION_MATRIX P3-FITS 行权威值
+# astrocs.p3.fits_writer（任务指派文字 astrocs.p3.fits 与矩阵冲突，
+# 矩阵为冻结依据，决策记录于 memory.md/README）。
+# MOD ID：registry 现有行 MOD-astrocs-phase3-writer（单 descriptor 域，
+# module_adapters.cpp:383-398 p3_writer_descriptor），本 manifest id
+# 与之一致；descriptor 占位词汇（module_id=astrocs.phase3.writer、
+# sci_id=SCI-P3-WR-001、alg_id=ALG-P3-004、test_id=TEST-P3-WR-001）
+# 为编排层词汇，由 P3-FITS-INT 对齐本 manifest 与 README r1，不得
+# 反向作为冻结依据（占位 ID 不入合同；SCI/ALG 映射声明见
+# docs/algorithms/PHASE3_FITS_IMPL.md §映射节）。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P3-FITS 行 owner=SA-P3-F27、
+# target=astrocs_p3_fits_writer.dll、module_id=astrocs.p3.fits_writer、
+# legacy_paths="lib/phase3_session fits sources"、depends_on_int=
+# P3-RSMP-INT;IO-003。实测生产源 p3_output.cpp 位于 lib/phase3_session/
+# ——该目录为会话编排域共享源（p3_session/p3_resampler 等非本域），
+# 不整目录归属，故按 lib/phase2_upm/（P2-UPM-DOC）→ lib/phase2_samp/
+# → lib/phase2_rej/ → lib/phase2_int/ → lib/hips_p2/ 先例落独立迁移
+# 目标目录 lib/phase3_fits/（本文件所在，仅合同文件、无源码、不与
+# legacy 目录重叠）；legacy 生产源引用不搬家。
+# dll_target=astrocs_p3_fits_writer.dll 为迁移目标合同值（尚未存在）；
+# 现状构建=根 CMakeLists.txt astrocs_phase3_session 静态库成员。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准
+# §4 值域）；现状实现=写面进程内串行（cfitsio 进程锁 RT-008，
+# p3_output.cpp:125 lock_guard 全程持锁；fits_write_pix 单次全帧
+# 行主序写，结果与 worker 数无关）；并行仅上游采样（p3_session.cpp
+# :247-253 std::thread 池，worker 数=host budget.max_workers，
+# :209 注释禁 hardware_concurrency——本域源码 grep 实测 0 处
+# hardware_concurrency/0 处 #pragma omp；aio_fits.cpp:1154 唯一
+# omp parallel for 属 AIO 域非本域）；ThreadLease/取消检查点无接线
+# （迁移整改点）；取消语义=cancelled_at_row 参数（h:52，会话层恒 -1）。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# （lib/core/src/module_adapters.cpp:383-398 p3_writer_descriptor 的
+# module_id=astrocs.phase3.writer、execution_class=io、
+# parallel_ok=false、ports resampled(DATA-P3-RES 必)+fits(DATA-P3-FITS
+# 可)、sci_id=SCI-P3-WR-001、alg_id=ALG-P3-004、data_id=DATA-P3-FITS、
+# api_id=API-P3-001、test_id=TEST-P3-WR-001）为编排层词汇，由
+# P3-FITS-INT 对齐本 manifest 与 lib/phase3_fits/README.md（r1），
+# 不得反向作为冻结依据。
+# scientific_change=false：本任务为 -DOC 合同冻结层（不改生产算法/
+# 不改 SCI 公式）；Phase3 FITS-WCS 科学实现链（SCI-P3-001..020）为
+# 既冻结构建（V5 SCI-007, 2026-08-28），非本任务新增科学变更；
+# 模块化迁移若引入实现变更由 P3-FITS-IMPL 评估 scientific_change。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase3-writer
+module_id: astrocs.p3.fits_writer
+owner: SA-P3-F27
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase3
+dll_name: astrocs_p3_fits_writer.dll
+dll_target: astrocs_p3_fits_writer.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [fits_write, fits_verify]
+input_ports:
+  - signal
+  - coverage
+  - resampled
+output_ports:
+  - fits
+science_contracts:
+  - SCI-P3-001
+algorithm_contracts:
+  - ALG-P3-FITS-IMPL-001
+  - ALG-P3-002
+  - ALG-P3-004
+data_contracts:
+  - DATA-P3-FITS
+api_contracts:
+  - API-P3-FITS-001
+  - API-P3-001
+doc_links:
+  sci: docs/science/PHASE3_HIPS_TO_FITS.md
+  alg: docs/algorithms/PHASE3_FITS_IMPL.md
+  data: docs/contracts/DATA_SEMANTICS.md#§27
+  api: docs/contracts/PUBLIC_API.md#API-P3-FITS-001
+contract_ids:
+  sci: SCI-P3-001
+  alg: ALG-P3-FITS-IMPL-001
+  data: DATA-P3-FITS
+  api: API-P3-FITS-001
+  arch: ARCH-001
+  test: TEST-P3-WR-001
+source_symbols:
+  - p3_output_write_atomic
+  - p3_output_verify
+  - P3Provenance
+  - P3OutputResult
+  - P3OutputStatus
+  - P3WcsDescriptor
+  - P3WcsStatus
+  - p3_wcs_make
+  - p3_wcs_pix2world
+  - p3_wcs_world2pix
+  - p3_wcs_fits_keywords
+test_ids:
+  - TEST-P3-WR-001
+threading_model: host_executor_lease
+resource_class: io
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+scientific_change: false
+depends_on:
+  - astrocs_phase3_session
+  - astrocs_aio
+legacy_paths: lib/phase3_session fits sources
+known_defects:
+  - DISP-P3FITS-001
+  - DISP-P3FITS-002

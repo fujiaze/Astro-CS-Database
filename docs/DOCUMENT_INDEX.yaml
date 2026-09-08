@@ -99,6 +99,12 @@ doc_index:
     - path: "docs/algorithms/PHASE2_SESSION.md"
       status: ACTIVE_NORMATIVE
       notes: "P2-SESSION-DOC 冻结：ALG-P2-SESSION-001 四段装配拓扑/端口连接/调用序逐源码行号锚定+IMPL-COMPLETE 差距表+TEST-P2-SESSION-001 设计冻结+DISP 清单+SCI 层零改动声明"
+    - path: "docs/algorithms/PHASE2_UPM_IMPL.md"
+      status: ACTIVE_NORMATIVE
+      notes: "ALG-P2-UPM-IMPL-001（P2-UPM-DOC 冻结，2026-09-10）：Phase2 UPM fit+apply 实现级算法合同（逐符号源码行号锚定+冻结容差+DISP-P2UPM-001..004+TEST-P2-UPM-DESIGN+SCI-UPM-001 映射声明）；本条目为 P3-FITS-DOC (2026-09-08) 补登修复 doccheck 存量缺口（机械补登，文件内容零改动，照 P2-SAMP 补登先例）"
+    - path: "docs/algorithms/PHASE3_FITS_IMPL.md"
+      status: ACTIVE_NORMATIVE
+      notes: "ALG-P3-FITS-IMPL-001（P3-FITS-DOC 冻结，2026-09-08，SA-P3-F27）：Phase3 FITS 写出实现级合同（p3_output.h:45-60/p3_output.cpp 370 行逐符号行号锚定+F1-F4 原子发布/完整性/二值门/NaN 回环合同+§8 lint 关键词表+SCI-P3-WR-001⇒SCI-P3-001 映射声明 §5+TEST-P3-WR-DESIGN-001 T1-T7 §12+DISP-P3FITS-001..002 §14；SCI-P3-001 FROZEN 零改动）"
     - path: "docs/algorithms/PHASE2_REJECTION.md"
       status: ACTIVE_NORMATIVE
       notes: "P2-REJ-DOC 冻结 (6f668c87, 控制包 15/140 wave W1): ALG-P2-REJ-001 四拒绝统计定义(F1 sigma_clipping/F5 winsorized_sigma/F7 linear_fit/F8 generalized ESD)逐公式源码行号锚定(reject.cpp :1285-1479/:1482-1552)+NaN 传播与确定性判定冻结+DATA-P2-REJ(§22)/API-P2-REJ-001/trace; oracle 仅 Siril 1.4.3/RCR 2.4.7 官方 harness 逐位核对(ORACLE ONLY, 非产品版本引用)"
@@ -337,6 +343,9 @@ doc_index:
     - path: "docs/modules/phase2_upm.md"
       status: ACTIVE_INFORMATIVE
       notes: "P2-UPM-DOC (2026-09-10) 新建: astrocs.p2.upm 模块页 (fit/apply 同页)——合同落位 lib/phase2_upm/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/phase2_samp/phase2_int/phase2_rej 先例新建, lib/phase2/ 三件套已被 P2-COV 占用); 合同 ID=SCI-UPM-001(共享 FROZEN, 映射 SCI-P2-UPM-001/002⇒SCI-UPM-001)/ALG-P2-UPM-IMPL-001/ALG-UPM-001/DATA-P2-UPM(§25)/DATA-P2-COR(§26)/API-P2-UPM-001/API-P2-001/TEST-P2-UPM-001..002(MISSING); 生产源 lib/phase2/src/upm.cpp 1565 行 + upm.h 184 行 (16 导出符号行号锚); registry 手写页=astrocs.phase2.upm-fit.md/upm-apply.md"
+    - path: "docs/modules/phase3_fits.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "P3-FITS-DOC (2026-09-08) 新建: astrocs.p3.fits_writer 模块页——合同落位 lib/phase3_fits/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/phase2_upm→phase2_samp→phase2_rej→phase2_int→hips_p2 先例新建, lib/phase3_session/ 为会话编排域共享源不整目录归属); 合同 ID=SCI-P3-001(共享 FROZEN, 映射 SCI-P3-WR-001⇒SCI-P3-001)/ALG-P3-FITS-IMPL-001(兼承接 ALG-P3-002/004 本域子面)/DATA-P3-FITS(§27)/API-P3-FITS-001/API-P3-001(镜像)/TEST-P3-WR-001(登记面=TEST-P3-WR-DESIGN-001 VERIFIED, 可执行 MISSING 归 P3-FITS-TEST); 生产源 lib/phase3_session/p3_output.cpp 370 行 + p3_output.h 64 行 + p3_wcs.h 50 行; registry 手写页=astrocs.phase3.writer.md; DISP-P3FITS-001..002 登记"
     - path: "docs/modules/photometric_calib.md"
       status: ACTIVE_INFORMATIVE
       notes: "P1-PHOT-DOC (2026-09-07) 事实修订: 头部增补块——合同落位 lib/photometric_calib/README.md r1 + module.yaml (astrocs.p1.photometry, CONTRACT_READY, entrypoint=MISSING); 合同 ID=SCI-PHOT-001/ALG-PHOT-001..002/DATA-P1-PHOT/API-PHOT-001; NO_DATA 表述按退化语义修订"
@@ -419,8 +428,8 @@ doc_index:
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"
     - path: "docs/modules/registry/astrocs.phase3.writer.md"
-      status: GENERATED
-      notes: "tools/quality/gen_module_readmes.py 生成"
+      status: ACTIVE_INFORMATIVE
+      notes: "P3-FITS-DOC (2026-09-08) 重写为手写合同页 (registry 页手写先例 astrocs.phase2.write.md/astrocs.phase2.integrate.md/astrocs.phase2.upm-*.md): astrocs.p3.fits_writer 合同 (registry 行 ID 沿用 MOD-astrocs-phase3-writer)——SCI-P3-001(共享 FROZEN)/ALG-P3-FITS-IMPL-001/DATA-P3-FITS(§27)/API-P3-FITS-001/API-P3-001; 合同落位 lib/phase3_fits/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 生产源 lib/phase3_session/p3_output.cpp+p3_output.h+p3_wcs.h; TEST 登记面=TEST-P3-WR-DESIGN-001 设计冻结 VERIFIED 承载 TEST-P3-WR-001 锚 (可执行 MISSING 归 P3-FITS-TEST); DISP-P3FITS-001..002 登记; 旧 descriptor 派生词汇 (module_id=astrocs.phase3.writer、SCI-P3-WR-001、ALG-P3-004) 由 P3-FITS-INT 对齐修订"
     - path: "docs/modules/snr_estimator.md"
       status: ACTIVE_INFORMATIVE
       notes: "P1-NOISE-DOC 增补（2026-09-07）：legacy 诊断页追加 P1-NOISE-DOC 说明段；noise 模块合同页=lib/snr_estimator/README.md r1（CONTRACT_READY），本页不属 gen_module_readmes.py 生成范围"

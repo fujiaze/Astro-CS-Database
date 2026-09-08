@@ -1798,3 +1798,90 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - 下游: TEST-P2-UPM-001/002（MISSING，P2-UPM-DOC 登记）；上游
   SCI-UPM-001（FROZEN）/ ALG-P2-UPM-IMPL-001 / DATA-P2-UPM（§25）/
   DATA-P2-COR（§26）。
+
+## Phase3 FITS 写出公共消费面（API-P3-FITS-001）
+
+> ID: API-P3-FITS-001  状态: CONTRACT_READY（P3-FITS-DOC 冻结，
+> 2026-09-08）
+> 定位: Phase3 FITS 写出域公共消费面——既有内核符号的展开冻结
+> （**不新增、不修改任何 C 头/C ABI**；p3_output.h 为唯一权威签名
+> 头，64 行，C++ namespace astrocs::phase3；编排面 p3_session.h
+> 五段式=API-P3-001 FROZEN 不变，本节仅镜像声明）。
+> SRC: lib/phase3_session/p3_output.cpp（370 行，astrocs_phase3_session
+> 静态库成员，根 CMakeLists.txt:460-465）+ 唯一权威签名头
+> lib/phase3_session/p3_output.h（64 行）+ WCS 关键字源 p3_wcs.h
+> （50 行）；DATA: DATA-P3-FITS（DATA_SEMANTICS §27，单位/dtype/
+> invalid 唯一权威）；ALG: ALG-P3-FITS-IMPL-001
+> （docs/algorithms/PHASE3_FITS_IMPL.md，逐符号锚与消费链）；
+> MOD: astrocs.p3.fits_writer（迁移目标 astrocs_p3_fits_writer.dll
+> 为矩阵合同值，尚未存在——MISSING 语义，由 P3-FITS-IMPL 建立，
+> 本节不声明 IMPLEMENTED；descriptor 占位 module_id=
+> astrocs.phase3.writer，module_adapters.cpp:383-398
+> p3_writer_descriptor，由 P3-FITS-INT 对齐）。
+
+### 内核符号与签名要点（p3_output.h 实测锚，冻结）
+
+- `P3OutputStatus p3_output_write_atomic(const float* signal, const
+  float* coverage, int width, int height, const P3WcsDescriptor* wcs,
+  const char* bunit, const char* output_path, const P3Provenance* prov,
+  int bitpix, int cancelled_at_row, P3OutputResult* result)`
+  （h:45-53 声明，实现 p3_output.cpp:117-321）: 原子写入口——
+  signal 主 HDU + COVERAGE 扩展 HDU 合成单文件；tmp → fits_flush_file
+  → close → fsync(fd) → rename（R10-C 冻结序，:221-273）；取消
+  （cancelled_at_row≥0）/任一步失败 → unlink 不发布（h:41-44）。
+  数据域=DATA-P3-FITS §27.1；bitpix∈{-32,-64}（:140-145）；
+  cfitsio 进程锁全程（:125，RT-008）。rc: 0=OK（result 出参含
+  sha256/coverage_ok/reopen_ok/covered_px/total_px）/ 1=PARAM
+  （空指针、W/H<1、bitpix 非法）/ 2=IO（cfitsio/fsync/rename/sha256
+  失败，无假文件无假哈希）/ 3=CANCELLED（不落盘）。线程安全=
+  进程级互斥内单写（与读路径 aio_fits.cpp:529 同锁），写面无并行、
+  输出与 worker 数无关（ALG-P3-FITS-IMPL-001 §7/§8）。
+- `P3OutputStatus p3_output_verify(const char* output_path, const
+  P3WcsDescriptor* wcs, const float* signal, const float* coverage,
+  int width, int height, P3OutputResult* result)`
+  （h:57-60 声明，实现 p3_output.cpp:296-368）: 独立重开验证
+  （READONLY fits_open_file :312）——逐 HDU 尺寸/像素回环
+  （NaN==NaN 一致 :327-330）+ coverage 二值门（>0.5f :346）+
+  sha256 重算（失败→IO 不带假哈希 :356-366）。wcs 参数现状忽略
+  （:305 (void)wcs，WCS 一致性由写路径单点保证，:301-302 注释）。
+  rc: 0=OK / 1=PARAM（path/result null、W/H<1）/ 2=IO。线程安全=
+  只读 reentrant（cfitsio 锁内）；与写面互斥同锁。
+- `struct P3Provenance`（h:15-24）/ `struct P3OutputResult`
+  （h:26-32）/ `enum P3OutputStatus`（h:34-39）: 消费面数据结构
+  冻结（字段级锚=DATA-P3-FITS §27.1/§27.2；枚举值 0/1/2/3 冻结）。
+- WCS 关键字源符号（p3_wcs.h，ALG-P3-002 承接）:
+  `p3_wcs_make`（h:31-34，parity east_left 默认 CD1_1<0 :29）、
+  `p3_wcs_pix2world`（h:38-39，0-based 入参 FITS=+1 :36）、
+  `p3_wcs_world2pix`（h:42-43）、`p3_wcs_fits_keywords`（h:46）、
+  `P3WcsDescriptor`（h:11-20）/`P3WcsStatus`（h:22-27，含
+  P3_WCS_HEMISPHERE 半球守卫 :26）。这些符号属本域公共头（同一
+  静态库 astrocs_phase3_session），随本节一并冻结；重采样/采样
+  域符号（p3_resample/p3_sampler）不在本消费面。
+- 会话编排面镜像（API-P3-001 FROZEN 不变）: p3_session 五段
+  （p3_session.h:16-28 create/validate/run/inspect/destroy）+
+  `last_error`（h:33-37 脱敏诊断，非科学接口）。run 内部经
+  p3_output_write_atomic（p3_session.cpp:287-292，cancelled_at_row
+  恒 -1）落盘，inspect 摘要含 output_fits_path/sha256/
+  order_sel_used/sampler_used/coverage_stats/provenance
+  （:296-313）——编排消费经 API-P3-001，内核直调面仅限本节符号。
+
+### 交叉引用与登记语义
+
+- 上游: SCI-P3-001（FROZEN，§96 关键字面）引用不改动；ALG-P3-002/
+  ALG-P3-004（PHASE3_RESAMPLE.md 施工规格，公式零改动）；
+  ALG-P3-FITS-IMPL-001（实现级合同）；DATA-P3-FITS（§27）。
+- 缺陷迁移语义（登记不改码）: DISP-P3FITS-001（AIO README cfitsio
+  依赖表述矛盾）/ DISP-P3FITS-002（tmp 命名 h:41-44 协议注 vs
+  p3_output.cpp:81 实现，测试残留检查弱匹配）归 P3-FITS-IMPL；
+  manifest_hash 恒 nullptr（p3_session.cpp:270）接线归
+  P3-FITS-IMPL。
+- 测试语义: TEST-P3-WR-001 MISSING——登记面=TEST-P3-WR-DESIGN-001
+  设计冻结 VERIFIED（ALG-P3-FITS-IMPL-001 §12 T1-T7 + registry
+  手写页 docs/modules/registry/astrocs.phase3.writer.md §独立
+  synthetic 验证节，双重陈述）；现状执行测试 tests/unit/
+  p3_output_test.cpp（116 行 4 段）=相邻证据引用不冒认；可执行
+  归 P3-FITS-TEST 落地 + EVIDENCE；INDEX 登记 status: DORMANT
+  （照 TEST-P2-INT-001 先例）。
+- 下游: TEST-P3-WR-001（MISSING，P3-FITS-DOC 登记）；上游
+  SCI-P3-001（FROZEN）/ ALG-P3-FITS-IMPL-001 / DATA-P3-FITS（§27）；
+  镜像: API-P3-001（FROZEN 编排面，不因本节改动）。
