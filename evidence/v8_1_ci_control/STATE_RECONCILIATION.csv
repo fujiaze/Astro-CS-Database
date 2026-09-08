@@ -182,7 +182,7 @@ P1-SESSION-DOC,module-doc,NOT_STARTED,commit:bb075b93 traceability 28行0错 + p
 P1-SESSION-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-SESSION-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-SESSION-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P2-SESSION-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-SESSION-DOC,module-doc,NOT_STARTED,commit:722b5737 traceability 30行0错 warns=4 + pytest 9P + contract_graph 74 + doc_index PASS(首个真实PASS) + selfcheck 76项 ALL PASS；NODE-CALL/IMPL-COMPLETE 目标合同登记；DISP-P2SES-001..008,CLOSED,fg_verified_commit,722b5737,lib/phase2_session/; docs/algorithms/PHASE2_SESSION.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md,assembly 合同冻结; p2_session.h 39行五函数实测锚; partial facade 差距与 output_dir 未消费现状登记; 可执行 TEST-P2-SESSION-001 MISSING 归 P2-SESSION-TEST; 整改归 P2-SESSION-IMPL; descriptor 缺失 entrypoint=MISSING
 P2-SESSION-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-SESSION-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-SESSION-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
