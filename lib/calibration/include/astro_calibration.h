@@ -5,10 +5,15 @@
 extern "C" {
 #endif
 
+/* AC_API 可被构建方预定义覆盖: astrocs_p1_calibration DLL target (P1-CAL-IMPL)
+ * 以 -DAC_API= 将 12 个 legacy 符号本地化, 导出面仅 astrocs_module_query_v1
+ * (ABI-006; 对齐 GAIA_EXPORT= 先例)。未定义时保持原语义, 既有构建零变化。 */
+#ifndef AC_API
 #ifdef _WIN32
 #define AC_API __declspec(dllexport)
 #else
 #define AC_API __attribute__((visibility("default")))
+#endif
 #endif
 
 /* ========== 常量 ========== */
