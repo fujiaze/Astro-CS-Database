@@ -1909,3 +1909,88 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   占位）端口表 upm_model→calibrated_frames→corrected 为编排层词汇
   （DISP-P2UPM-004 占位语义），由 P2-XX-INT 对齐
   astrocs.p2.upm-apply，不得反向作为冻结依据。
+
+## 27. Phase3 FITS 写出（lib/phase3_fits）模块输入/输出数据（DATA-P3-FITS）
+
+> ID: DATA-P3-FITS  状态: CONTRACT_READY（P3-FITS-DOC 冻结，2026-09-08）
+> 模块: lib/phase3_session/p3_output.cpp（370 行）+ 唯一权威签名头
+> lib/phase3_session/p3_output.h（64 行，write/verify 面
+> =p3_output.h:45-60）（astrocs.p3.fits_writer；astrocs_phase3_session
+> 静态库成员，根 CMakeLists.txt:460-465；迁移目标
+> astrocs_p3_fits_writer.dll 为矩阵合同值，尚未存在，由 P3-FITS-IMPL
+> 建立，禁止声明 IMPLEMENTED）。本节是 Phase3 FITS 写出域 in/out
+> 单位/dtype/shape/invalid 的唯一权威；SCI 上游: SCI-P3-001 §9a-11
+> G5 FITS 写公式 + §96 关键字冻结（docs/science/PHASE3_HIPS_TO_FITS.md，
+> FROZEN V5 SCI-007 2026-08-28，零改动）；ALG:
+> ALG-P3-FITS-IMPL-001（docs/algorithms/PHASE3_FITS_IMPL.md，实现级
+> 合同，兼承接 ALG-P3-002/004 本域子面）；API 面: API-P3-FITS-001；
+> descriptor 占位 module_id=astrocs.phase3.writer
+> （module_adapters.cpp:383-398 p3_writer_descriptor）由 P3-FITS-INT
+> 对齐 astrocs.p3.fits_writer。
+
+### 27.1 输入
+
+| 名称 | dtype | shape | 单位 | 语义/invalid |
+|---|---|---|---|---|
+| signal | float32 | [W·H]（行主序，W,H∈[1,20000]） | BUNIT（surface brightness，缺省 ADU） | 无覆盖像素=NaN（上游采样 c≠1 置 NaN，p3_session.cpp:238）；NaN 合法语义=无覆盖，禁 ±Inf 伪装 |
+| coverage | float32 | [W·H] | DIMENSIONLESS（二值门 {0,1}） | covered ⇔ value>0.5f（p3_output.cpp:287/:346）；1=足迹内存在有限 tile 像素（ALG-P3-004 G5）；其它值按门归 0/1 |
+| wcs | P3WcsDescriptor | 1 | deg/px（CD）、px（CRPIX） | crpix FITS 1-based pixel-center（p3_wcs.h:14）；cd FITS 顺序 CD[i][j]（:16）；projection="TAN"（:19）；abs(dec)≤85° 与四角同半球守卫（P3_WCS_PARAM/P3_WCS_HEMISPHERE，p3_wcs.h:24-26） |
+| bunit | char* | 1 | — | 可空→缺省 "ADU"（p3_output.cpp:174-176） |
+| prov | P3Provenance | 1 | — | 8 字段（p3_output.h:15-24）；manifest_hash 现状恒 nullptr（p3_session.cpp:270，P3-FITS-IMPL 接线，DISP 登记不改码） |
+| bitpix | int | 1 | — | ∈{-32,-64}，其它值 P3_OUT_PARAM（p3_output.cpp:140-145）；session 默认 -32（:285） |
+| output_path | char* | 1 | — | 发布路径；tmp 同目录（`<path>.<pid>.tmp`，:81；h:41-44 协议注形态偏差=DISP-P3FITS-002） |
+| cancelled_at_row | int | 1 | — | -1=不取消（session 恒 -1 :292）；≥0 → 取消不落盘（:198-202） |
+
+### 27.2 输出（output_path FITS 文件 + P3OutputResult）
+
+| 名称 | dtype/形态 | 语义 |
+|---|---|---|
+| FITS 主 HDU | BITPIX=-32\|-64，NAXIS=2，[W,H] | signal；关键字=CTYPE1/2=RA---TAN/DEC--TAN、CUNIT1/2=deg、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2（p3_output.cpp:148-169）、BSCALE=1/BZERO=0（:171-173）、BUNIT（:174-176）、HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER+HISTORY（:178-189） |
+| COVERAGE 扩展 HDU | 同 BITPIX，EXTNAME="COVERAGE" | coverage；DATASUM=32-bit fdatasum(signal)（:211-219；TINT 数值关键字，非 FITS 标准 ASCII CHECKSUM，如实冻结） |
+| result.sha256 | char[65] | 输出文件 SHA-256 hex 小写；仅完整读出后填写，失败不写空/前缀哈希（p3_output.cpp:92-114/:279-283） |
+| result.coverage_ok / reopen_ok | int 0/1 | coverage 头/数据一致；独立 reader 重开回环一致（:350-354） |
+| result.covered_px / total_px | long | #(coverage>0.5f)；W·H（:287-289） |
+
+### 27.3 单位/dtype/确定性
+
+- 单位唯一权威=本节：signal=BUNIT 串（SCI-P3 §96 按 properties，
+  缺省 ADU）；coverage=二值门无量纲；WCS 角量=deg（CUNIT1/2=deg），
+  CD 单位 deg/px；CRVAL=deg（ICRS）。
+- dtype 唯一权威=本节：内存面 float32（TFLOAT 读写）；文件面
+  BITPIX=-32/-64（调用方决定）；sha256 hex 字符；DATASUM u32 经
+  TINT 写入。
+- 确定性：写面单线程串行（cfitsio 进程锁 RT-008，p3_output.cpp:125），
+  输出字节与 worker 数无关（1..N bitwise）；fits_write_pix 一次全帧
+  行主序；sha256/fdatasum 纯函数定序。
+
+### 27.4 错误/边界
+
+- rc 语义（P3_OUT_OK=0/P3_OUT_PARAM=1/P3_OUT_IO=2/P3_OUT_CANCELLED=3，
+  p3_output.h:34-39）与逐触发锚见 ALG-P3-FITS-IMPL-001 §10 表；
+  失败/取消 → unlink(tmp/产物) 不留假文件、不发布无完整性锚输出
+  （h:41-44 + IO_003 §6）。
+- 发布协议冻结（R10-C）：fits_flush_file → close → fsync(fd) →
+  rename（p3_output.cpp:221-273）；任何一步失败整体 IO。
+- NaN 语义：signal 双方 NaN 视为一致（源无覆盖=NaN，:327-330）；
+  禁止 0.0 伪装无覆盖。
+- 取消：内核行粒度 cancelled_at_row；会话层取消在采样循环
+  （p3_session.cpp:228-229），写面一旦进入发布序不可中断。
+
+### 27.5 交叉引用
+
+- 上游: SCI-P3-001（§9a-11 G5 + §96，FROZEN 零改动）；ALG-P3-002
+  （G1/G2 WCS 构造，PHASE3_RESAMPLE.md）；ALG-P3-004（G5 FITS 写）；
+  ALG-P3-FITS-IMPL-001（实现级合同）；DATA-P3-RES（resampled 输入
+  域，descriptor 端口词汇）。
+- 下游: API-P3-FITS-001（p3_output_write_atomic/p3_output_verify
+  消费面冻结）；API-P3-001（会话五段编排面 FROZEN 镜像）；
+  TEST-P3-WR-001（设计冻结面 TEST-P3-WR-DESIGN-001 VERIFIED=
+  ALG-P3-FITS-IMPL-001 §12 + registry 手写页；可执行 MISSING 归
+  P3-FITS-TEST）。
+- 同文档: §3（FITS tile local-pixel 映射，读路径上游）、§4
+  （signal/support/invalid 通用语义）、§26（UPM apply 域先例同构）。
+- 端口词汇注记: registry descriptor p3_writer_descriptor
+  （module_adapters.cpp:383-398，module_id=astrocs.phase3.writer
+  占位）端口表 resampled(DATA-P3-RES 必)+fits(DATA-P3-FITS 可) 为
+  编排层词汇，由 P3-FITS-INT 对齐 astrocs.p3.fits_writer，不得
+  反向作为冻结依据。
