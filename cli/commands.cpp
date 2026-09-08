@@ -33,6 +33,7 @@
 
 #include "backend_loader.h"
 #include "astrocs_process.h"
+#include "protocol.h"
 #include "resource_recorder.h"
 
 extern "C" {
@@ -107,8 +108,15 @@ int cmd_config_init(const Parsed& p, astrocs::JsonlEmitter& ev) {
         f << kConfigTemplate;
         if (!f.good()) return astrocs::IO;
     }
+    // CLI-004: §4 artifact 冻结词表 {role,path,sha256,size_bytes}; 文件 artifact 必带
+    // sha256+size_bytes(目录 artifact 才允许 null)。
+    const std::string tmpl_sha = [&] { bool ok = false; return file_sha256(out, &ok); }();
+    std::error_code tsz_ec;
+    const auto tmpl_sz = std::filesystem::file_size(std::filesystem::u8path(out), tsz_ec);
     ev.emit("artifact", "info", "config", "template written",
-            {{"role", "config_template"}, {"path", out}});
+            {{"role", "config_template"}, {"path", out}, {"sha256", tmpl_sha},
+             {"size_bytes", tsz_ec ? nlohmann::json(nullptr)
+                                   : nlohmann::json(static_cast<unsigned long long>(tmpl_sz))}});
     std::printf("%s\n", out.c_str());
     return astrocs::OK;
 }
@@ -118,7 +126,13 @@ int cmd_config_validate(const Parsed& p, astrocs::JsonlEmitter& ev) {
     nlohmann::json doc;
     const int rc = validate_config_full(path, &doc);
     if (rc != astrocs::OK) return rc;
-    ev.emit("artifact", "info", "config", "validated", {{"role", "config"}, {"path", path}});
+    ev.emit("artifact", "info", "config", "validated",
+            {{"role", "config"}, {"path", path},
+             {"sha256", [&]{ bool ok=false; return file_sha256(path, &ok); }()},
+             {"size_bytes", [&]{ std::error_code ec2; auto sz = std::filesystem::file_size(
+                                    std::filesystem::u8path(path), ec2);
+                                 return ec2 ? nlohmann::json(nullptr)
+                                            : nlohmann::json(static_cast<unsigned long long>(sz)); }()}});
     std::printf("config OK\n");
     return astrocs::OK;
 }
@@ -342,9 +356,16 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
         std::fprintf(stderr, "astrocs: cannot finalize run manifest: %s\n", ec.message().c_str());
         return astrocs::IO;
     }
-    ev.emit("artifact", "info", "manifest", "run manifest written",
-            {{"role", "run_manifest"}, {"path", final_path},
-             {"sha256", [&]{ bool ok=false; return file_sha256(final_path, &ok); }() }});
+    // CLI-004: §4 artifact 冻结词表 {role,path,sha256,size_bytes} — manifest 补 size_bytes。
+    {
+        std::error_code mec;
+        const auto msz = std::filesystem::file_size(std::filesystem::u8path(final_path), mec);
+        ev.emit("artifact", "info", "manifest", "run manifest written",
+                {{"role", "run_manifest"}, {"path", final_path},
+                 {"sha256", [&]{ bool ok=false; return file_sha256(final_path, &ok); }()},
+                 {"size_bytes", mec ? nlohmann::json(nullptr)
+                                    : nlohmann::json(static_cast<unsigned long long>(msz))}});
+    }
     // --events-jsonl 模式下 stdout 只能是 JSON 事件(04 §3): 路径已入 artifact 事件
     if (!ev.enabled()) std::printf("%s\n", final_path.c_str());
     return astrocs::OK;
@@ -500,8 +521,10 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
                     {{"path", renderer}});
         }
     }
+    // CLI-004: §4 artifact 冻结词表 — graph_dir 为目录 artifact, sha256/size_bytes=null。
     ev.emit("artifact", "info", "graph", "run graphs written",
-            {{"role", "graph_dir"}, {"path", gdir}});
+            {{"role", "graph_dir"}, {"path", gdir},
+             {"sha256", nullptr}, {"size_bytes", nullptr}});
 }
 
 // phase1 run: CLI-004 — 进程内调用 p1_session(无 shell-out); cancel/budget/monitor 注入
@@ -533,16 +556,65 @@ static void emit_resource_summary(astrocs::JsonlEmitter& ev, const std::string& 
         payload["curve_points"] = nlohmann::json::array();
         payload["downsample_max"] = astrocs::kDownsampleMax;
     }
+    // CLI-004: §4 kind 扩展字段冻结 —— resource{cpu_cores_used,rss_bytes,io_read_bytes,
+    // io_write_bytes,threads}。映射(机器可消费规范面): cpu_cores_used=平均等价核数,
+    // rss_bytes=峰值 RSS, io_*=累计读写字节, threads=最大活跃线程。MON-002 详细字段
+    // 保留为附加扩展(协议允许只增不改)。
+    payload["cpu_cores_used"] = p.avg_equivalent_cores;
+    payload["rss_bytes"] = p.peak_rss_bytes;
+    payload["io_read_bytes"] = p.total_read_bytes;
+    payload["io_write_bytes"] = p.total_write_bytes;
+    payload["threads"] = p.max_threads;
     ev.emit("resource", "info", phase, "resource summary", payload);
 }
 
 // MON-002: backend 事件(backend_id/status); 反映所选 backend 与 worker 选择(07 §2 必采)。
+// CLI-004: §4 kind 扩展字段冻结 —— backend{kernel,backend_id,isa,workers,block_size,
+// reason}。kernel=拓扑节点 id(runtime IR 链式节点, 非硬编码 phase 名); isa 取自硬件
+// 画像实际特征(与 05 ISA 门控同源); block_size/reason 由选择点注入。
+static std::string backend_isa_name() {
+    try {
+        const auto hw = nlohmann::json::parse(
+            astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING));
+        const unsigned long long bits = hw.value("feature_bits", 0ull);
+        if (bits & (1ull << 5)) return "avx512";   // ACS_FEAT_AVX512F (cpu_features.h 同源)
+        if (bits & (1ull << 3)) return "avx2";     // ACS_FEAT_AVX2
+        if (bits & (1ull << 2)) return "avx";      // ACS_FEAT_AVX
+        return "baseline";
+    } catch (...) {
+        return "baseline";  // 画像失败保守取基线(事件不致命)
+    }
+}
+
 static void emit_backend_event(astrocs::JsonlEmitter& ev, const std::string& phase,
                                const std::string& backend_id, const std::string& status,
                                uint32_t workers_used, uint32_t available_cpus) {
     ev.emit("backend", "info", phase, status,
-            {{"backend_id", backend_id}, {"workers_used", workers_used},
+            {{"kernel", phase},
+             {"backend_id", backend_id},
+             {"isa", backend_isa_name()},
+             {"workers", workers_used},
+             {"block_size", 0},
+             {"reason", "cli affinity lease"},
+             {"workers_used", workers_used},
              {"available_cpus", available_cpus}});
+}
+
+// CLI-004: phase 统计 resource 事件(既有载荷保留) + §4 冻结扩展字段
+// {cpu_cores_used,rss_bytes,io_read_bytes,io_write_bytes,threads}(真实 monitor 摘要同源)。
+static void emit_phase_stats_resource(astrocs::JsonlEmitter& ev, const std::string& phase,
+                                      const std::string& message,
+                                      const nlohmann::json& stats,
+                                      const astrocs::ProcessMonitor::Summary* ms) {
+    nlohmann::json payload = stats;
+    if (ms != nullptr) {
+        payload["cpu_cores_used"] = ms->avg_equivalent_cores;
+        payload["rss_bytes"] = ms->peak_rss_bytes;
+        payload["io_read_bytes"] = ms->total_read_bytes;
+        payload["io_write_bytes"] = ms->total_write_bytes;
+        payload["threads"] = ms->max_threads;
+    }
+    ev.emit("resource", "info", phase, message, payload);
 }
 
 // MON-002: 无标注 >5s 区间判 P1(供 MON-003 gating; 本函数仅供测试与 stage 落地校验)。
@@ -573,7 +645,8 @@ static std::string resource_detail_arg(const Parsed& p) {
 static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& phase,
                                   const std::string& cfg_text, uint32_t budget,
                                   std::string& fail_reason,
-                                  const std::string& resource_detail = "summary") {
+                                  const std::string& resource_detail = "summary",
+                                  astrocs::ProcessMonitor::Summary* summary_out = nullptr) {
     astrocs::ProcessMonitor mon(0.5);
     // MON-001: 记录器(样本/阶段分段/worker balance)随采样线程写入; interval 与采样
     // 周期一致(0.5s), 保证 cpu_pct=ΔCPU秒/区间墙钟 的 normalized 口径成立。
@@ -631,8 +704,17 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     recorder.set_stage(astrocs::ResStage::Active);
     // MON-001: active 阶段注入实际 worker 租约数(cli_affinity 分配核; 禁硬编码)。
     recorder.set_workers(budget, budget);
+    // CLI-004: §4 progress 事件(04 冻结字段 completed/total/unit/rate/eta_seconds)。
+    // 粒度 = phase 粒度(run 开始 0/1, 结束 1/1): Runtime 公开合同无节点级进度回调,
+    // 协议面按合同冻结 —— 粒度升级(节点/帧级采样)不改变字段结构, 消费者透明。
+    ev.emit_progress(0, 1, "phases", nullptr, nullptr);
     const int rrc = astrocs::cli::run_pipeline({phase.back() - '0'}, cfg_text, budget,
                                                &fail_reason, &first10s_cancel);
+    {
+        const auto s0 = mon.summary();
+        const double done_rate = s0.wall_seconds > 0.0 ? 1.0 / s0.wall_seconds : 0.0;
+        ev.emit_progress(1, 1, "phases", &done_rate, nullptr);
+    }
     recorder.set_stage(astrocs::ResStage::Flush);
     sampling.store(false, std::memory_order_relaxed);
     sampler.join();
@@ -708,6 +790,12 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"cpu_p50_percent", g.cpu_p50_percent},
         {"cpu_mean_percent", g.cpu_mean_percent},
         {"first_10s_gate", astrocs::gate_diag_name(f10)},
+        // CLI-004: §4 resource 冻结扩展字段(硬闸要求)。
+        {"cpu_cores_used", s.avg_equivalent_cores},
+        {"rss_bytes", s.peak_rss_bytes},
+        {"io_read_bytes", s.total_read_bytes},
+        {"io_write_bytes", s.total_write_bytes},
+        {"threads", s.max_threads},
     });
     if (d != astrocs::GateDiag::Ok) {
         const std::string why = "resource gate FAILED: " + std::string(astrocs::gate_diag_name(d)) +
@@ -722,6 +810,8 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // raw 产物目录: recorder.write_all 的 res_out_dir 同源（07 合同 raw 落点）。
     {
         const astrocs::ProcessMonitor::Summary mon_s2 = mon.summary();
+        // CLI-004: 真实 monitor 摘要外带给 phase stats 事件(冻结扩展字段同源填充)。
+        if (summary_out != nullptr) *summary_out = mon_s2;
         const std::string res_out_dir = [&] {
             try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
             catch (...) { return std::string("."); }
@@ -770,8 +860,9 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
+    astrocs::ProcessMonitor::Summary p2_summary;
     const int rrc = run_with_resource_gate(ev, "phase2", cfg_text, budget, fail_reason,
-                              resource_detail_arg(p));
+                              resource_detail_arg(p), &p2_summary);
     ev.stage("phase2_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
@@ -824,8 +915,8 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
             break;
         } catch (...) {}
     }
-    ev.emit("resource", "info", "phase2", "session summary",
-            {{"n_inputs", n_inputs}, {"n_obs", n_obs}});
+    emit_phase_stats_resource(ev, "phase2", "session summary",
+                              {{"n_inputs", n_inputs}, {"n_obs", n_obs}}, &p2_summary);
     ev.emit_final(astrocs::OK, "ok", nullptr, "phase2 complete");
     return astrocs::OK;
 }
@@ -918,8 +1009,9 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
+    astrocs::ProcessMonitor::Summary p3_summary;
     const int rrc = run_with_resource_gate(ev, "phase3", cfg_text, budget, fail_reason,
-                              resource_detail_arg(p));
+                              resource_detail_arg(p), &p3_summary);
     ev.stage("phase3_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
@@ -986,8 +1078,8 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     // cmd_graph 时漏接），RT-009 test_07 期望的 out/graph/* 恒缺失。
     // best-effort: 函数内部只 warning 不失败 run（"不失败 run"合同见其注释）。
     write_run_graphs(out_dir, ev, cfg, cfg_sha, {3});
-    ev.emit("resource", "info", "phase3", "session summary",
-            {{"outputs", artifacts.size()}});
+    emit_phase_stats_resource(ev, "phase3", "session summary",
+                              {{"outputs", artifacts.size()}}, &p3_summary);
     ev.emit_final(astrocs::OK, "ok", nullptr, "phase3 complete");
     return astrocs::OK;
 }
@@ -1032,8 +1124,9 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
+    astrocs::ProcessMonitor::Summary p1_summary;
     const int rrc = run_with_resource_gate(ev, "phase1", cfg_text, budget, fail_reason,
-                              resource_detail_arg(p));
+                              resource_detail_arg(p), &p1_summary);
     ev.stage("phase1_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
@@ -1079,8 +1172,8 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase1 ok", cfg, cfg_sha, {1},
                                        artifacts);
     if (wrc != astrocs::OK) return wrc;
-    ev.emit("resource", "info", "phase1", "frames processed",
-            {{"frames", artifacts.size()}});
+    emit_phase_stats_resource(ev, "phase1", "frames processed",
+                              {{"frames", artifacts.size()}}, &p1_summary);
     ev.emit_final(astrocs::OK, "ok", nullptr, "phase1 complete");
     return astrocs::OK;
 }
@@ -1180,8 +1273,18 @@ int cmd_verify_profile(const Parsed& p, astrocs::JsonlEmitter& ev) {
                           {"logical_available", d["host"].value("logical_available", 0)},
                           {"commit", d["build"].value("source_commit", "")}};
     std::printf("%s\n", out.dump().c_str());
-    ev.emit("artifact", "info", "benchmark", "cpu profile verified",
-            {{"role", "cpu_profile"}, {"path", pp}, {"verdict", verdict}});
+    // CLI-004: §4 artifact 冻结词表 — cpu profile 补 sha256+size_bytes。
+    {
+        bool pok = false;
+        const std::string psha = file_sha256(pp, &pok);
+        std::error_code pec;
+        const auto psz = std::filesystem::file_size(std::filesystem::u8path(pp), pec);
+        ev.emit("artifact", "info", "benchmark", "cpu profile verified",
+                {{"role", "cpu_profile"}, {"path", pp}, {"verdict", verdict},
+                 {"sha256", psha},
+                 {"size_bytes", pec ? nlohmann::json(nullptr)
+                                    : nlohmann::json(static_cast<unsigned long long>(psz))}});
+    }
     return astrocs::OK;
 }
 

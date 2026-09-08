@@ -294,10 +294,12 @@ class TestCli003Semantics(unittest.TestCase):
         self.assertEqual(events[-1]["exit_code"], 2)
         # 调用计数: 失败 run 事件面 = stage_start/stage_end + artifact(run_manifest) + final;
         # 无 resource/backend(科学 execute 未达, Runtime 未产生资源事件)
+        # CLI-004: phase run 事件面新增 progress(run 级 0/1→1/1, 协议 §4 冻结扩展)。
         kinds = [e["kind"] for e in events]
         self.assertNotIn("resource", kinds)
         self.assertNotIn("backend", kinds)
-        self.assertEqual(sorted(set(kinds)), ["artifact", "final", "stage_end", "stage_start"])
+        self.assertEqual(sorted(set(kinds)),
+                         ["artifact", "final", "progress", "stage_end", "stage_start"])
         arts = [e for e in events if e["kind"] == "artifact" and
                 e.get("role") == "run_manifest"]
         self.assertEqual(len(arts), 1)
@@ -368,7 +370,9 @@ class TestCli003Semantics(unittest.TestCase):
         kinds = [e["kind"] for e in events]
         self.assertNotIn("resource", kinds)
         self.assertNotIn("backend", kinds)
-        self.assertEqual(sorted(set(kinds)), ["artifact", "final", "stage_end", "stage_start"])
+        # CLI-004: phase run 事件面新增 progress(run 级 0/1→1/1, 协议 §4 冻结扩展)。
+        self.assertEqual(sorted(set(kinds)),
+                         ["artifact", "final", "progress", "stage_end", "stage_start"])
         arts = [e for e in events if e["kind"] == "artifact" and
                 e.get("role") == "run_manifest"]
         self.assertEqual(len(arts), 1)
