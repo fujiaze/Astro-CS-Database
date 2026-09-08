@@ -70,7 +70,7 @@ contracts:
     version: 1.0.0
     path: docs/science/PHASE2_UPM.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-UPM-001, ALG-COV-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001]
+    downstream: [ALG-UPM-001, ALG-COV-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001, ALG-P2-UPM-IMPL-001]
   - id: SCI-REJ-001
     type: SCI
     status: ACTIVE
@@ -232,7 +232,7 @@ contracts:
     version: 1.0.0
     path: docs/algorithms/UPM_SOLVER.md
     upstream: [SCI-UPM-001]
-    downstream: []
+    downstream: [ALG-P2-UPM-IMPL-001]
   - id: ALG-UPM-CONTROL-IVAR-001
     type: ALG
     status: ACTIVE
@@ -240,6 +240,54 @@ contracts:
     version: 1.0.0
     path: docs/algorithms/PHASE2_SAMPLER.md
     upstream: [SCI-NOISE-001, SCI-CW-001]
+    downstream: [ALG-P2-UPM-IMPL-001]
+  - id: ALG-P2-UPM-IMPL-001
+    type: ALG
+    status: ACTIVE
+    owner: SA-P2-U21
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_UPM_IMPL.md
+    upstream: [SCI-UPM-001, ALG-UPM-001, ALG-UPM-CONTROL-IVAR-001]
+    downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001]
+  - id: DATA-P2-UPM
+    type: DATA
+    status: ACTIVE
+    owner: SA-P2-U21
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-P2-UPM-IMPL-001]
+    downstream: [API-P2-UPM-001]
+  - id: DATA-P2-COR
+    type: DATA
+    status: ACTIVE
+    owner: SA-P2-U21
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-P2-UPM-IMPL-001]
+    downstream: [API-P2-UPM-001]
+  - id: API-P2-UPM-001
+    type: API
+    status: ACTIVE
+    owner: SA-P2-U21
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ALG-P2-UPM-IMPL-001, DATA-P2-UPM, DATA-P2-COR]
+    downstream: [TEST-P2-UPM-001, TEST-P2-UPM-002]
+  - id: TEST-P2-UPM-001
+    type: TEST
+    status: DORMANT
+    owner: SA-P2-U21
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_UPM_IMPL.md
+    upstream: [API-P2-UPM-001]
+    downstream: []
+  - id: TEST-P2-UPM-002
+    type: TEST
+    status: DORMANT
+    owner: SA-P2-U21
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_UPM_IMPL.md
+    upstream: [API-P2-UPM-001]
     downstream: []
   - id: ALG-COV-001
     type: ALG

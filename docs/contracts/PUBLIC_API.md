@@ -1640,3 +1640,161 @@ destroy（唯一释放）。句柄不可复制/二次 destroy；宿主保证 hos
   由 P2-SESSION-TEST 落地 + EVIDENCE；设计冻结面=ALG-P2-SESSION-001
   TEST-DESIGN 节）；上游 SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
   （共享 FROZEN）/ ALG-P2-SESSION-001 / DATA-P2-SESSION。
+
+## Phase2 UPM 公共消费面（API-P2-UPM-001）
+
+> ID: API-P2-UPM-001  状态: CONTRACT_READY（P2-UPM-DOC 冻结，
+> 2026-09-10）
+> 定位: Phase2 UPM fit/persist/apply/reload 公共 C ABI 消费面——
+> 既有 16 导出符号的展开冻结（**不新增、不修改任何 C 头/C ABI**；
+> upm.h 为唯一权威签名头，184 行）。
+> SRC: lib/phase2/src/upm.cpp（1565 行，astrocs_phase2 静态库成员，
+> 根 CMakeLists.txt:337-346/:338）+ 唯一权威签名头
+> lib/phase2/include/astro/phase2/upm.h（184 行）；DATA:
+> DATA-P2-UPM（DATA_SEMANTICS §25，fit/persist 域单位/dtype/invalid
+> 唯一权威）/ DATA-P2-COR（DATA_SEMANTICS §26，apply 域唯一权威）；
+> ALG: ALG-P2-UPM-IMPL-001（docs/algorithms/PHASE2_UPM_IMPL.md，
+> 逐符号锚与消费链）；MOD: astrocs.p2.upm（迁移目标
+> astrocs_p2_upm.dll 为矩阵合同值，尚未存在——MISSING 语义，由
+> P2-UPM-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
+> module_id=astrocs.phase2.upm-fit/upm-apply，
+> module_adapters.cpp:599-634（p2_upm_fit_descriptor :599 /
+> p2_upm_apply_descriptor :618），由 P2-XX-INT 对齐）。
+
+### 导出符号与签名要点（upm.h 实测锚，冻结）
+
+- `int p2_upm_build(const P2ControlObservation* obs, std::uint64_t
+  n_obs, const P2UpmBuildConfig* cfg, void** out_model)`（h:95-97
+  声明，实现 upm.cpp:929）: 联合拟合入口（obs 域=DATA-P2-SMP，13
+  字段 §23.2(1)）；cfg 可空=运行时默认填充（:222-236）+非法值修补
+  （:237-245）；target_order=-1（auto）→ rc=1（:246-249，空间 UPM
+  必须知 leaf 层级 order=target+9）。rc: 0=ok（out_model 出参，空
+  obs 合法→NO_DATA 语义，SCI-UPM-001 §4）/ 1=参数错误（句柄/cfg
+  校验）/ 2=production 缺 control_ivar（经 p2_upm_raw_weight :1311
+  传播，h:126-133）。线程安全=生命周期内单会话使用。
+- `int p2_upm_build_geo(const P2ControlObservation* obs, std::uint64_t
+  n_obs, const P2ControlNode* nodes, std::uint64_t n_nodes, const
+  P2UpmBuildConfig* cfg, void** out_model)`（h:103-106，实现
+  upm.cpp:934）: 全几何节点入口（nodes 覆盖 coverage union 全部
+  control cell 含单帧区，obs 只含 ≥2 clean 帧观测；单帧区由全局
+  平滑/Laplacian 延拓得 C——harmonic continuation，h:99-101 冻结）；
+  stage2 生产调用 :432-434。rc 语义同 p2_upm_build。线程安全=
+  生命周期内单会话使用。
+- `int p2_upm_save(const void* model, const char* path)`（h:108，
+  实现 upm.cpp:940）: 模型落盘（astrocs-upm-v2 单文件 JSON，
+  唯一 AIO aio_upm_write_sparse :1003-1005，aio_upm.cpp:66 原子写
+  ENG-IO-001）。rc: 0=ok / 1=model 或 path null（:941）、frame 绑定
+  行数不一致拒写（:943-945，ALG-UPM-FRAME-BIND-001）。线程安全=
+  生命周期内单会话使用。
+- `int p2_upm_open(const char* path, void** out_model)`（h:109，
+  实现 upm.cpp:1008）: reload 入口；format 校验失败（非
+  astrocs-upm-v2，:1027-1028）/ parse 失败 → rc=1；成功保持
+  frame_id→θ 映射（SCI-UPM-PERSIST-001）。线程安全=生命周期内
+  单会话使用。
+- `int p2_upm_info(const void* model, P2ModelInfo* out_info)`
+  （h:110，实现 upm.cpp:1233）: 溯源面只读导出（七字段 h:60-68=
+  DATA §25.2(1) 表）。rc: 0=ok / 1=model 或 out_info null。线程
+  安全=纯只读 reentrant yes。
+- `int p2_upm_calibrate_block(const void* model, std::uint64_t
+  frame_id, const std::uint64_t* leaf_ipix, const double*
+  input_signal, double* output_signal, std::uint64_t count)`（h:113-119
+  冻结注 :112，实现 upm.cpp:1240）: apply 核心——
+  output_signal[i]=input_signal[i]−C(frame_id, leaf_ipix[i])（:1266，
+  8×8 cell 内双线性 :1263；DATA §26.2）。rc: 0=ok / 1=句柄或数组
+  null（:1245-1248）或**未知 frame_id 显式失败**（:1250-1252 注释
+  "禁止回退 frame 0 参数"，禁回退红线）。线程安全=只读模型+独立
+  输出缓冲，reentrant yes。
+- `double p2_upm_evaluate_c(const void* model, std::uint64_t
+  frame_id, std::uint64_t leaf_ipix)`（h:122-123，实现
+  upm.cpp:1271）: 单点校正 C_f(leaf)（sparse/dense 同一科学语义，
+  h:121）。失败语义（非 rc 型）: model null→0.0（:1273）；未知
+  frame_id→quiet NaN（:1276-1279，显式不可用，禁 0.0 伪装）。
+  线程安全=纯只读 reentrant yes。
+- `int p2_upm_raw_weight(const P2ControlObservation* obs, const
+  P2UpmBuildConfig* cfg, double* out_raw)`（h:134-136，实现
+  upm.cpp:1292）: 观测 raw weight 单一实现（production
+  use_ivar_weight!=0: raw_w=quality_factor×control_ivar，:1306-1312，
+  无 star-SNR/support^p/单像素 ivar 因子；legacy 仅 ablation/
+  诊断 SNR-015: support^support_power×snr²/(1+snr²)/max(unc²,
+  sigma_floor²)，:1315-1323）。rc: 0=ok / 1=obs 或 out_raw null
+  （:1294）/ 2=production control_ivar≤0/非有限（:1311，h:126-133
+  显式 INVALID 禁静默回退）。线程安全=纯只读 reentrant yes。
+- `int p2_upm_normalized_weights(const P2ControlObservation* obs,
+  std::uint64_t n_obs, const P2UpmBuildConfig* cfg, double*
+  out_norm)`（h:139-142，实现 upm.cpp:1325）: per-control 归一化
+  raw/Σraw×control_reliability（h:138；:1330-1342，Σ=0 归 0 而非
+  rc 失败）。rc: 0=ok / 1=obs 或 out null、n_obs=0（:1329）或任一
+  raw_weight 失败（:1333，含 rc=2 传播）。线程安全=纯只读 reentrant yes。
+- `int p2_upm_geometry_hash(const void* model, char* out, int
+  buf_size)`（h:146，实现 upm.cpp:1346）: geometry/topology hash
+  （SHA-256 hex；payload 仅 geometry/coverage 拓扑 order/grid/cell/
+  controls/邻接，:1350-1362；权重/quality/support 变化不得改变——
+  h:144-145 冻结）。rc: 0=ok / 1=model 或 out null、buf_size≤0
+  （:1347）。线程安全=纯只读 reentrant yes。
+- `int p2_upm_component_gauges(const void* model, std::uint64_t*
+  out_component_count, std::uint64_t* out_ref_frame_ids)`（h:150-152，
+  实现 upm.cpp:1369）: 每连通分量 gauge frame id（分量内最小
+  frame_id，构建与重开后一致，h:148-149；out 可 NULL 只取数量）。
+  rc: 0=ok / 1=model null（:1372）/ 2=分量缓冲不足（:1376）。线程
+  安全=纯只读 reentrant yes。
+- `int p2_upm_materialize_dense_n(const void* model, int
+  target_order, const char* cache_path, int workers)`（h:177-178，
+  实现 upm.cpp:1390）: dense cache 物化（CON-010；fp64 缓存 :1402；
+  target_order<0 取模型 info.target_order 兜底 :1394；workers≤0→1
+  :1478，h:176 注释漂移如实登记不改码）。rc: 0=ok / 1=model 或
+  cache_path null、IO 失败。线程安全=生命周期内单会话使用。
+- `int p2_upm_materialize_dense(const void* model, int target_order,
+  const char* cache_path)`（h:155-156 与 :174-175 重复声明=
+  DISP-P2UPM-001 登记不改码，实现 upm.cpp:1518-1521）: workers=0
+  委托 p2_upm_materialize_dense_n。rc 语义同 dense_n。线程安全=
+  生命周期内单会话使用。
+- `int p2_upm_dense_info(const void* model, const char* cache_path,
+  int* out_target_order, std::uint64_t* out_pixels, char*
+  out_source_hash, std::size_t hash_buf_size)`（h:159-162，实现
+  upm.cpp:1523）: dense cache 信息读取（稀疏=稠密 Gate 用）。rc:
+  0=ok / 1=model/path null、cache 打开或 parse 失败。线程安全=
+  生命周期内单会话使用（cache 文件只读，模型只读）。
+- `int p2_upm_dense_read_block(const void* model, const char*
+  cache_path, std::uint64_t frame_id, const std::uint64_t*
+  leaf_ipix, const double* input_signal, double* output_signal,
+  std::uint64_t count)`（h:166-172 冻结注 :164-165，实现
+  upm.cpp:1542）: dense 块校准（与 sparse calibrate_block 数值
+  等价，h:164；委托 aio_upm_read_dense_block :1554-1558）。rc:
+  0=ok / 1=句柄或数组 null（:1547-1550）、未知 frame_id（:1553）/
+  2=stale-cache（source hash 不匹配，aio_upm.cpp:469，禁陈旧缓存
+  静默出数）。线程安全=纯只读 reentrant yes（cache 文件只读）。
+- `int p2_upm_close(void* model)`（h:180，实现 upm.cpp:1559）:
+  模型句柄唯一释放点（DATA §25.2(1)）；重复 close/悬垂句柄=调用方
+  生命周期违约。线程安全=释放语义（句柄所有权归调用方）。
+
+并行/取消消费面注记: workers 唯一来源=cfg.cpu_workers（Runtime
+lease，p2_session.cpp:195 budget.max_workers；禁硬编码，CON-005；
+§24.5 同构）；std::thread 池三段（:513-534/:613-633/:1479-1497，
+kChunk=16 :1407），全文件无 #pragma omp；确定性=D1（:513-514，
+worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
+:1383-1386）。无取消检查点——取消=会话层阶段边界（"取消=整模型
+不写半成品"，p2_session.cpp:180）；ThreadLease 接线归 P2-UPM-IMPL。
+
+### 负向条款
+
+- 负向条款: **P2-UPM-DOC 不新增、不修改任何公共 C 头/C ABI**——
+  upm.h 既有 16 符号声明与本节为同一 ABI 的展开冻结，禁止第二套
+  定义；registry descriptor 占位词汇（module_id=
+  astrocs.phase2.upm-fit/upm-apply，module_adapters.cpp:599-634，
+  ports samples/upm_model/calibrated_frames/corrected）由 P2-XX-INT
+  对齐 astrocs.p2.upm-fit/upm-apply，**不作冻结依据**
+  （DISP-P2UPM-004 占位语义）；上游 SCI-UPM-001（FROZEN）引用
+  不改动。
+- 缺陷迁移语义（登记不改码）: upm.h:154-156 与 :173-175
+  materialize_dense 重复声明=DISP-P2UPM-001；upm.h:89-91 注释
+  OpenMP 措辞 vs std::thread 实现漂移=DISP-P2UPM-002；会话 upm
+  覆盖键仅 max_iterations/huber_delta/smoothing_lambda 三个
+  （p2_session.cpp:196-202）=DISP-P2UPM-003 归 P2-SESSION-IMPL；
+  材料化 workers 注释漂移（h:176 vs :1478）如实登记。
+- 测试语义: TEST-P2-UPM-001（fit/persist 域）/TEST-P2-UPM-002
+  （apply 域）MISSING——设计冻结面=ALG-P2-UPM-IMPL-001
+  TEST-DESIGN 节，执行测试归 P2-UPM-TEST 落地 + EVIDENCE；INDEX
+  登记 status: DORMANT（照 TEST-P2-INT-001 先例）。
+- 下游: TEST-P2-UPM-001/002（MISSING，P2-UPM-DOC 登记）；上游
+  SCI-UPM-001（FROZEN）/ ALG-P2-UPM-IMPL-001 / DATA-P2-UPM（§25）/
+  DATA-P2-COR（§26）。

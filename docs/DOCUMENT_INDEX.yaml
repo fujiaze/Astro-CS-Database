@@ -334,6 +334,9 @@ doc_index:
     - path: "docs/modules/phase2_samp.md"
       status: ACTIVE_INFORMATIVE
       notes: "P2-SAMP-DOC (2026-09-09, commit e654d4c2) 新建: astrocs.p2.sampling 模块页——合同落位 lib/phase2_samp/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 合同 ID=SCI-UPM-001(共享 FROZEN)/ALG-P2-SMP-001/DATA-P2-SMP(§23)/API-P2-SMP-001/TEST-P2-SMP-001(MISSING); 生产源 lib/phase2/src/sampler.cpp + sampler.h; 消费链 stage2.cpp; registry 手写页=docs/modules/registry/astrocs.phase2.sample.md。本条目为 P2-SESSION-DOC (2026-09-10) 补登: 该文件在 e654d4c2 提交但漏登 DOCUMENT_INDEX (GOV-002 docs_fully_covered 缺口), 机械修复不改动文件内容"
+    - path: "docs/modules/phase2_upm.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "P2-UPM-DOC (2026-09-10) 新建: astrocs.p2.upm 模块页 (fit/apply 同页)——合同落位 lib/phase2_upm/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/phase2_samp/phase2_int/phase2_rej 先例新建, lib/phase2/ 三件套已被 P2-COV 占用); 合同 ID=SCI-UPM-001(共享 FROZEN, 映射 SCI-P2-UPM-001/002⇒SCI-UPM-001)/ALG-P2-UPM-IMPL-001/ALG-UPM-001/DATA-P2-UPM(§25)/DATA-P2-COR(§26)/API-P2-UPM-001/API-P2-001/TEST-P2-UPM-001..002(MISSING); 生产源 lib/phase2/src/upm.cpp 1565 行 + upm.h 184 行 (16 导出符号行号锚); registry 手写页=astrocs.phase2.upm-fit.md/upm-apply.md"
     - path: "docs/modules/photometric_calib.md"
       status: ACTIVE_INFORMATIVE
       notes: "P1-PHOT-DOC (2026-09-07) 事实修订: 头部增补块——合同落位 lib/photometric_calib/README.md r1 + module.yaml (astrocs.p1.photometry, CONTRACT_READY, entrypoint=MISSING); 合同 ID=SCI-PHOT-001/ALG-PHOT-001..002/DATA-P1-PHOT/API-PHOT-001; NO_DATA 表述按退化语义修订"
@@ -389,11 +392,11 @@ doc_index:
       status: ACTIVE_NORMATIVE
       notes: "P2-SESSION-DOC 手写登记：astrocs.p2.session 五导出 C API/四段 canonical 节点/DLL 目标未建如实登记/重生成时须保留"
     - path: "docs/modules/registry/astrocs.phase2.upm-apply.md"
-      status: GENERATED
-      notes: "tools/quality/gen_module_readmes.py 生成"
+      status: ACTIVE_INFORMATIVE
+      notes: "P2-UPM-DOC (2026-09-10) 重写为手写合同页 (registry 页保留先例 astrocs.phase1.session.md/astrocs.phase2.coverage.md/astrocs.phase2.reject.md): astrocs.p2.upm 合同 apply 职能 (registry 行 ID 沿用 MOD-astrocs-phase2-upm-apply)——SCI-UPM-001(共享 FROZEN)/ALG-P2-UPM-IMPL-001/ALG-UPM-001/DATA-P2-UPM(§25)/DATA-P2-COR(§26)/API-P2-UPM-001/API-P2-001; 合同落位 lib/phase2_upm/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 生产源 lib/phase2/src/upm.cpp 1565 行 + upm.h 184 行; TEST-P2-UPM-002 MISSING (设计面=ALG-P2-UPM-IMPL-001 TEST-DESIGN VERIFIED, 可执行归 P2-UPM-TEST); 旧 descriptor 派生词汇 (module_id=astrocs.phase2.upm-apply、SCI-P2-UPM-002、ALG-P2-UPM-002) 由 P2-XX-INT 对齐修订"
     - path: "docs/modules/registry/astrocs.phase2.upm-fit.md"
-      status: GENERATED
-      notes: "tools/quality/gen_module_readmes.py 生成"
+      status: ACTIVE_INFORMATIVE
+      notes: "P2-UPM-DOC (2026-09-10) 重写为手写合同页 (registry 页保留先例 astrocs.phase1.session.md/astrocs.phase2.coverage.md/astrocs.phase2.reject.md): astrocs.p2.upm 合同 fit 职能 (registry 行 ID 沿用 MOD-astrocs-phase2-upm-fit)——SCI-UPM-001(共享 FROZEN)/ALG-P2-UPM-IMPL-001/ALG-UPM-001/DATA-P2-UPM(§25)/API-P2-UPM-001/API-P2-001; 合同落位 lib/phase2_upm/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 生产源 lib/phase2/src/upm.cpp 1565 行 + upm.h 184 行 (16 导出符号行号锚); TEST-P2-UPM-001 MISSING (设计面=ALG-P2-UPM-IMPL-001 TEST-DESIGN VERIFIED, 可执行归 P2-UPM-TEST); 旧 descriptor 派生词汇 (module_id=astrocs.phase2.upm-fit、SCI-P2-UPM-001、ALG-P2-UPM-001) 由 P2-XX-INT 对齐修订"
     - path: "docs/modules/registry/astrocs.phase2.integrate.md"
       status: ACTIVE_INFORMATIVE
       notes: "P2-INT-DOC (2026-09-09) 事实修订为手写合同页 (registry 页手写先例 astrocs.phase2.write.md): astrocs.p2.integration 合同 (registry 行 ID 沿用 MOD-astrocs-phase2-integrate)——SCI-INT-001(共享 FROZEN)/ALG-P2-INT-001/DATA-P2-INT(§21)/API-P2-INT-001/API-P2-001; 合同落位 lib/phase2_int/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 生产源 lib/phase2/src/integrate.cpp+integrate.h; 旧 descriptor 派生词汇 (module_id=astrocs.phase2.integrate) 由 P2-XX-INT 对齐修订"
