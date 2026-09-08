@@ -251,6 +251,14 @@ target_include_directories(cpu003_profile_v2_test PRIVATE
 target_link_libraries(cpu003_profile_v2_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME cpu003_profile_v2 COMMAND cpu003_profile_v2_test)
 
+# CPU-006 (G3, V7.1): benchmark report (aggregate/verdict/verify, 正例+负向样例)
+add_executable(cpu006_bench_report_test cpu006_bench_report_test.cpp)
+target_include_directories(cpu006_bench_report_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu006_bench_report_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME cpu006_bench_report COMMAND cpu006_bench_report_test)
+
 # CPU-004 (G3): 逐 kernel 自适应路由
 add_executable(cpu004_routing_test cpu004_routing_test.cpp)
 target_include_directories(cpu004_routing_test PRIVATE
@@ -363,6 +371,15 @@ target_include_directories(master_flat_median_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include)
 target_link_libraries(master_flat_median_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
 add_test(NAME master_flat_median COMMAND master_flat_median_test)
+
+# ----------------------------------------------------------------------------
+# P1-CAL-TEST (TEST-P1-CAL-001, 控制包 queue 31, lock-P1-CAL) — lib/calibration
+# 可复用验证面。结构与注册详见 lib/calibration/tests/p1cal/CMakeLists.txt
+# (FIX-CAL-A..F fixture / 独立 oracle / negative / 1-N worker / performance /
+# 故障注入自检); 合同锚 ALG-CAL §9 TEST-CAL-DESIGN-001 (P1-CAL-DOC 冻结)。
+# 注意: p1cal_selfcheck_test 与 p1cal_tests 共享 p1cal_tests_core.cpp TU。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/calibration/tests/p1cal p1cal)
 
 add_executable(p1_stars_test p1_stars_test.cpp)
 target_include_directories(p1_stars_test PRIVATE
