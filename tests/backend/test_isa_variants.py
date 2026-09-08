@@ -100,6 +100,7 @@ class TestIsaVariants(unittest.TestCase):
         probe_src = os.path.join(REPO, "tests", "backend", "loader_probe_main.cpp")
         exe = os.path.join(self.tmp, "probe")
         r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}",
+                            f"-I{os.path.join(REPO, 'third_party')}",
                             f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}",
                             probe_src, os.path.join(HOST, "backend_loader.cpp"),
                             os.path.join(HOST, "host_services.cpp"),

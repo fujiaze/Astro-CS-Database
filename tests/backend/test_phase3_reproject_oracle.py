@@ -165,7 +165,10 @@ class TestPhase3ReprojOracle(unittest.TestCase):
         self.assertAlmostEqual(float(hdr["CRVAL2"]), 30.0, places=9)
         self.assertAlmostEqual(float(hdr["CD1_1"]), -0.05, places=12)  # east_left → CD1_1<0
         self.assertAlmostEqual(float(hdr["CD2_2"]), 0.05, places=12)
-        self.assertEqual(hdr["BUNIT"], "Jy")
+        # P3-002 冻结合同: BUNIT 来源输入合同 — 缺省 ADU 面亮度, 绝不 Jy/beam 默认
+        # (docs/science/PHASE3_HIPS_TO_FITS.md §单位; tests/backend/test_p3005_fits_output.py 同口径)。
+        # R12 终判: 原 oracle 期望 "Jy" 为 oracle fixture 自相矛盾, 生产 BUNIT=ADU 正确。
+        self.assertEqual(hdr["BUNIT"], "ADU")
 
     def test_02_wcs_roundtrip_pixworld(self):
         """独立 gnomonic pixel→world→pixel 往返(用写的 CD/CRPIX): 误差<1e-6 px。"""
@@ -189,7 +192,7 @@ class TestPhase3ReprojOracle(unittest.TestCase):
             self.assertAlmostEqual(iy + crpix[1], y, delta=1e-4)
 
     def test_03_constant_field_surface_brightness(self):
-        """常量球面场 → 输出 SB 恒定(处处一致); BUNIT=Jy 表面亮度; SB=flux/areaspan(1e-8)。"""
+        """常量球面场 → 输出 SB 恒定(处处一致); BUNIT=ADU 面亮度; SB=flux/areaspan(1e-8)。"""
         hdr, s_vals, _cov, _covv = self._fits(self.const, 0.0, 30.0, 0.05, 20, 20, "bilinear")
         # const flux=2.5, each tile AREA=1e-8 → SB=2.5/1e-8=2.5e8
         self.assertEqual(len(s_vals), 400)
@@ -240,24 +243,33 @@ class TestPhase3ReprojOracle(unittest.TestCase):
         self.assertEqual(len(uniq), 1, f"常量场跨 tile 输出应恒定(seam 无伪影), got {uniq}")
 
     def test_08_surface_brightness_bunit_preserved(self):
-        """BUNIT=Jy(表面亮度) 且常量场输出为正有限(单位正确, 无越界/NaN)。"""
+        """BUNIT=ADU(表面亮度) 且常量场输出为正有限(单位正确, 无越界/NaN)。"""
         hdr, s_vals, cov_hdr, cov_vals = self._fits(self.const, -20.0, -5.0, 0.05, 20, 20, "bilinear")
-        self.assertEqual(hdr["BUNIT"], "Jy")
+        # P3-002 冻结合同: BUNIT 来源输入合同, 缺省 ADU, 绝不 Jy/beam 默认(见 test_01 注)。
+        self.assertEqual(hdr["BUNIT"], "ADU")
         for v in s_vals:
             self.assertTrue(v == v and v > 0, f"常量场 SB 应正有限, got {v}")
 
 
     def test_09_unsupported_projection_reject(self):
-        """projection≠TAN / |dec|<5° 显式拒; hemisphere-crossing 像素保持 NaN/0。"""
+        """projection≠TAN / |dec|>85°(距极点<5°) 显式拒; hemisphere-crossing 像素保持 NaN/0。"""
         hdr, s_vals, cov_hdr, cov_vals = self._fits(self.const, 0.0, 30.0, 0.5, 60, 60, "bilinear")
         # 60px @0.5° → 跨度 ±15°, 均在半球内, 不应有 NaN
         nan_cnt = sum(1 for v in s_vals if v != v)
         self.assertEqual(nan_cnt, 0, "半球内输出不应有 NaN")
-        # 负 dec 亦受 |dec|≥5 抑制; 用 dec=-5 触发
-        # validate 经 probe 返回非0(投影/dec 越界拒)
-        r = subprocess.run([os.path.join(self.tmp, "probe"), "validate", self.const, "0.0", "3.0",
+        # 冻结合同(docs/api/PHASE3_API_V1.md + docs/science/PHASE3_HIPS_TO_FITS.md §36):
+        # abs(dec)<=85°(距极点>=5°) 单一条件, abs(dec)>85° → ACS_ERR_PARAM。
+        # R12 终判: 原测试以 dec=3.0(距极点 87°, 合法) 期望拒绝属误读合同 —
+        # 生产 p3_session.cpp fabs(dec)>85 拒绝正确; 此处用真违例输入 dec=88°。
+        r = subprocess.run([os.path.join(self.tmp, "probe"), "validate", self.const, "0.0", "88.0",
                             "0.05", "20", "20", "bilinear"], capture_output=True, text=True, timeout=60)
-        self.assertTrue(r.stdout.strip().startswith(("1", "2")), f"|dec|<5 应被拒, got {r.stdout.strip()}")
+        self.assertEqual(r.stdout.strip(), "1",
+                         f"|dec|>85 应被拒(ACS_ERR_PARAM=1), got {r.stdout.strip()!r}")
+        # 合法近极输入(|dec|<=85) 不得被拒: dec=85.0 边界通过(dec=3.0 距极点 87° 亦合法)
+        r_ok = subprocess.run([os.path.join(self.tmp, "probe"), "validate", self.const, "0.0", "85.0",
+                               "0.05", "20", "20", "bilinear"], capture_output=True, text=True, timeout=60)
+        self.assertEqual(r_ok.stdout.strip(), "0",
+                         f"|dec|=85 边界应合法(ACS_OK=0), got {r_ok.stdout.strip()!r}")
 
     def test_10_wcs_roundtrip_across_poles_guard(self):
         """round-trip 独立 gnomonic 在(中心 dec>5, 小角度)稳定; 边缘像素世界坐标在 [0,360)x[-90,90]。"""

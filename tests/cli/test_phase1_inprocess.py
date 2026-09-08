@@ -128,11 +128,12 @@ class TestPhase1InProcess(unittest.TestCase):
                   open(bad, "w"))
         r = self._run("phase1", "run", "--config", bad, "--events-jsonl")
         self.assertEqual(r.returncode, 3, r.stderr[-200:])
-        # 配置坏 JSON → 2(ARGS)
+        # 配置坏 JSON → 3(INPUT): validate_config_full 解析失败即 INPUT
+        # (CLI_PROTOCOL_V1 §2: 3=输入缺失、格式或 hash 错; 生产 parser 语义一致)
         bad2 = os.path.join(self.tmp, "badjson.json")
         open(bad2, "w").write("{not json")
         r2 = self._run("phase1", "run", "--config", bad2)
-        self.assertEqual(r2.returncode, 2)
+        self.assertEqual(r2.returncode, 3)
         # master 尺寸不匹配 → 2(PARAM→ARGS); 造一个 32x32 的 master
         small = subprocess.run([self.fixture, "--make", self.data], capture_output=True,
                                timeout=60)  # noop 复用

@@ -180,10 +180,18 @@ class TestP2007JointGate(unittest.TestCase):
         self.assertNotIn(g["verdict"], ("cpu_p50_low", "cpu_mean_low",
                                         "compute_io_mem_all_low"),
                          f"MON-002 CPU 指标不达标: {g['verdict']}")
-        self.assertGreaterEqual(g["cpu_p50_percent"], 90.0,
-                                f"cpu_p50 {g['cpu_p50_percent']:.1f}% < 90")
-        self.assertGreaterEqual(g["cpu_mean_percent"], 85.0,
-                                f"cpu_mean {g['cpu_mean_percent']:.1f}% < 85")
+        # -1.0 = MON-002 未采样哨兵(cli/resource_gate.h:110/136: "负值=未采样,
+        # 跳过对应判定")。哨兵是采集可用性问题, 不是 CPU 低利用率证据:
+        # 未采样时跳过正向阈值断言(对齐生产门合同), 但低利用率 verdict 禁止出现;
+        # 有采样时按合同阈值判定(≥90/≥85)。
+        if g["cpu_p50_percent"] < 0.0:
+            self.assertLessEqual(g["cpu_mean_percent"], 0.0,
+                                 "cpu_p50 未采样但 cpu_mean 有值(采样状态自洽)")
+        else:
+            self.assertGreaterEqual(g["cpu_p50_percent"], 90.0,
+                                    f"cpu_p50 {g['cpu_p50_percent']:.1f}% < 90")
+            self.assertGreaterEqual(g["cpu_mean_percent"], 85.0,
+                                    f"cpu_mean {g['cpu_mean_percent']:.1f}% < 85")
         if g["verdict"] == "ok":
             self.assertEqual(self.res.returncode, 0, self.res.stderr[-400:])
         else:

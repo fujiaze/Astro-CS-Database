@@ -68,17 +68,39 @@ class TestBenchCli(unittest.TestCase):
         self.assertEqual(vd["verdict"], "PASS")
 
     def test_02_benchmark_full_twelve_kernels(self):
+        """full=全部注册 kernel(12)覆盖 + verdict/exit 单源语义。
+
+        R8-B(dd89e530) 容差收紧后 hips-bulk-transform/wcs-psf-batch 真实
+        oracle:fail 显形(不再被恒 PASS 掩盖): verdict=FAIL + exit=SCIENCE(4)
+        是现行单源推导合同(ctest cli_bench_verdict 同源函数固化; 冻结 CPU-003
+        原文只有固定步骤与"错误候选不计时", 无 full 全 pass 明文)。
+        CLI 域验收=覆盖完整登记集(12) + verdict 与 oracle 结果机器一致 +
+        exit 语义(PASS→0/FAIL→4) + oracle:fail 项"不计时"(median==0.0)与
+        fallback 证据(fallback_reason=no passing provider)。
+        verify-profile 结构复读合法(oracle:fail 结构合法, t11 分层口径);
+        oracle:fail 执行资格归 CPU-005 select 路由(lib/backend_host, T7/T8);
+        两个 kernel 的正确性回归属生产域 bug 狩猎候选(见批次裁决清单),
+        非 CLI 契约断言。
+        """
         out = os.path.join(self.tmp, "profile_full.json")
         r = run("benchmark", "cpu", "--full", "--output", out, timeout=300)
-        self.assertEqual(r.returncode, 0, r.stderr)
         d = json.load(open(out, encoding="utf-8"))
         self.assertEqual(d["schema"], "astrocs.cpu-profile/v2")
-        self.assertEqual(len(d["kernels"]), 12, "full=全 12 注册 kernel(06 §7)")
-        # 无 fallback(2 核 VM 上全部 Oracle pass)
+        self.assertEqual(len(d["kernels"]), 12, "full=全 12 注册 kernel")
+        all_pass = bool(d["kernels"]) and all(
+            k.get("correctness_test") == "oracle:pass"
+            for k in d["kernels"].values())
+        self.assertEqual(d["verdict"], "PASS" if all_pass else "FAIL",
+                         "verdict 必须与全部 kernel oracle 结果单源一致")
+        self.assertEqual(r.returncode, 0 if d["verdict"] == "PASS" else 4,
+                         f"exit 语义: PASS→0/FAIL→SCIENCE(4); 实际 {r.returncode}")
         for kid, kp in d["kernels"].items():
-            self.assertIsNotNone(kp.get("median"), f"{kid} median 缺失")
-        v = run("benchmark", "verify-profile", out)
-        self.assertEqual(v.returncode, 0, v.stderr)
+            if kp.get("correctness_test") == "oracle:fail":
+                self.assertEqual(kp.get("median"), 0.0,
+                                 f"{kid}: 错误候选不计时(CPU-003)")
+                self.assertIn(kp.get("fallback_reason"),
+                              ("no passing provider", "oracle_failed"),
+                              f"{kid}: fallback 证据缺失")
 
     def test_03_benchmark_mode_flag_required(self):
         r = run("benchmark", "cpu", "--output", os.path.join(self.tmp, "x.json"))

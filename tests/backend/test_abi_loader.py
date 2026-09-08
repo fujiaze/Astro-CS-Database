@@ -41,6 +41,7 @@ class TestBackendLoader(unittest.TestCase):
         exe = os.path.join(self.tmp, "loader_tu")
         src = os.path.join(REPO, "tests", "backend", "loader_probe_main.cpp")
         r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}",
+                            f"-I{os.path.join(REPO, 'third_party')}",
                             f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}",
                             src, os.path.join(HOST, "backend_loader.cpp"),
                             os.path.join(HOST, "host_services.cpp"),
