@@ -1312,15 +1312,15 @@
   },
   "CAT-GAIA-TEST": {
    "owner": "SA-P1-W16",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "a030a3e7",
+   "evidence_path": "run/local/agent_catgaia_test/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-test",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "review_claim": "tests_complete",
+   "current_evidence": "前台主build构建后 ctest gaia_cat 9/9 PASS(unit/properties/worker 1vs8 bitwise含光谱/negative N1-N5/truncate 200000/performance cold 0.038s/dump+oracle O1-O4极区差分7/7按位);独立oracle不调用被测符号;故障注入地址簿对账零泄漏",
+   "note": "KI-1缓存out_mag float非bitwise(gaia_client.c:123)/KI-2混合DB光谱区段未memcpy(:2045)登记归CAT-GAIA-IMPL"
   },
   "CAT-GAIA-IMPL": {
    "owner": "SA-P1-W16",
