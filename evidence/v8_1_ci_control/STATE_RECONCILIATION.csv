@@ -104,7 +104,7 @@ PKG-003,gate,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 GATE-OWNER-001,gate,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 CAT-GAIA-DOC,module-doc,NOT_STARTED,none,CLOSED,fg_verified_commit,7c3d66e2,lib/gaia_xpsd_client/,module-doc frozen; acceptance checkers rc=0
 CAT-GAIA-TEST,module-test,tests_complete,"ctest gaia_cat 9/9+oracle O1-O4极区差分bitwise+注入对账零泄漏",CLOSED,fg_machine_verified,a030a3e7,run/local/agent_catgaia_test/,"KI-1/KI-2登记归CAT-GAIA-IMPL"
-CAT-GAIA-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+CAT-GAIA-IMPL,module-impl,impl_complete,"导出面唯一符号nm实证+69CHECK BITWISE+gaia_cat 10/10+adapter 1/1",CLOSED,fg_machine_verified,babe752d,run/local/agent_catgaia_impl/,"KI-1/KI-2+base64闭合引号+calloc+strbuf越界读修复"
 CAT-GAIA-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-CAL-DOC,module-doc,NOT_STARTED,none,CLOSED,fg_verified_commit,925fb26e,lib/calibration/,module-doc frozen; checkers rc=0
 P1-CAL-TEST,module-test,tests_complete,"ctest p1cal_ 6/6+故障注入双向成立+独立oracle",CLOSED,fg_machine_verified,cc6d4175,run/local/agent_p1cal_test/,"3项HEAD实测语义偏差留P1-CAL-IMPL"
