@@ -2164,15 +2164,15 @@
   },
   "P3-FITS-DOC": {
    "owner": "SA-P3-F27",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "3d876fa3",
+   "evidence_path": "run/local/agent_p3_fits_doc/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W1",
    "kind": "module-doc",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "review_claim": "docs_complete",
+   "current_evidence": "五门复跑PASS:矩阵30/0/4+pytest9+contracts=86(80+6)+docindex pass=true+selfcheck 75项ALL PASS;红线(docs/science|lib/phase2)零改动;三件套+ALG-P3-FITS-IMPL-001+§27+API节+INDEX+6+writer registry手写页+矩阵行;SRC path::symbol头锚VERIFIED(P2-REJ先例),可执行测试MISSING归P3-FITS-TEST",
+   "note": "DISP-P3FITS-001(cfitsio零依赖假声明)/002(tmp命名协议注偏差,测试残留检查空转)登记;manifest_hash接线归P3-FITS-IMPL;module_id权威=astrocs.p3.fits_writer(任务指派文字astrocs.p3.fits冲突记memory)"
   },
   "P3-FITS-TEST": {
    "owner": "SA-P3-F27",
