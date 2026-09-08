@@ -135,7 +135,12 @@ int main() {
     const char* w = std::getenv("TEMP");
     const char* w2 = std::getenv("TMP");
     const std::string tmp_root = (d ? d : (w ? w : (w2 ? w2 : ".")));
-    const std::string base = tmp_root + "/astrocs_p1_batchD_test";
+    // WR9-2(R12 34185034180 实证): TEMP 为反斜杠形态(C:\Users\...\Temp),
+    // 直接拼进 config JSON 产生 "\U"/"\T" 非法 JSON 转义 → p1_session_validate
+    // 拒绝 → T1 validate/run 全挂。统一 generic(正斜杠)形态: Windows 文件
+    // API 全程接受正斜杠, JSON 转义合法。
+    const std::string base =
+        (std::filesystem::path(tmp_root) / "astrocs_p1_batchD_test").generic_string();
     const std::string out_dir = base + "/out";
     {
         std::error_code ec;
