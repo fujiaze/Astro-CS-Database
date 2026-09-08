@@ -1,0 +1,22 @@
+# Fatduck 节点运维通道（self-hosted runner 在线时的带外管理入口）
+# 用途：DefaultShell/runner 服务/harness 部署等节点级运维（SSH exec 通道不可用时）。
+# 输入 cmd 在 fatduck 上以 pwsh 执行；仅限节点运维用途，禁止跑业务负载。
+name: fatduck-admin
+on:
+  workflow_dispatch:
+    inputs:
+      cmd:
+        description: PowerShell command to run on FATDUCK
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  admin:
+    name: FATDUCK admin op
+    runs-on: [self-hosted, fatduck-realdata]
+    timeout-minutes: 30
+    steps:
+      - name: Run admin command
+        shell: pwsh
+        run: ${{ inputs.cmd }}
