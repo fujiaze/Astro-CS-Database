@@ -336,6 +336,36 @@ public:
     // public: 供单元测试直接验证目录树清理行为 (test_p1_batchB_fixes)
     bool cleanup_partial_output(const std::string& path);
 
+    // R8-A 坐标契约桥 (单一来源, 写端/读端共用; DATA-P1-STAR §17.2 /
+    // DATA-P1-WCS §18.1):
+    // - sdet 检测坐标与 DPSF 拟合中心同处一个连续坐标系: "像素中心=索引+0.5";
+    // - star_measurements 权威块 = 统一契约 (index-is-center, 值 = 连续坐标 - 0.5);
+    // - ipv detections 输入 = IPV 接口契约 (像素中心=索引+0.5, §18.1)。
+    // 像素坐标连续值 < 0.5 时 to_unified 会产出负值, 属统一契约合法域 (0-based)。
+    static double astro_coord_to_unified(double v) { return v - 0.5; }    // 连续系 → 统一契约 (写端)
+    static double astro_coord_from_unified(double v) { return v + 0.5; }  // 统一契约 → IPV 接口契约 (读端)
+
+    // PLATESOLVE astrometric_detections 构造 (纯函数; public: 供共址单测直接
+    // 数值验证同帧混合星点坐标契约, test_p1_batchH_star_coord)。
+    // 输入:
+    //   sm_data  : star_measurements 块行主序 [n_sm, sm_cols] (FLOAT64, 统一契约
+    //              index-is-center; 列 1/2=x/y, 3/4=flux/mag, 6=psf_status,
+    //              7=fwhm, 12=mag, 13/14=saturated/has_saturated), 可为 nullptr
+    //   det_data : star_det 块行主序 [n_det, 6] (sdet 连续系 "像素中心=索引+0.5",
+    //              DATA-P1-STAR §17.2; 列 0..5=x,y,flux,mag,sat,has_sat), 可为 nullptr
+    //   width/height : 图像尺寸 (边缘 5px 过滤)
+    // 输出:
+    //   astro_det : [n,6] 行主序 det_x,det_y,flux,mag,sat,has_sat, 全部处于
+    //               IPV 接口契约 (像素中心=索引+0.5) 同一坐标系
+    //   统计      : n_psf / n_fallback / n_filtered (语义与原 run_stage_platesolve 一致;
+    //               sat/fwhm/edge 对 PSF 星仅计数不剔除, ipv 选星内部处理)
+    struct PlatesolveDetStats { int n_psf = 0; int n_fallback = 0; int n_filtered = 0; };
+    static PlatesolveDetStats build_platesolve_detections(
+        const double* sm_data, int n_sm, int sm_cols,
+        const double* det_data, int n_det,
+        int width, int height,
+        std::vector<double>& astro_det);
+
 private:
     OrchestratorConfig config_;
     std::atomic<TaskState> state_{TaskState::IDLE};

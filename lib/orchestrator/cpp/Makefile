@@ -87,7 +87,11 @@ TEST_LOGGER = $(TEST_DIR)/test_logger.exe
 TEST_ORCHESTRATOR_CLI = $(TEST_DIR)/test_orchestrator_cli.exe
 TEST_P1_BATCHB = $(TEST_DIR)/test_p1_batchB_fixes.exe
 
-.PHONY: all clean test_dll_loader test_checkpoint test_logger test_orchestrator_cli test_p1_batchB run_test run_integration_test
+# Bug 狩猎 R8 批次 H 修复验证: star_measurements 坐标契约 0.5px 系统错位
+# (同帧混合星点同系 / 契约桥往返 / 去重阈值 0.5px 边界)
+TEST_P1_BATCHH = $(TEST_DIR)/test_p1_batchH_star_coord.exe
+
+.PHONY: all clean test_dll_loader test_checkpoint test_logger test_orchestrator_cli test_p1_batchB test_p1_batchH run_test run_integration_test
 
 all: $(TARGET)
 
@@ -171,6 +175,34 @@ $(TEST_P1_BATCHB): $(TEST_DIR)/test_p1_batchB_fixes.cpp \
                    $(INCDIR)/logger.h
 	@$(MKDIR_TESTDIR)
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_p1_batchB_fixes.cpp \
+	    $(SRC_DIR)/orchestrator.cpp ../../common/healpix/healpix_core.cpp \
+	    ../../common/crypto/sha256.cpp \
+	    $(SRC_DIR)/dll_loader.cpp \
+	    $(SRC_DIR)/checkpoint.cpp $(SRC_DIR)/logger.cpp \
+	    $(SRC_DIR)/cli_command.cpp $(SRC_DIR)/json_config.cpp $(JSV_SRCS) \
+	    $(INCLUDES) -I../../../third_party $(LDFLAGS) -lm
+
+# ============================================================================
+# Bug 狩猎 R8 批次 H 修复验证: star_measurements 坐标契约 0.5px 系统错位
+# (同帧混合星点同系 / 契约桥往返 / 去重阈值 0.5px 边界)
+# ============================================================================
+test_p1_batchH: $(TEST_P1_BATCHH)
+
+$(TEST_P1_BATCHH): $(TEST_DIR)/test_p1_batchH_star_coord.cpp \
+                   $(SRC_DIR)/orchestrator.cpp \
+                   ../../common/healpix/healpix_core.cpp \
+                   ../../common/crypto/sha256.cpp \
+                   $(SRC_DIR)/dll_loader.cpp \
+                   $(SRC_DIR)/checkpoint.cpp \
+                   $(SRC_DIR)/logger.cpp \
+                   $(SRC_DIR)/cli_command.cpp \
+                   $(SRC_DIR)/json_config.cpp \
+                   $(JSV_SRCS) \
+                   $(INCDIR)/orchestrator.h \
+                   $(INCDIR)/cli_command.h \
+                   $(INCDIR)/logger.h
+	@$(MKDIR_TESTDIR)
+	$(CXX) $(CXXFLAGS) -o $@ $(TEST_DIR)/test_p1_batchH_star_coord.cpp \
 	    $(SRC_DIR)/orchestrator.cpp ../../common/healpix/healpix_core.cpp \
 	    ../../common/crypto/sha256.cpp \
 	    $(SRC_DIR)/dll_loader.cpp \
