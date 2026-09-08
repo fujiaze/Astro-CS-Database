@@ -174,7 +174,7 @@ P3-RSMP-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,
 P3-RSMP-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-RSMP-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-RSMP-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P3-FITS-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-FITS-DOC,module-doc,docs_complete,"五门复跑PASS:矩阵30/0/4+pytest9+contracts=86+docindex+selfcheck 75项;红线零改动",CLOSED,fg_machine_verified,3d876fa3,run/local/agent_p3_fits_doc/,"DISP-P3FITS-001/002登记;manifest_hash归P3-FITS-IMPL;module_id权威=astrocs.p3.fits_writer"
 P3-FITS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-FITS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-FITS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
