@@ -730,3 +730,27 @@ add_test(NAME gaia_cat_adapter
   COMMAND gaia_adapter_test ${GAIA_CAT_CLEAN})
 set_tests_properties(gaia_cat_adapter PROPERTIES
   ENVIRONMENT "ASTROCS_GAIA_DLL_PATH=$<TARGET_FILE:astrocs_catalog_gaia>")
+
+# CAT-GAIA-INT: gaia 模块本地集成测试 (integration descriptor + typed ports +
+# 调用计数 + 真实 plan/trace; global DAG registration 归 SA-RT-05 不做)。
+# descriptor/module.yaml 经编译定义注入 (只读, 路径含空格安全); trace JSONL
+# 写到构建目录 run 侧文件, 重放检查在测试内完成。
+set(GAIA_INT_TRACE_OUT ${CMAKE_CURRENT_BINARY_DIR}/gaia_integration_trace.jsonl)
+add_executable(gaia_integration_test gaia_integration_test.c)
+target_include_directories(gaia_integration_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${GAIA_CAT_DATA}/inc)
+target_compile_definitions(gaia_integration_test PRIVATE
+  ASTROCS_GAIA_INTEGRATION_JSON="${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/integration/astrocs_catalog_gaia.integration.json"
+  ASTROCS_GAIA_MODULE_YAML="${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/module.yaml")
+if(OpenMP_C_FOUND)
+  target_link_libraries(gaia_integration_test PRIVATE OpenMP::OpenMP_C)
+endif()
+target_link_libraries(gaia_integration_test PRIVATE ${CMAKE_DL_LIBS} z m Threads::Threads)
+add_dependencies(gaia_integration_test gaia_cat_fixtures astrocs_catalog_gaia)
+add_test(NAME gaia_integration
+  COMMAND gaia_integration_test ${GAIA_CAT_CLEAN})
+set_tests_properties(gaia_integration PROPERTIES
+  ENVIRONMENT "ASTROCS_GAIA_DLL_PATH=$<TARGET_FILE:astrocs_catalog_gaia>;ASTROCS_GAIA_INT_TRACE_OUT=${GAIA_INT_TRACE_OUT}")

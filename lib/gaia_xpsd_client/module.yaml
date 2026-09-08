@@ -4,6 +4,12 @@
 # 由 CAT-GAIA-IMPL 执行；可执行测试由 CAT-GAIA-TEST 建立。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码
 # 核对清单（CAT-GAIA-DOC，2026-09-05），禁止手抄他版。
+# CAT-GAIA-INT 注册面事实修正（2026-09-09）: entrypoint MISSING→
+# astrocs_module_query_v1（CAT-GAIA-IMPL commit babe752d 建立，nm -D 实证
+# 唯一导出面；tests/unit/gaia_integration_test.c 三方一致复验）；
+# node_operations 按 types.h op 词表登记（每 (module_id, operation) 绑定
+# 同一唯一 entry）。全局 typed DAG/registry 接线由 SA-RT-05 消费
+# integration/astrocs_catalog_gaia.integration.json 执行。
 id: MOD-astrocs-catalog-gaia
 module_id: astrocs.catalog.gaia
 module_version: 0.11.0-alpha.2
@@ -11,8 +17,13 @@ abi_version: 1
 phase_scope: service
 dll_name: astrocs_catalog_gaia.dll
 module_status: CONTRACT_READY
-entrypoint: MISSING
-node_operations: []
+entrypoint: astrocs_module_query_v1
+node_operations:
+  - cone_search
+  - cone_search_for_solver
+  - cone_search_with_spectrum
+  - cone_search_with_photometry
+  - query_spectrum_by_coords
 input_ports:
   - catalog.xpsd_dir
 output_ports:
