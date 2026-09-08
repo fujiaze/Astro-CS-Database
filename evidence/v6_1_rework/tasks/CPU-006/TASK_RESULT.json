@@ -1,0 +1,140 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "CPU-006",
+  "status": "PASS",
+  "parent_commit": "ec7dd747111a80ed5d7a743e21793de4797d31be",
+  "control_sha256": "47076faccae15de28bd453c4ec9eced934031597db8187d63478dd001aeedc54",
+  "ledger_sha256": "a71f2877573029c43d42e44611f620c97b5973e20ae799a421ef1513eb334c39",
+  "change_class": "performance",
+  "changed_paths": [
+    "lib/backend_host/bench_report.h",
+    "lib/backend_host/bench_report.cpp",
+    "tests/unit/cpu006_bench_report_test.cpp",
+    "CMakeLists.txt",
+    "tests/unit/CMakeLists.txt",
+    "evidence/v6_1_rework/tasks/CPU-006/PLAN.md",
+    "evidence/v6_1_rework/tasks/CPU-006/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/CPU-006/bench_report_quick.json",
+    "evidence/v6_1_rework/tasks/CPU-006/bench_report_release.json",
+    "evidence/v6_1_rework/tasks/CPU-006/logs/c01_commands.txt",
+    "evidence/v6_1_rework/tasks/CPU-006/logs/c02_unit_test.log",
+    "evidence/v6_1_rework/tasks/CPU-006/logs/c03_bench_run.log",
+    "evidence/v6_1_rework/tasks/CPU-006/logs/c04_load_context.txt"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": false,
+    "binary": true,
+    "reason": "新增 bench_report 聚合审计层(astrocs.benchmark-report/v1, suite quick|release, verdict 阈值门) — 纯新增, 不触碰生产 profile 路径; CLI 接线归 CLI-004 并行域"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": ["ninja", "-C", "build", "astrocs_cpu", "cpu006_bench_report_test"],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-09-08T16:14:02Z",
+      "duration_seconds": 12,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-006/logs/c01_commands.txt",
+      "log_sha256": "23afee0e5e1947e87cf18ebc0ed0c6f87de0e4e809bf58bc1c5d9ff91197eef7"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": ["./build/tests/unit/cpu006_bench_report_test", "<evidence_dir>"],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "started_utc": "2026-09-08T16:28:04Z",
+      "duration_seconds": 3,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-006/logs/c02_unit_test.log",
+      "log_sha256": "1f278fc5ce0cb4ea0c93d08431f40ca0f91086c28030bf0ea50acae978839b43"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": ["ASTROCS_CPU006_ENABLE_RELEASE=1", "./build/tests/unit/cpu006_bench_report_test", "<evidence_dir>"],
+      "timeout_seconds": 1500,
+      "exit_code": 0,
+      "started_utc": "2026-09-08T16:29:07Z",
+      "duration_seconds": 145,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-006/logs/c03_bench_run.log",
+      "log_sha256": "5d0481e723e9615190d4eec8030cc25ca866af571faff89919961f68da79461c"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-REPORT-FIELDS",
+      "description": "quick report 规格字段齐全: CPU 指纹/逻辑物理核/cache/NUMA/affinity/内存带宽/kernel sizes/warmup=3/samples=7/median/MAD/workers/provider/输入hash/编译器/verdict/timeout",
+      "result": "PASS",
+      "evidence_sha256": "1251f59d9c0fc111ab7c5edcd515d830af3ce958f5e3b6cab69de09006c61d7c"
+    },
+    {
+      "test_id": "T-VERDICT-GATE",
+      "description": "阈值门: MAD/median>0.35 或 oracle 未全过或 timeout → eligible_for_profile=false; 无 benchmark 回落 baseline+fallback_reason(workers=0,median=0 不可伪造)",
+      "result": "PASS",
+      "evidence_sha256": "1f278fc5ce0cb4ea0c93d08431f40ca0f91086c28030bf0ea50acae978839b43"
+    },
+    {
+      "test_id": "T-HEAVY-NOT-SINGLE",
+      "description": "heavy(compute/memory) kernel: 存在 >=2 worker 合格候选时 1-worker 不得胜出(V8-CPU-001 同语义); 单核机允许 1(机器无关)",
+      "result": "PASS",
+      "evidence_sha256": "1f278fc5ce0cb4ea0c93d08431f40ca0f91086c28030bf0ea50acae978839b43"
+    },
+    {
+      "test_id": "T-NEGATIVE",
+      "description": "负向样例: 非法 suite(full/空)→空 report; verify 篡改 5 例(schema/outlier_policy/production_profile_touched/suite/截断)全拒; report 文本被 verify_profile_v2 拒绝(schema 隔离)",
+      "result": "PASS",
+      "evidence_sha256": "1f278fc5ce0cb4ea0c93d08431f40ca0f91086c28030bf0ea50acae978839b43"
+    },
+    {
+      "test_id": "T-REGRESSION",
+      "description": "ctest cpu_bench+cpu003_profile_v2+cpu006_bench_report 3/3 PASS",
+      "result": "PASS",
+      "evidence_sha256": "1f278fc5ce0cb4ea0c93d08431f40ca0f91086c28030bf0ea50acae978839b43"
+    },
+    {
+      "test_id": "T-BENCH-RUN",
+      "description": "benchmark 实跑 quick+release: 12 kernel × 3 规模 = 36 项 × 12 候选 = 432 raw candidates; release verify 通过; runtime load 上下文在案",
+      "result": "PASS",
+      "evidence_sha256": "545bd93be3d5f12cc5ebb1026a4e166c212a3100af0b5abae17355d9d77e599e"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-006/PLAN.md",
+      "sha256": "a38b79a9a918f1533249a21d6671c1477c90dbd385be81f7ec8bd5b1f6fbf954"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-006/logs/c01_commands.txt",
+      "sha256": "23afee0e5e1947e87cf18ebc0ed0c6f87de0e4e809bf58bc1c5d9ff91197eef7"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-006/logs/c02_unit_test.log",
+      "sha256": "1f278fc5ce0cb4ea0c93d08431f40ca0f91086c28030bf0ea50acae978839b43"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-006/logs/c03_bench_run.log",
+      "sha256": "5d0481e723e9615190d4eec8030cc25ca866af571faff89919961f68da79461c"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-006/logs/c04_load_context.txt",
+      "sha256": "79576b529d08123d641853119274b738f9411446ff8d2b2689da736df65f6162"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-006/bench_report_quick.json",
+      "sha256": "1251f59d9c0fc111ab7c5edcd515d830af3ce958f5e3b6cab69de09006c61d7c"
+    },
+    {
+      "path": "evidence/v6_1_rework/tasks/CPU-006/bench_report_release.json",
+      "sha256": "545bd93be3d5f12cc5ebb1026a4e166c212a3100af0b5abae17355d9d77e599e"
+    }
+  ],
+  "findings": [
+    "CPU-006 已知在案项如实显形: release 全量实跑中 hips-bulk-transform 与 wcs-psf-batch 两 kernel oracle 全 FAIL(432 候选中该两项 72 候选 verdict!=OK) → thresholds_passed=false → eligible_for_profile=false; 与 V8.1 STATE_RECONCILIATION CPU-006 行(benchmark-full 两 kernel 显形 FAIL, 容差 2e-4 收紧+verdict 修复后 f32/f64 结构性超差, owner 三选项裁决票在案)一致; 本任务不调整 kOracleRelTol=2e-4(冻结), report 如实记录并通过 verify 复读",
+    "本机实跑 available=16(affinity 16∩cgroup 无显式限制); quick winner calibration-pixel-transform medium: baseline workers=8 median=926325ns MAD=17379ns(离散度1.9%); heavy 多线程门禁生效(全部 heavy 项 workers>=8)",
+    "SubAgent 不执行 git add/commit/push: result_commit 与 COMMITS.csv/TASK_LEDGER.csv CPU-006 行由主 agent 提交后按链回填; commit 主题按 V7.1 规格: feat(benchmark): CPU-006 提供可审计硬件基准"
+  ],
+  "expected_commit_subject": "feat(benchmark): CPU-006 提供可审计硬件基准",
+  "created_utc": "2026-09-08T16:35:00Z"
+}

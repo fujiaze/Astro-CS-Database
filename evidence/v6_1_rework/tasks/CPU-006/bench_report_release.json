@@ -1,0 +1,654 @@
+{
+  "build": {
+    "astrocs_build": "0.0.0-alpha.0+gabcdef123456",
+    "benchmark_binary_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "source_commit": "abcdef1234567890abcdef1234567890abcdef12"
+  },
+  "created_utc": "2026-09-08T16:31:31Z",
+  "hardware": {
+    "affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "affinity_count": 16,
+    "brand": "Genuine Intel(R) CPU 0000 @ 1.70GHz",
+    "cache": [
+      {
+        "level": "1",
+        "size": "32K",
+        "type": "Data"
+      },
+      {
+        "level": "1",
+        "size": "32K",
+        "type": "Instruction"
+      },
+      {
+        "level": "2",
+        "size": "256K",
+        "type": "Unified"
+      },
+      {
+        "level": "3",
+        "size": "16384K",
+        "type": "Unified"
+      }
+    ],
+    "cgroup_cpu_limit": 0,
+    "compiler": {
+      "id": "gcc",
+      "version": "gcc-14.2.0"
+    },
+    "family": 6,
+    "feature_bits": 31,
+    "feature_names": [
+      "sse2",
+      "sse4_1",
+      "avx",
+      "avx2",
+      "fma"
+    ],
+    "logical_available": 16,
+    "logical_cpus_configured": 16,
+    "microcode": "0xf8",
+    "model": 158,
+    "numa_nodes": 1,
+    "os": {
+      "kernel": "6.12.107+deb13-amd64",
+      "machine": "x86_64",
+      "name": "linux"
+    },
+    "page_size": 4096,
+    "physical_cores_derivation": "derived: logical_available; smt disabled/unknown",
+    "physical_cores_estimate": 16,
+    "quota_signature": "94bb2896199a435265010b8f0d65ecad106f87de6810f0dd07816de6e333a4bf",
+    "ram_bytes": -412360704,
+    "smt": {
+      "enabled": false,
+      "known": true
+    },
+    "stepping": 12,
+    "vendor": "GenuineIntel",
+    "xcr0": 31
+  },
+  "input_samples_sha256": "71b5bc5ee5e8dd1b0d873a7f84a47bec055600282f24e8c9f2239f3ef83e3c6b",
+  "kernels": {
+    "calibration-pixel-transform": {
+      "sizes": {
+        "large": {
+          "block": 512,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 104833.71428571429,
+          "median_ns": 4576665.0,
+          "p05_ns": 4465359.0,
+          "p95_ns": 5045595.0,
+          "provider": "baseline",
+          "workers": 8
+        },
+        "medium": {
+          "block": 32768,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 21454.85714285714,
+          "median_ns": 664899.0,
+          "p05_ns": 601137.0,
+          "p95_ns": 683649.0,
+          "provider": "baseline",
+          "workers": 8
+        },
+        "small": {
+          "block": 8192,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 31100.714285714286,
+          "median_ns": 256788.0,
+          "p05_ns": 244568.0,
+          "p95_ns": 369437.0,
+          "provider": "baseline",
+          "workers": 8
+        }
+      },
+      "workload_class": "compute"
+    },
+    "drizzle-accumulate": {
+      "sizes": {
+        "large": {
+          "block": 8192,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 86498.0,
+          "median_ns": 6432469.0,
+          "p05_ns": 6179252.0,
+          "p95_ns": 6521582.0,
+          "provider": "baseline",
+          "workers": 8
+        },
+        "medium": {
+          "block": 32768,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 19870.714285714286,
+          "median_ns": 1499403.0,
+          "p05_ns": 1472986.0,
+          "p95_ns": 1562624.0,
+          "provider": "baseline",
+          "workers": 8
+        },
+        "small": {
+          "block": 512,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 16240.42857142857,
+          "median_ns": 450954.0,
+          "p05_ns": 408012.0,
+          "p95_ns": 471261.0,
+          "provider": "baseline",
+          "workers": 8
+        }
+      },
+      "workload_class": "memory"
+    },
+    "drizzle-normalize": {
+      "sizes": {
+        "large": {
+          "block": 512,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 13834.857142857143,
+          "median_ns": 2602490.0,
+          "p05_ns": 2558958.0,
+          "p95_ns": 2628421.0,
+          "provider": "baseline",
+          "workers": 16
+        },
+        "medium": {
+          "block": 512,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 14824.142857142857,
+          "median_ns": 532658.0,
+          "p05_ns": 503189.0,
+          "p95_ns": 545813.0,
+          "provider": "baseline",
+          "workers": 8
+        },
+        "small": {
+          "block": 8192,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 14839.42857142857,
+          "median_ns": 268980.0,
+          "p05_ns": 256960.0,
+          "p95_ns": 305940.0,
+          "provider": "baseline",
+          "workers": 8
+        }
+      },
+      "workload_class": "memory"
+    },
+    "drizzle-overlap": {
+      "sizes": {
+        "large": {
+          "block": 32768,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 32257.428571428572,
+          "median_ns": 2477637.0,
+          "p05_ns": 2414370.0,
+          "p95_ns": 2527915.0,
+          "provider": "baseline",
+          "workers": 8
+        },
+        "medium": {
+          "block": 8192,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 14627.857142857143,
+          "median_ns": 369013.0,
+          "p05_ns": 363776.0,
+          "p95_ns": 416501.0,
+          "provider": "baseline",
+          "workers": 8
+        },
+        "small": {
+          "block": 2048,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 11186.285714285714,
+          "median_ns": 237765.0,
+          "p05_ns": 216804.0,
+          "p95_ns": 265554.0,
+          "provider": "baseline",
+          "workers": 8
+        }
+      },
+      "workload_class": "compute"
+    },
+    "hips-bulk-transform": {
+      "sizes": {
+        "large": {
+          "block": 0,
+          "candidates_all": 12,
+          "candidates_ok": 0,
+          "dispersion_ok": false,
+          "fallback_reason": "no oracle-pass candidate",
+          "mad_ns": 0.0,
+          "median_ns": 0.0,
+          "p05_ns": 0.0,
+          "p95_ns": 0.0,
+          "provider": "baseline",
+          "workers": 0
+        },
+        "medium": {
+          "block": 0,
+          "candidates_all": 12,
+          "candidates_ok": 0,
+          "dispersion_ok": false,
+          "fallback_reason": "no oracle-pass candidate",
+          "mad_ns": 0.0,
+          "median_ns": 0.0,
+          "p05_ns": 0.0,
+          "p95_ns": 0.0,
+          "provider": "baseline",
+          "workers": 0
+        },
+        "small": {
+          "block": 0,
+          "candidates_all": 12,
+          "candidates_ok": 0,
+          "dispersion_ok": false,
+          "fallback_reason": "no oracle-pass candidate",
+          "mad_ns": 0.0,
+          "median_ns": 0.0,
+          "p05_ns": 0.0,
+          "p95_ns": 0.0,
+          "provider": "baseline",
+          "workers": 0
+        }
+      },
+      "workload_class": "compute"
+    },
+    "integration-accumulate": {
+      "sizes": {
+        "large": {
+          "block": 512,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 1100032.4285714286,
+          "median_ns": 9981661.0,
+          "p05_ns": 9937450.0,
+          "p95_ns": 13890288.0,
+          "provider": "baseline",
+          "workers": 8
+        },
+        "medium": {
+          "block": 32768,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 111437.0,
+          "median_ns": 2468226.0,
+          "p05_ns": 2369522.0,
+          "p95_ns": 2815153.0,
+          "provider": "baseline",
+          "workers": 16
+        },
+        "small": {
+          "block": 2048,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 13229.857142857143,
+          "median_ns": 492080.0,
+          "p05_ns": 461766.0,
+          "p95_ns": 525114.0,
+          "provider": "baseline",
+          "workers": 8
+        }
+      },
+      "workload_class": "memory"
+    },
+    "noise-snr-reductions": {
+      "sizes": {
+        "large": {
+          "block": 512,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 1723574.7142857143,
+          "median_ns": 15338239.0,
+          "p05_ns": 14219285.0,
+          "p95_ns": 20560898.0,
+          "provider": "baseline",
+          "workers": 16
+        },
+        "medium": {
+          "block": 2048,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 49772.42857142857,
+          "median_ns": 3931952.0,
+          "p05_ns": 3879988.0,
+          "p95_ns": 4077455.0,
+          "provider": "baseline",
+          "workers": 16
+        },
+        "small": {
+          "block": 32768,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 23990.285714285714,
+          "median_ns": 1946195.0,
+          "p05_ns": 1938164.0,
+          "p95_ns": 2000511.0,
+          "provider": "baseline",
+          "workers": 8
+        }
+      },
+      "workload_class": "memory"
+    },
+    "rejection-statistics": {
+      "sizes": {
+        "large": {
+          "block": 512,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 240804.2857142857,
+          "median_ns": 15610545.0,
+          "p05_ns": 15327031.0,
+          "p95_ns": 16241947.0,
+          "provider": "baseline",
+          "workers": 16
+        },
+        "medium": {
+          "block": 8192,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 33911.57142857143,
+          "median_ns": 4099311.0,
+          "p05_ns": 4073900.0,
+          "p95_ns": 4193121.0,
+          "provider": "baseline",
+          "workers": 16
+        },
+        "small": {
+          "block": 32768,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 319970.5714285714,
+          "median_ns": 1993106.0,
+          "p05_ns": 1461205.0,
+          "p95_ns": 2367680.0,
+          "provider": "baseline",
+          "workers": 16
+        }
+      },
+      "workload_class": "memory"
+    },
+    "upm-residual": {
+      "sizes": {
+        "large": {
+          "block": 2048,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 80372.28571428571,
+          "median_ns": 10561617.0,
+          "p05_ns": 10384676.0,
+          "p95_ns": 10676921.0,
+          "provider": "baseline",
+          "workers": 8
+        },
+        "medium": {
+          "block": 32768,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 47735.42857142857,
+          "median_ns": 2376997.0,
+          "p05_ns": 2289057.0,
+          "p95_ns": 2458386.0,
+          "provider": "baseline",
+          "workers": 8
+        },
+        "small": {
+          "block": 32768,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 56676.42857142857,
+          "median_ns": 359192.0,
+          "p05_ns": 330210.0,
+          "p95_ns": 591360.0,
+          "provider": "baseline",
+          "workers": 8
+        }
+      },
+      "workload_class": "compute"
+    },
+    "upm-spmv": {
+      "sizes": {
+        "large": {
+          "block": 512,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 1541704.857142857,
+          "median_ns": 33265464.0,
+          "p05_ns": 32954937.0,
+          "p95_ns": 40134797.0,
+          "provider": "baseline",
+          "workers": 16
+        },
+        "medium": {
+          "block": 2048,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 746404.2857142857,
+          "median_ns": 9523996.0,
+          "p05_ns": 9188457.0,
+          "p95_ns": 12155280.0,
+          "provider": "baseline",
+          "workers": 16
+        },
+        "small": {
+          "block": 32768,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 30845.714285714286,
+          "median_ns": 1914607.0,
+          "p05_ns": 1859985.0,
+          "p95_ns": 1953880.0,
+          "provider": "baseline",
+          "workers": 8
+        }
+      },
+      "workload_class": "memory"
+    },
+    "upm-weight-update": {
+      "sizes": {
+        "large": {
+          "block": 2048,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 43536.42857142857,
+          "median_ns": 7506905.0,
+          "p05_ns": 7343053.0,
+          "p95_ns": 7521430.0,
+          "provider": "baseline",
+          "workers": 8
+        },
+        "medium": {
+          "block": 512,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 53032.28571428572,
+          "median_ns": 1763099.0,
+          "p05_ns": 1709897.0,
+          "p95_ns": 1911311.0,
+          "provider": "baseline",
+          "workers": 16
+        },
+        "small": {
+          "block": 512,
+          "candidates_all": 12,
+          "candidates_ok": 12,
+          "dispersion_ok": true,
+          "fallback_reason": null,
+          "mad_ns": 13017.285714285714,
+          "median_ns": 275732.0,
+          "p05_ns": 270816.0,
+          "p95_ns": 316236.0,
+          "provider": "baseline",
+          "workers": 8
+        }
+      },
+      "workload_class": "compute"
+    },
+    "wcs-psf-batch": {
+      "sizes": {
+        "large": {
+          "block": 0,
+          "candidates_all": 12,
+          "candidates_ok": 0,
+          "dispersion_ok": false,
+          "fallback_reason": "no oracle-pass candidate",
+          "mad_ns": 0.0,
+          "median_ns": 0.0,
+          "p05_ns": 0.0,
+          "p95_ns": 0.0,
+          "provider": "baseline",
+          "workers": 0
+        },
+        "medium": {
+          "block": 0,
+          "candidates_all": 12,
+          "candidates_ok": 0,
+          "dispersion_ok": false,
+          "fallback_reason": "no oracle-pass candidate",
+          "mad_ns": 0.0,
+          "median_ns": 0.0,
+          "p05_ns": 0.0,
+          "p95_ns": 0.0,
+          "provider": "baseline",
+          "workers": 0
+        },
+        "small": {
+          "block": 0,
+          "candidates_all": 12,
+          "candidates_ok": 0,
+          "dispersion_ok": false,
+          "fallback_reason": "no oracle-pass candidate",
+          "mad_ns": 0.0,
+          "median_ns": 0.0,
+          "p05_ns": 0.0,
+          "p95_ns": 0.0,
+          "provider": "baseline",
+          "workers": 0
+        }
+      },
+      "workload_class": "compute"
+    }
+  },
+  "measurement": {
+    "clock": "steady_clock",
+    "outlier_policy": "no-point-removal: median/MAD robust over 7 samples; p05/p95 recorded for audit; winner with MAD/median > 0.35 flagged dispersion and cannot pass thresholds",
+    "outlier_policy_frozen": true,
+    "samples": 7,
+    "selection_rules": {
+      "avx512_min_gain_rel": 0.03,
+      "heavy_min_workers": 2,
+      "oracle_gate": "only oracle-pass candidates can win",
+      "worker_min_gain_rel": 0.03
+    },
+    "warmup": 3
+  },
+  "memory_bandwidth": {
+    "copy": 23.331047123185567,
+    "read": 3.0725160866864356,
+    "triad": 13.028756031394314,
+    "write": 16.446896530089678
+  },
+  "report_id": "sha256:71b5bc5ee5e8dd1b0d873a7f84a47bec055600282f24e8c9f2239f3ef83e3c6b",
+  "schema": "astrocs.benchmark-report/v1",
+  "suite": "release",
+  "suite_mode": "full",
+  "timeout": {
+    "budget_ns": 0,
+    "elapsed_ns": 72341765471,
+    "reached": false
+  },
+  "verdict": {
+    "all_oracle_passed": false,
+    "eligible_for_profile": false,
+    "production_profile_touched": false,
+    "thresholds_passed": false,
+    "timeout_reached": false
+  }
+}
