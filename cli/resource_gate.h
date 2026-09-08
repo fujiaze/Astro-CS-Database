@@ -48,6 +48,11 @@ enum class GateDiag {
     MemoryGrowth,            // 内存持续增长: rss_slope 超阈值(RESOURCE 门类别)
     ProgressStall,           // 无进度(progress 停滞)
     IoWaitHigh,              // 异常 IO 等待(iowait 占比超阈值)
+    // MON-001(V7 04_CPU_RESOURCE_TASKS) 逐样本判定追加(末尾追加, 不重排既有值;
+    // first10s_diag 以 static_cast<int> 持久化, 追加安全):
+    MonitoringMissing,       // 监控缺失/无效(无资源证据) → 直接 FAIL(V7 验收)
+    UtilizationP75Low,       // 70% 样本 >= 0.75 不满足(逐样本利用率门)
+    QueueStarvedCpu,         // 队列有工作时连续 >=10s 利用率 <0.50
 };
 
 inline const char* gate_diag_name(GateDiag d) {
@@ -67,6 +72,9 @@ inline const char* gate_diag_name(GateDiag d) {
     case GateDiag::MemoryGrowth:            return "memory_growth";
     case GateDiag::ProgressStall:           return "progress_stall";
     case GateDiag::IoWaitHigh:              return "io_wait_high";
+    case GateDiag::MonitoringMissing:       return "monitoring_missing";
+    case GateDiag::UtilizationP75Low:       return "utilization_p75_low";
+    case GateDiag::QueueStarvedCpu:         return "queue_starved_cpu";
     default:                                return "unknown";
     }
 }
@@ -77,6 +85,18 @@ inline const char* gate_diag_name(GateDiag d) {
 inline constexpr double kWorkerP50Min = 2.0;
 inline constexpr double kCpuP50MinPercent = 90.0;
 inline constexpr double kCpuMeanMinPercent = 85.0;
+
+// ---- MON-001(V7 04_CPU_RESOURCE_TASKS) 哨兵与阈值纪律 ----
+// 未采样哨兵: -1 表示"未采样", 不是合法测量值(批次 P p2007 先例: 哨兵是采集
+// 可用性问题, 不是 CPU 低利用率证据; 禁止把 -1 当合法值参与统计判定)。
+inline constexpr double kMon001NotSampled = -1.0;
+inline bool mon001_sampled(double v) { return v > kMon001NotSampled; }
+// 逐样本利用率阈值(与 kCpuP50MinPercent 同一 normalized 口径: 100%=全部
+// effective available workers 用满, 见 utilization_value()).
+inline constexpr double kMon001UtilSampleMinPercent = 75.0;   // 单样本 >=0.75
+inline constexpr double kMon001UtilSampleFrac = 0.70;         // 达标样本占比 >=70%
+inline constexpr double kMon001QueueWindowSeconds = 10.0;     // 队列有工作连续低利用窗口
+inline constexpr double kMon001QueueUtilMinPercent = 50.0;    // 窗口内利用率下限 0.50
 
 struct GateConfig {
     ResKind kind = ResKind::Unknown;
@@ -117,6 +137,13 @@ struct GateConfig {
     double memory_growth_limit_mb_per_s = 32.0;  // 调用方可覆盖(泄漏敏感场景调低)
     bool progress_stalled = false;    // 无进度(采样/节点注入)
     double io_wait_high_percent = 50.0;  // 异常 IO 等待阈值(iowait 占比)
+    // MON-001(V7 04_CPU_RESOURCE_TASKS) 逐样本观测输入(供 evaluate_mon001;
+    // 哨兵纪律: -1=未采样非合法值, 采样缺失跳过对应判定, 全缺失=MonitoringMissing):
+    double util_samples_measured = kMon001NotSampled;  // 有效样本数(-1=未提供)
+    double util_samples_pass_frac = kMon001NotSampled; // U>=0.75 样本占比(0..1; -1=未提供)
+    double queue_low_run_seconds = kMon001NotSampled;  // 队列有工作且 U<0.50 的最长连续时长; -1=未观测
+    double heavy_wall_seconds_total = kMon001NotSampled; // 同类 heavy span 累计 wall(防 <5s 切片规避); -1=未汇总
+    bool monitor_present = false;     // 监控是否实际运行(heavy run 必须为 true, 否则 FAIL)
 };
 
 // 核心公式: compute 且 wall>=5s 时, avg_equivalent_cores 下限 = 0.80 * min(selected_workers, available_cpus)。
@@ -210,6 +237,46 @@ inline bool fast_fail_first10s(const GateConfig& g) {
     return g.first10s_low_cpu && g.first10s_non_io && g.first10s_mem_not_saturated;
 }
 
+// ---- MON-001(V7 04_CPU_RESOURCE_TASKS) 资源阈值判定 ----
+// 前提: 进程级 process_cpu_core_seconds 无硬件线程去重 —— cpu_pct 口径 100%=全部
+// effective available workers 用满(同 kCpuP50MinPercent 口径), utilization_value
+// 是单点近似 U(完整聚合判定由 evaluate_mon001 汇总逐样本占比完成)。
+// 分母 = effective available workers = min(selected_workers, available_cpus)
+// (规格: 不得以硬编码核心数或配置 worker 数单独作分母)。
+inline double utilization_value(const GateConfig& g, double cpu_pct) {
+    const uint32_t m = std::min(g.selected_workers, g.available_cpus);
+    return m >= 1 ? cpu_pct / (100.0 * static_cast<double>(m)) : 0.0;
+}
+
+// 监控有效性: heavy run 必须有真实监控证据。monitor_present=false 或采样侧
+// 未提供任何有效样本 → FAIL(规格: 监控缺失直接 FAIL)。
+inline bool monitoring_effective(const GateConfig& g) {
+    return g.monitor_present && mon001_sampled(g.util_samples_measured) &&
+           g.util_samples_measured > 0.0;
+}
+
+// 逐样本聚合判定, 返回 GateDiag。与 evaluate_gate 互补(evaluate_gate 的
+// 统计判据 wall>=5s 豁免不动; 本函数收口 V7 MON-001 验收的剩余三条):
+//   1) 监控缺失/无效 → MonitoringMissing FAIL(不可豁免);
+//   2) 平均 U>=0.80 已由 evaluate_gate LowAvgCores(avg_equivalent_cores)承担;
+//   3) >=70% 样本 U>=0.75 → UtilizationP75Low;
+//   4) 队列有工作时连续 >=10s U<0.50 → QueueStarvedCpu。
+// 哨兵纪律(批次 P p2007 先例): 字段为 -1(未采样/未观测)时跳过对应判定;
+// 未采样不是低利用率证据, 但监控缺失本身必须 FAIL。
+// <5s 切片规避: 规格要求按单段和累计 wall 汇总 —— heavy_wall_seconds_total
+// 由调用方提供累计值(哨兵=未汇总跳过), 供诊断呈现; 判定仍逐样本收口,
+// 与切片数无关。
+inline GateDiag evaluate_mon001(const GateConfig& g) {
+    if (!monitoring_effective(g)) return GateDiag::MonitoringMissing;
+    if (mon001_sampled(g.util_samples_pass_frac) &&
+        g.util_samples_pass_frac < kMon001UtilSampleFrac)
+        return GateDiag::UtilizationP75Low;
+    if (mon001_sampled(g.queue_low_run_seconds) &&
+        g.queue_low_run_seconds >= kMon001QueueWindowSeconds)
+        return GateDiag::QueueStarvedCpu;
+    return GateDiag::Ok;
+}
+
 // 诊断字符串: 失败判定给出可操作说明。
 // 诊断字符串: 失败判定给出可操作说明, 含各指标实测值 vs 阈值(MON-002 diagnosis)。
 inline std::string diag_message(GateDiag d, const GateConfig& g) {
@@ -263,6 +330,23 @@ inline std::string diag_message(GateDiag d, const GateConfig& g) {
     case GateDiag::IoWaitHigh:
         return "资源门禁(MON-002): 异常 IO 等待 iowait " + std::to_string(g.iowait_percent) +
                "% > " + std::to_string(g.io_wait_high_percent) + "%";
+    case GateDiag::MonitoringMissing:
+        return "资源门禁(MON-001): 监控缺失或无有效采样样本 — heavy run 无资源证据即 FAIL";
+    case GateDiag::UtilizationP75Low:
+        return "资源门禁(MON-001): U>=0.75 样本占比 " +
+               (mon001_sampled(g.util_samples_pass_frac)
+                    ? std::to_string(g.util_samples_pass_frac)
+                    : std::string("unsampled")) +
+               " < " + std::to_string(kMon001UtilSampleFrac) +
+               " (有效样本 " + (mon001_sampled(g.util_samples_measured)
+                                   ? std::to_string(g.util_samples_measured)
+                                   : std::string("unsampled")) + ")";
+    case GateDiag::QueueStarvedCpu:
+        return "资源门禁(MON-001): 队列有工作时连续 " +
+               (mon001_sampled(g.queue_low_run_seconds)
+                    ? std::to_string(g.queue_low_run_seconds)
+                    : std::string("unsampled")) +
+               "s 利用率<0.50 (窗口阈值 " + std::to_string(kMon001QueueWindowSeconds) + "s)";
     default: return "ok";
     }
 }

@@ -779,6 +779,43 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     astrocs::GateDiag d = astrocs::evaluate_gate(g);
     if (d == astrocs::GateDiag::Ok && f10 == astrocs::GateDiag::FastFailFirst10s)
         d = astrocs::GateDiag::FastFailFirst10s;
+    // MON-001(V7): 逐样本聚合判定与 evaluate_gate 互补 —— 监控缺失直接 FAIL;
+    // >=70% 样本 U>=0.75; 队列有工作时连续>=10s U<0.50。哨兵纪律: 统计不可得
+    // (如 mini workload 采样不足)记 -1 跳过对应判定(p2007 先例), 不构成 FAIL
+    // 证据; 监控在跑但 active 段零样本仍是 MonitoringMissing(无资源证据)。
+    // mini 任务 0.80*min(selected,available) 门的结构失配(abs-floor)为负责人
+    // 裁决项, 此处不自行放宽。
+    if (d == astrocs::GateDiag::Ok) {
+        const auto mon_recs = recorder.records_stage(astrocs::ResStage::Active);
+        g.monitor_present = true;   // ProcessMonitor 采样线程已实际运行并落盘三产物
+        if (mon_recs.empty()) {
+            g.util_samples_measured = 0.0;
+        } else {
+            g.util_samples_measured = static_cast<double>(mon_recs.size());
+            if (mon_recs.size() >= 2) {
+                double pass = 0.0;
+                double q_low_run = 0.0, q_low_best = 0.0;
+                for (const auto& r : mon_recs) {
+                    // 逐样本利用率 U=ΔCPU/(interval×min(selected,available)) —
+                    // 100%=全部分配核用满; 与 utilization_value 同口径。
+                    if (astrocs::utilization_value(g, r.cpu_pct) >= 0.75) ++pass;
+                    // 队列有工作(runnable>0)且利用率<0.50 的连续 run 长度。
+                    if (r.runnable_workers > 0 &&
+                        astrocs::utilization_value(g, r.cpu_pct) < 0.50) {
+                        q_low_run += 0.5;  // 采样周期 0.5s(与 sampler interval 一致)
+                        if (q_low_run > q_low_best) q_low_best = q_low_run;
+                    } else {
+                        q_low_run = 0.0;
+                    }
+                }
+                g.util_samples_pass_frac = pass / static_cast<double>(mon_recs.size());
+                g.queue_low_run_seconds = q_low_best;
+            }
+            // 单样本: 无法算占比/连续窗口 → 哨兵 -1(未观测, 跳过对应判定)。
+        }
+        const astrocs::GateDiag m1 = astrocs::evaluate_mon001(g);
+        if (m1 != astrocs::GateDiag::Ok) d = m1;
+    }
     ev.emit("resource", "info", phase, "resource gate", {
         {"verdict", astrocs::gate_diag_name(d)},
         {"wall_seconds", s.wall_seconds},
@@ -790,6 +827,10 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"cpu_p50_percent", g.cpu_p50_percent},
         {"cpu_mean_percent", g.cpu_mean_percent},
         {"first_10s_gate", astrocs::gate_diag_name(f10)},
+        // MON-001: 逐样本门观测证据(-1=未采样哨兵, 非合法值)。
+        {"mon001_util_samples_measured", g.util_samples_measured},
+        {"mon001_util_samples_pass_frac", g.util_samples_pass_frac},
+        {"mon001_queue_low_run_seconds", g.queue_low_run_seconds},
         // CLI-004: §4 resource 冻结扩展字段(硬闸要求)。
         {"cpu_cores_used", s.avg_equivalent_cores},
         {"rss_bytes", s.peak_rss_bytes},

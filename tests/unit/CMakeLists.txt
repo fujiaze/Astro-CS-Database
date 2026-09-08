@@ -299,6 +299,15 @@ target_include_directories(mon002_gate_test PRIVATE
 target_link_libraries(mon002_gate_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME mon002_gate COMMAND mon002_gate_test)
 
+# MON-001 (G3, V7.1): 资源阈值判定(监控缺失FAIL/70%样本U>=0.75/队列10s U<0.50/
+# utilization_value 无硬编码分母/哨兵自洽)
+add_executable(mon001_gate_test mon001_gate_test.cpp)
+target_include_directories(mon001_gate_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+target_link_libraries(mon001_gate_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME mon001_gate COMMAND mon001_gate_test)
+
 # P1-001 (G4): Phase1 8 类模块注册(端口/执行类/Runtime 委托)
 add_executable(p1001_modules_test p1001_modules_test.cpp)
 target_include_directories(p1001_modules_test PRIVATE
