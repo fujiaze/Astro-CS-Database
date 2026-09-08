@@ -15,23 +15,17 @@
 - 科学定义 = 算法 = 接口 = 代码 = 测试；科学公式与默认容差不得改动。
 - 重计算禁止单线程并自动资源监控；线程/ISA/block 由逐内核 benchmark 选择，禁止硬编码。
 - 所有外部命令带 timeout 并保存日志；修改后必须验证才能报告完成。
-
-## 治理要点（GOV-001 恢复块；完整规则以冻结约束文件为准）
-
-只在 main 原子提交并立即 push，禁止分支及破坏性 Git。仅支持 amd64。
-节点分工：vm-bj Linux 负责静态、文档、合成小测和调度；Fatduck 在线时负责 Windows 编译、
-benchmark、真实数据和重计算，Fatduck 离线不中止 Linux 可执行任务。
-发布每个平台仅一个 astrocs CLI，Phase1/2/3 由 CLI 调用；未来 Windows GUI 只控制 CLI。
-ACR 暂不接入，生产仅纯 CPU 自适应 backend。
-重计算自动监控；低利用率或异常内存增长为失败。
-ISA、workers、block 由逐内核 benchmark 选择，禁止硬编码。
-未经最终外部审核不得宣称发布；全部通过后只能输出 `AWAITING_EXTERNAL_RELEASE_REVIEW`。
-Task 状态流转：NOT_STARTED -> IN_PROGRESS -> PASS | FAIL | BLOCKED | REVIEW_PENDING；
-waiver 与历史 PASS 不算 PASS；REVIEW_PENDING 表示审阅胶囊已异步提交，Agent 继续其他
-无依赖 Task，不设等待外部批准的停止点。
+- 确认工作后，将任务分配给subagent。尽可能并行
 
 ## 目录规范
 
 - `run/`：临时操作与临时文件
 - `工程控制/`：控制包解压文档
 - `reports/`：报告
+
+## Fatduck 节点 SSH 接入（self-hosted runner 机器）
+
+- Windows 11，`fujia@100.104.10.71`（Tailscale），专用密钥 `/home/dsh/.ssh/id_ed25519_fatduck`（仅可用 `-i` 路径引用；禁止读取/复制/打印密钥内容）。
+- 节点 sshd 的 DefaultShell 指向 bash 语义 shim（`bash -c` 直转），ssh exec 直接写 bash 语法；禁止把该节点的 shell 环境当作 cmd 语法来用：
+  `ssh -i /home/dsh/.ssh/id_ed25519_fatduck fujia@100.104.10.71 'ls /d/AstroCSRunner && git --version'`
+- 节点级运维（DefaultShell 调整、服务与 runner 修复等 ssh exec 覆盖不到的操作）走 `.github/workflows/fatduck-admin.yml` 的 `workflow_dispatch` 带外通道；`pwsh` 禁止用于开发环境默认 shell，仅节点运维通道可用。
