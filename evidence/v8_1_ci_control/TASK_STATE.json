@@ -1876,15 +1876,15 @@
   },
   "P2-UPM-DOC": {
    "owner": "SA-P2-U21",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "f506ef7f",
+   "evidence_path": "run/local/agent_p2_upm_doc/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W1",
    "kind": "module-doc",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "review_claim": "docs_complete",
+   "current_evidence": "五门复跑PASS:矩阵modules=30/errors=0/warns=4+pytest9passed+contract_graph contracts=80(74+6)+doc_index pass=true+selfcheck ALL PASS;冻结域零改动;ALG-UPM-001原位修订+ALG-P2-UPM-IMPL-001+DATA-P2-UPM/COR+API-P2-UPM-001+INDEX+6+三件套+registry两页+矩阵两行(SRC/执行测试显式MISSING)",
+   "note": "单位口径按SCI冻结ADU纠控制包笔误;upm.h注释漂移如实登记DISP-P2UPM-001..004"
   },
   "P2-UPM-TEST": {
    "owner": "SA-P2-U21",
