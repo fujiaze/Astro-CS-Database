@@ -147,6 +147,13 @@ int sdet_find_connected_components(const float* binary_map, int w, int h,
     }
 
     *out_components = (ConnectedComponent*)malloc((size_t)*out_count * sizeof(ConnectedComponent));
+    if (!*out_components) {
+        // malloc 失败不得把 NULL 当作合法组件数组继续 placement new (写入 NULL -> UB)
+        sdet_log(SDET_LOG_ERROR, "DETECTOR", "Connected components: failed to allocate %d components", *out_count);
+        *out_components = nullptr;
+        *out_count = 0;
+        return -1;  // 调用方必须检查返回值并走错误路径
+    }
     for (int i = 0; i < *out_count; i++) {
         new (*out_components + i) ConnectedComponent(std::move(components[i]));
     }
