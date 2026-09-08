@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+#include "memory_report.h"   // MON-002 RSS/allocation report 阈值常量同源
+
 namespace astrocs {
 
 // 资源类别(MON-002 StageKind 同义; MON-003 用于门禁分类与公式选择)。
@@ -53,6 +55,10 @@ enum class GateDiag {
     MonitoringMissing,       // 监控缺失/无效(无资源证据) → 直接 FAIL(V7 验收)
     UtilizationP75Low,       // 70% 样本 >= 0.75 不满足(逐样本利用率门)
     QueueStarvedCpu,         // 队列有工作时连续 >=10s 利用率 <0.50
+    // MON-002(V7 04_CPU_RESOURCE_TASKS) RSS/allocation report 判定追加
+    // (末尾追加, 不重排既有值; 判定源 = cli/memory_report.h 报告面):
+    AllocGrowthUnbounded,    // RSS 曲线稳健斜率 >= 失败线(注入 leak 失败路径)
+    AllocReclaimMissing,     // run 结束回落不可解释(残留超容差且回落低于阈值)
 };
 
 inline const char* gate_diag_name(GateDiag d) {
@@ -75,6 +81,8 @@ inline const char* gate_diag_name(GateDiag d) {
     case GateDiag::MonitoringMissing:       return "monitoring_missing";
     case GateDiag::UtilizationP75Low:       return "utilization_p75_low";
     case GateDiag::QueueStarvedCpu:         return "queue_starved_cpu";
+    case GateDiag::AllocGrowthUnbounded:    return "alloc_growth_unbounded";
+    case GateDiag::AllocReclaimMissing:     return "alloc_reclaim_missing";
     default:                                return "unknown";
     }
 }
@@ -144,6 +152,13 @@ struct GateConfig {
     double queue_low_run_seconds = kMon001NotSampled;  // 队列有工作且 U<0.50 的最长连续时长; -1=未观测
     double heavy_wall_seconds_total = kMon001NotSampled; // 同类 heavy span 累计 wall(防 <5s 切片规避); -1=未汇总
     bool monitor_present = false;     // 监控是否实际运行(heavy run 必须为 true, 否则 FAIL)
+    // MON-002(V7 04_CPU_RESOURCE_TASKS) RSS/allocation report 输入(cli/memory_report.h
+    // 报告面填充; sampled=false/曲线零样本时保持 -1 哨兵, 跳过对应判定——
+    // 采样失败不是内存低占用证据, 但 alloc 面存在且零有效样本即 FAIL, 同 MON-001 纪律):
+    bool alloc_report_present = false;      // allocation report 是否实际生成
+    double alloc_samples_measured = kMon001NotSampled; // 有效样本数(-1=未提供; 0=面在零样本→FAIL)
+    double alloc_growth_mb_per_s = kMon001NotSampled;  // RSS 稳健斜率(MB/s); -1=未采样
+    AllocReclaimVerdict alloc_reclaim_verdict = AllocReclaimVerdict::InsufficientSamples;
 };
 
 // 核心公式: compute 且 wall>=5s 时, avg_equivalent_cores 下限 = 0.80 * min(selected_workers, available_cpus)。
@@ -277,7 +292,29 @@ inline GateDiag evaluate_mon001(const GateConfig& g) {
     return GateDiag::Ok;
 }
 
-// 诊断字符串: 失败判定给出可操作说明。
+// ---- MON-002(V7 04_CPU_RESOURCE_TASKS) RSS/allocation report 判定 ----
+// 判定源 = cli/memory_report.h 报告面(整条曲线稳健斜率+结束回落验证;
+// 禁止只看峰值)。与 evaluate_mon001 互补(内存面单独收口):
+//   1) report 面未接入(alloc_report_present=false) → Ok(向后兼容, 面外任务不阻塞);
+//   2) 面在但零有效样本(伪造 monitor/全哨兵) → AllocReclaimMissing FAIL
+//      (无内存证据, 同 MON-001 监控缺失纪律);
+//   3) RSS 稳健斜率 >= kAllocGrowthUnboundedMbPerS → AllocGrowthUnbounded
+//      (注入 leak 失败路径);
+//   4) 结束回落不可解释(UnexplainedResidual) → AllocReclaimMissing。
+// 哨兵纪律: alloc_growth_mb_per_s == -1(未采样, 如样本不足未算斜率)跳过增长判定;
+// alloc_samples_measured == -1(未提供)跳过零样本拒绝 —— 显式呈现而非静默。
+inline GateDiag evaluate_mon002(const GateConfig& g) {
+    if (!g.alloc_report_present) return GateDiag::Ok;
+    if (mon001_sampled(g.alloc_samples_measured) && g.alloc_samples_measured <= 0.0)
+        return GateDiag::AllocReclaimMissing;   // 面在零有效样本 = 无内存证据
+    if (g.alloc_growth_mb_per_s != kMon001NotSampled &&
+        g.alloc_growth_mb_per_s >= kAllocGrowthUnboundedMbPerS)
+        return GateDiag::AllocGrowthUnbounded;
+    if (g.alloc_reclaim_verdict == AllocReclaimVerdict::UnexplainedResidual)
+        return GateDiag::AllocReclaimMissing;
+    return GateDiag::Ok;
+}
+
 // 诊断字符串: 失败判定给出可操作说明, 含各指标实测值 vs 阈值(MON-002 diagnosis)。
 inline std::string diag_message(GateDiag d, const GateConfig& g) {
     switch (d) {
@@ -347,6 +384,15 @@ inline std::string diag_message(GateDiag d, const GateConfig& g) {
                     ? std::to_string(g.queue_low_run_seconds)
                     : std::string("unsampled")) +
                "s 利用率<0.50 (窗口阈值 " + std::to_string(kMon001QueueWindowSeconds) + "s)";
+    case GateDiag::AllocGrowthUnbounded:
+        return "RSS/allocation report(MON-002): RSS 曲线稳健斜率 " +
+               (mon001_sampled(g.alloc_growth_mb_per_s)
+                    ? std::to_string(g.alloc_growth_mb_per_s)
+                    : std::string("unsampled")) +
+               " MB/s >= 失败线 " + std::to_string(kAllocGrowthUnboundedMbPerS) +
+               " MB/s(整条曲线判定, 非峰值)";
+    case GateDiag::AllocReclaimMissing:
+        return "RSS/allocation report(MON-002): run 结束回落不可解释 — retained 残留超容差且回落比例低于阈值(注入 leak 类失败)";
     default: return "ok";
     }
 }

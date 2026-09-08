@@ -754,3 +754,28 @@ add_test(NAME gaia_integration
   COMMAND gaia_integration_test ${GAIA_CAT_CLEAN})
 set_tests_properties(gaia_integration PROPERTIES
   ENVIRONMENT "ASTROCS_GAIA_DLL_PATH=$<TARGET_FILE:astrocs_catalog_gaia>;ASTROCS_GAIA_INT_TRACE_OUT=${GAIA_INT_TRACE_OUT}")
+
+# ----------------------------------------------------------------------------
+# P1-DRZ-IMPL (SA-P1D-I): drizzle 模块适配器测试 — astrocs_p1_drizzle DLL
+#   直接路径 (#include drizzle_adapter_impl.cpp → legacy hp_drizzle_run /
+#   hp_drizzle_reverse_run 统计面, 链 astrocs_drizzle STATIC, 与 p1drz_tests
+#   同手法) vs DLL C ABI 适配器: 入口契约/导出面净化(legacy 六符号不得
+#   dlsym; nm -D 唯一导出另由构建检查实证)/describe/validate 负例/
+#   plan 真实 work_units/drizzle+reverse direct-vs-plugin bitwise 统计与
+#   平面 memcmp/executor 租借计数/入口取消。DLL 经测试环境变量加载
+#   (生成器表达式, 兼容含空格构建路径)。
+# ----------------------------------------------------------------------------
+add_executable(drizzle_adapter_test drizzle_adapter_test.cpp)
+target_include_directories(drizzle_adapter_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/healpix_db/healpix_drizzle
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/drizzle/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_compile_definitions(drizzle_adapter_test PRIVATE
+  AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
+target_link_libraries(drizzle_adapter_test PRIVATE
+  astrocs_drizzle ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
+add_dependencies(drizzle_adapter_test astrocs_p1_drizzle)
+add_test(NAME drizzle_adapter COMMAND drizzle_adapter_test)
+set_tests_properties(drizzle_adapter PROPERTIES
+  ENVIRONMENT "ASTROCS_DRIZZLE_DLL_PATH=$<TARGET_FILE:astrocs_p1_drizzle>")
