@@ -672,7 +672,8 @@ bool edge_walking_center(const float* fimg, int width, int height,
 // 饱和星检测：阈值 70% 动态范围 + 连通域 + edge-walking 中心
 // out_sat_threshold 输出饱和阈值，供后续 PSF mask 拟合使用
 // out_img_median 输出全局中位数背景，供饱和星 mag 计算使用
-void sdet_detect_saturated_stars(const float* fimg, int width, int height,
+// 返回 false: 连通域分析内部 malloc 失败 (无法区分"无饱和星"与分配失败, 不得静默吞掉)
+bool sdet_detect_saturated_stars(const float* fimg, int width, int height,
                                   std::vector<SaturatedCandidate>& sat_stars,
                                   float& out_sat_threshold,
                                   float& out_img_median) {
@@ -716,7 +717,11 @@ void sdet_detect_saturated_stars(const float* fimg, int width, int height,
     // 连通域分析
     ConnectedComponent* components = nullptr;
     int comp_count = 0;
-    sdet_find_connected_components(binary.data(), width, height, &components, &comp_count);
+    if (sdet_find_connected_components(binary.data(), width, height, &components, &comp_count) < 0) {
+        // 连通域数组 malloc 失败: 静默返回 0 个饱和星会伪造科学结果, 上报失败
+        sdet_log(SDET_LOG_ERROR, "SDET", "Saturated star detection: connected component allocation failed");
+        return false;
+    }
 
     sdet_log(SDET_LOG_INFO, "SDET", "Saturated star connected components: %d", comp_count);
 
@@ -772,6 +777,7 @@ void sdet_detect_saturated_stars(const float* fimg, int width, int height,
     auto t1 = std::chrono::high_resolution_clock::now();
     sdet_log(SDET_LOG_INFO, "SDET", "Saturated stars: %d (meanhigh filtered: %d, edge-walking failed: %d, %.1f ms)",
              (int)sat_stars.size(), meanhigh_filtered, ew_fail_count, std::chrono::duration<double, std::milli>(t1 - t0).count());
+    return true;
 }
 
 // 可选输出参数名解析
@@ -1026,7 +1032,11 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
 
     ConnectedComponent *components = nullptr;
     int comp_count = 0;
-    sdet_find_connected_components(binary.data(), width, height, &components, &comp_count);
+    if (sdet_find_connected_components(binary.data(), width, height, &components, &comp_count) < 0) {
+        // 连通域数组 malloc 失败: 不得把"0 颗星"伪造为成功结果
+        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect: connected component allocation failed");
+        return -1;
+    }
 
     struct Candidate { double cx, cy; int pixel_count; double brightness; };
     std::vector<Candidate> candidates;
@@ -1253,8 +1263,10 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
     double *x_coords = (double *)malloc(result_count * sizeof(double));
     double *y_coords = (double *)malloc(result_count * sizeof(double));
     if (!x_coords || !y_coords) {
+        // malloc 失败: 统一释放已分配数组并报错, 不得泄漏 (free(NULL) 安全)
         free(x_coords);
         free(y_coords);
+        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect: failed to allocate output arrays for %d stars", result_count);
         return -1;
     }
 
@@ -1308,6 +1320,12 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
     handle->internal.raw_detail = nullptr;
 
     float *detail_out = (float *)malloc(n * sizeof(float));
+    if (!detail_out) {
+        // malloc 失败: memset/memcpy 到 NULL 是 UB, 走统一错误路径
+        delete[] raw_detail;
+        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: failed to allocate detail map (%dx%d)", width, height);
+        return -1;
+    }
     if (raw_detail) {
         std::memcpy(detail_out, raw_detail, n * sizeof(float));
     } else {
@@ -1323,8 +1341,17 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
     }
 
     float *smap_out = (float *)malloc(n * sizeof(float));
-    std::memcpy(smap_out, binary.data(), n * sizeof(float));
     float *binary_out = (float *)malloc(n * sizeof(float));
+    if (!smap_out || !binary_out) {
+        // malloc 失败: memcpy 到 NULL 是 UB, 释放已分配的图再报错
+        // (raw_detail 已在上面 delete[], 此处无需再处理)
+        free(detail_out);
+        free(smap_out);
+        free(binary_out);
+        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: failed to allocate smap/binary map (%dx%d)", width, height);
+        return -1;
+    }
+    std::memcpy(smap_out, binary.data(), n * sizeof(float));
     std::memcpy(binary_out, binary.data(), n * sizeof(float));
 
     *out_detail = detail_out;
@@ -1334,7 +1361,17 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
     // 正常星检测：细节层>0二值化→连通域→Moffat4拟合
     ConnectedComponent *components = nullptr;
     int comp_count = 0;
-    sdet_find_connected_components(binary.data(), width, height, &components, &comp_count);
+    if (sdet_find_connected_components(binary.data(), width, height, &components, &comp_count) < 0) {
+        // 连通域数组 malloc 失败: 释放已分配的调试图并置空输出, 不得伪造"0 颗星"成功结果
+        free(detail_out);
+        free(smap_out);
+        free(binary_out);
+        *out_detail = nullptr;
+        *out_smap = nullptr;
+        *out_binary = nullptr;
+        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: connected component allocation failed");
+        return -1;
+    }
 
     struct Candidate { double cx, cy; int pixel_count; double brightness; };
     std::vector<Candidate> candidates;
@@ -1484,7 +1521,23 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
     std::vector<SaturatedCandidate> sat_candidates;
     float sat_threshold = 0.0f;
     float img_median = 0.0f;  // 接收全局中位数背景
-    sdet_detect_saturated_stars(fimg.data(), width, height, sat_candidates, sat_threshold, img_median);
+    if (!sdet_detect_saturated_stars(fimg.data(), width, height, sat_candidates, sat_threshold, img_median)) {
+        // 分配失败: 先释放已生成的调试输出缓冲再报错, 不得把"0 颗饱和星"伪造为成功结果
+        free(detail_out);
+        free(smap_out);
+        free(binary_out);
+        *out_detail = nullptr;
+        *out_smap = nullptr;
+        *out_binary = nullptr;
+        *out_x = nullptr;
+        *out_y = nullptr;
+        *out_count = 0;
+        if (out_mag) *out_mag = nullptr;
+        if (out_has_saturated) *out_has_saturated = nullptr;
+        if (out_extras) *out_extras = nullptr;
+        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: saturated star detection failed (allocation failure)");
+        return -1;
+    }
 
     // 饱和星 PSF mask 拟合
     int sat_fit_ok = 0, sat_fit_fail = 0;
@@ -1563,6 +1616,23 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
     double *y_coords = (double *)malloc(result_count * sizeof(double));
     float *mag_arr = out_mag ? (float *)malloc(result_count * sizeof(float)) : nullptr;
     int *has_sat_arr = out_has_saturated ? (int *)malloc(result_count * sizeof(int)) : nullptr;
+    if (!x_coords || !y_coords ||
+        (out_mag && !mag_arr) || (out_has_saturated && !has_sat_arr)) {
+        // malloc 失败: 写入 NULL 数组是 UB, 统一释放已分配资源并报错
+        free(x_coords);
+        free(y_coords);
+        free(mag_arr);
+        free(has_sat_arr);
+        free(detail_out);
+        free(smap_out);
+        free(binary_out);
+        *out_detail = nullptr;
+        *out_smap = nullptr;
+        *out_binary = nullptr;
+        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: failed to allocate result arrays for %d stars", result_count);
+        return -1;
+    }
+
     for (int i = 0; i < result_count; i++) {
         x_coords[i] = stars[i].cx;
         y_coords[i] = stars[i].cy;
@@ -1570,23 +1640,62 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
         if (has_sat_arr) has_sat_arr[i] = stars[i].has_saturated;
     }
 
+    // 可选输出参数: extras 数组与各列全部分配成功后才发布输出指针, 失败统一释放
+    if (out_extras && extra_count > 0) {
+        float **extras_arr = (float **)malloc(extra_count * sizeof(float *));
+        if (!extras_arr) {
+            free(x_coords);
+            free(y_coords);
+            free(mag_arr);
+            free(has_sat_arr);
+            free(detail_out);
+            free(smap_out);
+            free(binary_out);
+            *out_detail = nullptr;
+            *out_smap = nullptr;
+            *out_binary = nullptr;
+            sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: failed to allocate extras pointer array (%d extras)", extra_count);
+            return -1;
+        }
+        int rows_ok = 0;
+        for (int e = 0; e < extra_count; e++) {
+            extras_arr[e] = (float *)malloc(result_count * sizeof(float));
+            if (!extras_arr[e]) {
+                sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: failed to allocate extras row %d of %d", e, extra_count);
+                break;
+            }
+            ExtraField field = parse_extra_name(extra_names[e]);
+            for (int i = 0; i < result_count; i++) {
+                extras_arr[e][i] = get_extra_field(stars[i], field);
+            }
+            rows_ok++;
+        }
+        if (rows_ok < extra_count) {
+            // 部分列分配失败: 逐列释放已分配的行, 防止泄漏
+            for (int e = 0; e < rows_ok; e++) {
+                free(extras_arr[e]);
+            }
+            free(extras_arr);
+            free(x_coords);
+            free(y_coords);
+            free(mag_arr);
+            free(has_sat_arr);
+            free(detail_out);
+            free(smap_out);
+            free(binary_out);
+            *out_detail = nullptr;
+            *out_smap = nullptr;
+            *out_binary = nullptr;
+            return -1;
+        }
+        *out_extras = extras_arr;
+    }
+
     *out_x = x_coords;
     *out_y = y_coords;
     if (out_mag) *out_mag = mag_arr;
     if (out_has_saturated) *out_has_saturated = has_sat_arr;
     *out_count = result_count;
-
-    // 可选输出参数
-    if (out_extras && extra_count > 0) {
-        *out_extras = (float **)malloc(extra_count * sizeof(float *));
-        for (int e = 0; e < extra_count; e++) {
-            (*out_extras)[e] = (float *)malloc(result_count * sizeof(float));
-            ExtraField field = parse_extra_name(extra_names[e]);
-            for (int i = 0; i < result_count; i++) {
-                (*out_extras)[e][i] = get_extra_field(stars[i], field);
-            }
-        }
-    }
 
     sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_debug done: %d stars", result_count);
     return 0;
@@ -2289,6 +2398,50 @@ static int sdet_detect_impl(StarDetectorHandle handle,
         if (has_sat_arr) has_sat_arr[i] = stars[i].has_saturated;
     }
 
+    // 可选输出参数: extras 数组与各列全部分配成功后才发布输出指针, 失败统一释放
+    if (out_extras && extra_count > 0) {
+        float **extras_arr = (float **)malloc(extra_count * sizeof(float *));
+        if (!extras_arr) {
+            // malloc 失败: 不得把 NULL 指针数组当作 extras 列发布
+            free(x_coords);
+            free(y_coords);
+            free(flux_arr);
+            free(sat_arr);
+            free(mag_arr);
+            free(has_sat_arr);
+            sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_ex: failed to allocate extras pointer array (%d extras)", extra_count);
+            return -1;
+        }
+        int rows_ok = 0;
+        for (int e = 0; e < extra_count; e++) {
+            extras_arr[e] = (float *)malloc(result_count * sizeof(float));
+            if (!extras_arr[e]) {
+                sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_ex: failed to allocate extras row %d of %d", e, extra_count);
+                break;
+            }
+            ExtraField field = parse_extra_name(extra_names[e]);
+            for (int i = 0; i < result_count; i++) {
+                extras_arr[e][i] = get_extra_field(stars[i], field);
+            }
+            rows_ok++;
+        }
+        if (rows_ok < extra_count) {
+            // 部分列分配失败: 逐列释放已分配的行, 再释放全部结果数组
+            for (int e = 0; e < rows_ok; e++) {
+                free(extras_arr[e]);
+            }
+            free(extras_arr);
+            free(x_coords);
+            free(y_coords);
+            free(flux_arr);
+            free(sat_arr);
+            free(mag_arr);
+            free(has_sat_arr);
+            return -1;
+        }
+        *out_extras = extras_arr;
+    }
+
     *out_x = x_coords;
     *out_y = y_coords;
     *out_flux = flux_arr;
@@ -2296,18 +2449,6 @@ static int sdet_detect_impl(StarDetectorHandle handle,
     if (out_mag) *out_mag = mag_arr;
     if (out_has_saturated) *out_has_saturated = has_sat_arr;
     *out_count = result_count;
-
-    // 可选输出参数
-    if (out_extras && extra_count > 0) {
-        *out_extras = (float **)malloc(extra_count * sizeof(float *));
-        for (int e = 0; e < extra_count; e++) {
-            (*out_extras)[e] = (float *)malloc(result_count * sizeof(float));
-            ExtraField field = parse_extra_name(extra_names[e]);
-            for (int i = 0; i < result_count; i++) {
-                (*out_extras)[e][i] = get_extra_field(stars[i], field);
-            }
-        }
-    }
 
     auto t_final = std::chrono::high_resolution_clock::now();
     double elapsed = std::chrono::duration<double>(t_final - t0).count();

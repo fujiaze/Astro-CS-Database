@@ -107,6 +107,7 @@ static void fix_add(const char *id, const char *file, int tree, const char *proj
     FixStar *s = &g_stars[g_nstars];
     memset(s, 0, sizeof(*s));
     s->id = strdup(id);          /* 栈缓冲被 main 复用，必须拷贝 */
+    if (!s->id) { fprintf(stderr, "fixture gen: OOM strdup star id (%s)\n", id); exit(2); }
     s->file = file; s->tree = tree; s->proj = proj;
     s->center_ra = center_ra; s->center_dec = center_dec;
     s->leaf_x0 = leaf_x0; s->leaf_y0 = leaf_y0;
