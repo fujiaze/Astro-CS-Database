@@ -267,6 +267,14 @@ target_include_directories(cpu007_profile_store_test PRIVATE
 target_link_libraries(cpu007_profile_store_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME cpu007_profile_store COMMAND cpu007_profile_store_test)
 
+# CPU-008 (G3, V7.1): 自适应线程建议 (no fixed cores/cgroup-job 模拟/内存预算/负向样例)
+add_executable(cpu008_worker_advisor_test cpu008_worker_advisor_test.cpp)
+target_include_directories(cpu008_worker_advisor_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu008_worker_advisor_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME cpu008_worker_advisor COMMAND cpu008_worker_advisor_test)
+
 # CPU-004 (G3): 逐 kernel 自适应路由
 add_executable(cpu004_routing_test cpu004_routing_test.cpp)
 target_include_directories(cpu004_routing_test PRIVATE
@@ -388,6 +396,16 @@ add_test(NAME master_flat_median COMMAND master_flat_median_test)
 # 注意: p1cal_selfcheck_test 与 p1cal_tests 共享 p1cal_tests_core.cpp TU。
 # ----------------------------------------------------------------------------
 add_subdirectory(../../lib/calibration/tests/p1cal p1cal)
+
+# ----------------------------------------------------------------------------
+# P1-COS-TEST (TEST-P1-COS-001, 控制包 queue 34, lock-P1-COS) — lib/cosmetic
+# 可复用验证面。结构与注册详见 lib/cosmetic/tests/p1cos/CMakeLists.txt
+# (FIX-COS-A..F fixture / 独立 oracle / negative / 1-N worker / performance /
+# 故障注入自检); 合同锚 ALG-COS §9 TEST-COS-DESIGN-001 (P1-COS-DOC 冻结)。
+# 注意: p1cos_selfcheck_test 与 p1cos_tests 共享 p1cos_tests_core.cpp TU;
+# 被测面为 astrocs_calibration 的 ac_correct_frame(+_f64) 现状生产实现。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/cosmetic/tests/p1cos p1cos)
 
 add_executable(p1_stars_test p1_stars_test.cpp)
 target_include_directories(p1_stars_test PRIVATE
@@ -575,3 +593,86 @@ target_include_directories(p15_artifact_collect_test PRIVATE
 target_link_libraries(p15_artifact_collect_test PRIVATE astrocs_cli_runtime)
 add_test(NAME p15_artifact_collect COMMAND p15_artifact_collect_test)
 
+
+# ----------------------------------------------------------------------------
+# CAT-GAIA-TEST (TEST-GAIA-001): gaia_xpsd_client 验证测试面
+#   固定 seed fixture 生成器在构建期现场生成（无二进制 fixture 提交）；
+#   gaia_cat_test 七模式（unit/properties/negative/worker/dump/truncate/
+#   performance，#include gaia_client.c 启用 GAIA_ALLOC_TEST 钩子）；
+#   gaia_cat_polar_ref 为 GAIA_POLAR_PRUNE_DISABLED 差分参考；oracle
+#   (tests/oracle/gaia_oracle.py) 独立复算比对。KI-1/KI-2 见
+#   gaia_cat_test.c 文件头（测试内登记，不修复生产代码）。
+# ----------------------------------------------------------------------------
+set(GAIA_CAT_DATA ${CMAKE_CURRENT_BINARY_DIR}/gaia_cat_test_data)
+add_executable(gaia_xpsd_fixture_gen gaia_xpsd_fixture_gen.c)
+target_link_libraries(gaia_xpsd_fixture_gen PRIVATE z m)
+set(GAIA_CAT_CLEAN ${GAIA_CAT_DATA}/cat/clean)
+set(GAIA_CAT_TRUNC ${GAIA_CAT_DATA}/cat/truncdb)
+set(GAIA_CAT_FIXTURES
+  ${GAIA_CAT_DATA}/inc/gaia_cat_manifest.h
+  ${GAIA_CAT_CLEAN}/gaia_sp.xpsd
+  ${GAIA_CAT_CLEAN}/gaia_dr3.xpsd
+  ${GAIA_CAT_CLEAN}/manifest.ndjson
+  ${GAIA_CAT_TRUNC}/truncate.xpsd)
+add_custom_command(
+  OUTPUT ${GAIA_CAT_FIXTURES}
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${GAIA_CAT_DATA}/inc
+          ${GAIA_CAT_CLEAN} ${GAIA_CAT_TRUNC} ${GAIA_CAT_DATA}/work
+  COMMAND gaia_xpsd_fixture_gen ${GAIA_CAT_CLEAN}
+          --header ${GAIA_CAT_DATA}/inc/gaia_cat_manifest.h
+  COMMAND ${CMAKE_COMMAND} -E rm -f ${GAIA_CAT_CLEAN}/truncate.xpsd
+  COMMAND gaia_xpsd_fixture_gen ${GAIA_CAT_TRUNC}
+  COMMAND ${CMAKE_COMMAND} -E rm -f ${GAIA_CAT_TRUNC}/gaia_sp.xpsd
+          ${GAIA_CAT_TRUNC}/gaia_dr3.xpsd ${GAIA_CAT_TRUNC}/manifest.ndjson
+  DEPENDS gaia_xpsd_fixture_gen
+  VERBATIM)
+add_custom_target(gaia_cat_fixtures DEPENDS ${GAIA_CAT_FIXTURES})
+
+add_executable(gaia_cat_test gaia_cat_test.c)
+target_include_directories(gaia_cat_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/src
+  ${GAIA_CAT_DATA}/inc)
+add_executable(gaia_cat_polar_ref gaia_cat_test.c)
+target_compile_definitions(gaia_cat_polar_ref PRIVATE GAIA_POLAR_PRUNE_DISABLED)
+target_include_directories(gaia_cat_polar_ref PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/src
+  ${GAIA_CAT_DATA}/inc)
+find_package(OpenMP)
+foreach(gt gaia_cat_test gaia_cat_polar_ref)
+  if(OpenMP_C_FOUND)
+    target_link_libraries(${gt} PRIVATE OpenMP::OpenMP_C)
+  endif()
+  target_link_libraries(${gt} PRIVATE z m Threads::Threads)
+  add_dependencies(${gt} gaia_cat_fixtures)
+endforeach()
+
+add_test(NAME gaia_cat_unit
+  COMMAND gaia_cat_test unit ${GAIA_CAT_CLEAN})
+add_test(NAME gaia_cat_properties
+  COMMAND gaia_cat_test properties ${GAIA_CAT_CLEAN})
+add_test(NAME gaia_cat_worker
+  COMMAND gaia_cat_test worker ${GAIA_CAT_CLEAN})
+add_test(NAME gaia_cat_negative
+  COMMAND gaia_cat_test negative ${GAIA_CAT_CLEAN} ${GAIA_CAT_DATA}/work)
+add_test(NAME gaia_cat_truncate
+  COMMAND gaia_cat_test truncate ${GAIA_CAT_TRUNC})
+add_test(NAME gaia_cat_performance
+  COMMAND gaia_cat_test performance ${GAIA_CAT_TRUNC}
+          ${GAIA_CAT_DATA}/perf.json)
+add_test(NAME gaia_cat_dump
+  COMMAND gaia_cat_test dump ${GAIA_CAT_CLEAN} ${GAIA_CAT_DATA}/impl.json)
+add_test(NAME gaia_cat_polar_ref_dump
+  COMMAND gaia_cat_polar_ref dump ${GAIA_CAT_CLEAN}
+          ${GAIA_CAT_DATA}/polar_ref.json)
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+  add_test(NAME gaia_cat_oracle
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../oracle/gaia_oracle.py
+            ${GAIA_CAT_CLEAN} ${GAIA_CAT_DATA}/impl.json
+            ${GAIA_CAT_DATA}/polar_ref.json)
+  set_tests_properties(gaia_cat_oracle PROPERTIES
+    DEPENDS "gaia_cat_dump;gaia_cat_polar_ref_dump")
+else()
+  message(WARNING "gaia_cat_oracle skipped: Python3 interpreter not found")
+endif()
