@@ -777,19 +777,13 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     nlohmann::json artifacts = nlohmann::json::array();
     std::vector<std::pair<std::string, std::string>> mans;
     astrocs::cli::collect_node_manifests(&mans);
-    for (const auto& [nid, mtext] : mans) {
-        if (nid != "res") continue;
-        nlohmann::json m;
-        try { m = nlohmann::json::parse(mtext); } catch (...) { continue; }
-        for (const auto& a : m.value("artifacts", nlohmann::json::array())) {
-            const std::string ap = a.get<std::string>();
-            bool ok2 = false;
-            const std::string sha = file_sha256(ap, &ok2);
-            std::error_code ec;
-            const auto size = std::filesystem::file_size(std::filesystem::u8path(ap), ec);
-            artifacts.push_back({{"path", ap}, {"sha256", ok2 ? sha : ""},
-                                 {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
-        }
+    for (const std::string& ap : astrocs::cli::collect_node_artifact_paths(mans)) {
+        bool ok2 = false;
+        const std::string sha = file_sha256(ap, &ok2);
+        std::error_code ec;
+        const auto size = std::filesystem::file_size(std::filesystem::u8path(ap), ec);
+        artifacts.push_back({{"path", ap}, {"sha256", ok2 ? sha : ""},
+                             {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
     }
     const std::string out_dir = [&] {
         try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
