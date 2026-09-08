@@ -62,12 +62,18 @@ jobs:
           # 系统头 `#include <nlohmann/json.hpp>`（third_party/nlohmann 仅根图
           # CMake include 路径，tests 自编译 g++ 直调不含该路径），hosted 镜像
           # 无此包 → 7 tests 编译 assert 失败。
+          # V9-CI R9（sdet GSL）：追加 libgsl-dev——UT-BACKEND p1002/p2003/
+          # phase3_reproject 三个 setUpClass 自编译 sdet_api.cpp 系统头
+          # `#include <gsl/gsl_multifit_nlinear.h>`；libgsl-dev 此前只在
+          # linux-deep 的 deep coverage tools 步骤安装，linux-main 的
+          # UT-BACKEND 编译恒 fatal error → setUpClass ERROR ×3。
           timeout 240 sudo apt-get update -qq
           timeout 480 sudo DEBIAN_FRONTEND=noninteractive \
             apt-get install -y -qq --no-install-recommends \
-            python3-numpy python3-astropy nlohmann-json3-dev
+            python3-numpy python3-astropy nlohmann-json3-dev libgsl-dev
           python3 -c "import numpy, astropy; print('numpy ready:', numpy.__version__, '/ astropy ready:', astropy.__version__)"
           test -f /usr/include/nlohmann/json.hpp
+          test -f /usr/include/gsl/gsl_multifit_nlinear.h
       - name: Prepare linux-main run/temp fixtures
         if: steps.profile.outputs.profile == 'linux-main'
         shell: bash

@@ -26,6 +26,7 @@
 | DATA-FRAME-ID-001 | frame identity | uint64 | scalar | 无量纲 | 科学 payload 派生 | 重复拒绝 | shared | JSON/manifest |
 | DATA-P3-FITS-001 | 平面 FITS | f32/f64 | [W_out,H_out] | 面亮度(禁默认 Jy/beam) | TAN/ICRS | NaN+coverage | persisted | FITS |
 | DATA-GAIA-001 | Gaia XPSD 星表行(C ABI 输出) | f64/i32/u8[] | [out_count]; 光谱 [out_count×spec_n] | deg,mag,W·m⁻²·nm⁻¹,nm | ICRS J2000 | out_match_idx=−1 未匹配; out_count=0 空结果合法; DR3 下 BP/RP=0 sentinel; 无光谱 flux_min/mul=0 | caller free(顶层 malloc) | in-memory(不落盘, §8.3) |
+| DATA-COV-001 | Phase2 coverage 联合 MOC(P2CoverageResult) | u64/u64 | union_cells [K](P2MocCell: order+ipix); K=n_union_cells 标量; inputs [n_inputs] | 无量纲(order/ipix) | HEALPix NESTED 父单元(ipix<12·4^order, 去重升序) | K=0 空结果合法(rc=0); 两阶段协议第一次调用不写 union_cells/inputs | caller free(调用方分配, coverage.h:26-48) | in-memory(不落盘) |
 
 ## 2. weight/value/scale/sigma/snr 歧义映射（DATA-001 登记）
 
