@@ -18,6 +18,16 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <exception>
+
+// ============================================================================
+// P1 (R9-A): C 边界异常屏障 (bughunt_p1_batchI; 家族方案对齐 f1cb487c
+// aio_api.cpp P0-4 口径)。本文件 4 个 AIO_EXPORT 入口均为 extern "C" 可达
+// 边界, 此前 0 个有 try 保护: writer/reader 内部 std::string/vector 分配
+// bad_alloc、length_error 等异常可跨 C ABI 传播 (UB/terminate)。
+// 统一口径: int 返回型 -> return 既有语义错误码 (各入口最大失败码+1, 不
+// 与既有 1..N 冲突), 逐入口注释; 正常路径与修复前逐行等价。
+// ============================================================================
 
 // ============================================================================
 // aio_ahpx_write - 写入 .ahpx 文件 (一次性写入所有数据)
@@ -46,6 +56,8 @@ AIO_EXPORT int aio_ahpx_write(const char *path,
         return 1;
     }
 
+    // P1 (R9-A): C 边界异常屏障 (int 返回型 -> 6=内部异常, 既有 1-5 已占用)。
+    try {
     aio::ahpx::AhpxWriter writer;
 
     // 设置元数据 (如果提供)
@@ -99,6 +111,13 @@ AIO_EXPORT int aio_ahpx_write(const char *path,
     }
 
     return 0;
+    } catch (const std::exception &e) {
+        fprintf(stderr, "[aio][ahpx][api] write: exception: %s\n", e.what());
+        return 6;
+    } catch (...) {
+        fprintf(stderr, "[aio][ahpx][api] write: unknown exception\n");
+        return 6;
+    }
 }
 
 // ============================================================================
@@ -115,6 +134,9 @@ AIO_EXPORT int aio_ahpx_read_header(const char *path,
         return 1;
     }
 
+    // P1 (R9-A): C 边界异常屏障 (int 返回型 -> 3=内部异常, 既有 1-2 已占用;
+    // 返回所需容量分支保持正数语义)。
+    try {
     aio::ahpx::AhpxReader reader;
     if (!reader.open(path)) {
         fprintf(stderr, "[aio][ahpx][api] read_header: 打开文件失败: %s\n", path);
@@ -138,6 +160,13 @@ AIO_EXPORT int aio_ahpx_read_header(const char *path,
     }
 
     return 0;
+    } catch (const std::exception &e) {
+        fprintf(stderr, "[aio][ahpx][api] read_header: exception: %s\n", e.what());
+        return 3;
+    } catch (...) {
+        fprintf(stderr, "[aio][ahpx][api] read_header: unknown exception\n");
+        return 3;
+    }
 }
 
 // ============================================================================
@@ -161,6 +190,8 @@ AIO_EXPORT int aio_ahpx_read_pixels(const char *path,
         return 2;
     }
 
+    // P1 (R9-A): C 边界异常屏障 (int 返回型 -> 8=内部异常, 既有 1-7 已占用)。
+    try {
     aio::ahpx::AhpxReader reader;
     if (!reader.open(path)) {
         fprintf(stderr, "[aio][ahpx][api] read_pixels: 打开文件失败: %s\n", path);
@@ -202,6 +233,13 @@ AIO_EXPORT int aio_ahpx_read_pixels(const char *path,
     if (channels) *channels = c;
 
     return 0;
+    } catch (const std::exception &e) {
+        fprintf(stderr, "[aio][ahpx][api] read_pixels: exception: %s\n", e.what());
+        return 8;
+    } catch (...) {
+        fprintf(stderr, "[aio][ahpx][api] read_pixels: unknown exception\n");
+        return 8;
+    }
 }
 
 // ============================================================================
@@ -225,6 +263,8 @@ AIO_EXPORT int aio_ahpx_read_snr(const char *path,
         return 2;
     }
 
+    // P1 (R9-A): C 边界异常屏障 (int 返回型 -> 6=内部异常, 既有 1-5 已占用)。
+    try {
     aio::ahpx::AhpxReader reader;
     if (!reader.open(path)) {
         fprintf(stderr, "[aio][ahpx][api] read_snr: 打开文件失败: %s\n", path);
@@ -256,4 +296,11 @@ AIO_EXPORT int aio_ahpx_read_snr(const char *path,
     }
 
     return 0;
+    } catch (const std::exception &e) {
+        fprintf(stderr, "[aio][ahpx][api] read_snr: exception: %s\n", e.what());
+        return 6;
+    } catch (...) {
+        fprintf(stderr, "[aio][ahpx][api] read_snr: unknown exception\n");
+        return 6;
+    }
 }

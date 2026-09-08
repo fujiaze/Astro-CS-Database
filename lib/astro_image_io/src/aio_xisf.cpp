@@ -32,6 +32,16 @@ static const uint64_t XISF_MAX_XML_HEADER_BYTES = 64ull * 1024 * 1024;
 // w/h/c ∈ [1, 65535], 防恶意 geometry 触发巨量 calloc 或 size_t 回绕。
 static const int XISF_MAX_DIM = 65535;
 
+// P2 (R9-A): 64 位 seek —— img_info.data_offset 来自文件 XML (int64_t, 不可信),
+// long 在 Windows (LLP64) 为 32 位, 恶意 offset > 2GB 时 (long) 截断为负/
+// 错位值, fseek 静默读错位置 (数据错乱) 或失败。与 aio_upm.cpp AIO_FSEEK
+// 口径一致: Windows 用 _fseeki64, POSIX 用 fseeko (off_t 64 位)。
+#if defined(_WIN32)
+#  define AIO_XISF_FSEEK _fseeki64
+#else
+#  define AIO_XISF_FSEEK fseeko
+#endif
+
 struct XISFSampleFormat {
     int dtype_size;
     int is_float;
@@ -512,8 +522,10 @@ int xisf_read_file(const char *path, AIOImageData *out) {
         return -1;
     }
 
-    if (std::fseek(fp, (long)img_info.data_offset, SEEK_SET) != 0) {
-        aio_log(AIO_LOG_ERROR, "XISF", "Seek to data offset failed");
+    // P2 (R9-A): 64 位 seek —— (long) 截断见文件头 AIO_XISF_FSEEK 说明。
+    if (AIO_XISF_FSEEK(fp, (int64_t)img_info.data_offset, SEEK_SET) != 0) {
+        aio_log(AIO_LOG_ERROR, "XISF", "Seek to data offset failed (offset=%lld)",
+                (long long)img_info.data_offset);
         std::fclose(fp);
         return -1;
     }

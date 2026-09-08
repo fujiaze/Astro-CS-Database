@@ -43,6 +43,19 @@ std::string tile_path(const std::string& dir, int order, uint64_t ipix, const ch
     return std::string(buf);
 }
 
+// P1 (R9-A): 读侧产品参数硬校验 —— 与写侧 aio_hips_product_begin 完全一致
+// 的口径 (写侧 :399 tile_width==512 硬校验)。公共头合同承诺调用方缓冲为
+// 512*512*elem (aio_hips_reader.h:49-53), 恶意产品集 properties
+// hips_tile_width=2048 + 恶意 tile FITS 同尺寸此前直接经 fits_read_pix 对
+// 调用方 512^2 缓冲 4x 堆越界写 (越界 16 字节/像素)。
+//   - tile_width 必须 =512 (与写侧、公共头合同逐字一致);
+//   - hips_order ∈ [0,29]: HEALPix 合法域, 且 2*order <= 58 保证
+//     1ULL << (2*order) 与 12*(1<<(2*order)) 均在 uint64 内, 消除移位 UB
+//     (恶意 hips_order=32+ 此前 UB 移位/回绕)。
+static bool valid_product_params(int tile_width, int hips_order) {
+    return tile_width == 512 && hips_order >= 0 && hips_order <= 29;
+}
+
 std::map<std::string, std::string> parse_properties(const std::string& path) {
     std::map<std::string, std::string> kv;
     std::ifstream f(path);
@@ -154,13 +167,23 @@ bool load_tiles_from_moc(AioHipsDataset* d) {
     long nrows = 0;
     if (fits_get_num_rows(fptr, &nrows, &status)) {
         fits_close_file(fptr, &status);
-        return fits_ok(status, "moc rows");
+        set_err("moc rows: fits_get_num_rows failed");
+        return false;   // P2 (R9-A): MOC 读失败不再当空产品吞掉 (此前返回值语义颠倒)
+    }
+    // P2 (R9-A): MOC 行数上限 —— nrows 来自恶意 BINTABLE 头 (NAXIS2) 不可信,
+    // 此前 uniq vector 按 nrows 巨量分配打爆内存。合法产品 tile 数
+    // <= 12*4^tile_order, 1e6 行 (800MB 产品面) 余量充足, 超限按损坏拒绝。
+    if (nrows > 1000000) {
+        fits_close_file(fptr, &status);
+        set_err("moc rows 超上限 (nrows=" + std::to_string(nrows) + ")");
+        return false;
     }
     std::vector<long long> uniq((size_t)nrows);
     if (nrows > 0 && fits_read_col(fptr, TLONGLONG, 1, 1, 1, nrows, nullptr,
                                    uniq.data(), nullptr, &status)) {
         fits_close_file(fptr, &status);
-        return fits_ok(status, "moc read");
+        set_err("moc read: fits_read_col failed");
+        return false;   // P2 (R9-A): 同上, 读失败不再当空产品
     }
     fits_close_file(fptr, &status);
     const uint64_t order_uniq_base = 4ULL * (1ULL << (2ULL * (uint64_t)d->hips_order));
@@ -195,141 +218,285 @@ int read_leaf_t(AioHipsDataset* d, uint64_t leaf_ipix, T* out) {
     *out = tmp[(size_t)fi];
     return 0;
 }
+// ============================================================================
+// P1 (R9-A): C 边界异常屏障 (bughunt_p1_batchI; 家族方案对齐 f1cb487c
+// aio_api.cpp P0-4 口径)。本文件 extern "C" 12 个导出入口此前 0 个有 try
+// 保护: reader 内部 std::string/vector/map 分配 bad_alloc、length_error,
+// parse_properties/std::atoi 链上的构造异常均可跨 C ABI 传播 (UB/terminate)。
+// 统一口径: 指针返回型 -> nullptr; int 返回型 -> -1 (既有参数错误码);
+// void -> 仅记录; last_error 为 noexcept 字符串返回不加壳 (g_rd_error 为
+// 命名空间级 thread_local std::string, 其 c_str() 不抛)。正常路径与修复前
+// 逐行等价。
+// ============================================================================
 } // namespace
 extern "C" {
 
-AioHipsDataset* aio_hips_open(const char* out_dir, int product) {
-    g_rd_error.clear();
-    if (!out_dir || !*out_dir || product < AIO_HIPS_RD_SIGNAL ||
-        product > AIO_HIPS_RD_IVAR) {
-        set_err("参数无效");
-        return nullptr;
-    }
-    std::unique_ptr<AioHipsDataset> d(new AioHipsDataset);
-    d->product = product;
-    const char* sub = product == AIO_HIPS_RD_SIGNAL ? "signal" :
-                      product == AIO_HIPS_RD_SUPPORT ? "support" :
-                      product == AIO_HIPS_RD_SNR ? "snr" :
-                      product == AIO_HIPS_RD_VARIANCE ? "variance" : "ivar";
-    d->dir = std::string(out_dir) + "/" + sub;
-    d->props = parse_properties(d->dir + "/properties");
-    auto geti = [&](const std::string& k, int def) -> int {
-        auto it = d->props.find(k);
-        return it == d->props.end() ? def : std::atoi(it->second.c_str());
-    };
-    d->hips_order = geti("hips_order", 0);
-    d->tile_width = geti("hips_tile_width", 512);
-    if (d->props.find("hips_version") == d->props.end()) {
-        set_err("properties 缺失 hips_version: " + d->dir);
-        return nullptr;
-    }
-    load_tiles_from_moc(d.get());
-    if (product == AIO_HIPS_RD_SNR) {
-        // 读取全部 SNR TSV tiles
-        for (uint64_t ip : d->tiles) {
-            std::string p = tile_path(d->dir, d->hips_order, ip, ".tsv");
-            std::ifstream f(p);
-            std::string line;
-            bool first = true;
-            while (std::getline(f, line)) {
-                if (line.empty()) continue;
-                if (first) { first = false; if (line[0] == '#') continue; }
-                long long sid; double ra, dec, snr;
-                unsigned int qf, ps;
-                if (std::sscanf(line.c_str(), "%lld %lf %lf %lf %u %u",
-                                &sid, &ra, &dec, &snr, &qf, &ps) == 6) {
-                    AioHipsSnrPoint2 pt;
-                    pt.star_id = sid; pt.ra = ra; pt.dec = dec; pt.snr = snr;
-                    pt.quality_flags = qf; pt.photometric_status = ps;
-                    d->snr.push_back(pt);
-                } else {
-                    ++d->bad_snr_rows;
+AioHipsDataset* aio_hips_open(const char* out_dir, int product)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        g_rd_error.clear();
+        if (!out_dir || !*out_dir || product < AIO_HIPS_RD_SIGNAL ||
+            product > AIO_HIPS_RD_IVAR) {
+            set_err("参数无效");
+            return nullptr;
+        }
+        std::unique_ptr<AioHipsDataset> d(new AioHipsDataset);
+        d->product = product;
+        const char* sub = product == AIO_HIPS_RD_SIGNAL ? "signal" :
+                          product == AIO_HIPS_RD_SUPPORT ? "support" :
+                          product == AIO_HIPS_RD_SNR ? "snr" :
+                          product == AIO_HIPS_RD_VARIANCE ? "variance" : "ivar";
+        d->dir = std::string(out_dir) + "/" + sub;
+        d->props = parse_properties(d->dir + "/properties");
+        auto geti = [&](const std::string& k, int def) -> int {
+            auto it = d->props.find(k);
+            return it == d->props.end() ? def : std::atoi(it->second.c_str());
+        };
+        d->hips_order = geti("hips_order", 0);
+        d->tile_width = geti("hips_tile_width", 512);
+        // P1 (R9-A): 恶意产品集读侧硬校验 (口径=写侧 :399), 见 valid_product_params。
+        // 此前恶意 hips_tile_width=2048 + 同尺寸恶意 tile 直接 4x 堆越界写调用方
+        // 512^2 缓冲; 恶意 hips_order=32+ 触发 1ULL<<(2*order) 移位 UB。
+        if (!valid_product_params(d->tile_width, d->hips_order)) {
+            set_err("产品参数非法 (tile_width=" + std::to_string(d->tile_width) +
+                    " hips_order=" + std::to_string(d->hips_order) +
+                    "; 要求 tile_width=512, hips_order∈[0,29]): " + d->dir);
+            return nullptr;
+        }
+        if (d->props.find("hips_version") == d->props.end()) {
+            set_err("properties 缺失 hips_version: " + d->dir);
+            return nullptr;
+        }
+        // P2 (R9-A): MOC 读失败此前被静默吞掉 (返回值忽略) → 产品按"空集"伪装
+        // 成功。fail-closed: Moc.fits 存在但损坏/超限时 open 硬失败; 无 MOC 仍
+        // 合法空产品 (load_tiles_from_moc 返回 true)。
+        if (!load_tiles_from_moc(d.get())) {
+            set_err("MOC 读取失败: " + d->dir + " (" + g_rd_error + ")");
+            return nullptr;
+        }
+        if (product == AIO_HIPS_RD_SNR) {
+            // 读取全部 SNR TSV tiles
+            for (uint64_t ip : d->tiles) {
+                std::string p = tile_path(d->dir, d->hips_order, ip, ".tsv");
+                std::ifstream f(p);
+                std::string line;
+                bool first = true;
+                while (std::getline(f, line)) {
+                    if (line.empty()) continue;
+                    if (first) { first = false; if (line[0] == '#') continue; }
+                    long long sid; double ra, dec, snr;
+                    unsigned int qf, ps;
+                    if (std::sscanf(line.c_str(), "%lld %lf %lf %lf %u %u",
+                                    &sid, &ra, &dec, &snr, &qf, &ps) == 6) {
+                        AioHipsSnrPoint2 pt;
+                        pt.star_id = sid; pt.ra = ra; pt.dec = dec; pt.snr = snr;
+                        pt.quality_flags = qf; pt.photometric_status = ps;
+                        d->snr.push_back(pt);
+                    } else {
+                        ++d->bad_snr_rows;
+                    }
                 }
             }
         }
+        return d.release();
+
     }
-    return d.release();
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+        return nullptr;
+    } catch (...) {
+        set_err("unknown exception");
+        return nullptr;
+    }
 }
 
-int aio_hips_get_properties(AioHipsDataset* d, char* buf, int buf_size) {
-    if (!d || !buf || buf_size <= 0) return -1;
-    std::string s;
-    for (const auto& kv : d->props) s += kv.first + "=" + kv.second + "\n";
-    std::strncpy(buf, s.c_str(), (size_t)buf_size - 1);
-    buf[buf_size - 1] = '\0';
-    return 0;
+int aio_hips_get_properties(AioHipsDataset* d, char* buf, int buf_size)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        if (!d || !buf || buf_size <= 0) return -1;
+        std::string s;
+        for (const auto& kv : d->props) s += kv.first + "=" + kv.second + "\n";
+        std::strncpy(buf, s.c_str(), (size_t)buf_size - 1);
+        buf[buf_size - 1] = '\0';
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_err("unknown exception");
+        return -1;
+    }
 }
 
-int aio_hips_tile_count(AioHipsDataset* d) {
-    return d ? (int)d->tiles.size() : -1;
+int aio_hips_tile_count(AioHipsDataset* d)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        return d ? (int)d->tiles.size() : -1;
+
+    }
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_err("unknown exception");
+        return -1;
+    }
 }
 
-int aio_hips_tile_ipix(AioHipsDataset* d, int i, uint64_t* out_ipix) {
-    if (!d || !out_ipix || i < 0 || (size_t)i >= d->tiles.size()) return -1;
-    *out_ipix = d->tiles[(size_t)i];
-    return 0;
+int aio_hips_tile_ipix(AioHipsDataset* d, int i, uint64_t* out_ipix)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        if (!d || !out_ipix || i < 0 || (size_t)i >= d->tiles.size()) return -1;
+        *out_ipix = d->tiles[(size_t)i];
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_err("unknown exception");
+        return -1;
+    }
 }
 
-int aio_hips_read_tile_f32(AioHipsDataset* d, uint64_t ipix, float* out) {
-    return read_tile_t(d, ipix, out);
+int aio_hips_read_tile_f32(AioHipsDataset* d, uint64_t ipix, float* out)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        return read_tile_t(d, ipix, out);
+
+    }
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_err("unknown exception");
+        return -1;
+    }
 }
 
-int aio_hips_read_tile_f64(AioHipsDataset* d, uint64_t ipix, double* out) {
-    return read_tile_t(d, ipix, out);
+int aio_hips_read_tile_f64(AioHipsDataset* d, uint64_t ipix, double* out)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        return read_tile_t(d, ipix, out);
+
+    }
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_err("unknown exception");
+        return -1;
+    }
 }
 
 
-int aio_hips_read_leaf_f32(AioHipsDataset* d, uint64_t leaf_ipix, float* out) {
-    return read_leaf_t(d, leaf_ipix, out);
+int aio_hips_read_leaf_f32(AioHipsDataset* d, uint64_t leaf_ipix, float* out)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        return read_leaf_t(d, leaf_ipix, out);
+
+    }
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_err("unknown exception");
+        return -1;
+    }
 }
 
-int aio_hips_read_leaf_f64(AioHipsDataset* d, uint64_t leaf_ipix, double* out) {
-    return read_leaf_t(d, leaf_ipix, out);
+int aio_hips_read_leaf_f64(AioHipsDataset* d, uint64_t leaf_ipix, double* out)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        return read_leaf_t(d, leaf_ipix, out);
+
+    }
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_err("unknown exception");
+        return -1;
+    }
 }
 
 int aio_hips_read_tile_datasum(AioHipsDataset* d, uint64_t tile_ipix,
-                               char* out, int out_size) {
-    if (!d || !out || out_size <= 0) return -1;
-    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
-    std::string p = tile_path(d->dir, d->hips_order, tile_ipix, ".fits");
-    int status = 0;
-    fitsfile* fptr = nullptr;
-    if (fits_open_file(&fptr, p.c_str(), READONLY, &status)) {
-        fits_clear_errmsg();
-        set_err("tile 不存在: " + p);
-        return -2;
-    }
-    char value[FLEN_VALUE] = {0};
-    if (fits_read_key(fptr, TSTRING, "DATASUM", value, nullptr, &status)) {
-        fits_clear_errmsg();
+                               char* out, int out_size)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        if (!d || !out || out_size <= 0) return -1;
+        std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
+        std::string p = tile_path(d->dir, d->hips_order, tile_ipix, ".fits");
+        int status = 0;
+        fitsfile* fptr = nullptr;
+        if (fits_open_file(&fptr, p.c_str(), READONLY, &status)) {
+            fits_clear_errmsg();
+            set_err("tile 不存在: " + p);
+            return -2;
+        }
+        char value[FLEN_VALUE] = {0};
+        if (fits_read_key(fptr, TSTRING, "DATASUM", value, nullptr, &status)) {
+            fits_clear_errmsg();
+            fits_close_file(fptr, &status);
+            set_err("tile 无 DATASUM: " + p);
+            return -3;
+        }
         fits_close_file(fptr, &status);
-        set_err("tile 无 DATASUM: " + p);
-        return -3;
+        std::strncpy(out, value, (std::size_t)out_size - 1);
+        out[out_size - 1] = '\0';
+        return 0;
+
     }
-    fits_close_file(fptr, &status);
-    std::strncpy(out, value, (std::size_t)out_size - 1);
-    out[out_size - 1] = '\0';
-    return 0;
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_err("unknown exception");
+        return -1;
+    }
 }
 int aio_hips_read_snr_catalog(AioHipsDataset* d, double* ra, double* dec,
                               double* snr, int64_t* star_id,
                               uint32_t* quality_flags, uint32_t* photometric_status,
-                              int max) {
-    if (!d || d->product != AIO_HIPS_RD_SNR) return -1;
-    int n = (int)std::min((size_t)max, d->snr.size());
-    for (int i = 0; i < n; ++i) {
-        if (ra) ra[i] = d->snr[(size_t)i].ra;
-        if (dec) dec[i] = d->snr[(size_t)i].dec;
-        if (snr) snr[i] = d->snr[(size_t)i].snr;
-        if (star_id) star_id[i] = d->snr[(size_t)i].star_id;
-        if (quality_flags) quality_flags[i] = d->snr[(size_t)i].quality_flags;
-        if (photometric_status) photometric_status[i] = d->snr[(size_t)i].photometric_status;
+                              int max)  {
+    // P1 (R9-A): C 边界异常屏障 (点数返回型, 异常 -> -1)
+    try {
+        if (!d || d->product != AIO_HIPS_RD_SNR) return -1;
+        int n = (int)std::min((size_t)max, d->snr.size());
+        for (int i = 0; i < n; ++i) {
+            if (ra) ra[i] = d->snr[(size_t)i].ra;
+            if (dec) dec[i] = d->snr[(size_t)i].dec;
+            if (snr) snr[i] = d->snr[(size_t)i].snr;
+            if (star_id) star_id[i] = d->snr[(size_t)i].star_id;
+            if (quality_flags) quality_flags[i] = d->snr[(size_t)i].quality_flags;
+            if (photometric_status) photometric_status[i] = d->snr[(size_t)i].photometric_status;
+        }
+        return n;
+
     }
-    return n;
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_err("unknown exception");
+        return -1;
+    }
 }
 
-void aio_hips_close(AioHipsDataset* d) {
-    delete d;
+void aio_hips_close(AioHipsDataset* d)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        delete d;
+
+    }
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+    } catch (...) {
+        set_err("unknown exception");
+    }
 }
 
 const char* aio_hips_reader_last_error(void) {

@@ -381,6 +381,16 @@ struct AioHipsProductSet {
     std::vector<double> scratch_var_n;                 // NESTED 序 var_num (hierarchy)
 };
 
+// ============================================================================
+// P1 (R9-A): C 边界异常屏障 (bughunt_p1_batchI; 家族方案对齐 f1cb487c
+// aio_api.cpp P0-4 口径)。本文件 extern "C" 9 个导出入口此前 0 个有 try
+// 保护: FITS writer 内部 std::string/vector 分配 bad_alloc、length_error、
+// cfitsio 包装异常均可跨 C ABI 传播 (UB/terminate)。
+// 统一口径: 指针返回型 -> nullptr; int 返回型 -> -1 (既有错误码域, 异常
+// 详情记入 g_hips_error 前缀 "exception:"); last_error 为 noexcept 字符串
+// 返回不加壳 (g_hips_error 为命名空间级 std::string, c_str() 不抛)。
+// 正常路径与修复前逐行等价。
+// ============================================================================
 extern "C" {
 
 AioHipsProductSet* aio_hips_product_begin(
@@ -394,171 +404,193 @@ AioHipsProductSet* aio_hips_product_begin(
     const char* obs_filter,
     double exposure_s,
     const char* obs_date,
-    uint32_t moc_order) {
-    g_hips_error.clear();
-    if (!out_dir || !*out_dir || nside < 512 || tile_width != 512 ||
-        (data_type != AIO_HIPS_FLOAT32 && data_type != AIO_HIPS_FLOAT64) ||
-        (flags & ~AIO_HIPS_PRODUCT_ALL_V19) != 0) {
-        set_error("aio_hips_product_begin: 参数无效 (nside>=512, tile_width=512, dtype 0/1)");
+    uint32_t moc_order)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        g_hips_error.clear();
+        if (!out_dir || !*out_dir || nside < 512 || tile_width != 512 ||
+            (data_type != AIO_HIPS_FLOAT32 && data_type != AIO_HIPS_FLOAT64) ||
+            (flags & ~AIO_HIPS_PRODUCT_ALL_V19) != 0) {
+            set_error("aio_hips_product_begin: 参数无效 (nside>=512, tile_width=512, dtype 0/1)");
+            return nullptr;
+        }
+        std::unique_ptr<AioHipsProductSet> ps(new AioHipsProductSet);
+        ps->out_dir = out_dir;
+        ps->nside = nside;
+        ps->tile_width = tile_width;
+        ps->data_type = data_type;
+        ps->flags = flags;
+        ps->leaf_order = ilog2_u64(nside);
+        ps->tile_order = ps->leaf_order - 9;
+        ps->A_cell = 4.0 * kPi() / (12.0 * (double)nside * nside);
+        ps->creator_did = creator_did ? creator_did : "ivo://astrocs/phase1";
+        ps->obs_title = obs_title ? obs_title : "AstroCS Phase1";
+        ps->obs_filter = obs_filter ? obs_filter : "";
+        ps->obs_date = obs_date ? obs_date : "";
+        ps->exposure = exposure_s;
+        ps->moc_order = (moc_order == 0) ? ps->tile_order : std::min(moc_order, ps->tile_order);
+        ps->hier.resize(ps->tile_order);
+        return ps.release();
+
+    }
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return nullptr;
+    } catch (...) {
+        set_error("unknown exception");
         return nullptr;
     }
-    std::unique_ptr<AioHipsProductSet> ps(new AioHipsProductSet);
-    ps->out_dir = out_dir;
-    ps->nside = nside;
-    ps->tile_width = tile_width;
-    ps->data_type = data_type;
-    ps->flags = flags;
-    ps->leaf_order = ilog2_u64(nside);
-    ps->tile_order = ps->leaf_order - 9;
-    ps->A_cell = 4.0 * kPi() / (12.0 * (double)nside * nside);
-    ps->creator_did = creator_did ? creator_did : "ivo://astrocs/phase1";
-    ps->obs_title = obs_title ? obs_title : "AstroCS Phase1";
-    ps->obs_filter = obs_filter ? obs_filter : "";
-    ps->obs_date = obs_date ? obs_date : "";
-    ps->exposure = exposure_s;
-    ps->moc_order = (moc_order == 0) ? ps->tile_order : std::min(moc_order, ps->tile_order);
-    ps->hier.resize(ps->tile_order);
-    return ps.release();
 }
 
 int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
-                                       const AstroSphereTileView* view) {
-    g_hips_error.clear();
-    if (!ps || !view) { set_error("null handle/view"); return -1; }
-    if (view->width != 512 || view->leaf_order != ps->leaf_order ||
-        view->data_type != ps->data_type) {
-        set_error("view 与产品集不匹配 (width=512, leaf_order/ dtype 必须一致)");
-        return -2;
-    }
-    const uint64_t npix_order = 12ULL * (1ULL << (2ULL * ps->tile_order));
-    if (view->parent_ipix >= npix_order) {
-        set_error("parent_ipix 超出 Norder" + std::to_string(ps->tile_order) + " 范围");
-        return -3;
-    }
-    const size_t n = 512 * 512;
-    const bool f32 = (ps->data_type == AIO_HIPS_FLOAT32);
-
-    // 1. 转换 signal/support
-    // 只分配当前 dtype 的 scratch，跨 tile 复用（原每 tile
-    // 分配 4×262144 元素 → 首 tile 分配后零再分配）
-    std::vector<float>&  sigF = ps->scratch_sigF;
-    std::vector<double>& sigD = ps->scratch_sigD;
-    std::vector<float>&  supF = ps->scratch_supF;
-    std::vector<double>& supD = ps->scratch_supD;
-    if (f32) { sigF.resize(n); supF.resize(n); }
-    else     { sigD.resize(n); supD.resize(n); }
-    std::vector<double>& sig_n = ps->scratch_sig_n;
-    std::vector<double>& sup_n = ps->scratch_sup_n;
-    sig_n.resize(n);
-    sup_n.resize(n);
-    std::vector<uint8_t> valid;
-    if (view->valid_mask)
-        valid.assign((const uint8_t*)view->valid_mask, (const uint8_t*)view->valid_mask + n);
-
-    // view->flux_sum/covered_area/valid_mask 以 NESTED local
-    // 索引 (Drizzle 热路径保持 NESTED), 写 FITS 前经共享 HEALPix core 标准映射
-    // scatter: fits_index = (tile_width-1-x)*tile_width + y, x/y 由 local 位解交错
-    const auto t_tr0 = std::chrono::steady_clock::now();
-    double tile_covered = 0.0;
-    for (size_t i = 0; i < n; ++i) {
-        const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
-            (uint64_t)i, 9u, 512u);
-        const bool v = valid.empty() || valid[i];
-        double flux = 0.0, area = 0.0;
-        if (f32) {
-            if (view->flux_sum) flux = (double)((const float*)view->flux_sum)[i];
-            if (view->covered_area) area = (double)((const float*)view->covered_area)[i];
-        } else {
-            if (view->flux_sum) flux = ((const double*)view->flux_sum)[i];
-            if (view->covered_area) area = ((const double*)view->covered_area)[i];
+                                       const AstroSphereTileView* view)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        g_hips_error.clear();
+        if (!ps || !view) { set_error("null handle/view"); return -1; }
+        if (view->width != 512 || view->leaf_order != ps->leaf_order ||
+            view->data_type != ps->data_type) {
+            set_error("view 与产品集不匹配 (width=512, leaf_order/ dtype 必须一致)");
+            return -2;
         }
-        double sig = 0.0, sup = 0.0;
-        if (v && area > 0.0 && std::isfinite(flux) && std::isfinite(area)) {
-            sig = flux / area;
-            sup = area / ps->A_cell;
-            if (sup > 1.0) sup = 1.0;
-            tile_covered += area;
-            if (sig < ps->sig_min) ps->sig_min = sig;
-            if (sig > ps->sig_max) ps->sig_max = sig;
-        } else {
-            sig = std::numeric_limits<double>::quiet_NaN();
+        const uint64_t npix_order = 12ULL * (1ULL << (2ULL * ps->tile_order));
+        if (view->parent_ipix >= npix_order) {
+            set_error("parent_ipix 超出 Norder" + std::to_string(ps->tile_order) + " 范围");
+            return -3;
         }
-        // NESTED 序 sig/sup 缓存（与 FITS 序同一 float/double
-        // 精度存储），hierarchy 直接按 NESTED 序累加，免 fi 反查。
-        if (f32) {
-            sigF[fi] = (float)sig; supF[fi] = (float)sup;
-            sig_n[i] = (double)(float)sig; sup_n[i] = (double)(float)sup;
-        } else {
-            sigD[fi] = sig;        supD[fi] = sup;
-            sig_n[i] = sig;        sup_n[i] = sup;
-        }
-    }
+        const size_t n = 512 * 512;
+        const bool f32 = (ps->data_type == AIO_HIPS_FLOAT32);
 
-    ps->prof_transform += std::chrono::duration<double>(
-        std::chrono::steady_clock::now() - t_tr0).count();
+        // 1. 转换 signal/support
+        // 只分配当前 dtype 的 scratch，跨 tile 复用（原每 tile
+        // 分配 4×262144 元素 → 首 tile 分配后零再分配）
+        std::vector<float>&  sigF = ps->scratch_sigF;
+        std::vector<double>& sigD = ps->scratch_sigD;
+        std::vector<float>&  supF = ps->scratch_supF;
+        std::vector<double>& supD = ps->scratch_supD;
+        if (f32) { sigF.resize(n); supF.resize(n); }
+        else     { sigD.resize(n); supD.resize(n); }
+        std::vector<double>& sig_n = ps->scratch_sig_n;
+        std::vector<double>& sup_n = ps->scratch_sup_n;
+        sig_n.resize(n);
+        sup_n.resize(n);
+        std::vector<uint8_t> valid;
+        if (view->valid_mask)
+            valid.assign((const uint8_t*)view->valid_mask, (const uint8_t*)view->valid_mask + n);
 
-    // 2. 写 signal/support FITS (CFITSIO + checksum)
-    const auto t_wr0 = std::chrono::steady_clock::now();
-    const int bitpix = f32 ? -32 : -64;
-    std::vector<std::pair<std::string, std::string>> cards;
-    cards.push_back({"NSIDE", std::to_string(ps->nside)});
-    cards.push_back({"FIRSTPIX", "0"});
-    cards.push_back({"LASTPIX", std::to_string(n - 1)});
-    std::string rel = tile_rel_path((int)ps->tile_order, view->parent_ipix, ".fits");
-    if (ps->flags & AIO_HIPS_PRODUCT_SIGNAL) {
-        std::string p = ps->out_dir + "/signal/" + rel;
-        make_dirs(p.substr(0, p.find_last_of('/')));
-        if (!write_fits_image(p, bitpix, 512, 512, f32 ? (const void*)sigF.data() : (const void*)sigD.data(),
-                              cards, ps->obs_title, ps->obs_filter, ps->exposure, ps->obs_date)) {
-            return -4;
-        }
-    }
-    if (ps->flags & AIO_HIPS_PRODUCT_SUPPORT) {
-        std::string p = ps->out_dir + "/support/" + rel;
-        make_dirs(p.substr(0, p.find_last_of('/')));
-        if (!write_fits_image(p, bitpix, 512, 512, f32 ? (const void*)supF.data() : (const void*)supD.data(),
-                              cards, ps->obs_title, ps->obs_filter, ps->exposure, ps->obs_date)) {
-            return -5;
-        }
-    }
-    ps->prof_fits_write += std::chrono::duration<double>(
-        std::chrono::steady_clock::now() - t_wr0).count();
-
-    // 3. MOC + 覆盖统计
-    if (ps->moc_cells.insert(view->parent_ipix).second) {
-        ps->leaf_ipix_list.push_back(view->parent_ipix);
-        ps->moc_area_sr += 4.0 * kPi() / (12.0 * (1ULL << (2 * ps->tile_order)));
-    }
-    ps->covered_area_sr += tile_covered;
-
-    // 4. hierarchy 累加 (k = K-1 .. 0)
-    const auto t_ha0 = std::chrono::steady_clock::now();
-    for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
-        int dk = (int)ps->tile_order - k;
-        uint64_t shift = 2ULL * (uint64_t)dk;
-        uint64_t mask = (shift >= 64) ? ~0ULL : ((1ULL << shift) - 1ULL);
-        uint64_t A = view->parent_ipix >> shift;
-        uint64_t s = view->parent_ipix & mask;
-        AncestorAcc& acc = ps->hier[(size_t)k][A];
-        acc.ensure(f32);
+        // view->flux_sum/covered_area/valid_mask 以 NESTED local
+        // 索引 (Drizzle 热路径保持 NESTED), 写 FITS 前经共享 HEALPix core 标准映射
+        // scatter: fits_index = (tile_width-1-x)*tile_width + y, x/y 由 local 位解交错
+        const auto t_tr0 = std::chrono::steady_clock::now();
+        double tile_covered = 0.0;
         for (size_t i = 0; i < n; ++i) {
-            // 直接使用 NESTED 序 sig/sup 缓存（与 FITS 序
-            // 读回逐位一致），免每 i 一次 nested_local_to_fits_index 反查。
+            const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+                (uint64_t)i, 9u, 512u);
             const bool v = valid.empty() || valid[i];
             double flux = 0.0, area = 0.0;
-            flux = sig_n[i] * sup_n[i] * ps->A_cell;
-            area = sup_n[i] * ps->A_cell;
-            if (!v || !(area > 0.0) || !std::isfinite(flux)) continue;
-            // 叶 (P,l) -> A@k 内 order-(k+9) 单元 NESTED 索引
-            // full = (s<<18)|l (order K+9 within A), z = full >> 2*(K-k)
-            size_t z = (size_t)(((s << 18ULL) | (uint64_t)i) >>
-                                (2ULL * (uint64_t)(ps->tile_order - (uint32_t)k)));
-            acc.add(z, flux, area);
+            if (f32) {
+                if (view->flux_sum) flux = (double)((const float*)view->flux_sum)[i];
+                if (view->covered_area) area = (double)((const float*)view->covered_area)[i];
+            } else {
+                if (view->flux_sum) flux = ((const double*)view->flux_sum)[i];
+                if (view->covered_area) area = ((const double*)view->covered_area)[i];
+            }
+            double sig = 0.0, sup = 0.0;
+            if (v && area > 0.0 && std::isfinite(flux) && std::isfinite(area)) {
+                sig = flux / area;
+                sup = area / ps->A_cell;
+                if (sup > 1.0) sup = 1.0;
+                tile_covered += area;
+                if (sig < ps->sig_min) ps->sig_min = sig;
+                if (sig > ps->sig_max) ps->sig_max = sig;
+            } else {
+                sig = std::numeric_limits<double>::quiet_NaN();
+            }
+            // NESTED 序 sig/sup 缓存（与 FITS 序同一 float/double
+            // 精度存储），hierarchy 直接按 NESTED 序累加，免 fi 反查。
+            if (f32) {
+                sigF[fi] = (float)sig; supF[fi] = (float)sup;
+                sig_n[i] = (double)(float)sig; sup_n[i] = (double)(float)sup;
+            } else {
+                sigD[fi] = sig;        supD[fi] = sup;
+                sig_n[i] = sig;        sup_n[i] = sup;
+            }
         }
+
+        ps->prof_transform += std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_tr0).count();
+
+        // 2. 写 signal/support FITS (CFITSIO + checksum)
+        const auto t_wr0 = std::chrono::steady_clock::now();
+        const int bitpix = f32 ? -32 : -64;
+        std::vector<std::pair<std::string, std::string>> cards;
+        cards.push_back({"NSIDE", std::to_string(ps->nside)});
+        cards.push_back({"FIRSTPIX", "0"});
+        cards.push_back({"LASTPIX", std::to_string(n - 1)});
+        std::string rel = tile_rel_path((int)ps->tile_order, view->parent_ipix, ".fits");
+        if (ps->flags & AIO_HIPS_PRODUCT_SIGNAL) {
+            std::string p = ps->out_dir + "/signal/" + rel;
+            make_dirs(p.substr(0, p.find_last_of('/')));
+            if (!write_fits_image(p, bitpix, 512, 512, f32 ? (const void*)sigF.data() : (const void*)sigD.data(),
+                                  cards, ps->obs_title, ps->obs_filter, ps->exposure, ps->obs_date)) {
+                return -4;
+            }
+        }
+        if (ps->flags & AIO_HIPS_PRODUCT_SUPPORT) {
+            std::string p = ps->out_dir + "/support/" + rel;
+            make_dirs(p.substr(0, p.find_last_of('/')));
+            if (!write_fits_image(p, bitpix, 512, 512, f32 ? (const void*)supF.data() : (const void*)supD.data(),
+                                  cards, ps->obs_title, ps->obs_filter, ps->exposure, ps->obs_date)) {
+                return -5;
+            }
+        }
+        ps->prof_fits_write += std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_wr0).count();
+
+        // 3. MOC + 覆盖统计
+        if (ps->moc_cells.insert(view->parent_ipix).second) {
+            ps->leaf_ipix_list.push_back(view->parent_ipix);
+            ps->moc_area_sr += 4.0 * kPi() / (12.0 * (1ULL << (2 * ps->tile_order)));
+        }
+        ps->covered_area_sr += tile_covered;
+
+        // 4. hierarchy 累加 (k = K-1 .. 0)
+        const auto t_ha0 = std::chrono::steady_clock::now();
+        for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
+            int dk = (int)ps->tile_order - k;
+            uint64_t shift = 2ULL * (uint64_t)dk;
+            uint64_t mask = (shift >= 64) ? ~0ULL : ((1ULL << shift) - 1ULL);
+            uint64_t A = view->parent_ipix >> shift;
+            uint64_t s = view->parent_ipix & mask;
+            AncestorAcc& acc = ps->hier[(size_t)k][A];
+            acc.ensure(f32);
+            for (size_t i = 0; i < n; ++i) {
+                // 直接使用 NESTED 序 sig/sup 缓存（与 FITS 序
+                // 读回逐位一致），免每 i 一次 nested_local_to_fits_index 反查。
+                const bool v = valid.empty() || valid[i];
+                double flux = 0.0, area = 0.0;
+                flux = sig_n[i] * sup_n[i] * ps->A_cell;
+                area = sup_n[i] * ps->A_cell;
+                if (!v || !(area > 0.0) || !std::isfinite(flux)) continue;
+                // 叶 (P,l) -> A@k 内 order-(k+9) 单元 NESTED 索引
+                // full = (s<<18)|l (order K+9 within A), z = full >> 2*(K-k)
+                size_t z = (size_t)(((s << 18ULL) | (uint64_t)i) >>
+                                    (2ULL * (uint64_t)(ps->tile_order - (uint32_t)k)));
+                acc.add(z, flux, area);
+            }
+        }
+        ps->prof_hierarchy_accum += std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_ha0).count();
+        return 0;
+
     }
-    ps->prof_hierarchy_accum += std::chrono::duration<double>(
-        std::chrono::steady_clock::now() - t_ha0).count();
-    return 0;
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_error("unknown exception");
+        return -1;
+    }
 }
 
 // ============================================================================
@@ -569,126 +601,148 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
 // (variance_parent = Σvar_num / (Σarea)²)
 // ============================================================================
 int aio_hips_write_variance_tile(AioHipsProductSet* ps,
-                                 const AstroSphereTileView* view) {
-    g_hips_error.clear();
-    if (!ps || !view) { set_error("null handle/view"); return -1; }
-    if (!view->var_num_sum) { set_error("var_num_sum 为空 (无方差数据)"); return -2; }
-    if (view->width != 512 || view->leaf_order != ps->leaf_order ||
-        view->data_type != ps->data_type) {
-        set_error("view 与产品集不匹配 (width=512, leaf_order/dtype 必须一致)");
-        return -3;
-    }
-    const uint64_t npix_order = 12ULL * (1ULL << (2ULL * ps->tile_order));
-    if (view->parent_ipix >= npix_order) {
-        set_error("parent_ipix 超出 Norder" + std::to_string(ps->tile_order) + " 范围");
-        return -4;
-    }
-    const size_t n = 512 * 512;
-    const bool f32 = (ps->data_type == AIO_HIPS_FLOAT32);
-
-    std::vector<float>&  varF  = ps->scratch_varF;
-    std::vector<double>& varD  = ps->scratch_varD;
-    std::vector<float>&  ivarF = ps->scratch_ivarF;
-    std::vector<double>& ivarD = ps->scratch_ivarD;
-    if (f32) { varF.resize(n); ivarF.resize(n); }
-    else     { varD.resize(n); ivarD.resize(n); }
-    std::vector<double>& var_n = ps->scratch_var_n;
-    var_n.resize(n);
-    std::vector<uint8_t> valid;
-    if (view->valid_mask)
-        valid.assign((const uint8_t*)view->valid_mask,
-                     (const uint8_t*)view->valid_mask + n);
-
-    bool any_valid = false;
-    for (size_t i = 0; i < n; ++i) {
-        const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
-            (uint64_t)i, 9u, 512u);
-        const bool v = valid.empty() || valid[i];
-        double vnum = 0.0, area = 0.0;
-        if (f32) {
-            if (view->var_num_sum) vnum = (double)((const float*)view->var_num_sum)[i];
-            if (view->covered_area) area = (double)((const float*)view->covered_area)[i];
-        } else {
-            if (view->var_num_sum) vnum = ((const double*)view->var_num_sum)[i];
-            if (view->covered_area) area = ((const double*)view->covered_area)[i];
+                                 const AstroSphereTileView* view)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        g_hips_error.clear();
+        if (!ps || !view) { set_error("null handle/view"); return -1; }
+        if (!view->var_num_sum) { set_error("var_num_sum 为空 (无方差数据)"); return -2; }
+        if (view->width != 512 || view->leaf_order != ps->leaf_order ||
+            view->data_type != ps->data_type) {
+            set_error("view 与产品集不匹配 (width=512, leaf_order/dtype 必须一致)");
+            return -3;
         }
-        double var = std::numeric_limits<double>::quiet_NaN();
-        double iv = std::numeric_limits<double>::quiet_NaN();
-        if (v && area > 0.0 && vnum > 0.0 && std::isfinite(area) && std::isfinite(vnum)) {
-            var = vnum / (area * area);
-            iv = 1.0 / var;
-            any_valid = true;
+        const uint64_t npix_order = 12ULL * (1ULL << (2ULL * ps->tile_order));
+        if (view->parent_ipix >= npix_order) {
+            set_error("parent_ipix 超出 Norder" + std::to_string(ps->tile_order) + " 范围");
+            return -4;
         }
-        if (f32) {
-            varF[fi] = (float)var;  ivarF[fi] = (float)iv;
-            var_n[i] = (v && area > 0.0 && vnum > 0.0) ? vnum : 0.0;
-        } else {
-            varD[fi] = var;         ivarD[fi] = iv;
-            var_n[i] = (v && area > 0.0 && vnum > 0.0) ? vnum : 0.0;
-        }
-    }
-    if (!any_valid) {
-        set_error("该 tile 无有效方差数据 (var_num_sum 全 0)");
-        return -5;
-    }
+        const size_t n = 512 * 512;
+        const bool f32 = (ps->data_type == AIO_HIPS_FLOAT32);
 
-    const int bitpix = f32 ? -32 : -64;
-    std::vector<std::pair<std::string, std::string>> cards;
-    cards.push_back({"NSIDE", std::to_string(ps->nside)});
-    cards.push_back({"FIRSTPIX", "0"});
-    cards.push_back({"LASTPIX", std::to_string(n - 1)});
-    std::string rel = tile_rel_path((int)ps->tile_order, view->parent_ipix, ".fits");
-    if (ps->flags & AIO_HIPS_PRODUCT_VARIANCE) {
-        std::string p = ps->out_dir + "/variance/" + rel;
-        make_dirs(p.substr(0, p.find_last_of('/')));
-        if (!write_fits_image(p, bitpix, 512, 512,
-                              f32 ? (const void*)varF.data() : (const void*)varD.data(),
-                              cards, ps->obs_title, ps->obs_filter,
-                              ps->exposure, ps->obs_date)) {
-            return -6;
-        }
-    }
-    if (ps->flags & AIO_HIPS_PRODUCT_IVAR) {
-        std::string p = ps->out_dir + "/ivar/" + rel;
-        make_dirs(p.substr(0, p.find_last_of('/')));
-        if (!write_fits_image(p, bitpix, 512, 512,
-                              f32 ? (const void*)ivarF.data() : (const void*)ivarD.data(),
-                              cards, ps->obs_title, ps->obs_filter,
-                              ps->exposure, ps->obs_date)) {
-            return -7;
-        }
-    }
+        std::vector<float>&  varF  = ps->scratch_varF;
+        std::vector<double>& varD  = ps->scratch_varD;
+        std::vector<float>&  ivarF = ps->scratch_ivarF;
+        std::vector<double>& ivarD = ps->scratch_ivarD;
+        if (f32) { varF.resize(n); ivarF.resize(n); }
+        else     { varD.resize(n); ivarD.resize(n); }
+        std::vector<double>& var_n = ps->scratch_var_n;
+        var_n.resize(n);
+        std::vector<uint8_t> valid;
+        if (view->valid_mask)
+            valid.assign((const uint8_t*)view->valid_mask,
+                         (const uint8_t*)view->valid_mask + n);
 
-    // MOC/覆盖: 与 signal/support 共享 (variance tile 必伴随 signal tile,
-    // MOC 已在 write_signal_support_tile 登记, 不重复)
-
-    // hierarchy: 累加 var_num (归约公式同叶级: var_parent = Σvar_num/(Σarea)²)
-    for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
-        int dk = (int)ps->tile_order - k;
-        uint64_t shift = 2ULL * (uint64_t)dk;
-        uint64_t mask = (shift >= 64) ? ~0ULL : ((1ULL << shift) - 1ULL);
-        uint64_t A = view->parent_ipix >> shift;
-        uint64_t s = view->parent_ipix & mask;
-        AncestorAcc& acc = ps->hier[(size_t)k][A];
-        acc.ensure(f32);
+        bool any_valid = false;
         for (size_t i = 0; i < n; ++i) {
-            if (var_n[i] <= 0.0) continue;
-            size_t z = (size_t)(((s << 18ULL) | (uint64_t)i) >>
-                                (2ULL * (uint64_t)(ps->tile_order - (uint32_t)k)));
-            acc.add_var(z, var_n[i], 0.0);
+            const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+                (uint64_t)i, 9u, 512u);
+            const bool v = valid.empty() || valid[i];
+            double vnum = 0.0, area = 0.0;
+            if (f32) {
+                if (view->var_num_sum) vnum = (double)((const float*)view->var_num_sum)[i];
+                if (view->covered_area) area = (double)((const float*)view->covered_area)[i];
+            } else {
+                if (view->var_num_sum) vnum = ((const double*)view->var_num_sum)[i];
+                if (view->covered_area) area = ((const double*)view->covered_area)[i];
+            }
+            double var = std::numeric_limits<double>::quiet_NaN();
+            double iv = std::numeric_limits<double>::quiet_NaN();
+            if (v && area > 0.0 && vnum > 0.0 && std::isfinite(area) && std::isfinite(vnum)) {
+                var = vnum / (area * area);
+                iv = 1.0 / var;
+                any_valid = true;
+            }
+            if (f32) {
+                varF[fi] = (float)var;  ivarF[fi] = (float)iv;
+                var_n[i] = (v && area > 0.0 && vnum > 0.0) ? vnum : 0.0;
+            } else {
+                varD[fi] = var;         ivarD[fi] = iv;
+                var_n[i] = (v && area > 0.0 && vnum > 0.0) ? vnum : 0.0;
+            }
         }
+        if (!any_valid) {
+            set_error("该 tile 无有效方差数据 (var_num_sum 全 0)");
+            return -5;
+        }
+
+        const int bitpix = f32 ? -32 : -64;
+        std::vector<std::pair<std::string, std::string>> cards;
+        cards.push_back({"NSIDE", std::to_string(ps->nside)});
+        cards.push_back({"FIRSTPIX", "0"});
+        cards.push_back({"LASTPIX", std::to_string(n - 1)});
+        std::string rel = tile_rel_path((int)ps->tile_order, view->parent_ipix, ".fits");
+        if (ps->flags & AIO_HIPS_PRODUCT_VARIANCE) {
+            std::string p = ps->out_dir + "/variance/" + rel;
+            make_dirs(p.substr(0, p.find_last_of('/')));
+            if (!write_fits_image(p, bitpix, 512, 512,
+                                  f32 ? (const void*)varF.data() : (const void*)varD.data(),
+                                  cards, ps->obs_title, ps->obs_filter,
+                                  ps->exposure, ps->obs_date)) {
+                return -6;
+            }
+        }
+        if (ps->flags & AIO_HIPS_PRODUCT_IVAR) {
+            std::string p = ps->out_dir + "/ivar/" + rel;
+            make_dirs(p.substr(0, p.find_last_of('/')));
+            if (!write_fits_image(p, bitpix, 512, 512,
+                                  f32 ? (const void*)ivarF.data() : (const void*)ivarD.data(),
+                                  cards, ps->obs_title, ps->obs_filter,
+                                  ps->exposure, ps->obs_date)) {
+                return -7;
+            }
+        }
+
+        // MOC/覆盖: 与 signal/support 共享 (variance tile 必伴随 signal tile,
+        // MOC 已在 write_signal_support_tile 登记, 不重复)
+
+        // hierarchy: 累加 var_num (归约公式同叶级: var_parent = Σvar_num/(Σarea)²)
+        for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
+            int dk = (int)ps->tile_order - k;
+            uint64_t shift = 2ULL * (uint64_t)dk;
+            uint64_t mask = (shift >= 64) ? ~0ULL : ((1ULL << shift) - 1ULL);
+            uint64_t A = view->parent_ipix >> shift;
+            uint64_t s = view->parent_ipix & mask;
+            AncestorAcc& acc = ps->hier[(size_t)k][A];
+            acc.ensure(f32);
+            for (size_t i = 0; i < n; ++i) {
+                if (var_n[i] <= 0.0) continue;
+                size_t z = (size_t)(((s << 18ULL) | (uint64_t)i) >>
+                                    (2ULL * (uint64_t)(ps->tile_order - (uint32_t)k)));
+                acc.add_var(z, var_n[i], 0.0);
+            }
+        }
+        return 0;
+
     }
-    return 0;
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_error("unknown exception");
+        return -1;
+    }
 }
 
 int aio_hips_write_snr_points(AioHipsProductSet* ps,
                               const AioHipsSnrPoint* pts,
-                              int n) {
-    g_hips_error.clear();
-    if (!ps || (!pts && n > 0)) { set_error("null pts"); return -1; }
-    for (int i = 0; i < n; ++i)
-        ps->snr.push_back(pts[i]);
-    return 0;
+                              int n)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        g_hips_error.clear();
+        if (!ps || (!pts && n > 0)) { set_error("null pts"); return -1; }
+        for (int i = 0; i < n; ++i)
+            ps->snr.push_back(pts[i]);
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_error("unknown exception");
+        return -1;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1005,135 +1059,168 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
 
 // （K_CORR_DOMAIN 选项 B）：Drizzle provenance setter
 int aio_hips_set_drizzle_provenance(AioHipsProductSet* ps,
-                                    double pixfrac, double scale_arcsec) {
-    if (!ps) return 1;
-    if (!(pixfrac > 0.0 && pixfrac <= 1.0)) return 2;
-    if (scale_arcsec < 0.0) return 2;
-    ps->drizzle_prov_set = true;
-    ps->drizzle_pixfrac = pixfrac;
-    ps->drizzle_scale_arcsec = scale_arcsec;
-    return 0;
+                                    double pixfrac, double scale_arcsec)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        if (!ps) return 1;
+        if (!(pixfrac > 0.0 && pixfrac <= 1.0)) return 2;
+        if (scale_arcsec < 0.0) return 2;
+        ps->drizzle_prov_set = true;
+        ps->drizzle_pixfrac = pixfrac;
+        ps->drizzle_scale_arcsec = scale_arcsec;
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_error("unknown exception");
+        return -1;
+    }
 }
 
-int aio_hips_finalize(AioHipsProductSet* ps) {
-    g_hips_error.clear();
-    if (!ps) { set_error("null handle"); return -1; }
-    if (ps->finalized) { set_error("已 finalize"); return -2; }
-    ps->finalized = true;
-    // finalize 分段计时（粗粒度，低开销）
-    const auto t_fin0 = std::chrono::steady_clock::now();
-    std::fprintf(stderr, "[hips] finalize: n_leaf=%zu flags=%d\n",
-                 ps->leaf_ipix_list.size(), ps->flags);
-    const auto t_p0 = std::chrono::steady_clock::now();
-    const double moc_frac = ps->moc_area_sr / (4.0 * kPi());
-    const double cov_frac = ps->covered_area_sr / (4.0 * kPi());
-    std::string range;
-    if (ps->sig_min <= ps->sig_max)
-        range = std::to_string(ps->sig_min) + " " + std::to_string(ps->sig_max);
-    if (ps->flags & AIO_HIPS_PRODUCT_SIGNAL) {
-        std::fprintf(stderr, "[hips] finalize: signal product\n");
-        if (!finalize_image_product(ps, "signal", "surface brightness", range, moc_frac, cov_frac)) {
-            return -3;
-        }
-    }
-    if (ps->flags & AIO_HIPS_PRODUCT_SUPPORT) {
-        std::fprintf(stderr, "[hips] finalize: support product\n");
-        if (!finalize_image_product(ps, "support", "coverage fraction", "", moc_frac, cov_frac)) {
-            return -4;
-        }
-    }
-    // variance/ivar 产品 (Drizzle 方差传播)
-    if (ps->flags & AIO_HIPS_PRODUCT_VARIANCE) {
-        std::fprintf(stderr, "[hips] finalize: variance product\n");
-        if (!finalize_image_product(ps, "variance", "variance", "", moc_frac, cov_frac)) {
-            return -7;
-        }
-    }
-    if (ps->flags & AIO_HIPS_PRODUCT_IVAR) {
-        std::fprintf(stderr, "[hips] finalize: ivar product\n");
-        if (!finalize_image_product(ps, "ivar", "inverse variance", "", moc_frac, cov_frac)) {
-            return -8;
-        }
-    }
-    ps->prof_finalize_products += std::chrono::duration<double>(
-        std::chrono::steady_clock::now() - t_p0).count();
-    const auto t_h0 = std::chrono::steady_clock::now();
-    if ((ps->flags & (AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
-                      AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR)) &&
-        !finalize_hierarchy(ps)) {
-        std::fprintf(stderr, "[hips] finalize: hierarchy failed\n");
-        return -5;
-    }
-    ps->prof_hierarchy_write += std::chrono::duration<double>(
-        std::chrono::steady_clock::now() - t_h0).count();
-    const auto t_s0 = std::chrono::steady_clock::now();
-    if ((ps->flags & AIO_HIPS_PRODUCT_SNR) && !finalize_snr_product(ps)) {
-        std::fprintf(stderr, "[hips] finalize: snr failed\n");
-        return -6;
-    }
-    ps->prof_finalize_snr += std::chrono::duration<double>(
-        std::chrono::steady_clock::now() - t_s0).count();
-    std::fprintf(stderr, "[hips] finalize: ok\n");
-    std::fprintf(stderr,
-                 "[hips][profile] transform=%.3fs fits_write=%.3fs "
-                 "hierarchy_accum=%.3fs products=%.3fs hierarchy_write=%.3fs "
-                 "snr=%.3fs total=%.3fs\n",
-                 ps->prof_transform, ps->prof_fits_write,
-                 ps->prof_hierarchy_accum, ps->prof_finalize_products,
-                 ps->prof_hierarchy_write, ps->prof_finalize_snr,
-                 std::chrono::duration<double>(
-                     std::chrono::steady_clock::now() - t_fin0).count());
-    // manifest.json
-    {
-        FILE* f = std::fopen((ps->out_dir + "/manifest.json").c_str(), "wb");
-        if (f) {
-            std::string prod_list;
-            struct { int flag; const char* name; } prods[] = {
-                {AIO_HIPS_PRODUCT_SIGNAL, "signal"},
-                {AIO_HIPS_PRODUCT_SUPPORT, "support"},
-                {AIO_HIPS_PRODUCT_VARIANCE, "variance"},
-                {AIO_HIPS_PRODUCT_IVAR, "ivar"},
-                {AIO_HIPS_PRODUCT_SNR, "snr"},
-            };
-            bool first = true;
-            for (const auto& p : prods) {
-                if (ps->flags & p.flag) {
-                    if (!first) prod_list += ", ";
-                    prod_list += "\"";
-                    prod_list += p.name;
-                    prod_list += "\"";
-                    first = false;
-                }
+int aio_hips_finalize(AioHipsProductSet* ps)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        g_hips_error.clear();
+        if (!ps) { set_error("null handle"); return -1; }
+        if (ps->finalized) { set_error("已 finalize"); return -2; }
+        ps->finalized = true;
+        // finalize 分段计时（粗粒度，低开销）
+        const auto t_fin0 = std::chrono::steady_clock::now();
+        std::fprintf(stderr, "[hips] finalize: n_leaf=%zu flags=%d\n",
+                     ps->leaf_ipix_list.size(), ps->flags);
+        const auto t_p0 = std::chrono::steady_clock::now();
+        const double moc_frac = ps->moc_area_sr / (4.0 * kPi());
+        const double cov_frac = ps->covered_area_sr / (4.0 * kPi());
+        std::string range;
+        if (ps->sig_min <= ps->sig_max)
+            range = std::to_string(ps->sig_min) + " " + std::to_string(ps->sig_max);
+        if (ps->flags & AIO_HIPS_PRODUCT_SIGNAL) {
+            std::fprintf(stderr, "[hips] finalize: signal product\n");
+            if (!finalize_image_product(ps, "signal", "surface brightness", range, moc_frac, cov_frac)) {
+                return -3;
             }
-            std::fprintf(f,
-                "{\n"
-                "  \"format_version\": 1,\n"
-                "  \"hips_version\": \"1.4\",\n"
-                "  \"nside\": %u,\n"
-                "  \"tile_width\": %u,\n"
-                "  \"data_type\": \"%s\",\n"
-                "  \"products\": [%s],\n"
-                "  \"n_leaf_tiles\": %zu,\n"
-                "  \"moc_sky_fraction\": %.8f,\n"
-                "  \"astrocs_covered_sky_fraction\": %.8f,\n"
-                "  \"signal_dtype\": \"%s\"\n"
-                "}\n",
-                ps->nside, ps->tile_width,
-                ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64",
-                prod_list.c_str(),
-                ps->leaf_ipix_list.size(), moc_frac, cov_frac,
-                ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64");
-            std::fclose(f);
         }
+        if (ps->flags & AIO_HIPS_PRODUCT_SUPPORT) {
+            std::fprintf(stderr, "[hips] finalize: support product\n");
+            if (!finalize_image_product(ps, "support", "coverage fraction", "", moc_frac, cov_frac)) {
+                return -4;
+            }
+        }
+        // variance/ivar 产品 (Drizzle 方差传播)
+        if (ps->flags & AIO_HIPS_PRODUCT_VARIANCE) {
+            std::fprintf(stderr, "[hips] finalize: variance product\n");
+            if (!finalize_image_product(ps, "variance", "variance", "", moc_frac, cov_frac)) {
+                return -7;
+            }
+        }
+        if (ps->flags & AIO_HIPS_PRODUCT_IVAR) {
+            std::fprintf(stderr, "[hips] finalize: ivar product\n");
+            if (!finalize_image_product(ps, "ivar", "inverse variance", "", moc_frac, cov_frac)) {
+                return -8;
+            }
+        }
+        ps->prof_finalize_products += std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_p0).count();
+        const auto t_h0 = std::chrono::steady_clock::now();
+        if ((ps->flags & (AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
+                          AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR)) &&
+            !finalize_hierarchy(ps)) {
+            std::fprintf(stderr, "[hips] finalize: hierarchy failed\n");
+            return -5;
+        }
+        ps->prof_hierarchy_write += std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_h0).count();
+        const auto t_s0 = std::chrono::steady_clock::now();
+        if ((ps->flags & AIO_HIPS_PRODUCT_SNR) && !finalize_snr_product(ps)) {
+            std::fprintf(stderr, "[hips] finalize: snr failed\n");
+            return -6;
+        }
+        ps->prof_finalize_snr += std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_s0).count();
+        std::fprintf(stderr, "[hips] finalize: ok\n");
+        std::fprintf(stderr,
+                     "[hips][profile] transform=%.3fs fits_write=%.3fs "
+                     "hierarchy_accum=%.3fs products=%.3fs hierarchy_write=%.3fs "
+                     "snr=%.3fs total=%.3fs\n",
+                     ps->prof_transform, ps->prof_fits_write,
+                     ps->prof_hierarchy_accum, ps->prof_finalize_products,
+                     ps->prof_hierarchy_write, ps->prof_finalize_snr,
+                     std::chrono::duration<double>(
+                         std::chrono::steady_clock::now() - t_fin0).count());
+        // manifest.json
+        {
+            FILE* f = std::fopen((ps->out_dir + "/manifest.json").c_str(), "wb");
+            if (f) {
+                std::string prod_list;
+                struct { int flag; const char* name; } prods[] = {
+                    {AIO_HIPS_PRODUCT_SIGNAL, "signal"},
+                    {AIO_HIPS_PRODUCT_SUPPORT, "support"},
+                    {AIO_HIPS_PRODUCT_VARIANCE, "variance"},
+                    {AIO_HIPS_PRODUCT_IVAR, "ivar"},
+                    {AIO_HIPS_PRODUCT_SNR, "snr"},
+                };
+                bool first = true;
+                for (const auto& p : prods) {
+                    if (ps->flags & p.flag) {
+                        if (!first) prod_list += ", ";
+                        prod_list += "\"";
+                        prod_list += p.name;
+                        prod_list += "\"";
+                        first = false;
+                    }
+                }
+                std::fprintf(f,
+                    "{\n"
+                    "  \"format_version\": 1,\n"
+                    "  \"hips_version\": \"1.4\",\n"
+                    "  \"nside\": %u,\n"
+                    "  \"tile_width\": %u,\n"
+                    "  \"data_type\": \"%s\",\n"
+                    "  \"products\": [%s],\n"
+                    "  \"n_leaf_tiles\": %zu,\n"
+                    "  \"moc_sky_fraction\": %.8f,\n"
+                    "  \"astrocs_covered_sky_fraction\": %.8f,\n"
+                    "  \"signal_dtype\": \"%s\"\n"
+                    "}\n",
+                    ps->nside, ps->tile_width,
+                    ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64",
+                    prod_list.c_str(),
+                    ps->leaf_ipix_list.size(), moc_frac, cov_frac,
+                    ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64");
+                std::fclose(f);
+            }
+        }
+        delete ps;
+        return 0;
+
     }
-    delete ps;
-    return 0;
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_error("unknown exception");
+        return -1;
+    }
 }
 
-int aio_hips_abort(AioHipsProductSet* ps) {
-    if (!ps) return 0;
-    delete ps;
-    return 0;
+int aio_hips_abort(AioHipsProductSet* ps)  {
+    // P1 (R9-A): C 边界异常屏障
+    try {
+        if (!ps) return 0;
+        delete ps;
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_error("unknown exception");
+        return -1;
+    }
 }
 
 const char* aio_hips_last_error(void) {
@@ -1157,60 +1244,71 @@ int aio_hips_write(
     int n_snr,
     const char* creator_did,
     const char* obs_title,
-    int moc_order) {
-    g_hips_error.clear();
-    if (!out_dir || !tiles || n_tiles <= 0) { set_error("参数无效"); return -1; }
-    AioHipsProductSet* ps = aio_hips_product_begin(
-        out_dir, nside, tile_width, signal_dtype, AIO_HIPS_PRODUCT_ALL,
-        creator_did, obs_title, nullptr, 0.0, nullptr, (uint32_t)moc_order);
-    if (!ps) return -2;
-    const double A_cell = 4.0 * kPi() / (12.0 * (double)nside * nside);
-    std::vector<float> fluxF, areaF;
-    std::vector<double> fluxD, areaD;
-    for (int t = 0; t < n_tiles; ++t) {
-        AstroSphereTileView view;
-        std::memset(&view, 0, sizeof(view));
-        view.parent_ipix = tiles[t].parent_ipix;
-        view.leaf_order = ilog2_u64(nside);
-        view.width = 512;
-        view.data_type = signal_dtype;
-        const size_t n = 512 * 512;
-        if (signal_dtype == AIO_HIPS_FLOAT32) {
-            fluxF.resize(n); areaF.resize(n);
-            const float* sig = (const float*)tiles[t].signal;
-            const uint8_t* su = tiles[t].support;
-            for (size_t i = 0; i < n; ++i) {
-                double sfrac = su ? su[i] / 255.0 : 1.0;
-                fluxF[i] = (float)(sig[i] * sfrac);
-                areaF[i] = (float)(sfrac * A_cell);
+    int moc_order)  {
+    // P1 (R9-A): C 边界异常屏障 (兼容旧接口入口)
+    try {
+        g_hips_error.clear();
+        if (!out_dir || !tiles || n_tiles <= 0) { set_error("参数无效"); return -1; }
+        AioHipsProductSet* ps = aio_hips_product_begin(
+            out_dir, nside, tile_width, signal_dtype, AIO_HIPS_PRODUCT_ALL,
+            creator_did, obs_title, nullptr, 0.0, nullptr, (uint32_t)moc_order);
+        if (!ps) return -2;
+        const double A_cell = 4.0 * kPi() / (12.0 * (double)nside * nside);
+        std::vector<float> fluxF, areaF;
+        std::vector<double> fluxD, areaD;
+        for (int t = 0; t < n_tiles; ++t) {
+            AstroSphereTileView view;
+            std::memset(&view, 0, sizeof(view));
+            view.parent_ipix = tiles[t].parent_ipix;
+            view.leaf_order = ilog2_u64(nside);
+            view.width = 512;
+            view.data_type = signal_dtype;
+            const size_t n = 512 * 512;
+            if (signal_dtype == AIO_HIPS_FLOAT32) {
+                fluxF.resize(n); areaF.resize(n);
+                const float* sig = (const float*)tiles[t].signal;
+                const uint8_t* su = tiles[t].support;
+                for (size_t i = 0; i < n; ++i) {
+                    double sfrac = su ? su[i] / 255.0 : 1.0;
+                    fluxF[i] = (float)(sig[i] * sfrac);
+                    areaF[i] = (float)(sfrac * A_cell);
+                }
+                view.flux_sum = fluxF.data();
+                view.covered_area = areaF.data();
+            } else {
+                fluxD.resize(n); areaD.resize(n);
+                const double* sig = (const double*)tiles[t].signal;
+                const uint8_t* su = tiles[t].support;
+                for (size_t i = 0; i < n; ++i) {
+                    double sfrac = su ? su[i] / 255.0 : 1.0;
+                    fluxD[i] = sig[i] * sfrac;
+                    areaD[i] = sfrac * A_cell;
+                }
+                view.flux_sum = fluxD.data();
+                view.covered_area = areaD.data();
             }
-            view.flux_sum = fluxF.data();
-            view.covered_area = areaF.data();
-        } else {
-            fluxD.resize(n); areaD.resize(n);
-            const double* sig = (const double*)tiles[t].signal;
-            const uint8_t* su = tiles[t].support;
-            for (size_t i = 0; i < n; ++i) {
-                double sfrac = su ? su[i] / 255.0 : 1.0;
-                fluxD[i] = sig[i] * sfrac;
-                areaD[i] = sfrac * A_cell;
+            int rc = aio_hips_write_signal_support_tile(ps, &view);
+            if (rc != 0) {
+                aio_hips_abort(ps);
+                return rc;
             }
-            view.flux_sum = fluxD.data();
-            view.covered_area = areaD.data();
         }
-        int rc = aio_hips_write_signal_support_tile(ps, &view);
-        if (rc != 0) {
-            aio_hips_abort(ps);
-            return rc;
+        if (snr_points && n_snr > 0) {
+            if (aio_hips_write_snr_points(ps, snr_points, n_snr) != 0) {
+                aio_hips_abort(ps);
+                return -6;
+            }
         }
+        return aio_hips_finalize(ps);
+
     }
-    if (snr_points && n_snr > 0) {
-        if (aio_hips_write_snr_points(ps, snr_points, n_snr) != 0) {
-            aio_hips_abort(ps);
-            return -6;
-        }
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_error("unknown exception");
+        return -1;
     }
-    return aio_hips_finalize(ps);
 }
 
 } // extern "C"

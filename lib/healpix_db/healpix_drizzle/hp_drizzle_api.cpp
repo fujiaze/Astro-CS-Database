@@ -161,6 +161,10 @@ HP_DRIZZLE_API int hp_drizzle_reverse_run(
     }
 }
 
+// P1 (R9-A): hp_drizzle_reverse_capability / hp_drizzle_reverse_version
+// 豁免异常屏障 (bughunt_p1_batchI): 二者为无参常量返回 (位标志/字符串
+// 字面量), 无任何异常源; 本文件其余 C 入口 (reverse/fits_to_ahpx/run/
+// run_hips) 均已有 try/catch 屏障。
 HP_DRIZZLE_API uint32_t hp_drizzle_reverse_capability(void) {
     return 0x01u | 0x02u | 0x04u | 0x08u | 0x10u | 0x20u;
 }
@@ -1219,11 +1223,31 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                                    HpDrizzleResult* result,
                                    int precision_mode)
 {
+    // P1 (R9-A): C 边界异常屏障 (bughunt_p1_batchI; 家族方案对齐 f1cb487c
+    // aio_api.cpp P0-4 口径)。run_drizzle_internal 内部已有 P0-4 全包屏障
+    // (返回 -11); 此薄壳为防御 run_drizzle_internal 未来改动/委托链变化,
+    // 错误码对齐 -11 (内部异常), 正常路径与修复前逐行等价。
+    try {
     return run_drizzle_internal(frame, nside, nested, pixfrac,
                                 output_path, nullptr,
                                 /*write_hips=*/false,
                                 /*write_legacy_hiss=*/(output_path && output_path[0] != '\0'),
                                 result, precision_mode);
+    } catch (const std::exception& e) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: C 边界捕获异常: %s\n", e.what());
+        if (result) {
+            std::memset(result, 0, sizeof(HpDrizzleResult));
+            setErrorMsg(result, std::string("内部异常: ") + e.what());
+        }
+        return -11;
+    } catch (...) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: C 边界捕获未知异常\n");
+        if (result) {
+            std::memset(result, 0, sizeof(HpDrizzleResult));
+            setErrorMsg(result, "内部未知异常");
+        }
+        return -11;
+    }
 }
 
 // ============================================================================
@@ -1239,9 +1263,26 @@ HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
                                        HpDrizzleResult* result,
                                        int precision_mode)
 {
+    // P1 (R9-A): C 边界异常屏障, 同 hp_drizzle_run 薄壳 (对齐 -11)。
+    try {
     return run_drizzle_internal(frame, nside, nested, pixfrac,
                                 legacy_hiss_path, hips_dir,
                                 /*write_hips=*/true,
                                 /*write_legacy_hiss=*/(legacy_hiss_path && legacy_hiss_path[0] != '\0'),
                                 result, precision_mode);
+    } catch (const std::exception& e) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run_hips: C 边界捕获异常: %s\n", e.what());
+        if (result) {
+            std::memset(result, 0, sizeof(HpDrizzleResult));
+            setErrorMsg(result, std::string("内部异常: ") + e.what());
+        }
+        return -11;
+    } catch (...) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run_hips: C 边界捕获未知异常\n");
+        if (result) {
+            std::memset(result, 0, sizeof(HpDrizzleResult));
+            setErrorMsg(result, "内部未知异常");
+        }
+        return -11;
+    }
 }

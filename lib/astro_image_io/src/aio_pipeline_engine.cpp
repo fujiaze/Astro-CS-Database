@@ -243,32 +243,60 @@ static int execute_stage(PipelineEngine* eng, PipelineStage stage,
 // ============================================================================
 // 创建/销毁引擎
 // ============================================================================
-AIO_EXPORT PipelineEngine* aio_pipeline_engine_create(void) {
-    PipelineEngine* eng = new (std::nothrow) PipelineEngine();
-    if (!eng) return nullptr;
+// ============================================================================
+// P1 (R9-A): C 边界异常屏障 (bughunt_p1_batchI; 家族方案对齐 f1cb487c
+// aio_api.cpp P0-4 口径)。本文件 9 个 AIO_EXPORT 入口此前 0 个有 try 保护:
+// engine 内部 std::string/vector/params 解析与 stage 调度链上的分配与构造
+// 异常可跨 C ABI 传播 (UB/terminate)。统一口径 (f1cb487c 家族): 指针/
+// const char* -> nullptr; int -> -1; void -> 仅日志。正常路径与修复前
+// 逐行等价。
+// ============================================================================
+AIO_EXPORT PipelineEngine* aio_pipeline_engine_create(void)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        PipelineEngine* eng = new (std::nothrow) PipelineEngine();
+        if (!eng) return nullptr;
 
-    memset(eng->handlers, 0, sizeof(eng->handlers));
-    memset(eng->params, 0, sizeof(eng->params));
-    eng->debug_dir[0] = '\0';
-    eng->debug_stage_mask = 0;
-    eng->debug_skip_pixels = 0;
-    eng->auto_free = 1;
-    for (int i = 0; i < 5; ++i) eng->block_drop[i] = nullptr;
+        memset(eng->handlers, 0, sizeof(eng->handlers));
+        memset(eng->params, 0, sizeof(eng->params));
+        eng->debug_dir[0] = '\0';
+        eng->debug_stage_mask = 0;
+        eng->debug_skip_pixels = 0;
+        eng->auto_free = 1;
+        for (int i = 0; i < 5; ++i) eng->block_drop[i] = nullptr;
 
-    fprintf(stderr, "[engine] created (auto_free=1)\n");
-    return eng;
+        fprintf(stderr, "[engine] created (auto_free=1)\n");
+        return eng;
+
+    }
+    catch (const std::exception &e) {
+        fprintf(stderr, "[engine] exception: %s\n", e.what());
+        return nullptr;
+    } catch (...) {
+        fprintf(stderr, "[engine] unknown exception\n");
+        return nullptr;
+    }
 }
 
-AIO_EXPORT void aio_pipeline_engine_destroy(PipelineEngine* eng) {
-    if (!eng) return;
-    for (int i = 0; i < 5; ++i) {
-        if (eng->block_drop[i]) {
-            free(eng->block_drop[i]);
-            eng->block_drop[i] = nullptr;
+AIO_EXPORT void aio_pipeline_engine_destroy(PipelineEngine* eng)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!eng) return;
+        for (int i = 0; i < 5; ++i) {
+            if (eng->block_drop[i]) {
+                free(eng->block_drop[i]);
+                eng->block_drop[i] = nullptr;
+            }
         }
+        fprintf(stderr, "[engine] destroyed\n");
+        delete eng;
+
     }
-    fprintf(stderr, "[engine] destroyed\n");
-    delete eng;
+    catch (const std::exception &e) {
+        fprintf(stderr, "[engine] exception: %s\n", e.what());
+    } catch (...) {
+        fprintf(stderr, "[engine] unknown exception\n");
+    }
 }
 
 // ============================================================================
@@ -277,18 +305,29 @@ AIO_EXPORT void aio_pipeline_engine_destroy(PipelineEngine* eng) {
 AIO_EXPORT int aio_pipeline_engine_register(PipelineEngine* eng,
                                              PipelineStage stage,
                                              PipelineStageHandler handler,
-                                             const void* params) {
-    if (!eng) return -1;
-    int idx = static_cast<int>(stage);
-    if (idx < 0 || idx >= 5) return -2;
+                                             const void* params)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!eng) return -1;
+        int idx = static_cast<int>(stage);
+        if (idx < 0 || idx >= 5) return -2;
 
-    eng->handlers[idx] = handler;
-    eng->params[idx] = params;
+        eng->handlers[idx] = handler;
+        eng->params[idx] = params;
 
-    fprintf(stderr, "[engine] registered stage %s (handler=%p, params=%p)\n",
-            aio_pipeline_stage_name(stage),
-            (void*)handler, (void*)params);
-    return 0;
+        fprintf(stderr, "[engine] registered stage %s (handler=%p, params=%p)\n",
+                aio_pipeline_stage_name(stage),
+                (void*)handler, (void*)params);
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        fprintf(stderr, "[engine] exception: %s\n", e.what());
+        return -1;
+    } catch (...) {
+        fprintf(stderr, "[engine] unknown exception\n");
+        return -1;
+    }
 }
 
 // ============================================================================
@@ -297,33 +336,55 @@ AIO_EXPORT int aio_pipeline_engine_register(PipelineEngine* eng,
 AIO_EXPORT int aio_pipeline_engine_set_debug(PipelineEngine* eng,
                                               const char* dir,
                                               int stage_mask,
-                                              int skip_pixels) {
-    if (!eng) return -1;
+                                              int skip_pixels)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!eng) return -1;
 
-    if (dir && dir[0]) {
-        // 截断到 511 字符
-        strncpy(eng->debug_dir, dir, sizeof(eng->debug_dir) - 1);
-        eng->debug_dir[sizeof(eng->debug_dir) - 1] = '\0';
-    } else {
-        eng->debug_dir[0] = '\0';
+        if (dir && dir[0]) {
+            // 截断到 511 字符
+            strncpy(eng->debug_dir, dir, sizeof(eng->debug_dir) - 1);
+            eng->debug_dir[sizeof(eng->debug_dir) - 1] = '\0';
+        } else {
+            eng->debug_dir[0] = '\0';
+        }
+        eng->debug_stage_mask = stage_mask;
+        eng->debug_skip_pixels = skip_pixels;
+
+        fprintf(stderr, "[engine] debug: dir='%s', stage_mask=0x%x, skip_pixels=%d\n",
+                eng->debug_dir, eng->debug_stage_mask, eng->debug_skip_pixels);
+        return 0;
+
     }
-    eng->debug_stage_mask = stage_mask;
-    eng->debug_skip_pixels = skip_pixels;
-
-    fprintf(stderr, "[engine] debug: dir='%s', stage_mask=0x%x, skip_pixels=%d\n",
-            eng->debug_dir, eng->debug_stage_mask, eng->debug_skip_pixels);
-    return 0;
+    catch (const std::exception &e) {
+        fprintf(stderr, "[engine] exception: %s\n", e.what());
+        return -1;
+    } catch (...) {
+        fprintf(stderr, "[engine] unknown exception\n");
+        return -1;
+    }
 }
 
 // ============================================================================
 // 设置自动释放
 // ============================================================================
 AIO_EXPORT int aio_pipeline_engine_set_auto_free(PipelineEngine* eng,
-                                                   int auto_free) {
-    if (!eng) return -1;
-    eng->auto_free = auto_free ? 1 : 0;
-    fprintf(stderr, "[engine] auto_free=%d\n", eng->auto_free);
-    return 0;
+                                                   int auto_free)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!eng) return -1;
+        eng->auto_free = auto_free ? 1 : 0;
+        fprintf(stderr, "[engine] auto_free=%d\n", eng->auto_free);
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        fprintf(stderr, "[engine] exception: %s\n", e.what());
+        return -1;
+    } catch (...) {
+        fprintf(stderr, "[engine] unknown exception\n");
+        return -1;
+    }
 }
 
 // ============================================================================
@@ -331,29 +392,40 @@ AIO_EXPORT int aio_pipeline_engine_set_auto_free(PipelineEngine* eng,
 // ============================================================================
 AIO_EXPORT int aio_pipeline_engine_set_block_drop(PipelineEngine* eng,
                                                     PipelineStage stage,
-                                                    const char* block_names) {
-    if (!eng) return -1;
-    int idx = static_cast<int>(stage);
-    if (idx < 0 || idx >= 5) return -2;
+                                                    const char* block_names)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!eng) return -1;
+        int idx = static_cast<int>(stage);
+        if (idx < 0 || idx >= 5) return -2;
 
-    // 释放旧策略
-    if (eng->block_drop[idx]) {
-        free(eng->block_drop[idx]);
-        eng->block_drop[idx] = nullptr;
+        // 释放旧策略
+        if (eng->block_drop[idx]) {
+            free(eng->block_drop[idx]);
+            eng->block_drop[idx] = nullptr;
+        }
+        if (block_names && block_names[0]) {
+            eng->block_drop[idx] =
+    #ifdef _WIN32
+                _strdup(block_names);
+    #else
+                strdup(block_names);
+    #endif
+            if (!eng->block_drop[idx]) return -3;
+        }
+        fprintf(stderr, "[engine] block_drop[%s] = '%s'\n",
+                aio_pipeline_stage_name(stage),
+                block_names ? block_names : "(null)");
+        return 0;
+
     }
-    if (block_names && block_names[0]) {
-        eng->block_drop[idx] =
-#ifdef _WIN32
-            _strdup(block_names);
-#else
-            strdup(block_names);
-#endif
-        if (!eng->block_drop[idx]) return -3;
+    catch (const std::exception &e) {
+        fprintf(stderr, "[engine] exception: %s\n", e.what());
+        return -1;
+    } catch (...) {
+        fprintf(stderr, "[engine] unknown exception\n");
+        return -1;
     }
-    fprintf(stderr, "[engine] block_drop[%s] = '%s'\n",
-            aio_pipeline_stage_name(stage),
-            block_names ? block_names : "(null)");
-    return 0;
 }
 
 // ============================================================================
@@ -362,35 +434,46 @@ AIO_EXPORT int aio_pipeline_engine_set_block_drop(PipelineEngine* eng,
 AIO_EXPORT int aio_pipeline_engine_run_single(PipelineEngine* eng,
                                                 PipelineFrame* frame,
                                                 int from_stage, int to_stage,
-                                                char* error_msg, int error_capacity) {
-    if (!eng || !frame) {
-        if (error_msg && error_capacity > 0) {
-            snprintf(error_msg, error_capacity, "null engine or frame");
+                                                char* error_msg, int error_capacity)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!eng || !frame) {
+            if (error_msg && error_capacity > 0) {
+                snprintf(error_msg, error_capacity, "null engine or frame");
+            }
+            return -1;
         }
+        if (from_stage < 0 || from_stage > 4 || to_stage < 0 || to_stage > 4 || from_stage > to_stage) {
+            if (error_msg && error_capacity > 0) {
+                snprintf(error_msg, error_capacity, "invalid stage range: %d -> %d", from_stage, to_stage);
+            }
+            return -2;
+        }
+
+        std::string src = get_frame_source_path(frame);
+        fprintf(stderr, "[engine] === run_single: %s, stages %d->%d ===\n",
+                src.empty() ? "(unnamed)" : src.c_str(),
+                from_stage, to_stage);
+
+        for (int s = from_stage; s <= to_stage; ++s) {
+            PipelineStage stage = static_cast<PipelineStage>(s);
+            int ret = execute_stage(eng, stage, frame, error_msg, error_capacity);
+            if (ret != 0) {
+                return ret;
+            }
+        }
+
+        fprintf(stderr, "[engine] === run_single: success ===\n");
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        fprintf(stderr, "[engine] exception: %s\n", e.what());
+        return -1;
+    } catch (...) {
+        fprintf(stderr, "[engine] unknown exception\n");
         return -1;
     }
-    if (from_stage < 0 || from_stage > 4 || to_stage < 0 || to_stage > 4 || from_stage > to_stage) {
-        if (error_msg && error_capacity > 0) {
-            snprintf(error_msg, error_capacity, "invalid stage range: %d -> %d", from_stage, to_stage);
-        }
-        return -2;
-    }
-
-    std::string src = get_frame_source_path(frame);
-    fprintf(stderr, "[engine] === run_single: %s, stages %d->%d ===\n",
-            src.empty() ? "(unnamed)" : src.c_str(),
-            from_stage, to_stage);
-
-    for (int s = from_stage; s <= to_stage; ++s) {
-        PipelineStage stage = static_cast<PipelineStage>(s);
-        int ret = execute_stage(eng, stage, frame, error_msg, error_capacity);
-        if (ret != 0) {
-            return ret;
-        }
-    }
-
-    fprintf(stderr, "[engine] === run_single: success ===\n");
-    return 0;
 }
 
 // ============================================================================
@@ -400,125 +483,147 @@ AIO_EXPORT int aio_pipeline_engine_run_batch(PipelineEngine* eng,
                                                PipelineFrame** frames, int n_frames,
                                                int n_threads,
                                                int from_stage, int to_stage,
-                                               char* error_msg, int error_capacity) {
-    if (!eng || !frames || n_frames <= 0) {
-        if (error_msg && error_capacity > 0) {
-            snprintf(error_msg, error_capacity, "invalid args: eng=%p frames=%p n=%d",
-                     (void*)eng, (void*)frames, n_frames);
+                                               char* error_msg, int error_capacity)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!eng || !frames || n_frames <= 0) {
+            if (error_msg && error_capacity > 0) {
+                snprintf(error_msg, error_capacity, "invalid args: eng=%p frames=%p n=%d",
+                         (void*)eng, (void*)frames, n_frames);
+            }
+            return -1;
         }
+        if (from_stage < 0 || from_stage > 4 || to_stage < 0 || to_stage > 4 || from_stage > to_stage) {
+            if (error_msg && error_capacity > 0) {
+                snprintf(error_msg, error_capacity, "invalid stage range: %d -> %d", from_stage, to_stage);
+            }
+            return -2;
+        }
+
+        if (n_threads <= 0) n_threads = 16;
+
+        // 判断是否包含 STACK 阶段
+        int has_stack = (to_stage >= STAGE_STACK);
+        int pre_stack_end = has_stack ? (STAGE_STACK - 1) : to_stage;
+
+        fprintf(stderr, "[engine] === run_batch: %d frames, %d threads, stages %d->%d ===\n",
+                n_frames, n_threads, from_stage, to_stage);
+
+        // Phase 1: CALIBRATE → DRIZZLE (并行)
+        int n_success = 0;
+        int first_error_ret = 0;
+        char first_error[512] = {0};
+
+    #ifdef _OPENMP
+        omp_set_num_threads(n_threads);
+    #endif
+
+        #pragma omp parallel for reduction(+:n_success) schedule(dynamic, 1)
+        for (int i = 0; i < n_frames; ++i) {
+            PipelineFrame* frame = frames[i];
+            if (!frame) {
+                #pragma omp critical
+                {
+                    fprintf(stderr, "[engine] frame[%d]: null, skipping\n", i);
+                }
+                continue;
+            }
+
+            char local_error[512] = {0};
+            std::string src = get_frame_source_path(frame);
+            fprintf(stderr, "[engine] frame[%d]: %s, processing stages %d->%d\n",
+                    i, src.empty() ? "(unnamed)" : src.c_str(),
+                    from_stage, pre_stack_end);
+
+            int ret = 0;
+            for (int s = from_stage; s <= pre_stack_end; ++s) {
+                PipelineStage stage = static_cast<PipelineStage>(s);
+                ret = execute_stage(eng, stage, frame, local_error, sizeof(local_error) - 1);
+                if (ret != 0) break;
+            }
+
+            if (ret == 0) {
+                n_success++;
+                fprintf(stderr, "[engine] frame[%d]: pre-stack success\n", i);
+            } else {
+                #pragma omp critical
+                {
+                    if (first_error_ret == 0) {
+                        first_error_ret = ret;
+                        std::memcpy(first_error, local_error,
+                                    sizeof(first_error) - 1);
+                        first_error[sizeof(first_error) - 1] = '\0';
+                    }
+                    fprintf(stderr, "[engine] frame[%d]: FAILED (ret=%d): %s\n",
+                            i, ret, local_error);
+                }
+            }
+        }
+
+        fprintf(stderr, "[engine] pre-stack phase done: %d/%d success\n", n_success, n_frames);
+
+        // Phase 2: STACK (串行)
+        if (has_stack && n_success > 0) {
+            // 注意: STACK 阶段是多帧合并，需要 Python 层编排
+            // C++ 引擎对每帧调用 STACK handler（若已注册）
+            fprintf(stderr, "[engine] WARNING: STACK stage in batch mode requires Python-layer orchestration\n");
+            fprintf(stderr, "[engine] STACK handler will be called per-frame (if registered)\n");
+
+            if (eng->handlers[STAGE_STACK]) {
+                for (int i = 0; i < n_frames; ++i) {
+                    if (!frames[i]) continue;
+                    if (!(frames[i]->stages_completed & (1 << STAGE_DRIZZLE))) continue;
+
+                    char local_error[512] = {0};
+                    int ret = execute_stage(eng, STAGE_STACK, frames[i],
+                                            local_error, sizeof(local_error) - 1);
+                    if (ret != 0) {
+                        fprintf(stderr, "[engine] frame[%d] STACK: FAILED: %s\n", i, local_error);
+                    }
+                }
+            }
+        }
+
+        if (n_success < n_frames && error_msg && error_capacity > 0) {
+            snprintf(error_msg, error_capacity, "%d/%d frames failed. First error: %s",
+                     n_frames - n_success, n_frames,
+                     first_error[0] ? first_error : "unknown");
+        }
+
+        fprintf(stderr, "[engine] === run_batch done: %d/%d success ===\n", n_success, n_frames);
+        return n_success;
+
+    }
+    catch (const std::exception &e) {
+        fprintf(stderr, "[engine] exception: %s\n", e.what());
+        return -1;
+    } catch (...) {
+        fprintf(stderr, "[engine] unknown exception\n");
         return -1;
     }
-    if (from_stage < 0 || from_stage > 4 || to_stage < 0 || to_stage > 4 || from_stage > to_stage) {
-        if (error_msg && error_capacity > 0) {
-            snprintf(error_msg, error_capacity, "invalid stage range: %d -> %d", from_stage, to_stage);
-        }
-        return -2;
-    }
-
-    if (n_threads <= 0) n_threads = 16;
-
-    // 判断是否包含 STACK 阶段
-    int has_stack = (to_stage >= STAGE_STACK);
-    int pre_stack_end = has_stack ? (STAGE_STACK - 1) : to_stage;
-
-    fprintf(stderr, "[engine] === run_batch: %d frames, %d threads, stages %d->%d ===\n",
-            n_frames, n_threads, from_stage, to_stage);
-
-    // Phase 1: CALIBRATE → DRIZZLE (并行)
-    int n_success = 0;
-    int first_error_ret = 0;
-    char first_error[512] = {0};
-
-#ifdef _OPENMP
-    omp_set_num_threads(n_threads);
-#endif
-
-    #pragma omp parallel for reduction(+:n_success) schedule(dynamic, 1)
-    for (int i = 0; i < n_frames; ++i) {
-        PipelineFrame* frame = frames[i];
-        if (!frame) {
-            #pragma omp critical
-            {
-                fprintf(stderr, "[engine] frame[%d]: null, skipping\n", i);
-            }
-            continue;
-        }
-
-        char local_error[512] = {0};
-        std::string src = get_frame_source_path(frame);
-        fprintf(stderr, "[engine] frame[%d]: %s, processing stages %d->%d\n",
-                i, src.empty() ? "(unnamed)" : src.c_str(),
-                from_stage, pre_stack_end);
-
-        int ret = 0;
-        for (int s = from_stage; s <= pre_stack_end; ++s) {
-            PipelineStage stage = static_cast<PipelineStage>(s);
-            ret = execute_stage(eng, stage, frame, local_error, sizeof(local_error) - 1);
-            if (ret != 0) break;
-        }
-
-        if (ret == 0) {
-            n_success++;
-            fprintf(stderr, "[engine] frame[%d]: pre-stack success\n", i);
-        } else {
-            #pragma omp critical
-            {
-                if (first_error_ret == 0) {
-                    first_error_ret = ret;
-                    std::memcpy(first_error, local_error,
-                                sizeof(first_error) - 1);
-                    first_error[sizeof(first_error) - 1] = '\0';
-                }
-                fprintf(stderr, "[engine] frame[%d]: FAILED (ret=%d): %s\n",
-                        i, ret, local_error);
-            }
-        }
-    }
-
-    fprintf(stderr, "[engine] pre-stack phase done: %d/%d success\n", n_success, n_frames);
-
-    // Phase 2: STACK (串行)
-    if (has_stack && n_success > 0) {
-        // 注意: STACK 阶段是多帧合并，需要 Python 层编排
-        // C++ 引擎对每帧调用 STACK handler（若已注册）
-        fprintf(stderr, "[engine] WARNING: STACK stage in batch mode requires Python-layer orchestration\n");
-        fprintf(stderr, "[engine] STACK handler will be called per-frame (if registered)\n");
-
-        if (eng->handlers[STAGE_STACK]) {
-            for (int i = 0; i < n_frames; ++i) {
-                if (!frames[i]) continue;
-                if (!(frames[i]->stages_completed & (1 << STAGE_DRIZZLE))) continue;
-
-                char local_error[512] = {0};
-                int ret = execute_stage(eng, STAGE_STACK, frames[i],
-                                        local_error, sizeof(local_error) - 1);
-                if (ret != 0) {
-                    fprintf(stderr, "[engine] frame[%d] STACK: FAILED: %s\n", i, local_error);
-                }
-            }
-        }
-    }
-
-    if (n_success < n_frames && error_msg && error_capacity > 0) {
-        snprintf(error_msg, error_capacity, "%d/%d frames failed. First error: %s",
-                 n_frames - n_success, n_frames,
-                 first_error[0] ? first_error : "unknown");
-    }
-
-    fprintf(stderr, "[engine] === run_batch done: %d/%d success ===\n", n_success, n_frames);
-    return n_success;
 }
 
 // ============================================================================
 // 阶段名称
 // ============================================================================
-AIO_EXPORT const char* aio_pipeline_stage_name(PipelineStage stage) {
-    switch (stage) {
-        case STAGE_CALIBRATE:   return "calibrate";
-        case STAGE_PLATESOLVE:  return "platesolve";
-        case STAGE_PHOTOMETRIC: return "photometric";
-        case STAGE_DRIZZLE:     return "drizzle";
-        case STAGE_STACK:       return "stack";
-        default:                return "unknown";
+AIO_EXPORT const char* aio_pipeline_stage_name(PipelineStage stage)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        switch (stage) {
+            case STAGE_CALIBRATE:   return "calibrate";
+            case STAGE_PLATESOLVE:  return "platesolve";
+            case STAGE_PHOTOMETRIC: return "photometric";
+            case STAGE_DRIZZLE:     return "drizzle";
+            case STAGE_STACK:       return "stack";
+            default:                return "unknown";
+        }
+
+    }
+    catch (const std::exception &e) {
+        fprintf(stderr, "[engine] exception: %s\n", e.what());
+        return nullptr;
+    } catch (...) {
+        fprintf(stderr, "[engine] unknown exception\n");
+        return nullptr;
     }
 }

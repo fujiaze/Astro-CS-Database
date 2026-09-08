@@ -551,11 +551,35 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
         return -1;
     }
 
+    // P2 (R9-A): cfitsio 路径对齐手写路径 parse_fits_header 的 65535 上限口径。
+    // 恶意压缩头 NAXISn 巨值此前无界进入分配/索引计算 (gray[y*w+x] 的 int
+    // 乘法溢出、巨量 malloc)。FITS 标准对 NAXISn 无此上限, 但本项目合法
+    // CCD 帧/HiPS tile 远小于 65535, 与手写路径统一口径。负值/0 一并拒绝
+    // (此前直接进入 n_pixels 的 size_t 转换会回绕为巨值)。
+    for (int i = 0; i < naxis && i < 3; i++) {
+        if (naxes[i] <= 0 || naxes[i] > 65535) {
+            aio_log(AIO_LOG_ERROR, "FITS", "NAXIS%d %ld out of range [1,65535] (%s)",
+                    i + 1, naxes[i], path);
+            fits_close_file(fptr, &status);
+            return -1;
+        }
+    }
+
     int w = (naxis >= 1) ? (int)naxes[0] : 1;
     int h = (naxis >= 2) ? (int)naxes[1] : 1;
     int c = (naxis >= 3 && naxes[2] > 1) ? (int)naxes[2] : 1;
     size_t n_pixels = (size_t)w * (size_t)h * (size_t)c;
     bool is_fp64 = (aio_internal_is_fp64() != 0);
+
+    // P2 (R9-A): 对齐手写路径 FITS_MAX_DATA_BYTES 1GB 分配上限口径。
+    // 65535 上限单独仍允许 ~17GB(FP32)/~34GB(FP64) 的 2D 帧, 与手写路径
+    // data_size 上限兜底一致, 超限硬失败禁止巨量分配打爆内存。
+    if (n_pixels > FITS_MAX_DATA_BYTES / sizeof(double)) {
+        aio_log(AIO_LOG_ERROR, "FITS", "Pixel count %zu exceeds allocation limit (%s)",
+                n_pixels, path);
+        fits_close_file(fptr, &status);
+        return -1;
+    }
 
     if (!header_only) {
         if (is_fp64) {
@@ -576,9 +600,12 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
             if (c > 1) {
                 double *gray = (double *)malloc((size_t)w * (size_t)h * sizeof(double));
                 if (gray) {
+                    // P2 (R9-A): size_t 索引卫生 —— w*h 乘积经 65535 上限后
+                    // 仍可达 ~4.29e9 > INT_MAX, int 乘法 y*w 溢出为 UB。
                     for (int y = 0; y < h; y++)
                         for (int x = 0; x < w; x++)
-                            gray[y * w + x] = pixel_data_f64[y * w + x];
+                            gray[(size_t)y * (size_t)w + (size_t)x] =
+                                pixel_data_f64[(size_t)y * (size_t)w + (size_t)x];
                     free(pixel_data_f64);
                     pixel_data_f64 = gray;
                 }
@@ -605,9 +632,11 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
             if (c > 1) {
                 float *gray = (float *)malloc((size_t)w * (size_t)h * sizeof(float));
                 if (gray) {
+                    // P2 (R9-A): size_t 索引卫生, 同 FP64 分支。
                     for (int y = 0; y < h; y++)
                         for (int x = 0; x < w; x++)
-                            gray[y * w + x] = pixel_data[y * w + x];
+                            gray[(size_t)y * (size_t)w + (size_t)x] =
+                                pixel_data[(size_t)y * (size_t)w + (size_t)x];
                     free(pixel_data);
                     pixel_data = gray;
                 }
@@ -619,7 +648,18 @@ static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool head
         }
     } else {
         // 与普通 FITS header-only 行为一致: 分配零缓冲
+        // P1 (R9-A): calloc 失败必须走既有错误返回 —— 手写路径
+        // fits_read_header_only 已在 f1cb487c 加 NULL 检查, 此处为漏改的
+        // cfitsio 面。恶意/巨量 geometry (已限 [1,65535]) 或内存不足时
+        // 返回 NULL, 上层 aio_read_header_only 直接解引用崩溃。
         out->data = (float *)calloc((size_t)w * (size_t)h, sizeof(float));
+        if (!out->data) {
+            aio_log(AIO_LOG_ERROR, "FITS",
+                    "Header-only pixel buffer allocation failed (%dx%d)", w, h);
+            status = 0;
+            fits_close_file(fptr, &status);
+            return -1;
+        }
         out->data_f64 = nullptr;
         out->dtype = is_fp64 ? 1 : 0;
     }
@@ -820,9 +860,12 @@ int fits_read_file(const char *path, AIOImageData *out) {
         if (c > 1) {
             double *gray = (double *)malloc((size_t)w * (size_t)h * sizeof(double));
             if (gray) {
+                // P2 (R9-A): size_t 索引卫生, 同 cfitsio 路径 gray 分支
+                // (w*h 可达 ~4.29e9 > INT_MAX, int 乘法溢出为 UB)。
                 for (int y = 0; y < h; y++)
                     for (int x = 0; x < w; x++)
-                        gray[y * w + x] = pixel_data_f64[0 * w * h + y * w + x];
+                        gray[(size_t)y * (size_t)w + (size_t)x] =
+                            pixel_data_f64[(size_t)y * (size_t)w + (size_t)x];
                 free(pixel_data_f64);
                 pixel_data_f64 = gray;
                 c = 1;
@@ -850,9 +893,11 @@ int fits_read_file(const char *path, AIOImageData *out) {
         if (c > 1) {
             float *gray = (float *)malloc((size_t)w * (size_t)h * sizeof(float));
             if (gray) {
+                // P2 (R9-A): size_t 索引卫生, 同上。
                 for (int y = 0; y < h; y++)
                     for (int x = 0; x < w; x++)
-                        gray[y * w + x] = pixel_data[0 * w * h + y * w + x];
+                        gray[(size_t)y * (size_t)w + (size_t)x] =
+                            pixel_data[(size_t)y * (size_t)w + (size_t)x];
                 free(pixel_data);
                 pixel_data = gray;
                 c = 1;
@@ -1009,6 +1054,37 @@ static void write_card(char card[80], const char *key, const char *value, const 
 }
 
 int fits_write_file(const AIOImageData *image, const char *path) {
+    // P1 (R9-A): 写路径输入硬校验。
+    // 1) image/data NULL —— 此前 aio_log("%dx%d", image->width) 直接解引用
+    //    NULL image, FP32 分支 memcpy(NULL) 段错误。
+    // 2) geometry —— 负值/0 回绕出巨量 n_pixels; 上限对齐读路径 65535 口径。
+    // 3) FP64 数据硬失败 (倾向"禁静默": 见下方日志处依据)。
+    if (!image || (!image->data && !image->data_f64)) {
+        aio_log(AIO_LOG_ERROR, "FITS", "Write: null image or pixel buffer: %s",
+                path ? path : "(null)");
+        return -1;
+    }
+    if (image->width <= 0 || image->height <= 0 ||
+        image->width > 65535 || image->height > 65535) {
+        aio_log(AIO_LOG_ERROR, "FITS", "Write: invalid geometry %dx%d: %s",
+                image->width, image->height, path);
+        return -1;
+    }
+    // FP64 双缓冲互斥约束 (aio_fits.h): 至多其一非空。data_f64 携带 FP64
+    // 像素, 而本函数位图仅支持 FP32/INT16 —— 静默截断会改写科学数值, 硬失败
+    // (调用方必须显式转 FP32 缓冲再写, 不允许隐式降精度; int16 分支同样只
+    // 接受 FP32 缓冲, 因 (int16_t)round(double) 的科学语义未冻结)。
+    if (image->dtype == 1 || (!image->data && image->data_f64)) {
+        aio_log(AIO_LOG_ERROR, "FITS",
+                "Write: FP64 data (dtype=%u) not writable as FP32/INT16 bitmap, "
+                "refusing silent precision downgrade: %s", image->dtype, path);
+        return -1;
+    }
+    if (!image->data) {
+        aio_log(AIO_LOG_ERROR, "FITS", "Write: FP32 pixel buffer is null: %s", path);
+        return -1;
+    }
+
     aio_log(AIO_LOG_INFO, "FITS", "Writing: %s (%dx%d)", path, image->width, image->height);
 
     FILE *fp = aio_fopen_utf8(path, "wb");
