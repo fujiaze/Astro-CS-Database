@@ -474,10 +474,18 @@ target_link_libraries(astrocs_phase3_session PUBLIC astrocs_contracts astrocs_ai
 
 # app/astrocs_cli: 薄 CLI (显式链接各库; 无 GLOB; ACR 不链)
 # RT-008: main.cpp 仅入口壳; parser/commands/runtime_client 为独立编译单元
+# B8-P1: cli/process.cpp — 跨平台子进程封装(argv 传参, 替代 std::system 拼接族),
+#   同时以 astrocs_cli_process 静态库形式供 tests/unit 共址单测链接。
+add_library(astrocs_cli_process STATIC cli/process.cpp)
+target_include_directories(astrocs_cli_process PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+
 add_executable(astrocs
   cli/main.cpp
   cli/parser.cpp
   cli/commands.cpp
+  cli/process.cpp
   cli/runtime_client.cpp)
 target_include_directories(astrocs PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/cli
