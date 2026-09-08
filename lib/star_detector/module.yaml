@@ -152,6 +152,14 @@ notes: >-
   边界 2px 内允许丢弃（:1758-1760）；饱和+正常星 d^2<4.0 丢正常星保饱和星
   （:841-863）；输出全序=mag 升序 stable_sort+NaN 末尾（:941-956）+ maxStars
   截断保最亮（:2240-2242）。star_det v1 [N,6] 权威块列 [0..5]=x,y,flux,mag,
-  saturated,has_saturated（orchestrator.cpp:2218-2246）；编排一帧一次权威检测
+  saturated,has_saturated（orchestrator.cpp:2218-2246）。psf 块 [N,9] 双布局
+  注记（消歧，实测锚 @f7fa3160）：布局 A=oracle/科学参数序
+  (B,A,x0,y0,sx,sy,θ,residual_scale,q_psf)（LM 参数向量序，dpsf_psf.cpp
+  :24-25,191-192）；布局 B=生产编排块序
+  (status,B,flux,cx,cy,fwhm,A,mad,eccentricity)（FLOAT64，orchestrator.cpp
+  :2428-2464，snr_estimator.h:57-75 同序消费）——两布局列位置完全不同，
+  严禁互解；双布局权威消歧表=docs/algorithms/STAR_PSF_ALGORITHMS.md §1.1/§1.2，
+  生产布局逐列 dtype/invalid=DATA_SEMANTICS §15 生产表。
+  编排一帧一次权威检测
   （API-P1-003），PLATESOLVE 禁重检测（:1748-1755）。
   禁止声明 IMPLEMENTED（迁移落码未发生）。

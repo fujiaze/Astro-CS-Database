@@ -6,7 +6,45 @@
 
 - 上游: `SCI-PSF-001` (Moffat4 β=4, FWHM=1.230310·σ, q_psf=A/residual_scale)
 - 输入: 校准图像 `float32[H×W]` + 背景噪声 `σ_bg` (NoiseWeightModelV1)
-- 输出: 星点表 `(x,y,flux,A,B,σ,q_psf,residual_scale)` + PSF 块 `[N,9]` (B,A,x0,y0,sx,sy,θ,residual_scale,q_psf)
+- 输出: 星点表 `(x,y,flux,A,B,σ,q_psf,residual_scale)` + PSF 块 `[N,9]`——
+  **存在两种互不兼容的 9 列布局，严禁混用**（实测锚 @f7fa3160）：
+
+### 1.1 布局 A：oracle/表面亮度参数布局（科学参数序，9 列）
+
+`[N,9]` (B, A, x0, y0, sx, sy, θ, residual_scale, q_psf)
+
+- 语义：Moffat4 拟合参数的**科学表面亮度布局**——直接对应 §2 离散公式
+  F1 的参数向量序 (B,A,x0,y0,sx,sy,theta)，物理直观：背景 B、振幅 A、
+  中心偏移 (x0,y0)、两轴宽度 (sx,sy)、位置角 θ、残差尺度、QA 代理 q_psf。
+- 列数/shape：[N,9]；dtype/单位：B/A/flux/ADU 域、x0/y0/sx/sy/fwhm=px、
+  θ=rad、residual_scale=ADU、q_psf=无量纲（均为 double/FLOAT64）。
+- 使用面：LM 拟合参数向量序（`dpsf_psf.cpp:24-25,191-192`）、
+  §3 伪代码 init/回填、测试 oracle（§10 解析 Moffat4 合成图回收 B,A,cx,cy,sx,sy,θ）。
+- 逐列 dtype/invalid 详见 DATA_SEMANTICS §15 生产表布局 B 对照。
+
+### 1.2 布局 B：生产 PSF 块布局（编排序列化序，9 列，权威现状）
+
+`[N,9]` (status, B, flux, cx, cy, fwhm, A, mad, eccentricity)
+
+- 实测锚：`lib/orchestrator/cpp/src/orchestrator.cpp:2428-2464`——row[0..8]
+  逐一赋值（:2443-2451），`fn_add_block` 注记
+  "PSF 拟合结果: status,B,flux,cx,cy,fwhm,A,mad,eccentricity"（:2456-2458），
+  dims=[N,9] FLOAT64（:2453-2455）。
+- 语义：DPSFFitResult 的**编排序列化布局**——面向下游消费者：[0]=status
+  （整值 0..3，PHOTOMETRIC 仅 status=0 入匹配）、[1]=B、[2]=flux、[3]/[4]=cx/cy
+  （全图 0-based px）、[5]=fwhm（(fwhm_x+fwhm_y)/2 平均）、[6]=A、[7]=mad
+  （历史列名，权威语义=10–90% 截尾均值 |残差|，即 residual_scale）、
+  [8]=eccentricity；dtype 全列 double/FLOAT64，单位 B/A/flux/mad=ADU、
+  cx/cy/fwhm/eccentricity 如上。
+- 消费者：PHOTOMETRIC（必需块，缺失退出码 3，orchestrator.cpp:2563-2570）、
+  snr_psf_fit_quality（`snr_estimator.h:57-75` PsfFitQualityRow 同序映射）；
+  逐列 dtype/invalid 权威表见 **DATA_SEMANTICS §15.2 生产表布局 A**
+  （该文件在飞，本文件只作消歧引用，不复制其表）。
+
+> **消歧声明**：本节 1.1（科学参数序）与 1.2（生产序列化序）列名零重合顺序、
+> 列位置完全不同；按 1.1 解析 1.2 的块会全列错位（如把 status 当 B、把 fwhm 当
+> θ），属科学结果错误。任何新消费者/文档引用 PSF 块列序时必须先声明采用哪张
+> 布局表。
 
 ## 2 离散公式
 
