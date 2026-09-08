@@ -2553,7 +2553,7 @@
   "V8-CI-010": {
    "status": "CLOSED",
    "owner": "SA-CI-32",
-   "commit": "05f182745f0a6d0ac6e5a2b032417a46a046ea8d",
+   "commit": "05f182745f0ac0c145208b675de2345f5225139d",
    "pushed": true,
    "closed_utc": "2026-09-06T06:20:00Z",
    "evidence": "evidence/v8_1_ci_control/tasks/V8-CI-010/",
