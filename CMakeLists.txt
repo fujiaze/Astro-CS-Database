@@ -395,7 +395,8 @@ add_library(astrocs_cpu STATIC
   lib/backend_host/host_services.cpp
   lib/backend_host/bench_harness.cpp
   lib/backend_host/bench_report.cpp
-  lib/backend_host/profile_store.cpp)
+  lib/backend_host/profile_store.cpp
+  lib/backend_host/worker_advisor.cpp)
 target_include_directories(astrocs_cpu PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/backend_host
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto
