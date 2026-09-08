@@ -1708,14 +1708,14 @@
   },
   "P1-DRZ-IMPL": {
    "owner": "SA-P1-D18",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "2c065ace",
+   "evidence_path": "run/local/agent_p1drz_impl/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-impl",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
+   "review_claim": "impl_complete",
+   "current_evidence": "前台复验:adapter+p1drz 7/7+nonfinite 18/18+nm导出唯一符号;direct-vs-plugin BITWISE(drizzle统计面+reverse平面);生产源零改动;T-1~T-7技术修正",
    "note": ""
   },
   "P1-DRZ-INT": {
