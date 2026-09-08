@@ -30,8 +30,11 @@ EXEMPT = ("hips_version", "DatabaseVersion", "schema_version", "cap.version", "d
           # 外部工具链版本表 (git/zstd/xz): GOV-003 §3 豁免表"外部组件版本"同口径
           "git", "zstd", "xz",
           # 外部标准/工具版本引用 (非产品版本): Hipsgen LINT 工具版本、
-          # VOTable 标准版本、C ABI 接口版本串 `version "1.0.0"` (测试探针断言该串)
-          "hipsgen", "votable", 'version "')
+          # VOTable 标准版本、C ABI 接口版本串 `version "1.0.0"` (测试探针断言该串)、
+          # 外部 oracle harness 版本引用 (R13 4b6eb26d 实证: PHASE2_REJECTION.md:282
+          # "…未修改 Siril\n1.4.3 官方 harness…" 跨行断开 siril 豁免词 → 漏报;
+          # 'harness' 一词在仓库仅出现于外部 oracle 工具上下文, 与 siril/rcr 同口径)
+          "hipsgen", "votable", 'version "', "harness")
 # 合同文档 front matter 的 "状态: ACTIVE  版本: 1.0.0" 是文档修订号，不是产品版本
 CONTRACT_DOC_VERSION = re.compile(r"状态:\s*\w+\s+版本:\s*\d+\.\d+\.\d+")
 SKIP_DIRS = {".git", "build", "run", "reports", "archive", "testdata", "工程控制",
