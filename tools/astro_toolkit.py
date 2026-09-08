@@ -291,13 +291,37 @@ def step_unzip(params: dict, ctx: dict) -> dict:
     t0 = time.time()
     try:
         with zipfile.ZipFile(zip_path, "r") as zf:
-            members = zf.namelist()
-            zf.extractall(dest_dir)
+            dest_root = os.path.realpath(dest_dir)
+            safe_members = []       # 通过路径校验的成员
+            rejected = []           # 被拒绝成员名（截断展示用）
+            for info in zf.infolist():
+                name = info.filename
+                # 显式拒绝绝对路径 / Windows 盘符 / UNC 形式成员名
+                # (CPython zipfile 对这类成员仅"静默改写路径", 不拒绝 — 语义不足)
+                n = name.replace("\\", "/")
+                if (name.startswith("/") or (len(n) >= 2 and n[1] == ":" and n[0].isalpha())
+                        or n.startswith("//")):
+                    rejected.append(name)
+                    continue
+                # realpath 归一后必须严格落在 dest_root 内
+                target = os.path.realpath(os.path.join(dest_root, name))
+                if target != dest_root and not target.startswith(dest_root + os.sep):
+                    rejected.append(name)
+                    continue
+                safe_members.append(info)
+            if rejected:
+                return {"ok": False, "exit_code": -8, "stdout": "",
+                        "stderr": f"unsafe zip member(s): {rejected[:10]}",
+                        "elapsed_sec": round(time.time() - t0, 3),
+                        "cmd": [zip_path, dest_dir], "extra": {}}
+            # 校验全部通过后才提取 (不部分解压)
+            zf.extractall(dest_dir, members=safe_members)
     except zipfile.BadZipFile as e:
         return {"ok": False, "exit_code": -7, "stdout": "",
                 "stderr": f"BadZipFile: {e}",
                 "elapsed_sec": round(time.time() - t0, 3),
                 "cmd": [zip_path], "extra": {}}
+    members = [i.filename for i in safe_members]
     return {"ok": True, "exit_code": 0, "stdout": dest_dir, "stderr": "",
             "elapsed_sec": round(time.time() - t0, 3),
             "cmd": [zip_path, dest_dir],

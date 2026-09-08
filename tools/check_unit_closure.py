@@ -51,14 +51,16 @@ class Chk:
     def _scan(self, rel: str, text: str) -> list[str]:
         err = []
         # U2: X/Y 双信号单位(如 ADU/e-)
-        for m in re.finditer(r"([A-Za-z⁻²^]+)\s*/\s*([A-Za-z⁻²^]+)", text):
+        # 字符类首位的 '-' 为字面连字符(e-/e− 的 '-' 必须可入 token, 缺失则
+        # `ADU/e-` 只匹配到 'e' → 永不命中; 亦覆盖 U+2212 '−') — E-P2 漏检修复
+        for m in re.finditer(r"([-A-Za-z⁻²^−]+)\s*/\s*([-A-Za-z⁻²^−]+)", text):
             a, b = m.group(1).strip(), m.group(2).strip()
             if a in SIGNAL and b in SIGNAL and a != b:
                 seg = text[max(0, m.start() - 40):m.end() + 40]
                 if not FREEZE.search(seg + " " + text[:2000]):
                     err.append(f"{rel}: U2 双信号单位 `{a}/{b}` (第{m.start()}字) 未见冻结消歧")
         # U1: X 或 Y 二选一(复合单位 token, 可含 / 与 ² 幂)
-        toks = r"[A-Za-z⁻²^]+(?:\s*/\s*[A-Za-z⁻²^]+)*"
+        toks = r"[-A-Za-z⁻²^−]+(?:\s*/\s*[-A-Za-z⁻²^−]+)*"
         pat1 = re.compile(r"(" + toks + r")\s*[或]\s*(" + toks + r")")
         for m in pat1.finditer(text):
             a, b = m.group(1).strip(), m.group(2).strip()

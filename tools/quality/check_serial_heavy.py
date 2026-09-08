@@ -44,6 +44,13 @@ def read_text(path: pathlib.Path) -> str:
 def scan(repo: pathlib.Path, cmake_path: pathlib.Path) -> list[str]:
     errors: list[str] = []
     cmake = read_text(cmake_path)
+    # 先读后用: sampler/upm/p3_session/p3_resample 必须在检查 1 的
+    # "std::thread" not in sampler + upm 求值前赋值, 否则当根 CMake 不含
+    # P2_ENABLE_OPENMP/P2_PARALLEL/-fopenmp 任一关键词时 UnboundLocalError。
+    sampler = read_text(repo / "lib/phase2/src/sampler.cpp")
+    upm = read_text(repo / "lib/phase2/src/upm.cpp")
+    p3_session = read_text(repo / "lib/phase3_session/p3_session.cpp")
+    p3_resample = read_text(repo / "lib/phase3_session/p3_resample.cpp")
 
     # 1) Phase2 并行宏/开关: 根 CMake 必须定义 P2_ENABLE_OPENMP / P2_PARALLEL
     #    或等价 production 并行开关 (V6.1: 遗留 omp pragma 模块以 -fopenmp 编译,
@@ -53,10 +60,6 @@ def scan(repo: pathlib.Path, cmake_path: pathlib.Path) -> list[str]:
         errors.append("P2_ENABLE_OPENMP/P2_PARALLEL/-fopenmp absent from root CMake (Phase2 production parallel default off)")
 
     # 2) 扫描每个生产库的 serial-heavy 迹象
-    sampler = read_text(repo / "lib/phase2/src/sampler.cpp")
-    upm = read_text(repo / "lib/phase2/src/upm.cpp")
-    p3_session = read_text(repo / "lib/phase3_session/p3_session.cpp")
-    p3_resample = read_text(repo / "lib/phase3_session/p3_resample.cpp")
 
     # Phase2: hardware_concurrency 模块自取 → 绕过 Runtime lease
     # V6.1 语义: 源码仅在注释中声明"无 hardware_concurrency(模块不得自行开线程)"

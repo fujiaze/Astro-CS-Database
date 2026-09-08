@@ -163,6 +163,17 @@ target_include_directories(cpu_lease_test PRIVATE
 target_link_libraries(cpu_lease_test PRIVATE astrocs_cpu astrocs_contracts Threads::Threads)
 add_test(NAME cpu_lease COMMAND cpu_lease_test)
 
+# P1-4 baseline kernels 异常屏障注入单测: TU 匿名命名空间 include
+# baseline_kernels_impl.inc 直调 run_banded 注入可抛 body(与 OpComputer 同一
+# run_body_guarded → std::thread 通路), 断言不 terminate + ACS_ERR_INTERNAL +
+# 租借/归还配平。仅需头文件与产品 .inc, 链 astrocs_cpu 取 abi_boundary_probe。
+add_executable(cpu_backend_exception_test cpu_backend_exception_test.cpp)
+target_include_directories(cpu_backend_exception_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu_backend_exception_test PRIVATE astrocs_cpu astrocs_contracts Threads::Threads)
+add_test(NAME cpu_backend_exception COMMAND cpu_backend_exception_test)
+
 add_executable(cpu_features_test cpu_features_test.cpp)
 target_include_directories(cpu_features_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
@@ -448,4 +459,53 @@ add_test(NAME p3_assembly COMMAND p3_assembly_test)
 set_tests_properties(
   core_pipeline cpu_provider cpu_bench io_adapter p1_ir_facade p2_ir_facade
   PROPERTIES ENVIRONMENT "ASTROCS_REPO=${CMAKE_SOURCE_DIR}")
+
+# ----------------------------------------------------------------------------
+# bug 狩猎 R13 P2-1/P2-2: 批次 K/I 产物共址测试注册 (此前从未进构建/ctest)
+# ----------------------------------------------------------------------------
+# TEST-CAL-001 (批次 K): photometry_apply.cpp 不在 astrocs_calibration 库源
+# 列表 (根 CMakeLists calibration 段), 与测试 TU 一并编译; HAS_ZSTD 不加 —
+# 根 CMake 从未为 astrocs_hips/astrocs_aio 定义该宏, hiss_*/aio_compressor
+# 以无 zstd 分支自洽 (ZSTD 未编译时 writer 保持 RAW), 测试 TU 自身亦无
+# zstd 依赖, 与库既有编译形态一致。
+add_executable(test_photometry_apply_test
+  ../../lib/calibration/tests/test_photometry_apply.cpp
+  ../../lib/calibration/src/photometry_apply.cpp)
+target_include_directories(test_photometry_apply_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common)
+target_link_libraries(test_photometry_apply_test PRIVATE
+  astrocs_calibration astrocs_hips astrocs_aio astrocs_common ${ASTROCS_OMP_TARGET})
+add_test(NAME cal_photometry_apply COMMAND test_photometry_apply_test)
+
+# P1 batchI 恶意 fixture (FP64 硬失败/HCSD JSON 上限/n_pix 2^62/恶意
+# tile_width 2048 拒绝): AIO_ENABLE_HEALPIX 仅为测试 TU 提供 aio_healpix_io.h
+# 声明 (实现在 astrocs_hips, 其已带同宏); HAS_ZSTD 不加 — fixture 在无
+# zstd 时走"伪压缩块"分支, 测试 TU 自洽, 与库一致。
+add_executable(p1_io_hardening_test ../../lib/astro_image_io/tests/test_p1_io_hardening.cpp)
+target_include_directories(p1_io_hardening_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
+target_compile_definitions(p1_io_hardening_test PRIVATE AIO_ENABLE_HEALPIX)
+target_link_libraries(p1_io_hardening_test PRIVATE astrocs_aio astrocs_hips astrocs_common)
+add_test(NAME p1_io_hardening COMMAND p1_io_hardening_test)
+
+# ----------------------------------------------------------------------------
+# P1-5: phase2 run manifest artifacts 收集回归 (collect_node_artifact_paths)
+# ----------------------------------------------------------------------------
+# 旧 cmd_phase2_run 按 node_id=="res" 过滤节点 manifest（P2-006 Canonical IR
+# 7 节点链 coverage/…/write 无此 id）→ run manifest artifacts 恒空而仍标
+# complete。修复后按 manifest 内容收集（与 phase3 同型）；本测试在收集函数
+# 层级注入 IR 节点 manifest（真实链 node id + 真实临时文件证据），端到端
+# run manifest 证据由 tests/cli/test_phase2_inprocess.py 覆盖。
+add_executable(p15_artifact_collect_test p15_artifact_collect_test.cpp)
+target_include_directories(p15_artifact_collect_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+target_link_libraries(p15_artifact_collect_test PRIVATE astrocs_cli_runtime)
+add_test(NAME p15_artifact_collect COMMAND p15_artifact_collect_test)
 

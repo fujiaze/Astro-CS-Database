@@ -11,8 +11,30 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 HDR = ROOT / "lib/phase2/include/astro/phase2/stage2_common.h"
 SRC = ROOT / "lib/phase2/src/stage2_common.cpp"
-SCHEMA = ROOT / "工程控制/schemas/stage2.schema.json"
-TEMPLATE = ROOT / "工程控制/configs/stage2.template.json"
+# SCHEMA/TEMPLATE 事实源候选链（首个存在者生效）：
+#   1. 工程控制/ 当前控制包布局（untracked，存在时优先）；
+#   2. engineering/control/ 现行归档外最新副本；
+#   3. engineering/control/archive/ legacy 工程控制 v1.3→v6.1 迁移封存副本
+#      （2026-09-02 目录整理迁移后的事实兜底；stage2 schema/template 内容未变）。
+# 全部缺失时登记 env_missing 进 problems（不再裸崩 FileNotFoundError）。
+_SCHEMA_CANDIDATES = [
+    ROOT / "工程控制/schemas/stage2.schema.json",
+    ROOT / "engineering/control/schemas/stage2.schema.json",
+]
+_TEMPLATE_CANDIDATES = [
+    ROOT / "工程控制/configs/stage2.template.json",
+    ROOT / "engineering/control/configs/stage2.template.json",
+]
+for _p in sorted((ROOT / "engineering/control").glob("*/schemas/stage2.schema.json")):
+    _SCHEMA_CANDIDATES.append(_p)
+for _p in sorted((ROOT / "engineering/control").glob("*/configs/stage2.template.json")):
+    _TEMPLATE_CANDIDATES.append(_p)
+_SCHEMA_CANDIDATES.append(
+    ROOT / "engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/schemas/stage2.schema.json")
+_TEMPLATE_CANDIDATES.append(
+    ROOT / "engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/configs/stage2.template.json")
+SCHEMA = next((p for p in _SCHEMA_CANDIDATES if p.is_file()), _SCHEMA_CANDIDATES[0])
+TEMPLATE = next((p for p in _TEMPLATE_CANDIDATES if p.is_file()), _TEMPLATE_CANDIDATES[0])
 OUT = ROOT / "run/temp/p2_v15/evidence/config_consistency.json"
 
 
@@ -94,6 +116,27 @@ def norm(v):
 
 
 def main():
+    problems = []
+    # 事实源缺失 → 登记后退出（不再裸崩；json/evidence 仍写出供消费方）
+    for label, p in (("schema", SCHEMA), ("template", TEMPLATE)):
+        if not p.is_file():
+            problems.append({"key": "env_missing", "issue":
+                             f"{label} 文件不存在: {p}"})
+    for label, p in (("header", HDR), ("source", SRC)):
+        if not p.is_file():
+            problems.append({"key": "env_missing", "issue":
+                             f"{label} 文件不存在: {p}"})
+    res_env = {
+        "checked_keys": [],
+        "mismatches": problems,
+        "pass": len(problems) == 0,
+    }
+    if problems:
+        OUT.parent.mkdir(parents=True, exist_ok=True)
+        OUT.write_text(json.dumps(res_env, ensure_ascii=False, indent=2),
+                       encoding="utf-8")
+        print(json.dumps(res_env, ensure_ascii=False, indent=2))
+        sys.exit(1)
     sd = struct_defaults(HDR.read_text(encoding="utf-8"))
     pd = parser_defaults(SRC.read_text(encoding="utf-8"))
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
@@ -165,6 +208,12 @@ def main():
                              "struct_default": sd[field],
                              "parser_default": pd[pk]})
         checked.append(pk)
+
+    # 防空转假 PASS（E-P2：find()==-1 / checked=0 仍 PASS）：解析面塌缩必须 FAIL
+    if not checked:
+        problems.append({"key": "<parser_extraction>",
+                         "issue": "parser 未提取到任何默认值 (checked=0)，"
+                                  "段定位或源码格式可能已漂移"})
 
     # template 必须与 schema 默认一致（抽查关键项）
     tj = template["integration"]["rejection"]

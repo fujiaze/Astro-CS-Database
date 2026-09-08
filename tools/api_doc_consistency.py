@@ -35,16 +35,36 @@ def collect_text():
     for d in SCAN_DIRS:
         if not d.exists():
             continue
-        for p in d.rglob("*"):
+        for p in sorted(d.rglob("*")):
             if p.is_file() and p.suffix.lower() in (".md", ".csv", ".txt"):
                 parts.append((p, p.read_text(encoding="utf-8", errors="replace")))
     return parts
+
+
+def read_first(paths, missing_problem):
+    """按候选顺序读第一个存在的文件；都缺失时返回 (None, missing_problem)。
+
+    paths: 候选 Path 列表（第一个命中即用）；
+    missing_problem: 全部缺失时登记进 problems 的条目。
+    """
+    for p in paths:
+        if p.is_file():
+            return p.read_text(encoding="utf-8", errors="replace"), None
+    return None, missing_problem
 
 
 def main():
     texts = collect_text()
     problems = []
     checks = {}
+    # 必读文件（缺失 = 登记 check 失败，不得裸崩）
+    REQUIRED_FILES = {
+        "PUBLIC_API.md": [ROOT / "docs" / "contracts" / "PUBLIC_API.md"],
+        "api_inventory.md": [ROOT / "reports" / "v17" / "api_inventory.md"],
+        "rejection.h": [ROOT / "lib" / "phase2" / "include" / "astro" / "phase2"
+                        / "rejection.h"],
+        "SCIENCE_FREEZE.md": [ROOT / "docs" / "validation" / "SCIENCE_FREEZE.md"],
+    }
 
     # ---- 1. deleted API absent ----
     hits = []
@@ -60,36 +80,66 @@ def main():
                          "unannotated_mentions": hits})
 
     # ---- 1b. new public APIs present ----
+    # api_inventory.md 已随报告版本化迁移 (reports/api_inventory.md →
+    # reports/v17/api_inventory.md)；候选列表 + reports/v*/api_inventory.md
+    # 兜底 (存在多个时取字典序最后一个 = 最新版本)。
+    inv_candidates = [ROOT / "reports" / "v17" / "api_inventory.md"]
+    inv_candidates += sorted(
+        p for p in ROOT.glob("reports/v*/api_inventory.md") if p.is_file())
+    seen_inv = set()
+    inv_candidates = [p for p in inv_candidates
+                      if not (p in seen_inv or seen_inv.add(p))]
     required_apis = [
         "p2_collect_candidate_stack", "p2_validate_candidate_weights",
         "p2_large_scale_apply", "p2_reject_stack_ex",
         "p2_integrate_pixel", "p2_reject_plan_resolve",
     ]
-    api_docs = (ROOT / "docs" / "contracts" / "PUBLIC_API.md").read_text(
-        encoding="utf-8", errors="replace")
-    api_inv = (ROOT / "reports" / "api_inventory.md").read_text(
-        encoding="utf-8", errors="replace")
+    api_docs, miss_docs = read_first(
+        REQUIRED_FILES["PUBLIC_API.md"],
+        {"check": "public_api_doc_missing", "paths":
+         [str(p.relative_to(ROOT)) for p in REQUIRED_FILES["PUBLIC_API.md"]]})
+    api_inv, miss_inv = read_first(
+        inv_candidates,
+        {"check": "api_inventory_missing", "paths":
+         [str(p.relative_to(ROOT)) for p in inv_candidates]})
+    if miss_docs:
+        problems.append(miss_docs)
+    if miss_inv:
+        problems.append(miss_inv)
     missing = [a for a in required_apis
-               if a not in api_docs and a not in api_inv]
-    checks["public_header_api_vs_docs"] = len(missing) == 0
+               if api_docs is not None and api_inv is not None
+               and a not in api_docs and a not in api_inv]
+    checks["public_header_api_vs_docs"] = (len(missing) == 0
+                                           and not miss_docs and not miss_inv)
     if missing:
         problems.append({"check": "public_api_missing", "apis": missing})
 
     # ---- 2. semantic IDs ----
-    hdr = (ROOT / "lib" / "phase2" / "include" / "astro" / "phase2"
-           / "rejection.h").read_text(encoding="utf-8", errors="replace")
-    ids = re.findall(r'#define P2_SEMANTIC_\w+\s+"([^"]+)"', hdr)
+    hdr, miss_hdr = read_first(
+        REQUIRED_FILES["rejection.h"],
+        {"check": "rejection_header_missing", "paths":
+         [str(p.relative_to(ROOT)) for p in REQUIRED_FILES["rejection.h"]]})
+    if miss_hdr:
+        problems.append(miss_hdr)
+        ids = []
+    else:
+        ids = re.findall(r'#define P2_SEMANTIC_\w+\s+"([^"]+)"', hdr)
     all_text = "\n".join(t for _, t in texts)
     missing_ids = [i for i in ids if i not in all_text]
-    checks["semantic_ids_vs_docs"] = len(missing_ids) == 0
+    checks["semantic_ids_vs_docs"] = len(missing_ids) == 0 and not miss_hdr
     if missing_ids:
         problems.append({"check": "semantic_ids", "missing": missing_ids})
-    stale_minmax = "reject_low_count/reject_high_count/max_iterations/min_kept"
-    sem_doc = next(t for p, t in texts
-                   if str(p).endswith("rejection_semantics.md"))
-    checks["minmax_docs_no_max_iterations"] = stale_minmax not in sem_doc
-    if stale_minmax in sem_doc:
-        problems.append({"check": "minmax_max_iterations_stale"})
+    sem = next((t for p, t in texts
+                if str(p).endswith("rejection_semantics.md")), None)
+    if sem is None:
+        checks["minmax_docs_no_max_iterations"] = False
+        problems.append({"check": "rejection_semantics_doc_missing"})
+    else:
+        stale_minmax = ("reject_low_count/reject_high_count/"
+                        "max_iterations/min_kept")
+        checks["minmax_docs_no_max_iterations"] = stale_minmax not in sem
+        if stale_minmax in sem:
+            problems.append({"check": "minmax_max_iterations_stale"})
 
     # ---- 3. status enums ----
     status_names = ["P2_STATUS_INVALID_METHOD", "P2_STATUS_INTERNAL_ERROR",
@@ -132,12 +182,21 @@ def main():
         problems.append({"check": "false_reject_naming", "lines": bad_fr})
 
     # ---- 6. freeze version ----
-    sf = (ROOT / "docs" / "validation" / "SCIENCE_FREEZE.md").read_text(
-        encoding="utf-8", errors="replace")
-    has_v17 = "V17" in sf and "True Final Freeze" in sf
     freeze_lit = f"ASTROCS_FOUNDATION_FINAL_FREEZE = {EXPECTED_FREEZE}"
-    checks["freeze_version_vs_report"] = has_v17 and freeze_lit in sf
-    if not has_v17 or freeze_lit not in sf:
+    sf, miss_sf = read_first(
+        REQUIRED_FILES["SCIENCE_FREEZE.md"],
+        {"check": "science_freeze_missing", "paths":
+         [str(p.relative_to(ROOT)) for p in REQUIRED_FILES["SCIENCE_FREEZE.md"]]})
+    if miss_sf:
+        problems.append(miss_sf)
+        has_v17 = False
+        freeze_lit_in = False
+    else:
+        has_v17 = "V17" in sf and "True Final Freeze" in sf
+        freeze_lit_in = freeze_lit in sf
+    checks["freeze_version_vs_report"] = (has_v17 and freeze_lit_in
+                                          and not miss_sf)
+    if not checks["freeze_version_vs_report"]:
         problems.append({"check": "freeze_version",
                          "expected_literal": freeze_lit})
 
