@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <filesystem>
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -22,11 +23,28 @@ static int failures = 0;
   } while (0)
 
 int main() {
+  // 跨平台临时目录 (同 io_adapter_test): Windows 回退 TEMP/TMP/"."。
   const char* d = std::getenv("TMPDIR");
-  const std::string dir = d ? d : "/tmp";
+  if (!d || !*d) d = std::getenv("TEMP");
+  if (!d || !*d) d = std::getenv("TMP");
+#if defined(_WIN32)
+  const std::string dir = (d && *d) ? std::string(d) : std::string(".");
+#else
+  const std::string dir = (d && *d) ? std::string(d) : std::string("/tmp");
+#endif
   const std::string hips = dir + "/astrocs_p3_assembly";
-  system(("rm -rf " + hips).c_str());
-  system(("mkdir -p " + hips).c_str());
+  // rm -rf/mkdir -p 是 POSIX 命令(Windows cmd.exe 报 "The syntax of the
+  // command is incorrect.") → fixture 目录缺失连锁失败。改 std::filesystem
+  // (同 test_p1_session_manifest R11 修法), 断言语义零变更。
+  {
+    std::error_code fs_ec;
+    std::filesystem::remove_all(hips, fs_ec);
+    std::filesystem::create_directories(hips, fs_ec);
+    if (fs_ec) {
+      std::fprintf(stderr, "fixture mkdir failed: %s\n", hips.c_str());
+      return 2;
+    }
+  }
 
   // 1) 生成 mini HiPS (signal = 常数 100 + 局部峰值; P1-007 writer)
   {
