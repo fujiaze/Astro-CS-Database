@@ -377,14 +377,14 @@
   "CLI-004": {
    "owner": "SA-CLI-04",
    "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "closed_commit": "692a4216",
+   "evidence_path": "run/local/agent_cli004/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W2",
    "kind": "implementation",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "review_claim": "impl_complete",
+   "current_evidence": "构建rc=0+107 tests全绿(cli004 8/8+cli_protocol 10/10+cli003 16/16+pipeline 7/7+v7_surface 19/19+bench_cli 11/11等12文件)+负面样本全过(协议冲突2/非法流6拒绝/SIGINT 9→incomplete→verify8)+schema draft-07权威+独立二次验证器",
+   "note": "协议v1冻结:ValidateEventV1硬网关+schema jsonl_event_v1+exit_code唯一源;monitor直跑quirk为既有环境问题unittest方式6/6"
   },
   "DATA-001": {
    "owner": "SA-DATA-06",
