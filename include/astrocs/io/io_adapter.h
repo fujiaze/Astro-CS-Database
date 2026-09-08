@@ -29,7 +29,8 @@ class ArtifactTransaction {
   // 写入校验数据 (可多次调用; 累计校验值)
   void write(const char* data, size_t n);
 
-  // close + verify (长度/校验) -> rename; 失败时清理临时文件并给确定错误
+  // close + verify (写错误/长度/校验和) -> rename; 失败时清理临时文件并给确定错误
+  // (verify 对 tmp 全量重算 FNV-1a 校验和, 防"长度一致但内容损坏"的假成功)
   Result<void> commit();
 
   // 放弃: 删除临时文件
@@ -42,6 +43,7 @@ class ArtifactTransaction {
   std::string tmp_;
   uint64_t written_ = 0;
   uint64_t checksum_ = 1469598103934665603ULL;  // FNV-1a seed
+  bool write_failed_ = false;  // 任一次 write 失败即锁存, commit 时按合同报错
   bool active_ = false;
 };
 
