@@ -168,7 +168,12 @@ void generate_master(const float* stack, int n_frames, int w, int h,
 // flat_stack: [n_frames * h * w]
 // bias: [h * w] 或 NULL
 // out: [h * w]，最终 median 归一化到 1.0，最小值裁剪 0.1
-void generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
+// B13-R13-7: 返回 0 成功 / AC_ERR_PARAM 参数无效。SCIENCE 契约
+// (docs/science/CALIBRATION.md §flat_norm): median<=0 的帧不可归一化 —
+// 修复前负中位数经 "!=0 → 不替换" 漏过后, 除负数致全负帧被 0.1 地板钳成
+// 常数场 (科学数据损坏)。此类输入必须在归一化前拒绝。
+// NaN 中位数 (=1.0f 兜底) 与 ==0 (全零帧) 行为保持不变 (最小爆炸半径)。
+int generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
                           const float* bias, float* out,
                           float sigma_low, float sigma_high, int max_iter) {
     auto t0 = std::chrono::steady_clock::now();
@@ -179,14 +184,13 @@ void generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
 
     if (n_frames <= 0 || npix <= 0) {
         ac_log("generate_master_flat: invalid params (n_frames=%d, npix=%d), abort", n_frames, npix);
-        return;
+        return AC_ERR_PARAM;
     }
 
     // 归一化后的帧缓冲
     std::vector<float> norm(static_cast<size_t>(n_frames) * npix);
 
     // ---- 步骤1：减 Bias + 逐帧 median 归一化（最小裁剪 0.1）----
-    #pragma omp parallel for
     for (int n = 0; n < n_frames; ++n) {
         const float* src = flat_stack + static_cast<size_t>(n) * npix;
         float* dst = norm.data() + static_cast<size_t>(n) * npix;
@@ -204,6 +208,13 @@ void generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
         std::vector<float> tmp(dst, dst + npix);
         float frame_med = median_of(tmp);
         if (std::isnan(frame_med) || frame_med == 0.0f) frame_med = 1.0f;
+        // B13-R13-7: 负中位数 = 全负/多数负的退化输入, 不可归一化 (SCIENCE
+        // 契约: median<=0 不归一化), 拒绝并上抛, 不产出常数 0.1 假主帧。
+        if (frame_med < 0.0f) {
+            ac_log("generate_master_flat: frame %d median<0 (%.6g) — invalid flat stack, reject",
+                   n, static_cast<double>(frame_med));
+            return AC_ERR_PARAM;
+        }
 
         // 归一化：除以帧 median，最小值裁剪 0.1
         for (int i = 0; i < npix; ++i) {
@@ -224,6 +235,13 @@ void generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
         std::vector<float> tmp(out, out + npix);
         float final_med = median_of(tmp);
         if (std::isnan(final_med) || final_med == 0.0f) final_med = 1.0f;
+        // B13-R13-7: 合并输出负中位数同样是退化输入 (步骤1 已放行正值帧时
+        // 理论不可达; 防御性拒绝, 语义与步骤1一致)。
+        if (final_med < 0.0f) {
+            ac_log("generate_master_flat: final median<0 (%.6g) — invalid flat stack, reject",
+                   static_cast<double>(final_med));
+            return AC_ERR_PARAM;
+        }
 
         #pragma omp parallel for
         for (int i = 0; i < npix; ++i) {
@@ -237,6 +255,7 @@ void generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
     auto t1 = std::chrono::steady_clock::now();
     double dt = std::chrono::duration<double>(t1 - t0).count();
     ac_log("generate_master_flat: done | %.3f s", dt);
+    return AC_OK;
 }
 
 }  // namespace ac
