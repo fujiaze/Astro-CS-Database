@@ -96,6 +96,9 @@ doc_index:
       notes: "P1-NOISE-DOC 冻结（2026-09-07）：§13 CONTRACT_READY 增补（逐符号源码锚 §13.1 / DISP-NOISE-001..009 §13.3 / TEST-NOISE-DESIGN-001 §13.4），ALG-NOISE-001..003 根公式不变"
     - path: "docs/algorithms/PHASE2_SAMPLER.md"
       status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/PHASE2_SESSION.md"
+      status: ACTIVE_NORMATIVE
+      notes: "P2-SESSION-DOC 冻结：ALG-P2-SESSION-001 四段装配拓扑/端口连接/调用序逐源码行号锚定+IMPL-COMPLETE 差距表+TEST-P2-SESSION-001 设计冻结+DISP 清单+SCI 层零改动声明"
     - path: "docs/algorithms/PHASE2_REJECTION.md"
       status: ACTIVE_NORMATIVE
       notes: "P2-REJ-DOC 冻结 (6f668c87, 控制包 15/140 wave W1): ALG-P2-REJ-001 四拒绝统计定义(F1 sigma_clipping/F5 winsorized_sigma/F7 linear_fit/F8 generalized ESD)逐公式源码行号锚定(reject.cpp :1285-1479/:1482-1552)+NaN 传播与确定性判定冻结+DATA-P2-REJ(§22)/API-P2-REJ-001/trace; oracle 仅 Siril 1.4.3/RCR 2.4.7 官方 harness 逐位核对(ORACLE ONLY, 非产品版本引用)"
@@ -328,6 +331,9 @@ doc_index:
     - path: "docs/modules/phase2_rej.md"
       status: ACTIVE_INFORMATIVE
       notes: "P2-REJ-DOC (2026-09-09) 新建: astrocs.p2.rejection 模块页——合同落位 lib/phase2_rej/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/phase2_int→lib/hips_p2 先例新建, lib/phase2/ 三件套已被 P2-COV 占用); 合同 ID=SCI-REJ-001(共享 FROZEN, 映射 SCI-P2-REJ-001⇒SCI-REJ-001)/ALG-P2-REJ-001/DATA-P2-REJ(§22)/API-P2-REJ-001/TEST-P2-REJ-001(MISSING); 生产源 lib/phase2/src/rejection.cpp + rejection.h; 消费链 stage2.cpp/acr_kernels.cpp"
+    - path: "docs/modules/phase2_samp.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "P2-SAMP-DOC (2026-09-09, commit e654d4c2) 新建: astrocs.p2.sampling 模块页——合同落位 lib/phase2_samp/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 合同 ID=SCI-UPM-001(共享 FROZEN)/ALG-P2-SMP-001/DATA-P2-SMP(§23)/API-P2-SMP-001/TEST-P2-SMP-001(MISSING); 生产源 lib/phase2/src/sampler.cpp + sampler.h; 消费链 stage2.cpp; registry 手写页=docs/modules/registry/astrocs.phase2.sample.md。本条目为 P2-SESSION-DOC (2026-09-10) 补登: 该文件在 e654d4c2 提交但漏登 DOCUMENT_INDEX (GOV-002 docs_fully_covered 缺口), 机械修复不改动文件内容"
     - path: "docs/modules/photometric_calib.md"
       status: ACTIVE_INFORMATIVE
       notes: "P1-PHOT-DOC (2026-09-07) 事实修订: 头部增补块——合同落位 lib/photometric_calib/README.md r1 + module.yaml (astrocs.p1.photometry, CONTRACT_READY, entrypoint=MISSING); 合同 ID=SCI-PHOT-001/ALG-PHOT-001..002/DATA-P1-PHOT/API-PHOT-001; NO_DATA 表述按退化语义修订"
@@ -379,6 +385,9 @@ doc_index:
     - path: "docs/modules/registry/astrocs.phase2.sample.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase2.session.md"
+      status: ACTIVE_NORMATIVE
+      notes: "P2-SESSION-DOC 手写登记：astrocs.p2.session 五导出 C API/四段 canonical 节点/DLL 目标未建如实登记/重生成时须保留"
     - path: "docs/modules/registry/astrocs.phase2.upm-apply.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"

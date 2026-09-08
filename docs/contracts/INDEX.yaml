@@ -70,7 +70,7 @@ contracts:
     version: 1.0.0
     path: docs/science/PHASE2_UPM.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-UPM-001, ALG-COV-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
+    downstream: [ALG-UPM-001, ALG-COV-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001]
   - id: SCI-REJ-001
     type: SCI
     status: ACTIVE
@@ -78,7 +78,7 @@ contracts:
     version: 1.0.0
     path: docs/science/REJECTION.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-REJ-001, ALG-P2-REJ-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
+    downstream: [ALG-REJ-001, ALG-P2-REJ-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001]
   - id: SCI-INT-001
     type: SCI
     status: ACTIVE
@@ -86,7 +86,7 @@ contracts:
     version: 1.0.0
     path: docs/science/INTEGRATION.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-INT-001, ALG-P2-INT-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
+    downstream: [ALG-INT-001, ALG-P2-INT-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001]
   - id: SCI-CW-001
     type: SCI
     status: ACTIVE
@@ -392,6 +392,38 @@ contracts:
     version: 1.0.0
     path: docs/algorithms/PHASE2_REJECTION.md
     upstream: [API-P2-REJ-001]
+    downstream: []
+  - id: ALG-P2-SESSION-001
+    type: ALG
+    status: ACTIVE
+    owner: SA-P2-X24
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_SESSION.md
+    upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001]
+    downstream: [DATA-P2-SESSION, API-P2-SESSION-001]
+  - id: DATA-P2-SESSION
+    type: DATA
+    status: ACTIVE
+    owner: SA-P2-X24
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-P2-SESSION-001]
+    downstream: [API-P2-SESSION-001]
+  - id: API-P2-SESSION-001
+    type: API
+    status: ACTIVE
+    owner: SA-P2-X24
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ALG-P2-SESSION-001, DATA-P2-SESSION]
+    downstream: [TEST-P2-SESSION-001]
+  - id: TEST-P2-SESSION-001
+    type: TEST
+    status: DORMANT
+    owner: SA-P2-X24
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_SESSION.md
+    upstream: [API-P2-SESSION-001]
     downstream: []
   - id: ALG-P3-001
     type: ALG

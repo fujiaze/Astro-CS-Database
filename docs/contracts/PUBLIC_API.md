@@ -1521,3 +1521,122 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   落地 + EVIDENCE；设计冻结面=TEST-P2-SMP-DESIGN-001 ALG §11.3
   F1-F9 + registry 页 §独立 synthetic 验证节）；上游 SCI-UPM-001
   （共享 FROZEN）/ ALG-P2-SMP-001 / DATA-P2-SMP。
+
+## Phase2 装配会话 C API（API-P2-SESSION-001）
+
+> ID: API-P2-SESSION-001  状态: CONTRACT_READY（P2-SESSION-DOC 冻结，
+> 2026-09-10，SA-P2-X24）
+> 定位: Phase2 进程内装配会话公共 C ABI——coverage → sample →
+> upm_build → persist 四段编排的会话生命周期五导出符号冻结（既有
+> 符号的展开冻结，**不新增、不修改任何 C 头/C ABI**）；会话本身无
+> 科学实现（纯编排 facade，直调 lib/phase2 生产符号），编排上游=
+> API-P2-001（PHASE2_API_V1 phase session，docs/api/PHASE2_API_V1.md
+> FROZEN，引用不改动）。
+> SRC: lib/phase2_session/p2_session.cpp（282 行，静态库
+> astrocs_phase2_session 成员，根 CMakeLists.txt:454-458）+ 唯一
+> 权威签名头 lib/phase2_session/p2_session.h（39 行）；DATA:
+> DATA-P2-SESSION（DATA_SEMANTICS §24，config/manifest/错误码唯一
+> 权威）；ALG: ALG-P2-SESSION-001（docs/algorithms/PHASE2_SESSION.md，
+> 四段调用序逐源码行号锚）；MOD: astrocs.p2.session（迁移目标
+> astrocs_p2_session.dll 为矩阵合同值，尚未存在——MISSING 如实
+> 登记，由 P2-SESSION-IMPL 建立，本节不声明 IMPLEMENTED；registry
+> descriptor 现无 astrocs.p2.session 占位词汇，编排委托=
+> module_adapters.cpp:23-26 五 C ABI 声明（RT-005），词汇对齐归
+> P2-XX-INT，不作冻结依据）。
+
+### 导出符号与签名要点（p2_session.h 实测锚，5 C API + 1 C++ 诊断全部当前真实存在，冻结）
+
+- `acs_status p2_session_create(const astrocs_host_services_v1* host,
+  acs_handle* out)`（p2_session.h:17，实现 p2_session.cpp:56-67）:
+  会话唯一构造。host 不可空且 struct_size/abi_version 校验
+  （:57-59 → ACS_ERR_ABI_MISMATCH）；out null → ACS_ERR_PARAM（:60）；
+  SessionState 分配失败 → ACS_ERR_NOMEM（:62）；manifest 初始化
+  kind="astrocs_phase2_session" + stages=[]（:64）。host 指针由会话
+  持有（借用，不拥有——宿主须保证句柄存活期 host 存活）。
+- `acs_status p2_session_validate(acs_handle h, const acs_span_u8
+  config_json)`（p2_session.h:20，:69-98）: 纯读无 IO，幂等可重复
+  （p2_session.h:19 注释）；句柄/config null 或空 → ACS_ERR_PARAM
+  （:71）；parse 失败/非 object/缺必需键/类型错 → ACS_ERR_PARAM
+  （:76-96）；键集与校验规则唯一权威=DATA §24.1（未知键**现状不
+  拒绝**，p2_session.h:19 注释与实现漂移，§24.1 如实登记）。
+- `acs_status p2_session_run(acs_handle h, const acs_span_u8
+  config_json)`（p2_session.h:23，:100-248）: 四段编排执行——
+  coverage（:119-148，两遍 build 协议）→ sample（:150-178，probe/
+  fill）→ upm_build（:180-219，冻结默认+upm 子键覆盖）→ persist
+  （:221-240，可选）。取消点=**阶段边界**（p2_session.h:22 注释
+  冻结；4 检查点 :120/:152/:181/:223-227，upm 整模型不写半成品）；
+  内部并行仅 UPM blocks（cpu_workers=budget.max_workers :155/:195，
+  预算驱动禁硬编码）。config 消费口径=DATA §24.1/§24.4；run 重入
+  不清空 manifest（stages 累积，幂等未冻结，§24.2 登记）。
+- `acs_status p2_session_inspect(acs_handle h, acs_span_u8*
+  out_manifest_json)`（p2_session.h:25，:250-266）: 只读导出
+  manifest JSON（dump(2)，:258）；out null → ACS_ERR_PARAM（:252）；
+  status 派生（created/complete/failed :253-256）；输出缓冲经
+  host->allocator.alloc 分配（:260），**释放责任=宿主经同一
+  allocator**（common_abi_v1.h:74 合同头）；分配失败 →
+  ACS_ERR_NOMEM（:261）。字段表唯一权威=DATA §24.2。
+- `acs_status p2_session_destroy(acs_handle h)`（p2_session.h:27，
+  :268-273）: 唯一释放路径；句柄 null → ACS_ERR_PARAM（:270）；destroy
+  后句柄不可再用（run 失败路径内部已 p2_upm_close model，:231/:241，
+  会话不持 model 句柄）。
+- C++ 诊断面（非 C ABI，p2_session.h:32-36）:
+  `std::string astrocs::phase2::last_error(acs_handle h)`（:278-281）
+  ——最近一次错误脱敏摘要（"what rc=N"，:45）；诊断用，非科学接口，
+  不进冻结 ABI 面。
+
+### 参数表（acs_span_u8/config/manifest 口径，唯一权威=DATA §24）
+
+| 参数 | 口径 |
+|---|---|
+| host | const astrocs_host_services_v1*（common_abi_v1.h:110-117，四通道 allocator/logger/cancel/budget；struct_size+abi_version handshake） |
+| config_json | acs_span_u8（UTF-8 JSON 单对象；count 不含 NUL；键集=DATA §24.1） |
+| out_manifest_json | acs_span_u8*（出参；UTF-8 JSON dump(2)；宿主 allocator 释放；字段=DATA §24.2） |
+| acs_handle | 不透明句柄（SessionState*，实例态全隔离） |
+
+### 返回码（唯一权威=DATA §24.3 表）
+
+ACS_OK / ACS_ERR_ABI_MISMATCH（create host handshake）/
+ACS_ERR_PARAM（句柄、span null/空、parse、非 object、缺必需键、
+类型错）/ ACS_ERR_STATE（生产 rc=2，build fail 显式缺 ivar 等）/
+ACS_ERR_IO（persist p2_upm_save 失败，error_kind=output）/
+ACS_ERR_INTERNAL（生产其余 rc 兜底）/ ACS_ERR_NOMEM（SessionState、
+manifest 分配）/ ACS_ERR_CANCELLED（阶段边界检查命中）。
+映射实现=map_rc（p2_session.cpp:43-50，rc=0/1/2/其余四档）。
+
+### 调用时序与句柄生命周期
+
+create（唯一构造）→ [validate*（幂等，推荐先于 run）] → run（成功
+或失败均可重入，manifest 累积）→ inspect*（任意时刻只读）→
+destroy（唯一释放）。句柄不可复制/二次 destroy；宿主保证 host 存活
+覆盖句柄生命周期。
+
+### 线程安全与取消合同（matrix 专项）
+
+- **reentrant: yes / threadsafe: no（handle 级）**（p2_session.h:16
+  注释锚）——同一 handle 并发调用禁止；不同 handle 并发合法
+  （无共享可变全局态）。
+- 取消点=**阶段边界**（p2_session.h:22 注释锚；coverage/sample/
+  upm_build/persist 段前 4 检查点，p2_session.cpp:120/:152/:181/
+  :223-227）；upm 整模型不写半成品（段内无检查点，persist 取消先
+  close）；取消返回 ACS_ERR_CANCELLED + 段 status=cancelled。
+- 内部并行**仅 UPM blocks**：sample/upm 段 cpu_workers=
+  host->budget.max_workers（:155/:195，Runtime lease 唯一来源），
+  coverage/persist 串行；预算绑定注释漂移（p2_session.h:4
+  "sampler=1" vs 实现 N-worker）登记于 DATA §24.5。
+
+### 负向条款与缺陷迁移语义
+
+- 负向条款: **P2-SESSION-DOC 不新增、不修改任何公共 C 头/C ABI**——
+  p2_session.h 既有五函数声明与本节为同一 ABI 的展开冻结，禁止第二
+  套定义；registry descriptor astrocs.phase2.session 占位词汇由
+  P2-XX-INT 对齐，**不作冻结依据**；编排上游 API-P2-001
+  （docs/api/PHASE2_API_V1.md，FROZEN）引用不改动；会话冻结默认
+  （upm 参数/tolerance/sigma_floor 等）非 config 覆盖键的部分禁改，
+  扩展归 P2-SESSION-IMPL schema 修订。
+- 缺陷迁移语义（登记不改码）: 未知键拒绝缺失（p2_session.h:19 vs
+  :69-98）、run 子键类型错未捕获路径、h:4 预算绑定注释漂移——编号
+  见 ALG-P2-SESSION-001 DISP 清单。
+- 下游: TEST-P2-SESSION-001（MISSING，P2-SESSION-DOC 登记，DORMANT，
+  由 P2-SESSION-TEST 落地 + EVIDENCE；设计冻结面=ALG-P2-SESSION-001
+  TEST-DESIGN 节）；上游 SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
+  （共享 FROZEN）/ ALG-P2-SESSION-001 / DATA-P2-SESSION。

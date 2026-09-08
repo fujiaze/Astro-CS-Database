@@ -1474,3 +1474,178 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
   （module_adapters.cpp:580-592，module_id=astrocs.phase2.sample
   占位）端口表 coverage→samples 为编排层词汇，由 P2-XX-INT 对齐
   astrocs.p2.sampling，不得反向作为冻结依据。
+
+## 24. Phase2 装配会话（lib/phase2_session）数据语义（DATA-P2-SESSION）
+
+> ID: DATA-P2-SESSION  状态: CONTRACT_READY（P2-SESSION-DOC 冻结，
+> 2026-09-10，SA-P2-X24）
+> 模块: lib/phase2_session/p2_session.cpp（282 行）+ 唯一权威签名头
+> lib/phase2_session/p2_session.h（39 行）（astrocs.p2.session；构建=
+> 静态库 astrocs_phase2_session，根 CMakeLists.txt:454-458；迁移目标
+> astrocs_p2_session.dll 为矩阵合同值，尚未存在——MISSING 如实登记，
+> 由 P2-SESSION-IMPL 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 装配
+> 会话 config/manifest/错误码/各段数据面单位与透传口径的唯一权威；
+> 本域为纯编排透传层（不实现科学公式，直调 lib/phase2 生产符号），
+> SCI 上游零改动: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
+> （docs/science/，FROZEN）；ALG: ALG-P2-SESSION-001
+> （docs/algorithms/PHASE2_SESSION.md，逐符号锚与调用序）；API 面:
+> API-P2-SESSION-001（PUBLIC_API.md「Phase2 装配会话 C API」节）+
+> 编排上游 API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，引用不改动）。
+
+### 24.1 config JSON 键集（p2_session.cpp:69-98 validate 实测；run 消费 :100-248）
+
+config 为单对象 JSON 文档（acs_span_u8 传入，非 object → rc（:80））。
+validate 为纯读无 IO（p2_session.h:19），可幂等重复调用；run 不内嵌
+validate 全套检查（仅 parse 兜底 :107-109，提示 "validate first"），
+调用方契约=先 validate 后 run。
+
+| 键 | 类型 | 必填 | 默认 | 校验规则（违规→ACS_ERR_PARAM，锚=p2_session.cpp） |
+|---|---|---|---|---|
+| hips_paths | array[string] | 是 | — | 缺失→"missing key 'hips_paths'"（:81-85）；非 array 或空 array→（:86-88）；元素非 string→（:91-92）；run 逐项 get\<string\>（:112）经 AIO 直读 HiPS 产品（§23.1(2) 同源） |
+| output_dir | string | 是 | — | 缺失→"missing key 'output_dir'"（:81-85）；非 string→（:86-88）；**run 现状不消费该键**（validate 必填、run 无读取——诊断面词汇占位，如实登记不改码） |
+| upm | object | 否 | 空对象语义（缺省=全冻结默认，§24.4(3)） | 非 object→（:93-96）；validate **不校验子键**——run 消费 max_iterations(int)/huber_delta(double)/smoothing_lambda(double)（:196-202），类型不符 get\<\> 抛异常的现状=未捕获路径（登记，见 ALG-P2-SESSION-001 DISP 清单） |
+| persist_upm | bool | 否 | false（doc.value 默认） | validate 不校验；run :222 消费；类型不符 get\<bool\> 同上未捕获现状 |
+| upm_save_path | string | 否 | — | validate 不校验；persist 触发=persist_upm 为真 **且** contains upm_save_path（:222）；run :229 get\<string\> |
+
+未知键语义（权威=实现实测，非头注释）: **validate 现状不拒绝未知键**
+——p2_session.h:19 注释声明"拒未知键/缺必需键"，实现 :69-98 仅拒缺
+必需键 + 类型错（无未知键遍历）；注释-实现漂移，禁止按头注释宣称
+unknown-key 拒绝语义，整改（补拒绝或改注释）归 P2-SESSION-IMPL
+（编号见 ALG-P2-SESSION-001 DISP 清单）。缺必需键锚=:81-85（无
+silent default，两键逐名报错）。
+
+### 24.2 manifest JSON 字段（inspect 输出，p2_session.cpp:250-266 实测）
+
+manifest 为 nlohmann::json 对象（create 初始化 :64），inspect 以
+dump(2) 拷出（:258-265，经 host->allocator.alloc(n,16) 分配，释放
+责任=同一 host allocator，common_abi_v1.h:74 合同头；alloc 失败→
+ACS_ERR_NOMEM :261）。顶层字段:
+
+| 字段 | 类型 | 值/语义 | 锚 |
+|---|---|---|---|
+| kind | string | 常量 "astrocs_phase2_session" | :64 |
+| stages | array[object] | 段记录追加序 coverage→sample→upm_build→persist（persist 可选缺席）；每项 {name, status, ...extra}，status ∈ running/ok/fail/cancelled | :36-40/:121-147/:153-178/:182-219/:228-239 |
+| status | string | created（未 run 且无错）→ complete（run 成功）/ failed（run 过但 last_error 非空，inspect 时补写） | :253-256/:245 |
+| error | string | 仅 failed 时：last_error 脱敏摘要 | :256 |
+| error_kind | string | input（生产 rc 映射，map_rc 统一标注 :46）/ output（persist 落盘失败 :234） | :46/:234 |
+| n_inputs | int | coverage 输入 HiPS 数（run 成功后写入） | :243 |
+| n_obs | u64 | 采样观测数 | :244 |
+| artifacts | array[string] | persist 成功产物路径（upm_save_path） | :237-238 |
+
+段内 extra 键（逐段实测）: coverage: rc/n_inputs/n_union_cells/
+target_order（:127/:140/:145-147）；sample: rc/err/n_obs/n_controls/
+accepted_obs/overlap_controls（:170/:174-176）；upm_build: rc/
+control_count/observation_count/component_count/target_order/
+model_hash（P2ModelInfo 可用时 :211-215，info 不可用仅 status=ok
+:218）；persist: path（ok :239；fail 无 rc :232）。
+
+manifest 状态机: created →（run 各段 running→ok/fail/cancelled）→
+complete / failed。现状 run 重入不清空 manifest（stages 累积追加、
+n_inputs/n_obs/status 覆盖写），幂等语义未冻结（如实登记）。
+
+### 24.3 ACS_ERR_* 错误码语义表（map_rc p2_session.cpp:43-50 + 逐函数实测）
+
+| 错误码 | 触发 | 锚（p2_session.cpp） |
+|---|---|---|
+| ACS_OK | run 全段 ok / validate 通过 / 生命周期原语成功 | :97/:247 |
+| ACS_ERR_ABI_MISMATCH | create: host null ∨ struct_size≠sizeof(astrocs_host_services_v1) ∨ abi_version≠ACS_ABI_VERSION_V1 | :57-59 |
+| ACS_ERR_PARAM | create out null（:60）；validate/run 句柄 null 或 config span null/空（:71/:102）；JSON parse 失败（:76-78/:107-109）；非 object（:80）；缺必需键/类型错（:81-96）；inspect out null（:252）；destroy 句柄 null（:270） | :60/:71-96/:102/:107-109/:252/:270 |
+| ACS_ERR_STATE | 生产函数 rc=2（显式 build fail——生产路径缺 ivar 等，合同 §4 映射） | :48 |
+| ACS_ERR_IO | persist 段 p2_upm_save 失败（error_kind=output，model 先 close 防泄漏） | :230-235 |
+| ACS_ERR_INTERNAL | 生产函数其余 rc（map_rc 兜底；error_kind=input :46） | :49/:43-50 |
+| ACS_ERR_NOMEM | create SessionState 分配失败（:62）；inspect manifest 拷贝分配失败（:261） | :62/:261 |
+| ACS_ERR_CANCELLED | 各阶段边界取消检查命中（§24.5） | :120/:152/:181/:223-227 |
+
+错误摘要通道: C++ 诊断面 astrocs::phase2::last_error（p2_session.h:35，
+:278-281）返回最近一次 "what rc=N" 文本（:45）；C ABI 面错误语义仅经
+manifest.error/error_kind 承载（:256/:46）。
+
+### 24.4 各段数据面（透传口径；会话不复制科学结构，唯一权威=各域节）
+
+**(1) coverage 段**（:119-148，两遍协议）: P2CoverageResult（coverage.h，
+UNIT=ADU/tile 口径透传，唯一权威=DATA-COV-001 §19）——首遍 inputs=null
+仅查询 union 容量（:124-128），回填 P2HipsInputInfo 后第二遍取
+union_cells/target_order（:130-142）；cov_guard 经 p2_coverage_free
+释放（:143-144）；产物仅以 manifest 计数/词汇登记（n_inputs/
+n_union_cells/target_order），MOC 数据本体不出会话边界。
+
+**(2) sample 段**（:150-178，probe/fill 两遍）: P2ControlObservation
+13 字段（upm.h:31-57）——**引用 §23.2(1) 不复制**（value=ADU/
+uncertainty=ADU/control_variance=ADU²/control_ivar=1/ADU² 等）；cfg=
+p2_sampler_default_config() + sc.cpu_workers=host->budget.max_workers
+（:154-155）；probe 遍 :158-163（obs/nodes 容量查询），fill 遍
+:167-168；stats 诊断计数（accepted_obs/overlap_controls 入 manifest
+:174-176）口径=§23.2(2)。
+
+**(3) upm_build 段**（:180-219）: 输入 obs（§23.2(1) 结构）→
+P2UpmBuildConfig 冻结默认 + upm 子键覆盖 → void* model（不透明句柄，
+会话持有，p2_upm_close 唯一释放 :241）。冻结默认（:183-195）:
+
+| P2UpmBuildConfig 字段 | 会话冻结值 | 锚 |
+|---|---|---|
+| robust_loss | 0（huber） | :184 |
+| snr_weight_mode | 0（snr2_normalized） | :185 |
+| huber_delta | 1.345（upm.huber_delta 可覆盖） | :186/:199-200 |
+| max_iterations | 100（upm.max_iterations 可覆盖） | :187/:197-198 |
+| tolerance | 1e-6（无 config 覆盖键） | :188 |
+| target_order | =cov.target_order（coverage 实测值透传） | :189 |
+| sigma_floor | 1e-3 | :191 |
+| support_power | 1.0 | :192 |
+| use_ivar_weight | 1 | :193 |
+| control_reliability | 1.0 | :194 |
+| cpu_workers | =host->budget.max_workers（blocks(budget)，禁硬编码） | :195 |
+
+smoothing_lambda 仅经 config 覆盖（:201-202，缺省=P2UpmBuildConfig
+零值现状）。模型信息仅以 P2ModelInfo 五字段入 manifest（:209-216），
+模型本体/系数数组不出会话边界（唯一权威=SCI-UPM-001/ALG-UPM 域）。
+
+**(4) persist 段**（:221-240，可选）: p2_upm_save(model, upm_save_path)
+单文件直写（:230）；**单文件直写无原子发布边界——§12.5 语义（原子性/
+tree hash/COMPLETE 状态）在本段不适用，如实现状态登记**（无校验和、
+无临时文件+rename）；成功路径 artifacts 追加 :237-238。本段不产 HiPS
+产品集（HiPS 写出唯一权威=DATA-P1-HIPS §12 / DATA-P2-HIPS §20 编排
+域）。
+
+### 24.5 取消语义与并发（p2_session.h:16/:22 注释锚 + 实测）
+
+- 取消=**阶段边界检查点**（4 处，p2_session.h:22 注释冻结）: coverage
+  段前（:120）/ sample 段前（:152）/ upm_build 段前（:181）/ persist
+  段前（:223-227）。检查=宿主 cancel.is_cancelled 轮询（:32-35，
+  common_abi_v1.h:91-97 单向置位原子读）。命中→该段 status=cancelled
+  + 返回 ACS_ERR_CANCELLED；**upm 整模型不写半成品**——upm_build 段内
+  无取消检查（取消只能整段前后），persist 取消先 p2_upm_close 防泄漏
+  （:224）。
+- 并发合同（p2_session.h:16 注释锚）: **threadsafe:no（handle 级）**
+  ——同一 acs_handle 的并发调用未受保护，禁止；**reentrant:yes**——
+  不同 handle 并发合法（SessionState 全实例态，无共享可变全局）。
+- 内部并行**仅 UPM blocks**（预算驱动）: sample/upm 段 cpu_workers=
+  host->budget.max_workers（:155/:195，Runtime lease 唯一来源，ARCH-004
+  禁硬编码）；coverage/persist 段串行（persist 显式"串行 IO" :221）。
+  预算绑定差异登记: p2_session.h:4 头注释 "sampler=1(串行 reference)"
+  vs 实现 :155 sampler 同样透传 budget.max_workers（N-worker）——行号
+  权威=cpp 实测，注释漂移整改归 P2-SESSION-IMPL（见 ALG-P2-SESSION-001
+  DISP 清单）。
+- host services 四通道（common_abi_v1.h:110-117 实测）: allocator
+  （inspect manifest 分配 :260）/ logger（ACS_LOG_INFO "phase2" 预算与
+  段日志 :28-31/:115-117/:148/:177-178）/ cancel（§24.5 取消）/
+  budget（max_workers 注入 :155/:195 + available_cpus 日志 :116-117）。
+
+### 24.6 交叉引用
+
+- 上游: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001（docs/science/，共享
+  FROZEN，零改动——本域纯透传不触碰科学公式）；ALG-P2-SESSION-001
+  （docs/algorithms/PHASE2_SESSION.md，四段调用序逐源码行号锚）。
+- 下游: API-P2-SESSION-001（PUBLIC_API.md，五符号展开冻结）+ 编排上游
+  API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，引用不改动）；
+  TEST-P2-SESSION-001（MISSING，P2-SESSION-DOC 登记，落地归
+  P2-SESSION-TEST，设计冻结面=ALG-P2-SESSION-001 TEST-DESIGN）。
+- 同文档: §16（P1 装配会话先例，DATA-P1-SESSION——created→complete/
+  failed 状态机与 host services 四通道同构）；§19（DATA-COV-001，
+  coverage 段输入唯一权威）；§23（DATA-P2-SMP，P2ControlObservation/
+  P2SamplerConfig/P2SampleStats 唯一权威）；§12.5（发布/IO-003 对齐
+  边界——persist 段不适用，§24.4(4)）；DATA-FRAME-ID-001（frame_id
+  身份，sample 段经 §23 透传）。
+- 端口词汇注记: registry descriptor 现无 astrocs.p2.session 占位——
+  lib/core/src/module_adapters.cpp:23-26 仅为 RT-005 IModule 工厂声明
+  五 C ABI（p2_session_create/validate/run/inspect/destroy）；词汇
+  astrocs.p2.session 由 P2-XX-INT 对齐登记，不作冻结依据。
