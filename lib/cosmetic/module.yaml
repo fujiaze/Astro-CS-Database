@@ -1,19 +1,15 @@
 # AstroCS phase1 cosmetic module — 元数据 (P1-COS-DOC 冻结, 2026-09-07)
-# 状态: CONTRACT_READY —— 实现存在（生产源 lib/calibration/src/cosmetic_corrector.cpp
-# 的 ac::{detect_hot_pixels,detect_cold_pixels,filter_by_structure_size,
-# interpolate_pixels,correct_frame} + C API ac_correct_frame(+_f64)，当前编译进
-# CMake astrocs_calibration 静态库），模块化迁移（独立源码目录/C ABI adapter /
-# astrocs_p1_cosmetic.dll / plan-execute-cancel-inspect / ThreadLease 接线）由
-# P1-COS-IMPL 执行；可执行测试由 P1-COS-TEST 建立（TEST-P1-COS-001）。
+# 状态: CONTRACT_READY —— 实现存在（lib/calibration，CMake astrocs_calibration），
+# 模块化迁移已由 P1-COS-IMPL 交付：astrocs_p1_cosmetic DLL（C ABI v1 九操作
+# adapter，entrypoint astrocs_module_query_v1，唯一导出 ABI-006；plan-execute-
+# cancel-inspect / host_executor_lease 租约接线见 lib/cosmetic/CMakeLists.txt
+# 与 src/module_entry.cpp）。可执行测试由 P1-COS-TEST 建立（TEST-P1-COS-001）。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对清单
 # （P1-COS-DOC，2026-09-07，7 个生产符号），禁止手抄他版。
-# 本目录 lib/cosmetic/ 为 P1-COS 模块文档落位（matrix legacy_paths=
-# "lib/calibration;lib/phase1_session"：实现主体在 lib/calibration、生产调用方在
-# lib/phase1_session，两目录与 P1-CAL-DOC 已冻结产物共存；本目录不与二者重叠，
-# 作为 DLL astrocs_p1_cosmetic.dll 的迁移目标目录由 P1-COS-IMPL 落码）。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
-# 现状实现为 OpenMP 默认 team + ac_set_num_threads 全局 ICV（迁移整改点，
-# 见 docs/contracts/PUBLIC_API.md API-COS-001 与 docs/algorithms/COSMETIC_ALGORITHMS.md §7/§10）。
+# adapter 经 host executor acquire/release 租约 + ac_set_num_threads 注入
+# OMP ICV（不改生产源；见 docs/contracts/PUBLIC_API.md API-COS-001 与
+# COSMETIC_ALGORITHMS.md §7/§10）。
 id: MOD-astrocs-phase1-cosmetic
 module_id: astrocs.p1.cosmetic
 module_version: 0.11.0-alpha.2
@@ -21,8 +17,15 @@ abi_version: 1
 phase_scope: phase1
 dll_name: astrocs_p1_cosmetic.dll
 module_status: CONTRACT_READY
-entrypoint: MISSING
-node_operations: []
+entrypoint: astrocs_module_query_v1
+# node_operations 按 types.h op 词表登记 (每 (module_id, operation) 绑定同一
+# 唯一 entry astrocs_module_query_v1; gaia/CAL INT 先例)。2 科学 op 与
+# cosmetic 域 legacy AC_API 科学导出 1:1 (ac_set_num_threads 为工具通道
+# 不进 op 面); 线程改经 host_executor_lease 租约注入 (ac_set_num_threads
+# 仅作注入途径; DISP-COS-008 整改点)。
+node_operations:
+  - correct_frame
+  - correct_frame_f64
 input_ports:
   - p1.calibrated
 output_ports:

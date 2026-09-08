@@ -826,3 +826,28 @@ add_dependencies(calibration_integration_test astrocs_p1_calibration)
 add_test(NAME calibration_integration COMMAND calibration_integration_test)
 set_tests_properties(calibration_integration PROPERTIES
   ENVIRONMENT "ASTROCS_CAL_DLL_PATH=$<TARGET_FILE:astrocs_p1_calibration>;ASTROCS_CAL_INT_TRACE_OUT=${CAL_INT_TRACE_OUT}")
+
+# cosmetic_adapter_test (P1-COS-IMPL): 模块 C ABI v1 adapter 测试。
+# direct 通道链 astrocs_calibration STATIC (AC_API 全导出面); plugin 通道
+# dlopen astrocs_p1_cosmetic DLL (唯一导出 astrocs_module_query_v1)。
+# DLL 路径经 ENVIRONMENT 注入; include 与 DLL 生产源口径一致
+# (lib/calibration/include 生产头 + lib/cosmetic/include types.h)。
+# OMP 教训 (P1-CAL-INT 58d20223): DLL (astrocs_p1_cosmetic) 自链 libgomp,
+# 本 TU 链 astrocs_calibration 已有 OMP 符号引用, 仍显式 --no-as-needed
+# 双保险 (仅 GNU ld 语义, MSVC 无此选项), 防 dlopen 晚装载 SEGV。
+add_executable(cosmetic_adapter_test cosmetic_adapter_test.cpp)
+target_include_directories(cosmetic_adapter_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/cosmetic/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(cosmetic_adapter_test PRIVATE
+  astrocs_calibration ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
+if(UNIX AND NOT APPLE)
+  target_link_options(cosmetic_adapter_test PRIVATE
+    "LINKER:--no-as-needed")
+endif()
+add_dependencies(cosmetic_adapter_test astrocs_p1_cosmetic)
+add_test(NAME cosmetic_adapter COMMAND cosmetic_adapter_test)
+set_tests_properties(cosmetic_adapter PROPERTIES
+  ENVIRONMENT "ASTROSCOS_DLL_PATH=$<TARGET_FILE:astrocs_p1_cosmetic>")
