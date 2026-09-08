@@ -56,9 +56,16 @@ int wmain(int argc, wchar_t** argv) {
     std::vector<std::string> u8;
     u8.reserve(static_cast<size_t>(argc));
     for (int i = 0; i < argc; ++i) {
-        int n = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr);
-        std::string s(static_cast<size_t>(n > 0 ? n - 1 : 0), '\0');
-        if (n > 1) WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, s.data(), n, nullptr, nullptr);
+        // B13-R13-4: 修复 1 字节越界写 — 历史代码分配 n-1 却传 cbMultiByte=n。
+        // 正确顺序 (缓冲计算见 cli_common.h utf8_from_wide_*): 分配 n → 转 n → 去 NUL。
+        const int n = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr);
+        if (!astrocs::utf8_from_wide_should_convert(n)) {
+            u8.emplace_back();
+            continue;
+        }
+        std::string s(astrocs::utf8_from_wide_alloc_bytes(n), '\0');
+        WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, s.data(), n, nullptr, nullptr);
+        s.resize(astrocs::utf8_from_wide_final_len(n));
         u8.push_back(std::move(s));
     }
     std::vector<char*> ptrs;
