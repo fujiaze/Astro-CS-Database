@@ -1372,14 +1372,14 @@
   },
   "P1-CAL-IMPL": {
    "owner": "SA-P1-C14",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "adf820ac",
+   "evidence_path": "run/local/agent_p1cal_impl/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-impl",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
+   "review_claim": "impl_complete",
+   "current_evidence": "前台复验:calibration_adapter+p1cal 7/7+nm导出唯一;10/10科学op BITWISE;全量ctest 105/105;3项偏差保持(合同依据)+adapter修正4项",
    "note": ""
   },
   "P1-CAL-INT": {
