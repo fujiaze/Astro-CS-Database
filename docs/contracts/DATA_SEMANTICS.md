@@ -995,8 +995,8 @@ signal 回读失败 rc=7 :1665）。
   mosaic=DATA-P2-RES out（UnitId::ADU/CoordinateFrame::PIXEL，
   :684-687）为编排层词汇，与球面 NESTED 马赛克实际不符（产品为
   NESTED 球面 tile，非 PIXEL 平面），以本节为准修订，P2-XX-INT
-  对齐，不得反向作为冻结依据；DATA-P2-INT 端口（集成内部视图）在
-  本文档暂无独立节（实测），其 DATA 合同冻结由 P2-XX-INT 归口。
+  对齐，不得反向作为冻结依据；DATA-P2-INT 端口（集成内部视图）
+  逐符号数据合同见 §21（P2-INT-DOC 冻结，2026-09-09）。
 - **dtype/确定性**: 全浮点输出限 float32/float64 IEEE 域
   （precision 唯一选择 :528）；整数登记量（nside/order/tile 计数/
   UNIQ）bitwise 确定；浮点积分确定性受 acr_route/execution
@@ -1026,3 +1026,105 @@ signal 回读失败 rc=7 :1665）。
 - 并发: aio_hips writer 句柄单线程使用；tile 间顺序写（:660-661
   循环序），chunk 内多线程仅限积分计算（CON-002 cpu-workers），
   不改变输出 tile 顺序。
+
+## 21. Phase2 integration（lib/phase2）模块输入/输出数据（DATA-P2-INT）
+
+> ID: DATA-P2-INT  状态: CONTRACT_READY（P2-INT-DOC 冻结，2026-09-09）
+> 模块: lib/phase2/src/integrate.cpp（76 行）+ 唯一权威签名头
+> lib/phase2/include/astro/phase2/integrate.h（74 行）
+> （astrocs.p2.integration；合同三件套 lib/phase2_int/，迁移目标
+> astrocs_p2_integration.dll 为矩阵合同值，尚未存在，由 P2-INT-IMPL
+> 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 逐像素积分内核
+> in/out 单位/dtype/shape/invalid 的唯一权威；ALG: ALG-P2-INT-001
+> （docs/algorithms/PHASE2_INTEGRATION.md，逐符号锚与 §11 冻结附录）；
+> SCI 上游: SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，零改动）；
+> API 面: API-P2-INT-001（PUBLIC_API.md）；编排级合同 API-P2-001
+> （docs/api/PHASE2_API_V1.md，FROZEN）。本节冻结完成后，§20.3
+> 「编排层词汇注记」所述 DATA-P2-INT 端口合同由本节承接（P2-XX-INT
+> descriptor 对齐仍归后任务）。
+
+### 21.1 输入（P2PixelStack，integrate.h:36-42，逐像素候选栈）
+
+调用约定: 每次调用一个像素栈（count 个候选）；frame-major 批量
+缓冲由调用方逐像素切出（stage2.cpp:1213-1223/:1515-1527、
+acr_kernels.cpp:189-195）。字段可空语义为冻结合同（§20 同构）:
+
+| 字段 | dtype/shape | 单位/域 | 可空语义 | 约束（违规→INVALID_INPUT） |
+|---|---|---|---|---|
+| values | f64 `[count]` | ADU（与校准后同标度，SCI §3） | 不可空（null+count==0 → NO_CANDIDATES :23-26；null 且 count>0 → NO_CANDIDATES，values==null 同分支） | accepted 样本须 finite（:37） |
+| weights | f64 `[count]` | 1/ADU²（数值权重，策略在调用方；本层无 ivar 语义，SCI §3） | 可空=等权 1.0（:45 w=weights?w[i]:1.0） | accepted 样本须 finite ∧ ≥0（:44-48）；w==0 合法零贡献（:49） |
+| support | f64 `[count]` | 无量纲 [0,1]（几何覆盖，§4；禁作科学权重，§20.3 红线） | 可空=1.0（输出侧 :71 空支撑守恒） | accepted 样本须 finite ∧ >0（:38-42） |
+| accepted | u8 `[count]` | 无量纲 0/1（排异层产物，DATA-P2-REJ） | 可空=全接受（:34-36） | — |
+| count | u32 标量 | 无量纲 | — | 0 → NO_CANDIDATES |
+
+预检合同: `p2_validate_candidate_weights(weights,count)`（:10-17）
+→ 0 合规 / 1 违规（null→0；任一 !finite 或 <0→1；w==0 合规）；
+调用方权重构造后必经此门（stage2.cpp:1141/:1402）。
+
+### 21.2 输出（P2PixelResult，integrate.h:53-63）
+
+| 字段 | dtype/shape | 单位/值域 | invalid/未定 |
+|---|---|---|---|
+| signal | f64 标量 | ADU（=Σwᵢxᵢ/Σwᵢ，仅正权重 eligible 样本） | 非正权状态（§21.3 非 OK）时无定义，调用方须按 status 门禁消费（stage2.cpp `(status==0)?signal:0` 同型，acr_kernels.cpp:199-200） |
+| support | f64 标量 | 无量纲 [0,1] = max reducer 输出（support 输入空 → 1.0，:71 空支撑守恒） | 同上；现状实现含 DISP-P2INT-001（零权重 accepted 样本不进 max，保守方向，ALG §11.3） |
+| n_used | u32 标量 | 无量纲 = n_positive_weight（通过门正权样本数，:56） | — |
+| n_candidates | u32 标量 | 无量纲 =count | — |
+| n_accepted | u32 标量 | 无量纲 | — |
+| n_finite | u32 标量 | 无量纲 | — |
+| n_positive_weight | u32 标量 | 无量纲 | — |
+| status | u32 枚举 | 无量纲 0..4（P2IntegrateStatus） | — |
+
+### 21.3 状态机（唯一权威=integrate.h:45-51；判据=ALG-P2-INT-001 §4）
+
+| status | 值 | 触发 | 锚 |
+|---|---|---|---|
+| OK | 0 | ≥1 正权重 eligible 样本 | integrate.cpp:72 |
+| NO_CANDIDATES | 1 | count==0 ∨ values==null | :23-26 |
+| ALL_REJECTED | 2 | n_accepted==0（全拒） | :65-69 |
+| ZERO_VALID_WEIGHT | 3 | n_accepted>0 ∧ n_positive_weight==0（全零权重，**不做除法**） | :49/:65-69 |
+| INVALID_INPUT | 4 | accepted 样本 values 非 finite ∨ support 非 finite/≤0 ∨ weights 非 finite/负 | :37/:38-42/:44-48 |
+
+rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21）。
+无除零路径（wsum==0 时 :65-69 分支先行）；无静默 0/±Inf 输出
+（§4 无有效样本须显式 status 同源条款）。
+
+### 21.4 单位/dtype/确定性（唯一权威）
+
+- 全浮点为 IEEE f64（核内）；f32/f64 写盘转换在 Stage2 precision
+  （§20.2/:529），本层不输出文件产品。weights（1/ADU²）与
+  support（无量纲）量纲不同，本层分开消费、禁止互换（§20.3
+  红线在本层的镜像）。
+- 确定性: 候选索引 i=0..count-1 固定序单栈归约（:30-57）；
+  vs/wsum 双累加器顺序确定（:52-53），signal=vs/wsum 单除法
+  （:70）→ 同输入 bitwise 确定且与 worker 数无关（像素间并行在
+  调用方，像素内无跨 worker 归约；Stage2 per-thread 统计 thread id
+  定序归并 stage2.cpp:1305-1313；ACR :218/:228 schedule(static)）
+  ——ALG-P2-INT-001 §6 parallel reduction tolerance 合同。
+- 整数登记量（status/counters）bitwise 确定；无隐藏全局状态
+  （纯函数，reentrant=yes）。
+
+### 21.5 错误/边界
+
+- 错误面=§21.3 五态 + rc=1 null 栈；无部分输出承诺（INVALID_INPUT
+  时 n_used=已计数部分，:58-63，其余计数器为已处理前缀值）。
+- 取消/重入: 内核无取消检查点（迁移 ThreadLease 接线归
+  P2-INT-IMPL，与 DISP-COV-005 同构）；可重入（无全局状态）。
+- 缺陷登记（不改码）: DISP-P2INT-001（sup_max 漏计零权重 accepted
+  样本，:54-55 vs integrate.h:17，整改归 P2-INT-IMPL/TEST）；DISP-
+  P2INT-002（INTEGRATION.md:58 表述矛盾，ALG §11.3）。SCI §5:63
+  引用行号 10-79/1-75 超出实测 76/74 行（锚漂移，行号权威=ALG
+  文档 §3 实测）。
+
+### 21.6 交叉引用
+
+- 上游: SCI-INT-001（FROZEN）；ALG-P2-INT-001（本域算法权威）；
+  DATA-P2-REJ（accepted 掩码，P2-REJ 域）；DATA-P2-COR（values
+  校准值，Phase1 校准链）；ivar 输入权重语义=§4a/
+  DATA-HIPS-IVAR-001（weight_mode=2 消费在 Stage2，:1106-1117）。
+- 下游: DATA-P2-HIPS（§20，signal/support 逆归一化消费域，
+  stage2.cpp:1227-1228/:1588-1589）；ACR 加速消费（acr_kernels.cpp，
+  DATA_SEMANTICS 未设独立 ACR 节，消费合同以 §21 + ALG §6 为准）；
+  TEST-P2-INT-001（MISSING，P2-INT-TEST 落地；设计冻结面=
+  ALG-P2-INT-001 §11.4）。
+- 同文档: §4（signal/support/invalid 基础语义）、§6（precision）、
+  §20（Phase2 mosaic write 下游域）。

@@ -102,6 +102,9 @@ doc_index:
     - path: "docs/algorithms/PHASE2_MOSAIC_WRITE.md"
       status: ACTIVE_NORMATIVE
       notes: "P2-HIPS-DOC 冻结 (2026-09-09, SA-P2-I23): ALG-P2-HIPS-001..004 马赛克写出编排逐公式源码行号锚定(stage2.cpp main:112/哈希链:233-245/ivar 门:565-574/序转换 HIPS-IMG-001:1023-1040/finalize:1638-1648)+四概念分离 signal/variance/support/mask 负向条款(§7)+DISP-P2HIPS-001..004(§11)+TEST-P2-HIPS-001 MISSING 登记+SCI 层零改动声明(共享 FROZEN SCI-UPM-001/SCI-INT-001/SCI-REJ-001)"
+    - path: "docs/algorithms/PHASE2_INTEGRATION.md"
+      status: ACTIVE_NORMATIVE
+      notes: "P2-INT-DOC 冻结 (2026-09-09, SA-P2-I23): ALG-P2-INT-001 逐像素加权积分逐符号源码行号锚定(integrate.cpp 76 行/integrate.h 74 行 实测, p2_integrate_pixel:19-74 五态状态机:65-69/support canonical:71/p2_validate_candidate_weights:10-17)+权重语义与 policy/reducer 分离(§2/§5)+消费链与并行 tolerance 合同(§6, stage2.cpp:1288/1305-1313, acr_kernels.cpp:218)+DISP-P2INT-001(sup_max 零权重, bughunt R3-A)/DISP-P2INT-002(INTEGRATION.md:58 表述矛盾)(§11.3)+TEST-P2-INT-DESIGN-001 冻结容差(§11.4)+SCI 层零改动声明(SCI-P2-INT-001⇒SCI-INT-001 共享 FROZEN, §11.5); 承接 audit PH2-05 B2-12 建议"
     - path: "docs/algorithms/PHASE3_RESAMPLE.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/algorithms/PHOTOMETRIC_FIT.md"
@@ -316,6 +319,9 @@ doc_index:
     - path: "docs/modules/hips_p2.md"
       status: ACTIVE_INFORMATIVE
       notes: "P2-HIPS-DOC (2026-09-09) 新建: astrocs.p2.hips_writer 模块页——合同落位 lib/hips_p2/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/hips/ P1-HIPS 先例新建, lib/phase2/ 三件套已被 P2-COV 占用); 合同 ID=ALG-P2-HIPS-001..004/DATA-P2-HIPS/API-P2-HIPS-001/TEST-P2-HIPS-001(MISSING); 唯一生产源 lib/phase2/tools/stage2.cpp (lib/healpix_db 仅 P1 写通道 astro_sphere_sink.cpp 引用不归属)"
+    - path: "docs/modules/phase2_int.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "P2-INT-DOC (2026-09-09) 新建: astrocs.p2.integration 模块页——合同落位 lib/phase2_int/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/hips_p2/ 先例新建, lib/phase2/ 三件套已被 P2-COV 占用); 合同 ID=SCI-INT-001(共享 FROZEN)/ALG-P2-INT-001/DATA-P2-INT(§21)/API-P2-INT-001/TEST-P2-INT-001(MISSING); 生产源 lib/phase2/src/integrate.cpp + integrate.h; 消费链 stage2.cpp/acr_kernels.cpp"
     - path: "docs/modules/photometric_calib.md"
       status: ACTIVE_INFORMATIVE
       notes: "P1-PHOT-DOC (2026-09-07) 事实修订: 头部增补块——合同落位 lib/photometric_calib/README.md r1 + module.yaml (astrocs.p1.photometry, CONTRACT_READY, entrypoint=MISSING); 合同 ID=SCI-PHOT-001/ALG-PHOT-001..002/DATA-P1-PHOT/API-PHOT-001; NO_DATA 表述按退化语义修订"
@@ -358,9 +364,6 @@ doc_index:
     - path: "docs/modules/registry/astrocs.phase2.coverage.md"
       status: ACTIVE_INFORMATIVE
       notes: "P2-COV-DOC (2026-09-07) 重写为手写合同页 (registry 页保留先例 astrocs.phase1.session.md/astrocs.phase1.star-detection.md): MOD-astrocs-phase2-coverage/astrocs.p2.coverage 合同——SCI-P2-COV-001(共享 FROZEN)/ALG-COV-001/DATA-COV-001/API-COV-001/API-P2-001; 旧 descriptor 派生词汇 (coverage 坐标 PIXEL) 由 P2-COV-INT 对齐修订"
-    - path: "docs/modules/registry/astrocs.phase2.integrate.md"
-      status: GENERATED
-      notes: "tools/quality/gen_module_readmes.py 生成"
     - path: "docs/modules/registry/astrocs.phase2.reject.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"
@@ -376,6 +379,9 @@ doc_index:
     - path: "docs/modules/registry/astrocs.phase2.upm-fit.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"
+    - path: "docs/modules/registry/astrocs.phase2.integrate.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "P2-INT-DOC (2026-09-09) 事实修订为手写合同页 (registry 页手写先例 astrocs.phase2.write.md): astrocs.p2.integration 合同 (registry 行 ID 沿用 MOD-astrocs-phase2-integrate)——SCI-INT-001(共享 FROZEN)/ALG-P2-INT-001/DATA-P2-INT(§21)/API-P2-INT-001/API-P2-001; 合同落位 lib/phase2_int/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 生产源 lib/phase2/src/integrate.cpp+integrate.h; 旧 descriptor 派生词汇 (module_id=astrocs.phase2.integrate) 由 P2-XX-INT 对齐修订"
     - path: "docs/modules/registry/astrocs.phase2.write.md"
       status: ACTIVE_INFORMATIVE
       notes: "P2-HIPS-DOC (2026-09-09) 重写为手写合同页 (registry 页保留先例 astrocs.phase1.session.md/astrocs.phase1.star-detection.md/astrocs.phase2.coverage.md): astrocs.p2.hips_writer 合同 (registry 行 ID 沿用 MOD-astrocs-phase2-write)——SCI-UPM-001/SCI-INT-001/SCI-REJ-001(共享 FROZEN)/ALG-P2-HIPS-001..004/DATA-P2-HIPS/API-P2-HIPS-001/API-P2-001; 合同落位 lib/hips_p2/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 旧 descriptor 派生词汇 (module_id=astrocs.phase2.write/坐标 PIXEL) 由 P2-XX-INT 对齐修订"

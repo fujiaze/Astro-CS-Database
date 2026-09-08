@@ -1,0 +1,91 @@
+# AstroCS phase2 integration 模块 — 元数据 (P2-INT-DOC 冻结, 2026-09-09)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase2/src/integrate.cpp
+# 76 行 + 唯一权威签名头 lib/phase2/include/astro/phase2/integrate.h
+# 74 行，行号 grep/read 实测；构建挂载: 根 CMakeLists.txt:336-346
+# astrocs_phase2 STATIC 目标（:344 src/integrate.cpp）+
+# lib/phase2/CMakeLists.txt:42-49 兼容 target（:49 同文件）），
+# 模块化迁移（独立模块源 astrocs_p2_integration.dll / C ABI adapter /
+# plan-execute-cancel-inspect / ThreadLease 接线）由 P2-INT-INT 执行；
+# 可执行测试由 P2-INT-TEST 建立（TEST-P2-INT-001 MISSING，不冒认）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码
+# 核对清单（P2-INT-DOC，2026-09-09，grep 实测），禁止手抄他版。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P2-INT 行 owner=SA-P2-I23、
+# target=astrocs_p2_integration.dll、module_id=astrocs.p2.integration、
+# legacy_paths="lib/phase2 integration sources"、depends_on_int=
+# P2-REJ-INT;P1-NOISE-INT;CPU-005。实测生产源 lib/phase2/src/
+# integrate.cpp 位于 lib/phase2/——该目录三件套已被 P2-COV 域
+# astrocs.p2.coverage 合同占用（lib/phase2/README.md r1，一目录一套
+# README/module.yaml/memory.md，不可覆盖他域合同），故按 lib/hips_p2/
+# （P2-HIPS-DOC）先例落独立迁移目标目录 lib/phase2_int/（本文件所在，
+# 仅合同文件、无源码、不与 legacy 目录重叠）；legacy 生产源引用不搬家。
+# dll_target=astrocs_p2_integration.dll 为迁移目标合同值（尚未存在）；
+# 现状构建=根 CMakeLists.txt astrocs_phase2 静态库成员
+# （:336-346，:344 编入 src/integrate.cpp）。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4
+# 值域）；现状实现=像素级纯函数（p2_integrate_pixel 无任何线程原语，
+# 单栈归约按候选索引固定序），并行仅发生在调用方（stage2.cpp:1288 /
+# acr_kernels.cpp:218 OMP 像素间并行，像素内无跨 worker 归约；Stage2
+# per-thread 统计按 thread id 固定顺序定序归并 stage2.cpp:1305-1313）；
+# ThreadLease/取消检查点无接线（迁移整改点，与 DISP-COV-005 同构）。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# （lib/core/src/module_adapters.cpp:657-675 p2_integrate_descriptor 的
+# module_id=astrocs.phase2.integrate、sci_id=SCI-P2-INT-001/
+# alg_id=ALG-P2-INT-001/data_id=DATA-P2-INT/api_id=API-P2-001/
+# test_id=TEST-P2-INT-001、ports accepted_mask/corrected/integrated）
+# 为编排层词汇，由 P2-XX-INT 对齐本 manifest 与 lib/phase2_int/README.md
+# （r1），不得反向作为冻结依据。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase2-integrate
+module_id: astrocs.p2.integration
+owner: SA-P2-I23
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase2
+dll_name: astrocs_p2_integration.dll
+dll_target: astrocs_p2_integration.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [integrate]
+input_ports:
+  - accepted_mask
+  - corrected
+output_ports:
+  - integrated
+science_contracts:
+  - SCI-INT-001
+algorithm_contracts:
+  - ALG-P2-INT-001
+data_contracts:
+  - DATA-P2-INT
+api_contracts:
+  - API-P2-001
+  - API-P2-INT-001
+doc_links:
+  sci: docs/science/INTEGRATION.md
+  alg: docs/algorithms/PHASE2_INTEGRATION.md
+  data: docs/contracts/DATA_SEMANTICS.md#§21
+  api: docs/contracts/PUBLIC_API.md#API-P2-INT-001
+contract_ids:
+  sci: SCI-INT-001
+  alg: ALG-P2-INT-001
+  data: DATA-P2-INT
+  api: API-P2-INT-001
+  arch: ARCH-001
+  test: TEST-P2-INT-001
+source_symbols:
+  - p2_integrate_pixel
+  - p2_validate_candidate_weights
+test_ids:
+  - TEST-P2-INT-001
+threading_model: host_executor_lease
+resource_class: cpu
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+scientific_change: false
+depends_on:
+  - astrocs_phase2
+legacy_paths: lib/phase2 integration sources
+known_defects:
+  - DISP-P2INT-001
+  - DISP-P2INT-002
