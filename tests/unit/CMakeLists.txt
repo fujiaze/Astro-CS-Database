@@ -259,6 +259,14 @@ target_include_directories(cpu006_bench_report_test PRIVATE
 target_link_libraries(cpu006_bench_report_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME cpu006_bench_report COMMAND cpu006_bench_report_test)
 
+# CPU-007 (G3, V7.1): profile 存储生命周期 (原子写/失效隔离/负向样例)
+add_executable(cpu007_profile_store_test cpu007_profile_store_test.cpp)
+target_include_directories(cpu007_profile_store_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/backend_host)
+target_link_libraries(cpu007_profile_store_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME cpu007_profile_store COMMAND cpu007_profile_store_test)
+
 # CPU-004 (G3): 逐 kernel 自适应路由
 add_executable(cpu004_routing_test cpu004_routing_test.cpp)
 target_include_directories(cpu004_routing_test PRIVATE
