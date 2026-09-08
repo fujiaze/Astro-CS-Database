@@ -689,14 +689,14 @@
   "MON-001": {
    "owner": "SA-LOG-08",
    "status": "CLOSED",
-   "closed_commit": "",
+   "closed_commit": "1a590f63",
    "evidence_path": "evidence/v6_1_rework/tasks/MON-001/",
-   "source_of_status": "fg_verified_commit",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "implementation",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true",
-   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
+   "review_claim": "impl_complete",
+   "current_evidence": "构建rc=0+17组单测(8负向)+全量ctest 94/94+pytest 67/67+端到端冒烟哨兵自洽;utilization gate四条收口(缺失FAIL/70%样本U≥0.75/队列10s<0.50/片段豁免防线)",
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案);裁决项:0.80门×mini workload失配abs-floor待owner;queue_depth注入源属后续任务面(现用runnable>0代理)"
   },
   "MON-002": {
    "owner": "SA-LOG-08",
