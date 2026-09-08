@@ -665,13 +665,13 @@
   "CPU-007": {
    "owner": "SA-CPU-09",
    "status": "CLOSED",
-   "closed_commit": "",
-   "evidence_path": "evidence/refactor/tasks/CPU-007/",
-   "source_of_status": "fg_verified_commit",
+   "closed_commit": "410165f1",
+   "evidence_path": "evidence/v6_1_rework/tasks/CPU-007/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "implementation",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false",
+   "review_claim": "impl_complete",
+   "current_evidence": "构建rc=0+14组单测ALL PASS+ctest 77/77+CLI真实链路驱动ALL PASS(5负例:异二进制拒用/半写/旧版/外域schema拒存/源码树拒存);与CPU-006 report/v1双向隔离负例;load<2上下文",
    "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "CPU-008": {
