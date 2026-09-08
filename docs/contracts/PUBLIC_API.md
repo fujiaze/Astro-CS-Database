@@ -1190,3 +1190,77 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   adapter 由 P2-HIPS-IMPL 建立后方可登记导出符号表。
 - 下游: TEST-P2-HIPS-001（MISSING，P2-HIPS-DOC 登记，由
   P2-HIPS-TEST 落地 + EVIDENCE）；上游 ALG-P2-HIPS-001..004。
+
+## Phase2 integration 公共消费面（API-P2-INT-001）
+
+> ID: API-P2-INT-001  状态: CONTRACT_READY（P2-INT-DOC 冻结，
+> 2026-09-09）
+> 定位: Phase2 逐像素加权积分内核公共 C ABI 消费面——导出符号
+> `p2_integrate_pixel` / `p2_validate_candidate_weights`（既有 V17
+> 清单行 17-19/24-29 的展开冻结，**不新增、不修改任何 C 头/C
+> ABI**）；编排层经 API-P2-001（PHASE2_API_V1 phase session）驱动，
+> 内核本身无 session 依赖（无状态纯函数）。
+> SRC: lib/phase2/src/integrate.cpp（76 行，astrocs_phase2 静态库
+> 成员，根 CMakeLists.txt:336-346/:344）；唯一权威签名头
+> lib/phase2/include/astro/phase2/integrate.h（74 行: P2PixelStack
+> :36-42 / P2IntegrateStatus :45-51 / P2PixelResult :53-63 / 函数
+> 声明 :58-66）；DATA: DATA-P2-INT（DATA_SEMANTICS §21，单位/dtype/
+> shape 唯一权威）；ALG: ALG-P2-INT-001（docs/algorithms/
+> PHASE2_INTEGRATION.md，逐符号锚与并行 tolerance 合同）；MOD:
+> astrocs.p2.integration（迁移目标 astrocs_p2_integration.dll 为
+> 矩阵合同值，尚未存在——MISSING 语义，由 P2-INT-IMPL 建立，本节
+> 不声明 IMPLEMENTED；descriptor 占位 module_id=astrocs.phase2.
+> integrate 为编排层词汇，module_adapters.cpp:657-675，由 P2-XX-INT
+> 对齐）。
+
+### 导出符号与签名要点（integrate.h:58-66，冻结）
+
+- `int p2_integrate_pixel(const P2PixelStack*, P2PixelResult*)`
+  （:58-59）: rc=1 仅 stack/result null（integrate.cpp:20-21）；
+  rc=0 时语义由 `result->status` 承载（五态，:45-51）。线程安全=
+  reentrant yes / threadsafe no（无锁无全局态，并发由调用方像素
+  划分）；无取消检查点（ThreadLease 接线归 P2-INT-IMPL）。
+- `int p2_validate_candidate_weights(const double*, std::uint32_t)`
+  （:62-66）: 预检门 → 0 合规 / 1 违规（null→0；任一 !finite 或
+  w<0→1；w==0 合规，integrate.cpp:10-17）；调用方权重构造后必经
+  （stage2.cpp:1141/:1402）。
+- 输入域/输出域: P2PixelStack 四数组可空语义（weights null=等权、
+  support null=1.0、accepted null=全接受）与五态触发条件=唯一
+  权威 DATA-P2-INT §21.1/§21.3（本节不重复展开）。
+
+### 单位/dtype/shape（消费面副本，唯一权威=DATA_SEMANTICS §21）
+
+| 项 | 值 |
+|---|---|
+| values/signal | f64，ADU（f32/f64 写盘转换在 Stage2 precision） |
+| weights/wsum | f64，1/ADU²（数值权重，本层无 ivar 语义） |
+| support（in/out） | f64，无量纲 [0,1] |
+| accepted | u8 0/1；count/计数器 u32 |
+| 调用粒度 | 单像素栈（count 候选）；frame-major 批量由调用方逐像素切出（stage2.cpp:1213-1223/:1515-1527、acr_kernels.cpp:189-195） |
+
+### 确定性/并发合同（matrix 专项 parallel reduction tolerance）
+
+- 候选索引 i=0..count-1 固定序单栈归约（integrate.cpp:30-57）；
+  vs/wsum 双累加器（:52-53）+ 单除法（:70）→ 同输入 bitwise 确定
+  且**与 worker 数无关**（像素内无并行归约；像素间并行在调用方:
+  stage2.cpp:1288/:1298 schedule(static)、acr_kernels.cpp:218/:228
+  schedule(static)；per-thread 统计 thread id 定序归并
+  stage2.cpp:1305-1313；large_scale 激活强制串行）。容差=1..N
+  线程 bitwise（无 epsilon；ALG-P2-INT-001 §11.4 F7）。
+- 调用方禁止对 `pr.support` 二次 max/mean（stage2.cpp:1525-1526
+  注释冻结；ACR :205-208 同型消费）。
+
+### 负向条款与缺陷迁移语义
+
+- 负向条款: **P2-INT-DOC 不新增、不修改任何公共 C 头/C ABI**——
+  既有 V17 清单（:17-29）与本节为同一 ABI 的展开冻结，禁止第二套
+  定义；policy/reducer 分离: 本层禁止引入 ivar/SNR 权重策略
+  （weights 数组外置，构造在 Stage2 weight_mode）。
+- 缺陷迁移语义（登记不改码）: DISP-P2INT-001（sup_max 漏计零权重
+  accepted 样本——输出 support 保守方向偏低，偏离 integrate.h:17
+  冻结文本；Stage2/ACR 直接消费，整改归 P2-INT-IMPL，回归门=
+  ALG §11.4 F5）；DISP-P2INT-002（INTEGRATION.md:58 vs
+  integrate.h:17 表述矛盾，文档级，SCI FROZEN 禁改）。
+- 下游: TEST-P2-INT-001（MISSING，P2-INT-DOC 登记，由 P2-INT-TEST
+  落地 + EVIDENCE；设计冻结面=ALG-P2-INT-001 §11.4）；上游
+  SCI-INT-001（共享 FROZEN）/ ALG-P2-INT-001。
