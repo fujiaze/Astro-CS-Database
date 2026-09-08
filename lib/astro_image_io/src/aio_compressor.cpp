@@ -3,6 +3,8 @@
 
 #include <cstdio>
 #include <cstring>
+#include <exception>
+#include <stdexcept>
 
 // ============================================================================
 // 条件编译: 检测是否有 zstd / lz4 库
@@ -190,55 +192,94 @@ size_t decompressLz4(const void* src, size_t srcSize,
 // codec: 0=NONE, 1=ZSTD, 2=LZ4
 // ============================================================================
 
+// ============================================================================
+// P1 (R9-A): C 边界异常屏障 (bughunt_p1_batchI; 家族方案对齐 f1cb487c
+// aio_api.cpp P0-4 口径)。本文件 3 个 AIO_EXPORT 入口此前 0 个有 try 保护:
+// zstd/lz4 封装层内部异常可跨 C ABI 传播。统一口径 (f1cb487c 家族):
+// size_t 返回型失败语义为 0 -> 异常返回 0; 正常路径与修复前逐行等价。
+// ============================================================================
 AIO_EXPORT size_t aio_compress(const void* src, size_t srcSize,
                                 void* dst, size_t dstCapacity,
-                                int codec, int level) {
-    if (!src || !dst || srcSize == 0) return 0;
+                                int codec, int level)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!src || !dst || srcSize == 0) return 0;
 
-    switch (codec) {
-        case 0: // NONE
-            if (dstCapacity < srcSize) return 0;
-            std::memcpy(dst, src, srcSize);
-            return srcSize;
-        case 1: // ZSTD
-            return aio::compressZstd(src, srcSize, dst, dstCapacity, level);
-        case 2: // LZ4
-            return aio::compressLz4(src, srcSize, dst, dstCapacity);
-        default:
-            fprintf(stderr, "[aio][compressor] aio_compress: 未知 codec=%d\n", codec);
-            return 0;
+        switch (codec) {
+            case 0: // NONE
+                if (dstCapacity < srcSize) return 0;
+                std::memcpy(dst, src, srcSize);
+                return srcSize;
+            case 1: // ZSTD
+                return aio::compressZstd(src, srcSize, dst, dstCapacity, level);
+            case 2: // LZ4
+                return aio::compressLz4(src, srcSize, dst, dstCapacity);
+            default:
+                fprintf(stderr, "[aio][compressor] aio_compress: 未知 codec=%d\n", codec);
+                return 0;
+        }
+
+    }
+    catch (const std::exception &e) {
+        fprintf(stderr, "[aio][compressor] exception: %s\n", e.what());
+        return 0;
+    } catch (...) {
+        fprintf(stderr, "[aio][compressor] unknown exception\n");
+        return 0;
     }
 }
 
 AIO_EXPORT size_t aio_decompress(const void* src, size_t srcSize,
                                   void* dst, size_t dstCapacity,
-                                  int codec) {
-    if (!src || !dst || srcSize == 0) return 0;
+                                  int codec)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!src || !dst || srcSize == 0) return 0;
 
-    switch (codec) {
-        case 0: // NONE
-            if (dstCapacity < srcSize) return 0;
-            std::memcpy(dst, src, srcSize);
-            return srcSize;
-        case 1: // ZSTD
-            return aio::decompressZstd(src, srcSize, dst, dstCapacity);
-        case 2: // LZ4
-            return aio::decompressLz4(src, srcSize, dst, dstCapacity);
-        default:
-            fprintf(stderr, "[aio][compressor] aio_decompress: 未知 codec=%d\n", codec);
-            return 0;
+        switch (codec) {
+            case 0: // NONE
+                if (dstCapacity < srcSize) return 0;
+                std::memcpy(dst, src, srcSize);
+                return srcSize;
+            case 1: // ZSTD
+                return aio::decompressZstd(src, srcSize, dst, dstCapacity);
+            case 2: // LZ4
+                return aio::decompressLz4(src, srcSize, dst, dstCapacity);
+            default:
+                fprintf(stderr, "[aio][compressor] aio_decompress: 未知 codec=%d\n", codec);
+                return 0;
+        }
+
+    }
+    catch (const std::exception &e) {
+        fprintf(stderr, "[aio][compressor] exception: %s\n", e.what());
+        return 0;
+    } catch (...) {
+        fprintf(stderr, "[aio][compressor] unknown exception\n");
+        return 0;
     }
 }
 
-AIO_EXPORT size_t aio_compress_bound(size_t srcSize, int codec) {
-    switch (codec) {
-        case 0: // NONE
-            return srcSize;
-        case 1: // ZSTD
-            return aio::compressBoundZstd(srcSize);
-        case 2: // LZ4
-            return aio::compressBoundLz4(srcSize);
-        default:
-            return srcSize;
+AIO_EXPORT size_t aio_compress_bound(size_t srcSize, int codec)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        switch (codec) {
+            case 0: // NONE
+                return srcSize;
+            case 1: // ZSTD
+                return aio::compressBoundZstd(srcSize);
+            case 2: // LZ4
+                return aio::compressBoundLz4(srcSize);
+            default:
+                return srcSize;
+        }
+
+    }
+    catch (const std::exception &e) {
+        fprintf(stderr, "[aio][compressor] exception: %s\n", e.what());
+        return 0;
+    } catch (...) {
+        fprintf(stderr, "[aio][compressor] unknown exception\n");
+        return 0;
     }
 }

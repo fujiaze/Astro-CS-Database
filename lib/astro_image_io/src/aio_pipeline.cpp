@@ -171,69 +171,152 @@ static const AstroAbiInfo g_abi_info = {
     "astro_image_io-1.0"
 };
 
-AIO_EXPORT const AstroAbiInfo* aio_abi_info(void) {
-    return &g_abi_info;
+// ============================================================================
+// P1 (R9-A): C 边界异常屏障 (bughunt_p1_batchI; 家族方案对齐 f1cb487c
+// aio_api.cpp P0-4 口径)。本文件 26 个 AIO_EXPORT 入口此前 0 个有 try 保护:
+// frame 块表扩容、kv 字符串构造、XML/FITS 导出内部 std::string/vector 分配
+// bad_alloc、length_error 等异常均可跨 C ABI 传播 (UB/terminate)。
+// 统一口径 (f1cb487c 家族): 指针/const char* -> nullptr; int/int64_t -> -1;
+// size_t -> 0; double 返回型 -> 调用方 default_value; void -> 仅日志。
+// aio_alloc/aio_realloc/aio_free 语义为返回 nullptr 的 C 分配器, malloc/
+// realloc/free 不抛但统一包壳保持家族一致。正常路径与修复前逐行等价。
+// ============================================================================
+AIO_EXPORT const AstroAbiInfo* aio_abi_info(void)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        return &g_abi_info;
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return nullptr;
+    }
 }
 
-AIO_EXPORT void* aio_alloc(size_t size) {
-    return std::malloc(size ? size : 1);
+AIO_EXPORT void* aio_alloc(size_t size)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        return std::malloc(size ? size : 1);
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return nullptr;
+    }
 }
 
-AIO_EXPORT void* aio_realloc(void* ptr, size_t size) {
-    return std::realloc(ptr, size ? size : 1);
+AIO_EXPORT void* aio_realloc(void* ptr, size_t size)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        return std::realloc(ptr, size ? size : 1);
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return nullptr;
+    }
 }
 
-AIO_EXPORT void aio_free(void* ptr) {
-    std::free(ptr);
+AIO_EXPORT void aio_free(void* ptr)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        std::free(ptr);
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+    }
 }
 
 /* ============================================================================
  * 帧生命周期
  * ========================================================================= */
 
-AIO_EXPORT PipelineFrame* aio_pipeline_frame_create(void) {
-    PipelineFrame* frame = new (std::nothrow) PipelineFrame;
-    if (!frame) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "frame_create: alloc failed");
+AIO_EXPORT PipelineFrame* aio_pipeline_frame_create(void)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        PipelineFrame* frame = new (std::nothrow) PipelineFrame;
+        if (!frame) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "frame_create: alloc failed");
+            return nullptr;
+        }
+        frame->blocks = nullptr;
+        frame->n_blocks = 0;
+        frame->blocks_capacity = 0;
+        frame->stages_completed = 0;
+        aio_log(AIO_LOG_DEBUG, "PIPELINE", "frame_create: ok");
+        return frame;
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
         return nullptr;
     }
-    frame->blocks = nullptr;
-    frame->n_blocks = 0;
-    frame->blocks_capacity = 0;
-    frame->stages_completed = 0;
-    aio_log(AIO_LOG_DEBUG, "PIPELINE", "frame_create: ok");
-    return frame;
 }
 
-AIO_EXPORT void aio_pipeline_frame_destroy(PipelineFrame* frame) {
-    if (!frame) return;
-    /* 释放所有块数据 */
-    for (int i = 0; i < frame->n_blocks; ++i) {
-        if (frame->blocks[i].data) {
-            std::free(frame->blocks[i].data);
-            frame->blocks[i].data = nullptr;
+AIO_EXPORT void aio_pipeline_frame_destroy(PipelineFrame* frame)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame) return;
+        /* 释放所有块数据 */
+        for (int i = 0; i < frame->n_blocks; ++i) {
+            if (frame->blocks[i].data) {
+                std::free(frame->blocks[i].data);
+                frame->blocks[i].data = nullptr;
+            }
         }
+        /* 释放块数组 */
+        if (frame->blocks) {
+            std::free(frame->blocks);
+            frame->blocks = nullptr;
+        }
+        frame->n_blocks = 0;
+        frame->blocks_capacity = 0;
+        delete frame;
+        aio_log(AIO_LOG_DEBUG, "PIPELINE", "frame_destroy: ok");
+
     }
-    /* 释放块数组 */
-    if (frame->blocks) {
-        std::free(frame->blocks);
-        frame->blocks = nullptr;
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
     }
-    frame->n_blocks = 0;
-    frame->blocks_capacity = 0;
-    delete frame;
-    aio_log(AIO_LOG_DEBUG, "PIPELINE", "frame_destroy: ok");
 }
 
-AIO_EXPORT size_t aio_pipeline_frame_memory_usage(const PipelineFrame* frame) {
-    if (!frame) return 0;
-    size_t total = 0;
-    for (int i = 0; i < frame->n_blocks; ++i) {
-        total += block_data_bytes(&frame->blocks[i]);
+AIO_EXPORT size_t aio_pipeline_frame_memory_usage(const PipelineFrame* frame)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame) return 0;
+        size_t total = 0;
+        for (int i = 0; i < frame->n_blocks; ++i) {
+            total += block_data_bytes(&frame->blocks[i]);
+        }
+        /* 块数组本身的内存 */
+        total += (size_t)frame->blocks_capacity * sizeof(AioBlock);
+        return total;
+
     }
-    /* 块数组本身的内存 */
-    total += (size_t)frame->blocks_capacity * sizeof(AioBlock);
-    return total;
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return 0;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return 0;
+    }
 }
 
 /* ============================================================================
@@ -288,162 +371,261 @@ AIO_EXPORT int aio_frame_add_block(PipelineFrame* frame,
     const char* name, AioBlockType type,
     const void* data, int64_t count,
     const int* dims, int n_dims,
-    const char* description) {
-    if (!frame || !name) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block: frame or name is null");
-        return 1;
-    }
-    size_t elem = 0;
-    int rc = validate_block_params(name, type, count, dims, n_dims, description, &elem);
-    if (rc != 0) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block: 参数校验失败 rc=%d name='%s' type=%d",
-                rc, name ? name : "", (int)type);
-        return rc;   /* frame 完全不变 */
-    }
-
-    /* 先在临时块中构建并拷贝, 全部成功后再提交 (替换失败时原块保持不变) */
-    AioBlock tmp;
-    init_block_fields(&tmp, name, type, count, dims, n_dims, description);
-    size_t total_bytes = (size_t)count * elem;
-    if (total_bytes > 0) {
-        tmp.data = std::malloc(total_bytes);
-        if (!tmp.data) {
-            aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block: malloc failed (%zu bytes)", total_bytes);
-            return 5;
+    const char* description)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame || !name) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block: frame or name is null");
+            return 1;
         }
-        if (data) {
-            std::memcpy(tmp.data, data, total_bytes);
+        size_t elem = 0;
+        int rc = validate_block_params(name, type, count, dims, n_dims, description, &elem);
+        if (rc != 0) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block: 参数校验失败 rc=%d name='%s' type=%d",
+                    rc, name ? name : "", (int)type);
+            return rc;   /* frame 完全不变 */
+        }
+
+        /* 先在临时块中构建并拷贝, 全部成功后再提交 (替换失败时原块保持不变) */
+        AioBlock tmp;
+        init_block_fields(&tmp, name, type, count, dims, n_dims, description);
+        size_t total_bytes = (size_t)count * elem;
+        if (total_bytes > 0) {
+            tmp.data = std::malloc(total_bytes);
+            if (!tmp.data) {
+                aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block: malloc failed (%zu bytes)", total_bytes);
+                return 5;
+            }
+            if (data) {
+                std::memcpy(tmp.data, data, total_bytes);
+            } else {
+                std::memset(tmp.data, 0, total_bytes);
+            }
+        }
+
+        int idx = find_block_index(frame, name);
+        if (idx >= 0) {
+            if (frame->blocks[idx].data) std::free(frame->blocks[idx].data);
+            frame->blocks[idx] = tmp;
         } else {
-            std::memset(tmp.data, 0, total_bytes);
+            if (ensure_capacity(frame) != 0) {
+                std::free(tmp.data);
+                return 3;
+            }
+            frame->blocks[frame->n_blocks++] = tmp;
         }
-    }
+        aio_log(AIO_LOG_DEBUG, "PIPELINE", "add_block: '%s' type=%d count=%lld (%zu bytes)",
+                name, (int)type, (long long)count, total_bytes);
+        return 0;
 
-    int idx = find_block_index(frame, name);
-    if (idx >= 0) {
-        if (frame->blocks[idx].data) std::free(frame->blocks[idx].data);
-        frame->blocks[idx] = tmp;
-    } else {
-        if (ensure_capacity(frame) != 0) {
-            std::free(tmp.data);
-            return 3;
-        }
-        frame->blocks[frame->n_blocks++] = tmp;
     }
-    aio_log(AIO_LOG_DEBUG, "PIPELINE", "add_block: '%s' type=%d count=%lld (%zu bytes)",
-            name, (int)type, (long long)count, total_bytes);
-    return 0;
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
+    }
 }
 
 AIO_EXPORT int aio_frame_add_block_move(PipelineFrame* frame,
     const char* name, AioBlockType type,
     void* data, int64_t count,
     const int* dims, int n_dims,
-    const char* description) {
-    if (!frame || !name) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block_move: frame or name is null");
-        return 1;
-    }
-    /* BLOCKER-DF-004: move 与 copy 共享同一 validator (type/count/dims/溢出) */
-    size_t elem = 0;
-    int rc = validate_block_params(name, type, count, dims, n_dims, description, &elem);
-    if (rc != 0) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block_move: 参数校验失败 rc=%d name='%s' type=%d",
-                rc, name ? name : "", (int)type);
-        return rc;   /* 不接管 data, frame 不变 */
-    }
-    size_t total_bytes = (size_t)count * elem;
-    if (total_bytes > 0 && data == nullptr) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block_move: data 为空但 count=%lld", (long long)count);
-        return 5;
-    }
-
-    AioBlock tmp;
-    init_block_fields(&tmp, name, type, count, dims, n_dims, description);
-    tmp.data = data;  /* 接管所有权，不拷贝 */
-
-    int idx = find_block_index(frame, name);
-    if (idx >= 0) {
-        if (frame->blocks[idx].data) std::free(frame->blocks[idx].data);
-        frame->blocks[idx] = tmp;
-    } else {
-        if (ensure_capacity(frame) != 0) {
-            /* 校验通过但扩容失败: 不接管 (调用方仍需释放 data) */
-            return 3;
+    const char* description)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame || !name) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block_move: frame or name is null");
+            return 1;
         }
-        frame->blocks[frame->n_blocks++] = tmp;
+        /* BLOCKER-DF-004: move 与 copy 共享同一 validator (type/count/dims/溢出) */
+        size_t elem = 0;
+        int rc = validate_block_params(name, type, count, dims, n_dims, description, &elem);
+        if (rc != 0) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block_move: 参数校验失败 rc=%d name='%s' type=%d",
+                    rc, name ? name : "", (int)type);
+            return rc;   /* 不接管 data, frame 不变 */
+        }
+        size_t total_bytes = (size_t)count * elem;
+        if (total_bytes > 0 && data == nullptr) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "add_block_move: data 为空但 count=%lld", (long long)count);
+            return 5;
+        }
+
+        AioBlock tmp;
+        init_block_fields(&tmp, name, type, count, dims, n_dims, description);
+        tmp.data = data;  /* 接管所有权，不拷贝 */
+
+        int idx = find_block_index(frame, name);
+        if (idx >= 0) {
+            if (frame->blocks[idx].data) std::free(frame->blocks[idx].data);
+            frame->blocks[idx] = tmp;
+        } else {
+            if (ensure_capacity(frame) != 0) {
+                /* 校验通过但扩容失败: 不接管 (调用方仍需释放 data) */
+                return 3;
+            }
+            frame->blocks[frame->n_blocks++] = tmp;
+        }
+        aio_log(AIO_LOG_DEBUG, "PIPELINE", "add_block_move: '%s' type=%d count=%lld (moved ptr=%p)",
+                name, (int)type, (long long)count, data);
+        return 0;
+
     }
-    aio_log(AIO_LOG_DEBUG, "PIPELINE", "add_block_move: '%s' type=%d count=%lld (moved ptr=%p)",
-            name, (int)type, (long long)count, data);
-    return 0;
-}
-
-AIO_EXPORT const AioBlock* aio_frame_get_block(const PipelineFrame* frame, const char* name) {
-    int idx = find_block_index(frame, name);
-    if (idx < 0) return nullptr;
-    return &frame->blocks[idx];
-}
-
-AIO_EXPORT void* aio_frame_get_block_data(const PipelineFrame* frame, const char* name) {
-    int idx = find_block_index(frame, name);
-    if (idx < 0) return nullptr;
-    return frame->blocks[idx].data;
-}
-
-AIO_EXPORT int64_t aio_frame_get_block_count(const PipelineFrame* frame, const char* name) {
-    int idx = find_block_index(frame, name);
-    if (idx < 0) return -1;
-    return frame->blocks[idx].count;
-}
-
-AIO_EXPORT int aio_frame_get_block_type(const PipelineFrame* frame, const char* name) {
-    int idx = find_block_index(frame, name);
-    if (idx < 0) return -1;
-    return (int)frame->blocks[idx].type;
-}
-
-AIO_EXPORT int aio_frame_remove_block(PipelineFrame* frame, const char* name) {
-    if (!frame || !name) return 1;
-    int idx = find_block_index(frame, name);
-    if (idx < 0) return 1;
-
-    /* 释放块数据 */
-    if (frame->blocks[idx].data) {
-        std::free(frame->blocks[idx].data);
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
     }
-    /* 将后续块前移 */
-    for (int i = idx; i < frame->n_blocks - 1; ++i) {
-        frame->blocks[i] = frame->blocks[i + 1];
-    }
-    frame->n_blocks--;
-    aio_log(AIO_LOG_DEBUG, "PIPELINE", "remove_block: '%s' removed (n_blocks=%d)",
-            name, frame->n_blocks);
-    return 0;
 }
 
-AIO_EXPORT int aio_frame_has_block(const PipelineFrame* frame, const char* name) {
-    return find_block_index(frame, name) >= 0 ? 1 : 0;
+AIO_EXPORT const AioBlock* aio_frame_get_block(const PipelineFrame* frame, const char* name)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        int idx = find_block_index(frame, name);
+        if (idx < 0) return nullptr;
+        return &frame->blocks[idx];
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return nullptr;
+    }
+}
+
+AIO_EXPORT void* aio_frame_get_block_data(const PipelineFrame* frame, const char* name)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        int idx = find_block_index(frame, name);
+        if (idx < 0) return nullptr;
+        return frame->blocks[idx].data;
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return nullptr;
+    }
+}
+
+AIO_EXPORT int64_t aio_frame_get_block_count(const PipelineFrame* frame, const char* name)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        int idx = find_block_index(frame, name);
+        if (idx < 0) return -1;
+        return frame->blocks[idx].count;
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
+    }
+}
+
+AIO_EXPORT int aio_frame_get_block_type(const PipelineFrame* frame, const char* name)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        int idx = find_block_index(frame, name);
+        if (idx < 0) return -1;
+        return (int)frame->blocks[idx].type;
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
+    }
+}
+
+AIO_EXPORT int aio_frame_remove_block(PipelineFrame* frame, const char* name)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame || !name) return 1;
+        int idx = find_block_index(frame, name);
+        if (idx < 0) return 1;
+
+        /* 释放块数据 */
+        if (frame->blocks[idx].data) {
+            std::free(frame->blocks[idx].data);
+        }
+        /* 将后续块前移 */
+        for (int i = idx; i < frame->n_blocks - 1; ++i) {
+            frame->blocks[i] = frame->blocks[i + 1];
+        }
+        frame->n_blocks--;
+        aio_log(AIO_LOG_DEBUG, "PIPELINE", "remove_block: '%s' removed (n_blocks=%d)",
+                name, frame->n_blocks);
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
+    }
+}
+
+AIO_EXPORT int aio_frame_has_block(const PipelineFrame* frame, const char* name)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        return find_block_index(frame, name) >= 0 ? 1 : 0;
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
+    }
 }
 
 AIO_EXPORT int aio_frame_list_blocks(const PipelineFrame* frame,
-    char* out_names, int capacity, int* out_count) {
-    if (!frame) {
-        if (out_count) *out_count = 0;
-        return 1;
+    char* out_names, int capacity, int* out_count)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame) {
+            if (out_count) *out_count = 0;
+            return 1;
+        }
+        int n = frame->n_blocks;
+        if (out_count) *out_count = n;
+        if (!out_names || capacity <= 0) {
+            return n > 0 ? 2 : 0;  /* 缓冲区不足 */
+        }
+        for (int i = 0; i < n && i < capacity; ++i) {
+            /* 每个块名占 64 字节 */
+            char* dst = out_names + (size_t)i * 64;
+            std::memset(dst, 0, 64);
+            // memcpy 显式 63 字节 + 末尾 NUL, 规避 strncpy 截断警告
+            // (name 为固定 64 字节缓冲, 源可长至 63 无 NUL)
+            std::memcpy(dst, frame->blocks[i].name, 63);
+        }
+        return (n > capacity) ? 2 : 0;
+
     }
-    int n = frame->n_blocks;
-    if (out_count) *out_count = n;
-    if (!out_names || capacity <= 0) {
-        return n > 0 ? 2 : 0;  /* 缓冲区不足 */
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
     }
-    for (int i = 0; i < n && i < capacity; ++i) {
-        /* 每个块名占 64 字节 */
-        char* dst = out_names + (size_t)i * 64;
-        std::memset(dst, 0, 64);
-        // memcpy 显式 63 字节 + 末尾 NUL, 规避 strncpy 截断警告
-        // (name 为固定 64 字节缓冲, 源可长至 63 无 NUL)
-        std::memcpy(dst, frame->blocks[i].name, 63);
-    }
-    return (n > capacity) ? 2 : 0;
 }
 
 /* ============================================================================
@@ -512,63 +694,107 @@ static int kv_ensure_capacity(PipelineFrame* /*frame*/, AioBlock* blk) {
 }
 
 AIO_EXPORT int aio_frame_kv_set(PipelineFrame* frame, const char* block_name,
-    const char* key, const char* value) {
-    if (!key) return 1;
-    int64_t used = 0;
-    AioKVEntry* entries = kv_get_or_create_entries(frame, block_name, &used);
-    if (!entries) return 2;
+    const char* key, const char* value)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!key) return 1;
+        int64_t used = 0;
+        AioKVEntry* entries = kv_get_or_create_entries(frame, block_name, &used);
+        if (!entries) return 2;
 
-    AioBlock* blk = const_cast<AioBlock*>(aio_frame_get_block(frame, block_name));
-    if (!blk) return 3;
+        AioBlock* blk = const_cast<AioBlock*>(aio_frame_get_block(frame, block_name));
+        if (!blk) return 3;
 
-    /* 查找是否已存在该 key */
-    for (int64_t i = 0; i < used; ++i) {
-        if (std::strncmp(entries[i].key, key, 64) == 0) {
-            copy_str_to_fixed(entries[i].value, sizeof(entries[i].value), value ? value : "");
-            return 0;
+        /* 查找是否已存在该 key */
+        for (int64_t i = 0; i < used; ++i) {
+            if (std::strncmp(entries[i].key, key, 64) == 0) {
+                copy_str_to_fixed(entries[i].value, sizeof(entries[i].value), value ? value : "");
+                return 0;
+            }
         }
+        /* 新增条目 */
+        if (kv_ensure_capacity(frame, blk) != 0) return 4;
+        entries = (AioKVEntry*)blk->data;  /* 可能 realloc 后指针变化 */
+        int64_t idx = blk->count;
+        copy_str_to_fixed(entries[idx].key, sizeof(entries[idx].key), key);
+        copy_str_to_fixed(entries[idx].value, sizeof(entries[idx].value), value ? value : "");
+        blk->count = idx + 1;
+        return 0;
+
     }
-    /* 新增条目 */
-    if (kv_ensure_capacity(frame, blk) != 0) return 4;
-    entries = (AioKVEntry*)blk->data;  /* 可能 realloc 后指针变化 */
-    int64_t idx = blk->count;
-    copy_str_to_fixed(entries[idx].key, sizeof(entries[idx].key), key);
-    copy_str_to_fixed(entries[idx].value, sizeof(entries[idx].value), value ? value : "");
-    blk->count = idx + 1;
-    return 0;
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
+    }
 }
 
 AIO_EXPORT const char* aio_frame_kv_get(const PipelineFrame* frame, const char* block_name,
-    const char* key) {
-    if (!frame || !block_name || !key) return nullptr;
-    int idx = find_block_index(frame, block_name);
-    if (idx < 0) return nullptr;
-    const AioBlock* blk = &frame->blocks[idx];
-    if (blk->type != AIO_BLOCK_KV || !blk->data) return nullptr;
-    const AioKVEntry* entries = (const AioKVEntry*)blk->data;
-    for (int64_t i = 0; i < blk->count; ++i) {
-        if (std::strncmp(entries[i].key, key, 64) == 0) {
-            return entries[i].value;
+    const char* key)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame || !block_name || !key) return nullptr;
+        int idx = find_block_index(frame, block_name);
+        if (idx < 0) return nullptr;
+        const AioBlock* blk = &frame->blocks[idx];
+        if (blk->type != AIO_BLOCK_KV || !blk->data) return nullptr;
+        const AioKVEntry* entries = (const AioKVEntry*)blk->data;
+        for (int64_t i = 0; i < blk->count; ++i) {
+            if (std::strncmp(entries[i].key, key, 64) == 0) {
+                return entries[i].value;
+            }
         }
+        return nullptr;
+
     }
-    return nullptr;
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return nullptr;
+    }
 }
 
 AIO_EXPORT int aio_frame_kv_set_double(PipelineFrame* frame, const char* block_name,
-    const char* key, double value) {
-    char buf[64];
-    std::snprintf(buf, sizeof(buf), "%.17g", value);
-    return aio_frame_kv_set(frame, block_name, key, buf);
+    const char* key, double value)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "%.17g", value);
+        return aio_frame_kv_set(frame, block_name, key, buf);
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
+    }
 }
 
 AIO_EXPORT double aio_frame_kv_get_double(const PipelineFrame* frame, const char* block_name,
-    const char* key, double default_value) {
-    const char* val = aio_frame_kv_get(frame, block_name, key);
-    if (!val) return default_value;
-    char* end = nullptr;
-    double d = std::strtod(val, &end);
-    if (end == val) return default_value;  /* 转换失败 */
-    return d;
+    const char* key, double default_value)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        const char* val = aio_frame_kv_get(frame, block_name, key);
+        if (!val) return default_value;
+        char* end = nullptr;
+        double d = std::strtod(val, &end);
+        if (end == val) return default_value;  /* 转换失败 */
+        return d;
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return default_value;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return default_value;
+    }
 }
 
 /* ============================================================================
@@ -640,67 +866,78 @@ static int serialize_block_data(FILE* fp, const AioBlock* blk) {
     }
 }
 
-AIO_EXPORT int aio_frame_save_cache(const PipelineFrame* frame, const char* path) {
-    if (!frame || !path) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "save_cache: frame or path is null");
-        return 1;
-    }
-    /* 原子保存: 先写临时文件, flush 后 rename (中断不留下可误认的正式文件) */
-    std::string tmp_path = std::string(path) + ".tmp";
-    FILE* fp = open_utf8_file(tmp_path.c_str(), "wb");
-    if (!fp) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "save_cache: open file failed: %s", path);
-        return 2;
-    }
-
-    /* 头部 */
-    if (write_bytes(fp, AIO_CACHE_MAGIC, 4) != 0) goto fail;
-    if (write_bin(fp, (int32_t)AIO_CACHE_VERSION) != 0) goto fail;
-    if (write_bin(fp, (int32_t)frame->n_blocks) != 0) goto fail;
-    if (write_bin(fp, (int32_t)frame->stages_completed) != 0) goto fail;
-
-    /* 逐块序列化 */
-    for (int i = 0; i < frame->n_blocks; ++i) {
-        const AioBlock* blk = &frame->blocks[i];
-        if (write_str_with_len(fp, blk->name) != 0) goto fail;
-        if (write_bin(fp, (int32_t)blk->type) != 0) goto fail;
-        if (write_bin(fp, (int32_t)blk->n_dims) != 0) goto fail;
-        for (int d = 0; d < blk->n_dims; ++d) {
-            if (write_bin(fp, (int32_t)blk->dims[d]) != 0) goto fail;
+AIO_EXPORT int aio_frame_save_cache(const PipelineFrame* frame, const char* path)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame || !path) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "save_cache: frame or path is null");
+            return 1;
         }
-        if (write_bin(fp, (int64_t)blk->count) != 0) goto fail;
-        if (serialize_block_data(fp, blk) != 0) goto fail;
-        if (write_str_with_len(fp, blk->description) != 0) goto fail;
-    }
+        /* 原子保存: 先写临时文件, flush 后 rename (中断不留下可误认的正式文件) */
+        std::string tmp_path = std::string(path) + ".tmp";
+        FILE* fp = open_utf8_file(tmp_path.c_str(), "wb");
+        if (!fp) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "save_cache: open file failed: %s", path);
+            return 2;
+        }
 
-    if (std::fflush(fp) != 0) {
+        /* 头部 */
+        if (write_bytes(fp, AIO_CACHE_MAGIC, 4) != 0) goto fail;
+        if (write_bin(fp, (int32_t)AIO_CACHE_VERSION) != 0) goto fail;
+        if (write_bin(fp, (int32_t)frame->n_blocks) != 0) goto fail;
+        if (write_bin(fp, (int32_t)frame->stages_completed) != 0) goto fail;
+
+        /* 逐块序列化 */
+        for (int i = 0; i < frame->n_blocks; ++i) {
+            const AioBlock* blk = &frame->blocks[i];
+            if (write_str_with_len(fp, blk->name) != 0) goto fail;
+            if (write_bin(fp, (int32_t)blk->type) != 0) goto fail;
+            if (write_bin(fp, (int32_t)blk->n_dims) != 0) goto fail;
+            for (int d = 0; d < blk->n_dims; ++d) {
+                if (write_bin(fp, (int32_t)blk->dims[d]) != 0) goto fail;
+            }
+            if (write_bin(fp, (int64_t)blk->count) != 0) goto fail;
+            if (serialize_block_data(fp, blk) != 0) goto fail;
+            if (write_str_with_len(fp, blk->description) != 0) goto fail;
+        }
+
+        if (std::fflush(fp) != 0) {
+            std::fclose(fp);
+            std::remove(tmp_path.c_str());
+            return 4;
+        }
+        std::fclose(fp);
+    #ifdef _WIN32
+        if (!MoveFileExA(tmp_path.c_str(), path, MOVEFILE_REPLACE_EXISTING)) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "save_cache: rename failed: %s", path);
+            std::remove(tmp_path.c_str());
+            return 5;
+        }
+    #else
+        if (std::rename(tmp_path.c_str(), path) != 0) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "save_cache: rename failed: %s", path);
+            std::remove(tmp_path.c_str());
+            return 5;
+        }
+    #endif
+        aio_log(AIO_LOG_INFO, "PIPELINE", "save_cache: ok -> %s (%d blocks)",
+                path, frame->n_blocks);
+        return 0;
+
+    fail:
         std::fclose(fp);
         std::remove(tmp_path.c_str());
-        return 4;
-    }
-    std::fclose(fp);
-#ifdef _WIN32
-    if (!MoveFileExA(tmp_path.c_str(), path, MOVEFILE_REPLACE_EXISTING)) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "save_cache: rename failed: %s", path);
-        std::remove(tmp_path.c_str());
-        return 5;
-    }
-#else
-    if (std::rename(tmp_path.c_str(), path) != 0) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "save_cache: rename failed: %s", path);
-        std::remove(tmp_path.c_str());
-        return 5;
-    }
-#endif
-    aio_log(AIO_LOG_INFO, "PIPELINE", "save_cache: ok -> %s (%d blocks)",
-            path, frame->n_blocks);
-    return 0;
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "save_cache: write failed");
+        return 3;
 
-fail:
-    std::fclose(fp);
-    std::remove(tmp_path.c_str());
-    aio_log(AIO_LOG_ERROR, "PIPELINE", "save_cache: write failed");
-    return 3;
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
+    }
 }
 
 /* 内部: 完整解析缓存到临时 frame (两阶段提交第一阶段)。
@@ -848,30 +1085,41 @@ static int load_cache_parse(PipelineFrame* frame, const char* path) {
     return 0;
 }
 
-AIO_EXPORT int aio_frame_load_cache(PipelineFrame* frame, const char* path) {
-    if (!frame || !path) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "load_cache: frame or path is null");
-        return 1;
-    }
-    /* BLOCKER-DF-002: 两阶段提交 — 解析到临时帧, 成功后再原子交换;
-     * 失败时原 frame 字节级不变。 */
-    PipelineFrame* tmp = aio_pipeline_frame_create();
-    if (!tmp) return 2;
-    int rc = load_cache_parse(tmp, path);
-    if (rc != 0) {
+AIO_EXPORT int aio_frame_load_cache(PipelineFrame* frame, const char* path)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame || !path) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "load_cache: frame or path is null");
+            return 1;
+        }
+        /* BLOCKER-DF-002: 两阶段提交 — 解析到临时帧, 成功后再原子交换;
+         * 失败时原 frame 字节级不变。 */
+        PipelineFrame* tmp = aio_pipeline_frame_create();
+        if (!tmp) return 2;
+        int rc = load_cache_parse(tmp, path);
+        if (rc != 0) {
+            aio_pipeline_frame_destroy(tmp);
+            return rc;
+        }
+        for (int i = 0; i < frame->n_blocks; ++i) {
+            if (frame->blocks[i].data) std::free(frame->blocks[i].data);
+        }
+        if (frame->blocks) std::free(frame->blocks);
+        *frame = *tmp;
+        tmp->blocks = nullptr;
+        tmp->n_blocks = 0;
+        tmp->blocks_capacity = 0;
         aio_pipeline_frame_destroy(tmp);
-        return rc;
+        return 0;
+
     }
-    for (int i = 0; i < frame->n_blocks; ++i) {
-        if (frame->blocks[i].data) std::free(frame->blocks[i].data);
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
     }
-    if (frame->blocks) std::free(frame->blocks);
-    *frame = *tmp;
-    tmp->blocks = nullptr;
-    tmp->n_blocks = 0;
-    tmp->blocks_capacity = 0;
-    aio_pipeline_frame_destroy(tmp);
-    return 0;
 }
 
 /* ============================================================================
@@ -946,183 +1194,227 @@ static std::string block_to_xml(const AioBlock* blk, const char* block_name_over
 }
 
 AIO_EXPORT int aio_frame_export_block_xml(const PipelineFrame* frame,
-    const char* block_name, const char* path) {
-    if (!frame || !block_name || !path) return 1;
-    const AioBlock* blk = aio_frame_get_block(frame, block_name);
-    if (!blk) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_xml: block '%s' not found", block_name);
-        return 2;
-    }
+    const char* block_name, const char* path)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame || !block_name || !path) return 1;
+        const AioBlock* blk = aio_frame_get_block(frame, block_name);
+        if (!blk) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_xml: block '%s' not found", block_name);
+            return 2;
+        }
 
-    std::string xml;
-    xml += "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    xml += "<PipelineFrame>\n";
-    xml += block_to_xml(blk, nullptr, false);
-    xml += "</PipelineFrame>\n";
+        std::string xml;
+        xml += "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        xml += "<PipelineFrame>\n";
+        xml += block_to_xml(blk, nullptr, false);
+        xml += "</PipelineFrame>\n";
 
-    FILE* fp = open_utf8_file(path, "wb");
-    if (!fp) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_xml: open file failed: %s", path);
-        return 3;
+        FILE* fp = open_utf8_file(path, "wb");
+        if (!fp) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_xml: open file failed: %s", path);
+            return 3;
+        }
+        size_t written = std::fwrite(xml.data(), 1, xml.size(), fp);
+        std::fclose(fp);
+        if (written != xml.size()) return 4;
+        aio_log(AIO_LOG_INFO, "PIPELINE", "export_block_xml: '%s' -> %s (%zu bytes)",
+                block_name, path, xml.size());
+        return 0;
+
     }
-    size_t written = std::fwrite(xml.data(), 1, xml.size(), fp);
-    std::fclose(fp);
-    if (written != xml.size()) return 4;
-    aio_log(AIO_LOG_INFO, "PIPELINE", "export_block_xml: '%s' -> %s (%zu bytes)",
-            block_name, path, xml.size());
-    return 0;
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
+    }
 }
 
-AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* path) {
-    if (!frame || !path) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "export_all_xml: frame or path is null");
-        return 1;
+AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* path)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame || !path) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "export_all_xml: frame or path is null");
+            return 1;
+        }
+
+        std::string xml;
+        xml += "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        xml += "<PipelineFrame stages_completed=\"";
+        xml += std::to_string(frame->stages_completed);
+        xml += "\" n_blocks=\"";
+        xml += std::to_string(frame->n_blocks);
+        xml += "\">\n";
+
+        for (int i = 0; i < frame->n_blocks; ++i) {
+            xml += block_to_xml(&frame->blocks[i], nullptr, false);
+        }
+
+        xml += "</PipelineFrame>\n";
+
+        FILE* fp = open_utf8_file(path, "wb");
+        if (!fp) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "export_all_xml: open file failed: %s", path);
+            return 2;
+        }
+        size_t written = std::fwrite(xml.data(), 1, xml.size(), fp);
+        std::fclose(fp);
+        if (written != xml.size()) return 3;
+        aio_log(AIO_LOG_INFO, "PIPELINE", "export_all_xml: ok -> %s (%zu bytes, %d blocks)",
+                path, xml.size(), frame->n_blocks);
+        return 0;
+
     }
-
-    std::string xml;
-    xml += "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    xml += "<PipelineFrame stages_completed=\"";
-    xml += std::to_string(frame->stages_completed);
-    xml += "\" n_blocks=\"";
-    xml += std::to_string(frame->n_blocks);
-    xml += "\">\n";
-
-    for (int i = 0; i < frame->n_blocks; ++i) {
-        xml += block_to_xml(&frame->blocks[i], nullptr, false);
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
     }
-
-    xml += "</PipelineFrame>\n";
-
-    FILE* fp = open_utf8_file(path, "wb");
-    if (!fp) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "export_all_xml: open file failed: %s", path);
-        return 2;
-    }
-    size_t written = std::fwrite(xml.data(), 1, xml.size(), fp);
-    std::fclose(fp);
-    if (written != xml.size()) return 3;
-    aio_log(AIO_LOG_INFO, "PIPELINE", "export_all_xml: ok -> %s (%zu bytes, %d blocks)",
-            path, xml.size(), frame->n_blocks);
-    return 0;
 }
 
 /* 旧版兼容包装 */
 AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
-    const char* path, const char* comment) {
-    (void)comment;  /* comment 参数忽略，保留是为了向后兼容 */
-    return aio_frame_export_all_xml(frame, path);
+    const char* path, const char* comment)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        (void)comment;  /* comment 参数忽略，保留是为了向后兼容 */
+        return aio_frame_export_all_xml(frame, path);
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
+    }
 }
 
 /* FITS 导出: 简化版本，写入裸二进制 + 元数据头 */
 /* 注: 不依赖 cfitsio，使用简单的 FITS 2880 字节块格式 */
 AIO_EXPORT int aio_frame_export_block_fits(const PipelineFrame* frame,
-    const char* block_name, const char* path) {
-    if (!frame || !block_name || !path) return 1;
-    const AioBlock* blk = aio_frame_get_block(frame, block_name);
-    if (!blk) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_fits: block '%s' not found", block_name);
-        return 2;
-    }
-    if (!blk->data || blk->count <= 0) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_fits: block '%s' has no data", block_name);
-        return 3;
-    }
-
-    /* 确定 BITPIX 和数据类型 */
-    int bitpix = 0;
-    size_t elem_size = 0;
-    const char* bzero_str = "";
-    double bzero = 0.0;
-    switch (blk->type) {
-        case AIO_BLOCK_FLOAT32:
-            bitpix = -32; elem_size = 4; break;
-        case AIO_BLOCK_FLOAT64:
-            bitpix = -64; elem_size = 8; break;
-        case AIO_BLOCK_INT32:
-            bitpix = 32; elem_size = 4; break;
-        case AIO_BLOCK_INT64:
-            bitpix = 64; elem_size = 8; break;
-        default:
-            aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_fits: block '%s' type %d not supported",
-                    block_name, (int)blk->type);
-            return 4;
-    }
-
-    /* 确定 NAXIS */
-    int naxis = blk->n_dims > 0 ? blk->n_dims : 1;
-    if (naxis > 3) naxis = 3;
-    int naxis1 = 1, naxis2 = 1, naxis3 = 1;
-    if (blk->n_dims >= 1) naxis1 = blk->dims[0];
-    if (blk->n_dims >= 2) naxis2 = blk->dims[1];
-    if (blk->n_dims >= 3) naxis3 = blk->dims[2];
-    /* 若 n_dims==0，按 1D 处理 */
-    if (blk->n_dims == 0) {
-        naxis = 1;
-        naxis1 = (int)blk->count;
-    }
-    /* FITS 维度顺序: NAXIS1 是最快变化的维度 (通常是 width)
-     * 我们的 dims[0] 通常是 H (行数)，需要交换 */
-    /* 简化处理: 直接按 dims 顺序写入，NAXIS1=dims[0] */
-    int64_t total_elems = blk->count;
-    size_t data_bytes = (size_t)total_elems * elem_size;
-
-    FILE* fp = open_utf8_file(path, "wb");
-    if (!fp) {
-        aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_fits: open file failed: %s", path);
-        return 5;
-    }
-
-    /* 写 FITS 头 (2880 字节块) */
-    char header[2880];
-    std::memset(header, ' ', sizeof(header));
-    int pos = 0;
-    auto write_card = [&](const char* key, const char* val) {
-        int n = std::snprintf(header + pos, 81, "%-8s= %-70s", key, val);
-        if (n > 0) pos += 80;
-    };
-    auto write_card_str = [&](const char* key, const char* val) {
-        int n = std::snprintf(header + pos, 81, "%-8s= '%-68s'", key, val);
-        if (n > 0) pos += 80;
-    };
-    /* SIMPLE/EXTEND: 逻辑值 T (无引号), astropy 要求 T 在 column 11 */
-    write_card("SIMPLE", "T");
-    write_card("BITPIX", std::to_string(bitpix).c_str());
-    write_card("NAXIS", std::to_string(naxis).c_str());
-    if (naxis >= 1) write_card("NAXIS1", std::to_string(naxis1).c_str());
-    if (naxis >= 2) write_card("NAXIS2", std::to_string(naxis2).c_str());
-    if (naxis >= 3) write_card("NAXIS3", std::to_string(naxis3).c_str());
-    if (bzero != 0.0) write_card("BZERO", std::to_string(bzero).c_str());
-    write_card("EXTEND", "T");
-    write_card_str("BLOCK_NA", block_name);
-    /* END 卡片 */
-    int end_pos = pos;
-    std::snprintf(header + end_pos, 81, "%-80s", "END");
-    /* 写入头 (2880 字节) */
-    std::fwrite(header, 1, 2880, fp);
-
-    /* 写数据 (FITS 标准要求大端字节序, x86 主机为小端, 需逐元素反转字节) */
-    if (elem_size == 4 || elem_size == 8) {
-        std::vector<char> be_buf(data_bytes);
-        const char* src = static_cast<const char*>(blk->data);
-        char* dst = be_buf.data();
-        for (int64_t i = 0; i < total_elems; ++i) {
-            for (size_t b = 0; b < elem_size; ++b) {
-                dst[i * elem_size + b] = src[i * elem_size + (elem_size - 1 - b)];
-            }
+    const char* block_name, const char* path)  {
+    /* P1 (R9-A): C 边界异常屏障 */
+    try {
+        if (!frame || !block_name || !path) return 1;
+        const AioBlock* blk = aio_frame_get_block(frame, block_name);
+        if (!blk) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_fits: block '%s' not found", block_name);
+            return 2;
         }
-        std::fwrite(be_buf.data(), 1, data_bytes, fp);
-    } else {
-        std::fwrite(blk->data, 1, data_bytes, fp);
-    }
-    size_t pad = (2880 - (data_bytes % 2880)) % 2880;
-    if (pad > 0) {
-        std::vector<char> zeros(pad, 0);
-        std::fwrite(zeros.data(), 1, pad, fp);
-    }
+        if (!blk->data || blk->count <= 0) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_fits: block '%s' has no data", block_name);
+            return 3;
+        }
 
-    std::fclose(fp);
-    aio_log(AIO_LOG_INFO, "PIPELINE", "export_block_fits: '%s' -> %s (BITPIX=%d, %lld elems, %zu bytes)",
-            block_name, path, bitpix, (long long)total_elems, data_bytes);
-    (void)bzero_str;
-    return 0;
+        /* 确定 BITPIX 和数据类型 */
+        int bitpix = 0;
+        size_t elem_size = 0;
+        const char* bzero_str = "";
+        double bzero = 0.0;
+        switch (blk->type) {
+            case AIO_BLOCK_FLOAT32:
+                bitpix = -32; elem_size = 4; break;
+            case AIO_BLOCK_FLOAT64:
+                bitpix = -64; elem_size = 8; break;
+            case AIO_BLOCK_INT32:
+                bitpix = 32; elem_size = 4; break;
+            case AIO_BLOCK_INT64:
+                bitpix = 64; elem_size = 8; break;
+            default:
+                aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_fits: block '%s' type %d not supported",
+                        block_name, (int)blk->type);
+                return 4;
+        }
+
+        /* 确定 NAXIS */
+        int naxis = blk->n_dims > 0 ? blk->n_dims : 1;
+        if (naxis > 3) naxis = 3;
+        int naxis1 = 1, naxis2 = 1, naxis3 = 1;
+        if (blk->n_dims >= 1) naxis1 = blk->dims[0];
+        if (blk->n_dims >= 2) naxis2 = blk->dims[1];
+        if (blk->n_dims >= 3) naxis3 = blk->dims[2];
+        /* 若 n_dims==0，按 1D 处理 */
+        if (blk->n_dims == 0) {
+            naxis = 1;
+            naxis1 = (int)blk->count;
+        }
+        /* FITS 维度顺序: NAXIS1 是最快变化的维度 (通常是 width)
+         * 我们的 dims[0] 通常是 H (行数)，需要交换 */
+        /* 简化处理: 直接按 dims 顺序写入，NAXIS1=dims[0] */
+        int64_t total_elems = blk->count;
+        size_t data_bytes = (size_t)total_elems * elem_size;
+
+        FILE* fp = open_utf8_file(path, "wb");
+        if (!fp) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE", "export_block_fits: open file failed: %s", path);
+            return 5;
+        }
+
+        /* 写 FITS 头 (2880 字节块) */
+        char header[2880];
+        std::memset(header, ' ', sizeof(header));
+        int pos = 0;
+        auto write_card = [&](const char* key, const char* val) {
+            int n = std::snprintf(header + pos, 81, "%-8s= %-70s", key, val);
+            if (n > 0) pos += 80;
+        };
+        auto write_card_str = [&](const char* key, const char* val) {
+            int n = std::snprintf(header + pos, 81, "%-8s= '%-68s'", key, val);
+            if (n > 0) pos += 80;
+        };
+        /* SIMPLE/EXTEND: 逻辑值 T (无引号), astropy 要求 T 在 column 11 */
+        write_card("SIMPLE", "T");
+        write_card("BITPIX", std::to_string(bitpix).c_str());
+        write_card("NAXIS", std::to_string(naxis).c_str());
+        if (naxis >= 1) write_card("NAXIS1", std::to_string(naxis1).c_str());
+        if (naxis >= 2) write_card("NAXIS2", std::to_string(naxis2).c_str());
+        if (naxis >= 3) write_card("NAXIS3", std::to_string(naxis3).c_str());
+        if (bzero != 0.0) write_card("BZERO", std::to_string(bzero).c_str());
+        write_card("EXTEND", "T");
+        write_card_str("BLOCK_NA", block_name);
+        /* END 卡片 */
+        int end_pos = pos;
+        std::snprintf(header + end_pos, 81, "%-80s", "END");
+        /* 写入头 (2880 字节) */
+        std::fwrite(header, 1, 2880, fp);
+
+        /* 写数据 (FITS 标准要求大端字节序, x86 主机为小端, 需逐元素反转字节) */
+        if (elem_size == 4 || elem_size == 8) {
+            std::vector<char> be_buf(data_bytes);
+            const char* src = static_cast<const char*>(blk->data);
+            char* dst = be_buf.data();
+            for (int64_t i = 0; i < total_elems; ++i) {
+                for (size_t b = 0; b < elem_size; ++b) {
+                    dst[i * elem_size + b] = src[i * elem_size + (elem_size - 1 - b)];
+                }
+            }
+            std::fwrite(be_buf.data(), 1, data_bytes, fp);
+        } else {
+            std::fwrite(blk->data, 1, data_bytes, fp);
+        }
+        size_t pad = (2880 - (data_bytes % 2880)) % 2880;
+        if (pad > 0) {
+            std::vector<char> zeros(pad, 0);
+            std::fwrite(zeros.data(), 1, pad, fp);
+        }
+
+        std::fclose(fp);
+        aio_log(AIO_LOG_INFO, "PIPELINE", "export_block_fits: '%s' -> %s (BITPIX=%d, %lld elems, %zu bytes)",
+                block_name, path, bitpix, (long long)total_elems, data_bytes);
+        (void)bzero_str;
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "exception: %s", e.what());
+        return -1;
+    } catch (...) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE", "unknown exception");
+        return -1;
+    }
 }
