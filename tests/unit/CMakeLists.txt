@@ -779,3 +779,19 @@ add_dependencies(drizzle_adapter_test astrocs_p1_drizzle)
 add_test(NAME drizzle_adapter COMMAND drizzle_adapter_test)
 set_tests_properties(drizzle_adapter PROPERTIES
   ENVIRONMENT "ASTROCS_DRIZZLE_DLL_PATH=$<TARGET_FILE:astrocs_p1_drizzle>")
+
+# calibration_adapter_test (P1-CAL-IMPL): 模块 C ABI v1 adapter 测试。
+# direct 通道链 astrocs_calibration STATIC (AC_API 全导出面); plugin 通道
+# dlopen astrocs_p1_calibration DLL (唯一导出 astrocs_module_query_v1)。
+# DLL 路径经 ENVIRONMENT 注入; include 与根 astrocs_calibration :338 一致。
+add_executable(calibration_adapter_test calibration_adapter_test.cpp)
+target_include_directories(calibration_adapter_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(calibration_adapter_test PRIVATE
+  astrocs_calibration ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
+add_dependencies(calibration_adapter_test astrocs_p1_calibration)
+add_test(NAME calibration_adapter COMMAND calibration_adapter_test)
+set_tests_properties(calibration_adapter PROPERTIES
+  ENVIRONMENT "ASTROCS_CAL_DLL_PATH=$<TARGET_FILE:astrocs_p1_calibration>")
