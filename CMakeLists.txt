@@ -176,6 +176,13 @@ add_subdirectory(modules/conformance/noop)
 # astrocs_module_query_v1; legacy 符号经 GAIA_EXPORT= 本地化 (模块 CMakeLists)。
 add_subdirectory(lib/gaia_xpsd_client)
 
+# astrocs_p1_drizzle: drizzle 迁移模块 DLL (P1-DRZ-IMPL; 矩阵行
+# astrocs.p1.drizzle / astrocs_p1_drizzle.dll)。九操作 C ABI v1 adapter
+# 包装 legacy healpix_drizzle 生产源 (API-DRZ-001 冻结, scientific_change=
+# false 零改动重编译); 唯一导出 astrocs_module_query_v1, legacy 六符号经
+# version-script 降 local (模块 CMakeLists)。
+add_subdirectory(lib/drizzle)
+
 # astrocs_cpu_baseline: baseline backend DSO 技术预览 (Linux; legacy ABI,
 # 无导出标注 → 默认全导出)。正式 provider ABI/Windows DLL → CPU-002
 # (providers/cpu/baseline)
@@ -198,7 +205,7 @@ set_target_properties(astrocs_cpu_baseline PROPERTIES
   PREFIX "")
 
 # RPATH (12 §6): install 后 SHARED 依赖以 $ORIGIN 解析; 禁 LD_LIBRARY_PATH 语义
-foreach(tgt astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline)
+foreach(tgt astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline astrocs_p1_drizzle)
   if(UNIX AND NOT APPLE)
     set_target_properties(${tgt} PROPERTIES
       INSTALL_RPATH "$ORIGIN" BUILD_RPATH_USE_ORIGIN YES)

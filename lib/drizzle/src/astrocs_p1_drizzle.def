@@ -1,0 +1,3 @@
+LIBRARY astrocs_p1_drizzle
+EXPORTS
+    astrocs_module_query_v1
