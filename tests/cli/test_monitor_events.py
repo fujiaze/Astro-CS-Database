@@ -59,7 +59,7 @@ class TestMonitorEvents(unittest.TestCase):
                        "center": {"ra_deg": 210.0, "dec_deg": 34.0},
                        "scale_deg_per_px": 0.1, "width_px": 40, "height_px": 30,
                        "projection": "TAN", "sampler": "nearest",
-                       "coverage_output": "mask", "max_tiles": 64},
+                       "coverage_output": "mask", "max_tiles": 16},
         }, open(cls.rcfg, "w"))
 
     @classmethod

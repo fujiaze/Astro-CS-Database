@@ -93,6 +93,18 @@
               "type": "string"
             },
             "description": "可选：命令依赖的外部工具名（如 cmake/clang/pytest），缺失时检查跳过（waivable）或 FAIL(prerequisite)"
+          },
+          "dirty_ignore_exact": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dirty_ignore_prefixes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "additionalProperties": false

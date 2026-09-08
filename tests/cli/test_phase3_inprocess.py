@@ -64,7 +64,7 @@ class TestPhase3InProcess(unittest.TestCase):
             "projection": "TAN", "sampler": "nearest",
             "longitude_parity": "east_left", "bitpix": -32,
             "coverage_output": "mask",
-            "output_dir": cls.out, "max_tiles": 64,
+            "output_dir": cls.out, "max_tiles": 16,
         }, open(cls.cfg, "w"))
 
     @classmethod
@@ -160,7 +160,7 @@ class TestPhase3InProcess(unittest.TestCase):
                 "width_px": 40, "height_px": 30,
                 "projection": "TAN", "sampler": "nearest",
                 "longitude_parity": "east_left", "bitpix": -32,
-                "coverage_output": "mask", "max_tiles": 64,
+                "coverage_output": "mask", "max_tiles": 16,
             },
         }, open(rcfg, "w"))
         # CLI-002: 顶层 run --phases 已移除; phase3 run 单相(等价的完整生产 manifest 语义)
@@ -205,7 +205,7 @@ class TestPhase3InProcess(unittest.TestCase):
                 "scale_deg_per_px": 0.1,
                 "width_px": 40, "height_px": 30,
                 "projection": "TAN", "sampler": "nearest",
-                "coverage_output": "mask", "max_tiles": 64,
+                "coverage_output": "mask", "max_tiles": 16,
             },
         }, open(rcfg, "w"))
         # 篡改 stable.fits → 磁盘 hash 与 prior 记录不符
