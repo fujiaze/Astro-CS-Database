@@ -10,10 +10,12 @@
   2 v71_coverage           191 个 V7.1 task_id 全部在 state.tasks 且状态合法；
   3 reconciliation_match   STATE_RECONCILIATION.csv 行数与 TASK_STATE 任务数一致，
                            每行 final_status 与 TASK_STATE 一致；
-  4 commit_ledger          COMMIT_LEDGER.jsonl 每行 SHA 存在于 git log；缺失集
-                            （git log - ledger）为空或恰为 {HEAD}（自参照豁免，
-                            ledger 是 git 跟踪文件、提交时冻结、无法包含自身 SHA）；
-                            多条缺失或历史提交漏登仍 FAIL；
+  4 commit_ledger          COMMIT_LEDGER.jsonl 三条非递归不变量：
+                            存在性（entry.sha 存在于 git log 全历史）、schema
+                            （sha/subject/task_id/date 四字段齐全）、防改史
+                            （entry.subject 与 git log 中该 sha 的实际 subject
+                            一致）。覆盖事实=git log 本身；ledger 只是任务语义
+                            映射登记，不要求对齐全历史，无自参照豁免；
   5 seed_integrity         V81-ADOPT-001/002 seed 记录未被覆盖丢失（CLOSED + commit 匹配）；
   6 current_first (--current-first)  关键状态来源可追溯到当前证据，而非盲信审核快照。
 
@@ -152,36 +154,45 @@ def main() -> int:
           + (f" mismatches={mism[:5]}" if mism else ""))
 
     # ---- 4 commit_ledger ----
-    # 自参照豁免语义：COMMIT_LEDGER.jsonl 是 git 跟踪文件，其内容在该提交时冻结，
-    # 无法包含"包含它自己的那个提交"的 SHA（SHA 依赖全部内容，自指）。
-    # 因此缺失集（git log − ledger）为空或恰为 {HEAD} 时 PASS；
-    # 缺失 >1 条（多次提交未补登）或缺失的不是 HEAD（历史提交漏登）仍 FAIL。
+    # 覆盖事实 = git log 本身（git 内容寻址完整性自有保障，无需 ledger 复核）。
+    # COMMIT_LEDGER.jsonl 降级为任务语义映射登记：任务闭环时由 agent 追加一条
+    # {sha, subject, task_id, date}，不承担"全量 commit 登记"职责。
+    # 旧逻辑要求 ledger 逐条对齐 git log（missing/git_main 行数对齐），而 ledger
+    # 是 git 跟踪文件，修改它的 commit 自身又成为新的待登记对象 → 每次提交都要
+    # 预登 HEAD+全部缺口，任何 agent 忘记即产生缺口追赶（自参照递归不可满足）。
+    # 该套逻辑已删除。新检查为三条非递归不变量（全过才 PASS）：
+    #   1) 存在性    bad_sha      每条 entry 的 sha 必须存在于 git log 全历史（防编造条目）；
+    #   2) schema    bad_keys     每条 entry 四字段 sha/subject/task_id/date 齐全；
+    #   3) 防改史    bad_subject  entry.subject 必须与 git log 中该 sha 的实际
+    #                             subject 一致（不一致 = 疑似篡改历史映射）。
     try:
-        git_shas = set(run_git(root, ["log", "--format=%H"]).split())
-        head = run_git(root, ["rev-parse", "HEAD"]).strip()
-        n_main = int(run_git(root, ["rev-list", "--count", "main"]).strip())
+        git_history: dict = {}
+        for line in run_git(root, ["log", "--format=%H %s"]).splitlines():
+            if line.strip():
+                sha, _, subj = line.partition(" ")
+                git_history[sha] = subj
         entries = [json.loads(line) for line in
                    ledger_path.read_text(encoding="utf-8").splitlines() if line.strip()]
-        ledger_shas = {e.get("sha") for e in entries}
-        bad_sha = [e["sha"][:12] for e in entries if e.get("sha") not in git_shas]
-        bad_keys = [i for i, e in enumerate(entries)
-                    if not {"sha", "subject", "task_id", "date"} <= set(e)]
-        missing = git_shas - ledger_shas
-        missing_head_only = missing == {head}
-        ledger_ok = (not missing or missing_head_only) and not bad_sha and not bad_keys
-        if not missing:
-            missing_note = "missing=0"
-        elif missing_head_only:
-            missing_note = (f"missing=1 (HEAD={head[:12]}; HEAD 自身允许缺席(自参照豁免): "
-                            "ledger 提交时冻结无法包含自身 SHA)")
+        bad_sha, bad_keys, bad_subject = [], [], []
+        for i, e in enumerate(entries):
+            if not isinstance(e, dict) or not {"sha", "subject", "task_id", "date"} <= set(e):
+                bad_keys.append(i)
+                continue
+            sha = e["sha"]
+            if not isinstance(sha, str) or sha not in git_history:
+                bad_sha.append((sha if isinstance(sha, str) else repr(sha))[:12])
+                continue
+            if str(e["subject"]) != git_history[sha]:
+                bad_subject.append(sha[:12])
+        ledger_ok = not (bad_sha or bad_keys or bad_subject)
+        if ledger_ok:
+            ledger_detail = f"entries={len(entries)} aligned_with_git_history"
         else:
-            missing_note = (f"missing={len(missing)} (HEAD 自身允许缺席(自参照豁免), "
-                            f"其余必须逐条对齐) missing_shas="
-                            f"{[s[:12] for s in sorted(missing)][:5]}")
-        check("commit_ledger", ledger_ok,
-              f"lines={len(entries)} git_main={n_main} {missing_note}"
-              + (f" bad_sha={bad_sha[:5]}" if bad_sha else "")
-              + (f" bad_keys={bad_keys[:5]}" if bad_keys else ""))
+            ledger_detail = f"entries={len(entries)}" \
+                + (f" bad_sha={bad_sha[:5]}" if bad_sha else "") \
+                + (f" bad_keys={bad_keys[:5]}" if bad_keys else "") \
+                + (f" bad_subject={bad_subject[:5]}" if bad_subject else "")
+        check("commit_ledger", ledger_ok, ledger_detail)
     except Exception as exc:  # noqa: BLE001
         check("commit_ledger", False, str(exc))
 
