@@ -45,9 +45,9 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 65,
+  "CLOSED": 66,
   "READY": 13,
-  "NOT_STARTED": 111,
+  "NOT_STARTED": 110,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
@@ -1924,15 +1924,15 @@
   },
   "P2-REJ-DOC": {
    "owner": "SA-P2-R22",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "6f668c87",
+   "evidence_path": "lib/phase2_rej/; docs/algorithms/PHASE2_REJECTION.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json",
+   "source_of_status": "fg_verified_commit",
    "wave": "W1",
    "kind": "module-doc",
    "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "current_evidence": "commit:6f668c87 traceability 29行0错 warns=4 + pytest 9P + contract_graph 70 + doc_index PASS + selfcheck 42项 ALL PASS；reject 行 in-place merge 六符号 VERIFIED",
+   "note": "module-doc 冻结; SCI-REJ-001 共享 FROZEN 零改动; 四拒绝统计/NaN/small N/确定性判定冻结; 可执行 TEST-P2-REJ-001 MISSING 归 P2-REJ-TEST; descriptor 实测双端口修正; depends_on 按 CSV 权威 P2-UPM-INT;CPU-005"
   },
   "P2-REJ-TEST": {
    "owner": "SA-P2-R22",
