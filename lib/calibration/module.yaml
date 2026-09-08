@@ -34,8 +34,15 @@ node_operations:
   - generate_master_bias_f64
   - generate_master_dark_f64
   - generate_master_flat_f64
+# input/output 端口名与 lib/calibration/integration/astrocs_p1_calibration.integration.json
+# typed_ports 段逐一同名 (P1-CAL-INT 注册面修正; gaia INT 先例)。
+# p1.master_dark/p1.master_bias/p1.master_flat 为可选输入端口 (manifest 键
+# 缺席 = legacy NULL 恒等通道, DEV-2 行为保持, P1-CAL-IMPL 已登记)。
 input_ports:
   - p1.frames
+  - p1.master_dark
+  - p1.master_bias
+  - p1.master_flat
 output_ports:
   - p1.calibrated
 science_contracts:
