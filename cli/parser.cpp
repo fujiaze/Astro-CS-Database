@@ -117,7 +117,13 @@ Parsed parse_args(int argc, char** argv_utf8) {
                 break;
             }
             // joined2 是已知命令 → 继续循环消费下一 token
-        } else if (tokens.size() >= 2) {
+        } else if (tokens.size() >= 2 ||
+                   i + 1 >= raw.size() || raw[i + 1].empty() || raw[i + 1][0] == '-') {
+            // 拼接已终结(dash token 或 EOF)仍不命中任何已知命令: 该 token 序列
+            // 永远不可能是合法命令, 立即报 unknown command, 不落到 flag 循环让
+            // 无关的 unknown flag 抢先(CLI-002: `graph --preset …`/`run --phases …`
+            // 必须 unknown command → 2)。1-token 但仍可继续拼接的(如 `config`
+            // 后接 `validate`)不算终结, 放行给下一轮最长匹配。
             parse_fail("unknown command '" + joined + "'");
         }
     }
