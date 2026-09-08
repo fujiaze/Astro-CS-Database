@@ -18,6 +18,10 @@ extern "C" {
 //
 // 旧乘法模型 (SNR_phot × SNR_psf/median + IDW) 已降级为 legacy heuristic /
 // diagnostic only (见 snr_extract_model_* 与 snr_estimate_*), 不再作为生产科学权重。
+// 术语口径 (SCI-PSF §2 / SNR-008): PSF 块第 8 列 (index 7) 历史称 "mad",
+// 实为 10-90% trimmed mean absolute residual, 权威语义 residual_scale;
+// 旧 (A-B)/mad 控制点公式即已退休 (SNR-008) 的 legacy 路径, 本头文件中
+// "mad" 字样均为该列历史别名, 不指 median-absolute-deviation。
 // 拆分为:
 // 1. PhotometricCalibrationQuality — 帧级测光定标质量 (systematic metadata)
 // 2. PsfFitQuality — 星点级 PSF 拟合质量代理 (QA/剔星)
@@ -51,7 +55,8 @@ SNR_API int snr_phot_cal_quality(double sigma_logflux_dex, int n_matches,
 // 2. PsfFitQuality
 // 每星 PSF 拟合质量代理。psf 行布局为冻结的 [N,9]:
 // status(0) B(1) flux(2) cx(3) cy(4) fwhm(5) A(6) mad(7) eccentricity(8)
-// 其中 mad 列实际是 10-90% trimmed mean absolute residual (非真 MAD),
+// 第 8 列 (index 7) 历史称 "mad", 实际是 10-90% trimmed mean absolute residual
+// (非真 MAD), 权威语义 residual_scale,
 // 对 Gaussian N(0,σ²) 期望 ≈ 0.731673 σ。
 // 本接口准确重命名语义并输出:
 // residual_scale — 原统计量 (不称 MAD)
@@ -189,6 +194,8 @@ SNR_API double snr_noise_gain_variance(double signal,
 // psf - PSF 拟合结果 double [n_stars*9]
 // 每行: [status, B, flux, cx, cy, fwhm, A, mad, eccentricity]
 // 列索引: status=0, B=1, flux=2, cx=3, cy=4, fwhm=5, A=6, mad=7, eccentricity=8
+// 注: 第 8 列 (index 7, "mad") 实为 residual_scale (10-90% trimmed mean abs
+// residual, SCI-PSF §2); 列名沿用历史, [N,9] 冻结布局与数值语义均不变。
 // n_stars - PSF 星数量
 // sigma_residual - 测光残差 sigma (来自 photo_stats 块 SIGMA_RESIDUAL)
 // out_snr - 输出 SNR 图 float32 [h*w] (调用者分配)
@@ -257,7 +264,7 @@ typedef enum {
     // SNR 阶段丢弃 (snr_extract_model 内部过滤)
     SNR_DROP_OUTSIDE_TILE     = 1,    // 点不在任何 Tile 范围内 (drizzle 阶段判断)
     SNR_DROP_NO_OVERLAP       = 2,    // 点所在 Tile 无 signal 覆盖 (drizzle 阶段判断)
-    SNR_DROP_INVALID_PSF      = 3,    // PSF 拟合失败: status != 0 或 mad <= 0
+    SNR_DROP_INVALID_PSF      = 3,    // PSF 拟合失败: status != 0 或 residual_scale (列 7, 历史名 mad) <= 0
     SNR_DROP_INVALID_WCS      = 4,    // WCS 转换失败
     SNR_DROP_ZERO_FLUX        = 5,    // 通量为零 / 振幅不足 (A <= B)
     SNR_DROP_DUPLICATE_IPIX   = 6,    // 重复 local_ipix (保留首次, drizzle 阶段)
@@ -278,7 +285,7 @@ typedef enum {
 typedef struct {
     double ra;       // 球面赤经 (度)
     double dec;      // 球面赤纬 (度)
-    float  snr_psf;  // (A-B)/mad (无量纲)
+    float  snr_psf;  // legacy (A-B)/mad 控制点值 (列 7 实为 residual_scale; SNR-008 已退休路径)
 } SnrControlPoint;
 #pragma pack(pop)
 static_assert(sizeof(SnrControlPoint) == 20, "SnrControlPoint must be 20 bytes (packed, matches HioSnrControlPoint)");
@@ -290,7 +297,7 @@ static_assert(sizeof(SnrControlPoint) == 20, "SnrControlPoint must be 20 bytes (
 typedef struct {
     double ra;       // 球面赤经 (度)
     double dec;      // 球面赤纬 (度)
-    double snr_psf;  // (A-B)/mad (无量纲, double 精度)
+    double snr_psf;  // legacy (A-B)/mad 控制点值 (列 7 实为 residual_scale; SNR-008 已退休路径)
 } SnrControlPointF64;
 #pragma pack(pop)
 static_assert(sizeof(SnrControlPointF64) == 24, "SnrControlPointF64 must be 24 bytes");
@@ -388,7 +395,7 @@ typedef struct {
 //
 // 返回: 0=成功, 1=n_stars<=0或无有效星(退化), 2=sigma_residual<=0(退化), 3=nullptr
 //
-// 有效星条件: status==0, A>B, mad>0
+// 有效星条件: status==0, A>B, residual_scale (列 7, 历史名 mad) > 0
 // 控制点坐标: PSF 星位置 (cx,cy) 经 WCS 转球面 (ra,dec)
 // ============================================================================
 SNR_API int snr_extract_model(const double* psf, int n_stars,
@@ -407,7 +414,7 @@ SNR_API int snr_extract_model_v2(const double* psf, int n_stars,
 // v3: 提取稀疏 SNR 控制点模型并携带 stable star_id / quality_flags /
 // photometric_status。star_ids/quality_flags/photometric_status 与
 // psf 行对齐 (长度 n_stars), 有效星按原行拷贝其 ID/状态。
-// 有效星条件与 v2 一致: status==0, A>B, mad>0。
+// 有效星条件与 v2 一致: status==0, A>B, residual_scale (列 7, 历史名 mad) > 0。
 SNR_API int snr_extract_model_v3(const double* psf, int n_stars,
                                   double sigma_residual,
                                   const SnrWcsParams* wcs,

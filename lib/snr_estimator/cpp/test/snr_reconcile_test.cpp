@@ -24,7 +24,8 @@ static int g_pass = 0, g_fail = 0;
     else { printf("  [FAIL] %s\n", msg); ++g_fail; } \
 } while (0)
 
-// 合成 PSF: n_stars 颗高斯星 (cx,cy 网格分布, A/B/mad 合理)
+// 合成 PSF: n_stars 颗高斯星 (cx,cy 网格分布, A/B/residual_scale 合理;
+// 列 7 历史名 "mad", 实为 10-90% trimmed mean abs residual, SCI-PSF §2)
 static void synth_psf(int n, std::vector<double>& psf_f64, std::vector<double>& psf_f32) {
     psf_f64.resize((size_t)n * 9);
     psf_f32.resize((size_t)n * 9);
@@ -37,12 +38,12 @@ static void synth_psf(int n, std::vector<double>& psf_f64, std::vector<double>& 
         // FP32 模拟: 拟合参数经 float 运算 (保留 FP32 模式实际舍入)
         float fB = 1200.0f + i * 0.5f;
         float fA = 5000.0f + i * 7.0f;
-        float fmad = 120.0f + (i % 5) * 3.0f;
+        float fmad = 120.0f + (i % 5) * 3.0f; // 历史名 fmad, 实为 residual_scale (f32 口径)
         float ffwhm = 4.5f + (i % 7) * 0.1f;
         // FP64: 同一值 double 精确
         double dB = 1200.0 + i * 0.5;
         double dA = 5000.0 + i * 7.0;
-        double dmad = 120.0 + (i % 5) * 3.0;
+        double dmad = 120.0 + (i % 5) * 3.0; // 历史名 dmad, 实为 residual_scale
         double dfwhm = 4.5 + (i % 7) * 0.1;
         double rows[9] = {0, dB, dA * 3.0, cx, cy, dfwhm, dA, dmad, 0.9};
         std::memcpy(&psf_f64[(size_t)i * 9], rows, sizeof(rows));
