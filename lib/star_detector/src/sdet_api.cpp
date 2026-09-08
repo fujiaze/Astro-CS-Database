@@ -1835,7 +1835,12 @@ static int sdet_detect_impl(StarDetectorHandle handle,
                 yy += (yu + yd) / 2;
                 r0 = -0.5f;
                 c0 = -0.5f;
-                x += xr;
+                // P1-2 修复: 饱和分支 edge-walking 偏移只允许作用于局部中心
+                // (xx += (xr+xl)/2, yy += (yu+yd)/2, 供步骤(4)沿平台行走使用)。
+                // 原实现在此处 `x += xr;` 回写外层候选扫描游标 (for (int x = r; ...)),
+                // 导致同行后续候选区间 [x+1, x+xr] 被扫描跳过、检出集合漂移
+                // (如饱和平台右缘 10px 内的同行亮星漏检)。xr 已由局部中心变量
+                // 消费, 此处不得再触碰外层游标 x。
             }
 
             // (4) 二阶导数零交叉估计 (star_finder.c:411-492)
