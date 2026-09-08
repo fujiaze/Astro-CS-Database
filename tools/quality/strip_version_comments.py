@@ -11,6 +11,7 @@ git/CHANGELOG。本脚本机械剥离轮次标记，保留科学语义；应用�
 
 from __future__ import annotations
 
+import argparse
 import os
 import re
 import subprocess
@@ -35,6 +36,26 @@ def _deduce_root() -> str:
     if os.path.isdir(os.path.join(cwd, "docs")) and os.path.isdir(os.path.join(cwd, "lib")):
         return cwd
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _atomic_write_lines(path: str, lines: list[str]) -> None:
+    # 原子写：tmp 与目标同目录（同一文件系统，os.replace 才是原子 rename）。
+    # 写全 + flush + fsync 后一次性 rename；任何时刻被 SIGKILL，目标要么是
+    # 原文要么是新全文，绝不截断。残留的 *.strip-tmp 由下次执行清理。
+    tmp = f"{path}.strip-tmp"
+    data = "".join(lines)
+    try:
+        with open(tmp, "w", encoding="utf-8", newline="") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 ROOT = _deduce_root()
 
@@ -100,7 +121,13 @@ def transform_line(raw: str) -> str:
 
 
 def main() -> int:
-    r = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True,
+    ap = argparse.ArgumentParser(description="strip_version_comments.py — 机械剥离 lib/ 轮次历史注释")
+    ap.add_argument("--root", default=None,
+                    help="目标仓库根目录（默认沿用 _deduce_root() 推断；"
+                         "供对临时副本安全测试用）")
+    args = ap.parse_args()
+    root = args.root if args.root else ROOT
+    r = subprocess.run(["git", "ls-files"], cwd=root, capture_output=True,
                        text=True, encoding="utf-8", errors="replace",
                        timeout=120)
     files = [p for p in r.stdout.splitlines()
@@ -112,11 +139,13 @@ def main() -> int:
     changed = 0
     lines_changed = 0
     for p in files:
-        path = os.path.join(ROOT, p)
+        path = os.path.join(root, p)
         try:
-            with open(path, encoding="utf-8", errors="replace") as f:
+            with open(path, encoding="utf-8") as f:  # strict：非法 UTF-8 直接抛错
                 lines = f.readlines()
-        except OSError:
+        except (OSError, UnicodeDecodeError) as e:
+            # 跳过该文件：绝不写回，也绝不用 errors="replace" 重读
+            print(f"[skip] {p}: {type(e).__name__}: {e}", file=sys.stderr)
             continue
         out = []
         dirty = False
@@ -127,8 +156,11 @@ def main() -> int:
                 lines_changed += 1
             out.append(nxt)
         if dirty:
-            with open(path, "w", encoding="utf-8", newline="") as f:
-                f.writelines(out)
+            # 仅清理历史残留 tmp（本次原子 os.replace 会腾出该名字），
+            # 覆盖上一轮异常退出遗留的 *.strip-tmp
+            if os.path.exists(path + ".strip-tmp"):
+                os.unlink(path + ".strip-tmp")
+            _atomic_write_lines(path, out)
             changed += 1
     print(f"comment strip: files_changed={changed} lines_changed={lines_changed}")
     return 0

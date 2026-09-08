@@ -9,7 +9,11 @@
   4. source_main_sha 是当前 HEAD 的祖先提交（--base-sha 给定时改为与其严格相等）；
   5. 给定 --control-root 时，上游 01_OWNER_FROZEN_CONSTRAINTS.md 的 SHA-256
      与文件头 source_control_sha256 一致（修订关系）；未给定时结构性跳过；
-  6. AGENTS.md 精简指针化：引用约束文件、memory.md、Linux/Windows 角色；
+  6. AGENTS.md 精简指针化：约束文件引用与 memory 引用必须在 AGENTS.md 字面命中；
+     Linux/Windows 角色允许 AGENTS.md 字面提及，或由其指向的
+     AstroCS_ENGINEERING_CONSTRAINTS.md 同时覆盖 Linux 与 Windows
+     （指针间接覆盖 — GOV-001 指针化语义：AGENTS.md 不复制长文，平台角色
+     细则在被指向的约束文件里）；
      "Git Bash"/"PowerShell"/"pwsh" 只允许出现在禁止性条款（禁止作为默认开发环境）；
   7. 输出稳定排序 JSON 的 machine_index（本文件登记的机器可读条目）。
 
@@ -153,11 +157,27 @@ def main() -> int:
     agents = ""
     if os.path.isfile(os.path.join(root, AGENTS_PATH)):
         agents = open(os.path.join(root, AGENTS_PATH), encoding="utf-8").read()
-    refs = [("AstroCS_ENGINEERING_CONSTRAINTS.md", "约束文件引用"),
-            ("memory.md", "memory 引用"),
-            ("Linux", "Linux 角色"),
-            ("Windows", "Windows 角色")]
-    miss_refs = [label for needle, label in refs if needle not in agents]
+    miss_refs: list[str] = []
+    # 第一组：AGENTS.md 指针化入口必须字面命中的引用
+    refs_literal = [("AstroCS_ENGINEERING_CONSTRAINTS.md", "约束文件引用"),
+                    ("memory.md", "memory 引用")]
+    miss_refs += [label for needle, label in refs_literal if needle not in agents]
+    # 第二组：平台角色 —— AGENTS.md 字面提及（Linux 与 Windows 都在）
+    # 或其指向的 AstroCS_ENGINEERING_CONSTRAINTS.md 中同时含 Linux 与 Windows
+    # （指针间接覆盖，符合 GOV-001 "AGENTS.md 精简指针化"语义）。
+    constraints_text = ""
+    if exists:
+        constraints_text = open(doc_full, encoding="utf-8").read()
+    agents_literal = "Linux" in agents and "Windows" in agents
+    constraints_covers = ("Linux" in constraints_text and
+                          "Windows" in constraints_text)
+    platform_via = None
+    if agents_literal:
+        platform_via = "agents_md_literal"
+    elif constraints_covers:
+        platform_via = "constraints_doc_pointer"
+    else:
+        miss_refs.append("Linux/Windows 角色 (AGENTS.md 与其指向的约束文件均未覆盖)")
     # Git Bash / PowerShell / pwsh 只允许出现在禁止性条款中
     bad_lines = []
     for i, line in enumerate(agents.splitlines(), 1):
@@ -166,12 +186,14 @@ def main() -> int:
     agents_ok = (not miss_refs) and (not bad_lines)
     agents_detail = (("缺少: " + ",".join(miss_refs)) if miss_refs else "") + \
                     ((" 非禁止条款命中: " + "; ".join(bad_lines)) if bad_lines else "")
+    if agents_ok and platform_via == "constraints_doc_pointer":
+        agents_detail = "平台角色经 AstroCS_ENGINEERING_CONSTRAINTS.md 指针间接覆盖"
     results.append(check("agents_md_pointer_style", agents_ok, agents_detail))
 
     passed = all(r["pass"] for r in results)
     out = {
         "tool": "tools/doccheck/check_engineering_constraints.py",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "task": "GOV-001",
         "root": root,
         "head_sha": head_sha(root),
