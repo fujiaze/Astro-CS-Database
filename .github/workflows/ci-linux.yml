@@ -110,6 +110,10 @@ jobs:
             -DASTROCS_ENABLE_ACR=OFF >/dev/null
           timeout 2400 cmake --build build/cli -j 2 --target astrocs
           mkdir -p build && cp -f build/linux-control/astrocs build/astrocs
+          # tests/backend oracle fixture(如 test_phase3_reproject_oracle)用
+          # -IREPO/build 取 version_generated.h; 根 build/ 仅被 cp 二进制,
+          # 需补生成头(R19 34204130361 UT-BACKEND setUpClass 实证)。
+          cp -f build/linux-control/version_generated.h build/version_generated.h
           ./build/astrocs version --json && ./build/cli/astrocs version --json
       - name: Install deep coverage tools
         if: steps.profile.outputs.profile == 'linux-deep'
