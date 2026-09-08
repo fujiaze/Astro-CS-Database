@@ -133,6 +133,12 @@ public:
         return out;
     }
 
+    // 已记录样本总数快照（MON-002 resource summary 事件 raw_n 字段）。
+    std::size_t record_count() const {
+        std::lock_guard<std::mutex> lk(mu_);
+        return records_.size();
+    }
+
 private:
     double interval_;
     SteadyClock::time_point t0_{SteadyClock::now()};
