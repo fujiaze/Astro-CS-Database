@@ -158,7 +158,7 @@ P2-REJ-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-REJ-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-REJ-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-REJ-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P2-INT-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P2-INT-DOC,module-doc,NOT_STARTED,commit:84c6715a traceability 29行0错 warns=4 + pytest 9P + contract_graph 66 + doc_index PASS + selfcheck 38项 ALL PASS；矩阵13行原位融合,CLOSED,fg_verified_commit,84c6715a,lib/phase2_int/; docs/algorithms/PHASE2_INTEGRATION.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结; SCI-INT-001 共享 FROZEN 零改动; 零权重边界五态状态机+并行tolerance=1..N bitwise 冻结; 可执行 TEST-P2-INT-001 MISSING 归 P2-INT-TEST; dll/ThreadLease/DISP-P2INT-001 整改归 P2-INT-IMPL; descriptor 对齐归 P2-XX-INT
 P2-INT-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-INT-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-INT-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
