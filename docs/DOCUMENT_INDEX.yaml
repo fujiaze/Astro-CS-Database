@@ -119,6 +119,10 @@ doc_index:
       notes: "P2-INT-DOC 冻结 (2026-09-09, SA-P2-I23): ALG-P2-INT-001 逐像素加权积分逐符号源码行号锚定(integrate.cpp 76 行/integrate.h 74 行 实测, p2_integrate_pixel:19-74 五态状态机:65-69/support canonical:71/p2_validate_candidate_weights:10-17)+权重语义与 policy/reducer 分离(§2/§5)+消费链与并行 tolerance 合同(§6, stage2.cpp:1288/1305-1313, acr_kernels.cpp:218)+DISP-P2INT-001(sup_max 零权重, bughunt R3-A)/DISP-P2INT-002(INTEGRATION.md:58 表述矛盾)(§11.3)+TEST-P2-INT-DESIGN-001 冻结容差(§11.4)+SCI 层零改动声明(SCI-P2-INT-001⇒SCI-INT-001 共享 FROZEN, §11.5); 承接 audit PH2-05 B2-12 建议"
     - path: "docs/algorithms/PHASE3_RESAMPLE.md"
       status: ACTIVE_NORMATIVE
+      notes: "P3-PROJ-DOC (2026-09-11) 补记: 本文件零改动；ALG-P3-002 (G1/G2 WCS) 本域子面承接声明=ALG-P3-PROJ-IMPL-001 §5，INDEX.yaml 条目 status DRAFT→ACTIVE 按索引规则 DERIVED→ACTIVE 收敛 + downstream 增补 ALG-P3-PROJ-IMPL-001"
+    - path: "docs/algorithms/PHASE3_PROJ_IMPL.md"
+      status: ACTIVE_NORMATIVE
+      notes: "ALG-P3-PROJ-IMPL-001（P3-PROJ-DOC 冻结，2026-09-11，SA-P3-P25）：Phase3 投影/WCS 实现级合同（p3_wcs.h:11-46/p3_wcs.cpp 165 行逐符号行号锚定+G1 CD 构造/PA 推广展开式/P0 bughunt_p0_wcs 修复陈述 §6+G2 正反映射冻结式 §7+错误语义表 §9+并发确定性合同 §10+实测偏差登记(PA 未接线/kMaxSide 编译期覆盖/TAN 硬编码/dll 未建) §11+TEST-P3-WCS-DESIGN-001 T1-T7 §12+SCI-P3-WCS-001⇒SCI-P3-001 映射声明 §5；SCI-P3-001 FROZEN 零改动，ALG-P3-002 公式零改动）"
     - path: "docs/algorithms/PHOTOMETRIC_FIT.md"
       status: ACTIVE_NORMATIVE
       notes: "P1-PHOT-DOC (2026-09-07) 追加 §13 冻结增补: ALG-PHOT-001..002 逐符号源码锚定(star_matcher/spectrum_integrator/pc_api/photometer)+实现事实修订(双向匹配/1.0nm 网格/mag_max 静默覆盖)+DISP-PHOT-001..009+TEST-PHOT-DESIGN-001 冻结容差+legacy 通道(§13.5)"
@@ -346,6 +350,9 @@ doc_index:
     - path: "docs/modules/phase3_fits.md"
       status: ACTIVE_INFORMATIVE
       notes: "P3-FITS-DOC (2026-09-08) 新建: astrocs.p3.fits_writer 模块页——合同落位 lib/phase3_fits/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/phase2_upm→phase2_samp→phase2_rej→phase2_int→hips_p2 先例新建, lib/phase3_session/ 为会话编排域共享源不整目录归属); 合同 ID=SCI-P3-001(共享 FROZEN, 映射 SCI-P3-WR-001⇒SCI-P3-001)/ALG-P3-FITS-IMPL-001(兼承接 ALG-P3-002/004 本域子面)/DATA-P3-FITS(§27)/API-P3-FITS-001/API-P3-001(镜像)/TEST-P3-WR-001(登记面=TEST-P3-WR-DESIGN-001 VERIFIED, 可执行 MISSING 归 P3-FITS-TEST); 生产源 lib/phase3_session/p3_output.cpp 370 行 + p3_output.h 64 行 + p3_wcs.h 50 行; registry 手写页=astrocs.phase3.writer.md; DISP-P3FITS-001..002 登记"
+    - path: "docs/modules/phase3_proj.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "P3-PROJ-DOC (2026-09-11) 新建: astrocs.p3.projection 模块页——合同落位 lib/phase3_proj/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/phase2_upm→phase2_samp→phase2_rej→phase2_int→hips_p2→phase3_fits 先例新建, lib/phase3_session/ 为会话编排域共享源不整目录归属); 合同 ID=SCI-P3-001(共享 FROZEN, 映射 SCI-P3-WCS-001⇒SCI-P3-001)/ALG-P3-PROJ-IMPL-001(兼承接 ALG-P3-002 G1/G2 本域子面)/DATA-P3-WCS(§28)/API-P3-PROJ-001/API-P3-001(镜像)/TEST-P3-WCS-001(登记面=TEST-P3-WCS-DESIGN-001 VERIFIED, 验收级 WCSLIB oracle 归 P3-PROJ-TEST); 生产源 lib/phase3_session/p3_wcs.cpp 165 行 + p3_wcs.h 50 行; registry 手写页=astrocs.phase3.wcs.md"
     - path: "docs/modules/photometric_calib.md"
       status: ACTIVE_INFORMATIVE
       notes: "P1-PHOT-DOC (2026-09-07) 事实修订: 头部增补块——合同落位 lib/photometric_calib/README.md r1 + module.yaml (astrocs.p1.photometry, CONTRACT_READY, entrypoint=MISSING); 合同 ID=SCI-PHOT-001/ALG-PHOT-001..002/DATA-P1-PHOT/API-PHOT-001; NO_DATA 表述按退化语义修订"
@@ -425,8 +432,8 @@ doc_index:
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"
     - path: "docs/modules/registry/astrocs.phase3.wcs.md"
-      status: GENERATED
-      notes: "tools/quality/gen_module_readmes.py 生成"
+      status: ACTIVE_INFORMATIVE
+      notes: "P3-PROJ-DOC (2026-09-11) 重写为手写合同页 (registry 页手写先例 astrocs.phase3.writer.md P3-FITS-DOC 同构): astrocs.p3.projection 合同 (registry 行 ID 沿用 MOD-astrocs-phase3-wcs)——SCI-P3-001(共享 FROZEN)/ALG-P3-PROJ-IMPL-001(兼承接 ALG-P3-002 G1/G2)/DATA-P3-WCS(§28)/API-P3-PROJ-001/API-P3-001; 合同落位 lib/phase3_proj/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 生产源 lib/phase3_session/p3_wcs.cpp+p3_wcs.h; TEST 登记面=TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED 承载 TEST-P3-WCS-001 锚 (验收级 WCSLIB oracle 归 P3-PROJ-TEST); 旧 descriptor 派生词汇 (module_id=astrocs.phase3.wcs、SCI-P3-WCS-001、端口 props/wcs_plan) 由 P3-PROJ-INT 对齐修订"
     - path: "docs/modules/registry/astrocs.phase3.writer.md"
       status: ACTIVE_INFORMATIVE
       notes: "P3-FITS-DOC (2026-09-08) 重写为手写合同页 (registry 页手写先例 astrocs.phase2.write.md/astrocs.phase2.integrate.md/astrocs.phase2.upm-*.md): astrocs.p3.fits_writer 合同 (registry 行 ID 沿用 MOD-astrocs-phase3-writer)——SCI-P3-001(共享 FROZEN)/ALG-P3-FITS-IMPL-001/DATA-P3-FITS(§27)/API-P3-FITS-001/API-P3-001; 合同落位 lib/phase3_fits/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 生产源 lib/phase3_session/p3_output.cpp+p3_output.h+p3_wcs.h; TEST 登记面=TEST-P3-WR-DESIGN-001 设计冻结 VERIFIED 承载 TEST-P3-WR-001 锚 (可执行 MISSING 归 P3-FITS-TEST); DISP-P3FITS-001..002 登记; 旧 descriptor 派生词汇 (module_id=astrocs.phase3.writer、SCI-P3-WR-001、ALG-P3-004) 由 P3-FITS-INT 对齐修订"

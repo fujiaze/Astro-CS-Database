@@ -1885,3 +1885,92 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - 下游: TEST-P3-WR-001（MISSING，P3-FITS-DOC 登记）；上游
   SCI-P3-001（FROZEN）/ ALG-P3-FITS-IMPL-001 / DATA-P3-FITS（§27）；
   镜像: API-P3-001（FROZEN 编排面，不因本节改动）。
+
+## Phase3 投影/WCS 公共消费面（API-P3-PROJ-001）
+
+> ID: API-P3-PROJ-001  状态: CONTRACT_READY（P3-PROJ-DOC 冻结，
+> 2026-09-11）
+> 定位: Phase3 投影/WCS 域公共消费面——既有内核符号的展开冻结
+> （**不新增、不修改任何 C 头/C ABI**；p3_wcs.h 为唯一权威签名头，
+> 50 行，C++ namespace astrocs::phase3；编排面 p3_session.h 五段式=
+> API-P3-001 FROZEN 不变，本节仅镜像声明）。
+> SRC: lib/phase3_session/p3_wcs.cpp（165 行，astrocs_phase3_session
+> 静态库成员，根 CMakeLists.txt:460-465）+ 唯一权威签名头
+> lib/phase3_session/p3_wcs.h（50 行）；DATA: DATA-P3-WCS
+> （DATA_SEMANTICS §28，单位/dtype/invalid 唯一权威）；ALG:
+> ALG-P3-PROJ-IMPL-001（docs/algorithms/PHASE3_PROJ_IMPL.md，逐符号
+> 锚与 G1/G2 冻结式）；MOD: astrocs.p3.projection（迁移目标
+> astrocs_p3_projection.dll 为矩阵合同值，尚未存在——MISSING 语义，
+> 由 P3-PROJ-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
+> module_id=astrocs.phase3.wcs，module_adapters.cpp:344-361
+> p3_wcs_descriptor，由 P3-PROJ-INT 对齐）。
+
+### 内核符号与签名要点（p3_wcs.h 实测锚，冻结）
+
+- `P3WcsStatus p3_wcs_make(double centre_ra_deg, double
+  centre_dec_deg, double scale_deg_per_px, int width_px, int
+  height_px, const char* parity, double rotation_pa_deg,
+  P3WcsDescriptor* out)`（h:31-34 声明，实现 p3_wcs.cpp:30-90）:
+  descriptor 构造入口——G1 冻结式（CRPIX=(W+1)/2、CD=R(−PA)·
+  diag(sgn_x·s, sgn_y·s)，PA=0 精确退化对角 diag(−s,+s)/
+  diag(+s,−s)，det(CD)=−s²<0 手性冻结，§6.2）；参数校验序 parity→
+  |dec|≤85°→scale>0→W,H∈[1,20000]（:39-43）；四角同半球守卫
+  （:80-88，失败码透传）。rc: 0=OK / 1=PARAM（parity 非法、
+  |dec|>85°、scale≤0、尺寸越界、out 空）/ 3=HEMISPHERE（视场超
+  TAN 半球）；out 失败时保持零初始化态（:35）。
+- `P3WcsStatus p3_wcs_pix2world(const P3WcsDescriptor* d, double x,
+  double y, double* ra_deg, double* dec_deg)`（h:38-39 声明，实现
+  :93-118）: 像素→天球（G2 正向）——x,y **0-based**（FITS
+  1-based=+1，:97-98）；中间坐标 ξ,η=CD·(pix−CRPIX)（deg→rad）；
+  r≥π/2 →HEMISPHERE（:104）；gnomonic θ=atan(1/r)、φ=atan2(−ξ,η)
+  →球面角（Calabretta & Greisen 2002 形式，:111-112）；RA 归一
+  [0,360)（:113-114）。rc: 0=OK / 1=PARAM（空指针）/ 3=HEMISPHERE。
+- `P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double
+  ra_deg, double dec_deg, double* x, double* y)`（h:42-43 声明，
+  实现 :120-143）: 天球→像素（G2 反向）——|dec|>85° →PARAM
+  （:123）；背面 denom≤0 →HEMISPHERE（:130）；gnomonic (ξ,η)
+  （:131-133）→线性解 CD·δ=(ξ,η)（det 奇异 |det|<1e-300 →PARAM
+  :137）→0-based 像素输出（:140-141）。rc: 0=OK / 1=PARAM / 3=
+  HEMISPHERE。
+- `std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d)`
+  （h:46 声明，实现 :145-163）: descriptor→FITS 关键词文本
+  （CTYPE1/2=RA---TAN/DEC--TAN、CUNIT1/2=deg、CRPIX1/2、CRVAL1/2、
+  CD1_1..CD2_2，每行 ≤80 字节）；nullptr → 空串。调试/探针面；
+  生产 FITS 头写路径在 p3_output 域（API-P3-FITS-001）。
+- `struct P3WcsDescriptor`（h:11-20）/ `enum class P3WcsStatus`
+  （h:22-27，OK=0/PARAM=1/UNSUPPORTED=2/HEMISPHERE=3）: 消费面
+  数据结构冻结（字段级锚=DATA-P3-WCS §28.1/§28.2；UNSUPPORTED
+  现无产生点——projection 硬编码 "TAN"，SIN/ZEA/CAR/AIT 扩展
+  TODO，如实登记）。
+- 并发语义: 四函数纯函数无状态（0 处 thread/mutex/omp/全局可变
+  量，:12-28）——const-only 入口多线程并发安全（descriptor
+  parallel_ok=true 与此一致）；确定性 bitwise（ALG-P3-PROJ-IMPL-001
+  §10）。roundtrip 冻结容差 <1e-6 px（SCI-P3-001 §7，禁放宽）。
+- 会话消费锚（编排面 API-P3-001 镜像）: p3_session.cpp:160
+  p3_wcs_make（rotation_pa_deg 恒 0.0——PA 未接线整改项，不改码）
+  /:163 状态映射（UNSUPPORTED→ACS_ERR_UNSUPPORTED，其余非 OK→
+  ACS_ERR_PARAM）/:232 worker 循环逐像素 pix2world（失败 continue，
+  半球外像素 NaN）/:247-253 worker 池=budget.max_workers（禁
+  hardware_concurrency）。
+
+### 交叉引用与登记语义
+
+- 上游: SCI-P3-001（FROZEN，§5 连续定义 + §9a-4/-6/-12 + §7
+  roundtrip 容差）引用不改动；ALG-P3-002（PHASE3_RESAMPLE.md §2
+  G1/G2 施工规格，公式零改动）；ALG-P3-PROJ-IMPL-001（实现级
+  合同）；DATA-P3-WCS（§28）。
+- 整改迁移语义（登记不改码）: PA 未接线（p3_session.cpp:160 恒
+  0.0）归 P3-PROJ-IMPL/INT；kMaxSide ASTROCS_P3_MAX_SIDE 编译期
+  覆盖（p3_wcs.cpp:18-22）如实冻结；dll/入口未建归 P3-PROJ-IMPL。
+  本域无 DISP 缺陷登记（P0 bughunt_p0_wcs 修复已合并，:65-68）。
+- 测试语义: TEST-P3-WCS-001——登记面=TEST-P3-WCS-DESIGN-001 设计
+  冻结 VERIFIED（ALG-P3-PROJ-IMPL-001 §12 T1-T7 + registry 手写页
+  docs/modules/registry/astrocs.phase3.wcs.md §9，双重陈述）；
+  现状执行测试 tests/unit/p3_wcs_test.cpp（90 行）+
+  tests/backend/test_p1002_gaps.py（独立解析解回归）+
+  tests/backend/p3_wcs_main.cpp（探针）=相邻证据引用不冒认；
+  验收级（WCSLIB oracle）归 P3-PROJ-TEST 落地 + EVIDENCE。
+- 下游: TEST-P3-WCS-001（登记面如上）；上游 SCI-P3-001（FROZEN）/
+  ALG-P3-PROJ-IMPL-001 / DATA-P3-WCS（§28）；域际: API-P3-FITS-001
+  （FITS 写出消费面，wcs 字段承载本 descriptor）；镜像: API-P3-001
+  （FROZEN 编排面，不因本节改动）。

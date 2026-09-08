@@ -1,0 +1,117 @@
+# AstroCS phase3 projection (WCS) 模块 — 元数据 (P3-PROJ-DOC 冻结, 2026-09-11)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase3_session/p3_wcs.cpp
+# 165 行 + 唯一权威签名头 lib/phase3_session/p3_wcs.h 50 行，
+# 行号 read/grep 实测；构建挂载: 根 CMakeLists.txt:460-465
+# astrocs_phase3_session STATIC 五源文件之一（p3_wcs.cpp）；
+# 会话消费方 lib/phase3_session/p3_session.cpp :17 include / :160
+# p3_wcs_make（rotation_pa_deg 恒 0.0）/ :163 状态映射 / :232 worker
+# 循环 p3_wcs_pix2world；执行面探针 tests/backend/p3_wcs_main.cpp +
+# 独立解析解回归 tests/backend/test_p1002_gaps.py（CMake/fx3 脚本内联
+# 编译链接 p3_wcs.cpp）+ 单元测试 tests/unit/p3_wcs_test.cpp 90 行），
+# 模块化迁移（独立模块源 astrocs_p3_projection.dll / C ABI adapter /
+# plan-execute-cancel-inspect / ThreadLease 接线）由 P3-PROJ-IMPL 执行；
+# 验收级可执行测试由 P3-PROJ-TEST 建立（可执行面升级不冒认；设计冻结
+# 面=ALG-P3-PROJ-IMPL-001 TEST-DESIGN 节 + registry 手写页 §9）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为
+# 源码核对清单（P3-PROJ-DOC，2026-09-11，grep 实测 p3_wcs.h 声明
+# 符号，禁抄他版）。
+# module_id 取 MODULE_MIGRATION_MATRIX P3-PROJ 行权威值
+# astrocs.p3.projection。
+# MOD ID：registry 现有行 MOD-astrocs-phase3-wcs（单 descriptor 域，
+# lib/core/src/module_adapters.cpp:344 p3_wcs_descriptor），本 manifest
+# id 与之一致；descriptor 占位词汇（module_id=astrocs.phase3.wcs、
+# sci_id=SCI-P3-WCS-001、alg_id=ALG-P3-002、test_id=TEST-P3-WCS-001、
+# 端口 props(DATA-P3-PROPS)+wcs_plan(DATA-P3-WCS)）为编排层词汇，
+# 由 P3-PROJ-INT 对齐本 manifest 与 lib/phase3_proj/README.md（r1），
+# 不得反向作为冻结依据（占位 ID 不入合同；SCI/ALG 映射声明见
+# docs/algorithms/PHASE3_PROJ_IMPL.md §5）。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P3-PROJ 行 owner=SA-P3-P25、
+# target=astrocs_p3_projection.dll、module_id=astrocs.p3.projection、
+# legacy_paths="lib/phase3_session projection sources"、depends_on_int=
+# ABI-005;DATA-004;RT-006、notes="TAN/SIN/ZEA/CAR/AIT explicit;FITS WCS
+# Paper II;domain/wrap/poles;CRPIX/CRVAL/CD;WCSLIB test oracle;round-trip
+# thresholds"。实测生产源 p3_wcs.cpp 位于 lib/phase3_session/ ——该目录
+# 为会话编排域共享源（p3_session/p3_output/p3_resample 等非本域），不整
+# 目录归属，故按 lib/phase2_upm→phase2_samp→phase2_rej→phase2_int→
+# phase3_fits 先例落独立迁移目标目录 lib/phase3_proj/（本文件所在，仅
+# 合同文件、无源码、不与 legacy 目录重叠）；legacy 生产源引用不搬家。
+# dll_target=astrocs_p3_projection.dll 为迁移目标合同值（尚未存在）；
+# 现状构建=根 CMakeLists.txt astrocs_phase3_session 静态库成员。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4
+# 值域）；现状实现=内核纯函数无锁无内部线程（p3_wcs.cpp grep 实测
+# 0 处 thread/mutex/omp；RT-006 线程泄漏守卫由"无内部线程+无全局
+# 可变状态"结构性满足）；并行仅上游采样 worker 池（p3_session.cpp
+# :247-253，worker 数=host budget.max_workers，禁 hardware_concurrency）；
+# descriptor parallel_ok=true 承认 const-only 入口并发安全。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# （module_adapters.cpp:344-361 p3_wcs_descriptor 的
+# module_id=astrocs.phase3.wcs、execution_class=cpu_heavy、
+# parallel_ok=true、ports props(DATA-P3-PROPS 必)+wcs_plan(DATA-P3-WCS
+# 可)、sci_id=SCI-P3-WCS-001、alg_id=ALG-P3-002、data_id=DATA-P3-WCS、
+# api_id=API-P3-001、test_id=TEST-P3-WCS-001）为编排层词汇，由
+# P3-PROJ-INT 对齐本 manifest 与 lib/phase3_proj/README.md（r1），
+# 不得反向作为冻结依据。
+# scientific_change=false：本任务为 -DOC 合同冻结层（不改生产算法/
+# 不改 SCI 公式，docs/science/ 根公式零改动）；Phase3 WCS 科学链
+# （SCI-P3 §9a-11 G1/G2）为既冻结构建（V5 SCI-007, 2026-08-28），
+# 非本任务新增科学变更；模块化迁移若引入实现变更由 P3-PROJ-IMPL
+# 评估 scientific_change。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase3-wcs
+module_id: astrocs.p3.projection
+owner: SA-P3-P25
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase3
+dll_name: astrocs_p3_projection.dll
+dll_target: astrocs_p3_projection.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [wcs_make, wcs_pix2world, wcs_world2pix, wcs_fits_keywords]
+input_ports:
+  - props
+  - wcs_plan
+output_ports:
+  - wcs_descriptor
+  - fits_keywords
+science_contracts:
+  - SCI-P3-001
+algorithm_contracts:
+  - ALG-P3-PROJ-IMPL-001
+  - ALG-P3-002
+data_contracts:
+  - DATA-P3-WCS
+api_contracts:
+  - API-P3-PROJ-001
+  - API-P3-001
+doc_links:
+  sci: docs/science/PHASE3_HIPS_TO_FITS.md
+  alg: docs/algorithms/PHASE3_PROJ_IMPL.md
+  data: docs/contracts/DATA_SEMANTICS.md#§28
+  api: docs/contracts/PUBLIC_API.md#API-P3-PROJ-001
+contract_ids:
+  sci: SCI-P3-001
+  alg: ALG-P3-PROJ-IMPL-001
+  data: DATA-P3-WCS
+  api: API-P3-PROJ-001
+  arch: ARCH-001
+  test: TEST-P3-WCS-001
+source_symbols:
+  - P3WcsDescriptor
+  - P3WcsStatus
+  - p3_wcs_make
+  - p3_wcs_pix2world
+  - p3_wcs_world2pix
+  - p3_wcs_fits_keywords
+test_ids:
+  - TEST-P3-WCS-001
+threading_model: host_executor_lease
+resource_class: cpu_heavy
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+scientific_change: false
+depends_on:
+  - astrocs_phase3_session
+legacy_paths: lib/phase3_session projection sources
+known_defects: []
