@@ -170,7 +170,7 @@ P3-PROJ-DOC,module-doc,docs_complete,"五门复跑PASS:矩阵30/0/4+pytest9+cont
 P3-PROJ-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-PROJ-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-PROJ-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P3-RSMP-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-RSMP-DOC,module-doc,docs_complete,"五门PASS:矩阵30/0/4+pytest9+contracts=95+docindex+selfcheck61项(2FAIL=并发漂移)",CLOSED,fg_machine_verified,d74c1a90,run/local/agent_p3_rsmp_doc/,"DISP-P3RSMP-001..005登记;FIFO/LRU表述级更正"
 P3-RSMP-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-RSMP-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-RSMP-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
