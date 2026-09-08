@@ -1,0 +1,137 @@
+# AstroCS phase3 resample（HiPS 重采样）模块 — 元数据 (P3-RSMP-DOC 冻结, 2026-09-12)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase3_session/p3_resample.cpp
+# 239 行 + 唯一权威签名头 lib/phase3_session/p3_resample.h 58 行，
+# 行号 read/grep 实测；构建挂载: 根 CMakeLists.txt:460-465
+# astrocs_phase3_session STATIC 五源文件之一（p3_resample.cpp）；
+# 会话消费方 lib/phase3_session/p3_session.cpp :16 include / :167-178（open_ex :171）
+# 主 sampler open_ex / :179-194 max_tiles 会话守卫 / :196-199
+# p3_order_select（max_order=输入实际 order）/ :217-244 每 worker 独立
+# sampler+cache 逐像素 nearest/bilinear 分派 / :236-237 nearest/bilinear 分派 / :265-277 provenance；
+# 执行面探针 tests/backend/p3_resample_probe_main.cpp + 邻接回归
+# tests/backend/test_p3_resample.py 156 行 + 并行域 test_p3003_
+# parallel_resampler.py + 单元参考实现 tests/unit/p3_interp_test.cpp /
+# p3_coverage_test.cpp（引用不冒认）），模块化迁移（独立模块源
+# astrocs_p3_resample.dll / C ABI adapter / plan-execute-cancel-inspect /
+# ThreadLease 接线）由 P3-RSMP-IMPL 执行；验收级可执行测试由
+# P3-RSMP-TEST 建立（可执行面升级不冒认；设计冻结面=
+# ALG-P3-RSMP-IMPL-001 TEST-DESIGN 节 + registry 手写页 §9）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为
+# 源码核对清单（P3-RSMP-DOC，2026-09-12，grep 实测 p3_resample.h
+# 声明符号，禁抄他版）。
+# module_id 取 MODULE_MIGRATION_MATRIX P3-RSMP 行权威值
+# astrocs.p3.resample。
+# MOD ID：registry 现有行 MOD-astrocs-phase3-resample2（本域生产
+# descriptor，lib/core/src/module_adapters.cpp:363-377
+# p3_resample2_descriptor），本 manifest id 与之一致；相邻占位行
+# MOD-astrocs-phase3-resample（module_adapters.cpp:300-318
+# phase3_descriptor，P2 模板复制残留，ports hips/tile、
+# alg_id=ALG-P3-RES-001 占位）不在本任务触碰，由 P3-RSMP-INT 处理；
+# descriptor 占位词汇（module_id=astrocs.phase3.resample2、
+# alg_id=ALG-P3-003、test_id=TEST-P3-RES-001、端口 wcs_plan
+# (DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+resampled(DATA-P3-RES 可)）
+# 为编排层词汇，由 P3-RSMP-INT 对齐本 manifest 与
+# lib/phase3_rsmp/README.md（r1），不得反向作为冻结依据（SCI/ALG
+# 映射声明见 docs/algorithms/PHASE3_RSMP_IMPL.md §5）。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P3-RSMP 行 owner=SA-P3-S26、
+# target=astrocs_p3_resample.dll、module_id=astrocs.p3.resample、
+# legacy_paths="lib/phase3_session sampler sources"、depends_on_int=
+# P3-PROJ-INT;IO-003;CPU-005、notes="source_order actually
+# used;nearest exact cell;HEALPix iso-latitude interp4;constant/vector
+# field;strict missing;support/mask;shared bounded cache"。实测生产源
+# p3_resample.cpp 位于 lib/phase3_session/ ——该目录为会话编排域共享
+# 源（p3_session/p3_output/p3_wcs 等非本域），不整目录归属，故按
+# lib/phase3_proj→phase3_fits 先例落独立迁移目标目录 lib/phase3_rsmp/
+# （本文件所在，仅合同文件、无源码、不与 legacy 目录重叠）；legacy
+# 生产源引用不搬家。
+# dll_target=astrocs_p3_resample.dll 为迁移目标合同值（尚未存在，
+# DISP-P3RSMP-005）；现状构建=根 CMakeLists.txt astrocs_phase3_session
+# 静态库成员。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4
+# 值域）；现状实现=采样内核无锁（TileCache 每 sampler 实例自含，
+# cpp:22-36），并行由会话层 worker 池组织——每 worker 独立
+# P3Sampler+cache（p3_session.cpp:217-244），worker 数=host
+# budget.max_workers（禁 hardware_concurrency），<2 workers 串行；
+# 单一 P3Sampler 实例非线程安全（无内部锁），禁止跨线程共享
+# （ALG-P3-RSMP-IMPL-001 §7 合同禁止项）；CPU-005 重计算禁单线程
+# 由 worker 池结构性满足。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# （module_adapters.cpp:363-377 p3_resample2_descriptor 的
+# module_id=astrocs.phase3.resample2、execution_class=cpu_heavy、
+# parallel_ok=true、ports wcs_plan(DATA-P3-WCS 必)+hips(DATA-HIPS-001
+# 必)+resampled(DATA-P3-RES 可)、alg_id=ALG-P3-003、
+# data_id=DATA-P3-RES、api_id=API-P3-001、test_id=TEST-P3-RES-001）
+# 为编排层词汇，由 P3-RSMP-INT 对齐本 manifest 与
+# lib/phase3_rsmp/README.md（r1），不得反向作为冻结依据。
+# scientific_change=false：本任务为 -DOC 合同冻结层（不改生产算法/
+# 不改 SCI 公式，docs/science/ 根公式零改动）；Phase3 重采样科学链
+# （SCI-P3 §9a-5/-7 G3/G4）为既冻结构建（V5 SCI-007, 2026-08-28），
+# 非本任务新增科学变更；模块化迁移若引入实现变更由 P3-RSMP-IMPL
+# 评估 scientific_change。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase3-resample2
+module_id: astrocs.p3.resample
+owner: SA-P3-S26
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase3
+dll_name: astrocs_p3_resample.dll
+dll_target: astrocs_p3_resample.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [sampler_open, sampler_open_ex, order_select, resample_check_mode, sampler_set_max_tiles, sample_nearest, sample_bilinear, sampler_close]
+input_ports:
+  - wcs_plan
+  - hips
+output_ports:
+  - resampled
+science_contracts:
+  - SCI-P3-001
+algorithm_contracts:
+  - ALG-P3-RSMP-IMPL-001
+  - ALG-P3-003
+data_contracts:
+  - DATA-P3-RES
+api_contracts:
+  - API-P3-RSMP-001
+  - API-P3-001
+doc_links:
+  sci: docs/science/PHASE3_HIPS_TO_FITS.md
+  alg: docs/algorithms/PHASE3_RSMP_IMPL.md
+  data: docs/contracts/DATA_SEMANTICS.md#§29
+  api: docs/contracts/PUBLIC_API.md#API-P3-RSMP-001
+contract_ids:
+  sci: SCI-P3-001
+  alg: ALG-P3-RSMP-IMPL-001
+  data: DATA-P3-RES
+  api: API-P3-RSMP-001
+  arch: ARCH-001
+  test: TEST-P3-RES-001
+source_symbols:
+  - P3ResampleStatus
+  - p3_order_select
+  - p3_resample_check_mode
+  - P3SamplerImpl
+  - P3Sampler
+  - p3_sampler_open
+  - p3_sampler_open_ex
+  - p3_sampler_set_max_tiles
+  - p3_sample_nearest
+  - p3_sample_bilinear
+  - p3_sampler_close
+test_ids:
+  - TEST-P3-RES-001
+threading_model: host_executor_lease
+resource_class: cpu_heavy
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+scientific_change: false
+depends_on:
+  - astrocs_phase3_session
+legacy_paths: lib/phase3_session sampler sources
+known_defects:
+  - DISP-P3RSMP-001 bilinear 离散化方案（四象限最近中心）与 G4 施工规格（面积重叠分数）表述差异，Σw=1 不变量一致
+  - DISP-P3RSMP-002 tile cache 逐出 FIFO，ALG §3 伪代码写 LRU
+  - DISP-P3RSMP-003 p3_resample_check_mode 会话编排层未接线（探针消费）
+  - DISP-P3RSMP-004 provenance.missing_tiles 恒 nullptr（缺 tile 聚合上报未接线）
+  - DISP-P3RSMP-005 astrocs_p3_resample.dll 未建（entrypoint 缺失）

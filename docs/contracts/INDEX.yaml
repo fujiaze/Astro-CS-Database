@@ -118,7 +118,7 @@ contracts:
     version: 1.0.0
     path: docs/science/PHASE3_HIPS_TO_FITS.md
     upstream: [SCI-WCS-001, SCI-DRZ-001, SCI-SCOPE-001]
-    downstream: [ALG-P3-001, ALG-P3-002, ALG-P3-004, ALG-P3-FITS-IMPL-001, ALG-P3-PROJ-IMPL-001]
+    downstream: [ALG-P3-001, ALG-P3-002, ALG-P3-003, ALG-P3-004, ALG-P3-FITS-IMPL-001, ALG-P3-PROJ-IMPL-001, ALG-P3-RSMP-IMPL-001]
   - id: SCI-ACR-EQUIV-001
     type: SCI
     status: DORMANT
@@ -337,6 +337,30 @@ contracts:
     path: docs/algorithms/PHASE3_PROJ_IMPL.md
     upstream: [API-P3-PROJ-001]
     downstream: []
+  - id: DATA-P3-RES
+    type: DATA
+    status: ACTIVE
+    owner: SA-P3-S26
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-P3-003, ALG-P3-RSMP-IMPL-001]
+    downstream: [API-P3-RSMP-001]
+  - id: API-P3-RSMP-001
+    type: API
+    status: ACTIVE
+    owner: SA-P3-S26
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ALG-P3-RSMP-IMPL-001, DATA-P3-RES]
+    downstream: [TEST-P3-RES-001]
+  - id: TEST-P3-RES-001
+    type: TEST
+    status: DORMANT
+    owner: SA-P3-S26
+    version: 1.0.0
+    path: docs/algorithms/PHASE3_RSMP_IMPL.md
+    upstream: [API-P3-RSMP-001]
+    downstream: []
   - id: ALG-COV-001
     type: ALG
     status: ACTIVE
@@ -537,6 +561,14 @@ contracts:
     path: docs/algorithms/PHASE3_RESAMPLE.md
     upstream: [SCI-P3-001]
     downstream: [ALG-P3-FITS-IMPL-001, ALG-P3-PROJ-IMPL-001]
+  - id: ALG-P3-003
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 0.1.0
+    path: docs/algorithms/PHASE3_RESAMPLE.md
+    upstream: [SCI-P3-001]
+    downstream: [ALG-P3-RSMP-IMPL-001, DATA-P3-RES]
   - id: ALG-P3-004
     type: ALG
     status: DRAFT
@@ -561,6 +593,14 @@ contracts:
     path: docs/algorithms/PHASE3_PROJ_IMPL.md
     upstream: [SCI-P3-001, ALG-P3-002]
     downstream: [DATA-P3-WCS, API-P3-PROJ-001]
+  - id: ALG-P3-RSMP-IMPL-001
+    type: ALG
+    status: ACTIVE
+    owner: SA-P3-S26
+    version: 1.0.0
+    path: docs/algorithms/PHASE3_RSMP_IMPL.md
+    upstream: [SCI-P3-001, ALG-P3-003]
+    downstream: [DATA-P3-RES, API-P3-RSMP-001]
   - id: ALG-HEALPIX-001
     type: ALG
     status: ACTIVE

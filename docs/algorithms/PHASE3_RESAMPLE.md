@@ -1,6 +1,6 @@
 # Phase3 HiPS→FITS Resample Algorithms (ALG-P3)
 
-> ID: ALG-P3-001  范围: ALG-P3-001..004  上游 SCI: SCI-P3-001  状态: DERIVED (V5 ALG-007, 2026-08-28)  模块: phase3 (待实现, 本文档为施工规格)
+> ID: ALG-P3-001  范围: ALG-P3-001..004  上游 SCI: SCI-P3-001  状态: DERIVED (V5 ALG-007, 2026-08-28)  模块: phase3 (施工规格; 重采样域实现级合同=ALG-P3-RSMP-IMPL-001 docs/algorithms/PHASE3_RSMP_IMPL.md, 投影域=ALG-P3-PROJ-IMPL-001, 写出域=ALG-P3-FITS-IMPL-001; 生产源 lib/phase3_session/p3_resample.cpp 239 行实测在库)
 
 ## 1 上游 SCI 与输入输出
 
@@ -50,7 +50,7 @@ function phase3_resample(hips_dir, params):
   props = read_properties(hips_dir)                    # ALG-P3-001: 必需键校验, 非法显式拒
   validate(params): frame=icrs, W,H∈[1,20000], s_out>0, |center.Dec|≥5°, pixfrac N/A
   order_sel = G3(props.hips_order, W=props.hips_tile_width, s_out)
-  cd = G1(params); tiles = TileCache(order_sel)        # LRU 按 (ipix_tile)
+  cd = G1(params); tiles = TileCache(order_sel)        # 有界缓存按 (ipix_tile); 逐出 FIFO 最旧插入 (P3-RSMP-DOC 2026-09-12 表述更正: 原记 LRU, 实测 p3_resample.cpp:22-36 keys.erase(begin()) 无访问序更新, DISP-P3RSMP-002)
   parallel for row_band in rows(out):                  # worker pool by affinity, 禁硬编码线程数
     if cancelled(row_band): return CANCELLED           # 行带粒度
     for y in row_band:
