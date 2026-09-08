@@ -105,9 +105,16 @@ void CpuHeavyExecutor::worker_loop() {
     // RT-006: 任务观测起始（真实时间点；trace 汇注入后才写）
     const auto t_start = std::chrono::steady_clock::now();
     std::shared_ptr<TraceStore> obs_store;
+    std::string obs_provider;
     {
       std::lock_guard<std::mutex> lock(obs_mu_);
       obs_store = trace_store_;
+      // B13-R13-3: observed_provider_ 读取必须与写入段 (COMPLETED 收集) 同锁。
+      // 修复前此处锁外读、完成段锁内写 → 并发 worker 跨线程数据竞争 (UB)。
+      // 同模式最小复现 driver (run/local/bughunt_batchQ/race_repro.cpp) 在
+      // 本机 TSAN 下必报 data race; executor 真实路径读写窗口窄, 测试以
+      // 修复后 TSAN 零告警为验收。
+      obs_provider = observed_provider_;
     }
     if (obs_store) {
       TraceEvent e;
@@ -115,7 +122,7 @@ void CpuHeavyExecutor::worker_loop() {
       e.status = "STARTED";
       e.workers = static_cast<uint32_t>(lease.size());
       e.granted_workers = impl_->budget ? impl_->budget->budget() : 1u;
-      e.provider = observed_provider_;
+      e.provider = std::move(obs_provider);
       obs_store->record(std::move(e));
     }
     try {
