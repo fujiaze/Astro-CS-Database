@@ -81,6 +81,14 @@ class TestPhase2InProcess(unittest.TestCase):
                  e.get("role") == "run_manifest"][-1]["path"]
         m = json.load(open(mpath, encoding="utf-8"))
         self.assertEqual(m["status"], "complete")
+        # P1-5 回归: manifest artifacts 逐条带真实产物证据（path 存在 + sha256
+        # 为 64 位十六进制 + size_bytes>0）。默认 config 无文件产物时允许空列表,
+        # 但出现条目时证据字段必须完整（防"恒空/伪造证据"回归）。
+        for a in m.get("artifacts", []):
+            self.assertTrue(os.path.isfile(a["path"]), f"artifact 缺失: {a['path']}")
+            self.assertTrue(re.fullmatch(r"[0-9a-f]{64}", a["sha256"]),
+                            f"artifact sha256 非真实证据: {a}")
+            self.assertGreater(a["size_bytes"], 0)
         v = self._run("verify", "--json", "--run-manifest", mpath)
         self.assertEqual(v.returncode, 0)
 
@@ -136,6 +144,43 @@ class TestPhase2InProcess(unittest.TestCase):
         events = [json.loads(l) for l in out.splitlines() if l.strip()]
         self.assertEqual(events[-1]["kind"], "final")
         self.assertEqual(events[-1]["status"], "cancelled")
+
+    def test_06_manifest_artifacts_nonempty_evidence(self):
+        """P1-5 回归: phase2 run manifest artifacts 非空且含真实产物证据。
+
+        缺陷: cmd_phase2_run 按 node_id=="res" 过滤节点 manifest, 而 P2-006
+        Canonical Phase2 IR 7 节点链（coverage/sample/upm_fit/upm_apply/reject/
+        integrate/write, runtime_client.cpp build_pipeline_ir）无 "res" 节点 →
+        artifacts 恒空而 manifest 仍标 complete。修复后按节点 manifest 内容收集。
+        本用例以 persist_upm+upm_save_path 让 session 真实落盘 UPM 模型（p2_session
+        manifest.artifacts 唯一文件产物）, 断言 run manifest artifacts 收到该
+        产物且 sha256/size_bytes 与磁盘文件一致。
+        取舍: 资源门禁 MON-002 对共享 CI 机负载敏感（upm_build 阶段等效核数低
+        时可能判 low_avg_cores → rc=10）; artifacts 收集在门禁判定之后执行且
+        complete/incomplete 两路径均入 manifest, 故证据断言不依赖门禁放行。
+        """
+        cfg = os.path.join(self.tmp, "cfg_upm.json")
+        upm_path = os.path.join(self.out, "upm_model_test.bin")
+        json.dump({"hips_paths": [os.path.join(self.data, "F1.hips"),
+                                  os.path.join(self.data, "F2.hips")],
+                   "output_dir": self.out,
+                   "persist_upm": True,
+                   "upm_save_path": upm_path}, open(cfg, "w"))
+        r = self._run("phase2", "run", "--config", cfg, "--events-jsonl")
+        self.assertIn(r.returncode, (0, 10), r.stderr[-500:])
+        events = [json.loads(l) for l in r.stdout.splitlines() if l.strip()]
+        mpath = [e for e in events if e["kind"] == "artifact" and
+                 e.get("role") == "run_manifest"][-1]["path"]
+        m = json.load(open(mpath, encoding="utf-8"))
+        arts = m.get("artifacts", [])
+        self.assertTrue(arts, "run manifest artifacts 不应为空(P1-5 恒空回归)")
+        hit = [a for a in arts if a["path"] == upm_path]
+        self.assertTrue(hit, f"UPM 产物应入 run manifest: {arts}")
+        self.assertTrue(os.path.isfile(upm_path))
+        import hashlib
+        want_sha = hashlib.sha256(open(upm_path, "rb").read()).hexdigest()
+        self.assertEqual(hit[0]["sha256"], want_sha, "sha256 应为真实文件证据")
+        self.assertEqual(hit[0]["size_bytes"], os.path.getsize(upm_path))
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

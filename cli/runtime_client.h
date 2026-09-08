@@ -31,6 +31,13 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
 // 供 CLI 写 run manifest 时逐 artifact 验证（ArtifactStore 绑定语义）。
 void collect_node_manifests(std::vector<std::pair<std::string, std::string>>* out);
 
+// P1-5: 从节点 session manifest 集合收集 artifacts 工件路径（保持出现顺序、按路径去重）。
+// 节点 id 是节点图 id（coverage/sample/upm_fit/upm_apply/reject/integrate/write 等链式
+// id），任何节点 manifest 都可能带 artifacts 数组——按内容收集，不按硬编码节点名过滤
+// （phase2 "res"/phase3 "hips" 旧过滤均指向已不存在的 node id → artifacts 恒空缺陷）。
+std::vector<std::string> collect_node_artifact_paths(
+    const std::vector<std::pair<std::string, std::string>>& manifests);
+
 // RT-009: 执行后收集节点级 trace（node_id/status/时间/duration/workers/provider）。
 // 供 CLI 生成 observed graph 与 sidecar（CHK-002 双向比较输入）。
 void collect_node_trace(std::vector<astrocs::core::Runtime::NodeTrace>* out);

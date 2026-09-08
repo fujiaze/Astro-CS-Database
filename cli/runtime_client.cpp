@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <set>
 #include <thread>
 
 namespace astrocs::cli {
@@ -320,6 +321,23 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
 void collect_node_manifests(std::vector<std::pair<std::string, std::string>>* out) {
   std::lock_guard<std::mutex> lock(g_man_mu);
   if (out) *out = g_manifests;
+}
+
+std::vector<std::string> collect_node_artifact_paths(
+    const std::vector<std::pair<std::string, std::string>>& manifests) {
+  std::vector<std::string> paths;
+  std::set<std::string> seen;
+  for (const auto& [nid, mtext] : manifests) {
+    nlohmann::json m;
+    try { m = nlohmann::json::parse(mtext); } catch (...) { continue; }
+    if (!m.is_object()) continue;
+    for (const auto& a : m.value("artifacts", nlohmann::json::array())) {
+      if (!a.is_string()) continue;
+      const std::string ap = a.get<std::string>();
+      if (seen.insert(ap).second) paths.push_back(ap);
+    }
+  }
+  return paths;
 }
 
 }  // namespace astrocs::cli
