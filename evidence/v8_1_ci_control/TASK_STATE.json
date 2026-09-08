@@ -45,9 +45,9 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 80,
+  "CLOSED": 81,
   "READY": 0,
-  "NOT_STARTED": 109,
+  "NOT_STARTED": 108,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
@@ -2260,15 +2260,15 @@
   },
   "P2-SESSION-DOC": {
    "owner": "SA-P2-X24",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "722b5737",
+   "evidence_path": "lib/phase2_session/; docs/algorithms/PHASE2_SESSION.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md",
+   "source_of_status": "fg_verified_commit",
    "wave": "W1",
    "kind": "module-doc",
    "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "current_evidence": "commit:722b5737 traceability 30行0错 warns=4 + pytest 9P + contract_graph 74 + doc_index PASS(首个真实PASS) + selfcheck 76项 ALL PASS；NODE-CALL/IMPL-COMPLETE 目标合同登记；DISP-P2SES-001..008",
+   "note": "assembly 合同冻结; p2_session.h 39行五函数实测锚; partial facade 差距与 output_dir 未消费现状登记; 可执行 TEST-P2-SESSION-001 MISSING 归 P2-SESSION-TEST; 整改归 P2-SESSION-IMPL; descriptor 缺失 entrypoint=MISSING"
   },
   "P2-SESSION-TEST": {
    "owner": "SA-P2-X24",
