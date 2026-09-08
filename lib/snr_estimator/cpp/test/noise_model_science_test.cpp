@@ -335,6 +335,9 @@ static int run_science_matrix() {
     {
         printf("\n[SNR-008] legacy (A-B)/mad retired\n");
         // 同一星: B 抬升 pedestal → q_psf 不变 (旧 (A-B)/mad 会变化)
+        // 术语: 第 8 列 (index 7) 历史名 "mad", 实为 residual_scale
+        // (10-90% trimmed mean abs residual, SCI-PSF §2); 退休语义 = 该路径
+        // 不进入 Phase2 逐像素 science weight (生产权重走 NoiseWeightModelV1)。
         double psf1[9] = {0, 1000.0, 30000.0, 100.0, 100.0, 3.0, 5000.0,
                           120.0, 0.05};
         double psf2[9] = {0, 2000.0, 30000.0, 100.0, 100.0, 3.0, 5000.0,
@@ -359,6 +362,39 @@ static int run_science_matrix() {
                  "robust sigma conversion: %.4f (~163.95)", q1.robust_residual_sigma);
         CHECK(std::fabs(q1.robust_residual_sigma - 120.0 / 0.7316727929211932) < 1e-9,
               msg);
+        // 语义口径 (P1-1): PsfFitQualityRow 第 7 列输入 (psf 块列 7, 历史名 "mad")
+        // 按 residual_scale (10-90% trimmed mean abs residual, SCI-PSF §2) 语义消费,
+        // 不得当作 MAD 复用; q_psf 分母即该统计量 (无 0.7317 换算)。
+        CHECK(std::fabs(q1.residual_scale - 120.0) < 1e-12, "residual_scale 直通列7值");
+        CHECK(std::fabs(q1.q_psf - q1.amplitude_above_bg / q1.residual_scale) < 1e-12,
+              "q_psf 分母 = residual_scale (trimmed mean, 非 MAD)");
+        // legacy 控制点通道语义固化: snr_extract_model 输出 = (A-B)/residual_scale
+        // (历史 (A-B)/mad; 数值回归门。SNR-008 退休语义 = 不入 Phase2 逐像素
+        // science weight, 生产权重走 NoiseWeightModelV1, 本通道仅 diagnostic)。
+        double psf_leg[9] = {0, 1000.0, 30000.0, 100.0, 100.0, 3.0, 5000.0,
+                             120.0, 0.05};
+        SnrWcsParams wcs_leg = {};
+        wcs_leg.crval1 = 10.0; wcs_leg.crval2 = 20.0;
+        wcs_leg.crpix1 = 1.0;  wcs_leg.crpix2 = 1.0;
+        wcs_leg.cd[0] = 1e-3; wcs_leg.cd[3] = 1e-3;
+        wcs_leg.sip.a_order = 0; wcs_leg.sip.b_order = 0;
+        SnrModel m_leg = {};
+        const int rc_leg = snr_extract_model(psf_leg, 1, 0.1, &wcs_leg, &m_leg);
+        CHECK(rc_leg == 0 && m_leg.n_points == 1, "legacy extract 通道单星成功");
+        if (rc_leg == 0 && m_leg.n_points == 1) {
+            const double want = (5000.0 - 1000.0) / 120.0;
+            snprintf(msg, sizeof(msg),
+                     "legacy snr_psf=(A-B)/residual_scale: %.6f vs %.6f",
+                     (double)m_leg.points[0].snr_psf, want);
+            CHECK(std::fabs((double)m_leg.points[0].snr_psf - want) < 1e-4, msg);
+            // pedestal 依赖性对照: legacy 值 ≠ q_psf (=A/residual_scale)
+            snprintf(msg, sizeof(msg),
+                     "legacy pedestal-dependent: %.6f != q_psf %.6f",
+                     (double)m_leg.points[0].snr_psf, 5000.0 / 120.0);
+            CHECK(std::fabs((double)m_leg.points[0].snr_psf - 5000.0 / 120.0) > 0.5,
+                  msg);
+        }
+        snr_free_model(&m_leg);
     }
 
     // ---- SNR-009 inverse-variance coadd efficiency ----

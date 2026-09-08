@@ -2,10 +2,13 @@
 // 乘法模型: SNR(pixel) = SNR_phot × (SNR_psf(pixel) / median(SNR_psf))
 //
 // SNR_phot = 1.0 / (ln(10) × sigma_residual) 全帧常数
-// SNR_psf(pixel) = IDW(PSF星位置, (A-B)/mad) 反距离加权插值
-// - A: psf[i*9+6] (振幅), B: psf[i*9+1] (局部背景), mad: psf[i*9+7] (残差MAD)
+// SNR_psf(pixel) = IDW(PSF星位置, (A-B)/mad) 反距离加权插值 (legacy heuristic;
+// 旧 (A-B)/mad 路径已由 SNR-008 退休, 生产权重走 noise_model 空背景方差)
+// - A: psf[i*9+6] (振幅), B: psf[i*9+1] (局部背景)
+// - psf[i*9+7] 历史名 "mad", 实为 residual_scale (10-90% trimmed mean abs
+//   residual, SCI-PSF §2), 非真 MAD
 // - IDW power=2.0, 搜索半径=FOV对角线像素
-// - 跳过 status!=0 或 A<=B 或 mad<=0 的星
+// - 跳过 status!=0 或 A<=B 或 residual_scale<=0 的星
 
 #include "snr_estimator.h"
 
@@ -87,14 +90,14 @@ SNR_API int snr_estimate(const float* data, int h, int w,
     }
 
     // ---- 收集有效 PSF 星 ----
-    // 跳过 status!=0 或 A<=B 或 mad<=0
+    // 跳过 status!=0 或 A<=B 或 residual_scale<=0 (列 7 历史名 mad, 实为 trimmed mean abs residual)
     std::vector<double> star_x, star_y, star_snr;
     star_x.reserve(n_stars);
     star_y.reserve(n_stars);
     star_snr.reserve(n_stars);
     int n_skip_status = 0;
     int n_skip_ab = 0;
-    int n_skip_mad = 0;
+    int n_skip_residual_scale = 0;
 
     for (int i = 0; i < n_stars; ++i) {
         const double* row = psf + i * 9;
@@ -105,24 +108,25 @@ SNR_API int snr_estimate(const float* data, int h, int w,
         double cy = row[4];
         // double fwhm = row[5]; // 未使用
         double A = row[6];
-        double mad = row[7];
+        double residual_scale = row[7]; // 列 7 历史名 "mad", 实为 10-90% trimmed mean abs residual (SCI-PSF §2)
         // double ecc = row[8]; // 未使用
 
         if (status != 0.0) { ++n_skip_status; continue; }
         if (A <= B) { ++n_skip_ab; continue; }
-        if (mad <= 0.0) { ++n_skip_mad; continue; }
+        if (residual_scale <= 0.0) { ++n_skip_residual_scale; continue; }
 
-        double s = (A - B) / mad;
+        double s = (A - B) / residual_scale; // 旧 (A-B)/mad legacy 口径, 数值不变
         star_x.push_back(cx);
         star_y.push_back(cy);
         star_snr.push_back(s);
     }
 
     int n_valid = (int)star_x.size();
-    int n_skipped = n_skip_status + n_skip_ab + n_skip_mad;
+    int n_skipped = n_skip_status + n_skip_ab + n_skip_residual_scale;
     fprintf(stderr, "[snr] PSF stars: total=%d valid=%d skipped=%d "
-            "(status=%d A<=B=%d mad<=0=%d)\n",
-            n_stars, n_valid, n_skipped, n_skip_status, n_skip_ab, n_skip_mad);
+            "(status=%d A<=B=%d residual_scale<=0=%d)\n",
+            n_stars, n_valid, n_skipped, n_skip_status, n_skip_ab,
+            n_skip_residual_scale);
 
     // ---- 无有效星退化: 全填 SNR_phot (返回 1) ----
     if (n_valid <= 0) {
@@ -256,14 +260,14 @@ SNR_API int snr_estimate_f64(const double* data, int h, int w,
     }
 
     // ---- 收集有效 PSF 星 ----
-    // 跳过 status!=0 或 A<=B 或 mad<=0
+    // 跳过 status!=0 或 A<=B 或 residual_scale<=0 (列 7 历史名 mad, 实为 trimmed mean abs residual)
     std::vector<double> star_x, star_y, star_snr;
     star_x.reserve(n_stars);
     star_y.reserve(n_stars);
     star_snr.reserve(n_stars);
     int n_skip_status = 0;
     int n_skip_ab = 0;
-    int n_skip_mad = 0;
+    int n_skip_residual_scale = 0;
 
     for (int i = 0; i < n_stars; ++i) {
         const double* row = psf + i * 9;
@@ -272,23 +276,24 @@ SNR_API int snr_estimate_f64(const double* data, int h, int w,
         double cx = row[3];
         double cy = row[4];
         double A = row[6];
-        double mad = row[7];
+        double residual_scale = row[7]; // 列 7 历史名 "mad", 实为 10-90% trimmed mean abs residual (SCI-PSF §2)
 
         if (status != 0.0) { ++n_skip_status; continue; }
         if (A <= B) { ++n_skip_ab; continue; }
-        if (mad <= 0.0) { ++n_skip_mad; continue; }
+        if (residual_scale <= 0.0) { ++n_skip_residual_scale; continue; }
 
-        double s = (A - B) / mad;
+        double s = (A - B) / residual_scale; // 旧 (A-B)/mad legacy 口径, 数值不变
         star_x.push_back(cx);
         star_y.push_back(cy);
         star_snr.push_back(s);
     }
 
     int n_valid = (int)star_x.size();
-    int n_skipped = n_skip_status + n_skip_ab + n_skip_mad;
+    int n_skipped = n_skip_status + n_skip_ab + n_skip_residual_scale;
     fprintf(stderr, "[snr_f64] PSF stars: total=%d valid=%d skipped=%d "
-            "(status=%d A<=B=%d mad<=0=%d)\n",
-            n_stars, n_valid, n_skipped, n_skip_status, n_skip_ab, n_skip_mad);
+            "(status=%d A<=B=%d residual_scale<=0=%d)\n",
+            n_stars, n_valid, n_skipped, n_skip_status, n_skip_ab,
+            n_skip_residual_scale);
 
     // ---- 无有效星退化: 全填 SNR_phot (返回 1) ----
     if (n_valid <= 0) {
@@ -516,12 +521,12 @@ SNR_API int snr_extract_model(const double* psf, int n_stars,
         return 1;
     }
 
-    // 收集有效 PSF 星: status==0, A>B, mad>0
+    // 收集有效 PSF 星: status==0, A>B, residual_scale>0 (列 7 历史名 mad)
     std::vector<double> star_x, star_y, star_snr;
     star_x.reserve(n_stars);
     star_y.reserve(n_stars);
     star_snr.reserve(n_stars);
-    int n_skip_status = 0, n_skip_ab = 0, n_skip_mad = 0;
+    int n_skip_status = 0, n_skip_ab = 0, n_skip_residual_scale = 0;
 
     for (int i = 0; i < n_stars; ++i) {
         const double* row = psf + i * 9;
@@ -530,13 +535,13 @@ SNR_API int snr_extract_model(const double* psf, int n_stars,
         double cx = row[3];
         double cy = row[4];
         double A = row[6];
-        double mad = row[7];
+        double residual_scale = row[7]; // 历史名 "mad", 实为 10-90% trimmed mean abs residual (SCI-PSF §2)
 
         if (status != 0.0) { ++n_skip_status; continue; }
         if (A <= B) { ++n_skip_ab; continue; }
-        if (mad <= 0.0) { ++n_skip_mad; continue; }
+        if (residual_scale <= 0.0) { ++n_skip_residual_scale; continue; }
 
-        double s = (A - B) / mad;
+        double s = (A - B) / residual_scale; // 旧 (A-B)/mad legacy 口径, 数值不变
         star_x.push_back(cx);
         star_y.push_back(cy);
         star_snr.push_back(s);
@@ -544,9 +549,9 @@ SNR_API int snr_extract_model(const double* psf, int n_stars,
 
     int n_valid = (int)star_x.size();
     fprintf(stderr, "[snr_model] PSF stars: total=%d valid=%d skipped=%d "
-            "(status=%d A<=B=%d mad<=0=%d)\n",
-            n_stars, n_valid, n_skip_status + n_skip_ab + n_skip_mad,
-            n_skip_status, n_skip_ab, n_skip_mad);
+            "(status=%d A<=B=%d residual_scale<=0=%d)\n",
+            n_stars, n_valid, n_skip_status + n_skip_ab + n_skip_residual_scale,
+            n_skip_status, n_skip_ab, n_skip_residual_scale);
 
     if (n_valid <= 0) {
         fprintf(stderr, "[snr_model] no valid PSF stars\n");
@@ -644,17 +649,18 @@ SNR_API int snr_extract_model_v2(const double* psf, int n_stars,
     }
 
     // 收集有效 PSF 星 (snr_psf 全程 double 计算)
+    // 列 7 历史名 "mad", 实为 residual_scale (10-90% trimmed mean abs residual, SCI-PSF §2)
     std::vector<double> star_x, star_y, star_snr;
     star_x.reserve(n_stars); star_y.reserve(n_stars); star_snr.reserve(n_stars);
     for (int i = 0; i < n_stars; ++i) {
         const double* row = psf + i * 9;
         double status = row[0], B = row[1], cx = row[3], cy = row[4];
-        double A = row[6], mad = row[7];
+        double A = row[6], residual_scale = row[7];
         if (status != 0.0) continue;
         if (A <= B) continue;
-        if (mad <= 0.0) continue;
+        if (residual_scale <= 0.0) continue;
         star_x.push_back(cx); star_y.push_back(cy);
-        star_snr.push_back((A - B) / mad);
+        star_snr.push_back((A - B) / residual_scale); // 旧 (A-B)/mad legacy 口径, 数值不变
     }
     int n_valid = (int)star_x.size();
     if (n_valid <= 0) {
@@ -741,6 +747,7 @@ SNR_API int snr_extract_model_v3(const double* psf, int n_stars,
     }
 
     // 收集有效 PSF 星 (snr_psf 全程 double 计算; ID/状态按原行对齐)
+    // 列 7 历史名 "mad", 实为 residual_scale (10-90% trimmed mean abs residual, SCI-PSF §2)
     struct ValidRow {
         double x, y, snr;
         int64_t star_id;
@@ -752,13 +759,13 @@ SNR_API int snr_extract_model_v3(const double* psf, int n_stars,
     for (int i = 0; i < n_stars; ++i) {
         const double* row = psf + i * 9;
         double status = row[0], B = row[1], cx = row[3], cy = row[4];
-        double A = row[6], mad = row[7];
+        double A = row[6], residual_scale = row[7];
         if (status != 0.0) continue;
         if (A <= B) continue;
-        if (mad <= 0.0) continue;
+        if (residual_scale <= 0.0) continue;
         ValidRow vr;
         vr.x = cx; vr.y = cy;
-        vr.snr = (A - B) / mad;
+        vr.snr = (A - B) / residual_scale; // 旧 (A-B)/mad legacy 口径, 数值不变
         vr.star_id = star_ids ? star_ids[i] : 0;
         vr.qf = quality_flags ? quality_flags[i] : 0u;
         vr.ps = photometric_status ? photometric_status[i] : 0u;
