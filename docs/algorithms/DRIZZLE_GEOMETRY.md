@@ -198,13 +198,19 @@
 | DISP-DRZ-002 | 面积="S-H + Girard 定理"（DRIZZLE.md:63,:124） | S-H 裁剪 + Eriksson 扇形三角剖分，无 Girard 实现 | DRIZZLE.md:63,124 vs spherical_overlap.cpp:186-239 |
 | DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | api.cpp:191 vs drizzle_engine.cpp:1567 |
 | DISP-DRZ-004 | 值像素 NaN 经 F_p 传播、不掩膜（DRIZZLE.md:96） | 主循环 !isfinite→continue 静默跳过（不进累加器），无计数暴露 | DRIZZLE.md:96 vs drizzle_engine.cpp:1712 |
-| DISP-DRZ-005 | max_angle<1e-3 rad 切平面近似（DRIZZLE.md:98，证据 spherical_overlap.cpp:75） | 全文无 1e-3 切平面分支，:75 为注释行；现行统一球面 S-H | DRIZZLE.md:98 vs spherical_overlap.cpp:75 |
+| DISP-DRZ-005 | **（原登记已反转，2026-09 实测复核 @f7fa3160）** 原记"全文无 1e-3 切平面分支，现行统一球面 S-H"与代码相反 | **存在三处 `max_angle < 1e-3` 切平面活分支 = 微小 drop（角跨度 < 1e-3 rad ≈ 206″）的实际执行路径，必须保留**：:1085 `g.drop_area` 微小 drop 用切平面面积、:1282 nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、:1325 三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差）。注释论证锚 :996-1001（θ<1e-3 时切平面偏差 <4e-8，球面 double 相消噪声 ~1e-4~5e-5）。按原登记迁移会删除真路径、引入数值回归——禁行 | DRIZZLE.md:98 vs spherical_overlap.cpp:1085,1282,1325（注释 :996-1001,:1072-1073） |
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:58-59 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:58-59 vs 60-67 |
 | DISP-DRZ-007 | SCI §13 方差锚 drizzle_engine.cpp:100/736-762 | 行号漂移：现行方差锚 astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile | DRIZZLE.md:131 vs drizzle_engine.cpp:2-3 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用（legacy） | poly_clip.h:4-15 vs drizzle_engine.cpp 全文 |
 
 无差异项（核对通过）: w=a/A_drop、F/D/sumVarNum 公式、HP_CIRCUMRADIUS
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。
+
+**DISP-DRZ-005 负面用例建议（仅注记，用例实现不在本批）**：θ < 1e-3 rad
+的微小 drop 两侧对拍——同一输入分别走切平面分支（`planar_polygon_area_n`）
+与球面 Eriksson 分支（`spherical_polygon_area_n`），断言面积/weight 差
+落在注释论证的偏差带内（切平面 vs 球面 <4e-8 量级，见 :996-1001），
+守护该分支在后续迁移中不被误删或语义漂移。
 
 ## 11 关联
 

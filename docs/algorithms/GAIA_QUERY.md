@@ -52,7 +52,7 @@ m_RP = raw_u16 × 0.001 − 1.5     # 偏移 +24（仅 DR3SP）
 Equirectangular 树（赤道带 4 棵）：
 
 ```text
-x = x0 + dx · (1/1.8e9)  deg     # dx uint32，1/1.8e9 deg = 7.2 µas/LSB
+x = x0 + dx · (1/1.8e9)  deg     # dx uint32，1/1.8e9 deg = 2 µas/LSB
 y = y0 + dy · (1/1.8e9)  deg
 RA_s  = center_ra + x
 Dec_s = y
@@ -71,6 +71,14 @@ r < 1e-15  → RA_s = center_ra, Dec_s = center_dec   # 投影中心（极点）
   Dec_s = c · (180/π)
   RA_s 归一到 [0,360)
 ```
+
+量化步长推导（实测锚 @f7fa3160）：实码 `inv_scale = 1/(3600·1000·500)` deg/LSB
+（`gaia_client.c:1282`、`:1411`、`:1550` 三处同值），即每度 1.8e9 LSB；
+1 deg = 3600″ × 10⁶ µas/″ = 3.6e9 µas，故 1 LSB = 3.6e9/1.8e9 = **2 µas**
+（等价口径：分母分解 500 LSB/mas → 0.002 mas = 2 µas）。与同代码块
+`dra_raw` 步长换算规则交叉印证：1/3.6e8 deg = 10 µas/LSB（1 deg=3.6e9 µas）。
+历史文档曾记 7.2 µas/LSB，属换算错误（7.2 µas 对应 1/5e8 deg，
+与实码分母 1.8e9 不符），本节已按实测推导修正。
 
 ### 2.4 赤道带 bbox 剪枝（bbox_intersects gaia_client.c:648-659）
 
@@ -135,7 +143,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 | 赤道带 bbox 1.2 裕量 | 经验保守（差分验证），非数学证明 | 2.4；memory.md 2026-08-15 |
 | Equirectangular 反投影 | 线性恒等（XPSD 格式定义，非真球面投影） | 2.3；源码 1228-1230 |
 | AE 反投影 r>90° 域 | 反射语义（asin(cos r)），由 2.5 不剪枝分支兜底 | 2.3/2.5 |
-| 星等/位置量化 | 0.001 mag / 7.2 µas / 10 µas LSB | 2.2/2.3 |
+| 星等/位置量化 | 0.001 mag / 2 µas / 10 µas LSB | 2.2/2.3 |
 | 结果上限 | 单文件 collector 200000 星静默截断（MAX_STARS_RESULT） | 源码 27, 1146, 1215 |
 | 缓存 | 精确键 double 逐位 + dataset identity + version=2；命中=同查询精确重复 | 源码 112-134, 427-472, 75 |
 
@@ -153,7 +161,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 
 1. 星等量化 0.001 mag 与 DR3SP 光谱 8-bit 量化（残差 median 0.21%/p95 1.8%，
    memory.md 2026-08-08）；
-2. 位置量化 7.2 µas + dra 修正 10 µas LSB；
+2. 位置量化 2 µas + dra 修正 10 µas LSB；
 3. `acos` 在 ρ→0 时相对误差放大（double 域 ~1e-16 rad 绝对）；
 4. 赤道带 bbox 1.2 裕量属保守近似（多查不少查，不漏星）；
 5. 输出行序依赖目录枚举顺序（跨平台不稳定，见 §3 输出契约）。

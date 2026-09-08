@@ -184,10 +184,12 @@ AUTO 路由（nominal n 一次解析；两 profile 共用阈值表）:       :10
   request==AUTO: n<6 → PERCENTILE; 6≤n≤15 → WINSORIZED_SIGMA;
                  n>15 → LINEAR_FIT
   minimum_n = method_minimum_n(method)                        :921-935
-profile 合法集 = {wbpp_2_9_1, wbpp_current, astrocs_adaptive}  :1039-1046
-  （nullptr → wbpp_2_9_1；其余 rc=1；wbpp_current=group active
-  count 一次解析，astrocs_adaptive=tile nominal depth——区别仅在
-  nominal 来源，h:174-177/:182-190 冻结注释）
+profile 合法集 = {wbpp_2_9_1, wbpp_current(V16 遗留 alias), astrocs_adaptive}  :1039-1046
+  （nullptr → wbpp_2_9_1；其余 rc=1；wbpp_current 为 V16 遗留别名
+  （migration：V17 G6 起 canonical=wbpp_2_9_1），仅保留 group active
+  count 一次解析历史语义；astrocs_adaptive=tile nominal depth——
+  canonical/adaptive 区别仅在 nominal 来源，h:174-177/:182-190 冻结注释。
+  生产布局与现行语义详见 DATA_SEMANTICS §22 生产表）
 ```
 
 ### F2 eligibility gather（p2_collect_candidate_stack :1150-1225；core :1094-1124）
@@ -565,7 +567,8 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 - **F2 AUTO 路由/profile 门**（SCI §11 阈值不变量）:
   V15AutoPlanResolvesByNominal :4213（n=2/5→PERCENTILE、6/15→
   WINSORIZED、16/20→LINEAR_FIT；非法 profile rc≠0）；
-  V16ProfileGroupVsAdaptive :4646（wbpp_current group 一次 vs
+  V16ProfileGroupVsAdaptive :4646（wbpp_current（V16 遗留别名，
+  migration：V17 G6 起 canonical=wbpp_2_9_1）group 一次 vs
   astrocs_adaptive tile depth）。容差=方法枚举精确。
 - **F3 small-N/状态穷尽门**（SCI §7/§8）:
   V15SatelliteN2Underdetermined :4241（n=2 全 UNDERDETERMINED、
