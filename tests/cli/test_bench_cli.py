@@ -173,6 +173,51 @@ class TestBenchCli(unittest.TestCase):
         self.assertEqual(len(written), 1)
         self.assertIn("profile_id", written[0])
 
+    # ── B8-P1-2: verdict 字段 + FAIL 退出码语义 ──
+
+    def test_10_benchmark_profile_has_top_level_verdict(self):
+        """v2 profile 输出 JSON 顶层 verdict 字段登记(B8-P1-2)。"""
+        out = os.path.join(self.tmp, "verdict.json")
+        r = run("benchmark", "cpu", "--quick", "--output", out)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        d = json.load(open(out, encoding="utf-8"))
+        self.assertIn("verdict", d, "顶层 verdict 字段必须登记")
+        self.assertIn(d["verdict"], ("PASS", "FAIL"))
+        # 机器一致性: verdict = PASS ⇔ 全部 kernel oracle:pass(实现单源推导)
+        all_pass = bool(d["kernels"]) and all(
+            k.get("correctness_test") == "oracle:pass"
+            for k in d["kernels"].values())
+        self.assertEqual(d["verdict"], "PASS" if all_pass else "FAIL")
+        self.assertEqual(r.stdout.strip().split()[-1], d["verdict"])
+
+    def test_11_verdict_fail_exit_nonzero_semantics(self):
+        """verdict 推导与退出码语义一致性(B8-P1-2)。
+
+        全 fail fixture → verdict=FAIL + exit=SCIENCE(4) 的黄金断言在
+        tests/unit/cli_bench_verdict_test.cpp 以 dispatch 同源函数
+        benchmark_profile_verdict 固化(ctest cli_bench_verdict)。
+        本端到端断言绑定可观测合同:
+        1) 生成侧: verdict=PASS ⇒ exit 0, stdout 尾 token 与 verdict 一致;
+        2) 分层口径: verify-profile 是结构/机器一致性复读(oracle:fail 结构
+           合法, rc=0); oracle:fail 的执行资格(baseline 回退)属 CPU-005
+           select 路由(lib/backend_host, tests/cpu dispatch 域 T7/T8 已覆盖),
+           show-effective 的 kernel_routes 是 CPU-004 展示摘要不执行资格 ——
+           CLI 域不重复断言 lib 层行为。
+        """
+        out = os.path.join(self.tmp, "g2.json")
+        r = run("benchmark", "cpu", "--quick", "--output", out)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        d = json.load(open(out, encoding="utf-8"))
+        self.assertEqual(d["verdict"], "PASS")
+        self.assertEqual(r.stdout.strip().split()[-1], "PASS")
+        # 全 kernel 篡改为 oracle:fail → verify-profile 结构合法(不拒收)
+        d["kernels"] = {kid: {**kp, "correctness_test": "oracle:fail"}
+                        for kid, kp in d["kernels"].items()}
+        bad = os.path.join(self.tmp, "all_fail.json")
+        json.dump(d, open(bad, "w", encoding="utf-8"))
+        v = run("benchmark", "verify-profile", bad)
+        self.assertEqual(v.returncode, 0, "verify-profile 仅结构校验(oracle:fail 合法)")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

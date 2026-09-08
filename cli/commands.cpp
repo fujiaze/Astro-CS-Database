@@ -32,6 +32,7 @@
 
 
 #include "backend_loader.h"
+#include "process.h"
 #include "resource_recorder.h"
 
 extern "C" {
@@ -238,22 +239,47 @@ int cmd_test_synthetic(const Parsed& p, const std::string& group, astrocs::Jsonl
     std::string bin_dir = std::getenv("ASTROCS_TEST_BIN_DIR")
                               ? std::getenv("ASTROCS_TEST_BIN_DIR")
                               : "build/root-cmake/tests/unit";
+    // 源码相对读取的测试 (p1_ir_facade/p2_ir_facade) 需要 ASTROCS_REPO;
+    // 默认设为调用方 cwd, 可用环境变量覆盖。
+    const char* repo_env = std::getenv("ASTROCS_REPO");
+    // G9: 所有外部命令必须 timeout (ASTROCS_TEST_TIMEOUT_S 可配, 默认 600s)。
+    // B8-P1-1a: 弃用 std::system 字符串拼接(shell 解析断裂空格路径/timeout 参数
+    // 未消毒/POSIX-only) → 进程 API argv 数组传参; timeout 由 run_process 内建
+    // (跨平台, 非外部 timeout 二进制), 非法值消毒回退默认。
+    const char* tmo = std::getenv("ASTROCS_TEST_TIMEOUT_S");
+    double timeout_s = 600.0;
+    if (tmo && tmo[0]) {
+        char* end = nullptr;
+        const unsigned long v = std::strtoul(tmo, &end, 10);
+        if (end && *end == '\0' && v > 0 && v <= 86400UL) timeout_s = static_cast<double>(v);
+    }
+    const std::string repo =
+        (repo_env && repo_env[0]) ? std::string(repo_env) : std::string(".");
     int failed = 0;
     for (const char* b : bins) {
         const std::string exe = bin_dir + "/" + b;
         ev.stage(("test_" + std::string(b)).c_str(), true);
-        // 源码相对读取的测试 (p1_ir_facade/p2_ir_facade) 需要 ASTROCS_REPO;
-        // 默认设为调用方 cwd, 可用环境变量覆盖。
-        const char* repo_env = std::getenv("ASTROCS_REPO");
-        // G9: 所有外部命令必须 timeout (ASTROCS_TEST_TIMEOUT_S 可配, 默认 600s)
-        const char* tmo = std::getenv("ASTROCS_TEST_TIMEOUT_S");
-        const std::string tmo_s = tmo ? tmo : "600";
-        const std::string cmd = std::string("ASTROCS_REPO=") +
-                                (repo_env ? repo_env : ".") + " timeout " + tmo_s + "s " + exe;
-        const int rc = std::system(cmd.c_str());
+        const astrocs::process::RunResult cr = astrocs::process::run_process(
+            {exe}, {{"ASTROCS_REPO", repo}}, timeout_s);
+        int rc;
+        std::string rc_note;
+        if (cr.timed_out) {
+            rc = 124;   // 与原 `timeout` 命令超时退出码保持一致
+            rc_note = " timed out after " + std::to_string(static_cast<long long>(timeout_s)) + "s";
+        } else if (cr.spawn_failed) {
+            rc = 127;
+            rc_note = " spawn failed: " + cr.error;
+        } else if (!cr.exited) {
+            rc = astrocs::INTERNAL;   // 信号终止 → INTERNAL(70), 数值走 exit_codes 单源
+            rc_note = " abnormal termination: " + cr.error;
+        } else {
+            rc = cr.exit_code;
+            rc_note.clear();
+        }
         ev.stage(("test_" + std::string(b)).c_str(), rc == 0);
         if (rc != 0) {
-            std::fprintf(stderr, "astrocs: synthetic test %s failed (rc=%d)\n", b, rc);
+            std::fprintf(stderr, "astrocs: synthetic test %s failed (rc=%d%s)\n",
+                         b, rc, rc_note.c_str());
             ++failed;
         }
     }
@@ -444,15 +470,34 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
     }
     // RT-009: 渲染 DOT/SVG/L0（best-effort; 工具缺失/失败不失败 run）。
     // 仅当 tools/quality/gen_run_graphs.py 存在时调用; timeout 30s 防悬挂。
+    // B8-P1-1b: 弃用 std::system 拼接（gdir 无引号+单引号逃逸+返回值丢弃 →
+    // 渲染失败时主平台成功 run 的图产物静默缺失）→ 进程 API argv 传参 +
+    // 显式检查子进程 exit code，失败 warning 事件 + stderr（不静默；不失败 run，
+    // RT-009 冻结语义保留，但产物缺失必须可诊断）。
     {
         const char* env_repo = std::getenv("ASTROCS_REPO");
         const std::string repo = (env_repo && env_repo[0]) ? env_repo : ".";
         const std::string renderer = repo + "/tools/quality/gen_run_graphs.py";
         std::error_code ec;
         if (std::filesystem::is_regular_file(std::filesystem::u8path(renderer), ec)) {
-            const std::string cmd = "timeout 30s python3 '" + renderer +
-                                    "' --graph-dir " + gdir + " >/dev/null 2>&1";
-            std::system(cmd.c_str());
+            const astrocs::process::RunResult cr = astrocs::process::run_process(
+                {"python3", renderer, "--graph-dir", gdir}, {}, 30.0, {}, true);
+            bool rendered = astrocs::process::ok(cr);
+            if (!rendered) {
+                std::string why;
+                if (cr.timed_out) why = "renderer timed out after 30s";
+                else if (cr.spawn_failed) why = "renderer spawn failed: " + cr.error;
+                else if (!cr.exited) why = "renderer abnormal termination: " + cr.error;
+                else why = "renderer exit code " + std::to_string(cr.exit_code);
+                std::fprintf(stderr, "astrocs: run graph rendering failed: %s (dir=%s)\n",
+                             why.c_str(), gdir.c_str());
+                ev.emit("graph", "warning", "run_graphs",
+                        "run graph rendering failed", {{"reason", why}, {"path", gdir}});
+            }
+        } else {
+            std::fprintf(stderr, "astrocs: run graph renderer missing: %s\n", renderer.c_str());
+            ev.emit("graph", "warning", "run_graphs", "run graph renderer missing",
+                    {{"path", renderer}});
         }
     }
     ev.emit("artifact", "info", "graph", "run graphs written",
@@ -1633,13 +1678,26 @@ int dispatch(const Parsed& p) {
         auto pb = astrocs::backend_host::generate_profile_v2(
             mode, ASTROCS_VERSION_STRING, commit, cli_sha, backends_dir);
         const std::string json = pb.json;
+        // B8-P1-2: verdict 推导必须发生在写文件前 —— 顶层 verdict 字段与
+        // "全 kernel oracle:fail → FAIL + exit≠0" 的 CLI 合同语义(退出码 SCIENCE=4,
+        // 与 verify-profile 失败族一致)不可依赖已写盘文件的二次解析。
+        std::string verdict;
+        nlohmann::json doc;
+        try {
+            doc = nlohmann::json::parse(json);
+            verdict = astrocs::benchmark_profile_verdict(doc);
+        } catch (...) {
+            verdict = "FAIL";   // profile 本体不可解析 → 无正确性证据 → FAIL
+        }
+        doc["verdict"] = verdict;
+        const std::string json_with_verdict = doc.dump(2) + "\n";
         {
             std::ofstream f(std::filesystem::u8path(out_path), std::ios::binary | std::ios::trunc);
             if (!f) {
                 std::fprintf(stderr, "astrocs: cannot write profile '%s'\n", out_path.c_str());
                 return astrocs::IO;
             }
-            f << json;
+            f << json_with_verdict;
         }
         // 机器可读结果: 普通模式 → "path verdict" 一行; events-jsonl → JSON 事件行
         const bool events = ev.enabled();
@@ -1654,24 +1712,21 @@ int dispatch(const Parsed& p) {
                          {"oracle_pass", c.oracle_pass}, {"fallback_reason", c.fallback_reason}});
             }
         }
-        try {
-            auto doc = nlohmann::json::parse(json);
-            if (events) {
-                ev.emit("result", "info", "benchmark", "cpu profile written",
-                        {{"path", out_path}, {"verdict", doc.value("verdict", "PASS")},
-                         {"profile_id", doc.value("profile_id", "")},
-                         {"raw_samples_sha256", doc.value("raw_samples_sha256", "")}});
-            } else {
-                std::printf("%s %s\n", out_path.c_str(),
-                            doc.value("verdict", "PASS").c_str());
-            }
-        } catch (...) {
-            if (events) {
-                ev.emit("result", "error", "benchmark", "cpu profile written (parse failed)",
-                        {{"path", out_path}});
-            } else {
-                std::printf("%s\n", out_path.c_str());
-            }
+        if (events) {
+            ev.emit("result", verdict == "PASS" ? "info" : "error",
+                    "benchmark", "cpu profile written",
+                    {{"path", out_path}, {"verdict", verdict},
+                     {"profile_id", doc.value("profile_id", "")},
+                     {"raw_samples_sha256", doc.value("raw_samples_sha256", "")}});
+        } else {
+            std::printf("%s %s\n", out_path.c_str(), verdict.c_str());
+        }
+        if (verdict != "PASS") {
+            std::fprintf(stderr,
+                         "astrocs: benchmark cpu FAIL: kernel(s) failed oracle "
+                         "(correctness_test != oracle:pass); profile written to '%s'\n",
+                         out_path.c_str());
+            return astrocs::SCIENCE;
         }
         return astrocs::OK;
     }

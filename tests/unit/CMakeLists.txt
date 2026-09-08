@@ -92,6 +92,22 @@ target_include_directories(rt009_node_trace_test PRIVATE
 target_link_libraries(rt009_node_trace_test PRIVATE astrocs_cli_runtime)
 add_test(NAME rt009_node_trace COMMAND rt009_node_trace_test)
 
+# B8-P1: cli/process 跨平台子进程封装(argv 传参替代 std::system)共址单测
+add_executable(cli_process_test cli_process_test.cpp)
+target_include_directories(cli_process_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
+target_link_libraries(cli_process_test PRIVATE astrocs_cli_process)
+add_test(NAME cli_process COMMAND cli_process_test)
+
+# B8-P1-2: benchmark cpu verdict 推导(cli_common.h header-only)共址单测
+add_executable(cli_bench_verdict_test cli_bench_verdict_test.cpp)
+target_include_directories(cli_bench_verdict_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
+  ${CMAKE_BINARY_DIR})
+add_test(NAME cli_bench_verdict COMMAND cli_bench_verdict_test)
+
 add_executable(io_adapter_test io_adapter_test.cpp)
 target_include_directories(io_adapter_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(io_adapter_test PRIVATE astrocs_io_adapter)  # BLD-003: 原 astrocs_io STATIC 更名
