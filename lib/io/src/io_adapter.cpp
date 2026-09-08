@@ -1,6 +1,7 @@
 // IO-001 Artifact 事务 + FileIoAdapter 实现
 #include "astrocs/io/io_adapter.h"
 
+#include <atomic>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -35,9 +36,11 @@ Result<std::string> ArtifactTransaction::begin(const std::string& target_path) {
     return Result<std::string>::fail(Error(ErrorDomain::IO, "empty target path"));
   }
   // 同目录临时文件: <target>.tmp.<pid>.<seq>
-  static uint64_t seq = 0;
+  // seq 为函数级 static atomic: 并发 begin 于同进程同 pid 下也能生成唯一 tmp 名
+  // (修复前 ++seq 数据竞争, 可能撞名导致两事务互踩临时文件)。
+  static std::atomic<uint64_t> seq{0};
   tmp_ = target_path + ".tmp." + std::to_string(static_cast<long>(getpid())) + "." +
-         std::to_string(++seq);
+         std::to_string(seq.fetch_add(1, std::memory_order_relaxed) + 1);
   std::ofstream f(tmp_, std::ios::binary | std::ios::trunc);
   if (!f.is_open()) {
     std::string e = err_msg("cannot create temp file", tmp_);
@@ -58,8 +61,17 @@ void ArtifactTransaction::write(const char* data, size_t n) {
   if (f.is_open()) {
     f.write(data, static_cast<std::streamsize>(n));
     f.close();
+    if (!f) {
+      // 写失败 (含短写/短读) 不得静默吞掉: 锁存, commit 时按合同报确定错误
+      // (修复前失败被忽略, commit 仍可能 rename 半截内容 → 假成功)。
+      write_failed_ = true;
+      return;
+    }
     written_ += n;
     checksum_ = fnv_update(checksum_, data, n);
+  } else {
+    // tmp 重新打开失败: 同样视为写失败并锁存 (commit 时报错, 不带病前进)
+    write_failed_ = true;
   }
 }
 
@@ -67,18 +79,45 @@ Result<void> ArtifactTransaction::commit() {
   if (!active_) {
     return Result<void>::fail(Error(ErrorDomain::IO, "commit without begin"));
   }
-  // close 已完成 (write 关闭); verify: 读回长度 + 校验
-  std::ifstream f(tmp_, std::ios::binary | std::ios::ate);
+  if (write_failed_) {
+    // 合同: 任何写入失败 → 确定错误 + 清理现场, 绝不 rename 半截数据
+    std::string e = "verify write failed (short write / reopen failed): " + tmp_;
+    abort();
+    return Result<void>::fail(Error(ErrorDomain::IO, e));
+  }
+  // close 已完成 (write 关闭); verify: 读回长度 + 全量重算校验和
+  // (修复前只比长度不比校验和: 内容损坏时假成功)。分块流式读, 不整载入内存。
+  std::ifstream f(tmp_, std::ios::ios_base::binary);
   if (!f.is_open()) {
     std::string e = err_msg("verify open failed", tmp_);
     abort();
     return Result<void>::fail(Error(ErrorDomain::IO, e));
   }
-  std::streamoff sz = f.tellg();
+  uint64_t sz = 0;
+  uint64_t got = 1469598103934665603ULL;
+  char buf[65536];
+  while (f.read(buf, static_cast<std::streamsize>(sizeof(buf))) || f.gcount() > 0) {
+    got = fnv_update(got, buf, static_cast<size_t>(f.gcount()));
+    sz += static_cast<uint64_t>(f.gcount());
+    if (!f) break;  // 短读(尾部块或读错误)后本块已累计, 终止
+  }
+  if (f.bad()) {
+    std::string e = err_msg("verify read failed", tmp_);
+    f.close();
+    abort();
+    return Result<void>::fail(Error(ErrorDomain::IO, e));
+  }
   f.close();
-  if (sz < 0 || static_cast<uint64_t>(sz) != written_) {
+  if (sz != written_) {
     std::string e = "verify length mismatch tmp=" + std::to_string(sz) +
                     " expected=" + std::to_string(written_);
+    abort();
+    return Result<void>::fail(Error(ErrorDomain::IO, e));
+  }
+  if (got != checksum_) {
+    std::string e = "verify checksum mismatch tmp=" + tmp_ +
+                    " expected=" + std::to_string(checksum_) +
+                    " got=" + std::to_string(got);
     abort();
     return Result<void>::fail(Error(ErrorDomain::IO, e));
   }
