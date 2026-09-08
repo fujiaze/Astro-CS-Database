@@ -1708,25 +1708,29 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         }
 
         for (int x = 0; x < img.width; x++) {
+            // (P1-DRZ-NONFINITE) 冻结合同 docs/science/DRIZZLE.md §8 :96:
+            // 源像素 NaN/Inf 经 F_p=Σx_j·w_jp 直接传播, drizzle 层**不掩膜**;
+            // 非有限值由下游积分 INVALID_INPUT 合同 (SCI-INT) 处理。
+            // 旧 isfinite(...)+continue 静默吞像素已删除; 仅保留
+            // weight/variance 的 <=0 合法数据边界 (零权重/零方差像素无贡献,
+            // SCI-INT 认可语义; NaN 不满足 <=0, 自然落入传播路径)。
             Scalar pixelValue = pixels[(size_t)y * (size_t)img.width + (size_t)x];
-            if (!std::isfinite(pixelValue)) continue;
 
             float snrValue = 1.0f;
             if (snrData) {
                 snrValue = snrData[(size_t)y * (size_t)img.width + (size_t)x];
-                if (!std::isfinite(snrValue)) continue;
             }
 
             float weightValue = 1.0f;
             if (weightData) {
                 weightValue = weightData[(size_t)y * (size_t)img.width + (size_t)x];
-                if (!std::isfinite(weightValue) || weightValue <= 0.0f) continue;
+                if (weightValue <= 0.0f) continue;  // 合法数据边界, 非掩膜
             }
 
             float varianceValue = 0.0f;
             if (varianceData) {
                 varianceValue = varianceData[(size_t)y * (size_t)img.width + (size_t)x];
-                if (!std::isfinite(varianceValue) || varianceValue <= 0.0f) continue;
+                if (varianceValue <= 0.0f) continue;  // 合法数据边界, 非掩膜
             }
 
             nSourcePixels++;
