@@ -833,12 +833,14 @@ static int lz4_decompress(const uint8_t *src, uint32_t src_size, uint8_t *dst, u
     return (int)(op - dst);
 }
 
-static void byte_unshuffle(uint8_t *data, size_t data_len, int item_size) {
-    if (item_size <= 1 || data_len == 0) return;
+/* B13-R13-5: 返回码化 — 0 成功; -1 分配失败。修复前 malloc 失败静默 return,
+ * 调用方把未逆置换的数据当合法科学数据继续解析 (静默数据损坏)。 */
+static int byte_unshuffle(uint8_t *data, size_t data_len, int item_size) {
+    if (item_size <= 1 || data_len == 0) return 0;
     size_t n = data_len / item_size;
-    if (n == 0) return;
+    if (n == 0) return 0;
     uint8_t *tmp = (uint8_t *)malloc(data_len);
-    if (!tmp) return;
+    if (!tmp) return -1;
     for (int i = 0; i < item_size; i++) {
         size_t src_start = (size_t)i * n;
         for (size_t j = 0; j < n; j++) {
@@ -847,6 +849,7 @@ static void byte_unshuffle(uint8_t *data, size_t data_len, int item_size) {
     }
     memcpy(data, tmp, data_len);
     free(tmp);
+    return 0;
 }
 
 static uint32_t find_max_block_size(QTNode *nodes, int node_count) {
@@ -882,8 +885,13 @@ static uint8_t *read_leaf_block(XPSDFileInternal *xf, uint64_t block_offset,
 
     if (compressed_size == block_size) {
         memcpy(scratch, comp, block_size);
-        if (xf->use_byte_shuffle && xf->item_size > 1)
-            byte_unshuffle(scratch, block_size, xf->item_size);
+        if (xf->use_byte_shuffle && xf->item_size > 1) {
+            if (byte_unshuffle(scratch, block_size, xf->item_size) != 0) {
+                fprintf(stderr, "gaia_client: byte_unshuffle OOM (block_size=%u)\n",
+                        block_size);
+                return NULL;  /* B13-R13-5: 不把未逆置换数据当科学结果 */
+            }
+        }
     } else {
         int decompressed_size = -1;
         if (strstr(xf->compression, "lz4") != NULL) {
@@ -897,8 +905,13 @@ static uint8_t *read_leaf_block(XPSDFileInternal *xf, uint64_t block_offset,
 
         if (decompressed_size < 0) return NULL;
 
-        if (xf->use_byte_shuffle && xf->item_size > 1)
-            byte_unshuffle(scratch, block_size, xf->item_size);
+        if (xf->use_byte_shuffle && xf->item_size > 1) {
+            if (byte_unshuffle(scratch, block_size, xf->item_size) != 0) {
+                fprintf(stderr, "gaia_client: byte_unshuffle OOM (block_size=%u)\n",
+                        block_size);
+                return NULL;  /* B13-R13-5: 不把未逆置换数据当科学结果 */
+            }
+        }
     }
 
     /* 3. 存入解压块缓存, 返回缓存内权威副本 (B4-P1-2: 锁内完成插入+取指针,
