@@ -47,7 +47,8 @@ def _common_incs():
     return [f"-I{os.path.join(REPO, 'include')}",
             f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
             f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-            f"-I{os.path.join(REPO, 'lib', 'common')}"]
+            f"-I{os.path.join(REPO, 'lib', 'common')}",
+            f"-I{os.path.join(REPO, 'lib', 'common', 'healpix')}"]
 
 
 def _aio_srcs():
