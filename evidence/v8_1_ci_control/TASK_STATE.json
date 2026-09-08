@@ -2116,14 +2116,14 @@
   },
   "P3-RSMP-DOC": {
    "owner": "SA-P3-S26",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "d74c1a90",
+   "evidence_path": "run/local/agent_p3_rsmp_doc/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W1",
    "kind": "module-doc",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
+   "review_claim": "docs_complete",
+   "current_evidence": "五门复跑PASS:矩阵30/0/4+pytest9+contracts=95(90+5)+docindex209文件+selfcheck61项(2FAIL=并发在飞域漂移非本任务);红线零改动;三件套+IMPL合同+§29+API节+INDEX+5+registry手写页+矩阵行;DISP-001..005登记",
    "note": ""
   },
   "P3-RSMP-TEST": {
