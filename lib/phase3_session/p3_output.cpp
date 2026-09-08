@@ -239,7 +239,14 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
         // ② 内容已完整写出后再 fsync fd; 打开/fsync 失败都是发布失败
         {
             const char* p = tmp.c_str();
+            // Windows: _commit(=fsync 映射, FlushFileBuffers) 要求可写句柄,
+            // O_RDONLY fd 必报 EBADF(R18 34201181796 诊断 errno=9 实证)。
+            // O_RDWR 打开(不改内容)后 fsync/_commit 语义与 POSIX 一致。
+#if defined(_WIN32)
+            int fd = ::open(p, O_RDWR);
+#else
             int fd = ::open(p, O_RDONLY);
+#endif
             if (fd < 0) {
                 g_last_err = std::string("open(tmp) for fsync: ") + std::strerror(errno);
                 ::unlink(tmp.c_str());
