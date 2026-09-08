@@ -376,7 +376,7 @@
   },
   "CLI-004": {
    "owner": "SA-CLI-04",
-   "status": "NOT_STARTED",
+   "status": "CLOSED",
    "closed_commit": "692a4216",
    "evidence_path": "run/local/agent_cli004/",
    "source_of_status": "fg_machine_verified",
