@@ -1398,3 +1398,126 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   落地 + EVIDENCE；设计冻结面=ALG-P2-REJ-001 §11.4 + registry 页
   §独立 synthetic 验证节）；上游 SCI-REJ-001（共享 FROZEN）/
   ALG-P2-REJ-001 / DATA-P2-REJ。
+
+## Phase2 sampling 公共消费面（API-P2-SMP-001）
+
+> ID: API-P2-SMP-001  状态: CONTRACT_READY（P2-SAMP-DOC 冻结，
+> 2026-09-09）
+> 定位: Phase2 background-clean 控制点采样公共 C ABI 消费面——
+> 配置默认/统计量/帧身份/采样两入口的导出符号冻结（既有符号的
+> 展开冻结，**不新增、不修改任何 C 头/C ABI**）；编排层经
+> API-P2-001（PHASE2_API_V1 phase session）驱动，采样函数无
+> session 依赖（数据面经 P2CoverageResult 显式传入）。
+> SRC: lib/phase2/src/sampler.cpp（1156 行，astrocs_phase2 静态库
+> 成员，根 CMakeLists.txt:337-346/:342）+ 唯一权威签名头
+> lib/phase2/include/astro/phase2/sampler.h（136 行）；DATA:
+> DATA-P2-SMP（DATA_SEMANTICS §23，单位/dtype/shape/invalid 唯一
+> 权威）；ALG: ALG-P2-SMP-001（docs/algorithms/PHASE2_SAMPLER.md，
+> 逐符号锚与消费链）；MOD: astrocs.p2.sampling（迁移目标
+> astrocs_p2_sampling.dll 为矩阵合同值，尚未存在——MISSING 语义，
+> 由 P2-SAMP-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
+> module_id=astrocs.phase2.sample 为编排层词汇，
+> module_adapters.cpp:580-592 p2_sample_descriptor，由 P2-XX-INT
+> 对齐）。
+
+### 导出符号与签名要点（sampler.h 实测锚，冻结）
+
+- `P2SamplerConfig p2_sampler_default_config(void)`（:60 声明，
+  实现 sampler.cpp:294-312）: 配置默认单一来源（15 字段，null cfg
+  时使用；显式 cfg 覆盖）。字段表=DATA §23.1(3)。线程
+  安全=reentrant yes / threadsafe yes（纯值返回）；无取消检查点
+  （ThreadLease 接线归 P2-SAMP-IMPL）。
+- `std::uint64_t p2_frame_id(const char* hips_path)`（:93，注释
+  :85-92 冻结）: 内容稳定帧标识——truncated-64 canonical SHA-256
+  （9 properties + signal tile 像素 + support tile 像素 "S" 前缀 +
+  SNR catalogue 内容，:314-438）；路径/重命名/换根不变，任何科学
+  payload 变化 → id 变化；取 SHA-256 前 16 hex 大端截断；与输入
+  顺序无关；UPM 参考帧=每分量最小 frame_id。**禁止描述为 FNV-1a/
+  路径派生**（h:92）。失败哨兵=0（调用方 cached 入口 :512-523
+  显式拒绝 0）。线程安全=reentrant yes / threadsafe no（AIO 全局
+  缓存面）；无取消检查点（ThreadLease 接线归 P2-SAMP-IMPL）。
+- `double p2_stats_median(const double*, std::uint64_t)`（:97）与
+  `double p2_stats_mad(const double*, std::uint64_t, double*
+  out_median = nullptr)`（:98-99）: 统一统计量（sampler patch
+  estimator / MAD / SNR 邻域与 UPM 域共用同一实现）；median 偶数
+  n 取上下中位平均、NaN 自动过滤（全 NaN → 0，:440-447）；MAD=
+  1.4826×median(|x−med|)（:449-461）。线程安全=reentrant yes /
+  threadsafe yes（无共享可变态）；无取消检查点（ThreadLease 接线
+  归 P2-SAMP-IMPL）。
+- `int p2_sample_controls(const P2CoverageResult*, const char*
+  const* hips_paths, const P2SamplerConfig*, P2ControlObservation*
+  out_obs, std::uint64_t out_capacity, std::uint64_t* out_n_obs,
+  std::uint64_t* out_n_controls, P2SampleStats* out_stats,
+  P2ControlNode* out_controls, std::uint64_t ctrl_capacity, char*
+  err, std::size_t err_size)`（:103-114，probe/fill 冻结注
+  :101-102）: 基础入口（内部逐帧 p2_frame_id）。
+- `int p2_sample_controls_cached(..., const std::uint64_t*
+  frame_ids, ...)`（:120-132，h:116-119 冻结注）: 生产入口
+  （stage2 已算 frame_id 时透传，避免二次 500MB payload 哈希，
+  stage2.cpp:279-311 probe/fill）；frame_ids 可空=内部重算，0=
+  非法哨兵 → rc=1（:512-523）；out_n_controls=n_union×G² 全几何
+  含空覆盖占位（:118-119，与 stats.accepted/overlap_controls
+  区分、日志并列表述）。两入口 rc=0 成功（含空 obs——空覆盖
+  union 合法）/ rc=1 错误 + err 8KB 文本（细分语义=DATA §23.5/
+  ALG §11.1；bad args :476-479、open failed :536-546、n_union
+  >1e6 :634-638、cells>2e8 :644-648/:1071-1077、首 tile 越界
+  :656-669、exception 兜底 :1089-1097）；容量不足**不报错**：
+  按 capacity 截断拷贝、out_n_* 返回真实需求量（:1098-1117）。
+  线程安全=reentrant yes / threadsafe no（g_aio_mu :161/:166 串行
+  路径锁 + per-worker 独立 AIO 句柄；无共享可变全局态）；无取消
+  检查点（ThreadLease 接线归 P2-SAMP-IMPL，与 DISP-COV-005
+  同构）。
+
+### 单位/dtype/shape（消费面副本，唯一权威=DATA_SEMANTICS §23）
+
+| 项 | 值 |
+|---|---|
+| P2ControlObservation | 13 字段（upm.h:31-57）：frame_id/control_id/leaf_ipix u64、ra_deg/dec_deg/value/uncertainty/snr/ivar/control_variance/control_ivar/support f64、snr_available int、quality_flags u32 |
+| value/uncertainty | f64 ADU（value 可负 patch median） |
+| control_variance/control_ivar | f64 ADU² / 1/ADU²（k_corr×(π/2)×σ_bg²/N_retained 冻结公式；ivar 弃用仅诊断） |
+| snr_available | int 0/1（0=回退整帧中位，禁以 1.0 伪装 unknown，upm.h:51-55） |
+| P2SampleStats | 10 字段 u64 诊断计数（sampler.h:63-74） |
+| P2ControlNode | 7 字段（sampler.h:77-83）；out_n_controls=n_union×G² 含空覆盖占位 |
+| cfg | P2SamplerConfig 15 字段（sampler.h:32-57；默认单一来源 :60/:294-312） |
+| 调用粒度 | 全帧批量（一次调用产出全 union 控制网格观测，非逐像素） |
+
+### 确定性/并发合同（matrix 专项）
+
+- 输出 obs 序列 **bitwise 与 worker 数无关**（1/N 等价）：固定槽位
+  写回 cells[idx]（:870-872）+ 第三遍单线程顺序扫描 +
+  frame_snr_med 排序 median；验证门=F8
+  sampler_parallel_consistency_test.cpp:29
+  TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism)。
+- worker 数唯一来源=Runtime lease（cfg.cpu_workers，stage2.cpp:
+  273-274 由 ExecutionOptions 透传；模块无 hardware_concurrency
+  自行开线程 :880-883）；>1 走 std::thread 池（:886-913，per-worker
+  独立 AIO 句柄 :894），=1 串行 reference（:916-933）；OpenMP 已
+  从实现移除（:882-883 注释），lib/phase2/CMakeLists.txt:28
+  P2_ENABLE_OPENMP option 保留仅影响旧 target 编译面。
+- 容差=bitwise（obs 输出无 epsilon 门；clipping 收敛 1e-12 相对阈
+  为实现内部冻结常数；坐标面 F4 atol 1e-9 deg、cvar 面 F2/F3/F5
+  rtol 1e-12 为 TEST-P2-SMP-DESIGN-001 测试容差，非 ABI 容差）。
+- 调用方契约: frame_ids 0=非法（禁静默替换）；out_n_controls
+  几何计数与 accepted/overlap 统计计数并列表述禁混用；ivar 弃用
+  仅诊断、科学权重一律 control_ivar（upm.h:38-41/§23.4）。
+
+### 负向条款与缺陷迁移语义
+
+- 负向条款: **P2-SAMP-DOC 不新增、不修改任何公共 C 头/C ABI**——
+  sampler.h 既有声明与本节为同一 ABI 的展开冻结，禁止第二套定义；
+  不引入第二配置面（veto 阈值/半径现状硬编码 = DISP-P2SMP-004，
+  schema 扩展归 P2-SAMP-IMPL，本节不预设字段）；不改变 frame_id
+  身份算法（DATA-FRAME-ID-001 冻结，任何 payload 键变化即违约）。
+- 缺陷迁移语义（登记不改码）: DISP-P2SMP-001（cfg `<=0→默认` 吞
+  显式 0 :485-502，整改=P2-SAMP-IMPL 语义区分 0 与未设置）；
+  DISP-P2SMP-002（insufficient_retained 双计数 :1006+:1022，统计
+  面偏差 obs 不受影响，整改=P2-SAMP-IMPL 去重 + P2-SAMP-TEST F9
+  现状口径守恒门）；DISP-P2SMP-003（17 处 stderr 诊断直写，整改=
+  P2-SAMP-IMPL 结构化日志通道）；DISP-P2SMP-004（veto 阈值/半径
+  硬编码 :849-850，整改候选=P2-SAMP-IMPL 配置面扩展）；
+  DISP-P2SMP-005（m0≈0 收敛阈值退化全迭代 :818，确定性无影响，
+  整改候选=P2-SAMP-IMPL 性能观察级）。
+- 下游: TEST-P2-SMP-001（MISSING，P2-SAMP-DOC 登记，由 P2-SAMP-TEST
+  落地 + EVIDENCE；设计冻结面=TEST-P2-SMP-DESIGN-001 ALG §11.3
+  F1-F9 + registry 页 §独立 synthetic 验证节）；上游 SCI-UPM-001
+  （共享 FROZEN）/ ALG-P2-SMP-001 / DATA-P2-SMP。
