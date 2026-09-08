@@ -1,0 +1,108 @@
+# AstroCS phase2 sampling 模块 — 元数据 (P2-SAMP-DOC 冻结, 2026-09-09)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase2/src/sampler.cpp
+# 1156 行 + 唯一权威签名头 lib/phase2/include/astro/phase2/sampler.h
+# 136 行，行号 grep/read 实测；构建挂载: 根 CMakeLists.txt:337-346
+# astrocs_phase2 STATIC 目标（:342 lib/phase2/src/sampler.cpp）+
+# lib/phase2/CMakeLists.txt 兼容 target（:42 add_library(phase2)、
+# :47 src/sampler.cpp）），模块化迁移（独立模块源
+# astrocs_p2_sampling.dll / C ABI adapter / plan-execute-cancel-inspect /
+# ThreadLease 接线）由 P2-SAMP-IMPL 执行；可执行测试由 P2-SAMP-TEST
+# 建立（TEST-P2-SMP-001 MISSING，不冒认；设计冻结
+# TEST-P2-SMP-DESIGN-001 见 docs/modules/registry/astrocs.phase2.sample.md）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码
+# 核对清单（P2-SAMP-DOC，2026-09-09，grep 实测），禁止手抄他版。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P2-SAMP 行 owner=SA-P2-S20、
+# target=astrocs_p2_sampling.dll、module_id=astrocs.p2.sampling、
+# legacy_paths="lib/phase2 sampling sources"、depends_on_int=
+# P2-COV-INT;CPU-005。实测生产源 lib/phase2/src/sampler.cpp 位于
+# lib/phase2/——该目录三件套已被 P2-COV 域 astrocs.p2.coverage 合同
+# 占用（lib/phase2/README.md r1，一目录一套 README/module.yaml/
+# memory.md，不可覆盖他域合同），故按 lib/phase2_int/（P2-INT-DOC，
+# 其按 lib/hips_p2/ P2-HIPS-DOC 先例）→ lib/phase2_rej/（P2-REJ-DOC）
+# 先例落独立迁移目标目录 lib/phase2_samp/（本文件所在，仅合同文件、
+# 无源码、不与 legacy 目录重叠）；legacy 生产源引用不搬家。
+# dll_target=astrocs_p2_sampling.dll 为迁移目标合同值（尚未存在）；
+# 现状构建=根 CMakeLists.txt astrocs_phase2 静态库成员
+# （:337-346，:342 编入 lib/phase2/src/sampler.cpp）。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4
+# 值域）；现状实现=worker 数取 cfg.cpu_workers（Runtime lease 唯一
+# 来源，stage2.cpp:273-274 由 ExecutionOptions 透传；模块不自行开
+# 线程，无 hardware_concurrency，sampler.cpp:880-883）——cpu_workers>1
+# 时 std::thread 池 + next_c.fetch_add 动态领取 union cell（:886-913，
+# per-worker 独立 AIO 句柄 :894，固定槽位写回 :870-872）；=1 串行
+# reference（:916-933，共享句柄经 g_aio_mu :161/:166 串行化）；输出
+# obs 序列 bitwise 与 worker 数无关（sampler_parallel_consistency_test
+# .cpp:29）。默认参考构建 P2_ENABLE_OPENMP=OFF（lib/phase2/
+# CMakeLists.txt:28 hotfix，OpenMP 条件已从实现移除 :882）；
+# ThreadLease/取消检查点无接线（迁移整改点，与 DISP-COV-005 同构）。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# （lib/core/src/module_adapters.cpp:580-592 p2_sample_descriptor 的
+# module_id=astrocs.phase2.sample、sci_id=SCI-P2-SMP-001/
+# alg_id=ALG-P2-SMP-001/data_id=DATA-P2-SMP/api_id=API-P2-001/
+# test_id=TEST-P2-SMP-001、ports coverage/samples）为编排层词汇，
+# 由 P2-XX-INT 对齐本 manifest 与 lib/phase2_samp/README.md
+# （r1），不得反向作为冻结依据（映射声明 SCI-P2-SMP-001⇒SCI-UPM-001
+# 见 docs/algorithms/PHASE2_SAMPLER.md §11.4；descriptor 占位
+# SCI-P2-SMP-001 不入合同）。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase2-sample
+module_id: astrocs.p2.sampling
+owner: SA-P2-S20
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase2
+dll_name: astrocs_p2_sampling.dll
+dll_target: astrocs_p2_sampling.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [sample_controls]
+input_ports:
+  - coverage
+output_ports:
+  - samples
+science_contracts:
+  - SCI-UPM-001
+algorithm_contracts:
+  - ALG-P2-SMP-001
+  - ALG-UPM-CONTROL-IVAR-001
+data_contracts:
+  - DATA-P2-SMP
+api_contracts:
+  - API-P2-001
+  - API-P2-SMP-001
+doc_links:
+  sci: docs/science/PHASE2_UPM.md
+  alg: docs/algorithms/PHASE2_SAMPLER.md
+  data: docs/contracts/DATA_SEMANTICS.md#§23
+  api: docs/contracts/PUBLIC_API.md#API-P2-SMP-001
+contract_ids:
+  sci: SCI-UPM-001
+  alg: ALG-P2-SMP-001
+  data: DATA-P2-SMP
+  api: API-P2-SMP-001
+  arch: ARCH-001
+  test: TEST-P2-SMP-001
+source_symbols:
+  - p2_sampler_default_config
+  - p2_frame_id
+  - p2_stats_median
+  - p2_stats_mad
+  - p2_sample_controls
+  - p2_sample_controls_cached
+test_ids:
+  - TEST-P2-SMP-001
+threading_model: host_executor_lease
+resource_class: cpu
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+scientific_change: false
+depends_on:
+  - astrocs_phase2
+legacy_paths: lib/phase2 sampling sources
+known_defects:
+  - DISP-P2SMP-001
+  - DISP-P2SMP-002
+  - DISP-P2SMP-003
+  - DISP-P2SMP-004
+  - DISP-P2SMP-005

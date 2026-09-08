@@ -1310,3 +1310,167 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
   （module_adapters.cpp:638-655，module_id=astrocs.phase2.reject
   占位）端口表为编排层词汇，由 P2-XX-INT 对齐 astrocs.p2.rejection，
   不得反向作为冻结依据。
+
+## 23. Phase2 sampling（lib/phase2）模块输入/输出数据（DATA-P2-SMP）
+
+> ID: DATA-P2-SMP  状态: CONTRACT_READY（P2-SAMP-DOC 冻结，2026-09-09）
+> 模块: lib/phase2/src/sampler.cpp（1156 行）+ 唯一权威签名头
+> lib/phase2/include/astro/phase2/sampler.h（136 行）
+> （astrocs.p2.sampling；合同三件套 lib/phase2_samp/，迁移目标
+> astrocs_p2_sampling.dll 为矩阵合同值，尚未存在，由 P2-SAMP-IMPL
+> 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 background-clean 控制
+> 点采样 in/out 单位/dtype/shape/invalid 的唯一权威；ALG:
+> ALG-P2-SMP-001（docs/algorithms/PHASE2_SAMPLER.md，逐符号锚与 §11
+> 冻结容差）；SCI 上游: SCI-UPM-001（docs/science/PHASE2_UPM.md，
+> FROZEN，零改动；页头明示模块 "phase2 (upm/sampler)"；descriptor
+> 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射见 ALG §11.4）；API 面:
+> API-P2-SMP-001（PUBLIC_API.md）+ 编排级 API-P2-001（FROZEN）。
+
+### 23.1 输入（锚=sampler.h；未注文件者同）
+
+**(1) coverage**（const P2CoverageResult*，上游 P2-COV 域 DATA-P2-COV）:
+union_cells/tile 集合与 target_order 权威来源；null → rc=1
+（sampler.cpp:476-479）；n_union 上限 1e6（:634-638）、
+n_union×G² 上限 2e8（:644-648/:1071-1077）；首 tile ipix 越界 →
+rc=1（:656-669）。
+
+**(2) hips_paths / frame_ids**:
+
+| 项 | dtype/shape | 单位/域 | 可空语义 | 约束（违规→rc=1） |
+|---|---|---|---|---|
+| hips_paths | const char* const* `[n_inputs]` | HiPS 根路径（AIO 打开 signal/support/snr/ivar :529-546） | 不可空 | — |
+| frame_ids（cached 版） | const u64 `[n_inputs]` | 无量纲内容稳定帧标识（DATA-FRAME-ID-001，sampler.h:85-93 冻结） | 可空=实现内部 p2_frame_id 重算（:315-318）；0=非法哨兵（:512-523，sampler.h:117 冻结注释） | 与 hips_paths 同序（h:123） |
+
+**(3) cfg**（P2SamplerConfig，sampler.h:32-57，15 字段；默认值
+p2_sampler_default_config 单一来源 sampler.cpp:294-312；显式
+cfg 覆盖；`<=0` 数值字段经 :485-502 修补回退默认——显式 0 被吞=
+DISP-P2SMP-001；control_k_corr<=0 → 冻结默认 1.4 :497-498）:
+
+| 字段 | dtype | 默认 | 单位/语义 |
+|---|---|---|---|
+| control_grid_per_tile | int | 8 | 每 union tile 控制网格边长 G（h:33） |
+| patch_radius_leaf | int | 2 | SNR 邻域 leaf 半径（h:34） |
+| min_samples | int | 5 | patch 有效样本下限（h:35；:793-800 显式拒绝） |
+| snr_search_radius_deg | double | 0.05 | SNR 星点检索半径（h:36；:859-860） |
+| background_patch_radius | int | 8 | 背景 patch 半径 → 17×17（h:38；:735-741） |
+| background_clip_sigma | double | 3.0 | 亮端 clipping 阈值（MAD 单位，h:39；:815） |
+| background_clip_iters | int | 3 | clipping 迭代次数（h:40；:812） |
+| background_max_contamination | double | 0.20 | 亮像素占比上限（h:41；:1000） |
+| background_contamination_sigma | double | 3.0 | 污染判定 sigma（h:42；:830-832） |
+| background_min_retained_fraction | double | 0.60 | clipping 保留比例下限（h:43；:1005） |
+| background_tolerance | double | 3.0 | 局部 tolerance gate（MAD 单位，h:44；:988-992） |
+| background_neighbor_radius | int | 2 | 局部 baseline 邻域 cell 半径（h:45；:970-975） |
+| background_catalog_veto | int | 1 | SNR catalogue veto 开关（h:46；:853-856） |
+| control_k_corr | double | 1.4 | Drizzle 协方差方差放大因子（无量纲；h:47-53 冻结公式/实证 1.3883、保守 1.4；逐帧查表 :547-555 优先于该值） |
+| cpu_workers | int | 1 | CON-004 worker 数，Runtime lease 唯一来源（h:54-56；stage2.cpp:273-274；0→1 :883） |
+
+**(4) 输出缓冲四组**（probe/fill 协议，sampler.h:101-102/:118-119
+冻结）: out_obs（P2ControlObservation 可空）/out_capacity、
+out_n_obs、out_n_controls、out_stats（P2SampleStats 可空）、
+out_controls（P2ControlNode 可空）/ctrl_capacity。容量不足**不报
+错**：按 capacity 截断拷贝、out_n_* 返回真实需求量
+（:1098-1117）。
+
+### 23.2 输出
+
+**(1) P2ControlObservation 13 字段**（upm.h:31-57；组装
+sampler.cpp:1029-1059）:
+
+| 字段 | dtype | 单位/域 | invalid/未定 |
+|---|---|---|---|
+| frame_id | u64 | 无量纲内容稳定帧标识（:1030，DATA-FRAME-ID-001） | — |
+| control_id | u64 | 无量纲（=cells 索引，与 P2ControlNode.control_id 一致，:1031） | — |
+| leaf_ipix | u64 | NESTED leaf pixel（控制拓扑位置，h:82 注；:1032） | — |
+| ra_deg/dec_deg | f64×2 | deg（cell 中心，:1033-1034；F4 门 atol 1e-9） | — |
+| value | f64 | ADU（UPM-calibrated 局部光度估计，**可负**，:1035；h 注冻结） | — |
+| uncertainty | f64 | ADU（=sqrt(control_variance)，:843/:1036） | — |
+| snr | f64 | 无量纲（局部 catalogue SNR 中位或回退整帧精确中位 ：860-861/:1037） | snr_available=0 时整帧回退值（不以 1.0 伪装，upm.h:51-55） |
+| ivar | f64 | 1/ADU²（**弃用仅诊断**：单 leaf Phase1 ivar ≠ Var(control estimator)，:1039-1054 冻结注释；ivar 产品缺失/非 finite/≤0 → 0.0 如实降级 :1046，UPM 侧回退 1/uncertainty² :580 注） | 0.0=无 ivar 产品 |
+| control_variance | f64 | ADU²（k_corr×(π/2)×σ_bg²/N_retained，:840-842 冻结；ALG-UPM-CONTROL-IVAR-001） | cvar≤0 不可达（σ floor 1e-12 :818/:829） |
+| control_ivar | f64 | 1/ADU²（=1/cvar，cvar≤0 → 0 如实降级 :842；:1042） | 0.0=方差未定义 |
+| snr_available | int | 0/1（1=局部邻域有 catalogue 星点 ：859；0=无，回退整帧中位；:1038） | — |
+| support | f64 | 无量纲 [0,1]（patch 内有效支撑比，sup_sum/n_valid :844；:1057） | — |
+| quality_flags | u32 | 位集（现状 control 级，:1058） | — |
+
+**(2) P2SampleStats 10 字段 u64**（sampler.h:63-74；诊断计数，含
+DISP-P2SMP-002 双计数现状口径——§23.3）: candidate_observations
+（几何×覆盖帧）、accepted_observations（进入 UPM 的 clean 观测
+≥2 clean 帧 :1013-1027）、rejected_insufficient_support、
+rejected_insufficient_retained（**现状双计数** ：1006+:1022）、
+rejected_bright_tolerance、rejected_high_contamination、
+rejected_catalog_veto、rejected_lt_two_clean_frames、
+accepted_controls（≥1 clean obs）、overlap_controls（≥2）。
+
+**(3) P2ControlNode 7 字段**（sampler.h:77-83）: control_id u64 /
+tile_ipix u64 / gx,gy int / ra_deg,dec_deg f64（deg）/ leaf_ipix
+u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
+（sampler.h:118-119 冻结；与 accepted/overlap_controls 区分，
+日志并列表述）。
+
+### 23.3 观测 accept/reason 语义（本域无状态机；reason u8 权威值域）
+
+| reason | 值 | 语义 | 锚（sampler.cpp） |
+|---|---|---|---|
+| 0 | accepted | 通过 Stage A-E 全部门（§5.4/§5.5） | :866 |
+| 1 | insufficient | patch 有效样本 < min_samples / support·finite 不足 | :759/:768/:799 |
+| 2 | insufficient_retained | clipping 后保留比例 < 0.60（第二遍 :1005；第三遍对同 reason 帧重复 ++rejected_insufficient_retained=DISP-P2SMP-002） | :1005/:1022 |
+| 3 | bright_tolerance | 超局部 tolerance（Stage C） | :995-996 |
+| 4 | high_contamination | 亮像素占比超限（Stage D） | :999-1000 |
+| 5 | catalog_veto | Stage E SNR catalogue veto | :866 |
+
+### 23.4 单位/dtype/确定性
+
+- 全浮点 IEEE f64（f32 tile 源读取提升 :372-378/:1051；无 long
+  double）。量纲分面: value/uncertainty=ADU、control_variance=ADU²、
+  ivar/control_ivar=1/ADU²、snr/support/quality=无量纲、
+  ra/dec=deg——ivar（1/ADU²）与 control_ivar（1/ADU²）数值域同、
+  语义域不同（诊断 vs 科学权重），禁止互换（upm.h:38-41 冻结）；
+  weights/supply 语义红线 §20.3 在本域镜像（control_ivar 是唯一
+  科学权重源，value 为 patch median 非单像素）。
+- 确定性=fixed_reduction_order: 固定槽位写回 cells[idx]（:870-872）
+  + 第三遍单线程顺序扫描 → **输出 obs 序列 bitwise 与 worker 数
+  无关**（1/N 等价；F8 门 sampler_parallel_consistency_test.cpp:29）；
+  同输入同 cfg 同 fid → obs bitwise 确定（median_of 定序、
+  clipping 收敛阈值确定、k_corr 逐帧查表确定）。
+
+### 23.5 错误/边界
+
+- rc 语义: rc=0 成功（含空 obs——空覆盖 union 合法）；rc=1 + err
+  8KB 文本: bad args（:476-479）、frame_id 0（:512-523）、open
+  failed（:536-546）、n_union>1e6（:634-638）、cells>2e8
+  （:644-648/:1071-1077）、resize OOM（:649-654）、首 tile 越界
+  （:656-669）、pairs resize（lambda :721；并行 err :909-912；串行
+  err :919-923）、exception 兜底（:1089-1097；MSVC /EHa SEH
+  :936-944）。容量不足不报错（probe/fill，§23.1(4)）。
+- 降级路径（如实，不静默伪装）: ivar 产品缺失 → o.ivar=0.0
+  （:1046）；catalogue 缺失 → snr_available=0 + snr=整帧精确中位
+  （:860-861，:623 frame_snr_med_exact）；σ_bg=0 → 1e-12 floor
+  （:818/:829）；空/全 NaN patch → reason=1 拒绝（:793-800）。
+- 并发/重入: g_aio_mu 锁仅覆盖 read_tile_pair（:161/:166）；并行
+  路径 per-worker 独立 AIO 句柄（:894）无共享可变全局态，
+  reentrant yes；无取消检查点（ThreadLease 接线归 P2-SAMP-IMPL，
+  与 DISP-COV-005 同构）。
+- 缺陷登记（不改码）: DISP-P2SMP-001（cfg `<=0→默认` 吞显式 0，
+  :485-502）；DISP-P2SMP-002（insufficient_retained 双计数
+  :1006+:1022，统计面偏差）；DISP-P2SMP-003（17 处 stderr 诊断
+  直写）；DISP-P2SMP-004（veto 阈值 10×frame_snr_med 与半径
+  0.012° 硬编码 :849-850）；DISP-P2SMP-005（收敛阈值 1e-12 在
+  m0≈0 退化全迭代 :818）。
+
+### 23.6 交叉引用
+
+- 上游: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，零改动）；
+  ALG-P2-SMP-001（docs/algorithms/PHASE2_SAMPLER.md，本域算法权威；
+  SCI-P2-SMP-001⇒SCI-UPM-001 映射=ALG §11.4）；DATA-P2-COV
+  （coverage union 输入，P2-COV 域）；DATA-FRAME-ID-001
+  （frame_id 身份，§22 前文冻结）。
+- 下游: API-P2-SMP-001（PUBLIC_API.md）+ API-P2-001（编排级，
+  FROZEN）；P2-UPM 域消费 P2ControlObservation/control_variance
+  （upm.h:31-57 同构，ALG-UPM-CONTROL-IVAR-001）；TEST-P2-SMP-001
+  （MISSING，P2-SAMP-DOC 登记，P2-SAMP-TEST 落地+EVIDENCE）。
+- 同文档: §20（编排域 stage2 编排消费 sccfg 透传）、§21（下游
+  积分）、§22（rejection 域先行例）。
+- 端口词汇注记: registry descriptor p2_sample_descriptor
+  （module_adapters.cpp:580-592，module_id=astrocs.phase2.sample
+  占位）端口表 coverage→samples 为编排层词汇，由 P2-XX-INT 对齐
+  astrocs.p2.sampling，不得反向作为冻结依据。

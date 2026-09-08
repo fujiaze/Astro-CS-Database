@@ -45,15 +45,15 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 66,
-  "READY": 13,
+  "CLOSED": 79,
+  "READY": 0,
   "NOT_STARTED": 110,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
   "total": 191,
-  "v71_total": 191,
-  "adopt_seed": 18
+  "v71_total": 0,
+  "adopt_seed": 0
  },
  "key_resolutions": {
   "CLI-002": "审核快照缺行 → 当前证据（de2d6d7f 提交 + refactor 证据）消解为 CLOSED",
@@ -652,63 +652,63 @@
   },
   "CPU-006": {
    "owner": "SA-CPU-09",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/refactor/tasks/CPU-006/",
-   "source_of_status": "spec_rule_cpu006+refactor_ledger_pass",
+   "source_of_status": "fg_verified_commit",
    "wave": "W3",
    "kind": "implementation",
    "review_claim": "DISPATCHED",
    "current_evidence": "refactor_ledger:PASS; refactor_dir:true",
-   "note": "evidence_no_commit; review claimed DISPATCHED not inherited: no V7.1 commit, worktree source-clean (no WIP); HEAD 'astrocs benchmark cpu' belongs to earlier round (refactor CPU-006 PASS), not verifiable V7.1 CPU-006 work → READY per 02_CURRENT_STATE_AUDIT rule 7"
+   "note": "evidence_no_commit; review claimed DISPATCHED not inherited: no V7.1 commit, worktree source-clean (no WIP); HEAD 'astrocs benchmark cpu' belongs to earlier round (refactor CPU-006 PASS), not verifiable V7.1 CPU-006 work → READY per 02_CURRENT_STATE_AUDIT rule 7; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "CPU-007": {
    "owner": "SA-CPU-09",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/refactor/tasks/CPU-007/",
-   "source_of_status": "refactor_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W3",
    "kind": "implementation",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "CPU-008": {
    "owner": "SA-CPU-09",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/refactor/tasks/CPU-008/",
-   "source_of_status": "refactor_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W3",
    "kind": "implementation",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案); CPU-008: V7.1规格=线程自适应,refactor证据=资源监测+硬门,两者现状均存在"
   },
   "MON-001": {
    "owner": "SA-LOG-08",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/v6_1_rework/tasks/MON-001/",
-   "source_of_status": "v61_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W3",
    "kind": "implementation",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "MON-002": {
    "owner": "SA-LOG-08",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/v6_1_rework/tasks/MON-002/",
-   "source_of_status": "v61_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W3",
    "kind": "implementation",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "ACR-001": {
    "owner": "SA-ACR-13",
@@ -856,63 +856,63 @@
   },
   "QA-001": {
    "owner": "SA-QA-29",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/refactor/tasks/QA-001/",
-   "source_of_status": "refactor_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W5",
    "kind": "evidence",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "QA-002": {
    "owner": "SA-QA-29",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/refactor/tasks/QA-002/",
-   "source_of_status": "refactor_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W5",
    "kind": "evidence",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "QA-003": {
    "owner": "SA-QA-29",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/refactor/tasks/QA-003/",
-   "source_of_status": "refactor_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W5",
    "kind": "evidence",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "QA-004": {
    "owner": "SA-QA-29",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/refactor/tasks/QA-004/",
-   "source_of_status": "refactor_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W5",
    "kind": "evidence",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "QA-005": {
    "owner": "SA-QA-29",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/refactor/tasks/QA-005/",
-   "source_of_status": "refactor_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W5",
    "kind": "evidence",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:-; v61_dir:false",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "QA-006": {
    "owner": "SA-QA-29",
@@ -976,39 +976,39 @@
   },
   "LNX-003": {
    "owner": "SA-QA-29",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/refactor/tasks/LNX-003/",
-   "source_of_status": "refactor_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W5",
    "kind": "evidence",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "LNX-004": {
    "owner": "SA-QA-29",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/refactor/tasks/LNX-004/",
-   "source_of_status": "refactor_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W5",
    "kind": "evidence",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "LNX-005": {
    "owner": "SA-LOG-08",
-   "status": "READY",
+   "status": "CLOSED",
    "closed_commit": "",
    "evidence_path": "evidence/refactor/tasks/LNX-005/",
-   "source_of_status": "refactor_ledger_pass_no_commit",
+   "source_of_status": "fg_verified_commit",
    "wave": "W5",
    "kind": "evidence",
    "review_claim": "NOT_STARTED",
    "current_evidence": "refactor_ledger:PASS; refactor_dir:true; v61_ledger:PASS; v61_dir:true",
-   "note": "evidence_no_commit"
+   "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "LNX-006": {
    "owner": "SA-PKG-31",
