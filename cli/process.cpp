@@ -76,13 +76,14 @@ RunResult run_process(const std::vector<std::string>& argv,
     }
     STARTUPINFOA si{};
     si.cb = sizeof(si);
+    HANDLE nul = INVALID_HANDLE_VALUE;  // B13-R13-4: NUL 设备句柄 (父侧须显式关闭)
     if (devnull_stdio) {
         // STARTF_USESTDHANDLES + 无效句柄 → 子进程 stdio 指向空设备等效语义:
         // 用 NUL 设备句柄保证 GetStdHandle 侧行为一致。
         SECURITY_ATTRIBUTES sa{sizeof(sa), nullptr, TRUE};
-        const HANDLE nul = CreateFileA("NUL", GENERIC_WRITE,
-                                       FILE_SHARE_READ | FILE_SHARE_WRITE,
-                                       &sa, OPEN_EXISTING, 0, nullptr);
+        nul = CreateFileA("NUL", GENERIC_WRITE,
+                          FILE_SHARE_READ | FILE_SHARE_WRITE,
+                          &sa, OPEN_EXISTING, 0, nullptr);
         if (nul != INVALID_HANDLE_VALUE) {
             si.dwFlags |= STARTF_USESTDHANDLES;
             si.hStdInput = nul;
@@ -97,6 +98,8 @@ RunResult run_process(const std::vector<std::string>& argv,
     if (!created) {
         r.spawn_failed = true;
         r.error = "CreateProcessA failed (gle=" + std::to_string(GetLastError()) + ")";
+        // B13-R13-4: 失败早退路径同样回收 NUL 句柄 (修复前泄漏一次/次失败)。
+        if (nul != INVALID_HANDLE_VALUE) CloseHandle(nul);
         return r;
     }
     const DWORD wait_ms = timeout_s > 0
@@ -121,6 +124,9 @@ RunResult run_process(const std::vector<std::string>& argv,
     }
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
+    // B13-R13-4: CreateProcessA(bInheritHandles=TRUE) 后父侧关闭 NUL 句柄 —
+    // 子进程已继承自己的副本, 父侧句柄完成使命; 修复前每次调用泄漏一个句柄。
+    if (nul != INVALID_HANDLE_VALUE) CloseHandle(nul);
     return r;
 }
 

@@ -35,6 +35,23 @@ inline std::string benchmark_profile_verdict(const nlohmann::json& profile) {
     return "PASS";
 }
 
+// B13-R13-4: WideCharToMultiByte 两段式换码的目标缓冲计算 (单一实现;
+// main.cpp wmain 与 commands.cpp cli_exe_dir 共用; 共址单测固化数学)。
+// Win32 惯用法: 第一次调用 (cbMultiByte=0) 返回含 NUL 终止符的字节数 n;
+// 第二次转换必须传"恰好 n"的容量 (NUL 一并写入)。历史缺陷: 分配 n-1 字节
+// 却传 cbMultiByte=n → 尾 NUL 越界写 1 字节 (堆损坏/栈粉碎)。
+// 正确顺序: 先分配 n 字节 → 以 cbMultiByte=n 转换 → resize 到 final_len 去 NUL。
+// n<=0 (转换失败) / n==1 (仅 NUL, 空串) → 最终空串, 不得执行二次转换。
+inline size_t utf8_from_wide_final_len(int n) noexcept {
+    return n > 1 ? static_cast<size_t>(n) - 1 : 0;
+}
+inline bool utf8_from_wide_should_convert(int n) noexcept {
+    return n > 1;
+}
+inline size_t utf8_from_wide_alloc_bytes(int n) noexcept {
+    return n > 1 ? static_cast<size_t>(n) : 0;
+}
+
 }  // namespace astrocs
 
 // ───────────────────────── parser ─────────────────────────

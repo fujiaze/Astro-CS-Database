@@ -1213,9 +1213,15 @@ static std::string cli_exe_dir() {
     const DWORD n = GetModuleFileNameW(nullptr, buf, MAX_PATH);
     if (n == 0) return ".";
     std::wstring ws(buf, n);
-    int len = WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, nullptr, 0, nullptr, nullptr);
-    std::string s(len > 0 ? len - 1 : 0, '\0');
-    if (len > 1) WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, s.data(), len, nullptr, nullptr);
+    // B13-R13-4: 修复 1 字节越界写 — 分配 len-1 却传 cbMultiByte=len。
+    // 正确顺序 (缓冲计算见 cli_common.h utf8_from_wide_*): 分配 len → 转 len → 去 NUL。
+    const int len = WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    std::string s;
+    if (astrocs::utf8_from_wide_should_convert(len)) {
+        s.assign(astrocs::utf8_from_wide_alloc_bytes(len), '\0');
+        WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, s.data(), len, nullptr, nullptr);
+        s.resize(astrocs::utf8_from_wide_final_len(len));
+    }
     const std::filesystem::path p(std::filesystem::u8path(s));
     const auto parent = p.parent_path();
     return parent.empty() ? "." : parent.string();
