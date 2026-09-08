@@ -17,9 +17,7 @@ void acr_launch_axpy(float* y, const float* x, float alpha,
 void acr_launch_copy(float* y, const float* x,
                      size_t begin, size_t n, cudaStream_t stream);
 void acr_launch_reduce(const float* x, double* partials,
-                       size_t begin, size_t n,
-                       size_t chunk_index, size_t blocks_per_chunk,
-                       cudaStream_t stream);
+                       size_t begin, size_t n, cudaStream_t stream);
 void acr_launch_conv3x3(float* y, const float* x,
                         size_t begin, size_t n,
                         size_t width, size_t height,
@@ -64,6 +62,36 @@ const char* set_error_msg(const char* msg) {
     tls_error = msg;
     return tls_error.c_str();
 }
+
+// ---- C 边界异常屏障（家族统一方案, 对齐 f1cb487c AIO_EXPORT 25 入口 /
+//      b9d63505 pc_api 6 入口模式）：try 包裹入口主体, catch 捕获 std::exception
+//      与未知异常, 转为错误码返回 —— 异常绝不穿越 extern "C" ABI（约束 F.3:
+//      禁止跨 DLL 传异常）。
+#define ACR_BRIDGE_TRY try {
+#define ACR_BRIDGE_CATCH(last_error, ret) \
+    } catch (const std::exception& e) { \
+        std::fprintf(stderr, "[acr_cuda_bridge] C 边界捕获异常: %s\n", e.what()); \
+        if (last_error) *last_error = set_error_msg(e.what()); \
+        return ret; \
+    } catch (...) { \
+        std::fprintf(stderr, "[acr_cuda_bridge] C 边界捕获未知异常\n"); \
+        if (last_error) *last_error = set_error_msg("unknown exception"); \
+        return ret; \
+    }
+#define ACR_BRIDGE_CATCH_NOERR(ret) \
+    } catch (const std::exception& e) { \
+        std::fprintf(stderr, "[acr_cuda_bridge] C 边界捕获异常: %s\n", e.what()); \
+        return ret; \
+    } catch (...) { \
+        std::fprintf(stderr, "[acr_cuda_bridge] C 边界捕获未知异常\n"); \
+        return ret; \
+    }
+#define ACR_BRIDGE_CATCH_VOID() \
+    } catch (const std::exception& e) { \
+        std::fprintf(stderr, "[acr_cuda_bridge] executor_destroy: C 边界捕获异常: %s\n", e.what()); \
+    } catch (...) { \
+        std::fprintf(stderr, "[acr_cuda_bridge] executor_destroy: C 边界捕获未知异常\n"); \
+    }
 
 struct CudaExecutorHandle {
     int device{0};
@@ -171,6 +199,7 @@ fail:
 
 // ===== 设备探测 =====
 extern "C" int acr_cuda_bridge_init(const char** last_error) {
+    ACR_BRIDGE_TRY
     int count = 0;
     cudaError_t err = cudaGetDeviceCount(&count);
     if (err != cudaSuccess) {
@@ -179,15 +208,20 @@ extern "C" int acr_cuda_bridge_init(const char** last_error) {
     }
     if (last_error) *last_error = nullptr;
     return count;
+    ACR_BRIDGE_CATCH(last_error, 0)
 }
 
 extern "C" int acr_cuda_bridge_device_count(void) {
+    ACR_BRIDGE_TRY
     int count = 0;
     if (cudaGetDeviceCount(&count) != cudaSuccess) return 0;
     return count;
+    ACR_BRIDGE_CATCH_NOERR(0)
 }
 
 extern "C" const char* acr_cuda_bridge_device_name(int device) {
+    // C 边界异常屏障: 异常转为 "unknown", 不穿越 extern "C" ABI
+    try {
     thread_local std::string name;
     cudaDeviceProp prop;
     if (cudaGetDeviceProperties(&prop, device) != cudaSuccess) {
@@ -196,11 +230,19 @@ extern "C" const char* acr_cuda_bridge_device_name(int device) {
     }
     name = prop.name;
     return name.c_str();
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[acr_cuda_bridge] device_name: C 边界捕获异常: %s\n", e.what());
+        return "unknown";
+    } catch (...) {
+        std::fprintf(stderr, "[acr_cuda_bridge] device_name: C 边界捕获未知异常\n");
+        return "unknown";
+    }
 }
 
 extern "C" int acr_cuda_device_memory(int device, uint64_t* total_bytes,
                                       uint64_t* free_bytes,
                                       const char** last_error) {
+    ACR_BRIDGE_TRY
     cudaError_t err = cudaSetDevice(device);
     if (err != cudaSuccess) {
         if (last_error) *last_error = set_error(err);
@@ -216,11 +258,13 @@ extern "C" int acr_cuda_device_memory(int device, uint64_t* total_bytes,
     if (free_bytes) *free_bytes = free;
     if (last_error) *last_error = nullptr;
     return 0;
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 extern "C" int acr_cuda_device_compute(int device, int* sm_count,
                                        int* cc_major, int* cc_minor,
                                        const char** last_error) {
+    ACR_BRIDGE_TRY
     cudaDeviceProp prop;
     cudaError_t err = cudaGetDeviceProperties(&prop, device);
     if (err != cudaSuccess) {
@@ -232,31 +276,53 @@ extern "C" int acr_cuda_device_compute(int device, int* sm_count,
     if (cc_minor) *cc_minor = prop.minor;
     if (last_error) *last_error = nullptr;
     return 0;
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // ===== Executor =====
 extern "C" void* acr_cuda_executor_create(int device, size_t /*rec*/,
                                           size_t /*min*/, const char** last_error) {
-    cudaError_t err = cudaSetDevice(device);
-    if (err != cudaSuccess) {
-        if (last_error) *last_error = set_error(err);
+    // C 边界异常屏障: h 用 nothrow new 移到 try 外, 便于 catch 释放不泄漏;
+    // 整个主体(含 cudaSetDevice)在 try 内, 异常统一转 nullptr 返回,
+    // 不穿越 extern "C" ABI。
+    auto* h = new (std::nothrow) CudaExecutorHandle();
+    if (h == nullptr) {
+        if (last_error) *last_error = set_error_msg("bad_alloc");
         return nullptr;
     }
-    auto* h = new CudaExecutorHandle();
-    h->device = device;
-    err = cudaStreamCreate(&h->stream);
-    if (err != cudaSuccess) {
-        if (last_error) *last_error = set_error(err);
+    try {
+        cudaError_t err = cudaSetDevice(device);
+        if (err != cudaSuccess) {
+            if (last_error) *last_error = set_error(err);
+            delete h;
+            return nullptr;
+        }
+        h->device = device;
+        err = cudaStreamCreate(&h->stream);
+        if (err != cudaSuccess) {
+            if (last_error) *last_error = set_error(err);
+            delete h;
+            return nullptr;
+        }
+        h->streams[0] = h->stream;
+        h->stream_count = 1;
+        if (last_error) *last_error = nullptr;
+        return h;
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[acr_cuda_bridge] executor_create: C 边界捕获异常: %s\n", e.what());
+        if (last_error) *last_error = set_error_msg(e.what());
+        delete h;
+        return nullptr;
+    } catch (...) {
+        std::fprintf(stderr, "[acr_cuda_bridge] executor_create: C 边界捕获未知异常\n");
+        if (last_error) *last_error = set_error_msg("unknown exception");
         delete h;
         return nullptr;
     }
-    h->streams[0] = h->stream;
-    h->stream_count = 1;
-    if (last_error) *last_error = nullptr;
-    return h;
 }
 
 extern "C" void acr_cuda_executor_destroy(void* handle) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr) return;
     auto* h = static_cast<CudaExecutorHandle*>(handle);
     std::lock_guard<std::mutex> lk(h->mtx);
@@ -275,15 +341,19 @@ extern "C" void acr_cuda_executor_destroy(void* handle) {
     }
     h->stream = nullptr;
     delete h;
+    ACR_BRIDGE_CATCH_VOID()
 }
 
 extern "C" int acr_cuda_executor_available(void* handle) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr) return 0;
     auto* h = static_cast<CudaExecutorHandle*>(handle);
     return (cudaSetDevice(h->device) == cudaSuccess) ? 1 : 0;
+    ACR_BRIDGE_CATCH_NOERR(0)
 }
 
 extern "C" int acr_cuda_executor_sync(void* handle, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr) {
         if (last_error) *last_error = set_error_msg("null handle");
         return 1;
@@ -303,6 +373,7 @@ extern "C" int acr_cuda_executor_sync(void* handle, const char** last_error) {
     }
     if (last_error) *last_error = nullptr;
     return 0;
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // ===== AXPY =====
@@ -312,6 +383,7 @@ extern "C" int acr_cuda_executor_submit_axpy(void* handle,
                                              float alpha,
                                              uint64_t* elapsed_ns,
                                              const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || y == nullptr || x == nullptr || begin >= end) {
         if (last_error) *last_error = set_error_msg("invalid args");
         return 1;
@@ -333,6 +405,7 @@ extern "C" int acr_cuda_executor_submit_axpy(void* handle,
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // ===== COPY =====
@@ -341,6 +414,7 @@ extern "C" int acr_cuda_executor_submit_copy(void* handle,
                                              float* y, const float* x,
                                              uint64_t* elapsed_ns,
                                              const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || y == nullptr || x == nullptr || begin >= end) {
         if (last_error) *last_error = set_error_msg("invalid args");
         return 1;
@@ -360,6 +434,7 @@ extern "C" int acr_cuda_executor_submit_copy(void* handle,
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // ===== REDUCE =====
@@ -371,6 +446,7 @@ extern "C" int acr_cuda_executor_submit_reduce(void* handle,
                                                uint64_t chunk_index,
                                                uint64_t* elapsed_ns,
                                                const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || x == nullptr || partials == nullptr ||
         begin >= end || blocks_per_chunk == 0) {
         if (last_error) *last_error = set_error_msg("invalid args");
@@ -379,8 +455,10 @@ extern "C" int acr_cuda_executor_submit_reduce(void* handle,
     auto* h = static_cast<CudaExecutorHandle*>(handle);
     std::lock_guard<std::mutex> lk(h->mtx);
     const size_t n = end - begin;
-    // 25：grid 块数 = ceil(n / 256)（覆盖整个 chunk，不再固定 256）
+    // grid 块数与 partials 分配同源：ceil(n / 256)（kernel 内 256 线程树归约）
     const size_t blocks = (n + 255) / 256;
+    // blocks_per_chunk 是宿主输出数组的槽位跨度（nchunks * blocks_per_chunk 个
+    // double），必须容纳本次实际块数，否则 D2H 拷贝越界宿主缓冲。
     if (blocks == 0 || blocks_per_chunk < blocks) {
         if (last_error) *last_error = set_error_msg("reduce span too small");
         return 1;
@@ -393,13 +471,15 @@ extern "C" int acr_cuda_executor_submit_reduce(void* handle,
         cudaMemcpyAsync(h->d_x, x + begin, n * sizeof(float),
                         cudaMemcpyHostToDevice, h->stream);
         cudaMemsetAsync(h->d_partials, 0, blocks * sizeof(double), h->stream);
-        acr_launch_reduce(h->d_x, h->d_partials, 0, n,
-                          static_cast<size_t>(chunk_index), blocks_per_chunk, h->stream);
+        // grid 由 acr_launch_reduce 内部按 ceil(n/256) 计算，与 blocks 同源；
+        // kernel 只写 partials[0..blocks-1]，不越界设备缓冲。
+        acr_launch_reduce(h->d_x, h->d_partials, 0, n, h->stream);
         cudaMemcpyAsync(partials + chunk_index * blocks_per_chunk, h->d_partials,
                         blocks * sizeof(double),
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // ===== 3x3 卷积 =====
@@ -410,6 +490,7 @@ extern "C" int acr_cuda_executor_submit_conv3x3(void* handle,
                                                 const float* kernel9,
                                                 uint64_t* elapsed_ns,
                                                 const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || y == nullptr || x == nullptr ||
         begin >= end || width == 0 || height == 0 || kernel9 == nullptr) {
         if (last_error) *last_error = set_error_msg("invalid args");
@@ -436,6 +517,7 @@ extern "C" int acr_cuda_executor_submit_conv3x3(void* handle,
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // =====：目标合成 Operation =====
@@ -445,6 +527,7 @@ extern "C" int acr_cuda_executor_submit_dense_accumulate_fp64acc(
     void* handle, size_t begin, size_t end,
     float* y, const float* x,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || y == nullptr || x == nullptr || begin >= end) {
         if (last_error) *last_error = set_error_msg("invalid args");
         return 1;
@@ -466,6 +549,7 @@ extern "C" int acr_cuda_executor_submit_dense_accumulate_fp64acc(
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // Drizzle-like scatter/accumulate（FP64 原子累计）
@@ -473,6 +557,7 @@ extern "C" int acr_cuda_executor_submit_drizzle_scatter(
     void* handle, size_t begin, size_t end,
     const float* x, double* partials, size_t bins,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || x == nullptr || partials == nullptr ||
         begin >= end || bins == 0) {
         if (last_error) *last_error = set_error_msg("invalid args");
@@ -494,6 +579,7 @@ extern "C" int acr_cuda_executor_submit_drizzle_scatter(
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // Resident chain：一次上传、两个 kernel、一次下载
@@ -501,6 +587,7 @@ extern "C" int acr_cuda_executor_submit_chain(
     void* handle, size_t begin, size_t end,
     float* z, const float* x,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || z == nullptr || x == nullptr || begin >= end) {
         if (last_error) *last_error = set_error_msg("invalid args");
         return 1;
@@ -522,12 +609,14 @@ extern "C" int acr_cuda_executor_submit_chain(
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // Launch/event/sync 固定开销
 extern "C" int acr_cuda_executor_submit_launch_event(
     void* handle, size_t begin, size_t end,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || begin >= end) {
         if (last_error) *last_error = set_error_msg("invalid args");
         return 1;
@@ -539,12 +628,14 @@ extern "C" int acr_cuda_executor_submit_launch_event(
         acr_launch_empty(0, n, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // 纯 H2D 传输（host_bytes 字节 → 设备暂存）
 extern "C" int acr_cuda_executor_transfer_h2d(
     void* handle, size_t host_bytes, const void* host,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || host == nullptr || host_bytes == 0) {
         if (last_error) *last_error = set_error_msg("invalid args");
         return 1;
@@ -564,12 +655,14 @@ extern "C" int acr_cuda_executor_transfer_h2d(
                         cudaMemcpyHostToDevice, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // 纯 D2H 传输（设备暂存 → host）
 extern "C" int acr_cuda_executor_transfer_d2h(
     void* handle, size_t device_bytes, void* host,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || host == nullptr || device_bytes == 0) {
         if (last_error) *last_error = set_error_msg("invalid args");
         return 1;
@@ -589,6 +682,7 @@ extern "C" int acr_cuda_executor_transfer_d2h(
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // =====：resident 持久上传与提交 =====
@@ -596,6 +690,7 @@ extern "C" int acr_cuda_executor_upload_persistent(
     void* handle, size_t begin, size_t end,
     const float* x,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || x == nullptr || begin >= end) {
         if (last_error) *last_error = set_error_msg("invalid args");
         return 1;
@@ -614,12 +709,14 @@ extern "C" int acr_cuda_executor_upload_persistent(
     }, elapsed_ns, last_error);
     if (rc == 0) ++h->upload_count[0];
     return rc;
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 extern "C" int acr_cuda_executor_submit_dense_accumulate_resident(
     void* handle, size_t begin, size_t end,
     float* y,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || y == nullptr || begin >= end) {
         if (last_error) *last_error = set_error_msg("invalid args");
         return 1;
@@ -639,12 +736,14 @@ extern "C" int acr_cuda_executor_submit_dense_accumulate_resident(
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 extern "C" int acr_cuda_executor_submit_reduce_resident(
     void* handle, size_t begin, size_t end,
     double* partials, size_t blocks_per_chunk, uint64_t chunk_index,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || partials == nullptr || begin >= end ||
         blocks_per_chunk == 0) {
         if (last_error) *last_error = set_error_msg("invalid args");
@@ -653,6 +752,7 @@ extern "C" int acr_cuda_executor_submit_reduce_resident(
     auto* h = static_cast<CudaExecutorHandle*>(handle);
     std::lock_guard<std::mutex> lk(h->mtx);
     const size_t n = end - begin;
+    // 与 submit_reduce 同一口径：grid 块数 = ceil(n / 256)，partials 分配同源
     const size_t blocks = (n + 255) / 256;
     if (blocks == 0 || blocks_per_chunk < blocks) {
         if (last_error) *last_error = set_error_msg("reduce span too small");
@@ -662,19 +762,21 @@ extern "C" int acr_cuda_executor_submit_reduce_resident(
         cudaError_t err = ensure_buffer(&h->d_partials, h->d_partials_capacity, blocks);
         if (err != cudaSuccess) return err;
         cudaMemsetAsync(h->d_partials, 0, blocks * sizeof(double), h->stream);
-        acr_launch_reduce(h->d_x + begin, h->d_partials, 0, n,
-                          static_cast<size_t>(chunk_index), blocks_per_chunk, h->stream);
+        // grid 由 acr_launch_reduce 内部按 ceil(n/256) 计算，与 blocks 同源
+        acr_launch_reduce(h->d_x + begin, h->d_partials, 0, n, h->stream);
         cudaMemcpyAsync(partials + chunk_index * blocks_per_chunk, h->d_partials,
                         blocks * sizeof(double),
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 extern "C" int acr_cuda_executor_submit_drizzle_scatter_resident(
     void* handle, size_t begin, size_t end,
     double* partials, size_t bins,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || partials == nullptr || begin >= end || bins == 0) {
         if (last_error) *last_error = set_error_msg("invalid args");
         return 1;
@@ -694,12 +796,14 @@ extern "C" int acr_cuda_executor_submit_drizzle_scatter_resident(
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 extern "C" int acr_cuda_executor_submit_chain_resident(
     void* handle, size_t begin, size_t end,
     float* z,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || z == nullptr || begin >= end) {
         if (last_error) *last_error = set_error_msg("invalid args");
         return 1;
@@ -719,6 +823,7 @@ extern "C" int acr_cuda_executor_submit_chain_resident(
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // ===== ACR 架构冻结（07 C）：加权积分 =====
@@ -727,6 +832,7 @@ extern "C" int acr_cuda_executor_upload_persistent_slot(
     void* handle, int slot, size_t begin, size_t end,
     const float* x,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || x == nullptr || begin >= end ||
         (slot != 0 && slot != 1)) {
         if (last_error) *last_error = set_error_msg("invalid args");
@@ -746,6 +852,7 @@ extern "C" int acr_cuda_executor_upload_persistent_slot(
     }, elapsed_ns, last_error);
     if (rc == 0) ++h->upload_count[slot];
     return rc;
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // 加权积分 host roundtrip：整帧 H2D + kernel + 输出范围 D2H
@@ -755,6 +862,7 @@ extern "C" int acr_cuda_executor_submit_weighted_integration(
     const float* frames, const float* weights,
     size_t frame_count, size_t pixel_count,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || output == nullptr || frames == nullptr ||
         weights == nullptr || begin >= end ||
         frame_count == 0 || pixel_count == 0) {
@@ -783,6 +891,7 @@ extern "C" int acr_cuda_executor_submit_weighted_integration(
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // Phase2 mosaic_reject：H2D frames/support/frame_snr → kernel → D2H output
@@ -795,6 +904,7 @@ extern "C" int acr_cuda_executor_submit_mosaic_reject(
     size_t begin_offset,
     float sigma_low, float sigma_high, int max_iterations, int min_samples,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || output == nullptr || frames == nullptr ||
         begin >= end ||
         frame_count == 0 || pixel_count == 0 || frame_count > 64) {
@@ -871,6 +981,7 @@ extern "C" int acr_cuda_executor_submit_mosaic_reject(
         }
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // 加权积分 resident：frames/weights 已驻留（slot 0/1），只 launch + D2H
@@ -879,6 +990,7 @@ extern "C" int acr_cuda_executor_submit_weighted_integration_resident(
     float* output,
     size_t frame_count, size_t pixel_count,
     uint64_t* elapsed_ns, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || output == nullptr || begin >= end ||
         frame_count == 0 || pixel_count == 0) {
         if (last_error) *last_error = set_error_msg("invalid args");
@@ -898,6 +1010,7 @@ extern "C" int acr_cuda_executor_submit_weighted_integration_resident(
                         cudaMemcpyDeviceToHost, h->stream);
         return cudaStreamSynchronize(h->stream);
     }, elapsed_ns, last_error);
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 // ===== ACR 架构冻结（01_ARCHITECTURE_FREEZE.md §5）：GPU 内部通道 =====
@@ -905,6 +1018,7 @@ extern "C" int acr_cuda_executor_submit_weighted_integration_resident(
 // 共享同一 GPU 队列、显存预算与成本模型。禁止把多个 stream 报告为多张 GPU。
 extern "C" int acr_cuda_executor_configure_streams(
     void* handle, int stream_count, const char** last_error) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || stream_count < 1 || stream_count > 3) {
         if (last_error) *last_error = set_error_msg("stream_count must be 1..3");
         return 1;
@@ -929,18 +1043,23 @@ extern "C" int acr_cuda_executor_configure_streams(
     h->stream = h->streams[0];
     if (last_error) *last_error = nullptr;
     return 0;
+    ACR_BRIDGE_CATCH(last_error, 1)
 }
 
 extern "C" int acr_cuda_executor_stream_count(void* handle) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr) return 0;
     auto* h = static_cast<CudaExecutorHandle*>(handle);
     std::lock_guard<std::mutex> lk(h->mtx);
     return h->stream_count;
+    ACR_BRIDGE_CATCH_NOERR(0)
 }
 
 extern "C" int acr_cuda_executor_upload_count(void* handle, int slot) {
+    ACR_BRIDGE_TRY
     if (handle == nullptr || (slot != 0 && slot != 1)) return 0;
     auto* h = static_cast<CudaExecutorHandle*>(handle);
     std::lock_guard<std::mutex> lk(h->mtx);
     return static_cast<int>(h->upload_count[slot]);
+    ACR_BRIDGE_CATCH_NOERR(0)
 }

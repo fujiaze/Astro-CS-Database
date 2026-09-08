@@ -21,6 +21,7 @@
 #include <exception>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -49,6 +50,10 @@ namespace {
 
 struct RuntimeState {
     std::mutex mtx;                                   // 保护 init/shutdown/status 互斥
+    // kernel 排空闸门：提交/执行路径持 shared 锁；shutdown 持 unique 锁,
+    // 等待传输中的 kernel 全部离开 arena 后再销毁 —— 修复 shutdown 与
+    // 传输中 kernel 使用 arena 的竞态 UAF。锁序固定：mtx -> kernel_gate。
+    std::shared_mutex kernel_gate;
     std::atomic<bool> initialized{false};
     std::unique_ptr<tbb::task_arena> arena;
     std::unique_ptr<tbb::global_control> thread_control;
@@ -108,9 +113,13 @@ void runtime_shutdown() {
     auto& s = runtime_state();
     std::lock_guard<std::mutex> lk(s.mtx);
     if (!s.initialized.load(std::memory_order_acquire)) return;
+    s.initialized.store(false, std::memory_order_release);
+    // 排空闸门：unique 锁等待所有持 shared 锁的传输中 kernel 离开 arena
+    // （新 kernel 因 initialized=false 走降级路径，不再进入 arena），然后才
+    // 销毁 arena —— 消除 shutdown 与传输中 kernel 的竞态 UAF。
+    std::unique_lock<std::shared_mutex> drain(s.kernel_gate);
     s.arena.reset();
     s.thread_control.reset();
-    s.initialized.store(false, std::memory_order_release);
 }
 
 std::size_t runtime_worker_count() noexcept {
@@ -118,6 +127,8 @@ std::size_t runtime_worker_count() noexcept {
     if (!s.initialized.load(std::memory_order_acquire)) {
         return static_cast<std::size_t>(default_thread_count());
     }
+    // 与 shutdown 排空闸门互斥：读 arena 期间禁止其被销毁
+    std::shared_lock<std::shared_mutex> gate(s.kernel_gate);
     return s.arena ? static_cast<std::size_t>(s.arena->max_concurrency()) : 0;
 }
 
@@ -215,6 +226,24 @@ template<class Body>
 void arena_parallel_for(std::size_t begin, std::size_t end,
                         std::uint32_t grainsize, Body&& body) {
     auto& s = runtime_state();
+    // 排空闸门：持 shared 锁覆盖整个 kernel 执行（tbb::execute 阻塞直至
+    // parallel_for 完成），shutdown 的 unique 锁由此保证 arena 存活到 kernel 结束。
+    // 未初始化（shutdown 后 submit 重新 init 竞态窗口）降级为全局并行域。
+    std::shared_lock<std::shared_mutex> gate(s.kernel_gate);
+    if (!s.initialized.load(std::memory_order_acquire) || !s.arena) {
+        // 降级：无 arena 时用全局并行域，语义等价（仅线程槽不受限）
+        if (grainsize > 0) {
+            tbb::parallel_for(
+                tbb::blocked_range<std::size_t>(begin, end, grainsize),
+                std::forward<Body>(body),
+                tbb::simple_partitioner{});
+        } else {
+            tbb::parallel_for(
+                tbb::blocked_range<std::size_t>(begin, end),
+                std::forward<Body>(body));
+        }
+        return;
+    }
     s.arena->execute([&] {
         if (grainsize > 0) {
             tbb::parallel_for(
