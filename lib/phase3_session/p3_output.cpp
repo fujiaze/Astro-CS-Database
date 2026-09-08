@@ -38,6 +38,7 @@
 #include <cerrno>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -78,6 +79,31 @@ bool make_temp_path(const std::string& out, std::string* tmp) {
 #endif
     *tmp = out + "." + std::to_string(::getpid()) + ".tmp";
     // 若 out 无目录, 用当前目录; tmp 与 out 同目录保证 rename 原子
+    return true;
+}
+
+// R10-C(bughunt p2): sha256_file 的失败可见封装。lib/common/crypto::sha256_file
+// 对 fopen 失败返回空串、对 fread 中途错误静默返回前缀(部分数据)哈希 —— 任一
+// 形态写进 provenance 即为无意义完整性锚。本封装逐项检查 fopen/ferror/fclose,
+// 只有完整读取成功才产出 64hex; 失败返回 false, 调用方必须把错误向上传播
+// (整体输出失败), 禁止把空串/前缀哈希当作结果。
+// ASTROCS_HASH_FAIL_INJECT (仅测试构建, -Dastrocs_hash_fail_inject 编入):
+// 在完整读出后于 final 前注入一次 I/O 错误 → 走失败分支, 供单测断言不写假哈希。
+bool sha256_file_checked(const char* path, std::string* hex_out) {
+    hex_out->clear();
+    astrocs::crypto::Sha256 h;
+    std::FILE* f = std::fopen(path, "rb");
+    if (!f) return false;
+    unsigned char buf[64 * 1024];
+    size_t n;
+    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) h.update(buf, n);
+    const bool read_ok = (std::ferror(f) == 0);
+    const bool close_ok = (std::fclose(f) == 0);
+    if (!read_ok || !close_ok) return false;
+#ifdef astrocs_hash_fail_inject
+    if (std::getenv("ASTROCS_HASH_FAIL_INJECT")) return false;
+#endif
+    *hex_out = h.final_hex();
     return true;
 }
 
@@ -193,13 +219,46 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
     }
 
     // fsync + rename 原子替换
+    // R10-C: 顺序必须是 cfitsio 缓冲 flush → fsync(fd) → 原子 rename。
+    // 原实现在 fits_close_file 之前对 fd 做 fsync —— cfitsio 的 IO 缓冲
+    // (2880B 扇区 buffer) 尚未写出, fd 级 fsync 只能落已写入内核页缓存的
+    // 前缀, 崩溃时可丢失数据或留半成品 (违反 IO_003 §4 "关闭/fsync → … →
+    // 原子 rename"、§6 "任何失败都不产生成功对象")。
     {
-        const char* p = tmp.c_str();
-        int fd = ::open(p, O_RDONLY);
-        if (fd >= 0) { ::fsync(fd); ::close(fd); }
+        int fstatus = 0;
+        // ① 先把 cfitsio 内部缓冲全部推到 OS (ffflus: 写 dirty buffer +
+        //    ffflushx; 返回值必须检查, 失败即无成功对象)
+        if (fits_flush_file(f, &fstatus)) {
+            g_last_err = "fits_flush_file: " + std::to_string(fstatus);
+            fits_close_file(f, &fstatus);
+            ::unlink(tmp.c_str());
+            return P3_OUT_IO;
+        }
+        fits_close_file(f, &status);
+        if (status) { ::unlink(tmp.c_str()); g_last_err = "close: " + std::to_string(status); return P3_OUT_IO; }
+        // ② 内容已完整写出后再 fsync fd; 打开/fsync 失败都是发布失败
+        {
+            const char* p = tmp.c_str();
+            int fd = ::open(p, O_RDONLY);
+            if (fd < 0) {
+                g_last_err = std::string("open(tmp) for fsync: ") + std::strerror(errno);
+                ::unlink(tmp.c_str());
+                return P3_OUT_IO;
+            }
+            if (::fsync(fd) != 0) {
+                const int fsync_err = errno;
+                ::close(fd);
+                g_last_err = std::string("fsync: ") + std::strerror(fsync_err);
+                ::unlink(tmp.c_str());
+                return P3_OUT_IO;
+            }
+            if (::close(fd) != 0) {
+                g_last_err = std::string("close(fsync fd): ") + std::strerror(errno);
+                ::unlink(tmp.c_str());
+                return P3_OUT_IO;
+            }
+        }
     }
-    fits_close_file(f, &status);
-    if (status) { ::unlink(tmp.c_str()); g_last_err = "close: " + std::to_string(status); return P3_OUT_IO; }
     if (::rename(tmp.c_str(), output_path) != 0) {
         g_last_err = std::string("rename: ") + std::strerror(errno);
         ::unlink(tmp.c_str());
@@ -208,7 +267,13 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
 
     // 计算 sha256(重新读出的完整文件) 并独立重开验证(重开验证)
     if (result) {
-        std::string h = astrocs::crypto::sha256_file(output_path);
+        std::string h;
+        // R10-C: 哈希失败 = 完整性锚缺失 → 不写空串/前缀哈希, 整体输出失败
+        if (!sha256_file_checked(output_path, &h)) {
+            g_last_err = "sha256_file(published output) failed";
+            ::unlink(output_path);
+            return P3_OUT_IO;
+        }
         std::snprintf(result->sha256, sizeof(result->sha256), "%s", h.c_str());
         result->total_px = (long)width * height;
         long cov = 0;
@@ -284,7 +349,12 @@ P3OutputStatus p3_output_verify(const char* output_path, const P3WcsDescriptor* 
     result->total_px = nelem;
     // 重算 checksum (独立重开 + checksum)
     {
-        std::string h = astrocs::crypto::sha256_file(output_path);
+        std::string h;
+        // R10-C: 哈希失败 = 完整性锚缺失 → 返回 IO, 不写空串/前缀哈希
+        if (!sha256_file_checked(output_path, &h)) {
+            g_last_err = "sha256_file(verify) failed";
+            return P3_OUT_IO;
+        }
         std::snprintf(result->sha256, sizeof(result->sha256), "%s", h.c_str());
     }
     return P3_OUT_OK;
