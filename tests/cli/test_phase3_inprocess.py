@@ -104,9 +104,9 @@ class TestPhase3InProcess(unittest.TestCase):
         self.assertIn("TAN", r.stderr)
 
     def test_03_rejected_center_near_pole(self):
-        """|dec|<5° 显式拒 → exit 2。"""
+        """P3-001 冻结: abs(dec)>85°(距极点<5°) 显式拒 → exit 2。"""
         cfg = os.path.join(self.tmp, "bad.json")
-        d = json.load(open(self.cfg)); d["center"]["dec_deg"] = 2.0
+        d = json.load(open(self.cfg)); d["center"]["dec_deg"] = 88.0
         json.dump(d, open(cfg, "w"))
         r = self._run("phase3", "run", "--config", cfg)
         self.assertEqual(r.returncode, 2, r.stderr[-200:])
