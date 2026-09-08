@@ -512,9 +512,23 @@ static void emit_backend_event(astrocs::JsonlEmitter& ev, const std::string& pha
 // 短任务豁免(wall<5s)由 evaluate_gate 内建, 冒烟小测不受影响。
 // kind 固定 Compute: phase1/2/3 均为 cpu_heavy 合成管线(runtime_client.cpp
 // resources.class=cpu_heavy); io/mem 类判据属 benchmark 专用路径, 不在 CLI run。
+// MON-002: --resource-detail 取值规范化（summary|timeseries; 非法值→ARGS(2)，
+// 拒绝静默降级 —— MON-002 test_01 验收非法 detail 必须 fail）。
+static std::string resource_detail_arg(const Parsed& p) {
+    static const std::set<std::string> kAllowed{"summary", "timeseries"};
+    if (!p.values.count("--resource-detail")) return "summary";
+    const std::string v = p.values.at("--resource-detail");
+    if (!kAllowed.count(v)) {
+        throw ParseError("invalid --resource-detail '" + v +
+                                 "' (summary|timeseries)");
+    }
+    return v;
+}
+
 static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& phase,
                                   const std::string& cfg_text, uint32_t budget,
-                                  std::string& fail_reason) {
+                                  std::string& fail_reason,
+                                  const std::string& resource_detail = "summary") {
     astrocs::ProcessMonitor mon(0.5);
     // MON-001: 记录器(样本/阶段分段/worker balance)随采样线程写入; interval 与采样
     // 周期一致(0.5s), 保证 cpu_pct=ΔCPU秒/区间墙钟 的 normalized 口径成立。
@@ -657,6 +671,20 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         std::fprintf(stderr, "astrocs: %s\n", why.c_str());
         return astrocs::RESOURCE;  // exit_codes.h:17 = 10
     }
+    // MON-002: 分层事件接线（summary 强制；timeseries 详略由 --resource-detail 控）。
+    // CLI-002 移除 cmd_run_pipeline 时漏接（定义保留未调用），MON-002 验收的
+    // resource summary / backend 事件在 phase run 路径从未发出——此处补齐。
+    // raw 产物目录: recorder.write_all 的 res_out_dir 同源（07 合同 raw 落点）。
+    {
+        const astrocs::ProcessMonitor::Summary mon_s2 = mon.summary();
+        const std::string res_out_dir = [&] {
+            try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
+            catch (...) { return std::string("."); }
+        }();
+        emit_resource_summary(ev, phase, mon_s2, res_out_dir, recorder.record_count(),
+                              resource_detail);
+        emit_backend_event(ev, phase, "astrocs.cpu.baseline", "selected", budget, budget);
+    }
     return astrocs::OK;
 }
 
@@ -697,7 +725,8 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
-    const int rrc = run_with_resource_gate(ev, "phase2", cfg_text, budget, fail_reason);
+    const int rrc = run_with_resource_gate(ev, "phase2", cfg_text, budget, fail_reason,
+                              resource_detail_arg(p));
     ev.stage("phase2_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
@@ -743,14 +772,17 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase2 ok", cfg, cfg_sha, {2},
                                        artifacts);
     if (wrc != astrocs::OK) return wrc;
-    // RT-008: 从节点 manifest 读真实科学值（session inspect 摘要）
+    // RT-008: 从节点 manifest 读真实科学值（session inspect 摘要）。
+    // 节点 id 是节点图 id（coverage/sample/…/write），不含 "res"——按内容扫描
+    // 任一带 n_obs 键的节点 manifest（旧 "res" 过滤是 CLI-002 拆分前 node id）。
     uint64_t n_inputs = 0, n_obs = 0;
     for (const auto& [nid, mtext] : mans) {
-        if (nid != "res") continue;
         try {
             auto m = nlohmann::json::parse(mtext);
+            if (!m.is_object() || !m.contains("n_obs")) continue;
             n_inputs = m.value("n_inputs", 0ull);
             n_obs = m.value("n_obs", 0ull);
+            break;
         } catch (...) {}
     }
     ev.emit("resource", "info", "phase2", "session summary",
@@ -772,6 +804,56 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     bool ok = false;
     const std::string cfg_sha = file_sha256(cfg, &ok);
     if (!ok) return astrocs::INPUT;
+
+    // CLI-002 实现漏迁恢复(原 cmd_run_pipeline 段, test_08 冻结验收): prior
+    // astrocs_run_*.json 记录的 artifact 哈希链任一与磁盘不符 → 8(绝不静默跳过验证)。
+    // 范围收缩(CLI-002 语义): 逐相 phase3 run 是全新 run, 不跨 run resume 编排——
+    // 只对「同一 config 重跑」(prior manifest.config_path == 本次 cfg) 的 prior
+    // complete manifest 做 resume 预检; 不同 config 的历史 manifest 属于独立 run,
+    // 新 run 可合法覆盖共享 output_dir 的产物, 不校验(否则同目录不同参数重跑恒 8)。
+    {
+        nlohmann::json prior_cfg_doc;
+        try { prior_cfg_doc = nlohmann::json::parse(cfg_text); } catch (...) {}
+        const std::string scan_dir = prior_cfg_doc.is_object()
+            ? prior_cfg_doc.value("output_dir", std::string(".")) : std::string(".");
+        bool mismatch = false;
+        std::error_code dec;
+        for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::u8path(scan_dir), dec)) {
+            const std::string fn = entry.path().filename().u8string();
+            if (!entry.is_regular_file() || fn.rfind("astrocs_run_", 0) != 0 || fn.size() <= 14 ||
+                fn.substr(fn.size() - 5) != ".json")
+                continue;
+            try {
+                std::ifstream pf(entry.path(), std::ios::binary);
+                nlohmann::json pm = nlohmann::json::parse(
+                    std::string(std::istreambuf_iterator<char>(pf), {}));
+                if (pm.value("kind", std::string()) != "astrocs_run_manifest") continue;
+                if (pm.value("config_path", std::string()) != cfg) continue;
+                for (const auto& a : pm.value("artifacts", nlohmann::json::array())) {
+                    const std::string ap = a.value("path", std::string());
+                    if (ap.empty()) continue;
+                    if (!std::filesystem::exists(std::filesystem::u8path(ap), dec)) { mismatch = true; break; }
+                    bool hok = false; const std::string sha = file_sha256(ap, &hok);
+                    if (!hok || sha != a.value("sha256", std::string())) { mismatch = true; break; }
+                }
+            } catch (...) { mismatch = true; }
+            if (mismatch) break;
+        }
+        if (mismatch) {
+            nlohmann::json cfg_doc0;
+            const int vrc0 = validate_config_full(cfg, &cfg_doc0, /*session_mode=*/true);
+            (void)vrc0;
+            const std::string out_dir0 = cfg_doc0.is_object()
+                ? cfg_doc0.value("output_dir", std::string(".")) : std::string(".");
+            const int wrc = write_run_manifest(out_dir0, ev, "incomplete", "resume hash mismatch",
+                                               cfg, cfg_sha, {3});
+            if (wrc != astrocs::OK) return wrc;
+            ev.emit_final(astrocs::INTEGRITY, "resume_hash_mismatch", nullptr,
+                          "prior artifact hash mismatch");
+            std::fprintf(stderr, "astrocs: resume hash mismatch\n");
+            return astrocs::INTEGRITY;  // 04: 输出完整性验证失败 → 8
+        }
+    }
     // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
     nlohmann::json cfg_doc3;
     const int vrc3 = validate_config_full(cfg, &cfg_doc3, /*session_mode=*/true);
@@ -797,18 +879,24 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
-    const int rrc = run_with_resource_gate(ev, "phase3", cfg_text, budget, fail_reason);
+    const int rrc = run_with_resource_gate(ev, "phase3", cfg_text, budget, fail_reason,
+                              resource_detail_arg(p));
     ev.stage("phase3_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
+    std::set<std::string> seen_paths;  // 链式节点共享同一 session 产物 → 按 path 去重
     std::vector<std::pair<std::string, std::string>> mans;
     astrocs::cli::collect_node_manifests(&mans);
     for (const auto& [nid, mtext] : mans) {
-        if (nid != "hips") continue;
+        // node id 是节点图 id（properties/wcs/resample2/writer/verify…），session
+        // manifest 任何节点都可能带 output_fits_path/工件清单——按内容收集，勿按
+        // 硬编码节点名过滤（旧写法只认 "hips"，P3 链 node id 不含 hips → artifacts 恒空）。
         nlohmann::json m;
         try { m = nlohmann::json::parse(mtext); } catch (...) { continue; }
+        if (!m.is_object()) continue;
         for (const auto& a : m.value("artifacts", nlohmann::json::array())) {
             const std::string ap = a.get<std::string>();
+            if (!seen_paths.insert(ap).second) continue;
             bool ok2 = false;
             const std::string sha = file_sha256(ap, &ok2);
             std::error_code ec;
@@ -817,12 +905,14 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
                                  {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
         }
         const std::string op = m.value("output_fits_path", std::string());
-        if (!op.empty()) {
+        if (!op.empty() && seen_paths.insert(op).second) {
             bool ok2 = false;
             const std::string sha = file_sha256(op, &ok2);
             std::error_code ec;
             const auto size = std::filesystem::file_size(std::filesystem::u8path(op), ec);
-            artifacts.push_back({{"path", op}, {"sha256", ok2 ? sha : ""},
+            // CLI-007 冻结语义: phase3 输出 FITS 记 role=phase3_output(test_07
+            // 断言); CLI-002 拆分时聚合迁入 cmd_phase3_run 丢失 role 字段。
+            artifacts.push_back({{"role", "phase3_output"}, {"path", op}, {"sha256", ok2 ? sha : ""},
                                  {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
         }
     }
@@ -903,7 +993,8 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
-    const int rrc = run_with_resource_gate(ev, "phase1", cfg_text, budget, fail_reason);
+    const int rrc = run_with_resource_gate(ev, "phase1", cfg_text, budget, fail_reason,
+                              resource_detail_arg(p));
     ev.stage("phase1_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
