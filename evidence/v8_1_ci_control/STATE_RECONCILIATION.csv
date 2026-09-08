@@ -150,7 +150,7 @@ P2-SAMP-DOC,module-doc,NOT_STARTED,commit:e654d4c2 traceability 29行0错 warns=
 P2-SAMP-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-SAMP-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-SAMP-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P2-UPM-DOC,module-doc,CLOSED,f506ef7f,docs_complete,fg_machine_verified,run/local/agent_p2_upm_doc/,"五门复跑PASS:矩阵30/0/4+pytest9+contracts=80+docindex+selfcheck ALL PASS;冻结域零改动","单位按SCI冻结ADU纠控制包笔误;DISP-P2UPM-001..004如实登记"
+P2-UPM-DOC,module-doc,docs_complete,"五门复跑PASS:矩阵30/0/4+pytest9+contracts=80+docindex+selfcheck ALL PASS;冻结域零改动",CLOSED,fg_machine_verified,f506ef7f,run/local/agent_p2_upm_doc/,"单位按SCI冻结ADU纠控制包笔误;DISP-P2UPM-001..004如实登记"
 P2-UPM-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-UPM-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-UPM-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
