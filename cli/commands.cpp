@@ -48,6 +48,7 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "cancel_token.h"
 #include "exit_codes.h"
 #include "jsonl.h"
+#include "memory_report.h"
 #include "monitor.h"
 #include "resource_events.h"
 #include "resource_gate.h"
@@ -651,14 +652,18 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // MON-001: 记录器(样本/阶段分段/worker balance)随采样线程写入; interval 与采样
     // 周期一致(0.5s), 保证 cpu_pct=ΔCPU秒/区间墙钟 的 normalized 口径成立。
     astrocs::ResourceRecorder recorder(0.5);
+    // MON-002(V7 04_CPU_RESOURCE_TASKS): RSS/allocation report 记录器 —— 同一采样
+    // 线程驱动(无新增线程), 定期采样 RSS/private/commit/allocator outstanding,
+    // run 结束验证可解释回落并保存原始曲线(alloc_samples.csv + alloc_report.json)。
+    astrocs::AllocationRecorder alloc_rec;
     std::atomic<bool> sampling{true};
     // MON-002 first-10s gate: 采样线程在 10s 边界调用一次 fast_fail_first10s(07 §4);
     // 失败置位外部协作取消源 → run_pipeline 内 cancel_watch 转发 Runtime::cancel()。
     std::atomic<int> first10s_diag{static_cast<int>(astrocs::GateDiag::Ok)};
     std::atomic<bool> first10s_done{false};
     std::atomic<bool> first10s_cancel{false};
-    std::thread sampler([&mon, &recorder, &sampling, &first10s_diag, &first10s_done,
-                         &first10s_cancel] {
+    std::thread sampler([&mon, &recorder, &alloc_rec, &sampling, &first10s_diag,
+                         &first10s_done, &first10s_cancel] {
         using SteadyNs = std::chrono::steady_clock::duration;
         const auto period = std::chrono::duration_cast<SteadyNs>(std::chrono::duration<double>(0.5));
         auto next = std::chrono::steady_clock::now();
@@ -666,6 +671,8 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         while (sampling.load(std::memory_order_relaxed)) {
             mon.tick();
             recorder.record(mon.last_sample());
+            // MON-002(V7): RSS/private/commit/allocator outstanding 同 tick 采样。
+            alloc_rec.tick(mon.last_sample());
             ++tick;
             // MON-002: first 10s gate 调用点 —— 跨过 10s 边界后首次采样即评估:
             // 低 CPU+非 IO+非内存带宽饱和 → 快速失败(协作取消), 收尾归并 RESOURCE(10)。
@@ -731,6 +738,13 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                                               mon_s.sample_overhead_ms);
         if (!wrote) {
             std::fprintf(stderr, "astrocs: warning: resource files not written to %s\n",
+                         sanitize(res_out_dir).c_str());
+        }
+        // MON-002(V7): 原始曲线 + 报告落盘(alloc_samples.csv/alloc_report.json;
+        // 管线失败也留证据, 与 MON-001 三产物同策略)。
+        alloc_rec.finalize();
+        if (!alloc_rec.write_all(res_out_dir)) {
+            std::fprintf(stderr, "astrocs: warning: alloc report files not written to %s\n",
                          sanitize(res_out_dir).c_str());
         }
     }
@@ -816,6 +830,23 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         const astrocs::GateDiag m1 = astrocs::evaluate_mon001(g);
         if (m1 != astrocs::GateDiag::Ok) d = m1;
     }
+    // MON-002(V7): RSS/allocation report 判定与 evaluate_gate/evaluate_mon001 互补 ——
+    // 注入 leak(稳健斜率越线)与结束回落不可解释 → FAIL; 面在零有效样本(伪造
+    // monitor/全哨兵)同样 FAIL。哨兵纪律: 面未接入/样本不足(斜率未算)跳过对应
+    // 判定, 显式呈现不静默。
+    {
+        const astrocs::AllocReport ar = alloc_rec.report();
+        g.alloc_report_present = ar.n_curve > 0;
+        if (ar.n_curve > 0) {
+            g.alloc_samples_measured = static_cast<double>(ar.n_samples);
+            g.alloc_growth_mb_per_s = ar.slope_points > 0
+                                          ? ar.rss_growth_mb_per_s
+                                          : astrocs::kMon001NotSampled;  // 样本不足未算斜率
+            g.alloc_reclaim_verdict = ar.reclaim_verdict;
+        }
+        const astrocs::GateDiag m2 = astrocs::evaluate_mon002(g);
+        if (m2 != astrocs::GateDiag::Ok) d = m2;
+    }
     ev.emit("resource", "info", phase, "resource gate", {
         {"verdict", astrocs::gate_diag_name(d)},
         {"wall_seconds", s.wall_seconds},
@@ -831,6 +862,21 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"mon001_util_samples_measured", g.util_samples_measured},
         {"mon001_util_samples_pass_frac", g.util_samples_pass_frac},
         {"mon001_queue_low_run_seconds", g.queue_low_run_seconds},
+        // MON-002(V7): RSS/allocation report 证据(验收关键词 RSS/allocation report;
+        // reclaim_frac=-1=未采样哨兵非 0 回落; 判定用曲线非峰值)。
+        {"alloc_report_present", g.alloc_report_present},
+        {"alloc_report_n_samples", alloc_rec.report().n_samples},
+        {"alloc_report_n_sentinel", alloc_rec.report().n_sentinel},
+        {"alloc_report_growth_mb_per_s", g.alloc_growth_mb_per_s},
+        {"alloc_report_growth_verdict",
+         astrocs::alloc_growth_verdict_name(alloc_rec.report().growth_verdict)},
+        {"alloc_report_reclaim_verdict",
+         astrocs::alloc_reclaim_verdict_name(g.alloc_reclaim_verdict)},
+        {"alloc_report_reclaim_frac", alloc_rec.report().reclaim_frac},
+        {"alloc_report_peak_rss_bytes", alloc_rec.report().peak_rss_bytes},
+        {"alloc_report_last_rss_bytes", alloc_rec.report().last_rss_bytes},
+        {"alloc_report_allocator_probe", alloc_rec.report().allocator_probe_available},
+        {"alloc_sample_overhead_ms", alloc_rec.report().alloc_sample_overhead_ms},
         // CLI-004: §4 resource 冻结扩展字段(硬闸要求)。
         {"cpu_cores_used", s.avg_equivalent_cores},
         {"rss_bytes", s.peak_rss_bytes},

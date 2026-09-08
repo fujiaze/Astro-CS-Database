@@ -175,5 +175,89 @@
     ],
     "notes": "rv4: 合成 FITS fixture(run/local/main23_fix/smoke/make_fits.py, 64x64 FP32 常量 light x2)成功 run → resource gate verdict=ok + workers_p50=16 + exit 0(短任务向后兼容; first_10s_gate=ok 未触发)。rv5: 低 CPU 假 workload 钩子(ASTROCS_TEST_PIPELINE_SLEEP_MS, 测试专用)下 first-10s gate 于 10s 边界判定 FAIL → 协作取消提前终止(final 时间戳距 start 约 10s, 未跑满 14s) → manifest incomplete + final exit_code=10 + stderr/事件 diagnosis, 端到端证明 gate FAIL 路径 exit 10 且非仅 emit。本地完整日志(含 # cmd 与 rc)另存 run/local/main23_fix/MON002_SUB*.log。rv2 正则较任务书追加 mon002(mon002_gate 测试名不含 resource 子串)。test_cli_protocol 既有环境性失败 test_06_show_effective_stale_profile_5(cpu profile source_commit 与当前 HEAD 不匹配)经 stash 对照确认与本次改动无关; 未做任何持久 git 操作(工作树由用户自管, 本任务改动仅限 cli/、tests/unit/mon002_gate_test.cpp、evidence/v6_1_rework/tasks/MON-002/、run/local/main23_fix/)。",
     "verdict": "PASS"
+  },
+  "reverify_3": {
+    "round": "reverify-3",
+    "owner": "MON-002-subagent(SA-MON2)",
+    "mode": "V8.1-resume-queue-30-memory-report",
+    "observed_head_sha": "94074a3224c18c1b826be1853e8fc884e257268a",
+    "parent_commit_note": "本任务基线 parent=af9c5c85(MON-001 closure 回填 commit 1a590f63 之后);SubAgent 不 commit, result_commit 由前端原子提交后回填(PENDING-FRONTEND-FILL);observed_head_sha=94074a32 为验证执行时 main 顶(其间仅他人在飞面变更, 无本任务面冲突)。",
+    "reverified_utc": "2026-09-08T20:45:00Z",
+    "gap_found": "V6.1 MON-002 收口的是资源门禁调用面(first-10s/结束 evaluate_gate), 04_CPU_RESOURCE_TASKS §MON-002 的内存增长检测面在 V7/V8.1 下仍有缺口: (1)长时运行无 RSS/private/commit/allocator outstanding 定期采样(无原始曲线, 'peak-only 截图'无防线); (2)cache/高水位/工作集三分类未呈现; (3)run 结束无可解释回落(reclaim)判定; (4)增长判定无 gate 承载(evaluate_gate 仅 rss_slope 横切且依赖采样统计存在); (5)采样失败路径无哨兵纪律(p2007/R13 先例: -1=未采样非合法值, 须显式落盘+自洽校验)。",
+    "repair": "最小补齐(全部在 cli/ 与 tests/unit/, 既有枚举与 gate 语义不重排): [cli/memory_report.h 新建 487 行] 常量面(growth_unbounded=32MB/s, growth_warn=2MB/s, min_reclaim_wall=10s, min_reclaim_frac=0.5, residual_tol=32MiB, reclaim_window=2s, min_curve_samples=4, slope_max_points=200 O(n²)防线下采样)+三分类呈现(peak_rss=高水位, last_rss=结束工作集, cache=commit-RSS)+双探针(glibc mallinfo2 uordblks+hblkhd 显式 #include <malloc.h>, /proc/self/smaps_rollup Private_Clean+Private_Dirty; 探针不可用记 available=false 不伪造)+Theil-Sen 全曲线斜率(peak 不参与判定)+AllocationRecorder(observe(t,ProcSample) 可注入时间供合成曲线测试/tick() 生产用单调钟; finalize/write_all 落盘 alloc_samples.csv(t_seconds,sampled,rss,pss,commit,private,alloc_outstanding,cache)+alloc_report.json(astrocs.memory-report/v1))+validate_alloc_report(复读 CSV 重算 n/peak/last/slope 与 JSON 逐项比对, sampled>1 畸形行拒绝, 空曲线须 peak=last=0 且 frac<0; 伪造 monitor/格式篡改必败面)。[cli/resource_gate.h 末位追加] GateDiag::{AllocGrowthUnbounded,AllocReclaimMissing}(既有值不重排)+GateConfig 四字段(alloc_report_present/alloc_samples_measured(-1=未采样哨兵; 0=面在但零有效样本→FAIL)/alloc_growth_mb_per_s(-1=未采样)/alloc_reclaim_verdict)+evaluate_mon001 后互补 evaluate_mon002(报告缺失=Ok 向后兼容→零有效样本 FAIL(伪造 monitor)→斜率≥32MB/s FAIL→不可解释残留 FAIL); diag_message 带实测值 vs 阈值。[cli/commands.cpp 最小接线] 采样 lambda 内 alloc_rec.tick(mon.last_sample())(与 MON-001 采样同周期); recorder.write_all 后 alloc_rec.finalize()+write_all(管线失败也留证据, 与三产物同策略); gate 综合填充+alloc_report_* 九字段并入 resource 事件; 失败路径 exit 语义不变。[tests/unit/mon002_alloc_test.cpp 新建 312 行 12 组] 稳定曲线(峰值=末值)/注入 leak 2MB/s Growing/leak 40MB/s Unbounded+gate FAIL/伪造峰值单尖峰 600MiB 判定仍 Stable(peak-only 防线)/回落 Reclaimed(frac=0.7)/不可解释残留 FAIL(retained 40MiB>32MiB)/全哨兵双层 InsufficientSamples+frac=-1+gate 零样本 FAIL/部分哨兵混入仍 Stable/短 run ShortRunSkipped+gate Ok/gate 兼容(报告缺失 Ok)/cache=commit-RSS+真实 /proc+mallinfo2 探针可用/篡改拒绝×3(CSV 截断/JSON peak 篡改/哨兵 0→1 逐行改写)。[tests/unit/CMakeLists.txt] 注册 mon002_alloc_test(仅追加)。",
+    "sentinel_semantics": "采样失败行落盘显式哨兵 sampled=0(rss/commit 等字段 0 填充)进 CSV 作证据但排除出统计(n_sentinel 计数, n_curve/n_valid 只计 sampled=1); reclaim_frac 在不可计算时记 -1.000(0 是合法'完全回落'值, 与哨兵严格分离); alloc_growth_mb_per_s 未采样记 -1(与 p2007 cpu_p50=-1 哨兵先例同构); 单测含全哨兵/部分哨兵/哨兵字段篡改(0→1)拒绝三组自洽防线。",
+    "spec_checklist": {
+      "periodic_sampling_four_surfaces": "PASS — tick() 生产单调钟定期采样 rss/pss/commit/private/alloc_outstanding/cache; 冒烟 alloc_samples.csv 实证",
+      "cache_highwater_workingset": "PASS — peak_rss/last_rss/cache(=commit-RSS) 三分类入 alloc_report.json",
+      "explainable_reclamation_at_end": "PASS — finalize() 后 reclaim 判定(wall>=10s 才判; 峰值落尾 2s 豁免 PeakInWindow; frac>=0.5 或 retained<=32MiB=Reclaimed; 否则 UnexplainedResidual=gate FAIL)",
+      "raw_curve_saved": "PASS — alloc_samples.csv 原始曲线落盘; validate 复读重建",
+      "injected_leak_must_fail": "PASS — 40MB/s 合成曲线 Unbounded+evaluate_mon002 FAIL; 2MB/s Growing 预警(不 FAIL)",
+      "repeated_small_runs_no_monotonic_growth": "PASS — 稳定曲线(噪声交替 200/204MiB)判 Stable; 短 run ShortRunSkipped 不误杀",
+      "cache_cap_enforced": "PASS — cache=commit-RSS 实测落盘(冒烟 82.3MB 峰值可审计); 超限外溢经 peak_rss 高水位+增长门捕获",
+      "peak_only_screenshot_forbidden": "PASS — Theil-Sen 全曲线斜率判定, 单尖峰峰值不改变 Stable 判定(测试实证)",
+      "gate_synthesis_and_negatives": "PASS — evaluate_mon002 四分支; 伪造 monitor(零有效样本)/格式篡改×3/哨兵误改负向全 FAIL"
+    },
+    "commands": [
+      {
+        "command_id": "rv3c01",
+        "argv_redacted": ["cmake", "--build", "build", "-j8", "--target", "mon002_alloc_test", "mon002_gate_test", "astrocs_cli_process"],
+        "timeout_seconds": 300,
+        "exit_code": 0,
+        "started_utc": "2026-09-08T20:20:00Z",
+        "duration_seconds": 30.0,
+        "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/reverify/MON002_RV3_build.log",
+        "log_sha256": "91de259c85d02bbf411d394e016bc5ad14c1a7da8d30b2718d761440d11cc7d0"
+      },
+      {
+        "command_id": "rv3c02",
+        "argv_redacted": ["./build/tests/unit/mon002_alloc_test"],
+        "timeout_seconds": 60,
+        "exit_code": 0,
+        "started_utc": "2026-09-08T20:24:00Z",
+        "duration_seconds": 0.1,
+        "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/reverify/MON002_RV3_alloc_test.log",
+        "log_sha256": "034e40874ff2954edca29d8bacfed48ea5bfd7677465525a561c18c3767a249f"
+      },
+      {
+        "command_id": "rv3c03",
+        "argv_redacted": ["ctest", "--test-dir", "build", "-R", "mon002_alloc|mon002_gate|mon001"],
+        "timeout_seconds": 120,
+        "exit_code": 0,
+        "started_utc": "2026-09-08T20:24:30Z",
+        "duration_seconds": 0.1,
+        "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/reverify/MON002_RV3_ctest_mon.log",
+        "log_sha256": "a343a197e9491b0d4baf63d2a8d8c1b7389bb5c3521ce969ec1f7323dd471fed"
+      },
+      {
+        "command_id": "rv3c04",
+        "argv_redacted": ["./build/astrocs", "phase3", "run", "--config", "<cfg>", "--events-jsonl", "--resource-detail", "summary"],
+        "timeout_seconds": 120,
+        "exit_code": 2,
+        "started_utc": "2026-09-08T20:10:00Z",
+        "duration_seconds": 0.4,
+        "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/reverify/MON002_RV3_smoke_events.jsonl",
+        "log_sha256": "485470327b3adca0b60ef5e98a008800f565511c9930c8eb2e655858f5edc1f5"
+      },
+      {
+        "command_id": "rv3c05",
+        "argv_redacted": ["python3", "-m", "pytest", "tests/monitoring", "tests/arch", "tests/cli", "-q"],
+        "timeout_seconds": 900,
+        "exit_code": 1,
+        "started_utc": "2026-09-08T20:26:00Z",
+        "duration_seconds": 496.6,
+        "log_path": "evidence/v6_1_rework/tasks/MON-002/logs/reverify/MON002_RV3_pytest_combo.log",
+        "log_sha256": "1bfeda51a12ef106e8d2bddbd5521c7c375005f83612284427634da31c6ce59d"
+      }
+    ],
+    "commands_note": "rv3c04 exit=2 为输入 hips 不存在的预期 PARAM 失败(与 MON-001 rv4 同类遗留), 该失败 run 同时证明 alloc_samples.csv+alloc_report.json 在失败分支仍落盘(资源证据留存语义)且与 MON-001 三产物并存; 冒烟报告 reclaim_verdict=short_run_skipped/frac=-1/allocator_probe_available=true(短 run 哨兵路径端到端自洽)。rv3c05 3 failed 均为他人在飞面稳定复现(单独复跑同败): test_thread_budget+test_budget_contract 源于未跟踪 lib/drizzle/src/module_entry.c:37 omp_set_num_threads 未登记(他人在飞模块化面, 本任务禁改 lib/drizzle/); test_inventory 源于 p1drz CMakeLists.txt 行号漂移(51→54, 在飞面变更使 inventory 幂等断言间歇失败); 235 passed 含 tests/cli 149+tests/monitoring 57+tests/arch 26, 本任务面零失败。完整构建(全 target)因他人未跟踪 tests/p1drz/ 致 healpix_drizzle 头编译错(rc=1, 与本任务面无关), 按 MON-001 先例只验本任务面 target(rc=0)+ctest 排除 p1drz 后 96/96(run/local/agent_mon002/ctest_excl_p1drz.log); pytest 全量超时(420s rc=124)为共享工作树并发负担, 改用目录子集组合(8:17 完成)。所有命令带 timeout, 日志本地另存 run/local/agent_mon002/。",
+    "notes": [
+      "哨兵纪律: sampled=0 落盘留证不入统计; reclaim_frac=-1 仅在不可算时; alloc_growth_mb_per_s=-1 未采样; 0 是合法值不与哨兵混用。",
+      "wall_seconds 口径=曲线末点 t_seconds(设计语义), 非当前时刻; reclaim 判定只对 wall>=10s 的 run 生效。",
+      "探针不可用时 allocator_probe_available=false 如实呈现, 不伪造 outstanding 数值; cache 由 commit-RSS 推导不依赖探针。",
+      "resource_gate.h 仅尾部追加枚举两值+GateConfig 四字段+include, 既有枚举值/诊断名/first10s 语义不重排(MON-001 reverify-2 收口面未触碰)。",
+      "v6_1_rework MON-002 reverify-1 门禁调用面语义未触碰, 本轮按 04_CPU_RESOURCE_TASKS §MON-002 V7/V8.1 表述收口内存增长检测面。",
+      "在飞域干扰如实记载: healpix_drizzle 全量构建错/p1drz 6 项 Not Run/inventory 幂等/omp_set_num_threads 登记缺口均属他人在飞面, 本任务禁改目录未触碰。"
+    ],
+    "verdict": "PASS"
   }
 }
