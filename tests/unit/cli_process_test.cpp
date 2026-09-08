@@ -1,7 +1,7 @@
-// cli_process_test.cpp — B8-P1: cli/process.h 跨平台子进程封装共址单测。
+// cli_process_test.cpp — B8-P1: cli/astrocs_process.h(R11 Windows 遮蔽修复: 原名 process.h 在 -I cli/ 下遮蔽 MSVC <thread> 内部 <process.h> → _beginthreadex 未声明 → astrocs_cli_runtime 编译失败 build exit 1) 跨平台子进程封装共址单测。
 // 覆盖: argv 传参(空格路径不断裂/零 shell 解析)、exit code 传递、extra_env、
 // timeout 杀进程、spawn 失败可诊断、devnull_stdio。POSIX 与 Windows 同断言。
-#include "process.h"
+#include "astrocs_process.h"
 
 #include <cstdio>
 #include <filesystem>

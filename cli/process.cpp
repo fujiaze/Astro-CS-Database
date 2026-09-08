@@ -2,7 +2,7 @@
 // 见 process.h 头注释。POSIX: fork/execvp/waitpid 轮询; Windows: CreateProcessA。
 // 已知平台限制(与项目既有 CLI 一致): Windows 用 ANSI API(GetModuleFileNameA 同级),
 // 非 ASCII 路径由系统 ANSI 代码页解释; Linux amd64 是本轮技术验证平台。
-#include "process.h"
+#include "astrocs_process.h"
 
 #if !defined(_WIN32)
 #include <fcntl.h>

@@ -32,7 +32,7 @@
 
 
 #include "backend_loader.h"
-#include "process.h"
+#include "astrocs_process.h"
 #include "resource_recorder.h"
 
 extern "C" {
