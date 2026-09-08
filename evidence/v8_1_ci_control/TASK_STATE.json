@@ -653,14 +653,14 @@
   "CPU-006": {
    "owner": "SA-CPU-09",
    "status": "CLOSED",
-   "closed_commit": "",
-   "evidence_path": "evidence/refactor/tasks/CPU-006/",
-   "source_of_status": "fg_verified_commit",
+   "closed_commit": "5d4ab05d",
+   "evidence_path": "evidence/v6_1_rework/tasks/CPU-006/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "implementation",
-   "review_claim": "DISPATCHED",
-   "current_evidence": "refactor_ledger:PASS; refactor_dir:true",
-   "note": "evidence_no_commit; review claimed DISPATCHED not inherited: no V7.1 commit, worktree source-clean (no WIP); HEAD 'astrocs benchmark cpu' belongs to earlier round (refactor CPU-006 PASS), not verifiable V7.1 CPU-006 work → READY per 02_CURRENT_STATE_AUDIT rule 7; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
+   "review_claim": "impl_complete",
+   "current_evidence": "构建rc=0+ctest 3/3+负向样例过+release实跑432candidates+TASK_RESULT.json v2 PASS;kOracleRelTol=2e-4冻结,两kernel oracle FAIL如实显形(owner裁决票)",
+   "note": "evidence_no_commit; review claimed DISPATCHED not inherited: no V7.1 commit, worktree source-clean (no WIP); HEAD 'astrocs benchmark cpu' belongs to earlier round (refactor CPU-006 PASS), not verifiable V7.1 CPU-006 work → READY per 02_CURRENT_STATE_AUDIT rule 7; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案);V8.1控制包本轮(CPU-006@26/140)按V8.1流程重新闭环执行面:bench_report聚合审计层,测量链复用CPU-003,结构性不触生产profile"
   },
   "CPU-007": {
    "owner": "SA-CPU-09",
