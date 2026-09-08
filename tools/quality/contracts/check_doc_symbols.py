@@ -88,7 +88,9 @@ def main():
                         # 文档常写模块内相对路径(如 healpix_drizzle/xxx.cpp,
                         # 真实位于 lib/healpix_db/healpix_drizzle/) — 以
                         # known_files 后缀匹配兜底(消 Windows CI R8 实测误报)。
-                        if not found and any(k.endswith("/" + token) for k in known_files):
+                        # rglob 相对路径在 Windows 是 backslash — 统一正斜杠
+                        # 再匹配(否则 Linux 过 Windows 挂, R9 34178712916 实证)。
+                        if not found and any(k.replace("\\", "/").endswith("/" + token) for k in known_files):
                             found = True
                     if not found:
                         # 占位符路径(如 <out_hips>/diagnostics.json)非真实引用
