@@ -135,7 +135,7 @@ P1-NOISE-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidenc
 P1-NOISE-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-NOISE-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-DRZ-DOC,module-doc,NOT_STARTED,commit:e53ac984 traceability 26行0错 + pytest 4P + contract_graph 36 + doc_index PASS + selfcheck 25/25 ALL_PASS,CLOSED,fg_verified_commit,e53ac984,lib/drizzle/; docs/algorithms/DRIZZLE_GEOMETRY.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结; 差异清单 DISP-DRZ-001..008 归 P1-DRZ-IMPL/INT; SCI-DRZ-001 未动; ThreadLease 零命中为迁移整改点
-P1-DRZ-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-DRZ-TEST,module-test,tests_complete,"ctest p1drz_ 6/6+9注入必败+独立几何oracle",CLOSED,fg_machine_verified,902d2e20,run/local/agent_p1drz_test/,"结构闭合替代逐leaf重建;perf_trend 0.25先例对齐"
 P1-DRZ-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-DRZ-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-HIPS-DOC,module-doc,NOT_STARTED,commit:943b023a traceability 27行0错 + pytest 4P + contract_graph 37 + doc_index PASS + selfcheck 87/0 ALL_PASS,CLOSED,fg_verified_commit,943b023a,lib/hips/; docs/algorithms/HIPS_WRITER.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结; 缺陷清单 DISP-HIPS-001..012 归 P1-HIPS-IMPL/INT; SCI 未动; registry 无 descriptor entrypoint=MISSING; gen_module_readmes.py 覆写风险已提示

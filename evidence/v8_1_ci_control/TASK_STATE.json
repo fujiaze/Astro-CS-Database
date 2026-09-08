@@ -1696,14 +1696,14 @@
   },
   "P1-DRZ-TEST": {
    "owner": "SA-P1-D18",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "902d2e20",
+   "evidence_path": "run/local/agent_p1drz_test/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-test",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
+   "review_claim": "tests_complete",
+   "current_evidence": "前台复跑ctest p1drz_ 6/6 PASS+9注入必败+独立几何oracle非被测函数路径;O1-O7闭合冻结门实现",
    "note": ""
   },
   "P1-DRZ-IMPL": {
