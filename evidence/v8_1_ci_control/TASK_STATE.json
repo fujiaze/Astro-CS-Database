@@ -701,13 +701,13 @@
   "MON-002": {
    "owner": "SA-LOG-08",
    "status": "CLOSED",
-   "closed_commit": "",
+   "closed_commit": "acceab68",
    "evidence_path": "evidence/v6_1_rework/tasks/MON-002/",
-   "source_of_status": "fg_verified_commit",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "implementation",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "refactor_ledger:-; refactor_dir:false; v61_ledger:PASS; v61_dir:true",
+   "review_claim": "impl_complete",
+   "current_evidence": "前台复验:构建rc=0+ctest mon系4/4;双探针+Theil-Sen斜率+reclaim三分类+复读重算必败面;哨兵语义自洽;12组单测含leak注入FAIL",
    "note": "evidence_no_commit; CLOSED@R13审计:refactor/v6.1代口径+reverify为准(跨代同号不同义,4f6e2b65/f0bc039a/ab84dc16/3da0670b复验全PASS,commit在HEAD祖先);benchmark-full两kernel显形FAIL为容差2e-4收紧(5d1fca08)+verdict修复(dd89e530)后已知在案项(f32/f64结构性超差,owner三选项裁决票在案)"
   },
   "ACR-001": {
