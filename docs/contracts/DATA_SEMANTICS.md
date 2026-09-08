@@ -1994,3 +1994,89 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   占位）端口表 resampled(DATA-P3-RES 必)+fits(DATA-P3-FITS 可) 为
   编排层词汇，由 P3-FITS-INT 对齐 astrocs.p3.fits_writer，不得
   反向作为冻结依据。
+
+## 28. Phase3 投影/WCS（lib/phase3_proj）模块输入/输出数据（DATA-P3-WCS）
+
+> ID: DATA-P3-WCS  状态: CONTRACT_READY（P3-PROJ-DOC 冻结，2026-09-11）
+> 模块: lib/phase3_session/p3_wcs.cpp（165 行）+ 唯一权威签名头
+> lib/phase3_session/p3_wcs.h（50 行，本域四函数 =p3_wcs.h:31-46）
+> （astrocs.p3.projection；astrocs_phase3_session 静态库成员，根
+> CMakeLists.txt:460-465；迁移目标 astrocs_p3_projection.dll 为矩阵
+> 合同值，尚未存在，由 P3-PROJ-IMPL 建立，禁止声明 IMPLEMENTED；
+> 合同落位 lib/phase3_proj/ 三件套）。本节是 Phase3 投影/WCS 域
+> in/out 单位/dtype/shape/invalid 的唯一权威；SCI 上游:
+> SCI-P3-001 §5 连续定义 + §9a-4 CRPIX/CD/parity 冻结 + §9a-6 极点/
+> 半球（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN V5 SCI-007
+> 2026-08-28，零改动）；ALG: ALG-P3-PROJ-IMPL-001
+> （docs/algorithms/PHASE3_PROJ_IMPL.md，实现级合同，兼承接
+> ALG-P3-002 G1/G2 本域子面）；API 面: API-P3-PROJ-001；descriptor
+> 占位 module_id=astrocs.phase3.wcs（module_adapters.cpp:344-361
+> p3_wcs_descriptor）由 P3-PROJ-INT 对齐 astrocs.p3.projection。
+
+### 28.1 输入
+
+| 名称 | dtype | shape | 单位 | 语义/invalid |
+|---|---|---|---|---|
+| centre_ra_deg / centre_dec_deg | float64 | 标量 | deg（ICRS） | 中心天球坐标；\|dec\|>85° → P3_WCS_PARAM（p3_wcs.cpp:40，kMaxAbsDec :15） |
+| scale_deg_per_px | float64 | 标量 | deg/px | 必 >0（:41）；冻结进 CD 对角/旋转展开式 |
+| width_px / height_px | int | 标量 | px | ∈[1,20000]（:42-43，kMaxSide 默认 20000，ASTROCS_P3_MAX_SIDE 编译期覆盖如实冻结） |
+| parity | char* | 1 | — | "east_left"（默认，nullptr 归一，CD1_1<0）\|"east_right"（CD1_1>0）；其它 →PARAM（:39） |
+| rotation_pa_deg | float64 | 标量 | deg | 天北相对 +y 位置角，逆时针为正；会话层现状恒 0.0（p3_session.cpp:160，PA 未接线=整改项不修码） |
+| d（映射入口） | P3WcsDescriptor* | 1 | deg、px | 见 28.2 输出面；非空守卫（:95/:122） |
+| x / y（pix2world） | float64 | 标量 | px | **0-based**（FITS 1-based=+1，:97-98 内部换算）；TAN 半球外 r≥π/2 → P3_WCS_HEMISPHERE（:104） |
+| ra_deg / dec_deg（world2pix） | float64 | 标量 | deg（ICRS） | \|dec\|>85° →PARAM（:123）；背面 denom≤0 →HEMISPHERE（:130） |
+
+### 28.2 输出
+
+| 名称 | dtype/形态 | 语义 |
+|---|---|---|
+| P3WcsDescriptor | struct（p3_wcs.h:11-20） | crval_ra/dec_deg（deg, ICRS）；crpix_x/y（FITS 1-based pixel-center=(W+1)/2）；cd[2][2]（FITS 顺序 CD[i][j]，deg/px，CD-only，det=−s²<0 手性冻结）；width_px/height_px；projection="TAN"（硬编码，:36/:89） |
+| ra_deg / dec_deg（pix2world 出参） | float64 标量 | deg（ICRS）；RA 归一 [0,360)（normalize_ra fmod+正化，:24-27/:113-114） |
+| x / y（world2pix 出参） | float64 标量 | px（0-based；δ=CD⁻¹·(ξ,η)+CRPIX−1，:136-141） |
+| fits_keywords 返回 | std::string | 每行 ≤80 字节 FITS 卡文本，"\n" 分隔：CTYPE1/2=RA---TAN/DEC--TAN、CUNIT1/2=deg、CRPIX1/2、CRVAL1/2（%.10f）、CD1_1..CD2_2（%.12e）（:145-163）；nullptr 入参→空串 |
+| P3WcsStatus 返回 | enum（h:22-27） | OK=0/PARAM=1/UNSUPPORTED=2（无产生点）/HEMISPHERE=3；逐触发锚=ALG-P3-PROJ-IMPL-001 §9 表 |
+
+### 28.3 单位/dtype/确定性
+
+- 单位唯一权威=本节：天球角量=deg（ICRS，CUNIT1/2='deg' 冻结）；
+  CD 单位 deg/px；像素量=px（crpix 1-based 约定、映射入参/出参
+  0-based，两种约定并存如实冻结，实现内部换算）。
+- dtype 唯一权威=本节：接口面 float64（FP64，roundtrip <1e-6 px
+  冻结容差的精度前提）；尺寸 int；parity/关键词 char 文本。
+- 确定性：纯函数无状态（0 处 thread/mutex/omp/全局可变量，:12-28
+  匿名命名空间常量）——同入参跨线程/跨 worker bitwise 一致；
+  并发安全（const-only 入口），无求和序问题。
+
+### 28.4 错误/边界
+
+- rc 语义（P3_WCS_OK=0/PARAM=1/UNSUPPORTED=2/HEMISPHERE=3）与逐
+  触发锚见 ALG-P3-PROJ-IMPL-001 §9 表；make 失败 out 保持零初始化
+  态（:35），不产出半成品 descriptor；四角同半球守卫失败
+  （:80-88）按首次失败码透传。
+- 极点邻域单一条件 \|dec\|≤85°（SCI/API/session 同一常数）；TAN
+  半球界 r<π/2（正映射）与 denom>0（反映射）数学等价；FOV 适用
+  上限 20°（SCI §9a-12 冻结，超限非错误、由畸变语义约束）。
+- RA wrap：跨 0/360 经 atan2+fmod 归一 [0,360)，无接缝跳变
+  （SCI §9a-6）。
+
+### 28.5 交叉引用
+
+- 上游: SCI-P3-001（§5 连续定义 + §9a-4/-6/-12 + §7 roundtrip
+  <1e-6 px，FROZEN 零改动）；ALG-P3-002（G1/G2 施工规格，
+  PHASE3_RESAMPLE.md，公式零改动）；ALG-P3-PROJ-IMPL-001（实现级
+  合同）；DATA-P3-PROPS（descriptor 端口词汇，HiPS properties 面）。
+- 下游: API-P3-PROJ-001（p3_wcs_make/p3_wcs_pix2world/
+  p3_wcs_world2pix/p3_wcs_fits_keywords 消费面冻结）；
+  DATA-P3-FITS（§27，WCS 关键词写路径 wcs 字段承载本 descriptor，
+  p3_output.cpp:148-169）；API-P3-001（会话五段编排面 FROZEN
+  镜像）；TEST-P3-WCS-001（登记面=TEST-P3-WCS-DESIGN-001 设计
+  冻结 VERIFIED=ALG-P3-PROJ-IMPL-001 §12 + registry 手写页 §9
+  双重陈述；可执行面升级归 P3-PROJ-TEST）。
+- 同文档: §3（FITS tile local-pixel 映射，读路径上游域）、§4
+  （signal/support/invalid 通用语义）、§27（FITS 写出域，WCS 为
+  其输入面）。
+- 端口词汇注记: registry descriptor p3_wcs_descriptor
+  （module_adapters.cpp:344-361，module_id=astrocs.phase3.wcs
+  占位）端口表 props(DATA-P3-PROPS 必)+wcs_plan(DATA-P3-WCS 可)
+  为编排层词汇，由 P3-PROJ-INT 对齐 astrocs.p3.projection，不得
+  反向作为冻结依据。
