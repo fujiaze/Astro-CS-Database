@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "astrocs:schemas/jsonl_event_v1.schema.json",
+  "title": "AstroCS JSONL event v1 (API-CLI-001 / 04 §4 frozen — CLI-004)",
+  "description": "docs/api/CLI_PROTOCOL_V1.md §4 权威: --events-jsonl 每行一个事件; 10 必含字段 + kind 冻结扩展字段; sequence 从 0 单调递增。GUI/外部 harness 只消费本协议面。",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "event_id",
+    "run_id",
+    "timestamp_utc",
+    "sequence",
+    "kind",
+    "severity",
+    "phase",
+    "stage",
+    "message"
+  ],
+  "properties": {
+    "schema_version": { "const": "1" },
+    "event_id": {
+      "type": "string",
+      "description": "evt-<run_id>-<sequence>",
+      "pattern": "^evt-[0-9a-f]{12}-[0-9]+$"
+    },
+    "run_id": { "type": "string", "pattern": "^[0-9a-f]{12}$" },
+    "timestamp_utc": {
+      "type": "string",
+      "description": "ISO-8601 UTC",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "kind": {
+      "description": "§4 基础 kind: progress/resource/artifact/backend/final/stage_start/stage_end; 允许只增不改的新增 kind",
+      "type": "string"
+    },
+    "severity": { "type": "string" },
+    "phase": { "type": "string" },
+    "stage": { "type": "string" },
+    "message": { "type": "string" },
+    "completed": { "type": "number" },
+    "total": { "type": "number" },
+    "unit": { "type": "string" },
+    "rate": { "type": ["number", "null"] },
+    "eta_seconds": { "type": ["number", "null"] },
+    "cpu_cores_used": { "type": "number" },
+    "rss_bytes": { "type": "number" },
+    "io_read_bytes": { "type": "number" },
+    "io_write_bytes": { "type": "number" },
+    "threads": { "type": "number" },
+    "role": { "type": "string" },
+    "path": { "type": "string" },
+    "sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+    "size_bytes": { "type": ["number", "null"] },
+    "kernel": { "type": "string" },
+    "backend_id": { "type": "string" },
+    "isa": { "type": "string" },
+    "workers": { "type": "number" },
+    "block_size": { "type": "number" },
+    "reason": { "type": "string" },
+    "exit_code": {
+      "type": "integer",
+      "description": "04 §2 冻结 11 条退出码域 (exit_codes.h 唯一源)",
+      "enum": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 70]
+    },
+    "status": { "type": "string" },
+    "run_manifest": { "type": ["string", "null"] },
+    "summary": { "type": "string" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "final" } }, "required": ["kind"] },
+      "then": { "required": ["exit_code", "status", "run_manifest", "summary"] }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "progress" } }, "required": ["kind"] },
+      "then": { "required": ["completed", "total", "unit", "rate", "eta_seconds"] }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "resource" } }, "required": ["kind"] },
+      "then": {
+        "required": ["cpu_cores_used", "rss_bytes", "io_read_bytes", "io_write_bytes", "threads"]
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "artifact" } }, "required": ["kind"] },
+      "then": { "required": ["role", "path", "sha256", "size_bytes"] }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "backend" } }, "required": ["kind"] },
+      "then": {
+        "required": ["kernel", "backend_id", "isa", "workers", "block_size", "reason"]
+      }
+    }
+  ],
+  "additionalProperties": true
+}

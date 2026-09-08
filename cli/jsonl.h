@@ -1,8 +1,10 @@
-// astrocs JSON/JSONL writer (API-002 §3/§4 协议 v1) — CLI-002
+// astrocs JSON/JSONL writer (API-002 §3/§4 协议 v1) — CLI-002/CLI-004
 // stdout 纪律: --json 恰一个 JSON 文档; --events-jsonl 每行一个 UTF-8 JSON 事件, 禁夹普通文字。
+// CLI-004: 发送侧经 protocol.h ValidateEventV1 硬闸(GUI 可调用进程协议冻结合同)。
 #pragma once
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <ctime>
 #include <string>
@@ -10,6 +12,7 @@
 #include <nlohmann/json.hpp>
 
 #include "exit_codes.h"
+#include "protocol.h"
 
 namespace astrocs {
 
@@ -45,7 +48,9 @@ public:
     bool enabled() const { return enabled_; }
     const std::string& run_id() const { return run_id_; }
 
-    // kind 基础事件(progress/resource/artifact/backend 由 extra 扩展; final 见 emit_final)
+    // kind 基础事件(progress/resource/artifact/backend 由 extra 扩展; final 见 emit_final)。
+    // CLI-004: 发送侧协议自检硬闸 —— 违反冻结合同(10 必含字段/sequence 单调/kind 扩展
+    // 字段/final.exit_code 域)的事件拒绝发出(stderr 诊断), stdout 保持纯 JSONL。
     void emit(const std::string& kind, const std::string& severity, const std::string& stage,
               const std::string& message, const nlohmann::json& extra = {}) {
         if (!enabled_) return;
@@ -62,10 +67,32 @@ public:
             {"message", message},
         };
         for (auto it = extra.begin(); it != extra.end(); ++it) ev[it.key()] = it.value();
+        // protocol.h (CLI-004): 发送前 ValidateEventV1; 违规行禁入 stdout。
+        if (!astrocs::ValidateEventV1(ev, seq_)) {
+            std::fprintf(stderr, "astrocs: protocol: event dropped (kind=%s seq=%llu)\n",
+                         kind.c_str(), static_cast<unsigned long long>(seq_));
+            ++seq_;  // 保持 sequence 单调性不变(violation 仍占序)
+            return;
+        }
         std::fputs(ev.dump().c_str(), stdout);
         std::fputc('\n', stdout);
         std::fflush(stdout);
         ++seq_;
+    }
+
+    // §4 progress 事件扩展字段冻结: {completed,total,unit,rate,eta_seconds}。
+    // rate=null 表示不可用(尚无完成样本); eta_seconds=null 表示不可估计。
+    void emit_progress(uint64_t completed, uint64_t total, const std::string& unit,
+                       const double* rate, const double* eta_seconds) {
+        nlohmann::json extra = {
+            {"completed", completed},
+            {"total", total},
+            {"unit", unit},
+            {"rate", rate == nullptr ? nlohmann::json(nullptr) : nlohmann::json(*rate)},
+            {"eta_seconds",
+             eta_seconds == nullptr ? nlohmann::json(nullptr) : nlohmann::json(*eta_seconds)},
+        };
+        emit("progress", "info", "progress", "progress update", extra);
     }
 
     void stage(const std::string& name, bool start) {
