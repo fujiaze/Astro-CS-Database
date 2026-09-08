@@ -109,7 +109,7 @@ CAT-GAIA-INT,module-int,integration_complete,"101断言全PASS+descriptor/typed_
 P1-CAL-DOC,module-doc,NOT_STARTED,none,CLOSED,fg_verified_commit,925fb26e,lib/calibration/,module-doc frozen; checkers rc=0
 P1-CAL-TEST,module-test,tests_complete,"ctest p1cal_ 6/6+故障注入双向成立+独立oracle",CLOSED,fg_machine_verified,cc6d4175,run/local/agent_p1cal_test/,"3项HEAD实测语义偏差留P1-CAL-IMPL"
 P1-CAL-IMPL,module-impl,impl_complete,"adapter 50CHECK+p1cal 6/6+全量105/105+10/10 BITWISE+导出面唯一",CLOSED,fg_machine_verified,adf820ac,run/local/agent_p1cal_impl/,"3项偏差保持(ALG§7/README§5/DISP-CAL-004);adapter修正4项"
-P1-CAL-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-CAL-INT,module-int,integration_complete,"113断言+循环5次全绿+descriptor/typed_ports/真实trace",CLOSED,fg_machine_verified,58d20223,run/local/agent_p1cal_int/,"SEGFAULT根因:as-needed丢libgomp→晚装载SEGV;target级--no-as-needed修复;global DAG委派SA-RT-05"
 P1-COS-DOC,module-doc,NOT_STARTED,commit:4b87aef6 traceability 26行0错 + pytest 4P + contract_graph 36 + doc_index PASS + selfcheck ALL_PASS,CLOSED,fg_verified_commit,4b87aef6,lib/cosmetic/; docs/algorithms/COSMETIC_ALGORITHMS.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结; 缺陷清单 DISP-COS-001..011 归 P1-COS-IMPL/INT; SCI-CAL-001 未动; DISP-COS-009 生产调用 nullptr 母版已登记
 P1-COS-TEST,module-test,tests_complete,"ctest p1cos_ 6/6+注入跨组必败+独立oracle",CLOSED,fg_machine_verified,47e00f8e,run/local/agent_p1cos_test/,"DISP-COS-002/003/004/011实测登记"
 P1-COS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
