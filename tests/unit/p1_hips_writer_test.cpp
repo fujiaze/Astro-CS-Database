@@ -19,8 +19,15 @@ static int failures = 0;
   } while (0)
 
 static std::string tmp_dir() {
+  // 跨平台临时目录 (同 io_adapter_test): Windows 回退 TEMP/TMP/"."。
   const char* d = std::getenv("TMPDIR");
-  return d ? d : "/tmp";
+  if (!d || !*d) d = std::getenv("TEMP");
+  if (!d || !*d) d = std::getenv("TMP");
+#if defined(_WIN32)
+  return (d && *d) ? std::string(d) : std::string(".");
+#else
+  return (d && *d) ? std::string(d) : std::string("/tmp");
+#endif
 }
 
 static std::string read_file(const std::string& p) {
