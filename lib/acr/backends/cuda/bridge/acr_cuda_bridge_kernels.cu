@@ -20,8 +20,7 @@ __global__ void acr_copy_kernel(float* y, const float* x,
 }
 
 __global__ void acr_reduce_kernel(const float* x, double* partials,
-                                  size_t begin, size_t n,
-                                  size_t chunk_index, size_t blocks_per_chunk) {
+                                  size_t begin, size_t n) {
     extern __shared__ double sdata[];  // FP64 局部累加（24 §5.1）
     const size_t i = begin + blockIdx.x * blockDim.x + threadIdx.x;
     sdata[threadIdx.x] = (i < begin + n) ? static_cast<double>(x[i]) : 0.0;
@@ -33,10 +32,10 @@ __global__ void acr_reduce_kernel(const float* x, double* partials,
         __syncthreads();
     }
     if (threadIdx.x == 0) {
-        // 写入本地 block 槽位（0..blocks_per_chunk-1）；
+        // 每个 block 写自己的槽位（0..grid-1，grid 与 host 分配的 partials
+        // 槽位数同源：grid = ceil(n/256)，由 launch 包装统一计算，
+        // 保证写范围不超出 host 分配的 blocks 个 double。
         // chunk 区域偏移由 host 侧 D2H 拷贝（partials + chunk_index*blocks）处理
-        (void)chunk_index;
-        (void)blocks_per_chunk;
         atomicAdd(&partials[blockIdx.x], sdata[0]);
     }
 }
@@ -291,12 +290,13 @@ void acr_launch_copy(float* y, const float* x,
 }
 
 void acr_launch_reduce(const float* x, double* partials,
-                       size_t begin, size_t n,
-                       size_t chunk_index, size_t blocks_per_chunk,
-                       cudaStream_t stream) {
-    acr_reduce_kernel<<<static_cast<int>(blocks_per_chunk), kThreads,
+                       size_t begin, size_t n, cudaStream_t stream) {
+    // grid 与 host 侧 partials 分配同一口径：ceil(n / 256)（kThreads=256）。
+    // 每个 block 的 threadIdx.x==0 写 partials[blockIdx.x]，写范围恰为
+    // grid 个 double —— 必须等于 host 分配的槽位数，否则越界。
+    acr_reduce_kernel<<<grid_size(n), kThreads,
                         kThreads * sizeof(double), stream>>>(
-        x, partials, begin, n, chunk_index, blocks_per_chunk);
+        x, partials, begin, n);
 }
 
 void acr_launch_conv3x3(float* y, const float* x,

@@ -7,8 +7,9 @@
 // 测试覆盖:
 // 1. photscal=2.0 → 每个像素值×2.0
 // 2. photscal=1.0 → 像素值不变
-// 3. photscal=0.0 → 所有像素为 0
+// 3. photscal=0.0 → 拒绝 (photscal 必须 > 0, k=0 静默产生全零输出)
 // 4. photscal=0.5 → 像素值减半
+// 4b. photscal<0 → 拒绝 (负值翻转极性无物理意义)
 // 5. 参数校验 (nullptr/非法尺寸/NaN photscal)
 // 6. Writer 元数据一致性: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → 成功
 // 7. Writer 元数据一致性: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
@@ -115,7 +116,7 @@ static void test_photscal_1x() {
 }
 
 // ============================================================================
-// 测试 3: photscal=0.0 → 所有像素为 0
+// 测试 3: photscal=0.0 → 拒绝 (photscal 必须 > 0)
 // ============================================================================
 static void test_photscal_0() {
     const int W = 4, H = 4;
@@ -124,13 +125,20 @@ static void test_photscal_0() {
     for (int i = 0; i < W * H; i++) light[i] = (float)(i + 1);  // 非零值
 
     int rc = calibration::apply_photometry(light.data(), W, H, 0.0, out.data());
-    ASSERT_TRUE(rc == 0, "photscal=0.0: 返回值=0 (成功)");
+    ASSERT_TRUE(rc == -5, "photscal=0.0: 返回值=-5 (拒绝)");
+}
 
-    bool allZero = true;
-    for (int i = 0; i < W * H; i++) {
-        if (out[i] != 0.0f) { allZero = false; break; }
-    }
-    ASSERT_TRUE(allZero, "photscal=0.0: 所有像素为 0");
+// ============================================================================
+// 测试 4b: photscal<0 → 拒绝 (photscal 必须 > 0)
+// ============================================================================
+static void test_photscal_negative() {
+    const int W = 4, H = 4;
+    std::vector<float> light(W * H);
+    std::vector<float> out(W * H);
+    for (int i = 0; i < W * H; i++) light[i] = (float)(i + 1);
+
+    int rc = calibration::apply_photometry(light.data(), W, H, -1.0, out.data());
+    ASSERT_TRUE(rc == -5, "photscal=-1.0: 返回值=-5 (拒绝)");
 }
 
 // ============================================================================
@@ -339,6 +347,7 @@ int main() {
     test_photscal_2x();
     test_photscal_1x();
     test_photscal_0();
+    test_photscal_negative();
     test_photscal_half();
     test_invalid_args();
     test_inplace();

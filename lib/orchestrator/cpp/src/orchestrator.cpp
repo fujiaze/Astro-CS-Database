@@ -3126,9 +3126,16 @@ static void write_stage_trace(DllLoader& loader, const PipelineFrame* frame,
     std::string dir = diagnostics_dir + "/trace";
     // 先创建目录再写选择集 ( G4 回归: 目录不存在时首阶段 fopen 失败,
     // 导致 drizzle 引擎 fallback 覆盖 selection)
+    // R10-B: fs::create_directories 替代 std::system("mkdir -p ...") —
+    // 原生 API 幂等(已存在不算错误)、无 shell 注入面、错误码可诊断;
+    // 失败时打印错误继续(与旧行为一致: 写入端 fopen 仍有错误路径)。
     {
-        std::string mk = "mkdir -p \"" + dir + "\"";
-        if (std::system(mk.c_str()) != 0) std::system(("mkdir \"" + dir + "\"").c_str());
+        std::error_code ec;
+        std::filesystem::create_directories(dir, ec);
+        if (ec) {
+            std::cerr << "[orchestrator] write_stage_trace: 创建目录失败 " << dir
+                      << ": " << ec.message() << std::endl;
+        }
     }
 
     // G4: 首阶段 (READ_FITS) 生成确定性像素样本集
