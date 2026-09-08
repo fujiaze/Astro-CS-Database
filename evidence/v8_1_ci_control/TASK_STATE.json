@@ -45,9 +45,9 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 64,
+  "CLOSED": 65,
   "READY": 13,
-  "NOT_STARTED": 112,
+  "NOT_STARTED": 111,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
@@ -1972,15 +1972,15 @@
   },
   "P2-INT-DOC": {
    "owner": "SA-P2-I23",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "84c6715a",
+   "evidence_path": "lib/phase2_int/; docs/algorithms/PHASE2_INTEGRATION.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json",
+   "source_of_status": "fg_verified_commit",
    "wave": "W1",
    "kind": "module-doc",
    "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "current_evidence": "commit:84c6715a traceability 29行0错 warns=4 + pytest 9P + contract_graph 66 + doc_index PASS + selfcheck 38项 ALL PASS；矩阵13行原位融合",
+   "note": "module-doc 冻结; SCI-INT-001 共享 FROZEN 零改动; 零权重边界五态状态机+并行tolerance=1..N bitwise 冻结; 可执行 TEST-P2-INT-001 MISSING 归 P2-INT-TEST; dll/ThreadLease/DISP-P2INT-001 整改归 P2-INT-IMPL; descriptor 对齐归 P2-XX-INT"
   },
   "P2-INT-TEST": {
    "owner": "SA-P2-I23",
