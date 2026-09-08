@@ -96,6 +96,9 @@ doc_index:
       notes: "P1-NOISE-DOC 冻结（2026-09-07）：§13 CONTRACT_READY 增补（逐符号源码锚 §13.1 / DISP-NOISE-001..009 §13.3 / TEST-NOISE-DESIGN-001 §13.4），ALG-NOISE-001..003 根公式不变"
     - path: "docs/algorithms/PHASE2_SAMPLER.md"
       status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/PHASE2_REJECTION.md"
+      status: ACTIVE_NORMATIVE
+      notes: "P2-REJ-DOC 冻结 (6f668c87, 控制包 15/140 wave W1): ALG-P2-REJ-001 四拒绝统计定义(F1 sigma_clipping/F5 winsorized_sigma/F7 linear_fit/F8 generalized ESD)逐公式源码行号锚定(reject.cpp :1285-1479/:1482-1552)+NaN 传播与确定性判定冻结+DATA-P2-REJ(§22)/API-P2-REJ-001/trace; oracle 仅 Siril 1.4.3/RCR 2.4.7 官方 harness 逐位核对(ORACLE ONLY, 非产品版本引用)"
     - path: "docs/algorithms/PHASE2_COVERAGE.md"
       status: ACTIVE_NORMATIVE
       notes: "P2-COV-DOC 冻结 (2026-09-07, SA-P2-S20): ALG-COV-001 coverage union/target_order 逐公式源码行号锚定(coverage.cpp:20/59/144/233)+三概念分离与 no-use-as-weight 负向条款(§7)+DISP-COV-001..005(§11.3)+TEST-COV-DESIGN-001 冻结容差(§11.4)+SCI 层零改动声明(§11.5, SCI-P2-COV-001→共享 FROZEN PHASE2_UPM/INTEGRATION)"
