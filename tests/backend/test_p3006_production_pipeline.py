@@ -16,8 +16,11 @@ CLI-002 迁移注记 (commit de2d6d7f):
   - 资源门阈值 = 0.80*min(selected_workers, available_cpus), 而 session budget 恒
     2 workers; 在多核宿主机上 available_cpus 抬高阈值导致 run 被结构性拒绝(exit 10)。
     本测试按原始 CI 2c2g 设计语境, 以 2-CPU 亲和(fixture_common.two_cpu_preexec)
-    恢复 budget/available 一致 —— 环境适配, 非语义放宽。实测: 1200x1200 bilinear
-    大图在 2c 亲和下 wall≈13s, avg≈1.8 核 ≥ 0.8*2, verdict ok。
+    恢复 budget/available 一致 —— 环境适配, 非语义放宽。
+    时长锚(R20 CI 残余收敛): 冻结规格(控制包 04 §P3-006)原文"完整合成运行≥10s"——
+    10s 是冻结验收锚, 不放宽断言; hosted 宿主快于原始 CI 2c2g 设计机属于环境差异,
+    修法是放大合成大图(1200²→1400², 计算量 +36%)使完整运行重回 ≥10s,
+    同时保持 2c 亲和下资源门 verdict ok 语境不变。
 """
 import json
 import os
@@ -48,7 +51,7 @@ class TestP3006ProductionPipeline(unittest.TestCase):
                "inputs": {"lights": [cls.hips], "darks": [], "flats": [], "bias": []},
                "phase3": {"source": {"hips_dir": cls.hips},
                           "center": {"ra_deg": 0.0, "dec_deg": 30.0},
-                          "scale_deg_per_px": 0.002, "width_px": 1200, "height_px": 1200,
+                          "scale_deg_per_px": 0.002, "width_px": 1400, "height_px": 1400,
                           "sampler": "bilinear", "projection": "TAN",
                           "coverage_output": "mask", "output_dir": cls.big},
                "output_dir": cls.big}

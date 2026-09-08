@@ -126,7 +126,9 @@ class TestPhase2InProcess(unittest.TestCase):
         bad2 = os.path.join(self.tmp, "badjson.json")
         open(bad2, "w").write("{oops")
         r2 = self._run("phase2", "run", "--config", bad2)
-        self.assertEqual(r2.returncode, 2)
+        # 坏 JSON → 3(INPUT): validate_config_full 解析失败即 INPUT
+        # (CLI_PROTOCOL_V1 §2: 3=输入缺失、格式或 hash 错; 生产 parser 语义一致)
+        self.assertEqual(r2.returncode, 3)
         # 缺 output_dir → 2(validate 拒绝, 无 silent default)
         bad3 = os.path.join(self.tmp, "nodir.json")
         json.dump({"hips_paths": [os.path.join(self.data, "F1.hips")]}, open(bad3, "w"))

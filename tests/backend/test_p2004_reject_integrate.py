@@ -140,7 +140,7 @@ class TestP2004RejectIntegrate(unittest.TestCase):
         incs = [f"-I{os.path.join(REPO, 'include')}",
                 f"-I{os.path.join(REPO, 'lib', 'phase2', 'include')}",
                 f"-I{os.path.join(REPO, 'lib', 'common')}",
-                f"-I{os.path.join(REPO, 'third_party', 'nlohmann')}"]
+                f"-I{os.path.join(REPO, 'third_party')}"]
         srcs = [os.path.join(REPO, "lib", "phase2", "src", "rejection.cpp"),
                 os.path.join(REPO, "lib", "phase2", "src", "integrate.cpp"),
                 os.path.join(REPO, "lib", "phase2", "src", "stage2_common.cpp")]
