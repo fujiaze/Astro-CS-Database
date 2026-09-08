@@ -10,9 +10,42 @@ namespace {
 using std::size_t;
 
 /* 并行外层: [0,n) 分 workers 个连续行带; 全或无租借, 失败减半, 1=串行兜底。
- * body(y0, y1, tid): 左闭右开。返回实际 worker 数。 */
+ * body(y0, y1, tid): 左闭右开。返回实际 worker 数。
+ * 错误收敛: worker body 与串行 body 内的异常在 run_banded 内 try/catch 收敛为
+ * ACS_ERR_INTERNAL(对齐 f1cb487c P0-4 C 边界异常屏障口径: catch→结构化错误码,
+ * 不外泄异常/STL 类型)——异常若从 std::thread body 逃逸将 std::terminate,
+ * 且会穿越 extern "C" kernel fn 边界跨 ABI(冻结约束 F.3 禁止); 置位后由
+ * kernel_dispatch 统一返回错误码, worker 数保持不变。 */
+inline acs_status run_body_guarded(
+        const astrocs_host_services_v1* host,
+        const std::function<void(uint32_t, uint32_t, uint32_t)>& body,
+        uint32_t y0, uint32_t y1, uint32_t tid) {
+#if defined(ASTROCS_NO_EXCEPTIONS)
+    (void)host;
+    body(y0, y1, tid);
+    return ACS_OK;  // -fno-exceptions 编译时异常不存在, 直调
+#else
+    try {
+        body(y0, y1, tid);
+        return ACS_OK;
+    } catch (const std::exception&) {
+        if (host != nullptr && host->logger.log != nullptr)
+            host->logger.log(host->logger.user_data, ACS_LOG_ERROR, "baseline",
+                             "kernel body exception");
+        return ACS_ERR_INTERNAL;  // 边界处转结构化错误码, 不外泄异常/STL 类型
+    } catch (...) {
+        if (host != nullptr && host->logger.log != nullptr)
+            host->logger.log(host->logger.user_data, ACS_LOG_ERROR, "baseline",
+                             "kernel body unknown exception");
+        return ACS_ERR_INTERNAL;
+    }
+#endif
+}
+
 uint32_t run_banded(const astrocs_host_services_v1* host, uint32_t n,
-                    const std::function<void(uint32_t, uint32_t, uint32_t)>& body) {
+                    const std::function<void(uint32_t, uint32_t, uint32_t)>& body,
+                    acs_status* err) {
+    *err = ACS_OK;
     uint32_t cap = host->budget.max_workers;
     if (cap < 1) cap = 1;
     uint32_t workers = 1;
@@ -24,10 +57,10 @@ uint32_t run_banded(const astrocs_host_services_v1* host, uint32_t n,
         workers >>= 1;                                   // 预算不足 → 减半(05 §6 保守)
     if (workers <= 1) {
         if (host->budget.acquire(host->budget.user_data, 1) == 0) {
-            body(0, n, 0);
+            *err = run_body_guarded(host, body, 0, n, 0);
             host->budget.release(host->budget.user_data, 1);
         } else {
-            body(0, n, 0);                               // 预算耗尽仍须可跑(串行)
+            *err = run_body_guarded(host, body, 0, n, 0);  // 预算耗尽仍须可跑(串行)
         }
         return 1;
     }
@@ -35,13 +68,19 @@ uint32_t run_banded(const astrocs_host_services_v1* host, uint32_t n,
     std::vector<uint32_t> start(workers + 1, 0);
     for (uint32_t t = 0; t < workers; ++t)
         start[t + 1] = start[t] + base + (t < rem ? 1u : 0u);
+    std::atomic<acs_status> band_err{ACS_OK};            // 唯一跨线程共享(原子)
     std::vector<std::thread> ths;
     ths.reserve(workers - 1);
     for (uint32_t t = 1; t < workers; ++t)
-        ths.emplace_back([&body, &start, t]() { body(start[t], start[t + 1], t); });
-    body(start[0], start[1], 0);                         // 主线程承担 tid0
-    for (auto& th : ths) th.join();
+        ths.emplace_back([&body, &start, t, host, &band_err]() {
+            const acs_status rc = run_body_guarded(host, body, start[t], start[t + 1], t);
+            if (rc != ACS_OK) band_err.store(rc, std::memory_order_relaxed);
+        });
+    const acs_status rc0 = run_body_guarded(host, body, start[0], start[1], 0);  // 主线程承担 tid0
+    if (rc0 != ACS_OK) band_err.store(rc0, std::memory_order_relaxed);
+    for (auto& th : ths) th.join();                      // join 同步点: 之后单线程
     host->budget.release(host->budget.user_data, workers);
+    *err = band_err.load(std::memory_order_relaxed);     // join 后单次写 out 参数
     return workers;
 }
 
@@ -261,7 +300,9 @@ acs_status kernel_dispatch(const astrocs_host_services_v1* host,
     }
 
     OpComputer comp{&P, frames};
-    const uint32_t used = run_banded(host, N, comp);
+    acs_status band_err = ACS_OK;
+    const uint32_t used = run_banded(host, N, comp, &band_err);
+    if (band_err != ACS_OK) return band_err;   // body 异常已收敛为错误码, 不跨边界
     g_last_workers_used.store(used, std::memory_order_relaxed);
     // workers_used 写回调用方 params(唯一允许的写回字段; 其余保持 const)
     auto* mp = const_cast<acs_baseline_params_v1*>(
