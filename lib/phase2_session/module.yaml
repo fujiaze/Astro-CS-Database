@@ -1,0 +1,109 @@
+# AstroCS phase2 session 模块 — 元数据 (P2-SESSION-DOC 冻结, 2026-09-10)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase2_session/p2_session.cpp
+# 282 行 + 唯一权威签名头 lib/phase2_session/p2_session.h 39 行，行号
+# grep/read 实测 2026-09-10；构建挂载: 根 CMakeLists.txt:454
+# add_library(astrocs_phase2_session STATIC ...) + :455-457 include +
+# :458 target_link_libraries(astrocs_contracts astrocs_phase2)；编入
+# astrocs 可执行 :501-506/:504 + QA-001 严格警告层 :517-529/:522），
+# 模块化迁移（独立迁移目标 astrocs_p2_session.dll / plan-execute-
+# cancel-inspect / ThreadLease 接线）由 P2-SESSION-IMPL 执行；
+# 可执行测试由 P2-SESSION-TEST 建立（TEST-P2-SESSION-001 MISSING，
+# 不冒认；设计冻结=docs/algorithms/PHASE2_SESSION.md §11.5）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为
+# 源码核对清单（P2-SESSION-DOC 2026-09-10 grep 实测），禁止手抄他版。
+# 本三件套落位于既有生产源目录 lib/phase2_session/（先例=
+# lib/phase1_session/ P1-SESSION-DOC 同址布局，不同于 lib/phase2_rej/
+# 的独立迁移空目录先例）；memory.md 归主 agent 登记。
+# dll_target=astrocs_p2_session.dll 为迁移目标合同值（尚未存在，
+# MISSING 如实登记）；现状构建=根 CMakeLists.txt astrocs_phase2_
+# session 静态库编入 astrocs 可执行（:501-506）。
+# entrypoint=MISSING：registry 无 astrocs.p2.session module_id 的
+# descriptor——p2_session 五函数经 P2Api（lib/core/src/
+# module_adapters.cpp:711-718 五静态委托）被占位 descriptor 工厂
+# 委托：phase2_descriptor()（:283-300，module_id=astrocs.phase2.
+# resample，占位词汇 sci_id=SCI-P2-RES-001/alg_id=ALG-P2-RES-001/
+# data_id=DATA-P2-RES/api_id=API-P2-001/test_id=TEST-P2-RES-001）
+# 注册段 :746-751，及 P2-006 canonical 7 节点链 descriptors
+# （:561-694）注册段 :782-794，无第二调度顺序。占位词汇为编排层
+# 词汇，由 P2-XX-INT 对齐本 manifest 与 registry 页（并行任务生成），
+# 不得反向作为冻结依据（API-P2-SESSION-001/DATA-P2-SESSION 契约面
+# 见 docs/algorithms/PHASE2_SESSION.md §4/§12）。
+# 已知缺陷（登记不改码，整改归 P2-SESSION-IMPL/TEST）：validate 未
+# 拒未知键（DISP-P2SES-001，与 p2_session.h:19 注释出入）；run 异常
+# 面穿越 C ABI 风险（DISP-P2SES-002）；取消后 manifest 顶层状态歧义
+# （DISP-P2SES-003）；persist 组合静默跳过（DISP-P2SES-004）；UPM
+# 常量硬编码不可配（DISP-P2SES-005）；error_kind 粗粒度
+# （DISP-P2SES-006）；probe/fill 部分失败容错未合同化
+# （DISP-P2SES-007）；预算绑定头注释陈旧（DISP-P2SES-008）。
+# 取消/预算绑定：取消点=四段边界（coverage/sample/upm_build/persist，
+# p2_session.h:22；upm 段整模型不写半成品）；worker 数恒经
+# host->budget 注入域内 C API（sc.cpu_workers :155 / uc.cpu_workers
+# :195，零硬编码），threading_model=host_executor_lease 为迁移目标
+# 合同值；handle 级 threadsafe:no / reentrant:yes（p2_session.h:16）。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase2-session
+module_id: astrocs.p2.session
+owner: SA-P2-X24
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase2
+dll_name: astrocs_p2_session.dll
+dll_target: astrocs_p2_session.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [coverage, sample, upm_build, persist]
+input_ports:
+  - hips_paths
+  - config_json
+output_ports:
+  - manifest_json
+  - upm_model
+science_contracts:
+  - SCI-UPM-001
+  - SCI-INT-001
+  - SCI-REJ-001
+algorithm_contracts:
+  - ALG-P2-SESSION-001
+data_contracts:
+  - DATA-P2-SESSION
+api_contracts:
+  - API-P2-001
+  - API-P2-SESSION-001
+doc_links:
+  sci: "docs/science/PHASE2_UPM.md"
+  alg: "docs/algorithms/PHASE2_SESSION.md"
+  data: "docs/contracts/DATA_SEMANTICS.md#§24"
+  api: "docs/contracts/PUBLIC_API.md#API-P2-SESSION-001"
+contract_ids:
+  sci: SCI-UPM-001
+  alg: ALG-P2-SESSION-001
+  data: DATA-P2-SESSION
+  api: API-P2-SESSION-001
+  arch: ARCH-001
+  test: TEST-P2-SESSION-001
+source_symbols:
+  - p2_session_create
+  - p2_session_validate
+  - p2_session_run
+  - p2_session_inspect
+  - p2_session_destroy
+test_ids:
+  - TEST-P2-SESSION-001
+threading_model: host_executor_lease
+resource_class: cpu
+cpu_providers: [baseline]
+determinism: stage_sequenced
+scientific_change: false
+depends_on:
+  - astrocs_phase2
+legacy_paths: lib/phase2_session
+known_defects:
+  - DISP-P2SES-001
+  - DISP-P2SES-002
+  - DISP-P2SES-003
+  - DISP-P2SES-004
+  - DISP-P2SES-005
+  - DISP-P2SES-006
+  - DISP-P2SES-007
+  - DISP-P2SES-008
