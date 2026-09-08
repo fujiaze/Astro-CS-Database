@@ -1,6 +1,7 @@
 // lib/phase2/include/astro/phase2/rejection.h
 //
 // Phase2 Rejection Framework 公共接口。
+// Trace: ALG-P2-REJ-001（TRACEABILITY_MATRIX MOD-astrocs-phase2-reject 行）。
 //
 // 语义：
 // - 输入分三层：

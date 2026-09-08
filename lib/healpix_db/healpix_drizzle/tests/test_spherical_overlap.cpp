@@ -1022,7 +1022,7 @@ static void test_drop_polygon_subdivision() {
                area1, area8, area64);
         printf("             err(4v)=%.6e, err(32v)=%.6e\n", err1, err8);
 
-        // F-V19R2-DRZ-001：小像素（~3.2e-8 sr）下面积差在 float64
+        // F-V19R2-DRZ-001（冻结验证记录）：小像素（~3.2e-8 sr）下面积差在 float64
         // ~1e-17（相对 ~3e-10）量级振荡，samples=1/8 的严格单调性在该
         // 尺度不可判定（实测 err8=1.25e-17 > err1=8.08e-18）。
         // 科学要求：两种采样密度都必须低于绝对上界 1e-9 sr。

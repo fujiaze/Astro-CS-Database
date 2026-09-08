@@ -34,7 +34,13 @@ def main():
         import subprocess, json as js
         out = subprocess.check_output([sys.executable, str(repo / "tools/quality/extract_cpp_api.py"), "--repo", str(repo)], text=True)
         ast = js.loads(out)
-        ast_syms = {r["symbol"]: r for r in ast.get("symbols", [])}
+        # 同名 symbol 多条(如 CodecRegistry::instance 与 Logger::instance,
+        # 或两个 typedef 均名为 void)——dict 后写覆盖前写会把 CSV 记录的另一条
+        # 判成 API-SIG-TEXT。按 (symbol, header) 保留全部实测, 查找时按 CSV
+        # 声明的 header 精确匹配, 再退化到同名任一条。
+        ast_syms = {}
+        for r in ast.get("symbols", []):
+            ast_syms.setdefault(r["symbol"], []).append(r)
     except Exception as e:
         print(f"ENV error loading AST: {e}", file=sys.stderr); return 2
     findings = []
@@ -90,14 +96,23 @@ def main():
                 status="FAIL"
                 continue
         # Locate the actually-extracted signature in headers
+        # 匹配序: 同名且同 header 文件 → 同名任一条签名相等 → 同名首条
+        # (等价旧 dict 行为)。CSV header 列是权威定位, 消重名覆盖误判。
         sig_base = None
         ast_sig = None
         if sym in ast_syms:
-            ast_sig = ast_syms[sym].get("signature")
+            same_hdr = [r for r in ast_syms[sym] if r.get("header") == hdr]
+            if same_hdr:
+                ast_sig = same_hdr[0].get("signature")
+            elif any(normalize_sig(sig) == normalize_sig(r.get("signature")) for r in ast_syms[sym]):
+                ast_sig = next(r.get("signature") for r in ast_syms[sym]
+                               if normalize_sig(sig) == normalize_sig(r.get("signature")))
+            else:
+                ast_sig = ast_syms[sym][0].get("signature")
         else:
             sig_base = sym.split("::")[-1]
             if sig_base in ast_syms:
-                ast_sig = ast_syms[sig_base].get("signature")
+                ast_sig = ast_syms[sig_base][0].get("signature")
         if not ast_sig:
             findings.append({"id":"API-SIG-NOREF","severity":"P1","file":str(api_csv),"line":i,"symbol":sym,"header":hdr,"observed":"no measured signature in headers","expected":"extractable signature"})
             status="FAIL"

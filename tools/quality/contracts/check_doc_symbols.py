@@ -6,6 +6,21 @@ Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 schema error
 """
 import argparse, json, pathlib, re, sys, csv
 
+
+def _defined_in_public_header(repo: pathlib.Path, token: str) -> bool:
+    """token 是否在 lib/** 公开头中真实定义(枚举常量/宏/标识符级核实)。"""
+    import os
+    for h in list((repo / "lib").rglob("*.h")) + list((repo / "include").rglob("*.h")):
+        if "third_party" in str(h) or "archive" in str(h):
+            continue
+        try:
+            if re.search(r"\b" + re.escape(token) + r"\b", h.read_text(encoding="utf-8", errors="ignore")):
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", default=".")
@@ -43,6 +58,10 @@ def main():
             # Skip obvious non-symbol tokens (plain english, too short, contains spaces)
             if " " in token and "/" not in token: continue
             if token.startswith("http"): continue
+            # 多行反引号是代码/正文块, 不是文件路径引用 — 跳过。
+            # 不跳过时整段文本进入 os.stat(Errno 36 file name too long)
+            # 或误判 DOC-BAD-FILE(Windows CI R8 实测 4 例)。
+            if "\n" in token: continue
             # Skip composite file lists like rejection.cpp/integrate.cpp
             if "/" in token and ".cpp" in token:
                 parts = token.split("/")
@@ -64,6 +83,16 @@ def main():
                             found = True
                         alt2 = repo / "lib" / token
                         if alt2.exists():
+                            found = True
+                    if not found:
+                        # 文档常写模块内相对路径(如 healpix_drizzle/xxx.cpp,
+                        # 真实位于 lib/healpix_db/healpix_drizzle/) — 以
+                        # known_files 后缀匹配兜底(消 Windows CI R8 实测误报)。
+                        if not found and any(k.endswith("/" + token) for k in known_files):
+                            found = True
+                    if not found:
+                        # 占位符路径(如 <out_hips>/diagnostics.json)非真实引用
+                        if "<" in token or ">" in token:
                             found = True
                     if not found:
                         # Allow if is archive-excluded doc
@@ -112,6 +141,11 @@ def main():
                         # Only flag UPPER_CASE or known API prefix; lowercase vars like t_light/hp_res are sci params not API symbols
                         is_api_like = (token.isupper() and "_" in token and len(token) >= 6) or token.startswith(("p2_","aio_","ac_","cc_","dpsf_","sdet_","ipv_","pc_","snr_","gaia_"))
                         if is_api_like:
+                            # 公开头内真实定义的枚举常量/宏是合法公开符号
+                            # (api_inventory 只登记函数签名) — 库头全文核实放行
+                            # (Windows CI R8 实测误报 AIO_HIPS_RD_IVAR/SNR)。
+                            if _defined_in_public_header(repo, token):
+                                continue
                             findings.append({"id":"DOC-BAD-SYMBOL","severity":"P1","file":str(doc.relative_to(repo)),"symbol":token,"observed":"symbol not in API inventory","expected":"exists"})
                             status="FAIL"
     # Check archive symbols should not be in active docs (exclude archive docs themselves)

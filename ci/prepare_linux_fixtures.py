@@ -120,7 +120,11 @@ def write_config() -> None:
             "projection": "TAN",
             "sampler": "nearest",
             "coverage_output": "mask",
-            "max_tiles": 64,
+            # P3-006/DOC-003 内存守卫: 40x30 视场默认 max_tiles=min(1024,
+            # ceil(W·H/512²)+16)=17; 显式 64 是残方, phase3 run 触发
+            # ACS_ERR_BUDGET(5) → UT-BACKEND p1004 test_02/03 CI 恒败。
+            # 与 tests/backend/test_p1004_joint_gate.py::_ensure_mon001_fixture
+            # 语义对齐: 不设该键取默认。
         },
     }
     CFG.write_text(json.dumps(cfg, ensure_ascii=False, indent=1) + "\n",

@@ -1,5 +1,7 @@
 // ============================================================================
 // candidate_oracle_test.cpp - 快速候选零漏选 Oracle 矩阵 ( CANDIDATE_TEST_MATRIX)
+// Trace: SCI-DRZ-001 / ALG-DRZ-001（docs/science/DRIZZLE.md,
+// docs/algorithms/DRIZZLE_GEOMETRY.md）。
 //
 // Oracle: 小 NSIDE 全像素穷举 — 对每个 HEALPix 像素计算 compute_overlap_area_g
 // > 0 即为真集合 (false negatives 定义基准)
