@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -125,11 +126,26 @@ static const json* stage_by_name(const json& mf, const char* name) {
 }
 
 int main() {
+    // Windows CI 兼容(WR9): TMPDIR 在 hosted Windows 未设, "/tmp" 不可写且
+    // rm -rf/mkdir -p 是 POSIX 命令(cmd.exe 报 "The syntax of the command
+    // is incorrect.") → fixture 目录缺失, light1.fts open failed → ctest
+    // exit 8。改 C++17 std::filesystem: 临时目录取 TMPDIR>TEMP>TMP>"."。
+    // 断言语义零变更(仅 fixture 布置)。
     const char* d = std::getenv("TMPDIR");
-    const std::string base = (d ? d : std::string("/tmp")) + "/astrocs_p1_batchD_test";
+    const char* w = std::getenv("TEMP");
+    const char* w2 = std::getenv("TMP");
+    const std::string tmp_root = (d ? d : (w ? w : (w2 ? w2 : ".")));
+    const std::string base = tmp_root + "/astrocs_p1_batchD_test";
     const std::string out_dir = base + "/out";
-    std::system(("rm -rf '" + base + "'").c_str());
-    std::system(("mkdir -p '" + out_dir + "'").c_str());
+    {
+        std::error_code ec;
+        std::filesystem::remove_all(base, ec);
+        std::filesystem::create_directories(out_dir, ec);
+        if (ec) {
+            std::fprintf(stderr, "fixture mkdir failed: %s\n", out_dir.c_str());
+            return 2;
+        }
+    }
     const std::string light = base + "/light1.fts";
     write_fits_8x8(light, 100.0f);
 

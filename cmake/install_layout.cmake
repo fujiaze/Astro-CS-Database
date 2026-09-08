@@ -89,7 +89,22 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/packaging/schemas/
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/packaging/licenses/
   DESTINATION ${ASTROCS_INSTALL_LICENSE_SUBDIR}
   COMPONENT astrocs_runtime)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/astrocs.product.json
-  DESTINATION . COMPONENT astrocs_runtime)
+if(WIN32)
+  # WIN-PACKAGE 修复(R10 34179477866 实证): packaging/astrocs.product.json 是
+  # BLD-003 Linux 技术预览骨架(platform=linux-amd64, rel_path=astrocs/
+  # libastrocs_runtime.so/...)。Windows 安装树无条件装它后, candidate 根的
+  # astrocs.exe modules list/verify/selftest 读到 Linux rel_path →
+  # missing_unit_file → 退出 5(ACR BACKEND)。MSVC configure 期生成 Windows
+  # 正式形态 manifest(03 §4)并安装生成物; Linux 维持骨架文件不变。
+  configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/astrocs.product.windows.json.in
+    ${CMAKE_CURRENT_BINARY_DIR}/astrocs.product.json
+    @ONLY)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/astrocs.product.json
+    DESTINATION . COMPONENT astrocs_runtime)
+else()
+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/astrocs.product.json
+    DESTINATION . COMPONENT astrocs_runtime)
+endif()
 
 message(STATUS "BLD-003 install layout ready (module_dir=${ASTROCS_INSTALL_MODULE_SUBDIR} provider_dir=${ASTROCS_INSTALL_PROVIDER_SUBDIR})")
