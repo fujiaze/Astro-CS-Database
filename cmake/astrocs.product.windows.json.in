@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "product_version": "@ASTROCS_BASE_VERSION@",
+  "source_commit": "@ASTROCS_GIT_COMMIT@",
+  "platform": "windows-amd64",
+  "note": "Windows 安装树产品 manifest — cmake/install_layout.cmake MSVC 分支于 configure 期生成(03 §4 Windows 正式形态: astrocs.exe / astrocs_runtime.dll / astrocs_io.dll / modules/astrocs_noop.dll / providers/astrocs_cpu_baseline.dll)。Linux 技术预览骨架仍由 packaging/astrocs.product.json 承担, 本文件只服务 WIN-* 安装树。sha256 由 ABI-004/打包填充(与 Linux 骨架同约定); status 枚举遵 astrocs-product.schema.json(SKELETON/IMPLEMENTED)。",
+  "units": [
+    {"unit_id": "PLATFORM-CLI", "kind": "exe", "rel_path": "astrocs.exe", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED"},
+    {"unit_id": "PLATFORM-RUNTIME", "kind": "runtime", "rel_path": "astrocs_runtime.dll", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED"},
+    {"unit_id": "PLATFORM-IO", "kind": "io", "rel_path": "astrocs_io.dll", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED"},
+    {"unit_id": "MOD-NOOP", "kind": "module", "rel_path": "modules/astrocs_noop.dll", "abi_version": 1, "module_id": "astrocs.noop", "sha256": null, "status": "IMPLEMENTED"},
+    {"unit_id": "PROV-CPU-BASELINE", "kind": "provider", "rel_path": "providers/astrocs_cpu_baseline.dll", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED"}
+  ]
+}
