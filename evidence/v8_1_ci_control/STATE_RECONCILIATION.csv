@@ -166,7 +166,7 @@ P2-HIPS-DOC,module-doc,NOT_STARTED,commit:c0b464cf traceability 29行0错 warns=
 P2-HIPS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-HIPS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P2-HIPS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
-P3-PROJ-DOC,module-doc,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P3-PROJ-DOC,module-doc,docs_complete,"五门复跑PASS:矩阵30/0/4+pytest9+contracts=90+docindex+selfcheck;红线零改动",CLOSED,fg_machine_verified,de15efc9,run/local/agent_p3_proj_doc/,"PA未接线等5项偏差登记;SIN等扩展归P3-PROJ-IMPL/TEST;module_id权威=astrocs.p3.projection"
 P3-PROJ-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-PROJ-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P3-PROJ-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,

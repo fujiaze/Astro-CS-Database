@@ -2068,15 +2068,15 @@
   },
   "P3-PROJ-DOC": {
    "owner": "SA-P3-P25",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "de15efc9",
+   "evidence_path": "run/local/agent_p3_proj_doc/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W1",
    "kind": "module-doc",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "review_claim": "docs_complete",
+   "current_evidence": "五门复跑PASS:矩阵30/0/4+pytest9+contracts=90(86+4)+docindex pass=true+selfcheck ALL PASS;红线(docs/science|lib/phase2|lib/phase3_session)零改动;三件套+ALG-P3-PROJ-IMPL-001+§28+API节+INDEX+4+wcs registry手写页+矩阵行(SRC path::symbol VERIFIED,可执行测试MISSING归P3-PROJ-TEST)",
+   "note": "PA未接线/kMaxSide覆盖/TAN现行硬编码/DLL未建等5项实测偏差登记;SIN/ZEA/CAR/AIT+golden vectors归P3-PROJ-IMPL/TEST;module_id权威=astrocs.p3.projection"
   },
   "P3-PROJ-TEST": {
    "owner": "SA-P3-P25",
