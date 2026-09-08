@@ -299,6 +299,16 @@ target_include_directories(mon002_gate_test PRIVATE
 target_link_libraries(mon002_gate_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME mon002_gate COMMAND mon002_gate_test)
 
+# MON-002 (G3, V7 04_CPU_RESOURCE_TASKS): RSS/allocation report 内存泄露/增长检测
+# (定期采样 RSS/private/commit/allocator outstanding; cache/高水位/工作集三分类;
+# 结束回落验证; 原始曲线; 哨兵纪律; 注入leak失败/伪造monitor/格式篡改负向)
+add_executable(mon002_alloc_test mon002_alloc_test.cpp)
+target_include_directories(mon002_alloc_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+target_link_libraries(mon002_alloc_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME mon002_alloc COMMAND mon002_alloc_test)
+
 # MON-001 (G3, V7.1): 资源阈值判定(监控缺失FAIL/70%样本U>=0.75/队列10s U<0.50/
 # utilization_value 无硬编码分母/哨兵自洽)
 add_executable(mon001_gate_test mon001_gate_test.cpp)
@@ -415,6 +425,17 @@ add_subdirectory(../../lib/calibration/tests/p1cal p1cal)
 # 被测面为 astrocs_calibration 的 ac_correct_frame(+_f64) 现状生产实现。
 # ----------------------------------------------------------------------------
 add_subdirectory(../../lib/cosmetic/tests/p1cos p1cos)
+
+# ----------------------------------------------------------------------------
+# P1-DRZ-TEST (TEST-P1-DRZ-001, 控制包 queue 37, lock-P1-DRZ) —
+# lib/healpix_db/healpix_drizzle 可复用验证面。结构与注册详见
+# lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt (FIX-DRZ-A..F
+# fixture / 独立 oracle / negative / performance / 故障注入自检); 合同锚
+# ALG-DRZ §9 TEST-DRZ-DESIGN-001 (P1-DRZ-DOC 冻结) + SCI-DRZ-001 §5/§7/§8。
+# 注意: p1drz_selfcheck_test 与 p1drz_tests 共享 p1drz_tests_core.cpp TU;
+# 域基线 09ee5363 (NaN/Inf 传播), 与 drizzle_nonfinite_test 互补不重复。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/healpix_db/healpix_drizzle/tests/p1drz p1drz)
 
 add_executable(p1_stars_test p1_stars_test.cpp)
 target_include_directories(p1_stars_test PRIVATE
@@ -685,3 +706,27 @@ if(Python3_Interpreter_FOUND)
 else()
   message(WARNING "gaia_cat_oracle skipped: Python3 interpreter not found")
 endif()
+
+# ----------------------------------------------------------------------------
+# CAT-GAIA-IMPL (SA-CATG-I): 模块适配器测试 — astrocs_catalog_gaia DLL
+#   共址直接路径 (#include gaia_client.c, 无 alloc 钩子) vs DLL C ABI 适配器:
+#   入口契约/导出面净化(legacy 符号不得 dlsym)/describe/validate 负例/
+#   plan 真实 work_units/五 op direct-vs-plugin bitwise/executor 租借/
+#   预算耗尽/host cancel 文件边界取消/inspect。DLL 经测试环境变量加载
+#   (生成器表达式, 兼容含空格构建路径)。fixture 复用 gaia_cat_fixtures。
+# ----------------------------------------------------------------------------
+add_executable(gaia_adapter_test gaia_adapter_test.c)
+target_include_directories(gaia_adapter_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${GAIA_CAT_DATA}/inc)
+if(OpenMP_C_FOUND)
+  target_link_libraries(gaia_adapter_test PRIVATE OpenMP::OpenMP_C)
+endif()
+target_link_libraries(gaia_adapter_test PRIVATE z m Threads::Threads)
+add_dependencies(gaia_adapter_test gaia_cat_fixtures astrocs_catalog_gaia)
+add_test(NAME gaia_cat_adapter
+  COMMAND gaia_adapter_test ${GAIA_CAT_CLEAN})
+set_tests_properties(gaia_cat_adapter PROPERTIES
+  ENVIRONMENT "ASTROCS_GAIA_DLL_PATH=$<TARGET_FILE:astrocs_catalog_gaia>")

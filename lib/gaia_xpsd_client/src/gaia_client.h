@@ -24,11 +24,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/* CAT-GAIA-IMPL: GAIA_EXPORT 允许构建方预定义覆盖——模块 DLL target
+ * astrocs_catalog_gaia 编译本生产源时以 -DGAIA_EXPORT= 将 12 个 legacy
+ * 符号本地化（导出面仅 astrocs_module_query_v1，12 §1 / ABI-006）；
+ * 未定义时保持原语义（legacy 测试/上游 Makefile 不受影响）。 */
+#ifndef GAIA_EXPORT
 #ifdef _WIN32
 #define GAIA_EXPORT __declspec(dllexport)
 #else
 #define GAIA_EXPORT __attribute__((visibility("default")))
 #endif
+#endif /* GAIA_EXPORT */
 
 typedef enum {
     GAIA_DB_AUTO = 0,
@@ -127,6 +133,30 @@ GAIA_EXPORT int gaia_client_get_spectrum_params(
     int *out_start_nm,
     int *out_step_nm,
     int *out_count);
+
+/* ═════ CAT-GAIA-IMPL 模块内部接口（非导出面：无 GAIA_EXPORT，DLL 内可见） ═════
+ * 仅供同 DLL 的 C ABI adapter（module_entry.c）与共址测试使用；legacy 调用方
+ * 不受影响。plan 统计=只读元数据遍历（不解压数据块），cancel/租借=迁移桥段。 */
+
+/* plan() 输入元数据统计（GAIA_QUERY.md §3.1：work_units 由叶块推导） */
+typedef struct {
+    int file_count;               /* XPSD 文件数（并行轴=文件, max_workers 上限） */
+    int db_type;                  /* 检测出的 GaiaDbType */
+    int spec_file_count;          /* 含光谱文件数 */
+    long long leaf_blocks;        /* Σ 叶块数（work_units 基本单位） */
+    long long work_units_bytes;   /* Σ 叶块未压缩字节（IO/解压工作量估计） */
+    long long compressed_bytes;   /* Σ 叶块压缩字节（磁盘读取量估计） */
+    long long mmap_bytes;         /* Σ mmap 只读映射字节（常驻内存估计） */
+    long long max_block_bytes;    /* max(global_max_block_size)（每 worker scratch） */
+} GaiaPlanStats;
+
+int gaia_client_collect_plan_stats(GaiaClient *client, GaiaPlanStats *out_stats);
+
+/* worker 租借注入：execute 期生效（0=历史默认 OpenMP team，direct 路径不变） */
+void gaia_set_worker_lease(int threads);
+
+/* cancel 检查点注入：文件循环边界轮询（NULL=关闭，历史行为） */
+void gaia_set_cancel_checkpoint(int (*poll_fn)(void *user_data), void *user_data);
 
 #ifdef __cplusplus
 }

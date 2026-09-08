@@ -171,6 +171,11 @@ endif()
 # BLD-002: 子目录 CMakeLists 非产品事实源; 见 modules/conformance/noop/README)
 add_subdirectory(modules/conformance/noop)
 
+# astrocs_catalog_gaia: GAIA XPSD catalog service module DLL (CAT-GAIA-IMPL;
+# 矩阵行 astrocs.catalog.gaia / astrocs_catalog_gaia.dll)。唯一导出
+# astrocs_module_query_v1; legacy 符号经 GAIA_EXPORT= 本地化 (模块 CMakeLists)。
+add_subdirectory(lib/gaia_xpsd_client)
+
 # astrocs_cpu_baseline: baseline backend DSO 技术预览 (Linux; legacy ABI,
 # 无导出标注 → 默认全导出)。正式 provider ABI/Windows DLL → CPU-002
 # (providers/cpu/baseline)
