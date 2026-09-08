@@ -24,7 +24,7 @@ struct P3Provenance {
 };
 
 struct P3OutputResult {
-    char sha256[65];                // 输出文件哈希(hex, 小写)
+    char sha256[65];                // 输出文件哈希(hex, 小写); 仅在完整读取成功时填写
     int coverage_ok;                // 1=coverage 头/数据一致
     int reopen_ok;                  // 1=独立 reader 重开成功且数据回环一致
     long covered_px;
@@ -39,8 +39,9 @@ enum P3OutputStatus {
 };
 
 /* 原子写 S+C 合成 FITS(主 HDU=signal, 扩展=coverage 二值):
- * 写入 <dir>/.<base>.<pid>.tmp → fsync → rename 到 output_path;
- * 取消/失败 → 删除 tmp, 不留完整假文件。 */
+ * 写入 <dir>/.<base>.<pid>.tmp → flush(cfitsio 缓冲全部写出) → fsync(fd) →
+ * rename 到 output_path (IO_003 §4: 关闭/fsync → sha256 → 原子 rename);
+ * 取消/失败 → 删除 tmp/产物, 不留完整假文件, 也不发布无完整性锚的输出。 */
 P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage,
                                       int width, int height,
                                       const P3WcsDescriptor* wcs,
@@ -51,7 +52,8 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
                                       int cancelled_at_row,   // -1=不取消
                                       P3OutputResult* result);
 
-/* 独立重开: 读回 header 数字+数据回环(用 fits_read_file)并重算 checksum。 */
+/* 独立重开: 读回 header 数字+数据回环(用 fits_read_file)并重算 checksum。
+ * sha256 计算失败(文件不可读等) → P3_OUT_IO, result 不携带假哈希。 */
 P3OutputStatus p3_output_verify(const char* output_path, const P3WcsDescriptor* wcs,
                                 const float* signal, const float* coverage,
                                 int width, int height,
