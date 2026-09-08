@@ -5,8 +5,8 @@
  "parent_commit": "5d9dc556",
  "parent_commit_full": "5d9dc556",
  "note_parent_commit": "本 TASK_RESULT 产出时工作树未提交(SubAgent 不执行 git commit); parent_commit 以 CPU-007 闭环 commit 5d9dc556(CPU-007 生产 commit 410165f1)为基准基线。result_commit 由前台提交后回填本字段所在提交。",
- "control_sha256": "PENDING-FRONTEND-FILL",
- "ledger_sha256": "PENDING-FRONTEND-FILL",
+ "control_sha256": "56dcb191daca689a79ec86e5dfa610030161fea6127780dbae0295232912ff46",
+ "ledger_sha256": "25138de168ebe0a9d1b805a25da87c28ee707029bdecc55172fc70728fbcfb1a",
  "change_class": "performance",
  "changed_paths": [
   "lib/backend_host/worker_advisor.h",
@@ -167,9 +167,9 @@
  "logs_dir": "run/local/agent_cpu008/",
  "evidence_dir": "evidence/v6_1_rework/tasks/CPU-008/",
  "pending_frontend": {
-  "result_commit": "PENDING-FRONTEND-FILL",
-  "control_sha256": "PENDING-FRONTEND-FILL",
-  "ledger_sha256": "PENDING-FRONTEND-FILL",
+  "result_commit": "aceca50c",
+  "control_sha256": "56dcb191daca689a79ec86e5dfa610030161fea6127780dbae0295232912ff46",
+  "ledger_sha256": "25138de168ebe0a9d1b805a25da87c28ee707029bdecc55172fc70728fbcfb1a",
   "commits_csv_row": "COMMITS.csv 追加行由前台在提交后补(含 result_commit/changed_paths_sha256/task_result_sha256); 本轮已按追加格式预置于前台添加清单"
  }
 }
