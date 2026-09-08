@@ -1,0 +1,102 @@
+# AstroCS phase2 rejection 模块 — 元数据 (P2-REJ-DOC 冻结, 2026-09-09)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase2/src/rejection.cpp
+# 2076 行 + 唯一权威签名头 lib/phase2/include/astro/phase2/rejection.h
+# 329 行，行号 grep/read 实测；构建挂载: 根 CMakeLists.txt:336-346
+# astrocs_phase2 STATIC 目标（:340 src/rejection.cpp）+
+# lib/phase2/CMakeLists.txt 兼容 target（:44 src/rejection.cpp）），
+# 模块化迁移（独立模块源 astrocs_p2_rejection.dll / C ABI adapter /
+# plan-execute-cancel-inspect / ThreadLease 接线）由 P2-REJ-IMPL 执行；
+# 可执行测试由 P2-REJ-TEST 建立（TEST-P2-REJ-001 MISSING，不冒认）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码
+# 核对清单（P2-REJ-DOC，2026-09-09，grep 实测），禁止手抄他版。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P2-REJ 行 owner=SA-P2-R22、
+# target=astrocs_p2_rejection.dll、module_id=astrocs.p2.rejection、
+# legacy_paths="lib/phase2 rejection sources"、depends_on_int=
+# P2-UPM-INT;CPU-005。实测生产源 lib/phase2/src/rejection.cpp 位于
+# lib/phase2/——该目录三件套已被 P2-COV 域 astrocs.p2.coverage 合同
+# 占用（lib/phase2/README.md r1，一目录一套 README/module.yaml/
+# memory.md，不可覆盖他域合同），故按 lib/phase2_int/（P2-INT-DOC，
+# 其按 lib/hips_p2/ P2-HIPS-DOC 先例）先例落独立迁移目标目录
+# lib/phase2_rej/（本文件所在，仅合同文件、无源码、不与 legacy 目录
+# 重叠）；legacy 生产源引用不搬家。
+# dll_target=astrocs_p2_rejection.dll 为迁移目标合同值（尚未存在）；
+# 现状构建=根 CMakeLists.txt astrocs_phase2 静态库成员
+# （:336-346，:340 编入 src/rejection.cpp）。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4
+# 值域）；现状实现=像素级纯函数（rejection kernel 无任何线程原语，
+# 像素间并行在调用方：stage2.cpp:1288 OMP / acr_kernels.cpp:218 OMP
+# schedule(static)；Stage2 per-thread 统计按 thread id 固定顺序定序
+# 归并 stage2.cpp:1305-1313；large_scale 激活时 Stage2 强制串行，
+# grow 缓冲跨线程覆盖防护）；ThreadLease/取消检查点无接线（迁移
+# 整改点，与 DISP-COV-005 同构）。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# （lib/core/src/module_adapters.cpp:638-655 p2_reject_descriptor 的
+# module_id=astrocs.phase2.reject、sci_id=SCI-P2-REJ-001/
+# alg_id=ALG-P2-REJ-001/data_id=DATA-P2-REJ/api_id=API-P2-001/
+# test_id=TEST-P2-REJ-001、ports corrected/accepted_mask）为编排层
+# 词汇，由 P2-XX-INT 对齐本 manifest 与 lib/phase2_rej/README.md
+# （r1），不得反向作为冻结依据（映射声明 SCI-P2-REJ-001⇒SCI-REJ-001
+# 见 docs/algorithms/PHASE2_REJECTION.md §11.5；descriptor 占位
+# SCI-P2-REJ-001 不入合同）。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase2-reject
+module_id: astrocs.p2.rejection
+owner: SA-P2-R22
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase2
+dll_name: astrocs_p2_rejection.dll
+dll_target: astrocs_p2_rejection.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [reject]
+input_ports:
+  - corrected
+  - accepted_mask
+output_ports:
+  - accepted_mask
+science_contracts:
+  - SCI-REJ-001
+algorithm_contracts:
+  - ALG-P2-REJ-001
+data_contracts:
+  - DATA-P2-REJ
+api_contracts:
+  - API-P2-001
+  - API-P2-REJ-001
+doc_links:
+  sci: docs/science/REJECTION.md
+  alg: docs/algorithms/PHASE2_REJECTION.md
+  data: docs/contracts/DATA_SEMANTICS.md#§22
+  api: docs/contracts/PUBLIC_API.md#API-P2-REJ-001
+contract_ids:
+  sci: SCI-REJ-001
+  alg: ALG-P2-REJ-001
+  data: DATA-P2-REJ
+  api: API-P2-REJ-001
+  arch: ARCH-001
+  test: TEST-P2-REJ-001
+source_symbols:
+  - p2_reject_plan_resolve
+  - p2_reject_stack_ex
+  - p2_collect_candidate_stack
+  - p2_eligibility_filter
+  - p2_rejection_semantic_id
+  - p2_large_scale_apply
+  - p2_reject_stack
+test_ids:
+  - TEST-P2-REJ-001
+threading_model: host_executor_lease
+resource_class: cpu
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+scientific_change: false
+depends_on:
+  - astrocs_phase2
+legacy_paths: lib/phase2 rejection sources
+known_defects:
+  - DISP-P2REJ-001
+  - DISP-P2REJ-002
+  - DISP-P2REJ-003
+  - DISP-P2REJ-004

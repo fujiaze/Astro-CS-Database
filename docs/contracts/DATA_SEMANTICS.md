@@ -1128,3 +1128,185 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
   ALG-P2-INT-001 §11.4）。
 - 同文档: §4（signal/support/invalid 基础语义）、§6（precision）、
   §20（Phase2 mosaic write 下游域）。
+
+## 22. Phase2 rejection（lib/phase2）模块输入/输出数据（DATA-P2-REJ）
+
+> ID: DATA-P2-REJ  状态: CONTRACT_READY（P2-REJ-DOC 冻结，2026-09-09）
+> 模块: lib/phase2/src/rejection.cpp（2076 行）+ 唯一权威签名头
+> lib/phase2/include/astro/phase2/rejection.h（329 行）
+> （astrocs.p2.rejection；合同三件套 lib/phase2_rej/，迁移目标
+> astrocs_p2_rejection.dll 为矩阵合同值，尚未存在，由 P2-REJ-IMPL
+> 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 候选栈排异内核
+> in/out 单位/dtype/shape/invalid 的唯一权威；ALG: ALG-P2-REJ-001
+> （docs/algorithms/PHASE2_REJECTION.md，逐符号锚与 §11 冻结容差）；
+> SCI 上游: SCI-REJ-001（docs/science/REJECTION.md，FROZEN，零改动；
+> descriptor 占位 SCI-P2-REJ-001⇒SCI-REJ-001 映射见 ALG §11.5）；
+> API 面: API-P2-REJ-001（PUBLIC_API.md）+ 编排级 API-P2-001
+> （FROZEN）。
+
+### 22.1 输入（按消费路径分层；锚=rejection.h，未注文件者同）
+
+**(1) eligibility 层**（P2EligibilityInput，rejection.h:199-205）:
+
+| 字段 | dtype/shape | 单位/域 | 可空语义 | 约束（违规→rc=1/INVALID_INPUT） |
+|---|---|---|---|---|
+| values | const f64* `[count]` | ADU（UPM-calibrated） | 不可空（in/out null → rc=1，:1129-1140） | — |
+| weights | const f64* `[count]` | 1/ADU²（数值域；策略在调用方） | 可空=等权（输出侧未写，调用方按等权处理，:209-211） | — |
+| valid | const u8* `[count]` | 无量纲 0/1 | 可空=全部有效（core :1189-1191） | — |
+| support | const f64* `[count]` | 无量纲 [0,1]（仅资格门禁作科学权重语义门，不进统计；§20.3 红线镜像） | 可空=不检查（core :1192-1198） | — |
+| quality | const u32* `[count]` | 位集（现状 control 级数据模型，stage2 传 nullptr 并记录，:236-237） | 可空=不检查 | — |
+| count | u32 标量 | 无量纲 | — | — |
+| support_threshold | f64 标量 | 无量纲 | — | 严格大于语义（rejection.h:206；core :1108/:1192-1198） |
+| quality_flags_required | u32 标量 | 位集 | — | 0=不要求 quality（:207；core :1199-1203） |
+
+连续版入口 `p2_eligibility_filter` 声明 rejection.h:222（compat 路径
+消费，ALG §3）；生产路径走 (2) gather。
+
+**(2) gather 层**（P2EligibilityGatherInput :227-245 / Output :247-261；
+strided frame-major 逐像素调用）:
+
+Input: `values` const void*（frame-major，value_dtype 0=fp32/1=fp64，
+:245）+ value_stride；`weights`/`support` 同 dtype 可空 + 各自 stride；
+`valid` u8 可空 + stride；`quality` u32 可空 + stride；`frame_ids`
+u64 可空（紧凑、帧序一一对应）；count/pixel；support_threshold 与
+quality_flags_required 语义同 (1)。
+
+Output → 紧凑 P2CandidateStack（kernel 输入，rejection.h:266-273）:
+
+| 字段 | dtype/shape | 单位/域 | 可空语义 | 约束 |
+|---|---|---|---|---|
+| values | f64 `[n_eff]` | ADU（f32 源→f64 提升，:1164-1179） | 不可空 | gather n==0 → rc=0 空输出（:1152-1163） |
+| weights | f64 `[n_eff]` | 1/ADU² | 可空=等权 1.0 | — |
+| support | f64 `[n_eff]` | 无量纲 [0,1] | 可空 | — |
+| frame_ids | u64 `[n_eff]` | 无量纲（稳定帧标识；ESD tie-break/确定性） | 可空 | — |
+| count | u32 标量 | 无量纲 =n_eff（资格后候选数） | — | — |
+| data_type | int 标量 | 无量纲 0=fp32,1=fp64（仅诊断，:272） | — | — |
+
++ `source_indices` u32 `[n_eff]`（Output 成员 :256）：eligible→
+original slot 权威回映射——PHASE2_IVAR_WIRING 冻结注释（:252-255）：
+compact 后禁止用 compact index 猜 original slot；ivar/quality/
+variance/metadata 一律经此映射，权重构造方 stage2.cpp:1098 以此回
+映射 ivar slot。
+
++ 诊断计数 u32 标量×5（Output :259-261）：`eligible_count`/
+`invalid_finite`/`invalid_valid`/`invalid_support`/`invalid_quality`
+（无量纲；连续版 P2EligibilityOutput :207-220 同名四诊断 +
+eligible 位图 `[count]`，V15FilterAllPolicies :4337）。
+
+**(3) kernel 层**（P2CandidateStack :266-273 + P2RejectionPlan
+:151-169）:
+
+- typed params 六组（禁止跨方法共享 low/high/max_iter，:99 注释）:
+  P2SigmaParams :100-104（robust_mad/winsorized/averaged/
+  median_sigma 共用结构）/ P2LinearFitParams :106-110 /
+  P2EsdParams :112-115 / P2PercentileParams :117-120 /
+  P2MinmaxParams :122-126 / P2RcrParams :128-130（technique=0
+  SS_MEDIAN_DL 唯一支持）。
+- P2LargeScaleParams :144-149: enabled 默认 0（:142 注释）/
+  min_structure_pixels=8 / low·high_grow_radius_pixels=2。
+- plan 归一化: P2RejectionNormalization :92-97（NONE=0/
+  MEDIAN_CENTER=1/MEDIAN_SCALE=2），floor 默认 1e-12（:157）；
+  minimum_n（:153）；underdetermined_n=2（:155）。
+- AUTO 仅合法于 plan_resolve 请求（P2RejectionPlanRequest :171-180:
+  request 允许 AUTO；nominal_contributors u32，wbpp_current=group
+  active 一次解析、astrocs_adaptive=tile nominal depth，
+  :174-177；profile 版本化 wbpp_2_9_1）；kernel 永不接收 AUTO
+  （:285 注释，违规→INVALID_METHOD :1688-1701）。
+
+### 22.2 输出（P2RejectionDecision，rejection.h:275-283）
+
+| 字段 | dtype/shape | 单位/值域 | invalid/未定 |
+|---|---|---|---|
+| reasons | u8 `[count]` | 0..3（P2RejectReason :72-78: ACCEPTED=0/REJECTED_LOW=1/REJECTED_HIGH=2/UNDERDETERMINED=3）。判向冻结=低于 lower threshold→REJECTED_LOW、高于 upper→REJECTED_HIGH（:20-21 冻结注释，禁止原始值正负号判向） | UNDERDETERMINED reason=全接受语义（计入 accepted_count，:1820-1834）；INVALID_METHOD/UNDERDETERMINED 栈时 reasons 相应全 UNDERDETERMINED/全接受（:1688-1701/:1842-1849） |
+| accepted_count | u32 标量 | 无量纲（含 UNDERDETERMINED 样本，全接受语义） | — |
+| rejected_low | u32 标量 | 无量纲（仅显式拒绝） | — |
+| rejected_high | u32 标量 | 无量纲（仅显式拒绝） | — |
+| iterations | u32 标量 | 无量纲（kernel 外层迭代：ESD=k_out；RCR=3；percentile/minmax=1） | — |
+| status | int 标量 | 无量纲 0..7（P2RejectStatus :80-90，§22.3） | — |
+
+kernel 输出之外（本域其余产物）:
+
+- eligibility 层输出: 合格值/掩码紧凑输出与诊断计数（§22.1(2)
+  表与计数清单）。
+- large_scale 原地修改: low/high u8 frame-major
+  `[depth][height][width]`（每帧 width×height 字节），1=rejected；
+  原地只增不减（p2_large_scale_apply 声明 :291-297/:292，语义
+  :2043-2046；半径 0 → mask 不变 :1986）。
+
+### 22.3 状态机（唯一权威=rejection.h:80-90；判据=ALG-P2-REJ-001 §4.1）
+
+| status（实测枚举名） | 值 | 触发 | 锚（rejection.cpp） |
+|---|---|---|---|
+| P2_STATUS_OK | 0 | 判定完成且无 UNDERDETERMINED reason 且 accepted_count>0 | :1853-1855 |
+| P2_STATUS_MIN_SAMPLES | 1 | count==0（ex :1706，rc=0；**非 NO_CANDIDATES**——DISP-P2REJ-002，NO_CANDIDATES 属积分域 P2IntegrateStatus integrate.h:46）∨ 资格数<min_samples（compat :1896-1907） | :1706/:1896-1907 |
+| P2_STATUS_ALL_REJECTED | 2 | accepted_count==0 且 n>4（全拒非小栈） | :1851 |
+| P2_STATUS_INVALID_INPUT | 3 | 任一候选 values 非 finite（compat 覆盖 :1971-1972） | :1709-1718 |
+| P2_STATUS_UNDERDETERMINED | 4 | n≤underdetermined_n(2) ∨ n<minimum_n（:1739-1747）∨ 部分 UNDERDETERMINED reason（:1854）∨ 全拒 n≤4 容错 fallback（阈值冻结不变，:1842-1849） | :1739-1747/:1842-1855 |
+| P2_STATUS_INVALID_CONFIGURATION | 5 | PERCENTILE×norm≠MEDIAN_CENTER（:1722-1728）∨ RCR×norm≠NONE（:1730-1736） | :1722-1736 |
+| P2_STATUS_INVALID_METHOD | 6 | plan.method 出界（含 AUTO=10 进 kernel；AUTO 仅合法于 plan_resolve） | :1688-1701（status :1699） |
+| P2_STATUS_INTERNAL_ERROR | 7 | kernel 内部不变量破坏（现状不可达，设计保留态） | h:89 |
+
+八态互斥显式（V17InvalidMethodStatus :4763 等冻结断言；
+ALG §11.4 F3）。per-sample reason 与 status 分离（SCI §7 状态分离
+不变量；reason 4 值正交）。
+
+rc（函数返回）: rc=0 语义由 status 承载（含科学态 INVALID_*）；
+rc=1 参数 null/非法（ex: stack/plan/out null :1687、reasons/values
+null 且 count>0 :1707；large_scale 参数非法 rc=1 :2054-2060；
+plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
+
+### 22.4 单位/dtype/确定性
+
+- 工作域全浮点 IEEE f64（gather f32 源→f64 提升，:1164-1179；无
+  long double/复数）。MINMAX 判定用原始域值（:1812-1814 分派
+  stack->values）；PERCENTILE scale=原始域 |median|（:1587）；σ 族/
+  ESD/RCR 在工作域（MEDIAN_SCALE 下无量纲化
+  work/max(|median|,1e-12)，:1763-1766）。weights（1/ADU²）与
+  support（无量纲）量纲不同，分开消费禁止互换（§20.3 红线在本层
+  镜像）；整数登记量（status/reasons/计数）bitwise 确定。
+- 确定性=fixed_reduction_order: 逐样本独立判定（无跨样本浮点归约
+  顺序问题）→ per-pixel 决策 bitwise 独立于 worker 数（像素间并行
+  在调用方 stage2.cpp:1288/acr_kernels.cpp:218；per-thread 统计
+  thread id 定序归并 stage2.cpp:1305-1313）。ESD tie-break=frame_id
+  （1e-15 eps，:1515-1518）；linear_fit sort (value,orig_index)
+  字典序稳定（:1417-1423）；minmax 比较器 value-only（std::sort
+  非稳定，tie-break 未显式冻结=DISP-P2REJ-004，同输入同编译器
+  确定）。验证锚: G6PermutationInvariance :2863/
+  V15ExPermutationInvarianceTyped :4443（ALG §6 冻结容差）。
+
+### 22.5 错误/边界
+
+- rc 语义（§22.3 末）; 大栈 n>64 堆 fallback（n≤64 固定 scratch
+  :944-986，无每像素堆分配）；accept 集 nc<2（σ 族）/:3（ESD）
+  break、s≤1e-12 不除零（:1263/:1311/:1367/:1508/:1629）；
+  linear_fit N<4 break（:1416）；minmax 删后<min_kept → 全栈
+  UNDERDETERMINED, iterations=0（:1657-1664）。
+- 兼容门: compat p2_reject_stack（:1863-1974）min_samples 换算
+  :1891-1900 仅测试/旧调用（h:299 冻结注释"生产 Stage2 不再调用"；
+  兼容 typed 换算 :1913-1942、non-finite 覆盖 :1971-1972）。
+- 并发/重入: 无隐藏全局状态 reentrant=yes（无全局/静态可变状态，
+  kRcrSS* 只读 const 表）；无取消检查点（ThreadLease 接线归
+  P2-REJ-IMPL，与 DISP-COV-005 同构）。
+- 缺陷登记（不改码）: DISP-P2REJ-001（h:118 percentile low_fraction
+  注释"默认 0.1"漂移 vs 实现/SCI 0.2，整改归 P2-REJ-IMPL）；
+  DISP-P2REJ-002（SCI §8 "无候选→NO_CANDIDATES" vs 实现
+  MIN_SAMPLES，澄清归 SCI 修订流程）；DISP-P2REJ-003（SCI/
+  REJECTION_ALGORITHMS 行号锚漂移，行号权威=ALG §3 实测）；
+  DISP-P2REJ-004（minmax 等值 tie-break 未显式冻结，整改候选归
+  P2-REJ-IMPL/TEST）。
+
+### 22.6 交叉引用
+
+- 上游: SCI-REJ-001（docs/science/REJECTION.md，FROZEN，零改动）；
+  ALG-P2-REJ-001（docs/algorithms/PHASE2_REJECTION.md，本域算法
+  权威；SCI-P2-REJ-001⇒SCI-REJ-001 映射=ALG §11.5）。
+- 下游: API-P2-REJ-001（PUBLIC_API.md）+ API-P2-001（编排级，
+  FROZEN）；TEST-P2-REJ-001（MISSING，P2-REJ-DOC 登记，P2-REJ-TEST
+  落地+EVIDENCE）。
+- 同文档: §20（编排域 mask 消费/二次积分，stage2.cpp:1544-1560）；
+  §21（下游积分消费 accepted mask，DATA-P2-INT）；§19（本域与
+  target_order 无关）。
+- 端口词汇注记: registry descriptor p2_reject_descriptor
+  （module_adapters.cpp:638-655，module_id=astrocs.phase2.reject
+  占位）端口表为编排层词汇，由 P2-XX-INT 对齐 astrocs.p2.rejection，
+  不得反向作为冻结依据。

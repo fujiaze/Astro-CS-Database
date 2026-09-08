@@ -78,7 +78,7 @@ contracts:
     version: 1.0.0
     path: docs/science/REJECTION.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-REJ-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
+    downstream: [ALG-REJ-001, ALG-P2-REJ-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
   - id: SCI-INT-001
     type: SCI
     status: ACTIVE
@@ -320,7 +320,7 @@ contracts:
     version: 1.0.0
     path: docs/algorithms/REJECTION_ALGORITHMS.md
     upstream: [SCI-REJ-001]
-    downstream: []
+    downstream: [ALG-P2-REJ-001]
   - id: ALG-INT-001
     type: ALG
     status: ACTIVE
@@ -360,6 +360,38 @@ contracts:
     version: 1.0.0
     path: docs/algorithms/PHASE2_INTEGRATION.md
     upstream: [API-P2-INT-001]
+    downstream: []
+  - id: ALG-P2-REJ-001
+    type: ALG
+    status: ACTIVE
+    owner: SA-P2-R22
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_REJECTION.md
+    upstream: [SCI-REJ-001, ALG-REJ-001]
+    downstream: [DATA-P2-REJ, API-P2-REJ-001]
+  - id: DATA-P2-REJ
+    type: DATA
+    status: ACTIVE
+    owner: SA-P2-R22
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-P2-REJ-001]
+    downstream: [API-P2-REJ-001]
+  - id: API-P2-REJ-001
+    type: API
+    status: ACTIVE
+    owner: SA-P2-R22
+    version: 1.0.0
+    path: docs/contracts/PUBLIC_API.md
+    upstream: [ALG-P2-REJ-001, DATA-P2-REJ]
+    downstream: [TEST-P2-REJ-001]
+  - id: TEST-P2-REJ-001
+    type: TEST
+    status: DORMANT
+    owner: SA-P2-R22
+    version: 1.0.0
+    path: docs/algorithms/PHASE2_REJECTION.md
+    upstream: [API-P2-REJ-001]
     downstream: []
   - id: ALG-P3-001
     type: ALG
