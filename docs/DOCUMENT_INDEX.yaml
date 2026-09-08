@@ -322,6 +322,9 @@ doc_index:
     - path: "docs/modules/phase2_int.md"
       status: ACTIVE_INFORMATIVE
       notes: "P2-INT-DOC (2026-09-09) 新建: astrocs.p2.integration 模块页——合同落位 lib/phase2_int/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/hips_p2/ 先例新建, lib/phase2/ 三件套已被 P2-COV 占用); 合同 ID=SCI-INT-001(共享 FROZEN)/ALG-P2-INT-001/DATA-P2-INT(§21)/API-P2-INT-001/TEST-P2-INT-001(MISSING); 生产源 lib/phase2/src/integrate.cpp + integrate.h; 消费链 stage2.cpp/acr_kernels.cpp"
+    - path: "docs/modules/phase2_rej.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "P2-REJ-DOC (2026-09-09) 新建: astrocs.p2.rejection 模块页——合同落位 lib/phase2_rej/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/phase2_int→lib/hips_p2 先例新建, lib/phase2/ 三件套已被 P2-COV 占用); 合同 ID=SCI-REJ-001(共享 FROZEN, 映射 SCI-P2-REJ-001⇒SCI-REJ-001)/ALG-P2-REJ-001/DATA-P2-REJ(§22)/API-P2-REJ-001/TEST-P2-REJ-001(MISSING); 生产源 lib/phase2/src/rejection.cpp + rejection.h; 消费链 stage2.cpp/acr_kernels.cpp"
     - path: "docs/modules/photometric_calib.md"
       status: ACTIVE_INFORMATIVE
       notes: "P1-PHOT-DOC (2026-09-07) 事实修订: 头部增补块——合同落位 lib/photometric_calib/README.md r1 + module.yaml (astrocs.p1.photometry, CONTRACT_READY, entrypoint=MISSING); 合同 ID=SCI-PHOT-001/ALG-PHOT-001..002/DATA-P1-PHOT/API-PHOT-001; NO_DATA 表述按退化语义修订"
@@ -365,8 +368,8 @@ doc_index:
       status: ACTIVE_INFORMATIVE
       notes: "P2-COV-DOC (2026-09-07) 重写为手写合同页 (registry 页保留先例 astrocs.phase1.session.md/astrocs.phase1.star-detection.md): MOD-astrocs-phase2-coverage/astrocs.p2.coverage 合同——SCI-P2-COV-001(共享 FROZEN)/ALG-COV-001/DATA-COV-001/API-COV-001/API-P2-001; 旧 descriptor 派生词汇 (coverage 坐标 PIXEL) 由 P2-COV-INT 对齐修订"
     - path: "docs/modules/registry/astrocs.phase2.reject.md"
-      status: GENERATED
-      notes: "tools/quality/gen_module_readmes.py 生成"
+      status: ACTIVE_INFORMATIVE
+      notes: "P2-REJ-DOC (2026-09-09) 事实修订为手写合同页 (registry 页手写先例 astrocs.phase2.write.md/astrocs.phase2.integrate.md): astrocs.p2.rejection 合同 (registry 行 ID 沿用 MOD-astrocs-phase2-reject)——SCI-REJ-001(共享 FROZEN)/ALG-P2-REJ-001/DATA-P2-REJ(§22)/API-P2-REJ-001/API-P2-001; 合同落位 lib/phase2_rej/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 生产源 lib/phase2/src/rejection.cpp+rejection.h; TEST 登记面=TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED 承载 TEST-P2-REJ-001 锚 (可执行 MISSING 归 P2-REJ-TEST); 旧 descriptor 派生词汇 (module_id=astrocs.phase2.reject) 由 P2-XX-INT 对齐修订"
     - path: "docs/modules/registry/astrocs.phase2.resample.md"
       status: GENERATED
       notes: "tools/quality/gen_module_readmes.py 生成"

@@ -1264,3 +1264,137 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 - 下游: TEST-P2-INT-001（MISSING，P2-INT-DOC 登记，由 P2-INT-TEST
   落地 + EVIDENCE；设计冻结面=ALG-P2-INT-001 §11.4）；上游
   SCI-INT-001（共享 FROZEN）/ ALG-P2-INT-001。
+
+## Phase2 rejection 公共消费面（API-P2-REJ-001）
+
+> ID: API-P2-REJ-001  状态: CONTRACT_READY（P2-REJ-DOC 冻结，
+> 2026-09-09）
+> 定位: Phase2 候选栈排异公共 C ABI 消费面——planning 层 +
+> eligibility/gather 层 + kernel + large_scale 后处理的导出符号
+> 冻结（既有符号的展开冻结，**不新增、不修改任何 C 头/C ABI**）；
+> 编排层经 API-P2-001（PHASE2_API_V1 phase session）驱动，kernel
+> 无 session 依赖（无状态纯函数）。
+> SRC: lib/phase2/src/rejection.cpp（2076 行，astrocs_phase2 静态库
+> 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头
+> lib/phase2/include/astro/phase2/rejection.h（329 行）；DATA:
+> DATA-P2-REJ（DATA_SEMANTICS §22，单位/dtype/shape/invalid 唯一
+> 权威）；ALG: ALG-P2-REJ-001（docs/algorithms/PHASE2_REJECTION.md，
+> 逐符号锚与消费链）；MOD: astrocs.p2.rejection（迁移目标
+> astrocs_p2_rejection.dll 为矩阵合同值，尚未存在——MISSING 语义，
+> 由 P2-REJ-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
+> module_id=astrocs.phase2.reject 为编排层词汇，
+> module_adapters.cpp:638-655 p2_reject_descriptor，由 P2-XX-INT
+> 对齐）。
+
+### 导出符号与签名要点（rejection.h 实测锚，冻结）
+
+- `int p2_reject_plan_resolve(const P2RejectionPlanRequest*,
+  P2RejectionPlan*, char* err, std::size_t err_size)`（:191-193 声明，
+  注释 :182-190 WBPP 2.9.1 路由 + profile 语义）: AUTO 一次解析为
+  显式方法（nominal n<6 → PERCENTILE、6..15 → WINSORIZED、>15 →
+  LINEAR_FIT；nominal_contributors=u32 几何可贡献数 :174-177；
+  kernel 永不接收 AUTO）；profile 版本化（wbpp_2_9_1 /
+  astrocs_adaptive）；非法 profile → 非零 rc。rc=0 OK；rc=1 null
+  请求/plan、request 出界或 profile 非法（err 仅日志文本）。线程
+  安全=reentrant yes / threadsafe no（无锁无全局态，并发由调用方
+  像素划分）；无取消检查点（ThreadLease 接线归 P2-REJ-IMPL）。
+- `int p2_eligibility_filter(const P2EligibilityInput*,
+  P2EligibilityOutput*)`（:222）: 连续版资格层（compat 路径消费，
+  与生产 strided gather 同一 policy core）。support_threshold 严格
+  大于（:206）；quality_flags_required=0 不要求 quality（:207）。
+  rc=1 null in/out 或必要输出缓冲缺失；n==0 → rc=0 空输出。线程
+  安全=reentrant yes / threadsafe no；无取消检查点（ThreadLease
+  接线归 P2-REJ-IMPL）。
+- `int p2_collect_candidate_stack(const P2EligibilityGatherInput*,
+  P2EligibilityGatherOutput*)`（:263）: 生产 strided gather
+  （frame-major f32/f64 → 紧凑 f64 栈，:1164-1179）；输出
+  source_indices=权威回映射（PHASE2_IVAR_WIRING 注释 :252-255，
+  compact 后禁止猜 original slot；stage2.cpp:1098 权重构造方用它
+  回映射 ivar slot）。rc=1 null in/out 或必要输出缓冲缺失；n==0 →
+  rc=0 空输出。线程安全=reentrant yes / threadsafe no（无锁无全局
+  态，并发由调用方像素划分）；无取消检查点（ThreadLease 接线归
+  P2-REJ-IMPL）。
+- `int p2_reject_stack_ex(const P2CandidateStack*,
+  const P2RejectionPlan*, P2RejectionDecision*)`（:287-289，注释
+  :285-286）: 显式 plan 执行（AUTO 返回非法参数）。rc=1 仅
+  stack/plan/out null（:1687）或 reasons/values null 且 count>0
+  （:1707）；rc=0 时语义全由 status 承载（八态
+  P2RejectStatus 0..7，含 INVALID_METHOD/INVALID_INPUT/
+  INVALID_CONFIGURATION——"科学状态"而非调用错误；状态机=ALG
+  §4.1）。kernel 内 n≤64 固定 scratch（无每像素堆分配）>64 走堆。
+  线程安全=reentrant yes / threadsafe no（无锁无全局态，并发由
+  调用方像素划分）；无取消检查点（ThreadLease 接线归
+  P2-REJ-IMPL）。
+- `const char* p2_rejection_semantic_id(int method)`（:196）: 语义
+  id 查询（P2_SEMANTIC_* 常量 :59-70；未知方法返回 "unknown"）。
+  线程安全=reentrant yes / threadsafe no（只读映射）；无取消检查
+  点（ThreadLease 接线归 P2-REJ-IMPL）。
+- `int p2_large_scale_apply(std::uint8_t* low, std::uint8_t* high,
+  int width, int height, int depth, const P2LargeScaleParams*)`
+  （:295-297，注释 :291-294）: frame-major 每帧 width×height 字节
+  原地修改（1=rejected）；仅扩张 ≥min_structure_pixels 结构；低/
+  高侧独立半径。rc=0 OK（disabled=noop）；rc=1 指针 null ∨
+  width/height/depth ≤0 ∨ min_structure_pixels<1 ∨ 负半径。线程
+  安全=reentrant yes / threadsafe no（无锁无全局态，并发由调用方
+  像素划分）；无取消检查点（ThreadLease 接线归 P2-REJ-IMPL）。
+- compat 面（冻结两符号，仅测试/旧调用，:299 冻结注释"生产 Stage2
+  不再调用"）: `int p2_reject_stack(const P2SampleStackView*,
+  P2RejectionResult*)`（:325，兼容换算 sigma_low/sigma_high/
+  max_iterations → typed params，min_samples 兼容门 :1891-1900）；
+  P2SampleStackView :301-314 / P2RejectionResult :316-323。rc 语义
+  同 kernel 面（科学语义由 status 承载）。线程安全=reentrant yes /
+  threadsafe no；无取消检查点（ThreadLease 接线归 P2-REJ-IMPL）。
+
+### 单位/dtype/shape（消费面副本，唯一权威=DATA_SEMANTICS §22）
+
+| 项 | 值 |
+|---|---|
+| values | f64，ADU（kernel 工作域输入；gather f32/f64 源 → f64 提升，:1164-1179） |
+| weights | f64，1/ADU²（可空=等权；数值域，权重策略外置调用方 weight_mode） |
+| support | f64，无量纲 [0,1]（仅资格门，不进统计） |
+| frame_ids | u64，无量纲稳定帧标识（ESD tie-break/确定性） |
+| reasons | u8 0..3（P2RejectReason） |
+| status | int 0..7（P2RejectStatus 八态） |
+| typed params | 六组结构（rejection.h:99-130）禁跨方法共享字段（:99 注释） |
+| 调用粒度 | 单像素栈（kernel）+ strided frame-major gather 批量（生产收集器） |
+
+### 确定性/并发合同（matrix 专项）
+
+- 逐样本独立判定（无跨样本浮点归约）→ per-pixel 决策 **bitwise
+  独立于 worker 数**（1..N；ALG-P2-REJ-001 §11.4 F5 置换不变性门
+  G6PermutationInvariance :2863 + V15ExPermutationInvarianceTyped
+  :4443）。同输入同 plan 同 fid → decision bitwise 确定（ESD
+  tie-break=frame_id；linear_fit 排序 (value, orig_index) 字典序；
+  median 值级置换不变）。
+- 像素间并行在调用方（stage2.cpp:1288/:1298 schedule(static)、
+  acr_kernels.cpp:218/:228 schedule(static)）；per-thread 统计
+  thread id 定序归并（stage2.cpp:1305-1313）；large_scale 激活强制
+  串行（stage2.cpp:1280 条件）。
+- 容差=bitwise（无 epsilon 门；ESD tie 1e-15 / RCR isEqual rel
+  1e-8 / winsor 收敛 5e-4·σ 为实现内部冻结常数，非门容差）。
+- 调用方契约: source_indices 禁猜 slot（ivar/quality/variance/
+  metadata 一律经权威映射）；mask 应用回原始 calibrated 值（归一化
+  仅判定工作域，h:15-17 冻结注释）；AUTO 只进 plan_resolve 不进
+  kernel（h:285 注释）。
+
+### 负向条款与缺陷迁移语义
+
+- 负向条款: **P2-REJ-DOC 不新增、不修改任何公共 C 头/C ABI**——
+  rejection.h 既有声明与本节为同一 ABI 的展开冻结，禁止第二套
+  定义；policy/reducer 分离: 禁止引入 ivar/SNR 权重策略（weights
+  数组外置，构造在 Stage2 weight_mode；RCR 核消费同栈 weights 数组
+  属官方加权语义，非策略）。
+- 缺陷迁移语义（登记不改码）: DISP-P2REJ-001（rejection.h:118
+  percentile low_fraction 注释"默认 0.1" vs 实现 plan_resolve 默认
+  0.2 :1060 与 SCI 权威——实现与 SCI 一致，header 注释漂移，整改=
+  P2-REJ-IMPL 注释对齐）；DISP-P2REJ-002（SCI §8 "NO_CANDIDATES"
+  vs 实现空栈=MIN_SAMPLES :1706，NO_CANDIDATES 属积分域
+  P2IntegrateStatus integrate.h:46——SCI FROZEN 禁改，语义权威=
+  DATA §22.3）；DISP-P2REJ-003（SCI/REJECTION_ALGORITHMS 行号锚
+  漂移，行号权威=ALG §3 实测）；DISP-P2REJ-004（minmax value-only
+  比较器 tie-break 未显式冻结，整改候选=P2-REJ-IMPL 显式 index
+  tie-break + P2-REJ-TEST 等值门）。
+- 下游: TEST-P2-REJ-001（MISSING，P2-REJ-DOC 登记，由 P2-REJ-TEST
+  落地 + EVIDENCE；设计冻结面=ALG-P2-REJ-001 §11.4 + registry 页
+  §独立 synthetic 验证节）；上游 SCI-REJ-001（共享 FROZEN）/
+  ALG-P2-REJ-001 / DATA-P2-REJ。
