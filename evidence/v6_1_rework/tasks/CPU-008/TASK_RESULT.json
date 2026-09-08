@@ -1,0 +1,175 @@
+{
+ "schema": "astrocs.task-result/v2",
+ "task_id": "CPU-008",
+ "status": "PASS",
+ "parent_commit": "5d9dc556",
+ "parent_commit_full": "5d9dc556",
+ "note_parent_commit": "本 TASK_RESULT 产出时工作树未提交(SubAgent 不执行 git commit); parent_commit 以 CPU-007 闭环 commit 5d9dc556(CPU-007 生产 commit 410165f1)为基准基线。result_commit 由前台提交后回填本字段所在提交。",
+ "control_sha256": "PENDING-FRONTEND-FILL",
+ "ledger_sha256": "PENDING-FRONTEND-FILL",
+ "change_class": "performance",
+ "changed_paths": [
+  "lib/backend_host/worker_advisor.h",
+  "lib/backend_host/worker_advisor.cpp",
+  "tests/unit/cpu008_worker_advisor_test.cpp",
+  "CMakeLists.txt",
+  "tests/unit/CMakeLists.txt",
+  "evidence/v6_1_rework/tasks/CPU-008/PLAN.md",
+  "evidence/v6_1_rework/tasks/CPU-008/TASK_RESULT.json",
+  "evidence/v6_1_rework/tasks/CPU-008/logs/build_cpu008.log",
+  "evidence/v6_1_rework/tasks/CPU-008/logs/build_cli.log",
+  "evidence/v6_1_rework/tasks/CPU-008/logs/test_cpu008.log",
+  "evidence/v6_1_rework/tasks/CPU-008/logs/ctest_full_serial.log"
+ ],
+ "impact": {
+  "science": false,
+  "algorithm": false,
+  "data_semantics": false,
+  "public_api": true,
+  "pipeline": false,
+  "binary": true,
+  "reason": "新增 worker_advisor 自适应线程建议层(derive_limits_v1 从 hw 画像+用户上限派生硬上限; advise_kernel_v1 按 workload class/profile 行/内存预算/cgroup-job 限制给出逐 kernel workers+block, no fixed cores —— 固定核数声明拒用、全派生零固定分支; build_resource_plan_v1 选择写入 plan(astrocs.resource-plan/v1); worker_grant_trace_v1 实际 granted 写 trace(astrocs.worker-grant/v1, V8-CPU-003 字段 build/kernel/ISA/worker budget) — 纯新增层, CPU-006 bench_report(astrocs.benchmark-report/v1)与 CPU-007 profile_store(astrocs.cpu-profile/v2)结构性隔离经负例验证保持; CLI 接线归 CLI 域后续任务"
+ },
+ "commands": [
+  {
+   "command_id": "c01",
+   "argv_redacted": [
+    "cmake",
+    "--build",
+    "build",
+    "--target",
+    "cpu008_worker_advisor_test"
+   ],
+   "timeout_seconds": 570,
+   "exit_code": 0,
+   "log_path": "evidence/v6_1_rework/tasks/CPU-008/logs/build_cpu008.log",
+   "load_context": "load 1.86/1.40/1.17 (前 1/5/15min), <2 达标, 跑前 pgrep ninja 空轮询确认无并行构建"
+  },
+  {
+   "command_id": "c02",
+   "argv_redacted": [
+    "./build/tests/unit/cpu008_worker_advisor_test"
+   ],
+   "timeout_seconds": 120,
+   "exit_code": 0,
+   "log_path": "evidence/v6_1_rework/tasks/CPU-008/logs/test_cpu008.log",
+   "load_context": "load 2.03/1.45/1.19; ALL PASS"
+  },
+  {
+   "command_id": "c03",
+   "argv_redacted": [
+    "cmake",
+    "--build",
+    "build",
+    "--target",
+    "astrocs"
+   ],
+   "timeout_seconds": 570,
+   "exit_code": 0,
+   "log_path": "evidence/v6_1_rework/tasks/CPU-008/logs/build_cli.log",
+   "load_context": "主 CLI 链接完整(astrocs_cpu 新增 worker_advisor.cpp 不破坏 CLI)"
+  },
+  {
+   "command_id": "c04",
+   "argv_redacted": [
+    "ctest",
+    "--output-on-failure"
+   ],
+   "timeout_seconds": 570,
+   "exit_code": 0,
+   "log_path": "evidence/v6_1_rework/tasks/CPU-008/logs/ctest_full_serial.log",
+   "load_context": "串行全量(与 CPU-007 基线同法): 93/93 passed(92 run + cpu001_selftest_avx512 Skipped 同基线), 8.58s; 备注: 首次 -j2 并行跑中 p1cos_units/p1cos_cosmetic/p1cos_selfcheck 出现并行负载敏感失败, 单独/串行复跑均 PASS(cosmetic 域自身并行敏感, 非本任务引入, lib/cosmetic 零改动)"
+  }
+ ],
+ "tests": [
+  {
+   "test_id": "T-DERIVE-LIMITS",
+   "description": "limits 派生: hw 画像(available/cgroup/numa/ram/l2)+用户上限; cgroup_cpu_limit 透传为硬上限",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-NEG-CONSERVATIVE",
+   "description": "负向: hw 缺失/损坏/available=0/字段类型篡改(负数) → ok=false 保守 available=1, 不抛错不阻塞",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-NEG-FIXED-CORES",
+   "description": "负向(no fixed cores): fixed_cores/fixed_workers/workers_fixed 声明一律拒用(fixed_claim_rejected 记录), 选择与声明值无关(声明 32 → 实际 4, 不超配不采纳)",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-NO-FIXED-SCAN",
+   "description": "不写死 2/16/32: available 1..48 扫描, 无 profile 时 workers 恒等于有效上限(派生值, 非任何固定常数)",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-CGROUP-JOB-SIM",
+   "description": "cgroup/Windows job 限制模拟: affinity=8 + 显式限制 2 → workers=2(低资源不超配), reason 记 cgroup_job",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-USER-CAP",
+   "description": "用户上限不无视: profile workers=8 + user_cap=3 → 3(reason user_cap|capped); user_cap=1 → workers=1(用户主权)",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-MEM-BUDGET",
+   "description": "内存预算钳制: headroom/per_worker 派生 mem_cap(64 核机器 1GiB/512MiB → 2); 预算不足 → 保守 1(系统性约束, worker1_allowed 显式); per_worker 未知 → 不钳制",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-WORKER1-ONLY-TINY-IO",
+   "description": "worker=1 仅 tiny/I/O 允许(负向样例): compute/memory + cap≥2 + profile workers=1 → floor 2(single_thread_rejected_floor2, 2 核 heavy 1→2 结构保证); tiny/io=1 合法; 未知 class 归一 compute 同红线; cap=1 系统性约束下 heavy=1 允许且显式标记",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-PROFILE-DRIVEN",
+   "description": "profile 行驱动(仅 astrocs.cpu-profile/v2): workers/block 透传(3→3, 16→16 — 16 核不写死 16, 尊重 benchmark 选择, V8-CPU-003 profile 修改改变实际选择)",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-NO-PROFILE-FALLBACK",
+   "description": "无 profile/外域/损坏 → compute/memory 动态多线程回落(workers=硬上限, 不退 1, 与 no_profile_policy/V8-CPU-002 一致); tiny/io → 单 worker 捆绑缺省",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-BLOCK-DERIVE",
+   "description": "block: profile 行>0 透传(block_source=profile); 无行时 hw L2 → block_candidates 中位(derived_l2, 复用 CPU-006 几何序列不复制); 无 L2 → deferred",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-SCHEMA-ISOLATION",
+   "description": "schema 域隔离(负向样例): benchmark-report/v1 文本作 profile 输入 → profile_foreign_schema 回落动态多线程(不误读其 kernels); resource-plan/v1 输出不回渗 cpu-profile/v2 与 benchmark-report/v1 字面",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-PLAN-WRITE",
+   "description": "选择写入 plan: astrocs.resource-plan/v1(build_id/limits 摘要/resources 逐 kernel workers+block+reason), 与 advice 一致",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-GRANT-TRACE",
+   "description": "实际 granted 写 trace: astrocs.worker-grant/v1 含 V8-CPU-003 字段(build_id/kernel_id/provider/isa/planned/granted/worker budget 对照); granted≠planned 如实记录 planned_equals_granted=false, 不静默改写(观测由 MON-001/V8-MON-001 域)",
+   "result": "PASS"
+  },
+  {
+   "test_id": "T-REGRESSION-FULL",
+   "description": "全量回归: ctest 串行 93/93 passed(92 run + cpu001_selftest_avx512 Skipped 同基线); cpu007_profile_store/cpu006_bench_report 等 thread-profile 同域基线不受影响",
+   "result": "PASS"
+  }
+ ],
+ "constraints": {
+  "recompute_single_thread": "compute/memory 类 cap≥2 时结构性 floor 2(single_thread_rejected_floor2); workers=1 仅 tiny/io/用户显式/系统性资源约束(cap=1)四类合法路径且 reason 必记",
+  "benchmark_select_no_hardcode": "确认: worker/block 建议全部由输入派生(hw 限制/profile 行/L2 几何序列), 固定核数声明拒用; worker_advisor 无 2/16/32 固定分支",
+  "schema_isolation": "本层产出 astrocs.resource-plan/v1 与 astrocs.worker-grant/v1 新面; 只消费 astrocs.cpu-profile/v2 行, benchmark-report/v1 外域文本拒读(负例); 与 CPU-006/CPU-007 结构性隔离保持",
+  "boundary": "仅 lib/backend_host/worker_advisor.{h,cpp} 新增 + astrocs_cpu 源列表/tests/unit 注册 + 本证据目录; cli/、lib/phase2/、lib/phase3_*、lib/calibration/、lib/gaia_xpsd_client/、docs/、tools/、ci/、.github/、tests/backend/、tests/cli/ 零触碰; 未执行 git add/commit/push"
+ },
+ "logs_dir": "run/local/agent_cpu008/",
+ "evidence_dir": "evidence/v6_1_rework/tasks/CPU-008/",
+ "pending_frontend": {
+  "result_commit": "PENDING-FRONTEND-FILL",
+  "control_sha256": "PENDING-FRONTEND-FILL",
+  "ledger_sha256": "PENDING-FRONTEND-FILL",
+  "commits_csv_row": "COMMITS.csv 追加行由前台在提交后补(含 result_commit/changed_paths_sha256/task_result_sha256); 本轮已按追加格式预置于前台添加清单"
+ }
+}
