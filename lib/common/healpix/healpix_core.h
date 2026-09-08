@@ -13,6 +13,7 @@
 #define ASTROCS_HEALPIX_CORE_H
 
 #include <cstdint>
+#include <string>  // std::to_string (require_valid_nside); MSVC <stdexcept> 不传递引入 <string> — R9-B batchJ(ce93f9ac) Windows build C2039 修复
 #include <stdexcept>
 #include <vector>
 
