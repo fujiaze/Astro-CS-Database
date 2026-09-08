@@ -1683,3 +1683,4 @@
 {"sha": "4b6eb26dc3503954057d82cfc66a3e709e1ab51f", "subject": "fix(ci): R12 Windows WIN-TEST-UNIT 残余——fixture 路径 generic_string 化(消 TEMP 反斜杠进 config JSON 的非法转义)", "task_id": "UNTAGGED", "date": "2026-09-08T12:07:04+08:00"}
 {"sha": "bd33a8a562edc8632a45a89cf81e34d0506bb476", "subject": "chore(state): P2-REJ-DOC 台账 CLOSED 同步（fg_verified_commit, commit 6f668c87）", "task_id": "UNTAGGED", "date": "2026-09-08T12:00:32+08:00"}
 {"sha": "dc3917721e9eee77546805d401a87e231376c163", "subject": "fix(ci): R13 DOC-INDEX+UT-VERSION 双红根因——PHASE2_REJECTION 索引登记 + harness 跨行豁免", "task_id": "UNTAGGED", "date": "2026-09-08T12:37:54+08:00"}
+{"sha": "1415df04b326e23fda76534c5ff5c1b6d651dbf4", "subject": "fix(p1-batchI): AIO 加固二——cfitsio calloc NULL/FP64 写硬失败(禁静默降精度)/hips reader tile_width==512 读侧硬校验/异常屏障 27→114 try(119 入口全覆盖)/HCSD 上限+错位读 fail-closed/xisf 64位seek/MOC fail-closed（bug 狩猎 R9-A，恶意 fixture 11/11）", "task_id": "UNTAGGED", "date": "2026-09-08T12:37:59+08:00"}

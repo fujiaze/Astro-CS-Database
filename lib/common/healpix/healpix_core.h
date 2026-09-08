@@ -13,6 +13,7 @@
 #define ASTROCS_HEALPIX_CORE_H
 
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 namespace astrocs {
@@ -20,10 +21,12 @@ namespace healpix {
 
 // (ra_deg, dec_deg) -> NESTED ipix @ nside (nside 必须为 2 的幂)
 // ra/dec 单位: 度; ra 任意值(内部归一化), dec ∈ [-90, 90]
+// nside == 0 或非 2 的幂: 抛 std::invalid_argument (R9-B: 禁止静默向上取整)
 uint64_t ang2pix_nest(uint32_t nside, double ra_deg, double dec_deg);
 
 // NESTED ipix @ nside -> (ra_deg, dec_deg), ra ∈ [0, 360), dec ∈ [-90, 90]
 // ipix 越界时 ra=dec=0 (与调用方约定一致)
+// nside 非法: 抛 std::invalid_argument
 void pix2ang_nest(uint32_t nside, uint64_t ipix, double& ra_deg, double& dec_deg);
 
 // 像素中心大圆角距 (度)
@@ -49,10 +52,20 @@ uint64_t fits_index_to_nested_local(uint64_t fits_index, uint32_t shift, uint32_
 uint64_t parent_nest(uint64_t ipix, uint32_t shift);
 
 // 子像素: ipix << (2*shift) (调用方保证不溢出目标阶)
+// shift 使 2*shift >= 64 或结果左移溢出: 抛 std::overflow_error (R9-B: 禁止 UB)
 uint64_t child_nest(uint64_t ipix, uint32_t shift);
 
-// 由叶级 nside 计算 tile 阶 (log2)
+// 校验 nside 为合法 HEALPix 参数 (>=1 且 2 的幂), 否则抛 std::invalid_argument
+inline void require_valid_nside(uint32_t nside) {
+    if (nside == 0 || (nside & (nside - 1u)) != 0u) {
+        throw std::invalid_argument("healpix: nside must be a power of two (got "
+                                    + std::to_string(nside) + ")");
+    }
+}
+
+// 由叶级 nside 计算 tile 阶 (log2); 非 2 的幂输入是编程错误 -> 抛异常 (R9-B)
 inline uint32_t nside_to_order(uint32_t nside) {
+    require_valid_nside(nside);
     uint32_t k = 0;
     while ((uint32_t(1) << k) < nside) ++k;
     return k;
@@ -62,15 +75,28 @@ inline uint32_t nside_to_order(uint32_t nside) {
 inline uint32_t order_to_nside(uint32_t order) { return uint32_t(1) << order; }
 
 // 叶级 ipix (nside=2^leaf_order) -> tile ipix (nside=2^tile_order), tile_order<=leaf_order
+// leaf_order < tile_order (层级倒挂): 抛 std::invalid_argument (R9-B)
 inline uint64_t leaf_to_tile_nest(uint64_t leaf_ipix, uint32_t leaf_order, uint32_t tile_order) {
-    const uint32_t shift = (leaf_order >= tile_order) ? (leaf_order - tile_order) : 0;
+    if (leaf_order < tile_order) {
+        throw std::invalid_argument("healpix: leaf_order < tile_order in leaf_to_tile_nest");
+    }
+    const uint32_t shift = leaf_order - tile_order;
     return leaf_ipix >> (2u * shift);
 }
 
 // tile ipix -> 叶级首像素 (tile_order<=leaf_order)
+// leaf_order < tile_order (层级倒挂) 或 tile_ipix 超出 tile_order 表示范围: 抛异常 (R9-B)
 inline uint64_t tile_to_leaf_nest(uint64_t tile_ipix, uint32_t tile_order, uint32_t leaf_order) {
-    const uint32_t shift = (leaf_order >= tile_order) ? (leaf_order - tile_order) : 0;
-    return tile_ipix << (2u * shift);
+    if (leaf_order < tile_order) {
+        throw std::invalid_argument("healpix: leaf_order < tile_order in tile_to_leaf_nest");
+    }
+    const uint32_t shift = leaf_order - tile_order;
+    const uint32_t bits = 2u * shift;
+    if (bits == 0) return tile_ipix;
+    if (bits >= 64 || (tile_ipix >> (64u - bits)) != 0) {
+        throw std::overflow_error("healpix: tile_to_leaf_nest shift overflow");
+    }
+    return tile_ipix << bits;
 }
 
 // ---- NESTED 权威扩展 (B4-01 去重, 由原 healpix_drizzle::HealpixCore 精选迁移) ----
