@@ -1,0 +1,186 @@
+{
+  "schema": "astrocs.task-result/v2",
+  "task_id": "CPU-007",
+  "status": "PASS",
+  "parent_commit": "5d4ab05d",
+  "parent_commit_full": "5d4ab05d",
+  "note_parent_commit": "本 TASK_RESULT 产出时工作树未提交(SubAgent 不执行 git commit); parent_commit 以 CPU-006 闭环 commit 5d4ab05d 为基准基线; 提交期间 HEAD 已被前台并行任务(CLI-004/CLI-003)推进至 a78cec5e, 本任务改动与之同树共存、零路径交叠。result_commit 由前台提交后回填本字段所在提交。",
+  "control_sha256": "PENDING-FRONTEND-FILL",
+  "ledger_sha256": "PENDING-FRONTEND-FILL",
+  "change_class": "performance",
+  "changed_paths": [
+    "lib/backend_host/profile_store.h",
+    "lib/backend_host/profile_store.cpp",
+    "tests/unit/cpu007_profile_store_test.cpp",
+    "CMakeLists.txt",
+    "tests/unit/CMakeLists.txt",
+    "evidence/v6_1_rework/tasks/CPU-007/PLAN.md",
+    "evidence/v6_1_rework/tasks/CPU-007/TASK_RESULT.json",
+    "evidence/v6_1_rework/tasks/CPU-007/logs/bench_quick.log",
+    "evidence/v6_1_rework/tasks/CPU-007/logs/build_cli.log",
+    "evidence/v6_1_rework/tasks/CPU-007/logs/ctest.log",
+    "evidence/v6_1_rework/tasks/CPU-007/logs/ctest_full.log",
+    "evidence/v6_1_rework/tasks/CPU-007/logs/load_context.txt",
+    "evidence/v6_1_rework/tasks/CPU-007/logs/real_chain_driver.cpp.txt",
+    "evidence/v6_1_rework/tasks/CPU-007/logs/real_chain.log",
+    "evidence/v6_1_rework/tasks/CPU-007/logs/unit_test.log"
+  ],
+  "impact": {
+    "science": false,
+    "algorithm": false,
+    "data_semantics": false,
+    "public_api": true,
+    "pipeline": false,
+    "binary": true,
+    "reason": "新增 profile_store 存储生命周期层(默认路径 XDG/LOCALAPPDATA, 写临时→fsync→复读校验→原子 rename, 装载校验链 verify_profile_v2+check_profile_identity_v1+profile_kernel_benchmark_valid 唯一出处复用, 失效隔离 .rejected-* 不删除供取证) — 纯新增层, 校验链与 schema(astrocs.cpu-profile/v2)零改动; CLI 接线归 CLI-004 域; bench_report(astrocs.benchmark-report/v1)与 cpu-profile/v2 结构性隔离经负例验证双向保持"
+  },
+  "commands": [
+    {
+      "command_id": "c01",
+      "argv_redacted": ["cmake", "--build", "build", "--target", "astrocs_cpu", "cpu007_profile_store_test", "cpu006_bench_report_test"],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-007/logs/build_cli.log",
+      "load_context": "load 1.81/2.01/1.51 (前 1/5/15min), <2 达标, 无并行 ninja"
+    },
+    {
+      "command_id": "c02",
+      "argv_redacted": ["./build/tests/unit/cpu007_profile_store_test"],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-007/logs/unit_test.log",
+      "load_context": "load 1.75/1.99/1.51"
+    },
+    {
+      "command_id": "c03",
+      "argv_redacted": ["cmake", "--build", "build", "--target", "astrocs"],
+      "timeout_seconds": 600,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-007/logs/build_cli.log",
+      "load_context": "load 1.48/1.93/1.50"
+    },
+    {
+      "command_id": "c04",
+      "argv_redacted": ["ctest", "-R", "cpu|profile|bench"],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-007/logs/ctest.log",
+      "load_context": "load 1.39/1.88/1.49"
+    },
+    {
+      "command_id": "c05",
+      "argv_redacted": ["./build/astrocs", "benchmark", "cpu", "--quick", "--output", "/tmp/astrocs_cpu007_real/cpu_profile.json"],
+      "timeout_seconds": 300,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-007/logs/bench_quick.log",
+      "load_context": "load 1.04/1.76/1.46 (benchmark 实跑 <2 达标)"
+    },
+    {
+      "command_id": "c06",
+      "argv_redacted": ["./run/local/agent_cpu007/real_chain_driver", "/tmp/astrocs_cpu007_real/cpu_profile.json", "<commit-7719a09c>"],
+      "timeout_seconds": 120,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-007/logs/real_chain.log",
+      "load_context": "load 0.22/1.11/1.25"
+    },
+    {
+      "command_id": "c07",
+      "argv_redacted": ["ctest"],
+      "timeout_seconds": 900,
+      "exit_code": 0,
+      "log_path": "evidence/v6_1_rework/tasks/CPU-007/logs/ctest_full.log",
+      "load_context": "load 0.42/1.12/1.26; 77/77 passed (cpu001_selftest_avx512 机器不支持, Skipped 同基线)"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "T-PATH-DEFAULT",
+      "description": "默认路径: XDG_DATA_HOME 注入与 HOME 回退(~/.local/share/AstroCS/cpu_profile.json), 绝对路径语义; Windows 分支为同源编译面(%LOCALAPPDATA%/AstroCS/cpu_profile.json)",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-ATOMIC-SAVE",
+      "description": "原子保存: 父目录自动创建; 写临时→fsync→复读逐字节比对→verify→rename; 落盘后无 .tmp- 残留; 装载文本与保存文本一致",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-NEG-HALFWRITTEN",
+      "description": "负向: 半写文件(合法文本截断)不被使用, reason=corrupted, 原位隔离改名 .rejected-<utc>, 隔离文件内容保留供取证",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-NEG-CORRUPTED",
+      "description": "负向: 损坏文件(非法 JSON)不被使用并隔离",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-NEG-OLD-SCHEMA",
+      "description": "负向: 旧版本(v1 schema_version 布局)不被使用, reason=old_schema, 隔离改名",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-NEG-MACHINE-CHANGED",
+      "description": "负向: 机器变化(CPU 指纹 vendor)不被使用, reason=stale_machine, 文件保留(回滚/复核现场); 异二进制 benchmark_binary_sha256 同样 stale_machine 拒用",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-NEG-BUILD-MISMATCH",
+      "description": "负向: build 失配(换 source_commit)不被使用, reason=stale_build, 文件保留",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-MISSING-WARNING",
+      "description": "无 profile → status=missing + 清晰 warning(generic ISA + dynamic worker budget 语义, V8-CPU-002 回落面)",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-NEG-SOURCE-TREE",
+      "description": "负向: 源码树/审核包内路径拒存(相对路径与树内绝对路径), profile 原始数据不进源码/审核包",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-ATOMIC-SIDEEFFECT-FREE",
+      "description": "原子性: 校验失败保存零副作用(旧完整版保持可装载); 外域 schema(benchmark-report/v1)同防线拒绝; 孤儿临时文件下次写前清理",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-CONSUMER-GATE",
+      "description": "消费级校验(CPU-005 profile_kernel_benchmark_valid 复用): oracle:fail kernel 拒用; 分层语义(不带消费校验则通过)保持",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-CLASSIFY",
+      "description": "失效归类词表(corrupted/old_schema/stale_machine/stale_build)与 load 共用同一实现; 未知保守归 corrupted",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-OVERWRITE",
+      "description": "覆盖更新: 新版本原子替换旧版本且内容生效",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-REAL-CHAIN",
+      "description": "真实链路: CLI benchmark cpu --quick 实跑生成真实 v2 profile → save(绑定校验全过) → load ok; 异二进制/半写/旧版本/外域 schema/源码树 5 负例全部拒用(异二进制拒用为绑定语义正确生效的正面证据)",
+      "result": "PASS"
+    },
+    {
+      "test_id": "T-REGRESSION-FULL",
+      "description": "全量回归: ctest 77/77 passed(CPU-003/004/006 同域基线不受影响; cpu001_selftest_avx512 机器不支持 Skipped 与基线一致)",
+      "result": "PASS"
+    }
+  ],
+  "constraints": {
+    "recompute_single_thread": "不适用(存储层无计算); 选择语义在 profile 内容本身, 本层透传, 无硬编码线程/ISA/block",
+    "benchmark_select_no_hardcode": "确认: profile_store 不含任何 workers/ISA/block 常量",
+    "profile_not_in_source_tree": "save_profile_atomic_v1 源码树防线(含 CMakeLists.txt/.git 祖先目录判定 + 相对路径拒绝), 负例验证",
+    "schema_isolation": "本层只接受 astrocs.cpu-profile/v2; benchmark-report/v1 文本被 verify_profile_v2 拒绝(双向负例)"
+  },
+  "logs_dir": "run/local/agent_cpu007/",
+  "evidence_dir": "evidence/v6_1_rework/tasks/CPU-007/",
+  "pending_frontend": {
+    "result_commit": "前台提交后回填",
+    "control_sha256": "前台提交后回填",
+    "ledger_sha256": "前台提交后回填",
+    "commits_csv_row": "COMMITS.csv 追加行由前台在提交后补(含 result_commit/changed_paths_sha256/task_result_sha256)"
+  }
+}
