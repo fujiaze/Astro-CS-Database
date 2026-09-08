@@ -339,6 +339,12 @@ target_include_directories(p1_nside_test PRIVATE
 target_link_libraries(p1_nside_test PRIVATE astrocs_common astrocs_phase3_session astrocs_hips astrocs_contracts)
 add_test(NAME p1_nside COMMAND p1_nside_test)
 
+# R9-B (bug 狩猎 P1 batchJ): healpix NESTED neighbors corner 分支 + query_disc
+# 完备性修复验证; 源文件共址 lib/common/healpix/tests/ (仓库现行测试装配模式)
+add_executable(r9b_healpix_neighbors_test ../../lib/common/healpix/tests/test_healpix_neighbors.cpp)
+target_link_libraries(r9b_healpix_neighbors_test PRIVATE astrocs_common)
+add_test(NAME r9b_healpix_neighbors COMMAND r9b_healpix_neighbors_test)
+
 add_executable(p1_hips_writer_test p1_hips_writer_test.cpp)
 target_include_directories(p1_hips_writer_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include)

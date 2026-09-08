@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <stdexcept>
 #include <unordered_map>
 #include <vector>
 
@@ -230,7 +231,7 @@ void hp_to_xyz(uint32_t basehp, uint32_t px, uint32_t py, double dx, double dy,
 // ang2pix_nest - (ra, dec) -> NESTED ipix @ nside
 // ============================================================================
 uint64_t ang2pix_nest(uint32_t nside, double ra_deg, double dec_deg) {
-    if (nside == 0) return 0;
+    require_valid_nside(nside);   // R9-B: 非 2 次幂 nside 禁止静默向上取整
     const uint32_t order = nside_to_order(nside);
     const uint32_t ns = uint32_t(1) << order;
     double vx, vy, vz;
@@ -247,7 +248,7 @@ uint64_t ang2pix_nest(uint32_t nside, double ra_deg, double dec_deg) {
 void pix2ang_nest(uint32_t nside, uint64_t ipix, double& ra_deg, double& dec_deg) {
     ra_deg = 0.0;
     dec_deg = 0.0;
-    if (nside == 0) return;
+    require_valid_nside(nside);   // R9-B: 非 2 次幂 nside 禁止静默取整
     const uint32_t order = nside_to_order(nside);
     const uint32_t ns = uint32_t(1) << order;
     const uint64_t npface = static_cast<uint64_t>(ns) * ns;
@@ -315,7 +316,12 @@ uint64_t parent_nest(uint64_t ipix, uint32_t shift) {
 }
 
 uint64_t child_nest(uint64_t ipix, uint32_t shift) {
-    return ipix << (2u * shift);
+    const uint32_t bits = 2u * shift;
+    if (bits == 0) return ipix;
+    if (bits >= 64 || (ipix >> (64u - bits)) != 0) {
+        throw std::overflow_error("healpix: child_nest shift overflow");
+    }
+    return ipix << bits;
 }
 
 double pixel_resolution_arcsec(uint32_t nside) {
@@ -329,146 +335,175 @@ uint64_t npix(uint32_t nside) {
 }
 
 // ---- neighbors / query_disc helpers (B4-01 精选迁移, 仅 NESTED) ----
+// R9-B 重写: 邻居算法移植自官方 HEALPix C++ (Healpix_3.83 healpix_base.cc /
+// healpix_tables.cc, GPL-2+ 参考), 8 方向槽位序 (-0,-+,0+,++ ,+0,+- ,0- ,--)
+// + nbnum 面映射/折回表; 由纯 python 双参照 oracle (astrometry get_neighbours
+// 逐槽算法 + Healpix paper Gorski 2005 钉值) 全像素交叉验证。
 namespace {
-inline int base_neighbour(int hp, int dx, int dy) {
-    bool north = (hp <= 3);
-    bool south = (hp >= 8);
-    if (north) {
-        if (dx ==  1 && dy ==  0) return (hp + 1) % 4;
-        if (dx ==  0 && dy ==  1) return (hp + 3) % 4;
-        if (dx ==  1 && dy ==  1) return (hp + 2) % 4;
-        if (dx == -1 && dy ==  0) return hp + 4;
-        if (dx ==  0 && dy == -1) return 4 + ((hp + 1) % 4);
-        if (dx == -1 && dy == -1) return hp + 8;
-        return -1;
-    } else if (south) {
-        if (dx ==  1 && dy ==  0) return 4 + ((hp + 1) % 4);
-        if (dx ==  0 && dy ==  1) return hp - 4;
-        if (dx == -1 && dy ==  0) return 8 + ((hp + 3) % 4);
-        if (dx ==  0 && dy == -1) return 8 + ((hp + 1) % 4);
-        if (dx == -1 && dy == -1) return 8 + ((hp + 2) % 4);
-        if (dx ==  1 && dy ==  1) return hp - 8;
-        return -1;
-    } else {
-        if (dx ==  1 && dy ==  0) return hp - 4;
-        if (dx ==  0 && dy ==  1) return (hp + 3) % 4;
-        if (dx == -1 && dy ==  0) return 8 + ((hp + 3) % 4);
-        if (dx ==  0 && dy == -1) return hp + 4;
-        if (dx ==  1 && dy == -1) return 4 + ((hp + 1) % 4);
-        if (dx == -1 && dy ==  1) return 4 + ((hp - 1) % 4);
-        return -1;
-    }
-}
+
+// 邻居方向偏移 (官方 Healpix_Tables::nb_xoffset/nb_yoffset)
+constexpr int kNbXOffset[8] = { -1, -1,  0, 1, 1, 1,  0, -1 };
+constexpr int kNbYOffset[8] = {  0,  1,  1, 1, 0, -1, -1, -1 };
+// nbnum (x越界1/-1, y越界3/-3 组合) -> 12 base face 的邻居面, -1 = 不存在
+constexpr int kNbFaceArray[9][12] = {
+    {  8,  9, 10, 11, -1, -1, -1, -1, 10, 11,  8,  9 },   // S  (nbnum=0)
+    {  5,  6,  7,  4,  8,  9, 10, 11,  9, 10, 11,  8 },   // SE (nbnum=1)
+    { -1, -1, -1, -1,  5,  6,  7,  4, -1, -1, -1, -1 },   // E  (nbnum=2)
+    {  4,  5,  6,  7, 11,  8,  9, 10, 11,  8,  9, 10 },   // SW (nbnum=3)
+    {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11 },   // center (nbnum=4)
+    {  1,  2,  3,  0,  0,  1,  2,  3,  5,  6,  7,  4 },   // NE (nbnum=5)
+    { -1, -1, -1, -1,  7,  4,  5,  6, -1, -1, -1, -1 },   // W  (nbnum=6)
+    {  3,  0,  1,  2,  3,  0,  1,  2,  4,  5,  6,  7 },   // NW (nbnum=7)
+    {  2,  3,  0,  1, -1, -1, -1, -1,  0,  1,  2,  3 },   // N  (nbnum=8)
+};
+// nbnum -> 坐标折回位 (bit0: x 镜像, bit1: y 镜像, bit2: x/y 交换), 按 face>>2 取
+constexpr int kNbSwapArray[9][3] = {
+    { 0, 0, 3 },   // S
+    { 0, 0, 6 },   // SE
+    { 0, 0, 0 },   // E
+    { 0, 0, 5 },   // SW
+    { 0, 0, 0 },   // center
+    { 5, 0, 0 },   // NE
+    { 0, 0, 0 },   // W
+    { 6, 0, 0 },   // NW
+    { 3, 0, 0 },   // N
+};
+
 } // namespace
 
 std::vector<uint64_t> neighbors(uint32_t nside, uint64_t ipix) {
     std::vector<uint64_t> result;
     if (nside == 0) return result;
-    uint32_t order = nside_to_order(nside);
-    uint32_t ns = uint32_t(1) << order;
-    uint64_t npface = uint64_t(ns) * ns;
+    const uint32_t order = nside_to_order(nside);
+    const uint32_t ns = uint32_t(1) << order;
+    const uint64_t npface = uint64_t(ns) * ns;
     if (ipix >= 12ULL * npface) return result;
-    uint32_t bighp = uint32_t(ipix / npface);
+
+    const uint32_t face = uint32_t(ipix / npface);
     uint32_t x = 0, y = 0;
     nest_to_xy(ipix % npface, order, x, y);
-    int Ns = (int)ns;
-    int base = (int)bighp;
-    bool nPol = (base <= 3);
-    bool sPol = (base >= 8);
-    struct Dir { int dx, dy; };
-    Dir dirs[8] = {{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1}};
-    auto clampi = [](int v, int lo, int hi){ return v<lo?lo:(v>hi?hi:v); };
-    for (int d = 0; d < 8; ++d) {
-        int dx = dirs[d].dx, dy = dirs[d].dy;
-        int nx = (int)x + dx, ny = (int)y + dy;
-        int nbase = base;
-        if (nx >= 0 && nx < Ns && ny >= 0 && ny < Ns) {
-        } else {
-            bool atRight  = (x == (uint32_t)Ns - 1);
-            bool atLeft   = (x == 0);
-            bool atTop    = (y == (uint32_t)Ns - 1);
-            bool atBottom = (y == 0);
-            bool corner = ((dx != 0) && (dy != 0) &&
-                           ((atRight && atTop) || (atRight && atBottom) ||
-                            (atLeft  && atTop) || (atLeft  && atBottom)));
-            bool edgeX  = (dx != 0 && ((atRight && dx > 0) || (atLeft && dx < 0)));
-            bool edgeY  = (dy != 0 && ((atTop  && dy > 0) || (atBottom && dy < 0)));
-            if (corner) {
-                if (nPol || sPol) nbase = base_neighbour(base, dx, dy);
-                else continue;
-            } else if (edgeX && edgeY) {
-                continue;
-            } else if (edgeX) {
-                nbase = base_neighbour(base, dx, 0);
-            } else if (edgeY) {
-                nbase = base_neighbour(base, 0, dy);
-            } else continue;
-            if (nbase < 0) continue;
-            nx = ((int)x + dx + Ns) % Ns;
-            ny = ((int)y + dy + Ns) % Ns;
-            if (nPol) {
-                if (atRight && dx > 0) { nx = Ns - 1; std::swap(nx, ny); }
-                else if (atTop && dy > 0) { ny = Ns - 1; std::swap(nx, ny); }
-            } else if (sPol) {
-                if (atLeft && dx < 0) { nx = 0; std::swap(nx, ny); }
-                else if (atBottom && dy < 0) { ny = 0; std::swap(nx, ny); }
-            }
-        }
-        nx = clampi(nx, 0, Ns - 1);
-        ny = clampi(ny, 0, Ns - 1);
-        uint64_t out = uint64_t(nbase) * npface + xy_to_nest((uint32_t)nx, (uint32_t)ny, order);
-        result.push_back(out);
+
+    result.reserve(8);
+    const int Ns = (int)ns;
+    const int nsm1 = Ns - 1;
+    const int ix = (int)x, iy = (int)y;
+    // 输出槽序采用 astrometry get_neighbours 序 (+0,++,0+,-+,-0,--,0-,+-),
+    // 即官方 offset 表索引的置换; 共址测试与 python oracle 逐槽比对以此为锚。
+    constexpr int kSlotMap[8] = { 4, 3, 2, 1, 0, 7, 6, 5 };
+    for (int i = 0; i < 8; ++i) {
+        const int s = kSlotMap[i];
+        int xx = ix + kNbXOffset[s];
+        int yy = iy + kNbYOffset[s];
+        int nbnum = 4;
+        if (xx < 0)      { xx += Ns; nbnum -= 1; }
+        else if (xx > nsm1) { xx -= Ns; nbnum += 1; }
+        if (yy < 0)      { yy += Ns; nbnum -= 3; }
+        else if (yy > nsm1) { yy -= Ns; nbnum += 3; }
+
+        const int f = kNbFaceArray[nbnum][face];
+        if (f < 0) continue;                     // 真角: 该方向无邻居 (赤道面)
+        const int bits = kNbSwapArray[nbnum][face >> 2];
+        if (bits & 1) xx = nsm1 - xx;
+        if (bits & 2) yy = nsm1 - yy;
+        if (bits & 4) { int t = xx; xx = yy; yy = t; }
+        result.push_back(uint64_t(f) * npface +
+                         xy_to_nest((uint32_t)xx, (uint32_t)yy, order));
     }
+    // 官方语义: 8 槽位可能含重复 (极点角槽), 保留槽序不去重 (与官方 neighbors 一致);
+    // 唯一邻居集合 = result 去重 (消费方如需去重自行处理)。
     return result;
 }
+
+// ---- query_disc (R9-B 重写: 官方 HEALPix C++ NEST scheme 四叉树下钻算法) ----
+// 移植自 Healpix_3.83 healpix_base.cc query_disc_internal (NEST 分支, fct=0):
+// 12 基面入栈 -> 逐像素以 cos 角距分区 (zone 0=盘外/1=安全环/2=中心入盘/3=整像素
+// 入盘), 粗于目标阶时 zone 3 整子树直出、zone 1/2 下钻; 目标阶 zone>=2 出结果。
+// 安全余量 max_pixrad 取自官方实现 (z=2/3,φ=π/4nside 与 (1-(1-1/nside)^2)/3 处
+// 像素角的最大角距)。语义 = 像素中心落在盘内 (与官方 query_disc 一致)。
+namespace {
+
+// 官方 max_pixrad (healpix_base.cc L1314)
+inline double max_pixrad_order(uint32_t order) {
+    const double nside = double(uint32_t(1) << order);
+    const double za = kTwoThird;
+    const double phi_a = kPi / (4.0 * nside);
+    const double t1 = 1.0 - 1.0 / nside;
+    const double zb = 1.0 - t1 * t1 / 3.0;
+    const double dot = za * zb + std::sqrt((1.0 - za * za) * (1.0 - zb * zb)) * std::cos(phi_a);
+    return std::acos(std::min(1.0, std::max(-1.0, dot)));
+}
+
+} // namespace
 
 std::vector<uint64_t> query_disc(uint32_t nside, double ra_deg, double dec_deg,
                                  double radius_arcsec) {
     std::vector<uint64_t> result;
-    if (nside == 0) return result;
+    require_valid_nside(nside);   // R9-B: 非 2 次幂 nside 禁止静默取整
+    const uint32_t order = nside_to_order(nside);
     double radius_rad = radius_arcsec * kPi / (180.0 * 3600.0);
     double decR = dec_deg * kPi / 180.0;
-    double raR  = ra_deg  * kPi / 180.0;
-    double cdec = std::cos(decR);
-    double cx = cdec * std::cos(raR);
-    double cy = cdec * std::sin(raR);
-    double cz = std::sin(decR);
-    uint64_t center = ang2pix_nest(nside, ra_deg, dec_deg);
-    // BFS over neighbors, angular distance check via dot product
-    std::unordered_map<uint64_t, bool> visited;
-    visited.reserve(64);
-    std::vector<uint64_t> queue;
-    queue.push_back(center);
-    visited[center] = true;
-    while (!queue.empty()) {
-        std::vector<uint64_t> next;
-        for (uint64_t ip : queue) {
-            double ra_c, dec_c;
-            pix2ang_nest(nside, ip, ra_c, dec_c);
-            double dec2 = dec_c * kPi / 180.0;
-            double ra2  = ra_c  * kPi / 180.0;
-            double c2 = std::cos(dec2);
-            double px = c2 * std::cos(ra2);
-            double py = c2 * std::sin(ra2);
-            double pz = std::sin(dec2);
-            double cosd = px*cx + py*cy + pz*cz;
-            if (cosd > 1.0) cosd = 1.0;
-            if (cosd < -1.0) cosd = -1.0;
-            double dist = std::acos(cosd);
-            if (dist <= radius_rad) {
-                result.push_back(ip);
-                auto nbrs = neighbors(nside, ip);
-                for (uint64_t nb : nbrs) {
-                    if (!visited.count(nb)) {
-                        visited[nb] = true;
-                        next.push_back(nb);
-                    }
-                }
+    const double raR = ra_deg * kPi / 180.0;
+    const double cz = std::sin(decR);
+    if (radius_rad <= 0.0) {
+        // 零/负半径: 仅中心像素 (与既有调用约定一致)
+        result.push_back(ang2pix_nest(nside, ra_deg, dec_deg));
+        return result;
+    }
+    if (radius_rad >= kPi) {
+        const uint64_t ntotal = 12ULL * uint64_t(uint32_t(1) << order) * (uint32_t(1) << order);
+        result.resize(ntotal);
+        for (uint64_t i = 0; i < ntotal; ++i) result[i] = i;
+        return result;
+    }
+
+    const double cosrad = std::cos(radius_rad);
+    // 逐阶安全余量 (官方 NEST 分支: 各阶以该阶 max_pixrad 扩盘定候选环)
+    std::vector<double> crpdr(order + 1), crmdr(order + 1);
+    for (uint32_t o = 0; o <= order; ++o) {
+        const double dr = max_pixrad_order(o);
+        crpdr[o] = (radius_rad + dr > kPi) ? -1.0 : std::cos(radius_rad + dr);
+        crmdr[o] = (radius_rad - dr < 0.0) ? 1.0 : std::cos(radius_rad - dr);
+    }
+
+    struct SI { uint64_t pix; uint32_t o; };
+    std::vector<SI> stk;
+    stk.reserve(64);
+    for (int i = 0; i < 12; ++i) stk.push_back({uint64_t(11 - i), 0});   // 官方逆序入栈
+
+    while (!stk.empty()) {
+        const SI cur = stk.back();
+        stk.pop_back();
+        const uint32_t on = uint32_t(1) << cur.o;
+        double ra_c = 0.0, dec_c = 0.0;
+        pix2ang_nest(on, cur.pix, ra_c, dec_c);
+        const double z = std::sin(dec_c * kPi / 180.0);
+        const double phi = ra_c * kPi / 180.0;
+        // cosdist_zphi (官方): 中心角距余弦
+        double cangdist = z * cz +
+            std::sqrt(std::max(0.0, (1.0 - z * z) * (1.0 - cz * cz))) * std::cos(phi - raR);
+        if (cangdist > 1.0) cangdist = 1.0;
+        if (cangdist < -1.0) cangdist = -1.0;
+        if (cangdist <= crpdr[cur.o]) continue;   // 盘外 (含安全余量)
+        const int zone = (cangdist < cosrad)
+            ? 1
+            : ((cangdist <= crmdr[cur.o]) ? 2 : 3);
+        if (cur.o < order) {
+            if (zone >= 3) {
+                // 整像素在盘内: 子树全量直出 (官方 pixset.append(pix<<sdist, (pix+1)<<sdist))
+                const uint32_t sdist = 2u * (order - cur.o);
+                const uint64_t first = cur.pix << sdist;
+                const uint64_t last = (cur.pix + 1ull) << sdist;
+                for (uint64_t s = first; s < last; ++s) result.push_back(s);
+            } else {
+                for (int i = 0; i < 4; ++i)   // 下钻 (官方逆序, 输出端已排序故不影响)
+                    stk.push_back({4ull * cur.pix + uint64_t(3 - i), cur.o + 1});
             }
+        } else {   // cur.o == order (非 inclusive 模式: zone==1 不输出)
+            if (zone >= 2) result.push_back(cur.pix);
         }
-        queue.swap(next);
     }
     std::sort(result.begin(), result.end());
+    result.erase(std::unique(result.begin(), result.end()), result.end());
     return result;
 }
 
