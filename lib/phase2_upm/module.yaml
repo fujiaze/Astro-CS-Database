@@ -1,0 +1,134 @@
+# AstroCS phase2 upm 模块 — 元数据 (P2-UPM-DOC 冻结, 2026-09-10)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase2/src/upm.cpp
+# 1565 行 + 唯一权威签名头 lib/phase2/include/astro/phase2/upm.h
+# 184 行，行号 grep/read 实测；构建挂载: 根 CMakeLists.txt:337-346
+# astrocs_phase2 STATIC 目标（:338 lib/phase2/src/upm.cpp）+
+# astrocs_phase2_session STATIC :454（:458 链接 astrocs_phase2）；
+# AIO 持久化后端 lib/astro_image_io/src/aio_upm.cpp
+# aio_upm_write_sparse :66 / dense 格式 astrocs-upm-dense-v2 :223/:407），
+# 模块化迁移（独立模块源 astrocs_p2_upm.dll / C ABI adapter /
+# plan-execute-cancel-inspect / ThreadLease 接线）由 P2-UPM-IMPL 执行；
+# 可执行测试由 P2-UPM-TEST 建立（TEST-P2-UPM-001（fit）/
+# TEST-P2-UPM-002（apply）MISSING，不冒认；设计冻结面=
+# ALG-P2-UPM-IMPL-001 TEST-DESIGN 节，SA-B 写）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为
+# 源码核对清单（P2-UPM-DOC，2026-09-10，grep 实测 upm.cpp 16 个
+# 导出符号，禁抄他版）。
+# 双 descriptor 声明：本域含 fit+apply 两个 descriptor（registry
+# 两行：MOD-astrocs-phase2-upm-fit / MOD-astrocs-phase2-upm-apply）。
+# 一个 manifest 只能一个 id，本文件 id 取 MOD-astrocs-phase2-upm-fit；
+# apply 对应 MOD-astrocs-phase2-upm-apply，其 ports/ids 见
+# docs/modules/registry/astrocs.phase2.upm-apply.md 与本目录
+# README.md §fit/apply descriptor 现状；本 manifest 其余字段
+# （module_id / dll_target 等）用域值 astrocs.p2.upm /
+# astrocs_p2_upm.dll（MODULE_MIGRATION_MATRIX P2-UPM 行）。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P2-UPM 行 owner=SA-P2-U21、
+# target=astrocs_p2_upm.dll、module_id=astrocs.p2.upm、
+# legacy_paths="lib/phase2 upm sources"、depends_on_int=
+# P2-SAMP-INT;CPU-005。实测生产源 lib/phase2/src/upm.cpp 位于
+# lib/phase2/——该目录三件套已被 P2-COV 域 astrocs.p2.coverage 合同
+# 占用（lib/phase2/README.md r1，一目录一套 README/module.yaml/
+# memory.md，不可覆盖他域合同），故按 lib/phase2_int/（P2-INT-DOC，
+# 其按 lib/hips_p2/ P2-HIPS-DOC 先例）→ lib/phase2_rej/（P2-REJ-DOC）
+# → lib/phase2_samp/（P2-SAMP-DOC）先例落独立迁移目标目录
+# lib/phase2_upm/（本文件所在，仅合同文件、无源码、不与 legacy
+# 目录重叠）；legacy 生产源引用不搬家。
+# dll_target=astrocs_p2_upm.dll 为迁移目标合同值（尚未存在）；
+# 现状构建=根 CMakeLists.txt astrocs_phase2 静态库成员（:337-346，
+# :338 编入 lib/phase2/src/upm.cpp）。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准
+# §4 值域）；现状实现=worker 数取 cfg.cpu_workers（Runtime lease
+# 唯一来源，p2_session.cpp:155/:195 传 host->budget.max_workers；
+# 模块内 std::thread 池 upm.cpp:515-559（compute_raw，worker-local
+# tsums 按 tid 升序合并，D1 worker 数无关）/:615-637（IRLS w 更新）/
+# :1479-1497（materialize_dense_n，kChunk=16 :1407），无
+# hardware_concurrency，无 #pragma omp——2026-09-10 实测 0 处）；
+# cpu_workers=1 串行 reference；ThreadLease/取消检查点无接线（迁移
+# 整改点）。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# （lib/core/src/module_adapters.cpp:599-632 p2_upm_fit_descriptor
+# / p2_upm_apply_descriptor 的 module_id=astrocs.phase2.upm-fit /
+# astrocs.phase2.upm-apply、sci_id=SCI-P2-UPM-001/002、
+# alg_id=ALG-P2-UPM-001/002、data_id=DATA-P2-SMP / DATA-P2-COR
+# （端口上游域引用）、api_id=API-P2-001、test_id=TEST-P2-UPM-001/
+# 002）为编排层词汇，由 P2-XX-INT 对齐本 manifest 与
+# lib/phase2_upm/README.md（r1），不得反向作为冻结依据（映射声明
+# SCI-P2-UPM-001/002⇒SCI-UPM-001 见 docs/algorithms/
+# PHASE2_UPM_IMPL.md §映射节，SA-B 写；占位 ID 不入合同）。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase2-upm-fit
+module_id: astrocs.p2.upm
+owner: SA-P2-U21
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase2
+dll_name: astrocs_p2_upm.dll
+dll_target: astrocs_p2_upm.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [upm_fit, upm_apply]
+input_ports:
+  - samples
+  - upm_model
+  - calibrated_frames
+output_ports:
+  - upm_model
+  - corrected
+science_contracts:
+  - SCI-UPM-001
+algorithm_contracts:
+  - ALG-P2-UPM-IMPL-001
+  - ALG-UPM-001
+  - ALG-UPM-CONTROL-IVAR-001
+data_contracts:
+  - DATA-P2-UPM
+  - DATA-P2-COR
+api_contracts:
+  - API-P2-UPM-001
+  - API-P2-001
+doc_links:
+  sci: docs/science/PHASE2_UPM.md
+  alg: docs/algorithms/PHASE2_UPM_IMPL.md
+  data: docs/contracts/DATA_SEMANTICS.md#§25
+  api: docs/contracts/PUBLIC_API.md#API-P2-UPM-001
+contract_ids:
+  sci: SCI-UPM-001
+  alg: ALG-P2-UPM-IMPL-001
+  data: DATA-P2-UPM
+  api: API-P2-UPM-001
+  arch: ARCH-001
+  test: TEST-P2-UPM-001
+source_symbols:
+  - p2_upm_build
+  - p2_upm_build_geo
+  - p2_upm_save
+  - p2_upm_open
+  - p2_upm_info
+  - p2_upm_calibrate_block
+  - p2_upm_evaluate_c
+  - p2_upm_raw_weight
+  - p2_upm_normalized_weights
+  - p2_upm_geometry_hash
+  - p2_upm_component_gauges
+  - p2_upm_materialize_dense_n
+  - p2_upm_materialize_dense
+  - p2_upm_dense_info
+  - p2_upm_dense_read_block
+  - p2_upm_close
+test_ids:
+  - TEST-P2-UPM-001
+  - TEST-P2-UPM-002
+threading_model: host_executor_lease
+resource_class: cpu
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+scientific_change: false
+depends_on:
+  - astrocs_phase2
+legacy_paths: lib/phase2 upm sources
+known_defects:
+  - DISP-P2UPM-001
+  - DISP-P2UPM-002
+  - DISP-P2UPM-003
+  - DISP-P2UPM-004

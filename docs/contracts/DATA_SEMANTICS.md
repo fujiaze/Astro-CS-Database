@@ -1649,3 +1649,263 @@ tree hash/COMPLETE 状态）在本段不适用，如实现状态登记**（无�
   lib/core/src/module_adapters.cpp:23-26 仅为 RT-005 IModule 工厂声明
   五 C ABI（p2_session_create/validate/run/inspect/destroy）；词汇
   astrocs.p2.session 由 P2-XX-INT 对齐登记，不作冻结依据。
+
+## 25. Phase2 UPM fit（lib/phase2）模块输入/输出数据（DATA-P2-UPM）
+
+> ID: DATA-P2-UPM  状态: CONTRACT_READY（P2-UPM-DOC 冻结，2026-09-10）
+> 模块: lib/phase2/src/upm.cpp（1565 行）+ 唯一权威签名头
+> lib/phase2/include/astro/phase2/upm.h（184 行）（astrocs.p2.upm-fit；
+> astrocs_phase2 静态库成员，根 CMakeLists.txt:337-346/:338；迁移目标
+> astrocs_p2_upm.dll 为矩阵合同值，尚未存在，由 P2-UPM-IMPL 建立，
+> 禁止声明 IMPLEMENTED）。本节是 Phase2 UPM fit（联合拟合/持久化/
+> 求值底座）in/out 单位/dtype/shape/invalid 的唯一权威；SCI 上游:
+> SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，零改动；单位权威=
+> 其 §3）；ALG: ALG-P2-UPM-IMPL-001（docs/algorithms/PHASE2_UPM_IMPL.md，
+> 逐符号锚）；API 面: API-P2-UPM-001（PUBLIC_API.md）；
+> descriptor 占位 module_id=astrocs.phase2.upm-fit
+> （module_adapters.cpp:599-616）由 P2-XX-INT 对齐。
+
+### 25.1 输入（锚=upm.h/upm.cpp；未注文件者同）
+
+**(1) P2ControlObservation[]**（const P2ControlObservation* obs,
+n_obs；upm.h:31-57）: 上游 DATA-P2-SMP 产物（p2_upm_build 入口），
+13 字段单位/dtype/invalid 唯一权威=§23.2(1)（**引用不复制**）。
+本域科学权重唯一来源=control_ivar（=1/control_variance，production
+use_ivar_weight=1，upm.h:43-50/:83-86 冻结；ALG-UPM-CONTROL-IVAR-001）:
+control_ivar≤0/非有限 → p2_upm_raw_weight rc=2 显式失败（:1311，
+h:126-133 "禁止静默回退 support/SNR"；权重语义红线 §23.4 镜像）。
+value 可负（局部 patch 光度估计，§23.2(1)）；uncertainty=sqrt(
+control_variance)（h:38）；ivar 字段弃用仅诊断（h:40-42），UPM 域
+不消费（production 权重路径无 ivar 引用，:1292-1317）。
+
+**(2) P2ControlNode[]**（仅 p2_upm_build_geo；upm.h:99-106）: coverage
+union 全几何节点 7 字段（sampler.h:77-83，§23.2(3) 引用不复制；含
+单帧区空覆盖占位，n_nodes=n_union×G² 口径）；obs 只含 ≥2 clean 帧
+观测，单帧区节点无数据项，C 由全局平滑/Laplacian 延拓得到（harmonic
+continuation，upm.h:99-101 冻结注释；SCI-UPM-001 §4）。stage2 生产
+消费=lib/phase2/tools/stage2.cpp:432-434 p2_upm_build_geo。
+
+**(3) cfg**（P2UpmBuildConfig，upm.h:71-92，15 字段；默认单一来源=
+upm.cpp:222-236（cfg==nullptr 分支逐字段填充）；非法数值经 :237-245
+修补回退冻结默认；**target_order=-1（auto）不可达——:246-249 显式
+rc=1**（空间 UPM 必须知 control leaf 层级 order=target+9，:261/:380；
+生产由 p2_session 取 coverage 实测值透传，p2_session.cpp:189））:
+
+| 字段 | dtype | 默认 | 单位/语义 |
+|---|---|---|---|
+| robust_loss | int | 0 | 0=huber（首版冻结，h:72） |
+| snr_weight_mode | int | 0 | 0=snr2_normalized（首版，h:73） |
+| huber_delta | double | 1.345 | Huber delta（h:74；≤0→1.345 :237） |
+| smoothing_lambda | double | 0.0 | 图平滑权重（默认关，h:75；<0→0.0 :245） |
+| zero_anchor_weight | double | 1e-3 | 弱零校正锚权重（h:76；<0→1e-3 :244） |
+| max_iterations | int | 100 | IRLS 最大迭代（h:77；≤0→100 :238） |
+| tolerance | double | 1e-6 | 收敛容差（h:78） |
+| target_order | int | -1(auto) | 模型目标 order；auto 必须显式，否则 rc=1（h:79；:246-249） |
+| sigma_floor | double | 1e-3 | uncertainty 下限（h:80；≤0→1e-3 :239） |
+| support_power | double | 1.0 | support 因子指数（h:81；<0→1.0 :240） |
+| quality_mode | int | 0 | 0=flags 映射（h:82） |
+| use_ivar_weight | int | 1 | 1=science weight 用 control_ivar（h:83-86；production control_ivar≤0/非有限→显式 INVALID，:1307-1311）；0=legacy 仅 ablation/诊断（SNR-015） |
+| control_reliability | double | 1.0 | 默认 control reliability（h:87；≤0→1.0 :243） |
+| input_manifest_hash | const char* | nullptr | 输入稳定 manifest（h:88；可空；非空参与模型 hash，:253-254） |
+| cpu_workers | int | 1 | CON-005 worker 数，Runtime lease 唯一来源（h:89-91 注释漂移=DISP-P2UPM-002；生产=p2_session.cpp:195 budget.max_workers；0/负→1 :515/:615/:1478） |
+
+**(4) 内存/规模**: C 校正矩阵=逐帧稀疏行（n_frame×n_control 结构
+口径，规模 O(n_ctrl + n_frame·n_ctrl)——结构推断口径，代码/文档
+无显式行级出处，如实登记）+ obs/nodes 数组线性 O(n_obs+n_nodes)；
+dense 物化分块内存上界=kChunk(16)×kLeafPx×8 字节（:1386/:1407 实测
+注释）。
+
+### 25.2 输出/数据合同
+
+**(1) UPM 模型对象**（void* 不透明句柄，p2_upm_build :929-932 /
+p2_upm_build_geo :934-937 唯一产出，p2_upm_close :1559 唯一释放）:
+模型本体不出 ABI 边界；对外溯源面=P2ModelInfo 七字段（upm.h:60-68，
+经 p2_upm_info :1233 只读导出）:
+
+| 字段 | dtype | 值/语义 | 锚 |
+|---|---|---|---|
+| version | u32 | 2（空间 UPM） | h:61；upm.cpp:255 |
+| precision | u32 | 1=fp64（本域唯一权威 dtype） | h:62；upm.cpp:256 |
+| target_order | u32 | 模型目标 order（=cfg 显式实测值） | h:63；:258 |
+| control_count | u64 | 控制点数 | h:64 |
+| observation_count | u64 | 观测数（=n_obs） | h:65；:257 |
+| component_count | u32 | 连通分量数 | h:66 |
+| model_hash | char[65] | 模型内容 SHA-256 hex（NUL 止） | h:67 |
+
+**(2) upm_model 端口产物**（descriptor 词汇）: build/persist 链产物
+=astrocs-upm-v2 单文件（§25.5(1)，唯一 AIO aio_upm_write_sparse）+
+可选 dense cache（§25.5(2)）；runtime 消费面=calibrate_block/
+evaluate_c/dense_read_block（apply 域=§26）。端口 samples→upm_model
+为编排层词汇（module_adapters.cpp:607-608），由 P2-XX-INT 对齐，
+不作冻结依据。
+
+### 25.3 单位/dtype/确定性
+
+- 唯一权威 dtype=FP64（precision=1，upm.cpp:256 "fp64 reference"）；
+  dense cache 亦 fp64（:1402 写 1 /* fp64 缓存 */）；模型 JSON/AIO
+  文本同值。
+- 单位权威=SCI-UPM-001 §3（docs/science/PHASE2_UPM.md:29 实测
+  "C, raw, calibrated, σ_bg: ADU"）: 校正场 C/参数 M/uncertainty/
+  σ_bg=ADU、control_variance=ADU²、control_ivar=1/ADU²、
+  snr/support/quality 无量纲、frame_id 无量纲 u64、M=latent unified
+  reference（内部待求量，upm.cpp:56）。**控制包模板"校正=mag"表述
+  与 SCI §3 实测不符——以 ADU 为冻结口径，mag 表述不作冻结依据**
+  （偏差登记，口径修正归上游）。
+- leaf_ipix 几何链: NESTED leaf 像素，tile=leaf_ipix>>18（tile_shift=9
+  :261/:1254；leaf order=target+9，:380 nside=2^(target+9)）。
+- 确定性=determinism class D1（:513-514 注释冻结"worker 数无关，
+  同一 worker 数下位精确"）: worker-local tsums + 按 worker 顺序
+  （与 OpenMP tid 升序语义一致）归并（:513-534）；raw weights 逐
+  obs 独立写不相交（:613-633）；dense 物化=分批并行求值+块内
+  (f,tile) 单调序串行写 → 稠密缓存 bit-identical（:1383-1386，
+  kChunk=16 :1407）。全文件无 #pragma omp（std::thread 池实现；
+  upm.h:89-91 注释 OpenMP 措辞漂移=DISP-P2UPM-002）。
+- 并行 worker 数唯一来源=cfg.cpu_workers（Runtime lease；p2_session.cpp
+  :195 预算驱动禁硬编码，§24.5 同构）；materialize_dense_n workers≤0
+  →1（:1478；upm.h:176 注释 auto=omp_get_max_threads 与实现漂移，
+  如实登记不改码）。
+
+### 25.4 错误/边界
+
+- rc 语义（16 符号逐条展开=API-P2-UPM-001 节）: rc=0 ok；rc=1=
+  参数/IO/未知 frame_id/open format 校验失败（:1027-1028）；rc=2=
+  production 缺 control_ivar（raw_weight :1311，build 链经
+  raw_weight 传播，SCI-UPM-001 §4 "p2_upm_raw_weight rc=2 → build
+  rc=2"）+ dense_read stale-cache（source hash 不匹配，
+  aio_upm.cpp:469）。
+- invalid/负向条款（如实，不静默伪装）: **未知 frame_id 双门**——
+  calibrate_block rc=1 显式失败（:1250-1252 注释"未知 frame_id 必须
+  显式失败，禁止回退 frame 0 参数（错误帧校准会静默制造错误科学
+  结果）"）/ evaluate_c 返回 NaN 显式不可用（:1276-1279"禁止用
+  frame 0 参数伪装有效结果"）——**禁回退红线，任何静默替换=违约**；
+  NaN uncertainty → sigma_eff=max(|unc|, sigma_floor) 降权路径
+  （:628/:646/:868；sigma_floor 冻结 1e-3）；control_ivar≤0/非有限
+  → rc=2 显式 INVALID（production 禁静默回退，h:85）。
+- save 绑定守卫: frame_id_by_index 与 C 行数不一致 → rc=1 拒写盘
+  （:943-945，ALG-UPM-FRAME-BIND-001）。
+
+### 25.5 持久化产物
+
+**(1) sparse 模型文件 astrocs-upm-v2**（p2_upm_save :940-1006 单文件
+JSON；唯一 AIO 出口 aio_upm_write_sparse :1003-1005，定义
+aio_upm.cpp:66 原子写，ENG-IO-001；p2_upm_open :1008-…，format 校验
+:1027-1028 非 astrocs-upm-v2 → rc=1）。JSON 顶层字段（:947-1002
+实测）: format="astrocs-upm-v2"（:947）/version/target_order/precision/
+robust_loss/snr_weight_mode/use_ivar_weight/huber_delta/
+smoothing_lambda/zero_anchor_weight/max_iterations/tolerance/
+sigma_floor/support_power/model_hash/input_manifest_hash/iterations/
+objective/component_count/geometry_component_count/
+unobserved_geometry_nodes/component_ref_frame[]/frame_component[]/
+control_count/observation_count/frames[]/controls[]/cell_index[]/
+C[]。controls 7 元组=[tile,gx,gy,ra,dec,M,leaf]（:980-987）；cell_index
+4 元组（:988-992）；C 逐帧稀疏行 [k,v]（零值不落盘，:993-1002）。
+save→close→open 保持 frame_id→θ 映射（SCI-UPM-PERSIST-001）。
+
+**(2) dense cache astrocs-upm-dense-v2**（p2_upm_materialize_dense_n
+:1390-1517 显式 workers / p2_upm_materialize_dense :1518-1521 委托
+workers=0；**重复声明 upm.h:154-156 与 :173-175=DISP-P2UPM-001 登记
+不改码**）: format 常量/校验=aio_upm.cpp:223（写）/:407-408（读）；
+source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
+（:1542-1557；:1553 未知帧 rc=1）；p2_upm_dense_info :1523-1541
+（稀疏=稠密 Gate 用）。materialize_dense 的目标 order 不可省
+（:1394 取模型 info.target_order 兜底语义）。
+
+### 25.6 交叉引用
+
+- 上游: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，零改动；
+  单位权威=§3 :29，连续定义 §5）；ALG-P2-UPM-IMPL-001
+  （docs/algorithms/PHASE2_UPM_IMPL.md，本域算法权威）；ALG-UPM-001
+  （UPM_SOLVER.md，Huber IRLS 求解权威）；ALG-UPM-CONTROL-IVAR-001
+  （control_variance/control_ivar 冻结公式）；DATA-P2-SMP（§23，
+  P2ControlObservation/P2ControlNode 唯一权威）。
+- 下游: API-P2-UPM-001（PUBLIC_API.md，16 导出符号展开冻结）；§26
+  （DATA-P2-COR，apply 域消费 upm_model）；DATA-P2-SESSION（§24，
+  upm_build/persist 段透传口径）；TEST-P2-UPM-001/002（MISSING，
+  P2-UPM-DOC 登记，执行测试归 P2-UPM-TEST，设计冻结面=
+  ALG-P2-UPM-IMPL-001 TEST-DESIGN）。
+- 同文档: §23（输入观测上游）、§24（会话编排消费本域）、§22 前文
+  权重语义红线（control_ivar 唯一科学权重源）。
+- 端口词汇注记: registry descriptor p2_upm_fit_descriptor
+  （module_adapters.cpp:599-616，module_id=astrocs.phase2.upm-fit
+  占位）端口表 samples→upm_model 为编排层词汇，由 P2-XX-INT 对齐
+  astrocs.p2.upm-fit，不得反向作为冻结依据。
+
+## 26. Phase2 UPM apply（lib/phase2）模块输入/输出数据（DATA-P2-COR）
+
+> ID: DATA-P2-COR  状态: CONTRACT_READY（P2-UPM-DOC 冻结，2026-09-10）
+> 模块: lib/phase2/src/upm.cpp（1565 行）+ 唯一权威签名头
+> lib/phase2/include/astro/phase2/upm.h（184 行，calibrate/evaluate/
+> dense_read 面 =upm.h:112-123/:164-172）（astrocs.p2.upm-apply；
+> astrocs_phase2 静态库成员，根 CMakeLists.txt:337-346/:338；迁移
+> 目标 astrocs_p2_upm.dll 为矩阵合同值，尚未存在，由 P2-UPM-IMPL
+> 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 UPM apply（逐帧校正）
+> in/out 单位/dtype/shape/invalid 的唯一权威；SCI 上游: SCI-UPM-001
+> §5 连续定义（calibrated_f(p) = raw_f(p) − C_f(p)，FROZEN，零改动）；
+> ALG: ALG-P2-UPM-IMPL-001；API 面: API-P2-UPM-001；descriptor 占位
+> module_id=astrocs.phase2.upm-apply（module_adapters.cpp:618-634）
+> 由 P2-XX-INT 对齐。
+
+### 26.1 输入
+
+**(1) upm_model**（const void* 不透明句柄）: 二源同构——内存态
+（p2_upm_build/build_geo 产物，§25.2(1)）或 reload 态（p2_upm_open
+:1008 读入的 astrocs-upm-v2 模型，§25.5(1)）；dense 加速路径=
+p2_upm_dense_read_block 读 astrocs-upm-dense-v2 cache（§25.5(2)，
+source_hash=model_hash stale 判定）。sparse 与 dense 同一科学语义
+（upm.h:121/:164 冻结注释）；模型身份锚=model_hash（P2ModelInfo
+char[65] SHA-256，h:67）。
+
+**(2) calibrated_frames**（DATA-P2-CAL 域，descriptor 端口词汇
+module_adapters.cpp:627）: 逐帧 signal f64 数组 input_signal[count]
++ frame_id（u64，模型 frames[] 绑定成员，DATA-FRAME-ID-001 身份）+
+leaf_ipix[count]（NESTED leaf 像素，tile=leaf>>18，tile_shift=9，
+:1254/:1258）。dtype=FP64；单位=ADU（§25.3 口径）。生产消费链=
+lib/phase2/tools/stage2.cpp（p2_upm_build_geo :432-434 →
+p2_upm_calibrate_block :927-930/:1272-1275 逐 chunk 校准，f32 tile
+源读入提升 f64 → 校正 → f32 回写 :920-935）。
+
+### 26.2 输出（corrected）
+
+**corrected**（DATA-P2-COR）: output_signal[count]，逐点
+corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
+（p2_upm_calibrate_block :1240-1269 块协议，逐点写回 :1266）；C 由
+8×8 control cell 内双线性插值求值（evaluate_c_field，:1263 注释
+"双线性空间校正场求值（cell 内随位置连续）"；SCI-UPM-001 §5
+冻结公式 C_f(p) = 双线性(8×8 control cell, θ_f)）。dtype=FP64 出入
+一致；单位=ADU。等价面: p2_upm_evaluate_c 单点求值 C（sparse/dense
+同一科学语义，h:121-123）；dense_read_block 与 sparse calibrate_block
+数值等价（h:164 冻结注释）。
+
+### 26.3 错误/边界
+
+- rc 语义: rc=0 ok；rc=1=参数错误（model/leaf_ipix/input_signal/
+  output_signal null，:1245-1248）或**未知 frame_id 显式失败**
+  （:1250-1252，§25.4 禁回退红线镜像）；evaluate_c 面未知帧=NaN
+  显式不可用（:1276-1279）；dense_read_block 未知帧 rc=1（:1553）。
+- dense stale 语义: source_hash（=model_hash）不匹配 → rc=2
+  stale-cache（aio_upm.cpp:469），禁止陈旧缓存静默出数；调用方处置
+  =重新 materialize_dense_n 后重试（本域不自动切换 sparse）。
+- 单位/帧绑定漂移禁止: save→close→open 保持 frame_id→θ 映射
+  （SCI-UPM-PERSIST-001/ALG-UPM-FRAME-BIND-001，§25.5(1)）；save 前
+  绑定守卫=§25.4。会话编排（p2_session）不直接消费 apply 面——
+  四段编排止于 persist（§24.4），apply 消费链=stage2.cpp（生产）。
+- 取消语义: calibrate/dense_read 面无取消检查点（取消=会话层阶段
+  边界，§24.5 同构）。
+
+### 26.4 交叉引用
+
+- 上游: SCI-UPM-001 §5（加性校正连续定义，FROZEN 零改动）；
+  ALG-P2-UPM-IMPL-001；DATA-P2-UPM（§25，模型对象/持久化/dtype
+  唯一权威）；DATA-P2-CAL（calibrated_frames 输入域，descriptor
+  词汇）；DATA-FRAME-ID-001（frame_id 身份）。
+- 下游: API-P2-UPM-001（calibrate_block/evaluate_c/dense_read_block
+  消费面冻结）；DATA-P2-SESSION（§24 编排透传）；TEST-P2-UPM-002
+  （MISSING，apply 域验证，执行归 P2-UPM-TEST，设计冻结面=
+  ALG-P2-UPM-IMPL-001 TEST-DESIGN）。
+- 同文档: §23（观测上游）、§25（模型/持久化权威）、§24（会话域
+  禁回退/取消语义同构）。
+- 端口词汇注记: registry descriptor p2_upm_apply_descriptor
+  （module_adapters.cpp:618-634，module_id=astrocs.phase2.upm-apply
+  占位）端口表 upm_model→calibrated_frames→corrected 为编排层词汇
+  （DISP-P2UPM-004 占位语义），由 P2-XX-INT 对齐
+  astrocs.p2.upm-apply，不得反向作为冻结依据。
