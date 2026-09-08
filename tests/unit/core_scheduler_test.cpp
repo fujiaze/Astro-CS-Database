@@ -132,6 +132,61 @@ static void test_backpressure_bounded_concurrency() {
   CHECK(max_concurrent.load() >= 1);
 }
 
+// B13-R13-2: 内存回压不得队头阻塞 (HoL) — 队首大内存节点超限时, ready 中
+// 后续小内存节点仍须可执行 (修复前整队被队首压住, 附属忙等自旋)。
+static void test_backpressure_no_head_of_line_blocking() {
+  // 内存预算 100; A 占 60 (耗时, 保持 mem_used 高), B 需 50 (队首, 超限),
+  // C 占 30 (可放)。
+  Scheduler sched(4, 2, /*memory_limit_bytes=*/100);
+  std::atomic<bool> a_running{false};
+  std::atomic<bool> c_done_before_b{false};
+  sched.add_node({"A", {}, [&](const std::string&, RunContext&) {
+    a_running.store(true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    return Result<void>::success();
+  }, "cpu_heavy", /*estimated_memory_bytes=*/60});
+  sched.add_node({"C", {}, [&](const std::string&, RunContext&) {
+    if (a_running.load()) c_done_before_b.store(true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    return Result<void>::success();
+  }, "cpu_heavy", /*estimated_memory_bytes=*/30});
+  sched.add_node({"B", {}, [&](const std::string&, RunContext&) {
+    return Result<void>::success();  // 50 > 100-60 = 回压, 超限
+  }, "cpu_heavy", /*estimated_memory_bytes=*/50});
+  RunContext ctx;
+  auto r = sched.run(ctx);
+  CHECK(r.ok());
+  CHECK(c_done_before_b.load());  // C 未被队首 B 压死
+  CHECK(r.ok());
+}
+
+// B13-R13-2: 回压等待必须谓词挂起而非忙等自旋 — 全超限且存在慢在途节点时,
+// 空闲 worker 挂起等待 (修复前 notify_all+continue 热循环)。语义等价断言:
+// 全部节点仍正确完成, 回压在途上限不被突破 (自旋/饿死都会导致缺完成或峰值超限)。
+static void test_backpressure_wait_no_busy_spin() {
+  Scheduler sched(4, 2, /*memory_limit_bytes=*/100);
+  std::atomic<int> peak_used{0};
+  std::atomic<uint64_t> mem_now{0};
+  std::atomic<int> done{0};
+  for (int i = 0; i < 8; ++i) {
+    sched.add_node({"m" + std::to_string(i), {}, [&](const std::string&, RunContext&) {
+      uint64_t now = mem_now.fetch_add(70) + 70;  // 单节点 70 > 剩余 40: 必回压
+      int p = static_cast<int>(now / 70);
+      int cur = peak_used.load();
+      while (cur < p && !peak_used.compare_exchange_weak(cur, p)) {}
+      std::this_thread::sleep_for(std::chrono::milliseconds(30));
+      mem_now.fetch_sub(70);
+      ++done;
+      return Result<void>::success();
+    }, "cpu_heavy", /*estimated_memory_bytes=*/70});
+  }
+  RunContext ctx;
+  auto r = sched.run(ctx);
+  CHECK(r.ok());
+  CHECK(done.load() == 8);           // 无节点饿死/丢失
+  CHECK(peak_used.load() <= 2);      // 100/70 → 同时刻至多 1 个在途 (无回压穿透)
+}
+
 static void test_recovery_skip_after_failure() {
   // 失败后: 依赖失败的节点被 SKIPPED; 独立节点仍完成
   Scheduler sched(2, 2);
@@ -190,6 +245,8 @@ int main() {
   test_failure_propagation();
   test_cancel_propagation();
   test_backpressure_bounded_concurrency();
+  test_backpressure_no_head_of_line_blocking();
+  test_backpressure_wait_no_busy_spin();
   test_recovery_skip_after_failure();
   test_cycle_rejected();
   test_unknown_dep_rejected();

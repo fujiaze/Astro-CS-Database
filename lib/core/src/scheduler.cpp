@@ -9,9 +9,13 @@
 //     域 IO/DATA/...，见 RT-008）。
 //   - 取消/失败传播: FAILED 根 + 依赖 SKIPPED + 独立节点完成; 取消置位后所有
 //     PLANNED/QUEUED 节点标 CANCELLED。
+// B13-R13-2 修复: 内存回压等待不得忙等自旋 (修复前 notify_all+continue 于
+//   "ready 非空"谓词下热循环烧 CPU); 回压只压内存超限节点, 不队头阻塞整队
+//   (HoL: ready 中首个满足内存约束的节点即可执行; active==0 时放行队首保证推进)。
 #include "astrocs/core/scheduler.h"
 
 #include <algorithm>
+#include <deque>
 #include <set>
 #include <mutex>
 
@@ -104,14 +108,17 @@ Result<void> Scheduler::run(
   } token_guard{this};
   std::mutex mtx;
   std::condition_variable cv;
+  // B13-R13-2: 回压等待专用 cv (与就绪通知 cv 分离; 谓词挂起替代忙等自旋)
+  std::condition_variable bp_cv;
   std::map<std::string, NodeStatus> status = status_;
   std::map<std::string, int> remaining_deps;
   std::map<std::string, std::vector<std::string>> rev;
-  std::queue<std::string> ready;
+  // B13-R13-2: deque 支持锁内扫描 (跳过队首超限节点, 消除队头阻塞)
+  std::deque<std::string> ready;
   for (const auto& [id, spec] : nodes_) {
     remaining_deps[id] = static_cast<int>(spec.deps.size());
     for (const auto& d : spec.deps) rev[d].push_back(id);
-    if (spec.deps.empty()) ready.push(id);
+    if (spec.deps.empty()) ready.push_back(id);
   }
   std::atomic<uint32_t> active{0};
   std::atomic<bool> cancelled_run{false};
@@ -144,34 +151,67 @@ Result<void> Scheduler::run(
         });
         if (cancelled_run.load()) {
           while (!ready.empty()) {
-            auto id = ready.front(); ready.pop();
+            auto id = ready.front(); ready.pop_front();
             status[id] = NodeStatus::CANCELLED;
           }
           return;
         }
         if (ready.empty()) {
           if (active.load() == 0) return;  // 全部完成
-          continue;
+          continue;  // 有在途任务: 回 cv.wait 谓词挂起 (完成路径 notify), 非忙等
         }
-        // 内存回压: 若启用限制且 ready 队首节点超限，等待
-        if (memory_limit_bytes_ > 0) {
-          const std::string candidate = ready.front();
-          auto cit = nodes_.find(candidate);
-          uint64_t need = cit != nodes_.end() ? cit->second.estimated_memory_bytes : 0;
-          if (mem_used.load() + need > memory_limit_bytes_) {
-            if (active.load() > 0) { cv.notify_all(); continue; }
+        // B13-R13-2: 内存回压 — 锁内扫描 ready 队列, 取第一个满足内存约束的
+        // 节点执行 (修复前只看队首, 超限即 notify_all+continue 忙等自旋烧 CPU
+        // 且阻塞整队 = 队头阻塞)。全部超限 → bp_cv 谓词挂起 (零 CPU), 由
+        // active 完成路径 notify 唤醒; active==0 (无在途可释放) 时放行队首
+        // 保证无死锁推进。内存预留语义 (mem_used+need<=limit) 不变。
+        bool dispatched = false;
+        if (memory_limit_bytes_ > 0 && active.load() > 0) {
+          for (auto it = ready.begin(); it != ready.end(); ++it) {
+            auto cit = nodes_.find(*it);
+            const uint64_t need =
+                cit != nodes_.end() ? cit->second.estimated_memory_bytes : 0;
+            if (mem_used.load() + need <= memory_limit_bytes_) {
+              node_id = *it;
+              ready.erase(it);
+              dispatched = true;
+              break;
+            }
           }
+          if (!dispatched) {
+            // 全部就绪节点超限: 挂起等待在途节点释放内存 (谓词等待, 非自旋)。
+            // active==0 或取消必须唤醒: 无在途可释放时放行队首, 防挂死。
+            bp_cv.wait(lk, [&] {
+              if (cancelled_run.load() || active.load() == 0) return true;
+              for (const auto& id : ready) {
+                auto cit = nodes_.find(id);
+                const uint64_t need = cit != nodes_.end()
+                                          ? cit->second.estimated_memory_bytes
+                                          : 0;
+                if (mem_used.load() + need <= memory_limit_bytes_) return true;
+              }
+              return false;
+            });
+            if (cancelled_run.load()) continue;  // 回到外层走取消分支
+            continue;  // active==0 / 有可调度节点 → 回外层重新评估
+          }
+        } else {
+          // 无内存限制或无在途任务 (active==0): 直接取队首 (回压豁免保证推进)
+          node_id = ready.front();
+          ready.pop_front();
+          dispatched = true;
         }
-        node_id = ready.front(); ready.pop();
+        if (!dispatched) continue;  // 不可达 (防御)
         auto nit = nodes_.find(node_id);
         if (nit != nodes_.end()) node_mem = nit->second.estimated_memory_bytes;
         if (blocked.count(node_id)) {
           // 失败节点的传递依赖 → SKIPPED（不执行），继续推进依赖计数
           status[node_id] = NodeStatus::SKIPPED;
           for (const auto& nxt : rev[node_id]) {
-            if (--remaining_deps[nxt] == 0) ready.push(nxt);
+            if (--remaining_deps[nxt] == 0) ready.push_back(nxt);
           }
           cv.notify_all();
+          bp_cv.notify_all();  // 新就绪节点可能满足内存约束, 唤醒回压等待者
           continue;
         }
         mem_used.fetch_add(node_mem);
@@ -228,6 +268,8 @@ Result<void> Scheduler::run(
           node_ok = false;
           std::lock_guard<std::mutex> lk(mtx);
           cancelled_run.store(true);
+          // 取消 latch 变化是回压等待者的谓词条件, 唤醒避免其在 run 收尾挂死
+          bp_cv.notify_all();
           if (fail_node.empty()) {
             fail_node = node_id;
             fail_msg = "cancelled";
@@ -254,10 +296,13 @@ Result<void> Scheduler::run(
         status[node_id] = st;
         if (fail_node.empty() && !cancelled_run.load()) {
           for (const auto& nxt : rev[node_id]) {
-            if (--remaining_deps[nxt] == 0) ready.push(nxt);
+            if (--remaining_deps[nxt] == 0) ready.push_back(nxt);
           }
         }
         cv.notify_all();
+        // B13-R13-2: 在途节点完成 → mem_used 下降 / 新节点就绪 / run 收尾,
+        // 均为回压等待者的谓词变化, 必须 notify 唤醒 (替代原忙等轮询)。
+        bp_cv.notify_all();
       }
     }
   };
