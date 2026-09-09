@@ -17,11 +17,36 @@
 - 所有外部命令带 timeout 并保存日志；修改后必须验证才能报告完成。
 - 确认工作后，将任务分配给subagent。尽可能并行
 
-## 目录规范
+## 目录规范（强制，2026-09-09 整理后基线）
 
-- `run/`：临时操作与临时文件
-- `工程控制/`：控制包解压文档
-- `reports/`：报告
+仓库根目录只允许下述固定条目。**任何新产物必须落位到对应目录，禁止散落根目录**；确需新增根目录条目，必须先在本节登记并获得项目负责人确认。
+
+**顶层文件（固定，不得增删）**：
+- 入口与约束：`README.md`、`AGENTS.md`、`AstroCS_ENGINEERING_CONSTRAINTS.md`、`memory.md`、`VERSION`
+- 文档：`CHANGELOG.md`、`DEPENDENCIES.md`、`HANDOVER.md`、`REVIEW.md`、`FATDUCK_ACCESS.md`、`VISUAL_CHECK_README.md`
+- 构建面：`CMakeLists.txt`、`CMakePresets.json`、`build.sh`、`toolchain.ps1`、`.github/`、`.clang-format`、`.editorconfig`、`.gitignore`、`.gitattributes`
+
+**固定目录**：
+- 代码与合同：`lib/`（模块源码）、`include/`、`cli/`、`providers/`、`runtime/`、`modules/`、`graph/`、`docs/`、`contracts/`、`schemas/`、`cmake/`
+- 测试与工具：`tests/`、`scripts/`、`tools/`、`ci/`、`testdata/`、`third_party/`
+- 工程与发布：`engineering/`、`packaging/`、`launch/`、`logs/`（gitignore）、`evidence/`
+
+**工作域目录（产物落位规则）**：
+- `run/`：一切临时操作、agent 工作区、影子树、日志。CLI 运行产物 `astrocs_run_*.json` 一律落 `run/cli_runs/`；ctest 根目录残留归 `run/Testing_archive/`。`run/*` 全部 gitignore。
+- `工程控制/`：控制包解压文档（一个控制包一个子目录）；控制包/审核包 zip 原件归 `工程控制/_control_packs/`。
+- `reports/`：正式报告（含任务交付报告）。
+- `artifacts/`：证据封装、capsule、测量产物。
+- `build/`、`out/`：构建输出（gitignore，不入库）。
+
+**用户/资料区（原地保留，禁改禁删，gitignore）**：
+- `BASS DR3/`：备用测试数据集（索引/工具入仓库规则见 .gitignore）
+- `AstroCS.wiki/`：wiki 本地克隆
+- `GaiaDR3/`、`GaiaDR3SP/`：真实数据拉取落点（fatduck 拉取，禁止移动/重命名/删除，路径被拉取与测试脚本引用）
+
+**CI 固定路径（ci/checks.json 引用，不得移动；内容为运行产物，gitignore）**：
+- `resource_samples.csv`、`resource_summary.json`、`worker_balance.csv`
+
+**违规处理**：发现根目录散落产物，整理归位到上述目录并在 commit 或 memory.md 中注明来源与去向。
 
 ## Fatduck 节点 SSH 接入（self-hosted runner 机器）
 
