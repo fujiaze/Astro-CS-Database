@@ -5,7 +5,7 @@ import json, os, platform, re, shutil, subprocess, sys, tempfile, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(REPO, "tools"))
 import gen_version  # noqa: E402
-SCHEMA = json.load(open(os.path.join(REPO, "schemas", "hardware_inspect.schema.json"),
+SCHEMA = json.load(open(os.path.join(REPO, "contracts", "schemas", "hardware_inspect.schema.json"),
                         encoding="utf-8"))
 # V6.1 布局路径修复 (V8-CI-012 R7): 旧 built() 经 V6.1 独立 cli 构建
 # (cmake -S cli -B build/cli) 在 BLD-002 根构建布局下编译失败；改为复用

@@ -87,7 +87,7 @@ def main():
     # SCHEMA 断链修复 (V8-CI-012 R6.5): 产品 schema 唯一事实源 = schemas/
     # (旧 工程控制/RELEASE_V5 路径为 untracked 控制包布局, tracked 工作区不存在)。
     schema = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                         "..", "schemas", "cpu_profile.schema.json"),
+                                         "..", "contracts", "schemas", "cpu_profile.schema.json"),
                             encoding="utf-8"))
     d = json.load(open(args.profile, encoding="utf-8"))
     raw_oracle = normalize_oracle_status(d)

@@ -116,7 +116,7 @@ def classify_kind(rel: str) -> str:
         return "library_source"
     if rel.startswith("cmake/"):
         return "cmake"
-    if rel.startswith("schemas/"):
+    if rel.startswith("contracts/schemas/") or rel.startswith("schemas/"):
         return "schema"
     if rel.startswith("tools/"):
         return "tool"

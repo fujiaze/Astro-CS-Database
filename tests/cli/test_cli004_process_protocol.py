@@ -16,7 +16,7 @@ import json, os, re, shutil, signal, subprocess, tempfile, time, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EXE = os.path.join(REPO, "build", "cli", "astrocs")
 CLI_DIR = os.path.join(REPO, "cli")
-SCHEMA = os.path.join(REPO, "schemas", "jsonl_event_v1.schema.json")
+SCHEMA = os.path.join(REPO, "contracts", "schemas", "jsonl_event_v1.schema.json")
 
 # §4 冻结 kind 扩展字段(独立重实现 — 与 cli/protocol.h 生产侧互为对偶)
 REQUIRED_FIELDS = {"schema_version", "event_id", "run_id", "timestamp_utc", "sequence",

@@ -10,7 +10,7 @@ INC = os.path.join(REPO, "include")
 # FileNotFoundError。产品 schema 唯一事实源 = schemas/ (与姊妹 hardware_inspect.schema
 # 同构), 内容取 tracked archive RELEASE_V5 的 v1 副本 (ad740dbd, 与本测试消费语义匹配)。
 SCHEMA = json.load(open(os.path.join(
-    REPO, "schemas", "cpu_profile.schema.json"), encoding="utf-8"))
+    REPO, "contracts", "schemas", "cpu_profile.schema.json"), encoding="utf-8"))
 COMMIT = subprocess.run(["git", "-C", REPO, "rev-parse", "HEAD"],
                         capture_output=True, text=True).stdout.strip()
 sys.path.insert(0, os.path.join(REPO, "tools"))

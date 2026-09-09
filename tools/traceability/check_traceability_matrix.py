@@ -41,7 +41,7 @@ import sys
 MATRIX_REL = "docs/traceability/TRACEABILITY_MATRIX.json"
 MATRIX_CSV_REL = "docs/traceability/TRACEABILITY_MATRIX.csv"
 LAYERS_REL = "docs/traceability/TRACEABILITY_LAYERS.csv"
-SCHEMA_REL = "schemas/traceability_matrix.schema.json"
+SCHEMA_REL = "contracts/schemas/traceability_matrix.schema.json"
 CSV_COLS = ["module_id", "module_kind", "module_anchor",
             "science_id", "science_doc", "science_status",
             "algorithm_id", "algorithm_doc", "algorithm_status",
