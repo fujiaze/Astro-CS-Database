@@ -448,6 +448,20 @@ add_subdirectory(../../lib/healpix_db/healpix_drizzle/tests/p1drz p1drz)
 # ----------------------------------------------------------------------------
 add_subdirectory(../../lib/astro_image_io/tests/p1hips p1hips)
 
+# ----------------------------------------------------------------------------
+# P1-PHOT-TEST (TEST-P1-PHOT-001, lock-P1-PHOT) — lib/photometric_calib
+# 可复用验证面。结构与注册详见 lib/photometric_calib/tests/p1phot/
+# CMakeLists.txt (FIX-PHOT-A..F fixture / 独立 oracle / negative /
+# I5 线程扫描 / performance / 故障注入自检); 合同锚
+# PHOTOMETRIC_FIT.md §13.4 TEST-PHOT-DESIGN-001 (P1-PHOT-DOC 冻结) +
+# SCI-PHOT-001 §11 冻结容差。注意: p1phot_selfcheck_test 与 p1phot_tests
+# 共享四组测试 TU; 被测面为 lib/photometric_calib/cpp/src 五生产 TU
+# (API-PHOT-001 六导出) + lib/phase1/photometry/photometer.cpp (F6 legacy,
+# 只读); gaia_client 以测试桩替身接入 (外部域 CAT-GAIA, 生产源零修改)。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/photometric_calib/tests/p1phot p1phot)
+
+# ----------------------------------------------------------------------------
 # P1-NOISE-TEST (TEST-P1-NOISE-001, 控制包 queue 41, lock-P1-NOISE) —
 # lib/snr_estimator (astrocs.p1.noise-snr) 可复用验证面。结构与注册详见
 # lib/snr_estimator/tests/p1noise/CMakeLists.txt (FIX-NOISE-A..G fixture /
@@ -981,3 +995,29 @@ add_subdirectory(../../lib/dynamic_psf/tests/p1psf p1psf)
 add_subdirectory(../../lib/star_detector/tests/p1star p1star)
 
 
+# ----------------------------------------------------------------------------
+# P1-NOISE-IMPL (queue 43, lock-P1-NOISE) — astrocs_p1_noise adapter 对拍面
+# (对齐 p1_hips/adapter_test.c 先例 P1-HIPS-IMPL 1959dc89 / CAL/COS
+# adapter_test.cpp 同构): direct 通道 = module_entry.cpp 直通编译 +
+# astrocs_p1_noise_prod STATIC (P1-NOISE-TEST 冻结被测面, 生产源零改动);
+# plugin 通道 = dlopen astrocs_p1_noise DLL 经 astrocs_module_query_v1。
+# direct-vs-plugin BITWISE 对拍 (f32/f64 + 内联 fill + 独立 fill 影子
+# floor 回退同构 + scale_law/gain_variance 标量); strbuf 两阶段/plan
+# work_units 事实/BUDGET 105 双路径/entry cancel/describe/负面 ABI/
+# dlsym 探针 (legacy snr_noise_* 七符号全 NULL, 唯一 query 存在)。
+# DLL 路径经 ENVIRONMENT 注入 (生成器表达式, 兼容含空格构建路径)。
+# ----------------------------------------------------------------------------
+#[PENDING-NOISE-IMPL] add_executable(p1_noise_adapter_test p1_noise/adapter_test.cpp
+#[PENDING-NOISE-IMPL]   p1_noise/adapter_entry_impl.cpp)
+#[PENDING-NOISE-IMPL] target_include_directories(p1_noise_adapter_test PRIVATE
+#[PENDING-NOISE-IMPL]   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/snr_estimator/cpp/include
+#[PENDING-NOISE-IMPL]   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/snr_estimator/include
+#[PENDING-NOISE-IMPL]   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+#[PENDING-NOISE-IMPL]   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/snr_estimator/src)
+#[PENDING-NOISE-IMPL] target_link_libraries(p1_noise_adapter_test PRIVATE
+#[PENDING-NOISE-IMPL]   p1noise_under_test ${CMAKE_DL_LIBS})
+#[PENDING-NOISE-IMPL] add_dependencies(p1_noise_adapter_test astrocs_p1_noise)
+#[PENDING-NOISE-IMPL] add_test(NAME p1_noise_adapter COMMAND p1_noise_adapter_test
+#[PENDING-NOISE-IMPL]   ${CMAKE_CURRENT_BINARY_DIR}/run/t_noise_adapter)
+#[PENDING-NOISE-IMPL] set_tests_properties(p1_noise_adapter PROPERTIES
+#[PENDING-NOISE-IMPL]   ENVIRONMENT "ASTROCS_NOISE_DLL_PATH=$<TARGET_FILE:astrocs_p1_noise>")
