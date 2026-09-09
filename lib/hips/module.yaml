@@ -71,8 +71,17 @@ source_symbols:
   - aio_hips_abort
   - aio_hips_write
   - aio_hips_last_error
+  # AIO-002 原子发布原语 (publish.h v1 模块内核合同; DLL 内部隐藏符号,
+  # 唯一导出面仍为 astrocs_module_query_v1; 测试经 adapter_entry_impl 直链)
+  - aio_publish_stage_create_v1
+  - aio_publish_stage_discard_v1
+  - aio_publish_tree_fsync_v1
+  - aio_publish_promote_v1
 test_ids:
   - TEST-HIPS-DESIGN-001
+  # AIO-002: 原子发布与临时目录清理 (ctest: hips_publish_atomic_units /
+  # hips_publish_atomic; 测试源 tests/unit/p1_hips/publish_atomic_test.c)
+  - TEST-P1-HIPS-PUBLISH-001
 threading_model: host_executor_lease
 resource_class: cpu_heavy
 cpu_providers: [baseline]

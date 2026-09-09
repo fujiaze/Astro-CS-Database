@@ -78,3 +78,18 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
 - 验收基线：check_traceability_matrix rc=0 errors=0 warns=4（基线不变）；
   check_contract_graph / check_doc_index PASS；pytest tests/traceability
   PASS；lib 生产源零 diff。日志 run/local/agent_p2_hips_doc/（不提交）。
+
+## 2026-09-10 · AIO-002 注记（原子发布原语已建立于 P1 模块事务面）
+
+- 控制包任务 AIO-002 在 lib/hips 模块事务面（C ABI adapter execute/
+  write_product）交付 staging→校验→fsync→原子 promote + staging RAII
+  （lib/hips/include/astrocs/hips/publish.h v1 + lib/hips/src/aio_publish.cpp
+  唯一实现；验证面 tests/unit/p1_hips/publish_atomic_test.c，
+  TEST-P1-HIPS-PUBLISH-001）。生产 writer（aio_hips_writer.cpp）与 P2 写编排
+  生产源（lib/phase2/tools/stage2.cpp）零改动——两者均在 AIO-002 写域之外。
+- 对 DISP-P2HIPS-003（stage2 直写 out_hips :592 无 staging）的影响：整改
+  语义参考面已就绪（非空目标拒绝/staging 自愈/ENOSPC discard 收敛），接线
+  仍归 P2-HIPS-IMPL（astrocs_p2_hips_writer.dll 落码时消费同构原语，或
+  P2-XX-INT 编排层经 IO-003 发布合同承接）。本登记不改 README/module.yaml
+  合同面（DISP-P2HIPS-003 登记状态不变）。
+- 写域纪律：本任务未触碰 lib/phase2/**（域外生产源）。

@@ -211,3 +211,83 @@
 - DISP-HIPS-006 CFITSIO mutex 包装 / 002 estsize / 005 moc_order 严格化 /
   009 f32 accumulator / 010 fits_str / 011 缓冲复用: 未在本任务消化
   （ scientific_change=false 边界，保持登记）。
+
+## 2026-09-10 · AIO-002 交付（原子发布与临时目录清理，模块事务面）
+
+### 任务
+
+- 控制包任务 AIO-002（ASTROCS-CONSTITUTION-ALIGNMENT-V1）：staging→校验→
+  fsync→原子 promote；正常/取消/ENOSPC/kill 后无 partial；临时目录 RAII。
+- 写域：lib/hips/ lib/hips_p2/ tests/。生产 writer（lib/astro_image_io）零改动
+  （scientific_change=false；git diff 实证空）。
+
+### 交付物
+
+- lib/hips/include/astrocs/hips/publish.h：原子发布原语 v1 合同头（4 原语；
+  aio_publish_status_v1 数值 0..15/70/71 与 aio_abi_v1.h aio_status 全域一致
+  （_Static_assert 编译期对齐）；ASTROCS_HIPS_STAGE_BASENAME=".hips_staging.tmp"；
+  故障注入 env=ASTROCS_HIPS_PUBLISH_FAULT 注册名
+  p1_stage_create_fail/p1_fsync_fail/p1_promote_fail/p1_discard_noop/
+  p1_stage_slow_write）。
+- lib/hips/src/aio_publish.cpp：唯一实现（stage_create 兄弟 staging+残留自愈/
+  stage_discard 递归删除幂等 RAII/tree_fsync 后序文件+目录 fsync（ENOSPC→
+  DISKFULL 收敛点）/promote rename 整树原子+目标非空拒绝+父目录 fsync）。
+  DLL 内部隐藏符号，唯一导出面 astrocs_module_query_v1 不变。
+- lib/hips/src/module_entry.cpp：write_product 事务化——writer 写 staging；
+  cancel 检查点抽取 hips_cancel_requested；发布门（fail/cancel → abort+discard
+  → out_dir 无 partial；成功 → fsync 树 → promote → 输出 manifest 报 out_dir）；
+  legacy 所有权修正：finalize 成功=句柄内部已释放（README §5），成功路径禁
+  abort（旧代码成功路径 abort 是 double-free 隐患，本次实证修复——原语义
+  finalize 后从未走 abort，未暴露）。诊断码 HIPS_ECODE_PUBLISH_STAGE=122/
+  HIPS_ECODE_PUBLISH_REJECT=123（types.h）。
+- lib/hips/CMakeLists.txt：aio_publish.cpp 编入 DLL；tests/unit/CMakeLists.txt：
+  hips_publish_atomic_test 注册（units/atomic 两组 ctest）+ adapter 测试补
+  aio_publish.cpp。
+- tests/unit/p1_hips/publish_atomic_test.c：TEST-P1-HIPS-PUBLISH-001 可执行面
+  （4 tile 确定性流；正向/注入必败/cancel/kill+自愈/非空目标拒绝/残留垃圾
+  自愈/units 原语正负幂等）；tests/unit/p1_hips/adapter_test.c 补 hips_rm_rf
+  幂等（重复 root 旧树清零——原子发布"非空目标拒绝"使旧残树合法拒发）。
+- module.yaml：source_symbols 补 4 publish 原语 + test_ids 补
+  TEST-P1-HIPS-PUBLISH-001；README §9 补 AIO-002 验证与限制注记。
+- lib/hips_p2/：本任务零改动（P2 写编排 stage2.cpp 直写 out_hips 属
+  DISP-P2HIPS-003 登记面，域外不改；见 lib/hips_p2/memory.md）。
+
+### 关键决策（防后续误读）
+
+- staging=兄弟目录（<parent>/.<base>.hips_staging.tmp）而非 out_dir 内嵌：
+  rename(stage→out) 整树原子，out_dir 根要么完整旧态要么完整新树；且取消/
+  失败 discard 不触碰 out_dir 本体（零态/旧态均收敛无 partial）。
+- out_dir 根语义升级为"发布目标"：writer manifest.json（:1086-1128，无
+  COMPLETE 字）作为树内完成标记随树原子出现；树级 COMPLETE manifest +
+  sha256 tree_hash 归 IO-003 Python 层（DATA-P1-HIPS §12.5 边界不变）。
+- ENOSPC 语义：writer 写文件走 stdio 缓冲，ENOSPC 在 fsync 树遍历时确定性
+  暴露（DISKFULL=13），发布门 discard → 无 partial；测试经 p1_fsync_fail
+  注入覆盖（真实盘满注入不可移植，错误码数值域已冻结）。
+- F-AIO-002（p1hips Moc.fits 第二头区 CHECKSUM/DATASUM）：本任务写入面
+  （publish/fsync/discard）不涉及 FITS 字节 digest，无交叉整改窗口，维持
+  AIO-001 登记移交（p1hips 测试域/IMPL）。
+- 前台补充上下文 ② 的 fits_header_end 多 HDU 扫描（p1hips 测试域）同样
+  不在本任务写入面，不触碰。
+
+### 验证（run/local/agent_aio002/ 日志在案；test 时间 2026-09-10）
+
+- 主树：hips_publish_atomic_units + hips_publish_atomic + hips_writer_adapter
+  + p1_hips_writer（4/4）循环 5 轮全绿（幂等实证）；p1hips 全组 6/6。
+- asan 树（ASTROCS_ENABLE_SANITIZERS=ON）：4/4 两轮零报告（asan 下 kill
+  用例改轮询等待 staging 出现——固定 250ms 在 -O0 慢 10x 下不确定）。
+- 注入必败动态验证（asan tests/unit 直接运行）：p1_stage_create_fail/
+  p1_fsync_fail/p1_promote_fail → rc=1 且 0 PASS-line；p1_discard_noop →
+  units_discard 断言翻红（红锚口径：假清后残留断言）；p1_stage_slow_write →
+  kill 用例时序锚（PASS 合法：非断言翻转型）。
+- RED 锚定：临时反转 staging 重定向（writer 直写 out_dir）后
+  hips_publish_atomic 翻红（fsync_fail 注入下 partial 断言失败）→ 恢复
+  转绿——证明新增断言真实锚定旧行为。
+- adapter 测试 5 轮幂等全绿；发布测试 3 轮幂等全绿。
+
+### 待后续任务（不阻塞本任务）
+
+- P1-HIPS-INT / IO-003 集成：stage2/astro_sphere_sink 等生产消费方接入
+  publish 事务面（writer 核心 remove+create 直写语义未动，DISP-HIPS-004/
+  DISP-P2HIPS-003 维持登记）；树级 COMPLETE manifest + sha256 tree_hash。
+- hips_writer_adapter direct-vs-plugin 产物树对拍已在 staging 语义下自然
+  成立（writer 输出在 stage、promote 后即发布树）；无新增差异面。

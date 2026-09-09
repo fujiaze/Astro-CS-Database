@@ -176,18 +176,43 @@ tests/io/test_hips_output_contract.py（Python 语义层）。冻结测试设计
 TEST-HIPS-DESIGN-001 见 ALG-HIPS-001 §9（fixture/oracle/不变量 I1-I12/
 负面/容差），可执行 TEST-P1-HIPS-001 由 P1-HIPS-TEST 建立。
 
+模块事务面验证（AIO-002，2026-09-10）：tests/unit/p1_hips/
+publish_atomic_test.c（ctest hips_publish_atomic_units / hips_publish_atomic，
+TEST-P1-HIPS-PUBLISH-001）——publish.h v1 四原语正/负/幂等（units 组）+
+write_product 事务化全链（atomic 组）：正向发布（staging→fsync→原子
+promote→out_dir 完整树）、注入必败（ASTROCS_HIPS_PUBLISH_FAULT=
+p1_stage_create_fail/p1_fsync_fail/p1_promote_fail → rc=1 且 out_dir 无
+partial）、cancel 中断（staging 确定性丢弃）、kill 中断（fork+SIGKILL 驻留
+staging 期 → out_dir 根无 partial + staging 残留 → 下次事务自愈）、非空目标
+拒绝（既有产物原样保留）、残留垃圾自愈。adapter 契约测 hips_writer_adapter
+（P1-HIPS-IMPL 交付）在同一事务面上保持全绿。
+
 已知限制（完整清单 = ALG-HIPS-001 §10 DISP-HIPS-001..012）：abort 不删除
 已写文件（:1133-1137 仅 delete，头注释 aio_hips.h:151 "清理已写部分(尽力)"
 与实现不符——部分失败产品残留由调用方/IO-003 层处置）；无原子发布
-（remove+create 直写 :185-186；对照 IO-003）；props "hips_estsize"=
-"1000000"/hips_initial_fov="60" 硬编码（:721/:745/:954）；hips_status 恒
-"private master"（:718）；CFITSIO 裸调无 mutex 包装（DISP-HIPS-006）；
-错误码无集中枚举且 1/2 正负混用（DISP-HIPS-007）；moc_order 入参静默
-clamp 且低阶 MOC 对自家 reader 无效（:419；DISP-HIPS-005）；f32 产品
-hierarchy float 累加漂移风险（DISP-HIPS-009）；fits_str 68 字符静默截断
-（DISP-HIPS-010）；properties 无转义（key=value 裸写，值域受控）；hierarchy
-空父 cell 照写全 NaN tile（DISP-HIPS-011）；FIRSTPIX/LASTPIX 声明性头卡
-（DISP-HIPS-012）。
+（remove+create 直写 :185-186；对照 IO-003）——**AIO-002 整改范围注记：
+模块事务面（C ABI adapter execute/write_product）已经由 publish.h v1
+staging→校验→fsync→原子 promote 收口（见上文），writer 核心 remove+create
+直写语义保持不变（legacy 九导出直通面与 astro_sphere_sink/stage2 生产消费
+方仍直写，其原子化属 P1-HIPS-INT/IO-003 集成域，DISP-HIPS-004 维持登记）**；
+props "hips_estsize"= "1000000"/hips_initial_fov="60" 硬编码（:721/:745/:954）；
+hips_status 恒 "private master"（:718）；CFITSIO 裸调无 mutex 包装
+（DISP-HIPS-006）；错误码无集中枚举且 1/2 正负混用（DISP-HIPS-007）；
+moc_order 入参静默 clamp 且低阶 MOC 对自家 reader 无效（:419；
+DISP-HIPS-005）；f32 产品 hierarchy float 累加漂移风险（DISP-HIPS-009）；
+fits_str 68 字符静默截断（DISP-HIPS-010）；properties 无转义（key=value
+裸写，值域受控）；hierarchy 空父 cell 照写全 NaN tile（DISP-HIPS-011）；
+FIRSTPIX/LASTPIX 声明性头卡（DISP-HIPS-012）。
+
+AIO-002 发布面补充限制（publish.h v1 域内如实登记）：①非空目标拒绝语义
+（out_dir 已含完整发布树（writer manifest.json）或任意内容 → STATE 拒绝，
+调用方先清理；空目录/不存在 → 原子替换）——IO-003 §4.2 的"成功对象默认
+不覆盖"树级对应；②kill/SIGKILL 残留 staging 兄弟目录由同目标下一次事务
+自愈，跨目标孤儿清理归编排层（IO-003 cleanup / orchestrator
+cleanup_partial_output 域，V7 F-P1HIPS make_tmp_dir 痛点的模块域收口为
+RAII + 同目标自愈）；③Windows 编译保持（_commit/MoveFileEx 目录 fsync
+尽力模式），发布原子性验证平台为 Linux；④staging 与 out_dir 同父目录
+（同文件系统）保证 rename 原子，EXDEV → IO。
 
 ## 10. 迁移（P1-HIPS-IMPL 目标，不声明完成）
 

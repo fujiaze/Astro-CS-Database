@@ -129,7 +129,11 @@ typedef enum {
      * hips_legacy_status; code 原样进 message "legacy_code=%d", 不重解释
      * 科学语义 —— DISP-HIPS-007 错误码无集中枚举为登记缺陷, 本迁移不消化) */
     HIPS_ECODE_LEGACY_REJECT = 120,
-    HIPS_ECODE_BEGIN_REJECT  = 121  /* aio_hips_product_begin 返回 NULL */
+    HIPS_ECODE_BEGIN_REJECT  = 121,  /* aio_hips_product_begin 返回 NULL */
+    /* publish (domain=IO; AIO-002 原子发布面) */
+    HIPS_ECODE_PUBLISH_STAGE  = 122, /* staging 目录建立失败 */
+    HIPS_ECODE_PUBLISH_REJECT = 123  /* fsync/promote 失败 (staging 已丢弃,
+                                      * 目标根无 partial) */
 } hips_ecode;
 
 /* legacy 错误码语义 (API-HIPS-001 冻结, README §5/§6 核对):

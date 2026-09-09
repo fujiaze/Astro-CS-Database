@@ -25,6 +25,9 @@
 set(HIPS_PROD_DIR "${CMAKE_SOURCE_DIR}/lib/astro_image_io")
 set(HIPS_ADAPTER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/module_entry.cpp
+    # AIO-002: 原子发布原语唯一实现 (publish.h v1 合同; staging→fsync→
+    # 原子 promote→discard RAII; DISP-HIPS-001/004 模块事务面收口)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/aio_publish.cpp
 )
 set(HIPS_PROD_SOURCES
     ${HIPS_PROD_DIR}/src/hips/aio_hips_writer.cpp
