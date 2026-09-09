@@ -87,3 +87,5 @@
 6. **运行环境事实**：当前控制节点为 Linux amd64（vm-bj Debian 13），正式验证
    依赖 Windows/Fatduck 节点恢复；本提交后如需在 main 上继续，前台需 fetch 并
    验证三 SHA 一致（约束 §G.2）。
+7. **控制包执行模式（本周期沉淀，打包审核包）**：控制包线 cp_run 串行单飞（DOC→TEST→IMPL 链依赖）+ 修复批次线按文件域互斥并行（多批同飞+挂账机制）；前台=调度员+验收官（completion≠PASS，五门机器复跑+diff 纯度抽验+禁区复核）；SubAgent 零 git、前台守则化提交（ledger append→精确 add→原子 commit→reconcile --strict rc=0）。全文：`run/local/execution_mode/CONTROL_PACK_EXECUTION_MODEL.md`（含下一控制包结构要求：parallel_group/domain_files/deps 扩展字段）。
+8. **会话交接（2026-09-09）**：控制包 disarm 收尾，38/140 闭环、6 TEST+HIPS-IMPL 中断待重派、fatduck 真实数据拉取进行中（GaiaDR3/DR3SP/testdata 132G）。全文：`run/local/HANDOFF_CONTROL_PACK_20260909.md`（新对话必读，含挂账 10 项与续作指引）。
