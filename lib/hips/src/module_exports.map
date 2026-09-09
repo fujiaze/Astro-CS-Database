@@ -1,0 +1,12 @@
+# lib/hips/src/module_exports.map - astrocs_p1_hips_writer 导出面白名单
+# ABI-006 (12_DLL_ABI_AND_LOADER_STANDARD §6): DLL 唯一导出符号 =
+# astrocs_module_query_v1。legacy aio_hips_* 九符号与全部 C++ 内部符号
+# (mangled/匿名 namespace) 一律降 local。
+# 实证: nm -D 仅此一符号; dlsym 探针 legacy 全 NULL (tests/unit/
+# hips_writer_adapter_test.cpp B 段)。
+{
+  global:
+    astrocs_module_query_v1;
+  local:
+    *;
+};

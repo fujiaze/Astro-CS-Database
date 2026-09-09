@@ -198,6 +198,15 @@ add_subdirectory(lib/calibration)
 # version-script 双保险 (模块 CMakeLists)。
 add_subdirectory(lib/cosmetic)
 
+# astrocs_p1_hips_writer: HiPS writer 迁移模块 DLL (P1-HIPS-IMPL; 矩阵行
+# astrocs.p1.hips_writer / astrocs_p1_hips_writer.dll)。九操作 C ABI v1
+# adapter 包装 legacy HiPS writer 生产闭包 2 TU + cfitsio 源 (API-HIPS-001
+# 冻结, scientific_change=false 零改动重编译; 依赖闭包实证 2026-09-07:
+# writer TU 仅依赖 astrocs::healpix 两符号 + cfitsio); 唯一导出
+# astrocs_module_query_v1, legacy aio_hips_* 九符号经 version-script /
+# DEF 降 local (模块 CMakeLists)。
+add_subdirectory(lib/hips)
+
 # astrocs_cpu_baseline: baseline backend DSO 技术预览 (Linux; legacy ABI,
 # 无导出标注 → 默认全导出)。正式 provider ABI/Windows DLL → CPU-002
 # (providers/cpu/baseline)
@@ -220,7 +229,7 @@ set_target_properties(astrocs_cpu_baseline PROPERTIES
   PREFIX "")
 
 # RPATH (12 §6): install 后 SHARED 依赖以 $ORIGIN 解析; 禁 LD_LIBRARY_PATH 语义
-foreach(tgt astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline astrocs_p1_drizzle astrocs_p1_calibration astrocs_p1_cosmetic)
+foreach(tgt astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline astrocs_p1_drizzle astrocs_p1_calibration astrocs_p1_cosmetic astrocs_p1_hips_writer)
   if(UNIX AND NOT APPLE)
     set_target_properties(${tgt} PROPERTIES
       INSTALL_RPATH "$ORIGIN" BUILD_RPATH_USE_ORIGIN YES)
