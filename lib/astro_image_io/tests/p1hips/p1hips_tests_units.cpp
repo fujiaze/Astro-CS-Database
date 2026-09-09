@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -27,20 +28,120 @@ using namespace p1hips::oracle;
 namespace p1hips {
 
 // ---------------------------------------------------------------------------
-// POSIX 目录树助手 (selfcheck/properties 链引用; properties 时间戳不参与
-// 树哈希 — UTC 时间戳合同上不跨运行复现)
+// POSIX 目录树助手 (selfcheck/properties 链引用)。UTC 时间戳合同上不跨运行
+// 复现: cfitsio finalize 更新 CHECKSUM/DATASUM 时把 UTC 时间戳写进卡片注释
+// ("/ HDU checksum updated <UTC>"), 故 fnv_file 对 .fits/.fts 做 FITS 头区
+// 归一化 (P1-HIPS-TEST tree_digest flaky 修正)。
+// 归一化规则: 对 FITS 头区 (文件开头到 END 卡, 80 字节对齐) 逐卡扫描, 凡
+// 卡片名 (前 8 字节) 为 CHECKSUM 或 DATASUM 的卡, 第 11..80 列 (value+注释
+// 区) 清零后参与哈希 —— 仅清注释区 (31..80) 不彻底: CHECKSUM 的 value 是
+// 头区 32-bit 补码和的 ASCII 编码 (ffesum), 而 DATASUM 注释内嵌 UTC 时间
+// 戳, 跨秒 CHECKSUM value 必变 (cfitsio 4.6.4 ffcsum/ffesum 对真实 tile
+// 移植复现实证)。数据区与其余头卡照常全字节哈希; 头区解析失败 (超 360 卡
+// 无 END / 头卡区含非可打印字节) 时整体退回原全字节哈希并留日志; 非 FITS
+// 文件保持原流式路径。
 // ---------------------------------------------------------------------------
+namespace {
+
+constexpr std::uint64_t kFnvOffset = 1469598103934665603ULL;
+constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
+
+inline std::uint64_t fnv_byte(std::uint64_t h, unsigned char c) {
+    return (h ^ (std::uint64_t)c) * kFnvPrime;
+}
+
+// 小写扩展名 (含点); 无扩展名返回空
+std::string lower_ext(const std::string& path) {
+    const std::size_t dot = path.find_last_of('.');
+    if (dot == std::string::npos) return {};
+    std::string e = path.substr(dot);
+    for (char& c : e) c = (char)std::tolower((unsigned char)c);
+    return e;
+}
+
+// 读整个文件; 成功返回 true (空文件也是成功)
+bool read_file_bytes(const std::string& path, std::vector<unsigned char>& out) {
+    std::ifstream f(path, std::ios::binary);
+    if (!f) return false;
+    f.seekg(0, std::ios::end);
+    const std::streamoff n = f.tellg();
+    if (n < 0) return false;
+    f.seekg(0, std::ios::beg);
+    out.resize((std::size_t)n);
+    if (n > 0) f.read(reinterpret_cast<char*>(out.data()), n);
+    return (std::size_t)f.gcount() == (std::size_t)n;
+}
+
+// FITS 头区扫描: 返回 END 卡结束 offset (含, 80 对齐); 解析失败返回 0。
+// 80 字节对齐逐卡, 上限 360 卡 (FITS 头区常规上限); 头卡区必须全为
+// 可打印 ASCII, END 卡 = "END" + 空格填满 80 列。
+std::size_t fits_header_end(const std::vector<unsigned char>& b) {
+    const std::size_t kMaxCards = 360;
+    const std::size_t n = b.size();
+    for (std::size_t off = 0, k = 0; off + 80 <= n && k < kMaxCards; off += 80, ++k) {
+        for (std::size_t i = off; i < off + 80; ++i) {
+            const unsigned char c = b[i];
+            if (c < 0x20u || c > 0x7eu) return 0;
+        }
+        if (b[off] == (unsigned char)'E' && b[off + 1] == (unsigned char)'N' &&
+            b[off + 2] == (unsigned char)'D') {
+            bool pad_ok = true;
+            for (std::size_t i = 3; i < 80; ++i)
+                if (b[off + i] != (unsigned char)' ') { pad_ok = false; break; }
+            if (pad_ok) return off + 80;
+        }
+    }
+    return 0;
+}
+
+// 头卡名: 前 8 字节左对齐空格填充; 返回去尾空格后是否等于 name
+bool card_is(const unsigned char* card, const char* name) {
+    char key[9];
+    std::memcpy(key, card, 8);
+    key[8] = '\0';
+    for (int i = 7; i >= 0; --i) {
+        if (key[i] == ' ') key[i] = '\0';
+        else break;
+    }
+    return std::strcmp(key, name) == 0;
+}
+
+// FITS 归一化: 头区 CHECKSUM/DATASUM 卡第 11..80 列 (0-based 10..79)
+// 清零; 返回是否完成头区解析 (false = 解析失败, 退回全字节)。
+bool normalize_fits(std::vector<unsigned char>& buf) {
+    const std::size_t hdr_end = buf.size() >= 80 ? fits_header_end(buf) : 0;
+    if (hdr_end == 0) return false;
+    for (std::size_t off = 0; off + 80 <= hdr_end; off += 80) {
+        const unsigned char* card = &buf[off];
+        if (card_is(card, "CHECKSUM") || card_is(card, "DATASUM"))
+            std::memset(&buf[off + 10], 0, 70);
+    }
+    return true;
+}
+
+}  // namespace
+
 static std::uint64_t fnv_file(const std::string& path) {
+    const std::string ext = lower_ext(path);
+    const bool is_fits = (ext == ".fits" || ext == ".fts");
+    std::vector<unsigned char> buf;
+    if (is_fits && read_file_bytes(path, buf)) {
+        if (!normalize_fits(buf))
+            std::fprintf(stderr,
+                         "[p1hips_digest] FITS 头区解析失败, 退回全字节哈希: %s\n",
+                         path.c_str());
+        std::uint64_t h = kFnvOffset;
+        for (const unsigned char c : buf) h = fnv_byte(h, c);
+        return h;
+    }
+    // 非 FITS (或读文件失败时保持原读法): 原流式全字节路径
     std::ifstream f(path, std::ios::binary);
     if (!f) return 0;
-    std::uint64_t h = 1469598103934665603ULL;
-    char buf[8192];
-    while (f.read(buf, sizeof(buf)) || f.gcount() > 0) {
+    std::uint64_t h = kFnvOffset;
+    char buf8[8192];
+    while (f.read(buf8, sizeof(buf8)) || f.gcount() > 0) {
         const std::size_t n = (std::size_t)f.gcount();
-        for (std::size_t i = 0; i < n; ++i) {
-            h ^= (std::uint8_t)buf[i];
-            h *= 1099511628211ULL;
-        }
+        for (std::size_t i = 0; i < n; ++i) h = fnv_byte(h, (unsigned char)buf8[i]);
         if (!f) break;
     }
     return h;
