@@ -7,8 +7,9 @@
 //
 // 覆盖 (§11.4 F4 逐项, 平台可达性注记见各组内注释):
 //   0/1/2 星 → success=0 进程不崩 (C ABI ret=0/error_msg 通道由 P1-WCS-IMPL
-//              落地后验收, 见文件尾登记); n=0 空 initial_pairs 现状段错误
-//              → 缺陷行为锚 (fork 隔离锁定现状, IMPL 整改后须改断言);
+//              落地后验收, 见文件尾登记); n=0 空对 → 确定性路径直接断言
+//              (WCS-002 翻锚: 原 fork 隔离现状锚, 空对 guard 零 UB 实证后
+//              翻为三组合确定性断言);
 //   指向偏差>FOV (等价注入: 星表-图像无真实对应) → 显式失败;
 //   CD det 退化 (共线场) → success=0 禁止坍缩;
 //   NaN/Inf 输入 → 不崩 (fork 隔离);
@@ -88,18 +89,49 @@ int child_few_stars_2() {
     return (r.success == false) ? 0 : 1;
 }
 
-// 缺陷锚: 空 initial_pairs (U/W 全空) 现状 UB — 首测 (probe 2026-09-09,
-// A/B 场 warmup 后同进程) SIGSEGV; 复测 (fork 隔离/warmup 后) 均优雅
-// success=0。空 vector data()==nullptr 进入 UB 路径, 崩溃与否依赖进程
-// 状态 (典型 UB 表现), 不可稳定复现 → 本锚锁定当前**主流行为**
-// (success=0 优雅失败, 满足冻结"退化必须 success=0"语义), 并登记:
-// P1-WCS-IMPL 须整改空对路径为确定性 success=0 (禁止 UB)。
-int child_zero_pairs_anchor() {
+// WCS-002 翻锚: 空对确定性路径 (原 fork 隔离现状锚 → 直接确定性断言)。
+// 原锚 (P1-WCS-TEST 2026-09-09): 空 initial_pairs (U/W 全空) 首测 SIGSEGV、
+// 复测优雅 success=0, 状态依赖不可稳定复现 (空 vector data()==nullptr UB
+// 表现) → fork 隔离锁主流行为。WCS-002 验证生产空对路径已为确定性实现:
+// iter_trans_solve 空 initial_pairs guard (ipv_itertrans.cpp) 确定返回
+// success=0 + 确定日志, U/W 空而 pairs 非空时 calc_trans_general 索引
+// 先检查后解引用 (mp.u/w 越界 continue → 正规方程全零 → gauss_solve
+// 奇异返回 false), 零 UB (本文件 asan+ubsan 实证)。翻锚为直接调用
+// (不 fork 隔离): 断言确定 rc (success=0) + 确定零输出态 (trans 无效/
+// 零内点/零残差), 任何 UB 崩溃即测试进程死亡 = 红。三空对组合全覆盖:
+//   a) U/W/p 全空 (原首测构造);
+//   b) U/W 空, initial_pairs 非空 (索引越界对 → 奇异失败路径);
+//   c) U/W 非空, initial_pairs 空 (guard 路径)。
+int child_zero_pairs_all_empty() {
     std::vector<ipv::StarPoint> U, W;
     std::vector<ipv::MatchPair> p;
-    fix_wcs_c_few_stars(&U, &W, &p, 0);  // U/W/p 全空 (对齐首测构造)
+    fix_wcs_c_few_stars(&U, &W, &p, 0);  // 全空 (对齐原首测构造)
     const ipv::IterTransResult r = ipv::iter_trans_solve(U, W, p, 5.0, 1);
-    return r.success ? 1 : 0;  // success=0 → rc=0 (锚); UB 崩溃 → signaled (红, 逼登记)
+    return (r.success || r.trans.valid || r.n_inliers != 0 ||
+            r.rms != 0.0 || !r.residuals.empty() || !r.inliers.empty())
+               ? 1 : 0;
+}
+
+int child_zero_pairs_idx_out_of_range() {
+    std::vector<ipv::StarPoint> U, W;
+    std::vector<ipv::MatchPair> p;
+    fix_wcs_c_few_stars(&U, &W, &p, 0);
+    for (int k = 0; k < 8; ++k) p.push_back({0, 0});  // 索引越界对 (U/W 空)
+    const ipv::IterTransResult r = ipv::iter_trans_solve(U, W, p, 5.0, 1);
+    return (r.success || r.trans.valid || r.n_inliers != 0 ||
+            r.rms != 0.0 || !r.residuals.empty() || !r.inliers.empty())
+               ? 1 : 0;
+}
+
+int child_zero_pairs_no_pairs() {
+    std::vector<ipv::StarPoint> U, W;
+    std::vector<ipv::MatchPair> p;
+    fix_wcs_c_few_stars(&U, &W, &p, 8);
+    p.clear();  // U/W 非空, 空 initial_pairs
+    const ipv::IterTransResult r = ipv::iter_trans_solve(U, W, p, 5.0, 1);
+    return (r.success || r.trans.valid || r.n_inliers != 0 ||
+            r.rms != 0.0 || !r.residuals.empty() || !r.inliers.empty())
+               ? 1 : 0;
 }
 
 // CD det 退化 (共线场): 冻结语义 success=0 + 禁止坍缩值冒充解
@@ -158,11 +190,16 @@ int test_negative() {
         P1WCS_CHECK(cs, b.exited && b.rc == 0, "n1_few_stars");
     }
 
-    // F4 缺陷锚: 空对 (全空 U/W/p) 现状 UB — 锁定主流优雅失败 success=0
-    // (UB 首测与登记见 child 注释)
+    // WCS-002 翻锚: 空对确定性路径 (直接调用, 不 fork — 零 UB 由本断言
+    // 进程存活 + asan/ubsan 实证背书; 三空对组合全覆盖, 断言确定 rc
+    // success=0 + 确定零输出态)。注入名沿用 n1_zero_pairs_anchor。
     {
-        const ForkOutcome z = run_forked(child_zero_pairs_anchor);
-        P1WCS_CHECK(cs, z.exited && z.rc == 0, "n1_zero_pairs_anchor");
+        const int ra = child_zero_pairs_all_empty();
+        const int rb = child_zero_pairs_idx_out_of_range();
+        const int rc = child_zero_pairs_no_pairs();
+        P1WCS_CHECK(cs, ra == 0, "n1_zero_pairs_anchor");
+        P1WCS_CHECK(cs, rb == 0, "n1_zero_pairs_anchor");
+        P1WCS_CHECK(cs, rc == 0, "n1_zero_pairs_anchor");
     }
 
     // F4/DISP-WCS-001: 共线退化 → success=0, 禁止坍缩冒充

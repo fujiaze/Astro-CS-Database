@@ -364,20 +364,31 @@ void extract_wcs_sip(
                 logger->info(buf);
             }
 
-            // 5.3 SIP AP/BP: 网格反变换法
+            // 5.3 SIP AP/BP: 网格反变换法 (WCS-002/DISP-WCS-008 整改:
+            // 网格加密 7×7→41×41、拟合阶 trans.order→AP 布局上限 5、
+            // 各向归一化正规方程)
             // 流程:
             // a. 生成像素网格 (u, v), 相对于图像中心
             // b. 对网格应用 trans_for_sip -> IWC (角秒, 已清零 x00/y00)
-            // c. UV = cd_inv · IWC (畸变像素)
-            // d. 拟合 UV -> (u, v) 的多项式 = revtrans
-            // e. AP/BP = revtrans 系数, AP_10 -= 1, BP_01 -= 1
-            const int NB_GRID = 7;  // 网格点数
-            const int order = trans_for_sip.order;
+            // c. UV = cd_inv · IWC (无畸变像素, 线性部分=恒等)
+            // d. 拟合 UV -> (u, v) 的多项式 = revtrans (阶 5, 归一化坐标)
+            // e. AP/BP = revtrans 系数回转像素域, AP_10 -= 1, BP_01 -= 1
+            //
+            // 冻结消费语义: 一步 u = u0 + AP(u0, v0) (wcs_transform.cpp
+            // skyToPixel 有 AP/BP 直加路径)。本拟合为该逆映射多项式在
+            // SIPCoeffs 布局 (i*6+j, i+j <= ap_order) 内的最小二乘逼近。
+            // 可达性 (F2 冻结 fixture 实测, 探针 run/tmp_wcs002): 边缘畸变
+            // ~117px 时 5 阶最优 center90 roundtrip ~7.6 px, 为逆映射最近
+            // 奇点决定的逼近极限 (order 6..15 → 5.3..0.26 px, 收敛率~0.73);
+            // 冻结 1e-4 px 在该 fixture 下数学不可达, 需负责人裁决 (finding)。
+            // 确定性: 固定网格顺序 + 顺序归约 (§5c 禁并行重结合), 高斯消元单线程。
+            const int NB_GRID = 41;       // 每轴网格点数 (整改: 7 -> 41)
+            const int AP_FIT_ORDER = 5;   // 逆向拟合阶 (SIPCoeffs i*6+j 布局上限)
 
-            // 逆向 SIP 基函数: (i, j) for i+j >= 0 (含常数和线性)
+            // 逆向 SIP 基函数: (i, j), i+j <= AP_FIT_ORDER (含常数和线性)
             // revtrans 是完整多项式 (含常数和线性), AP/BP 提取所有项
             std::vector<std::pair<int,int>> inv_basis;
-            for (int deg = 0; deg <= order; ++deg) {
+            for (int deg = 0; deg <= AP_FIT_ORDER; ++deg) {
                 for (int i = deg; i >= 0; --i) {
                     int j = deg - i;
                     inv_basis.push_back({i, j});
@@ -388,6 +399,10 @@ void extract_wcs_sip(
             // 网格范围 (相对于图像中心, 像素)
             double u_range = img_width  / 2.0;
             double v_range = img_height / 2.0;
+
+            // 归一化半径 (各向, 正规方程条件数控制)
+            const double R_u = (u_range > 0.0) ? u_range : 1.0;
+            const double R_v = (v_range > 0.0) ? v_range : 1.0;
 
             // 构建正规方程: M_inv * capx = bx (u), M_inv * capy = by (v)
             std::vector<std::vector<double>> M_inv(n_inv_coef,
@@ -406,34 +421,34 @@ void extract_wcs_sip(
                     double wx, wy;
                     apply_trans(trans_for_sip, u, v, &wx, &wy);
 
-                    // c. UV = cd_inv · IWC (畸变像素)
+                    // c. UV = cd_inv · IWC (无畸变像素)
                     // transUV 用 cd_inv 作线性项, atApplyTrans 后 xygrid = UV
                     // 因 trans_for_sip.x00/y00=0, IWC 无平移,
                     // UV 也无平移, revtrans 常数项 AP_00/BP_00 → 0
                     double uv_x = cd_inv_00 * wx + cd_inv_01 * wy;
                     double uv_y = cd_inv_10 * wx + cd_inv_11 * wy;
 
-                    // 计算基函数值 (在 UV 上)
+                    // 计算基函数值 (归一化 UV 上)
                     std::vector<double> bv(n_inv_coef);
                     for (int k = 0; k < n_inv_coef; ++k) {
-                        bv[k] = eval_monomial(uv_x, uv_y,
+                        bv[k] = eval_monomial(uv_x / R_u, uv_y / R_v,
                                               inv_basis[k].first,
                                               inv_basis[k].second);
                     }
 
-                    // 累加正规方程 (拟合 UV → (u, v))
+                    // 累加正规方程 (拟合 UV → (u, v), 归一化目标)
                     for (int p = 0; p < n_inv_coef; ++p) {
                         for (int q = 0; q < n_inv_coef; ++q) {
                             M_inv[p][q] += bv[p] * bv[q];
                         }
-                        bx[p] += bv[p] * u;
-                        by[p] += bv[p] * v;
+                        bx[p] += bv[p] * (u / R_u);
+                        by[p] += bv[p] * (v / R_v);
                     }
                     ++n_points;
                 }
             }
 
-            // d. 求解 AP/BP 系数 (最小二乘)
+            // d. 求解 AP/BP 系数 (最小二乘, 归一化坐标)
             std::vector<double> capx = bx;
             std::vector<std::vector<double>> M_x = M_inv;
             std::vector<double> capy = by;
@@ -445,16 +460,18 @@ void extract_wcs_sip(
             }
 
             if (ap_ok) {
-                // e. 填充 AP/BP 系数
-                // AP[i*6+j] 对应 x^i * y^j
-                // 约定: AP[1][0] = revtrans.x10 - 1, BP[0][1] = revtrans.y01 - 1
+                // e. 填充 AP/BP 系数 (归一化系数回转像素域:
+                //    u = Σ c_ij·(UV_x/R_u)^i·(UV_y/R_v)^j·R_u
+                //      = Σ [c_ij·R_u^{1-i}·R_v^{-j}]·UV_x^i·UV_y^j)
                 for (int k = 0; k < n_inv_coef; ++k) {
                     int i = inv_basis[k].first;
                     int j = inv_basis[k].second;
                     int idx = i * 6 + j;
                     if (idx < 36) {
-                        result->sip.AP[idx] = capx[k];
-                        result->sip.BP[idx] = capy[k];
+                        result->sip.AP[idx] =
+                            capx[k] * std::pow(R_u, 1.0 - i) * std::pow(R_v, -j);
+                        result->sip.BP[idx] =
+                            capy[k] * std::pow(R_v, 1.0 - j) * std::pow(R_u, -i);
                     }
                 }
                 // 约定: 逆向 SIP 线性项减 1
@@ -463,14 +480,14 @@ void extract_wcs_sip(
                 result->sip.AP[6] -= 1.0;  // AP_10
                 result->sip.BP[1] -= 1.0;  // BP_01
 
-                result->sip.ap_order = order;
+                result->sip.ap_order = AP_FIT_ORDER;
 
                 if (logger) {
                     char buf[256];
                     std::snprintf(buf, sizeof(buf),
                         "extract_wcs_sip: SIP AP/BP 网格反变换成功, ap_order=%d, "
-                        "n_inv_coef=%d, n_grid=%d",
-                        order, n_inv_coef, n_points);
+                        "n_inv_coef=%d, n_grid=%dx%d",
+                        AP_FIT_ORDER, n_inv_coef, NB_GRID, NB_GRID);
                     logger->info(buf);
                 }
             } else {

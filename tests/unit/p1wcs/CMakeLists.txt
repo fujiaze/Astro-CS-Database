@@ -25,7 +25,8 @@
 #                                   cross 与 oracle-6 AP/BP 逆向独立断言
 #                                   o1_apbp_reverse_oracle)
 #   p1wcs/p1wcs_tests_negative.cpp   — negative 组 (F4 负例 fork 隔离 +
-#                                   DISP-WCS-001 缺陷行为锚)
+#                                   DISP-WCS-001 缺陷行为锚; 空对确定性
+#                                   路径直接断言, WCS-002 翻锚)
 #   p1wcs/p1wcs_tests_perf.cpp    — performance 基线 (CI 森严哨兵 parity 4x/
 #                                   trend 0.25x, 独立可执行)
 #   p1wcs/p1wcs_tests_selfcheck.cpp — 故障注入必败自检 (baseline+env/argv
