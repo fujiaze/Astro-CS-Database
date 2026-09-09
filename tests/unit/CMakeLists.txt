@@ -1029,3 +1029,38 @@ set_tests_properties(p1_noise_adapter PROPERTIES
 add_subdirectory(p1wcs p1wcs)
 # --- P1-WCS-TEST end --------------------------------------------------------
 
+
+# ----------------------------------------------------------------------------
+# AIO-001 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) — 唯一 AIO C ABI v1 与内容哈希复核
+# 合同锚: include/astrocs/io/aio_abi_v1.h + contracts/data/aio_abi_contract_v1.json。
+# 被测面: lib/astro_image_io/src/aio_abi.cpp (唯一公共 ABI 实现; astrocs_aio 域,
+# 宪章 §8.5 交付单元); oracle: FIPS 180-4 标准向量 (hashlib 预生成) +
+# lib/common crypto::Sha256 交叉对拍 + acs_fio_status 0..13 编译期对齐证明。
+# 组: aio_abi_units / aio_abi_negative / aio_abi_selfcheck (故障注入必败:
+# ASTROCS_AIO_FAULT=n1_hash_value_flip|n2_verify_mismatch_shortcut|n3_file_size_skip)。
+# OpenMP 并行轴: 1/4/16 worker 复核位级一致 (reentrant; 非重计算, 显式 worker 传入)。
+# ----------------------------------------------------------------------------
+add_executable(aio_abi_tests
+  aio_abi_tests.cpp
+  ../../lib/astro_image_io/src/aio_abi.cpp)
+target_include_directories(aio_abi_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../modules/services/io/include)
+target_link_libraries(aio_abi_tests PRIVATE astrocs_common ${ASTROCS_OMP_TARGET})
+add_test(NAME aio_abi_units COMMAND aio_abi_tests units)
+add_test(NAME aio_abi_negative COMMAND aio_abi_tests negative)
+
+add_executable(aio_abi_selfcheck
+  aio_abi_selfcheck.cpp
+  aio_abi_tests.cpp
+  ../../lib/astro_image_io/src/aio_abi.cpp)
+target_compile_definitions(aio_abi_selfcheck PRIVATE AIO_ABI_TEST_NO_MAIN)
+target_include_directories(aio_abi_selfcheck PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../modules/services/io/include)
+target_link_libraries(aio_abi_selfcheck PRIVATE astrocs_common)
+add_test(NAME aio_abi_selfcheck COMMAND aio_abi_selfcheck)

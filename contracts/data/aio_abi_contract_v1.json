@@ -1,0 +1,170 @@
+{
+  "contract_schema": "astrocs.aio-abi-contract/v1",
+  "contract_version": 1,
+  "task_id": "AIO-001",
+  "title": "唯一 AIO C ABI v1 与内容哈希复核",
+  "owner": "SA-AIO",
+  "frozen": true,
+  "doc_ref": "include/astrocs/io/aio_abi_v1.h",
+  "constitution_ref": [
+    "ASTROCS-CONSTITUTION-001 §8.3 (唯一 FITS/HiPS/manifest I/O 边界)",
+    "ASTROCS-CONSTITUTION-001 §8.6 (版本化 C ABI: struct_size/abi_version/稳定状态码/禁 STL-异常-RTTI-第三方类型)"
+  ],
+  "versioning": {
+    "abi_version": 1,
+    "rule": "v1 不可变；任何字段/符号/数值扩展必须升 ABI 版本并同步本合同",
+    "struct_pattern": "跨边界结构前两字段恒 struct_size + abi_version，失配即 AIO_ERR_ABI_MISMATCH，不猜布局",
+    "ownership": "out 缓冲一律调用方分配（无跨边界托管分配/释放义务）；digest hex 缓冲容量 >= 65 字节",
+    "text_encoding": "UTF-8（路径 path_utf8 与 IO-001 acs_fio_* 同语义）"
+  },
+  "status_codes": {
+    "count": 17,
+    "alignment": {
+      "acs_status_common": "0..7 与 include/astrocs/common_abi_v1.h acs_status 共同子域数值一致",
+      "acs_fio_status_full": "0..13 与 modules/services/io/include/astrocs/io/fits_stream_v1.h acs_fio_status 全域逐值一致（测试编译期交叉断言证明）"
+    },
+    "codes": [
+      {
+        "value": 0,
+        "name": "AIO_OK"
+      },
+      {
+        "value": 1,
+        "name": "AIO_ERR_PARAM"
+      },
+      {
+        "value": 2,
+        "name": "AIO_ERR_ABI_MISMATCH"
+      },
+      {
+        "value": 3,
+        "name": "AIO_ERR_NOMEM"
+      },
+      {
+        "value": 4,
+        "name": "AIO_ERR_IO"
+      },
+      {
+        "value": 5,
+        "name": "AIO_ERR_UNSUPPORTED"
+      },
+      {
+        "value": 6,
+        "name": "AIO_ERR_CANCELLED"
+      },
+      {
+        "value": 7,
+        "name": "AIO_ERR_STATE"
+      },
+      {
+        "value": 8,
+        "name": "AIO_ERR_TRUNCATED"
+      },
+      {
+        "value": 9,
+        "name": "AIO_ERR_BAD_HEADER"
+      },
+      {
+        "value": 10,
+        "name": "AIO_ERR_MISMATCH"
+      },
+      {
+        "value": 11,
+        "name": "AIO_ERR_CHECKSUM"
+      },
+      {
+        "value": 12,
+        "name": "AIO_ERR_NANINF"
+      },
+      {
+        "value": 13,
+        "name": "AIO_ERR_DISKFULL"
+      },
+      {
+        "value": 14,
+        "name": "AIO_ERR_DECL_INVALID",
+        "note": "AIO 专属：声明 digest 非 sha256/64hex 或 size 非法"
+      },
+      {
+        "value": 15,
+        "name": "AIO_ERR_HASH_MISMATCH",
+        "note": "AIO 专属：重算 sha256 与声明不一致（篡改/损坏）"
+      },
+      {
+        "value": 70,
+        "name": "AIO_ERR_INTERNAL",
+        "note": "未分类内部错误（同 acs_status INTERNAL=70 语义）"
+      }
+    ],
+    "sentinel": "AIO_STATUS_COUNT=71（等于该值及以外均非法；0..15 与 70 有效）"
+  },
+  "content_hash_review": {
+    "algorithm": "sha256",
+    "algorithm_id": 1,
+    "digest_form": "64 字符小写 hex + NUL（64 hex 与 DATA-001 manifest content_digest 算法/形态同源）",
+    "rule": "任何消费方对已声明 sha256 的内容/文件必须经本 ABI 重算复核，禁止静默信任声明（基线审核 P2/P3：『content digest 校验只验 64hex 声明，不重算 storage 内容』的 AIO 层收口）",
+    "semantics": {
+      "aio_content_hash_buffer_v1": "内存内容重算 sha256 hex64；空内容（len=0）合法（e3b0c442... 摘要）",
+      "aio_content_hash_verify_buffer_v1": "先验声明格式（非法→AIO_ERR_DECL_INVALID），再重算比对（不一致→AIO_ERR_HASH_MISMATCH）",
+      "aio_content_hash_verify_file_v1": "分块流式重算（不整体载入）+ expected_size 非 0 时核对字节数（不符→AIO_ERR_TRUNCATED）"
+    },
+    "determinism": "同输入恒同摘要（确定性单流；1/N worker 并发调用位级一致）"
+  },
+  "symbols": [
+    {
+      "name": "aio_abi_query_v1",
+      "role": "唯一握手入口",
+      "concurrency": "reentrant; threadsafe; internal_parallel=none"
+    },
+    {
+      "name": "aio_content_hash_buffer_v1",
+      "role": "复核原语（重算）",
+      "concurrency": "reentrant; internal_parallel=none"
+    },
+    {
+      "name": "aio_content_hash_verify_buffer_v1",
+      "role": "内容复核",
+      "concurrency": "reentrant; internal_parallel=none"
+    },
+    {
+      "name": "aio_content_hash_verify_file_v1",
+      "role": "文件复核（流式）",
+      "concurrency": "reentrant; 调用期间文件只读; internal_parallel=none"
+    }
+  ],
+  "implementations": [
+    {
+      "path": "lib/astro_image_io/src/aio_abi.cpp",
+      "lang": "C++17",
+      "note": "唯一公共 ABI 实现（astrocs_aio 域 = AIO 正统归属，宪章 §8.5 astrocs_aio 交付单元）；SHA-256 原语复用 lib/common/crypto 单一实现（astrocs_common，与 AIO UPM 同源）；异常屏障家族口径"
+    }
+  ],
+  "oracle_refs": [
+    {
+      "kind": "nist_vectors",
+      "note": "FIPS 180-4 标准向量（python hashlib 权威预生成，写死于测试）：空串/abc/56B/112B/百万a + 55..129B 块边界"
+    },
+    {
+      "kind": "status_alignment",
+      "note": "modules/services/io/include/astrocs/io/fits_stream_v1.h acs_fio_status 0..13 全域交叉断言（测试编译期）"
+    }
+  ],
+  "conformance_tests": [
+    "tests/unit/aio_abi_tests.cpp（units/negative 组：已知向量对拍、声明/篡改/截断负测、ABI 握手、确定性、1/N worker、状态码交叉断言）",
+    "tests/unit/aio_abi_selfcheck.cpp（故障注入必败自检：baseline PASS + 注入必败）"
+  ],
+  "fault_injection": {
+    "env": "ASTROCS_AIO_FAULT",
+    "registry": [
+      "n1_hash_value_flip",
+      "n2_verify_mismatch_shortcut",
+      "n3_file_size_skip"
+    ],
+    "rule": "每个注册名使对应断言确定性翻转并输出 FAULT-INJECT 行（验收：注入必败，不存在恒 PASS 占位）"
+  },
+  "known_scope_limits": [
+    "本任务交付合同头 + 唯一实现 + 测试；实现编入生产 DLL target（astrocs_aio）的构建接线属 MOD-001（根 CMakeLists.txt 不在本任务写域），已登记 finding",
+    "lib/core ArtifactStore content_sha256 仅验长度不复核（lib/core 不在本任务写域），接线 read_verified 属 DATA-003 后续，已登记 finding",
+    "astro_image_io.h 既有产品结构无 struct_size/abi_version（v1 冻结域外，扩展须升版本），已登记 finding"
+  ]
+}
