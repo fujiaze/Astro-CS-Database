@@ -55,6 +55,8 @@ static const char* const kP1wcsFaultNames[] = {
     "o1_wcs_forward_reverse", // oracle: WCS 前向/逆向往返
     "o1_f2_sip_vs_oracle",    // oracle: F2 被测 SIP vs oracle 期望
     "o1_f2_apbp_roundtrip",   // oracle: F2 AP/BP 逆向 roundtrip
+    "o1_gnomonic_cross",      // oracle: gnomonic 闭式/向量双路径交叉 (WCS-001)
+    "o1_apbp_reverse_oracle", // oracle: oracle-6 AP/BP 逆向独立实现断言 (WCS-001)
     // negative 组
     "n1_few_stars",           // negative: <3 星 success=0
     "n1_collinear_success",   // negative: 共线退化 success=0 (DISP-WCS-001)
