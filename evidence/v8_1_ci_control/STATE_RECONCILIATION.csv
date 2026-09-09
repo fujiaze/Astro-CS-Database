@@ -127,7 +127,7 @@ P1-WCS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,
 P1-WCS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-WCS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-PHOT-DOC,module-doc,NOT_STARTED,commit:87bb7b7f traceability 27行0错 + pytest 4P + contract_graph 44 + doc_index PASS + selfcheck 51项 ALL_PASS,CLOSED,fg_verified_commit,87bb7b7f,lib/photometric_calib/; docs/algorithms/PHOTOMETRIC_FIT.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结; 缺陷清单 DISP-PHOT-001..009 归 P1-PHOT-IMPL/INT; SCI-PHOT-001 未动; descriptor 占位 ID 对齐归 P1-PHOT-INT; v19r3_traceability.py 写副作用已恢复并提示
-P1-PHOT-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-PHOT-TEST,module-test,tests_complete,"ctest p1phot_ 6/6主树3轮+asan+ubsan全绿零报告+双注入fork+execve必败",CLOSED,fg_machine_verified,ae147df3,run/local/agent_p1phot_test/,"gaia桩互斥链接;MAD偶数样本口径对齐;I3字面口径偏差待DOC澄清"
 P1-PHOT-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-PHOT-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-NOISE-DOC,module-doc,NOT_STARTED,commit:a1b0e555 traceability 27行0错 + pytest 4P + contract_graph 41 + doc_index PASS + selfcheck 7/7 ALL_PASS,CLOSED,fg_verified_commit,a1b0e555,lib/snr_estimator/; docs/algorithms/NOISE_ESTIMATION.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结; 缺陷清单 DISP-NOISE-001..009 归 P1-NOISE-IMPL/INT; SCI-NOISE-001..015 未动; SCI min_samples=5 vs 代码 64 差异已登记; 落位 lib/snr_estimator（lib/phase1/noise 不存在）

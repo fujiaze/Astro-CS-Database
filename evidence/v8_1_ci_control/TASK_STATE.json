@@ -1600,15 +1600,15 @@
   },
   "P1-PHOT-TEST": {
    "owner": "SA-P1-N17",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "ae147df3",
+   "evidence_path": "run/local/agent_p1phot_test/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-test",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "review_claim": "tests_complete",
+   "current_evidence": "前台主树复跑ctest p1phot_ 6/6 三轮全绿+影子asan+ubsan全绿零报告;oracle纯stdlib零被测头include;双注入fork+execve必败;gaia桩互斥链接生产零改动;src_path=lib/photometric_calib五生产TU+F6 legacy只读",
+   "note": "遗留登记:DISP-PHOT-004取消语义无API钩子未写占位;I3字面口径两层闭合偏差待DOC澄清"
   },
   "P1-PHOT-IMPL": {
    "owner": "SA-P1-N17",
