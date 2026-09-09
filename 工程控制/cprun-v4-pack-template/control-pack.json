@@ -1,0 +1,142 @@
+{
+ "schema": "cprun/v4",
+ "id": "my-project-remediation",
+ "title": "示例：修复与审核流水线",
+ "workspace": "../my-project",
+ "max_parallel": 4,
+ "lanes": {
+  "repo-write": {
+   "capacity": 1
+  },
+  "read-only": {
+   "capacity": 4
+  },
+  "windows": {
+   "capacity": 1
+  }
+ },
+ "gates": {
+  "SOURCE-READY": {
+   "all": [
+    {
+     "task": "AUDIT-001",
+     "state": "passed"
+    },
+    {
+     "any": [
+      {
+       "task": "CI-TEST",
+       "state": "passed"
+      }
+     ]
+    }
+   ]
+  },
+  "CI-GATE": {
+   "all": [
+    {
+     "external": "ci/windows",
+     "state": "success"
+    }
+   ]
+  }
+ },
+ "externals": {
+  "ci/windows": {
+   "states": [
+    "success",
+    "failure",
+    "pending"
+   ],
+   "initial": "pending"
+  }
+ },
+ "tasks": [
+  {
+   "id": "AUDIT-001",
+   "title": "核对实现与规范差异",
+   "spec": "tasks/AUDIT-001.md",
+   "lane": "read-only",
+   "priority": 100,
+   "review": "foreground",
+   "retry": {
+    "max_attempts": 2
+   }
+  },
+  {
+   "id": "FIX-001",
+   "title": "实施修复",
+   "spec": "tasks/FIX-001.md",
+   "lane": "repo-write",
+   "priority": 90,
+   "requires": [
+    "SOURCE-READY"
+   ],
+   "review": "foreground",
+   "retry": {
+    "max_attempts": 3
+   },
+   "write_scope": [
+    "src/",
+    "tests/"
+   ],
+   "evidence": {
+    "checks": [
+     "build",
+     "unit-tests"
+    ]
+   }
+  },
+  {
+   "id": "CI-TEST",
+   "title": "跑 CI 并回填结论",
+   "spec": "tasks/CI-TEST.md",
+   "lane": "read-only",
+   "priority": 85,
+   "review": "machine",
+   "retry": {
+    "max_attempts": 2,
+    "on_exhausted": "failed"
+   },
+   "evidence": {
+    "checks": [
+     "ci-conclusion"
+    ],
+    "artifacts": [
+     "ci-report.md"
+    ]
+   },
+   "depends_on": [
+    "AUDIT-001"
+   ]
+  },
+  {
+   "id": "DOC-001",
+   "title": "更新文档",
+   "spec": "tasks/DOC-001.md",
+   "lane": "repo-write",
+   "priority": 40,
+   "depends_on": [
+    "FIX-001"
+   ],
+   "review": "foreground",
+   "retry": {
+    "max_attempts": 1
+   }
+  },
+  {
+   "id": "RELEASE-001",
+   "title": "发布窗口任务（external 门禁演示）",
+   "spec": "tasks/RELEASE-001.md",
+   "lane": "windows",
+   "priority": 30,
+   "requires": [
+    "CI-GATE"
+   ],
+   "review": "foreground",
+   "retry": {
+    "max_attempts": 1
+   }
+  }
+ ]
+}

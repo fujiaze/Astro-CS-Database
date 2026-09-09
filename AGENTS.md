@@ -27,9 +27,9 @@
 - 构建面：`CMakeLists.txt`、`CMakePresets.json`、`build.sh`、`toolchain.ps1`、`.github/`、`.clang-format`、`.editorconfig`、`.gitignore`、`.gitattributes`
 
 **固定目录**：
-- 代码与合同：`lib/`（模块源码）、`include/`、`cli/`、`providers/`、`runtime/`、`modules/`、`graph/`、`docs/`、`contracts/`、`schemas/`、`cmake/`
+- 代码与合同：`lib/`（模块源码）、`include/`、`cli/`、`providers/`、`runtime/`、`modules/`、`docs/`、`contracts/`（含 `contracts/schemas/` 合同 schema 唯一事实源）、`cmake/`
 - 测试与工具：`tests/`、`scripts/`、`tools/`、`ci/`、`testdata/`、`third_party/`
-- 工程与发布：`engineering/`、`packaging/`、`launch/`、`logs/`（gitignore）、`evidence/`
+- 工程与发布：`engineering/`、`packaging/`（含 `packaging/launch/`）、`logs/`（gitignore）、`evidence/`
 
 **工作域目录（产物落位规则）**：
 - `run/`：一切临时操作、agent 工作区、影子树、日志。CLI 运行产物 `astrocs_run_*.json` 一律落 `run/cli_runs/`；ctest 根目录残留归 `run/Testing_archive/`。`run/*` 全部 gitignore。
@@ -43,7 +43,7 @@
 - `AstroCS.wiki/`：wiki 本地克隆
 - `GaiaDR3/`、`GaiaDR3SP/`：真实数据拉取落点（fatduck 拉取，禁止移动/重命名/删除，路径被拉取与测试脚本引用）
 
-**CI 固定路径（ci/checks.json 引用，不得移动；内容为运行产物，gitignore）**：
+**CI 资源产物路径（ci/checks.json dirty_ignore 引用；运行产物，gitignore，落 `run/resource/`）**：
 - `resource_samples.csv`、`resource_summary.json`、`worker_balance.csv`
 
 **违规处理**：发现根目录散落产物，整理归位到上述目录并在 commit 或 memory.md 中注明来源与去向。
