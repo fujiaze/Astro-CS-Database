@@ -47,6 +47,44 @@ inline void oracle_gnomonic(double ra, double dec, double ra0, double dec0,
     *eta = (c0 * sd - s0 * cd * std::cos(d_ra)) / den * kRadToDeg;
 }
 
+// ---------------------------------------------------------------------------
+// oracle-1b: gnomonic 正算第二推导路径 (WCS-001 增补, 2026-09-09)
+//   独立性: 不共享 oracle-1 的球面三角闭式公式 — 三维单位向量 + 切平面
+//   正交基法 (第三路径 / "第三方语义"参考实现):
+//     r  = (cos δ cos α, cos δ sin α, sin δ)          (天球单位向量, 弧度域)
+//     east  = normalize(ẑ × r0) = (−sin α0, cos α0, 0)
+//     north = r0 × east
+//     切平面交点 p = r / (r·r0)  (gnomonic: 球心过 r 直线交切平面 r·x=1)
+//     ξ_rad = p·east,  η_rad = p·north  → ×kRadToDeg 回度域
+//   与 oracle-1 只共享输入约定与 kDegToRad 常数, 推导路径不同源; 度/弧度
+//   单位错在两路径成对抵消概率≈0 (oracle 初版两处量纲缺陷均逃过自洽、
+//   仅被交叉/对拍捕获的教训, 见 oracle_gnomonic_inv 修正记录)。
+//   用途: units/oracle 组 o1_gnomonic_cross 双路径交叉断言。
+// ---------------------------------------------------------------------------
+inline void oracle_gnomonic_vec(double ra, double dec, double ra0, double dec0,
+                                double* xi, double* eta) {
+    const double a = ra * kDegToRad, d = dec * kDegToRad;
+    const double a0 = ra0 * kDegToRad, d0 = dec0 * kDegToRad;
+    const double rx = std::cos(d) * std::cos(a);
+    const double ry = std::cos(d) * std::sin(a);
+    const double rz = std::sin(d);
+    const double r0x = std::cos(d0) * std::cos(a0);
+    const double r0y = std::cos(d0) * std::sin(a0);
+    const double r0z = std::sin(d0);
+    // east = normalize(ẑ × r0) = (−sin α0, cos α0, 0) (|ẑ × r0| = cos δ0 > 0,
+    // 切点不在极点 — fixture 域保证)
+    const double ex = -r0y / std::cos(d0);
+    const double ey = r0x / std::cos(d0);
+    // north = r0 × east
+    const double nx = r0y * 0.0 - r0z * ey;
+    const double ny = r0z * ex - r0x * 0.0;
+    const double nz = r0x * ey - r0y * ex;
+    const double denom = rx * r0x + ry * r0y + rz * r0z;  // r·r0 = cos c
+    const double px = rx / denom, py = ry / denom, pz = rz / denom;
+    *xi = (px * ex + py * ey) * kRadToDeg;
+    *eta = (px * nx + py * ny + pz * nz) * kRadToDeg;
+}
+
 // 逆变换 (度 xi/eta → 度 ra/dec): 标准 TAN (gnomonic) 逆投影闭式解
 //   输入单位: 度 (与 CD 矩阵 deg/px 域一致)
 //   S = sqrt(1 + xi² + eta²)  (gnomonic 性质 cosc = 1/S, 全弧度域)

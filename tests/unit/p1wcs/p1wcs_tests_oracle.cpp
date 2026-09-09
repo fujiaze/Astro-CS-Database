@@ -21,6 +21,7 @@ using namespace p1wcs;
 namespace {
 
 constexpr unsigned kSeedB = 20260908u;  // FIX-WCS-B 固定 seed
+constexpr unsigned kSeedA = 20260907u;  // FIX-WCS-A 固定 seed (o1_apbp_reverse_oracle)
 
 // 中心 90% 区域判定 (F2 冻结域): |u| ≤ 0.45·w 且 |v| ≤ 0.45·h (Y-up 中心域)
 bool in_center90(const FixWcsB& fx, double ux, double uy) {
@@ -54,6 +55,157 @@ int test_oracle() {
             max_d = std::max(max_d, std::max(dra, std::fabs(dec2 - dec)));
         }
         P1WCS_CHECK(cs, max_d < 1e-12, "o1_gnomonic_roundtrip");
+    }
+
+    // ------------------------------------------------------------------
+    // o1_gnomonic_cross (WCS-001 增补): oracle-1 闭式解 vs oracle-1b 向量
+    // 第二推导路径交叉 (不调用生产实现; 度/弧度单位错在两独立推导路径
+    // 成对抵消概率≈0, 直击本任务量纲目标) + vec 正算 → 闭式逆 roundtrip。
+    // ------------------------------------------------------------------
+    {
+        std::uint64_t st = 555003u;
+        double max_cross = 0.0, max_rt = 0.0;
+        for (int k = 0; k < 512; ++k) {
+            const double ra = 150.0 + (uniform01(st) - 0.5) * 1.0;    // ±0.5°
+            const double dec = 2.0 + (uniform01(st) - 0.5) * 1.0;
+            double xi_c, eta_c, xi_v, eta_v;
+            oracle_gnomonic(ra, dec, 150.0, 2.0, &xi_c, &eta_c);
+            oracle_gnomonic_vec(ra, dec, 150.0, 2.0, &xi_v, &eta_v);
+            max_cross = std::max(max_cross,
+                                 std::max(std::fabs(xi_c - xi_v),
+                                          std::fabs(eta_c - eta_v)));
+            // 跨路径逆: vec 正算 → 闭式解逆 → 回 (ra, dec)
+            double ra2, dec2;
+            oracle_gnomonic_inv(xi_v, eta_v, 150.0, 2.0, &ra2, &dec2);
+            const double dra = std::fabs(ra2 - ra) * std::cos(dec * kDegToRad);
+            max_rt = std::max(max_rt, std::max(dra, std::fabs(dec2 - dec)));
+        }
+        P1WCS_CHECK_NEAR(cs, max_cross, 0.0, 1e-9, "o1_gnomonic_cross");
+        P1WCS_CHECK(cs, max_rt < 1e-10, "o1_gnomonic_cross");
+    }
+
+    // ------------------------------------------------------------------
+    // o1_apbp_reverse_oracle (WCS-001 增补): oracle-6 (oracle_wcs_reverse_
+    // apbp) 独立实现接入断言 — 消除零调用死代码缺口。三重一致:
+    //   (a) oracle-6 固定点迭代 == 消费方一步语义 (wcs_transform.cpp:223-226
+    //       冻结用法 u = u₀ + AP(u₀,v₀), u₀ = CD⁻¹·(ξ,η));
+    //   (b) oracle-6 == fixture 真值像素 (AP 由真值线性场 7×7 网格解析构造,
+    //       含生产 −1 线性归一约定 ipv_wcs.cpp:463-464; 无畸变场 AP 精确,
+    //       偏差=纯数值误差, 不掺被测拟合误差)。
+    //   被测 extract 输出侧的 F2 AP/BP 现状锚 (≤50px) 见下方 F2 段, 域外。
+    // ------------------------------------------------------------------
+    {
+        const FixWcsA fx = fix_wcs_a_linear(kSeedA, 0.0, 0.0);
+        const TruthLinear& tr = fx.truth;
+        const OracleLinear6 o_tr{tr.m00, tr.m01, tr.m10, tr.m11, tr.t0, tr.t1};
+        double cd11, cd12, cd21, cd22;
+        oracle_cd_from_truth(o_tr, &cd11, &cd12, &cd21, &cd22);
+        const double crval1 = tr.ra0, crval2 = tr.dec0;
+        const double crpix1 = fx.width / 2.0 + 0.5, crpix2 = fx.height / 2.0 + 0.5;
+        const double cx = fx.width / 2.0, cy = fx.height / 2.0;
+
+        // AP/BP 期望构造: 7×7 网格 (理想像素 Y-down 相对 crpix 域) →
+        // 畸变坐标 UV = CD⁻¹·(ξ,η) (线性场畸变=0, UV=理想) → 最小二乘 2 阶
+        // 单目基拟合 UV→(u,v) → AP[1,0]−=1 / BP[0,1]−=1 (生产约定)。
+        double AP[36] = {0}, BP[36] = {0};
+        {
+            double M[36] = {0}, bx[6] = {0}, by[6] = {0};
+            double i00, i01, i10, i11;
+            oracle_invert2(cd11, cd12, cd21, cd22, &i00, &i01, &i10, &i11);
+            const int N = 7;
+            for (int gi = 0; gi < N; ++gi) {
+                for (int gj = 0; gj < N; ++gj) {
+                    const double u = -cx + 2.0 * cx * gi / (N - 1);  // Y-up px
+                    const double v = -cy + 2.0 * cy * gj / (N - 1);
+                    const double wx = o_tr.m00 * u + o_tr.m01 * v;   // arcsec
+                    const double wy = o_tr.m10 * u + o_tr.m11 * v;
+                    const double uvx = i00 * (wx / 3600.0) + i01 * (wy / 3600.0);
+                    const double uvy = i10 * (wx / 3600.0) + i11 * (wy / 3600.0);
+                    const double tgt_x = u;   // Y-down 相对 crpix: x_f−crpix = u
+                    const double tgt_y = -v;
+                    const double b[6] = {1.0, uvx, uvy, uvx * uvx, uvx * uvy,
+                                         uvy * uvy};
+                    for (int p = 0; p < 6; ++p) {
+                        for (int q = 0; q < 6; ++q) M[p * 6 + q] += b[p] * b[q];
+                        bx[p] += b[p] * tgt_x;
+                        by[p] += b[p] * tgt_y;
+                    }
+                }
+            }
+            // 6×6 高斯消元 (部分主元)
+            auto solve6 = [](double A[36], double* rhs) {
+                for (int c = 0; c < 6; ++c) {
+                    int piv = c;
+                    for (int r = c + 1; r < 6; ++r)
+                        if (std::fabs(A[r * 6 + c]) > std::fabs(A[piv * 6 + c]))
+                            piv = r;
+                    if (piv != c) {
+                        for (int k = 0; k < 6; ++k)
+                            std::swap(A[c * 6 + k], A[piv * 6 + k]);
+                        std::swap(rhs[c], rhs[piv]);
+                    }
+                    for (int r = c + 1; r < 6; ++r) {
+                        const double f = A[r * 6 + c] / A[c * 6 + c];
+                        for (int k = c; k < 6; ++k) A[r * 6 + k] -= f * A[c * 6 + k];
+                        rhs[r] -= f * rhs[c];
+                    }
+                }
+                for (int r = 5; r >= 0; --r) {
+                    for (int k = r + 1; k < 6; ++k) rhs[r] -= A[r * 6 + k] * rhs[k];
+                    rhs[r] /= A[r * 6 + r];
+                }
+            };
+            double Mx[36], My[36];
+            std::copy(M, M + 36, Mx);
+            std::copy(M, M + 36, My);
+            solve6(Mx, bx);
+            solve6(My, by);
+            const int idx6[6] = {0, 6, 1, 12, 7, 2};  // 00,10,01,20,11,02
+            for (int k = 0; k < 6; ++k) {
+                AP[idx6[k]] = bx[k];
+                BP[idx6[k]] = by[k];
+            }
+            AP[6] -= 1.0;  // 逆向 SIP 线性项减 1 (生产约定)
+            BP[1] -= 1.0;
+        }
+
+        // 三重一致断言 (中心/角点/中距 + fixture 顶点抽样)
+        double max_iter_vs_1s = 0.0, max_iter_vs_truth = 0.0;
+        const double probe[3][2] = {
+            {cx + 0.5, cy + 0.5}, {0.5, 0.5},
+            {cx + 0.25 * fx.width, cy - 0.25 * fx.height}};
+        for (int p = 0; p < 3; ++p) {
+            const double x_f = probe[p][0], y_f = probe[p][1];
+            const double u_up = x_f - 0.5 - cx, v_up = cy - (y_f - 0.5);
+            double ra_t, dec_t;
+            oracle_gnomonic_inv((o_tr.m00 * u_up + o_tr.m01 * v_up) / 3600.0,
+                                (o_tr.m10 * u_up + o_tr.m11 * v_up) / 3600.0,
+                                crval1, crval2, &ra_t, &dec_t);
+            double xo, yo;
+            oracle_wcs_reverse_apbp(cd11, cd12, cd21, cd22, crval1, crval2,
+                                    crpix1, crpix2, AP, BP, 2, ra_t, dec_t,
+                                    &xo, &yo);
+            // 消费方一步语义 (独立求值, 不经 oracle-6 迭代)
+            double xi, eta;
+            oracle_gnomonic(ra_t, dec_t, crval1, crval2, &xi, &eta);
+            double i00, i01, i10, i11;
+            oracle_invert2(cd11, cd12, cd21, cd22, &i00, &i01, &i10, &i11);
+            const double u0 = i00 * xi + i01 * eta, v0 = i10 * xi + i11 * eta;
+            double ax = 0.0, by = 0.0;
+            for (int i = 0; i <= 2; ++i)
+                for (int j = 0; j <= 2 - i; ++j) {
+                    const double uv = std::pow(u0, i) * std::pow(v0, j);
+                    ax += AP[i * 6 + j] * uv;
+                    by += BP[i * 6 + j] * uv;
+                }
+            const double x1 = u0 + ax + crpix1, y1 = v0 + by + crpix2;
+            max_iter_vs_1s = std::max(max_iter_vs_1s,
+                                      std::hypot(xo - x1, yo - y1));
+            max_iter_vs_truth = std::max(max_iter_vs_truth,
+                                         std::hypot(xo - x_f, yo - y_f));
+        }
+        P1WCS_CHECK(cs, max_iter_vs_1s < 1e-6, "o1_apbp_reverse_oracle");
+        P1WCS_CHECK(cs, max_iter_vs_truth < 1e-6, "o1_apbp_reverse_oracle");
     }
 
     // ------------------------------------------------------------------

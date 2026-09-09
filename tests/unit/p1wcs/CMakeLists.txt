@@ -11,7 +11,8 @@
 #   p1wcs/p1wcs_fixtures.hpp      — FIX-WCS-A..E 固定 seed fixture
 #                                   (splitmix64, 不提交大二进制)
 #   p1wcs/p1wcs_oracle.hpp        — 独立 oracle (球面三角闭式解/Cramer/
-#                                   inv(M)·q SIP 期望/固定点逆解; 不调用
+#                                   inv(M)·q SIP 期望/固定点逆解/gnomonic
+#                                   向量第二路径交叉 oracle-1b; 不调用
 #                                   被测函数, 只依赖标准库与被测 API 头)
 #   p1wcs/p1wcs_test_main.hpp     — 执行器框架 (FaultRegistry 双注入点:
 #                                   env ASTROCS_P1WCS_FAULT + argv --fault=)
@@ -19,7 +20,10 @@
 #   p1wcs/p1wcs_tests_properties.cpp — properties 组 (F5 确定性 bitwise +
 #                                   线程 1/2/4 + 结构性质, 1-N worker)
 #   p1wcs/p1wcs_tests_oracle.cpp     — oracle 组 (期望值非被测函数生成;
-#                                   F2 SIP 场对拍 |Δ|≤1e-4 px 冻结)
+#                                   F2 SIP 场对拍 |Δ|≤1e-4 px 冻结; WCS-001
+#                                   增补 gnomonic 双路径交叉 o1_gnomonic_
+#                                   cross 与 oracle-6 AP/BP 逆向独立断言
+#                                   o1_apbp_reverse_oracle)
 #   p1wcs/p1wcs_tests_negative.cpp   — negative 组 (F4 负例 fork 隔离 +
 #                                   DISP-WCS-001 缺陷行为锚)
 #   p1wcs/p1wcs_tests_perf.cpp    — performance 基线 (CI 森严哨兵 parity 4x/
