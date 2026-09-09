@@ -1007,17 +1007,25 @@ add_subdirectory(../../lib/star_detector/tests/p1star p1star)
 # dlsym 探针 (legacy snr_noise_* 七符号全 NULL, 唯一 query 存在)。
 # DLL 路径经 ENVIRONMENT 注入 (生成器表达式, 兼容含空格构建路径)。
 # ----------------------------------------------------------------------------
-#[PENDING-NOISE-IMPL] add_executable(p1_noise_adapter_test p1_noise/adapter_test.cpp
-#[PENDING-NOISE-IMPL]   p1_noise/adapter_entry_impl.cpp)
-#[PENDING-NOISE-IMPL] target_include_directories(p1_noise_adapter_test PRIVATE
-#[PENDING-NOISE-IMPL]   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/snr_estimator/cpp/include
-#[PENDING-NOISE-IMPL]   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/snr_estimator/include
-#[PENDING-NOISE-IMPL]   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-#[PENDING-NOISE-IMPL]   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/snr_estimator/src)
-#[PENDING-NOISE-IMPL] target_link_libraries(p1_noise_adapter_test PRIVATE
-#[PENDING-NOISE-IMPL]   p1noise_under_test ${CMAKE_DL_LIBS})
-#[PENDING-NOISE-IMPL] add_dependencies(p1_noise_adapter_test astrocs_p1_noise)
-#[PENDING-NOISE-IMPL] add_test(NAME p1_noise_adapter COMMAND p1_noise_adapter_test
-#[PENDING-NOISE-IMPL]   ${CMAKE_CURRENT_BINARY_DIR}/run/t_noise_adapter)
-#[PENDING-NOISE-IMPL] set_tests_properties(p1_noise_adapter PROPERTIES
-#[PENDING-NOISE-IMPL]   ENVIRONMENT "ASTROCS_NOISE_DLL_PATH=$<TARGET_FILE:astrocs_p1_noise>")
+add_executable(p1_noise_adapter_test p1_noise/adapter_test.cpp
+  p1_noise/adapter_entry_impl.cpp)
+target_include_directories(p1_noise_adapter_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/snr_estimator/cpp/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/snr_estimator/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/snr_estimator/src)
+target_link_libraries(p1_noise_adapter_test PRIVATE
+  p1noise_under_test ${CMAKE_DL_LIBS})
+add_dependencies(p1_noise_adapter_test astrocs_p1_noise)
+add_test(NAME p1_noise_adapter COMMAND p1_noise_adapter_test
+  ${CMAKE_CURRENT_BINARY_DIR}/run/t_noise_adapter)
+set_tests_properties(p1_noise_adapter PROPERTIES
+  ENVIRONMENT "ASTROCS_NOISE_DLL_PATH=$<TARGET_FILE:astrocs_p1_noise>")
+
+# --- P1-WCS-TEST (TEST-P1-WCS-001): WCS/plate_solve 可复用验证面 -----------
+# 六组 CTest: p1wcs_units / p1wcs_properties / p1wcs_oracle /
+# p1wcs_negative / p1wcs_performance / p1wcs_selfcheck (label: p1wcs)。
+# 被测面: ipv 数学内核 TU 直编 (生产源零改动) + lib/phase1/wcs WcsTan。
+add_subdirectory(p1wcs p1wcs)
+# --- P1-WCS-TEST end --------------------------------------------------------
+
