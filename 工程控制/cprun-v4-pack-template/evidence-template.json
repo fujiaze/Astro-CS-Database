@@ -1,0 +1,17 @@
+{
+  "schema": "cprun/evidence-v1",
+  "run_id": "R__由_worker_prompt_提供__",
+  "node_id": "TASK-001",
+  "attempt": 1,
+  "dispatch_token": "__由_worker_prompt_提供__",
+  "result": "completed",
+  "summary": "一段话结论：做了什么、结果如何",
+  "checks": [
+    { "id": "build", "status": "pass", "evidence": "build/build.log 末尾 20 行已核对" },
+    { "id": "unit-tests", "status": "pass", "evidence": "pytest -q → 12 passed" }
+  ],
+  "artifacts": [
+    { "path": "ci-report.md", "sha256": null }
+  ],
+  "changed_paths": ["src/fix.ts", "tests/fix.test.ts"]
+}

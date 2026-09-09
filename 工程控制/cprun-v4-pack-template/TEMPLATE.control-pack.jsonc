@@ -1,0 +1,55 @@
+// CPRun V4 控制包模板（JSONC 带注释版，实际注册前请去掉注释存为 control-pack.json）
+// 入口固定：包目录/control-pack.json；注册：cp { action: "register", path: "<包目录>" }
+// spec 文件必须存在于包目录内（相对路径，禁止 .. 逃逸）；workspace 相对路径按包目录解析。
+{
+  "schema": "cprun/v4",                      // 固定值
+  "id": "<项目>-<目的>",                      // 稳定标识，[A-Za-z0-9][A-Za-z0-9_.-]*
+  "title": "<≤80 字符的人类可读标题>",
+
+  "workspace": "../my-project",              // 工程工作区；相对路径按控制包目录解析，也可绝对路径
+  "max_parallel": 4,                         // 全局同时运行的 Worker 上限（≥1）
+
+  // 资源组。写同一仓库的任务放 capacity=1 的 repo-write；只读审计/文档/不同平台可并行。
+  "lanes": {
+    "repo-write": { "capacity": 1 },
+    "read-only":  { "capacity": 4 }
+  },
+
+  // 可复用命名门禁。只有 all/any + 四种原子，无 not/无字符串表达式：
+  //   {"task":"ID","state":"passed|failed|finished"}
+  //   {"gate":"G","state":"open|closed"}
+  //   {"evidence":"TASK.checkId","state":"valid|invalid|present"}   （evidence:"TASK" 不带 .checkId 指整份报告）
+  //   {"external":"name","state":"<externals 里声明的枚举值>"}
+  "gates": {
+    "SOURCE-READY": { "all": [{ "task": "AUDIT-001", "state": "passed" }] }
+  },
+
+  // 外部条件（可选）。有限枚举，initial 为初始状态；用 review action 的 payload.externals 翻转。
+  "externals": {
+    "ci/windows": { "states": ["success", "failure", "pending"], "initial": "pending" }
+  },
+
+  // ⚠ 环检测：任务→gate→任务 的引用构成有向图，注册时发现环会直接拒绝
+  //   （例：CI-TEST requires SOURCE-READY 且 SOURCE-READY 引用 CI-TEST = 环）。
+  //   门禁只引用"已发生"的结论；被门禁控制的节点不要再反向进入同一 gate 的条件。
+
+  "tasks": [
+    {
+      "id": "TASK-001",                      // 图内唯一，不与 gate 同名
+      "title": "<≤80 字符短标题，建议≤40 汉字>",   // 注入前台的只有 ID+title
+      "spec": "tasks/TASK-001.md",           // 详细任务正文，只注入对应 Worker
+      "lane": "repo-write",                  // 必须是 lanes 里声明的
+      "priority": 100,                       // 同批竞争容量时数值高者先被接纳
+      "depends_on": ["TASK-000"],            // 可选；硬依赖，列出的任务必须全部 passed
+      "requires": ["SOURCE-READY"],          // 可选；必须全部 open 的命名门禁
+      "review": "foreground",                // foreground=前台简审 | machine=证据有效即自动 PASS
+      "retry": { "max_attempts": 2, "on_exhausted": "failed" },  // on_exhausted: failed|hold(hold 停在 retry_wait 等人工)
+      "timeout_sec": 1800,                   // 可选；Worker 单次运行超时（秒），写进 Worker prompt
+      "write_scope": ["src/", "tests/"],     // 可选；Worker 允许修改的路径（相对 workspace），默认整个 workspace
+      "evidence": {                          // 可选；必须提交的结构化证据
+        "checks": ["build", "unit-tests"],   //   每个 id 在报告 checks 里必须 status=pass
+        "artifacts": ["build/app"]           //   必须存在的产物路径（相对 workspace），声明 sha256 则校验哈希
+      }
+    }
+  ]
+}
