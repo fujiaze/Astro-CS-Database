@@ -42,7 +42,7 @@ class TestVersionContract(unittest.TestCase):
     def test_01_base_format_and_report_schema(self):
         base = gen_version.read_base_version()
         self.assertRegex(base, r"^\d+\.\d+\.\d+-alpha\.\d+$")
-        schema = json.load(open(os.path.join(REPO, "schemas", "version.schema.json"), encoding="utf-8"))
+        schema = json.load(open(os.path.join(REPO, "contracts", "schemas", "version.schema.json"), encoding="utf-8"))
         rep = gen_version.build_report(commit="0123456789ab" * 3, dirty=False)
         self.assertIsNone(validate_schema(rep, schema), "gen_version 输出必须符合 version.schema.json")
         # 单源语义修正 (V8-CI-012 R6.5): 旧断言硬编码 0.10.0-alpha.2 过期字面量，

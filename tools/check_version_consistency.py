@@ -9,7 +9,7 @@ import os, re, subprocess, sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_RE = re.compile(r"(?<![\w.])(\d+\.\d+\.\d+)(?![\d.])")  # 排除 127.0.0.1 等 IP/更长子串
 PRERELEASE_BAD = re.compile(r"\b\d+\.\d+\.\d+-(stable|rc|beta)\b", re.IGNORECASE)
-SCAN_ROOTS = ["docs", "schemas", "launch", "tests"]
+SCAN_ROOTS = ["docs", "contracts/schemas", "tests"]
 # CHANGELOG.md 是 history 命名空间驻留点 (GOV-003 §2/§4, 与 ci/check_version.py
 # [5] 口径一致): 条目记录"当时的版本号"属天然历史事实, 不进本检查。
 SCAN_FILES = ["build.sh", "toolchain.ps1", "README.md", "VERSION",
