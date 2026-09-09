@@ -2,7 +2,7 @@
  "schema_version": "v8.1",
  "round": "V8.1_EXISTING_WORKSPACE_CI",
  "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
- "updated_utc": "2026-09-09T11:12:44Z",
+ "updated_utc": "2026-09-09T11:23:00Z",
  "main_sha": "80f2727d",
  "reconciled_by": {
   "task_id": "MAIN23-W3-RECONCILE",
@@ -45,9 +45,9 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 104,
+  "CLOSED": 105,
   "READY": 0,
-  "NOT_STARTED": 85,
+  "NOT_STARTED": 84,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
@@ -1552,15 +1552,15 @@
   },
   "P1-WCS-TEST": {
    "owner": "SA-P1-W16",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "30296a9f",
+   "evidence_path": "run/local/agent_p1wcs_test/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-test",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "review_claim": "tests_complete",
+   "current_evidence": "前台主树复跑ctest p1wcs_ 6/6三轮全绿+影子loop2·3+asan+ubsan 5组零报告;6独立推导器全不经被测函数;selfcheck四阶段fork+execve必败;ipv_select windows链Linux不可编已限定数学内核可达面",
+   "note": "重大发现登记:DISP-WCS-007候选(deg未转rad成对抵消,第三方交叉3.2°);DISP-WCS-008候选(AP/BP逆42px对冻结1e-4px不可达);iter_trans_solve空对UB;均锚锁现状移交IMPL;前任FIX-WCS-D构造不成立已改"
   },
   "P1-WCS-IMPL": {
    "owner": "SA-P1-W16",

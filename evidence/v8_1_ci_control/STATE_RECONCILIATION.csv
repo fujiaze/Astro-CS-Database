@@ -123,7 +123,7 @@ P1-PSF-TEST,module-test,tests_complete",ctest p1psf_ 7/7 3轮+asan 6/6+故障注
 P1-PSF-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-PSF-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-WCS-DOC,module-doc,NOT_STARTED,"commit:3cbd5fd7 traceability 29行0错 warns=4基线 + pytest 4P + contract_graph 53 + doc_index PASS + selfcheck 77 PASS(唯一FAIL为并行IO修复白名单过期,非本任务域)",CLOSED,fg_verified_commit,3cbd5fd7,lib/plate_solve/; docs/algorithms/PLATESOLVE.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,"module-doc 冻结; SCI-WCS-001=共享 ASTROMETRY.md 零改动; DISP-WCS-001..006 (核心=001 CD退化静默坍缩,失败-置信度冻结 success=0); astrocs_p1_wcs.dll/CMake 集成归 P1-WCS-IMPL; descriptor 对齐归 P1-WCS-INT; 证据归 P1-WCS-TEST"
-P1-WCS-TEST,module-test,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
+P1-WCS-TEST,module-test,tests_complete,"ctest p1wcs_ 6/6主树3轮+asan 5组零报告+6独立推导器+selfcheck四阶段必败",CLOSED,fg_machine_verified,30296a9f,run/local/agent_p1wcs_test/,"DISP-WCS-007/008候选+iter_trans_solve空对UB登记移交IMPL"
 P1-WCS-IMPL,module-impl,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-WCS-INT,module-integration,NOT_STARTED,none,NOT_STARTED,not_dispatched_no_evidence,,,
 P1-PHOT-DOC,module-doc,NOT_STARTED,commit:87bb7b7f traceability 27行0错 + pytest 4P + contract_graph 44 + doc_index PASS + selfcheck 51项 ALL_PASS,CLOSED,fg_verified_commit,87bb7b7f,lib/photometric_calib/; docs/algorithms/PHOTOMETRIC_FIT.md; docs/contracts/DATA_SEMANTICS.md; docs/contracts/PUBLIC_API.md; docs/traceability/TRACEABILITY_MATRIX.json,module-doc 冻结; 缺陷清单 DISP-PHOT-001..009 归 P1-PHOT-IMPL/INT; SCI-PHOT-001 未动; descriptor 占位 ID 对齐归 P1-PHOT-INT; v19r3_traceability.py 写副作用已恢复并提示
