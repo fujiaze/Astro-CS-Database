@@ -3,8 +3,8 @@ siril-1.4.3/
 GaiaDR3/
 GaiaDR3SP/
 
-# BASS DR3 备用测试数据集（索引/工具/压缩产物入仓库；原始大数据与下载目录不入仓库）
-BASS DR3/data/
+# BASS DR3 备用测试数据集（用户数据区，原地保留不入仓库——2026-09-09 收紧：索引/坐标/压缩产物全部 gitignore）
+BASS DR3/
 BASS DR3/logs/
 BASS DR3/index.csv
 BASS DR3/coords.csv
@@ -123,3 +123,5 @@ astrocs_run_*.json
 resource_samples.csv
 resource_summary.json
 worker_balance.csv
+
+/dist/audit/
