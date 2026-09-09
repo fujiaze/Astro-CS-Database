@@ -547,6 +547,8 @@ target_include_directories(p1_session_manifest_test PRIVATE
 target_link_libraries(p1_session_manifest_test PRIVATE astrocs_phase1_session)
 add_test(NAME p1_session_manifest COMMAND p1_session_manifest_test)
 
+# ----------------------------------------------------------------------------
+
 add_executable(p1_resource_test p1_resource_test.cpp)
 target_include_directories(p1_resource_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include
@@ -939,4 +941,18 @@ add_dependencies(cosmetic_integration_test astrocs_p1_cosmetic)
 add_test(NAME cosmetic_integration COMMAND cosmetic_integration_test)
 set_tests_properties(cosmetic_integration PROPERTIES
   ENVIRONMENT "ASTROSCOS_DLL_PATH=$<TARGET_FILE:astrocs_p1_cosmetic>;ASTROSCOS_INT_TRACE_OUT=${COS_INT_TRACE_OUT}")
+
+# ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# P1-PSF-TEST (TEST-P1-PSF-001, 控制包 queue 45, lock-P1-PSF) —
+# lib/dynamic_psf 可复用验证面。结构与注册详见
+# lib/dynamic_psf/tests/p1psf/CMakeLists.txt (FIX-PSF-A..E fixture /
+# 独立 oracle 旋转主轴投影 / units·properties·oracle·negative·boundary·
+# performance·selfcheck 七注册); 合同锚 TEST-PSF-DESIGN-001
+# (STAR_PSF_ALGORITHMS.md §11, P1-PSF-DOC 冻结)。
+# 注意: p1psf_selfcheck_test 与 p1psf_tests 共享 core TU; 被测面为生产
+# dpsf_* C API 七导出 (dpsf_psf.cpp + dpsf_log.cpp 独立编入测试目标,
+# 根构建无 dynamic_psf 生产 target, 生产源零改动 — 对齐 p1star 先例)。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/dynamic_psf/tests/p1psf p1psf)
 
