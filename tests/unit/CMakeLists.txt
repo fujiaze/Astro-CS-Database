@@ -437,6 +437,20 @@ add_subdirectory(../../lib/cosmetic/tests/p1cos p1cos)
 # ----------------------------------------------------------------------------
 add_subdirectory(../../lib/healpix_db/healpix_drizzle/tests/p1drz p1drz)
 
+# ----------------------------------------------------------------------------
+# P1-NOISE-TEST (TEST-P1-NOISE-001, 控制包 queue 41, lock-P1-NOISE) —
+# lib/snr_estimator (astrocs.p1.noise-snr) 可复用验证面。结构与注册详见
+# lib/snr_estimator/tests/p1noise/CMakeLists.txt (FIX-NOISE-A..G fixture /
+# 独立 oracle / negative / performance / 故障注入自检); 合同锚
+# NOISE_ESTIMATION.md §13.4 TEST-NOISE-DESIGN-001 (P1-NOISE-DOC 冻结)。
+# 注意: p1noise_selfcheck_test 与 p1noise_tests 共享 p1noise_tests_core.cpp
+# TU; 被测面为 lib/snr_estimator/cpp/src/noise_model.cpp 现状生产实现
+# (根构建无 snr_estimator 目标, 测试面独立编译 astrocs_p1_noise_prod,
+# 生产源零改动; lib/snr_estimator/ 为 P1-NOISE 迁移目标目录)。
+# 本块由 P1-NOISE-TEST agent 单独追加 (多 agent 并发追加区, 只增不改)。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/snr_estimator/tests/p1noise p1noise)
+
 add_executable(p1_stars_test p1_stars_test.cpp)
 target_include_directories(p1_stars_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1/stars)
@@ -476,6 +490,7 @@ target_include_directories(p1_hips_writer_test PRIVATE
 target_link_libraries(p1_hips_writer_test PRIVATE astrocs_hips astrocs_aio)
 add_test(NAME p1_hips_writer COMMAND p1_hips_writer_test)
 
+# ----------------------------------------------------------------------------
 add_executable(p1_ir_facade_test p1_ir_facade_test.cpp)
 target_include_directories(p1_ir_facade_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/calibration/include)
@@ -885,3 +900,4 @@ add_dependencies(cosmetic_integration_test astrocs_p1_cosmetic)
 add_test(NAME cosmetic_integration COMMAND cosmetic_integration_test)
 set_tests_properties(cosmetic_integration PROPERTIES
   ENVIRONMENT "ASTROSCOS_DLL_PATH=$<TARGET_FILE:astrocs_p1_cosmetic>;ASTROSCOS_INT_TRACE_OUT=${COS_INT_TRACE_OUT}")
+
