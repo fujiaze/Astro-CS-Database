@@ -33,13 +33,19 @@ healpix_interp4、流式 FITS 接入）未完成。
 
 ## 3. 当前进度（Gate 与波次口径）
 
-- 本控制包（ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7）W0/W1 阶段；
-  GOV-001..004 文档/治理任务已集成；合同面任务（ABI/DATA/RT/LOG/ARC）已集成；
-  宿主构建/IO（BLD-001/002、IO-001）已集成。
-- 尚未：模块 DLL 迁移（W3）、旧路由删除（W4，含 run --phases 遗留）、
-  Linux 验证（W5）、Windows 正式验证（W6）、文档收敛（W7）、独立终审（W8）。
-- 任务状态唯一源在控制包运行账本（工作根 TASK_LEDGER.csv）；Git 主历史只含
-  前台集成提交（`git log --oneline main`）。
+- 当前唯一 ACTIVE 控制包 = **ASTROCS-CONSTITUTION-ALIGNMENT-V1**
+  （`工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/`，基线 789c5b6c）；
+  其 GOV-001 已完成（宪章 FROZEN，ASTROCS-CONSTITUTION-001，四项负责人裁决 §18）。
+- 旧控制包线均已归档（V7 = ARCHIVED_DISARMED 于 42/140；V6.1/V8.1 =
+  ARCHIVED_SUPERSEDED；V1.3–V6.1 已入 `engineering/control/archive/`）：
+  活动状态唯一登记源 = `工程控制/ACTIVITY_STATE.md`（GOV-002 建立）。
+  旧 V7 线的 W3/W4（模块 DLL 迁移、旧路由删除）、Linux/Windows 验证等
+  波次目标未完成，已并入当前包任务图与开放问题（memory.md §5），不得视为
+  旧包延续执行。
+- 任务状态唯一源在当前活动控制包运行账本
+  （`工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/TASK_LEDGER.csv`，
+  cprun run Rmtucy2cqced995）；Git 主历史只含前台集成提交
+  （`git log --oneline main`）。旧 V7 时代的工作根 TASK_LEDGER.csv 已不存在。
 
 ## 4. 组件状态（统一口径，逐项 PASS/FAIL/NOT_VERIFIED）
 
