@@ -62,7 +62,8 @@ static const char* const kP1wcsFaultNames[] = {
     "n1_collinear_success",   // negative: 共线退化 success=0 (DISP-WCS-001)
     "n1_unmatched_offset",    // negative: 无对应场 success=0
     "n1_nan_input",           // negative: NaN/Inf 输入不崩
-    "n1_zero_pairs_anchor",   // negative: 空 initial_pairs 缺陷锚 (现状 SIGSEGV)
+    "n1_zero_pairs_anchor",   // negative: 空对确定性路径锚 (WCS-002 翻锚:
+                              //   三空对组合直接断言零 UB + 确定 success=0)
     "n1_wcs_tan_degenerate",  // negative: WcsTan det 退化坍缩行为锚
     "n1_wcs_tan_unit_anchor", // negative: WcsTan ξ/η 单位缺陷行为锚 (新发现)
     "n1_extract_zero_trans",  // negative: extract_wcs_sip 全零 trans 行为锚

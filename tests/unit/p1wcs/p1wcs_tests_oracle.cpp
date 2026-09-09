@@ -346,12 +346,18 @@ int test_oracle() {
 
         // AP/BP 逆向一致性 (被测 extract 输出, 消费方一步语义
         // wcs_transform.cpp:223-226 冻结用法: u = u₀ + AP(u₀,v₀),
-        // u₀ = CD⁻¹·(ξ,η))。**现状精度锚 (P1-WCS-TEST 2026-09-09 登记)**:
-        // F2 冻结容差 1e-4 px 对现状 AP 网格拟合**不可达** — 实测中心 90%
-        // 域最大误差 ~42 px (AP[12]≈−A[12] 相对差 4.6%, AP[0]=−1.63 px
-        // 常数项漂移; 7×7 网格二阶拟合精度不足, DISP-WCS-004 相邻新登记,
-        // 建议 DISP-WCS-008)。本锚锁现状量级 ≤50 px; P1-WCS-IMPL 整改
-        // (网格加密/阶数提升/迭代逆) 后翻转断言为冻结值 <1e-4 px 并登记。
+        // u₀ = CD⁻¹·(ξ,η))。**精度锚 (P1-WCS-TEST 2026-09-09 登记, WCS-002
+        // 2026-09-09 整改后更新)**: F2 冻结容差 1e-4 px 对 AP/BP 逆多项式
+        // (SIPCoeffs i*6+j 布局) **数学不可达** — WCS-002 已落地整改 (网格
+        // 加密 7×7→41×41 + 拟合阶 trans.order→布局上限 5 + 各向归一化,
+        // ipv_wcs.cpp 5.3 段), 一步语义 roundtrip 实测 ~42 px → 7.64 px
+        // (center90 密网格, 与独立 numpy 最优投影一致) / 10.88 px (星点
+        // 采样, 含 iter_trans 拟合误差放大)。不可达根因 (数值证据,
+        // run/tmp_wcs002 探针): 冻结 F2 fixture 边缘畸变 ~117px, 逆映射
+        // 最近奇点决定收敛率 ~0.73 — 拟合阶 5→15 仅 7.64→0.26 px, 畸变
+        // 量级 ×0.1 时 5 阶即可达 9.1e-5 px < 1e-4。冻结 1e-4 px 达成需
+        // 负责人裁决 (fixture 畸变量级 / AP/BP 布局与消费方迭代语义 /
+        // 冻结门复核), finding 已登记; 本锚保持 ≤50 px 锁行为漂移。
         double max_rt = 0.0;
         const double cx2 = fx.width / 2.0, cy2 = fx.height / 2.0;
         double i00, i01, i10, i11;
@@ -381,7 +387,7 @@ int test_oracle() {
                               std::hypot(u0 + ax - (x_f - w.crpix[0]),
                                          v0 + by - (y_f - w.crpix[1])));
         }
-        P1WCS_CHECK(cs, max_rt < 50.0, "o1_f2_apbp_roundtrip");  // 现状锚 (冻结 1e-4 px 归 IMPL)
+        P1WCS_CHECK(cs, max_rt < 50.0, "o1_f2_apbp_roundtrip");  // 精度锚 (WCS-002 整改后 ~7.6px; 冻结 1e-4 px 不可达 finding 归负责人)
 
         // 全链对拍: 被测完整参数化 (cd+crval+crpix+A/B) 经 oracle 前向 vs
         // 真值 ra/dec (期望值=fixture 真值, 非被测生成)
