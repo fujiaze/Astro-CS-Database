@@ -12,6 +12,7 @@
 // dpsf_free_results)。负面/边界参数均经 2026-09-09 probe 实证 (fixture 头
 // 注释), 非臆测阈值。
 // ============================================================================
+#include <climits>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -554,6 +555,7 @@ int test_negative() {
     CheckState cs;
     const char* F_NEG = "negative_matrix";
     const char* F_NAN = "nan_semantics";
+    const char* F_BB = "batch_boundary";  // PSF-001: w/h/乘积上界确定性拒绝
 
     // N1: 常数图 (A0≤0) → INVALID_PARAMS(2), 全字段 memset 0 (单星 + batch_d)
     {
@@ -627,11 +629,13 @@ int test_negative() {
         if (rs) dpsf_free_results(rs);
     }
 
-    // N4: 参数校验矩阵 → -1 且不触碰输出 (源 :738-744 前置校验)
+    // N4: 参数校验矩阵 → -1 且不触碰输出 (源 dpsf_fit_batch 前置校验)
     {
         const FixPsfA fx = fix_psf_a();
         const DPSFFitParams p = default_params();
         double cx = 20.0, cy = 20.0;
+        std::vector<double> det(6, 0.0);
+        det[0] = 20.0; det[1] = 20.0;
         DPSFFitResult* rs = (DPSFFitResult*)0x1;
         P1PSF_CHECK(cs, dpsf_fit_batch(nullptr, fx.w, fx.h, &cx, &cy, 1, &p, &rs) == -1, F_NEG);
         P1PSF_CHECK(cs, dpsf_fit_batch(fx.u16.data(), fx.w, fx.h, nullptr, &cy, 1, &p, &rs) == -1, F_NEG);
@@ -639,42 +643,93 @@ int test_negative() {
         P1PSF_CHECK(cs, dpsf_fit_batch(fx.u16.data(), fx.w, fx.h, &cx, &cy, -5, &p, &rs) == -1, F_NEG);
         P1PSF_CHECK(cs, dpsf_fit_batch(fx.u16.data(), fx.w, fx.h, &cx, &cy, 1, nullptr, &rs) == -1, F_NEG);
         P1PSF_CHECK(cs, rs == (DPSFFitResult*)0x1, F_NAN);  // sentinel 未被触碰
-        // N4b: 批接口 w/h≤0 — 现状缺陷 (DISP-PSF-007 候选, 测试注释登记):
-        // dpsf_fit_batch 前置校验 (源 :482 段) 仅覆盖指针与 count, 无 w/h≤0
-        // 检查 — w=0 走 n_pixels=0/data()=nullptr 间接拒绝; h<0 触发
-        // (size_t)w*h 下溢 → std::vector length_error → abort。单进程内
-        // 无法断言崩溃语义, 以 fork 子进程隔离 (对齐 selfcheck argv 子进程
-        // 模式): 断言该输入绝不静默产出有效结果 (优雅 -1 或异常终止均视为
-        // 拒绝; 返回 0 即测试失败)。
-        for (int bad_h : {0, -3}) {
-            const pid_t pid = fork();
-            if (pid == 0) {
-                // 子进程: 关闭 stdout 噪声后触发现状行为
-                std::fclose(stdout);
-                DPSFFitResult* rb = (DPSFFitResult*)0x1;
-                const int rc = dpsf_fit_batch(fx.u16.data(), fx.w, bad_h,
-                                              &cx, &cy, 1, &p, &rb);
-                _exit(rc == -1 ? 100 : 101);  // 100=拒绝, 101=静默接受
-            }
-            int status = 0;
-            waitpid(pid, &status, 0);
-            const int child_rc = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
-            P1PSF_CHECK_MSG(cs, child_rc != 101, F_NEG,
-                            "N4b: batch h=%d 被静默接受 (child_rc=%d, 期望拒绝)",
-                            bad_h, child_rc);
+        // N4b: 批接口 w/h 确定性拒绝 (PSF-001; 原 DISP-PSF-007 候选测试锚翻转:
+        // 2026-09-10 前 dpsf_fit_batch/batch_f/batch_d 前置校验仅覆盖指针与
+        // count, 无 w/h 检查 — h∈{0,-1,-3} 伪成功 rc=0 (每星 INVALID_PARAMS,
+        // probe 实证); batch h=-1 触发 (size_t)w*h 下溢 → length_error →
+        // SIGABRT; h=INT_MIN 触发 y1-y0 int 下溢回绕为正 → 巨量 patch 分配 →
+        // bad_alloc → SIGABRT。修复后 5 批入口 w/h≤0 → 确定 rc=-1 且不触碰
+        // 输出 sentinel)。
+        for (int bad : {0, -1, INT_MIN}) {
+            rs = (DPSFFitResult*)0x1;
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch(fx.u16.data(), bad, fx.h, &cx, &cy, 1, &p, &rs) == -1
+                                && rs == (DPSFFitResult*)0x1, F_BB,
+                            "N4b: batch w=%d (期望 -1 + sentinel 不变)", bad);
+            rs = (DPSFFitResult*)0x1;
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch(fx.u16.data(), fx.w, bad, &cx, &cy, 1, &p, &rs) == -1
+                                && rs == (DPSFFitResult*)0x1, F_BB,
+                            "N4b: batch h=%d (期望 -1 + sentinel 不变)", bad);
+            rs = (DPSFFitResult*)0x1;
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f(fx.f32.data(), bad, fx.h, &cx, &cy, 1, &p, &rs) == -1
+                                && rs == (DPSFFitResult*)0x1, F_BB,
+                            "N4b: batch_f w=%d (期望 -1 + sentinel 不变)", bad);
+            rs = (DPSFFitResult*)0x1;
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f(fx.f32.data(), fx.w, bad, &cx, &cy, 1, &p, &rs) == -1
+                                && rs == (DPSFFitResult*)0x1, F_BB,
+                            "N4b: batch_f h=%d (期望 -1 + sentinel 不变)", bad);
+            rs = (DPSFFitResult*)0x1;
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch_d(fx.f64.data(), bad, fx.h, &cx, &cy, 1, &p, &rs) == -1
+                                && rs == (DPSFFitResult*)0x1, F_BB,
+                            "N4b: batch_d w=%d (期望 -1 + sentinel 不变)", bad);
+            rs = (DPSFFitResult*)0x1;
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch_d(fx.f64.data(), fx.w, bad, &cx, &cy, 1, &p, &rs) == -1
+                                && rs == (DPSFFitResult*)0x1, F_BB,
+                            "N4b: batch_d h=%d (期望 -1 + sentinel 不变)", bad);
+            // [N,9] 输出路径: out_psf_params/n_valid sentinel 同步不受触碰
+            std::vector<double> out9(9, -7.0);
+            int nv = -5;
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f32(fx.f32.data(), bad, fx.h, det.data(), 1, &p,
+                                                    out9.data(), &nv) == -1
+                                && nv == -5 && out9[0] == -7.0, F_BB,
+                            "N4b: batch_f32 w=%d (期望 -1 + out/nv sentinel)", bad);
+            nv = -5; out9.assign(9, -7.0);
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f32(fx.f32.data(), fx.w, bad, det.data(), 1, &p,
+                                                    out9.data(), &nv) == -1
+                                && nv == -5 && out9[0] == -7.0, F_BB,
+                            "N4b: batch_f32 h=%d (期望 -1 + out/nv sentinel)", bad);
+            nv = -5; out9.assign(9, -7.0);
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f64(fx.f64.data(), bad, fx.h, det.data(), 1, &p,
+                                                    out9.data(), &nv) == -1
+                                && nv == -5 && out9[0] == -7.0, F_BB,
+                            "N4b: batch_f64 w=%d (期望 -1 + out/nv sentinel)", bad);
+            nv = -5; out9.assign(9, -7.0);
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f64(fx.f64.data(), fx.w, bad, det.data(), 1, &p,
+                                                    out9.data(), &nv) == -1
+                                && nv == -5 && out9[0] == -7.0, F_BB,
+                            "N4b: batch_f64 h=%d (期望 -1 + out/nv sentinel)", bad);
+        }
+        // N4c: 乘法溢出/寻址上界 — w*h > INT_MAX (逐像素 int 索引 y*width+x
+        // 不可寻址域) → 稳定 -1, 任何入口零整图分配零读取 (probe: batch
+        // uint16 w=2^30,h=4 现状 16GB 副本 → bad_alloc → SIGABRT)。
+        rs = (DPSFFitResult*)0x1;
+        P1PSF_CHECK_MSG(cs, dpsf_fit_batch(fx.u16.data(), 1 << 30, 4, &cx, &cy, 1, &p, &rs) == -1
+                            && rs == (DPSFFitResult*)0x1, F_BB, "N4c: batch w*h>INT_MAX");
+        rs = (DPSFFitResult*)0x1;
+        P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f(fx.f32.data(), 1 << 30, 4, &cx, &cy, 1, &p, &rs) == -1,
+                        F_BB, "N4c: batch_f w*h>INT_MAX");
+        rs = (DPSFFitResult*)0x1;
+        P1PSF_CHECK_MSG(cs, dpsf_fit_batch_d(fx.f64.data(), 1 << 30, 4, &cx, &cy, 1, &p, &rs) == -1,
+                        F_BB, "N4c: batch_d w*h>INT_MAX");
+        {
+            std::vector<double> out9(9, -7.0);
+            int nv = -5;
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f32(fx.f32.data(), 1 << 30, 4, det.data(), 1, &p,
+                                                    out9.data(), &nv) == -1, F_BB,
+                            "N4c: batch_f32 w*h>INT_MAX");
+            P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f64(fx.f64.data(), 1 << 30, 4, det.data(), 1, &p,
+                                                    out9.data(), &nv) == -1, F_BB,
+                            "N4c: batch_f64 w*h>INT_MAX");
         }
         DPSFFitResult single{};
         // 单星 dpsf_fit 参数校验返回错误码 2 (源 :431-434 !image/!params/
         // !result/w<=0/h<=0 → DPSF_FIT_INVALID_PARAMS, probe4 实证), 非 -1;
-        // 批接口才返回 -1 (源 :482 段)
+        // 批接口才返回 -1 (README §2/§6)
         P1PSF_CHECK(cs, dpsf_fit(nullptr, fx.w, fx.h, cx, cy, &p, &single) == DPSF_FIT_INVALID_PARAMS, F_NEG);
         P1PSF_CHECK(cs, dpsf_fit(fx.u16.data(), 0, fx.h, cx, cy, &p, &single) == DPSF_FIT_INVALID_PARAMS, F_NEG);
         P1PSF_CHECK(cs, dpsf_fit(fx.u16.data(), fx.w, fx.h, cx, cy, nullptr, &single) == DPSF_FIT_INVALID_PARAMS, F_NEG);
         // batch_f64 [N,9]: n≤0 → -1 + 输出数组/nv sentinel 不变
         std::vector<double> out9(9, -7.0);
         int nv = -5;
-        std::vector<double> det(6, 0.0);
-        det[0] = 20.0; det[1] = 20.0;
         P1PSF_CHECK(cs, dpsf_fit_batch_f64(fx.f64.data(), fx.w, fx.h, det.data(), 0, &p, out9.data(), &nv) == -1, F_NEG);
         P1PSF_CHECK(cs, nv == -5 && out9[0] == -7.0, F_NAN);
         P1PSF_CHECK(cs, dpsf_fit_batch_f64(nullptr, fx.w, fx.h, det.data(), 1, &p, out9.data(), &nv) == -1, F_NEG);

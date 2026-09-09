@@ -1,4 +1,6 @@
-# AstroCS phase1 star-psf module — 元数据 (P1-PSF-DOC 冻结, 2026-09-07)
+# AstroCS phase1 star-psf module — 元数据 (P1-PSF-DOC 冻结, 2026-09-07;
+# PSF-001 r2 2026-09-10: 批 ABI 尺寸边界 dpsf_batch_dims_check 落码后行号锚
+# 全量复测刷新 + notes 增补 PSF-001 语义, 科学公式/容差/状态码语义零改动)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/dynamic_psf/src/dpsf_psf.cpp 的
 # moffat4_fit_tmpl/lm_solve/compute_trimmed_mad/高斯采样核 + C API dpsf_fit/
 # dpsf_fit_batch/dpsf_fit_batch_f/dpsf_fit_batch_f32/dpsf_fit_batch_d/
@@ -21,8 +23,8 @@
 # （根 CMakeLists.txt 无 dynamic_psf 目标）——CMake 集成与 dll 重命名归
 # P1-PSF-IMPL。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
-# 现状实现为 OpenMP parallel for schedule(dynamic) 4 处（dpsf_psf.cpp:528,635,
-# 738,866，reduction(+:success_count) 仅计数，逐星输出按索引写入互不共享可变
+# 现状实现为 OpenMP parallel for schedule(dynamic) 4 处（dpsf_psf.cpp:593,718,
+# 842,986，reduction(+:success_count) 仅计数，逐星输出按索引写入互不共享可变
 # 状态，逐星独立拟合结果确定），无取消检查点，ThreadLease 接线为迁移整改点
 # （见 docs/contracts/PUBLIC_API.md API-PSF-001 与
 # docs/algorithms/STAR_PSF_ALGORITHMS.md §11.3 DISP-PSF-001..006）。
@@ -90,6 +92,8 @@ source_symbols:
   - dpsf_fit_batch_f64
   - dpsf_fit_batch_d
   - dpsf_free_results
+  - dpsf_batch_dims_check
+  - fit_batch_float_image
   - moffat4_fit_tmpl
   - lm_solve
 test_ids:
@@ -116,29 +120,38 @@ scientific_change: false
 notes: >-
   DISP-PSF-001..006 全部登记（STAR_PSF_ALGORITHMS §11.3，登记不改码）：
   001 参数向量序 B,A,x0,y0,sx,sy,theta 与 MOFFAT4_FWHM_FACTOR=1.230310 常数依赖；
-  002 lm_solve 前向差分有限导数（dpsf_psf.cpp:120 相对步长 1e-6/绝对 1e-8）与
-  步后硬钳位（:175-177 sx/sy>=0.3、A>=0）破坏二阶收敛路径；
+  002 lm_solve 前向差分有限导数（dpsf_psf.cpp:121 相对步长 1e-6/绝对 1e-8）与
+  步后硬钳位（:176-178 sx/sy>=0.3、A>=0）破坏二阶收敛路径；
   003 DPSFFitParams.maxIter/tolerance 死参数（批 API 仅 fitRadius 参与裁窗，
-  LM 容差/迭代硬编码 1e-8/200，:320-321）；
-  004 无取消检查点（OpenMP dynamic 4 处 :528,635,738,866）；
+  LM 容差/迭代硬编码 1e-8/200，:352-353）；
+  004 无取消检查点（OpenMP dynamic 4 处 :593,718,842,986）；
   005 无参数协方差/不确定性输出（科学专项 covariance 为 P1-PSF-IMPL 整改项）；
   006 批 f32/f64 路径逐星退败静默（仅 out_n_valid 汇总，per-star 状态不出批）。
   整改归 P1-PSF-IMPL/INT。matrix 行 depends_on_int=P1-STAR-INT。
+  PSF-001 批 ABI 尺寸边界（2026-09-10）：5 批入口（dpsf_fit_batch/batch_f/
+  batch_d/batch_f32/batch_f64）统一 dpsf_batch_dims_check（:514-527）——
+  w/h<=0（0/-1/INT_MIN）确定性拒绝 + w*h>INT_MAX int 索引寻址上界，均整体
+  -1 零输出触碰；uint16 入口分配失败 try/catch 屏障（bad_alloc/length_error
+  -> -1 不外抛跨 C ABI，修复前 h<0 触发 (size_t)w*h 下溢 -> length_error ->
+  SIGABRT，即 DISP-PSF-007 候选）；逐星 patch 分配失败星级隔离为
+  INVALID_PARAMS/NaN 占位；f32/f64 NaN 初始化 N*9 以 int64 计（入口
+  n>INT_MAX/9 拒绝）。负例锚 tests/p1psf negative 组 N4b/N4c（注入名
+  batch_boundary）。
   拟合失败语义（P1-PSF-DOC 冻结，STAR_PSF_ALGORITHMS §11.2）：DPSF_FIT_OK=0
-  （||Δx||<tol*(||x||+1e-30)，:163）；DPSF_FIT_NO_CONVERGENCE=1（验证链三关：
-  非有限/A<=0/sx<=0.3/sy<=0.3 :336-338、FWHM>rect :341-346、背景约束
-  |B-bkg0|/max(bkg0,0.01)>0.5 :349-354）；DPSF_FIT_INVALID_PARAMS=2（空指针/
-  w<=0/h<=0 :431-434、rect 面积<9 :236-239、rect 越界 :240-245、空 rect
-  :445-450）；DPSF_FIT_ITERATION_LIMIT=3（max_iter=200 耗尽 :187，单星接口
-  dpsf_fit/moffat4_fit 仍回填最优参数 :391-403）。批接口 dpsf_fit_batch_f32/f64
+  （||Δx||<tol*(||x||+1e-30)，:164）；DPSF_FIT_NO_CONVERGENCE=1（验证链三关：
+  非有限/A<=0/sx<=0.3/sy<=0.3 :363-366、FWHM>rect :374-380、背景约束
+  |B-bkg0|/max(bkg0,0.01)>0.5 :381-385）；DPSF_FIT_INVALID_PARAMS=2（空指针/
+  w<=0/h<=0 :463、rect 面积<9 :249-252、rect 越界 :253-258、空 rect
+  :477-482）；DPSF_FIT_ITERATION_LIMIT=3（max_iter=200 耗尽 :188，单星接口
+  dpsf_fit/moffat4_fit 仍回填最优参数 :423-436）。批接口 dpsf_fit_batch_f32/f64
   仅 DPSF_FIT_OK 计入 out_n_valid，非 OK 星 9 字段全 NaN
   （psf_params:FLOAT64[N,9] 契约，dynamic_psf.h:104-105；NaN 初始化
-  dpsf_psf.cpp:729-732/:857-860，OK 写 9 字段 :784-794/:907-916，
-  valid 计数 :804/:925）。
+  dpsf_psf.cpp:833-836/:977-980，OK 写 9 字段 :893-901/:1030-1038，
+  valid 计数 :919/:1053）。
   饱和/简并（科学专项）：star_det v1 检测列 [4]=saturated/[5]=has_saturated
-  现状不消费（dpsf_psf.cpp:741 仅解包 [0]=x/[1]=y，饱和剔除决策归上游
+  现状不消费（dpsf_psf.cpp:847-848 仅解包 [0]=x/[1]=y，饱和剔除决策归上游
   star_detector 侧，P1-PSF-TEST 专项覆盖）；sx/sy 简并兜底经验证链 sx/sy>0.3
   判定 + 钳位；theta 经 4 候选 {θ,π/2-θ,π/2+θ,π-θ} trimmed-MAD 消歧
-  （dpsf_psf.cpp:358-368）。flux=2π·A·sx·sy/3 为 β=4 Moffat 解析积分
-  （:374-375），FWHM=1.230310·sx/sy（:339-340）。
+  （dpsf_psf.cpp:389-401）。flux=2π·A·sx·sy/3 为 β=4 Moffat 解析积分
+  （:406-407），FWHM=1.230310·sx/sy（:371-372）。
   禁止声明 IMPLEMENTED（迁移落码未发生）。

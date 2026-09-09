@@ -10,7 +10,7 @@
 //   → rc=1 + stderr "FAULT-INJECT <name>"。注册表 (与 core/perf 实际
 //   faultname 一致):
 //     recovery, identity, worker_bitwise, abi_consistency,
-//     negative_matrix, nan_semantics, oracle_recovery, perf
+//     negative_matrix, nan_semantics, batch_boundary, oracle_recovery, perf
 //   (p1psf_tests_selfcheck 以 fork+execve 注入跑注入相, 验证必败。)
 // ============================================================================
 #ifndef P1PSF_TEST_MAIN_HPP
