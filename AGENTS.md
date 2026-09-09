@@ -2,12 +2,13 @@
 
 全程中文执行与汇报。开始任务前先读：
 
-1. **冻结约束**：根 [`AstroCS_ENGINEERING_CONSTRAINTS.md`](AstroCS_ENGINEERING_CONSTRAINTS.md) —— 项目负责人冻结工程约束（来源与控制包 hash 关系见其文件头 YAML）。优先级最高，Agent 不得修改、放宽或重新解释；修改权仅在项目负责人。
-2. **记忆**：根 `memory.md` 及本任务相关模块 memory。
-3. **模块文档**：相关模块 `README.md`、`module.yaml`、公共头与共址测试；科学/算法权威在 `docs/science/`、`docs/algorithms/`。
-4. **控制包**（执行控制包派发任务时）：对应控制包 `00_READ_FIRST.md` 与本任务规格。
+1. **冻结宪章（最高约束）**：根 [`ASTROCS_PROJECT_CONSTITUTION.md`](ASTROCS_PROJECT_CONSTITUTION.md) —— `ASTROCS-CONSTITUTION-001`，状态 `FROZEN`（GOV-001 冻结，四项负责人裁决见其 §18）。本文是仓库唯一最高工程约束；supersession 生效，Agent 不得修改、放宽或重新解释，修改权仅在项目负责人（§1.2 宪章变更流程）。
+2. **历史约束（ARCHIVED_NON_NORMATIVE）**：根 [`AstroCS_ENGINEERING_CONSTRAINTS.md`](AstroCS_ENGINEERING_CONSTRAINTS.md) —— 已被宪章替代，仅作历史追溯；与宪章冲突处一律以宪章为准。
+3. **记忆**：根 `memory.md` 及本任务相关模块 memory。
+4. **模块文档**：相关模块 `README.md`、`module.yaml`、公共头与共址测试；科学/算法权威在 `docs/science/`、`docs/algorithms/`。
+5. **控制包**（执行控制包派发任务时）：对应控制包 `00_READ_FIRST.md` 与本任务规格。
 
-具体规则一律以冻结约束文件为准，`AGENTS.md` 不复制长文。
+具体规则一律以冻结宪章为准，`AGENTS.md` 不复制长文。
 ## 执行纪律（详见约束文件）
 
 - 仅 `main` 原子提交并立即 push；禁止分支、force push 及破坏性 Git；SubAgent 不直接 commit。
@@ -22,7 +23,7 @@
 仓库根目录只允许下述固定条目。**任何新产物必须落位到对应目录，禁止散落根目录**；确需新增根目录条目，必须先在本节登记并获得项目负责人确认。
 
 **顶层文件（固定，不得增删）**：
-- 入口与约束：`README.md`、`AGENTS.md`、`AstroCS_ENGINEERING_CONSTRAINTS.md`、`memory.md`、`VERSION`
+- 入口与约束：`README.md`、`AGENTS.md`、`ASTROCS_PROJECT_CONSTITUTION.md`（冻结宪章，GOV-001 登记）、`AstroCS_ENGINEERING_CONSTRAINTS.md`（ARCHIVED_NON_NORMATIVE 历史参照，保留不删）、`memory.md`、`VERSION`
 - 文档：`CHANGELOG.md`、`DEPENDENCIES.md`、`HANDOVER.md`、`REVIEW.md`、`FATDUCK_ACCESS.md`、`VISUAL_CHECK_README.md`
 - 构建面：`CMakeLists.txt`、`CMakePresets.json`、`build.sh`、`toolchain.ps1`、`.github/`、`.clang-format`、`.editorconfig`、`.gitignore`、`.gitattributes`
 

@@ -5,6 +5,11 @@
 #       base_product_version 至当时源值并登记 GOV-005 新增归档文件；
 #       V81-ADOPT-006（SA-DOC-05）base_product_version 随根 VERSION 统一升 alpha.2
 #       DOC-L0 收敛：登记 docs/review/ L0 治理评审五文档（check_l0_docs.py 检查面）
+#       GOV-001（ASTROCS-CONSTITUTION-ALIGNMENT-V1）宪章冻结：登记根宪章
+#       ASTROCS_PROJECT_CONSTITUTION.md 为 ACTIVE_NORMATIVE（唯一最高约束，
+#       FROZEN，四项负责人裁决见其 §18）；AstroCS_ENGINEERING_CONSTRAINTS.md
+#       依宪章 supersession 降级 ARCHIVED_NON_NORMATIVE 移入 archived 区段，
+#       活动规范唯一收敛到宪章
 # 校验：tools/doccheck/check_doc_index.py（exit 0 = PASS）
 # 规则：
 #   1. 每项唯一 status ∈ {ACTIVE_NORMATIVE, ACTIVE_INFORMATIVE, GENERATED, ARCHIVED_NON_NORMATIVE}
@@ -22,9 +27,9 @@ doc_index:
   active:
     - path: "AGENTS.md"
       status: ACTIVE_NORMATIVE
-    - path: "AstroCS_ENGINEERING_CONSTRAINTS.md"
+    - path: "ASTROCS_PROJECT_CONSTITUTION.md"
       status: ACTIVE_NORMATIVE
-      notes: "仓库根权威输入（GOV-001 冻结）"
+      notes: "ASTROCS-CONSTITUTION-001 冻结宪章（GOV-001 FROZEN）：仓库唯一最高工程约束，四项负责人裁决见其 §18；supersession 生效"
     - path: "CHANGELOG.md"
       status: ACTIVE_INFORMATIVE
     - path: "DEPENDENCIES.md"
@@ -583,3 +588,7 @@ doc_index:
       status: ARCHIVED_NON_NORMATIVE
       replacement: "AstroCS_ENGINEERING_CONSTRAINTS.md; docs/DOCUMENT_INDEX.yaml; 工作根 control/active/AstroCS_V7_MODULAR_REFOUNDATION_CONTROL_20260902_FINAL3/"
       notes: "目录级聚合：V1.3 Recovery + V3/V4/V5/V6/V6.1 历史控制包（tasks/evidence/docs/checklists 等）。目录内全部文件不再作当前权威；目录级 README_ARCHIVED.md 说明替代。"
+    - path: "AstroCS_ENGINEERING_CONSTRAINTS.md"
+      status: ARCHIVED_NON_NORMATIVE
+      replacement: "ASTROCS_PROJECT_CONSTITUTION.md"
+      notes: "GOV-001 宪章 FROZEN 时依宪章 supersession 降级 ARCHIVED_NON_NORMATIVE（根目录历史参照，保留不删，不移动）；机器修订链（上游 01_OWNER_FROZEN_CONSTRAINTS.md SHA-256）仍由 tools/doccheck/check_engineering_constraints.py 校验"

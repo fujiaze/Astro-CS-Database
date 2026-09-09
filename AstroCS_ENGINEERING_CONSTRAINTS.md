@@ -1,4 +1,13 @@
-# AstroCS 工程约束（负责人冻结）
+# AstroCS 工程约束（负责人冻结，已 ARCHIVED_NON_NORMATIVE）
+
+> **ARCHIVED（superseded）**：本文件自宪章 `ASTROCS-CONSTITUTION-001`
+> （`ASTROCS_PROJECT_CONSTITUTION.md`，FROZEN，GOV-001 冻结）冻结起降级为
+> `ARCHIVED_NON_NORMATIVE` 历史参照，不再作为活动规范；替代链接：
+> [`ASTROCS_PROJECT_CONSTITUTION.md`](ASTROCS_PROJECT_CONSTITUTION.md)。
+> 与宪章冲突之处一律以宪章为准，包括：Linux 执行面职责（本文件 B.3 vs 宪章
+> §3.1/§15.4）、CPU 利用率阈值（本文件 D.6 vs 宪章 §10.5，85%/60%/单活跃线程
+> 即失败）、worktree 使用限制（本文件 B.2 vs 宪章 §14.1）。
+> 以下正文保留冻结时点原文，仅供历史追溯；Agent 不得引用本文件作为现行裁决。
 
 > 本文件是项目负责人冻结约束的仓库根权威整理版。仓库内 Agent、任务、代码、
 > 测试与文档均不得与本文件冲突；历史控制包、旧文档或 Agent 提议与本文冲突时，
@@ -7,9 +16,12 @@
 ## 0. 来源与修订关系（机器可读）
 
 ```yaml
-# GOV-001 冻结 Alpha 工程约束 — 来源与修订关系
+# GOV-001 冻结 Alpha 工程约束 — 来源与修订关系（机器可读）
 doc_id: DOC-GOV-CONSTRAINTS-001
-doc_status: ACTIVE_NORMATIVE
+doc_status: ARCHIVED_NON_NORMATIVE
+superseded_by: ASTROCS-CONSTITUTION-001
+superseded_by_path: ASTROCS_PROJECT_CONSTITUTION.md
+supersession_note: GOV-001 宪章 FROZEN 时本文件降级 ARCHIVED_NON_NORMATIVE；冲突处以宪章为准
 doc_scope: repository_root
 source_control_package: ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7
 source_control_relpath: 01_OWNER_FROZEN_CONSTRAINTS.md
@@ -111,7 +123,9 @@ SubAgent、前台 Agent 和独立审计 Agent 都不能宣布正式发布。它�
 
 ## 机器索引
 
-本文件是 GOV-002 `docs/DOCUMENT_INDEX.yaml`（active 文档机器索引）与
-`tools/doccheck` 系列检查器收录的仓库根 ACTIVE_NORMATIVE 文档之一；
-本文件由 `tools/doccheck/check_engineering_constraints.py` 校验与上游
-`01_OWNER_FROZEN_CONSTRAINTS.md` 的 SHA-256 修订关系（见文件头 YAML）。
+本文件自宪章 `ASTROCS-CONSTITUTION-001`（`ASTROCS_PROJECT_CONSTITUTION.md`，FROZEN）
+冻结起由 GOV-001 降级为 `ARCHIVED_NON_NORMATIVE`：`docs/DOCUMENT_INDEX.yaml` 中
+本文件登记于 archived 区段，活动规范由宪章 active 条目承载。
+`tools/doccheck/check_engineering_constraints.py` 仍校验本文件与上游
+`01_OWNER_FROZEN_CONSTRAINTS.md` 的 SHA-256 修订关系（见文件头 YAML），该机器
+修订链继续有效；本文件不再承担活动规范职能。
