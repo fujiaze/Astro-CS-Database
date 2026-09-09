@@ -968,4 +968,16 @@ set_tests_properties(cosmetic_integration PROPERTIES
 # 根构建无 dynamic_psf 生产 target, 生产源零改动 — 对齐 p1star 先例)。
 # ----------------------------------------------------------------------------
 add_subdirectory(../../lib/dynamic_psf/tests/p1psf p1psf)
+# P1-STAR-TEST (TEST-P1-STAR-001, 控制包 queue 49, lock-P1-STAR) —
+# lib/star_detector 可复用验证面。结构与注册详见
+# lib/star_detector/tests/p1star/CMakeLists.txt (FIX-STAR-A..G fixture /
+# 独立 oracle / negative + OOM 注入 / performance / 故障注入自检); 合同锚
+# ALG-STARDET-001 §11.4 TEST-STAR-DESIGN-001 (P1-STAR-DOC 冻结)。
+# 注意: p1star_selfcheck_test 与 p1star_tests 共享 core TUs; 被测面为生产
+# sdet_* C API (5 src 独立编入测试目标, 根构建无 star_detector 生产 target,
+# 生产源零改动); 与 p1_stars_test (P1-003 桥接层) 互补不重复。
+# 域基线 dc2f5f3e (批次 R sdet malloc 事务化)。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/star_detector/tests/p1star p1star)
+
 
