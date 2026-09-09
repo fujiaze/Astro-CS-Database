@@ -851,3 +851,37 @@ add_dependencies(cosmetic_adapter_test astrocs_p1_cosmetic)
 add_test(NAME cosmetic_adapter COMMAND cosmetic_adapter_test)
 set_tests_properties(cosmetic_adapter PROPERTIES
   ENVIRONMENT "ASTROSCOS_DLL_PATH=$<TARGET_FILE:astrocs_p1_cosmetic>")
+
+# cosmetic_integration_test (P1-COS-INT): 模块本地集成测试 (MODULE_MIGRATION
+# _TEMPLATE <prefix>-INT)。覆盖 integration descriptor 三方一致 (12 §5) +
+# typed ports 绑定负面 (config 101/100/103/102/CONFIG_SCHEMA + manifest
+# 111/112/110) + 两节点合成链调用计数每节点恰一 (validate/plan/create/
+# execute 事务/inspect/destroy, lease 2/2 平衡) + 真实 plan (work_units=
+# width*height 独立算术, io=0 真实值, 无观测词) + 真实 trace (dll_sha256
+# FIPS 180-4 磁盘实测, 标准 K 表 + "abc" 已知向量自检锚; 先例 K 表缺 3 项
+# 错 2 项已登记不复制) + 重放无 repeated-call + 负面 ABI 三态。global DAG
+# registration 归 SA-RT-05 (descriptor global_dag_registration=delegated)。
+# fixture 头 p1cos_fixtures.hpp (FIX-COS-B 谱系, splitmix64 固定 seed)。
+set(COS_INT_TRACE_OUT ${CMAKE_CURRENT_BINARY_DIR}/cosmetic_integration_trace.jsonl)
+add_executable(cosmetic_integration_test cosmetic_integration_test.cpp)
+target_include_directories(cosmetic_integration_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/cosmetic/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/cosmetic/tests/p1cos
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_compile_definitions(cosmetic_integration_test PRIVATE
+  ASTROSCOS_INTEGRATION_JSON="${CMAKE_CURRENT_SOURCE_DIR}/../../lib/cosmetic/integration/astrocs_p1_cosmetic.integration.json"
+  ASTROSCOS_MODULE_YAML="${CMAKE_CURRENT_SOURCE_DIR}/../../lib/cosmetic/module.yaml")
+target_link_libraries(cosmetic_integration_test PRIVATE
+  ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
+# OMP 教训 (P1-CAL-INT 58d20223): DLL (astrocs_p1_cosmetic) 自链 libgomp,
+# 本 TU 为纯 host stub 无 OMP 符号引用, --as-needed 会把 libgomp 从
+# DT_NEEDED 丢弃 → dlopen 晚装载 GOMP 并行区 SEGV (主 build 复现)。
+# 链 ${ASTROCS_OMP_TARGET} + --no-as-needed 归一 (仅 GNU ld, MSVC 无此选项)。
+if(UNIX AND NOT APPLE)
+  target_link_options(cosmetic_integration_test PRIVATE
+    "LINKER:--no-as-needed")
+endif()
+add_dependencies(cosmetic_integration_test astrocs_p1_cosmetic)
+add_test(NAME cosmetic_integration COMMAND cosmetic_integration_test)
+set_tests_properties(cosmetic_integration PROPERTIES
+  ENVIRONMENT "ASTROSCOS_DLL_PATH=$<TARGET_FILE:astrocs_p1_cosmetic>;ASTROSCOS_INT_TRACE_OUT=${COS_INT_TRACE_OUT}")

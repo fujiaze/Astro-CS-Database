@@ -26,8 +26,16 @@ entrypoint: astrocs_module_query_v1
 node_operations:
   - correct_frame
   - correct_frame_f64
+# 端口注册面 (P1-COS-INT 同步, 对齐 P1-CAL-INT 先例口径): 与
+# lib/cosmetic/integration/astrocs_p1_cosmetic.integration.json typed_ports
+# 逐一同名。p1.master_dark/p1.master_bias 为可选输入端口 (manifest 键缺席 =
+# legacy NULL 恒等通道, DISP-COS-009 行为保持); correct_frame legacy 签名
+# 仅消费 pdark/pbias 两参考平面 (module_entry.cpp planes[2] 事实面),
+# master_flat 属 calibration calibrate 域不在本模块词表。
 input_ports:
   - p1.calibrated
+  - p1.master_dark
+  - p1.master_bias
 output_ports:
   - p1.cleaned
 science_contracts:
