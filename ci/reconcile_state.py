@@ -34,8 +34,8 @@ REPO_CANDIDATES = [
     Path.cwd(),
 ]
 
-V71_LEDGER = ("engineering/control/active/"
-              "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/"
+V71_LEDGER = ("engineering/control/archive/"
+              "2026-09-09_superseded_V8.1_CI_CONTROL_20260905/"
               "baseline/V7_1_STATIC_TASK_LEDGER.csv")
 OUT_DIR = Path("evidence/v8_1_ci_control")
 VALID_STATUS = {"CLOSED", "NOT_STARTED", "READY", "DISPATCHED", "FATDUCK_PENDING",
