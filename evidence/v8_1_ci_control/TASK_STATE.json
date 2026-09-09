@@ -1432,15 +1432,15 @@
   },
   "P1-COS-INT": {
    "owner": "SA-P1-C14",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "5e7d7f46",
+   "evidence_path": "run/local/agent_p1cos_int/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-integration",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "review_claim": "integration_complete",
+   "current_evidence": "前台复验:循环5次全绿+cosmetic 4/4;descriptor v1+typed_ports 4端口+调用计数恰一+真实trace K表标准三方交叉;OMP教训应用双树绿",
+   "note": "偏差②先例缺陷登记:CAL-INT/GAIA-INT测试内SHA-256 K表61项错排2项,建议后续统一修oracle(全局口径一致性)"
   },
   "P1-STAR-DOC": {
    "owner": "SA-P1-S15",
