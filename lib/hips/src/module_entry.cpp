@@ -46,14 +46,22 @@ extern "C" {
 #else
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 #define HIPS_ACCESS access
 #define HIPS_MKDIR(p) mkdir(p, 0777)
+static void hips_msleep(long ms) {
+    struct timespec ts;
+    ts.tv_sec = ms / 1000;
+    ts.tv_nsec = (ms % 1000) * 1000000L;
+    nanosleep(&ts, NULL);
+}
 #endif
-
 #include "astrocs/abi/module_api_v1.h"
 #include "astrocs/abi/lifecycle_v1.h"
 #include "astrocs/hips/types.h"
+#include "astrocs/hips/publish.h"   /* AIO-002: 原子发布原语 (staging→校验→
+                                    * fsync→原子 promote; RAII discard) */
 #include "aio_hips.h"             /* legacy C API (extern "C"; 九导出) */
 
 /* ═══════════════════ 1. 基础 helper (对齐 drizzle/gaia 先例) ═══════════════════ */
@@ -777,6 +785,15 @@ static acs_status hips_legacy_status(int code, int32_t* domain) {
     return ACS_ERR_PARAM;
 }
 
+/* cancel 检查点 helper (tile 间安全点与 finalize 前共用) */
+static int hips_cancel_requested(const hips_inst* inst) {
+    if (inst->cancel_req) return 1;
+    if (inst->host && inst->host->cancel && inst->host->cancel->is_cancelled &&
+        inst->host->cancel->is_cancelled(inst->host->cancel->user_data))
+        return 1;
+    return 0;
+}
+
 /* 事务 sink 产物存在性计数 (输出 manifest artifacts; DRZ 同款手法) */
 static int hips_artifact_exists(const char* dir, const char* sub) {
     if (!dir || !dir[0]) return 0;
@@ -831,9 +848,37 @@ static acs_status hips_execute_write_product(
         return st;
     }
 
-    /* 1) product_begin (参数 create/execute config 固化; 失败 NULL+last_error) */
+    /* ── AIO-002 原子发布: staging 目录建立 (兄弟目录, kill 残留自愈) ──
+     * out_dir 语义 = 发布目标根; writer 全量写入 staging, finalize 后
+     * fsync 树 + 原子 rename。任一失败/取消 → discard staging → out_dir
+     * 根无 partial (全有或全无; DISP-HIPS-001/004 事务化收口)。 */
+    char stage_path[1100];
+    int prc = aio_publish_stage_create_v1(c->out_dir, stage_path,
+                                          sizeof(stage_path));
+    if (prc != AIO_PUBLISH_OK) {
+        ex->release(ex->user_data, leased);
+        hips_rows_free(&rows);
+        inst->last_status = ACS_ERR_IO;
+        snprintf(inst->last_op, sizeof(inst->last_op), "%s",
+                 ASTROCS_HIPS_OP_WRITE_PRODUCT);
+        return efill(err, ACS_ERR_IO, ACS_ERR_DOMAIN_IO,
+                     HIPS_ECODE_PUBLISH_STAGE,
+                     hips_msgf("hips: staging create failed (%d)", prc));
+    }
+
+    /* kill 中断测试锚点 (注入名见 publish.h; 正常运行零行为差异) */
+    if (hips_publish_fault_slow_write_v1()) {
+#ifdef _WIN32
+        Sleep(600);
+#else
+        hips_msleep(600);
+#endif
+    }
+
+    /* 1) product_begin (写目录 = staging; 参数 create/execute config 固化;
+     *    失败 NULL+last_error) */
     AioHipsProductSet* ps = aio_hips_product_begin(
-        c->out_dir, (int)c->nside, (int)c->tile_width, c->data_type, c->flags,
+        stage_path, (int)c->nside, (int)c->tile_width, c->data_type, c->flags,
         c->creator_did,
         c->obs_title[0] ? c->obs_title : NULL,
         c->obs_filter[0] ? c->obs_filter : NULL,
@@ -842,6 +887,7 @@ static acs_status hips_execute_write_product(
         (int)c->moc_order);
     if (!ps) {
         const char* le = aio_hips_last_error();
+        aio_publish_stage_discard_v1(c->out_dir);   /* 空 staging 收口 */
         ex->release(ex->user_data, leased);
         hips_rows_free(&rows);
         inst->last_status = ACS_ERR_IO;
@@ -889,10 +935,8 @@ static acs_status hips_execute_write_product(
                 n_var++;
             }
         }
-        /* cancel 安全点 (tile 间; abort 事务, 半成品树移除) */
-        if (inst->cancel_req ||
-            (inst->host->cancel && inst->host->cancel->is_cancelled &&
-             inst->host->cancel->is_cancelled(inst->host->cancel->user_data))) {
+        /* cancel 安全点 (tile 间; abort 事务, staging 整树确定性丢弃) */
+        if (hips_cancel_requested(inst)) {
             cancelled_mid = 1;
             break;
         }
@@ -912,21 +956,48 @@ static acs_status hips_execute_write_product(
         else inst->last_prov_set = 1;
     }
 
-    /* 5) finalize (cancel 请求 → abort 事务而非 finalize) */
+    /* 5) finalize (cancel 请求 → abort 事务而非 finalize)
+     * legacy 所有权: finalize 成功 = 句柄已在内部释放 (README §5; 成功路径
+     * finalize 内 delete ps) → finalized_ok 后 ps 悬空禁触碰; 失败/取消
+     * 路径才允许 abort 释放。 */
+    int finalized_ok = 0;
     if (!fail_rc && !cancelled_mid) {
-        if (inst->cancel_req ||
-            (inst->host->cancel && inst->host->cancel->is_cancelled &&
-             inst->host->cancel->is_cancelled(inst->host->cancel->user_data))) {
+        if (hips_cancel_requested(inst)) {
             cancelled_mid = 1;
         } else {
             int rc = aio_hips_finalize(ps);
             if (rc != 0) { fail_rc = rc; fail_stage = "finalize"; }
+            else finalized_ok = 1;
         }
     }
 
-    if (fail_rc || cancelled_mid) {
-        aio_hips_abort(ps);            /* abort: 句柄释放; 已写文件不清理
-                                        * (DISP-HIPS-001: 处置归调用方/IO-003 层) */
+    /* ── AIO-002 发布门 ──
+     * 失败/取消: abort + discard staging → out_dir 根无 partial。
+     * 成功: fsync staging 树 (ENOSPC 暴露点) → 原子 rename promote
+     * (全有或全无) → 输出 manifest 报告 out_dir。publish 原语失败
+     * (fsync/promote) 亦 discard → 无成功对象。 */
+    int publish_fail = 0;
+    int publish_rc = AIO_PUBLISH_OK;
+    if (!fail_rc && !cancelled_mid) {
+        publish_rc = aio_publish_tree_fsync_v1(stage_path, NULL, NULL);
+        if (publish_rc != AIO_PUBLISH_OK) {
+            publish_fail = 1;
+            fail_stage = "publish_fsync";
+        } else {
+            publish_rc = aio_publish_promote_v1(c->out_dir, stage_path);
+            if (publish_rc != AIO_PUBLISH_OK) {
+                publish_fail = 1;
+                fail_stage = "publish_promote";
+            }
+        }
+        if (publish_fail)
+            aio_publish_stage_discard_v1(c->out_dir);
+    } else {
+        aio_hips_abort(ps);                    /* 未 finalize → 句柄有效 */
+        aio_publish_stage_discard_v1(c->out_dir);
+    }
+
+    if (fail_rc || cancelled_mid || publish_fail) {
         ex->release(ex->user_data, leased);
         hips_rows_free(&rows);
         inst->executing = 0;
@@ -939,7 +1010,15 @@ static acs_status hips_execute_write_product(
             return efill(err, ACS_ERR_CANCELLED, ACS_ERR_DOMAIN_CANCELLED,
                          ACS_DIAG_ECODE_NONE,
                          "hips: cancel requested mid-transaction "
-                         "(aborted; partial files not removed, DISP-HIPS-001)");
+                         "(staging discarded; no partial tree)");
+        }
+        if (publish_fail) {
+            inst->last_status = ACS_ERR_IO;
+            return efill(err, ACS_ERR_IO, ACS_ERR_DOMAIN_IO,
+                         HIPS_ECODE_PUBLISH_REJECT,
+                         hips_msgf("hips: publish failed at %s (rc=%d); "
+                                   "staging discarded, no partial tree",
+                                   fail_stage ? fail_stage : "?", publish_rc));
         }
         const char* le = aio_hips_last_error();
         int32_t dom = ACS_ERR_DOMAIN_SCIENCE_PRECONDITION;

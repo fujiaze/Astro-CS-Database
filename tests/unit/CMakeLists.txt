@@ -489,7 +489,8 @@ add_subdirectory(../../lib/snr_estimator/tests/p1noise p1noise)
 #   (生成器表达式, 兼容含空格构建路径)。
 # ----------------------------------------------------------------------------
 add_executable(hips_writer_adapter_test p1_hips/adapter_test.c
-  p1_hips/adapter_entry_impl.cpp)
+  p1_hips/adapter_entry_impl.cpp
+  ../../lib/hips/src/aio_publish.cpp)
 target_include_directories(hips_writer_adapter_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/hips/include
@@ -503,6 +504,28 @@ add_test(NAME hips_writer_adapter COMMAND hips_writer_adapter_test
   ${CMAKE_CURRENT_BINARY_DIR}/run/t_hips_ref)
 set_tests_properties(hips_writer_adapter PROPERTIES
   ENVIRONMENT "ASTROCS_HIPS_DLL_PATH=$<TARGET_FILE:astrocs_p1_hips_writer>")
+
+# --- AIO-002: HiPS 原子发布与临时目录清理 (staging→校验→fsync→原子 promote) --
+# 被测面: lib/hips/src/aio_publish.cpp (publish.h v1 合同, 4 原语唯一实现) +
+# module_entry.cpp 事务面 (write_product 全链 staging 重定向)。
+# 组: units (4 原语正/负/幂等) / atomic (正向发布 + 注入必败 + cancel/kill
+# 中断无 partial + RAII 自愈; 注入 ASTROCS_HIPS_PUBLISH_FAULT=registry)。
+add_executable(hips_publish_atomic_test p1_hips/publish_atomic_test.c
+  p1_hips/adapter_entry_impl.cpp
+  ../../lib/hips/src/aio_publish.cpp)
+target_include_directories(hips_publish_atomic_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/hips/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/hips/src)
+target_link_libraries(hips_publish_atomic_test PRIVATE
+  astrocs_hips astrocs_aio ${CMAKE_DL_LIBS})
+add_dependencies(hips_publish_atomic_test astrocs_p1_hips_writer)
+add_test(NAME hips_publish_atomic_units COMMAND hips_publish_atomic_test
+  units ${CMAKE_CURRENT_BINARY_DIR}/run/t_hips_publish)
+add_test(NAME hips_publish_atomic COMMAND hips_publish_atomic_test
+  atomic ${CMAKE_CURRENT_BINARY_DIR}/run/t_hips_publish)
+# --- AIO-002 end ------------------------------------------------------------
 
 add_executable(p1_stars_test p1_stars_test.cpp)
 target_include_directories(p1_stars_test PRIVATE

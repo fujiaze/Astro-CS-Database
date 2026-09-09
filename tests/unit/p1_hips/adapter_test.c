@@ -387,6 +387,25 @@ static void hips_mkdir_p(const char* path) {
     mkdir(tmp, 0777);
 }
 
+/* AIO-002: execute 目标从零态开始 (原子发布: 非空目标拒绝覆盖 →
+ * 重复跑同 root 时先清空旧树, 保幂等)。 */
+static void hips_rm_rf(const char* path) {
+    DIR* d = opendir(path);
+    if (!d) return;
+    struct dirent* e;
+    char child[1024];
+    while ((e = readdir(d)) != NULL) {
+        if (strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0)
+            continue;
+        snprintf(child, sizeof(child), "%s/%s", path, e->d_name);
+        struct stat st;
+        if (lstat(child, &st) == 0 && S_ISDIR(st.st_mode)) hips_rm_rf(child);
+        else unlink(child);
+    }
+    closedir(d);
+    rmdir(path);
+}
+
 /* BITWISE 对拍键 (实际 HiPS 树布局, aio_hips_writer 冻结面):
  *   out_dir/manifest.json (P1-HIPS-TEST I8 基线) +
  *   {signal,support,variance,ivar,snr}/properties +
@@ -905,6 +924,8 @@ int main(int argc, char** argv) {
     const char* root = (argc > 1) ? argv[1] : "./run/t_hips_adapter";
     const char* ref  = (argc > 2) ? argv[2] : "./run/t_hips_ref";
 
+    hips_rm_rf(root);
+    hips_rm_rf(ref);
     hips_mkdir_p(root);
     hips_mkdir_p(ref);
 
