@@ -114,3 +114,12 @@ audit/*.rar
 
 # 审核包（放在项目根目录，本地保留，不 commit）
 *_review_bundle.zip
+
+# 根目录整洁约束 (2026-09-09 整理): 运行产物/测试残留/资料克隆一律不入库
+astrocs_run_*.json
+/Testing/
+/out/
+/AstroCS.wiki/
+resource_samples.csv
+resource_summary.json
+worker_balance.csv
