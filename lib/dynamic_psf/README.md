@@ -1,6 +1,10 @@
 # AstroCS P1 PSF 模块（astrocs.p1.psf）— 冻结合同 README
 
 > r1（P1-PSF-DOC，2026-09-07）：由 SRC-PSF-001 源码实测冻结，不信任旧 README。
+> r2（PSF-001，2026-09-10）：批 ABI 尺寸边界修复（DISP-PSF-007 候选收口）后
+> 行号锚全量复测刷新（§1/§5/§6/§7/§10）；§6 新增 5 批入口统一尺寸守卫
+> `dpsf_batch_dims_check`（w/h≤0 与 w*h>INT_MAX → 整体 -1 零输出触碰）与
+> 分配失败异常屏障语义；科学公式、默认容差、状态码语义零改动。
 > 状态 **CONTRACT_READY**：实现与 C API 已存在于 legacy `lib/dynamic_psf`（SRC-PSF-001
 > VERIFIED），独立模块化迁移（`astrocs_p1_psf.dll`、C ABI adapter、ThreadLease）归
 > **P1-PSF-IMPL**，可执行测试归 **P1-PSF-TEST**（TEST-PSF-DESIGN-001 → TEST-P1-PSF-001）。
@@ -28,7 +32,7 @@
 
 **不负责**：星检测（star_detector，PSF 阶段消费其检测结果，禁止重检测，
 orchestrator.cpp:1754-1756 注释）；饱和剔除决策（star_det v1 列 [4]/[5] 现状不
-消费，dpsf_psf.cpp:741 仅解包 [0]=x/[1]=y）；下游测光/零点（P1-PHOT）；background
+消费，dpsf_psf.cpp:847-848 仅解包 [0]=x/[1]=y）；下游测光/零点（P1-PHOT）；background
 模型与 cosmetics（P1-COSMETIC，本模块仅消费 `cleaned` 块）。
 
 ## 2. 输入 / 输出 ports、DATA ID、单位、dtype、shape、invalid
@@ -41,8 +45,8 @@ registry descriptor ports（module_adapters.cpp:437-441）：
 | `sources` | DATA-P1-SOURCES | 入 | 可 | DIMENSIONLESS | ICRS | star_det v1：`FLOAT64[N,6]`，列 `[0]=x_px [1]=y_px [2]=flux [3]=mag [4]=saturated [5]=has_saturated`（dynamic_psf.h:79-82,104） | `n_detections<=0`/空指针 → -1；[4]/[5] 不消费 |
 | `psf` | DATA-P1-PSF | 出 | 可 | DIMENSIONLESS（θ 为弧度，FWHM 为像素） | PIXEL | `psf_params:FLOAT64[N,9]`：`[0]=B [1]=A [2]=cx [3]=cy [4]=sx [5]=sy [6]=theta [7]=fwhm_x [8]=fwhm_y`（dynamic_psf.h:105） | 拟合失败星 9 字段全 NaN；批 API `out_n_valid` 仅计 DPSF_FIT_OK |
 
-坐标：输出 cx/cy 为图像像素坐标（局部 patch 坐标已平移回全图，dpsf_psf.cpp:383、
-755-757）；θ 为弧度，起边 x 轴，sx≥sy 约定经 θ 候选消歧保持（见 §5）。
+坐标：输出 cx/cy 为图像像素坐标（局部 patch 坐标已平移回全图，dpsf_psf.cpp:415、
+641、766、887-888、1025-1026）；θ 为弧度，起边 x 轴，sx≥sy 约定经 θ 候选消歧保持（见 §5）。
 
 ## 3. SCI / ALG / DATA / API / ARCH / TEST 链接
 
@@ -71,38 +75,41 @@ C API（7 导出，头 lib/dynamic_psf/include/dynamic_psf.h）：
 
 | symbol | 头行 | 定义行 | 语义摘要 |
 |---|---|---|---|
-| `dpsf_fit` | dynamic_psf.h:44 | dpsf_psf.cpp:427 | uint16 单星拟合；空 rect→INVALID_PARAMS（:445-450） |
-| `dpsf_fit_batch` | :49 | dpsf_psf.cpp:482 | uint16 批量，逐星裁 float patch |
-| `dpsf_fit_batch_f` | :59 | dpsf_psf.cpp:580 | float32 图 + (cx[],cy[]) → DPSFFitResult*[] |
-| `dpsf_free_results` | :64 | dpsf_psf.cpp:599 | 释放批量结果 |
-| `dpsf_fit_batch_f32` | :107 | dpsf_psf.cpp:694 | float32 图 + star_det v1 [N,6] → [N,9]，NaN 失败填充 |
-| `dpsf_fit_batch_f64` | :142 | dpsf_psf.cpp:822 | float64 图 + star_det v1 → [N,9]（moffat4_fit_d，不降级） |
-| `dpsf_fit_batch_d` | :181 | dpsf_psf.cpp:612 | float64 图 + (cx[],cy[]) → DPSFFitResult*[] |
+| `dpsf_fit` | dynamic_psf.h:44 | dpsf_psf.cpp:459 | uint16 单星拟合；空 rect→INVALID_PARAMS（:477-482） |
+| `dpsf_fit_batch` | :49 | dpsf_psf.cpp:534 | uint16 批量，逐星裁 float patch |
+| `dpsf_fit_batch_f` | :59 | dpsf_psf.cpp:661 | float32 图 + (cx[],cy[]) → DPSFFitResult*[] |
+| `dpsf_free_results` | :64 | dpsf_psf.cpp:681 | 释放批量结果 |
+| `dpsf_fit_batch_f32` | :107 | dpsf_psf.cpp:792 | float32 图 + star_det v1 [N,6] → [N,9]，NaN 失败填充 |
+| `dpsf_fit_batch_f64` | :142 | dpsf_psf.cpp:937 | float64 图 + star_det v1 → [N,9]（moffat4_fit_d，不降级） |
+| `dpsf_fit_batch_d` | :181 | dpsf_psf.cpp:694 | float64 图 + (cx[],cy[]) → DPSFFitResult*[] |
 
-内部核心（static，同文件）：`moffat4_fit_tmpl`（:225，ImageT=float→`moffat4_fit`
-:409，double→`moffat4_fit_d` :419 薄封装）、`lm_solve`（:104，LM 数值雅可比 +
-`gauss_solve` 高斯消元 :33，λ 初值 1e-3 :112，成功/失败 ×0.1/×10 :180/:182）、
-`compute_trimmed_mad`（:190，10%–90% 截尾 MAD :213-214）、moffat4 残差（:72）。
+内部核心（static，同文件）：`dpsf_batch_dims_check`（:514，PSF-001 批 ABI 尺寸
+守卫：w/h≤0 确定性拒绝 + w*h>INT_MAX 寻址上界，双维超界→调用方 -1）、
+`fit_batch_float_image`（:575，float32 批量核心，dpsf_fit_batch 转换后与
+dpsf_fit_batch_f 共用）、`moffat4_fit_tmpl`（:238，ImageT=float→`moffat4_fit`
+:441，double→`moffat4_fit_d` :451 薄封装）、`lm_solve`（:105，LM 数值雅可比 +
+`gauss_solve` 高斯消元 :34，λ 初值 1e-3 :113，成功/失败 ×0.1/×10 :181/:183）、
+`compute_trimmed_mad`（:203，10%–90% 截尾 MAD :226-227）、moffat4 残差（:73）。
 
 关键常量与语义（冻结）：
-- `MOFFAT4_FWHM_FACTOR=1.230310`（:24，β=4 解析 FWHM 系数）；`NPARAMS=7`（:25）。
-- 参数向量序 `params[0..6] = B,A,x0,y0,sx,sy,theta`（:191-192）。
-- 初值链：`bkg0`=截尾样本中位背景（:300）、`A0=max−bkg0`（:308）、
-  `params={bkg0,A0,0,0,sx0,sx0,0}`（:315）；LM 调用容差 1e-8 / max_iter=200
-  硬编码（:320-321，`DPSFFitParams.maxIter/tolerance` 字段死参数，DISP-PSF-003）。
-- θ 消歧：`thetas[4]={θ, π/2−θ, π/2+θ, π−θ}`（:358）逐候选取 trimmed MAD 最小
-  （:361-368），非重拟；保证 (sx,sy,θ) 参数化对称简并的确定性回选。
-- `fwhm_x/y = MOFFAT4_FWHM_FACTOR·sx/sy`（:339-340）；
-  `flux = 2π·A·sx·sy/3`（β=4 Moffat 解析积分 ∫=2πAα²/(β−1)，:374-375）；
-  `eccentricity=√(1−(sx_min/sx_max)²)`（:378）；`img_cx=cx+x0`（:383）。
-- 步后硬钳位 `sx,sy≥0.3`、`A≥0`（:175-177，DISP-PSF-002）。
+- `MOFFAT4_FWHM_FACTOR=1.230310`（:25，β=4 解析 FWHM 系数）；`NPARAMS=7`（:26）。
+- 参数向量序 `params[0..6] = B,A,x0,y0,sx,sy,theta`（:74-75）。
+- 初值链：`bkg0`=截尾样本中位背景（:332）、`A0=max−bkg0`（:340）、
+  `params={bkg0,A0,0,0,sx0,sx0,0}`（:347）；LM 调用容差 1e-8 / max_iter=200
+  硬编码（:352-353，`DPSFFitParams.maxIter/tolerance` 字段死参数，DISP-PSF-003）。
+- θ 消歧：`thetas[4]={θ, π/2−θ, π/2+θ, π−θ}`（:389）逐候选取 trimmed MAD 最小
+  （:391-401），非重拟；保证 (sx,sy,θ) 参数化对称简并的确定性回选。
+- `fwhm_x/y = MOFFAT4_FWHM_FACTOR·sx/sy`（:371-372）；
+  `flux = 2π·A·sx·sy/3`（β=4 Moffat 解析积分 ∫=2πAα²/(β−1)，:406-407）；
+  `eccentricity=√(1−(sx_min/sx_max)²)`（:410）；`img_cx=cx+x0`（:415）。
+- 步后硬钳位 `sx,sy≥0.3`、`A≥0`（:176-178，DISP-PSF-002）。
 
 ## 6. config schema / default / 错误码
 
 `DPSFFitParams{fitRadius, maxIter, tolerance}`（dynamic_psf.h:38-42）：批 API
-`params=NULL` 用默认 fitRadius=8/maxIter=200/tolerance=1e-8（:717-719、:845-847）；
+`params=NULL` 用默认 fitRadius=8/maxIter=200/tolerance=1e-8（:819-821、:963-965）；
 仅 `fitRadius` 实际参与裁窗，`maxIter/tolerance` 不被消费（LM 硬编码 1e-8/200，
-:320-321——DISP-PSF-003 登记）。
+:352-353——DISP-PSF-003 登记）。
 
 `DPSFFitResult` 12 字段 `{B,A,cx,cy,sx,sy,theta,fwhm_x,fwhm_y,mad,flux,eccentricity}`
 （dynamic_psf.h:17-31）。
@@ -111,20 +118,26 @@ C API（7 导出，头 lib/dynamic_psf/include/dynamic_psf.h）：
 
 | 码 | 宏 | 触发 | 输出副作用 |
 |---|---|---|---|
-| 0 | DPSF_FIT_OK | ‖Δx‖<tol·(‖x‖+1e-30)（:163）且通过 §5 验证链 | 全参数有效 |
-| 1 | DPSF_FIT_NO_CONVERGENCE | 非有限/A≤0/sx≤0.3/sy≤0.3（:336-338）；FWHM>rect（:341-346）；背景约束 \|B−bkg0\|/max(bkg0,0.01)>0.5（:349-354） | result 已 memset 0（:229），status 置码；批接口该星不计 valid |
-| 2 | DPSF_FIT_INVALID_PARAMS | 空指针/w≤0/h≤0（:431-434）；rect 面积<9（:236-239）；rect 越界（:240-245）；空 rect（:445-450） | 单星返回码；批 API 整体 -1（:700-707） |
-| 3 | DPSF_FIT_ITERATION_LIMIT | max_iter=200 耗尽（:187） | 单星接口仍回填当前最优参数（:391-403） |
+| 0 | DPSF_FIT_OK | ‖Δx‖<tol·(‖x‖+1e-30)（:164）且通过 §5 验证链 | 全参数有效 |
+| 1 | DPSF_FIT_NO_CONVERGENCE | 非有限/A≤0/sx≤0.3/sy≤0.3（:363-366）；FWHM>rect（:374-380）；背景约束 \|B−bkg0\|/max(bkg0,0.01)>0.5（:381-385） | result 已 memset 0（:243），status 置码；批接口该星不计 valid |
+| 2 | DPSF_FIT_INVALID_PARAMS | 空指针/w≤0/h≤0（:463）；rect 面积<9（:249-252）；rect 越界（:253-258）；空 rect（:477-482） | 单星返回码；批 API 整体 -1（:514-527 尺寸守卫 + :805-813） |
+| 3 | DPSF_FIT_ITERATION_LIMIT | max_iter=200 耗尽（:188） | 单星接口仍回填当前最优参数（:423-436） |
 
-批接口：`dpsf_fit_batch_f32/f64` 失败星 9 字段全 NaN（:729-732、:857-860 初始化 NaN，
-失败不覆盖；OK 星写 9 字段 :784-794），`out_n_valid` 只数 `DPSF_FIT_OK`（:804、:925）；`gauss_solve` 奇异→
-λ×10 重试（:150-153）。
+批接口：5 批入口（batch/batch_f/batch_d/batch_f32/batch_f64）共享
+`dpsf_batch_dims_check`（:514-527，PSF-001）：w/h≤0（0/-1/INT_MIN）与
+w*h>INT_MAX（int 索引寻址上界）→ 确定整体 -1，零整图分配、零输出触碰；
+uint16 入口另套分配失败 try/catch 屏障（:555-576，bad_alloc→-1 不外抛跨
+C ABI），逐星 patch 分配失败星级隔离为 INVALID_PARAMS/NaN 占位（不外抛）。
+`dpsf_fit_batch_f32/f64` 失败星 9 字段全 NaN（:833-836、:977-980 初始化 NaN，
+失败不覆盖；OK 星写 9 字段 :893-901、:1030-1038），`out_n_valid` 只数
+`DPSF_FIT_OK`（:919、:1053）；`gauss_solve` 奇异→λ×10 重试（:151-154）。
+N*9 以 int64 计（入口 n ≤ INT_MAX/9 拒绝，:810/:955）。
 
 ## 7. threading / parallel axis / lease / memory / I/O / cancel / checkpoint
 
 现状（登记不改码，DISP-PSF-001..006 见 ALG §11.3）：
 - OpenMP `parallel for schedule(dynamic) reduction(+:success_count)` 4 处
-  （dpsf_psf.cpp:528,635,738,866）；逐星独立、输出按索引写，无跨星共享可变状态，
+  （dpsf_psf.cpp:593,718,842,986）；逐星独立、输出按索引写，无跨星共享可变状态，
   计数 reduction 与星序无关 → 结果确定（determinism=fixed_reduction_order）。
 - 无取消检查点（DISP-PSF-004）；无 checkpoint；I/O 仅日志（dpsf_log，默认
   threshold LOG_WARN，2026-07-12 性能修复）。
@@ -163,7 +176,12 @@ TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS.md §11.4，P1-PSF-TEST 执行）：
   PSF 为必需 stage（orchestrator.cpp:2071-2075，DLL 未加载→退出码 2）；
   orchestrator 现消费 `dpsf_free_results`（:2290）、`dpsf_fit_batch_d`（:2304）、
   `dpsf_fit_batch_f`（:2327）。
-- 测试：现状无共址单元测试（tests/ 无 dpsf 套件）；测试建立归 P1-PSF-TEST。
+- 测试：共址测试面 `tests/p1psf/`（P1-PSF-TEST 建立，root CMake 经
+  tests/unit/CMakeLists.txt:984 接入；`ctest -R p1psf_`：units/properties/
+  oracle/negative/boundary/performance/selfcheck，故障注入
+  `ASTROCS_P1PSF_FAULT=<name>` 必败自检）。批 ABI 尺寸边界负例 = negative 组
+  N4b/N4c（PSF-001：w/h∈{0,-1,INT_MIN} × 5 入口 + w*h>INT_MAX，注入名
+  `batch_boundary`）。
 - **已知限制（如实登记）**：① `DPSFFitParams.maxIter/tolerance` 死参数（DISP-PSF-003）；
   ② 前向差分雅可比（DISP-PSF-002 同族，精度与收敛半径受限）；③ 步后硬钳位
   （DISP-PSF-002）；④ 饱和列不消费；⑤ θ 消歧仅 4 候选对称集；⑥ 无参数协方差/

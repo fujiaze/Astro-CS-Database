@@ -9,6 +9,7 @@
 #include "dpsf_image.h"
 #include <algorithm>
 #include <chrono>
+#include <climits>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -504,6 +505,26 @@ DPSF_EXPORT int dpsf_fit(const uint16_t *image, int width, int height,
     return ret;
 }
 
+// PSF-001: 批 ABI 尺寸守卫 —— ①w/h≤0 确定性拒绝 (0/-1/INT_MIN 等全部
+// 非正值, 修复前 batch/batch_f/batch_d 伪成功 rc=0 或 (size_t)w*h 下溢
+// → length_error → SIGABRT, README §2/§6 声称的 -1 语义); ②w*h 寻址上界
+// —— 逐像素索引 y*width+x 为 int 乘加, w*h>INT_MAX 时必然符号溢出 UB,
+// 入口即拒绝 → 零整图分配零读取。通过时返回 0; 否则记 LOG_ERROR, 调用方
+// 直接 return -1 (不触碰任何输出 sentinel)。
+static int dpsf_batch_dims_check(const char *api, int width, int height) {
+    if (width <= 0 || height <= 0) {
+        dpsf_log(LOG_ERROR, "DPSF", "%s: invalid dimensions w=%d h=%d", api, width, height);
+        return -1;
+    }
+    const long long wh = (long long)width * (long long)height;
+    if (wh > (long long)INT_MAX) {
+        dpsf_log(LOG_ERROR, "DPSF", "%s: w*h=%lld exceeds INT_MAX int-index addressing bound",
+                 api, wh);
+        return -1;
+    }
+    return 0;
+}
+
 // 前向声明 (float32 拟合核心, 定义在 dpsf_fit_batch 之后)
 static int fit_batch_float_image(const float *float_image, int width, int height,
                                  const double *cx_array, const double *cy_array, int count,
@@ -517,22 +538,34 @@ DPSF_EXPORT int dpsf_fit_batch(const uint16_t *image, int width, int height,
     auto t0 = std::chrono::high_resolution_clock::now();
     (void)t0;  /* 非 DPSF_PROFILE 构建时避免 unused 告警 */
 
-    if (!image || !cx_array || !cy_array || !params || !out_results || count <= 0) {
-        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch: invalid arguments");
+    if (!image || !cx_array || !cy_array || !params || !out_results || count <= 0 ||
+        dpsf_batch_dims_check("dpsf_fit_batch", width, height) != 0) {
+        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch: invalid arguments (w=%d h=%d)", width, height);
         return -1;
     }
 
     dpsf_log(LOG_INFO, "DPSF", "dpsf_fit_batch: %d points, %dx%d image, fitRadius=%d",
            count, width, height, params->fitRadius);
 
-    size_t n_pixels = (size_t)width * height;
-    std::vector<float> float_image(n_pixels);
-    for (size_t i = 0; i < n_pixels; i++) {
-        float_image[i] = static_cast<float>(image[i]);
-    }
+    // PSF-001: 兜底异常屏障 —— 乘积上界内仍可能因内存不足分配失败
+    // (w*h ≤ INT_MAX → float 副本 ≤ 8.6 GB); C ABI 边界禁止异常外抛,
+    // 分配失败转为稳定 -1 (输出 sentinel 未触碰)。
+    try {
+        size_t n_pixels = (size_t)width * height;
+        std::vector<float> float_image(n_pixels);
+        for (size_t i = 0; i < n_pixels; i++) {
+            float_image[i] = static_cast<float>(image[i]);
+        }
 
-    return fit_batch_float_image(float_image.data(), width, height,
-                                 cx_array, cy_array, count, params, out_results);
+        return fit_batch_float_image(float_image.data(), width, height,
+                                     cx_array, cy_array, count, params, out_results);
+    } catch (const std::exception &e) {
+        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch: allocation failed (%s) -> rc=-1", e.what());
+        return -1;
+    } catch (...) {
+        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch: unknown failure -> rc=-1");
+        return -1;
+    }
 }
 
 // ============================================================================
@@ -543,8 +576,9 @@ static int fit_batch_float_image(const float *float_image, int width, int height
                                  const double *cx_array, const double *cy_array, int count,
                                  const DPSFFitParams *params,
                                  DPSFFitResult **out_results) {
-    if (!float_image || !cx_array || !cy_array || !params || !out_results || count <= 0) {
-        dpsf_log(LOG_ERROR, "DPSF", "fit_batch_float_image: invalid arguments");
+    if (!float_image || !cx_array || !cy_array || !params || !out_results || count <= 0 ||
+        dpsf_batch_dims_check("fit_batch_float_image", width, height) != 0) {
+        dpsf_log(LOG_ERROR, "DPSF", "fit_batch_float_image: invalid arguments (w=%d h=%d)", width, height);
         return -1;
     }
     DPSFFitResult *results = (DPSFFitResult *)malloc(count * sizeof(DPSFFitResult));
@@ -575,17 +609,33 @@ static int fit_batch_float_image(const float *float_image, int width, int height
             continue;
         }
 
-        std::vector<float> patch((size_t)rw * rh);
-        for (int y = y0; y < y1; y++) {
-            for (int x = x0; x < x1; x++) {
-                patch[(y - y0) * rw + (x - x0)] = float_image[y * width + x];
+        // PSF-001: 星级异常隔离 —— patch 分配失败 (fitRadius 巨大 → 裁窗
+        // 钳到整图, 单星 patch ≤ w*h ≤ INT_MAX 像素) 不得外抛跨 OpenMP/C
+        // ABI 边界, 降级为该星 INVALID_PARAMS (memset 0), 其余星不受影响。
+        try {
+            std::vector<float> patch((size_t)rw * rh);
+            for (int y = y0; y < y1; y++) {
+                for (int x = x0; x < x1; x++) {
+                    patch[(y - y0) * rw + (x - x0)] = float_image[y * width + x];
+                }
             }
+
+            double local_cx = cx - x0;
+            double local_cy = cy - y0;
+
+            moffat4_fit(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &results[i]);
+        } catch (const std::exception &e) {
+            dpsf_log(LOG_ERROR, "DPSF", "fit_batch_float_image: star %d allocation failed (%s)",
+                     i, e.what());
+            std::memset(&results[i], 0, sizeof(DPSFFitResult));
+            results[i].status = DPSF_FIT_INVALID_PARAMS;
+            continue;
+        } catch (...) {
+            dpsf_log(LOG_ERROR, "DPSF", "fit_batch_float_image: star %d unknown failure", i);
+            std::memset(&results[i], 0, sizeof(DPSFFitResult));
+            results[i].status = DPSF_FIT_INVALID_PARAMS;
+            continue;
         }
-
-        double local_cx = cx - x0;
-        double local_cy = cy - y0;
-
-        moffat4_fit(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &results[i]);
 
         if (results[i].status == DPSF_FIT_OK || results[i].status == DPSF_FIT_ITERATION_LIMIT) {
             results[i].cx += x0;
@@ -613,8 +663,9 @@ DPSF_EXPORT int dpsf_fit_batch_f(const float *image, int width, int height,
                                  const DPSFFitParams *params,
                                  DPSFFitResult **out_results) {
     auto t0 = std::chrono::high_resolution_clock::now();
-    if (!image || !cx_array || !cy_array || !params || !out_results || count <= 0) {
-        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_f: invalid arguments");
+    if (!image || !cx_array || !cy_array || !params || !out_results || count <= 0 ||
+        dpsf_batch_dims_check("dpsf_fit_batch_f", width, height) != 0) {
+        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_f: invalid arguments (w=%d h=%d)", width, height);
         return -1;
     }
     dpsf_log(LOG_INFO, "DPSF", "dpsf_fit_batch_f: %d points, %dx%d image, fitRadius=%d (float32)",
@@ -646,8 +697,9 @@ DPSF_EXPORT int dpsf_fit_batch_d(const double *image, int width, int height,
                                  DPSFFitResult **out_results) {
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    if (!image || !cx_array || !cy_array || !params || !out_results || count <= 0) {
-        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_d: invalid arguments");
+    if (!image || !cx_array || !cy_array || !params || !out_results || count <= 0 ||
+        dpsf_batch_dims_check("dpsf_fit_batch_d", width, height) != 0) {
+        dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_d: invalid arguments (w=%d h=%d)", width, height);
         return -1;
     }
 
@@ -682,18 +734,33 @@ DPSF_EXPORT int dpsf_fit_batch_d(const double *image, int width, int height,
             continue;
         }
 
-        // FP64 路径: 直接从 double 图像裁剪 patch (不降级到 float32)
-        std::vector<double> patch((size_t)rw * rh);
-        for (int y = y0; y < y1; y++) {
-            for (int x = x0; x < x1; x++) {
-                patch[(y - y0) * rw + (x - x0)] = image[(size_t)y * width + x];
+        // PSF-001: 星级异常隔离 (同 fit_batch_float_image —— patch 分配
+        // 失败降级为该星 INVALID_PARAMS, 不外抛跨 OpenMP/C ABI 边界)。
+        try {
+            // FP64 路径: 直接从 double 图像裁剪 patch (不降级到 float32)
+            std::vector<double> patch((size_t)rw * rh);
+            for (int y = y0; y < y1; y++) {
+                for (int x = x0; x < x1; x++) {
+                    patch[(y - y0) * rw + (x - x0)] = image[(size_t)y * width + x];
+                }
             }
+
+            double local_cx = cx - x0;
+            double local_cy = cy - y0;
+
+            moffat4_fit_d(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &results[i]);
+        } catch (const std::exception &e) {
+            dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_d: star %d allocation failed (%s)",
+                     i, e.what());
+            std::memset(&results[i], 0, sizeof(DPSFFitResult));
+            results[i].status = DPSF_FIT_INVALID_PARAMS;
+            continue;
+        } catch (...) {
+            dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_d: star %d unknown failure", i);
+            std::memset(&results[i], 0, sizeof(DPSFFitResult));
+            results[i].status = DPSF_FIT_INVALID_PARAMS;
+            continue;
         }
-
-        double local_cx = cx - x0;
-        double local_cy = cy - y0;
-
-        moffat4_fit_d(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &results[i]);
 
         if (results[i].status == DPSF_FIT_OK || results[i].status == DPSF_FIT_ITERATION_LIMIT) {
             results[i].cx += x0;
@@ -736,7 +803,11 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
 
     // ---- 参数校验 ----
     if (!image || !detections || !out_psf_params || !out_n_valid ||
-        width <= 0 || height <= 0 || n_detections <= 0) {
+        width <= 0 || height <= 0 || n_detections <= 0 ||
+        // PSF-001: w*h int 寻址上界 + N*9 int 乘法溢出 (NaN 初始化循环
+        // i < n_detections*9 为 int 乘法, N > INT_MAX/9 时符号溢出 UB)
+        dpsf_batch_dims_check("dpsf_fit_batch_f32", width, height) != 0 ||
+        n_detections > INT_MAX / 9) {
         dpsf_log(LOG_ERROR, "DPSF",
                  "dpsf_fit_batch_f32: invalid arguments (image=%p detections=%p out=%p n_valid=%p w=%d h=%d n=%d)",
                  image, detections, out_psf_params, out_n_valid, width, height, n_detections);
@@ -758,7 +829,9 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
 
     // ---- 初始化输出: 全部置 NaN, n_valid=0 ----
     const double nan_val = std::numeric_limits<double>::quiet_NaN();
-    for (int i = 0; i < n_detections * 9; i++) {
+    // PSF-001: N*9 以 int64 计算 (入口已保证 n ≤ INT_MAX/9, 双保险防 int 乘法)
+    const long long nan_fill = (long long)n_detections * 9;
+    for (long long i = 0; i < nan_fill; i++) {
         out_psf_params[i] = nan_val;
     }
     *out_n_valid = 0;
@@ -792,42 +865,53 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
             continue;
         }
 
-        // 直接从 float32 图像裁剪 patch (不创建整张 uint16 图像, 不 clip)
-        std::vector<float> patch((size_t)rw * rh);
-        for (int y = y0; y < y1; y++) {
-            for (int x = x0; x < x1; x++) {
-                patch[(y - y0) * rw + (x - x0)] = image[(size_t)y * width + x];
+        // PSF-001: 星级异常隔离 —— patch 分配失败降级为该星 NaN 占位
+        // (out_row 保持初始化 NaN, 不外抛跨 OpenMP/C ABI 边界)。
+        try {
+            // 直接从 float32 图像裁剪 patch (不创建整张 uint16 图像, 不 clip)
+            std::vector<float> patch((size_t)rw * rh);
+            for (int y = y0; y < y1; y++) {
+                for (int x = x0; x < x1; x++) {
+                    patch[(y - y0) * rw + (x - x0)] = image[(size_t)y * width + x];
+                }
             }
-        }
 
-        double local_cx = cx - x0;
-        double local_cy = cy - y0;
+            double local_cx = cx - x0;
+            double local_cy = cy - y0;
 
-        DPSFFitResult result;
-        moffat4_fit(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &result);
+            DPSFFitResult result;
+            moffat4_fit(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &result);
 
-        if (result.status == DPSF_FIT_OK || result.status == DPSF_FIT_ITERATION_LIMIT) {
-            // 把局部坐标转回图像坐标
-            result.cx += x0;
-            result.cy += y0;
-        }
+            if (result.status == DPSF_FIT_OK || result.status == DPSF_FIT_ITERATION_LIMIT) {
+                // 把局部坐标转回图像坐标
+                result.cx += x0;
+                result.cy += y0;
+            }
 
-        if (result.status == DPSF_FIT_OK) {
-            // 填充 9 字段输出: B, A, cx, cy, sx, sy, theta, fwhm_x, fwhm_y
-            out_row[0] = result.B;
-            out_row[1] = result.A;
-            out_row[2] = result.cx;
-            out_row[3] = result.cy;
-            out_row[4] = result.sx;
-            out_row[5] = result.sy;
-            out_row[6] = result.theta;
-            out_row[7] = result.fwhm_x;
-            out_row[8] = result.fwhm_y;
-            success_count++;
-        } else {
-            dpsf_log(LOG_DEBUG, "DPSF",
-                     "dpsf_fit_batch_f32: star %d fit failed status=%d cx=%.2f cy=%.2f",
-                     i, result.status, cx, cy);
+            if (result.status == DPSF_FIT_OK) {
+                // 填充 9 字段输出: B, A, cx, cy, sx, sy, theta, fwhm_x, fwhm_y
+                out_row[0] = result.B;
+                out_row[1] = result.A;
+                out_row[2] = result.cx;
+                out_row[3] = result.cy;
+                out_row[4] = result.sx;
+                out_row[5] = result.sy;
+                out_row[6] = result.theta;
+                out_row[7] = result.fwhm_x;
+                out_row[8] = result.fwhm_y;
+                success_count++;
+            } else {
+                dpsf_log(LOG_DEBUG, "DPSF",
+                         "dpsf_fit_batch_f32: star %d fit failed status=%d cx=%.2f cy=%.2f",
+                         i, result.status, cx, cy);
+                // out_row 已为 NaN
+            }
+        } catch (const std::exception &e) {
+            dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_f32: star %d allocation failed (%s)",
+                     i, e.what());
+            // out_row 已为 NaN
+        } catch (...) {
+            dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_f32: star %d unknown failure", i);
             // out_row 已为 NaN
         }
     }
@@ -864,7 +948,10 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
 
     // ---- 参数校验 ----
     if (!image || !detections || !out_psf_params || !out_n_valid ||
-        width <= 0 || height <= 0 || n_detections <= 0) {
+        width <= 0 || height <= 0 || n_detections <= 0 ||
+        // PSF-001: 同 f32 —— w*h int 寻址上界 + N*9 int 乘法溢出
+        dpsf_batch_dims_check("dpsf_fit_batch_f64", width, height) != 0 ||
+        n_detections > INT_MAX / 9) {
         dpsf_log(LOG_ERROR, "DPSF",
                  "dpsf_fit_batch_f64: invalid arguments (image=%p detections=%p out=%p n_valid=%p w=%d h=%d n=%d)",
                  image, detections, out_psf_params, out_n_valid, width, height, n_detections);
@@ -886,7 +973,9 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
 
     // ---- 初始化输出: 全部置 NaN, n_valid=0 ----
     const double nan_val = std::numeric_limits<double>::quiet_NaN();
-    for (int i = 0; i < n_detections * 9; i++) {
+    // PSF-001: N*9 以 int64 计算 (入口已保证 n ≤ INT_MAX/9, 双保险防 int 乘法)
+    const long long nan_fill = (long long)n_detections * 9;
+    for (long long i = 0; i < nan_fill; i++) {
         out_psf_params[i] = nan_val;
     }
     *out_n_valid = 0;
@@ -916,40 +1005,48 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
             continue;
         }
 
-        // FP64 路径: 直接从 double 图像裁剪 patch (不降级到 float32)
-        std::vector<double> patch((size_t)rw * rh);
-        for (int y = y0; y < y1; y++) {
-            for (int x = x0; x < x1; x++) {
-                patch[(y - y0) * rw + (x - x0)] = image[(size_t)y * width + x];
+        // PSF-001: 星级异常隔离 —— patch 分配失败降级为该星 NaN 占位。
+        try {
+            // FP64 路径: 直接从 double 图像裁剪 patch (不降级到 float32)
+            std::vector<double> patch((size_t)rw * rh);
+            for (int y = y0; y < y1; y++) {
+                for (int x = x0; x < x1; x++) {
+                    patch[(y - y0) * rw + (x - x0)] = image[(size_t)y * width + x];
+                }
             }
-        }
 
-        double local_cx = cx - x0;
-        double local_cy = cy - y0;
+            double local_cx = cx - x0;
+            double local_cy = cy - y0;
 
-        DPSFFitResult result;
-        moffat4_fit_d(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &result);
+            DPSFFitResult result;
+            moffat4_fit_d(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &result);
 
-        if (result.status == DPSF_FIT_OK || result.status == DPSF_FIT_ITERATION_LIMIT) {
-            result.cx += x0;
-            result.cy += y0;
-        }
+            if (result.status == DPSF_FIT_OK || result.status == DPSF_FIT_ITERATION_LIMIT) {
+                result.cx += x0;
+                result.cy += y0;
+            }
 
-        if (result.status == DPSF_FIT_OK) {
-            out_row[0] = result.B;
-            out_row[1] = result.A;
-            out_row[2] = result.cx;
-            out_row[3] = result.cy;
-            out_row[4] = result.sx;
-            out_row[5] = result.sy;
-            out_row[6] = result.theta;
-            out_row[7] = result.fwhm_x;
-            out_row[8] = result.fwhm_y;
-            success_count++;
-        } else {
-            dpsf_log(LOG_DEBUG, "DPSF",
-                     "dpsf_fit_batch_f64: star %d fit failed status=%d cx=%.2f cy=%.2f",
-                     i, result.status, cx, cy);
+            if (result.status == DPSF_FIT_OK) {
+                out_row[0] = result.B;
+                out_row[1] = result.A;
+                out_row[2] = result.cx;
+                out_row[3] = result.cy;
+                out_row[4] = result.sx;
+                out_row[5] = result.sy;
+                out_row[6] = result.theta;
+                out_row[7] = result.fwhm_x;
+                out_row[8] = result.fwhm_y;
+                success_count++;
+            } else {
+                dpsf_log(LOG_DEBUG, "DPSF",
+                         "dpsf_fit_batch_f64: star %d fit failed status=%d cx=%.2f cy=%.2f",
+                         i, result.status, cx, cy);
+            }
+        } catch (const std::exception &e) {
+            dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_f64: star %d allocation failed (%s)",
+                     i, e.what());
+        } catch (...) {
+            dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_f64: star %d unknown failure", i);
         }
     }
 

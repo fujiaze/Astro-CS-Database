@@ -7,7 +7,7 @@
 //      (排除恒 PASS 侧), stderr 含 FAULT-INJECT 行。
 // 注入名与 faultname 注册处 (p1psf_tests_core.cpp P1PSF_CHECK 第三参) 对齐:
 //   recovery / identity / worker_bitwise / abi_consistency /
-//   negative_matrix / nan_semantics
+//   negative_matrix / nan_semantics / batch_boundary
 //   (P1PSF_SELFCHECK_FAULT 可覆盖注入名; 默认 recovery)
 #include <sys/wait.h>
 #include <unistd.h>
