@@ -2,7 +2,7 @@
  "schema_version": "v8.1",
  "round": "V8.1_EXISTING_WORKSPACE_CI",
  "control_package": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
- "updated_utc": "2026-09-06T14:49:59Z",
+ "updated_utc": "2026-09-09T11:12:44Z",
  "main_sha": "80f2727d",
  "reconciled_by": {
   "task_id": "MAIN23-W3-RECONCILE",
@@ -45,9 +45,9 @@
   "WAITING_RESOURCE"
  ],
  "counts": {
-  "CLOSED": 81,
+  "CLOSED": 104,
   "READY": 0,
-  "NOT_STARTED": 108,
+  "NOT_STARTED": 85,
   "DISPATCHED": 0,
   "FATDUCK_PENDING": 2,
   "WAITING_RESOURCE": 0,
