@@ -1456,14 +1456,14 @@
   },
   "P1-STAR-TEST": {
    "owner": "SA-P1-S15",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "8e5dfab6",
+   "evidence_path": "run/local/agent_p1star_test/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-test",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
+   "review_claim": "tests_complete",
+   "current_evidence": "影子树六组4轮全绿+asan 5/6零sanitizer发现(negative组interposer/ASan先序架构冲突不适用);OOM注入六数组事务化checkpoint;oracle零调用sdet_*;flux口径按DOC冻结=振幅A;域内GSL自探修复主树configure FATAL;前台主树复跑33/33全绿",
    "note": ""
   },
   "P1-STAR-IMPL": {
@@ -1504,14 +1504,14 @@
   },
   "P1-PSF-TEST": {
    "owner": "SA-P1-S15",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "2763386e",
+   "evidence_path": "run/local/agent_p1psf_test/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-test",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
+   "review_claim": "tests_complete",
+   "current_evidence": "影子树7/7 3轮全绿+asan 6/6;oracle Moffat4旋转主轴投影直接公式与生产二次型+LM零共享;故障注入双向必败;DISP-PSF-007候选(dpsf_fit_batch无w/h≤0校验size下溢abort)fork隔离断言登记移交IMPL",
    "note": ""
   },
   "P1-PSF-IMPL": {
@@ -1648,14 +1648,14 @@
   },
   "P1-NOISE-TEST": {
    "owner": "SA-P1-N17",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "e54cd740",
+   "evidence_path": "run/local/agent_p1noise_test/shadow/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-test",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
+   "review_claim": "tests_complete",
+   "current_evidence": "前台复跑ctest p1noise_ 8/8(重编后)+asan+ubsan 8/8;oracle仅依赖snr_estimator.h+std零被测函数路径;故障注入fork+execve双向必败;前任3败测试面缺陷修正(n5隔离单变量/n7 clamp186触发/f2 2幂bitwise+rel1e-15);kTrimMeanToSigma挂账项不在断言面未锁值",
    "note": ""
   },
   "P1-NOISE-IMPL": {
@@ -1756,15 +1756,15 @@
   },
   "P1-HIPS-IMPL": {
    "owner": "SA-P1-D18",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "1959dc89",
+   "evidence_path": "run/local/agent_p1hips_impl/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-impl",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
-   "note": ""
+   "review_claim": "impl_complete",
+   "current_evidence": "前台复跑:nm -D唯一astrocs_module_query_v1+dlsym九legacy全NULL主影子双定格;direct-vs-plugin产物树逐文件size相等数据位级零差异(仅CHECKSUM注释秒级时间戳4字节);主树影子5轮+asan adapter 9case PASS;p1hips六组影子5/5主树3/5,2轮flaky定性tree_digest含CHECKSUM秒级时间戳跨秒必败移交TEST域;生产源git diff空",
+   "note": " scientific_change=false; DLL 1.79MB; /DEF备齐待Windows工具链"
   },
   "P1-HIPS-INT": {
    "owner": "SA-P1-D18",
@@ -2224,14 +2224,14 @@
   },
   "P1-SESSION-TEST": {
    "owner": "SA-P1-R19",
-   "status": "NOT_STARTED",
-   "closed_commit": "",
-   "evidence_path": "",
-   "source_of_status": "not_dispatched_no_evidence",
+   "status": "CLOSED",
+   "closed_commit": "ab2f6ade",
+   "evidence_path": "run/local/agent_p1session_test/logs/",
+   "source_of_status": "fg_machine_verified",
    "wave": "W3",
    "kind": "module-test",
-   "review_claim": "NOT_STARTED",
-   "current_evidence": "none",
+   "review_claim": "tests_complete",
+   "current_evidence": "影子树5组3轮全绿+asan+ubsan 5/5;each node once以manifest stages为账本4节点各恰1次;failure propagation 6路径全断言;oracle手写大端FITS解码+ALG-CAL-001代数重算;3处测试自缺陷修复含p_cancelled守卫",
    "note": ""
   },
   "P1-SESSION-IMPL": {
