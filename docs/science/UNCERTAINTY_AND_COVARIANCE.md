@@ -46,6 +46,53 @@ control_ivar     = 1 / control_variance
 - 生产 UPM 权重 = quality × geometric_reliability × control_ivar
   （SCI-UPM-WEIGHT-001），禁止再用单像素 ivar/support/SNR 乘因子。
 
+## Phase2 马赛克合成方差（DATA-P2-VAR-001，DATA-UNC-001 冻结 2026-09-09）
+
+马赛克加权积分（SCI-INT §5，w_i=逐样本 ivar，weight_mode=2，无 fallback）的
+方差传播是 SCI-DRZ-014 一般式 `var_p = Σ_j v_j w_jp²/D_p²` 在积分权重下的
+直接特例（w_i=1/v_i）：
+
+```text
+ivar_mosaic(p) = W(p) = Σ_i ivar_i(p)     # = wsum（SCI-INT §5 冻结量）
+variance_mosaic(p) = 1 / W(p)
+一般式（权重非纯逆方差时适用）: variance = Σ_i w_i²·v_i / W²
+```
+
+- 上游协方差（§上）不进入逐像素 variance：马赛克 variance 仍是逐像素随机
+  方差，aperture 使用边界同上。
+- UPM control_variance（ALG-UPM-CONTROL-IVAR-001）只进 w_UPM，与马赛克
+  variance 产品严格分离。
+- invalid（输出面）：无有效样本（n_used=0）→ variance/ivar=NaN（signal=NaN
+  同态，writer 通道 DATA_SEMANTICS §12.4）；输入 ivar 非有限 → hard fail。
+- unavailable（fail-closed）：weight_mode≠2 或 ivar 帧缺失 fallback 发生 →
+  不写 variance/ivar 产品 + manifest uncertainty_available=false（禁伪值）。
+- 产品/manifest 表达与验证门：DATA_SEMANTICS §30.1/§30.5（DATA-P2-VAR-001）。
+
+## Phase3 重采样方差传播（DATA-P3-UNC-001，DATA-UNC-001 冻结 2026-09-09）
+
+反向映射重采样（SCI-P3 §5 冻结采样核）把输入逐像素方差 u 传播到输出平面；
+这是方差二次型在重采样权重下的直接应用（同 SCI-DRZ-014 二次形式、SCI-NOISE-002
+缩放律同源）：
+
+```text
+nearest :  var_out = u_in
+bilinear:  var_out = Σ_k c_k² · u_k     # c_k = ALG-P3-003 G4 冻结权重, Σc_k=1
+ivar_out = 1 / var_out   (var_out 有限且 >0)；var_out=0→0、NaN→NaN 同态
+```
+
+- **Σc_k² ≠ 1 是正确物理**：bilinear 平均降低独立像素方差但引入相邻相关
+  （§上协方差机制），禁止误用 Σc_k=1 归一 variance（常数信号场不变量
+  SCI-P3 §7 只对 signal 成立，对 variance 不成立）。
+- 输入选择：输入 HiPS 含 variance/ 子产品则 u=variance；否则含 ivar/ 则
+  u=1/ivar；两者皆无 → uncertainty unavailable（输出无 VARIANCE/IVAR HDU +
+  manifest uncertainty_available=false，宪章 §18.3 模式）；负/Inf = 产品
+  损坏显式错误；NaN 传播（C=1）。
+- invalid（输出面）：无覆盖（C=0）→ variance/ivar=NaN（signal=NaN 同态）；
+  覆盖不一致（leaf signal 有限而 u 缺失）→ 输出 NaN + provenance 计数。
+- 产品/FITS 表达（EXTNAME=VARIANCE/IVAR、BUNIT 派生）与验证门：
+  DATA_SEMANTICS §30.4/§30.5（DATA-P3-UNC-001）；SCI-P3 §9a-10 的
+  variance/ivar 拒绝语义由此 supersession（宪章 §7.1/§7.3 上位）。
+
 ## 数值精度
 
 FP64；MC 表征 seed 固定可复现。
@@ -53,4 +100,5 @@ FP64；MC 表征 seed 固定可复现。
 ## ID
 
 SCI-NOISE-011/012；ALG-DRZ-VAR-*；ALG-UPM-CONTROL-IVAR-001；
-DATA-UPM-CONTROL-UNC-001。
+DATA-UPM-CONTROL-UNC-001；DATA-P2-VAR-001；DATA-P3-UNC-001
+（DATA-UNC-001，DATA_SEMANTICS §30）。

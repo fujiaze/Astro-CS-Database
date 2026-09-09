@@ -42,6 +42,12 @@ FITS index = (511 - x) * 512 + y
   docs/science/UNCERTAINTY_AND_COVARIANCE.md），pixel variance ≠
   aperture variance。
 - HiPS 子产品位：`AIO_HIPS_PRODUCT_VARIANCE=8`、`AIO_HIPS_PRODUCT_IVAR=16`。
+- **无覆盖值歧义消解（DATA-UNC-001 登记，2026-09-09）**：本节
+  "无覆盖像素=0 / ivar=0" 与 §12.4 P1 写侧 "variance/ivar=NaN" 存在
+  预存双值（finding F-UNC-001，归 Phase1 域任务消歧，本文不在
+  此处单方改写）；Phase2 合成与 Phase3 传播**输出产品**的无覆盖/无效
+  语义以 §30 为唯一权威（NaN 同态，§30.1/§30.4）；ivar=0 仅保留为
+  Phase2 读侧对逐帧 ivar 产品的合法零权重消费态（§20.1/§21）。
 
 ## 5. frame identity / manifest（DATA-FRAME-ID-001，V19R4 冻结）
 
@@ -921,7 +927,14 @@ P2Stage2Config 公共关键字段（唯一签名源 stage2_common.h:16-99，行�
 flags=AIO_HIPS_PRODUCT_SIGNAL|AIO_HIPS_PRODUCT_SUPPORT）: **仅
 signal + support 两个 Image HiPS**；无 variance/ivar/snr 产品
 （DISP-P2HIPS-001，如实登记——ivar 为输入侧逐帧产品，Phase2 不
-输出合成 ivar/variance）。几何: NESTED（§2 唯一 ordering），
+输出合成 ivar/variance）。
+**目标态合同（DATA-UNC-001，2026-09-09 冻结）**：Phase2 马赛克产品
+集目标含 variance/ivar/nused/nrej 子产品与 provenance 键（§30.1–
+§30.3，DATA-P2-VAR-001/DATA-P2-REJ-001/DATA-P2-PROV-001）；实现
+不得先行，接线整改归 P2-001（writer 通道
+`aio_hips_write_variance_tile` 已具备，属接线缺口非能力缺口，
+DISP-P2HIPS-001 整改去向不变）；本节现状描述在实现落地前保持有效。
+几何: NESTED（§2 唯一 ordering），
 `nside = 2^(target_order+9)`（stage2.cpp:525），叶级阶
 K=target_order+9，tile 512×512（tile_order=K−9，§2）；
 `A_cell = 4π/(12·nside²)`（stage2.cpp:527-528）。
@@ -958,7 +971,9 @@ signal 回读失败 rc=7 :1665）。
   - ivar/variance = **输入侧逐帧产品**（§4a，DATA-HIPS-VAR-001/
     DATA-HIPS-IVAR-001），Phase2 仅作 weight_mode=2 积分权重消费
     （stage2.cpp:1106-1117），不输出 Phase2 合成 variance/ivar
-    产品（DISP-P2HIPS-001）；weight_mode 语义: 2=逐样本 ivar
+    产品（DISP-P2HIPS-001；目标态合同 DATA-P2-VAR-001 §30.1——
+    weight_mode=2 且无 fallback 时输出 variance/ivar 子产品，
+    `ivar_mosaic(p) = wsum(p)`，合成公式与 invalid policy 见 §30.1）；weight_mode 语义: 2=逐样本 ivar
     （ivar 缺失/无效样本 fallback support :1113-1114，计入
     fallback 统计）、0=support×snr²（legacy/诊断，local snr map
     → frame snr fallback，赋值 :1136，CPU 路径重复 :1396）、
@@ -1947,6 +1962,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 |---|---|---|
 | FITS 主 HDU | BITPIX=-32\|-64，NAXIS=2，[W,H] | signal；关键字=CTYPE1/2=RA---TAN/DEC--TAN、CUNIT1/2=deg、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2（p3_output.cpp:148-169）、BSCALE=1/BZERO=0（:171-173）、BUNIT（:174-176）、HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER+HISTORY（:178-189） |
 | COVERAGE 扩展 HDU | 同 BITPIX，EXTNAME="COVERAGE" | coverage；DATASUM=32-bit fdatasum(signal)（:211-219；TINT 数值关键字，非 FITS 标准 ASCII CHECKSUM，如实冻结） |
+| VARIANCE/IVAR 扩展 HDU（**目标态**，DATA-P3-UNC-001 §30.4） | 同 BITPIX，EXTNAME="VARIANCE"/"IVAR" | 输入 HiPS 含 variance/ivar 子产品时必写（禁静默丢弃，宪章 §7.3）；无则不写 HDU 且 manifest uncertainty_available=false；BUNIT=`<BUNIT>^2` / `1/(<BUNIT>^2)`；传播公式与 invalid 见 §30.4；实现归 P3-001，现状无此 HDU |
 | result.sha256 | char[65] | 输出文件 SHA-256 hex 小写；仅完整读出后填写，失败不写空/前缀哈希（p3_output.cpp:92-114/:279-283） |
 | result.coverage_ok / reopen_ok | int 0/1 | coverage 头/数据一致；独立 reader 重开回环一致（:350-354） |
 | result.covered_px / total_px | long | #(coverage>0.5f)；W·H（:287-289） |
@@ -2021,7 +2037,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 | hips_dir | char* | 1 | — | HiPS 根目录；properties 严格校验（必需 keys hips_order/hips_tile_width/hips_frame/dataproduct_type，order∈[0,20]，tile_width 必须 512，NESTED 唯一，frame=ICRS——hips_properties.cpp:113-122） |
 | max_order | int | 标量 | — | order 选择上限=输入实际 order（会话 clamp ≤20，p3_session.cpp:196-199；禁仅写 metadata 的 order）；<0 或 >20 → P3_RS_PARAM（p3_resample.cpp:84） |
 | scale_deg_per_px | float64 | 标量 | deg/px | 必 >0（cpp:86）；G3 order 选择的唯一尺度输入 |
-| input_mode（守卫面） | char* | 1 | — | `surface_brightness` 唯一合法（p3_resample_check_mode cpp:95-107）；flux/variance/weight/ivar → UNSUPPORTED（SCI §9a-8/10）；会话接线缺口 DISP-P3RSMP-003 |
+| input_mode（守卫面） | char* | 1 | — | `surface_brightness` 唯一合法（p3_resample_check_mode cpp:95-107）；flux/variance/weight/ivar → UNSUPPORTED（SCI §9a-8/10；会话接线缺口 DISP-P3RSMP-003）。**目标态合同（DATA-P3-UNC-001 §30.4，2026-09-09 冻结，supersession SCI-P3 §9a-10 variance/ivar 拒绝语义，上位=宪章 §7.1/§7.3）**：variance/ivar 子产品输入由显式拒绝改为显式消费传播（输出 VARIANCE/IVAR HDU），flux-per-pixel/weight 等其余拒绝项不变；实现归 P3-001，本节现状守卫在实现落地前保持有效 |
 | max_tiles | int | 标量 | tile | 缓存容量；≤0 恢复默认 8（cpp:161-168）；会话层默认 min(1024, ceil(W·H/512²)+16)，请求超默认 → ACS_ERR_BUDGET（p3_session.cpp:179-194，可降不可升） |
 | sampler 选择（会话面） | char* | 1 | — | `nearest`\|`bilinear`（缺省 bilinear；白名单 p3_session.cpp:116-119） |
 | d（WCS 平面） | P3WcsDescriptor* | 1 | deg、px | 输出平面几何（DATA-P3-WCS §28.2）；逐输出像素中心 (x,y) 0-based int |
@@ -2173,3 +2189,232 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   占位）端口表 props(DATA-P3-PROPS 必)+wcs_plan(DATA-P3-WCS 可)
   为编排层词汇，由 P3-PROJ-INT 对齐 astrocs.p3.projection，不得
   反向作为冻结依据。
+
+## 30. Phase2/Phase3 不确定度与 rejection/provenance 产品合同（DATA-UNC-001）
+
+> ID: DATA-UNC-001  状态: FROZEN_TARGET_CONTRACT（DATA-001 冻结，控制包
+> ASTROCS-CONSTITUTION-ALIGNMENT-V1，2026-09-09；前置 GOV-001 宪章 FROZEN）
+> 上位约束: 宪章 ASTROCS-CONSTITUTION-001 §6.1（Phase2 输出
+> variance/ivar/rejection 产品）、§6.3（integration 必须明确不确定度传播）、
+> §7.1（Phase3 输出带不确定度传播能力）、§7.3（variance/ivar/coverage/NaN
+> 传播规则必须由 SCI/ALG 明确；不支持的数据语义必须显式拒绝）、§16.2/§18.3
+> （unavailable 显式登记模式）；supersession 生效。
+> **目标态声明（实现不得先行）**：本节冻结的是产品合同目标态；现状代码不满足
+> 本节（DISP-P2HIPS-001/002、§27.2、§29.1 守卫），差距整改归 P2-001/P3-001
+> 及其 IMPL 子任务；本节不得被现状代码反向否证，现状描述节在实现落地前保持
+> 有效。科学公式权威 = docs/science/UNCERTAINTY_AND_COVARIANCE.md（§30 引用
+> 不重复定义，两处冲突以 docs/science/ 为准并回改本节，禁止反向）。
+
+### 30.1 Phase2 马赛克 variance/ivar 产品（DATA-P2-VAR-001）
+
+- **产品集注册（目标态）**: `aio_hips_product_begin` flags 增加
+  `AIO_HIPS_PRODUCT_VARIANCE|AIO_HIPS_PRODUCT_IVAR`（位 8/16，aio_hips.h:39-40
+  已冻结）；子产品目录 `<out_hips>/variance/`、`<out_hips>/ivar/`（NESTED
+  512×512 tile，dtype 同 precision，f32/f64），写通道 = writer 既有
+  `aio_hips_write_variance_tile`（aio_hips_writer.cpp:603；var_num_sum /
+  covered_area² 归一合同 §12.3/§12.4 已冻结）。
+- **合成公式**（weight_mode=2 科学默认，且 `ivar_product_missing==0`，即全部
+  输入帧 ivar 产品可用、无 fallback；有效样本资格 = SCI-INT §5 valid ∧ W>0）:
+
+```text
+ivar_mosaic(p) = W(p) = Σ_i ivar_i(p)          # = SCI-INT §5 wsum（逐像素）
+variance_mosaic(p) = 1 / W(p)
+```
+
+  一致性锚（一般式，权重非纯逆方差时适用，禁止换第二套公式）:
+  `variance = Σ_i w_i²·v_i / W²`（SCI-DRZ-014 同构；w_i=实际参与积分权重，
+  v_i=该样本输入方差=1/ivar_i）。UPM 控制权重（SCI-UPM-WEIGHT-001）与马赛克
+  合成方差严格分离：control_variance 只进 w_UPM，不进本产品。
+
+- **unavailable 规则（fail-closed，唯一出口）**: 下列任一 → **不写
+  variance/ivar 子产品** + manifest `uncertainty_available=false` +
+  diagnostics 标红计数，禁止用 support/snr²/常量 0 伪 variance：
+  1. `weight_mode != 2`（mode 1 等权 / mode 0 legacy 诊断非科学方差面，ivar
+     读端亦不强制打开，§20.1）；
+  2. fallback 发生（`legacy_allow_weight_fallback=true` 且
+     `ivar_product_missing>0`，§20.4 rc=7 门的显式降级路径）——混合帧集
+     （部分帧 support 降级）同样整体 unavailable；
+  3. 合成输入非有限被 `p2_validate_candidate_weights` 拒（INVALID_INPUT，
+     现行 rc=6）达帧级阻断时整产品不发布（现行失败非原子语义不变，§20.4）。
+
+- **invalid policy（per-pixel，输出面唯一权威）**:
+
+| 条件 | variance | ivar | 说明 |
+|---|---|---|---|
+| 无有效样本（n_used=0：depth 0 tile / ALL_REJECTED / ZERO_VALID_WEIGHT，SCI-INT §5 状态机） | NaN | NaN | 与 signal=NaN 同态（writer 通道 §12.4 合同：covered_area≤0 → NaN）；禁 0/±Inf 伪装 |
+| 正常合成（n_used≥1，W>0 有限） | 1/W | W | FP64 计算后按 precision 落盘 |
+| 合成结果非有限（W=Inf 等病态） | NaN | NaN | + diagnostics 病态像素计数，禁静默 0 |
+| 输入 ivar 非有限/负 | — | — | `p2_validate_candidate_weights` hard fail（现行 rc=6），不入合成 |
+
+  注：Phase1 逐帧输入产品的 0/NaN 双值预存歧义见 §4a 消解注记（finding
+  F-UNC-001）；读侧消费按 §20.1（ivar==0 合法零权重、nonfinite 拒），
+  本表只冻结 Phase2 **输出**产品。
+
+- **确定性**: 逐像素独立合成；求和顺序=帧输入索引序（与 SCI-INT §5 同序）；
+  OMP 定序归并/固定 chunk 划分合同（§20.3）不变；1..N worker 与 repeat
+  bitwise（实证基线 Phase2IvarWiring 同门槛）。
+- **HIPS_VERIFY（目标态）**: 回读面由 signal 扩展为 signal/variance/ivar
+  tile 数一致（任一回读失败 rc=7，现行 :1659-1676 语义同构扩展）。
+
+### 30.2 Phase2 rejection 产品（DATA-P2-REJ-001）
+
+- **子产品目录（目标态）**: `<out_hips>/nused/`、`<out_hips>/nrej/`，int32
+  tile（BITPIX=32，NESTED 512×512，dtype 固定 int32 无 precision 开关）。
+- **语义（已冻结 SCI 量的逐像素投影，无新科学定义）**:
+
+```text
+nused(p) = P2PixelResult.n_used        # SCI-INT §5 冻结量（参与积分样本数）
+nrej(p)  = |{ s | reason_s ∉ {ACCEPTED, UNDERDETERMINED} }|
+           # SCI-REJ §5 kernel 拒绝计数（eligibility 剔除不计入 nrej；
+           # n_ineligible = depth − nused − nrej，depth=probe 覆盖帧数）
+```
+
+- **invalid**: 无覆盖 tile 像素（signal=NaN）→ nused=0、nrej=0（int 无 NaN，
+  0 即"无"，禁 −1 哨兵）。
+- **逐帧 reason 级产品为非目标**（本合同不冻结 per-frame rejection map；
+  需要时须 SCI/owner 冻结变更，禁止实现自行扩展）。
+- **AIO 子产品位分配（冻结）**: NREJ=32、NUSED=64（uint32 flags 域；
+  1/2/4/8/16 已占用见 aio_hips.h:35-40，32/64 空闲）；AIO_ALL 掩码扩展由
+  实现任务在 AIO 域合同登记，本节只冻结位值不冻结掩码。
+- **exchange 面**: nused/nrej 定位为**诊断统计平面**（diagnostic planes），
+  不进入 phase_product_exchange 的 science planes 枚举（signal/support/
+  variance/ivar/mask，validator `_PLANE_ID_SET` 同步不变，零断链）；诊断
+  平面由 artifact manifest content_role 与 diagnostics.json 描述。science
+  planes 枚举扩展（若未来需要）必须与 runtime validator 同一提交修订
+  （finding F-UNC-003 登记该联动约束）。
+
+### 30.3 Phase2 provenance 产品合同（DATA-P2-PROV-001）
+
+- **必写 provenance 键（目标态）**: HiPS properties 与 finalize manifest.json
+  双写（writer provenance 通道 `aio_hips_set_drizzle_provenance`
+  （aio_hips.h:144，ASTROCS_DRIZZLE_* 键先例）+ finalize manifest 面
+  （aio_hips_writer.cpp:1086-1128））。键名冻结（ASTROCS_ 前缀同风格，
+  properties 文本键，manifest JSON 键同名小写）:
+
+| 键 | 值语义 | 来源（已冻结锚） |
+|---|---|---|
+| ASTROCS_INPUT_MANIFEST_HASH | 64hex sha256 | §20.3 input_manifest_hash 公式（stage2.cpp:230-245） |
+| ASTROCS_MODEL_HASH | UPM model_hash | P2ModelInfo.model_hash（stage2.cpp:439-444） |
+| ASTROCS_UNCERTAINTY_AVAILABLE | true/false | §30.1 unavailable 规则判定结果 |
+| ASTROCS_WEIGHT_MODE | 0/1/2 | cfg.weight_mode（stage2_common.h:90） |
+| ASTROCS_REJECT_PROFILE | 版本化 profile 串 | cfg.reject_profile（wbpp_2_9_1，§20.1） |
+
+- **unavailable 显式登记**: uncertainty_available=false 不是失败态，是宪章
+  §18.3 unavailable 模式在数据面的落位（禁命令占位/静默缺键/空输出冒充）。
+- **原子发布边界不变**: 本键写入不改变 §20.3 原子发布归属（IO-003 编排层，
+  DISP-P2HIPS-003 整改去向不变）。
+
+### 30.4 Phase3 uncertainty 传播产品合同（DATA-P3-UNC-001）
+
+- **输入消费面（读侧唯一权威；supersession SCI-P3 §9a-10 的 variance/ivar
+  显式拒绝语义，上位=宪章 §7.1/§7.3，supersession 生效；SCI-P3 原文注记见
+  docs/science/PHASE3_HIPS_TO_FITS.md 头部 DATA-UNC-001 更新块）**:
+  1. 输入 HiPS 含 variance/ 子产品 → u_in = variance 平面；否则含 ivar/ →
+     u_in = 1/ivar（ivar==0 像素 = u 无效）；两者并存 → variance 优先，
+     provenance 记 uncertainty_source=variance（一致性数值校验为验证建议，
+     不冻结容差）；
+  2. 两者皆无 → **uncertainty unavailable**：输出不写 VARIANCE/IVAR HDU +
+     manifest `uncertainty_available=false` + 命令 diagnostics 明示（宪章
+     §18.3 模式；禁静默丢弃，禁占位 HDU）；
+  3. u 值域: NaN = 传播态（见 invalid 表）；负/Inf（含 ivar==0 导出）=
+     **产品损坏 → 显式错误**（run 拒绝，rc 由实现任务映射到现行 P3_RS_*/
+     ACS_ERR_* 状态域登记，禁 clamp/补 0/静默跳过）；
+  4. §29.1 input_mode 守卫扩展: surface_brightness 语义不变；variance/ivar
+     从 UNSUPPORTED 拒绝项移除（转 uncertainty 子产品消费）；flux-per-pixel/
+     weight 等其余拒绝项不变（SCI §9a-8 不动）。
+
+- **传播公式**（科学权威 = docs/science/UNCERTAINTY_AND_COVARIANCE.md；
+  c_k = ALG-P3-003 G4 冻结双线性权重，Σc_k=1）:
+
+```text
+nearest :  var_out = u_in
+bilinear:  var_out = Σ_k c_k² · u_k     # 注意 Σc_k² ≠ 1：
+           # 常数方差场经 bilinear 后 var_out < u 是正确物理（插值平均去相关），
+           # 禁止误用 Σc_k=1 归一 variance（负向测试 W2 防错锚）
+ivar_out = 1 / var_out   (var_out 有限且 >0)
+ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
+```
+
+- **invalid policy（per-pixel，输出面唯一权威；与 §27.2 signal/coverage
+  语义同构）**:
+
+| 条件 | signal | variance | ivar | coverage |
+|---|---|---|---|---|
+| 无覆盖（tile 缺失/足迹无有限 leaf） | NaN | NaN | NaN | 0 |
+| NaN 传播（足迹内 leaf signal 或 u 为 NaN） | NaN | NaN | NaN | 1 |
+| 覆盖不一致（leaf signal 有限而 u 无效/缺失） | 按采样值 | NaN | NaN | 1（+ provenance uncertainty_missing_pixels 计数，不中断不补 0） |
+| 正常传播（足迹 signal 与 u 全有效） | Σ c_k·s_k | Σ c_k²·u_k | 1/var_out | 1 |
+
+  NaN 同态说明: 无覆盖 variance 用 NaN（§12.4 writer 通道合同与 signal NaN
+  同态），不用 §4a 的 0（§4a 歧义消解见 §4a 注记与 §30.1）。
+
+- **输出 FITS 表达（§27.2 目标态行）**: VARIANCE/IVAR 扩展 HDU，
+  EXTNAME="VARIANCE"/"IVAR"，BITPIX 同主 HDU（用户 -32/-64 选择），
+  BUNIT=<signal BUNIT>^2 / 1/(<signal BUNIT>^2)（缺省 ADU → "ADU^2" 与
+  "1/(ADU^2)"），DATASUM 逐 HDU（COVERAGE HDU 模式同构，§27.2）；三 HDU 与
+  主 HDU 同一原子发布序（§27.4 整文件单元不变，取消不落盘不变）。
+- **exchange/manifest**: available 时 product_content.planes 声明
+  variance/ivar（validator 枚举已合法，零 schema 改动）；unavailable 时不
+  声明该两平面且 manifest uncertainty_available=false。
+- **精度/确定性**: u 读入与传播 FP64；落盘 dtype=bitpix；逐输出像素独立、
+  权重由几何唯一确定（§29.3 合同不变）；1..N worker bitwise（同 §27.3
+  写面串行 + §29.3 采样确定性）。
+
+### 30.5 验证门（TEST 设计冻结；可执行实现归 P2-001/P3-001，未运行不得 PASS）
+
+- **TEST-P2-UNC-DESIGN-001**（Phase2，f64 oracle rtol=1e-12、1T/2T/repeat
+  bitwise、索引/整数 bitwise）:
+  - V1 正向: 3 帧合成 ivar 1:2:4，weight_mode=2 → ivar_mosaic==Σivar、
+    variance_mosaic==1/W 逐像素；
+  - V2 unavailable 负向: 缺 ivar 帧 + legacy_allow_weight_fallback=true →
+    variance/ivar 子产品不存在 + uncertainty_available=false；缺 ivar 且未
+    显式 fallback → rc=7（现行门不变）；
+  - V3 invalid: 输入 ivar 非有限 → INVALID_INPUT（rc=6）；n_used=0 像素
+    variance/ivar=NaN 且 signal=NaN 同态；
+  - V4 确定性: 1T/2T/repeat bitwise + 帧置换不变；
+  - V5 provenance: properties/manifest 双键实测值 == input_manifest_hash/
+    model_hash 计算值；UNCERTAINTY_AVAILABLE 与实际子产品存在性一致。
+- **TEST-P3-UNC-DESIGN-001**（Phase3，WCS roundtrip 1e-6 px 不变）:
+  - W1 nearest 正向: var_out==u_in 逐像素；
+  - W2 bilinear 正向+防错: 解析 4-leaf u 与冻结权重 → var_out==Σc_k²·u_k
+    （FP64 rtol 1e-12）；常数 u 场断言 var_out==u·Σc_k²（≠u，防 Σc_k=1
+    误归一回归）；
+  - W3 unavailable: 无 variance/ivar 输入 → 无 VARIANCE/IVAR HDU +
+    uncertainty_available=false + diagnostics 明示；
+  - W4 invalid: u NaN → 输出 NaN/C=1；u<0/Inf → 显式错误非静默；
+    无覆盖 → variance/ivar=NaN/C=0；
+  - W5 确定性: 1/N worker bitwise；
+  - W6 FITS 独立 reader 回读 EXTNAME/BUNIT/DATASUM（Oracle 独立性 §11
+    SCI-P3 不变）。
+- **故障注入有效性**: 上述负向项（V2/V3、W3/W4）在实现合入时必须先于实现
+  以失败测试形式存在（红→绿），注入等价缺陷（静默 0 伪 variance、Σc_k=1
+  误归一、静默缺 HDU）必须使其失败。
+
+### 30.6 交叉引用与登记
+
+- 上游 SCI: SCI-INT-001（§5 wsum/n_used）、SCI-REJ-001（§5 reason 值域）、
+  SCI-DRZ-001（SCI-DRZ-014 方差传播同构）、SCI-UPM-001/ALG-UPM-CONTROL-IVAR-001
+  （control_variance 与本产品分离）、SCI-P3-001（§5 采样核/§9a-10
+  supersession 注记）、SCI-NOISE-001（缩放律同源）。
+- 宪章: ASTROCS-CONSTITUTION-001 §6.1/§6.3/§7.1/§7.3/§16.2/§18.3（FROZEN，
+  上位约束，本文不得放宽）。
+- ALG（实现锚，现状如实）: ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md
+  §11.3 DISP-P2HIPS-001/002 整改去向）；ALG-P3-003/ALG-P3-RSMP-IMPL-001
+  （§29.1 守卫）、ALG-P3-004/ALG-P3-FITS-IMPL-001（§27.2 HDU 扩展）。
+- DATA 同文档: §4a（0/NaN 歧义消解注记）、§12.3/§12.4（writer variance
+  通道合同）、§20（P2-HIPS 现状）、§21/§22（n_used/reason 权威）、§27/§29
+  （P3 现状注记）。
+- 登记面: docs/contracts/DATA_ARTIFACTS.md §1 四行（DATA-P2-VAR-001/
+  DATA-P2-REJ-001/DATA-P2-PROV-001/DATA-P3-UNC-001）；
+  docs/contracts/INDEX.yaml DATA-UNC-001 四条目；消费任务 P2-001/P3-001
+  （控制包 DAG，G-SCI 门组成）。
+- findings 登记（域外预存问题，不在本任务修复）:
+  - F-UNC-001: §4a（0=无覆盖）与 §12.4（无效=NaN）预存双值，Phase1
+    域语义消歧归 Phase1 域任务；
+  - F-UNC-002: 基线 check_data_artifacts 预存 FAIL（DATA-HIPS-001/
+    DATA-TILE-001 声明未登记，HEAD 即失败，与本任务无关，须 P0/P1 清理时
+    处置）；
+  - F-UNC-003: exchange science planes 枚举（phase_product_exchange
+    schema + runtime validator `_PLANE_ID_SET`）与诊断统计平面（nused/
+    nrej）的联动扩展约束——任何扩展必须 schema 与 validator 同一提交，
+    当前无扩展需求。
