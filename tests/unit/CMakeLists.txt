@@ -438,6 +438,16 @@ add_subdirectory(../../lib/cosmetic/tests/p1cos p1cos)
 add_subdirectory(../../lib/healpix_db/healpix_drizzle/tests/p1drz p1drz)
 
 # ----------------------------------------------------------------------------
+# P1-HIPS-TEST (TEST-P1-HIPS-001, 控制包 queue 39, lock-P1-HIPS) —
+# lib/astro_image_io/src/hips 可复用验证面。结构与注册详见
+# lib/astro_image_io/tests/p1hips/CMakeLists.txt (FIX-HIPS-A..F fixture /
+# 独立 oracle / negative / 1-N worker / performance / 故障注入自检); 合同锚
+# HIPS_WRITER.md §9 TEST-HIPS-DESIGN-001 (P1-HIPS-DOC 冻结)。
+# 注意: p1hips_selfcheck_test 与 p1hips_tests 共享四组测试 TU; 被测面为
+# astrocs_hips 的 C ABI 九导出现状生产实现 (API-HIPS-001)。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/astro_image_io/tests/p1hips p1hips)
+
 # P1-NOISE-TEST (TEST-P1-NOISE-001, 控制包 queue 41, lock-P1-NOISE) —
 # lib/snr_estimator (astrocs.p1.noise-snr) 可复用验证面。结构与注册详见
 # lib/snr_estimator/tests/p1noise/CMakeLists.txt (FIX-NOISE-A..G fixture /
@@ -450,6 +460,35 @@ add_subdirectory(../../lib/healpix_db/healpix_drizzle/tests/p1drz p1drz)
 # 本块由 P1-NOISE-TEST agent 单独追加 (多 agent 并发追加区, 只增不改)。
 # ----------------------------------------------------------------------------
 add_subdirectory(../../lib/snr_estimator/tests/p1noise p1noise)
+
+# ----------------------------------------------------------------------------
+# P1-HIPS-IMPL (SA-P1H-I, queue 40, lock-P1-HIPS): hips_writer 模块适配器
+#   测试 — direct 通道链 astrocs_hips+astrocs_aio STATIC (legacy aio_hips_*
+#   九导出面, 与 p1_hips_writer_test 同口径) vs DLL C ABI 适配器
+#   astrocs_p1_hips_writer (唯一导出 astrocs_module_query_v1, 环境变量
+#   ASTROCS_HIPS_DLL_PATH 加载): 入口契约/导出面净化(legacy 九符号不得
+#   dlsym; nm -D 唯一导出另由构建检查实证)/describe/validate 512-5 负例/
+#   plan 真实 work_units/write_product direct-vs-plugin 产物树逐文件
+#   size 一致/executor 硬租约 BUDGET 105/entry cancel (DISP-HIPS-001:
+#   abort 不清理已写文件)/strbuf 尺寸探测+不足/allocator 分配失败负面
+#   (批次 R malloc hardening 合同面)。DLL 路径经 ENVIRONMENT 注入
+#   (生成器表达式, 兼容含空格构建路径)。
+# ----------------------------------------------------------------------------
+add_executable(hips_writer_adapter_test p1_hips/adapter_test.c
+  p1_hips/adapter_entry_impl.cpp)
+target_include_directories(hips_writer_adapter_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/hips/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/hips/src)
+target_link_libraries(hips_writer_adapter_test PRIVATE
+  astrocs_hips astrocs_aio ${CMAKE_DL_LIBS})
+add_dependencies(hips_writer_adapter_test astrocs_p1_hips_writer)
+add_test(NAME hips_writer_adapter COMMAND hips_writer_adapter_test
+  ${CMAKE_CURRENT_BINARY_DIR}/run/t_hips_adapter
+  ${CMAKE_CURRENT_BINARY_DIR}/run/t_hips_ref)
+set_tests_properties(hips_writer_adapter PROPERTIES
+  ENVIRONMENT "ASTROCS_HIPS_DLL_PATH=$<TARGET_FILE:astrocs_p1_hips_writer>")
 
 add_executable(p1_stars_test p1_stars_test.cpp)
 target_include_directories(p1_stars_test PRIVATE

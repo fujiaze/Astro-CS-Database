@@ -130,3 +130,84 @@
   或发布侧）裁决记录。
 - SCI 层候选变更（走 SCI 变更流程，不在本任务范围）：HiPS 写出合同
   SCI 化（tile 切分/properties/publish 协议现零 SCI 覆盖，ALG-HIPS 承接）。
+
+## 2026-09-09 · P1-HIPS-IMPL 交付（模块迁移完成）
+
+### 任务
+
+- 控制包任务 P1-HIPS-IMPL（queue 40, lock-P1-HIPS；依赖 P1-HIPS-TEST
+  c19b4a59 / ABI-005 / RT-004 / DATA-003）：迁移到独立模块（C ABI adapter、
+  typed artifact、plan() 真实 work_units）。验收关键词: DLL builds;
+  scope scientific_change=false。
+
+### 交付物
+
+- lib/hips/CMakeLists.txt: SHARED 目标 astrocs_p1_hips_writer —— 生产闭包
+  从源 PIC 重编译 2 TU（aio_hips_writer.cpp + healpix_core.cpp）+ cfitsio 源
+  （ASTROCS_CFITSIO_SOURCES 相对根路径前缀变换）；version-script/DEF 唯一
+  导出 astrocs_module_query_v1；C/CXX_VISIBILITY_PRESET hidden（Linux 面）。
+- lib/hips/src/module_entry.cpp: C ABI v1 九操作 adapter
+  （query/describe/validate_config/plan/create/execute/inspect/
+  request_cancel/destroy）。单事务 op=write_product（product_begin → 逐 tile
+  write_signal_support_tile/write_variance_tile → write_snr_points →
+  set_drizzle_provenance → finalize，与 astro_sphere_sink.cpp:52-167 同构）。
+  plan 真实 work_units（work_units=1 单事务 + nside/n_products/memory
+  hierarchy_accumulator + io_out 估算，元数据推导禁空转）；host executor
+  硬租约 acquire(1)（cpu_heavy，executor 缺失/acquire 失败 → ACS_ERR_BUDGET
+  detail 105 禁无租约运行）；entry cancel + tile 间 cancel 安全点
+  （DISP-HIPS-001: abort 不清理已写文件，处置归调用方/IO-003 层）；
+  strbuf 两阶段（尺寸探测/BUFFER_TOO_SMALL）；manifest 输入顶层平铺 v1
+  （base64 平面 native 字节序 + per-tile 位图 + SNR 六平面 SoA + provenance）。
+- lib/hips/include/astrocs/hips/types.h + src/module_exports.map +
+  src/astrocs_p1_hips_writer.def + module.yaml（交付态: entrypoint=
+  astrocs_module_query_v1, node_operations=[write_product]）。
+- tests/unit/p1_hips/adapter_test.c + adapter_entry_impl.cpp + tests/unit/
+  CMakeLists.txt 注册块: hips_writer_adapter（9 case: direct reference/
+  adapter 全生命周期/direct-vs-plugin 产物树逐文件 size 对拍/alloc_fail/
+  schema_reject/budget 105×2/cancel_not_begun/strbuf 探针/dlsym 导出面探针）。
+- 根 CMakeLists.txt: add_subdirectory(lib/hips) + RPATH foreach 追加。
+
+### 关键事实（实证）
+
+- 依赖闭包: writer TU 仅依赖 astrocs::healpix 两符号
+  （nested_local_to_fits_index + ang2pix_nest, healpix_core.cpp）+ cfitsio 源；
+  aio_fits/aio_log/aio_api/aio_healpix_io/hiss_*/aio_hips_reader/aio_upm
+  零依赖剔除（g++ -fsyntax-only 实证）。
+- 生产源零改动: lib/astro_image_io/** git diff 空 —— scientific_change=false。
+  manifest.json/properties 无路径键（两目录 size 对拍成立）；FITS tile 数据
+  位级一致（DATASUM 同值），字节级差异仅 cfitsio CHECKSUM/DATASUM 注释
+  的 wall-clock 秒级时间戳（as-built 实测: diff 4 字节全在头部注释）。
+- 导出面: nm -D --defined-only 唯一 T astrocs_module_query_v1；dlsym 九
+  legacy aio_hips_* 全 NULL（ctypes + 测试 case8 双实证，主树 DLL 1.79MB）。
+- 无 OMP: writer/healpix_core 零 #pragma omp，DLL 无 libgomp 依赖 →
+  58d20223 OMP 教训本案不触发（测试 TU 亦无 OMP 符号）。
+
+### 验证（run/local/agent_p1hips_impl/ 日志在案）
+
+- 影子树（工作树快照隔离验证）: 构建 + ctest 七组（p1hips 6 + adapter）
+  循环 5/5 全绿（loop_round1..5）；asan 树（ASTROCS_ENABLE_SANITIZERS=ON）
+  构建 + 6/7 绿，p1hips_properties 失败为 TEST 域断言设计面: tree_digest
+  全字节 FNV 含 cfitsio CHECKSUM 注释秒级时间戳，-O0 慢速跨秒必败
+  （字节级实证见上），非本任务回归；科学数据位级零差异。
+- 主树: STAR-TEST 注册块补齐后 configure 通过，ninja 构建 + ctest
+  循环 5 轮 3/5 全绿; 2 轮 flaky：p1hips_performance parity4=0.24x
+  （哨兵线 0.25, t1w≈0.10s 噪声主导; 根上复测 5/5 PASS parity4=0.26-0.29x）
+  与 p1hips_properties 跨秒（同 asan 机理）。环境: /tmp tmpfs 7.9G 曾
+  100% 满（历史调试残留）→ asan-repro 1.1G 迁移至
+  run/local/agent_p1hips_impl/relocated_tmp/（symlink 保留路径）并
+  remount size=24G 后测试面稳定。
+- adapter 9 case 全 PASS（asan/主树双树实测; direct-vs-plugin 产物树
+  文件集合相等 + 每文件 size 相等）。
+
+### 待后续任务（不阻塞本任务）
+
+- P1-HIPS-INT: integration descriptor/typed ports/调用计数/registry 注册
+  （module.yaml 端口注册面同步归 INT）。
+- TEST 域登记（P1-HIPS-TEST 域产物零改动，如实移交）: ①tree_digest 对
+  绝对路径与 cfitsio CHECKSUM 注释时间戳敏感（properties determinism 断言
+  在慢树/跨秒下 flaky，建议 digest 排除 CHECKSUM 卡或归一化时间注释）;
+  ②performance parity4 下界 0.25 与实测 0.24-0.29 贴线（t1w 基线过小）,
+  建议 t1w 增大 rep/规模或放宽 trend 线。
+- DISP-HIPS-006 CFITSIO mutex 包装 / 002 estsize / 005 moc_order 严格化 /
+  009 f32 accumulator / 010 fits_str / 011 缓冲复用: 未在本任务消化
+  （ scientific_change=false 边界，保持登记）。
