@@ -54,7 +54,7 @@ contracts:
     version: 1.0.0
     path: docs/science/NOISE_MODEL.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-NOISE-001, ALG-NOISE-002, ALG-NOISE-003, ALG-UPM-CONTROL-IVAR-001, SCI-CW-001]
+    downstream: [ALG-NOISE-001, ALG-NOISE-002, ALG-NOISE-003, ALG-UPM-CONTROL-IVAR-001, SCI-CW-001, DATA-P2-VAR-001, DATA-P3-UNC-001]
   - id: SCI-DRZ-001
     type: SCI
     status: ACTIVE
@@ -62,7 +62,7 @@ contracts:
     version: 1.0.0
     path: docs/science/DRIZZLE.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-DRZ-001, ALG-HEALPIX-001, ALG-HIPS-001, SCI-P3-001]
+    downstream: [ALG-DRZ-001, ALG-HEALPIX-001, ALG-HIPS-001, SCI-P3-001, DATA-P2-VAR-001, DATA-P3-UNC-001]
   - id: SCI-UPM-001
     type: SCI
     status: ACTIVE
@@ -78,7 +78,7 @@ contracts:
     version: 1.0.0
     path: docs/science/REJECTION.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-REJ-001, ALG-P2-REJ-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001]
+    downstream: [ALG-REJ-001, ALG-P2-REJ-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001, DATA-P2-REJ-001]
   - id: SCI-INT-001
     type: SCI
     status: ACTIVE
@@ -86,7 +86,7 @@ contracts:
     version: 1.0.0
     path: docs/science/INTEGRATION.md
     upstream: [SCI-SCOPE-001]
-    downstream: [ALG-INT-001, ALG-P2-INT-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001]
+    downstream: [ALG-INT-001, ALG-P2-INT-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, ALG-P2-SESSION-001, DATA-P2-VAR-001]
   - id: SCI-CW-001
     type: SCI
     status: ACTIVE
@@ -118,7 +118,7 @@ contracts:
     version: 1.0.0
     path: docs/science/PHASE3_HIPS_TO_FITS.md
     upstream: [SCI-WCS-001, SCI-DRZ-001, SCI-SCOPE-001]
-    downstream: [ALG-P3-001, ALG-P3-002, ALG-P3-003, ALG-P3-004, ALG-P3-FITS-IMPL-001, ALG-P3-PROJ-IMPL-001, ALG-P3-RSMP-IMPL-001]
+    downstream: [ALG-P3-001, ALG-P3-002, ALG-P3-003, ALG-P3-004, ALG-P3-FITS-IMPL-001, ALG-P3-PROJ-IMPL-001, ALG-P3-RSMP-IMPL-001, DATA-P3-UNC-001]
   - id: SCI-ACR-EQUIV-001
     type: SCI
     status: DORMANT
@@ -758,6 +758,48 @@ contracts:
     version: 1.0.0
     path: docs/contracts/PUBLIC_API.md
     upstream: [ARCH-001, API-001]
+    downstream: []
+
+  # ── DATA 不确定度产品合同（DATA-001 冻结，DATA_SEMANTICS §30，目标态） ──
+  - id: DATA-UNC-001
+    type: DATA
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: []
+    downstream: [DATA-P2-VAR-001, DATA-P2-REJ-001, DATA-P2-PROV-001, DATA-P3-UNC-001]
+  - id: DATA-P2-VAR-001
+    type: DATA
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [DATA-UNC-001, SCI-INT-001, SCI-DRZ-001, SCI-NOISE-001]
+    downstream: []
+  - id: DATA-P2-REJ-001
+    type: DATA
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [DATA-UNC-001, SCI-REJ-001]
+    downstream: []
+  - id: DATA-P2-PROV-001
+    type: DATA
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [DATA-UNC-001]
+    downstream: []
+  - id: DATA-P3-UNC-001
+    type: DATA
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [DATA-UNC-001, SCI-P3-001, SCI-DRZ-001, SCI-NOISE-001]
     downstream: []
 
   # ── TEST 测试矩阵 ──

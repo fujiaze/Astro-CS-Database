@@ -2,6 +2,18 @@
 
 > ID: SCI-P3-001  范围: SCI-P3-001..020  状态: FROZEN (V5 SCI-007, 2026-08-28)  上游: SCI-WCS/SCI-DRZ/SCI-SCOPE  下游 ALG: ALG-P3-001..  模块: phase3 (未实现,本合同为施工边界)
 
+> **[DATA-UNC-001 更新块, 2026-09-09, 宪章 supersession 生效]** 本合同 §9a-10
+> "variance/weight/support 输入：不支持→显式拒绝"与 §1 非目标中
+> "variance/weight/ivar 输入产品"的 alpha 拒绝面，就 **variance/ivar 子产品
+> 输入**一项由宪章 ASTROCS-CONSTITUTION-001 §7.1（Phase3 输出带不确定度传播
+> 能力）/§7.3（variance/ivar 传播规则必须由 SCI/ALG 明确）上位修订：Phase3
+> 输入 HiPS 含 variance/ivar 子产品时**必须显式消费传播**（输出 VARIANCE/
+> IVAR 扩展 HDU），两者皆无时显式 unavailable（不静默）；传播公式与 invalid
+> policy 唯一权威 = docs/science/UNCERTAINTY_AND_COVARIANCE.md（Phase3 节）+
+> docs/contracts/DATA_SEMANTICS.md §30.4（DATA-P3-UNC-001）。flux-per-pixel/
+> weight/多通道/lossy 等其余拒绝项**全部不变**；本合同其余条款（投影/order
+> 公式/采样核/容差/Oracle）零改动，原文以下保留冻结历史不逐条改写。
+
 ## 1 目的与非目标
 
 - **目的**：把符合支持子集的图像 HiPS（HEALPix 层次球面 tile）重投影为用户指定天区/投影/像元尺度/宽高的二维 FITS image，带合法 FITS-WCS header、coverage 与可追溯 metadata（控制包 13 §2 冻结定义）。
