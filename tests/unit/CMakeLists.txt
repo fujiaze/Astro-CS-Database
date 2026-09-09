@@ -547,6 +547,19 @@ target_include_directories(p1_session_manifest_test PRIVATE
 target_link_libraries(p1_session_manifest_test PRIVATE astrocs_phase1_session)
 add_test(NAME p1_session_manifest COMMAND p1_session_manifest_test)
 
+# P1-SESSION-TEST (TEST-P1-SESSION-001, 控制包 queue 47, lock-P1-SESSION) —
+# lib/phase1_session 可复用验证面。结构与注册详见
+# lib/phase1_session/tests/p1sess/CMakeLists.txt (FIX-SESS-A..F fixture /
+# 独立 oracle / negative / 1-N worker / performance / 故障注入自检); 合同锚
+# API-P1-SESSION / DATA-P1-SESSION (P1-SESSION-DOC 冻结) + tasks/
+# 05_PHASE1_TASKS.md §3 (验收: each node once and failure propagation)。
+# 注意: p1sess_selfcheck_test 与 p1sess_tests 共享 units/negative 测试 TU;
+# 被测面为 p1_session 五导出 C API 现状生产实现 (astrocs_phase1_session
+# 静态库), manifest stages 即 direct 面节点调用账本。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/phase1_session/tests/p1sess p1sess)
+
+
 # ----------------------------------------------------------------------------
 
 add_executable(p1_resource_test p1_resource_test.cpp)
