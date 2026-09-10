@@ -81,3 +81,13 @@ target_include_directories(p1hips_selfcheck_test PRIVATE
   ${P1HIPS_DIR})
 target_link_libraries(p1hips_selfcheck_test PRIVATE astrocs_hips ${ASTROCS_OMP_TARGET})
 add_test(NAME p1hips_selfcheck COMMAND p1hips_selfcheck_test)
+
+# P1-HIPS-DIGEST-001 归一化专项验收 harness (EXCLUDE_FROM_ALL + 不入 CTest:
+# 含 sleep 2 强制跨秒与字节翻转双向验证, 秒级慢测不适合 CI 常驻; 手动验收
+# 见 p1hips_digest_verify.cpp 文件头)
+add_executable(p1hips_digest_verify EXCLUDE_FROM_ALL
+  ${P1HIPS_DIR}/p1hips_digest_verify.cpp)
+target_include_directories(p1hips_digest_verify PRIVATE
+  ${P1HIPS_INC}
+  ${P1HIPS_DIR})
+target_link_libraries(p1hips_digest_verify PRIVATE astrocs_hips ${ASTROCS_OMP_TARGET})
