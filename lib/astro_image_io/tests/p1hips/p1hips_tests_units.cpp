@@ -30,16 +30,27 @@ namespace p1hips {
 // ---------------------------------------------------------------------------
 // POSIX 目录树助手 (selfcheck/properties 链引用)。UTC 时间戳合同上不跨运行
 // 复现: cfitsio finalize 更新 CHECKSUM/DATASUM 时把 UTC 时间戳写进卡片注释
-// ("/ HDU checksum updated <UTC>"), 故 fnv_file 对 .fits/.fts 做 FITS 头区
-// 归一化 (P1-HIPS-TEST tree_digest flaky 修正)。
-// 归一化规则: 对 FITS 头区 (文件开头到 END 卡, 80 字节对齐) 逐卡扫描, 凡
-// 卡片名 (前 8 字节) 为 CHECKSUM 或 DATASUM 的卡, 第 11..80 列 (value+注释
-// 区) 清零后参与哈希 —— 仅清注释区 (31..80) 不彻底: CHECKSUM 的 value 是
-// 头区 32-bit 补码和的 ASCII 编码 (ffesum), 而 DATASUM 注释内嵌 UTC 时间
-// 戳, 跨秒 CHECKSUM value 必变 (cfitsio 4.6.4 ffcsum/ffesum 对真实 tile
-// 移植复现实证)。数据区与其余头卡照常全字节哈希; 头区解析失败 (超 360 卡
-// 无 END / 头卡区含非可打印字节) 时整体退回原全字节哈希并留日志; 非 FITS
-// 文件保持原流式路径。
+// ("/ HDU checksum updated <UTC>"), 故 fnv_file 对 .fits/.fts 做全部 FITS
+// 头区归一化 (P1-HIPS-TEST tree_digest flaky 修正; P1-HIPS-DIGEST-001 多
+// HDU 补扫: 64c1e988 只扫第一个 END, Moc.fits 等多 HDU 产品的第二头区
+// CHECKSUM/DATASUM 卡未被覆盖, 秒级时间戳仍入哈希 → 跨秒假败)。
+// 归一化规则 (P1-HIPS-DIGEST-001): 全文件 80 对齐逐卡位扫描, 覆盖全部
+// HDU 头区 (不止第一个 END —— 64c1e988 缺陷: 只扫第一个 END, Moc.fits 等
+// 多 HDU 产品的第二头区 CHECKSUM/DATASUM 卡未被覆盖, 秒级时间戳仍入哈希
+// → asan 树 p1hips_properties nt=4 稳定假败), 凡卡片名 (前 8 字节) 为
+// CHECKSUM 或 DATASUM 的卡, 第 11..80 列 (value+注释区) 清零后参与哈希
+// —— 仅清注释区 (31..80) 不彻底: CHECKSUM 的 value 是头区 32-bit 补码和
+// 的 ASCII 编码 (ffesum), DATASUM 注释内嵌 UTC 时间戳, 跨秒 value+注释
+// 必变 (cfitsio 4.6.4 ffcsum/ffesum 对真实 tile 移植复现实证)。
+// 为什么全文件卡位扫描而非头区精确建模: cfitsio 4.6.4 实测产物布局不规
+// 则 —— 主头 pad 至 2880 (Moc.fits 主头 7 卡 + 空格 pad [0,2880)), 扩展
+// 头不 pad 直接落数据 (Moc.fits BINTABLE 头 15 卡 [2880,4080) 未对齐,
+// CHECKSUM@3840/DATASUM@3920 全在第一个 END@480 之后), 文件尾再零 pad
+// ([6960,8640)); 逐 HDU 公式推进对未 pad 形态漏位 → 改全卡位扫描。
+// 误清零风险评估: 仅当数据区恰含 80 对齐且键名为 CHECKSUM/DATASUM 的字
+// 样 —— p1hips fixture (splitmix64 浮点/整数二进制) 不可能生成; 相比漏
+// 扫 (跨秒假败) 取全扫描。数据区与其余头卡照常全字节哈希 (科学 payload
+// 逐字节敏感, harness 双向验证兜底); 非 FITS 文件保持原流式路径。
 // ---------------------------------------------------------------------------
 namespace {
 
@@ -72,28 +83,6 @@ bool read_file_bytes(const std::string& path, std::vector<unsigned char>& out) {
     return (std::size_t)f.gcount() == (std::size_t)n;
 }
 
-// FITS 头区扫描: 返回 END 卡结束 offset (含, 80 对齐); 解析失败返回 0。
-// 80 字节对齐逐卡, 上限 360 卡 (FITS 头区常规上限); 头卡区必须全为
-// 可打印 ASCII, END 卡 = "END" + 空格填满 80 列。
-std::size_t fits_header_end(const std::vector<unsigned char>& b) {
-    const std::size_t kMaxCards = 360;
-    const std::size_t n = b.size();
-    for (std::size_t off = 0, k = 0; off + 80 <= n && k < kMaxCards; off += 80, ++k) {
-        for (std::size_t i = off; i < off + 80; ++i) {
-            const unsigned char c = b[i];
-            if (c < 0x20u || c > 0x7eu) return 0;
-        }
-        if (b[off] == (unsigned char)'E' && b[off + 1] == (unsigned char)'N' &&
-            b[off + 2] == (unsigned char)'D') {
-            bool pad_ok = true;
-            for (std::size_t i = 3; i < 80; ++i)
-                if (b[off + i] != (unsigned char)' ') { pad_ok = false; break; }
-            if (pad_ok) return off + 80;
-        }
-    }
-    return 0;
-}
-
 // 头卡名: 前 8 字节左对齐空格填充; 返回去尾空格后是否等于 name
 bool card_is(const unsigned char* card, const char* name) {
     char key[9];
@@ -106,15 +95,17 @@ bool card_is(const unsigned char* card, const char* name) {
     return std::strcmp(key, name) == 0;
 }
 
-// FITS 归一化: 头区 CHECKSUM/DATASUM 卡第 11..80 列 (0-based 10..79)
-// 清零; 返回是否完成头区解析 (false = 解析失败, 退回全字节)。
+// FITS 归一化 (P1-HIPS-DIGEST-001): 全文件 80 对齐逐卡位扫描 (覆盖全部
+// HDU 头区, 多 HDU 逐头区生效), CHECKSUM/DATASUM 卡第 11..80 列 (0-based
+// 10..79) 清零; 其余字节 (数据区/其余头卡) 一律不动 —— 科学 payload 逐
+// 字节敏感。返回 false 仅当文件过短非 FITS 形态 (调用方退回全字节哈希)。
 bool normalize_fits(std::vector<unsigned char>& buf) {
-    const std::size_t hdr_end = buf.size() >= 80 ? fits_header_end(buf) : 0;
-    if (hdr_end == 0) return false;
-    for (std::size_t off = 0; off + 80 <= hdr_end; off += 80) {
-        const unsigned char* card = &buf[off];
+    const std::size_t n = buf.size();
+    if (n < 80) return false;
+    for (std::size_t off = 0; off + 80 <= n; off += 80) {
+        unsigned char* card = &buf[off];
         if (card_is(card, "CHECKSUM") || card_is(card, "DATASUM"))
-            std::memset(&buf[off + 10], 0, 70);
+            std::memset(&card[10], 0, 70);
     }
     return true;
 }
@@ -128,7 +119,7 @@ static std::uint64_t fnv_file(const std::string& path) {
     if (is_fits && read_file_bytes(path, buf)) {
         if (!normalize_fits(buf))
             std::fprintf(stderr,
-                         "[p1hips_digest] FITS 头区解析失败, 退回全字节哈希: %s\n",
+                         "[p1hips_digest] FITS 文件过短, 退回全字节哈希: %s\n",
                          path.c_str());
         std::uint64_t h = kFnvOffset;
         for (const unsigned char c : buf) h = fnv_byte(h, c);
