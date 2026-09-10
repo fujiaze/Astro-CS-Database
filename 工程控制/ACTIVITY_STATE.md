@@ -55,17 +55,33 @@ BASE-001 证据（`evidence/BASE-001/freeze_snapshot_r1.json` `ledgers` 字段�
 本 ACTIVE 包 `TASK_LEDGER.csv`、V6.1 `03_REWORK_TASK_LEDGER.csv`、
 V7 `TASK_LEDGER.csv`、V8.1 `CONTROL_TASK_LEDGER.csv`/`CURRENT_CHECKPOINT.json`/
 `baseline/V7_1_STATIC_TASK_LEDGER.csv` 及 V8.1 tracked 镜像同哈希三份。
-归档移动后 V8.1 镜像三文件内容 SHA-256 不变（仅路径变更），冻结参照仍然有效。
+归档移动后 V8.1 镜像三文件内容 SHA-256 不变（仅路径变更，git R100 56/56 证明）。
+冻结参照核对（GOV-002 attempt 1 复跑，BASE=45f80776）：`CONTROL_TASK_LEDGER.csv`
+（ee6a5d7e…）与 `CURRENT_CHECKPOINT.json`（b1ebbf5c…）同 BASE-001 冻结值一致；
+`baseline/V7_1_STATIC_TASK_LEDGER.csv` 镜像版（32e3e414…，自 a4fdee3f
+V81-ADOPT-001 2026-09-05 入库即此值）与 BASE-001 快照登记值（524ab719…，=
+`_control_packs/` zip 原件与 `工程控制/` 解压件现行内容，快照时点该 tracked
+文件工作区 dirty）不同——快照为工作区口径、a4fdee3f blob 为 git 口径，两条
+参照链各自完整可溯；口径差登记 F4（见 §6），不随归档改写。
 
 ## 6. 归档后域外工具影响（finding 登记，域外不顺手修）
 
-- **F1（本归档引起，待域外修复）**：`ci/reconcile_state.py`（V8.1 线对账工具）
-  的 `V71_LEDGER` 常量仍指向旧 active 路径
+- **F1（本归档引起，已由前台闭环）**：`ci/reconcile_state.py`（V8.1 线对账工具）
+  的 `V71_LEDGER` 常量曾指向旧 active 路径
   `engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/baseline/V7_1_STATIC_TASK_LEDGER.csv`；
   归档移动后 `--current-first --strict` 的 v71_ledger_readable / v71_coverage /
   v71_no_extra_tasks 三检查 fail（rc=1），其余检查 PASS。
-  建议修复（ci/ 不在 GOV-002 Worker 白名单，未动）：该常量改指
-  `engineering/control/archive/2026-09-09_superseded_V8.1_CI_CONTROL_20260905/baseline/V7_1_STATIC_TASK_LEDGER.csv`。
+  修复（前台 d1ac4dfc，2026-09-10，ci/ 域外任务）：该常量已改指
+  `engineering/control/archive/2026-09-09_superseded_V8.1_CI_CONTROL_20260905/baseline/V7_1_STATIC_TASK_LEDGER.csv`；
+  GOV-002 attempt 1 复跑 `--current-first --strict` rc=0，9/9 checks PASS，
+  断链闭环（负向注入旧路径缺失形态可复现 rc=1，见 BASE=45f80776 证据）。
+- **F4（GOV-002 attempt 1 复跑登记，历史口径差，非归档动作引起）**：
+  V8.1 镜像 `baseline/V7_1_STATIC_TASK_LEDGER.csv` 当前 blob 32e3e414…（自
+  a4fdee3f V81-ADOPT-001 2026-09-05 入库）≠ BASE-001 freeze_snapshot_r1/r2
+  （工作区口径，双遍一致）登记值 524ab719…（= `工程控制/_control_packs/`
+  zip 原件与 `工程控制/` 解压件现行内容；快照时点该 tracked 文件工作区 dirty）；
+  归档移动本身 git R100 56/56 零差异不受影响。处置去向：owner/域外裁决
+  BASE-001 冻结口径与 a4fdee3f 入库口径的取舍，本任务不改任何域外文件。
 - **F2（预存，与本任务无关）**：`ci/tests/test_impact_map.py::test_required_path_domains_covered`
   失败（schemas/** 域探针未被 impact_map 覆盖，009ee419 根目录归纳遗留）；
   `ci/impact_map.json` 与该测试文件工作区对 HEAD 零 diff，证明非本任务引起。
