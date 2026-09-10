@@ -8,11 +8,19 @@
 # CALIBRATION_ALGORITHMS.md 与 COSMETIC_ALGORITHMS.md），本层无算法公式。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 逐符号
 # grep 实测于 p1_session.cpp（P1-SESSION-DOC, 2026-09-07），禁止手抄他版。
-# registry 关系（lib/core/src/module_adapters.cpp 实测）：无独立
-# astrocs.phase1.session descriptor；p1_session 五函数经 P1Api（:693-700）
-# 被 8 个 Phase1 descriptor 工厂委托——astrocs.phase1.calibration（:254，
-# :728-735 注册）+ p1_more[] 7 子模块（:755-770）。descriptor 占位词汇
-# （ALG-002/ALG-004/ALG-005、TEST-P1-*-001）不作冻结依据（P1-PSF-DOC 先例）。
+# registry 关系（lib/core/src/module_adapters.cpp 实测，P1-001 后）：无独立
+# astrocs.phase1.session descriptor；p1_session 不再被节点工厂委托——
+# P1-001 真实节点化后 8 个 Phase1 descriptor 各自委托唯一真实 operation
+# （calibrate→ac_calibrate_frame / cosmetic→ac_correct_frame /
+# star-psf→StarDetector / wcs→WcsTan / photometry→Photometer /
+# noise-snr→NoiseModel / drizzle→hp_drizzle_run / writer→aio_write_fits，
+# 见 module_adapters.cpp p1_nodes[]），P1Api 保留仅作兼容面（当前无工厂
+# 引用）；子节点禁止调用完整 phase_session_run（ARCH-P0-001 整改）。
+# descriptor 占位词汇（ALG-002/ALG-004/ALG-005、TEST-P1-*-001）不作
+# 冻结依据（P1-PSF-DOC 先例）。
+# complete 门（P1-001，PROD-P0-001 Phase1 侧）：run 成功 status="partial"
+# + availability 8 域如实报告（链不完整禁写 complete，链完整后按门禁
+# 恢复）；锚 tests/unit/p1001_real_nodes_test.cpp。
 # 构建=根 CMakeLists.txt:448-452（STATIC 库 astrocs_phase1_session，链接
 # astrocs_contracts/astrocs_calibration/astrocs_aio）+ :496/:514/:530 编入
 # astrocs 主可执行。MODULE_MIGRATION_MATRIX 无 P1-SESSION 行：assembly 层
@@ -106,13 +114,19 @@ notes: >-
   （DATA-P1-SESSION）；入口符号/时序/并发合同权威=PUBLIC_API.md
   API-P1-SESSION；编排级上游合同=API-P1-001（docs/api/PHASE1_API_V1.md，
   FROZEN）。
-  如实差距（登记不改码）：API-P1-001 §1 冻结序列为校准→检测/PSF→plate
-  solve→测光→SNR→Drizzle→HiPS 7-stage，现行 run 仅落 CAL+COS 4 段；
-  star-psf/wcs/photometry/noise-snr/drizzle/writer 六 descriptor 的工厂
-  委托 P1Api 仅提供 registry 注册与兼容 adapter 通道，p1_session 内无对应
-  执行段（lib/core/src/module_adapters.cpp:755-770 p1_more[] 注册循环）；
+  如实差距（P1-001 后更新）：API-P1-001 §1 冻结序列为校准→检测/PSF→plate
+  solve→测光→SNR→Drizzle→HiPS 7-stage，本 session run 仍仅落 CAL+COS 4
+  段；star-psf/wcs/photometry/noise-snr/drizzle/writer 六域已由 P1-001
+  真实节点化在 B 线 registry 通道落地（module_adapters.cpp p1_nodes[]，
+  各自唯一真实 operation 委托，子节点不调 phase_session_run）；
+  P1-001 attempt 2 口径更新三域再真实化：star-psf=sdet 检测+
+  dpsf_fit_batch_f64 批量 PSF 拟合（Moffat4 FP64）、wcs=ipv 求解链
+  （Linux=源内 stub fail-closed、Windows=真实求解）、writer=aio_hips
+  标准 HiPS 写链（p1_stack.hiss→IVOA 1.4 512×512 signal/support/
+  properties/MOC）；
   A 线 CLI 生产 7-stage 全链=production_call_paths_stage1.csv（DLL 显式
-  加载，与本静态库并存，无第二调度顺序）。补齐归后续 P1-SESSION-IMPL/INT。
+  加载，与本静态库并存，无第二调度顺序）。session 内 7-stage 段补齐归
+  后续 P1-SESSION-IMPL/INT。
   已知限制：cosmetic master 实参 nullptr→检测禁用恒等 pass（:295-296，
   DISP-COS-009，整改归 P1-COS-INT）；dark_scale_factor 键 validate 不验、
   run value() 兜底 1.0（:225）；async_io_depth∈{0,1,2} 强校验（:152）但

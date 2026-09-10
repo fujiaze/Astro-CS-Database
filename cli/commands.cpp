@@ -1259,6 +1259,10 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase1 ok", cfg, cfg_sha, {1},
                                        artifacts);
     if (wrc != astrocs::OK) return wrc;
+    // RT-009/P1-001: phase1 成功路径补写运行图产物（static/observed/sidecar）。
+    // 真实节点化后 phase1 trace 含每节点观测; best-effort: 函数内部只 warning
+    // 不失败 run（"不失败 run"合同见其注释）。
+    write_run_graphs(out_dir, ev, cfg, cfg_sha, {1});
     emit_phase_stats_resource(ev, "phase1", "frames processed",
                               {{"frames", artifacts.size()}}, &p1_summary);
     ev.emit_final(astrocs::OK, "ok", nullptr, "phase1 complete");

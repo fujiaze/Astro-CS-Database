@@ -28,12 +28,26 @@
   :289）；manifest kind=astrocs_phase1_session（:98），stage 记
   name/status/files/frames/per_frame/artifacts（:170-192/:277-279/:274-275/
   :333-334）；inspect 输出 host alloc（:349-357）。
-- registry：p1_session 五函数经 P1Api（module_adapters.cpp:693-700）被
-  astrocs.phase1.calibration（:254，:728-735）+ p1_more[] 7 子模块
-  （cosmetic :411 / star-psf :430 / wcs-platesolve :450 / photometry
-  :469 / noise-snr :489 / drizzle :508 / writer :527，注册循环 :755-770）
-  工厂委托。SessionModule.execute 先 validate 后 run（:193-201）+
-  ThreadLease 租借（:156-162）+ provider=baseline（:170）。
+- registry（P1-001 后更新，2026-09-10）：8 个 Phase1 descriptor 工厂已
+  改为 P1NodeModule 唯一真实 operation 委托（module_adapters.cpp
+  p1_nodes[]；子节点禁调 phase_session_run，ARCH-P0-001 整改）；
+  P1Api/SessionModule 保留兼容面。complete 门：run 成功 status="partial"+
+  availability 8 域（PROD-P0-001 Phase1 侧；p1_session.cpp run 成功路径）。
+  测试锚：tests/unit/p1001_real_nodes_test.cpp + p1sess 五组（断言已迁移
+  partial）。
+- P1-001 attempt 2 三域真实化（2026-09-10 口径更新落地）：star-psf=
+  sdet(lib/star_detector 生产源)+dpsf_fit_batch_f64(lib/dynamic_psf
+  Moffat4 FP64，DATA-P1-PSF 携 psf_params:FLOAT64[N,9])；wcs=ipv 求解链
+  (ipv_solve_from_memory_with_callback_d，sdet+gaia_client 句柄注入，
+  Linux=源内 stub fail-closed 报平台限制、Windows=真实求解，缺求解参数
+  DATA 拒绝)；writer=p1_stack.hiss→aio_hiss_inspect/read_tile_*→
+  AstroSphereTileView→aio_hips_product_begin/write/finalize（NESTED 聚合
+  IVOA 1.4 标准 512×512 HiPS，covered_area_model=support_x_A_cell，
+  nside>=512 合同）。主链测试 7 节点（wcs 旁支平台化单测）+ 下游零调用
+  负向用例（口径⑨）。构建面：astrocs_p1_dpsf/astrocs_p1_ipv/
+  astrocs_p1_sdet 三个 STATIC + GSL(gsl gslcblas) + AIO_ENABLE_HEALPIX
+  编译定义；cli/CMakeLists.txt compat 面同步（源集+include+链接 gsl）。
+  CLI 键白名单 parser.cpp 补 drizzle/wcs。
 - 构建：根 CMakeLists.txt:448-452 STATIC astrocs_phase1_session；
   :496/:514/:530 编入主可执行。
 - 如实差距：API-P1-001（docs/api/PHASE1_API_V1.md FROZEN）冻结 7-stage
@@ -70,3 +84,41 @@
   rc=0；check_doc_index rc=0；自包含 selfcheck ALL PASS。
 - 禁改：lib 生产源码（p1_session.cpp/.h 零 diff）、docs/science/、根科学
   公式；禁止运行 v19r3_traceability.py 与 gen_module_readmes.py。
+
+
+## 2026-09-10 · P1-001 真实节点化与 complete 门（attempt 2）
+
+### 任务
+
+- 控制包任务 P1-001（ASTROCS-CONSTITUTION-ALIGNMENT-V1，ARCH-P0-001 +
+  PROD-P0-001 Phase1 侧整改）：B 线 registry 8 个 Phase1 节点唯一真实
+  operation 化 + complete 门 fail-closed。
+
+### 现状变更要点
+
+- module_adapters.cpp：P1Api 8 工厂委托 → P1NodeModule 8 域唯一真实
+  operation 委托（p1_nodes[]；子节点零 phase_session_run 调用）。
+  operation/entry 名与 runtime/pipeline/module_ports.registry.json 一致。
+- p1_session.cpp：run 成功 manifest status="partial" + availability 8 域
+  （链不完整禁写 complete，complete 语义冻结待链完整后按门禁恢复）。
+- cli/runtime_client.cpp：phase1 IR 由单 cal 节点扩为 cal→cosmetic 链
+  （cosmetic enabled=false 时 0 帧直通，产物语义不变）。
+- cli/commands.cpp：phase1 成功路径补接 write_run_graphs（对齐 phase3
+  先例；observed trace 现含 phase1 节点观测）。
+- 根 CMakeLists.txt（白名单越界登记）：astrocs_phase1_session PUBLIC
+  链接追加 4 个 lib/phase1 静态库（wcs/phot/noise/stars，源零修改只读
+  委托）+ astrocs_module_adapters 追加 astrocs_drizzle（hp_drizzle_run
+  直链）；V7 残留追加块零触碰。
+- 测试：tests/unit/p1001_real_nodes_test.cpp 新增（RED 锚定→GREEN；
+  operation/entry/artifact/call_count=1/complete 门/负向/确定性）；
+  p1sess 五组 + p1_session_manifest 断言迁移 partial。
+
+### 如实边界
+
+- rt005_registry / rt009_node_trace / p1_noise_adapter（F-AIO-001）与
+  tools/arch/check_thread_budget.py（3× module_entry.cpp 未登记宏）、
+  tools/check_p1_symbol_map.py（docs/refactor 旧路径断链）为 BASE 预存
+  失败/断链，本任务零触碰，登记 findings 移交前台。
+- wcs-platesolve 为配置/初始 WcsTan 标定语义（真实求解器接线归各 IMPL
+  任务）；star-psf PSF 特性=StarSource fwhm_px/ellipticity（不接
+  dpsf_fit_batch，A 线 DPSF 生产链另行承载）。

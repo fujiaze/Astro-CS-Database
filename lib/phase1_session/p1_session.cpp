@@ -435,7 +435,23 @@ acs_status run_session(SessionState* s, const json& doc) {
     }
 
     s->manifest["frames"] = frames_ok;
-    s->manifest["status"] = "complete";
+    // P1-001 (attempt 2): complete 门 fail-closed（PROD-P0-001 Phase1 侧; 宪章
+    // §16.2/§18.3 不冒充完成）。本 session 只覆盖 Phase1 链的 io_read/calibrate/
+    // cosmetic/io_write 四阶段; 节点化产品链的其余 6 域（star-psf/wcs/
+    // photometry/noise-snr/drizzle/writer）不在本 session 执行面内 → 链不完整
+    // 期间 status="partial"（不写 complete）, availability 8 域如实报告。
+    // 链完整迁移完成后按控制包门禁恢复 complete 语义（不得由本文件单方放宽）。
+    s->manifest["status"] = "partial";
+    s->manifest["availability"] = {
+        {"calibration", "available"},
+        {"cosmetic", "available"},
+        {"star_psf", "unavailable"},
+        {"wcs", "unavailable"},
+        {"photometry", "unavailable"},
+        {"noise_snr", "unavailable"},
+        {"drizzle", "unavailable"},
+        {"writer", "unavailable"},
+    };
     s->ran = true;
     return ACS_OK;
 }

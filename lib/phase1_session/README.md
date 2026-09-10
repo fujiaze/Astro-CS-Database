@@ -12,9 +12,10 @@
 
 - MOD ID：`MOD-astrocs-phase1-session`；模块词汇 `astrocs.phase1.session`
   （归档映射表 docs/archive/refactor/P1_SYMBOL_MAP.md:14 既有词汇，现行
-  registry descriptor 无此 module_id——p1_session 函数族经
-  `lib/core/src/module_adapters.cpp:693-700` 的 `P1Api` 被 8 个 Phase1
-  descriptor 的工厂委托，见 §2）。
+  registry descriptor 无此 module_id——P1-001 真实节点化（2026-09-10）
+  前 p1_session 函数族经 `P1Api` 被 8 个 Phase1 descriptor 工厂委托；
+  现行 8 descriptor 各自委托唯一真实 operation（§2，ARCH-P0-001 整改），
+  p1_session 保留为 CLI 兼容装配会话）。
 - owner：AstroCS（P1-SESSION-DOC, SA-P1-R19）；语言 c++17；ABI v1
   （`ACS_ABI_VERSION_V1`，p1_session.cpp:92 校验）。
 - 构建锚：根 `CMakeLists.txt:448` `add_library(astrocs_phase1_session STATIC
@@ -22,13 +23,12 @@
   `astrocs_contracts astrocs_calibration astrocs_aio`；`:496/:514/:530` 编入
   astrocs 主可执行链接列表。现状为**静态库**，无独立 DLL（迁移矩阵无
   P1-SESSION 行，`dll_name=MISSING` 见 module.yaml）。
-- 生产调用方（唯一登记）：`lib/core/src/module_adapters.cpp`
-  - `:694-699` `P1Api` 五函数指针委托 `p1_session_create/validate/run/
-    inspect/destroy` + `phase1::last_error`；
-  - `:728-735` `astrocs.phase1.calibration` descriptor 注册 + 工厂
-    `make_session_module<P1Api>`（`:731-732`）；
-  - `:755-770` `p1_more[]` 其余 7 个 Phase1 descriptor（cosmetic/star-psf/
-    wcs-platesolve/photometry/noise-snr/drizzle/writer）注册 + 同一工厂委托。
+- 生产调用方（登记）：`lib/core/src/module_adapters.cpp`
+  - **现行（P1-001 后）**：8 个 Phase1 descriptor 注册 + `P1NodeModule`
+    工厂唯一真实 operation 委托（p1_nodes[] 表；子节点不调
+    phase_session_run，ARCH-P0-001 整改）；
+  - 历史（P1-001 前）：`P1Api` 五函数指针委托 + `make_session_module<P1Api>`
+    8 工厂同一委托（`P1Api`/SessionModule 现保留为兼容面）。
 - 会话头文件注释合同（p1_session.h:1-3,15-28）：四段式
   create→validate→run→inspect(+destroy)；opaque handle，owner=创建者；
   不 shell-out；cancel/线程预算/监控经 host services 注入。
@@ -36,22 +36,43 @@
 ## 2 DAG 节点表（每节点：module ID / entry / TEST / 端口 / artifact schema 摘要）
 
 **B 线（modular registry 装配，本库所属）**：`register_phase_modules`
-（module_adapters.cpp:723 起）注册 8 个 Phase1 descriptor；全部工厂委托
-`P1Api`（即 p1_session 函数族）。descriptor 端口/DATA/单位/坐标为
+注册 8 个 Phase1 descriptor。**P1-001（2026-09-10）真实节点化后**：全部
+工厂改为 `P1NodeModule` 唯一真实 operation 委托（module_adapters.cpp
+p1_nodes[] 表，operation/entry 名与
+runtime/pipeline/module_ports.registry.json 冻结绑定表一致）——calibrate→
+`ac_calibrate_frame`、cosmetic→`ac_correct_frame`、star-psf→
+`StarDetector::detect`+`dpsf_fit_batch_f64`（lib/star_detector 检测 →
+star_det v1 [N,6] → lib/dynamic_psf Moffat4 FP64 批量 PSF 拟合，
+DATA-P1-PSF 携 psf_params:FLOAT64[N,9]；P1-001 attempt 2 口径更新），
+wcs-platesolve→`ipv_solve_from_memory_with_callback_d`（lib/plate_solve
+ipv 真实求解器链：sdet+gaia_client 句柄注入 → FP64 解算 → CD/CRVAL/
+CRPIX/RMS → WcsTan roundtrip 自检；求解参数 ra0/dec0/focal_length_mm/
+pixel_size_um/gaia_data_dir 缺失即 DATA 拒绝（禁 silent default）；
+**ipv 非 Windows 平台为生产源内建 stub → Linux 节点 fail-closed 如实
+报平台限制，Windows 侧真实求解**；生产源零 diff）、photometry→
+`Photometer::measure`、noise-snr→`NoiseModel::estimate`、drizzle→
+`hp_drizzle_run`、writer→`aio_hiss_inspect/read_tile_*`→
+`AstroSphereTileView`→`aio_hips_product_begin/write_signal_support_tile/
+finalize`（消费上游 p1_stack.hiss，NESTED 聚合展开为 IVOA 1.4 标准
+512×512 HiPS：signal/+support/+properties/MOC；covered_area=
+support>0?A_cell:0 单帧语义，p1_final.json 登记
+covered_area_model="support_x_A_cell"；IVOA nside>=512 合同，上游
+drizzle nside<512 节点 DATA 拒绝）；**子节点禁止调用完整
+phase_session_run**（ARCH-P0-001 整改，P1Api 仅保留兼容面）。descriptor 端口/DATA/单位/坐标为
 module_adapters.cpp 实测；`ALG-002/ALG-004/ALG-005` 为 descriptor 占位
 kernel 词汇（各域冻结 ALG 以"冻结合同"列为准，由各 INT 任务对齐，
 与 P1-PSF-DOC 先例一致）：
 
 | # | 节点 module ID（descriptor 行） | 端口 in → out（DATA/单位/坐标） | descriptor 占位 SCI/ALG/API/TEST | 冻结合同（权威指针） | entry 与算法委托 | 冻结 TEST 设计 |
 |---|---|---|---|---|---|---|
-| 1 | `astrocs.phase1.calibration`（:254） | `frames`(DATA-P1-FRAME/ADU/PIXEL) → `calibrated`(DATA-P1-CAL/ADU/PIXEL) | SCI-P1-CAL-001 / ALG-P1-CAL-001 / API-P1-001 / TEST-P1-CAL-001 | SCI-CAL-001（docs/science/CALIBRATION.md）；ALG-CAL-001..006（docs/algorithms/CALIBRATION_ALGORITHMS.md）；DATA-P1-CAL（DATA_SEMANTICS §9）；API-CAL-001（PUBLIC_API） | p1_session_run 四段（§3）；算法 `ac_calibrate_frame`（p1_session.cpp:243） | TEST-CAL-DESIGN-001（CALIBRATION_ALGORITHMS §9） |
-| 2 | `astrocs.phase1.cosmetic`（:411） | `calibrated`(DATA-P1-CAL) → `cleaned`(DATA-P1-COSMETIC/ADU/PIXEL) | SCI-P1-COS-001 / ALG-P1-COS-001 / API-P1-002 / TEST-P1-COS-001 | SCI-CAL-001 共享；ALG-COS-001..005（docs/algorithms/COSMETIC_ALGORITHMS.md）；DATA-P1-COS（DATA_SEMANTICS §10）；API-COS-001（PUBLIC_API） | 算法 `ac_correct_frame`（p1_session.cpp:294，in-place 覆写校准帧）；master 指针传 nullptr=检测禁用恒等 pass（DISP-COS-009，lib/cosmetic/README.md 登记） | TEST-COS-DESIGN-001（COSMETIC_ALGORITHMS） |
-| 3 | `astrocs.phase1.star-psf`（:430） | `cleaned`(DATA-P1-COSMETIC) → `sources`(DATA-P1-SOURCES/DIMENSIONLESS/ICRS)+`psf`(DATA-P1-PSF/DIMENSIONLESS/PIXEL) | SCI-P1-PSF-001 / ALG-002（占位）/ API-P1-003 / TEST-P1-PSF-001 | SCI-P1-PSF-001+ALG-STARPSF-001（STAR_PSF_ALGORITHMS §11）；DATA-P1-PSF（DATA_SEMANTICS §15）；API-PSF-001（PUBLIC_API） | 工厂委托 P1Api（:764-766）；**p1_session 内无对应段**（§3 如实差距），算法执行由 A 线 DLL 链承载（`dpsf_fit_batch_*`） | TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS §11.4） |
-| 4 | `astrocs.phase1.wcs-platesolve`（:450） | `sources`(DATA-P1-SOURCES) → `wcs`(DATA-P1-WCS/DIMENSIONLESS/ICRS) | SCI-P1-WCS-001 / ALG-002（占位）/ API-P1-004 / TEST-P1-WCS-001 | 矩阵行显式 MISSING（MOD-astrocs-phase1-wcs-platesolve） | 同上，p1_session 内无对应段 | 无（TEST-P1-WCS-001 词汇，待迁移任务） |
-| 5 | `astrocs.phase1.photometry`（:469） | `psf`(DATA-P1-PSF)+`sources`(DATA-P1-SOURCES) → `fluxes`(DATA-P1-FLUX/ELECTRON/ICRS) | SCI-P1-PHOT-001 / ALG-002（占位）/ API-P1-005 / TEST-P1-PHOT-001 | SCI-P1-PHOT-001；ALG-PHOT-001..002（PHOTOMETRIC_FIT.md）；DATA-P1-PHOT（DATA_SEMANTICS §14）；API-PHOT-001（PUBLIC_API） | 同上，p1_session 内无对应段；A 线生产调用锚 orchestrator.cpp:2474 → :2714（FP64 `pc_calibrate_simple_with_gaia_f64_v2`）/:2790（FP32 `pc_calibrate_simple_with_gaia_v2`） | TEST-PHOT-DESIGN-001（PHOTOMETRIC_FIT.md） |
-| 6 | `astrocs.phase1.noise-snr`（:489） | `fluxes`(DATA-P1-FLUX) → `snr`(DATA-P1-SNR/DIMENSIONLESS/ICRS) | SCI-P1-SNR-001 / ALG-004（占位）/ API-P1-006 / TEST-P1-SNR-001 | ALG-NOISE-001..003（NOISE_ESTIMATION.md）；DATA-P1-NOISE（DATA_SEMANTICS §13）；API-NOISE-001（PUBLIC_API） | 同上，p1_session 内无对应段 | TEST-NOISE-DESIGN-001（NOISE_ESTIMATION.md） |
-| 7 | `astrocs.phase1.drizzle`（:508） | `calibrated`(DATA-P1-CAL) → `stacked`(DATA-P1-STACK/ADU/ICRS) | SCI-P1-DRIZ-001 / ALG-005（占位）/ API-P1-007 / TEST-P1-DRIZ-001 | ALG-DRZ-001（DRIZZLE_GEOMETRY.md）；DATA-P1-DRZ（DATA_SEMANTICS §11）；API-DRZ-001（PUBLIC_API） | 同上，p1_session 内无对应段 | TEST-DRZ-DESIGN-001（DRIZZLE_GEOMETRY.md） |
-| 8 | `astrocs.phase1.writer`（:527） | `stacked`(DATA-P1-STACK) → `fits`(DATA-P1-FITS/ADU/ICRS) | SCI-P1-WR-001 / ALG-P1-WR-001 / API-P1-008 / TEST-P1-WR-001 | HiPS 写出域：ALG-HIPS-001..005（HIPS_WRITER.md）；DATA-P1-HIPS（DATA_SEMANTICS §12）；API-HIPS-001（PUBLIC_API）；writer/hips registry 无独立 descriptor（hips 页 docs/modules/registry/astrocs.phase1.hips-writer.md 为手写合同页） | 同上，p1_session 内无对应段；A 线写 tile 经 `aio_hips_*` 9 符号（aio_hips.h:104-177），drizzle sink 直连 `astro_sphere_sink.cpp:52`（aio_hips_product_begin） | TEST-HIPS-DESIGN-001（HIPS_WRITER.md §9） |
+| 1 | `astrocs.phase1.calibration`（:254） | `frames`(DATA-P1-FRAME/ADU/PIXEL) → `calibrated`(DATA-P1-CAL/ADU/PIXEL) | SCI-P1-CAL-001 / ALG-P1-CAL-001 / API-P1-001 / TEST-P1-CAL-001 | SCI-CAL-001（docs/science/CALIBRATION.md）；ALG-CAL-001..006（docs/algorithms/CALIBRATION_ALGORITHMS.md）；DATA-P1-CAL（DATA_SEMANTICS §9）；API-CAL-001（PUBLIC_API） | P1-001 后=ac_calibrate_frame（p1_nodes[] 直调；p1_session 四段编排见 §3） | TEST-CAL-DESIGN-001（CALIBRATION_ALGORITHMS §9） |
+| 2 | `astrocs.phase1.cosmetic`（:411） | `calibrated`(DATA-P1-CAL) → `cleaned`(DATA-P1-COSMETIC/ADU/PIXEL) | SCI-P1-COS-001 / ALG-P1-COS-001 / API-P1-002 / TEST-P1-COS-001 | SCI-CAL-001 共享；ALG-COS-001..005（docs/algorithms/COSMETIC_ALGORITHMS.md）；DATA-P1-COS（DATA_SEMANTICS §10）；API-COS-001（PUBLIC_API） | P1-001 后=ac_correct_frame（p1_nodes[] 直调，in-place 覆写校准帧；p1_session 编排同款 :294；master nullptr 恒等=DISP-COS-009 语义） | TEST-COS-DESIGN-001（COSMETIC_ALGORITHMS） |
+| 3 | `astrocs.phase1.star-psf`（:430） | `cleaned`(DATA-P1-COSMETIC) → `sources`(DATA-P1-SOURCES/DIMENSIONLESS/ICRS)+`psf`(DATA-P1-PSF/DIMENSIONLESS/PIXEL) | SCI-P1-PSF-001 / ALG-002（占位）/ API-P1-003 / TEST-P1-PSF-001 | SCI-P1-PSF-001+ALG-STARPSF-001（STAR_PSF_ALGORITHMS §11）；DATA-P1-PSF（DATA_SEMANTICS §15）；API-PSF-001（PUBLIC_API） | P1-001 attempt 2 后=sdet 检测（lib/star_detector 生产源）+`dpsf_fit_batch_f64`（lib/dynamic_psf Moffat4 FP64 批量拟合；DATA-P1-PSF 携 psf_params:FLOAT64[N,9]+detection_schema=star_det_v1:FLOAT64[N,6]；N>0 全失败 DATA 拒绝） | TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS §11.4） |
+| 4 | `astrocs.phase1.wcs-platesolve`（:450） | `sources`(DATA-P1-SOURCES) → `wcs`(DATA-P1-WCS/DIMENSIONLESS/ICRS) | SCI-P1-WCS-001 / ALG-002（占位）/ API-P1-004 / TEST-P1-WCS-001 | 矩阵行显式 MISSING（MOD-astrocs-phase1-wcs-platesolve） | P1-001 attempt 2 后=`ipv_solve_from_memory_with_callback_d`（ipv 真实求解链；Linux=源内 stub fail-closed 报平台限制、Windows=真实求解；缺求解参数 DATA 拒绝；p1001 平台化单测）| 无（TEST-P1-WCS-001 词汇，待迁移任务） |
+| 5 | `astrocs.phase1.photometry`（:469） | `psf`(DATA-P1-PSF)+`sources`(DATA-P1-SOURCES) → `fluxes`(DATA-P1-FLUX/ELECTRON/ICRS) | SCI-P1-PHOT-001 / ALG-002（占位）/ API-P1-005 / TEST-P1-PHOT-001 | SCI-P1-PHOT-001；ALG-PHOT-001..002（PHOTOMETRIC_FIT.md）；DATA-P1-PHOT（DATA_SEMANTICS §14）；API-PHOT-001（PUBLIC_API） | P1-001 后=Photometer::measure（p1_nodes[]）；A 线生产调用锚 orchestrator.cpp:2474 → :2714（FP64 `pc_calibrate_simple_with_gaia_f64_v2`）/:2790（FP32 `pc_calibrate_simple_with_gaia_v2`） | TEST-PHOT-DESIGN-001（PHOTOMETRIC_FIT.md） |
+| 6 | `astrocs.phase1.noise-snr`（:489） | `fluxes`(DATA-P1-FLUX) → `snr`(DATA-P1-SNR/DIMENSIONLESS/ICRS) | SCI-P1-SNR-001 / ALG-004（占位）/ API-P1-006 / TEST-P1-SNR-001 | ALG-NOISE-001..003（NOISE_ESTIMATION.md）；DATA-P1-NOISE（DATA_SEMANTICS §13）；API-NOISE-001（PUBLIC_API） | P1-001 后=NoiseModel::estimate（p1_nodes[]）| TEST-NOISE-DESIGN-001（NOISE_ESTIMATION.md） |
+| 7 | `astrocs.phase1.drizzle`（:508） | `calibrated`(DATA-P1-CAL) → `stacked`(DATA-P1-STACK/ADU/ICRS) | SCI-P1-DRIZ-001 / ALG-005（占位）/ API-P1-007 / TEST-P1-DRIZ-001 | ALG-DRZ-001（DRIZZLE_GEOMETRY.md）；DATA-P1-DRZ（DATA_SEMANTICS §11）；API-DRZ-001（PUBLIC_API） | P1-001 后=hp_drizzle_run（p1_nodes[] 直调；IVOA nside>=512 合同由下游 writer fail-closed 校验）| TEST-DRZ-DESIGN-001（DRIZZLE_GEOMETRY.md） |
+| 8 | `astrocs.phase1.writer`（:527） | `stacked`(DATA-P1-STACK) → `fits`(DATA-P1-FITS/ADU/ICRS) | SCI-P1-WR-001 / ALG-P1-WR-001 / API-P1-008 / TEST-P1-WR-001 | HiPS 写出域：ALG-HIPS-001..005（HIPS_WRITER.md）；DATA-P1-HIPS（DATA_SEMANTICS §12）；API-HIPS-001（PUBLIC_API）；writer/hips registry 无独立 descriptor（hips 页 docs/modules/registry/astrocs.phase1.hips-writer.md 为手写合同页） | P1-001 attempt 2 后=aio_hiss_inspect/read_tile_* → AstroSphereTileView → `aio_hips_product_begin/write_signal_support_tile/finalize`（消费 p1_stack.hiss；NESTED 聚合 → IVOA 1.4 标准 512×512 HiPS signal/+support/+properties/MOC；covered_area_model=support_x_A_cell 单帧语义） | TEST-HIPS-DESIGN-001（HIPS_WRITER.md §9） |
 
 **A 线（CLI 生产编排，现行唯一 7-stage 全链）**：
 docs/architecture/production_call_paths_stage1.csv 登记 7 条生产调用路径
@@ -96,7 +117,7 @@ DLL 显式加载（dll_loader），与本库（B 线静态库）并存；两条�
 （API-P1-001，FROZEN）§1 声明 run 内部阶段序列=校准→检测/PSF→plate
 solve→测光定标→SNR→Drizzle→HiPS；**现行实现仅落 CAL+COS 域 4 段**，
 photometry/psf/wcs/noise/drizzle/hips 在 B 线 session 内无执行段（其
-registry 端口存在、工厂委托 P1Api 兼容通道，执行语义由 A 线 DLL 链或
+registry 端口存在、P1-001 后工厂真实 operation 委托（p1_nodes[]），执行语义由 B 线节点或
 后续 P1-SESSION-IMPL 整改补齐，见 §9）。本 README 不以此差距反推算法
 行为，不修改 SCI/ALG 冻结文档。
 
@@ -185,6 +206,13 @@ module_adapters.cpp:61-91）：
   矩阵行=MOD-astrocs-phase1-session（docs/traceability/）。
   TEST-P1-SESSION-001 锚 tests/unit/p1_ir_facade_test.cpp（可执行测试
   已接线登记）。
+- complete 门 fail-closed（P1-001, 2026-09-10）：run 成功路径 manifest
+  `status="partial"`（不写 complete）+ `availability` 8 域如实报告
+  （calibration/cosmetic=available，star_psf/wcs/photometry/noise_snr/
+  drizzle/writer=unavailable）；PROD-P0-001 Phase1 侧整改锚
+  `tests/unit/p1001_real_nodes_test.cpp::test_complete_gate_fail_closed`。
+  既有 u1/u1b/u7/w1/p2 断言同步迁移 partial（run 链不完整期间 complete
+  语义冻结，链完整迁移完成后按控制包门禁恢复）。
 
 ## 8 已知限制（登记不改码）
 

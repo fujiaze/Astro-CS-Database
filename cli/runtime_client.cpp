@@ -89,18 +89,28 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   ir["nodes"] = nlohmann::json::array();
   nlohmann::json outs = nlohmann::json::object();
 
-  auto phase1_node = [&]() {
-    nlohmann::json n;
-    n["node_id"] = "cal";
-    n["module_id"] = "astrocs.phase1.calibration";
-    n["module_api"] = "1.x";
+  // P1-001 (attempt 2): Phase1 IR 链 cal → cosmetic（唯一真实 operation 节点;
+  // cosmetic enabled=false 时为确定性 0 帧直通, 不改变既有产物语义）。
+  auto phase1_nodes = [&]() -> std::vector<nlohmann::json> {
     nlohmann::json pc = phase_config(doc, 1, out_dir, err);
-    if (err && !err->empty()) return nlohmann::json();
-    n["config"] = pc;
-    n["inputs"] = {{"frames", "artifact:in"}};
-    n["outputs"] = {{"calibrated", "artifact:cal"}};
-    n["resources"] = {{"class", "cpu_heavy"}, {"parallel", true}};
-    return n;
+    if (err && !err->empty()) return {};
+    nlohmann::json cal;
+    cal["node_id"] = "cal";
+    cal["module_id"] = "astrocs.phase1.calibration";
+    cal["module_api"] = "1.x";
+    cal["config"] = pc;
+    cal["inputs"] = {{"frames", "artifact:in"}};
+    cal["outputs"] = {{"calibrated", "artifact:cal"}};
+    cal["resources"] = {{"class", "cpu_heavy"}, {"parallel", true}};
+    nlohmann::json cos;
+    cos["node_id"] = "cos";
+    cos["module_id"] = "astrocs.phase1.cosmetic";
+    cos["module_api"] = "1.x";
+    cos["config"] = pc;
+    cos["inputs"] = {{"calibrated", "artifact:cal"}};
+    cos["outputs"] = {{"cleaned", "artifact:cos"}};
+    cos["resources"] = {{"class", "cpu_heavy"}, {"parallel", true}};
+    return {cal, cos};
   };
   // P2-006 (G5): Canonical Phase2 IR 7 节点链
   // coverage → sample → upm_fit → upm_apply → reject → integrate → write。
@@ -172,7 +182,9 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
     if (ph == 2) want2 = true;
     if (ph == 3) want3 = true;
   }
-  if (want1) ir["nodes"].push_back(phase1_node());
+  if (want1) {
+    for (auto& n : phase1_nodes()) ir["nodes"].push_back(n);
+  }
   if (want2) {
     for (auto& n : phase2_nodes()) ir["nodes"].push_back(n);
   }
@@ -186,7 +198,12 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   }
   if (want2) outs["mosaic"] = "artifact:write";
   if (want3) outs["verified"] = "artifact:verify";
-  if (want1 && !want2 && !want3) outs["calibrated"] = "artifact:cal";
+  if (want1 && !want2 && !want3) {
+    // P1-001: cos 节点产物覆写 calibrated_<base> 同文件（cleaned 语义终态在
+    // calibrated 文件上）; 声明为输出面满足 IR "produced must be consumed" 静态验证。
+    outs["calibrated"] = "artifact:cal";
+    outs["cleaned"] = "artifact:cos";
+  }
   ir["outputs"] = outs;
   return ir.dump();
 }

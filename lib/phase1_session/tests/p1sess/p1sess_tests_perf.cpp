@@ -97,7 +97,7 @@ int run_performance() {
         P1SESS_CHECK_EQ(cs, p1_session_inspect(h, &mf), ACS_OK);
         json m = json::parse(std::string(reinterpret_cast<const char*>(mf.data), mf.count));
         host.allocator.free(host.allocator.user_data, mf.data);
-        P1SESS_CHECK(cs, m.value("status", "") == "complete", "w1_complete");
+        P1SESS_CHECK(cs, m.value("status", "") == "partial", "w1_partial");
         P1SESS_CHECK_EQ(cs, m.value("frames", 0), kFrames);
         // W1 哨兵上界 (宽松; 只拦装配异常退化)
         P1SESS_CHECK_MSG(cs, sec < 20.0, "w1_upper_bound", "workers=%u run took %.2fs", workers, sec);

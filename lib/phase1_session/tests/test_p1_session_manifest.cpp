@@ -168,7 +168,7 @@ int main() {
         SessionOutcome o = drive("{\"input_lights\":[\"" + light + "\"],\"output_dir\":\"" + out_dir + "\",\"cosmetic\":{}}", true);
         CHECK(o.validate_rc == ACS_OK, "T1 validate ok");
         CHECK(o.run_rc == ACS_OK, "T1 run ok");
-        CHECK(o.manifest.value("status", "") == "complete", "T1 top status complete");
+        CHECK(o.manifest.value("status", "") == "partial", "T1 top status partial (complete 门 fail-closed)");
         const json* st = stage_by_name(o.manifest, "cosmetic");
         CHECK(st != nullptr, "T1 cosmetic stage present");
         if (st) {
