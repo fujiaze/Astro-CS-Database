@@ -350,6 +350,22 @@ target_include_directories(p2001_real_nodes_test PRIVATE
 target_link_libraries(p2001_real_nodes_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase2_session)
 add_test(NAME p2001_real_nodes COMMAND p2001_real_nodes_test)
 
+# P2-002: §30.2 rejection 平面（nused/nrej int32 诊断面投影+kernel 拒绝面+
+# n_ineligible 恒等式）+ §30.3 provenance 五键真实值/unavailable 显式登记 +
+# F-UNC-003 science planes 零断链 + 合同登记面 + 确定性 + 1/N parity;
+# 故障注入: ASTROCS_P2002_FAULT=proj|prov 必败（rc=1）
+add_executable(p2002_unc_rej_prov_test p2002_unc_rej_prov_test.cpp)
+target_compile_definitions(p2002_unc_rej_prov_test PRIVATE
+  ASTROCS_REPO_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../..")
+target_include_directories(p2002_unc_rej_prov_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1_session/tests/p1sess
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common)
+target_link_libraries(p2002_unc_rej_prov_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase2_session)
+add_test(NAME p2002_unc_rej_prov COMMAND p2002_unc_rej_prov_test)
+
 # CPU-001 (G3): 独立 provider 构建 — 三份 self-test + 负例
 # 每个 provider 静态库各自链接进独立可执行, 运行共享 backend_table.inc 的
 # backend_self_test(handshake→allocator→cancel→budget→logger); -R "cpu0" 可全跑。

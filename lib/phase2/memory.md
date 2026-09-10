@@ -188,3 +188,26 @@ photometric scale、新 runtime I/O DLL。
   warns=4（基线不变）；check_contract_graph rc=0 contracts=55；
   check_doc_index PASS；pytest tests/traceability 4 passed；生产源
   diff=0。日志 run/local/agent_p2_cov_doc/（不提交）。
+
+### P2-002（2026-09-10，控制包 ASTROCS-CONSTITUTION-ALIGNMENT-V1）
+
+- §30.2/§30.3 白名单内落地：contracts/data/
+  phase2_uncertainty_rejection_provenance_v1.json（AIO 子产品位分配
+  NREJ=32/NUSED=64 冻结登记 + §30.3 五键冻结表 + 诊断平面不入 science
+  planes（F-UNC-003 零断链，schema/validator 零修改）+ pending AIO 通道
+  登记）+ tests/unit/p2002_unc_rej_prov_test.cpp（kernel 语义直调（正确
+  gather 契约）+ 集成投影对拍 + §30.3 五键对拍 + unavailable 显式登记 +
+  确定性/1v4 parity + ASTROCS_P2002_FAULT=proj|prov 故障注入必败）。
+- §30.1（P2-001 已落地）不动；本任务生产源零修改（scientific_change=
+  false，零代码 diff 于 lib/phase2）。
+- findings 移交（域外 lib/core，白名单外不改）：F-P2-002-01（P0，
+  p2_op_reject 的 p2_collect_candidate_stack 调用 value_stride=
+  sizeof(double) 违反 gather 契约（应为每帧元素跨度）+ 3 元素 vals 缓冲
+  以 pixel 为基址越界读，depth≥3 时 kernel 收垃圾栈、rejection bins
+  失真且非确定；ASAN heap-buffer-overflow 实证于 rejection.cpp:1185；
+  depth=2 时 kernel 不触发故 P2-001 未暴露）；F-P2-002-02（P1，
+  integrate 不剔除 kernel 拒绝样本——逐样本 reason 未持久化，
+  n_ineligible 恒等式在部分拒绝场景不成立）；F-P2-002-03（AIO 域，
+  P2-001 F1/F2 维持：writer int32 子产品位 32/64 通道与 ASTROCS_*
+  properties 键通道未实现，§30.2/§30.3 HiPS 产品面 pending，现由
+  integrated bins + p2_final.json 诊断面承载）。
