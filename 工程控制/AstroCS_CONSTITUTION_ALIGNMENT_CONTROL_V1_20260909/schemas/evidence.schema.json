@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AstroCS task evidence",
+  "type": "object",
+  "required": [
+    "task_id",
+    "owner_id",
+    "base_sha",
+    "status",
+    "changed_files",
+    "checks",
+    "commands",
+    "scope_clean",
+    "scientific_change",
+    "known_limits"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "owner_id": {
+      "type": "string"
+    },
+    "base_sha": {
+      "type": "string"
+    },
+    "final_sha": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "PASS_REQUESTED",
+        "FAIL",
+        "BLOCKED_EXTERNAL"
+      ]
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "not_run"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "scope_clean": {
+      "type": "boolean"
+    },
+    "scientific_change": {
+      "type": "boolean"
+    },
+    "known_limits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,55 @@
+owners:
+  - id: FG-000
+    role: 前台调度、机器验收、Git与打包
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: OWNER
+    role: 仅项目负责人可执行的冻结/科学裁决
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-GOV
+    role: 治理与状态归档
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-WCS
+    role: 天体测量与WCS
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-PSF
+    role: PSF ABI与数值测试
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-AIO
+    role: AIO与原子产品
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-P1
+    role: Phase1节点集成
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-P2
+    role: Phase2科学与产品
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-P3
+    role: Phase3投影与重采样
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-RT
+    role: Runtime、Executor与资源
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-MOD
+    role: DLL、loader与安装树
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-CLI
+    role: CLI协议
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-CI
+    role: CI与工作流
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-REAL
+    role: Linux真实数据
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-VIS
+    role: 图像初审
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-WIN
+    role: Windows/Fatduck复验
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-DOC
+    role: 文档与追踪
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
+  - id: SA-AUD
+    role: 独立审核
+    rules: [no_commit, no_push, respect_write_scope, report_unrun_as_not_verified]
