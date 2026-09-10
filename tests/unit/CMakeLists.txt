@@ -326,6 +326,17 @@ target_include_directories(p1001_modules_test PRIVATE
 target_link_libraries(p1001_modules_test PRIVATE astrocs_module_adapters astrocs_core)
 add_test(NAME p1001_modules COMMAND p1001_modules_test)
 
+# P1-001 (attempt 2): Phase1 真实节点唯一 operation + complete 门 fail-closed
+# (fixture 复用 lib/phase1_session/tests/p1sess 手写 FITS writer, 不调生产 symbol;
+#  p1_session C ABI complete 门断言经 astrocs_phase1_session 链接)
+add_executable(p1001_real_nodes_test p1001_real_nodes_test.cpp)
+target_include_directories(p1001_real_nodes_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1_session/tests/p1sess)
+target_link_libraries(p1001_real_nodes_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase1_session)
+add_test(NAME p1001_real_nodes COMMAND p1001_real_nodes_test)
+
 # P2-001: Phase2 7 类真实算法节点（唯一真实 operation 委托 + typed artifact +
 # call_count=1 + complete 门 fail-closed + DATA-UNC-001 §30 ivar oracle +
 # fail-fast 下游零调用 + 确定性 + 1/N worker parity）
