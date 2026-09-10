@@ -31,3 +31,15 @@
 ## 5. 完成定义
 
 宪章与活动规范单一；P0/P1=0；三 Phase 可用性与产物一致；每 DAG 节点唯一真实入口且 call_count=1；AIO 唯一且原子；唯一 executor 与实测资源门；同 SHA Linux/Windows CI；Linux 全 testdata/Gaia、M42/银心与图像初审；Fatduck 同候选复验；安装树/ABI/hash/version/provenance 一致；审核包白名单和 SHA256 通过。
+
+## 6. 修订记录
+
+- rev1（2026-09-09）：初版，25 任务。
+- rev2（2026-09-10，执行侧）：接入负责人三项裁决与 P1 架构抽验——新增 `WCS-003`、
+  `BASE-UTIL-001`、`P1-HIPS-DIGEST-001`、`ARCH-AUDIT-P1`；G-SCI/RT-001/AUD-001 门禁接线。
+- rev3（2026-09-10，负责人真实数据验收指令）：见 `04_OWNER_DECISIONS_20260910.md`——
+  新增 `REAL-000`（数据审计/索引 v1.2/确定性匹配计划/缺口量化）；扩写 `REAL-001`
+  （全量校准解析 + M42/银心完整 Phase1/Phase2 + 本地真实 GaiaDR3/GaiaDR3SP）；扩写
+  `VIS-001`（固定拉伸初审）；`WIN-001`（同候选真实数据复验子集）。任务总数 30。
+- 状态真相源：`工程控制/ACTIVITY_STATE.md` 与执行态 TASK_STATE；`TASK_LEDGER.csv` 状态列
+  为 rev3 同步快照（2026-09-10），后续以活动状态文件为准。

@@ -2,7 +2,7 @@
 import argparse,csv,json,re,sys
 from pathlib import Path
 REQ={'00_READ_FIRST.md','01_BASELINE_AUDIT.md','02_GATES_AND_EXECUTION.md','03_AUDIT_PACKAGE_SPEC.md','TASK_LEDGER.csv','OWNER_BINDINGS.yaml','control-pack.json','schemas/evidence.schema.json'}
-CRIT={'BASE-001','GOV-001','GOV-002','WCS-001','WCS-002','PSF-001','DATA-001','AIO-001','AIO-002','P1-001','P2-001','P2-002','P3-001','P3-002','RT-001','MOD-001','CLI-001','CI-001','CI-002','REAL-001','VIS-001','WIN-001','DOC-001','AUD-001','PACK-001'}
+CRIT={'BASE-001','GOV-001','GOV-002','WCS-001','WCS-002','WCS-003','PSF-001','DATA-001','BASE-UTIL-001','P1-HIPS-DIGEST-001','ARCH-AUDIT-P1','AIO-001','AIO-002','P1-001','P2-001','P2-002','P3-001','P3-002','RT-001','MOD-001','CLI-001','CI-001','CI-002','REAL-000','REAL-001','VIS-001','WIN-001','DOC-001','AUD-001','PACK-001'}
 def fail(s): print('CONTROL_FAIL: '+s,file=sys.stderr);raise SystemExit(1)
 def main():
  p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True);r=p.parse_args().root.resolve()
