@@ -150,7 +150,7 @@ int run_properties() {
             P1SESS_CHECK_EQ(cs, p1_session_inspect(h, &mfb), ACS_OK);
             json m = json::parse(std::string(reinterpret_cast<const char*>(mfb.data), mfb.count));
             host.allocator.free(host.allocator.user_data, mfb.data);
-            P1SESS_CHECK(cs, m.value("status", "") == "complete", "p2_complete");
+            P1SESS_CHECK(cs, m.value("status", "") == "partial", "p2_partial");
             P1SESS_CHECK_EQ(cs, p1_session_destroy(h), ACS_OK);
             // 独立 oracle 通道读回
             const std::string artifact = out_dir + "/calibrated_light1.fts";

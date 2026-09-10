@@ -228,8 +228,13 @@ int run_units() {
             P1SESS_CHECK_MSG(cs, st.value("status", "") == "ok", "u1_stage_ok",
                              "stage %s status=%s", st.value("name", "?").c_str(),
                              st.value("status", "?").c_str());
-        // 顶层状态机: complete
-        P1SESS_CHECK(cs, o.manifest.value("status", "") == "complete", "u1_top_complete");
+        // 顶层状态机: partial（P1-001 complete 门 fail-closed: 链不完整禁写 complete,
+        // PROD-P0-001 Phase1 侧; availability 8 域, calibration/cosmetic=available）
+        P1SESS_CHECK(cs, o.manifest.value("status", "") == "partial", "u1_top_partial");
+        P1SESS_CHECK(cs, o.manifest["availability"].value("calibration", "") == "available",
+                     "u1_avail_cal");
+        P1SESS_CHECK(cs, o.manifest["availability"].value("star_psf", "") == "unavailable",
+                     "u1_avail_star");
         // frames 计数 (io_read files=5: 3 master+2 light 全计入; calibrate frames=2; top frames=2)
         P1SESS_CHECK_EQ(cs, stage_field_int(o.manifest, "io_read", "files"), 5);
         P1SESS_CHECK_EQ(cs, stage_field_int(o.manifest, "calibrate", "frames"), 2);
@@ -257,7 +262,7 @@ int run_units() {
         P1SESS_CHECK_EQ(cs, count_stage(o.manifest, "calibrate"), 1);
         P1SESS_CHECK_EQ(cs, count_stage(o.manifest, "cosmetic"), 1);
         P1SESS_CHECK_EQ(cs, count_stage(o.manifest, "io_write"), 1);
-        P1SESS_CHECK(cs, o.manifest.value("status", "") == "complete", "u1b_top_complete");
+        P1SESS_CHECK(cs, o.manifest.value("status", "") == "partial", "u1b_top_partial");
         // canonical 4 段顺序 (README §2 节点表; 防崩访问器)
         P1SESS_CHECK_MSG(cs, stage_name_at(o.manifest, 0) == "io_read" &&
                                  stage_name_at(o.manifest, 1) == "calibrate" &&
@@ -411,7 +416,7 @@ int run_units() {
             "\",\"cosmetic\":{\"enabled\":false}}";
         SessionOutcome o = drive(cfg, true);
         P1SESS_CHECK_EQ(cs, o.run_rc, ACS_OK);
-        P1SESS_CHECK(cs, o.manifest.value("status", "") == "complete", "u7_complete");
+        P1SESS_CHECK(cs, o.manifest.value("status", "") == "partial", "u7_partial");
         std::vector<float> px;
         int w = 0, h = 0;
         P1SESS_CHECK(cs, oracle_read_fits_f32(F.out_dir + "/calibrated_nan_light.fts", &w, &h, &px),

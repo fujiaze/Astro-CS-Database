@@ -705,15 +705,31 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
 
 ### 生产调用方与编排现状
 
-- 唯一生产调用方=lib/core/src/module_adapters.cpp（P1Api 五函数指针
-  :694-699；astrocs.phase1.calibration 注册 :728-735；p1_more[] 7 子
-  descriptor 注册 :755-770）。无 CLI/测试外的其他直接调用方（生产可达
-  性由 tools/quality/check_prod_reachability.py:42 与
+- 生产调用方=lib/core/src/module_adapters.cpp。**P1-001（2026-09-10）
+  真实节点化后**：8 个 Phase1 descriptor 各自委托唯一真实 operation
+  （p1_nodes[]：calibrate→ac_calibrate_frame、cosmetic→ac_correct_frame、
+  star-psf→StarDetector、wcs→WcsTan、photometry→Photometer、noise-snr→
+  NoiseModel、drizzle→hp_drizzle_run、writer→aio_write_fits；子节点不调
+  完整 phase_session_run，ARCH-P0-001 整改）；P1Api/SessionModule 保留
+  兼容面。无 CLI/测试外的其他直接调用方（生产可达性由
+  tools/quality/check_prod_reachability.py:42 与
   tools/check_pipeline_trace.py:16 登记锚）。
-- 如实差距：API-P1-001 冻结 7-stage 序列 vs 现行 4 段（CAL+COS）——
-  star-psf/wcs/photometry/noise-snr/drizzle/writer 六 descriptor 的工厂
-  委托仅提供 registry 兼容通道，p1_session 内无对应执行段；完整 7-stage
-  生产链现状=A 线 orchestrator DLL 链（production_call_paths_stage1.csv，
+- **P1-001 attempt 2 三域真实化（2026-09-10）**：star-psf→lib/star_detector
+  生产检测（sdet C 头，StarDetector C++ 类仅薄包装）+lib/dynamic_psf
+  `dpsf_fit_batch_f64`（Moffat4 FP64 批量 PSF 拟合，DATA-P1-PSF 携
+  psf_params:FLOAT64[N,9]）；wcs→lib/plate_solve ipv 真实求解链
+  `ipv_solve_from_memory_with_callback_d`（sdet+gaia_client 句柄注入；
+  非 Windows 平台为生产源内建 stub，节点 fail-closed 如实报平台限制，
+  Windows 侧真实求解；缺求解参数 DATA 拒绝）；writer→lib/astro_image_io
+  aio_hips 写链（p1_stack.hiss→`aio_hiss_inspect/read_tile_*`→
+  `AstroSphereTileView`→`aio_hips_product_begin/write_signal_support_tile/
+  finalize`，NESTED 聚合 IVOA 1.4 标准 512×512 HiPS）。生产源零 diff
+  （只调用不修改）；三域模块库构建接线 astrocs_p1_dpsf/astrocs_p1_ipv/
+  astrocs_p1_sdet（CMakeLists.txt）。
+- 如实差距（P1-001 后）：API-P1-001 冻结 7-stage 序列 vs session 现行
+  4 段（CAL+COS）——六域已在 B 线 registry 通道由 P1-001 真实节点委托
+  承载（p1_nodes[]），session 内 7-stage 段补齐归 P1-SESSION-IMPL；
+  完整 7-stage 生产链现状=A 线 orchestrator DLL 链（production_call_paths_stage1.csv，
   如 PHOTOMETRIC 生产调用 orchestrator.cpp:2474→:2714/:2790）。补齐归
   P1-SESSION-IMPL，本节不宣称 session 已完成 7-stage。
 

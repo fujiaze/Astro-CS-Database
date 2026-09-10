@@ -207,6 +207,15 @@ add_subdirectory(lib/cosmetic)
 # DEF 降 local (模块 CMakeLists)。
 add_subdirectory(lib/hips)
 
+# astrocs_p1_noise: 噪声权重模型迁移模块 DLL (P1-NOISE-IMPL; 矩阵行
+# astrocs.p1.noise / astrocs_p1_noise.dll)。三操作 C ABI v1 adapter 包装
+# legacy 噪声模型生产闭包 1 TU noise_model.cpp (API-NOISE-001 七导出,
+# scientific_change=false 零改动重编译; 依赖闭包实证 2026-09-09:
+# noise_model.cpp 仅依赖 std+libm, 零项目内符号/零 OMP); 唯一导出
+# astrocs_module_query_v1, legacy snr_noise_* 七符号经 version-script /
+# DEF 降 local (模块 CMakeLists)。
+add_subdirectory(lib/snr_estimator)
+
 # astrocs_cpu_baseline: baseline backend DSO 技术预览 (Linux; legacy ABI,
 # 无导出标注 → 默认全导出)。正式 provider ABI/Windows DLL → CPU-002
 # (providers/cpu/baseline)
@@ -229,7 +238,7 @@ set_target_properties(astrocs_cpu_baseline PROPERTIES
   PREFIX "")
 
 # RPATH (12 §6): install 后 SHARED 依赖以 $ORIGIN 解析; 禁 LD_LIBRARY_PATH 语义
-foreach(tgt astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline astrocs_p1_drizzle astrocs_p1_calibration astrocs_p1_cosmetic astrocs_p1_hips_writer)
+foreach(tgt astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline astrocs_p1_drizzle astrocs_p1_calibration astrocs_p1_cosmetic astrocs_p1_hips_writer astrocs_p1_noise)
   if(UNIX AND NOT APPLE)
     set_target_properties(${tgt} PROPERTIES
       INSTALL_RPATH "$ORIGIN" BUILD_RPATH_USE_ORIGIN YES)
@@ -483,12 +492,61 @@ target_include_directories(astrocs_phase1_stars PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_stars PUBLIC astrocs_contracts)
 
+# P1-001 (attempt 2, 口径更新 2026-09-10): B 线真实求解器/拟合器接线——
+# 生产源零 diff 只读编译进 STATIC（ipv 13 TU + gaia_client.c(C) + dpsf 3 TU）；
+# ipv 非 Windows 平台为源内 stub（load_dlls 恒败）→ 节点 fail-closed 如实报错，
+# Windows 侧同节点即真实求解（平台限制为生产源既定事实，非本任务改动）。
+set(P1_IPV_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/plate_solve/cpp/ipv)
+add_library(astrocs_p1_ipv STATIC
+  ${P1_IPV_DIR}/src/ipv_entry.cpp ${P1_IPV_DIR}/src/ipv_solver.cpp
+  ${P1_IPV_DIR}/src/ipv_select.cpp ${P1_IPV_DIR}/src/ipv_angle.cpp
+  ${P1_IPV_DIR}/src/ipv_distortion.cpp ${P1_IPV_DIR}/src/ipv_itertrans.cpp
+  ${P1_IPV_DIR}/src/ipv_kvector.cpp ${P1_IPV_DIR}/src/ipv_polygon.cpp
+  ${P1_IPV_DIR}/src/ipv_ransac.cpp ${P1_IPV_DIR}/src/ipv_robust_refine.cpp
+  ${P1_IPV_DIR}/src/ipv_sip.cpp ${P1_IPV_DIR}/src/ipv_triangle.cpp
+  ${P1_IPV_DIR}/src/ipv_wcs.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/gaia_xpsd_client/src/gaia_client.c)
+target_include_directories(astrocs_p1_ipv PUBLIC
+  ${P1_IPV_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/gaia_xpsd_client/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(astrocs_p1_ipv PUBLIC z Threads::Threads)
+set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/lib/gaia_xpsd_client/src/gaia_client.c
+  PROPERTY C_STANDARD 11)
+
+add_library(astrocs_p1_dpsf STATIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/src/dpsf_psf.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/src/dpsf_image.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/src/dpsf_log.cpp)
+target_include_directories(astrocs_p1_dpsf PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/src)
+target_link_libraries(astrocs_p1_dpsf PUBLIC OpenMP::OpenMP_CXX)
+
+# P1-001: sdet 生产实现（lib/star_detector 9 TU, ipv detector_handle 与
+# star-psf 检测的真实来源; lib/phase1/stars 仅为薄包装, 真实检测在此）
+add_library(astrocs_p1_sdet STATIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src/sdet_api.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src/sdet_detector.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src/sdet_image.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src/sdet_log.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src/sdet_background.cpp)
+target_include_directories(astrocs_p1_sdet PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src)
+target_link_libraries(astrocs_p1_sdet PUBLIC OpenMP::OpenMP_CXX)
+# sdet PSF 拟合 trust-region LM 求解器依赖 GSL（star_detector Makefile 同款 -lgsl -lgslcblas）
+target_link_libraries(astrocs_p1_sdet PUBLIC gsl gslcblas m)
+
 # phases sessions (facade, 后续迁移为 preset)
 add_library(astrocs_phase1_session STATIC lib/phase1_session/p1_session.cpp)
 target_include_directories(astrocs_phase1_session PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1_session
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/calibration/include)
-target_link_libraries(astrocs_phase1_session PUBLIC astrocs_contracts astrocs_calibration astrocs_aio)
+# P1-001 (attempt 2): lib/phase1 现有科学实现源(只读委托, 源零修改)经本 PUBLIC
+# 链接闭包传递给 astrocs_module_adapters(B 线真实节点化构建接线; ARCH-P0-001)。
+target_link_libraries(astrocs_phase1_session PUBLIC astrocs_contracts astrocs_calibration astrocs_aio
+  astrocs_phase1_wcs astrocs_phase1_phot astrocs_phase1_noise astrocs_phase1_stars)
 
 add_library(astrocs_phase2_session STATIC lib/phase2_session/p2_session.cpp)
 target_include_directories(astrocs_phase2_session PUBLIC
@@ -572,10 +630,21 @@ add_library(astrocs_module_adapters STATIC lib/core/src/module_adapters.cpp)
 target_include_directories(astrocs_module_adapters PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+# P1-001 (attempt 2): drizzle 节点唯一真实入口 hp_drizzle_run(astrocs_drizzle 静态库
+# 直链) + 口径更新: star-psf→dpsf_fit_batch_f64(astrocs_p1_dpsf) /
+# wcs→ipv 求解器链(astrocs_p1_ipv, 含 gaia_client; 生产源零 diff 只读编译)。
 target_link_libraries(astrocs_module_adapters PUBLIC
   astrocs_core astrocs_common astrocs_contracts
   astrocs_phase1_session astrocs_phase2_session astrocs_phase3_session
-  astrocs_cpu)
+  astrocs_cpu astrocs_drizzle astrocs_p1_dpsf astrocs_p1_ipv astrocs_p1_sdet)
+# P1-001: 生产头 include 面（dynamic_psf/ipv/star_detector/aio_hips 直读）
+target_include_directories(astrocs_module_adapters PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/plate_solve/cpp/ipv/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include)
+# aio_healpix_io.h(HISS 读面) 由 AIO_ENABLE_HEALPIX 门卫（drizzle 同款语义）
+target_compile_definitions(astrocs_module_adapters PUBLIC AIO_ENABLE_HEALPIX=1)
 
 # RT-008 CLI Runtime client: CLI 经公开 Runtime API 驱动 pipeline（不 include session/IO 内部头）
 add_library(astrocs_cli_runtime STATIC cli/runtime_client.cpp)

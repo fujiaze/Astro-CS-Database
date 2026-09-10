@@ -3,11 +3,13 @@
 // 2. 每个模块 descriptor 完整合同（SCI/ALG/DATA/API/TEST、端口、execution class）
 // 3. heavy+serial 拒绝；ACR production 拒绝；重复 ID 拒绝；重复端口拒绝
 // 4. export_index_json 用 JSON 正确转义（含 executable 标志）
-// 5. 每个模块 validate_config / inspect 走真实 session（synthetic 最小配置）
+// 5. 每个模块 validate_config / inspect 合同路径（P1-001 后 Phase1=真实
+//    operation 适配器: inspect 未执行显式拒绝; Phase2/3=Session inspect）
 #include "astrocs/core/module_adapters.h"
 
 #include <cstdio>
 #include <string>
+#include <string_view>
 
 using namespace astrocs::core;
 
@@ -140,12 +142,19 @@ static void test_factory_execution() {
     auto m = reg.create(id);
     CHECK(m.ok());
     if (!m.ok()) continue;
-    // inspect 不执行科学计算（真实 session inspect 路径）
-    auto insp = m.value()->inspect();
-    CHECK(insp.ok());
     // plan 返回非空计划
     auto p = m.value()->plan("node1", "{}");
     CHECK(p.ok());
+    // P1-001: Phase1 节点=唯一真实 operation 适配器（P1NodeModule）,
+    // inspect 仅在 execute 捕获 manifest 后有效（未执行→显式 DATA 拒绝,
+    // 不伪造空 manifest; 正向/负向面见 p1001_real_nodes_test）; Phase2/3
+    // 仍为 SessionModule inspect 合同路径。
+    auto insp = m.value()->inspect();
+    if (std::string_view(id).substr(0, 15) == "astrocs.phase1.") {
+      CHECK(insp.failed());
+    } else {
+      CHECK(insp.ok());
+    }
   }
 }
 

@@ -285,6 +285,9 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         // phase1 平铺 (p1_session 消费面)
         "input_lights", "master_bias", "master_dark", "master_flat",
         "dark_optimization", "dark_scale_factor", "cosmetic",
+        // P1-001: 真实节点域科学参数（drizzle: nside/nested/pixfrac/precision;
+        // wcs: ipv 求解链参数——非 silent default, 缺失即节点 DATA 拒绝）
+        "drizzle", "wcs",
         // phase2 平铺 (p2_session 消费面)
         "hips_paths", "upm", "upm_save_path", "persist_upm",
         // phase3 平铺 (p3_session 消费面)
