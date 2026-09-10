@@ -2388,8 +2388,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
   uint64_t n_pixels_processed = 0;
   Json tiles_j = Json::array();
   uint64_t out_offset = 0;
-  std::vector<double> vals;          // 每帧该像素值（工作缓冲）
-  std::vector<double> compact_vals;
+  std::vector<double> compact_vals;  // kernel 候选栈（工作缓冲）
   std::vector<uint32_t> src_idx;
   std::vector<uint8_t> reasons;
   for (const auto& [tip, refs] : union_tiles) {
@@ -2397,26 +2396,43 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
     if (depth > 255)
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "tile depth > 255 exceeds u16 rejection counters"));
-    // 读各帧 tile 数据（valid 面完整性: 文件/offset/count 一致性）
-    std::vector<std::vector<double>> tiles_v(static_cast<size_t>(depth));
-    for (size_t d = 0; d < depth; ++d) {
-      const auto& ref = refs[d];
-      if (!p2_read_bin_range<double>(ref.frame->value("data_file", ""),
-                                     ref.offset, tile_span, &tiles_v[d]))
-        return Result<void>::fail(Error(ErrorDomain::IO,
-            "corrected bin read failed (tile " + std::to_string(ref.tile_ipix) +
-            " frame slot " + std::to_string(d) + ")"));
+    // 读各帧 tile 数据并拼接为 frame-major 平面（valid 面完整性: 文件/
+    // offset/count 一致性）。
+    // [F-P2-002-01 修复] gather 契约: values 必须是 frame-major 平面且
+    // value_stride = 每帧元素跨度（rejection.h:229 契约注释;
+    // rejection.cpp:1185 索引公式 vd[s*stride+pixel] 为契约权威;
+    // stage2.cpp:1086 传 chunk_pixels / acr_kernels.cpp:121 传 n_px 同证）。
+    // 原实现 value_stride=sizeof(double) 且以仅 depth 元素的逐像素 vals
+    // 缓冲为基址, kernel 按 s*stride+pixel 寻址 → depth≥3 堆越界读 +
+    // 垃圾栈 → rejection bins 失真且非确定。现改为各帧 tile 数据
+    // （tile_span 元素/帧）连续拼入 depth×tile_span 平面后整体传入,
+    // 缓冲覆盖全部契约寻址范围（s*stride+pixel ≤ depth*tile_span-1）,
+    // 零堆越界。corrected 数据面为 fp64（p2_corrected bin 由 double 写出）
+    // → value_dtype=1 显式声明（零初始化默认 0=fp32 会使 kernel 以 float
+    // 宽度错误解释 double 位模式并错位跨帧寻址, ASAN "READ of size 4" 同证）。
+    std::vector<double> frame_major(static_cast<size_t>(depth) *
+                                    static_cast<size_t>(tile_span));
+    {
+      std::vector<double> scratch;
+      for (size_t d = 0; d < depth; ++d) {
+        const auto& ref = refs[d];
+        if (!p2_read_bin_range<double>(ref.frame->value("data_file", ""),
+                                       ref.offset, tile_span, &scratch))
+          return Result<void>::fail(Error(ErrorDomain::IO,
+              "corrected bin read failed (tile " + std::to_string(ref.tile_ipix) +
+              " frame slot " + std::to_string(d) + ")"));
+        std::memcpy(frame_major.data() + d * tile_span, scratch.data(),
+                    tile_span * sizeof(double));
+      }
     }
     const uint64_t base = out_offset;
     for (uint64_t p = 0; p < tile_span; ++p) {
-      vals.clear();
-      for (size_t d = 0; d < depth; ++d)
-        vals.push_back(tiles_v[d][static_cast<size_t>(p)]);
       // 资格收集（生产 strided 单一路径）: frame-major values, valid/support/
       // quality 传 nullptr（corrected 数据面已保证 support>0; NaN 由 finite 过滤）
       P2EligibilityGatherInput gin{};
-      gin.values = vals.data();
-      gin.value_stride = sizeof(double);
+      gin.values = frame_major.data();
+      gin.value_stride = tile_span;   // 每帧元素跨度（frame-major 契约）
+      gin.value_dtype = 1;            // corrected bin 为 fp64（double 写出）
       gin.count = static_cast<std::uint32_t>(depth);
       gin.pixel = static_cast<std::uint32_t>(p);
       P2EligibilityGatherOutput gout{};

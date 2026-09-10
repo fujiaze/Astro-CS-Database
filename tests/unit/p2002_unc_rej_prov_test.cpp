@@ -13,8 +13,10 @@
 //      dtype 固定 int32（文件字节 == 4·n_pixels）。
 //      [finding F-P2-002-01 锚] 生产 reject 的 gather 调用缺陷
 //      （lib/core 白名单外）使 depth≥3 的 rejection bins 与 kernel 语义
-//      失真且非确定——本测试只锚定"投影==bins"与 kernel 直调语义, bins 的
-//      kernel 一致性修复后须补一致性断言（详见证据报告）。
+//      失真且非确定——本测试只锚定"投影==bins"与 kernel 直调语义。修复
+//      验证断言已补于 test_f_p2002_01_rejection_parity（§2b）: 生产 bins==
+//      kernel 重放逐 bin 一致 + void 角落 nrej==0 + depth≥3 双跑/1v4
+//      bitwise 确定性。
 //   3. §30.3 provenance 五键真实值对拍 + unavailable 显式登记 + pending
 //      诚实（properties 通道缺口不掩盖, finding 移交）。
 //   4. F-UNC-003 零断链: 诊断平面不入 science planes 枚举（schema 与
@@ -300,6 +302,7 @@ inline uint32_t fitseq(uint32_t x, uint32_t y) { return y * kTw + x; }
 struct KernelRun {
   std::vector<std::uint8_t> reasons;
   P2RejectionDecision dec{};
+  std::uint32_t eligible_count = 0;
 };
 bool run_kernel(const double* frame_major, std::uint32_t depth,
                 std::uint32_t npx, std::uint32_t pixel, KernelRun* out) {
@@ -325,6 +328,7 @@ bool run_kernel(const double* frame_major, std::uint32_t depth,
   std::uint32_t ec = 0;
   gout.eligible_count = &ec;
   if (p2_collect_candidate_stack(&gin, &gout) != 0) return false;
+  out->eligible_count = ec;
   out->reasons.assign(depth, 0);
   out->dec.reasons = out->reasons.data();
   if (ec > 0 && ec > plan.underdetermined_n &&
@@ -509,6 +513,206 @@ static void test_s302_integration_projection(bool fault_inject) {
     CHECK_MSG(n_kern > 0, "kernel execution surface must exist (cand==3 pixels)");
   }
   fs::remove_all(fx.root);
+}
+
+// ── 2b. [finding F-P2-002-01 修复验证] 生产 reject bins == kernel 语义直调
+// 重放一致性 + 无覆盖角落 nrej==0 + depth≥3 nrej 确定性（双跑/1v4 bitwise）。
+// 修复前（生产 gather 契约错位: value_stride=sizeof(double)+3 元素 vals 缓冲
+// 以 pixel 为基址索引）生产 bins 为垃圾数据产物: 与 kernel 直调逐 bin
+// mismatch、角落 nrej 非零、双跑 bitwise 不稳——三组断言即 RED 面。
+template <typename Fixture>
+static void run_chain_via_runtime(ModuleRegistry& reg, const json& pc,
+                                  const char* pipe_id, int workers,
+                                  const Fixture& fx);
+static void test_f_p2002_01_rejection_parity() {
+  // ── Run1: depth=3 全链（离群点 kernel 拒绝面 + void 无覆盖角落）────────
+  Fixture3 fx = make_fixture3("f01a");
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  RunContext ctx;
+  Result<void> ff;
+  run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+  CHECK_MSG(ff.ok(), ff.ok() ? "chain ok" : ff.error().message().c_str());
+  if (ff.failed()) { fs::remove_all(fx.root); return; }
+
+  json rej, cor;
+  try { rej = json::parse(read_file(fx.out + "/p2_rejection.json")); }
+  catch (...) { CHECK(false); }
+  try { cor = json::parse(read_file(fx.out + "/p2_corrected.json")); }
+  catch (...) { CHECK(false); }
+  CHECK(rej.value("schema", "") == "DATA-P2-REJ");
+  const auto& cframes = cor["frames"];
+  CHECK(cframes.is_array() && cframes.size() == 3u);
+  if (!rej.contains("tiles") || !cframes.is_array() || cframes.size() != 3u) {
+    fs::remove_all(fx.root);
+    return;
+  }
+  const uint64_t tile_span = cor.value("tile_leaf_span", 0ull);
+  CHECK(tile_span > 0);
+
+  std::vector<uint8_t> acc_bins;
+  std::vector<uint16_t> nrej_bins, cand_bins;
+  CHECK(read_bin<uint8_t>(rej["files"].value("accepted", ""), 0, tile_span, &acc_bins));
+  CHECK(read_bin<uint16_t>(rej["files"].value("nrej", ""), 0, tile_span, &nrej_bins));
+  CHECK(read_bin<uint16_t>(rej["files"].value("candidates", ""), 0, tile_span, &cand_bins));
+  if (acc_bins.size() != tile_span || nrej_bins.size() != tile_span ||
+      cand_bins.size() != tile_span) {
+    fs::remove_all(fx.root);
+    return;
+  }
+
+  // plan 与生产同参（wbpp_current group-level 一次解析, nominal=3, undet_n=2）
+  P2RejectionPlanRequest req{};
+  req.request = P2_REJECT_AUTO;
+  req.nominal_contributors = 3;
+  req.profile = "wbpp_current";
+  req.underdetermined_n = 2;
+  P2RejectionPlan plan{};
+  char perr[256] = {0};
+  CHECK(p2_reject_plan_resolve(&req, &plan, perr, sizeof(perr)) == 0);
+
+  // ── a) 逐 tile 重建 frame-major → kernel 直调重放: 三 bins 逐像素一致 ──
+  //    gather 契约: values[s*npx + p]（rejection.h:229 value_stride=每帧元素
+  //    跨度; rejection.cpp:1185 索引公式 s*stride+pixel 为契约权威）。
+  uint64_t mismatch = 0, first_bad = 0;
+  bool has_bad = false, kern_ran = false, any_rej = false;
+  for (const auto& tj : rej["tiles"]) {
+    const uint64_t tip = tj.value("tile_ipix", 0ull);
+    const uint64_t npx = tj.value("n_pixels", 0ull);
+    const uint64_t toff = tj.value("offset", 0ull);
+    if (npx == 0) continue;
+    std::vector<std::vector<double>> fr(cframes.size());
+    bool ok = true;
+    for (size_t d = 0; d < cframes.size() && ok; ++d) {
+      for (const auto& t : cframes[d]["tiles"]) {
+        if (t.value("tile_ipix", 0ull) != tip) continue;
+        ok = read_bin<double>(cframes[d].value("data_file", ""),
+                              t.value("offset", 0ull), npx, &fr[d]);
+        break;
+      }
+      if (!ok) break;
+    }
+    if (!ok) { CHECK_MSG(false, "corrected tile read failed"); continue; }
+    std::vector<double> fm(cframes.size() * npx);
+    for (size_t d = 0; d < cframes.size(); ++d)
+      std::memcpy(fm.data() + d * npx, fr[d].data(), npx * sizeof(double));
+    for (uint64_t p = 0; p < npx; ++p) {
+      KernelRun k;
+      if (!run_kernel(fm.data(), 3, static_cast<uint32_t>(npx),
+                      static_cast<uint32_t>(p), &k)) {
+        ++mismatch;
+        if (!has_bad) { has_bad = true; first_bad = toff + p; }
+        continue;
+      }
+      const uint64_t fi = toff + p;
+      // 生产语义: eligible>0 && >undet_n && >=minimum_n 才跑 kernel;
+      // acc = 栈内存在 ACCEPTED/UNDERDETERMINED 即接受; nrej = threshold 侧计数
+      const bool kr = k.eligible_count > 0 &&
+                      k.eligible_count > plan.underdetermined_n &&
+                      k.eligible_count >= static_cast<uint32_t>(plan.minimum_n);
+      bool ok_bin;
+      if (kr) {
+        uint8_t acc = 0;
+        for (uint32_t s = 0; s < k.eligible_count; ++s)
+          if (k.reasons[s] == P2_REASON_ACCEPTED ||
+              k.reasons[s] == P2_REASON_UNDERDETERMINED) { acc = 1; break; }
+        const uint16_t nrej_k = static_cast<uint16_t>(
+            k.dec.rejected_low + k.dec.rejected_high);
+        ok_bin = cand_bins[fi] == k.eligible_count &&
+                 acc_bins[fi] == acc && nrej_bins[fi] == nrej_k;
+        kern_ran = true;
+        if (nrej_k > 0) any_rej = true;
+      } else {
+        ok_bin = cand_bins[fi] == k.eligible_count &&
+                 acc_bins[fi] == 1 && nrej_bins[fi] == 0;
+      }
+      if (!ok_bin) {
+        ++mismatch;
+        if (!has_bad) { has_bad = true; first_bad = fi; }
+      }
+    }
+  }
+  CHECK_MSG(kern_ran, "kernel execution surface must exist (depth=3 chain)");
+  CHECK_MSG(any_rej, "outlier fixture must produce non-empty rejection surface");
+  CHECK_MSG(mismatch == 0,
+            ("production bins must equal kernel replay per-pixel (mismatch=" +
+             std::to_string(mismatch) + " first_bad_fi=" +
+             std::to_string(first_bad) + ")").c_str());
+
+  // ── b) 角落: 无覆盖 void 像素 nrej==0（§30.2 invalid: 无覆盖 → 全接受）──
+  for (uint32_t y = 448u; y < kTw; ++y) {
+    for (uint32_t x = 448u; x < kTw; ++x) {
+      const uint32_t fi = fitseq(x, y);
+      if (nrej_bins[fi] != 0 || acc_bins[fi] != 1) {
+        CHECK_MSG(false, ("void pixel must have nrej==0 acc==1 (fi=" +
+                          std::to_string(fi) + " nrej=" +
+                          std::to_string(nrej_bins[fi]) + " acc=" +
+                          std::to_string(acc_bins[fi]) + ")").c_str());
+        break;
+      }
+    }
+  }
+
+  // ── c) depth≥3 nrej 确定性: 双跑三 bins + nrej int32 投影平面 bitwise ──
+  const std::string r1_acc = read_file(rej["files"].value("accepted", ""));
+  const std::string r1_nrej = read_file(rej["files"].value("nrej", ""));
+  const std::string r1_cand = read_file(rej["files"].value("candidates", ""));
+  json intj1;
+  try { intj1 = json::parse(read_file(fx.out + "/p2_integrated.json")); }
+  catch (...) { CHECK(false); }
+  const std::string r1_nrej_plane =
+      read_file(intj1["files"].value("nrej", ""));   // 删除前读入（平面内容快照）
+  fs::remove_all(fx.root);
+
+  Fixture3 fx2 = make_fixture3("f01b");
+  ModuleRegistry reg2;
+  CHECK(register_phase_modules(reg2).ok());
+  RunContext ctx2;
+  Result<void> ff2;
+  run_p2_chain(reg2, chain_cfg(fx2), ctx2, &ff2);
+  CHECK_MSG(ff2.ok(), ff2.ok() ? "chain run2 ok" : ff2.error().message().c_str());
+  if (ff2.ok()) {
+    json rej2, intj2;
+    try { rej2 = json::parse(read_file(fx2.out + "/p2_rejection.json")); }
+    catch (...) { CHECK(false); }
+    try { intj2 = json::parse(read_file(fx2.out + "/p2_integrated.json")); }
+    catch (...) { CHECK(false); }
+    CHECK_MSG(read_file(rej2["files"].value("accepted", "")) == r1_acc,
+              "depth=3 accepted bins must be bitwise deterministic across runs");
+    CHECK_MSG(read_file(rej2["files"].value("nrej", "")) == r1_nrej,
+              "depth=3 nrej bins must be bitwise deterministic across runs");
+    CHECK_MSG(read_file(rej2["files"].value("candidates", "")) == r1_cand,
+              "depth=3 candidates bins must be bitwise deterministic across runs");
+    CHECK_MSG(read_file(intj2["files"].value("nrej", "")) == r1_nrej_plane,
+              "depth=3 nrej int32 plane must be bitwise deterministic across runs");
+  }
+  fs::remove_all(fx2.root);
+
+  // ── d) depth=3 1v4 worker parity bitwise（Runtime lease/budget 链路）──
+  std::string w1_acc, w1_nrej;
+  for (int pass = 0; pass < 2; ++pass) {
+    Fixture3 fxw = make_fixture3(pass == 0 ? "f01w1" : "f01w4");
+    ModuleRegistry regw;
+    CHECK(register_phase_modules(regw).ok());
+    run_chain_via_runtime(regw, json::parse(chain_cfg(fxw)),
+                          pass == 0 ? "p2002f01.w1" : "p2002f01.w4",
+                          pass == 0 ? 1 : 4, fxw);
+    if (fs::exists(fs::path(fxw.out + "/p2_rejection.json"))) {
+      json rejw;
+      try { rejw = json::parse(read_file(fxw.out + "/p2_rejection.json")); }
+      catch (...) { CHECK(false); }
+      const std::string a = read_file(rejw["files"].value("accepted", ""));
+      const std::string n = read_file(rejw["files"].value("nrej", ""));
+      if (pass == 0) { w1_acc = a; w1_nrej = n; }
+      else {
+        CHECK_MSG(a == w1_acc && n == w1_nrej,
+                  "depth=3 1-worker vs 4-worker rejection bins must be bitwise equal");
+      }
+    } else {
+      CHECK_MSG(false, "depth=3 worker chain must produce rejection artifact");
+    }
+    fs::remove_all(fxw.root);
+  }
 }
 
 // ── 3. §30.3 provenance 五键真实值 + pending 诚实 + properties 缺口锚 ──────
@@ -697,9 +901,11 @@ static std::string planes_bytes(const std::string& out) {
   return b;
 }
 
+template <typename Fixture>
 static void run_chain_via_runtime(ModuleRegistry& reg, const json& pc,
                                   const char* pipe_id, int workers,
-                                  const Fixture2& fx) {
+                                  const Fixture& fx) {
+  (void)fx;  // config 已含 output_dir; fixture 仅承载路径语义
   auto node = [&](const char* nid, const char* mid, const char* in_port,
                   const char* in_art, const char* out_port, const char* out_art) {
     json n;
@@ -794,6 +1000,7 @@ int main(int argc, char** argv) {
 
   test_s302_kernel_semantics();
   if (!fault_prov) test_s302_integration_projection(fault_proj);
+  if (!fault_proj && !fault_prov) test_f_p2002_01_rejection_parity();
   if (!fault_proj) test_s303_provenance_keys(fault_prov);
   test_s303_unavailable_explicit();
   test_f_unc_003_no_plane_drift();
@@ -801,7 +1008,9 @@ int main(int argc, char** argv) {
 
   if (failures == 0) {
     std::printf("P2-002 UNC/REJ/PROV PASS (§30.2 kernel 语义直调+int32 投影=="
-                "bins+nused 投影+角落 0/0 + §30.3 五键真实值+unavailable 显式"
+                "bins+nused 投影+角落 0/0 + F-P2-002-01 修复验证: 生产 bins=="
+                "kernel 重放一致+void nrej==0+depth≥3 双跑/1v4 bitwise + "
+                "§30.3 五键真实值+unavailable 显式"
                 "登记 + F-UNC-003 零断链 + 合同登记 + 确定性 + 1/N parity)\n");
     return 0;
   }
