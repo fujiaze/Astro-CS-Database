@@ -242,7 +242,23 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
 
     s->manifest["n_inputs"] = cov.n_inputs;
     s->manifest["n_obs"] = n_obs;
-    s->manifest["status"] = "complete";
+    // P2-001: complete 门 fail-closed（PROD-P0-001 Phase2 侧; 宪章 §16.2/§18.3
+    // 不冒充完成）。本 session 只覆盖 Phase2 链的 coverage/sample/upm_build/
+    // persist 四阶段; 节点化产品链的其余 4 域（upm-apply/reject/integrate/
+    // write）不在本 session 执行面内 → 链不完整期间 status="partial"（不写
+    // complete）, availability 7 域如实报告。链完整迁移完成后按控制包门禁
+    // 恢复 complete 语义（不得由本文件单方放宽; 与 p1_session complete 门
+    // fail-closed 先例同构）。
+    s->manifest["status"] = "partial";
+    s->manifest["availability"] = {
+        {"coverage", "available"},
+        {"sample", "available"},
+        {"upm_fit", "available"},
+        {"upm_apply", "unavailable"},
+        {"reject", "unavailable"},
+        {"integrate", "unavailable"},
+        {"write", "unavailable"},
+    };
     s->ran = true;
     return ACS_OK;
 }
