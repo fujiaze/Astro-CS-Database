@@ -1,884 +1,934 @@
 {
- "schema": "cprun/v4",
- "id": "astrocs-constitution-alignment-v1",
- "title": "AstroCS 宪章一致性整改与发布复核",
- "workspace": "../..",
- "max_parallel": 4,
- "lanes": {
-  "repo-write": {
-   "capacity": 1
-  },
-  "read-only": {
-   "capacity": 4
-  },
-  "owner": {
-   "capacity": 1
-  },
-  "realdata": {
-   "capacity": 1
-  },
-  "windows": {
-   "capacity": 1
-  }
- },
- "gates": {
-  "G-GOV": {
-   "all": [
-    {
-     "task": "GOV-002",
-     "state": "passed"
+  "schema": "cprun/v4",
+  "id": "astrocs-constitution-alignment-v1",
+  "title": "AstroCS 宪章一致性整改与发布复核",
+  "workspace": "../..",
+  "max_parallel": 4,
+  "lanes": {
+    "repo-write": {
+      "capacity": 1
+    },
+    "read-only": {
+      "capacity": 4
+    },
+    "owner": {
+      "capacity": 1
+    },
+    "realdata": {
+      "capacity": 1
+    },
+    "windows": {
+      "capacity": 1
     }
-   ]
   },
-  "G-SCI": {
-   "all": [
-    {
-     "task": "WCS-002",
-     "state": "passed"
+  "gates": {
+    "G-GOV": {
+      "all": [
+        {
+          "task": "GOV-002",
+          "state": "passed"
+        }
+      ]
     },
-    {
-     "task": "PSF-001",
-     "state": "passed"
+    "G-SCI": {
+      "all": [
+        {
+          "task": "WCS-002",
+          "state": "passed"
+        },
+        {
+          "task": "PSF-001",
+          "state": "passed"
+        },
+        {
+          "task": "DATA-001",
+          "state": "passed"
+        },
+        {
+          "task": "WCS-003",
+          "state": "passed"
+        }
+      ]
     },
-    {
-     "task": "DATA-001",
-     "state": "passed"
+    "G-CODE": {
+      "all": [
+        {
+          "task": "CLI-001",
+          "state": "passed"
+        },
+        {
+          "task": "RT-001",
+          "state": "passed"
+        },
+        {
+          "task": "MOD-001",
+          "state": "passed"
+        }
+      ]
     },
-    {
-     "task": "WCS-003",
-     "state": "passed"
+    "G-CI": {
+      "all": [
+        {
+          "task": "CI-002",
+          "state": "passed"
+        }
+      ]
+    },
+    "G-REAL": {
+      "all": [
+        {
+          "task": "VIS-001",
+          "state": "passed"
+        },
+        {
+          "task": "WIN-001",
+          "state": "passed"
+        }
+      ]
+    },
+    "G-RELEASE": {
+      "all": [
+        {
+          "task": "AUD-001",
+          "state": "passed"
+        },
+        {
+          "task": "PACK-001",
+          "state": "passed"
+        }
+      ]
     }
-   ]
   },
-  "G-CODE": {
-   "all": [
+  "tasks": [
     {
-     "task": "CLI-001",
-     "state": "passed"
+      "id": "BASE-001",
+      "title": "冻结预存工作区与旧台账",
+      "spec": "tasks/BASE-001.md",
+      "lane": "read-only",
+      "priority": 100,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 600,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": []
     },
     {
-     "task": "RT-001",
-     "state": "passed"
+      "id": "GOV-001",
+      "title": "负责人冻结宪章与四项裁决",
+      "spec": "tasks/GOV-001.md",
+      "lane": "owner",
+      "priority": 99,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 1800,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "BASE-001"
+      ],
+      "write_scope": [
+        "ASTROCS_PROJECT_CONSTITUTION.md",
+        "AstroCS_ENGINEERING_CONSTRAINTS.md",
+        "AGENTS.md",
+        "docs/DOCUMENT_INDEX.yaml"
+      ]
     },
     {
-     "task": "MOD-001",
-     "state": "passed"
-    }
-   ]
-  },
-  "G-CI": {
-   "all": [
-    {
-     "task": "CI-002",
-     "state": "passed"
-    }
-   ]
-  },
-  "G-REAL": {
-   "all": [
-    {
-     "task": "VIS-001",
-     "state": "passed"
+      "id": "GOV-002",
+      "title": "归档旧控制包并统一活动状态",
+      "spec": "tasks/GOV-002.md",
+      "lane": "repo-write",
+      "priority": 98,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 1800,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "GOV-001"
+      ],
+      "write_scope": [
+        "工程控制/",
+        "engineering/control/",
+        "docs/DOCUMENT_INDEX.yaml",
+        "memory.md",
+        "REVIEW.md"
+      ]
     },
     {
-     "task": "WIN-001",
-     "state": "passed"
-    }
-   ]
-  },
-  "G-RELEASE": {
-   "all": [
-    {
-     "task": "AUD-001",
-     "state": "passed"
+      "id": "WCS-001",
+      "title": "修复独立WCS Oracle量纲",
+      "spec": "tasks/WCS-001.md",
+      "lane": "repo-write",
+      "priority": 97,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 3600,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "GOV-001"
+      ],
+      "write_scope": [
+        "tests/unit/p1wcs/"
+      ]
     },
     {
-     "task": "PACK-001",
-     "state": "passed"
+      "id": "WCS-002",
+      "title": "修复SIP逆模型与空对边界",
+      "spec": "tasks/WCS-002.md",
+      "lane": "repo-write",
+      "priority": 96,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 7200,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "WCS-001"
+      ],
+      "write_scope": [
+        "lib/plate_solve/",
+        "tests/unit/p1wcs/"
+      ]
+    },
+    {
+      "id": "WCS-003",
+      "title": "AP/BP布局扩展与迭代反演达冻结门",
+      "spec": "tasks/WCS-003.md",
+      "lane": "repo-write",
+      "priority": 95,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 10800,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "WCS-002"
+      ],
+      "write_scope": [
+        "lib/plate_solve/",
+        "tests/unit/p1wcs/"
+      ]
+    },
+    {
+      "id": "PSF-001",
+      "title": "修复PSF批量ABI尺寸边界",
+      "spec": "tasks/PSF-001.md",
+      "lane": "repo-write",
+      "priority": 94,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 3600,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "GOV-001"
+      ],
+      "write_scope": [
+        "lib/dynamic_psf/"
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "title": "冻结Phase2与Phase3不确定度产品合同",
+      "spec": "tasks/DATA-001.md",
+      "lane": "owner",
+      "priority": 93,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 3600,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "GOV-001"
+      ],
+      "write_scope": [
+        "docs/science/",
+        "docs/algorithms/",
+        "docs/contracts/",
+        "contracts/"
+      ]
+    },
+    {
+      "id": "BASE-UTIL-001",
+      "title": "P2利用率低独立归因诊断",
+      "spec": "tasks/BASE-UTIL-001.md",
+      "lane": "read-only",
+      "priority": 92,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 7200,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [],
+      "write_scope": [
+        "run/"
+      ]
+    },
+    {
+      "id": "P1-HIPS-DIGEST-001",
+      "title": "p1hips多HDU digest归一化修复",
+      "spec": "tasks/P1-HIPS-DIGEST-001.md",
+      "lane": "repo-write",
+      "priority": 91,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 3600,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [],
+      "write_scope": [
+        "lib/astro_image_io/tests/p1hips/"
+      ]
+    },
+    {
+      "id": "ARCH-AUDIT-P1",
+      "title": "P1-001独立架构抽验",
+      "spec": "tasks/ARCH-AUDIT-P1.md",
+      "lane": "read-only",
+      "priority": 90,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 7200,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": []
+    },
+    {
+      "id": "AIO-001",
+      "title": "建立唯一AIO C ABI与内容哈希复核",
+      "spec": "tasks/AIO-001.md",
+      "lane": "repo-write",
+      "priority": 89,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 7200,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "GOV-001"
+      ],
+      "write_scope": [
+        "include/",
+        "lib/astro_image_io/",
+        "runtime/io/",
+        "contracts/",
+        "tests/"
+      ]
+    },
+    {
+      "id": "AIO-002",
+      "title": "实现HiPS原子发布与临时目录清理",
+      "spec": "tasks/AIO-002.md",
+      "lane": "repo-write",
+      "priority": 88,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 7200,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "AIO-001"
+      ],
+      "write_scope": [
+        "lib/hips/",
+        "lib/hips_p2/",
+        "tests/"
+      ]
+    },
+    {
+      "id": "P1-001",
+      "title": "实现Phase1真实节点与complete门",
+      "spec": "tasks/P1-001.md",
+      "lane": "repo-write",
+      "priority": 87,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 10800,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "WCS-002",
+        "PSF-001",
+        "AIO-002"
+      ],
+      "write_scope": [
+        "lib/phase1_session/",
+        "lib/core/",
+        "cli/",
+        "tests/"
+      ]
+    },
+    {
+      "id": "P2-001",
+      "title": "实现Phase2真实算法节点",
+      "spec": "tasks/P2-001.md",
+      "lane": "repo-write",
+      "priority": 86,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 10800,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "DATA-001",
+        "AIO-002"
+      ],
+      "write_scope": [
+        "lib/phase2/",
+        "lib/phase2_session/",
+        "lib/core/",
+        "tests/"
+      ]
+    },
+    {
+      "id": "P2-002",
+      "title": "实现Phase2不确定度排异与provenance产品",
+      "spec": "tasks/P2-002.md",
+      "lane": "repo-write",
+      "priority": 85,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 10800,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "P2-001"
+      ],
+      "write_scope": [
+        "lib/phase2/",
+        "lib/hips_p2/",
+        "contracts/",
+        "tests/"
+      ]
+    },
+    {
+      "id": "P3-001",
+      "title": "建立投影registry与冻结投影实现",
+      "spec": "tasks/P3-001.md",
+      "lane": "repo-write",
+      "priority": 84,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 10800,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "DATA-001",
+        "AIO-002"
+      ],
+      "write_scope": [
+        "lib/phase3_proj/",
+        "docs/algorithms/",
+        "tests/"
+      ]
+    },
+    {
+      "id": "P3-002",
+      "title": "实现Phase3真实节点流式输出与不确定度",
+      "spec": "tasks/P3-002.md",
+      "lane": "repo-write",
+      "priority": 83,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 10800,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "P3-001"
+      ],
+      "write_scope": [
+        "lib/phase3_session/",
+        "lib/phase3_rsmp/",
+        "lib/phase3_fits/",
+        "lib/core/",
+        "tests/"
+      ]
+    },
+    {
+      "id": "RT-001",
+      "title": "接入唯一Executor和实测资源门",
+      "spec": "tasks/RT-001.md",
+      "lane": "repo-write",
+      "priority": 82,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 10800,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "BASE-UTIL-001",
+        "P1-001",
+        "P2-002",
+        "P3-002",
+        "WCS-003"
+      ],
+      "write_scope": [
+        "lib/core/",
+        "runtime/",
+        "lib/phase2/",
+        "lib/phase3_session/",
+        "tools/monitoring/",
+        "tests/"
+      ]
+    },
+    {
+      "id": "MOD-001",
+      "title": "完成科学DLL安装加载验证与产品清单",
+      "spec": "tasks/MOD-001.md",
+      "lane": "repo-write",
+      "priority": 81,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 10800,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "RT-001",
+        "AIO-002"
+      ],
+      "write_scope": [
+        "CMakeLists.txt",
+        "cmake/",
+        "packaging/",
+        "lib/",
+        "modules/",
+        "include/",
+        "tests/"
+      ]
+    },
+    {
+      "id": "CLI-001",
+      "title": "完成薄CLI validate plan run inspect",
+      "spec": "tasks/CLI-001.md",
+      "lane": "repo-write",
+      "priority": 80,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 7200,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "MOD-001"
+      ],
+      "write_scope": [
+        "cli/",
+        "lib/infrastructure/cli/",
+        "contracts/",
+        "tests/"
+      ]
+    },
+    {
+      "id": "CI-001",
+      "title": "收紧CI注册表与资源fail-closed",
+      "spec": "tasks/CI-001.md",
+      "lane": "repo-write",
+      "priority": 79,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 7200,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "CLI-001"
+      ],
+      "write_scope": [
+        "ci/",
+        "tools/monitoring/",
+        ".github/workflows/",
+        "tests/"
+      ]
+    },
+    {
+      "id": "CI-002",
+      "title": "验证同SHA Linux与Windows并生成候选",
+      "spec": "tasks/CI-002.md",
+      "lane": "read-only",
+      "priority": 78,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 21600,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "CI-001"
+      ]
+    },
+    {
+      "id": "REAL-000",
+      "title": "真实数据审计索引v1.2与匹配计划",
+      "spec": "tasks/REAL-000.md",
+      "lane": "repo-write",
+      "priority": 77,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 7200,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [],
+      "write_scope": [
+        "testdata/index.json",
+        "tools/realdata/",
+        "tests/realdata/",
+        "run/"
+      ]
+    },
+    {
+      "id": "REAL-001",
+      "title": "Linux最终SHA全量真实数据终验",
+      "spec": "tasks/REAL-001.md",
+      "lane": "realdata",
+      "priority": 76,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 259200,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "CI-002",
+        "REAL-000"
+      ],
+      "write_scope": [
+        "run/",
+        "artifacts/",
+        "reports/"
+      ]
+    },
+    {
+      "id": "VIS-001",
+      "title": "M42与银心固定参数图像初审",
+      "spec": "tasks/VIS-001.md",
+      "lane": "repo-write",
+      "priority": 75,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 10800,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "REAL-001"
+      ],
+      "write_scope": [
+        "reports/",
+        "artifacts/",
+        "run/"
+      ]
+    },
+    {
+      "id": "WIN-001",
+      "title": "Fatduck同候选正式平台复验",
+      "spec": "tasks/WIN-001.md",
+      "lane": "windows",
+      "priority": 74,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 86400,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "CI-002"
+      ]
+    },
+    {
+      "id": "DOC-001",
+      "title": "收敛L0与机器追踪状态",
+      "spec": "tasks/DOC-001.md",
+      "lane": "repo-write",
+      "priority": 73,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 5400,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "VIS-001",
+        "WIN-001"
+      ],
+      "write_scope": [
+        "REVIEW.md",
+        "docs/",
+        "memory.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "AUD-001",
+      "title": "独立复核P0P1和发布门禁",
+      "spec": "tasks/AUD-001.md",
+      "lane": "read-only",
+      "priority": 72,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 7200,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "ARCH-AUDIT-P1",
+        "DOC-001",
+        "P1-HIPS-DIGEST-001"
+      ]
+    },
+    {
+      "id": "PACK-001",
+      "title": "生成并fresh-extract验证审核包",
+      "spec": "tasks/PACK-001.md",
+      "lane": "repo-write",
+      "priority": 71,
+      "review": "foreground",
+      "retry": {
+        "max_attempts": 2,
+        "on_exhausted": "hold"
+      },
+      "timeout_sec": 5400,
+      "evidence": {
+        "checks": [
+          "scope",
+          "acceptance",
+          "provenance"
+        ]
+      },
+      "depends_on": [
+        "AUD-001"
+      ],
+      "write_scope": [
+        "artifacts/",
+        "reports/",
+        "engineering/"
+      ]
     }
-   ]
-  }
- },
- "tasks": [
-  {
-   "id": "BASE-001",
-   "title": "冻结预存工作区与旧台账",
-   "spec": "tasks/BASE-001.md",
-   "lane": "read-only",
-   "priority": 100,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 600,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   }
-  },
-  {
-   "id": "GOV-001",
-   "title": "负责人冻结宪章与四项裁决",
-   "spec": "tasks/GOV-001.md",
-   "lane": "owner",
-   "priority": 99,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 1800,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "BASE-001"
-   ],
-   "write_scope": [
-    "ASTROCS_PROJECT_CONSTITUTION.md",
-    "AstroCS_ENGINEERING_CONSTRAINTS.md",
-    "AGENTS.md",
-    "docs/DOCUMENT_INDEX.yaml"
-   ]
-  },
-  {
-   "id": "GOV-002",
-   "title": "归档旧控制包并统一活动状态",
-   "spec": "tasks/GOV-002.md",
-   "lane": "repo-write",
-   "priority": 98,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 1800,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "GOV-001"
-   ],
-   "write_scope": [
-    "工程控制/",
-    "engineering/control/",
-    "docs/DOCUMENT_INDEX.yaml",
-    "memory.md",
-    "REVIEW.md"
-   ]
-  },
-  {
-   "id": "WCS-001",
-   "title": "修复独立WCS Oracle量纲",
-   "spec": "tasks/WCS-001.md",
-   "lane": "repo-write",
-   "priority": 97,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 3600,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "GOV-001"
-   ],
-   "write_scope": [
-    "tests/unit/p1wcs/"
-   ]
-  },
-  {
-   "id": "WCS-002",
-   "title": "修复SIP逆模型与空对边界",
-   "spec": "tasks/WCS-002.md",
-   "lane": "repo-write",
-   "priority": 96,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 7200,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "WCS-001"
-   ],
-   "write_scope": [
-    "lib/plate_solve/",
-    "tests/unit/p1wcs/"
-   ]
-  },
-  {
-   "id": "PSF-001",
-   "title": "修复PSF批量ABI尺寸边界",
-   "spec": "tasks/PSF-001.md",
-   "lane": "repo-write",
-   "priority": 95,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 3600,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "GOV-001"
-   ],
-   "write_scope": [
-    "lib/dynamic_psf/"
-   ]
-  },
-  {
-   "id": "DATA-001",
-   "title": "冻结Phase2与Phase3不确定度产品合同",
-   "spec": "tasks/DATA-001.md",
-   "lane": "owner",
-   "priority": 94,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 3600,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "GOV-001"
-   ],
-   "write_scope": [
-    "docs/science/",
-    "docs/algorithms/",
-    "docs/contracts/",
-    "contracts/"
-   ]
-  },
-  {
-   "id": "AIO-001",
-   "title": "建立唯一AIO C ABI与内容哈希复核",
-   "spec": "tasks/AIO-001.md",
-   "lane": "repo-write",
-   "priority": 93,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 7200,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "GOV-001"
-   ],
-   "write_scope": [
-    "include/",
-    "lib/astro_image_io/",
-    "runtime/io/",
-    "contracts/",
-    "tests/"
-   ]
-  },
-  {
-   "id": "AIO-002",
-   "title": "实现HiPS原子发布与临时目录清理",
-   "spec": "tasks/AIO-002.md",
-   "lane": "repo-write",
-   "priority": 92,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 7200,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "AIO-001"
-   ],
-   "write_scope": [
-    "lib/hips/",
-    "lib/hips_p2/",
-    "tests/"
-   ]
-  },
-  {
-   "id": "P1-001",
-   "title": "实现Phase1真实节点与complete门",
-   "spec": "tasks/P1-001.md",
-   "lane": "repo-write",
-   "priority": 91,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 10800,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "WCS-002",
-    "PSF-001",
-    "AIO-002"
-   ],
-   "write_scope": [
-    "lib/phase1_session/",
-    "lib/core/",
-    "cli/",
-    "tests/"
-   ]
-  },
-  {
-   "id": "P2-001",
-   "title": "实现Phase2真实算法节点",
-   "spec": "tasks/P2-001.md",
-   "lane": "repo-write",
-   "priority": 90,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 10800,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "DATA-001",
-    "AIO-002"
-   ],
-   "write_scope": [
-    "lib/phase2/",
-    "lib/phase2_session/",
-    "lib/core/",
-    "tests/"
-   ]
-  },
-  {
-   "id": "P2-002",
-   "title": "实现Phase2不确定度排异与provenance产品",
-   "spec": "tasks/P2-002.md",
-   "lane": "repo-write",
-   "priority": 89,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 10800,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "P2-001"
-   ],
-   "write_scope": [
-    "lib/phase2/",
-    "lib/hips_p2/",
-    "contracts/",
-    "tests/"
-   ]
-  },
-  {
-   "id": "P3-001",
-   "title": "建立投影registry与冻结投影实现",
-   "spec": "tasks/P3-001.md",
-   "lane": "repo-write",
-   "priority": 88,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 10800,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "DATA-001",
-    "AIO-002"
-   ],
-   "write_scope": [
-    "lib/phase3_proj/",
-    "docs/algorithms/",
-    "tests/"
-   ]
-  },
-  {
-   "id": "P3-002",
-   "title": "实现Phase3真实节点流式输出与不确定度",
-   "spec": "tasks/P3-002.md",
-   "lane": "repo-write",
-   "priority": 87,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 10800,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "P3-001"
-   ],
-   "write_scope": [
-    "lib/phase3_session/",
-    "lib/phase3_rsmp/",
-    "lib/phase3_fits/",
-    "lib/core/",
-    "tests/"
-   ]
-  },
-  {
-   "id": "RT-001",
-   "title": "接入唯一Executor和实测资源门",
-   "spec": "tasks/RT-001.md",
-   "lane": "repo-write",
-   "priority": 86,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 10800,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "BASE-UTIL-001",
-    "P1-001",
-    "P2-002",
-    "P3-002",
-    "WCS-003"
-   ],
-   "write_scope": [
-    "lib/core/",
-    "runtime/",
-    "lib/phase2/",
-    "lib/phase3_session/",
-    "tools/monitoring/",
-    "tests/"
-   ]
-  },
-  {
-   "id": "MOD-001",
-   "title": "完成科学DLL安装加载验证与产品清单",
-   "spec": "tasks/MOD-001.md",
-   "lane": "repo-write",
-   "priority": 85,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 10800,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "RT-001",
-    "AIO-002"
-   ],
-   "write_scope": [
-    "CMakeLists.txt",
-    "cmake/",
-    "packaging/",
-    "lib/",
-    "modules/",
-    "include/",
-    "tests/"
-   ]
-  },
-  {
-   "id": "CLI-001",
-   "title": "完成薄CLI validate plan run inspect",
-   "spec": "tasks/CLI-001.md",
-   "lane": "repo-write",
-   "priority": 84,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 7200,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "MOD-001"
-   ],
-   "write_scope": [
-    "cli/",
-    "lib/infrastructure/cli/",
-    "contracts/",
-    "tests/"
-   ]
-  },
-  {
-   "id": "CI-001",
-   "title": "收紧CI注册表与资源fail-closed",
-   "spec": "tasks/CI-001.md",
-   "lane": "repo-write",
-   "priority": 83,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 7200,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "CLI-001"
-   ],
-   "write_scope": [
-    "ci/",
-    "tools/monitoring/",
-    ".github/workflows/",
-    "tests/"
-   ]
-  },
-  {
-   "id": "CI-002",
-   "title": "验证同SHA Linux与Windows并生成候选",
-   "spec": "tasks/CI-002.md",
-   "lane": "read-only",
-   "priority": 82,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 21600,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "CI-001"
-   ]
-  },
-  {
-   "id": "REAL-001",
-   "title": "执行Linux最终SHA全量真实数据终验",
-   "spec": "tasks/REAL-001.md",
-   "lane": "realdata",
-   "priority": 81,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 86400,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "CI-002"
-   ],
-   "write_scope": [
-    "run/",
-    "artifacts/",
-    "reports/"
-   ]
-  },
-  {
-   "id": "VIS-001",
-   "title": "执行M42与银心固定参数图像初审",
-   "spec": "tasks/VIS-001.md",
-   "lane": "read-only",
-   "priority": 80,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 7200,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "REAL-001"
-   ]
-  },
-  {
-   "id": "WIN-001",
-   "title": "执行Fatduck同候选正式平台复验",
-   "spec": "tasks/WIN-001.md",
-   "lane": "windows",
-   "priority": 79,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 86400,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "CI-002"
-   ]
-  },
-  {
-   "id": "DOC-001",
-   "title": "收敛L0与机器追踪状态",
-   "spec": "tasks/DOC-001.md",
-   "lane": "repo-write",
-   "priority": 78,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 5400,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "VIS-001",
-    "WIN-001"
-   ],
-   "write_scope": [
-    "REVIEW.md",
-    "docs/",
-    "memory.md",
-    "CHANGELOG.md"
-   ]
-  },
-  {
-   "id": "AUD-001",
-   "title": "独立复核P0P1和发布门禁",
-   "spec": "tasks/AUD-001.md",
-   "lane": "read-only",
-   "priority": 77,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 7200,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "ARCH-AUDIT-P1",
-    "DOC-001",
-    "P1-HIPS-DIGEST-001"
-   ]
-  },
-  {
-   "id": "PACK-001",
-   "title": "生成并fresh-extract验证审核包",
-   "spec": "tasks/PACK-001.md",
-   "lane": "repo-write",
-   "priority": 76,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 5400,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   },
-   "depends_on": [
-    "AUD-001"
-   ],
-   "write_scope": [
-    "artifacts/",
-    "reports/",
-    "engineering/"
-   ]
-  },
-  {
-   "id": "WCS-003",
-   "title": "AP/BP布局扩展与消费方迭代反演恢复冻结门",
-   "spec": "tasks/WCS-003.md",
-   "lane": "repo-write",
-   "priority": 96,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 1800,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   }
-  },
-  {
-   "id": "BASE-UTIL-001",
-   "title": "P2 utilization_p75_low 独立归因诊断",
-   "spec": "tasks/BASE-UTIL-001.md",
-   "lane": "read-only",
-   "priority": 91,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 1800,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   }
-  },
-  {
-   "id": "P1-HIPS-DIGEST-001",
-   "title": "p1hips tree_digest 多HDU归一化修复",
-   "spec": "tasks/P1-HIPS-DIGEST-001.md",
-   "lane": "repo-write",
-   "priority": 89,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 1200,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   }
-  },
-  {
-   "id": "ARCH-AUDIT-P1",
-   "title": "P1-001 独立架构抽验",
-   "spec": "tasks/ARCH-AUDIT-P1.md",
-   "lane": "read-only",
-   "priority": 90,
-   "review": "foreground",
-   "retry": {
-    "max_attempts": 2,
-    "on_exhausted": "hold"
-   },
-   "timeout_sec": 1200,
-   "evidence": {
-    "checks": [
-     "scope",
-     "acceptance",
-     "provenance"
-    ]
-   }
-  }
- ]
+  ]
 }
