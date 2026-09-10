@@ -1,0 +1,104 @@
+{
+  "contract_schema": "astrocs.phase2-unc-rej-prov-contract/v1",
+  "contract_version": 1,
+  "task_id": "P2-002",
+  "title": "Phase2 §30.2 rejection 平面与 §30.3 provenance 键组实现合同（AIO 子产品位分配 + provenance 键通道登记）",
+  "owner": "SA-P2",
+  "frozen": true,
+  "doc_ref": "docs/contracts/DATA_SEMANTICS.md §30.2/§30.3 (DATA-P2-REJ-001 / DATA-P2-PROV-001, DATA-UNC-001 FROZEN_TARGET_CONTRACT)",
+  "constitution_ref": [
+    "ASTROCS-CONSTITUTION-001 §6.1 (Phase2 输出 variance/ivar/rejection 产品)",
+    "ASTROCS-CONSTITUTION-001 §6.3 (integration 必须明确不确定度传播)",
+    "ASTROCS-CONSTITUTION-001 §16.2/§18.3 (unavailable 显式登记模式)"
+  ],
+  "upstream_frozen_anchors": [
+    "SCI-INT-001 §5 (n_used 冻结量)",
+    "SCI-REJ-001 §5 (reason 值域: ACCEPTED/REJECTED_LOW/REJECTED_HIGH/UNDERDETERMINED)",
+    "DATA_SEMANTICS §20.3 (input_manifest_hash 公式)",
+    "DATA_SEMANTICS §30.1 (variance/ivar unavailable 三规则)"
+  ],
+  "rejection_planes": {
+    "planes": ["nused", "nrej"],
+    "semantics": {
+      "nused": "nused(p) = P2PixelResult.n_used（SCI-INT §5 冻结量: 参与积分样本数的逐像素投影）",
+      "nrej": "nrej(p) = |{ s | reason_s ∉ {ACCEPTED, UNDERDETERMINED} }|（SCI-REJ §5 kernel 拒绝计数; eligibility 剔除不计入）"
+    },
+    "identity": "n_ineligible(p) = depth(p) − nused(p) − nrej(p)，depth = probe 覆盖帧数；三量完备划分（参与 + kernel 拒绝 + 无资格）",
+    "invalid_policy": "无覆盖 tile 像素（signal=NaN）→ nused=0 且 nrej=0；int 无 NaN，0 即\"无\"，禁 −1 哨兵",
+    "dtype": "int32（BITPIX=32，固定无 precision 开关）",
+    "layout": "NESTED 512×512 tile（子产品目录 <out_hips>/nused/、<out_hips>/nrej/）",
+    "per_frame_reason_products": "非目标（本合同不冻结 per-frame rejection map；需要时须 SCI/owner 冻结变更，禁止实现自行扩展）"
+  },
+  "aio_subproduct_bits": {
+    "NREJ": 32,
+    "NUSED": 64,
+    "bit_domain": "uint32 flags 域（AioHipsProductFlag）",
+    "occupied_bits_ref": "lib/astro_image_io/include/aio_hips.h:35-40（1=SIGNAL 2=SUPPORT 4=SNR 8=VARIANCE 16=IVAR；32/64 空闲）",
+    "authority": "DATA_SEMANTICS §30.2 冻结位值；AIO_ALL 掩码扩展由实现任务在 AIO 域合同登记（本合同登记位值，掩码扩展待 AIO 域 writer 实现）"
+  },
+  "provenance_keys": {
+    "ASTROCS_INPUT_MANIFEST_HASH": {
+      "value": "64hex sha256",
+      "source": "DATA_SEMANTICS §20.3 input_manifest_hash 公式（canonical manifest 按 frame_id 排序拼接）"
+    },
+    "ASTROCS_MODEL_HASH": {
+      "value": "UPM model_hash（64hex sha256）",
+      "source": "P2ModelInfo.model_hash（upm-fit 节点 typed artifact）"
+    },
+    "ASTROCS_UNCERTAINTY_AVAILABLE": {
+      "value": "\"true\" | \"false\"",
+      "source": "§30.1 unavailable 三规则判定结果（weight_mode≠2 / fallback 发生 / 合成输入非有限达帧级阻断）"
+    },
+    "ASTROCS_WEIGHT_MODE": {
+      "value": "0 | 1 | 2",
+      "source": "cfg.weight_mode（2=逐样本 ivar 逆方差科学默认）"
+    },
+    "ASTROCS_REJECT_PROFILE": {
+      "value": "版本化 profile 串",
+      "source": "cfg.reject_profile（wbpp_current / wbpp_2_9_1，§20.1 kernel 域禁 AUTO）"
+    }
+  },
+  "provenance_dual_write": {
+    "properties_face": "HiPS properties 文本键（ASTROCS_ 前缀同 ASTROCS_DRIZZLE_* 风格）",
+    "manifest_face": "finalize manifest JSON 键同名小写（数据面现由 p2_final.json provenance 对象承载同名键值）",
+    "unavailable_rule": "uncertainty_available=false 不是失败态，是宪章 §18.3 unavailable 模式在数据面的落位：键必须仍全写、值为 false（禁命令占位/静默缺键/空输出冒充）",
+    "atomicity": "本键写入不改变 §20.3 原子发布归属（IO-003 编排层）"
+  },
+  "exchange_policy": {
+    "diagnostic_planes_not_in_science_planes": true,
+    "rule": "nused/nrej 定位为诊断统计平面（diagnostic planes），不进入 phase_product_exchange 的 science planes 枚举（signal/support/variance/ivar/mask）；validator _PLANE_ID_SET 同步不变（零断链）；诊断平面由 artifact manifest content_role 与 diagnostics.json 描述",
+    "future_extension_rule": "science planes 枚举扩展（若未来需要）必须与 runtime validator 同一提交修订（finding F-UNC-003 联动约束）"
+  },
+  "pending_aio_channels": {
+    "writer_int32_tile": {
+      "status": "PENDING_AIO_DOMAIN",
+      "gap": "aio_hips writer 无 int32 子产品写通道（flags 位 32/64 未定义、无 aio_hips_write_*_tile int32 变体）；writer 源 lib/astro_image_io/src/hips/aio_hips_writer.cpp 归 AIO 域",
+      "transfer": "P2-001 F1 移交（evidence run Rmtucy2cqced995/P2-001/1.json）；本合同登记位值与通道语义为 AIO 域实现任务唯一事实源输入",
+      "current_carrier": "p2_integrated_nused.bin / p2_integrated_nrej.bin（int32 逐像素诊断平面，p2_integrated.json files 面）"
+    },
+    "properties_key_channel": {
+      "status": "PENDING_AIO_DOMAIN",
+      "gap": "aio_hips_set_drizzle_provenance（aio_hips.h:144）仅暴露 pixfrac/scale 双浮点，无通用 ASTROCS_* 文本键写入通道；ASTROCS_* 五键无法写 HiPS properties",
+      "transfer": "P2-001 F2 移交；本合同登记键名冻结表为 AIO 域通道扩展唯一事实源输入",
+      "current_carrier": "p2_final.json provenance JSON 面（真实值传递, 64hex 与上游 artifact 对拍）"
+    }
+  },
+  "findings_transfer": [
+    {
+      "id": "F-P2-002-01",
+      "domain": "lib/core (白名单外)",
+      "severity": "P0",
+      "title": "p2_op_reject 的 p2_collect_candidate_stack 调用违反 gather 契约：value_stride 传 sizeof(double)（=8）而契约语义为每帧元素跨度（stage2.cpp:1086 传 chunk_pixels；rejection.cpp:1185 索引 s*stride+pixel），depth≥3 时 gin.values=vals.data()（3 元素缓冲）以 pixel(0..262143) 为基址越界读堆内存——kernel 收到垃圾栈，rejection bins 全面失真且非确定（实测 3 帧链 82655/262144 像素 nrej 与 kernel 重放不一致、双跑/1v4 worker bitwise 不稳）；depth=2 时 kernel 永不触发故 P2-001 未暴露",
+      "evidence": "tests/unit/p2002_unc_rej_prov_test.cpp + 证据报告重放对比（同一 corrected bins、同一 plan、kernel 直调 252 拒 vs 产物 82655 拒）",
+      "fix_owner": "lib/core 域任务（P2-001 整改或 AIO/P2 集成域）"
+    },
+    {
+      "id": "F-P2-002-02",
+      "domain": "lib/core (白名单外)",
+      "severity": "P1",
+      "title": "integrate 不剔除 kernel 拒绝样本：reject bins 仅存像素级 accepted(u8)/nrej(u16)/candidates(u16)，逐样本 reason 未持久化；integrate 资格过滤只看像素级 accepted → 部分拒绝像素的被拒样本仍参与积分（n_used 含被拒样本），n_ineligible = depth − nused − nrej 恒等式在 kernel 部分拒绝场景不成立（违反 §30.2 完备划分语义）",
+      "evidence": "tests/unit/p2002_unc_rej_prov_test.cpp + 证据报告（kernel 直调语义 vs 集成面 nused 分布）",
+      "fix_owner": "lib/core 域任务（需 reject 逐样本掩码持久化或 integrate 重算——架构改动归 P2-001 整改）"
+    }
+  ]
+}
