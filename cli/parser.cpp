@@ -30,8 +30,9 @@ const std::set<std::string> kValueFlags = {"--output", "--config", "--cpu-profil
 // 04 §1(V5 冻结命令树) + 03 §3(V7 统一命令面; CLI-001 冻结 version/modules/selftest)
 // 注意: kRules 表驱动最长匹配——`version`/`verify`/`verify profile` 前缀互斥,
 // `modules list`/`modules verify` 与 `selftest` 均须逐条显式登记。
-// phase1/2/3 validate|plan|inspect 与 config validate --phase 属 CLI-003 语义域,
-// 本任务(CLI-001 骨架)不提前登记, 避免与后续语义任务冲突。
+// CLI-001(宪章对齐控制包): 宪章 §8.1 薄命令面补齐 —— phase1/2/3 validate|plan|inspect
+// 正式登记(golden 同步 tests/cli/test_cli_protocol.py HELP_LINES; docs 命令树同步
+// 归 DOC 域任务, check_api_docs 单向断言 doc⊆help 不受新命令影响)。
 const CmdRule kRules[] = {
     {"hardware inspect",            {"--json"}},
     {"version",                     {"--json"}},
@@ -45,8 +46,17 @@ const CmdRule kRules[] = {
     {"benchmark verify-profile",    {"--profile", "--json"}},
     {"doctor",                      {"--json"}},
     {"test synthetic",              {"--group"}},
+    {"phase1 validate",             {"--config", "--json"}},
+    {"phase1 plan",                 {"--config", "--json", "--output"}},
+    {"phase1 inspect",              {"--config", "--json"}},
     {"phase1 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
+    {"phase2 validate",             {"--config", "--json"}},
+    {"phase2 plan",                 {"--config", "--json", "--output"}},
+    {"phase2 inspect",              {"--config", "--json"}},
     {"phase2 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
+    {"phase3 validate",             {"--config", "--json"}},
+    {"phase3 plan",                 {"--config", "--json", "--output"}},
+    {"phase3 inspect",              {"--config", "--json"}},
     {"phase3 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
     {"drizzle",                     {"--config", "--events-jsonl", "--nside", "--pixfrac"}},
     {"verify",                      {"--run-manifest", "--json"}},
@@ -67,9 +77,18 @@ const char* kHelp =
     "astrocs verify profile --profile <path> [--json]\n"
     "astrocs doctor --json\n"
     "astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|pipeline>\n"
+    "astrocs phase1 validate --config <path> [--json]\n"
+    "astrocs phase1 plan --config <path> [--json] [--output <path>]\n"
     "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
+    "astrocs phase1 inspect --config <path> [--json]\n"
+    "astrocs phase2 validate --config <path> [--json]\n"
+    "astrocs phase2 plan --config <path> [--json] [--output <path>]\n"
     "astrocs phase2 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
+    "astrocs phase2 inspect --config <path> [--json]\n"
+    "astrocs phase3 validate --config <path> [--json]\n"
+    "astrocs phase3 plan --config <path> [--json] [--output <path>]\n"
     "astrocs phase3 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
+    "astrocs phase3 inspect --config <path> [--json]\n"
     "astrocs verify --run-manifest <path> --json\n";
 
 [[noreturn]] void parse_fail(const std::string& msg) { throw ParseError(msg); }

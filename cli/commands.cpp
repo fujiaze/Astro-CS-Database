@@ -1172,6 +1172,241 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 }
 
 
+// ── CLI-001(宪章对齐): phaseN validate|plan|inspect(宪章 §8.1 薄命令面补齐) ──
+// 语义(冻结于 tests/cli/test_cli001_vpi.py, 与 test_cli003_semantics 的 config validate
+// 浅面相区分):
+//   validate = session_mode 全量 config 校验 + PipelineIR 静态构建; 零 Runtime 实例化、
+//              零科学执行、零 I/O 产物; 深层拒绝与 run 同面(IR 构建失败 → 2)。
+//   plan     = validate 前置 + 确定性 plan 文档(typed DAG 节点/work units/预算/IO 引用;
+//              无 run_id/时间戳 → 同 config 两次运行逐字节一致); --output 落盘同文档。
+//   inspect  = 只读 output_dir 下 astrocs_run_*.json(kind=astrocs_run_manifest, phases
+//              含 N)逐 run 呈现 + products 去重; malformed manifest 呈现不中断; 零写入。
+namespace {
+
+// 共用前置: 校验 config(session_mode) → build_pipeline_ir 静态构建。
+// 成功返回 OK 并填充 cfg_sha/ir; 失败返回对应退出码(2/3)并写 stderr 诊断。
+int phase_ir_prereq(const Parsed& p, int phase, std::string* cfg_sha_out,
+                    std::string* ir_out) {
+    const std::string cfg_path = need_value(p, "--config");
+    nlohmann::json doc;
+    const int rc = validate_config_full(cfg_path, &doc, /*session_mode=*/true);
+    if (rc != astrocs::OK) return rc;
+    bool ok = false;
+    const std::string sha = file_sha256(cfg_path, &ok);
+    if (!ok) {
+        std::fprintf(stderr, "astrocs: cannot hash config '%s'\n", cfg_path.c_str());
+        return astrocs::INPUT;
+    }
+    std::string err;
+    const std::string ir = astrocs::cli::build_pipeline_ir({phase}, doc.dump(), &err);
+    if (ir.empty()) {
+        std::fprintf(stderr, "astrocs: phase%d rejected: %s\n", phase,
+                     sanitize(err).c_str());
+        return astrocs::ARGS;   // 与 run 的 IR 构建失败映射一致(runtime_client → 2)
+    }
+    *cfg_sha_out = sha;
+    *ir_out = ir;
+    return astrocs::OK;
+}
+
+}  // namespace
+
+// phaseN validate: 相级深层校验(不执行科学重算)
+int cmd_phase_validate(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
+    (void)ev;
+    std::string cfg_sha, ir;
+    const int rc = phase_ir_prereq(p, phase, &cfg_sha, &ir);
+    if (rc != astrocs::OK) return rc;
+    const auto irj = nlohmann::json::parse(ir);
+    const std::size_t n = irj["nodes"].size();
+    if (p.flags.count("--json")) {
+        const nlohmann::json out = {
+            {"schema_version", "1"},
+            {"kind", "astrocs_phase_validate"},
+            {"phase", phase},
+            {"config", {{"path", p.values.at("--config")}, {"sha256", cfg_sha}}},
+            {"node_count", n},
+            {"status", "ok"},
+        };
+        std::printf("%s\n", out.dump().c_str());
+    } else {
+        std::printf("phase%d validate OK (%zu nodes)\n", phase, n);
+    }
+    return astrocs::OK;
+}
+
+// phaseN plan: typed DAG/work units/内存-IO/并行计划(确定性文档, 不执行)
+int cmd_phase_plan(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
+    (void)ev;
+    std::string cfg_sha, ir;
+    const int rc = phase_ir_prereq(p, phase, &cfg_sha, &ir);
+    if (rc != astrocs::OK) return rc;
+    const auto irj = nlohmann::json::parse(ir);
+    nlohmann::json nodes = nlohmann::json::array();
+    std::size_t parallel = 0, io = 0;
+    std::set<std::string> seen_refs;
+    nlohmann::json artifact_refs = nlohmann::json::array();
+    for (const auto& nd : irj["nodes"]) {
+        nodes.push_back({{"node_id", nd["node_id"]},
+                         {"module_id", nd["module_id"]},
+                         {"inputs", nd["inputs"]},
+                         {"outputs", nd["outputs"]},
+                         {"resources", nd["resources"]}});
+        if (nd["resources"].value("parallel", false)) ++parallel; else ++io;
+        for (auto it = nd["outputs"].begin(); it != nd["outputs"].end(); ++it) {
+            const std::string ref = it.value().get<std::string>();
+            if (seen_refs.insert(ref).second) artifact_refs.push_back(ref);
+        }
+    }
+    const nlohmann::json out = {
+        {"schema_version", "1"},
+        {"kind", "astrocs_plan"},
+        {"phase", phase},
+        {"config", {{"path", p.values.at("--config")}, {"sha256", cfg_sha}}},
+        {"budget", {{"cpu_cores", cli_affinity_cpu_count()}}},
+        {"pipeline", {{"schema", "astrocs.pipeline/v1"},
+                      {"nodes", nodes},
+                      {"outputs", irj["outputs"]},
+                      {"artifact_refs", artifact_refs}}},
+        {"work_units", {{"total", nodes.size()},
+                        {"parallel", parallel},
+                        {"io", io}}},
+    };
+    const std::string text = out.dump();
+    if (p.flags.count("--json")) {
+        std::printf("%s\n", text.c_str());
+    }
+    if (p.values.count("--output")) {
+        const std::string op = p.values.at("--output");
+        {
+            std::ofstream f(std::filesystem::u8path(op), std::ios::binary | std::ios::trunc);
+            if (!f) {
+                std::fprintf(stderr, "astrocs: cannot write plan '%s'\n", op.c_str());
+                return astrocs::IO;
+            }
+            f << text << "\n";
+            if (!f.good()) return astrocs::IO;
+        }
+        if (!p.flags.count("--json")) std::printf("%s\n", op.c_str());
+    }
+    if (!p.flags.count("--json") && !p.values.count("--output")) {
+        std::printf("phase%d plan OK: %zu nodes (%zu parallel, %zu io), budget=%u cores\n",
+                    phase, nodes.size(), parallel, io, cli_affinity_cpu_count());
+    }
+    return astrocs::OK;
+}
+
+// phaseN inspect: 只读已有运行和产品(零写入)
+int cmd_phase_inspect(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
+    (void)ev;
+    const std::string cfg_path = need_value(p, "--config");
+    nlohmann::json doc;
+    // inspect 只要求 config 合法(session_mode)以取得 output_dir; 不要求 IR 可构建
+    // (错相 config 也允许检视运行历史)。
+    const int rc = validate_config_full(cfg_path, &doc, /*session_mode=*/true);
+    if (rc != astrocs::OK) return rc;
+    const std::string out_dir = doc.value("output_dir", std::string("."));
+    std::error_code ec;
+    if (!std::filesystem::exists(std::filesystem::u8path(out_dir), ec)) {
+        std::fprintf(stderr, "astrocs: output_dir not found '%s'\n", out_dir.c_str());
+        return astrocs::INPUT;
+    }
+    // 仅顶层 astrocs_run_*.json(文件名字典序, journal 语义即 run 顺序)
+    std::vector<std::string> files;
+    for (std::filesystem::directory_iterator it(std::filesystem::u8path(out_dir), ec), end;
+         it != end; it.increment(ec)) {
+        if (ec) break;
+        const std::string fn = it->path().filename().string();
+        if (fn.rfind("astrocs_run_", 0) == 0 && fn.size() > 5 &&
+            fn.compare(fn.size() - 5, 5, ".json") == 0)
+            files.push_back(fn);
+    }
+    std::sort(files.begin(), files.end());
+    nlohmann::json runs = nlohmann::json::array();
+    nlohmann::json products = nlohmann::json::array();
+    std::set<std::string> seen_paths;
+    for (const std::string& fn : files) {
+        const std::string fp = out_dir + "/" + fn;
+        std::ifstream f(std::filesystem::u8path(fp), std::ios::binary);
+        if (!f) continue;
+        std::stringstream buf; buf << f.rdbuf();
+        nlohmann::json m = nlohmann::json::parse(buf.str(), nullptr, false);
+        if (m.is_discarded() || !m.is_object() ||
+            m.value("kind", std::string()) != "astrocs_run_manifest") {
+            // 文档结构一致性: 所有 runs 行恒含 run_id 键(malformed 时 null)
+            runs.push_back({{"run_id", nullptr}, {"path", fp}, {"status", "malformed"}});
+            continue;
+        }
+        bool phase_match = false;
+        if (m.contains("phases") && m["phases"].is_array()) {
+            for (const auto& ph : m["phases"])
+                if (ph.is_number_integer() && ph.get<int>() == phase) phase_match = true;
+        }
+        if (!phase_match) continue;
+        nlohmann::json row = {
+            {"run_id", m.value("run_id", std::string())},
+            {"status", m.value("status", std::string())},
+            {"phases", m.value("phases", nlohmann::json::array())},
+            {"summary", m.value("summary", std::string())},
+            {"artifacts_count", 0},
+            {"path", fp},
+            {"started_utc", m.value("started_utc", std::string())},
+            {"finished_utc", m.value("finished_utc", std::string())},
+            {"config_sha256", m.contains("config_sha256") && !m["config_sha256"].is_null()
+                                  ? nlohmann::json(m["config_sha256"]) : nlohmann::json(nullptr)},
+        };
+        if (m.contains("artifacts") && m["artifacts"].is_array()) {
+            row["artifacts_count"] = m["artifacts"].size();
+            for (const auto& a : m["artifacts"]) {
+                if (!a.is_object() || !a.contains("path") || !a["path"].is_string()) continue;
+                const std::string ap = a["path"].get<std::string>();
+                if (!seen_paths.insert(ap).second) continue;
+                nlohmann::json pr = {{"path", ap},
+                                     {"exists", std::filesystem::exists(
+                                          std::filesystem::u8path(ap), ec)}};
+                if (a.contains("role")) pr["role"] = a["role"];
+                if (a.contains("sha256")) pr["sha256"] = a["sha256"];
+                if (a.contains("size_bytes")) pr["size_bytes"] = a["size_bytes"];
+                products.push_back(std::move(pr));
+            }
+        }
+        runs.push_back(std::move(row));
+    }
+    if (p.flags.count("--json")) {
+        const nlohmann::json out = {
+            {"schema_version", "1"},
+            {"kind", "astrocs_phase_inspect"},
+            {"phase", phase},
+            {"output_dir", out_dir},
+            {"total_runs", runs.size()},
+            {"runs", runs},
+            {"products", products},
+        };
+        std::printf("%s\n", out.dump().c_str());
+    } else {
+        for (const auto& r : runs) {
+            if (r.value("status", std::string()) == "malformed") {
+                std::printf("%s: malformed (not a v1 astrocs_run_manifest)\n",
+                            r.value("path", std::string()).c_str());
+            } else {
+                std::string phases_str;
+                for (const auto& ph : r["phases"]) {
+                    if (!phases_str.empty()) phases_str += ",";
+                    phases_str += std::to_string(ph.get<int>());
+                }
+                std::printf("%s %s phases=[%s] %s\n",
+                            r.value("run_id", std::string()).c_str(),
+                            r.value("status", std::string()).c_str(),
+                            phases_str.c_str(),
+                            r.value("summary", std::string()).c_str());
+            }
+        }
+        std::printf("%zu run(s), %zu product(s)\n", runs.size(), products.size());
+    }
+    return astrocs::OK;
+}
+
+
 int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const std::string cfg = need_value(p, "--config");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
@@ -1983,6 +2218,14 @@ int dispatch(const Parsed& p) {
     if (joined == "config init")           return cmd_config_init(p, ev);
     if (joined == "config validate")       return cmd_config_validate(p, ev);
     if (joined == "config show-effective") return cmd_show_effective(p, ev);
+    if (joined == "phase1 validate" || joined == "phase2 validate" ||
+        joined == "phase3 validate")
+        return cmd_phase_validate(p, joined[5] - '0', ev);
+    if (joined == "phase1 plan" || joined == "phase2 plan" || joined == "phase3 plan")
+        return cmd_phase_plan(p, joined[5] - '0', ev);
+    if (joined == "phase1 inspect" || joined == "phase2 inspect" ||
+        joined == "phase3 inspect")
+        return cmd_phase_inspect(p, joined[5] - '0', ev);
     if (joined == "phase1 run")            return cmd_phase1_run(p, ev);
     if (joined == "phase2 run")            return cmd_phase2_run(p, ev);
     if (joined == "phase3 run")            return cmd_phase3_run(p, ev);
