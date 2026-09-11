@@ -513,7 +513,11 @@ add_subdirectory(../../lib/photometric_calib/tests/p1phot p1phot)
 # 生产源零改动; lib/snr_estimator/ 为 P1-NOISE 迁移目标目录)。
 # 本块由 P1-NOISE-TEST agent 单独追加 (多 agent 并发追加区, 只增不改)。
 # ----------------------------------------------------------------------------
-add_subdirectory(../../lib/snr_estimator/tests/p1noise p1noise)
+# F-CI-002-01(CI-002 owner 裁决): lib/snr_estimator/tests/p1noise/ 为 V7 残留面
+# 从未入库(untracked 锁死不收编), 门卫化使干净树 configure 通过; 收编后自动激活。
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../lib/snr_estimator/tests/p1noise/CMakeLists.txt")
+  add_subdirectory(../../lib/snr_estimator/tests/p1noise p1noise)
+endif()
 
 # ----------------------------------------------------------------------------
 # P1-HIPS-IMPL (SA-P1H-I, queue 40, lock-P1-HIPS): hips_writer 模块适配器
@@ -1070,6 +1074,11 @@ add_subdirectory(../../lib/star_detector/tests/p1star p1star)
 # dlsym 探针 (legacy snr_noise_* 七符号全 NULL, 唯一 query 存在)。
 # DLL 路径经 ENVIRONMENT 注入 (生成器表达式, 兼容含空格构建路径)。
 # ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# F-CI-002-01(CI-002 owner 裁决): 本块依赖 p1noise_under_test(untracked V7 面
+# p1noise 子图)与根图 astrocs_p1_noise(已随断链解除摘出), 门卫化使干净树
+# configure 通过; V7 面收编后两 target 恢复, 本块自动重新激活。
+if(TARGET p1noise_under_test AND TARGET astrocs_p1_noise)
 add_executable(p1_noise_adapter_test p1_noise/adapter_test.cpp
   p1_noise/adapter_entry_impl.cpp)
 target_include_directories(p1_noise_adapter_test PRIVATE
@@ -1084,7 +1093,7 @@ add_test(NAME p1_noise_adapter COMMAND p1_noise_adapter_test
   ${CMAKE_CURRENT_BINARY_DIR}/run/t_noise_adapter)
 set_tests_properties(p1_noise_adapter PROPERTIES
   ENVIRONMENT "ASTROCS_NOISE_DLL_PATH=$<TARGET_FILE:astrocs_p1_noise>")
-
+endif()
 # --- P1-WCS-TEST (TEST-P1-WCS-001): WCS/plate_solve 可复用验证面 -----------
 # 六组 CTest: p1wcs_units / p1wcs_properties / p1wcs_oracle /
 # p1wcs_negative / p1wcs_performance / p1wcs_selfcheck (label: p1wcs)。

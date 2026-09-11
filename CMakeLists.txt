@@ -207,14 +207,12 @@ add_subdirectory(lib/cosmetic)
 # DEF 降 local (模块 CMakeLists)。
 add_subdirectory(lib/hips)
 
-# astrocs_p1_noise: 噪声权重模型迁移模块 DLL (P1-NOISE-IMPL; 矩阵行
-# astrocs.p1.noise / astrocs_p1_noise.dll)。三操作 C ABI v1 adapter 包装
-# legacy 噪声模型生产闭包 1 TU noise_model.cpp (API-NOISE-001 七导出,
-# scientific_change=false 零改动重编译; 依赖闭包实证 2026-09-09:
-# noise_model.cpp 仅依赖 std+libm, 零项目内符号/零 OMP); 唯一导出
-# astrocs_module_query_v1, legacy snr_noise_* 七符号经 version-script /
-# DEF 降 local (模块 CMakeLists)。
-add_subdirectory(lib/snr_estimator)
+# F-CI-002-01(CI-002 owner 裁决 2026-09-11): add_subdirectory(lib/snr_estimator)
+# 断链引用解除——该子图 CMakeLists.txt 为 V7 残留面, 从未入库(P1-001 9e09941a
+# 引用 untracked 文件, hosted/干净树 configure 必败, run 34601822084 实证);
+# 目录保持 untracked 锁死不收编, astrocs_p1_noise target 随之不在根图
+# (RPATH foreach 同步摘除; install_layout/tests/unit 均有 if(TARGET)/if(EXISTS)
+# 门卫, 收编后自动重新激活)。
 
 # astrocs_cpu_baseline: baseline backend DSO 技术预览 (Linux; legacy ABI,
 # 无导出标注 → 默认全导出)。正式 provider ABI/Windows DLL → CPU-002
@@ -238,7 +236,8 @@ set_target_properties(astrocs_cpu_baseline PROPERTIES
   PREFIX "")
 
 # RPATH (12 §6): install 后 SHARED 依赖以 $ORIGIN 解析; 禁 LD_LIBRARY_PATH 语义
-foreach(tgt astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline astrocs_p1_drizzle astrocs_p1_calibration astrocs_p1_cosmetic astrocs_p1_hips_writer astrocs_p1_noise)
+# (F-CI-002-01: astrocs_p1_noise 随 snr_estimator 断链解除摘出——target 未入库)
+foreach(tgt astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline astrocs_p1_drizzle astrocs_p1_calibration astrocs_p1_cosmetic astrocs_p1_hips_writer)
   if(UNIX AND NOT APPLE)
     set_target_properties(${tgt} PROPERTIES
       INSTALL_RPATH "$ORIGIN" BUILD_RPATH_USE_ORIGIN YES)
