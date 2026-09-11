@@ -33,6 +33,14 @@ IMPACT_FIELDS = {"science", "algorithm", "data_semantics", "public_api",
 CMD_FIELDS = {"command_id", "argv_redacted", "timeout_seconds", "exit_code",
               "started_utc", "duration_seconds", "log_path", "log_sha256"}
 
+# F-CI-002-03 (CI-002, owner 裁决锚 2026-09-11 "归档线证据不受现行 schema 复验"):
+# ARCHIVED_SUPERSEDED 历史线(ACTIVITY_STATE 登记: V6.1 REWORK = ARCHIVED_SUPERSEDED,
+# 仅作历史参照, 交付面由宪章对齐包接管)的 TASK_RESULT 属旧 schema 时代历史证据,
+# 禁止改写证据文件本身; 现行 schema 复验只约束活跃线。命中下列前缀的文件显式
+# 跳过(SCHEMA_CHECK_ARCHIVED_SKIP 逐条列出 + archived_skipped 计数, 非静默);
+# 归档线集合变更以 ACTIVITY_STATE 登记为准, 修改本清单须 owner 授权。
+ARCHIVED_EVIDENCE_PREFIXES = ("evidence/v6_1_rework/",)
+
 
 def validate_one(doc: dict, path: Path) -> list[str]:
     errs: list[str] = []
@@ -93,7 +101,10 @@ def validate_one(doc: dict, path: Path) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--schema", type=Path,
-                        default=Path(__file__).resolve().parents[2] / "schemas" / "task_result.schema.json")
+                        # F-CI-002-02(CI-002): 唯一事实源=contracts/schemas/
+                        # (目录规范 2026-09-09 后根 schemas/ 不存在, 旧默认路径
+                        # 使本检查 fail-closed exit2, Windows run 34601822033 实证)
+                        default=Path(__file__).resolve().parents[2] / "contracts" / "schemas" / "task_result.schema.json")
     parser.add_argument("--results-dir", type=Path, default=Path("evidence/v6_1_rework/tasks"))
     args = parser.parse_args(argv)
 
@@ -108,7 +119,18 @@ def main(argv: list[str] | None = None) -> int:
 
     failures = 0
     checked = 0
+    archived_skipped: list[str] = []
+    repo_root = Path(__file__).resolve().parents[2]
     for result_path in sorted(args.results_dir.glob("*/TASK_RESULT.json")):
+        # F-CI-002-03: 归档线前缀排除(显式呈现, 非静默跳过)。
+        try:
+            rel_posix = result_path.resolve().relative_to(repo_root).as_posix()
+        except ValueError:
+            rel_posix = result_path.as_posix()
+        if rel_posix.startswith(ARCHIVED_EVIDENCE_PREFIXES):
+            print(f"SCHEMA_CHECK_ARCHIVED_SKIP: {rel_posix}")
+            archived_skipped.append(rel_posix)
+            continue
         checked += 1
         try:
             doc = json.loads(result_path.read_text(encoding="utf-8"))
@@ -125,9 +147,11 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(f"SCHEMA_CHECK_OK: {result_path}")
     if failures:
-        print(f"SCHEMA_CHECK_FAIL total_failures={failures} checked={checked}")
+        print(f"SCHEMA_CHECK_FAIL total_failures={failures} checked={checked} "
+              f"archived_skipped={len(archived_skipped)}")
         return 1
-    print(f"SCHEMA_CHECK_PASS checked={checked}")
+    print(f"SCHEMA_CHECK_PASS checked={checked} "
+          f"archived_skipped={len(archived_skipped)}")
     return 0
 
 
