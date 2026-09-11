@@ -53,17 +53,22 @@ find_package(Threads REQUIRED)
 target_link_libraries(astrocs_catalog_gaia PRIVATE Threads::Threads)
 
 # zlib (legacy 依赖; 已在工程内使用 find_package/ZLIB 变量约定)
+# F-CI-002-05 (MOD-001 域内, owner 授权修复): Windows hosted runner 的 vcpkg
+# zlib 不在 find_package(ZLIB) 默认搜索路径, WIN-BUILD-RELEASE configure 必败
+# (e9b82ea4 起 win-build-summary 实证, 此前被监控门 exit10 掩盖)。与根
+# CMakeLists astrocs_cfitsio 段 HOSTFIX-23④ 同款消费 ACS_ZLIB_ROOT env:
+# env→cache 后映射为 CMP0074 <PackageName>_ROOT 语义 (FindZLIB 的
+# find_path/find_library 自动以其为 HINTS 搜索); Linux env 空 → 行为零变化。
 if(NOT TARGET ZLIB::ZLIB)
+    set(ACS_ZLIB_ROOT "$ENV{ACS_ZLIB_ROOT}" CACHE PATH
+        "zlib install root (include/zlib.h + lib); MSVC hosted runner 经 vcpkg 注入 env")
+    if(ACS_ZLIB_ROOT)
+        set(ZLIB_ROOT "${ACS_ZLIB_ROOT}")
+    endif()
     find_package(ZLIB REQUIRED)
 endif()
 target_link_libraries(astrocs_catalog_gaia PRIVATE ZLIB::ZLIB)
 
-# MOD-001 依赖闭包收口: gaia_client.c 使用 GNU libm 扩展 sincos (RTLD_NOW 下
-# 未定义符号), 本 SHARED 的 DT_NEEDED 曾缺 libm → 独立 loader 消费方进程
-# (registry host / abi003 探针, 不链 libm) dlopen 必败 OS_LOAD, 仅 astrocs 主
-# exe (链 m) 侥幸可载 — 违反 §8.4 "独立加载" 依赖闭包完备要求。显式链 m 使
-# 模块 DLL 自包含 (libm.so.6 入 DT_NEEDED), 由 tests/abi/mod001_install_load_check.py
-# 安装树逐 unit 加载验证闭环。
 # MOD-001 依赖闭包收口: gaia_client.c 使用 GNU libm 扩展 sincos (RTLD_NOW 下
 # 未定义符号), 本 SHARED 的 DT_NEEDED 曾缺 libm → 独立 loader 消费方进程
 # (registry host / abi003 探针, 不链 libm) dlopen 必败 OS_LOAD, 仅 astrocs 主

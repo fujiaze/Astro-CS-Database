@@ -19,7 +19,7 @@ cmake -S . -B build/linux-control -DCMAKE_BUILD_TYPE=Release   # 唯一根入口
 cmake --build build/linux-control --target astrocs_runtime astrocs_io \
       astrocs_noop astrocs_cpu_baseline astrocs_catalog_gaia \
       astrocs_p1_drizzle astrocs_p1_calibration astrocs_p1_cosmetic \
-      astrocs_p1_hips_writer astrocs_p1_noise -j1
+      astrocs_p1_hips_writer -j1
 cmake --install build/linux-control --prefix <prefix>
 python3 packaging/verify_install_tree.py --prefix <prefix>       # 全 required 在 → PASS
 rm <prefix>/modules/astrocs_noop.so                              # 删除模块 DLL
@@ -29,8 +29,10 @@ python3 tests/abi/mod001_install_load_check.py --build-dir build/linux-control \
 ```
 
 MOD-001（科学DLL安装加载验证与产品清单）：required 集自 BLD-003 的 6 项扩至
-12 项（+6 科学模块 DLL，宪章 §8.4）；安全 loader（§18.4 签名清单官方模块）
+11 项（+5 科学模块 DLL，宪章 §8.4）；安全 loader（§18.4 签名清单官方模块）
 逐 unit 加载验证与负向注入见 `tests/abi/mod001_install_load_check.py`。
+F-CI-002-01（owner 裁决 2026-09-11）：astrocs_p1_noise 随 lib/snr_estimator
+V7 残留断链解除摘出生产图与本清单（未入库不登记），V7 残留收编后恢复。
 
 Windows 正式安装树（`AstroCS-0.11.0-alpha.1-win-x64/`，03_TARGET §4）由
 WIN-* 系列在 Fatduck 验证；本目录同步声明布局，不在 Linux 伪装 Windows 结论
