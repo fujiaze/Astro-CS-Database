@@ -4,7 +4,8 @@
 覆盖（全程不要求 MSVC/Windows 宿主，Linux 上即可全绿）：
 1. 注册表 conformance —— WIN-BUILD-RELEASE / WIN-TEST-UNIT /
    WIN-PACKAGE-CANDIDATE 三项 platform=windows、profiles=[windows-main]、
-   waivable=true、outputs 非空；heavy 项 command 自含
+   waivable=false（CI-001 收紧；owner 裁决 2026-09-11：非重计算面不加
+   --gate-required）、outputs 非空；heavy 项 command 自含
    ``ci/resource_monitor.py --timeout N --output run/ci/monitor/<ID>.json --``
    包裹前缀且 requires_monitor=true、prerequisite_tools 含 cmake；
    windows-main plan-only=61（含 3 新 id）；fast/linux-main/linux-deep
@@ -21,7 +22,7 @@
    （verdict=None，绝不伪造 PASS）；probe_prerequisite 平台门控
    （linux → platform_mismatch，mock 工具在位 → windows 通过）。
 5. runner 集成 —— Linux 真跑 runner --profile windows-main：三项全部
-   SKIPPED(waivable)（platform_mismatch）。
+   FAIL(prerequisite)（platform_mismatch；CI-001 收紧后不可 waiver）。
 """
 from __future__ import annotations
 
@@ -72,10 +73,10 @@ class TestRegistryConformance(unittest.TestCase):
             self.assertTrue(c["changed_paths"], cid)
             self.assertIn("cmake", c.get("prerequisite_tools", []), cid)
             self.assertIn("--stages", c["command"], cid)
-            # CI-001：监控必须调用 evaluate（--gate-required 在监控参数区）
-            self.assertIn("--gate-required", c["command"], cid)
-            self.assertLess(c["command"].index("--gate-required"),
-                            c["command"].index("--"), cid)
+            # owner 裁决（CI-001 复核, 2026-09-11）：WIN-* 为构建/打包/单测
+            # 非重计算面（§10.5/§18.2 资源门针对重计算区间），不加
+            # --gate-required；监控包装保留（采样留证），waivable=false 维持。
+            self.assertNotIn("--gate-required", c["command"], cid)
             stages = c["command"][c["command"].index("--stages") + 1].split(",")
             for s in stages:
                 self.assertIn(s, DRV.STAGE_ORDER, cid)
