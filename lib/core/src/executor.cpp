@@ -2,8 +2,10 @@
 //
 // 语义（executor.h 冻结合同 + 约束 D.1-D.4）:
 //   - CPU heavy executor: worker 数 = ThreadBudget 预算上限（唯一共享池，进程内
-//     只此一个；模块不得自建私有池）。每个任务执行前经 ThreadBudget::acquire
-//     (1, budget, NONBLOCK) 原子预留 —— lease RAII 析构自动归还；预算耗尽 →
+//     只此一个；模块不得自建私有池）。每个任务（work unit）执行前经
+//     ThreadBudget::acquire(1,1,NONBLOCK) 恰租 1 个预算槽 —— RT-001 对齐宪章
+//     §10.4 work-unit 租约（Σ(active) ≤ budget 全局不超卖; 任务内多线程经 ctx
+//     申请租约, 唯一预算源不变）—— lease RAII 析构自动归还；预算耗尽 →
 //     worker 阻塞在 cv 等待预算可用（不忙等/不空转，见 defect fix RT-004）。
 //     worker 在队列空时阻塞 CV（不空转）；cancel() notify_all 唤醒全部
 //     （取消能唤醒等待）。
@@ -74,11 +76,16 @@ void CpuHeavyExecutor::worker_loop() {
       ++impl_->inflight;                  // 领取成功：计入未完成（wait_all 依据）
     }
     // ── lease 注入：任务执行前原子预留（不超卖） ──
+    // RT-001 对齐宪章 §10.4 work-unit 租约语义：每个 work-unit 任务恰租 1 个
+    // 预算槽（acquire(1,1,NONBLOCK)）。修复前 acquire(1, budget) 首个 worker
+    // 抓走整份预算 → 并发任务严格串行（tasks 以 full-budget lease 排队）且
+    // 任务内经 ctx 申请租约恒空（嵌套面饿死）。Σ(active) ≤ budget 合同不变：
+    // 池 worker 数 = 预算上限 + 每任务恰 1 槽；多线程任务在任务内经
+    // ctx.acquire_lease 自行申请（Runtime 防嵌套并行/超额订阅的唯一预算源不变）。
     ThreadLease lease;
     for (;;) {
       lease = impl_->budget
-                  ? impl_->budget->acquire(1u, impl_->budget->budget(),
-                                           AcquirePolicy::NONBLOCK)
+                  ? impl_->budget->acquire(1u, 1u, AcquirePolicy::NONBLOCK)
                   : ThreadLease();
       if (lease.acquired()) break;
       // 预算耗尽：阻塞等待预算可用/取消/停止（不忙等、不把任务放回队列空转）。

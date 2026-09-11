@@ -55,7 +55,11 @@ try:  # 库导入（ci/tests 经 namespace package 导入）
 except ImportError:  # 脚本直跑（sys.path[0] = 本目录）
     import resource_probe as _rp  # type: ignore[no-redef]
 
-__all__ = ["run_monitored", "evaluate", "parse_progress_line", "main"]
+__all__ = ["run_monitored", "evaluate", "evaluate_frozen_gate",
+           "build_arg_parser", "parse_progress_line", "main",
+           "FROZEN_GATE_MIN_EFFECTIVE_CPUS", "FROZEN_GATE_MIN_INTERVAL_SECONDS",
+           "FROZEN_GATE_MIN_AVG_UTILIZATION", "FROZEN_GATE_WINDOW_SECONDS",
+           "FROZEN_GATE_WINDOW_MIN_UTILIZATION", "FROZEN_GATE_MIN_ACTIVE_THREADS"]
 
 try:
     CLK_TCK = float(os.sysconf("SC_CLK_TCK"))
@@ -442,6 +446,177 @@ def run_monitored(argv: list[str], *, timeout: Optional[float] = None,
 
 
 # ------------------------------------------------------------ 阈值判定 ----
+# ── RT-001 冻结利用率门禁（宪章 §10.5 + §18.2 负责人裁决 2）──
+# 冻结阈值（负责人裁决, 只能按宪章 §1.2 修改, 本文件不得放宽）:
+FROZEN_GATE_MIN_EFFECTIVE_CPUS = 2        # 有效 CPU 数 < 2 → 门禁不适用
+FROZEN_GATE_MIN_INTERVAL_SECONDS = 10.0   # 计算区间须严格 >10s 才适用
+FROZEN_GATE_MIN_AVG_UTILIZATION = 0.85    # 平均利用率 ≥ 已分配容量的 85%
+FROZEN_GATE_WINDOW_SECONDS = 10.0         # 任何连续 10s 窗口
+FROZEN_GATE_WINDOW_MIN_UTILIZATION = 0.60  # 窗口内利用率下限 60%
+FROZEN_GATE_MIN_ACTIVE_THREADS = 2        # 只有一个活跃计算线程即失败
+
+
+def evaluate_frozen_gate(result: dict, *, effective_cpus, allocated_workers,
+                         compute_interval_seconds: Optional[float] = None,
+                         require_progress: bool = False) -> dict:
+    """对 run_monitored 结果做宪章 §10.5/§18.2 冻结门禁判定（实测 fail-closed）。
+
+    effective_cpus   有效 CPU 数（affinity ∩ cgroup；None/非正 → fail-closed,
+                     不得以机器总核或配置值冒充）
+    allocated_workers 已分配 worker 数（已分配容量）；分母 = min(allocated,
+                     effective_cpus)，与 cli utilization_value 同一口径
+    compute_interval_seconds 计算区间时长；None → 取 duration_seconds（监控
+                     面向计算段时同义；混合 run 由调用方显式给出计算区间）
+    require_progress True 时 progress 缺失/零进度计入违规（默认 False——
+                     progress 证据面由调用方按运行类型启用）
+
+    返回 dict（确定性纯函数，不抛错）:
+      verdict: "pass" | "fail" | "not_applicable"
+      violations: 违规清单（fail 时非空；哨兵/证据缺失一律 monitoring_missing
+                  前缀 —— 采样缺失不是低利用率豁免，是 fail 证据）
+      reason: not_applicable 时的显式分类说明（门禁不适用 ≠ 豁免,
+              BASE-UTIL-001 分类口径）
+      metrics: 实测值回显（avg_utilization/max_low_window_seconds/threads_max/
+               interval/effective_cpus/allocated）
+    """
+    metrics: dict = {}
+    # ── 输入有效性: 无法判定适用性 → fail-closed（绝不 pass） ──
+    cpus_ok = isinstance(effective_cpus, int) and not isinstance(
+        effective_cpus, bool) and effective_cpus >= 1
+    workers_ok = isinstance(allocated_workers, int) and not isinstance(
+        allocated_workers, bool) and allocated_workers >= 1
+    if not cpus_ok or not workers_ok:
+        return {
+            "verdict": "fail",
+            "violations": ["monitoring_missing: effective_cpus/allocated_workers "
+                           "不可得或非法（门禁适用性无法判定 → fail-closed）"],
+            "reason": None,
+            "metrics": metrics,
+        }
+    interval = (float(compute_interval_seconds) if compute_interval_seconds
+                is not None else result.get("duration_seconds"))
+    interval_ok = isinstance(interval, (int, float)) and interval >= 0.0
+    if not interval_ok:
+        return {
+            "verdict": "fail",
+            "violations": ["monitoring_missing: 计算区间时长不可得（fail-closed）"],
+            "reason": None,
+            "metrics": metrics,
+        }
+    interval = float(interval)
+    metrics.update({
+        "effective_cpus": effective_cpus,
+        "allocated": min(allocated_workers, effective_cpus),
+        "interval_seconds": round(interval, 6),
+        "threads_max": result.get("threads_max"),
+    })
+    # ── 适用性: 有效 CPU<2 或区间 ≤10s → NOT_APPLICABLE（显式分类, 非豁免） ──
+    if (effective_cpus < FROZEN_GATE_MIN_EFFECTIVE_CPUS
+            or interval <= FROZEN_GATE_MIN_INTERVAL_SECONDS):
+        reasons = []
+        if effective_cpus < FROZEN_GATE_MIN_EFFECTIVE_CPUS:
+            reasons.append(f"effective_cpus={effective_cpus} < "
+                           f"{FROZEN_GATE_MIN_EFFECTIVE_CPUS}")
+        if interval <= FROZEN_GATE_MIN_INTERVAL_SECONDS:
+            reasons.append(f"compute_interval={interval:.3f}s <= "
+                           f"{FROZEN_GATE_MIN_INTERVAL_SECONDS}s")
+        return {
+            "verdict": "not_applicable",
+            "violations": [],
+            "reason": "门禁不适用（NOT_APPLICABLE, 非豁免）: " + "; ".join(reasons),
+            "metrics": metrics,
+        }
+
+    allocated = metrics["allocated"]
+    denom = 100.0 * allocated
+    violations: list[str] = []
+
+    # ── 采样证据: 缺失即 fail（监控缺失直接 FAIL, 不可豁免） ──
+    samples = result.get("cpu_samples") or []
+    cpu_values = [s.get("cpu_percent") for s in samples]
+    valid = [v for v in cpu_values if isinstance(v, (int, float))]
+    if not valid:
+        violations.append(
+            f"monitoring_missing: 无有效 CPU 采样（{len(samples)} 样本全无效/缺失）"
+            f"—— 冻结门禁 {FROZEN_GATE_MIN_AVG_UTILIZATION:.0%} 无实测证据")
+    else:
+        # 区间中部断流（首末样本之间出现 None）= 监控缺口 → fail-closed
+        first_valid = next(i for i, v in enumerate(cpu_values)
+                           if isinstance(v, (int, float)))
+        last_valid = len(cpu_values) - 1 - next(
+            i for i, v in enumerate(reversed(cpu_values))
+            if isinstance(v, (int, float)))
+        if any(not isinstance(v, (int, float))
+               for v in cpu_values[first_valid:last_valid + 1]):
+            violations.append(
+                "monitoring_missing: 计算区间中部 CPU 采样断流（证据缺口, "
+                "fail-closed; 启动/收尾边界样本除外）")
+        avg_cpu = (result.get("cpu_percent_avg")
+                   if isinstance(result.get("cpu_percent_avg"), (int, float))
+                   else sum(valid) / len(valid))
+        avg_util = avg_cpu / denom
+        metrics["avg_utilization"] = round(avg_util, 6)
+        metrics["avg_cpu_percent"] = round(avg_cpu, 6)
+        # 冻结门禁 1: 计算区间平均利用率 ≥ 已分配容量 85%
+        if avg_util < FROZEN_GATE_MIN_AVG_UTILIZATION:
+            violations.append(
+                f"frozen_avg_utilization_low: 平均利用率 {avg_util:.3f} "
+                f"(<{FROZEN_GATE_MIN_AVG_UTILIZATION:.2f}, 实测 CPU {avg_cpu:.1f}% "
+                f"/ 已分配容量 {allocated} 核={denom:.0f}%)")
+        # 冻结门禁 2: 任何连续 10s 窗口利用率 < 60%
+        poll = result.get("poll_interval")
+        poll = poll if isinstance(poll, (int, float)) and poll > 0 else 0.2
+        run_seconds = 0.0
+        best_low = 0.0
+        prev_t = None
+        prev_low = False
+        for s in samples:
+            v = s.get("cpu_percent")
+            t = s.get("t")
+            low = isinstance(v, (int, float)) and (v / denom) < (
+                FROZEN_GATE_WINDOW_MIN_UTILIZATION)
+            if low and prev_low and isinstance(t, (int, float)) and prev_t is not None:
+                run_seconds += max(0.0, float(t) - float(prev_t))
+            elif low:
+                run_seconds = poll  # 单样本按其覆盖的采样间隔计
+            else:
+                run_seconds = 0.0
+            best_low = max(best_low, run_seconds)
+            prev_t = t if isinstance(t, (int, float)) else prev_t
+            prev_low = low
+        metrics["max_low_window_seconds"] = round(best_low, 3)
+        if best_low >= FROZEN_GATE_WINDOW_SECONDS:
+            violations.append(
+                f"frozen_low_utilization_window: 连续 {best_low:.1f}s 利用率"
+                f"<{FROZEN_GATE_WINDOW_MIN_UTILIZATION:.0%}（窗口阈值 "
+                f"{FROZEN_GATE_WINDOW_SECONDS:.0f}s）")
+
+    # ── 冻结门禁 3: 只有一个活跃计算线程即失败 ──
+    threads_max = result.get("threads_max")
+    if not isinstance(threads_max, (int, float)) or threads_max <= 0:
+        violations.append(
+            "monitoring_missing: 活跃线程采样不可得（threads_max 无效）")
+    elif threads_max < FROZEN_GATE_MIN_ACTIVE_THREADS:
+        violations.append(
+            f"frozen_single_active_thread: 活跃线程峰值 {int(threads_max)} "
+            f"< {FROZEN_GATE_MIN_ACTIVE_THREADS}（单活跃计算线程即失败）")
+
+    # ── progress 证据面（调用方按运行类型启用） ──
+    if require_progress:
+        progress = result.get("progress")
+        if not progress or not progress.get("total"):
+            violations.append("no_progress: 未观测到进度证据（require_progress）")
+        elif progress.get("done", 0) <= 0:
+            violations.append("no_progress: 进度 done=0（计算无推进证据）")
+
+    return {
+        "verdict": "fail" if violations else "pass",
+        "violations": violations,
+        "reason": None,
+        "metrics": metrics,
+    }
+
+
 def evaluate(result: dict, min_cpu_percent: Optional[float] = None,
              max_rss_growth_kb: Optional[float] = None,
              min_progress: Optional[int] = None) -> list[str]:
@@ -484,14 +659,8 @@ def evaluate(result: dict, min_cpu_percent: Optional[float] = None,
 
 
 # ------------------------------------------------------------------ CLI ----
-def main(argv: Optional[list[str]] = None) -> int:
-    """CLI：`run_monitored.py [opts] -- <cmd> [args...]`（`--` 手工切分，防误吞子进程选项）。"""
-    raw = list(sys.argv[1:] if argv is None else argv)
-    if "--" in raw:
-        cut = raw.index("--")
-        opts, child = raw[:cut], raw[cut + 1:]
-    else:
-        opts, child = raw, []
+def build_arg_parser() -> argparse.ArgumentParser:
+    """构造 CLI 解析器（-- 与被监控命令手工切分, 防误吞子进程选项）。"""
     parser = argparse.ArgumentParser(
         description="heavy wrapper：采样子进程 CPU/RSS/PSS/IO/threads/progress → JSON 证据")
     parser.add_argument("--timeout", type=float, default=3600.0,
@@ -502,6 +671,27 @@ def main(argv: Optional[list[str]] = None) -> int:
                         help="JSON 证据文件路径（同时始终打印到 stdout）")
     parser.add_argument("--progress-file", default=None,
                         help="progress 文件路径（经 ASTROCS_PROGRESS_FILE 传给子进程）")
+    # RT-001 冻结利用率门禁（宪章 §10.5/§18.2; 显式 opt-in, 不改变既有用法）:
+    parser.add_argument("--gate-workers", type=int, default=None,
+                        help="已分配 worker 数; 给出后对本次运行做冻结门禁判定")
+    parser.add_argument("--gate-effective-cpus", type=int, default=None,
+                        help="有效 CPU 数; 缺省取 host_probe.effective_cpu_cores")
+    parser.add_argument("--gate-require-progress", action="store_true",
+                        help="progress 证据缺失计入门禁违规（按运行类型启用）")
+    parser.add_argument("--gate-compute-interval", type=float, default=None,
+                        help="计算区间秒; 缺省取 duration_seconds（混合 run 显式给出）")
+    return parser
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    """CLI：`run_monitored.py [opts] -- <cmd> [args...]`（`--` 手工切分，防误吞子进程选项）。"""
+    raw = list(sys.argv[1:] if argv is None else argv)
+    if "--" in raw:
+        cut = raw.index("--")
+        opts, child = raw[:cut], raw[cut + 1:]
+    else:
+        opts, child = raw, []
+    parser = build_arg_parser()
     args = parser.parse_args(opts)
     if not child:
         parser.error("缺少被监控命令：run_monitored.py [opts] -- <cmd> [args...]")
@@ -509,7 +699,33 @@ def main(argv: Optional[list[str]] = None) -> int:
     result = run_monitored(child, timeout=args.timeout,
                            poll_interval=args.poll_interval,
                            output=args.output, progress_file=args.progress_file)
+    # RT-001 冻结利用率门禁: 显式 opt-in（--gate-workers）; 判定结果写入输出
+    # JSON 的 frozen_gate 字段; fail → 退出码 10（与项目 RESOURCE 退出码约定
+    # 一致, cli/exit_codes.h）。NOT_APPLICABLE 是显式分类（非豁免）, 透传子进程
+    # 退出码; 监控/证据缺失由 evaluate_frozen_gate fail-closed 判 fail。
+    if args.gate_workers is not None:
+        effective = args.gate_effective_cpus
+        if effective is None:
+            probe_cpus = (result.get("host_probe") or {}).get(
+                "effective_cpu_cores")
+            effective = int(probe_cpus) if isinstance(probe_cpus, (int, float)) \
+                and probe_cpus >= 1 else None
+        gate = evaluate_frozen_gate(
+            result, effective_cpus=effective,
+            allocated_workers=args.gate_workers,
+            compute_interval_seconds=args.gate_compute_interval,
+            require_progress=args.gate_require_progress)
+        result["frozen_gate"] = gate
+    if args.output is not None:  # gate 结果并入证据文件
+        out_path = Path(args.output)
+        if out_path.parent != Path(""):
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(result, ensure_ascii=False, indent=1),
+                            encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False))
+    gate = result.get("frozen_gate")
+    if isinstance(gate, dict) and gate.get("verdict") == "fail":
+        return 10  # RESOURCE 门禁失败（exit_codes 约定）
     if result["timed_out"]:
         return 124
     code = result["exit_code"]
