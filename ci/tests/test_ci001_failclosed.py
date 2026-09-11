@@ -9,6 +9,10 @@ manifest/hash、真实数据完整性不可 waiver"；任务 CI-001 目标三句
 2. requires_monitor=true 的检查命令必须请求冻结门禁判定（--gate-required，
    监控必须调用 evaluate），且 ci/run.py 对监控证据缺 frozen_gate 的检查
    判 FAIL(monitor_gate_missing)（编排层 fail-closed）；
+   owner 裁决锚（CI-001 复核, 2026-09-11）：WIN-BUILD/TEST/PACKAGE 为构建/
+   打包/单测非重计算面，§10.5/§18.2 资源门冻结语义针对重计算区间——WIN-*
+   不加 --gate-required（waivable=false 收紧维持），Linux 重计算检查
+   （BUILD-GCC-RELEASE + DEEP-*）全额判定；
 3. Fatduck select-candidate：候选缺失（select_candidate.py exit 3）必须使
    select job 失败，不得 notice 后静默 success（G-CI：Windows 候选必存在）。
 
@@ -31,6 +35,10 @@ if str(_REPO) not in sys.path:
 from ci.tests import _helpers as H  # noqa: E402
 
 MON_JSON = "run/ci/monitor/CHK-MON.json"
+
+# owner 裁决（CI-001 复核, 2026-09-11）排除面：构建/打包/单测非重计算面，
+# 不请求资源门判定（--gate-required）；waivable=false 收紧维持。
+_WIN_IDS = ("WIN-BUILD-RELEASE", "WIN-TEST-UNIT", "WIN-PACKAGE-CANDIDATE")
 
 MONITOR_CMD_TEMPLATE = [
     "python3", "ci/resource_monitor.py", "--timeout", "30",
@@ -109,10 +117,18 @@ class TestMonitoredChecksRequestGate(unittest.TestCase):
     """目标 2a：所有被监控包装的 requires_monitor=true 检查必须请求 --gate-required。"""
 
     def test_gate_required_present_before_separator(self):
+        """Linux 重计算面（BUILD-GCC-RELEASE + DEEP-*）必须请求 --gate-required。
+
+        owner 裁决锚（CI-001 复核, 2026-09-11）：WIN-BUILD/TEST/PACKAGE 为
+        构建/打包/单测非重计算面，§10.5/§18.2 资源门冻结语义针对重计算区间，
+        WIN-* 不加 --gate-required（waivable=false 维持）；Linux 重计算检查
+        全额判定。
+        """
         reg = _by_id(_load_registry())
         monitored = [c for c in reg.values() if c.get("requires_monitor")]
         self.assertGreaterEqual(len(monitored), 8, "注册表 requires_monitor 检查数")
-        for c in monitored:
+        gated = [c for c in monitored if c["id"] not in _WIN_IDS]
+        for c in gated:
             cmd = c["command"]
             # requires_monitor 语义 = 检查必须经统一监控包装器执行
             # （ci/run.py probe_prerequisite）；无包装命令的 requires_monitor
@@ -124,11 +140,22 @@ class TestMonitoredChecksRequestGate(unittest.TestCase):
             self.assertLess(cmd.index("--gate-required"), cmd.index("--"),
                             f"{c['id']} --gate-required 必须在监控参数区（`--` 前）")
 
-    def test_win_checks_request_gate(self):
+    def test_win_checks_excluded_from_gate_by_owner_ruling(self):
+        """owner 裁决（2026-09-11）：WIN-* 为非重计算面，不加 --gate-required。
+
+        依据：构建/打包/单测非重计算区间（§10.5/§18.2 资源门口径）；Windows
+        采样能力缺位（F-CI-001-01）按"移出资源门"路径处置，不补采样。
+        waivable=false 收紧维持不变。
+        """
         reg = _by_id(_load_registry())
-        for cid in ("WIN-BUILD-RELEASE", "WIN-TEST-UNIT", "WIN-PACKAGE-CANDIDATE"):
-            self.assertIn("--gate-required", reg[cid]["command"],
-                          f"{cid} 监控必须调用 evaluate（--gate-required）")
+        for cid in _WIN_IDS:
+            c = reg[cid]
+            self.assertNotIn("--gate-required", c["command"],
+                             f"{cid} 非重计算面，不得请求资源门判定（owner 裁决）")
+            self.assertFalse(c["waivable"],
+                             f"{cid} 不可 waiver 收紧维持不变（owner 裁决）")
+            self.assertIn("ci/resource_monitor.py", c["command"],
+                          f"{cid} 仍保留监控包装（采样留证）")
 
     def test_ut_quality_registration_conformance(self):
         """UT-QUALITY 登记矛盾修正：命令无监控包装 → heavy/requires_monitor 均 false。"""
