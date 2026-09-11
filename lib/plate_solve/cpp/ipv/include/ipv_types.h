@@ -51,8 +51,15 @@ struct CDMatrix {
     double cd11, cd12, cd21, cd22;  // CD矩阵元素
 };
 
-// SIP 多项式系数 (最多 5 阶, 6x6=36 项)
-// 新增逆向 AP/BP
+// SIP 多项式系数
+// 前向 A/B: 6x6=36 项 (i*6+j, i+j<=order<=5), C ABI (IpvWcsResult.sip_a[36])
+// 与消费方契约 (wcs_transform evalSip i*6+j) 兼容层, 布局冻结。
+// 逆向 AP/BP: 同 36 项兼容层 (WCS-002 整改形态, 41 网格阶 5)。
+// 扩展逆向 APx/BPx (WCS-003 布局扩展, owner 裁决 1 选 B): 10x10=100 项,
+//   索引 i*10+j, 支持 i+j<=apx_order<=9; 81x81 网格高阶拟合逆映射, 供
+//   迭代式反演 (wcs_sky_to_pixel_iterative) 一步初值与高畸变场逆表达。
+//   追加尾部字段: A/B/AP/BP/order/ap_order 偏移与 sizeof 兼容面不变
+//   (fit_sip 唯一调用点 build_wcs 显式清零全部逆向字段, 零未初始化泄漏)。
 struct SIPCoeffs {
     double A[36];    // 前向 SIP A (像素→像素畸变), cd_inv · trans 高阶项
     double B[36];    // 前向 SIP B
@@ -60,6 +67,9 @@ struct SIPCoeffs {
     double BP[36];   // 逆向 SIP BP
     int    order;      // 前向 SIP 阶数 (0=无 SIP, 2/3/4)
     int    ap_order;   // 逆向 SIP 阶数 (0=无逆向 SIP, 2/3/4)
+    double APx[100];   // 扩展逆向 SIP AP (i*10+j, i+j<=apx_order, WCS-003)
+    double BPx[100];   // 扩展逆向 SIP BP
+    int    apx_order;  // 扩展逆向 SIP 阶数 (0=无, 上限 9)
 };
 
 // ===========================================================================

@@ -291,6 +291,86 @@ inline void fix_wcs_e_collinear(std::vector<StarPoint>* U,
     }
 }
 
+// ---- FIX-WCS-F 三档畸变场 (WCS-003: low/mid/high, 冻结 FIX-WCS-B 原样保留) ----
+// 形状与 FIX-WCS-B 同源 (二次畸变, 弧秒/px² 系数), 档位 dist_scale 缩放:
+//   low  = 0.1  (边缘前向畸变 ~11.8 px @1024²)
+//   mid  = 0.5  (~59 px)
+//   high = 1.0  (~118 px, 与冻结 F2 fixture 同量级 — WCS-002 探针口径
+//                边缘畸变 ~117px, 像素域 47"/0.4"≈118)
+// 原 FIX-WCS-B (fix_wcs_b_sip) 不替换不改动, 继续承载既有 F2 锚;
+// 本生成器供 WCS-003 迭代反演冻结门验收 (center90/边界/随机/拒绝/parity)。
+// 坐标约定与 FIX-WCS-B 完全一致 (Y-up 内部 + W 弧秒 gnomonic)。
+struct FixWcsF {
+    std::vector<StarPoint> U;
+    std::vector<StarPoint> W;
+    std::vector<MatchPair> pairs;
+    TruthLinear truth;
+    double dist_scale;   // 畸变档位 (0.1/0.5/1.0)
+    double q_x20, q_x11, q_x02;  // 畸变系数 (弧秒/px², 基准形状 × 档位)
+    double q_y20, q_y11, q_y02;
+    int width, height;
+};
+
+inline void truth_apply_f(const FixWcsF& fx, double ux, double uy,
+                          double* wx, double* wy) {
+    const TruthLinear& tr = fx.truth;
+    const double lx = tr.m00 * ux + tr.m01 * uy + tr.t0;
+    const double ly = tr.m10 * ux + tr.m11 * uy + tr.t1;
+    *wx = lx + fx.q_x20 * ux * ux + fx.q_x11 * ux * uy + fx.q_x02 * uy * uy;
+    *wy = ly + fx.q_y20 * ux * ux + fx.q_y11 * ux * uy + fx.q_y02 * uy * uy;
+}
+
+inline FixWcsF fix_wcs_f_distortion(unsigned seed, double dist_scale,
+                                    int width = 1024, int height = 1024) {
+    FixWcsF fx;
+    fx.width = width;
+    fx.height = height;
+    fx.dist_scale = dist_scale;
+    fx.truth.s0 = 0.4;
+    const double theta = -0.03;
+    fx.truth.m00 = fx.truth.s0 * std::cos(theta);
+    fx.truth.m01 = -fx.truth.s0 * std::sin(theta);
+    fx.truth.m10 = fx.truth.s0 * std::sin(theta);
+    fx.truth.m11 = fx.truth.s0 * std::cos(theta);
+    fx.truth.t0 = 0.0;
+    fx.truth.t1 = 0.0;
+    fx.truth.ra0 = 210.0;
+    fx.truth.dec0 = 45.0;
+    // 二次畸变系数 = FIX-WCS-B 基准形状 × 档位 (弧秒/px²)
+    fx.q_x20 = 1.8e-4 * dist_scale; fx.q_x11 = 1.2e-4 * dist_scale;
+    fx.q_x02 = -7.0e-5 * dist_scale;
+    fx.q_y20 = 5.0e-5 * dist_scale; fx.q_y11 = -1.1e-4 * dist_scale;
+    fx.q_y02 = 2.2e-4 * dist_scale;
+
+    const double cx = width / 2.0, cy = height / 2.0;
+    std::uint64_t st = seed;
+    const int N = 16;
+    for (int gi = 0; gi < N; ++gi) {
+        for (int gj = 0; gj < N; ++gj) {
+            const double jx = (uniform01(st) - 0.5) * 16.0;
+            const double jy = (uniform01(st) - 0.5) * 16.0;
+            const double px = 32.0 + gj * (960.0 / (N - 1)) + jx;
+            const double py = 32.0 + gi * (960.0 / (N - 1)) + jy;
+            StarPoint u;
+            u.x = px - cx;
+            u.y = cy - py;
+            u.flux = 1000.0 + uniform01(st) * 9000.0;
+            u.saturated = false;
+            StarPoint w;
+            truth_apply_f(fx, u.x, u.y, &w.x, &w.y);
+            w.flux = u.flux;
+            w.saturated = false;
+            MatchPair mp;
+            mp.u = static_cast<int>(fx.U.size());
+            mp.w = static_cast<int>(fx.W.size());
+            fx.U.push_back(u);
+            fx.W.push_back(w);
+            fx.pairs.push_back(mp);
+        }
+    }
+    return fx;
+}
+
 }  // namespace p1wcs
 
 #endif  // P1WCS_FIXTURES_HPP

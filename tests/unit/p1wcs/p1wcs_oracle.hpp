@@ -321,6 +321,28 @@ inline void oracle_wcs_reverse_apbp(double cd11, double cd12, double cd21,
     *y = v + crpix2;
 }
 
+// ---------------------------------------------------------------------------
+// oracle-7: 逆向布局一步直加求值。扩展布局 (WCS-003, stride=10, i*10+j,
+// i+j<=order<=9) 与兼容层 (stride=6, i*6+j, i+j<=order<=5) 共用入口。
+// 独立实现 (APx/BPx / AP/BP 语义: u = UV + C(UV)), 供布局扩展表达能力
+// 数值证据 (一步误差 = |UV+C(UV) − 真值逆映射|), 非被测函数。
+// ---------------------------------------------------------------------------
+inline void oracle_sip_eval_stride(const double* C, const double* D, int order,
+                                   int stride, double u, double v,
+                                   double* cu, double* cv) {
+    double ax = 0.0, by = 0.0;
+    for (int i = 0; i <= order; ++i) {
+        for (int j = 0; j <= order - i; ++j) {
+            const int idx = i * stride + j;
+            const double uv = std::pow(u, i) * std::pow(v, j);
+            if (C != nullptr) ax += C[idx] * uv;
+            if (D != nullptr) by += D[idx] * uv;
+        }
+    }
+    *cu = ax;
+    *cv = by;
+}
+
 }  // namespace p1wcs
 
 #endif  // P1WCS_ORACLE_HPP
