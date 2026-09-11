@@ -674,6 +674,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
     # RT-001 冻结利用率门禁（宪章 §10.5/§18.2; 显式 opt-in, 不改变既有用法）:
     parser.add_argument("--gate-workers", type=int, default=None,
                         help="已分配 worker 数; 给出后对本次运行做冻结门禁判定")
+    # CI-001 收紧（控制包 02_GATES_AND_EXECUTION.md §执行"监控必须调用
+    # evaluate"）: CI 注册检查的监控必须判定且 fail-closed。与 --gate-workers
+    # 互斥（同给无法消歧已分配容量）; 已分配容量取 host_probe.effective_cpu_cores
+    # （机器有效容量, 不硬编码核数）; 判定结果照旧写入 frozen_gate, fail → 10。
+    parser.add_argument("--gate-required", action="store_true",
+                        help="强制冻结门禁判定（CI 注册检查必选）; 已分配容量取 "
+                             "host_probe.effective_cpu_cores; 与 --gate-workers 互斥")
     parser.add_argument("--gate-effective-cpus", type=int, default=None,
                         help="有效 CPU 数; 缺省取 host_probe.effective_cpu_cores")
     parser.add_argument("--gate-require-progress", action="store_true",
@@ -699,20 +706,26 @@ def main(argv: Optional[list[str]] = None) -> int:
     result = run_monitored(child, timeout=args.timeout,
                            poll_interval=args.poll_interval,
                            output=args.output, progress_file=args.progress_file)
-    # RT-001 冻结利用率门禁: 显式 opt-in（--gate-workers）; 判定结果写入输出
-    # JSON 的 frozen_gate 字段; fail → 退出码 10（与项目 RESOURCE 退出码约定
-    # 一致, cli/exit_codes.h）。NOT_APPLICABLE 是显式分类（非豁免）, 透传子进程
-    # 退出码; 监控/证据缺失由 evaluate_frozen_gate fail-closed 判 fail。
-    if args.gate_workers is not None:
+    # RT-001 冻结利用率门禁: 显式 opt-in（--gate-workers）/ CI-001 CI 面必选
+    # （--gate-required, 与前者互斥）; 判定结果写入输出 JSON 的 frozen_gate
+    # 字段; fail → 退出码 10（与项目 RESOURCE 退出码约定一致, cli/exit_codes.h）。
+    # NOT_APPLICABLE 是显式分类（非豁免）, 透传子进程退出码; 监控/证据缺失由
+    # evaluate_frozen_gate fail-closed 判 fail。
+    if args.gate_required and args.gate_workers is not None:
+        parser.error("--gate-required 与 --gate-workers 互斥（同给无法消歧已分配容量）")
+    if args.gate_required or args.gate_workers is not None:
         effective = args.gate_effective_cpus
         if effective is None:
             probe_cpus = (result.get("host_probe") or {}).get(
                 "effective_cpu_cores")
             effective = int(probe_cpus) if isinstance(probe_cpus, (int, float)) \
                 and probe_cpus >= 1 else None
+        # --gate-required: 已分配容量 = 机器有效核（host_probe 实测, 不硬编码）;
+        # effective 不可得 → evaluate_frozen_gate 输入无效 fail-closed（绝不 pass）。
+        allocated = effective if args.gate_required else args.gate_workers
         gate = evaluate_frozen_gate(
             result, effective_cpus=effective,
-            allocated_workers=args.gate_workers,
+            allocated_workers=allocated,
             compute_interval_seconds=args.gate_compute_interval,
             require_progress=args.gate_require_progress)
         result["frozen_gate"] = gate

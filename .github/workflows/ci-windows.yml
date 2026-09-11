@@ -51,9 +51,10 @@ jobs:
           python -m pip install --quiet PyYAML
           # WIN-PACKAGE-CANDIDATE prerequisite_tools 含 dumpbin（verify_candidate
           # 的 exported_abi / DLL 加载二进制级校验）。hosted runner 的 VS 自带
-          # dumpbin.exe 但不在 PATH → prerequisite SKIPPED(waivable) → candidate
-          # zip 不产生 → 下一步 validate_candidate 必败。按 MSVC 工具链固定布局
-          # 注入 PATH（版本目录通配，不硬编码版本号）。
+          # dumpbin.exe 但不在 PATH → CI-001 收紧后 WIN-PACKAGE-CANDIDATE 不可
+          # waiver：prerequisite FAIL(prerequisite) → ci/run.py exit 1 → 本 job
+          # 失败（不再静默跳过）。按 MSVC 工具链固定布局注入 PATH（版本目录
+          # 通配，不硬编码版本号）。
           $dumpbinDir = Get-ChildItem "C:\Program Files\Microsoft Visual Studio\2022\*\VC\Tools\MSVC\*\bin\Hostx64\x64" -Directory |
             Where-Object { Test-Path (Join-Path $_.FullName 'dumpbin.exe') } |
             Sort-Object FullName -Descending | Select-Object -First 1
@@ -61,21 +62,22 @@ jobs:
             $dumpbinDir.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
             Write-Host "dumpbin PATH injected: $($dumpbinDir.FullName)"
           } else {
-            Write-Host "::warning::dumpbin.exe not found under VS 2022 MSVC toolchain (WIN-PACKAGE-CANDIDATE will skip waivable)"
+            Write-Host "::warning::dumpbin.exe not found under VS 2022 MSVC toolchain (WIN-PACKAGE-CANDIDATE will FAIL prerequisite - CI-001 fail-closed)"
           }
       - name: Bootstrap locked toolchain
         run: python ci/bootstrap.py --policy ci/toolchain.policy.json --platform windows
       - name: Run MSVC tests and package candidate
         run: python ci/run.py --profile windows-main
       - name: Validate candidate
-        # WIN-PACKAGE-CANDIDATE 为 waivable 检查：prerequisite 缺失（如 dumpbin
-        # 不在 PATH）时按设计 SKIPPED(waivable) → candidate zip 不会产生。
-        # 此时跳过校验（verdict 已含 SKIPPED 计数，不在此二次失败）。
+        # CI-001 收紧后 WIN-PACKAGE-CANDIDATE 不可 waiver：prerequisite 缺失
+        # （如 dumpbin 不在 PATH）→ FAIL(prerequisite) → run.py exit 1 → 本 job
+        # 已在上一步失败。zip 存在时照常校验；不存在时仅提示（失败主因已在
+        # run.py verdict 中，不在此二次失败掩盖首因）。
         run: |
           if (Test-Path "artifacts/candidate/AstroCS-candidate.zip") {
             python ci/validate_candidate.py artifacts/candidate/AstroCS-candidate.zip
           } else {
-            Write-Host "::warning::candidate zip not produced (WIN-PACKAGE-CANDIDATE skipped waivable) - validate step skipped"
+            Write-Host "::warning::candidate zip not produced (WIN-PACKAGE-CANDIDATE failed or run.py already failed) - validate step skipped"
           }
       - name: Upload candidate
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (ci/actions.lock.json)
