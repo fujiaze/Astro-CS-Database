@@ -410,13 +410,11 @@ class TestCli003Semantics(unittest.TestCase):
         self.assertIn("phase3 failed", r2.stderr)
 
     def test_16_no_separate_validate_plan_inspect_subcommands(self):
-        # CLI-003 冻结面: validate/plan/run/inspect 语义固化在当前命令树内 —— 不存在
-        # `phaseN validate/plan/inspect` 独立子命令; parser 白名单(CLI-001 冻结)拒绝 → 2,
-        # stdout 零污染。validate 语义 = config validate(浅); run 语义 = phaseN run;
-        # verify = manifest 复算(inspect 不重算的机器落地, test_11)。
+        # 宪章 §8.1(CLI-001 宪章对齐, supersede CLI-003 旧冻结面): phaseN
+        # validate|plan|inspect 现为正式命令面(语义冻结 tests/cli/test_cli001_vpi.py),
+        # parser 必须接受且非 stub。此处仅保留"未登记命令仍拒"的 parser 纪律断言。
         cfg = self._cfg("sub.json", output_dir=os.path.join(self.tmp, "sub_out"))
-        for sub in ("phase1 validate", "phase2 plan", "phase3 plan",
-                    "phase3 inspect", "phase3 resume"):
+        for sub in ("phase1 resume", "phase2 diff", "phase3 plan-extra"):
             r = run(*sub.split(), "--config", cfg)
             self.assertEqual(r.returncode, 2, f"{sub} 必须 unknown command → 2")
             self.assertIn("unknown command", r.stderr)

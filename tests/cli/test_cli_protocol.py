@@ -12,6 +12,8 @@ def _repo_version():
     with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as fh:
         return fh.read().strip()
 
+# CLI-001(宪章对齐): --help golden 同步登记宪章 §8.1 薄命令面
+# phase1/2/3 validate|plan|inspect(语义冻结见 tests/cli/test_cli001_vpi.py)。
 HELP_LINES = [
     "astrocs --version [--json]",
     "astrocs version [--json]",
@@ -26,9 +28,18 @@ HELP_LINES = [
     "astrocs verify profile --profile <path> [--json]",
     "astrocs doctor --json",
     "astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|pipeline>",
+    "astrocs phase1 validate --config <path> [--json]",
+    "astrocs phase1 plan --config <path> [--json] [--output <path>]",
     "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]",
+    "astrocs phase1 inspect --config <path> [--json]",
+    "astrocs phase2 validate --config <path> [--json]",
+    "astrocs phase2 plan --config <path> [--json] [--output <path>]",
     "astrocs phase2 run --config <path> [--cpu-profile <path>] [--events-jsonl]",
+    "astrocs phase2 inspect --config <path> [--json]",
+    "astrocs phase3 validate --config <path> [--json]",
+    "astrocs phase3 plan --config <path> [--json] [--output <path>]",
     "astrocs phase3 run --config <path> [--cpu-profile <path>] [--events-jsonl]",
+    "astrocs phase3 inspect --config <path> [--json]",
     "astrocs verify --run-manifest <path> --json",
 ]
 
