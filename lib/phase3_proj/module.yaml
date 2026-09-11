@@ -43,7 +43,17 @@
 # 可变状态"结构性满足）；并行仅上游采样 worker 池（p3_session.cpp
 # :247-253，worker 数=host budget.max_workers，禁 hardware_concurrency）；
 # descriptor parallel_ok=true 承认 const-only 入口并发安全。
-# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+# P3-001 增补（2026-09-10）: 版本化 projection registry v1 与冻结四投影
+# （TAN/SIN/CAR/AIT，宪章 §7.3/§18.1）实现落位本目录——
+# p3_projection.h（唯一权威签名头）+ p3_projection.cpp（registry 冻结表 +
+# 四投影统一操作面，ALG-P3-PROJ-IMPL-001 §15 唯一权威冻结口径）；
+# 可执行测试 tests/unit/p3_projection_test.cpp（ctest
+# p3_projection_units/p3_projection_fault）+ tests/backend/
+# test_p3_projection_oracle.py（独立 numpy oracle）；测试挂载仅动
+# tests/unit/CMakeLists.txt（直编，根构建零改动）。
+# entrypoint=MISSING：registry 现状为测试目标直编面，非生产构建成员、
+# 非 DLL 入口（astrocs_p3_projection.dll 挂载/adapter 接线/会话消费归
+# P3-PROJ-IMPL/P3-002，白名单外），不冒认 IMPLEMENTED；descriptor 现状占位 ID
 # （module_adapters.cpp:344-361 p3_wcs_descriptor 的
 # module_id=astrocs.phase3.wcs、execution_class=cpu_heavy、
 # parallel_ok=true、ports props(DATA-P3-PROPS 必)+wcs_plan(DATA-P3-WCS
@@ -104,8 +114,22 @@ source_symbols:
   - p3_wcs_pix2world
   - p3_wcs_world2pix
   - p3_wcs_fits_keywords
+  - P3ProjectionSpec
+  - P3ProjectionDescriptor
+  - P3ProjectionStatus
+  - P3ProjectionId
+  - kP3ProjectionRegistryVersion
+  - p3_projection_registry_table
+  - p3_projection_registry_find
+  - p3_projection_registry_find_id
+  - p3_projection_registry_selfcheck
+  - p3_projection_make
+  - p3_projection_pix2world
+  - p3_projection_world2pix
+  - p3_projection_fits_keywords
 test_ids:
   - TEST-P3-WCS-001
+  - TEST-P3-PROJ-REG-001
 threading_model: host_executor_lease
 resource_class: cpu_heavy
 cpu_providers: [baseline]

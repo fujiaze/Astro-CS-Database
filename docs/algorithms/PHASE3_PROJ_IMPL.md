@@ -328,3 +328,165 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   SCI-007 2026-08-28）本任务零改动；G1/G2/TAN-only/容差全部以
   §9a/§5/§7 冻结值为唯一推导来源；实现与 SCI 的任何不一致按
   纪律登记 DISP/偏差（§11），禁止反向修改 SCI。
+
+## 15 P3-001 增补：版本化 projection registry 与冻结四投影（TAN/SIN/CAR/AIT）
+
+> 增补 2026-09-10，任务 P3-001（ASTROCS-CONSTITUTION-ALIGNMENT-V1，
+> BASE=9e0fa3a8）。宪章 ASTROCS-CONSTITUTION-001 §7.3（"投影由版本化
+> projection registry 注册，投影实现不能散落在 CLI switch 中；每种投影
+> 必须声明适用天区、奇点、经纬方向、CRPIX/CRVAL/CD/CTYPE 规则、合法 FOV
+> 和独立往返 Oracle"）与 §18.1 负责人裁决 1（首批投影冻结为
+> `TAN + SIN + CAR + AIT`；新增投影必须经 projection registry 注册并附
+> 独立往返 Oracle）。TAN 冻结零改动（§6/§7 沿用）；SIN/CAR/AIT 为 §18.1
+> 裁决新增 claim，公式 = Calabretta & Greisen (2002) FITS WCS Paper II
+> 标准定义；本节即该 claim 的 ALG 层唯一权威落位。SCI 层零改动（§14
+> 不变：TAN-only 拒绝面为 SCI alpha 会话合同，四投影 registry 为宪章
+> §18.1 上位裁决的独立实现面，两者由会话层合同衔接，不互改）。
+
+### 15.1 registry 冻结表（v1）
+
+- 版本常量 `kP3ProjectionRegistryVersion = 1`；表内容或语义变化必须递增
+  版本并在本节登记变更 claim。表恰 4 行、顺序冻结：
+
+| 行 | id | code | CTYPE1/CTYPE2 | 中心守卫 | 合法 FOV 声明 | 域 |
+|---|---|---|---|---|---|---|
+| 0 | TAN | "TAN" | RA---TAN / DEC--TAN | \|dec\|≤85° | 20°（SCI §9a-12 冻结） | zenithal, θ₀=CRVAL2 |
+| 1 | SIN | "SIN" | RA---SIN / DEC--SIN | \|dec\|≤85° | 60°（claim） | zenithal, θ₀=CRVAL2 |
+| 2 | CAR | "CAR" | RA---CAR / DEC--CAR | \|dec\|≤85° | 180°（claim） | cylindrical, θ₀=+90° |
+| 3 | AIT | "AIT" | RA---AIT / DEC--AIT | \|dec\|≤85° | 360°（claim） | pseudo-cylindrical, θ₀=+90° |
+
+- 落位：`lib/phase3_proj/p3_projection.h`（唯一权威签名头）+
+  `lib/phase3_proj/p3_projection.cpp`（实现）。查询 API：`registry_table`
+  （表首指针+行数）/`registry_find(code)`（精确匹配，未注册 → nullptr，
+  无 fallback 无静默）/`registry_find_id`（越界 → nullptr）/
+  `registry_selfcheck`（行数/码互异/CTYPE 非空/函数指针非空/id 顺序）。
+- dispatch 经 spec 内函数指针（`pix2world`/`world2pix`），实现不散落
+  switch（宪章 §7.3）；projection 字段为 `P3ProjectionId` 强类型枚举，
+  杜绝 CLI 字符串散落。
+- max_fov_deg 为 registry **声明字段**（宪章 §7.3 "合法 FOV"），非 make
+  硬门——FOV 裁决属会话层合同（TAN alpha 的 FOV≤20° 强制点在 SCI §4/
+  §9a-12 会话合同），投影域本身由四角守卫 + 投影域界（§15.3）承载。
+
+### 15.2 统一管线与共享核（rad 内部计算）
+
+- 正向（world→pixel）: (α,δ) → 旋转核逆 → native (φ,θ) → 投影层 →
+  中间坐标 (X,Y) deg → CD⁻¹（解析 2×2，|det|<1e-300 → PARAM）→
+  0-based 像素。逆向（pixel→world）: 像素 → CD·δp → (X,Y) → 投影层逆 →
+  (φ,θ) → 旋转核 → (α,δ)，RA 经 fmod 归一 [0,360)。
+- zenithal 旋转核（TAN/SIN，θ₀=CRVAL2=δ₀；表达式顺序与 §6/§7 冻结式
+  一致）:
+  `sinθ = sinδ sinδ₀ + cosδ cosδ₀ cosΔα`（=denom，≤0 → HEMISPHERE）
+  `φ = atan2(−cosδ sinΔα, sinδ cosδ₀ − cosδ sinδ₀ cosΔα)`
+  `δ = asin(sinθ sinδ₀ + cosθ cosδ₀ cosφ)`
+  `Δα = atan2(−cosθ sinφ, cosδ₀ sinθ − sinδ₀ cosθ cosφ)`
+- CAR/AIT 天球惯例：θ₀=+90°（native 北极=天球北极，LONPOLE=0 语义）⇒
+  native (φ,θ)=(α−α₀, δ) 恒等旋转；**CRVAL2 仅记录于 header 不进入映射**
+  （CRVAL1=中央经线 α₀ 参与映射）。此为四投影统一 descriptor 语义下的
+  显式冻结声明（FITS celestial CAR/AIT 实践一致）。
+- RA 最短角差（CAR/AIT）: dra=fmod(α−α₀,360) 归一 (−180,180]（−180 归
+  +180，唯一化）。
+
+### 15.3 四投影投影层（逐式冻结）
+
+- **TAN**（§6/§7 冻结零改动，冻结逐式路径）: R=cotθ；
+  X=−R sinφ, Y=R cosφ。逆: r=√(X²+Y²) (rad)，r≥π/2 → HEMISPHERE；
+  θ=atan2(1,r)，φ=atan2(−X,Y)。与 lib/phase3_session/p3_wcs.cpp 生产实现
+  bitwise 一致（§15.6 T3 对拍承载）。
+- **SIN**（orthographic）: R=cosθ；X=−R sinφ, Y=R cosφ。逆:
+  ρ=√(X²+Y²) (rad)，ρ>1 → HEMISPHERE（ρ=1 边界合法，θ=0）；
+  θ=acos(ρ)，φ=atan2(−X,Y)。奇点声明：半球边界圆 ρ=1；中心守卫
+  |CRVAL dec|≤85° 为保守收窄（SIN 极视场数学可行，冻结域不含）。
+- **CAR**（plate carrée）: X=φ, Y=−θ。逆: φ=X·kRad, θ=−Y·kRad，
+  |θ|>90° → PARAM（冻结域 |δ|≤90° fail-closed，拒绝柱面延伸域另一支）。
+  无投影奇点（δ 线性）；高纬面积畸变由 FOV 声明承载。
+- **AIT**（Aitoff，θ₀=+90°）: 正向 D=√(1+cosθ·cos(φ/2))；
+  X=2cosθ·sin(φ/2)/D, Y=sinθ/D。逆: A=X²/4+Y²（rad²），
+  D²=2−A，D²≤0 → HEMISPHERE（椭圆域）；sinθ=Y·D，|sinθ|>1 →
+  HEMISPHERE；θ=asin(sinθ)，φ=2·atan2(X·D/2, D²−1)（D²=1 即 φ=±180°
+  边界合法，atan2 唯一）。反演式由恒等式 A=1−cosθ·cos(φ/2) 封闭推导
+  （X²/4+Y²=1−v, v=cosθ·cos(φ/2)），等价 Paper II 反演。奇点声明：
+  椭圆域边界 X²/4+Y²=2；全天空（360°×180°）为设计目标域。
+
+### 15.4 descriptor/make 守卫（四投影统一）
+
+- make 参数校验序与 TAN 冻结序一致（§6.1）: out 非空 → id 注册校验
+  （越界 → UNSUPPORTED）→ parity∈{east_left,east_right}（nullptr 归一
+  east_left）→ |centre_dec_deg|≤85°（四投影统一保守冻结，TAN 侧=SCI
+  单一条件）→ scale>0 → W,H∈[1,20000]（kMaxSide 默认，可
+  ASTROCS_P3_MAX_SIDE 编译期覆盖）→ G1 CD 构造（§6.2 逐式，四投影
+  同构）→ 四角投影域守卫（0-based (0,0)/(W−1,0)/(0,H−1)/(W−1,H−1)
+  逐一调投影域检查，任一失败 → 首败码透传，不产半成品 descriptor）。
+- 状态码（P3ProjectionStatus，值域与 P3WcsStatus 冻结对齐）: OK=0 /
+  PARAM=1 / UNSUPPORTED=2（未知码/越界 id） / HEMISPHERE=3。
+- 域界语义冻结: TAN r≥π/2 / SIN ρ>1 / AIT D²≤0 → HEMISPHERE；
+  CAR/AIT 天球端 |δ|>90°、CAR 平面端 |θ|>90° → PARAM；TAN/SIN
+  world2pix 端 |dec|>85° → PARAM（§9 冻结语义沿用）。
+- fits_keywords: CTYPE1/2 经 registry spec 解析（禁硬编码 CTYPE 于
+  调用方），其余行与 §8 同族（CRPIX/CRVAL %.10f、CD %.12e、每行
+  ≤80 字节、12 行）；descriptor 空指针/未注册 id → 空串（fail-closed
+  不产 CTYPE 面）。
+
+### 15.5 六要素声明（宪章 §7.3 逐投影）
+
+| 投影 | 适用天区 | 奇点 | 经纬方向 | CRPIX/CRVAL/CD/CTYPE 规则 | 合法 FOV | 独立往返 Oracle |
+|---|---|---|---|---|---|---|
+| TAN | \|CRVAL dec\|≤85°, 视场同半球 | 天顶反面 r≥π/2 | parity 显式（§9a-4） | §6/§7 冻结；CRVAL=切点 | ≤20°（SCI 冻结） | 3D 向量 gnomonic 透视重建（§15.6 T2/T4） |
+| SIN | \|CRVAL dec\|≤85°, 半球内 | 半球边界 ρ=1 | parity 显式 | 同 G1；CRVAL=投影点 | ≤60°（claim） | 3D 向量 orthographic 重建 |
+| CAR | \|CRVAL dec\|≤85°（保守收窄）, \|δ\|≤90° | 无（δ 线性） | parity 显式；CRVAL1=中央经线 | 同 G1；CRVAL2 不进映射 | ≤180°（claim） | 恒等旋转独立式 |
+| AIT | \|CRVAL dec\|≤85°（保守收窄）, \|δ\|≤90° | 椭圆域边界 | parity 显式；CRVAL1=中央经线 | 同 G1；CRVAL2 不进映射 | ≤360°（claim，全天空设计域） | Paper II 反演独立式 + 3D 重建 |
+
+- "保守收窄"：SIN/CAR/AIT 中心守卫统一沿用 85° 单一条件（与 TAN 同值），
+  属冻结域收窄（alpha 原则），极点中心视场排除；放宽须经宪章变更流程。
+- parity/PA 语义四投影统一（§6.2 冻结式原样）：CD 构造与投影无关
+  （G1 对角 + PA 推广 + P0 修复内含）。
+
+### 15.6 TEST-P3-PROJ-REG-001（登记面 + 可执行面同文件承载）
+
+- 可执行面两处（本任务建立）:
+  - `tests/unit/p3_projection_test.cpp`（ctest: p3_projection_units /
+    p3_projection_fault）:
+    T1 registry 完整性（版本常量=1/恰 4 行/码与 id 顺序/函数指针/
+    selfcheck=0/未知码 nullptr 无 fallback）；T2 每投影独立往返 Oracle
+    （3D 单位向量第一性原理：切基正交投影+TAN 透视除法+SIN 正交重建+
+    CAR/AIT 恒等旋转独立式+Paper II 反演式；往返 <1e-6 px 冻结）；
+    T3 TAN 与 lib/phase3_session/p3_wcs.cpp 生产实现全网格 bitwise
+    对拍（CD/CRPIX/正反映射零漂移证明）；T4 world2pix 正向独立解析解
+    （3D 向量分量→CD⁻¹，全四投影）；T5 G1 CD 精确断言（PA=0 对角
+    bitwise/PA=90° 展开式/det<0/crpix 奇偶双例，四投影同构）；
+    T6 负面清单（未知码/parity 非法/|dec|=85.1/scale≤0/W=0/H=20001/
+    空指针全族/SIN 视场超半球/AIT 域外/SIN 背面点/CAR |dec|>90 全部
+    显式拒绝）；T7 CTYPE 关键词面（RA---<code>/DEC--<code>、12 行、
+    ≤80 字节）；T8 确定性（重复计算 bitwise）；T9 1/N worker（1 vs
+    2/4/8 线程分块 bitwise，纯函数并发安全实测）。
+  - `tests/backend/test_p3_projection_oracle.py`（pytest）:
+    Python/numpy 侧**完全独立**第一性实现（与 C++ 测试代码路径亦不同）
+    对拍生产 registry（driver 内联编译生产源）；解析比对 <1e-9 deg、
+    往返 <1e-6 px、跨进程两次运行 stdout sha256 一致、CTYPE 面。
+- 故障注入（必败面，P2-002 先例同构，测试级注入、生产源零 getenv）:
+  `ASTROCS_P3PROJ_FAULT=tan|sin|car|ait|registry` 注入等价缺陷（往返
+  ±1 px 偏移期望 / registry 静默 fallback），注入模式断言必败并报告
+  捕获（FAULT-EFFECT-CONFIRMED），证明测试对对应缺陷类有区分力。
+- 验收级 oracle 升级（WCSLIB 独立实现，§12 T6）仍归 P3-PROJ-TEST，
+  本任务不冒认。
+
+### 15.7 构建挂载与越界登记
+
+- 测试挂载仅动 `tests/unit/CMakeLists.txt`（add_executable 直编
+  p3_projection.cpp + p3_wcs.cpp 对拍 TU，先例 aio_abi_tests 同构）；
+  根 CMakeLists.txt / lib/phase3_session 零改动——生产构建挂载
+  （astrocs_p3_projection.dll target/adapter 接线/会话消费）归
+  P3-PROJ-IMPL/P3-002（白名单外），本任务 out_of_scope_entries=0。
+- registry 现状为**测试目标直编面**：非生产构建成员、非 DLL 入口；
+  module.yaml 维持 CONTRACT_READY/entrypoint=MISSING 不冒认
+  IMPLEMENTED（升级归挂载任务）。
+
+### 15.8 文献锚（§15 新增 claim 引用定位）
+
+- Calabretta & Greisen 2002, A&A 395, 1077（Paper II）：TAN/SIN/CAR
+  Table 1 投影定义（R_θ 形式）；AIT 反演与 θ₀=±90° 天球惯例（§2.1
+  旋转、§5）；LONPOLE 语义本实现固定 θ₀=+90°/无 φ_p 附加旋转（§15.2
+  显式冻结，不实现通用 LONPOLE 机制）。
+- Greisen & Calabretta 2002, A&A 395, 1061（Paper I）：CD-only/CTYPE/
+  CRPIX 1-based 约定（既有 §5 锚不变）。
+- 3D 向量 oracle 第一性原理（切基正交投影/透视除法）为 Project-defined
+  独立推导路径，与生产球面三角公式互为独立验证。

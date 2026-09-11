@@ -1,13 +1,20 @@
-# lib/phase3_proj — astrocs.p3.projection（WCS/投影域合同）
+# lib/phase3_proj — astrocs.p3.projection（WCS/投影域合同 + 版本化 projection registry）
 
 > P3-PROJ-DOC 冻结（2026-09-11，SA-P3-P25）。本目录为 Phase3 投影域迁移
 > 合同落位（三件套：README + module.yaml + memory.md），照
 > lib/phase2_upm→phase2_samp→phase2_rej→phase2_int→phase3_fits 迁移
-> 目录先例新建。**现状**：生产源实际位于 lib/phase3_session/
-> （p3_wcs.h 50 行 + p3_wcs.cpp 165 行，astrocs_phase3_session 静态库
-> 成员，根 CMakeLists.txt:460-465）；dll_target=astrocs_p3_projection.dll
-> 为矩阵合同值，尚未存在（entrypoint=MISSING，由 P3-PROJ-IMPL 建立，
-> 禁止声明 IMPLEMENTED）。
+> 目录先例新建。**P3-001 增补（2026-09-10）**：版本化 projection
+> registry v1 与宪章 §18.1 冻结首批四投影（TAN/SIN/CAR/AIT）实现落位
+> 本目录——`p3_projection.h`（唯一权威签名头）+ `p3_projection.cpp`
+> （registry 冻结表 + 四投影统一操作面，ALG 冻结口径
+> docs/algorithms/PHASE3_PROJ_IMPL.md §15 唯一权威）；TAN 逐式沿用
+> lib/phase3_session/p3_wcs.cpp 冻结生产事实（bitwise 对拍承载于
+> tests/unit/p3_projection_test.cpp T3）。**现状**：registry 为测试
+> 目标直编面（tests/unit/CMakeLists.txt），非生产构建成员；
+> dll_target=astrocs_p3_projection.dll 尚未存在（entrypoint=MISSING，
+> 挂载由 P3-PROJ-IMPL/P3-002 建立，禁止声明 IMPLEMENTED）。
+> legacy 生产源 lib/phase3_session/p3_wcs.h/.cpp 保留原位不搬家
+> （会话消费点 p3_session.cpp 不变）。
 
 ## 1 身份
 
@@ -16,7 +23,9 @@
   P3-PROJ-INT 对齐，不作冻结依据）。
 - registry 行: MOD-astrocs-phase3-wcs；dll_target:
   astrocs_p3_projection.dll（合同值，未建）。
-- 域: 天球投影/WCS（TAN 显式；SIN/ZEA/CAR/AIT 为扩展 TODO，非本合同）。
+- 域: 天球投影/WCS。**P3-001**: registry v1 冻结四投影 TAN/SIN/CAR/AIT
+  （宪章 §18.1；新增投影须经 registry 注册并附独立往返 Oracle）；
+  ZEA 等其余投影未注册（registry_find 返回 nullptr，fail-closed）。
 
 ## 2 合同链（ID 唯一权威落位）
 
@@ -30,6 +39,20 @@
 | API(镜像) | API-P3-001 | docs/contracts/PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像，不变） | FROZEN 镜像 |
 | TEST | TEST-P3-WCS-001 | 登记面=TEST-P3-WCS-DESIGN-001（设计冻结 VERIFIED，ALG-P3-PROJ-IMPL-001 §11 + registry 页 §9 双重陈述）；可执行面=tests/unit/p3_wcs_test.cpp（90 行）+ tests/backend/test_p1002_gaps.py + tests/backend/p3_wcs_main.cpp；验收升级归 P3-PROJ-TEST | 见右 |
 | EVID | EVID-MISSING | 待 P3-PROJ-INT/验收补 | MISSING |
+
+## 2a P3-001 registry 与四投影（2026-09-10 增补）
+
+- 冻结口径: docs/algorithms/PHASE3_PROJ_IMPL.md §15（六要素声明/共享
+  旋转核/逐式公式/守卫域/测试设计）；SCI 层零改动。
+- 符号: P3ProjectionSpec/P3ProjectionDescriptor/P3ProjectionStatus/
+  P3ProjectionId/kP3ProjectionRegistryVersion/p3_projection_registry_
+  {table,find,find_id,selfcheck}/p3_projection_{make,pix2world,
+  world2pix,fits_keywords}（namespace astrocs::phase3proj）。
+- 可执行测试: tests/unit/p3_projection_test.cpp（ctest
+  p3_projection_units + p3_projection_fault）+ tests/backend/
+  test_p3_projection_oracle.py（独立 numpy oracle/跨进程确定性）。
+- 故障注入: ASTROCS_P3PROJ_FAULT=tan|sin|car|ait|registry（测试级注入，
+  生产源零 getenv，P2-002 先例同构）。
 
 ## 3 生产源（冻结实测，2026-09-11）
 
