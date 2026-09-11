@@ -1,14 +1,20 @@
 {
   "schema_version": 1,
   "product_version": "0.11.0-alpha.1",
-  "source_commit": "caee3e67e5a209a9e47b514f42b2b63f3dc4da4e",
+  "source_commit": "91440c16e8bf3d8160e819d42798094a00c488a1",
   "platform": "linux-amd64",
-  "note": "BLD-003 骨架 product manifest 示例: source_commit 为 BLD-003 base main SHA, 前台集成后应更新为实际 main SHA; sha256 由 ABI-004/打包填充 (SKELETON 不伪装实现完成)。Windows 形态由 WIN-* 生成。",
+  "note": "MOD-001 科学DLL安装加载验证与产品清单: units 自 BLD-003 骨架 5 项扩至 11 项——6 个科学模块 DLL (astrocs_catalog_gaia / astrocs_p1_{drizzle,calibration,cosmetic,hips_writer,noise}; 宪章 §8.4 独立模块 DLL) 入安装树 modules/ 并登记, 与 cmake/install_layout.cmake 安装规则、packaging/install-tree.contract.json 三方一一对应; 安全 loader 逐 unit 加载验证 = tests/abi/mod001_install_load_check.py (§18.4 只加载签名清单官方模块)。status: 平台 CLI 与全部模块 unit 已实现; PLATFORM-RUNTIME/IO 平台 DLL 仍为 BLD-003 骨架 (单 C ABI 源起步, 宿主接线归 RT-002/WIN-*, 不伪装实现完成, 维持 SKELETON)。source_commit=清单登记时点 main SHA。sha256 维持 null (BLD-003 约定: 打包/ABI-004 填充, loader 对空期望跳过 hash; 加载验证以实测 sha256 传入探针覆盖 HASH_MISMATCH 拒绝路径)。",
   "units": [
-    { "unit_id": "PLATFORM-CLI", "kind": "exe", "rel_path": "astrocs", "abi_version": 1, "module_id": null, "sha256": null, "status": "SKELETON" },
+    { "unit_id": "PLATFORM-CLI", "kind": "exe", "rel_path": "astrocs", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" },
     { "unit_id": "PLATFORM-RUNTIME", "kind": "runtime", "rel_path": "libastrocs_runtime.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "SKELETON" },
     { "unit_id": "PLATFORM-IO", "kind": "io", "rel_path": "libastrocs_io.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "SKELETON" },
-    { "unit_id": "MOD-NOOP", "kind": "module", "rel_path": "modules/astrocs_noop.so", "abi_version": 1, "module_id": "astrocs.conformance.noop", "sha256": null, "status": "SKELETON" },
-    { "unit_id": "PROV-CPU-BASELINE", "kind": "provider", "rel_path": "providers/astrocs_cpu_baseline.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "SKELETON" }
+    { "unit_id": "MOD-NOOP", "kind": "module", "rel_path": "modules/astrocs_noop.so", "abi_version": 1, "module_id": "astrocs.conformance.noop", "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "MOD-CAT-GAIA", "kind": "module", "rel_path": "modules/astrocs_catalog_gaia.so", "abi_version": 1, "module_id": "astrocs.catalog.gaia", "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "MOD-P1-DRIZZLE", "kind": "module", "rel_path": "modules/astrocs_p1_drizzle.so", "abi_version": 1, "module_id": "astrocs.p1.drizzle", "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "MOD-P1-CAL", "kind": "module", "rel_path": "modules/astrocs_p1_calibration.so", "abi_version": 1, "module_id": "astrocs.p1.calibration", "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "MOD-P1-COS", "kind": "module", "rel_path": "modules/astrocs_p1_cosmetic.so", "abi_version": 1, "module_id": "astrocs.p1.cosmetic", "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "MOD-P1-HIPSW", "kind": "module", "rel_path": "modules/astrocs_p1_hips_writer.so", "abi_version": 1, "module_id": "astrocs.p1.hips_writer", "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "MOD-P1-NOISE", "kind": "module", "rel_path": "modules/astrocs_p1_noise.so", "abi_version": 1, "module_id": "astrocs.p1.noise", "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "PROV-CPU-BASELINE", "kind": "provider", "rel_path": "providers/astrocs_cpu_baseline.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" }
   ]
 }

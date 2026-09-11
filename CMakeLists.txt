@@ -315,13 +315,21 @@ endif()
 target_compile_definitions(astrocs_cfitsio PRIVATE _REENTRANT)
 
 # io/astro_image_io: 图像/HiPS I/O adapter (aio_pipeline* 保留待 LEG-003 退出)
+# MOD-001 (F-AIO-003 生产接线): aio_abi.cpp (AIO-001 交付的唯一 AIO C ABI v1
+# 实现, aio_abi_query_v1/aio_content_hash_*_v1) 自本任务起编入生产 target
+# astrocs_aio (AIO 正统归属; 此前仅测试面直编, 生产接线缺口登记于 HANDOVER
+# F-AIO-003 → MOD-001)。仓库根 include/ 以 PRIVATE 引入 (仅本 target 编译
+# aio_abi.cpp 需要 astrocs/io/aio_abi_v1.h, 不扩大下游 include 面)。
 add_library(astrocs_aio STATIC
   lib/astro_image_io/src/aio_fits.cpp
   lib/astro_image_io/src/aio_api.cpp
   lib/astro_image_io/src/aio_log.cpp
   lib/astro_image_io/src/aio_compressor.cpp
   lib/astro_image_io/src/aio_xisf.cpp
-  lib/astro_image_io/src/aio_pipeline.cpp)
+  lib/astro_image_io/src/aio_pipeline.cpp
+  lib/astro_image_io/src/aio_abi.cpp)
+target_include_directories(astrocs_aio PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(astrocs_aio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/src

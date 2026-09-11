@@ -1078,8 +1078,15 @@ static acs_status cal_describe(const acs_module_api_v1* self,
                                acs_module_descriptor_v1* out_desc) {
     try {
         if (!out_desc) return ACS_ERR_PARAM;
-        if (module_id.size != std::strlen(ASTROCS_CAL_MODULE_ID) ||
-            std::memcmp(module_id.data, ASTROCS_CAL_MODULE_ID, module_id.size) != 0) {
+        /* MOD-001 加载验证对齐: ABI-003 安全 loader 以 empty module_id 调 describe
+         * (secure_loader.c §5 既成合同; BLD-003 noop 先例同语义), 空=不指名, 直接
+         * 返回静态描述; 非空仍严格校验 (错 ID → MISMATCH, calibration_adapter_test
+         * 既有锚不变)。空 ID 拒绝曾使科学 DLL 在安装树内被自家 loader 必拒
+         * (DESCRIPTOR_MISMATCH), 本行为修复经 tests/abi/mod001_install_load_check.py
+         * 安装树逐 unit 加载验证闭环。 */
+        if (module_id.size != 0 &&
+            (module_id.size != std::strlen(ASTROCS_CAL_MODULE_ID) ||
+             std::memcmp(module_id.data, ASTROCS_CAL_MODULE_ID, module_id.size) != 0)) {
             return ACS_ERR_ABI_MISMATCH;
         }
         std::memset(out_desc, 0, sizeof(*out_desc));
