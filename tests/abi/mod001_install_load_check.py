@@ -28,7 +28,7 @@ DLL/SO + §8.5 基建构建单元 + §8.1 CLI 产品清单 + §18.4 只加载签
        module_id 错配 → ACS_LOADER_EC_MODULE_ID_MISMATCH(15);
        allowed_root 越界 → ACS_LOADER_EC_PATH_ESCAPE(4);
        文件缺失 → ACS_LOADER_EC_FILE_MISSING(6)。全部必败（fail-closed）;
-  S7 CLI 联动（安装树内 exe）: modules list --json verdict=PASS units=11;
+  S7 CLI 联动（安装树内 exe）: modules list --json verdict=PASS units=10;
      modules verify rc=0; selftest --module <科学模块> 逐模块装配 PASS;
      selftest --module astrocs.not.in.manifest 必败 rc!=0;
   S8 安装树完整性负向（fail-closed 破坏性注入, 最后执行）: 删除
@@ -59,15 +59,17 @@ VERIFY_SCRIPT = os.path.join(REPO, "packaging", "verify_install_tree.py")
 CC = os.environ.get("CC", "gcc")
 TIMEOUT = 900
 
-# 产品清单合同锚（MOD-001: 6 个科学模块 DLL 必须登记且可加载; 唯一事实源 =
-# lib/<mod>/module.yaml 的 module_id + CMake SHARED target OUTPUT_NAME）
+# 产品清单合同锚（MOD-001: 科学模块 DLL 必须登记且可加载; 唯一事实源 =
+# lib/<mod>/module.yaml 的 module_id + CMake SHARED target OUTPUT_NAME）。
+# F-CI-002-01 (owner 裁决 2026-09-11): astrocs_p1_noise 随 lib/snr_estimator
+# V7 残留断链解除摘出生产图与本清单 (该子图 CMakeLists 未入库, target 不在
+# 根图), V7 残留收编后恢复本锚与产品清单登记。
 SCIENCE_MODULES = [
     ("MOD-CAT-GAIA",   "astrocs.catalog.gaia",    "astrocs_catalog_gaia"),
     ("MOD-P1-DRIZZLE", "astrocs.p1.drizzle",      "astrocs_p1_drizzle"),
     ("MOD-P1-CAL",     "astrocs.p1.calibration",  "astrocs_p1_calibration"),
     ("MOD-P1-COS",     "astrocs.p1.cosmetic",     "astrocs_p1_cosmetic"),
     ("MOD-P1-HIPSW",   "astrocs.p1.hips_writer",  "astrocs_p1_hips_writer"),
-    ("MOD-P1-NOISE",   "astrocs.p1.noise",        "astrocs_p1_noise"),
 ]
 SCIENCE_TARGETS = [t[2] for t in SCIENCE_MODULES]
 PLATFORM_TARGETS = ["astrocs", "astrocs_runtime", "astrocs_io", "astrocs_noop",
@@ -250,7 +252,7 @@ def main():
                   if isinstance(u, dict)}
         cunits = {u.get("unit_id"): u for u in contract.get("units", [])
                   if isinstance(u, dict)}
-        check("S4 manifest units=11 (5 平台 + 6 科学)", len(munits) == 11,
+        check("S4 manifest units=10 (5 平台 + 5 科学, F-CI-002-01: noise 摘出)", len(munits) == 10,
               f"got {len(munits)}: {sorted(munits)}")
         for uid, mid, so in SCIENCE_MODULES:
             mu = munits.get(uid)
@@ -291,7 +293,7 @@ def main():
     if manifest_ok:
         module_units = [u for u in manifest.get("units", [])
                         if isinstance(u, dict) and u.get("kind") == "module"]
-    check("S6 manifest kind=module units=7 (noop+6 科学)", len(module_units) == 7,
+    check("S6 manifest kind=module units=6 (noop+5 科学)", len(module_units) == 6,
           f"got {len(module_units)}")
     for u in module_units:
         rel = u.get("rel_path", "")
@@ -326,13 +328,13 @@ def main():
         doc = json.loads(r.stdout)
     except Exception:  # noqa: BLE001
         doc = {}
-    check("S7 modules list --json verdict=PASS units=11",
+    check("S7 modules list --json verdict=PASS units=10",
           r.returncode == 0 and doc.get("verdict") == "PASS"
-          and len(doc.get("units", [])) == 11,
+          and len(doc.get("units", [])) == 10,
           (r.stdout + r.stderr)[-400:] if r.returncode or not doc else "")
     r = run([exe, "modules", "verify"], cwd=prefix, env=env)
     check("S7 modules verify rc=0", r.returncode == 0
-          and "modules verify OK (11 units" in r.stdout,
+          and "modules verify OK (10 units" in r.stdout,
           (r.stdout + r.stderr)[-300:])
     for _, mid, _so in SCIENCE_MODULES:
         r = run([exe, "selftest", "--module", mid, "--json"], cwd=prefix, env=env)
