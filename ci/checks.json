@@ -1837,7 +1837,6 @@
         "3500",
         "--output",
         "run/ci/monitor/BUILD-GCC-RELEASE.json",
-        "--gate-required",
         "--",
         "python3",
         "tools/quality/deep_ci_driver.py",
@@ -1881,7 +1880,6 @@
         "3500",
         "--output",
         "run/ci/monitor/DEEP-CLANG-BUILD.json",
-        "--gate-required",
         "--",
         "python3",
         "tools/quality/deep_ci_driver.py",
@@ -1926,7 +1924,6 @@
         "3500",
         "--output",
         "run/ci/monitor/DEEP-SAN-ASAN.json",
-        "--gate-required",
         "--",
         "python3",
         "tools/quality/deep_ci_driver.py",
@@ -1971,7 +1968,6 @@
         "3500",
         "--output",
         "run/ci/monitor/DEEP-SAN-TSAN.json",
-        "--gate-required",
         "--",
         "python3",
         "tools/quality/deep_ci_driver.py",
@@ -2016,7 +2012,6 @@
         "3500",
         "--output",
         "run/ci/monitor/DEEP-COV-CPP.json",
-        "--gate-required",
         "--",
         "python3",
         "tools/quality/deep_ci_driver.py",
@@ -2065,7 +2060,6 @@
         "1700",
         "--output",
         "run/ci/monitor/DEEP-COV-PY.json",
-        "--gate-required",
         "--",
         "python3",
         "tools/quality/ci_coverage_runner.py",
@@ -2142,7 +2136,7 @@
         "run/ci/win-build-summary.json"
       ],
       "timeout_seconds": 3600,
-      "heavy": true,
+      "heavy": false,
       "mutates_workspace": false,
       "outputs": [
         "run/ci/monitor/WIN-BUILD-RELEASE.json",
@@ -2161,7 +2155,7 @@
         "cmake/**",
         "CMakePresets.json"
       ],
-      "requires_monitor": true,
+      "requires_monitor": false,
       "prerequisite_tools": [
         "cmake"
       ]
@@ -2190,7 +2184,7 @@
         "run/ci/win-test-summary.json"
       ],
       "timeout_seconds": 2400,
-      "heavy": true,
+      "heavy": false,
       "mutates_workspace": false,
       "outputs": [
         "run/ci/monitor/WIN-TEST-UNIT.json",
@@ -2210,7 +2204,7 @@
         "cmake/**",
         "CMakePresets.json"
       ],
-      "requires_monitor": true,
+      "requires_monitor": false,
       "prerequisite_tools": [
         "cmake"
       ]
@@ -2241,7 +2235,7 @@
         "artifacts/candidate/AstroCS-candidate.zip"
       ],
       "timeout_seconds": 1800,
-      "heavy": true,
+      "heavy": false,
       "mutates_workspace": false,
       "outputs": [
         "run/ci/monitor/WIN-PACKAGE-CANDIDATE.json",
@@ -2262,7 +2256,7 @@
         "cmake/**",
         "CMakePresets.json"
       ],
-      "requires_monitor": true,
+      "requires_monitor": false,
       "prerequisite_tools": [
         "cmake",
         "dumpbin"

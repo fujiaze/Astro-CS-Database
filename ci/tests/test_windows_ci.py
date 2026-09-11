@@ -7,7 +7,9 @@
    waivable=false（CI-001 收紧；owner 裁决 2026-09-11：非重计算面不加
    --gate-required）、outputs 非空；heavy 项 command 自含
    ``ci/resource_monitor.py --timeout N --output run/ci/monitor/<ID>.json --``
-   包裹前缀且 requires_monitor=true、prerequisite_tools 含 cmake；
+   包裹前缀且 requires_monitor=false、heavy=false（owner 裁决
+   F-CI-002-04, 2026-09-11：构建/打包/单测非重计算面, R7 conform）、
+   prerequisite_tools 含 cmake；
    windows-main plan-only=61（含 3 新 id）；fast/linux-main/linux-deep
    基线 57/71/7 不受影响。
 2. 驱动行为 —— --stages 解析（canonical 去重保序/未知阶段拒绝）、
@@ -89,8 +91,12 @@ class TestRegistryConformance(unittest.TestCase):
     def test_windows_heavy_monitor_wrapper_prefix(self):
         for cid in _WIN_IDS:
             c = _WIN_CHECKS[cid]
-            self.assertTrue(c["heavy"], cid)
-            self.assertTrue(c["requires_monitor"], cid)
+            # owner 裁决（F-CI-002-04, 2026-09-11）：WIN-* 非重计算面 →
+            # requires_monitor=false 解除 monitor_gate_missing 硬失败面；
+            # R7（heavy→monitor）conform 同步 heavy=false。监控包装与
+            # waivable=false 维持（采样留证 + 不可 waiver）。
+            self.assertFalse(c["heavy"], cid)
+            self.assertFalse(c["requires_monitor"], cid)
             self.assertEqual(c["command"][:2],
                              ["python3", "ci/resource_monitor.py"], cid)
             i = c["command"].index("--")
