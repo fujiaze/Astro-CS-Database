@@ -76,13 +76,30 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <condition_variable>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <limits>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <thread>
+#include <utility>
+#include <vector>
+
+// ── RT-001: 唯一 Executor 生产接入（编译归属注记, 详见 executor_runtime.h）──
+// RT-004 冻结合同实现 lib/core/src/executor.cpp 此前未编入任何生产 target
+// （根 CMakeLists.txt 不在 RT-001 写入白名单）, 唯一池为死代码。本文件经
+// #include 将其编入 astrocs_module_adapters —— 全仓唯一的 executor 池 worker
+// 创建点仍是 executor.cpp（合同语句不变）, 仅编译归属临时迁移。整改归位
+// （根 CMakeLists 为 astrocs_module_adapters 追加 executor.cpp 并删除此
+// include）已登记 finding F-RT-001-04; 在此之前, 任何 target 不得把
+// executor.cpp 与 astrocs_module_adapters 编入同一二进制（重定义 → 链接期
+// 显式失败, 无静默重复）。
+#include "executor.cpp"
+#include "executor_runtime.h"
 
 // session C ABI（与 lib/phaseN_session/*.h 一致；避免把会话头拉进 core 依赖图）
 extern "C" {
@@ -114,6 +131,38 @@ acs_status p3_session_destroy(acs_handle h);
 namespace astrocs::phase1 { std::string last_error(acs_handle h); }
 namespace astrocs::phase2 { std::string last_error(acs_handle h); }
 namespace astrocs::phase3 { std::string last_error(acs_handle h); }
+
+// ── RT-001: Runtime 唯一 work-unit executor 注册点（合同见 executor_runtime.h）──
+namespace astrocs::core::rt {
+
+std::shared_ptr<CpuHeavyExecutor> shared_work_executor(
+    const std::shared_ptr<ThreadBudget>& budget) {
+  static std::mutex mu;
+  // 强引用注册表: 池随预算源进程驻留（"唯一 executor 池" 语义）; 析构路径
+  // join 全部 worker（executor.cpp RT-004 生命周期合同, 无 detach/UAF）。
+  static std::vector<std::pair<std::weak_ptr<ThreadBudget>,
+                               std::shared_ptr<CpuHeavyExecutor>>>
+      registry;
+  if (!budget || budget->budget() == 0) return nullptr;  // 无预算上下文 → 串行降级
+  std::lock_guard<std::mutex> lock(mu);
+  for (auto it = registry.begin(); it != registry.end();) {
+    // 防御性回收: 若池实现不再持有预算强引用, 预算消亡后池一并回收。
+    if (it->first.expired()) {
+      it = registry.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  for (const auto& entry : registry) {
+    if (entry.first.lock() == budget) return entry.second;  // 同一预算源 → 同一池
+  }
+  auto created = create_cpu_heavy_executor(budget);
+  if (!created.ok()) return nullptr;
+  registry.emplace_back(budget, std::move(created.value()));
+  return registry.back().second;
+}
+
+}  // namespace astrocs::core::rt
 
 namespace astrocs::core {
 
@@ -3567,8 +3616,10 @@ Result<void> p3_op_wcs(const Json& doc, Json* man) {
 }
 
 // ── op: resample (ALG-P3-003 唯一真实入口 = order 选择 + 反向映射采样 +
-//    DATA-P3-UNC-001 §30.4 不确定度传播; 重计算面, lease cap 权威 worker 池) ─
-Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap) {
+//    DATA-P3-UNC-001 §30.4 不确定度传播; 重计算面, 行带 work unit 经 Runtime
+//    唯一 executor 执行 — RT-001) ─
+Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
+                            RunContext* ctx) {
   P3nGeom g;
   std::string err;
   if (!p3n_geom(doc, &g, &err))
@@ -3722,23 +3773,71 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap) {
     p3_sampler_close(&w_samp);
   };
 
-  // 行带 worker 池 (worker 数=lease cap 权威; 禁 hardware_concurrency; cap<2 串行)
-  if (cap >= 2 && g.h >= 2) {
-    uint32_t nw = cap;
-    if (nw > (uint32_t)g.h) nw = (uint32_t)g.h;
+  // 行带执行 (RT-001): 行带 = work unit, 提交到 Runtime 唯一 executor
+  // (rt::shared_work_executor, 每任务经 ThreadBudget acquire(1,1) 恰租 1 槽,
+  // Σactive ≤ budget 与全部模块租约同一预算源; 禁 hardware_concurrency)。
+  // 池不可得（无预算上下文）或 cap<2 → 调用线程串行（极小任务允许串行, §10.4;
+  // 与旧行为 bitwise 一致）。节点整预算租约由 execute() 在提交前显式归还,
+  // 否则池任务抢不到槽会自等待（见 P3NodeModule::execute 注记）。
+  // fail-closed: 每个行带完成计数; wait_all 后已执行数 ≠ 提交数（取消丢弃/
+  // 注入缺陷）→ 节点显式失败, 不落任何伪产物。实测观测: work_units（提交数）、
+  // band_active_peak（行带并发峰值 = 实测 active threads）、band_executed。
+  const uint32_t nw =
+      (cap >= 2 && g.h >= 2)
+          ? static_cast<uint32_t>(std::min<uint32_t>(cap, static_cast<uint32_t>(g.h)))
+          : 1u;
+  std::atomic<uint32_t> band_active{0};
+  std::atomic<uint32_t> band_active_peak{0};
+  std::atomic<uint32_t> band_executed{0};
+  std::shared_ptr<CpuHeavyExecutor> band_pool;
+  if (ctx && nw >= 2) band_pool = rt::shared_work_executor(ctx->budget());
+  auto band_task = [&](int y0, int y1, RunContext&) {
+    // 故障注入 (ASTROCS_RT001_FAULT): resample_drop_band 模拟"行带任务被取消
+    // 丢弃"缺陷 → fail-closed 路径必须拒绝 (P2-002/P3-002 注入先例同构)。
+    const char* fault = std::getenv("ASTROCS_RT001_FAULT");
+    if (fault && std::strcmp(fault, "resample_drop_band") == 0 && y0 == 0) {
+      return;  // 首行带(y0==0)被吞: 不执行、不计数 (确定性: 无时序竞争)
+    }
+    const uint32_t cur = band_active.fetch_add(1) + 1;
+    uint32_t p = band_active_peak.load();
+    while (cur > p && !band_active_peak.compare_exchange_weak(p, cur)) {}
+    worker(y0, y1);
+    band_active.fetch_sub(1);
+    band_executed.fetch_add(1);
+  };
+  RunContext no_ctx;  // 池外调用面的空观测上下文（串行/防御路径专用）
+  if (nw >= 2) {
     const int rows = g.h / (int)nw;
-    std::vector<std::thread> pool;
     for (uint32_t k = 0; k < nw; ++k) {
       const int y0 = (int)k * rows;
       const int y1 = (k == nw - 1) ? g.h : y0 + rows;
-      pool.emplace_back(worker, y0, y1);
+      if (band_pool) {
+        band_pool->enqueue([&band_task, y0, y1](RunContext& c) {
+          band_task(y0, y1, c);
+        });
+      } else {
+        // 防御路径（池不可得且 cap>=2, 生产不可达）: 串行执行全部行带,
+        // 不自建线程池（禁止回退到调用点 spawn）—— 完整性与确定性优先。
+        band_task(y0, y1, no_ctx);
+      }
     }
-    for (auto& t : pool) t.join();
+    if (band_pool) band_pool->wait_all();
   } else {
-    worker(0, g.h);
+    band_task(0, g.h, no_ctx);
   }
   p3_uncertainty_close(&u_samp);
   p3_sampler_close(&samp);
+  if (band_executed.load() != nw) {
+    return Result<void>::fail(Error(ErrorDomain::CANCELLED,
+        "resample row-band work units dropped (executed " +
+            std::to_string(band_executed.load()) + "/" + std::to_string(nw) +
+            "): cancelled or fault-injected; fail-closed, no partial product"));
+  }
+  if (man) {
+    (*man)["work_units"] = nw;                      // 提交的 work unit 数（计划面）
+    (*man)["band_executed"] = band_executed.load(); // 实测完成数
+    (*man)["band_active_peak"] = band_active_peak.load();  // 实测并发峰值
+  }
   if (corrupt.load() != -1) {
     if (corrupt.load() == -2)
       return Result<void>::fail(Error(ErrorDomain::IO,
@@ -4025,8 +4124,16 @@ struct P3NodeModule : public IModule {
   Result<void> execute(RunContext& ctx) override {
     const uint32_t host_workers =
         ctx.budget() ? ctx.budget()->budget() : workers_;
+    // RT-001: 租约只用于 cap 授权观测（trace workers/granted）——本节点重计算
+    // 面行带已改为 Runtime 唯一 executor 的 work unit（每任务 acquire(1,1) 恰
+    // 租 1 槽）。节点若持有整预算租约再提交行带, 池任务将抢不到槽而自等待
+    // 死锁; 故租约在此显式归还后再进入 op 执行（ThreadLease::release 幂等,
+    // 析构兜底, 异常路径安全）。其余 P1/P2 session 节点保持整租约执行模型
+    // 不变（其内部池为租约驱动 per-call worker, ARCH-THREAD-001 §1 登记形态;
+    // work-unit 化待后续任务, 见 F-RT-001-05）。
     ThreadLease lease = ctx.acquire_lease(host_workers);
     const uint32_t cap = lease.acquired() ? lease.size() : 1u;
+    lease.release();
     ctx.set_provider("baseline");
     ctx.record_trace([&] {
       TraceEvent e;
@@ -4063,7 +4170,7 @@ struct P3NodeModule : public IModule {
         switch (spec_.op) {
           case P3NodeOp::Properties: r = p3_op_properties(doc, &man); break;
           case P3NodeOp::Wcs:        r = p3_op_wcs(doc, &man); break;
-          case P3NodeOp::Resample:   r = p3_op_resample(doc, &man, cap); break;
+          case P3NodeOp::Resample:   r = p3_op_resample(doc, &man, cap, &ctx); break;
           case P3NodeOp::Writer:     r = p3_op_writer(doc, &man); break;
           case P3NodeOp::Verify:     r = p3_op_verify(doc, &man); break;
         }

@@ -1197,3 +1197,23 @@ target_include_directories(p3002_uncertainty_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common/healpix)
 target_link_libraries(p3002_uncertainty_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase3_session astrocs_hips astrocs_aio astrocs_cpu astrocs_common)
 add_test(NAME p3002_uncertainty COMMAND p3002_uncertainty_test)
+
+# ----------------------------------------------------------------------------
+# 组: rt001_unique_executor (RT-001 对齐控制包: 唯一 Executor 接入 + work-unit
+# 租约 + P3 resample 行带经唯一 executor + fail-closed 丢弃注入 + 1v4 bitwise
+# parity)。executor 实现经 astrocs_module_adapters 编入 (RT-001 白名单接线,
+# 见 lib/core/src/module_adapters.cpp 注记; 根 CMakeLists 越界域整改归档
+# finding F-RT-001-04), 本目标不得再单独编 lib/core/src/executor.cpp (防重定义)。
+# 故障注入: ASTROCS_RT001_FAULT=resample_drop_band 必败 (rc=1, P2-002/P3-002
+# 先例同构: 注入等价缺陷断言, 正常实现必败)。
+# ----------------------------------------------------------------------------
+add_executable(rt001_unique_executor_test rt001_unique_executor_test.cpp)
+target_include_directories(rt001_unique_executor_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/core/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1_session/tests/p1sess
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common/healpix)
+target_link_libraries(rt001_unique_executor_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase3_session astrocs_hips astrocs_aio astrocs_cpu astrocs_common)
+add_test(NAME rt001_unique_executor COMMAND rt001_unique_executor_test)
