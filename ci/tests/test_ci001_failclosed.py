@@ -6,13 +6,14 @@ manifest/hash、真实数据完整性不可 waiver"；任务 CI-001 目标三句
 
 1. WIN-BUILD-RELEASE / WIN-TEST-UNIT / WIN-PACKAGE-CANDIDATE 不可 waiver
    （waivable=false：prerequisite 不满足 → FAIL(prerequisite)，不再 SKIPPED）；
-2. requires_monitor=true 的检查命令必须请求冻结门禁判定（--gate-required，
-   监控必须调用 evaluate），且 ci/run.py 对监控证据缺 frozen_gate 的检查
-   判 FAIL(monitor_gate_missing)（编排层 fail-closed）；
-   owner 裁决锚（CI-001 复核, 2026-09-11）：WIN-BUILD/TEST/PACKAGE 为构建/
-   打包/单测非重计算面，§10.5/§18.2 资源门冻结语义针对重计算区间——WIN-*
-   不加 --gate-required（waivable=false 收紧维持），Linux 重计算检查
-   （BUILD-GCC-RELEASE + DEEP-*）全额判定；
+2. 监控必须调用 evaluate 的 CI 落地面（F-CI-002-04/06 owner 裁决原则
+   一致化应用, 2026-09-11）：资源门冻结语义（§10.5/§18.2）针对重计算区间，
+   构建/打包/单测为非重计算面——CI 注册表当前零 --gate-required（WIN-* 另
+   requires_monitor=false，Linux BUILD-GCC-RELEASE+DEEP-* 仅采样留证）；
+   ci/run.py 合同收窄为"命令请求了判定就必须兑现判定证据"
+   （FAIL(monitor_gate_missing)），未请求判定的监控检查不强制 frozen_gate；
+   资源门真正应用面 = REAL-001 真实数据终验重计算与本地 heavy 重计算
+   （run_monitored evaluate_frozen_gate 能力不动）；
 3. Fatduck select-candidate：候选缺失（select_candidate.py exit 3）必须使
    select job 失败，不得 notice 后静默 success（G-CI：Windows 候选必存在）。
 
@@ -114,38 +115,36 @@ class TestWinChecksNotWaivable(unittest.TestCase):
 
 
 class TestMonitoredChecksRequestGate(unittest.TestCase):
-    """目标 2a：所有被监控包装的 requires_monitor=true 检查必须请求 --gate-required。"""
+    """目标 2a：注册表资源门口径（owner 裁决原则一致化应用, 2026-09-11）。
 
-    def test_gate_required_present_before_separator(self):
-        """Linux 重计算面（BUILD-GCC-RELEASE + DEEP-*）必须请求 --gate-required。
+    §10.5/§18.2 资源门冻结语义针对重计算区间；构建/打包/单测为非重计算面
+    （F-CI-002-04/06）：CI 注册表当前零 --gate-required——Linux 重计算检查
+    （BUILD-GCC-RELEASE + DEEP-*）仅采样留证（requires_monitor=true），
+    WIN-* 另按裁决 requires_monitor=false。资源门真正应用面 = REAL-001
+    真实数据终验重计算与本地 heavy 重计算（run_monitored evaluate 能力不动）。
+    """
 
-        owner 裁决锚（CI-001 复核, 2026-09-11）：WIN-BUILD/TEST/PACKAGE 为
-        构建/打包/单测非重计算面，§10.5/§18.2 资源门冻结语义针对重计算区间，
-        WIN-* 不加 --gate-required（waivable=false 维持）；Linux 重计算检查
-        全额判定。
-        """
+    def test_registry_gate_flags_removed_by_owner_ruling(self):
+        """裁决一致化：全部 requires_monitor 检查命令均不含 --gate-required。"""
         reg = _by_id(_load_registry())
         monitored = [c for c in reg.values() if c.get("requires_monitor")]
-        self.assertGreaterEqual(len(monitored), 8, "注册表 requires_monitor 检查数")
-        gated = [c for c in monitored if c["id"] not in _WIN_IDS]
-        for c in gated:
+        self.assertGreaterEqual(len(monitored), 6, "注册表 requires_monitor 检查数")
+        for c in monitored:
             cmd = c["command"]
-            # requires_monitor 语义 = 检查必须经统一监控包装器执行
-            # （ci/run.py probe_prerequisite）；无包装命令的 requires_monitor
-            # 登记属矛盾（CI-001 已修正 UT-QUALITY）。
             self.assertIn("ci/resource_monitor.py", cmd,
                           f"{c['id']} requires_monitor 必须携带监控包装器")
-            self.assertIn("--gate-required", cmd,
-                          f"{c['id']} 监控命令必须请求冻结门禁判定（--gate-required）")
-            self.assertLess(cmd.index("--gate-required"), cmd.index("--"),
-                            f"{c['id']} --gate-required 必须在监控参数区（`--` 前）")
+            head = cmd[:cmd.index("--")] if "--" in cmd else cmd
+            self.assertNotIn("--gate-required", head,
+                             f"{c['id']} 非重计算面不得请求资源门判定（owner 裁决一致化 2026-09-11）")
+            self.assertNotIn("--gate-workers", head,
+                             f"{c['id']} 不得经 --gate-workers 请求判定（owner 裁决一致化）")
 
     def test_win_checks_excluded_from_gate_by_owner_ruling(self):
-        """owner 裁决（2026-09-11）：WIN-* 为非重计算面，不加 --gate-required。
+        """owner 裁决（2026-09-11）：WIN-* 为非重计算面，requires_monitor=false。
 
-        依据：构建/打包/单测非重计算区间（§10.5/§18.2 资源门口径）；Windows
-        采样能力缺位（F-CI-001-01）按"移出资源门"路径处置，不补采样。
-        waivable=false 收紧维持不变。
+        依据：F-CI-002-04——包装器仅采样留证无 evaluate，requires_monitor=true
+        会触发 run.py monitor_gate_missing 硬失败（Windows 证据无 frozen_gate）；
+        R7（heavy→monitor）conform 同步 heavy=false。waivable=false 收紧维持。
         """
         reg = _by_id(_load_registry())
         for cid in _WIN_IDS:
@@ -154,8 +153,22 @@ class TestMonitoredChecksRequestGate(unittest.TestCase):
                              f"{cid} 非重计算面，不得请求资源门判定（owner 裁决）")
             self.assertFalse(c["waivable"],
                              f"{cid} 不可 waiver 收紧维持不变（owner 裁决）")
+            self.assertFalse(c["requires_monitor"],
+                             f"{cid} requires_monitor 必须 false（owner 裁决 F-CI-002-04）")
+            self.assertFalse(c["heavy"],
+                             f"{cid} heavy 必须 false（R7 conform：heavy→monitor）")
             self.assertIn("ci/resource_monitor.py", c["command"],
                           f"{cid} 仍保留监控包装（采样留证）")
+
+    def test_linux_heavy_checks_keep_monitor_sampling(self):
+        """BUILD-GCC-RELEASE + DEEP-* 保留监控包装与 requires_monitor=true（采样留证）。"""
+        reg = _by_id(_load_registry())
+        for cid in ("BUILD-GCC-RELEASE", "DEEP-CLANG-BUILD", "DEEP-SAN-ASAN",
+                    "DEEP-SAN-TSAN", "DEEP-COV-CPP", "DEEP-COV-PY"):
+            c = reg[cid]
+            self.assertTrue(c["requires_monitor"], f"{cid} 采样留证保留")
+            self.assertTrue(c["heavy"], f"{cid} heavy 登记不变")
+            self.assertIn("ci/resource_monitor.py", c["command"], cid)
 
     def test_ut_quality_registration_conformance(self):
         """UT-QUALITY 登记矛盾修正：命令无监控包装 → heavy/requires_monitor 均 false。"""
@@ -168,32 +181,48 @@ class TestMonitoredChecksRequestGate(unittest.TestCase):
 
 
 class TestRunnerGateEvidenceContract(unittest.TestCase):
-    """目标 2b：ci/run.py 对 requires_monitor 检查的监控证据合同。
+    """目标 2b：ci/run.py 监控证据合同（请求判定才校验 frozen_gate）。
 
-    监控证据（outputs 中含 cpu_samples 的 JSON）必须带 frozen_gate 判定
-    （evaluate 已被调用且结论合法）；缺失/非法/矛盾 → FAIL(monitor_gate_missing)。
-    正/负用例与监控器解耦（直接落证据 JSON），shim 集成路径单独覆盖。
+    F-CI-002-04/06 收窄（owner 裁决原则一致化应用, 2026-09-11）：合同从
+    "requires_monitor 必须判定"收窄为"命令请求了判定（--gate-required/
+    --gate-workers）就必须兑现判定证据"；未请求判定的监控检查（纯采样留证）
+    不强制 frozen_gate。注入形态：真 shim --gate-required 包装，真证据落
+    outputs 之外的 RAW 路径，被监控子命令写 outputs 登记的 MON_JSON（伪造面）
+    ——校验按 outputs 定位到伪造证据。
     """
 
-    @staticmethod
-    def _mon_check(command: list[str]) -> dict:
-        return H.check(id="CHK-MON", command=command, outputs=[MON_JSON],
+    RAW_MON_JSON = "run/ci/monitor/CHK-MON-raw.json"
+
+    @classmethod
+    def _mon_check(cls, command: list[str], outputs=None) -> dict:
+        # 命令含 RAW --output（_gate_cmd 形态）时两份都登记：RAW 供校验与
+        # dirty 豁免（run 产物），MON_JSON 是注入面；否则只登记 MON_JSON。
+        if outputs is None:
+            outputs = ([MON_JSON, cls.RAW_MON_JSON]
+                       if cls.RAW_MON_JSON in command else [MON_JSON])
+        return H.check(id="CHK-MON", command=command, outputs=outputs,
                        requires_monitor=True, heavy=True)
 
+    @classmethod
+    def _gate_cmd(cls, writer: str) -> list[str]:
+        """请求判定形态：真 shim --gate-required；真证据落 RAW（outputs 外）。"""
+        return (["python3", "ci/resource_monitor.py", "--timeout", "30",
+                 "--output", cls.RAW_MON_JSON, "--gate-required", "--",
+                 "python3", "-c", writer])
+
     def test_evidence_without_frozen_gate_fails_closed(self):
-        """故障注入：监控只采样不判定（证据无 frozen_gate）→ FAIL(monitor_gate_missing)。"""
+        """故障注入：请求判定但监控证据无 frozen_gate → FAIL(monitor_gate_missing)。"""
         writer = (
             "import json,pathlib;"
             f"pathlib.Path({MON_JSON!r}).parent.mkdir(parents=True, exist_ok=True);"
             f"pathlib.Path({MON_JSON!r}).write_text(json.dumps("
             "{'cpu_samples': [{'t': 0.1, 'cpu_percent': 90.0}], 'exit_code': 0}))"
         )
-        cmd = ["python3", "-c", writer]
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             repo = H.make_repo(root / "repo")
             out_root = root / "out"
-            proc = _runner_mon_check(repo, out_root, self._mon_check(cmd))
+            proc = _runner_mon_check(repo, out_root, self._mon_check(self._gate_cmd(writer)))
             self.assertEqual(proc.returncode, 1, proc.stderr)
             per = H.load_check_result(out_root, "CHK-MON")
             self.assertEqual(per["verdict"], "FAIL(monitor_gate_missing)")
@@ -211,12 +240,11 @@ class TestRunnerGateEvidenceContract(unittest.TestCase):
             "'frozen_gate': {'verdict': 'pass', 'violations': [], 'reason': None,"
             "'metrics': {}}}))"
         )
-        cmd = ["python3", "-c", writer]
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             repo = H.make_repo(root / "repo")
             out_root = root / "out"
-            proc = _runner_mon_check(repo, out_root, self._mon_check(cmd))
+            proc = _runner_mon_check(repo, out_root, self._mon_check(self._gate_cmd(writer)))
             self.assertEqual(proc.returncode, 0, proc.stderr)
             per = H.load_check_result(out_root, "CHK-MON")
             self.assertEqual(per["verdict"], "PASS")
@@ -232,12 +260,11 @@ class TestRunnerGateEvidenceContract(unittest.TestCase):
             "'violations': ['frozen_avg_utilization_low: x'], 'reason': None,"
             "'metrics': {}}}))"
         )
-        cmd = ["python3", "-c", writer]
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             repo = H.make_repo(root / "repo")
             out_root = root / "out"
-            proc = _runner_mon_check(repo, out_root, self._mon_check(cmd))
+            proc = _runner_mon_check(repo, out_root, self._mon_check(self._gate_cmd(writer)))
             self.assertEqual(proc.returncode, 1, proc.stderr)
             per = H.load_check_result(out_root, "CHK-MON")
             self.assertEqual(per["verdict"], "FAIL(monitor_gate_missing)")
@@ -251,30 +278,34 @@ class TestRunnerGateEvidenceContract(unittest.TestCase):
             "{'cpu_samples': [{'t': 0.1, 'cpu_percent': 90.0}], 'exit_code': 0,"
             "'frozen_gate': {'verdict': 'skip', 'violations': []}}))"
         )
-        cmd = ["python3", "-c", writer]
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             repo = H.make_repo(root / "repo")
             out_root = root / "out"
-            proc = _runner_mon_check(repo, out_root, self._mon_check(cmd))
+            proc = _runner_mon_check(repo, out_root, self._mon_check(self._gate_cmd(writer)))
             self.assertEqual(proc.returncode, 1, proc.stderr)
             per = H.load_check_result(out_root, "CHK-MON")
             self.assertEqual(per["verdict"], "FAIL(monitor_gate_missing)")
 
     def test_evidence_without_monitor_samples_fails_closed(self):
-        """监控证据存在但无 cpu_samples（非监控证据 JSON）→ FAIL(monitor_gate_missing)。"""
+        """outputs 定位面无监控证据 JSON（无 cpu_samples）→ FAIL(monitor_gate_missing)。
+
+        RAW 真证据不登记 outputs 且以 dirty_ignore_exact 显式豁免（run 产物
+        非工作区漂移）：校验定位面只剩伪造 JSON → 监控证据缺失 fail-closed。
+        """
         writer = (
             "import json,pathlib;"
             f"pathlib.Path({MON_JSON!r}).parent.mkdir(parents=True, exist_ok=True);"
             f"pathlib.Path({MON_JSON!r}).write_text(json.dumps("
             "{'summary': 'not a monitor evidence json'}))"
         )
-        cmd = ["python3", "-c", writer]
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             repo = H.make_repo(root / "repo")
             out_root = root / "out"
-            proc = _runner_mon_check(repo, out_root, self._mon_check(cmd))
+            check = self._mon_check(self._gate_cmd(writer), outputs=[MON_JSON])
+            check["dirty_ignore_exact"] = [self.RAW_MON_JSON]
+            proc = _runner_mon_check(repo, out_root, check)
             self.assertEqual(proc.returncode, 1, proc.stderr)
             per = H.load_check_result(out_root, "CHK-MON")
             self.assertEqual(per["verdict"], "FAIL(monitor_gate_missing)")
@@ -290,6 +321,25 @@ class TestRunnerGateEvidenceContract(unittest.TestCase):
             self.assertEqual(proc.returncode, 1, proc.stderr)
             per = H.load_check_result(out_root, "CHK-MON")
             self.assertEqual(per["verdict"], "FAIL(missing_output)")
+
+    def test_monitored_without_gate_request_skips_evidence_contract(self):
+        """F-CI-002-06 收窄正向：未请求判定的监控检查（纯采样留证）不强制 frozen_gate。
+
+        命令无 --gate-required/--gate-workers（裁决一致化后的 CI 注册表面），
+        监控证据无 frozen_gate → PASS（不触发 FAIL(monitor_gate_missing)）。
+        """
+        cmd = MONITOR_CMD_TEMPLATE + MONITOR_TAIL
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo = H.make_repo(root / "repo")
+            out_root = root / "out"
+            proc = _runner_mon_check(repo, out_root, self._mon_check(cmd))
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            per = H.load_check_result(out_root, "CHK-MON")
+            self.assertEqual(per["verdict"], "PASS")
+            evidence = H.load_json(repo / MON_JSON)
+            self.assertNotIn("frozen_gate", evidence,
+                             "未请求判定时监控器不产出 frozen_gate（能力保留不触发）")
 
     def test_shim_gate_required_end_to_end_not_applicable(self):
         """shim 集成：--gate-required 真跑短命令 → not_applicable（显式分类非豁免）→ PASS。"""

@@ -67,6 +67,14 @@ V_EMPTY_OUTPUT = "FAIL(empty_outputs)"
 # 监控证据必须含 frozen_gate 判定（evaluate 已被调用且结论合法）。证据缺失/
 # 字段缺失/verdict 非法/verdict=fail 与 exit 0 矛盾 → FAIL(monitor_gate_missing)
 # （并入硬失败值域，known_failures 可基线化）。
+# F-CI-002-04/06（owner 裁决原则一致化应用, 2026-09-11）：资源门冻结语义
+# （§10.5/§18.2）针对重计算区间——构建/打包/单测为非重计算面，CI 注册表
+# 当前零 --gate-required（WIN-* 另按裁决 requires_monitor=false）；本判定
+# 收窄为"命令请求了判定（监控参数区含 --gate-required/--gate-workers）才
+# 校验 frozen_gate"——请求判定就必须兑现判定证据（fail-closed 合同保留），
+# 未请求判定的监控检查（采样留证）不强制 frozen_gate。资源门真正应用面 =
+# REAL-001 真实数据终验重计算与本地 heavy 重计算（run_monitored
+# evaluate_frozen_gate 能力不动）。
 V_GATE_MISSING = "FAIL(monitor_gate_missing)"
 V_DIRTY = "FAIL(dirty)"
 V_PREREQ = "FAIL(prerequisite)"
@@ -98,8 +106,25 @@ EMPTY_OUTPUT_SILENCE_EXEMPT = frozenset({
 })
 
 
+def monitor_gate_requested(check: dict) -> bool:
+    """检查命令是否请求了资源门判定（监控参数区含 --gate-required/--gate-workers）。
+
+    F-CI-002-04/06（owner 裁决原则一致化应用, 2026-09-11）：CI 注册表当前
+    零旗标（构建/打包/单测非重计算面）；本合同面向未来注册的重计算检查
+    （REAL-001 等）——请求判定就必须兑现判定证据。旗标必须在 `--` 之前的
+    监控包装器参数区（`--` 后属被监控子命令，不算请求）。
+    """
+    cmd = check.get("command", [])
+    head = cmd[:cmd.index("--")] if "--" in cmd else cmd
+    return "--gate-required" in head or "--gate-workers" in head
+
+
 def monitor_gate_evidence_gap(check: dict, repo: Path) -> str | None:
-    """CI-001：requires_monitor 检查的监控证据必须含 frozen_gate（evaluate 已调用）。
+    """CI-001：请求了资源门判定的检查，监控证据必须含 frozen_gate（evaluate 已调用）。
+
+    F-CI-002-04/06 收窄（owner 裁决原则一致化应用, 2026-09-11）：仅当命令
+    请求了判定（monitor_gate_requested）才校验；未请求判定的监控检查
+    （requires_monitor 仅采样留证）不强制 frozen_gate。
 
     在登记 outputs 中定位监控证据 JSON（含 "cpu_samples" 键，即 run_monitored
     证据结构）并校验 frozen_gate.verdict ∈ {pass, not_applicable}：
@@ -856,11 +881,13 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
                 "exit 0 且 stdout/stderr 均为空：空 outputs 检查无任何内容级"
                 "证据（静默失败不可发现）；如架构上必须静默，请登记"
                 " waivable 或产生 stdout/stderr 留痕")
-        elif check.get("requires_monitor"):
-            # CI-001：监控必须调用 evaluate（fail-closed）。requires_monitor
-            # 检查的监控证据必须含 frozen_gate 合法判定，缺失/非法/矛盾一律
+        elif monitor_gate_requested(check):
+            # CI-001 + F-CI-002-04/06（owner 裁决原则一致化应用, 2026-09-11）：
+            # 仅"命令请求了资源门判定"的检查要求监控证据含 frozen_gate 合法
+            # 判定（请求判定就必须兑现判定证据），缺失/非法/矛盾一律
             # FAIL(monitor_gate_missing)；verdict=fail 路径已在 rc!=0 前置分支
-            # 记 V_FAIL（run_monitored 约定 gate fail → exit 10）。
+            # 记 V_FAIL（run_monitored 约定 gate fail → exit 10）。未请求判定
+            # 的监控检查（requires_monitor 仅采样留证）不强制 frozen_gate。
             gap = monitor_gate_evidence_gap(check, repo)
             if gap is not None:
                 result["verdict"] = V_GATE_MISSING
