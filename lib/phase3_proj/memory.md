@@ -110,3 +110,52 @@
   生产源 .cpp/.h 零改动；ci/、.github/、tools/、tests/ 零改动；
   批次 P（tests/backend、tests/cli）/批次 Q（lib/core/、lib/common
   io_adapter、cli/main.cpp）在途域只读不动；本任务零 git 操作。
+
+## P3-001（2026-09-10，控制包 ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev54，attempt 1）
+
+- 任务: 版本化 projection registry 与冻结投影实现。落位 `p3_projection.h`
+  （唯一权威签名头，namespace astrocs::phase3proj）+ `p3_projection.cpp`
+  （registry v1 冻结表 4 行 TAN/SIN/CAR/AIT + 函数指针 dispatch +
+  统一操作面 make/pix2world/world2pix/fits_keywords + registry_selfcheck）。
+- 冻结依据: 宪章 §7.3（registry 六要素/不散落 CLI switch）+ §18.1 裁决 1
+  （首批四投影冻结，新增须注册+独立 Oracle）；TAN 逐式沿用
+  lib/phase3_session/p3_wcs.cpp 冻结生产事实（G1/G2 零改动）；SIN/CAR/AIT
+  为 §18.1 新 claim，ALG 层唯一权威落位 docs/algorithms/PHASE3_PROJ_IMPL.md
+  §15（Paper II 公式逐式冻结；CAR/AIT θ₀=+90° 恒等旋转、CRVAL2 不进映射、
+  LONPOLE 通用机制不实现等口径均为显式冻结声明）；SCI 层零改动。
+- 共享核: zenithal 旋转核（TAN/SIN, θ₀=CRVAL2）与 TAN 生产式逐运算同构；
+  denom>0 背面判定=sinθ>0 数学等价。TAN 冻结逐式路径保证 bitwise 对拍。
+- 守卫冻结: make 校验序与 TAN 冻结序一致 + id 注册校验（越界 UNSUPPORTED）
+  + 四投影统一 |CRVAL dec|≤85° 保守收窄 + 四角投影域守卫；域界 TAN r≥π/2 /
+  SIN ρ>1 / AIT D²≤0 → HEMISPHERE，CAR |θ|>90°/|δ|>90° → PARAM；
+  TAN/SIN world2pix |dec|>85° 沿用冻结语义。
+- 测试: tests/unit/p3_projection_test.cpp（9 组：registry 完整性/独立往返
+  Oracle 3D 向量第一性 <1e-6px/TAN 生产 bitwise 零漂移对拍/正向独立解析解/
+  G1 精确断言/负面清单全族/CTYPE 面/确定性/1N worker 1v2v4v8 bitwise）；
+  tests/backend/test_p3_projection_oracle.py（numpy 完全独立实现对拍 +
+  跨进程 sha256 确定性 + CTYPE）；tests/unit/CMakeLists.txt 注册
+  p3_projection_units/p3_projection_fault（直编生产源，先例同构）。
+- 故障注入: ASTROCS_P3PROJ_FAULT=tan|sin|car|ait|registry 五模式注入等价
+  缺陷必败实测（FAULT-EFFECT-CONFIRMED ×5）；测试级注入、生产源零 getenv。
+- 边界: 根 CMakeLists.txt/lib/phase3_session/docs/contracts 零改动
+  （out_of_scope_entries=0）；生产构建挂载（dll/adapter/会话消费）归
+  P3-PROJ-IMPL/P3-002；module.yaml 维持 CONTRACT_READY/entrypoint=MISSING
+  不冒认；WCSLIB 验收级 oracle 升级归 P3-PROJ-TEST。
+- 发现的域外事实（不改，如实登记）: p3_wcs.cpp:36 proj 字符串字面量
+  `"TAN"` 经 std::string 构造仅用于 (void)proj 抑制告警（§6.5 已冻结
+  陈述，无新偏差）；无新 finding。
+- 续作验证补记（2026-09-11，控制包 rev74 派发 attempt 1 续作，BASE=b8d9a69c
+  =origin/main 0 ahead/0 behind）：实现/测试/文档面继承上次中断遗留原样
+  续作（零覆盖零回滚），前台复跑全绿——p3_projection_units+
+  p3_projection_fault ctest 2/2 rc=0；oracle pytest 3/3 rc=0（12 案例×
+  全网格 numpy 第一性对拍+跨进程 sha256 确定性）；故障注入 5 模式
+  （tan/sin/car/ait/registry）FAULT-EFFECT-CONFIRMED ×5 实测必败+无注入 rc=0 PASS；受影响回归 p3_wcs/
+  p3_interp/p3_coverage/p3_output/p3_assembly ctest 5/5+test_p1002_gaps
+  pytest 14/14+test_p3001_science_freeze 4/4 rc=0；独立 registry probe
+  （ZEA→nullptr/越界 id→UNSUPPORTED=2/selfcheck=0/四投影采样点往返）+
+  全网格最坏误差 CAR 0/SIN 5.68e-14 deg/TAN 5.68e-14 deg、往返最坏
+  2.1e-10 px（冻结门 1e-6 px 余量 3.5 量级）；doccheck DOC_INDEX_PASS
+  rc=0；符号面 13 符号 grep 全命中；write_scope 零越界、预存 dirty
+  17 文件零覆盖；命令日志/timeout/起止/rc 存 run/p3proj_p3001/（本
+  目录 run/* gitignore 不入库）；commit 由前台精确暂存执行（SubAgent
+  不 git add/commit/push）。

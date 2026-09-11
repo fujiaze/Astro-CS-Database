@@ -1127,3 +1127,32 @@ target_include_directories(aio_abi_selfcheck PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../modules/services/io/include)
 target_link_libraries(aio_abi_selfcheck PRIVATE astrocs_common)
 add_test(NAME aio_abi_selfcheck COMMAND aio_abi_selfcheck)
+
+# ----------------------------------------------------------------------------
+# P3-001 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) — 版本化 projection registry 与
+# 冻结四投影 (TAN/SIN/CAR/AIT) 验证面
+# 合同锚: ALG-P3-PROJ-IMPL-001 §15 (docs/algorithms/PHASE3_PROJ_IMPL.md) +
+# SCI-P3-001 (FROZEN, TAN 容差/守卫零改动) + 宪章 §7.3/§18.1 (首批四投影
+# registry 冻结; 新增投影须经 registry 注册并附独立往返 Oracle)。
+# 被测面: lib/phase3_proj/p3_projection.cpp (registry v1 冻结表 + 四投影
+# 统一操作面, registry 函数指针 dispatch, fail-closed) 直编测试目标 —
+# 生产构建零改动 (根 CMakeLists 不动, astrocs_p3_projection.dll 挂载归
+# P3-PROJ-IMPL/P3-002, 白名单外越界零项)。
+# TAN 冻结零漂移: lib/phase3_session/p3_wcs.cpp (冻结生产事实) 同 TU 对拍
+# (G1 CD 构造/CRPIX/正反映射逐点 bitwise)。
+# 独立 Oracle: 3D 单位向量第一性原理 (切基正交投影/透视除法/AIT Paper II
+# 反演式), 不调生产实现; 往返容差 <1e-6 px (SCI §7 冻结)。
+# 组: p3_projection_units / p3_projection_fault (故障注入必败:
+# ASTROCS_P3PROJ_FAULT=tan|sin|car|ait|registry, P2-002 先例同构)。
+# ----------------------------------------------------------------------------
+add_executable(p3_projection_test
+  p3_projection_test.cpp
+  ../../lib/phase3_proj/p3_projection.cpp
+  ../../lib/phase3_session/p3_wcs.cpp)
+target_include_directories(p3_projection_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_proj
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_session)
+add_test(NAME p3_projection_units COMMAND p3_projection_test)
+add_test(NAME p3_projection_fault COMMAND p3_projection_test)
+set_tests_properties(p3_projection_fault PROPERTIES
+  ENVIRONMENT "ASTROCS_P3PROJ_FAULT=tan")
