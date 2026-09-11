@@ -58,6 +58,22 @@ if(NOT TARGET ZLIB::ZLIB)
 endif()
 target_link_libraries(astrocs_catalog_gaia PRIVATE ZLIB::ZLIB)
 
+# MOD-001 依赖闭包收口: gaia_client.c 使用 GNU libm 扩展 sincos (RTLD_NOW 下
+# 未定义符号), 本 SHARED 的 DT_NEEDED 曾缺 libm → 独立 loader 消费方进程
+# (registry host / abi003 探针, 不链 libm) dlopen 必败 OS_LOAD, 仅 astrocs 主
+# exe (链 m) 侥幸可载 — 违反 §8.4 "独立加载" 依赖闭包完备要求。显式链 m 使
+# 模块 DLL 自包含 (libm.so.6 入 DT_NEEDED), 由 tests/abi/mod001_install_load_check.py
+# 安装树逐 unit 加载验证闭环。
+# MOD-001 依赖闭包收口: gaia_client.c 使用 GNU libm 扩展 sincos (RTLD_NOW 下
+# 未定义符号), 本 SHARED 的 DT_NEEDED 曾缺 libm → 独立 loader 消费方进程
+# (registry host / abi003 探针, 不链 libm) dlopen 必败 OS_LOAD, 仅 astrocs 主
+# exe (链 m) 侥幸可载 — 违反 §8.4 "独立加载" 依赖闭包完备要求。显式链 m 使
+# 模块 DLL 自包含 (libm.so.6 入 DT_NEEDED), 由 tests/abi/mod001_install_load_check.py
+# 安装树逐 unit 加载验证闭环。
+if(UNIX AND NOT APPLE)
+    target_link_libraries(astrocs_catalog_gaia PRIVATE m)
+endif()
+
 # OpenMP: legacy 生产实现使用 (4 个文件级并行循环; 迁移不改并行结构)。
 # 无 OpenMP 时退化为串行 (gaia_client.c 对 _OPENMP 有条件编译)。
 find_package(OpenMP QUIET)

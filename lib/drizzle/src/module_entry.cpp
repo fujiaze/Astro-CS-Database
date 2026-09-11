@@ -500,14 +500,21 @@ typedef struct {
 } drz_inst;
 
 /* ═══════════════════ 4. describe / validate_config ═══════════════════ */
+/* MOD-001: describe 空 module_id 合同见 drz_describe 内注释 (loader empty 调用)。 */
 
 static acs_status drz_describe(const acs_module_api_v1* self,
                                acs_str_v1 module_id,
                                acs_module_descriptor_v1* out_desc) {
     (void)self;
     if (!out_desc) return ACS_ERR_PARAM;
-    if (module_id.size != strlen(kModuleId) ||
-        memcmp(module_id.data, kModuleId, strlen(kModuleId)) != 0)
+    /* MOD-001 加载验证对齐: ABI-003 安全 loader 以 empty module_id 调 describe
+     * (secure_loader.c §5 既成合同; BLD-003 noop 先例同语义), 空=不指名, 直接
+     * 返回静态描述; 非空仍严格校验 (错 ID → MISMATCH, 既有 adapter 测试锚不变)。
+     * 空 ID 拒绝曾使科学 DLL 在安装树内被自家 loader 必拒 (DESCRIPTOR_MISMATCH),
+     * 本行为修复经 tests/abi/mod001_install_load_check.py 安装树逐 unit 加载闭环。 */
+    if (module_id.size != 0 &&
+        (module_id.size != strlen(kModuleId) ||
+         memcmp(module_id.data, kModuleId, strlen(kModuleId)) != 0))
         return ACS_ERR_ABI_MISMATCH;
     memset(out_desc, 0, sizeof(*out_desc));
     out_desc->head.struct_size = (uint32_t)sizeof(acs_module_descriptor_v1);

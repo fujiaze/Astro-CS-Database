@@ -3,12 +3,18 @@
   "product_version": "@ASTROCS_BASE_VERSION@",
   "source_commit": "@ASTROCS_GIT_COMMIT@",
   "platform": "windows-amd64",
-  "note": "Windows 安装树产品 manifest — cmake/install_layout.cmake MSVC 分支于 configure 期生成(03 §4 Windows 正式形态: astrocs.exe / astrocs_runtime.dll / astrocs_io.dll / modules/astrocs_noop.dll / providers/astrocs_cpu_baseline.dll)。Linux 技术预览骨架仍由 packaging/astrocs.product.json 承担, 本文件只服务 WIN-* 安装树。sha256 由 ABI-004/打包填充(与 Linux 骨架同约定); status 枚举遵 astrocs-product.schema.json(SKELETON/IMPLEMENTED)。",
+  "note": "Windows 安装树产品 manifest — cmake/install_layout.cmake MSVC 分支于 configure 期生成(03 §4 Windows 正式形态: astrocs.exe / astrocs_runtime.dll / astrocs_io.dll / modules/astrocs_noop.dll / modules/astrocs_catalog_gaia.dll / modules/astrocs_p1_{drizzle,calibration,cosmetic,hips_writer,noise}.dll / providers/astrocs_cpu_baseline.dll)。MOD-001 科学DLL安装加载验证与产品清单: units 5→11 与 Linux 骨架 (packaging/astrocs.product.json) 及 install-tree contract 同步; MOD-NOOP module_id 同步修正为 astrocs.conformance.noop (与 modules/conformance/noop/module.yaml 及安全 loader descriptor 校验一致)。sha256 由 ABI-004/打包填充(两平台同约定); status 枚举遵 astrocs-product.schema.json(SKELETON/IMPLEMENTED)。Windows 侧构建/加载验证由 WIN-* 在 Fatduck 执行。",
   "units": [
     {"unit_id": "PLATFORM-CLI", "kind": "exe", "rel_path": "astrocs.exe", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED"},
     {"unit_id": "PLATFORM-RUNTIME", "kind": "runtime", "rel_path": "astrocs_runtime.dll", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED"},
     {"unit_id": "PLATFORM-IO", "kind": "io", "rel_path": "astrocs_io.dll", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED"},
-    {"unit_id": "MOD-NOOP", "kind": "module", "rel_path": "modules/astrocs_noop.dll", "abi_version": 1, "module_id": "astrocs.noop", "sha256": null, "status": "IMPLEMENTED"},
+    {"unit_id": "MOD-NOOP", "kind": "module", "rel_path": "modules/astrocs_noop.dll", "abi_version": 1, "module_id": "astrocs.conformance.noop", "sha256": null, "status": "IMPLEMENTED"},
+    {"unit_id": "MOD-CAT-GAIA", "kind": "module", "rel_path": "modules/astrocs_catalog_gaia.dll", "abi_version": 1, "module_id": "astrocs.catalog.gaia", "sha256": null, "status": "IMPLEMENTED"},
+    {"unit_id": "MOD-P1-DRIZZLE", "kind": "module", "rel_path": "modules/astrocs_p1_drizzle.dll", "abi_version": 1, "module_id": "astrocs.p1.drizzle", "sha256": null, "status": "IMPLEMENTED"},
+    {"unit_id": "MOD-P1-CAL", "kind": "module", "rel_path": "modules/astrocs_p1_calibration.dll", "abi_version": 1, "module_id": "astrocs.p1.calibration", "sha256": null, "status": "IMPLEMENTED"},
+    {"unit_id": "MOD-P1-COS", "kind": "module", "rel_path": "modules/astrocs_p1_cosmetic.dll", "abi_version": 1, "module_id": "astrocs.p1.cosmetic", "sha256": null, "status": "IMPLEMENTED"},
+    {"unit_id": "MOD-P1-HIPSW", "kind": "module", "rel_path": "modules/astrocs_p1_hips_writer.dll", "abi_version": 1, "module_id": "astrocs.p1.hips_writer", "sha256": null, "status": "IMPLEMENTED"},
+    {"unit_id": "MOD-P1-NOISE", "kind": "module", "rel_path": "modules/astrocs_p1_noise.dll", "abi_version": 1, "module_id": "astrocs.p1.noise", "sha256": null, "status": "IMPLEMENTED"},
     {"unit_id": "PROV-CPU-BASELINE", "kind": "provider", "rel_path": "providers/astrocs_cpu_baseline.dll", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED"}
   ]
 }

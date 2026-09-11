@@ -15,6 +15,9 @@
 #     libastrocs_runtime.so        # runtime 平台 DLL (loader/registry/... 宿主)
 #     libastrocs_io.so             # io 平台 DLL (FITS/HiPS/流式 I/O 宿主)
 #     modules/astrocs_noop.so      # conformance module (ABI-005 填充语义)
+#     modules/astrocs_catalog_gaia.so      # GAIA XPSD catalog service 模块
+#     modules/astrocs_p1_{drizzle,calibration,cosmetic,hips_writer,noise}.so
+#                                  # 科学模块 DLL (MOD-001 安装面, §8.4)
 #     providers/astrocs_cpu_baseline.so   # baseline backend DSO 技术预览
 #     schemas/                     # 安装/产品/manifest schema 只读副本
 #     licenses/                    # 许可证收集 (第三方 + 本项目声明)
@@ -22,7 +25,9 @@
 #
 # Windows 正式形态 (03 §4, 由本文件同步 install 规则; WIN-* 验证):
 #   astrocs.exe, astrocs_runtime.dll, astrocs_io.dll (根);
-#   modules/astrocs_noop.dll; providers/astrocs_cpu_baseline.dll;
+#   modules/astrocs_noop.dll; modules/astrocs_catalog_gaia.dll;
+#   modules/astrocs_p1_{drizzle,calibration,cosmetic,hips_writer,noise}.dll;
+#   providers/astrocs_cpu_baseline.dll;
 #   pipelines/, schemas/, licenses/, README.txt。
 #
 # 白名单原则: 本文件是唯一 install() 集合; 其余文件绝不 install。
@@ -80,6 +85,26 @@ if(TARGET astrocs_cpu_baseline)
     LIBRARY DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT astrocs_runtime
     RUNTIME DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT astrocs_runtime)
 endif()
+
+# ── 科学模块 DLL (MOD-001: 宪章 §8.4 科学模块独立 DLL/SO 安装面) ──
+# 契约: astrocs_catalog_gaia (CAT-GAIA-IMPL) 与 astrocs_p1_{drizzle,calibration,
+# cosmetic,hips_writer,noise} (P1-*迁移面) 均为 SHARED target (各子目录
+# CMakeLists 声明), 唯一导出 astrocs_module_query_v1 (ABI-006), 历史上仅构建
+# 不安装、不入产品清单; 自 MOD-001 起随安装树发布到 modules/ 并登记进
+# packaging/astrocs.product.json + install-tree.contract.json (三方面同步,
+# 机器校验 packaging/verify_install_tree.py + tests/abi/mod001_install_load_check.py
+# 经安全 loader 逐 unit 加载验证, §18.4 只加载签名清单官方模块)。
+# RPATH: 全部 $ORIGIN (astrocs_catalog_gaia 不在根 CMakeLists 的 legacy RPATH
+# foreach, 故在本文件统一 apply, install 语义与既有模块一致)。
+foreach(tgt astrocs_catalog_gaia astrocs_p1_drizzle astrocs_p1_calibration
+            astrocs_p1_cosmetic astrocs_p1_hips_writer astrocs_p1_noise)
+  if(TARGET ${tgt})
+    astrocs_apply_install_rpath(${tgt})
+    install(TARGETS ${tgt}
+      LIBRARY DESTINATION ${ASTROCS_INSTALL_MODULE_SUBDIR} COMPONENT astrocs_runtime
+      RUNTIME DESTINATION ${ASTROCS_INSTALL_MODULE_SUBDIR} COMPONENT astrocs_runtime)
+  endif()
+endforeach()
 
 # ── schemas / licenses / product manifest (只读白名单副本) ──
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/packaging/schemas/
