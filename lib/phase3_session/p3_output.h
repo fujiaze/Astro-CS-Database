@@ -21,6 +21,11 @@ struct P3Provenance {
     const char* run_id;             // 本次 run
     const char* order_sel_used;     // 阶串
     const char* sampler_used;       // "nearest"|"bilinear"
+    /* DATA-P3-UNC-001 §30.4 (DATA-UNC-001 2026-09-09 冻结, 宪章 §7.1/§7.3 上位):
+     * uncertainty 子产品来源 ("variance"|"ivar"|NULL=unavailable) 与覆盖不一致
+     * 像素计数 (leaf signal 有限而 u 缺失 → 输出 NaN + provenance 计数不中断)。 */
+    const char* uncertainty_source;
+    long uncertainty_missing_pixels;
 };
 
 struct P3OutputResult {
@@ -58,6 +63,32 @@ P3OutputStatus p3_output_verify(const char* output_path, const P3WcsDescriptor* 
                                 const float* signal, const float* coverage,
                                 int width, int height,
                                 P3OutputResult* result);
+
+/* ── 不确定度扩展面 (DATA-P3-UNC-001 §30.4; DATA_SEMANTICS §27.2 目标态行) ──
+ * variance/ivar 同时非 NULL → 原子发布序内追加 EXTNAME="VARIANCE"/"IVAR"
+ * 扩展 HDU (BITPIX 同主 HDU; BUNIT=<signal BUNIT>^2 与 1/(<BUNIT>^2);
+ * DATASUM 逐 HDU 同 COVERAGE 模式), 单边 NULL → P3_OUT_PARAM (成对要求);
+ * 双 NULL → 与旧签名完全同面 (unavailable: 无占位 HDU)。
+ * verify_ex: 平面非 NULL → 校验 HDU 存在+尺寸+逐像素回环(NaN==NaN 同态);
+ * 平面 NULL → 校验无 VARIANCE HDU (双向防: available 静默缺 HDU /
+ * unavailable 静默占位)。 */
+P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* coverage,
+                                         const float* variance, const float* ivar,
+                                         int width, int height,
+                                         const P3WcsDescriptor* wcs,
+                                         const char* bunit,
+                                         const char* output_path,
+                                         const P3Provenance* prov,
+                                         int bitpix,
+                                         int cancelled_at_row,
+                                         P3OutputResult* result);
+
+P3OutputStatus p3_output_verify_ex(const char* output_path,
+                                   const P3WcsDescriptor* wcs,
+                                   const float* signal, const float* coverage,
+                                   const float* variance, const float* ivar,
+                                   int width, int height,
+                                   P3OutputResult* result);
 
 }  // namespace astrocs::phase3
 

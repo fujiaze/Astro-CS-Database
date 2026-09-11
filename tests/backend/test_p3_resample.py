@@ -83,10 +83,16 @@ class TestP3Resample(unittest.TestCase):
         self.assertEqual(o1, o2)
 
     def test_02_unsupported_modes_explicit_reject(self):
-        """§4: variance/ivar/weight/flux-per-pixel 输入模式 → UNSUPPORTED(2)。"""
-        for m in ("variance", "ivar", "weight", "flux-per-pixel"):
+        """§4 + DATA-P3-UNC-001 §30.4-4: weight/flux-per-pixel → UNSUPPORTED(2);
+        variance/ivar 自 2026-09-09 supersession 起从拒绝项移除（转 uncertainty
+        子产品消费面, 输出 VARIANCE/IVAR HDU）→ 归未知输入模式 PARAM(1)。"""
+        for m in ("weight", "flux-per-pixel"):
             rc, out = self._run("mode", m)
             self.assertEqual((rc, out), (1, "FAIL 2"), f"{m} 必须显式拒")
+        for m in ("variance", "ivar"):
+            rc, out = self._run("mode", m)
+            self.assertEqual((rc, out), (1, "FAIL 1"),
+                             f"{m} 已转 uncertainty 子产品消费 (§30.4-4)")
         rc, out = self._run("mode", "surface_brightness")
         self.assertEqual((rc, out), (0, "OK"))
         rc, out = self._run("mode", "bogus")
