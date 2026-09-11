@@ -118,8 +118,26 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
                                       int bitpix,
                                       int cancelled_at_row,
                                       P3OutputResult* result) {
+    // 旧签名 = unavailable 面 (variance/ivar 双 NULL)
+    return p3_output_write_atomic_ex(signal, coverage, nullptr, nullptr, width,
+                                     height, wcs, bunit, output_path, prov,
+                                     bitpix, cancelled_at_row, result);
+}
+
+P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* coverage,
+                                         const float* variance, const float* ivar,
+                                         int width, int height,
+                                         const P3WcsDescriptor* wcs,
+                                         const char* bunit,
+                                         const char* output_path,
+                                         const P3Provenance* prov,
+                                         int bitpix,
+                                         int cancelled_at_row,
+                                         P3OutputResult* result) {
     if (!signal || !coverage || !wcs || !output_path || width < 1 || height < 1)
         return P3_OUT_PARAM;
+    // uncertainty 平面成对要求 (单边 NULL = 合同违规, 禁半可用发布)
+    if ((variance == nullptr) != (ivar == nullptr)) return P3_OUT_PARAM;
     if (result) std::memset(result, 0, sizeof(*result));
     // RT-008: cfitsio 全局表非线程安全 → 进程级串行化（覆盖内部 verify 重开）
     std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
@@ -218,6 +236,35 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
         fits_write_key(f, TINT, (char*)"DATASUM", &dv, nullptr, &status);
     }
 
+    // 追加 uncertainty 扩展 HDU (DATA-P3-UNC-001 §30.4/§27.2 目标态行):
+    // VARIANCE (BUNIT=<BUNIT>^2) + IVAR (BUNIT=1/(<BUNIT>^2)), DATASUM 逐 HDU;
+    // 与主/扩展 HDU 同一原子发布序 (取消不落盘语义由上方 cancelled 分支保持)。
+    if (variance && ivar) {
+        const char* unit = (bunit && *bunit) ? bunit : "ADU";
+        std::string var_bunit = std::string(unit) + "^2";
+        std::string ivar_bunit = std::string("1/(") + unit + "^2)";
+        for (int h = 0; h < 2; ++h) {
+            if (fits_create_img(f, bitpix, 2, cnaxes, &status)) {
+                ::unlink(tmp.c_str());
+                g_last_err = std::string(h == 0 ? "variance" : "ivar") +
+                             " create_img: " + std::to_string(status);
+                return P3_OUT_IO;
+            }
+            fits_write_key(f, TSTRING, (char*)"EXTNAME",
+                           (void*)(h == 0 ? "VARIANCE" : "IVAR"), nullptr, &status);
+            fits_write_key(f, TSTRING, (char*)"BUNIT",
+                           (void*)(h == 0 ? var_bunit.c_str() : ivar_bunit.c_str()),
+                           nullptr, &status);
+            fits_write_pix(f, TFLOAT, fpix, nelem,
+                           (void*)(h == 0 ? variance : ivar), &status);
+            const float* plane = (h == 0) ? variance : ivar;
+            const uint32_t dsum_u =
+                fdatasum(plane, (size_t)nelem * sizeof(float));
+            uint32_t dv = dsum_u;
+            fits_write_key(f, TINT, (char*)"DATASUM", &dv, nullptr, &status);
+        }
+    }
+
     // fsync + rename 原子替换
     // R10-C: 顺序必须是 cfitsio 缓冲 flush → fsync(fd) → 原子 rename。
     // 原实现在 fits_close_file 之前对 fd 做 fsync —— cfitsio 的 IO 缓冲
@@ -287,10 +334,10 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
         for (long i = 0; i < nelem; ++i) if (coverage[i] > 0.5f) ++cov;
         result->covered_px = cov;
         result->coverage_ok = 1;
-        // 独立重开读回验证 (dimensions/WCS/BUNIT/checksum/mask)
+        // 独立重开读回验证 (dimensions/WCS/BUNIT/checksum/mask/uncertainty HDU 面)
         P3OutputResult v{};
-        P3OutputStatus vst = p3_output_verify(output_path, wcs, signal, coverage,
-                                              width, height, &v);
+        P3OutputStatus vst = p3_output_verify_ex(output_path, wcs, signal, coverage,
+                                                 variance, ivar, width, height, &v);
         result->reopen_ok = (vst == P3_OUT_OK) ? v.reopen_ok : 0;
     }
     return P3_OUT_OK;
@@ -299,13 +346,24 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
 P3OutputStatus p3_output_verify(const char* output_path, const P3WcsDescriptor* wcs,
                                 const float* signal, const float* coverage,
                                 int width, int height, P3OutputResult* result) {
+    // 旧签名 = unavailable 面 (variance/ivar 双 NULL)
+    return p3_output_verify_ex(output_path, wcs, signal, coverage, nullptr, nullptr,
+                               width, height, result);
+}
+
+P3OutputStatus p3_output_verify_ex(const char* output_path,
+                                   const P3WcsDescriptor* wcs,
+                                   const float* signal, const float* coverage,
+                                   const float* variance, const float* ivar,
+                                   int width, int height, P3OutputResult* result) {
     if (!output_path || !result || width < 1 || height < 1) return P3_OUT_PARAM;
+    if ((variance == nullptr) != (ivar == nullptr)) return P3_OUT_PARAM;
     // wcs 由 p3_output_write_atomic 写盘时已写入 header; verify 聚焦像素/尺寸/checksum
     // (WCS 一致性由写路径单点保证, 见 p3_output_write_atomic)
     (void)wcs;
     std::memset(result, 0, sizeof(*result));
     long nelem = (long)width * height;
-    int ok = 1, covok = 1;
+    int ok = 1, covok = 1, uncok = 1;
     int hdus = 1;
 
     fitsfile* f = nullptr; int status = 0;
@@ -346,9 +404,50 @@ P3OutputStatus p3_output_verify(const char* output_path, const P3WcsDescriptor* 
                 if ((cov[(size_t)i] > 0.5f) != (coverage[i] > 0.5f)) { covok = 0; break; }
         } else covok = 0;
     }
+
+    // uncertainty HDU 面 (双向防: available 静默缺 HDU / unavailable 静默占位)
+    if (variance && ivar) {
+        const float* unc[2] = {variance, ivar};
+        const char* want[2] = {"VARIANCE", "IVAR"};
+        for (int h = 0; h < 2 && uncok; ++h) {
+            if (hdus < 3 + h || fits_movabs_hdu(f, 3 + h, nullptr, &status) != 0) {
+                uncok = 0; break;          // 静默缺 HDU
+            }
+            char card[81] = {0};
+            if (fits_read_keyword(f, "EXTNAME", card, nullptr, &status) != 0 ||
+                !std::strstr(card, want[h])) {
+                uncok = 0; break;
+            }
+            status = 0;
+            int naxis = 0, imgtype = 0;
+            long nax[2] = {0, 0};
+            fits_get_img_param(f, 2, &imgtype, &naxis, nax, &status);
+            if ((long)nax[0] != width || (long)nax[1] != height) { uncok = 0; break; }
+            std::vector<float> plane((size_t)nelem);
+            long fp[2] = {1, 1};
+            if (fits_read_pix(f, TFLOAT, fp, (LONGLONG)nelem, NULL, plane.data(),
+                              NULL, &status)) {
+                uncok = 0; break;
+            }
+            for (long i = 0; i < nelem; ++i) {
+                const bool sn = (unc[h][i] != unc[h][i]);
+                const bool rd = (plane[(size_t)i] != plane[(size_t)i]);
+                if (plane[(size_t)i] != unc[h][i] && !(sn && rd)) { uncok = 0; break; }
+            }
+        }
+    } else if (hdus >= 3) {
+        // unavailable → 不允许任何占位 uncertainty HDU
+        if (fits_movabs_hdu(f, 3, nullptr, &status) == 0) {
+            char card[81] = {0};
+            if (fits_read_keyword(f, "EXTNAME", card, nullptr, &status) == 0 &&
+                (std::strstr(card, "VARIANCE") || std::strstr(card, "IVAR")))
+                uncok = 0;
+            status = 0;
+        }
+    }
     fits_close_file(f, &status);
 
-    result->reopen_ok = (ok == 1 && covok == 1);
+    result->reopen_ok = (ok == 1 && covok == 1 && uncok == 1);
     result->coverage_ok = covok;
     long covn = 0;
     for (long i = 0; i < nelem; ++i) if (coverage[i] > 0.5f) ++covn;
