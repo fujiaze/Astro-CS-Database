@@ -57,6 +57,15 @@ static const char* const kP1wcsFaultNames[] = {
     "o1_f2_apbp_roundtrip",   // oracle: F2 AP/BP 逆向 roundtrip
     "o1_gnomonic_cross",      // oracle: gnomonic 闭式/向量双路径交叉 (WCS-001)
     "o1_apbp_reverse_oracle", // oracle: oracle-6 AP/BP 逆向独立实现断言 (WCS-001)
+    // apbp 组 (WCS-003: AP/BP 布局扩展 + 消费方迭代式反演冻结门)
+    "f2x_center90_freeze",      // apbp: 中心 90% 区域冻结门 <1e-4 px
+    "f2x_boundary_freeze",      // apbp: 图像边界与角点冻结门 <1e-4 px
+    "f2x_random_freeze",        // apbp: ≥1000 确定性随机点冻结门 <1e-4 px
+    "f2x_truth_anchor",         // apbp: 真值锚全链冻结门 <1e-4 px
+    "f2x_reject_deterministic", // apbp: 奇点/非有限/超限确定性拒绝
+    "f2x_parity_workers",       // apbp: 1 worker / N worker bitwise
+    "f2x_layout_expand",        // apbp: 布局扩展登记 + 一步防退化观察线
+    "f2x_cross_export",         // apbp: 交叉验证输入导出
     // negative 组
     "n1_few_stars",           // negative: <3 星 success=0
     "n1_collinear_success",   // negative: 共线退化 success=0 (DISP-WCS-001)

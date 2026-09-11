@@ -31,6 +31,12 @@
 #include <string>
 #include <cstdio>
 #include <cstring>   // std::strncpy
+#include <limits>    // std::numeric_limits (WCS-003 迭代反演)
+#include <utility>   // std::pair (WCS-003 扩展拟合基表)
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace ipv {
 
@@ -162,6 +168,12 @@ WcsFitResult build_wcs(
         result.sip.BP[i] = 0.0;
     }
     result.sip.ap_order = 0;
+    // WCS-003: 扩展逆向布局同步清零 (fit_sip 不初始化尾部新字段)
+    for (int i = 0; i < 100; ++i) {
+        result.sip.APx[i] = 0.0;
+        result.sip.BPx[i] = 0.0;
+    }
+    result.sip.apx_order = 0;
     // ctype 根据 fit_sip.order 设置 (fit_sip 成功时 order=3, 否则 0)
     if (result.sip.order >= 2) {
         std::strncpy(result.ctype[0], "RA---TAN-SIP", 16);
@@ -292,15 +304,20 @@ void extract_wcs_sip(
     // ------------------------------------------------------------------
     // 5. SIP 系数 (order >= 2 时)
     // ------------------------------------------------------------------
-    // 初始化 SIP (全 0, order=0, ap_order=0)
+    // 初始化 SIP (全 0, order=0, ap_order=0, apx_order=0)
     for (int i = 0; i < 36; ++i) {
         result->sip.A[i]  = 0.0;
         result->sip.B[i]  = 0.0;
         result->sip.AP[i] = 0.0;
         result->sip.BP[i] = 0.0;
     }
-    result->sip.order    = 0;
-    result->sip.ap_order = 0;
+    for (int i = 0; i < 100; ++i) {
+        result->sip.APx[i] = 0.0;
+        result->sip.BPx[i] = 0.0;
+    }
+    result->sip.order     = 0;
+    result->sip.ap_order  = 0;
+    result->sip.apx_order = 0;
 
     if (trans.order >= 2) {
         // P1-5: 清零 trans.x00/y00
@@ -493,6 +510,85 @@ void extract_wcs_sip(
             } else {
                 if (logger) logger->warn("extract_wcs_sip: SIP AP/BP 拟合失败 (奇异矩阵), 仅输出前向 A/B");
             }
+
+            // --------------------------------------------------------------
+            // 5.4 扩展逆向拟合 (WCS-003 布局扩展, owner 裁决 1 选 B):
+            // 布局 36 (6x6, i*6+j) -> 100 (10x10, i*10+j), 网格 41x41 ->
+            // 81x81, 拟合阶 5 -> 7。APx/BPx 为逆映射多项式的高容量表达,
+            // 作 wcs_sky_to_pixel_iterative 一步初值; F2 冻结门 <1e-4 px
+            // 由迭代式反演达成, 不受一步逼近极限 (逆映射最近奇点) 约束。
+            // 与 5.3 段 36 项兼容层 (41 网格阶 5, C ABI/消费方契约面)
+            // 并行输出, 5.3 段代码零改动。
+            // 确定性: 同 5.3 固定网格顺序 + 顺序归约 (§5c 禁并行重结合),
+            // 高斯消元单线程。
+            // --------------------------------------------------------------
+            {
+                const int NB_GRID_X   = 81;  // 每轴网格点数 (5.3 段 41 -> 81)
+                const int APX_ORDER   = 7;   // 扩展拟合阶 (布局容量上限 9 内)
+                const int APX_STRIDE  = 10;  // 布局步长 i*10+j
+
+                std::vector<std::pair<int,int>> xb;
+                for (int deg = 0; deg <= APX_ORDER; ++deg) {
+                    for (int i = deg; i >= 0; --i) {
+                        xb.push_back({i, deg - i});
+                    }
+                }
+                const int nc = (int)xb.size();  // (APX_ORDER+1)(APX_ORDER+2)/2
+
+                std::vector<std::vector<double>> MX(nc, std::vector<double>(nc, 0.0));
+                std::vector<double> cx2(nc, 0.0), cy2(nc, 0.0);
+                for (int gi = 0; gi < NB_GRID_X; ++gi) {
+                    for (int gj = 0; gj < NB_GRID_X; ++gj) {
+                        const double u = -u_range + 2.0 * u_range * gi / (NB_GRID_X - 1);
+                        const double v = -v_range + 2.0 * v_range * gj / (NB_GRID_X - 1);
+                        double wx, wy;
+                        apply_trans(trans_for_sip, u, v, &wx, &wy);
+                        const double uv_x = cd_inv_00 * wx + cd_inv_01 * wy;
+                        const double uv_y = cd_inv_10 * wx + cd_inv_11 * wy;
+                        std::vector<double> bv(nc);
+                        for (int k = 0; k < nc; ++k) {
+                            bv[k] = eval_monomial(uv_x / R_u, uv_y / R_v,
+                                                  xb[k].first, xb[k].second);
+                        }
+                        for (int p = 0; p < nc; ++p) {
+                            for (int q = 0; q < nc; ++q) {
+                                MX[p][q] += bv[p] * bv[q];
+                            }
+                            cx2[p] += bv[p] * (u / R_u);
+                            cy2[p] += bv[p] * (v / R_v);
+                        }
+                    }
+                }
+                std::vector<std::vector<double>> MXx = MX, MXy = MX;
+                if (gauss_solve_wcs(MXx, cx2) && gauss_solve_wcs(MXy, cy2)) {
+                    // 归一化系数回转像素域 (同 5.3 段回转公式, 布局 i*10+j)
+                    for (int k = 0; k < nc; ++k) {
+                        const int i = xb[k].first;
+                        const int j = xb[k].second;
+                        const int idx = i * APX_STRIDE + j;
+                        if (idx >= 0 && idx < 100) {
+                            result->sip.APx[idx] =
+                                cx2[k] * std::pow(R_u, 1.0 - i) * std::pow(R_v, -j);
+                            result->sip.BPx[idx] =
+                                cy2[k] * std::pow(R_v, 1.0 - j) * std::pow(R_u, -i);
+                        }
+                    }
+                    // 约定: 逆向 SIP 线性项减 1 (同 5.3 段, 布局 i*10+j)
+                    result->sip.APx[10] -= 1.0;  // APx_10 (i=1, j=0)
+                    result->sip.BPx[1]  -= 1.0;  // BPx_01 (i=0, j=1)
+                    result->sip.apx_order = APX_ORDER;
+                    if (logger) {
+                        char buf[256];
+                        std::snprintf(buf, sizeof(buf),
+                            "extract_wcs_sip: 扩展逆向 APx/BPx 拟合成功, "
+                            "apx_order=%d, n_coef=%d, n_grid=%dx%d",
+                            APX_ORDER, nc, NB_GRID_X, NB_GRID_X);
+                        logger->info(buf);
+                    }
+                } else {
+                    if (logger) logger->warn("extract_wcs_sip: 扩展逆向 APx/BPx 拟合失败 (奇异矩阵), apx_order=0");
+                }
+            }
         }
     } else {
         if (logger) {
@@ -585,6 +681,19 @@ void extract_wcs_sip(
             }
         }
     }
+    // 扩展逆向 SIP APx/BPx (WCS-003 布局 i*10+j, 同 A/B 规则)
+    {
+        int axo = result->sip.apx_order;
+        for (int i = 0; i <= axo; ++i) {
+            for (int j = 0; j <= axo - i; ++j) {
+                int idx = i * 10 + j;
+                if (idx >= 100) break;
+                double sign_in = (j & 1) ? -1.0 : 1.0;
+                result->sip.APx[idx] *= sign_in;
+                result->sip.BPx[idx] *= -sign_in;
+            }
+        }
+    }
 
     if (logger) {
         char buf[512];
@@ -601,6 +710,233 @@ void extract_wcs_sip(
             result->trans_order, result->sip.order, result->sip.ap_order);
         logger->info(buf);
     }
+}
+
+// ===========================================================================
+// wcs_sky_to_pixel_iterative: 迭代式反演 (WCS-003 owner 裁决 1 选 B)
+// ...
+// ===========================================================================
+
+// TAN gnomonic 正投影 (度进出): (ra,dec) -> (ξ,η)
+// 标准公式 (Calabretta & Greisen 2002), 与消费方 tanWorldToIntermediate 同式。
+static bool tan_project_iter(double ra, double dec,
+                             double ra0, double dec0,
+                             double* xi, double* eta) {
+    if (!std::isfinite(ra) || !std::isfinite(dec) ||
+        !std::isfinite(ra0) || !std::isfinite(dec0)) {
+        return false;
+    }
+    const double ra_rad   = ra  * (M_PI / 180.0);
+    const double dec_rad  = dec * (M_PI / 180.0);
+    const double ra0_rad  = ra0 * (M_PI / 180.0);
+    const double dec0_rad = dec0 * (M_PI / 180.0);
+    const double sdec0 = std::sin(dec0_rad);
+    const double cdec0 = std::cos(dec0_rad);
+    const double sdec  = std::sin(dec_rad);
+    const double cdec  = std::cos(dec_rad);
+    const double dra   = ra_rad - ra0_rad;
+    const double cdra  = std::cos(dra);
+    const double sdra  = std::sin(dra);
+    const double cosc  = sdec0 * sdec + cdec0 * cdec * cdra;
+    if (std::fabs(cosc) < 1e-12) {
+        return false;  // 投影背面/发散
+    }
+    const double xi_rad  = cdec * sdra / cosc;
+    const double eta_rad = (cdec0 * sdec - sdec0 * cdec * cdra) / cosc;
+    *xi  = xi_rad * (180.0 / M_PI);
+    *eta = eta_rad * (180.0 / M_PI);
+    return std::isfinite(*xi) && std::isfinite(*eta);
+}
+
+// 前向 SIP 求值 (Y-down 标准域, 36 布局 i*6+j, i+j<=order)
+static void sip_fwd_ab(const WcsFitResult& w, double u, double v,
+                       double* fu, double* fv) {
+    double ax = 0.0, by = 0.0;
+    const int so = w.sip.order;
+    if (so >= 2) {
+        for (int i = 0; i <= so; ++i) {
+            for (int j = 0; j <= so - i; ++j) {
+                const int idx = i * 6 + j;
+                if (idx >= 36) break;
+                const double uv = std::pow(u, i) * std::pow(v, j);
+                ax += w.sip.A[idx] * uv;
+                by += w.sip.B[idx] * uv;
+            }
+        }
+    }
+    *fu = ax;
+    *fv = by;
+}
+
+// 迭代式反演入口 (原 namespace ipv 内, 41 行起)
+
+WcsIterativeResult wcs_sky_to_pixel_iterative(
+    const WcsFitResult& wcs,
+    double ra_deg,
+    double dec_deg,
+    double tol_px,
+    int max_iter)
+{
+    WcsIterativeResult out{};
+    out.converged = false;
+    out.x = std::numeric_limits<double>::quiet_NaN();
+    out.y = std::numeric_limits<double>::quiet_NaN();
+    out.iterations = 0;
+    out.reject_code = 0;
+
+    if (max_iter <= 0 || !(tol_px > 0.0) ||
+        !std::isfinite(tol_px)) {
+        out.reject_code = 2;
+        return out;
+    }
+
+    // 1. TAN 正投影 (背面/非有限确定性拒绝)
+    double xi, eta;
+    if (!tan_project_iter(ra_deg, dec_deg,
+                          wcs.crval[0], wcs.crval[1], &xi, &eta)) {
+        out.reject_code = 1;
+        return out;
+    }
+
+    // 2. UV = CD⁻¹·(ξ,η) (CRPIX 相对)
+    const double det = wcs.cd.cd11 * wcs.cd.cd22 - wcs.cd.cd12 * wcs.cd.cd21;
+    if (!std::isfinite(det) || std::fabs(det) < 1e-15) {
+        out.reject_code = 3;  // CD 奇异 (构造病态)
+        return out;
+    }
+    const double i00 =  wcs.cd.cd22 / det;
+    const double i01 = -wcs.cd.cd12 / det;
+    const double i10 = -wcs.cd.cd21 / det;
+    const double i11 =  wcs.cd.cd11 / det;
+    const double uvx = i00 * xi + i01 * eta;
+    const double uvy = i10 * xi + i11 * eta;
+    double u = uvx, v = uvy;
+
+    // 3. 初值: APx (扩展逆向, 一步) -> AP (兼容层一步) -> UV
+    {
+        const int axo = wcs.sip.apx_order;
+        if (axo > 0) {
+            double ax = 0.0, by = 0.0;
+            for (int i = 0; i <= axo; ++i) {
+                for (int j = 0; j <= axo - i; ++j) {
+                    const int idx = i * 10 + j;
+                    if (idx >= 100) break;
+                    const double uv = std::pow(u, i) * std::pow(v, j);
+                    ax += wcs.sip.APx[idx] * uv;
+                    by += wcs.sip.BPx[idx] * uv;
+                }
+            }
+            u += ax;
+            v += by;
+        } else if (wcs.sip.ap_order > 0) {
+            double ax = 0.0, by = 0.0;
+            for (int i = 0; i <= wcs.sip.ap_order; ++i) {
+                for (int j = 0; j <= wcs.sip.ap_order - i; ++j) {
+                    const int idx = i * 6 + j;
+                    if (idx >= 36) break;
+                    const double uv = std::pow(u, i) * std::pow(v, j);
+                    ax += wcs.sip.AP[idx] * uv;
+                    by += wcs.sip.BP[idx] * uv;
+                }
+            }
+            u += ax;
+            v += by;
+        }
+    }
+    if (!std::isfinite(u) || !std::isfinite(v)) {
+        out.reject_code = 2;
+        return out;
+    }
+
+    // 4. 牛顿迭代: 解 F(u) = u + A(u) = UV
+    //    J = I + ∂A/∂u; |F|∞<tol 收敛; |det J|<1e-15 → 奇点拒绝。
+    //    混合阻尼 (畸变场 |∇A|→1 强非线性域牛顿步可越收敛盆):
+    //    残差增大时步长减半 (确定性回退, 至多 20 次阻尼/步)。
+    const double guard = 1e6;  // 像素域发散护栏 (确定性)
+    int iters = 0;
+    double f_prev = std::numeric_limits<double>::infinity();
+    for (int k = 1; k <= max_iter; ++k) {
+        double fu, fv;
+        sip_fwd_ab(wcs, u, v, &fu, &fv);
+        const double fx = u + fu - uvx;  // F(u) - UV
+        const double fy = v + fv - uvy;
+        iters = k;
+        const double f_now = std::max(std::fabs(fx), std::fabs(fy));
+        if (f_now < tol_px) {
+            out.converged = true;
+            out.reject_code = 0;
+            out.iterations = iters;
+            // 生产自洽输出约定: u = x − crpix (与 oracle_wcs_forward /
+            // oracle_wcs_reverse 及 WcsFitResult FITS 语义同一口径)。
+            out.x = u + wcs.crpix[0];
+            out.y = v + wcs.crpix[1];
+            return out;
+        }
+        // ∂A/∂u (解析, 与数值微分对拍一致):
+        //   ∂/∂u = Σ_{i>=1} i·A_ij·u^(i-1)·v^j
+        //   ∂/∂v = Σ_{j>=1} j·A_ij·u^i·v^(j-1)  (含 i=0 项, A_02/B_02 等)
+        double d11 = 0.0, d12 = 0.0, d21 = 0.0, d22 = 0.0;
+        const int so = wcs.sip.order;
+        if (so >= 2) {
+            for (int i = 1; i <= so; ++i) {
+                for (int j = 0; j <= so - i; ++j) {
+                    const int idx = i * 6 + j;
+                    if (idx >= 36) break;
+                    const double pu = std::pow(u, i - 1) * std::pow(v, j);
+                    d11 += wcs.sip.A[idx] * ((double)i * pu);
+                    d21 += wcs.sip.B[idx] * ((double)i * pu);
+                }
+            }
+            for (int i = 0; i <= so; ++i) {
+                for (int j = 1; j <= so - i; ++j) {
+                    const int idx = i * 6 + j;
+                    if (idx >= 36) break;
+                    const double pv = std::pow(u, i) * std::pow(v, j - 1);
+                    d12 += wcs.sip.A[idx] * ((double)j * pv);
+                    d22 += wcs.sip.B[idx] * ((double)j * pv);
+                }
+            }
+        }
+        const double j11v = 1.0 + d11, j12v = d12, j21v = d21, j22v = 1.0 + d22;
+        const double jdet = j11v * j22v - j12v * j21v;
+        if (!std::isfinite(jdet) || std::fabs(jdet) < 1e-15) {
+            out.reject_code = 3;
+            out.iterations = iters;
+            return out;
+        }
+        // 阻尼: 残差未降则回退步长 (确定性, 至多 20 次折半)
+        double lambda = 1.0;
+        double nu = 0.0, nv = 0.0;
+        for (int d = 0; d < 20; ++d) {
+            const double su = lambda * ( j22v * fx - j12v * fy) / jdet;
+            const double sv = lambda * (-j21v * fx + j11v * fy) / jdet;
+            nu = u - su;
+            nv = v - sv;
+            if (!std::isfinite(nu) || !std::isfinite(nv) ||
+                std::fabs(su) > guard || std::fabs(sv) > guard) {
+                out.reject_code = 2;
+                out.iterations = iters;
+                return out;
+            }
+            double fu2, fv2;
+            sip_fwd_ab(wcs, nu, nv, &fu2, &fv2);
+            const double f2 = std::max(std::fabs(nu + fu2 - uvx),
+                                       std::fabs(nv + fv2 - uvy));
+            if (f2 < f_now || f2 <= f_prev) break;
+            lambda *= 0.5;
+        }
+        f_prev = f_now;
+        u = nu;
+        v = nv;
+        if (!std::isfinite(u) || !std::isfinite(v)) {
+            out.reject_code = 2;
+            out.iterations = iters;
+            return out;
+        }
+    }
+    out.reject_code = 2;  // max_iter 用尽未收敛
+    out.iterations = iters;
+    return out;
 }
 
 } // namespace ipv

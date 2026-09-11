@@ -69,13 +69,14 @@ set(P1WCS_PROD_TU
 
 find_package(OpenMP REQUIRED)
 
-# core 组可执行 (units/properties/oracle/negative 共享执行器框架)
+# core 组可执行 (units/properties/oracle/negative/apbp 共享执行器框架)
 add_executable(p1wcs_tests
   ${P1WCS_DIR}/p1wcs_tests_main.cpp
   ${P1WCS_DIR}/p1wcs_tests_units.cpp
   ${P1WCS_DIR}/p1wcs_tests_properties.cpp
   ${P1WCS_DIR}/p1wcs_tests_oracle.cpp
   ${P1WCS_DIR}/p1wcs_tests_negative.cpp
+  ${P1WCS_DIR}/p1wcs_tests_apbp.cpp
   ${P1WCS_PROD_TU})
 target_include_directories(p1wcs_tests PRIVATE
   ${P1WCS_IPV}/include
@@ -101,6 +102,7 @@ add_executable(p1wcs_selfcheck_test
   ${P1WCS_DIR}/p1wcs_tests_properties.cpp
   ${P1WCS_DIR}/p1wcs_tests_oracle.cpp
   ${P1WCS_DIR}/p1wcs_tests_negative.cpp
+  ${P1WCS_DIR}/p1wcs_tests_apbp.cpp
   ${P1WCS_PROD_TU})
 target_include_directories(p1wcs_selfcheck_test PRIVATE
   ${P1WCS_IPV}/include
@@ -110,12 +112,25 @@ target_link_libraries(p1wcs_selfcheck_test PRIVATE OpenMP::OpenMP_CXX)
 add_test(NAME p1wcs_selfcheck COMMAND p1wcs_selfcheck_test)
 
 # 单组单跑: ctest -R p1wcs_units / p1wcs_properties / p1wcs_oracle /
-#           p1wcs_negative
+#           p1wcs_negative / p1wcs_apbp
 add_test(NAME p1wcs_units COMMAND p1wcs_tests units)
 add_test(NAME p1wcs_properties COMMAND p1wcs_tests properties)
 add_test(NAME p1wcs_oracle COMMAND p1wcs_tests oracle)
 add_test(NAME p1wcs_negative COMMAND p1wcs_tests negative)
+# WCS-003 apbp 组: 六类验收 + 数值证据/交叉验证输入导出 (run/p1wcs_wcs003/)
+add_test(NAME p1wcs_apbp COMMAND p1wcs_tests apbp)
+set_tests_properties(p1wcs_apbp PROPERTIES
+  ENVIRONMENT "P1WCS_CROSS_OUT=${CMAKE_SOURCE_DIR}/run/p1wcs_wcs003/wcs003_cross_input.json")
+
+# WCS-003 Astropy 第三方交叉验证 (独立实现, 只入测试面零生产依赖;
+# 自包含: subprocess 重跑 apbp 组刷新导出 → astropy.wcs 独立正/逆比对)
+add_test(NAME p1wcs_astropy_cross
+  COMMAND ${CMAKE_COMMAND} -E env
+          P1WCS_CROSS_OUT=${CMAKE_SOURCE_DIR}/run/p1wcs_wcs003/wcs003_cross_input.json
+          P1WCS_TESTS_BIN=$<TARGET_FILE:p1wcs_tests>
+          python3 ${P1WCS_DIR}/p1wcs_astropy_cross.py)
 
 set_tests_properties(p1wcs_units p1wcs_properties p1wcs_oracle
                      p1wcs_negative p1wcs_performance p1wcs_selfcheck
+                     p1wcs_apbp p1wcs_astropy_cross
                      PROPERTIES LABELS "p1wcs")
