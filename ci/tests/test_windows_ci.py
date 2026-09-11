@@ -66,11 +66,16 @@ class TestRegistryConformance(unittest.TestCase):
             c = _WIN_CHECKS[cid]
             self.assertEqual(c["platform"], "windows", cid)
             self.assertEqual(c["profiles"], ["windows-main"], cid)
-            self.assertTrue(c["waivable"], cid)
+            # CI-001 收紧：WIN-BUILD/TEST/PACKAGE 不可 waiver（fail-closed）
+            self.assertFalse(c["waivable"], cid)
             self.assertTrue(c["outputs"], cid)
             self.assertTrue(c["changed_paths"], cid)
             self.assertIn("cmake", c.get("prerequisite_tools", []), cid)
             self.assertIn("--stages", c["command"], cid)
+            # CI-001：监控必须调用 evaluate（--gate-required 在监控参数区）
+            self.assertIn("--gate-required", c["command"], cid)
+            self.assertLess(c["command"].index("--gate-required"),
+                            c["command"].index("--"), cid)
             stages = c["command"][c["command"].index("--stages") + 1].split(",")
             for s in stages:
                 self.assertIn(s, DRV.STAGE_ORDER, cid)
@@ -341,7 +346,7 @@ class TestPackageAssembly(unittest.TestCase):
 
 
 class TestPlatformGating(unittest.TestCase):
-    """platform 门控：probe 语义与 Linux 真跑 runner 的 SKIPPED(waivable)。"""
+    """platform 门控：probe 语义与 CI-001 收紧后的 FAIL(prerequisite)（不可 waiver）。"""
 
     def test_probe_prerequisite_platform_mismatch_and_windows_pass(self):
         from ci import run as ci_run
@@ -358,6 +363,8 @@ class TestPlatformGating(unittest.TestCase):
     def test_runner_skips_windows_checks_on_linux(self):
         if sys.platform.startswith("win"):
             self.skipTest("仅非 Windows 宿主验证平台跳过")
+        # CI-001 收紧：WIN-* 不可 waiver → platform_mismatch 不再 SKIPPED，
+        # 而是 FAIL(prerequisite)（fail-closed；跨平台漏跑必须显性失败）。
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             repo = H.make_repo(root / "repo")
@@ -391,16 +398,16 @@ class TestPlatformGating(unittest.TestCase):
                 timeout=150, env=env)
             per = [H.load_check_result(out, cid) for cid in _WIN_IDS]
             for entry in per:
-                self.assertEqual(entry["verdict"], "SKIPPED(waivable)", entry["id"])
+                self.assertEqual(entry["verdict"], "FAIL(prerequisite)", entry["id"])
                 self.assertIn("platform_mismatch", entry.get("reason", ""), entry["id"])
-                self.assertTrue(entry["waivable"], entry["id"])
-            # runner 冻结语义：全部 SKIPPED(waivable) 时不允许空集 PASS ——
-            # CI 整体 verdict=FAIL(no_checks_selected)、exit 1（既有设计，非本任务变更）
+                self.assertFalse(entry["waivable"], entry["id"])
+            # runner 汇总：非 waivable 硬失败 → verdict=FAIL、exit 1
             ci = H.load_ci_result(out)
             self.assertEqual(ci["verdict"], "FAIL")
-            self.assertIn("no_checks_selected", ci.get("verdict_reason", ""))
+            self.assertEqual(ci["summary"]["fail_detail"].get("FAIL(prerequisite)"), 3)
             self.assertEqual(proc.returncode, 1)
-            self.assertEqual(ci["summary"]["skipped_waivable"], 3)
+            self.assertEqual(ci["summary"]["skipped_waivable"], 0,
+                             "CI-001 收紧后 platform_mismatch 不再计入 skipped_waivable")
 
 
 if __name__ == "__main__":

@@ -63,6 +63,11 @@ V_MISSING_OUTPUT = "FAIL(missing_output)"
 # 对非 waivable 且 outputs 为空的检查，要求 stdout 或 stderr 至少留痕，
 # 否则 FAIL(empty_outputs)（并入硬失败值域，known_failures 可基线化）。
 V_EMPTY_OUTPUT = "FAIL(empty_outputs)"
+# CI-001（控制包 02 §执行"监控必须调用 evaluate"）：requires_monitor 检查的
+# 监控证据必须含 frozen_gate 判定（evaluate 已被调用且结论合法）。证据缺失/
+# 字段缺失/verdict 非法/verdict=fail 与 exit 0 矛盾 → FAIL(monitor_gate_missing)
+# （并入硬失败值域，known_failures 可基线化）。
+V_GATE_MISSING = "FAIL(monitor_gate_missing)"
 V_DIRTY = "FAIL(dirty)"
 V_PREREQ = "FAIL(prerequisite)"
 V_KNOWN = "KNOWN_FAIL"
@@ -79,7 +84,7 @@ V_SKIP_PLATFORM = "SKIPPED(waivable)"  # platform 不匹配且 waivable=true 时
 SKIP_EXIT_CODE = 77
 
 HARD_FAILURE_VERDICTS = (V_FAIL, V_TIMEOUT, V_SIGNAL, V_MISSING_OUTPUT,
-                         V_EMPTY_OUTPUT, V_DIRTY, V_PREREQ)
+                         V_EMPTY_OUTPUT, V_GATE_MISSING, V_DIRTY, V_PREREQ)
 
 # V8-CIQA-001 P2-GAP-4 豁免白名单（显式登记，非静默兜底）：注册表里 outputs=[]
 # 且非 waivable、但检查脚本按设计静默成功（rc=0 且无任何输出）的既有检查 id。
@@ -91,6 +96,44 @@ EMPTY_OUTPUT_SILENCE_EXEMPT = frozenset({
     "API-DOCS",        # tools/check_api_docs.py：rc=0 静默成功（P2 复测直跑证据）
     "UNIT-CLOSURE",    # tools/check_unit_closure.py：rc=0 静默成功（P2 复测直跑证据）
 })
+
+
+def monitor_gate_evidence_gap(check: dict, repo: Path) -> str | None:
+    """CI-001：requires_monitor 检查的监控证据必须含 frozen_gate（evaluate 已调用）。
+
+    在登记 outputs 中定位监控证据 JSON（含 "cpu_samples" 键，即 run_monitored
+    证据结构）并校验 frozen_gate.verdict ∈ {pass, not_applicable}：
+      - verdict == "fail"：run_monitored 约定以 exit 10 传导门禁失败，走到本
+        判定说明退出码与证据矛盾（伪造/旧版监控器），一律 fail-closed；
+      - frozen_gate 缺失/非法：监控未调用 evaluate 或证据被篡改，fail-closed；
+      - outputs 中无任何监控证据 JSON：requires_monitor 检查必须有监控证据。
+
+    返回 None = 证据齐备；否则返回原因串（verdict 判 FAIL(monitor_gate_missing)）。
+    """
+    found = False
+    for rel in check.get("outputs", []):
+        path = repo / rel
+        if not path.is_file():
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(data, dict) or "cpu_samples" not in data:
+            continue
+        found = True
+        gate = data.get("frozen_gate")
+        if not isinstance(gate, dict):
+            return (f"监控证据 {rel} 缺 frozen_gate 判定"
+                    "（监控未调用 evaluate → FAIL(monitor_gate_missing), fail-closed）")
+        verdict = gate.get("verdict")
+        if verdict not in ("pass", "not_applicable"):
+            return (f"监控证据 {rel} 的 frozen_gate.verdict 非法或与退出码矛盾："
+                    f"{verdict!r}（fail-closed）")
+    if not found:
+        return ("登记 outputs 中未找到含 cpu_samples 的监控证据 JSON"
+                "（requires_monitor 检查必须产出含 frozen_gate 的监控证据, fail-closed）")
+    return None
 
 
 def silent_failure(check: dict, stdout_tail: str, stderr_tail: str) -> bool:
@@ -813,6 +856,17 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
                 "exit 0 且 stdout/stderr 均为空：空 outputs 检查无任何内容级"
                 "证据（静默失败不可发现）；如架构上必须静默，请登记"
                 " waivable 或产生 stdout/stderr 留痕")
+        elif check.get("requires_monitor"):
+            # CI-001：监控必须调用 evaluate（fail-closed）。requires_monitor
+            # 检查的监控证据必须含 frozen_gate 合法判定，缺失/非法/矛盾一律
+            # FAIL(monitor_gate_missing)；verdict=fail 路径已在 rc!=0 前置分支
+            # 记 V_FAIL（run_monitored 约定 gate fail → exit 10）。
+            gap = monitor_gate_evidence_gap(check, repo)
+            if gap is not None:
+                result["verdict"] = V_GATE_MISSING
+                result["reason"] = gap
+            else:
+                result["verdict"] = V_PASS
         else:
             result["verdict"] = V_PASS
     return result

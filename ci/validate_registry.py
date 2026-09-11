@@ -42,8 +42,12 @@ ID_RE = re.compile(r"^[A-Z0-9][A-Z0-9_.-]+$")
 
 BOOL_FIELDS = ("heavy", "mutates_workspace", "waivable", "requires_monitor")
 STR_LIST_FIELDS = ("profiles", "command", "outputs", "changed_paths")
-# 可选字段：依赖的外部工具名（探测逻辑见 ci/run.py probe_prerequisite）
-OPT_STR_LIST_FIELDS = ("prerequisite_tools",)
+# 可选字段：依赖的外部工具名（探测逻辑见 ci/run.py probe_prerequisite）；
+# per-check dirty 豁免（消费逻辑见 ci/run.py execute_check，schema 见
+# ci/checks.schema.json 同名字段——CI-001 对齐两者预存断链，否则 strict
+# 永远对 checks[52]/[53] 报 unexpected fields）。
+OPT_STR_LIST_FIELDS = ("prerequisite_tools", "dirty_ignore_exact",
+                       "dirty_ignore_prefixes")
 REQUIRED = ("id", "profiles", "platform", "command", "timeout_seconds",
             "heavy", "mutates_workspace", "outputs", "waivable") + BOOL_FIELDS[:0]
 REQUIRED = ("id", "profiles", "platform", "command", "timeout_seconds",

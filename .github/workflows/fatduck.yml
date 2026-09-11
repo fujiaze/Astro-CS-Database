@@ -68,7 +68,11 @@ jobs:
           set -e
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
           if [ "$rc" -eq 3 ]; then
-            echo "::notice::no-candidate：本轮无合格候选（结构化原因见 no_candidate_reason 输出）"
+            # CI-001 收紧（控制包 02 §执行"候选缺失必须失败"）：no-candidate
+            # 不再是 notice 后静默 success——G-CI 门要求 Windows 候选必存在，
+            # 候选缺失必须使本 job 失败（run 红），不得被下游 skip 吞掉。
+            echo "::error::no-candidate：本轮无合格候选（结构化原因见 no_candidate_reason 输出）；候选缺失必须失败（CI-001 fail-closed）"
+            exit 3
           elif [ "$rc" -ne 0 ]; then
             exit "$rc"
           fi
@@ -89,7 +93,8 @@ jobs:
           name: fatduck-select-log-${{ github.run_id }}
           path: artifacts/select_candidate_log.jsonl
           retention-days: 14
-          # no-candidate（rc=3）是设计内正常路径：log 文件从未创建，不能按 error 处理；
+          # no-candidate（rc=3）时 sel 步骤已 exit 3 fail（CI-001：候选缺失必须
+          # 失败）；log 文件从未创建，不能按 error 处理；
           # rc=0 时 log 必然存在（逐条 API 查询落盘），rc=2 时 step sel 已自行 exit 2。
           if-no-files-found: ignore
 
