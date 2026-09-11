@@ -63,9 +63,18 @@
 #include "noise_model.h"
 #include "wcs_tan.h"
 
+// P3-002: Phase3 唯一真实 operation 节点生产头（lib/phase3_session 冻结 C++
+// 内核, 静态库 astrocs_phase3_session 已在 astrocs_module_adapters 链接闭包;
+// 相对路径 include 同 "../../phase1/stars/star_detector.h" 先例, 根 CMake
+// 零改动）
+#include "../../phase3_session/p3_resample.h"
+#include "../../phase3_session/p3_output.h"
+#include "../../phase3_session/p3_wcs.h"
+
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -73,6 +82,7 @@
 #include <fstream>
 #include <limits>
 #include <map>
+#include <thread>
 
 // session C ABI（与 lib/phaseN_session/*.h 一致；避免把会话头拉进 core 依赖图）
 extern "C" {
@@ -3358,6 +3368,756 @@ std::unique_ptr<IModule> make_p2_node_module(ModuleDescriptor desc, P2NodeSpec s
   return std::make_unique<P2NodeModule>(std::move(desc), spec);
 }
 
+// ══ P3-002: Phase3 唯一真实 operation 节点适配器（IModule）═══════════════════
+// 五节点链 source→properties→wcs→resample→writer→verify; 每节点唯一真实
+// operation 委托（宪章 §7.2 "投影规划和重采样是独立算法节点, 不得重复调用
+// 完整 phase3_session_run()" + §8.2 每节点唯一 entrypoint/call count;
+// P1-001/P2-001 整改同构——原工厂委托 P3Api session adapter = 每个子节点
+// 调用完整 p3_session_run, 5 节点链重复执行全链 5 次, 违规）:
+//   properties → p3_sampler_open_ex + p3_uncertainty_open探测 (ALG-P3-001)
+//   wcs        → p3_wcs_make + p3_wcs_fits_keywords (ALG-P3-002)
+//   resample   → p3_order_select + p3_sample_{nearest,bilinear}_ex +
+//                p3_uncertainty_propagate (ALG-P3-003 + DATA-P3-UNC-001 §30.4)
+//   writer     → p3_output_write_atomic_ex (ALG-P3-004 + §30.4 VARIANCE/IVAR
+//                HDU 目标态)
+//   verify     → p3_output_verify_ex (独立重开; unavailable 双向防占位)
+// 节点间 typed artifact 经 output_dir 文件约定传递（P2 先例同构）:
+//   p3_props.json → p3_wcs.json → p3_resampled.{json,bin} →
+//   output_phase3.fits + p3_writer.json → p3_verify.json。
+// operation/entry 名与 runtime/pipeline/module_ports.registry.json 冻结绑定
+// 表一致; manifest 携带标记供 trace/审计。
+
+namespace {
+
+using Json = nlohmann::json;
+
+// ── 共用 helper ──────────────────────────────────────────────────────────────
+// 请求几何段 (与 p3_session parse_request 同合同面; 值域在 op 内 fail-closed)
+struct P3nGeom {
+  std::string hips_dir;
+  std::string out_dir;
+  double ra = 0, dec = 0;
+  double scale = 0;
+  int w = 0, h = 0;
+  std::string sampler = "bilinear";
+  std::string parity = "east_left";
+  int bitpix = -32;
+};
+
+bool p3n_geom(const Json& doc, P3nGeom* g, std::string* err) {
+  auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
+  if (!doc.contains("source") || !doc["source"].is_object() ||
+      !doc["source"].contains("hips_dir") || !doc["source"]["hips_dir"].is_string())
+    return fail("missing source.hips_dir");
+  if (!doc.contains("center") || !doc["center"].is_object() ||
+      !doc["center"].contains("ra_deg") || !doc["center"].contains("dec_deg"))
+    return fail("missing center.ra_deg/dec_deg");
+  if (!doc.contains("output_dir") || !doc["output_dir"].is_string())
+    return fail("missing output_dir");
+  g->hips_dir = doc["source"]["hips_dir"].get<std::string>();
+  g->out_dir = doc["output_dir"].get<std::string>();
+  g->ra = doc["center"]["ra_deg"].get<double>();
+  g->dec = doc["center"]["dec_deg"].get<double>();
+  g->scale = doc.value("scale_deg_per_px", 0.0);
+  g->w = doc.value("width_px", 0);
+  g->h = doc.value("height_px", 0);
+  g->sampler = doc.value("sampler", std::string("bilinear"));
+  g->parity = doc.value("longitude_parity", std::string("east_left"));
+  g->bitpix = doc.value("bitpix", -32);
+  // 值域 (与 p3_session 同款; 无 silent default 非法值)
+  if (!(g->scale > 0.0)) return fail("scale_deg_per_px must be > 0");
+  if (g->w < 1 || g->w > 20000 || g->h < 1 || g->h > 20000)
+    return fail("width_px/height_px must be in [1,20000]");
+  if (std::fabs(g->dec) > 85.0) return fail("abs(center.dec_deg) must be <= 85");
+  if (g->sampler != "nearest" && g->sampler != "bilinear")
+    return fail("sampler must be nearest|bilinear");
+  if (g->parity != "east_left" && g->parity != "east_right")
+    return fail("longitude_parity must be east_left|east_right");
+  if (g->bitpix != -32 && g->bitpix != -64) return fail("bitpix must be -32|-64");
+  return true;
+}
+
+// 上游 artifact 读取 (fail-closed: 缺失/损坏 = DATA 拒, DAG 断链不静默)
+bool p3n_read_json(const std::string& path, Json* out, std::string* err) {
+  std::ifstream f(path, std::ios::binary);
+  if (!f) { if (err) *err = "upstream artifact missing: " + path; return false; }
+  std::string s((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+  try {
+    *out = Json::parse(s);
+  } catch (const Json::parse_error& e) {
+    if (err) *err = "artifact parse: " + path + ": " + e.what();
+    return false;
+  }
+  return true;
+}
+
+bool p3n_wcs_from_json(const Json& j, astrocs::phase3::P3WcsDescriptor* d,
+                       std::string* err) {
+  using namespace astrocs::phase3;
+  auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
+  if (j.value("schema", std::string()) != "DATA-P3-WCS")
+    return fail("wcs_plan schema mismatch (expected DATA-P3-WCS)");
+  *d = P3WcsDescriptor{};
+  d->crval_ra_deg = j.value("crval_ra_deg", 0.0);
+  d->crval_dec_deg = j.value("crval_dec_deg", 0.0);
+  d->crpix_x = j.value("crpix_x", 0.0);
+  d->crpix_y = j.value("crpix_y", 0.0);
+  d->cd[0][0] = j.value("cd11", 0.0);
+  d->cd[0][1] = j.value("cd12", 0.0);
+  d->cd[1][0] = j.value("cd21", 0.0);
+  d->cd[1][1] = j.value("cd22", 0.0);
+  d->width_px = j.value("width_px", 0);
+  d->height_px = j.value("height_px", 0);
+  d->projection = "TAN";
+  return true;
+}
+
+// ── op: properties (ALG-P3-001 唯一真实入口 = 严格 properties 校验 + 实测
+//    order/BUNIT + uncertainty 子产品探测) ────────────────────────────────────
+Result<void> p3_op_properties(const Json& doc, Json* man) {
+  P3nGeom g;
+  std::string err;
+  if (!p3n_geom(doc, &g, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  using namespace astrocs::phase3;
+  P3Sampler samp{};
+  int order = -1;
+  std::string bunit, serr;
+  const P3ResampleStatus st =
+      p3_sampler_open_ex(g.hips_dir.c_str(), &samp, &order, &bunit, &serr);
+  if (st != P3_RS_OK) {
+    const ErrorDomain dom = (st == P3_RS_IO) ? ErrorDomain::IO : ErrorDomain::DATA;
+    return Result<void>::fail(Error(dom, "p3_sampler_open_ex: " + serr));
+  }
+  p3_sampler_close(&samp);
+  // uncertainty 子产品探测 (properties/order 非法 = 产品损坏显式拒, §30.4)
+  P3UncertaintySource src = P3_UNC_NONE;
+  const P3ResampleStatus ust = p3_uncertainty_open(g.hips_dir.c_str(), order, &src, nullptr);
+  if (ust == P3_RS_PARAM)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "uncertainty sub-product corrupt (properties/order mismatch)"));
+  if (ust != P3_RS_OK)
+    return Result<void>::fail(Error(ErrorDomain::IO, "uncertainty sub-product open failed"));
+
+  const std::string path = g.out_dir + "/p3_props.json";
+  Json props{{"schema", "DATA-P3-PROPS"},
+             {"hips_dir", g.hips_dir},
+             {"hips_order", order},
+             {"tile_width", 512},
+             {"bunit", bunit},
+             {"variance_available", src == P3_UNC_VARIANCE},
+             {"ivar_available", src == P3_UNC_IVAR},
+             {"uncertainty_source",
+              src == P3_UNC_VARIANCE ? "variance"
+                                     : (src == P3_UNC_IVAR ? "ivar" : "none")}};
+  std::ofstream f(path, std::ios::binary);
+  if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_props.json"));
+  f << props.dump(2) << "\n";
+  f.close();
+  if (!f.good()) return Result<void>::fail(Error(ErrorDomain::IO, "p3_props.json write failed"));
+  (*man)["props_artifact"] = path;
+  (*man)["hips_order"] = order;
+  (*man)["bunit"] = bunit;
+  (*man)["uncertainty_source"] = props["uncertainty_source"];
+  return Result<void>::success();
+}
+
+// ── op: wcs (ALG-P3-002 唯一真实入口 = WCS plan 构造 + FITS 关键字文本) ─────
+Result<void> p3_op_wcs(const Json& doc, Json* man) {
+  P3nGeom g;
+  std::string err;
+  if (!p3n_geom(doc, &g, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  // 上游 props artifact fail-closed (DAG 端口语义)
+  Json props;
+  if (!p3n_read_json(g.out_dir + "/p3_props.json", &props, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  using namespace astrocs::phase3;
+  P3WcsDescriptor wcs{};
+  const P3WcsStatus wst = p3_wcs_make(g.ra, g.dec, g.scale, g.w, g.h,
+                                      g.parity.c_str(), 0.0, &wcs);
+  if (wst != P3_WCS_OK) {
+    return Result<void>::fail(
+        Error(ErrorDomain::DATA,
+              std::string("p3_wcs_make rejected: ") +
+                  (wst == P3_WCS_UNSUPPORTED ? "projection unsupported"
+                   : wst == P3_WCS_HEMISPHERE ? "output crosses TAN hemisphere"
+                                              : "parameter out of range")));
+  }
+  const std::string path = g.out_dir + "/p3_wcs.json";
+  Json plan{{"schema", "DATA-P3-WCS"},
+            {"crval_ra_deg", wcs.crval_ra_deg},
+            {"crval_dec_deg", wcs.crval_dec_deg},
+            {"crpix_x", wcs.crpix_x},
+            {"crpix_y", wcs.crpix_y},
+            {"cd11", wcs.cd[0][0]},
+            {"cd12", wcs.cd[0][1]},
+            {"cd21", wcs.cd[1][0]},
+            {"cd22", wcs.cd[1][1]},
+            {"width_px", wcs.width_px},
+            {"height_px", wcs.height_px},
+            {"fits_keywords", p3_wcs_fits_keywords(&wcs)}};
+  std::ofstream f(path, std::ios::binary);
+  if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_wcs.json"));
+  f << plan.dump(2) << "\n";
+  f.close();
+  if (!f.good()) return Result<void>::fail(Error(ErrorDomain::IO, "p3_wcs.json write failed"));
+  (*man)["wcs_plan_artifact"] = path;
+  return Result<void>::success();
+}
+
+// ── op: resample (ALG-P3-003 唯一真实入口 = order 选择 + 反向映射采样 +
+//    DATA-P3-UNC-001 §30.4 不确定度传播; 重计算面, lease cap 权威 worker 池) ─
+Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap) {
+  P3nGeom g;
+  std::string err;
+  if (!p3n_geom(doc, &g, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  Json props, plan;
+  if (!p3n_read_json(g.out_dir + "/p3_props.json", &props, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  if (!p3n_read_json(g.out_dir + "/p3_wcs.json", &plan, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  using namespace astrocs::phase3;
+  P3WcsDescriptor wcs{};
+  if (!p3n_wcs_from_json(plan, &wcs, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  if (wcs.width_px != g.w || wcs.height_px != g.h)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "wcs_plan geometry mismatch with config"));
+
+  P3Sampler samp{};
+  int input_order = 20;
+  std::string bunit, serr;
+  const P3ResampleStatus sst =
+      p3_sampler_open_ex(g.hips_dir.c_str(), &samp, &input_order, &bunit, &serr);
+  if (sst != P3_RS_OK) {
+    const ErrorDomain dom = (sst == P3_RS_IO) ? ErrorDomain::IO : ErrorDomain::DATA;
+    return Result<void>::fail(Error(dom, "p3_sampler_open_ex: " + serr));
+  }
+  P3UncertaintySource src = P3_UNC_NONE;
+  P3Sampler u_samp{};
+  {
+    const P3ResampleStatus ust =
+        p3_uncertainty_open(g.hips_dir.c_str(), input_order, &src, &u_samp);
+    if (ust == P3_RS_PARAM) {
+      p3_sampler_close(&samp);
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "uncertainty sub-product corrupt (properties/order mismatch)"));
+    }
+    if (ust != P3_RS_OK) {
+      p3_sampler_close(&samp);
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "uncertainty sub-product open failed"));
+    }
+  }
+  const bool unc_available = (src != P3_UNC_NONE);
+  // props artifact 的 uncertainty 声明与实测一致性 (上游/下游不漂移)
+  const std::string props_src = props.value("uncertainty_source", std::string("none"));
+  const std::string live_src =
+      src == P3_UNC_VARIANCE ? "variance" : (src == P3_UNC_IVAR ? "ivar" : "none");
+  if (props_src != live_src) {
+    p3_uncertainty_close(&u_samp);
+    p3_sampler_close(&samp);
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "uncertainty_source drift between p3_props.json and live scan"));
+  }
+
+  // max_tiles 内存守卫 (ARCH-P3 §3; 请求可降不可升, 同 p3_session)
+  {
+    const int64_t wh = (int64_t)g.w * g.h;
+    const int64_t per_tile = 512 * 512;
+    const int64_t need = (wh + per_tile - 1) / per_tile + 16;
+    const int64_t default_max = std::min<int64_t>(1024, std::max<int64_t>(8, need));
+    int64_t mt = doc.value("max_tiles", (int)default_max);
+    if (mt > default_max) {
+      p3_uncertainty_close(&u_samp);
+      p3_sampler_close(&samp);
+      return Result<void>::fail(Error(ErrorDomain::RESOURCE,
+          "max_tiles above default memory guard (可降不可升)"));
+    }
+    p3_sampler_set_max_tiles(&samp, (int)std::max<int64_t>(1, mt));
+  }
+
+  int order_sel = -1;
+  if (p3_order_select(input_order, g.scale, &order_sel) != P3_RS_OK) {
+    p3_uncertainty_close(&u_samp);
+    p3_sampler_close(&samp);
+    return Result<void>::fail(Error(ErrorDomain::DATA, "p3_order_select failed"));
+  }
+
+  const long nelem = (long)g.w * g.h;
+  std::vector<float> sig((size_t)nelem, std::nanf(""));
+  std::vector<float> cov((size_t)nelem, 0.0f);
+  std::vector<float> var_plane, ivar_plane;
+  if (unc_available) {
+    var_plane.assign((size_t)nelem, std::nanf(""));
+    ivar_plane.assign((size_t)nelem, std::nanf(""));
+  }
+  std::atomic<long long> missing_px{0};
+  std::atomic<int> corrupt{-1};          // 行号 (u 产品损坏 §30.4-3)
+  const int npts = (g.sampler == "nearest") ? 1 : 4;
+
+  auto worker = [&](int y0, int y1) {
+    P3Sampler w_samp{};
+    std::string wserr;
+    if (p3_sampler_open_ex(g.hips_dir.c_str(), &w_samp, nullptr, nullptr, &wserr) !=
+        P3_RS_OK)
+      return;
+    P3Sampler w_u{};
+    P3UncertaintySource w_src = P3_UNC_NONE;
+    if (unc_available &&
+        p3_uncertainty_open(g.hips_dir.c_str(), input_order, &w_src, &w_u) != P3_RS_OK) {
+      p3_sampler_close(&w_samp);
+      corrupt.store(-2);
+      return;
+    }
+    P3WcsDescriptor w_wcs = wcs;
+    for (int y = y0; y < y1 && corrupt.load() == -1; ++y) {
+      for (int x = 0; x < g.w; ++x) {
+        double px_ra = 0, px_dec = 0;
+        if (p3_wcs_pix2world(&w_wcs, (double)x, (double)y, &px_ra, &px_dec) !=
+            P3_WCS_OK)
+          continue;   // 半球外像素保持 NaN/0
+        const long i = (long)y * g.w + x;
+        float v = 0;
+        int c = 0;
+        double w[4] = {0, 0, 0, 0};
+        uint64_t lf[4] = {0, 0, 0, 0};
+        const P3ResampleStatus rst =
+            (g.sampler == "nearest")
+                ? p3_sample_nearest_ex(&w_samp, px_ra, px_dec, &v, &c, &lf[0])
+                : p3_sample_bilinear_ex(&w_samp, px_ra, px_dec, &v, &c, w, lf);
+        if (rst != P3_RS_OK) continue;
+        sig[(size_t)i] = (c == 1) ? v : std::nanf("");
+        cov[(size_t)i] = (c == 1) ? 1.0f : 0.0f;
+        if (!unc_available) continue;
+        if (c == 0) {   // 无覆盖 → var/ivar=NaN + C=0 (signal NaN 同态)
+          var_plane[(size_t)i] = std::nanf("");
+          ivar_plane[(size_t)i] = std::nanf("");
+          continue;
+        }
+        double u_out = 0;
+        P3UncPixelState u_st = P3_U_OK;
+        const P3ResampleStatus urst =
+            p3_uncertainty_propagate(&w_u, w, lf, npts, &u_out, &u_st);
+        if (urst == P3_RS_PARAM) { corrupt.store(y); break; }   // 产品损坏
+        if (urst != P3_RS_OK) continue;
+        if (u_st == P3_U_MISSING) {
+          missing_px.fetch_add(1);
+          var_plane[(size_t)i] = std::nanf("");
+          ivar_plane[(size_t)i] = std::nanf("");
+          continue;
+        }
+        var_plane[(size_t)i] =
+            std::isnan(u_out) ? std::nanf("") : static_cast<float>(u_out);
+        ivar_plane[(size_t)i] =
+            std::isnan(u_out)
+                ? std::nanf("")
+                : (u_out > 0.0 ? static_cast<float>(1.0 / u_out)
+                               : (u_out == 0.0 ? 0.0f : std::nanf("")));
+      }
+    }
+    p3_uncertainty_close(&w_u);
+    p3_sampler_close(&w_samp);
+  };
+
+  // 行带 worker 池 (worker 数=lease cap 权威; 禁 hardware_concurrency; cap<2 串行)
+  if (cap >= 2 && g.h >= 2) {
+    uint32_t nw = cap;
+    if (nw > (uint32_t)g.h) nw = (uint32_t)g.h;
+    const int rows = g.h / (int)nw;
+    std::vector<std::thread> pool;
+    for (uint32_t k = 0; k < nw; ++k) {
+      const int y0 = (int)k * rows;
+      const int y1 = (k == nw - 1) ? g.h : y0 + rows;
+      pool.emplace_back(worker, y0, y1);
+    }
+    for (auto& t : pool) t.join();
+  } else {
+    worker(0, g.h);
+  }
+  p3_uncertainty_close(&u_samp);
+  p3_sampler_close(&samp);
+  if (corrupt.load() != -1) {
+    if (corrupt.load() == -2)
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "uncertainty sampler open failed in worker"));
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "uncertainty product corrupt (negative/inf variance pixel) at row " +
+            std::to_string(corrupt.load())));
+  }
+
+  // typed artifact: p3_resampled.bin = 平面连续拼接 (f32: sig, cov[, var, ivar])
+  const std::string bin_path = g.out_dir + "/p3_resampled.bin";
+  {
+    std::ofstream bf(bin_path, std::ios::binary);
+    if (!bf) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_resampled.bin"));
+    bf.write(reinterpret_cast<const char*>(sig.data()),
+             (std::streamsize)sizeof(float) * nelem);
+    bf.write(reinterpret_cast<const char*>(cov.data()),
+             (std::streamsize)sizeof(float) * nelem);
+    if (unc_available) {
+      bf.write(reinterpret_cast<const char*>(var_plane.data()),
+               (std::streamsize)sizeof(float) * nelem);
+      bf.write(reinterpret_cast<const char*>(ivar_plane.data()),
+               (std::streamsize)sizeof(float) * nelem);
+    }
+    bf.close();
+    if (!bf.good())
+      return Result<void>::fail(Error(ErrorDomain::IO, "p3_resampled.bin write failed"));
+  }
+  // 完整性锚: bin 流式 sha256 (禁前缀/假哈希; 大图流式不整载)
+  astrocs::crypto::Sha256 bh;
+  {
+    std::ifstream bf(bin_path, std::ios::binary);
+    char hbuf[64 * 1024];
+    while (bf.good()) {
+      bf.read(hbuf, sizeof(hbuf));
+      bh.update(hbuf, static_cast<size_t>(bf.gcount()));
+    }
+  }
+  const std::string bin_sha = bh.final_hex();
+  Json planes = Json::array();
+  planes.push_back("signal");
+  planes.push_back("coverage");
+  if (unc_available) { planes.push_back("variance"); planes.push_back("ivar"); }
+  const std::string json_path = g.out_dir + "/p3_resampled.json";
+  Json res{{"schema", "DATA-P3-RES"},
+           {"width_px", g.w},
+           {"height_px", g.h},
+           {"order_sel", order_sel},
+           {"sampler", g.sampler},
+           {"bitpix", g.bitpix},
+           {"bunit", bunit},
+           {"planes", planes},
+           {"uncertainty_available", unc_available},
+           {"uncertainty_source", live_src},
+           {"uncertainty_missing_pixels", missing_px.load()},
+           {"bin", "p3_resampled.bin"},
+           {"bin_sha256", bin_sha}};
+  std::ofstream f(json_path, std::ios::binary);
+  if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_resampled.json"));
+  f << res.dump(2) << "\n";
+  f.close();
+  if (!f.good())
+    return Result<void>::fail(Error(ErrorDomain::IO, "p3_resampled.json write failed"));
+  (*man)["resampled_artifact"] = json_path;
+  (*man)["order_sel"] = order_sel;
+  (*man)["uncertainty_available"] = unc_available;
+  (*man)["uncertainty_source"] = live_src;
+  (*man)["uncertainty_missing_pixels"] = missing_px.load();
+  return Result<void>::success();
+}
+
+// ── op: writer (ALG-P3-004 唯一真实入口 = 原子流式 FITS 发布) ────────────────
+Result<void> p3_op_writer(const Json& doc, Json* man) {
+  P3nGeom g;
+  std::string err;
+  if (!p3n_geom(doc, &g, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  Json res, plan;
+  if (!p3n_read_json(g.out_dir + "/p3_resampled.json", &res, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  if (!p3n_read_json(g.out_dir + "/p3_wcs.json", &plan, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  using namespace astrocs::phase3;
+  P3WcsDescriptor wcs{};
+  if (!p3n_wcs_from_json(plan, &wcs, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  const long nelem = (long)g.w * g.h;
+  std::vector<float> sig((size_t)nelem), cov((size_t)nelem);
+  const bool unc = res.value("uncertainty_available", false);
+  std::vector<float> var_p, ivar_p;
+  if (unc) { var_p.resize((size_t)nelem); ivar_p.resize((size_t)nelem); }
+  {
+    std::ifstream bf(g.out_dir + "/p3_resampled.bin", std::ios::binary);
+    if (!bf) return Result<void>::fail(Error(ErrorDomain::DATA,
+        "upstream artifact missing: p3_resampled.bin"));
+    bf.read(reinterpret_cast<char*>(sig.data()), (std::streamsize)sizeof(float) * nelem);
+    bf.read(reinterpret_cast<char*>(cov.data()), (std::streamsize)sizeof(float) * nelem);
+    if (unc) {
+      bf.read(reinterpret_cast<char*>(var_p.data()), (std::streamsize)sizeof(float) * nelem);
+      bf.read(reinterpret_cast<char*>(ivar_p.data()), (std::streamsize)sizeof(float) * nelem);
+    }
+    if (!bf.good())
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "p3_resampled.bin truncated (planes vs manifest drift)"));
+  }
+  P3Provenance prov{};
+  prov.hips_id = "ivo://astrocs/phase3";
+  prov.manifest_hash = nullptr;
+  prov.missing_tiles = nullptr;
+  prov.missing_count = 0;
+  const std::string version_str = "astrocs-phase3-node";
+  const std::string run_id_str = "p3-node";
+  const std::string order_sel_str = std::to_string(res.value("order_sel", -1));
+  const std::string sampler_str = res.value("sampler", std::string("bilinear"));
+  prov.software_version = version_str.c_str();
+  prov.run_id = run_id_str.c_str();
+  prov.order_sel_used = order_sel_str.c_str();
+  prov.sampler_used = sampler_str.c_str();
+  const std::string unc_src = res.value("uncertainty_source", std::string("none"));
+  prov.uncertainty_source = (unc_src == "variance" || unc_src == "ivar")
+                                ? unc_src.c_str() : nullptr;
+  prov.uncertainty_missing_pixels =
+      (long)res.value("uncertainty_missing_pixels", 0ll);
+  const std::string fits_path = g.out_dir + "/output_phase3.fits";
+  P3OutputResult ores{};
+  const P3OutputStatus ost = p3_output_write_atomic_ex(
+      sig.data(), cov.data(), unc ? var_p.data() : nullptr,
+      unc ? ivar_p.data() : nullptr, g.w, g.h, &wcs,
+      res.value("bunit", "ADU").c_str(), fits_path.c_str(), &prov, g.bitpix, -1,
+      &ores);
+  if (ost != P3_OUT_OK)
+    return Result<void>::fail(Error(ErrorDomain::IO,
+        "p3_output_write_atomic_ex failed (status " +
+            std::to_string((int)ost) + ")"));
+  long covn = 0;
+  for (long i = 0; i < nelem; ++i) if (cov[(size_t)i] > 0.5f) ++covn;
+  const std::string json_path = g.out_dir + "/p3_writer.json";
+  Json wr{{"schema", "DATA-P3-WRITER-MANIFEST"},
+          {"output_fits", fits_path},
+          {"sha256", std::string(ores.sha256)},
+          {"reopen_ok", ores.reopen_ok},
+          {"coverage_stats", {{"covered_px", covn}, {"total_px", nelem}}},
+          {"uncertainty_available", unc},
+          {"uncertainty_source", unc_src},
+          {"uncertainty_missing_pixels",
+           (long long)res.value("uncertainty_missing_pixels", 0ll)}};
+  std::ofstream f(json_path, std::ios::binary);
+  if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_writer.json"));
+  f << wr.dump(2) << "\n";
+  f.close();
+  (*man)["output_fits"] = fits_path;
+  (*man)["writer_artifact"] = json_path;
+  (*man)["sha256"] = std::string(ores.sha256);
+  (*man)["uncertainty_available"] = unc;
+  return Result<void>::success();
+}
+
+// ── op: verify (ALG-P3-005 唯一真实入口 = 独立重开验证) ──────────────────────
+Result<void> p3_op_verify(const Json& doc, Json* man) {
+  P3nGeom g;
+  std::string err;
+  if (!p3n_geom(doc, &g, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  Json res, wr, plan;
+  if (!p3n_read_json(g.out_dir + "/p3_resampled.json", &res, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  if (!p3n_read_json(g.out_dir + "/p3_writer.json", &wr, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  if (!p3n_read_json(g.out_dir + "/p3_wcs.json", &plan, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  using namespace astrocs::phase3;
+  P3WcsDescriptor wcs{};
+  if (!p3n_wcs_from_json(plan, &wcs, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  const long nelem = (long)g.w * g.h;
+  std::vector<float> sig((size_t)nelem), cov((size_t)nelem);
+  const bool unc = res.value("uncertainty_available", false);
+  std::vector<float> var_p, ivar_p;
+  if (unc) { var_p.resize((size_t)nelem); ivar_p.resize((size_t)nelem); }
+  {
+    std::ifstream bf(g.out_dir + "/p3_resampled.bin", std::ios::binary);
+    if (!bf) return Result<void>::fail(Error(ErrorDomain::DATA,
+        "upstream artifact missing: p3_resampled.bin"));
+    bf.read(reinterpret_cast<char*>(sig.data()), (std::streamsize)sizeof(float) * nelem);
+    bf.read(reinterpret_cast<char*>(cov.data()), (std::streamsize)sizeof(float) * nelem);
+    if (unc) {
+      bf.read(reinterpret_cast<char*>(var_p.data()), (std::streamsize)sizeof(float) * nelem);
+      bf.read(reinterpret_cast<char*>(ivar_p.data()), (std::streamsize)sizeof(float) * nelem);
+    }
+    if (!bf.good())
+      return Result<void>::fail(Error(ErrorDomain::DATA, "p3_resampled.bin truncated"));
+  }
+  P3OutputResult vres{};
+  const P3OutputStatus vst = p3_output_verify_ex(
+      wr.value("output_fits", std::string()).c_str(), &wcs, sig.data(), cov.data(),
+      unc ? var_p.data() : nullptr, unc ? ivar_p.data() : nullptr, g.w, g.h,
+      &vres);
+  if (vst != P3_OUT_OK)
+    return Result<void>::fail(Error(ErrorDomain::IO, "p3_output_verify_ex failed"));
+  const std::string json_path = g.out_dir + "/p3_verify.json";
+  Json ver{{"schema", "DATA-P3-VER"},
+           {"output_fits", wr.value("output_fits", std::string())},
+           {"reopen_ok", vres.reopen_ok},
+           {"coverage_ok", vres.coverage_ok},
+           {"sha256", std::string(vres.sha256)},
+           {"coverage_stats",
+            {{"covered_px", vres.covered_px}, {"total_px", vres.total_px}}},
+           {"uncertainty_available", unc}};
+  std::ofstream f(json_path, std::ios::binary);
+  if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_verify.json"));
+  f << ver.dump(2) << "\n";
+  f.close();
+  (*man)["verified_artifact"] = json_path;
+  (*man)["reopen_ok"] = vres.reopen_ok;
+  return Result<void>::success();
+}
+
+}  // namespace (p3 node ops)
+
+// ── P3NodeModule: Phase3 唯一真实 operation 节点适配器（IModule）────────────
+enum class P3NodeOp { Properties, Wcs, Resample, Writer, Verify };
+struct P3NodeSpec {
+  P3NodeOp op;
+  const char* operation;  // module_ports.registry.json 冻结 operation 名
+  const char* entry;      // 冻结唯一真实入口名（节点 manifest 可审计标记）
+};
+
+struct P3NodeModule : public IModule {
+  ModuleDescriptor desc_;
+  P3NodeSpec spec_;
+  std::string config_;
+  std::string manifest_;
+  uint32_t workers_ = 2;
+
+  P3NodeModule(ModuleDescriptor d, P3NodeSpec s)
+      : desc_(std::move(d)), spec_(s) {}
+
+  const ModuleDescriptor& descriptor() const noexcept override { return desc_; }
+
+  // config 合同: source.hips_dir + center.ra_deg/dec_deg + scale_deg_per_px +
+  // width_px/height_px + output_dir 必填 (类型面); 科学值域在 op 内
+  // fail-closed 校验 (不提前消费科学缺省值; 冻结缺省 sampler=bilinear/
+  // parity=east_left/bitpix=-32 为 SCI §9a 合同值)。
+  Result<void> validate_config(const std::string& config_json) override {
+    Json doc;
+    try {
+      doc = Json::parse(config_json);
+    } catch (const Json::parse_error& e) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          std::string("config parse: ") + e.what()));
+    }
+    if (!doc.is_object())
+      return Result<void>::fail(Error(ErrorDomain::DATA, "config must be an object"));
+    if (!doc.contains("source") || !doc["source"].is_object() ||
+        !doc["source"].contains("hips_dir") || !doc["source"]["hips_dir"].is_string())
+      return Result<void>::fail(Error(ErrorDomain::DATA, "missing source.hips_dir"));
+    if (!doc.contains("center") || !doc["center"].is_object() ||
+        !doc["center"].contains("ra_deg") || !doc["center"].contains("dec_deg"))
+      return Result<void>::fail(Error(ErrorDomain::DATA, "missing center.ra_deg/dec_deg"));
+    if (!doc.contains("output_dir") || !doc["output_dir"].is_string())
+      return Result<void>::fail(Error(ErrorDomain::DATA, "missing output_dir"));
+    if (doc.contains("sampler") && !doc["sampler"].is_string())
+      return Result<void>::fail(Error(ErrorDomain::DATA, "sampler must be string"));
+    if (doc.contains("longitude_parity") && !doc["longitude_parity"].is_string())
+      return Result<void>::fail(Error(ErrorDomain::DATA, "longitude_parity must be string"));
+    if (doc.contains("bitpix") && !doc["bitpix"].is_number_integer())
+      return Result<void>::fail(Error(ErrorDomain::DATA, "bitpix must be integer"));
+    if (doc.contains("max_tiles") && !doc["max_tiles"].is_number_integer())
+      return Result<void>::fail(Error(ErrorDomain::DATA, "max_tiles must be integer"));
+    return Result<void>::success();
+  }
+
+  Result<ModulePlan> plan(const std::string& node_id,
+                          const std::string& config_json) override {
+    config_ = config_json;
+    ModulePlan p;
+    p.node_id = node_id;
+    p.work_units = 1;
+    p.parallel_axes = {"row-band"};
+    p.cpu_heavy = desc_.execution_class == "cpu_heavy";
+    return Result<ModulePlan>::ok(std::move(p));
+  }
+
+  Result<void> execute(RunContext& ctx) override {
+    const uint32_t host_workers =
+        ctx.budget() ? ctx.budget()->budget() : workers_;
+    ThreadLease lease = ctx.acquire_lease(host_workers);
+    const uint32_t cap = lease.acquired() ? lease.size() : 1u;
+    ctx.set_provider("baseline");
+    ctx.record_trace([&] {
+      TraceEvent e;
+      e.type = TraceEventType::PROVIDER_ENTER;
+      e.node_id = ctx.current_node();
+      e.module_id = desc_.module_id;
+      e.provider = "baseline";
+      e.kernel_id = desc_.alg_id;
+      e.workers = cap;
+      e.granted_workers = host_workers;
+      return e;
+    }());
+    Json man = Json{{"kind", "astrocs.phase3.node"},
+                    {"module_id", desc_.module_id},
+                    {"operation", spec_.operation},
+                    {"entry", spec_.entry},
+                    {"artifact_type", desc_.data_id},
+                    {"availability", "available"},
+                    {"status", "running"}};
+    Result<void> r = Result<void>::success();
+    try {
+      Json doc = Json::parse(config_);
+      // typed artifact 落盘面: output_dir 由节点幂等创建 (P2 同款)
+      {
+        const std::string out_dir = doc.value("output_dir", std::string("."));
+        std::error_code ec;
+        std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
+        if (ec && !std::filesystem::exists(std::filesystem::u8path(out_dir), ec)) {
+          man["error"] = "cannot create output_dir: " + out_dir;
+          r = Result<void>::fail(Error(ErrorDomain::IO, man["error"].get<std::string>()));
+        }
+      }
+      if (r.ok()) {
+        switch (spec_.op) {
+          case P3NodeOp::Properties: r = p3_op_properties(doc, &man); break;
+          case P3NodeOp::Wcs:        r = p3_op_wcs(doc, &man); break;
+          case P3NodeOp::Resample:   r = p3_op_resample(doc, &man, cap); break;
+          case P3NodeOp::Writer:     r = p3_op_writer(doc, &man); break;
+          case P3NodeOp::Verify:     r = p3_op_verify(doc, &man); break;
+        }
+      }
+    } catch (const Json::exception& e) {
+      man["error"] = std::string("config value type error: ") + e.what();
+      r = Result<void>::fail(Error(ErrorDomain::DATA, man["error"].get<std::string>()));
+    } catch (const std::bad_alloc&) {
+      man["error"] = "out of memory";
+      r = Result<void>::fail(Error(ErrorDomain::RESOURCE, "out of memory"));
+    } catch (const std::exception& e) {
+      man["error"] = std::string("node exception: ") + e.what();
+      r = Result<void>::fail(Error(ErrorDomain::INTERNAL, man["error"].get<std::string>()));
+    }
+    if (r.failed()) {
+      if (!man.contains("error")) man["error"] = r.error().message();
+      man["status"] = "fail";
+    } else {
+      man["status"] = "ok";
+      ctx.log(LogLevel::INFO, desc_.module_id,
+          "execute OK (" + std::string(spec_.operation) + ")");
+    }
+    manifest_ = man.dump(2);
+    ctx.record_trace([&] {
+      TraceEvent e;
+      e.type = TraceEventType::PROVIDER_LEAVE;
+      e.node_id = ctx.current_node();
+      e.module_id = desc_.module_id;
+      e.provider = "baseline";
+      e.status = r.failed() ? "FAILED" : "OK";
+      return e;
+    }());
+    return r;
+  }
+
+  Result<std::string> inspect() override {
+    if (manifest_.empty())
+      return Result<std::string>::fail(Error(ErrorDomain::DATA,
+          desc_.module_id + ": no manifest (execute not run)"));
+    return Result<std::string>::ok(manifest_);
+  }
+
+  Result<std::string> last_manifest() override {
+    if (manifest_.empty())
+      return Result<std::string>::fail(Error(ErrorDomain::DATA,
+          desc_.module_id + ": no manifest captured (execute not run)"));
+    return Result<std::string>::ok(manifest_);
+  }
+};
+
+std::unique_ptr<IModule> make_p3_node_module(ModuleDescriptor desc, P3NodeSpec spec) {
+  return std::make_unique<P3NodeModule>(std::move(desc), spec);
+}
+
 }  // namespace
 
 // RT-008: cfitsio 首次初始化 shim（core 不 include cfitsio 头，避免依赖图污染）
@@ -3428,17 +4188,29 @@ Result<void> register_phase_modules(ModuleRegistry& registry) {
         d.module_id, [d, spec]() { return make_p2_node_module(d, spec); });
     if (ff.failed()) return ff;
   }
-  // P3-006 (G6): Canonical Phase3 IR 链子模块注册(source→properties→wcs→resample→writer→verify)
-  const ModuleDescriptor p3_chain[] = {
-      p3_properties_descriptor(), p3_wcs_descriptor(),
-      p3_resample2_descriptor(),  p3_writer_descriptor(),
-      p3_verify_descriptor(),
+  // P3-002 (宪章 §7.2/§8.2): Canonical Phase3 IR 5 节点链子模块注册
+  // (source→properties→wcs→resample→writer→verify)。五子节点全部唯一真实
+  // operation 委托（P3-002 整改: 原工厂委托 P3Api session adapter = 每个子
+  // 节点调用完整 p3_session_run, 5 节点链重复执行全链 5 次, 违反 RT-001 每
+  // node 唯一真实 operation 绑定）; 各节点 operation/entry 与
+  // runtime/pipeline/module_ports.registry.json 冻结绑定表一致, manifest
+  // 携带标记供 trace/审计; 节点间 typed artifact 经 output_dir 文件约定
+  // 传递 (p3_props.json → p3_wcs.json → p3_resampled.{json,bin} →
+  // output_phase3.fits → p3_verify.json)。
+  // 顶层 astrocs.phase3.resample 占位 descriptor（P2 模板复制残留）不在本
+  // 任务触碰, 由 P3-RSMP-INT 处理 (lib/phase3_rsmp/README.md 实测登记)。
+  const std::pair<ModuleDescriptor, P3NodeSpec> p3_nodes[] = {
+      {p3_properties_descriptor(), {P3NodeOp::Properties, "read_properties",      "astrocs_phase3_properties_v1"}},
+      {p3_wcs_descriptor(),        {P3NodeOp::Wcs,        "build_wcs",            "astrocs_phase3_wcs_v1"}},
+      {p3_resample2_descriptor(),  {P3NodeOp::Resample,   "resample_projection",  "astrocs_phase3_resample_v1"}},
+      {p3_writer_descriptor(),     {P3NodeOp::Writer,     "write_fits",           "astrocs_phase3_writer_v1"}},
+      {p3_verify_descriptor(),     {P3NodeOp::Verify,     "verify_output",        "astrocs_phase3_verify_v1"}},
   };
-  for (const auto& d : p3_chain) {
+  for (const auto& [d, spec] : p3_nodes) {
     auto rr = registry.register_module(d);
     if (rr.failed()) return rr;
     auto ff = registry.register_factory(
-        d.module_id, [d]() { return make_session_module<P3Api>(d); });
+        d.module_id, [d, spec]() { return make_p3_node_module(d, spec); });
     if (ff.failed()) return ff;
   }
 

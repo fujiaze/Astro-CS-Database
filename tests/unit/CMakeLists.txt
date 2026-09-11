@@ -1156,3 +1156,44 @@ add_test(NAME p3_projection_units COMMAND p3_projection_test)
 add_test(NAME p3_projection_fault COMMAND p3_projection_test)
 set_tests_properties(p3_projection_fault PROPERTIES
   ENVIRONMENT "ASTROCS_P3PROJ_FAULT=tan")
+
+# ----------------------------------------------------------------------------
+# P3-002 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) — Phase3 真实节点流式输出与
+# 不确定度验证面
+# 合同锚: DATA_SEMANTICS §30.4 (DATA-P3-UNC-001 传播公式/invalid policy) +
+# §30.5 TEST-P3-UNC-DESIGN-001 (W1..W6 门) + docs/science/
+# UNCERTAINTY_AND_COVARIANCE.md Phase3 节 + 宪章 §7.2/§8.2 (每 DAG 节点唯一
+# 真实 entrypoint/call_count=1; 子节点禁调完整 phase3_session_run) +
+# RUN_GRAPH_CONTRACT §5/§6。P1-001/P2-001 先例同构。
+# 组: p3002_real_nodes (节点 operation/entry 冻结绑定+typed artifact+全链
+# call_count=1+fail-closed 负面+确定性) / p3002_uncertainty (W3 unavailable
+# 显式登记+W6 available EXTNAME/BUNIT/DATASUM+W4 NaN/负值/覆盖不一致+W5
+# 节点 parity; 采样器级 W1/W2 数值 oracle 在实现符号就位后追加)。
+# 故障注入: ASTROCS_P3002_FAULT=zero_var|norm_sum|skip_hdu 必败 (rc=1,
+# P2-002 先例同构: 注入等价缺陷断言, 正常实现必败)。
+# ----------------------------------------------------------------------------
+add_executable(p3002_real_nodes_test p3002_real_nodes_test.cpp)
+target_include_directories(p3002_real_nodes_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1_session/tests/p1sess
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_session
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/third_party/cfitsio
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common/healpix)
+target_link_libraries(p3002_real_nodes_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase3_session)
+add_test(NAME p3002_real_nodes COMMAND p3002_real_nodes_test)
+
+add_executable(p3002_uncertainty_test p3002_uncertainty_test.cpp)
+target_include_directories(p3002_uncertainty_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase1_session/tests/p1sess
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_session
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/third_party/cfitsio
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common/healpix)
+target_link_libraries(p3002_uncertainty_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase3_session astrocs_hips astrocs_aio astrocs_cpu astrocs_common)
+add_test(NAME p3002_uncertainty COMMAND p3002_uncertainty_test)
