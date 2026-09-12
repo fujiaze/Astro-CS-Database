@@ -193,6 +193,127 @@ json run_node(ModuleRegistry& reg, const std::string& module_id,
   return j;
 }
 
+// ═══ CORE-RACE-001 helpers（p1001 链并发撕裂读）═══════════════════════════
+// 缺陷（修复前）: p1_op_cosmetic 读取 cal 节点产物 calibrated_<base> 后就地覆写
+// 同一路径, 而 drz 节点（IR 声明输入 artifact:cal）与 cos 同为 cal 下游、
+// resources.parallel=true ⇒ create_runtime(2) 下并发执行; aio_write_fits 自身
+// 非原子（fopen("wb") 截断 + 增量写）⇒ 消费者可观察到半写文件。
+std::string read_bytes(const std::string& p) {
+  std::ifstream f(p, std::ios::binary);
+  return std::string((std::istreambuf_iterator<char>(f)),
+                     std::istreambuf_iterator<char>());
+}
+
+// 热像素场（高斯星 + 两个极热像素）: 保证 cosmetic 真实改动像素（非空转 fixture）
+struct HotField { float bg; float amp; };
+inline float hot_field_pixel(int i, void* user) {
+  auto* sf = static_cast<HotField*>(user);
+  const int x = i % kW, y = i / kW;
+  const double dx = static_cast<double>(x) - 16.0;
+  const double dy = static_cast<double>(y) - 16.0;
+  double v = sf->bg + sf->amp * std::exp(-(dx * dx + dy * dy) / (2.0 * 1.5 * 1.5));
+  if ((x == 5 && y == 5) || (x == 26 && y == 7)) v += 1.0e6;  // 热像素
+  return static_cast<float>(v);
+}
+
+Fixture make_hot_fixture(const char* tag) {
+  Fixture f;
+  f.dir = fs::temp_directory_path() /
+          ("p1001_chain_race_" + std::string(tag) + "_" +
+           std::to_string(P1001_GETPID));
+  std::error_code ec;
+  fs::create_directories(f.dir, ec);
+  f.light1 = (f.dir / "light_1.fits").string();
+  f.light2 = (f.dir / "light_2.fits").string();
+  f.bias = (f.dir / "master_bias.fits").string();
+  f.dark = (f.dir / "master_dark.fits").string();
+  f.flat = (f.dir / "master_flat.fits").string();
+  f.out_dir = f.dir.string();
+  HotField hf{100.0f, 5000.0f};
+  CHECK(p1sess::write_fits_file(f.light1, kW, kH, hot_field_pixel, &hf) == 0);
+  CHECK(p1sess::write_fits_file(f.light2, kW, kH, hot_field_pixel, &hf) == 0);
+  float vb = 10.0f, vd = 5.0f, vf = 1.0f;
+  CHECK(p1sess::write_fits_file(f.bias, kW, kH, const_pixel, &vb) == 0);
+  CHECK(p1sess::write_fits_file(f.dark, kW, kH, const_pixel, &vd) == 0);
+  CHECK(p1sess::write_fits_file(f.flat, kW, kH, const_pixel, &vf) == 0);
+  return f;
+}
+
+// 全链 7 节点 IR（与 §2 同构; drz 与 cos 并发读同一 artifact:cal）
+json build_p1001_full_chain_ir(const std::string& cfg, const std::string& pipeline_id) {
+  auto node = [&](const char* nid, const char* mid, const char* in_port,
+                  const char* in_art, const char* out_port, const char* out_art) {
+    json n;
+    n["node_id"] = nid;
+    n["module_id"] = mid;
+    n["module_api"] = "1.x";
+    n["config"] = json::parse(cfg);
+    if (in_port) n["inputs"] = json{{in_port, in_art}};
+    n["outputs"] = json{{out_port, out_art}};
+    n["resources"] = json{{"class", "cpu_heavy"}, {"parallel", true}};
+    return n;
+  };
+  json ir;
+  ir["schema"] = "astrocs.pipeline/v1";
+  ir["pipeline_id"] = pipeline_id;
+  ir["version"] = "1.0.0";
+  ir["nodes"] = json::array();
+  ir["nodes"].push_back(node("cal", "astrocs.phase1.calibration", "frames", "artifact:in", "calibrated", "artifact:cal"));
+  ir["nodes"].push_back(node("cos", "astrocs.phase1.cosmetic", "calibrated", "artifact:cal", "cleaned", "artifact:cos"));
+  ir["nodes"].push_back(node("psf", "astrocs.phase1.star-psf", "cleaned", "artifact:cos", "sources", "artifact:psf"));
+  ir["nodes"].push_back(node("phot", "astrocs.phase1.photometry", "sources", "artifact:psf", "fluxes", "artifact:phot"));
+  ir["nodes"].push_back(node("snr", "astrocs.phase1.noise-snr", "fluxes", "artifact:phot", "snr", "artifact:snr"));
+  ir["nodes"].push_back(node("drz", "astrocs.phase1.drizzle", "calibrated", "artifact:cal", "stacked", "artifact:drz"));
+  ir["nodes"].push_back(node("wr", "astrocs.phase1.writer", "stacked", "artifact:drz", "fits", "artifact:wr"));
+  ir["outputs"] = json{{"fits", "artifact:wr"}, {"snr", "artifact:snr"},
+                       {"psf", "artifact:psf"},
+                       {"cal", "artifact:cal"}, {"cos", "artifact:cos"}};
+  return ir;
+}
+
+std::string p1001_full_chain_cfg(const Fixture& fx) {
+  return std::string(R"({
+    "input_lights": [")") + fx.light1 + R"(", ")" + fx.light2 + R"("],
+    "master_bias": ")" + fx.bias + R"(",
+    "master_dark": ")" + fx.dark + R"(",
+    "master_flat": ")" + fx.flat + R"(",
+    "output_dir": ")" + fx.out_dir + R"(",
+    "cosmetic": {"enabled": true, "hot_sigma": 5.0, "cold_sigma": 5.0},
+    "wcs": {"crpix1": 16.0, "crpix2": 16.0, "crval1": 10.0, "crval2": 20.0,
+            "cd11": -0.0002777777777777778, "cd12": 0.0,
+            "cd21": 0.0, "cd22": 0.0002777777777777778},
+    "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0}
+  })";
+}
+
+// 单次全链运行; 返回 run 是否成功 + 每节点 call_count/status 明细
+struct ChainRunResult {
+  bool ok = false;
+  std::string error;
+  std::size_t node_count = 0;
+  bool trace_ok = true;
+};
+ChainRunResult run_full_chain_once(const std::string& cfg, uint32_t workers,
+                                   ModuleRegistry& reg) {
+  ChainRunResult out;
+  auto rt = create_runtime(workers);
+  if (!rt.ok()) { out.error = "create_runtime failed"; return out; }
+  json ir = build_p1001_full_chain_ir(cfg, "p1001.chain.race");
+  auto load = rt.value()->load_pipeline(ir.dump(), reg);
+  if (!load.ok()) { out.error = "load_pipeline: " + load.error().message(); return out; }
+  RunContext ctx;
+  auto rrun = rt.value()->run(ctx);
+  out.ok = rrun.ok();
+  if (!out.ok) out.error = rrun.error().message();
+  const auto tr = rt.value()->node_trace();
+  out.node_count = tr.size();
+  for (const auto& t : tr) {
+    if (t.call_count != 1 || t.status != "COMPLETED") out.trace_ok = false;
+  }
+  if (!rt.value()->trace_violations().empty()) out.trace_ok = false;
+  return out;
+}
+
 }  // namespace
 
 // ── 1. 每节点唯一真实 operation 标记 + typed artifact ─────────────────────
@@ -666,6 +787,326 @@ static void test_determinism() {
   }
 }
 
+// ══ 6. CORE-RACE-001: artifact:cos 必须落独立路径（禁就地覆写 artifact:cal）══
+// RED 锚定（修复前）: p1_op_cosmetic 读取 cal 产物 calibrated_<base> 后就地覆写
+// 同一路径 → 断言①（独立路径）与断言②（artifact:cal 字节不变）确定性失败。
+static void test_cos_artifact_is_independent() {
+  Fixture fx = make_hot_fixture("indep");
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  RunContext ctx;
+  const std::string cfg = p1001_full_chain_cfg(fx);
+
+  json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+  CHECK(man_cal.value("status", "") == "ok");
+  const std::string cal_art = fx.out_dir + "/calibrated_light_1.fits";
+  CHECK(fs::exists(fs::path(cal_art)));
+  const std::string cal_before = read_bytes(cal_art);
+  CHECK(!cal_before.empty());
+
+  json man_cos = run_node(reg, "astrocs.phase1.cosmetic", cfg, ctx);
+  CHECK(man_cos.value("status", "") == "ok");
+  CHECK(man_cos.contains("artifacts") && man_cos["artifacts"].is_array() &&
+        !man_cos["artifacts"].empty());
+  const std::string cos_art = man_cos["artifacts"][0].get<std::string>();
+
+  // ① artifact:cos 与 artifact:cal 必须落不同物理路径
+  CHECK_MSG(cos_art != cal_art,
+            "cosmetic must publish an independent artifact path (no in-place overwrite)");
+  CHECK_MSG(cos_art.find("calibrated_") == std::string::npos,
+            "cosmetic artifact must not reuse the artifact:cal path");
+  CHECK(fs::exists(fs::path(cos_art)));
+
+  // ② artifact:cal 在 cos 之后字节不变（并发消费者读到的永远是同一完整文件）
+  CHECK_MSG(read_bytes(cal_art) == cal_before,
+            "cosmetic must not mutate artifact:cal bytes (torn-read source)");
+
+  // ③ 科学语义零变化: 本配置下 ac_correct_frame 无 dark/bias 掩码源（节点面
+  //    传 nullptr/nullptr）⇒ 逐像素直通, cos 产物必须与 artifact:cal 字节相同
+  //    （修复只改落盘路径与原子性, 不动任何科学数值）。
+  CHECK_MSG(read_bytes(cos_art) == cal_before,
+            "cosmetic pass-through must be bitwise identical to artifact:cal"
+            " (scientific_change=none)");
+
+  cleanup_fixture(fx);
+}
+
+// ══ 7. CORE-RACE-001: artifact:cos 消费者读 cos 产物（IR 接线一致）═══════
+// RED 锚定（修复前）: cosmetic 就地覆写 artifact:cal ⇒ psf 读到的 file 名恒为
+// calibrated_<base>（artifact:cos 无物理面）→ 断言失败。
+static void test_consumer_reads_cos_artifact() {
+  Fixture fx = make_hot_fixture("wire");
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  RunContext ctx;
+  const std::string cfg = p1001_full_chain_cfg(fx);
+
+  json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+  CHECK(man_cal.value("status", "") == "ok");
+  json man_cos = run_node(reg, "astrocs.phase1.cosmetic", cfg, ctx);
+  CHECK(man_cos.value("status", "") == "ok");
+  CHECK(!man_cos["artifacts"].empty());
+  const std::string cos_art = man_cos["artifacts"][0].get<std::string>();
+  const std::string cos_base = cos_art.substr(cos_art.find_last_of("/\\") + 1);
+
+  json man_psf = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx);
+  CHECK(man_psf.value("status", "") == "ok");
+  json cat;
+  try { cat = json::parse(read_file(man_psf.value("sources_artifact", ""))); }
+  catch (...) { CHECK(false); }
+  CHECK(!cat.value("frames", json::array()).empty());
+  std::size_t n_frames = 0;
+  for (const auto& fr : cat.value("frames", json::array())) {
+    const std::string f = fr.value("file", "");
+    CHECK_MSG(f.rfind("cleaned_", 0) == 0,
+              ("artifact:cos consumer (star-psf) must read the cosmetic artifact, got: " + f).c_str());
+    CHECK(fs::exists(fs::path(fx.out_dir + "/" + f)));
+    ++n_frames;
+  }
+  CHECK(n_frames == 2);
+  CHECK(cos_base.rfind("cleaned_", 0) == 0);
+
+  cleanup_fixture(fx);
+}
+
+// ══ 8. CORE-RACE-001: 并发全链 N 次连跑 0 失败 ════════════════════════════
+// 修复前实测: CI-REG-002 200 次复跑 pass=176 fail=24（12%）——drz 与 cos 并发
+// 读同一 artifact:cal, cosmetic 非原子就地覆写 ⇒ 消费者观察到半写文件。
+// 次数经 P1001_CHAIN_STRESS_RUNS 覆盖（证据采集用 200）。
+static void test_parallel_chain_stress() {
+  Fixture fx = make_fixture("stress");
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const std::string cfg = p1001_full_chain_cfg(fx);
+
+  int runs = 40;
+  if (const char* e = std::getenv("P1001_CHAIN_STRESS_RUNS")) {
+    const int v = std::atoi(e);
+    if (v > 0) runs = v;
+  }
+  int failed = 0;
+  std::string first_error;
+  int executed = 0;
+  for (int i = 0; i < runs; ++i) {
+    ChainRunResult r = run_full_chain_once(cfg, 2, reg);
+    ++executed;
+    if (!r.ok) {
+      ++failed;
+      if (first_error.empty())
+        first_error = "run#" + std::to_string(i + 1) + ": " + r.error;
+      if (first_error.find("\n") == std::string::npos && failed < 3)
+        first_error += "\n          " + ("run#" + std::to_string(i + 1) + ": " + r.error);
+    }
+    CHECK(r.node_count == 7);
+    CHECK(r.trace_ok);
+  }
+  CHECK_MSG(failed == 0,
+            ("parallel chain torn-read: runs=" + std::to_string(executed) +
+             " failures=" + std::to_string(failed) + " first=" + first_error).c_str());
+  std::printf("[CORE-RACE-001] parallel chain stress: runs=%d failures=%d\n",
+              executed, failed);
+  cleanup_fixture(fx);
+}
+
+// ══ 9. CORE-RACE-001: 1/N worker parity（bitwise 确定性）══════════════════
+static void test_worker_parity_bitwise() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const uint32_t workers[] = {1u, 2u, 4u};
+  std::string base_cal, base_cos, base_src, base_snr;
+  bool have_base = false;
+  for (uint32_t w : workers) {
+    Fixture fx = make_hot_fixture(("par" + std::to_string(w)).c_str());
+    const std::string cfg = p1001_full_chain_cfg(fx);
+    ChainRunResult r = run_full_chain_once(cfg, w, reg);
+    CHECK_MSG(r.ok, ("workers=" + std::to_string(w) + ": " + r.error).c_str());
+    const std::string cal = read_bytes(fx.out_dir + "/calibrated_light_1.fits");
+    const std::string cos = read_bytes(fx.out_dir + "/cleaned_light_1.fits");
+    const std::string src = read_file(fx.out_dir + "/p1_sources.json");
+    const std::string snr = read_file(fx.out_dir + "/p1_snr.json");
+    CHECK_MSG(!cal.empty() && !cos.empty() && !src.empty() && !snr.empty(),
+              ("workers=" + std::to_string(w) + ": artifacts missing").c_str());
+    if (!have_base) {
+      base_cal = cal; base_cos = cos; base_src = src; base_snr = snr;
+      have_base = true;
+    } else {
+      CHECK_MSG(cal == base_cal, "artifact:cal must be bitwise identical across worker counts");
+      CHECK_MSG(cos == base_cos, "artifact:cos must be bitwise identical across worker counts");
+      CHECK_MSG(src == base_src, "p1_sources.json must be bitwise identical across worker counts");
+      CHECK_MSG(snr == base_snr, "p1_snr.json must be bitwise identical across worker counts");
+    }
+    cleanup_fixture(fx);
+  }
+}
+
+// ══ 10. CORE-RACE-001 故障注入（负向必败面）═══════════════════════════════
+static void test_torn_artifact_fault_injection() {
+  // 10a. 残缺头（非原子覆写窗口内被打开的中间态）→ 消费者必须 fail-closed
+  {
+    Fixture fx = make_hot_fixture("tornhdr");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    RunContext ctx;
+    const std::string cfg = p1001_full_chain_cfg(fx);
+    json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+    CHECK(man_cal.value("status", "") == "ok");
+    const std::string cal_art = fx.out_dir + "/calibrated_light_1.fits";
+    CHECK(p1sess::sess_truncate_file(cal_art, 320) == 0);  // 头 6 卡(480B) 之内截断
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &rc);
+    CHECK_MSG(rc.failed(), "torn artifact must fail closed");
+    CHECK(rc.error().domain() == ErrorDomain::IO);
+    CHECK(!fs::exists(fs::path(fx.out_dir + "/p1_stack.json")));
+    cleanup_fixture(fx);
+  }
+  // 10b. 发布卫生 + 残缺旧产物覆盖: 预置一个残缺的 artifact:cos 文件, 再跑
+  //      cosmetic → 必须以完整文件替换（原子发布）, 且不留临时文件
+  {
+    Fixture fx = make_hot_fixture("stale");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    RunContext ctx;
+    const std::string cfg = p1001_full_chain_cfg(fx);
+    json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+    CHECK(man_cal.value("status", "") == "ok");
+    const std::string cos_art = fx.out_dir + "/cleaned_light_1.fits";
+    float v = 1.0f;
+    CHECK(p1sess::write_fits_file(cos_art, kW, kH, const_pixel, &v) == 0);
+    CHECK(p1sess::sess_truncate_file(cos_art, 64) == 0);  // 残缺旧产物（64B）
+    json man_cos = run_node(reg, "astrocs.phase1.cosmetic", cfg, ctx);
+    CHECK(man_cos.value("status", "") == "ok");
+    std::error_code ec;
+    const auto sz = fs::file_size(cos_art, ec);
+    CHECK_MSG(!ec && sz >= 2880u + static_cast<uint64_t>(kW) * kH * 4u,
+              "cosmetic must atomically replace a stale partial artifact with a"
+              " complete one");
+    // 发布卫生: 成功后不得残留暂存文件（崩溃残留也不会污染产物面）
+    int leftovers = 0;
+    for (const auto& e : fs::directory_iterator(fx.dir)) {
+      if (e.path().filename().string().find(".tmp.") != std::string::npos)
+        ++leftovers;
+    }
+    CHECK_MSG(leftovers == 0, "atomic publish must not leave staging files");
+    cleanup_fixture(fx);
+  }
+  // 10c. 检测器非空转: 注入旧缺陷语义（就地覆写 artifact:cal）→ 不可变性
+  //      比较器必须报差异（证明 §6 的不变量断言在缺陷回归时必然失败）
+  {
+    Fixture fx = make_hot_fixture("inject");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    RunContext ctx;
+    const std::string cfg = p1001_full_chain_cfg(fx);
+    json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+    CHECK(man_cal.value("status", "") == "ok");
+    const std::string cal_art = fx.out_dir + "/calibrated_light_1.fits";
+    const std::string cal_before = read_bytes(cal_art);
+    float v = 777.0f;
+    CHECK(p1sess::write_fits_file(cal_art, kW, kH, const_pixel, &v, 0) == 0);
+    CHECK_MSG(read_bytes(cal_art) != cal_before,
+              "immutability comparator must detect in-place overwrite (fault injection)");
+    cleanup_fixture(fx);
+  }
+}
+
+// ══ 11. CORE-RACE-001: 科学语义零变化（修复前/后 bitwise golden 对照）══════
+// P1001_GOLDEN_DIR=<dir>: 1 worker 全链跑一次并把确定性产物字节存为基线;
+// P1001_GOLDEN_CMP=<dir>: 同样跑一次与基线逐字节比较（不一致 = 科学漂移）。
+// 排除项: p1_stack.json（含 elapsed_sec 计时）/ p1_final.json（含输出目录路径
+// 与 HiPS 根, 随临时目录变化）——均为非确定性字段, 不属科学数值面。
+static void test_golden_parity() {
+  const char* dump = std::getenv("P1001_GOLDEN_DIR");
+  const char* cmp = std::getenv("P1001_GOLDEN_CMP");
+  if (!dump && !cmp) {
+    std::printf("[CORE-RACE-001] golden parity: skipped (env unset)\n");
+    return;
+  }
+  // 修复前基线只含"就地覆写后的 calibrated_*"（当时无独立 cos 产物）; 因此
+  // 字节对照按 语义等价对 进行: 修复后 cleaned_<base> ≡ 修复前 calibrated_<base>
+  // （同一 ac_correct_frame 输出, 只换了落盘路径）。
+  struct BytePair { const char* now; const char* before; };
+  static const BytePair kBytePairs[] = {
+      {"cleaned_light_1.fits", "calibrated_light_1.fits"},
+      {"cleaned_light_2.fits", "calibrated_light_2.fits"}};
+  // JSON 产物: 数值面逐字段比对（"file" 字段为 artifact 接线改名:
+  // calibrated_→cleaned_ 同帧同序, 不属科学数值; 其余键必须完全一致）
+  static const char* kJsonArtifacts[] = {"p1_sources.json", "p1_psf.json",
+                                         "p1_flux.json", "p1_snr.json"};
+  Fixture fx = make_hot_fixture("golden");
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  ChainRunResult r = run_full_chain_once(p1001_full_chain_cfg(fx), 1, reg);
+  CHECK_MSG(r.ok, ("golden run failed: " + r.error).c_str());
+  const fs::path dir = dump ? fs::path(dump) : fs::path(cmp);
+  std::error_code ec;
+  fs::create_directories(dir, ec);
+  int compared = 0;
+
+  for (const BytePair& bp : kBytePairs) {
+    const std::string src = fx.out_dir + "/" + bp.now;
+    CHECK_MSG(fs::exists(fs::path(src)),
+              ("golden artifact missing: " + std::string(bp.now)).c_str());
+    if (dump) {
+      std::error_code cec;
+      fs::copy_file(fs::path(src), dir / bp.before,
+                    fs::copy_options::overwrite_existing, cec);
+      CHECK_MSG(!cec, ("golden dump failed: " + std::string(bp.now)).c_str());
+      continue;
+    }
+    const fs::path base = dir / bp.before;
+    CHECK_MSG(fs::exists(base),
+              ("golden baseline missing: " + std::string(bp.before)).c_str());
+    if (!fs::exists(base)) continue;
+    CHECK_MSG(read_bytes(src) == read_bytes(base.string()),
+              ("science drift (cosmetic pixels) vs pre-fix golden: " +
+               std::string(bp.now)).c_str());
+    ++compared;
+  }
+
+  for (const char* name : kJsonArtifacts) {
+    const std::string src = fx.out_dir + "/" + name;
+    CHECK_MSG(fs::exists(fs::path(src)),
+              ("golden artifact missing: " + std::string(name)).c_str());
+    if (dump) {
+      std::error_code cec;
+      fs::copy_file(fs::path(src), dir / name,
+                    fs::copy_options::overwrite_existing, cec);
+      CHECK_MSG(!cec, ("golden dump failed: " + std::string(name)).c_str());
+      continue;
+    }
+    const fs::path base = dir / name;
+    CHECK_MSG(fs::exists(base),
+              ("golden baseline missing: " + std::string(name)).c_str());
+    if (!fs::exists(base)) continue;
+    json now, ref;
+    try {
+      now = json::parse(read_file(src));
+      ref = json::parse(read_file(base.string()));
+    } catch (...) {
+      CHECK_MSG(false, ("golden JSON parse failed: " + std::string(name)).c_str());
+      continue;
+    }
+    // "file" 键退出比对（artifact 接线改名, 非数值面）; 其余逐字段一致
+    auto strip_files = [](json& j, auto&& self) -> void {
+      if (j.is_object()) {
+        j.erase("file");
+        for (auto& kv : j.items()) self(kv.value(), self);
+      } else if (j.is_array()) {
+        for (auto& v : j) self(v, self);
+      }
+    };
+    strip_files(now, strip_files);
+    strip_files(ref, strip_files);
+    CHECK_MSG(now == ref,
+              ("science drift (numeric surface) vs pre-fix golden: " +
+               std::string(name)).c_str());
+    ++compared;
+  }
+  std::printf("[CORE-RACE-001] golden parity: mode=%s compared=%d dir=%s\n",
+              dump ? "dump" : "compare", compared, dir.string().c_str());
+  cleanup_fixture(fx);
+}
+
 int main() {
   test_nodes_real_operation();
   test_runtime_chain_call_count_1();
@@ -673,6 +1114,14 @@ int main() {
   test_complete_gate_fail_closed();
   test_negative_injection();
   test_determinism();
+  // CORE-RACE-001（p1001 链并发撕裂读）: 独立产物路径 / IR 接线一致性 /
+  // 并发全链 N 次连跑 / 1-N worker parity / 故障注入
+  test_cos_artifact_is_independent();
+  test_consumer_reads_cos_artifact();
+  test_parallel_chain_stress();
+  test_worker_parity_bitwise();
+  test_torn_artifact_fault_injection();
+  test_golden_parity();
   if (failures == 0) {
     std::printf("P1-001 REAL NODES PASS (8 节点唯一真实 operation + call_count=1 + complete 门 fail-closed + 下游零调用)\n");
     return 0;
