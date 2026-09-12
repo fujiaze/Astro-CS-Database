@@ -32,6 +32,47 @@
 | DATA-P2-REJ-001 | Phase2 rejection 产品 nused/nrej(目标态, 诊断统计平面) | int32 | HEALPix NESTED 512 tile | 无量纲计数 | ICRS | 无覆盖=0(禁 −1 哨兵); 逐帧 reason 级非目标 | persisted(nused/,nrej/ 目录; AIO 位 64/32 冻结分配) | HiPS(不入 exchange science planes 枚举) |
 | DATA-P2-PROV-001 | Phase2 provenance 键组(目标态) | 64hex/uint/string/bool | 标量×5 | 无量纲 | 无(元数据) | uncertainty_available=false 显式登记非失败; 禁缺键/占位 | persisted(properties+manifest.json 双写) | HiPS properties+JSON |
 | DATA-P3-UNC-001 | Phase3 重采样 uncertainty 传播产品(目标态) | f32/f64 | [W_out,H_out] 行主序 | ADU²/ADU⁻²(BUNIT 派生) | TAN/ICRS(FITS-WCS) | 无覆盖=NaN(C=0); NaN 传播=C=1; 负/Inf=损坏显式错误; unavailable=无 HDU+manifest 标记 | persisted(单 FITS 文件 VARIANCE/IVAR 扩展 HDU) | FITS(EXTNAME=VARIANCE/IVAR, DATASUM 逐 HDU) |
+| DATA-HIPS-001 | HiPS 产品输入面(properties + signal tile 读路径; 正文=SCI-P3-001 §9a-1 + DATA_SEMANTICS §29.1, tile 读路径=§3 冻结) | f32(tile) + 文本(properties) | 512×512/leaf(W=hips_tile_width, leaf=HEALPix cell @hips_order) | 面亮度(BUNIT 透传, 缺省 ADU; 禁默认 Jy/beam) | HEALPix NESTED(frame=ICRS; tile 内 FITS local 映射=§3) | NaN=传播语义非 invalid; 缺 tile=无覆盖非错误; properties 必需键非法→显式 P3_RS_PARAM | shared(只读共享; 产品归生产方 Phase1/Phase2) | HiPS 目录树(properties + FITS tiles) |
+| DATA-TILE-001 | 单个 HiPS leaf tile 科学面(W×W FITS float tile; 正文=SCI-P3-001 §9a-1/-8 + DATA_SEMANTICS §3) | f32 | [W,W] FITS local(W=512, leaf=NESTED 18 bit) | 面亮度(surface brightness; BUNIT 透传, 缺省 ADU) | HEALPix NESTED leaf + tile 内 fits_index=(511−x)·512+y(§3 CDS oracle 冻结) | tile 内 NaN=传播非 invalid; 缺 tile=无覆盖非错误; 非 float/多通道/JPEG-PNG/int+BLANK=显式拒绝 | shared(sampler 只读缓存, 禁改写) | FITS tile(HiPS 目录内) |
+
+### 1.1 登记行权威锚点（CI-DATA-REG-001，2026-09-12）
+
+上表末两行 `DATA-HIPS-001` / `DATA-TILE-001` 是**既存** ID 的登记补齐，
+**不是新语义**：两 ID 早已在 DATA_SEMANTICS §29.5（"DATA-HIPS-001/
+DATA-TILE-001（HiPS properties/tile 输入面）"）、生产 descriptor
+（lib/core/src/module_adapters.cpp:436-437 与 :459/:498）、
+runtime/pipeline/module_ports.registry.json:246/:277、registry 端口表
+（docs/modules/registry/astrocs.phase3.resample.md、…resample2.md、
+…properties.md）、tests/unit/core_pipeline_test.cpp:66-67 在用，并在
+docs/traceability/TRACEABILITY_MATRIX.csv:25/:31 登记为 `VERIFIED`。
+
+本登记只把**既存冻结正文**映射为登记行，未新增/修改任何公式、单位、
+坐标系、精度或 invalid 规则。逐行正文锚点：
+
+- `DATA-HIPS-001`（HiPS 产品输入面）: SCI-P3-001（docs/science/
+  PHASE3_HIPS_TO_FITS.md）§4 输入有效域（properties 必需键
+  `hips_order/hips_tile_width/hips_frame/dataproduct_type=image`；NESTED
+  唯一；仅 float FITS tiles）、§9a-1（tile=HEALPix cell @hips_order 的
+  W×W FITS float tile）、§9a-8/-9（tile 值=面亮度；缺 tile=无覆盖）、
+  §8（tile 内 NaN 传播）；DATA_SEMANTICS §2（NESTED/leaf_order）、
+  §3（FITS tile local-pixel 映射，V5/V11 冻结）、§4（signal/support/
+  invalid）、§29.1（hips_dir 严格校验 + HiPS tile 读路径行）。单位口径
+  =§29.2/§29.3（采样值=面亮度，BUNIT 透传缺省 `ADU`，绝不默认 Jy/beam）。
+- `DATA-TILE-001`（单 leaf tile 面）: 同上 §3 冻结映射（tile 内
+  `fits_index=(511−x)·512+y`）与 SCI-P3-001 §9a-1/-8；descriptor 单位
+  `UnitId::SURFACE_BRIGHTNESS`、坐标 `CoordinateFrame::HEALPIX`
+  （module_adapters.cpp:437）；"tile 读路径权威=DATA_SEMANTICS §3"
+  （docs/modules/phase3_rsmp.md:75）。
+
+**未决偏差（登记 finding，修复落本任务写域外）**: `DATA-HIPS-001` 的
+coordinate 在端口词汇面存在两个值——`CoordinateFrame::PIXEL`
+（module_adapters.cpp:436、docs/modules/registry/astrocs.phase3.resample.md:22）
+与 `CoordinateFrame::HEALPIX`（module_adapters.cpp:459/:498、
+…resample2.md:71、…properties.md:22）。本表按冻结正文（§29.1/§3）登记
+HEALPix NESTED；PIXEL 一侧属端口词汇漂移（§29.5 已声明端口表"不得
+反向作为冻结依据"），修复归 descriptor/registry 域（P3-RSMP-INT /
+DATA-001），不在本任务写域。
+
 
 ## 2. weight/value/scale/sigma/snr 歧义映射（DATA-001 登记）
 
