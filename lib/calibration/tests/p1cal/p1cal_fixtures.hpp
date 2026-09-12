@@ -3,6 +3,18 @@
 // 合同锚: docs/algorithms/CALIBRATION_ALGORITHMS.md §9 TEST-CAL-DESIGN-001
 // (P1-CAL-DOC 冻结, 2026-09-07, wave W1)。
 //
+// SCI/ALG ID 锚 (逐条核到实际文档 ID, 不臆造):
+//   SCI-CAL-001 — docs/science/CALIBRATION.md (FROZEN T100, 2026-08-23):
+//     §7 独立不变量 (常量场/空平场/幂等归一/确定性), §8 极端/退化条件,
+//     §11 验证 Oracle。
+//   ALG-CAL-001..006 — docs/algorithms/CALIBRATION_ALGORITHMS.md:
+//     §6 确定性与归约, §7 边界/invalid/退化行为,
+//     §9 TEST-CAL-DESIGN-001 (本文件 FIX-CAL-A..F 的冻结设计)。
+//   ALG-COS-001..005 — docs/algorithms/COSMETIC_ALGORITHMS.md:
+//     FIX-CAL-E cosmetic 素材的上位检测/结构过滤/修复算法 (该文 §0 载明
+//     与 ALG-CAL-004 描述同一现行生产实现)。
+// fixture 只生成"输入侧"素材; 期望值一律由 oracle 独立推导, 不经被测函数。
+
 // 规则 (模板 <prefix>-TEST §2):
 //   - 全 fixture 由固定 seed + 参数确定生成, 零随机硬件依赖, 不提交大二进制。
 //   - 这里提供本仓既有 splitmix64 统一 PRNG 约定 (与 core_artifact_test.cpp
@@ -41,7 +53,8 @@ inline double normal01(std::uint64_t& state) {
 }
 
 // ---- FIX-CAL-A 常量场: raw=C / dark=D / flat=1.0, C,D ∈ {0,100,1000} ----
-// (I1 不变量素材; 期望由 oracle 常量表冻结, max_abs==0)
+// (SCI-CAL-001 §7「常量场不变量」/ ALG-CAL-003 单帧校准的 I1 不变量素材;
+//  期望由 oracle 常量表冻结, max_abs==0)
 inline void fix_cal_a_const_field(double C, double D, std::size_t w, std::size_t h,
                                   std::vector<float>* light,
                                   std::vector<float>* dark,
@@ -53,7 +66,8 @@ inline void fix_cal_a_const_field(double C, double D, std::size_t w, std::size_t
 }
 
 // ---- FIX-CAL-B 解析梯度: raw=x+2y / dark=0.5x / flat=1+0.01x ----
-// (期望由 oracle 逐像素独立重算解析式)
+// (SCI-CAL-001 §5 连续定义 / ALG-CAL-003 双分支除法的解析素材;
+//  期望由 oracle 逐像素独立重算解析式)
 inline void fix_cal_b_gradient(std::size_t w, std::size_t h,
                                std::vector<float>* light,
                                std::vector<float>* dark,
@@ -73,7 +87,7 @@ inline void fix_cal_b_gradient(std::size_t w, std::size_t h,
 }
 
 // ---- FIX-CAL-C 离群 stack: n=5 帧, 帧 4 注入 spike1000*δ + NaN 变体 ----
-// sigma-clip 素材; δ 由 seed 决定 (期望密度 p≈0.05)。
+// ALG-CAL-001 (sigma-clip 合并) 素材; δ 由 seed 决定 (期望密度 p≈0.05)。
 struct FixCalC {
     std::vector<float> stack;     // [n][npix]
     std::vector<float> spike;     // δ 图样 (0/1), 逐像素
@@ -111,6 +125,7 @@ inline FixCalC fix_cal_c_outlier_stack(std::uint64_t seed, std::size_t n_frames,
 }
 
 // ---- FIX-CAL-D master flat 三帧: 逐帧 median=100/200/400 的比例场 ----
+// ALG-CAL-002 (MasterFlat 生成: 逐帧归一) 素材。
 // 构造保证每帧中位数精确等于目标值 (base + 三值周期场, 中位数=base)。
 inline std::vector<float> fix_cal_d_flat_frames(std::size_t w, std::size_t h) {
     const std::size_t npix = w * h;
@@ -128,6 +143,8 @@ inline std::vector<float> fix_cal_d_flat_frames(std::size_t w, std::size_t h) {
 }
 
 // ---- FIX-CAL-E cosmetic: 20x20, 热点孤立点 + L 形 3 连通 + 12 像素方块 ----
+// ALG-COS-001 (全局阈值检测) / ALG-COS-002 (8 邻接连通域结构过滤) /
+// ALG-COS-003 (插值修复) 素材。
 struct FixCalE {
     std::size_t w, h;
     std::vector<float> dark;      // 背景场 (含噪声)
@@ -171,6 +188,7 @@ inline FixCalE fix_cal_e_cosmetic(std::uint64_t seed, std::size_t w = 20, std::s
 }
 
 // ---- FIX-CAL-F 负面: 参数域素材生成器 (值域无关, 仅形状) ----
+// SCI-CAL-001 §8 极端/退化条件 + ALG-CAL-001..006 §7 边界/invalid 表。
 inline std::vector<float> fix_cal_f_buffer(std::size_t npix, float fill) {
     return std::vector<float>(npix, fill);
 }

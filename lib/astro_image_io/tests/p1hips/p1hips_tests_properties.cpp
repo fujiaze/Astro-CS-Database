@@ -5,6 +5,22 @@
 // f64 bitwise / f32 rtol=1e-6)、I11 (F=signal×support×A_cell 有限非负);
 // F2 (多 tile 聚合) + F5 (prov 完整/缺省两态) + F6 (双 dtype);
 // 确定性 (模块页: tile 字节随输入与写序可复现, 1/2/4 worker 位级一致)。
+//
+// SCI/ALG ID 锚 (逐条核到实际文档 ID, 不臆造):
+//   ALG-HIPS-001..005 — docs/algorithms/HIPS_WRITER.md: 本组逐条不变量的
+//     上位算法 —— (5a) MOC UNIQ 与 moc_sky_fraction (I5/I6)、
+//     (4b)(4c) hierarchy 逐阶聚合与落盘归一 (I7)、
+//     (2b) 叶级归一 signal=flux/area / support=min(area/A_cell,1) 与
+//     (2e) MOC 面积登记 (I11 的 sup·A_cell 域)。
+//   SCI-DRZ-001 — docs/science/DRIZZLE.md (FROZEN T105, 2026-08-23):
+//     §5 重建式与面亮度 S_p=F_p/D_p、§9a support=D_p→[0,1] 与
+//     variance_p=sumVarNum/D_p² —— 叶/父归一式的科学层权威。
+//   SCI-SCOPE-001 — docs/science/SCIENCE_SCOPE.md: HiPS 科学产品目标。
+//   I6/I7/I11 的上位覆盖边界 (如实登记, 不伪造 SCI ID):
+//     HIPS_WRITER.md §4 明示 hierarchy 低阶聚合"SCI 层零覆盖"、§5 (5a)
+//     MOC 写出亦无独立 SCI 条目; I11 的 F=signal×support×A_cell 同式见
+//     该文 §9 与 gate7_hips_validate.py。故这三条只锚 ALG-HIPS-004/005 +
+//     DATA-P1-HIPS (DATA_SEMANTICS §12), 不臆造 SCI ID。
 #include "p1hips_test_main.hpp"
 #include "p1hips_fixtures.hpp"
 #include "p1hips_oracle.hpp"
