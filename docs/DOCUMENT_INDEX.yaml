@@ -526,6 +526,9 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/standards/TEST_STANDARD.md"
       status: ACTIVE_NORMATIVE
+    - path: "docs/standards/STANDARDS_REGISTRY.md"
+      status: ACTIVE_NORMATIVE
+      notes: "STD-REG-001（ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev18）国际标准冻结注册表：领域→标准→版本→条款→符合性清单→偏差指针六域冻结（球面投影=FITS WCS Paper I/II+SIP；HiPS=IVOA HiPS 1.0+properties 1.4；HEALPix=Górski 2005 NESTED；Drizzle=Fruchter & Hook 2002；星表=Gaia DR3 data model；FITS=4.0）；机器检查 docs/standards/checks/check_standards_registry.py（C1-C7）；承接 05 号 findings 登记册 §STD-F6 处置"
     - path: "docs/validation/SCIENCE_FREEZE.md"
       status: ACTIVE_INFORMATIVE
       notes: "V17 冻结历史快照；当前科学权威以 docs/science 与约束文件为准"
