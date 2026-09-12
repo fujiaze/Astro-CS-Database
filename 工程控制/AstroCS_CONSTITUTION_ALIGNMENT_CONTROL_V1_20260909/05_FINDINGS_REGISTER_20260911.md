@@ -490,3 +490,131 @@ dispatch token `74ef336bc8cca5ca`）**仍在运行并实时写入** `lib/astro_i
 利用孤儿已完成的一半工作（writer/reader 通道），同时避免双写冲突。
 **教训**：前台会话崩溃必须显式回收在跑 worker；`Rmtxvlrtfa66eb7` 未回收是本次事故根因。
 
+
+---
+
+## 附录 D：rev6.2 第二轮 finding（2026-09-12 晚，前台汇总）
+
+### D.0【治理·最高优先】双前台并发事故（前台自查发现）
+
+**事实**：上一个会话 `session-9dfa51b8`（标题《AstroCS V2 控制包执行前台启动》）**仍在运行**，
+且仍在以**前台身份**作业：
+- git 身份 `astrocs-frontdesk <frontdesk@astrocs.local>`（与本人 `付家泽 <fujiaze@126.com>` 不同）；
+- 其 CPRun run `Rmtxvlrtfa66eb7` 观测时 **rev40、paused=false**，仍有活跃 worker；
+- 提交 `e89ce10e`（SCI-F3-001 实现）由其提交并 push，落在本人 `da74dcad` 之上；
+- 仓库存在 `refs/heads/ci-fix` 分支与 `refs/stash`（**违反宪章 §14.1 禁分支 / §14.5 禁破坏性 Git**）。
+
+**这是本次执行期全部异常的统一根因**：
+- 本前台「联系不上的孤儿 worker」= 它派发的 CPRun worker（`e9f68e4a` 等），不在本会话 agent 树内，
+  故 `send_message` 无法触达；
+- 同一文件被并发改写、`run/scif3001/` 与 `run/sci_f3_001/` 双证据目录并存；
+- R-20「文件级单一写者」在**框架层不可强制**（跨会话不可见）。
+
+**后果与处置**：
+- 两个前台在同一工作树、同一 `main` 上并行派单与推送 ⇒ 冲突与重复劳动风险持续存在；
+- 本前台无法从 API 侧终止另一 session，**需项目负责人关闭 `session-9dfa51b8`**；
+- 在此之前本前台采取防御措施：每次 push 前 `git fetch` 并核对三 SHA；只按**精确文件路径**暂存，
+  绝不 `git add -A`。
+- **教训（工程规程）**：前台会话崩溃/交接时**必须显式回收其 CPRun 与在跑 worker**；
+  派发前应做**活跃写者互斥预检**（跨会话）。
+
+### D.1【P0·用户入口】不完整链被写成 complete 并被 verify 背书（ARCH-AUDIT-P1 C5-F1）
+
+- 实测：只含 `cal`+`cos` 的链，`build/astrocs phase1 run` → `rc=0`、`status=complete`、
+  `"phase1 ok"`；`astrocs verify` → `rc=0 {verify:ok}`；而 `out_dir` **无** `p1_stack.json`/`p1_final.json`。
+- 定位：`cli/commands.cpp:1494`；`cli/runtime_client.cpp:94-113` 的链只含 cal+cos。
+- 对照：session 层门本体是 fail-closed 的（`p1_session.cpp:444` 恒 partial + availability 8 域；
+  注入改 complete 5/5 必败）⇒ **缺陷在 CLI 入口层，不在 session 层**。
+- 违反：宪章 §14.4 fail-fast；§11 输出登记。**这是会误导用户的静默错误**。
+- 处置：登记为下一步头号派单项（`CLI-COMPLETE-GATE-001`）。
+
+### D.2【P1】p1001 测试鉴别力缺口（ARCH-AUDIT-P1 故障注入矩阵）
+
+5 组注入中 **2 组未败**：
+- **fail-fast 关闭 3/3 全绿**（日志证 writer 确已执行）；
+- **PSF 值置常量垃圾 3/3 全绿**。
+⇒ `p1001_real_nodes_test` 对「下游照跑」「PSF 数值真伪」**零鉴别力**；测试 `:620-621` 是
+**恒真析取式**。同型问题在 `p2001:671-672`。
+**这是本项目级的测试方法论缺陷**——绿灯不等于被验证。建议设常驻「变异注入」门。
+
+### D.3 其余 ARCH-AUDIT-P1 结论（已采纳）
+
+- 真实 PlateSolve = PASS（真实走 ipv 链，WCS 全取自 `IpvWcsResult`）；
+- 真实 PSF 拟合 = PASS（`dpsf_fit_batch_f64` Moffat4+LM；**自研 lm_solve，非 GSL** —— 订正任务书/提交信息口径）；
+  CONCERN：节点按「前缀紧凑」取 n_valid 行却贴 `cat.sources[i].id`，与 fitter 逐星原位语义错配（per-star 错配）。
+- 标准 HiPS = PASS；CONCERN：(a) `astrocs_covered_sky_fraction` 精度丢失（实机 0.000000 vs manifest 0.00000032）；
+  (b) **`metadata.fits` 无 SIMPLE/BITPIX/NAXIS，astropy 拒收「No SIMPLE card」**，存量 4 份同病；
+  (c) 「AIO-002 原子发布内建」注释与实现不符（= 已登记 DISP-HIPS-004）。
+- adapters 薄层 = PASS；CONCERN：文件头映射表 3 行自 `9e09941a` 起陈旧并复制进 `PUBLIC_API.md:708-715`（违 §12.3-10）。
+- **非确定性**：提交态 p1001 影子树 30 次复跑 **19 PASS / 11 FAIL（36.7%）**，主树二进制 27/30（10%）
+  ⇒ 单次抽样口径不可信（已由 CORE-RACE-001 修复，修复后 200 次连跑 0 失败）。
+- 复核差异留档：**不采纳**子代理 C3 的 F-C3-002（`hips_order` 判为误报：IVOA HiPS 像素 `nside=2^(order+9)`，
+  `nside512→hips_order=0` 与 `hips_pixel_scale=412.26″` 自洽）。
+
+### D.4 CI 平台域合并代理 findings（FG-CI-01 … FG-CI-10）
+
+**结论：UT-CLI 的 17 项失败，逐项核对后「无一项是过时断言」——16 项真实产品缺陷 + 1 项口径待裁。**
+⇒ 按规格「订正断言」会让真实缺陷在 CI 面消失 = **用放宽断言让红灯消失**（§14.4/R-05/R-13 禁止）。
+故该代理**一项未改**，UT-CLI-MAINT 交付 `PARTIAL / BLOCKED_BY_PRODUCT_DEFECT`，不退出基线。
+
+- **FG-CI-01【P1·科学正确性】Phase3 投影被静默忽略恒输出 TAN** —— 见 D.5 处置。
+- **FG-CI-02【P1·provenance】** `phase3 run` manifest 标 `complete` 而 `artifacts` 恒空
+  （FITS 17280B 在盘）。违 §4.3/§11。phase2 侧同类缺陷已修，phase3 链未接线。
+- **FG-CI-03【P1·fail-fast】** `inputs.lights=[]` 的 `phase1 run` → rc=0、
+  `manifest status=complete/summary="phase1 ok"/artifacts=0`。
+  `lib/phase1_session/p1_session.cpp:186` 的 `input_lights must be non-empty array` 守卫**对 CLI 路径不可达**。
+- **FG-CI-04【P1·合同自相矛盾】** phase2 权重面的唯一显式出口在配置面**不可达**：
+  `weight_mode`/`legacy_allow_weight_fallback` → `rc=3 config has unknown key`；
+  而默认 config 的报错信息**恰恰指导用户去设** `legacy_allow_weight_fallback=true`。
+  `cli/parser.cpp:301-324` 的 phase2 平铺键集不含二者。**与 C.3 同源**（UT-CLI 7 项 + UT-BACKEND 12 项）。
+- **FG-CI-05【P2】** phase2 缺失输入映射 2 ≠ CLI_PROTOCOL_V1 §2 的 3。
+- **FG-CI-06【待裁】** CLI 二进制 `nm` 可见 `hp_drizzle_run_hips`，而 test_03/test_04 判
+  `REACH_PASS acr=0` ⇒ 「符号存在」与「生产路径可达」两口径需裁定当前冻结口径。
+- **FG-CI-07【P2】** 共享工作树 dirty 系统性误报（= C.4，R-28-b 已裁）。
+- **FG-CI-08【观察】** `nlohmann-json3-dev` 在 linux-main 面疑无消费者（vendored third_party 已由
+  `astrocs_core` PUBLIC 暴露）；**无完整构建无法证明无用 ⇒ 不建议移除，仅观察**。
+- **FG-CI-09【P1】** `output_dir` 默认 `"."`（`cli/commands.cpp:98` 模板）。
+- **FG-CI-10【P1·UT-CLI dirty 真根因】** 取消/快速失败路径**硬编码** `write_run_manifest(".", ...)`
+  （`cli/commands.cpp:938 / 1087 / 1437`），而同函数正常路径用 config 解析出的 `out_dir`
+  ⇒ **取消路径丢失 output_dir 语义**。只改 `tests/cli` 不能消除。
+- 核验支持（**反向证伪本人 R-04 归因**，裁决 R-26 已撤销 `CI-BACKEND-001` 两条必修动作）：
+  327b6c30 实测 install 步 `numpy ready: 1.26.4 / astropy ready: 6.0.0`、UT-BACKEND 跑完 205 tests
+  零 `ModuleNotFoundError`；`WIN-PACKAGE-CANDIDATE prerequisite.ok=true`。
+  负向注入承重性证明：`python3 -S` → UT-IO rc=1 + ModuleNotFoundError×3（GREEN 对照 rc=0）；
+  PATH 无 dumpbin → WIN-PACKAGE-CANDIDATE `verdict=FAIL, prerequisite.ok=false`。
+  最小充分复核：全检查项传递闭包扫描，第三方依赖全集只有 `yaml`，而它是 `python3-astropy` 的
+  **硬 Depends**（`apt-cache depends` 实测）⇒ 追加 `python3-yaml` 属 §14.4 禁止的防御性堆叠，
+  **已完整还原**（diff 为空）——这正是「零改动」的来源，如实登记。
+
+### D.5 FG-CI-01 处置裁决（前台 R-31）
+
+**关键口径澄清**：`P3WcsDescriptor.projection = "TAN"` 是**冻结合同**
+（`DATA_SEMANTICS.md:1952/:2142` 明写「projection="TAN"（硬编码，:36/:89）」；
+`PUBLIC_API.md:1959` 明写「SIN/ZEA/CAR/AIT 扩展 **TODO，如实登记**」）。
+⇒ FG-CI-01 **不是**「未实现四投影」的合同违反（那是已登记 TODO，属负责人域），
+**而是「静默接受并忽略配置键」的 §14.4 fail-fast 违反**——用户请求 AIT 拿到 TAN，
+连非法码 `XYZ` 也被静默接受。
+**裁决 R-31**：本任务**只把静默降级改为显式拒绝**，**不得**擅自实现四投影（会改变科学内容）；
+缺省/显式 TAN 路径必须与修复前**逐字节一致**。已派 `P3-PROJ-FAILFAST-001`。
+
+### D.6 前台对 p2002 的归因复核（如实留档）
+
+SCI-F3-001 独立验证者与 CTEST-LINUX-FULL 均报 `p2002_unc_rej_prov` RED（759 CHECK）。
+前台复核：本人提交 `43f0c429`（CORE-RACE-001）的 hunk 全部落在
+`p1_op_calibrate/p1_op_cosmetic/p1_op_star_psf/p1_op_noise` 与 `p1_base_name/p1_calibrated_path`，
+**未触碰** `p2_op_write/nused/ivar_mosaic/expect_nused/wsum`（已用 `git show | grep` 逐符号核实）。
+⇒ p2002 的红**不是**本人提交引入。真因 = §30.1 `weight_mode=2 requires per-frame ivar` fail-closed
+（= C.3，与 UT-BACKEND 12 项同源），在 `439f9f20`(P2-001) 的提交信息中亦已被独立记录为
+「**与 BASE 通过集一致**」的既有失败。**登记归 D.7 处置**。
+
+### D.7 下一批派单（前台已排定优先级）
+
+| 序 | 任务 | 目标 | 写域 | 状态 |
+|---|---|---|---|---|
+| 1 | `CLI-COMPLETE-GATE-001` | D.1 P0 不完整链禁 complete | `cli/commands.cpp` 等（须与 MON-FIX-001 串行） | 待派 |
+| 2 | `CLI-DEFECT-001` | FG-CI-02/03/09/10 | `cli/commands.cpp`、`cli/runtime_client.cpp`、`cli/parser.cpp` | 待派（串行） |
+| 3 | `P3-PROJ-FAILFAST-001` | D.5 FG-CI-01 | `lib/core/src/module_adapters.cpp` | **已派** |
+| 4 | `UT-BACKEND-FIX-001` | C.3 / FG-CI-04 的 ivar fixture 面 | `tests/backend/**` | **在跑** |
+| 5 | `MON-FIX-001` | C.1 资源监控判决器 | `cli/resource_gate.h` 等 | **在跑** |
+| 6 | `TEST-MUTATION-GATE-001` | D.2 常驻变异注入门 | `ci/`、`tests/` | 待派 |
+
