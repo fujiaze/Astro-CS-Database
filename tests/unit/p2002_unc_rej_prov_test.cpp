@@ -29,7 +29,19 @@
 //   7. 合同登记面（§30.2 授权"AIO_ALL 掩码扩展由实现任务在 AIO 域合同
 //      登记"）: contracts/data/phase2_uncertainty_rejection_provenance_v1.json
 //      存在、位值 NREJ=32/NUSED=64 冻结、五键名单、pending AIO 通道登记。
+//   8. [SCI-F2-001 / finding F-P2-002-02 处置面] §30.2 n_ineligible 恒等式:
+//      n_ineligible(p) = depth(p) − nused(p) − nrej(p) 逐像素 == 0（完备划分
+//      ⇒ nused + nrej == depth）, depth=probe 覆盖帧数; depth=3 部分拒绝
+//      fixture（F3 离群点 nrej=1）: 判定 depth 依据经 candidates bins 机器
+//      佐证（covered → cand==3 / void → cand==0）, 非测试面自述。
+//      库面对照（2d）: 按 kernel reason 逐样本构造 accepted 掩码后
+//      p2_integrate_pixel → 恒等式成立（证明 lib/phase2 契约正确）; 而把
+//      逐样本剔除塌缩为像素级 accepted 标志（= 基线 lib/core 节点链接线）
+//      → 恒等式被破坏（同一断言在库面直接判负）。
+//      depth=3 1/4 worker parity（2e）+ ASTROCS_P2002_FAULT=identity 等价
+//      缺陷注入必败（2c 负向对照）。
 #include "astro/phase2/rejection.h"
+#include "astro/phase2/integrate.h"   // SCI-F2-001: §30.2 恒等式库面对照（2d）
 #include "astrocs/core/module.h"
 #include "astrocs/core/module_adapters.h"
 #include "astrocs/core/runtime.h"
@@ -461,16 +473,21 @@ static void test_s302_integration_projection(bool fault_inject) {
       break;
     }
   }
-  // nused 投影 = SCI-INT §5 n_used（现状: 覆盖像素=depth=3、无覆盖=0;
-  // acc 全接受面, percentile 结构保证 median 样本恒接受）
+  // nused 投影 = SCI-INT §5 n_used（覆盖像素 eligible=3、无覆盖=0）
+  // [SCI-F2-001 / F-P2-002-02] §30.2 完备划分: 覆盖像素 nused + nrej == depth
+  // == 3（被 kernel 拒绝的样本必须已被 integrate 剔除）。原断言 "nused==3"
+  // 编码的正是缺陷行为（部分拒绝像素 nused 含被拒样本 → n_ineligible<0）；
+  // 现按 §30.2 冻结恒等式订正为 nused == 3 − nrej，缺陷未修时必败（RED）。
   for (uint32_t y = 0; y < 448u; ++y)
     for (uint32_t x = 0; x < 448u; ++x) {
       const uint32_t fi = fitseq(x, y);
-      CHECK_MSG(nused[fi] == 3,
-                ("covered pixel nused must equal depth (fi=" +
-                 std::to_string(fi) + " got " + std::to_string(nused[fi]) +
-                 ")").c_str());
-      if (nused[fi] != 3) { y = kTw; break; }
+      const int32_t expect = 3 - nrej_plane[fi] - nrej_bias;
+      CHECK_MSG(nused[fi] == expect,
+                ("§30.2 nused must equal depth-nrej (fi=" +
+                 std::to_string(fi) + " nused=" + std::to_string(nused[fi]) +
+                 " nrej=" + std::to_string(nrej_plane[fi]) +
+                 " expect=" + std::to_string(expect) + ")").c_str());
+      if (nused[fi] != expect) { y = kTw; break; }
     }
   // 无覆盖角落: int 无 NaN → nused=0（0 即"无", 禁 −1 哨兵）。
   // [finding F-P2-002-01 锚] nrej 角落断言（§30.2 invalid: 无覆盖 → nrej=0）
@@ -484,9 +501,10 @@ static void test_s302_integration_projection(bool fault_inject) {
                 ("void pixel must have nused==0 (fi=" + std::to_string(fi) +
                  " got " + std::to_string(nused[fi]) + ")").c_str());
     }
-  // 平面非负守卫: nused+nrej ∈ [0, 2·depth]（u16 bins ≤ eligible ≤ depth;
-  // n_ineligible = depth − nused − nrej 完整恒等式依赖 F-P2-002-01/02
-  // 域外缺陷修复——kernel 一致性与 integrate 逐样本剔除）
+  // 平面非负守卫（弱界, 保留为越界哨兵）: nused+nrej ∈ [0, 2·depth]。
+  // 严格恒等式 n_ineligible = depth − nused − nrej 由 2c 逐像素锚定
+  // （F-P2-002-01 kernel 一致性已于 991e3e2e 修复; F-P2-002-02 逐样本剔除
+  // 归属 lib/core 节点链接线, 见 2c/2d 与 finding F-SCI-F2-001-01）。
   for (size_t i = 0; i < nused.size(); ++i) {
     const int32_t s = nused[i] + nrej_plane[i] - nrej_bias;
     if (s < 0 || s > 2 * 3) {
@@ -713,6 +731,287 @@ static void test_f_p2002_01_rejection_parity() {
     }
     fs::remove_all(fxw.root);
   }
+}
+
+// ── 2c. [SCI-F2-001 / F-P2-002-02] §30.2 n_ineligible 恒等式（逐像素）───
+// 冻结语义（DATA_SEMANTICS.md §30.2）:
+//   nused(p) = P2PixelResult.n_used（参与积分样本数）
+//   nrej(p)  = |{s | reason_s ∉ {ACCEPTED, UNDERDETERMINED}}|（kernel 拒绝）
+//   n_ineligible(p) = depth(p) − nused(p) − nrej(p)，depth = probe 覆盖帧数
+// 三量完备划分 ⇒ 恒等式成立 ⇔ n_ineligible(p) == 0 ⇔ nused(p)+nrej(p)==depth(p)。
+//
+// [RED 面 · 基线实测] 基线 lib/core 节点链（p2_op_reject: module_adapters.cpp
+// :2511-2545 把 kernel 逐样本 reason 塌缩为像素级 accepted(u8) "任一接受即 1";
+// p2_op_integrate: :2765 把该像素级标志套用到该像素**每个**样本）⇒ 部分拒绝
+// 像素（F3 离群点, 本 fixture 每 32px 网格一点, nrej=1）的被拒样本仍进积分:
+// nused=3 而 nrej=1 ⇒ n_ineligible = 3−3−1 = −1 < 0 ⇒ 本断言必败。
+// 修复面在 lib/core/src/module_adapters.cpp（本任务写域外）; 最小补丁与
+// 影子树 GREEN 证明见 finding F-SCI-F2-001-01。
+static void test_f_p2002_02_n_ineligible_identity(bool fault_inject) {
+  Fixture3 fx = make_fixture3("ident");
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  RunContext ctx;
+  Result<void> ff;
+  run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+  CHECK_MSG(ff.ok(), ff.ok() ? "chain ok" : ff.error().message().c_str());
+  if (ff.failed()) { fs::remove_all(fx.root); return; }
+
+  json intj, rej;
+  try { intj = json::parse(read_file(fx.out + "/p2_integrated.json")); }
+  catch (...) { CHECK(false); }
+  try { rej = json::parse(read_file(fx.out + "/p2_rejection.json")); }
+  catch (...) { CHECK(false); }
+
+  std::vector<int32_t> nused, nrej_plane;
+  std::vector<uint16_t> cand_bins;
+  CHECK(read_bin<int32_t>(intj["files"].value("nused", ""), 0, kTileSpan, &nused));
+  CHECK(read_bin<int32_t>(intj["files"].value("nrej", ""), 0, kTileSpan, &nrej_plane));
+  CHECK(read_bin<uint16_t>(rej["files"].value("candidates", ""), 0, kTileSpan,
+                           &cand_bins));
+  if (nused.size() != kTileSpan || nrej_plane.size() != kTileSpan ||
+      cand_bins.size() != kTileSpan) {
+    fs::remove_all(fx.root);
+    return;
+  }
+
+  // 等价缺陷注入（负向对照）: 把 integrate 的逐样本剔除塌缩回像素级标志
+  // ——部分拒绝像素的被拒样本重新计入 nused（即基线生产行为）⇒ 恒等式断言
+  // 必须由 PASS 转 FAIL（判别力证明; 见 main 的 fault 分支）。
+  if (fault_inject) {
+    for (uint32_t y = 0; y < kTw; ++y)
+      for (uint32_t x = 0; x < kTw; ++x) {
+        const uint32_t fi = fitseq(x, y);
+        if (nrej_plane[fi] > 0) nused[fi] = 3;
+      }
+  }
+
+  // depth(p) 判定锚: probe 覆盖帧数由 candidates bins 机器佐证——
+  // 无覆盖角落 corrected=NaN → cand=0（depth=0）; 其余像素三帧全帧覆盖且
+  // 三帧在该像素 finite/support>0 → cand=3（depth=3）。
+  uint64_t covered = 0, void_px = 0, identity_viol = 0, neg_viol = 0;
+  uint64_t rej_px = 0, rej_sum = 0;
+  for (uint32_t y = 0; y < kTw; ++y)
+    for (uint32_t x = 0; x < kTw; ++x) {
+      const uint32_t fi = fitseq(x, y);
+      const bool is_void = is_void_fitseq(x, y);
+      const int32_t depth = is_void ? 0 : 3;
+      if (is_void) {
+        ++void_px;
+        CHECK_MSG(cand_bins[fi] == 0,
+                  ("void pixel must have 0 eligible candidates (fi=" +
+                   std::to_string(fi) + " cand=" +
+                   std::to_string(cand_bins[fi]) + ")").c_str());
+      } else {
+        ++covered;
+        CHECK_MSG(cand_bins[fi] == 3,
+                  ("covered pixel must have depth=3 eligible candidates (fi=" +
+                   std::to_string(fi) + " cand=" +
+                   std::to_string(cand_bins[fi]) + ")").c_str());
+      }
+      if (nrej_plane[fi] > 0) { ++rej_px; rej_sum += static_cast<uint64_t>(nrej_plane[fi]); }
+      const int32_t n_ineligible = depth - nused[fi] - nrej_plane[fi];
+      // ① 完备划分 ⟺ 恒等式: n_ineligible == 0（逐像素, 无豁免）
+      CHECK_MSG(n_ineligible == 0,
+                ("§30.2 n_ineligible identity violated at fits_index=" +
+                 std::to_string(fi) + " (x=" + std::to_string(x) + ",y=" +
+                 std::to_string(y) + "): depth=" + std::to_string(depth) +
+                 " - nused=" + std::to_string(nused[fi]) +
+                 " - nrej=" + std::to_string(nrej_plane[fi]) +
+                 " = " + std::to_string(n_ineligible) + " != 0").c_str());
+      if (n_ineligible != 0) {
+        ++identity_viol;
+        if (n_ineligible < 0) ++neg_viol;
+      }
+    }
+  // ② 显式非负守卫（本任务验收要求形态, 冗余但独立成断言）
+  CHECK_MSG(neg_viol == 0,
+            ("§30.2 n_ineligible must be >= 0 (violating pixels=" +
+             std::to_string(neg_viol) + "/" + std::to_string(covered + void_px) +
+             ")").c_str());
+  // ③ fixture 判别力守卫: 该 fixture 必须真的存在 kernel 部分拒绝像素
+  // （否则恒等式断言形同虚设）; 且部分拒绝像素数 == 离群点网格数。
+  uint64_t expect_rej_px = 0;
+  for (uint32_t y = 0; y < kTw; ++y)
+    for (uint32_t x = 0; x < kTw; ++x) {
+      if (is_void_fitseq(x, y)) continue;   // 无覆盖角落无候选 → 无 kernel 拒绝
+      if (is_outlier_fitseq(x, y)) ++expect_rej_px;
+    }
+  CHECK_MSG(rej_px == expect_rej_px,
+            ("depth=3 partial-rejection fixture must expose exactly the outlier"
+             " grid as kernel-rejected pixels (got " + std::to_string(rej_px) +
+             " expected " + std::to_string(expect_rej_px) + ")").c_str());
+  CHECK_MSG(rej_sum == rej_px,
+            "each partially rejected pixel must carry exactly nrej=1 (high-side"
+            " outlier on the third frame)");
+  // ④ ivar_mosaic / variance 与 nused/nrej 一致性（§30.1 ⨯ §30.2 耦合）:
+  //    §30.1 冻结 ivar_mosaic = W = Σ ivar_i（**入栈样本**, 帧输入索引序）、
+  //    variance = 1/W。入栈样本集 ≡ 未被 kernel 拒绝的样本集（§30.2 完备划分）
+  //    ⇒ 覆盖像素上 W 必须恰等于"未拒绝帧的 ivar 之和"、nused 必须恰等于
+  //    未拒绝帧数。fixture 三帧 ivar 为常量（F1=2.0, F2=0.5, F3=1.0）:
+  //      · 无拒绝像素: nused=3, W=3.5
+  //      · F3 离群被拒像素（nrej=1）: nused=2, W=2.5
+  //    缺陷（像素级塌缩）下该像素 nused=3、W=3.5 → 与 nrej=1 自相矛盾
+  //    （§30.1 的 W 把被拒离群样本的 ivar 也计入了 mosaic 方差面）。
+  {
+    std::vector<double> wsum, sig_plane, sup_plane;
+    CHECK(read_bin<double>(intj["files"].value("wsum", ""), 0, kTileSpan, &wsum));
+    CHECK(read_bin<double>(intj["files"].value("signal", ""), 0, kTileSpan, &sig_plane));
+    CHECK(read_bin<double>(intj["files"].value("support", ""), 0, kTileSpan, &sup_plane));
+    if (wsum.size() == kTileSpan) {
+      const double kIvarSumAll = kIvar1 + kIvar2 + kIvar3;          // 3.5
+      const double kIvarSumNoF3 = kIvar1 + kIvar2;                  // 2.5
+      uint64_t wsum_viol = 0;
+      for (uint32_t y = 0; y < kTw; ++y)
+        for (uint32_t x = 0; x < kTw; ++x) {
+          const uint32_t fi = fitseq(x, y);
+          if (is_void_fitseq(x, y)) {
+            // 无有效样本: signal/variance NaN 同态（§30.1 invalid policy 第 1 行）
+            CHECK_MSG(std::isnan(sig_plane[fi]),
+                      ("void pixel signal must be NaN (fi=" +
+                       std::to_string(fi) + ")").c_str());
+            CHECK_MSG(std::isnan(wsum[fi]),
+                      ("void pixel ivar_mosaic must be NaN (fi=" +
+                       std::to_string(fi) + ")").c_str());
+            continue;
+          }
+          const double expect_w = (nrej_plane[fi] > 0) ? kIvarSumNoF3
+                                                       : kIvarSumAll;
+          if (!(std::fabs(wsum[fi] - expect_w) < 1e-12)) ++wsum_viol;
+          CHECK_MSG(std::fabs(wsum[fi] - expect_w) < 1e-12,
+                    ("§30.1 ivar_mosaic must equal sum of ivar over *used*"
+                     " samples (fi=" + std::to_string(fi) + " wsum=" +
+                     std::to_string(wsum[fi]) + " expect=" +
+                     std::to_string(expect_w) + " nrej=" +
+                     std::to_string(nrej_plane[fi]) + ")").c_str());
+          // variance = 1/W 与 nused 一致性（同一样本集的两面）
+          if (wsum[fi] > 0.0) {
+            const int32_t expect_nused = 3 - nrej_plane[fi];
+            CHECK_MSG(nused[fi] == expect_nused,
+                      ("nused must match the used-sample set implied by"
+                       " ivar_mosaic (fi=" + std::to_string(fi) + ")").c_str());
+          }
+        }
+      if (wsum_viol > 0)
+        std::fprintf(stderr,
+                     "[F-P2-002-02] §30.1 ivar_mosaic: %llu pixels carry the"
+                     " ivar of kernel-rejected samples (W includes rejected"
+                     " outliers)\n",
+                     static_cast<unsigned long long>(wsum_viol));
+      // 显式非负守卫：W 不得超出入栈样本 ivar 之和（禁把被拒样本 ivar
+      // 计入 mosaic 方差面 —— 那正是 nused/nrej 与 variance 不自洽的形态）
+      CHECK_MSG(wsum_viol == 0,
+                ("§30.1 ivar_mosaic must exclude kernel-rejected samples"
+                 " (violating pixels=" + std::to_string(wsum_viol) + ")").c_str());
+    }
+  }
+  // ⑤ 逐像素诊断余量（供 RED 证据量化）
+  if (identity_viol > 0) {
+    std::fprintf(stderr,
+                 "[F-P2-002-02] §30.2 identity: %llu/%llu pixels violate"
+                 " (n_ineligible != 0), of which %llu have n_ineligible < 0;"
+                 " kernel-rejected pixels=%llu rej_sum=%llu\n",
+                 static_cast<unsigned long long>(identity_viol),
+                 static_cast<unsigned long long>(covered + void_px),
+                 static_cast<unsigned long long>(neg_viol),
+                 static_cast<unsigned long long>(rej_px),
+                 static_cast<unsigned long long>(rej_sum));
+  }
+  fs::remove_all(fx.root);
+}
+
+// ── 2d. [lib/phase2 库面] 逐样本剔除接线 ⇒ 恒等式成立（GREEN 对照）+ 缺陷
+// 机制在库面直接判负（像素级塌缩 ⇒ n_ineligible < 0）────────────────────
+// 该节不依赖 lib/core: 直接用与生产同参的 plan 直调 reject kernel, 按
+// reason 构造 accepted 掩码, 再调 p2_integrate_pixel。两个分支对照:
+//   (i)  逐样本掩码（lib/phase2 两条生产路径的接线语义,
+//        tools/stage2.cpp:1462-1467/1515-1522 与 src/acr_kernels.cpp:184-193）
+//        ⇒ n_used + nrej == depth, n_ineligible == 0   ← 契约正确
+//   (ii) 像素级塌缩掩码（基线 lib/core 节点链接线语义）
+//        ⇒ n_used + nrej > depth, n_ineligible < 0     ← 契约破坏（必失败断言）
+// 结论: 缺陷不在 lib/phase2（kernel/reducer 契约正确）, 而在调用方接线。
+static void test_f_p2002_02_lib_level_correct_wiring() {
+  // 3 帧 × 1 像素栈: 第三帧为高侧离群点（+800 vs ~100 基线）→ 恰 1 个
+  // REJECTED_HIGH（与 1 节同一 kernel 语义断言面）
+  const std::uint32_t depth = 3;
+  const double fm[depth] = {100.0, 100.3, 900.4};
+  P2RejectionPlanRequest req{};
+  req.request = P2_REJECT_AUTO;
+  req.nominal_contributors = depth;
+  req.profile = "wbpp_current";
+  req.underdetermined_n = 2;
+  P2RejectionPlan plan{};
+  char err[256] = {0};
+  CHECK(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)) == 0);
+  CHECK(plan.method == P2_REJECT_PERCENTILE);
+
+  std::vector<double> vals(fm, fm + depth), weights(depth, 1.0), sup(depth, 1.0);
+  P2CandidateStack st{};
+  st.values = vals.data();
+  st.count = depth;
+  st.data_type = 1;
+  std::vector<std::uint8_t> reasons(depth, 0);
+  P2RejectionDecision dec{};
+  dec.reasons = reasons.data();
+  CHECK(p2_reject_stack_ex(&st, &plan, &dec) == 0);
+  CHECK(dec.status == P2_STATUS_OK);
+  CHECK_MSG(dec.rejected_low + dec.rejected_high == 1,
+            "fixture must reject exactly one sample (high-side outlier)");
+  const std::uint32_t nrej =
+      dec.rejected_low + dec.rejected_high;
+
+  // (i) 逐样本掩码（契约正确接线）
+  std::vector<std::uint8_t> acc_sample(depth, 0);
+  for (std::uint32_t s = 0; s < depth; ++s)
+    acc_sample[s] = (reasons[s] == P2_REASON_ACCEPTED ||
+                     reasons[s] == P2_REASON_UNDERDETERMINED) ? 1 : 0;
+  P2PixelStack pi{};
+  pi.values = vals.data();
+  pi.weights = weights.data();
+  pi.support = sup.data();
+  pi.accepted = acc_sample.data();
+  pi.count = depth;
+  P2PixelResult pr{};
+  CHECK(p2_integrate_pixel(&pi, &pr) == 0);
+  CHECK(pr.status == P2_INTEGRATE_OK);
+  CHECK_MSG(pr.n_used == depth - nrej,
+            ("per-sample mask wiring: n_used must equal depth-nrej (n_used=" +
+             std::to_string(pr.n_used) + " depth=" + std::to_string(depth) +
+             " nrej=" + std::to_string(nrej) + ")").c_str());
+  CHECK_MSG(static_cast<int>(pr.n_used) + static_cast<int>(nrej) ==
+                static_cast<int>(depth),
+            "§30.2 identity must hold under per-sample rejection wiring"
+            " (n_ineligible == 0)");
+  // 加权均值只由 accepted 样本构成（被拒样本不参与科学值）
+  CHECK_MSG(std::fabs(pr.signal - (100.0 + 100.3) / 2.0) < 1e-12,
+            ("rejected sample must not enter the weighted mean (signal=" +
+             std::to_string(pr.signal) + ")").c_str());
+
+  // (ii) 像素级塌缩掩码（= 基线 lib/core 节点链接线; 负向对照）
+  std::vector<std::uint8_t> acc_pixel(depth, 0);
+  {
+    std::uint8_t any = 0;
+    for (std::uint32_t s = 0; s < depth; ++s)
+      if (reasons[s] == P2_REASON_ACCEPTED ||
+          reasons[s] == P2_REASON_UNDERDETERMINED) { any = 1; break; }
+    for (std::uint32_t s = 0; s < depth; ++s) acc_pixel[s] = any;
+  }
+  P2PixelStack pi2 = pi;
+  pi2.accepted = acc_pixel.data();
+  P2PixelResult pr2{};
+  CHECK(p2_integrate_pixel(&pi2, &pr2) == 0);
+  CHECK(pr2.n_used == depth);
+  const int collapsed_ineligible =
+      static_cast<int>(depth) - static_cast<int>(pr2.n_used) -
+      static_cast<int>(nrej);
+  CHECK_MSG(collapsed_ineligible < 0,
+            ("pixel-level collapse must break the §30.2 identity"
+             " (n_ineligible=" + std::to_string(collapsed_ineligible) +
+             " must be < 0)").c_str());
+  // 科学值亦被污染（被拒离群样本进入加权均值）——缺陷的产品面后果
+  CHECK_MSG(std::fabs(pr2.signal - (100.0 + 100.3 + 900.4) / 3.0) < 1e-12,
+            "collapsed wiring must pollute the weighted mean with the rejected"
+            " outlier (defect consequence)");
 }
 
 // ── 3. §30.3 provenance 五键真实值 + pending 诚实 + properties 缺口锚 ──────
@@ -983,13 +1282,39 @@ static void test_determinism_and_parity() {
       fs::remove_all(fx.root);
     }
   }
+  // 1-worker vs 4-worker bitwise（depth=3 部分拒绝面: F-P2-002-02 场景;
+  // kernel 真触发 → 掩码/计数/科学值三面同时受 worker 划分影响的可能性被
+  // 逐字节排除, 与 §30.1/§30.2 冻结的 OMP 定序归并/固定 chunk 合同一致）
+  {
+    std::string w1;
+    for (int pass = 0; pass < 2; ++pass) {
+      Fixture3 fx = make_fixture3("par3");
+      ModuleRegistry reg;
+      CHECK(register_phase_modules(reg).ok());
+      run_chain_via_runtime(reg, json::parse(chain_cfg(fx)),
+                            pass == 0 ? "p2002.w1.d3" : "p2002.w4.d3",
+                            pass == 0 ? 1 : 4, fx);
+      CHECK(fs::exists(fs::path(fx.out + "/p2_final.json")));
+      if (!fs::exists(fs::path(fx.out + "/p2_final.json"))) {
+        fs::remove_all(fx.root);
+        return;
+      }
+      const std::string b = planes_bytes(fx.out);
+      if (pass == 0) w1 = b;
+      else CHECK_MSG(b == w1, "depth=3 partial-rejection: 1-worker vs 4-worker"
+                              " planes must be bitwise equal");
+      fs::remove_all(fx.root);
+    }
+  }
 }
 
 int main(int argc, char** argv) {
-  // 故障注入模式: ASTROCS_P2002_FAULT=proj|prov（等价缺陷注入 → 断言必败）
+  // 故障注入模式: ASTROCS_P2002_FAULT=proj|prov|identity
+  // （等价缺陷注入 → 断言必败; identity = F-P2-002-02 逐样本剔除塌缩）
   const char* fault = std::getenv("ASTROCS_P2002_FAULT");
   const bool fault_proj = fault && std::strcmp(fault, "proj") == 0;
   const bool fault_prov = fault && std::strcmp(fault, "prov") == 0;
+  const bool fault_ident = fault && std::strcmp(fault, "identity") == 0;
   if (argc > 1 && std::strcmp(argv[1], "--probe") == 0) {
 #ifdef _WIN32
     _putenv("P2002_PROBE=1");
@@ -1001,6 +1326,8 @@ int main(int argc, char** argv) {
   test_s302_kernel_semantics();
   if (!fault_prov) test_s302_integration_projection(fault_proj);
   if (!fault_proj && !fault_prov) test_f_p2002_01_rejection_parity();
+  if (!fault_prov) test_f_p2002_02_n_ineligible_identity(fault_ident);
+  test_f_p2002_02_lib_level_correct_wiring();
   if (!fault_proj) test_s303_provenance_keys(fault_prov);
   test_s303_unavailable_explicit();
   test_f_unc_003_no_plane_drift();
@@ -1011,7 +1338,10 @@ int main(int argc, char** argv) {
                 "bins+nused 投影+角落 0/0 + F-P2-002-01 修复验证: 生产 bins=="
                 "kernel 重放一致+void nrej==0+depth≥3 双跑/1v4 bitwise + "
                 "§30.3 五键真实值+unavailable 显式"
-                "登记 + F-UNC-003 零断链 + 合同登记 + 确定性 + 1/N parity)\n");
+                "登记 + F-UNC-003 零断链 + 合同登记 + 确定性 + 1/N parity + "
+                "SCI-F2-001 §30.2 n_ineligible 恒等式(depth=3 部分拒绝 fixture,"
+                " candidates 机器佐证 depth) + 库面逐样本接线恒等式成立 + "
+                "depth=3 1v4 parity + FAULT=identity 注入必败)\n");
     return 0;
   }
   std::fprintf(stderr, "P2-002 UNC/REJ/PROV FAIL (%d)\n", failures);
