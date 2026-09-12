@@ -9,7 +9,8 @@ COLS = ["category", "symbol", "location", "classification", "production_reachabl
 
 def rg(pattern, roots, glob_="*.cpp", extra=None):
     """跨平台符号检索, 复刻原 grep -rEn <pattern> <roots> --include=<glob_> --include=*.c/.h/.hpp。
-    输出与 grep 同为 '<相对路径>:<行号>:<行内容>'; 确定性排序(按 路径+行号), 与 OS walk 顺序无关。
+    输出与 grep 同为 '<相对路径>:<行号>:<行内容>'; 确定性排序(按 路径+行号), 与 OS walk 顺序无关,
+    且每个模式只扫一遍树(调用方复用返回列表, 不得对每个匹配文件重扫)。
     排除 /archive/ /third_party/(原 grep 在结果中过滤, 此处直接在遍历时跳过等价)。"""
     inc = {glob_, "*.c", "*.h", "*.hpp"}
     rx = re.compile(pattern)
@@ -17,7 +18,9 @@ def rg(pattern, roots, glob_="*.cpp", extra=None):
     for root in roots:
         base = os.path.join(REPO, root)
         for dirpath, dirnames, filenames in os.walk(base):
-            dirnames[:] = [d for d in dirnames if d not in ("archive", "third_party", ".git", "__pycache__")]
+            # 遍历顺序显式确定: 目录名排序 + 文件名排序, 不依赖 OS walk 顺序。
+            dirnames[:] = sorted(d for d in dirnames
+                                 if d not in ("archive", "third_party", ".git", "__pycache__"))
             for fn in sorted(filenames):
                 if not any(fnmatch.fnmatch(fn, p) for p in inc):
                     continue
@@ -25,14 +28,13 @@ def rg(pattern, roots, glob_="*.cpp", extra=None):
                 rel = os.path.relpath(full, REPO).replace(os.sep, "/")
                 if "/archive/" in rel or "/third_party/" in rel:
                     continue
-                try:
-                    with open(full, "r", encoding="utf-8", errors="replace") as f:
-                        for ln, line in enumerate(f, 1):
-                            content = line.rstrip("\n").rstrip("\r")
-                            if rx.search(content):
-                                out.append(f"{rel}:{ln}:{content}")
-                except Exception:
-                    continue
+                # 读失败必须 fail-fast (宪章 §14.4): 静默跳过会让清单缺行且无人知晓,
+                # 而清单正是 §12.3 机器一致性检查的输入 —— 静默跳过等于静默放宽该门。
+                with open(full, "r", encoding="utf-8", errors="replace") as f:
+                    for ln, line in enumerate(f, 1):
+                        content = line.rstrip("\n").rstrip("\r")
+                        if rx.search(content):
+                            out.append(f"{rel}:{ln}:{content}")
     out.sort(key=lambda l: (l.split(":", 1)[0], int(l.split(":", 1)[1].split(":", 1)[0])))
     return [l for l in out if l.strip()]
 
@@ -70,11 +72,17 @@ for l in rg(r"std::(async|thread)\b", ["lib"]):
         f"{f}:{ln}", "登记于 EXECUTION_MODEL; watchdog/monitor 唯一豁免" if "watchdog" in code or "monitor" in code else "")
 
 # 4 锁
-lock_files = sorted({l.split(":")[0] for l in rg(r"std::mutex|lock_guard|EnterCriticalSection", ["lib"])})
-for f in lock_files:
-    n = sum(1 for l in rg(r"std::mutex|lock_guard|EnterCriticalSection", ["lib"]) if l.startswith(f + ":"))
+# 只扫一遍树再分组计数: 共享工作树下(p1hips/p1cal/... 等并行写者)重复全树重扫会使
+# 计数与实际命中行取自不同时刻, 产生静默漂移。
+lock_hits = rg(r"std::mutex|lock_guard|EnterCriticalSection", ["lib"])
+lock_counts = {}
+for l in lock_hits:
+    k = l.split(":")[0]
+    lock_counts[k] = lock_counts.get(k, 0) + 1
+for f in sorted(lock_counts):
     add("lock", os.path.basename(f), f, "test" if "/tests/" in f else "production",
-        "no" if "/tests/" in f else "yes", "Phase1/2", "mutex 保护日志/状态; 无内核内锁竞争", f"{f} ({n} sites)")
+        "no" if "/tests/" in f else "yes", "Phase1/2", "mutex 保护日志/状态; 无内核内锁竞争",
+        f"{f} ({lock_counts[f]} sites)")
 
 # 5 队列
 for l in rg(r"std::queue|concurrent_queue|BlockingQueue", ["lib"]):

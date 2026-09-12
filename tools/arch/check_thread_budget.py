@@ -31,7 +31,41 @@ REGISTERED = {
     # 字面量扫描独立生效, 本文件内再出现 omp_set_num_threads(<数字>) 仍 FAIL。
     "weighted_integration_benchmark.cpp": "ACR benchmark 示范代码: 线程源=benchmark Env(e.openmp_threads, hardware_concurrency 探测), 非硬编码; dormant 非生产路径(V5 不接入)",
     "weighted_integration_kernels.cpp": "ACR benchmark 示范代码: 线程源=逐内核 benchmark 线程租借参数(threads>0 才设置), 非硬编码; dormant 非生产路径(V5 不接入)",
+    # ARCH-TB-001 (裁决 R-10 先实证后登记; 证据 run/arch_tb_001/logs/provenance_snippets.txt):
+    # 三处均为 host budget 租约注入, 实参不是编译期字面量 ——
+    #   calibration/src/module_entry.cpp:949  ac_set_num_threads((int)leased)
+    #     leased <- ex->acquire(user_data, want); want = ex->max_workers ?:
+    #     ex->available_cpus, 再被 config.max_workers 夹紧; 还原实参
+    #     omp_prev = CAL_OMP_GET() = omp_get_max_threads() 运行时值(:1050);
+    #     executor 缺失 / acquire 失败 → 硬 ACS_ERR_BUDGET, 不降级单线程。
+    #   cosmetic/src/module_entry.cpp:767  同型 (还原 :785 / :826)。
+    #   drizzle/src/module_entry.cpp:920   DRZ_OMP_SET((int)want), 还原 :932;
+    #     acquire 失败 → 单线程降级 (drizzle 既有先例, BUDGET 缺额非致命)。
+    # 三处均经 host executor 申请线程租约, 无私有长期线程池 (宪章 §10.4)。
+    # 键为路径限定(非 basename): 不放行 hips/snr_estimator 等其它 module_entry.cpp。
+    # 登记只豁免 omp_set_num_threads 的"未登记"项; hardcoded_num_threads 字面量
+    # 扫描独立生效 (见 tests/arch/test_thread_budget.py::test_06), 本文件内出现
+    # omp_set_num_threads(<数字>) 仍 FAIL。
+    "lib/calibration/src/module_entry.cpp": "host budget 租约注入: 实参 leased <- executor->acquire(max_workers?:available_cpus, 被 config.max_workers 夹紧), 还原值 = omp_get_max_threads() 运行时值; 非编译期字面量; acquire 失败硬 BUDGET (ARCH-TB-001 实证)",
+    "lib/drizzle/src/module_entry.cpp": "host budget 租约注入: 实参 want <- executor->acquire(max_workers?:available_cpus, 被 config.max_workers 夹紧)(:920), 还原值 = omp_get_max_threads() 运行时值(:932); 非编译期字面量 (ARCH-TB-001 实证)",
+    "lib/cosmetic/src/module_entry.cpp": "host budget 租约注入: 实参 leased <- executor->acquire(max_workers?:available_cpus, 被 config.max_workers 夹紧), 还原值 = omp_get_max_threads() 运行时值; 非编译期字面量; acquire 失败硬 BUDGET (ARCH-TB-001 实证)",
 }
+
+def _posix(rel):
+    """相对路径归一为 posix 分隔符。
+
+    hosted Windows 下 os.path.relpath 产生 lib\\calibration\\src\\... , 使含 "/" 的
+    路径级键因子串匹配失配而误报"未登记"(HOSTFIX-23③ 同型根因)。归一只统一分隔符,
+    不放宽任何判定。
+    """
+    return rel.replace("\\", "/")
+
+def registered_annotation(rel):
+    """返回 rel 命中的登记注记; 未登记 → None。两种路径分隔符等价。"""
+    p = _posix(rel)
+    return next((v for k, v in REGISTERED.items() if _posix(k) in p), None)
+
+
 PATTERNS = {
     "std::thread": re.compile(r"std::thread\s*\(|std::thread\s+\w+"),
     "std::async": re.compile(r"std::async\s*\("),
@@ -49,10 +83,10 @@ def scan():
                 if not fn.endswith((".cpp", ".c", ".h", ".hpp")):
                     continue
                 full = os.path.join(dirpath, fn)
-                rel = os.path.relpath(full, REPO)
-                is_exempt = any(k in rel for k in EXEMPT)
+                rel = _posix(os.path.relpath(full, REPO))
+                is_exempt = any(_posix(k) in rel for k in EXEMPT)
                 for ln, line in enumerate(open(full, encoding="utf-8", errors="replace"), 1):
-                    if "/tests/" in rel.replace("\\", "/"):
+                    if "/tests/" in rel:
                         continue
                     # 注释行不构成线程创建（executor.cpp:18 文档注释提及 std::thread 被误报）
                     if line.lstrip().startswith("//") or line.lstrip().startswith("*"):
@@ -63,7 +97,7 @@ def scan():
                             if name == "hardcoded_num_threads":
                                 errors.append(f"{rel}:{ln}: {name} 字面量线程数禁止: {line.strip()[:70]}")
                             elif name == "omp_set_num_threads":
-                                reg = next((v for k, v in REGISTERED.items() if k in rel), None)
+                                reg = registered_annotation(rel)
                                 if reg is None:
                                     errors.append(f"{rel}:{ln}: omp_set_num_threads 未登记: {line.strip()[:70]}")
                                 else:
