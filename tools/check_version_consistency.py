@@ -3,6 +3,11 @@
 扫描范围内任何 X.Y.Z 形式字面量必须等于当前唯一版本源 VERSION 的基础号,
 且不得出现 stable/RC/beta 预发布标记; VERSION 本身与 gen_version 常量为豁免定义点。
 exit 0 = PASS; 任何伪造/漂移版本字面量 => 非 0 (mutation 必须失败)。
+
+标准条款号豁免 (P2/CI-VER-CHK-001, 裁决 R-08): FITS WCS Paper I/II 与 IVOA HiPS
+的条款引用 (§2.1.1 / §4.2.1 / §4.4.1 / §6.3.1 等) 是科学可追溯锚, 不是产品版本;
+识别口径按"标准条款号形态"收窄 (见 mask_standard_clause_numbers)。
+口径只准更精确、不准更宽松: 只挖条款号本身, 同行真实版本字面量仍须 FAIL。
 """
 import os, re, subprocess, sys
 
@@ -39,6 +44,58 @@ EXEMPT = ("hips_version", "DatabaseVersion", "schema_version", "cap.version", "d
 CONTRACT_DOC_VERSION = re.compile(r"状态:\s*\w+\s+版本:\s*\d+\.\d+\.\d+")
 SKIP_DIRS = {".git", "build", "run", "reports", "archive", "testdata", "工程控制",
              "BASS DR3", "lib", "AstroCS.wiki", "__pycache__"}
+
+# ── 标准条款号口径 (P2/CI-VER-CHK-001, 裁决 R-08) ──────────────────────────
+# 事由: docs/standards/STANDARDS_REGISTRY.md 的 FITS WCS Paper I/II 与 IVOA HiPS
+#       条款引用 (§2.1.1 / §4.2.1 / §4.4.1 / §6.3.1) 被旧口径误判为"未知版本
+#       字面量", 19 条 findings 全部落在该文件。
+# 依据: 宪章 §19 基础科学与格式参考 + §7.3「以标准为基础, 而不是根据现有代码反推」;
+#       裁决 R-08 —— 修检查器口径, 严禁为过检查改写标准条款号; 检查器只准更精确、
+#       不准更宽松 (必须带"真实版本漂移仍 FAIL"的正向守卫用例)。
+# 形态: ① § 前缀条款号 (§2.1.1), 含其枚举续项 (§4.1/4.2.1/4.4.1);
+#       ② 标准名后紧跟的裸条款号 (Paper I 2.1.1 / HiPS 4.2.1 / SIP 2.1.1)。
+CLAUSE_ANCHOR_RE = re.compile(r"§\s*\d+(?:\.\d+)*")            # §2.1.1 / §3 / §12.1
+CLAUSE_BARE_RE = re.compile(r"(?<![\w.])(\d+(?:\.\d+){2,})(?![\d.])")  # 裸 X.Y.Z
+# 条款枚举中相邻两项之间只允许: 空白、括号注记、分隔符 (/、,; 和 与 及 ~)
+CLAUSE_GAP_RE = re.compile(
+    r"^(?:\s*(?:[（(][^（）()]*[）)])?\s*(?:[/、,，;；]|和|与|及|~|～)\s*)+$")
+STANDARD_NAME_CLAUSE_RE = re.compile(
+    r"(?:Paper\s+(?:I|II|III|IV|V)|HiPS|SIP|IVOA\s+HiPS|HEALPix|Drizzle|"
+    r"FITS\s+(?:WCS\s+)?Standard)\s+(\d+(?:\.\d+){2,})(?![\d.])")
+
+def clause_number_spans(line):
+    """行内标准条款号的字符下标区段 [(start, end), ...] (含 § 锚点及其枚举续项)。"""
+    spans = []
+    pos = 0
+    while True:
+        m = CLAUSE_ANCHOR_RE.search(line, pos)
+        if not m:
+            break
+        end = m.end()
+        while True:  # 枚举续项: §4.1/4.2.1/4.4.1 中后两项无 § 前缀
+            b = CLAUSE_BARE_RE.search(line, end)
+            if not b or not CLAUSE_GAP_RE.match(line[end:b.start()]):
+                break
+            end = b.end()
+        spans.append((m.start(), end))
+        pos = end
+    spans.extend(m.span(1) for m in STANDARD_NAME_CLAUSE_RE.finditer(line))
+    return spans
+
+
+def mask_standard_clause_numbers(line):
+    """把标准条款号挖成等长空白后返回, 供版本字面量扫描使用。
+
+    只挖条款号本身, 不动同一行的产品版本字面量 ——
+    `| §4.2.1（properties） | 版本 1.2.3 |` 中的 `1.2.3` 仍会被抓 (R-08)。
+    """
+    spans = clause_number_spans(line)
+    if not spans:
+        return line
+    chars = list(line)
+    for s, e in spans:
+        chars[s:e] = [" "] * (e - s)
+    return "".join(chars)
 
 def base_version():
     """返回 (基础号 X.Y.Z, alpha.N)。"""
@@ -100,7 +157,9 @@ def check_file(path, base_num, alpha_n, errors):
             low = line.lower()
             if any(k in low for k in EXEMPT):
                 continue
-            for m in BASE_RE.finditer(line):
+            # R-08: 未知版本字面量扫描前先挖掉标准条款号。alpha/prerelease 判定
+            # 仍跑在原始行上 —— 口径只收窄未知字面量误报面, 不放宽漂移判定。
+            for m in BASE_RE.finditer(mask_standard_clause_numbers(line)):
                 if m.group(1) != base_num:
                     errors.append(f"{rel}:{i}: 未知版本字面量 {m.group(1)} != 唯一源基础号 {base_num}: {line.strip()[:90]}")
 
