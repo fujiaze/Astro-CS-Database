@@ -54,12 +54,21 @@ WcsFitResult build_wcs(
 //   reject_code=3 牛顿矩阵奇异 (|det J|<1e-15, 畸变场奇点域)。
 //   非确定状态零依赖: 纯算术固定顺序, 无并行/无时间/无随机。
 // 返回:
-//   converged=true 时 x,y 有效 (x = u + CRPIX1 - 1, y = v + CRPIX2 - 1);
+//   converged=true 时 x,y 有效 (x = u + CRPIX1, y = v + CRPIX2; 与
+//   ipv_wcs.cpp 实现及 oracle_wcs_forward/oracle_wcs_reverse 的 u = x − CRPIX
+//   口径逐式一致 — STD-F1/R-02 方案 b: ipv 内部保持 0-based 自洽约定,
+//   **本函数不做 FITS 1-based 换算**)。
 //   converged=false 时 x,y 置 NaN, iterations=已执行迭代次数。
+//
+// STD-F1 口径边界 (前台裁决 R-02 方案 b; 合同见 docs/science/ASTROMETRY.md):
+//   - 本函数属 ipv 内部 0-based 口径, **禁止**在此处或调用侧再施加一次 +1;
+//   - FITS 1-based 桥接 (xp = x + 1) 的唯一责任方 = Phase3 导出边界
+//     (lib/phase3_session/p3_wcs.cpp 的 fits_pixel_1based);
+//   - 第三方消费方按 Paper I §2.1.1 以 1-based 参考像素配对使用。
 struct WcsIterativeResult {
     bool   converged;
-    double x;            // 0-based FITS 像素 x (Y-down)
-    double y;            // 0-based FITS 像素 y (Y-down)
+    double x;            // 0-based FITS 像素 x (Y-down, ipv 内部口径)
+    double y;            // 0-based FITS 像素 y (Y-down, ipv 内部口径)
     int    iterations;   // 实际迭代次数 (含拒绝前的次数)
     int    reject_code;  // 0=收敛, 1=背面/非有限, 2=发散/未收敛, 3=J 奇异
 };

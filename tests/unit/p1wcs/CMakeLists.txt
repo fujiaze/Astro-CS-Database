@@ -134,3 +134,24 @@ set_tests_properties(p1wcs_units p1wcs_properties p1wcs_oracle
                      p1wcs_negative p1wcs_performance p1wcs_selfcheck
                      p1wcs_apbp p1wcs_astropy_cross
                      PROPERTIES LABELS "p1wcs")
+
+# ---------------------------------------------------------------------------
+# STD-F1 导出边界 +1 桥接第三方交叉 + 九宫格显式判定 (前台裁决 R-02 方案 b)
+# ---------------------------------------------------------------------------
+# 合同锚: docs/science/ASTROMETRY.md §5/§7; docs/standards/STANDARDS_REGISTRY.md
+# STD-F1 (FITS WCS Paper I §2.1.1)。自包含: 自行重跑 p3_wcs_test (九宫格导出)
+# 与 p1wcs_tests apbp (ipv 导出侧输入) → astropy 独立对拍; 正向锁 (声明桥接
+# 达机器精度) + 负向注入 (移除/错置桥接必 FAIL, ≥1px) 双向断言。
+# 工作目录: CMake 显式传入仓内 run/ 区 (任意检出位置/托管 runner 可写);
+# 可用 -DSTD_F1_BRIDGE_WORK_DIR=<可写目录> 覆盖。脚本自身不含绝对路径。
+if(NOT DEFINED STD_F1_BRIDGE_WORK_DIR)
+  set(STD_F1_BRIDGE_WORK_DIR "${CMAKE_SOURCE_DIR}/run/std_f1_adj")
+endif()
+add_test(NAME p1wcs_std_f1_bridge_cross
+  COMMAND ${CMAKE_COMMAND} -E env
+          STD_F1_WORK_DIR=${STD_F1_BRIDGE_WORK_DIR}
+          P1WCS_TESTS_BIN=$<TARGET_FILE:p1wcs_tests>
+          P3WCS_TESTS_BIN=$<TARGET_FILE:p3_wcs_test>
+          python3 ${P1WCS_DIR}/p1wcs_std_f1_bridge_cross.py
+          --work-dir ${STD_F1_BRIDGE_WORK_DIR})
+set_tests_properties(p1wcs_std_f1_bridge_cross PROPERTIES LABELS "p1wcs")

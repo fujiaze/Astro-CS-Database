@@ -25,6 +25,33 @@ void normalize_ra(double* ra) {
     *ra = std::fmod(*ra, 360.0);
     if (*ra < 0) *ra += 360.0;
 }
+
+// ---------------------------------------------------------------------------
+// STD-F1 / 前台裁决 R-02(方案 b) 导出边界桥接 —— **全文件唯一 +1 点**
+//
+// 口径 (合同冻结, 见 docs/science/ASTROMETRY.md 与
+// docs/standards/STANDARDS_REGISTRY.md 的 STD-F1 行):
+//   - 内层 (lib/plate_solve ipv 迭代反演) 保持既有 0-based 自洽约定;
+//   - FITS 导出层以 FITS WCS Paper I §2.1.1 为基础: CRPIX 为 1-based 参考像素,
+//     像素坐标 xp = x + 1, 中间坐标 (xi,eta) = CD·(xp − CRPIX);
+//   - 桥接责任方 = **Phase3 导出边界 (本文件)**; 除本文件之外不得再施加一次 +1
+//     (双重桥接 = 恒定 1px 系统偏移), 由负向注入用例锁定:
+//     tests/unit/p3_wcs_test.cpp (九宫格 + 双桥接/无桥接必败) 与
+//     tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py (astropy 四向桥接扫描)。
+// 数学内容不变: 纯原点平移 (标量 +1), 不改 CD/SIP/CRVAL/CRPIX 任何数值,
+// 不放宽任何容差; 冻结门 1e-4 px 与 CRPIX=w/2+0.5 不变量均不在此处变更。
+// ---------------------------------------------------------------------------
+constexpr double kFitsPixelOrigin = 1.0;   // FITS Paper I §2.1.1: xp = x + 1
+
+// 0-based 像素 → FITS 1-based 像素 (唯一桥接函数: 全文件仅此一处出现 +1)
+inline double fits_pixel_1based(double x0based) {
+    return x0based + kFitsPixelOrigin;
+}
+
+// FITS 1-based 像素 → 0-based 像素 (逆桥接: 复用同一常量, 不引入第二处字面量)
+inline double fits_pixel_0based(double x1based) {
+    return x1based - kFitsPixelOrigin;
+}
 }  // namespace
 
 P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
@@ -94,8 +121,8 @@ P3WcsStatus p3_wcs_pix2world(const P3WcsDescriptor* d, double x, double y,
                              double* ra_deg, double* dec_deg) {
     if (!d || !ra_deg || !dec_deg) return P3_WCS_PARAM;
     // 中间坐标 ξ,η(deg): CD·(pix − crpix)
-    const double dx = (x + 1.0) - d->crpix_x;   // FITS 1-based
-    const double dy = (y + 1.0) - d->crpix_y;
+    const double dx = fits_pixel_1based(x) - d->crpix_x;   // 导出边界桥接 (STD-F1)
+    const double dy = fits_pixel_1based(y) - d->crpix_y;
     const double xi = (d->cd[0][0] * dx + d->cd[0][1] * dy) * kRad;   // rad
     const double eta = (d->cd[1][0] * dx + d->cd[1][1] * dy) * kRad;
     const double a0 = d->crval_ra_deg * kRad;
@@ -137,8 +164,8 @@ P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double ra_deg, double dec
     if (std::fabs(det) < 1e-300) return P3_WCS_PARAM;
     const double dx = (d->cd[1][1] * xid - d->cd[0][1] * etad) / det;
     const double dy = (-d->cd[1][0] * xid + d->cd[0][0] * etad) / det;
-    *x = dx + d->crpix_x - 1.0;   // 0-based 像素
-    *y = dy + d->crpix_y - 1.0;
+    *x = fits_pixel_0based(dx + d->crpix_x);   // 逆桥接 → 0-based 像素
+    *y = fits_pixel_0based(dy + d->crpix_y);
     return P3_WCS_OK;
 }
 
