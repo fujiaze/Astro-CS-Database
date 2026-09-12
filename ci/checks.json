@@ -1359,7 +1359,7 @@
         "-t",
         "tests/backend"
       ],
-      "timeout_seconds": 900,
+      "timeout_seconds": 1800,
       "heavy": false,
       "mutates_workspace": false,
       "outputs": [],
@@ -1442,7 +1442,8 @@
         "tests/version/**",
         "lib/**",
         "cli/**",
-        "include/**"
+        "include/**",
+        "tools/check_version_consistency.py"
       ],
       "requires_monitor": false
     },
@@ -3065,6 +3066,40 @@
         "tests/**"
       ],
       "requires_monitor": false
+    },
+    {
+      "id": "UT-GAIA-ZLIB",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "lib/gaia_xpsd_client/tests",
+        "-t",
+        "lib/gaia_xpsd_client/tests"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "lib/gaia_xpsd_client/**",
+        "CMakeLists.txt",
+        "cmake/**"
+      ],
+      "requires_monitor": false,
+      "prerequisite_tools": [
+        "cmake"
+      ]
     }
   ]
 }
