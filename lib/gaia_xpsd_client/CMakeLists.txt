@@ -55,15 +55,43 @@ target_link_libraries(astrocs_catalog_gaia PRIVATE Threads::Threads)
 # zlib (legacy 依赖; 已在工程内使用 find_package/ZLIB 变量约定)
 # F-CI-002-05 (MOD-001 域内, owner 授权修复): Windows hosted runner 的 vcpkg
 # zlib 不在 find_package(ZLIB) 默认搜索路径, WIN-BUILD-RELEASE configure 必败
-# (e9b82ea4 起 win-build-summary 实证, 此前被监控门 exit10 掩盖)。与根
-# CMakeLists astrocs_cfitsio 段 HOSTFIX-23④ 同款消费 ACS_ZLIB_ROOT env:
-# env→cache 后映射为 CMP0074 <PackageName>_ROOT 语义 (FindZLIB 的
-# find_path/find_library 自动以其为 HINTS 搜索); Linux env 空 → 行为零变化。
+# (e9b82ea4 起 win-build-summary 实证, 此前被监控门 exit10 掩盖)。
+# CI-WIN-001 / FD-R1-011 (裁决 R-12): e6254d4d 的修复不完整 —— 本节当时只消费
+# ACS_ZLIB_ROOT (include 命中, 故报 "found version 1.3.2"), 未消费 runner
+# "Provide zlib (vcpkg)" 步注入的 ACS_ZLIB_LIB; vcpkg x64-windows-static-md 的
+# 静态产物名为 zs.lib, 不在 FindZLIB 的 NAMES(z zlib zdll zlib1 zlibstatic
+# zlibwapi zlibvc zlibstat) 内 ⇒ ZLIB_LIBRARY 缺失 ⇒ configure 必败。根
+# astrocs_cfitsio 段两个 env 都消费, 本节只消费一个 ⇒ 两段口径分叉。
+#
+# 现口径 (与根段 HOSTFIX-23④ 一致; CMP0074 <PackageName>_ROOT 语义,
+# cmake_minimum_required 3.16 ⇒ NEW):
+#   ① ACS_ZLIB_ROOT (有效目录) ⇒ ZLIB_ROOT, FindZLIB 以 <root>/include 与
+#      <root>/lib 为首选搜索前缀; root 未设/无效 ⇒ 不注入, 退回系统搜索
+#      (Linux env 为空 ⇒ 行为零变化, 基线不变);
+#   ② ACS_ZLIB_LIB (runner 注入的确切库文件名, 如 vcpkg zs.lib / fatduck
+#      libz.lib) ⇒ 直接落 ZLIB_LIBRARY (HOSTFIX-23④ "env 层确定性优先"),
+#      不依赖 FindZLIB 的 NAMES 猜测, 亦避免 include 命中而库落到别的 zlib。
+# 不改为可选依赖、不摘除 REQUIRED (裁决 R-12/R-13): 找不到 zlib 一律
+# configure 期 fail-fast。本节不按 MSVC 门控 (与根段的差异仅在此: gaia 走
+# imported target, 不拼 MSVC 专有 .lib 路径), 使该消费口径可在 Linux 侧同构
+# 复验 —— 见 lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py。
+#
+# ⚠ 条件写法硬约束: 二② 的环境变量判空**必须**用字符串比较
+# (NOT "$ENV{ACS_ZLIB_LIB}" STREQUAL ""), 不得写成 if(ENV{ACS_ZLIB_LIB}) ——
+# CMake 的 if(ENV{<name>}) 会把环境变量的**值再当变量名解引用**, 值 "zs.lib"
+# 未定义为 CMake 变量 ⇒ 判 FALSE, 该分支恒为死分支。CI-WIN-001 本地实证:
+# 根 astrocs_cfitsio 段正是 if(ENV{ACS_ZLIB_LIB}) 写法 (该段能过仅因其后
+# find_library 的 NAMES 里含 zs, 属侥幸命中, 已登记 finding 交前台裁决)。
 if(NOT TARGET ZLIB::ZLIB)
     set(ACS_ZLIB_ROOT "$ENV{ACS_ZLIB_ROOT}" CACHE PATH
         "zlib install root (include/zlib.h + lib); MSVC hosted runner 经 vcpkg 注入 env")
-    if(ACS_ZLIB_ROOT)
+    if(ACS_ZLIB_ROOT AND IS_DIRECTORY "${ACS_ZLIB_ROOT}")
         set(ZLIB_ROOT "${ACS_ZLIB_ROOT}")
+        if(NOT "$ENV{ACS_ZLIB_LIB}" STREQUAL ""
+           AND EXISTS "${ACS_ZLIB_ROOT}/lib/$ENV{ACS_ZLIB_LIB}")
+            set(ZLIB_LIBRARY "${ACS_ZLIB_ROOT}/lib/$ENV{ACS_ZLIB_LIB}" CACHE FILEPATH
+                "ACS_ZLIB_LIB 注入的确切 zlib 链接库 (env 层确定性优先; 与根段同口径)" FORCE)
+        endif()
     endif()
     find_package(ZLIB REQUIRED)
 endif()
