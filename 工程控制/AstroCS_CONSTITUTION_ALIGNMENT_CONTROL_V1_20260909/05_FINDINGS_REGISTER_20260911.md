@@ -315,3 +315,52 @@ resource gate 事件缺失，CLI 域）仍开放。下一轮必须排在 RT-001 
 FD-R1-010（G-CI-L1 无承接任务）、FD-R1-012/013（p1001 生产并发缺陷修复归属 + 无写域）、
 BASE-F1/F2/F3（资源门判定域收口是否属放宽冻结门）、BASE-F5（fixture ivar 二选一）。
 
+
+
+---
+
+## 附录 B｜rev6 前台裁决轮 findings 登记（2026-09-12）
+
+> 来源：rev6 前台（cp run `Rmty4r4lx6b578e`）逐任务机器验收。凡依宪章可裁决者一律在
+> `07_FRONT_DESK_RULINGS_20260912.md` 留档裁决，只有宪章无法裁决者才登记为待裁项。
+
+### B.1 GOV-AGENTS-001（`b40c8a49`）验收 = **PASS**
+
+- 交付：`AGENTS.md`（+24/-3，仅此一文件，零越界；预存 dirty 零覆盖）。
+- 前台独立机器验收（非采信自述）：
+  - `python3 tools/check_agents_gov.py` → `GOV_CHECK_PASS 10/10 要素齐备, 无冲突条款` rc=0（改前 10/10 全 MISS）；
+  - 子代理报三 profile CI 同构全绿（fast/linux-main/windows-main `verdict=PASS total=2 pass=2 fail=0`）；
+  - **前台逐条核对 10 项映射的宪章条款号真实性**：§3.1/§3.2/§3.3、§8.1、§10.1–10.5、§12.3、
+    §14.1/§14.4/§14.5、§15.1/§15.3/§15.4、§16.1 全部命中；§17.6/§17.12 系 §17 编号列表第 6/12 项，引用成立，**未臆造**；
+  - 引用文件存在性核实通过；`AGENTS.md` sha256=`3cb31789…` 与子代理申报一致；
+  - **符合 R-07**：映射式承载，未放宽 `tools/check_agents_gov.py`、未删检查项、未改 `ci/checks.json`。
+- 三 SHA：`b40c8a49` → 已 push（前台复核 `git merge-base --is-ancestor` 确认 origin/main 含之）。
+
+### B.2 GOV-AGENTS-001 上报的检查器口径冲突（F1–F6）——前台逐条裁决
+
+| 编号 | 级别 | 事由 | 前台裁决 |
+|---|---|---|---|
+| **F1** | P2 | 检查器「状态机」断言字面量 `REVIEW_PENDING`，但 `tools/quality/validate_task_ledger.py:42` 的 `STATUSES` 不含它、`:208` 自测用例名为 `illegal_state` | **采纳子代理护栏，不裁决改工具链**：`REVIEW_PENDING` 系 V5 遗留，现行台账验证器已判非法；映射行已显式标注「不得据此新增状态」。检查器字面量保留（删则门失效），语义以台账验证器为准。 |
+| **F2** | P3 | 检查器「节点」要求字面量 `vm-bj`，而宪章 §15.1 有意按角色表述且禁止沿用历史机器规格/硬编码主机路径 | **裁决**：`vm-bj` 为运行事实（见 `FATDUCK_ACCESS.md`、`docs/architecture/ISA_VARIANTS.md`），无规范效力；映射已标注其性质。不为此改写宪章（§1.2 权限在负责人）。 |
+| **F3** | P2 | 检查器「alpha/发布」要求字面量 `AWAITING_EXTERNAL_RELEASE_REVIEW`，但 `assemble_audit.py:181,209` 表明当前候选 `verdict=RELEASE_NOT_READY_BLOCKED`、该字面量**合法不可生成** | **采纳子代理处置**：映射已写明「不等同发布、合法达成由审核校验器判定」，与宪章 §17.12「只有负责人可决定发布」一致，避免被读成宣布发布。 |
+| **F4** | P3 | 「不停工」字面量与 §15.3 原文措辞略异 | **裁决**：语义同向，以宪章 §15.3 为准，无需处置。 |
+| **F5** | P2 | 检查器硬编码 `PATH="AGENTS.md"` 要求其承载治理要素，而 §1.1 视其为薄入口；`ci/ci_repair_round.py:62` 已记录该脱节 | **裁决（R-07 已覆盖）**：映射式承载使其同向而非互斥；长期是否改检查器口径属工具链演进，**不在本轮**（改检查器易被读成放宽门，须负责人明确同意）。 |
+| **F6** | P3 | 根目录未跟踪 `alloc_report.json`/`alloc_samples.csv` | 与既有 **FD-R1-004** 同源，已登记；按裁决 **R-06** 归位 `run/resource/`。 |
+
+### B.3 rev6 前台补登记（本轮实测）
+
+- **FD-R6-001（P1，已由 R-01 裁决闭环）**：`ci-repair` 与 `repo-write` 双写 lane 导致跨 lane
+  写域污染已 materialize 到 git 历史（`830b38c6` 吞并 CI-BASELINE-001 在制改动，见 FD-R1-017）。
+  裁决：`ci-repair` lane 停止派发新任务，全部 tracked 写归写域分道（R-01）。
+- **FD-R6-002（P1，已由 R-03 裁决闭环）**：`lib/core/src/module_adapters.cpp` 承载两个独立 P1
+  （§30.2 逐样本排异塌缩、p1001 并发撕裂读）却零写域覆盖（FD-R1-013/FD-R1-025）。
+  裁决：补正 SCI-F2-001 写域 + 新增 `CORE-RACE-001`（R-03）。
+- **FD-R6-003（P2，已裁决）**：控制包写域过粗导致吞吐串行化——原 lanes 仅单条 `repo-write`(cap 1)，
+  13 项待办实测连续 3 次 `cp dispatch` 全部 `deferred:lane_capacity`。
+  裁决：按实际写域拆为 5 条互斥道（同域仍串行、跨域并行），`max_parallel` 6→12；
+  实测一次派发 7 个并发（`178222a7`）。
+- **FD-R6-004（P2，需负责人追认）**：cprun 注册修订包 = 新 run，节点状态从零开始，
+  而门禁条件形如 `{task,state:passed}` ⇒ 历史已交付节点若不在新 run 内重走将**永久阻塞门禁**。
+  前台已瘦身门禁至真实剩余工作（G-CI-FIX 9 项 / G-SCI 3 项 / CI-002 12 项依赖），
+  不重走 21 个纯历史归档节点；状态权威以 `TASK_LEDGER.csv` + `07` 裁决件交叉登记。
+
