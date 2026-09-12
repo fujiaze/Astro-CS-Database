@@ -3,9 +3,27 @@
   "id": "astrocs-constitution-alignment-v1",
   "title": "AstroCS 宪章一致性整改与发布复核",
   "workspace": "../..",
-  "max_parallel": 6,
+  "max_parallel": 12,
   "lanes": {
     "repo-write": {
+      "capacity": 1
+    },
+    "rw-docs": {
+      "capacity": 1
+    },
+    "rw-tools": {
+      "capacity": 1
+    },
+    "rw-lib": {
+      "capacity": 1
+    },
+    "rw-tests": {
+      "capacity": 1
+    },
+    "rw-ci": {
+      "capacity": 1
+    },
+    "rw-mod": {
       "capacity": 1
     },
     "read-only": {
@@ -19,110 +37,11 @@
     },
     "windows": {
       "capacity": 1
-    },
-    "ci-repair": {
-      "capacity": 1
     }
   },
   "gates": {
-    "G-CI-L1": {
-      "all": [
-        {
-          "task": "CI-002",
-          "state": "passed"
-        }
-      ]
-    },
-    "G-STD": {
-      "all": [
-        {
-          "task": "STD-REG-001",
-          "state": "passed"
-        },
-        {
-          "task": "STD-F1-ADJ",
-          "state": "passed"
-        }
-      ]
-    },
-    "G-SCI": {
-      "all": [
-        {
-          "task": "SCI-F2-001",
-          "state": "passed"
-        },
-        {
-          "task": "SCI-F3-001",
-          "state": "passed"
-        },
-        {
-          "task": "WCS-003",
-          "state": "passed"
-        },
-        {
-          "task": "DATA-001",
-          "state": "passed"
-        },
-        {
-          "task": "STD-F1-ADJ",
-          "state": "passed"
-        }
-      ]
-    },
-    "G-CODE": {
-      "all": [
-        {
-          "task": "RT-001A",
-          "state": "passed"
-        },
-        {
-          "task": "RT-001B",
-          "state": "passed"
-        },
-        {
-          "task": "MOD-001B",
-          "state": "passed"
-        },
-        {
-          "task": "CLI-001B",
-          "state": "passed"
-        }
-      ]
-    },
-    "G-REAL-L2": {
-      "all": [
-        {
-          "task": "VIS-001",
-          "state": "passed"
-        }
-      ]
-    },
-    "G-FAT-L3": {
-      "all": [
-        {
-          "task": "WIN-001",
-          "state": "passed"
-        }
-      ]
-    },
-    "G-RELEASE": {
-      "all": [
-        {
-          "task": "AUD-001",
-          "state": "passed"
-        },
-        {
-          "task": "PACK-001",
-          "state": "passed"
-        }
-      ]
-    },
     "G-CI-FIX": {
       "all": [
-        {
-          "task": "GOV-AGENTS-001",
-          "state": "passed"
-        },
         {
           "task": "CI-DATA-REG-001",
           "state": "passed"
@@ -157,6 +76,62 @@
         },
         {
           "task": "CI-REPAIR-002",
+          "state": "passed"
+        }
+      ]
+    },
+    "G-SCI": {
+      "all": [
+        {
+          "task": "SCI-F2-001",
+          "state": "passed"
+        },
+        {
+          "task": "SCI-F3-001",
+          "state": "passed"
+        },
+        {
+          "task": "STD-F1-ADJ",
+          "state": "passed"
+        }
+      ]
+    },
+    "G-CODE": {
+      "all": [
+        {
+          "task": "RT-001A",
+          "state": "passed"
+        },
+        {
+          "task": "RT-001B",
+          "state": "passed"
+        },
+        {
+          "task": "MOD-001B",
+          "state": "passed"
+        },
+        {
+          "task": "CLI-001B",
+          "state": "passed"
+        }
+      ]
+    },
+    "G-CI-L1": {
+      "all": [
+        {
+          "task": "CI-002",
+          "state": "passed"
+        }
+      ]
+    },
+    "G-RELEASE": {
+      "all": [
+        {
+          "task": "AUD-001",
+          "state": "passed"
+        },
+        {
+          "task": "PACK-001",
           "state": "passed"
         }
       ]
@@ -575,7 +550,7 @@
       "id": "RT-001",
       "title": "接入唯一Executor和实测资源门",
       "spec": "tasks/RT-001.md",
-      "lane": "repo-write",
+      "lane": "rw-mod",
       "priority": 50,
       "review": "foreground",
       "retry": {
@@ -600,7 +575,7 @@
       "id": "MOD-001",
       "title": "完成科学DLL安装加载验证与产品清单",
       "spec": "tasks/MOD-001.md",
-      "lane": "repo-write",
+      "lane": "rw-mod",
       "priority": 50,
       "review": "foreground",
       "retry": {
@@ -627,7 +602,7 @@
       "id": "CLI-001",
       "title": "完成薄CLI validate plan inspect",
       "spec": "tasks/CLI-001.md",
-      "lane": "repo-write",
+      "lane": "rw-mod",
       "priority": 50,
       "review": "foreground",
       "retry": {
@@ -705,7 +680,7 @@
       "id": "CI-REG-002",
       "title": "新增测试全注册与关键检查不可豁免",
       "spec": "tasks/CI-REG-002.md",
-      "lane": "repo-write",
+      "lane": "rw-ci",
       "priority": 179,
       "review": "foreground",
       "retry": {
@@ -731,7 +706,7 @@
       "id": "CI-REPAIR-001",
       "title": "拉回上轮CI结果并建立常驻修复线",
       "spec": "tasks/CI-REPAIR-001.md",
-      "lane": "ci-repair",
+      "lane": "rw-ci",
       "priority": 178,
       "review": "foreground",
       "retry": {
@@ -757,7 +732,7 @@
       "id": "CI-BASELINE-001",
       "title": "known-failures基线机器化",
       "spec": "tasks/CI-BASELINE-001.md",
-      "lane": "repo-write",
+      "lane": "rw-ci",
       "priority": 177,
       "review": "foreground",
       "retry": {
@@ -810,7 +785,7 @@
       "id": "STD-F1-ADJ",
       "title": "CRPIX口径落地(裁决b:导出边界+1桥接)",
       "spec": "tasks/STD-F1-ADJ.md",
-      "lane": "repo-write",
+      "lane": "rw-tests",
       "priority": 175,
       "review": "foreground",
       "retry": {
@@ -837,7 +812,7 @@
       "id": "DOC-CONV-001",
       "title": "L0与模块状态文档收敛",
       "spec": "tasks/DOC-CONV-001.md",
-      "lane": "repo-write",
+      "lane": "rw-docs",
       "priority": 174,
       "review": "foreground",
       "retry": {
@@ -865,7 +840,7 @@
       "id": "SCI-F2-001",
       "title": "integrate逐样本剔除kernel拒绝样本(§30.2生产修复)",
       "spec": "tasks/SCI-F2-001.md",
-      "lane": "repo-write",
+      "lane": "rw-lib",
       "priority": 173,
       "review": "foreground",
       "retry": {
@@ -893,7 +868,7 @@
       "id": "SCI-F3-001",
       "title": "AIO NREJ/NUSED通道与五键落盘",
       "spec": "tasks/SCI-F3-001.md",
-      "lane": "repo-write",
+      "lane": "rw-lib",
       "priority": 172,
       "review": "foreground",
       "retry": {
@@ -919,7 +894,7 @@
       "id": "SCI-ANCHOR-001",
       "title": "冻结文档行号锚全量复测",
       "spec": "tasks/SCI-ANCHOR-001.md",
-      "lane": "repo-write",
+      "lane": "rw-docs",
       "priority": 171,
       "review": "foreground",
       "retry": {
@@ -944,7 +919,7 @@
       "id": "UT-CLI-MAINT",
       "title": "UT-CLI 17项过时断言维护",
       "spec": "tasks/UT-CLI-MAINT.md",
-      "lane": "repo-write",
+      "lane": "rw-ci",
       "priority": 170,
       "review": "foreground",
       "retry": {
@@ -969,7 +944,7 @@
       "id": "RT-001A",
       "title": "模块私池拆除接入唯一Executor",
       "spec": "tasks/RT-001A.md",
-      "lane": "repo-write",
+      "lane": "rw-mod",
       "priority": 169,
       "review": "foreground",
       "retry": {
@@ -997,7 +972,7 @@
       "id": "RT-001B",
       "title": "资源门实测接线与监控合同",
       "spec": "tasks/RT-001B.md",
-      "lane": "repo-write",
+      "lane": "rw-mod",
       "priority": 168,
       "review": "foreground",
       "retry": {
@@ -1025,7 +1000,7 @@
       "id": "MOD-001A",
       "title": "科学DLL安装树与ABI verify",
       "spec": "tasks/MOD-001A.md",
-      "lane": "repo-write",
+      "lane": "rw-mod",
       "priority": 167,
       "review": "foreground",
       "retry": {
@@ -1053,7 +1028,7 @@
       "id": "MOD-001B",
       "title": "产品manifest生成与hash填充",
       "spec": "tasks/MOD-001B.md",
-      "lane": "repo-write",
+      "lane": "rw-mod",
       "priority": 166,
       "review": "foreground",
       "retry": {
@@ -1081,7 +1056,7 @@
       "id": "CLI-001B",
       "title": "CLI去科学静态链接薄化",
       "spec": "tasks/CLI-001B.md",
-      "lane": "repo-write",
+      "lane": "rw-mod",
       "priority": 165,
       "review": "foreground",
       "retry": {
@@ -1109,7 +1084,7 @@
       "id": "CI-001B",
       "title": "workflow与注册表联动核死",
       "spec": "tasks/CI-001B.md",
-      "lane": "repo-write",
+      "lane": "rw-ci",
       "priority": 100,
       "review": "foreground",
       "retry": {
@@ -1160,7 +1135,7 @@
       "id": "CI-DATA-REG-001",
       "title": "DATA 产物语义登记对齐",
       "spec": "tasks/CI-DATA-REG-001.md",
-      "lane": "repo-write",
+      "lane": "rw-docs",
       "priority": 245,
       "review": "foreground",
       "retry": {
@@ -1185,7 +1160,7 @@
       "id": "CI-VER-CHK-001",
       "title": "版本一致性检查器排除标准条款号",
       "spec": "tasks/CI-VER-CHK-001.md",
-      "lane": "repo-write",
+      "lane": "rw-tools",
       "priority": 240,
       "review": "foreground",
       "retry": {
@@ -1210,7 +1185,7 @@
       "id": "WCS-PATH-001",
       "title": "p1wcs astropy 交叉测试环境无关化",
       "spec": "tasks/WCS-PATH-001.md",
-      "lane": "repo-write",
+      "lane": "rw-tests",
       "priority": 235,
       "review": "foreground",
       "retry": {
@@ -1234,7 +1209,7 @@
       "id": "ARCH-TB-001",
       "title": "线程预算登记与库存生成器幂等",
       "spec": "tasks/ARCH-TB-001.md",
-      "lane": "repo-write",
+      "lane": "rw-tools",
       "priority": 230,
       "review": "foreground",
       "retry": {
@@ -1262,7 +1237,7 @@
       "id": "CORE-RACE-001",
       "title": "p1001 链并发撕裂读修复",
       "spec": "tasks/CORE-RACE-001.md",
-      "lane": "repo-write",
+      "lane": "rw-lib",
       "priority": 228,
       "review": "foreground",
       "retry": {
@@ -1287,7 +1262,7 @@
       "id": "CON-COMMENT-001",
       "title": "测试头 invariant 科学 ID 锚补全",
       "spec": "tasks/CON-COMMENT-001.md",
-      "lane": "repo-write",
+      "lane": "rw-tools",
       "priority": 225,
       "review": "foreground",
       "retry": {
@@ -1314,7 +1289,7 @@
       "id": "CI-WIN-001",
       "title": "Windows 构建断链修复",
       "spec": "tasks/CI-WIN-001.md",
-      "lane": "repo-write",
+      "lane": "rw-ci",
       "priority": 220,
       "review": "foreground",
       "retry": {
@@ -1339,7 +1314,7 @@
       "id": "CI-BACKEND-001",
       "title": "CI 镜像依赖与工具链 PATH 对齐",
       "spec": "tasks/CI-BACKEND-001.md",
-      "lane": "repo-write",
+      "lane": "rw-ci",
       "priority": 215,
       "review": "foreground",
       "retry": {
@@ -1364,7 +1339,7 @@
       "id": "CI-REPAIR-002",
       "title": "CI 修复常驻线 round2",
       "spec": "tasks/CI-REPAIR-002.md",
-      "lane": "repo-write",
+      "lane": "rw-ci",
       "priority": 210,
       "review": "foreground",
       "retry": {
@@ -1404,21 +1379,15 @@
         "CI-001B",
         "CI-BASELINE-001",
         "CI-REPAIR-002",
-        "GOV-AGENTS-001",
-        "CI-DATA-REG-001",
-        "CI-VER-CHK-001",
-        "WCS-PATH-001",
-        "ARCH-TB-001",
-        "CON-COMMENT-001",
-        "CORE-RACE-001",
         "CI-WIN-001",
         "CI-BACKEND-001",
+        "CORE-RACE-001",
+        "SCI-F2-001",
+        "SCI-F3-001",
         "RT-001A",
         "RT-001B",
         "MOD-001B",
-        "CLI-001B",
-        "SCI-F2-001",
-        "SCI-F3-001"
+        "CLI-001B"
       ],
       "evidence": {
         "checks": [
@@ -1539,7 +1508,7 @@
       "id": "DOC-001",
       "title": "收敛L0与机器追踪状态",
       "spec": "tasks/DOC-001.md",
-      "lane": "repo-write",
+      "lane": "rw-docs",
       "priority": 159,
       "review": "foreground",
       "retry": {
@@ -1640,7 +1609,7 @@
       "id": "PACK-001",
       "title": "生成并fresh-extract验证审核包",
       "spec": "tasks/PACK-001.md",
-      "lane": "repo-write",
+      "lane": "rw-mod",
       "priority": 155,
       "review": "foreground",
       "retry": {
