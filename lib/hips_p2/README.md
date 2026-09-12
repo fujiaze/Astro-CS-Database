@@ -157,8 +157,8 @@ PUBLIC_API.md Phase2 mosaic write 节（API-P2-HIPS-001）。
 
 | ID | 严重度 | 摘要 | 源码锚 |
 |---|---|---|---|
-| DISP-P2HIPS-001 | 中 | 输出仅 signal/support 两产品（:594 flags），消费 ivar 权重但无 variance/ivar 输出产品——方差传播止于加权积分 | stage2.cpp:594 |
-| DISP-P2HIPS-002 | 中 | input_manifest_hash/model_hash 仅入 UPM 持久层与 diagnostics.json（:245/:430/:1746），未写 HiPS properties（无 aio_hips_set_drizzle_provenance 调用，全文件 grep 零命中） | stage2.cpp:245,:430,:1746 |
+| DISP-P2HIPS-001 | 中 | 输出仅 signal/support 两产品（:594 flags），消费 ivar 权重但无 variance/ivar 输出产品——方差传播止于加权积分。**SCI-F3-001 更新（2026-09-12）**：产品位 ALL_V20=127 与 nrej/nused int32 通道已在 AIO 域实现（DATA-UNC-001 §30.2 位 32/64），本行遗留 = stage2 flags 未随 §30.1/§30.2 目标态扩展 | stage2.cpp:594；aio_hips.h:ALL_V20/write_diag_tile |
+| DISP-P2HIPS-002 | 中 | input_manifest_hash/model_hash 仅入 UPM 持久层与 diagnostics.json（:245/:430/:1746），未写 HiPS properties（无 aio_hips_set_drizzle_provenance 调用，全文件 grep 零命中）。**SCI-F3-001 更新（2026-09-12）**：AIO 侧通道已交付（`aio_hips_set_provenance` 五键双写 + `aio_hips_verify_product_set` 双向核验 + `aio_hips_write_diag_tile` nrej/nused int32），本行遗留部分收窄为"消费方调用点未接线"（本目录/本模块为库消费者）；写节点接线归 `lib/core/src/module_adapters.cpp` p2_op_write（域外，finding F-SCI-F3-001-01） | stage2.cpp:245,:430,:1746；aio_hips.h:set_provenance/verify_product_set/write_diag_tile |
 | DISP-P2HIPS-003 | 低 | stage2 直写 out_hips（:592）无 staging；原子发布依赖 IO-003 编排层（DISP-HIPS-004 同源） | stage2.cpp:592 |
 | DISP-P2HIPS-004 | 低 | 覆盖帧探测逐 tile 逐帧 probe（O(T·N) FITS 读，:663-671），无 MOC 缓存 | stage2.cpp:663-671 |
 

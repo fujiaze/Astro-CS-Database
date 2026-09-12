@@ -25,7 +25,10 @@ enum AioHipsProduct {
     AIO_HIPS_RD_SNR     = 2,
     // variance/ivar 产品读取
     AIO_HIPS_RD_VARIANCE = 3,
-    AIO_HIPS_RD_IVAR     = 4
+    AIO_HIPS_RD_IVAR     = 4,
+    // nused/nrej 诊断统计平面读取 (int32, DATA-UNC-001 §30.2)
+    AIO_HIPS_RD_NREJ     = 5,
+    AIO_HIPS_RD_NUSED    = 6
 };
 
 typedef struct AioHipsDataset AioHipsDataset;
@@ -54,6 +57,11 @@ AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f32(AioHipsDataset* d, uint64_t ipix, 
 
 // 读取一个叶级 tile 为 float64 (standard HiPS row-major, 同上)
 AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f64(AioHipsDataset* d, uint64_t ipix, double* out);
+
+// 读取一个叶级 tile 为 int32 (nused/nrej 诊断平面; standard HiPS row-major)。
+// out 至少 512*512*sizeof(int32_t)。tile BITPIX 必须 = 32, 否则返回 -6
+// (诊断平面 dtype 由 §30.2 固定 int32, 不接受 float 冒充)。
+AIO_HIPS_RD_EXPORT int aio_hips_read_tile_i32(AioHipsDataset* d, uint64_t ipix, int32_t* out);
 
 // 按 NESTED leaf ipix 查询单像素值。
 // 内部执行 leaf_ipix -> local nested -> 标准 tile xy -> FITS row-major。

@@ -49,7 +49,11 @@ add_executable(p1hips_tests
   ${P1HIPS_DIR}/p1hips_tests_units.cpp
   ${P1HIPS_DIR}/p1hips_tests_properties.cpp
   ${P1HIPS_DIR}/p1hips_tests_oracle.cpp
-  ${P1HIPS_DIR}/p1hips_tests_negative.cpp)
+  ${P1HIPS_DIR}/p1hips_tests_negative.cpp
+  # SCI-F3-001: DATA-UNC-001 §30.2/§30.3 AIO 通道增补组 (nrej/nused int32 +
+  # 五 provenance 键 + verify 双向断言)。并入既有 units/negative 组,
+  # 不新增 CTest 目标 (零注册债; CTEST-REGISTRATION 闭包不变)。
+  ${P1HIPS_DIR}/p1hips_tests_diag_prov.cpp)
 target_include_directories(p1hips_tests PRIVATE
   ${P1HIPS_INC}
   ${P1HIPS_DIR})
@@ -75,7 +79,8 @@ add_executable(p1hips_selfcheck_test
   ${P1HIPS_DIR}/p1hips_tests_units.cpp
   ${P1HIPS_DIR}/p1hips_tests_properties.cpp
   ${P1HIPS_DIR}/p1hips_tests_oracle.cpp
-  ${P1HIPS_DIR}/p1hips_tests_negative.cpp)
+  ${P1HIPS_DIR}/p1hips_tests_negative.cpp
+  ${P1HIPS_DIR}/p1hips_tests_diag_prov.cpp)   # SCI-F3-001 注入自检面
 target_include_directories(p1hips_selfcheck_test PRIVATE
   ${P1HIPS_INC}
   ${P1HIPS_DIR})

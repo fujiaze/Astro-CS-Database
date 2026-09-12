@@ -225,6 +225,10 @@ static bool oracle_iso_to_mjd(const std::string& iso, double& mjd) {
     return true;
 }
 
+// SCI-F3-001: DATA-UNC-001 §30.2/§30.3 AIO 通道增补组 (定义于
+// p1hips_tests_diag_prov.cpp); 正向用例并入本 units 组。
+int test_diag_prov_units();
+
 int test_units() {
     CheckState cs;
     cs.failures = 0;
@@ -435,8 +439,16 @@ int test_units() {
                          txt.find("\"ivar\"") != std::string::npos, "u5_manifest_products");
     }
 
+    // --- DP (SCI-F3-001 增补): DATA-UNC-001 §30.2/§30.3 AIO 通道
+    //     (nrej/nused int32 子产品 + 五 provenance 键双写 + verify 双向断言;
+    //      定义于 p1hips_tests_diag_prov.cpp, 并入既有 units 组 ⇒ 零新增 CTest 目标)
+    {
+        const int dp_rc = test_diag_prov_units();
+        if (dp_rc != 0) cs.failures += 1;
+    }
+
     if (cs.failures == 0) {
-        std::fprintf(stdout, "[p1hips] units: U1..U5 PASS\n");
+        std::fprintf(stdout, "[p1hips] units: U1..U5 + DP-U1..DP-U6 PASS\n");
         return 0;
     }
     std::fprintf(stderr, "[p1hips] units: %d check(s) failed\n", cs.failures);

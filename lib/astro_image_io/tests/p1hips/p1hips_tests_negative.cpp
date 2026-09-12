@@ -40,6 +40,10 @@ bool make_ro_dir(const std::string& path) {
 
 namespace p1hips {
 
+// SCI-F3-001: DATA-UNC-001 §30.2/§30.3 AIO 通道负向组 (定义于
+// p1hips_tests_diag_prov.cpp); 并入既有 negative 组 ⇒ 零新增 CTest 目标。
+int test_diag_prov_negative();
+
 int test_negative() {
     CheckState& cs = g_cs;
     cs.failures = 0;
@@ -93,10 +97,18 @@ int test_negative() {
                                     nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK(cs, ps == nullptr, "n1_dtype_minus1");
 
-        // 越位 flags: 高于 ALL_V19 (31) 的位未定义
+        // 越位 flags: 高于 ALL_V20 (127) 的位未定义。
+        // 32/64 (nrej/nused) 自 SCI-F3-001 起为合法位 (DATA-UNC-001 §30.2),
+        // 未定义位上界随之抬到 127。
         ps = aio_hips_product_begin(dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
-                                    32, "ivo://t", "t", nullptr, 0.0, nullptr, 0);
-        P1HIPS_CHECK(cs, ps == nullptr, "n1_flags_bit5");
+                                    128, "ivo://t", "t", nullptr, 0.0, nullptr, 0);
+        P1HIPS_CHECK(cs, ps == nullptr, "n1_flags_bit7");
+        // 32/64 现在合法 (nrej/nused 诊断平面位) —— begin 必须接受
+        ps = aio_hips_product_begin(dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
+                                    AIO_HIPS_PRODUCT_NREJ | AIO_HIPS_PRODUCT_NUSED,
+                                    "ivo://t", "t", nullptr, 0.0, nullptr, 0);
+        P1HIPS_CHECK(cs, ps != nullptr, "n1_flags_diag_bits_accepted");
+        if (ps) aio_hips_abort(ps);
 
         ps = aio_hips_product_begin(dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
                                     -1, "ivo://t", "t", nullptr, 0.0, nullptr, 0);
@@ -307,8 +319,15 @@ int test_negative() {
         }
     }
 
+    // --- DP (SCI-F3-001 增补): setter 参数域 / finalize 双向守卫 /
+    //     write_diag_tile 值域 / verify 违反面逐条必败
+    {
+        const int dp_rc = test_diag_prov_negative();
+        if (dp_rc != 0) cs.failures += 1;
+    }
+
     if (cs.failures == 0) {
-        std::fprintf(stdout, "[p1hips] negative: N1..N9 PASS\n");
+        std::fprintf(stdout, "[p1hips] negative: N1..N9 + DP-N1..DP-N4 PASS\n");
         return 0;
     }
     std::fprintf(stderr, "[p1hips] negative: %d check(s) failed\n", cs.failures);

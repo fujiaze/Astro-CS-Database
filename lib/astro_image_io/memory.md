@@ -239,3 +239,53 @@
 - aio_hips_reader.h: AIO_HIPS_RD_VARIANCE=3/IVAR=4
 - 全仓 first-party warnings 清零: aio_safe_copy 替换 strncpy (17 处),
   vendored CFITSIO 用 -w + third_party exception (144 上游警告)
+
+## 2026-09-12 SCI-F3-001 — §30.2 nrej/nused int32 通道 + §30.3 五 provenance 键
+（控制包 Rmtxvlrtfa66eb7；finding 锚 05 号登记册 §STD-F3 / 原 F-P2-002-03）
+- **AIO 掩码扩展登记（DATA_SEMANTICS §30.2 授权"实现任务在 AIO 域合同登记"）**:
+  `AIO_HIPS_PRODUCT_NREJ=32` / `AIO_HIPS_PRODUCT_NUSED=64`（位值由 §30.2 冻结）,
+  合法位域上界 `AIO_HIPS_PRODUCT_ALL_V20=127`（begin 校验由 `~ALL_V19` 抬到
+  `~ALL_V20`; ALL=7 / ALL_V19=31 语义不变, 向后兼容）。
+- **写通道**: `aio_hips_write_diag_tile(ps, AioHipsDiagTileView*)` → `<out>/nrej/`
+  与 `<out>/nused/`，**BITPIX=32 int32** FITS（CFITSIO TINT）+ DATASUM/CHECKSUM；
+  NESTED local 视图合同（同 signal/support/variance），落盘经共享 HEALPix core
+  scatter；值域守卫：负值一律 `-5`（§30.2 invalid: 无覆盖 = 0/0，**禁 −1 哨兵**）；
+  已启用位而指针 NULL → `-2`（禁空占位）；**不做 hierarchy 低阶聚合**
+  （§30.2 未冻结诊断平面聚合语义，不臆造）。
+- **读通道**: `AIO_HIPS_RD_NREJ=5` / `AIO_HIPS_RD_NUSED=6` +
+  `aio_hips_read_tile_i32`（BITPIX≠32 → `-6`，不接受 float 冒充）。
+- **§30.3 五 provenance 键**: `aio_hips_set_provenance(ps, input_manifest_hash,
+  model_hash, uncertainty_available, weight_mode, reject_profile)` —— 全或无
+  （未调用 → 五键整体不写, legacy P1 产品面零变化）；参数域 fail-closed
+  （两 hash 必须 64 hex、weight_mode∈{0,1,2}、profile 非空）。
+  双写面：每个 image 子产品 `properties`（大写 `ASTROCS_*` 键）+
+  finalize 的 `manifest.json`（同名小写 + `provenance` 块）。
+- **finalize 双向守卫（fail-closed）**: `uncertainty_available=true` 而
+  variance|ivar 位未同时置位 → `-9`；`=false` 而置位 → `-10`（禁占位子产品）。
+- **verify 面**: `aio_hips_verify_product_set(out_dir, AioHipsVerifyReport*)`
+  双向一致性核验（V1..V6）：五键全或无；available=true ⇒ variance/ivar 子产品
+  存在且 tile 数一致（HDU 必有）；=false ⇒ 禁占位；manifest products 声明 ↔
+  磁盘事实双向；诊断平面逐 tile 回读值域；properties↔manifest 值分叉。
+  rc: 0 自洽 / -1 参数或产品集缺失 / 2 available 缺 HDU / 3 unavailable 占位 /
+  4 五键不齐 / 5 声明缺失或 tile 不可读 / 6 未声明却存在 / 7 负值哨兵 / 8 双写分叉。
+- **测试（零新增 CTest 目标 ⇒ 零 CI 注册债）**: 新增
+  `lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp`，正向用例并入既有
+  `p1hips_units` 组（DP-U1..U6）、负向并入既有 `p1hips_negative` 组
+  （DP-N1..N4）、注入自检并入既有 `p1hips_selfcheck` 可执行（4 基线场景 +
+  5 注入点必败：`ASTROCS_HIPS_PROV_FAULT=missing_key|value_drift`、
+  `ASTROCS_HIPS_DIAG_FAULT=sentinel|skip_write`、
+  `ASTROCS_HIPS_VERIFY_FAULT=shortcut`）。另在 `tests/unit/p2002_unc_rej_prov_test.cpp`
+  增补 `test_s303_aio_channel_real_values`（真实 Phase2 产物值驱动 AIO 通道 +
+  逐像素回读 + verify 双向；注入面 `ASTROCS_P2002_FAULT=aio` 必败）。
+- **登记 finding（域外, 不在本任务写域）**:
+  - `F-SCI-F3-001-01`（P1, lib/core）：`lib/core/src/module_adapters.cpp`
+    `p2_op_write`（:2931-3015）仍只置 SIGNAL|SUPPORT(/VARIANCE|IVAR) 且不调用
+    `aio_hips_set_provenance`/`aio_hips_write_diag_tile` ⇒ Phase2 写节点产品
+    面仍无五键、无 nrej/nused 子产品（`p2_final.json.pending_contracts` 文本随之
+    过期）。AIO 侧通道已具备，接线为调用点 2~3 行改动，须 lib/core 写域任务执行。
+  - `F-SCI-F3-001-02`（P2, docs/contracts）：`docs/algorithms/HIPS_WRITER.md:44`
+    与 `docs/contracts/DATA_SEMANTICS.md:307`/`PUBLIC_API.md:324` 的产品位清单
+    仍是 {1,2,4,8,16}/ALL_V19（未含 32/64 与 ALL_V20）；
+    `contracts/data/phase2_uncertainty_rejection_provenance_v1.json` 的
+    `pending_aio_channels.writer_int32_tile|properties_key_channel` 仍为
+    PENDING_AIO_DOMAIN。三处均为本任务写域外，最小补丁文本见任务返回包。
