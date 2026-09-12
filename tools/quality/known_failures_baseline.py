@@ -1,26 +1,692 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""known_failures_baseline.py — R0-004 复现并冻结 40 项已知问题 (F-001..F-040)。
+"""known_failures_baseline.py — 已知失败基线：复现冻结（legacy）与 CI 机器化门（CI-BASELINE-001）。
 
-每个 finding 给出：finding_id、severity、status(REPRODUCED/NOT_REPRODUCED_WITH_EVIDENCE/SOURCE_CHANGED)、
-minimal_command(可复现命令)、evidence(现场输出/文件符号)、note。
+两部分职责（互不影响，legacy 行为零改动）：
 
-不得把“没找到”直接 CLOSED；P0/P1 不得靠改文档关闭。本 baseline 是冻结起点，
-后续任务修复后逐项在 evidence 中给出 resolution。
+  A. legacy（默认模式，R0-004 原行为）：复现并冻结 40 项 V6.1 已知问题
+     (F-001..F-040)，每项给 finding_id/severity/status/minimal_command/evidence/note。
 
-用法: python3 tools/quality/known_failures_baseline.py [--repo ROOT] [--output OUT.json]
+  B. CI 机器化门（CI-BASELINE-001，控制包依据 05_FINDINGS_REGISTER_20260911 §STD-F9
+     「known-failures 基线未机器化」+ 07_CI_MACHINE_CONTRACT §「已有失败基线」）：
+     把「全量测试结果必须满足 失败集 ⊆ 版本化基线」变成机器判定。版本化基线 =
+     仓库内 ci/known_failures.json（每项含 owner / reason / 首次登记 commit /
+     reproducer / expiry / 移除条件 / 类别），CI 比较当前失败集合与基线：
+
+       新失败（不在基线）            → FAIL（fail-closed，基线不得吞掉新回归）
+       基线项失败（精确匹配，未过期） → 容忍（KNOWN；基线项失败全绿）
+       基线项 expected=fail 却已通过 → FAIL（07 合同：修复后必须删除基线项）
+       基线项过期（expiry < now）    → FAIL（到期必须重登记或删除）
+       基线结构非法 / 类别越界       → FAIL（永不允许豁免类别不得入库）
+
+模式（--mode，默认 legacy）：
+  verify    静态校验基线文件自身（结构、首次登记 commit 可达性、unit 存在性、
+            expiry、类别白名单/黑名单）；任何违规 → exit 1。
+  check     动态判定：读全量测试结果（ctest JUnit XML = 全量 CTest 结果；
+            CI_RESULT.json = 全部登记检查的 verdict），与基线比较 → exit 0/1。
+  legacy    原 R0-004 findings 复现冻结报告。
+另提供 --selftest（内存 fixture 负例自检，零副作用）。
+
+用法：
+  python3 tools/quality/known_failures_baseline.py                       # legacy
+  python3 tools/quality/known_failures_baseline.py --mode verify --output run/ci/known-failures/known_failures_baseline.json
+  python3 tools/quality/known_failures_baseline.py --mode check --ctest-junit run/ci/build-gcc-release/ctest-full.junit.xml
+  python3 tools/quality/known_failures_baseline.py --selftest
+
+只读（除显式 --output / --selftest 的 stdout）；仅 stdlib。所有 git/外部命令带 timeout。
 """
 
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
+import fnmatch
 import json
+import os
+import pathlib
 import re
 import subprocess
 import sys
-from pathlib import Path
+import xml.etree.ElementTree as _ET
+from pathlib import Path  # legacy（R0-004）段沿用原脚本的 Path 直引用
+
+REPO = pathlib.Path(__file__).resolve().parents[2]
+BASELINE_REL = "ci/known_failures.json"
+REGISTRY_REL = "ci/checks.json"
+CTEST_BASELINE_REL = "ci/ctest_baseline.json"
+SCHEMA_ID = "astrocs.known-failures-baseline/v2"
+GIT_TIMEOUT = 60
+
+KIND_CHECK = "check"
+KIND_CTEST = "ctest"
+ALLOWED_KINDS = (KIND_CHECK, KIND_CTEST)
+
+EXPECT_FAIL = "fail"
+EXPECT_CONDITIONAL = "conditional"
+ALLOWED_EXPECTED = (EXPECT_FAIL, EXPECT_CONDITIONAL)
+
+# ---------------------------------------------------------------------------
+# 类别白名单 / 黑名单（07_CI_MACHINE_CONTRACT §「已有失败基线」）
+#   「以下永不允许豁免：SCI/ALG Oracle、ABI、生产路由、ACR dormant、heavy
+#     单线程/低利用率、泄漏、崩溃、数据损坏、版本一致性、追踪断裂、安全凭据。」
+# 基线只接纳上述之外的「非关键工程项」；类别是封闭词表，越界即 FAIL。
+# ---------------------------------------------------------------------------
+NEVER_WAIVABLE_CATEGORIES = {
+    "SCI_ALG_ORACLE": "SCI/ALG Oracle（科学公式/算法判据对拍）",
+    "ABI": "ABI 合同（C ABI 状态码/结构布局）",
+    "PRODUCTION_ROUTING": "生产路由（唯一入口/可达性）",
+    "ACR_DORMANT": "ACR dormant（自适应代码路径休眠）",
+    "HEAVY_UTILIZATION": "heavy 单线程/低利用率（宪章 §10.5 冻结门）",
+    "LEAK": "泄漏（ASan/LSan）",
+    "CRASH": "崩溃（信号/断言中止）",
+    "DATA_CORRUPTION": "数据损坏（产物完整性/原子发布）",
+    "VERSION_CONSISTENCY": "版本一致性",
+    "TRACEABILITY_BREAK": "追踪断裂（文档—模块—符号—测试）",
+    "SECURITY_CREDENTIAL": "安全凭据",
+}
+# 可入库类别（非关键工程项：工程卫生 / 宿主环境 / 遗留组合态 / 文档与工具漂移）。
+ALLOWED_CATEGORIES = {
+    "WORKSPACE_HYGIENE": "工作区卫生（运行产物落位/脏工作区，非科学面）",
+    "LEGACY_V7_GATED": "V7 残留组合态（门卫关闭时零执行，激活后为预存失败）",
+    "HOST_ENV_HOSTED": "hosted runner 宿主环境差异（资源/工具链版本）",
+    "DOC_DRIFT": "文档与实现漂移（非科学公式）",
+    "TOOLING_DRIFT": "工具/脚本自身既有缺陷（非产品代码）",
+}
+
+REQUIRED_FIELDS = ("check_id", "unit", "kind", "category", "owner", "reason",
+                   "first_seen_commit", "source_sha", "reproducer", "expiry",
+                   "expected", "removal_condition", "registered_by")
+SHA40_RE = re.compile(r"^[0-9a-f]{40}$")
+HARD_FAILURE_VERDICTS = ("FAIL", "TIMEOUT", "SIGNAL", "FAIL(missing_output)",
+                         "FAIL(empty_outputs)", "FAIL(monitor_gate_missing)",
+                         "FAIL(dirty)", "FAIL(prerequisite)")
+# 检查面失败集判定值域：硬失败 + KNOWN_FAIL。KNOWN_FAIL 是 ci/run.py 对
+# 「已登记基线项且确实失败」的标记（计数分离，verdict 仍属失败面），故读
+# 已结束 run 的 per-check 结果（known_failures 判定已应用）与读 run 内增量
+# 结果（判定未应用，verdict=FAIL(dirty)）得到同一失败集——门可重复运行。
+CHECK_FAILURE_VERDICTS = HARD_FAILURE_VERDICTS + ("KNOWN_FAIL",)
 
 
+# --------------------------------------------------------------------------- 基础 ----
+
+def utc_now() -> _dt.datetime:
+    return _dt.datetime.now(_dt.timezone.utc)
+
+
+def utc_iso(dt: _dt.datetime | None = None) -> str:
+    return (dt or utc_now()).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def parse_utc(text: str) -> _dt.datetime:
+    """解析 ISO8601（允许结尾 Z）；非法即抛 ValueError（由调用方转结构错误）。"""
+    raw = str(text).strip()
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    dt = _dt.datetime.fromisoformat(raw)
+    return dt if dt.tzinfo else dt.replace(tzinfo=_dt.timezone.utc)
+
+
+def load_json(path: pathlib.Path) -> object:
+    return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+
+
+def git(repo: pathlib.Path, *args: str) -> tuple[int, str]:
+    try:
+        proc = subprocess.run(["git", "-C", str(repo), *args],
+                              capture_output=True, text=True, timeout=GIT_TIMEOUT)
+    except (OSError, subprocess.SubprocessError):
+        return 128, ""
+    return proc.returncode, (proc.stdout or "").strip()
+
+
+def is_shallow(repo: pathlib.Path) -> bool:
+    rc, out = git(repo, "rev-parse", "--is-shallow-repository")
+    return rc == 0 and out.strip() == "true"
+
+
+# ------------------------------------------------------------------ 基线装载 ----
+
+def load_baseline(path: pathlib.Path) -> tuple[list[dict], list[str]]:
+    """装载基线文件；返回 (条目列表, 顶层结构错误列表)。
+
+    文件不存在 → ([], [基线文件不存在])（调用方决定是否致命）。
+    顶层接受 {"failures": [...]}（07 合同 / ci/run.py 消费形态）或裸数组。
+    """
+    path = pathlib.Path(path)
+    if not path.is_file():
+        return [], ["基线文件不存在：" + str(path)]
+    try:
+        data = load_json(path)
+    except Exception as exc:
+        return [], ["基线 JSON 无法解析：" + str(exc)]
+    if isinstance(data, list):
+        entries = data
+    elif isinstance(data, dict) and isinstance(data.get("failures"), list):
+        entries = data["failures"]
+    else:
+        return [], ["基线顶层必须是数组或含 failures 数组的对象"]
+    errors: list[str] = []
+    for idx, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            errors.append("failures[%d] 不是对象" % idx)
+    return [e for e in entries if isinstance(e, dict)], errors
+
+
+def baseline_meta(path: pathlib.Path) -> dict:
+    try:
+        data = load_json(path)
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+# ------------------------------------------------------------- unit 存在性面 ----
+
+def registry_units(repo: pathlib.Path) -> tuple[set[str], list[str]]:
+    """ci/checks.json 已登记检查 id 集合。"""
+    path = repo / REGISTRY_REL
+    if not path.is_file():
+        return set(), ["检查注册表缺失：" + REGISTRY_REL]
+    try:
+        data = load_json(path)
+    except Exception as exc:
+        return set(), ["检查注册表无法解析：" + str(exc)]
+    ids = {c.get("id") for c in data.get("checks", []) if isinstance(c, dict)}
+    return {i for i in ids if isinstance(i, str) and i}, []
+
+
+def ctest_units(repo: pathlib.Path) -> tuple[set[str], list[str]]:
+    """已知 CTest 目标名集合 = ci/ctest_baseline.json 冻结存量 ∪ 注册表
+    ctest_targets 显式模式展开（模式只在存量集合上展开，不做 CMake 重扫——
+    活动 CTest 面漂移由 tools/quality/check_ctest_registration.py C5/C6 守卫）。"""
+    known: set[str] = set()
+    errors: list[str] = []
+    base_path = repo / CTEST_BASELINE_REL
+    if base_path.is_file():
+        try:
+            known |= {t for t in load_json(base_path).get("targets", []) if isinstance(t, str)}
+        except Exception as exc:
+            errors.append(CTEST_BASELINE_REL + " 无法解析：" + str(exc))
+    try:
+        reg = load_json(repo / REGISTRY_REL)
+    except Exception as exc:
+        errors.append("检查注册表无法解析：" + str(exc))
+        reg = {}
+    patterns: list[str] = []
+    for check in reg.get("checks", []) if isinstance(reg, dict) else []:
+        if not isinstance(check, dict):
+            continue
+        for pat in check.get("ctest_targets", []) or []:
+            if isinstance(pat, str) and pat:
+                patterns.append(pat)
+                if not any(ch in pat for ch in "*?["):
+                    known.add(pat)
+    for pat in patterns:
+        known |= {t for t in list(known) if fnmatch.fnmatchcase(t, pat)}
+    return known, errors
+
+
+# ------------------------------------------------------------------- verify ----
+
+def verify_baseline(repo: pathlib.Path, baseline_path: pathlib.Path,
+                    now: _dt.datetime | None = None) -> dict:
+    """静态校验版本化基线（V1..V8）。纯函数（除只读 git 查询）。"""
+    now = now or utc_now()
+    repo = pathlib.Path(repo)
+    baseline_path = pathlib.Path(baseline_path)
+    entries, errors = load_baseline(baseline_path)
+    meta = baseline_meta(baseline_path)
+    check_ids, reg_err = registry_units(repo)
+    ctest_known, ct_err = ctest_units(repo)
+    errors.extend(reg_err)
+    errors.extend(ct_err)
+
+    # V1 顶层 schema
+    if meta:
+        schema = str(meta.get("schema", ""))
+        if schema != SCHEMA_ID:
+            errors.append("V1 基线 schema 必须为 %s，实际 %r" % (SCHEMA_ID, schema))
+        if not isinstance(meta.get("failures"), list):
+            errors.append("V1 基线缺少 failures 数组")
+
+    shallow = is_shallow(repo)
+    seen: dict[tuple, int] = {}
+    detail: list[dict] = []
+    for idx, entry in enumerate(entries):
+        where = "failures[%d]" % idx
+        missing = [f for f in REQUIRED_FIELDS
+                   if f not in entry or entry[f] in (None, "", [])]
+        if missing:
+            errors.append("V2 %s 缺少字段：%s" % (where, missing))
+            detail.append({"unit": entry.get("unit"), "index": idx, "status": "structure_invalid"})
+            continue
+        unit = str(entry["unit"])
+        kind = str(entry["kind"])
+        # V2 取值域
+        if kind not in ALLOWED_KINDS:
+            errors.append("V2 %s kind 非法：%r（允许 %s）" % (where, kind, list(ALLOWED_KINDS)))
+        if str(entry["check_id"]) != unit:
+            errors.append("V2 %s check_id(%r) 必须等于 unit(%r)"
+                          "（check_id 为 ci/run.py 07 合同消费键）" % (where, entry["check_id"], unit))
+        expected = str(entry["expected"])
+        if expected not in ALLOWED_EXPECTED:
+            errors.append("V2 %s expected 非法：%r（允许 %s）"
+                          % (where, expected, list(ALLOWED_EXPECTED)))
+        category = str(entry["category"])
+        if category in NEVER_WAIVABLE_CATEGORIES:
+            # V6 07 合同：永不允许豁免类别不得入库（科学/ABI/门禁/完整性面）
+            errors.append("V6 %s (%s) 类别 %s 属 07 合同「永不允许豁免」：%s → 禁止登记进基线"
+                          % (where, unit, category, NEVER_WAIVABLE_CATEGORIES[category]))
+        elif category not in ALLOWED_CATEGORIES:
+            errors.append("V2 %s category 越界：%r（允许 %s）"
+                          % (where, category, sorted(ALLOWED_CATEGORIES)))
+        for field in ("first_seen_commit", "source_sha"):
+            if not SHA40_RE.match(str(entry[field])):
+                errors.append("V2 %s %s 不是 40 位小写十六进制：%r" % (where, field, entry[field]))
+        try:
+            expiry_dt = parse_utc(str(entry["expiry"]))
+            if expiry_dt < now:
+                # V5 07 合同：过期条目 → FAIL（到期必须重登记或删除）
+                errors.append("V5 %s (%s) 已过期（expiry=%s）：到期必须重新登记或删除"
+                              % (where, unit, entry["expiry"]))
+        except (ValueError, TypeError):
+            errors.append("V2 %s expiry 不是合法 ISO8601：%r" % (where, entry["expiry"]))
+        if expected == EXPECT_CONDITIONAL and not str(entry.get("activation", "")).strip():
+            errors.append("V7 %s (%s) expected=conditional 必须给出 activation"
+                          "（条目在何种条件下才会出现失败），否则等于无界豁免" % (where, unit))
+        # V3 unit 存在性
+        if kind == KIND_CHECK and unit not in check_ids:
+            errors.append("V3 %s (%s) 不是 ci/checks.json 已登记检查 id" % (where, unit))
+        if kind == KIND_CTEST and unit not in ctest_known:
+            errors.append("V3 %s (%s) 不在已知 CTest 目标集"
+                          "（%s 冻结存量 ∪ 注册表 ctest_targets）" % (where, unit, CTEST_BASELINE_REL))
+        # V4 同 kind 重复
+        key = (kind, unit)
+        if key in seen:
+            errors.append("V4 %s (%s:%s) 与 failures[%d] 重复登记" % (where, kind, unit, seen[key]))
+        else:
+            seen[key] = idx
+        # V8 首次登记 commit 可达性（浅克隆下跳过，明确留痕）
+        reachability = "unchecked"
+        if SHA40_RE.match(str(entry["first_seen_commit"])):
+            rc, _ = git(repo, "cat-file", "-e", str(entry["first_seen_commit"]) + "^{commit}")
+            if rc != 0:
+                if shallow:
+                    reachability = "skipped_shallow_clone"
+                else:
+                    errors.append("V8 %s first_seen_commit 在仓库历史中不存在：%s"
+                                  % (where, entry["first_seen_commit"]))
+            else:
+                rc2, _ = git(repo, "merge-base", "--is-ancestor",
+                             str(entry["first_seen_commit"]), "HEAD")
+                if rc2 == 0:
+                    reachability = "reachable"
+                elif shallow:
+                    reachability = "skipped_shallow_clone"
+                else:
+                    errors.append("V8 %s first_seen_commit 不是 HEAD 祖先：%s"
+                                  % (where, entry["first_seen_commit"]))
+        detail.append({"unit": unit, "kind": kind, "category": category,
+                       "owner": entry["owner"], "expected": expected,
+                       "expiry": entry["expiry"],
+                       "first_seen_commit": entry["first_seen_commit"],
+                       "first_seen_reachability": reachability,
+                       "status": "ok"})
+
+    return {
+        "tool": "known_failures_baseline.py",
+        "mode": "verify",
+        "schema": SCHEMA_ID,
+        "baseline": str(baseline_path),
+        "baseline_exists": baseline_path.is_file(),
+        "entries": len(entries),
+        "shallow_clone": shallow,
+        "allowed_categories": sorted(ALLOWED_CATEGORIES),
+        "never_waivable_categories": sorted(NEVER_WAIVABLE_CATEGORIES),
+        "entry_detail": detail,
+        "errors": errors,
+        "error_count": len(errors),
+        "verdict": "PASS" if not errors else "FAIL",
+    }
+
+
+# -------------------------------------------------------------------- check ----
+
+def parse_ctest_junit(path: pathlib.Path) -> tuple[dict, list[str]]:
+    """解析 ctest --output-junit 的 JUnit XML → {test_name: status}。
+
+    status ∈ {pass, fail, skip}。解析失败/文件缺失/零 testcase → 错误（fail-closed）。
+    """
+    path = pathlib.Path(path)
+    if not path.is_file():
+        return {}, ["CTest JUnit 结果文件不存在：" + str(path)]
+    try:
+        root = _ET.parse(path).getroot()
+    except Exception as exc:
+        return {}, ["CTest JUnit 结果无法解析：" + str(exc)]
+    out: dict = {}
+    for tc in root.iter("testcase"):
+        name = tc.get("name") or tc.get("classname") or ""
+        if not name:
+            continue
+        child_tags = {c.tag for c in tc}
+        status_attr = (tc.get("status") or "").lower()
+        if child_tags & {"failure", "error"} or status_attr in {"fail", "failed"}:
+            out[name] = "fail"
+        elif "skipped" in child_tags or status_attr in {"skip", "skipped", "notrun"}:
+            out[name] = "skip"
+        else:
+            out[name] = "pass"
+    if not out:
+        return {}, ["CTest JUnit 结果中零 testcase（%s）" % path]
+    return out, []
+
+
+def parse_ci_result(path: pathlib.Path) -> tuple[dict, list[str]]:
+    """解析 ci/run.py 的 CI_RESULT.json → {check_id: verdict}。"""
+    path = pathlib.Path(path)
+    if not path.is_file():
+        return {}, ["CI_RESULT.json 不存在：" + str(path)]
+    try:
+        data = load_json(path)
+    except Exception as exc:
+        return {}, ["CI_RESULT.json 无法解析：" + str(exc)]
+    if not isinstance(data, dict) or not isinstance(data.get("checks"), list):
+        return {}, ["CI_RESULT.json 结构非法（缺 checks 数组）"]
+    out: dict = {}
+    for check in data["checks"]:
+        if isinstance(check, dict) and isinstance(check.get("id"), str):
+            out[check["id"]] = str(check.get("verdict", ""))
+    return out, []
+
+
+def parse_checks_dir(path: pathlib.Path) -> tuple[dict, list[str]]:
+    """解析 ci/run.py 的 per-check 结果目录（<out_root>/checks/*.json）→ {id: verdict}。
+
+    CI 面主用来源：KNOWN-FAILURES-BASELINE-CHECK 在 linux-main 末位执行，此时
+    ci/run.py 已把上游每项检查的 per-check JSON 原子落盘（write_check_result），
+    而汇总 CI_RESULT.json 尚未生成；故检查面读 per-check 目录，不读汇总。
+    """
+    path = pathlib.Path(path)
+    if not path.is_dir():
+        return {}, ["per-check 结果目录不存在：" + str(path)]
+    out: dict = {}
+    for item in sorted(path.glob("*.json")):
+        try:
+            data = load_json(item)
+        except Exception:
+            continue
+        if isinstance(data, dict) and isinstance(data.get("id"), str):
+            out[data["id"]] = str(data.get("verdict", ""))
+    if not out:
+        return {}, ["per-check 结果目录中零有效结果（%s）" % path]
+    return out, []
+
+
+def compare_failures(failing: dict, entries: list[dict],
+                     now: _dt.datetime | None = None,
+                     structure_errors: list[str] | None = None,
+                     evaluated_kinds: set[str] | None = None) -> dict:
+    """核心判定：失败集 ⊆ 版本化基线。
+
+    failing: {kind: {unit, ...}} 当前失败集合（每类来源一份）
+    entries: 基线条目（load_baseline 的 dict 列表）
+    evaluated_kinds: 本次实际拿到结果来源的 kind 集合；基线里有条目但该 kind
+    无来源 → unevaluated（fail-closed，不得静默跳过）。
+    """
+    now = now or utc_now()
+    errors: list[str] = list(structure_errors or [])
+    by_kind: dict = {k: [] for k in ALLOWED_KINDS}
+    for entry in entries:
+        kind = str(entry.get("kind", ""))
+        if kind in by_kind:
+            by_kind[kind].append(entry)
+
+    evaluated = set(evaluated_kinds) if evaluated_kinds is not None else set(failing)
+    known: list[str] = []
+    new: list[str] = []
+    stale: list[str] = []
+    unevaluated: list[str] = []
+    for kind, kind_entries in by_kind.items():
+        units = {str(e.get("unit")) for e in kind_entries}
+        if kind not in evaluated:
+            if kind_entries:
+                unevaluated.extend("%s:%s" % (kind, u) for u in sorted(units))
+                errors.append("基线含 %d 条 %s 条目，但本次无该来源的"
+                              "测试结果（fail-closed：不得静默跳过）" % (len(kind_entries), kind))
+            continue
+        current = set(failing.get(kind, set()))
+        known.extend("%s:%s" % (kind, u) for u in sorted(current & units))
+        new.extend("%s:%s" % (kind, u) for u in sorted(current - units))
+        for entry in kind_entries:
+            unit = str(entry.get("unit"))
+            if str(entry.get("expected")) == EXPECT_FAIL and unit not in current:
+                # 07 合同：修复后必须删除对应基线项，不能重新增加
+                stale.append("%s:%s" % (kind, unit))
+
+    expired: list[str] = []
+    for entry in entries:
+        try:
+            if parse_utc(str(entry.get("expiry"))) < now:
+                expired.append("%s:%s" % (entry.get("kind"), entry.get("unit")))
+        except (ValueError, TypeError):
+            pass
+
+    if new:
+        errors.append("新增失败 %d 项不在基线（fail-closed）：%s" % (len(new), sorted(new)))
+    if stale:
+        errors.append("基线项 expected=fail 但本次未失败 %d 项"
+                      "（07 合同：修复后必须删除基线项）：%s" % (len(stale), sorted(stale)))
+    if expired:
+        errors.append("基线条目已过期 %d 项（到期必须重登记或删除）：%s"
+                      % (len(expired), sorted(expired)))
+
+    return {
+        "tool": "known_failures_baseline.py",
+        "mode": "check",
+        "generated_utc": utc_iso(now),
+        "evaluated_kinds": sorted(evaluated),
+        "baseline_entries": len(entries),
+        "failing": {k: sorted(v) for k, v in sorted(failing.items())},
+        "known": sorted(known),
+        "new_failures": sorted(new),
+        "stale": sorted(stale),
+        "expired": sorted(expired),
+        "unevaluated": sorted(unevaluated),
+        "errors": errors,
+        "error_count": len(errors),
+        "verdict": "PASS" if not errors else "FAIL",
+    }
+
+
+def run_check(repo: pathlib.Path, baseline_path: pathlib.Path,
+              ctest_junit: pathlib.Path | None, ci_result: pathlib.Path | None,
+              now: _dt.datetime | None = None,
+              ci_checks_dir: pathlib.Path | None = None) -> dict:
+    """CLI check 模式：装载来源 + 基线 → compare_failures。
+
+    检查面来源二选一（同时给出时 per-check 目录优先，汇总仅作留痕）：
+      ci_checks_dir = <out_root>/checks（CI 面主用，run 内增量落盘）
+      ci_result     = <out_root>/CI_RESULT.json（run 结束后可得的汇总形态）
+    """
+    now = now or utc_now()
+    entries, structure_errors = load_baseline(baseline_path)
+    failing: dict = {}
+    evaluated: set[str] = set()
+    if ctest_junit is not None:
+        statuses, errs = parse_ctest_junit(ctest_junit)
+        structure_errors.extend(errs)
+        failing[KIND_CTEST] = {n for n, s in statuses.items() if s == "fail"}
+        if not errs:
+            evaluated.add(KIND_CTEST)
+    verdicts: dict = {}
+    if ci_checks_dir is not None:
+        verdicts, errs = parse_checks_dir(ci_checks_dir)
+        structure_errors.extend(errs)
+    elif ci_result is not None:
+        verdicts, errs = parse_ci_result(ci_result)
+        structure_errors.extend(errs)
+    if verdicts:
+        failing[KIND_CHECK] = {i for i, v in verdicts.items()
+                               if v in CHECK_FAILURE_VERDICTS}
+        evaluated.add(KIND_CHECK)
+    report = compare_failures(failing, entries, now=now,
+                              structure_errors=structure_errors,
+                              evaluated_kinds=evaluated)
+    report["baseline"] = str(baseline_path)
+    report["sources"] = {
+        "ctest_junit": str(ctest_junit) if ctest_junit else None,
+        "ci_result": str(ci_result) if ci_result else None,
+        "ci_checks_dir": str(ci_checks_dir) if ci_checks_dir else None,
+    }
+    return report
+
+
+# ----------------------------------------------------------------- selftest ----
+
+FIXTURE_ENTRY = {
+    "check_id": "demo_units", "unit": "demo_units", "kind": KIND_CTEST,
+    "category": "TOOLING_DRIFT", "owner": "SA-CI-32",
+    "reason": "自检 fixture：既有失败项", "first_seen_commit": "0" * 39 + "1",
+    "source_sha": "0" * 39 + "1",
+    "reproducer": "python3 tools/quality/known_failures_baseline.py --selftest",
+    "expiry": "2999-01-01T00:00:00Z", "expected": EXPECT_FAIL,
+    "removal_condition": "自检 fixture 永不移除", "registered_by": "selftest",
+}
+
+FIXTURE_JUNIT_FAIL = (
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    '<testsuite name="CTest" tests="2" failures="1">\n'
+    '  <testcase name="demo_units" classname="demo" status="run" time="0.01">'
+    '<failure message="known"/></testcase>\n'
+    '  <testcase name="demo_other" classname="demo" status="run" time="0.01"/>\n'
+    '</testsuite>\n'
+)
+FIXTURE_JUNIT_NEW = (
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    '<testsuite name="CTest" tests="2" failures="2">\n'
+    '  <testcase name="demo_units" classname="demo" status="run" time="0.01">'
+    '<failure message="known"/></testcase>\n'
+    '  <testcase name="brand_new_failure" classname="demo" status="run" time="0.01">'
+    '<failure message="new"/></testcase>\n'
+    '</testsuite>\n'
+)
+
+
+def run_selftest(tmp_root: pathlib.Path | None = None) -> int:
+    """负例自检（内存 fixture + 临时文件，零仓库副作用）。"""
+    import tempfile
+    results: list[dict] = []
+    past = "2000-01-01T00:00:00Z"
+
+    def case(name: str, ok: bool, detail: object) -> None:
+        results.append({"case": name, "ok": bool(ok), "detail": detail})
+
+    with tempfile.TemporaryDirectory(dir=str(tmp_root) if tmp_root else None) as td:
+        tmp = pathlib.Path(td)
+        baseline = tmp / "baseline.json"
+
+        def write_baseline(entries: list[dict]) -> pathlib.Path:
+            baseline.write_text(json.dumps({"schema": SCHEMA_ID, "failures": entries},
+                                           ensure_ascii=False, indent=1), encoding="utf-8")
+            return baseline
+
+        def write_junit(text: str, name: str) -> pathlib.Path:
+            p = tmp / name
+            p.write_text(text, encoding="utf-8")
+            return p
+
+        # S1 基线项失败 → 全绿（known，verdict PASS）
+        junit_known = write_junit(FIXTURE_JUNIT_FAIL, "known.xml")
+        rep = run_check(REPO, write_baseline([dict(FIXTURE_ENTRY)]), junit_known, None)
+        case("S1_baseline_failure_is_green", rep["verdict"] == "PASS"
+             and rep["known"] == ["ctest:demo_units"] and not rep["new_failures"], rep)
+
+        # S2 不在基线的假失败 → FAIL（负向注入必败）
+        junit_new = write_junit(FIXTURE_JUNIT_NEW, "new.xml")
+        rep = run_check(REPO, write_baseline([dict(FIXTURE_ENTRY)]), junit_new, None)
+        case("S2_new_failure_not_in_baseline_fails", rep["verdict"] == "FAIL"
+             and rep["new_failures"] == ["ctest:brand_new_failure"], rep)
+
+        # S3 空基线 + 任一失败 → FAIL（基线不得吞掉全部失败）
+        rep = run_check(REPO, write_baseline([]), junit_known, None)
+        case("S3_empty_baseline_fails_on_any_failure", rep["verdict"] == "FAIL", rep)
+
+        # S4 expected=fail 但未失败 → FAIL（修复后必须删除基线项）
+        junit_pass = write_junit(
+            '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="CTest" tests="1">\n'
+            '  <testcase name="demo_units" classname="demo" status="run" time="0.01"/>\n'
+            '</testsuite>\n', "pass.xml")
+        rep = run_check(REPO, write_baseline([dict(FIXTURE_ENTRY)]), junit_pass, None)
+        case("S4_stale_entry_fails", rep["verdict"] == "FAIL"
+             and rep["stale"] == ["ctest:demo_units"], rep)
+
+        # S5 expected=conditional 且未出现 → PASS
+        cond = dict(FIXTURE_ENTRY, expected=EXPECT_CONDITIONAL,
+                    activation="门卫 target 激活时才构建该目标")
+        rep = run_check(REPO, write_baseline([cond]), junit_pass, None)
+        case("S5_conditional_absent_is_green", rep["verdict"] == "PASS"
+             and not rep["stale"], rep)
+
+        # S6 过期条目 → FAIL
+        rep = run_check(REPO, write_baseline([dict(FIXTURE_ENTRY, expiry=past)]), junit_known, None)
+        case("S6_expired_entry_fails", rep["verdict"] == "FAIL"
+             and rep["expired"] == ["ctest:demo_units"], rep)
+
+        # S7 缺 first_seen_commit → verify FAIL
+        bad = dict(FIXTURE_ENTRY)
+        bad.pop("first_seen_commit")
+        rep = verify_baseline(REPO, write_baseline([bad]))
+        case("S7_missing_first_seen_commit_fails", rep["verdict"] == "FAIL"
+             and any("first_seen_commit" in e for e in rep["errors"]), rep["errors"])
+
+        # S8 永不允许豁免类别 → verify FAIL
+        rep = verify_baseline(REPO, write_baseline([dict(FIXTURE_ENTRY,
+                                                         category="DATA_CORRUPTION")]))
+        case("S8_never_waivable_category_fails", rep["verdict"] == "FAIL"
+             and any("永不允许豁免" in e for e in rep["errors"]), rep["errors"])
+
+        # S9 未知 unit → verify FAIL
+        rep = verify_baseline(REPO, write_baseline([dict(FIXTURE_ENTRY,
+                                                         unit="ghost_target",
+                                                         check_id="ghost_target")]))
+        case("S9_unknown_unit_fails", rep["verdict"] == "FAIL"
+             and any("V3" in e for e in rep["errors"]), rep["errors"])
+
+        # S10 conditional 无 activation → verify FAIL
+        rep = verify_baseline(REPO, write_baseline([dict(FIXTURE_ENTRY,
+                                                         expected=EXPECT_CONDITIONAL)]))
+        case("S10_conditional_without_activation_fails", rep["verdict"] == "FAIL"
+             and any("activation" in e for e in rep["errors"]), rep["errors"])
+
+        # S11 check 类来源缺失（基线有 check 条目但未给 --ci-result）→ fail-closed
+        rep = run_check(REPO, write_baseline([dict(FIXTURE_ENTRY, kind=KIND_CHECK,
+                                                   unit="UT-CLI", check_id="UT-CLI")]),
+                        junit_known, None)
+        case("S11_unevaluated_kind_fails_closed", rep["verdict"] == "FAIL"
+             and rep["unevaluated"] == ["check:UT-CLI"], rep)
+
+        # S12 JUnit 缺失 → fail-closed
+        rep = run_check(REPO, write_baseline([dict(FIXTURE_ENTRY)]), tmp / "nope.xml", None)
+        case("S12_missing_results_fails_closed", rep["verdict"] == "FAIL", rep["errors"])
+
+        # S13 真实仓库版本化基线 → PASS（现场漂移即红）
+        real = verify_baseline(REPO, REPO / BASELINE_REL)
+        case("S13_real_repo_baseline_verifies", real["verdict"] == "PASS", real["errors"])
+
+        # S14 JUnit skip/pass 解析
+        statuses, errs = parse_ctest_junit(write_junit(
+            '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="CTest" tests="2">\n'
+            '  <testcase name="a" classname="c" status="run"><skipped/></testcase>\n'
+            '  <testcase name="b" classname="c" status="run"/></testsuite>\n', "mix.xml"))
+        case("S14_junit_status_parse", not errs and statuses == {"a": "skip", "b": "pass"}, statuses)
+
+    failed = [r for r in results if not r["ok"]]
+    print(json.dumps({"tool": "known_failures_baseline.py", "mode": "selftest",
+                      "cases": results, "failed": len(failed),
+                      "verdict": "PASS" if not failed else "FAIL"},
+                     ensure_ascii=False, indent=2))
+    return 0 if not failed else 1
 def read(root: Path, rel: str) -> str:
     path = root / rel
     try:
@@ -41,7 +707,7 @@ def git_grep(root: Path, pattern: str, pathspecs: list[str]) -> list[str]:
         return []
 
 
-def main(argv: list[str] | None = None) -> int:
+def run_legacy(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--output", type=Path, default=None)
@@ -420,6 +1086,87 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  NOT_REPRODUCED: {not_repro}")
     print(f"  output: {out}")
     return 0
+
+
+# ----------------------------------------------------------------------- CLI ----
+
+def build_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(
+        prog="known_failures_baseline.py",
+        description="已知失败基线：复现冻结（legacy）与 CI 机器化门（CI-BASELINE-001）")
+    ap.add_argument("--mode", choices=("legacy", "verify", "check"), default="legacy",
+                    help="legacy=原 R0-004 findings 报告；verify=静态校验版本化基线；"
+                         "check=失败集 ⊆ 基线 动态判定")
+    ap.add_argument("--repo", default=str(REPO), help="仓库根（默认按脚本位置推导）")
+    ap.add_argument("--baseline", default=BASELINE_REL,
+                    help="版本化基线路径（默认 ci/known_failures.json）")
+    ap.add_argument("--ctest-junit", default=None, dest="ctest_junit",
+                    help="check 模式：ctest --output-junit 的全量 JUnit XML")
+    ap.add_argument("--ci-result", default=None, dest="ci_result",
+                    help="check 模式：ci/run.py 的 CI_RESULT.json（汇总形态；run 结束后可得）")
+    ap.add_argument("--ci-checks-dir", default=None, dest="ci_checks_dir",
+                    help="check 模式：ci/run.py 的 per-check 结果目录（<out_root>/checks）。"
+                         "缺省且环境变量 ASTROCS_CI_OUT_ROOT 存在时取其 checks/ 子目录")
+    ap.add_argument("--allow-missing-source", action="store_true",
+                    help="check 模式：允许基线中某 kind 无对应结果来源（默认 fail-closed）")
+    ap.add_argument("--output", default=None, help="证据 JSON 落盘路径（run/ 下；默认只打印）")
+    ap.add_argument("--selftest", action="store_true", help="负例自检（内存 fixture，零副作用）")
+    return ap
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    args = build_parser().parse_args(argv)
+
+    if args.selftest:
+        return run_selftest()
+
+    repo = pathlib.Path(args.repo).resolve()
+    if args.mode == "legacy":
+        # legacy 兼容：--repo/--output 语义与原脚本一致
+        legacy_argv: list[str] = ["--repo", str(repo)]
+        if args.output:
+            legacy_argv += ["--output", str(args.output)]
+        return run_legacy(legacy_argv)
+
+    baseline_path = pathlib.Path(args.baseline)
+    if not baseline_path.is_absolute():
+        baseline_path = repo / baseline_path
+
+    if args.mode == "verify":
+        report = verify_baseline(repo, baseline_path)
+    else:
+        junit = pathlib.Path(args.ctest_junit) if args.ctest_junit else None
+        if junit is not None and not junit.is_absolute():
+            junit = repo / junit
+        ci_result = pathlib.Path(args.ci_result) if args.ci_result else None
+        if ci_result is not None and not ci_result.is_absolute():
+            ci_result = repo / ci_result
+        checks_dir = pathlib.Path(args.ci_checks_dir) if args.ci_checks_dir else None
+        if checks_dir is None and ci_result is None:
+            # CI 面缺省：ci/run.py 注入 ASTROCS_CI_OUT_ROOT（本次 run 证据根），
+            # per-check 结果目录 = <out_root>/checks（run 内增量落盘）。
+            env_root = str(os.environ.get("ASTROCS_CI_OUT_ROOT", "")).strip()
+            if env_root:
+                checks_dir = pathlib.Path(env_root) / "checks"
+        if checks_dir is not None and not checks_dir.is_absolute():
+            checks_dir = repo / checks_dir
+        report = run_check(repo, baseline_path, junit, ci_result,
+                           ci_checks_dir=checks_dir)
+        if args.allow_missing_source:
+            report["errors"] = [e for e in report["errors"] if "无该来源的测试结果" not in e]
+            report["error_count"] = len(report["errors"])
+            report["verdict"] = "PASS" if not report["errors"] else "FAIL"
+
+    text = json.dumps(report, ensure_ascii=False, indent=2)
+    print(text)
+    if args.output:
+        out = pathlib.Path(args.output)
+        if not out.is_absolute():
+            out = repo / out
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text + "\n", encoding="utf-8")
+    return 0 if report.get("verdict") == "PASS" else 1
 
 
 if __name__ == "__main__":

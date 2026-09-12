@@ -791,6 +791,11 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
     # （PYTHONIOENCODING 只管 stdio，PYTHONUTF8 覆盖 open() 默认编码）。
     env.setdefault("PYTHONUTF8", "1")
     env["ASTROCS_CI_CHECK_ID"] = cid
+    # CI-BASELINE-001：把本次运行的证据根暴露给检查命令。known-failures 基线门
+    # （KNOWN-FAILURES-BASELINE-CHECK）需读取同 run 内已执行检查的 per-check
+    # 结果（<out_root>/checks/<id>.json）以判定「失败集 ⊆ 版本化基线」；
+    # 该检查在注册表中排在 linux-main 末位，故其执行时同 run 结果已全部落盘。
+    env["ASTROCS_CI_OUT_ROOT"] = str(out_root)
     timed_out = False
     stdout_b, stderr_b = b"", b""
     t0 = time.monotonic()
@@ -1112,16 +1117,21 @@ def build_ci_result(*, repo: Path, profile: str, selected_meta: dict, check_resu
     return result
 
 
+def write_check_result(out_root: Path, result: dict) -> None:
+    """原子写单项检查结果 JSON（CI-BASELINE-001：检查结束即落盘，供同 run 聚合检查消费）。"""
+    checks_dir = out_root / "checks"
+    checks_dir.mkdir(parents=True, exist_ok=True)
+    path = checks_dir / f"{result['id']}.json"
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+    tmp.replace(path)  # 原子覆盖：陈旧/伪造结果一律重算覆盖
+
+
 def write_outputs(out_root: Path, ci_result: dict, check_results: list[dict],
                   result_schema: dict) -> None:
     """写 per-check JSON、CI_RESULT.json（写前按控制包 ci_result.schema.json 自校验）。"""
-    checks_dir = out_root / "checks"
-    checks_dir.mkdir(parents=True, exist_ok=True)
     for r in check_results:
-        path = checks_dir / f"{r['id']}.json"
-        tmp = path.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps(r, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
-        tmp.replace(path)  # 原子覆盖：陈旧/伪造结果一律重算覆盖
+        write_check_result(out_root, r)
 
     errors = validate_against_schema(ci_result, result_schema)
     if errors:
@@ -1244,10 +1254,16 @@ def main(argv: list[str] | None = None) -> int:
                       else repo / "ci" / "known_failures.json")
         kf_entries, kf_errors = load_known_failures(known_path)
 
-        check_results = [
-            execute_check(check, repo, out_root, platform, args.strict_workspace)
-            for check in selected
-        ]
+        # CI-BASELINE-001：每项检查结束即原子落盘 per-check 结果
+        # （<out_root>/checks/<id>.json）。聚合型检查（KNOWN-FAILURES-BASELINE-CHECK
+        # 读同 run 的失败集判「失败集 ⊆ 版本化基线」）在 linux-main 末位执行，
+        # 因此必须能在 run 结束前读到上游结果；write_outputs 仍会在最后原子重写
+        # 全量结果（含 known_failures 判定后的 verdict），最终态不变。
+        check_results = []
+        for check in selected:
+            result = execute_check(check, repo, out_root, platform, args.strict_workspace)
+            write_check_result(out_root, result)
+            check_results.append(result)
         check_results, known_summary = apply_known_failures(
             kf_entries, kf_errors, check_results, utc_now(), out_root
         )

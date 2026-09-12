@@ -1,0 +1,93 @@
+{
+  "schema": "astrocs.known-failures-baseline/v2",
+  "purpose": "CI-BASELINE-001｜版本化已知失败基线（05_FINDINGS_REGISTER §STD-F9「known-failures 基线未机器化」处置）。合同：全量测试结果必须满足「失败集 ⊆ 本基线」——新失败（不在本基线）＝检查 FAIL；基线项失败＝容忍（KNOWN）；基线项 expected=fail 却已通过＝FAIL（07 合同：修复后必须删除基线项）；条目过期＝FAIL。判定工具 tools/quality/known_failures_baseline.py（--mode verify / --mode check），CI 检查项 KNOWN-FAILURES-BASELINE-VERIFY / KNOWN-FAILURES-BASELINE-CHECK。",
+  "contract": {
+    "source": "07_CI_MACHINE_CONTRACT.md §已有失败基线：只接纳已经在现有工作区接管起点复现的非关键工程项，必须含 owner、reproducer、source_sha、expiry、理由；修复后必须删除对应基线项，不能重新增加。",
+    "never_waivable": [
+      "SCI/ALG Oracle",
+      "ABI",
+      "生产路由",
+      "ACR dormant",
+      "heavy 单线程/低利用率",
+      "泄漏",
+      "崩溃",
+      "数据损坏",
+      "版本一致性",
+      "追踪断裂",
+      "安全凭据"
+    ],
+    "never_waivable_categories": [
+      "SCI_ALG_ORACLE",
+      "ABI",
+      "PRODUCTION_ROUTING",
+      "ACR_DORMANT",
+      "HEAVY_UTILIZATION",
+      "LEAK",
+      "CRASH",
+      "DATA_CORRUPTION",
+      "VERSION_CONSISTENCY",
+      "TRACEABILITY_BREAK",
+      "SECURITY_CREDENTIAL"
+    ],
+    "allowed_categories": [
+      "WORKSPACE_HYGIENE",
+      "LEGACY_V7_GATED",
+      "HOST_ENV_HOSTED",
+      "DOC_DRIFT",
+      "TOOLING_DRIFT"
+    ],
+    "excluded_by_policy": "02_GATES_AND_EXECUTION.md「P0/P1、Windows build/test/package、manifest/hash、真实数据完整性不可 waiver」——本轮 linux-main 其余红灯（AGENTS-GOV/DATA-ARTIFACTS/THREAD-BUDGET/CON-COMMENTS/CON-FULL-INTEGRATION/UT-ARCH/UT-BACKEND/WIN-*/DEEP-*）均为在册 P1（FD-R1-010），不得登记进基线，须由域主修复；基线只收 05 号登记册/负责人指令显式指名的预存项。"
+  },
+  "base_commit": "f8778bbbf010e92f49670dd9d2fbef7fe98d6731",
+  "generated_utc": "2026-09-12T05:20:00Z",
+  "registered_by": "CI-BASELINE-001",
+  "failures": [
+    {
+      "check_id": "UT-CLI",
+      "unit": "UT-CLI",
+      "kind": "check",
+      "category": "WORKSPACE_HYGIENE",
+      "owner": "SA-CLI",
+      "owner_note": "承接节点 UT-CLI-MAINT（control-pack TASK_LEDGER.csv:32；CI-REPAIR-001 归因表 owner_node 同源）",
+      "reason": "UT-CLI（mutates_workspace=false）在 linux-main 下以 FAIL(dirty) 结束：CLI 运行产物按设计落仓库根（astrocs graph → graph/*.json、memory-report → alloc_report.json/alloc_samples.csv），checks 前后 git status --porcelain=v1 -uall 对比出现新增条目即违规。根因在 cli/commands.cpp 产物默认落点（域外，非 tests/cli 断言面），UT-CLI 的 17 项过时断言修复前该检查不可绿。",
+      "first_seen_commit": "0acfb5141a9b92bff5f04e1bb3b296fca88a66b0",
+      "first_seen_note": "0acfb514（V8-CI-001 注册 UT-CLI 检查项，失败自此在 CI 面可见）",
+      "source_sha": "f8778bbbf010e92f49670dd9d2fbef7fe98d6731",
+      "reproducer": "python3 ci/run.py --profile linux-main --check UT-CLI --output-root run/ci/known-failures/utcli",
+      "expiry": "2026-12-31T00:00:00Z",
+      "expected": "fail",
+      "removal_condition": "cli 侧把运行产物默认落 run/resource/（AGENTS.md 目录规范）或 tests/cli 显式传 --out-dir run/... 后 UT-CLI 转绿；转绿即由 KNOWN-FAILURES-BASELINE-CHECK 的 stale 判定强制删除本项（07 合同：修复后必须删除，不能重新增加）。",
+      "evidence": [
+        "run/ci/ci-baseline-001/out-utcli-before/checks/UT-CLI.json（verdict=FAIL(dirty)，dirty.violations 列根目录产物）",
+        "05_FINDINGS_REGISTER_20260911.md §A.1 FD-R1-010（UT-CLI 红灯在册，承接节点 UT-CLI-MAINT）",
+        "ci/ci_repair_round.py:115 ATTRIBUTION['UT-CLI']（root_cause_path=cli/commands.cpp，in_whitelist=false）"
+      ],
+      "registered_by": "CI-BASELINE-001"
+    },
+    {
+      "check_id": "p1_noise_adapter",
+      "unit": "p1_noise_adapter",
+      "kind": "ctest",
+      "category": "LEGACY_V7_GATED",
+      "owner": "SA-AIO",
+      "owner_note": "F-AIO-001 登记 owner=负责人裁决（HANDOVER.md:62）；实现域为 AIO/Phase1 噪声适配器（SA-AIO）",
+      "reason": "F-AIO-001：p1_noise_adapter 是 V7 残留组合态下的预存唯一 FAIL（BASE 冻结快照口径，HANDOVER.md:62,109）。tests/unit/CMakeLists.txt:1081 以 if(TARGET p1noise_under_test AND TARGET astrocs_p1_noise) 门卫化——门卫关闭时该 CTest 目标零注册零执行（当前状态），V7 残留（lib/snr_estimator untracked 面）收编后门卫自动重新激活，该目标即以预存失败形态出现在全量 ctest 中。故登记为 conditional：不出现＝绿（不得判 stale），出现且失败＝KNOWN（不得判新失败）。",
+      "first_seen_commit": "ae147df369ba8a4403ab485033c19fa2f510d64b",
+      "first_seen_note": "ae147df3（tests/unit/CMakeLists.txt 首次注册 add_test(NAME p1_noise_adapter)，失败面自此存在）；F-AIO-001 作为 finding 首次登记于 eb315b20（HANDOVER.md）",
+      "finding_first_registered_commit": "eb315b20",
+      "source_sha": "f8778bbbf010e92f49670dd9d2fbef7fe98d6731",
+      "activation": "tests/unit/CMakeLists.txt:1081 门卫 if(TARGET p1noise_under_test AND TARGET astrocs_p1_noise) 成立时（V7 残留 lib/snr_estimator 收编、根图 astrocs_p1_noise 恢复）该 CTest 目标才被注册并执行",
+      "reproducer": "python3 tools/quality/deep_ci_driver.py ctest-full --build-dir run/ci/build-gcc-release --junit run/ci/build-gcc-release/ctest-full.junit.xml（门卫激活后 p1_noise_adapter 出现在 JUnit 中并失败）",
+      "expiry": "2026-12-31T00:00:00Z",
+      "expected": "conditional",
+      "removal_condition": "V7 残留收编后按 F-AIO-001 修复 p1_noise_adapter（或经负责人裁决维持 V7 残留不收编纪律并删除本项）；任一路径落地即删除本项。",
+      "evidence": [
+        "tests/unit/CMakeLists.txt:1077-1096（P1-NOISE-IMPL 门卫块，f74fc20f 引入门卫化）",
+        "HANDOVER.md:62,109（F-AIO-001=p1_noise_adapter 全量唯一 FAIL，BASE 冻结快照口径）",
+        "lib/phase1_session/memory.md:118（rt005_registry/rt009_node_trace/p1_noise_adapter 同族 V7 残留）",
+        "run/ci/ci-baseline-001/ctest_full_pre.log（当前门卫关闭：168 目标中无 p1_noise_adapter，零失败）"
+      ],
+      "registered_by": "CI-BASELINE-001"
+    }
+  ]
+}

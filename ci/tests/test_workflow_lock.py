@@ -566,11 +566,13 @@ class TestValidateCandidate(unittest.TestCase):
 # ---------------------------------------------------------- 配置计数回归 ----
 
 class TestProfileCountsRegression(unittest.TestCase):
-    """plan-only selected_count 基线：58/88/7/62（CI-REG-002 后：新增
-    CTEST-REGISTRATION（三 profile）、CTEST-LINUX-FULL 与 15 个逐目标 CTEST-*
-    （linux-main））。"""
+    """plan-only selected_count 基线：59/90/7/63（CI-BASELINE-001 后：新增
+    KNOWN-FAILURES-BASELINE-VERIFY（fast/linux-main/windows-main）与
+    KNOWN-FAILURES-BASELINE-CHECK（linux-main）；此前 CI-REG-002 后为
+    58/88/7/62——CTEST-REGISTRATION（三 profile）、CTEST-LINUX-FULL 与 15 个
+    逐目标 CTEST-*（linux-main））。"""
 
-    BASELINE = {"fast": 58, "linux-main": 88, "linux-deep": 7, "windows-main": 62}
+    BASELINE = {"fast": 59, "linux-main": 90, "linux-deep": 7, "windows-main": 63}
 
     def test_plan_only_counts_unchanged(self):
         for profile, expected in self.BASELINE.items():
