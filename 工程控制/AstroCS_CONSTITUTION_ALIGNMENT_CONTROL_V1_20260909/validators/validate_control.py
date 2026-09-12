@@ -2,7 +2,7 @@
 import argparse,csv,json,re,sys
 from pathlib import Path
 REQ={'00_READ_FIRST.md','01_BASELINE_AUDIT.md','02_GATES_AND_EXECUTION.md','03_AUDIT_PACKAGE_SPEC.md','TASK_LEDGER.csv','OWNER_BINDINGS.yaml','control-pack.json','schemas/evidence.schema.json'}
-CRIT={'BASE-001','GOV-001','GOV-002','WCS-001','WCS-002','WCS-003','PSF-001','DATA-001','BASE-UTIL-001','P1-HIPS-DIGEST-001','ARCH-AUDIT-P1','AIO-001','AIO-002','P1-001','P2-001','P2-002','P3-001','P3-002','RT-001','MOD-001','CLI-001','CI-001','CI-002','REAL-000','REAL-001','VIS-001','WIN-001','DOC-001','AUD-001','PACK-001'}
+CRIT=set(["AIO-001", "AIO-002", "ARCH-AUDIT-P1", "ARCH-TB-001", "AUD-001", "BASE-001", "BASE-UTIL-001", "CI-001", "CI-001B", "CI-002", "CI-BACKEND-001", "CI-BASELINE-001", "CI-DATA-REG-001", "CI-REG-002", "CI-REPAIR-001", "CI-REPAIR-002", "CI-VER-CHK-001", "CI-WIN-001", "CLI-001", "CLI-001B", "CON-COMMENT-001", "CORE-RACE-001", "DATA-001", "DOC-001", "DOC-CONV-001", "GOV-001", "GOV-002", "GOV-AGENTS-001", "MOD-001", "MOD-001A", "MOD-001B", "P1-001", "P1-HIPS-DIGEST-001", "P2-001", "P2-002", "P3-001", "P3-002", "PACK-001", "PSF-001", "REAL-000", "REAL-001", "RT-001", "RT-001A", "RT-001B", "SCI-ANCHOR-001", "SCI-F2-001", "SCI-F3-001", "STD-F1-ADJ", "STD-REG-001", "UT-CLI-MAINT", "VIS-001", "WCS-001", "WCS-002", "WCS-003", "WCS-PATH-001", "WIN-000", "WIN-001"])
 def fail(s): print('CONTROL_FAIL: '+s,file=sys.stderr);raise SystemExit(1)
 def main():
  p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True);r=p.parse_args().root.resolve()
