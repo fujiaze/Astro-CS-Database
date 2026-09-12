@@ -375,3 +375,118 @@ BASE-F1/F2/F3（资源门判定域收口是否属放宽冻结门）、BASE-F5（
   （宪章 §14.5）并不等价——lane 是任务分组，真实约束是**文件写域**。误把 lane 当吞吐上限
   会导致修复工作被无关任务阻塞。裁决：lane 仅作记账，不作为吞吐上限（R-16/R-17）。
 
+
+---
+
+## 附录 C：rev6.2 执行期新增 finding（2026-09-12，前台汇总）
+
+> 来源：各 SubAgent 实测回报 + 前台独立复核。分级 P1（阻塞发布门/真实缺陷）> P2 > info。
+> 处置状态：`登记` = 仅记录待派单；`已裁决` = 见 07 号册对应裁决号。
+
+### C.1 资源监控判决器真实缺陷（P1，来自 BASE-UTIL-001，前台复核采纳）
+
+任务 `BASE-UTIL-001` 用 BASE 主构建二进制（`a628bc21`，自建 Release/Ninja，sha256 `460f3a05…`）
+完成 `utilization_p75_low` 独立归因，结论分四层：
+
+- **C.1-a【P1，主因】`evaluate_mon001` 缺宪章 §10.5「计算区间 >10s」前置**
+  `cli/resource_gate.h:284-293` 无该前置（同源 `MON-002` 在 `cli/commands.cpp:784` 有
+  `act.wall_seconds>=10.0`）。实测 active **0.50s / 2 样本即判 FAIL** ⇒ 短任务被误杀。
+- **C.1-b【P1，定量确证】边界样本律**：0.5s 采样下首+尾边界样本使
+  `pass_frac=(n-2)/n < 0.70  ⇔  n<7  ⇔  active<3.0s` **必然 FAIL**（与真实利用率无关）。
+  去边界后同一实测序列 `[0,396,398,400,170]` 由 0.600 → **1.000 转 ok**。
+  ⇒ 这是**结构性假红**，非阈值问题。
+- **C.1-c【P1】`memory_growth` 抢占 p75**：`resource_gate.h:181` 无最小窗口前置，
+  `commands.cpp:793` 先返回短路。同一配置连跑 5 次判决集合 = `{memory_growth×3, utilization_p75_low×2}`
+  ⇒ **判决不确定**，违反「稳定统计而非一次采样」要求。
+- **C.1-d【P1】分母以机器核数冒充已分配容量**：`commands.cpp:770-771` 二者同源。
+  同一实测 400% 序列：`sel16/avail16 → U=0.25 FAIL`，`sel16/avail4 → U=1.00 ok`
+  ⇒ 同一真实负载判决相反。
+- **C.1-e【P1】观测列填注入值**：`active/runnable_workers` 恒 = budget（25/25 案例），
+  `queue_depth/progress` 恒 0（`resource_recorder.h:84,88` **声明但零调用点**），
+  22/25 案例 `avg_equivalent_cores < selected` ⇒ §10.5 要求的观测面**实际未采集**。
+
+**旁证**：长窗口外部复核（`ci/resource_monitor.py`，89 样本/17.7s）独立判
+`frozen_gate=fail`「平均利用率 0.823 < 0.85」，而同一 workload 的 CLI 内建判 **ok**（pass_frac 0.771）
+⇒ **两条同源实现 17s 窗口口径不一致**。
+
+**前台判定**：C.1-a/b/d/e 属**真实产品缺陷**（非测试问题），且直接违反宪章 §10.5/§17.6 的
+「稳定统计」「自动资源监控」「低利用率判失败」要求。**登记，待派单**（候选任务 `MON-FIX-001`）。
+注意：修判决器**不得**降低 85% 门或 §17.6 禁项——只补前置条件与采样口径。
+
+### C.2 `legacy_allow_weight_fallback` 从 CLI 不可达（P1，登记）
+
+`cli/parser.cpp:301-318` 白名单不含该键，phase2 config 整块直通 ⇒ 05 号册 BASE-F5 的
+「方案 b」在 hips_paths 形态下**技术上不可行**。与 C.3 的 ivar fail-fast 相互作用：
+`weight_mode=2` 缺 ivar 时必然 rc=2，而唯一的逃生开关用户无法触达。
+
+### C.3 §30.1 ivar fail-closed 级联（P1，登记）
+
+`node integrate failed: weight_mode=2 requires per-frame ivar products; N/N frames missing ivar
+(DATA-UNC-001 §30.1: no silent fallback)` 导致 `UT-BACKEND` 12 项 + `CTEST-P2002-UNC-REJ-PROV` 红。
+**这是 fail-fast 的正确产品行为**（宪章 §14.4），红因是**测试 fixture 未提供 ivar**、
+或未显式置 `legacy_allow_weight_fallback`（见 C.2，当前不可达）⇒ 属 `tests/backend` + `lib/` 域。
+**不得**通过放宽 §30.1 让红灯消失。
+
+### C.4 共享工作树下 `mutates_workspace=false` dirty 判定系统性误报（P2，登记）
+
+R-19 共享工作树模型下，任一 `mutates_workspace=false` 检查（UT-BACKEND/UT-IO/UT-CLI/…）
+的 `dirty.violations` 会列出**其他在制任务正在改的文件** ⇒ 假红。
+**当前口径（R-28-b，并行期）**：检查器 `exit_code==0` 但 violations 指向他人写域的，
+判为共享工作树抖动，不计入该任务红因；**全部任务收敛后在静止工作树上复跑终局判定**。
+是否修改 dirty 判定口径本身（如只统计该检查 command 触达路径）属 `ci/` 语义变更，
+**登记待终局处置**。
+
+### C.5 R-04 任务归因经实证证伪（P2，前台失误登记）
+
+前台在 R-04 中声称「hosted 镜像缺 numpy/astropy/nlohmann」与「dumpbin 不在 PATH」为
+`UT-BACKEND`/`WIN-PACKAGE-CANDIDATE` 的根因。CI 平台域合并代理用**前台自留的 327b6c30 真实
+CI 产物**证伪：
+- install 步日志实测打印 `numpy ready: 1.26.4 / astropy ready: 6.0.0`，UT-BACKEND 当次**跑完 205 tests**、零 `ModuleNotFoundError`；
+- `WIN-PACKAGE-CANDIDATE.json` 实测 `prerequisite.ok=true`——prerequisite 是 **PASS** 的；
+  其红因是**级联**：`WIN-BUILD-RELEASE` configure 13s 失败（`lib/gaia_xpsd_client/CMakeLists.txt:68
+  Could NOT find ZLIB (missing: ZLIB_LIBRARY)` → install 阶段 "Not a file: cmake_install.cmake"）。
+
+**裁决 R-26**：`CI-BACKEND-001` 两条必修动作**全部撤销**（既有实现已正确，不得重复堆叠，
+宪章 §14.4）；`WIN-PACKAGE-CANDIDATE` 真因归 `CI-WIN-001`。
+**教训**：根因归因必须基于**当次真实 CI 产物**，不得由历史记忆推断——前台自身亦受此约束。
+
+### C.6 预存 dirty 被覆盖事故（P2，已裁决 R-22）
+
+`ARCH-TB-001` 在未先备份的情况下重写了预存 dirty 的
+`docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv`。前台取证：全仓无副本；
+`run/local/main23_fix/*.user_backup` 系 2026-09-07 更旧版本（sha `b19783af…`，47986B）；
+`git fsck --lost-found` 全量扫描 dangling blob **0 命中** ⇒ **不可恢复，属实丢失**。
+**裁决 R-22**：接受现状（该文件是生成产物，当前内容 == 生成器对当前源码树的输出，
+`test_05` 实测 OK rc=0、重跑 sha256 逐字节不变）；立**dirty 文件保护协议**并全体广播。
+
+### C.7 规格/文档口径订正（info，已裁决）
+
+- `R-09`/CON-COMMENT-001 规格记「3 条 COMMENT-MISSING-ID」系**漏记**，实测 **4 条**；
+  前台自留 327b6c30 round4 artifact 确认**当次即 4 条**。裁决 **R-24**。
+- ARCH-TB-001 规格称「生成器非幂等」系**前台误判**；实测生成器完全确定（3 次运行 3 个
+  PYTHONHASHSEED 同 sha256），`test_05` 真实语义是「磁盘 CSV vs 重跑生成器」，红因是**仓库 CSV 陈旧**。裁决 **R-23**。
+- `HANDOVER.md:110`、`ci/ci_repair_round.py:110` 的「p2001/2/6 utilization_p75_low」为**过期口径**
+  （实测三测试根本走不到资源门）。登记待订正。
+- `tests/unit/p1wcs/p1wcs_tests_apbp.cpp:431-442` 仍有 `run/p1wcs_wcs003/` 字面注释与相对路径兜底；
+  CI 下不触发，非阻塞。登记。
+
+### C.8 SCI 层无上位定义的 invariant（info，宪章 §1.1 要求登记）
+
+CON-COMMENT-001 补锚时如实发现以下 invariant 在 **SCI 层无独立条目**，**未伪造 SCI ID**，
+只锚 ALG + 外部标准（IVOA HiPS 1.0 / IVOA MOC 1.1）：
+- hierarchy 低阶聚合闭合（`HIPS_WRITER.md` §9 的 I7）——该文 §4 明示「SCI 层零覆盖」；
+- MOC UNIQ / 叶级 cell 一一对应（I5/I6）——§5(5a) 为实现合同；
+- SNR catalogue cell 归属——`SCI-NOISE-001` §9a 明示「本合同不产出 SNR」；
+- 装配层 P1/P3/P5/P6/P7 invariant 属生命周期/ABI 契约，已锚 `API-P1-SESSION`/`DATA-P1-SESSION`。
+
+**这是正确做法**：宪章 §1.1 要求如实登记权威层级，不得为过检查伪造上位 ID。
+
+### C.9 孤儿 worker 事故（P1，前台处置）
+
+上一个崩溃会话遗留的 CP worker（旧 run `Rmtxvlrtfa66eb7` rev34，任务标识亦为 `SCI-F3-001`，
+dispatch token `74ef336bc8cca5ca`）**仍在运行并实时写入** `lib/astro_image_io/**`，
+它不在当前会话的 agent 树中，**无法用 `send_message` 联系**。
+前台处置：把在制的 `SCI-F3-001`（`0bf273d9`）转为**独立验证者**角色（裁决 R-29），
+利用孤儿已完成的一半工作（writer/reader 通道），同时避免双写冲突。
+**教训**：前台会话崩溃必须显式回收在跑 worker；`Rmtxvlrtfa66eb7` 未回收是本次事故根因。
+
