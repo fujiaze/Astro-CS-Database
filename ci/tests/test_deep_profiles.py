@@ -6,9 +6,10 @@
    工具齐备 → 正常执行 PASS；工具缺失 + waivable → SKIPPED(waivable)（理由含工具名）；
    工具缺失 + 不可 waivable → FAIL(prerequisite)；无该字段的检查不受影响。
 2. 注册表结构 —— validate_registry --strict 接受合法 prerequisite_tools、
-   拒绝空数组/非字符串/非字符串数组元素；主仓库 ci/checks.json（97 项）strict PASS。
-3. profile 选择（只读主仓库 plan-only）——fast=58（不含新 deep 项；含
-   CI-REG-002 的 CTEST-REGISTRATION）、linux-main=88（含 BUILD-GCC-RELEASE 与
+   拒绝空数组/非字符串/非字符串数组元素；主仓库 ci/checks.json（99 项）strict PASS。
+3. profile 选择（只读主仓库 plan-only）——fast=59（不含新 deep 项；含
+   CI-REG-002 的 CTEST-REGISTRATION 与 CI-BASELINE-001 的
+   KNOWN-FAILURES-BASELINE-VERIFY）、linux-main=90（含 BUILD-GCC-RELEASE 与
    CI-REG-002 的 CTEST-LINUX-FULL + 15 个逐目标 CTEST-*）、linux-deep=7（7 个新 id
    全选，command 自含 ci/resource_monitor.py 包裹前缀）。
 4. 工具行为 —— check_complexity.py 实跑（exit 0、threshold=null、placeholder、
@@ -130,12 +131,14 @@ class TestRegistryStrict(unittest.TestCase):
         errors, n = self._validate(data)
         self.assertEqual((errors, n), ([], 1))
 
-    def test_main_registry_strict_pass_97(self):
+    def test_main_registry_strict_pass_99(self):
         # V8-CI-006 注册 WIN-* 三项后 77 → 80；CI-REG-002 注册
-        # CTEST-REGISTRATION + CTEST-LINUX-FULL + 15 个逐目标 CTEST-* 后 80 → 97。
+        # CTEST-REGISTRATION + CTEST-LINUX-FULL + 15 个逐目标 CTEST-* 后 80 → 97；
+        # CI-BASELINE-001 注册 KNOWN-FAILURES-BASELINE-VERIFY（fast/linux-main/
+        # windows-main）与 KNOWN-FAILURES-BASELINE-CHECK（linux-main）后 97 → 99。
         errors, n = VR.validate(REGISTRY_PATH, strict=True)
         self.assertEqual(errors, [])
-        self.assertEqual(n, 97)
+        self.assertEqual(n, 99)
 
     @staticmethod
     def _validate(data: dict):
@@ -164,10 +167,10 @@ class TestProfileSelection(unittest.TestCase):
         assert proc.returncode == 0, proc.stderr[-400:]
         return json.loads(proc.stdout)
 
-    def test_fast_58_excludes_deep(self):
+    def test_fast_59_excludes_deep(self):
         plan = self.plan("fast")
         ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 58)
+        self.assertEqual(plan["selected_count"], 59)
         self.assertFalse(ids & NEW_IDS)
         # CI-REG-002：注册闭包校验器是静态源扫描，可进 fast（无需构建树）
         self.assertIn("CTEST-REGISTRATION", ids)
@@ -175,10 +178,10 @@ class TestProfileSelection(unittest.TestCase):
         self.assertFalse([i for i in ids if i.startswith("CTEST-")
                           and i != "CTEST-REGISTRATION"])
 
-    def test_linux_main_88_includes_gcc_release_and_ctest_gates(self):
+    def test_linux_main_90_includes_gcc_release_and_ctest_gates(self):
         plan = self.plan("linux-main")
         ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 88)
+        self.assertEqual(plan["selected_count"], 90)
         self.assertIn("BUILD-GCC-RELEASE", ids)
         self.assertFalse(ids & (NEW_IDS - {"BUILD-GCC-RELEASE"}))
         # CI-REG-002 / STD-F7 处置 1+2：全量 ctest 门 + 逐目标门，且全部不可豁免

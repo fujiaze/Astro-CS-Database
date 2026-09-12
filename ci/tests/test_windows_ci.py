@@ -10,8 +10,9 @@
    包裹前缀且 requires_monitor=false、heavy=false（owner 裁决
    F-CI-002-04, 2026-09-11：构建/打包/单测非重计算面, R7 conform）、
    prerequisite_tools 含 cmake；
-   windows-main plan-only=62（含 3 新 id + CI-REG-002 的 CTEST-REGISTRATION）；
-   fast/linux-main/linux-deep 基线 58/88/7（CI-REG-002 后）。
+   windows-main plan-only=63（含 3 新 id + CI-REG-002 的 CTEST-REGISTRATION +
+   CI-BASELINE-001 的 KNOWN-FAILURES-BASELINE-VERIFY）；
+   fast/linux-main/linux-deep 基线 59/90/7（CI-BASELINE-001 后）。
 2. 驱动行为 —— --stages 解析（canonical 去重保序/未知阶段拒绝）、
    stage_plan argv 组装（preset/build/install 形状、逐阶段 timeout）、
    run_step 超时 124 与输出捕获、binaryDir 从 CMakePresets.json 推导、
@@ -107,11 +108,12 @@ class TestRegistryConformance(unittest.TestCase):
                              f"run/ci/monitor/{cid}.json", cid)
             self.assertIn("--timeout", c["command"], cid)
 
-    def test_registry_strict_pass_97(self):
-        # CI-REG-002 注册 17 项 CTEST-* 后 80 → 97。
+    def test_registry_strict_pass_99(self):
+        # CI-REG-002 注册 17 项 CTEST-* 后 80 → 97；
+        # CI-BASELINE-001 注册 known-failures 基线两门后 97 → 99。
         errors, n = VR.validate(_REPO / "ci" / "checks.json", strict=True)
         self.assertEqual(errors, [])
-        self.assertEqual(n, 97)
+        self.assertEqual(n, 99)
 
 
 class TestProfilePlans(unittest.TestCase):
@@ -124,16 +126,16 @@ class TestProfilePlans(unittest.TestCase):
         assert proc.returncode == 0, proc.stderr[-400:]
         return json.loads(proc.stdout)
 
-    def test_windows_main_61_contains_new_ids(self):
+    def test_windows_main_63_contains_new_ids(self):
         plan = self.plan("windows-main")
         ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 62)
+        self.assertEqual(plan["selected_count"], 63)
         self.assertTrue(set(_WIN_IDS) <= ids)
         self.assertEqual({c["platform"] for c in plan["checks"]
                           if c["id"] in _WIN_IDS}, {"windows"})
 
-    def test_other_profiles_unchanged_57_71_7(self):
-        for profile, count in (("fast", 58), ("linux-main", 88), ("linux-deep", 7)):
+    def test_other_profiles_unchanged_59_90_7(self):
+        for profile, count in (("fast", 59), ("linux-main", 90), ("linux-deep", 7)):
             plan = self.plan(profile)
             ids = {c["id"] for c in plan["checks"]}
             self.assertEqual(plan["selected_count"], count, profile)

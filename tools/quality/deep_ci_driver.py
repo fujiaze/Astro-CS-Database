@@ -198,6 +198,22 @@ def cmd_coverage_cpp(args: argparse.Namespace) -> int:
 
 # -------------------------------------------------------------- CTest 门（CI-REG-002） ----
 
+def _ctest_argv(base: list[str], junit: str | None) -> list[str]:
+    """CI-BASELINE-001：附加 --output-junit 产出机器可读全量测试结果。
+
+    known-failures 基线门（KNOWN-FAILURES-BASELINE-CHECK）需把「全量测试结果」
+    与版本化基线 ci/known_failures.json 比对（失败集 ⊆ 基线）；ctest 文本日志
+    非稳定解析面，故按 ctest 3.21+ 原生 --output-junit 落 JUnit XML
+    （每 testcase 一条，含 name/failure/skipped，解析实现见
+    tools/quality/known_failures_baseline.py parse_ctest_junit）。
+    junit 路径为仓库相对路径时按 cwd（构建树）解析；默认落在 build dir 内
+    （run/ 运行产物面，gitignore）。
+    """
+    if junit:
+        return [*base, "--output-junit", junit]
+    return base
+
+
 def cmd_ctest_full(args: argparse.Namespace) -> int:
     """ctest-full：configure + 全图 build + CTest 全量（CTEST-LINUX-FULL）。
 
@@ -206,6 +222,8 @@ def cmd_ctest_full(args: argparse.Namespace) -> int:
     已构建时 configure/build 为增量幂等，独立运行时自举完整构建。
     ctest 不传并行旗标：p1wcs_performance / p1noise_performance 等用例带
     时序哨兵，并行执行会引入与被测代码无关的抖动（非确定性门禁）。
+    CI-BASELINE-001：--junit 产出全量测试结果 JUnit XML 供 known-failures
+    基线门消费。
     """
     build_dir = _ensure_inside_repo(args.build_dir, "build-dir")
     steps: list[dict] = []
@@ -213,7 +231,7 @@ def cmd_ctest_full(args: argparse.Namespace) -> int:
     # 内部超时预算 300(configure)+2400(build)+900(ctest) = 3600 = 检查项
     # timeout_seconds，驱动步超时先于 runner 总超时触发（归因清晰）。
     steps.append({"name": "ctest-full", "timeout": 900,
-                  "argv": ["ctest", "--output-on-failure"],
+                  "argv": _ctest_argv(["ctest", "--output-on-failure"], args.junit),
                   "cwd": str(REPO / build_dir)})
     rc = _run_steps(steps, args.output)
     print(json.dumps({"driver": "deep_ci_driver.py", "subcommand": "ctest-full",
@@ -235,7 +253,8 @@ def cmd_ctest_target(args: argparse.Namespace) -> int:
     steps: list[dict] = [{
         "name": "ctest-target",
         "timeout": args.step_timeout,
-        "argv": ["ctest", "-R", "^%s$" % target, "--output-on-failure"],
+        "argv": _ctest_argv(["ctest", "-R", "^%s$" % target, "--output-on-failure"],
+                            args.junit),
         "cwd": str(REPO / build_dir),
     }]
     rc = _run_steps(steps, args.output)
@@ -314,6 +333,9 @@ def build_parser() -> argparse.ArgumentParser:
     # CI-REG-002（STD-F7 处置 1/2）：linux-main 全量 ctest 门 + 逐目标显式门
     f = sub.add_parser("ctest-full", help="全量 CTest 门（CTEST-LINUX-FULL）")
     f.add_argument("--build-dir", default="run/ci/build-gcc-release")
+    f.add_argument("--junit", default=None,
+                   help="ctest --output-junit 全量测试结果 XML（相对路径按构建树解析；"
+                        "CI-BASELINE-001 known-failures 基线门消费）")
     f.add_argument("--output", default=None)
     f.set_defaults(func=cmd_ctest_full)
 
@@ -322,6 +344,8 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--target", required=True, help="ctest 测试目标名（精确匹配 ^name$）")
     t.add_argument("--step-timeout", type=int, default=600,
                    help="ctest 单步超时（秒）；检查项 timeout_seconds 应大于该值")
+    t.add_argument("--junit", default=None,
+                   help="ctest --output-junit 单目标结果 XML（同 ctest-full）")
     t.add_argument("--output", default=None)
     t.set_defaults(func=cmd_ctest_target)
 

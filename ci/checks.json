@@ -2305,6 +2305,8 @@
         "ctest-full",
         "--build-dir",
         "run/ci/build-gcc-release",
+        "--junit",
+        "ctest-full.junit.xml",
         "--output",
         "run/ci/build-gcc-release/ctest-full.json"
       ],
@@ -2312,7 +2314,8 @@
       "heavy": false,
       "mutates_workspace": false,
       "outputs": [
-        "run/ci/build-gcc-release/ctest-full.json"
+        "run/ci/build-gcc-release/ctest-full.json",
+        "run/ci/build-gcc-release/ctest-full.junit.xml"
       ],
       "waivable": false,
       "changed_paths": [
@@ -2852,6 +2855,70 @@
       "ctest_targets": [
         "rt001_unique_executor"
       ]
+    },
+    {
+      "id": "KNOWN-FAILURES-BASELINE-VERIFY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/known_failures_baseline.py",
+        "--mode",
+        "verify",
+        "--output",
+        "run/ci/known-failures/known_failures_verify.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/known-failures/known_failures_verify.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "ci/known_failures.json",
+        "ci/checks.json",
+        "ci/ctest_baseline.json",
+        "tools/quality/known_failures_baseline.py",
+        "tests/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "KNOWN-FAILURES-BASELINE-CHECK",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/known_failures_baseline.py",
+        "--mode",
+        "check",
+        "--ctest-junit",
+        "run/ci/build-gcc-release/ctest-full.junit.xml",
+        "--output",
+        "run/ci/known-failures/known_failures_check.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/known-failures/known_failures_check.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "ci/known_failures.json",
+        "ci/checks.json",
+        "ci/ctest_baseline.json",
+        "tools/quality/known_failures_baseline.py",
+        "tests/**"
+      ],
+      "requires_monitor": false
     }
   ]
 }
