@@ -169,12 +169,37 @@ class TestWorkflowYaml(unittest.TestCase):
         self.assertEqual(len(on["schedule"]), 1)
         self.assertRegex(on["schedule"][0]["cron"], r"^\S+ \S+ \S+ \S+ \S+$")
 
-    def test_windows_validate_step_targets_candidate_zip(self):
+    def test_windows_candidate_gate_is_registry_bound(self):
+        """CI-001B 目标 2：候选门收编为不可豁免注册表检查项（STD-F8 残留项收口）。
+
+        旧形态（workflow 内 Test-Path + ::warning:: 跳过）已删除：候选缺失现在
+        由 ci/checks.json 的 WIN-CANDIDATE-VALIDATE（waivable=false）在
+        ci/run.py 内 FAIL，且 workflow 体内不再承载任何业务命令。
+        """
         doc = self.docs["ci-windows.yml"]
-        runs = [s["run"] for s in doc["jobs"]["windows"]["steps"] if "run" in s]
-        self.assertTrue(any("ci/validate_candidate.py" in r and
-                            "artifacts/candidate/AstroCS-candidate.zip" in r
-                            for r in runs))
+        steps = doc["jobs"]["windows"]["steps"]
+        self.assertEqual([s for s in steps if s.get("name") == "Validate candidate"], [])
+        for step in steps:
+            body = str(step.get("run") or "")
+            # 旧失败模式：存在性探针 + warning 跳过（候选缺失被静默吞掉）
+            if "AstroCS-candidate.zip" in body:
+                self.assertNotIn("::warning::", body, step.get("name"))
+                self.assertNotIn("Test-Path", body, step.get("name"))
+        registry = json.loads((_REPO / "ci" / "checks.json").read_text(encoding="utf-8"))
+        gate = [c for c in registry["checks"] if c["id"] == "WIN-CANDIDATE-VALIDATE"]
+        self.assertEqual(len(gate), 1)
+        self.assertIs(gate[0]["waivable"], False)
+        self.assertIn("windows-main", gate[0]["profiles"])
+        self.assertEqual(gate[0]["command"],
+                         ["python3", "ci/wf_step.py", "--step", "WINDOWS-VALIDATE-CANDIDATE"])
+        binding = json.loads((_REPO / "ci" / "workflow_binding.json").read_text(encoding="utf-8"))
+        entry = [s for s in binding["steps"] if s.get("step_id") == "WINDOWS-VALIDATE-CANDIDATE"]
+        self.assertEqual(len(entry), 1)
+        self.assertEqual(entry[0]["check_id"], "WIN-CANDIDATE-VALIDATE")
+        self.assertEqual(entry[0]["binds_check"], "WIN-PACKAGE-CANDIDATE")
+        self.assertIn("artifacts/candidate/AstroCS-candidate.zip", entry[0]["require_outputs"])
+        self.assertTrue(entry[0]["fail_closed"])
+        self.assertTrue(entry[0]["exec"][1].endswith("ci/validate_candidate.py"))
 
     def test_public_evidence_uploaded_if_always(self):
         for name, doc in self.docs.items():
@@ -228,9 +253,20 @@ class TestWorkflowYaml(unittest.TestCase):
             self.assertEqual(diags[0].get("if"), "failure()", name)
             self.assertIn("run", diags[0], name)
             self.assertNotIn("uses", diags[0], name)
+            # CI-001B：诊断体迁入 ci/ 声明体（workflow 体只保留派发调用），
+            # 证据路径断言随之绑定到声明 exec 指向的 ci/ 脚本本体。
             body = str(diags[0]["run"])
-            self.assertIn("BOOTSTRAP_DIAG.json", body, name)
-            self.assertIn("artifacts/ci", body, name)
+            binding = json.loads((_REPO / "ci" / "workflow_binding.json").read_text(encoding="utf-8"))
+            entry = [s for s in binding["steps"]
+                     if s.get("name") == diags[0]["name"]
+                     and s.get("workflow") == ".github/workflows/" + name]
+            self.assertEqual(len(entry), 1, name)
+            self.assertIn("ci/wf_step.py --step " + entry[0]["step_id"], body, name)
+            script = _REPO / entry[0]["exec"][1]
+            self.assertTrue(script.is_file(), entry[0]["exec"][1])
+            script_text = script.read_text(encoding="utf-8")
+            self.assertIn("BOOTSTRAP_DIAG.json", script_text, name)
+            self.assertIn("artifacts/ci", script_text, name)
 
     def test_no_algorithm_or_science_params(self):
         banned = ("toleran", "snr", "psf", "benchmark", "--iter", "threshold")
@@ -566,13 +602,13 @@ class TestValidateCandidate(unittest.TestCase):
 # ---------------------------------------------------------- 配置计数回归 ----
 
 class TestProfileCountsRegression(unittest.TestCase):
-    """plan-only selected_count 基线：59/90/7/63（CI-BASELINE-001 后：新增
-    KNOWN-FAILURES-BASELINE-VERIFY（fast/linux-main/windows-main）与
-    KNOWN-FAILURES-BASELINE-CHECK（linux-main）；此前 CI-REG-002 后为
-    58/88/7/62——CTEST-REGISTRATION（三 profile）、CTEST-LINUX-FULL 与 15 个
-    逐目标 CTEST-*（linux-main））。"""
+    """plan-only selected_count 基线：61/94/7/66（CI-001B 后：WORKFLOW-REGISTRY-BINDING
+    与 CI-BINDING-TESTS 进 fast/linux-main/windows-main；LINUX-MAIN-FIXTURES /
+    LINUX-MAIN-BUILD-TREE 进 linux-main；WIN-CANDIDATE-VALIDATE 进 windows-main——
+    workflow 侧两条 linux 业务步与 windows 候选校验步同提交收编为注册表检查项）。
+    此前 CI-BASELINE-001 后为 59/90/7/63，CI-REG-002 后为 58/88/7/62。"""
 
-    BASELINE = {"fast": 59, "linux-main": 90, "linux-deep": 7, "windows-main": 63}
+    BASELINE = {"fast": 61, "linux-main": 94, "linux-deep": 7, "windows-main": 66}
 
     def test_plan_only_counts_unchanged(self):
         for profile, expected in self.BASELINE.items():
