@@ -3287,6 +3287,37 @@
       "prerequisite_tools": [
         "python3:numpy"
       ]
+    },
+    {
+      "id": "DOC-LINE-ANCHORS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "docs/algorithms/anchors/check_doc_line_anchors.py",
+        "--json-out",
+        "run/ci/doc-anchors/doc_line_anchors.json"
+      ],
+      "timeout_seconds": 180,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/doc-anchors/doc_line_anchors.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "cli/**",
+        "tests/**",
+        "include/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false
     }
   ]
 }

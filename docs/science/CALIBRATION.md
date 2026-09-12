@@ -71,7 +71,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 | 条件 | 行为 | 证据 |
 |---|---|---|
 | `w<=0`/`h<=0`/空指针 | 返回 `AC_ERR_PARAM`，不写 `out` | `ac_generate_master_bias` 参数校验 |
-| `median(flat)<=0` | `normalize_flat` 不归一，保持原样 | `calibrator.cpp:84 if(!(med>0)) return` |
+| `median(flat)<=0` | `normalize_flat` 不归一，保持原样 | `calibrator.cpp:86 if(!(med>0)) return` |
 | `flat_norm` 过小 | `max(...,0.1)` floor 避免极大放大 | `calibrator.cpp:78-93,120,130,164,173` |
 | `MAD=0` (无离散度) | sigma-clip 提前终止，不再剔除 | `master_generator.cpp: sigma<=0 break` |
 | `t_light/t_dark` 极端 | `K` 仍按比值应用，溢出由 FP32 饱和语义界定，不静默 clamp | `calibrate: k=k_init` 直通 |

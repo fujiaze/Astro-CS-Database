@@ -151,6 +151,9 @@ doc_index:
       notes: "P1-STAR-DOC (2026-09-07) 冻结: ALG-STARDET-001 逐符号源码锚定(sdet_detect_impl/peaker 七步/sdet_moffat4_fit/sdet_lm_fit/reject_star)+DISP-STAR-001..005+TEST-STAR-DESIGN-001 冻结容差+SCI-P1-STAR-001 状态声明(§11.5)"
     - path: "docs/algorithms/UPM_SOLVER.md"
       status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/anchors/ANCHOR_CONTRACT.md"
+      status: ACTIVE_NORMATIVE
+      notes: "SCI-ANCHOR-001 (2026-09-12) ALG/SCI 源码行号锚合同：解析规则/豁免纪律/符号绑定/同提交维护义务；机器检查器 docs/algorithms/anchors/check_doc_line_anchors.py（CI 检查项 DOC-LINE-ANCHORS），数据 anchor_contract.json；全量复测 36 文档 793 锚（784 绿 + 9 登记豁免）"
     - path: "docs/api/CLI_PROTOCOL_V1.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/api/COMMON_ABI_V1.md"

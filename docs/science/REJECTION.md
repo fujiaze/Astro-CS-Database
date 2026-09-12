@@ -83,11 +83,11 @@ large_scale 结构生长:
 
 | 条件 | 行为 | 证据 |
 |---|---|---|
-| `n ≤2` 或 `n < minimum_n` | `UNDERDETERMINED` 全接受 | `rejection.h:85` |
+| `n ≤2` 或 `n < minimum_n` | `UNDERDETERMINED` 全接受 | `rejection.h:86` |
 | 非有限 `weights/support` | `INVALID_INPUT` hard fail | `rejection.cpp` 资格层 |
-| 全拒 | `ALL_REJECTED` | `rejection.h:83` |
+| 全拒 | `ALL_REJECTED` | `rejection.h:84` |
 | 无候选 | `NO_CANDIDATES` | 同上 |
-| 配置非法 (method/profile) | `INVALID_CONFIGURATION/INVALID_METHOD` | `rejection.h:85-86` |
+| 配置非法 (method/profile) | `INVALID_CONFIGURATION/INVALID_METHOD` | `rejection.h:87-88` |
 | 大结构 vs 紧凑 | trail 扩张，compact 不生长 | `rejection.cpp:1501-1592` |
 
 ## 9 精度策略
