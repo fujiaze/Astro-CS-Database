@@ -108,12 +108,13 @@ class TestRegistryConformance(unittest.TestCase):
                              f"run/ci/monitor/{cid}.json", cid)
             self.assertIn("--timeout", c["command"], cid)
 
-    def test_registry_strict_pass_99(self):
+    def test_registry_strict_pass_104(self):
         # CI-REG-002 注册 17 项 CTEST-* 后 80 → 97；
-        # CI-BASELINE-001 注册 known-failures 基线两门后 97 → 99。
+        # CI-BASELINE-001 注册 known-failures 基线两门后 97 → 99；
+        # CI-001B 注册 5 项（workflow 联动核死 + binding 测试 + 三步收编）后 99 → 104。
         errors, n = VR.validate(_REPO / "ci" / "checks.json", strict=True)
         self.assertEqual(errors, [])
-        self.assertEqual(n, 99)
+        self.assertEqual(n, 104)
 
 
 class TestProfilePlans(unittest.TestCase):
@@ -126,16 +127,18 @@ class TestProfilePlans(unittest.TestCase):
         assert proc.returncode == 0, proc.stderr[-400:]
         return json.loads(proc.stdout)
 
-    def test_windows_main_63_contains_new_ids(self):
+    def test_windows_main_66_contains_new_ids(self):
         plan = self.plan("windows-main")
         ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 63)
+        self.assertEqual(plan["selected_count"], 66)
+        # CI-001B：候选校验门收编为不可豁免注册表检查项（STD-F8 残留项收口）
+        self.assertIn("WIN-CANDIDATE-VALIDATE", ids)
         self.assertTrue(set(_WIN_IDS) <= ids)
         self.assertEqual({c["platform"] for c in plan["checks"]
                           if c["id"] in _WIN_IDS}, {"windows"})
 
-    def test_other_profiles_unchanged_59_90_7(self):
-        for profile, count in (("fast", 59), ("linux-main", 90), ("linux-deep", 7)):
+    def test_other_profiles_unchanged_61_94_7(self):
+        for profile, count in (("fast", 61), ("linux-main", 94), ("linux-deep", 7)):
             plan = self.plan(profile)
             ids = {c["id"] for c in plan["checks"]}
             self.assertEqual(plan["selected_count"], count, profile)

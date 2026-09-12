@@ -1,5 +1,13 @@
 name: AstroCS Windows CI
 
+# CI-001B｜workflow ↔ 注册表联动核死：
+# - 本文件 run: 体只允许三类调用：ci/run.py（执行 ci/checks.json 注册检查）、
+#   ci/wf_step.py（派发 ci/workflow_binding.json 声明步）、ci/bootstrap.py
+#   （锁定工具链 CI 入口）；其余步只能是 host-provisioning / artifact-upload。
+# - 绑定声明：ci/workflow_binding.json（每步唯一一条，双向漂移即 FAIL）；
+# - 静态核死：python3 ci/validate_workflow_binding.py；
+# - actions 全部锁 ci/actions.lock.json 完整 SHA（复验：ci/verify_actions_lock.py）。
+
 on:
   push:
     branches: [main]
@@ -9,7 +17,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: windows-ci-${{ github.ref }}
+  # CI-001B：group 必须同时含 ref 与 event_name（见 ci/validate_workflow_binding.py B14）——
+  # 否则手动触发（G-CI 验收/手动双虚拟机核验）与 push run 同组，会被后继 push
+  # 在 pending 态取代（cancelled）而永远拿不到该 SHA 的 Windows 验证。
+  # 与 ci-linux.yml 同款口径；cancel-in-progress 维持 false（不取消进行中的验证）。
+  group: windows-ci-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:
@@ -68,18 +80,9 @@ jobs:
         run: python ci/bootstrap.py --policy ci/toolchain.policy.json --platform windows
       - name: Run MSVC tests and package candidate
         run: python ci/run.py --profile windows-main
-      - name: Validate candidate
-        # CI-001 收紧后 WIN-PACKAGE-CANDIDATE 不可 waiver：prerequisite 缺失
-        # （如 dumpbin 不在 PATH）→ FAIL(prerequisite) → run.py exit 1 → 本 job
-        # 已在上一步失败。zip 存在时照常校验；不存在时仅提示（失败主因已在
-        # run.py verdict 中，不在此二次失败掩盖首因）。
-        run: |
-          if (Test-Path "artifacts/candidate/AstroCS-candidate.zip") {
-            python ci/validate_candidate.py artifacts/candidate/AstroCS-candidate.zip
-          } else {
-            Write-Host "::warning::candidate zip not produced (WIN-PACKAGE-CANDIDATE failed or run.py already failed) - validate step skipped"
-          }
       - name: Upload candidate
+        # CI-001B：显式声明 if（默认 success()），使上传面在绑定声明里逐条可审计。
+        if: success()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (ci/actions.lock.json)
         with:
           name: astrocs-windows-candidate-${{ github.sha }}
@@ -90,46 +93,8 @@ jobs:
         if: failure()
         shell: pwsh
         run: |
-          @'
-          import json, subprocess, sys
-          from datetime import datetime, timezone
-          from pathlib import Path
-          diag = {
-              "schema_version": 1,
-              "purpose": "bootstrap diagnostics collected after a failed step (does not mask the primary cause)",
-              "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-              "bootstrap_exit_code": None,
-              "report": None,
-              "stderr_fail_payload": None,
-          }
-          try:
-              res = subprocess.run(
-                  [sys.executable, "ci/bootstrap.py",
-                   "--policy", "ci/toolchain.policy.json", "--platform", "windows", "--json"],
-                  capture_output=True, text=True, timeout=120,
-                  encoding="utf-8", errors="replace")
-              diag["bootstrap_exit_code"] = res.returncode
-              if res.stdout.strip():
-                  try:
-                      diag["report"] = json.loads(res.stdout)
-                  except json.JSONDecodeError:
-                      pass
-              for line in reversed((res.stderr or "").strip().splitlines()):
-                  try:
-                      cand = json.loads(line)
-                  except json.JSONDecodeError:
-                      continue
-                  if isinstance(cand, dict) and cand.get("verdict") == "FAIL":
-                      diag["stderr_fail_payload"] = cand
-                      break
-          except Exception as exc:  # noqa: BLE001
-              diag["collection_error"] = repr(exc)
-          Path("artifacts/ci").mkdir(parents=True, exist_ok=True)
-          (Path("artifacts/ci") / "BOOTSTRAP_DIAG.json").write_text(
-              json.dumps(diag, ensure_ascii=False, indent=2), encoding="utf-8")
-          print("BOOTSTRAP_DIAG.json written (bootstrap_exit_code=%s)"
-                % diag["bootstrap_exit_code"])
-          '@ | python -
+          # CI-001B 目标 1：内联诊断体迁入 ci/steps/collect_bootstrap_diag.py（两平台共用）。
+          python ci/wf_step.py --step WINDOWS-BOOTSTRAP-DIAG
       - name: Upload public CI evidence
         if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (ci/actions.lock.json)

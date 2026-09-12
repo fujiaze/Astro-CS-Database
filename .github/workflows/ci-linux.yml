@@ -1,5 +1,16 @@
 name: AstroCS Linux CI
 
+# CI-001B｜workflow ↔ 注册表联动核死：
+# - 本文件 run: 体只允许三类调用：ci/run.py（执行 ci/checks.json 注册检查）、
+#   ci/wf_step.py（派发 ci/workflow_binding.json 声明步）、ci/bootstrap.py 与
+#   ci/select_profile.py（CI 入口）；其余步只能是 host-provisioning / artifact-upload
+#   （纯外部工具安装，不含仓库路径与构建命令）。
+# - 绑定声明：ci/workflow_binding.json（每步唯一一条，双向漂移即 FAIL）；
+# - 静态核死：python3 ci/validate_workflow_binding.py；
+# - actions 全部锁 ci/actions.lock.json 完整 SHA（复验：ci/verify_actions_lock.py）。
+# - 手动触发（G-CI 核验）与 push 分属不同 concurrency 组（group 含 event_name），
+#   手动 run 不会被后继 push 在 pending 态取代。
+
 on:
   push:
     branches: [main]
@@ -74,47 +85,6 @@ jobs:
           python3 -c "import numpy, astropy; print('numpy ready:', numpy.__version__, '/ astropy ready:', astropy.__version__)"
           test -f /usr/include/nlohmann/json.hpp
           test -f /usr/include/gsl/gsl_multifit_nlinear.h
-      - name: Prepare linux-main run/temp fixtures
-        if: steps.profile.outputs.profile == 'linux-main'
-        shell: bash
-        run: |
-          set -euo pipefail
-          # V8.1-CI：UT-BACKEND p1004 联合门读 run/temp/mon001_cfg.json（V6.1
-          # 手工 MON-001 残留，从无入库/生成方 → hosted 恒缺失，test_02/03 必
-          # FAIL）；p1004 workload 顶层 run 走 phase3，需 HiPS fixture。
-          # ci/prepare_linux_fixtures.py 用仓库 vendored AIO/healpix 源自编译
-          # fixture 生成 FIELD.hips + V1 顶层 config（不联网拉业务数据）；
-          # f1f2/p2006 族 fixture 由 tests/backend/fixture_common.ensure_f1f2_hips
-          # 自举（无需此步）。
-          timeout 600 python3 ci/prepare_linux_fixtures.py
-      - name: Build root graph for UT-BACKEND/UT-CLI build-tree gates
-        if: steps.profile.outputs.profile == 'linux-main'
-        shell: bash
-        run: |
-          set -euo pipefail
-          # V8.1-CI：UT-CLI test_cli_single_install（BLD-002 后）扫描根图构建树
-          # build/{astrocs,libastrocs_runtime.so}；UT-BACKEND p1004/p2006/p3006
-          # 调 build/astrocs 顶层入口；cli 子图 build/cli/astrocs 供 phaseN run
-          # in-process 测试。linux-control preset（Unix Makefiles, 测试 ON）。
-          # 这是验证侧构建树，非发布产物面（BLD-002 install 白名单不受影响）。
-          timeout 2400 cmake --preset linux-control
-          timeout 2400 cmake --build build/linux-control -j 2 --target astrocs
-          # UT-BACKEND p2006 族 `astrocs test synthetic` 依赖 unit 门二进制；
-          # cmd_test_synthetic 默认找 build/root-cmake/tests/unit（V6.1 布局），
-          # linux-control 树在 build/linux-control/tests/unit → job env
-          # ASTROCS_TEST_BIN_DIR 重定向（仅 cmd_test_synthetic 读取，无副作用面）。
-          timeout 1200 cmake --build build/linux-control -j 2 \
-            --target p1_ir_facade_test p2_upm_synthetic_test
-          # cli 子图 build/cli/astrocs 供 phaseN in-process 测试（UT-CLI 面 EXE）
-          mkdir -p build/cli && cmake -S cli -B build/cli -DCMAKE_BUILD_TYPE=Release \
-            -DASTROCS_ENABLE_ACR=OFF >/dev/null
-          timeout 2400 cmake --build build/cli -j 2 --target astrocs
-          mkdir -p build && cp -f build/linux-control/astrocs build/astrocs
-          # tests/backend oracle fixture(如 test_phase3_reproject_oracle)用
-          # -IREPO/build 取 version_generated.h; 根 build/ 仅被 cp 二进制,
-          # 需补生成头(R19 34204130361 UT-BACKEND setUpClass 实证)。
-          cp -f build/linux-control/version_generated.h build/version_generated.h
-          ./build/astrocs version --json && ./build/cli/astrocs version --json
       - name: Install deep coverage tools
         if: steps.profile.outputs.profile == 'linux-deep'
         shell: bash
@@ -150,45 +120,9 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          python3 - <<'PY'
-          import json, subprocess, sys
-          from datetime import datetime, timezone
-          from pathlib import Path
-          diag = {
-              "schema_version": 1,
-              "purpose": "bootstrap diagnostics collected after a failed step (does not mask the primary cause)",
-              "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-              "bootstrap_exit_code": None,
-              "report": None,
-              "stderr_fail_payload": None,
-          }
-          try:
-              res = subprocess.run(
-                  [sys.executable, "ci/bootstrap.py",
-                   "--policy", "ci/toolchain.policy.json", "--platform", "linux", "--json"],
-                  capture_output=True, text=True, timeout=120)
-              diag["bootstrap_exit_code"] = res.returncode
-              if res.stdout.strip():
-                  try:
-                      diag["report"] = json.loads(res.stdout)
-                  except json.JSONDecodeError:
-                      pass
-              for line in reversed((res.stderr or "").strip().splitlines()):
-                  try:
-                      cand = json.loads(line)
-                  except json.JSONDecodeError:
-                      continue
-                  if isinstance(cand, dict) and cand.get("verdict") == "FAIL":
-                      diag["stderr_fail_payload"] = cand
-                      break
-          except Exception as exc:  # noqa: BLE001
-              diag["collection_error"] = repr(exc)
-          Path("artifacts/ci").mkdir(parents=True, exist_ok=True)
-          (Path("artifacts/ci") / "BOOTSTRAP_DIAG.json").write_text(
-              json.dumps(diag, ensure_ascii=False, indent=2), encoding="utf-8")
-          print("BOOTSTRAP_DIAG.json written (bootstrap_exit_code=%s)"
-                % diag["bootstrap_exit_code"])
-          PY
+          # CI-001B 目标 1：内联诊断体迁入 ci/steps/collect_bootstrap_diag.py（两平台共用）。
+          # 仅失败路径调用，不掩盖首要失败原因。
+          python3 ci/wf_step.py --step LINUX-BOOTSTRAP-DIAG
       - name: Upload small evidence
         if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (ci/actions.lock.json)

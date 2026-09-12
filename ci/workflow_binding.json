@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "task": "CI-001B",
+  "forbid_exec_tokens": [
+    "ci/prepare_linux_fixtures.py",
+    "ci/validate_candidate.py"
+  ],
+  "description": "workflow ↔ ci/checks.json profile 的唯一绑定声明（CI-001B 目标 1/2）。 运行期由 ci/wf_step.py 消费（workflow 的 run: 体只允许出现派发调用）， 静态期由 ci/validate_workflow_binding.py 逐条核死（双向漂移、契约漂移、豁免漂移均 FAIL）。 纪律：本文件是 workflow 侧唯一允许承载「做什么」的地方；业务命令本体一律落在 ci/ 内。",
+  "steps": [
+    {
+      "step_id": "LINUX-CHECKOUT",
+      "workflow": ".github/workflows/ci-linux.yml",
+      "job": "linux",
+      "name": "Checkout exact SHA",
+      "role": "pinned-action"
+    },
+    {
+      "step_id": "LINUX-BOOTSTRAP",
+      "workflow": ".github/workflows/ci-linux.yml",
+      "job": "linux",
+      "name": "Bootstrap locked toolchain",
+      "role": "ci-entrypoint",
+      "exec_body": "python3 ci/bootstrap.py --policy ci/toolchain.policy.json --platform linux"
+    },
+    {
+      "step_id": "LINUX-SELECT-PROFILE",
+      "workflow": ".github/workflows/ci-linux.yml",
+      "job": "linux",
+      "name": "Select profile",
+      "role": "ci-entrypoint",
+      "step_ref": "profile",
+      "provides_profile": true,
+      "exec_body": "python3 ci/select_profile.py --event \"$GITHUB_EVENT_NAME\" --requested \"${{ inputs.profile }}\" >> \"$GITHUB_OUTPUT\""
+    },
+    {
+      "step_id": "LINUX-MAIN-HOST-DEPS",
+      "workflow": ".github/workflows/ci-linux.yml",
+      "job": "linux",
+      "name": "Install linux-main python deps (numpy for UT-IO)",
+      "role": "host-provisioning",
+      "when_profile": "linux-main",
+      "provisioning": [
+        "apt-get"
+      ],
+      "provides_tools": [
+        "python3:numpy",
+        "python3:astropy",
+        "nlohmann/json.hpp",
+        "libgsl-dev"
+      ]
+    },
+    {
+      "step_id": "LINUX-DEEP-TOOLS",
+      "workflow": ".github/workflows/ci-linux.yml",
+      "job": "linux",
+      "name": "Install deep coverage tools",
+      "role": "host-provisioning",
+      "when_profile": "linux-deep",
+      "provisioning": [
+        "apt-get"
+      ],
+      "provides_tools": [
+        "llvm-18",
+        "llvm-profdata",
+        "llvm-cov",
+        "pytest",
+        "python3:pytest-cov",
+        "python3:numpy",
+        "python3:astropy",
+        "python3:scipy",
+        "python3:yaml",
+        "libgsl-dev"
+      ]
+    },
+    {
+      "step_id": "LINUX-RUN-REGISTERED",
+      "workflow": ".github/workflows/ci-linux.yml",
+      "job": "linux",
+      "name": "Run registered checks",
+      "role": "registry-runner",
+      "profile_expr": "${{ steps.profile.outputs.profile }}"
+    },
+    {
+      "step_id": "LINUX-BOOTSTRAP-DIAG",
+      "workflow": ".github/workflows/ci-linux.yml",
+      "job": "linux",
+      "name": "Collect bootstrap diagnostics",
+      "role": "infra-step",
+      "exec": [
+        "python3",
+        "ci/steps/collect_bootstrap_diag.py",
+        "--platform",
+        "linux"
+      ],
+      "timeout_seconds": 300,
+      "fail_closed": false
+    },
+    {
+      "step_id": "LINUX-UPLOAD-EVIDENCE",
+      "workflow": ".github/workflows/ci-linux.yml",
+      "job": "linux",
+      "name": "Upload small evidence",
+      "role": "artifact-upload"
+    },
+    {
+      "step_id": "WINDOWS-CHECKOUT",
+      "workflow": ".github/workflows/ci-windows.yml",
+      "job": "windows",
+      "name": "Checkout exact SHA",
+      "role": "pinned-action"
+    },
+    {
+      "step_id": "WINDOWS-HOST-DEPS",
+      "workflow": ".github/workflows/ci-windows.yml",
+      "job": "windows",
+      "name": "Provide zlib (vcpkg) and PyYAML",
+      "role": "host-provisioning",
+      "provisioning": [
+        "vcpkg",
+        "pip"
+      ],
+      "provides_tools": [
+        "zlib",
+        "dumpbin",
+        "PyYAML"
+      ]
+    },
+    {
+      "step_id": "WINDOWS-BOOTSTRAP",
+      "workflow": ".github/workflows/ci-windows.yml",
+      "job": "windows",
+      "name": "Bootstrap locked toolchain",
+      "role": "ci-entrypoint",
+      "exec_body": "python ci/bootstrap.py --policy ci/toolchain.policy.json --platform windows"
+    },
+    {
+      "step_id": "WINDOWS-RUN-REGISTERED",
+      "workflow": ".github/workflows/ci-windows.yml",
+      "job": "windows",
+      "name": "Run MSVC tests and package candidate",
+      "role": "registry-runner",
+      "profile_expr": "windows-main"
+    },
+    {
+      "step_id": "WINDOWS-UPLOAD-CANDIDATE",
+      "workflow": ".github/workflows/ci-windows.yml",
+      "job": "windows",
+      "name": "Upload candidate",
+      "role": "artifact-upload"
+    },
+    {
+      "step_id": "WINDOWS-BOOTSTRAP-DIAG",
+      "workflow": ".github/workflows/ci-windows.yml",
+      "job": "windows",
+      "name": "Collect bootstrap diagnostics",
+      "role": "infra-step",
+      "exec": [
+        "python",
+        "ci/steps/collect_bootstrap_diag.py",
+        "--platform",
+        "windows"
+      ],
+      "timeout_seconds": 300,
+      "fail_closed": false
+    },
+    {
+      "step_id": "WINDOWS-UPLOAD-EVIDENCE",
+      "workflow": ".github/workflows/ci-windows.yml",
+      "job": "windows",
+      "name": "Upload public CI evidence",
+      "role": "artifact-upload"
+    },
+    {
+      "step_id": "LINUX-PREPARE-FIXTURES",
+      "role": "check-body",
+      "check_id": "LINUX-MAIN-FIXTURES",
+      "exec": [
+        "bash",
+        "ci/steps/linux_prepare_fixtures.sh"
+      ],
+      "timeout_seconds": 900,
+      "fail_closed": true,
+      "serves_checks": [
+        "UT-BACKEND",
+        "UT-CLI"
+      ]
+    },
+    {
+      "step_id": "LINUX-BUILD-ROOT-GRAPH",
+      "role": "check-body",
+      "check_id": "LINUX-MAIN-BUILD-TREE",
+      "exec": [
+        "bash",
+        "ci/steps/linux_build_root_graph.sh"
+      ],
+      "timeout_seconds": 9000,
+      "fail_closed": true,
+      "serves_checks": [
+        "UT-BACKEND",
+        "UT-CLI"
+      ]
+    },
+    {
+      "step_id": "WINDOWS-VALIDATE-CANDIDATE",
+      "role": "check-body",
+      "check_id": "WIN-CANDIDATE-VALIDATE",
+      "exec": [
+        "python",
+        "ci/validate_candidate.py",
+        "artifacts/candidate/AstroCS-candidate.zip"
+      ],
+      "timeout_seconds": 900,
+      "fail_closed": true,
+      "binds_check": "WIN-PACKAGE-CANDIDATE",
+      "require_outputs": [
+        "artifacts/candidate/AstroCS-candidate.zip"
+      ],
+      "bound_nonwaivable": true
+    }
+  ]
+}

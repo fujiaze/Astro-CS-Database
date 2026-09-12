@@ -1226,6 +1226,63 @@
       "requires_monitor": false
     },
     {
+      "id": "LINUX-MAIN-FIXTURES",
+      "command": [
+        "python3",
+        "ci/wf_step.py",
+        "--step",
+        "LINUX-PREPARE-FIXTURES"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": true,
+      "waivable": false,
+      "requires_monitor": false,
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "outputs": [
+        "run/ci/wf_step/LINUX-PREPARE-FIXTURES.json"
+      ],
+      "changed_paths": [
+        "ci/steps/**",
+        "ci/workflow_binding.json",
+        "tests/backend/**"
+      ]
+    },
+    {
+      "id": "LINUX-MAIN-BUILD-TREE",
+      "command": [
+        "python3",
+        "ci/wf_step.py",
+        "--step",
+        "LINUX-BUILD-ROOT-GRAPH"
+      ],
+      "timeout_seconds": 9000,
+      "heavy": false,
+      "mutates_workspace": true,
+      "waivable": false,
+      "requires_monitor": false,
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "outputs": [
+        "run/ci/wf_step/LINUX-BUILD-ROOT-GRAPH.json"
+      ],
+      "prerequisite_tools": [
+        "cmake"
+      ],
+      "changed_paths": [
+        "ci/steps/**",
+        "ci/workflow_binding.json",
+        "cli/**",
+        "CMakeLists.txt",
+        "cmake/**"
+      ]
+    },
+    {
       "id": "UT-API",
       "profiles": [
         "linux-main"
@@ -2261,6 +2318,95 @@
         "cmake",
         "dumpbin"
       ]
+    },
+    {
+      "id": "WIN-CANDIDATE-VALIDATE",
+      "command": [
+        "python3",
+        "ci/wf_step.py",
+        "--step",
+        "WINDOWS-VALIDATE-CANDIDATE"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "waivable": false,
+      "requires_monitor": false,
+      "profiles": [
+        "windows-main"
+      ],
+      "platform": "windows",
+      "outputs": [
+        "run/ci/wf_step/WINDOWS-VALIDATE-CANDIDATE.json"
+      ],
+      "changed_paths": [
+        "ci/**",
+        "tools/quality/**",
+        "packaging/**"
+      ]
+    },
+    {
+      "id": "WORKFLOW-REGISTRY-BINDING",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/validate_workflow_binding.py",
+        "--json",
+        "--out",
+        "run/ci/workflow-binding/workflow_binding.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/workflow-binding/workflow_binding.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        ".github/workflows/**",
+        "ci/**"
+      ],
+      "requires_monitor": false,
+      "prerequisite_tools": [
+        "python3:yaml"
+      ]
+    },
+    {
+      "id": "CI-BINDING-TESTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-t",
+        "ci/tests",
+        "-p",
+        "test_ci001b_*.py"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "ci/**",
+        ".github/workflows/**"
+      ],
+      "requires_monitor": false
     },
     {
       "id": "CTEST-REGISTRATION",

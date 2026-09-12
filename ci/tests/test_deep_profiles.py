@@ -131,14 +131,17 @@ class TestRegistryStrict(unittest.TestCase):
         errors, n = self._validate(data)
         self.assertEqual((errors, n), ([], 1))
 
-    def test_main_registry_strict_pass_99(self):
+    def test_main_registry_strict_pass_104(self):
         # V8-CI-006 注册 WIN-* 三项后 77 → 80；CI-REG-002 注册
         # CTEST-REGISTRATION + CTEST-LINUX-FULL + 15 个逐目标 CTEST-* 后 80 → 97；
         # CI-BASELINE-001 注册 KNOWN-FAILURES-BASELINE-VERIFY（fast/linux-main/
-        # windows-main）与 KNOWN-FAILURES-BASELINE-CHECK（linux-main）后 97 → 99。
+        # windows-main）与 KNOWN-FAILURES-BASELINE-CHECK（linux-main）后 97 → 99；
+        # CI-001B 注册 WORKFLOW-REGISTRY-BINDING / CI-BINDING-TESTS（三 profile）、
+        # LINUX-MAIN-FIXTURES / LINUX-MAIN-BUILD-TREE（linux-main）、
+        # WIN-CANDIDATE-VALIDATE（windows-main）后 99 → 104。
         errors, n = VR.validate(REGISTRY_PATH, strict=True)
         self.assertEqual(errors, [])
-        self.assertEqual(n, 99)
+        self.assertEqual(n, 104)
 
     @staticmethod
     def _validate(data: dict):
@@ -167,10 +170,10 @@ class TestProfileSelection(unittest.TestCase):
         assert proc.returncode == 0, proc.stderr[-400:]
         return json.loads(proc.stdout)
 
-    def test_fast_59_excludes_deep(self):
+    def test_fast_61_excludes_deep(self):
         plan = self.plan("fast")
         ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 59)
+        self.assertEqual(plan["selected_count"], 61)
         self.assertFalse(ids & NEW_IDS)
         # CI-REG-002：注册闭包校验器是静态源扫描，可进 fast（无需构建树）
         self.assertIn("CTEST-REGISTRATION", ids)
@@ -178,10 +181,13 @@ class TestProfileSelection(unittest.TestCase):
         self.assertFalse([i for i in ids if i.startswith("CTEST-")
                           and i != "CTEST-REGISTRATION"])
 
-    def test_linux_main_90_includes_gcc_release_and_ctest_gates(self):
+    def test_linux_main_94_includes_gcc_release_and_ctest_gates(self):
         plan = self.plan("linux-main")
         ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 90)
+        self.assertEqual(plan["selected_count"], 94)
+        # CI-001B：workflow 侧前置步收编为注册表检查项（UT-BACKEND/UT-CLI 的前置）
+        self.assertIn("LINUX-MAIN-FIXTURES", ids)
+        self.assertIn("LINUX-MAIN-BUILD-TREE", ids)
         self.assertIn("BUILD-GCC-RELEASE", ids)
         self.assertFalse(ids & (NEW_IDS - {"BUILD-GCC-RELEASE"}))
         # CI-REG-002 / STD-F7 处置 1+2：全量 ctest 门 + 逐目标门，且全部不可豁免
