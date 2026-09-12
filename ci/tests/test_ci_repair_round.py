@@ -363,3 +363,31 @@ class TestCiResultIngestion(_RoundCase):
                          "跨轮证据（source_sha 不符）必须整体拒绝，不得产出报告")
         self.assertIn("source_sha", proc.stderr)
 
+
+
+class TestWaivableSkip(_RoundCase):
+    """宿主能力 SKIP（SKIPPED(waivable)/exit 77）不是红灯，但必须显式计数。"""
+
+    fixture = _red_sha_fixture()
+
+    def test_12_waivable_skip_not_red_but_counted(self):
+        d = self.root / "ci_result"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "CI_RESULT.json").write_text(json.dumps({
+            "source_sha": SHA, "profile": "linux-main", "verdict": "FAIL",
+            "checks": [
+                {"id": "UT-CPU-AVX512", "verdict": "SKIPPED(waivable)", "exit_code": 77,
+                 "reason": "宿主能力 gate"},
+                {"id": "THREAD-BUDGET", "verdict": "FAIL", "exit_code": 1},
+            ],
+        }), encoding="utf-8")
+        self.run_tool("--ci-result", str(d / "CI_RESULT.json"), expect_rc=1)
+        f = self.findings()
+        internal = [r for r in f["reds"] if r["kind"] == "check"]
+        self.assertEqual([r["name"] for r in internal], ["THREAD-BUDGET"],
+                         "宿主能力 SKIP 被误判为红灯")
+        self.assertEqual(f["counters"]["skipped_waivable_internal"], 1)
+        meta = f["ci_results"][0]
+        self.assertEqual([s["id"] for s in meta["skipped"]], ["UT-CPU-AVX512"])
+        self.assertEqual(meta["skipped"][0]["exit_code"], 77)
+
