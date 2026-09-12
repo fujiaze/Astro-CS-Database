@@ -24,10 +24,10 @@ CI-REG-002,新增测试全注册与关键检查不可豁免,SA-CI,rw-ci,,tasks/C
 CI-REPAIR-001,拉回上轮CI结果并建立常驻修复线,SA-CI,rw-ci,,tasks/CI-REPAIR-001.md,run/ci_repair/;ci/;tools/quality/,7200,ci,PASSED
 CI-BASELINE-001,known-failures基线机器化,SA-CI,rw-ci,CI-REG-002,tasks/CI-BASELINE-001.md,tools/quality/;ci/;tests/,5400,ci,PASSED
 STD-REG-001,国际标准冻结注册表,SA-GOV,repo-write,,tasks/STD-REG-001.md,docs/standards/;docs/DOCUMENT_INDEX.yaml,7200,governance,PASSED
-STD-F1-ADJ,CRPIX口径落地(裁决b:导出边界+1桥接),SA-WCS,rw-tests,,tasks/STD-F1-ADJ.md,lib/plate_solve/;lib/phase3_session/;docs/;tests/,10800,science,NOT_STARTED
+STD-F1-ADJ,CRPIX口径落地(裁决b:导出边界+1桥接),SA-WCS,rw-tests,,tasks/STD-F1-ADJ.md,lib/plate_solve/;lib/phase3_session/;docs/;tests/,10800,science,IN_PROGRESS
 DOC-CONV-001,L0与模块状态文档收敛,SA-DOC,rw-docs,STD-REG-001,tasks/DOC-CONV-001.md,REVIEW.md;docs/;memory.md,7200,docs,PASSED
 SCI-F2-001,integrate逐样本剔除kernel拒绝样本(§30.2生产修复),SA-P2,rw-lib,CORE-RACE-001,tasks/SCI-F2-001.md,lib/core/src/module_adapters.cpp;lib/phase2/;tests/,10800,science,IN_PROGRESS
-SCI-F3-001,AIO NREJ/NUSED通道与五键落盘,SA-AIO,rw-lib,,tasks/SCI-F3-001.md,lib/astro_image_io/;lib/hips_p2/;tests/,10800,science,NOT_STARTED
+SCI-F3-001,AIO NREJ/NUSED通道与五键落盘,SA-AIO,rw-lib,,tasks/SCI-F3-001.md,lib/astro_image_io/;lib/hips_p2/;tests/,10800,science,IN_PROGRESS
 SCI-ANCHOR-001,冻结文档行号锚全量复测,SA-DOC,rw-docs,,tasks/SCI-ANCHOR-001.md,docs/;tests/,7200,docs,NOT_STARTED
 UT-CLI-MAINT,UT-CLI 17项过时断言维护,SA-CLI,rw-ci,,tasks/UT-CLI-MAINT.md,tests/;ci/,5400,testing,NOT_STARTED
 RT-001A,模块私池拆除接入唯一Executor,SA-RT,rw-mod,RT-001,tasks/RT-001A.md,lib/phase2/;lib/phase3_session/;tests/,10800,performance,NOT_STARTED
@@ -36,11 +36,11 @@ MOD-001A,科学DLL安装树与ABI verify,SA-MOD,rw-mod,MOD-001,tasks/MOD-001A.md
 MOD-001B,产品manifest生成与hash填充,SA-MOD,rw-mod,MOD-001A,tasks/MOD-001B.md,packaging/;cmake/;tests/,7200,architecture,NOT_STARTED
 CLI-001B,CLI去科学静态链接薄化,SA-CLI,rw-mod,CLI-001,tasks/CLI-001B.md,cli/;CMakeLists.txt;tests/,10800,architecture,NOT_STARTED
 CI-001B,workflow与注册表联动核死,SA-CI,rw-ci,CI-REG-002,tasks/CI-001B.md,.github/workflows/;ci/,7200,ci,PASSED
-GOV-AGENTS-001,AGENTS.md 宪章要素映射对齐,SA-DOC,repo-write,,tasks/GOV-AGENTS-001.md,AGENTS.md,3600,governance,PASSED
+GOV-AGENTS-001,AGENTS.md 宪章要素映射对齐,SA-DOC,repo-write,,tasks/GOV-AGENTS-001.md,AGENTS.md,3600,governance,IN_PROGRESS
 CI-DATA-REG-001,DATA 产物语义登记对齐,SA-DOC,rw-docs,,tasks/CI-DATA-REG-001.md,docs/contracts/;docs/science/,3600,ci,NOT_STARTED
 CI-VER-CHK-001,版本一致性检查器排除标准条款号,SA-CI,rw-tools,,tasks/CI-VER-CHK-001.md,tools/check_version_consistency.py;tests/version/,5400,ci,NOT_STARTED
 WCS-PATH-001,p1wcs astropy 交叉测试环境无关化,SA-WCS,rw-tests,,tasks/WCS-PATH-001.md,tests/unit/p1wcs/,5400,testing,NOT_STARTED
-ARCH-TB-001,线程预算登记与库存生成器幂等,SA-RT,rw-tools,,tasks/ARCH-TB-001.md,tools/arch/;lib/calibration/src/;lib/drizzle/src/;lib/cosmetic/src/;tests/arch/,7200,architecture,NOT_STARTED
+ARCH-TB-001,线程预算登记与库存生成器幂等,SA-RT,rw-tools,,tasks/ARCH-TB-001.md,tools/arch/;lib/calibration/src/;lib/drizzle/src/;lib/cosmetic/src/;tests/arch/,7200,architecture,IN_PROGRESS
 CORE-RACE-001,p1001 链并发撕裂读修复,SA-P1,rw-lib,,tasks/CORE-RACE-001.md,lib/core/src/module_adapters.cpp;tests/unit/,10800,science,NOT_STARTED
 CON-COMMENT-001,测试头 invariant 科学 ID 锚补全,SA-DOC,rw-tools,,tasks/CON-COMMENT-001.md,lib/phase1_session/tests/;lib/astro_image_io/tests/;lib/calibration/tests/;tools/quality/contracts/,7200,docs,NOT_STARTED
 CI-WIN-001,Windows 构建断链修复,SA-CI,rw-ci,,tasks/CI-WIN-001.md,lib/gaia_xpsd_client/;.github/workflows/,7200,ci,NOT_STARTED
