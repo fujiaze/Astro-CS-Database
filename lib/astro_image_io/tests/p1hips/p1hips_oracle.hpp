@@ -10,6 +10,27 @@
 //   4) 产物读回解析器 (properties/manifest/TSV + vendored CFITSIO 只读
 //      访问 tile FITS / Moc.fits —— CFITSIO 为许可隔离的第三方参考库)
 //   5) SNR cell 归属弱 oracle: 独立球面角距离 + cell 角尺度解析上界
+//
+// SCI/ALG ID 锚 (逐条核到实际文档 ID, 不臆造):
+//   ALG-HIPS-001..005 — docs/algorithms/HIPS_WRITER.md: 本 oracle 逐式对拍
+//     的上位算法 —— (2a) NESTED→FITS 局部索引映射 / (2b)(2c) 叶级 signal·
+//     support 归一与无效规则 / (3a) variance·ivar 归一 / (4b)(4c) hierarchy
+//     逐阶聚合 / (5a) MOC UNIQ / (5c) SNR 产品与 properties。
+//   SCI-DRZ-001 — docs/science/DRIZZLE.md (FROZEN T105, 2026-08-23):
+//     §5 重建式与面亮度 S_p=F_p/D_p, §9a 面亮度/flux、support=D_p→[0,1]、
+//     variance_p=sumVarNum/D_p²; §12 关联 ALG ID (ALG-DRZ-VAR 等)。
+//     本 oracle 的 I1/I2/I4 解析式即该 SCI 条款的独立复算。
+//   SCI-P3-001 — docs/science/PHASE3_HIPS_TO_FITS.md: HiPS 读侧消费合同
+//     (本文件 §4 读回解析器所对拍的产物语义上位)。
+//   SCI-SCOPE-001 — docs/science/SCIENCE_SCOPE.md: 产品目标 (HiPS 科学产品)。
+//   DATA-P1-HIPS — docs/contracts/DATA_SEMANTICS.md §12 (读路径 §3 FITS
+//     tile 局部映射 = (511−x)·512+y, CDS Hipsgen 冻结): 本文件 §1 闭式的
+//     数据层权威 (DATA 层, 非 SCI/ALG)。
+//   hierarchy 低阶聚合 (I7) 与 SNR catalogue 在 SCI 层无独立条目 ——
+//     HIPS_WRITER.md §4/§5 明示"SCI 层零覆盖", 故只锚到 ALG-HIPS-004/005
+//     与 IVOA HiPS / IVOA MOC 1.1 外部标准; 不伪造 SCI ID (见本任务 finding)。
+// 外部标准 (非仓库 SCI/ALG ID, 仅作参照): IVOA HiPS 1.0 (Fernique et al.
+//   2015)、HEALPix (Górski et al. 2005)、IVOA MOC 1.1。
 #ifndef P1HIPS_ORACLE_HPP
 #define P1HIPS_ORACLE_HPP
 
@@ -32,6 +53,8 @@ constexpr double kPi = 3.14159265358979323846;
 // ---------------------------------------------------------------------------
 // 1) 独立 NESTED local ↔ (x,y) 位解交织 (标准 NESTED: 从 LSB 起
 //    bit(2i)→x, bit(2i+1)→y) 与 DATA_SEMANTICS §3 FITS 行主序闭式
+//    上位: ALG-HIPS-002 (2a) NESTED→FITS 局部索引映射; 数据层权威
+//    DATA-P1-HIPS (DATA_SEMANTICS §3)。
 // ---------------------------------------------------------------------------
 inline void local_to_xy(std::uint64_t local, std::uint32_t shift,
                         std::uint32_t& x, std::uint32_t& y) {
@@ -52,7 +75,8 @@ inline std::uint64_t xy_to_local(std::uint32_t x, std::uint32_t y, std::uint32_t
     return out;
 }
 
-// DATA_SEMANTICS §3: FITS 行 = 511−x, 列 = y, 行主序 = (511−x)·512 + y
+// DATA_SEMANTICS §3 (DATA-P1-HIPS) / ALG-HIPS-002 (2a):
+// FITS 行 = 511−x, 列 = y, 行主序 = (511−x)·512 + y
 inline std::uint64_t local_to_fits_index(std::uint64_t local,
                                          std::uint32_t tile_width = 512) {
     std::uint32_t x = 0, y = 0;
@@ -73,6 +97,9 @@ inline std::uint64_t fits_index_to_local(std::uint64_t fits_index,
 
 // ---------------------------------------------------------------------------
 // 2) 叶级期望值 (§9 I1/I2/I3/I4 解析式; 独立复算, 不经被测函数)
+//    上位: ALG-HIPS-002 (2b)(2c) 叶级 signal/support 归一与无效规则;
+//    ALG-HIPS-003 (3a) variance/ivar 归一; SCI-DRZ-001 §5/§9a
+//    (S_p=F_p/D_p 面亮度、support∈[0,1]、variance_p=sumVarNum/D_p²)。
 // ---------------------------------------------------------------------------
 inline double leaf_signal(double flux, double area, bool valid) {
     if (!valid || !(area > 0.0) || !std::isfinite(flux) || !std::isfinite(area))
@@ -101,7 +128,9 @@ inline double leaf_ivar(double var_num, double area, bool valid) {
     return 1.0 / v;   // I4: ivar = 1/variance (有限域互倒)
 }
 
-// hierarchy 聚合期望 (I7): 父 pixel sig = Σ子flux / Σ子area (子域由
+// hierarchy 聚合期望 (I7): 上位 ALG-HIPS-004 (4b)(4c) 逐父 cell 确定性
+// 累加与落盘归一; SCI 层无独立条目 (HIPS_WRITER.md §4 明示), 不伪造 SCI ID。
+// 父 pixel sig = Σ子flux / Σ子area (子域由
 // sig·sup·A_cell 重构), sup = Σ子area / A_cell_k, 含 ≤1 clamp。
 // 子像素输入取"写叶 tile 时存进 NESTED 缓存的 double 值"(§9 冻结口径:
 // f64 通路 bitwise, f32 通路 rtol=1e-6, DISP-HIPS-009 累加器漂移界)。
@@ -121,7 +150,7 @@ inline void hierarchy_pixel_expect(double sig_child, double sup_child,
 }
 
 // MOC UNIQ (IVOA MOC 1.1 §2.3): uniq = 4·4^order + ipix@order (由 order-K
-// cell 右移 2Δ 位降阶)
+// cell 右移 2Δ 位降阶); 上位 ALG-HIPS-005 (5a) MOC 写出 UNIQ 编码
 inline std::uint64_t moc_uniq(std::uint64_t order_k_ipix,
                               std::uint32_t order_k, std::uint32_t order_m) {
     const std::uint64_t uniq_base = 4ULL << (2ULL * order_m);
@@ -134,6 +163,8 @@ inline double moc_cell_area_sr(std::uint32_t order) {
 
 // SNR cell 角尺度解析上界 (度): order-K cell 面积 4π/(12·4^K) 的
 // 外接圆上界 = sqrt(2)·sqrt(A) (正方形对角保守界)。
+// 上位 ALG-HIPS-005 (5c) SNR 产品 cell 归属; SCI 层无独立 SNR catalogue
+// 条目 (SCI-NOISE-001 §9a 明示本合同不产出 SNR), 不伪造 SCI ID。
 inline double snr_cell_diameter_deg_ub(std::uint32_t order_k) {
     const double area_sr = moc_cell_area_sr(order_k);
     return std::sqrt(2.0) * std::sqrt(area_sr) * 180.0 / kPi;
@@ -149,7 +180,8 @@ inline double ang_dist_deg(double ra1, double dec1, double ra2, double dec2) {
 }
 
 // ---------------------------------------------------------------------------
-// 4) 产物读回解析器
+// 4) 产物读回解析器 (上位产物合同: SCI-P3-001 HiPS 读侧消费 / SCI-SCOPE-001
+//    产品目标; ALG-HIPS-005 (5b)(5c) properties/manifest/SNR TSV 键序)
 // ---------------------------------------------------------------------------
 inline std::map<std::string, std::string> read_properties(const std::string& path) {
     std::map<std::string, std::string> kv;

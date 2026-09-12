@@ -11,6 +11,25 @@
 //   P5  async_io_depth 值域 {0,1,2} 边界 (+3 拒)
 //   P6  ABI 负面 — create host 结构 struct_size/abi_version 错 → ABI_MISMATCH
 //   P7  重复 run 同 handle — 第二次 run 语义 (状态机面)
+//
+// SCI/ALG ID 锚 (逐条核到实际文档 ID, 不臆造):
+//   SCI-CAL-001 — docs/science/CALIBRATION.md (FROZEN T100, 2026-08-23):
+//     §7「确定性不变量」(相同输入顺序改变不改变 cal; 逐像素独立算术,
+//     无跨像素归约) 与 §8 极端/退化条件 —— P2 的 1/N worker bitwise 一致性
+//     断言的科学层来源。
+//   ALG-CAL-001..006 — docs/algorithms/CALIBRATION_ALGORITHMS.md:
+//     §6「输出 bitwise 与线程数无关 (schedule(static) 行块划分不影响单像素
+//     算术)」—— P2 上位; §7 边界/invalid/退化表 (AC_ERR_PARAM、out 不写、
+//     σ≤0 禁用) —— P4/P5/P7 参数域断言上位。
+//   ALG-COS-001..005 — docs/algorithms/COSMETIC_ALGORITHMS.md §6
+//     (复杂度/确定性/并行归约汇总) —— 本组 config 内 cosmetic 段上位。
+//   装配层契约 (非 SCI/ALG, 本层无算法公式, 见 lib/phase1_session/module.yaml):
+//     API-P1-SESSION (docs/contracts/PUBLIC_API.md「Phase1 装配会话」节)、
+//     DATA-P1-SESSION (DATA_SEMANTICS §16)、
+//     lib/phase1_session/README.md §4 (外部输入/async_io_depth)、
+//     §5 (错误与取消传播、ABI 校验)、§6 (并发与资源/线程预算注入)。
+//   P1/P3/P5/P6/P7 属装配层生命周期与 ABI 契约, SCI/ALG 层确无上位定义
+//     —— 如实登记 finding, 不伪造 SCI/ALG ID。
 #include "p1_session.h"
 
 #include <atomic>
@@ -133,6 +152,9 @@ int run_properties() {
     }
 
     // ── P2: 1-N worker 落盘 bitwise 一致 (budget.max_workers=1/2/4) ──
+    // 上位: SCI-CAL-001 §7 确定性不变量 + ALG-CAL-001..006 §6
+    // (输出 bitwise 与线程数无关); 线程预算经 host budget 注入
+    // (README §6), 本组不断言硬编码核数。
     {
         std::vector<float> ref_px;
         int rw = 0, rh = 0;
@@ -223,6 +245,8 @@ int run_properties() {
     }
 
     // ── P4: 异常屏障 — 合同外错型直调 run 不 terminate (错误码呈现) ──
+    // 上位: SCI-CAL-001 §8 + ALG-CAL-001..006 §7 边界/invalid 表
+    // (AC_ERR_PARAM、out 不写); 装配层错误映射见 README §5。
     {
         astrocs_host_services_v1 host = make_host2(nullptr, nullptr, 1);
         acs_handle h = nullptr;
