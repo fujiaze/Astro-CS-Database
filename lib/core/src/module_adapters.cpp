@@ -89,6 +89,15 @@
 #include <utility>
 #include <vector>
 
+// CORE-RACE-001: 临时文件命名需要进程号（见 p1_staging_path）
+#ifdef _WIN32
+#include <process.h>
+#define P1_NODE_GETPID static_cast<long>(::_getpid())
+#else
+#include <unistd.h>
+#define P1_NODE_GETPID static_cast<long>(::getpid())
+#endif
+
 // ── RT-001: 唯一 Executor 生产接入（编译归属注记, 详见 executor_runtime.h）──
 // RT-004 冻结合同实现 lib/core/src/executor.cpp 此前未编入任何生产 target
 // （根 CMakeLists.txt 不在 RT-001 写入白名单）, 唯一池为死代码。本文件经
@@ -946,6 +955,61 @@ std::string p1_base_name(const std::string& path) {
   return slash == std::string::npos ? path : path.substr(slash + 1);
 }
 
+// ── CORE-RACE-001: 原子发布原语（禁就地覆写共享产物路径）────────────────────
+// 缺陷（修复前）: 节点链 cos 与 drz 同为 cal 下游且节点声明 resources.parallel=true
+// ⇒ create_runtime(2) 下并发; cosmetic 读取 artifact:cal 路径后 *就地覆写同一
+// 路径*, 而 aio_write_fits 为 fopen("wb") 截断 + 增量写（非原子）⇒ 并发消费者
+// (drz / 其他) 可观察到半写文件（CI-REG-002: 200 次复跑 pass=176 fail=24, 12%）。
+// 修复两条同时成立:
+//   1) 每节点写独立产物路径（cos → cleaned_<base>, 不再覆写 artifact:cal）;
+//   2) 所有落盘走"同目录临时文件 + rename 原子发布", 消费者只可能看到完整文件
+//      （POSIX rename 原子; 目标已存在时覆盖。崩溃残留的 .tmp 不污染产物面）。
+// 注: 不改科学公式/默认容差, 只改落盘与路径语义。
+std::string p1_staging_path(const std::string& final_path) {
+  static std::atomic<uint64_t> seq{0};
+  const uint64_t s = seq.fetch_add(1, std::memory_order_relaxed);
+  return final_path + ".tmp." + std::to_string(P1_NODE_GETPID) + "." +
+         std::to_string(s);
+}
+
+bool p1_atomic_publish(const std::string& staging, const std::string& final_path,
+                       std::string* err) {
+  std::error_code ec;
+  std::filesystem::rename(std::filesystem::u8path(staging),
+                          std::filesystem::u8path(final_path), ec);
+  if (ec) {
+    // 兜底（Windows 部分实现 rename 不覆盖已存在目标）: 先删目标再 rename。
+    // 该窗口内目标短暂缺失, 但任一时刻观察到的都是"旧完整文件"或"新完整文件",
+    // 不存在半写状态（原子发布的核心不变式）。
+    std::error_code ec_rm;
+    std::filesystem::remove(std::filesystem::u8path(final_path), ec_rm);
+    std::error_code ec2;
+    std::filesystem::rename(std::filesystem::u8path(staging),
+                            std::filesystem::u8path(final_path), ec2);
+    if (ec2) {
+      if (err) *err = "atomic publish failed: " + ec2.message();
+      std::error_code ec_drop;
+      std::filesystem::remove(std::filesystem::u8path(staging), ec_drop);
+      return false;
+    }
+  }
+  return true;
+}
+
+// FITS 原子落盘（临时文件在目标同目录 → rename 不跨文件系统）
+bool p1_write_fits_atomic(const P1Image& im, const std::string& final_path,
+                          std::string* err) {
+  const std::string staging = p1_staging_path(final_path);
+  if (aio_write_fits(im.p, staging.c_str()) != 0) {
+    if (err) *err = "write failed: " + final_path;
+    std::error_code ec;
+    std::filesystem::remove(std::filesystem::u8path(staging), ec);
+    return false;
+  }
+  if (!p1_atomic_publish(staging, final_path, err)) return false;
+  return true;
+}
+
 // 节点输入帧路径: 优先 cal 节点产物 calibrated_<base>（节点链约定）, 无则原帧
 std::string p1_calibrated_path(const Json& doc, const std::string& light) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
@@ -955,11 +1019,38 @@ std::string p1_calibrated_path(const Json& doc, const std::string& light) {
   return light;
 }
 
+// cosmetic 节点产物路径（DATA-P1-COSMETIC / artifact:cos）: cleaned_<base>。
+// 独立于 artifact:cal —— cos 不再就地覆写上游产物（CORE-RACE-001）。
+std::string p1_cosmetic_path(const Json& doc, const std::string& light) {
+  const std::string out_dir = doc.value("output_dir", std::string("."));
+  return out_dir + "/cleaned_" + p1_base_name(light);
+}
+
+// cosmetic 下游节点的输入帧路径: 优先 cos 节点产物 cleaned_<base>, 无则退回
+// cal 产物/原帧（节点单独运行时缺上游产物 = 确定性回退, 不 silent 造数据）。
+std::string p1_cleaned_input_path(const Json& doc, const std::string& light) {
+  const std::string out_dir = doc.value("output_dir", std::string("."));
+  const std::string cand = out_dir + "/cleaned_" + p1_base_name(light);
+  std::error_code ec;
+  if (std::filesystem::exists(std::filesystem::u8path(cand), ec)) return cand;
+  return p1_calibrated_path(doc, light);
+}
+
 bool p1_write_text(const std::string& path, const std::string& text) {
-  std::ofstream f(std::filesystem::u8path(path), std::ios::binary);
-  if (!f) return false;
-  f << text;
-  return f.good();
+  // 原子发布（同目录临时文件 + rename）: 并发消费者不会读到半写 JSON
+  const std::string staging = p1_staging_path(path);
+  {
+    std::ofstream f(std::filesystem::u8path(staging), std::ios::binary);
+    if (!f) return false;
+    f << text;
+    if (!f.good()) {
+      f.close();
+      std::error_code ec;
+      std::filesystem::remove(std::filesystem::u8path(staging), ec);
+      return false;
+    }
+  }
+  return p1_atomic_publish(staging, path, nullptr);
 }
 
 // w*h 像素数（溢出 checked）
@@ -1065,10 +1156,13 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
     }
     std::memcpy(wim.px(), out.data(), out.size() * sizeof(float));
     const std::string outp = out_dir + "/calibrated_" + p1_base_name(lp);
-    if (aio_write_fits(wim.p, outp.c_str()) != 0) {
+    // CORE-RACE-001: 原子发布（临时文件 + rename）——本路径是 drz/wcs 等并发
+    // 消费者的共享输入, 任何时刻只允许存在完整文件。
+    std::string werr;
+    if (!p1_write_fits_atomic(wim, outp, &werr)) {
       (*man)["error_kind"] = "output";
       st_cal["status"] = "fail";
-      return Result<void>::fail(Error(ErrorDomain::IO, "write failed: " + outp));
+      return Result<void>::fail(Error(ErrorDomain::IO, werr));
     }
     ++frames_ok;
     artifacts.push_back(outp);
@@ -1119,12 +1213,13 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   int hot_total = 0, cold_total = 0;
   uint32_t frames = 0;
   for (const auto& l : doc["input_lights"]) {
-    const std::string path = p1_calibrated_path(doc, l.get<std::string>());
-    P1Image im = p1_read_image(path);
+    // 输入 = artifact:cal（cal 节点产物 calibrated_<base>, 无则原帧）
+    const std::string in_path = p1_calibrated_path(doc, l.get<std::string>());
+    P1Image im = p1_read_image(in_path);
     if (!im.ok()) {
       (*man)["error_kind"] = "input";
       st["status"] = "fail";
-      return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
+      return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + in_path));
     }
     std::vector<float> fixed(static_cast<size_t>(im.w()) * static_cast<size_t>(im.h()), 0.0f);
     int hot = 0, cold = 0;
@@ -1137,15 +1232,20 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
           std::string("ac_correct_frame failed rc=") + std::to_string(rc)));
     }
     std::memcpy(im.px(), fixed.data(), fixed.size() * sizeof(float));
-    if (aio_write_fits(im.p, path.c_str()) != 0) {
+    // 输出 = artifact:cos（cleaned_<base>, 独立于上游 artifact:cal）+ 原子发布。
+    // CORE-RACE-001: 修复前此处就地覆写 artifact:cal 路径 —— 与并发下游 drz
+    // 读同一路径竞争, aio_write_fits 非原子 ⇒ 撕裂读（P1 数据完整性缺陷）。
+    const std::string out_path = p1_cosmetic_path(doc, l.get<std::string>());
+    std::string werr;
+    if (!p1_write_fits_atomic(im, out_path, &werr)) {
       (*man)["error_kind"] = "output";
       st["status"] = "fail";
-      return Result<void>::fail(Error(ErrorDomain::IO, "cosmetic write failed: " + path));
+      return Result<void>::fail(Error(ErrorDomain::IO, "cosmetic " + werr));
     }
     hot_total += hot;
     cold_total += cold;
     ++frames;
-    artifacts.push_back(path);
+    artifacts.push_back(out_path);
   }
   st["status"] = "ok";
   st["frames"] = frames;
@@ -1168,7 +1268,8 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
   std::vector<double> fwhm_xs, fwhm_ys, ells;
   int64_t n_valid_total = 0, n_total_total = 0;
   for (const auto& l : doc["input_lights"]) {
-    const std::string path = p1_calibrated_path(doc, l.get<std::string>());
+    // IR 输入端口 = artifact:cos → 消费 cosmetic 节点产物（CORE-RACE-001 接线）
+    const std::string path = p1_cleaned_input_path(doc, l.get<std::string>());
     P1Image im = p1_read_image(path);
     if (!im.ok()) {
       (*man)["error_kind"] = "input";
@@ -1488,7 +1589,8 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   const astrocs::phase1::NoiseModel model;
   Json frames = Json::array();
   for (const auto& l : doc["input_lights"]) {
-    const std::string path = p1_calibrated_path(doc, l.get<std::string>());
+    // cosmetic 下游（cos → psf → phot → snr）: 消费 artifact:cos 产物
+    const std::string path = p1_cleaned_input_path(doc, l.get<std::string>());
     P1Image im = p1_read_image(path);
     if (!im.ok()) {
       (*man)["error_kind"] = "input";
