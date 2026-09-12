@@ -21,10 +21,21 @@
   T9  check 红：结果来源缺失（fail-closed，不得静默跳过）
   T10 JUnit 解析语义：failure / skipped / pass
   T11 legacy 模式零回归：40 项 findings 报告结构不变、rc=0
+  T12 CI 面 per-check 结果目录来源（含 ASTROCS_CI_OUT_ROOT 缺省形态）
+  T13 注册表漂移锚：两门登记形态、末位次序、JUnit 路径一致性、基线 unit 可追溯
+  T14 环境隔离守卫（FD-R1-018）：父进程带 ASTROCS_CI_OUT_ROOT 时断言不受污染
+
+环境无关性（FD-R1-018，前台轮末 CI 取证裁定）：ci/run.py 会给**每个**检查注入
+ASTROCS_CI_OUT_ROOT（本次改动引入），本文件在 CI 内运行时该变量必然存在；若用例
+让被测命令走「无显式来源 → 读 env 指向的真实 per-check 结果」回退路径，断言会被
+真实红灯（AGENTS-GOV/CON-COMMENTS…）污染而崩。故 run_tool 一律在子进程 env 中
+剔除 ASTROCS_CI_OUT_ROOT，check 用例显式传 --ci-checks-dir/--ci-result；
+仅 T12c 以显式 env 覆盖形态验证回退路径本身，T14 固化该隔离性质。
 """
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -86,9 +97,24 @@ def write_junit(path: Path, cases: list) -> Path:
     return path
 
 
-def run_tool(args: list, timeout: int = 300) -> subprocess.CompletedProcess:
+def clean_env(**overrides) -> dict:
+    """CI 环境无关的子进程 env（FD-R1-018）。
+
+    ci/run.py 对每个检查注入 ASTROCS_CI_OUT_ROOT（= 本次 run 证据根），CI 内
+    该变量必然存在；被测工具的 --mode check 在该变量存在且未显式指定来源时会
+    回退读取 <out_root>/checks 的**真实** per-check 结果。用例必须隔离该回退，
+    否则断言结果取决于 CI 现场的成败集合（本地绿、CI 红）。
+    """
+    env = {k: v for k, v in os.environ.items() if k != "ASTROCS_CI_OUT_ROOT"}
+    env.update(overrides)
+    return env
+
+
+def run_tool(args: list, timeout: int = 300,
+             env_overrides: dict | None = None) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, str(TOOL), *args], cwd=str(REPO),
-                          capture_output=True, text=True, timeout=timeout)
+                          capture_output=True, text=True, timeout=timeout,
+                          env=clean_env(**(env_overrides or {})))
 
 
 class TestBaselineVerify(unittest.TestCase):
@@ -309,7 +335,9 @@ class TestChecksDirSource(unittest.TestCase):
         out_root = self.tmp / "run-out"
         self._write_check(out_root / "checks", "UT-CLI", "FAIL(dirty)")
         junit = write_junit(self.tmp / "r.xml", [("p1_noise", "pass")])
-        env = dict(**__import__("os").environ, ASTROCS_CI_OUT_ROOT=str(out_root))
+        # FD-R1-018：显式覆盖形态（非 dict(**os.environ, KEY=...)——CI 内
+        # ASTROCS_CI_OUT_ROOT 已由 ci/run.py 注入，关键字重复即 TypeError）。
+        env = {**os.environ, "ASTROCS_CI_OUT_ROOT": str(out_root)}
         proc = subprocess.run(
             [sys.executable, str(TOOL), "--mode", "check", "--repo", str(REPO),
              "--baseline", str(base), "--ctest-junit", str(junit)],
@@ -346,6 +374,44 @@ class TestChecksDirSource(unittest.TestCase):
         proc = run_tool(["--mode", "check", "--repo", str(REPO), "--baseline", str(base),
                          "--ctest-junit", str(junit), "--ci-checks-dir", str(empty)])
         self.assertEqual(proc.returncode, 1)
+
+    def test_t14_ci_env_var_does_not_leak_into_isolated_cases(self):
+        """T14（FD-R1-018 守卫）：父进程带 ASTROCS_CI_OUT_ROOT 时断言不被污染。
+
+        复现 CI 现场条件：env 指向含真实红灯（AGENTS-GOV FAIL）的 per-check
+        目录。若被测命令未显式指定来源，它会回退读该目录 → 与 T7/T9 期望
+        不符（这正是 778fe98e 上 UT-QUALITY 4F+1E 的根因）。本用例断言：
+        显式 --ci-checks-dir 的隔离来源优先，且 run_tool 已剔除该 env。
+        """
+        polluted = self.tmp / "ci-out-root"
+        self._write_check(polluted / "checks", "AGENTS-GOV", "FAIL")
+        self._write_check(polluted / "checks", "CON-COMMENTS", "FAIL")
+        isolated = self.tmp / "isolated-checks"
+        self._write_check(isolated, "VERSION-CONSISTENCY", "PASS")
+        base = write_baseline(self.tmp / "b.json", [entry(unit="p1_noise",
+                                                          check_id="p1_noise")])
+        junit = write_junit(self.tmp / "r.xml", [("p1_noise", "fail"),
+                                                 ("fake_regression_target", "fail")])
+        # 父进程 env 带污染变量（模拟 CI）；显式隔离来源必须胜出
+        polluted_env = {**os.environ, "ASTROCS_CI_OUT_ROOT": str(polluted)}
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--mode", "check", "--repo", str(REPO),
+             "--baseline", str(base), "--ctest-junit", str(junit),
+             "--ci-checks-dir", str(isolated)],
+            cwd=str(REPO), capture_output=True, text=True, timeout=300, env=polluted_env)
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        report = json.loads(proc.stdout)
+        self.assertEqual(report["new_failures"], ["ctest:fake_regression_target"],
+                         "隔离来源必须胜出：不得读入 env 指向的真实红灯")
+        self.assertEqual(report["sources"]["ci_checks_dir"], str(isolated))
+        # run_tool 的默认隔离：无来源旗标 + 父 env 带污染变量 → 不走 env 回退
+        proc = run_tool(["--mode", "check", "--repo", str(REPO), "--baseline", str(base),
+                         "--ctest-junit", str(junit)])
+        self.assertEqual(proc.returncode, 1)
+        report = json.loads(proc.stdout)
+        self.assertIsNone(report["sources"]["ci_checks_dir"],
+                          "run_tool 必须剔除 ASTROCS_CI_OUT_ROOT（环境无关）")
+        self.assertEqual(report["new_failures"], ["ctest:fake_regression_target"])
 
 
 class TestJunitParsing(unittest.TestCase):
