@@ -211,3 +211,49 @@ photometric scale、新 runtime I/O DLL。
   P2-001 F1/F2 维持：writer int32 子产品位 32/64 通道与 ASTROCS_*
   properties 键通道未实现，§30.2/§30.3 HiPS 产品面 pending，现由
   integrated bins + p2_final.json 诊断面承载）。
+
+### SCI-F2-001（2026-09-12，控制包 ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev30）
+
+- 目标：F-P2-002-02（STD-F2）integrate 剔除 kernel 拒绝样本，使 §30.2
+  n_ineligible = depth − nused − nrej 恒等式在部分拒绝场景成立。
+- **缺陷本体在写白名单（lib/phase2/ + tests/）之外**，未越界修改：
+  `lib/core/src/module_adapters.cpp` 两处——
+  (1) `:2511-2545`（p2_op_reject）把 kernel 的逐样本 reason 塌缩为**像素级**
+  accepted(u8)"任一接受即 1"（`:2532-2536`），nrej 为像素级计数（`:2537`）；
+  (2) `:2765`（p2_op_integrate）把该**像素级**标志套用到该像素的**每一个**
+  样本——部分拒绝像素内被拒样本仍进积分 ⇒ nused 含被拒样本 ⇒
+  nused + nrej > depth ⇒ n_ineligible < 0（违反 §30.2 完备划分）。
+- **lib/phase2 两条生产路径已正确**（逐样本剔除，即本任务目标行为）：
+  `tools/stage2.cpp:1462-1467 / 1515-1522` 与
+  `src/acr_kernels.cpp:184-193` 均按 kernel reason 写**每样本** acc[] 后
+  再过 p2_integrate_pixel。⇒ 违规面唯一 = lib/core 节点链（Stage2 CLI 与
+  ACR 均不产出 §30.2 的 nused/nrej/variance/ivar 产品）。
+- 本任务 in-scope 交付（白名单内，source 面零改动于 lib/phase2/src、
+  include、tools）：tests/unit/p2002_unc_rej_prov_test.cpp 新增 2c/2d/2e 三节
+  + 订正 2 节被缺陷行为编码的旧期望——（a）§30.2 恒等式逐像素断言
+  （n_ineligible == 0，depth 由 candidates bins 机器佐证，非测试自述）；
+  （b）§30.1 ivar_mosaic = Σ ivar_i 必须只含**入栈样本**（nrej>0 像素
+  W = ivar_sum − ivar_F3），与 nused/nrej 三面一致性；
+  （c）lib/phase2 库面对照：逐样本掩码 → 恒等式成立（GREEN），像素级塌缩
+  → n_ineligible < 0（负向对照，证明缺陷不在本域）；
+  （d）depth=3 部分拒绝 fixture 1/4 worker bitwise parity；
+  （e）ASTROCS_P2002_FAULT=identity 等价缺陷注入必败。
+- 判定基线（主树 = 缺陷在位）：RED，759 条 CHECK 失败，其中 252 像素
+  （3 帧 × 每 32px 网格离群点）三面同时违反：
+  n_ineligible = 3 − 3 − 1 = −1、nused=3 而 nrej=1、wsum=3.5 而应为 2.5。
+  `run/scif2001/logs/red_run.log`。
+- 补丁证明（git archive 影子树 + 本任务测试，**未落盘主树**）：
+  `run/scif2001/minimal_patch_module_adapters.diff`（214 行，+108 行）
+  逐样本掩码持久化（`p2_rejection_sample_mask.bin` + tiles[].depth/
+  frame_slots/sample_mask_offset）+ integrate 逐样本消费（缺失即 fail-closed）
+  → 本测试 0 失败 GREEN，受影响回归 9/9 PASS。不动 SCI 公式、默认容差、
+  kernel、plan、产品合同（nused/nrej 语义与 dtype 不变）。
+- **finding F-SCI-F2-001-01（P1，写域归属缺口）**：
+  `lib/core/src/module_adapters.cpp` 同时承载两个独立 P1 缺陷
+  （本条的 §30.2 逐样本剔除塌缩；FD-R1-012 的 p1 链就地重写撕裂读，约 12%
+  假红），却**不在任何在册任务 write_scope 内**（FD-R1-013 已登记覆盖缺口；
+  FD-R1-009 裁定前台不扩写域）。⇒ 需负责人新增以该文件为写域的原子任务
+  或授权现有线承接；补丁已备好可直接采用。
+- 交付后 main 的 CTEST-P2002-UNC-REJ-PROV（waivable=false）将转红——
+  这是门应有的行为（P1/数据完整性不可 waiver，**未**登记进 known-failures
+  基线，禁 waiver）。修复落地即自动转绿。
