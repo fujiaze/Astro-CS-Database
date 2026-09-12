@@ -137,6 +137,23 @@ ATTRIBUTION = {
         "minimal_patch": "随 WIN-BUILD-RELEASE 根因修复自动转绿",
     },
     # job 级（workflow job 名）——job 红灯是 profile 内检查项红灯的聚合
+    # CI-BASELINE-001：known-failures 基线门自身红灯（基线文件面，白名单内）
+    "KNOWN-FAILURES-BASELINE-CHECK": {
+        "domain": "CI",
+        "owner_node": "CI-BASELINE-001",
+        "root_cause": "全量测试失败集不满足「失败集 ⊆ 版本化基线」：出现不在 ci/known_failures.json 的新失败、基线项 expected=fail 却已修复未删除、条目过期，或本次 run 缺结果来源（fail-closed）",
+        "root_cause_path": "ci/known_failures.json",
+        "in_whitelist": True,
+        "minimal_patch": "按 tools/quality/known_failures_baseline.py --mode check 证据 JSON 处置：新失败交域主修复（不得登记进基线）、已修复项删除对应基线条目、过期项重登记或删除；禁止把永不允许豁免类别（SCI/ALG Oracle、ABI、生产路由、ACR dormant、heavy 单线程/低利用率、泄漏、崩溃、数据损坏、版本一致性、追踪断裂、安全凭据）写入基线",
+    },
+    "KNOWN-FAILURES-BASELINE-VERIFY": {
+        "domain": "CI",
+        "owner_node": "CI-BASELINE-001",
+        "root_cause": "版本化基线文件自身非法：缺 owner/reason/首次登记 commit/reproducer/expiry/移除条件、首次登记 commit 不可达、unit 不在 ci/checks.json（或 CTest 目标集）、类别越界或属永不允许豁免类别、条目过期",
+        "root_cause_path": "ci/known_failures.json",
+        "in_whitelist": True,
+        "minimal_patch": "按 tools/quality/known_failures_baseline.py --mode verify 的逐条 V1..V8 错误订正 ci/known_failures.json（补齐字段/修正 commit/删除越界或过期条目）；不得放宽校验规则",
+    },
     "linux": {
         "domain": "CI-PLATFORM",
         "owner_node": "CI-REPAIR-001（本线：聚合与映射）",
@@ -220,7 +237,8 @@ class _CrossHostStripAuth(urllib.request.HTTPRedirectHandler):
 _OPENER = urllib.request.build_opener(_CrossHostStripAuth)
 
 
-def api_get(url: str, token: str, timeout: float) -> tuple[int, bytes, dict]:
+def api_get(url: str, token: str, timeout: float,
+            max_bytes: int | None = LOG_MAX_BYTES) -> tuple[int, bytes, dict]:
     req = urllib.request.Request(url, headers={
         "Accept": "application/vnd.github+json",
         "User-Agent": "astrocs-ci-repair-round",
@@ -230,7 +248,8 @@ def api_get(url: str, token: str, timeout: float) -> tuple[int, bytes, dict]:
         req.add_header("Authorization", "Bearer " + token)
     try:
         with _OPENER.open(req, timeout=timeout) as resp:
-            return resp.status, resp.read(LOG_MAX_BYTES), dict(resp.headers)
+            # max_bytes=None → 不限量（artifact zip 必须整包落盘，截断即损坏）
+            return resp.status, resp.read(max_bytes) if max_bytes else resp.read(), dict(resp.headers)
     except urllib.error.HTTPError as exc:            # 4xx/5xx：交由调用方判定
         body = b""
         try:
@@ -392,11 +411,17 @@ def ingest_ci_result(spec: str, sha: str, token: str) -> tuple[list, dict]:
     if got != sha:
         raise RepairError("--ci-result %s 的 source_sha=%s 与目标 SHA=%s 不一致（拒绝跨轮证据）"
                           % (spec, got[:12] or "<空>", sha[:12]))
-    reds, ok = [], 0
+    reds, ok, skipped = [], 0, []
     for chk in doc.get("checks") or []:
         verdict = str(chk.get("verdict"))
         if verdict == "PASS":
             ok += 1
+            continue
+        if verdict.upper().startswith("SKIP"):
+            # SKIPPED(waivable)/SKIP + exit 77 = 宿主能力 gate（如缺 AVX-512F）：
+            # 不是红灯，但必须显式计数与留名，绝不静默当 PASS。
+            skipped.append({"id": str(chk.get("id")), "verdict": verdict,
+                            "exit_code": chk.get("exit_code"), "reason": chk.get("reason")})
             continue
         cid = str(chk.get("id"))
         entry = {
@@ -426,8 +451,39 @@ def ingest_ci_result(spec: str, sha: str, token: str) -> tuple[list, dict]:
             entry["log_error"] = "artifact 内无 logs/%s.log" % cid
         reds.append(entry)
     meta = {"evidence": spec, "profile": doc.get("profile"), "run_id": doc.get("run_id"),
-            "verdict": doc.get("verdict"), "passed_checks": ok, "red_checks": len(reds)}
+            "verdict": doc.get("verdict"), "passed_checks": ok, "red_checks": len(reds),
+            "skipped_waivable": len(skipped), "skipped": skipped}
     return reds, meta
+
+
+def download_artifacts(api: str, enc_repo: str, run_ids: list, token: str,
+                       timeout: float, dest_dir: pathlib.Path) -> list:
+    """下载指定 run 的 CI artifact（整包，不截断）并登记 sha256。
+
+    目录级归档缺失（无 artifact）不是错误：登记 artifacts 空表，由轮报的
+    取证缺口计数体现，绝不静默当作"无红灯"。
+    """
+    rows = []
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    for rid in run_ids:
+        doc = api_json("%s/repos/%s/actions/runs/%s/artifacts" % (api, enc_repo, rid),
+                       token, timeout)
+        arts = doc.get("artifacts") or []
+        for art in sorted(arts, key=lambda a: a.get("name") or ""):
+            if art.get("expired"):
+                rows.append({"run_id": rid, "name": art.get("name"), "status": "expired"})
+                continue
+            status, body, _ = api_get(art.get("archive_download_url"), token, timeout,
+                                      max_bytes=None)
+            target = dest_dir / ("%s-%s.zip" % (rid, art.get("name")))
+            if status == 200 and body:
+                target.write_bytes(body)
+                rows.append({"run_id": rid, "name": art.get("name"), "path": str(target).replace(os.sep, "/"),
+                             "bytes": len(body), "sha256": hashlib.sha256(body).hexdigest(),
+                             "status": "downloaded"})
+            else:
+                rows.append({"run_id": rid, "name": art.get("name"), "status": "HTTP %d" % status})
+    return rows
 
 
 # ------------------------------------------------------------------ 主流程 ---
@@ -514,8 +570,13 @@ def collect(args, token: str) -> dict:
             gaps += 1
         reds.append(entry)
 
+    artifacts = []
+    if args.fetch_artifacts:
+        artifacts = download_artifacts(api, enc, [int(x) for x in args.fetch_artifacts],
+                                       token, args.timeout, out / "artifacts")
+
     ci_results = []
-    for spec in (args.ci_result or []):
+    for spec in list(args.ci_result or []) + [a["path"] for a in artifacts if a.get("path")]:
         extra_reds, meta = ingest_ci_result(spec, sha, token)
         ci_results.append(meta)
         reds.extend(extra_reds)
@@ -556,6 +617,7 @@ def collect(args, token: str) -> dict:
             "red_checks": len([r for r in reds if r["kind"] == "check_run"]),
             "red_jobs": len([r for r in reds if r["kind"] == "job"]),
             "red_checks_internal": len([r for r in reds if r["kind"] == "check"]),
+            "skipped_waivable_internal": sum(x.get("skipped_waivable", 0) for x in ci_results),
             "ci_results_ingested": len(ci_results),
             "incomplete_runs": len(incomplete),
             "gaps": gaps,
@@ -572,6 +634,7 @@ def collect(args, token: str) -> dict:
                                     "status": r.get("status"), "url": r.get("html_url")}
                                    for r in incomplete], key=lambda d: str(d["id"])),
         "monitor": monitor,
+        "artifacts": artifacts,
         "ci_results": ci_results,
         "notes": [
             "归因域为「根因所在域」，与检查器所在目录无必然关系；in_whitelist 判定按 CI-REPAIR-001 写入白名单（run/ci_repair、ci/、tools/quality）。",
@@ -626,6 +689,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--timeout", type=float, default=30.0)
     ap.add_argument("--token-env", default="GITHUB_TOKEN")
     ap.add_argument("--now", default=None, help="固定生成时间（确定性复现/回归）")
+    ap.add_argument("--fetch-artifacts", action="append", default=[], metavar="RUN_ID",
+                    help="下载该 run 的 CI artifact 整包到 <round>/artifacts/ 并自动并入 CI_RESULT 检查项")
     ap.add_argument("--ci-result", action="append", default=[], metavar="PATH",
                     help="CI_RESULT.json 或 CI artifact .zip（可多次；source_sha 必须与 --sha 一致）")
     ap.add_argument("--strict", action="store_true",
