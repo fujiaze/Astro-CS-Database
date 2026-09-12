@@ -25,6 +25,8 @@ int test_units();
 int test_properties();
 int test_oracle();
 int test_negative();
+// SCI-F3-001: DATA-UNC-001 §30.2/§30.3 AIO 通道库级注入自检
+int test_diag_prov_selfcheck();
 }  // namespace p1hips
 
 namespace {
@@ -106,6 +108,18 @@ int run_selfcheck() {
         std::fprintf(stdout,
                      "SELFCHECK phase3: fault-inject 'o1_fits_mapping_bitwise' → child rc=%d (必败验证通过)\n",
                      child_rc);
+    }
+
+    // 阶段 4 (SCI-F3-001): DATA-UNC-001 §30.2/§30.3 AIO 通道库级故障注入自检
+    // (ASTROCS_HIPS_PROV_FAULT=missing_key|value_drift、
+    //  ASTROCS_HIPS_DIAG_FAULT=sentinel|skip_write、
+    //  ASTROCS_HIPS_VERIFY_FAULT=shortcut —— 基线 4 场景必 PASS + 5 注入点必 FAIL)
+    {
+        const int rc = p1hips::test_diag_prov_selfcheck();
+        if (rc != 0) {
+            std::fprintf(stderr, "SELFCHECK phase4: diag_prov 注入自检 FAIL (rc=%d)\n", rc);
+            return 1;
+        }
     }
 
     std::fprintf(stdout, "P1HIPS SELFCHECK PASS (baseline + fault-injection both verified)\n");

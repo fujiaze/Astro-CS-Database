@@ -16,6 +16,7 @@
 // ============================================================================
 
 #include "aio_hips.h"
+#include "aio_hips_reader.h"   // DATA-UNC-001 §30.2/§30.3: verify 面回读 (只读)
 #include "healpix/healpix_core.h"
 
 #include <fitsio.h>
@@ -223,6 +224,9 @@ bool write_fits_image(const std::string& path,
         fits_write_pix(fptr, TFLOAT, fpixel, nelem, (void*)data, &status);
     else if (bitpix == -64)
         fits_write_pix(fptr, TDOUBLE, fpixel, nelem, (void*)data, &status);
+    else if (bitpix == 32)
+        // DATA-UNC-001 §30.2: 诊断统计平面 nused/nrej 固定 int32 (BITPIX=32)
+        fits_write_pix(fptr, TINT, fpixel, nelem, (void*)data, &status);
     if (status) {
         fits_close_file(fptr, &status);
         return fits_ok(status, "fits_write_pix " + path);
@@ -345,6 +349,16 @@ struct AioHipsProductSet {
     bool drizzle_prov_set = false;
     double drizzle_pixfrac = 0.0;
     double drizzle_scale_arcsec = 0.0;
+    // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 五键
+    // （全或无: prov_set=false → 五键整体不写, legacy 产品面不变）
+    bool prov_set = false;
+    std::string prov_manifest_hash, prov_model_hash, prov_reject_profile;
+    int prov_uncertainty_available = 0;
+    int prov_weight_mode = 0;
+    // DATA-UNC-001 §30.2 诊断统计平面: 各通道是否真的写过 tile
+    // （写 0 个 tile 的通道不 finalize, 禁空目录/空占位冒充产品）
+    bool diag_nrej_tiles = false;
+    bool diag_nused_tiles = false;
     uint32_t nside = 0;
     uint32_t tile_width = 512;
     int32_t data_type = AIO_HIPS_FLOAT32;
@@ -379,7 +393,17 @@ struct AioHipsProductSet {
     std::vector<float>  scratch_varF, scratch_ivarF;
     std::vector<double> scratch_varD, scratch_ivarD;
     std::vector<double> scratch_var_n;                 // NESTED 序 var_num (hierarchy)
+    // nused/nrej 诊断平面 scratch (int32, FITS 序写缓冲)
+    std::vector<int32_t> scratch_diag_nrej, scratch_diag_nused;
 };
+
+// 故障注入 (ASTROCS_HIPS_*): 测试专用等价缺陷注入面。未设置环境变量时
+// 逐行零行为差异; 命中时按注入名产生等价缺陷, 使对应断言必败 (判别力证明)。
+// 先例: tests/unit/aio_abi_test_main.hpp ASTROCS_AIO_FAULT / p2002 FAULT=proj|prov。
+bool fault_injected(const char* var, const char* name) {
+    const char* v = std::getenv(var);
+    return v && name && std::strcmp(v, name) == 0;
+}
 
 // ============================================================================
 // P1 (R9-A): C 边界异常屏障 (bughunt_p1_batchI; 家族方案对齐 f1cb487c
@@ -410,7 +434,7 @@ AioHipsProductSet* aio_hips_product_begin(
         g_hips_error.clear();
         if (!out_dir || !*out_dir || nside < 512 || tile_width != 512 ||
             (data_type != AIO_HIPS_FLOAT32 && data_type != AIO_HIPS_FLOAT64) ||
-            (flags & ~AIO_HIPS_PRODUCT_ALL_V19) != 0) {
+            (flags & ~AIO_HIPS_PRODUCT_ALL_V20) != 0) {
             set_error("aio_hips_product_begin: 参数无效 (nside>=512, tile_width=512, dtype 0/1)");
             return nullptr;
         }
@@ -724,6 +748,115 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
     }
 }
 
+// ============================================================================
+// DATA-UNC-001 §30.2 (DATA-P2-REJ-001): nused/nrej 诊断统计平面 int32 叶级 Tile
+//
+// 值语义 = 已冻结 SCI 量的逐像素投影 (SCI-INT §5 n_used / SCI-REJ §5 kernel
+// 拒绝计数), 本通道零新科学定义。dtype 固定 int32 (BITPIX=32), 无 precision
+// 开关; 无覆盖像素 0/0 (int 无 NaN, 0 即"无", 禁 −1 哨兵)。
+// 视图索引 = NESTED local 序 (与 signal/support/variance 同合同), 落盘前经共享
+// HEALPix core 标准映射 scatter 到 FITS 行主序。
+// hierarchy 低阶聚合: §30.2 未冻结诊断平面的聚合语义 → 不写 (不臆造)。
+// ============================================================================
+int aio_hips_write_diag_tile(AioHipsProductSet* ps,
+                             const AioHipsDiagTileView* view)  {
+    // P1 (R9-A) 同款 C 边界异常屏障
+    try {
+        g_hips_error.clear();
+        if (!ps || !view) { set_error("null handle/view"); return -1; }
+        if (view->width != 512 || view->leaf_order != ps->leaf_order) {
+            set_error("view 与产品集不匹配 (width=512, leaf_order 必须一致)");
+            return -2;
+        }
+        if ((ps->flags & (AIO_HIPS_PRODUCT_NREJ | AIO_HIPS_PRODUCT_NUSED)) == 0) {
+            set_error("产品集 flags 未启用 nused/nrej 诊断平面通道 (位 32/64)");
+            return -4;
+        }
+        const uint64_t npix_order = 12ULL * (1ULL << (2ULL * ps->tile_order));
+        if (view->parent_ipix >= npix_order) {
+            set_error("parent_ipix 超出 Norder" + std::to_string(ps->tile_order) + " 范围");
+            return -3;
+        }
+        const bool want_nrej = (ps->flags & AIO_HIPS_PRODUCT_NREJ) != 0;
+        const bool want_nused = (ps->flags & AIO_HIPS_PRODUCT_NUSED) != 0;
+        // 已启用通道必须有数据 (禁写空占位/静默跳过)
+        if ((want_nrej && !view->nrej) || (want_nused && !view->nused)) {
+            set_error("诊断平面数据为空 (已启用通道的 nrej/nused 指针为 NULL)");
+            return -2;
+        }
+        const size_t n = 512 * 512;
+        // §30.2 值域守卫: 计数平面恒 >= 0 (0 即"无"; 禁 −1 哨兵)。
+        // 注入面 ASTROCS_HIPS_DIAG_FAULT=sentinel 故意跳过守卫并写回 −1 占位,
+        // 用于证明下游 verify/断言对"哨兵污染"具备判别力。
+        const bool inj_sentinel = fault_injected("ASTROCS_HIPS_DIAG_FAULT", "sentinel");
+        if (!inj_sentinel) {
+            for (int ch = 0; ch < 2; ++ch) {
+                const int32_t* src = ch == 0 ? view->nrej : view->nused;
+                if (!src) continue;
+                for (size_t i = 0; i < n; ++i) {
+                    if (src[i] < 0) {
+                        set_error(std::string("诊断平面 ") +
+                                  (ch == 0 ? "nrej" : "nused") +
+                                  " 出现负值 (禁 −1 哨兵): index " +
+                                  std::to_string(i));
+                        return -5;
+                    }
+                }
+            }
+        }
+        std::vector<std::pair<std::string, std::string>> cards;
+        cards.push_back({"NSIDE", std::to_string(ps->nside)});
+        cards.push_back({"FIRSTPIX", "0"});
+        cards.push_back({"LASTPIX", std::to_string(n - 1)});
+        const std::string rel =
+            tile_rel_path((int)ps->tile_order, view->parent_ipix, ".fits");
+        const bool inj_skip = fault_injected("ASTROCS_HIPS_DIAG_FAULT", "skip_write");
+        for (int ch = 0; ch < 2; ++ch) {
+            const bool want = ch == 0 ? want_nrej : want_nused;
+            if (!want) continue;
+            const int32_t* src = ch == 0 ? view->nrej : view->nused;
+            std::vector<int32_t>& buf =
+                ch == 0 ? ps->scratch_diag_nrej : ps->scratch_diag_nused;
+            buf.resize(n);
+            for (size_t i = 0; i < n; ++i) {
+                const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+                    (uint64_t)i, 9u, 512u);
+                int32_t v = src[i];
+                if (inj_sentinel && v == 0) v = -1;   // 等价缺陷: 0 → −1 哨兵
+                buf[fi] = v;
+            }
+            // 注入面 ASTROCS_HIPS_DIAG_FAULT=skip_write: 登记通道但静默不落盘
+            // (等价缺陷 = "声明了产品却零文件"; 由 verify V4 声明↔事实断言捕获)
+            if (ch == 0) ps->diag_nrej_tiles = true;
+            else         ps->diag_nused_tiles = true;
+            if (inj_skip) continue;
+            const std::string dir = ch == 0 ? "/nrej/" : "/nused/";
+            std::string p = ps->out_dir + dir + rel;
+            make_dirs(p.substr(0, p.find_last_of('/')));
+            if (!write_fits_image(p, 32, 512, 512, (const void*)buf.data(),
+                                  cards, ps->obs_title, ps->obs_filter,
+                                  ps->exposure, ps->obs_date)) {
+                return -6;
+            }
+        }
+        // MOC 覆盖登记 (与 signal/support 同一父单元集合; 集合去重幂等)。
+        // 诊断平面共享产品集 MOC 语义: 有数据的 tile 才登记。
+        if (ps->moc_cells.insert(view->parent_ipix).second) {
+            ps->leaf_ipix_list.push_back(view->parent_ipix);
+            ps->moc_area_sr += 4.0 * kPi() / (12.0 * (1ULL << (2 * ps->tile_order)));
+        }
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_error("unknown exception");
+        return -1;
+    }
+}
+
 int aio_hips_write_snr_points(AioHipsProductSet* ps,
                               const AioHipsSnrPoint* pts,
                               int n)  {
@@ -748,12 +881,16 @@ int aio_hips_write_snr_points(AioHipsProductSet* ps,
 // ---------------------------------------------------------------------------
 // 内部: 写一个子产品的 properties / metadata / MOC / hierarchy
 // ---------------------------------------------------------------------------
+// value_dtype: 该子产品像素值 dtype 标签 ("float32"/"float64"/"int32")
+// is_diag: 诊断统计平面 (int32, §30.2) —— 额外写 astrocs_diag_dtype 登记面
 static bool finalize_image_product(AioHipsProductSet* ps,
                                    const std::string& prod,
                                    const std::string& subtype,
                                    const std::string& data_range,
                                    double moc_frac,
-                                   double covered_frac) {
+                                   double covered_frac,
+                                   const char* value_dtype = nullptr,
+                                   bool is_diag = false) {
     const std::string dir = ps->out_dir + "/" + prod;
     make_dirs(dir);
     char buf[64];
@@ -800,6 +937,22 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"moc_sky_fraction", std::to_string(moc_frac)});
     kv.push_back({"astrocs_covered_sky_fraction", std::to_string(covered_frac)});
     kv.push_back({"astrocs_signal_dtype", ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64"});
+    // DATA-UNC-001 §30.2: 诊断统计平面固定 int32 (无 precision 开关)
+    if (is_diag)
+        kv.push_back({"astrocs_diag_dtype", value_dtype ? value_dtype : "int32"});
+    // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 五键。
+    // 全或无 (§30.3 冻结键名): prov_set=false → 五键整体不写 (legacy 面不变);
+    // prov_set=true → 五键齐备, 禁静默缺键 (注入面 ASTROCS_HIPS_PROV_FAULT=
+    // missing_key 故意漏写一键, 用于证明"缺键"断言有判别力)。
+    if (ps->prov_set) {
+        if (!fault_injected("ASTROCS_HIPS_PROV_FAULT", "missing_key"))
+            kv.push_back({"ASTROCS_INPUT_MANIFEST_HASH", ps->prov_manifest_hash});
+        kv.push_back({"ASTROCS_MODEL_HASH", ps->prov_model_hash});
+        kv.push_back({"ASTROCS_UNCERTAINTY_AVAILABLE",
+                      ps->prov_uncertainty_available ? "true" : "false"});
+        kv.push_back({"ASTROCS_WEIGHT_MODE", std::to_string(ps->prov_weight_mode)});
+        kv.push_back({"ASTROCS_REJECT_PROFILE", ps->prov_reject_profile});
+    }
     if (!data_range.empty()) kv.push_back({"hips_data_range", data_range});
     if (!ps->obs_filter.empty()) kv.push_back({"obs_filter", ps->obs_filter});
     if (ps->exposure > 0.0) kv.push_back({"obs_exptime", std::to_string(ps->exposure)});
@@ -1080,6 +1233,69 @@ int aio_hips_set_drizzle_provenance(AioHipsProductSet* ps,
     }
 }
 
+// ── DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 五键 setter ────────────
+// 全或无: 参数任一不合法 → 返回非 0 且不置 prov_set (调用方得不到半套 provenance)。
+// 值语义校验面向"禁伪造": 两个 hash 必须 64 hex (§20.3 sha256 十六进制形态),
+// weight_mode ∈ {0,1,2}, reject_profile 非空, uncertainty_available ∈ {0,1}。
+static bool is_sha256_hex(const char* s) {
+    if (!s) return false;
+    size_t n = 0;
+    for (const char* p = s; *p; ++p, ++n) {
+        const char c = *p;
+        const bool hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+                         (c >= 'A' && c <= 'F');
+        if (!hex) return false;
+    }
+    return n == 64;
+}
+
+int aio_hips_set_provenance(AioHipsProductSet* ps,
+                            const char* input_manifest_hash,
+                            const char* model_hash,
+                            int uncertainty_available,
+                            int weight_mode,
+                            const char* reject_profile)  {
+    // P1 (R9-A) 同款 C 边界异常屏障
+    try {
+        if (!ps) return 1;
+        if (!is_sha256_hex(input_manifest_hash)) {
+            set_error("provenance: input_manifest_hash 必须为 64 hex sha256 (§20.3)");
+            return 2;
+        }
+        if (!is_sha256_hex(model_hash)) {
+            set_error("provenance: model_hash 必须为 64 hex sha256");
+            return 2;
+        }
+        if (uncertainty_available != 0 && uncertainty_available != 1) {
+            set_error("provenance: uncertainty_available 必须为 0/1 (§30.1 判定结果)");
+            return 2;
+        }
+        if (weight_mode < 0 || weight_mode > 2) {
+            set_error("provenance: weight_mode 必须为 0/1/2 (cfg.weight_mode)");
+            return 2;
+        }
+        if (!reject_profile || !*reject_profile) {
+            set_error("provenance: reject_profile 必须为非空版本化 profile 串");
+            return 2;
+        }
+        ps->prov_set = true;
+        ps->prov_manifest_hash = input_manifest_hash;
+        ps->prov_model_hash = model_hash;
+        ps->prov_uncertainty_available = uncertainty_available;
+        ps->prov_weight_mode = weight_mode;
+        ps->prov_reject_profile = reject_profile;
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_error("unknown exception");
+        return -1;
+    }
+}
+
 int aio_hips_finalize(AioHipsProductSet* ps)  {
     // P1 (R9-A): C 边界异常屏障
     try {
@@ -1091,6 +1307,25 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
         const auto t_fin0 = std::chrono::steady_clock::now();
         std::fprintf(stderr, "[hips] finalize: n_leaf=%zu flags=%d\n",
                      ps->leaf_ipix_list.size(), ps->flags);
+        // DATA-UNC-001 §30.1/§30.3 双向一致性守卫 (fail-closed, 禁占位/禁静默):
+        //   uncertainty_available=true  ⇒ variance|ivar 两位必须同时置位
+        //   uncertainty_available=false ⇒ 两位必须同时不置位 (禁占位子产品)
+        if (ps->prov_set) {
+            const bool unc = ps->prov_uncertainty_available != 0;
+            const int vf = ps->flags & (AIO_HIPS_PRODUCT_VARIANCE |
+                                        AIO_HIPS_PRODUCT_IVAR);
+            const int both = AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR;
+            if (unc && vf != both) {
+                set_error("provenance: uncertainty_available=true 要求"
+                          " variance|ivar 子产品位同时置位 (§30.1)");
+                return -9;
+            }
+            if (!unc && vf != 0) {
+                set_error("provenance: uncertainty_available=false 禁止 variance/"
+                          "ivar 子产品位 (禁占位, §30.1 unavailable 规则)");
+                return -10;
+            }
+        }
         const auto t_p0 = std::chrono::steady_clock::now();
         const double moc_frac = ps->moc_area_sr / (4.0 * kPi());
         const double cov_frac = ps->covered_area_sr / (4.0 * kPi());
@@ -1120,6 +1355,22 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
             std::fprintf(stderr, "[hips] finalize: ivar product\n");
             if (!finalize_image_product(ps, "ivar", "inverse variance", "", moc_frac, cov_frac)) {
                 return -8;
+            }
+        }
+        // DATA-UNC-001 §30.2 诊断统计平面 (int32; 只对真正写过 tile 的通道 finalize,
+        // 禁"声明但零数据"的空产品占位)
+        if ((ps->flags & AIO_HIPS_PRODUCT_NREJ) && ps->diag_nrej_tiles) {
+            std::fprintf(stderr, "[hips] finalize: nrej diagnostic product\n");
+            if (!finalize_image_product(ps, "nrej", "rejected sample count", "",
+                                        moc_frac, 0.0, "int32", true)) {
+                return -11;
+            }
+        }
+        if ((ps->flags & AIO_HIPS_PRODUCT_NUSED) && ps->diag_nused_tiles) {
+            std::fprintf(stderr, "[hips] finalize: nused diagnostic product\n");
+            if (!finalize_image_product(ps, "nused", "used sample count", "",
+                                        moc_frac, 0.0, "int32", true)) {
+                return -12;
             }
         }
         ps->prof_finalize_products += std::chrono::duration<double>(
@@ -1155,16 +1406,20 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
             FILE* f = std::fopen((ps->out_dir + "/manifest.json").c_str(), "wb");
             if (f) {
                 std::string prod_list;
-                struct { int flag; const char* name; } prods[] = {
-                    {AIO_HIPS_PRODUCT_SIGNAL, "signal"},
-                    {AIO_HIPS_PRODUCT_SUPPORT, "support"},
-                    {AIO_HIPS_PRODUCT_VARIANCE, "variance"},
-                    {AIO_HIPS_PRODUCT_IVAR, "ivar"},
-                    {AIO_HIPS_PRODUCT_SNR, "snr"},
+                // 诊断平面只在真正写过 tile 时进入 products 清单 (与磁盘事实一致,
+                // 供 aio_hips_verify_product_set V4 双向核对)
+                struct { int flag; const char* name; bool present; } prods[] = {
+                    {AIO_HIPS_PRODUCT_SIGNAL, "signal", true},
+                    {AIO_HIPS_PRODUCT_SUPPORT, "support", true},
+                    {AIO_HIPS_PRODUCT_VARIANCE, "variance", true},
+                    {AIO_HIPS_PRODUCT_IVAR, "ivar", true},
+                    {AIO_HIPS_PRODUCT_SNR, "snr", true},
+                    {AIO_HIPS_PRODUCT_NREJ, "nrej", ps->diag_nrej_tiles},
+                    {AIO_HIPS_PRODUCT_NUSED, "nused", ps->diag_nused_tiles},
                 };
                 bool first = true;
                 for (const auto& p : prods) {
-                    if (ps->flags & p.flag) {
+                    if ((ps->flags & p.flag) && p.present) {
                         if (!first) prod_list += ", ";
                         prod_list += "\"";
                         prod_list += p.name;
@@ -1183,13 +1438,44 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                     "  \"n_leaf_tiles\": %zu,\n"
                     "  \"moc_sky_fraction\": %.8f,\n"
                     "  \"astrocs_covered_sky_fraction\": %.8f,\n"
-                    "  \"signal_dtype\": \"%s\"\n"
-                    "}\n",
+                    "  \"signal_dtype\": \"%s\",\n"
+                    "  \"nrej_tiles\": %zu,\n"
+                    "  \"nused_tiles\": %zu",
                     ps->nside, ps->tile_width,
                     ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64",
                     prod_list.c_str(),
                     ps->leaf_ipix_list.size(), moc_frac, cov_frac,
-                    ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64");
+                    ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64",
+                    (size_t)(ps->flags & AIO_HIPS_PRODUCT_NREJ
+                                 ? ps->leaf_ipix_list.size() : 0),
+                    (size_t)(ps->flags & AIO_HIPS_PRODUCT_NUSED
+                                 ? ps->leaf_ipix_list.size() : 0));
+                // DATA-UNC-001 §30.3: provenance 五键与 properties 双写
+                // (JSON 键同名小写; 调用方 schema 见 DATA-P2-PROV-001)
+                if (ps->prov_set) {
+                    const bool inj_drift =
+                        fault_injected("ASTROCS_HIPS_PROV_FAULT", "value_drift");
+                    std::fprintf(f,
+                        ",\n"
+                        "  \"provenance\": {\n"
+                        "    \"astrocs_input_manifest_hash\": \"%s\",\n"
+                        "    \"astrocs_model_hash\": \"%s\",\n"
+                        "    \"astrocs_uncertainty_available\": %s,\n"
+                        "    \"astrocs_weight_mode\": %d,\n"
+                        "    \"astrocs_reject_profile\": \"%s\"\n"
+                        "  }\n",
+                        ps->prov_manifest_hash.c_str(),
+                        // 注入面 value_drift: manifest 与 properties 分叉
+                        // (证明 V6 双写面一致性断言有判别力)
+                        inj_drift ? std::string(64, '0').c_str()
+                                  : ps->prov_model_hash.c_str(),
+                        ps->prov_uncertainty_available ? "true" : "false",
+                        ps->prov_weight_mode,
+                        ps->prov_reject_profile.c_str());
+                    std::fprintf(f, "}\n");
+                } else {
+                    std::fprintf(f, "\n}\n");
+                }
                 std::fclose(f);
             }
         }
@@ -1211,6 +1497,291 @@ int aio_hips_abort(AioHipsProductSet* ps)  {
     try {
         if (!ps) return 0;
         delete ps;
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_error("unknown exception");
+        return -1;
+    }
+}
+
+// ── DATA-UNC-001 §30.2/§30.3 产品集双向一致性核验 ─────────────────────────
+namespace {
+// properties 文本键解析 (与 reader 同口径: k=v, 去空白, 忽略 '#' 行)
+std::map<std::string, std::string> read_props_file(const std::string& path) {
+    std::map<std::string, std::string> kv;
+    FILE* f = std::fopen(path.c_str(), "rb");
+    if (!f) return kv;
+    std::string content;
+    char buf[4096];
+    size_t got = 0;
+    while ((got = std::fread(buf, 1, sizeof(buf), f)) > 0) content.append(buf, got);
+    std::fclose(f);
+    size_t pos = 0;
+    while (pos <= content.size()) {
+        size_t nl = content.find('\n', pos);
+        const std::string line = content.substr(
+            pos, nl == std::string::npos ? std::string::npos : nl - pos);
+        pos = (nl == std::string::npos) ? content.size() + 1 : nl + 1;
+        if (line.empty() || line[0] == '#') continue;
+        const size_t eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        std::string k = line.substr(0, eq), v = line.substr(eq + 1);
+        while (!k.empty() && (k.back() == ' ' || k.back() == '\r')) k.pop_back();
+        while (!v.empty() && (v.back() == ' ' || v.back() == '\r')) v.pop_back();
+        kv[k] = v;
+    }
+    return kv;
+}
+
+bool file_exists(const std::string& p) {
+    FILE* f = std::fopen(p.c_str(), "rb");
+    if (!f) return false;
+    std::fclose(f);
+    return true;
+}
+
+// manifest.json 标量取值 (writer 自产格式, 键唯一; 只取简单标量, 不做通用 JSON)
+bool json_scalar(const std::string& doc, const std::string& key, std::string* out) {
+    const std::string pat = "\"" + key + "\"";
+    const size_t k = doc.find(pat);
+    if (k == std::string::npos) return false;
+    const size_t colon = doc.find(':', k + pat.size());
+    if (colon == std::string::npos) return false;
+    size_t p = colon + 1;
+    while (p < doc.size() && (doc[p] == ' ' || doc[p] == '\t' ||
+                              doc[p] == '\n' || doc[p] == '\r')) ++p;
+    if (p >= doc.size()) return false;
+    if (doc[p] == '"') {
+        const size_t close = doc.find('"', p + 1);
+        if (close == std::string::npos) return false;
+        *out = doc.substr(p + 1, close - p - 1);
+        return true;
+    }
+    size_t e = p;
+    while (e < doc.size() && doc[e] != ',' && doc[e] != '\n' && doc[e] != '}' &&
+           doc[e] != ' ' && doc[e] != '\r' && doc[e] != '\t') ++e;
+    *out = doc.substr(p, e - p);
+    return true;
+}
+
+const char* const kProvKeys[5] = {
+    "ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
+    "ASTROCS_UNCERTAINTY_AVAILABLE", "ASTROCS_WEIGHT_MODE",
+    "ASTROCS_REJECT_PROFILE"};
+
+int count_prov_keys(const std::map<std::string, std::string>& props) {
+    int n = 0;
+    for (const char* k : kProvKeys)
+        if (props.find(k) != props.end()) ++n;
+    return n;
+}
+} // namespace
+
+int aio_hips_verify_product_set(const char* out_dir, AioHipsVerifyReport* out)  {
+    // P1 (R9-A) 同款 C 边界异常屏障
+    try {
+        g_hips_error.clear();
+        if (!out_dir || !*out_dir || !out) {
+            set_error("aio_hips_verify_product_set: 参数无效");
+            return -1;
+        }
+        AioHipsVerifyReport rep{};
+        rep.n_signal_tiles = rep.n_variance_tiles = rep.n_ivar_tiles = -1;
+        rep.n_nrej_tiles = rep.n_nused_tiles = -1;
+        rep.uncertainty_available = -1;
+        *out = rep;
+        const std::string root = out_dir;
+        // V1: signal 子产品 = 产品集事实面 (properties 必须存在且可解析)
+        const std::map<std::string, std::string> sprops =
+            read_props_file(root + "/signal/properties");
+        if (sprops.empty()) {
+            set_error("verify: signal/properties 缺失或为空: " + root);
+            return -1;
+        }
+        out->signal_present = 1;
+        {
+            AioHipsDataset* ds = aio_hips_open(out_dir, AIO_HIPS_RD_SIGNAL);
+            if (ds) {
+                out->n_signal_tiles = aio_hips_tile_count(ds);
+                aio_hips_close(ds);
+            }
+        }
+        // V2: provenance 全或无 (五键齐备或整体不写; 禁静默缺键)
+        out->prov_keys_present = count_prov_keys(sprops);
+        if (out->prov_keys_present > 0) {
+            if (out->prov_keys_present != 5) {
+                set_error("verify: provenance 键不完整 (present=" +
+                          std::to_string(out->prov_keys_present) + "/5, §30.3)");
+                return 4;
+            }
+            const std::string ua = sprops.at("ASTROCS_UNCERTAINTY_AVAILABLE");
+            if (ua == "true") out->uncertainty_available = 1;
+            else if (ua == "false") out->uncertainty_available = 0;
+            else {
+                set_error("verify: ASTROCS_UNCERTAINTY_AVAILABLE 值非法: " + ua);
+                return 4;
+            }
+        }
+        // 注入面 (测试专用等价缺陷): 短路恒 OK —— 证明下述断言有判别力
+        if (fault_injected("ASTROCS_HIPS_VERIFY_FAULT", "shortcut")) return 0;
+        // V3: uncertainty_available 双向断言 (§30.1/§30.3)
+        out->variance_present = file_exists(root + "/variance/properties") ? 1 : 0;
+        out->ivar_present = file_exists(root + "/ivar/properties") ? 1 : 0;
+        // 逐 tile 回读 (HDU 存在性 + 可读性; 声明/存在但 tile 文件缺失或
+        // dtype 不符 → unreadable_tiles, 由下方规则判负)
+        auto probe_float_product = [&](int product_kind, int* tiles_out) {
+            AioHipsDataset* dd = aio_hips_open(out_dir, product_kind);
+            if (!dd) return;
+            const int n = aio_hips_tile_count(dd);
+            *tiles_out = n;
+            std::vector<float> buf((size_t)512 * 512);
+            for (int t = 0; t < n; ++t) {
+                uint64_t ipix = 0;
+                if (aio_hips_tile_ipix(dd, t, &ipix) != 0) { ++out->unreadable_tiles; continue; }
+                if (aio_hips_read_tile_f32(dd, ipix, buf.data()) != 0)
+                    ++out->unreadable_tiles;
+            }
+            aio_hips_close(dd);
+        };
+        if (out->variance_present) probe_float_product(AIO_HIPS_RD_VARIANCE, &out->n_variance_tiles);
+        if (out->ivar_present) probe_float_product(AIO_HIPS_RD_IVAR, &out->n_ivar_tiles);
+        if (out->uncertainty_available == 1) {
+            if (!out->variance_present || !out->ivar_present ||
+                out->n_variance_tiles <= 0 || out->n_ivar_tiles <= 0 ||
+                (out->n_signal_tiles > 0 &&
+                 (out->n_variance_tiles != out->n_signal_tiles ||
+                  out->n_ivar_tiles != out->n_signal_tiles))) {
+                set_error("verify: uncertainty_available=true 但 variance/ivar"
+                          " 子产品缺失或 tile 数不一致 (§30.1)");
+                return 2;
+            }
+        } else if (out->uncertainty_available == 0) {
+            if (out->variance_present || out->ivar_present) {
+                set_error("verify: uncertainty_available=false 却存在 variance/"
+                          "ivar 子产品 (禁占位, §30.1 unavailable 规则)");
+                return 3;
+            }
+        }
+        // V4/V5: 诊断平面声明 ↔ 磁盘事实双向 + 值域
+        const std::string manifest_path = root + "/manifest.json";
+        std::string mdoc;
+        if (file_exists(manifest_path)) {
+            FILE* f = std::fopen(manifest_path.c_str(), "rb");
+            if (f) {
+                char buf[4096];
+                size_t got = 0;
+                while ((got = std::fread(buf, 1, sizeof(buf), f)) > 0)
+                    mdoc.append(buf, got);
+                std::fclose(f);
+            }
+        }
+        struct { const char* name; bool declared; int* decl; int* present;
+                 int* tiles; int rd_product; } diag[2] = {
+            {"nrej", false, &out->nrej_declared, &out->nrej_present,
+             &out->n_nrej_tiles, AIO_HIPS_RD_NREJ},
+            {"nused", false, &out->nused_declared, &out->nused_present,
+             &out->n_nused_tiles, AIO_HIPS_RD_NUSED},
+        };
+        for (auto& d : diag) {
+            // products 清单中是否声明该通道 (键名精确匹配引号形态, 不与
+            // nrej_tiles/nused_tiles 计数键混淆)
+            if (!mdoc.empty() && mdoc.find("\"products\"") != std::string::npos)
+                d.declared =
+                    mdoc.find(std::string("\"") + d.name + "\"") != std::string::npos;
+            *d.decl = d.declared ? 1 : 0;
+            *d.present = file_exists(root + "/" + d.name + "/properties") ? 1 : 0;
+            if (*d.present) {
+                AioHipsDataset* dd = aio_hips_open(out_dir, d.rd_product);
+                if (dd) {
+                    *d.tiles = aio_hips_tile_count(dd);
+                    // 逐 tile 回读值域 (int32; 负值 = 契约违反)
+                    std::vector<int32_t> buf((size_t)512 * 512);
+                    for (int t = 0; t < *d.tiles; ++t) {
+                        uint64_t ipix = 0;
+                        if (aio_hips_tile_ipix(dd, t, &ipix) != 0) {
+                            ++out->unreadable_tiles;
+                            continue;
+                        }
+                        // tile 文件缺失/dtype 非 int32 → 声明与事实不符 (V4)
+                        if (aio_hips_read_tile_i32(dd, ipix, buf.data()) != 0) {
+                            ++out->unreadable_tiles;
+                            continue;
+                        }
+                        for (size_t i = 0; i < buf.size(); ++i)
+                            if (buf[i] < 0) ++out->diag_negative_pixels;
+                    }
+                    aio_hips_close(dd);
+                }
+            }
+            if (d.declared && !*d.present) {
+                set_error(std::string("verify: manifest 声明 ") + d.name +
+                          " 子产品但磁盘不存在 (§30.2)");
+                return 5;
+            }
+            if (!d.declared && *d.present) {
+                set_error(std::string("verify: 磁盘存在 ") + d.name +
+                          " 子产品但 manifest 未声明 (禁占位, §30.2)");
+                return 6;
+            }
+            if (d.declared && out->n_signal_tiles > 0 &&
+                *d.tiles != out->n_signal_tiles) {
+                set_error(std::string("verify: ") + d.name + " tile 数与 signal"
+                          " 不一致 (§30.2)");
+                return 5;
+            }
+        }
+        // V4b: 声明/存在的子产品其 tile 必须真实可读 (禁"声明了产品却零文件")
+        if (out->unreadable_tiles > 0) {
+            set_error("verify: 子产品 tile 不可读或 dtype 不符 (unreadable=" +
+                      std::to_string(out->unreadable_tiles) + "; §30.1/§30.2)");
+            return out->uncertainty_available == 1 ? 2 : 5;
+        }
+        if (out->diag_negative_pixels > 0) {
+            set_error("verify: 诊断平面出现负值 = 契约违反 (0 即\"无\", 禁 −1"
+                      " 哨兵, §30.2)");
+            return 7;
+        }
+        // V6: properties ↔ manifest.json 双写面值一致性 (§30.3 双写)
+        if (out->prov_keys_present == 5 && !mdoc.empty()) {
+            struct { const char* prop; const char* mkey; } pairs[4] = {
+                {"ASTROCS_INPUT_MANIFEST_HASH", "astrocs_input_manifest_hash"},
+                {"ASTROCS_MODEL_HASH", "astrocs_model_hash"},
+                {"ASTROCS_WEIGHT_MODE", "astrocs_weight_mode"},
+                {"ASTROCS_REJECT_PROFILE", "astrocs_reject_profile"},
+            };
+            int mkeys = 0;
+            for (const auto& p : pairs) {
+                std::string v;
+                if (!json_scalar(mdoc, p.mkey, &v)) continue;
+                ++mkeys;
+                if (v != sprops.at(p.prop)) ++out->value_mismatch;
+            }
+            {
+                std::string v;
+                if (json_scalar(mdoc, "astrocs_uncertainty_available", &v)) {
+                    ++mkeys;
+                    const std::string want =
+                        out->uncertainty_available == 1 ? "true" : "false";
+                    if (v != want) ++out->value_mismatch;
+                }
+            }
+            out->manifest_keys_present = mkeys;
+            if (mkeys != 5) {
+                set_error("verify: manifest.json provenance 块不完整 (present=" +
+                          std::to_string(mkeys) + "/5, §30.3 双写)");
+                return 8;
+            }
+            if (out->value_mismatch != 0) {
+                set_error("verify: properties 与 manifest.json provenance 值"
+                          " 分叉 (§30.3 双写面禁止分叉)");
+                return 8;
+            }
+        }
         return 0;
 
     }

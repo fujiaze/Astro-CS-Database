@@ -146,6 +146,47 @@ static int read_tile_t(AioHipsDataset* d, uint64_t ipix, T* out) {
     return 0;
 }
 
+// DATA-UNC-001 §30.2: 诊断统计平面回读 (int32 专用通道)。
+// tile BITPIX 必须 = 32 (诊断平面 dtype 由 §30.2 固定 int32, 不接受 float 冒充);
+// 输出为 standard HiPS row-major (与 read_tile_t 同合同)。
+static int read_tile_i32(AioHipsDataset* d, uint64_t ipix, int32_t* out) {
+    if (!d || !out) return -1;
+    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
+    const std::string p = tile_path(d->dir, d->hips_order, ipix, ".fits");
+    int status = 0;
+    fitsfile* fptr = nullptr;
+    if (fits_open_file(&fptr, p.c_str(), READONLY, &status)) {
+        fits_clear_errmsg();
+        set_err("tile 不存在: " + p);
+        return -2;
+    }
+    int bitpix = 0, naxis = 0;
+    long naxes[2] = {0, 0};
+    if (fits_get_img_param(fptr, 2, &bitpix, &naxis, naxes, &status)) {
+        fits_close_file(fptr, &status);
+        return -3;
+    }
+    if (naxis != 2 || naxes[0] != d->tile_width || naxes[1] != d->tile_width) {
+        fits_close_file(fptr, &status);
+        set_err("tile 尺寸非法");
+        return -4;
+    }
+    if (bitpix != 32) {
+        fits_close_file(fptr, &status);
+        set_err("诊断平面 tile BITPIX 必须 =32 (int32), 实际 " +
+                std::to_string(bitpix));
+        return -6;
+    }
+    const long nelem = naxes[0] * naxes[1];
+    long fpixel[2] = {1, 1};
+    if (fits_read_pix(fptr, TINT, fpixel, nelem, nullptr, out, nullptr, &status)) {
+        fits_close_file(fptr, &status);
+        return -5;
+    }
+    fits_close_file(fptr, &status);
+    return 0;
+}
+
 namespace {
 
 // 从 MOC FITS 提取叶级 ipix (order == hips_order 的 UNIQ -> ipix)
@@ -236,7 +277,7 @@ AioHipsDataset* aio_hips_open(const char* out_dir, int product)  {
     try {
         g_rd_error.clear();
         if (!out_dir || !*out_dir || product < AIO_HIPS_RD_SIGNAL ||
-            product > AIO_HIPS_RD_IVAR) {
+            product > AIO_HIPS_RD_NUSED) {
             set_err("参数无效");
             return nullptr;
         }
@@ -245,7 +286,9 @@ AioHipsDataset* aio_hips_open(const char* out_dir, int product)  {
         const char* sub = product == AIO_HIPS_RD_SIGNAL ? "signal" :
                           product == AIO_HIPS_RD_SUPPORT ? "support" :
                           product == AIO_HIPS_RD_SNR ? "snr" :
-                          product == AIO_HIPS_RD_VARIANCE ? "variance" : "ivar";
+                          product == AIO_HIPS_RD_VARIANCE ? "variance" :
+                          product == AIO_HIPS_RD_IVAR ? "ivar" :
+                          product == AIO_HIPS_RD_NREJ ? "nrej" : "nused";
         d->dir = std::string(out_dir) + "/" + sub;
         d->props = parse_properties(d->dir + "/properties");
         auto geti = [&](const std::string& k, int def) -> int {
@@ -392,6 +435,21 @@ int aio_hips_read_tile_f64(AioHipsDataset* d, uint64_t ipix, double* out)  {
     }
 }
 
+
+int aio_hips_read_tile_i32(AioHipsDataset* d, uint64_t ipix, int32_t* out)  {
+    // P1 (R9-A) 同款 C 边界异常屏障
+    try {
+        return read_tile_i32(d, ipix, out);
+
+    }
+    catch (const std::exception &e) {
+        set_err(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_err("unknown exception");
+        return -1;
+    }
+}
 
 int aio_hips_read_leaf_f32(AioHipsDataset* d, uint64_t leaf_ipix, float* out)  {
     // P1 (R9-A): C 边界异常屏障

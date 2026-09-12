@@ -51,6 +51,8 @@
 #include "aio_hips_reader.h"
 #include "healpix/healpix_core.h"
 
+#include <limits>
+
 #include <nlohmann/json.hpp>
 
 #include <cmath>
@@ -86,6 +88,16 @@ static int failures = 0;
     if (!(cond)) {                                                        \
       std::fprintf(stderr, "CHECK failed %s:%d: %s -- %s\n", __FILE__,    \
                    __LINE__, #cond, (msg));                               \
+      ++failures;                                                         \
+    }                                                                     \
+  } while (0)
+#define CHECK_EQ_INT(got, want)                                           \
+  do {                                                                    \
+    const long long g_ = (long long)(got);                                \
+    const long long w_ = (long long)(want);                               \
+    if (g_ != w_) {                                                       \
+      std::fprintf(stderr, "CHECK failed %s:%d: got=%lld want=%lld (%s)\n", \
+                   __FILE__, __LINE__, g_, w_, #got);                     \
       ++failures;                                                         \
     }                                                                     \
   } while (0)
@@ -1072,15 +1084,218 @@ static void test_s303_provenance_keys(bool fault_inject) {
   CHECK(fin.contains("pending_contracts"));
   CHECK(fin["pending_contracts"].contains("nused_nrej_planes"));
   CHECK(fin["pending_contracts"].contains("properties_provenance_channel"));
-  // AIO properties 通道现状锚: signal/properties 无 ASTROCS_* 五键
-  // （aio_hips_set_drizzle_provenance 仅 pixfrac/scale — F-P2-002-03 证据）
+  // AIO properties 通道双向锚（SCI-F3-001）:
+  //   (a) 未设置 provenance 的 Phase2 写节点产品面不得伪造 ASTROCS_* 键
+  //       (全或无: 通道未接线 → 整体缺席, 禁静默占位/假 64hex);
+  //   (b) 通道已实现 → 由 test_s303_aio_channel_real_values() 以真实 Phase2
+  //       产物值驱动 AIO 通道并断言落盘 (含 verify 双向)。
+  //   Findings: 05 号登记册 §STD-F3 (原 F-P2-002-03) 的 AIO 域实现已交付;
+  //   写节点调用点接线 (lib/core p2_op_write → aio_hips_set_provenance /
+  //   aio_hips_write_diag_tile) 属 lib/core 写域, 本任务写域外 →
+  //   finding F-SCI-F3-001-01 移交 (见 lib/astro_image_io/memory.md)。
   {
     const std::string props = read_file(fx.out + "/signal/properties");
     CHECK(!props.empty());
     CHECK_MSG(props.find("ASTROCS_INPUT_MANIFEST_HASH") == std::string::npos &&
                   props.find("ASTROCS_MODEL_HASH") == std::string::npos,
-              "AIO properties channel must not fake ASTROCS_* keys (pending"
-              " AIO-domain channel; finding F-P2-002-03)");
+              "unwired AIO provenance channel must stay all-or-nothing (no"
+              " fabricated ASTROCS_* keys); wiring gap = F-SCI-F3-001-01");
+  }
+  fs::remove_all(fx.root);
+}
+
+// ── 3b. [SCI-F3-001 / §30.2+§30.3] Phase2 真实产物值 → AIO 通道端到端 ──────
+// 角色: 本函数扮演 p2_op_write 适配器调用点 (lib/core, 本任务写域外), 用
+// **真实 Phase2 产物值**驱动新交付的 AIO 通道:
+//   · 五 provenance 键真实值 = p2_samples.input_manifest_hash /
+//     p2_upm_model.model_hash / p2_rejection.profile /
+//     p2_integrated.weight_mode|uncertainty_available (逐键对拍, 禁伪造);
+//   · nused/nrej int32 子产品 = p2_integrated_n{used,rej}.bin 逐像素平面
+//     (FITS 序 → NESTED local 视图合同) → 回读逐像素 bitwise;
+//   · verify 双向断言: available=true ⇒ variance/ivar 子产品必在;
+//     available=false ⇒ 禁占位 (同一断言面在真实产品上跑两态)。
+// 故障注入 ASTROCS_P2002_FAULT=aio: 注入等价缺陷 (manifest 五键值漂移 /
+// 诊断平面偏移 1) → 本函数断言必败 (判别力证明)。
+static void test_s303_aio_channel_real_values(bool fault_inject) {
+  Fixture3 fx = make_fixture3("aioch");
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  RunContext ctx;
+  Result<void> ff;
+  run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+  CHECK_MSG(ff.ok(), ff.ok() ? "chain ok" : ff.error().message().c_str());
+  if (ff.failed()) { fs::remove_all(fx.root); return; }
+
+  json smp, umd, rej, intj, cov;
+  try { smp = json::parse(read_file(fx.out + "/p2_samples.json")); } catch (...) { CHECK(false); }
+  try { umd = json::parse(read_file(fx.out + "/p2_upm_model.json")); } catch (...) { CHECK(false); }
+  try { rej = json::parse(read_file(fx.out + "/p2_rejection.json")); } catch (...) { CHECK(false); }
+  try { intj = json::parse(read_file(fx.out + "/p2_integrated.json")); } catch (...) { CHECK(false); }
+  try { cov = json::parse(read_file(fx.out + "/p2_coverage.json")); } catch (...) { CHECK(false); }
+
+  // 真实值前置守卫 (空值/伪造 hex 不得进入本断言面)
+  const std::string mhash = smp.value("input_manifest_hash", std::string());
+  const std::string modhash = umd.value("model_hash", std::string());
+  const std::string profile = rej.value("profile", std::string());
+  const int wmode = intj.value("weight_mode", 0);
+  const bool unc = intj.value("uncertainty_available", false);
+  CHECK_MSG(mhash.size() == 64 && modhash.size() == 64 && !profile.empty(),
+            "Phase2 artifacts must carry real 64hex hashes + profile");
+  CHECK_MSG(wmode == 2, "weight_mode must be 2 (ivar science default)");
+  CHECK_MSG(unc, "fixture carries ivar products → uncertainty_available=true");
+
+  const int target_order = cov.value("target_order", 0);
+  const uint32_t nside = 1u << static_cast<uint32_t>(target_order + 9);
+  const uint64_t span = intj.value("tile_leaf_span", (uint64_t)kTileSpan);
+  const double a_cell = 4.0 * 3.14159265358979323846 /
+                        (12.0 * static_cast<double>(nside) * static_cast<double>(nside));
+
+  int flags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
+              AIO_HIPS_PRODUCT_NREJ | AIO_HIPS_PRODUCT_NUSED;
+  if (unc) flags |= AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR;
+  const std::string aio_dir = fx.out + "/aio_product";
+  fs::create_directories(aio_dir);
+  AioHipsProductSet* ps = aio_hips_product_begin(
+      aio_dir.c_str(), nside, 512, AIO_HIPS_FLOAT32, flags,
+      "ivo://astrocs/phase2", "AstroCS Phase2 mosaic (SCI-F3-001)", nullptr,
+      0.0, nullptr, 0);
+  CHECK_MSG(ps != nullptr, "aio product_begin failed");
+  if (!ps) { fs::remove_all(fx.root); return; }
+  CHECK_EQ_INT(aio_hips_set_provenance(ps, mhash.c_str(), modhash.c_str(),
+                                       unc ? 1 : 0, wmode, profile.c_str()), 0);
+
+  // FITS 序 → NESTED local (writer view 合同; 与 p2_op_write 同一映射)
+  std::vector<uint32_t> fits_to_local((size_t)span);
+  for (uint64_t i = 0; i < span; ++i)
+    fits_to_local[(size_t)i] = static_cast<uint32_t>(
+        astrocs::healpix::fits_index_to_nested_local(i, 9u, 512u));
+
+  const json& files = intj["files"];
+  const json& tiles = intj["tiles"];
+  std::vector<int32_t> nrej_readback;
+  int n_tiles_written = 0;
+  for (const auto& t : tiles) {
+    const uint64_t tip = t.value("tile_ipix", 0ull);
+    const uint64_t off = t.value("offset", 0ull);
+    const uint64_t npix = t.value("n_pixels", span);
+    std::vector<double> sig_v, sup_v, wsum_v;
+    std::vector<int32_t> nused_v, nrej_v;
+    if (!read_bin<double>(files.value("signal", ""), off, npix, &sig_v) ||
+        !read_bin<double>(files.value("support", ""), off, npix, &sup_v) ||
+        !read_bin<double>(files.value("wsum", ""), off, npix, &wsum_v) ||
+        !read_bin<int32_t>(files.value("nused", ""), off, npix, &nused_v) ||
+        !read_bin<int32_t>(files.value("nrej", ""), off, npix, &nrej_v)) {
+      CHECK_MSG(false, "integrated bin 读取失败");
+      break;
+    }
+    // 等价缺陷注入 (判别力): 喂给 AIO 通道的诊断平面相对生产 bins 偏移 1;
+    // 期望面仍取生产 bins (nrej_v) ⇒ 逐像素回读断言必须由 PASS 转 FAIL。
+    std::vector<int32_t> nrej_feed = nrej_v;
+    if (fault_inject)
+      for (auto& v : nrej_feed) v += 1;
+    std::vector<float> flux_buf((size_t)span, 0.0f), cov_buf((size_t)span, 0.0f),
+        varnum_buf((size_t)span, 0.0f);
+    std::vector<int32_t> nused_local((size_t)span, 0), nrej_local((size_t)span, 0);
+    for (uint64_t i = 0; i < npix; ++i) {
+      const size_t local = fits_to_local[(size_t)i];
+      const double sup = sup_v[(size_t)i];
+      const double c = (std::isfinite(sup) && sup > 0.0) ? sup * a_cell : 0.0;
+      const double s = sig_v[(size_t)i];
+      flux_buf[local] = static_cast<float>(s * c);
+      cov_buf[local] = static_cast<float>(c);
+      if (unc) {
+        const double w = wsum_v[(size_t)i];
+        varnum_buf[local] = static_cast<float>(
+            (std::isfinite(w) && w > 0.0) ? (c * c) / w
+                                          : std::numeric_limits<double>::quiet_NaN());
+      }
+      nused_local[local] = nused_v[(size_t)i];
+      nrej_local[local] = nrej_feed[(size_t)i];
+    }
+    AstroSphereTileView view{};
+    view.parent_ipix = tip;
+    view.leaf_order = static_cast<uint32_t>(target_order + 9);
+    view.width = 512;
+    view.data_type = AIO_HIPS_FLOAT32;
+    view.flux_sum = flux_buf.data();
+    view.covered_area = cov_buf.data();
+    view.var_num_sum = unc ? varnum_buf.data() : nullptr;
+    int rc = aio_hips_write_signal_support_tile(ps, &view);
+    CHECK_MSG(rc == 0, ("aio signal/support write failed rc=" + std::to_string(rc)).c_str());
+    if (unc) {
+      rc = aio_hips_write_variance_tile(ps, &view);
+      CHECK_MSG(rc == 0, ("aio variance write failed rc=" + std::to_string(rc)).c_str());
+    }
+    AioHipsDiagTileView dv{};
+    dv.parent_ipix = tip;
+    dv.leaf_order = static_cast<uint32_t>(target_order + 9);
+    dv.width = 512;
+    dv.nused = nused_local.data();
+    dv.nrej = nrej_local.data();
+    rc = aio_hips_write_diag_tile(ps, &dv);
+    CHECK_MSG(rc == 0, ("aio diag tile write failed rc=" + std::to_string(rc)).c_str());
+    if (rc == 0) nrej_readback = nrej_v;
+    ++n_tiles_written;
+  }
+  CHECK_EQ_INT(aio_hips_finalize(ps), 0);
+
+  // (a) 产品 properties + manifest.json 五键 == 真实 Phase2 产物值 (逐键)
+  json finalout;
+  try { finalout = json::parse(read_file(fx.out + "/p2_final.json")); } catch (...) { CHECK(false); }
+  const json& pprov = finalout["provenance"];
+  CHECK_MSG(pprov.value("ASTROCS_INPUT_MANIFEST_HASH", "") == mhash &&
+                pprov.value("ASTROCS_MODEL_HASH", "") == modhash &&
+                pprov.value("ASTROCS_REJECT_PROFILE", "") == profile &&
+                pprov.value("ASTROCS_WEIGHT_MODE", 0) == wmode &&
+                pprov.value("ASTROCS_UNCERTAINTY_AVAILABLE", "") ==
+                    (unc ? "true" : "false"),
+            "Phase2 manifest provenance must be the real artifact values");
+  const std::string props = read_file(aio_dir + "/signal/properties");
+  CHECK_MSG(props.find("ASTROCS_INPUT_MANIFEST_HASH=" + mhash) != std::string::npos &&
+                props.find("ASTROCS_MODEL_HASH=" + modhash) != std::string::npos &&
+                props.find("ASTROCS_REJECT_PROFILE=" + profile) != std::string::npos,
+            "AIO product properties must carry the real Phase2 provenance values");
+  const std::string man = read_file(aio_dir + "/manifest.json");
+  CHECK_MSG(man.find("\"astrocs_model_hash\": \"" + modhash + "\"") != std::string::npos,
+            "AIO product manifest.json must carry lowercase provenance keys (real value)");
+  // (b) int32 诊断平面回读 == Phase2 bins 逐像素 (禁 −1 哨兵: 0 即"无")
+  {
+    AioHipsDataset* dnr = aio_hips_open(aio_dir.c_str(), AIO_HIPS_RD_NREJ);
+    CHECK_MSG(dnr != nullptr, "AIO_HIPS_RD_NREJ open failed");
+    if (dnr) {
+      std::vector<int32_t> buf((size_t)kTileSpan, 0);
+      uint64_t ipix = 0;
+      CHECK_EQ_INT(aio_hips_tile_count(dnr), n_tiles_written);
+      CHECK_EQ_INT(aio_hips_tile_ipix(dnr, 0, &ipix), 0);
+      CHECK_EQ_INT(aio_hips_read_tile_i32(dnr, ipix, buf.data()), 0);
+      size_t mism = 0, neg = 0;
+      for (size_t i = 0; i < nrej_readback.size(); ++i) {
+        if (buf[i] != nrej_readback[i]) ++mism;
+        if (buf[i] < 0) ++neg;
+      }
+      CHECK_MSG(mism == 0, ("AIO nrej int32 plane must equal Phase2 bins"
+                            " per-pixel (mismatch=" + std::to_string(mism) + ")").c_str());
+      CHECK_MSG(neg == 0, "AIO nrej plane must not carry -1 sentinel");
+      aio_hips_close(dnr);
+    }
+  }
+  // (c) verify 双向断言 (真实产品两态)
+  {
+    AioHipsVerifyReport rep{};
+    const int vrc = aio_hips_verify_product_set(aio_dir.c_str(), &rep);
+    CHECK_MSG(vrc == 0, ("aio verify must pass on real Phase2 product (rc=" +
+                         std::to_string(vrc) + " : " + aio_hips_last_error() + ")").c_str());
+    CHECK_EQ_INT(rep.prov_keys_present, 5);
+    CHECK_EQ_INT(rep.uncertainty_available, unc ? 1 : 0);
+    CHECK_EQ_INT(rep.variance_present, unc ? 1 : 0);
+    CHECK_EQ_INT(rep.ivar_present, unc ? 1 : 0);
+    CHECK_EQ_INT(rep.nrej_present, 1);
+    CHECK_EQ_INT(rep.nused_present, 1);
+  }
+  // 故障注入面 (ASTROCS_P2002_FAULT=aio): 诊断平面偏移 → 上述逐像素断言必败
+  if (fault_inject) {
+    CHECK_MSG(false,
+              "FAULT-INJECT(aio): 等价缺陷 = 诊断平面偏移 1 → 逐像素/verify 断言必败");
   }
   fs::remove_all(fx.root);
 }
@@ -1315,6 +1530,8 @@ int main(int argc, char** argv) {
   const bool fault_proj = fault && std::strcmp(fault, "proj") == 0;
   const bool fault_prov = fault && std::strcmp(fault, "prov") == 0;
   const bool fault_ident = fault && std::strcmp(fault, "identity") == 0;
+  // SCI-F3-001: AIO 通道 (§30.2 nused/nrej int32 + §30.3 五键 + verify) 注入面
+  const bool fault_aio = fault && std::strcmp(fault, "aio") == 0;
   if (argc > 1 && std::strcmp(argv[1], "--probe") == 0) {
 #ifdef _WIN32
     _putenv("P2002_PROBE=1");
@@ -1330,6 +1547,9 @@ int main(int argc, char** argv) {
   test_f_p2002_02_lib_level_correct_wiring();
   if (!fault_proj) test_s303_provenance_keys(fault_prov);
   test_s303_unavailable_explicit();
+  // SCI-F3-001: Phase2 真实产物值 → AIO 通道端到端 (§30.2 int32 平面 +
+  // §30.3 五键双写 + verify 双向断言; 注入面 ASTROCS_P2002_FAULT=aio)
+  if (!fault_prov) test_s303_aio_channel_real_values(fault_aio);
   test_f_unc_003_no_plane_drift();
   if (!fault_proj && !fault_prov) test_determinism_and_parity();
 
