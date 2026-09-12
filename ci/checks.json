@@ -3100,6 +3100,193 @@
       "prerequisite_tools": [
         "cmake"
       ]
+    },
+    {
+      "id": "CTEST-P1WCS-STD-F1-BRIDGE",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p1wcs_std_f1_bridge_cross",
+        "--output",
+        "run/ci/ctest/p1wcs_std_f1_bridge_cross.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p1wcs_std_f1_bridge_cross.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p1wcs_std_f1_bridge_cross"
+      ],
+      "prerequisite_tools": [
+        "python3:astropy",
+        "python3:numpy"
+      ]
+    },
+    {
+      "id": "CTEST-P2HIPS-UNITS",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p2hips_units",
+        "--output",
+        "run/ci/ctest/p2hips_units.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p2hips_units.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/astro_image_io/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p2hips_units"
+      ],
+      "prerequisite_tools": [
+        "python3:numpy"
+      ]
+    },
+    {
+      "id": "CTEST-P2HIPS-DETERMINISM",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p2hips_determinism",
+        "--output",
+        "run/ci/ctest/p2hips_determinism.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p2hips_determinism.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/astro_image_io/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p2hips_determinism"
+      ],
+      "prerequisite_tools": [
+        "python3:numpy"
+      ]
+    },
+    {
+      "id": "CTEST-P2HIPS-NEGATIVE",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p2hips_negative",
+        "--output",
+        "run/ci/ctest/p2hips_negative.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p2hips_negative.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/astro_image_io/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p2hips_negative"
+      ],
+      "prerequisite_tools": [
+        "python3:numpy"
+      ]
+    },
+    {
+      "id": "CTEST-P2HIPS-SELFCHECK",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p2hips_selfcheck",
+        "--output",
+        "run/ci/ctest/p2hips_selfcheck.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p2hips_selfcheck.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/astro_image_io/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p2hips_selfcheck"
+      ],
+      "prerequisite_tools": [
+        "python3:numpy"
+      ]
     }
   ]
 }

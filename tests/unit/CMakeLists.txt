@@ -489,6 +489,15 @@ add_subdirectory(../../lib/healpix_db/healpix_drizzle/tests/p1drz p1drz)
 add_subdirectory(../../lib/astro_image_io/tests/p1hips p1hips)
 
 # ----------------------------------------------------------------------------
+# P2-HIPS-TEST (TEST-P2HIPS-UNC-PROV-001, SCI-F3-001) —
+# lib/astro_image_io/src/hips NREJ/NUSED int32 子产品通道 +
+# DATA_SEMANTICS §30.3 五 provenance 键落盘 / verify 双向断言。
+# 独立验证者测试面（与实现者分离，含故障注入自检证明断言非恒真）;
+# 结构与注册详见 lib/astro_image_io/tests/p2hips/CMakeLists.txt。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/astro_image_io/tests/p2hips p2hips)
+
+# ----------------------------------------------------------------------------
 # P1-PHOT-TEST (TEST-P1-PHOT-001, lock-P1-PHOT) — lib/photometric_calib
 # 可复用验证面。结构与注册详见 lib/photometric_calib/tests/p1phot/
 # CMakeLists.txt (FIX-PHOT-A..F fixture / 独立 oracle / negative /
