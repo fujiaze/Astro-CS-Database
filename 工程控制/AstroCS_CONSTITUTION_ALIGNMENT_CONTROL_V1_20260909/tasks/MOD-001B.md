@@ -1,13 +1,15 @@
-# CI-002｜同SHA双虚拟机终验与候选
+# MOD-001B｜产品manifest生成与hash填充
 
 ## 目标
-当前最终 SHA 的 GitHub linux-main+windows-main 双 profile 全绿（不可豁免项逐项过）；产出 Windows 候选包（digest 双端复核）。本轮复验对象=e6254d4d 之后的新 run（上轮 attempt2 acceptance=fail 的四断点已修，retry 即可终验）。
+packaging/astrocs.product.json 由构建自动生成：product_version/source_commit=当前 SHA/每 unit sha256/status（SKELETON 全部消灭）；Windows 形态同步；sha256 与安装树一致。
 
 ## 依赖
-`CI-001B|CI-BASELINE-001|RT-001A|RT-001B|MOD-001B|CLI-001B|SCI-F2-001|SCI-F3-001`。BASE_SHA 取执行时最新 main（三 SHA 一致）。
+`MOD-001A`。BASE_SHA 取执行时最新 main（三 SHA 一致）。
 
 ## 写入白名单
-只读任务，不得修改 tracked 文件
+- `packaging/`
+- `cmake/`
+- `tests/`
 
 ## 非目标与禁令
 - 不顺手修复域外问题；发现后登记 finding（05 号登记册续写）。
@@ -23,7 +25,7 @@
 
 ## 验收
 - write_scope 零越界；预存 dirty 零覆盖；所有新测试故障注入必败。
-- 全部检查项 PASS 证据+候选 digest+SHA 一致。
+- manifest 四向一致（manifest-target-install-registry）+hash 抽验+版本=VERSION。
 - 一个任务一个原子 commit 并 push main；fetch 后核对 HEAD/main/origin/main 三 SHA。
 
 ## 返回证据

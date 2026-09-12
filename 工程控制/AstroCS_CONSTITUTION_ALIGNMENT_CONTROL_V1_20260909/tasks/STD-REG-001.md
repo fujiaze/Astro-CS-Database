@@ -1,13 +1,14 @@
-# CI-002｜同SHA双虚拟机终验与候选
+# STD-REG-001｜国际标准冻结注册表
 
 ## 目标
-当前最终 SHA 的 GitHub linux-main+windows-main 双 profile 全绿（不可豁免项逐项过）；产出 Windows 候选包（digest 双端复核）。本轮复验对象=e6254d4d 之后的新 run（上轮 attempt2 acceptance=fail 的四断点已修，retry 即可终验）。
+创建 docs/standards/STANDARDS_REGISTRY.md（ACTIVE_NORMATIVE，登记 DOCUMENT_INDEX）：领域→标准→版本→条款→符合性清单→偏差指针。映射：球面投影=FITS WCS Paper I/II（含 CRPIX 1-based/parity 语义）；HiPS=IVOA HiPS 1.0(+1.4 修订) 必需键集；HEALPix=Górski 2005 NESTED；Drizzle=Fruchter & Hook 2002；星表=Gaia DR3 data model；FITS=4.0。每域列当前实现符合状态与已知偏差（STD-F1 等）。
 
 ## 依赖
-`CI-001B|CI-BASELINE-001|RT-001A|RT-001B|MOD-001B|CLI-001B|SCI-F2-001|SCI-F3-001`。BASE_SHA 取执行时最新 main（三 SHA 一致）。
+`无硬依赖`。BASE_SHA 取执行时最新 main（三 SHA 一致）。
 
 ## 写入白名单
-只读任务，不得修改 tracked 文件
+- `docs/standards/`
+- `docs/DOCUMENT_INDEX.yaml`
 
 ## 非目标与禁令
 - 不顺手修复域外问题；发现后登记 finding（05 号登记册续写）。
@@ -23,7 +24,7 @@
 
 ## 验收
 - write_scope 零越界；预存 dirty 零覆盖；所有新测试故障注入必败。
-- 全部检查项 PASS 证据+候选 digest+SHA 一致。
+- doccheck 全绿；每域有符合性清单；WCS-003-F1 指针入册。
 - 一个任务一个原子 commit 并 push main；fetch 后核对 HEAD/main/origin/main 三 SHA。
 
 ## 返回证据

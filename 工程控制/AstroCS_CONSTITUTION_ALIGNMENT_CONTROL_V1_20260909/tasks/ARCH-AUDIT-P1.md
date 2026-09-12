@@ -1,26 +1,30 @@
-# ARCH-AUDIT-P1｜P1-001 独立架构抽验（负责人管理意见）
+# ARCH-AUDIT-P1｜P1-001独立架构抽验
 
-## 背景（owner 管理意见 2026-09-09）
-P1-001 前台验收 passed 仅代表任务验收结果，不代表 Phase1 产品可用。负责人要求对 P1-001 保留一次**独立架构抽验**（独立 SubAgent，非原实现者自查）。
+## 目标
+五项确认（真实PlateSolve/真实PSF拟合/标准HiPS/adapters薄层/不完整链禁complete），独立 SubAgent 非原实现者自查，从 git 历史与当前代码取证。
 
-## 抽验对象
-commit 9e09941a（P1-001 三域真实化）+ BASE=9e09941a 工作树。
+## 依赖
+`无硬依赖`。BASE_SHA 取执行时最新 main（三 SHA 一致）。
 
-## 五项确认（逐项给独立证据）
-1. **WCS 节点执行真实 Plate Solve**——ipv 求解器链真实调用（gaia 句柄、ipv_solve_from_memory_with_callback_d），不是仅消费配置 WCS 做 pix2sky；Linux stub fail-closed 行为符合平台合同（不冒充）。
-2. **PSF 节点执行真实 PSF 拟合**——dpsf_fit_batch_f64 Moffat4 真实拟合，不是用星源特征（fwhm/ellipticity）代替。
-3. **writer 生成标准化单帧 HiPS**——IVOA 1.4 标准 HiPS（signal/support/properties/MOC），不是 calibrated FITS 改名。
-4. **module_adapters.cpp 没有成为新的巨型科学实现层**——节点薄适配、科学实现在对应模块库；检查行数/职责边界/是否内联了本应在模块库的科学代码。
-5. **不完整 Phase1 链不能写 complete**——complete 门语义核实 + 故障注入某节点后下游 call_count 必须为零的用例真实存在且必败。
+## 写入白名单
+只读任务，不得修改 tracked 文件
 
-## 边界
-- read-only：零代码写入（审查报告落 evidence）；发现缺陷登记 finding 移交，不修。
-- 审查独立性：从 git 历史与当前代码独立取证，不采信 P1-001 agent 自述。
+## 非目标与禁令
+- 不顺手修复域外问题；发现后登记 finding（05 号登记册续写）。
+- 不修改/放宽科学公式、默认容差、冻结门或负责人裁决。
 - 不 reset/stash/clean/rebase；不创建 branch/worktree/clone；SubAgent 不 git add/commit/push。
+- 新增/修改测试必须同提交注册 CI 检查项（宪章 §17 + 负责人 CI 指令）；运行产物禁止落根目录。
+
+## 必须动作
+1. 读取冻结宪章相关条款、STD 注册表（如已建立）、本任务域 SCI/ALG/DATA/ARCH 文档。
+2. 测试设计先行：先红后绿、负向注入必败、1/N worker parity（适用时）、确定性 bitwise（适用时）。
+3. 执行并保存命令证据（timeout/cwd/argv/起止/rc/stdout/stderr/SHA）；heavy 同 run ID 资源监控。
+4. 同步订正 CI：新测试目标→checks.json 显式检查项；漂移锚→复测工具。
 
 ## 验收
-- 五项逐项结论（PASS/FAIL/CONCERN + 证据定位）；
-- 前台复验后才可 PASS；若有登记面修改，单独原子 commit。
+- write_scope 零越界；预存 dirty 零覆盖；所有新测试故障注入必败。
+- 按上方目标逐项通过，前台机器复跑后才可 PASS。
+- 一个任务一个原子 commit 并 push main；fetch 后核对 HEAD/main/origin/main 三 SHA。
 
 ## 返回证据
-schema 要求 scope/acceptance/provenance + artifacts（逐项证据定位表：文件:行号、测试名、git show 片段）；不得伪造 PASS。
+scope/acceptance/provenance 三检查 + changed_files + 命令日志 + 任务特化产物。

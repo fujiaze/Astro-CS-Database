@@ -1,13 +1,15 @@
-# CI-002｜同SHA双虚拟机终验与候选
+# CI-BASELINE-001｜known-failures基线机器化
 
 ## 目标
-当前最终 SHA 的 GitHub linux-main+windows-main 双 profile 全绿（不可豁免项逐项过）；产出 Windows 候选包（digest 双端复核）。本轮复验对象=e6254d4d 之后的新 run（上轮 attempt2 acceptance=fail 的四断点已修，retry 即可终验）。
+1. known_failures_baseline.py 接入 CI：全量测试结果必须满足 失败集 ⊆ 版本化基线（基线入库，每项含首次登记 commit/原因/owner）；2. 新失败不在基线 = 检查 FAIL；3. 把 F-AIO-001(p1_noise_adapter)、UT-CLI 修复前遗留等显式登记进基线。
 
 ## 依赖
-`CI-001B|CI-BASELINE-001|RT-001A|RT-001B|MOD-001B|CLI-001B|SCI-F2-001|SCI-F3-001`。BASE_SHA 取执行时最新 main（三 SHA 一致）。
+`CI-REG-002`。BASE_SHA 取执行时最新 main（三 SHA 一致）。
 
 ## 写入白名单
-只读任务，不得修改 tracked 文件
+- `tools/quality/`
+- `ci/`
+- `tests/`
 
 ## 非目标与禁令
 - 不顺手修复域外问题；发现后登记 finding（05 号登记册续写）。
@@ -23,7 +25,7 @@
 
 ## 验收
 - write_scope 零越界；预存 dirty 零覆盖；所有新测试故障注入必败。
-- 全部检查项 PASS 证据+候选 digest+SHA 一致。
+- 构造一个不在基线的假失败必 FAIL；基线项失败全绿。
 - 一个任务一个原子 commit 并 push main；fetch 后核对 HEAD/main/origin/main 三 SHA。
 
 ## 返回证据

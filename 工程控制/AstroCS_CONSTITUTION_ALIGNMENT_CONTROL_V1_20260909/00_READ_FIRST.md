@@ -43,3 +43,53 @@
   `VIS-001`（固定拉伸初审）；`WIN-001`（同候选真实数据复验子集）。任务总数 30。
 - 状态真相源：`工程控制/ACTIVITY_STATE.md` 与执行态 TASK_STATE；`TASK_LEDGER.csv` 状态列
   为 rev3 同步快照（2026-09-10），后续以活动状态文件为准。
+- rev3.1（2026-09-10/11）：REAL-001 增三级成功率硬门（parse/校准/solve 各≥99%）、
+  九宫格（中心+四角+四边中点）solve 视觉抽检、Phase3 平面导出+拉伸预览接入；
+  VIS-001 增九宫格逐格视觉判定与 Phase3 视觉核验节。
+- **05_FINDINGS_REGISTER_20260911.md：下一轮控制包必须把 STD-F1/F2/F3 与 STD-REG-001
+  转为任务或负责人裁决项**。
+- **06_V2_PACK_DESIGN_20260911.md：第二阶段控制包编制总纲（三层 CI 拓扑/并行分组/
+  CI 修复常驻线/轮报义务）。下一轮按此编制 V2 控制包，V1 剩余任务并入。**
+
+## 7. V2 重编与启动快照制（rev5，2026-09-11）
+
+负责人指令：**不搞复杂冻结**——前台 Agent 每次启动时把当前状态写入
+`run/pack_state/STARTUP_SNAPSHOT.json`（HEAD/origin/main/三 SHA、dirty 清单、台账状态、
+上一轮 CI 结果路径）即可，你和 Agent 共用同一工作区，不设额外冻结仪式。
+
+V2 谱系（47 任务）：V1 已闭环 22 项以 PASSED 并入；新任务 25 项按
+`06_V2_PACK_DESIGN_20260911.md` 六条线组织（CI 订正/治理标准/科学缺陷/架构/真实数据/收口）。
+门禁链：G-STD→G-SCI→G-CODE→G-CI-L1→G-REAL-L2→G-FAT-L3→G-RELEASE。
+
+核心要求（负责人原文口径）：
+1. 所有模块符合架构设计文档（docs/architecture/）；2. SCI/算法文档/代码三者统一；
+3. 合成测试全部通过且正确（known-failures 基线机器化）；4. 按三层 CI 跑全量测试：
+   GitHub 双虚拟机（编译+合成）→ 本机 Linux（真实数据）→ Fatduck（Windows 真实数据）；
+5. 主线开发与 CI 报错修复并行（CI-REPAIR 常驻线，每轮拉回上一轮结果）。
+
+## 8. rev6 重编（2026-09-12，前台接续执行）
+
+接续上一前台会话中断处（该会话末态：HEAD=`54287b48`，SCI-F2-001 已部分交付并 review_pass，
+SCI-F3-001 已派发但子代理随会话中断而孤立）。rev6 的编制依据是**实测**而非推测：
+
+- **CI 红灯事实源**：前台亲自回拉 HEAD 的 GitHub Checks 全量结果（`run/ci_repair/round4/`），
+  linux-main 实测 14 项非 PASS、windows-main 9 项非 PASS，并**逐条本地复现根因**后才落任务；
+- **裁决留档**：新增 `07_FRONT_DESK_RULINGS_20260912.md`（R-01…R-14 + B-01…B-04），
+  **所有重要裁决一律留档**；能依宪章裁决的一律裁决，只有宪章无法裁决且属负责人专属权限的才登记 `BLOCKED_EXTERNAL`；
+- **解除旧 BLOCKED_EXTERNAL**：`STD-F1-ADJ`（→R-02 方案 b，转 repo-write 正常派发）、`WIN-000`（→B-03 仅数据授权待裁）；
+- **lane 拓扑变更（R-01）**：`ci-repair` lane **停止派发新任务**，全部 tracked 写归 `repo-write`
+  （capacity 1），依宪章 §14.5「同一工作区 tracked 文件写入必须串行」；真实并行度来自
+  `read-only`(4) + `realdata`(1) + `windows`(1)（只写 gitignore 区）。
+- **写域补正（R-03）**：`SCI-F2-001` 写域由 `lib/phase2/` 修正为
+  `lib/core/src/module_adapters.cpp;lib/phase2/;tests/`（真实修复面）；新增 `CORE-RACE-001`。
+
+任务谱系 47 → **57**（新增 10 项 CI 承接任务，见 `07` §R-04 红灯→任务映射表）。
+门禁链增加 `G-CI-FIX`（10 项 CI 承接任务全通过），`CI-002` 以 `requires: G-CI-FIX` 接线。
+
+**派发优先级（repo-write 串行队列）**：
+`GOV-AGENTS-001`(250) → `CI-DATA-REG-001`(245) → `CI-VER-CHK-001`(240) → `WCS-PATH-001`(235)
+→ `ARCH-TB-001`(230) → `CORE-RACE-001`(228) → `CON-COMMENT-001`(225) → `CI-WIN-001`(220)
+→ `CI-BACKEND-001`(215) → `CI-REPAIR-002`(210) → `STD-REG-001`… 既有队列。
+
+**前台义务不变**：逐任务机器验收、精确暂存、原子 commit 并 push、`fetch` 后核对三 SHA；
+SubAgent 不 commit/push/改总台账；预存 dirty 继续登记不收编。
