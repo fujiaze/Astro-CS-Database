@@ -9,10 +9,12 @@
 ## 1. 一句话结论
 
 ```text
-Alpha 收敛进行中：合同面（工程约束/版本单源/文档索引/ABI v1/数据产物/Runtime 图/
-工具链 preset/DLL schema/FITS 流接口/CLI 协议）已冻结入 main；CLI-002 已完成
-三入口隔离（run --phases 删除）；MON-004 资源门禁已接入 phaseN run 生产路径；
-Windows 发布执行面与真实数据/32R 验收未完成 → NOT_READY_FOR_RELEASE。
+Alpha 收敛主体已完成：合同面（工程约束/版本单源/文档索引/ABI v1/数据产物/Runtime 图/
+工具链 preset/DLL schema/FITS 流接口/CLI 协议/内核标准注册表）已冻结入 main；
+CLI-002 完成三入口隔离（run --phases 删除）；三 Phase 节点化（§F.1）、RT 唯一
+executor + 实测资源门、Phase3 四投影 registry、MOD 安装面与 CLI validate/plan/inspect
+均已落地（BASE=da3c4b4a 实测）；Windows 发布执行面与真实数据/32R 验收未完成 →
+NOT_READY_FOR_RELEASE。
 ```
 
 ## 2. 版本口径
@@ -31,7 +33,11 @@ Windows 发布执行面与真实数据/32R 验收未完成 → NOT_READY_FOR_REL
 | 工程约束/文档索引/版本单源 | 根约束 + `docs/DOCUMENT_INDEX.yaml` + `VERSION`（GOV-001/002/003） |
 | CLI 协议合同 v1 | `docs/api/CLI_PROTOCOL_V1.md`（API-CLI-001，与 `cli/parser.cpp` kRules 对齐） |
 | 三入口隔离 | CLI-002：phase1/2/3 run 唯一 run 入口；run/graph 已删（负测 exit 2） |
-| 资源门禁接线 | MON-004：`cli/resource_gate.h` evaluate_gate 进入 phaseN run（exit 10） |
+| 资源门禁接线 | RT-001（`91440c16`）冻结阈值 + MON-004：`cli/resource_gate.h` evaluate_gate 进入 phaseN run（exit 10） |
+| 三 Phase 节点化（§F.1 每节点唯一 operation） | P1-001/`9e09941a`、P2-001/`439f9f20`、P3-002/`1a56ffb7`；`lib/core/src/module_adapters.cpp`:4257/:4282/:4309 |
+| Phase3 冻结四投影 registry（TAN/SIN/CAR/AIT） | P3-001/`9953f103`；`lib/phase3_proj/p3_projection.cpp`:267-273（生产挂载 entrypoint=MISSING，未 INSTALLED） |
+| 科学模块安装面 + 产品清单 | MOD-001/`59fdeab3`：`cmake/install_layout.cmake` + `packaging/astrocs.product.json` units=10 + 安全 loader 实测 64/64 |
+| CLI validate/plan/inspect 薄命令面 | CLI-001/`026717fd`：`cli/parser.cpp` kRules + `tests/cli/test_cli001_vpi.py` 15/15 |
 | C ABI v1 / DLL schema | `include/astrocs/abi/*.h` + `contracts/config/module_dll_contract.schema.json` |
 | 数据产物/交换合同 | DATA-001/002（schema/registry/validator/矩阵） |
 | Runtime 类型化运行图 | RT-001（typed_dag/registry/负测） |
@@ -42,11 +48,12 @@ Windows 发布执行面与真实数据/32R 验收未完成 → NOT_READY_FOR_REL
 
 | 面 | 说明 |
 |---|---|
-| Windows DLL 化发布安装树 | 未产出/验证（目标 astrocs.exe + runtime/io/模块/provider DLL） |
+| Windows DLL 化发布安装树（Windows 侧复验） | 未产出/验证（目标 astrocs.exe + runtime/io/模块/provider DLL）；Linux 技术预览安装面已 INSTALLED |
 | MSVC 编译 + 测试 / 32R / 真实数据 | Windows/Fatduck 侧执行，FINAL_REAL_DATA_VALIDATION=PENDING |
-| Phase3 扩展 | SIN/ZEA/CAR/AIT、healpix_interp4、流式 FITS 接入未实现 |
-| §F.1 每节点唯一 operation | factory 仍委托同一 phaseN session（W3/W4 域） |
-| 各执行验收当前提交复跑 | 未复跑，不冒充（历史存档只作追溯） |
+| Phase3 四投影生产挂载 | registry 已 IMPLEMENTED，会话/DLL 未切换（`entrypoint: MISSING`，P3-PROJ-INT 域） |
+| healpix_interp4 / 流式 FITS 接入 | 未实现（NOT_IMPLEMENTED） |
+| ~~§F.1 每节点唯一 operation~~ | **已完成**（DOC-CONV-001 复核：P1 8 / P2 7 / P3 5 节点，ctest `p1001/p2001/p3002` 实测） |
+| 各端到端执行验收当前提交复跑 | 未复跑，不冒充（历史存档只作追溯） |
 
 ## 5. 发布 Gate 口径
 

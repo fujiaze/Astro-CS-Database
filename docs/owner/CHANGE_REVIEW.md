@@ -2,10 +2,12 @@
 
 > 文档 ID：DOC-GOV-OWNER-CHANGE-001
 > 状态：ACTIVE_NORMATIVE（GOV-004 建立，SA-GOV-01）
-> 基线提交：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004 工作树检出的基）
+> 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004 工作树检出的基）
+> 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
 > 目标产品：`0.11.0-alpha.2`（根 VERSION）
-> 状态词约定同 SCIENCE_OVERVIEW；本文件汇总"本轮已集成到 main 的变化"与
-> GOV-004 本次文档骨架变化，供负责人逐项审查。
+> 状态词约定同 `docs/owner/RELEASE_STATUS.md` §0（`CONTRACT_READY`/`IMPLEMENTED`/
+> `INSTALLED`/`VERIFIED` 阶梯）；本文件汇总"已集成到 main 的变化"、
+> GOV-004 文档骨架变化与 DOC-CONV-001 状态收敛，供负责人逐项审查。
 
 ## 1. 本轮集成到 main 的变更（基线之前的提交链，依 00_READ_FIRST 与 git 历史）
 
@@ -33,8 +35,8 @@
 | 文件 | 动作 | 说明 |
 |---|---|---|
 | `REVIEW.md` | 重写 | L0 负责人入口：一句话结论、5 份 docs/owner 链接、进度、组件状态表、关键结论、发布口径 |
-| `docs/owner/SCIENCE_OVERVIEW.md` | 新增 | 科学权威汇总；Phase1/2/3 逐项状态；SIN/ZEA/CAR/AIT、interp4、流式 FITS 接入 NOT_VERIFIED |
-| `docs/owner/PIPELINE_OVERVIEW.md` | 新增 | 三 Phase 隔离模型与内部链；run --phases 遗留 FAIL 如实记录 |
+| `docs/owner/SCIENCE_OVERVIEW.md` | 新增 | 科学权威汇总；Phase1/2/3 逐项状态（**历史条目**：当时标 SIN/ZEA/CAR/AIT + interp4 + 流式 FITS 为未实现，其中四投影口径已由 §7 更正为 TAN/SIN/CAR/AIT 且已 IMPLEMENTED） |
+| `docs/owner/PIPELINE_OVERVIEW.md` | 新增 | 三 Phase 隔离模型与内部链（**历史条目**：当时 run --phases 仍未删；该入口已由 CLI-002 删除，见 §5-2） |
 | `docs/owner/ARCHITECTURE_OVERVIEW.md` | 新增 | Windows 优先、ACR dormant、唯一 Runtime、依赖方向、契约索引 |
 | `docs/owner/RELEASE_STATUS.md` | 新增 | 版本/发布面、冻结 PASS 清单、未完成 NOT_VERIFIED 清单、发布结论 |
 | `docs/owner/CHANGE_REVIEW.md` | 新增 | 本轮变化汇总、影响、验证、已知限制（本文） |
@@ -64,15 +66,22 @@
 1. **执行验收未在当前提交复跑**：Phase1/2/3 合成/门禁、资源监控、IO 契约 pytest、
    Windows MSVC —— 均属他人域或需要构建/Windows 资源，本文档任务不执行，
    统一标 NOT_VERIFIED（不冒充）。
-2. **`astrocs run --phases 1,2,3` 遗留未删**：与约束 §A.4 冲突，属 W4「删除伪/旧路由」，
-   由 SA-CLI-04/前台域处理；本文档如实 FAIL 记录（cli/** 不在 GOV-004 写域）。
-3. **每 DAG 节点唯一真实模块 operation 未达成（约束 §F.1）**：IR 子模块
-   （Phase2 七节点/Phase3 五节点等）的 factory 在 `lib/core/src/module_adapters.cpp`
-   中全部委托同一 phaseN session（P1Api/P2Api/P3Api `*_session_run`），
-   属"多节点重复包装同一 Session"中间态；真实模块化 + entry 绑定属 W3/RT-002+，
-   cli/、lib/core/ 非 GOV-004 写域，本文只如实记录（REVIEW/PIPELINE 同口径）。
-4. **SIN/ZEA/CAR/AIT、healpix_interp4、Phase3 流式 FITS 接入**：当前基线未实现，
-   文档 NOT_VERIFIED（SA-P3-* 后续任务域）。
+2. ~~`astrocs run --phases 1,2,3` 遗留未删~~ → **已由 CLI-002 删除**（DOC-CONV-001
+   复核：kRules 无 `run`/`graph`；实测 `astrocs run --phases 1,2,3` → rc=2
+   `unknown command 'run'`），与约束 §A.4 一致。
+3. ~~每 DAG 节点唯一真实模块 operation 未达成（约束 §F.1）~~ → **已由 P1-001
+   （`9e09941a`）、P2-001（`439f9f20`）、P3-002（`1a56ffb7`）达成**：
+   `lib/core/src/module_adapters.cpp`:4257/:4282/:4309 的 P1 八节点 / P2 七节点 /
+   P3 五节点各绑唯一真实 operation；DOC-CONV-001 本提交以 ctest
+   `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty`
+   4/4 实测复核。
+4. **Phase3 投影与扩展**（DOC-CONV-001 更正）：负责人裁决 §18.1 冻结的**四投影为
+   TAN+SIN+CAR+AIT**（旧表述含 ZEA 已更正）——registry v1 实现已落位
+   （`lib/phase3_proj/p3_projection.cpp`:267-273）并经 ctest
+   `p3_projection_units`/`p3_projection_fault` 与独立 numpy Oracle 实测（`IMPLEMENTED`），
+   但生产会话/DLL 挂载未切换（`module.yaml` `entrypoint: MISSING` → 非 `INSTALLED`）；
+   `healpix_interp4` 与 Phase3 流式 FITS 接入当前 `NOT_IMPLEMENTED`（P3-RSMP/P3-PROJ-INT
+   后续任务域）。
 5. **DLL 化发布安装树/Windows 验收**：未完成（W2 后宿主/DLL 迁移 + G6 Windows 域）。
 6. **io→core 依赖方向与 ARCH-001 §3 差异**：架构域待审（本文只如实记录）。
 7. **module_ports.registry 中 entry 为声明名**：真实 DLL 绑定属 ABI-00x/RT-002+（registry note 原文）。
@@ -88,7 +97,54 @@
 未出现未验证的"已实现"表述。本 patch 通过三个 doccheck 检查器；
 文档级验收在返回包 logs 留档。
 
+## 7. DOC-CONV-001：L0 与模块状态文档收敛（本次提交）
+
+BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`（执行时 HEAD = main =
+origin/main 三 SHA 一致）；cprun run `Rmtxvlrtfa66eb7` rev23 / dispatch
+`7c0b15abaee56640`。`scientific_change=false`：只改状态表述与证据锚，
+不动任何公式、容差、冻结门、负责人裁决、生产源码与测试。
+
+| 动作 | 内容 |
+|---|---|
+| 状态词统一 | 全 L0 文档由历史三级口径（合同冻结/源码在位/执行验收）切换为 `CONTRACT_READY`/`IMPLEMENTED`/`INSTALLED`/`VERIFIED` 阶梯，权威定义 = `docs/owner/RELEASE_STATUS.md` §0 |
+| 删除已修复项的陈旧陈述 | `run --phases` 遗留（CLI-002 已删）、§F.1 节点化（P1/P2/P3 已完成）、四投影（P3-001 已实现）三处 NOT_VERIFIED 以当前提交证据替换 |
+| 更正错误事实 | 冻结四投影由旧表述 `SIN/ZEA/CAR/AIT` 更正为宪章 §18.1 的 `TAN+SIN+CAR+AIT`；`cli/runtime_client.cpp` Phase1 IR 由"单节点"更正为 cal→cosmetic 两节点 |
+| 落地状态分层 | MOD 安装面与 CLI 命令面按实测写 `INSTALLED`；四投影/会话路径写 `IMPLEMENTED`（`entrypoint: MISSING` 不冒认）；Windows/真实数据保持 `NOT_VERIFIED` |
+| 模块地图 | `docs/architecture/MODULE_MAP.md` 重写为"模块/路径/交付状态/证据锚"列，覆盖 `lib/` 全部模块目录 |
+
+本提交内的执行级证据（日志 `run/docconv001/logs/`）：
+
+| 检查 | 命令 | 结果 |
+|---|---|---|
+| 全量构建 | `ninja -C build` | rc=0（28/28 步） |
+| 节点化（三 Phase） | `ctest -R "p1001_real_nodes\|p2001_real_nodes\|p3002_real_nodes\|p3002_uncertainty"` | 4/4 PASS |
+| 四投影 registry | `ctest -R "p3_projection_units\|p3_projection_fault"` | 2/2 PASS |
+| RT 唯一 executor | `ctest -R rt001_unique_executor` | PASS |
+| MOD 安装面/安全 loader | `python3 tests/abi/mod001_install_load_check.py --build-dir build` | 64/64 PASS（含负向注入必败） |
+| CLI 命令面 | `python3 -m pytest tests/cli/test_cli001_vpi.py -q` | 15/15 PASS |
+| 遗留入口已删 | `build/cli/astrocs run --phases 1,2,3` | rc=2 `unknown command 'run'` |
+| doccheck 全套 | `check_doc_index.py --strict` / `check_engineering_constraints.py` / `check_version_namespaces.py` / `check_l0_docs.py` / `check_standards_registry.py` / `check_api_docs.py` / `check_glossary.py` / `check_doc_symbols.py` | 全部 rc=0 |
+
+域外项（DOC-CONV-001 写白名单 = `REVIEW.md` / `docs/` / `memory.md`，以下均未改动）：
+
+1. `lib/*/README.md`（任务目标提及）不在写白名单内 → 未改动，移交 lib/ 写域任务；
+2. 跨 L0 文档状态词一致性目前**无 CI 检查项** → 建议 tools/+ci/ 域任务补 checker
+   并在同提交注册 `ci/checks.json` 显式检查项；
+3. 05 号 findings 登记册与 `ci/checks.json` 均在写白名单外 → 本文与 `memory.md`
+   如实登记，由前台并入登记册；
+4. **F-DOC-CONV-001-06（HEAD 预存 CI 红灯，非本任务引入）**：`tests/version`（UT-VERSION）在
+   BASE=`da3c4b4a` 即失败 —— `tools/check_version_consistency.py` rc=1，19 条
+   findings 全部落在 `docs/standards/STANDARDS_REGISTRY.md`（该文件相对 HEAD 零
+   diff），成因为注册表内 FITS WCS Paper I 与 IVOA HiPS 的**条款编号**（形如
+   §a.b.c 的节号）被版本一致性检查器误判为"未知版本字面量"，疑为 STD-REG-001
+   （`fb7f232a`）检查器口径缺口；本任务写域外，只登记
+   不修（建议 CI-REPAIR 常驻线处置：检查器排除 `§` 前缀条款号，或 registry 冻结表
+   加机器豁免字段）。
+
 ---
 authoring_task: GOV-004
 authoring_owner: SA-GOV-01
 base_main_sha: caee3e67e5a209a9e47b514f42b2b63f3dc4da4e
+convergence_task: DOC-CONV-001
+convergence_base_sha: da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540
+

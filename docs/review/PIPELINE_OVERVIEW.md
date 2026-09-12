@@ -44,16 +44,21 @@ Phase3: 任一合同兼容 HiPS（不要求来自 Phase2） → 平面 FITS + WC
   `runtime/pipeline/module_ports.registry.json`。
 - Phase2：`coverage → sample → upm → reject → integrate → write`
   （`lib/phase2_session/p2_session.cpp`、`lib/phase2/src/*.cpp`）。
-- Phase3：TAN 投影 + nearest/bilinear 重采样 + FITS 原子写
-  （`lib/phase3_session/{p3_session,p3_wcs,p3_resample,p3_output}.cpp`）；
-  SIN/ZEA/CAR/AIT、`healpix_interp4` 未实现，不宣称。
+- Phase3：会话路径 TAN 投影 + nearest/bilinear 重采样 + FITS 原子写
+  （`lib/phase3_session/` 下 p3_session/p3_wcs/p3_resample/p3_output）；
+  冻结四投影 TAN/SIN/CAR/AIT 已在 `lib/phase3_proj/p3_projection.cpp`（registry v1）
+  实现并通过 ctest/Oracle（生产挂载未切换，`entrypoint: MISSING`）；
+  `healpix_interp4` 未实现，不宣称。
+- 三 Phase 节点化（每 IR 节点唯一真实 operation，§F.1）已完成：
+  `lib/core/src/module_adapters.cpp`:4257/:4282/:4309；
+  ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes` 在 BASE=`da3c4b4a` 实测 rc=0。
 
 ## 4. 已知缺口（如实记录）
 
-1. 约束 §F.1「每 DAG 节点唯一真实模块 operation」未完全达成：
-   `lib/core/src/module_adapters.cpp` 中 IR 子模块 factory 仍委托同一
-   phaseN session（W3 模块化范围），不宣称已实现。
-2. 单 Phase 执行验收（当前提交复跑）NOT_VERIFIED；历史存档不冒充。
+1. ~~约束 §F.1 未完全达成~~ → **已完成**（DOC-CONV-001 复核）：P1 八节点 / P2 七节点 /
+   P3 五节点全部唯一真实 operation，见 PIPELINE_OVERVIEW（owner 层）§2–§4 与节点化 ctest。
+2. 单 Phase 端到端执行验收（独立进程冒烟，当前提交复跑）仍 NOT_VERIFIED；
+   历史存档不冒充。
 3. Phase3 流式 FITS 输出接入：IO-001 接口在位，p3 writer 仍走 CFITSIO 原子写。
 
 ---
