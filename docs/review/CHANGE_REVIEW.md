@@ -43,9 +43,14 @@ docs/review/ 曾在 GOV-002 归档（现 `docs/archive/review/`，ARCHIVED_NON_N
 
 1. 本层与 `docs/owner/` 为双入口并存（检查器路径要求 docs/review/，治理权威
    登记 docs/owner/）；两处口径已对齐，后续收敛（若合并路径）属负责人决策。
-2. `docs/owner/` 五份文档部分表述仍停留在 GOV-004 基线（如 §F.1、执行验收
-   状态），其收敛属 GOV-005/owner 域，本层不代改。
-3. 执行验收（合成/门禁/Windows）未在当前提交复跑，一律 NOT_VERIFIED，不冒充。
+2. ~~`docs/owner/` 五份文档部分表述仍停留在 GOV-004 基线~~ → **已由 DOC-CONV-001
+   收敛**（cprun run `Rmtxvlrtfa66eb7` rev23，BASE_SHA
+   `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`）：docs/owner 五份与 REVIEW.md 已改用
+   `CONTRACT_READY`/`IMPLEMENTED`/`INSTALLED`/`VERIFIED` 阶梯；已修复项
+   （run --phases 入口已删除 / §F.1 节点化已完成 / 四投影已 IMPLEMENTED）的
+   NOT_VERIFIED 陈述已删除，本层同步对齐。
+3. 端到端执行验收（独立进程合成/门禁/Windows）未在当前提交复跑，一律
+   NOT_VERIFIED，不冒充。
 
 ---
 authoring_task: DOC-L0

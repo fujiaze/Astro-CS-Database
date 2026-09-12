@@ -14,7 +14,9 @@
 - Windows 用户只面对 `astrocs.exe`；runtime/io/科学模块/CPU provider 以 DLL 交付（§B.4）。
 - 现状：合同面已冻结（`CMakePresets.json` BLD-001、唯一根 CMake BLD-002、
   C ABI v1 `include/astrocs/abi/*.h`、DLL 边界 schema ARC-001）；
-  Windows DLL 化发布安装树与 MSVC/32R/真实数据验收未完成（NOT_VERIFIED，不宣称已交付）。
+  **Linux 技术预览安装面已 INSTALLED**（`cmake/install_layout.cmake` 五科学模块 +
+  `packaging/astrocs.product.json` units=10 + 安全 loader 实测 64/64）；
+  Windows 安装树与 MSVC/32R/真实数据验收未完成（NOT_VERIFIED，不宣称 Windows 已交付）。
 
 ## 2. ACR 状态（约束 §C）
 
@@ -46,13 +48,14 @@
 ## 5. 状态汇总
 
 ```text
-Windows 优先合同面:   PASS（preset + 唯一根 CMake + ABI v1 + DLL schema）
-Windows 发布执行面:    NOT_VERIFIED（DLL 安装树/MSVC/32R/真实数据）
-ACR:                 DORMANT（生产排除；纯 CPU 后端）
-唯一 Runtime/typed DAG: PASS
-资源门禁生产接线:      PASS（MON-004，源码在位；执行验收 NOT_VERIFIED）
-遗留 run --phases 连跑: 已删除（CLI-002，负测断言 exit 2）
-§F.1 每节点唯一 operation: 进行中（factory 委托同一 phaseN session，W3）
+Windows 优先合同面:      CONTRACT_READY（preset + 唯一根 CMake + ABI v1 + DLL schema）
+Linux 技术预览安装面:    INSTALLED（5 科学模块 + noop / 10 units / loader 64/64 实测）
+Windows 发布执行面:       NOT_VERIFIED（Windows 安装树/MSVC/32R/真实数据）
+ACR:                    DORMANT（生产排除；纯 CPU 后端）
+唯一 Runtime/typed DAG:  IMPLEMENTED（合同 + 源码 + 实测）
+资源门禁生产接线:         IMPLEMENTED（RT-001 冻结阈值 + MON-004 phaseN run 接线）
+遗留 run --phases 连跑:   已删除 IMPLEMENTED（CLI-002；实测 exit 2）
+§F.1 每节点唯一 operation: IMPLEMENTED（P1 8 / P2 7 / P3 5 节点；ctest 实测）
 ```
 
 ---
