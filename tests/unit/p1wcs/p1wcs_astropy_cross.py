@@ -15,30 +15,237 @@
 #         → |Δ| < 1e-4 px (冻结门同量级);
 #      c) 扩展逆向交叉: astropy 前向 SIP 语义下, C++ APx/BPx 一步直加
 #         (测试面独立重放) 误差与导出 onestep 表一致 (防导出失真)。
-#   3. 结果 JSON 落 run/p1wcs_wcs003/wcs003_astropy_cross.json。
+#   3. 结果 JSON 落工作目录 wcs003_astropy_cross.json。
+#
+# 工作目录解析 (环境无关化; 裁决 R-14 + 宪章 §14.1「不写死服务器绝对路径」;
+# 本文件不含任何硬编码绝对路径):
+#   1. --work-dir DIR            显式最高优先; 两产物均落 DIR 下;
+#   2. P1WCS_CROSS_WORK_DIR      环境变量显式覆盖 (无 --work-dir 时);
+#   3. 逐文件覆盖 P1WCS_CROSS_OUT / P1WCS_CROSS_RESULT (无 --work-dir 时);
+#   4. 默认: 仓库内相对路径 <repo_root>/run/p1wcs_wcs003 —— repo_root 由本
+#      文件位置推导 (向上找含 CMakeLists.txt 与 tests/ 的目录), 不硬编码;
+#      仓库根不可判定时以 tempfile.gettempdir()/p1wcs_wcs003 兜底,
+#      故默认值在任意宿主均可创建 (GitHub hosted runner 不依赖本机私有路径)。
+#   选定目录在开工前创建并做真实写入探针; 不可创建/不可写 → 立即以明确
+#   错误信息 fail-fast 退出 (rc=2), 绝不静默跳过、绝不静默改默认值而假绿
+#   (宪章 §14.4)。
+#
+# 负向守卫 (path_guard_selfcheck, 每次运行先跑):
+#   注入「父路径是普通文件」的工作目录 → ensure_writable_dir 必须抛
+#   WorkDirError 且错误信息含该路径 (该注入对 root 同样成立, 与运行用户
+#   无关); 非 root 时追加「只读目录 (0500)」注入; 正向控制: 可写目录必须
+#   通过 (防恒常 FAIL 假红); 另断言 --work-dir > env > default 优先级与
+#   默认路径的宿主推导性。守卫回归 → rc=3, 不放行。
 #
 # 依赖: astropy (测试面), numpy。零生产依赖 (lib/plate_solve 不 include)。
+import argparse
 import json
-import math
 import os
 import subprocess
 import sys
+import tempfile
+from pathlib import Path
 
 import numpy as np
 from astropy.wcs import WCS
 from astropy.wcs import Sip
 
-CROSS_OUT = os.environ.get(
-    "P1WCS_CROSS_OUT",
-    "/workspace/Astro CS Database/run/p1wcs_wcs003/wcs003_cross_input.json")
-TESTS_BIN = os.environ.get("P1WCS_TESTS_BIN", "")
-RESULT_OUT = os.environ.get(
-    "P1WCS_CROSS_RESULT",
-    "/workspace/Astro CS Database/run/p1wcs_wcs003/wcs003_astropy_cross.json")
+# 环境变量/命令行接口 (工作目录解析, 见头注)
+WORK_DIR_ENV = "P1WCS_CROSS_WORK_DIR"
+CROSS_OUT_ENV = "P1WCS_CROSS_OUT"
+RESULT_OUT_ENV = "P1WCS_CROSS_RESULT"
+TESTS_BIN_ENV = "P1WCS_TESTS_BIN"
+WORK_DIR_NAME = "p1wcs_wcs003"
+CROSS_INPUT_NAME = "wcs003_cross_input.json"
+RESULT_NAME = "wcs003_astropy_cross.json"
+
+# 退出码 (fail-fast, 不静默)
+EXIT_CROSS_FAIL = 1      # 交叉判定不过
+EXIT_WORKDIR_FAIL = 2    # 工作目录不可创建/不可写 (环境合同违例)
+EXIT_GUARD_FAIL = 3      # 负向守卫自身回归
 
 # 冻结门 (px) 与前向交叉门 (deg) — 不放宽
 FREEZE_PX = 1e-4
 FWD_DEG = 1e-9
+
+# 被测执行器路径 (由 ctest/CMake 显式传入; 未设则判定 FAIL, 不静默跳过)
+TESTS_BIN = os.environ.get(TESTS_BIN_ENV, "")
+
+
+class WorkDirError(RuntimeError):
+    """工作目录不可创建/不可写 — fail-fast (宪章 §14.4), 绝不静默跳过。"""
+
+
+def repo_root():
+    """由本文件位置向上推导仓库根 (含 CMakeLists.txt 与 tests/); 无则 None。
+
+    不读取任何硬编码绝对路径; 拷贝到任意宿主/任意检出位置均自洽。
+    """
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        if (parent / "CMakeLists.txt").is_file() and (parent / "tests").is_dir():
+            return parent
+    return None
+
+
+def default_work_dir():
+    """默认工作目录: 仓库内相对 run/<name>; 仓库根不可判定时 tempfile 兜底。"""
+    root = repo_root()
+    if root is not None:
+        return root / "run" / WORK_DIR_NAME
+    return Path(tempfile.gettempdir()) / WORK_DIR_NAME
+
+
+def default_work_dir_source():
+    """默认分支来源标签 (仓库内相对 / tempfile 兜底), 供日志与守卫断言。"""
+    if repo_root() is not None:
+        return "default(repo-relative run/%s)" % WORK_DIR_NAME
+    return "default(tempfile fallback %s)" % WORK_DIR_NAME
+
+
+def resolve_work_dir(cli_work_dir):
+    """按优先级解析工作目录, 返回 (Path, 来源标签)。
+
+    优先级: --work-dir > P1WCS_CROSS_WORK_DIR > 默认 (仓库内相对/tempfile)。
+    """
+    if cli_work_dir:
+        return Path(cli_work_dir).expanduser(), "--work-dir"
+    env_dir = os.environ.get(WORK_DIR_ENV, "").strip()
+    if env_dir:
+        return Path(env_dir).expanduser(), WORK_DIR_ENV
+    return default_work_dir(), default_work_dir_source()
+
+
+def resolve_artifact_paths(work_dir, cli_work_dir):
+    """解析两个产物路径; 显式 --work-dir 时两产物均在 work_dir 下。
+
+    无 --work-dir 时允许逐文件环境变量覆盖 (CMake/CI 显式传参路径)。
+    """
+    if cli_work_dir:
+        return work_dir / CROSS_INPUT_NAME, work_dir / RESULT_NAME
+    cross = os.environ.get(CROSS_OUT_ENV, "").strip()
+    result = os.environ.get(RESULT_OUT_ENV, "").strip()
+    return (Path(cross).expanduser() if cross else work_dir / CROSS_INPUT_NAME,
+            Path(result).expanduser() if result else work_dir / RESULT_NAME)
+
+
+def ensure_writable_dir(path, source):
+    """创建目录并做真实写入探针; 失败抛 WorkDirError (明确错误信息)。
+
+    fail-fast 是合同: 不可写即失败退出, 不静默降级、不静默跳过、不通融放行。
+    """
+    path = Path(path)
+    try:
+        os.makedirs(str(path), exist_ok=True)
+    except OSError as exc:
+        raise WorkDirError(
+            "work dir not creatable: %s (source: %s)\n"
+            "  cause: %s: %s\n"
+            "  fix: pass a writable --work-dir DIR or set %s (no silent "
+            "fallback / no skipped work; ASTROCS constitution 14.4)"
+            % (path, source, type(exc).__name__, exc, WORK_DIR_ENV))
+    if not os.path.isdir(str(path)):
+        raise WorkDirError(
+            "work dir not a directory: %s (source: %s)\n"
+            "  fix: pass a writable --work-dir DIR or set %s"
+            % (path, source, WORK_DIR_ENV))
+    probe = path / ".p1wcs_write_probe"
+    try:
+        with open(str(probe), "w") as fh:
+            fh.write("p1wcs\n")
+        os.unlink(str(probe))
+    except OSError as exc:
+        raise WorkDirError(
+            "work dir not writable: %s (source: %s)\n"
+            "  cause: %s: %s\n"
+            "  fix: pass a writable --work-dir DIR or set %s (no silent "
+            "fallback / no skipped work; ASTROCS constitution 14.4)"
+            % (path, source, type(exc).__name__, exc, WORK_DIR_ENV))
+    return path
+
+
+def path_guard_selfcheck():
+    """负向守卫: 工作目录不可用时必须明确失败; 返回问题清单 (空=通过)。
+
+    每次运行先跑 (交叉验证之前), 守卫自身回归即 rc=3 —— 防止把 fail-fast
+    悄悄改成静默跳过而假绿 (宪章 §14.4)。
+    """
+    problems = []
+    try:
+        td_ctx = tempfile.TemporaryDirectory(prefix="p1wcs_path_guard_")
+    except OSError as exc:
+        return ["path guard tempdir unavailable: %s: %s"
+                % (type(exc).__name__, exc)]
+    with td_ctx as td:
+        # 注入 1: 父路径是普通文件 → 任意用户 (含 root) 下 makedirs 必失败
+        blocker = os.path.join(td, "not_a_dir")
+        with open(blocker, "w") as fh:
+            fh.write("p1wcs guard blocker\n")
+        injected = os.path.join(blocker, "child")
+        try:
+            ensure_writable_dir(injected, "guard-injection:parent-is-file")
+            problems.append("injection(parent-is-file) did not fail: %s"
+                            % injected)
+        except WorkDirError as exc:
+            msg = str(exc)
+            if injected not in msg:
+                problems.append("injection(parent-is-file) message lacks path")
+            if not ("not creatable" in msg or "not writable" in msg
+                    or "not a directory" in msg):
+                problems.append("injection(parent-is-file) message not explicit")
+            if "--work-dir" not in msg:
+                problems.append("injection(parent-is-file) message lacks fix")
+
+        # 注入 2: 只读目录 (0500) → 非 root 下写入探针必失败
+        ro = os.path.join(td, "readonly_dir")
+        os.makedirs(ro)
+        os.chmod(ro, 0o500)
+        try:
+            if not (hasattr(os, "geteuid") and os.geteuid() == 0):
+                try:
+                    ensure_writable_dir(ro, "guard-injection:readonly")
+                    problems.append("injection(readonly) did not fail: %s" % ro)
+                except WorkDirError as exc:
+                    if ro not in str(exc):
+                        problems.append("injection(readonly) message lacks path")
+        finally:
+            os.chmod(ro, 0o700)
+
+        # 正向控制: 可写目录必须通过 (防恒常 FAIL 假红)
+        ok_dir = os.path.join(td, "ok_dir")
+        try:
+            ensure_writable_dir(ok_dir, "guard-positive-control")
+        except WorkDirError as exc:
+            problems.append("positive control failed: %s" % exc)
+
+    # 优先级守卫: --work-dir > 环境变量 > 默认
+    cli_probe = os.path.join(tempfile.gettempdir(), "p1wcs_guard_cli_probe")
+    got, src = resolve_work_dir(cli_probe)
+    if str(got) != cli_probe or src != "--work-dir":
+        problems.append("--work-dir precedence broken: %s (%s)" % (got, src))
+    env_probe = os.path.join(tempfile.gettempdir(), "p1wcs_guard_env_probe")
+    saved = os.environ.get(WORK_DIR_ENV)
+    os.environ[WORK_DIR_ENV] = env_probe
+    try:
+        got, src = resolve_work_dir("")
+        if str(got) != env_probe or src != WORK_DIR_ENV:
+            problems.append("%s precedence broken: %s (%s)"
+                            % (WORK_DIR_ENV, got, src))
+    finally:
+        if saved is None:
+            os.environ.pop(WORK_DIR_ENV, None)
+        else:
+            os.environ[WORK_DIR_ENV] = saved
+
+    # 默认值必须是宿主推导路径 (回归防线: 不得再写死绝对默认值)
+    dflt = default_work_dir()
+    root = repo_root()
+    host_prefix = str(root) if root is not None else tempfile.gettempdir()
+    if not str(dflt).startswith(host_prefix):
+        problems.append("default work dir not host-derived: %s" % dflt)
+    if Path(dflt).name != WORK_DIR_NAME:
+        problems.append("default work dir name unexpected: %s" % dflt)
+    return problems
 
 
 def build_sip_matrix(flat, order, stride):
@@ -51,28 +258,30 @@ def build_sip_matrix(flat, order, stride):
     return m
 
 
-def main():
+def cross_check(cross_out, result_out):
+    """交叉验证主体 (判定强度不变); 返回 rc。"""
     # 1. 刷新交叉验证输入 (apbp 组重跑, 其自身断言独立于本脚本)
     env = dict(os.environ)
-    env["P1WCS_CROSS_OUT"] = CROSS_OUT
+    env[CROSS_OUT_ENV] = str(cross_out)
     cmd = [TESTS_BIN] if TESTS_BIN else []
     if not cmd:
         print("FAIL: P1WCS_TESTS_BIN not set")
-        return 1
+        return EXIT_CROSS_FAIL
     cmd.append("apbp")
     r = subprocess.run(cmd, env=env, capture_output=True, text=True,
                        timeout=1800)
     if r.returncode != 0:
         print("FAIL: apbp re-run rc=%d\n%s" % (r.returncode, r.stderr[-2000:]))
-        return 1
+        return EXIT_CROSS_FAIL
 
-    with open(CROSS_OUT) as f:
+    with open(str(cross_out)) as f:
         data = json.load(f)
 
     report = {"schema": "p1wcs/wcs003-astropy-cross-v1",
               "astropy_version": __import__("astropy").__version__,
               "freezes": {"reverse_px": FREEZE_PX, "forward_deg": FWD_DEG},
               "semantic_bridge": None,
+              "work_dir": str(Path(result_out).parent),
               "fixtures": []}
     all_ok = True
     for fx in data["fixtures"]:
@@ -137,15 +346,49 @@ def main():
         print("[WCS-003 astropy] %s: fwd=%.3e deg rev=%.3e px rt=%.3e px %s"
               % (fx["name"], fwd_max, rev_max, rt_max, "PASS" if ok else "FAIL"))
 
-    os.makedirs(os.path.dirname(RESULT_OUT), exist_ok=True)
-    with open(RESULT_OUT, "w") as f:
+    with open(str(result_out), "w") as f:
         json.dump(report, f, indent=1)
 
     if all_ok:
         print("P1WCS ASTROPY CROSS PASS")
         return 0
     print("P1WCS ASTROPY CROSS FAIL")
-    return 1
+    return EXIT_CROSS_FAIL
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(
+        description="P1-WCS-003 Astropy 第三方交叉验证 (只入测试面)")
+    ap.add_argument("--work-dir", default=None,
+                    help="交叉验证工作目录 (最高优先; 两产物均落此目录)")
+    args = ap.parse_args(argv)
+
+    # 0. 负向守卫 (先跑: fail-fast 语义的回归防线)
+    problems = path_guard_selfcheck()
+    if problems:
+        print("FAIL: path guard selfcheck (fail-fast regression):")
+        for p in problems:
+            print("  - %s" % p)
+        return EXIT_GUARD_FAIL
+
+    # 1. 解析 + 创建 + 可用性验证 (§14.4 fail-fast, 明确错误信息)
+    work_dir, source = resolve_work_dir(args.work_dir)
+    cross_out, result_out = resolve_artifact_paths(work_dir, args.work_dir)
+    for path, label in ((work_dir, "work-dir(%s)" % source),
+                        (Path(cross_out).parent, "cross-out parent"),
+                        (Path(result_out).parent, "result-out parent")):
+        try:
+            ensure_writable_dir(path, label)
+        except WorkDirError as exc:
+            print("FAIL: %s" % exc)
+            return EXIT_WORKDIR_FAIL
+
+    print("[p1wcs astropy] work_dir=%s (source: %s)" % (work_dir, source))
+    print("[p1wcs astropy] cross_out=%s" % cross_out)
+    print("[p1wcs astropy] result_out=%s" % result_out)
+
+    # 2. 交叉验证主体
+    return cross_check(cross_out, result_out)
 
 
 if __name__ == "__main__":
