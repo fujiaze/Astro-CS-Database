@@ -9,7 +9,9 @@
   R1  registry 可解析且为对象，含 schema_version==1 与非空 checks 数组；
   R2  每项必需字段齐备且类型正确（id/profiles/platform/command/timeout_seconds/
       heavy/mutates_workspace/outputs/waivable/changed_paths/requires_monitor）；
-      可选 prerequisite_tools 必须是非空字符串数组（外部工具名，如 cmake/clang）；
+      可选 prerequisite_tools 必须是非空字符串数组（外部可执行名如 cmake/clang，
+       或 CI-REG-002/STD-F10 的 <exe>:<module> Python 模块依赖如 python3:astropy）；
+      可选 ctest_targets 必须是非空字符串数组（CI-REG-002 显式登记的 CTest 目标名）；
   R3  id 唯一无重复；
   R4  command[0] ∈ {python3, python} 且 command[1] 指向仓库内存在的文件；
   R5  profiles 值 ⊆ {fast, linux-main, windows-main, linux-deep, fatduck} 且非空；
@@ -47,7 +49,7 @@ STR_LIST_FIELDS = ("profiles", "command", "outputs", "changed_paths")
 # ci/checks.schema.json 同名字段——CI-001 对齐两者预存断链，否则 strict
 # 永远对 checks[52]/[53] 报 unexpected fields）。
 OPT_STR_LIST_FIELDS = ("prerequisite_tools", "dirty_ignore_exact",
-                       "dirty_ignore_prefixes")
+                       "dirty_ignore_prefixes", "ctest_targets")
 REQUIRED = ("id", "profiles", "platform", "command", "timeout_seconds",
             "heavy", "mutates_workspace", "outputs", "waivable") + BOOL_FIELDS[:0]
 REQUIRED = ("id", "profiles", "platform", "command", "timeout_seconds",

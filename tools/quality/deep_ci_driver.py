@@ -20,6 +20,14 @@
                       --output-dir 供 run.py outputs 校验；V8-CI-012 修复轮 2：
                       ctest 失败仍执行 merge/report 与产物归集——failing tests
                       不阻止覆盖率测量，驱动退出码仍取首个失败步骤）
+  ctest-full        : 全量 CTest 门（CTEST-LINUX-FULL，CI-REG-002）：configure +
+                      全图 build + ctest 全量；承接 STD-F7 处置 2「linux-main 必须
+                      包含全量 ctest」。ctest 串行执行（-j 不传）：p1wcs_performance /
+                      p1noise_performance 等带时序哨兵，并行会引入与代码无关的抖动。
+  ctest-target      : 单 CTest 目标门（CTEST-<TARGET>，CI-REG-002）：在对内已构建的
+                      build dir 上跑 ctest -R ^<target>$；承接 STD-F7 处置 1「本轮新增
+                      测试逐个注册为显式检查项」。前置构建由登记顺序保证
+                      （BUILD-GCC-RELEASE / CTEST-LINUX-FULL 先行）。
 
 复杂度基线测量（DEEP-COMPLEXITY）由 tools/quality/check_complexity.py 承担
 （单一事实源，本驱动不重复实现）。
@@ -188,6 +196,55 @@ def cmd_coverage_cpp(args: argparse.Namespace) -> int:
     return rc
 
 
+# -------------------------------------------------------------- CTest 门（CI-REG-002） ----
+
+def cmd_ctest_full(args: argparse.Namespace) -> int:
+    """ctest-full：configure + 全图 build + CTest 全量（CTEST-LINUX-FULL）。
+
+    CI-REG-002 / STD-F7 处置 2：linux-main 必须含不可豁免的全量 ctest 门。
+    复用 BUILD-GCC-RELEASE 的 build dir（首个 linux-main 构建检查）；
+    已构建时 configure/build 为增量幂等，独立运行时自举完整构建。
+    ctest 不传并行旗标：p1wcs_performance / p1noise_performance 等用例带
+    时序哨兵，并行执行会引入与被测代码无关的抖动（非确定性门禁）。
+    """
+    build_dir = _ensure_inside_repo(args.build_dir, "build-dir")
+    steps: list[dict] = []
+    _cmake_configure_steps(str(build_dir), ["-DCMAKE_BUILD_TYPE=Release"], steps)
+    # 内部超时预算 300(configure)+2400(build)+900(ctest) = 3600 = 检查项
+    # timeout_seconds，驱动步超时先于 runner 总超时触发（归因清晰）。
+    steps.append({"name": "ctest-full", "timeout": 900,
+                  "argv": ["ctest", "--output-on-failure"],
+                  "cwd": str(REPO / build_dir)})
+    rc = _run_steps(steps, args.output)
+    print(json.dumps({"driver": "deep_ci_driver.py", "subcommand": "ctest-full",
+                      "build_dir": str(build_dir),
+                      "verdict": "FAIL" if rc != 0 else "PASS"}, ensure_ascii=False))
+    return rc
+
+
+def cmd_ctest_target(args: argparse.Namespace) -> int:
+    """ctest-target：单 CTest 目标门（CTEST-<TARGET>，CI-REG-002）。
+
+    CI-REG-002 / STD-F7 处置 1：本轮新增测试目标逐个成为显式、不可豁免的
+    CI 检查项。build dir 由登记顺序保证已构建（BUILD-GCC-RELEASE 或
+    CTEST-LINUX-FULL 先行）；未构建时 ctest 报 "No tests were found" 非零，
+    按 FAIL 如实传导（不静默绿）。
+    """
+    build_dir = _ensure_inside_repo(args.build_dir, "build-dir")
+    target = args.target
+    steps: list[dict] = [{
+        "name": "ctest-target",
+        "timeout": args.step_timeout,
+        "argv": ["ctest", "-R", "^%s$" % target, "--output-on-failure"],
+        "cwd": str(REPO / build_dir),
+    }]
+    rc = _run_steps(steps, args.output)
+    print(json.dumps({"driver": "deep_ci_driver.py", "subcommand": "ctest-target",
+                      "target": target, "build_dir": str(build_dir),
+                      "verdict": "FAIL" if rc != 0 else "PASS"}, ensure_ascii=False))
+    return rc
+
+
 def _run_steps(steps: list[dict], output: str | None,
                stop_on_failure: bool = True) -> int:
     """顺序执行步骤；stop_on_failure=False 时失败后继续（coverage 语义）。
@@ -199,7 +256,8 @@ def _run_steps(steps: list[dict], output: str | None,
     rc = 0
     for step in steps:
         print(f"[deep_ci_driver] {step['name']}: {' '.join(step['argv'])}", flush=True)
-        res = run_step(step["argv"], timeout=step["timeout"])
+        res = run_step(step["argv"], timeout=step["timeout"],
+                       cwd=Path(step["cwd"]) if step.get("cwd") else None)
         res["name"] = step["name"]
         summary["steps"].append(res)
         print(res["output_tail"], flush=True)
@@ -252,6 +310,20 @@ def build_parser() -> argparse.ArgumentParser:
     v.add_argument("--output-dir", default="run/ci/coverage-cpp")
     v.add_argument("--output", default=None)
     v.set_defaults(func=cmd_coverage_cpp)
+
+    # CI-REG-002（STD-F7 处置 1/2）：linux-main 全量 ctest 门 + 逐目标显式门
+    f = sub.add_parser("ctest-full", help="全量 CTest 门（CTEST-LINUX-FULL）")
+    f.add_argument("--build-dir", default="run/ci/build-gcc-release")
+    f.add_argument("--output", default=None)
+    f.set_defaults(func=cmd_ctest_full)
+
+    t = sub.add_parser("ctest-target", help="单 CTest 目标门（CTEST-<TARGET>）")
+    t.add_argument("--build-dir", default="run/ci/build-gcc-release")
+    t.add_argument("--target", required=True, help="ctest 测试目标名（精确匹配 ^name$）")
+    t.add_argument("--step-timeout", type=int, default=600,
+                   help="ctest 单步超时（秒）；检查项 timeout_seconds 应大于该值")
+    t.add_argument("--output", default=None)
+    t.set_defaults(func=cmd_ctest_target)
 
     return ap
 

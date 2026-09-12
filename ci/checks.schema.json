@@ -92,7 +92,15 @@
             "items": {
               "type": "string"
             },
-            "description": "可选：命令依赖的外部工具名（如 cmake/clang/pytest），缺失时检查跳过（waivable）或 FAIL(prerequisite)"
+            "description": "可选：命令依赖的外部工具名（如 cmake/clang/pytest），缺失时检查跳过（waivable）或 FAIL(prerequisite)；CI-REG-002/STD-F10 扩展 <exe>:<module> 形式表示 Python 模块依赖（如 python3:astropy），探测实现见 ci/run.py probe_prerequisite"
+          },
+          "ctest_targets": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "CI-REG-002：本检查显式登记的 CTest 目标名（精确名或 shell glob）。tools/quality/check_ctest_registration.py 以此判定 add_test 目标的注册闭包——每个 add_test 目标必须被某检查项的 ctest_targets 命中，或登记在 ci/ctest_baseline.json 冻结存量清单中"
           },
           "dirty_ignore_exact": {
             "type": "array",
