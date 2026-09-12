@@ -59,7 +59,7 @@
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
-| Paper I §2.1.1（CRPIX 1-based 参考像素） | 参考像素 CRPIX 为 1-based，像素坐标 `xp = x + 1` | PARTIAL | docs/science/ASTROMETRY.md；docs/algorithms/PLATESOLVE.md；tests/unit/p1wcs/p1wcs_astropy_cross.py | STD-F1（ipv 内部 0-based 与消费方 1-based 相差常量 1px，待负责人裁决三选一） |
+| Paper I §2.1.1（CRPIX 1-based 参考像素） | 参考像素 CRPIX 为 1-based，像素坐标 `xp = x + 1` | CONFORMANT | docs/science/ASTROMETRY.md；docs/algorithms/PLATESOLVE.md；tests/unit/p1wcs/p1wcs_astropy_cross.py；tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py；tests/unit/p3_wcs_test.cpp | STD-F1（已闭环：ipv 内部保留 0-based 自洽约定，FITS 1-based 由 Phase3 导出边界单点 +1 桥接；实测 astropy 交叉 5.7e-14 deg、九宫格 18 格无 1px 偏移、负向注入必败；见 §3 偏差索引） |
 | Paper I §3（CD/CTYPE 关键词体系） | 线性变换以 CD 矩阵 + CTYPE 表达；FITS 头卡 ≤80 字节 | CONFORMANT | docs/algorithms/PHASE3_PROJ_IMPL.md；lib/phase3_session/p3_wcs.cpp；tests/unit/p3_projection_test.cpp | 无（T5/T7 断言在位） |
 | Paper II §5 Table 1（TAN/SIN/CAR/AIT 四投影） | 四投影按 Table 1 的 R_θ 定义实现，新增投影须注册并附独立往返 Oracle | CONFORMANT | docs/algorithms/PHASE3_PROJ_IMPL.md；tests/unit/p3_projection_test.cpp；tests/backend/test_p3_projection_oracle.py | 无（registry v1 恰四行；T1/T2 往返与独立解析解在位） |
 | Paper II §2.1（LONPOLE 与旋转） | 允许通用 LONPOLE/φ_p 附加旋转机制 | PROJECT_DEFINED | docs/algorithms/PHASE3_PROJ_IMPL.md | 无（本实现固定 θ₀=+90°、无 φ_p 附加旋转，显式冻结为 Project-defined；不实现通用 LONPOLE） |
@@ -71,7 +71,7 @@
 
 | 偏差 ID | 严重度 | 指针 | 处置归属 |
 |---|---|---|---|
-| STD-F1 | 高（P1，待裁决） | 工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/05_FINDINGS_REGISTER_20260911.md | STD-F1-ADJ（负责人三选一裁决后落地：修 ipv 内部口径／导出边界 +1 桥接／合同标注双口径） |
+| STD-F1 | 已闭环（原高/P1） | 工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/05_FINDINGS_REGISTER_20260911.md；docs/science/ASTROMETRY.md | STD-F1-ADJ（前台裁决 R-02 方案 b 落地：ipv 内部保留 0-based；FITS 1-based 由 Phase3 导出边界单点 +1 桥接并写入合同 §5a；实测 astropy 交叉 5.7e-14 deg / 九宫格 18 格无 1px 偏移 / 负向注入必败） |
 | DISP-WCS-001 | 中 | docs/algorithms/PLATESOLVE.md | P1-WCS-IMPL（CD 退化静默坍缩，负面用例已在位） |
 | DISP-WCS-006 | 低 | docs/algorithms/PLATESOLVE.md | P1-WCS-IMPL（AP/BP 网格拟合口径与 SCI 冻结一致，维护歧义） |
 | DISP-P3PROJ-001 | 中 | docs/algorithms/PHASE3_PROJ_IMPL.md | P3-PROJ-IMPL / P3-PROJ-INT（PA 未接线：会话恒传 rotation_pa_deg=0.0；astrocs_p3_projection.dll 未建 entrypoint=MISSING） |
@@ -236,7 +236,7 @@
 
 | 偏差 ID | 域 | 条款 | 注册表清单行 | 状态 | 处置归属 |
 |---|---|---|---|---|---|
-| STD-F1 | spherical-projection | Paper I §2.1.1（CRPIX 1-based 参考像素） | 第 1 行 | OPEN（待负责人裁决） | STD-F1-ADJ |
+| STD-F1 | spherical-projection | Paper I §2.1.1（CRPIX 1-based 参考像素） | 第 1 行 | CONFORMANT（导出边界 Phase3 单点 +1 桥接，实测 astropy 交叉 5.7e-14 deg） | STD-F1-ADJ |
 | DISP-WCS-001 | spherical-projection | 退化语义（CD det→0 禁坍缩冒充解） | 第 7 行 | TRACKED | P1-WCS-IMPL |
 | DISP-WCS-006 | spherical-projection | SIP §A（A/B 前向、AP/BP 逆向与单位线性剔除） | 第 5 行 | TRACKED | P1-WCS-IMPL |
 | DISP-P3PROJ-001 | spherical-projection | Paper II §5 Table 1（TAN/SIN/CAR/AIT 四投影） | 第 3 行 | TRACKED | P3-PROJ-IMPL / P3-PROJ-INT |

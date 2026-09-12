@@ -32,6 +32,7 @@
 
 - 天球 frame：**ICRS/J2000**（Gaia DR3 星表同系）；`RA∈[0,360)`, `Dec∈[-90,90]`（GLOSSARY `ra_dec`）。
 - 像素约定：内部 0-based `x,y`，FITS 输出 1-based `xp=x+1`，`CRPIX` 1-based 恒为 `(w/2+0.5, h/2+0.5)`（§7 不变量）；FITS 输出执行 Y-up→Y-down 翻转（§5），`|det(CD)|` 不变。
+- **口径边界与责任方**（STD-F1 / 前台裁决 R-02 方案 b，2026-09-12）：ipv 求解器内部保持 0-based 自洽约定；**FITS 1-based 的唯一桥接点 = Phase3 导出边界**（§5a），桥接责任方为 `lib/phase3_session/`。除该边界外任何一侧不得再施加一次 `+1`（双重桥接 = 恒定 1px 系统偏移）。
 
 ## 4 输入有效域
 
@@ -64,6 +65,39 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 与 `lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp:13-16,153-164,274-420,530-576` 及 `ipv_select.cpp:695,712` 一致。
 
+### 5a 导出边界桥接条款（STD-F1 合同条款；前台裁决 R-02 方案 b）
+
+- **内部口径（求解器）**：`lib/plate_solve` 迭代反演与 `trans`/SIP 拟合全程 0-based 自洽约定，
+  收敛像素输出为 `x = u + CRPIX`（即 `u = x − CRPIX`，与 oracle 前向/逆向同口径，
+  `lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp:869-872`）。该约定对自身 roundtrip 免疫，故
+  与标准口径的差异**是纯原点平移（常量 1px），不是数学内容差**。
+- **导出口径（FITS）**：以 FITS WCS Paper I §2.1.1 为基础 —— `CRPIX` 为 **1-based** 参考像素，
+  像素坐标 `xp = x + 1`，中间坐标 `(u,v) = CD·(xp − CRPIX) + SIP`（§5）；
+  逆向 `x = CD⁻¹·(ξ,η) + CRPIX − 1`（0-based 回程）。
+- **桥接点（单一，形状明确）**：`lib/phase3_session/p3_wcs.cpp` 的 `fits_pixel_1based`
+  （`xp = x + kFitsPixelOrigin`，`kFitsPixelOrigin = 1.0`）与逆桥接 `fits_pixel_0based`；
+  `p3_wcs_pix2world` 与 `p3_wcs_world2pix` **只经该函数对换算**，
+  该文件内再无第二处像素 `+1`。
+- **责任方**：**Phase3 导出边界**（`lib/phase3_session/`）。求解器内部、消费方与诊断工具
+  均按各自既有口径使用，不得再叠加一次 `+1`；第三方工具按 Paper I §2.1.1 以 1-based
+  参考像素配对使用即可与本链混用。
+- **冻结门不变**：Paper I 第三方交叉门 `1e-4 px`（§11）与冻结不变量（§7）**均不变、不放宽**；
+  本条不改变任何科学公式、CD/SIP/CRVAL/CRPIX 数值或默认容差。
+
+**实测证据（2026-09-12，STD-F1-ADJ；证据目录 `run/std_f1_adj/`）**
+
+| 桥接配对（导出边界） | 第三方 astropy 交叉（测试面独立实现） | 判定 |
+|---|---|---|
+| `+1`（合同值，`xp = x+1`） | 前向最大偏差 `5.7e-14 deg`（≈`3.5e-10 px`）；逆向 `< 3.1e-9 px` | 通过（机器精度） |
+| 移除桥接（`xp = x`，负向注入） | `1.414 px`（=√2 px：x/y 各差 1px） | 必败（对拍 FAIL） |
+| 错置桥接（`xp = x+2`，负向注入） | `1.414 px` | 必败（对拍 FAIL） |
+
+九宫格显式判定（中心 1 格 + 四角 4 格 + 四边中点 4 格，9×100×100 px，1024×1024 帧逐像素；
+`east_left` 与 `east_right` 两个 parity 各 9 格，共 18 格）：逐格 roundtrip ≤ `3.2e-10 px`、
+第三方 astropy 前向最大偏差 ≤ `7.7e-14 deg`（≤ `5.6e-10 px`）、逆向 ≤ `3.3e-10 px`，
+**无 1px 偏移**；同帧内「移除桥接 / 双重桥接」在每一格均产生 `1.414 px` 偏差
+（x/y 各 1px）⇒ 桥接不是恒真装饰。
+
 ## 6 假设
 
 - 视场内可用单次 gnomonic 投影 + 低阶 SIP 刻画光学畸变；星表为 Gaia DR3（J2000）；视场弧分~度级，极区仍可用专用 prune 保守处理。
@@ -74,6 +108,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 - **行列式不变量**：`Y-up → Y-down` 转换前后 `|det(CD)|` 不变（仅符号重排）。
 - **SIP 逆一致性**：前向+逆向在 `7×7` 网格上往返误差 `‖(x,y)−WCS^{-1}(WCS(x,y))‖ < 1e-6 pixel`（FP64）。
 - **极区保守性**：`|dec|≤85°` 时平面盘 `B(q,C·radius)` 与节点矩形不相交 ⇒ 安全剪枝，`false_negative=0`（`polar_plane_intersects`）。
+- **导出边界桥接不变量（STD-F1）**：FITS 导出侧恒满足 `xp = x + 1`（Paper I §2.1.1），该桥接**只发生一次**——位于 Phase3 导出边界的单一函数（§5a）；ipv 内部 0-based 输出 `u = x − CRPIX` 不变。桥接缺失或重复，两者都会产生恒定 1px 系统偏移，并必须被第三方对拍检出（§11）。
 
 ## 8 极端/退化条件
 
@@ -99,6 +134,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 ## 10 不可接受变化
 
 - 改变 `CRPIX` 冻结公式或 `1-based ↔ 0-based` 换算；
+- 在 Phase3 导出边界（§5a）之外再施加一次、或在该边界处缺失 `+1` 桥接——两种情形都产生恒定 1px 系统偏移；
 - 将 `cd_inv` 单位误写为 `deg/pixel`；
 - 省略 `Y-down` 的 `cd12/cd22` 符号翻转或 `A/B` 的 `(-1)^j` 因子；
 - 在极区移除 `polar_plane_intersects` 的 `C=π/2` 保守盘剪枝。
@@ -108,6 +144,9 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 - **Astropy WCS 参考**：同 `CD/CRPIX/CRVAL/SIP` 的 `astropy.wcs.WCS` 前向/逆向在 100 随机像素上 `‖Δx‖<1e-4 px`。
 - **往返不变量**：像素→天球→像素往返 `max_abs <1e-6 px`（网格 7×7 拟合精度门）。
 - **极区保守门**：对 `|dec|>45°` 人工锥与全量 Gaia 节点暴力比对，`false_negative=0`。
+- **导出边界桥接门（STD-F1，§5a）**：九宫格（中心 1 格 + 四角 4 格 + 四边中点 4 格，9×100×100 px）
+  逐像素 roundtrip `< 1e-6 px`，且与 Paper I §2.1.1 独立第三方参考（`xp = x0+1`）差 `< 1e-6 px`；
+  负向注入（移除桥接 `xp = x0`、错置桥接 `xp = x0+2`）必须产生 `≥1 px` 偏差并使对拍 FAIL。
 - **失败注入**：空星表/奇异线性/越界 `rect` 显式错误码。
 
 ## 12 关联 ALG ID
@@ -131,6 +170,8 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 ## 15 Acceptance
 
 - §11 Oracle 全过：Astropy 前向/逆向 `‖Δx‖<1e-4 px`、往返 `<1e-6 px`、极区 `false_negative=0`；
+- §11 导出边界桥接门（STD-F1）过：九宫格两 parity 共 18 格全过、astropy 四向桥接扫描
+  正向达机器精度且三向负向注入全部检出（证据 `run/std_f1_adj/std_f1_bridge_cross.json`）；
 - §7 四不变量门全过（CRPIX/行列式/SIP 逆一致/极区保守）；
 - `tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；
 - 解析不变量→SYN-002 转换：已知 WCS 星场（解析 TAN+SIP 场）、往返不变量、RA wrap/极区用例登记 SYN-002；WCS roundtrip 亦入 SYN-007/009。
