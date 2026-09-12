@@ -6,10 +6,11 @@
    工具齐备 → 正常执行 PASS；工具缺失 + waivable → SKIPPED(waivable)（理由含工具名）；
    工具缺失 + 不可 waivable → FAIL(prerequisite)；无该字段的检查不受影响。
 2. 注册表结构 —— validate_registry --strict 接受合法 prerequisite_tools、
-   拒绝空数组/非字符串/非字符串数组元素；主仓库 ci/checks.json（80 项）strict PASS。
-3. profile 选择（只读主仓库 plan-only）——fast=57（不含新 deep 项）、
-   linux-main=71（含 BUILD-GCC-RELEASE）、linux-deep=7（7 个新 id 全选，
-   command 自含 ci/resource_monitor.py 包裹前缀）。
+   拒绝空数组/非字符串/非字符串数组元素；主仓库 ci/checks.json（97 项）strict PASS。
+3. profile 选择（只读主仓库 plan-only）——fast=58（不含新 deep 项；含
+   CI-REG-002 的 CTEST-REGISTRATION）、linux-main=88（含 BUILD-GCC-RELEASE 与
+   CI-REG-002 的 CTEST-LINUX-FULL + 15 个逐目标 CTEST-*）、linux-deep=7（7 个新 id
+   全选，command 自含 ci/resource_monitor.py 包裹前缀）。
 4. 工具行为 —— check_complexity.py 实跑（exit 0、threshold=null、placeholder、
    ACR/legacy/third_party 排除常量在位）；deep_ci_driver.py 仓库外 --build-dir 受控报错、
    步骤超时返回 124；ci_coverage_runner.py 仓库外 --output-dir exit 2。
@@ -38,8 +39,17 @@ sys.path.insert(0, str(REPO))
 from ci import validate_registry as VR  # noqa: E402
 
 REGISTRY_PATH = CI_DIR / "checks.json"
+_REGISTRY = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
 NEW_IDS = {"BUILD-GCC-RELEASE", "DEEP-CLANG-BUILD", "DEEP-SAN-ASAN",
            "DEEP-SAN-TSAN", "DEEP-COV-CPP", "DEEP-COV-PY", "DEEP-COMPLEXITY"}
+# CI-REG-002 / STD-F7 处置 1：本轮新增测试目标逐个显式登记为 CI 检查项
+NEW_TEST_TARGETS = {
+    "p1001_real_nodes", "p2001_real_nodes", "p2002_unc_rej_prov",
+    "p3002_real_nodes", "p3002_uncertainty", "p3_projection_units",
+    "p3_projection_fault", "p1wcs_apbp", "p1wcs_astropy_cross",
+    "aio_abi_units", "aio_abi_negative", "aio_abi_selfcheck",
+    "hips_publish_atomic_units", "hips_publish_atomic", "rt001_unique_executor",
+}
 MISSING_TOOL = "astrocs-cmake-nonexistent-xyz"  # 探测负例：不会存在于任何 PATH
 
 
@@ -120,12 +130,12 @@ class TestRegistryStrict(unittest.TestCase):
         errors, n = self._validate(data)
         self.assertEqual((errors, n), ([], 1))
 
-    def test_main_registry_strict_pass_80(self):
-        # V8-CI-006 注册 WIN-BUILD-RELEASE / WIN-TEST-UNIT /
-        # WIN-PACKAGE-CANDIDATE 三项 windows-main 检查后 77 → 80。
+    def test_main_registry_strict_pass_97(self):
+        # V8-CI-006 注册 WIN-* 三项后 77 → 80；CI-REG-002 注册
+        # CTEST-REGISTRATION + CTEST-LINUX-FULL + 15 个逐目标 CTEST-* 后 80 → 97。
         errors, n = VR.validate(REGISTRY_PATH, strict=True)
         self.assertEqual(errors, [])
-        self.assertEqual(n, 80)
+        self.assertEqual(n, 97)
 
     @staticmethod
     def _validate(data: dict):
@@ -154,18 +164,30 @@ class TestProfileSelection(unittest.TestCase):
         assert proc.returncode == 0, proc.stderr[-400:]
         return json.loads(proc.stdout)
 
-    def test_fast_unchanged_57_excludes_deep(self):
+    def test_fast_58_excludes_deep(self):
         plan = self.plan("fast")
         ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 57)
+        self.assertEqual(plan["selected_count"], 58)
         self.assertFalse(ids & NEW_IDS)
+        # CI-REG-002：注册闭包校验器是静态源扫描，可进 fast（无需构建树）
+        self.assertIn("CTEST-REGISTRATION", ids)
+        # 真跑类 CTEST-* 门只在 linux-main（需要构建树）
+        self.assertFalse([i for i in ids if i.startswith("CTEST-")
+                          and i != "CTEST-REGISTRATION"])
 
-    def test_linux_main_71_includes_gcc_release(self):
+    def test_linux_main_88_includes_gcc_release_and_ctest_gates(self):
         plan = self.plan("linux-main")
         ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 71)
+        self.assertEqual(plan["selected_count"], 88)
         self.assertIn("BUILD-GCC-RELEASE", ids)
         self.assertFalse(ids & (NEW_IDS - {"BUILD-GCC-RELEASE"}))
+        # CI-REG-002 / STD-F7 处置 1+2：全量 ctest 门 + 逐目标门，且全部不可豁免
+        self.assertIn("CTEST-LINUX-FULL", ids)
+        by_id = {c["id"]: c for c in plan["checks"]}
+        self.assertFalse(by_id["CTEST-LINUX-FULL"]["waivable"])
+        # plan-only 只输出执行所需字段（不含 ctest_targets），注册闭包按注册表断言
+        registered = {t for c in _REGISTRY["checks"] for t in c.get("ctest_targets", [])}
+        self.assertEqual(registered, NEW_TEST_TARGETS)
 
     def test_linux_deep_exactly_seven_new(self):
         plan = self.plan("linux-deep")

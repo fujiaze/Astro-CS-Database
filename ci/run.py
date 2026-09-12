@@ -534,6 +534,40 @@ def _script_exists(repo: Path, rel: str) -> bool:
     return (repo / rel).exists()
 
 
+PREREQ_MODULE_TIMEOUT = 60  # 依赖模块探测子进程超时（秒）
+
+
+def probe_prerequisite_tool(tool: str) -> tuple[bool, str | None]:
+    """单个 prerequisite_tools 条目探测；返回 (ok, reason)。
+
+    两种形式（CI-REG-002 / STD-F10）：
+      - 纯工具名：shutil.which 探测 PATH 中的可执行名（V8-CI-005 既有语义）；
+      - <exe>:<module>：外部 Python 模块依赖（如 python3:astropy）。第三方模块
+        没有可执行名，shutil.which 恒 None（登记进旧机制等于永久跳过），故按
+        <exe> -c "import <module>" 实跑探测：非零/超时/解释器缺失 = 依赖不可用。
+        缺依赖按调用方语义传导——waivable 检查 → SKIPPED(waivable)（理由含工具名，
+        显式留痕非静默绿）、非 waivable 检查 → FAIL(prerequisite)（fail-closed）。
+    """
+    if ":" in tool:
+        exe, module = tool.split(":", 1)
+        exe, module = exe.strip(), module.strip()
+        if not exe or not module:
+            return False, f"依赖登记格式非法（应为 <exe>:<module>）：{tool}"
+        if shutil.which(exe) is None:
+            return False, f"依赖工具不在 PATH：{exe}（Python 模块 {module} 的宿主解释器）"
+        try:
+            proc = subprocess.run([exe, "-c", f"import {module}"],
+                                  capture_output=True, timeout=PREREQ_MODULE_TIMEOUT)
+        except (OSError, subprocess.SubprocessError) as exc:
+            return False, f"依赖模块探测失败：{tool}（{exc}）"
+        if proc.returncode != 0:
+            return False, f"依赖 Python 模块不可导入：{tool}"
+        return True, None
+    if shutil.which(tool) is None:
+        return False, f"依赖工具不在 PATH：{tool}"
+    return True, None
+
+
 def probe_prerequisite(check: dict, repo: Path, platform: str) -> tuple[bool, str | None]:
     """轻量前置条件探测；返回 (ok, reason)。
 
@@ -553,8 +587,9 @@ def probe_prerequisite(check: dict, repo: Path, platform: str) -> tuple[bool, st
         return False, f"command 可执行文件不在 PATH：{exe}"
 
     for tool in check.get("prerequisite_tools", []):
-        if shutil.which(tool) is None:
-            return False, f"依赖工具不在 PATH：{tool}"
+        ok, reason = probe_prerequisite_tool(tool)
+        if not ok:
+            return False, reason
 
     outputs = set(check.get("outputs", []))
     for idx, arg in enumerate(command):

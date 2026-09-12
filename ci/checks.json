@@ -1853,7 +1853,7 @@
         "run/ci/monitor/BUILD-GCC-RELEASE.json",
         "run/ci/build-gcc-release-summary.json"
       ],
-      "waivable": true,
+      "waivable": false,
       "changed_paths": [
         "lib/**",
         "cli/**",
@@ -1940,7 +1940,7 @@
         "run/ci/monitor/DEEP-SAN-ASAN.json",
         "run/ci/build-qa-asan-summary.json"
       ],
-      "waivable": true,
+      "waivable": false,
       "changed_paths": [
         "lib/**",
         "cli/**",
@@ -2031,7 +2031,7 @@
         "run/ci/build-cov-summary.json",
         "run/ci/coverage-cpp"
       ],
-      "waivable": true,
+      "waivable": false,
       "changed_paths": [
         "lib/**",
         "cli/**",
@@ -2260,6 +2260,597 @@
       "prerequisite_tools": [
         "cmake",
         "dumpbin"
+      ]
+    },
+    {
+      "id": "CTEST-REGISTRATION",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/check_ctest_registration.py",
+        "--output",
+        "run/ci/ctest-registration/ctest_registration.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest-registration/ctest_registration.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "ci/**",
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "tools/quality/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CTEST-LINUX-FULL",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-full",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--output",
+        "run/ci/build-gcc-release/ctest-full.json"
+      ],
+      "timeout_seconds": 3600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/build-gcc-release/ctest-full.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt",
+        "cmake/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CTEST-P1001-REAL-NODES",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p1001_real_nodes",
+        "--output",
+        "run/ci/ctest/p1001_real_nodes.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p1001_real_nodes.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p1001_real_nodes"
+      ]
+    },
+    {
+      "id": "CTEST-P2001-REAL-NODES",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p2001_real_nodes",
+        "--output",
+        "run/ci/ctest/p2001_real_nodes.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p2001_real_nodes.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p2001_real_nodes"
+      ]
+    },
+    {
+      "id": "CTEST-P2002-UNC-REJ-PROV",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p2002_unc_rej_prov",
+        "--output",
+        "run/ci/ctest/p2002_unc_rej_prov.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p2002_unc_rej_prov.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p2002_unc_rej_prov"
+      ]
+    },
+    {
+      "id": "CTEST-P3002-REAL-NODES",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p3002_real_nodes",
+        "--output",
+        "run/ci/ctest/p3002_real_nodes.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p3002_real_nodes.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p3002_real_nodes"
+      ]
+    },
+    {
+      "id": "CTEST-P3002-UNCERTAINTY",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p3002_uncertainty",
+        "--output",
+        "run/ci/ctest/p3002_uncertainty.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p3002_uncertainty.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p3002_uncertainty"
+      ]
+    },
+    {
+      "id": "CTEST-P3-PROJECTION-UNITS",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p3_projection_units",
+        "--output",
+        "run/ci/ctest/p3_projection_units.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p3_projection_units.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p3_projection_units"
+      ]
+    },
+    {
+      "id": "CTEST-P3-PROJECTION-FAULT",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p3_projection_fault",
+        "--output",
+        "run/ci/ctest/p3_projection_fault.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p3_projection_fault.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p3_projection_fault"
+      ]
+    },
+    {
+      "id": "CTEST-P1WCS-APBP",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p1wcs_apbp",
+        "--output",
+        "run/ci/ctest/p1wcs_apbp.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p1wcs_apbp.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p1wcs_apbp"
+      ]
+    },
+    {
+      "id": "CTEST-P1WCS-ASTROPY-CROSS",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p1wcs_astropy_cross",
+        "--output",
+        "run/ci/ctest/p1wcs_astropy_cross.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p1wcs_astropy_cross.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p1wcs_astropy_cross"
+      ],
+      "prerequisite_tools": [
+        "python3:astropy",
+        "python3:numpy"
+      ]
+    },
+    {
+      "id": "CTEST-AIO-ABI-UNITS",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "aio_abi_units",
+        "--output",
+        "run/ci/ctest/aio_abi_units.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/aio_abi_units.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "aio_abi_units"
+      ]
+    },
+    {
+      "id": "CTEST-AIO-ABI-NEGATIVE",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "aio_abi_negative",
+        "--output",
+        "run/ci/ctest/aio_abi_negative.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/aio_abi_negative.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "aio_abi_negative"
+      ]
+    },
+    {
+      "id": "CTEST-AIO-ABI-SELFCHECK",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "aio_abi_selfcheck",
+        "--output",
+        "run/ci/ctest/aio_abi_selfcheck.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/aio_abi_selfcheck.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "aio_abi_selfcheck"
+      ]
+    },
+    {
+      "id": "CTEST-AIO-HIPS-PUBLISH-ATOMIC-UNITS",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "hips_publish_atomic_units",
+        "--output",
+        "run/ci/ctest/hips_publish_atomic_units.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/hips_publish_atomic_units.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "hips_publish_atomic_units"
+      ]
+    },
+    {
+      "id": "CTEST-AIO-HIPS-PUBLISH-ATOMIC",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "hips_publish_atomic",
+        "--output",
+        "run/ci/ctest/hips_publish_atomic.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/hips_publish_atomic.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "hips_publish_atomic"
+      ]
+    },
+    {
+      "id": "CTEST-RT001-UNIQUE-EXECUTOR",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "rt001_unique_executor",
+        "--output",
+        "run/ci/ctest/rt001_unique_executor.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/rt001_unique_executor.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "rt001_unique_executor"
       ]
     }
   ]
