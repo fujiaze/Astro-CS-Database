@@ -201,7 +201,7 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 | NaN 语义 | generate_master 统计跳过 NaN、全 NaN→输出 NaN；calibrate/cosmetic 阈值统计**不**过滤 NaN（NaN 算术直传/阈值不可靠） | master_generator.cpp:106-118；cosmetic_corrector.cpp:45-54 |
 | 日志 I/O | generate_master/flat 每次调用 2 行 stderr（ac_log）；apply_photometry 2 行 stderr；无文件/网络 I/O | master_generator.cpp:38-45 |
 | 内存 | 输出缓冲调用方分配；模块内 std::vector RAII。峰值额外内存: generate_master O(n_frames/线程)；generate_master_flat O(n_frames·npix·4B)（norm 主缓冲）；calibrate O(1)；cosmetic O(npix)（labels+masks+统计副本）；f64 转接层 O(n_pix) 全帧复制 | 各源文件 |
-| 构建 | CMake 目标 `astrocs_calibration`（STATIC，4 个 cpp，OpenMP 可选）；遗留 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:321-333；lib/calibration/Makefile |
+| 构建 | CMake 目标 `astrocs_calibration`（STATIC，4 个 cpp，OpenMP 可选）；遗留 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:373-380；lib/calibration/Makefile |
 | 生产调用方 | `lib/phase1_session/p1_session.cpp:243` 仅调 `ac_calibrate_frame`（master 由配置传入，帧粒度取消在 session 层）；master 生成与 cosmetic 的 ac_* 入口当前无生产调用方 | p1_session.cpp:200-270 |
 
 ### 4.1 遗留双实现：`cpp/cosmetic_corrector.cpp`（cc_* 通道）

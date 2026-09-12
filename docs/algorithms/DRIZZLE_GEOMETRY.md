@@ -194,7 +194,7 @@
 
 | # | 文档声称 | 源码实际 | 双方锚 |
 |---|---|---|---|
-| DISP-DRZ-001 | api.h:93 注释 sip_order "0..4" | api.cpp:88-92 校验 [0,5]（6×6 系数组支持 5 阶下标） | hp_drizzle_api.h:93 vs api.cpp:88-92 |
+| DISP-DRZ-001 | hp_drizzle_api.h:93 注释 sip_order "0..4" | hp_drizzle_api.cpp:98-103 校验 [0,5]（6×6 系数组支持 5 阶下标） | hp_drizzle_api.h:93 vs hp_drizzle_api.cpp:98-103 |
 | DISP-DRZ-002 | 面积="S-H + Girard 定理"（DRIZZLE.md:63,:124） | S-H 裁剪 + Eriksson 扇形三角剖分，无 Girard 实现 | DRIZZLE.md:63,124 vs spherical_overlap.cpp:186-239 |
 | DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | api.cpp:191 vs drizzle_engine.cpp:1567 |
 | DISP-DRZ-004 | 值像素 NaN 经 F_p 传播、不掩膜（DRIZZLE.md:96） | 主循环 !isfinite→continue 静默跳过（不进累加器），无计数暴露 | DRIZZLE.md:96 vs drizzle_engine.cpp:1712 |

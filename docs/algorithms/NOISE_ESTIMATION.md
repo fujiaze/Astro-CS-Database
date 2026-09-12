@@ -124,7 +124,7 @@ MinGW 通道）+ `cpp/build.ps1:29`——未编入根 CMake 主构建（无
 snr_estimator CMake 目标，与 astrocs_hips/astrocs_drizzle 先例不同，
 CMake 集成归 P1-NOISE-IMPL），dll_loader.cpp:41/55 加载名与路径吻合）；`lib/phase1/noise/noise_model.{h,cpp}` 为
 `astrocs::phase1::NoiseModel` 小封装（39+67 行，静态库
-`astrocs_phase1_noise`，CMakeLists.txt:435-438，主程序链接 :513；单测
+`astrocs_phase1_noise`，CMakeLists.txt:490-493，主程序链接 :556；单测
 tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:312-316 注册）。
 
 | ALG | 符号 | 源锚 |
@@ -148,7 +148,7 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:312-316 注册）。
 - `g_model_floor` 实际为 `std::unordered_map<const NoiseWeightModelV1*,double>`
   （noise_model.cpp:32），§2 所写 `std::map<void*,double>` 为旧登记——语义
   （model 指针 key、无全局共享）不变，容器与 key 类型以本节为准。
-- `min_patch_samples` 默认 **64**（snr_estimator.h:107、default_config :312），
+- `min_patch_samples` 默认 **64**（snr_estimator.h:112、default_config :333），
   SCI §4 "min_samples 默认 5" 为旧稿数字——**不改 SCI**，以代码为准登记；
   patch 合格阈即 64。
 - 掩膜统一半径 rmax = max(1, source_mask_radius_px)·max(1, mask_radius_scale)
@@ -177,7 +177,7 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:312-316 注册）。
 | DISP-NOISE-005 | `snr_noise_scale_law` 无参数校验：alpha=NaN/Inf/负值未拒绝，variance 无条件乘 α²（NaN 直传）；ivar 仅在 a2>0 且有限时更新——variance 与 ivar 在非法 alpha 下可失去互倒关系 | noise_model.cpp:447-454 |
 | DISP-NOISE-006 | `source_mask` 与 `star_x/y` 掩膜通道互斥：source_mask 非 NULL 时完全忽略 star 坐标（含 n_stars>0）；source_mask 长度不单独校验（信任 h·w 布局） | noise_model.cpp:134-163 |
 | DISP-NOISE-007 | 参数下限静默钳位无返回码区分：patch_grid<2→2、clip_sigma<1→1、min_patch_samples<1→1、max_clip_rounds<0→0（调用方不可知被钳位） | noise_model.cpp:166-170 |
-| DISP-NOISE-008 | 整除划分 patch 网格在小图出现空 patch（x0==x1），几何空 patch 与质量拒绝混入同一 `n_rejected_patches` 计数，语义不区分 | noise_model.cpp:179-200 |
+| DISP-NOISE-008 | 整除划分 patch 网格在小图出现空 patch（x0==x1），几何空 patch 与质量拒绝混入同一 `n_rejected_patches` 计数，语义不区分 | noise_model.cpp:179-204 |
 | DISP-NOISE-009 | 控制点 malloc 失败路径 return 3 前 `g_model_floor[out_model]` 已注册：调用方忽略 rc=3 不调 `_free` 则注册表条目泄漏（与 001 同根） | noise_model.cpp:126,244-254 |
 
 ### 13.4 测试设计 TEST-NOISE-DESIGN-001（冻结容差）
@@ -228,8 +228,8 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:312-316 注册）。
 - `lib/phase1/noise/NoiseModel::estimate`（median+MAD 全像素集单值，无
   掩膜/patch/平面场）与 `NoiseModel::gain_variance`（signal/gain+rn²
   诊断）——P1-005 期封装，语义为 ALG-NOISE-001/003 的退化子集；随
-  `astrocs_phase1_noise` 静态库编译（CMakeLists.txt:435-438）并进主程序
-  （:513），属计划迁移旧符号：P1-NOISE-IMPL 决定改写为
+  `astrocs_phase1_noise` 静态库编译（CMakeLists.txt:490-493）并进主程序
+  （:556），属计划迁移旧符号：P1-NOISE-IMPL 决定改写为
   snr_noise_model_v1 薄封装或退出，去留登记其 TASK_RESULT。
 - 旧乘法 SNR 通道 `snr_estimate/snr_estimate_f64/snr_extract_model{,_v2,_v3}`
   （snr_estimator.h:200-218,394-428）——legacy heuristic/diagnostic，已由
