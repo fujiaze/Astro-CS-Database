@@ -525,23 +525,18 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 
 
 
-## 收档 M2b（HiPS/HEALPix/AIO 唯一写出路径，41 输入 → 定稿 29：P0:10/P1:15/P2:4）
-- **两处定性改写比新增 P0 更有行动价值**：
-  ①`DISP-HIPS-004` **不是能力缺口**：同库 `aio_pipeline.cpp:876-918`（临时+rename）、`hiss_stream_writer.cpp:178`（atomic_replace）、
-  `lib/hips/src/aio_publish.cpp:285` 三处都在用原子发布，**唯独 HiPS 写出未接线** → 整改从"要不要实现"降为"接哪一层"（已进 A-22）。
-  ②`L15-013 → M2b-F-01` 由 P1 **升 P0**：`healpix_fullsky_oracle.jsonl` 与 `test_healpix_oracle.cpp` 在非 run 区 0 命中；测试需外部 oracle 文件、
-  极点 `|dec|>=89.999999` 直接 continue、容差 1.2×像素角分辨率，与注册表 :135 声称的"百万点 / ≤1e-12 deg"**差约 10 个数量级且不含极点**，
-  且该文件**未进 tests/unit/CMakeLists.txt**（healpix 相关只有 r9b_healpix_neighbors）⇒ 永不执行；**而它是 D.healpix「CONFORMANT+偏差无」的唯一支撑**。
-- 三条主落 P0：写侧 nside 闸门被绕过（完整生产调用链已实读定位 cli/commands → runtime_client → module_ports → `p1_op_writer` → `aio_hips_product_begin`，
-  既不经 `hips_cfg_parse`（:342 幂次+上界齐全）也不经 `aio_publish_*`；并发新增的适配层守卫 :2453 只查整除与 tile_nside 幂次 ⇒ 1536 仍放行）；
-  `write_moc_fits` 缺 REC-MOC 2.0 强制的 ORDERING/COORDSYS 却**只用自家读侧当符合性证据**（两读侧对强制键 0 检查）；
-  tile 几何三源互斥（代码 NSIDE=2^(k+9) vs ALG :142 与 :146 自相矛盾 vs IO_002 §3.1 允许 TW 1..16384 而 §3.2 钉 NSIDE、AIO 只收 TW=512）。
-- **它主动推翻自己定稿里的 4 处失真引用**（C1 我曾把 rename/fsync 全库计 0，实为 50/2 命中 → 收窄作用域后结论反而更强；
-  C2 我把 L03 的转述当标准原文引用，该句在 STD/ALG/IO_003 全 0 命中 → 换成注册表 :109 + ALG §10 实测整行；C3 引用的英文承诺句已被并发改写；
-  C4 我引的两个文件在非 run 区已不存在 → 改整行计数重列 13 处真实落点）→ 与 M6b 并列为**自我修正双范例**，写入 SUMMARY 簇 10。
-### 前台终裁与改道（M2b 提请）
-- **B-05 VOTable 断链 URI → 裁定升 P0**：交付文件的**语法即不合规**属"产品不可被标准消费者消费"（规程 §2 P0 判据第 2 项），
-  与 M2b 自己把 B-02（MOC 缺强制键）、B-07（order 上界）定 P0 的口径一致；不升会与同族三条互相矛盾。已由 M2b 在 B-05 条目落 P0。
-- **A-21/A-22/A-23 三条已入 40 文件**（写出归属、DISP 整改路线、order≤29 是否保留）。
-- **对已收工域的移交一律改道**（旧规则复申：不得留悬空）：IO_003 合同侧与 L15-004/006/007 → **M9**（其持 L24 原子发布与交付安全面）；
-  L15-011/015/016/017 的口径与推导面 → **M7**；L25-001/002 许可证面 → **M8a**（本就在其范围）；L15-018 门改造 → 前台并入簇 1。
+
+## 收档 M8（L22+L23 → 定稿 26：P0:4/P1:15/P2:7）与前台实测回执
+- **主落裁定（我已确认）**：孤儿测试 TU 根因归 **M8-F-004**（61/61 逐 basename 零命中），L24-003 降为实例面并 related 指回；
+  「修复未固化 + 反向钉死」的**值口径本体**归 M5a-G-001（P0），M8-F-009 只主落**测试面**。两处都按「同一事实一处定稿」执行。
+- **它比我的订正走得更远**：我让 M8 把 STD-REGISTRY 订正为「挂 known_failures.json 账」，它实测该字面串**全仓 0 命中**、
+  `known_failures.json` 仅 2 条 ⇒ **既未注册也未挂账，只被 docs 引用**。→ 我此前那条订正本身也是不精确的，已按 M8 实测覆盖。
+- 新立第三向空集的具体形态：**基线恒真探针**（`p2_seam_gate:71` 用被测函数自造通过输入 ×1.2 自证）与
+  `ci/tests/test_ci001_failclosed.py:128/137/152` 用 `assertNotIn` **把"注册表零 --gate-required"钉成期望**（且该文件本身不被 CI 采集）
+  → 已请 M9 并入「不可达门家族」。
+- **合格线十一项**（L22 六项 + M8 实测五项：mon001_gate、TestDeterministicDigest、p1*_tests_selfcheck、三处 unknown-group 守卫、CI-REG S1-S7）
+  被确立为**判"缺证据"的阈值**，SUMMARY 直接引用。
+- **诚实披露值得表扬**：M8 自报会话最开头（范围更正前）用过两次 bash（`pwd && ls`、`find 问题扫描`，纯目录列举、未读真源内容），
+  并**明确不主张"全程零 shell"** → 登记为 D-05；同时它把工具事实写入档案（read >2000 字符单行截断、grep 上限 250 且不支持环视、
+  run_code 结果重复回显两次），所有数字标「本代理实测」且不静默替换叶子口径。
+- 前台已实测 `ci/checks.json` 的 "id" 计数（见回执），并据此要求 M8 通知各域订正 111 的旧写法。
