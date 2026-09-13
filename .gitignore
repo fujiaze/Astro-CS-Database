@@ -123,5 +123,10 @@ astrocs_run_*.json
 resource_samples.csv
 resource_summary.json
 worker_balance.csv
+# FIX-E2E B1-A8: MON-002 allocation report 亦属运行产物(此前漏登记 → CI dirty);
+# 运行产物应只落 output_dir, 此处仅作根目录整洁兜底(与 resource_* 同策略)。
+alloc_report.json
+alloc_samples.csv
+/graph/
 
 /dist/audit/

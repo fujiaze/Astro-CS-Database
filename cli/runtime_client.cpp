@@ -30,7 +30,10 @@ namespace {
 // （缺 output_dir → PARAM → CLI 2，与旧 CLI 行为一致）。
 nlohmann::json phase_config(const nlohmann::json& doc, int phase,
                             const std::string& out_dir, std::string* err) {
-  nlohmann::json pdoc;
+  // B1-A4: 不再"重建 pdoc"（旧实现只搬 hips_paths/input_lights, 静默丢弃
+  // cosmetic/weight_mode/reject_profile 等会话键 → 节点消费不到）。改为以完整
+  // doc 为基, 只在 V1 `inputs.lights` 形态做必要映射; 直通形态零改动。
+  nlohmann::json pdoc = doc;
   if (phase == 3) {
     if (doc.contains("phase3") && doc["phase3"].is_object()) {
       pdoc = doc["phase3"];
@@ -89,28 +92,59 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   ir["nodes"] = nlohmann::json::array();
   nlohmann::json outs = nlohmann::json::object();
 
-  // P1-001 (attempt 2): Phase1 IR 链 cal → cosmetic（唯一真实 operation 节点;
-  // cosmetic enabled=false 时为确定性 0 帧直通, 不改变既有产物语义）。
+  // P1-001 (attempt 2) / FIX-E2E B1-A1: Canonical Phase1 IR 8 节点链
+  // cal → cos → psf → wcs → phot → snr → drz → wr。
+  // 节点集/端口名与 core module_adapters 的 descriptor 及
+  // runtime/pipeline/module_ports.registry.json 的 phase1 冻结端口链逐节点一致
+  // （GAP-10: 新增门 tests/cli/test_phase1_inprocess.py::test_ir_matches_frozen_chain
+  // 断言该一致性, 防再次静默漂移到 2 节点）。
+  // 平台说明(B1-A1 风险): Linux 上 ipv 求解为源内 stub, 故 wcs 节点走"显式 WCS
+  // 配置"路径(见 p1_op_wcs 的 explicit_config 分支), drizzle 从 wcs 节点产物
+  // p1_wcs.json 透传 header KV —— 不伪造求解, manifest 记 wcs_source=explicit_config。
   auto phase1_nodes = [&]() -> std::vector<nlohmann::json> {
     nlohmann::json pc = phase_config(doc, 1, out_dir, err);
     if (err && !err->empty()) return {};
-    nlohmann::json cal;
-    cal["node_id"] = "cal";
-    cal["module_id"] = "astrocs.phase1.calibration";
-    cal["module_api"] = "1.x";
-    cal["config"] = pc;
-    cal["inputs"] = {{"frames", "artifact:in"}};
-    cal["outputs"] = {{"calibrated", "artifact:cal"}};
-    cal["resources"] = {{"class", "cpu_heavy"}, {"parallel", true}};
-    nlohmann::json cos;
-    cos["node_id"] = "cos";
-    cos["module_id"] = "astrocs.phase1.cosmetic";
-    cos["module_api"] = "1.x";
-    cos["config"] = pc;
-    cos["inputs"] = {{"calibrated", "artifact:cal"}};
-    cos["outputs"] = {{"cleaned", "artifact:cos"}};
-    cos["resources"] = {{"class", "cpu_heavy"}, {"parallel", true}};
-    return {cal, cos};
+    auto mk = [&](const std::string& nid, const std::string& mod,
+                  const nlohmann::json& ins, const nlohmann::json& outs_,
+                  const char* cls, bool par) {
+      nlohmann::json n;
+      n["node_id"] = nid;
+      n["module_id"] = mod;
+      n["module_api"] = "1.x";
+      n["config"] = pc;
+      n["inputs"] = ins;
+      n["outputs"] = outs_;
+      n["resources"] = {{"class", cls}, {"parallel", par}};
+      return n;
+    };
+    return {
+        mk("cal", "astrocs.phase1.calibration",
+           {{"frames", "artifact:in"}}, {{"calibrated", "artifact:cal"}},
+           "cpu_heavy", true),
+        mk("cos", "astrocs.phase1.cosmetic",
+           {{"calibrated", "artifact:cal"}}, {{"cleaned", "artifact:cos"}},
+           "cpu_heavy", true),
+        mk("psf", "astrocs.phase1.star-psf",
+           {{"cleaned", "artifact:cos"}},
+           {{"sources", "artifact:p1_sources"}, {"psf", "artifact:p1_psf"}},
+           "cpu_heavy", true),
+        mk("wcs", "astrocs.phase1.wcs-platesolve",
+           {{"sources", "artifact:p1_sources"}}, {{"wcs", "artifact:p1_wcs"}},
+           "cpu_heavy", true),
+        mk("phot", "astrocs.phase1.photometry",
+           {{"psf", "artifact:p1_psf"}, {"sources", "artifact:p1_sources"}},
+           {{"fluxes", "artifact:p1_flux"}},
+           "cpu_heavy", true),
+        mk("snr", "astrocs.phase1.noise-snr",
+           {{"fluxes", "artifact:p1_flux"}}, {{"snr", "artifact:p1_snr"}},
+           "cpu_heavy", true),
+        mk("drz", "astrocs.phase1.drizzle",
+           {{"calibrated", "artifact:cal"}}, {{"stacked", "artifact:p1_stack"}},
+           "cpu_heavy", true),
+        mk("wr", "astrocs.phase1.writer",
+           {{"stacked", "artifact:p1_stack"}}, {{"fits", "artifact:p1_hips"}},
+           "io", false),
+    };
   };
   // P2-006 (G5): Canonical Phase2 IR 7 节点链
   // coverage → sample → upm_fit → upm_apply → reject → integrate → write。
@@ -198,11 +232,15 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   }
   if (want2) outs["mosaic"] = "artifact:write";
   if (want3) outs["verified"] = "artifact:verify";
-  if (want1 && !want2 && !want3) {
-    // P1-001: cos 节点产物覆写 calibrated_<base> 同文件（cleaned 语义终态在
-    // calibrated 文件上）; 声明为输出面满足 IR "produced must be consumed" 静态验证。
+  if (want1) {
+    // B1-A1: phase1 内部产物 p1_wcs/p1_snr/p1_hips 无下游 IR 消费者（wcs 产物
+    // 经 output_dir 文件约定由 drizzle 透传, 不声明为 IR edge），必须显式登记为
+    // pipeline 输出以满足 IR 静态验证 UNCONSUMED；cal/cleaned 保留既有语义。
     outs["calibrated"] = "artifact:cal";
     outs["cleaned"] = "artifact:cos";
+    outs["wcs"] = "artifact:p1_wcs";
+    outs["snr"] = "artifact:p1_snr";
+    outs["hips"] = "artifact:p1_hips";
   }
   ir["outputs"] = outs;
   return ir.dump();

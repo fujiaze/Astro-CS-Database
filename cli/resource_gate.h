@@ -142,6 +142,11 @@ struct GateConfig {
     // 横切诊断: 内存持续增长(rss_slope 可为负=收缩, 用显式开关而非负哨兵)
     bool rss_slope_measured = false;
     double rss_slope_mb_per_s = 0.0;
+    // FIX-E2E B1-A6: active 计算窗口时长(秒)。判定域收口前置:
+    // rss_slope/p75 等统计判据只对 active window >= kMon002MinWindowSeconds 生效;
+    // 负值 = 调用方未提供(直接单元判定路径) → 视为代表性, 保持向后兼容。
+    // 注意: 阈值(85%/60%/32MB/s/10s)与判定式不动, 只加窗口/样本量前置。
+    double active_window_seconds = -1.0;
     double memory_growth_limit_mb_per_s = 32.0;  // 调用方可覆盖(泄漏敏感场景调低)
     bool progress_stalled = false;    // 无进度(采样/节点注入)
     double io_wait_high_percent = 50.0;  // 异常 IO 等待阈值(iowait 占比)
@@ -161,6 +166,13 @@ struct GateConfig {
     AllocReclaimVerdict alloc_reclaim_verdict = AllocReclaimVerdict::InsufficientSamples;
 };
 
+// FIX-E2E B1-A6: 统计判据(window>=10s)前置。active_window_seconds<0 = 未提供。
+inline constexpr double kMon002MinWindowSeconds = 10.0;
+inline bool gate_window_representative(const GateConfig& g) {
+    return g.active_window_seconds < 0.0 ||
+           g.active_window_seconds >= kMon002MinWindowSeconds;
+}
+
 // 核心公式: compute 且 wall>=5s 时, avg_equivalent_cores 下限 = 0.80 * min(selected_workers, available_cpus)。
 inline double compute_cores_threshold(const GateConfig& g) {
     if (g.kind != ResKind::Compute) return 0.0;
@@ -178,7 +190,10 @@ inline double compute_cores_threshold(const GateConfig& g) {
 // CPU p50/mean 阈值仅当调用方提供 active window>=10s 采样时判定(负=未采样跳过)。
 inline GateDiag evaluate_gate(const GateConfig& g) {
     // 横切异常(任何 kind; rss 未测/progress 未注/iowait=0 时不触发, 向后兼容)
-    if (g.rss_slope_measured && g.rss_slope_mb_per_s > g.memory_growth_limit_mb_per_s)
+    // B1-A6: 仅当 active window 达到最短判定窗(>=10s)才判 memory_growth —— <10s
+    // 窗口的斜率是采样噪声, 不能作为"无界内存增长"证据(阈值不变)。
+    if (g.rss_slope_measured && gate_window_representative(g) &&
+        g.rss_slope_mb_per_s > g.memory_growth_limit_mb_per_s)
         return GateDiag::MemoryGrowth;
     if (g.progress_stalled)
         return GateDiag::ProgressStall;
@@ -205,8 +220,13 @@ inline GateDiag evaluate_gate(const GateConfig& g) {
                 return GateDiag::SingleThreaded;
             }
         }
-        // 短任务: 单线程已判; 跳过统计判据(短窗 mean/p50 样本不足)。
-        if (g.wall_seconds < 5.0) return GateDiag::Ok;
+        // §10.5 判据域收口(OWNER-02, "追认不阻塞执行"): 冻结门的语义前提是
+        // "计算区间超过 10 秒"。active window <10s 时统计利用率判据(avg/p50/mean)
+        // 不成立(短窗样本不足), 一律跳过; 阈值 0.80*min(selected,available) 与
+        // 85%/90% 判定式**不动**。active_window_seconds<0(未提供) = 直接单元判定
+        // 路径, 视为代表性, 保持既有行为(向后兼容)。
+        if (!gate_window_representative(g)) return GateDiag::Ok;
+        if (g.wall_seconds < 5.0) return GateDiag::Ok;   // 兼容旧调用方(未标 active 窗)
         const double thr = compute_cores_threshold(g);
         if (thr > 0 && g.avg_equivalent_cores < thr)
             return GateDiag::LowAvgCores;
@@ -283,7 +303,8 @@ inline bool monitoring_effective(const GateConfig& g) {
 // 与切片数无关。
 inline GateDiag evaluate_mon001(const GateConfig& g) {
     if (!monitoring_effective(g)) return GateDiag::MonitoringMissing;
-    if (mon001_sampled(g.util_samples_pass_frac) &&
+    // B1-A6: 逐样本占比属统计判据, 仅对 >=10s active window 生效(阈值 0.70 不动)。
+    if (mon001_sampled(g.util_samples_pass_frac) && gate_window_representative(g) &&
         g.util_samples_pass_frac < kMon001UtilSampleFrac)
         return GateDiag::UtilizationP75Low;
     if (mon001_sampled(g.queue_low_run_seconds) &&
@@ -307,7 +328,11 @@ inline GateDiag evaluate_mon002(const GateConfig& g) {
     if (!g.alloc_report_present) return GateDiag::Ok;
     if (mon001_sampled(g.alloc_samples_measured) && g.alloc_samples_measured <= 0.0)
         return GateDiag::AllocReclaimMissing;   // 面在零有效样本 = 无内存证据
-    if (g.alloc_growth_mb_per_s != kMon001NotSampled &&
+    // B1-A6: 与 rss_slope 同源 —— 分配曲线稳态斜率也是统计判据, 仅当 active
+    // window >=10s 才具备 §10.5 语义; 短窗启动分配爬坡不得判"无界增长"(阈值
+    // kAllocGrowthUnboundedMbPerS=32 不动)。零样本/reclaim 判定另行收口。
+    if (gate_window_representative(g) &&
+        g.alloc_growth_mb_per_s != kMon001NotSampled &&
         g.alloc_growth_mb_per_s >= kAllocGrowthUnboundedMbPerS)
         return GateDiag::AllocGrowthUnbounded;
     if (g.alloc_reclaim_verdict == AllocReclaimVerdict::UnexplainedResidual)

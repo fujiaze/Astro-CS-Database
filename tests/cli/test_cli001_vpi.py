@@ -189,7 +189,17 @@ class TestCli001Vpi(unittest.TestCase):
 
     # ── 4. plan 正向/确定性/零 I/O ──
     def test_08_plan_json_structure_and_frozen_node_counts(self):
-        for ph, n_nodes in ((1, 2), (2, 7), (3, 5)):
+        # FIX-E2E B1-A1（前台授权改动）: 旧冻结值 phase1=2(cal,cos) 固化的正是
+        # RESCUE-P0-01 的"Phase1 CLI 只跑两节点"缺陷（AUD-P1 P0-1）。A1 恢复
+        # runtime/pipeline/module_ports.registry.json 的冻结 8 节点端口链后，此处
+        # 计数必须跟随唯一事实源，并加守卫防再次漂移。
+        reg_path = os.path.join(REPO, "runtime", "pipeline", "module_ports.registry.json")
+        with open(reg_path, encoding="utf-8") as fh:
+            reg = json.load(fh)
+        p1_modules = [m for m in reg["modules"] if m.get("phase") == "phase1"]
+        self.assertEqual(len(p1_modules), 8,
+                         "registry 冻结 phase1 模块数必须为 8(cal,cos,psf,wcs,phot,snr,drz,wr)")
+        for ph, n_nodes in ((1, len(p1_modules)), (2, 7), (3, 5)):
             cfg = self.cfg_ok
             if ph == 3:
                 cfg = self._cfg(

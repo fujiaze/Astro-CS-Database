@@ -1063,8 +1063,25 @@ bool p1_wh_pixels(int w, int h, uint64_t* out) {
   return true;
 }
 
+// ── FIX-E2E B1-A3: 空必填输入 fail-closed ─────────────────────────────────
+// §14.4 最小充分校验: 只做数组非空/元素类型校验, 不扩成存在性防御堆叠。
+// 返回 DATA（CLI rc=2）; 不设 error_kind —— "缺文件"仍走原 error_kind=input→3 语义。
+Result<void> p1_require_lights(const Json& doc) {
+  if (!p1_has(doc, "input_lights") || !doc["input_lights"].is_array() ||
+      doc["input_lights"].empty())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "input_lights must be non-empty array"));
+  for (const auto& l : doc["input_lights"])
+    if (!l.is_string() || l.get<std::string>().empty())
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "input_lights items must be non-empty strings"));
+  return Result<void>::success();
+}
+
 // ── op: calibrate（唯一真实入口 ac_calibrate_frame; 语义对齐 p1_session calibrate 阶段）──
 Result<void> p1_op_calibrate(const Json& doc, Json* man) {
+  auto p1_lights_rc = p1_require_lights(doc);
+  if (p1_lights_rc.failed()) return p1_lights_rc;
   std::vector<std::string> masters;
   for (const char* k : {"master_bias", "master_dark", "master_flat"})
     if (p1_has(doc, k)) masters.push_back(doc[k].get<std::string>());
@@ -1193,6 +1210,8 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
 
 // ── op: cosmetic_correct（唯一真实入口 ac_correct_frame; enabled=false → 0 帧如实记录）──
 Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
+  auto p1_lights_rc = p1_require_lights(doc);
+  if (p1_lights_rc.failed()) return p1_lights_rc;
   Json stages = Json::array();
   Json artifacts = Json::array();
   if (!p1_has(doc, "cosmetic") || !p1_flag(doc["cosmetic"], "enabled", true)) {
@@ -1262,6 +1281,8 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
 //      PSF 拟合（生产源零 diff; DPSF-PREC-105/FP64 双精度）; 输出
 //      DATA-P1-SOURCES + DATA-P1-PSF(psf_params:FLOAT64[N,9])）──
 Result<void> p1_op_star_psf(const Json& doc, Json* man) {
+  auto p1_lights_rc = p1_require_lights(doc);
+  if (p1_lights_rc.failed()) return p1_lights_rc;
   const std::string out_dir = doc.value("output_dir", std::string("."));
   const astrocs::phase1::StarDetector det(5.0);
   Json frames = Json::array();
@@ -1379,6 +1400,7 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
   (*man)["n_psf_valid"] = n_valid_total;
   (*man)["sources_artifact"] = src_path;
   (*man)["psf_artifact"] = psf_path;
+  (*man)["artifacts"] = Json::array({src_path, psf_path});
   return Result<void>::success();
 }
 
@@ -1393,6 +1415,79 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::DATA, "input_lights required"));
   }
   const Json& wc = doc.contains("wcs") && doc["wcs"].is_object() ? doc["wcs"] : Json::object();
+  // FIX-E2E B1-A1: 显式 WCS 配置路径（Linux ipv stub 平台的合法替代, 不伪造求解）。
+  // 当配置显式给出线性 WCS 8 参数时, 本节点做"显式 WCS 校验 + 透传": 校验有限性/
+  // 可逆性(det!=0) + WcsTan roundtrip 自检, 写 p1_wcs.json 并标记
+  // wcs_source="explicit_config"、solver="none(explicit_config)"; 不调用 ipv, 也不
+  // 冒充求解结果。未提供显式参数时保持原真实 ipv 求解链（Windows/有求解器平台）。
+  const bool explicit_wcs = p1_has(wc, "crpix1") && p1_has(wc, "crpix2") &&
+                            p1_has(wc, "crval1") && p1_has(wc, "crval2") &&
+                            p1_has(wc, "cd11") && p1_has(wc, "cd12") &&
+                            p1_has(wc, "cd21") && p1_has(wc, "cd22");
+  if (explicit_wcs) {
+    astrocs::phase1::WcsTan wcs;
+    wcs.crpix1 = p1_num(wc, "crpix1", 0.0); wcs.crpix2 = p1_num(wc, "crpix2", 0.0);
+    wcs.crval1 = p1_num(wc, "crval1", 0.0); wcs.crval2 = p1_num(wc, "crval2", 0.0);
+    wcs.cd11 = p1_num(wc, "cd11", 0.0); wcs.cd12 = p1_num(wc, "cd12", 0.0);
+    wcs.cd21 = p1_num(wc, "cd21", 0.0); wcs.cd22 = p1_num(wc, "cd22", 0.0);
+    const double det = wcs.cd11 * wcs.cd22 - wcs.cd12 * wcs.cd21;
+    const double vals[8] = {wcs.crpix1, wcs.crpix2, wcs.crval1, wcs.crval2,
+                            wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22};
+    for (double v : vals)
+      if (!std::isfinite(v))
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "explicit wcs params must be finite (crpix/crval/cd)"));
+    if (!std::isfinite(det) || det == 0.0)
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "explicit wcs CD matrix is singular (det==0)"));
+    const std::string frame0 = p1_calibrated_path(doc, doc["input_lights"][0].get<std::string>());
+    P1Image im = p1_read_image(frame0);
+    if (!im.ok()) {
+      (*man)["error_kind"] = "input";
+      return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + frame0));
+    }
+    const int W = im.w(), H = im.h();
+    std::vector<std::pair<double, double>> pts;
+    const int step = std::max(1, std::max(W, H) / 8);
+    for (int y = 0; y < H; y += step)
+      for (int x = 0; x < W; x += step)
+        pts.emplace_back(static_cast<double>(x), static_cast<double>(y));
+    Json samples = Json::array();
+    double max_rt = 0.0;
+    for (const auto& [x, y] : pts) {
+      double ra = 0.0, dec = 0.0, bx = 0.0, by = 0.0;
+      wcs.pix2sky(x, y, &ra, &dec);
+      wcs.sky2pix(ra, dec, &bx, &by);
+      const double rt = std::sqrt((bx - x) * (bx - x) + (by - y) * (by - y));
+      if (rt > max_rt) max_rt = rt;
+      samples.push_back(Json{{"x", x}, {"y", y}, {"ra", ra}, {"dec", dec},
+                             {"roundtrip_px", rt}});
+    }
+    if (!std::isfinite(max_rt) || max_rt >= 1e-6) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "explicit WcsTan roundtrip " + std::to_string(max_rt) + " px exceeds 1e-6 contract"));
+    }
+    const std::string out_path = out_dir + "/p1_wcs.json";
+    Json wcs_out = Json{{"schema", "DATA-P1-WCS"},
+                        {"solver", "none(explicit_config)"},
+                        {"wcs_source", "explicit_config"},
+                        {"initial", false},
+                        {"wcs", Json{{"crpix1", wcs.crpix1}, {"crpix2", wcs.crpix2},
+                                     {"crval1", wcs.crval1}, {"crval2", wcs.crval2},
+                                     {"cd11", wcs.cd11}, {"cd12", wcs.cd12},
+                                     {"cd21", wcs.cd21}, {"cd22", wcs.cd22}}},
+                        {"n_samples", samples.size()},
+                        {"max_roundtrip_px", max_rt},
+                        {"samples", samples}};
+    if (!p1_write_text(out_path, wcs_out.dump(2)))
+      return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
+    (*man)["wcs_source"] = "explicit_config";
+    (*man)["n_samples"] = samples.size();
+    (*man)["max_roundtrip_px"] = max_rt;
+    (*man)["wcs_artifact"] = out_path;
+    (*man)["artifacts"] = Json::array({out_path});
+    return Result<void>::success();
+  }
   // 真实求解链必需参数: 初始指向/光学尺度/Gaia 数据目录（缺失显式拒绝, 禁 silent default）
   const double ra0 = p1_num(wc, "ra0", std::numeric_limits<double>::quiet_NaN());
   const double dec0 = p1_num(wc, "dec0", std::numeric_limits<double>::quiet_NaN());
@@ -1523,6 +1618,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   (*man)["n_samples"] = samples.size();
   (*man)["max_roundtrip_px"] = max_rt;
   (*man)["wcs_artifact"] = out_path;
+  (*man)["artifacts"] = Json::array({out_path});
   return Result<void>::success();
 }
 
@@ -1580,11 +1676,14 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_frames"] = frames.size();
   (*man)["flux_artifact"] = out_path;
+  (*man)["artifacts"] = Json::array({out_path});
   return Result<void>::success();
 }
 
 // ── op: estimate_snr（唯一真实入口 NoiseModel::estimate; SCI-NOISE-001 公式）──
 Result<void> p1_op_noise(const Json& doc, Json* man) {
+  auto p1_lights_rc = p1_require_lights(doc);
+  if (p1_lights_rc.failed()) return p1_lights_rc;
   const std::string out_dir = doc.value("output_dir", std::string("."));
   const astrocs::phase1::NoiseModel model;
   Json frames = Json::array();
@@ -1612,26 +1711,64 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_frames"] = frames.size();
   (*man)["snr_artifact"] = out_path;
+  (*man)["artifacts"] = Json::array({out_path});
   return Result<void>::success();
 }
 
 // ── op: drizzle_stack（唯一真实入口 hp_drizzle_run; nside 科学参数无缺省）──
 Result<void> p1_op_drizzle(const Json& doc, Json* man) {
+  auto p1_lights_rc = p1_require_lights(doc);
+  if (p1_lights_rc.failed()) return p1_lights_rc;
   const std::string out_dir = doc.value("output_dir", std::string("."));
-  if (!p1_has(doc, "wcs") || !doc["wcs"].is_object())
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "drizzle requires 'wcs' (HP DRIZZLE header KV source; 禁 silent default)"));
-  const Json& wj = doc["wcs"];
+  // FIX-E2E B1-A1: header KV 来源 = 上游 wcs 节点产物 p1_wcs.json 透传优先
+  // （真实节点产物; 显式配置路径下该产物带 wcs_source=explicit_config），
+  // 回退到 config.wcs。两者都无 → DATA fail-closed（禁 silent default）。
+  Json wj_storage = Json::object();
+  {
+    const std::string wcs_prod_path = out_dir + "/p1_wcs.json";
+    std::ifstream wf(std::filesystem::u8path(wcs_prod_path), std::ios::binary);
+    Json wcs_prod;
+    bool have_prod = false;
+    if (wf) {
+      try {
+        wcs_prod = Json::parse(std::string((std::istreambuf_iterator<char>(wf)),
+                                           std::istreambuf_iterator<char>()));
+        have_prod = true;
+      } catch (...) { have_prod = false; }
+    }
+    if (have_prod && wcs_prod.is_object() && wcs_prod.contains("wcs") &&
+        wcs_prod["wcs"].is_object()) {
+      wj_storage = wcs_prod["wcs"];
+    } else if (p1_has(doc, "wcs") && doc["wcs"].is_object()) {
+      wj_storage = doc["wcs"];
+    } else {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "drizzle requires upstream p1_wcs.json or config 'wcs' (HP DRIZZLE"
+          " header KV source; 禁 silent default)"));
+    }
+  }
+  const Json& wj = wj_storage;
   const bool has_drz = p1_has(doc, "drizzle") && doc["drizzle"].is_object();
   if (!has_drz || !p1_has(doc["drizzle"], "nside"))
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "drizzle requires 'drizzle.nside' (科学参数禁 silent default)"));
   const Json& dj = doc["drizzle"];
   const int nside = p1_int(dj, "nside", 0);
-  const int nested = p1_int(dj, "nested", 0);
+  // B1-A9: HiPS NESTED 合同缺省 nested=1（旧缺省 0 被 drizzle 引擎直接拒绝, 链不可达）。
+  const int nested = p1_int(dj, "nested", 1);
   const double pixfrac = p1_num(dj, "pixfrac", 1.0);
-  const int precision_mode = p1_int(dj, "precision_mode", 0);
+  // B1-A9: precision_mode 无缺省 —— 缺失/越界显式 DATA 拒绝（不 silent 降 FP32）。
+  if (!p1_has(dj, "precision_mode"))
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "drizzle requires 'drizzle.precision_mode' (0=FP32, 1=FP64;"
+        " missing precision_mode is rejected, no silent default)"));
+  const int precision_mode = p1_int(dj, "precision_mode", -1);
   if (nside <= 0) return Result<void>::fail(Error(ErrorDomain::DATA, "nside must be > 0"));
+  if (nested != 0 && nested != 1)
+    return Result<void>::fail(Error(ErrorDomain::DATA, "nested must be 0 or 1"));
+  if (precision_mode != 0 && precision_mode != 1)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "precision_mode must be 0 (FP32) or 1 (FP64)"));
   if (pixfrac <= 0.0 || pixfrac > 1.0)
     return Result<void>::fail(Error(ErrorDomain::DATA, "pixfrac must be in (0,1]"));
 
@@ -1723,6 +1860,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_healpix_pixels"] = static_cast<int64_t>(res.n_healpix_pixels);
   (*man)["stack_artifact"] = out_path;
+  (*man)["artifacts"] = Json::array({hiss_path, out_path});
   return Result<void>::success();
 }
 
@@ -1790,6 +1928,17 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   // 标准 tile id = leaf>>18, tile 内偏移 = leaf & (2^18-1)。
   // HISS signal = 累计通量通道; covered_area = support>0 ? A_cell : 0
   // （单帧 stacked 全或无语义, p1_final.json 登记 covered_area_model）。
+  // FIX-E2E B1-A9: HISS precision_mode 检测 —— FP64 累积产物必须走 f64 读侧
+  // (aio_hiss_read_tile_signal_f64; FP32 读侧对 FP64 文件确定性拒绝, 禁 silent 转换)。
+  // writer 输出的 IVOA HiPS 产品位深为 AIO_HIPS_FLOAT32（AIO 合同）, 故 FP64 输入
+  // 在此显式窄化; 科学累积精度由 drizzle 侧 precision_mode 保证。
+  int hiss_signal_dtype = 0;
+  if (meta_json && meta_json[0] != '\0') {
+    try {
+      const Json mj = Json::parse(meta_json);
+      hiss_signal_dtype = mj.value("signal_dtype", mj.value("precision_mode", 0));
+    } catch (...) { hiss_signal_dtype = 0; }
+  }
   const uint64_t hiss_nleaf = n_leaf_per_tile;
   const uint64_t tile_leaf_span = 512ULL * 512ULL;
   const uint64_t std_parent_count = 12ULL * (1ULL << (2 * (leaf_order - 9)));
@@ -1805,13 +1954,18 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
       const uint64_t base_leaf = tile_ipix[t] * hiss_nleaf;
       if ((base_leaf >> 18) != parent) continue;
       float* signal = nullptr; uint32_t n_signal = 0;
+      double* signal64 = nullptr;
       uint8_t* support = nullptr; uint32_t n_support = 0;
-      const int rs = aio_hiss_read_tile_signal(hiss_path.c_str(), tile_ipix[t],
-                                               &signal, &n_signal);
+      const int rs = (hiss_signal_dtype == 1)
+          ? aio_hiss_read_tile_signal_f64(hiss_path.c_str(), tile_ipix[t],
+                                          &signal64, &n_signal)
+          : aio_hiss_read_tile_signal(hiss_path.c_str(), tile_ipix[t],
+                                      &signal, &n_signal);
       const int ru = aio_hiss_read_tile_support(hiss_path.c_str(), tile_ipix[t],
                                                 &support, &n_support);
       if (rs != 0 || ru != 0 || n_signal != hiss_nleaf || n_support != hiss_nleaf) {
         if (signal) aio_hio_free(signal);
+        if (signal64) aio_hio_free(signal64);
         if (support) aio_hio_free(support);
         aio_hips_abort(ps);
         if (meta_json) aio_hio_free(meta_json);
@@ -1822,11 +1976,12 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
       for (uint64_t i = 0; i < hiss_nleaf; ++i) {
         const uint64_t leaf = base_leaf + i;
         const uint64_t off = leaf & (tile_leaf_span - 1);
-        sig_buf[off] = signal[i];
+        sig_buf[off] = signal64 ? static_cast<float>(signal64[i]) : signal[i];
         cov_buf[off] = support[i] > 0 ? static_cast<float>(a_cell) : 0.0f;
         seen[off] = 1;
       }
       if (signal) aio_hio_free(signal);
+      if (signal64) aio_hio_free(signal64);
       if (support) aio_hio_free(support);
       touched = true;
     }
@@ -1882,6 +2037,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   (*man)["n_tiles"] = n_tiles;
   (*man)["hips_root"] = out_dir;
   (*man)["final_artifact"] = out_path;
+  (*man)["artifacts"] = Json::array({out_path, props});
   return Result<void>::success();
 }
 
@@ -2046,6 +2202,9 @@ Result<void> p2_op_coverage(const Json& doc, Json* man) {
   int rc = p2_coverage_build(ptrs.data(), ptrs.size(), &cov);   // 查询容量
   if (rc != 0 && cov.n_union_cells == 0) {
     st["status"] = "fail";
+    // FIX-E2E B1-A7: HiPS 输入不可打开 = 输入缺失 → error_kind=input,
+    // CLI 退出码映射 rf=3(INPUT) 而非 2(DATA)（CLI_PROTOCOL_V1 §2）。
+    (*man)["error_kind"] = "input";
     return Result<void>::fail(Error(ErrorDomain::DATA,
         std::string("p2_coverage_build failed: ") + cov.error));
   }
@@ -2089,6 +2248,7 @@ Result<void> p2_op_coverage(const Json& doc, Json* man) {
   if (!p2_write_text(out_path, artifact.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed: " + out_path));
   (*man)["coverage_artifact"] = out_path;
+  (*man)["artifacts"] = Json::array({out_path});
   (*man)["n_union_cells"] = cov.n_union_cells;
   (*man)["target_order"] = cov.target_order;
   return Result<void>::success();
@@ -2198,8 +2358,12 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
   if (!p2_write_text(out_path, artifact.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed: " + out_path));
   (*man)["samples_artifact"] = out_path;
+  (*man)["artifacts"] = Json::array({out_path});
   (*man)["n_obs"] = n_obs;
   (*man)["n_controls"] = n_controls;
+  // B1-A2/A10: session 摘要需 n_inputs（帧数）——coverage 有而 sample manifest 缺，
+  // cmd_phase2_run 摘要扫描命中 sample（含 n_obs）后读不到 n_inputs 会报 0。
+  (*man)["n_inputs"] = static_cast<uint64_t>(view.hips_paths.size());
   (*man)["overlap_controls"] = stats.overlap_controls;
   return Result<void>::success();
 }
@@ -2333,6 +2497,22 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     std::filesystem::remove(std::filesystem::u8path(bin_path), ec);
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed: " + out_path));
   }
+  // A4: upm_save_path/persist_upm 是已登记 session 键（p2_session 语义）; 正式
+  // 节点链为唯一写者, 故在此按其语义把模型落盘到指定路径（键可达, 非 silent 忽略）。
+  Json upm_arts = Json::array({out_path, bin_path});
+  if (doc.value("persist_upm", false) && doc.contains("upm_save_path") &&
+      doc["upm_save_path"].is_string() && !doc["upm_save_path"].get<std::string>().empty()) {
+    const std::string save_path = doc["upm_save_path"].get<std::string>();
+    std::error_code cec;
+    std::filesystem::copy_file(std::filesystem::u8path(bin_path),
+                               std::filesystem::u8path(save_path),
+                               std::filesystem::copy_options::overwrite_existing, cec);
+    if (cec)
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "upm_save_path copy failed: " + save_path + " (" + cec.message() + ")"));
+    upm_arts.push_back(save_path);
+  }
+  (*man)["artifacts"] = upm_arts;
   (*man)["upm_model_artifact"] = out_path;
   (*man)["upm_model_bin"] = bin_path;
   (*man)["model_hash"] = std::string(info.model_hash);
@@ -2494,6 +2674,9 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
                        {"frames", frames_j}};
   if (!p2_write_text(out_path, artifact.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed: " + out_path));
+  Json cor_arts = Json::array({out_path});
+  for (const auto& fr : frames_j) cor_arts.push_back(fr.value("data_file", std::string()));
+  (*man)["artifacts"] = cor_arts;
   (*man)["corrected_artifact"] = out_path;
   (*man)["n_pixels_total"] = total_pixels;
   return Result<void>::success();
@@ -2683,6 +2866,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                                       {"candidates", cand_file}}}};
   if (!p2_write_text(out_path, artifact.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed: " + out_path));
+  (*man)["artifacts"] = Json::array({out_path, acc_file, nrej_file, cand_file});
   (*man)["rejection_artifact"] = out_path;
   (*man)["reject_semantic_id"] = p2_rejection_semantic_id(plan.method);
   (*man)["n_pixels"] = n_pixels_processed;
@@ -2969,6 +3153,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                                       {"nrej", nrej_file_out}}}};
   if (!p2_write_text(out_path, artifact.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed: " + out_path));
+  (*man)["artifacts"] = Json::array({out_path, sig_file, sup_file, wsum_file,
+                                     nused_file, nrej_file_out});
   (*man)["integrated_artifact"] = out_path;
   (*man)["weight_mode"] = weight_mode;
   (*man)["uncertainty_available"] = uncertainty_available;
@@ -3174,6 +3360,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                              " pending AIO-domain contract registration"}}}};
   if (!p2_write_text(out_path, final_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
+  (*man)["artifacts"] = Json::array({out_path, props});
   (*man)["mosaic_root"] = out_dir;
   (*man)["final_artifact"] = out_path;
   (*man)["n_tiles_written"] = n_tiles_written;
@@ -3667,6 +3854,7 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
   f.close();
   if (!f.good()) return Result<void>::fail(Error(ErrorDomain::IO, "p3_props.json write failed"));
   (*man)["props_artifact"] = path;
+  (*man)["artifacts"] = Json::array({path});
   (*man)["hips_order"] = order;
   (*man)["bunit"] = bunit;
   (*man)["uncertainty_source"] = props["uncertainty_source"];
@@ -3714,6 +3902,7 @@ Result<void> p3_op_wcs(const Json& doc, Json* man) {
   f.close();
   if (!f.good()) return Result<void>::fail(Error(ErrorDomain::IO, "p3_wcs.json write failed"));
   (*man)["wcs_plan_artifact"] = path;
+  (*man)["artifacts"] = Json::array({path});
   return Result<void>::success();
 }
 
@@ -4004,6 +4193,7 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   if (!f.good())
     return Result<void>::fail(Error(ErrorDomain::IO, "p3_resampled.json write failed"));
   (*man)["resampled_artifact"] = json_path;
+  (*man)["artifacts"] = Json::array({json_path, bin_path});
   (*man)["order_sel"] = order_sel;
   (*man)["uncertainty_available"] = unc_available;
   (*man)["uncertainty_source"] = live_src;
@@ -4090,8 +4280,11 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_writer.json"));
   f << wr.dump(2) << "\n";
   f.close();
-  (*man)["output_fits"] = fits_path;
+  // A2 单点键名: 节点 manifest 与 CLI 收集端统一用 output_fits_path
+  //（旧节点写 output_fits、CLI 只读 output_fits_path → phase3_output role 恒缺）。
+  (*man)["output_fits_path"] = fits_path;
   (*man)["writer_artifact"] = json_path;
+  (*man)["artifacts"] = Json::array({fits_path, json_path});
   (*man)["sha256"] = std::string(ores.sha256);
   (*man)["uncertainty_available"] = unc;
   return Result<void>::success();
@@ -4153,6 +4346,7 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   f << ver.dump(2) << "\n";
   f.close();
   (*man)["verified_artifact"] = json_path;
+  (*man)["artifacts"] = Json::array({json_path});
   (*man)["reopen_ok"] = vres.reopen_ok;
   return Result<void>::success();
 }

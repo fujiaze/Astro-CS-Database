@@ -119,10 +119,18 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
     def _cfg(self, out, lights):
+        # FIX-E2E B1-A1/A9（前台授权改动）: phase1 正式链现为 8 节点端口链，
+        # drizzle 强制 nside/precision_mode、wcs 强制显式配置或节点产物；OK 路径
+        # （test_02）与取消路径（test_03）需带这两个节点域参数才能进入真实执行。
         cfg = os.path.join(self.tmp, f"cfg_{os.path.basename(out)}.json")
         json.dump({"schema_version": "1",
                    "inputs": {"lights": lights, "darks": [], "flats": [], "bias": []},
-                   "output_dir": out}, open(cfg, "w"))
+                   "output_dir": out,
+                   "wcs": {"crpix1": 32.5, "crpix2": 32.5, "crval1": 210.0,
+                           "crval2": 34.0, "cd11": -2.7777777777777776e-4,
+                           "cd12": 0.0, "cd21": 0.0, "cd22": 2.7777777777777776e-4},
+                   "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0,
+                               "precision_mode": 0}}, open(cfg, "w"))
         return cfg
 
     def _empty_cfg(self, out):
