@@ -16,7 +16,7 @@ downstream: [TEST-P2-INT-001]
 > downstream 为 registry 生成词，保持不动；合同权威=lib/phase2_int/
 > 三件套 + docs/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）。
 > descriptor 词汇（本节标题 module_id=astrocs.phase2.integrate、端口
-> 表、坐标 PIXEL）为编排层占位（module_adapters.cpp:657-675
+> 表、坐标 PIXEL）为编排层占位（module_adapters.cpp:719-737
 > p2_integrate_descriptor，注册 :785），由 P2-XX-INT 对齐
 > astrocs.p2.integration（MODULE_MIGRATION_MATRIX P2-INT 行），
 > 不得反向作为冻结依据。
@@ -47,7 +47,7 @@ downstream: [TEST-P2-INT-001]
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:659-671，占位词汇，
+编排层 descriptor 端口表（module_adapters.cpp:721-733，占位词汇，
 按 frontmatter registry 生成词保留）:
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
@@ -73,7 +73,7 @@ NO_CANDIDATES、全拒→ALL_REJECTED、全零权重→ZERO_VALID_WEIGHT——
   入口 C ABI）、p2_validate_candidate_weights（:10-17，调用方
   stage2.cpp:1141/:1402 预检）。
 - 编排生命周期 create→validate→run→inspect→destroy 由 session
-  承接（module_adapters.cpp:690-695 工厂），本内核为无状态纯函数。
+  承接（module_adapters.cpp:752-757 工厂），本内核为无状态纯函数。
 - C API 面: API-P2-INT-001（PUBLIC_API.md，P2-INT-DOC 登记）+
   编排级 API-P2-001（FROZEN）。
 

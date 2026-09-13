@@ -36,8 +36,8 @@
   （impl :463，消费 n_union_cells :632/union_cells[0] :658/逐 cell ipix
   :702）、编排 session（lib/phase2_session/p2_session.cpp:119-148 coverage
   阶段，两次调用 :125/:138，manifest 登记 n_union_cells/target_order
-  :145-147）、stage2 正式入口（lib/phase2/tools/stage2.cpp:189-200）、registry descriptor（module_adapters.cpp:561-576）。
-- descriptor astrocs.phase2.coverage（module_adapters.cpp:561-576）为编排层
+  :145-147）、stage2 正式入口（lib/phase2/tools/stage2.cpp:189-200）、registry descriptor（module_adapters.cpp:623-638）。
+- descriptor astrocs.phase2.coverage（module_adapters.cpp:623-638）为编排层
   词汇，端口 calibrated→coverage 坐标登记 PIXEL 与球面 MOC 实际语义不符，
   以本合同为准修订，P2-COV-INT 对齐，不得反向作为冻结依据。
 
@@ -180,7 +180,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   显式拒绝，:186-192；UPM 侧"不跨滤镜统一（filter 分组由调用方保证）"
   SCI-UPM-001 §1 同构）。
 - **registry 端口语义修订**: descriptor 端口 coverage 坐标
-  CoordinateFrame::PIXEL（module_adapters.cpp:571，出端口 coverage DATA-P2-COV/
+  CoordinateFrame::PIXEL（module_adapters.cpp:633，出端口 coverage DATA-P2-COV/
   DIMENSIONLESS/PIXEL）与 NESTED 球面 MOC 实际不符，以本合同（HEALPix NESTED / equatorial/ICRS）为准，
   P2-COV-INT 对齐修正，不改生产码（入端口 calibrated=DATA-P2-CAL/
   ADU/PIXEL，:570，像素语义对路径输入仅名义）。

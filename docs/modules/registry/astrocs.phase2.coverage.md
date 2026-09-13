@@ -47,7 +47,7 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
 - 端口：入 calibrated（HiPS 树路径数组，`const char* const*
   [n_inputs]`）；出 coverage（union MOC，P2MocCell [K] 无量纲整数，
   **HEALPix NESTED equatorial/ICRS**——旧 descriptor 登记端口坐标
-  PIXEL 与实际不符（module_adapters.cpp:561-576），以 DATA-COV-001
+  PIXEL 与实际不符（module_adapters.cpp:623-638），以 DATA-COV-001
   §19.3 为准，P2-COV-INT 修订；DATA-P2-COV 端口名保留为编排词汇，
   权威定义=DATA-COV-001）。
 - 科学红线（matrix P2-COV 专项，负向条款）：coverage/support/validity

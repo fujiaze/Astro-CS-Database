@@ -68,7 +68,7 @@ downstream: [TEST-P3-WCS-001]
   出参（FITS 1-based=+1，:97-98/:140-141），crpix 本身 FITS
   1-based pixel-center=(W+1)/2。
 - 端口词汇（props/wcs_plan、DATA-P3-PROPS）为 descriptor 派生
-  （module_adapters.cpp:344-361），由 P3-PROJ-INT 对齐 DATA-P3-WCS，
+  （module_adapters.cpp:406-423），由 P3-PROJ-INT 对齐 DATA-P3-WCS，
   不作冻结依据。
 
 ## 4 公共 header、核心 symbol 与生命周期
@@ -89,7 +89,7 @@ downstream: [TEST-P3-WCS-001]
 
 ## 5 Registry descriptor 与配置 schema
 
-- descriptor（module_adapters.cpp:344-361 p3_wcs_descriptor，
+- descriptor（module_adapters.cpp:406-423 p3_wcs_descriptor，
   编排层占位词汇）: module_id=`astrocs.phase3.wcs`；
   execution_class=cpu_heavy；parallel_ok=true（纯函数 const-only
   并发安全，与 §7 结构性一致）；ports props(DATA-P3-PROPS 必)
@@ -97,7 +97,7 @@ downstream: [TEST-P3-WCS-001]
   ALG-P3-002、data_id=DATA-P3-WCS、api_id=API-P3-001、test_id=
   TEST-P3-WCS-001——占位 ID/端口由 P3-PROJ-INT 对齐本页与
   lib/phase3_proj/module.yaml，不作冻结依据。
-- 注册序: module_adapters.cpp:754 起序列（phase3_descriptor→
+- 注册序: module_adapters.cpp:816 起序列（phase3_descriptor→
   p3_wcs_descriptor→p3_resample2_descriptor→p3_writer_descriptor，
   :797-798 收尾）；配置=phase config JSON（按 PHASE API 文档）。
 

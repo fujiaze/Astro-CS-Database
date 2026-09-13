@@ -71,6 +71,20 @@ ForkOutcome run_forked(int (*fn)(void)) {
     return out;
 }
 
+// B2-A1: 两天球坐标角距 (deg, haversine; 经度环绕安全) — 绝对正确性门度量。
+double angular_sep_deg(double ra1, double dec1, double ra2, double dec2) {
+    const double d1 = dec1 * kDegToRad, d2 = dec2 * kDegToRad;
+    double dra = (ra2 - ra1) * kDegToRad;
+    while (dra > M_PI) dra -= 2.0 * M_PI;
+    while (dra < -M_PI) dra += 2.0 * M_PI;
+    const double sh = std::sin((d2 - d1) / 2.0);
+    const double sn = std::sin(dra / 2.0);
+    double s = sh * sh + std::cos(d1) * std::cos(d2) * sn * sn;
+    if (s > 1.0) s = 1.0;
+    if (s < 0.0) s = 0.0;
+    return 2.0 * std::asin(std::sqrt(s)) / kDegToRad;
+}
+
 // --- fork 子进程体 (各负例; 返回 0=行为符合断言) ---
 
 int child_few_stars_1() {
@@ -238,13 +252,15 @@ int test_negative() {
                     "n1_wcs_tan_degenerate");
     }
 
-    // 新发现缺陷行为锚 (P1-WCS-TEST 2026-09-09 登记, 建议 DISP-WCS-007):
-    // WcsTan.pix2sky 将 (ξ,η) 的 deg 数值未转 rad 直接进球面公式
-    // (wcs_tan.cpp:15-16 xi=cd·dx 后直接 atan/asin; sky2pix 同族输出单位
-    // 错与之成对抵消 → roundtrip 自洽掩盖)。交叉对拍现状差 ~3.2° 量级
-    // (u=±470px 处)。本锚锁定"缺陷存在"现状: 偏差 >1e-6 deg 为真。
-    // P1-WCS-IMPL 修复 (单位一致化) 后本锚必红, 须同步翻转为 ≤1e-9 并在
-    // TASK_RESULT 登记整改。
+    // B2-A1 翻锚 (原为"缺陷行为锚", 锁定 DISP-WCS-007 现状: 偏差 >1e-6):
+    // WcsTan.pix2sky 的 ξ/η deg→rad 单位错已修 (wcs_tan.cpp 显式 ·π/180;
+    // sky2pix 同族单位错同步翻转; 权威 FITS-WCS Paper I §2.2 / Paper II)。
+    // 本锚改为**绝对正确性锚**: 与 p1wcs_oracle.hpp 的独立 TAN 逆投影
+    // (oracle_wcs_forward, gnomonic 闭式解, 不调用 WcsTan) 对拍, 偏差必须
+    // ≤1e-9 deg。阈值依据 (与生产门 module_adapters.cpp p1_op_wcs 一致):
+    // 两条独立路径均为 FP64, 本点位移 ~678 px × 1.11e-4 deg/px ⇒ |ξ,η| ~
+    // 0.075 deg, 舍入 ~1e-15 deg; 1e-9 deg (=3.6e-6") 高出舍入 6 个量级,
+    // 又比修复前偏差 (~5.6e-1 deg) 低 8 个量级 ⇒ 非恒真且可检出回归。
     {
         astrocs::phase1::WcsTan wt;
         wt.crpix1 = 512.5;
@@ -260,9 +276,42 @@ int test_negative() {
         oracle_wcs_forward(wt.cd11, wt.cd12, wt.cd21, wt.cd22, wt.crval1,
                            wt.crval2, wt.crpix1, wt.crpix2, nullptr, nullptr, 0,
                            40.0, 1000.0, &ra2, &dec2);
-        const double dra = std::fabs(ra1 - ra2) * std::cos(dec2 * kDegToRad);
-        P1WCS_CHECK(cs, std::max(dra, std::fabs(dec1 - dec2)) > 1e-6,
-                    "n1_wcs_tan_unit_anchor");
+        const double err_deg = angular_sep_deg(ra1, dec1, ra2, dec2);
+        P1WCS_CHECK(cs, err_deg <= 1e-9, "n1_wcs_tan_unit_anchor");
+    }
+
+    // B2-A1 增补: 桥接注入必败 (杀死"去桥接 / 双桥接")。
+    // WcsTan 契约 (wcs_tan.h): crpix 1-based、dx = x − crpix1 ⇒ 消费方传入
+    // FITS 1-based 像素。声明用法与独立 oracle 前向一致 (≤1e-9 deg);
+    // "去桥接"(误把 1-based 当 0-based, 传 x−1) 或"双桥接"(再 +1) 均引入
+    // 1 px 量级偏差 (≈1.11e-4 deg @ |CD|≈1.1097e-4 deg/px), 必须被同一
+    // 绝对门检出 (≥1e-6 deg; 与声明值差 3 个量级, 非恒真)。
+    {
+        astrocs::phase1::WcsTan wt;
+        wt.crpix1 = 512.5;
+        wt.crpix2 = 512.5;
+        wt.crval1 = 150.0;
+        wt.crval2 = 2.0;
+        wt.cd11 = 1.109723e-4;
+        wt.cd12 = 5.553241e-6;
+        wt.cd21 = 5.553241e-6;
+        wt.cd22 = -1.109723e-4;
+        const double x1 = 700.0, y1 = 300.0;  // FITS 1-based (声明契约)
+        double ra_ref = 0.0, dec_ref = 0.0;
+        oracle_wcs_forward(wt.cd11, wt.cd12, wt.cd21, wt.cd22, wt.crval1,
+                           wt.crval2, wt.crpix1, wt.crpix2, nullptr, nullptr, 0,
+                           x1, y1, &ra_ref, &dec_ref);
+        double ra_d = 0.0, dec_d = 0.0, ra_nb = 0.0, dec_nb = 0.0;
+        double ra_db = 0.0, dec_db = 0.0;
+        wt.pix2sky(x1, y1, &ra_d, &dec_d);                  // 声明桥接
+        wt.pix2sky(x1 - 1.0, y1 - 1.0, &ra_nb, &dec_nb);    // 去桥接
+        wt.pix2sky(x1 + 1.0, y1 + 1.0, &ra_db, &dec_db);    // 双桥接
+        const double e_decl = angular_sep_deg(ra_d, dec_d, ra_ref, dec_ref);
+        const double e_nb = angular_sep_deg(ra_nb, dec_nb, ra_ref, dec_ref);
+        const double e_db = angular_sep_deg(ra_db, dec_db, ra_ref, dec_ref);
+        P1WCS_CHECK(cs, e_decl <= 1e-9, "n1_wcs_tan_bridge_declared");
+        P1WCS_CHECK(cs, e_nb >= 1e-6, "n1_wcs_tan_bridge_removed");
+        P1WCS_CHECK(cs, e_db >= 1e-6, "n1_wcs_tan_bridge_doubled");
     }
 
     // DISP-WCS-004 相邻面行为锚: extract_wcs_sip 对全零 trans (共线产物)

@@ -246,7 +246,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - 内核纯函数: p3_wcs.cpp grep 实测 0 处 thread/mutex/atomic/omp、
   0 处全局可变状态（匿名命名空间常量+纯函数 :12-28）——const-only
   入口（descriptor 只读）多线程并发安全，descriptor parallel_ok=
-  true（module_adapters.cpp:344-361 占位）与此结构性一致。
+  true（module_adapters.cpp:406-423 占位）与此结构性一致。
 - RT-006（线程泄漏守卫）由"无内部线程+无全局可变状态"结构性满足；
   depends_on_int 矩阵值 ABI-005;DATA-004;RT-006 之 RT-006 锚本节。
 - 并行仅上游采样 worker 池（p3_session.cpp:247-253，worker 数=
@@ -274,7 +274,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - descriptor 占位词汇（module_id=astrocs.phase3.wcs、sci_id=
   SCI-P3-WCS-001、alg_id=ALG-P3-002、test_id=TEST-P3-WCS-001、
   端口 props(DATA-P3-PROPS 必)+wcs_plan(DATA-P3-WCS 可)）为编排层
-  词汇（module_adapters.cpp:344-361），由 P3-PROJ-INT 对齐
+  词汇（module_adapters.cpp:406-423），由 P3-PROJ-INT 对齐
   astrocs.p3.projection，不得反向作为冻结依据。
 
 ## 12 TEST-P3-WCS-DESIGN-001 设计冻结（登记面 VERIFIED）

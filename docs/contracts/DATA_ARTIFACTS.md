@@ -40,7 +40,7 @@
 上表末两行 `DATA-HIPS-001` / `DATA-TILE-001` 是**既存** ID 的登记补齐，
 **不是新语义**：两 ID 早已在 DATA_SEMANTICS §29.5（"DATA-HIPS-001/
 DATA-TILE-001（HiPS properties/tile 输入面）"）、生产 descriptor
-（lib/core/src/module_adapters.cpp:436-437 与 :459/:498）、
+（lib/core/src/module_adapters.cpp:498-499 与 :459/:498）、
 runtime/pipeline/module_ports.registry.json:246/:277、registry 端口表
 （docs/modules/registry/astrocs.phase3.resample.md、…resample2.md、
 …properties.md）、tests/unit/core_pipeline_test.cpp:66-67 在用，并在
@@ -61,13 +61,13 @@ docs/traceability/TRACEABILITY_MATRIX.csv:25/:31 登记为 `VERIFIED`。
 - `DATA-TILE-001`（单 leaf tile 面）: 同上 §3 冻结映射（tile 内
   `fits_index=(511−x)·512+y`）与 SCI-P3-001 §9a-1/-8；descriptor 单位
   `UnitId::SURFACE_BRIGHTNESS`、坐标 `CoordinateFrame::HEALPIX`
-  （module_adapters.cpp:437）；"tile 读路径权威=DATA_SEMANTICS §3"
+  （module_adapters.cpp:499）；"tile 读路径权威=DATA_SEMANTICS §3"
   （docs/modules/phase3_rsmp.md:75）。
 
 **未决偏差（登记 finding，修复落本任务写域外）**: `DATA-HIPS-001` 的
 coordinate 在端口词汇面存在两个值——`CoordinateFrame::PIXEL`
-（module_adapters.cpp:436、docs/modules/registry/astrocs.phase3.resample.md:22）
-与 `CoordinateFrame::HEALPIX`（module_adapters.cpp:459/:498、
+（module_adapters.cpp:498、docs/modules/registry/astrocs.phase3.resample.md:22）
+与 `CoordinateFrame::HEALPIX`（module_adapters.cpp:521/:560、
 …resample2.md:71、…properties.md:22）。本表按冻结正文（§29.1/§3）登记
 HEALPix NESTED；PIXEL 一侧属端口词汇漂移（§29.5 已声明端口表"不得
 反向作为冻结依据"），修复归 descriptor/registry 域（P3-RSMP-INT /

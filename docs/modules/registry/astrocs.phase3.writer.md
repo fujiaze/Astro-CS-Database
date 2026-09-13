@@ -66,7 +66,7 @@ downstream: [TEST-P3-WR-001]
   >0.5f（:346）；bitpix∉{-32,-64}→PARAM（:140-145）；WCS 守卫
   abs(dec)≤85°+四角同半球（p3_wcs.h:24-26）。
 - 端口词汇（resampled/fits、DATA-P3-RES、UnitId/CoordinateFrame）
-  为 descriptor 派生（module_adapters.cpp:383-398），由 P3-FITS-INT
+  为 descriptor 派生（module_adapters.cpp:445-460），由 P3-FITS-INT
   对齐 DATA-P3-FITS，不作冻结依据。
 
 ## 4 公共 header、核心 symbol 与生命周期
@@ -86,7 +86,7 @@ downstream: [TEST-P3-WR-001]
 
 ## 5 Registry descriptor 与配置 schema
 
-- descriptor（module_adapters.cpp:383-398 p3_writer_descriptor，
+- descriptor（module_adapters.cpp:445-460 p3_writer_descriptor，
   编排层占位词汇）: module_id=`astrocs.phase3.writer`；
   execution_class=`io`；parallel_ok=False；ports resampled(必)+
   fits(可)；sci_id=SCI-P3-WR-001、alg_id=ALG-P3-004、

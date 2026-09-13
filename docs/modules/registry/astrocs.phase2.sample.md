@@ -17,7 +17,7 @@ downstream: [TEST-P2-SMP-001]
 > 保持不动；合同权威=lib/phase2_samp/ 三件套 +
 > docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）。descriptor
 > 词汇（本节标题 module_id=astrocs.phase2.sample、端口表、坐标
-> PIXEL）为编排层占位（module_adapters.cpp:580-592
+> PIXEL）为编排层占位（module_adapters.cpp:642-654
 > p2_sample_descriptor），由 P2-XX-INT 对齐 astrocs.p2.sampling
 > （矩阵 P2-SAMP 行），不得反向作为冻结依据。
 
@@ -53,7 +53,7 @@ downstream: [TEST-P2-SMP-001]
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:580-592，占位词汇，
+编排层 descriptor 端口表（module_adapters.cpp:642-654，占位词汇，
 按 frontmatter registry 生成词保留）:
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |

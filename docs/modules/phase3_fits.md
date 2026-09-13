@@ -26,7 +26,7 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 > （ALG-P3-001..004 施工规格，公式零改动）+
 > docs/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001，实现级
 > 合同，SCI-P3-WR-001⇒SCI-P3-001 映射声明在其 §5）。descriptor 词汇
-> module_id=`astrocs.phase3.writer`（module_adapters.cpp:383-398
+> module_id=`astrocs.phase3.writer`（module_adapters.cpp:445-460
 > p3_writer_descriptor）为编排层占位，由 P3-FITS-INT 对齐
 > `astrocs.p3.fits_writer`，不得反向作为冻结依据。
 
@@ -84,7 +84,7 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 
 ## Registry descriptor 与配置 schema
 
-- descriptor（编排层占位，module_adapters.cpp:383-398）：
+- descriptor（编排层占位，module_adapters.cpp:445-460）：
   module_id=astrocs.phase3.writer、execution_class=io、
   parallel_ok=false、ports resampled(必)+fits(可)、sci_id=
   SCI-P3-WR-001、alg_id=ALG-P3-004、test_id=TEST-P3-WR-001——由

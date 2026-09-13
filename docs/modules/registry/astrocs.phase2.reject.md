@@ -17,7 +17,7 @@ downstream: [TEST-P2-REJ-001]
 > 保持不动；合同权威=lib/phase2_rej/ 三件套 +
 > docs/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）。descriptor
 > 词汇（本节标题 module_id=astrocs.phase2.reject、端口表、坐标
-> PIXEL）为编排层占位（module_adapters.cpp:638-655，注册 :785），由
+> PIXEL）为编排层占位（module_adapters.cpp:700-717，注册 :785），由
 > P2-XX-INT 对齐 astrocs.p2.rejection（矩阵 P2-REJ 行），不得反向
 > 作为冻结依据。
 
@@ -51,7 +51,7 @@ downstream: [TEST-P2-REJ-001]
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:645-648，占位词汇，
+编排层 descriptor 端口表（module_adapters.cpp:707-710，占位词汇，
 按 frontmatter registry 生成词保留）:
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
@@ -86,7 +86,7 @@ DISP-P2REJ-002）。
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.phase2.reject`（占位）；execution_class=
-`cpu_heavy`；parallel_ok=True（module_adapters.cpp:640-644）。
+`cpu_heavy`；parallel_ok=True（module_adapters.cpp:702-706）。
 配置=stage2_common.h reject_method/reject_profile/
 reject_underdetermined_n/reject_normalization(+floor 1e-12)/
 large_scale_*（:52-63）；typed params 唯一默认源=cfg

@@ -17,7 +17,7 @@ downstream: [TEST-P1-PHOT-001]
 > lib/photometric_calib/README.md（r1，CONTRACT_READY）与现行生产实现
 > lib/photometric_calib/cpp/（现状构建=cpp/Makefile:11 g++ -shared
 > -fopenmp → photometric_calib.dll + cpp/build.ps1:9，未编入根 CMake 主
-> 构建）为准；descriptor 占位 ID（module_adapters.cpp:469-486
+> 构建）为准；descriptor 占位 ID（module_adapters.cpp:531-548
 > p1_photometry_descriptor）由 P1-PHOT-INT 对齐本页，不得反向作为冻结
 > 依据。port DATA 编目（psf→DATA-P1-PSF/sources→DATA-P1-SOURCES/
 > fluxes→DATA-P1-FLUX）为编排层词汇，模块合同 DATA 层=DATA-P1-PHOT

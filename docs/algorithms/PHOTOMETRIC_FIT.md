@@ -172,7 +172,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
   混合计数不可归因（star_matcher.cpp:580-581）；v2 per-star reject_reason
   才可区分。
 - **DISP-PHOT-007**: orchestrator 双通道四调用（:2714-2831）与 registry
-  descriptor 占位 ID（module_adapters.cpp:469-486）双轨并存，统一归
+  descriptor 占位 ID（module_adapters.cpp:531-548）双轨并存，统一归
   P1-PHOT-INT。
 - **DISP-PHOT-008**: Photometer 孔径/天空环全图 O(h·w) 扫描 + 背景中值
   整段排序（photometer.cpp:24-62），未优化且未接管线。

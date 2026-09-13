@@ -52,7 +52,8 @@ TEST-WCS-DESIGN-001 冻结容差）。
 
 TEST-WCS-DESIGN-001（ALG §11.4：F1 合成线性场/F2 astropy SIP oracle/
 F3 CRPIX 不变量/F4 失败语义负例/F5 bitwise 确定性/F6 WcsTan roundtrip
-<1e-6 deg）；可执行 TEST-P1-WCS-001 由 P1-WCS-TEST 落地。
+<1e-6 deg + 独立前向交叉 ≤1e-9 deg（B2-A1））；可执行 TEST-P1-WCS-001 由
+P1-WCS-TEST 落地。
 
 ## Source files
 

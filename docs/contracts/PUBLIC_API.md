@@ -503,7 +503,7 @@ ADU；scale 无量纲；sigma_residual dex；records residual=dex；WCS deg/px�
   码 2）→ 函数指针 pc_calibrate_simple_with_gaia_f64_v2（:2714）/_v2
   （:2790）双通道；写 photo_stats KV 块（:2902-2935，N_MATCHED/
   SCALE_FACTOR/SIGMA_RESIDUAL + diag 17 字段）。
-- registry descriptor 占位 ID（module_adapters.cpp:469-486，sci_id=
+- registry descriptor 占位 ID（module_adapters.cpp:531-548，sci_id=
   SCI-P1-PHOT-001/alg_id=ALG-002/data_id=DATA-P1-FLUX/api_id=API-P1-005/
   test_id=TEST-P1-PHOT-001）由 P1-PHOT-INT 对齐本合同，不得反向作为冻结
   依据（DISP-PHOT-007）。
@@ -614,7 +614,7 @@ cx/cy/fitRadius/sx/sy/fwhm 像素；theta 弧度；B/A/flux/mad ADU
 - 产出：psf 块 FLOAT64 [N,9]（布局 A，:2376-2390）+ star_measurements
   权威块 [N,15]（DATA_SEMANTICS §15.2 附属产出）；PHOTOMETRIC 以 psf 为
   必需块消费（:2563-2570，缺失退出码 3）。
-- registry descriptor 占位 ID（module_adapters.cpp:430-448，sci_id=
+- registry descriptor 占位 ID（module_adapters.cpp:492-510，sci_id=
   SCI-P1-PSF-001/alg_id=ALG-002/data_id=DATA-P1-SOURCES/api_id=API-P1-003/
   test_id=TEST-P1-PSF-001）由 P1-PSF-INT 对齐本合同，不得反向作为冻结
   依据（DISP-PSF-001 附注）。
@@ -640,7 +640,7 @@ cx/cy/fitRadius/sx/sy/fwhm 像素；theta 弧度；B/A/flux/mad ADU
 > 权威签名头 lib/phase1_session/p1_session.h:16-37，禁止手抄他版）。
 > 编排级上游合同 API-P1-001（docs/api/PHASE1_API_V1.md FROZEN）；数据面
 > DATA-P1-SESSION（DATA_SEMANTICS §16）。registry 关系：五函数经 P1Api
-> （lib/core/src/module_adapters.cpp:693-700）被 8 个 Phase1 descriptor
+> （lib/core/src/module_adapters.cpp:755-762）被 8 个 Phase1 descriptor
 > 工厂委托（:728-735/:755-770）。
 
 ### 范围界定
@@ -824,7 +824,7 @@ saturated/has_saturated int 0/1；图像输入 FP32 通道 uint16（DISP-STAR-00
   :1826-1829）；sdet_create 参数构造 :1593-1612。
 - API-P1-003（PHASE1_API_V1 §2）表行 `sdet_create/destroy/detect/detect_ex`
   引用本模块符号；descriptor astrocs.phase1.star-psf
-  （module_adapters.cpp:430-448）为编排层词汇，由 P1-PSF-INT 对齐，
+  （module_adapters.cpp:492-510）为编排层词汇，由 P1-PSF-INT 对齐，
   不作冻结依据。
 
 ### 已登记现状缺陷与迁移语义
@@ -944,7 +944,7 @@ focal_length_mm mm；pixel_size_um μm；输出 cd deg/pixel、crval deg
   （:2003-2010）+ SIP A/B/AP/BP 写回（:2017-2049）。
 - star_det/star_det_psf_compat/star_measurements 均由上游 PSF/STAR_MEASURE
   产出，本阶段不重写（:2057）。
-- registry descriptor 占位 ID（module_adapters.cpp:450-464，module_id=
+- registry descriptor 占位 ID（module_adapters.cpp:512-526，module_id=
   astrocs.phase1.wcs-platesolve、ports sources/wcs、sci_id=SCI-P1-WCS-001/
   alg_id=ALG-002/data_id=DATA-P1-WCS/api_id=API-P1-004/test_id=
   TEST-P1-WCS-001）由 P1-WCS-INT 对齐本合同，不得反向作为冻结依据。
@@ -1068,7 +1068,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 - 下游模块消费: sampler p2_sample_controls*（sampler.cpp:464/:504/:632/
   :1138）、stage2 正式入口（lib/phase2/tools/stage2.cpp:189-200/
   :212-213）、registry
-  descriptor astrocs.phase2.coverage（module_adapters.cpp:561-576，
+  descriptor astrocs.phase2.coverage（module_adapters.cpp:623-638，
   端口 calibrated=DATA-P2-CAL/ADU/PIXEL→coverage=DATA-P2-COV/
   DIMENSIONLESS/PIXEL——出端口坐标登记以本 API/DATA 合同 NESTED 为准
   修订，P2-COV-INT 对齐）。
@@ -1226,7 +1226,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > astrocs.p2.integration（迁移目标 astrocs_p2_integration.dll 为
 > 矩阵合同值，尚未存在——MISSING 语义，由 P2-INT-IMPL 建立，本节
 > 不声明 IMPLEMENTED；descriptor 占位 module_id=astrocs.phase2.
-> integrate 为编排层词汇，module_adapters.cpp:657-675，由 P2-XX-INT
+> integrate 为编排层词汇，module_adapters.cpp:719-737，由 P2-XX-INT
 > 对齐）。
 
 ### 导出符号与签名要点（integrate.h:58-66，冻结）
@@ -1299,7 +1299,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > astrocs_p2_rejection.dll 为矩阵合同值，尚未存在——MISSING 语义，
 > 由 P2-REJ-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
 > module_id=astrocs.phase2.reject 为编排层词汇，
-> module_adapters.cpp:638-655 p2_reject_descriptor，由 P2-XX-INT
+> module_adapters.cpp:700-717 p2_reject_descriptor，由 P2-XX-INT
 > 对齐）。
 
 ### 导出符号与签名要点（rejection.h 实测锚，冻结）
@@ -1433,7 +1433,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > astrocs_p2_sampling.dll 为矩阵合同值，尚未存在——MISSING 语义，
 > 由 P2-SAMP-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
 > module_id=astrocs.phase2.sample 为编排层词汇，
-> module_adapters.cpp:580-592 p2_sample_descriptor，由 P2-XX-INT
+> module_adapters.cpp:642-654 p2_sample_descriptor，由 P2-XX-INT
 > 对齐）。
 
 ### 导出符号与签名要点（sampler.h 实测锚，冻结）
@@ -1674,7 +1674,7 @@ destroy（唯一释放）。句柄不可复制/二次 destroy；宿主保证 hos
 > astrocs_p2_upm.dll 为矩阵合同值，尚未存在——MISSING 语义，由
 > P2-UPM-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
 > module_id=astrocs.phase2.upm-fit/upm-apply，
-> module_adapters.cpp:599-634（p2_upm_fit_descriptor :599 /
+> module_adapters.cpp:661-696（p2_upm_fit_descriptor :599 /
 > p2_upm_apply_descriptor :618），由 P2-XX-INT 对齐）。
 
 ### 导出符号与签名要点（upm.h 实测锚，冻结）
@@ -1796,7 +1796,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - 负向条款: **P2-UPM-DOC 不新增、不修改任何公共 C 头/C ABI**——
   upm.h 既有 16 符号声明与本节为同一 ABI 的展开冻结，禁止第二套
   定义；registry descriptor 占位词汇（module_id=
-  astrocs.phase2.upm-fit/upm-apply，module_adapters.cpp:599-634，
+  astrocs.phase2.upm-fit/upm-apply，module_adapters.cpp:661-696，
   ports samples/upm_model/calibrated_frames/corrected）由 P2-XX-INT
   对齐 astrocs.p2.upm-fit/upm-apply，**不作冻结依据**
   （DISP-P2UPM-004 占位语义）；上游 SCI-UPM-001（FROZEN）引用
@@ -1832,7 +1832,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > MOD: astrocs.p3.fits_writer（迁移目标 astrocs_p3_fits_writer.dll
 > 为矩阵合同值，尚未存在——MISSING 语义，由 P3-FITS-IMPL 建立，
 > 本节不声明 IMPLEMENTED；descriptor 占位 module_id=
-> astrocs.phase3.writer，module_adapters.cpp:383-398
+> astrocs.phase3.writer，module_adapters.cpp:445-460
 > p3_writer_descriptor，由 P3-FITS-INT 对齐）。
 
 ### 内核符号与签名要点（p3_output.h 实测锚，冻结）
@@ -1918,7 +1918,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > 锚与 G1/G2 冻结式）；MOD: astrocs.p3.projection（迁移目标
 > astrocs_p3_projection.dll 为矩阵合同值，尚未存在——MISSING 语义，
 > 由 P3-PROJ-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
-> module_id=astrocs.phase3.wcs，module_adapters.cpp:344-361
+> module_id=astrocs.phase3.wcs，module_adapters.cpp:406-423
 > p3_wcs_descriptor，由 P3-PROJ-INT 对齐）。
 
 ### 内核符号与签名要点（p3_wcs.h 实测锚，冻结）

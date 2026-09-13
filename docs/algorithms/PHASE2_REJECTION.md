@@ -14,7 +14,7 @@
 > 面=本文档 §11.4；可执行落地归 P2-REJ-TEST）。迁移目标
 > astrocs_p2_rejection.dll 为矩阵合同值（MISSING），由 P2-REJ-IMPL
 > 建立，本文件不声明 IMPLEMENTED；descriptor 占位
-> module_id=astrocs.phase2.reject（module_adapters.cpp:639-658）由
+> module_id=astrocs.phase2.reject（module_adapters.cpp:701-720）由
 > P2-XX-INT 对齐，不作冻结依据。
 > 关联: DATA=DATA-P2-REJ（docs/contracts/DATA_SEMANTICS.md §22，P2-REJ-DOC 同批冻结）；API=API-P2-REJ-001（docs/contracts/PUBLIC_API.md 末节，同批）；MOD 页=docs/modules/phase2_rej.md + registry docs/modules/registry/astrocs.phase2.reject.md（同批手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
 
@@ -619,7 +619,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
   legacy RJ-001..008）。**不因本任务改动**（共享 SCI 引用不改动；
   P1-WCS/P2-COV/P2-INT/P2-HIPS 先例）。
 - matrix P2-REJ 行 science_id=SCI-P2-REJ-001（descriptor 占位词汇，
-  module_adapters.cpp:649）的语义映射由本节声明——
+  module_adapters.cpp:711）的语义映射由本节声明——
   **SCI-P2-REJ-001 ⇒ SCI-REJ-001**（docs/science/REJECTION.md，
   矩阵 science_doc=docs/science/REJECTION.md，MOD-astrocs-phase2-
   reject 行，2026-09-09 P2-REJ-DOC 冻结）。descriptor 占位
@@ -667,7 +667,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 - 消费者: stage2.cpp（§6；DATA_SEMANTICS §20 编排域）/
   acr_kernels.cpp（ACR 域）/ tests/unit/p2_rejection_test.cpp
   （P2-005 语义 id/解析面）/ tests/backend/test_p2004_reject_
-  integrate.py（P2-004 生产 Oracle）/ module_adapters.cpp:638-655
+  integrate.py（P2-004 生产 Oracle）/ module_adapters.cpp:700-717
   descriptor 占位。
 - SCI: docs/science/REJECTION.md（SCI-REJ-001..008，FROZEN T107，
   零改动）。

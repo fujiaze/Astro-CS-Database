@@ -16,7 +16,7 @@ downstream: [TEST-P2-SMP-001]
 > 一套已被 P2-COV 占用，不可覆盖）；合同权威=三件套 +
 > docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001，
 > CONTRACT_READY）。descriptor 词汇 module_id=astrocs.phase2.sample
-> （module_adapters.cpp:580-592）为编排层占位，由 P2-XX-INT 对齐
+> （module_adapters.cpp:642-654）为编排层占位，由 P2-XX-INT 对齐
 > astrocs.p2.sampling（MODULE_MIGRATION_MATRIX P2-SAMP 行），不得
 > 反向作为冻结依据。
 
@@ -65,7 +65,7 @@ downstream: [TEST-P2-SMP-001]
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:580-592 实测；占位
+编排层 descriptor 端口表（module_adapters.cpp:642-654 实测；占位
 词汇，按 registry 生成词保留）:
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |

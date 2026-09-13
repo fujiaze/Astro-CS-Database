@@ -28,7 +28,7 @@ canonical 编排（coverage→sample→upm_build→persist）收敛为单一进�
 opaque handle 会话（create→validate→run→inspect→destroy 五函数），
 统一 config JSON 键集校验、host services 注入（logger/cancel/
 budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-005）
-与 RT-005 SessionModule 工厂委托（module_adapters.cpp:711-718 P2Api）
+与 RT-005 SessionModule 工厂委托（module_adapters.cpp:773-780 P2Api）
 两条消费面共用，不产生第二调度顺序。
 
 **非目标（本模块不做）**：
@@ -81,7 +81,7 @@ Observations/Model，统一经 p2_coverage_free（:144 RAII）/p2_upm_close
 ## 4 端口连接与 descriptor 占位对照
 
 registry 现状**无 astrocs.p2.session module_id 的 descriptor**；五
-函数经 P2Api（module_adapters.cpp:711-718 五静态委托）被占位
+函数经 P2Api（module_adapters.cpp:773-780 五静态委托）被占位
 descriptor 工厂委托：phase2_descriptor()（:283-300，module_id=
 astrocs.phase2.resample）注册段 :746-751；P2-006 canonical 7 节点链
 descriptors（p2_coverage/sample/upm_fit/upm_apply/reject/integrate/
@@ -219,7 +219,7 @@ pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
 2. canonical 节点集 {coverage,sample,upm_build,persist}（:31-38 静态
    门；typed DAG 扩面归 P2-SESSION-IMPL，不回头改 4 段 trace 词汇）。
 3. 五函数签名与 handle 所有权（p2_session.h:17-27；P2Api 委托面
-   module_adapters.cpp:711-718）。
+   module_adapters.cpp:773-780）。
 4. validate 无 silent default（p2_session.h:19；缺必需键/类型错
    →PARAM）。
 5. 错误映射 rc=1→PARAM / rc=2→STATE（合同 §4）/ persist IO→ACS_ERR_
@@ -363,7 +363,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   :454-458）→ astrocs 可执行（:501-506）+ QA-001 严格警告层
   （:517-529）。
 - 编排消费面：CLI 直调（CLI-005）与 RT-005/RT-008 SessionModule
-  （module_adapters.cpp:711-718 P2Api，注册 :746-751/:782-794）。
+  （module_adapters.cpp:773-780 P2Api，注册 :746-751/:782-794）。
 - 对拍先例：lib/phase1_session/（P1-SESSION-DOC）+ registry 页
   astrocs.phase1.session.md；PHASE2_SAMPLER.md §11/§12 结构。
 - 消费域：ALG-COV-001（PHASE2_COVERAGE.md）/ ALG-P2-SMP-001

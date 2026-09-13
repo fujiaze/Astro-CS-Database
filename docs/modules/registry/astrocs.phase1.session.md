@@ -20,7 +20,7 @@ downstream: [DATA-P1-SESSION, API-P1-SESSION, TEST-P1-SESSION-001]
 - 模块词汇：`astrocs.phase1.session`（归档映射
   docs/archive/refactor/P1_SYMBOL_MAP.md:14 既有词汇；现行 registry
   descriptor 无此 module_id，五函数经 P1Api 被 8 descriptor 工厂委托——
-  lib/core/src/module_adapters.cpp:693-700/:728-735/:755-770）。
+  lib/core/src/module_adapters.cpp:755-762/:790-797/:817-832）。
 - 层级：assembly（编排），不设独立 DLL（MODULE_MIGRATION_MATRIX 无
   P1-SESSION 行）；构建=静态库 astrocs_phase1_session（根
   CMakeLists.txt:448-452）。

@@ -5,6 +5,8 @@
 //   F1: n_pairs≥12, rms_arcsec≤0.5", CD 相对误差≤2%, |ΔCRVAL|≤1"
 //   F3: CRPIX=(w/2+0.5, h/2+0.5) 精确; Y-down CD 第 2 列符号翻转
 //   F6: WcsTan roundtrip < 1e-6 deg (tests/unit/p1_wcs_phot_test.cpp:50 冻结值)
+//       + B2-A1 绝对前向交叉 ≤1e-9 deg (与 oracle 独立 TAN 逆投影对拍;
+//         roundtrip 对"deg 当弧度"成对单位错零鉴别力, 见 AUD-COORD F-01/F-06)
 // 期望值全部由 p1wcs_oracle.hpp 独立推导 (fixture 真值 → oracle), 绝不经
 // 被测函数生成 (模板 <prefix>-TEST §3)。
 #include "p1wcs_test_main.hpp"
@@ -136,7 +138,7 @@ int test_units() {
     }
 
     // ------------------------------------------------------------------
-    // F6: legacy 桥 WcsTan roundtrip < 1e-6 deg (冻结) + oracle 前向交叉
+    // F6: legacy 桥 WcsTan roundtrip < 1e-6 deg (冻结) + B2-A1 绝对前向交叉
     // WcsTan 参数由 fixture 真值 + oracle CD 推导 (期望值非被测函数生成)
     // ------------------------------------------------------------------
     {
@@ -155,6 +157,9 @@ int test_units() {
         double max_sky_delta = 0.0;
         // F6b: sky2pix → pix2sky roundtrip < 1e-6 deg (像素域, 同冻结值量级)
         double max_px_delta = 0.0;
+        // F6c (B2-A1): 与 oracle_wcs_forward (独立 TAN 逆投影闭式解, 不调用
+        // WcsTan) 的绝对角距 — roundtrip 自洽对成对单位错零鉴别力。
+        double max_cross_deg = 0.0;
         const double cx = s.fx.width / 2.0, cy = s.fx.height / 2.0;
         for (std::size_t i = 0; i < s.fx.U.size(); ++i) {
             // IPV 接口契约 (center=index+0.5) → FITS 1-based: +0.5
@@ -162,6 +167,14 @@ int test_units() {
             const double y_f = (cy - s.fx.U[i].y) + 0.5;
             double ra = 0.0, dec = 0.0;
             wt.pix2sky(x_f, y_f, &ra, &dec);
+            // F6c: 绝对前向交叉 (同输入 x_f, 与 WcsTan 不同源)
+            double ra_c = 0.0, dec_c = 0.0;
+            oracle_wcs_forward(wt.cd11, wt.cd12, wt.cd21, wt.cd22, wt.crval1,
+                               wt.crval2, wt.crpix1, wt.crpix2, nullptr, nullptr,
+                               0, x_f, y_f, &ra_c, &dec_c);
+            const double dra_c = std::fabs(ra - ra_c) * std::cos(dec_c * kDegToRad);
+            max_cross_deg = std::max(max_cross_deg,
+                                     std::max(dra_c, std::fabs(dec - dec_c)));
             double x2 = 0.0, y2 = 0.0;
             wt.sky2pix(ra, dec, &x2, &y2);
             max_px_delta = std::max(max_px_delta, std::hypot(x2 - x_f, y2 - y_f));
@@ -179,11 +192,10 @@ int test_units() {
         }
         P1WCS_CHECK(cs, max_sky_delta < 1e-6, "u1_f6_roundtrip");  // 冻结 1e-6 deg
         P1WCS_CHECK(cs, max_px_delta < 1e-6, "u1_f6_roundtrip");
-
-        // F6 交叉对拍移除 — 发现被测 WcsTan.pix2sky 中间量单位缺陷 (ξ/η
-        // deg 数值未转 rad 直接进球面公式; sky2pix 同族单位错与之成对抵消,
-        // roundtrip 自洽掩盖)。交叉对拍在 negative 组 n1_wcs_tan_unit_anchor
-        // 以缺陷行为锚锁定现状 (IMPL 修复后翻转断言并登记)。
+        // F6c (B2-A1) 绝对门: ≤1e-9 deg。阈值依据见 negative 组
+        // n1_wcs_tan_unit_anchor 头注: 两独立路径 FP64 舍入 ~1e-15 deg,
+        // 1e-9 deg 高出 6 个量级, 旧"deg 当弧度"缺陷偏差 ~deg 量级。
+        P1WCS_CHECK(cs, max_cross_deg <= 1e-9, "u1_f6_abs_cross");
     }
 
     if (cs.failures == 0) {

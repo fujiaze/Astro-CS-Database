@@ -41,6 +41,7 @@ static const char* const kP1wcsFaultNames[] = {
     "u1_f3_crpix_exact",      // units: F3 CRPIX 精确断言
     "u1_f3_ydown_sign",       // units: F3 Y-down 第 2 列符号断言
     "u1_f6_roundtrip",        // units: F6 WcsTan roundtrip 断言
+    "u1_f6_abs_cross",        // units: F6c WcsTan 绝对前向交叉锚 (B2-A1)
     "u1_boundary_n3",         // units: n=3 恰好边界断言
     // properties 组
     "p1_det_bitwise",         // properties: 同输入 3 次 bitwise 断言
@@ -74,7 +75,11 @@ static const char* const kP1wcsFaultNames[] = {
     "n1_zero_pairs_anchor",   // negative: 空对确定性路径锚 (WCS-002 翻锚:
                               //   三空对组合直接断言零 UB + 确定 success=0)
     "n1_wcs_tan_degenerate",  // negative: WcsTan det 退化坍缩行为锚
-    "n1_wcs_tan_unit_anchor", // negative: WcsTan ξ/η 单位缺陷行为锚 (新发现)
+    "n1_wcs_tan_unit_anchor", // negative: WcsTan ξ/η 单位**绝对正确性锚**
+                              //   (B2-A1: 原缺陷行为锚翻转为 ≤1e-9 deg)
+    "n1_wcs_tan_bridge_declared", // negative: WcsTan +1 桥接声明用法 (B2-A1)
+    "n1_wcs_tan_bridge_removed",  // negative: 去桥接注入必被检出 (B2-A1)
+    "n1_wcs_tan_bridge_doubled",  // negative: 双桥接注入必被检出 (B2-A1)
     "n1_extract_zero_trans",  // negative: extract_wcs_sip 全零 trans 行为锚
     // perf 组
     "perf_baseline",          // perf: 基线时长为正
