@@ -45,6 +45,7 @@
 
 | A-31 | A | **依赖与许可登记面三处失真（发布阻断级 P0，前台已独立复验五锚全命中）**：`CMakeLists.txt:549` PUBLIC 链入 gsl/gslcblas 进 exe 闭包，而 DEPENDENCIES.md 与 dependency-lock.json 对 gsl **命中 0**、packaging/licenses 只有 CFITSIO/nlohmann/LICENSE-INDEX；`lib/plate_solve/LICENSE` 是 MIT 而 `ipv/src` **13 个 TU 含 SPDX/Siril/Copyright 者为 0**；HEALPix **同目录 5 行距离自相矛盾**：`lib/common/healpix/THIRD_PARTY_NOTICE.md:19/:22`「未迁移邻居查询/未复制任何 GPL」vs 同目录 `healpix_core.cpp:337-341/:416-419`「移植自 Healpix_3.83（GPL-2+ 参考）」并在 `:345/:348` 内联上游 nb 表（`:395/:403` 使用）；该 TU 经 `CMakeLists.txt:265-267` STATIC 并进 exe；另该 NOTICE:14-17 以「astropy-healpix 百万点 mismatch=0」自证，而 M2b-F-01 实测该 oracle 与测试在非 run 区 0 命中且未进 CMake ⇒ 同一句无支撑出现在两处；包内 NOTICE/SBOM 系 `make_windows_release.py:101-127` 硬编码字面量（漏列 GSL/Siril、HEALPix 误指 plate_solve/LICENSE、cfitsio 标 BSD 而仓内为 NASA/USG）且 `LICENSE-INDEX.txt:7-10` 自认根无 LICENSE 而 `check_release_layout.py` 要求必含 | M8a-G-001（一条四面）+ M8a-C-006；基线 §16.2/§17.11；C-07 是配套门 | **P0** | 裁三事：①派生性质认定（Siril/HEALPix 两例）②copyleft 履行方式（随包 GPL 文本+源码承诺／兼容授权／替换求解器或改链接策略）③根 LICENSE 落地。**§17.10 要求 P0/P1=0，现状 §17.11 不可能全过** |
 | A-32 | A | **`entrypoint` 一词两义且仓内无权威定义**（义A DLL 导出 / 义B host-registry 接线；GLOSSARY、docs/standards 14 份、宪章、schema、modules、contracts 全域检索无定义，schema 只有另一键名 `entrypoint_abi`，所依 15/13 号标准不在仓内）→ **它是"manifest↔registry 一致性门"的前置条件**，先建门必对同一模块给互斥结论 | M8a-I-006（术语缺口）；连带 M8a-C-002/G-006 | P2 但具阻塞性 | 建议：义A 保留 `entrypoint`、义B 另起键 `registry_descriptor_wired`，并同步 schema/README/generator |
+| A-34 | A | **18 份 agent 指令文件、仅 1 份受版本控制 —— 请裁定影子树指令文件的地位**：视为纯历史快照（则在目录规范中禁止 `run/**` 出现 AGENTS.md，或统一改名 `AGENTS.snapshot.md` 以免被 harness 当指令注入），还是视为需与根同步的活跃规范（则须先解决 §3.1/§8.1/§1.1 三处互斥）。另有 4 种长度并存（207/78/57/5 行）需一并说明 | F00-11 §5 | P1（**依它提交代码即升 P0**） | 建议按「历史快照」处理并**禁用注入位**：run/** 内的 AGENTS.md 改名，避免新会话被注入与宪章相反的入口指令 |
 | A-33 | A | **宪章 §8.4 的义务范围目录 `lib/algorithms/` 全仓 0 文件、CMakeLists 与 docs 0 引用** ⇒ 该硬义务对实际 21 个模块字面不成立 | M8a-I-001 相关；按 §1.1 登记，Agent 无改动权 | P2 | §1.2 流程订正条款措辞（改为覆盖 `lib/**` 或枚举实际模块）|
 
 ## B. 需执行 / 跨节点权限才能定案（R 层是否授权）
@@ -73,6 +74,7 @@
 | C-06 | C | **宪章 §12.3-9（文档内引用存在性）需实现机器门**；且 anchor 门 doc_globs 必须覆盖 docs/owner 与 docs/contracts，表格裸 :NN 锚纳入语法 | 依据 M6b（133+5 处假引用；owner 锚 4/4 全漂；223 处裸锚不在门内） | 一次性止住行锚漂移 |
 | C-07 | C | **依赖与许可登记门**：PUBLIC 链接的非 vendored 库（如 GSL）必须出现在 DEPENDENCIES.md 与 dependency-lock.json 并带许可证；派生目录的 LICENSE 必须覆盖上游著作权 | 依据 L25-001/002（GSL 零登记；ipv 13 文件 Siril 派生挂 MIT/自著作权） | 发布合规阻断项 |
 | C-08 | C | **「同事实一处定稿」与「转述数字皆为线索」写入协议**：本轮已 5 次由下属推翻上级/叶子转述数字 | 依据 H-1/H-2（_merge/00_COORDINATION.md） | 已在 _cache/F00 落为方法记录，建议升为正式规程条款 |
+| C-10 | C | **agent 指令文件的可见性与一致性门**：全仓 18 份 AGENTS.md 仅 1 份被跟踪；影子版明文写「正式运行只有 orchestrator.exe」「toolchain.ps1 run 是唯一正式入口」「Python 生产层已删除」「wiki 是唯一权威文档」，与 §3.1/§8.1/§1.1 及交付面（bin/_astrocs.pyd 仍 required）互斥。建议：①指令文件只允许存在于被跟踪且受文档门覆盖的路径，或②新增机器门校验影子指令与根 AGENTS.md 十要素 + §1.1 分层一致（免报区出现即 FAIL）。注意与 L25-005 同根因（判据按字面目录名切分 → 换目录即逃检），须与 C-07 同批改 | F00-11 §5（当场清点，含 17 个 UNTRACKED 判定） | 最高优先（活的指令注入） |
 | C-09 | C | **`问题扫描/` 目录本身尚未在 AGENTS.md 目录规范登记**（新增根条目须先登记并获负责人确认） | 宪章 §14.2 + AGENTS.md 目录规范 | 待你确认：登记为常驻审计域，或扫描结束后归档进 engineering/ 并移除 |
 
 ## D. 纪律偏差自报（透明记录，不掩盖）

@@ -532,8 +532,14 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 
 
 
-## F00 全量自审（机械复验我自己写的每一条 path::符号）
-- 抽出 4 条唯一 `文件::符号` 引用逐条回读真源：**通过 2 条、不通过 2 条**。
-- tests/io/test_fits_stream_contract.py::test_hips_rewriter_drops_bad_keyword（F00 第 165 行引）→ **SYMBOL_ABSENT**
-- tests/abi/test_io_ownership_contract.py::test_main_enforced（F00 第 265 行引）→ **FILE_NOT_FOUND / undefined**
-- 结论：F00-02 与 F00-07a 两类错误已全量扫净；后续 F00 新增条目标「已复验」时必须同时留当场命令与输出片段。
+## F00-11：影子树内的 agent 指令文件与冻结宪章在「唯一入口」上正面冲突（**环境注入送来的一手证据**）
+- 触发方式值得记：这条**不是扫出来的，是我收到的一次 AGENTS.md 注入**（`run/reaudit_v3/run001/A/AGENTS.md` 全文送达，
+  抬头即「These instructions apply to work under run/reaudit_v3/run001/A」）⇒ 免报区里的治理物只有撞进会话才会被看见，**这是第三类盲区**。
+- 冲突四条（引文均为当场读到的原文）：①「正式运行只有 `orchestrator.exe <stage1.json>`」「`toolchain.ps1 run` = 唯一正式入口」
+  vs §3.1/§8.1 唯一薄 `astrocs` 入口；②「Python 生产层已删除」vs 根构建仍产 `astrocs_python_abi3` 且 `bin/_astrocs.pyd` 是 product.json required 单元；
+  ③「项目唯一权威文档维护在 GitHub Wiki」vs §1.1 权威分层（宪章 > docs/science·algorithms·contracts；`AstroCS.wiki/` 在根目录规范里是禁改禁删的用户/资料区）
+  ——**这条给 M6a §10 挂给负责人的「wiki 权威性待裁」提供了实证：确有 agent 指令文件这样写**；④第二套状态/码表面，与 M8a-C-001 同型。
+- 严重性论证（写进 F00-11 §2）：它是**活的指令注入**，收到它的 agent 会以为按 orchestrator 面实现入口是合规的，而 §8.1 明确禁止；
+  且它位于 `run/**`（协议 §0.4 免报区 + EXEMPT + 全部文档门都不覆盖）⇒ **没有任何门会因两份 AGENTS.md 互斥而变红**。
+- 定档建议 **G_GOV_GATE / P1 + 接线即升级**（有人依它提交代码即升 P0）；关联 M8a-C-001 / M6b-G-002 / M6a §10 / M4-F-01，均不并档。
+- 已加 **C-10**（指令文件可见性与一致性门，与 L25-005 同根因须同批改）与 **A-34**（请裁影子指令文件地位；建议按历史快照处理并把 `run/**` 内的 AGENTS.md 改名，禁掉注入位）。
