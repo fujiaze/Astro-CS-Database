@@ -139,7 +139,7 @@
 
 | 转述 | 复验结果 | 处置 |
 |---|---|---|
-| 「M2b 的 **L15-002 许可证面**（L25-001/002 同型）：DISP-HIPS 系**文档**把外部依赖写成 Healpix_3.83 GPL-2+」 | ①L15-002 在 `_cache/L15.md:56` 与 `_merge/M2b.md:34/:98` 的定身是 **hips_pixel_scale 以角秒写入度键（3600 倍，P0/B_STD，主落 M2b-B-03）**，不是许可证面；②许可/派生面的实际定稿是 **L03-007 → M2b-G-04**（`_merge/M2b.md:20`，NOTICE :19/:22 与 `healpix_core.cpp:338/:418` 的 Healpix_3.83 移植声明互斥）；③"Healpix_3.83 … GPL-2+ 参考" 字样出现在**生产源码注释**（`healpix_core.cpp:338-339`、:418）与测试注释，**不在 docs 的 DISP-HIPS 文档**——`docs/` 全域 grep `Healpix_3\.83|GPL-2|healpix_cxx` = **0 命中** | 采纳其**族属**判断（与 L25-001/002 同族），但按复算改挂到正确的源与主落：**M8a-G-001 只作同族引用，主落仍为 M2b-G-04，不重复登记**；文档/源码位置之辨写入 M8a-G-001 四态判定段与 M8a-I-004 |
+| 「M2b 的 **L15-002 许可证面**（L25-001/002 同型）：DISP-HIPS 系**文档**把外部依赖写成 Healpix_3.83 GPL-2+」 | ①L15-002 在 `_cache/L15.md:56` 与 `_merge/M2b.md:34/:98` 的定身是 **hips_pixel_scale 以角秒写入度键（3600 倍，P0/B_STD，主落 M2b-B-03）**，不是许可证面；②许可/派生面的实际定稿是 **L03-007 → M2b-G-04**（`_merge/M2b.md:20`，NOTICE :19/:22 与 `healpix_core.cpp:338/:418` 的 Healpix_3.83 移植声明互斥）；③（**已按第二道令回收为本域主落**）"Healpix_3.83 … GPL-2+ 参考" 字样出现在**生产源码注释**（`healpix_core.cpp:338-339`、:418）与测试注释，**不在 docs 的 DISP-HIPS 文档**——`docs/` 全域 grep `Healpix_3\.83|GPL-2|healpix_cxx` = **0 命中** | 采纳其**族属**判断（与 L25-001/002 同族），但按复算改挂到正确的源与主落：**M8a-G-001 只作同族引用，主落仍为 M2b-G-04，不重复登记**；文档/源码位置之辨写入 M8a-G-001 面③续与 §12-6；**本域承接后该面已并入 M8a-G-001 主落，M2b 不再定稿** |
 | 「请并成一条『依赖与许可登记面三处失真』定稿，引用 C-07 建议条款」 | 已执行：`findings/G_GOV_GATE/p0/M8a_L25_L27.md` 重写为**一条三面**（面①许可传染 / 面②清单零登记 / 面③派生署名），文首登记**别名规则**（其余文件中的 `M8a-G-002` 一律读作 `M8a-G-001②`，不另立条、不重复计数），并引用 `问题扫描/40_OWNER_DECISIONS.md:59` 的 **C-07 依赖与许可登记门**作为处置落点 | 完成；P0 数由"2 条源 P0"变"1 条定稿 P0（含 3 面 + 1 个交付末端 P1 面 M8a-C-006）" |
 | 「M2b 已确立通则：`问题扫描/**` 自写文件不计入真源统计」 | 已按该通则重跑分母（R15）：`问题扫描/**` 37 份 README、`run/**` 847 份影子树 README 全部剔除 | 完成；见 §5.2 |
 
@@ -224,3 +224,27 @@
 | 「rcr 2.4.1 与 2.4.7 互斥」（L25-007） | 全树 13 处一致 2.4.7（docs 5 / lib 7 / tools 1，11 文件） | M8a-B-001 / M8a-F-001 |
 | 「`healpix_stack`/ 活跃（独立仓库）」（L27-006） | 实际在 `lib/healpix_db/archive/legacy/healpix_stack/`，且 .gitignore 无 healpix 条目 | M8a-C-004 |
 | 「第三方 = `third_party/` 目录」（全仓脚本口径） | `third_party/**` 实树仅 1 文件；真实 vendored/派生有三处在别的目录 | M8a-G-003 / -005 / -001 |
+
+---
+
+## 12. 0 命中判据的三级复核记录（依前台新令逐条留痕）
+
+> 令文：M7 首轮 14 条锚报 NOT_FOUND 系全角引号 / U+2212 减号 / 带撇上标 / 反引号包裹造成的 grep 假阴；故"0 命中"类判据必须先走 **整句 grep → 关键词放宽 grep → 定点 read** 再定撤留，不得据 ANCHOR_VERIFY_REPORT 直接撤证据。本代理全部 0 命中判据已按此三级复核，结果如下（**无一例因放宽而翻案**，一例为定位订正）。
+
+| # | 判据（0 命中） | ①整句/精确 grep | ②放宽级 grep（口径） | ③定点 read | 结论 |
+|---|---|---|---|---|---|
+| 1 | `DEPENDENCIES.md` 无 GSL | grep "gsl" = 0 | grep "(?i)gsl|gnu scientific|vector|multifit" 于该文件 = **0** | 通读 58-83 行（生产依赖表 + 政策行）| 成立（登记面确实无 GSL）→ M8a-G-001 面② |
+| 2 | `packaging/dependency-lock.json` 无 gsl/siril/ipv | 三词 grep = 0 | 逐键枚举 `production_dependencies`/`system_dependencies`/`test_only_oracles` 条目名 = 14 + 4 + 4，无一名含上述词 | 抽读 16-30、48、85-133 | 成立 → 面② |
+| 3 | `ci/checks.json` 无 SBOM/依赖锁/gen_module_readmes 接线 | grep "gen_sbom|SBOM|dependency-lock|BLD-004|verify_actions_lock|module.yaml|module_status|gen_module_readmes" = 0 | 放宽 grep "(?i)sbom|dependency|lock|module_yaml|module status|module\.yaml|gen_module|actions_lock" = **2 命中，且两处均为 `ci/toolchain.lock.json` 作为 TOOLCHAIN-VERIFY 的 inputs（:1213/:1224），非依赖锁** | 定点读 :415-437（MODULE-READMES 全项）、:1200-1227、:564、:782 | 成立（依赖锁/SBOM/manifest/生成器 0 接线）→ M8a-G-004、G-006、G-007 |
+| 4 | `docs/contracts/INDEX.yaml` 无 `P1-003..005` | grep "P1-00[3-6]" = 0 | 放宽连字符族 grep "P1[-\u2010\u2011\u2012\u2013\u2014\u2212\uFF0D]00[0-9]" 于该文件 = **0**；同模式在 `docs` 全域 = 106 命中（全在 `docs/archive/refactor/P1_SYMBOL_MAP.md`、`docs/api/PHASE1_API_V1.md`、追溯矩阵等，**INDEX.yaml 0 命中**）→ 非假阴 | 定点读该文件 `- id:` 键列（100+ 键，形如 SCI-*/ALG-*/DATA-*/API-*） | 成立（README 的 "合同: P1-004 (docs/contracts/INDEX.yaml)" 为错锚）→ M8a-G-006 |
+| 5 | `cli/` 无第二套退出码符号 | grep "ASTROCS_MODULE_MISSING" = 0 | 放宽 grep "ASTROCS_[A-Z_]{3,}" 于 `cli` = **43 命中，全为 `ASTROCS_VERSION_STRING`/`ASTROCS_COMMIT_SHA`/`ASTROCS_CFITSIO_n` 等构建宏，无一是退出码枚举成员** | 定点读 `cli/cli_common.h:108`、`cli/CMakeLists.txt:53-58` | 成立 → M8a-C-001 |
+| 6 | **前台转述定位订正**："Healpix_3.83 GPL-2+" 在 DISP-HIPS 系文档 | ①`docs` grep "Healpix_3\.83|GPL-2|healpix_cxx" = 0 | ②放宽 grep "(?i)healpix.{0,80}(gpl|licen|许可)" 与 "(?i)官方 ?healpix|healpix_base|healpix_cxx" = **0**；"3[ ._-]?8[0-9]" 于 `docs/science` 无许可语义命中；`docs/algorithms/HIPS_WRITER.md` 放宽 grep 6 命中全为算法引用行 | ③`lib` 放宽 grep "(?i)gpl.{0,120}healpix|healpix.{0,120}gpl" = **2 命中**：`lib/common/healpix/THIRD_PARTY_NOTICE.md:22` 与 `lib/common/healpix/healpix_core.cpp:339` | **事实成立但位置不在 docs**：该措辞在**生产源码注释**与自著 NOTICE 两侧互斥 → 已并入 M8a-G-001 面③续，并在该条正文写明"转述的 docs 定位不成立"（不撤证据，只订正定位）|
+| 7 | `docs/` 无 `ALG-P2-COV-001`/`SCI-F3-001`/`DISP-PSF-007` | 三词精确 grep = 0 | 放宽："ALG[-\u2212]P2[-\u2212]COV"、"SCI[-\u2212]F3"、"DISP[-\u2212]PSF[-\u2212]007"（连字符族）于 `docs` 仍 = **0**；`docs/algorithms/STAR_PSF_ALGORITHMS.md` §11.3 定点读到 001..006 六行 | 定点读 §11.3 表体 + `INDEX.yaml` 的 `ALG-COV-001`（:364）| 成立 → M8a-E-001、E-003 |
+| 8 | `.gitignore` 无 healpix 条目 | grep "(?i)healpix" = 0 | 放宽 "(?i)healpix|drizzle" = 0（该文件命中项只有 GaiaDR3/BASS DR3/build/log 族）| 通读 .gitignore 全文 132 行 | 成立 → M8a-C-004 |
+| 9 | 仓内无 `entrypoint` 字段定义 | `docs/GLOSSARY.md` grep = 0；`docs/standards` grep = 1（仅 STANDARDS_REGISTRY 的描述性文字）| 放宽大小写 + 连字符族 + 全角引号包裹变体重跑，仍无定义句；schema 侧确认唯一键名是 `entrypoint_abi`（另一个键）| 定点读 GLOSSARY 全文 25 行、schema :12/:24 | 成立（确为术语缺口，非假阴）→ M8a-I-006 |
+| 10 | `lib/algorithms/` 不存在（§8.4 义务范围）| glob `lib/algorithms/**` = 0 | glob `lib/algorithm*` = 0；"(?i)algorithms" 于 `CMakeLists.txt` = **0**、于 `docs` grep "lib/algorithms" = **0** | 定点读宪章 §8.4:280-291 原文确认措辞 | 成立（目录确不存在，§8.4 义务范围字面落空）→ M8a-I-001 |
+| 11 | `cmake/toolchain/verify_toolchain.py` 与 `ci/verify_actions_lock.py` 无人调用 | `ci`、`.github` 两域 grep 文件名 = 0 | 放宽 "(?i)verify_toolchain|verify_actions" 复跑：唯一命中是 :1209 的 `ci/verify_toolchain.py`（**另一个文件**）| 定点读两个脚本头部自述 | 成立 → M8a-G-004 |
+| 12 | `tests/` 无 scipy / 无 rcr 断言 | grep "^import scipy|from scipy" = 0；grep "rcr_oracle|2\.4\.7" = 0 | 放宽 "(?i)scipy|rcr" 于 `tests` = 0；同放宽于 `ci/checks.json` = 1（provider oracle，非 RCR）| 定点读 `ci/toolchain.policy.json:27`（装机方为 python3-scipy）| 成立 → M8a-C-009、M8a-F-001 |
+
+**复核结论**：12 项 0 命中判据放宽后**全部维持**，无 M7 型假阴；唯一需订正的是前台转述第 6 项的**位置**（不在 docs，而在生产源码注释与自著 NOTICE），已按"不撤证据、只订正定位"处理并并入 M8a-G-001 面③续。
+**纪律声明**：本代理未收到 ANCHOR_VERIFY_REPORT 的撤条指令，也未据任何外部"未命中"报告撤证据；所有撤除/缩窄动作（§4.1）均附本代理自己的三级复核证据。
