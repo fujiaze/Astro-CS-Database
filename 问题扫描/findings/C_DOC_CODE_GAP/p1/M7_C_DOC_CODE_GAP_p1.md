@@ -1,12 +1,14 @@
 # M7 · C_DOC_CODE_GAP（文档与实现差异）· P1
 
+> **档位声明**：本文件内全部条目的 **类别与优先级由本行标题承载**（协议 §3 的「一类别×优先级一档」）；条目正文只在**偏离本档级别**时显式标注改档及理由（如 M7-A-101 记 P0→P1、M7-A-201 记 P1→P2 并撤核心结论、M7-A-001 记 P1→P0、M7-I-202 记 P1→P2 且改类 A_SCI_DEF→I_DOC_HYGIENE）。逐条四态判定与编号映射见 \`问题扫描/_merge/M7.md\` §2；每条均含 位置/权威依据/证据或证据出处/问题说明/影响/建议处置/置信度/related/四态判定 九项。
+
 ## M7-C-101 产品 manifest 的溯源面只有 SCI-* 没有 ALG-*/TST-* ⇒ 算法级溯源在产品出口处断裂（L21-008）
 - 类别: C_DOC_CODE_GAP · 优先级: P1 · 权威依据 宪章 §4.3（溯源）、§12.3-1（五层等价）、§11.1（追溯闭环）
 - 位置（本代理复核后**重锚**：L21 原引 `docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md` 在本仓**不存在**）
   - `contracts/data/artifact_manifest.schema.json::producer.science_contract_ids`（复核时 :86，正则只收 `^SCI-…$`）
   - `runtime/artifact_store/artifact_manifest_validator.py::producer 允许键集`（复核时 :196：`{"module_id","module_build_id","entry","science_contract_ids"}`）
   - `runtime/artifact_store/production_store.py::sci_ids 透传`（复核时 :611/:620，注释「science_ids 从 manifest producer.science_contract_ids 透传（SCI-*）」）
-  - 示例面：`contracts/data/examples/*.example.json`（:21/:14 全部只填 `SCI-*`）；对照 `docs/contracts/TRACEABILITY.csv`（ALG-*/TST-* 在册但产品无落点）
+  - 示例面：`contracts/data/examples/*.example.json`（:21/:14 全部只填 `SCI-*`）；对照 `docs/TRACEABILITY.csv（旁证件 docs/traceability/TRACEABILITY_MATRIX.csv）`（ALG-*/TST-* 在册但产品无落点）
 - 证据摘录（当前树逐字）
   > allowed = {"module_id", "module_build_id", "entry", "science_contract_ids"}
   > sci_ids = prod.get("science_contract_ids")

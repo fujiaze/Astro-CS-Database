@@ -1,5 +1,7 @@
 # M7 · H_NUMERIC（数值与收敛）· P1
 
+> **档位声明**：本文件内全部条目的 **类别与优先级由本行标题承载**（协议 §3 的「一类别×优先级一档」）；条目正文只在**偏离本档级别**时显式标注改档及理由（如 M7-A-101 记 P0→P1、M7-A-201 记 P1→P2 并撤核心结论、M7-A-001 记 P1→P0、M7-I-202 记 P1→P2 且改类 A_SCI_DEF→I_DOC_HYGIENE）。逐条四态判定与编号映射见 \`问题扫描/_merge/M7.md\` §2；每条均含 位置/权威依据/证据或证据出处/问题说明/影响/建议处置/置信度/related/四态判定 九项。
+
 ## M7-H-101 迭代类算法「未收敛」在 6 篇 ALG 中三口径：无返回码 / 有码仍回填最优 / 收敛门量纲与产品精度脱钩（L20-003）
 - 位置 `docs/algorithms/PHASE2_UPM_IMPL.md::§13 默认值表 + §6 F3 + §10 rc 表`（复核时 :380 命中 CG 判据）、`UPM_SOLVER.md::§4/§12`、`PHOTOMETRIC_FIT.md::§3/§4/§9`、`PLATESOLVE.md::§3`、`STAR_PSF_ALGORITHMS.md::§3`、`PHASE2_SAMPLER.md::§5.3 Stage B`（未定义符号 `s1`）
 - 问题说明 ①UPM 的 rc 值域只有 0/1/2 ⇒ IRLS 跑满 `max_iterations=100` 与提前收敛**输出不可区分**，hash/persist 照常产出；②STAR_PSF 有 ITERATION_LIMIT=3 码却在单星接口仍回填最优参数，与同文档批接口的 NaN 语义相反，而其 §11.2 自称「四码语义冻结，无含糊」；③`tolerance=1e-6 ADU` 的绝对门远低于 C 场最终写入的 float32 tile 可表示精度 ⇒ 等价于恒跑满；④`PHASE2_SAMPLER §5.3` 伪代码引用从未赋值的 `s1`（同段变量名 `s0`）⇒ 不可执行。
