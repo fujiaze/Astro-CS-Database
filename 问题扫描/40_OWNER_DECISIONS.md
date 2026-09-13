@@ -24,6 +24,9 @@
 | A-15 | A | **「每个子库应有 README」目前无任何条文支撑**；DOCUMENTATION_STANDARD 缺「构建安装/偏差登记/状态词」三要素；README-DOCS 分层把模块 README 挤出 L2 层级 | L27-001/012（I_DOC_HYGIENE） | P1/P2 | 建议新增条款（见 C 组）后再据此追检 |
 | A-16 | A | **module.yaml 的 entrypoint 一词两义**（DLL 导出 vs host-registry 接线），致 L27-007 类判词无法定档 | L27 §6 待复核 | — | 先做术语裁决，再复核 L27-007 |
 | A-17 | A | **两套测光实现「均未登记为任何检查项」= 第五种状态**（不是四态任何一种，是「无声明主体」） | M3 A.2 表；另 F00-04 双实现 | P1 已定，状态性质待认 | 认可「无声明主体」为独立状态并要求登记 |
+| A-18 | A | **`AstroCS.wiki/` 是否属现行权威**（M6a 待复核：多份文档以 wiki 为出处，但它是指向外部 wiki 的本地克隆且 gitignore） | M6a §10 | — | 明确 wiki 一律按 ARCHIVED 处理，或指定其镜像入 docs/ |
+| A-19 | A | **「36/36 PASS」是否曾经真跑过**（UT-ABI 编排面与 test_secure_loader 无 TestCase 的矛盾，静态无法判定历史执行） | M6a §10、M5b | — | 需 CI 历史日志权限；否则一律按「不可证伪」定档 |
+| A-20 | A | **`order_sel` 的冻结语义是否要求实现**（SCI §9a-5 冻结 `leaf_nside=2^(order_sel+9)` 未实现，两通道全部后继只有 provenance） | M6a-C-001（P0） | P0 | 要么实现，要么删条款并登记偏差；现行「被计算被记录但不参与执行」应作为禁止形态入 §12.3 |
 
 ## B. 需执行 / 跨节点权限才能定案（R 层是否授权）
 | B-01 | B | p1noise / astrocs_p1_noise 是否被 git tracked（两陈述不可同真：tests/unit/CMakeLists.txt:515-528「从未入库」vs ci/ctest_baseline.json:15,123-130 冻结八目标） | M3 §6① | 需 git ls-files 或干净树 configure |
@@ -39,6 +42,8 @@
 | B-11 | B | mod001 64/64、两棵命令面差异、SparseEqualsDense 实跑、FOV 出片形态、inlier 语义、p1noise 追踪、avx512 exit-77 记账、fault-injection WILL_FAIL | M5b §6 + M1a §6 + L23 R1-R6 | 需构建/ctest |
 | B-12 | B | 外部标准原文核验（Paper I §3.3.3 CROTA2 符号；HiPS 1.0 hips_frame 枚举行；IVOA 响应格式 search_radius 单位） | M1a/M2b/L26 §6 | 需可达外网（多代理 fetch 受阻，已拒用记忆替代） |
 | B-13 | B | 真实数据面核对（GaiaDR3/GaiaDR3SP 与外部 HiPS/MOC 产品可达性；Fatduck 侧 astropy 交叉 oracle） | M2a/L23 R4 | 需数据目录与 Windows 节点 |
+
+| B-14 | B | **ASan/UBSan 与 Windows 覆盖写、增量 CI 选择集、导出面符号表、真实数据可达性**四类的合并申请：是否允许在**并发工作结束后**由 R 层执行**白名单命令**（仅 ctest/ls-files/nm/--changed-from 干跑，不改源码不产根目录物） | 40 文件 B-01~B-13 汇总 | 需你授权一次 |
 
 ## C. 建议新增或订正的规范条款（先立规矩，再据此追检）
 | C-01 | C | **判定式维度集合 ⊇ 条款面维度集合** 机器门：宪章 §12.3 增项，校验 registry 每行判定式是否覆盖其条款引用的全部判据维度 | 依据 M3-G-002（P0，六域同犯） | 最高优先：它决定 §17.1 发布前提是否可证伪 |
