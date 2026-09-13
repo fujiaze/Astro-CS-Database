@@ -339,3 +339,17 @@
   —— 这正是"平台盲区/门不可见"主题（M9 §4、簇 1）的第三类盲区：**免报区内的治理物**。
 - R 层若获得执行权限，建议加一项**零成本只读探测**：全仓（含 `run/`、`工程控制/`）列出所有名为 `AGENTS.md`/`CLAUDE.md`/`*.rules` 的指令文件，
   与根 AGENTS.md 的十要素逐项比对，命中互斥即登记。
+
+## 5. 全仓清点（前台当场执行，把本条从"一个文件"升级为"一族治理物"）
+- `find` 全仓（含免报区）名为 AGENTS.md / CLAUDE.md / *.rules / .cursorrules 的指令文件 = **18 个**，
+  其中**仅 1 个被 git 跟踪**（根 `AGENTS.md`，78 行）；其余 **17 个全部 UNTRACKED**，
+  即对 **CI、文档门、`git ls-files` 类闭包判据同时不可见**（与已定稿的「构建孤儿」族同构）。
+- 分布与长度：`run/reaudit_v3/run001/A` **207 行**、`run/reaudit_v3/run001/B` **207 行**（同一冲突文本两处）、
+  `run/arch_audit_p1/shadow_base` 78、`run/arch_audit_p1/shadow` 57、`run/scif2001/shadow` 57、`run/rt001/base_shadow` 57、
+  `run/release-rescue/` 下 7 个 clean/clean-check*/base_src/mut/src/a4_src 各 78、`工程控制/…FINAL3/templates/AGENTS.md` 5。
+- **长度差异本身即证据**：根 78 行 vs 影子 207 行 ⇒ 影子版含根版没有的整节内容（orchestrator.exe 唯一入口、
+  toolchain.ps1 入口、Python 生产层已删除、wiki 唯一权威、编译顺序清单、禁止删除清单）——**这不是快照，是另一套规范**；
+  57 行版又是第三种（缺根版若干节）。⇒ **同一仓库存在 4 种长度、18 份 agent 指令文件，只有 1 份受版本控制与门覆盖**。
+- 后果判词（限本域）：**agent 的"最高约束"取决于它落在哪个目录，宪章 §1.1 的分层在这里被文件系统的偶然性覆盖**。
+- 与 `M8a-C-001` 的关系：那条是 `lib/orchestrator/README.md`（**被跟踪、可见**）固化第二套入口与码表；本条是其**不可见版**。
+  同型不同主体（README 面向人、AGENTS.md 面向 agent，且本条主体在免报区，任何门都抓不到），**不并档**。
