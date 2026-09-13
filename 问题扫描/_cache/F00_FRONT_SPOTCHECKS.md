@@ -98,3 +98,26 @@
 - 处置：已定向 L15 用 web 钉死「Gaia DR3 source 表 ra/dec = 位置在 J2016.0」官方原文并附 URL；
   该原文用于**加强影响**，不是本条成立条件。M2 现在即可落 P0；另须把「注册表判定式与自身条款面不一致」
   这一可复用事实单独立条（它同样适用于其它域的逐行核查）。
+
+---
+
+# F00-07（前台亲自复验，独立于任何叶子代理是否交付）
+
+## F00-07a properties 畸形关键字被测试钉成期望输出（F_TEST_GAP）
+- `tests/io/test_fits_stream_contract.py::test_hips_rewriter_drops_bad_keyword` 构造的 properties 含两个非法关键字：
+  `A_0_1='0.1'`（下划线不符合 FITS 8 字符关键字名规则）与 `B` 用单引号字符串（FITS 字面量非法），
+  随后断言 `A_0_1 not in h` 并 `_assert_ok(rc)` → **该测试通过即证明非法关键字被静默丢弃且返回码为成功**。
+- 冲突规范：`docs/contracts/DATA_SEMANTICS.md:2048` 要求 properties 严格校验、非法 → `rc=1` 拒绝；
+  `lib/astro_image_io/src/hips/aio_hips_writer.cpp:504` 的 `validate_hips_properties()` 只校验已知键的值域，
+  **不检查新键语法合法性**（前台 grep 结果）。
+- 与 L12/L16/L22 的「反向断言固化」同族：测试把缺陷写成规格，后续修复反而会让测试变红。
+
+## F00-07b 路径缓冲区塌缩（H_NUMERIC + 静默降级）
+- `aio_hips_writer.cpp:143-144`：`const int n = std::snprintf(buf, sizeof(buf), ...); if (n < 0 || n >= PATH_MAX) return 3;`，
+  而 `buf` 是 `char buf[PATH_MAX]`（MSVC/MinGW = 260）。**边界用的是 PATH_MAX 本身而非调用方缓冲区长度**：
+  snprintf 已静默截断到 259 字符，只有应然长度 ≥260 才被拒。
+- 前台独立推演（与 L24 结论一致）：格式 `%s/Norder%d/Dir%llu/Npix%llu%s` → 根路径 ≤129 安全；
+  130~239 目录名被截；**240~249 时目录名占满 20 字符、文件名仅剩约 20 字符（截断），此时总长 509~511
+  恰好通过任何 ≤4096 的前置检查却已被静默截断** → 产品写到错误路径或互相覆盖。
+  该函数有返回值可传播错误，故"截断不必然导致失败"正是问题所在：失败被吞掉。
+- 判定方向：`H_NUMERIC`（缓冲区/整数边界）+ `C_DOC_CODE_GAP`（合同说拒绝、实现静默丢弃）。
