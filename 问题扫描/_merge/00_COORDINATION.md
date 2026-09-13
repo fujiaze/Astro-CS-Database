@@ -422,3 +422,48 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
   查的是**要素齐备性**；并要求先判定 `docs/standards/COMMENT_STANDARD.md` 与宪章 §12.2 是否本来就要求溯源——
   若规范要求"只解释单位/数学原因/前后置条件"而未要求来源与消费者，则**规范缺口本身成一条 finding**。
 - **L26 角度单位换算链穷举**（deg/arcsec/mas/rad/px 的 3600 因子）：由 L15-002 与 L01-007 两域同因子命中逼出。
+
+## 现场：真源正在被并发修复（对全层的定稿口径调整）
+
+- 并发 agent 已向 main 提交 `9a3b5a7d`（HISS support 量化 / SIP 桥接 / 资源门真实观测）与 B2-A1..A16 系列，
+  工作树脏文件 17 → 8，修复仍在继续。**这些提交修的正本次审计报出的 P0**。
+- 已下令 6 个合并代理 + 4 个代码向横向轴：定稿前按当前树重读，四类分列（仍成立 / 已修复 / 部分修复 / 无法判定），
+  已修复者不进 findings/，改记 _merge 的「已修复」表。
+- **新增一条必须登记的形态：修复未固化**（代码改对了但没有回归测试钉住、或 SCI/ALG/偏差登记表/README 未回写）。
+  这类写成 F_TEST_GAP 或 E_TRACE_BREAK，标题点明"已修但无回归保护/文档未回写"——
+  它比"从没修过"更隐蔽，因为后来者会以为有门守着。第一波已有两例（L04-005 代码已修而五处文档仍记旧行为、
+  L05-004 fail-closed 只落在一条通道），第二波请系统穷举。
+- 前台在 SUMMARY 中会把「本轮发现 → 并发修复 → 残余风险」做成三态表，供负责人判断哪些仍需在 RESCUE-V3 之后收尾。
+
+## 收档 L16（追溯链与机器检查有效性，19 条：P0:5/P1:10/P2:4）—— 并**修正前台 F00-01 的根因表述**
+
+### 对我下发三项裁决的答复（采纳，M6 按修订版落档）
+- **F00-01 双头矩阵：成立，但根因不在 SPEC 文本**。SPEC 明确 JSON 为权威；问题在**活动路由层**——
+  `docs/README-DOCS.md:13` 称旧表"唯一矩阵"、`docs/standards/API_STANDARD.md:14-16` 把旧表当 API-ID 登记处
+  （L16 实测旧表**无任何 API-\* 行**、所举三个 ID 零命中）、9 份 `docs/science` 尾注把旧表当新增映射入口。
+  **加重事实（L16 新证）**：两表可交比的 15 个 SCI/ALG ID，其 TEST 证据 **100% 不一致**
+  （例 旧表 `SCI-CAL-001→TEST-CAL-001` 指向真测试；矩阵 `→TEST-CAL-DESIGN-001` 指向 ALG 文档），
+  且**无任何一道门同时读这两份表**。→ F00-01 定稿措辞改为"路由层指向非权威表 + 两表证据互斥 + 无门交叉校验"。
+- **F00-04 photometry 行：判定为"未经证据支撑的已验证声明"**，且同类共 **10 行**（模块自述未入根 CMake /
+  `entrypoint=MISSING` / dll 目标未建，而八层整行 VERIFIED，SRC 锚指向头声明而非定义）。
+  → 从"个案"升级为"面"，M5b/M6 定档时按 10 行计。
+- **fail-open 根因：判为"两者并存"**（不是我给的二选一）——SPEC 指定的
+  `tools/traceability/check_traceability_matrix.py` **确实存在且 fail-closed**（ERROR→exit 1、异常→exit 3、
+  TOOLING_FAILURE 通道齐备），**但 CI 命令不带 `--strict`** → EVIDENCE/引用越界只 WARN；同时 CI 挂了**三份**追溯门，
+  其中 `TRACEABILITY`（waivable:false）无条件 `return 0` 结构性不可红（前台已亲验），
+  `TRACEABILITY-CODE` 默认读 `artifacts/prerelease_v5/tables/TRACEABILITY.csv` **冻结快照**（与 L17-018 同源）。
+  → 这是本轮"门在、但门看的不是真源"的最完整一条证据链，M6 与 M5b 会签定稿。
+
+### 另两条高价值结构性事实（M6 主落）
+- **L16-001**：八层矩阵 TEST 层 18/22 行的"VERIFIED"锚在**文档**而非测试；检查器 C7 只验"文件存在 + 符号 token 可见"、
+  C8 **显式跳过 SRC/TEST**；矩阵 notes 自述"可执行 TEST-* 落地后更新本行"却已标 VERIFIED。
+- **L16-002**：EVIDENCE 层 27/30 MISSING，仅存 3 行 VERIFIED 又指向不存在的 `returns/`（glob 0 文件、
+  `EVID-\*` 在 evidence/reports 零命中）。→ 宪章 §12.3-12「L0 结论可追溯到当前 SHA 的机器证据」在**证据层整体为空**。
+- L16-012：矩阵 152 个非占位 ID 中 **85 个不在 `docs/contracts/INDEX.yaml`**，其中 **33 个处于 VERIFIED 合同层**；
+  descriptor 与矩阵对同一模块用两套 ID → 与 F00-01/L12-018 并档。
+- L16-015：`§13.1 每模块必备（含独立 Oracle）`在追溯面**无字段、无门**，测试门的判据是"伞文件豁免 + 唯一 TST 数 ≥5"
+  计数阈值 → 与 M7/M8 的"Oracle 独立性"主题在**治理面**闭环。
+
+### 前台状态
+- 15/18 纵向 + 0/10 横向（L19-L28 在跑）；累计 316 条；已推 8 次提交，第 9 次含本档案与本次协调记录。
+- 仍缺：L03（HiPS/HEALPix/AIO）、L06（星点/PSF）、L14（注释广度 Phase2/3）→ M2b/M3b/M6 的输入。
