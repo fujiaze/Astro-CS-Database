@@ -74,20 +74,33 @@ n 偶取 `(v[n/2−1]+v[n/2])/2`（`median_inplace`/`median_of`，如
 
 ### 3.2 ALG-CAL-002 MasterFlat 生成 `ac::generate_master_flat`
 
-源码锚: `master_generator.cpp:171-240`。无 combine 参数，合并固定 mean
+源码锚: `master_generator.cpp:176-259`。无 combine 参数，合并固定 mean
 （SCI-CAL-001 §12 ALG-CAL-002 语义一致）。
 
 ```text
-F2.1  步骤1（每帧 n，OpenMP parallel for）[189-214]:
+F2.1  步骤1（每帧 n，OpenMP parallel for）[194-225]:
         dst = flat_stack[n] − bias          # bias==NULL 时拷贝
         frame_med = median(dst)
-        isnan(frame_med) || frame_med==0.0 → frame_med = 1.0   # [206]
+        isnan(frame_med) || frame_med==0.0 → frame_med = 1.0   # [210]
+        frame_med < 0.0 → 返回 AC_ERR_PARAM, out 不写            # [213-217]
         dst = max(dst / frame_med, 0.1)     # 逐帧归一 + floor
-F2.2  步骤2: generate_master(norm, …, AC_COMBINE_MEAN)   # [218-219]
-F2.3  步骤3（最终归一）[223-234]:
-        final_med = median(out);  isnan||==0 → 1.0
+F2.2  步骤2: generate_master(norm, …, AC_COMBINE_MEAN)   # [229-230]
+F2.3  步骤3（最终归一）[234-252]:
+        final_med = median(out);  isnan||==0 → 1.0    # [237]
+        final_med < 0.0 → 返回 AC_ERR_PARAM, out 不写  # [240-244]
         out = max(out / final_med, 0.1)
 ```
+
+> **OWNER-04 登记（B2-A6，不反向改 SCI）**：F2.1/F2.3 的"负 median 拒绝"
+> （B13-R13-7 实现）与 SCI-CAL-001 §4/§5/§8 对 `median<=0` 的"不归一、
+> 保持原样"文本不一致；按 ANCHOR_CONTRACT §2.3 只登记、不改 SCI 原文，由
+> 负责人在"改代码"与"按宪章 §1.2 改 SCI 文本"间裁决。
+>
+> **B2-A6 消费边界（冻结口径）**：P1 校准节点 `p1_op_calibrate`
+> （`module_adapters.cpp:1149-1175,1226-1236`）在进入 `ac_calibrate_frame`
+> 前对 master flat 做**整帧退化判定**：全零 / median<=0 / 任一非有限像素 →
+> DATA 拒绝（CLI rc=2）、不写 `calibrated_*`、不写 complete manifest。
+> 校准公式、单位、暗场缩放与逐像素 floor 0.1 均不变。
 
 ### 3.3 ALG-CAL-003 单帧校准 `ac::calibrate` / `ac::calibrate_d`
 
@@ -256,8 +269,11 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 |---|---|---|
 | 空指针 / n_frames<=0 / w<=0 / h<=0（C API 入口） | 返回 AC_ERR_PARAM，不写 out | ac_api.cpp:60-61,72-73,86-87,100-101,115-116 及 f64 对应 |
 | ac:: 层参数无效（void 函数） | 静默返回，out 不写，actual_k=k_init | calibrator.cpp:109-112；cosmetic_corrector.cpp:236 |
-| median(flat)<=0（normalize_flat） | 不归一保持原样 | calibrator.cpp:86 |
-| frame_med/final_med 为 0 或 NaN（master flat） | 置 1.0（不缩放）；**负 median 不处理**（除以负数翻转符号，DISP-CAL-001） | master_generator.cpp:206,226 |
+| median(flat)<=0（normalize_flat） | 不归一保持原样（SCI §4/§5/§8 文本；与 master_generator 的"拒绝"分歧登记 OWNER-04） | calibrator.cpp:86 |
+| frame_med/final_med 为 0 或 NaN（master flat） | 置 1.0（不缩放） | master_generator.cpp:210,237 |
+| frame_med/final_med < 0（master flat） | 返回 AC_ERR_PARAM，不写 out（B13-R13-7） | master_generator.cpp:213-217,240-244 |
+| flat 帧含 NaN（master flat 步骤1 帧 median） | `median_of` 不剔除 NaN（nth_element 含 NaN 属未定义序；SCI §4"median 跳过 NaN"仅在 generate_master 逐像素路径实现）→ 夹具不得依赖该路径 | master_generator.cpp:207-209,49-60 |
+| master flat 全零 / median<=0 / 非有限（p1_op_calibrate 消费边界） | DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（B2-A6 fail-closed） | module_adapters.cpp:1149-1175,1226-1236 |
 | flat==NULL（calibrate） | 跳过除法，退化减法 | calibrator.cpp:122,132 |
 | dark==NULL（calibrate 标准分支） | out=light（flat 处理后） | calibrator.cpp:131 |
 | dark_opt=1 但 bias/dark 缺一 | 回退标准分支且 k=1.0 | calibrator.cpp:117,127 |
@@ -349,11 +365,20 @@ oracle 同容差；actual_k 精确相等。
 
 ## 10 现状缺陷清单（如实登记，P1-CAL-IMPL/INT 处理；本任务不改代码）
 
-- DISP-CAL-001 `generate_master_flat` 逐帧/最终归一对**负 median** 未防护
-  （0/NaN 置 1.0，负值直除翻转符号）；且与 `normalize_flat`（median<=0
-  完全不归一）语义不一致。同时 `ac_generate_master_*` 系列无 extern "C"
-  异常屏障：std::bad_alloc 可穿越 C ABI（AC_ERR_MEMORY/AC_ERR_INTERNAL
-  为死值，从未返回）。
+- DISP-CAL-001（**部分关闭**）`generate_master_flat` 逐帧/最终归一对
+  **负 median** 已在 B13-R13-7 改为**拒绝**（返回 AC_ERR_PARAM，不写 out；
+  `master_generator.cpp:213-217,240-244`），不再直除翻转符号。**残留**：
+  与 `normalize_flat`（median<=0 完全不归一，`calibrator.cpp:86`）语义
+  不一致，且与 SCI-CAL-001 §4/§5/§8 的"保持原样"文本分歧未裁决 →
+  **OWNER-04**（B2-A6 登记，不反向改 SCI）。`ac_generate_master_*` 系列
+  无 extern "C" 异常屏障仍未处理：std::bad_alloc 可穿越 C ABI
+  （AC_ERR_MEMORY/AC_ERR_INTERNAL 为死值，从未返回）。
+- DISP-CAL-010（B2-A6 登记）`generate_master_flat` 步骤1 的**帧 median**
+  经 `median_of` 计算，而 `median_of` 不剔除 NaN（`master_generator.cpp:
+  49-60,207-209`）；SCI §4 声明的"median 计算跳过 NaN"只在 `generate_master`
+  的逐像素路径实现。含 NaN 的 flat 帧其帧 median 依赖 nth_element 含 NaN
+  的未定义序 ⇒ 测试夹具不得把 NaN 放进 flat stack（NaN 覆盖由 bias/dark
+  stack 的 generate_master 路径承担）。
 - DISP-CAL-002 `ac_set_num_threads` 全局改写 OpenMP ICV（进程级副作用，
   并发调用竞态；违反约束 D.3/D.4 ThreadLease 模型；API-P1-001 §2 已列
   V5 整改点）。

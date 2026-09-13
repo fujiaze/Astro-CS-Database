@@ -1140,6 +1140,40 @@ Result<void> p1_require_lights(const Json& doc) {
   return Result<void>::success();
 }
 
+// ── B2-A6: master flat 数值有效性 fail-closed（消费边界）──────────────────
+// SCI-CAL-001 §3/§4/§8 单位表与 flat 语义：calibrate 以 max(flat,0.1) 为除数。
+// master flat 若全零/中位数<=0/非有限，除法退化为常数放大（max(0,0.1)=0.1 →
+// 恒 ×10）或传播 NaN/Inf，产出看似正常的伪科学产品（AUD-CI-LIVE F3 的 ×10
+// 根因之一）。宪章 §14.4 fail-fast / §11 不留半成品：消费边界确定性拒绝。
+// 只做整帧退化判定，不裁切合法负像素/近零像素（floor 语义仍在 calibrate 内）。
+bool p1_master_flat_valid(const P1Image& flat, std::string* why) {
+  if (!flat.ok() || flat.px() == nullptr || flat.w() <= 0 || flat.h() <= 0) {
+    if (why) *why = "unreadable";
+    return false;
+  }
+  const int64_t n =
+      static_cast<int64_t>(flat.w()) * static_cast<int64_t>(flat.h());
+  const float* px = flat.px();
+  bool all_zero = true;
+  for (int64_t i = 0; i < n; ++i) {
+    const float v = px[i];
+    if (!std::isfinite(v)) { if (why) *why = "non-finite pixel"; return false; }
+    if (v != 0.0f) all_zero = false;
+  }
+  if (all_zero) { if (why) *why = "all-zero frame"; return false; }
+  // 中位数（口径与 master_generator.cpp median_of 一致：偶数取中间两值平均）
+  std::vector<float> vals(px, px + static_cast<size_t>(n));
+  const size_t mid = static_cast<size_t>(n) / 2;
+  std::nth_element(vals.begin(), vals.begin() + mid, vals.end());
+  float med = vals[mid];
+  if (n % 2 == 0) {
+    const float lower = *std::max_element(vals.begin(), vals.begin() + mid);
+    med = (lower + med) * 0.5f;
+  }
+  if (!(med > 0.0f)) { if (why) *why = "median<=0"; return false; }
+  return true;
+}
+
 // ── op: calibrate（唯一真实入口 ac_calibrate_frame; 语义对齐 p1_session calibrate 阶段）──
 Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   auto p1_lights_rc = p1_require_lights(doc);
@@ -1187,6 +1221,17 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
         st_cal["status"] = "fail";
         return Result<void>::fail(Error(ErrorDomain::DATA, "master frame size mismatch"));
       }
+    }
+  }
+  // B2-A6: 非法 master flat 消费边界 fail-closed（median<=0 / 全零 / 非有限）。
+  // 公式与 floor 语义零改动；仅在进入 calibrate 前拒绝整帧退化输入。
+  if (flat.ok()) {
+    std::string flat_why;
+    if (!p1_master_flat_valid(flat, &flat_why)) {
+      st_cal["status"] = "fail";
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "master_flat invalid (" + flat_why +
+              "): degenerate flat must not be consumed (SCI-CAL-001 §8)"));
     }
   }
   const bool dark_opt = doc.value("dark_optimization", false);

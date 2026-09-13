@@ -251,5 +251,44 @@ class TestPhase1InProcess(unittest.TestCase):
         self.assertEqual(finals[0]["n_tiles"], finals[1]["n_tiles"])
         self.assertEqual(finals[0]["n_tiles_written"], finals[1]["n_tiles_written"])
 
+    # ── FIX-SCIENCE B2-A6: 非法 master flat 消费边界 fail-closed ──
+    def test_10_invalid_master_flat_fail_closed(self):
+        """RESCUE-P0-06 次生: p1_op_calibrate 不得消费退化 master flat。
+
+        全零 / 负中位数 / 非有限 master flat 经 max(flat,0.1)=0.1 会恒 ×10 放大出
+        看似正常的伪科学产品; 消费边界必须非零退出、不写 complete 且不留
+        calibrated_*.fits 半成品 (SCI-CAL-001 §3 单位表 + §8 退化条件;
+        ALG-CAL-003 消费口径)。
+        """
+        bad_dir = os.path.join(self.tmp, "badflat")
+        os.makedirs(bad_dir, exist_ok=True)
+        r0 = subprocess.run([self.fixture, "--make-bad-flat", bad_dir],
+                            capture_output=True, text=True, timeout=120)
+        self.assertIn("BAD_FLATS_OK", r0.stdout, r0.stderr)
+        for name in ("flat_zero.fits", "flat_neg.fits", "flat_nan.fits"):
+            bad = os.path.join(bad_dir, name)
+            self.assertTrue(os.path.isfile(bad), bad)
+            out = os.path.join(self.tmp, "out_badflat_" + name.split(".")[0])
+            os.makedirs(out, exist_ok=True)
+            cfg = os.path.join(self.tmp, "badflat_" + name + ".json")
+            d = json.load(open(self.cfg))
+            d["master_flat"] = bad
+            d["input_lights"] = [os.path.join(self.data, "light_1.fits")]
+            d["output_dir"] = out
+            json.dump(d, open(cfg, "w"))
+            rr = self._run("phase1", "run", "--config", cfg, "--events-jsonl")
+            self.assertNotEqual(rr.returncode, 0,
+                                "%s: 退化 master flat 必须非零退出" % name)
+            self.assertIn("master_flat", rr.stderr,
+                          "%s: stderr 须指明非法 master_flat\n%s" % (name, rr.stderr[-300:]))
+            files = os.listdir(out)
+            for f in files:
+                if f.startswith("astrocs_run_"):
+                    man = json.load(open(os.path.join(out, f), encoding="utf-8"))
+                    self.assertNotEqual(man["status"], "complete",
+                                        "%s: 不得写 complete manifest" % name)
+            self.assertFalse(any(f.startswith("calibrated_") for f in files),
+                             "%s: 不得留 calibrated_* 半成品: %s" % (name, files))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

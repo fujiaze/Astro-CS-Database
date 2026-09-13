@@ -147,7 +147,7 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 |---|---|---|---|
 | stack（bias/dark/flat 帧） | float32 或 float64（f64 ABI）`[n_frames][h][w]` 连续 | ADU | 单帧元素可为 NaN（统计跳过，ALG-CAL-001 F1.3）；`n_frames==1` 直接拷贝含 NaN 原样保留 |
 | master_bias / master_dark | `[h][w]` | ADU | 可为 NULL（calibrate: 不减；cosmetic: 不检测对应类） |
-| master_flat | `[h][w]` | 无量纲（约定已 median≈1.0 归一，ALG-CAL-002 产物） | 可为 NULL（跳过除法）；floor 0.1 下界在 calibrate 内施加 |
+| master_flat | `[h][w]` | 无量纲（约定已 median≈1.0 归一，ALG-CAL-002 产物） | 可为 NULL（跳过除法）；floor 0.1 下界在 calibrate 内施加；**B2-A6 消费边界 fail-closed**：全零 / median<=0 / 任一非有限像素的整帧退化 master flat 不得进入 calibrate —— P1 校准节点 `p1_op_calibrate`（`module_adapters.cpp:1149-1175,1226-1236`）返回 DATA 拒绝（CLI rc=2），不写 `calibrated_*`、不写 complete manifest |
 | light（data） | `[h][w]` | ADU | NaN 直传输出（ALG-CAL-003，DISP-CAL-004） |
 | 掩码 hot/cold（ac_correct_frame 内部） | char `[h][w]` | 0/1 | 极性 **1=坏点**（SCI-CAL-001 §9a） |
 | sigma_low/sigma_high/hot_sigma/cold_sigma | float，无量纲 | MAD 倍数 | NaN 行为未定义（前置条件，负面测试覆盖）；sigma<=0 = 禁用对应检测 |
@@ -163,7 +163,7 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 | actual_k | float*/double* 单值 | 无量纲 | dark_opt=1 生效=入参 K；标准分支=1.0；参数错误=k_init；可 NULL |
 | out_hot / out_cold | int* 单值 | 像素计数 | 结构过滤后掩码像素数；可 NULL |
 | ac_version() | const char* 静态串 | — | `"Astro Calibration C++ v1.0.0"` |
-| 错误码 | int | — | 0=AC_OK；−1=AC_ERR_PARAM（空指针/非正维度）；−2/−3 定义但**从未返回**（DISP-CAL-001） |
+| 错误码 | int | — | 0=AC_OK；−1=AC_ERR_PARAM（空指针/非正维度；master flat 负 median 拒绝 B13-R13-7）；−2/−3 定义但**从未返回**（DISP-CAL-001） |
 
 ### 9.3 落盘产物（调用方侧，非本模块合同）
 

@@ -37,15 +37,20 @@ int main(int argc,char**argv){
     std::vector<float> bstack(5*N);
     for(int n=0;n<5;++n) for(int i=0;i<N;++i) bstack[n*N+i]=2000.0f+3.0f*sinf_(0.7*i+n);
     for(int i=0;i<N;i+=4){ int m=i%8; bstack[2*N+i]=2000.0f+(m==0?920.f:(m==1?-700.f:(m==2?-250.f:1800.f))); }
+    bstack[2*N+7]=NAN;   // NaN 注入在 generate_master 的逐像素统计路径 (显式跳过 NaN)
     // dstack = 80 + 1.5*cos(0.5*i+n); 帧3 离群
     std::vector<float> dstack(5*N);
     for(int n=0;n<5;++n) for(int i=0;i<N;++i) dstack[n*N+i]=80.0f+1.5f*cosf(0.5f*i+n);
     for(int i=0;i<N;i+=5){ int m=i%5; dstack[3*N+i]=80.0f+(m==0?55.f:(m==1?-40.f:30.f)); }
-    // fstack = 1.0 + 空间梯度 + 0.01*sin; 帧1污染, 帧2 NaN
+    // fstack = 2000 + 40*(1 + 空间梯度 + 0.01*sin) [ADU]; 帧1污染
+    // SCI-CAL-001 §3 单位表: raw/bias/dark/flat/cal 同为 ADU —— flat 必须与
+    // bias 同量级, 否则减 bias 后中位数为负 = 退化输入 (RESCUE-P0-06 根因)。
+    // 注: NaN 注入不放在 flat (generate_master_flat 步骤1 的帧 median 缓冲
+    // 不经 NaN 过滤, SCI §4 的"median 跳过 NaN"契约只在 generate_master 的
+    // 逐像素统计路径实现), 避免夹具依赖未定义序; NaN 覆盖由 bias stack 承担。
     std::vector<float> fstack(4*N);
-    for(int n=0;n<4;++n) for(int i=0;i<N;++i){ int x=i%W,y=i/W; fstack[n*N+i]=1.0f+0.02f*((float)x/(W-1)-0.5f)+0.015f*((float)y/(H-1)-0.5f)+0.01f*sinf_(i+n); }
-    for(int i=0;i<N;i+=3) fstack[1*N+i]+=0.9f;
-    fstack[2*N+7]=NAN;
+    for(int n=0;n<4;++n) for(int i=0;i<N;++i){ int x=i%W,y=i/W; fstack[n*N+i]=2000.0f+40.0f*(1.0f+0.02f*((float)x/(W-1)-0.5f)+0.015f*((float)y/(H-1)-0.5f)+0.01f*sinf_(i+n)); }
+    for(int i=0;i<N;i+=3) fstack[1*N+i]+=9.0f;
     // light = 2500 + 20*x/W + 2*sin
     std::vector<float> light(N);
     for(int i=0;i<N;++i){ int x=i%W; light[i]=2500.0f+20.0f*((float)x/W)+2.0f*sinf_(0.3f*i); }
@@ -55,20 +60,33 @@ int main(int argc,char**argv){
     put(dstack.data(),dstack.size(),"RAW_DARKSTACK ");
     put(fstack.data(),fstack.size(),"RAW_FLATSTACK ");
     put(light.data(),N,"LIGHT ");
-    ac_generate_master_bias(bstack.data(),5,W,H,mb.data(),2.0f,3.0f,5,AC_COMBINE_MEAN);
+    // 返回码必须显式断言 (不得忽略 reject): 任一 != AC_OK 则以非零退出,
+    // 让 Python 侧 _run 的 returncode==0 断言硬失败 (RESCUE-P0-06: 全零 master
+    // flat 曾被静默消费 → 恒 ×10.00079)。
+    const int rc_mb = ac_generate_master_bias(bstack.data(),5,W,H,mb.data(),2.0f,3.0f,5,AC_COMBINE_MEAN);
+    printf("RC_MASTER_BIAS %d\n",rc_mb);
     put(mb.data(),N,"MASTER_BIAS ");
-    ac_generate_master_dark(dstack.data(),5,W,H,md.data(),2.0f,3.0f,5,AC_COMBINE_MEDIAN);
+    const int rc_md = ac_generate_master_dark(dstack.data(),5,W,H,md.data(),2.0f,3.0f,5,AC_COMBINE_MEDIAN);
+    printf("RC_MASTER_DARK %d\n",rc_md);
     put(md.data(),N,"MASTER_DARK ");
-    ac_generate_master_flat(fstack.data(),4,W,H,mb.data(),mf.data(),2.5f,3.0f,4);
+    const int rc_mf = ac_generate_master_flat(fstack.data(),4,W,H,mb.data(),mf.data(),2.5f,3.0f,4);
+    printf("RC_MASTER_FLAT %d\n",rc_mf);
     put(mf.data(),N,"MASTER_FLAT ");
     float ak0=0,ak1=0;
-    ac_calibrate_frame(light.data(),W,H,md.data(),mf.data(),mb.data(),o0.data(),0,1.0f,&ak0);
+    const int rc_c0 = ac_calibrate_frame(light.data(),W,H,md.data(),mf.data(),mb.data(),o0.data(),0,1.0f,&ak0);
+    printf("RC_CAL0 %d\n",rc_c0);
     put(o0.data(),N,"CAL0 "); printf("CAL0AK %.9g\n",ak0);
-    ac_calibrate_frame(light.data(),W,H,md.data(),mf.data(),mb.data(),o1.data(),1,1.5f,&ak1);
+    const int rc_c1 = ac_calibrate_frame(light.data(),W,H,md.data(),mf.data(),mb.data(),o1.data(),1,1.5f,&ak1);
+    printf("RC_CAL1 %d\n",rc_c1);
     put(o1.data(),N,"CAL1 "); printf("CAL1AK %.9g\n",ak1);
     std::vector<float> zdark(N,0.f),zflat(N,0.f);
-    ac_calibrate_frame(light.data(),W,H,zdark.data(),zflat.data(),mb.data(),o2.data(),1,1.5f,nullptr);
+    const int rc_c2 = ac_calibrate_frame(light.data(),W,H,zdark.data(),zflat.data(),mb.data(),o2.data(),1,1.5f,nullptr);
+    printf("RC_CAL2 %d\n",rc_c2);
     put(o2.data(),N,"CAL2 ");
+    if(rc_mb!=AC_OK||rc_md!=AC_OK||rc_mf!=AC_OK||rc_c0!=AC_OK||rc_c1!=AC_OK||rc_c2!=AC_OK){
+        printf("GEN_OR_CAL_FAILED\n");
+        return 3;
+    }
     printf("DONE\n");
     return 0;
 }
@@ -114,6 +132,15 @@ def oracle_master(stack, w, h, low, high, iters, combine):
     return out
 
 def oracle_flat(fstack, w, h, bias, low, high, iters):
+    """SCI-CAL-001 §4/§5/§8 flat 语义 + ALG-CAL-002 离散步骤 (与生产同契约)。
+
+    逐帧: minus = src - bias; med = median(minus)
+          NaN/0 → med = 1.0 (生产兜底); med < 0 → 不可归一化: 生产
+          ac_generate_master_flat 返回 AC_ERR_PARAM 且不写 out
+          (master_generator.cpp B13-R13-7) ⇒ Oracle 同拒, 不产出可比较 master。
+          flat_norm = max(minus/med, 0.1)
+    合并: sigma-clip + mean; 最终 median 归一同上 (NaN/0 → 1.0, <0 拒绝, floor 0.1)。
+    """
     nf = len(fstack) // (w * h); npix = w * h; norm = []
     for n in range(nf):
         src = fstack[n * npix:(n + 1) * npix]
@@ -121,11 +148,19 @@ def oracle_flat(fstack, w, h, bias, low, high, iters):
         med = median(minus)
         if med != med or med == 0:
             med = 1.0
+        if med < 0:  # 生产 reject 分支 (AC_ERR_PARAM): 不得继续归一
+            raise ValueError(
+                "master flat frame %d median<0: invalid flat stack "
+                "(production AC_ERR_PARAM)" % n)
         norm.extend([max(v / med, 0.1) for v in minus])
     master = oracle_master(norm, w, h, low, high, iters, 0)
     med = median(master)
     if med != med or med == 0:
         med = 1.0
+    if med < 0:
+        raise ValueError(
+            "master flat final median<0: invalid flat stack "
+            "(production AC_ERR_PARAM)")
     return [max(v / med, 0.1) for v in master]
 
 def oracle_cal(light, dark, flat, bias, dark_opt, k):
@@ -205,6 +240,17 @@ class TestCalibrationOracle(unittest.TestCase):
         d = self._load(); W, H = 16, 8; N = W * H
         mb = oracle_master(self.raws["RAW_BIASSTACK"], W, H, 2.0, 3.0, 5, 0)
         exp = oracle_flat(self.raws["RAW_FLATSTACK"], W, H, mb, 2.5, 3.0, 4)
+        # B2-A6: master flat 生成返回码必须 AC_OK (不得忽略 reject → 全零缓冲)
+        self.assertEqual(d["RC_MASTER_FLAT"][0], 0.0,
+                         "generate_master_flat 返回码必须 AC_OK")
+        self.assertEqual(d["RC_MASTER_BIAS"][0], 0.0)
+        self.assertEqual(d["RC_MASTER_DARK"][0], 0.0)
+        # 全零 master flat 是历史红灯形态: 中位数必须为 1.0 且逐像素非零正
+        med = median(d["MASTER_FLAT"])
+        self.assertAlmostEqual(med, 1.0, delta=3e-3,
+                               msg="master flat 必须 median≈1.0 (非全零)")
+        self.assertGreater(min(d["MASTER_FLAT"]), 0.0,
+                           "master flat 不得含 0/负像素 (floor 契约)")
         self._approx_list(d["MASTER_FLAT"], exp, 3e-3, "MASTER_FLAT")
 
     def test_04_calibrate_standard_value_oracle(self):
