@@ -63,7 +63,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
   AP/BP 同规则；CRVAL/CRPIX 不变, |det(CD)| 不变
 ```
 
-与 `lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp:13-16,153-164,274-420,530-576` 及 `ipv_select.cpp:695,712` 一致。
+与 `lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp:13-16,153-164,274-420,530-576` 及 `ipv_select.cpp:723,712` 一致。
 
 ### 5a 导出边界桥接条款（STD-F1 合同条款；前台裁决 R-02 方案 b）
 

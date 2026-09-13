@@ -117,6 +117,9 @@ struct WcsFitResult {
     bool     success;
     int      trans_order;    // TRANS 阶数 (1=线性, 2=二次, 3=三次)
     char     ctype[2][16];   // "RA---TAN-SIP"/"DEC--TAN-SIP" 或 "RA---TAN"/"DEC--TAN"
+    // RESCUE-FD-05 / ALG-WCS-001 §11.4 F4: 失败原因 (success=false 时非空),
+    // 由各失败点写入, 经 to_c_result 映射到 IpvWcsResult.error_msg。
+    char     error[256];
 };
 
 // ===========================================================================
