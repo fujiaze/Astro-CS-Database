@@ -90,6 +90,22 @@ class ThreadLease {
   }
 };
 
+// B2-A18 (GAP-06/BASE-F3): 租约授予观测 —— 此前 Runtime trace 写的是配置 budget
+// ("创建线程") 而非"实际授予的并行宽度", 资源门又拿 budget 充当观测
+// 写入 set_workers(budget,budget)（配置不得冒充观测, 宪章 §10.5/§17.6）。
+// 本结构由 ThreadBudget 在每次 acquire/release 真实累计：峰值并发租约数
+// (实际换入的 worker 宽度) 与累计授予 token 数。
+// 哨兵纪律: 0 = 未观测（不是合法并行宽度），不得以配置值回填。
+struct GrantedWorkerObservation {
+  std::atomic<uint32_t> peak_active{0};     // max 瞬时授予租约数
+  std::atomic<uint32_t> peak_lease{0};      // max 单次租约 size
+  std::atomic<uint64_t> acquired_total{0};  // 成功 acquire 次数
+};
+
+// 全进程唯一租约观测汇（Runtime 创建 budget 时注入；
+// CLI 读取作为资源门分母的真实观测面）。
+GrantedWorkerObservation& granted_worker_observation() noexcept;
+
 // ── ThreadBudget: 全进程原子线程租约 (RT-002) ──
 // 语义: acquire(min,max,policy) 原子预留 token；sum(active)<=budget 全局不超卖；
 // 取消/异常 RAII 自动归还；Scheduler 自身 worker 与节点内部 work 共用同一预算。

@@ -56,7 +56,7 @@ pixel_size_um/gaia_data_dir 缺失即 DATA 拒绝（禁 silent default）；
 finalize`（消费上游 p1_stack.hiss，NESTED 聚合展开为 IVOA 1.4 标准
 512×512 HiPS：signal/+support/+properties/MOC；covered_area=
 support>0?A_cell:0 单帧语义，p1_final.json 登记
-covered_area_model="support_x_A_cell"；IVOA nside>=512 合同，上游
+covered_area_model="hiss_support_ratio_x_A_cell"；IVOA nside>=512 合同，上游
 drizzle nside<512 节点 DATA 拒绝）；**子节点禁止调用完整
 phase_session_run**（ARCH-P0-001 整改，P1Api 仅保留兼容面）。descriptor 端口/DATA/单位/坐标为
 module_adapters.cpp 实测；`ALG-002/ALG-004/ALG-005` 为 descriptor 占位
@@ -72,7 +72,7 @@ kernel 词汇（各域冻结 ALG 以"冻结合同"列为准，由各 INT 任务�
 | 5 | `astrocs.phase1.photometry`（:469） | `psf`(DATA-P1-PSF)+`sources`(DATA-P1-SOURCES) → `fluxes`(DATA-P1-FLUX/ELECTRON/ICRS) | SCI-P1-PHOT-001 / ALG-002（占位）/ API-P1-005 / TEST-P1-PHOT-001 | SCI-P1-PHOT-001；ALG-PHOT-001..002（PHOTOMETRIC_FIT.md）；DATA-P1-PHOT（DATA_SEMANTICS §14）；API-PHOT-001（PUBLIC_API） | P1-001 后=Photometer::measure（p1_nodes[]）；A 线生产调用锚 orchestrator.cpp:2474 → :2714（FP64 `pc_calibrate_simple_with_gaia_f64_v2`）/:2790（FP32 `pc_calibrate_simple_with_gaia_v2`） | TEST-PHOT-DESIGN-001（PHOTOMETRIC_FIT.md） |
 | 6 | `astrocs.phase1.noise-snr`（:489） | `fluxes`(DATA-P1-FLUX) → `snr`(DATA-P1-SNR/DIMENSIONLESS/ICRS) | SCI-P1-SNR-001 / ALG-004（占位）/ API-P1-006 / TEST-P1-SNR-001 | ALG-NOISE-001..003（NOISE_ESTIMATION.md）；DATA-P1-NOISE（DATA_SEMANTICS §13）；API-NOISE-001（PUBLIC_API） | P1-001 后=NoiseModel::estimate（p1_nodes[]）| TEST-NOISE-DESIGN-001（NOISE_ESTIMATION.md） |
 | 7 | `astrocs.phase1.drizzle`（:508） | `calibrated`(DATA-P1-CAL) → `stacked`(DATA-P1-STACK/ADU/ICRS) | SCI-P1-DRIZ-001 / ALG-005（占位）/ API-P1-007 / TEST-P1-DRIZ-001 | ALG-DRZ-001（DRIZZLE_GEOMETRY.md）；DATA-P1-DRZ（DATA_SEMANTICS §11）；API-DRZ-001（PUBLIC_API） | P1-001 后=hp_drizzle_run（p1_nodes[] 直调；IVOA nside>=512 合同由下游 writer fail-closed 校验）| TEST-DRZ-DESIGN-001（DRIZZLE_GEOMETRY.md） |
-| 8 | `astrocs.phase1.writer`（:527） | `stacked`(DATA-P1-STACK) → `fits`(DATA-P1-FITS/ADU/ICRS) | SCI-P1-WR-001 / ALG-P1-WR-001 / API-P1-008 / TEST-P1-WR-001 | HiPS 写出域：ALG-HIPS-001..005（HIPS_WRITER.md）；DATA-P1-HIPS（DATA_SEMANTICS §12）；API-HIPS-001（PUBLIC_API）；writer/hips registry 无独立 descriptor（hips 页 docs/modules/registry/astrocs.phase1.hips-writer.md 为手写合同页） | P1-001 attempt 2 后=aio_hiss_inspect/read_tile_* → AstroSphereTileView → `aio_hips_product_begin/write_signal_support_tile/finalize`（消费 p1_stack.hiss；NESTED 聚合 → IVOA 1.4 标准 512×512 HiPS signal/+support/+properties/MOC；covered_area_model=support_x_A_cell 单帧语义） | TEST-HIPS-DESIGN-001（HIPS_WRITER.md §9） |
+| 8 | `astrocs.phase1.writer`（:527） | `stacked`(DATA-P1-STACK) → `fits`(DATA-P1-FITS/ADU/ICRS) | SCI-P1-WR-001 / ALG-P1-WR-001 / API-P1-008 / TEST-P1-WR-001 | HiPS 写出域：ALG-HIPS-001..005（HIPS_WRITER.md）；DATA-P1-HIPS（DATA_SEMANTICS §12）；API-HIPS-001（PUBLIC_API）；writer/hips registry 无独立 descriptor（hips 页 docs/modules/registry/astrocs.phase1.hips-writer.md 为手写合同页） | P1-001 attempt 2 后=aio_hiss_inspect/read_tile_* → AstroSphereTileView → `aio_hips_product_begin/write_signal_support_tile/finalize`（消费 p1_stack.hiss；NESTED 聚合 → IVOA 1.4 标准 512×512 HiPS signal/+support/+properties/MOC；covered_area_model=hiss_support_ratio_x_A_cell 单帧语义） | TEST-HIPS-DESIGN-001（HIPS_WRITER.md §9） |
 
 **A 线（CLI 生产编排，现行唯一 7-stage 全链）**：
 docs/architecture/production_call_paths_stage1.csv 登记 7 条生产调用路径

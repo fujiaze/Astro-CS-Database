@@ -4,6 +4,7 @@
 // RT-006: 每个节点执行在真实运行点写 trace 事件（NODE_START/MODULE_CALL/NODE_END），
 // 由 executor 记录 WORKER_TASK、模块/provider 观测填写，禁止 config 值冒充。
 #include "astrocs/core/runtime.h"
+#include "astrocs/core/context.h"  // B2-A18: 租约授予观测
 
 #include <nlohmann/json.hpp>
 
@@ -155,7 +156,19 @@ class RuntimeImpl final : public Runtime {
         ev_mod.entry = m.value()->descriptor().module_id;  // 观测真实执行入口（模块 ID）
         ev_mod.call_count = 1;
         ctx.record_trace(std::move(ev_mod));
+        // B2-A18: 节点执行前后快照真实租约观测 (不再用配置 budget_ 冒充)。
+        const auto& obs_pre = granted_worker_observation();
+        const uint64_t acq_before =
+            obs_pre.acquired_total.load(std::memory_order_relaxed);
         auto r = m.value()->execute(ctx);
+        const auto& obs_post = granted_worker_observation();
+        const uint64_t acq_after =
+            obs_post.acquired_total.load(std::memory_order_relaxed);
+        // 本节点实际获得租约 → 峰值并行宽度; 无租约 = 0 (哨兵未观测)。
+        const uint32_t node_granted =
+            (acq_after > acq_before)
+                ? obs_post.peak_lease.load(std::memory_order_relaxed)
+                : 0u;
         // RT-008: 捕获节点 manifest（成功/失败都捕获；失败时含 error_kind 供 CLI 映射）
         auto man = m.value()->last_manifest();
         if (man.ok()) {
@@ -182,11 +195,13 @@ class RuntimeImpl final : public Runtime {
         tr.started_utc = started_utc;
         tr.ended_utc = utc_now();
         tr.duration_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
-        tr.workers = budget_;
+        // B2-A18 (GAP-06/BASE-F3): workers/granted_workers 写真实观测的租约
+        // 宽度，而非配置 budget_ (配置不得冒充观测, 宪章 §10.5/§17.6)。
+        tr.workers = node_granted;
         // RT-006: provider 观测 = 节点执行期间真实选择（模块 adapter/provider 经
         // ctx.set_provider 置位；未置位 → 空，不冒充 baseline）。
         tr.provider = ctx.provider();
-        tr.granted_workers = budget_;
+        tr.granted_workers = node_granted;
         tr.module_id = n.module_id;
         tr.entry = n.module_id;
         tr.call_count = 1;

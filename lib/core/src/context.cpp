@@ -118,6 +118,36 @@ std::vector<std::string> RunContext::checkpoints() const {
   return checkpoints_;
 }
 
+// B2-A18: 租约授予观测实现（进程级；Runtime 唯一 ThreadBudget 注入）。
+// 观测面 = 真实 acquire/release 路径的原子累计，与配置无关。
+namespace {
+std::atomic<uint32_t> g_active_leases{0};   // 当前活跃（已授予未归还）租约 token 数
+}  // namespace
+
+GrantedWorkerObservation& granted_worker_observation() noexcept {
+  static GrantedWorkerObservation obs;
+  return obs;
+}
+
+// B2-A18: 记录一次成功 acquire（峰值并发 + 峰值单次 size + 累计次数）。
+static void _note_acquire(uint32_t got) noexcept {
+  auto& o = granted_worker_observation();
+  o.acquired_total.fetch_add(1, std::memory_order_relaxed);
+  uint32_t pl = o.peak_lease.load(std::memory_order_relaxed);
+  while (got > pl &&
+         !o.peak_lease.compare_exchange_weak(pl, got, std::memory_order_relaxed)) {}
+  const uint32_t cur =
+      g_active_leases.fetch_add(got, std::memory_order_acq_rel) + got;
+  uint32_t pa = o.peak_active.load(std::memory_order_relaxed);
+  while (cur > pa &&
+         !o.peak_active.compare_exchange_weak(pa, cur, std::memory_order_relaxed)) {}
+}
+
+// B2-A18: 记录一次归还（幂等；ThreadLease 析构唯一归还路径）。
+static void _note_release(uint32_t got) noexcept {
+  if (got == 0) return;
+  g_active_leases.fetch_sub(got, std::memory_order_acq_rel);
+}
 // ── RT-001/RT-002: ThreadBudget 原子租约 ──
 ThreadLease ThreadBudget::acquire(uint32_t min, uint32_t max,
                                   AcquirePolicy policy) noexcept {
@@ -133,7 +163,9 @@ ThreadLease ThreadBudget::acquire(uint32_t min, uint32_t max,
           if (available_.compare_exchange_weak(cur, cur - take,
                                                std::memory_order_acq_rel,
                                                std::memory_order_relaxed)) {
-            return _make_lease(take);
+            auto lease = _make_lease(take);
+            _note_acquire(take);
+            return lease;
           }
           continue;
         }
@@ -143,7 +175,9 @@ ThreadLease ThreadBudget::acquire(uint32_t min, uint32_t max,
       if (available_.compare_exchange_weak(cur, cur - take,
                                            std::memory_order_acq_rel,
                                            std::memory_order_relaxed)) {
-        return _make_lease(take);
+        auto lease = _make_lease(take);
+        _note_acquire(take);
+        return lease;
       }
     }
   };
@@ -162,6 +196,7 @@ ThreadLease ThreadBudget::acquire(uint32_t min, uint32_t max,
 ThreadLease ThreadBudget::_make_lease(uint32_t got) noexcept {
   return ThreadLease(got, [this, got]() noexcept {
     available_.fetch_add(got, std::memory_order_acq_rel);
+    _note_release(got);
     cv_.notify_all();
   });
 }

@@ -7,6 +7,7 @@
 //       mini 任务不可达——本测试侧不做 abs-floor 放宽, 只验证未采样哨兵按纪律跳过;
 //       abs-floor 方案由负责人裁决(见 TASK_RESULT findings)。
 #include "resource_gate.h"
+#include "astrocs/core/context.h"  // B2-A18: 租约授予观测
 
 #include <cstdio>
 #include <string>
@@ -233,6 +234,59 @@ int main() {
               static_cast<int>(astrocs::GateDiag::QueueStarvedCpu));
     }
 
+    // 18) B2-A18 (GAP-06): U 分母 = 真实授予租约观测; 配置不得冒充观测。
+    {
+        // 18a) N=16 复现: 配置 selected_workers=31（旧代码把它当观测写入
+        //      set_workers(budget,budget)）, 机器 16 核, 真实瞬时并行宽度=2 →
+        //      分母必须用真实观测 2（U=0.50）, 而非旧口径 min(31,16)=16。
+        astrocs::GateConfig g = base_config();
+        g.available_cpus = 16;
+        g.selected_workers = 31;
+        g.granted_workers = 0;              // 未观测 → 旧口径(向后兼容)
+        CHECK(astrocs::utilization_value(g, 100.0) == 100.0 / (100.0 * 16.0));
+        g.granted_workers = 2;              // 真实观测: 瞬时并行宽度 2
+        CHECK(astrocs::utilization_value(g, 100.0) == 0.50);
+        CHECK(astrocs::utilization_value(g, 320.0) == 1.60);
+        g.granted_workers = 8;              // 观测 8 → U=0.40
+        CHECK(astrocs::utilization_value(g, 320.0) == 0.40);
+        // 观测不得被 available_cpus 封顶（真实授予是权威分母）
+        g.granted_workers = 20;
+        CHECK(astrocs::utilization_value(g, 100.0) == 0.05);
+    }
+    {
+        // 18b) 观测面由 ThreadBudget 真实 acquire/release 累计（非配置回填）。
+        auto tb_r = astrocs::core::create_thread_budget(8);
+        CHECK(tb_r.ok());
+        auto tb = tb_r.value();
+        const auto& obs = astrocs::core::granted_worker_observation();
+        const uint64_t acq0 = obs.acquired_total.load(std::memory_order_relaxed);
+        const uint32_t peak0 = obs.peak_active.load(std::memory_order_relaxed);
+        {
+            astrocs::core::ThreadLease l1 =
+                tb->acquire(2, 2, astrocs::core::AcquirePolicy::NONBLOCK);
+            astrocs::core::ThreadLease l2 =
+                tb->acquire(2, 2, astrocs::core::AcquirePolicy::NONBLOCK);
+            CHECK(l1.acquired() && l2.acquired());
+            CHECK(l1.size() == 2 && l2.size() == 2);
+            CHECK(tb->available() == 4);
+            // 两次并发 size=2 租约 → 活跃(higher-water)至少 4。
+            CHECK(obs.acquired_total.load(std::memory_order_relaxed) - acq0 == 2);
+            CHECK(obs.peak_lease.load(std::memory_order_relaxed) >= 2);
+            CHECK(obs.peak_active.load(std::memory_order_relaxed) >= peak0);
+            CHECK(obs.peak_active.load(std::memory_order_relaxed) >= 4);
+        }
+        // 归还后预算完全恢复（观测净值回零, 不残留）。
+        CHECK(tb->available() == 8);
+        CHECK(obs.peak_active.load(std::memory_order_relaxed) >= 4);
+    }
+    {
+        // 18c) 观测缺失(0 哨兵)不得被配置值替代: 未观测时仍走旧口径, 且
+        //      granted_workers 默认构造即 0（配置面与观测面字段分离）。
+        astrocs::GateConfig g = base_config();
+        CHECK(g.granted_workers == 0);
+        CHECK(g.selected_workers == 4 && g.available_cpus == 4);
+        CHECK(astrocs::utilization_value(g, 200.0) == 0.50);
+    }
     if (failures != 0) {
         std::fprintf(stderr, "mon001_gate_test: %d check(s) FAILED\n", failures);
         return 1;

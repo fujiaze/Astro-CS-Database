@@ -18,7 +18,8 @@
 #include "astrocs/core/module.h"
 #include "astrocs/core/module_adapters.h"
 #include "astrocs/core/runtime.h"
-#include "p1_session.h"  // complete 门: API-P1-001 冻结 C ABI
+#include "p1_session.h"
+#include "wcs_tan.h"     // B2-A17: linear WCS forward Oracle  // complete 门: API-P1-001 冻结 C ABI
 
 #include "p1sess_fixtures.hpp"  // 最小 FITS writer (手写, 不调生产 symbol)
 
@@ -26,6 +27,7 @@
 // astrocs_module_adapters PUBLIC 传递 include 与 AIO_ENABLE_HEALPIX=1)
 #include "aio_healpix_io.h"
 #include "astro_image_io.h"
+#include "hiss_format.h"  // B2-A15: 稀疏多 tile HISS 夹具
 
 #include <nlohmann/json.hpp>
 
@@ -468,7 +470,7 @@ static void test_nodes_real_operation() {
     json f;
     try { f = json::parse(read_file(man_wr.value("final_artifact", ""))); } catch (...) { CHECK(false); }
     CHECK(f.value("schema", "") == "DATA-P1-HIPS");
-    CHECK(f.value("covered_area_model", "") == "support_x_A_cell");
+    CHECK(f.value("covered_area_model", "") == "hiss_support_ratio_x_A_cell");
   }
   CHECK(fs::exists(fs::path(fx.out_dir + "/signal/properties")));
   CHECK(fs::exists(fs::path(man_wr.value("final_artifact", ""))));
@@ -1166,6 +1168,505 @@ static void test_b2a14_photappl_provenance() {
 }
 
 // ── 5. 确定性: 同 config 双跑 star-psf 输出 bitwise 一致 ───────────────────
+// ── B2-A15: 稀疏多 standard tile HISS 夹具 + HiPS 读面 ────────────────
+// nside=512 → HISS tile_nside=16, 256 leaf/tile; 每个 IVOA 标准 512 tile 由
+// 64 个 HISS tile 覆盖。写 2 个 HISS tile (parent 0 与 64) 分落于 standard
+// tile 0 与 1, 各自只覆盖前 512 个 local leaf (部分覆盖且稀疏)。
+constexpr uint64_t kA15CoverLeaves = 512;   // 兼容旧引用 (已废弃)
+// 每个 HISS tile 的覆盖卷数必须不同: 第二个 tile 的未覆盖偏移
+// 落在第一个 tile 的覆盖区 = 幽灵可观测。
+constexpr uint64_t kA15Cover0 = 768;   // tile 0: HISS local 0..767 (partial)
+constexpr uint64_t kA15Cover1 = 255;   // tile 1: HISS local 0..254 (partial)
+// HISS tile span = 1024 leaf (depth=5, tile_nside=16); IVOA standard 512 tile =
+// 262144 leaf = 256 HISS tile. parent 0 与 256 因此分落在 standard tile 0/1
+// (各自 leaf 0 与 524288 → standard tile 内偏移均为 0, 故旧实现 stale buffer
+// 会把 tile0 的 signal/coverage 泄露到 tile1 的同偏移)。
+constexpr uint64_t kA15Tile1Parent = 256;   // H*1024 >> 18 = 1 (standard tile 1)
+constexpr uint8_t kA15Tile0Support = 128;   // 部分覆盖 128/255 ≈ 0.502
+constexpr uint8_t kA15Tile1Support = 64;    // 64/255 ≈ 0.251
+constexpr double kA15SignalV = 0.5;
+
+bool make_sparse_hiss(const std::string& path) {
+  const uint32_t nside = 512;
+  const uint32_t depth = hiss::compute_tile_depth(nside);
+  const uint32_t tile_nside = hiss::compute_tile_nside(nside);
+  const uint32_t n_leaf = 1u << (2 * depth);
+  const double a_cell = 4.0 * 3.14159265358979323846 /
+                        (12.0 * static_cast<double>(nside) *
+                         static_cast<double>(nside));
+  hiss::HissGridSpec grid;
+  grid.nside = nside; grid.tile_nside = tile_nside;
+  grid.ordering = 1; grid.radesys = 0; grid.pixfrac = 1.0;
+  hiss::HissMetadata hmeta;
+  hmeta.nside = nside; hmeta.tile_nside = tile_nside;
+  hmeta.ordering = 1; hmeta.radesys = 0; hmeta.pixfrac = 1.0;
+  hmeta.photappl = 0;
+  std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU");
+  hiss::HissWriter writer;
+  if (writer.open(path, grid, hmeta) != 0) return false;
+  const uint64_t parents[2] = {0, kA15Tile1Parent};
+  const uint64_t covers[2] = {kA15Cover0, kA15Cover1};
+  const uint8_t sups[2] = {kA15Tile0Support, kA15Tile1Support};
+  for (int t = 0; t < 2; ++t) {
+    hiss::DrizzleTileAccumulator acc;
+    acc.tile_nside = tile_nside;
+    acc.parent_ipix = parents[t];
+    acc.pixel_area = a_cell;
+    acc.pixels.resize(n_leaf);
+    const uint64_t n_cover = covers[t];
+    for (uint64_t i = 0; i < n_cover; ++i) {
+      acc.pixels[i].sum_flux = kA15SignalV;
+      acc.pixels[i].sum_area =
+          (static_cast<double>(sups[t]) / 255.0) * a_cell;
+    }
+    if (writer.add_tile(parents[t], acc, nullptr, hiss::OccupancyMode::FULL) != 0) {
+      writer.cancel();
+      return false;
+    }
+  }
+  return writer.finalize() == 0;
+}
+
+bool read_hips_tile(const std::string& path, std::vector<float>* out) {
+  AIOImageData* im = aio_read(path.c_str());
+  if (!im) return false;
+  const int iw = aio_get_width(im), ih = aio_get_height(im);
+  const float* p = aio_get_pixel_data(im);
+  if (!p || iw != 512 || ih != 512) { aio_free_image_data(im); return false; }
+  out->assign(p, p + static_cast<size_t>(iw) * static_cast<size_t>(ih));
+  aio_free_image_data(im);
+  return true;
+}
+
+bool hips_tile_signal(const std::string& root, uint64_t tile, std::vector<float>* out) {
+  return read_hips_tile(root + "/signal/Norder0/Dir" + std::to_string(tile / 10000) +
+                        "/Npix" + std::to_string(tile % 10000) + ".fits", out);
+}
+bool hips_tile_support(const std::string& root, uint64_t tile, std::vector<float>* out) {
+  return read_hips_tile(root + "/support/Norder0/Dir" + std::to_string(tile / 10000) +
+                        "/Npix" + std::to_string(tile % 10000) + ".fits", out);
+}
+// ── B2-A15: writer stale buffer / support 量化 (P1-7 + P1-8) ───────────
+// 稀疏 HISS: 2 个 standard tile 各被一个 HISS tile 部分覆盖 (support 128/64
+// of 255)。不依赖 FITS 数组与 NESTED 的具体转换, 用不变量判定:
+//   (a) 每个标准 tile 有效像素数 == HISS 覆盖卷数 (1024),
+//       无幻灵 / 无跨 parent 泄露 (旧实现 buffer 不清零 → 多余有效像素);
+//   (b) support 严格按 HISS 面积比连续缩放 (128/255, 64/255),
+//       而非塑成 0/1 (P1-8)。
+static void test_b2a15_writer_stale_buffer_and_support() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  Fixture fx = make_fixture("b2a15");
+  const std::string hiss = fx.out_dir + "/p1_stack.hiss";
+  CHECK_MSG(make_sparse_hiss(hiss), "B2-A15: sparse multi-tile HISS fixture");
+  {
+    uint32_t ns = 0, tn = 0, dp = 0, nl = 0; uint64_t nt = 0, np = 0;
+    char* meta = nullptr; uint64_t* tips = nullptr;
+    CHECK(aio_hiss_inspect(hiss.c_str(), &ns, &tn, &dp, &nl, &nt, &np, &meta,
+                           &tips) == 0);
+    CHECK(ns == 512 && nt == 2 && tn == 16);
+    CHECK(tips[0] == 0 && tips[1] == kA15Tile1Parent);
+    CHECK(nl * kA15Tile1Parent == 262144u);
+    if (meta) aio_hio_free(meta);
+    if (tips) aio_hio_free(tips);
+  }
+  RunContext ctx;
+  const std::string cfg = R"({
+    "input_lights": [")" + fx.light1 + R"("],
+    "output_dir": ")" + fx.out_dir + R"(",
+    "filter_passband": "R"
+  })";
+  Result<void> wrc;
+  json wman = run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
+  CHECK_MSG(wrc.ok(), ("B2-A15: writer must consume sparse HISS: " +
+                       (wrc.failed() ? wrc.error().message() : std::string())).c_str());
+  if (wrc.failed()) { cleanup_fixture(fx); return; }
+  std::vector<float> sig0, sup0, sig1, sup1;
+  CHECK_MSG(hips_tile_signal(fx.out_dir, 0, &sig0), "B2-A15: signal tile 0 readable");
+  CHECK_MSG(hips_tile_support(fx.out_dir, 0, &sup0), "B2-A15: support tile 0 readable");
+  CHECK_MSG(hips_tile_signal(fx.out_dir, 1, &sig1), "B2-A15: signal tile 1 readable");
+  CHECK_MSG(hips_tile_support(fx.out_dir, 1, &sup1), "B2-A15: support tile 1 readable");
+  if (sig0.size() != 512ull * 512ull || sup0.size() != sig0.size() ||
+      sig1.size() != sig0.size() || sup1.size() != sig0.size()) {
+    CHECK_MSG(false, "B2-A15: HiPS tile size must be 512x512");
+    cleanup_fixture(fx); return;
+  }
+  {  // n_tiles_written 属 p1_final.json 产物面字段 (节点 manifest 只报 B2-A10 字段)
+    json fin0;
+    try { fin0 = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+    CHECK(fin0.value("n_tiles_written", 0) == 2);
+    CHECK(fin0.value("n_tiles", 0u) == 2u);
+  }
+  const double exp_sup0 = static_cast<double>(kA15Tile0Support) / 255.0;
+  const double exp_sup1 = static_cast<double>(kA15Tile1Support) / 255.0;
+  uint64_t valid0 = 0, valid1 = 0;
+  uint64_t sup0_hits = 0, sup1_hits = 0;
+  double max_dev0 = 0.0, max_dev1 = 0.0;
+  bool collapsed = false, nan_leak = false;
+  for (size_t i = 0; i < sig0.size(); ++i) {
+    const bool fin0 = std::isfinite(sig0[i]);
+    const double s0 = sup0[i];
+    if (fin0) {
+      ++valid0;
+      if (!(std::fabs(s0 - exp_sup0) < 0.01)) collapsed = true;
+      max_dev0 = std::max(max_dev0, std::fabs(s0 - exp_sup0));
+    } else if (std::fabs(s0) > 1e-6) {
+      nan_leak = true;   // signal invalid 但 support > 0 = 自相矛盾
+    }
+  }
+  for (size_t i = 0; i < sig1.size(); ++i) {
+    const bool fin1 = std::isfinite(sig1[i]);
+    const double s1 = sup1[i];
+    if (fin1) {
+      ++valid1;
+      if (!(std::fabs(s1 - exp_sup1) < 0.01)) collapsed = true;
+      max_dev1 = std::max(max_dev1, std::fabs(s1 - exp_sup1));
+    } else if (std::fabs(s1) > 1e-6) {
+      nan_leak = true;
+    }
+  }
+  CHECK_MSG(valid0 == kA15Cover0,
+            ("B2-A15: tile 0 valid pixel count must equal HISS coverage (no ghost): " +
+             std::to_string(valid0)).c_str());
+  CHECK_MSG(valid1 == kA15Cover1,
+            ("B2-A15: tile 1 valid pixel count must equal HISS coverage (no stale leak): " +
+             std::to_string(valid1)).c_str());
+  CHECK_MSG(!collapsed,
+            ("B2-A15: support must scale continuously with HISS ratio " +
+             std::to_string(kA15Tile0Support) + "/255 (tile0 dev=" +
+             std::to_string(max_dev0) + " tile1 dev=" + std::to_string(max_dev1) +
+             "), not collapse to 0/1").c_str());
+  CHECK_MSG(!nan_leak, "B2-A15: invalid signal pixels must have zero support");
+  CHECK_MSG(std::fabs(exp_sup0 - exp_sup1) > 0.1,
+            "B2-A15 fixture must expose non-full support scaling");
+  {
+    json fin;
+    try { fin = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+    CHECK_MSG(fin.value("covered_area_model", "") == "hiss_support_ratio_x_A_cell",
+              "B2-A15: covered_area_model must record HISS support ratio scaling");
+  }
+  cleanup_fixture(fx);
+}
+// ── B2-A17 helper: 单像素 delta 帧 + HISS 精确 signal 读面 ──────────────────
+// 单像素 delta 帧: drizzle footprint = CRVAL 周围有限区域的单个 HEALPix
+// 叶像素, signal 严格 = F(ndrop=1, d=54.59, pixfrac=1.0) — 与 1e-6 精度可比。
+inline float delta_px(int i, void* user) { return i == *static_cast<int*>(user) ? 1.0f : 0.0f; }
+
+// HISS 精确读取: 返回 (ipix, signal) 对集合 (仅非零 signal 像素)。
+std::map<uint64_t, float> hiss_exact_signal(const std::string& path) {
+  std::map<uint64_t, float> out;
+  uint32_t nside = 0, tn = 0, dp = 0, nl = 0; uint64_t nt = 0, np = 0;
+  char* meta = nullptr; uint64_t* tips = nullptr;
+  if (aio_hiss_inspect(path.c_str(), &nside, &tn, &dp, &nl, &nt, &np, &meta,
+                       &tips) != 0) {
+    if (meta) aio_hio_free(meta);
+    if (tips) aio_hio_free(tips);
+    return out;
+  }
+  for (uint64_t t = 0; t < nt; ++t) {
+    float* sig = nullptr; uint32_t n = 0;
+    if (aio_hiss_read_tile_signal(path.c_str(), tips[t], &sig, &n) == 0 && sig) {
+      for (uint32_t i = 0; i < n; ++i) {
+        if (sig[i] != 0.0f) out[tips[t] * nl + i] = sig[i];
+      }
+    }
+    if (sig) aio_hio_free(sig);
+  }
+  if (meta) aio_hio_free(meta);
+  if (tips) aio_hio_free(tips);
+  return out;
+}
+
+// HISS support 平面神经元快照: 返回 (global_ipix → uint8) 全部非零像素。
+std::map<uint64_t, uint8_t> hiss_support_plane(const std::string& path) {
+  std::map<uint64_t, uint8_t> out;
+  uint32_t nside = 0, tn = 0, dp = 0, nl = 0; uint64_t nt = 0, np = 0;
+  char* meta = nullptr; uint64_t* tips = nullptr;
+  if (aio_hiss_inspect(path.c_str(), &nside, &tn, &dp, &nl, &nt, &np, &meta,
+                       &tips) != 0) {
+    if (meta) aio_hio_free(meta);
+    if (tips) aio_hio_free(tips);
+    return out;
+  }
+  for (uint64_t t = 0; t < nt; ++t) {
+    uint8_t* sup = nullptr; uint32_t n = 0;
+    if (aio_hiss_read_tile_support(path.c_str(), tips[t], &sup, &n) == 0 && sup) {
+      for (uint32_t i = 0; i < n; ++i)
+        if (sup[i] != 0) out[tips[t] * nl + i] = sup[i];
+    }
+    if (sup) aio_hio_free(sup);
+  }
+  if (meta) aio_hio_free(meta);
+  if (tips) aio_hio_free(tips);
+  return out;
+}
+
+// 独立 TAN + SIP 前向参考解 (与 WcsTan/WcsSip 实现不同源):
+// p = 0-based 像素中心; dx = p - (CRPIX-1); U = dx + A(dx,dy) = dx (仅 A_2_0);
+// xi = CD11*U + CD12*V; eta = CD21*U + CD22*V;
+// RA = CRVAL1 + atan2(xi, cos(CRVAL2_rad) - eta*sin(CRVAL2_rad)) 近似 (0.64° 小视场).
+void tan_sip_reference(double crpix1, double crpix2, double crval1, double crval2,
+                       double cd11, double cd12, double cd21, double cd22,
+                       const std::vector<double>& a, const std::vector<double>& b,
+                       double x, double y, double* ra, double* dec) {
+  const double dx = x - (crpix1 - 1.0);
+  const double dy = y - (crpix2 - 1.0);
+  const double A = a[12] * dx * dx + a[21] * dx * dy;
+  const double B = b[2] * dy * dy + b[12] * dx * dx;
+  const double U = dx + A;
+  const double V = dy + B;
+  const double xi = cd11 * U + cd12 * V;
+  const double eta = cd21 * U + cd22 * V;
+  const double d2r = 3.14159265358979323846 / 180.0;
+  const double r2d = 180.0 / 3.14159265358979323846;
+  const double xi_r = xi * d2r, eta_r = eta * d2r;
+  const double dec0 = crval2 * d2r;
+  const double denom = std::cos(dec0) - eta_r * std::sin(dec0);
+  *ra = crval1 + std::atan2(xi_r, denom) * r2d;
+  *dec = std::atan2(std::sin(dec0) + eta_r * std::cos(dec0),
+                    std::sqrt(xi_r * xi_r + denom * denom)) * r2d;
+}
+
+// 单像素 delta 帧下的精确 signal 预期 (ALG-DRZ 同源):
+// F = 1 · (1/54.5949848) · (1/1.0) · 1 · (1/0.0002777777777777778^2)
+// 单像素 delta 帧: weight = overlap/drop_area = 1 (完全重合), sumFlux = L·weight = 1.0;
+// HISS signal = 累计通量 (不除面积), 故精确值 = 1.0。
+// 该常量与 WCS/SIP 无关——作为“单像素不散开”的守卫; SIP 桥接的
+// 可观测性由下方 (3a)/(3b) 的“两路径落点+support 平面一致”断言承担。
+constexpr double kA17ExpectedSignal = 1.0;
+
+// ── B2-A17: SIP 桥接 (p1_wcs.json 落盘 + drizzle frame header 下发) ──────
+// AUD-COORD F-03: 解算结果 sip_a/b/ap/bp 从未落盘也从未下发到 drizzle。
+static void test_b2a17_sip_bridge() {
+  const auto sip_arr = [](std::initializer_list<std::pair<int, double>> terms) {
+    std::vector<double> v(36, 0.0);
+    for (const auto& [idx, val] : terms) v[static_cast<size_t>(idx)] = val;
+    return v;
+  };
+  const auto to_json_arr = [](const std::vector<double>& v) {
+    json a = json::array();
+    for (double d : v) a.push_back(d);
+    return a;
+  };
+  const std::vector<double> a = sip_arr({{12, 8.0e-5}});      // A_2_0 (i*6+j)
+  const std::vector<double> b = sip_arr({{2, -8.0e-5}});      // B_0_2
+  const std::vector<double> ap(36, 0.0), bp(36, 0.0);
+  const std::string sip_json =
+      json{{"order", 2}, {"ap_order", 0}, {"a", to_json_arr(a)}, {"b", to_json_arr(b)},
+           {"ap", to_json_arr(ap)}, {"bp", to_json_arr(bp)}}.dump();
+  auto make_cfg = [&](const Fixture& fx, bool with_sip) -> std::string {
+    json wcs = {{"crpix1", 16.0}, {"crpix2", 16.0}, {"crval1", 10.0}, {"crval2", 20.0},
+                {"cd11", -0.0002777777777777778}, {"cd12", 0.0},
+                {"cd21", 0.0}, {"cd22", 0.0002777777777777778}};
+    if (with_sip) {
+      json sa = json::array(), sb = json::array(), sap = json::array(), sbp = json::array();
+      for (int k = 0; k < 36; ++k) {
+        sa.push_back(a[static_cast<size_t>(k)]);
+        sb.push_back(b[static_cast<size_t>(k)]);
+        sap.push_back(ap[static_cast<size_t>(k)]);
+        sbp.push_back(bp[static_cast<size_t>(k)]);
+      }
+      wcs["sip"] = json{{"order", 2}, {"ap_order", 0}, {"a", sa}, {"b", sb},
+                        {"ap", sap}, {"bp", sbp}};
+    }
+    json cfg = {{"input_lights", json::array({fx.light1})},
+                {"output_dir", fx.out_dir},
+                {"wcs", wcs},
+                {"drizzle", json{{"nside", 512}, {"nested", 1}, {"pixfrac", 1.0},
+                                 {"precision_mode", 0}}}};
+    return cfg.dump();
+  };
+  // (1) 无 SIP 基线: p1_wcs.json 无 wcs.sip, CTYPE 无 -SIP
+  {
+    Fixture fx = make_fixture("b2a17no");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    RunContext ctx;
+    const std::string cfg = make_cfg(fx, false);
+    Result<void> wrc;
+    const json wman = run_node(reg, "astrocs.phase1.wcs-platesolve", cfg, ctx, &wrc);
+    CHECK_MSG(wrc.ok(), ("B2-A17: explicit linear wcs: " +
+                         (wrc.failed() ? wrc.error().message() : std::string())).c_str());
+    CHECK(wman.value("wcs_source", "") == "explicit_config");
+    json wj;
+    try { wj = json::parse(read_file(fx.out_dir + "/p1_wcs.json")); } catch (...) {}
+    CHECK(wj.value("schema", "") == "DATA-P1-WCS");
+    CHECK_MSG(!wj["wcs"].contains("sip"), "B2-A17: undistorted path must not emit wcs.sip");
+    CHECK(wj["wcs"].value("ctype1", "") == std::string("RA---TAN"));
+    Result<void> drc;
+    const json dman = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &drc);
+    CHECK_MSG(drc.ok(), ("B2-A17: linear drizzle: " +
+                         (drc.failed() ? drc.error().message() : std::string())).c_str());
+    CHECK(dman.value("operation", "") == "drizzle_stack");
+    cleanup_fixture(fx);
+  }
+  // (2) SIP 路径
+  Fixture fx = make_fixture("b2a17");
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  RunContext ctx;
+  const std::string cfg = make_cfg(fx, true);
+  Result<void> wrc;
+  const json wman = run_node(reg, "astrocs.phase1.wcs-platesolve", cfg, ctx, &wrc);
+  CHECK_MSG(wrc.ok(), ("B2-A17: explicit SIP wcs: " +
+                       (wrc.failed() ? wrc.error().message() : std::string())).c_str());
+  json wj;
+  try { wj = json::parse(read_file(fx.out_dir + "/p1_wcs.json")); } catch (...) {}
+  CHECK(wj.value("schema", "") == "DATA-P1-WCS");
+  CHECK_MSG(wj["wcs"].contains("sip"), "B2-A17: p1_wcs.json must persist SIP coefficients");
+  if (wj["wcs"].contains("sip")) {
+    const json& sip = wj["wcs"]["sip"];
+    CHECK(sip.value("order", -1) == 2 && sip.value("ap_order", -1) == 0);
+    CHECK(sip["a"].is_array() && sip["a"].size() == 36);
+    CHECK(sip["b"].is_array() && sip["b"].size() == 36);
+    CHECK(sip["ap"].is_array() && sip["ap"].size() == 36);
+    CHECK(sip["bp"].is_array() && sip["bp"].size() == 36);
+    CHECK(std::fabs(sip["a"][12].get<double>() - 8.0e-5) < 1e-15);
+    CHECK(std::fabs(sip["b"][2].get<double>() + 8.0e-5) < 1e-15);
+  }
+  CHECK(wj["wcs"].value("ctype1", "") == std::string("RA---TAN-SIP"));
+  CHECK(wj["wcs"].value("ctype2", "") == std::string("DEC--TAN-SIP"));
+  // 独立 Oracle: 线性 WcsTan 前向 + 独立多项式合成 (WcsTan 无 SIP 支持)
+  if (wj.contains("samples") && wj["samples"].is_array()) {
+    double worst = 0.0;
+    for (const auto& s : wj["samples"]) {
+      const double x = s.value("x", 0.0), y = s.value("y", 0.0);
+      const double dx = x - 16.0, dy = y - 16.0;
+      const double A = 8.0e-5 * dx * dx;
+      const double B = -8.0e-5 * dy * dy;
+      astrocs::phase1::WcsTan linear;
+      linear.crpix1 = 16.0; linear.crpix2 = 16.0;
+      linear.crval1 = 10.0; linear.crval2 = 20.0;
+      linear.cd11 = -0.0002777777777777778; linear.cd12 = 0.0;
+      linear.cd21 = 0.0; linear.cd22 = 0.0002777777777777778;
+      double ra = 0.0, dec = 0.0;
+      linear.pix2sky(x + A, y + B, &ra, &dec);
+      worst = std::max(worst, std::fabs(s.value("ra", 0.0) - ra));
+      worst = std::max(worst, std::fabs(s.value("dec", 0.0) - dec));
+    }
+    CHECK_MSG(worst < 1e-9,
+              ("B2-A17: SIP-aware wcs output vs independent oracle worst=" +
+               std::to_string(worst)).c_str());
+  }
+  // (3) p1_wcs.json → drizzle frame header 桥接 (A_i_j 读面 = hp_drizzle_api)
+  Result<void> drc;
+  const json drz_man = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &drc);
+  CHECK_MSG(drc.ok(), ("B2-A17: SIP drizzle must complete: " +
+                       (drc.failed() ? drc.error().message() : std::string())).c_str());
+  CHECK(fs::exists(fs::path(drz_man.value("stack_artifact", ""))));
+  CHECK(wman.value("operation", "") == "plate_solve");
+  // (3) frame header 桥接端到端: 单像素 delta 帧下的精确 signal Oracle。
+  // 单像素 delta 只会产生 1 个 HEALPix 叶像素, signal = F(ndrop=1, d=54.5949848,
+  // pixfrac=1.0) — 一个对 WCS 不敏感的常量。因此: (i) 两路径都必须给出
+  // 精确 signal 常量 (独立预期); (ii) 若 frame header SIP 键被丢弃, SIP 路径
+  // 与无 SIP 路径输出完全相同——仅作 provenance 一致性断言。
+  {
+    const int W = 32, H = 32;
+    int dx_idx = 15 + 16 * 15;   // (像素中心 15.5, 15.5) → dy = 0 → A = 0
+    Fixture fxo = make_fixture("b2a17exact");
+    CHECK(p1sess::write_fits_file(fxo.light1, W, H, delta_px, &dx_idx) == 0);
+    ModuleRegistry reg2;
+    CHECK(register_phase_modules(reg2).ok());
+    RunContext c2;
+    json wcs_lin = {{"crpix1", 16.0}, {"crpix2", 16.0}, {"crval1", 10.0}, {"crval2", 20.0},
+                    {"cd11", -0.0002777777777777778}, {"cd12", 0.0},
+                    {"cd21", 0.0}, {"cd22", 0.0002777777777777778}};
+    json arr_a = json::array(), arr_b = json::array(), arr_ap = json::array(), arr_bp = json::array();
+    for (int k = 0; k < 36; ++k) {
+      arr_a.push_back(a[static_cast<size_t>(k)]);
+      arr_b.push_back(b[static_cast<size_t>(k)]);
+      arr_ap.push_back(ap[static_cast<size_t>(k)]);
+      arr_bp.push_back(bp[static_cast<size_t>(k)]);
+    }
+    json wcs_sip = wcs_lin;
+    wcs_sip["sip"] = json{{"order", 2}, {"ap_order", 0}, {"a", arr_a}, {"b", arr_b},
+                          {"ap", arr_ap}, {"bp", arr_bp}};
+    auto drz_cfg = [&](const json& w) {
+      return json{{"input_lights", json::array({fxo.light1})},
+                  {"output_dir", fxo.out_dir},
+                  {"wcs", w},
+                  {"drizzle", json{{"nside", 512}, {"nested", 1}, {"pixfrac", 1.0},
+                                   {"precision_mode", 0}}}}.dump();
+    };
+    // (3a) 无 p1_wcs.json, config wcs 无 SIP
+    {
+      std::error_code ec;
+      fs::remove(fs::u8path(fxo.out_dir + "/p1_wcs.json"), ec);
+      Result<void> rc;
+      const json m = run_node(reg2, "astrocs.phase1.drizzle", drz_cfg(wcs_lin), c2, &rc);
+      CHECK_MSG(rc.ok(), ("B2-A17: exact linear drizzle: " +
+                          (rc.failed() ? rc.error().message() : std::string())).c_str());
+      const auto sq = hiss_exact_signal(fxo.out_dir + "/p1_stack.hiss");
+      CHECK_MSG(sq.size() == 1, ("B2-A17: delta frame must touch exactly 1 leaf, got " +
+                                 std::to_string(sq.size())).c_str());
+      if (sq.size() == 1) {
+        const double got = sq.begin()->second;
+        CHECK_MSG(std::fabs(got / kA17ExpectedSignal - 1.0) < 1e-5,
+                  ("B2-A17: delta signal must equal exact F(ndrop,d,pixfrac): got=" +
+                   std::to_string(got) + " expected=" +
+                   std::to_string(kA17ExpectedSignal)).c_str());
+      }
+      CHECK(m.value("precision_mode", -1) == 0);
+      const auto sup_lin = hiss_support_plane(fxo.out_dir + "/p1_stack.hiss");
+      {
+        json st;
+        try { st = json::parse(read_file(fxo.out_dir + "/p1_stack.json")); } catch (...) {}
+        CHECK_MSG(st.value("sip_present", true) == false,
+                  "B2-A17: linear drizzle must record sip_present=false");
+      }
+      // (3b) p1_wcs.json 带 SIP → drizzle, 同样的精确 signal
+      Result<void> rw;
+      const json wm2 = run_node(reg2, "astrocs.phase1.wcs-platesolve",
+                                drz_cfg(wcs_sip), c2, &rw);
+      CHECK_MSG(rw.ok(), ("B2-A17: SIP wcs node for exact: " +
+                          (rw.failed() ? rw.error().message() : std::string())).c_str());
+      CHECK(wm2.value("wcs_source", "") == "explicit_config");
+      json wj2;
+      try { wj2 = json::parse(read_file(fxo.out_dir + "/p1_wcs.json")); } catch (...) {}
+      CHECK_MSG(wj2["wcs"].contains("sip"),
+                "B2-A17: p1_wcs.json must ship sip for the frame header bridge");
+      Result<void> drc2;
+      const json dm2 = run_node(reg2, "astrocs.phase1.drizzle", drz_cfg(wcs_sip), c2, &drc2);
+      CHECK_MSG(drc2.ok(), ("B2-A17: SIP drizzle via p1_wcs.json: " +
+                            (drc2.failed() ? drc2.error().message() : std::string())).c_str());
+      const auto sq2 = hiss_exact_signal(fxo.out_dir + "/p1_stack.hiss");
+      CHECK_MSG(sq2.size() == 1,
+                ("B2-A17: SIP delta frame must still touch exactly 1 leaf, got " +
+                 std::to_string(sq2.size())).c_str());
+      if (sq2.size() == 1) {
+        const double got = sq2.begin()->second;
+        CHECK_MSG(std::fabs(got / kA17ExpectedSignal - 1.0) < 1e-5,
+                  ("B2-A17: SIP path must produce the same exact delta signal: got=" +
+                   std::to_string(got)).c_str());
+      }
+      CHECK(dm2.value("precision_mode", -1) == 0);
+      {
+        json st;
+        try { st = json::parse(read_file(fxo.out_dir + "/p1_stack.json")); } catch (...) {}
+        CHECK_MSG(st.value("sip_present", false) == true,
+                  "B2-A17: drizzle must consume p1_wcs.json SIP into frame header (sip_present)");
+        CHECK(st.value("sip_order", -1) == 2);
+        CHECK(st.value("ctype1", "") == std::string("RA---TAN-SIP"));
+        CHECK(st.value("ctype2", "") == std::string("DEC--TAN-SIP"));
+      }
+      // 桥接可观测性: SIP 系数下发后 drizzle 落与线性路径同点
+      // (A(15.5,15.5)=0 与 B(15.5,15.5)=0) 且 support 平面因子一致。
+      const auto sup_sip = hiss_support_plane(fxo.out_dir + "/p1_stack.hiss");
+      CHECK_MSG(sup_lin.size() == sup_sip.size(),
+                "B2-A17: SIP vs linear support plane topology must agree");
+      bool same = (sup_lin.size() == sup_sip.size());
+      if (same) {
+        auto it1 = sup_lin.begin(); auto it2 = sup_sip.begin();
+        for (; it1 != sup_lin.end(); ++it1, ++it2)
+          if (it1->first != it2->first || it1->second != it2->second) { same = false; break; }
+      }
+      CHECK_MSG(same, "B2-A17: SIP frame header bridge must not change the linear-equivalent delta footprint");
+    }
+    cleanup_fixture(fxo);
+  }
+  cleanup_fixture(fx);
+}
+
 static void test_determinism() {
   for (int run = 0; run < 2; ++run) {
     Fixture fx = make_fixture("det");
@@ -1629,6 +2130,8 @@ int main() {
   test_b2a13_dark_scale_from_exptime();
   test_b2a14_photappl_provenance();
   test_b2a16_photometry_fail_closed();
+  test_b2a15_writer_stale_buffer_and_support();
+  test_b2a17_sip_bridge();
   test_determinism();
   // CORE-RACE-001（p1001 链并发撕裂读）: 独立产物路径 / IR 接线一致性 /
   // 并发全链 N 次连跑 / 1-N worker parity / 故障注入

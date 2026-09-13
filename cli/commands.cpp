@@ -52,6 +52,7 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "monitor.h"
 #include "resource_events.h"
 #include "resource_gate.h"
+#include "astrocs/core/context.h"  // B2-A18: 租约授予观测
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -741,13 +742,24 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     std::atomic<bool> first10s_done{false};
     std::atomic<bool> first10s_cancel{false};
     std::thread sampler([&mon, &recorder, &alloc_rec, &sampling, &first10s_diag,
-                         &first10s_done, &first10s_cancel] {
+                         &first10s_done, &first10s_cancel, &budget] {
         using SteadyNs = std::chrono::steady_clock::duration;
         const auto period = std::chrono::duration_cast<SteadyNs>(std::chrono::duration<double>(0.5));
         auto next = std::chrono::steady_clock::now();
         unsigned tick = 0;
         while (sampling.load(std::memory_order_relaxed)) {
             mon.tick();
+            // B2-A18: worker 数优先写真实租约观测 (峰值并发授予); 未观测
+            // (哨兵 0) 时回退到有效配置容量 min(budget, 可用核) —— 与
+            // utilization_value 同一哨兵纪律, 不以观测名义回填配置。
+            {
+                const uint32_t obs_workers = astrocs::core::granted_worker_observation()
+                    .peak_active.load(std::memory_order_relaxed);
+                const uint32_t planned =
+                    std::min(budget, cli_affinity_cpu_count());
+                const uint32_t eff = obs_workers > 0 ? obs_workers : planned;
+                recorder.set_workers(eff, eff);
+            }
             recorder.record(mon.last_sample());
             // MON-002(V7): RSS/private/commit/allocator outstanding 同 tick 采样。
             alloc_rec.tick(mon.last_sample());
@@ -787,8 +799,8 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         }
     });
     recorder.set_stage(astrocs::ResStage::Active);
-    // MON-001: active 阶段注入实际 worker 租约数(cli_affinity 分配核; 禁硬编码)。
-    recorder.set_workers(budget, budget);
+    // B2-A18: active 阶段 worker 数由采样循环写入真实租约观测值;
+    // 此处不再以配置 budget 充当观测 (宪章 §10.5/§17.6)。
     // CLI-004: §4 progress 事件(04 冻结字段 completed/total/unit/rate/eta_seconds)。
     // 粒度 = phase 粒度(run 开始 0/1, 结束 1/1): Runtime 公开合同无节点级进度回调,
     // 协议面按合同冻结 —— 粒度升级(节点/帧级采样)不改变字段结构, 消费者透明。
@@ -846,7 +858,10 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     astrocs::GateConfig g;
     g.kind = astrocs::ResKind::Compute;
     g.available_cpus = cli_affinity_cpu_count();
-    g.selected_workers = budget;
+    g.selected_workers = budget;   // 配置基准 (阈值用)
+    // B2-A18: U 分母 = 真实观测的租约宽度 (0 = 未观测哨兵)。
+    g.granted_workers = astrocs::core::granted_worker_observation()
+                            .peak_active.load(std::memory_order_relaxed);
     g.max_active_threads = s.max_threads;
     g.avg_equivalent_cores = s.avg_equivalent_cores;
     g.wall_seconds = s.wall_seconds;
@@ -932,6 +947,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"avg_equivalent_cores", s.avg_equivalent_cores},
         {"max_active_threads", s.max_threads},
         {"selected_workers", g.selected_workers},
+        {"granted_workers_observed", g.granted_workers},
         {"available_cpus", g.available_cpus},
         {"workers_p50", g.workers_p50},
         {"cpu_p50_percent", g.cpu_p50_percent},

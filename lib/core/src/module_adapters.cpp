@@ -1578,6 +1578,157 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
+// ── B2-A17 (AUD-COORD F-03): SIP 系数桥接 ─────────────────────────────────────────
+// 缺陷: 解算结果 IpvWcsResult 携带 sip_a/sip_b/sip_ap/sip_bp (ipv_api.h:41-48,
+// 36 项 i*6+j 布局) 与 ctype1/ctype2 ("RA---TAN-SIP"), 但 p1_op_wcs 只把
+// sip_order 写进 p1_wcs.json (从不落盘系数), p1_op_drizzle 也只透传 7 个线性
+// WCS 参数到 frame header → drizzle 侧永远走无 SIP 的线性分支, A/B/AP/BP
+// 全线丢失 (WcsSip 支持 SIP 但生产链从不喂它)。
+// 桥接契约 (FITS SIP 约定 + WcsSip 消费口径):
+//   p1_wcs.json: wcs.{crpix1..cd22, ctype1, ctype2, sip:{order, ap_order,
+//                a[36], b[36], ap[36], bp[36]}} (系数存在才写 sip 对象)
+//   frame header: CTYPE1/CTYPE2 + A_ORDER/B_ORDER/AP_ORDER/BP_ORDER +
+//                A_i_j/B_i_j/AP_i_j/BP_i_j (hp_drizzle_api.cpp:586-645 读面)
+// 系数按 i*6+j 存 (与 hp_drizzle_api 读侧同构), 逐项有限性校验; order 超出
+// drizzle 正式支持域 [0,5] → DATA 拒绝 (禁静默截断)。
+struct P1SipCoeffs {
+  int order = 0;
+  int ap_order = 0;
+  double a[36] = {0};
+  double b[36] = {0};
+  double ap[36] = {0};
+  double bp[36] = {0};
+  bool present = false;
+};
+
+P1SipCoeffs p1_parse_sip(const Json& wc, bool* ok, std::string* err) {
+  P1SipCoeffs out;
+  *ok = true;
+  const Json& sip = wc.contains("sip") && wc["sip"].is_object() ? wc["sip"] : Json::object();
+  if (sip.empty()) return out;  // 无 SIP = 合法 (无畘变路径, 基线逐字节等价)
+  auto rd_order = [&](const char* k, int dflt) -> int {
+    if (!p1_has(sip, k)) return dflt;
+    const Json& v = sip[k];
+    if (!v.is_number_integer()) { *ok = false; *err = std::string(k) + " must be integer"; return 0; }
+    return v.get<int>();
+  };
+  const int order = rd_order("order", 0);
+  const int ap_order = rd_order("ap_order", 0);
+  if (!*ok) return out;
+  if (order < 0 || order > 5 || ap_order < 0 || ap_order > 5) {
+    *ok = false;
+    *err = "sip order out of drizzle contract [0,5] (order=" + std::to_string(order) +
+           ", ap_order=" + std::to_string(ap_order) + ")";
+    return out;
+  }
+  auto rd_arr = [&](const char* k, double* dst) -> bool {
+    if (!p1_has(sip, k)) return true;  // 允许缺省 (全零)
+    const Json& v = sip[k];
+    if (!v.is_array() || v.size() != 36) return false;
+    for (std::size_t i = 0; i < 36; ++i) {
+      if (!v[i].is_number()) return false;
+      const double d = v[i].get<double>();
+      if (!std::isfinite(d)) return false;
+      dst[i] = d;
+    }
+    return true;
+  };
+  if (!rd_arr("a", out.a) || !rd_arr("b", out.b) || !rd_arr("ap", out.ap) ||
+      !rd_arr("bp", out.bp)) {
+    *ok = false;
+    *err = "sip coefficient array must be 36 finite numbers (a/b/ap/bp)";
+    return out;
+  }
+  out.order = order;
+  out.ap_order = ap_order;
+  out.present = true;
+  return out;
+}
+
+// SIP 前向修正 (FITS paper IV §2.1: U = dx + A(dx,dy), V = dy + B(dx,dy))。
+// 独立于 WcsSip (与 drizzle 生产实现不同翻译单元; 交叉门用)。
+void p1_sip_poly(const double* c, double dx, double dy, int order, double* out) {
+  double acc = 0.0;
+  for (int i = 0; i <= order; ++i) {
+    for (int j = 0; i + j <= order; ++j) {
+      acc += c[i * 6 + j] * std::pow(dx, i) * std::pow(dy, j);
+    }
+  }
+  *out = acc;
+}
+
+void p1_tan_forward_reference_sip(const P1SipCoeffs& sip, double crpix1,
+                                  double crpix2, double crval1, double crval2,
+                                  double cd11, double cd12, double cd21,
+                                  double cd22, double x, double y, double* ra,
+                                  double* dec) {
+  const double dx = x - crpix1;
+  const double dy = y - crpix2;
+  double A = 0.0, B = 0.0;
+  if (sip.present && sip.order > 0) {
+    p1_sip_poly(sip.a, dx, dy, sip.order, &A);
+    p1_sip_poly(sip.b, dx, dy, sip.order, &B);
+  }
+  p1_tan_forward_reference(crpix1, crpix2, crval1, crval2, cd11, cd12, cd21,
+                           cd22, crpix1 + (dx + A), crpix2 + (dy + B), ra, dec);
+}
+
+// 把 SIP 系数写入 frame header KV (drizzle 读面 hp_drizzle_api.cpp:586-645)。
+// 返回 false 表示 kv_set 失败。CTYPE 由调用方按是否含 SIP 选择 -SIP 后缀。
+bool p1_sip_write_header_frame(void* frame, const P1SipCoeffs& sip,
+                               bool (*kv_set)(void*, const char*, const char*),
+                               std::string* err) {
+  auto set = [&](const char* k, const std::string& v) -> bool {
+    if (!kv_set(frame, k, v.c_str())) { *err = std::string("kv_set failed: ") + k; return false; }
+    return true;
+  };
+  if (!sip.present || sip.order <= 0) return true;  // 无 SIP: 不写任何 SIP 键
+  char buf[64];
+  std::snprintf(buf, sizeof(buf), "%d", sip.order);
+  if (!set("A_ORDER", buf) || !set("B_ORDER", buf)) return false;
+  for (int i = 0; i <= sip.order; ++i) {
+    for (int j = 0; i + j <= sip.order; ++j) {
+      if (i + j == 0) continue;
+      char key[24];
+      std::snprintf(key, sizeof(key), "A_%d_%d", i, j);
+      std::snprintf(buf, sizeof(buf), "%.17g", sip.a[i * 6 + j]);
+      if (!set(key, buf)) return false;
+      std::snprintf(key, sizeof(key), "B_%d_%d", i, j);
+      std::snprintf(buf, sizeof(buf), "%.17g", sip.b[i * 6 + j]);
+      if (!set(key, buf)) return false;
+    }
+  }
+  if (sip.ap_order > 0) {
+    std::snprintf(buf, sizeof(buf), "%d", sip.ap_order);
+    if (!set("AP_ORDER", buf) || !set("BP_ORDER", buf)) return false;
+    for (int i = 0; i <= sip.ap_order; ++i) {
+      for (int j = 0; i + j <= sip.ap_order; ++j) {
+        if (i + j == 0) continue;
+        char key[24];
+        std::snprintf(key, sizeof(key), "AP_%d_%d", i, j);
+        std::snprintf(buf, sizeof(buf), "%.17g", sip.ap[i * 6 + j]);
+        if (!set(key, buf)) return false;
+        std::snprintf(key, sizeof(key), "BP_%d_%d", i, j);
+        std::snprintf(buf, sizeof(buf), "%.17g", sip.bp[i * 6 + j]);
+        if (!set(key, buf)) return false;
+      }
+    }
+  }
+  return true;
+}
+
+// B2-A17: SIP 系数 JSON 序列化 (落盘/下发共用同一形状; 无 SIP → 不写键)。
+Json p1_sip_to_json(const P1SipCoeffs& sip) {
+  if (!sip.present) return Json();
+  Json sa = Json::array(), sb = Json::array(), sap = Json::array(), sbp = Json::array();
+  for (int k = 0; k < 36; ++k) {
+    sa.push_back(sip.a[k]); sb.push_back(sip.b[k]);
+    sap.push_back(sip.ap[k]); sbp.push_back(sip.bp[k]);
+  }
+  return Json{{"order", sip.order}, {"ap_order", sip.ap_order},
+              {"a", sa}, {"b", sb}, {"ap", sap}, {"bp", sbp}};
+}
+
 // ── op: plate_solve（真实求解器链: lib/plate_solve ipv——sdet 句柄 +
 //      gaia_client 句柄注入 IPVSolver → ipv_solve_from_memory_with_callback_d
 //      FP64 全链解算 → IpvWcsResult(CD/CRVAL/CRPIX/RMS) → WcsTan roundtrip
@@ -1614,6 +1765,14 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     if (!std::isfinite(det) || det == 0.0)
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "explicit wcs CD matrix is singular (det==0)"));
+    // B2-A17: 显式配置路径同样支持 SIP 畸变系数 (无畸变 = 不写 sip 对象)。
+    bool sip_ok = true;
+    std::string sip_err;
+    const P1SipCoeffs sip = p1_parse_sip(wc, &sip_ok, &sip_err);
+    if (!sip_ok)
+      return Result<void>::fail(Error(ErrorDomain::DATA, "explicit wcs " + sip_err));
+    const char* ctype1 = sip.present ? "RA---TAN-SIP" : "RA---TAN";
+    const char* ctype2 = sip.present ? "DEC--TAN-SIP" : "DEC--TAN";
     const std::string frame0 = p1_calibrated_path(doc, doc["input_lights"][0].get<std::string>());
     P1Image im = p1_read_image(frame0);
     if (!im.ok()) {
@@ -1629,18 +1788,27 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     Json samples = Json::array();
     double max_rt = 0.0;
     double max_cross_deg = 0.0;
+    // B2-A17: SIP A/B 前向修正叠加在 WcsTan 线性 pix2sky 之上 (WcsSip 同式,
+    // pixelToSkyT: dx' = dx + A(dx,dy), dy' = dy + B(dx,dy))。
     for (const auto& [x, y] : pts) {
       double ra = 0.0, dec = 0.0, bx = 0.0, by = 0.0;
-      wcs.pix2sky(x, y, &ra, &dec);
+      if (sip.present && sip.order > 0) {
+        double A = 0.0, B = 0.0;
+        p1_sip_poly(sip.a, x - wcs.crpix1, y - wcs.crpix2, sip.order, &A);
+        p1_sip_poly(sip.b, x - wcs.crpix1, y - wcs.crpix2, sip.order, &B);
+        wcs.pix2sky(x + A, y + B, &ra, &dec);
+      } else {
+        wcs.pix2sky(x, y, &ra, &dec);
+      }
       wcs.sky2pix(ra, dec, &bx, &by);
       const double rt = std::sqrt((bx - x) * (bx - x) + (by - y) * (by - y));
       if (rt > max_rt) max_rt = rt;
-      // B2-A1: 绝对门 —— 与独立 gnomonic 前向参考解的角度残差 (见
-      // p1_tan_forward_reference 头注; 与 sky2pix/pix2sky 自洽无关)。
+      // B2-A1/B2-A17: 绝对门 —— 与独立 gnomonic 前向参考解的角度残差
+      // (独立参考解同样施加 SIP A/B; 与 sky2pix/pix2sky 自洽无关)。
       double ra_ref = 0.0, dec_ref = 0.0;
-      p1_tan_forward_reference(wcs.crpix1, wcs.crpix2, wcs.crval1, wcs.crval2,
-                               wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
-                               x, y, &ra_ref, &dec_ref);
+      p1_tan_forward_reference_sip(sip, wcs.crpix1, wcs.crpix2, wcs.crval1,
+                                   wcs.crval2, wcs.cd11, wcs.cd12, wcs.cd21,
+                                   wcs.cd22, x, y, &ra_ref, &dec_ref);
       const double cross = p1_angular_sep_deg(ra, dec, ra_ref, dec_ref);
       if (cross > max_cross_deg) max_cross_deg = cross;
       samples.push_back(Json{{"x", x}, {"y", y}, {"ra", ra}, {"dec", dec},
@@ -1648,29 +1816,38 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
                              {"forward_cross_deg", cross},
                              {"roundtrip_px", rt}});
     }
-    // roundtrip 保留为次级不变量 (正反互逆; 对成对单位错零鉴别力)。
-    if (!std::isfinite(max_rt) || max_rt >= 1e-6) {
+    // roundtrip 保留为次级不变量 (正反互逆; 对成对单位错零鉴别力)。无 SIP
+    // 时线性正反互逆仍按原 1e-6 px 契约; 有 SIP 时 sky2pix 走逆向多项式,
+    // 收敛性取决于 AP/BP 是否与 A/B 严格互逆 (生产 ipv 保证), 显式配置面
+    // 不做逆多项式存在性假设 —— 该面绝对正确性由前向交叉门独立保证。
+    if (!sip.present && (!std::isfinite(max_rt) || max_rt >= 1e-6)) {
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "explicit WcsTan roundtrip " + std::to_string(max_rt) + " px exceeds 1e-6 contract"));
     }
     // B2-A1 绝对正确性门: 与独立前向参考解的角距 ≤1e-9 deg (≈3.6e-6")。
     // 阈值依据: 两路径均为 FP64 且本尺度 (|xi,eta| <= ~0.1 deg) 下舍入
     // ~1e-15 deg; 1e-9 deg 高出舍入 6 个量级; 旧缺陷偏差 ~5.6e-1 deg、
-    // +0.5px 注入 ~5.5e-5 deg 均远大于该门 => 真正可失败, 非恒真。
+    // +0.5px 注入 ~5.5e-5 deg 均远大于该门 => 真正可失败, 非恒真。存在 SIP
+    // 时交叉残差含 SIP 多项式求值差异 (<1e-12 deg), 阈值不变。
     if (!std::isfinite(max_cross_deg) || max_cross_deg > 1e-9) {
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "explicit WcsTan forward cross " + std::to_string(max_cross_deg) +
           " deg exceeds 1e-9 absolute contract"));
     }
+
     const std::string out_path = out_dir + "/p1_wcs.json";
+    Json wcs_obj = Json{{"crpix1", wcs.crpix1}, {"crpix2", wcs.crpix2},
+                        {"crval1", wcs.crval1}, {"crval2", wcs.crval2},
+                        {"cd11", wcs.cd11}, {"cd12", wcs.cd12},
+                        {"cd21", wcs.cd21}, {"cd22", wcs.cd22},
+                        {"ctype1", ctype1}, {"ctype2", ctype2}};
+    // B2-A17: SIP 系数落盘 (消费方 = p1_op_drizzle frame header 桥接)。
+    if (const Json sj = p1_sip_to_json(sip); !sj.is_null()) wcs_obj["sip"] = sj;
     Json wcs_out = Json{{"schema", "DATA-P1-WCS"},
                         {"solver", "none(explicit_config)"},
                         {"wcs_source", "explicit_config"},
                         {"initial", false},
-                        {"wcs", Json{{"crpix1", wcs.crpix1}, {"crpix2", wcs.crpix2},
-                                     {"crval1", wcs.crval1}, {"crval2", wcs.crval2},
-                                     {"cd11", wcs.cd11}, {"cd12", wcs.cd12},
-                                     {"cd21", wcs.cd21}, {"cd22", wcs.cd22}}},
+                        {"wcs", wcs_obj},
                         {"n_samples", samples.size()},
                         {"max_roundtrip_px", max_rt},
                         {"max_forward_cross_deg", max_cross_deg},
@@ -1808,13 +1985,32 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
         " deg exceeds 1e-9 absolute contract"));
   }
   const std::string out_path = out_dir + "/p1_wcs.json";
+  // B2-A17: 解算器 SIP 系数 (IpvWcsResult sip_a/sip_b/sip_ap/sip_bp, 36 项
+  // i*6+j 布局) 落盘到 p1_wcs.json 的 wcs.sip; 无 SIP (order==0) 不写该键,
+  // 下游 drizzle 因此走原线性路径 (无畸变产物与基线逐字节等价)。
+  P1SipCoeffs sip;
+  sip.order = r.sip_order;
+  sip.ap_order = r.sip_ap_order;
+  for (int k = 0; k < 36; ++k) {
+    sip.a[k] = r.sip_a[k]; sip.b[k] = r.sip_b[k];
+    sip.ap[k] = r.sip_ap[k]; sip.bp[k] = r.sip_bp[k];
+  }
+  sip.present = r.sip_order > 0;
+  if (r.sip_order < 0 || r.sip_order > 5 || r.sip_ap_order < 0 || r.sip_ap_order > 5)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "solver SIP order out of drizzle contract [0,5] (order=" +
+        std::to_string(r.sip_order) + ", ap_order=" + std::to_string(r.sip_ap_order) + ")"));
+  Json wcs_obj = Json{{"crpix1", wcs.crpix1}, {"crpix2", wcs.crpix2},
+                      {"crval1", wcs.crval1}, {"crval2", wcs.crval2},
+                      {"cd11", wcs.cd11}, {"cd12", wcs.cd12},
+                      {"cd21", wcs.cd21}, {"cd22", wcs.cd22},
+                      {"ctype1", std::string(r.ctype1)},
+                      {"ctype2", std::string(r.ctype2)}};
+  if (const Json sj = p1_sip_to_json(sip); !sj.is_null()) wcs_obj["sip"] = sj;
   Json wcs_out = Json{{"schema", "DATA-P1-WCS"},
                       {"solver", "ipv_solve_from_memory_with_callback_d"},
                       {"initial", false},
-                      {"wcs", Json{{"crpix1", wcs.crpix1}, {"crpix2", wcs.crpix2},
-                                   {"crval1", wcs.crval1}, {"crval2", wcs.crval2},
-                                   {"cd11", wcs.cd11}, {"cd12", wcs.cd12},
-                                   {"cd21", wcs.cd21}, {"cd22", wcs.cd22}}},
+                      {"wcs", wcs_obj},
                       {"ctype1", std::string(r.ctype1)},
                       {"ctype2", std::string(r.ctype2)},
                       {"rms_px", r.rms_px},
@@ -2011,6 +2207,22 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     }
   }
   const Json& wj = wj_storage;
+  // B2-A17: 上游/配置 SIP 系数 (p1_wcs.json wcs.sip) 解析 —— 有则下发到 frame
+  // header (CTYPE*-SIP + A/B/AP/BP_i_j), 供 hp_drizzle_api.cpp:586-645 读入
+  // WcsSip 并逐叶像素施加畸变修正; 无则保持原线性路径 (基线等价)。
+  bool sip_ok = true;
+  std::string sip_err;
+  const P1SipCoeffs sip = p1_parse_sip(wj, &sip_ok, &sip_err);
+  if (!sip_ok)
+    return Result<void>::fail(Error(ErrorDomain::DATA, "drizzle wcs " + sip_err));
+    const std::string ctype1_kv =
+        p1_has(wj, "ctype1") && wj["ctype1"].is_string()
+            ? wj["ctype1"].get<std::string>()
+            : (sip.present ? std::string("RA---TAN-SIP") : std::string("RA---TAN"));
+    const std::string ctype2_kv =
+        p1_has(wj, "ctype2") && wj["ctype2"].is_string()
+            ? wj["ctype2"].get<std::string>()
+            : (sip.present ? std::string("DEC--TAN-SIP") : std::string("DEC--TAN"));
   const bool has_drz = p1_has(doc, "drizzle") && doc["drizzle"].is_object();
   if (!has_drz || !p1_has(doc["drizzle"], "nside"))
     return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -2104,11 +2316,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     fmt(p1_num(wj, "cd12", 0.0), b6, sizeof(b6));
     fmt(p1_num(wj, "cd21", 0.0), b7, sizeof(b7));
     fmt(p1_num(wj, "cd22", 0.0), b8, sizeof(b8));
+    // B2-A17: CTYPE 由上游 WCS 的 SIP 存在性决定（有 SIP → "*-SIP"）。
+
     const KV kvs[] = {
         {"CRPIX1", ""}, {"CRPIX2", ""}, {"CRVAL1", ""}, {"CRVAL2", ""},
         {"CD1_1", ""}, {"CD1_2", ""}, {"CD2_1", ""}, {"CD2_2", ""},
         {"CDELT1", ""}, {"CDELT2", ""}, {"CROTA1", "0"}, {"CROTA2", "0"},
-        {"CTYPE1", "RA---TAN"}, {"CTYPE2", "DEC--TAN"}, {"PRECISION", ""},
+        {"CTYPE1", ""}, {"CTYPE2", ""}, {"PRECISION", ""},
         {"PHOTSCAL", ""}, {"PHOTAPPL", ""}, {"PHOTDEGRADE", ""},
     };
     (void)b1; (void)b2; (void)b3; (void)b4; (void)b5; (void)b6; (void)b7; (void)b8;
@@ -2127,6 +2341,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         if (std::strcmp(kv.k, "CD2_1") == 0) return std::string(b7);
         if (std::strcmp(kv.k, "CD2_2") == 0) return std::string(b8);
         if (std::strcmp(kv.k, "CDELT1") == 0) return std::string(b5);
+        if (std::strcmp(kv.k, "CTYPE1") == 0) return ctype1_kv;
+        if (std::strcmp(kv.k, "CTYPE2") == 0) return ctype2_kv;
         if (std::strcmp(kv.k, "PRECISION") == 0)
           return std::string(precision_mode == 1 ? "fp64" : "fp32");
         if (std::strcmp(kv.k, "PHOTSCAL") == 0) return std::string(b9);
@@ -2140,6 +2356,19 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         aio_pipeline_frame_destroy(frame);
         return Result<void>::fail(Error(ErrorDomain::IO,
             std::string("kv_set failed: ") + kv.k));
+      }
+    }
+    // B2-A17: SIP 系数 → frame header (hp_drizzle_api.cpp 读面 A_ORDER/B_ORDER/
+    // AP_ORDER/BP_ORDER + A_i_j/B_i_j/AP_i_j/BP_i_j)。无 SIP 时不写任何键。
+    {
+      std::string sip_hdr_err;
+      auto kv_cb = [](void* f, const char* k, const char* v) -> bool {
+        return aio_frame_kv_set(static_cast<PipelineFrame*>(f), "header", k, v) == 0;
+      };
+      if (!p1_sip_write_header_frame(frame, sip, kv_cb, &sip_hdr_err)) {
+        aio_pipeline_frame_destroy(frame);
+        return Result<void>::fail(Error(ErrorDomain::IO,
+            std::string("drizzle frame SIP header: ") + sip_hdr_err));
       }
     }
   }
@@ -2162,6 +2391,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   Json stack_out = Json{{"schema", "DATA-P1-STACK"},
                         {"nside", res.nside}, {"nested", res.nested},
                         {"pixfrac", res.pixfrac}, {"precision_mode", precision_mode},
+                        {"sip_present", sip.present},
+                        {"sip_order", sip.present ? sip.order : 0},
+                        {"sip_ap_order", sip.present ? sip.ap_order : 0},
+                        {"ctype1", ctype1_kv}, {"ctype2", ctype2_kv},
                         {"n_healpix_pixels", static_cast<int64_t>(res.n_healpix_pixels)},
                         {"n_source_pixels", static_cast<int64_t>(res.n_source_pixels)},
                         {"elapsed_sec", static_cast<double>(res.elapsed_sec)},
@@ -2172,6 +2405,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   (*man)["n_healpix_pixels"] = static_cast<int64_t>(res.n_healpix_pixels);
   (*man)["stack_artifact"] = out_path;
   (*man)["precision_mode"] = precision_mode;
+  (*man)["sip_present"] = sip.present;
+  (*man)["sip_order"] = sip.present ? sip.order : 0;
   (*man)["photometry_applied"] = photometry_applied;
   (*man)["photscal"] = photscal;
   (*man)["photometry_provenance"] = have_phot_prov ? "p1_phot.json" : "absent";
@@ -2183,9 +2418,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
 //      aio_hiss_inspect/read_tile_* → AstroSphereTileView →
 //      aio_hips_product_begin/write_signal_support_tile/finalize（AIO-002
 //      原子发布原语内建于 aio_hips 落盘路径）→ 标准化 HiPS
-//      (IVOA 1.4 NESTED: signal/ support/ properties/MOC)。单帧语义:
-//      covered_area = support>0 ? A_cell : 0（stacked 单帧全或无, p1_stack.json
-//      登记 covered_area_model="support_x_A_cell"）──
+//      (IVOA 1.4 NESTED: signal/ support/ properties/MOC)。单帧语义（B2-A15 修）:
+//      covered_area = (HISS support / 255) × A_cell（按 HISS 实际面积比连续缩放;
+//      旧实现 support>0 ? A_cell : 0 把任意部分覆盖塌成满覆盖, 丢失面积语义）;
+//      p1_stack.json 登记 covered_area_model="hiss_support_ratio_x_A_cell"。
+//      B2-A15 修 2: 每个标准 parent 迭代前 sig_buf/cov_buf 清零 + valid_mask=seen,
+//      未覆盖像素 signal=NaN/support=0（旧实现只清 seen 不清 buffer → 跨 parent
+//      残留上一个 parent 的 signal/coverage 被当真实数据写出 = 幽灵信号）。──
 Result<void> p1_op_writer(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
   const std::string hiss_path = out_dir + "/p1_stack.hiss";
@@ -2250,8 +2489,8 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   // L-log2(tile_nside)) → IVOA 标准 512×512 tile (parent at Norder L-9)。
   // 全局 leaf ipix = hiss_parent×n_leaf + local（NESTED 同构嵌套序）→
   // 标准 tile id = leaf>>18, tile 内偏移 = leaf & (2^18-1)。
-  // HISS signal = 累计通量通道; covered_area = support>0 ? A_cell : 0
-  // （单帧 stacked 全或无语义, p1_final.json 登记 covered_area_model）。
+  // HISS signal = 累计通量通道; covered_area = (HISS support/255) × A_cell
+  // （按 HISS 实际面积比连续缩放; p1_final.json 登记 covered_area_model）。
   // FIX-E2E B1-A9: HISS precision_mode 检测 —— FP64 累积产物必须走 f64 读侧
   // (aio_hiss_read_tile_signal_f64; FP32 读侧对 FP64 文件确定性拒绝, 禁 silent 转换)。
   // writer 输出的 IVOA HiPS 产品位深为 AIO_HIPS_FLOAT32（AIO 合同）, 故 FP64 输入
@@ -2271,7 +2510,25 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   std::vector<uint8_t> seen(tile_leaf_span, 0);
   int64_t n_tiles_written = 0;
   for (uint64_t parent = 0; parent < std_parent_count; ++parent) {
+    // B2-A15: 每个标准 parent 迭代前清空 signal/coverage 缓冲与 seen mask。
+    // 旧实现只在循环外分配一次 (sig_buf/cov_buf 不清零), 稀疏视场下未覆盖
+    // 偏移保留上一个 parent 的 signal/coverage, 被 AIO 当真实数据写出
+    // (valid_mask=nullptr → 全部视为有效) = 幽灵 signal/coverage。
+    // B2-A15: 每个标准 parent 迭代前清空 signal/coverage 缓冲与 seen mask。
+    // 旧实现只在循环外分配一次 (sig_buf/cov_buf 不清零), 稀疏视场下未覆盖
+    // 偏移保留上一个 parent 的 signal/coverage, 被 AIO 当真实数据写出
+    // (valid_mask=nullptr → 全部视为有效) = 幽灵 signal/coverage。
+    // B2-A15: 每个标准 parent 迭代前清空 signal/coverage 缓冲与 seen mask。
+    // 旧实现只在循环外分配一次 (sig_buf/cov_buf 不清零), 稀疏视场下未覆盖
+    // 偏移保留上一个 parent 的 signal/coverage, 被 AIO 当真实数据写出
+    // (valid_mask=nullptr → 全部视为有效) = 幽灵 signal/coverage。
+    // B2-A15: 每个标准 parent 迭代前清空 signal/coverage 缓冲与 seen mask。
+    // 旧实现只在循环外分配一次 (sig_buf/cov_buf 不清零), 稀疏视场下未覆盖
+    // 偏移保留上一个 parent 的 signal/coverage, 被 AIO 当真实数据写出
+    // (valid_mask=nullptr → 全部视为有效) = 幽灵 signal/coverage。
     std::fill(seen.begin(), seen.end(), 0);
+    std::fill(sig_buf.begin(), sig_buf.end(), 0.0f);
+    std::fill(cov_buf.begin(), cov_buf.end(), 0.0f);
     bool touched = false;
     for (uint64_t t = 0; t < n_tiles; ++t) {
       // 该 HISS tile 是否属于本标准 tile（parent_ipix 前缀判定, NESTED 同构）
@@ -2301,7 +2558,24 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
         const uint64_t leaf = base_leaf + i;
         const uint64_t off = leaf & (tile_leaf_span - 1);
         sig_buf[off] = signal64 ? static_cast<float>(signal64[i]) : signal[i];
-        cov_buf[off] = support[i] > 0 ? static_cast<float>(a_cell) : 0.0f;
+        // B2-A15: HISS support 是 uint8 面积比 (S = sum_area/A_p, round(255*S),
+        // hiss_format.h:368-369)。covered_area 必须按该实际面积比连续缩放;
+        // 旧实现 support>0 ? A_cell : 0 把任意部分覆盖塌成满覆盖 (AIO 侧
+        // sup = area/A_cell 因此恒 1), 丢失部分覆盖面积语义 (P1-8)。
+        // B2-A15: HISS support 是 uint8 面积比 (S = sum_area/A_p, round(255*S),
+        // hiss_format.h:368-369)。covered_area 必须按该实际面积比连续缩放;
+        // 旧实现 support>0 ? A_cell : 0 把任意部分覆盖塑成满覆盖 (AIO 侧
+        // sup = area/A_cell 因此恒 1), 丢失部分覆盖面积语义 (P1-8)。
+        // B2-A15: HISS support 是 uint8 面积比 (S = sum_area/A_p, round(255*S),
+        // hiss_format.h:368-369)。covered_area 必须按该实际面积比连续缩放;
+        // 旧实现 support>0 ? A_cell : 0 把任意部分覆盖塑成满覆盖 (AIO 侧
+        // sup = area/A_cell 因此恒 1), 丢失部分覆盖面积语义 (P1-8)。
+        // B2-A15: HISS support 是 uint8 面积比 (S = sum_area/A_p, round(255*S),
+        // hiss_format.h:368-369)。covered_area 必须按该实际面积比连续缩放;
+        // 旧实现 support>0 ? A_cell : 0 把任意部分覆盖塑成满覆盖 (AIO 侧
+        // sup = area/A_cell 因此恒 1), 丢失部分覆盖面积语义 (P1-8)。
+        cov_buf[off] = (static_cast<double>(support[i]) / 255.0) *
+                       static_cast<double>(a_cell);
         seen[off] = 1;
       }
       if (signal) aio_hio_free(signal);
@@ -2318,7 +2592,15 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     view.data_type = AIO_HIPS_FLOAT32;
     view.flux_sum = sig_buf.data();
     view.covered_area = cov_buf.data();
-    view.valid_mask = nullptr;
+    // B2-A15: valid_mask = seen（本 parent 实际触及的叶像素）。未覆盖像素
+    // 即使缓冲残留/浮点残差也为 invalid → AIO 写 signal=NaN/support=0。
+    // B2-A15: valid_mask = seen（本 parent 实际触及的叶像素）。未覆盖像素
+    // 即使缓冲残留/浮点残差也为 invalid → AIO 写 signal=NaN/support=0。
+    // B2-A15: valid_mask = seen（本 parent 实际触及的叶像素）。未覆盖像素
+    // 即使缓冲残留/浮点残差也为 invalid → AIO 写 signal=NaN/support=0。
+    // B2-A15: valid_mask = seen（本 parent 实际触及的叶像素）。未覆盖像素
+    // 即使缓冲残留/浮点残差也为 invalid → AIO 写 signal=NaN/support=0。
+    view.valid_mask = seen.data();
     view.var_num_sum = nullptr;
     const int wr = aio_hips_write_signal_support_tile(ps, &view);
     if (wr != 0) {
@@ -2355,7 +2637,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                         {"n_pix_total", n_pix_total},
                         {"products", Json::array({"signal", "support"})},
                         {"filter_passband", filter_passband},
-                        {"covered_area_model", "support_x_A_cell"},
+                        {"covered_area_model", "hiss_support_ratio_x_A_cell"},
                         {"properties", props}};
   if (!p1_write_text(out_path, final_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
