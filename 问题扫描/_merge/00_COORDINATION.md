@@ -511,48 +511,55 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 ### L21 的真正贡献（采纳为高价值，无需前台复验其文本事实）
 
 
-## 收档 L06（星点检测与 PSF，20 条：P0:7/P1:11/P2:2）—— 前台复验并**改写**其头号 P0 的表述
 
-### L06-005 的准确形态（前台逐行复验后的定稿口径，M3b 必须按此写，不得沿用"零登记"措辞）
-**它被登记了，但登记在不被规范承认的位置，且验收门只测非生产配置**：
-1. 归档日志 `docs/archive/history/memory_V18R2-V19_operational_log_2026-08-21.md:2038-2040`：
-   「E PSF Oracle: Photutils 对照 PASS (**收敛初始化 0.004px**); **BLOCKER PSF-001**: DPSF 以 sdet 像素中心坐标为初始时
-   LM 收敛到整数 (~0.5px 偏差); 最小复现已记录, 按修改预算不改冻结 PSF 数学」，且 `:2051` 把它列在「未完成 (如实)」里
-   标注「**PSF-001 BLOCKER 未闭合**」。
-2. 但该文件状态是 **ARCHIVED_NON_NORMATIVE** —— 按宪章 §1.1 不具规范效力 → **规范层实际上没有这条限制**：
-   `docs/KNOWN_LIMITATIONS.md` 对 PSF/质心/0.5 **零命中**（前台 grep 实测）；`docs/owner/RELEASE_STATUS.md` 亦零命中。
-3. 更关键：测量它的 oracle 在真源 `lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py`，
-   其 `:8` 冻结门是「质心误差 <= 0.01 目标像素」，而 `:299` 的门名写作
-   `centroid_p95_le_0.01px_converged` —— **门本身定义在 "converged init"（非生产）配置上**；
-   `:308/:312` 以字面量记录 `BLOCKER (PSF-001): dpsf_fit_batch_f32 以 sdet 像素中心坐标 (truth+0.5) 为初始时 …
-   影响: 生产路径 PSF 质心系统性 ~0.5px 偏差`；`:295` 注释「生产路径质心偏差作为已记录 BLOCKER」。
-   该脚本在 `ci/checks.json` **零登记**（前台 grep `gate[0-9]_` 零命中），仅被 `reports/**`、`evidence/**` 的文件清单收录。
-4. 规范文档则**正面宣称相反事实**：`docs/science/STAR_DETECTION.md:13` 与
-   `docs/algorithms/STAR_DETECTION_ALGORITHMS.md:169` 均写「一阶导/零交叉为连续估计（**无 0.5px 网格量化损失**），Moffat4 中心」。
-5. 唯一注册的 ctest 用「初值=真值中心」的整数构型（L06 报 `p1psf_tests_core.cpp:100-102`）→ 对该偏差**结构上不可见**。
-**定稿表述建议**：「生产 PSF 质心存在 ~0.5px 系统性偏差（相对 0.01px 冻结门为 77 倍）。该偏差不是未被发现——
-它被记为 BLOCKER 并声明未闭合，但只记在归档（非规范）日志里；规范性 SCI/ALG 反而宣称"无 0.5px 量化损失"，
-KNOWN_LIMITATIONS 与 RELEASE_STATUS 零提及；测量它的 oracle 未接任何 CI 门，且其门定义只覆盖非生产初始化配置；
-注册测试用整数构型使其不可见。**四层各自"通过"，产品却带着一个已知未闭合的 BLOCKER。**」
-类别建议 `A_SCI_DEF` 或 `C_DOC_CODE_GAP` 由你判，但必须同时立：
-- `F_TEST_GAP`：门与测试都只测非生产配置（**新的失效形态：验收门按非生产路径定义判据**），
-  与 L12-001（门打在兼容二进制上）、L11（0/0 断言）、L16（TEST 锚在文档）并档；
-- `G_GOV_GATE`：未闭合 BLOCKER 只存在于 ARCHIVED 文档，规范层无痕（违 §1.1 权威链与 §17.9/§17.10 精神）；
-- `E_TRACE_BREAK`：SCI-PSF-001 的 VERIFIED 证据链（L06-006）与该偏差无登记（DISP 缺位）。
-注意：数值方向（0.5px 是加还是减、是否与 0.770px 中位一致）L06 自己列了待复核，**禁止运行**下不得断言净方向，
-只写"oracle 自记 median 与 0.5px 同量级且门为 0.01px"。
+## R 层建立
 
-### L06 其余 6 条 P0 的主题归并（M3b 主落，M3a 会签）
-- **列语义与被测量错位**：`flux` 列实为峰值振幅（`rec.flux=(float)fit.A`，F2 测试反证 flux≈90000 即振幅）却以流量名义
-  进 star_det→star_measurements→测光链（L06-002）；`mad` 列实为 RMSE 再乘 MAD→σ 系数 1.4826 当 σ 用，
-  门限实质收紧约 48%（L06-003）；每像元截尾残差被命名为 `flux_uncertainty` 且 DISP-PSF-005 自认无协方差（L06-004）。
-  → 与 F00-06/L21 同属「接口未定义量泄漏」，但这是**直接污染测光结果**的一簇，M3b 须给可达性证据
-  （结合 L12 的 IR 节点路由结论判断是否生产可达）。
-- **拟合模型基线错配**：生产内核实为椭圆高斯而 SCI 冻结 Moffat4（L06-001），两域 FWHM↔σ 系数 2.354820 与 1.230310
-  并存并在 `module_adapters.cpp:1500` 被混用 → 若成立，同一列在两个模块里代表不同物理宽度，属 P0 且可复算。
-- **三套检测器**：注册节点实装第三套未登记检测器（绝对阈值 peak>50000 判饱和、mag 哨兵 99、帧级 has_saturated 同值），
-  与 DATA-P1-STAR「唯一生产源」冲突（L06-007）→ 与 F00-04（两套 photometry 实现）同族，**这是第三次出现"唯一生产源"被证伪**。
+## 定稿收档 M4（L08+L09 → 31 条：P0:7/P1:18/P2:6，14 个 findings 文件）—— 第一份定稿域
+- 质量样本（后续 M 代理的**达标线**）：L08-001 独立重算 kcorr 插值（pf=0.8→wi=0.6→i0=1.2→sc=300 得 1.4136 vs 表 1.3925，**+1.51%**；sc=600 得 2.9584 vs 2.8971，+2.12%），并给出生产可达链；
+  子断言剔除 2 条**写明理由**（wbpp_current 系 SCI 登记 alias、PHASE2_UPM.md:3 系冻结元数据非 §12.2 流水）；类别改判 5 条；
+  「已修复」表 4 行中 1 行判**修复无产品测试面**→另立 F_TEST_GAP（正是「修复未固化」形态）；实测 module_adapters 会话内漂移 +69 行。
+- **M4 已就 §6.3 红线给出专项汇总**（support 冒充权重 2 例 + 排异启发式 1 例 + UPM 加性 0 例直接发现）→ 前台主题化时以该行索引为骨架。
+- 交叉裁定：权重 SCI 冲突归 M3；tile 结构归 M2b（L15-001 只作放大器）；**角度单位取证结论：Phase2 采样域常量均名义「度」，未见 3600×** → 已转 L26 作为负结果登记。
 
-### 前台状态
-- 18/18 **纵向全部落档**；横向轴已落 3/10。累计 396 条（叶子自判 P0 75 条）。
-- 已推 13 次提交；M3b（L06）本次启动；M6a/M6b/M2b/M5a/M5b/M4/M3a/M1a/M2a 在跑；L06 完成后 M3 域闭合。
+## 收档 L22（确定性/bitwise 证伪轴，10：P0:0/P1:7/P2:3）—— **三条反证前台与第一波，全部采纳**
+1. **修正 F00-03（我自己的档案）**：`pc_api.cpp` 的 OpenMP 位点由我记的 14 处变为 **19 处**（87/100/232/284/320/335/464/477/512/603/651/684/699/750/867/925/958/973/1067），
+   `schedule(dynamic,64) reduction` 由 2 处变 **3 处**（新增 :973），而「OpenMP **16 线程**」注释现在有 **3 处**（:331/:695/:969）
+   且这 3 处的 pragma 确实**无 num_threads 子句** → 结论不变、计票与位点数已刷新。**F00 档案须据此订正**（前台已核，非转述）。
+2. **推翻 L12 的一条 P0 前提**：`SparseEqualsDense 1e-12 门无注册执行面`**已被 B3-A4 批修复**——根图现在
+   `ASTROCS_BUILD_TESTS` 下 `add_subdirectory(lib/phase2)`，CI 装 `libgtest-dev`，`CTEST-LINUX-FULL`（linux-main、
+   build ALL、**waivable:false**）真实执行 synthetic_gate（含 OneTvsTwoT / save-open 幂等 / sampler_parallel 一致性）。
+   → **M5b 不得按"零执行面"定稿**；残余只有两条：`find_package(GTest QUIET)` 缺失时 configure 级**静默零注册**、
+   无 fail-closed（另立一条 `G_GOV_GATE`），以及追溯/SCI 口径未回写（「修复未固化」实例）。
+3. **推翻 M4 候选的一条定档方向**：全量验型证明 `reduction(+:…)' 的 16 处**全是 int/long long 计数或计时 double**，
+   无一在科学输出浮点路径上；真正的跨线程浮点合并在 reduction 子句**之外**（drizzle `threadTiles`、upm `tsums` 的
+   t 升序 `+=` 折叠树）。→ M4 的 L09 相关候选**不得按"reduction 危害"定档**（已通知；若其定稿含此表述须订正）。
+4. L22 的正面价值还包括**登记 6 项"声明=证据"标杆**（p1star F3、p1wcs F5、p1drz properties、UT-CPU 三 oracle、
+   dpsf B2-A2 修复已固化正例、ipv 顺序安全全链论证）→ SUMMARY 将用它们作**合格线对照**，让负责人看到同一仓库内
+   既有"门恒真"也有"声明与证据严格对齐"，问题不是能力缺失而是**纪律未一致执行**。
+
+## 收档 L27（子库 README 轴，17：P0:0/P1:10/P2:7，含精确分母）
+- 覆盖面分母可信度高：**92** 个目录单元、含 README **43（46.7%）**全部逐行打分；86 个 SCI/ALG ID 中 2 个未注册、
+  93 个 DISP ID 中 1 个未登记（DISP-PSF-007，与 L06 域相关）；README 路径引用全量存在性核验 → 真悬挂 10 处。
+- **L27-004 是全新实例**（第一波对该文件零命中）：`lib/orchestrator/README.md` 把**不进根构建图的废弃第二调度器**写成
+  「正式科学运行只有一条命令 orchestrator.exe」并固化第二套 `ASTROCS_*` 退出码 → 正面抵触 §8.1 单入口与 §12.3-10。
+  L27 按纪律判 P1（文档错但产品未含该二进制），**前台认可这个克制**。
+- **但 L27-002/003 建议升 P0，交 M9 定夺**：`MODULE-READMES` 门实测只覆盖 **5/43 README**、8 项要素**核验 0**，
+  且实测**放行错锚**（被检 4 份 README 的 P1-003..005 合同锚在 `docs/contracts/INDEX.yaml` 零命中仍 PASS）；
+  `gen_module_readmes.py` docstring 自称"checker 以本生成器输出为源"而 `ci/checks.json` 无该项。
+  → 这与 L14-004（注释门空壳）、L11（线程预算门 0/0）、L12（AST-API 恒真）是**同一 fail-open 家族**，
+    该家族其他成员均定 P0，故本条除非有实质差别，应按一致性升 P0；M9 若维持 P1 须写明与那三条的差别。
+- L27 还给出**两类规范缺口的区分**（「要求存在但无门」=`G_GOV_GATE` vs「标准本身缺要求」=`I_DOC_HYGIENE`），
+  并发现 `docs/standards/` 现 14 份命名制标准，而 L2 层（7 README + 23 module.yaml）系统性引用**仓内不存在的 V7 编号标准**
+  （11/12/15/03/10 号，只存在于已作废控制包）→ 与 L14-002 分面不重复计。负责人「每子库应有 README」目前**无条文支撑**，
+  这条要进 SUMMARY 的「建议新增规范条款」清单（连同 L28 可能发现的注释溯源缺口）。
+
+## R 层（复验层）正式建立 —— 负责人指令
+- 交付物：`_merge/CHANGED_FILES_WATCH.md`（机械交叉索引）+ 生成器 `_tools/gen_changed_watch.js`（只读 git + 全档案扫描）。
+- 当前真源改动面 **41** 个文件，**40** 个被审计档案点名；热度榜：`CMakeLists.txt` 203、`ci/checks.json` 129、
+  `docs/contracts/DATA_SEMANTICS.md` 84、`lib/core/src/module_adapters.cpp` 77、`cli/commands.cpp` 49、
+  `tests/unit/CMakeLists.txt` 39、`lib/phase2/CMakeLists.txt` 27、`docs/algorithms/HIPS_WRITER.md` 22、
+  `docs/api/CLI_PROTOCOL_V1.md` 22、`cli/resource_gate.h` 19。
+- 触发条件（三条同时满足才实跑）：① `git rev-parse HEAD` 连续两轮不变；② 真源白名单内工作树脏文件为 0；③ 全部 M 代理交付。
+- R 代理任务（按表 A 分簇派发）：逐条**改锚**（一律 `path::符号`，行号仅作「复验时 N」）+ 逐条**改判**四态 +
+  已修复者撤出 findings/ 并记「已修复」表 + 修复无回归者另立 `F_TEST_GAP` + 表 B 抽查是否引入新问题。
+- 纪律：R 层同样**禁止执行任何构建/测试**（负责人：跑测试会破坏并发 agent 工作），复验只靠静态重读 + git 只读。
