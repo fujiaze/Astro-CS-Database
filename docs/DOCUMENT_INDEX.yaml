@@ -597,11 +597,11 @@ doc_index:
       status: ARCHIVED_NON_NORMATIVE
     - path: "engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/"
       status: ARCHIVED_NON_NORMATIVE
-      replacement: "ASTROCS_PROJECT_CONSTITUTION.md; docs/DOCUMENT_INDEX.yaml; 工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/（唯一 ACTIVE 控制包，活动状态总表 工程控制/ACTIVITY_STATE.md）"
+      replacement: "ASTROCS_PROJECT_CONSTITUTION.md; docs/DOCUMENT_INDEX.yaml; 工程控制/AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912/（唯一 ACTIVE 控制包，活动状态总表 工程控制/ACTIVITY_STATE.md）；历史对齐包 工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/（ARCHIVED_SUPERSEDED，原位保留）"
       notes: "目录级聚合：V1.3 Recovery + V3/V4/V5/V6/V6.1 历史控制包（tasks/evidence/docs/checklists 等）。目录内全部文件不再作当前权威；目录级 README_ARCHIVED.md 说明替代。GOV-002（2026-09-09）修正 replacement 中已断链的 工作根 control/active/…V7… 指向。"
     - path: "engineering/control/archive/2026-09-09_superseded_V8.1_CI_CONTROL_20260905/"
       status: ARCHIVED_NON_NORMATIVE
-      replacement: "ASTROCS_PROJECT_CONSTITUTION.md; 工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/; 工程控制/ACTIVITY_STATE.md"
+      replacement: "ASTROCS_PROJECT_CONSTITUTION.md; 工程控制/AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912/; 工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/（ARCHIVED_SUPERSEDED，原位保留）; 工程控制/ACTIVITY_STATE.md"
       notes: "目录级聚合（GOV-002 归档 2026-09-09）：V8.1 CI 控制包 tracked 镜像 56 文件自 engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/ 原样移入（SHA-256 零差异）；目录级 README_ARCHIVED.md 说明替代。解压原件仍在 工程控制/ 原位登记为 ARCHIVED_SUPERSEDED。"
     - path: "AstroCS_ENGINEERING_CONSTRAINTS.md"
       status: ARCHIVED_NON_NORMATIVE
