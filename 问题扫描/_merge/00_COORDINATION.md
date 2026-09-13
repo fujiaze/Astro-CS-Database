@@ -312,3 +312,52 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
   snr_noise_model_v1）与 L07 域重叠，M3a 主落，M6 只落注释层事实。
 - L13-008（dpsf/sdet/ipv 私造 logger 写源码树 logs/、科学路径无条件 stderr，违宪章 §11）交 M6，
   并与「根目录/源码树散落运行产物」区分：源码树内 logs/ 属真源问题，可登记。
+
+## 收档 L12（CLI 单入口 / C ABI / 模块注册 / 构建面，24 条：P0:5/P1:16/P2:3）
+
+### 前台下发两条跨域悬案的结论（M3/M5 必须据此改判）
+- **① `astrocs phase1 run` 真实路由 = IR 节点链，不是 p1_session legacy 通道**：
+  `cli/commands.cpp:1598` → `:796 run_pipeline({1})` → `cli/runtime_client.cpp:297/:328 build_pipeline_ir` →
+  `lib/core/src/module_adapters.cpp:5459-5473`（P1 八节点表）→ `:4262 make_p1_node_module` → `:4109 P1NodeModule` →
+  `:4207 p1_op_calibrate`；`p1_session_run/p2_session_run/p3_session_run` 在 `cli/` 下 **grep 零命中**（L12 结论）。
+  → **对 M3 的直接影响**：L05-004「p1_session 通道仍产出 ×10 伪产品」**不能因 CLI 入口可达而升 P0**；
+  改判要求：(a) 若 `p1_session` 仍有其它生产调用方（executor / 节点内部 / 其它模块 / 测试外的工具），给出 path:line 才保留 P0；
+  (b) 否则降为 P1「旁路通道内的退化产物缺陷（未接入 CLI 入口）」，并**另立一条**记录
+  `lib/phase1_session` 这类"未被任何入口调用的科学通道仍在仓库内且 README/module.yaml 以现状口吻描述"的 dead-code 风险（`C_DOC_CODE_GAP`）。
+- **② 遗留 Makefile/build.ps1（含 -ffast-math）不在根 CMake 交付图**（根 `add_subdirectory` 全集无 `lib/orchestrator`、无 Makefile 调用），
+  且 `-ffast-math` 已由 `docs/algorithms/CALIBRATION_ALGORITHMS.md:264/:404` 以 **DISP-CAL-011 登记**为遗留通道。
+  → M3/M2 落此条时**必须区分"已登记未修复"与"登记失实"**：本条属前者，不得写成未登记违规（这正是我在 §「L04-005」里立的分类规则）。
+  → 但 L12 新发现**两条仍在被 CI/测试/文档当成交付面使用的旁路 CMake 通道**：`cmake -S cli` 与 `cmake -S lib/phase2`（见 L12-001/002），
+  这条是"未登记"的，归 M5，属 `G_GOV_GATE`。
+
+### M5 的三条头号 P0（均为"门禁打在假对象上"，与 F00/M5 既有 fail-open 并主题）
+- **L12-001**：CLI 命令树/协议门禁跑在**非产品兼容二进制**上 —— `ci/steps/linux_build_root_graph.sh:22-24` 在根图之外另
+  `cmake -S cli` 产出**同名 `astrocs`**；`tests/cli` 全部 golden 与 `tools/check_api_docs.py:132-142` 的命令树一致性只对该
+  二进制执行，且**二进制缺失时无 else 分支 → 静默 0 检查**；更重：该兼容工程把 ARCH-001 §7 冻结为违例的第二调度器
+  `aio_pipeline_engine.cpp`（`cli/CMakeLists.txt:164`，根图无此行）以 `-w` 消警编入。→「单入口」与「ACR/第二调度器不可达」两道门
+  **验的都是假对象**，这是 §17.4/§17.5 的直接反证。
+- **L12-002**：`docs/architecture/BUILD_GRAPH.md` 与根构建面**零重叠**（对产品目标提及数为 0），而 CON-BUILD-GRAPH 只做
+  目标名子串存在性检查 → **订正文档反而会使门变红**（门反向锁定过期事实，宪章 §12.3-1 实质失效）。
+- **L12-004**：AST-API 检查器（§12.3-5 指定器）把**同一头文件**的正则声明集合与同一 AST 的 name 集合互比 → **恒真**，
+  参数数提取后弃用，且不读任何 API 文档，只挂 linux-main。与 L12-003（`API_CONTRACTS.csv` 422 行全 VERIFIED、
+  其中 396 行 `test_ids=TST-GEN-001` —— 该 ID 在 tests/ 与 docs/traceability/ 命中 0、仅存在于检查器负例 fixture）
+  构成「合同表批量填 VERIFIED + 检查器恒真」的双层失效。
+
+### 与既有证据的并档
+- L12-017（MODULE_MAP 行锚 4257/4282/4309 全错指，真实注册表在 5459/5484/5511；另引不存在的"宪章 §F.1"）
+  与 L18-008（owner L0 锚点漂移 4/14）、L05-017、L07-016、L10（行锚 +120~170 漂移）→ 前台归纳为
+  **「行锚系统性失效」主题**；M5/M6 各落本域实例，related 互挂。
+- L12-016（三套退出码/状态码数值语义冲突、ERROR_MODEL 仍规范已废弃 orchestrator.exe 码表、RESOURCE→5 与 =10 相悖）
+  与 L17-008（L0 用归档文件的字母条款号冠以"宪章"引用）同属「引用已被 supersede 的口径」，M5 主落。
+- L12-006/007（packaging manifest/schema/contract 停 alpha.1、schema 把旧版钉成 pattern/const、两个版本检查器都不扫
+  packaging、`types.h:20` 手抄 alpha.2、检查器整行豁免 module_version）与 **F00 的 L17-002 复核结论完全同源**，
+  M5 合并为一条根因「版本单源在 packaging 与 module 两处被复制且门不扫」，实例全列。
+- L12-014（产品静态链接、secure_loader 仅测试引用、全部 unit sha256=null → §18.4 内容绑定成为空操作、
+  `mod001_*` 名字不匹配 unittest discover 且不在 ci/checks.json → 从不进 CI）→ 「插件签名清单白名单」这条
+  **负责人裁决（§18.4 第 4 项）在机器上无实现**，P0 候选，M5 主落并写 related: L17。
+- L12-015（lifecycle：`state` 为普通 int 却注释"原子置位"；destroy 先 free 再读已释放内存做 double-destroy 检测，
+  且返回 void 无法报 ACS_ERR_STATE）→ `H_NUMERIC`/`C_DOC_CODE_GAP`，与 L11 的并发域重叠，M5 会签。
+
+### 现场（重要）**
+- L12 证实并发修改导致 `module_adapters.cpp` 关键锚点在扫描期间 **5023→5435、3790→4202** 位移。
+  所有 M 代理：该文件与 `cli/commands.cpp` 的行号一律改用符号锚，不得因漂移判叶子造假。
