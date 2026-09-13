@@ -1,6 +1,7 @@
 // tests/backend/phase1_fixture_main.cpp — Phase1 合成 FITS fixture + 输出校验 (CLI-004)
 // 用法:
 //   phase1_fixture --make <dir>          写 bias/dark/flat/light_1/light_2 (64x64, 常量域)
+//   phase1_fixture --make-bad-flat <dir> 写退化 master flat (全零/负中位数/非有限) 负例夹具
 //   phase1_fixture --mean <fits>         读回并打印 "MEAN <value>"
 // 已知值: bias=100, dark=150, flat=1.25, light=200 → 校准输出 = (200-100-1*(150-100))/1.25 = 40
 #include <cmath>
@@ -55,6 +56,41 @@ if (argc < 3) { std::fprintf(stderr, "usage: --make <dir> | --mean <fits>\n"); r
             std::free(im.data);
         }
         std::printf("FIXTURES_OK\n");
+        return 0;
+    }
+    // B2-A6: 退化 master flat 负例夹具 —— 消费边界 fail-closed 的输入
+    // (全零 / 负中位数 / 非有限), 均不得被 calibrate 静默按 0.1 除。
+    if (mode == "--make-bad-flat") {
+        const std::string& dir = arg;
+        struct { const char* name; float v; int nan_idx; } items[] = {
+            {"flat_zero.fits", 0.0f, -1},
+            {"flat_neg.fits", -1.0f, -1},
+            {"flat_nan.fits", 1.25f, 7}};
+        for (const auto& it : items) {
+            AIOImageData im{};
+            std::memset(&im, 0, sizeof(im));
+            im.width = W;
+            im.height = H;
+            im.channels = 1;
+            im.bits_per_sample = -32;
+            im.float_sample = 1;
+            im.dtype = 0;
+            std::strncpy(im.source_format, "fits", sizeof(im.source_format) - 1);
+            im.metadata.calibration.exptime = 1.0;
+            im.metadata.calibration.frame_type[0] = 'F';
+            im.data = static_cast<float*>(std::malloc(sizeof(float) * W * H));
+            if (!im.data) return 3;
+            for (int i = 0; i < W * H; ++i) im.data[i] = it.v;
+            if (it.nan_idx >= 0) im.data[it.nan_idx] = NAN;
+            const std::string p = dir + "/" + it.name;
+            if (aio_write_fits(&im, p.c_str()) != 0) {
+                std::fprintf(stderr, "write failed: %s\n", p.c_str());
+                std::free(im.data);
+                return 4;
+            }
+            std::free(im.data);
+        }
+        std::printf("BAD_FLATS_OK\n");
         return 0;
     }
     if (mode == "--mean") {
