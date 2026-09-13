@@ -532,22 +532,33 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 
 
 
-## 收档 M7 路径全量审计（**它抓到的是我自己的工具缺陷**）
-- M7 用「全部路径 token vs `glob **/*` 的 3278 条真实路径做集合差」审计自己的 16 个文件，改掉 2 处自造假锚，并**自我否证一处误判**：
-  它首稿判 `docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md`「不存在故重锚」，实际该件**存在**（168 行、ACTIVE_NORMATIVE）；
-  成因是**把 grep 假阴当路径缺失** —— 同一字段在该件写作 `science_ids[SCI-*]`（:24/:76/:145）、在 schema/validator 写作 `science_contract_ids`，
-  它拿后者单串检索就断言原件缺失。订正后四处锚全在位、**结论不变**。
-- 它提炼的规程已被我编进核验器 v3 首行判据：**判 MISSING_PATH 必须以存在性检索为准，字面串 0 命中只说明用词不同**。
-- **对核验器 v2 的直接打击**：v2 的 `resolve()` 在精确路径查不到时按 basename 唯一命中兜底 ⇒ `docs/contracts/TRACEABILITY.csv`（M7 的假锚）
-  会被 v2 **静默接受**。也就是说 v2 只抓"文件不存在"，抓不到"路径写错但文件在别处"——而后者才是本仓假引用的主形态（M6b 实测真源 139 处/40 文件）。
-  v3 因此分五档并给处置强度，**其中两档明令禁止撤条**（PATH_MISMATCH 只改写法、SYMBOL_ELSEWHERE 只补文件锚），防止各域照 v2 报告误撤真证据。
-  实测 9527 次引用：精确在位 7117 · **PATH_MISMATCH 210** · ABSENT 364（其中真源前缀仅 46、我方档案自引 20，其余为 `README/module.yaml` 这类"目录+文件名"合成写法）·
-  **SYMBOL_ELSEWHERE 31** · SYMBOL_ABSENT 31 · OOB 7。
-- 附带：M7 把 `docs/TRACEABILITY.csv` 与 `docs/traceability/TRACEABILITY_MATRIX.{csv,json}`、`TRACEABILITY_LAYERS.csv` 并存这条线索
-  related 交给 M6b-E-001（**未另立案**），处理方式正确——追溯多头归 M6b 主落。
-- M7-A-112 与 M3-C-010 的**独立性声明**已落在 `findings/A_SCI_DEF/p1/M7_A_SCI_DEF_p1_a.md:70`，A-05 折掉不影响该条成立（依据全是可复现锚）。
-
-## R 层开工前置状态（每次刷新）
-- 并发改动面：**61 个真源文件**（基线 `b32246c4` 起）/ 被审计档案点名 60 / 未点名 1；热力 `CMakeLists.txt` 404 处引用、`ci/checks.json` 300 处。
-- 脏源 40、HEAD 持续前移 ⇒ **R 层三条件未满足**（HEAD 连续两轮不变 + 真源脏文件 0 + 全部代理交付）。
-- R 层派单前必做：①重跑两个工具 ②按 v3 五档分派处置权限（①③档**只许改锚不许撤条**）③把 46 条真源前缀 ABSENT 与 7 条 OOB 逐条分给对应域代理。
+## 收档 M8a（L25+L27 → 定稿 31：P0:1/P1:14/P2:16）＋ **前台独立复验其唯一 P0，五条锚全部命中**
+- 我当场重跑取证（不采信二手）：`CMakeLists.txt:549` 确为 `target_link_libraries(astrocs_p1_sdet **PUBLIC** gsl gslcblas m)`，
+  且上一行注释自述「star_detector Makefile 同款 `-lgsl -lgslcblas`」；**`DEPENDENCIES.md` 对 gsl 命中 0**、
+  **`packaging/dependency-lock.json` 命中 0**、`packaging/licenses/` 只有 `CFITSIO_LICENSE.txt / LICENSE-INDEX.txt / nlohmann_json.MIT.txt`
+  （**无 GSL、无 Siril**）；`lib/plate_solve/LICENSE` 前两行确为 `MIT License`，而 `lib/plate_solve/cpp/ipv/src/*.cpp` **13 个 TU 中含 SPDX/Siril/Copyright 者为 0**
+  ⇒ **派生代码整模块挂 MIT 且逐文件零署名**。M8a 的「一条四面」P0 成立，我背书。
+- **它收回了我一处错挂**（我第 6 次转述被纠正）：我说「L15-002 的许可证面（Healpix_3.83 GPL-2+）」——M8a 复验：L15-002 定身是 `hips_pixel_scale` 以角秒写入度键（3600×，主落 M2b-B-03），许可/派生面实际是 L03-007→M2b-G-04；
+  且 `Healpix_3.83 GPL-2+` 字样**不在 docs 的 DISP-HIPS 文档**（docs 全域整句 + 放宽级 grep 均 0 命中），而在**生产源码注释与自著 NOTICE**。
+  → 已按第二道令回收为 **M8a-G-001 面③续** 主落、M2b-G-04 并档。**汇总时只计一次。**
+- **43/92 分母口径已显式化**（采纳我的通则）：全仓 `README.md` glob 951 → 逐条剔除 `run/**` 847、**`问题扫描/**` 37（我方自写）**、`.pytest_cache` 5、
+  engineering/control 9、docs/archive 2、工程控制 4、reports 1、BASS DR3 1、vendored cfitsio 1、根 README 1、healpix_db/archive 1 → 在范围标准命名 **42** + 异形 1 = **43**；
+  门实覆 5/43 = **11.6%**。92 目录单元分母**原样收录未重算**（M8a 明确：若要引用 46.7%，须先用一次目录枚举钉死"应具文档单元"定义 —— 我采纳，SUMMARY 里把它标为**待定义分母**）。
+- **它给了 L27-002/003 维持 P1 的三条实质差别**（我原先建议升 P0，被它驳回，理由成立，采纳）：①**可为假性**——三家 P0（注释门空壳/线程预算 0:0 自证/AST-API 恒真）的断言**结构上永不可能为假**，属"检查器不存在"；
+  本门断言**可以为假**（删 `wcs_tan.cpp` 或 README 不含 L2 字样即变红），是窄门不是假门；②**条文有无**——那三条守的是 §12.3 明列项（-5/-8），条文在而门恒真＝假验证声明；
+  本门守的"8 要素完备性"在 §12.3 十二项里**无对应条文**（§8.4 只要求文件存在 + ID 链接），我的口头要求无文本支撑；③**后果面**——本门失效只让文档不变红，不构成交付阻断。
+  → 两条各附 **R-4 型"裁决即升级"条款**（若 §12.3-1/-3 被裁为"合同锚须可解析到 INDEX.yaml"或"registry 页须与 descriptor diff 为空"，即升 P0）。
+  **这是本会话第一次有人把我的"建议升 P0"完整驳回并给出可检验的分级准则**，准则我已吸收进协议（P0 需同时满足：断言可为假 + 条文在位 + 后果达交付面）。
+- **一项前置裁决**（A-31）：`entrypoint` 两义在 GLOSSARY、docs/standards 14 份、宪章、schema、modules、contracts **全域无权威定义**（schema 只有另一键名 `entrypoint_abi`，
+  其所依 15/13 号标准不在仓内）→ 登记为术语缺口 M8a-I-006；**它是"manifest↔registry 一致性门"的前置条件**，先建门必对同一模块给出互斥结论。
+- **两处需负责人动手的硬事实**：`make_windows_release.py:101-127` 与 `make_linux_release.py:87-93` 的包内 NOTICE/SBOM 是**脚本内硬编码字面量**
+  （漏列 GSL/Siril、把 HEALPix 归属误指 `lib/plate_solve/LICENSE`、cfitsio 标 BSD 而仓内文本是 NASA/USG、SBOM 单容器 NOASSERTION）
+  ⇒ **§16.2/§17.11 在现状不可能为真**；且 `LICENSE-INDEX.txt:7-10` 自认"仓库根无独立 LICENSE 文件（历史缺口）"，而 `check_release_layout.py` 要求包根必含 LICENSE。
+- **宪章↔树不一致一条（改动权仅在负责人）**：§8.4 规定的模块 L2 文档义务范围目录 `lib/algorithms/` **全仓 0 文件、CMakeLists 与 docs 0 引用**
+  ⇒ 该硬义务对实际 21 个模块**字面不成立**（M8a 按 §1.1 登记，未自行改判）。
+- 它的 §12 是**十二项「0 命中」判据的三级复核留痕表**（整句 → 放宽字符集/大小写/ U+2212 /全角连字符 → 定点 read），**无一例因放宽翻案**；
+  例：`INDEX.yaml` 的 `P1[-…−]00[0-9]` 放宽后仍 0，而 docs 全域同模式 106 命中 ⇒ 证明非假阴。**这就是我要的水位，已作为 R 层的取证标准。**
+- 遗留已清：其取证笔误产生的 `问题扫描/I_DOC_HYGIENE` **0 字节文件我已代删**（它按纯只读纪律不碰 shell，选择上报，处理正确）；
+  它另自报一次批量插入误将 7 份 findings 截断、已按当前证据重建并做 ID 定义↔引用一致性审计 —— 我独立复核：10 份 721 行、
+  ID 定义完整（仅 `G-002` 无定义为**其声明的别名规则**所致，非缺失）。
+- 已作废范围整包交回未丢弃：`_merge/M8a.md §7` 存 L21 的 14 条候选 + 附录 A 矩阵结构 → 供 M7；L22 的 10 条候选 + §1 A1-A12 判定表 + §8 三反证 + 六项正面标杆 → 供 M8，**它自己未对这两轴定档**。
