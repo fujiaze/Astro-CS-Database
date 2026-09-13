@@ -29,6 +29,7 @@
 
 #include "healpix_core.h"       // astrocs::healpix::pix2ang_nest (数学权威)
 #include "p1sess_fixtures.hpp"  // p1sess::write_fits_file 手写最小 FITS
+#include "version_generated.h"  // B2-A10: 夹具复用 build 期版本单源 (同 CLI)
 
 #include <nlohmann/json.hpp>
 
@@ -124,6 +125,17 @@ NodeFixture make_node_fixture(const char* tag) {
   fx.hips = (fx.root / "hips").generic_string();
   fx.out = (fx.root / "out").generic_string();
   fs::create_directories(fx.out, ec);
+  // B2-A10（宪章 §4.3）: node 级夹具必须提供上游 run_context.json 产物。
+  // 与 CLI run 共用 astrocs::core::write_run_context 唯一生成路径（真实
+  // run_id/software_version/source_sha，非占位）；input_manifest_hash 不在
+  // 此处——由 writer 节点从真实输入 HiPS 字节派生。
+  {
+    char rid[16];
+    std::snprintf(rid, sizeof(rid), "%012lx",
+                  static_cast<unsigned long>(P3002N_GETPID) & 0xffffffffffUL);
+    CHECK(write_run_context(fx.out, rid, ASTROCS_VERSION_STRING,
+                            ASTROCS_COMMIT_SHA).ok());
+  }
   CHECK(write_signal_hips(fx.hips));
   // 采样中心: nside512 NESTED leaf 131072 = order0 tile0 中部
   astrocs::healpix::pix2ang_nest(512u, 131072ull, fx.ra, fx.dec);
@@ -215,6 +227,15 @@ static void test_nodes_real_operation() {
   auto r = register_phase_modules(reg);
   CHECK(r.ok());
 
+  // B2-A10（宪章 §4.3）: writer 节点 fail-closed 依赖上游 run_context.json；
+  // 先断言夹具提供的产物 schema 真实（非空 run_id/software_version），
+  // 再验证节点链——避免"夹具缺产物"被误判为节点缺陷。
+  {
+    json ctx = json::parse(read_file(fx.out + "/run_context.json"));
+    CHECK(ctx.value("kind", "") == "astrocs_run_context");
+    CHECK(!ctx.value("run_id", "").empty());
+    CHECK(!ctx.value("software_version", "").empty());
+  }
   const std::string cfg = node_config(fx);
   RunContext ctx;
   for (const auto& e : kNodeExpects) {

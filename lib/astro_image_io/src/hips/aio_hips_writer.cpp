@@ -903,6 +903,9 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"hips_order", std::to_string(ps->tile_order)});
     kv.push_back({"hips_tile_width", "512"});
     kv.push_back({"hips_frame", "equatorial"});
+    // B2-A8: HiPS 1.0 tile 编号方案显式声明。消费者（Phase2 coverage union
+    // 的 NESTED 父聚合 t>>2s）不得再依赖"缺省即 NESTED"的隐式约定。
+    kv.push_back({"hips_ordering", "NESTED"});
     kv.push_back({"dataproduct_type", "image"});
     kv.push_back({"dataproduct_subtype", subtype});
     kv.push_back({"hips_tile_format", "fits"});
@@ -954,7 +957,11 @@ static bool finalize_image_product(AioHipsProductSet* ps,
         kv.push_back({"ASTROCS_REJECT_PROFILE", ps->prov_reject_profile});
     }
     if (!data_range.empty()) kv.push_back({"hips_data_range", data_range});
-    if (!ps->obs_filter.empty()) kv.push_back({"obs_filter", ps->obs_filter});
+    // B2-A8: obs_filter 恒写出（含空值）。旧实现仅写非空值，使"未声明
+    // passband"与"声明空 passband"在 properties 上不可区分，Phase2
+    // coverage 的 filter 组校验无从 fail-closed（DISP-COV-003）。空值 =
+    // 显式声明该产品无 filter 身份，仍参与跨帧全等比较。
+    kv.push_back({"obs_filter", ps->obs_filter});
     if (ps->exposure > 0.0) kv.push_back({"obs_exptime", std::to_string(ps->exposure)});
     if (!ps->obs_date.empty()) kv.push_back({"obs_date", ps->obs_date});
     if (!ps->obs_date.empty()) {

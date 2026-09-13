@@ -61,6 +61,8 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 
 #include "version_generated.h"
 
+#include "astrocs/core/module_adapters.h"  // B2-A10: write_run_context 唯一路径
+
 #include "cli_common.h"
 #include "runtime_client.h"
 
@@ -308,6 +310,76 @@ int cmd_test_synthetic(const Parsed& p, const std::string& group, astrocs::Jsonl
     std::fprintf(stderr, "astrocs: test synthetic %s: %zu tests PASS\n",
                  group.c_str(), bins.size());
     return astrocs::OK;
+}
+
+// B2-A10（宪章 §4.3/§4.2）: 运行上下文（run_id/source SHA/软件版本）在会话启动
+// 前写入 output_dir，供各 phase 的 provenance 消费端读取（禁节点级占位串）。
+// 生成逻辑唯一实现 = astrocs::core::write_run_context（node 级测试夹具同源复用）；
+// 本处仅做 Result→CLI exit code 映射，与 run manifest 同序，绝不半写。
+int write_run_context(const std::string& out_dir, const std::string& run_id) {
+    auto rc = astrocs::core::write_run_context(out_dir, run_id, ASTROCS_VERSION_STRING,
+                                               ASTROCS_COMMIT_SHA);
+    if (rc.failed()) {
+        std::fprintf(stderr, "astrocs: cannot write run context: %s\n",
+                     rc.error().message().c_str());
+        return astrocs::IO;
+    }
+    return astrocs::OK;
+}
+
+// B2-A10（宪章 §4.3）: run manifest provenance 子对象。
+// 字段来源（不造占位）:
+//   source_sha/source_version  = 构建期版本单源（version_generated.h）;
+//   algorithm_ids/module_build_ids/provider = 各真实节点 manifest（节点自报）;
+//   units/coordinate_frame     = 节点 manifest 实际 BUNIT/frame（缺则省略）;
+//   input_product_hashes       = 节点自报的 input_manifest_hash（如 P3 writer）;
+//   output_product_hashes      = artifacts[] 中带 sha256 的产物（role/path/sha）。
+nlohmann::json build_run_provenance(
+    const std::vector<std::pair<std::string, std::string>>& mans,
+    const nlohmann::json& artifacts) {
+    nlohmann::json p = nlohmann::json::object();
+    p["source_sha"] = ASTROCS_COMMIT_SHA;
+    p["source_version"] = ASTROCS_VERSION_STRING;
+    std::set<std::string> algs, builds, providers, units, frames;
+    nlohmann::json in_hashes = nlohmann::json::array();
+    for (const auto& [nid, mtext] : mans) {
+        nlohmann::json m;
+        try { m = nlohmann::json::parse(mtext); } catch (...) { continue; }
+        if (!m.is_object()) continue;
+        if (m.contains("algorithm_id") && m["algorithm_id"].is_string())
+            algs.insert(m["algorithm_id"].get<std::string>());
+        if (m.contains("module_build_id") && m["module_build_id"].is_string())
+            builds.insert(m["module_build_id"].get<std::string>());
+        if (m.contains("provider") && m["provider"].is_string())
+            providers.insert(m["provider"].get<std::string>());
+        if (m.contains("bunit") && m["bunit"].is_string())
+            units.insert(m["bunit"].get<std::string>());
+        if (m.contains("coordinate_frame") && m["coordinate_frame"].is_string())
+            frames.insert(m["coordinate_frame"].get<std::string>());
+        if (m.contains("input_manifest_hash") && m["input_manifest_hash"].is_string())
+            in_hashes.push_back({{"node", nid},
+                                 {"sha256", m["input_manifest_hash"].get<std::string>()}});
+    }
+    p["algorithm_ids"] = nlohmann::json(algs);
+    p["module_build_ids"] = nlohmann::json(builds);
+    p["providers"] = nlohmann::json(providers);
+    p["units"] = nlohmann::json(units);
+    p["coordinate_frames"] = nlohmann::json(frames);
+    p["input_product_hashes"] = in_hashes;
+    nlohmann::json out_hashes = nlohmann::json::array();
+    if (artifacts.is_array()) {
+        for (const auto& a : artifacts) {
+            if (!a.is_object()) continue;
+            const std::string ap = a.value("path", std::string());
+            const std::string h = a.value("sha256", std::string());
+            if (ap.empty() || h.empty()) continue;
+            nlohmann::json row = {{"path", ap}, {"sha256", h}};
+            if (a.contains("role")) row["role"] = a["role"];
+            out_hashes.push_back(std::move(row));
+        }
+    }
+    p["output_product_hashes"] = out_hashes;
+    return p;
 }
 
 // run manifest v1 原子写(tmp+rename; ARCH-002 §5 单元): stub/not-wired/cancelled 恒 incomplete
@@ -953,6 +1025,11 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     }
+    // B2-A10: 同 phase3 —— 会话前落 run_context（§4.3 provenance 单一来源）。
+    {
+        const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
+        if (ctxrc != astrocs::OK) return ctxrc;
+    }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
     astrocs::ProcessMonitor::Summary p2_summary;
@@ -988,6 +1065,10 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         }
         if (ua_found) extra["uncertainty_available"] = ua;
     }
+    // B2-A10（宪章 §4.3）: 真实 provenance 子对象（source SHA/单位/frame/算法 ID/
+    // module build ID/provider/输入输出产品 hash），字段全部来自节点自报与
+    // 已核验 artifacts，不在 CLI 侧造占位。
+    extra["provenance"] = build_run_provenance(mans, artifacts);
     const std::string out_dir = [&] {
         try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
         catch (...) { return std::string("."); }
@@ -1120,6 +1201,12 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     }
+    // B2-A10: 会话启动前落 run_context（节点 provenance 消费的真实 run_id/
+    // 软件版本/源码 SHA 单一来源；缺上下文 = 节点 DATA fail-closed）。
+    {
+        const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
+        if (ctxrc != astrocs::OK) return ctxrc;
+    }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
     astrocs::ProcessMonitor::Summary p3_summary;
@@ -1184,6 +1271,10 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         }
         if (ua_found) extra["uncertainty_available"] = ua;
     }
+    // B2-A10（宪章 §4.3）: 真实 provenance 子对象（source SHA/单位/frame/算法 ID/
+    // module build ID/provider/输入输出产品 hash），字段全部来自节点自报与
+    // 已核验 artifacts，不在 CLI 侧造占位。
+    extra["provenance"] = build_run_provenance(mans, artifacts);
     const std::string out_dir = [&] {
         try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
         catch (...) { return std::string("."); }
@@ -1496,6 +1587,11 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     }
+    // B2-A10: 同 phase3 —— 会话前落 run_context（§4.3 provenance 单一来源）。
+    {
+        const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
+        if (ctxrc != astrocs::OK) return ctxrc;
+    }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
     astrocs::ProcessMonitor::Summary p1_summary;
@@ -1526,6 +1622,9 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
                                  {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
         }
     }
+    // B2-A10（宪章 §4.3）: 同 phase2/3 的真实 provenance 子对象。
+    nlohmann::json p1_extra = nlohmann::json::object();
+    p1_extra["provenance"] = build_run_provenance(mans, artifacts);
     const std::string out_dir = [&] {
         try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
         catch (...) { return std::string("."); }
@@ -1533,7 +1632,7 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
-                                           cfg, cfg_sha, {1}, artifacts);
+                                           cfg, cfg_sha, {1}, artifacts, p1_extra);
         if (wrc != astrocs::OK) return wrc;
         ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
         std::fprintf(stderr, "astrocs: cancelled\n");
@@ -1543,14 +1642,14 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         const std::string why = fail_reason.empty() ? ("phase1 failed (exit " + std::to_string(rrc) + ")")
                                                     : fail_reason;
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase1 failed: " + why,
-                                           cfg, cfg_sha, {1}, artifacts);
+                                           cfg, cfg_sha, {1}, artifacts, p1_extra);
         if (wrc != astrocs::OK) return wrc;
         ev.emit_final(rrc, "phase1_failed", nullptr, why);
         std::fprintf(stderr, "astrocs: phase1 failed: %s\n", sanitize(why).c_str());
         return rrc;  // RT-008: Runtime 退出码映射(Runtime 已按 04 合同映射)
     }
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase1 ok", cfg, cfg_sha, {1},
-                                       artifacts);
+                                       artifacts, p1_extra);
     if (wrc != astrocs::OK) return wrc;
     // RT-009/P1-001: phase1 成功路径补写运行图产物（static/observed/sidecar）。
     // 真实节点化后 phase1 trace 含每节点观测; best-effort: 函数内部只 warning

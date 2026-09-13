@@ -55,18 +55,18 @@ namespace astrocs::phase3 {
 namespace {
 std::string g_last_err;
 
-// FITS DATASUM(32-bit checksum) 辅助: 计算字节和
-uint32_t fdatasum(const void* buf, size_t n) {
-    const unsigned char* p = (const unsigned char*)buf;
-    uint32_t sum = 0;
-    for (size_t i = 0; i + 4 <= n; i += 4) {
-        const uint32_t w = static_cast<uint32_t>(p[i]) |
-                           (static_cast<uint32_t>(p[i + 1]) << 8) |
-                           (static_cast<uint32_t>(p[i + 2]) << 16) |
-                           (static_cast<uint32_t>(p[i + 3]) << 24);
-        sum += w;
+// B2-A9: 标准 FITS 校验和 = CFITSIO fits_write_chksum（IAU FITS 4.0
+// §4.4.2.5 的 1 补码 32-bit 累加，DATASUM 十进制字符串 + CHECKSUM 16 字符）
+// 逐 HDU 写出并由 cfitsio 自行归属。旧实现自算 "little-endian 无进位字节和"
+// 并以 TINT 整数写入保留字 DATASUM，是非法关键字值（astropy checksum=True
+// 报 Datasum verification failed），已删除。
+bool fits_write_std_chksum(fitsfile* f, std::string* why) {
+    int status = 0;
+    if (fits_write_chksum(f, &status)) {
+        if (why) *why = "fits_write_chksum: " + std::to_string(status);
+        return false;
     }
-    return sum;
+    return true;
 }
 
 bool make_temp_path(const std::string& out, std::string* tmp) {
@@ -200,9 +200,14 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         val = c22; fits_write_key(f, TDOUBLE, (char*)"CD2_2", &val, nullptr, &status);
     }
     {
-        int one = 1, zero = 0;
-        fits_write_key(f, TINT, (char*)"BSCALE", &one, nullptr, &status);
-        fits_write_key(f, TINT, (char*)"BZERO", &zero, nullptr, &status);
+        // B2-A9: BSCALE/BZERO 改 TDOUBLE。FITS 4.0（IAU FITS Standard 4.0
+        // §4.4.2.4）规定 BSCALE/BZERO 为浮点数据类型关键字；旧实现以 TINT
+        // 写整型 1/0，astropy 7.0.1 可读但严格校验器判类型违规（AUD-COORD
+        // F-09）。此处保持恒等缩放语义（BSCALE=1.0 / BZERO=0.0）不变，仅
+        // 数据类型改为标准要求的 double。
+        double bscale = 1.0, bzero = 0.0;
+        fits_write_key(f, TDOUBLE, (char*)"BSCALE", &bscale, nullptr, &status);
+        fits_write_key(f, TDOUBLE, (char*)"BZERO", &bzero, nullptr, &status);
         const char* unit = bunit ? bunit : "ADU";
         fits_write_key(f, TSTRING, (char*)"BUNIT", (void*)unit, nullptr, &status);
     }
@@ -233,6 +238,17 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         return P3_OUT_CANCELLED;
     }
 
+    // B2-A9: PRIMARY HDU 标准 DATASUM/CHECKSUM（旧实现 PRIMARY 无 DATASUM）。
+    {
+        std::string why;
+        if (!fits_write_std_chksum(f, &why)) {
+            g_last_err = why;
+            fits_close_file(f, &status);
+            ::unlink(tmp.c_str());
+            return P3_OUT_IO;
+        }
+    }
+
     // 追加 coverage 扩展 HDU
     long cnaxes[2] = {width, height};
     if (fits_create_img(f, bitpix, 2, cnaxes, &status)) {
@@ -242,12 +258,17 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
     }
     fits_write_key(f, TSTRING, (char*)"EXTNAME", (void*)"COVERAGE", nullptr, &status);
     fits_write_pix(f, TFLOAT, fpix, nelem, (void*)coverage, &status);
-
-    // 写 DATASUM(CHECKSUM) — FITS 标准 32-bit 校验
-    const uint32_t dsum = fdatasum(signal, (size_t)nelem * sizeof(float));
+    // B2-A9: COVERAGE HDU 标准校验和。旧实现在 COVERAGE HDU 写 signal 数据的
+    // 自算 DATASUM（归属错 + 值非法），ASTROPY 对 COVERAGE/VARIANCE/IVAR 报
+    // "Datasum verification failed"。
     {
-        uint32_t dv = dsum;
-        fits_write_key(f, TINT, (char*)"DATASUM", &dv, nullptr, &status);
+        std::string why;
+        if (!fits_write_std_chksum(f, &why)) {
+            g_last_err = "coverage " + why;
+            fits_close_file(f, &status);
+            ::unlink(tmp.c_str());
+            return P3_OUT_IO;
+        }
     }
 
     // 追加 uncertainty 扩展 HDU (DATA-P3-UNC-001 §30.4/§27.2 目标态行):
@@ -271,11 +292,14 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
                            nullptr, &status);
             fits_write_pix(f, TFLOAT, fpix, nelem,
                            (void*)(h == 0 ? variance : ivar), &status);
-            const float* plane = (h == 0) ? variance : ivar;
-            const uint32_t dsum_u =
-                fdatasum(plane, (size_t)nelem * sizeof(float));
-            uint32_t dv = dsum_u;
-            fits_write_key(f, TINT, (char*)"DATASUM", &dv, nullptr, &status);
+            // B2-A9: 每个 uncertainty HDU 的标准 DATASUM/CHECKSUM，归属自身数据。
+            std::string why;
+            if (!fits_write_std_chksum(f, &why)) {
+                g_last_err = std::string(h == 0 ? "variance " : "ivar ") + why;
+                fits_close_file(f, &status);
+                ::unlink(tmp.c_str());
+                return P3_OUT_IO;
+            }
         }
     }
 
@@ -372,12 +396,14 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
                                    int width, int height, P3OutputResult* result) {
     if (!output_path || !result || width < 1 || height < 1) return P3_OUT_PARAM;
     if ((variance == nullptr) != (ivar == nullptr)) return P3_OUT_PARAM;
-    // wcs 由 p3_output_write_atomic 写盘时已写入 header; verify 聚焦像素/尺寸/checksum
-    // (WCS 一致性由写路径单点保证, 见 p3_output_write_atomic)
-    (void)wcs;
+    // B2-A9: verify 对 WCS 零鉴别力是审计缺陷（AUD-COORD F-05）。此处读回
+    // CTYPE/CUNIT/CRPIX/CRVAL/CD 与传入 descriptor 逐项对拍，任何 CRPIX 平移、
+    // origin 双桥接或 CD 篡改都会被检出并置 reopen_ok=0（AUD-P2P3 F24）。
+    // 容差来源: 写路径以 TDOUBLE 写 double，读回亦为 double，round-trip 应为
+    // 位精确；1e-12(度/像素) / 1e-15(CD deg/px) 仅吸收格式层十进制往返。
     std::memset(result, 0, sizeof(*result));
     long nelem = (long)width * height;
-    int ok = 1, covok = 1, uncok = 1;
+    int ok = 1, covok = 1, uncok = 1, wcsok = 1;
     int hdus = 1;
 
     fitsfile* f = nullptr; int status = 0;
@@ -387,8 +413,55 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
     }
     fits_get_num_hdus(f, &hdus, &status);
 
-    // primary (HDU 1) = signal: 读像素 + WCS 关键字
+    // primary (HDU 1) = signal: 读像素 + WCS 关键字(C1 对拍)
     if (fits_movabs_hdu(f, 1, nullptr, &status) == 0) {
+        // B2-A9: 期望值由 descriptor 的冻结写码决定（与写路径同一公式），
+        // 仅读回对比，不改写。
+        const std::string pj = (wcs->projection && *wcs->projection)
+                                   ? wcs->projection : "TAN";
+        // fits_read_keyword 返回的是「值字段」：(a) keyword/= 已剥离；(b) 字符串
+        // 值保留两侧单引号且定长右补空格（如 ['RA---TAN'] / ['deg     ']）。
+        // 故先剥引号再去尾空白，与期望裸值全等比较。
+        const std::string want_ctype1 = std::string("RA---") + pj;
+        const std::string want_ctype2 = std::string("DEC--") + pj;
+        auto card_equals = [](const char* card, const char* want) {
+            std::string got(card ? card : "");
+            // 先剥字符串值两端的单引号，再去定长补位空白（顺序不可颠倒：
+            // ['deg     '] 剥引号后仍有尾部补白）。
+            if (got.size() >= 2 && got.front() == '\'' && got.back() == '\'')
+                got = got.substr(1, got.size() - 2);
+            while (!got.empty() && (got.back() == ' ' || got.back() == '\t'))
+                got.pop_back();
+            return got == want;
+        };
+        const struct { const char* key; const char* want; } skeys[] = {
+            {"CTYPE1", want_ctype1.c_str()}, {"CTYPE2", want_ctype2.c_str()},
+            {"CUNIT1", "deg"}, {"CUNIT2", "deg"}};
+        for (const auto& sk : skeys) {
+            char card[81] = {0};
+            status = 0;
+            if (fits_read_keyword(f, sk.key, card, nullptr, &status) != 0 ||
+                !card_equals(card, sk.want)) {
+                wcsok = 0;
+                break;
+            }
+        }
+        status = 0;
+        const struct { const char* key; double want; } dkeys[] = {
+            {"CRPIX1", wcs->crpix_x}, {"CRPIX2", wcs->crpix_y},
+            {"CRVAL1", wcs->crval_ra_deg}, {"CRVAL2", wcs->crval_dec_deg},
+            {"CD1_1", wcs->cd[0][0]}, {"CD1_2", wcs->cd[0][1]},
+            {"CD2_1", wcs->cd[1][0]}, {"CD2_2", wcs->cd[1][1]}};
+        for (const auto& dk : dkeys) {
+            double got = 0.0;
+            status = 0;
+            if (fits_read_key(f, TDOUBLE, (char*)dk.key, &got, nullptr, &status) != 0 ||
+                std::fabs(got - dk.want) > 1e-12) {
+                wcsok = 0;
+                break;
+            }
+        }
+        status = 0;
         int naxis = 0, imgtype = 0;
         long nax[2] = {0, 0};
         fits_get_img_param(f, 2, &imgtype, &naxis, nax, &status);
@@ -461,7 +534,7 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
     }
     fits_close_file(f, &status);
 
-    result->reopen_ok = (ok == 1 && covok == 1 && uncok == 1);
+    result->reopen_ok = (ok == 1 && covok == 1 && uncok == 1 && wcsok == 1);
     result->coverage_ok = covok;
     long covn = 0;
     for (long i = 0; i < nelem; ++i) if (coverage[i] > 0.5f) ++covn;

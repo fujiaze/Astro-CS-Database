@@ -11,7 +11,7 @@
 > （MISSING，P2-INT-TEST 落地；设计冻结面=本文档 §11.4）。
 > 本文档承接 audit PH2-05 建议（reports/v19r7_quality/
 > audit_findings_phase2.md:29：B2-12 在 INTEGRATION_ALGORITHMS.md 补
-> integrate.cpp:48,65 行号）——旧 INTEGRATION_ALGORITHMS.md 行号锚缺失
+> integrate.cpp:55,70 行号）——旧 INTEGRATION_ALGORITHMS.md 行号锚缺失
 > 且含 worker pool 旧表述，本文件为算法级权威重建；ALG-INT-001/002
 > ID 语义由本文件 §12 映射承接。
 
@@ -37,9 +37,9 @@
 | `signal` | 加权积分输出 | ADU，f64 | integrate.h:55 |
 | `support`（输出） | canonical reducer 输出 | 无量纲 [0,1]，f64 | integrate.h:56 |
 | `n_used` | 实际参与积分样本数 | 无量纲 u32 | integrate.h:57 |
-| `wsum` | Σ wᵢ（eligible ∧ w>0） | 1/ADU² | integrate.cpp:52-53 |
-| `vs` | Σ wᵢxᵢ | ADU/ADU² | integrate.cpp:52-53 |
-| `sup_max` | max(accepted support)（现状=R3-A 缺陷语义，§11.3） | 无量纲 | integrate.cpp:54-55 |
+| `wsum` | Σ wᵢ（eligible ∧ w>0） | 1/ADU² | integrate.cpp:59-60 |
+| `vs` | Σ wᵢxᵢ | ADU/ADU² | integrate.cpp:59-60 |
+| `sup_max` | max(accepted support)（现状=R3-A 缺陷语义，§11.3） | 无量纲 | integrate.cpp:61-61 |
 
 权重语义（integrate.h:8-11 注释冻结）: mode=0 →
 `stack.support_x_snr2.v1`（support×snr²）；mode=1 或 weights=null →
@@ -210,7 +210,7 @@ eligibility（逐候选 i，候选索引固定序）:
 1. 五态枚举 name/value/顺序（integrate.h:45-51）。
 2. support canonical reducer 语义（integrate.h:17 文本口径；
    实现现状偏差仅按 DISP-P2INT-001 整改，禁止改语义解释）。
-3. 零权重=合法零贡献（integrate.cpp:49 / SCI §10）。
+3. 零权重=合法零贡献（integrate.cpp:56 / SCI §10）。
 4. 候选索引固定序归约（确定性合同，§6）。
 5. policy/reducer 分离（本层不引入权重策略；weights 数组外置）。
 6. 调用方禁止对 pr.support 二次 max/mean（stage2.cpp:1525-1526
@@ -316,4 +316,4 @@ eligibility（逐候选 i，候选索引固定序）:
   registry astrocs.phase2.integrate.md；
   INTEGRATION_ALGORITHMS.md（旧 L2 文档，ID 让位本文件）。
 - 消费者: stage2.cpp（DATA_SEMANTICS §20 域）/ acr_kernels.cpp
-  （ACR 域）/ module_adapters.cpp:719-737 descriptor 占位。
+  （ACR 域）/ module_adapters.cpp:723-741 descriptor 占位。

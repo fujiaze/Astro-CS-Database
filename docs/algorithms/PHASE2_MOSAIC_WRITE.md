@@ -452,7 +452,7 @@ main(stage2.json, CLI overrides):
 
 | ID | 严重度 | 描述 | 源码锚 | 整改去向 |
 |---|---|---|---|---|
-| DISP-P2HIPS-001 | 中 | 马赛克输出仅 signal/support 两产品（flags=AIO_HIPS_PRODUCT_SIGNAL\|AIO_HIPS_PRODUCT_SUPPORT），输入侧消费 ivar（weight_mode=2）但输出侧无 variance/ivar 产品——方差传播止于加权积分，无逐像素方差输出供下游（P3/统计）消费；writer 层 variance 通道（aio_hips_writer.cpp:1060-1066）未被 P2 启用 | stage2.cpp:594; :553-563; aio_hips_writer.cpp:1060-1066 | P2-HIPS-IMPL 评估 variance 产品接入（writer 侧已具备，属接线缺口非能力缺口） |
+| DISP-P2HIPS-001 | 中 | 马赛克输出仅 signal/support 两产品（flags=AIO_HIPS_PRODUCT_SIGNAL\|AIO_HIPS_PRODUCT_SUPPORT），输入侧消费 ivar（weight_mode=2）但输出侧无 variance/ivar 产品——方差传播止于加权积分，无逐像素方差输出供下游（P3/统计）消费；writer 层 variance 通道（aio_hips_writer.cpp:1067-1073）未被 P2 启用 | stage2.cpp:594; :553-563; aio_hips_writer.cpp:1067-1073 | P2-HIPS-IMPL 评估 variance 产品接入（writer 侧已具备，属接线缺口非能力缺口） |
 | DISP-P2HIPS-002 | 中 | input_manifest_hash 与 model_hash 仅进入 UPM 持久层与 diagnostics.json，未写入 HiPS properties/manifest.json——全文件 `aio_hips_set_drizzle_provenance` grep 零命中（实测 0 处），provenance 链断在 products 元数据层，跨 run 溯源依赖 run 目录约定 | stage2.cpp:245; :427-430; :1746; 全文件 grep 零命中 | P2-HIPS-INT 经 writer provenance 通道接线（aio_hips.h provenance API），不改 SCI |
 | DISP-P2HIPS-003 | 低 | stage2 直写 cfg.out_hips（aio_hips_product_begin :592），无 staging 目录；原子发布语义依赖 IO-003 Python 发布层（docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md）在编排层承接，stage2 单体运行时无该保护；与 writer 层 DISP-HIPS-004 同源 | stage2.cpp:592; docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | P2-HIPS-INT 编排层接线（与 DISP-HIPS-004 整改同域） |
 | DISP-P2HIPS-004 | 低 | 覆盖帧探测逐 tile 逐帧 aio_hips_read_tile_f32 probe，n 帧×n_tile 次重复 FITS 读，大 N 输入时 I/O 放大（O(T·N) probe）；无 MOC 缓存探测 | stage2.cpp:663-668 | P2-HIPS-IMPL 引入逐帧 MOC/tile 集合缓存（coverage 层已有逐帧 tile 列表可复用，ALG-COV-001 输出） |

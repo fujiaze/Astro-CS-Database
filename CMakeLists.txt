@@ -634,9 +634,12 @@ endif()
 
 # RT-005 可执行模块适配器: Phase1/2/3 session → IModule (core 不依赖会话库)
 add_library(astrocs_module_adapters STATIC lib/core/src/module_adapters.cpp)
+# B2-A10(宪章 §4.3): 节点 manifest 自报 module build ID = module_id@软件版本;
+# 版本单源 = 构建期 version_generated.h (与 CLI 共用同一生成头)。
 target_include_directories(astrocs_module_adapters PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party
+  ${CMAKE_CURRENT_BINARY_DIR})
 # P1-001 (attempt 2): drizzle 节点唯一真实入口 hp_drizzle_run(astrocs_drizzle 静态库
 # 直链) + 口径更新: star-psf→dpsf_fit_batch_f64(astrocs_p1_dpsf) /
 # wcs→ipv 求解器链(astrocs_p1_ipv, 含 gaia_client; 生产源零 diff 只读编译)。

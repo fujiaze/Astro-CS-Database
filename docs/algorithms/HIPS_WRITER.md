@@ -180,8 +180,10 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
   / hips_hierarchy / **hips_pixel_scale = 3600·180/π·√(π/3)/nside arcsec
   （:704-705，%.6f）** / **hips_initial_fov="60" 硬编码（:745，DISP-HIPS-002）** /
   moc_sky_fraction / astrocs_covered_sky_fraction / astrocs_signal_dtype /
-  [非空] hips_data_range（sig_min≤sig_max 才写，:1026-1029）/ [非空]
-  obs_filter / [exposure>0] obs_exptime / [obs_date] obs_date +
+  [非空] hips_data_range（sig_min≤sig_max 才写，:1026-1029）/ **hips_ordering=
+  "NESTED" 恒写（:908，B2-A8；消费侧 coverage 断言 NESTED）** / **obs_filter
+  恒写（含空值，:960-964，B2-A8；空串=显式"无 filter"声明，不再是"键缺失"）** /
+  [exposure>0] obs_exptime / [obs_date] obs_date +
   t_min+t_max（iso_to_mjd :65-79 固定纪元换算，t_max=t_min+exposure/86400，
   :762-771）。另写极简 metadata.fits（PIXTYPE/ORDERING=NESTED/NSIDE/
   HIPSTILEWIDTH=512/DATAPRODTYPE，:776-786，remove+create :770）。
@@ -299,7 +301,7 @@ round-trip（(5c)）。容差冻结见 §9。
 
 | ID | 严重度 | 描述 | 锚 | 处置建议 |
 |---|---|---|---|---|
-| DISP-HIPS-001 | 高 | abort 仅 `delete ps`，不删除已写文件；aio_hips.h:151 注释称"清理已写部分(尽力)"——合同与实现不符，部分失败产品残留无 rollback。matrix 专项"partial failure rollback"如实登记为缺口 | aio_hips_writer.cpp:1133-1137; aio_hips.h:151 | IMPL 事务化（写临时目录+发布切换）或头注释降级声明+文档化调用方清理责任（与 IO-003 对齐） |
+| DISP-HIPS-001 | 高 | abort 仅 `delete ps`，不删除已写文件；aio_hips.h:151 注释称"清理已写部分(尽力)"——合同与实现不符，部分失败产品残留无 rollback。matrix 专项"partial failure rollback"如实登记为缺口 | aio_hips_writer.cpp:1140-1144; aio_hips.h:151 | IMPL 事务化（写临时目录+发布切换）或头注释降级声明+文档化调用方清理责任（与 IO-003 对齐） |
 | DISP-HIPS-002 | 中 | properties `hips_estsize="1000000"`、`hips_initial_fov="60"`（image 与 SNR 两处）硬编码占位，无真实估算/校验 | :721; :745; :954 | 按产品目录真实字节数与天区极值估算；tests/io/make_hips_fixture.py:168/:170 照抄需同步 |
 | DISP-HIPS-003 | 低 | properties `hips_status` 恒 "private master"，无公开/克隆状态参数化 | :718; :931 | 参数化或确认产品定位恒私有 |
 | DISP-HIPS-004 | 高 | C++ 写出无原子发布：FITS/MOC/metadata 先 remove 后 create 直写（:185-186/:251/:770）、make_dirs 无 fsync（:110-133）、properties/manifest 直写、manifest 无 COMPLETE 状态字/树哈希；finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在 DATA-P1-HIPS §12.5 登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（hiss_stream_writer.cpp:259-260,:644-655）但 writer 未采用 | :185-186,:251,:770,:110-133,:1086-1128; docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属裁决 |

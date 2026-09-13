@@ -41,6 +41,13 @@ int p2_integrate_pixel(const P2PixelStack* in, P2PixelResult* out) {
             continue;
         }
         ++n_finite;
+        // B2-A7: canonical reducer 契约 = max(**accepted** support)，作用域是
+        // 通过资格门 (accepted ∧ value/支持 finite) 的全部样本，**不含**权重
+        // 正性要求（w==0 合法但不贡献 signal）。故 sup_max 必须在权重分支
+        // 之前更新；旧实现置于 w==0 continue 之后会让零权 accepted 样本的
+        // support 被静默丢弃，低估 coverage 并集（integrate.h:17-19 冻结语义）。
+        if (in->support != nullptr)
+            sup_max = std::max(sup_max, in->support[i]);  // canonical reducer
         double w = 1.0;
         if (in->weights != nullptr) {
             w = in->weights[i];
@@ -51,8 +58,6 @@ int p2_integrate_pixel(const P2PixelStack* in, P2PixelResult* out) {
         ++n_positive_weight;
         vs += w * in->values[i];
         wsum += w;
-        if (in->support != nullptr)
-            sup_max = std::max(sup_max, in->support[i]);  // canonical reducer
         ++out->n_used;
     }
     out->n_finite = n_finite;
