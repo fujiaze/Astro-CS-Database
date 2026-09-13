@@ -499,10 +499,10 @@ target_include_directories(astrocs_phase1_stars PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_stars PUBLIC astrocs_contracts)
 
-# P1-001 (attempt 2, 口径更新 2026-09-10): B 线真实求解器/拟合器接线——
+# P1-001 (attempt 2) + RESCUE-FD-05: B 线真实求解器/拟合器接线——
 # 生产源零 diff 只读编译进 STATIC（ipv 13 TU + gaia_client.c(C) + dpsf 3 TU）；
-# ipv 非 Windows 平台为源内 stub（load_dlls 恒败）→ 节点 fail-closed 如实报错，
-# Windows 侧同节点即真实求解（平台限制为生产源既定事实，非本任务改动）。
+# 两平台均为真实求解: Windows 经 LoadLibraryA 解析 DLL, 非 Windows (Linux amd64
+# 正式入口) 经 ipv_select.cpp 直接绑定同一组静态链接 C API。源内已无平台 stub。
 set(P1_IPV_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/plate_solve/cpp/ipv)
 add_library(astrocs_p1_ipv STATIC
   ${P1_IPV_DIR}/src/ipv_entry.cpp ${P1_IPV_DIR}/src/ipv_solver.cpp
@@ -516,6 +516,9 @@ add_library(astrocs_p1_ipv STATIC
 target_include_directories(astrocs_p1_ipv PUBLIC
   ${P1_IPV_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/gaia_xpsd_client/src
+  # RESCUE-FD-05: 非 Windows 直连 C API 需要生产头面 (与 DLL 导入等价的 ABI 面)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_p1_ipv PUBLIC z Threads::Threads)
 set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/lib/gaia_xpsd_client/src/gaia_client.c

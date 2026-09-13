@@ -19,7 +19,7 @@ F5: Y-down: cd12,cd22 取反; A'=A·(-1)^j, B'=−B·(-1)^j, AP/BP 同规则
 F6: 投影 TAN + SIP畸变 + J2000, 极区 Lipschitz C=π/2 / C45=π/(2√2) conservative prune
 ```
 
-来源: `ipv_wcs.cpp:153-576` `ipv_select.cpp:695` `gaia_client.c:polar_plane_intersects`
+来源: `ipv_wcs.cpp:153-576` `ipv_select.cpp:723` `gaia_client.c:polar_plane_intersects`
 
 ## 3 伪代码
 
@@ -98,24 +98,24 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 | 符号 | 锚 | 角色 |
 |---|---|---|
-| ipv_solve_create | ipv_entry.cpp:266（声明 ipv_api.h:84） | 句柄生命周期 |
-| ipv_solve_destroy | ipv_entry.cpp:278（ipv_api.h:87） | 句柄释放 |
-| ipv_set_gaia_handle | ipv_entry.cpp:289（ipv_api.h:90） | Gaia 句柄注入 |
-| ipv_set_detector_handle | ipv_entry.cpp:302（ipv_api.h:93） | sdet 句柄注入 |
-| ipv_get_default_params | ipv_entry.cpp:315（ipv_api.h:198） | IpvParams 默认值（log_dir 空=无日志） |
-| ipv_get_last_inlier_count | ipv_entry.cpp:343（ipv_api.h:224） | inlier 计数查询 |
-| ipv_get_last_inliers | ipv_entry.cpp:357（ipv_api.h:232） | inlier 9 列缓冲（ipv_api.h:203-221：det_x/det_y/gaia_ra/gaia_dec/pred_x/pred_y/residual_x/residual_y/residual_dist） |
-| ipv_solve | ipv_entry.cpp:374（ipv_api.h:97） | 文件路径入口（legacy） |
-| ipv_solve_from_memory | ipv_entry.cpp:406（ipv_api.h:110） | PipelineFrame 内存入口 |
-| **ipv_solve_from_detections_v1** | ipv_entry.cpp:553（ipv_api.h:146） | **生产入口**（检测坐标 double 数组直入） |
-| ipv_solve_from_memory_with_callback | ipv_entry.cpp:595（ipv_api.h:165） | 回调进度变体 |
-| ipv_solve_from_memory_with_callback_d | ipv_entry.cpp:639（ipv_api.h:182） | 回调变体 FP64 |
-| do_solve_from_detections_v1_impl | ipv_entry.cpp:459 | 参数装配 → IPVSolver::solve_from_memory；try/catch → set_error_msg（:141，:181-187/:218-224） |
-| IPVSolver::solve_from_memory | ipv_solver.cpp:769 | 主求解流程（入口日志 :794） |
-| 选星 + U 构建 | ipv_select.cpp:463-470（flux 降序取前 img_n_target）、:685-693 | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（:49,:253） |
+| ipv_solve_create | ipv_entry.cpp:275（声明 ipv_api.h:84） | 句柄生命周期 |
+| ipv_solve_destroy | ipv_entry.cpp:287（ipv_api.h:87） | 句柄释放 |
+| ipv_set_gaia_handle | ipv_entry.cpp:298（ipv_api.h:90） | Gaia 句柄注入 |
+| ipv_set_detector_handle | ipv_entry.cpp:311（ipv_api.h:93） | sdet 句柄注入 |
+| ipv_get_default_params | ipv_entry.cpp:324（ipv_api.h:198） | IpvParams 默认值（log_dir 空=无日志） |
+| ipv_get_last_inlier_count | ipv_entry.cpp:352（ipv_api.h:224） | inlier 计数查询 |
+| ipv_get_last_inliers | ipv_entry.cpp:366（ipv_api.h:232） | inlier 9 列缓冲（ipv_api.h:203-221：det_x/det_y/gaia_ra/gaia_dec/pred_x/pred_y/residual_x/residual_y/residual_dist） |
+| ipv_solve | ipv_entry.cpp:383（ipv_api.h:97） | 文件路径入口（legacy） |
+| ipv_solve_from_memory | ipv_entry.cpp:415（ipv_api.h:110） | PipelineFrame 内存入口 |
+| **ipv_solve_from_detections_v1** | ipv_entry.cpp:562（ipv_api.h:146） | **生产入口**（检测坐标 double 数组直入） |
+| ipv_solve_from_memory_with_callback | ipv_entry.cpp:604（ipv_api.h:165） | 回调进度变体 |
+| ipv_solve_from_memory_with_callback_d | ipv_entry.cpp:648（ipv_api.h:182） | 回调变体 FP64 |
+| do_solve_from_detections_v1_impl | ipv_entry.cpp:468 | 参数装配 → IPVSolver::solve_from_memory；try/catch → set_error_msg（:141，:181-187/:218-224） |
+| IPVSolver::solve_from_memory | ipv_solver.cpp:781 | 主求解流程（入口日志 :794） |
+| 选星 + U 构建 | ipv_select.cpp:492-499（flux 降序取前 img_n_target）、:685-693 | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（:49,:253） |
 | 三角形投票 | ipv_triangle.cpp:296-357 | 线程局部投票矩阵（:296-300）+ omp for schedule(dynamic,64)（:309-311）+ 整数归并 collapse(2) schedule(static)（:347-357） |
 | iter_trans_solve | ipv_itertrans.cpp:974 | 迭代重投影多项式拟合（order 1→3） |
-| robust_refine_wcs | 调用点 ipv_solver.cpp:680-700；irls_fit_one_step ipv_robust_refine.cpp:661 | 稳健扩增精化（CD 阻尼 + Tukey biweight），失败回退不破坏主解 |
+| robust_refine_wcs | 调用点 ipv_solver.cpp:692-712；irls_fit_one_step ipv_robust_refine.cpp:661 | 稳健扩增精化（CD 阻尼 + Tukey biweight），失败回退不破坏主解 |
 | extract_wcs_sip | ipv_wcs.cpp:229 | WCS+SIP 提取（生产路径） |
 | CD = trans 线性项/3600 | ipv_wcs.cpp:256-266 | 度/像素（F2） |
 | CRVAL/CRPIX 冻结 | ipv_wcs.cpp:264-277 | CRPIX=w/2+0.5, h/2+0.5（1-based，F1） |
@@ -124,7 +124,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 | SIP AP/BP 网格反变换 | ipv_wcs.cpp:400-478 | 7×7 网格最小二乘；AP[6]−=1、BP[1]−=1（:456-461，F4）；奇异仅 warn（:477） |
 | RMS 统计 | ipv_wcs.cpp:483-517 | rms_arcsec=√(Σr²/n)；rms_px=rms_arcsec/s0 |
 | Y-down 输出转换 | ipv_wcs.cpp:528-576 | cd12/cd22 取反（:542-544）；A/B/AP/BP 符号规则（:546-571，F5） |
-| inlier 缓存 | ipv_solver.cpp:744-752 | cache_last_inliers_（WCS Gate v2 双层闭环） |
+| inlier 缓存 | ipv_solver.cpp:756-764 | cache_last_inliers_（WCS Gate v2 双层闭环） |
 | orchestrator 过滤+坐标契约 | orchestrator.cpp:1855-1876 | star_measurements [N,≥15] FLOAT64；status∈{0,3}、sat r[13]、fwhm r[7]∈[0.5,20]、边缘 5px；**+0.5 转换 :1867**（统一契约 index-is-center → IPV 接口契约 center=index+0.5）；sdet fallback 坐标已是 +0.5 契约（:1878） |
 | orchestrator 调用与写回 | orchestrator.cpp:1967-2050 | 求解调用 :1967；失败 → PLATESOLVE_FAILED :1980；CTYPE/CRVAL/CRPIX/CD + RADESYS=ICRS/EQUINOX=2000 写回 :2003-2010；SIP A/B/AP/BP 写回 :2017-2049 |
 
@@ -136,7 +136,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   （ipv_api.h:39-61：cd[4]/crval[2]/crpix[2](1-based)/sip_a·b·ap·bp[36]/
   rms_px/rms_arcsec/n_pairs/trans_order/ctype[2]）为唯一权威输出。
 - 求解器层：三角形匹配 0 匹配或 iter_trans_solve 全阶失败
-  （ipv_solver.cpp:883-921）→ fail_result（trans_order=0, success=false）
+  （ipv_solver.cpp:901-941）→ fail_result（trans_order=0, success=false）
   显式返回，不抛异常不崩溃。
 - 编排层（orchestrator.cpp）：DLL 未加载 :1763；data 块缺失 →
   BLOCK_MISSING :1814；star_measurements 缺失/格式错 → BLOCK_MISSING
@@ -172,7 +172,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   日志文件），IpvWcsResult 无拟合失败标志位——ap_order=0 无法区分"线性
   解"与"网格拟合失败"；cd_inv det<1e-15 跳过 SIP（:322-325）同理。
 - DISP-WCS-005 取消检查点缺失 + OpenMP 未接 ThreadBudget：ipv_triangle
-  .cpp:302/:347、ipv_select.cpp:810/:1123/:1412/:1756 等 #pragma omp 无
+  .cpp:302/:347、ipv_select.cpp:838/:1123/:1412/:1756 等 #pragma omp 无
   num_threads 注入；长帧求解不可中断。threading_model=host_executor_lease
   为合同值，接线归 P1-WCS-IMPL。
 - DISP-WCS-006 三套 TAN 实现并存：ipv（生产）、wcs_tan（lib/phase1/wcs，

@@ -190,7 +190,8 @@ set_property(SOURCE ${P3_SRCS} APPEND PROPERTY INCLUDE_DIRECTORIES
 # P1-001 三域真实化: adapters 新生产面源（dpsf/ipv+gaia/sdet）入 cli 独立构建源集
 set(P1_IPV_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/plate_solve/cpp/ipv)
 set(P1_IPV_SRCS ${P1_IPV_DIR}/src/ipv_entry.cpp ${P1_IPV_DIR}/src/ipv_solver.cpp ${P1_IPV_DIR}/src/ipv_select.cpp ${P1_IPV_DIR}/src/ipv_angle.cpp ${P1_IPV_DIR}/src/ipv_distortion.cpp ${P1_IPV_DIR}/src/ipv_itertrans.cpp ${P1_IPV_DIR}/src/ipv_kvector.cpp ${P1_IPV_DIR}/src/ipv_polygon.cpp ${P1_IPV_DIR}/src/ipv_ransac.cpp ${P1_IPV_DIR}/src/ipv_robust_refine.cpp ${P1_IPV_DIR}/src/ipv_sip.cpp ${P1_IPV_DIR}/src/ipv_triangle.cpp ${P1_IPV_DIR}/src/ipv_wcs.cpp)
-set_property(SOURCE ${P1_IPV_SRCS} PROPERTY INCLUDE_DIRECTORIES "${P1_IPV_DIR}/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/gaia_xpsd_client/src")
+# RESCUE-FD-05: 非 Windows 直连 C API (astro_image_io / star_detector) 头面
+set_property(SOURCE ${P1_IPV_SRCS} PROPERTY INCLUDE_DIRECTORIES "${P1_IPV_DIR}/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/gaia_xpsd_client/src;${CMAKE_CURRENT_SOURCE_DIR}/../lib/star_detector/include;${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/include")
 set(GAIA_C_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../lib/gaia_xpsd_client/src/gaia_client.c)
 set_property(SOURCE ${GAIA_C_SRC} PROPERTY INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../lib/gaia_xpsd_client/src")
 set(P1_DPSF_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../lib/dynamic_psf/src/dpsf_psf.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/dynamic_psf/src/dpsf_image.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/dynamic_psf/src/dpsf_log.cpp)

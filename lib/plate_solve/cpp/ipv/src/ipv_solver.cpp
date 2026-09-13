@@ -395,6 +395,10 @@ void IPVSolver::solve(
     // 失败结果 (聚合体零初始化)
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // RESCUE-FD-05 / ALG-WCS-001 §11.4 F4: 失败结果必须携带非空 error_msg;
+    // 下方各失败点用最近的 logger_.error 文案覆盖为可诊断原因。
+    std::snprintf(fail_result.error, sizeof(fail_result.error),
+                  "ipv solve failed: no valid WCS");
     // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
     // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
     // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
@@ -480,6 +484,8 @@ void IPVSolver::solve(
                        ret, (int)selection.success,
                        selection.img_width, selection.img_height,
                        selection.fov_diag_deg);
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "StarSelector 失败, 终止求解");
         *result = fail_result;
         return;
     }
@@ -500,6 +506,8 @@ void IPVSolver::solve(
         logger_.error("triangle_match 失败或票数不足, 终止求解");
         logger_.errorf("  诊断: success=%d, max_vote=%d (阈值=3), n_target_used=%d",
                        (int)tri_result.success, tri_result.max_vote, n_target_used);
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "triangle_match 失败或票数不足, 终止求解");
         *result = fail_result;
         return;
     }
@@ -554,6 +562,8 @@ void IPVSolver::solve(
         logger_.error("iter_trans_solve 全部阶数失败, 终止求解");
         logger_.errorf("  诊断: success=%d, n_inliers=%d (阈值=3)",
                        (int)it_result.success, it_result.n_inliers);
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "iter_trans_solve 全部阶数失败, 终止求解");
         *result = fail_result;
         return;
     }
@@ -593,6 +603,8 @@ void IPVSolver::solve(
         logger_.error("iterative_reproject 失败或匹配数不足, 终止求解");
         logger_.errorf("  诊断: success=%d, n_matched=%d (阈值=3)",
                        (int)rep_result.success, rep_result.n_matched);
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "iterative_reproject 失败或匹配数不足, 终止求解");
         *result = fail_result;
         return;
     }
@@ -784,6 +796,10 @@ void IPVSolver::solve_from_memory(
     // 失败结果 (聚合体零初始化)
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // RESCUE-FD-05 / ALG-WCS-001 §11.4 F4: 失败结果必须携带非空 error_msg;
+    // 下方各失败点用最近的 logger_.error 文案覆盖为可诊断原因。
+    std::snprintf(fail_result.error, sizeof(fail_result.error),
+                  "ipv solve failed: no valid WCS");
     // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
     // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
     // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
@@ -863,6 +879,8 @@ void IPVSolver::solve_from_memory(
                        ret, (int)selection.success,
                        selection.img_width, selection.img_height,
                        selection.fov_diag_deg);
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "StarSelector 失败, 终止求解");
         *result = fail_result;
         return;
     }
@@ -883,6 +901,8 @@ void IPVSolver::solve_from_memory(
         logger_.error("triangle_match 失败或票数不足, 终止求解");
         logger_.errorf("  诊断: success=%d, max_vote=%d (阈值=3), n_target_used=%d",
                        (int)tri_result.success, tri_result.max_vote, n_target_used);
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "triangle_match 失败或票数不足, 终止求解");
         *result = fail_result;
         return;
     }
@@ -932,6 +952,8 @@ void IPVSolver::solve_from_memory(
         logger_.error("iter_trans_solve 全部阶数失败, 终止求解");
         logger_.errorf("  诊断: success=%d, n_inliers=%d (阈值=3)",
                        (int)it_result.success, it_result.n_inliers);
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "iter_trans_solve 全部阶数失败, 终止求解");
         *result = fail_result;
         return;
     }
@@ -971,6 +993,8 @@ void IPVSolver::solve_from_memory(
         logger_.error("iterative_reproject 失败或匹配数不足, 终止求解");
         logger_.errorf("  诊断: success=%d, n_matched=%d (阈值=3)",
                        (int)rep_result.success, rep_result.n_matched);
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "iterative_reproject 失败或匹配数不足, 终止求解");
         *result = fail_result;
         return;
     }
@@ -1146,6 +1170,10 @@ void IPVSolver::solve_post_select(
 ) {
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // RESCUE-FD-05 / ALG-WCS-001 §11.4 F4: 失败结果必须携带非空 error_msg;
+    // 下方各失败点用最近的 logger_.error 文案覆盖为可诊断原因。
+    std::snprintf(fail_result.error, sizeof(fail_result.error),
+                  "ipv solve failed: no valid WCS");
     // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
     // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
     // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
@@ -1176,6 +1204,8 @@ void IPVSolver::solve_post_select(
 
     if (!selection.success) {
         logger_.error("selection 失败, 终止求解");
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "selection 失败, 终止求解");
         *result = fail_result;
         return;
     }
@@ -1196,6 +1226,8 @@ void IPVSolver::solve_post_select(
         logger_.error("triangle_match 失败或票数不足, 终止求解");
         logger_.errorf("  诊断: success=%d, max_vote=%d (阈值=3)",
                        (int)tri_result.success, tri_result.max_vote);
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "triangle_match 失败或票数不足, 终止求解");
         *result = fail_result;
         return;
     }
@@ -1226,6 +1258,8 @@ void IPVSolver::solve_post_select(
 
     if (!it_success) {
         logger_.error("iter_trans_solve 全部阶数失败, 终止求解");
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "iter_trans_solve 全部阶数失败, 终止求解");
         *result = fail_result;
         return;
     }
@@ -1246,6 +1280,8 @@ void IPVSolver::solve_post_select(
 
     if (!rep_result.success || rep_result.n_matched < 3) {
         logger_.error("iterative_reproject 失败或匹配数不足, 终止求解");
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "iterative_reproject 失败或匹配数不足, 终止求解");
         *result = fail_result;
         return;
     }
@@ -1415,6 +1451,10 @@ void IPVSolver::solve_from_detections_v1(
     // 失败结果
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // RESCUE-FD-05 / ALG-WCS-001 §11.4 F4: 失败结果必须携带非空 error_msg;
+    // 下方各失败点用最近的 logger_.error 文案覆盖为可诊断原因。
+    std::snprintf(fail_result.error, sizeof(fail_result.error),
+                  "ipv solve failed: no valid WCS");
     // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
     // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
     // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
@@ -1451,6 +1491,8 @@ void IPVSolver::solve_from_detections_v1(
 
     if (ret != 0 || !selection.success) {
         logger_.error("ipv_select_from_detections 失败, 终止求解");
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "ipv_select_from_detections 失败, 终止求解");
         *result = fail_result;
         return;
     }
@@ -1484,6 +1526,10 @@ void IPVSolver::solve_from_memory_with_callback(
     // 失败结果
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // RESCUE-FD-05 / ALG-WCS-001 §11.4 F4: 失败结果必须携带非空 error_msg;
+    // 下方各失败点用最近的 logger_.error 文案覆盖为可诊断原因。
+    std::snprintf(fail_result.error, sizeof(fail_result.error),
+                  "ipv solve failed: no valid WCS");
     // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
     // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
     // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
@@ -1521,6 +1567,8 @@ void IPVSolver::solve_from_memory_with_callback(
 
     if (ret != 0 || !selection.success) {
         logger_.error("ipv_select_from_memory_with_callback 失败, 终止求解");
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "ipv_select_from_memory_with_callback 失败, 终止求解");
         *result = fail_result;
         return;
     }
@@ -1550,6 +1598,10 @@ void IPVSolver::solve_from_memory_with_callback_f64(
     // 失败结果
     WcsFitResult fail_result{};
     fail_result.trans_order = 0;
+    // RESCUE-FD-05 / ALG-WCS-001 §11.4 F4: 失败结果必须携带非空 error_msg;
+    // 下方各失败点用最近的 logger_.error 文案覆盖为可诊断原因。
+    std::snprintf(fail_result.error, sizeof(fail_result.error),
+                  "ipv solve failed: no valid WCS");
     // B4-P1-5: 失败路径统一清除 inlier 缓存 (入口点重置策略)。
     // 每次进入 solve* 即令 last_inliers_ 失效: 成功路径由末尾
     // cache_last_inliers_ 重建; 任何失败 return 都不再泄漏上一次
@@ -1586,6 +1638,8 @@ void IPVSolver::solve_from_memory_with_callback_f64(
 
     if (ret != 0 || !selection.success) {
         logger_.error("ipv_select_from_memory_with_callback_f64 失败, 终止求解");
+        std::snprintf(fail_result.error, sizeof(fail_result.error),
+                      "%s", "ipv_select_from_memory_with_callback_f64 失败, 终止求解");
         *result = fail_result;
         return;
     }

@@ -27,6 +27,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -36,6 +37,13 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#else
+// 非 Windows (Linux amd64 正式入口, 宪章 §3.1): 依赖的生产 C API 与本源静态
+// 链接进同一二进制。与 Windows 的 LoadLibraryA+GetProcAddress 是同一 ABI 面,
+// 仅绑定方式不同 —— 上层算法体因此只有一份共享实现。
+#include "astro_image_io.h"
+#include "star_detector.h"
+#include "gaia_client.h"
 #endif
 
 namespace ipv {
@@ -53,12 +61,15 @@ static constexpr double IPV_RADTODEG = 180.0 / IPV_PI;
 static constexpr double IPV_ASEC_PER_RAD = 206264.80624709636;
 
 // ============================================================================
-// 内部 DLL 动态加载 (匿名命名空间, 仅本文件可见)
+// 内部 C API 绑定层 (函数指针, 仅本文件可见)
+//
+// Windows: 运行时 LoadLibraryA + GetProcAddress 解析三个 DLL。
+// 非 Windows: 同一组函数指针在 load_dlls() 中直接绑定到静态链接的生产 C API
+//             (astro_image_io / star_detector / gaia_client), 无运行时解析。
+// 两种绑定产生完全相同的 g_dll 调用面, 上层算法体为唯一共享实现。
 // ============================================================================
 
-#ifdef _WIN32
-
-// --- astro_image_io.dll 函数指针类型 ---
+// --- astro_image_io 函数指针类型 ---
 typedef struct AIOImageData AIOImageData;
 typedef AIOImageData* (*aio_read_fn)(const char*);
 typedef float* (*aio_get_pixel_data_fn)(const AIOImageData*);
@@ -101,19 +112,25 @@ struct DllApi {
     bool loaded = false;
     bool load_failed = false;
 
+#ifdef _WIN32
     HMODULE aio_dll = nullptr;
+#endif
     aio_read_fn aio_read = nullptr;
     aio_get_pixel_data_fn aio_get_pixel_data = nullptr;
     aio_get_width_fn aio_get_width = nullptr;
     aio_get_height_fn aio_get_height = nullptr;
     aio_free_image_data_fn aio_free = nullptr;
 
+#ifdef _WIN32
     HMODULE sdet_dll = nullptr;
+#endif
     sdet_detect_ex_fn sdet_detect_ex = nullptr;
     sdet_detect_ex_f64_fn sdet_detect_ex_f64 = nullptr;
     sdet_free_detect_ex_fn sdet_free_ex = nullptr;
 
+#ifdef _WIN32
     HMODULE gaia_dll = nullptr;
+#endif
     gaia_cone_search_for_solver_fn gaia_cone_search = nullptr;
 };
 
@@ -121,6 +138,7 @@ static DllApi g_dll;
 
 // 加载所有依赖 DLL (首次调用时加载, 后续复用)
 // 返回 true 表示全部加载成功
+#ifdef _WIN32
 static bool load_dlls(Logger* logger) {
     if (g_dll.loaded) return true;
     if (g_dll.load_failed) return false;
@@ -179,7 +197,29 @@ static bool load_dlls(Logger* logger) {
     if (logger) logger->info("ipv_select: 依赖 DLL 全部加载成功");
     return true;
 }
+#else
 
+// 非 Windows 生产绑定: 依赖的公开 C API 与生产源静态链接进同一二进制。
+// 逐符号取函数地址即完成绑定; 任何签名不匹配在编译期 (引用的声明) 或链接期
+// (缺符号) 立即失败 —— 不存在"运行时缺库"的静默降级路径。
+static bool load_dlls(Logger* logger) {
+    if (g_dll.loaded) return true;
+    g_dll.aio_read           = &aio_read;
+    g_dll.aio_get_pixel_data = &aio_get_pixel_data;
+    g_dll.aio_get_width      = &aio_get_width;
+    g_dll.aio_get_height     = &aio_get_height;
+    g_dll.aio_free           = &aio_free_image_data;
+    g_dll.sdet_detect_ex     = reinterpret_cast<sdet_detect_ex_fn>(&sdet_detect_ex);
+    g_dll.sdet_detect_ex_f64 = reinterpret_cast<sdet_detect_ex_f64_fn>(&sdet_detect_ex_f64);
+    g_dll.sdet_free_ex       = reinterpret_cast<sdet_free_detect_ex_fn>(&sdet_free_detect_ex);
+    g_dll.gaia_cone_search   = reinterpret_cast<gaia_cone_search_for_solver_fn>(
+                                   &gaia_client_cone_search_for_solver);
+    g_dll.loaded = true;
+    if (logger) logger->info("ipv_select: 依赖 C API 全部绑定成功 (非 Windows 静态链接)");
+    return true;
+}
+
+#endif // _WIN32
 // gaia_query_count 已删除 (不再使用密度迭代)
 // 保留 gaia_query_stars 用于一次性查询
 
@@ -209,17 +249,6 @@ static int gaia_query_stars(void* gaia_handle, double ra, double dec,
     return 0;
 }
 
-#else
-// 非 Windows 平台 stub
-static bool load_dlls(Logger* logger) {
-    if (logger) logger->error("ipv_select: 非 Windows 平台不支持 DLL 动态加载");
-    return false;
-}
-[[maybe_unused]] static int gaia_query_count(void*, double, double, double, double) { return 0; }
-[[maybe_unused]] static int gaia_query_stars(void*, double, double, double, double,
-                             std::vector<double>&, std::vector<double>&,
-                             std::vector<float>&) { return -1; }
-#endif // _WIN32
 
 // ============================================================================
 // 内部辅助函数 (外部链接, 供单元测试调用)
@@ -602,7 +631,6 @@ int ipv_select(
         return -1;
     }
 
-#ifdef _WIN32
     // --- Step 1: 读取图像 ---
     if (logger) logger->info("Step 1: 读取图像 " + image_path);
     AIOImageData* img_data = g_dll.aio_read(image_path.c_str());
@@ -871,11 +899,6 @@ int ipv_select(
             M, static_cast<int>(fov_idx.size()), M);
         logger->info(buf);
     }
-#else
-    // 非 Windows 平台不支持
-    if (logger) logger->error("ipv_select: 非 Windows 平台不支持");
-    return -1;
-#endif // _WIN32
 
     output.success = true;
     if (logger) logger->info("=== ipv_select 完成 ===");
@@ -938,7 +961,6 @@ int ipv_select_from_memory(
         return -1;
     }
 
-#ifdef _WIN32
     // --- Step 1: 使用传入的内存像素数据 (不读文件) ---
     int img_w = width;
     int img_h = height;
@@ -1177,11 +1199,6 @@ int ipv_select_from_memory(
             M, static_cast<int>(fov_idx.size()), M);
         logger->info(buf);
     }
-#else
-    // 非 Windows 平台不支持
-    if (logger) logger->error("ipv_select_from_memory: 非 Windows 平台不支持");
-    return -1;
-#endif // _WIN32
 
     output.success = true;
     if (logger) logger->info("=== ipv_select_from_memory 完成 ===");
@@ -1246,7 +1263,6 @@ int ipv_select_from_detections(
         return -1;
     }
 
-#ifdef _WIN32
     int img_w = image_width;
     int img_h = image_height;
 
@@ -1466,11 +1482,6 @@ int ipv_select_from_detections(
             M, static_cast<int>(fov_idx.size()), M);
         logger->info(buf);
     }
-#else
-    // 非 Windows 平台不支持
-    if (logger) logger->error("ipv_select_from_detections: 非 Windows 平台不支持");
-    return -1;
-#endif // _WIN32
 
     output.success = true;
     if (logger) logger->info("=== ipv_select_from_detections 完成 (路径 A) ===");
@@ -1538,7 +1549,6 @@ static int ipv_select_from_memory_with_callback_impl(
         return -1;
     }
 
-#ifdef _WIN32
     // --- Step 1: 使用传入的内存像素数据 (不读文件) ---
     int img_w = width;
     int img_h = height;
@@ -1810,11 +1820,6 @@ static int ipv_select_from_memory_with_callback_impl(
             M, static_cast<int>(fov_idx.size()), M);
         logger->info(buf);
     }
-#else
-    // 非 Windows 平台不支持
-    if (logger) logger->error("ipv_select_from_memory_with_callback: 非 Windows 平台不支持");
-    return -1;
-#endif // _WIN32
 
     output.success = true;
     if (logger) logger->info("=== ipv_select_from_memory_with_callback 完成 (INTERNAL_DETECTION_SHARED_EXPORT) ===");

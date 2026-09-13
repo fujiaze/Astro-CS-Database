@@ -164,6 +164,15 @@ void to_c_result(const ipv::WcsFitResult& src, IpvWcsResult* dst) {
     dst->n_catalog    = 0;
     dst->trans_order  = src.trans_order;
     dst->best_inliers = src.n_pairs;
+
+    // RESCUE-FD-05 / ALG-WCS-001 §11.4 F4: success=0 必须携带非空 error_msg。
+    // 各失败点写入 WcsFitResult.error; 缺失时给确定性兜底文案。
+    if (!src.success) {
+        std::snprintf(dst->error_msg, sizeof(dst->error_msg), "%s",
+                      src.error[0] != '\0'
+                          ? src.error
+                          : "ipv solve failed: no valid WCS (selection/triangle/iter_trans)");
+    }
 }
 
 // 安全写入错误信息到固定大小 char[]

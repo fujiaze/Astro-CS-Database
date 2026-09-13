@@ -1248,3 +1248,20 @@ target_include_directories(rt001_unique_executor_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common/healpix)
 target_link_libraries(rt001_unique_executor_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase3_session astrocs_hips astrocs_aio astrocs_cpu astrocs_common)
 add_test(NAME rt001_unique_executor COMMAND rt001_unique_executor_test)
+
+# ----------------------------------------------------------------------------
+# RESCUE-FD-05 (FOLLOW-UP-FD05-02): 生产 plate-solve 平台绑定契约门。
+# 断言: C ABI rc=0；空 Gaia 星表必失败(不得静默成功)；失败必带非空 error_msg
+# (ALG-WCS-001 §11.4 F4)；非 Windows 直连静态绑定下检测回调必须触发
+# (修复前平台 stub 在检测前返回 → 0 回调 → 此门必红)。
+# ci/checks.json 注册条目由前台单写者登记 (ctest_targets=["ipv_platform_binding"])。
+# ----------------------------------------------------------------------------
+add_executable(ipv_platform_binding_test ipv_platform_binding_test.cpp)
+target_include_directories(ipv_platform_binding_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/plate_solve/cpp/ipv/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/star_detector/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/src)
+target_link_libraries(ipv_platform_binding_test PRIVATE
+  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio)
+add_test(NAME ipv_platform_binding COMMAND ipv_platform_binding_test)
+

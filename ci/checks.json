@@ -3354,6 +3354,40 @@
       "requires_monitor": false
     },
     {
+      "id": "IPV-PLATFORM-BINDING",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "ipv_platform_binding",
+        "--output",
+        "run/ci/ctest/ipv_platform_binding.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/ipv_platform_binding.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "ipv_platform_binding"
+      ]
+    },
+    {
       "id": "KNOWN-FAILURES-BASELINE-CHECK",
       "profiles": [
         "linux-main"
