@@ -60,6 +60,34 @@ jobs:
           } else {
             Write-Host "::warning::no zlib *.lib under $vcpkg\installed\x64-windows-static-md\lib (find_library fallback will try)"
           }
+          # V3 B3-A1 (RESCUE-P1-18 / AUD-CI-LIVE F1): GSL 供应面补齐。
+          # 基线 SHA Windows run 34739847045 在 configure 阶段硬失败:
+          #   lib/star_detector/tests/p1star/CMakeLists.txt:65
+          #   "GSL (gsl_multifit_nlinear + libgsl/libgslcblas) not found"
+          # 与 Linux 侧 libgsl-dev 供应面 (ci-linux.yml) 对齐: vcpkg 装 GNU
+          # Scientific Library 并注入 prefix; find_path/find_library 命中后
+          # p1star 验证面方可编译。禁止 waiver/skip 掩盖。
+          & "$vcpkg\vcpkg.exe" install gsl --triplet x64-windows-static-md
+          $gslPrefix = "$vcpkg\installed\x64-windows-static-md"
+          "ACS_GSL_ROOT=$gslPrefix" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          if ($env:CMAKE_PREFIX_PATH) {
+            "CMAKE_PREFIX_PATH=$gslPrefix;$env:CMAKE_PREFIX_PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            "CMAKE_PREFIX_PATH=$gslPrefix" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          # 供应面静态一致性核对: 头 + gsl/gslcblas 两库必须真实落位, 缺失即
+          # throw (本步非零), 不得静默让 configure 再次硬失败。
+          $gslInc = Join-Path $gslPrefix "include\gsl\gsl_multifit_nlinear.h"
+          if (-not (Test-Path $gslInc)) { throw "GSL provisioning incomplete: $gslInc missing" }
+          $gslLibDir = Join-Path $gslPrefix "lib"
+          $gslMain = Get-ChildItem -Path $gslLibDir -Filter *.lib |
+            Where-Object { $_.Name -match '^(lib)?gsl\.lib$' } | Select-Object -First 1
+          $gslCblas = Get-ChildItem -Path $gslLibDir -Filter *.lib |
+            Where-Object { $_.Name -match '^(lib)?gslcblas\.lib$' } | Select-Object -First 1
+          if (-not $gslMain -or -not $gslCblas) {
+            throw "GSL provisioning incomplete: gsl.lib/gslcblas.lib not under $gslLibDir"
+          }
+          Write-Host "GSL ready: $gslInc / $($gslMain.FullName) / $($gslCblas.FullName)"
           python -m pip install --quiet PyYAML
           # WIN-PACKAGE-CANDIDATE prerequisite_tools 含 dumpbin（verify_candidate
           # 的 exported_abi / DLL 加载二进制级校验）。hosted runner 的 VS 自带

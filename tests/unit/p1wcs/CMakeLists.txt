@@ -67,6 +67,11 @@ set(P1WCS_PROD_TU
   ${P1WCS_TAN}/wcs_tan.cpp
 )
 
+# V3 B3-A9 (FD-R1-005): 本验证面硬依赖 OpenMP C++ 运行时 (ipv_triangle 的 omp
+# 并行区 = F5 线程确定性被测面)。linux-deep 的 DEEP-CLANG-BUILD/SAN-ASAN/
+# SAN-TSAN/COV-CPP 以 clang 重新 configure, hosted 无 libomp 时此处 REQUIRED
+# 直接 configure 失败。修复面 = ci-linux.yml deep 供应步显式提供 libomp-18-dev
+# (与 llvm-18 对齐), 不降级本门、不改门期望。
 find_package(OpenMP REQUIRED)
 
 # core 组可执行 (units/properties/oracle/negative/apbp 共享执行器框架)

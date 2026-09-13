@@ -257,3 +257,16 @@ photometric scale、新 runtime I/O DLL。
 - 交付后 main 的 CTEST-P2002-UNC-REJ-PROV（waivable=false）将转红——
   这是门应有的行为（P1/数据完整性不可 waiver，**未**登记进 known-failures
   基线，禁 waiver）。修复落地即自动转绿。
+
+### RESCUE-V3 B3-A4（2026-09-13，FIX-CI）
+
+- 根 `CMakeLists.txt` 在 `ASTROCS_BUILD_TESTS` 下新增
+  `add_subdirectory(lib/phase2)`：六个 Phase2 gtest 门
+  （synthetic_gate/ivar_wiring/execution_options/routing/sampler_parallel/
+  async_io）首次进入全量 ctest（173 → 286 项）。CI 供应 libgtest-dev。
+- 六个 `gtest_discover_tests` 统一加 `TEST_PREFIX "phase2_<gate>."`，使
+  `ctest -N | grep -i synthetic` 命中 `phase2_synthetic_gate.*`。
+- `phase2_ivar_wiring` 以 `std::system("astrocs-stage2 …")` 驱动 compatibility
+  工具：补 `add_dependencies(phase2_ivar_wiring astrocs-stage2)`（该工具
+  EXCLUDE_FROM_ALL）并把命中路径加 `./` 前缀（/bin/sh 走 PATH 不认裸名）。
+  修复后 `ctest -R '^phase2_'` 113/113 PASS（0 failed）。

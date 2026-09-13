@@ -27,4 +27,24 @@ mkdir -p build && cp -f build/linux-control/astrocs build/astrocs
 # -IREPO/build 取 version_generated.h; 根 build/ 仅被 cp 二进制,
 # 需补生成头(R19 34204130361 UT-BACKEND setUpClass 实证)。
 cp -f build/linux-control/version_generated.h build/version_generated.h
+
+# V3 B3-A3/B3-A4: 独立 oracle 门 (UT-API) 与 lib/phase2 gtest 目标的链接输入。
+#   - lib/astro_image_io/astro_image_io.dll 是 gitignore 的共享库构建产物
+#     (干净检出无); tests/api 的 seam/UPM/reject 独立 oracle 门以 g++ 直接
+#     链接它。UT-API 的接缝门自本批起 fail-closed (缺库即红, 不再静默
+#     skip), 故此处必须真实构建。
+#   - build/linux-openmp-on/libphase2.a (P2_ENABLE_OPENMP=ON 归档) 同为
+#     上述 oracle 门的链接输入。
+#   - lib/astro_image_io Makefile 已补 -fPIC (共享对象必需; gcc14 对 TLS
+#     local-exec 重定位报 R_X86_64_TPOFF32, 否则无法链接)。
+mkdir -p build/linux-openmp-on
+if [ ! -f lib/astro_image_io/astro_image_io.dll ]; then
+  timeout 1800 make -C lib/astro_image_io -j 2 all
+fi
+if [ ! -f build/linux-openmp-on/libphase2.a ]; then
+  timeout 900 cmake -S lib/phase2 -B build/linux-openmp-on \
+    -DP2_ENABLE_OPENMP=ON -DCMAKE_BUILD_TYPE=Release
+  timeout 900 cmake --build build/linux-openmp-on --target phase2 -j 2
+fi
+
 ./build/astrocs version --json && ./build/cli/astrocs version --json

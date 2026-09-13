@@ -291,3 +291,15 @@
   DISP-P2HIPS-003 维持登记）；树级 COMPLETE manifest + sha256 tree_hash。
 - hips_writer_adapter direct-vs-plugin 产物树对拍已在 staging 语义下自然
   成立（writer 输出在 stage、promote 后即发布树）；无新增差异面。
+
+### RESCUE-V3 FD-01（2026-09-13，B3 批次）
+
+- 基线红复现：`ctest -R '^hips_writer_adapter$'` FAIL ——
+  `dlopen(build/lib/hips/astrocs_p1_hips_writer.so): undefined symbol
+  aio_hips_tile_ipix`（定义在 `lib/astro_image_io/src/hips/aio_hips_reader.cpp:391`）。
+- 根因：2026-09-07 的「writer 依赖闭包实证最小集」漏了
+  `aio_hips_writer.cpp:1652,1713` 对 `aio_hips_tile_ipix` 的跨 TU 调用。
+- 修：`lib/hips/CMakeLists.txt` 把 `aio_hips_reader.cpp` 纳入
+  `HIPS_PROD_SOURCES`，并补 `${HIPS_PROD_DIR}/src` include（reader 引
+  `aio_cfitsio_mutex.h`）。零科学改动；唯一导出面仍由 version-script 收口。
+- 后绿：`ctest -R '^hips_writer_adapter$'` PASS（全量 ctest 286 项中该靶转绿）。

@@ -31,6 +31,13 @@ set(HIPS_ADAPTER_SOURCES
 )
 set(HIPS_PROD_SOURCES
     ${HIPS_PROD_DIR}/src/hips/aio_hips_writer.cpp
+    # V3 FD-01 (RESCUE-FD-01): aio_hips_writer.cpp 的 outline/reproject 路径
+    # 调用 aio_hips_tile_ipix (writer:1652,1713), 其定义在 aio_hips_reader.cpp
+    # (:391) —— 2026-09-07 的「writer 零依赖剔除」实证漏了这条跨 TU 依赖,
+    # dlopen(astrocs_p1_hips_writer.so) 报 undefined symbol aio_hips_tile_ipix
+    # (hips_writer_adapter 基线红)。reader TU 的上游闭包同样只需 healpix_core
+    # + cfitsio + 共享互斥头, 故纳入最小闭包。
+    ${HIPS_PROD_DIR}/src/hips/aio_hips_reader.cpp
     ${CMAKE_SOURCE_DIR}/lib/common/healpix/healpix_core.cpp
 )
 add_library(astrocs_p1_hips_writer SHARED
@@ -53,11 +60,13 @@ set_target_properties(astrocs_p1_hips_writer PROPERTIES
     CXX_STANDARD 17
 )
 
-# ── include 路径 (writer TU 编译闭包实证最小集) ──
+# ── include 路径 (writer+reader TU 编译闭包实证最小集) ──
 target_include_directories(astrocs_p1_hips_writer PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${HIPS_PROD_DIR}/include
+    # FD-01: aio_hips_reader.cpp 引 "aio_cfitsio_mutex.h" (src/ 直下)
+    ${HIPS_PROD_DIR}/src
     ${CMAKE_SOURCE_DIR}/lib/common
     ${CMAKE_SOURCE_DIR}/lib/common/healpix
 )

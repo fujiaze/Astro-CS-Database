@@ -1,14 +1,19 @@
 CXX = g++
-CXXFLAGS = -O2 -march=native -Wall -std=c++17 -fopenmp \
+# RESCUE-V3 B3-A3: 共享对象必须位置无关。历史构建在更宽松的 gcc 下侥幸链接,
+# 现版 gcc 14 对 thread_local (aio_hips_reader.cpp 的 g_rd_error, TLS
+# local-exec) 报 "relocation R_X86_64_TPOFF32 ... recompile with -fPIC" 而
+# 无法产出 astro_image_io.dll —— 该产物是 tests/api 独立 oracle 门
+# (seam/UPM/reject) 的链接输入。补 -fPIC, 零科学改动。
+CXXFLAGS = -O2 -march=native -Wall -std=c++17 -fopenmp -fPIC \
            -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF -DAIO_ENABLE_AHPX \
            -DAIO_ENABLE_HEALPIX -DAIO_ENABLE_COMPRESSOR -DAIO_ENABLE_PIPELINE \
            -DHAS_ZSTD -DHAS_LZ4
 CC = gcc
-CFLAGS = -O2 -march=native -Wall
+CFLAGS = -O2 -march=native -Wall -fPIC
 # V19 (PRERELEASE_CODE_QUALITY): CFITSIO 4.6.4 为 vendored 第三方源码,
 # 严格 warning 门只覆盖 first-party; 第三方 object 用 -w 抑制并记录 exception
 # (shipping_units.csv third_party=true; 上游 144 条警告不属 first-party 缺陷)
-CFLAGS_VENDORED = -O2 -march=native -w
+CFLAGS_VENDORED = -O2 -march=native -w -fPIC
 INCLUDES = -Iinclude -Isrc -I../common
 SRC_DIR = src
 AHPX_DIR = $(SRC_DIR)/ahpx

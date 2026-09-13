@@ -134,10 +134,13 @@ std::string stage2_exe() {
 #else
     // 测试既可能在 build 目录运行，也可能在仓库根运行（如单独执行
     // ./build/linux-openmp-on/phase2_ivar_wiring）。
+    // V3 B3-A4: 命中仓内相对路径时必须带 "./" —— std::system() 经 /bin/sh
+    // 按 PATH 查找，裸名不会命中当前目录（全量 ctest 中曾因此报
+    // "astrocs-stage2: not found" rc=32512 假红）。
     for (const char* p : {"astrocs-stage2",
                           "build/linux-openmp-on/astrocs-stage2",
                           "build/linux-release/astrocs-stage2"}) {
-        if (std::filesystem::exists(p)) return p;
+        if (std::filesystem::exists(p)) return "./" + std::string(p);
     }
     return "astrocs-stage2";
 #endif

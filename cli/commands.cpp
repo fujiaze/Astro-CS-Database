@@ -222,10 +222,28 @@ int cmd_stub(const Parsed& p, const std::string& phase, astrocs::JsonlEmitter& e
     return astrocs::ARGS;
 }
 
+// V3 B3-A8: 默认测试二进制目录 —— 旧默认 "build/root-cmake/tests/unit" 是
+// V6.1 遗留布局, 当前根图与 CI 构建树均无此目录, 使 test synthetic 在真实
+// 构建完成后仍报 spawn failed (误导)。按现行构建树优先级探测, 命中即用;
+// 全不存在时返回首个候选, 由运行期 spawn 失败明确暴露 (非静默)。
+// ASTROCS_TEST_BIN_DIR 仍最优先 (CI 经 job env 显式指定 linux-control 树)。
+static std::string default_test_bin_dir() {
+    static const char* kCandidates[] = {
+        "build/linux-control/tests/unit",  // CMakePresets linux-control (CI 主口径)
+        "build/tests/unit",                // 根图默认构建 cmake -S . -B build
+        "build/root-cmake/tests/unit",     // V6.1 历史布局 (仅兜底显示)
+    };
+    for (const char* c : kCandidates) {
+        std::error_code ec;
+        if (std::filesystem::is_directory(c, ec)) return c;
+    }
+    return kCandidates[0];
+}
+
 // ── CLI-003: test synthetic 接通真实合成门 ──
-// 运行 build 树内已编译的合成测试可执行文件 (路径: ASTROCS_TEST_BIN_DIR 或
-// <cwd>/build/root-cmake/tests/unit)。group → 测试二进制映射; 全部 exit 0 = PASS。
-// 无测试二进制 (非开发构建) → 明确错误 (可诊断, 非静默)。
+// 运行 build 树内已编译的合成测试可执行文件 (路径: ASTROCS_TEST_BIN_DIR,
+// 未设时按 default_test_bin_dir() 探测真实构建树)。group → 测试二进制映射;
+// 全部 exit 0 = PASS。无测试二进制 (非开发构建) → 明确错误 (可诊断, 非静默)。
 int cmd_test_synthetic(const Parsed& p, const std::string& group, astrocs::JsonlEmitter& ev) {
     (void)p;
     struct G { const char* group; const char* bin; };
@@ -236,7 +254,7 @@ int cmd_test_synthetic(const Parsed& p, const std::string& group, astrocs::Jsonl
         {"drizzle",               "p1_nside_test"},
         {"upm",                   "p2_upm_synthetic_test"},
         {"rejection_integration", "p2_output_semantics_test"},
-        {"pipeline",              "p1_ir_facade_test"},
+        {"p1_ir_facade",          "p1_ir_facade_test"},
     };
     // RT-008: crash 测试钩子(非用户接口) — 供协议 golden 验证 crash boundary(→70)
     if (std::getenv("ASTROCS_TEST_CRASH")) {
@@ -254,9 +272,9 @@ int cmd_test_synthetic(const Parsed& p, const std::string& group, astrocs::Jsonl
                       ("no synthetic tests for group '" + group + "'").c_str());
         return astrocs::ARGS;
     }
-    std::string bin_dir = std::getenv("ASTROCS_TEST_BIN_DIR")
-                              ? std::getenv("ASTROCS_TEST_BIN_DIR")
-                              : "build/root-cmake/tests/unit";
+    const char* bin_env = std::getenv("ASTROCS_TEST_BIN_DIR");
+    const std::string bin_dir = (bin_env && bin_env[0]) ? std::string(bin_env)
+                                                        : default_test_bin_dir();
     // 源码相对读取的测试 (p1_ir_facade/p2_ir_facade) 需要 ASTROCS_REPO;
     // 默认设为调用方 cwd, 可用环境变量覆盖。
     const char* repo_env = std::getenv("ASTROCS_REPO");

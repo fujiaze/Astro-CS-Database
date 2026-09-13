@@ -39,6 +39,9 @@
                                  型回退可判别 (先红后绿)
   S5  静态口径                -> find_package(ZLIB REQUIRED) 仍在且未被改成
                                  QUIET/可选依赖
+  S6  路径等价归一            -> 混合分隔符 / ".." 冗余经 normcase(normpath)
+                                 后必须等价; 真正不同的路径必须不等 (负例,
+                                 防"比较放宽成恒真"的伪修复)
 
 S2/S2b/S4 传 -DCMAKE_IGNORE_PATH=<宿主隐式搜索目录> (由一次探针 configure 现场
 读取 CMAKE_C_IMPLICIT_{INCLUDE,LINK}_DIRECTORIES 得到), 把搜索面收敛到 fake
@@ -119,6 +122,22 @@ def _found_zlib(log: str) -> tuple[str | None, str | None]:
     if bad:
         return None, bad.group(2)
     return None, None
+
+
+def _norm_path(p) -> str:
+    """路径等价归一: 两侧一律 os.path.normcase(os.path.normpath(...))。
+
+    Windows 上 CMake 输出的落点是 "C:/Users/..." (正斜杠), 而 pathlib 构造的
+    是 "C:\\Users\\..." (反斜杠), 直接字符串比较必然不等 —— 这正是
+    UT-GAIA-ZLIB 在 Windows 的原始红形态 (AUD-CI-LIVE F7)。normcase 另在
+    Windows 上折叠大小写; 混合分隔符 (两种斜杠交替) 亦由 normpath 归一。
+    """
+    return os.path.normcase(os.path.normpath(str(p)))
+
+
+def _same_path(a, b) -> bool:
+    """两侧 normcase(normpath) 后判等 (None 视为不比较, 由调用方处理)。"""
+    return _norm_path(a) == _norm_path(b)
 
 
 def _system_ignore_paths(work: Path) -> list[str]:
@@ -270,7 +289,7 @@ class GaiaZlibConfigureContract(unittest.TestCase):
         lib, _ver = _found_zlib(log)
         if rc == 0:
             self.assertIsNotNone(lib, f"S1 rc=0 但未报出 zlib 落点\n{log}")
-            self.assertFalse(str(lib).startswith(str(fake)),
+            self.assertFalse(_norm_path(lib).startswith(_norm_path(fake)),
                              f"S1 命中了 fake root (env 为空不得消费 ACS): {lib}")
             self.assertTrue(os.path.exists(str(lib)),
                             f"S1 选中库文件不存在: {lib}")
@@ -286,17 +305,20 @@ class GaiaZlibConfigureContract(unittest.TestCase):
                                          self._isolate)
         self.assertEqual(rc, 0,
                          f"S2 configure 必败: ACS_ZLIB_LIB 未被消费\n{log}")
-        self.assertEqual(_found_zlib(log)[0], str(fake / "lib" / INJECTED_LIB),
-                         f"S2 zlib 库未落在 ACS_ZLIB_LIB 注入的文件上\n{log}")
+        self.assertTrue(_same_path(_found_zlib(log)[0], fake / "lib" / INJECTED_LIB),
+                        f"S2 zlib 库未落在 ACS_ZLIB_LIB 注入的文件上 (got="
+                        f"{_found_zlib(log)[0]!r})\n{log}")
         self.assertEqual(_found_zlib(log)[1], FAKE_VERSION,
                          f"S2 未用 ACS_ZLIB_ROOT/include 的头 (版本应为 fake "
                          f"{FAKE_VERSION})\n{log}")
-        self.assertEqual(_cache_value(build, "ZLIB_LIBRARY"),
-                         str(fake / "lib" / INJECTED_LIB),
-                         f"S2 ZLIB_LIBRARY 缓存项不是注入库\n{log}")
-        self.assertEqual(_cache_value(build, "ZLIB_INCLUDE_DIR"),
-                         str(fake / "include"),
-                         f"S2 ZLIB_INCLUDE_DIR 未落在 ACS_ZLIB_ROOT/include\n{log}")
+        self.assertTrue(_same_path(_cache_value(build, "ZLIB_LIBRARY"),
+                                   fake / "lib" / INJECTED_LIB),
+                        f"S2 ZLIB_LIBRARY 缓存项不是注入库 (got="
+                        f"{_cache_value(build, 'ZLIB_LIBRARY')!r})\n{log}")
+        self.assertTrue(_same_path(_cache_value(build, "ZLIB_INCLUDE_DIR"),
+                                   fake / "include"),
+                        f"S2 ZLIB_INCLUDE_DIR 未落在 ACS_ZLIB_ROOT/include (got="
+                        f"{_cache_value(build, 'ZLIB_INCLUDE_DIR')!r})\n{log}")
         self.assertTrue((build / "cmake_install.cmake").is_file(),
                         "S2 configure 未产出 cmake_install.cmake "
                         "(WIN-PACKAGE-CANDIDATE install 阶段前提)\n" + log)
@@ -323,13 +345,15 @@ class GaiaZlibConfigureContract(unittest.TestCase):
         s1 = self._record("S1-env-empty")
         self.assertEqual(rc, s1["rc"],
                          f"S3 与 S1 退出码不同 (无效 root 不得改变基线)\n{log}")
-        self.assertEqual(_found_zlib(log)[0], s1["zlib_lib"],
+        got_lib = _found_zlib(log)[0]
+        self.assertEqual(_norm_path(got_lib) if got_lib else None,
+                         _norm_path(s1["zlib_lib"]) if s1["zlib_lib"] else None,
                          f"S3 与 S1 选中的库不同 (无效 root 不得伪命中)\n{log}")
         self.assertEqual(_found_zlib(log)[1], s1["zlib_version"],
                          f"S3 与 S1 版本不同 (无效 root 不得改变基线)\n{log}")
         if rc == 0:
             lib = _found_zlib(log)[0]
-            self.assertFalse(str(lib).startswith(str(bogus)),
+            self.assertFalse(_norm_path(lib).startswith(_norm_path(bogus)),
                              f"S3 命中了不存在的 root: {lib}")
             self.assertTrue(os.path.exists(str(lib)),
                             f"S3 选中库文件不存在: {lib}")
@@ -366,6 +390,31 @@ class GaiaZlibConfigureContract(unittest.TestCase):
             self.source_text,
             r"find_package\(ZLIB[^)]*(QUIET|OPTIONAL_COMPONENTS)",
             "gaia 段的 zlib 被降级为可选依赖 (裁决 R-12/R-13 禁止)")
+
+    def test_s6_path_equivalence_normalization(self):
+        r"""S6: 路径比较两侧 normcase(normpath) —— Windows 混合分隔符正/负例。
+
+        A6 (RESCUE-P1-21 / AUD-CI-LIVE F7): S2/S3 直接比较 CMake 输出与
+        pathlib 路径, Windows 上 "C:/..." != "C:\..." 恒真 → UT-GAIA-ZLIB
+        假红。本用例在同一路径上注入反向分隔符 (混合形态) 与 ".." 冗余, 断言
+        归一后等价 (正例); 并断言真正不同的路径不得被判等价 (负例), 使
+        "把比较放宽成永远相等" 的伪修复同样被检出。
+        """
+        canonical = os.path.join(os.getcwd(), "zlib", "lib", "zs.lib")
+        mixed = "".join(
+            (os.altsep or ch) if (ch == os.sep and i % 2) else ch
+            for i, ch in enumerate(canonical))
+        self.assertTrue(_same_path(mixed, canonical),
+                        f"混合分隔符路径未被判定等价: {mixed!r} vs {canonical!r}")
+        self.assertTrue(_same_path(os.path.join(canonical, "..", "zs.lib"), canonical),
+                        f"含 .. 的等价路径未被归一: {canonical!r}")
+        if os.name == "nt":
+            self.assertTrue(_same_path(canonical.upper(), canonical),
+                            "Windows 上大小写不同的同路径未被判定等价")
+        self.assertFalse(_same_path(canonical, canonical + ".other"),
+                         "不同文件名被误判等价 (负例)")
+        self.assertFalse(_same_path(canonical, os.path.dirname(canonical)),
+                         "不同目录被误判等价 (负例)")
 
 
 if __name__ == "__main__":
