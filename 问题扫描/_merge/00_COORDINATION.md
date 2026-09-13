@@ -518,46 +518,10 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 ## 前台自纠：F00-07b 原锚点不成立（由 L24 的 R-1 反证）
 
 
-## 全局方法论警示（由 M6b 发现，前台对全层下发）
-### H-1：read 对 >2000 字符单行会截断 → 用它比对 CSV/JSON 必然假报「不同构」
-- M6b 剔除 L18-006（CSV/JSON 不同构）时给出根因：实测 30/30 行、23 非 notes 列零差异；所谓差异来自
-  **read 对超长单行的截断**，而**该代理自己首轮也踩了同一个坑**，改用逐行计数（grep -c 类）才纠正。
-  我的锚点核验器同样受此影响（它按行读文件），凡「单行超长」的机器文件（TRACEABILITY.csv 的 notes 列、
-  ci/checks.json 若压成一行、packaging/astrocs.product.json）都适用。
-- **处置要求（所有代理立即执行）**：凡比较两份结构化文件是否同构/等值，禁止用 read 的行文本做判据；
-  必须用「行/元素计数 + 列名集合 + 逐列 grep 定位」三件套，并在定稿里写明用了哪种计数口径。
-  凡既有定稿中出现「按行读得到的差异」，R 层要复核是否为该截断伪影。
-### H-2：前台转述的数字会被下属复算推翻，已发生三次，一律以**下属复算**为准
-- F00-03 计票（L22 修正：omp 14→19、dynamic 2→3）；F00-07a 锚点（我误记，已撤回）；F00-01 可交比 ID 数
-  （我转述 15 → M6b 三口径复算为 **8**，含 notes 也只得 11，**TEST 证据一致 0/8 = 100% 互斥**，8 个 ID 双侧原文行号已列）。
-- 规则：任何人（含前台）转述的计数都是**待复核线索**，不是证据。定稿必须自己重算并写口径。
-  L20 因此把「15 处越权」缩小到「实质 4 处 + 1 处结案姿势」，L23 因此把「UT-IO 恒绿」下修，都是正例。
 
-## 收档 M6b（追溯链与文档体系，49 项处置 → 定稿 22：P0:4/P1:12/P2:6）
-- 本域给出两条**总述级**条目，SUMMARY 采纳为骨架（前台已定，各域 related 指回）：
-  **M6b-E-002 = 「行锚系统性失效」总述**（根因确证为 `docs/owner` 不在 anchor_contract.json 的 doc_globs，
-    门只覆盖 docs/science+docs/algorithms 共 41 篇；实测 owner 锚抽点 **4/4 全漂**，module_adapters 三表 :4257/:4282/:4309
-    现均为 `}` 或成员注释、实际在 5482/5507/5534，文件 5541 行）；**M6b-G-001 = 「未经证据支撑的已验证声明」总述**
-    （八层矩阵：TEST 22 行 VERIFIED 中 **18 行锚的是 docs/ 而非测试**、EVIDENCE 27/30 MISSING 而 schema 根本没有 evidence_path 列、
-    自述 entrypoint=MISSING/未编入构建却七层全 VERIFIED 共 **14 行**（F00-04 的「10 行」是低值）、C8 显式 continue 跳过 SRC/TEST、
-    STATUS_OK 用全局并集、CI 命令不带 --strict）。
-- **G-003（P0）「本版实测」类无据证据**：`docs/ARCHITECTURE.md:3` 与 §7:114-125 记「S8 gate 本版实测 PASS 9/9、mismatches=[]」，
-  全文 133 行**无任何 SHA/命令行/时间戳/日志指针**；且其两个比对器 `tools/docs_machine_consistency.py`、
-  `tools/config_consistency_check.py` **都不在 ci/checks.json 的 75 个 id 内**、tests/** 零引用；比对基面还指向被禁用的 lib/orchestrator/cpp。
-- **交叉引用失效的规模被严重低估**：不存在却被当权威引用 = `lib/**` 36 文件 **133 处** + `docs/**` 5 处（此前转述「15+ 处」）；
-  另实测 0 文件的还有 根 `schemas/`、`launch/`、`include/astrocs/exit_codes.h`、`tools/check_cli_protocol.py`、
-  `docs/science/HISS.md`、`docs/validation/TEST_MATRIX.md`、`docs/TRACEABILITY_family.json` 等；
-  **宪章 §12.3-9（文档内引用存在性）在机器面零实现**（75 个检查项无一校验，`check_doc_symbols` 只解析带扩展名的反引号 token）。
-- M6b 也**下修了两处他人转述**：DOCUMENT_INDEX「159 条仅 11 条」在当前树不可复现（实测 236 条 / active 205 / ACTIVE_NORMATIVE 123）；
-  锚门规模合同自述 36/793 而实测 41/805 带名锚，另有 **223 处表格裸 :NN 锚完全不在门语法内**。
-  并对 L18-002 作**降级 P0→P1**（实现默认 `legacy_allow_weight_fallback=false` 且 §6.3:191 禁止回退）→
-  这与 M4/L21 的「§6.3 四面失守」主题相邻但**不同事实**：那条讲 support 被当权重，这条讲回退开关的默认值已收紧。
-  前台在 SUMMARY 里会把两者分列，不再合并成一条。
-
-## 前台已定稿的 SUMMARY 总述条目对照（避免各域重复）
-- 行锚系统性失效 → **M6b-E-002**；未经证据支撑的 VERIFIED → **M6b-G-001**；追溯双头 → **M6b-E-001**（口径：SPEC:15 明文 JSON 权威，失效在**路由层**）。
-- 符合性证据链三处断点 → M8 汇总（M2a-G-1 判定器不在册 / M2a-B-2 判定式丢维度 / L23-004 证据路径只验存在）。
-- 不可达验收门家族 → M7 汇总（1e-4 SIP、SNR≥10 召回≥99%、PSF 0.01px、pixfrac 通量不变性四例）。
-- 平台盲区 → M9 汇总（long 窄化 / 511 塌缩 / UTF-8 合同无实现者 × windows-main 恒零检查）。
-- §6.3 support 冒充权重 → 四面（M4 已定 L07-004/L09-003/L18-002 残余 + L21 ALG 层），前台并主题。
-- 独立 Oracle 缺位 → 六实例（L02-001、L04-004→M2a-F-1 全 9003 例共源、L07-006、L08-004→M4-F-02、L03-006+L15-013、M3b-F-02）。
+## 前台裁决：pc_api「OpenMP 16 线程」注释的归属（M5a-C-002 ⑤ vs M6a-D-001）
+- 两个域各自定稿且**都真实**：M5a 定在「注释声明的线程数与实际调度不符」这一模块事实；M6a 定在「**冻结 N / 实际 M 型注释**」
+  这一 9 实例通用形态（D_COMMENT/p1/M6a_L13_L14.md:255），且 M6a 明确「D-001/D-003/D-005 的根因是 M5a 的线程数声明簇，不重复定稿」。
+- **裁决**：M6a-D-001 为**形态主落**（供 SUMMARY 的「控制参数被计算被记录但不参与执行」与「注释不可信」主题引用）；
+  M5a-C-002 为**实例登记处**（保留 `pc_api.cpp:331/695/969` 三处与 19 处 omp 位点计票）。两者 related 互指，
+  SUMMARY 不并条、不重复计数。此为「同一事实一处定稿、他处 related」的标准处置示例。
