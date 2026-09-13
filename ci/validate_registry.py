@@ -23,6 +23,9 @@
       OMP_NUM_THREADS/MKL_NUM_THREADS/NUMEXPR_NUM_THREADS）→
       hardcoded_core_in_command；ci/resource_monitor.py 前缀的 monitor
       自身参数（--timeout/--output/--）白名单放行，-- 之后的子命令仍扫描。
+  R10 linux-main 选中序末位必须是聚合型 KNOWN-FAILURES-BASELINE-CHECK
+      （B3-A5/R-15：它读同 run 全部上游 per-check 结果与 JUnit，排在中间
+      就读不全）→ last_linux_main_entry_must_be_check_gate。
 
 输出: stdout 一份 JSON 摘要 {"registry", "checks", "errors", "verdict"}；
       全部通过 exit 0，任一 FAIL exit 1。本脚本只读，不写任何文件。
@@ -191,6 +194,16 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
                 elif not monitor_ctx and HARDCODED_THREAD_RE.search(tok):
                     errors.append(
                         f"R9 {where} ({cid}): hardcoded_core_in_command: {tok!r}")
+
+    # R10（B3-A5）：聚合型 known-failures 基线门必须排在 linux-main 选中序末位。
+    # 它在运行期读取同 run 全部上游 per-check 结果与 CTEST-LINUX-FULL 的 JUnit；
+    # 排在中间会读不全 → 静态强制，杜绝注册表重排造成的静默退化。
+    linux_main_ids = [c["id"] for c in checks
+                      if isinstance(c, dict) and "linux-main" in c.get("profiles", [])]
+    if linux_main_ids and linux_main_ids[-1] != "KNOWN-FAILURES-BASELINE-CHECK":
+        errors.append(
+            "R10 linux-main: last selected entry must be "
+            f"KNOWN-FAILURES-BASELINE-CHECK, got {linux_main_ids[-1]!r}")
 
     return errors, len(checks)
 

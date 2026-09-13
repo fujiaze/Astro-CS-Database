@@ -2475,6 +2475,38 @@
       "requires_monitor": false
     },
     {
+      "id": "CTEST-PHASE2-GATES",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "phase2_.*",
+        "--output",
+        "run/ci/ctest/phase2_gates.json"
+      ],
+      "timeout_seconds": 1200,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/phase2_gates.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "tests/**",
+        "CMakeLists.txt",
+        "cmake/**"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "CTEST-P1001-REAL-NODES",
       "profiles": [
         "linux-main"
@@ -3036,38 +3068,6 @@
       "requires_monitor": false
     },
     {
-      "id": "KNOWN-FAILURES-BASELINE-CHECK",
-      "profiles": [
-        "linux-main"
-      ],
-      "platform": "linux",
-      "command": [
-        "python3",
-        "tools/quality/known_failures_baseline.py",
-        "--mode",
-        "check",
-        "--ctest-junit",
-        "run/ci/build-gcc-release/ctest-full.junit.xml",
-        "--output",
-        "run/ci/known-failures/known_failures_check.json"
-      ],
-      "timeout_seconds": 300,
-      "heavy": false,
-      "mutates_workspace": false,
-      "outputs": [
-        "run/ci/known-failures/known_failures_check.json"
-      ],
-      "waivable": false,
-      "changed_paths": [
-        "ci/known_failures.json",
-        "ci/checks.json",
-        "ci/ctest_baseline.json",
-        "tools/quality/known_failures_baseline.py",
-        "tests/**"
-      ],
-      "requires_monitor": false
-    },
-    {
       "id": "UT-GAIA-ZLIB",
       "profiles": [
         "fast",
@@ -3316,6 +3316,38 @@
         "tests/**",
         "include/**",
         "CMakeLists.txt"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "KNOWN-FAILURES-BASELINE-CHECK",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/known_failures_baseline.py",
+        "--mode",
+        "check",
+        "--ctest-junit",
+        "run/ci/build-gcc-release/ctest-full.junit.xml",
+        "--output",
+        "run/ci/known-failures/known_failures_check.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/known-failures/known_failures_check.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "ci/known_failures.json",
+        "ci/checks.json",
+        "ci/ctest_baseline.json",
+        "tools/quality/known_failures_baseline.py",
+        "tests/**"
       ],
       "requires_monitor": false
     }
