@@ -28,6 +28,10 @@
 | A-19 | A | **「36/36 PASS」是否曾经真跑过**（UT-ABI 编排面与 test_secure_loader 无 TestCase 的矛盾，静态无法判定历史执行） | M6a §10、M5b | — | 需 CI 历史日志权限；否则一律按「不可证伪」定档 |
 | A-20 | A | **`order_sel` 的冻结语义是否要求实现**（SCI §9a-5 冻结 `leaf_nside=2^(order_sel+9)` 未实现，两通道全部后继只有 provenance） | M6a-C-001（P0） | P0 | 要么实现，要么删条款并登记偏差；现行「被计算被记录但不参与执行」应作为禁止形态入 §12.3 |
 
+| A-21 | A | **HiPS 写出归属未定**：`lib/infrastructure/**` 实测 **0 文件**（宪章 §8.3 点名的位置不存在），而 `lib/hips` 已成 packaging required_unit → 无人能指出"唯一写出路径"落在哪个 target | M2b-G-01（P1，事实已备齐）；宪章 §8.3 | 待裁决 | 指定唯一写出 target 并订正 §8.3 措辞；否则"唯一写出路径"无法机检 |
+| A-22 | A | **DISP-HIPS-004 整改路线二选一**：①INT 层接线 `aio_publish_*`（tree hash 归属 INT）②writer 内嵌事务（tree hash 归属 AIO）| M2b-C-01（P0）+ M2a 域 IO_003 合同侧 | P0 已定 | 关键前提已实测修正：**不是能力缺口**——同库 `aio_pipeline.cpp:876-918` 临时+rename、`hiss_stream_writer.cpp:178` atomic_replace、`lib/hips/src/aio_publish.cpp:285` 都在用，**唯独 HiPS 写出未接线**；故选型只是"接哪一层"，不是"能不能做" |
+| A-23 | A | **`require_valid_nside` 的 order≤29 上界是否要保留**：Górski 2005 全文"29"0 次、"power of"0 次，注册表 :136 把**工程上界冒充标准条款**；且 `npix`(:333) 已不再调用该校验 → nside=2^31 静默 uint64 回绕，`test_healpix_neighbors.cpp:224` 还把 order-31 断言为"边界内合法" | M2b-B-07（P0） | P0 | 保留则须把 DISP 与注册表措辞改为"工程约定"；取消则 npix 必须自加防溢出并补 order 上界负测 |
+
 ## B. 需执行 / 跨节点权限才能定案（R 层是否授权）
 | B-01 | B | p1noise / astrocs_p1_noise 是否被 git tracked（两陈述不可同真：tests/unit/CMakeLists.txt:515-528「从未入库」vs ci/ctest_baseline.json:15,123-130 冻结八目标） | M3 §6① | 需 git ls-files 或干净树 configure |
 | B-02 | B | snr_estimator 交付导出面是否仍含退休符号 | M3 §6② | 需 nm/dumpbin（禁构建下不可得） |
