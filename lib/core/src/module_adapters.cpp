@@ -2115,13 +2115,13 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   Json flux_out = Json{{"schema", "DATA-P1-FLUX"}, {"frames", frames}};
   if (!p1_write_text(out_path, flux_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
-  // ── B2-A14: 真实测光 provenance sidecar (DATA-P1-PHOTPROV) ─────────────
+  // ── B2-A14: 真实测光 provenance sidecar (DATA-P1-PHOTPROV-001) ─────────────
   // 本节点 (measure_flux) 只测量孔径通量, 不对像素施加测光缩放（§02_FROZEN §7
   // I_photo=k_photo·I_cal 由 pc_calibrate/simple 类节点承担），故如实声明
   // photometry_applied=false、photscal=1.0（中性）。drizzle 消费本产物决定
   // PHOTSCAL/PHOTAPPL；禁止再硬编码 1。
   const std::string prov_path = out_dir + "/p1_phot.json";
-  const Json prov = Json{{"schema", "DATA-P1-PHOTPROV"},
+  const Json prov = Json{{"schema", "DATA-P1-PHOTPROV-001"},
                          {"node", "astrocs.phase1.photometry"},
                          {"operation", "measure_flux"},
                          {"entry", "astrocs_phase1_photometry_v1"},
@@ -2264,7 +2264,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + frame_path));
   }
   // ── B2-A14: PHOTSCAL/PHOTAPPL 由真实测光 provenance 决定（禁硬编码 1）──
-  // 上游 p1_phot.json (DATA-P1-PHOTPROV) 由 p1_op_photometry (measure_flux) 产出，
+  // 上游 p1_phot.json (DATA-P1-PHOTPROV-001) 由 p1_op_photometry (measure_flux) 产出，
   // 声明是否已对像素施加测光缩放。本节点只透传该事实；未执行/未应用测光时
   // PHOTAPPL=0 + PHOTDEGRADE=1（在 drizzle 显式降级为 ADU，绝不伪造
   // RELATIVE_FLUX）。配置标量 photscal 不再是科学输入来源。
@@ -2281,9 +2281,9 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       try {
         const Json pj = Json::parse(std::string((std::istreambuf_iterator<char>(pf)),
                                                 std::istreambuf_iterator<char>()));
-        if (!pj.is_object() || pj.value("schema", std::string()) != "DATA-P1-PHOTPROV")
+        if (!pj.is_object() || pj.value("schema", std::string()) != "DATA-P1-PHOTPROV-001")
           return Result<void>::fail(Error(ErrorDomain::DATA,
-              "p1_phot.json schema mismatch (expect DATA-P1-PHOTPROV): " + prov_path));
+              "p1_phot.json schema mismatch (expect DATA-P1-PHOTPROV-001): " + prov_path));
         photometry_applied = pj.value("photometry_applied", false);
         photscal = pj.value("photscal", 1.0);
         if (!std::isfinite(photscal) || photscal <= 0.0)

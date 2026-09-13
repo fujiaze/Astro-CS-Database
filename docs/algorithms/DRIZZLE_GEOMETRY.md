@@ -173,7 +173,7 @@
   `drizzle.precision_mode`（0|1）显式门把关（B2-A12）。
   （hp_drizzle_api.cpp:956-991；回归 tests/unit/drizzle_precision_default_test.cpp）
 - **B2-A14 测光 provenance（禁硬编码 PHOTAPPL=1）**: PHOTSCAL/PHOTAPPL
-  由真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV，
+  由真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，
   `p1_op_photometry` 产出）决定；未应用测光 → PHOTAPPL=0 + 帧头
   `PHOTDEGRADE=1`，引擎在显式声明时降级写 BUNIT=ADU（photappl=0），
   未显式声明仍按 02_FROZEN §7 拒绝（drizzle_engine.cpp:1950-1956；
