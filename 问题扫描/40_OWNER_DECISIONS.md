@@ -11,10 +11,10 @@
 | A-02 | A | **weight_mode=2 的语义两份 FROZEN SCI 互斥**：SCI-CW:27/38/42 写 support×snr²，而 SCI-UPM-WEIGHT-001:54 + 实现（:1136/:1396）写逐像素 ivar | M3-A-002（P0） | P0 成立（两份冻结文档不可能同真） | 负责人择一；另一份改注 SUPERSEDED，且四处权威一致站 ivar |
 | A-03 | A | **min_samples 冻结值 5 vs 实现 64（12.8 倍）**，且 ALG:151-153 明写「不改 SCI，以代码为准登记」= 权威层级倒置 | M3-C-003（P0）；docs/science/CALIBRATION.md::min_samples | P0 成立 | 若 64 有实测依据，须先改 SCI 再改代码；「以代码为准登记」写法应废止 |
 | A-04 | A | **flat median≈1 前提**：母版生成已自带 /median（故数量级差不成立），但 SCI 前提是否仍要求「真归一」未决 | M3 降级 L05-001 P0→P1（写明升回 P0 条件） | P1 | 裁决走「补 SCI 说明」还是「实现真归一」 |
-| A-05 | A | **zpf=300 三源三义**：ALG:52「固定/唯一」vs ALG:56「可由标定产品提供」vs DATA:1253 vs SCI-CAL §4 | M3 定 ALG 面；DATA/SCI 面转 M7（M4 已收工） | 待定稿 | 指定唯一权威源，另两处改为引用 |
+| ~~A-05~~ | A | **本条已撤回（前台未核验即转发的跨域声称）**：M7 复算发现四处锚**全部不可复现** —— `(?i)\bzpf\b` 在 docs/ **0 命中**（全仓仅命中本 40 文件与 cfitsio 的 tzero）；`ap_corr/apcorr/2.559` 在 docs/ 0 命中；`CALIBRATION_ALGORITHMS.md:52/:56` 现文是 F1.1/F1.2 伪代码、`DATA_SEMANTICS.md:1253` 现文是「kernel 输出之外」。真正存在并被定稿的是 `PHASE2_SAMPLER.md:189-193` 的 **kcorr 300″/600″ 档"反保守"**（M7-A-112：scale 未知→300 档被称保守，但 300 档值 < 600 档值）。若原意指光度零点，其已定稿面是 M3-C-010（ALG-PHOT:9 声明 zero_point 字段而两结构体均无） | M7 §11 退回；已向 M3 复索原始术语 | **已撤回** | 教训：跨域移交的锚也必须逐个复验（本会话第 3 次因未复验而撤） |
 | A-06 | A | **pixfrac 通量不变性分母**：S_p=B0/pf² 与网格无关（0.8→1.5625×，0.5→4×），故 §5+§7:82 与 §7:84、§11:117 三者不可能同真 | M2a-A-1（P0，缺陷在冻结合同） | P0 成立 | 裁决归一分母（A_drop 还是 A_pixel）；这是 SCI 层修改 |
 | A-07 | A | **CAR/AIT 投影口径**：实现丢 CRVAL2 致 dec(CRPIX)=0（错位最大 216000 px 且北南镜像）；选项＝改映射 or 在 make 处强制 CRVAL2==0 | M1a-A-003 + B-002 + F-001（三条同根） | P0 | Paper II §2.2 已亲验（fiducial 必须映到 (0,0)）→ 建议改映射，不接受"锁死参数"式规避 |
-| A-08 | A | **FOV≤20° 是否设硬门**：全仓零强制点，ALG:382-384 反称「非 make 硬门」；复算触门阈 arctan(π/2)=57.5194° | M1a-C-004（P0） | P0 | 若坚持 ≤20°，需在 make 面设门并登记 DISP；若放弃，须删 SCI 条款 |
+| A-08 | A | **FOV≤20° 是否设硬门**：全仓零强制点，ALG:382-384 反称「非 make 硬门」；触门阈 **arctan(π/2)=57.5184°**（前台已用数值库复核，M1a 的 57.5194° 是第 4 位小数笔误，级别不变）；M7 另补 CAR 极点塌缩反证（M7-A-137） | M1a-C-004（P0）、M7-A-137 | P0 | 若坚持 ≤20°，需在 make 面设门并登记 DISP；若放弃，须删 SCI 条款 |
 | A-09 | A | **SIP 1e-4 精度门的适用路径**：达门的两条路径（迭代反演、APx 阶 7）都不可经 36 项 A/AP ABI 消费（sip_order 硬限 [0,5]）⇒「Oracle 全过」字面真、产品口径失真 | M1a-C-001（P0）+ M1a-B-001（P0 加重事实） | P0 | 裁决该门适用于「可导出 ABI」还是「内部求解器」；现行 SCI/ALG/registry 三处需同步改写 |
 | A-10 | A | **APx 是否进导出 ABI**（与 A-09 联动） | M1a 裁决 7 项之一 | — | 决定 §15:172 的验收面 |
 | A-11 | A | **ivar==0 单裁语义**：NaN 传播态 vs 产品损坏；实现 variance<=0 在 nSourcePixels++ 之前 continue ⇒ 信号/覆盖/nContrib 一并静默消失 | M2a-H-2（P0）、M3 域同型 | P0 | 裁决语义后统一三处文本（头:265 / DATA:254 / ALG:119 / 实现） |
@@ -28,6 +28,7 @@
 | A-19 | A | **「36/36 PASS」是否曾经真跑过**（UT-ABI 编排面与 test_secure_loader 无 TestCase 的矛盾，静态无法判定历史执行） | M6a §10、M5b | — | 需 CI 历史日志权限；否则一律按「不可证伪」定档 |
 | A-20 | A | **`order_sel` 的冻结语义是否要求实现**（SCI §9a-5 冻结 `leaf_nside=2^(order_sel+9)` 未实现，两通道全部后继只有 provenance） | M6a-C-001（P0） | P0 | 要么实现，要么删条款并登记偏差；现行「被计算被记录但不参与执行」应作为禁止形态入 §12.3 |
 
+| A-21b | A | **SCI-UPM §5 两式择一**（:46 与 :47 在 Σ 域下不可能同真）+ 连带 §3 量纲、§7 k_corr 缩放不变量、§10「禁改」条款是否降为诊断面 | M7-A-001（**P1→P0**，Σ 域读码闭环） | P0 | 与 A-02 weight_mode 一并裁决（同一族：权重语义无单一权威） |
 | A-21 | A | **HiPS 写出归属未定**：`lib/infrastructure/**` 实测 **0 文件**（宪章 §8.3 点名的位置不存在），而 `lib/hips` 已成 packaging required_unit → 无人能指出"唯一写出路径"落在哪个 target | M2b-G-01（P1，事实已备齐）；宪章 §8.3 | 待裁决 | 指定唯一写出 target 并订正 §8.3 措辞；否则"唯一写出路径"无法机检 |
 | A-22 | A | **DISP-HIPS-004 整改路线二选一**：①INT 层接线 `aio_publish_*`（tree hash 归属 INT）②writer 内嵌事务（tree hash 归属 AIO）| M2b-C-01（P0）+ M2a 域 IO_003 合同侧 | P0 已定 | 关键前提已实测修正：**不是能力缺口**——同库 `aio_pipeline.cpp:876-918` 临时+rename、`hiss_stream_writer.cpp:178` atomic_replace、`lib/hips/src/aio_publish.cpp:285` 都在用，**唯独 HiPS 写出未接线**；故选型只是"接哪一层"，不是"能不能做" |
 | A-23 | A | **`require_valid_nside` 的 order≤29 上界是否要保留**：Górski 2005 全文"29"0 次、"power of"0 次，注册表 :136 把**工程上界冒充标准条款**；且 `npix`(:333) 已不再调用该校验 → nside=2^31 静默 uint64 回绕，`test_healpix_neighbors.cpp:224` 还把 order-31 断言为"边界内合法" | M2b-B-07（P0） | P0 | 保留则须把 DISP 与注册表措辞改为"工程约定"；取消则 npix 必须自加防溢出并补 order 上界负测 |
