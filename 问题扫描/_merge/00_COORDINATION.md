@@ -514,52 +514,66 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 
 ## R 层建立
 
-## 定稿收档 M4（L08+L09 → 31 条：P0:7/P1:18/P2:6，14 个 findings 文件）—— 第一份定稿域
-- 质量样本（后续 M 代理的**达标线**）：L08-001 独立重算 kcorr 插值（pf=0.8→wi=0.6→i0=1.2→sc=300 得 1.4136 vs 表 1.3925，**+1.51%**；sc=600 得 2.9584 vs 2.8971，+2.12%），并给出生产可达链；
-  子断言剔除 2 条**写明理由**（wbpp_current 系 SCI 登记 alias、PHASE2_UPM.md:3 系冻结元数据非 §12.2 流水）；类别改判 5 条；
-  「已修复」表 4 行中 1 行判**修复无产品测试面**→另立 F_TEST_GAP（正是「修复未固化」形态）；实测 module_adapters 会话内漂移 +69 行。
-- **M4 已就 §6.3 红线给出专项汇总**（support 冒充权重 2 例 + 排异启发式 1 例 + UPM 加性 0 例直接发现）→ 前台主题化时以该行索引为骨架。
-- 交叉裁定：权重 SCI 冲突归 M3；tile 结构归 M2b（L15-001 只作放大器）；**角度单位取证结论：Phase2 采样域常量均名义「度」，未见 3600×** → 已转 L26 作为负结果登记。
 
-## 收档 L22（确定性/bitwise 证伪轴，10：P0:0/P1:7/P2:3）—— **三条反证前台与第一波，全部采纳**
-1. **修正 F00-03（我自己的档案）**：`pc_api.cpp` 的 OpenMP 位点由我记的 14 处变为 **19 处**（87/100/232/284/320/335/464/477/512/603/651/684/699/750/867/925/958/973/1067），
-   `schedule(dynamic,64) reduction` 由 2 处变 **3 处**（新增 :973），而「OpenMP **16 线程**」注释现在有 **3 处**（:331/:695/:969）
-   且这 3 处的 pragma 确实**无 num_threads 子句** → 结论不变、计票与位点数已刷新。**F00 档案须据此订正**（前台已核，非转述）。
-2. **推翻 L12 的一条 P0 前提**：`SparseEqualsDense 1e-12 门无注册执行面`**已被 B3-A4 批修复**——根图现在
-   `ASTROCS_BUILD_TESTS` 下 `add_subdirectory(lib/phase2)`，CI 装 `libgtest-dev`，`CTEST-LINUX-FULL`（linux-main、
-   build ALL、**waivable:false**）真实执行 synthetic_gate（含 OneTvsTwoT / save-open 幂等 / sampler_parallel 一致性）。
-   → **M5b 不得按"零执行面"定稿**；残余只有两条：`find_package(GTest QUIET)` 缺失时 configure 级**静默零注册**、
-   无 fail-closed（另立一条 `G_GOV_GATE`），以及追溯/SCI 口径未回写（「修复未固化」实例）。
-3. **推翻 M4 候选的一条定档方向**：全量验型证明 `reduction(+:…)' 的 16 处**全是 int/long long 计数或计时 double**，
-   无一在科学输出浮点路径上；真正的跨线程浮点合并在 reduction 子句**之外**（drizzle `threadTiles`、upm `tsums` 的
-   t 升序 `+=` 折叠树）。→ M4 的 L09 相关候选**不得按"reduction 危害"定档**（已通知；若其定稿含此表述须订正）。
-4. L22 的正面价值还包括**登记 6 项"声明=证据"标杆**（p1star F3、p1wcs F5、p1drz properties、UT-CPU 三 oracle、
-   dpsf B2-A2 修复已固化正例、ipv 顺序安全全链论证）→ SUMMARY 将用它们作**合格线对照**，让负责人看到同一仓库内
-   既有"门恒真"也有"声明与证据严格对齐"，问题不是能力缺失而是**纪律未一致执行**。
+## 前台自纠：F00-07b 原锚点不成立（由 L24 的 R-1 反证）
+- 我在 F00-07b 里把「路径缓冲塌缩」写成 `aio_hips_writer.cpp:143-144` + `char buf[PATH_MAX]` + `n >= PATH_MAX` 判定。
+  重读该文件：`tile_rel_path` :136-143 实为 `char buf[512]` 产出**相对路径**（字面最长约 45 字节），文件内无 PATH_MAX、
+  无 `<=4096` 长度检查（:1527/:1683 的 4096 是读缓冲）→ **锚点与推演撤回**。
+- 真实站点已复验并改挂 `runtime/io/fits_core.c:1077/1078/1097-1099`（`ACS_FIO_PATH_MAX 512`，target 与 tmp 同宽，
+  `"%s.tmp.%ld.%lu"` 在 strlen≥511 时截断等于 target），与 L24-011 同一处；正对照 `hips_core.c::hips_join_path:536` 拒溢出。
+- 教训写入 F00：**跨档案引用"同一族"现象时每个 path:line 必须各自复验**，不得由一处证据推断另一处的实现细节。
+  → 全层执行：凡 M 代理引用 F00 条目作证据，须自行重读该 F00 所列 path，发现不符即在 _merge 反证（本例即由 L24 做到）。
 
-## 收档 L27（子库 README 轴，17：P0:0/P1:10/P2:7，含精确分母）
-- 覆盖面分母可信度高：**92** 个目录单元、含 README **43（46.7%）**全部逐行打分；86 个 SCI/ALG ID 中 2 个未注册、
-  93 个 DISP ID 中 1 个未登记（DISP-PSF-007，与 L06 域相关）；README 路径引用全量存在性核验 → 真悬挂 10 处。
-- **L27-004 是全新实例**（第一波对该文件零命中）：`lib/orchestrator/README.md` 把**不进根构建图的废弃第二调度器**写成
-  「正式科学运行只有一条命令 orchestrator.exe」并固化第二套 `ASTROCS_*` 退出码 → 正面抵触 §8.1 单入口与 §12.3-10。
-  L27 按纪律判 P1（文档错但产品未含该二进制），**前台认可这个克制**。
-- **但 L27-002/003 建议升 P0，交 M9 定夺**：`MODULE-READMES` 门实测只覆盖 **5/43 README**、8 项要素**核验 0**，
-  且实测**放行错锚**（被检 4 份 README 的 P1-003..005 合同锚在 `docs/contracts/INDEX.yaml` 零命中仍 PASS）；
-  `gen_module_readmes.py` docstring 自称"checker 以本生成器输出为源"而 `ci/checks.json` 无该项。
-  → 这与 L14-004（注释门空壳）、L11（线程预算门 0/0）、L12（AST-API 恒真）是**同一 fail-open 家族**，
-    该家族其他成员均定 P0，故本条除非有实质差别，应按一致性升 P0；M9 若维持 P1 须写明与那三条的差别。
-- L27 还给出**两类规范缺口的区分**（「要求存在但无门」=`G_GOV_GATE` vs「标准本身缺要求」=`I_DOC_HYGIENE`），
-  并发现 `docs/standards/` 现 14 份命名制标准，而 L2 层（7 README + 23 module.yaml）系统性引用**仓内不存在的 V7 编号标准**
-  （11/12/15/03/10 号，只存在于已作废控制包）→ 与 L14-002 分面不重复计。负责人「每子库应有 README」目前**无条文支撑**，
-  这条要进 SUMMARY 的「建议新增规范条款」清单（连同 L28 可能发现的注释溯源缺口）。
+## 收档 M1a（44 定稿：P0:10/P1:25/P2:9）、M5b（43：P0:8/P1:28/P2:7）、M5a（22：P0:4/P1:16/P2:2）、L24 分片 1-5、L26（12：P0:1/P1:7/P2:4）
 
-## R 层（复验层）正式建立 —— 负责人指令
-- 交付物：`_merge/CHANGED_FILES_WATCH.md`（机械交叉索引）+ 生成器 `_tools/gen_changed_watch.js`（只读 git + 全档案扫描）。
-- 当前真源改动面 **41** 个文件，**40** 个被审计档案点名；热度榜：`CMakeLists.txt` 203、`ci/checks.json` 129、
-  `docs/contracts/DATA_SEMANTICS.md` 84、`lib/core/src/module_adapters.cpp` 77、`cli/commands.cpp` 49、
-  `tests/unit/CMakeLists.txt` 39、`lib/phase2/CMakeLists.txt` 27、`docs/algorithms/HIPS_WRITER.md` 22、
-  `docs/api/CLI_PROTOCOL_V1.md` 22、`cli/resource_gate.h` 19。
-- 触发条件（三条同时满足才实跑）：① `git rev-parse HEAD` 连续两轮不变；② 真源白名单内工作树脏文件为 0；③ 全部 M 代理交付。
-- R 代理任务（按表 A 分簇派发）：逐条**改锚**（一律 `path::符号`，行号仅作「复验时 N」）+ 逐条**改判**四态 +
-  已修复者撤出 findings/ 并记「已修复」表 + 修复无回归者另立 `F_TEST_GAP` + 表 B 抽查是否引入新问题。
-- 纪律：R 层同样**禁止执行任何构建/测试**（负责人：跑测试会破坏并发 agent 工作），复验只靠静态重读 + git 只读。
+### M1a 的两处「比叶子更准」的复算，前台采纳并据此收紧全层口径
+- **L02-002 的可达性措辞**：叶子与我都说「约 140° TAN 可静默出片」。M1a 重算触门阈为 `arctan(π/2) = 57.5194°`，
+  并把后果改写为可核事实：**任意 FOV 不被拒绝；越过 57.5° 后界外像素逐点静默 NaN/coverage=0，且该行带仍计数并发布**。
+  → 我此前转述的 140° 一并作废。**凡是能用公式定出的阈值，禁止用量级估计代替**。
+- **L01-004 的"路径归属"**：M1a 进一步查明**达 1e-4 门的两条路径（迭代反演、APx 阶 7）都无法经 36 项 A/AP ABI 消费**
+  （`wcs_transform.cpp` 硬限 `sip_order∈[0,5]`），可消费的一步面只有 `apbp` 的 50 px「非验收线」→
+  所以 `§15:172`「Oracle 全过」**字面为真、产品口径失真**。这比我给 M1a 的判据更精细，定稿按 M1a 版本。
+- 加重事实裁决 **成立** → 单立 `M1a-B-001`（B_STD_MISMATCH/P0/related: F00-06）：注册表把「冻结精度门不可达且未经裁决」
+  描述成「与 SCI 冻结一致的低歧义项」（评 **低**），直接污染 §17.1 的发布输入。
+- M1a 还剔了 6 处（含 L01-006 所引 SCI §8 句在 docs/science 零命中、L02-016「1e-6→1e-4」实为两门并列），
+  并把「已被修复」的 6 项中 **4 项判为无回归保护** → 另立 `M1a-F-005`（F_TEST_GAP/P1「改过但没人守住」）。
+
+### M5a 的三条量化实证（本轮"门禁失效"主题的最硬证据）
+- `M5a-G-002`（P0）：利用率分母确证为 **1 核**，并用 `tests/backend/test_p2007_joint_gate.py:33-34` 的实测注记
+  （16 核语境 cpu_p50≈114/cpu_mean≈107）换算出「**约 6.7% 已分配容量仍判达标**」；同文件 `utilization_value()` 又按
+  `/(100·m)` 归一 → **同一文件两套 CPU 判据分母不同**。`resource_summary.json` 还写着 `normalized_cpu_100pct_all_allocated_cores: true`。
+- `M5a-G-005`（P0）：重放 checker 过滤规则 → `std::vector<std::thread>` **12 处不可见**（含 Runtime 自身
+  `executor.cpp:39/:217`、`scheduler.cpp:310`、`upm.cpp` 5 处）、裸 `#pragma omp parallel` **99 处**；
+  而 `tests/arch/test_thread_budget.py:16` 断言的是**检查器自己的输出串**，不是生产属性。另查出 ARCH-THREAD-001 §5-1
+  冻结要求登记「所有线程创建/销毁出现处」→ **实现低于自身合同**。
+- `M5a-G-003`（P0）加强事实：`ci/run.py:75-76` 称 REAL-001 是应用面，但 checks.json **不存在 REAL-001 注册项**。
+- 同时 M5a 做了两件我该夸的事：**接受 B2-A18 已修且有回归保护**（`mon001_gate` 等）故**不**另立 F_TEST_GAP；
+  并**驳回前台与叶子**对 `resource_gate.h:233-234` 的 fail-open 指控（与 §10.5「区间须超 10 秒」前提相容，
+  且 `gate_window_representative` 缺窗返回 true 属死代码）。→ 上级给的定性也不是免检项。
+
+### M5b 的「验证对象 ≠ 交付对象」定档（G-01 P0）
+- 逐行确认：CI 额外 `cmake -S cli` 产出**同名 astrocs**，而 `tests/cli` 协议族与 `check_api_docs::check_command_tree` 全部
+  打在 `build/cli/astrocs`（`cli/CMakeLists.txt` 自述 COMPATIBILITY 非产品事实源、无 install）；**二进制缺失时无 else** → 静默零检查，
+  且该路径无 `.exe` ⇒ **windows-main profile 恒零检查**；兼容树还把 ARCH-001 §7 判为 LEG-003 的 `aio_pipeline_engine.cpp` 以 `-w` 编入。
+- 并订正叶子措辞（`test_p1003_drizzle_path.py` 用的确实是根图产物，故「tests/cli 全部」不成立）→ 剔除 4 项子主张、降级 4 条、**升档 4 条**。
+- 版本簇并档为一条 G-04（P0）：手工副本实测 **6 份**（含两份 schema 用 const/pattern 把旧值钉成第二事实源），
+  并确证「门无法发现本条漂移」——两道版本门扫描面均不含 `packaging/**` 与 `lib/**`，后者还整行豁免 `module_version`。
+
+### L26 的 P0 与三条反证
+- `L26-001`（P0）：**SIP 系数以像素域数值直写 FITS 标准键**（`extract_wcs_sip` 注释自称「SIP 标准」的 `1/px^(i+j-1)`），
+  同一数组四处口径互斥（实现 vs DATA_SEMANTICS 三行的「无量纲/deg·px/无量纲」vs 标准 `deg/px^(i+j)`），
+  桥注释还引用**不存在的「FITS paper IV §2.1」**；且 B2-A17 并发修复批新增的 `p1_sip_write_header_frame` **正按同口径复制**
+  → 修复批次本身在扩散该缺陷，这条要进 SUMMARY 的「修复即扩散」子清单。
+- 三条反证：①`L15-002` 把宪章引注写成 §12.1「单位必须文档化」错挂（§12.1 实为面向负责人的 L0；正确锚 §4.1 + §5.3）→ 不翻案但订正引用；
+  ②自撤 lib/hips「真实估算」疑点（DISP-HIPS-002 三面一致 = 缺陷未修但登记完备）；③211034.6 让位 L04-012 不重复登记。
+
+### L24 的 R-2/R-3/R-4（横向轴反哺第一波，全部采纳）
+- **R-2 要求改判 L10-008 的方向**：已注册测试 `gaia_cat_test.c::mode_negative` 把「坏魔数/8 字节头/中部截断/空文件 →
+  file_count==0 且 create 成功」**钉成期望**，故「create 必败」表述与现状相反，严重性应从「可用性（崩溃）」
+  移到「**科学完整性：损坏或半加载被静默当成功，全链返回成功码**」；同时 L10-008 的「零覆盖」需下修——
+  四类基础损坏**有**注册回归，真正零覆盖的是**字段撒谎族**（header_len 弃用、rootPosition/nodeCount 不设限、child 索引、
+  block_offset/data_position、spectrumCount）。**这条改判交 M2a 执行**（其持有 L10）。
+- R-3：同一事实「HiPS 写出直写正式目录 + properties/manifest 失败被吞 + 注释称原子发布已内建」被取证 **8 次**
+  （L03-004 主锚 + S1-003/S2-001/002/012/S3-001/002/003）→ 并档到 L03-004，只保留两个**新增子项**：
+  `write_properties` 返回 void（IVOA 强制身份文件写失败对调用方不可见）、`finalize` 的 manifest.json 用 `if (f)` 无 else。
+- R-4：L24-011/012 我按「当前 runtime/io 无生产调用点」定 P1，但**要求挂「接线即升级」条件标注**，不得按静态快照死判 → 采纳。
