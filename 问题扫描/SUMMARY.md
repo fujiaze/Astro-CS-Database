@@ -13,6 +13,14 @@
 - **为什么系统性**：这些门的共同结构是「**校验对象 ≠ 交付对象**」或「**判据来自被检物自身**」。所以它们不会因为产品变坏而变红 —— 加更多同类门不解决问题。
 - **建议**（已写进 C-01/C-02）：①判定式维度集合 ⊇ 条款面维度集合；②门必须对**交付二进制**取证并具备"自身会红"的负例自检；③discover 采集数>0 硬门 + 测试源 basename 未注册即 FAIL + EVIDENCE 路径必须可执行三向门。
 
+> **前台补充（当场复验 M8-F-002 的前提，结论比"没注册"更糟）**：`io_ownership_test` **确实已注册** —
+> `tests/unit/CMakeLists.txt:136 add_executable(io_ownership_test io_ownership_test.cpp)`、`:141 add_test(NAME io_ownership …)`，
+> 并在 `ci/ctest_baseline.json:77` 基线名单内（另 `evidence/refactor/tasks/IO-002/TASK_RESULT.json:14` 与
+> `evidence/v8_1_ci_control/tasks/V8-CI-010` 的历史异常窗口把它列在 ctest 结果里，异常窗记为 4F+19NR）。
+> 而该 TU 全文 32 行：`::failures`（:9 定义、:14 累加）**从不参与退出码**、`:31` 无条件 `return 0`、唯一 CHECK 站点 :25。
+> ⇒ **这不是"漏注册"，是一道登记在册、进基线名单、被历史报告当真门引用的门，而它在结构上永远不会红。**
+> 同族另一例（`tests/abi` 三个脚本无 TestCase → discover 收 0 用例仍 OK）与它一起说明：**在册名单与基线名单都不能当"门有效"的证据**，
+> 只有「断言结果影响退出码」+「0 用例即 FAIL」这两条判据才可以。故 C-02 的三向门必须加**第四向：采集数>0 之外，还要断言数>0 且 failures 进退出码**。
 ## 簇 2 · "符合性"结论的生成逻辑本身失真（本轮最重的单条根因）
 - **M3-G-002（P0）＋ M2a-B-2（已并入）**：`docs/standards/STANDARDS_REGISTRY.md` 六个冻结域的 CONFORMANT 判定式
   **一律不包含其条款自身的判据维度** —— `D.image:104-110` 丢"同一单位与语义"（致 DISP-IMG-001 被自判覆盖）；`D.cal:237` 丢"误差传播与退化标记"；
