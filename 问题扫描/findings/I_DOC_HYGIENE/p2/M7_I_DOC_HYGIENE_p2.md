@@ -1,14 +1,7 @@
-# M7 · I_DOC_HYGIENE（文档卫生）
+# M7 · I_DOC_HYGIENE（文档卫生）· P2
 
-## P1
-### M7-I-101 复杂度/内存声明与本文自身伪代码、数据结构不相容（跨 6 篇 8 处实例，L20-004）
-- 位置 `docs/algorithms/UPM_SOLVER.md::§6`（:56）对照 `PHASE2_UPM_IMPL.md::§9`（:290-291 漏 F×CG 主项与 materialize 项）；`CALIBRATION_ALGORITHMS.md::§5`（:234-235 漏 max_iter；:237-239 IDW 分支最坏 O(npix²)）；`COSMETIC_ALGORITHMS.md::§6`（:196「总计 O(n)」与 §2/:82+DISP-COS-006:285「无上限防护」互斥，把 2×4·npix 字节写成「常数界」）；`PHASE2_COVERAGE.md::§6`（:163-164 内存 O(max|MOC_f|+K) 与 §2 逐帧 append→sort→unique 的 Σ|MOC_f| 前缓冲不符，且本模块无容量上限）；`DRIZZLE_GEOMETRY.md::§7`（:148-149「禁 per-leaf 全局 map」对照 §6 :132-133「per-thread unordered_map」两处互斥描述）；`NOISE_ESTIMATION.md::§6`（:59 把 patch 网格边长当矩阵规模）；`PLATESOLVE.md::§6`（:66 O(n log n) 只可能是 KD 查询项，三角形投票至少 O(n²) 级，n_triangles 全文未定义）。
-- 问题说明 ALG 是本仓复杂度的唯一权威层（宪章 §1.1 第 3 层），上述声明或漏自身伪代码主项、或与本文另一节直接矛盾、或量纲写错 ⇒ **资源门禁（§17.6/§10.5/§10.3）失去基准**；coverage 那条使真实峰值被低估 N 倍。
-- 影响 内存/CPU 门判定、benchmark 选点、容量告警阈值全部以这些声明为输入。
-- 处置 按本文伪代码逐条重推上界（含 max_iter/F×CG/IDW 游程/Σ 前缓冲）；对「无上限防护」三处补绝对上限与显式拒绝；统一「每线程 O(X)」记法；删除 DRIZZLE §7 与 §6 的矛盾一侧。
-- related L04-013（累加器字段数三处互斥，同数据结构主题）、L08-012、L09-010（内存声明不实）、M7-A-139、宪章 §17.6；判定 **仍成立**；置信度 高（8 处均可两文对撞）
+口径同其它 M7 合档：锚为 `path::符号`，行号注「复核时 N」；四态判定见 `_merge/M7.md`。
 
-## P2
 ### M7-I-201 SCI-SCOPE「默认 FP64 科学计算；FP32 仅显式等价路径」被 SCI-CAL §9 在文档层直接反驳（L19-028）
 - 位置 `docs/science/SCIENCE_SCOPE.md::数值精度`（:53）对照 `docs/science/CALIBRATION.md::§9`（:82）
 - 问题说明 宪章 §5.3 允许校准路径 float32 ⇒ 不是宪章违规，而是 SCI 之间的入口级矛盾（SCOPE 自列 CAL/PHOT/PSF 为其下游）；其举例 SparseEqualsDense 1e-12 是 UPM 专属门，不构成 CAL 的等价路径。

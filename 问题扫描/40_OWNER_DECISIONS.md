@@ -32,6 +32,13 @@
 | A-22 | A | **DISP-HIPS-004 整改路线二选一**：①INT 层接线 `aio_publish_*`（tree hash 归属 INT）②writer 内嵌事务（tree hash 归属 AIO）| M2b-C-01（P0）+ M2a 域 IO_003 合同侧 | P0 已定 | 关键前提已实测修正：**不是能力缺口**——同库 `aio_pipeline.cpp:876-918` 临时+rename、`hiss_stream_writer.cpp:178` atomic_replace、`lib/hips/src/aio_publish.cpp:285` 都在用，**唯独 HiPS 写出未接线**；故选型只是"接哪一层"，不是"能不能做" |
 | A-23 | A | **`require_valid_nside` 的 order≤29 上界是否要保留**：Górski 2005 全文"29"0 次、"power of"0 次，注册表 :136 把**工程上界冒充标准条款**；且 `npix`(:333) 已不再调用该校验 → nside=2^31 静默 uint64 回绕，`test_healpix_neighbors.cpp:224` 还把 order-31 断言为"边界内合法" | M2b-B-07（P0） | P0 | 保留则须把 DISP 与注册表措辞改为"工程约定"；取消则 npix 必须自加防溢出并补 order 上界负测 |
 
+| A-24 | A | **约 60 个零注册测试源的处置**：确认废弃者移 archive/删除，不得留在树里充当证据（留着的 TU 既编译不了也证明不了任何事） | M8 §9-1；M8-F-004 附表 | P0 相关 | 逐域确认后批量清理，配合 C-02 的 basename 未注册即 FAIL |
+| A-25 | A | **tests/cpu/baseline 三个 C 探针是否纳建**（avx2/avx512 有 UT-CPU-* 而 baseline 无） | M8 §9-2 | — | 建议纳建：baseline 是唯一"无 ISA"参照面 |
+| A-26 | A | **product.json:9 SKELETON vs windows.json.in:9 IMPLEMENTED 双口径**由谁统一 | M8 §9-3 | P1 | 与 M5b 版本簇 G-04 同族，建议一并交 packaging 单一事实源 |
+| A-27 | A | **基线 F-032/033/036/037 四个恒真探针**算"在册已知失败"还是判失效 | M8 §9-4 | — | 建议判失效并删除：恒真探针占基线名额会**制造虚假的覆盖率** |
+| A-28 | A | **对外订正冲突**：L23 §6「linux-main 已装 scipy」与 `ci-linux.yml:125-127`（scipy 仅 linux-deep）不一致 | M8 §9-5 | — | 以 workflow 文本为准，登记 prerequisite_tools 缺口 |
+| A-29 | A | **三条建议门由谁实现**（validate_registry / check_ctest_registration / check_standards_registry 三处改动，需同步 checks.json 与 docs） | M8 §9-6；对应 C-02 | — | 建议一次提交内三处同改，否则又一例"改过没人守住" |
+
 ## B. 需执行 / 跨节点权限才能定案（R 层是否授权）
 | B-01 | B | p1noise / astrocs_p1_noise 是否被 git tracked（两陈述不可同真：tests/unit/CMakeLists.txt:515-528「从未入库」vs ci/ctest_baseline.json:15,123-130 冻结八目标） | M3 §6① | 需 git ls-files 或干净树 configure |
 | B-02 | B | snr_estimator 交付导出面是否仍含退休符号 | M3 §6② | 需 nm/dumpbin（禁构建下不可得） |
