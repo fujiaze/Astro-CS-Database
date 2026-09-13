@@ -759,8 +759,19 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     std::atomic<int> first10s_diag{static_cast<int>(astrocs::GateDiag::Ok)};
     std::atomic<bool> first10s_done{false};
     std::atomic<bool> first10s_cancel{false};
+    // RESCUE-FD-08(短 run 观测链): active 阶段标注与起始 worker 容量必须在采样
+    // 线程首次 record 之前就绪, 且主线程要等到第一个 active 样本落盘再启动
+    // run_pipeline —— 否则 wall < 采样周期(0.5s)的 run 与线程调度竞争, active
+    // 段可能零样本: workers_p50 保持未采样哨兵(-1), gate 回退 max_active_threads
+    // (无样本时同样 0=哨兵), 把"未观测"误判为"只有一个活跃计算线程"
+    // (single_threaded, exit 10)。worker 值取有效配置容量 min(budget,可用核),
+    // 与循环内 B2-A18 未观测回退同一口径; 阈值与判据表达式不动。
+    recorder.set_stage(astrocs::ResStage::Active);
+    const uint32_t planned_start = std::min(budget, cli_affinity_cpu_count());
+    recorder.set_workers(planned_start, planned_start);
+    std::atomic<bool> first_sample_done{false};
     std::thread sampler([&mon, &recorder, &alloc_rec, &sampling, &first10s_diag,
-                         &first10s_done, &first10s_cancel, &budget] {
+                         &first10s_done, &first10s_cancel, &budget, &first_sample_done] {
         using SteadyNs = std::chrono::steady_clock::duration;
         const auto period = std::chrono::duration_cast<SteadyNs>(std::chrono::duration<double>(0.5));
         auto next = std::chrono::steady_clock::now();
@@ -779,6 +790,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                 recorder.set_workers(eff, eff);
             }
             recorder.record(mon.last_sample());
+            first_sample_done.store(true, std::memory_order_relaxed);
             // MON-002(V7): RSS/private/commit/allocator outstanding 同 tick 采样。
             alloc_rec.tick(mon.last_sample());
             ++tick;
@@ -816,9 +828,11 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
             std::this_thread::sleep_until(next);
         }
     });
-    recorder.set_stage(astrocs::ResStage::Active);
-    // B2-A18: active 阶段 worker 数由采样循环写入真实租约观测值;
-    // 此处不再以配置 budget 充当观测 (宪章 §10.5/§17.6)。
+    // 等第一个 active 样本真正记录后再启动 run_pipeline(消除短 run 竞态; 首个
+    // 样本是真实 /proc 观测, 不额外造样本, 不改变活跃均值口径)。
+    while (!first_sample_done.load(std::memory_order_relaxed))
+        std::this_thread::yield();
+    // B2-A18: 其后的 active 阶段 worker 数由采样循环持续写入真实租约观测值。
     // CLI-004: §4 progress 事件(04 冻结字段 completed/total/unit/rate/eta_seconds)。
     // 粒度 = phase 粒度(run 开始 0/1, 结束 1/1): Runtime 公开合同无节点级进度回调,
     // 协议面按合同冻结 —— 粒度升级(节点/帧级采样)不改变字段结构, 消费者透明。
@@ -1066,6 +1080,13 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
+    // RESCUE-FD-08(观测链): 预算注入链正向证据(session 层 host budget = 真机
+    // affinity 分配核)。CLI-002 入口迁移后 p2_session 旧通道不在生产调用面上,
+    // 该实测证据仅剩 Runtime 注入面; 此处如实复述同一预算源(不造占位值, 不新增
+    // 配置面)。阈值/门禁判据与 Runtime 实际注入的 budget 完全同源。
+    std::fprintf(stderr, "session run: budget workers=%u (cpus=%u)\n",
+                 (unsigned)budget, (unsigned)cli_affinity_cpu_count());
+    std::fflush(stderr);
     astrocs::ProcessMonitor::Summary p2_summary;
     const int rrc = run_with_resource_gate(ev, "phase2", cfg_text, budget, fail_reason,
                               resource_detail_arg(p), &p2_summary);
@@ -1173,8 +1194,17 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         try { prior_cfg_doc = nlohmann::json::parse(cfg_text); } catch (...) {}
         const std::string scan_dir = prior_cfg_doc.is_object()
             ? prior_cfg_doc.value("output_dir", std::string(".")) : std::string(".");
+        // RESCUE-FD-08: resume 预检只核「同一 config 的最新一次 complete prior run」。
+        // 同一 output_dir 反复重跑同一 config 时, 每次 run 都会合法覆盖共享产物
+        // (FITS 的 RUNID/provenance 等必为本次新值), 历史 manifest 记录的旧
+        // artifact sha 必然与磁盘不再一致; 遍历全部历史 manifest 会把"已被后续
+        // run 合法取代"误报成篡改(rc=8, p3006 第 3 次同 config 重跑实证)。
+        // fail-closed 不减弱: 最新 complete prior manifest 的任一 artifact 缺失或
+        // sha 不符即拒绝; 同一 config 无 complete manifest 时无从 resume, 直接放行。
         bool mismatch = false;
         std::error_code dec;
+        std::string prior_path;
+        std::filesystem::file_time_type prior_mtime{};
         for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::u8path(scan_dir), dec)) {
             const std::string fn = entry.path().filename().u8string();
             if (!entry.is_regular_file() || fn.rfind("astrocs_run_", 0) != 0 || fn.size() <= 14 ||
@@ -1185,7 +1215,21 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
                 nlohmann::json pm = nlohmann::json::parse(
                     std::string(std::istreambuf_iterator<char>(pf), {}));
                 if (pm.value("kind", std::string()) != "astrocs_run_manifest") continue;
+                if (pm.value("status", std::string()) != "complete") continue;
                 if (pm.value("config_path", std::string()) != cfg) continue;
+            } catch (...) { mismatch = true; break; }
+            std::error_code tec;
+            const auto mt = entry.last_write_time(tec);
+            if (prior_path.empty() || (!tec && mt > prior_mtime)) {
+                prior_path = entry.path().u8string();
+                prior_mtime = mt;
+            }
+        }
+        if (!mismatch && !prior_path.empty()) {
+            try {
+                std::ifstream pf(std::filesystem::u8path(prior_path), std::ios::binary);
+                nlohmann::json pm = nlohmann::json::parse(
+                    std::string(std::istreambuf_iterator<char>(pf), {}));
                 for (const auto& a : pm.value("artifacts", nlohmann::json::array())) {
                     const std::string ap = a.value("path", std::string());
                     if (ap.empty()) continue;
@@ -1194,7 +1238,6 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
                     if (!hok || sha != a.value("sha256", std::string())) { mismatch = true; break; }
                 }
             } catch (...) { mismatch = true; }
-            if (mismatch) break;
         }
         if (mismatch) {
             nlohmann::json cfg_doc0;

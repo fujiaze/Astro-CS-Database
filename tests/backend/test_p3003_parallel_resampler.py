@@ -45,8 +45,36 @@ class TestP3003ParallelResampler(unittest.TestCase):
                            "output_dir": out, "cancel_row": cancel_row},
                 "output_dir": out}
 
+    @staticmethod
+    def _blank_volatile_cards(buf):
+        """把主 HDU 头中的 RUNID 卡值段(80 字节卡内 10..80)清空后返回。
+
+        RESCUE-FD-08 判据校正(证据驱动): 原断言要求两次独立 run 的 FITS 整文件
+        逐字节一致, 但主 HDU 必写本次 run 的 provenance RUNID(p3_output.cpp:216
+        fits_write_key(TSTRING, 'RUNID', prov->run_id)), run_id 逐 run 唯一
+        (cli/jsonl.h:38 格式 %012llx), 且 RUNID 是冻结合同(tests/backend/
+        test_p3005_fits_output.py:75 关键字白名单; tests/cli/test_phase3_inprocess.py:269
+        断言 FITS RUNID == 本 run 真实 run_id)。故"整文件字节相等"在合同上不可
+        满足。实测标定(本机同 config 两次 run, 69120 字节): 仅 24 字节不同, 全部
+        落在 RUNID 值段; signal/coverage/variance/ivar 数据面与其余全部头卡逐字节
+        一致。此处仅屏蔽逐 run provenance 后仍做全文件逐字节比较——科学面
+        (数据+坐标+单位+结构)保持逐字节等价判据, 不放宽。
+        """
+        # 逐 run 易变卡: RUNID(provenance) + 由其派生的 HDU 校验 CHECKSUM/DATASUM。
+        # 其余全部头卡 + 数据段保持逐字节比较。
+        volatile = (b"RUNID   ", b"CHECKSUM", b"DATASUM ")
+        out = bytearray(buf)
+        pos = 0
+        while pos + 80 <= len(out):
+            card = bytes(out[pos:pos + 80])
+            if card[:8] in volatile:
+                # 卡固定 80 字节: 8 关键字 + 2 '= ' + 70 值/注释
+                out[pos + 10:pos + 80] = b" " * 70
+            pos += 80
+        return bytes(out)
+
     def test_01_parallel_equals_serial(self):
-        """并行(budget=2)与单 worker 输出 1/N 等价(FITS 字节一致)。"""
+        """并行(budget=2)与单 worker 输出 1/N 等价(FITS 逐字节一致, RUNID 除外)。"""
         out1 = os.path.join(self.tmp, "o1"); os.makedirs(out1, exist_ok=True)
         out2 = os.path.join(self.tmp, "o2"); os.makedirs(out2, exist_ok=True)
         c1 = os.path.join(self.tmp, "c1.json"); json.dump(self._cfg(out1), open(c1, "w"))
@@ -61,7 +89,13 @@ class TestP3003ParallelResampler(unittest.TestCase):
         f2 = os.path.join(out2, "output_phase3.fits")
         self.assertTrue(os.path.isfile(f1) and os.path.isfile(f2))
         with open(f1, "rb") as a, open(f2, "rb") as b:
-            self.assertEqual(a.read(), b.read(), "并行/串行输出必须逐字节一致")
+            ba, bb = a.read(), b.read()
+        self.assertEqual(len(ba), len(bb), "并行/串行 FITS 长度必须一致")
+        # RUNID = 逐 run provenance(合同要求), 屏蔽其值段后仍逐字节比对全文件;
+        # 若 RUNID 卡缺失, _blank_runid 不改动 → 整文件比对(合同回归即红)。
+        self.assertEqual(self._blank_volatile_cards(ba), self._blank_volatile_cards(bb),
+                         "除逐 run RUNID/校验卡外, 并行/串行输出必须逐字节一致")
+        self.assertIn(b"RUNID   ", ba[:2880], "主 HDU 缺 RUNID provenance 卡")
 
     def test_02_no_hardware_concurrency(self):
         """并行实现无 hardware_concurrency; worker 数来自 budget.max_workers。"""
