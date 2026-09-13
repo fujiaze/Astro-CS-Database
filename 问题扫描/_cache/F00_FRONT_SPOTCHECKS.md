@@ -112,12 +112,23 @@
   **不检查新键语法合法性**（前台 grep 结果）。
 - 与 L12/L16/L22 的「反向断言固化」同族：测试把缺陷写成规格，后续修复反而会让测试变红。
 
-## F00-07b 路径缓冲区塌缩（H_NUMERIC + 静默降级）
-- `aio_hips_writer.cpp:143-144`：`const int n = std::snprintf(buf, sizeof(buf), ...); if (n < 0 || n >= PATH_MAX) return 3;`，
-  而 `buf` 是 `char buf[PATH_MAX]`（MSVC/MinGW = 260）。**边界用的是 PATH_MAX 本身而非调用方缓冲区长度**：
-  snprintf 已静默截断到 259 字符，只有应然长度 ≥260 才被拒。
-- 前台独立推演（与 L24 结论一致）：格式 `%s/Norder%d/Dir%llu/Npix%llu%s` → 根路径 ≤129 安全；
-  130~239 目录名被截；**240~249 时目录名占满 20 字符、文件名仅剩约 20 字符（截断），此时总长 509~511
-  恰好通过任何 ≤4096 的前置检查却已被静默截断** → 产品写到错误路径或互相覆盖。
-  该函数有返回值可传播错误，故"截断不必然导致失败"正是问题所在：失败被吞掉。
-- 判定方向：`H_NUMERIC`（缓冲区/整数边界）+ `C_DOC_CODE_GAP`（合同说拒绝、实现静默丢弃）。
+## F00-07b 【已订正 · 原锚点不成立】路径缓冲塌缩的真实站点
+
+> **前台自纠记录（保留原文以便追溯）**：本节初稿把站点写成 `aio_hips_writer.cpp:143-144` 的
+> `if (n < 0 || n >= PATH_MAX) return 3;` 并称 `char buf[PATH_MAX]`。L24 的 R-1 反证后前台重读该文件：
+> `tile_rel_path`（:136-143）实为 `char buf[512]` + `snprintf(buf, sizeof(buf), "Norder%d/Dir%llu/Npix%llu%s")`，
+> 产出的是**相对路径**，字面最长约 45 字节，文件内既无 PATH_MAX 也无 `<=4096` 的路径长度检查
+> （:1527/:1683 的 `char buf[4096]` 是读缓冲）。**原锚点与推演均为误记，特此撤回。**
+> 教训：跨档案引用「同一族」现象时，**每个 path:line 必须各自复验**，不得由一处证据推断另一处的实现细节。
+
+**真实站点（前台已逐字复验，与 L24-011 同一处）**：`runtime/io/fits_core.c`
+- `modules/services/io/include/astrocs/io/fits_stream_v1.h:33`：`#define ACS_FIO_PATH_MAX 512`
+- `fits_core.c:1077/1078`：writer 结构体内 `char target[ACS_FIO_PATH_MAX];` 与 `char tmp[ACS_FIO_PATH_MAX];` 同宽
+- `fits_core.c:1097/1099`：`snprintf(out, cap, "%s.tmp.%ld.%lu", target, (long)getpid(), seq);`（注释自述「同目录临时文件：<target>.tmp.<pid>.<seq>」）
+- 机理：`begin_v1` 不校验 `path_utf8` 长度，target 先被 snprintf 静默截断到 511；tmp 由「原始终止路径 + 后缀」再截断到同一个 512 缓冲。
+  当 `strlen(path_utf8) >= 511` 时 **tmp 的截断结果恰等于 target**（后缀全被截掉）→ `fopen(tmp,"w+b")` 原地清空最终产品路径，
+  写入直接暴露在正式路径上，最后 `rename(tmp, target)` 是自己改自己、永远"成功"；且**前 511 字符相同的两个不同目标会写到同一文件互相覆写**。
+- 正对照（同仓已有正确写法，前台复验）：`runtime/io/hips_core.c::hips_join_path:536`
+  `if (dn + 1 + rn + 1 > path_cap) return ACS_HIPS_ERR_PARAM;` —— 溢出即报错。
+- 判定：`G_GOV_GATE`（违宪章 §11 原子提交与「失败不得留下可被误认成正式产品的半成品」）+ `H_NUMERIC`（缓冲区边界）。
+  当前 `runtime/io` 无生产调用点（L10-015 / S2-007 证）→ 定 **P1**；若写出路径按 §8.3 收敛到 IO-001 边界，**立即升 P0**。
