@@ -151,7 +151,7 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 | light（data） | `[h][w]` | ADU | NaN 直传输出（ALG-CAL-003，DISP-CAL-004） |
 | 掩码 hot/cold（ac_correct_frame 内部） | char `[h][w]` | 0/1 | 极性 **1=坏点**（SCI-CAL-001 §9a） |
 | sigma_low/sigma_high/hot_sigma/cold_sigma | float，无量纲 | MAD 倍数 | NaN 行为未定义（前置条件，负面测试覆盖）；sigma<=0 = 禁用对应检测 |
-| K（dark_scale_factor） | float/double，无量纲 | =t_light/t_dark | 由调用方计算（曝光秒，FITS EXPTIME）；dark_opt=1 缺 bias/dark 时回退标准分支且 K=1.0 |
+| K（dark_scale_factor） | float/double，无量纲 | =t_light/t_dark | 由调用方计算（曝光秒，FITS EXPTIME）；dark_opt=1 缺 bias/dark 时回退标准分支且 K=1.0。**B2-A13 消费边界 fail-closed**：P1 校准节点 `p1_op_calibrate`（`module_adapters.cpp:1243-1305`）在 K 分支（bias+dark 在位）从 light/dark 的 FITS `EXPTIME` 推导 `K=t_light/t_dark`；EXPTIME 缺失/非正，或显式 `dark_scale_factor` 与 EXPTIME 比不一致（>1e-6 相对）→ DATA 拒绝（CLI rc=2），不写 `calibrated_*`、不写 complete；K 的公式与单位不变 |
 | combine | int 0=mean / 1=median | — | 其他值按 mean 路径（实现按 `==AC_COMBINE_MEDIAN` 判定） |
 | method | int 0=median / 1=IDW（名义 bilinear） | — | 其他值按 IDW 路径 |
 
@@ -245,7 +245,8 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（api.cpp:486-503） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；值 NaN/Inf 静默跳过（等效掩膜，不进累加器，无计数暴露——DISP-DRZ-004，drizzle_engine.cpp:1712） |
 | "header" KV: CD1_1..CD2_2 或 CDELT1/2+CRVAL1/2+CRPIX1/2 | double | 度/像素、度、像素（1-based） | 两者均缺 → 无 WCS，帧通道返回 -9（api.cpp:541-545）；CDELT+CROTA2 构造 CD（api.cpp:538） |
 | "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（api.cpp:552-557）；reverse 通道 sip_order 校验 [0,5]（DISP-DRZ-001） |
-| "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；缺省 FP32；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3313-3325） |
+| "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取（API 兼容缺省 FP32）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3313-3325）。**B2-A12**：P1 drizzle 节点不再写死 "0"，按 `drizzle.precision_mode` 写实际精度；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
+| "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`，引擎显式降级写 `BUNIT=ADU`（`drizzle_engine.cpp:1950-1956`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
 | "snr_model" 块（可选） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h） |
 | nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（api.cpp:398-402）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
 | nested | int 1/0 | — | 仅 1=NESTED；0=RING 硬拒绝（drizzle_engine.cpp:1575-1579） |

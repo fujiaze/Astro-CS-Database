@@ -233,7 +233,7 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
   变更走 SCI 变更流程，不在本任务改动（纪律：不得根据代码缺口反向修改 SCI）。
 - DRIZZLE.md:131 指向的 DISP-DRZ-007（方差行漂移）涉 astro_sphere_sink.cpp:100
   与本文件 (3a) 接口，本模块不改传播公式。
-- 上游 drizzle 计算为 OpenMP 行级并行（drizzle_engine.cpp:1670，
+- 上游 drizzle 计算为 OpenMP 行级并行（drizzle_engine.cpp:1673，
   schedule(static)，线程数不污染 ICV :1644），线程私有 tile 累加 + 线程 0
   串行合并（:1762-1792）后单线程调 writer（astro_sphere_sink.cpp:97）——
   writer 自身单线程串行消费，与 §7 确定性一致。

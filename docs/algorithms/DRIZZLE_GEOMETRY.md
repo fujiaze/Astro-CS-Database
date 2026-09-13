@@ -32,16 +32,16 @@
 - 记号: 源像素 j（值 x_j [ADU]、方差 v_j [ADU²]、权重面）、目标
   HEALPix NESTED leaf p；drop = 源像素按 pixfrac 收缩的球面 footprint；
   A_drop,j = drop 球面总面积 [sr]（S-H 裁剪前，双精度角点累积，
-  <1e-20 拒绝，drizzle_engine.cpp:1436-1438）。
+  <1e-20 拒绝，drizzle_engine.cpp:1439-1441）。
 - 离散公式（逐条源码锚）:
   - 权重: `w_jp = a_jp / A_drop,j`，a_jp = drop ∩ target p 球面交叠
-    面积 [sr]（drizzle_engine.cpp:1505；w≤0 拒绝 :1506-1509）。
+    面积 [sr]（drizzle_engine.cpp:1508；w≤0 拒绝 :1509-1512）。
   - 通量: `F_p = Σ_j x_j · w_jp`（`acc.sumFlux += Scalar(pixelValue *
-    weight)`，:1527）。
+    weight)`，:1530）。
   - 支撑面积: `D_p = Σ_j a_jp`（`acc.sumArea += Scalar(overlap_area)`，
-    :1528）。
+    :1531）。
   - 方差分子: `sumVarNum_p = Σ_j v_j · w_jp²`（`(double)v · (double)w²`
-    中转再转 Scalar，仅当 v>0 累加，:1531-1534）。
+    中转再转 Scalar，仅当 v>0 累加，:1534-1537）。
   - 贡献计数: `nContrib_p = Σ_j 1`。
 - **S_p = F_p/D_p 归一不在本模块**: sumFlux/sumArea/sumVarNum 原始和
   逐 tile 传出（astro_sphere_sink.cpp:99-104 dense 化），归一在
@@ -49,17 +49,17 @@
   lib/astro_image_io/src/hips/aio_hips_writer.cpp:566-631）——与
   drizzle_engine.cpp:2-3 锚注释一致（DISP-DRZ-007 登记旧锚失效）。
 - 单位/dtype: 累加器 Scalar = float（precision_mode=0）或 double（=1）
-  显式模板双实例（drizzle_engine.cpp:2171-2178）；a_jp/面积几何全程
+  显式模板双实例（drizzle_engine.cpp:2177-2184）；a_jp/面积几何全程
   double，FP32 仅发生在累加存储层（逐项舍入，容差门见 §9）。
 
 ## 2 几何管线（drop footprint → 候选 → 交叠面积）
 
 - drop 四角: `half = 0.5·pixfrac`，`(x±half, y±half)` 经 WCS/SIP
-  `pixelToSky` → 单位 Vec3（drizzle_engine.cpp:1303-1308 四角构造；
-  pixfrac==1.0 时行级顶点共享缓存，:1663,1686-1710）。
+  `pixelToSky` → 单位 Vec3（drizzle_engine.cpp:1306-1311 四角构造；
+  pixfrac==1.0 时行级顶点共享缓存，:1666,1689-1713）。
 - 收缩语义: 球面 slerp 不做显式插值，四角直接按收缩后平面坐标取
   WCS 映射（pixfrac 收缩在源平面完成）；pixfrac∈(0,1] 严格校验，
-  ≤0 或 >1 拒绝不夹逼（:1567-1574；文件通道 API 层接受 0.0 的双轨
+  ≤0 或 >1 拒绝不夹逼（:1570-1577；文件通道 API 层接受 0.0 的双轨
   差异见 DISP-DRZ-003）。
 - 三层候选缓冲（spherical_overlap.cpp）:
   1. quick-reject: `lim = max_angle + 1.25·hp_res`
@@ -67,17 +67,17 @@
   2. 保守查询圆: `query_radius = max_angle + 3.0·hp_res`
      （queryDisc 回退）；
   3. fast 路径: 面 delta×1.15 面内畸变系数 + 极冠/跨 face 边界回退
-     queryDisc（:1664-1699）。
+     queryDisc（:1667-1702）。
 - 交叠面积: 球面 Sutherland–Hodgman 裁剪（clip_normals_d，内部 double）
   + **Eriksson 扇形三角剖分**有向面积 + 半球包含检查
   （max_ang ≥ π/2−1e-12 → NAN，:186-239）。SCI 文本称 "Girard 定理"
   与实际实现命名不符（DISP-DRZ-002）。
 - 目标几何缓存: per-thread LRU 8192（TargetGeomCache），hit 复用
   center+boundary4；per-run generation 原子递增清空
-  （drizzle_engine.cpp:1659-1660 `s_target_cache_gen.fetch_add`，
+  （drizzle_engine.cpp:1662-1663 `s_target_cache_gen.fetch_add`，
   B4-22 修复裸 static data race）。
 - HEALPix 地址: 仅 NESTED；`parent = ipix >> 2·d`、
-  `local = ipix & (4^d − 1)` 位分解（:1512-1513）；候选枚举 Morton
+  `local = ipix & (4^d − 1)` 位分解（:1515-1516）；候选枚举 Morton
   spread 位交织（spherical_overlap.cpp:1639-1653）；shim
   healpix_core.h 转发 astrocs::healpix::ang2pix_nest，RING 直接拒绝。
 
@@ -109,31 +109,31 @@
 
 | 条件 | 行为 | 锚 |
 |---|---|---|
-| pixfrac ≤0 或 >1（引擎层） | 拒绝（不夹逼） | drizzle_engine.cpp:1567-1574 |
+| pixfrac ≤0 或 >1（引擎层） | 拒绝（不夹逼） | drizzle_engine.cpp:1570-1577 |
 | pixfrac==0.0（文件通道 API 层） | 放行后进引擎再拒（双轨） | api.cpp:191（DISP-DRZ-003） |
-| RING（nested=0） | 硬拒绝 | :1575-1579；shim throw |
-| channels≠1 多通道 | 拒绝 | :1580-1588 |
+| RING（nested=0） | 硬拒绝 | :1578-1582；shim throw |
+| channels≠1 多通道 | 拒绝 | :1583-1591 |
 | 缺 WCS（CD 与 CDELT+CROTA2 均无） | 拒绝（帧通道返回 -9） | api.cpp:541-545 |
-| 尺寸/空指针非法 | 拒绝 | drizzle_engine.cpp:1594-1603 |
-| **值像素 NaN/Inf** | **主循环静默 continue（等效掩膜），不进累加器，无计数暴露** | :1712（DISP-DRZ-004） |
-| SNR/权重/variance 面非有限或 ≤0 | 静默跳过该像素 | :1715-1729 |
-| 几何 NaN（ra/dec 非有限） | 显式拒绝该像素 | :1319-1320 |
+| 尺寸/空指针非法 | 拒绝 | drizzle_engine.cpp:1597-1606 |
+| **值像素 NaN/Inf** | **主循环静默 continue（等效掩膜），不进累加器，无计数暴露** | :1715（DISP-DRZ-004） |
+| SNR/权重/variance 面非有限或 ≤0 | 静默跳过该像素 | :1718-1732 |
+| 几何 NaN（ra/dec 非有限） | 显式拒绝该像素 | :1322-1323 |
 | 半球检查失败（max_ang≥π/2） | 返回 NAN 面积 | spherical_overlap.cpp:196-216 |
-| A_drop<1e-20 / w≤0 | 拒绝 | drizzle_engine.cpp:1436-1438,1506-1509 |
+| A_drop<1e-20 / w≤0 | 拒绝 | drizzle_engine.cpp:1439-1441,1509-1512 |
 | nside 非法（shim 构造） | 容忍不抛，校验责任在调用方（缺陷候选） | healpix_core.h:25-27 |
 | reverse 输入非法 | 非 0 返回码，逐项校验 | reverse_drizzle.cpp:255-334 |
 
 ## 6 确定性与归约（1/N 合同）
 
 - 并行: `#pragma omp parallel for schedule(static) num_threads(N)
-  reduction(+:nSourcePixels,…)` 逐行条带（drizzle_engine.cpp:1670-1671）；
-  线程数 = config.threads（>0）否则 omp_get_max_threads（:1639-1644），
+  reduction(+:nSourcePixels,…)` 逐行条带（drizzle_engine.cpp:1673-1674）；
+  线程数 = config.threads（>0）否则 omp_get_max_threads（:1642-1647），
   不改全局 omp_set_num_threads；无 _OPENMP 退化串行（tid=0）。
 - 累加结构: per-thread `unordered_map<parent, TileAccumulator>` +
-  per-thread 计数器（:1645-1646）；行级顶点缓存 thread_local
-  （:1686-1688）。
+  per-thread 计数器（:1648-1649）；行级顶点缓存 thread_local
+  （:1689-1691）。
 - 合并: 串行按线程序 t=1..N−1 合入 threadTiles[0]，仅合并 touched
-  leaf，字段序 sumFlux→sumArea→sumVarNum→nContrib（:1762-1785）。
+  leaf，字段序 sumFlux→sumArea→sumVarNum→nContrib（:1765-1788）。
 - **1/N 确定性成立**: 同输入同线程数 bitwise 可复现（schedule(static)
   行→线程映射固定 + 合并序固定）；跨线程数时 leaf 内浮点和顺序不同，
   不保证 bitwise（差异 ≤ 浮点结合律界，测试门 §9 覆盖 1/2/4 线程）。
@@ -146,7 +146,7 @@
 - 时间: O(n_source · avg_candidates)，avg≈3.5（小图实测，9003 例
   oracle 枚举）；fast 路径圆心距预过滤降低 S-H 调用。
 - 内存: tile 累加器 leaf 连续数组 O(1) 寻址（禁 per-leaf 全局 map，
-  :1522 注释）；target 缓存 per-thread bounded 8192 LRU；单交集
+  :1525 注释）；target 缓存 per-thread bounded 8192 LRU；单交集
   O(顶点数≤8) 无整帧副本；SNR 控制点 RAII vector（api.cpp:609-613，
   修复 legacy free 泄漏）。
 
@@ -154,14 +154,24 @@
 
 - Tile: `TileAccumulatorT<Scalar>{parent_ipix, touched[], pixels[4^d]}`
   ；`TileLeafAccumulatorT<Scalar>{sumFlux, sumArea, sumVarNum,
-  nContrib}`（drizzle_engine.h:60-67；release 注释"3 字段"与实际 4
+  nContrib}`（drizzle_engine.h:64-71；release 注释"3 字段"与实际 4
   字段不符，DISP-DRZ-006）。
 - HiPS 直写: tile_depth 必须 =9、nside≥512（astro_sphere_sink.cpp:36-51），
   leaf tile 512×512 1:1，产品 SIGNAL/SUPPORT + V19 variance/ivar
   （有 variance 输入时）；provenance 写 pixfrac/源像素尺度。
-- legacy HISS: HissWriter 流式（writeHisTilesT，drizzle_engine.cpp:1262
-  finalize），测光 gate :1943-1949；operation_counts.json 剖面
-  （api.cpp:1074-1117）。
+- legacy HISS: HissWriter 流式（writeHisTilesT，drizzle_engine.cpp:1265
+  finalize），测光 gate :1950-1956；operation_counts.json 剖面
+  （api.cpp:1078-1121）。
+- **B2-A12 精度 provenance（无 silent 缺省）**: 累加精度由
+  `drizzle.precision_mode`（整数 0=FP32 / 1=FP64）显式给出；缺失或非整数
+  → DATA 拒绝（不 silent 降 FP32）。节点写 p1_stack.json `precision_mode`、
+  帧头 `PRECISION`=fp32/fp64 实际值（module_adapters.cpp:2023-2049）。
+- **B2-A14 测光 provenance（禁硬编码 PHOTAPPL=1）**: PHOTSCAL/PHOTAPPL
+  由真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV，
+  `p1_op_photometry` 产出）决定；未应用测光 → PHOTAPPL=0 + 帧头
+  `PHOTDEGRADE=1`，引擎在显式声明时降级写 BUNIT=ADU（photappl=0），
+  未显式声明仍按 02_FROZEN §7 拒绝（drizzle_engine.cpp:1950-1956；
+  hp_drizzle_api.cpp:935-938；module_adapters.cpp:2054-2083）。
 - 输入通道: PipelineFrame "data"（f32/f64 二选一，bzero=0/bscale=1
   固定，api.cpp:486-503）+ header WCS/SIP KV + 可选 "snr_model" 块
   （KD-tree IDW 重建逐像素 SNR，snr_evaluator.h）。
@@ -196,10 +206,10 @@
 |---|---|---|---|
 | DISP-DRZ-001 | hp_drizzle_api.h:93 注释 sip_order "0..4" | hp_drizzle_api.cpp:98-103 校验 [0,5]（6×6 系数组支持 5 阶下标） | hp_drizzle_api.h:93 vs hp_drizzle_api.cpp:98-103 |
 | DISP-DRZ-002 | 面积="S-H + Girard 定理"（DRIZZLE.md:63,:124） | S-H 裁剪 + Eriksson 扇形三角剖分，无 Girard 实现 | DRIZZLE.md:63,124 vs spherical_overlap.cpp:186-239 |
-| DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | api.cpp:191 vs drizzle_engine.cpp:1567 |
-| DISP-DRZ-004 | 值像素 NaN 经 F_p 传播、不掩膜（DRIZZLE.md:96） | 主循环 !isfinite→continue 静默跳过（不进累加器），无计数暴露 | DRIZZLE.md:96 vs drizzle_engine.cpp:1712 |
+| DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | api.cpp:191 vs drizzle_engine.cpp:1570 |
+| DISP-DRZ-004 | 值像素 NaN 经 F_p 传播、不掩膜（DRIZZLE.md:96） | 主循环 !isfinite→continue 静默跳过（不进累加器），无计数暴露 | DRIZZLE.md:96 vs drizzle_engine.cpp:1715 |
 | DISP-DRZ-005 | **（原登记已反转，2026-09 实测复核 @f7fa3160）** 原记"全文无 1e-3 切平面分支，现行统一球面 S-H"与代码相反 | **存在三处 `max_angle < 1e-3` 切平面活分支 = 微小 drop（角跨度 < 1e-3 rad ≈ 206″）的实际执行路径，必须保留**：:1085 `g.drop_area` 微小 drop 用切平面面积、:1282 nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、:1325 三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差）。注释论证锚 :996-1001（θ<1e-3 时切平面偏差 <4e-8，球面 double 相消噪声 ~1e-4~5e-5）。按原登记迁移会删除真路径、引入数值回归——禁行 | DRIZZLE.md:98 vs spherical_overlap.cpp:1085,1282,1325（注释 :996-1001,:1072-1073） |
-| DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:58-59 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:58-59 vs 60-67 |
+| DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:62-63 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:62-63 vs 64-71 |
 | DISP-DRZ-007 | SCI §13 方差锚 drizzle_engine.cpp:100/736-762 | 行号漂移：现行方差锚 astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile | DRIZZLE.md:131 vs drizzle_engine.cpp:2-3 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用（legacy） | poly_clip.h:4-15 vs drizzle_engine.cpp 全文 |
 

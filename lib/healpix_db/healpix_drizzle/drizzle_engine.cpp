@@ -1027,7 +1027,10 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
     // PHOTOMETRIC 阶段 (pc_calibrate_simple) 应已把 photscal 乘入像素值,
     // 或调用方显式设置 apply_photometry=true。两者均未设置时拒绝生成 HISS,
     // 避免输出未校准 ADU signal 违反 02_FROZEN §7 规范。
-    if (!config.apply_photometry && !config.photometry_applied_upstream) {
+    // B2-A14: 未显式声明 uncalibrated_adu_allowed 时保持原拒绝语义；
+    // 显式降级 (PHOTDEGRADE=1) 则由调用方负责 provenance (PHOTAPPL=0/BUNIT=ADU)。
+    if (!config.apply_photometry && !config.photometry_applied_upstream &&
+        !config.uncalibrated_adu_allowed) {
         error_msg = "正式 Stage1 HISS 要求测光校准已应用 "
                     "(apply_photometry=false 且 photometry_applied_upstream=false), "
                     "拒绝生成未校准 ADU signal HISS";
@@ -1944,7 +1947,10 @@ bool DrizzleEngine::writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& 
     error_msg.clear();
 
     // 正式 Stage1 HISS 要求测光校准已应用 (与 writeHis 一致)
-    if (!config.apply_photometry && !config.photometry_applied_upstream) {
+    // B2-A14: 显式降级 (PHOTDEGRADE=1) 允许 PHOTAPPL=0 的未测光 ADU 产物;
+    // 未显式声明时保持原 02_FROZEN §7 测光门拒绝语义。
+    if (!config.apply_photometry && !config.photometry_applied_upstream &&
+        !config.uncalibrated_adu_allowed) {
         error_msg = "正式 Stage1 HISS 要求测光校准已应用 "
                     "(apply_photometry=false 且 photometry_applied_upstream=false), "
                     "拒绝生成未校准 ADU signal HISS";
