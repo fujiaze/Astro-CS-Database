@@ -132,3 +132,50 @@
   `if (dn + 1 + rn + 1 > path_cap) return ACS_HIPS_ERR_PARAM;` —— 溢出即报错。
 - 判定：`G_GOV_GATE`（违宪章 §11 原子提交与「失败不得留下可被误认成正式产品的半成品」）+ `H_NUMERIC`（缓冲区边界）。
   当前 `runtime/io` 无生产调用点（L10-015 / S2-007 证）→ 定 **P1**；若写出路径按 §8.3 收敛到 IO-001 边界，**立即升 P0**。
+
+---
+
+# F00-07a 【正式撤回】
+
+- 本节原写「`tests/io/test_fits_stream_contract.py::test_hips_rewriter_drops_bad_keyword` 把畸形关键字钉成期望输出，
+  :173 构造 `A_0_1=单引号0.1单引号`，:186-189 断言 `A_0_1 not in h` 且 `_assert_ok(rc)`」并称「前台已逐字复验」。
+- **该锚点在真源不存在**，前台复验证据如下：
+  - grep `drops_bad|A_0_1|bad_keyword|rewriter` 限定 tests/ → **0 命中**；
+  - 该测试文件实际的用例名是 test_roundtrip_all_dtypes / test_astropy_reads_ours / test_reads_astropy /
+    test_datasum_cross / test_checksum_verify_and_tamper / test_naninf_strict / test_bad_header_no_simple /
+    test_truncated / test_mismatch —— **没有** test_hips_rewriter_drops_bad_keyword；
+  - 全仓 grep `A_0_1|drops_bad` 仅命中：本审计档案自身（F00、L01、M1a 及其 findings 派生件）与一份归档脚本
+    `engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/evidence/P11-002/scripts/test_wcs_closure.py:245`。
+- 根因（写进方法记录）：我把 **L01 报的「非法 SIP 关键字 A_0_0/A_0_1 被写进 FITS 头」**（真源 `lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp::extract_wcs_sip`
+  与 `sip_keyword_name`，该事实**由 L01/M1a 独立定稿、依然成立**）与 **L24 报的「properties 关键字静默丢弃」** 两件事，
+  合成成了一个**不存在的测试函数名**，并附上凭印象写的行号，还标注「已逐行复验」。
+- 教训（已同步给全层）：①「已复验」只能标注在自己**当场读过**的原文上；②跨档案合并同类事实时必须各自保留原始锚点，
+  不得为叙述方便生成新的 path::符号；③任何引用都要能机器化核验——据此已建立 `_tools/verify_anchors.js` 与
+  `_merge/ANCHOR_VERIFY_REPORT.md`，**审计档案自身也要过这台机器**（本次它同样抓到了 31 处 path::符号 0 命中）。
+- 受影响条目处置：凡引用 F00-07a 的派生条目（_cache/L01.md:289、_merge/M1a.md:45、findings/B_STD_MISMATCH/p2/M1a_L01_L02.md:12）
+  **由 M1a 的定稿内容独立支撑**（其证据是 ipv_wcs.cpp 的关键字生成与 header 写出，不是这个测试名），
+  但其中出现的 `test_hips_rewriter_drops_bad_keyword` 字样须由 R 层删除或改述。
+- 「properties 非法关键字被静默丢弃」这一**现象**目前**未由我复现**，转由 L24 分片中的对应站点继续举证；
+  在举证到位前不得作为已定稿事实引用。
+
+---
+
+# F00-07a 【正式撤回】
+
+- 本节原写「tests/io/test_fits_stream_contract.py::test_hips_rewriter_drops_bad_keyword 把畸形关键字钉成期望输出，
+  :173 构造 A_0_1=单引号0.1单引号，:186-189 断言 A_0_1 not in h 且 _assert_ok(rc)」并称「前台已逐字复验」。
+- **该锚点在真源不存在**。复验证据：grep drops_bad|A_0_1|bad_keyword|rewriter 限定 tests/ → **0 命中**；
+  该测试文件真实用例名是 test_roundtrip_all_dtypes / test_astropy_reads_ours / test_reads_astropy / test_datasum_cross /
+  test_checksum_verify_and_tamper / test_naninf_strict / test_bad_header_no_simple / test_truncated / test_mismatch，
+  **没有** test_hips_rewriter_drops_bad_keyword；全仓 grep A_0_1|drops_bad 仅命中本审计档案自身（F00、L01、M1a 及其派生件）
+  与一份归档脚本 engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/evidence/P11-002/scripts/test_wcs_closure.py:245。
+- 根因（写进方法记录）：我把 **L01 报的「非法 SIP 关键字 A_0_0/A_0_1 被写进 FITS 头」**（真源
+  `lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp::extract_wcs_sip` 与 sip_keyword_name，该事实由 L01/M1a 独立定稿、**依然成立**）
+  与 **L24 报的「properties 关键字被静默丢弃」** 两件事，合成成了一个**不存在的测试函数名**，还附了凭印象的行号，
+  并标注「已逐行复验」。
+- 教训：①「已复验」只能标注在自己**当场读过**的原文上；②跨档案合并同类事实时各自保留原始锚点，
+  **不得为叙述方便生成新的 path::符号**；③任何引用都要可机器核验 → 已据此建立 _tools/verify_anchors.js 与
+  _merge/ANCHOR_VERIFY_REPORT.md，**审计档案自身也过这台机器**（本次它同时抓到 31 处 path::符号 0 命中、156 个不存在路径）。
+- 受影响派生条目：_cache/L01.md:289、_merge/M1a.md:45、findings/B_STD_MISMATCH/p2/M1a_L01_L02.md:12 ——
+  其实质由 ipv_wcs 的关键字生成与 header 写出独立支撑（不受本撤回影响），但其中出现的该测试名字样须由 R 层删除或改述。
+- 「properties 非法关键字被静默丢弃」这一**现象**目前**未由我复现**，转由 L24 站点继续举证；举证到位前不得当作已定稿事实引用。
