@@ -2601,6 +2601,17 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     // B2-A15: valid_mask = seen（本 parent 实际触及的叶像素）。未覆盖像素
     // 即使缓冲残留/浮点残差也为 invalid → AIO 写 signal=NaN/support=0。
     view.valid_mask = seen.data();
+    // RESCUE A15 fail-closed 不变量 (P1-7 独立注入锚): writer 必须显式下发
+    // "本 parent 实际触及叶"的 valid mask。未覆盖像素即便缓冲有残留/浮点残差
+    // 也必须 invalid; 若本行被回退为 nullptr, 节点立即 DATA 失败 (不允许把
+    // 无显式有效掩膜的缓冲交给 AIO "全有效" 写出)。
+    if (view.valid_mask == nullptr) {
+      aio_hips_abort(ps);
+      if (meta_json) aio_hio_free(meta_json);
+      if (tile_ipix) aio_hio_free(tile_ipix);
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "A15 invariant: writer must emit explicit per-parent valid mask"));
+    }
     view.var_num_sum = nullptr;
     const int wr = aio_hips_write_signal_support_tile(ps, &view);
     if (wr != 0) {

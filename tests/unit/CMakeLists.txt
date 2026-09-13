@@ -939,6 +939,19 @@ add_test(NAME drizzle_adapter COMMAND drizzle_adapter_test)
 set_tests_properties(drizzle_adapter PROPERTIES
   ENVIRONMENT "ASTROCS_DRIZZLE_DLL_PATH=$<TARGET_FILE:astrocs_p1_drizzle>")
 
+# RESCUE-FD-02: hp_drizzle_run 库边界 precision_mode 缺省语义回归
+#   (-1 + 无 PRECISION KV → FP64 累积; 未知 KV 值 fail-closed; 显式 0/1 不变)
+add_executable(drizzle_precision_default_test drizzle_precision_default_test.cpp)
+target_include_directories(drizzle_precision_default_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/healpix_db/healpix_drizzle
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
+target_compile_definitions(drizzle_precision_default_test PRIVATE
+  AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
+target_link_libraries(drizzle_precision_default_test PRIVATE
+  astrocs_drizzle ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
+add_test(NAME drizzle_precision_default COMMAND drizzle_precision_default_test)
+
 # calibration_adapter_test (P1-CAL-IMPL): 模块 C ABI v1 adapter 测试。
 # direct 通道链 astrocs_calibration STATIC (AC_API 全导出面); plugin 通道
 # dlopen astrocs_p1_calibration DLL (唯一导出 astrocs_module_query_v1)。

@@ -50,7 +50,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
                                             # median<=0 时不归一，保持原样
 ```
 
-与 `lib/calibration/src/calibrator.cpp:104-136,147-179` 及 `lib/calibration/src/master_generator.cpp:222-234` 一致。`dark_opt=1` 仅在 `bias && dark` 均非 NULL 时生效，否则回退 `dark_opt=0` 语义且 `k→1.0`。
+与 `lib/calibration/src/calibrator.cpp:104-136,147-179` 及 `lib/calibration/src/master_generator.cpp:243-255` 一致。`dark_opt=1` 仅在 `bias && dark` 均非 NULL 时生效，否则回退 `dark_opt=0` 语义且 `k→1.0`。
 
 ## 6 假设
 
