@@ -1,174 +1,52 @@
-# INDEX · 定稿条目机械汇总
+# INDEX · 定稿条目机械汇总（v2）
 
-- 生成方式：前台按 `问题扫描/findings/<类别>/p<0|1|2>/*.md` 的 finding 标题（`### Mxx-A-001` 形式）机械计数；复跑口径见 `_tools/verify_anchors.js` 同一目录。
-- 现状：**161** 个定稿文件、**333** 条 finding 标题（M7/M8/M8a/M9 与 M3b 之后的合并域尚未计入）。
-- 优先级与类别的**终判**以各域 `_merge/M*.md` 处置表为准；本表只作导航与去重后的规模核对，不改判。
+- 生成：前台脚本按 `问题扫描/findings/<类别>/p<0|1|2>/*.md` 中 `### Mxx-<类>-<编号>` 形式标题计数；复跑口径见本节末。
+- **现状：210 份定稿件 / 494 条条目**；域覆盖 M1a M2a M2b M3 M3b M4 M5a M5b M6a M6b M7 M8 M8a M9（十四域），**L28b 交档后并入**。
+- 优先级与类别的**终判以各域 `_merge/M*.md` 处置表为准**；本表只作导航与规模核对，不改判。
+- 已知噪声：①条目内含"交叉指针/本类小结"等小节（M7 自报 78 标题 = 76 实条目 + 2 指针）；②部分域用 `##`、部分用 `###`，本表两者都计。
 
 ## 一、类别 × 优先级
 | 类别 | P0 | P1 | P2 | 小计 |
 |---|---|---|---|---|
-| A_SCI_DEF | 13 | 21 | 5 | 39 |
-| B_STD_MISMATCH | 9 | 11 | 1 | 21 |
-| C_DOC_CODE_GAP | 17 | 48 | 10 | 75 |
-| D_COMMENT | 0 | 14 | 20 | 34 |
-| E_TRACE_BREAK | 2 | 22 | 7 | 31 |
-| F_TEST_GAP | 9 | 22 | 5 | 36 |
-| G_GOV_GATE | 15 | 33 | 6 | 54 |
-| H_NUMERIC | 3 | 7 | 4 | 14 |
-| I_DOC_HYGIENE | 0 | 11 | 18 | 29 |
-| **合计** | **68** | **189** | **76** | **333** |
+| A_SCI_DEF | 15 | 59 | 21 | 95 |
+| B_STD_MISMATCH | 10 | 13 | 2 | 25 |
+| C_DOC_CODE_GAP | 18 | 60 | 15 | 93 |
+| D_COMMENT | 0 | 14 | 22 | 36 |
+| E_TRACE_BREAK | 2 | 25 | 12 | 39 |
+| F_TEST_GAP | 14 | 36 | 10 | 60 |
+| G_GOV_GATE | 17 | 53 | 8 | 78 |
+| H_NUMERIC | 5 | 15 | 5 | 25 |
+| I_DOC_HYGIENE | 0 | 12 | 31 | 43 |
+| **合计** | **81** | **287** | **126** | **494** |
 
-## 二、按域（文件名后缀）
-| 域 | 条目 |
-|---|---|
-| M1a | 44 |
-| M2a | 46 |
-| M2b | 29 |
-| M3 | 43 |
-| M3b | 22 |
-| M4 | 31 |
-| M5a | 22 |
-| M5b | 43 |
-| M6a | 31 |
-| M6b | 22 |
-| 其他 | 0 |
+## 二、按合并域
+| 域 | 条目 | 域 | 条目 |
+|---|---|---|---|
+| MM1a | 44 | MM2a | 46 |
+| MM2b | 29 | MM3 | 43 |
+| MM3b | 22 | MM4 | 31 |
+| MM5a | 22 | MM5b | 43 |
+| MM6a | 31 | MM6b | 22 |
+| MM7 | 78 | MM8 | 26 |
+| MM8a | 31 | MM9 | 26 |
 
-## 三、文件清单（条目数降序）
-| 文件 | 条目 |
-|---|---|
-| G_GOV_GATE/p1/M5b_L12_L17.md | 14 |
-| C_DOC_CODE_GAP/p1/M2a_L04_L10.md | 11 |
-| C_DOC_CODE_GAP/p1/M3_L05_L07.md | 9 |
-| D_COMMENT/p2/M6a_L13_L14.md | 8 |
-| A_SCI_DEF/p1/M1a_L01_L02.md | 7 |
-| D_COMMENT/p1/M6a_L13_L14.md | 7 |
-| F_TEST_GAP/p1/M4_L08_L09.md | 6 |
-| G_GOV_GATE/p0/M5b_L12_L17.md | 6 |
-| G_GOV_GATE/p1/M5a_L11.md | 6 |
-| B_STD_MISMATCH/p0/M2b_L03_L15.md | 6 |
-| C_DOC_CODE_GAP/p1/M5b_L12_L17.md | 5 |
-| E_TRACE_BREAK/p1/M5b_L12_L17.md | 5 |
-| I_DOC_HYGIENE/p2/M5b_L12_L17.md | 5 |
-| C_DOC_CODE_GAP/p1/M4_L08_L09.md | 4 |
-| C_DOC_CODE_GAP/p1/M1a_L01_L02.md | 4 |
-| F_TEST_GAP/p1/M1a_L01_L02.md | 4 |
-| C_DOC_CODE_GAP/p0/M1a_L01_L02.md | 4 |
-| G_GOV_GATE/p0/M5a_L11_L17.md | 4 |
-| C_DOC_CODE_GAP/p1/M5a_L11.md | 4 |
-| A_SCI_DEF/p1/M3b_L06.md | 4 |
-| D_COMMENT/p2/M2a_L04_L10.md | 4 |
-| E_TRACE_BREAK/p1/M2a_L04_L10.md | 4 |
-| A_SCI_DEF/p1/M3_L05_L07.md | 4 |
-| F_TEST_GAP/p1/M3_L05_L07.md | 4 |
-| G_GOV_GATE/p1/M2b_L03_L15.md | 4 |
-| B_STD_MISMATCH/p1/M2b_L03_L15.md | 4 |
-| C_DOC_CODE_GAP/p0/M4_L08_L09.md | 3 |
-| A_SCI_DEF/p1/M4_L08_L09.md | 3 |
-| A_SCI_DEF/p0/M1a_L01_L02.md | 3 |
-| B_STD_MISMATCH/p1/M1a_L01_L02.md | 3 |
-| E_TRACE_BREAK/p1/M1a_L01_L02.md | 3 |
-| I_DOC_HYGIENE/p2/M1a_L01_L02.md | 3 |
-| I_DOC_HYGIENE/p1/M5b_L12_L17.md | 3 |
-| B_STD_MISMATCH/p1/M2a_L04_L10.md | 3 |
-| A_SCI_DEF/p0/M3b_L06.md | 3 |
-| C_DOC_CODE_GAP/p1/M3b_L06.md | 3 |
-| F_TEST_GAP/p0/M3b_L06.md | 3 |
-| I_DOC_HYGIENE/p2/M2a_L04_L10.md | 3 |
-| F_TEST_GAP/p1/M2a_L04_L10.md | 3 |
-| C_DOC_CODE_GAP/p0/M3_L05_L07.md | 3 |
-| C_DOC_CODE_GAP/p1/M2b_L03_L15.md | 3 |
-| I_DOC_HYGIENE/p1/M6a_L13_L14.md | 3 |
-| G_GOV_GATE/p0/M6b_L16_L18.md | 3 |
-| G_GOV_GATE/p1/M6b_L16_L18.md | 3 |
-| D_COMMENT/p1/M3_L05_L07.md | 3 |
-| D_COMMENT/p2/M3_L05_L07.md | 3 |
-| E_TRACE_BREAK/p2/M6b_L16_L18.md | 3 |
-| A_SCI_DEF/p2/M3_L05_L07.md | 3 |
-| C_DOC_CODE_GAP/p1/M6b_L16_L18.md | 3 |
-| E_TRACE_BREAK/p1/M6b_L16_L18.md | 3 |
-| C_DOC_CODE_GAP/p2/M2b_L03_L15.md | 3 |
-| A_SCI_DEF/p0/M4_L08_L09.md | 2 |
-| F_TEST_GAP/p0/M4_L08_L09.md | 2 |
-| C_DOC_CODE_GAP/p2/M4_L08_L09.md | 2 |
-| D_COMMENT/p1/M4_L08_L09.md | 2 |
-| E_TRACE_BREAK/p1/M4_L08_L09.md | 2 |
-| C_DOC_CODE_GAP/p0/M5b_L12_L17.md | 2 |
-| B_STD_MISMATCH/p0/M1a_L01_L02.md | 2 |
-| H_NUMERIC/p0/M2a_L04_L10.md | 2 |
-| G_GOV_GATE/p1/M1a_L01_L02.md | 2 |
-| D_COMMENT/p2/M1a_L01_L02.md | 2 |
-| A_SCI_DEF/p1/M2a_L04_L10.md | 2 |
-| C_DOC_CODE_GAP/p2/M2a_L04_L10.md | 2 |
-| H_NUMERIC/p1/M3b_L06.md | 2 |
-| C_DOC_CODE_GAP/p0/M3b_L06.md | 2 |
-| G_GOV_GATE/p2/M2a_L04_L10.md | 2 |
-| H_NUMERIC/p2/M2a_L04_L10.md | 2 |
-| F_TEST_GAP/p2/M2a_L04_L10.md | 2 |
-| A_SCI_DEF/p0/M2b_L03_L15.md | 2 |
-| C_DOC_CODE_GAP/p1/M6a_L13_L14.md | 2 |
-| I_DOC_HYGIENE/p1/M6b_L16_L18.md | 2 |
-| G_GOV_GATE/p2/M6b_L16_L18.md | 2 |
-| C_DOC_CODE_GAP/p2/M3_L05_L07.md | 2 |
-| A_SCI_DEF/p0/M3_L05_L07.md | 2 |
-| F_TEST_GAP/p1/M2b_L03_L15.md | 2 |
-| I_DOC_HYGIENE/p2/M6a_L13_L14.md | 2 |
-| H_NUMERIC/p1/M3_L05_L07.md | 2 |
-| I_DOC_HYGIENE/p1/M3_L05_L07.md | 2 |
-| I_DOC_HYGIENE/p2/M3_L05_L07.md | 2 |
-| A_SCI_DEF/p2/M4_L08_L09.md | 1 |
-| G_GOV_GATE/p1/M4_L08_L09.md | 1 |
-| G_GOV_GATE/p2/M4_L08_L09.md | 1 |
-| H_NUMERIC/p2/M4_L08_L09.md | 1 |
-| D_COMMENT/p2/M4_L08_L09.md | 1 |
-| B_STD_MISMATCH/p2/M1a_L01_L02.md | 1 |
-| A_SCI_DEF/p0/M2a_L04_L10.md | 1 |
-| B_STD_MISMATCH/p0/M2a_L04_L10.md | 1 |
-| C_DOC_CODE_GAP/p0/M2a_L04_L10.md | 1 |
-| F_TEST_GAP/p0/M2a_L04_L10.md | 1 |
-| D_COMMENT/p1/M1a_L01_L02.md | 1 |
-| E_TRACE_BREAK/p2/M1a_L01_L02.md | 1 |
-| F_TEST_GAP/p0/M1a_L01_L02.md | 1 |
-| G_GOV_GATE/p2/M1a_L01_L02.md | 1 |
-| H_NUMERIC/p1/M1a_L01_L02.md | 1 |
-| F_TEST_GAP/p1/M5b_L12_L17.md | 1 |
-| F_TEST_GAP/p2/M5b_L12_L17.md | 1 |
-| E_TRACE_BREAK/p2/M5b_L12_L17.md | 1 |
-| D_COMMENT/p1/M5a_L11.md | 1 |
-| F_TEST_GAP/p1/M5a_L11.md | 1 |
-| A_SCI_DEF/p1/M5a_L11.md | 1 |
-| I_DOC_HYGIENE/p1/M5a_L11.md | 1 |
-| D_COMMENT/p2/M5a_L11.md | 1 |
-| I_DOC_HYGIENE/p2/M5a_L11.md | 1 |
-| E_TRACE_BREAK/p1/M5a_L11.md | 1 |
-| H_NUMERIC/p1/M5a_L11.md | 1 |
-| F_TEST_GAP/p2/M1a_L01_L02.md | 1 |
-| H_NUMERIC/p0/M3b_L06.md | 1 |
-| E_TRACE_BREAK/p2/M2a_L04_L10.md | 1 |
-| G_GOV_GATE/p0/M3b_L06.md | 1 |
-| E_TRACE_BREAK/p1/M3b_L06.md | 1 |
-| D_COMMENT/p2/M3b_L06.md | 1 |
-| I_DOC_HYGIENE/p2/M3b_L06.md | 1 |
-| G_GOV_GATE/p1/M2a_L04_L10.md | 1 |
-| E_TRACE_BREAK/p0/M6b_L16_L18.md | 1 |
-| C_DOC_CODE_GAP/p0/M6a_L13_L14.md | 1 |
-| C_DOC_CODE_GAP/p0/M2b_L03_L15.md | 1 |
-| C_DOC_CODE_GAP/p2/M6a_L13_L14.md | 1 |
-| I_DOC_HYGIENE/p2/M6b_L16_L18.md | 1 |
-| E_TRACE_BREAK/p1/M6a_L13_L14.md | 1 |
-| E_TRACE_BREAK/p2/M6a_L13_L14.md | 1 |
-| B_STD_MISMATCH/p1/M6a_L13_L14.md | 1 |
-| A_SCI_DEF/p2/M6a_L13_L14.md | 1 |
-| E_TRACE_BREAK/p0/M3_L05_L07.md | 1 |
-| E_TRACE_BREAK/p1/M3_L05_L07.md | 1 |
-| F_TEST_GAP/p0/M3_L05_L07.md | 1 |
-| G_GOV_GATE/p0/M6a_L13_L14.md | 1 |
-| G_GOV_GATE/p1/M6a_L13_L14.md | 1 |
-| F_TEST_GAP/p1/M6b_L16_L18.md | 1 |
-| F_TEST_GAP/p0/M2b_L03_L15.md | 1 |
-| G_GOV_GATE/p1/M3_L05_L07.md | 1 |
-| F_TEST_GAP/p2/M6a_L13_L14.md | 1 |
-| E_TRACE_BREAK/p1/M2b_L03_L15.md | 1 |
-| H_NUMERIC/p1/M2b_L03_L15.md | 1 |
-| H_NUMERIC/p2/M2b_L03_L15.md | 1 |
+## 三、跨域主题 → 唯一总述条目（SUMMARY 引用此表，禁止另立同义总述）
+| 主题 | 总述归属 | 一句判词 |
+|---|---|---|
+| 机器门结构性不红（三向空集） | M8-G-001 + M6b-G-001（文档侧） | 校验对象≠交付对象，或判据来自被检物自身 |
+| 符合性结论生成逻辑失真 | M3-G-002（六域） | 判定式一律不含条款自身判据维度 ⇒ §17.1 发布前提不可证伪 |
+| §6.3 support 冒充权重 | M3-A-002（代码语义唯一结论）+ M4-A-003/L21-001/L18-002 | 两份 FROZEN SCI 互斥，须裁决 |
+| 独立 Oracle 缺位 | M7-G-104（七实例家族） | "不存在"(M2b-F-01) 与"共源"(M2a-F-1) 需两扇不同的门 |
+| 不可达/依据虚构门家族 | M7-G-001（两分） | 阈值取不到 + 引用不存在的标准条款 |
+| 边界校验做一半 | M9 §6 同仓正对照 12 行 | 新边界未继承老边界纪律；修复=对齐既有写法 |
+| 平台盲区 | M9.md §4（唯一总述） | 三条 Windows-only 缺陷 × windows-main 有效断言数 |
+| 行锚系统性失效 | M6b-E-002 | 根因：docs/owner 不在 anchor_contract doc_globs |
+| 追溯双头（路由层） | M6b-E-001 | 可交比 ID 8 个、TEST 证据一致 0/8 |
+| 无据 VERIFIED | M6b-G-001 | TEST 层 18/22 行锚 docs/ 而非测试 |
+| 状态声明无单一事实源 | M6b-G-002 + M6a-G-001 | 四份 RELEASE_STATUS 并存；owner 侧 4/4 全漂 |
+| 控制参数被算被记不参与执行 | M6a-C-001（order_sel）+ M2a-H-1（precision_mode）+ M5a-G-003 | 装饰性合规 6 成员 |
+| 修复即扩散 / 声明超前 / 反向钉死 | M9.md §7 六站点 + M8 §0.3 合格线十一项 + M5b 版本簇 | B2-A17 正按错误口径交付；测试把废止值钉成基线 |
+| 许可与依赖登记面 | M8a-G-001（一条四面）+ 前台 F00-09 复验 | 同目录 5 行距离自相矛盾；STATIC 并进 exe |
 
-> 另有 27 个文件的条目标题不是 `Mxx-<类别>-<编号>` 形式（多为早期命名或纯说明件），未被机械计数；对应域由 R 层核对补录。
+## 四、复跑
+- `node 问题扫描/_tools/verify_anchors.js`（锚点核验 v3，五档处置强度）；`node 问题扫描/_tools/gen_changed_watch.js`（并发改动面清单）。
