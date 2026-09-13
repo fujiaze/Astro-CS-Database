@@ -40,6 +40,9 @@
 | A-28 | A | **对外订正冲突**：L23 §6「linux-main 已装 scipy」与 `ci-linux.yml:125-127`（scipy 仅 linux-deep）不一致 | M8 §9-5 | — | 以 workflow 文本为准，登记 prerequisite_tools 缺口 |
 | A-29 | A | **三条建议门由谁实现**（validate_registry / check_ctest_registration / check_standards_registry 三处改动，需同步 checks.json 与 docs） | M8 §9-6；对应 C-02 | — | 建议一次提交内三处同改，否则又一例"改过没人守住" |
 
+| A-30 | A | **REVIEW_PENDING 三方矛盾**（AGENTS.md 权威文本已证实）：`check_agents_gov.py:15` **强制** AGENTS.md 保留该字面量作为要素匹配证据，而 `validate_task_ledger.py:42-43` 判其为**非法状态**、且该验证器**未登记为 CI 检查项**；AGENTS.md 自己写明"仅作历史映射、不得据此新增状态" | M6b-G-002（P0）+ 前台读到 AGENTS.md 原文后闭合 | P0 | 以 §14.5 状态机为准删字面量并改 check_agents_gov 判据，**同时**把 validate_task_ledger 注册进 ci/checks.json（否则仍是"改过没人守住"） |
+| A-09b | A | **`问题扫描/` 是未登记的根目录条目**（违 AGENTS.md 目录规范「先登记并获负责人确认」；建目录本身有你的直接指令授权，缺的是登记步骤） | 前台自纠，见 _merge/00_COORDINATION.md 末节；已在协议 §0.4 免报区与核验器排除表内，不污染覆盖率 | — | A 授权登记为常驻审计域 / B 终报后归位 engineering/ 或 reports/ 并注明去向 / C 暂保持现状 |
+
 ## B. 需执行 / 跨节点权限才能定案（R 层是否授权）
 | B-01 | B | p1noise / astrocs_p1_noise 是否被 git tracked（两陈述不可同真：tests/unit/CMakeLists.txt:515-528「从未入库」vs ci/ctest_baseline.json:15,123-130 冻结八目标） | M3 §6① | 需 git ls-files 或干净树 configure |
 | B-02 | B | snr_estimator 交付导出面是否仍含退休符号 | M3 §6② | 需 nm/dumpbin（禁构建下不可得） |
