@@ -532,9 +532,8 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 
 
 
-## 前台复验补记（簇 1 已同步）与树态
-- `io_ownership_test` **确已注册并进基线**：`tests/unit/CMakeLists.txt:136/:141` + `ci/ctest_baseline.json:77`，
-  `evidence/**` 历史 ctest 异常窗（4F+19NR）也列它。故 M8-F-002 不是"漏注册"，而是**在册、进基线、被历史报告引用的门结构上永远不会红**
-  （`::failures` :9/:14 不参与退出码、`:31` 无条件 `return 0`）。→ **在册名单与基线名单都不能当"门有效"的证据**；C-02 加第四向。
-- `ci/known_failures.json` 现实测 **0 条**（M8 前测 2 条）→ 又一处漂移，R 层加注不判错。
-- 树态：脏源 **9**、HEAD `fc4ef16a`（仍小步前移）；十四域全部收工，只剩 **L28b**；本审计提交 49。
+## F00 全量自审（机械复验我自己写的每一条 path::符号）
+- 抽出 4 条唯一 `文件::符号` 引用逐条回读真源：**通过 2 条、不通过 2 条**。
+- tests/io/test_fits_stream_contract.py::test_hips_rewriter_drops_bad_keyword（F00 第 165 行引）→ **SYMBOL_ABSENT**
+- tests/abi/test_io_ownership_contract.py::test_main_enforced（F00 第 265 行引）→ **FILE_NOT_FOUND / undefined**
+- 结论：F00-02 与 F00-07a 两类错误已全量扫净；后续 F00 新增条目标「已复验」时必须同时留当场命令与输出片段。
