@@ -494,3 +494,30 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 - L25 §6.5：`orchestrator.exe`、`nul`、`cfitsio/*.o` 等"构建残留混入真源"经 `.gitignore`
   （`lib/orchestrator/cpp/.gitignore:1-5`、根 `.gitignore:25-28`）判定**大概率未入库** →
   L01-020 表述须收敛：不得把本地未跟踪产物算作仓库违规。这是横向轴**反证第一波**的成功案例，按规程写入 §6 并已采纳。
+
+## 收档 L21（跨文档物理量口径矩阵，14 条：P0:1/P1:9/P2:4 + 扩展实例 8 + 待复核 6）
+
+### 前台已裁决的一条：L21-009 属**过度表述，必须降级**（M7 定稿前执行）
+- L21 称「hips_frame 在 IO-002 必 equatorial 与 DATA-002/Phase3 校验器必 icrs 之间双向锁死 → 产品互操作被锁」。
+- 前台实测：**校验器两个值都收** —— `lib/.../hips_properties.cpp:126`
+  `return fail("hips_frame must be equatorial|icrs (got " + out->frame + ")")`，头 `:16` 注明「必需, equatorial|icrs」；
+  且 `DATA_SEMANTICS.md:816`（值域 ∈{equatorial,icrs} → rc=1）与 `:819`（**跨帧混用 → rc=1 "hips_frame mismatch: %s vs %s"，
+  标注 B2-A8**）说明混合产品早已被显式拒绝，不是静默锁死。
+- → 定性改为：**writer 恒写 equatorial（`HIPS_WRITER.md:174`）与两处合同/交换语义的措辞不一致**，
+  属 `C_DOC_CODE_GAP`/`I_DOC_HYGIENE` 的 P1/P2（合同措辞互斥、但机器行为一致且有拒绝），
+  **不得写成"产品互操作被锁死"**。L21 §6 自己列的待复核项「hips_frame 运行时阻断」由本条证据**判定为不存在**。
+- 同法自查：L21 其余"锁死/不可消费"级别的表述，凡涉及运行时行为的，M7 必须按当前树找**实际校验点**后再定强弱。
+
+### L21 的真正贡献（采纳为高价值，无需前台复验其文本事实）
+- **L21-001（P0 候选）**：`PHASE2_INTEGRATION.md` 的「权重语义」段把 `ivar_valid ? ivar : support` 写成 weight_mode=2 的
+  **唯一语义**，与 `DATA §20.3:987` 同形 —— 这是宪章 §6.3「support 不得当权重」红线在 SCI（L07-004）/代码（L09-003）/
+  限制文档（L18-002）之外的**第四面：ALG 权威层**。更重的是 `DATA §20.3:995` **同节**又要求 rc=7/显式开关 →
+  **同一节自相矛盾**。M4（已持 L07-004/L09-003 的会签）与 M7 并档为「同一红线四面失守」，这是 SUMMARY 的头号主题。
+- **L21-004+003（P1，可升 P0）**：「科学权重」无唯一权威定义 —— DATA §19.3「唯一冻结式 w_UPM=quality×geom×control_ivar」
+  vs §23.4「control_ivar 是唯一科学权重源」vs GLOSSARY「pixel_weight=ivar 却标无量纲」（与同页 ivar=ADU⁻²、
+  DATA §21.1 weights=1/ADU²、SCI-INT §3 信号⁻² 三源互斥）；且 `SCI-UPM §5:46` 三因子积与 `:47` normalized=raw/Σraw·geom
+  **两式不等价**，ALG 的 F1/F2 消费后者、DATA 引前者为「唯一」。→ 待复核项「UPM 归一化的 Σ 域」决定能否升 P0，
+  请 M4/M7 会签时优先解决这一条（它直接决定 mosaic 权重数值）。
+- **L21-007（P1）**：交换合同三角色的最小平面集均含「mask」，而三个 DATA 节各自声明 mask「不作为产品输出」，
+  且 mask 存在三义（bad_mask 极性 1=坏 / rejection accepted 掩码 / 质量位集）→ 宪章 §4.1 禁止混用的典型。
+- 附录 A 的**矩阵本身**是有用交付物（负责人可一眼看出哪些量至今没有唯一权威定义），定稿时随 SUMMARY 附录收录，不要丢。
