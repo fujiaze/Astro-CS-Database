@@ -467,3 +467,30 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 ### 前台状态
 - 15/18 纵向 + 0/10 横向（L19-L28 在跑）；累计 316 条；已推 8 次提交，第 9 次含本档案与本次协调记录。
 - 仍缺：L03（HiPS/HEALPix/AIO）、L06（星点/PSF）、L14（注释广度 Phase2/3）→ M2b/M3b/M6 的输入。
+
+## 收档 L25（依赖与 vendored 合规，12：P0:2/P1:5/P2:5）、L03（HiPS/HEALPix/AIO，19：P0:4/P1:11/P2:4）
+
+### 前台亲自复验为真（两条，可直接引用「复核时点成立」）
+1. **HiPS tile 命名与 IVOA 相反**（L15-001）：writer `aio_hips_writer.cpp:137-140` = `dir=ipix/10000; npix=ipix%10000` +
+   `Norder%d/Dir%llu/Npix%llu`；reader `:40-42` 同口径。标准 `D=(N/10000)*10000`、文件名带完整 N → N≥10000（order≥5）
+   的 tile 对外不可消费。偏差列「与读侧同一合同」= 实现自证。已下发 M2b 定稿、M4 做后果引用。
+2. **GSL(GPL-3) PUBLIC 链进生产目标而三处登记为零**（L25-002）：根 `CMakeLists.txt:546`
+   `target_link_libraries(astrocs_p1_sdet PUBLIC gsl gslcblas m)`；`DEPENDENCIES.md` 与 `packaging/dependency-lock.json`
+   grep `gsl` **0 命中**。**ipv(Siril=GPL-3.0-or-later) 13 TU 编入生产 STATIC `astrocs_p1_ipv`**（`:503-515`），
+   而 `lib/plate_solve/LICENSE` 写「MIT / Copyright (c) 2026 fujiaze」、ipv 全树零 SPDX/版权头。
+   → 宪章**没有**独立的第三方许可条款（L25 已明示判据来自 §16.2/§17.11/§14.2/§12.3-1/§19 组合），
+     **SUMMARY 表述必须注明这一点**，避免"引用不存在的条款"反噬；法律定性留负责人裁决，登记面冲突足以定 P0。
+
+### L03 的四条 P0 与两条独立收敛（M2b 主落）
+- nside 零校验（写入口只比大小 + ilog2 向下取整；**lib/hips 已实现正确校验却在生产调用点被绕过** ← 本条最有价值的部分）；
+- 生产写出未走 staging/原子提交，而调用点注释称"AIO-002 原子发布原语内建"（DISP-HIPS-004 登记的是能力缺口，注释写成已完成）；
+- Moc.fits 缺 ORDERING=NUNIQ/COORDSYS=C 强制键，注册表仍判 CONFORMANT，合规证据是"自家 reader 能读"的循环论证；
+- tile 几何合同三源互斥（代码 2^(k+9) / HIPS_WRITER.md 2^k / IO_002 要求 2^(K+9)）+ 入参域四层互斥 → 自产 tile 不被自家输入合同接受。
+- 收敛 1：order≤29 口径（L03-005 与 L15-012 独立同证，含 npix 在 2^31 的 uint64 回绕、在册测试反而断言 order 31 合法）。
+- 收敛 2：healpix「百万点 astropy oracle / ≤1e-12 deg」（L03-006 与 L15-013 同证：脚本与 oracle.jsonl 不存在、未注册 ctest、
+  实测容差 1.2×像素且跳过极点）→ **「独立 Oracle 缺位」主题的第 5 个跨域实例**。
+
+### 叶子主动提出的降级（采纳，M1a/M6 执行）
+- L25 §6.5：`orchestrator.exe`、`nul`、`cfitsio/*.o` 等"构建残留混入真源"经 `.gitignore`
+  （`lib/orchestrator/cpp/.gitignore:1-5`、根 `.gitignore:25-28`）判定**大概率未入库** →
+  L01-020 表述须收敛：不得把本地未跟踪产物算作仓库违规。这是横向轴**反证第一波**的成功案例，按规程写入 §6 并已采纳。
