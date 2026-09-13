@@ -5,13 +5,14 @@
 - 基准证据: `_cache/F00_FRONT_SPOTCHECKS.md`（F00-03/04/05/06）、`_merge/00_COORDINATION.md`（L14-004 前台逐行复验记录）
 - 判定基线（宪章原文亲读）: §4.1、§10.4、§10.5、§12.2、§12.3-1/-5/-8/-9/-10/-12/-13、§13.1、§14.2/§14.3、§16.2、§17、§17.6、§18.1/§18.2；RQS-PROTOCOL-001 §1/§2/§3；`AGENTS.md` 目录规范与执行纪律
 - 取证方式: 全程只读（read/grep/glob），未使用 shell/构建/git；免报区（run/** build/** artifacts/** evidence/** reports/** 工程控制/** GaiaDR3* BASS* wiki）仅作旁证
-- 定稿文件（12 个，每「类别×优先级」一件）:
-  - `findings/G_GOV_GATE/p0/M6a_L13_L14.md`、`findings/G_GOV_GATE/p1/M6a_L13_L14.md`
-  - `findings/C_DOC_CODE_GAP/p0|p1|p2/M6a_L13_L14.md`
-  - `findings/D_COMMENT/p1|p2/M6a_L13_L14.md`
-  - `findings/E_TRACE_BREAK/p1|p2/M6a_L13_L14.md`
-  - `findings/I_DOC_HYGIENE/p1|p2/M6a_L13_L14.md`
-  - `findings/B_STD_MISMATCH/p1/M6a_L13_L14.md`、`findings/A_SCI_DEF/p2/M6a_L13_L14.md`、`findings/F_TEST_GAP/p2/M6a_L13_L14.md`
+- 定稿文件（**14 件**，按前台协调令：每「类别×优先级」目录一件，内部按编号分节）:
+  - `findings/G_GOV_GATE/p0/`、`G_GOV_GATE/p1/`（各 1 条）
+  - `findings/C_DOC_CODE_GAP/p0/`（1）、`C_DOC_CODE_GAP/p1/`（2）、`C_DOC_CODE_GAP/p2/`（1）
+  - `findings/D_COMMENT/p1/`（7：D-001..D-006、D-010）、`D_COMMENT/p2/`（8：D-007..D-009、D-011..D-015）
+  - `findings/E_TRACE_BREAK/p1/`（1）、`E_TRACE_BREAK/p2/`（1）
+  - `findings/I_DOC_HYGIENE/p1/`（3）、`I_DOC_HYGIENE/p2/`（2）
+  - `findings/B_STD_MISMATCH/p1/`（1）、`A_SCI_DEF/p2/`（1）、`F_TEST_GAP/p2/`（1）
+  - 文件名统一 `M6a_L13_L14.md`；未新建任何目录、未改各目录 README.md 与他人产出
 - **定稿计数: 31 条（P0:2 / P1:15 / P2:14）**；35 条叶子 → 5 条整条已由他域定稿（不重复登记）、30 条在本域有定稿点（其中 L13-015 与 L14-003 并为同一条），另新增 2 条横向定稿（M6a-C-003 现状宣称三源对账、M6a-I-005 宣称形态量化）
 
 ## 1. 逐条处置表（四态：仍成立 / 已被修复 / 部分修复 / 无法判定）
@@ -68,7 +69,7 @@
 | `lib/phase3_session/p3_resample.h` | 58 行（RSMP ALG:54） | 116 | +58 |
 
 ### 2.2 注释门判据复算（M6a-G-001）
-- `STALE_PATTERNS`/`REQUIRE_ID_NEAR` 全仓引用数 = 仅定义行本身（grep 复算）⇒ 死常量；
+- `STALE_PATTERNS`/`REQUIRE_ID_NEAR` 在可执行文件（`.py/.cpp/.h/.yaml/.json`）中的 grep 命中数 = 仅 `check_comments.py:9`、`check_comments.py:15` 两行定义本身，无任何引用点 ⇒ 死常量（口径＝键名 grep 命中集合，非整行 read 比对）；
 - 唯一生效判据 `"V19R2" in c or "V19R3" in c` + 豁免 `"冻结" not in c`；在树豁免样本 2 处（`lib/phase2/tests/synthetic_gate.cpp`、`lib/healpix_db/healpix_drizzle/tests/test_spherical_overlap.cpp`）；
 - 扫描面 `lib/**.{cpp,h,hpp}`（不含 `.c`；lib 下第一方 `.c` 实测 7 个），`cli/` 5 cpp、`runtime/` 5 `.c`、`include/` 23 `.h` 均不在面内；
 - coverage 自报恒 `ratio=1.0, mode:"full"`（:52）；每文件命中即 break（:42/:48）；JUnit 单 testcase（:60-61）；
@@ -147,7 +148,7 @@ M1a 的 P0 定稿点（`C_DOC_CODE_GAP/p1` 与 `p0/M1a_L01_L02.md`）已把「SC
 
 ## 5. 注释中的「现状宣称」对账（与注册表 / 节点表 / 根 CMake 三源）
 
-定点对账 38 条含「当前实现 / 已接线 / 唯一生产入口 / 已验证 / 本版实测」措辞的注释与模块文档：**相符 15 / 错位 20 / 无法判定 3**（口径见 M6a-I-005）。错位者按归属分派如下（本域已定稿的只列编号，不重复正文）：
+定点对账 38 条含「当前实现 / 已接线 / 唯一生产入口 / 已验证 / 本版实测」措辞的注释与模块文档（**抽样清单**）：本代理把下表 12 组写成可独立核对的三源反证并落到具体定稿编号；助手初判的三分法 `相符 15 / 错位 20 / 无法判定 3` **未逐条外化为证据，只作线索，不得当全仓规模引用**（口径见 M6a-I-005）。错位者按归属分派如下（本域已定稿的只列编号，不重复正文）：
 
 | 现状宣称（逐字要点） | 载体 | 对账结果 | 定稿归属 |
 |---|---|---|---|
@@ -175,9 +176,16 @@ M1a 的 P0 定稿点（`C_DOC_CODE_GAP/p1` 与 `p0/M1a_L01_L02.md`）已把「SC
   4. `dpsf_psf.cpp` 文件头 7 锚偏 +7/+38（§2.3，移交 M3b-E-01）；
   5. `lib/astro_image_io/tests/p1hips/CMakeLists.txt:37` 与 `lib/phase1_session/README.md:21-25` 引的根 CMake 锚偏 +55~+101（归 M6a-C-003 表述面）；
   6. `STAR_PSF_ALGORITHMS.md:132` 自称 934 行基准 vs 实测 1124（归 M3b/M6b 锚族）。
-- 建议（跨域）：机器侧 DOC-LINE-ANCHORS 门只验「可解析 + 不越界」，不验符号是否在该行 ⇒ 提出「锚必须含符号名且符号在该 ±N 行内命中」的判据，由 M5b/M6b 落地。
+- 归口：「行锚/引用锚系统性漂移」的根因与规模判词由 **M6b-E-002** 定稿、「追溯双头」由 **M6b-E-001**、「无据 VERIFIED」由 **M6b-G-001**、「交叉引用系统性失效」由 **M6b-E-004**；本域只登实例并 related 指回，不另立同义总述。
 
 ## 7. 剔除与降级显式清单（不得静默丢弃）
+
+**判据口径自查（按前台方法论警示：read 对 >2000 字符单行会截断）**
+本域 31 条定稿**不含任何「以 read 读到的整行文本比对两份结构化文件是否同构/等值」的判据**：
+- 行数类结论（§2.1 七项、L14-001）＝`read` 的 **totalLines 计数**口径；
+- 「无消费点/无引用点/未注册/未挂载」类结论（M6a-A-001 的 ARCH §3、M6a-C-001 的 order_sel 后继、M6a-F-001 的三项缺失、M6a-E-002 的 39 处、M6a-I-003 的 36 checks 与零 unittest 用例）＝**glob/grep 计数 + 键集合 + 逐列 grep 定位**口径，各条已在 位置/取证口径 字段标明；
+- 抽样判读类（M6a-D-010 三要素百分比）已标为助手判读 + 本代理抽验 5 条，不外推为全仓规模；
+- 未在剔除表中列任何条目为该伪影（无此类判据）。
 
 **整条不重复登记（已由他域定稿，共 5 条）**
 1. L13-002 → M6b-E-004（不存在文档被当权威，含本域 4 处实例与 133 处计数）。

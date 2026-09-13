@@ -26,6 +26,23 @@
 
 ---
 
+### 0.1 截断伪影自审与结构化比对口径（据前台紧急警示执行）
+
+前台警示后，本代理对**全部涉及两份结构化文件同构/等值判定的定稿条**做二次复核：判据一律改为「①元素计数 ②列名/键集合 ③整行 grep 定位」三件套，read 行文本只用于取短行原文作引用，不再作差异判据。自审结果：
+
+| 比对/计数对象 | 受 >2000 字符单行截断影响 | 二次复核口径与结论 |
+|---|---|---|
+| docs/traceability/TRACEABILITY_MATRIX.csv（31 行） | 受影响：第 7/8/9/10/16/17/20/26/28/29 行被截断 | 三件套：grep 行首 MOD- = 30 数据行；表头 24 列；逐行 CSV 解析后每行仍得 24 字段，截断只落在末列 notes 内部（异常行 0）⇒ 前 23 列完整，"23 非 notes 列 0 差异"非截断伪影，**L18-006 剔除维持**，但判据表述已按本口径重写 |
+| docs/traceability/TRACEABILITY_MATRIX.json（789 行） | 受影响：第 240/396/448/630/682/708 行截断，经逐行核对全部是 notes 行 | 状态/ID/路径字段各占短行 ⇒ 未受影响；module_id 整行 grep = 30（与解析行数一致）；层取值整行 grep：test_status VERIFIED=22、test_path 以 docs/ 开头=18、test_id 含 DESIGN=**11**、src_path 锚 .h::=11、evidence_status VERIFIED=3 / MISSING=27、science_doc 指向 docs/algorithms/=1 ⇒ 与定稿一致 |
+| docs/TRACEABILITY.csv（旧表 68 行） | 不受影响：0 行截断（最长行 < 2000 字符） | 67 数据行；requirement_type 67/67 = science；status 67/67 = VERIFIED；requirement_id 前缀 SCI 36 / TEST 17 / DATA 5 / ALG 4 / ENG 4 / ACR 1，**API- 前缀 0 行**；API_STANDARD:15-16 举例的三个 API ID 在旧表命中 0/0/0（全仓命中 8/6/42，全在别处）⇒ E-001 路由层结论与"0 API-* 行"为截断无关的硬事实 |
+| 两表可交比 ID 与 TEST 证据（E-001） | 旧表侧不受影响；矩阵侧只用短行 | 8 个可交比 ID、TEST 证据一致 0/8；判据取旧表 test_ids/test_files 短行 + 矩阵 test_id/test_path 短行，不经 notes ⇒ 复核后不变 |
+| 锚规模 805 / 裸 :NN 223 / 悬空权威 138 处（E-002/E-004） | 不受影响（判据为整行 grep 命中数，非两文件等值比较） | 复核后不变；各条已注明"grep 命中数"口径 |
+| 16 行 notes 自述未接线、其中 14 行七层 VERIFIED（G-001 实例 C） | notes 属截断高危列 | 改为双判据且不依赖 notes 全文：整行 grep「未建」命中 16 个 notes 行（含被截断的 6 行；rg 对整行原文匹配，不受显示截断影响）+ 七层 VERIFIED 由状态短行判定；交集 = **14 行**（另 2 行为 upm-apply/upm-fit，其 SRC/TEST 本为 MISSING），与"全 VERIFIED 19 行"交叉核对一致 ⇒ 数值维持、判据重写 |
+
+**唯一因截断而更正的数**：*-DESIGN-001 设计态 TEST ID 由 9 改为 **11**（G-001 证据段与本文 §2 已同步更正）。除此之外本域定稿不存在"以按行读到的差异为判据"的情形。
+
+---
+
 ## 1 逐条处置表（四态）
 
 ### 1.1 前台基准（4 项）
@@ -98,9 +115,9 @@
 
 | 项 | 转述数 | 本代理复算数 | 方法 |
 |---|---|---|---|
-| 矩阵行数 | 30（JSON）vs 26（CSV）不同构 | **JSON 30 = CSV 30**，23 非 notes 列 **0 差异** | 分块读 + 行式解析 + `grep -c '^   "module_id":'` 对账 |
+| 矩阵行数 | 30（JSON）vs 26（CSV）不同构 | **JSON 30 = CSV 30**，23 非 notes 列 **0 差异**（三件套口径，见 §0.1） | 元素计数（grep `^MOD-` = 30 / `"module_id":` = 30）+ 列名与键集合互校验（24 列，双向零差）+ 逐列比对（截断只落在 notes，见 §0.1） |
 | 两表可交比 ID | 15，TEST 证据 100% 不一致 | **8**（三口径：8 / 8 / 含 notes 11，均非 15），TEST 证据一致 **0/8** | 旧表 `requirement_id+algorithm_id+test_ids` ∩ 矩阵九层 ID |
-| TEST 层 | 22 VERIFIED 中 18 锚文档 | 复现 **22 / 18**（另 4 行锚真实测试；9 行为 `*-DESIGN-001`） | 逐行键值解析 |
+| TEST 层 | 22 VERIFIED 中 18 锚文档 | 复现 **22 / 18**（另 4 行锚真实测试；**11** 行为 `*-DESIGN-001`；本代理初稿写 9，系 read 长行截断伪影，已按整行 grep 计数更正） | `"test_status": "VERIFIED"` / `"test_path": "docs/` / `"test_id": "…DESIGN…"` 三条整行 grep 计数 |
 | EVIDENCE 层 | 27/30 MISSING，3 行指向 returns/ | 复现 **27 / 3**；`returns/**` = 0 文件；三 EVID-* 在 `evidence/**`+`reports/**` **0 命中** | glob + 两目录 grep |
 | 自述未接线却整行 VERIFIED | 10 行（前台注记） | **14 行**（全 VERIFIED 共 19 行） | 逐行 notes 扫描 |
 | SRC 锚在声明 | — | 22 个 VERIFIED 中 **11** 锚 `.h/.hpp` | 后缀判定 |
