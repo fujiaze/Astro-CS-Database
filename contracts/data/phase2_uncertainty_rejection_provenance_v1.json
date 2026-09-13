@@ -18,16 +18,25 @@
     "DATA_SEMANTICS §30.1 (variance/ivar unavailable 三规则)"
   ],
   "rejection_planes": {
-    "planes": ["nused", "nrej"],
+    "planes": ["nused", "nrej", "sample_mask"],
     "semantics": {
       "nused": "nused(p) = P2PixelResult.n_used（SCI-INT §5 冻结量: 参与积分样本数的逐像素投影）",
-      "nrej": "nrej(p) = |{ s | reason_s ∉ {ACCEPTED, UNDERDETERMINED} }|（SCI-REJ §5 kernel 拒绝计数; eligibility 剔除不计入）"
+      "nrej": "nrej(p) = |{ s | reason_s ∉ {ACCEPTED, UNDERDETERMINED} }|（SCI-REJ §5 kernel 拒绝计数; eligibility 剔除不计入）",
+      "sample_mask": "逐样本接受掩码（B2-A3 / RESCUE-P0-09）: u8 1=接受、0=拒绝/未入栈; 索引 [s*tile_span+p], s=原始帧 slot（p2_collect_candidate_stack source_indices 映射目标; rejection.h:252-255 合同禁止 compact index 反推）"
     },
     "identity": "n_ineligible(p) = depth(p) − nused(p) − nrej(p)，depth = probe 覆盖帧数；三量完备划分（参与 + kernel 拒绝 + 无资格）",
     "invalid_policy": "无覆盖 tile 像素（signal=NaN）→ nused=0 且 nrej=0；int 无 NaN，0 即\"无\"，禁 −1 哨兵",
     "dtype": "int32（BITPIX=32，固定无 precision 开关）",
     "layout": "NESTED 512×512 tile（子产品目录 <out_hips>/nused/、<out_hips>/nrej/）",
-    "per_frame_reason_products": "非目标（本合同不冻结 per-frame rejection map；需要时须 SCI/owner 冻结变更，禁止实现自行扩展）"
+    "sample_mask_plane": {
+      "carrier": "p2_rejection.json files.sample_mask → p2_rejection_sample_mask.bin（u8 逐样本接受掩码）",
+      "layout": "逐 tile 块按 tile_ipix 升序拼接; 块内 [s*tile_span+p], s ∈ [0,depth) = 原始帧 slot; 1=接受、0=拒绝/未入栈",
+      "tile_locators": ["tiles[].depth", "tiles[].frame_slots", "tiles[].sample_mask_offset"],
+      "consume_rule": "integrate 的逐样本资格权威（像素级 accepted u8 仅冗余守卫）; files.sample_mask 缺失/空、文件读失败、offset 非按 tile 序连续无洞、depth 不符、frame_slots 与 integrate slot 不符、掩码字节 ∉ {0,1}、掩码总长 ≠ Σ depth·tile_span → DATA/IO fail-closed（禁静默回退像素级 accepted）",
+      "diagnostics": "p2_integrated.json sample_mask_consumed=true + diagnostics.rejected_samples_skipped",
+      "authority": "01_SCIENCE_AUTHORITY_BASELINE §4「拒绝掩码按原始样本索引传递」; §30.2 恒等式 n_ineligible = depth − nused − nrej == 0"
+    },
+    "per_frame_reason_products": "非目标（本合同不冻结 per-frame rejection map；sample_mask 是 DATA-P2-REJ 内部消费载体（integrate 原始样本索引资格权威），非逐帧 row/observation 级科学产品；需要 per-frame rejection map 时须 SCI/owner 冻结变更，禁止实现自行扩展）"
   },
   "aio_subproduct_bits": {
     "NREJ": 32,
@@ -98,7 +107,13 @@
       "severity": "P1",
       "title": "integrate 不剔除 kernel 拒绝样本：reject bins 仅存像素级 accepted(u8)/nrej(u16)/candidates(u16)，逐样本 reason 未持久化；integrate 资格过滤只看像素级 accepted → 部分拒绝像素的被拒样本仍参与积分（n_used 含被拒样本），n_ineligible = depth − nused − nrej 恒等式在 kernel 部分拒绝场景不成立（违反 §30.2 完备划分语义）",
       "evidence": "tests/unit/p2002_unc_rej_prov_test.cpp + 证据报告（kernel 直调语义 vs 集成面 nused 分布）",
-      "fix_owner": "lib/core 域任务（需 reject 逐样本掩码持久化或 integrate 重算——架构改动归 P2-001 整改）"
+      "fix_owner": "lib/core 域任务（需 reject 逐样本掩码持久化或 integrate 重算——架构改动归 P2-001 整改）",
+      "resolution": {
+        "action": "B2-A3（RESCUE-P0-09）",
+        "status": "IMPLEMENTED",
+        "summary": "p2_op_reject 落 per-sample 接受掩码平面（files.sample_mask + tiles[].depth/frame_slots/sample_mask_offset）; p2_op_integrate 按 cor_index slot 逐样本消费, 缺失/错位/非法值 fail-closed; §30.2 恒等式 n_ineligible==0 由 p2002_unc_rej_prov 机器门验证",
+        "evidence": "tests/unit/p2002_unc_rej_prov_test.cpp（2c 恒等式 + 2e 五注入 fail-closed）"
+      }
     }
   ]
 }
