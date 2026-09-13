@@ -1029,6 +1029,15 @@ static bool finalize_image_product(AioHipsProductSet* ps,
         std::replace(mp.begin(), mp.end(), '\\', '/');
         std::remove(mp.c_str());
         if (!fits_create_file(&fptr, mp.c_str(), &status)) {
+            // RESCUE-FD-04: 首个 HDU 必须由 fits_create_img 建出标准主头
+            // (SIMPLE=T/BITPIX/NAXIS/EXTEND/END)。直接在裸 create_file 上写键
+            // 会产出缺 SIMPLE 卡的非法 FITS (astropy: No SIMPLE card found),
+            // 破坏 FITS 标准互操作。NAXIS=0 + BITPIX=8 = 无数据面的头承载 HDU;
+            // 既有键 (PIXTYPE/ORDERING/NSIDE/HIPSTILEWIDTH/DATAPRODTYPE) 语义不变。
+            if (fits_create_img(fptr, BYTE_IMG, 0, nullptr, &status)) {
+                fits_close_file(fptr, &status);
+                return fits_ok(status, "metadata fits_create_img " + mp);
+            }
             fits_write_key_str(fptr, "PIXTYPE", (char*)"HEALPIX", nullptr, &status);
             fits_write_key_str(fptr, "ORDERING", (char*)"NESTED", nullptr, &status);
             fits_write_key_lng(fptr, "NSIDE", (long)ps->nside, nullptr, &status);
