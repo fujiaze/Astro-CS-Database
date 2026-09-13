@@ -1026,6 +1026,146 @@ static void test_f_p2002_02_lib_level_correct_wiring() {
             " outlier (defect consequence)");
 }
 
+// ── 2e. [F-P2-002-02 / B2-A3] per-sample 掩码 fail-closed 注入面 ────────────
+// 生产 integrate 的资格权威 = reject 落盘的逐样本掩码（files.sample_mask +
+// tiles[].sample_mask_offset/depth/frame_slots）。本组断言五种注入（缺键/
+// 缺文件/offset 错位/帧 slot 乱序/非法字节值）全部 fail-closed；若静默回退到
+// 像素级 accepted，则 §30.2 恒等式重现负值（即 2c 的 RED 形态）。
+static void test_f_p2002_03_sample_mask_failclosed() {
+  auto integrate_must_fail = [](Fixture3& fx, ModuleRegistry& reg, const char* what) {
+    RunContext c;
+    Result<void> rc;
+    run_node(reg, "astrocs.phase2.integrate", chain_cfg(fx), c, &rc);
+    CHECK_MSG(rc.failed(),
+              (std::string("integrate must fail-closed on ") + what).c_str());
+  };
+  // 正向控制: 生产 reject 落掩码平面, integrate 独立重跑成功消费
+  {
+    Fixture3 fx = make_fixture3("sm0");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    RunContext ctx;
+    Result<void> ff;
+    run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+    CHECK_MSG(ff.ok(), ff.ok() ? "sm0 chain ok" : ff.error().message().c_str());
+    if (!ff.ok()) { fs::remove_all(fx.root); return; }
+    json rej;
+    try { rej = json::parse(read_file(fx.out + "/p2_rejection.json")); }
+    catch (...) { CHECK(false); }
+    CHECK_MSG(rej["files"].contains("sample_mask"),
+              "reject artifact must carry files.sample_mask (per-sample plane)");
+    CHECK_MSG(fs::exists(fs::path(fx.out + "/p2_rejection_sample_mask.bin")),
+              "per-sample mask file must exist");
+    if (!rej["tiles"].is_array() || rej["tiles"].empty()) {
+      fs::remove_all(fx.root); return;
+    }
+    CHECK(rej["tiles"][0].value("depth", 0ull) > 0);
+    CHECK(rej["tiles"][0].contains("frame_slots"));
+    CHECK(rej["tiles"][0].contains("sample_mask_offset"));
+    {
+      RunContext c2;
+      Result<void> rc2;
+      run_node(reg, "astrocs.phase2.integrate", chain_cfg(fx), c2, &rc2);
+      CHECK_MSG(rc2.ok(), rc2.ok() ? "integrate re-run ok"
+                                   : rc2.error().message().c_str());
+    }
+    fs::remove_all(fx.root);
+  }
+  // 注入 1: files.sample_mask 缺键（物理文件仍在 → 仍须拒绝, 禁静默回退）
+  {
+    Fixture3 fx = make_fixture3("sm1");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    RunContext ctx;
+    Result<void> ff;
+    run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+    if (!ff.ok()) { CHECK_MSG(false, "sm1 chain failed"); fs::remove_all(fx.root); return; }
+    json rej = json::parse(read_file(fx.out + "/p2_rejection.json"));
+    rej["files"].erase("sample_mask");
+    { std::ofstream f(fx.out + "/p2_rejection.json", std::ios::binary);
+      f << rej.dump(2); }
+    integrate_must_fail(fx, reg, "missing files.sample_mask key");
+    fs::remove_all(fx.root);
+  }
+  // 注入 2: 掩码物理文件删除（键在 → 读失败 fail-closed）
+  {
+    Fixture3 fx = make_fixture3("sm2");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    RunContext ctx;
+    Result<void> ff;
+    run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+    if (!ff.ok()) { CHECK_MSG(false, "sm2 chain failed"); fs::remove_all(fx.root); return; }
+    std::error_code ec;
+    fs::remove(fs::path(fx.out + "/p2_rejection_sample_mask.bin"), ec);
+    integrate_must_fail(fx, reg, "missing sample-mask file");
+    fs::remove_all(fx.root);
+  }
+  // 注入 3: sample_mask_offset 错位（+1）→ tile 块连续性游标核对拒绝
+  {
+    Fixture3 fx = make_fixture3("sm3");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    RunContext ctx;
+    Result<void> ff;
+    run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+    if (!ff.ok()) { CHECK_MSG(false, "sm3 chain failed"); fs::remove_all(fx.root); return; }
+    json rej = json::parse(read_file(fx.out + "/p2_rejection.json"));
+    const uint64_t off = rej["tiles"][0].value("sample_mask_offset", 0ull);
+    rej["tiles"][0]["sample_mask_offset"] = off + 1;
+    { std::ofstream f(fx.out + "/p2_rejection.json", std::ios::binary);
+      f << rej.dump(2); }
+    integrate_must_fail(fx, reg, "sample_mask_offset misalignment");
+    fs::remove_all(fx.root);
+  }
+  // 注入 4: frame_slots 与 integrate 帧 slot 不一致 → 序校验拒绝
+  {
+    Fixture3 fx = make_fixture3("sm4");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    RunContext ctx;
+    Result<void> ff;
+    run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+    if (!ff.ok()) { CHECK_MSG(false, "sm4 chain failed"); fs::remove_all(fx.root); return; }
+    json rej = json::parse(read_file(fx.out + "/p2_rejection.json"));
+    if (!rej["tiles"][0].contains("frame_slots") ||
+        !rej["tiles"][0]["frame_slots"].is_array() ||
+        rej["tiles"][0]["frame_slots"].empty()) {
+      CHECK_MSG(false, "frame_slots must be present to inject");
+      fs::remove_all(fx.root); return;
+    }
+    const uint64_t fs0 = rej["tiles"][0]["frame_slots"][0].get<uint64_t>();
+    rej["tiles"][0]["frame_slots"][0] = fs0 + 7u;   // 必 != 原 slot 且 != 其他 slot
+    { std::ofstream f(fx.out + "/p2_rejection.json", std::ios::binary);
+      f << rej.dump(2); }
+    integrate_must_fail(fx, reg, "frame_slots order mismatch");
+    fs::remove_all(fx.root);
+  }
+  // 注入 5: 掩码字节值非 0/1（=2）→ 契约拒绝
+  {
+    Fixture3 fx = make_fixture3("sm5");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    RunContext ctx;
+    Result<void> ff;
+    run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+    if (!ff.ok()) { CHECK_MSG(false, "sm5 chain failed"); fs::remove_all(fx.root); return; }
+    const std::string mpath = fx.out + "/p2_rejection_sample_mask.bin";
+    {
+      std::fstream f(mpath, std::ios::in | std::ios::out | std::ios::binary);
+      CHECK_MSG(static_cast<bool>(f), "sample mask file must be writable for injection");
+      char b = 2;
+      f.seekp(0);
+      f.write(&b, 1);
+    }
+    integrate_must_fail(fx, reg, "sample-mask byte value > 1");
+    fs::remove_all(fx.root);
+  }
+  std::printf("[F-P2-002-02 / B2-A3] sample-mask fail-closed injections verified:"
+              " missing-key / missing-file / offset-misalign / frame-slot-order /"
+              " illegal-value all rejected\n");
+}
+
 // ── 3. §30.3 provenance 五键真实值 + pending 诚实 + properties 缺口锚 ──────
 static void test_s303_provenance_keys(bool fault_inject) {
   Fixture3 fx = make_fixture3("prov");
@@ -1545,6 +1685,9 @@ int main(int argc, char** argv) {
   if (!fault_proj && !fault_prov) test_f_p2002_01_rejection_parity();
   if (!fault_prov) test_f_p2002_02_n_ineligible_identity(fault_ident);
   test_f_p2002_02_lib_level_correct_wiring();
+  // [F-P2-002-02 / B2-A3] per-sample 掩码 fail-closed 注入面（缺键/缺文件/
+  // offset 错位/帧 slot 乱序/非法字节值必须全部拒绝）
+  if (!fault_proj && !fault_prov) test_f_p2002_03_sample_mask_failclosed();
   if (!fault_proj) test_s303_provenance_keys(fault_prov);
   test_s303_unavailable_explicit();
   // SCI-F3-001: Phase2 真实产物值 → AIO 通道端到端 (§30.2 int32 平面 +
@@ -1561,7 +1704,8 @@ int main(int argc, char** argv) {
                 "登记 + F-UNC-003 零断链 + 合同登记 + 确定性 + 1/N parity + "
                 "SCI-F2-001 §30.2 n_ineligible 恒等式(depth=3 部分拒绝 fixture,"
                 " candidates 机器佐证 depth) + 库面逐样本接线恒等式成立 + "
-                "depth=3 1v4 parity + FAULT=identity 注入必败)\n");
+                "depth=3 1v4 parity + FAULT=identity 注入必败 + per-sample 掩码"
+                " fail-closed 注入必败)\n");
     return 0;
   }
   std::fprintf(stderr, "P2-002 UNC/REJ/PROV FAIL (%d)\n", failures);

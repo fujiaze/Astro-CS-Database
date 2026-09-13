@@ -2841,21 +2841,29 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
 
   // 跨帧 tile 对齐: union tile = 各帧 tile 并集（升序）; 帧序 = corrected
   // manifest 帧序（稳定）。bin 布局 per tile: accepted u8 | nrej u16 | candidates u16
-  struct TileRef { uint64_t tile_ipix; const Json* frame; uint64_t offset; };
+  // frame_idx = corrected manifest 帧序（稳定帧身份; 掩码/帧 slot 一致性校验
+  // 的权威, 禁以指针距离/compact 下标反推）
+  struct TileRef { uint64_t tile_ipix; size_t frame_idx; uint64_t offset; };
   std::map<uint64_t, std::vector<TileRef>> union_tiles;   // ipix → 每帧 ref
-  for (const auto& fr : frames) {
-    for (const auto& t : fr["tiles"]) {
+  for (size_t f = 0; f < frames.size(); ++f) {
+    for (const auto& t : frames[f]["tiles"]) {
       const uint64_t tip = t.value("tile_ipix", 0ull);
       const uint64_t off = t.value("offset", 0ull);
-      union_tiles[tip].push_back(TileRef{tip, &fr, off});
+      union_tiles[tip].push_back(TileRef{tip, f, off});
     }
   }
   std::vector<uint8_t> accepted_bin;
   std::vector<uint16_t> nrej_bin, cand_u16;
+  // [F-P2-002-02 / B2-A3] 逐样本接受掩码持久化（tile 序拼接; 每 tile
+  // depth×tile_span 字节, 索引 [s*tile_span+p], s=原始帧 slot）。像素级
+  // accepted(u8) 无法表达部分拒绝像素内逐样本的接受/拒绝; §30.2 完备划分
+  // （n_ineligible = depth − nused − nrej）要求 integrate 按原始样本索引
+  // 逐样本剔除（01_SCIENCE_AUTHORITY_BASELINE §4: 拒绝掩码按原始样本索引传递）。
+  std::vector<uint8_t> sample_mask;
   uint64_t acc_total = 0, rej_low_total = 0, rej_high_total = 0, undet_total = 0;
-  uint64_t n_pixels_processed = 0;
+  uint64_t n_pixels_processed = 0, rej_samples_total = 0;
   Json tiles_j = Json::array();
-  uint64_t out_offset = 0;
+  uint64_t out_offset = 0, mask_offset = 0;
   std::vector<double> compact_vals;  // kernel 候选栈（工作缓冲）
   std::vector<uint32_t> src_idx;
   std::vector<uint8_t> reasons;
@@ -2884,7 +2892,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
       std::vector<double> scratch;
       for (size_t d = 0; d < depth; ++d) {
         const auto& ref = refs[d];
-        if (!p2_read_bin_range<double>(ref.frame->value("data_file", ""),
+        if (!p2_read_bin_range<double>(frames[ref.frame_idx].value("data_file", ""),
                                        ref.offset, tile_span, &scratch))
           return Result<void>::fail(Error(ErrorDomain::IO,
               "corrected bin read failed (tile " + std::to_string(ref.tile_ipix) +
@@ -2894,6 +2902,14 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
       }
     }
     const uint64_t base = out_offset;
+    // [F-P2-002-02 / B2-A3] 该 tile 的逐样本掩码块（[s*tile_span+p], 帧 slot 序
+    // 与 refs 同序）。默认 0 = 未入栈/未接受; kernel 逐样本 reason 只映射到
+    // eligible 样本的原始 slot（src_idx 权威, compact→original）。
+    std::vector<uint8_t> tile_mask(
+        static_cast<size_t>(depth) * static_cast<size_t>(tile_span), 0);
+    std::vector<uint32_t> frame_slots(depth, 0);
+    for (size_t d = 0; d < depth; ++d)
+      frame_slots[d] = static_cast<uint32_t>(refs[d].frame_idx);
     for (uint64_t p = 0; p < tile_span; ++p) {
       // 资格收集（生产 strided 单一路径）: frame-major values, valid/support/
       // quality 传 nullptr（corrected 数据面已保证 support>0; NaN 由 finite 过滤）
@@ -2937,17 +2953,33 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
           return Result<void>::fail(Error(ErrorDomain::INTERNAL,
               std::string("p2_reject_stack_ex failed rc=") + std::to_string(krc)));
         // per-sample reason 权威（kernel 冻结语义）: reason ∈ {ACCEPTED,
-        // UNDERDETERMINED} 视为接受; rejected_low/high 只认 threshold 侧计数
+        // UNDERDETERMINED} 视为接受; rejected_low/high 只认 threshold 侧计数。
+        // [F-P2-002-02 / B2-A3] 逐样本掩码必须落在**原始帧 slot**（src_idx
+        // 为 eligible→original 映射; rejection.h:252-255 合同禁用 compact
+        // index 反推）。像素级 acc 仅作冗余投影, 不再是 integrate 的资格权威。
         acc = 0;
         for (uint32_t s = 0; s < eligible_count; ++s) {
-          if (reasons[s] == P2_REASON_ACCEPTED ||
-              reasons[s] == P2_REASON_UNDERDETERMINED) { acc = 1; break; }
+          const bool ok_s = (reasons[s] == P2_REASON_ACCEPTED ||
+                             reasons[s] == P2_REASON_UNDERDETERMINED);
+          if (ok_s) acc = 1;
+          else ++rej_samples_total;
+          const uint32_t slot_s = src_idx[s];
+          if (slot_s < depth)
+            tile_mask[static_cast<size_t>(slot_s) * tile_span + p] = ok_s ? 1 : 0;
         }
         nrej = static_cast<uint16_t>(dec.rejected_low + dec.rejected_high);
         rej_low_total += dec.rejected_low;
         rej_high_total += dec.rejected_high;
+      } else {
+        // 候选不足/空栈 → UNDERDETERMINED（全接受并记录, 禁偷换算法）:
+        // 逐样本掩码对全部 eligible 样本置 1（与 accepted_bin=1 同语义）;
+        // eligible_count==0（无资格样本）→ 掩码块全 0（无样本可入栈）。
+        for (uint32_t s = 0; s < eligible_count; ++s) {
+          const uint32_t slot_s = src_idx[s];
+          if (slot_s < depth)
+            tile_mask[static_cast<size_t>(slot_s) * tile_span + p] = 1;
+        }
       }
-      // 候选不足/空栈 → UNDERDETERMINED（全接受并记录, 禁偷换算法）
       accepted_bin.push_back(acc);
       nrej_bin.push_back(nrej);
       cand_u16.push_back(cand);
@@ -2956,17 +2988,28 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                        cand < static_cast<uint32_t>(plan.minimum_n))) ++undet_total;
       ++n_pixels_processed;
     }
+    sample_mask.insert(sample_mask.end(), tile_mask.begin(), tile_mask.end());
+    // [F-P2-002-02 / B2-A3] tile 记录承载逐样本掩码定位三键: depth（该 tile
+    // 覆盖帧数）、frame_slots（掩码 slot d ↔ corrected 帧索引）、
+    // sample_mask_offset（掩码块在 p2_rejection_sample_mask.bin 的字节偏移）。
     tiles_j.push_back(Json{{"tile_ipix", tip},
                            {"n_pixels", tile_span},
-                           {"offset", base}});
+                           {"offset", base},
+                           {"depth", depth},
+                           {"frame_slots", frame_slots},
+                           {"sample_mask_offset", mask_offset}});
     out_offset += tile_span;
+    mask_offset += static_cast<uint64_t>(tile_mask.size());
   }
 
   const std::string acc_file = out_dir + "/p2_rejection_accepted.bin";
   const std::string nrej_file = out_dir + "/p2_rejection_nrej.bin";
   const std::string cand_file = out_dir + "/p2_rejection_candidates.bin";
+  // [F-P2-002-02 / B2-A3] 逐样本掩码落盘（§30.2 完备划分的唯一可判据载体;
+  // 缺失/错位时 integrate fail-closed, 禁退化为像素级 accepted）。
+  const std::string mask_file = out_dir + "/p2_rejection_sample_mask.bin";
   if (!p2_write_bin(acc_file, accepted_bin) || !p2_write_bin(nrej_file, nrej_bin) ||
-      !p2_write_bin(cand_file, cand_u16))
+      !p2_write_bin(cand_file, cand_u16) || !p2_write_bin(mask_file, sample_mask))
     return Result<void>::fail(Error(ErrorDomain::IO, "rejection bin write failed"));
 
   const std::string out_path = out_dir + "/p2_rejection.json";
@@ -2984,14 +3027,17 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                        {"stats", Json{{"accepted_pixels", acc_total},
                                       {"rejected_low", rej_low_total},
                                       {"rejected_high", rej_high_total},
+                                      {"rejected_samples", rej_samples_total},
                                       {"underdetermined_pixels", undet_total}}},
                        {"files", Json{{"accepted", acc_file},
                                       {"nrej", nrej_file},
-                                      {"candidates", cand_file}}}};
+                                      {"candidates", cand_file},
+                                      {"sample_mask", mask_file}}}};
   if (!p2_write_text(out_path, artifact.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed: " + out_path));
-  (*man)["artifacts"] = Json::array({out_path, acc_file, nrej_file, cand_file});
+  (*man)["artifacts"] = Json::array({out_path, acc_file, nrej_file, cand_file, mask_file});
   (*man)["rejection_artifact"] = out_path;
+  (*man)["sample_mask"] = mask_file;
   (*man)["reject_semantic_id"] = p2_rejection_semantic_id(plan.method);
   (*man)["n_pixels"] = n_pixels_processed;
   return Result<void>::success();
@@ -3100,11 +3146,36 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::IO,
         "rejection bin read failed: " + acc_file));
 
+  // [F-P2-002-02 / B2-A3] 逐样本接受掩码（§30.2 完备划分的唯一权威面）:
+  // 缺失即 fail-closed（禁退化为像素级 accepted —— 那正是部分拒绝像素
+  // nused+nrej>depth、n_ineligible<0 的根因）。整文件按字节读入, tile 定位
+  // 由 tiles[].sample_mask_offset 提供（不依赖文件总长推断）。
+  const std::string smask_file = rej_doc["files"].value("sample_mask", "");
+  if (smask_file.empty())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "rejection artifact missing per-sample acceptance mask"
+        " (files.sample_mask; DATA-P2-REJ §30.2: integrate must drop"
+        " kernel-rejected samples per original sample slot, not per pixel)"));
+  std::vector<uint8_t> sample_mask_all;
+  {
+    std::error_code ec;
+    const auto msz = std::filesystem::file_size(std::filesystem::u8path(smask_file), ec);
+    if (ec || msz == 0 ||
+        !p2_read_bin_range<uint8_t>(smask_file, 0,
+                                    static_cast<uint64_t>(msz), &sample_mask_all))
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "rejection sample mask read failed: " + smask_file));
+  }
+
   std::vector<double> sig_bin, sup_bin, wsum_bin;
   std::vector<int32_t> nused_bin, nrej_plane;
   Json tiles_j = Json::array();
   uint64_t zero_weight_pixels = 0, invalid_pixels = 0, nrej_total = 0;
   uint64_t nrej_pix_cursor = 0;
+  uint64_t sample_rejected_skipped = 0;   // 因 kernel 逐样本拒绝而剔除的样本实例数
+  // 掩码块在文件中必须**按 tile 序连续无洞**（reject 以 union tile 升序拼接）:
+  // 游标核对使任何 offset 错位/重叠/空洞立即被检出（禁信任可自洽的伪造 offset）。
+  uint64_t sm_cursor = 0;
   uint64_t out_offset = 0;
   std::vector<float> ivar_buf(kP2TileLeafSpan), sup_buf(kP2TileLeafSpan);
   std::vector<double> vals, weights, supports;
@@ -3145,6 +3216,34 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
     tile_v.reserve(tile_bufs.size());
     for (const auto& b : tile_bufs) tile_v.push_back(&b);
     const uint64_t depth = tile_v.size();
+    // [F-P2-002-02 / B2-A3] 该 tile 逐样本掩码定位/序校验（尺寸/depth/帧 slot
+    // 三重一致, 任一不符 fail-closed；禁按文件长度/compact 下标猜测布局）。
+    // reject 与 integrate 的 slot 均为 corrected 帧升序（cor_index 同源）。
+    const uint64_t sm_off = rt.value("sample_mask_offset", ~0ull);
+    const uint64_t sm_depth = rt.value("depth", ~0ull);
+    if (sm_off == ~0ull || sm_off != sm_cursor || sm_depth != depth ||
+        sm_off + depth * tile_span > sample_mask_all.size())
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "rejection sample mask layout mismatch (tile " + std::to_string(tip) +
+          "): reject depth=" + std::to_string(sm_depth) + " integrate depth=" +
+          std::to_string(depth) + " offset=" + std::to_string(sm_off) +
+          " expected_offset=" + std::to_string(sm_cursor) +
+          " mask_size=" + std::to_string(sample_mask_all.size())));
+    if (!rt.contains("frame_slots") || !rt["frame_slots"].is_array() ||
+        rt["frame_slots"].size() != depth)
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "rejection sample mask missing frame_slots (tile " +
+          std::to_string(tip) + ")"));
+    for (size_t d = 0; d < depth; ++d) {
+      const uint64_t fs = rt["frame_slots"][d].get<uint64_t>();
+      if (fs != static_cast<uint64_t>(slot[d]))
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "rejection sample mask frame-slot order mismatch (tile " +
+            std::to_string(tip) + " d=" + std::to_string(d) +
+            " reject_slot=" + std::to_string(fs) + " integrate_slot=" +
+            std::to_string(slot[d]) + ")"));
+    }
+    sm_cursor += depth * tile_span;
     // 该 tile 各帧 support/ivar tile（read_tile_f32; 缺失 → 该像素零权/无支持）
     std::vector<bool> has_sup(depth, false), has_ivar(depth, false);
     std::vector<std::vector<float>> sup_v(static_cast<size_t>(depth));
@@ -3173,10 +3272,26 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         const double sp = has_sup[d]
             ? static_cast<double>(sup_v[d][static_cast<size_t>(p)]) : 0.0;
         const bool acc = acc_all[static_cast<size_t>(rej_pix)] != 0;
-        // 调用方资格（SCI-INT §5 valid ∧ W>0 面）: finite ∧ support>0 ∧ accepted;
-        // 先资格过滤后权重面 —— 无覆盖像素（support=0 → corrected NaN → 过滤）
-        // 不进入权重检查（ivar 产品在无覆盖像素 = NaN 同态, §30.1 表注 F-UNC-001）
-        if (!std::isfinite(v) || !std::isfinite(sp) || sp <= 0.0 || !acc) continue;
+        // [F-P2-002-02 / B2-A3] 逐样本接受权威: kernel reason 掩码（索引
+        // [d*tile_span+p], d=原始帧 slot）。像素级 acc 仅作冗余守卫, 不再是
+        // 资格权威; 非 0/1 掩码值 → 产品损坏 fail-closed（禁 clamp/推断）。
+        const uint8_t sm =
+            sample_mask_all[static_cast<size_t>(sm_off + d * tile_span + p)];
+        if (sm > 1)
+          return Result<void>::fail(Error(ErrorDomain::DATA,
+              "rejection sample mask must be 0/1 (tile " + std::to_string(tip) +
+              " frame " + std::to_string(slot[d]) + " pixel " + std::to_string(p) +
+              " value=" + std::to_string(static_cast<int>(sm)) + ")"));
+        // 调用方资格（SCI-INT §5 valid ∧ W>0 面）: finite ∧ support>0 ∧
+        // 逐样本 accepted; 先资格过滤后权重面 —— 无覆盖像素（support=0 →
+        // corrected NaN → 过滤）不进入权重检查（ivar 产品在无覆盖像素 =
+        // NaN 同态, §30.1 表注 F-UNC-001）
+        if (!std::isfinite(v) || !std::isfinite(sp) || sp <= 0.0 || !acc ||
+            sm == 0) {
+          if (sm == 0 && std::isfinite(v) && std::isfinite(sp) && sp > 0.0 && acc)
+            ++sample_rejected_skipped;
+          continue;
+        }
         double w = 1.0;
         if (weight_mode == 2 && !fallback) {
           // 入栈样本的 ivar 契约检查（§20.1 读侧: ivar==0 合法零权重,
@@ -3247,6 +3362,13 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                            {"offset", out_offset}});
     out_offset += tile_span;
   }
+  // [F-P2-002-02 / B2-A3] 掩码文件必须被 tile 块恰好铺满（无尾随/截断/空洞）:
+  // 与游标核对共同保证"逐样本掩码与 reject 产物同源同序"。
+  if (sm_cursor != sample_mask_all.size())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "rejection sample mask size mismatch: consumed=" +
+        std::to_string(sm_cursor) + " file_size=" +
+        std::to_string(sample_mask_all.size())));
 
   const std::string sig_file = out_dir + "/p2_integrated_signal.bin";
   const std::string sup_file = out_dir + "/p2_integrated_support.bin";
@@ -3267,9 +3389,12 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                        {"tile_leaf_span", tile_span},
                        {"n_pixels", nrej_pix_cursor},
                        {"tiles", tiles_j},
+                       {"sample_mask_consumed", true},
                        {"diagnostics", Json{{"zero_valid_weight_pixels", zero_weight_pixels},
                                             {"nonfinite_result_pixels", invalid_pixels},
-                                            {"nrej_total", nrej_total}}},
+                                            {"nrej_total", nrej_total},
+                                            {"rejected_samples_skipped",
+                                             sample_rejected_skipped}}},
                        {"files", Json{{"signal", sig_file},
                                       {"support", sup_file},
                                       {"wsum", wsum_file},

@@ -2277,8 +2277,39 @@ nrej(p)  = |{ s | reason_s ∉ {ACCEPTED, UNDERDETERMINED} }|
 
 - **invalid**: 无覆盖 tile 像素（signal=NaN）→ nused=0、nrej=0（int 无 NaN，
   0 即"无"，禁 −1 哨兵）。
-- **逐帧 reason 级产品为非目标**（本合同不冻结 per-frame rejection map；
-  需要时须 SCI/owner 冻结变更，禁止实现自行扩展）。
+- **逐样本接受掩码平面（B2-A3 / RESCUE-P0-09 冻结; 按原始样本索引传递）**:
+  `nused`/`nrej` 是**逐像素投影**，二者单独无法表达"部分拒绝像素内哪个样本
+  被拒"。§30.2 恒等式 `n_ineligible = depth − nused − nrej == 0` 要求 integrate
+  按**原始样本 slot** 逐样本剔除 kernel 拒绝样本（01_SCIENCE_AUTHORITY_BASELINE
+  §4「拒绝掩码按原始样本索引传递」；拒绝样本塌缩为像素级 accepted 会使
+  `nused` 含被拒样本 → `n_ineligible < 0`）。落位:
+
+```text
+artifact: p2_rejection.json
+  files.sample_mask          # p2_rejection_sample_mask.bin（u8 逐样本接受掩码）
+  stats.rejected_samples     # Σ kernel 拒绝样本实例数（= Σ_tile nrej 之和口径）
+  tiles[].depth              # 该 tile 覆盖帧数 depth
+  tiles[].frame_slots[d]     # 掩码 slot d ↔ corrected 帧索引（升序, 稳定帧身份）
+  tiles[].sample_mask_offset # 该 tile 掩码块在 sample_mask 文件中的起始字节
+
+sample_mask 布局: 逐 tile 块按 tile_ipix 升序拼接; 块内 [s*tile_span + p],
+  s ∈ [0,depth) = 原始帧 slot（= p2_collect_candidate_stack 的 source_indices
+  映射目标, rejection.h:252-255 合同）; 值 1=接受、0=拒绝/未入栈。
+```
+
+- **integrate 消费面（fail-closed）**: integrate 的样本资格权威 = 上述逐样本
+  掩码（像素级 `accepted` u8 仅作冗余守卫）。`files.sample_mask` 缺失/空、
+  文件读失败、`tiles[].sample_mask_offset` 非按 tile 序连续无洞、
+  `tiles[].depth` ≠ integrate 计算的 depth、`frame_slots[d]` ≠ integrate
+  frame slot、掩码字节 ∉ {0,1}、掩码总长 ≠ Σ depth·tile_span —— 任一不符即
+  DATA/IO **非零失败**（禁静默回退到像素级 accepted）。消费成功时
+  `p2_integrated.json` 写 `sample_mask_consumed=true` 与
+  `diagnostics.rejected_samples_skipped`（因 kernel 逐样本拒绝而剔除的样本
+  实例数）。`nused(p)` = 通过资格且掩码=1 的样本数。
+- **逐帧 reason 级产品为非目标**（本合同不冻结 per-frame rejection map；上述
+  逐样本接受掩码是 DATA-P2-REJ 内部**消费载体**（integrate 的原始样本索引
+  资格权威），不是逐帧 row/observation 级科学产品；需要 per-frame rejection
+  map 时须 SCI/owner 冻结变更，禁止实现自行扩展）。
 - **AIO 子产品位分配（冻结）**: NREJ=32、NUSED=64（uint32 flags 域；
   1/2/4/8/16 已占用见 aio_hips.h:35-40，32/64 空闲）；AIO_ALL 掩码扩展由
   实现任务在 AIO 域合同登记，本节只冻结位值不冻结掩码。
