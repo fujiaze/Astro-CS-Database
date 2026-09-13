@@ -18,7 +18,8 @@
 
 | 包 / 条目 | 包 ID | 状态 | 位置 | 说明 |
 |---|---|---|---|---|
-| ASTROCS-CONSTITUTION-ALIGNMENT-V1 | `AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909` | ACTIVE | `工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/` | 唯一执行包；基线 789c5b6c；G-GOV 前置 GOV-001（宪章冻结）已完成；运行账本 cprun run `Rmtucy2cqced995`（本目录 TASK_LEDGER.csv 状态列同步前台记账） |
+| AstroCS 科学重审与全流程恢复工作包 V3 | `AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912` | ACTIVE | 解压件：`工程控制/AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912/`；zip 原件：`工程控制/_control_packs/AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912.zip` | 2026-09-13 负责人指令：「使用该工程包替代以前的工程包，作为权威并执行」。不依赖 CPRun/CP 插件，前台直接以 SubAgent 派发；基线 SHA `f5f944a5`，阶段 0 `RESCUE-SNAPSHOT` 已冻结（`run/release-rescue/snapshot/STARTUP_SNAPSHOT.json`） |
+| ASTROCS-CONSTITUTION-ALIGNMENT-V1 | `AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909` | ARCHIVED_SUPERSEDED | `工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/`（**原位保留**：`docs/standards/checks/check_standards_registry.py` 等多处检查器引用其 `05_FINDINGS_REGISTER_20260911.md`，不得移动/删除） | 2026-09-13 被 RESCUE-V3 取代；历史裁决 R-01..R-31 与 findings 登记册仅作追溯线索，本包不得继续派工或据此续作 |
 | V8.1 CI 控制包 | `AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905` | ARCHIVED_SUPERSEDED | 解压件：`工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/`；tracked 镜像：`engineering/control/archive/2026-09-09_superseded_V8.1_CI_CONTROL_20260905/`（56 文件原样移动，SHA-256 零差异，GOV-002） | 治理前提被宪章 supersession 替代；其 `01_FROZEN_CONSTRAINTS.md` 上级来源已降级 ARCHIVED_NON_NORMATIVE；归档说明见镜像目录 `README_ARCHIVED.md` |
 | V7 MODULAR REFOUNDATION | `AstroCS_V7_MODULAR_REFOUNDATION_CONTROL_20260902_FINAL3` | ARCHIVED_DISARMED | `工程控制/AstroCS_V7_MODULAR_REFOUNDATION_CONTROL_20260902_FINAL3/`（台账 `TASK_LEDGER.csv` SHA-256 见 BASE-001 冻结） | 140 任务队列 disarm 终止于 42/140（41 submit + NOISE-IMPL 沿旧包收尾）；旧 cp 运行 `Rmtuajdhv73d430` 已 force 替换废弃；队列台账/TASK_STATE/CSV/COMMIT_LEDGER reconcile --strict rc=0；未完成任务保留 NOT_STARTED 作历史；交接锚 = `memory.md` item 9 |
 | V6.1 REWORK | `AstroCS_V6_1_REWORK_CONTROL_20260831` | ARCHIVED_SUPERSEDED | `工程控制/AstroCS_V6_1_REWORK_CONTROL_20260831/`（台账 `03_REWORK_TASK_LEDGER.csv` SHA-256 见 BASE-001 冻结） | 交付面由后续轮次与宪章对齐包接管 |
@@ -35,8 +36,8 @@
 - 未跟踪半成品（P1-NOISE-IMPL）：`lib/snr_estimator/CMakeLists.txt`、
   `lib/snr_estimator/include/`、`lib/snr_estimator/src/`、`tests/unit/p1_noise/`；
 - 根 `CMakeLists.txt` 追加块未提交（预存 8 个 tracked modified 之一）；
-- 处置去向：交由 ACTIVE 包（ASTROCS-CONSTITUTION-ALIGNMENT-V1）按其任务图
-  正式裁决；在此之前任何任务不得引用为当前实现或顺手删除。
+- 处置去向：交由当前 ACTIVE 包 `AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912`
+  按其任务图（`TASK_LIST.md`）正式裁决；在此之前任何任务不得引用为当前实现或顺手删除。
 
 ## 4. V7 线未修候选与挂账去向（登记，不处置）
 
