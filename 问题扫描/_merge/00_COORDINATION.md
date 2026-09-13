@@ -509,15 +509,33 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 - 同法自查：L21 其余"锁死/不可消费"级别的表述，凡涉及运行时行为的，M7 必须按当前树找**实际校验点**后再定强弱。
 
 ### L21 的真正贡献（采纳为高价值，无需前台复验其文本事实）
-- **L21-001（P0 候选）**：`PHASE2_INTEGRATION.md` 的「权重语义」段把 `ivar_valid ? ivar : support` 写成 weight_mode=2 的
-  **唯一语义**，与 `DATA §20.3:987` 同形 —— 这是宪章 §6.3「support 不得当权重」红线在 SCI（L07-004）/代码（L09-003）/
-  限制文档（L18-002）之外的**第四面：ALG 权威层**。更重的是 `DATA §20.3:995` **同节**又要求 rc=7/显式开关 →
-  **同一节自相矛盾**。M4（已持 L07-004/L09-003 的会签）与 M7 并档为「同一红线四面失守」，这是 SUMMARY 的头号主题。
-- **L21-004+003（P1，可升 P0）**：「科学权重」无唯一权威定义 —— DATA §19.3「唯一冻结式 w_UPM=quality×geom×control_ivar」
-  vs §23.4「control_ivar 是唯一科学权重源」vs GLOSSARY「pixel_weight=ivar 却标无量纲」（与同页 ivar=ADU⁻²、
-  DATA §21.1 weights=1/ADU²、SCI-INT §3 信号⁻² 三源互斥）；且 `SCI-UPM §5:46` 三因子积与 `:47` normalized=raw/Σraw·geom
-  **两式不等价**，ALG 的 F1/F2 消费后者、DATA 引前者为「唯一」。→ 待复核项「UPM 归一化的 Σ 域」决定能否升 P0，
-  请 M4/M7 会签时优先解决这一条（它直接决定 mosaic 权重数值）。
-- **L21-007（P1）**：交换合同三角色的最小平面集均含「mask」，而三个 DATA 节各自声明 mask「不作为产品输出」，
-  且 mask 存在三义（bad_mask 极性 1=坏 / rejection accepted 掩码 / 质量位集）→ 宪章 §4.1 禁止混用的典型。
-- 附录 A 的**矩阵本身**是有用交付物（负责人可一眼看出哪些量至今没有唯一权威定义），定稿时随 SUMMARY 附录收录，不要丢。
+
+## 收档 L14（注释广度 Phase2/3+运行时+CLI，15：P0:2/P1:6/P2:7）—— 前台逐行复验 L14-004 成立并补强
+
+### L14-004 注释门是空壳：前台读 `tools/quality/contracts/check_comments.py` 全文（66 行）逐行确认
+1. `:9-13` 定义的 **STALE_PATTERNS 与 `:15` REQUIRE_ID_NEAR 在 main() 中零引用** → 死变量；实际判定只有
+   `:37` 的字面量 `if "V19R2" in c or "V19R3" in c`。→ 正则 `V1[0-9]R[0-9]` 本可覆盖 V20R*/V21R* 等未来轮次，
+   **因写成死变量而永不生效**；同时 `thread.*16.*hard.*code|num_threads\(16\)` 这条死正则，正是本应抓住
+   F00-03/L13 所报 `pc_api.cpp:331` 注释宣称"OpenMP 16 线程"的那道门 —— **门与缺陷擦肩而过，且门内正则还在**。
+2. `:39` 若注释含「冻结」二字或路径含 history 即豁免 → 任何写"冻结"的注释永久免检。
+3. `:27` 扫描面只有 `lib/**/*.{cpp,h,hpp}`：**排除 `.c`**（aio/cla/dpsf/cosmetic/grebulka 全是 .c），
+   且 `runtime/ cli/ providers/ modules/ include/ tools/ tests/` 整体不在面内。
+4. `:42`/`:48` 每文件命中即 `break` → 一个文件只记一条。
+5. `:52` 无论实扫多少文件，**恒定自报 `coverage.ratio=1.0, mode=full`** → 机器门给自己出具"全覆盖"证明。
+6. `:4` docstring 宣称检查"代码复述/错误线程/单位"，`:49-50` 注释直言 "skip here" → **三项无实现**。
+7. `:31` 注释显示有人已修过"只扫前 50 文件"的截断问题，但**留下的其余空转未动** → 属「修复未固化」的反面案例：
+   修了最容易发现的那一格，其余仍恒 PASS。
+→ 判定：**`G_GOV_GATE` P0 成立**（宪章 §12.2 与 §12.3-10 无有效机器约束）。该条与 L11/L12/L15/L16/L17 的
+  「门不看/门恒真」并为主报告头号根因，M5b/M6a 会签：本条是**注释维度**的实例，勿与他域重复定稿。
+
+### L14-005 是本轮**产品溯源**类最干净的 P0（M6a 主落，前台判据支持升格）
+- SCI `PHASE3_HIPS_TO_FITS.md` §5:56/:61 冻结 `nside=2^(order_sel+9)`，但 `p3_resample.cpp:135-136` 恒用
+  properties 的 `hips_order`（`leaf_nside = kTileWidth << p.order`）；`p3_session.cpp:196-199` 算出的 `order_sel`
+  **唯一后继是 `:358/:371` 的 provenance** → 落进的正是 FITS `ORDERSEL` 卡（`p3_output.cpp:217-218`）与 manifest。
+  即**产品头卡记录的采样层级可以不等于实际读取层级**，而同处注释「禁仅写 metadata」恰与其唯一用途相反。
+- 结构性佐证：AIO 读侧只支持按 `hips_order` 拼 tile 路径（`aio_hips_reader.cpp:105/:155/:490`）→ 层级选择在读取路径上
+  根本不存在。无 DISP 登记 → 违 §6.3/§17.1 与 §4.3（manifest 可追溯）。
+- **与 L03 收敛**：L03-001（nside 零校验、正确校验被绕过）与 L14-005（order_sel 算了但没用）合起来说明
+  **Phase3 的层级选择整条链路是装饰性的**，请 M2b 与 M6a 各落自己域的事实并在 `${"_"}` 同一根因下 related 互挂，
+  前台并为主题「控制参数被计算、被记录、但不参与执行」。同类还有 L05-013（precision_mode 被 config 接受但通道恒 FP32）、
+  L09-010（weight_mode 声明可配固定 0）、L11-001（workers 计划值冒充实测值）、L16-001（TEST 层锚在文档）。
