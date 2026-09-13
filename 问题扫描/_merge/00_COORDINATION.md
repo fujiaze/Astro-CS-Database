@@ -532,22 +532,22 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 
 
 
-## 锚点核验器 v3（由 M7 的自我否证驱动，处置强度分五档）
-- **v2 的真实缺陷**：它先按精确路径查、查不到就按 basename 唯一命中兜底 —— 于是 `docs/contracts/TRACEABILITY.csv`（M7 的假锚）
-  会被**静默接受**（basename 唯一存在）。也就是说 v2 只抓"文件不存在"，**抓不到"路径写错但文件在别处"**，而后者才是本仓 133+ 处假引用的主形态。
-- **v3 分类与处置强度（关键：不同类不得同样处理）**：
-  一 `PATH_MISMATCH`（同名文件唯一存在）→ **只改锚，禁止撤证据**；二 `ABSENT`（真源确无此路径，附近似名候选）→ 三级复核后改述或撤条；
-  三 `SYMBOL_ELSEWHERE`（符号在被引文件 0 命中但在别处存在）→ **补文件锚点即可，禁止据此撤条**；四 `SYMBOL_ABSENT`（全仓 0 命中）→ 最强假阳信号，逐条走三级复核；
-  五 `OOB`（行号越末尾）→ 重取行号或改 `path::符号`。
-- **判据写进报告首行**（采纳 M7 的规程）：判「路径缺失」**必须以存在性检索为准**；某个字面串 0 命中只说明**用词不同**，不是文件不存在。
-- **实测（273 份审计 md / 9527 次引用）**：精确在位 7117、PATH_MISMATCH **210**、ABSENT 364、SYMBOL_ELSEWHERE 31、SYMBOL_ABSENT 31、OOB 7。
-  → **210 条是"只改写法"的假警报，v2 全数把它混在"缺失"里**（首批即含 `基线/checks.json`、`docs/science/PHASE2_SAMPLER.md`、一批 `include/ipv_*.h` 相对写法）；
-  而 31 条 SYMBOL_ELSEWHERE 是"定义在他处"（v2 会把它们当假阳撤掉）。**ABSENT 的 364 条里大头是档案内部相对引用**（`_cache/Lxx.md`、`_merge/Mx.md`、`G_GOV_GATE/p1/M5b_L12_L17.md` 等），
-  属我方档案自引，不属真源缺陷 → R 层只需处理真源前缀那部分，我已按此口径拆分。
+## 收档 M7 路径全量审计（**它抓到的是我自己的工具缺陷**）
+- M7 用「全部路径 token vs `glob **/*` 的 3278 条真实路径做集合差」审计自己的 16 个文件，改掉 2 处自造假锚，并**自我否证一处误判**：
+  它首稿判 `docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md`「不存在故重锚」，实际该件**存在**（168 行、ACTIVE_NORMATIVE）；
+  成因是**把 grep 假阴当路径缺失** —— 同一字段在该件写作 `science_ids[SCI-*]`（:24/:76/:145）、在 schema/validator 写作 `science_contract_ids`，
+  它拿后者单串检索就断言原件缺失。订正后四处锚全在位、**结论不变**。
+- 它提炼的规程已被我编进核验器 v3 首行判据：**判 MISSING_PATH 必须以存在性检索为准，字面串 0 命中只说明用词不同**。
+- **对核验器 v2 的直接打击**：v2 的 `resolve()` 在精确路径查不到时按 basename 唯一命中兜底 ⇒ `docs/contracts/TRACEABILITY.csv`（M7 的假锚）
+  会被 v2 **静默接受**。也就是说 v2 只抓"文件不存在"，抓不到"路径写错但文件在别处"——而后者才是本仓假引用的主形态（M6b 实测真源 139 处/40 文件）。
+  v3 因此分五档并给处置强度，**其中两档明令禁止撤条**（PATH_MISMATCH 只改写法、SYMBOL_ELSEWHERE 只补文件锚），防止各域照 v2 报告误撤真证据。
+  实测 9527 次引用：精确在位 7117 · **PATH_MISMATCH 210** · ABSENT 364（其中真源前缀仅 46、我方档案自引 20，其余为 `README/module.yaml` 这类"目录+文件名"合成写法）·
+  **SYMBOL_ELSEWHERE 31** · SYMBOL_ABSENT 31 · OOB 7。
+- 附带：M7 把 `docs/TRACEABILITY.csv` 与 `docs/traceability/TRACEABILITY_MATRIX.{csv,json}`、`TRACEABILITY_LAYERS.csv` 并存这条线索
+  related 交给 M6b-E-001（**未另立案**），处理方式正确——追溯多头归 M6b 主落。
+- M7-A-112 与 M3-C-010 的**独立性声明**已落在 `findings/A_SCI_DEF/p1/M7_A_SCI_DEF_p1_a.md:70`，A-05 折掉不影响该条成立（依据全是可复现锚）。
 
-## 全流水线状态（十四域合并全部落地）
-- 叶子：18 纵轴 + L19-L27 九横轴 = 27 份档案；L28 未交付 → **L28b 接力在跑**（四件事：可机检判据+命中率/假阳率、"注释驱动决策"新实例、注释侧 ID 全量计数、与 M6a 分界声明）。
-- 合并：**M1a 44 · M2a 46 · M2b 29 · M3 43 · M3b 22 · M4 31 · M5a 22 · M5b 43 · M6a 31 · M6b 22 · M7 76 · M8 26 · M8a 31 · M9 26**（合计 494 条目标题，含 M7 的 2 交叉指针与少量档案内小节噪声）。
-- 前台综合件：`INDEX.md`（类别×优先级矩阵）、`SUMMARY.md`（十簇 + 三态表 + 未覆盖面）、`40_OWNER_DECISIONS.md`（A30 / B14 / C9 / D5）。
-- **R 层是最后一步**，触发三条件（HEAD 连续两轮不变 + 真源脏文件清零 + 全部代理交付）；开工前先重跑 `gen_changed_watch.js` 与 `verify_anchors.js` v3，
-  按新五档处置强度分派（一、三类**禁止撤条**，二、四、五类才允许改述/撤条/重锚）。
+## R 层开工前置状态（每次刷新）
+- 并发改动面：**61 个真源文件**（基线 `b32246c4` 起）/ 被审计档案点名 60 / 未点名 1；热力 `CMakeLists.txt` 404 处引用、`ci/checks.json` 300 处。
+- 脏源 40、HEAD 持续前移 ⇒ **R 层三条件未满足**（HEAD 连续两轮不变 + 真源脏文件 0 + 全部代理交付）。
+- R 层派单前必做：①重跑两个工具 ②按 v3 五档分派处置权限（①③档**只许改锚不许撤条**）③把 46 条真源前缀 ABSENT 与 7 条 OOB 逐条分给对应域代理。
