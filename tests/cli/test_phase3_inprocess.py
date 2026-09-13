@@ -172,7 +172,9 @@ class TestPhase3InProcess(unittest.TestCase):
         self.assertEqual(m["status"], "complete")
         self.assertEqual(m["phases"], [3])
         arts = m.get("artifacts", [])
-        self.assertTrue(any(a["role"] == "phase3_output" and
+        # FIX-E2E B1-A2: manifest.artifacts 现含全节点产物（部分无 role 键），
+        # 断言只看存在 phase3_output 角色且文件在盘（用 get 避免 KeyError）。
+        self.assertTrue(any(a.get("role") == "phase3_output" and
                             os.path.isfile(a["path"]) for a in arts),
                         "phase3 run 的 manifest 必须记录 phase3_output artifact")
 

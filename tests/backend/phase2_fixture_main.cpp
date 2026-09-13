@@ -15,13 +15,19 @@ constexpr uint32_t TW = 512;  // nside=512 → 叶级 order 0(tile 全域)
 constexpr float F1 = 1.00f, F2 = 1.25f, AREA = 1.0e-8f;
 }
 
-static bool write_frame(const std::string& path, float flux) {
+// FIX-E2E B1-A5: with_ivar=true 时以 AIO_HIPS_PRODUCT_VARIANCE|IVAR 追加写
+// variance/ivar 子产品（等权合成帧 σ=0.1 → variance=0.01; 依据 AIO 合同
+// variance = var_num_sum / covered_area², 故 var_num_sum = variance·AREA²）。
+static bool write_frame(const std::string& path, float flux, bool with_ivar = false) {
+    int flags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT;
+    if (with_ivar) flags |= AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR;
     AioHipsProductSet* ps = aio_hips_product_begin(
         path.c_str(), TW, TW, AIO_HIPS_FLOAT32,
-        AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
+        flags,
         "ivo://astrocs/test", "CLI-005 synthetic", "R", 60.0, "2026-08-28T00:00:00Z", 0);
     if (!ps) { std::fprintf(stderr, "begin failed: %s\n", aio_hips_last_error()); return false; }
     std::vector<float> sig(TW * TW, flux), area(TW * TW, AREA);
+    std::vector<float> vnum(TW * TW, AREA * AREA * 0.01f);
     for (uint64_t ipix = 0; ipix < 12; ++ipix) {   // nside=512 NESTED 基元 index=ipix/... 用 0..11 作为 order0 tile 父单元
         AstroSphereTileView v{};
         v.parent_ipix = ipix;   // K=0: parent=nside3 基元... 由 writer 映射
@@ -31,8 +37,15 @@ static bool write_frame(const std::string& path, float flux) {
         v.flux_sum = sig.data();
         v.covered_area = area.data();
         v.valid_mask = nullptr;
+        v.var_num_sum = with_ivar ? vnum.data() : nullptr;
         if (aio_hips_write_signal_support_tile(ps, &v) != 0) {
             std::fprintf(stderr, "tile write failed ipix=%llu\n", (unsigned long long)ipix);
+            aio_hips_abort(ps);
+            return false;
+        }
+        if (with_ivar && aio_hips_write_variance_tile(ps, &v) != 0) {
+            std::fprintf(stderr, "variance tile write failed ipix=%llu: %s\n",
+                         (unsigned long long)ipix, aio_hips_last_error());
             aio_hips_abort(ps);
             return false;
         }
@@ -163,13 +176,18 @@ static bool write_analytic_frame(const std::string& path) {
 
 int main(int argc, char** argv) {
     if (argc < 3) {
-        std::fprintf(stderr, "usage: --make <dir> | --make-field <dir> | --make-nan <dir> | --make-seam <dir> | --make-analytic <dir>\n");
+        std::fprintf(stderr, "usage: --make <dir> | --make-noivar <dir> | --make-field <dir> | --make-nan <dir> | --make-seam <dir> | --make-analytic <dir>\n");
         return 2;
     }
     const std::string mode = argv[1], dir = argv[2];
     if (mode == "--make") {
-        if (!write_frame(dir + "/F1.hips", F1)) return 3;
-        if (!write_frame(dir + "/F2.hips", F2)) return 3;
+        // B1-A5: 默认合成正样本含 variance/ivar（weight_mode=2 默认链可闭合）
+        if (!write_frame(dir + "/F1.hips", F1, true)) return 3;
+        if (!write_frame(dir + "/F2.hips", F2, true)) return 3;
+    } else if (mode == "--make-noivar") {
+        // B1-A5 负例夹具: 仅 SIGNAL|SUPPORT（默认 weight_mode=2 必须 fail-closed rc=2）
+        if (!write_frame(dir + "/F1.hips", F1, false)) return 3;
+        if (!write_frame(dir + "/F2.hips", F2, false)) return 3;
     } else if (mode == "--make-field") {
         if (!write_frame_custom(dir + "/FIELD.hips", true, false)) return 3;
     } else if (mode == "--make-nan") {

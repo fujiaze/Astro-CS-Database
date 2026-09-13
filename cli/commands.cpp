@@ -314,7 +314,8 @@ int cmd_test_synthetic(const Parsed& p, const std::string& group, astrocs::Jsonl
 int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, const std::string& status,
                        const std::string& summary, const std::string& config_path,
                        const std::string& config_sha, const std::vector<int>& phases,
-                       const nlohmann::json& artifacts = nlohmann::json::array()) {
+                       const nlohmann::json& artifacts = nlohmann::json::array(),
+                       const nlohmann::json& extra = nlohmann::json()) {
     nlohmann::json m = {
         {"schema_version", "1"},
         {"kind", "astrocs_run_manifest"},
@@ -339,6 +340,11 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
         {"finished_utc", astrocs::iso8601_utc_now()},
         {"summary", summary},
     };
+    // FIX-E2E B1-A5/A10: 节点级科学事实（如 uncertainty_available）并入 run manifest，
+    // 单一来源 = 节点 manifest，不在 CLI 另造。键缺失即不写（禁占位）。
+    if (extra.is_object()) {
+        for (auto it = extra.begin(); it != extra.end(); ++it) m[it.key()] = it.value();
+    }
     std::error_code ec;
     std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
     const std::string final_path = out_dir + "/astrocs_run_" + ev.run_id() + ".json";
@@ -781,6 +787,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     const auto& act = stats[static_cast<std::size_t>(astrocs::ResStage::Active)];
     if (act.n_samples > 0) {
         g.workers_p50 = act.workers_p50;
+        g.active_window_seconds = act.wall_seconds;   // B1-A6 判定域前置
         if (act.wall_seconds >= 10.0) {
             g.cpu_p50_percent = act.cpu_pct_p50;
             g.cpu_mean_percent = act.cpu_pct_mean;
@@ -926,6 +933,7 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     nlohmann::json cfg_doc;
     const int vrc2 = validate_config_full(cfg, &cfg_doc, /*session_mode=*/true);
     if (vrc2 != astrocs::OK) return vrc2;
+    const std::string cfg_out_dir = cfg_doc.value("output_dir", std::string("."));
 
     // RT-008: phase2 走 Runtime 单 phase IR 子图（与 run --phases 2 同一路径）。
     ev.stage("phase2_session", true);
@@ -935,7 +943,7 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         while (std::chrono::steady_clock::now() < deadline) {
             if (astrocs::is_cancelled()) {
                 ev.stage("phase2_session", false);
-                const int wrc = write_run_manifest(".", ev, "incomplete", "cancelled by user",
+                const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "cancelled by user",
                                                    cfg, cfg_sha, {2});
                 if (wrc != astrocs::OK) return wrc;
                 ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
@@ -963,6 +971,23 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         artifacts.push_back({{"path", ap}, {"sha256", ok2 ? sha : ""},
                              {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
     }
+    // B1-A5: uncertainty_available 由 integrate/write 节点 manifest 提供（mode=1 →
+    // false; mode=2+ivar → true），CLI 只透传不判定。
+    nlohmann::json extra = nlohmann::json::object();
+    {
+        bool ua_found = false; bool ua = false;
+        for (const auto& [nid, mtext] : mans) {
+            (void)nid;
+            try {
+                auto m = nlohmann::json::parse(mtext);
+                if (m.is_object() && m.contains("uncertainty_available")) {
+                    ua = m.value("uncertainty_available", false);
+                    ua_found = true;
+                }
+            } catch (...) {}
+        }
+        if (ua_found) extra["uncertainty_available"] = ua;
+    }
     const std::string out_dir = [&] {
         try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
         catch (...) { return std::string("."); }
@@ -970,7 +995,7 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
-                                           cfg, cfg_sha, {2}, artifacts);
+                                           cfg, cfg_sha, {2}, artifacts, extra);
         if (wrc != astrocs::OK) return wrc;
         ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
         std::fprintf(stderr, "astrocs: cancelled\n");
@@ -980,14 +1005,14 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         const std::string why = fail_reason.empty() ? ("phase2 failed (exit " + std::to_string(rrc) + ")")
                                                     : fail_reason;
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase2 failed: " + why,
-                                           cfg, cfg_sha, {2}, artifacts);
+                                           cfg, cfg_sha, {2}, artifacts, extra);
         if (wrc != astrocs::OK) return wrc;
         ev.emit_final(rrc, "phase2_failed", nullptr, why);
         std::fprintf(stderr, "astrocs: phase2 failed: %s\n", sanitize(why).c_str());
         return rrc;
     }
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase2 ok", cfg, cfg_sha, {2},
-                                       artifacts);
+                                       artifacts, extra);
     if (wrc != astrocs::OK) return wrc;
     // RT-008: 从节点 manifest 读真实科学值（session inspect 摘要）。
     // 节点 id 是节点图 id（coverage/sample/…/write），不含 "res"——按内容扫描
@@ -1075,6 +1100,7 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     nlohmann::json cfg_doc3;
     const int vrc3 = validate_config_full(cfg, &cfg_doc3, /*session_mode=*/true);
     if (vrc3 != astrocs::OK) return vrc3;
+    const std::string cfg_out_dir = cfg_doc3.value("output_dir", std::string("."));
 
     // RT-008: phase3 走 Runtime 单 phase IR 子图（与 run --phases 3 同一路径）。
     ev.stage("phase3_session", true);
@@ -1084,7 +1110,7 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         while (std::chrono::steady_clock::now() < deadline) {
             if (astrocs::is_cancelled()) {
                 ev.stage("phase3_session", false);
-                const int wrc = write_run_manifest(".", ev, "incomplete", "cancelled by user",
+                const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "cancelled by user",
                                                    cfg, cfg_sha, {3});
                 if (wrc != astrocs::OK) return wrc;
                 ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
@@ -1112,27 +1138,51 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         nlohmann::json m;
         try { m = nlohmann::json::parse(mtext); } catch (...) { continue; }
         if (!m.is_object()) continue;
+        const std::string op = m.value("output_fits_path", std::string());
         for (const auto& a : m.value("artifacts", nlohmann::json::array())) {
+            if (!a.is_string()) continue;
             const std::string ap = a.get<std::string>();
-            if (!seen_paths.insert(ap).second) continue;
             bool ok2 = false;
             const std::string sha = file_sha256(ap, &ok2);
             std::error_code ec;
             const auto size = std::filesystem::file_size(std::filesystem::u8path(ap), ec);
-            artifacts.push_back({{"path", ap}, {"sha256", ok2 ? sha : ""},
-                                 {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
+            if (!seen_paths.insert(ap).second) continue;
+            // CLI-007 冻结语义: phase3 输出 FITS 记 role=phase3_output(test_07 断言)。
+            // B1-A2: 该 FITS 也在节点 manifest 的 artifacts 清单里，必须在去重前
+            // 判角色，否则先入的无 role 条目会把带 role 的条目去重掉。
+            if (!op.empty() && ap == op)
+                artifacts.push_back({{"role", "phase3_output"}, {"path", ap},
+                                     {"sha256", ok2 ? sha : ""},
+                                     {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
+            else
+                artifacts.push_back({{"path", ap}, {"sha256", ok2 ? sha : ""},
+                                     {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
         }
-        const std::string op = m.value("output_fits_path", std::string());
+        // CLI-007: 节点 manifest 只声明 output_fits_path（未入 artifacts 数组）时也登记。
         if (!op.empty() && seen_paths.insert(op).second) {
             bool ok2 = false;
             const std::string sha = file_sha256(op, &ok2);
             std::error_code ec;
             const auto size = std::filesystem::file_size(std::filesystem::u8path(op), ec);
-            // CLI-007 冻结语义: phase3 输出 FITS 记 role=phase3_output(test_07
-            // 断言); CLI-002 拆分时聚合迁入 cmd_phase3_run 丢失 role 字段。
             artifacts.push_back({{"role", "phase3_output"}, {"path", op}, {"sha256", ok2 ? sha : ""},
                                  {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}});
         }
+    }
+    // B1-A2/A10: phase3 侧同源透传 uncertainty_available（resample/writer 节点 manifest）。
+    nlohmann::json extra = nlohmann::json::object();
+    {
+        bool ua_found = false; bool ua = false;
+        for (const auto& [nid, mtext] : mans) {
+            (void)nid;
+            try {
+                auto m = nlohmann::json::parse(mtext);
+                if (m.is_object() && m.contains("uncertainty_available")) {
+                    ua = m.value("uncertainty_available", false);
+                    ua_found = true;
+                }
+            } catch (...) {}
+        }
+        if (ua_found) extra["uncertainty_available"] = ua;
     }
     const std::string out_dir = [&] {
         try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
@@ -1141,7 +1191,7 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
-                                           cfg, cfg_sha, {3}, artifacts);
+                                           cfg, cfg_sha, {3}, artifacts, extra);
         if (wrc != astrocs::OK) return wrc;
         ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
         std::fprintf(stderr, "astrocs: cancelled\n");
@@ -1151,14 +1201,14 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         const std::string why = fail_reason.empty() ? ("phase3 failed (exit " + std::to_string(rrc) + ")")
                                                     : fail_reason;
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase3 failed: " + why,
-                                           cfg, cfg_sha, {3}, artifacts);
+                                           cfg, cfg_sha, {3}, artifacts, extra);
         if (wrc != astrocs::OK) return wrc;
         ev.emit_final(rrc, "phase3_failed", nullptr, why);
         std::fprintf(stderr, "astrocs: phase3 failed: %s\n", sanitize(why).c_str());
         return rrc;
     }
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase3 ok", cfg, cfg_sha, {3},
-                                       artifacts);
+                                       artifacts, extra);
     if (wrc != astrocs::OK) return wrc;
     // RT-009: phase3 run 成功路径补写运行图产物（static/observed/sidecar + L0 渲染）。
     // 此前 write_run_graphs 定义后无任何调用点（CLI-002 移除 cmd_run_pipeline/
@@ -1423,6 +1473,8 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     nlohmann::json cfg_doc1;
     const int vrc1 = validate_config_full(cfg, &cfg_doc1, /*session_mode=*/true);
     if (vrc1 != astrocs::OK) return vrc1;
+    // B1-A8: 取消路径也用显式 output_dir（禁 CWD "." 残留）
+    const std::string cfg_out_dir = cfg_doc1.value("output_dir", std::string("."));
 
     // RT-008: phase1 走 Runtime 单 phase IR 子图（与 run --phases 1 同一路径，不是第二条）。
     // 退出码映射保持旧协议：配置错→2; 输入缺→3; 科学失败→70; IO→7; 取消→9。
@@ -1434,7 +1486,7 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         while (std::chrono::steady_clock::now() < deadline) {
             if (astrocs::is_cancelled()) {
                 ev.stage("phase1_session", false);
-                const int wrc = write_run_manifest(".", ev, "incomplete", "cancelled by user",
+                const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "cancelled by user",
                                                    cfg, cfg_sha, {1});
                 if (wrc != astrocs::OK) return wrc;
                 ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
@@ -1451,15 +1503,21 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
                               resource_detail_arg(p), &p1_summary);
     ev.stage("phase1_session", false);
 
+    // FIX-E2E B1-A1: 全链 8 节点产物收集(旧写法 `if (nid != "cal") continue;` 只认
+    // cal, HiPS/manifest 科学产物永不入 run manifest)。按 path 去重(链共享 output_dir)。
     nlohmann::json artifacts = nlohmann::json::array();
+    std::set<std::string> seen_paths;
     std::vector<std::pair<std::string, std::string>> mans;
     astrocs::cli::collect_node_manifests(&mans);
     for (const auto& [nid, mtext] : mans) {
-        if (nid != "cal") continue;
+        (void)nid;
         nlohmann::json m;
         try { m = nlohmann::json::parse(mtext); } catch (...) { continue; }
+        if (!m.is_object()) continue;
         for (const auto& a : m.value("artifacts", nlohmann::json::array())) {
+            if (!a.is_string()) continue;
             const std::string ap = a.get<std::string>();
+            if (!seen_paths.insert(ap).second) continue;
             bool ok2 = false;
             const std::string sha = file_sha256(ap, &ok2);
             std::error_code ec;
@@ -1536,6 +1594,31 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
         std::fprintf(stderr, "astrocs: manifest was produced by version '%s', this is '%s'\n",
                      m.value("astrocs_version", std::string()).c_str(), ASTROCS_VERSION_STRING);
         return astrocs::BACKEND;                          // 04 §5(换版本不可 verify 旧 run)
+    }
+    // FIX-E2E B1-A2: 必需产物角色核验 —— 声明了 Phase 却无该 Phase 的必需产物角色
+    // → 8（旧行为: artifacts 恒空仍 PASS, 空过）。role 由生产节点 manifest 定义,
+    // CLI 不做兼容别名（单点键名）。
+    {
+        const auto arts = m.value("artifacts", nlohmann::json::array());
+        for (const auto& ph : m.value("phases", nlohmann::json::array())) {
+            if (!ph.is_number_integer()) continue;
+            const int phase = ph.get<int>();
+            if (phase == 3) {
+                bool has_out = false;
+                for (const auto& a : arts)
+                    if (a.is_object() && a.value("role", std::string()) == "phase3_output")
+                        has_out = true;
+                if (!has_out) {
+                    std::fprintf(stderr, "astrocs: phase3 manifest declares no phase3_output artifact\n");
+                    return astrocs::INTEGRITY;   // 8
+                }
+            } else if (phase == 1 || phase == 2) {
+                if (!arts.is_array() || arts.empty()) {
+                    std::fprintf(stderr, "astrocs: phase%d manifest declares no artifacts\n", phase);
+                    return astrocs::INTEGRITY;   // 8
+                }
+            }
+        }
     }
     int checked = 1;
     if (m.contains("config_path") && !m["config_path"].is_null()) {

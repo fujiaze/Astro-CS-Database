@@ -307,8 +307,14 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         // P1-001: 真实节点域科学参数（drizzle: nside/nested/pixfrac/precision;
         // wcs: ipv 求解链参数——非 silent default, 缺失即节点 DATA 拒绝）
         "drizzle", "wcs",
-        // phase2 平铺 (p2_session 消费面)
+        // phase2 平铺 (p2_session / canonical P2 节点链 消费面)
+        // B1-A4: 节点实际消费键必须可达, 否则配置被 parser 拒绝而链路不可闭合。
+        // 节点侧键集（module_adapters P2NodeModule::validate_config + op 读取）:
+        //   hips_paths, output_dir, upm, reject, weight_mode,
+        //   legacy_allow_weight_fallback, reject_profile,
+        //   persist_upm/upm_save_path（UPM 持久化落盘键）。
         "hips_paths", "upm", "upm_save_path", "persist_upm",
+        "reject", "reject_profile", "weight_mode", "legacy_allow_weight_fallback",
         // phase3 平铺 (p3_session 消费面)
         "source", "center", "scale_deg_per_px", "width_px", "height_px",
         "projection", "sampler", "longitude_parity", "bitpix",
@@ -366,6 +372,17 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     if (!flat_session && (!doc.contains("output_dir") || !doc["output_dir"].is_string())) {
         std::fprintf(stderr, "astrocs: config missing 'output_dir'\n");
         return astrocs::INPUT;
+    }
+    // FIX-E2E B1-A8: 平铺会话同样必须显式给 output_dir —— 取消隐式 CWD "." 默认，
+    // 否则 phaseN run 的 manifest/资源三件套落进程 CWD（仓库根产物散落）。
+    // 配置错 → 2（禁 silent default; 与节点侧 output_dir 必填一致）。
+    if (flat_session &&
+        (!doc.contains("output_dir") || !doc["output_dir"].is_string() ||
+         doc["output_dir"].get<std::string>().empty())) {
+        std::fprintf(stderr,
+                     "astrocs: config missing 'output_dir' (required for phase run; "
+                     "run products are written only under output_dir)\n");
+        return astrocs::ARGS;                        // 2: 配置错
     }
     std::error_code ec;
     // 平铺会话格式: session 自建输出目录, CLI 仅要求为字符串; V1 顶层格式仍要求已存在。

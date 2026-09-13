@@ -54,3 +54,24 @@ handler→Phase API 追溯(04 §6-4): phase1 run→API-003 create/validate/run/i
 6. 双平台 golden command tests 字段+退出码一致(Windows 侧 Fatduck 执行)。
 
 1–5 为 Linux 可验;6 属 WIN/FAT 域任务。
+
+## 7 配置与 `output_dir`(FIX-E2E B1-A8 订正;权威=04 §1 + 宪章 §14.4)
+
+运行产物(每相 run manifest `astrocs_run_*.json`、资源三件套
+`resource_samples.csv` / `resource_summary.json` / `worker_balance.csv`、
+`alloc_samples.csv` / `alloc_report.json`、节点科学产物)**只落 `output_dir`**;
+CLI 不得以进程 CWD(`"."`)作为隐式缺省写出,否则在工作区根散落产物并触发
+UT-CLI `mutates_workspace=false` 的 dirty 判定。
+
+1. **必填**:`phase1|phase2|phase3` 的 `run`/`plan`/`validate`/`inspect` 配置,
+   无论 V1 顶层形态(`inputs`)还是平铺会话形态(`input_lights`/`hips_paths`/
+   `phase3`),都必须显式给出 **非空字符串** `output_dir`。
+2. **缺失/非串/空串**:平铺会话形态 → 配置错 `exit 2`(禁 silent default);
+   V1 顶层形态 → `exit 3`(见 `cli/parser.cpp` `validate_config_full`)。
+3. **存在性**:V1 顶层形态要求 `output_dir` 目录已存在(`exit 3` if not found);
+   平铺会话形态由 session/节点自建输出目录,不要求预先存在。
+4. **取消路径**:SIGINT 后的 `incomplete` manifest 也写 `output_dir`,
+   不再写 CWD `"."`。
+5. 回归锚: `tests/cli/test_cli001_vpi.py`、`tests/cli/test_phase123_pipeline.py`
+   负例矩阵、`run/release-rescue/fix-e2e/e2e_smoke.sh` 的
+   `neg: missing output_dir` + `no CWD residue` 两条。

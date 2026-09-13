@@ -3,8 +3,15 @@
 import json, os, re, shutil, signal, subprocess, tempfile, time, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EXE = os.path.join(REPO, "build", "cli", "astrocs")
+EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "cli", "astrocs"))
+REGISTRY = os.path.join(REPO, "runtime", "pipeline", "module_ports.registry.json")
 FIX = "/tmp/astrocs_p1_fixture"   # 由 setUpClass 编译
+
+
+def frozen_phase1_chain():
+    """module_ports.registry.json 冻结的 phase1 端口链 (module_id 顺序)。"""
+    d = json.load(open(REGISTRY, encoding="utf-8"))
+    return [m["module_id"] for m in d["modules"] if m.get("phase") == "phase1"]
 
 
 def build_fixture(tmp):
@@ -57,12 +64,18 @@ class TestPhase1InProcess(unittest.TestCase):
                            timeout=120)
         assert "FIXTURES_OK" in r.stdout, r.stderr
         cls.cfg = os.path.join(cls.tmp, "cfg.json")
+        # FIX-E2E B1-A1: 正式 phase1 链为 8 节点（cal→cos→psf→wcs→phot→snr→drz→wr）,
+        # drizzle/wcs 为链上必填科学配置; Linux ipv stub 平台 wcs 走显式 WCS 配置路径。
         json.dump({
             "input_lights": [os.path.join(cls.data, "light_1.fits"),
                              os.path.join(cls.data, "light_2.fits")],
             "master_bias": os.path.join(cls.data, "bias.fits"),
             "master_dark": os.path.join(cls.data, "dark.fits"),
             "master_flat": os.path.join(cls.data, "flat.fits"),
+            "wcs": {"crpix1": 32.5, "crpix2": 32.5, "crval1": 210.0, "crval2": 34.0,
+                    "cd11": -2.7777777777777776e-4, "cd12": 0.0,
+                    "cd21": 0.0, "cd22": 2.7777777777777776e-4},
+            "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 1},
             "output_dir": cls.out,
         }, open(cls.cfg, "w"))
 
@@ -91,7 +104,14 @@ class TestPhase1InProcess(unittest.TestCase):
                  e.get("role") == "run_manifest"][-1]["path"]
         m = json.load(open(mpath, encoding="utf-8"))
         self.assertEqual(m["status"], "complete")
-        self.assertEqual(len(m["artifacts"]), 2, "两帧校准输出入 manifest")
+        # FIX-E2E B1-A1: 全链产物（校准 FITS + p1_*.json + p1_stack.hiss + HiPS
+        # properties）必须全部入 run manifest; 旧断言 ==2 只编码了 cal 两节点断链态。
+        names = {os.path.basename(a["path"]) for a in m["artifacts"]}
+        self.assertTrue({"calibrated_light_1.fits", "calibrated_light_2.fits"} <= names)
+        self.assertTrue({"p1_sources.json", "p1_psf.json", "p1_wcs.json", "p1_flux.json",
+                         "p1_snr.json", "p1_stack.hiss", "p1_final.json"} <= names)
+        for a in m["artifacts"]:
+            self.assertTrue(a["sha256"] and os.path.isfile(a["path"]), a["path"])
         v = self._run("verify", "--json", "--run-manifest", mpath)
         self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
 
@@ -138,10 +158,16 @@ class TestPhase1InProcess(unittest.TestCase):
         small = subprocess.run([self.fixture, "--make", self.data], capture_output=True,
                                timeout=60)  # noop 复用
         cfg3 = os.path.join(self.tmp, "cfg3.json")
+        # FIX-E2E B1-A1: 无 master 校准路径仍合法, 但正式 8 节点链要求 drizzle/wcs 配置。
         json.dump({"input_lights": [os.path.join(self.data, "light_1.fits")],
+                   "wcs": {"crpix1": 32.5, "crpix2": 32.5, "crval1": 210.0, "crval2": 34.0,
+                           "cd11": -2.7777777777777776e-4, "cd12": 0.0,
+                           "cd21": 0.0, "cd22": 2.7777777777777776e-4},
+                   "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0,
+                               "precision_mode": 1},
                    "output_dir": self.out}, open(cfg3, "w"))
         r3 = self._run("phase1", "run", "--config", cfg3, "--events-jsonl")
-        self.assertEqual(r3.returncode, 0)  # master 全可空 → 无 master 校准路径也合法
+        self.assertEqual(r3.returncode, 0, r3.stderr[-400:])  # master 全可空 → 校准路径也合法
 
     def test_05_cancel_mid_run(self):
         env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="3000")
@@ -154,6 +180,76 @@ class TestPhase1InProcess(unittest.TestCase):
         events = jsonl_lines(out)
         self.assertEqual(events[-1]["kind"], "final")
         self.assertEqual(events[-1]["status"], "cancelled")
+
+    # ── FIX-E2E B1-A1 冻结门: CLI IR == registry phase1 端口链 ──
+    def test_06_ir_matches_frozen_chain(self):
+        """先红(基线 nodes=[cal,cos]) → 后绿: 正式 CLI phase1 IR 必须与
+        runtime/pipeline/module_ports.registry.json 的 phase1 链逐节点一致。"""
+        r = self._run("phase1", "plan", "--config", self.cfg, "--json")
+        self.assertEqual(r.returncode, 0, r.stderr[-400:])
+        plan = json.loads(r.stdout)
+        cli_mods = [n["module_id"] for n in plan["pipeline"]["nodes"]]
+        self.assertEqual(cli_mods, frozen_phase1_chain(),
+                         "CLI phase1 IR 必须 == registry 冻结端口链（防 2 节点回退）")
+        self.assertEqual(plan["work_units"]["total"], len(frozen_phase1_chain()))
+
+    # ── FIX-E2E B1-A3: 空必填输入 fail-closed ──
+    def test_07_empty_input_lights_fail_closed(self):
+        out = os.path.join(self.tmp, "out_empty")
+        os.makedirs(out, exist_ok=True)
+        cfg = os.path.join(self.tmp, "empty.json")
+        d = json.load(open(self.cfg))
+        d["input_lights"] = []
+        d["output_dir"] = out
+        json.dump(d, open(cfg, "w"))
+        r = self._run("phase1", "run", "--config", cfg, "--events-jsonl")
+        self.assertNotEqual(r.returncode, 0, "空 input_lights 必须非零退出")
+        for f in os.listdir(out):
+            if f.startswith("astrocs_run_"):
+                man = json.load(open(os.path.join(out, f), encoding="utf-8"))
+                self.assertNotEqual(man["status"], "complete")
+
+    # ── FIX-E2E B1-A9: nested 缺省 + precision_mode 显式拒绝 ──
+    def test_08_drizzle_nested_default_and_precision_required(self):
+        # precision_mode 缺失 → DATA 拒绝 (rc=2, 不 silent default)
+        out = os.path.join(self.tmp, "out_nopm")
+        os.makedirs(out, exist_ok=True)
+        cfg = os.path.join(self.tmp, "nopm.json")
+        d = json.load(open(self.cfg))
+        d["drizzle"] = {"nside": 512, "nested": 1, "pixfrac": 1.0}
+        d["output_dir"] = out
+        json.dump(d, open(cfg, "w"))
+        r = self._run("phase1", "run", "--config", cfg, "--events-jsonl")
+        self.assertEqual(r.returncode, 2, r.stderr[-400:])
+        self.assertIn("precision_mode", r.stderr)
+        # nested 缺失 → HiPS NESTED 合同缺省 1 (rc=0, HiPS 落盘)
+        out2 = os.path.join(self.tmp, "out_nonested")
+        os.makedirs(out2, exist_ok=True)
+        cfg2 = os.path.join(self.tmp, "nonested.json")
+        d2 = json.load(open(self.cfg))
+        d2["drizzle"] = {"nside": 512, "pixfrac": 1.0, "precision_mode": 1}
+        d2["output_dir"] = out2
+        json.dump(d2, open(cfg2, "w"))
+        r2 = self._run("phase1", "run", "--config", cfg2, "--events-jsonl", timeout=300)
+        self.assertEqual(r2.returncode, 0, r2.stderr[-500:])
+        self.assertTrue(os.path.isfile(os.path.join(out2, "signal", "properties")))
+
+    # ── FIX-E2E B1-A9: FP32/FP64 双精度 E2E 可达 + 结构等价 ──
+    def test_09_fp32_fp64_equivalence(self):
+        finals = {}
+        for pm in (0, 1):
+            out = os.path.join(self.tmp, "out_pm%d" % pm)
+            os.makedirs(out, exist_ok=True)
+            cfg = os.path.join(self.tmp, "pm%d.json" % pm)
+            d = json.load(open(self.cfg))
+            d["drizzle"] = {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": pm}
+            d["output_dir"] = out
+            json.dump(d, open(cfg, "w"))
+            r = self._run("phase1", "run", "--config", cfg, "--events-jsonl", timeout=300)
+            self.assertEqual(r.returncode, 0, "precision_mode=%d: %s" % (pm, r.stderr[-400:]))
+            finals[pm] = json.load(open(os.path.join(out, "p1_final.json")))
+        self.assertEqual(finals[0]["n_tiles"], finals[1]["n_tiles"])
+        self.assertEqual(finals[0]["n_tiles_written"], finals[1]["n_tiles_written"])
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
