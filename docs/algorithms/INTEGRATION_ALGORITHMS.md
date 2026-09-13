@@ -17,6 +17,8 @@ F3: invalid_input ⇔ accepted且 non-finite value/support≤0/non-finite/负w
 F4: n_accepted, n_finite, n_positive_weight计数
 F5: if invalid → INVALID_INPUT; else if n_positive==0 → (n_accepted==0? ALL_REJECTED: ZERO_VALID_WEIGHT)
 F6: signal = Σ w·x / Σw, support = max(accepted support) if提供 else 1.0, n_used=n_positive
+F6a: support reducer 作用域 = accepted ∧ finite(value/support)（**不含** w>0 要求）；
+     零权 accepted 样本合法不贡献 signal, 但必须进入 sup_max（B2-A7 修复, P2P3-F9）
 ```
 
 来源: `integrate.cpp:10-79` `integrate.h: P2PixelStack/Result`
@@ -32,8 +34,9 @@ function integrate_pixel(in, out):
   if count==0 or values==null → NO_CANDIDATES
   for i: acc=accepted?.accepted[i]:true; count n_accepted; if !acc continue
          if !finite(values) → invalid; if support non-finite/≤0 → invalid
-         ++n_finite; w=weights?.w[i]:1; if !finite(w)或w<0→invalid; if w==0 continue
-         ++n_positive; vs+=w·x; wsum+=w; sup_max=max(sup_max, support)
+         ++n_finite; sup_max=max(sup_max, support)        # 资格通过即进 reducer(B2-A7)
+         w=weights?.w[i]:1; if !finite(w)或w<0→invalid; if w==0 continue
+         ++n_positive; vs+=w·x; wsum+=w
   out.n_finite/positive/accepted=n_*
   if invalid → INVALID_INPUT
   else if n_positive==0 → ALL_REJECTED or ZERO_VALID_WEIGHT
@@ -47,7 +50,7 @@ function integrate_pixel(in, out):
 | count==0 | NO_CANDIDATES |
 | non-finite value/support | INVALID_INPUT |
 | 负w | INVALID_INPUT |
-| w==0 | 合法不贡献 |
+| w==0 | 合法不贡献 signal，但计入 support reducer（B2-A7） |
 | support空 | 1.0 |
 
 ## 5 确定性与归约

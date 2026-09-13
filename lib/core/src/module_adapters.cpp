@@ -30,6 +30,10 @@
 // p2_rejection.{json,bin} → p2_integrated.{json,bin} → mosaic HiPS + p2_final.json）。
 #include "astrocs/core/module_adapters.h"
 
+// B2-A10: 构建期版本单源（与 CLI 共用同一生成头）——节点 manifest 自报
+// module build ID 需要 ASTROCS_VERSION_STRING。
+#include "version_generated.h"
+
 #include "astrocs/common_abi_v1.h"
 #include "astrocs/core/context.h"
 
@@ -2079,11 +2083,20 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   for (uint32_t n = nside; n > 1; n /= 2) ++leaf_order;
   const double a_cell = 4.0 * 3.14159265358979323846 /
                         (12.0 * static_cast<double>(nside) * static_cast<double>(nside));
+  // B2-A8: 观测 passband 身份 = 产品合同面（Phase2 coverage 以此分组；缺声
+  // 明即 fail-closed）。上游 drizzle 不携带 filter 元数据，故由 phase_config
+  // 的 filter_passband 派生（空 = 显式无 filter 身份，仍恒写 properties 键）。
+  const std::string filter_passband = doc.value("filter_passband", std::string());
+  if (filter_passband.find('\n') != std::string::npos ||
+      filter_passband.find('\r') != std::string::npos)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "filter_passband must not contain newline"));
   // 产品集（signal+support; CFITSIO 标准 FITS + properties/MOC 由 finalize 聚合）
   AioHipsProductSet* ps = aio_hips_product_begin(
       out_dir.c_str(), nside, 512, AIO_HIPS_FLOAT32,
       AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-      "astrocs/phase1", "AstroCS Phase1 single-frame stack", nullptr,
+      "astrocs/phase1", "AstroCS Phase1 single-frame stack",
+      filter_passband.c_str(),
       0.0, nullptr, 0);
   if (!ps) {
     if (meta_json) aio_hio_free(meta_json);
@@ -2199,6 +2212,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                         {"n_tiles_written", n_tiles_written},
                         {"n_pix_total", n_pix_total},
                         {"products", Json::array({"signal", "support"})},
+                        {"filter_passband", filter_passband},
                         {"covered_area_model", "support_x_A_cell"},
                         {"properties", props}};
   if (!p1_write_text(out_path, final_out.dump(2)))
@@ -2207,6 +2221,10 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   (*man)["hips_root"] = out_dir;
   (*man)["final_artifact"] = out_path;
   (*man)["artifacts"] = Json::array({out_path, props});
+  // B2-A10（宪章 §4.3）: 单位/坐标系/观测 passband 随节点 manifest 上报。
+  (*man)["bunit"] = "ADU";
+  (*man)["coordinate_frame"] = "equatorial";
+  (*man)["filter_passband"] = filter_passband;
   return Result<void>::success();
 }
 
@@ -3521,7 +3539,9 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   AioHipsProductSet* ps = aio_hips_product_begin(
       out_dir.c_str(), nside, 512, AIO_HIPS_FLOAT32, flags,
       "ivo://astrocs/phase2", "AstroCS Phase2 mosaic",
-      obs_filter.empty() ? nullptr : obs_filter.c_str(),
+      // B2-A8: coverage union 已验证全帧 filter 身份（含显式空声明），mosaic
+      // 恒透传该身份；properties 写侧恒写 obs_filter 键（空值也是声明）。
+      obs_filter.c_str(),
       0.0, nullptr, 0);
   if (!ps)
     return Result<void>::fail(Error(ErrorDomain::IO,
@@ -3659,6 +3679,12 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   (*man)["final_artifact"] = out_path;
   (*man)["n_tiles_written"] = n_tiles_written;
   (*man)["uncertainty_available"] = uncertainty_available;
+  // B2-A10（宪章 §4.3）: 单位/坐标系/输入产品哈希随节点 manifest 上报，
+  // 供 run manifest provenance 汇总（Phase2 mosaic 单位 = ADU，
+  // 坐标系 = equatorial，与 coverage.h / DATA-HIPS-SIGNAL-001 合同一致）。
+  (*man)["bunit"] = "ADU";
+  (*man)["coordinate_frame"] = "equatorial";
+  (*man)["input_manifest_hash"] = manifest_hash;
   return Result<void>::success();
 }
 enum class P1NodeOp { Calibrate, Cosmetic, StarPsf, WcsSolve, Photometry, NoiseSnr, Drizzle, Writer };
@@ -3755,7 +3781,13 @@ struct P1NodeModule : public IModule {
                     {"entry", spec_.entry},
                     {"artifact_type", desc_.data_id},
                     {"availability", "available"},
-                    {"status", "running"}};
+                    {"status", "running"},
+                    // B2-A10（宪章 §4.3）: 每个真实节点自报 algorithm ID / module
+                    // build ID / provider；run manifest provenance 由此汇总，
+                    // 不在 CLI 侧造占位。
+                    {"algorithm_id", desc_.alg_id},
+                    {"module_build_id", desc_.module_id + "@" + ASTROCS_VERSION_STRING},
+                    {"provider", "baseline"}};
     Result<void> r = Result<void>::success();
     try {
       Json doc = Json::parse(config_);
@@ -3920,7 +3952,12 @@ struct P2NodeModule : public IModule {
                     {"entry", spec_.entry},
                     {"artifact_type", desc_.data_id},
                     {"availability", "available"},
-                    {"status", "running"}};
+                    {"status", "running"},
+                    // B2-A10（宪章 §4.3）: 节点自报 algorithm ID / module build ID /
+                    // provider；run manifest provenance 由此汇总。
+                    {"algorithm_id", desc_.alg_id},
+                    {"module_build_id", desc_.module_id + "@" + ASTROCS_VERSION_STRING},
+                    {"provider", "baseline"}};
     Result<void> r = Result<void>::success();
     try {
       Json doc = Json::parse(config_);
@@ -4111,6 +4148,28 @@ bool p3n_read_json(const std::string& path, Json* out, std::string* err) {
     return false;
   }
   return true;
+}
+
+// B2-A10: 输入 HiPS 产品清单哈希（宪章 §4.3「输入产品哈希」）。
+// 组成 = signal/properties 与 signal/Moc.fits 的字节（有 Moc.fits 时）。
+// 两者共同定义该产品声明的帧身份与几何覆盖，是该产品被消费时的身份锚；
+// 大图不参与（tile 内容由各自 FITS CHECKSUM 保护，本哈希只需标识产品声明面）。
+std::string p3n_input_manifest_hash(const std::string& hips_dir) {
+  std::string blob;
+  const char* parts[] = {"/signal/properties", "/signal/Moc.fits"};
+  for (const char* rel : parts) {
+    std::ifstream f(hips_dir + rel, std::ios::binary);
+    if (!f) continue;
+    std::string s((std::istreambuf_iterator<char>(f)),
+                  std::istreambuf_iterator<char>());
+    if (s.empty()) continue;
+    blob += rel;
+    blob += '\n';
+    blob.append(s);
+    blob += '\n';
+  }
+  if (blob.empty()) return std::string();
+  return astrocs::crypto::sha256_hex(blob.data(), blob.size());
 }
 
 bool p3n_wcs_from_json(const Json& j, astrocs::phase3::P3WcsDescriptor* d,
@@ -4573,13 +4632,31 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "p3_resampled.bin truncated (planes vs manifest drift)"));
   }
+  // B2-A10（宪章 §4.3）：provenance 必须携带真实来源，而非节点占位串。
+  //   ① manifest_hash = 实际消费的输入 HiPS 产品清单哈希（properties +
+  //      Moc.fits 的 SHA-256；P3 可读任意合同兼容 HiPS，故按实际源计算）；
+  //   ② run_id / software_version = CLI 运行上下文（run_context.json，由
+  //      cmd_phaseN_run 在会话启动前写入 out_dir）。上下文缺失 = 显式 IO 失败
+  //      （fail-closed），不再静默写 "p3-node"/"astrocs-phase3-node" 占位。
+  const std::string input_manifest_hash = p3n_input_manifest_hash(g.hips_dir);
+  Json run_ctx;
+  if (!p3n_read_json(g.out_dir + "/run_context.json", &run_ctx, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "run context missing (required for §4.3 provenance): " + err));
+  const std::string run_id_str = run_ctx.value("run_id", std::string());
+  const std::string version_str = run_ctx.value("software_version", std::string());
+  const std::string source_sha_str = run_ctx.value("source_sha", std::string());
+  if (run_id_str.empty() || version_str.empty())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "run_context.json must carry non-empty run_id/software_version (§4.3)"));
+  if (input_manifest_hash.empty())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "input HiPS manifest hash unavailable: " + g.hips_dir));
   P3Provenance prov{};
   prov.hips_id = "ivo://astrocs/phase3";
-  prov.manifest_hash = nullptr;
+  prov.manifest_hash = input_manifest_hash.c_str();
   prov.missing_tiles = nullptr;
   prov.missing_count = 0;
-  const std::string version_str = "astrocs-phase3-node";
-  const std::string run_id_str = "p3-node";
   const std::string order_sel_str = std::to_string(res.value("order_sel", -1));
   const std::string sampler_str = res.value("sampler", std::string("bilinear"));
   prov.software_version = version_str.c_str();
@@ -4613,7 +4690,18 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
           {"uncertainty_available", unc},
           {"uncertainty_source", unc_src},
           {"uncertainty_missing_pixels",
-           (long long)res.value("uncertainty_missing_pixels", 0ll)}};
+           (long long)res.value("uncertainty_missing_pixels", 0ll)},
+          // B2-A10（宪章 §4.3）: 真实 provenance（非占位）随节点 manifest 落盘。
+          {"run_id", run_id_str},
+          {"software_version", version_str},
+          {"input_manifest_hash", input_manifest_hash},
+          {"hips_id", std::string(prov.hips_id)},
+          {"source_sha", source_sha_str},
+          {"product_sha256", std::string(ores.sha256)},
+          {"coordinate_frame", "icrs"},
+          {"bunit", res.value("bunit", "ADU")},
+          {"algorithm_id", "ALG-P3-004"},
+          {"provider", "baseline"}};
   std::ofstream f(json_path, std::ios::binary);
   if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_writer.json"));
   f << wr.dump(2) << "\n";
@@ -4625,6 +4713,15 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   (*man)["artifacts"] = Json::array({fits_path, json_path});
   (*man)["sha256"] = std::string(ores.sha256);
   (*man)["uncertainty_available"] = unc;
+  // B2-A10（宪章 §4.3）: writer 节点 manifest 携带真实 provenance，供 CLI
+  // run manifest 汇总（input_product_hashes / units / coordinate_frames 等）。
+  (*man)["run_id"] = run_id_str;
+  (*man)["software_version"] = version_str;
+  (*man)["source_sha"] = source_sha_str;
+  (*man)["input_manifest_hash"] = input_manifest_hash;
+  (*man)["product_sha256"] = std::string(ores.sha256);
+  (*man)["coordinate_frame"] = "icrs";
+  (*man)["bunit"] = res.value("bunit", "ADU");
   return Result<void>::success();
 }
 
@@ -4678,7 +4775,18 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
            {"sha256", std::string(vres.sha256)},
            {"coverage_stats",
             {{"covered_px", vres.covered_px}, {"total_px", vres.total_px}}},
-           {"uncertainty_available", unc}};
+           {"uncertainty_available", unc},
+           // B2-A10: verify 侧同源透传 writer 的真实 provenance（禁 CLI 侧再猜）。
+           {"run_id", wr.value("run_id", std::string())},
+           {"software_version", wr.value("software_version", std::string())},
+           {"input_manifest_hash", wr.value("input_manifest_hash", std::string())},
+           {"source_sha", wr.value("source_sha", std::string())},
+           {"product_sha256", wr.value("product_sha256", std::string())},
+           {"coordinate_frame", wr.value("coordinate_frame", std::string())},
+           {"bunit", wr.value("bunit", std::string())},
+           {"algorithm_id", wr.value("algorithm_id", std::string())},
+           {"module_build_id", wr.value("module_build_id", std::string())},
+           {"provider", wr.value("provider", std::string())}};
   std::ofstream f(json_path, std::ios::binary);
   if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_verify.json"));
   f << ver.dump(2) << "\n";
@@ -4793,7 +4901,12 @@ struct P3NodeModule : public IModule {
                     {"entry", spec_.entry},
                     {"artifact_type", desc_.data_id},
                     {"availability", "available"},
-                    {"status", "running"}};
+                    {"status", "running"},
+                    // B2-A10（宪章 §4.3）: 节点自报 algorithm ID / module build ID /
+                    // provider；run manifest provenance 由此汇总。
+                    {"algorithm_id", desc_.alg_id},
+                    {"module_build_id", desc_.module_id + "@" + ASTROCS_VERSION_STRING},
+                    {"provider", "baseline"}};
     Result<void> r = Result<void>::success();
     try {
       Json doc = Json::parse(config_);
@@ -4870,6 +4983,42 @@ std::unique_ptr<IModule> make_p3_node_module(ModuleDescriptor desc, P3NodeSpec s
 
 // RT-008: cfitsio 首次初始化 shim（core 不 include cfitsio 头，避免依赖图污染）
 extern "C" void astrocs_cfitsio_ensure_initialized(void);
+
+// B2-A10（宪章 §4.3）: run_context.json 唯一生成路径（CLI run 与 node 级测试
+// 夹具共用）。原子写(tmp+rename)；run_id/software_version 必须非空（fail-closed，
+// 消费端 p3_op_writer 依赖其真实性，禁占位）。
+Result<void> write_run_context(const std::string& out_dir, const std::string& run_id,
+                               const std::string& software_version,
+                               const std::string& source_sha) {
+  if (run_id.empty() || software_version.empty())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "run_context requires non-empty run_id/software_version (§4.3)"));
+  Json ctx = {{"schema_version", "1"},
+              {"kind", "astrocs_run_context"},
+              {"run_id", run_id},
+              {"software_version", software_version},
+              {"source_sha", source_sha}};
+  std::error_code ec;
+  std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
+  const std::string final_path = out_dir + "/run_context.json";
+  const std::string tmp_path = final_path + ".tmp";
+  {
+    std::ofstream f(std::filesystem::u8path(tmp_path),
+                    std::ios::binary | std::ios::trunc);
+    if (!f)
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "cannot write run context tmp: " + tmp_path));
+    f << ctx.dump(2) << "\n";
+    if (!f.good())
+      return Result<void>::fail(Error(ErrorDomain::IO, "run context write failed"));
+  }
+  std::filesystem::rename(std::filesystem::u8path(tmp_path),
+                          std::filesystem::u8path(final_path), ec);
+  if (ec)
+    return Result<void>::fail(Error(ErrorDomain::IO,
+        "cannot finalize run context: " + ec.message()));
+  return Result<void>::success();
+}
 
 Result<void> register_phase_modules(ModuleRegistry& registry) {
   // RT-008: cfitsio 首次初始化在单线程阶段完成（Runtime 并行 worker 并发首用会数据竞争）。

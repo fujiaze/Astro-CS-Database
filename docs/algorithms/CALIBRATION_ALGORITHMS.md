@@ -97,7 +97,7 @@ F2.3  步骤3（最终归一）[234-252]:
 > 负责人在"改代码"与"按宪章 §1.2 改 SCI 文本"间裁决。
 >
 > **B2-A6 消费边界（冻结口径）**：P1 校准节点 `p1_op_calibrate`
-> （`module_adapters.cpp:1149-1175,1226-1236`）在进入 `ac_calibrate_frame`
+> （`module_adapters.cpp:1153-1179,1230-1240`）在进入 `ac_calibrate_frame`
 > 前对 master flat 做**整帧退化判定**：全零 / median<=0 / 任一非有限像素 →
 > DATA 拒绝（CLI rc=2）、不写 `calibrated_*`、不写 complete manifest。
 > 校准公式、单位、暗场缩放与逐像素 floor 0.1 均不变。
@@ -273,7 +273,7 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 | frame_med/final_med 为 0 或 NaN（master flat） | 置 1.0（不缩放） | master_generator.cpp:210,237 |
 | frame_med/final_med < 0（master flat） | 返回 AC_ERR_PARAM，不写 out（B13-R13-7） | master_generator.cpp:213-217,240-244 |
 | flat 帧含 NaN（master flat 步骤1 帧 median） | `median_of` 不剔除 NaN（nth_element 含 NaN 属未定义序；SCI §4"median 跳过 NaN"仅在 generate_master 逐像素路径实现）→ 夹具不得依赖该路径 | master_generator.cpp:207-209,49-60 |
-| master flat 全零 / median<=0 / 非有限（p1_op_calibrate 消费边界） | DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（B2-A6 fail-closed） | module_adapters.cpp:1149-1175,1226-1236 |
+| master flat 全零 / median<=0 / 非有限（p1_op_calibrate 消费边界） | DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（B2-A6 fail-closed） | module_adapters.cpp:1153-1179,1230-1240 |
 | flat==NULL（calibrate） | 跳过除法，退化减法 | calibrator.cpp:122,132 |
 | dark==NULL（calibrate 标准分支） | out=light（flat 处理后） | calibrator.cpp:131 |
 | dark_opt=1 但 bias/dark 缺一 | 回退标准分支且 k=1.0 | calibrator.cpp:117,127 |

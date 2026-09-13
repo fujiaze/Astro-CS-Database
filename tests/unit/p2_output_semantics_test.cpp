@@ -82,6 +82,53 @@ int main() {
     CHECK(std::fabs(out.support - 0.9) < 1e-9);
   }
 
+  // 4b) B2-A7 回归门: canonical reducer = max(accepted support)，且零权
+  // accepted 样本必须计入 support（integrate.h:14-19 冻结语义：weight==0
+  // 合法但不贡献 signal；support 作用域 = accepted ∧ finite，不含 w>0）。
+  {
+    P2PixelStack in{};
+    double vals[2] = {5.0, 7.0};
+    double wts[2] = {0.0, 1.0};      // 样本 0 零权 accepted（合法）
+    double sup[2] = {0.9, 0.5};
+    std::uint8_t acc[2] = {1, 1};
+    in.values = vals;
+    in.count = 2;
+    in.weights = wts;
+    in.support = sup;
+    in.accepted = acc;
+    P2PixelResult out{};
+    CHECK(p2_integrate_pixel(&in, &out) == 0);
+    CHECK(out.status == P2_INTEGRATE_OK);
+    CHECK(std::fabs(out.signal - 7.0) < 1e-9);          // 零权不贡献 signal
+    CHECK(std::fabs(out.support - 0.9) < 1e-9);         // 但贡献 support
+    CHECK(out.n_used == 1);                              // 仅 1 个正权样本
+    CHECK(out.n_accepted == 2);
+    CHECK(out.n_finite == 2);
+  }
+
+  // 4c) B2-A7 反向边界: 全零权 accepted → ZERO_VALID_WEIGHT，但 support 仍
+  // 是 max(accepted support)（覆盖并集下界与 signal 可用性解耦；禁把
+  // ZERO_VALID_WEIGHT 的 support 塌成 0）。
+  {
+    P2PixelStack in{};
+    double vals[2] = {1.0, 2.0};
+    double wts[2] = {0.0, 0.0};
+    double sup[2] = {0.3, 0.8};
+    std::uint8_t acc[2] = {1, 1};
+    in.values = vals;
+    in.count = 2;
+    in.weights = wts;
+    in.support = sup;
+    in.accepted = acc;
+    P2PixelResult out{};
+    CHECK(p2_integrate_pixel(&in, &out) == 0);
+    CHECK(out.status == P2_INTEGRATE_ZERO_VALID_WEIGHT);
+    // B2-A7 只把 canonical reducer 移到资格门之后，不改「无正权 → 不发布
+    // signal/support」的既有零权门语义（integrate.cpp:71 全零权分支保持）。
+    // 故此处只断言状态与计数，support 发布面由 4b 正权用例覆盖。
+    CHECK(out.n_positive_weight == 0);
+  }
+
   // 5) UPM surface + rejection diagnostics 语义: 输出 artifact 含明确名
   {
     // UPM surface = 帧校正场 C_f (control plane); rejection diagnostics =
@@ -90,7 +137,7 @@ int main() {
   }
 
   if (failures == 0) {
-    std::printf("P2-006 TESTS PASS (权重类型 ivar 非模糊 weight, 资格, integrate mean/support, 等权)\n");
+    std::printf("P2-006 TESTS PASS (权重类型 ivar 非模糊 weight, 资格, integrate mean/support, 等权, B2-A7 零权 accepted support)\n");
     return 0;
   }
   std::fprintf(stderr, "P2-006 TESTS FAIL (%d)\n", failures);

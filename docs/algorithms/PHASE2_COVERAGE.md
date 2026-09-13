@@ -29,15 +29,15 @@
 - 输入: N 个 Phase1 单帧 HiPS 目录路径 `const char* const*`（signal 子目录
   语义，`aio_hips_open(path, AIO_HIPS_RD_SIGNAL)`，:61；signal 子目录下
   properties + Moc.fits，AIO 侧 aio_hips_reader.cpp:205/:141）。
-- 输出: `P2CoverageResult` POD（coverage.h:40-48）= 逐帧元信息
-  P2HipsInputInfo[N]（coverage.h:31-38）+ union MOC 叶级 cell 数组
+- 输出: `P2CoverageResult` POD（coverage.h:45-53）= 逐帧元信息
+  P2HipsInputInfo[N]（coverage.h:31-43）+ union MOC 叶级 cell 数组
   P2MocCell[K]（coverage.h:26-29）+ target_order + status/error。
 - 下游消费: sampler（p2_sample_controls/:p2_sample_controls_cached，sampler.cpp:1121/:1138
   （impl :463，消费 n_union_cells :632/union_cells[0] :658/逐 cell ipix
   :702）、编排 session（lib/phase2_session/p2_session.cpp:119-148 coverage
   阶段，两次调用 :125/:138，manifest 登记 n_union_cells/target_order
-  :145-147）、stage2 正式入口（lib/phase2/tools/stage2.cpp:189-200）、registry descriptor（module_adapters.cpp:623-638）。
-- descriptor astrocs.phase2.coverage（module_adapters.cpp:623-638）为编排层
+  :145-147）、stage2 正式入口（lib/phase2/tools/stage2.cpp:189-200）、registry descriptor（module_adapters.cpp:627-642）。
+- descriptor astrocs.phase2.coverage（module_adapters.cpp:627-642）为编排层
   词汇，端口 calibrated→coverage 坐标登记 PIXEL 与球面 MOC 实际语义不符，
   以本合同为准修订，P2-COV-INT 对齐，不得反向作为冻结依据。
 
@@ -48,25 +48,36 @@
 - properties 解析（static parse_props :20-45，文件作用域 static，非匿名 ns）: 逐行
   `key=value`（首个 `=` 分割 :28-31），`#` 开头行跳过 :27，两端空白
   trim（lambda :32-37）；重复键后值覆盖前值（`kv[k]=v` :38）。
-- 每帧叶级 tile 收集（inspect_frame :59-140，匿名 namespace :55）: `aio_hips_open`（:61，失败
-  → "aio_hips_open failed: %s" + AIO last_error :63-64）；
-  `aio_hips_get_properties` 8192 B 缓冲（:67-72）；
-  `hips_order=geti("hips_order",-1)`（:83，缺失/负→"missing hips_order"
-  :88-92）；tile_width 必须为 512（:84, :93-97，"unsupported
-  tile_width=%d"）；`hips_version` 缺失拒绝（:87, :98-102）；
-  `hips_frame` ∈ {equatorial, icrs}（:85, :103-108，"unsupported
-  hips_frame=%s"）；`obs_filter` 一致性校验在 build 层（§2 filter 公式）。
+- 每帧叶级 tile 收集（inspect_frame :60-171，匿名 namespace :56）: `aio_hips_open`（:62，失败
+  → "aio_hips_open failed: %s" + AIO last_error :64-65）；
+  `aio_hips_get_properties` 8192 B 缓冲（:69-74）；
+  `hips_order=geti("hips_order",-1)`（:84，缺失/负→"missing hips_order"
+  :89-93）；tile_width 必须为 512（:85, :106-110，"unsupported
+  tile_width=%d"）；`hips_version` 缺失拒绝（:88, :111-115）；
+  `hips_frame` ∈ {equatorial, icrs}（:86, :116-121，"unsupported
+  hips_frame=%s"）。
+- B2-A8 filter/passband 身份（inspect_frame :92-104, build :215-225）: `obs_filter`
+  **键缺失 → rc=1 "missing obs_filter property ..."**（:92-104，fail-closed）；
+  键存在时（含空串）其值进入 `P2HipsInputInfo.filter_passband` 并在 build 层
+  做跨帧**全等**比较（§2 filter 公式）。旧实现只在双方非空时比较，使"带 filter
+  的帧 + 未声明 filter 的帧"被静默并入同一 union（DISP-COV-003，已关闭）。
+- B2-A8 tile 编号方案（inspect_frame :126-133）: `hips_ordering` 存在且 ≠ "NESTED"
+  → rc=1 "unsupported hips_ordering=%s (NESTED required)"（fail-closed）；本模块
+  union 父聚合 `t>>2s` 与下游 NESTED 消费只在 NESTED 语义下成立。缺省键（AIO
+  写侧恒写 NESTED）登记为空串。
 - 每帧最高叶 order: `max_leaf_order = hips_order`（P2HipsInputInfo 回填
   :119，语义=该 HiPS signal 子目录 properties 声明的叶级 order）。
 - target_order（:194-196，逐帧 min :195-196）:
   `target_order = min(f.max_leaf_order, f∈[0,N))`
-  （冻结语义：禁止低 order 插值伪装分辨率，coverage.h:8/:51 注释；全部
+  （冻结语义：禁止低 order 插值伪装分辨率，coverage.h:8/:56 注释；全部
   输入同 order 时即该 order）。
-- filter/passband 一致性（:180-193）: 基准 = 首个**非空**
-  `filter_passband`（:182-185 filter_set 标志赋值）；后续帧非空且
-  `filter ≠ filter_ref` → "filter mismatch: %s vs %s" rc=1（:186-192）；
-  **空 filter 跳过一致性检查**（`if (!f.empty())` :182，空串既不设基准
-  也不比较，静默放行，DISP-COV-003）。
+- filter/passband 一致性（build :215-225）: 基准 = 首帧 `filter_passband`
+  （:215-218，无论空串与否）；后续帧 `filter ≠ filter_ref` →
+  "filter mismatch: %s vs %s" rc=1（:219-225）。**空串参与全等比较**，
+  不再跳过（B2-A8；键缺失已在 inspect_frame 层拒绝）。
+- 跨帧坐标系一致性（build :227-233）: `hips_frame` 必须逐帧相等；
+  equatorial 与 icrs 混用 → "hips_frame mismatch: %s vs %s" rc=1（旧实现
+  只逐帧校验 ∈{equatorial,icrs}，不比较跨帧一致性）。
 - union MOC 父单元聚合（:204-214）:
   对每帧叶级 tile t（hips_order = f.max_leaf_order，:209-210）与目标
   order o=target_order，令 `s = f.max_leaf_order − o`（:207），
@@ -100,8 +111,10 @@ p2_coverage_build(hips_paths, n_inputs, out):
       rc=inspect_frame(path, &info_f, &tiles_f)                # :172
       (失败: error 转述 :176-178)
       if rc: error 转述, status=1, rc=1                        # :176-178
-      f=info_f.filter; if f 非空:
-          未设基准→基准=f ; elif f≠基准: status=1, rc=1        # :180-193
+      f=info_f.filter; fr=info_f.frame_type
+      if 未设基准→基准=f, frame基准=fr           # :215-218 (B2-A8 全等, 无空串豁免)
+      elif f≠基准: status=1, rc=1               # :219-225 filter mismatch
+      elif fr≠frame基准: status=1, rc=1         # :227-233 hips_frame mismatch
       target_order = min(target_order, info_f.max_leaf_order)  # :194-196
   if target_order<0: error="no valid inputs", rc=1             # :198-202（防御分支）
   for f: for t in tiles_f: append t>>(2·(order_f−target_order))# :204-211
@@ -115,7 +128,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
 
 - 第一次调用: `out->union_cells=NULL`（capacity query）→ 返回
   `n_union_cells=K` 且不写 cell 数组（:219-224 条件回填）；调用方分配
-  `K` 个 P2MocCell 后第二次调用获得数据（头注释 coverage.h:50-51；实测
+  `K` 个 P2MocCell 后第二次调用获得数据（头注释 coverage.h:55-56；实测
   每次调用完整重新扫描全部输入，无缓存，inputs 指针同理两阶段回填
   :225-228）。
 - P2CoverageResult/P2MocCell/P2HipsInputInfo 全部为调用方分配（coverage.h
@@ -133,11 +146,13 @@ p2_coverage_build(hips_paths, n_inputs, out):
   status 字段未置 1，DISP-COV-001）。
 - 路径 NULL/空 → rc=1 "empty path at index %llu"（:165-170）。
 - AIO 打开/properties 失败 → rc=1，error 含 AIO 层 last_error（:62-71）。
-- `hips_order` 缺失/负 → rc=1（:88-92）；`hips_tile_width≠512` → rc=1
-  （:93-97）；`hips_version` 缺失 → rc=1（:98-102）；`hips_frame∉
-  {equatorial,icrs}` → rc=1（:103-108）。
-- filter mismatch（双方非空时）→ rc=1（:181-193）；单边空 filter 静默
-  放行（DISP-COV-003）。
+- `hips_order` 缺失/负 → rc=1（:89-93）；`hips_tile_width≠512` → rc=1
+  （:106-110）；`hips_version` 缺失 → rc=1（:111-115）；`hips_frame∉
+  {equatorial,icrs}` → rc=1（:116-121）。
+- B2-A8 `obs_filter` 键缺失 → rc=1（:92-104，"missing obs_filter property"）。
+- B2-A8 `hips_ordering` 显式声明且 ≠ "NESTED" → rc=1（:126-133）。
+- filter mismatch（全等比较，含空串）→ rc=1（:219-225）；跨帧
+  `hips_frame` 不等 → rc=1（:227-233）。
 - 输出 MOC cell 升序且唯一（sort+unique :212-214）；K=0 仅当全部输入
   MOC 为空（AIO 层 tiles 空数组），无显式错误（如实登记）。
 - 单位/坐标: path 字符串；order/ipix 无量纲整数；NESTED equatorial/ICRS
@@ -180,7 +195,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   显式拒绝，:186-192；UPM 侧"不跨滤镜统一（filter 分组由调用方保证）"
   SCI-UPM-001 §1 同构）。
 - **registry 端口语义修订**: descriptor 端口 coverage 坐标
-  CoordinateFrame::PIXEL（module_adapters.cpp:633，出端口 coverage DATA-P2-COV/
+  CoordinateFrame::PIXEL（module_adapters.cpp:637，出端口 coverage DATA-P2-COV/
   DIMENSIONLESS/PIXEL）与 NESTED 球面 MOC 实际不符，以本合同（HEALPix NESTED / equatorial/ICRS）为准，
   P2-COV-INT 对齐修正，不改生产码（入端口 calibrated=DATA-P2-CAL/
   ADU/PIXEL，:570，像素语义对路径输入仅名义）。
@@ -235,7 +250,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
 
 | 符号 | 锚（coverage.cpp） | 角色 |
 |---|---|---|
-| p2_coverage_build | :144-231 | 唯一生产入口（C ABI，coverage.h:52-54 声明） |
+| p2_coverage_build | :144-231 | 唯一生产入口（C ABI，coverage.h:57-59 声明） |
 | p2_coverage_free | :233-237 | POD 清零释放语义（null :234，memset :235） |
 | inspect_frame | :59-140 | 匿名 namespace（:55-142）内部链接，每帧校验+tile 收集 |
 | parse_props | :20-45 | 文件作用域 static（:20），properties KV 解析 |
@@ -246,21 +261,21 @@ p2_coverage_build(hips_paths, n_inputs, out):
 头文件 aio_hips_reader.h 落位 lib/astro_image_io/include/（根 CMake
 astrocs_phase2 include 目录 CMakeLists.txt:346-352 第 3 项，实测）。
 
-P2HipsInputInfo 7 字段（coverage.h:31-38）生产消费面: hips_path
+P2HipsInputInfo 7 字段（coverage.h:31-43）生产消费面: hips_path
 （:111 回填）、frame_id（:113-118，路径基名截断，见 DISP-COV-002）、
 max_leaf_order（:119）、n_tiles（:120 初 0/:136 回填）、filter_passband
 （:121-123）、frame_type（:124-126 回填 hips_frame）；frame_id 64 B /
 filter_passband 64 B / frame_type 32 B 截断上限（coverage.h:32-37 +
 strncpy 截断语义）。
 
-P2CoverageResult 7 字段（coverage.h:40-48）: n_inputs/inputs/
+P2CoverageResult 7 字段（coverage.h:45-53）: n_inputs/inputs/
 n_union_cells/union_cells/target_order/status/error（512 B，:47）。
 status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:200），
 "no inputs" 分支未置（DISP-COV-001）。
 
 ### 11.2 状态码/返回码语义
 
-- rc: 0=成功（含 K=0 空 union）；1=失败（error[512] 载因，coverage.h:47）。
+- rc: 0=成功（含 K=0 空 union）；1=失败（error[512] 载因，coverage.h:52）。
 - 失败路径 status: 1（:168/:177/:190/:200 显式）或 0（"no inputs" 分支
   :154-157 未置，DISP-COV-001；memset :151 在该分支之前执行，error
   strncpy :155 在其后写入——error 字段有效，status 与 rc 不一致的仅此
@@ -283,13 +298,13 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   id（lib/phase2/memory.md「W4 UPM 完整化：真实内容哈希」），碰撞风险
   如实登记；整改: 内容哈希派生 id（P2-COV-IMPL，与 UPM SHA-256 设施
   对齐）。
-- DISP-COV-003 空 filter 静默放行: filter 一致性检查仅在双方非空时
-  进行（:182 `if (!f.empty())`，:186 比较），`obs_filter` 缺失（空串）的
-  输入绕过 filter 组校验，
-  可能混入异 passband 帧（违背「同一 filter/passband」兼容前提
-  coverage.h:7）；负例语义缺口（AIO 写侧恒写 obs_filter 时不可达，
-  但合同须防外部 HiPS）。整改: 空 filter 显式拒绝或显式通配标记
-  （P2-COV-IMPL，归 TEST 负例 F5）。
+- ~~DISP-COV-003 空 filter 静默放行~~（**B2-A8 已关闭**）: 原实现仅在双方
+  非空时比较，可能混入异 passband 帧（违背「同一 filter/passband」兼容前提
+  coverage.h:7）。整改（已完成）: (a) inspect_frame 对 `obs_filter` **键缺失**
+  fail-closed（:92-104）；(b) build 层对全部帧做**全等**比较（:215-225，含空串）；
+  (c) 跨帧 `hips_frame` 相等（:227-233）；(d) `hips_ordering` 非 NESTED 拒绝
+  （:126-133）。真实 filter/ordering 负例见 tests/cli/test_phase3_inprocess.py
+  `test_10_coverage_requires_filter_and_nested_ordering`。
 - DISP-COV-004 overlap/intersection/missing-tiles 产品缺失（合同范围
   缺口，非公式错误）: matrix P2-COV 专项要求 union/intersection/
   missing tiles/constant overlap 四语义；现状仅 union（:204-214）+

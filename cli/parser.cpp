@@ -304,6 +304,9 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         // phase1 平铺 (p1_session 消费面)
         "input_lights", "master_bias", "master_dark", "master_flat",
         "dark_optimization", "dark_scale_factor", "cosmetic",
+        // B2-A8: Phase1 产品观测 passband 身份（空 = 显式无 filter）；写入
+        // HiPS properties obs_filter，Phase2 coverage 以此分组并 fail-closed。
+        "filter_passband",
         // P1-001: 真实节点域科学参数（drizzle: nside/nested/pixfrac/precision;
         // wcs: ipv 求解链参数——非 silent default, 缺失即节点 DATA 拒绝）
         "drizzle", "wcs",

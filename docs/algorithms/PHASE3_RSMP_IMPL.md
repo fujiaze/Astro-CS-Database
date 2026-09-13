@@ -34,7 +34,7 @@
 | 项 | 合同值 | 实测 |
 |---|---|---|
 | module_id（矩阵 CSV 权威） | astrocs.p3.resample | MODULE_MIGRATION_MATRIX.csv P3-RSMP 行 |
-| registry 生产 descriptor | astrocs.phase3.resample2（module_adapters.cpp:560 `p3_resample2_descriptor`，module_id 同名） | 实测 |
+| registry 生产 descriptor | astrocs.phase3.resample2（module_adapters.cpp:564 `p3_resample2_descriptor`，module_id 同名） | 实测 |
 | dll_target | astrocs_p3_resample.dll | 矩阵 CSV；entrypoint 实测未建（DISP-P3RSMP-005） |
 | owner | SA-P3-S26 | 矩阵 CSV |
 | 合同目录 | lib/phase3_rsmp/（本任务新建，仅合同文件，无源码） | 生产源仍在 lib/phase3_session/ |
@@ -44,7 +44,7 @@
 - 静态库落位: astrocs_phase3_session（根 CMakeLists.txt:460-465，
   p3_resample.cpp 为五源文件之一）。
 - 会话编排消费: lib/phase3_session/p3_session.cpp（§8 逐点锚定）。
-- descriptor 端口绑定（module_adapters.cpp:425-439）: 输入
+- descriptor 端口绑定（module_adapters.cpp:429-443）: 输入
   DATA-P3-WCS（必需）+ DATA-HIPS-001（必需），输出 DATA-P3-RES
   （可选产出）。
 

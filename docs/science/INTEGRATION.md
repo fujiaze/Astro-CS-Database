@@ -79,7 +79,7 @@
 | 条件 | 行为 | 证据 |
 |---|---|---|
 | `count==0` / `values==null` | `NO_CANDIDATES` | `integrate.cpp:23` |
-| 非有限 `values/support/weights` | `INVALID_INPUT` | `integrate.cpp:41-54` |
+| 非有限 `values/support/weights` | `INVALID_INPUT` | `integrate.cpp:41-61` |
 | 负权重 `w<0` | `INVALID_INPUT` | `w<0` 分支 |
 | `w==0` 全部 | `ZERO_VALID_WEIGHT` (若有 accepted) | `n_positive==0` 分支 |
 | 全拒 `n_accepted==0` | `ALL_REJECTED` | `n_accepted==0 ? ALL_REJECTED` |

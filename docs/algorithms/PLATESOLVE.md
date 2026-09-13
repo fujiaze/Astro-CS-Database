@@ -220,5 +220,5 @@ ASTROMETRY §8 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy o
 ASTROMETRY §11 ↔ F2。共享 SCI（ASTROMETRY.md SCI-WCS-001，FROZEN T102
 2026-08-23）不因本附录改动；本节禁止被编排层词汇反向改写（descriptor
 astrocs.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
-API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:512-526，由 P1-WCS-INT
+API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:516-530，由 P1-WCS-INT
 对齐本合同，不作冻结依据）。

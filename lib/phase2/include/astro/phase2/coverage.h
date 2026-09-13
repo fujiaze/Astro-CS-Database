@@ -35,6 +35,11 @@ typedef struct {
     int  n_tiles;
     char filter_passband[64];
     char frame_type[32];     // equatorial / icrs
+    // B2-A8: 输入帧声明的 tile 编号方案。NESTED 是本模块 union 父聚合
+    // （t >> 2s）与下游消费的成立前提；显式声明非 NESTED 的输入在
+    // inspect_frame 即失败（fail-closed），空串 = 上游未声明（AIO 写侧恒
+    // NESTED），仅作审计面登记。
+    char hips_ordering[16];
 } P2HipsInputInfo;
 
 typedef struct {

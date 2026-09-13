@@ -305,7 +305,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | tile_width | int | — | 恒 512（≠512 拒绝 :402；tile_order=leaf_order−9） |
 | data_type | 0=float32 / 1=float64 | — | 其他值拒绝（:403）；决定存储 bitpix −32/−64 与 hierarchy 累加器轨（f32 产品 float 累加，DISP-HIPS-009） |
 | flags | 位或 SIGNAL=1/SUPPORT=2/SNR=4/VARIANCE=8/IVAR=16（ALL=7/ALL_V19=31） | — | 越位拒绝（:404）；variance/ivar 请求须配 var_num_sum 输入 |
-| creator_did / obs_title / obs_filter / exposure_s / obs_date | 字符串/字符串/double(s)/字符串 | —（ADU 无关） | filter/obs_date 可 NULL（不写对应 properties 键）；exposure≤0 不写 obs_exptime/t_min/t_max；缺省 did=ivo://astrocs/phase1、title="AstroCS Phase1"（:414-415） |
+| creator_did / obs_title / obs_filter / exposure_s / obs_date | 字符串/字符串/double(s)/字符串 | —（ADU 无关） | **B2-A8: obs_filter 恒写（参数 NULL→空串值，不再是"不写键"）**，Phase1 config `filter_passband` 透传（cli/parser.cpp:303-309；module_adapters p1_op_writer）；obs_date 仍可 NULL（不写键）；exposure≤0 不写 obs_exptime/t_min/t_max；缺省 did=ivo://astrocs/phase1、title="AstroCS Phase1"（:414-415） |
 | moc_order | uint | — | 0=auto（=tile_order）；>0 取 min(moc_order, tile_order) 静默钳位（:419，DISP-HIPS-005） |
 | AstroSphereTileView: parent_ipix | uint64 | NESTED ipix（Norder K） | ≥12·4^K 拒绝 rc=−3（:433-437）；width/leaf_order/dtype 不匹配拒绝 rc=−2（:428-431） |
 | AstroSphereTileView: flux_sum | float32 或 float64 `[512×512]` NESTED local 行主序 | ADU（drizzle 层 ADU·w 加权和，§11.2） | 非 NULL 强制；无效像素处理见 §12.4 |
@@ -812,7 +812,9 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 | hips_tile_width | 必须 =512 | 其他 → rc=1 "unsupported tile_width=%d"（:93-97） |
 | hips_version | 非空 | 缺失 → rc=1 "missing hips_version"（:98-102） |
 | hips_frame | ∈ {equatorial, icrs} | 其他 → rc=1 "unsupported hips_frame=%s"（:103-108） |
-| obs_filter | 字符串（passband 名） | 与基准帧非空不一致 → rc=1 "filter mismatch"（:181-193）；**空串静默放行**（DISP-COV-003） |
+| obs_filter | 字符串（passband 名） | **键缺失 → rc=1 "missing obs_filter property"**（:92-104，fail-closed）；键存在（含空串）时跨帧**全等**比较，不等 → rc=1 "filter mismatch"（:215-225，B2-A8 关闭 DISP-COV-003） |
+| hips_ordering | 缺省或 "NESTED" | 显式声明且 ≠ "NESTED" → rc=1 "unsupported hips_ordering=%s (NESTED required)"（:126-133，B2-A8）；本模块 union 父聚合 `t>>2s` 仅 NESTED 成立 |
+| （跨帧）hips_frame | 逐帧相等 | equatorial 与 icrs 混用 → rc=1 "hips_frame mismatch: %s vs %s"（:227-233，B2-A8） |
 | （Moc.fits） | 叶级 NESTED tile ipix 列表 | AIO 层读取，aio_hips_reader.cpp:141/:166-170 |
 
 ### 19.2 输出（P2CoverageResult，coverage.h:40-48，rc=0 时唯一权威）
@@ -835,7 +837,8 @@ P2HipsInputInfo 逐字段（coverage.h:31-38，回填锚 :113-143）:
 | frame_id | char[64] | 无量纲标识 | 路径基名截断（:113-118，DISP-COV-002 唯一性风险）；不保证全局唯一 |
 | max_leaf_order | int | 无量纲（HEALPix order） | = 该帧 properties hips_order（:119） |
 | n_tiles | int | 无量纲 | 该帧叶级 tile 数（AIO Moc.fits 读取，回填 :136；初值 :120） |
-| filter_passband | char[64] | 无量纲字符串 | properties obs_filter（:86/:121-123）；缺失=空串（DISP-COV-003） |
+| filter_passband | char[64] | 无量纲字符串 | properties obs_filter（:86-93/:94-104）；**键缺失 fail-closed**，键存在时含空串原样回填并参与全等比较（B2-A8） |
+| hips_ordering | char[16] | "NESTED" 或空串 | properties hips_ordering（coverage.h:42，回填 :126-133/:153-155）；非 NESTED 已被拒绝，故回填值恒 "NESTED"/空 |
 | frame_type | char[32] | "equatorial"/"icrs" | properties hips_frame（:85/:124-126） |
 
 ### 19.3 数据语义（唯一权威，对齐 docs/api/PHASE2_API_V1.md 所有权图）
@@ -1957,7 +1960,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 | coverage | float32 | [W·H] | DIMENSIONLESS（二值门 {0,1}） | covered ⇔ value>0.5f（p3_output.cpp:301/:360）；1=足迹内存在有限 tile 像素（ALG-P3-004 G5）；其它值按门归 0/1 |
 | wcs | P3WcsDescriptor | 1 | deg/px（CD）、px（CRPIX） | crpix FITS 1-based pixel-center（p3_wcs.h:14）；cd FITS 顺序 CD[i][j]（:16）；projection="TAN"（:19）；abs(dec)≤85° 与四角同半球守卫（P3_WCS_PARAM/P3_WCS_HEMISPHERE，p3_wcs.h:24-26） |
 | bunit | char* | 1 | — | 可空→缺省 "ADU"（p3_output.cpp:188-190） |
-| prov | P3Provenance | 1 | — | 8 字段（p3_output.h:15-24）；manifest_hash 现状恒 nullptr（p3_session.cpp:270，P3-FITS-IMPL 接线，DISP 登记不改码） |
+| prov | P3Provenance | 1 | — | 8 字段（p3_output.h:15-24）；**B2-A10 起 manifest_hash = sha256(输入 HiPS `signal/properties`+`signal/Moc.fits`)**，由 module_adapters `p3_op_writer` 计算并写入 HISTORY `manifest=`；RUNID/SWVER/source_sha 由 CLI `run_context.json` 注入，禁占位串 |
 | bitpix | int | 1 | — | ∈{-32,-64}，其它值 P3_OUT_PARAM（p3_output.cpp:140-154）；session 默认 -32（:285） |
 | output_path | char* | 1 | — | 发布路径；tmp 同目录（`<path>.<pid>.tmp`，:81；h:41-44 协议注形态偏差=DISP-P3FITS-002） |
 | cancelled_at_row | int | 1 | — | -1=不取消（session 恒 -1 :292）；≥0 → 取消不落盘（:198-202） |
@@ -1966,8 +1969,8 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 
 | 名称 | dtype/形态 | 语义 |
 |---|---|---|
-| FITS 主 HDU | BITPIX=-32\|-64，NAXIS=2，[W,H] | signal；关键字=CTYPE1/2=RA---TAN/DEC--TAN、CUNIT1/2=deg、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2（p3_output.cpp:157-182）、BSCALE=1/BZERO=0（:171-173）、BUNIT（:174-176）、HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER+HISTORY（:178-189） |
-| COVERAGE 扩展 HDU | 同 BITPIX，EXTNAME="COVERAGE" | coverage；DATASUM=32-bit fdatasum(signal)（:211-219；TINT 数值关键字，非 FITS 标准 ASCII CHECKSUM，如实冻结） |
+| FITS 主 HDU | BITPIX=-32\|-64，NAXIS=2，[W,H] | signal；关键字=CTYPE1/2=RA---TAN/DEC--TAN、CUNIT1/2=deg、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2、**BSCALE=1.0/BZERO=0.0（TDOUBLE，FITS 4.0 §4.4.2.4，B2-A9）**、BUNIT、HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER+HISTORY、**DATASUM/CHECKSUM（CFITSIO `fits_write_chksum` 逐 HDU，B2-A9）** |
+| COVERAGE 扩展 HDU | 同 BITPIX，EXTNAME="COVERAGE" | coverage；DATASUM/CHECKSUM = CFITSIO 标准 `fits_write_chksum` 归属本 HDU（B2-A9；旧自算 `fdatasum`+TINT 已删除，astropy `checksum=True` 无警告） |
 | VARIANCE/IVAR 扩展 HDU（**目标态**，DATA-P3-UNC-001 §30.4） | 同 BITPIX，EXTNAME="VARIANCE"/"IVAR" | 输入 HiPS 含 variance/ivar 子产品时必写（禁静默丢弃，宪章 §7.3）；无则不写 HDU 且 manifest uncertainty_available=false；BUNIT=`<BUNIT>^2` / `1/(<BUNIT>^2)`；传播公式与 invalid 见 §30.4；实现归 P3-001，现状无此 HDU |
 | result.sha256 | char[65] | 输出文件 SHA-256 hex 小写；仅完整读出后填写，失败不写空/前缀哈希（p3_output.cpp:92-114/:293-297） |
 | result.coverage_ok / reopen_ok | int 0/1 | coverage 头/数据一致；独立 reader 重开回环一致（:350-354） |

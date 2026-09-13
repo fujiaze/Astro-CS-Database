@@ -28,7 +28,7 @@ canonical 编排（coverage→sample→upm_build→persist）收敛为单一进�
 opaque handle 会话（create→validate→run→inspect→destroy 五函数），
 统一 config JSON 键集校验、host services 注入（logger/cancel/
 budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-005）
-与 RT-005 SessionModule 工厂委托（module_adapters.cpp:773-780 P2Api）
+与 RT-005 SessionModule 工厂委托（module_adapters.cpp:777-784 P2Api）
 两条消费面共用，不产生第二调度顺序。
 
 **非目标（本模块不做）**：
@@ -68,7 +68,7 @@ p2_ir_facade_test.cpp:31-38 断言（{"coverage","sample","upm_build",
 
 | # | 段 | 输入端口（DATA-P2-SESSION §24） | 输出端口 | 被调用符号（path::symbol 实测锚） | 取消点 | 段内并行 |
 |---|---|---|---|---|---|---|
-| 1 | coverage | `hips_paths`: 非空 string[]（N 个 Phase1 单帧 HiPS 根） | P2CoverageResult（n_union_cells/union_cells/target_order，coverage.h:40-48） | p2_session.cpp:125/:138 p2_coverage_build（两遍 probe/fill，首查 :124 inputs=nullptr 查 union 容量）；:143-144 RAII guard p2_coverage_free | :120 段边界 | 无（串行 properties/MOC 读取） |
+| 1 | coverage | `hips_paths`: 非空 string[]（N 个 Phase1 单帧 HiPS 根） | P2CoverageResult（n_union_cells/union_cells/target_order，coverage.h:45-53） | p2_session.cpp:125/:138 p2_coverage_build（两遍 probe/fill，首查 :124 inputs=nullptr 查 union 容量）；:143-144 RAII guard p2_coverage_free | :120 段边界 | 无（串行 properties/MOC 读取） |
 | 2 | sample | 段 1 cov + `hips_paths` | P2ControlObservation[n_obs]（upm.h:31-57）+ P2ControlNode[n_controls] + P2SampleStats | :154 p2_sampler_default_config；:158/:167 p2_sample_controls（两遍 probe/fill，err 512B :166） | :152 段边界 | 域内 worker 池（sc.cpu_workers=host->budget.max_workers :155；池在 sampler.cpp 域内，本层不开线程） |
 | 3 | upm_build | 段 2 obs + uc 配置（§5 常量面） | opaque model（void*）+ P2ModelInfo（upm.h:60-68） | :204 p2_upm_build；:210 p2_upm_info | :181 段边界（段内无检查点——**整模型不写半成品**，p2_session.h:22） | 域内 blocks 并行（uc.cpu_workers=budget :195） |
 | 4 | persist（可选） | model + `upm_save_path` + `persist_upm` | .upm 文件 + manifest artifacts[] | :230 p2_upm_save；:224/:231/:241 p2_upm_close（所有权合同 p2_session.h:3——session 持有，恰一次释放） | :223-226（取消先 close model :224） | 无（串行 IO） |
@@ -81,7 +81,7 @@ Observations/Model，统一经 p2_coverage_free（:144 RAII）/p2_upm_close
 ## 4 端口连接与 descriptor 占位对照
 
 registry 现状**无 astrocs.p2.session module_id 的 descriptor**；五
-函数经 P2Api（module_adapters.cpp:773-780 五静态委托）被占位
+函数经 P2Api（module_adapters.cpp:777-784 五静态委托）被占位
 descriptor 工厂委托：phase2_descriptor()（:283-300，module_id=
 astrocs.phase2.resample）注册段 :746-751；P2-006 canonical 7 节点链
 descriptors（p2_coverage/sample/upm_fit/upm_apply/reject/integrate/
@@ -132,7 +132,7 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes（:16）。
 诊断：`astrocs::phase2::last_error`（:277-282，脱敏摘要，handle 空→
 空串；RT-008 CLI 合同经 P2Api::last_error :717 暴露）。
 
-**output_dir 注入面**（config 生产者侧）：cli/parser.cpp:343-345 缺
+**output_dir 注入面**（config 生产者侧）：cli/parser.cpp:346-348 缺
 `output_dir` 即拒（"config missing 'output_dir'"）；cli/runtime_client
 .cpp:30-55 phase_config——run 格式自动补 output_dir（:49），phase2
 格式直通**不自动补**（:51）；session validate 拒缺失（CLI 2，
@@ -153,12 +153,12 @@ passthrough 交会话拒——两道防线，语义一致。
 - **结构化日志**：host->logger 通道（log() :28-31）——run 起预算行
   （:115-117）、coverage ok cells=（:148）、sample ok obs=/overlap_
   controls=（:177-178）。
-- **域内 provenance 衔接**：逐帧 P2HipsInputInfo（coverage.h:31-38）
+- **域内 provenance 衔接**：逐帧 P2HipsInputInfo（coverage.h:31-43）
   由 coverage 域填充（session 仅预填 hips_path :130-134），frame_id/
   provenance/拒绝统计等域内 trace **不上浮**会话 manifest（manifest
   仅计数汇总）；sampler 域 stderr 诊断（DISP-P2SMP-003）不经本层。
   manifest 为会话唯一外发 trace（P2Api 经 RT-008 SessionModule 捕获
-  上报，module_adapters.cpp:101 注释）。
+  上报，module_adapters.cpp:105 注释）。
 
 ## 7 NODE-CALL 唯一性（符号×段矩阵）
 
@@ -167,8 +167,8 @@ passthrough 交会话拒——两道防线，语义一致。
 
 | 符号（声明锚） | coverage | sample | upm_build | persist | 合计/执行路径 |
 |---|---|---|---|---|---|
-| p2_coverage_build（coverage.h:52-54） | :125/:138 | — | — | — | 恰 2（probe/fill） |
-| p2_coverage_free（coverage.h:56） | :143-144 RAII | — | — | — | 恰 1（含失败路径） |
+| p2_coverage_build（coverage.h:57-59） | :125/:138 | — | — | — | 恰 2（probe/fill） |
+| p2_coverage_free（coverage.h:61） | :143-144 RAII | — | — | — | 恰 1（含失败路径） |
 | p2_sampler_default_config（sampler.h:60） | — | :154 | — | — | 恰 1 |
 | p2_sample_controls（sampler.h:103-114） | — | :158/:167 | — | — | 恰 2（probe/fill） |
 | p2_upm_build（upm.h:95-97） | — | — | :204 | — | 恰 1 |
@@ -219,7 +219,7 @@ pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
 2. canonical 节点集 {coverage,sample,upm_build,persist}（:31-38 静态
    门；typed DAG 扩面归 P2-SESSION-IMPL，不回头改 4 段 trace 词汇）。
 3. 五函数签名与 handle 所有权（p2_session.h:17-27；P2Api 委托面
-   module_adapters.cpp:773-780）。
+   module_adapters.cpp:777-784）。
 4. validate 无 silent default（p2_session.h:19；缺必需键/类型错
    →PARAM）。
 5. 错误映射 rc=1→PARAM / rc=2→STATE（合同 §4）/ persist IO→ACS_ERR_
@@ -309,7 +309,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 - **T3 descriptor 集成/validate 负面矩阵**（:188）：坏 JSON/非
   object/缺 hips_paths/缺 output_dir/hips_paths 空与非 string 项/
   upm 非对象/未知键（DISP-P2SES-001 现状口径：不拒——按 §11.3 登记断
-  言，整改后翻转为拒）/output_dir 注入面（parser.cpp:343-345 拒、
+  言，整改后翻转为拒）/output_dir 注入面（parser.cpp:346-348 拒、
   runtime_client.cpp:73 补/:51 直通不补）；取消注入点：四段边界各
   一（mock host cancel → ACS_ERR_CANCELLED + persist 段取消 model
   仍释放）；manifest 状态机：created→complete/failed 全路径 +
@@ -363,7 +363,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   :454-458）→ astrocs 可执行（:501-506）+ QA-001 严格警告层
   （:517-529）。
 - 编排消费面：CLI 直调（CLI-005）与 RT-005/RT-008 SessionModule
-  （module_adapters.cpp:773-780 P2Api，注册 :746-751/:782-794）。
+  （module_adapters.cpp:777-784 P2Api，注册 :746-751/:782-794）。
 - 对拍先例：lib/phase1_session/（P1-SESSION-DOC）+ registry 页
   astrocs.phase1.session.md；PHASE2_SAMPLER.md §11/§12 结构。
 - 消费域：ALG-COV-001（PHASE2_COVERAGE.md）/ ALG-P2-SMP-001

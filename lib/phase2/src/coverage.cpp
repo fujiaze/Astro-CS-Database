@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <map>
 #include <string>
@@ -83,8 +84,20 @@ int inspect_frame(const char* path, P2HipsInputInfo* info,
     const int order = geti("hips_order", -1);
     const int tw = geti("hips_tile_width", 0);
     const std::string frame = gets("hips_frame");
-    const std::string filter = gets("obs_filter");
     const std::string version = gets("hips_version");
+    // B2-A8: 兼容前提 = 同一 filter/passband（coverage.h:7）。"键缺失"（外层
+    // HiPS，从未声明观测 passband）与"键存在"是两种事实：前者无法与任何
+    // 基准帧建立 filter 组，必须 fail-closed，而不是像旧实现那样因空串被
+    // 静默并入 union（DISP-COV-003）。
+    const bool has_filter = kv.find("obs_filter") != kv.end();
+    const std::string filter = gets("obs_filter");
+    if (!has_filter) {
+        std::snprintf(err, err_size,
+                      "missing obs_filter property (filter/passband identity "
+                      "is required for compatibility): %s", path);
+        aio_hips_close(d);
+        return 1;
+    }
     if (order < 0) {
         std::snprintf(err, err_size, "missing hips_order: %s", path);
         aio_hips_close(d);
@@ -106,6 +119,18 @@ int inspect_frame(const char* path, P2HipsInputInfo* info,
         aio_hips_close(d);
         return 1;
     }
+    // B2-A8: 读并断言 hips_ordering。本模块的 union/int 父聚合（t >> 2s）
+    // 与下游 NESTED 消费只在 NESTED 语义下成立；RING 输入必须 fail-closed
+    // （旧实现全仓 0 命中 hips_ordering，AIO reader 直接按 NESTED 解释，
+    // 使 RING 帧被静默错读）。
+    const bool has_ordering = kv.find("hips_ordering") != kv.end();
+    const std::string ordering = gets("hips_ordering");
+    if (has_ordering && ordering != "NESTED") {
+        std::snprintf(err, err_size, "unsupported hips_ordering=%s (NESTED "
+                      "required): %s", ordering.c_str(), path);
+        aio_hips_close(d);
+        return 1;
+    }
 
     if (info) {
         std::strncpy(info->hips_path, path, sizeof(info->hips_path) - 1);
@@ -124,6 +149,10 @@ int inspect_frame(const char* path, P2HipsInputInfo* info,
         std::strncpy(info->frame_type, frame.c_str(),
                      sizeof(info->frame_type) - 1);
         info->frame_type[sizeof(info->frame_type) - 1] = '\0';
+        // 语义审计面：缺省 key（AIO 写侧恒 NESTED）登记为空串，显式声明登记原值。
+        std::strncpy(info->hips_ordering, ordering.c_str(),
+                     sizeof(info->hips_ordering) - 1);
+        info->hips_ordering[sizeof(info->hips_ordering) - 1] = '\0';
     }
     if (tiles) {
         const int n = aio_hips_tile_count(d);
@@ -160,6 +189,7 @@ int p2_coverage_build(const char* const* hips_paths,
     std::vector<P2HipsInputInfo> infos(n_inputs);
     int target_order = -1;
     std::string filter_ref;
+    std::string frame_ref;
     bool filter_set = false;
     for (std::uint64_t i = 0; i < n_inputs; ++i) {
         if (!hips_paths[i] || !*hips_paths[i]) {
@@ -177,19 +207,30 @@ int p2_coverage_build(const char* const* hips_paths,
             out->status = 1;
             return 1;
         }
-        // 兼容校验：filter 一致
+        // 兼容校验：filter/passband 全等（含显式空声明；inspect_frame 已拒"键
+        // 缺失"）。B2-A8: 旧实现只比较非空串，使一个带 filter 的帧与一个空
+        // 声明帧被并入同一 union —— 违反 coverage.h:7「同一 filter/passband」前提。
         const std::string f = infos[i].filter_passband;
-        if (!f.empty()) {
-            if (!filter_set) {
-                filter_ref = f;
-                filter_set = true;
-            } else if (f != filter_ref) {
-                std::snprintf(out->error, sizeof(out->error),
-                              "filter mismatch: %s vs %s",
-                              filter_ref.c_str(), f.c_str());
-                out->status = 1;
-                return 1;
-            }
+        const std::string fr = infos[i].frame_type;
+        if (!filter_set) {
+            filter_ref = f;
+            frame_ref = fr;
+            filter_set = true;
+        } else if (f != filter_ref) {
+            std::snprintf(out->error, sizeof(out->error),
+                          "filter mismatch: %s vs %s",
+                          filter_ref.c_str(), f.c_str());
+            out->status = 1;
+            return 1;
+        }
+        // B2-A8: 跨帧坐标系必须相等（旧实现只逐帧校验 frame∈{equatorial,icrs}，
+        // 不比较跨帧一致性；equatorial 与 icrs 混用会让 MOC 父聚合跨坐标系）。
+        if (fr != frame_ref) {
+            std::snprintf(out->error, sizeof(out->error),
+                          "hips_frame mismatch: %s vs %s",
+                          frame_ref.c_str(), fr.c_str());
+            out->status = 1;
+            return 1;
         }
         // target_order = min(max leaf order)
         if (target_order < 0 || infos[i].max_leaf_order < target_order)

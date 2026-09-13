@@ -1,6 +1,10 @@
-// P3-005 单元测试: FITS 原子写 + 重开验证 (dimensions/WCS/BUNIT/checksum/mask)
+// P3-005 单元测试: FITS 原子写 + 重开验证 (dimensions/WCS/BUNIT/标准 DATASUM/CHECKSUM/mask)
+// B2-A9: verify 现对 WCS 有鉴别力（CTYPE/CUNIT/CRPIX/CRVAL/CD 对拍），故
+// 不再声明"WCS 一致性由写路径单点保证"；本文件另含 WCS 篡改负例。
 #include "p3_output.h"
 #include "p3_wcs.h"
+
+#include "fitsio.h"   // B2-A9 WCS 篡改负例（独立重开改 header）
 
 #include <cmath>
 #include <cerrno>
@@ -94,6 +98,39 @@ int main() {
           entry.path().extension() == ".tmp") { found = true; break; }
     }
     CHECK(!found);
+  }
+
+  // 3b) B2-A9 WCS 篡改负例: 独立重开把 CRPIX1 平移 +1（双桥接/原点回归的
+  // 典型形态），verify 必须检出（reopen_ok=0）。verify 对 WCS 的鉴别力是
+  // 本门的判别力来源，不是同式自证。
+  {
+    fitsfile* tf = nullptr;
+    int st = 0;
+    CHECK(fits_open_file(&tf, out.c_str(), READWRITE, &st) == 0);
+    double tampered = 0.0;
+    CHECK(fits_read_key(tf, TDOUBLE, (char*)"CRPIX1", &tampered, nullptr, &st) == 0);
+    tampered += 1.0;   // 0.5px/1px 型系统性平移
+    st = 0;
+    CHECK(fits_update_key(tf, TDOUBLE, (char*)"CRPIX1", &tampered, nullptr, &st) == 0);
+    st = 0;
+    CHECK(fits_close_file(tf, &st) == 0);
+    astrocs::phase3::P3OutputResult v{ };
+    const astrocs::phase3::P3OutputStatus vst =
+        astrocs::phase3::p3_output_verify(out.c_str(), &wcs, sig.data(), cov.data(),
+                                          w, h, &v);
+    CHECK(vst == astrocs::phase3::P3_OUT_OK);   // 文件可读 = OK，但鉴别位必须失败
+    CHECK(v.reopen_ok == 0);                    // CRPIX 篡改必须被检出
+    // 复原 CRPIX1，保证后续用例共享同一产物文件时仍是合法 WCS。
+    tampered -= 1.0;
+    st = 0;
+    CHECK(fits_open_file(&tf, out.c_str(), READWRITE, &st) == 0);
+    CHECK(fits_update_key(tf, TDOUBLE, (char*)"CRPIX1", &tampered, nullptr, &st) == 0);
+    st = 0;
+    CHECK(fits_close_file(tf, &st) == 0);
+    astrocs::phase3::P3OutputResult vr{ };
+    CHECK(astrocs::phase3::p3_output_verify(out.c_str(), &wcs, sig.data(), cov.data(),
+                                            w, h, &vr) == astrocs::phase3::P3_OUT_OK);
+    CHECK(vr.reopen_ok == 1);                   // 复原后鉴别位恢复
   }
 
   // 4) pixel→sky→sample Oracle: WCS roundtrip 后采样信号一致

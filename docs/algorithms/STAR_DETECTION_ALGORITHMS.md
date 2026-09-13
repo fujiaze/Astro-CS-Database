@@ -22,7 +22,7 @@
 - 生产调用: orchestrator.cpp:2067 run_stage_psf（PSF/STAR_MEASURE 阶段，一帧一次
   权威检测）→ :2153-2157 sdet_detect_ex / sdet_detect_ex_f64 / sdet_free_detect_ex
   函数指针 → star_det 权威块 FLOAT64[N,6]（orchestrator.cpp:2237-2246）。
-- descriptor astrocs.phase1.star-psf（module_adapters.cpp:492-510）为编排层词汇，
+- descriptor astrocs.phase1.star-psf（module_adapters.cpp:496-514）为编排层词汇，
   不含独立 star_detection descriptor；本模块合同以 ALG-STARDET-001/DATA-P1-STAR/
   API-STAR-001 为准。
 
