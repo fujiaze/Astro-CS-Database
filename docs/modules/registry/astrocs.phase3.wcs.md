@@ -84,7 +84,7 @@ downstream: [TEST-P3-WCS-001]
   create→validate→run→inspect→destroy 不变（p3_session.h:16-28），
   run 内 make（p3_session.cpp:160）→worker 逐像素 pix2world（:232）。
 - 域际: DATA-P3-FITS 写路径 wcs 字段承载本 descriptor
-  （p3_output.cpp:148-169 关键词写、API-P3-FITS-001 消费面）。
+  （p3_output.cpp:157-182 关键词写、API-P3-FITS-001 消费面）。
 - 不新增/不修改任何 C 头/C ABI（本页为既有符号展开冻结）。
 
 ## 5 Registry descriptor 与配置 schema
@@ -103,7 +103,7 @@ downstream: [TEST-P3-WCS-001]
 
 ## 6 冻结公式（G1/G2 摘要；唯一权威=ALG-P3-PROJ-IMPL-001 §6/§7）
 
-- G1（p3_wcs.cpp:51-78）: CRPIX=((W+1)/2,(H+1)/2)；PA=0 对角
+- G1（p3_wcs.cpp:51-111）: CRPIX=((W+1)/2,(H+1)/2)；PA=0 对角
   east_left diag(−s,+s)/east_right diag(+s,−s)；PA≠0 推广
   CD=R(−PA)·diag(sgn_x·s, sgn_y·s)，展开式 CD1_1=sgn_x·s·cosPA/
   CD1_2=sgn_y·s·sinPA/CD2_1=−sgn_x·s·sinPA/CD2_2=sgn_y·s·cosPA；

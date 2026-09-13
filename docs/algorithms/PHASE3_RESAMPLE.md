@@ -37,7 +37,10 @@ G4 (ALG-P3-003) leaf 采样:
 
 G5 (ALG-P3-004) FITS 写:
   BITPIX=−32/−64, BSCALE=1, BZERO=0, BUNIT=properties(缺省 'ADU')
-  WCS: G1 全量 + CTYPE=TAN + CUNIT=deg; HISTORY: 源 HiPS 标识/order_sel/sampler/软件版本/manifest hash
+  WCS: G1 全量 + CTYPE=RA---<proj>/DEC--<proj> + CUNIT=deg
+  (B2-A4: <proj> 取自已校验 projection, alpha 唯一合法值 "TAN";
+   未实现投影在写前 fail-closed, 不落任何 FITS)
+  HISTORY: 源 HiPS 标识/order_sel/sampler/软件版本/manifest hash
   coverage: C=1 ⇔ 足迹内存在有限 tile 像素; 无覆盖 S=NaN
 ```
 

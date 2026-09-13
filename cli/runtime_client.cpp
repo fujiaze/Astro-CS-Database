@@ -3,6 +3,7 @@
 
 #include "astrocs/core/context.h"
 #include "cancel_token.h"
+#include "p3_wcs.h"   // B2-A4/A5: 请求层投影/frame/coverage_output 唯一校验源
 
 #include <nlohmann/json.hpp>
 
@@ -45,6 +46,29 @@ nlohmann::json phase_config(const nlohmann::json& doc, int phase,
     } else {
       if (err) *err = "run config missing 'phase3' object for --phases 3";
       return {};
+    }
+    // B2-A4/A5: projection/frame/coverage_output 在此 config 面 fail-closed ——
+    // validate/plan/run 三面共用本函数, 故三面一致拒绝非法值; 唯一语义源 =
+    // astrocs::phase3::p3_wcs_validate_request(未实现投影不得静默映射为 TAN)。
+    {
+      for (const char* k : {"projection", "frame", "coverage_output"}) {
+        if (pdoc.contains(k) && !pdoc[k].is_string()) {
+          if (err) *err = std::string("phase3 ") + k + " must be string";
+          return {};
+        }
+      }
+      const std::string proj = pdoc.value("projection", std::string("TAN"));
+      const std::string frame = pdoc.value("frame", std::string("icrs"));
+      const std::string cov = pdoc.value("coverage_output", std::string("mask"));
+      std::string why;
+      const astrocs::phase3::P3WcsStatus pst = astrocs::phase3::p3_wcs_validate_request(
+          pdoc.contains("projection") ? proj.c_str() : nullptr,
+          pdoc.contains("frame") ? frame.c_str() : nullptr,
+          pdoc.contains("coverage_output") ? cov.c_str() : nullptr, &why);
+      if (pst != astrocs::phase3::P3_WCS_OK) {
+        if (err) *err = std::string("phase3 config rejected: ") + why;
+        return {};
+      }
     }
   } else if (phase == 2) {
     if (doc.contains("inputs") && doc["inputs"].is_object() &&

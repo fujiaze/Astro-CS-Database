@@ -32,19 +32,19 @@
 
 | 符号 | 类型 | 单位/值域 | 锚 |
 |---|---|---|---|
-| signal | f32 [W·H] | surface brightness（BUNIT，缺省 ADU） | p3_output.cpp:193-195 |
-| coverage | f32 [W·H] | 二值门 {0,1}（>0.5f=covered） | p3_output.cpp:212/:287/:346 |
+| signal | f32 [W·H] | surface brightness（BUNIT，缺省 ADU） | p3_output.cpp:207-209 |
+| coverage | f32 [W·H] | 二值门 {0,1}（>0.5f=covered） | p3_output.cpp:226/:301/:360 |
 | width,height | int px | [1,20000]（会话层 :113-114；内核 width<1 拒 :132） | p3_output.h:46 |
-| bitpix | int | -32 \| -64（真实决定 buffer，h:51） | p3_output.cpp:140-145 |
-| BSCALE/BZERO | int | 1 / 0（恒定） | p3_output.cpp:189-191 |
-| BUNIT | string | properties 缺省 "ADU"（h 缺省 :175） | p3_output.cpp:192-193 |
-| CRPIX1/2 | f64 px | FITS 1-based pixel-center | p3_wcs.h:14 / p3_output.cpp:179-180 |
-| CRVAL1/2 | f64 deg | ICRS 中心 | p3_wcs.h:12-13 / p3_output.cpp:181-182 |
-| CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | p3_wcs.h:16 / p3_output.cpp:183-186 |
-| CTYPE1/2 | string | RA---TAN / DEC--TAN | p3_output.cpp:169-170 |
-| CUNIT1/2 | string | deg | p3_output.cpp:171-172 |
-| HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER | string | provenance 八字段子集 | p3_output.h:15-24 / p3_output.cpp:196-202 |
-| DATASUM | u32 | signal 32-bit fdatasum | p3_output.cpp:59-67/:214-219 |
+| bitpix | int | -32 \| -64（真实决定 buffer，h:51） | p3_output.cpp:140-154 |
+| BSCALE/BZERO | int | 1 / 0（恒定） | p3_output.cpp:203-205 |
+| BUNIT | string | properties 缺省 "ADU"（h 缺省 :175） | p3_output.cpp:206-207 |
+| CRPIX1/2 | f64 px | FITS 1-based pixel-center | p3_wcs.h:14 / p3_output.cpp:193-194 |
+| CRVAL1/2 | f64 deg | ICRS 中心 | p3_wcs.h:12-13 / p3_output.cpp:195-196 |
+| CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | p3_wcs.h:16 / p3_output.cpp:197-200 |
+| CTYPE1/2 | string | RA---TAN / DEC--TAN | p3_output.cpp:182-183 |
+| CUNIT1/2 | string | deg | p3_output.cpp:185-186 |
+| HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER | string | provenance 八字段子集 | p3_output.h:15-24 / p3_output.cpp:210-216 |
+| DATASUM | u32 | signal 32-bit fdatasum | p3_output.cpp:59-67/:228-233 |
 | sha256 | char[65] | 输出文件 SHA-256 hex 小写（完整读出才填） | p3_output.h:27 / :92-114 |
 
 ## 3 逐符号锚（p3_output.cpp 370 行 / p3_output.h 64 行 / p3_wcs.h 50 行，2026-09-08 实测）
@@ -101,7 +101,7 @@
   :346）；reopen_ok/coverage_ok/covered_px/total_px :350-354；
   sha256 重算 :356-366（失败 → P3_OUT_IO 不带假哈希 :357-360）。
 - `p3_wcs_make/p3_wcs_pix2world/p3_wcs_world2pix/p3_wcs_fits_keywords`
-  （p3_wcs.h:31-46 声明）: TAN 正反变换实现 p3_wcs.cpp（ALG-P3-002
+  （p3_wcs.h:44-59 声明）: TAN 正反变换实现 p3_wcs.cpp（ALG-P3-002
   G1/G2 承接；0-based 像素入参，FITS=+1 :36 注释；parity
   east_left=CD1_1<0 默认 :29；abs(dec)≤85° 与四角同半球守卫
   P3_WCS_HEMISPHERE :26）。
@@ -227,7 +227,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   | `hardware_concurrency` | p3_session.cpp:238（仅注释，禁用声明） | 合规 |
   | `std::thread` | p3_session.cpp:327（采样池，非写面） | §8 声明面 |
   | `#pragma omp`（AIO 域） | aio_fits.cpp:1154 唯一 `parallel for schedule(static)` | 属 AIO 域非本域（QA-001 -fopenmp 编译处理），登记不改 |
-  | `cfitsio_io_mutex` | p3_output.cpp:143 / aio_fits.cpp:529 / aio_cfitsio_mutex.h:11 | RT-008 合规 |
+  | `cfitsio_io_mutex` | p3_output.cpp:152 / aio_fits.cpp:529 / aio_cfitsio_mutex.h:11 | RT-008 合规 |
 - **取消点**：内核级 cancelled_at_row 参数（h:52，行粒度，session
   层恒 -1 :292）；会话级取消在采样循环 :228-229；写面一旦进入
   R10-C 发布序不可中断（半成品不可见，符合 IO_003 §6）。

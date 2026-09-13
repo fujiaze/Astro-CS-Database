@@ -46,7 +46,7 @@ downstream: [TEST-P3-WR-001]
 - 职责: 把上游重采样结果（signal+coverage）写成 FITS 单文件
   （主 HDU signal + COVERAGE 扩展 HDU）——WCS/BUNIT/provenance
   关键字全量（SCI-P3 §96 面）、R10-C 原子发布序（tmp→flush→fsync→
-  rename，p3_output.cpp:221-273）、失败/取消清理不发布（h:41-44）、
+  rename，p3_output.cpp:235-287）、失败/取消清理不发布（h:41-44）、
   发布后 sha256 完整性锚（:92-114 严格封装）与独立重开验证
   （p3_output_verify :296-368）。
 - 非职责: 不做重采样/tile 读取（P3-RSMP/采样域）、不做请求解析
@@ -62,7 +62,7 @@ downstream: [TEST-P3-WR-001]
 | `fits` | `DATA-P3-FITS` | 可 | UnitId::SURFACE_BRIGHTNESS | FITS 文件 BITPIX=-32/-64 + COVERAGE 扩展 + sha256 |
 
 - invalid 唯一权威=DATA-P3-FITS §27：signal 无覆盖=NaN（禁 ±Inf
-  伪装；NaN==NaN 回环一致 p3_output.cpp:327-330）；coverage 二值门
+  伪装；NaN==NaN 回环一致 p3_output.cpp:341-344）；coverage 二值门
   >0.5f（:346）；bitpix∉{-32,-64}→PARAM（:140-145）；WCS 守卫
   abs(dec)≤85°+四角同半球（p3_wcs.h:24-26）。
 - 端口词汇（resampled/fits、DATA-P3-RES、UnitId/CoordinateFrame）
@@ -175,7 +175,7 @@ downstream: [TEST-P3-WR-001]
 - 整改项（非缺陷）: prov.manifest_hash 恒 nullptr
   （p3_session.cpp:270，HISTORY manifest 字段写空，SCI-P3 §96
   接线归 P3-FITS-IMPL）；p3_output_verify 忽略 wcs 参数
-  （p3_output.cpp:305 (void)wcs，设计如此注释如实）；DATASUM 为
+  （p3_output.cpp:319 (void)wcs，设计如此注释如实）；DATASUM 为
   32-bit 数值校验和非 FITS 标准 ASCII CHECKSUM（如实冻结）。
 - 其余: 见 docs/KNOWN_LIMITATIONS.md 与 ALG-P3-FITS-IMPL-001
   §14 合同边界；SCI-P3 FROZEN 零改动声明（本页不承载公式）。

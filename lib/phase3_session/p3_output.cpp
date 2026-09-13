@@ -138,6 +138,15 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         return P3_OUT_PARAM;
     // uncertainty 平面成对要求 (单边 NULL = 合同违规, 禁半可用发布)
     if ((variance == nullptr) != (ivar == nullptr)) return P3_OUT_PARAM;
+    // B2-A4: 投影由已校验 descriptor 决定；未实现投影 fail-closed —— 在创建任何
+    // 临时/输出文件之前拒绝 (不写 FITS, 不与请求不符的 CTYPE 混淆)。
+    {
+        std::string perr;
+        if (p3_wcs_validate_request(wcs->projection, nullptr, nullptr, &perr) != P3_WCS_OK) {
+            g_last_err = perr;
+            return P3_OUT_PARAM;
+        }
+    }
     if (result) std::memset(result, 0, sizeof(*result));
     // RT-008: cfitsio 全局表非线程安全 → 进程级串行化（覆盖内部 verify 重开）
     std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
@@ -165,9 +174,14 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         return P3_OUT_IO;
     }
 
-    // WCS + 基础关键字
-    fits_write_key(f, TSTRING, (char*)"CTYPE1", (void*)"RA---TAN", nullptr, &status);
-    fits_write_key(f, TSTRING, (char*)"CTYPE2", (void*)"DEC--TAN", nullptr, &status);
+    // WCS + 基础关键字 (B2-A4: CTYPE 由已校验投影决定; TAN 字节与此前一致)
+    {
+        const char* pj = (wcs->projection && *wcs->projection) ? wcs->projection : "TAN";
+        const std::string ctype1 = std::string("RA---") + pj;
+        const std::string ctype2 = std::string("DEC--") + pj;
+        fits_write_key(f, TSTRING, (char*)"CTYPE1", (void*)ctype1.c_str(), nullptr, &status);
+        fits_write_key(f, TSTRING, (char*)"CTYPE2", (void*)ctype2.c_str(), nullptr, &status);
+    }
     fits_write_key(f, TSTRING, (char*)"CUNIT1", (void*)"deg", nullptr, &status);
     fits_write_key(f, TSTRING, (char*)"CUNIT2", (void*)"deg", nullptr, &status);
     {

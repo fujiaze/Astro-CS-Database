@@ -3989,7 +3989,32 @@ struct P3nGeom {
   std::string sampler = "bilinear";
   std::string parity = "east_left";
   int bitpix = -32;
+  // B2-A4/A5: 请求层字段 (缺省 = p3_session parse_request 冻结值)
+  std::string projection = "TAN";
+  std::string frame = "icrs";
+  std::string coverage_output = "mask";
 };
+
+// B2-A4/A5: 请求层 projection/frame/coverage_output 的类型 + 值域校验。
+// 唯一语义源 = astrocs::phase3::p3_wcs_validate_request (CLI 配置面与节点面共用);
+// 未实现/未注册投影在此显式拒绝, 绝不放行也不静默改写为 TAN。
+bool p3n_check_request_fields(const Json& doc, std::string* err) {
+  auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
+  for (const char* k : {"projection", "frame", "coverage_output"}) {
+    if (doc.contains(k) && !doc[k].is_string())
+      return fail(std::string(k) + " must be string");
+  }
+  const std::string proj = doc.value("projection", std::string("TAN"));
+  const std::string frame = doc.value("frame", std::string("icrs"));
+  const std::string cov = doc.value("coverage_output", std::string("mask"));
+  std::string why;
+  const astrocs::phase3::P3WcsStatus st = astrocs::phase3::p3_wcs_validate_request(
+      doc.contains("projection") ? proj.c_str() : nullptr,
+      doc.contains("frame") ? frame.c_str() : nullptr,
+      doc.contains("coverage_output") ? cov.c_str() : nullptr, &why);
+  if (st != astrocs::phase3::P3_WCS_OK) return fail(why);
+  return true;
+}
 
 bool p3n_geom(const Json& doc, P3nGeom* g, std::string* err) {
   auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
@@ -4001,6 +4026,8 @@ bool p3n_geom(const Json& doc, P3nGeom* g, std::string* err) {
     return fail("missing center.ra_deg/dec_deg");
   if (!doc.contains("output_dir") || !doc["output_dir"].is_string())
     return fail("missing output_dir");
+  // B2-A4/A5: 投影/帧/覆盖率先于数值面显式校验 (与 p3_session parse_request 同序)
+  if (!p3n_check_request_fields(doc, err)) return false;
   g->hips_dir = doc["source"]["hips_dir"].get<std::string>();
   g->out_dir = doc["output_dir"].get<std::string>();
   g->ra = doc["center"]["ra_deg"].get<double>();
@@ -4011,6 +4038,9 @@ bool p3n_geom(const Json& doc, P3nGeom* g, std::string* err) {
   g->sampler = doc.value("sampler", std::string("bilinear"));
   g->parity = doc.value("longitude_parity", std::string("east_left"));
   g->bitpix = doc.value("bitpix", -32);
+  g->projection = doc.value("projection", std::string("TAN"));
+  g->frame = doc.value("frame", std::string("icrs"));
+  g->coverage_output = doc.value("coverage_output", std::string("mask"));
   // 值域 (与 p3_session 同款; 无 silent default 非法值)
   if (!(g->scale > 0.0)) return fail("scale_deg_per_px must be > 0");
   if (g->w < 1 || g->w > 20000 || g->h < 1 || g->h > 20000)
@@ -4055,7 +4085,19 @@ bool p3n_wcs_from_json(const Json& j, astrocs::phase3::P3WcsDescriptor* d,
   d->cd[1][1] = j.value("cd22", 0.0);
   d->width_px = j.value("width_px", 0);
   d->height_px = j.value("height_px", 0);
-  d->projection = "TAN";
+  // B2-A4: 上游 wcs_plan 的投影只允许已实现值 (篡改/漂移 → DATA fail-closed,
+  // 不得静默按 TAN 消费)。
+  {
+    if (j.contains("projection") && !j["projection"].is_string())
+      return fail("wcs_plan projection must be string");
+    const std::string pj = j.value("projection", std::string("TAN"));
+    std::string why;
+    if (astrocs::phase3::p3_wcs_validate_request(
+            j.contains("projection") ? pj.c_str() : nullptr, nullptr, nullptr,
+            &why) != astrocs::phase3::P3_WCS_OK)
+      return fail("wcs_plan: " + why);
+  }
+  d->projection = "TAN";   // 校验通过后携带的字面量 (仅 TAN 实现)
   return true;
 }
 
@@ -4123,7 +4165,8 @@ Result<void> p3_op_wcs(const Json& doc, Json* man) {
   using namespace astrocs::phase3;
   P3WcsDescriptor wcs{};
   const P3WcsStatus wst = p3_wcs_make(g.ra, g.dec, g.scale, g.w, g.h,
-                                      g.parity.c_str(), 0.0, &wcs);
+                                      g.parity.c_str(), 0.0, &wcs,
+                                      g.projection.c_str());
   if (wst != P3_WCS_OK) {
     return Result<void>::fail(
         Error(ErrorDomain::DATA,
@@ -4144,6 +4187,7 @@ Result<void> p3_op_wcs(const Json& doc, Json* man) {
             {"cd22", wcs.cd[1][1]},
             {"width_px", wcs.width_px},
             {"height_px", wcs.height_px},
+            {"projection", wcs.projection},
             {"fits_keywords", p3_wcs_fits_keywords(&wcs)}};
   std::ofstream f(path, std::ios::binary);
   if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_wcs.json"));
@@ -4652,6 +4696,13 @@ struct P3NodeModule : public IModule {
       return Result<void>::fail(Error(ErrorDomain::DATA, "bitpix must be integer"));
     if (doc.contains("max_tiles") && !doc["max_tiles"].is_number_integer())
       return Result<void>::fail(Error(ErrorDomain::DATA, "max_tiles must be integer"));
+    // B2-A4/A5: projection/frame/coverage_output 值域 (validate/plan/run 一致拒绝面;
+    // 未实现投影不得登记为可运行配置)。
+    {
+      std::string rerr;
+      if (!p3n_check_request_fields(doc, &rerr))
+        return Result<void>::fail(Error(ErrorDomain::DATA, rerr));
+    }
     return Result<void>::success();
   }
 

@@ -86,21 +86,37 @@ enum class P3WcsStatus {
   P3_WCS_UNSUPPORTED = 2,  // projection≠TAN
   P3_WCS_HEMISPHERE = 3    // 输出跨 TAN 半球
 };
+// 请求层 projection/frame/coverage_output 合法性 (B2-A4/A5 唯一机器源;
+// CLI 配置面 runtime_client::phase_config 与节点面 module_adapters 共用)
+P3WcsStatus p3_wcs_validate_request(const char* projection, const char* frame,
+                                    const char* coverage_output, std::string* why);
+                                                            // p3_wcs.h:37-38
 P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
                         double scale_deg_per_px, int width_px, int height_px,
                         const char* parity, double rotation_pa_deg,
-                        P3WcsDescriptor* out);            // p3_wcs.h:31-34
+                        P3WcsDescriptor* out, const char* projection = "TAN");
+                                                            // p3_wcs.h:44-47
 P3WcsStatus p3_wcs_pix2world(const P3WcsDescriptor* d, double x, double y,
-                             double* ra_deg, double* dec_deg);  // h:38-39
+                             double* ra_deg, double* dec_deg);  // h:52-53
 P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double ra_deg, double dec_deg,
-                             double* x, double* y);             // h:42-43
-std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:46
+                             double* x, double* y);             // h:56-57
+std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
 ```
+
+- **投影拒绝（B2-A4 冻结，不得放宽）**：`p3_wcs_validate_request` 对
+  projection 仅接受 "TAN"（缺省即 TAN）；SIN/CAR/AIT 即便在
+  `lib/phase3_proj` registry 注册（§18.1 首批四投影 claim）也未接入
+  alpha 生产路径，故与任意未注册码一样返回 P3_WCS_UNSUPPORTED——
+  **禁止静默改写为 TAN**（01_SCIENCE_AUTHORITY_BASELINE §4）。frame
+  非 icrs（接受 "ICRS"）→ P3_WCS_UNSUPPORTED；coverage_output 非 mask
+  → P3_WCS_PARAM。`p3_wcs_make` 的 projection 默认实参保持既有调用
+  零改动，入口先于一切数值构造校验；`p3_wcs_fits_keywords` 的 CTYPE
+  由 descriptor 的 projection 派生（TAN 字节不变），未实现投影返回空串。
 
 - 语义冻结: parity 接受 "east_left"（默认，nullptr 归一为
   east_left，p3_wcs.cpp:37，⇒CD1_1<0）与 "east_right"（⇒CD1_1>0），
   其它值 P3_WCS_PARAM（:39）；pix2world/world2pix 入参 x,y 为
-  **0-based**（FITS 1-based=+1，p3_wcs.cpp:97-98 内部换算 :140-141
+  **0-based**（FITS 1-based=+1，p3_wcs.cpp:130-131 内部换算 :140-141
   输出回 0-based）；crpix=(W+1)/2、(H+1)/2（:47-48，FITS 1-based
   pixel-center，与 G1 冻结式一致）。
 
@@ -120,7 +136,7 @@ std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:46
 - API-P3-001（会话五段编排 FROZEN）为镜像合同不变：WCS 消费点在
   run 段（p3_session.cpp:160 make/:232 逐像素 pix2world）。
 
-## 6 G1 输出 WCS 构造冻结（p3_wcs_make，p3_wcs.cpp:30-90）
+## 6 G1 输出 WCS 构造冻结（p3_wcs_make，p3_wcs.cpp:30-123）
 
 ### 6.1 参数校验序（冻结）
 
@@ -175,7 +191,7 @@ h:19 冻结为 "TAN"）；P3_WCS_UNSUPPORTED=2 枚举现无产生点（备而
 
 ## 7 G2 正反映射冻结
 
-### 7.1 p3_wcs_pix2world（像素→天球，p3_wcs.cpp:93-118）
+### 7.1 p3_wcs_pix2world（像素→天球，p3_wcs.cpp:126-150）
 
 ```
 空指针守卫: !d || !ra_deg || !dec_deg → P3_WCS_PARAM        # :95
@@ -192,7 +208,7 @@ gnomonic 反投影: θ=atan2(1, r)（=atan(1/r)）                 # :105
                   （fmod 360 + 负值 +360 → [0,360)）
 ```
 
-### 7.2 p3_wcs_world2pix（天球→像素，p3_wcs.cpp:120-143）
+### 7.2 p3_wcs_world2pix（天球→像素，p3_wcs.cpp:152-175）
 
 ```
 空指针守卫 → P3_WCS_PARAM                                    # :122
@@ -214,14 +230,14 @@ x = δx + CRPIX_x − 1, y = δy + CRPIX_y − 1（0-based 输出）    # :140-1
 tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 复算）；验收级 oracle=WCSLIB（矩阵 notes），由 P3-PROJ-TEST 建立。
 
-## 8 p3_wcs_fits_keywords 关键词合同（p3_wcs.cpp:145-163）
+## 8 p3_wcs_fits_keywords 关键词合同（p3_wcs.cpp:177-195）
 
 - 输入 nullptr → 空串（:146）。
 - 逐行文本，每行 ≤80 字节（FITS 卡形态），"\n" 分隔；清单冻结：
   `CTYPE1= 'RA---TAN'`、`CTYPE2= 'DEC--TAN'`、`CUNIT1/2= 'deg'`、
   `CRPIX1/CRPIX2`（%.10f）、`CRVAL1/CRVAL2`（%.10f）、
   `CD1_1..CD2_2`（%.12e）——与 G5 关键词面（ALG-P3-FITS-IMPL-001
-  §8、p3_output.cpp:148-169）同族；本函数为 descriptor→文本的
+  §8、p3_output.cpp:157-182）同族；本函数为 descriptor→文本的
   探针/调试面，生产 FITS 头写路径在 p3_output 域（本域不写文件）。
 - 数值格式化经 std::snprintf（:147 buf[128]），无缓冲溢出面
   （最长行 "CD1_1  = -1.234567890123e-05 / comment" 量级 <80 字节）。
