@@ -393,3 +393,32 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
   前台已给出 F00 侧证据（`packaging/schemas/install-tree-contract.schema.json:12` 用 const 钉死 alpha.1）。
 - L11-001/008/009/010 等 ACR 休眠与 ISA 变体项与 L12-001（"ACR/第二调度器门验的是假对象"）同属
   **「验证明对象 ≠ 交付对象」**，M5a/M5b 各自落档、`related` 互挂，前台归纳为一条根因。
+
+## 收档 L15（国际标准横向合规·六域逐条，22 条：P0:5/P1:14/P2:3）—— 三条经前台亲验
+
+- **L15-001 HiPS tile 命名与 IVOA 相反（前台已复算确认）**：`aio_hips_writer.cpp:137-138` 实为
+  `dir = ipix / 10000; npix = ipix % 10000`，`:140` 格式化 `Norder%d/Dir%llu/Npix%llu`，读侧 `aio_hips_reader.cpp:40-42` 同口径；
+  标准 §4.1 为 `D=(N/10000)*10000` + 文件名带**完整** N → `Norder6/Dir10000/Npix10302.fits` 被写成 `Dir1/Npix302.fits`。
+  **后果**：N≥10000 的 tile（order≥5 起即存在）落错目录且错命名，**对外不可消费**；注册表偏差列写「与读侧同一合同」
+  = 以实现自证标准符合（违 §1.1/§1.2）。定档 `B_STD_MISMATCH` P0，归 M2b（L03 域）；M4 已收令做后果引用。
+- **L15-004 Gaia 历元已由 ESA 官方原文钉死**（`https://www.cosmos.esa.int/web/gaia/dr3`：reference epoch … is 2016.0，
+  positions and proper motions referred to the ICRS）→ **F00-06 的影响量级不再需要自行估计**，直接引用；
+  M2a 只需确认 parallax/pmra/pmdec 恒零（`DATA_SEMANTICS.md:121-123` 已自述「未初始化、调用方不得使用」）即闭环。
+- **L15-006/007 FITS CHECKSUM + 章节号错挂**：真源是 `runtime/io/fits_core.c`，**不是** `modules/services/io/src/fits_core.c`
+  （后者只存在于 `run/**` 影子树）→ 已下令 M2a 订正 L10 的锚并另立一条"读路径归属写错树"。`, 
+  注册表 D.fits 五行锚有四行指向不含该主题的章节（DATASUM/CHECKSUM 实在 §4.4.2 + 附录 J，§6 是 random groups）。
+- **L15-018/019 两条门侧事实（与 M5 主题并档）**：`check_standards_registry` 在 `ci/checks.json` **零登记**
+  （注册表 `:314-318` 自认未承接；且检查器 docstring 宣称 C1–C8、§5 只列 C1–C7、`evaluate()` 内无 C8 断言）；
+  `DOC-LINE-ANCHORS` 虽已接 CI，但只做「可解析 + 区间不越界 + 声明式符号绑定」，故 +93 行漂移、165→230 行错记、
+  函数起始错位**全部漏检** → 「行锚系统性失效」主题的**机器侧根因**在此闭环：门在，但门的判据与漂移无关。
+- **L15-016 一条纯推导证伪**：文档称「TAN 的 r<π/2 与 denom>0 数学等价」，实为 r=tan z ⇒ z<57.5° 而 denom>0 是 z<90°
+  → 属 L19/L20（推导独立复算轴）的典型靶子，已请 M7 与两轴证据并档。
+
+### 负责人追加的两条要求（已转为新轴，勿与 L13/L14 混淆）
+- **L27 子库 README 完备性与内容正确性**：每库须有 README 写清功能/用途/相关文档/接口/构建/测试/偏差/状态，
+  并与 `module.yaml`、`docs/modules/*.md`、`docs/modules/registry/*.md` 四源交叉对账；同时判定
+  `tools/check_module_readmes.py` 的真实覆盖面（L12-022 称只覆盖 5 个目录）与"标准有要求但无门"vs"标准本身缺要求"的类别区分。
+- **L28 注释溯源三要素审计**（算法来源 / 输入来源 / 被消费者）：与 L13/L14（注释与代码矛盾、流水堆积）正交，
+  查的是**要素齐备性**；并要求先判定 `docs/standards/COMMENT_STANDARD.md` 与宪章 §12.2 是否本来就要求溯源——
+  若规范要求"只解释单位/数学原因/前后置条件"而未要求来源与消费者，则**规范缺口本身成一条 finding**。
+- **L26 角度单位换算链穷举**（deg/arcsec/mas/rad/px 的 3600 因子）：由 L15-002 与 L01-007 两域同因子命中逼出。
