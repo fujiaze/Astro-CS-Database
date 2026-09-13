@@ -1,16 +1,40 @@
-# INDEX（机械汇总草稿 · 由前台生成器产出，最终以 SUMMARY 为准）
+# INDEX · 定稿条目机械汇总
 
-- 定稿文件：**161** 个（findings/**）；按标题计数条目 **333** 条（含各文件自带的说明性小节，真实 finding 数以各域 _merge 统计为准）。
-- 覆盖域：M1a/M2a/M2b/M3a/M3b/M4/M5a/M5b/M6a/M6b（+ M7/M8/M8a/M9 未归）。
+- 生成方式：前台按 `问题扫描/findings/<类别>/p<0|1|2>/*.md` 的 finding 标题（`### Mxx-A-001` 形式）机械计数；复跑口径见 `_tools/verify_anchors.js` 同一目录。
+- 现状：**161** 个定稿文件、**333** 条 finding 标题（M7/M8/M8a/M9 与 M3b 之后的合并域尚未计入）。
+- 优先级与类别的**终判**以各域 `_merge/M*.md` 处置表为准；本表只作导航与去重后的规模核对，不改判。
 
-## 一、类别 × 优先级矩阵
+## 一、类别 × 优先级
 | 类别 | P0 | P1 | P2 | 小计 |
 |---|---|---|---|---|
-| findings | 0 | 0 | 0 | 0 |
-| **合计** | **0** | **0** | **0** | **333** |
+| A_SCI_DEF | 13 | 21 | 5 | 39 |
+| B_STD_MISMATCH | 9 | 11 | 1 | 21 |
+| C_DOC_CODE_GAP | 17 | 48 | 10 | 75 |
+| D_COMMENT | 0 | 14 | 20 | 34 |
+| E_TRACE_BREAK | 2 | 22 | 7 | 31 |
+| F_TEST_GAP | 9 | 22 | 5 | 36 |
+| G_GOV_GATE | 15 | 33 | 6 | 54 |
+| H_NUMERIC | 3 | 7 | 4 | 14 |
+| I_DOC_HYGIENE | 0 | 11 | 18 | 29 |
+| **合计** | **68** | **189** | **76** | **333** |
 
-## 二、文件清单
-| 文件 | 小节数 |
+## 二、按域（文件名后缀）
+| 域 | 条目 |
+|---|---|
+| M1a | 44 |
+| M2a | 46 |
+| M2b | 29 |
+| M3 | 43 |
+| M3b | 22 |
+| M4 | 31 |
+| M5a | 22 |
+| M5b | 43 |
+| M6a | 31 |
+| M6b | 22 |
+| 其他 | 0 |
+
+## 三、文件清单（条目数降序）
+| 文件 | 条目 |
 |---|---|
 | G_GOV_GATE/p1/M5b_L12_L17.md | 14 |
 | C_DOC_CODE_GAP/p1/M2a_L04_L10.md | 11 |
@@ -146,32 +170,5 @@
 | E_TRACE_BREAK/p1/M2b_L03_L15.md | 1 |
 | H_NUMERIC/p1/M2b_L03_L15.md | 1 |
 | H_NUMERIC/p2/M2b_L03_L15.md | 1 |
-| A_SCI_DEF/p0/README.md | 0 |
-| A_SCI_DEF/p1/README.md | 0 |
-| A_SCI_DEF/p2/README.md | 0 |
-| B_STD_MISMATCH/p0/README.md | 0 |
-| B_STD_MISMATCH/p1/README.md | 0 |
-| B_STD_MISMATCH/p2/README.md | 0 |
-| C_DOC_CODE_GAP/p0/README.md | 0 |
-| C_DOC_CODE_GAP/p1/README.md | 0 |
-| C_DOC_CODE_GAP/p2/README.md | 0 |
-| D_COMMENT/p0/README.md | 0 |
-| D_COMMENT/p1/README.md | 0 |
-| D_COMMENT/p2/README.md | 0 |
-| E_TRACE_BREAK/p0/README.md | 0 |
-| E_TRACE_BREAK/p1/README.md | 0 |
-| E_TRACE_BREAK/p2/README.md | 0 |
-| F_TEST_GAP/p0/README.md | 0 |
-| F_TEST_GAP/p1/README.md | 0 |
-| F_TEST_GAP/p2/README.md | 0 |
-| G_GOV_GATE/p0/README.md | 0 |
-| G_GOV_GATE/p1/README.md | 0 |
-| G_GOV_GATE/p2/README.md | 0 |
-| H_NUMERIC/p0/README.md | 0 |
-| H_NUMERIC/p1/README.md | 0 |
-| H_NUMERIC/p2/README.md | 0 |
-| I_DOC_HYGIENE/p0/README.md | 0 |
-| I_DOC_HYGIENE/p1/README.md | 0 |
-| I_DOC_HYGIENE/p2/README.md | 0 |
 
-> 口径说明：小节数包含每个文件开头的「本类小结」与各条 finding 标题；跨域去重与 P0 终判由各 M 代理与前台 SUMMARY 负责。
+> 另有 27 个文件的条目标题不是 `Mxx-<类别>-<编号>` 形式（多为早期命名或纯说明件），未被机械计数；对应域由 R 层核对补录。
