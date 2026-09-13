@@ -216,3 +216,43 @@
   ②裁决表（`40_OWNER_DECISIONS.md`）每一条必须写明**出处代理码 + 其正文可回溯位置**，前台自造内容一律标「前台合成」，不冒充下属移交；
   ③负责人看到的每一条"待裁决"都应有第三方复核记录（本例：M7 复验 + M3 自查 + 前台核验，三方一致才撤）。
 - 本节由前台主动写入，**不作为对任何代理的问责记录**；对 M3 的拒绝归属予以采信并致谢——它同时自检了 §7 全部移交锚并给出口径表，这是本任务要求的水位。
+
+---
+
+# F00-09 前台独立复验 M8a-G-001 面③续（HEALPix 派生署名）—— **含对我自己上一条背书的订正**
+
+## 0. 先纠我自己
+- 我在 `_merge/00_COORDINATION.md`「收档 M8a」段写了「**五锚全部命中，我背书**」，但当时实际只验到 gsl 三锚；
+  HEALPix 两锚（THIRD_PARTY_NOTICE 与 healpix_core 措辞）我的 grep 返回**空**，我未追问就在同一段里当作已验。
+  这是 F00-07a 同型错误的**轻量复现**（那次是编造锚点，这次是把"未验到"写成"已命中"）。**该句作废，以本节为准。**
+
+## 1. M8a 的两处路径确实写错，但**行号正确**（按核验器 v3 属 PATH_MISMATCH：只改锚、禁止撤条）
+- `docs/THIRD_PARTY_NOTICE.md` → 真身 **`lib/common/healpix/THIRD_PARTY_NOTICE.md`**（全仓唯一一份，31 行；`docs/` 下无此件）。
+  M8a 引的 :19 / :22 **逐字命中**：`:19`「仅迁移 NESTED 排序所需路径，**未迁移 RING 排序与邻居查询**」；`:22`「**未复制任何 GPL (Healpix_cxx / RELION) 代码进入生产树**」。
+- `healpix_core.cpp` 未写目录 → 真身 **`lib/common/healpix/healpix_core.cpp`**（512 行）。另两份同名件是
+  `lib/healpix_db/archive/legacy/healpix_stack/healpix_core.cpp`（679 行，归档）与
+  `lib/healpix_db/healpix_drizzle/healpix_core.cpp`（**3 行 DEPRECATED shim**，自述"唯一实现见 lib/common/healpix"）⇒ 目录去重是对的，生产实现只有一处。
+
+## 2. 复验后的事实**比 M8a 的版本更硬**：不是"文档与源码两处口径不一致"，而是**同一目录内 5 行距离的自相矛盾**
+- 生产 TU `lib/common/healpix/healpix_core.cpp:337-341` 注释逐字：
+  「R9-B 重写: 邻居算法**移植自官方 HEALPix C++ (Healpix_3.83 healpix_base.cc / healpix_tables.cc, GPL-2+ 参考)**」；
+  `:416-419` 再一处：「query_disc … **移植自 Healpix_3.83 healpix_base.cc query_disc_internal** (NEST 分支, fct=0)」。
+- 且**上游表被逐字搬进树里**：`:344` 注释「邻居方向偏移 (官方 Healpix_Tables::nb_xoffset/nb_yoffset)」，紧接
+  `:345 constexpr int kNbXOffset[8] = { -1,-1,0,1,1,1,0,-1 };`、`:348 constexpr int kNbFaceArray[9][12] = {…}`，并在 `:395`/`:403` 实际使用。
+- ⇒ **同目录 `.md` 声明"未迁移邻居查询、未复制任何 GPL"，而 5 行之外的 `.cpp` 声明"移植自 Healpix_3.83 GPL-2+"并内联了上游表**。
+  两份文本相隔一个文件名后缀，任何只看其一的人都会得到相反结论 —— 这正是本审计「声明面与实现面互斥」的最短距离实例。
+- 交付面已确证：`CMakeLists.txt:265-267 add_library(astrocs_common STATIC … lib/common/healpix/healpix_core.cpp)`，
+  且 `target_include_directories(astrocs_common PUBLIC …)` → **STATIC 直并进 exe 闭包**（与 GSL 的 PUBLIC 传染同一条链）。
+
+## 3. 附带挖出一条 M8a 未写的交叉命中：这份 NOTICE 的"独立 Oracle"声称本身就是簇 4 的实例
+- `lib/common/healpix/THIRD_PARTY_NOTICE.md:14-17` 写「本项目以 **astropy-healpix 作为独立 Oracle (1,000,000 全天随机点 + 锚点，mismatch=0)** 验证本实现逐点一致」。
+- 而 M2b-F-01（P0，已定稿）实测：`healpix_fullsky_oracle.jsonl` 与 `test_healpix_oracle.cpp` 在非 run 区 **0 命中**、
+  该测试**未进 `tests/unit/CMakeLists.txt`** ⇒ 永不执行，与注册表 :135 声称的「百万点 / ≤1e-12 deg」差约 10 个数量级。
+- ⇒ **同一句「百万点 mismatch=0」在注册表和第三方 NOTICE 里各出现一次，两处都没有可执行支撑**；且 NOTICE 还据此把 BSD 归属写成结论。
+  已请 R 层在 M2b-F-01 与 M8a-G-001 面③续之间挂 `related`（**不新立条、不重复计数**：M2b 持"门不存在"，M8a 持"署名失真"，此处是同一缺失支撑的第二处引用面）。
+
+## 4. 定档
+- **M8a-G-001 的唯一 P0 成立，我背书；背书依据改为本节 §1-§2 的复验结果**（此前那段"五锚全命中"不成立）。
+- 面向负责人的表述建议用 §2 的"同目录 5 行自相矛盾 + 上游表逐字在内 + STATIC 并进 exe"，比"清单零登记"更直观、更难辩驳。
+- 需一并裁决：若认定邻居/query_disc 属 GPL 派生，则**替换该算法**或**履行 copyleft**；若认定仅"参考"（clean-room），
+  则必须**改注释去掉"移植自"并留推导记录**，且 NOTICE 与注释必须同时改（只改一侧就是再造一份互斥）。
