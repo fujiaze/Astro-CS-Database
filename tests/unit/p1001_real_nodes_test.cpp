@@ -1149,7 +1149,7 @@ static void test_b2a14_photappl_provenance() {
     Fixture fx = make_fixture("b2a14b");
     {
       std::ofstream o(fx.out_dir + "/p1_phot.json", std::ios::binary);
-      o << R"({"schema":"DATA-P1-PHOTPROV","node":"astrocs.phase1.photometry",)"
+      o << R"({"schema":"DATA-P1-PHOTPROV-001","node":"astrocs.phase1.photometry",)"
            R"("operation":"measure_flux","photometry_applied":true,"photscal":0.5,"pixel_scaling":"applied"})";
     }
     json meta = json::object();
