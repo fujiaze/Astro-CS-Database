@@ -510,32 +510,49 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 
 ### L21 的真正贡献（采纳为高价值，无需前台复验其文本事实）
 
-## 收档 L14（注释广度 Phase2/3+运行时+CLI，15：P0:2/P1:6/P2:7）—— 前台逐行复验 L14-004 成立并补强
 
-### L14-004 注释门是空壳：前台读 `tools/quality/contracts/check_comments.py` 全文（66 行）逐行确认
-1. `:9-13` 定义的 **STALE_PATTERNS 与 `:15` REQUIRE_ID_NEAR 在 main() 中零引用** → 死变量；实际判定只有
-   `:37` 的字面量 `if "V19R2" in c or "V19R3" in c`。→ 正则 `V1[0-9]R[0-9]` 本可覆盖 V20R*/V21R* 等未来轮次，
-   **因写成死变量而永不生效**；同时 `thread.*16.*hard.*code|num_threads\(16\)` 这条死正则，正是本应抓住
-   F00-03/L13 所报 `pc_api.cpp:331` 注释宣称"OpenMP 16 线程"的那道门 —— **门与缺陷擦肩而过，且门内正则还在**。
-2. `:39` 若注释含「冻结」二字或路径含 history 即豁免 → 任何写"冻结"的注释永久免检。
-3. `:27` 扫描面只有 `lib/**/*.{cpp,h,hpp}`：**排除 `.c`**（aio/cla/dpsf/cosmetic/grebulka 全是 .c），
-   且 `runtime/ cli/ providers/ modules/ include/ tools/ tests/` 整体不在面内。
-4. `:42`/`:48` 每文件命中即 `break` → 一个文件只记一条。
-5. `:52` 无论实扫多少文件，**恒定自报 `coverage.ratio=1.0, mode=full`** → 机器门给自己出具"全覆盖"证明。
-6. `:4` docstring 宣称检查"代码复述/错误线程/单位"，`:49-50` 注释直言 "skip here" → **三项无实现**。
-7. `:31` 注释显示有人已修过"只扫前 50 文件"的截断问题，但**留下的其余空转未动** → 属「修复未固化」的反面案例：
-   修了最容易发现的那一格，其余仍恒 PASS。
-→ 判定：**`G_GOV_GATE` P0 成立**（宪章 §12.2 与 §12.3-10 无有效机器约束）。该条与 L11/L12/L15/L16/L17 的
-  「门不看/门恒真」并为主报告头号根因，M5b/M6a 会签：本条是**注释维度**的实例，勿与他域重复定稿。
+## 收档 L06（星点检测与 PSF，20 条：P0:7/P1:11/P2:2）—— 前台复验并**改写**其头号 P0 的表述
 
-### L14-005 是本轮**产品溯源**类最干净的 P0（M6a 主落，前台判据支持升格）
-- SCI `PHASE3_HIPS_TO_FITS.md` §5:56/:61 冻结 `nside=2^(order_sel+9)`，但 `p3_resample.cpp:135-136` 恒用
-  properties 的 `hips_order`（`leaf_nside = kTileWidth << p.order`）；`p3_session.cpp:196-199` 算出的 `order_sel`
-  **唯一后继是 `:358/:371` 的 provenance** → 落进的正是 FITS `ORDERSEL` 卡（`p3_output.cpp:217-218`）与 manifest。
-  即**产品头卡记录的采样层级可以不等于实际读取层级**，而同处注释「禁仅写 metadata」恰与其唯一用途相反。
-- 结构性佐证：AIO 读侧只支持按 `hips_order` 拼 tile 路径（`aio_hips_reader.cpp:105/:155/:490`）→ 层级选择在读取路径上
-  根本不存在。无 DISP 登记 → 违 §6.3/§17.1 与 §4.3（manifest 可追溯）。
-- **与 L03 收敛**：L03-001（nside 零校验、正确校验被绕过）与 L14-005（order_sel 算了但没用）合起来说明
-  **Phase3 的层级选择整条链路是装饰性的**，请 M2b 与 M6a 各落自己域的事实并在 `${"_"}` 同一根因下 related 互挂，
-  前台并为主题「控制参数被计算、被记录、但不参与执行」。同类还有 L05-013（precision_mode 被 config 接受但通道恒 FP32）、
-  L09-010（weight_mode 声明可配固定 0）、L11-001（workers 计划值冒充实测值）、L16-001（TEST 层锚在文档）。
+### L06-005 的准确形态（前台逐行复验后的定稿口径，M3b 必须按此写，不得沿用"零登记"措辞）
+**它被登记了，但登记在不被规范承认的位置，且验收门只测非生产配置**：
+1. 归档日志 `docs/archive/history/memory_V18R2-V19_operational_log_2026-08-21.md:2038-2040`：
+   「E PSF Oracle: Photutils 对照 PASS (**收敛初始化 0.004px**); **BLOCKER PSF-001**: DPSF 以 sdet 像素中心坐标为初始时
+   LM 收敛到整数 (~0.5px 偏差); 最小复现已记录, 按修改预算不改冻结 PSF 数学」，且 `:2051` 把它列在「未完成 (如实)」里
+   标注「**PSF-001 BLOCKER 未闭合**」。
+2. 但该文件状态是 **ARCHIVED_NON_NORMATIVE** —— 按宪章 §1.1 不具规范效力 → **规范层实际上没有这条限制**：
+   `docs/KNOWN_LIMITATIONS.md` 对 PSF/质心/0.5 **零命中**（前台 grep 实测）；`docs/owner/RELEASE_STATUS.md` 亦零命中。
+3. 更关键：测量它的 oracle 在真源 `lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py`，
+   其 `:8` 冻结门是「质心误差 <= 0.01 目标像素」，而 `:299` 的门名写作
+   `centroid_p95_le_0.01px_converged` —— **门本身定义在 "converged init"（非生产）配置上**；
+   `:308/:312` 以字面量记录 `BLOCKER (PSF-001): dpsf_fit_batch_f32 以 sdet 像素中心坐标 (truth+0.5) 为初始时 …
+   影响: 生产路径 PSF 质心系统性 ~0.5px 偏差`；`:295` 注释「生产路径质心偏差作为已记录 BLOCKER」。
+   该脚本在 `ci/checks.json` **零登记**（前台 grep `gate[0-9]_` 零命中），仅被 `reports/**`、`evidence/**` 的文件清单收录。
+4. 规范文档则**正面宣称相反事实**：`docs/science/STAR_DETECTION.md:13` 与
+   `docs/algorithms/STAR_DETECTION_ALGORITHMS.md:169` 均写「一阶导/零交叉为连续估计（**无 0.5px 网格量化损失**），Moffat4 中心」。
+5. 唯一注册的 ctest 用「初值=真值中心」的整数构型（L06 报 `p1psf_tests_core.cpp:100-102`）→ 对该偏差**结构上不可见**。
+**定稿表述建议**：「生产 PSF 质心存在 ~0.5px 系统性偏差（相对 0.01px 冻结门为 77 倍）。该偏差不是未被发现——
+它被记为 BLOCKER 并声明未闭合，但只记在归档（非规范）日志里；规范性 SCI/ALG 反而宣称"无 0.5px 量化损失"，
+KNOWN_LIMITATIONS 与 RELEASE_STATUS 零提及；测量它的 oracle 未接任何 CI 门，且其门定义只覆盖非生产初始化配置；
+注册测试用整数构型使其不可见。**四层各自"通过"，产品却带着一个已知未闭合的 BLOCKER。**」
+类别建议 `A_SCI_DEF` 或 `C_DOC_CODE_GAP` 由你判，但必须同时立：
+- `F_TEST_GAP`：门与测试都只测非生产配置（**新的失效形态：验收门按非生产路径定义判据**），
+  与 L12-001（门打在兼容二进制上）、L11（0/0 断言）、L16（TEST 锚在文档）并档；
+- `G_GOV_GATE`：未闭合 BLOCKER 只存在于 ARCHIVED 文档，规范层无痕（违 §1.1 权威链与 §17.9/§17.10 精神）；
+- `E_TRACE_BREAK`：SCI-PSF-001 的 VERIFIED 证据链（L06-006）与该偏差无登记（DISP 缺位）。
+注意：数值方向（0.5px 是加还是减、是否与 0.770px 中位一致）L06 自己列了待复核，**禁止运行**下不得断言净方向，
+只写"oracle 自记 median 与 0.5px 同量级且门为 0.01px"。
+
+### L06 其余 6 条 P0 的主题归并（M3b 主落，M3a 会签）
+- **列语义与被测量错位**：`flux` 列实为峰值振幅（`rec.flux=(float)fit.A`，F2 测试反证 flux≈90000 即振幅）却以流量名义
+  进 star_det→star_measurements→测光链（L06-002）；`mad` 列实为 RMSE 再乘 MAD→σ 系数 1.4826 当 σ 用，
+  门限实质收紧约 48%（L06-003）；每像元截尾残差被命名为 `flux_uncertainty` 且 DISP-PSF-005 自认无协方差（L06-004）。
+  → 与 F00-06/L21 同属「接口未定义量泄漏」，但这是**直接污染测光结果**的一簇，M3b 须给可达性证据
+  （结合 L12 的 IR 节点路由结论判断是否生产可达）。
+- **拟合模型基线错配**：生产内核实为椭圆高斯而 SCI 冻结 Moffat4（L06-001），两域 FWHM↔σ 系数 2.354820 与 1.230310
+  并存并在 `module_adapters.cpp:1500` 被混用 → 若成立，同一列在两个模块里代表不同物理宽度，属 P0 且可复算。
+- **三套检测器**：注册节点实装第三套未登记检测器（绝对阈值 peak>50000 判饱和、mag 哨兵 99、帧级 has_saturated 同值），
+  与 DATA-P1-STAR「唯一生产源」冲突（L06-007）→ 与 F00-04（两套 photometry 实现）同族，**这是第三次出现"唯一生产源"被证伪**。
+
+### 前台状态
+- 18/18 **纵向全部落档**；横向轴已落 3/10。累计 396 条（叶子自判 P0 75 条）。
+- 已推 13 次提交；M3b（L06）本次启动；M6a/M6b/M2b/M5a/M5b/M4/M3a/M1a/M2a 在跑；L06 完成后 M3 域闭合。
