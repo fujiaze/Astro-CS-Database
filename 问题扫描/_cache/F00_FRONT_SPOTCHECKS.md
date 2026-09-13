@@ -179,3 +179,18 @@
 - 受影响派生条目：_cache/L01.md:289、_merge/M1a.md:45、findings/B_STD_MISMATCH/p2/M1a_L01_L02.md:12 ——
   其实质由 ipv_wcs 的关键字生成与 header 写出独立支撑（不受本撤回影响），但其中出现的该测试名字样须由 R 层删除或改述。
 - 「properties 非法关键字被静默丢弃」这一**现象**目前**未由我复现**，转由 L24 站点继续举证；举证到位前不得当作已定稿事实引用。
+
+---
+
+# F00-01 订正（M6b 复算，覆盖本条原转述）
+- 原转述「两表可交比 ID 约 15 个」**不可复现**：M6b 在三种口径下分别得 **8**（严格）、11（含 notes 列），
+  定稿采 **8 个可交比 ID**，且其中 **TEST 证据一致者为 0/8（100% 互斥）**，8 个 ID 的新旧表双侧原文行号已逐列在
+  `findings/E_TRACE_BREAK/p0/M6b_L16_L18.md`（M6b-E-001）。
+- 根因口径也随之下修：不再是「两份矩阵并存」这么简单 —— `docs/spec/PHASE1_PIPELINE_REDESIGN_SPEC.md:15`
+  **明文规定 JSON 为权威**，失效发生在**路由层**：README-DOCS:13「唯一矩阵」、DEVELOPER_GUIDE:38、API_STANDARD:14-16
+  仍指向旧表（其点名的 API-* 行在旧表实测 **0 条**：API-AIO-001 / API-P2-REJECT-001 / API-P2-UPM-001 全仓 0 命中），
+  DOCUMENT_INDEX 把新旧两表**并列 ACTIVE_NORMATIVE**，两条 CI 追溯门的 changed_paths 又以旧表为源；
+  读 JSON 的工具仅 3 个、读旧表的 12 处工具**无一同时读 JSON** ⇒ 全仓没有一道门会交叉比对两表。
+  `tools/quality/check_traceability.py:159` 的无条件 `return 0` 由 M6b 复现（与我首次抽检一致）。
+- 附带订正 F00-04：「自述 entrypoint=MISSING／未编入构建却七层全 VERIFIED」实测为 **14 行**，我转述的 10 行是低值。
+- 纪律化结论（已下发全层）：**任何转述数字都是待复核线索，不是证据**；定稿须自行重算并声明口径。
