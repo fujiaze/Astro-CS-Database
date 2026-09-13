@@ -79,8 +79,8 @@ C API（7 导出，头 lib/dynamic_psf/include/dynamic_psf.h）：
 | `dpsf_fit_batch` | :49 | dpsf_psf.cpp:534 | uint16 批量，逐星裁 float patch |
 | `dpsf_fit_batch_f` | :59 | dpsf_psf.cpp:661 | float32 图 + (cx[],cy[]) → DPSFFitResult*[] |
 | `dpsf_free_results` | :64 | dpsf_psf.cpp:681 | 释放批量结果 |
-| `dpsf_fit_batch_f32` | :107 | dpsf_psf.cpp:792 | float32 图 + star_det v1 [N,6] → [N,9]，NaN 失败填充 |
-| `dpsf_fit_batch_f64` | :142 | dpsf_psf.cpp:937 | float64 图 + star_det v1 → [N,9]（moffat4_fit_d，不降级） |
+| `dpsf_fit_batch_f32` | :107 | dpsf_psf.cpp:792 | float32 图 + star_det v1 [N,6] → [N,9]（成功行 compact）+ 可选 out_status[N] |
+| `dpsf_fit_batch_f64` | :142 | dpsf_psf.cpp:937 | float64 图 + star_det v1 → [N,9]（成功行 compact；moffat4_fit_d，不降级）+ 可选 out_status[N] |
 | `dpsf_fit_batch_d` | :181 | dpsf_psf.cpp:694 | float64 图 + (cx[],cy[]) → DPSFFitResult*[] |
 
 内部核心（static，同文件）：`dpsf_batch_dims_check`（:514，PSF-001 批 ABI 尺寸
@@ -128,9 +128,13 @@ dpsf_fit_batch_f 共用）、`moffat4_fit_tmpl`（:238，ImageT=float→`moffat4
 w*h>INT_MAX（int 索引寻址上界）→ 确定整体 -1，零整图分配、零输出触碰；
 uint16 入口另套分配失败 try/catch 屏障（:555-576，bad_alloc→-1 不外抛跨
 C ABI），逐星 patch 分配失败星级隔离为 INVALID_PARAMS/NaN 占位（不外抛）。
-`dpsf_fit_batch_f32/f64` 失败星 9 字段全 NaN（:833-836、:977-980 初始化 NaN，
-失败不覆盖；OK 星写 9 字段 :893-901、:1030-1038），`out_n_valid` 只数
-`DPSF_FIT_OK`（:919、:1053）；`gauss_solve` 奇异→λ×10 重试（:151-154）。
+`dpsf_fit_batch_f32/f64` **B2-A2（RESCUE-P0-05）**：OK 星写 9 字段
+（:893-901、:1030-1038），随后按检测下标升序**顺序 compact** 到
+`out_psf_params` 第 0..n_valid−1 行；失败星不占参数行（不再留下 NaN 洞），
+其真值经可选 `out_status`（`psf_status:INT32[N]`，dynamic_psf.h:114-120）
+按检测下标报告（0=OK/1=拟合失败/2=空 rect/3=分配失败）；`out_n_valid` 只数
+`DPSF_FIT_OK`（:919、:1053）。调用方必须用 out_status 做星 ID↔行映射，
+**禁止 `i < n_valid` 前缀截断**。`gauss_solve` 奇异→λ×10 重试（:151-154）。
 N*9 以 int64 计（入口 n ≤ INT_MAX/9 拒绝，:810/:955）。
 
 ## 7. threading / parallel axis / lease / memory / I/O / cancel / checkpoint

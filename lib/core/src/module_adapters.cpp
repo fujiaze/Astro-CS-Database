@@ -1380,13 +1380,17 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
     // 真实 PSF 拟合: dpsf_fit_batch_f64（float32 检测帧 → double 全链拟合,
     // 数据保真升精度; 默认拟合参数）
     std::vector<double> psf_params(N * 9, 0.0);
+    // B2-A2 (RESCUE-P0-05): 逐星拟合状态 out_status[i] 按【检测下标】报告结果;
+    // 成功行在 psf_params 中顺序 compact 存放。消费方必须按状态映射,
+    // 禁止按 i < n_valid 前缀截断（否则 NaN 行贴真实 star_id、有效星被丢弃）。
+    std::vector<int> psf_status(N, DPSF_PSF_STATUS_FIT_FAILED);
     int n_valid = 0;
     if (N > 0) {
       std::vector<double> dbuf(static_cast<size_t>(im.w()) * static_cast<size_t>(im.h()));
       for (size_t i = 0; i < dbuf.size(); ++i) dbuf[i] = static_cast<double>(im.px()[i]);
       const int drc = dpsf_fit_batch_f64(
           dbuf.data(), im.w(), im.h(), dets.data(), static_cast<int>(N),
-          nullptr, psf_params.data(), &n_valid);
+          nullptr, psf_params.data(), &n_valid, psf_status.data());
       if (drc != 0) {
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "dpsf_fit_batch_f64 failed rc=" + std::to_string(drc)));
@@ -1395,14 +1399,18 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "dpsf_fit_batch_f64: 0/" + std::to_string(N) + " fits converged"));
       }
-      for (int i = 0; i < n_valid; ++i) {
+      // 成功行按检测下标升序 compact; 逐星按真值索引取行 (row 只读)
+      int row = 0;
+      for (size_t i = 0; i < N; ++i) {
+        if (psf_status[i] != DPSF_PSF_STATUS_OK) continue;
         // [7]=fwhm_x [8]=fwhm_y; sx=sigma_x → fwhm=2.3548*sx（由 9 列取 [7]/[8] 权威值）
-        fwhm_xs.push_back(psf_params[static_cast<size_t>(i) * 9 + 7]);
-        fwhm_ys.push_back(psf_params[static_cast<size_t>(i) * 9 + 8]);
-        const double sx = psf_params[static_cast<size_t>(i) * 9 + 4];
-        const double sy = psf_params[static_cast<size_t>(i) * 9 + 5];
+        fwhm_xs.push_back(psf_params[static_cast<size_t>(row) * 9 + 7]);
+        fwhm_ys.push_back(psf_params[static_cast<size_t>(row) * 9 + 8]);
+        const double sx = psf_params[static_cast<size_t>(row) * 9 + 4];
+        const double sy = psf_params[static_cast<size_t>(row) * 9 + 5];
         const double mx = std::max(sx, sy), mn = std::min(sx, sy);
         ells.push_back(mx > 0.0 ? 1.0 - mn / mx : 0.0);
+        ++row;
       }
       n_valid_total += n_valid;
     }
@@ -1414,18 +1422,25 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
                              {"ellipticity", s.ellipticity}, {"snr", s.snr},
                              {"quality", s.quality}});
     }
+    // B2-A2: star_id ↔ PSF 行按逐星真值状态映射 (row 顺序 compact)
     Json psf_rows = Json::array();
-    for (int i = 0; i < n_valid; ++i)
-      psf_rows.push_back(Json{{"star_id", cat.sources[static_cast<size_t>(i)].id},
-                              {"B", psf_params[static_cast<size_t>(i)*9+0]},
-                              {"A", psf_params[static_cast<size_t>(i)*9+1]},
-                              {"cx", psf_params[static_cast<size_t>(i)*9+2]},
-                              {"cy", psf_params[static_cast<size_t>(i)*9+3]},
-                              {"sx", psf_params[static_cast<size_t>(i)*9+4]},
-                              {"sy", psf_params[static_cast<size_t>(i)*9+5]},
-                              {"theta", psf_params[static_cast<size_t>(i)*9+6]},
-                              {"fwhm_x", psf_params[static_cast<size_t>(i)*9+7]},
-                              {"fwhm_y", psf_params[static_cast<size_t>(i)*9+8]}});
+    {
+      int row = 0;
+      for (size_t i = 0; i < N; ++i) {
+        if (psf_status[i] != DPSF_PSF_STATUS_OK) continue;
+        psf_rows.push_back(Json{{"star_id", cat.sources[i].id},
+                                {"B", psf_params[static_cast<size_t>(row)*9+0]},
+                                {"A", psf_params[static_cast<size_t>(row)*9+1]},
+                                {"cx", psf_params[static_cast<size_t>(row)*9+2]},
+                                {"cy", psf_params[static_cast<size_t>(row)*9+3]},
+                                {"sx", psf_params[static_cast<size_t>(row)*9+4]},
+                                {"sy", psf_params[static_cast<size_t>(row)*9+5]},
+                                {"theta", psf_params[static_cast<size_t>(row)*9+6]},
+                                {"fwhm_x", psf_params[static_cast<size_t>(row)*9+7]},
+                                {"fwhm_y", psf_params[static_cast<size_t>(row)*9+8]}});
+        ++row;
+      }
+    }
     frames.push_back(Json{{"file", p1_base_name(path)},
                           {"n_detected", cat.n_detected},
                           {"n_saturated", cat.n_saturated},
@@ -1448,6 +1463,9 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
   Json psf_out = Json{{"schema", "DATA-P1-PSF"},
                       {"detection_schema", DPSF_STAR_DET_SCHEMA_V1},
                       {"params_schema", DPSF_PSF_PARAMS_SCHEMA},
+                      // B2-A2: 星↔参数行映射权威 = 逐星状态 (parsed rows 已按
+                      // DPSF_PSF_STATUS_OK compact; 失败星不入 psf_params)
+                      {"status_schema", DPSF_PSF_STATUS_SCHEMA},
                       {"entry", "dpsf_fit_batch_f64"},
                       {"n_sources", n_total_total},
                       {"n_valid", n_valid_total},

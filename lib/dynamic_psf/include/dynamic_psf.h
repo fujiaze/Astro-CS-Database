@@ -92,8 +92,11 @@ DPSF_EXPORT void dpsf_free_results(DPSFFitResult *results);
 // [6]=theta (旋转角, 弧度)
 // [7]=fwhm_x (X 方向 FWHM, 像素)
 // [8]=fwhm_y (Y 方向 FWHM, 像素)
-// 失败的拟合所有字段置为 NaN。
-// out_n_valid - 成功拟合的星点数 (status == DPSF_FIT_OK)
+// 成功拟合按【检测下标升序 compact】写入 out_psf_params 前 n_valid 行;
+// 其余行 (若调用方预填) 不承诺任何值。
+// out_status - 可选 (可 NULL): 逐星拟合状态, 大小 = N * sizeof(int),
+//              取值见 DPSF_PSF_STATUS_*; out_status[i] 对应检测下标 i。
+// out_n_valid - 成功拟合的星点数 (== out_status 中 DPSF_PSF_STATUS_OK 的个数)
 //
 // 返回值:
 // 0 - 成功完成批量拟合 (不要求每颗星都成功, 看 out_n_valid)
@@ -103,6 +106,18 @@ DPSF_EXPORT void dpsf_free_results(DPSFFitResult *results);
 // ============================================================================
 #define DPSF_STAR_DET_SCHEMA_V1 "star_det_v1:FLOAT64[N,6]"
 #define DPSF_PSF_PARAMS_SCHEMA  "psf_params:FLOAT64[N,9]"
+// B2-A2 (RESCUE-P0-05): 批 API 逐星拟合状态 schema。
+// out_status[i] 按【检测下标 i】报告该星拟合结果 (DPSF_FIT_OK=成功);
+// 成功行在 out_psf_params 中【顺序 compact】存放 (第 k 个成功星 → 第 k 行),
+// 因此调用方必须用 out_status 做星 ID↔参数行映射, 禁止按 i < n_valid 截断。
+// 该数组由调用方预分配 (N * sizeof(int)); 传 NULL 时表示不请求逐星状态。
+#define DPSF_PSF_STATUS_SCHEMA  "psf_status:INT32[N]"
+
+// out_status[] 取值 (按检测下标 i, 与 out_psf_params 行一一对应)
+#define DPSF_PSF_STATUS_OK              0  // 拟合成功 (DPSF_FIT_OK)
+#define DPSF_PSF_STATUS_FIT_FAILED      1  // 拟合未收敛/被拒 (NO_CONVERGENCE 等)
+#define DPSF_PSF_STATUS_RECT_EMPTY      2  // 拟合窗口为空 (越界星, 未执行拟合)
+#define DPSF_PSF_STATUS_ALLOC_FAILED    3  // patch 分配失败 (星级隔离, 未执行拟合)
 
 DPSF_EXPORT int dpsf_fit_batch_f32(
     const float *image,
@@ -112,7 +127,8 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
     int n_detections,
     const DPSFFitParams *params,
     double *out_psf_params,
-    int *out_n_valid
+    int *out_n_valid,
+    int *out_status
 );
 
 // ============================================================================
@@ -132,8 +148,10 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
 //
 // 输出:
 // out_psf_params - PSF 参数缓冲区, 调用者分配, 大小 = N * 9 * sizeof(double)
-// 失败的拟合所有字段置为 NaN。
-// out_n_valid - 成功拟合的星点数 (status == DPSF_FIT_OK)
+// 成功拟合按【检测下标升序 compact】写入前 n_valid 行 (见 DPSF_PSF_PARAMS_SCHEMA)
+// out_status - 可选 (可 NULL): 逐星拟合状态, 大小 = N * sizeof(int),
+//              取值见 DPSF_PSF_STATUS_*; out_status[i] 对应检测下标 i。
+// out_n_valid - 成功拟合的星点数 (== out_status 中 DPSF_PSF_STATUS_OK 的个数)
 //
 // 返回值:
 // 0 - 成功完成批量拟合 (不要求每颗星都成功, 看 out_n_valid)
@@ -147,7 +165,8 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
     int n_detections,
     const DPSFFitParams *params,
     double *out_psf_params,
-    int *out_n_valid
+    int *out_n_valid,
+    int *out_status
 );
 
 // ============================================================================

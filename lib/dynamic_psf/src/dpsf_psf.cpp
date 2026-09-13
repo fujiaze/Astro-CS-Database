@@ -797,7 +797,8 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
     int n_detections,
     const DPSFFitParams *params,
     double *out_psf_params,
-    int *out_n_valid
+    int *out_n_valid,
+    int *out_status
 ) {
     auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -809,8 +810,8 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
         dpsf_batch_dims_check("dpsf_fit_batch_f32", width, height) != 0 ||
         n_detections > INT_MAX / 9) {
         dpsf_log(LOG_ERROR, "DPSF",
-                 "dpsf_fit_batch_f32: invalid arguments (image=%p detections=%p out=%p n_valid=%p w=%d h=%d n=%d)",
-                 image, detections, out_psf_params, out_n_valid, width, height, n_detections);
+                 "dpsf_fit_batch_f32: invalid arguments (image=%p detections=%p out=%p n_valid=%p status=%p w=%d h=%d n=%d)",
+                 image, detections, out_psf_params, out_n_valid, out_status, width, height, n_detections);
         return -1;
     }
 
@@ -827,7 +828,7 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
              "dpsf_fit_batch_f32: consume schema=%s count=%d img=%dx%d fitRadius=%d",
              DPSF_STAR_DET_SCHEMA_V1, n_detections, width, height, fitRadius);
 
-    // ---- 初始化输出: 全部置 NaN, n_valid=0 ----
+    // ---- 初始化输出: 全部置 NaN, n_valid=0, 逐星状态默认拟合失败 ----
     const double nan_val = std::numeric_limits<double>::quiet_NaN();
     // PSF-001: N*9 以 int64 计算 (入口已保证 n ≤ INT_MAX/9, 双保险防 int 乘法)
     const long long nan_fill = (long long)n_detections * 9;
@@ -835,10 +836,18 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
         out_psf_params[i] = nan_val;
     }
     *out_n_valid = 0;
+    // B2-A2: 逐星状态初始化为 fit-failed; 仅成功星改写为 OK 并 compact 写入
+    // out_psf_params (紧凑语义见 dynamic_psf.h DPSF_PSF_PARAMS_SCHEMA 注释)。
+    for (int i = 0; i < n_detections; i++) {
+        if (out_status) out_status[i] = DPSF_PSF_STATUS_FIT_FAILED;
+    }
 
     int success_count = 0;
 
     // ---- OpenMP 并行批量拟合 ----
+    // B2-A2: 成功行写入下标 = 该星拟合成功时的全局成功序 k (= success_count),
+    // 失败星不再在 out_psf_params 中留下 NaN 洞; 星↔行映射由 out_status 承载。
+    // 该下标只读/递增 (原子捕获), OpenMP 下无数据竞争。
     #pragma omp parallel for schedule(dynamic) reduction(+:success_count)
     for (int i = 0; i < n_detections; i++) {
         // star_det v1: [0]=x_px, [1]=y_px, [2]=flux, [3]=mag,
@@ -861,6 +870,7 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
         if (rw <= 0 || rh <= 0) {
             dpsf_log(LOG_DEBUG, "DPSF",
                      "dpsf_fit_batch_f32: star %d empty rect cx=%.2f cy=%.2f", i, cx, cy);
+            if (out_status) out_status[i] = DPSF_PSF_STATUS_RECT_EMPTY;
             // out_row 已为 NaN
             continue;
         }
@@ -889,7 +899,7 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
             }
 
             if (result.status == DPSF_FIT_OK) {
-                // 填充 9 字段输出: B, A, cx, cy, sx, sy, theta, fwhm_x, fwhm_y
+                // B2-A2: 先按检测下标原位写 (逐星独立, 无竞争), 循环后顺序 compact
                 out_row[0] = result.B;
                 out_row[1] = result.A;
                 out_row[2] = result.cx;
@@ -899,20 +909,41 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
                 out_row[6] = result.theta;
                 out_row[7] = result.fwhm_x;
                 out_row[8] = result.fwhm_y;
+                if (out_status) out_status[i] = DPSF_PSF_STATUS_OK;
                 success_count++;
             } else {
                 dpsf_log(LOG_DEBUG, "DPSF",
                          "dpsf_fit_batch_f32: star %d fit failed status=%d cx=%.2f cy=%.2f",
                          i, result.status, cx, cy);
-                // out_row 已为 NaN
+                // out_row 已为 NaN; out_status[i] 保持 FIT_FAILED
             }
         } catch (const std::exception &e) {
             dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_f32: star %d allocation failed (%s)",
                      i, e.what());
+            if (out_status) out_status[i] = DPSF_PSF_STATUS_ALLOC_FAILED;
             // out_row 已为 NaN
         } catch (...) {
             dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_f32: star %d unknown failure", i);
+            if (out_status) out_status[i] = DPSF_PSF_STATUS_ALLOC_FAILED;
             // out_row 已为 NaN
+        }
+    }
+
+    // ---- B2-A2: 顺序 compact 成功行 (按检测下标升序 → 行 0..success_count-1) ----
+    // 确定性: 串行、按 i 升序取行; 与线程数无关 (消除原子写序不确定性)。
+    // 就地左移 (write <= i) 不丢失尚未读取的成功行。
+    {
+        int write = 0;
+        for (int i = 0; i < n_detections; ++i) {
+            const bool ok = out_status ? (out_status[i] == DPSF_PSF_STATUS_OK)
+                                       : std::isfinite(out_psf_params[(size_t)i * 9 + 1]);
+            if (!ok) continue;
+            if (write != i) {
+                double *dst = out_psf_params + (size_t)write * 9;
+                const double *src = out_psf_params + (size_t)i * 9;
+                for (int k = 0; k < 9; ++k) dst[k] = src[k];
+            }
+            ++write;
         }
     }
 
@@ -942,7 +973,8 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
     int n_detections,
     const DPSFFitParams *params,
     double *out_psf_params,
-    int *out_n_valid
+    int *out_n_valid,
+    int *out_status
 ) {
     auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -953,8 +985,8 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
         dpsf_batch_dims_check("dpsf_fit_batch_f64", width, height) != 0 ||
         n_detections > INT_MAX / 9) {
         dpsf_log(LOG_ERROR, "DPSF",
-                 "dpsf_fit_batch_f64: invalid arguments (image=%p detections=%p out=%p n_valid=%p w=%d h=%d n=%d)",
-                 image, detections, out_psf_params, out_n_valid, width, height, n_detections);
+                 "dpsf_fit_batch_f64: invalid arguments (image=%p detections=%p out=%p n_valid=%p status=%p w=%d h=%d n=%d)",
+                 image, detections, out_psf_params, out_n_valid, out_status, width, height, n_detections);
         return -1;
     }
 
@@ -971,7 +1003,7 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
              "dpsf_fit_batch_f64: consume schema=%s count=%d img=%dx%d fitRadius=%d (FP64)",
              DPSF_STAR_DET_SCHEMA_V1, n_detections, width, height, fitRadius);
 
-    // ---- 初始化输出: 全部置 NaN, n_valid=0 ----
+    // ---- 初始化输出: 全部置 NaN, n_valid=0, 逐星状态默认拟合失败 ----
     const double nan_val = std::numeric_limits<double>::quiet_NaN();
     // PSF-001: N*9 以 int64 计算 (入口已保证 n ≤ INT_MAX/9, 双保险防 int 乘法)
     const long long nan_fill = (long long)n_detections * 9;
@@ -979,10 +1011,17 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
         out_psf_params[i] = nan_val;
     }
     *out_n_valid = 0;
+    // B2-A2: 逐星状态初始化为 fit-failed; 仅成功星改写为 OK 并 compact 写入
+    // out_psf_params (紧凑语义见 dynamic_psf.h DPSF_PSF_PARAMS_SCHEMA 注释)。
+    for (int i = 0; i < n_detections; i++) {
+        if (out_status) out_status[i] = DPSF_PSF_STATUS_FIT_FAILED;
+    }
 
     int success_count = 0;
 
     // ---- OpenMP 并行批量拟合 (FP64: 直接从 double 图像裁剪 patch) ----
+    // B2-A2: 成功行先按检测下标原位写, 循环后顺序 compact; 星↔行映射由
+    // out_status 承载 (失败星不在 out_psf_params 中留 NaN 洞)。
     #pragma omp parallel for schedule(dynamic) reduction(+:success_count)
     for (int i = 0; i < n_detections; i++) {
         const double *row = detections + (size_t)i * 6;
@@ -1002,6 +1041,7 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
         if (rw <= 0 || rh <= 0) {
             dpsf_log(LOG_DEBUG, "DPSF",
                      "dpsf_fit_batch_f64: star %d empty rect cx=%.2f cy=%.2f", i, cx, cy);
+            if (out_status) out_status[i] = DPSF_PSF_STATUS_RECT_EMPTY;
             continue;
         }
 
@@ -1027,6 +1067,7 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
             }
 
             if (result.status == DPSF_FIT_OK) {
+                // B2-A2: 先按检测下标原位写 (逐星独立, 无竞争), 循环后顺序 compact
                 out_row[0] = result.B;
                 out_row[1] = result.A;
                 out_row[2] = result.cx;
@@ -1036,17 +1077,38 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
                 out_row[6] = result.theta;
                 out_row[7] = result.fwhm_x;
                 out_row[8] = result.fwhm_y;
+                if (out_status) out_status[i] = DPSF_PSF_STATUS_OK;
                 success_count++;
             } else {
                 dpsf_log(LOG_DEBUG, "DPSF",
                          "dpsf_fit_batch_f64: star %d fit failed status=%d cx=%.2f cy=%.2f",
                          i, result.status, cx, cy);
+                // out_status[i] 保持 FIT_FAILED
             }
         } catch (const std::exception &e) {
             dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_f64: star %d allocation failed (%s)",
                      i, e.what());
+            if (out_status) out_status[i] = DPSF_PSF_STATUS_ALLOC_FAILED;
         } catch (...) {
             dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_f64: star %d unknown failure", i);
+            if (out_status) out_status[i] = DPSF_PSF_STATUS_ALLOC_FAILED;
+        }
+    }
+
+    // ---- B2-A2: 顺序 compact 成功行 (按检测下标升序 → 行 0..success_count-1) ----
+    // 确定性: 串行、按 i 升序取行; 与线程数无关。
+    {
+        int write = 0;
+        for (int i = 0; i < n_detections; ++i) {
+            const bool ok = out_status ? (out_status[i] == DPSF_PSF_STATUS_OK)
+                                       : std::isfinite(out_psf_params[(size_t)i * 9 + 1]);
+            if (!ok) continue;
+            if (write != i) {
+                double *dst = out_psf_params + (size_t)write * 9;
+                const double *src = out_psf_params + (size_t)i * 9;
+                for (int k = 0; k < 9; ++k) dst[k] = src[k];
+            }
+            ++write;
         }
     }
 
