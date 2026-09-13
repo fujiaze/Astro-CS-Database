@@ -166,6 +166,52 @@ bool fits_ok(int status, const std::string& where) {
 }
 
 // ---------------------------------------------------------------------------
+// DATA-UNC-001 §30.2 / HIPS_WRITER §7 确定性: CFITSIO fits_write_chksum(ffpcks)
+// 会把当前 UTC 秒写进 CHECKSUM/DATASUM 卡注释 ("... updated YYYY-MM-DDThh:mm:ss")。
+// 注释是 80 字符卡内容并参与同一 1's complement 校验和 → 同一输入跨秒两次落盘
+// 的 FITS 逐字节不同 (RESCUE-FD-03: p1hips DP-U6 双跑 bitwise 40 次实测 1-4 次
+// 红; 差异字节仅落在两卡)。诊断统计平面合同 (aio_hips.h:161) 要求无时间戳、
+// 无随机源。这里用 CFITSIO 同一算法 (fits_get_chksum/fits_encode_chksum =
+// ffcsum/ffesum) 计算, 但注释取固定文本, 使产物跨运行逐字节确定; DATASUM/
+// CHECKSUM 仍可被 fits_verify_chksum 与外部 reader (astropy checksum=True) 验证。
+// ---------------------------------------------------------------------------
+bool write_chksum_deterministic(fitsfile* fptr, const std::string& where) {
+    int status = 0;
+    const char* chkcomm = "deterministic HDU checksum (no wall-clock)";
+    const char* datacomm = "deterministic data checksum (no wall-clock)";
+    // 1) 固定注释先落两张键; CHECKSUM 置 ASCII 0 = 校验和基准态。
+    if (fits_update_key_str(fptr, "CHECKSUM", "0000000000000000", chkcomm, &status) ||
+        fits_update_key_str(fptr, "DATASUM", "         0", datacomm, &status)) {
+        return fits_ok(status, where + ": keys");
+    }
+    // 新增两卡改变了头区长度: 必须按 ffpcks 的先例 finalize 头区结构
+    // (ffrdef: 重写 END/空填充并重算 head/data 偏移), 否则 ffghadll 仍用
+    // 旧 headstart/datastart, ffcsum 会把错误区间当校验和基准。
+    if (fits_set_hdustruc(fptr, &status)) {
+        return fits_ok(status, where + ": hdustruc");
+    }
+    // 2) 数据单元校验和 (CHECKSUM=0 基准) → DATASUM。
+    unsigned long datasum = 0, hdusum = 0;
+    char dbuf[32], cbuf[32];
+    if (fits_get_chksum(fptr, &datasum, &hdusum, &status)) {
+        return fits_ok(status, where + ": datasum");
+    }
+    std::snprintf(dbuf, sizeof(dbuf), "%lu", datasum);
+    if (fits_update_key_str(fptr, "DATASUM", dbuf, datacomm, &status)) {
+        return fits_ok(status, where + ": datasum update");
+    }
+    // 3) 含更新后 DATASUM 重算 HDU 和, 补码编码写回 CHECKSUM。
+    if (fits_get_chksum(fptr, &datasum, &hdusum, &status)) {
+        return fits_ok(status, where + ": hdusum");
+    }
+    fits_encode_chksum(hdusum, 1, cbuf);
+    if (fits_update_key_str(fptr, "CHECKSUM", cbuf, chkcomm, &status)) {
+        return fits_ok(status, where + ": checksum update");
+    }
+    return true;
+}
+
+// ---------------------------------------------------------------------------
 // 单 FITS 图像写 (含 checksum)
 // data: 行主序数组 (NAXIS1 最快), naxis1 x naxis2
 // ---------------------------------------------------------------------------
@@ -231,9 +277,9 @@ bool write_fits_image(const std::string& path,
         fits_close_file(fptr, &status);
         return fits_ok(status, "fits_write_pix " + path);
     }
-    if (fits_write_chksum(fptr, &status)) {
+    if (!write_chksum_deterministic(fptr, "fits checksum " + path)) {
         fits_close_file(fptr, &status);
-        return fits_ok(status, "fits_write_chksum " + path);
+        return false;
     }
     if (fits_close_file(fptr, &status)) {
         return fits_ok(status, "fits_close_file " + path);
@@ -276,9 +322,9 @@ bool write_moc_fits(const std::string& path,
         fits_close_file(fptr, &status);
         return fits_ok(status, "moc write_col " + path);
     }
-    if (fits_write_chksum(fptr, &status)) {
+    if (!write_chksum_deterministic(fptr, "moc checksum " + path)) {
         fits_close_file(fptr, &status);
-        return fits_ok(status, "moc chksum " + path);
+        return false;
     }
     if (fits_close_file(fptr, &status)) {
         return fits_ok(status, "moc close " + path);
