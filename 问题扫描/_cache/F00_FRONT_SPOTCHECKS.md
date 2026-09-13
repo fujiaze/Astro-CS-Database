@@ -256,3 +256,38 @@
 - 面向负责人的表述建议用 §2 的"同目录 5 行自相矛盾 + 上游表逐字在内 + STATIC 并进 exe"，比"清单零登记"更直观、更难辩驳。
 - 需一并裁决：若认定邻居/query_disc 属 GPL 派生，则**替换该算法**或**履行 copyleft**；若认定仅"参考"（clean-room），
   则必须**改注释去掉"移植自"并留推导记录**，且 NOTICE 与注释必须同时改（只改一侧就是再造一份互斥）。
+
+---
+
+# F00-02 部分撤回（前台第三次同类错误：**「已当场抽验」里含不存在的文件名与错行号**）
+
+## 撤回内容
+- 我在 F00-02 与发给 M8 的订正消息里写过：「`tests/abi/test_io_ownership_contract.py::test_main_enforced` /
+  `::test_negative_matrix_enforced` 已复验；`io_ownership_test.cpp` 行号应为 **:23/:27/:75**（非 :35/:39）」。
+## 当场复验结果（三条全错）
+1. **`tests/abi/test_io_ownership_contract.py` 不存在**。`tests/abi/` 实有 py 文件仅 5 个：
+   `mod001_install_load_check.py`、`test_abi002_lifecycle.py`、`test_abi005_echo.py`、`test_module_registry.py`、`test_secure_loader.py`。
+   且 `test_main_enforced` / `test_negative_matrix_enforced` / `test_no_legacy_leak` / `test_all_deny` 在 `tests/` 全域 **0 命中**。
+2. **我给的新行号也是错的**：`tests/unit/io_ownership_test.cpp` **全文仅 32 行**（我写的 :75 根本不可能存在）。
+   实况：`failures` 定义 :9、`CHECK` 宏 :10-14（`:14` 才 `++failures`）、`main` :18、唯一 CHECK 站点 :25、`return 0` :31。
+3. **`aio_write_bytes(..,NULL,0)==AIO_OK` 不在该文件**：`aio_write_bytes` 在真源（排除 问题扫描/run/build）**0 命中**；
+   `AIO_OK` 只在 `include/astrocs/io/aio_abi_v1.h`。M8 判断我疑与 `tests/unit/aio_abi_selfcheck.cpp:64/:69` 混线，
+   我核对后**成立**：那是 `if (rc != 0 || cs.failures != 0) return 1;` —— 一处**正确的**正对照（把 failures 计入退出码），
+   M8 已把它升为其 §0.3 合格线**标杆 9**。
+
+## 不受影响的部分（重要，别连带撤）
+- **M8-F-002 的 P0 定档不变且更强**：M8 未采信我的行号，自己实测「全文件 32 行、`::failures`（:9 定义 / :14 累加）**从不参与退出码**、
+  `:31` 无条件 `return 0`」⇒ 该 TU 无论断言成败都绿，**门能力为零**。这比我原来的"唯一 CHECK"表述更准，**结论以 M8 为准**。
+- `check_api_docs.py:132-133`（拼无扩展名 astrocs、`if isfile` 无 else）与 `test_secure_loader.py` 无 TestCase 两条，
+  我本轮重新 `sed`/计数**复核通过**，不必撤回。
+
+## 根因与制度
+- 根因与 F00-07a/F00-08 同一：**我在"合成叙述"时用相邻事实补全了锚点**——L23 报 io_ownership 无条件 PASS 是真的，
+  `tests/abi/test_*_contract.py` 命名风格是真的（`test_module_registry.py` 等确实在），我把两者拼成一个不存在的文件与用例名，
+  并按同族文件的行号习惯猜了 :23/:27/:75。**「已复验」这四个字我用了三次，其中两次不成立** → 从此刻度收紧：
+- **制度**：①前台档案里凡标「已复验」的，必须同时留**当场命令与原始输出片段**（无输出片段即降级为「线索」）；
+  ②给下属的订正消息**不得含未经当场读取的行号**；③下属若发现前台锚点不成立，按 M8 的做法**记「处置 = 不采」并继续用自己的实测**，
+  不得因"前台已复验"而放弃复核。
+- 致谢 M8：它没有采信我给的行号，而是自己 grep 出真文件只有 32 行，并把混线来源指准（aio_abi_selfcheck.cpp）。
+  **它还主动披露自己一次事故**：写台账第 16 行时误把 `limit:1` 的局部读取整文件写回，`_merge/M8.md` 一度截断为 160 行，
+  已按已发内容逐节重建（现 244 行）并自检「26 条定义数 = 引用数、无悬空、无转义残留」，写下禁令「禁局部 read → 全量 write」。
