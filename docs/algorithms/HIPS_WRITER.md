@@ -69,6 +69,12 @@ docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边
   DATA_SEMANTICS §4）：对 tile 内每局部像素 p（512²）：
   `signal[p] = flux_sum[p] / covered_area[p]`（:477），
   `support[p] = covered_area[p]/A_cell`，`>1 钳 1.0`（:478-479）。
+- (2b-上游) **B2-A15**：Phase1 编排（module_adapters.cpp p1_op_writer）不再以
+  `support>0 ? A_cell : 0` 传入 `covered_area`（该写法把任意部分覆盖塌缩为
+  满覆盖，AIO 侧 `support=area/A_cell` 恒 1）；改为按 HISS 支持度 uint8 面
+  `covered_area = (support/255)·A_cell` 连续缩放，并置 `valid_mask`=本 parent
+  实际触及叶像素（未覆盖偏移不再保留上一 parent 缓冲）；provenance
+  `covered_area_model="hiss_support_ratio_x_A_cell"`。
 - (2c) 无效规则（:476,:481-485）：当 `valid[p] && area[p]>0 && isfinite(flux[p])
   && isfinite(area[p])` 为假 → signal=NaN、support=0（:483-485）；
   signal_min/signal_max 遍历有限值更新（:481-482，供 properties

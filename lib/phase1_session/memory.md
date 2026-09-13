@@ -42,7 +42,7 @@
   Linux=源内 stub fail-closed 报平台限制、Windows=真实求解，缺求解参数
   DATA 拒绝)；writer=p1_stack.hiss→aio_hiss_inspect/read_tile_*→
   AstroSphereTileView→aio_hips_product_begin/write/finalize（NESTED 聚合
-  IVOA 1.4 标准 512×512 HiPS，covered_area_model=support_x_A_cell，
+  IVOA 1.4 标准 512×512 HiPS，covered_area_model=hiss_support_ratio_x_A_cell，
   nside>=512 合同）。主链测试 7 节点（wcs 旁支平台化单测）+ 下游零调用
   负向用例（口径⑨）。构建面：astrocs_p1_dpsf/astrocs_p1_ipv/
   astrocs_p1_sdet 三个 STATIC + GSL(gsl gslcblas) + AIO_ENABLE_HEALPIX

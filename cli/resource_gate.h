@@ -111,6 +111,11 @@ struct GateConfig {
     uint32_t available_cpus = 0;
     uint32_t selected_workers = 0;
     uint32_t max_active_threads = 0;
+    // B2-A18 (GAP-06): 实际观测到的租约并行宽度 (峰值并发授予 token 数;
+    // 由 GrantedWorkerObservation 真实累计)。哨兵: 0 = 未观测, 不是合法并行
+    // 宽度；不得以配置 selected_workers 回填。U 分母优先用此观测值, 仅在未观测
+    // 时回退到原 min(selected,available) 口径（保留旧行为, 阈值不变）。
+    uint32_t granted_workers = 0;  // 0 = 未观测 (哨兵)
     double avg_equivalent_cores = 0.0;
     double wall_seconds = 0.0;
     bool has_stage_annotation = false;
@@ -279,8 +284,13 @@ inline bool fast_fail_first10s(const GateConfig& g) {
 // 分母 = effective available workers = min(selected_workers, available_cpus)
 // (规格: 不得以硬编码核心数或配置 worker 数单独作分母)。
 inline double utilization_value(const GateConfig& g, double cpu_pct) {
-    const uint32_t m = std::min(g.selected_workers, g.available_cpus);
-    return m >= 1 ? cpu_pct / (100.0 * static_cast<double>(m)) : 0.0;
+  // B2-A18: 分母优先 = 真实观测到的租约宽度 (同口径)。仅在未观测
+  // (granted_workers==0) 时回退原 min(selected_workers, available_cpus)
+  // 口径；阈值与语义不变。
+  const uint32_t m = (g.granted_workers > 0)
+                         ? g.granted_workers
+                         : std::min(g.selected_workers, g.available_cpus);
+  return m >= 1 ? cpu_pct / (100.0 * static_cast<double>(m)) : 0.0;
 }
 
 // 监控有效性: heavy run 必须有真实监控证据。monitor_present=false 或采样侧

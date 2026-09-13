@@ -315,7 +315,7 @@ add_executable(mon001_gate_test mon001_gate_test.cpp)
 target_include_directories(mon001_gate_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
-target_link_libraries(mon001_gate_test PRIVATE astrocs_cpu astrocs_contracts)
+target_link_libraries(mon001_gate_test PRIVATE astrocs_cpu astrocs_contracts astrocs_core)
 add_test(NAME mon001_gate COMMAND mon001_gate_test)
 
 # P1-001 (G4): Phase1 8 类模块注册(端口/执行类/Runtime 委托)
