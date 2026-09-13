@@ -22,6 +22,11 @@
 
 #include "p1sess_fixtures.hpp"  // 最小 FITS writer (手写, 不调生产 symbol)
 
+// B2-A12/A13/A14/A16: HISS 读面 + FITS 读面 (Oracle 对拍用; AIO 由
+// astrocs_module_adapters PUBLIC 传递 include 与 AIO_ENABLE_HEALPIX=1)
+#include "aio_healpix_io.h"
+#include "astro_image_io.h"
+
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
@@ -30,6 +35,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -759,6 +765,406 @@ static void test_negative_injection() {
   cleanup_fixture(fx);
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// B2-A12/A13/A14/A16 科学缺省 / provenance / fail-closed 新门
+// (findings: aud-p1 P1-1/P2-9=P1 precision; P1-5=dark K; P1-6=PHOTAPPL;
+//  P1-4=photometry fail-open)
+// RED→GREEN: 以下断言在修复前失败、修复后通过。
+// ══════════════════════════════════════════════════════════════════════════
+
+// HISS header meta_json (只读头, 不加载 tile 数据)
+std::string hiss_meta_json(const std::string& path) {
+  uint32_t nside = 0, tn = 0, depth = 0, nleaf = 0;
+  uint64_t ntiles = 0, npix = 0;
+  char* meta = nullptr;
+  const int rc = aio_hiss_inspect(path.c_str(), &nside, &tn, &depth, &nleaf,
+                                  &ntiles, &npix, &meta, nullptr);
+  std::string s;
+  if (rc == 0 && meta) s = meta;
+  if (meta) aio_hio_free(meta);
+  return s;
+}
+
+// 读 .hiss 全部 tile signal (FP32/FP64), key = parent_ipix
+bool hiss_tile_signals(const std::string& path, bool f64,
+                       std::map<uint64_t, std::vector<double>>* out) {
+  uint32_t nside = 0, tn = 0, depth = 0, nleaf = 0;
+  uint64_t ntiles = 0, npix = 0;
+  char* meta = nullptr;
+  uint64_t* ipix = nullptr;
+  if (aio_hiss_inspect(path.c_str(), &nside, &tn, &depth, &nleaf, &ntiles, &npix,
+                       &meta, &ipix) != 0) {
+    if (meta) aio_hio_free(meta);
+    return false;
+  }
+  bool ok = true;
+  for (uint64_t t = 0; t < ntiles && ok; ++t) {
+    std::vector<double> vals;
+    if (f64) {
+      double* s = nullptr; uint32_t n = 0;
+      if (aio_hiss_read_tile_signal_f64(path.c_str(), ipix[t], &s, &n) != 0) ok = false;
+      else vals.assign(s, s + n);
+      if (s) aio_hio_free(s);
+    } else {
+      float* s = nullptr; uint32_t n = 0;
+      if (aio_hiss_read_tile_signal(path.c_str(), ipix[t], &s, &n) != 0) ok = false;
+      else for (uint32_t i = 0; i < n; ++i) vals.push_back(static_cast<double>(s[i]));
+      if (s) aio_hio_free(s);
+    }
+    if (ok) (*out)[ipix[t]] = std::move(vals);
+  }
+  if (ipix) aio_hio_free(ipix);
+  if (meta) aio_hio_free(meta);
+  return ok;
+}
+
+// 常数场 + 可控 FITS EXPTIME 的校准 fixture (B2-A13 Oracle 期望可解析)。
+// exptime < 0 → 不写 EXPTIME 卡 (缺失负例)。
+Fixture make_exptime_fixture(const char* tag, float lv, float bv, float dv,
+                             float fv, double lexp = -1.0, double dexp = -1.0,
+                             double bexp = 10.0, double fexp = 1.0) {
+  Fixture f;
+  f.dir = fs::temp_directory_path() /
+          ("p1001_expt_" + std::string(tag) + "_" + std::to_string(P1001_GETPID));
+  std::error_code ec;
+  fs::create_directories(f.dir, ec);
+  f.light1 = (f.dir / "light_1.fits").string();
+  f.light2 = (f.dir / "light_2.fits").string();
+  f.bias = (f.dir / "master_bias.fits").string();
+  f.dark = (f.dir / "master_dark.fits").string();
+  f.flat = (f.dir / "master_flat.fits").string();
+  f.out_dir = f.dir.string();
+  float v = lv;
+  CHECK(p1sess::write_fits_file(f.light1, kW, kH, const_pixel, &v, 0, lexp) == 0);
+  CHECK(p1sess::write_fits_file(f.light2, kW, kH, const_pixel, &v, 0, lexp) == 0);
+  v = bv; CHECK(p1sess::write_fits_file(f.bias, kW, kH, const_pixel, &v, 0, bexp) == 0);
+  v = dv; CHECK(p1sess::write_fits_file(f.dark, kW, kH, const_pixel, &v, 0, dexp) == 0);
+  v = fv; CHECK(p1sess::write_fits_file(f.flat, kW, kH, const_pixel, &v, 0, fexp) == 0);
+  return f;
+}
+
+// ── B2-A16: 测光节点缺上游 artifact / 缺帧 → DATA fail-closed ─────────────
+static void test_b2a16_photometry_fail_closed() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  // 16a: 缺 p1_sources.json → 必须失败, 不得写 p1_flux.json
+  {
+    Fixture fx = make_fixture("b2a16a");
+    RunContext ctx;
+    const std::string cfg = R"({
+      "input_lights": [")" + fx.light1 + R"("],
+      "output_dir": ")" + fx.out_dir + R"("
+    })";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    (void)man;
+    CHECK_MSG(rc.failed(), "B2-A16: missing p1_sources.json must fail (older code returned success)");
+    if (rc.failed()) CHECK(rc.error().domain() == ErrorDomain::DATA);
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/p1_flux.json")),
+              "B2-A16: no p1_flux.json on missing upstream artifact");
+    cleanup_fixture(fx);
+  }
+  // 16b: sources 引用缺失帧 → 失败 (帧缺失按合同上抛, 不静默跳过)
+  {
+    Fixture fx = make_fixture("b2a16b");
+    RunContext ctx;
+    {
+      std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-SOURCES","frames":[{"file":"missing_frame.fits","sources":[{"id":"s1","x":16,"y":16}]}]})";
+    }
+    const std::string cfg = R"({
+      "input_lights": [")" + fx.light1 + R"("],
+      "output_dir": ")" + fx.out_dir + R"("
+    })";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    (void)man;
+    CHECK_MSG(rc.failed(), "B2-A16: frame referenced by p1_sources.json missing must fail");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/p1_flux.json")),
+              "B2-A16: no p1_flux.json when a frame is missing");
+    cleanup_fixture(fx);
+  }
+  // 16c: 正向 — 上游 sources 合法 → success 且写 p1_flux.json + p1_phot.json
+  {
+    Fixture fx = make_fixture("b2a16c");
+    RunContext ctx;
+    {
+      std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-SOURCES","frames":[{"file":"light_1.fits","sources":[{"id":"s1","x":16,"y":16}]}]})";
+    }
+    const std::string cfg = R"({
+      "input_lights": [")" + fx.light1 + R"("],
+      "output_dir": ")" + fx.out_dir + R"("
+    })";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "B2-A16: valid upstream sources must succeed");
+    CHECK(man.value("operation", "") == "measure_flux");
+    CHECK(fs::exists(fs::path(fx.out_dir + "/p1_flux.json")));
+    cleanup_fixture(fx);
+  }
+}
+
+// ── B2-A13: dark_opt K 由 FITS EXPTIME 推导 + 缺失/不一致 fail-closed ──────
+static void test_b2a13_dark_scale_from_exptime() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const float L = 100.0f, B = 10.0f, D = 5.0f, F = 1.0f;
+  const double tl = 300.0, td = 600.0;
+  const double K = tl / td;  // 0.5 (SCI-CAL-001 §5: K=t_light/t_dark)
+  // 13a: K == t_light/t_dark, 且校准像素 == 独立 Oracle (L-B-K*(D-B))/F
+  {
+    Fixture fx = make_exptime_fixture("b2a13a", L, B, D, F, tl, td);
+    RunContext ctx;
+    const std::string cfg = R"({
+      "input_lights": [")" + fx.light1 + R"("],
+      "master_bias": ")" + fx.bias + R"(",
+      "master_dark": ")" + fx.dark + R"(",
+      "master_flat": ")" + fx.flat + R"(",
+      "output_dir": ")" + fx.out_dir + R"(",
+      "dark_optimization": true
+    })";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.calibration", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), ("B2-A13: dark_opt K from EXPTIME must succeed: " +
+                        (rc.failed() ? rc.error().message() : std::string())).c_str());
+    if (rc.ok()) {
+      double got = -1.0;
+      if (man.contains("stages") && man["stages"].is_array()) {
+        for (const auto& st : man["stages"]) {
+          if (st.value("name", "") == "calibrate" && st.contains("per_frame") &&
+              st["per_frame"].is_array() && !st["per_frame"].empty())
+            got = st["per_frame"][0].value("dark_scale", -1.0);
+        }
+      }
+      CHECK_MSG(std::fabs(got - K) < 1e-9,
+                ("B2-A13: dark_scale must equal t_light/t_dark=" + std::to_string(K) +
+                 " got=" + std::to_string(got)).c_str());
+      // Oracle: 独立解析期望 = (L-B-K*(D-B))/F
+      const std::string out_fits = fx.out_dir + "/calibrated_light_1.fits";
+      CHECK(fs::exists(fs::path(out_fits)));
+      AIOImageData* im = aio_read(out_fits.c_str());
+      CHECK_MSG(im != nullptr, "B2-A13: calibrated FITS must be readable");
+      if (im) {
+        const float* px = aio_get_pixel_data(im);
+        const double expect = (L - B - K * (D - B)) / F;
+        double maxdiff = 0.0;
+        const int64_t n = static_cast<int64_t>(kW) * kH;
+        for (int64_t i = 0; i < n; ++i)
+          maxdiff = std::max(maxdiff, std::fabs(static_cast<double>(px[i]) - expect));
+        CHECK_MSG(maxdiff < 1e-4,
+                  ("B2-A13: K=EXPTIME Oracle max|out-expected|=" +
+                   std::to_string(maxdiff)).c_str());
+        aio_free_image_data(im);
+      }
+    }
+    cleanup_fixture(fx);
+  }
+  // 13b: dark EXPTIME 缺失 → DATA fail
+  {
+    Fixture fx = make_exptime_fixture("b2a13b", L, B, D, F, tl, -1.0);
+    RunContext ctx;
+    const std::string cfg = R"({
+      "input_lights": [")" + fx.light1 + R"("],
+      "master_bias": ")" + fx.bias + R"(",
+      "master_dark": ")" + fx.dark + R"(",
+      "master_flat": ")" + fx.flat + R"(",
+      "output_dir": ")" + fx.out_dir + R"(",
+      "dark_optimization": true
+    })";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.calibration", cfg, ctx, &rc);
+    (void)man;
+    CHECK_MSG(rc.failed(), "B2-A13: dark EXPTIME missing must fail-closed");
+    if (rc.failed()) CHECK(rc.error().domain() == ErrorDomain::DATA);
+    CHECK(!fs::exists(fs::path(fx.out_dir + "/calibrated_light_1.fits")));
+    cleanup_fixture(fx);
+  }
+  // 13c: light EXPTIME 缺失 → DATA fail
+  {
+    Fixture fx = make_exptime_fixture("b2a13c", L, B, D, F, -1.0, td);
+    RunContext ctx;
+    const std::string cfg = R"({
+      "input_lights": [")" + fx.light1 + R"("],
+      "master_bias": ")" + fx.bias + R"(",
+      "master_dark": ")" + fx.dark + R"(",
+      "master_flat": ")" + fx.flat + R"(",
+      "output_dir": ")" + fx.out_dir + R"(",
+      "dark_optimization": true
+    })";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.calibration", cfg, ctx, &rc);
+    (void)man;
+    CHECK_MSG(rc.failed(), "B2-A13: light EXPTIME missing must fail-closed");
+    cleanup_fixture(fx);
+  }
+  // 13d: 配置 dark_scale_factor 与 EXPTIME 比不一致 → DATA fail (禁标量冒充科学输入)
+  {
+    Fixture fx = make_exptime_fixture("b2a13d", L, B, D, F, tl, td);
+    RunContext ctx;
+    const std::string cfg = R"({
+      "input_lights": [")" + fx.light1 + R"("],
+      "master_bias": ")" + fx.bias + R"(",
+      "master_dark": ")" + fx.dark + R"(",
+      "master_flat": ")" + fx.flat + R"(",
+      "output_dir": ")" + fx.out_dir + R"(",
+      "dark_optimization": true,
+      "dark_scale_factor": 2.0
+    })";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.calibration", cfg, ctx, &rc);
+    (void)man;
+    CHECK_MSG(rc.failed(), "B2-A13: dark_scale_factor disagreeing with EXPTIME K must fail");
+    cleanup_fixture(fx);
+  }
+}
+
+// ── B2-A12: drizzle precision_mode 缺省门 + FP32/FP64 等价性 ───────────────
+static void test_b2a12_precision_default_and_equiv() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const char* wcs = R"("wcs": {"crpix1": 16.0, "crpix2": 16.0, "crval1": 10.0, "crval2": 20.0,
+            "cd11": -0.0002777777777777778, "cd12": 0.0,
+            "cd21": 0.0, "cd22": 0.0002777777777777778},)";
+  // 12a: 缺 precision_mode → DATA 拒绝 (无 silent FP32 缺省), 不写 p1_stack.json
+  {
+    Fixture fx = make_fixture("b2a12a");
+    RunContext ctx;
+    const std::string cfg = std::string(R"({
+      "input_lights": [")") + fx.light1 + R"("],
+      "output_dir": ")" + fx.out_dir + R"(",
+      )" + wcs + R"(
+      "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0}
+    })";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &rc);
+    (void)man;
+    CHECK_MSG(rc.failed(), "B2-A12: missing precision_mode must be rejected (no silent FP32)");
+    if (rc.failed()) CHECK(rc.error().domain() == ErrorDomain::DATA);
+    CHECK(!fs::exists(fs::path(fx.out_dir + "/p1_stack.json")));
+    cleanup_fixture(fx);
+  }
+  // 12b: FP32/FP64 等价性 + p1_stack.json 记录 precision_mode
+  {
+    Fixture fx32 = make_fixture("b2a12f32");
+    Fixture fx64 = make_fixture("b2a12f64");
+    ModuleRegistry reg2;
+    CHECK(register_phase_modules(reg2).ok());
+    auto run = [&](Fixture& fx, int mode, const char* tag) -> json {
+      RunContext ctx;
+      const std::string cfg = std::string(R"({
+        "input_lights": [")") + fx.light1 + R"("],
+        "output_dir": ")" + fx.out_dir + R"(",
+        )" + wcs + R"(
+        "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": )" +
+        std::to_string(mode) + R"(}
+      })";
+      Result<void> rc;
+      json man = run_node(reg2, "astrocs.phase1.drizzle", cfg, ctx, &rc);
+      CHECK_MSG(rc.ok(), (std::string("B2-A12: drizzle ") + tag +
+                          " must succeed: " +
+                          (rc.failed() ? rc.error().message() : std::string())).c_str());
+      return man;
+    };
+    json m32 = run(fx32, 0, "FP32");
+    json m64 = run(fx64, 1, "FP64");
+    // p1_stack.json provenance: precision_mode 显式记录 (禁隐式缺省)
+    auto stack_prec = [](Fixture& fx) -> int {
+      json s;
+      try { s = json::parse(read_file(fx.out_dir + "/p1_stack.json")); } catch (...) { return -99; }
+      return s.value("precision_mode", -99);
+    };
+    CHECK_MSG(stack_prec(fx32) == 0, "B2-A12: p1_stack.json must record precision_mode=0");
+    CHECK_MSG(stack_prec(fx64) == 1, "B2-A12: p1_stack.json must record precision_mode=1");
+    // 等价性: 同一输入 FP32/FP64 累积逐 tile signal 相对一致 (输出窄化 FP32)
+    std::map<uint64_t, std::vector<double>> s32, s64;
+    const bool ok32 = hiss_tile_signals(fx32.out_dir + "/p1_stack.hiss", false, &s32);
+    const bool ok64 = hiss_tile_signals(fx64.out_dir + "/p1_stack.hiss", true, &s64);
+    CHECK_MSG(ok32 && ok64, "B2-A12: FP32/FP64 .hiss signal tiles must be readable");
+    CHECK_MSG(s32.size() == s64.size() && !s32.empty(),
+              "B2-A12: FP32/FP64 must touch the same tile set");
+    double max_rel = 0.0;
+    for (const auto& [ipix, v32] : s32) {
+      auto it = s64.find(ipix);
+      if (it == s64.end()) { max_rel = 1e9; break; }
+      const std::vector<double>& v64 = it->second;
+      if (v64.size() != v32.size()) { max_rel = 1e9; break; }
+      for (size_t i = 0; i < v32.size(); ++i) {
+        const double a = v32[i], b = v64[i];
+        const double denom = std::max(1.0, std::fabs(b));
+        max_rel = std::max(max_rel, std::fabs(a - b) / denom);
+      }
+    }
+    CHECK_MSG(max_rel < 1e-5,
+              ("B2-A12: FP32/FP64 signal equivalence max_rel=" +
+               std::to_string(max_rel)).c_str());
+    cleanup_fixture(fx32);
+    cleanup_fixture(fx64);
+  }
+}
+
+// ── B2-A14: drizzle PHOTAPPL/PHOTSCAL 由真实 provenance 决定 (禁硬编码 1) ──
+static void test_b2a14_photappl_provenance() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const char* wcs = R"("wcs": {"crpix1": 16.0, "crpix2": 16.0, "crval1": 10.0, "crval2": 20.0,
+            "cd11": -0.0002777777777777778, "cd12": 0.0,
+            "cd21": 0.0, "cd22": 0.0002777777777777778},)";
+  auto run_drz = [&](Fixture& fx, json* meta_out) -> bool {
+    RunContext ctx;
+    const std::string cfg = std::string(R"({
+      "input_lights": [")") + fx.light1 + R"("],
+      "output_dir": ")" + fx.out_dir + R"(",
+      )" + wcs + R"(
+      "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 1}
+    })";
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &rc);
+    if (rc.failed()) {
+      std::fprintf(stderr, "DBG B2-A14 drizzle failed: %s\n", rc.error().message().c_str());
+      return false;
+    }
+    try { *meta_out = json::parse(hiss_meta_json(fx.out_dir + "/p1_stack.hiss")); }
+    catch (...) { return false; }
+    return true;
+  };
+  // 14a: 无测光 provenance → PHOTAPPL=0 / BUNIT=ADU (绝不伪造 1)
+  {
+    Fixture fx = make_fixture("b2a14a");
+    json meta = json::object();
+    const bool ok = run_drz(fx, &meta);
+    CHECK_MSG(ok, "B2-A14: drizzle must complete with explicit ADU degradation");
+    if (ok) {
+      CHECK_MSG(meta.value("photappl", -1) == 0,
+                "B2-A14: PHOTAPPL must be 0 when no photometry provenance (forged 1 removed)");
+      CHECK_MSG(meta.value("bunit", std::string()) == "ADU",
+                "B2-A14: BUNIT must degrade to ADU, not RELATIVE_FLUX");
+    }
+    cleanup_fixture(fx);
+  }
+  // 14b: 真实测光 provenance 声明已应用 → PHOTAPPL=1 + PHOTSCAL 原样透传
+  {
+    Fixture fx = make_fixture("b2a14b");
+    {
+      std::ofstream o(fx.out_dir + "/p1_phot.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-PHOTPROV","node":"astrocs.phase1.photometry",)"
+           R"("operation":"measure_flux","photometry_applied":true,"photscal":0.5,"pixel_scaling":"applied"})";
+    }
+    json meta = json::object();
+    const bool ok = run_drz(fx, &meta);
+    CHECK_MSG(ok, "B2-A14: drizzle with valid photometry provenance must succeed");
+    if (ok) {
+      CHECK_MSG(meta.value("photappl", -1) == 1,
+                "B2-A14: PHOTAPPL=1 must be driven by real photometry provenance");
+      CHECK_MSG(std::fabs(meta.value("photscal", -1.0) - 0.5) < 1e-12,
+                "B2-A14: PHOTSCAL must come from provenance, not hardcoded/config");
+      CHECK_MSG(meta.value("bunit", std::string()) == "ASTROCS_RELATIVE_FLUX",
+                "B2-A14: BUNIT=RELATIVE_FLUX only when provenance says applied");
+    }
+    cleanup_fixture(fx);
+  }
+}
+
 // ── 5. 确定性: 同 config 双跑 star-psf 输出 bitwise 一致 ───────────────────
 static void test_determinism() {
   for (int run = 0; run < 2; ++run) {
@@ -1218,6 +1624,11 @@ int main() {
   test_fail_fast_downstream_zero_calls();
   test_complete_gate_fail_closed();
   test_negative_injection();
+  // B2-A12/A13/A14/A16: 科学缺省 / provenance / fail-closed 新门
+  test_b2a12_precision_default_and_equiv();
+  test_b2a13_dark_scale_from_exptime();
+  test_b2a14_photappl_provenance();
+  test_b2a16_photometry_fail_closed();
   test_determinism();
   // CORE-RACE-001（p1001 链并发撕裂读）: 独立产物路径 / IR 接线一致性 /
   // 并发全链 N 次连跑 / 1-N worker parity / 故障注入

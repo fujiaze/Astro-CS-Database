@@ -108,7 +108,7 @@ inline int sess_truncate_file(const std::string& path, long size) {
 // 返回 0 成功 / 非 0 IO 失败。
 inline int write_fits_file(const std::string& path, int w, int h,
                            float (*pixel)(int, void*), void* user,
-                           long truncate_tail = 0) {
+                           long truncate_tail = 0, double exptime = -1.0) {
     std::FILE* fp = std::fopen(path.c_str(), "wb");
     if (!fp) return 1;
     sess_fits_card(fp, "SIMPLE", "T");
@@ -119,8 +119,16 @@ inline int write_fits_file(const std::string& path, int w, int h,
     sess_fits_card(fp, "NAXIS1", naxis);
     std::snprintf(naxis, sizeof(naxis), "%d", h);
     sess_fits_card(fp, "NAXIS2", naxis);
+    // B2-A13: 可选 EXPTIME 卡 (FITS 曝光秒); exptime<0 = 不写 (缺 EXPOSURE 负例)。
+    long ncards = 6;
+    if (exptime >= 0.0) {
+      char exp_card[32];
+      std::snprintf(exp_card, sizeof(exp_card), "%.10g", exptime);
+      sess_fits_card(fp, "EXPTIME", exp_card);
+      ++ncards;
+    }
     sess_fits_card(fp, "END", "");
-    long pos = 80L * 6;
+    long pos = 80L * ncards;
     sess_fits_pad(fp, pos, ' ');
     for (int i = 0; i < w * h; ++i) {
         unsigned char be[4];

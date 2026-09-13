@@ -277,6 +277,7 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 | flat==NULL（calibrate） | 跳过除法，退化减法 | calibrator.cpp:122,132 |
 | dark==NULL（calibrate 标准分支） | out=light（flat 处理后） | calibrator.cpp:131 |
 | dark_opt=1 但 bias/dark 缺一 | 回退标准分支且 k=1.0 | calibrator.cpp:117,127 |
+| dark_opt=1 且 bias+dark 在位（p1_op_calibrate K 分支） | K 由 light/dark FITS EXPTIME 推导 = t_light/t_dark；EXPTIME 缺失/非正或显式 dark_scale_factor 与 EXPTIME 比不一致 → DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（B2-A13 fail-closed） | module_adapters.cpp:1243-1305 |
 | σ=0（generate_master） | 提前终止不剔除 | master_generator.cpp:120 |
 | 单帧 master | 直接拷贝不做 clip | master_generator.cpp:84-88 |
 | 全 NaN 像素列 | median 路径 NaN；mean 路径 cnt=0 → NaN | master_generator.cpp:141,155 |

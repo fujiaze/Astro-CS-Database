@@ -932,6 +932,10 @@ try {
     double photscal = aio_frame_kv_get_double(frame, "header", "PHOTSCAL", 0.0);
     const char* photappl_str = aio_frame_kv_get(frame, "header", "PHOTAPPL");
     int photappl = photappl_str ? std::atoi(photappl_str) : 0;
+    // B2-A14: 调用方显式声明"上游未做测光缩放, 本产物为未测光 ADU"(PHOTDEGRADE=1)。
+    // 只有显式声明才允许 PHOTAPPL=0 写出; 未声明时下方仍按 02_FROZEN §7 拒绝。
+    const char* photdegrade_str = aio_frame_kv_get(frame, "header", "PHOTDEGRADE");
+    config.uncalibrated_adu_allowed = (photdegrade_str && std::atoi(photdegrade_str) != 0);
     config.apply_photometry          = false;                  // drizzle 不再应用
     config.photometry_applied_upstream = (photappl != 0);      // PHOTOMETRIC 阶段已应用
     config.photscal                  = photscal;

@@ -25,6 +25,7 @@
 | DATA-REJ-MAP-001 | rejection map | u8 | [H,W] | 位掩码 | pixel | reason code 每样本 | persisted | FITS |
 | DATA-FRAME-ID-001 | frame identity | uint64 | scalar | 无量纲 | 科学 payload 派生 | 重复拒绝 | shared | JSON/manifest |
 | DATA-P3-FITS-001 | 平面 FITS | f32/f64 | [W_out,H_out] | 面亮度(禁默认 Jy/beam) | TAN/ICRS | NaN+coverage | persisted | FITS |
+| DATA-P1-PHOTPROV | Phase1 测光 provenance sidecar(p1_phot.json; B2-A14 关闭伪造 PHOTAPPL) | 无标量(标签+比例) | n/a | 无量纲 | n/a | 缺文件=未应用测光(允许显式 ADU 降级); schema≠DATA-P1-PHOTPROV / photscal 非有限或≤0 → drizzle DATA 拒绝; 禁硬编码 PHOTAPPL=1 | unique(p1_op_photometry 原子写) | JSON |
 | DATA-GAIA-001 | Gaia XPSD 星表行(C ABI 输出) | f64/i32/u8[] | [out_count]; 光谱 [out_count×spec_n] | deg,mag,W·m⁻²·nm⁻¹,nm | ICRS J2000 | out_match_idx=−1 未匹配; out_count=0 空结果合法; DR3 下 BP/RP=0 sentinel; 无光谱 flux_min/mul=0 | caller free(顶层 malloc) | in-memory(不落盘, §8.3) |
 | DATA-COV-001 | Phase2 coverage 联合 MOC(P2CoverageResult) | u64/u64 | union_cells [K](P2MocCell: order+ipix); K=n_union_cells 标量; inputs [n_inputs] | 无量纲(order/ipix) | HEALPix NESTED 父单元(ipix<12·4^order, 去重升序) | K=0 空结果合法(rc=0); 两阶段协议第一次调用不写 union_cells/inputs | caller free(调用方分配, coverage.h:26-48) | in-memory(不落盘) |
 | DATA-UNC-001 | Phase2/Phase3 不确定度产品合同容器(DATA_SEMANTICS §30, 目标态) | 容器(无标量) | n/a | n/a | 跨域(见各子 schema) | 实现不得先行; unavailable 显式登记模式 | owner(DATA-001 冻结) | DATA_SEMANTICS.md §30 |

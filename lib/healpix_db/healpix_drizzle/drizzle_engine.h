@@ -30,6 +30,10 @@ struct DrizzleConfig {
     bool   apply_photometry = false;  // 测光已应用到像素 (元数据标记, drizzle 不再应用)
     double photscal = 1.0;     // 测光校准比例 (实际应用值, 元数据记录用)
     bool   photometry_applied_upstream = false;  // PHOTOMETRIC 阶段已应用测光校准
+    // B2-A14: 显式降级开关 —— 调用方已如实声明上游未做测光缩放, 允许写出
+    // 未测光 ADU signal (PHOTAPPL=0 / BUNIT=ADU), 而非伪造 RELATIVE_FLUX。
+    // 缺省 false: 未显式声明时仍拒绝 (保持 02_FROZEN §7 测光门)。
+    bool   uncalibrated_adu_allowed = false;
     // 精度模式 (0=FP32 binary32 默认, 1=FP64 binary64)
     // FP64 模式: signal 子块输出 float64, metadata 记录 precision_mode=1, signal_dtype=1
     uint8_t precision_mode = 0;

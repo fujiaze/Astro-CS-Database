@@ -1240,6 +1240,23 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   }
   const bool dark_opt = doc.value("dark_optimization", false);
   const float k_fixed = doc.value("dark_scale_factor", 1.0f);
+  // ── B2-A13: dark_opt=1 的 K 必须由 FITS EXPTIME 推导 (K=t_light/t_dark) ──
+  // SCI-CAL-001 §5 / DATA_SEMANTICS §9.1 K 行: K 由调用方从 FITS EXPTIME 计算
+  // 后传入 ac_calibrate_frame。仅当 bias+dark 均在位（calibrator 的 K 分支真正
+  // 生效）时要求 EXPTIME；缺 bias/dark 时 calibrator 按合同回退标准分支
+  // (K=1.0, P2-11 另行处置)，此处不越界。缺失/非正/不匹配 → DATA fail-closed。
+  const bool k_branch = dark_opt && bias.ok() && dark.ok();
+  double dark_exptime = 0.0;
+  if (k_branch) {
+    const AIOImageMetadata dmeta =
+        aio_read_metadata(doc["master_dark"].get<std::string>().c_str());
+    dark_exptime = dmeta.calibration.exptime;
+    if (!std::isfinite(dark_exptime) || dark_exptime <= 0.0) {
+      st_cal["status"] = "fail";
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "master_dark FITS EXPTIME missing/<=0; K=t_light/t_dark requires EXPTIME"));
+    }
+  }
   uint32_t frames_ok = 0;
   Json per_frame = Json::array();
   Json artifacts = Json::array();
@@ -1259,12 +1276,40 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
     const uint64_t n = static_cast<uint64_t>(W) * static_cast<uint64_t>(H);
     std::vector<float> out(static_cast<size_t>(n), 0.0f);
     float actual_k = 0.0f;
+    float k_use = k_fixed;
+    if (k_branch) {
+      const AIOImageMetadata lmeta = aio_read_metadata(lp.c_str());
+      const double t_light = lmeta.calibration.exptime;
+      if (!std::isfinite(t_light) || t_light <= 0.0) {
+        st_cal["status"] = "fail";
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "light FITS EXPTIME missing/<=0 (required for K=t_light/t_dark): " + lp));
+      }
+      const double k_expo = t_light / dark_exptime;
+      if (!std::isfinite(k_expo) || k_expo <= 0.0) {
+        st_cal["status"] = "fail";
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "K=t_light/t_dark invalid (non-finite/<=0) for " + lp));
+      }
+      // 显式配置标量不得与 EXPTIME 比不一致（禁配置冒充科学输入; 只做
+      // fail-closed 门, 不改变 K 的推导公式与单位）。
+      if (p1_has(doc, "dark_scale_factor")) {
+        const double cfg_k = p1_num(doc, "dark_scale_factor", 1.0);
+        if (std::fabs(cfg_k - k_expo) > 1e-6 * std::max(1.0, std::fabs(k_expo))) {
+          st_cal["status"] = "fail";
+          return Result<void>::fail(Error(ErrorDomain::DATA,
+              "dark_scale_factor (" + std::to_string(cfg_k) +
+              ") disagrees with FITS EXPTIME ratio K=" + std::to_string(k_expo)));
+        }
+      }
+      k_use = static_cast<float>(k_expo);
+    }
     const int rc = ac_calibrate_frame(
         light.px(), W, H,
         dark.ok() ? dark.px() : nullptr,
         flat.ok() ? flat.px() : nullptr,
         bias.ok() ? bias.px() : nullptr,
-        out.data(), dark_opt ? 1 : 0, k_fixed, &actual_k);
+        out.data(), dark_opt ? 1 : 0, k_use, &actual_k);
     if (rc != AC_OK) {
       st_cal["status"] = "fail";
       return Result<void>::fail(Error(rc == AC_ERR_MEMORY ? ErrorDomain::RESOURCE
@@ -1799,27 +1844,50 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
 Result<void> p1_op_photometry(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
   const std::string src_path = out_dir + "/p1_sources.json";
+  // ── B2-A16: 上游 DATA-P1-SOURCES 是本节点唯一输入 ─────────────────────
+  // 旧实现: 文件打不开/解析失败 → cat=[] → 空循环 → 仍写 p1_flux.json 并
+  // success（fail-open）；帧缺失仅记 {"error":"frame not found"} 后继续。
+  // 宪章 §14.4 fail-fast / §11 不留貌似成功产品: 上游 artifact 缺失/不可解析
+  // 或已被 sources 引用的帧缺失 → DATA 失败（CLI rc=2），不写任何产物。
   Json cat = Json::array();
   {
     std::error_code ec;
+    if (!std::filesystem::exists(std::filesystem::u8path(src_path), ec))
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "p1_sources.json missing (upstream star-psf artifact required): " + src_path));
     std::ifstream f(std::filesystem::u8path(src_path), std::ios::binary);
-    if (f) {
-      try {
-        Json j = Json::parse(std::string((std::istreambuf_iterator<char>(f)),
-                                         std::istreambuf_iterator<char>()));
-        cat = j.value("frames", Json::array());
-      } catch (...) { cat = Json::array(); }
+    if (!f)
+      return Result<void>::fail(Error(ErrorDomain::IO, "cannot open: " + src_path));
+    try {
+      const Json j = Json::parse(std::string((std::istreambuf_iterator<char>(f)),
+                                             std::istreambuf_iterator<char>()));
+      if (!j.is_object() || !j.contains("frames") || !j["frames"].is_array())
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "p1_sources.json must be an object with a 'frames' array: " + src_path));
+      cat = j["frames"];
+    } catch (const std::exception& e) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          std::string("p1_sources.json parse failed: ") + e.what()));
     }
   }
   const astrocs::phase1::Photometer phot;
   Json frames = Json::array();
+  uint64_t missing_frames = 0;
+  std::string first_missing;
   for (const auto& fr : cat) {
     const std::string file = fr.value("file", std::string());
-    // sources.json 的 file 是 calibrated 基名; 逐帧读取（找不到则跳过该帧, 如实记录）
+    // sources.json 的 file 是 calibrated 基名; 逐帧读取。
+    if (file.empty()) {
+      ++missing_frames;
+      if (first_missing.empty()) first_missing = "(empty file name)";
+      continue;
+    }
     std::string path = out_dir + "/" + file;
     std::error_code ec;
     if (!std::filesystem::exists(std::filesystem::u8path(path), ec)) {
-      frames.push_back(Json{{"file", file}, {"error", "frame not found"}});
+      // B2-A16: 帧缺失按合同计数, 循环后显式上抛（不再静默跳过记 error）。
+      ++missing_frames;
+      if (first_missing.empty()) first_missing = file;
       continue;
     }
     P1Image im = p1_read_image(path);
@@ -1843,13 +1911,35 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     }
     frames.push_back(Json{{"file", file}, {"results", results}});
   }
+  if (missing_frames != 0)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        std::to_string(missing_frames) + " frame(s) referenced by p1_sources.json "
+        "not found (first: " + first_missing + ")"));
   const std::string out_path = out_dir + "/p1_flux.json";
   Json flux_out = Json{{"schema", "DATA-P1-FLUX"}, {"frames", frames}};
   if (!p1_write_text(out_path, flux_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
+  // ── B2-A14: 真实测光 provenance sidecar (DATA-P1-PHOTPROV) ─────────────
+  // 本节点 (measure_flux) 只测量孔径通量, 不对像素施加测光缩放（§02_FROZEN §7
+  // I_photo=k_photo·I_cal 由 pc_calibrate/simple 类节点承担），故如实声明
+  // photometry_applied=false、photscal=1.0（中性）。drizzle 消费本产物决定
+  // PHOTSCAL/PHOTAPPL；禁止再硬编码 1。
+  const std::string prov_path = out_dir + "/p1_phot.json";
+  const Json prov = Json{{"schema", "DATA-P1-PHOTPROV"},
+                         {"node", "astrocs.phase1.photometry"},
+                         {"operation", "measure_flux"},
+                         {"entry", "astrocs_phase1_photometry_v1"},
+                         {"photometry_applied", false},
+                         {"photscal", 1.0},
+                         {"pixel_scaling", "none"},
+                         {"n_frames", frames.size()}};
+  if (!p1_write_text(prov_path, prov.dump(2)))
+    return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_frames"] = frames.size();
   (*man)["flux_artifact"] = out_path;
-  (*man)["artifacts"] = Json::array({out_path});
+  (*man)["photometry_provenance_artifact"] = prov_path;
+  (*man)["photometry_applied"] = false;
+  (*man)["artifacts"] = Json::array({out_path, prov_path});
   return Result<void>::success();
 }
 
@@ -1930,11 +2020,19 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   // B1-A9: HiPS NESTED 合同缺省 nested=1（旧缺省 0 被 drizzle 引擎直接拒绝, 链不可达）。
   const int nested = p1_int(dj, "nested", 1);
   const double pixfrac = p1_num(dj, "pixfrac", 1.0);
-  // B1-A9: precision_mode 无缺省 —— 缺失/越界显式 DATA 拒绝（不 silent 降 FP32）。
+  // ── B2-A12: precision_mode 科学精度门（无 silent default）─────────────
+  // 宪章 §5.3: Drizzle 采用 float64 累积。B1-A9 已关闭 silent 缺省（缺失即
+  // DATA 拒绝，E2E 可达性面）；本动作收紧类型（必须整数 0|1，禁真值/浮点截断
+  // 冒充）并把实际累积精度写入产物 provenance（p1_stack.json + 节点 manifest
+  // + 帧头 PRECISION KV），禁止再写死 "0"。
   if (!p1_has(dj, "precision_mode"))
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "drizzle requires 'drizzle.precision_mode' (0=FP32, 1=FP64;"
         " missing precision_mode is rejected, no silent default)"));
+  if (!dj.at("precision_mode").is_number_integer())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "precision_mode must be integer 0 (FP32) or 1 (FP64);"
+        " boolean/float/string are rejected (no silent coercion)"));
   const int precision_mode = p1_int(dj, "precision_mode", -1);
   if (nside <= 0) return Result<void>::fail(Error(ErrorDomain::DATA, "nside must be > 0"));
   if (nested != 0 && nested != 1)
@@ -1952,6 +2050,39 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   if (!im.ok()) {
     (*man)["error_kind"] = "input";
     return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + frame_path));
+  }
+  // ── B2-A14: PHOTSCAL/PHOTAPPL 由真实测光 provenance 决定（禁硬编码 1）──
+  // 上游 p1_phot.json (DATA-P1-PHOTPROV) 由 p1_op_photometry (measure_flux) 产出，
+  // 声明是否已对像素施加测光缩放。本节点只透传该事实；未执行/未应用测光时
+  // PHOTAPPL=0 + PHOTDEGRADE=1（在 drizzle 显式降级为 ADU，绝不伪造
+  // RELATIVE_FLUX）。配置标量 photscal 不再是科学输入来源。
+  bool photometry_applied = false;
+  double photscal = 1.0;
+  bool have_phot_prov = false;
+  {
+    const std::string prov_path = out_dir + "/p1_phot.json";
+    std::error_code pec;
+    if (std::filesystem::exists(std::filesystem::u8path(prov_path), pec)) {
+      std::ifstream pf(std::filesystem::u8path(prov_path), std::ios::binary);
+      if (!pf)
+        return Result<void>::fail(Error(ErrorDomain::IO, "cannot open: " + prov_path));
+      try {
+        const Json pj = Json::parse(std::string((std::istreambuf_iterator<char>(pf)),
+                                                std::istreambuf_iterator<char>()));
+        if (!pj.is_object() || pj.value("schema", std::string()) != "DATA-P1-PHOTPROV")
+          return Result<void>::fail(Error(ErrorDomain::DATA,
+              "p1_phot.json schema mismatch (expect DATA-P1-PHOTPROV): " + prov_path));
+        photometry_applied = pj.value("photometry_applied", false);
+        photscal = pj.value("photscal", 1.0);
+        if (!std::isfinite(photscal) || photscal <= 0.0)
+          return Result<void>::fail(Error(ErrorDomain::DATA,
+              "p1_phot.json photscal must be finite and > 0"));
+        have_phot_prov = true;
+      } catch (const std::exception& e) {
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            std::string("p1_phot.json parse failed: ") + e.what()));
+      }
+    }
   }
   // PipelineFrame: data [H,W] f32 + header KV（hp_drizzle_run 合同: dims[0]=H, dims[1]=W）
   PipelineFrame* frame = aio_pipeline_frame_create();
@@ -1977,13 +2108,14 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         {"CRPIX1", ""}, {"CRPIX2", ""}, {"CRVAL1", ""}, {"CRVAL2", ""},
         {"CD1_1", ""}, {"CD1_2", ""}, {"CD2_1", ""}, {"CD2_2", ""},
         {"CDELT1", ""}, {"CDELT2", ""}, {"CROTA1", "0"}, {"CROTA2", "0"},
-        {"CTYPE1", "RA---TAN"}, {"CTYPE2", "DEC--TAN"}, {"PRECISION", "0"},
-        {"PHOTSCAL", ""}, {"PHOTAPPL", "1"},  // 测光校准元数据(仅记录; 中性 1.0)
+        {"CTYPE1", "RA---TAN"}, {"CTYPE2", "DEC--TAN"}, {"PRECISION", ""},
+        {"PHOTSCAL", ""}, {"PHOTAPPL", ""}, {"PHOTDEGRADE", ""},
     };
     (void)b1; (void)b2; (void)b3; (void)b4; (void)b5; (void)b6; (void)b7; (void)b8;
-    // PHOTSCAL: 测光缩放因子(>0, 正式 Stage1 合同); 缺省 1.0=中性(无缩放)
+    // PHOTSCAL: 来自真实测光 provenance（未应用测光时=中性 1.0）；PHOTAPPL 由
+    // provenance 决定；PHOTDEGRADE=1 表示本节点显式降级为未测光 ADU（B2-A14）。
     char b9[64];
-    fmt(p1_num(dj, "photscal", 1.0), b9, sizeof(b9));
+    fmt(photscal, b9, sizeof(b9));
     for (const KV& kv : kvs) {
       std::string val = kv.v[0] != '\0' ? std::string(kv.v) : [&] {
         if (std::strcmp(kv.k, "CRPIX1") == 0) return std::string(b1);
@@ -1995,7 +2127,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         if (std::strcmp(kv.k, "CD2_1") == 0) return std::string(b7);
         if (std::strcmp(kv.k, "CD2_2") == 0) return std::string(b8);
         if (std::strcmp(kv.k, "CDELT1") == 0) return std::string(b5);
+        if (std::strcmp(kv.k, "PRECISION") == 0)
+          return std::string(precision_mode == 1 ? "fp64" : "fp32");
         if (std::strcmp(kv.k, "PHOTSCAL") == 0) return std::string(b9);
+        if (std::strcmp(kv.k, "PHOTAPPL") == 0)
+          return std::string(photometry_applied ? "1" : "0");
+        if (std::strcmp(kv.k, "PHOTDEGRADE") == 0)
+          return std::string(photometry_applied ? "0" : "1");
         return std::string(b8);  // CDELT2
       }();
       if (aio_frame_kv_set(frame, "header", kv.k, val.c_str()) != 0) {
@@ -2023,7 +2161,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   const std::string out_path = out_dir + "/p1_stack.json";
   Json stack_out = Json{{"schema", "DATA-P1-STACK"},
                         {"nside", res.nside}, {"nested", res.nested},
-                        {"pixfrac", res.pixfrac},
+                        {"pixfrac", res.pixfrac}, {"precision_mode", precision_mode},
                         {"n_healpix_pixels", static_cast<int64_t>(res.n_healpix_pixels)},
                         {"n_source_pixels", static_cast<int64_t>(res.n_source_pixels)},
                         {"elapsed_sec", static_cast<double>(res.elapsed_sec)},
@@ -2033,6 +2171,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_healpix_pixels"] = static_cast<int64_t>(res.n_healpix_pixels);
   (*man)["stack_artifact"] = out_path;
+  (*man)["precision_mode"] = precision_mode;
+  (*man)["photometry_applied"] = photometry_applied;
+  (*man)["photscal"] = photscal;
+  (*man)["photometry_provenance"] = have_phot_prov ? "p1_phot.json" : "absent";
   (*man)["artifacts"] = Json::array({hiss_path, out_path});
   return Result<void>::success();
 }
