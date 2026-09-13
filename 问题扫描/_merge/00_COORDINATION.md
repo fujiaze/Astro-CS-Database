@@ -361,3 +361,35 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 ### 现场（重要）**
 - L12 证实并发修改导致 `module_adapters.cpp` 关键锚点在扫描期间 **5023→5435、3790→4202** 位移。
   所有 M 代理：该文件与 `cli/commands.cpp` 的行号一律改用符号锚，不得因漂移判叶子造假。
+
+## 收档 L11（运行时/线程预算/CPU 后端/ACR，21 条：P0:6/P1:13/P2:2）—— 与 F00-03 收敛
+
+### 三重独立收敛：机器门"看不见"未接线重计算
+- 前台 F00-03：`tools/arch/check_thread_budget.py` PATTERNS 只有 5 类，**裸 `#pragma omp parallel for` 不产生任何命中**，
+  而 `lib/photometric_calib/cpp/src/pc_api.cpp` 有 14 处裸并行区、模块自身 `module.yaml:30-36` 自证未接 ThreadLease。
+- L11 独立量化同一漏洞：对 `lib/**` 409 文件重放该检查器，`std::thread` 命中 **0**，而仓库内
+  `std::vector<std::thread>` 形态 **≥29 处**、`#pragma omp` 并行区 **85 处**；`cli/`、`providers/`、`runtime/` 根本不在扫描面；
+  并且**单测把"0/0"直接写成通过断言**（自证式测试）。→ 与 F00-03 同根因，M5a 与前台并档为一条 P0 根因。
+- L13（注释广度）亦命中 `pc_api.cpp:331` 注释写死"OpenMP 16 线程"而 pragma 无 num_threads —— 三源同证。
+
+### L11-003/004/005 是本轮"门禁可信度"主题的最硬证据（M5a 必须逐条复算语义，不接受转述）
+- **利用率口径错误（L11-003）**：门按"单核=100%"比较，而生产喂值是 `ΔCPU秒/墙钟` ⇒ 分配 4 核时 0.9 核也判"90% 通过"。
+  M5a 要求：把喂值链（`cli/resource_recorder.h` 计算 → `cli/commands.cpp:861-865` 赋 `GateConfig` →
+  `cli/resource_gate.h:241-244` 与 `kCpuP50MinPercent/kCpuMeanMinPercent` 比较）两侧口径逐项对齐，
+  给出"归一化分母到底是 1 核还是 N 核"的**唯一结论**，并说明与 `resource_gate.h:102` 注释自述的
+  "100%=全部 effective available workers 用满"是否互相矛盾。若确认口径不一致 → 宪章 §10.5/§18.2 的门在数学上无效，P0。
+- **零调用点（L11-004）**：`ci/checks.json` 全文无 `--gate-required/--gate-workers`，`ci/run.py:70-77` 自述
+  "CI 注册表当前零 --gate-required"，`ci/tests` 还把该事实反向断言固化；而 `docs/owner/RELEASE_STATUS.md:109-110` 与
+  `docs/architecture/MODULE_MAP.md:41` 给 `IMPLEMENTED` 结论。→ 声明与证据割裂 + 测试把缺陷当规格固化（`F_TEST_GAP`），P0。
+- **§10.5 唯一合规实现无人调用**（L11-004 前半）+ **生产门用 0.80 而冻结值是 0.85、连续 10s×60% 判据无实现但注释称在位**
+  （L11-002，与前台对 L17-004 的复核完全同源）→ 与 L17-004 **必须并成一条**，不得两处各写一遍。
+- **L11-011**：provider 侧 Drizzle/积分内核 float32 累积 + 裸 `1e-6f` 静默归零（违 §5.3）与 L04-001
+  （`precision_mode=0` 默认 FP32、`module_adapters.cpp:1960` 恒投 FLOAT32 而元数据按 precision_mode 写 dtype）**同一事实的两个视角**
+  → M5a 落 provider/内核侧、M2a 落 drizzle/元数据侧，双方 related 互挂，由前台并为主题"FP64 承诺与实际累加域脱钩"。
+
+### 移交与拆分
+- **M5 拆两轮**：M5a = L11（运行时/线程/CPU/ACR，21 条）；M5b = L12 + L17（CLI·ABI·构建面 + 治理门禁，46 条）。
+  理由：两者都需逐条重验，合计 67 条超单代理可靠深度；L12-006/007（版本）与 L17-002（版本）由 M5b 内部并档，
+  前台已给出 F00 侧证据（`packaging/schemas/install-tree-contract.schema.json:12` 用 const 钉死 alpha.1）。
+- L11-001/008/009/010 等 ACR 休眠与 ISA 变体项与 L12-001（"ACR/第二调度器门验的是假对象"）同属
+  **「验证明对象 ≠ 交付对象」**，M5a/M5b 各自落档、`related` 互挂，前台归纳为一条根因。
