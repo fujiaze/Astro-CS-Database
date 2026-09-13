@@ -26,12 +26,25 @@ enum P3WcsStatus {
     P3_WCS_HEMISPHERE = 3      // 输出跨 TAN 半球
 };
 
+/* 请求层投影/frame/coverage_output 合法性 (B2-A4/A5 单一机器源, CLI 配置面与
+ * 节点面共用)。语义 = p3_session.cpp parse_request 冻结拒清单:
+ *   projection   缺省 "TAN"; 仅 TAN 在本生产路径已实现, 其它(含未注册码)一律
+ *                P3_WCS_UNSUPPORTED —— 不得静默映射为 TAN (ALG-P3-PROJ-IMPL-001 §15);
+ *   frame        缺省 "icrs"; 非 icrs(大小写不敏感接受 "ICRS") → P3_WCS_UNSUPPORTED;
+ *   coverage_output 缺省 "mask"; 非 mask → P3_WCS_PARAM。
+ * 入参 nullptr = 键缺省; 非空串按值校验(空串非法)。why 可选填诊断文本。
+ * 本函数不触碰任何 TAN 数值实现。 */
+P3WcsStatus p3_wcs_validate_request(const char* projection, const char* frame,
+                                    const char* coverage_output, std::string* why);
+
 /* 构造描述符: scale 为 deg/px; parity: "east_left"(CD1_1<0, 默认)|"east_right"(CD1_1>0);
- * rotation_pa_deg: 天北方向相对 +y 的位置角(可选, 0=北朝上)。逐项守卫(ALG-P3-003)。 */
+ * rotation_pa_deg: 天北方向相对 +y 的位置角(可选, 0=北朝上)。逐项守卫(ALG-P3-003)。
+ * projection: 缺省 "TAN"(默认实参, 既有调用零改动); 非 TAN → P3_WCS_UNSUPPORTED,
+ * *out 保持零初始化且不产半成品。 */
 P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
                         double scale_deg_per_px, int width_px, int height_px,
                         const char* parity, double rotation_pa_deg,
-                        P3WcsDescriptor* out);
+                        P3WcsDescriptor* out, const char* projection = "TAN");
 
 /* pixel-center world 变换: (x,y) 为 0-based 像素坐标(FITS=+1);
  * 失败(半球外)返回非 0。 */

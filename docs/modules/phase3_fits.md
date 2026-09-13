@@ -49,7 +49,7 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 - 职责：signal 主 HDU + COVERAGE 扩展 HDU 的 FITS 单文件写出——
   WCS/BUNIT/provenance 关键字全量（SCI-P3 §96 面）、R10-C 原子
   发布序（tmp→fits_flush_file→close→fsync(fd)→rename，
-  p3_output.cpp:221-273）、失败/取消清理不发布（p3_output.h:41-44）、
+  p3_output.cpp:235-287）、失败/取消清理不发布（p3_output.h:41-44）、
   sha256 严格封装完整性锚（:92-114）与独立重开验证
   （p3_output_verify :296-368）。
 - 非职责：重采样/tile 读取（P3-RSMP 域）、请求解析与参数拒绝
@@ -77,7 +77,7 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
   p3_output_write_atomic（h:45-53，实现 :117-321）/p3_output_verify
   （h:57-60，:296-368）+ P3Provenance/P3OutputResult/P3OutputStatus
   + p3_wcs_make/p3_wcs_pix2world/p3_wcs_world2pix/
-  p3_wcs_fits_keywords（p3_wcs.h:31-46）。
+  p3_wcs_fits_keywords（p3_wcs.h:44-59）。
 - 编排面=API-P3-001 FROZEN（p3_session.h:16-28 五段 C ABI +
   last_error h:33-37）；生命周期 create→validate→run→inspect→
   destroy；不新增/不修改任何 C 头/C ABI。

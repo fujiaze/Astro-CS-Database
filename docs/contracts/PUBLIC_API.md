@@ -1848,7 +1848,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
   float* coverage, int width, int height, const P3WcsDescriptor* wcs,
   const char* bunit, const char* output_path, const P3Provenance* prov,
   int bitpix, int cancelled_at_row, P3OutputResult* result)`
-  （h:45-53 声明，实现 p3_output.cpp:117-321）: 原子写入口——
+  （h:45-53 声明，实现 p3_output.cpp:117-335）: 原子写入口——
   signal 主 HDU + COVERAGE 扩展 HDU 合成单文件；tmp → fits_flush_file
   → close → fsync(fd) → rename（R10-C 冻结序，:221-273）；取消
   （cancelled_at_row≥0）/任一步失败 → unlink 不发布（h:41-44）。
@@ -1862,7 +1862,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - `P3OutputStatus p3_output_verify(const char* output_path, const
   P3WcsDescriptor* wcs, const float* signal, const float* coverage,
   int width, int height, P3OutputResult* result)`
-  （h:57-60 声明，实现 p3_output.cpp:296-368）: 独立重开验证
+  （h:57-60 声明，实现 p3_output.cpp:310-382）: 独立重开验证
   （READONLY fits_open_file :312）——逐 HDU 尺寸/像素回环
   （NaN==NaN 一致 :327-330）+ coverage 二值门（>0.5f :346）+
   sha256 重算（失败→IO 不带假哈希 :356-366）。wcs 参数现状忽略
@@ -1933,7 +1933,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - `P3WcsStatus p3_wcs_make(double centre_ra_deg, double
   centre_dec_deg, double scale_deg_per_px, int width_px, int
   height_px, const char* parity, double rotation_pa_deg,
-  P3WcsDescriptor* out)`（h:31-34 声明，实现 p3_wcs.cpp:30-90）:
+  P3WcsDescriptor* out)`（h:31-34 声明，实现 p3_wcs.cpp:30-123）:
   descriptor 构造入口——G1 冻结式（CRPIX=(W+1)/2、CD=R(−PA)·
   diag(sgn_x·s, sgn_y·s)，PA=0 精确退化对角 diag(−s,+s)/
   diag(+s,−s)，det(CD)=−s²<0 手性冻结，§6.2）；参数校验序 parity→

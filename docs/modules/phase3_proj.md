@@ -48,7 +48,7 @@
   P3WcsDescriptor/P3WcsStatus/p3_wcs_make/p3_wcs_pix2world/
   p3_wcs_world2pix/p3_wcs_fits_keywords。
 - 会话消费点: p3_session.cpp :17/:160/:163/:232/:247-253；
-  域际消费: p3_output.cpp:148-169（WCS 关键词写，DATA-P3-FITS 面）。
+  域际消费: p3_output.cpp:157-182（WCS 关键词写，DATA-P3-FITS 面）。
 - 执行面: tests/unit/p3_wcs_test.cpp（90 行）+
   tests/backend/test_p1002_gaps.py（独立解析解回归）+
   tests/backend/p3_wcs_main.cpp（探针）。

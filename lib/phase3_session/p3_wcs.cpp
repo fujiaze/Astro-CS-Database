@@ -54,13 +54,45 @@ inline double fits_pixel_0based(double x1based) {
 }
 }  // namespace
 
+// 请求层字段合法性 (B2-A4/A5 单一机器源)。语义与 p3_session.cpp parse_request
+// 冻结拒清单一致; 未实现/未注册投影在此显式拒绝, 绝不放行也不静默改写为 TAN。
+P3WcsStatus p3_wcs_validate_request(const char* projection, const char* frame,
+                                    const char* coverage_output, std::string* why) {
+    const std::string proj = projection ? std::string(projection) : std::string("TAN");
+    if (proj != "TAN") {
+        if (why)
+            *why = "projection must be TAN (Phase3 production path implements only TAN; "
+                   "unimplemented/unknown projection is rejected - ALG-P3-PROJ-IMPL-001)";
+        return P3_WCS_UNSUPPORTED;
+    }
+    if (frame) {
+        const std::string fr(frame);
+        if (fr != "icrs" && fr != "ICRS") {
+            if (why) *why = "frame must be icrs";
+            return P3_WCS_UNSUPPORTED;
+        }
+    }
+    if (coverage_output) {
+        if (std::string(coverage_output) != "mask") {
+            if (why) *why = "coverage_output must be mask";
+            return P3_WCS_PARAM;
+        }
+    }
+    return P3_WCS_OK;
+}
+
 P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
                         double scale_deg_per_px, int width_px, int height_px,
                         const char* parity, double rotation_pa_deg,
-                        P3WcsDescriptor* out) {
+                        P3WcsDescriptor* out, const char* projection) {
     if (!out) return P3_WCS_PARAM;
+    // 投影先于一切数值构造显式校验 (fail-closed; 未实现投影不产半成品 descriptor)
+    {
+        std::string perr;
+        const P3WcsStatus pst = p3_wcs_validate_request(projection, nullptr, nullptr, &perr);
+        if (pst != P3_WCS_OK) return pst;
+    }
     *out = P3WcsDescriptor{};
-    const std::string proj = "TAN";
     if (parity == nullptr) parity = "east_left";
     const std::string par = parity;
     if (par != "east_left" && par != "east_right") return P3_WCS_PARAM;
@@ -75,6 +107,7 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
     out->crpix_y = (height_px + 1) / 2.0;
     out->width_px = width_px;
     out->height_px = height_px;
+    out->projection = "TAN";   // 已在入口校验; descriptor 携带已校验投影(非硬编码路径)
     // G1 (ALG-P3-002, docs/algorithms/PHASE3_RESAMPLE.md §2) 冻结输出 WCS 构造
     // (FITS 1-based, CD-only, 对角, PA=0 精确形式):
     //   east_left:  CD = diag(−s, +s)   (x 增 → RA 减, 北朝上)
@@ -113,7 +146,6 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
         const P3WcsStatus st = p3_wcs_pix2world(out, c[0], c[1], &ra, &dec);
         if (st != P3_WCS_OK) return st;
     }
-    (void)proj;
     return P3_WCS_OK;
 }
 
@@ -171,11 +203,17 @@ P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double ra_deg, double dec
 
 std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d) {
     if (!d) return {};
+    // 投影由已校验 descriptor 决定 (B2-A4): 未实现投影不产关键词 (fail-closed,
+    // 绝不输出与请求不符的 CTYPE)。TAN 分支字节与旧硬编码完全一致。
+    const char* pj = (d->projection && *d->projection) ? d->projection : "TAN";
+    if (std::string(pj) != "TAN") return {};
+    const std::string ctype1 = std::string("RA---") + pj;
+    const std::string ctype2 = std::string("DEC--") + pj;
     char buf[128];
     std::string out;
     auto add = [&](const std::string& line) { out += line + "\n"; };
-    add("CTYPE1= 'RA---TAN'");
-    add("CTYPE2= 'DEC--TAN'");
+    add("CTYPE1= '" + ctype1 + "'");
+    add("CTYPE2= '" + ctype2 + "'");
     add("CUNIT1 = 'deg'");
     add("CUNIT2 = 'deg'");
     std::snprintf(buf, sizeof(buf), "CRPIX1 = %.10f", d->crpix_x); add(buf);

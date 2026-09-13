@@ -136,7 +136,7 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes（:16）。
 `output_dir` 即拒（"config missing 'output_dir'"）；cli/runtime_client
 .cpp:30-55 phase_config——run 格式自动补 output_dir（:49），phase2
 格式直通**不自动补**（:51）；session validate 拒缺失（CLI 2，
-runtime_client.cpp:28 注释冻结）。契约面：parse 拒平铺缺键、
+runtime_client.cpp:29 注释冻结）。契约面：parse 拒平铺缺键、
 passthrough 交会话拒——两道防线，语义一致。
 
 ## 6 trace 语义
@@ -310,7 +310,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   object/缺 hips_paths/缺 output_dir/hips_paths 空与非 string 项/
   upm 非对象/未知键（DISP-P2SES-001 现状口径：不拒——按 §11.3 登记断
   言，整改后翻转为拒）/output_dir 注入面（parser.cpp:343-345 拒、
-  runtime_client.cpp:49 补/:51 直通不补）；取消注入点：四段边界各
+  runtime_client.cpp:73 补/:51 直通不补）；取消注入点：四段边界各
   一（mock host cancel → ACS_ERR_CANCELLED + persist 段取消 model
   仍释放）；manifest 状态机：created→complete/failed 全路径 +
   取消歧义现状断言（DISP-P2SES-003）。

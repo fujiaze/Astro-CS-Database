@@ -1954,11 +1954,11 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 | 名称 | dtype | shape | 单位 | 语义/invalid |
 |---|---|---|---|---|
 | signal | float32 | [W·H]（行主序，W,H∈[1,20000]） | BUNIT（surface brightness，缺省 ADU） | 无覆盖像素=NaN（上游采样 c≠1 置 NaN，p3_session.cpp:238）；NaN 合法语义=无覆盖，禁 ±Inf 伪装 |
-| coverage | float32 | [W·H] | DIMENSIONLESS（二值门 {0,1}） | covered ⇔ value>0.5f（p3_output.cpp:287/:346）；1=足迹内存在有限 tile 像素（ALG-P3-004 G5）；其它值按门归 0/1 |
+| coverage | float32 | [W·H] | DIMENSIONLESS（二值门 {0,1}） | covered ⇔ value>0.5f（p3_output.cpp:301/:360）；1=足迹内存在有限 tile 像素（ALG-P3-004 G5）；其它值按门归 0/1 |
 | wcs | P3WcsDescriptor | 1 | deg/px（CD）、px（CRPIX） | crpix FITS 1-based pixel-center（p3_wcs.h:14）；cd FITS 顺序 CD[i][j]（:16）；projection="TAN"（:19）；abs(dec)≤85° 与四角同半球守卫（P3_WCS_PARAM/P3_WCS_HEMISPHERE，p3_wcs.h:24-26） |
-| bunit | char* | 1 | — | 可空→缺省 "ADU"（p3_output.cpp:174-176） |
+| bunit | char* | 1 | — | 可空→缺省 "ADU"（p3_output.cpp:188-190） |
 | prov | P3Provenance | 1 | — | 8 字段（p3_output.h:15-24）；manifest_hash 现状恒 nullptr（p3_session.cpp:270，P3-FITS-IMPL 接线，DISP 登记不改码） |
-| bitpix | int | 1 | — | ∈{-32,-64}，其它值 P3_OUT_PARAM（p3_output.cpp:140-145）；session 默认 -32（:285） |
+| bitpix | int | 1 | — | ∈{-32,-64}，其它值 P3_OUT_PARAM（p3_output.cpp:140-154）；session 默认 -32（:285） |
 | output_path | char* | 1 | — | 发布路径；tmp 同目录（`<path>.<pid>.tmp`，:81；h:41-44 协议注形态偏差=DISP-P3FITS-002） |
 | cancelled_at_row | int | 1 | — | -1=不取消（session 恒 -1 :292）；≥0 → 取消不落盘（:198-202） |
 
@@ -1966,10 +1966,10 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 
 | 名称 | dtype/形态 | 语义 |
 |---|---|---|
-| FITS 主 HDU | BITPIX=-32\|-64，NAXIS=2，[W,H] | signal；关键字=CTYPE1/2=RA---TAN/DEC--TAN、CUNIT1/2=deg、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2（p3_output.cpp:148-169）、BSCALE=1/BZERO=0（:171-173）、BUNIT（:174-176）、HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER+HISTORY（:178-189） |
+| FITS 主 HDU | BITPIX=-32\|-64，NAXIS=2，[W,H] | signal；关键字=CTYPE1/2=RA---TAN/DEC--TAN、CUNIT1/2=deg、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2（p3_output.cpp:157-182）、BSCALE=1/BZERO=0（:171-173）、BUNIT（:174-176）、HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER+HISTORY（:178-189） |
 | COVERAGE 扩展 HDU | 同 BITPIX，EXTNAME="COVERAGE" | coverage；DATASUM=32-bit fdatasum(signal)（:211-219；TINT 数值关键字，非 FITS 标准 ASCII CHECKSUM，如实冻结） |
 | VARIANCE/IVAR 扩展 HDU（**目标态**，DATA-P3-UNC-001 §30.4） | 同 BITPIX，EXTNAME="VARIANCE"/"IVAR" | 输入 HiPS 含 variance/ivar 子产品时必写（禁静默丢弃，宪章 §7.3）；无则不写 HDU 且 manifest uncertainty_available=false；BUNIT=`<BUNIT>^2` / `1/(<BUNIT>^2)`；传播公式与 invalid 见 §30.4；实现归 P3-001，现状无此 HDU |
-| result.sha256 | char[65] | 输出文件 SHA-256 hex 小写；仅完整读出后填写，失败不写空/前缀哈希（p3_output.cpp:92-114/:279-283） |
+| result.sha256 | char[65] | 输出文件 SHA-256 hex 小写；仅完整读出后填写，失败不写空/前缀哈希（p3_output.cpp:92-114/:293-297） |
 | result.coverage_ok / reopen_ok | int 0/1 | coverage 头/数据一致；独立 reader 重开回环一致（:350-354） |
 | result.covered_px / total_px | long | #(coverage>0.5f)；W·H（:287-289） |
 
@@ -1992,7 +1992,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   失败/取消 → unlink(tmp/产物) 不留假文件、不发布无完整性锚输出
   （h:41-44 + IO_003 §6）。
 - 发布协议冻结（R10-C）：fits_flush_file → close → fsync(fd) →
-  rename（p3_output.cpp:221-273）；任何一步失败整体 IO。
+  rename（p3_output.cpp:235-287）；任何一步失败整体 IO。
 - NaN 语义：signal 双方 NaN 视为一致（源无覆盖=NaN，:327-330）；
   禁止 0.0 伪装无覆盖。
 - 取消：内核行粒度 cancelled_at_row；会话层取消在采样循环
@@ -2114,7 +2114,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 
 > ID: DATA-P3-WCS  状态: CONTRACT_READY（P3-PROJ-DOC 冻结，2026-09-11）
 > 模块: lib/phase3_session/p3_wcs.cpp（165 行）+ 唯一权威签名头
-> lib/phase3_session/p3_wcs.h（50 行，本域四函数 =p3_wcs.h:31-46）
+> lib/phase3_session/p3_wcs.h（50 行，本域四函数 =p3_wcs.h:44-59）
 > （astrocs.p3.projection；astrocs_phase3_session 静态库成员，根
 > CMakeLists.txt:460-465；迁移目标 astrocs_p3_projection.dll 为矩阵
 > 合同值，尚未存在，由 P3-PROJ-IMPL 建立，禁止声明 IMPLEMENTED；
@@ -2137,6 +2137,9 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 | width_px / height_px | int | 标量 | px | ∈[1,20000]（:42-43，kMaxSide 默认 20000，ASTROCS_P3_MAX_SIDE 编译期覆盖如实冻结） |
 | parity | char* | 1 | — | "east_left"（默认，nullptr 归一，CD1_1<0）\|"east_right"（CD1_1>0）；其它 →PARAM（:39） |
 | rotation_pa_deg | float64 | 标量 | deg | 天北相对 +y 位置角，逆时针为正；会话层现状恒 0.0（p3_session.cpp:160，PA 未接线=整改项不修码） |
+| projection | char* | 1 | — | **请求投影码**（B2-A4，p3_wcs_validate_request）。缺省 "TAN"；仅 "TAN" 在本生产路径已实现。SIN/CAR/AIT（即便在 lib/phase3_proj registry 注册为 §18.1 首批四投影之一）与任意未注册码在 alpha 生产路径**一律 P3_WCS_UNSUPPORTED，禁止静默映射为 TAN**；四投影生产扩展见 §6/B2-A4 延期项 |
+| frame | char* | 1 | — | 请求参考架（B2-A5）；缺省 "icrs"（接受 "ICRS"）；非 icrs → P3_WCS_UNSUPPORTED（不得静默忽略） |
+| coverage_output | char* | 1 | — | 覆盖率输出语义（B2-A5）；缺省 "mask"；非 mask（如 "weight"）→ P3_WCS_PARAM（不得静默按 mask 产出） |
 | d（映射入口） | P3WcsDescriptor* | 1 | deg、px | 见 28.2 输出面；非空守卫（:95/:122） |
 | x / y（pix2world） | float64 | 标量 | px | **0-based**（FITS 1-based=+1，:97-98 内部换算）；TAN 半球外 r≥π/2 → P3_WCS_HEMISPHERE（:104） |
 | ra_deg / dec_deg（world2pix） | float64 | 标量 | deg（ICRS） | \|dec\|>85° →PARAM（:123）；背面 denom≤0 →HEMISPHERE（:130） |
@@ -2145,7 +2148,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 
 | 名称 | dtype/形态 | 语义 |
 |---|---|---|
-| P3WcsDescriptor | struct（p3_wcs.h:11-20） | crval_ra/dec_deg（deg, ICRS）；crpix_x/y（FITS 1-based pixel-center=(W+1)/2）；cd[2][2]（FITS 顺序 CD[i][j]，deg/px，CD-only，det=−s²<0 手性冻结）；width_px/height_px；projection="TAN"（硬编码，:36/:89） |
+| P3WcsDescriptor | struct（p3_wcs.h:11-20） | crval_ra/dec_deg（deg, ICRS）；crpix_x/y（FITS 1-based pixel-center=(W+1)/2）；cd[2][2]（FITS 顺序 CD[i][j]，deg/px，CD-only，det=−s²<0 手性冻结）；width_px/height_px；projection（B2-A4：由 p3_wcs_make 入口经 p3_wcs_validate_request 校验后携带；本生产路径唯一合法值 "TAN"） |
 | ra_deg / dec_deg（pix2world 出参） | float64 标量 | deg（ICRS）；RA 归一 [0,360)（normalize_ra fmod+正化，:24-27/:113-114） |
 | x / y（world2pix 出参） | float64 标量 | px（0-based；δ=CD⁻¹·(ξ,η)+CRPIX−1，:136-141） |
 | fits_keywords 返回 | std::string | 每行 ≤80 字节 FITS 卡文本，"\n" 分隔：CTYPE1/2=RA---TAN/DEC--TAN、CUNIT1/2=deg、CRPIX1/2、CRVAL1/2（%.10f）、CD1_1..CD2_2（%.12e）（:145-163）；nullptr 入参→空串 |
@@ -2168,6 +2171,16 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   触发锚见 ALG-P3-PROJ-IMPL-001 §9 表；make 失败 out 保持零初始化
   态（:35），不产出半成品 descriptor；四角同半球守卫失败
   （:80-88）按首次失败码透传。
+- **未实现投影必须拒绝（B2-A4 冻结口径，01_SCIENCE_AUTHORITY_BASELINE
+  §4「未实现的投影或语义必须拒绝」+ 宪章 §14.4 fail-fast）**：
+  `p3_wcs_validate_request` 是请求层 projection/frame/coverage_output 的
+  唯一机器源，节点面（module_adapters p3n_geom/P3NodeModule::validate_config/
+  p3n_wcs_from_json）与 CLI 配置面（runtime_client phase_config）共用；
+  非 "TAN" 的 projection、非 icrs 的 frame、非 mask 的 coverage_output
+  必须在 `phase3 validate|plan|run` **三面一致地非零退出**，且 **run 不得
+  写出 output_phase3.fits**（写路径 p3_output_write_atomic_ex 在创建任何
+  文件前二次校验）。消费上游 wcs_plan 时若 projection 字段漂移/被篡改，
+  按 DATA 拒绝而非按 TAN 消费。
 - 极点邻域单一条件 \|dec\|≤85°（SCI/API/session 同一常数）；TAN
   半球界 r<π/2（正映射）与 denom>0（反映射）数学等价；FOV 适用
   上限 20°（SCI §9a-12 冻结，超限非错误、由畸变语义约束）。
@@ -2183,7 +2196,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 - 下游: API-P3-PROJ-001（p3_wcs_make/p3_wcs_pix2world/
   p3_wcs_world2pix/p3_wcs_fits_keywords 消费面冻结）；
   DATA-P3-FITS（§27，WCS 关键词写路径 wcs 字段承载本 descriptor，
-  p3_output.cpp:148-169）；API-P3-001（会话五段编排面 FROZEN
+  p3_output.cpp:157-182）；API-P3-001（会话五段编排面 FROZEN
   镜像）；TEST-P3-WCS-001（登记面=TEST-P3-WCS-DESIGN-001 设计
   冻结 VERIFIED=ALG-P3-PROJ-IMPL-001 §12 + registry 手写页 §9
   双重陈述；可执行面升级归 P3-PROJ-TEST）。
