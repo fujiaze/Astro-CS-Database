@@ -161,11 +161,17 @@
   （有 variance 输入时）；provenance 写 pixfrac/源像素尺度。
 - legacy HISS: HissWriter 流式（writeHisTilesT，drizzle_engine.cpp:1265
   finalize），测光 gate :1950-1956；operation_counts.json 剖面
-  （api.cpp:1078-1121）。
+  （api.cpp:1091-1134）。
 - **B2-A12 精度 provenance（无 silent 缺省）**: 累加精度由
   `drizzle.precision_mode`（整数 0=FP32 / 1=FP64）显式给出；缺失或非整数
   → DATA 拒绝（不 silent 降 FP32）。节点写 p1_stack.json `precision_mode`、
   帧头 `PRECISION`=fp32/fp64 实际值（module_adapters.cpp:2023-2049）。
+- **RESCUE-FD-02 库边界精度缺省（无 silent FP32）**: `hp_drizzle_run` 参数
+  `precision_mode==-1` 且帧头无 `PRECISION` KV 时按宪章 §5.3 取 **FP64**
+  （不再静默 FP32）；帧头显式 `fp32`/`fp64` 生效；未知 KV 值或参数
+  非 -1/0/1 → 显式拒绝（返回非零，不写产物）。生产节点仍由
+  `drizzle.precision_mode`（0|1）显式门把关（B2-A12）。
+  （hp_drizzle_api.cpp:956-991；回归 tests/unit/drizzle_precision_default_test.cpp）
 - **B2-A14 测光 provenance（禁硬编码 PHOTAPPL=1）**: PHOTSCAL/PHOTAPPL
   由真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV，
   `p1_op_photometry` 产出）决定；未应用测光 → PHOTAPPL=0 + 帧头

@@ -74,20 +74,27 @@ n 偶取 `(v[n/2−1]+v[n/2])/2`（`median_inplace`/`median_of`，如
 
 ### 3.2 ALG-CAL-002 MasterFlat 生成 `ac::generate_master_flat`
 
-源码锚: `master_generator.cpp:176-259`。无 combine 参数，合并固定 mean
+源码锚: `master_generator.cpp:178-295`。无 combine 参数，合并固定 mean
 （SCI-CAL-001 §12 ALG-CAL-002 语义一致）。
 
 ```text
-F2.1  步骤1（每帧 n，OpenMP parallel for）[194-225]:
+F2.1  步骤1（每帧 n，OpenMP parallel for）[196-246]:
         dst = flat_stack[n] − bias          # bias==NULL 时拷贝
-        frame_med = median(dst)
-        isnan(frame_med) || frame_med==0.0 → frame_med = 1.0   # [210]
-        frame_med < 0.0 → 返回 AC_ERR_PARAM, out 不写            # [213-217]
+        tmp = {dst[i] | !isnan(dst[i])}     # DISP-CAL-010: 剔 NaN 后取中位数
+        tmp 空（全 NaN 帧）→ 返回 AC_ERR_PARAM, out 不写         # [219-221]
+        frame_med = median(tmp)                                  # [223]
+        非有限 frame_med（含 ±Inf 相消）→ AC_ERR_PARAM, out 不写  # [226-230]
+        frame_med == 0.0 → frame_med = 1.0                      # [231]
+        frame_med < 0.0 → 返回 AC_ERR_PARAM, out 不写            # [234-238]
         dst = max(dst / frame_med, 0.1)     # 逐帧归一 + floor
-F2.2  步骤2: generate_master(norm, …, AC_COMBINE_MEAN)   # [229-230]
-F2.3  步骤3（最终归一）[234-252]:
-        final_med = median(out);  isnan||==0 → 1.0    # [237]
-        final_med < 0.0 → 返回 AC_ERR_PARAM, out 不写  # [240-244]
+F2.2  步骤2: generate_master(norm, …, AC_COMBINE_MEAN)   # [250-251]
+F2.3  步骤3（最终归一）[255-288]:
+        tmp = {out[i] | !isnan(out[i])}     # 逐像素全 NaN 像素保持 NaN
+        tmp 空（全 NaN 输出）→ 返回 AC_ERR_PARAM, out 不写        # [263-265]
+        final_med = median(tmp)                                  # [267]
+        非有限 final_med → AC_ERR_PARAM, out 不写                 # [268-272]
+        final_med == 0.0 → final_med = 1.0                      # [273]
+        final_med < 0.0 → 返回 AC_ERR_PARAM, out 不写            # [276-280]
         out = max(out / final_med, 0.1)
 ```
 
@@ -95,6 +102,12 @@ F2.3  步骤3（最终归一）[234-252]:
 > （B13-R13-7 实现）与 SCI-CAL-001 §4/§5/§8 对 `median<=0` 的"不归一、
 > 保持原样"文本不一致；按 ANCHOR_CONTRACT §2.3 只登记、不改 SCI 原文，由
 > 负责人在"改代码"与"按宪章 §1.2 改 SCI 文本"间裁决。
+>
+> **DISP-CAL-010 关联（FIX-SCIENCE-2，仍不改 SCI 文本）**：F2.1/F2.3 帧级
+> median 现与 `generate_master` 逐像素路径同一 NaN 策略（先剔 NaN 再取
+> 中位数）；"全 NaN 帧 / 全 NaN 输出 → fail-closed" 的退化语义在 SCI-CAL-001
+> §4/§8 无显式条文，作为 **OWNER-04 关联**一并登记，交由负责人裁决是否需
+> 宪章 §1.2 流程补 SCI 文本。
 >
 > **B2-A6 消费边界（冻结口径）**：P1 校准节点 `p1_op_calibrate`
 > （`module_adapters.cpp:1153-1179,1230-1240`）在进入 `ac_calibrate_frame`
@@ -211,7 +224,7 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 | 输出 dtype/shape | f32 ABI: float32 `[h][w]` 行主序（idx=y·w+x，0-based）；f64 ABI: double 同 shape；stack: `[n_frames][h][w]` 连续 | 各 C API 注释 |
 | 单位 | 全部 ADU；flat_norm/σ 参数/K 无量纲；曝光秒仅在调用方算 K 时出现；坐标 0-based 像素、无 WCS | SCI-CAL-001 §3/§3a |
 | 掩码极性 | bad/hot/cold 掩码 1=坏点（char/uint8） | cosmetic_corrector.cpp:130,151 |
-| NaN 语义 | generate_master 统计跳过 NaN、全 NaN→输出 NaN；calibrate/cosmetic 阈值统计**不**过滤 NaN（NaN 算术直传/阈值不可靠） | master_generator.cpp:106-118；cosmetic_corrector.cpp:45-54 |
+| NaN 语义 | generate_master 统计跳过 NaN、全 NaN→输出 NaN；**generate_master_flat 帧级 median 同样先剔 NaN（DISP-CAL-010），全 NaN 帧/全 NaN 输出 fail-closed**；calibrate/cosmetic 阈值统计**不**过滤 NaN（NaN 算术直传/阈值不可靠） | master_generator.cpp:106-118,214-223,258-267；cosmetic_corrector.cpp:45-54 |
 | 日志 I/O | generate_master/flat 每次调用 2 行 stderr（ac_log）；apply_photometry 2 行 stderr；无文件/网络 I/O | master_generator.cpp:38-45 |
 | 内存 | 输出缓冲调用方分配；模块内 std::vector RAII。峰值额外内存: generate_master O(n_frames/线程)；generate_master_flat O(n_frames·npix·4B)（norm 主缓冲）；calibrate O(1)；cosmetic O(npix)（labels+masks+统计副本）；f64 转接层 O(n_pix) 全帧复制 | 各源文件 |
 | 构建 | CMake 目标 `astrocs_calibration`（STATIC，4 个 cpp，OpenMP 可选）；遗留 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:373-380；lib/calibration/Makefile |
@@ -270,9 +283,10 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 | 空指针 / n_frames<=0 / w<=0 / h<=0（C API 入口） | 返回 AC_ERR_PARAM，不写 out | ac_api.cpp:60-61,72-73,86-87,100-101,115-116 及 f64 对应 |
 | ac:: 层参数无效（void 函数） | 静默返回，out 不写，actual_k=k_init | calibrator.cpp:109-112；cosmetic_corrector.cpp:236 |
 | median(flat)<=0（normalize_flat） | 不归一保持原样（SCI §4/§5/§8 文本；与 master_generator 的"拒绝"分歧登记 OWNER-04） | calibrator.cpp:86 |
-| frame_med/final_med 为 0 或 NaN（master flat） | 置 1.0（不缩放） | master_generator.cpp:210,237 |
-| frame_med/final_med < 0（master flat） | 返回 AC_ERR_PARAM，不写 out（B13-R13-7） | master_generator.cpp:213-217,240-244 |
-| flat 帧含 NaN（master flat 步骤1 帧 median） | `median_of` 不剔除 NaN（nth_element 含 NaN 属未定义序；SCI §4"median 跳过 NaN"仅在 generate_master 逐像素路径实现）→ 夹具不得依赖该路径 | master_generator.cpp:207-209,49-60 |
+| frame_med/final_med == 0（master flat，全零帧） | 置 1.0（不缩放） | master_generator.cpp:231,273 |
+| flat 帧全 NaN / 全 NaN 输出（master flat） | 剔 NaN 后无有效中位数 → 返回 AC_ERR_PARAM，out 不写（DISP-CAL-010 fail-closed；OWNER-04 关联：全 NaN 帧退化语义 SCI-CAL-001 §4/§8 无显式条文） | master_generator.cpp:219-221,263-265 |
+| frame_med/final_med < 0（master flat） | 返回 AC_ERR_PARAM，不写 out（B13-R13-7） | master_generator.cpp:234-238,276-280 |
+| flat 帧含部分 NaN（master flat 步骤1/3 median） | 与 generate_master 逐像素路径同一策略：先剔 NaN 再取中位数（DISP-CAL-010 修复；不再走 nth_element 含 NaN 的未定义序） | master_generator.cpp:214-223,258-267,49-60 |
 | master flat 全零 / median<=0 / 非有限（p1_op_calibrate 消费边界） | DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（B2-A6 fail-closed） | module_adapters.cpp:1153-1179,1230-1240 |
 | flat==NULL（calibrate） | 跳过除法，退化减法 | calibrator.cpp:122,132 |
 | dark==NULL（calibrate 标准分支） | out=light（flat 处理后） | calibrator.cpp:131 |
@@ -368,7 +382,7 @@ oracle 同容差；actual_k 精确相等。
 
 - DISP-CAL-001（**部分关闭**）`generate_master_flat` 逐帧/最终归一对
   **负 median** 已在 B13-R13-7 改为**拒绝**（返回 AC_ERR_PARAM，不写 out；
-  `master_generator.cpp:213-217,240-244`），不再直除翻转符号。**残留**：
+  `master_generator.cpp:234-238,276-280`），不再直除翻转符号。**残留**：
   与 `normalize_flat`（median<=0 完全不归一，`calibrator.cpp:86`）语义
   不一致，且与 SCI-CAL-001 §4/§5/§8 的"保持原样"文本分歧未裁决 →
   **OWNER-04**（B2-A6 登记，不反向改 SCI）。`ac_generate_master_*` 系列

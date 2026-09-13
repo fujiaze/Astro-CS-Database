@@ -403,22 +403,23 @@ int test_negative() {
         P1CAL_CHECK(cs, mout[0] == -5.0f, "negative_master_bias_ok");
     }
 
-    // --- 全 NaN master flat (HEAD 实测语义): NaN 参与 step1 median 统计,
-    // 归一与 clip 全 NaN, step3 final_med=NaN → 不归一也不拒绝 → out 全 NaN,
-    // rc==AC_OK。语义合同化 (NaN 拒绝 or 隔离) 由 P1-CAL-IMPL 处置
-    // (DISP-CAL-004); 本负面断言: 不触发负中位数拒绝域 + 输出 NaN 恒定可复现。 ---
+    // --- 全 NaN master flat (DISP-CAL-010 合同化, FIX-SCIENCE-2): 帧级 median
+    // 先剔 NaN; 两帧全 NaN → 无有效中位数 → 不可归一化 → fail-closed
+    // (AC_ERR_PARAM), out 不写。原"NaN→1.0 兜底 + 输出全 NaN + rc==AC_OK"的
+    // HEAD 实测语义由本测试注释显式交由 P1-CAL-IMPL/DISP-CAL-010 决定; 本断言
+    // 按该决定强化 (拒绝 + 哨兵保持), 非放宽。可复现: 两次调用同拒绝、out 同。 ---
     {
         const std::size_t NPIX = 8 * 8;
         std::vector<float> flat(2 * NPIX, std::numeric_limits<float>::quiet_NaN());
-        std::vector<float> out(NPIX, 0.0f), out_rep(NPIX, 0.0f);
+        std::vector<float> out(NPIX, 7.0f), out_rep(NPIX, 7.0f);
         P1CAL_CHECK_EQ(cs, ac_generate_master_flat(flat.data(), 2, 8, 8, nullptr,
-                                                   out.data(), 3.0f, 3.0f, 5), AC_OK);
+                                                   out.data(), 3.0f, 3.0f, 5), AC_ERR_PARAM);
         P1CAL_CHECK_EQ(cs, ac_generate_master_flat(flat.data(), 2, 8, 8, nullptr,
-                                                   out_rep.data(), 3.0f, 3.0f, 5), AC_OK);
+                                                   out_rep.data(), 3.0f, 3.0f, 5), AC_ERR_PARAM);
         P1CAL_CHECK(cs, std::memcmp(out.data(), out_rep.data(),
                                     NPIX * sizeof(float)) == 0, "nan_flat_reproducible");
         for (std::size_t i = 0; i < NPIX; ++i)
-            P1CAL_CHECK(cs, std::isnan(out[i]), "nan_flat_nan_propagation");
+            P1CAL_CHECK(cs, out[i] == 7.0f, "nan_flat_out_not_written");
     }
 
     // --- sigma<=0 (generate_master): 阈值 = med ± 0 → dev>0 拒 / dev≤0 保留,

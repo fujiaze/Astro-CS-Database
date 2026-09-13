@@ -953,28 +953,41 @@ try {
                     "(photometry_applied_upstream=%d)\n",
             photscal, photappl, (int)config.photometry_applied_upstream);
 
-    // 精度模式设置
-    // precision_mode 参数优先 (0=FP32, 1=FP64)
-    // 若参数为 -1 (未指定), 从 header KV "PRECISION" 读取 (向后兼容)
-    // 写入 HISS metadata precision_mode/signal_dtype 字段
+    // 精度模式设置 (RESCUE-FD-02)
+    // precision_mode 参数优先 (0=FP32, 1=FP64)。
+    // 参数 == -1 (未指定) 时读 header KV "PRECISION": "fp32"→FP32, "fp64"→FP64;
+    // 参数 == -1 且 header 无 PRECISION → FP64（宪章 §5.3「Drizzle 采用 float64
+    // 累积」；与节点 B2-A12 显式门同一缺省语义）。**不再静默取 FP32**。
+    // 参数既非 -1/0/1 或 header 值为未知字符串 → 显式拒绝 (禁任何静默 FP32 通路)。
+    // 写入 HISS metadata precision_mode/signal_dtype 字段。
     if (precision_mode == 0 || precision_mode == 1) {
         config.precision_mode = (uint8_t)precision_mode;
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: precision=%s (参数指定)\n",
                 precision_mode == 1 ? "FP64" : "FP32");
-    } else {
+    } else if (precision_mode == -1) {
         const char* prec_str = aio_frame_kv_get(frame, "header", "PRECISION");
-        if (prec_str) {
-            if (std::strcmp(prec_str, "fp64") == 0) {
-                config.precision_mode = 1;
-                fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: precision=FP64 (header KV PRECISION=fp64)\n");
-            } else {
-                config.precision_mode = 0;
-                fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: precision=FP32 (header KV PRECISION='%s')\n", prec_str);
-            }
-        } else {
+        if (!prec_str) {
+            config.precision_mode = 1;
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: header 无 PRECISION 字段, "
+                            "默认 FP64 (宪章 §5.3 float64 累积; 不再静默 FP32)\n");
+        } else if (std::strcmp(prec_str, "fp64") == 0) {
+            config.precision_mode = 1;
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: precision=FP64 (header KV PRECISION=fp64)\n");
+        } else if (std::strcmp(prec_str, "fp32") == 0) {
             config.precision_mode = 0;
-            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: header 无 PRECISION 字段, 默认 FP32\n");
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: precision=FP32 (header KV PRECISION=fp32)\n");
+        } else {
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: PRECISION header KV 非法 '%s' "
+                            "(expect fp32|fp64)\n", prec_str);
+            setErrorMsg(result, std::string("PRECISION header KV 非法 (expect fp32|fp64): ") + prec_str);
+            return -1;
         }
+    } else {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: precision_mode=%d 非法 "
+                        "(expect -1|0|1)\n", precision_mode);
+        setErrorMsg(result, std::string("precision_mode 非法 (expect -1|0|1): ") +
+                    std::to_string(precision_mode));
+        return -1;
     }
 
     // 5.6: 读取 "variance" 块 (逐像素方差图,

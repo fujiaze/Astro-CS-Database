@@ -1347,6 +1347,136 @@ static void test_b2a15_writer_stale_buffer_and_support() {
   }
   cleanup_fixture(fx);
 }
+
+// ── RESCUE A15 独立注入证明: 稀疏 / 多 parent / 覆盖不连续 ghost 场景 ──────
+// 两个 HISS tile 落在**不同** standard parent, 且在各 parent 内的缓冲偏移不同
+// (parent0 r=0 → offsets 0..1023; parent1 tile parent_ipix=257 → base_leaf
+// 263168 → r=1024 → offsets 1024..2047)。旧实现 (每 parent 不清零) 会把
+// parent0 的 signal/coverage/seen 残留给 parent1 的前 1024 偏移 → 幽灵像素。
+// 回退 "每 parent 清零" 或 "valid_mask=seen" 任一 → 本测试必红。
+constexpr uint64_t kA15GhostTile1 = 257;    // 263168>>18 = 1, 缓冲偏移 r=1024
+constexpr uint64_t kA15GhostCover0 = 768;
+constexpr uint64_t kA15GhostCover1 = 255;
+constexpr uint8_t  kA15GhostSup0 = 128;
+constexpr uint8_t  kA15GhostSup1 = 64;
+
+bool make_sparse_hiss_offset(const std::string& path) {
+  const uint32_t nside = 512;
+  const uint32_t depth = hiss::compute_tile_depth(nside);
+  const uint32_t tile_nside = hiss::compute_tile_nside(nside);
+  const uint32_t n_leaf = 1u << (2 * depth);
+  const double a_cell = 4.0 * 3.14159265358979323846 /
+                        (12.0 * static_cast<double>(nside) *
+                         static_cast<double>(nside));
+  hiss::HissGridSpec grid;
+  grid.nside = nside; grid.tile_nside = tile_nside;
+  grid.ordering = 1; grid.radesys = 0; grid.pixfrac = 1.0;
+  hiss::HissMetadata hmeta;
+  hmeta.nside = nside; hmeta.tile_nside = tile_nside;
+  hmeta.ordering = 1; hmeta.radesys = 0; hmeta.pixfrac = 1.0;
+  hmeta.photappl = 0;
+  std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU");
+  hiss::HissWriter writer;
+  if (writer.open(path, grid, hmeta) != 0) return false;
+  const uint64_t parents[2] = {0, kA15GhostTile1};
+  const uint64_t covers[2] = {kA15GhostCover0, kA15GhostCover1};
+  const uint8_t sups[2] = {kA15GhostSup0, kA15GhostSup1};
+  for (int t = 0; t < 2; ++t) {
+    hiss::DrizzleTileAccumulator acc;
+    acc.tile_nside = tile_nside;
+    acc.parent_ipix = parents[t];
+    acc.pixel_area = a_cell;
+    acc.pixels.resize(n_leaf);
+    for (uint64_t i = 0; i < covers[t]; ++i) {
+      acc.pixels[i].sum_flux = kA15SignalV;
+      acc.pixels[i].sum_area = (static_cast<double>(sups[t]) / 255.0) * a_cell;
+    }
+    if (writer.add_tile(parents[t], acc, nullptr, hiss::OccupancyMode::FULL) != 0) {
+      writer.cancel();
+      return false;
+    }
+  }
+  return writer.finalize() == 0;
+}
+
+static void test_b2a15_ghost_discontinuous_multiparent() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  Fixture fx = make_fixture("b2a15g");
+  const std::string hiss = fx.out_dir + "/p1_stack.hiss";
+  CHECK_MSG(make_sparse_hiss_offset(hiss), "A15 ghost fixture must be written");
+  {
+    uint32_t ns=0,tn=0,dp=0,nl=0; uint64_t nt=0,np=0;
+    char* meta=nullptr; uint64_t* tips=nullptr;
+    CHECK(aio_hiss_inspect(hiss.c_str(), &ns,&tn,&dp,&nl,&nt,&np,&meta,&tips) == 0);
+    CHECK(ns == 512 && nt == 2 && nl == 1024);
+    if (tips) CHECK(tips[0] == 0 && tips[1] == kA15GhostTile1);
+    CHECK(nl * kA15GhostTile1 == 263168u);
+    if (meta) aio_hio_free(meta);
+    if (tips) aio_hio_free(tips);
+  }
+  RunContext ctx;
+  const std::string cfg = R"({
+    "input_lights": [")" + fx.light1 + R"("],
+    "output_dir": ")" + fx.out_dir + R"(",
+    "filter_passband": "R"
+  })";
+  Result<void> wrc;
+  json wman = run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
+  CHECK_MSG(wrc.ok(), ("A15 ghost: writer must succeed: " +
+                       (wrc.failed() ? wrc.error().message() : std::string())).c_str());
+  if (wrc.failed()) { cleanup_fixture(fx); return; }
+  std::vector<float> sig0,sup0,sig1,sup1;
+  CHECK(hips_tile_signal(fx.out_dir, 0, &sig0));
+  CHECK(hips_tile_support(fx.out_dir, 0, &sup0));
+  CHECK(hips_tile_signal(fx.out_dir, 1, &sig1));
+  CHECK(hips_tile_support(fx.out_dir, 1, &sup1));
+  if (sig0.size() != 512ull*512ull || sup0.size()!=sig0.size() ||
+      sig1.size()!=sig0.size() || sup1.size()!=sig0.size()) {
+    CHECK_MSG(false, "A15 ghost: tiles must be 512x512");
+    cleanup_fixture(fx); return;
+  }
+  const double exp0 = static_cast<double>(kA15GhostSup0)/255.0;
+  const double exp1 = static_cast<double>(kA15GhostSup1)/255.0;
+  uint64_t valid0=0, valid1=0, stale_finite=0;
+  bool nan_leak=false, support_bad=false;
+  for (size_t i=0;i<sig0.size();++i) {
+    if (std::isfinite(sig0[i])) {
+      ++valid0;
+      // 输出 signal = flux_sum/covered_area (AIO 归一), 故只验有限且为正 +
+      // support 严格按 HISS 面积比 (不塌缩)。
+      if (!(sig0[i] > 0.0f) || std::fabs(sup0[i]-exp0) > 0.01) support_bad = true;
+    } else if (std::fabs(sup0[i]) > 1e-6) {
+      nan_leak = true;
+    }
+  }
+  for (size_t i=0;i<sig1.size();++i) {
+    if (std::isfinite(sig1[i])) {
+      ++valid1;
+      if (i < 1024) ++stale_finite;   // parent0 写入区: 修复后必须 invalid
+      if (!(sig1[i] > 0.0f) || std::fabs(sup1[i]-exp1) > 0.01) support_bad = true;
+    } else if (std::fabs(sup1[i]) > 1e-6) {
+      nan_leak = true;
+    }
+  }
+  CHECK_MSG(valid0 == kA15GhostCover0,
+            ("A15 ghost: parent0 valid count must equal coverage, got " +
+             std::to_string(valid0)).c_str());
+  CHECK_MSG(valid1 == kA15GhostCover1,
+            ("A15 ghost: parent1 valid count must equal coverage (no stale leak), got " +
+             std::to_string(valid1)).c_str());
+  CHECK_MSG(stale_finite == 0,
+            ("A15 ghost: parent1 stale offsets 0..1023 must be invalid, finite=" +
+             std::to_string(stale_finite)).c_str());
+  CHECK_MSG(!nan_leak, "A15 ghost: invalid signal pixels must have zero support");
+  CHECK_MSG(!support_bad, "A15 ghost: covered pixels must keep HISS support ratio");
+  {
+    json fin;
+    try { fin = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+    CHECK(fin.value("n_tiles_written", 0) == 2);
+  }
+  cleanup_fixture(fx);
+}
 // ── B2-A17 helper: 单像素 delta 帧 + HISS 精确 signal 读面 ──────────────────
 // 单像素 delta 帧: drizzle footprint = CRVAL 周围有限区域的单个 HEALPix
 // 叶像素, signal 严格 = F(ndrop=1, d=54.59, pixfrac=1.0) — 与 1e-6 精度可比。
@@ -2131,6 +2261,7 @@ int main() {
   test_b2a14_photappl_provenance();
   test_b2a16_photometry_fail_closed();
   test_b2a15_writer_stale_buffer_and_support();
+  test_b2a15_ghost_discontinuous_multiparent();
   test_b2a17_sip_bridge();
   test_determinism();
   // CORE-RACE-001（p1001 链并发撕裂读）: 独立产物路径 / IR 接线一致性 /

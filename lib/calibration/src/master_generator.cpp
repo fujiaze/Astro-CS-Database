@@ -172,7 +172,9 @@ void generate_master(const float* stack, int n_frames, int w, int h,
 // (docs/science/CALIBRATION.md §flat_norm): median<=0 的帧不可归一化 —
 // 修复前负中位数经 "!=0 → 不替换" 漏过后, 除负数致全负帧被 0.1 地板钳成
 // 常数场 (科学数据损坏)。此类输入必须在归一化前拒绝。
-// NaN 中位数 (=1.0f 兜底) 与 ==0 (全零帧) 行为保持不变 (最小爆炸半径)。
+// DISP-CAL-010: 帧级 median 与 generate_master 逐像素路径同一 NaN 策略
+// (先剔 NaN 再取中位数); 全 NaN 帧 / 全 NaN 输出无有效中位数 → fail-closed。
+// ==0 (全零帧) 行为保持不变 (median→1.0 兜底, 最小爆炸半径)。
 int generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
                           const float* bias, float* out,
                           float sigma_low, float sigma_high, int max_iter) {
@@ -204,10 +206,29 @@ int generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
             std::copy(src, src + npix, dst);
         }
 
-        // 计算帧 median
-        std::vector<float> tmp(dst, dst + npix);
+        // 计算帧 median。DISP-CAL-010: 与 generate_master 逐像素路径同一 NaN
+        // 策略 —— 先剔 NaN 再取中位数 (旧实现把含 NaN 缓冲交给 nth_element,
+        // 属未定义序, 帧中位数可成 NaN 后被兜底成 1.0 → 整帧不归一化)。
+        // 全 NaN 帧无有效中位数 → 无法归一化 → fail-closed (SCI §4;
+        // 全 NaN 帧退化语义登记 OWNER-04 关联)。
+        std::vector<float> tmp;
+        tmp.reserve(static_cast<size_t>(npix));
+        for (int i = 0; i < npix; ++i) {
+            if (!std::isnan(dst[i])) tmp.push_back(dst[i]);
+        }
+        if (tmp.empty()) {
+            ac_log("generate_master_flat: frame %d 全 NaN — 无有效中位数, reject", n);
+            return AC_ERR_PARAM;
+        }
         float frame_med = median_of(tmp);
-        if (std::isnan(frame_med) || frame_med == 0.0f) frame_med = 1.0f;
+        // B13-R13-7/DISP-CAL-010: 非有限中位数 (含 ±Inf 相消) 同属退化输入,
+        // 不可归一化; 拒绝并上抛, 不产出常数 0.1 假主帧。
+        if (!std::isfinite(frame_med)) {
+            ac_log("generate_master_flat: frame %d median 非有限 (%.6g) — reject",
+                   n, static_cast<double>(frame_med));
+            return AC_ERR_PARAM;
+        }
+        if (frame_med == 0.0f) frame_med = 1.0f;
         // B13-R13-7: 负中位数 = 全负/多数负的退化输入, 不可归一化 (SCIENCE
         // 契约: median<=0 不归一化), 拒绝并上抛, 不产出常数 0.1 假主帧。
         if (frame_med < 0.0f) {
@@ -232,9 +253,24 @@ int generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
 
     // ---- 步骤3：最终 median 归一化到 1.0（最小裁剪 0.1）----
     {
-        std::vector<float> tmp(out, out + npix);
+        // DISP-CAL-010: 合并输出同样先剔 NaN 再取中位数 (逐像素全 NaN 的
+        // 像素保持 NaN, 不参与中位数); 全 NaN 输出无有效中位数 → reject。
+        std::vector<float> tmp;
+        tmp.reserve(static_cast<size_t>(npix));
+        for (int i = 0; i < npix; ++i) {
+            if (!std::isnan(out[i])) tmp.push_back(out[i]);
+        }
+        if (tmp.empty()) {
+            ac_log("generate_master_flat: final median 全 NaN — 无有限像素, reject");
+            return AC_ERR_PARAM;
+        }
         float final_med = median_of(tmp);
-        if (std::isnan(final_med) || final_med == 0.0f) final_med = 1.0f;
+        if (!std::isfinite(final_med)) {
+            ac_log("generate_master_flat: final median 非有限 (%.6g) — reject",
+                   static_cast<double>(final_med));
+            return AC_ERR_PARAM;
+        }
+        if (final_med == 0.0f) final_med = 1.0f;
         // B13-R13-7: 合并输出负中位数同样是退化输入 (步骤1 已放行正值帧时
         // 理论不可达; 防御性拒绝, 语义与步骤1一致)。
         if (final_med < 0.0f) {

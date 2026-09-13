@@ -48,7 +48,7 @@ stage 序列与 DLL 加载（orchestrator）；整 Phase 行为（禁止）。
 输入（hp_drizzle_run 帧通道）：PipelineFrame "data" 块 `[H][W]` 行主序
 float32 或 float64（二选一，多通道 channels!=1 拒绝，api.cpp:486-503），
 单位 ADU；"header" KV 块 WCS/SIP（CD 或 CDELT+CROTA2，缺 WCS 返回 -9，
-api.cpp:541-545）、可选 "PRECISION"（"fp32"/"fp64"，缺省 FP32）、可选
+api.cpp:541-545）、可选 "PRECISION"（"fp32"/"fp64"，缺省 FP64）、可选
 "snr_model" 稀疏控制点块；nside（2 的幂）、nested（仅 1=NESTED，0=RING
 硬拒绝）、pixfrac∈(0,1]（引擎层拒绝 0.0 与越界值，不夹逼；
 drizzle_engine.cpp:1567-1574）。文件通道 hp_drizzle_fits_to_ahpx 另接
@@ -59,7 +59,7 @@ NESTED tile 累加量（sumFlux/sumArea/sumVarNum 原始和 + nContrib 计数，
 tile 内 leaf 连续数组）经 HiPS 直写（产品 SIGNAL/SUPPORT/variance/ivar）
 或 legacy .hiss；HpDrizzleResult 统计（n_healpix_pixels/n_source_pixels/
 nside/nested/pixfrac/elapsed_sec/error_msg[512]，hp_drizzle_api.h:22-30）；
-operation_counts.json 剖面（api.cpp:1074-1117）。方差仅当 varianceValue>0
+operation_counts.json 剖面（api.cpp:1087-1130）。方差仅当 varianceValue>0
 累加（drizzle_engine.cpp:1531-1534），无 variance 输入不产 variance 产品。
 
 ## 4. 合同链接
@@ -97,7 +97,8 @@ operation_counts.json 剖面（api.cpp:1074-1117）。方差仅当 varianceValue
   等）；面积 = 球面 S-H 裁剪 + Eriksson 扇形三角剖分（:186-239）。
 - **FP32/FP64**：模板双实例（float/double 显式实例化
   drizzle_engine.cpp:2171-2178）；precision_mode 0/1/-1（-1=读 header
-  "PRECISION" KV）；FP32 累加器真 binary32（逐项舍入依赖测试门 1e-5）。
+  "PRECISION" KV；**无 KV 时按宪章 §5.3 缺省 FP64（RESCUE-FD-02），
+  未知 KV/参数值显式拒绝**）；FP32 累加器真 binary32（门 1e-5）。
 - **生产调用现状**：orchestrator DLL 通道（orchestrator.cpp:3256-3371）
   经函数指针调 `hp_drizzle_run_hips` 直写 HiPS；registry descriptor
   （module_adapters.cpp:508-525）未接节点。p1_session 无 drizzle stage
