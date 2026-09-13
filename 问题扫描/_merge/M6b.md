@@ -36,7 +36,7 @@
 | docs/traceability/TRACEABILITY_MATRIX.json（789 行） | 受影响：第 240/396/448/630/682/708 行截断，经逐行核对全部是 notes 行 | 状态/ID/路径字段各占短行 ⇒ 未受影响；module_id 整行 grep = 30（与解析行数一致）；层取值整行 grep：test_status VERIFIED=22、test_path 以 docs/ 开头=18、test_id 含 DESIGN=**11**、src_path 锚 .h::=11、evidence_status VERIFIED=3 / MISSING=27、science_doc 指向 docs/algorithms/=1 ⇒ 与定稿一致 |
 | docs/TRACEABILITY.csv（旧表 68 行） | 不受影响：0 行截断（最长行 < 2000 字符） | 67 数据行；requirement_type 67/67 = science；status 67/67 = VERIFIED；requirement_id 前缀 SCI 36 / TEST 17 / DATA 5 / ALG 4 / ENG 4 / ACR 1，**API- 前缀 0 行**；API_STANDARD:15-16 举例的三个 API ID 在旧表命中 0/0/0（全仓命中 8/6/42，全在别处）⇒ E-001 路由层结论与"0 API-* 行"为截断无关的硬事实 |
 | 两表可交比 ID 与 TEST 证据（E-001） | 旧表侧不受影响；矩阵侧只用短行 | 8 个可交比 ID、TEST 证据一致 0/8；判据取旧表 test_ids/test_files 短行 + 矩阵 test_id/test_path 短行，不经 notes ⇒ 复核后不变 |
-| 锚规模 805 / 裸 :NN 223 / 悬空权威 138 处（E-002/E-004） | 不受影响（判据为整行 grep 命中数，非两文件等值比较） | 复核后不变；各条已注明"grep 命中数"口径 |
+| 锚规模 805 / 裸 :NN 223（E-002）与悬空权威引用面（E-004） | 不受影响（判据为整行 grep 命中数，非两文件等值比较） | 复核后不变；各条已注明"grep 命中数"口径 |
 | 16 行 notes 自述未接线、其中 14 行七层 VERIFIED（G-001 实例 C） | notes 属截断高危列 | 改为双判据且不依赖 notes 全文：整行 grep「未建」命中 16 个 notes 行（含被截断的 6 行；rg 对整行原文匹配，不受显示截断影响）+ 七层 VERIFIED 由状态短行判定；交集 = **14 行**（另 2 行为 upm-apply/upm-fit，其 SRC/TEST 本为 MISSING），与"全 VERIFIED 19 行"交叉核对一致 ⇒ 数值维持、判据重写 |
 
 **唯一因截断而更正的数**：*-DESIGN-001 设计态 TEST ID 由 9 改为 **11**（G-001 证据段与本文 §2 已同步更正）。除此之外本域定稿不存在"以按行读到的差异为判据"的情形。
@@ -85,7 +85,7 @@
 | L18-001 | C/P0 | `docs/architecture/cpu/ARCH_CONTRACTS.md` 实测 0 文件；4 处 ACTIVE 文档（含 2 份 L2 合同表）把 ARCH 层标 VERIFIED | 仍成立 | **E-004（P1）+ G-001（P0，实例 D）** |
 | L18-002 | C/P0 | `KNOWN_LIMITATIONS.md:13-14`、`TROUBLESHOOTING.md:14/:16` 把"缺 ivar → 权重回退 support"写成既有行为；实现 `stage2_common.h:94` 默认 `legacy_allow_weight_fallback=false`；宪章 §6.3:191 明文禁止 | 仍成立（文档面） | **C-001（P1）**；科学/实现面与 M3a/M4 会签（前台指定三案合一） |
 | L18-003 | I/P1 | V19 世代叙述：`docs/ARCHITECTURE.md:16/:18/:51/:52`、`docs/API_REFERENCE.md:112/:127`、`docs/modules/phase2.md:6`、`docs/TROUBLESHOOTING.md` 全篇 | 仍成立 | **I-001（P1）+ G-002** |
-| L18-004 | E/P1 | `ARCHITECTURE.md:129`「76 行」实测 67 数据行；`docs/TRACEABILITY_family.json` 实测 0 文件；:130「13 份 L5」实测 23 份 + 26 registry | 仍成立 | **I-003（P2，实例并入）+ E-001** |
+| L18-004 | E/P1 | `ARCHITECTURE.md:129`「76 行」实测 67 数据行；`docs/TRACEABILITY_family.json` 实测 0 文件；:130「13 份 L5」实测 23 份 + 26 registry。**二次复核订正**：同行「SCI-/ALG-/DATA-/ENG- 全 VERIFIED」经 ID 前缀 grep（SCI 36/TEST 17/DATA 5/ALG 4/ENG 4/ACR 1）+ status 67/67 VERIFIED 判定为**成立**，故该条事实由 3 项收敛为 2 项（76 行、family.json） | 部分成立（已收窄） | **I-003（P2，实例并入）+ E-001** |
 | L18-005 | I/P1 | 两套矩阵并存且互否：SPEC:15（JSON 权威）vs README-DOCS:13（旧表唯一矩阵）vs SPEC:116-117（"互补不冲突"） | 仍成立 | **E-001（P0）** |
 | L18-006 | E/P1 | 不成立：JSON 30 模块 = CSV 30 数据行，23 个非 notes 列逐行零差异；`_check_csv_parity`（:374-411）本就是 ERROR 判据 | **不再成立（叶子读截断所致）** | 剔除，另立 **F-001**（该判据无 fixture 守护） |
 | L18-007 | G/P1 | 宪章 §12.1:416 点名的 `docs/owner/PHASE_OVERVIEW.md` 实测 0（现有 `PIPELINE_OVERVIEW.md`）；`docs/history/` 0；`docs/standards/02_03_06_*` 编号与文件名互指不一致 | 仍成立 | **G-007（P2）+ E-004** |
@@ -125,7 +125,7 @@
 | 矩阵 ID 未登记 | 152 / 85 / 33 | **152 / 85 / 33 处（去重 28）** | INDEX.yaml `- id:` 全集比对 |
 | descriptor ID | 22 / 93 / 72 | **22 / 93 / 72** | `module_adapters.cpp` 逐字段 |
 | 锚规模 | 合同 36 文档 / 793 锚 | **41 篇 / 805 带名锚 + 223 裸 :NN 锚** | 移植 ANCHOR_RE |
-| 不存在文档被引用 | 15+ 处 | `lib/**` **36 文件 133 处** + `docs/**` **3 文件 5 处** | 六类文档名并集 grep |
+| 不存在文档被引用 | 15+ 处 | 六族名：真源 13 目录 **139 处 / 40 文件**（lib+docs 口径为 138 处 / 39 文件）；八类名并列口径 **61 处 / 33 文件**，八名 glob 均 0 文件；全仓含扫描自身产物为 193 处（`问题扫描/**` 占 35 处已剔除） | 整行 grep 命中数（三口径写入 E-004） |
 | DOCUMENT_INDEX | 159 条仅 11 条入锚合同 | **236 条（active 205 / archived 31；ACTIVE_NORMATIVE 123）**，锚门作用域 **41 篇** | 索引条目 + doc_globs 实测命中 |
 | CI 检查项 | 111 | 本轮 `"id":` 命中 **75**（快照差异） | ci/checks.json 全文枚举行 |
 | L0 锚抽查 | 4/14 漂移 | **4/4 抽点全错**（:4257/:4282/:4309/:3777 + p3_wcs:36） | 逐行 read 对照 |
@@ -139,7 +139,7 @@
 | 任务书所指 | 实际 _cache 条目 | 处理 |
 |---|---|---|
 | 「L16-011 = 交叉引用/门侧证据」 | L16-011 实为「链断裂方向与取值域未实现；LAYERS.csv/Schema 是死文档」 | 事实定稿于 **M6b-G-001④ + G-004**；交叉引用门侧证据实际来自 L16-008/009/016/017 → **M6b-E-002** |
-| 「L18-014 = 24/25/02_FROZEN/05_COMMON_CONTRACTS 不存在」 | L18-014 实为「IO-001 冻结合同文件清单与树内实存不符」 | 两条均定稿：清单面 → **M6b-E-007**；不存在文档族 → **M6b-E-004**（计数由转述「15+ 处」复算为 **138 处**） |
+| 「L18-014 = 24/25/02_FROZEN/05_COMMON_CONTRACTS 不存在」 | L18-014 实为「IO-001 冻结合同文件清单与树内实存不符」 | 两条均定稿：清单面 → **M6b-E-007**；不存在文档族 → **M6b-E-004**（计数由转述「15+ 处」复算为**真源 13 目录 139 处 / 40 文件**，三口径见 E-004 与 §0.1） |
 | 「L18-016 = DOCUMENT_INDEX 宣称机器门覆盖 vs 实测覆盖」 | L18-016 实为「追溯合同把权威层级锚在被废止控制包/已归档约束」 | 分定为 **M6b-G-006**（覆盖率复算）与 **M6b-E-006**（权威锚失效）；转述「159 条仅 11 条入锚合同」当前树不可复现，改为 **205 active / 123 ACTIVE_NORMATIVE / 锚门 41 篇** |
 | 「L18-008 = 交叉引用失效」 | L18-008 实为「owner/review L0 源码行锚漂移」 | 定稿于 **M6b-E-002**（根因）+ **M6b-C-003**（:94 锚实例） |
 | 「两表可交比 15 个 ID」 | 实测 8（含 notes 提及 11） | 已在 **M6b-E-001** 定稿段与 §2 复算表注明修正 |
@@ -152,6 +152,11 @@
 **剔除（2 条，均给出理由）**
 1. **L18-006（JSON/CSV 不同构 30 vs 26）** — 不成立：复算两表 30/30 且逐列一致；叶子把 `read` 的长行截断误当数据缺失（本代理首轮犯同样错误并以 `grep -c` 纠正）。其判据 `_check_csv_parity` 真实存在且属 ERROR，缺的是样本守护 → 改立 **F-001**。
 2. **L18-009 的「docs/review 五文档未登记」子项** — 不成立：DOCUMENT_INDEX:321 有 `- path: "docs/review"` 目录级条目，`check_doc_index.py:122` 的覆盖判据按 `p.startswith(cp.rstrip('/')+'/')` 前缀匹配，故门判"已覆盖"。剩余事实（PASS 口径回流、四份并存）保留并升为 M6b-G-002。
+
+**本代理自查后主动更正的 3 个数（非前台指出，二次复核发现）**
+- `*-DESIGN-001` 设计态 TEST ID：9 → **11**（唯一由 read 长行截断造成的漏计，已在 G-001 与 §2 更正）。
+- E-004 悬空权威引用计数：原写「138 处」混用了文档名集合与扫描面 → 改为三口径并列并定稿为**真源 13 目录 139 处 / 40 文件**（全仓含扫描器自产文件 193 处，其中 `问题扫描/**` 35 处属我方产物，剔除；八类名并列口径 61 处 / 33 文件）。
+- L18-004：原判 ARCHITECTURE §8「SCI-/ALG-/DATA-/ENG- 全 VERIFIED」为不实，复算 `requirement_id` 前缀（SCI 36 / TEST 17 / DATA 5 / ALG 4 / ENG 4 / ACR 1）与 `status` 67/67 VERIFIED 后确认**该句成立** → 该条事实由 3 项收敛为 2 项（「76 行」与 `TRACEABILITY_family.json`），已在 I-003 与 §1.3 标注为「部分成立（已收窄）」。
 
 **降级 / 改判（6 条）**
 - L16-011：9 → **6 行**（前导链 VERIFIED-on-MISSING）；本体不独立成条，并入 G-001④ + G-004（避免与"未经证据支撑的已验证声明"重复定稿）。
