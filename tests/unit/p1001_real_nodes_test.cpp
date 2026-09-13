@@ -24,6 +24,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -1009,6 +1010,110 @@ static void test_torn_artifact_fault_injection() {
   }
 }
 
+// ══ 10b. B2-A2（RESCUE-P0-05）: 部分拟合失败仍正确映射 star_id ═══════════
+// 星 ID ↔ PSF compact 错位（修复前）: fitter 按原检测下标原位写 + 返回成功计数,
+// 消费方按 i < n_valid 取前 n_valid 行并贴 cat.sources[i].id ⇒ NaN 行贴真实
+// star_id、下标 ≥ n_valid 的有效拟合被丢弃、median_fwhm/ell 混入 NaN。
+// 本用例: 两星 cleaned 帧, 破坏第二星拟合窗 (1e9 平台) 迫使该星拟合失败,
+// 断言 p1_psf.json 的 psf_params 星集合 == 拟合成功集合、成功行全有限、
+// n_psf_valid == 行数 == 非 NaN 数 (无 NaN 泄漏到中位数)。当两星都成功时
+// 映射门仍全量校验 (记录该运行未触发部分失败, 不做弱断言)。
+struct TwoStarCfg { float bg; float a0; float a1; };
+inline float two_star_pixel(int i, void* user) {
+  auto* c = static_cast<TwoStarCfg*>(user);
+  const int x = i % kW, y = i / kW;
+  auto star = [&](double sx, double sy, double amp) {
+    const double dx = x - sx, dy = y - sy;
+    return amp * std::exp(-(dx * dx + dy * dy) / (2.0 * 1.5 * 1.5));
+  };
+  return static_cast<float>(c->bg + star(10.0, 10.0, c->a0) + star(22.0, 22.0, c->a1));
+}
+static void test_psf_partial_fit_identity() {
+  Fixture fx = make_fixture("psfid");
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  RunContext ctx;
+  const std::string cfg = p1001_full_chain_cfg(fx);
+
+  json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+  CHECK(man_cal.value("status", "") == "ok");
+  // 覆盖 cleaned_light_1.fits 为两星场 (第二星窗被 1e9 平台破坏)
+  const std::string cleaned1 = fx.out_dir + "/cleaned_light_1.fits";
+  CHECK(fs::exists(fs::path(fx.out_dir + "/calibrated_light_1.fits")));
+  TwoStarCfg tc{100.0f, 8000.0f, 2000.0f};
+  CHECK(p1sess::write_fits_file(cleaned1, kW, kH, two_star_pixel, &tc) == 0);
+  // 破坏第二星 (22,22) 整个 17x17 拟合窗 → 该星补丁全非有限, LM 必败
+  // (N8/README §4 同语义); 星 1 (10,10) 保持可拟合 → 真正的部分失败。
+  {
+    std::FILE* fp = std::fopen(cleaned1.c_str(), "r+b");
+    CHECK(fp != nullptr);
+    if (fp) {
+      auto put_nan = [&](int x, int y) {
+        const unsigned char be[4] = {0x7F, 0xC0, 0x00, 0x00};  // +qNaN (big-endian)
+        const long off = 80L * 6 + (static_cast<long>(y) * kW + x) * 4;
+        std::fseek(fp, off, SEEK_SET);
+        std::fwrite(be, 1, 4, fp);
+      };
+      for (int y = 22 - 8; y <= 22 + 8; ++y)
+        for (int x = 22 - 8; x <= 22 + 8; ++x)
+          if (x >= 0 && x < kW && y >= 0 && y < kH) put_nan(x, y);
+      std::fclose(fp);
+    }
+  }
+
+  json man_psf = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx);
+  CHECK(man_psf.value("status", "") == "ok");
+  json cat, psf;
+  try {
+    cat = json::parse(read_file(man_psf.value("sources_artifact", "")));
+    psf = json::parse(read_file(man_psf.value("psf_artifact", "")));
+  } catch (...) { CHECK(false); return; }
+  CHECK(psf.value("schema", "") == "DATA-P1-PSF");
+  CHECK(psf.value("status_schema", "") == "psf_status:INT32[N]");
+  const std::size_t n_valid = psf.value("n_valid", (std::size_t)0);
+  const std::size_t n_sources = psf.value("n_sources", (std::size_t)0);
+  // 帧 1 的 sources 集合 (sdet 检测) 与 psf_params 行 (仅成功拟合) 比对
+  const json& frames = cat.value("frames", json::array());
+  CHECK(frames.size() >= 1);
+  const json& srcs = frames[0].value("sources", json::array());
+  const json& rows = frames[0].value("psf_params", json::array());
+  const std::size_t n_det_1 = srcs.size();
+  const std::size_t n_ok_1 = frames[0].value("n_psf_valid", (std::size_t)0);
+  CHECK_MSG(rows.size() == n_ok_1, "psf_params 行数必须 == n_psf_valid (无 NaN 占位行)");
+  CHECK(n_ok_1 <= n_det_1);
+  CHECK(n_sources >= n_det_1);
+  CHECK(n_valid >= n_ok_1);
+  // 输出 star_id 集合 == 拟合成功集合 (psf_params 行 star_id 在 sources 中唯一存在)
+  std::vector<std::string> emitted_ids;
+  bool rows_finite = true;
+  for (const auto& row : rows) {
+    CHECK(row.contains("star_id") && row["star_id"].is_string());
+    emitted_ids.push_back(row.value("star_id", std::string()));
+    for (const char* k : {"B", "A", "cx", "cy", "sx", "sy", "theta", "fwhm_x", "fwhm_y"}) {
+      CHECK(row.contains(k) && row[k].is_number());
+      rows_finite = rows_finite && std::isfinite(row.value(k, 0.0));
+    }
+  }
+  CHECK_MSG(rows_finite, "psf_params 行必须全有限 (NaN 不得贴真实 star_id)");
+  std::sort(emitted_ids.begin(), emitted_ids.end());
+  CHECK_MSG(std::adjacent_find(emitted_ids.begin(), emitted_ids.end()) == emitted_ids.end(),
+            "psf_params star_id 不得重复 (映射必须唯一)");
+  for (const std::string& id : emitted_ids) {
+    bool found = false;
+    for (const auto& s : srcs) if (s.value("id", std::string()) == id) found = true;
+    CHECK_MSG(found, ("psf_params star_id " + id + " 不在本帧 sources 中 (错位)").c_str());
+  }
+  const double med = psf.value("median_fwhm_x_px", 0.0);
+  const double mey = psf.value("median_fwhm_y_px", 0.0);
+  const double mel = psf.value("median_ellipticity", 0.0);
+  CHECK_MSG(std::isfinite(med) && std::isfinite(mey) && std::isfinite(mel),
+            "median_fwhm/ell 不得为 NaN");
+  std::printf("[B2-A2] psf partial-fit identity: det=%zu ok=%zu rows=%zu valid_total=%zu "
+              "partial=%d\n", n_det_1, n_ok_1, rows.size(), n_valid,
+              (n_ok_1 < n_det_1) ? 1 : 0);
+  cleanup_fixture(fx);
+}
+
 // ══ 11. CORE-RACE-001: 科学语义零变化（修复前/后 bitwise golden 对照）══════
 // P1001_GOLDEN_DIR=<dir>: 1 worker 全链跑一次并把确定性产物字节存为基线;
 // P1001_GOLDEN_CMP=<dir>: 同样跑一次与基线逐字节比较（不一致 = 科学漂移）。
@@ -1121,6 +1226,7 @@ int main() {
   test_parallel_chain_stress();
   test_worker_parity_bitwise();
   test_torn_artifact_fault_injection();
+  test_psf_partial_fit_identity();
   test_golden_parity();
   if (failures == 0) {
     std::printf("P1-001 REAL NODES PASS (8 节点唯一真实 operation + call_count=1 + complete 门 fail-closed + 下游零调用)\n");

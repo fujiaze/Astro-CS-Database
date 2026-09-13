@@ -238,7 +238,7 @@ int test_units() {
         const double cyv[3] = {64.0, 64.0, 64.0};
         DPSFFitResult* rf2 = nullptr;
         const int rc2 = dpsf_fit_batch_f(imgf.data(), W, H, xs, cyv, N, &p, &rf2);
-        const int rc3 = dpsf_fit_batch_f32(imgf.data(), W, H, det.data(), N, &p, out9.data(), &nv);
+        const int rc3 = dpsf_fit_batch_f32(imgf.data(), W, H, det.data(), N, &p, out9.data(), &nv, NULL);
         P1PSF_CHECK(cs, rc2 == 0 && rc3 == 0 && rf2, F_ABI);
         if (rf2) {
             bool same = nv == N;
@@ -275,8 +275,8 @@ int test_units() {
         const DPSFFitParams p = default_params();
         std::vector<double> outA(9 * N, -1.0), outB(9 * N, -1.0);
         int nvA = -5, nvB = -5;
-        dpsf_fit_batch_f64(img.data(), W, H, detA.data(), N, &p, outA.data(), &nvA);
-        dpsf_fit_batch_f64(img.data(), W, H, detB.data(), N, &p, outB.data(), &nvB);
+        dpsf_fit_batch_f64(img.data(), W, H, detA.data(), N, &p, outA.data(), &nvA, NULL);
+        dpsf_fit_batch_f64(img.data(), W, H, detB.data(), N, &p, outB.data(), &nvB, NULL);
         P1PSF_CHECK_MSG(cs, nvA == nvB && vec_bitwise_eq(outA, outB), F_ABI,
                         "U6: sat-col [4]/[5] altered output (nvA=%d nvB=%d)", nvA, nvB);
     }
@@ -395,7 +395,7 @@ int test_properties() {
             int nv = -1;
             std::vector<double> det(6 * N, 0.0);
             for (int i = 0; i < N; ++i) { det[i * 6 + 0] = cx[i]; det[i * 6 + 1] = cy[i]; }
-            dpsf_fit_batch_f64(img.data(), W, H, det.data(), N, &p, out9.data(), &nv);
+            dpsf_fit_batch_f64(img.data(), W, H, det.data(), N, &p, out9.data(), &nv, NULL);
             P1PSF_CHECK(cs, nv == N, F_BIT);
             if (th == 1) ref_9 = out9;
             else P1PSF_CHECK_MSG(cs, vec_bitwise_eq(ref_9, out9), F_BIT,
@@ -414,8 +414,8 @@ int test_properties() {
         const DPSFFitParams p = default_params();
         std::vector<double> r1(18, -1.0), r2(18, -1.0);
         int nv1 = -1, nv2 = -1;
-        dpsf_fit_batch_f64(fx.f64.data(), fx.w, fx.h, det.data(), 2, &p, r1.data(), &nv1);
-        dpsf_fit_batch_f64(fx.f64.data(), fx.w, fx.h, det.data(), 2, &p, r2.data(), &nv2);
+        dpsf_fit_batch_f64(fx.f64.data(), fx.w, fx.h, det.data(), 2, &p, r1.data(), &nv1, NULL);
+        dpsf_fit_batch_f64(fx.f64.data(), fx.w, fx.h, det.data(), 2, &p, r2.data(), &nv2, NULL);
         P1PSF_CHECK_MSG(cs, nv1 == nv2 && vec_bitwise_eq(r1, r2), F_BIT,
                         "P4: double-run bitwise mismatch");
     }
@@ -451,6 +451,77 @@ int test_properties() {
         }
         if (rs1) dpsf_free_results(rs1);
         if (rs2) dpsf_free_results(rs2);
+    }
+
+    // P6 (B2-A2, RESCUE-P0-05): 星 ID ↔ PSF compact 映射门。
+    // 3 颗检测, 中间一颗 rect 为空 (检测中心越界) ⇒ 确定性拟合失败。
+    // 断言: out_status 按检测下标报告真值; 成功行按检测下标升序 compact;
+    //       失败星不产生 NaN 行 (无 NaN 洞); out_n_valid == OK 计数;
+    //       out_status=NULL 时 compact 布局不变 (ABI 兼容面)。
+    {
+        const int W = 128, H = 128, N = 3;
+        std::vector<double> img((size_t)W * H, 100.0);
+        for (int y = 0; y < H; ++y)
+            for (int x = 0; x < W; ++x)
+                img[(size_t)y * W + x] += moffat4_eval(0.0, 4000.0, 20.0, 20.0, 2.0, 2.0, 0.0,
+                                                       (double)x, (double)y)
+                                        + moffat4_eval(0.0, 4000.0, 100.0, 100.0, 2.0, 2.0, 0.0,
+                                                       (double)x, (double)y);
+        std::vector<double> det(6 * N, 0.0);
+        det[0] = 20.0;  det[1] = 20.0;
+        det[6] = 10000.0; det[7] = 10000.0;   // 越界 → 空 rect → 失败
+        det[12] = 100.0; det[13] = 100.0;
+        const DPSFFitParams p = default_params();
+        std::vector<double> out9(9 * N, -1.0);
+        std::vector<int> st(N, -7);
+        int nv = -5;
+        const int rc = dpsf_fit_batch_f64(img.data(), W, H, det.data(), N, &p, out9.data(), &nv,
+                                          st.data());
+        P1PSF_CHECK_MSG(cs, rc == 0 && nv == 2, F_ID, "P6: rc=%d nv=%d (期望 2)", rc, nv);
+        // 逐星真值: 星 0/2 成功, 星 1 空 rect (未执行拟合)
+        P1PSF_CHECK_MSG(cs, st[0] == DPSF_PSF_STATUS_OK && st[2] == DPSF_PSF_STATUS_OK &&
+                                st[1] == DPSF_PSF_STATUS_RECT_EMPTY,
+                        F_ID, "P6: out_status=[%d,%d,%d]", st[0], st[1], st[2]);
+        // 成功集合 (真值) == nv
+        int n_ok = 0;
+        for (int i = 0; i < N; ++i) if (st[i] == DPSF_PSF_STATUS_OK) ++n_ok;
+        P1PSF_CHECK_MSG(cs, n_ok == nv, F_ID, "P6: n_ok=%d != nv=%d", n_ok, nv);
+        // compact: 前 nv 行全有限, 第 nv 行 (原失败星位置) 无过期值可断言 ——
+        // 本用例预填 -1, compact 只写前 nv 行 (B2-A2 语义)
+        bool rows_finite = true;
+        for (int k = 0; k < nv * 9; ++k) rows_finite = rows_finite && std::isfinite(out9[k]);
+        P1PSF_CHECK_MSG(cs, rows_finite, F_ID, "P6: compact 行出现非有限值 (NaN 洞)");
+        // 星↔行映射: row0 ↔ 星 0 (20,20), row1 ↔ 星 2 (100,100)
+        const double want_cx[2] = {20.0, 100.0};
+        for (int k = 0; k < nv; ++k)
+            P1PSF_CHECK_MSG(cs, std::fabs(out9[(size_t)k * 9 + 2] - want_cx[k]) <= 0.05,
+                            F_ID, "P6: row %d cx=%.6f (期望 %.1f) — 星↔行错位",
+                            k, out9[(size_t)k * 9 + 2], want_cx[k]);
+        // compact 行 == 单星拟合同星结果 (bitwise: 同 patch 同算法)
+        for (int k = 0; k < nv; ++k) {
+            const int star = (k == 0) ? 0 : 2;
+            double cx = det[(size_t)star * 6 + 0], cy = det[(size_t)star * 6 + 1];
+            DPSFFitResult* rs = nullptr;
+            const int rc1 = dpsf_fit_batch_d(img.data(), W, H, &cx, &cy, 1, &p, &rs);
+            if (rc1 == 0 && rs && rs[0].status == DPSF_FIT_OK) {
+                const double row[9] = {rs[0].B, rs[0].A, rs[0].cx, rs[0].cy, rs[0].sx,
+                                       rs[0].sy, rs[0].theta, rs[0].fwhm_x, rs[0].fwhm_y};
+                P1PSF_CHECK_MSG(cs, std::memcmp(row, &out9[(size_t)k * 9],
+                                                9 * sizeof(double)) == 0,
+                                F_ID, "P6: row %d 与单星拟合 (star %d) 非位级一致", k, star);
+            } else {
+                P1PSF_CHECK(cs, false, F_ID);
+            }
+            if (rs) dpsf_free_results(rs);
+        }
+        // out_status=NULL: compact 布局不变 (旧调用方 ABI 面)
+        std::vector<double> out9_null(9 * N, -1.0);
+        int nv_null = -5;
+        const int rc_null = dpsf_fit_batch_f64(img.data(), W, H, det.data(), N, &p,
+                                               out9_null.data(), &nv_null, nullptr);
+        P1PSF_CHECK_MSG(cs, rc_null == 0 && nv_null == nv &&
+                                vec_bitwise_eq(out9_null, out9),
+                        F_ID, "P6: out_status=NULL 布局漂移 (nv=%d vs %d)", nv_null, nv);
     }
 
     return cs.failures == 0 ? 0 : 1;
@@ -679,22 +750,22 @@ int test_negative() {
             std::vector<double> out9(9, -7.0);
             int nv = -5;
             P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f32(fx.f32.data(), bad, fx.h, det.data(), 1, &p,
-                                                    out9.data(), &nv) == -1
+                                                    out9.data(), &nv, NULL) == -1
                                 && nv == -5 && out9[0] == -7.0, F_BB,
                             "N4b: batch_f32 w=%d (期望 -1 + out/nv sentinel)", bad);
             nv = -5; out9.assign(9, -7.0);
             P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f32(fx.f32.data(), fx.w, bad, det.data(), 1, &p,
-                                                    out9.data(), &nv) == -1
+                                                    out9.data(), &nv, NULL) == -1
                                 && nv == -5 && out9[0] == -7.0, F_BB,
                             "N4b: batch_f32 h=%d (期望 -1 + out/nv sentinel)", bad);
             nv = -5; out9.assign(9, -7.0);
             P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f64(fx.f64.data(), bad, fx.h, det.data(), 1, &p,
-                                                    out9.data(), &nv) == -1
+                                                    out9.data(), &nv, NULL) == -1
                                 && nv == -5 && out9[0] == -7.0, F_BB,
                             "N4b: batch_f64 w=%d (期望 -1 + out/nv sentinel)", bad);
             nv = -5; out9.assign(9, -7.0);
             P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f64(fx.f64.data(), fx.w, bad, det.data(), 1, &p,
-                                                    out9.data(), &nv) == -1
+                                                    out9.data(), &nv, NULL) == -1
                                 && nv == -5 && out9[0] == -7.0, F_BB,
                             "N4b: batch_f64 h=%d (期望 -1 + out/nv sentinel)", bad);
         }
@@ -714,10 +785,10 @@ int test_negative() {
             std::vector<double> out9(9, -7.0);
             int nv = -5;
             P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f32(fx.f32.data(), 1 << 30, 4, det.data(), 1, &p,
-                                                    out9.data(), &nv) == -1, F_BB,
+                                                    out9.data(), &nv, NULL) == -1, F_BB,
                             "N4c: batch_f32 w*h>INT_MAX");
             P1PSF_CHECK_MSG(cs, dpsf_fit_batch_f64(fx.f64.data(), 1 << 30, 4, det.data(), 1, &p,
-                                                    out9.data(), &nv) == -1, F_BB,
+                                                    out9.data(), &nv, NULL) == -1, F_BB,
                             "N4c: batch_f64 w*h>INT_MAX");
         }
         DPSFFitResult single{};
@@ -730,9 +801,9 @@ int test_negative() {
         // batch_f64 [N,9]: n≤0 → -1 + 输出数组/nv sentinel 不变
         std::vector<double> out9(9, -7.0);
         int nv = -5;
-        P1PSF_CHECK(cs, dpsf_fit_batch_f64(fx.f64.data(), fx.w, fx.h, det.data(), 0, &p, out9.data(), &nv) == -1, F_NEG);
+        P1PSF_CHECK(cs, dpsf_fit_batch_f64(fx.f64.data(), fx.w, fx.h, det.data(), 0, &p, out9.data(), &nv, NULL) == -1, F_NEG);
         P1PSF_CHECK(cs, nv == -5 && out9[0] == -7.0, F_NAN);
-        P1PSF_CHECK(cs, dpsf_fit_batch_f64(nullptr, fx.w, fx.h, det.data(), 1, &p, out9.data(), &nv) == -1, F_NEG);
+        P1PSF_CHECK(cs, dpsf_fit_batch_f64(nullptr, fx.w, fx.h, det.data(), 1, &p, out9.data(), &nv, NULL) == -1, F_NEG);
     }
 
     // N5: 纯噪声场 (无星) → NO_CONVERGENCE(1) + memset 0 (3 seeds, probe 实证)
@@ -803,8 +874,9 @@ int test_negative() {
         }
     }
 
-    // N8: 混合批 f64 [N,9] — OK 行写值, 失败行保持 NaN, n_valid 只计 OK
-    //     (probe 实证 nv=2; README §4 失败星全 9 字段 NaN)
+    // N8: 混合批 f64 [N,9] — B2-A2: 成功行顺序 compact 到 0..nv-1, 失败星由
+    //     逐星 out_status 报告 (不再占据 out_psf_params 行, 也不留 NaN 洞);
+    //     (probe 实证 nv=2; 星↔行映射语义见 dynamic_psf.h DPSF_PSF_PARAMS_SCHEMA)
     {
         const int W = 96, H = 96, N = 3;
         std::vector<double> img((size_t)W * H, 80.0);
@@ -827,13 +899,61 @@ int test_negative() {
         const DPSFFitParams p = default_params();
         std::vector<double> out9(9 * N, -1.0);
         int nv = -5;
-        const int rc = dpsf_fit_batch_f64(img.data(), W, H, det.data(), N, &p, out9.data(), &nv);
+        std::vector<int> st(N, -7);
+        const int rc = dpsf_fit_batch_f64(img.data(), W, H, det.data(), N, &p, out9.data(), &nv,
+                                          st.data());
         P1PSF_CHECK_MSG(cs, rc == 0 && nv == 2, F_NAN, "N8: rc=%d nv=%d (期望 2)", rc, nv);
-        bool ok_rows_finite = std::isfinite(out9[1]) && std::isfinite(out9[10]);
-        bool fail_row_nan = true;
-        for (int k = 0; k < 9; ++k) fail_row_nan = fail_row_nan && std::isnan(out9[18 + k]);
-        P1PSF_CHECK(cs, ok_rows_finite, F_NAN);
-        P1PSF_CHECK_MSG(cs, fail_row_nan, F_NAN, "N8: 失败行未保持全 NaN");
+        // B2-A2: 逐星状态按检测下标报告 (第 3 星失败, 未 compact 出洞)
+        P1PSF_CHECK_MSG(cs, st[0] == DPSF_PSF_STATUS_OK && st[1] == DPSF_PSF_STATUS_OK &&
+                                st[2] != DPSF_PSF_STATUS_OK && st[2] <= DPSF_PSF_STATUS_ALLOC_FAILED,
+                        F_NAN, "N8: out_status=[%d,%d,%d]", st[0], st[1], st[2]);
+        // 成功行 compact 到 0/1, 且全 9 字段有限 (无 NaN 洞)
+        bool ok_rows_finite = true;
+        for (int k = 0; k < 9; ++k)
+            ok_rows_finite = ok_rows_finite && std::isfinite(out9[k]) && std::isfinite(out9[9 + k]);
+        P1PSF_CHECK_MSG(cs, ok_rows_finite, F_NAN, "N8: compact 成功行出现非有限值");
+        // compact 语义 (B2-A2): 成功行必须按检测下标升序 compact, 因此
+        // row 0 的 cx 必须落在 star 0 (x=24) 的拟合窗内, row 1 落在 star 1
+        // (x=48) 的窗内 —— star 2 (x=72, 失败) 不得出现在任何 compact 行。
+        {
+            const int R = p.fitRadius > 0 ? p.fitRadius : 8;
+            const double win_lo[2] = {24.0 - R, 48.0 - R};
+            const double win_hi[2] = {24.0 + R, 48.0 + R};
+            for (int k = 0; k < nv; ++k) {
+                const double cx_row = out9[(size_t)k * 9 + 2];
+                P1PSF_CHECK_MSG(cs, cx_row >= win_lo[k] && cx_row <= win_hi[k], F_NAN,
+                                "N8: compact row %d cx=%.4f 不在 star %d 窗 [%.1f,%.1f]",
+                                k, cx_row, k, win_lo[k], win_hi[k]);
+            }
+        }
+        // N8b (B2-A2 判别性保险): 逐星独立拟合的 9 参数值与该星在 compact 后的
+        // 行位级相同; 且每个失败星的独立拟合行必须出现非有限值 —— 证明
+        // "无 NaN compact 行" 断言对该数据确有鉴别力 (不是恒真)。
+        {
+            std::vector<double> single(9 * N, 0.0);
+            std::vector<int> stx(N, -7);
+            int nvx = -5;
+            const int rcx = dpsf_fit_batch_f64(img.data(), W, H, det.data(), N, &p,
+                                               single.data(), &nvx, stx.data());
+            P1PSF_CHECK_MSG(cs, rcx == 0 && nvx == nv, F_NAN,
+                            "N8b: independent fit nv=%d (期望 %d)", nvx, nv);
+            int row = 0;
+            for (int i = 0; i < N; ++i) {
+                if (stx[i] == DPSF_PSF_STATUS_OK) {
+                    P1PSF_CHECK_MSG(cs, std::memcmp(&single[(size_t)i * 9], &out9[(size_t)row * 9],
+                                                    9 * sizeof(double)) == 0, F_NAN,
+                                    "N8b: compact row %d != independent fit of star %d", row, i);
+                    ++row;
+                    continue;
+                }
+                bool any_nonfinite = false;
+                for (int k = 0; k < 9; ++k)
+                    if (!std::isfinite(single[(size_t)i * 9 + k])) any_nonfinite = true;
+                P1PSF_CHECK_MSG(cs, any_nonfinite, F_NAN,
+                                "N8b: 失败星 %d 的独立拟合行未出现非有限值 (断言无鉴别力)", i);
+            }
+        }
+
         // f64 版 (DPSFFitResult) 同输入: 失败星 status≠0
         double cxv[3] = {24.0, 48.0, 72.0}, cyv[3] = {48.0, 48.0, 48.0};
         DPSFFitResult* rs = nullptr;
@@ -956,8 +1076,8 @@ int test_boundary() {
         const DPSFFitParams p = default_params();
         std::vector<double> outA(9 * N, -1.0), outB(9 * N, -1.0);
         int nvA = -5, nvB = -5;
-        dpsf_fit_batch_f64(img.data(), W, H, detA.data(), N, &p, outA.data(), &nvA);
-        dpsf_fit_batch_f64(img.data(), W, H, detB.data(), N, &p, outB.data(), &nvB);
+        dpsf_fit_batch_f64(img.data(), W, H, detA.data(), N, &p, outA.data(), &nvA, NULL);
+        dpsf_fit_batch_f64(img.data(), W, H, detB.data(), N, &p, outB.data(), &nvB, NULL);
         P1PSF_CHECK_MSG(cs, nvA == nvB && vec_bitwise_eq(outA, outB), F_REC,
                         "B4: det [2]/[3] 列改变输出 (nvA=%d nvB=%d)", nvA, nvB);
     }

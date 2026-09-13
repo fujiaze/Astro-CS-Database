@@ -554,12 +554,13 @@ snr_estimator snr_psf_fit_quality，snr_estimator.h:79，API-NOISE-001
 | dpsf_fit_batch | :49-52 | dpsf_psf.cpp:482 | uint16 批量（逐星 float patch），DPSFFitResult*[] |
 | dpsf_fit_batch_f | :59-63 | dpsf_psf.cpp:580 | float32 图 + (cx[],cy[])，DPSFFitResult*[]（FP32 生产通道） |
 | dpsf_free_results | :64 | dpsf_psf.cpp:599 | 释放批量 DPSFFitResult 数组 |
-| dpsf_fit_batch_f32 | :107-115 | dpsf_psf.cpp:694 | float32 图 + star_det v1 → out_psf_params[N,9] |
-| dpsf_fit_batch_f64 | :142-150 | dpsf_psf.cpp:822 | float64 图 + star_det v1 → [N,9]（moffat4_fit_d 不降级） |
+| dpsf_fit_batch_f32 | :122-131 | dpsf_psf.cpp:713 | float32 图 + star_det v1 → out_psf_params[N,9]（compact）+ 可选 out_status[N] |
+| dpsf_fit_batch_f64 | :160-169 | dpsf_psf.cpp:968 | float64 图 + star_det v1 → [N,9]（compact；moffat4_fit_d 不降级）+ 可选 out_status[N] |
 | dpsf_fit_batch_d | :181-188 | dpsf_psf.cpp:612 | float64 图 + (cx[],cy[])，DPSFFitResult*[]（FP64 生产通道） |
 
-schema 宏：`DPSF_STAR_DET_SCHEMA_V1="star_det_v1:FLOAT64[N,6]"`（:104）、
-`DPSF_PSF_PARAMS_SCHEMA="psf_params:FLOAT64[N,9]"`（:105）。结构体：
+schema 宏：`DPSF_STAR_DET_SCHEMA_V1="star_det_v1:FLOAT64[N,6]"`（:107）、
+`DPSF_PSF_PARAMS_SCHEMA="psf_params:FLOAT64[N,9]"`（:108）、
+`DPSF_PSF_STATUS_SCHEMA="psf_status:INT32[N]"`（:114，B2-A2 新增）。结构体：
 DPSFFitResult 12 字段（:17-31）、DPSFFitParams{fitRadius,maxIter,tolerance}
 （:38-42）。错误码 DPSF_FIT_OK/NO_CONVERGENCE/INVALID_PARAMS/ITERATION_LIMIT
 =0/1/2/3（:33-36，语义冻结见 STAR_PSF_ALGORITHMS §11.2）。
@@ -573,16 +574,22 @@ DPSFFitResult 12 字段（:17-31）、DPSFFitParams{fitRadius,maxIter,tolerance}
 - dpsf_fit_batch_f32/_f64：out_psf_params 由调用方预分配（N·9·sizeof(double)），
   out_n_valid 由 DLL 写；params 可 NULL（默认 fitRadius=8/maxIter=200/
   tolerance=1e-8，:717-719/:845-847；maxIter/tolerance 为死参数 DISP-PSF-003）。
-- 全部接口不抛异常（C ABI）；批接口逐星失败静默 NaN/不计 valid
-  （DISP-PSF-006），批级 rc∈{0,−1}。
+- **B2-A2（RESCUE-P0-05）**: out_status 可选（可 NULL），大小 N·sizeof(int)，
+  按**检测下标**报告逐星真值（`DPSF_PSF_STATUS_OK`=0 成功；1=拟合失败/未收敛；
+  2=空 rect 未拟合；3=patch 分配失败）。out_psf_params 的成功行按检测下标升序
+  **compact** 写入 0..n_valid−1；失败星不占参数行。调用方必须用 out_status 做
+  星 ID↔行映射，禁止 `i < n_valid` 前缀截断（该错位曾把 NaN 贴真实 star_id）。
+  传 NULL 时逐星状态不可得（compact 布局不变），仅为旧调用方 ABI 兼容面。
+- 全部接口不抛异常（C ABI）；批接口逐星失败**经 out_status 显式报告**、
+  不计 valid（B2-A2 关闭 DISP-PSF-006 的"per-star 状态不出批"缺口），批级 rc∈{0,−1}。
 
 
 ### 返回码
 
 - 单星 dpsf_fit/moffat4_fit*：0/1/2/3 四码（§11.2 表：触发锚、输出副作用、
   ITERATION_LIMIT 仍回填当前最优参数 :391-403）。
-- 批接口：0=批量完成（逐星成败看 out_n_valid/NaN 或 status 列，不要求全成）；
-  −1=参数非法（空指针/尺寸非法/计数≤0，:700-707）。
+- 批接口：0=批量完成（逐星成败看 out_status 或 status 列，不要求全成）；
+  −1=参数非法（空指针/尺寸非法/计数≤0，:700-707；此时不触碰任何输出缓冲）。
 
 
 ### 单位/dtype/shape
@@ -597,7 +604,7 @@ cx/cy/fitRadius/sx/sy/fwhm 像素；theta 弧度；B/A/flux/mad ADU
 ### 线程安全与确定性
 
 - 批拟合 OpenMP `parallel for schedule(dynamic) reduction(+:success_count)`
-  4 处（dpsf_psf.cpp:528,635,738,866）：逐星独立、输出按索引写、计数
+  4 处（dpsf_psf.cpp:528,635,738,876）：逐星独立、输出按索引写、计数
   reduction 与星序无关 → reentrant、并发调用安全、输出 bitwise 与线程数
   无关（determinism=fixed_reduction_order）。线程数未接 ThreadBudget
   （迁移整改点，module.yaml threading_model=host_executor_lease 为合同值，

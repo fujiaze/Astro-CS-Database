@@ -151,9 +151,9 @@ Batch deterministic: input order fixed, per-star independent, reduction none cro
 | FWHM=1.230310·sx/sy（F2 系数 MOFFAT4_FWHM_FACTOR :24） | :339-340 |
 | eccentricity=√(1−(smin/smax)²)；img_cx=cx+x0 | :378,383 |
 | C API 导出（7 个）：dpsf_fit :427 / dpsf_fit_batch :482 / dpsf_fit_batch_f :580 / dpsf_free_results :599 / dpsf_fit_batch_d :612 / dpsf_fit_batch_f32 :694 / dpsf_fit_batch_f64 :822 | dpsf_psf.cpp |
-| star_det v1 `FLOAT64[N,6]` / `psf_params:FLOAT64[N,9]` schema 宏 | dynamic_psf.h:104-105 |
+| star_det v1 `FLOAT64[N,6]` / `psf_params:FLOAT64[N,9]` schema 宏 | dynamic_psf.h:107-108 |
 | 错误码 OK=0 / NO_CONVERGENCE=1 / INVALID_PARAMS=2 / ITERATION_LIMIT=3 | dynamic_psf.h:33-36 |
-| 批拟合 OpenMP `schedule(dynamic) reduction(+:success_count)` 4 处 | dpsf_psf.cpp:528,635,738,866 |
+| 批拟合 OpenMP `schedule(dynamic) reduction(+:success_count)` 4 处 | dpsf_psf.cpp:528,635,738,876 |
 
 与 §3 伪代码的出入（如实登记，不改 §3）：实测 LM 参数为 tol=1e-8、max_iter=200
 （:320-321），§3 "iter≤50 tol=1e-6" 为旧稿；`DPSFFitParams.maxIter/tolerance`
@@ -167,7 +167,7 @@ dynamic_psf 不消费饱和列 [4]/[5]（:741）。
 | 码 | 宏 | 触发（实测锚） | 单星接口（dpsf_fit/moffat4_fit） | 批接口（f32/f64 [N,9]） |
 |---|---|---|---|---|
 | 0 | DPSF_FIT_OK | 收敛 :163 且过验证链一~三 | 全参数回填 :391-403 | 计入 out_n_valid；写 9 字段 :784-794/907-916 |
-| 1 | DPSF_FIT_NO_CONVERGENCE | 验证链一 :336-338 / 二 :341-346 / 三 :349-354 | result 已 memset 0（:229）+status | 9 字段全 NaN（:729-732 初始化，失败不覆盖） |
+| 1 | DPSF_FIT_NO_CONVERGENCE | 验证链一 :336-338 / 二 :341-346 / 三 :349-354 | result 已 memset 0（:229）+status | 不计入 compact 行；逐星 out_status=1（B2-A2：失败星不再占参数行） |
 | 2 | DPSF_FIT_INVALID_PARAMS | 空指针/w≤0/h≤0 :431-434；rect 面积<9 :236-239；rect 越界 :240-245；空 rect :445-450 | 同上 | 批整体 -1（:700-707），不触碰输出 |
 | 3 | DPSF_FIT_ITERATION_LIMIT | max_iter=200 耗尽 :187 | 仍回填当前最优参数 :391-403 | 非 OK→NaN，不计 valid |
 
@@ -184,15 +184,16 @@ dynamic_psf 不消费饱和列 [4]/[5]（:741）。
 | DISP-PSF-003 | `DPSFFitParams.maxIter/tolerance` 死参数（LM 硬编码 1e-8/200）；§3 伪代码参数为旧稿 | :320-321,716-719 |
 | DISP-PSF-004 | 无取消检查点（OpenMP dynamic 4 处批拟合不可中断） | :528,635,738,866 |
 | DISP-PSF-005 | 无参数协方差/不确定性输出（科学专项 covariance 缺口，P1-PSF-IMPL 落地） | DPSFFitResult 12 字段 dynamic_psf.h:16-31 |
-| DISP-PSF-006 | 批 f32/f64 路径逐星退败静默（仅 out_n_valid 汇总，per-star 状态不出批） | :784-804,907-925 |
+| DISP-PSF-006 | 批 f32/f64 路径逐星退败静默（仅 out_n_valid 汇总，per-star 状态不出批）——**B2-A2（RESCUE-P0-05）已关闭**：批 f32/f64 新增可选逐星 `out_status`（`psf_status:INT32[N]`），成功行 compact，星 ID↔行映射可由状态真值唯一判定 | dynamic_psf.h:129-136,146,188 |
 
 ### 11.4 TEST-PSF-DESIGN-001（测试设计，P1-PSF-TEST 执行）
 
 - unit：4 状态码逐码负例（§11.2 表）；rect 面积<9/越界/空 rect；饱和列不消费断言。
 - oracle：解析 Moffat4（β=4）合成图回收 B,A,cx,cy,sx,sy,θ；flux=2πAsxsy/3 与
   FWHM=1.230310·σ 恒等复核；独立参考不调用生产 symbol（11 号标准 §5）。
-- property：θ 消歧确定性（同输入同 θ 回选）；eccentricity∈[0,1)；批输出 NaN 占位
-  与 out_n_valid 一致；per-star 独立性（打乱星序不改变逐星结果）。
+- property：θ 消歧确定性（同输入同 θ 回选）；eccentricity∈[0,1)；批输出成功行
+  compact 与 out_status/out_n_valid 一致（B2-A2：3 星中间一颗失败 → row0↔星0、
+  row1↔星2，无 NaN 洞）；per-star 独立性（打乱星序不改变逐星结果）。
 - boundary：fitRadius 裁边 clamp（:438-441）；FWHM≈rect 边界；背景约束 0.5 阈值
   边界；max_iter 边界（ITERATION_LIMIT 仍回填）。
 - performance：1/N worker 缩放、provider=baseline、确定性重跑一致。
