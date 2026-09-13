@@ -1,5 +1,7 @@
 # M7 · F_TEST_GAP（测试缺口）· P2
 
+> **档位声明**：本文件内全部条目的 **类别与优先级由本行标题承载**（协议 §3 的「一类别×优先级一档」）；条目正文只在**偏离本档级别**时显式标注改档及理由（如 M7-A-101 记 P0→P1、M7-A-201 记 P1→P2 并撤核心结论、M7-A-001 记 P1→P0、M7-I-202 记 P1→P2 且改类 A_SCI_DEF→I_DOC_HYGIENE）。逐条四态判定与编号映射见 \`问题扫描/_merge/M7.md\` §2；每条均含 位置/权威依据/证据或证据出处/问题说明/影响/建议处置/置信度/related/四态判定 九项。
+
 ## M7-F-201 冻结容差以文字或占位充当，且「构造保证」在 FP64 下并非逐位命题（L20-026）
 - 类别: F_TEST_GAP · 优先级: P2
 - 位置 `docs/algorithms/PHASE3_RESAMPLE.md::§5c/§8`（复核时 :86/:105「构造保证」）、`docs/algorithms/PHASE3_FITS_IMPL.md::§/逐值精确`（:325）、`docs/algorithms/PHASE2_REJECTION.md::§11.4`
