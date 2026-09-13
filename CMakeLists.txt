@@ -668,6 +668,13 @@ target_link_libraries(astrocs_cli_runtime PUBLIC
 if(ASTROCS_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests/unit)
+  # V3 B3-A4 (RESCUE-P1-13/P1-16): Phase2 主科学门进全量 ctest。
+  # lib/phase2/tests/* 的六个 gtest 目标 (synthetic_gate / ivar_wiring /
+  # execution_options / routing / sampler_parallel / async_io) 此前从不进根
+  # 图 —— ctest -N | grep -i synthetic 只剩 tests/unit 的 p2_upm_synthetic
+  # 单点。子目录自带 find_package(GTest QUIET); GTest 缺失时这些目标零注册,
+  # 故 CI 供应 libgtest-dev 以保证有真实执行面 (不得静默零测试)。
+  add_subdirectory(lib/phase2)
 endif()
 
 # ── QA-006: linux-deep 附加质量目标 (V8-CI-005; 默认 OFF, 仅 linux-deep CI 开) ──

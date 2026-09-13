@@ -27,7 +27,7 @@ HELP_LINES = [
     "astrocs benchmark cpu (--quick|--full) [--output <path>] [--events-jsonl]",
     "astrocs verify profile --profile <path> [--json]",
     "astrocs doctor --json",
-    "astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|pipeline>",
+    "astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|p1_ir_facade>",
     "astrocs phase1 validate --config <path> [--json]",
     "astrocs phase1 plan --config <path> [--json] [--output <path>]",
     "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]",

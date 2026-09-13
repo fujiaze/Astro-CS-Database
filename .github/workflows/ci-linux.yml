@@ -27,7 +27,15 @@ permissions:
   contents: read
 
 concurrency:
-  group: linux-ci-${{ github.ref }}-${{ github.event_name }}
+  # V3 B3-A7 (RESCUE-P1-22 / AUD-CI-LIVE F9): group 追加候选 SHA。
+  # 原 "linux-ci-<ref>-<event>" 使同一 ref 的连续 push 共享唯一 pending 槽,
+  # 后到 push 在 pending 态取代先到 run (近 30 次 15 cancelled 且 total_jobs=0,
+  # 从未获得 runner) → 每个候选 SHA 无归因证据。加入 github.sha 后逐 SHA 独立
+  # 成组, 各自拿到可归因 run。
+  # 仍保留 github.ref 与 github.event_name: 手动 workflow_dispatch 与 push
+  # 分属不同组, §C「由 workflow_dispatch 精确触发该 SHA」语义不变;
+  # cancel-in-progress 维持 false (不取消进行中的验证)。
+  group: linux-ci-${{ github.ref }}-${{ github.event_name }}-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -81,10 +89,20 @@ jobs:
           timeout 240 sudo apt-get update -qq
           timeout 480 sudo DEBIAN_FRONTEND=noninteractive \
             apt-get install -y -qq --no-install-recommends \
-            python3-numpy python3-astropy nlohmann-json3-dev libgsl-dev
+            python3-numpy python3-astropy nlohmann-json3-dev libgsl-dev \
+            libgtest-dev libzstd-dev liblz4-dev zlib1g-dev
           python3 -c "import numpy, astropy; print('numpy ready:', numpy.__version__, '/ astropy ready:', astropy.__version__)"
           test -f /usr/include/nlohmann/json.hpp
           test -f /usr/include/gsl/gsl_multifit_nlinear.h
+          # V3 B3-A4: 根图 ASTROCS_BUILD_TESTS 下 add_subdirectory(lib/phase2) 的
+          # gtest 目标 (phase2_synthetic_gate 等) 需要 GTest; 缺失即该批测试
+          # 零注册 (ctest -N | grep synthetic 只剩 p2_upm_synthetic)。
+          test -f /usr/include/gtest/gtest.h
+          # V3 B3-A3: 独立接缝门/UPM/reject oracle 经 make 产出
+          # lib/astro_image_io/astro_image_io.dll (链接 -lzstd -llz4 -lz);
+          # 缺开发包即链接失败 → UT-API 红 (fail-closed, 不再静默 skip)。
+          test -f /usr/include/zstd.h
+          test -f /usr/include/lz4.h
       - name: Install deep coverage tools
         if: steps.profile.outputs.profile == 'linux-deep'
         shell: bash
@@ -106,12 +124,17 @@ jobs:
             apt-get install -y -qq --no-install-recommends \
             llvm-18 python3-pytest python3-pytest-cov \
             python3-numpy python3-astropy python3-scipy python3-yaml \
-            libgsl-dev
+            libgsl-dev libomp-18-dev
           # llvm-18 无后缀可执行在 /usr/lib/llvm-18/bin，GITHUB_PATH 对后续步生效
           echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
           # 本步内 PATH 尚未刷新，按落点直接核验；缺失时显式报错不静默
           test -x /usr/lib/llvm-18/bin/llvm-profdata
           test -x /usr/lib/llvm-18/bin/llvm-cov
+          # V3 B3-A9 (FD-R1-005): linux-deep 的 DEEP-CLANG-BUILD/SAN-ASAN/
+          # SAN-TSAN/COV-CPP 以 clang 重新配置, 而 tests/unit/p1wcs/
+          # CMakeLists.txt:70 为 find_package(OpenMP REQUIRED) —— 平台无
+          # libomp 时 configure 硬失败。显式提供 llvm-18 对应 OpenMP 运行时。
+          test -f /usr/lib/llvm-18/lib/libomp.so
           command -v pytest
           echo "deep coverage tools ready: pytest=$(command -v pytest), llvm-18 bin=/usr/lib/llvm-18/bin"
       - name: Run registered checks

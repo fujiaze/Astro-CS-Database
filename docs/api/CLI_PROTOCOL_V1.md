@@ -13,7 +13,7 @@ astrocs config validate --config <path>
 astrocs config show-effective --config <path> [--cpu-profile <path>] --json
 astrocs benchmark cpu (--quick|--full) [--output <path>] [--events-jsonl]     # 唯一用户 benchmark 入口,禁另发 benchmark exe
 astrocs doctor --json
-astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|pipeline>
+astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|p1_ir_facade>
 astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]
 astrocs phase2 run --config <path> [--cpu-profile <path>] [--events-jsonl]
 astrocs phase3 run --config <path> [--cpu-profile <path>] [--events-jsonl]

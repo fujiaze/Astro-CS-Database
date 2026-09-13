@@ -76,7 +76,7 @@ const char* kHelp =
     "astrocs benchmark cpu (--quick|--full) [--output <path>] [--events-jsonl]\n"
     "astrocs verify profile --profile <path> [--json]\n"
     "astrocs doctor --json\n"
-    "astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|pipeline>\n"
+    "astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|p1_ir_facade>\n"
     "astrocs phase1 validate --config <path> [--json]\n"
     "astrocs phase1 plan --config <path> [--json] [--output <path>]\n"
     "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
@@ -191,8 +191,13 @@ std::string need_value(const Parsed& p, const std::string& flag) {
     return it->second;
 }
 
+// V3 B3-A8: 组名 "pipeline" 与所映射的 p1_ir_facade_test 语义不符 ——
+// 该二进制只断言 p1_session 源文本里的 canonical 节点声明与 facade 委托,
+// 不驱动 CLI 真实 IR; 曾因此让 "pipeline" 组在 CLI IR 仅 2 节点时报 PASS。
+// 改为与二进制同名的 p1_ir_facade (真实 CLI IR 断言在 UT-CLI 的
+// tests/cli/test_phase1_inprocess.py::test_ir_matches_frozen_chain)。
 const std::set<std::string> kGroups = {"all", "calibration", "wcs_psf", "noise_snr",
-                                       "drizzle", "upm", "rejection_integration", "pipeline"};
+                                       "drizzle", "upm", "rejection_integration", "p1_ir_facade"};
 
 // crash 报告脱敏(04 §5): 仅保留可打印 ASCII, 截断 200 字符。
 std::string sanitize(const std::string& s) {

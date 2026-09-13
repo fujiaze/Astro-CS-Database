@@ -20,13 +20,35 @@ C = os.path.join(REPO, "lib", "common")
 CASTRO = os.path.join(C, "healpix")
 AIO = os.path.join(REPO, "lib", "astro_image_io")
 OMP_LIB = os.path.join(REPO, "build", "linux-openmp-on", "libphase2.a")
+AIO_LIB = os.path.join(AIO, "astro_image_io.dll")
 SIGMA = 0.05  # 同步 synthetic_gate kNoiseRms
 
 
-@unittest.skipUnless(shutil.which("g++") and os.path.isfile(OMP_LIB), "需要 g++ + OpenMP phase2 lib")
+# V3 B3-A3 独立接缝门前置 —— fail-closed (RESCUE-P0-08)。
+# 缺 g++ / phase2 OpenMP 归档 / AIO 共享库时必须让本门变红, 绝不 skip:
+# 历史 @unittest.skipUnless(...) 在缺 build/linux-openmp-on/libphase2.a 时
+# 把整类接缝用例静默成 OK(skipped), UT-API 因而不可能失败 —— "缺库" 与
+# "接缝已消除" 在 CI 面上不可区分 (前台事实 #6)。三条预冻结门槛
+# (cross-frame p95<=3σ, max<=5σ) 必须真实执行且可失败。
+def _require_prerequisites():
+    missing = []
+    if shutil.which("g++") is None:
+        missing.append("g++ (C++ 编译器)")
+    if not os.path.isfile(OMP_LIB):
+        missing.append(OMP_LIB + " (phase2 OpenMP 归档; 构建: cmake -S lib/phase2 "
+                       "-B build/linux-openmp-on -DP2_ENABLE_OPENMP=ON && cmake "
+                       "--build build/linux-openmp-on --target phase2)")
+    if not os.path.isfile(AIO_LIB):
+        missing.append(AIO_LIB + " (AIO 共享库; 构建: make -C lib/astro_image_io all)")
+    if missing:
+        raise AssertionError(
+            "SYN-008 独立接缝门前置缺失 (fail-closed, 不得 skip): " + "; ".join(missing))
+
+
 class TestSeamMetricGate(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        _require_prerequisites()
         cls.tmp = tempfile.mkdtemp(prefix="syn008_")
         cls.exe = os.path.join(cls.tmp, "syn8")
         r = subprocess.run(["g++", "-std=c++17", "-O3", "-DNDEBUG", "-fopenmp",

@@ -90,12 +90,22 @@ if(GTest_FOUND)
     add_executable(phase2_async_io tests/async_io_test.cpp)
     target_link_libraries(phase2_async_io PRIVATE phase2 GTest::gtest_main)
     include(GoogleTest)
-    gtest_discover_tests(phase2_synthetic_gate DISCOVERY_MODE PRE_TEST)
-    gtest_discover_tests(phase2_ivar_wiring DISCOVERY_MODE PRE_TEST)
-    gtest_discover_tests(phase2_execution_options DISCOVERY_MODE PRE_TEST)
-    gtest_discover_tests(phase2_routing DISCOVERY_MODE PRE_TEST)
-    gtest_discover_tests(phase2_sampler_parallel DISCOVERY_MODE PRE_TEST)
-    gtest_discover_tests(phase2_async_io DISCOVERY_MODE PRE_TEST)
+    # V3 B3-A4: 每个 Phase2 门的发现测试统一加 TEST_PREFIX "phase2_<gate>."，
+    # 使全量 ctest 中的 Phase2 科学门可归因、可 grep（"ctest -N | grep -i
+    # synthetic" 必须命中 phase2_synthetic_gate.*），并让 CTEST-PHASE2-*
+    # 注册项可用单一正则覆盖。
+    gtest_discover_tests(phase2_synthetic_gate DISCOVERY_MODE PRE_TEST
+        TEST_PREFIX "phase2_synthetic_gate.")
+    gtest_discover_tests(phase2_ivar_wiring DISCOVERY_MODE PRE_TEST
+        TEST_PREFIX "phase2_ivar_wiring.")
+    gtest_discover_tests(phase2_execution_options DISCOVERY_MODE PRE_TEST
+        TEST_PREFIX "phase2_execution_options.")
+    gtest_discover_tests(phase2_routing DISCOVERY_MODE PRE_TEST
+        TEST_PREFIX "phase2_routing.")
+    gtest_discover_tests(phase2_sampler_parallel DISCOVERY_MODE PRE_TEST
+        TEST_PREFIX "phase2_sampler_parallel.")
+    gtest_discover_tests(phase2_async_io DISCOVERY_MODE PRE_TEST
+        TEST_PREFIX "phase2_async_io.")
 endif()
 
 # BLD-002: 以下工具降级为 compatibility (EXCLUDE_FROM_ALL) —— 非正式 ALL target,
@@ -108,6 +118,10 @@ if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
     target_compile_definitions(astrocs-stage2 PRIVATE P2_ENABLE_OPENMP=1)
 endif()
 set_target_properties(astrocs-stage2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
+# V3 B3-A4: phase2_ivar_wiring 以 std::system("astrocs-stage2 ...") 驱动本
+# compatibility 工具；该工具 EXCLUDE_FROM_ALL，必须由测试目标显式拉建，
+# 否则全量 ctest 中 sh 报 "astrocs-stage2: not found"(rc=32512) 假红。
+add_dependencies(phase2_ivar_wiring astrocs-stage2)
 
 add_executable(calibrated_pair_diag tools/calibrated_pair_diag.cpp)
 target_link_libraries(calibrated_pair_diag PRIVATE phase2

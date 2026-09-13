@@ -289,3 +289,13 @@
     `contracts/data/phase2_uncertainty_rejection_provenance_v1.json` 的
     `pending_aio_channels.writer_int32_tile|properties_key_channel` 仍为
     PENDING_AIO_DOMAIN。三处均为本任务写域外，最小补丁文本见任务返回包。
+
+### RESCUE-V3 B3-A3（2026-09-13，FIX-CI）
+
+- `Makefile` 的共享对象构建补 `-fPIC`（CXXFLAGS/CFLAGS/CFLAGS_VENDORED）。
+  现版 gcc 14 对 `aio_hips_reader.cpp` 的 thread_local (`g_rd_error`) 报
+  `relocation R_X86_64_TPOFF32 … recompile with -fPIC`，导致
+  `lib/astro_image_io/astro_image_io.dll` 无法产出。
+- 该 .dll 是 `tests/api` 五个独立 oracle 门（seam/UPM/reject）的链接输入；
+  接缝门已改 fail-closed（缺库即红，不再静默 skip）。`make -C
+  lib/astro_image_io -j2 all` 恢复可产出；零科学改动。
