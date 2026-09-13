@@ -19,8 +19,10 @@ CLI-002 迁移注记 (commit de2d6d7f):
     恢复 budget/available 一致 —— 环境适配, 非语义放宽。
     时长锚(R20 CI 残余收敛): 冻结规格(控制包 04 §P3-006)原文"完整合成运行≥10s"——
     10s 是冻结验收锚, 不放宽断言; hosted 宿主快于原始 CI 2c2g 设计机属于环境差异,
-    修法是放大合成大图(1200²→1400², 计算量 +36%)使完整运行重回 ≥10s,
-    同时保持 2c 亲和下资源门 verdict ok 语境不变。
+    修法是放大合成大图使完整运行重回 ≥10s, 同时保持 2c 亲和下资源门 verdict ok
+    语境不变。RESCUE-FD-08 实测标定(本机 2c 亲和, 同 config 单次 run):
+    1400²→5.4s / 1800²→8.3s / 2000²→10.1s(临界) / 2200²→12.4s, 取 2200² 留
+    余量(CI 2c runner 略慢于本机, 1400² 在 CI 实测 6.2s)。RESCUE-FD-08 复核: 2200 一档 gate compute 均值贴近 0.80*2=1.6 阈值(实测一次 1.587 被 low_avg_cores 拒), 故定为 2600(单次 wall~17.2s, active 窗~14.5s, 均值 1.66-1.68 低噪声)。
 """
 import json
 import os
@@ -51,7 +53,7 @@ class TestP3006ProductionPipeline(unittest.TestCase):
                "inputs": {"lights": [cls.hips], "darks": [], "flats": [], "bias": []},
                "phase3": {"source": {"hips_dir": cls.hips},
                           "center": {"ra_deg": 0.0, "dec_deg": 30.0},
-                          "scale_deg_per_px": 0.002, "width_px": 1400, "height_px": 1400,
+                          "scale_deg_per_px": 0.002, "width_px": 2600, "height_px": 2600,
                           "sampler": "bilinear", "projection": "TAN",
                           "coverage_output": "mask", "output_dir": cls.big},
                "output_dir": cls.big}

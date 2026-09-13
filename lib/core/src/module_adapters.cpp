@@ -2844,6 +2844,12 @@ Result<void> p2_op_coverage(const Json& doc, Json* man) {
   st["n_inputs"] = cov.n_inputs;
   st["n_union_cells"] = cov.n_union_cells;
   st["target_order"] = cov.target_order;
+  // RESCUE-FD-08(观测链): 恢复 CLI-002 入口迁移后丢失的 session stage 观测证据
+  // —— IR 通道的 coverage 节点把实测 union cell 数写 stderr(p2_session 旧通道
+  // 的唯一实现已不在生产调用面上)。数值来自真实 p2_coverage_build 结果, 不造假。
+  std::fprintf(stderr, "stage coverage ok: cells=%llu\n",
+               (unsigned long long)cov.n_union_cells);
+  std::fflush(stderr);
 
   Json frames = Json::array();
   for (size_t i = 0; i < paths.size(); ++i) {
@@ -2987,6 +2993,12 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
   // cmd_phase2_run 摘要扫描命中 sample（含 n_obs）后读不到 n_inputs 会报 0。
   (*man)["n_inputs"] = static_cast<uint64_t>(view.hips_paths.size());
   (*man)["overlap_controls"] = stats.overlap_controls;
+  // RESCUE-FD-08(观测链): 同 coverage —— 恢复 sample 阶段实测统计的 stderr 证据
+  // (obs/overlap_controls 均来自真实 p2_sample_controls_cached 结果)。
+  std::fprintf(stderr, "stage sample ok: obs=%llu overlap_controls=%llu\n",
+               (unsigned long long)n_obs,
+               (unsigned long long)stats.overlap_controls);
+  std::fflush(stderr);
   return Result<void>::success();
 }
 

@@ -62,12 +62,22 @@ static bool write_frame(const std::string& path, float flux, bool with_ivar = fa
 // 背景: 常量/线性梯度/低阶平滑; 不同加性偏移; 恒星(高斯) + 扩展结构;
 // mask/low support 区域(右下 128x128 support=0)。三块共享 WCS 使 overlap 存在。
 static bool write_seam_frame(const std::string& path, int mode, int offset) {
+    // RESCUE-FD-08: seam 帧同为生产正样本, 必须携带 variance/ivar 子产品 ——
+    // 生产 integrate 默认 weight_mode=2(逐帧逆方差)在缺 ivar 时按 DATA-UNC-001
+    // §30.1 fail-closed 拒绝整条链(实测 "6/6 frames missing ivar"), 使 P2-007
+    // 联合门 workload 永远到不了 gate 事件。与 write_frame 的 B1-A5 约定同源:
+    // 等权合成帧 σ=0.1 → variance=0.01, var_num_sum = variance·AREA²(合同
+    // variance = var_num_sum / covered_area²)。masked(area=0)像素由 writer
+    // 规则自然取 NaN(variance 无定义), 与 signal NaN 语义一致。未放宽任何
+    // 科学判据(默认 weight 模式与 ivar 必需性不动)。
+    const int flags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
+                      AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR;
     AioHipsProductSet* ps = aio_hips_product_begin(
-        path.c_str(), TW, TW, AIO_HIPS_FLOAT32,
-        AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
+        path.c_str(), TW, TW, AIO_HIPS_FLOAT32, flags,
         "ivo://astrocs/seam", "P2-003 seam", "R", 60.0, "2026-08-28T00:00:00Z", 0);
     if (!ps) { std::fprintf(stderr, "begin failed: %s\n", aio_hips_last_error()); return false; }
     std::vector<float> sig(TW * TW), area(TW * TW, AREA);
+    std::vector<float> vnum(TW * TW, AREA * AREA * 0.01f);
     for (uint64_t ipix = 0; ipix < 12; ++ipix) {
         for (uint32_t y = 0; y < TW; ++y) {
             for (uint32_t x = 0; x < TW; ++x) {
@@ -101,8 +111,15 @@ static bool write_seam_frame(const std::string& path, int mode, int offset) {
         v.flux_sum = sig.data();
         v.covered_area = area.data();
         v.valid_mask = nullptr;
+        v.var_num_sum = vnum.data();
         if (aio_hips_write_signal_support_tile(ps, &v) != 0) {
             std::fprintf(stderr, "seam tile write failed ipix=%llu\n", (unsigned long long)ipix);
+            aio_hips_abort(ps);
+            return false;
+        }
+        if (aio_hips_write_variance_tile(ps, &v) != 0) {
+            std::fprintf(stderr, "seam variance tile write failed ipix=%llu: %s\n",
+                         (unsigned long long)ipix, aio_hips_last_error());
             aio_hips_abort(ps);
             return false;
         }

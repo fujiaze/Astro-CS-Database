@@ -292,6 +292,16 @@ public:
         s.wall_seconds =
             std::chrono::duration<double>(SteadyClock::now() - t0_).count();
         uint64_t peaks_rss = baseline_.rss_bytes;
+        // RESCUE-FD-08: 峰值线程/RSS 是单点观测量(非统计量), 必须在任何样本数下
+        // 计入 —— 采样 1 次也真实观测到 Threads/RSS。此前仅在 samples_.size()>=2
+        // 分支内累计, 使短 run(仅 1 个样本)的 max_threads 恒为 0; 而 0 是"未观测"
+        // 哨兵, 被 evaluate_gate 的 max_active_threads 回退误用为"只有一个活跃
+        // 计算线程"的观测值(误判 single_threaded, exit 10)。判定式与阈值不动。
+        s.max_threads = baseline_.threads;
+        for (const auto& sm : samples_) {
+            if (sm.rss_bytes > peaks_rss) peaks_rss = sm.rss_bytes;
+            if (sm.threads > s.max_threads) s.max_threads = sm.threads;
+        }
         if (samples_.size() >= 2) {
             double sum_eq = 0.0;
             for (const auto& sm : samples_) {
@@ -299,8 +309,6 @@ public:
                 const double eq = interval_ > 0 ? (sm.d_cpu_seconds / interval_) : 0.0;
                 sum_eq += eq;
                 if (eq > s.peak_equivalent_cores) s.peak_equivalent_cores = eq;
-                if (sm.rss_bytes > peaks_rss) peaks_rss = sm.rss_bytes;
-                if (sm.threads > s.max_threads) s.max_threads = sm.threads;
                 s.total_read_bytes += sm.d_read_bytes;
                 s.total_write_bytes += sm.d_write_bytes;
                 s.total_ctx_switches += sm.d_ctx_switches;
