@@ -183,8 +183,15 @@
   （KD-tree IDW 重建逐像素 SNR，snr_evaluator.h）。
 - **B2-A17 SIP 桥接**（AUD-COORD F-03）：编排 drizzle 节点从上游
   `p1_wcs.json`（DATA-P1-WCS §18）读回 `wcs.sip`（order/ap_order/a/b/ap/bp，
-  i*6+j），经 `p1_sip_write_header_frame` 写入 frame header：`CTYPE1/2`
-  带 `-SIP` 后缀、`A_ORDER`/`B_ORDER`、`A_i_j`/`B_i_j`、`AP_*`/`BP_*`；
+  i*6+j），经 `p1_sip_write_header_frame` 写入 frame header 的 FITS 键：
+
+  ```text
+  CTYPE1/2 带 "-SIP" 后缀
+  A_ORDER / B_ORDER
+  A_i_j / B_i_j
+  AP_* / BP_*
+  ```
+
   无 SIP → CTYPE 不含 `-SIP` 且不写任何 SIP 键。reverse 通道 sip_order
   校验 [0,5]（DISP-DRZ-001）；`p1_stack.json` 记录 sip_present/sip_order/
   ctype1/ctype2 作为"实际下发"证据（module_adapters.cpp p1_op_drizzle）。
