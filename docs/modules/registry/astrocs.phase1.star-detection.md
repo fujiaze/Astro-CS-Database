@@ -12,7 +12,7 @@ downstream: [TEST-P1-STAR-001]
 
 > P1-STAR-DOC 手写合同页（2026-09-07，SA-P1-S15）：registry 无
 > astrocs.p1.star_detection descriptor——现行占位 descriptor 为
-> astrocs.phase1.star-psf（lib/core/src/module_adapters.cpp:430-448，编排层
+> astrocs.phase1.star-psf（lib/core/src/module_adapters.cpp:492-510，编排层
 > 词汇，占位 ID ALG-002/TEST-P1-PSF-001 由 P1-PSF-INT/P1-STAR-INT 对齐），
 > 本页手写登记，重生成时须保留（astrocs.phase1.session.md 先例）。权威签名头
 > lib/star_detector/include/star_detector.h:1-73；模块级事实以

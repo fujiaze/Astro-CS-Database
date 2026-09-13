@@ -233,7 +233,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 > hp_drizzle_run / hp_drizzle_run_hips 帧通道真实数据语义（P1-DRZ-DOC
 > 源码核对），迁移 DLL astrocs_p1_drizzle.dll 由 P1-DRZ-IMPL 建立
 > （语义不变）。编排现状（registry descriptor
-> lib/core/src/module_adapters.cpp:508-525 p1_drizzle_descriptor）将
+> lib/core/src/module_adapters.cpp:570-587 p1_drizzle_descriptor）将
 > 本模块登记为 ports calibrated→stacked、data_id=DATA-P1-STACK；本节
 > DATA-P1-DRZ 为按 SCI-DRZ-001 语义新建的模块级合同，descriptor 引用
 > 由 P1-DRZ-INT 对齐。禁止声明 IMPLEMENTED。
@@ -436,7 +436,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 > 引用不改动）；编排级合同 API-P1-005（PHASE1_API_V1）。本节是该模块
 > 单位/dtype/shape/invalid 的唯一权威；descriptor 端口编目（psf→
 > DATA-P1-PSF/sources→DATA-P1-SOURCES/fluxes→DATA-P1-FLUX，
-> module_adapters.cpp:469-486）为编排层词汇，由 P1-PHOT-INT 对齐，
+> module_adapters.cpp:531-548）为编排层词汇，由 P1-PHOT-INT 对齐，
 > 不得反向作为冻结依据。
 
 
@@ -492,7 +492,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 > SCI-PSF-001 docs/science/PSF.md 共享引用不改动）；编排级合同 API-P1-003
 > （PHASE1_API_V1 §2）。本节是该模块单位/dtype/shape/invalid 的唯一权威；
 > descriptor 端口编目（psf→DATA-P1-PSF/sources→DATA-P1-SOURCES，
-> module_adapters.cpp:437-441）与本节一致。**双 [N,9] 布局并存**（15.2 A/B）
+> module_adapters.cpp:499-503）与本节一致。**双 [N,9] 布局并存**（15.2 A/B）
 > 为冻结事实，禁止混淆。
 
 ### 15.1 输入（dpsf_fit_batch_f / _d 生产通道，orchestrator.cpp:2314/:2339）
@@ -628,7 +628,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 - API-P1-001 冻结 7-stage 序列与现状 4 段（CAL+COS）的差距在
   lib/phase1_session/README.md §3 如实声明；补齐归 P1-SESSION-IMPL。
 - assembly 层禁止声明 IMPLEMENTED 于无证据处；descriptor 端口编目
-  （module_adapters.cpp:254-544）与本节冲突时以本节+各冻结 DATA 节为准。
+  （module_adapters.cpp:316-606）与本节冲突时以本节+各冻结 DATA 节为准。
 
 ## 17. Phase1 star-detection 模块输入/输出数据（DATA-P1-STAR）
 
@@ -641,7 +641,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 > SCI-P1-STAR-001（docs/science/STAR_DETECTION.md，本任务冻结层，共享 SCI
 > 引用不改动）；编排级合同 API-P1-003（PHASE1_API_V1 §2：一帧只做一次权威
 > 检测，PLATESOLVE 禁重检测）。本节是该模块单位/dtype/shape/invalid 的唯一
-> 权威；descriptor astrocs.phase1.star-psf（module_adapters.cpp:430-448）为
+> 权威；descriptor astrocs.phase1.star-psf（module_adapters.cpp:492-510）为
 > 编排层词汇，由 P1-PSF-INT 对齐，不得反向作为冻结依据。
 
 ### 17.1 输入（生产通道 sdet_detect_ex / sdet_detect_ex_f64，orchestrator.cpp:2172-2196）
@@ -706,7 +706,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 > 不改动）；编排级合同 API-P1-004（PHASE1_API_V1 §2：一帧只做一次权威
 > 求解，PLATESOLVE 消费 PSF 星点禁重检测）。本节是该模块单位/dtype/
 > shape/invalid 的唯一权威；descriptor astrocs.phase1.wcs-platesolve
-> （module_adapters.cpp:450-464）为编排层词汇，由 P1-WCS-INT 对齐，不得
+> （module_adapters.cpp:512-526）为编排层词汇，由 P1-WCS-INT 对齐，不得
 > 反向作为冻结依据。
 
 ### 18.1 输入（生产通道 ipv_solve_from_detections_v1，orchestrator.cpp:1967）
@@ -783,7 +783,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 > 的唯一权威；ALG: ALG-COV-001（docs/algorithms/PHASE2_COVERAGE.md）；
 > 编排级合同 API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，所有权图
 > Coverage 行）；descriptor astrocs.phase2.coverage
-> （module_adapters.cpp:561-576）为编排层词汇（端口坐标 PIXEL 登记与
+> （module_adapters.cpp:623-638）为编排层词汇（端口坐标 PIXEL 登记与
 > NESTED 球面实际不符，以本节为准修订），由 P2-COV-INT 对齐，不得反向
 > 作为冻结依据。registry 端口语义沿用 DATA-P2-COV 端口名（本节冻结后
 > 为其权威定义）。
@@ -1005,7 +1005,7 @@ signal 回读失败 rc=7 :1665）。
   （DISP-P2HIPS-003）——与 DATA-P1-HIPS §12.5 同源对齐，禁止以
   stage2 直写目录冒认 IO-003 原子发布。
 - **编排层词汇注记**: registry descriptor p2_write_descriptor
-  （lib/core/src/module_adapters.cpp:677-694，module_id=
+  （lib/core/src/module_adapters.cpp:739-756，module_id=
   "astrocs.phase2.write" :679）端口表 integrated=DATA-P2-INT in /
   mosaic=DATA-P2-RES out（UnitId::ADU/CoordinateFrame::PIXEL，
   :684-687）为编排层词汇，与球面 NESTED 马赛克实际不符（产品为
@@ -1322,7 +1322,7 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
   §21（下游积分消费 accepted mask，DATA-P2-INT）；§19（本域与
   target_order 无关）。
 - 端口词汇注记: registry descriptor p2_reject_descriptor
-  （module_adapters.cpp:638-655，module_id=astrocs.phase2.reject
+  （module_adapters.cpp:700-717，module_id=astrocs.phase2.reject
   占位）端口表为编排层词汇，由 P2-XX-INT 对齐 astrocs.p2.rejection，
   不得反向作为冻结依据。
 
@@ -1486,7 +1486,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
 - 同文档: §20（编排域 stage2 编排消费 sccfg 透传）、§21（下游
   积分）、§22（rejection 域先行例）。
 - 端口词汇注记: registry descriptor p2_sample_descriptor
-  （module_adapters.cpp:580-592，module_id=astrocs.phase2.sample
+  （module_adapters.cpp:642-654，module_id=astrocs.phase2.sample
   占位）端口表 coverage→samples 为编排层词汇，由 P2-XX-INT 对齐
   astrocs.p2.sampling，不得反向作为冻结依据。
 
@@ -1678,7 +1678,7 @@ tree hash/COMPLETE 状态）在本段不适用，如实现状态登记**（无�
 > 其 §3）；ALG: ALG-P2-UPM-IMPL-001（docs/algorithms/PHASE2_UPM_IMPL.md，
 > 逐符号锚）；API 面: API-P2-UPM-001（PUBLIC_API.md）；
 > descriptor 占位 module_id=astrocs.phase2.upm-fit
-> （module_adapters.cpp:599-616）由 P2-XX-INT 对齐。
+> （module_adapters.cpp:661-678）由 P2-XX-INT 对齐。
 
 ### 25.1 输入（锚=upm.h/upm.cpp；未注文件者同）
 
@@ -1751,7 +1751,7 @@ p2_upm_build_geo :934-937 唯一产出，p2_upm_close :1559 唯一释放）:
 =astrocs-upm-v2 单文件（§25.5(1)，唯一 AIO aio_upm_write_sparse）+
 可选 dense cache（§25.5(2)）；runtime 消费面=calibrate_block/
 evaluate_c/dense_read_block（apply 域=§26）。端口 samples→upm_model
-为编排层词汇（module_adapters.cpp:607-608），由 P2-XX-INT 对齐，
+为编排层词汇（module_adapters.cpp:669-670），由 P2-XX-INT 对齐，
 不作冻结依据。
 
 ### 25.3 单位/dtype/确定性
@@ -1841,7 +1841,7 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
 - 同文档: §23（输入观测上游）、§24（会话编排消费本域）、§22 前文
   权重语义红线（control_ivar 唯一科学权重源）。
 - 端口词汇注记: registry descriptor p2_upm_fit_descriptor
-  （module_adapters.cpp:599-616，module_id=astrocs.phase2.upm-fit
+  （module_adapters.cpp:661-678，module_id=astrocs.phase2.upm-fit
   占位）端口表 samples→upm_model 为编排层词汇，由 P2-XX-INT 对齐
   astrocs.p2.upm-fit，不得反向作为冻结依据。
 
@@ -1857,7 +1857,7 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
 > in/out 单位/dtype/shape/invalid 的唯一权威；SCI 上游: SCI-UPM-001
 > §5 连续定义（calibrated_f(p) = raw_f(p) − C_f(p)，FROZEN，零改动）；
 > ALG: ALG-P2-UPM-IMPL-001；API 面: API-P2-UPM-001；descriptor 占位
-> module_id=astrocs.phase2.upm-apply（module_adapters.cpp:618-634）
+> module_id=astrocs.phase2.upm-apply（module_adapters.cpp:680-696）
 > 由 P2-XX-INT 对齐。
 
 ### 26.1 输入
@@ -1871,7 +1871,7 @@ source_hash=model_hash stale 判定）。sparse 与 dense 同一科学语义
 char[65] SHA-256，h:67）。
 
 **(2) calibrated_frames**（DATA-P2-CAL 域，descriptor 端口词汇
-module_adapters.cpp:627）: 逐帧 signal f64 数组 input_signal[count]
+module_adapters.cpp:689）: 逐帧 signal f64 数组 input_signal[count]
 + frame_id（u64，模型 frames[] 绑定成员，DATA-FRAME-ID-001 身份）+
 leaf_ipix[count]（NESTED leaf 像素，tile=leaf>>18，tile_shift=9，
 :1254/:1258）。dtype=FP64；单位=ADU（§25.3 口径）。生产消费链=
@@ -1920,7 +1920,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 - 同文档: §23（观测上游）、§25（模型/持久化权威）、§24（会话域
   禁回退/取消语义同构）。
 - 端口词汇注记: registry descriptor p2_upm_apply_descriptor
-  （module_adapters.cpp:618-634，module_id=astrocs.phase2.upm-apply
+  （module_adapters.cpp:680-696，module_id=astrocs.phase2.upm-apply
   占位）端口表 upm_model→calibrated_frames→corrected 为编排层词汇
   （DISP-P2UPM-004 占位语义），由 P2-XX-INT 对齐
   astrocs.p2.upm-apply，不得反向作为冻结依据。
@@ -1940,7 +1940,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > ALG-P3-FITS-IMPL-001（docs/algorithms/PHASE3_FITS_IMPL.md，实现级
 > 合同，兼承接 ALG-P3-002/004 本域子面）；API 面: API-P3-FITS-001；
 > descriptor 占位 module_id=astrocs.phase3.writer
-> （module_adapters.cpp:383-398 p3_writer_descriptor）由 P3-FITS-INT
+> （module_adapters.cpp:445-460 p3_writer_descriptor）由 P3-FITS-INT
 > 对齐 astrocs.p3.fits_writer。
 
 ### 27.1 输入
@@ -2006,7 +2006,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 - 同文档: §3（FITS tile local-pixel 映射，读路径上游）、§4
   （signal/support/invalid 通用语义）、§26（UPM apply 域先例同构）。
 - 端口词汇注记: registry descriptor p3_writer_descriptor
-  （module_adapters.cpp:383-398，module_id=astrocs.phase3.writer
+  （module_adapters.cpp:445-460，module_id=astrocs.phase3.writer
   占位）端口表 resampled(DATA-P3-RES 必)+fits(DATA-P3-FITS 可) 为
   编排层词汇，由 P3-FITS-INT 对齐 astrocs.p3.fits_writer，不得
   反向作为冻结依据。
@@ -2027,7 +2027,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > ALG: ALG-P3-003（G3/G4 施工规格，PHASE3_RESAMPLE.md，公式零改动）
 > + ALG-P3-RSMP-IMPL-001（docs/algorithms/PHASE3_RSMP_IMPL.md 实现
 > 级合同）；API 面: API-P3-RSMP-001；descriptor 占位
-> module_id=astrocs.phase3.resample2（module_adapters.cpp:363-377
+> module_id=astrocs.phase3.resample2（module_adapters.cpp:425-439
 > p3_resample2_descriptor）由 P3-RSMP-INT 对齐 astrocs.p3.resample。
 
 ### 29.1 输入
@@ -2099,7 +2099,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   （signal/support/invalid 通用语义）、§27（FITS 写出域，本域为其
   上游）、§28（WCS 域，输出平面几何上游）。
 - 端口词汇注记: registry descriptor p3_resample2_descriptor
-  （module_adapters.cpp:363-377，module_id=astrocs.phase3.resample2
+  （module_adapters.cpp:425-439，module_id=astrocs.phase3.resample2
   占位）端口表 wcs_plan(DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+
   resampled(DATA-P3-RES 可) 为编排层词汇，由 P3-RSMP-INT 对齐
   astrocs.p3.resample，不得反向作为冻结依据。
@@ -2119,7 +2119,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > 2026-08-28，零改动）；ALG: ALG-P3-PROJ-IMPL-001
 > （docs/algorithms/PHASE3_PROJ_IMPL.md，实现级合同，兼承接
 > ALG-P3-002 G1/G2 本域子面）；API 面: API-P3-PROJ-001；descriptor
-> 占位 module_id=astrocs.phase3.wcs（module_adapters.cpp:344-361
+> 占位 module_id=astrocs.phase3.wcs（module_adapters.cpp:406-423
 > p3_wcs_descriptor）由 P3-PROJ-INT 对齐 astrocs.p3.projection。
 
 ### 28.1 输入
@@ -2185,7 +2185,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   （signal/support/invalid 通用语义）、§27（FITS 写出域，WCS 为
   其输入面）。
 - 端口词汇注记: registry descriptor p3_wcs_descriptor
-  （module_adapters.cpp:344-361，module_id=astrocs.phase3.wcs
+  （module_adapters.cpp:406-423，module_id=astrocs.phase3.wcs
   占位）端口表 props(DATA-P3-PROPS 必)+wcs_plan(DATA-P3-WCS 可)
   为编排层词汇，由 P3-PROJ-INT 对齐 astrocs.p3.projection，不得
   反向作为冻结依据。

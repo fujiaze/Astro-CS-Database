@@ -57,7 +57,7 @@ downstream: [DATA-P2-UPM, API-P2-UPM-001, TEST-P2-UPM-001]
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:599-616，**descriptor
+编排层 descriptor 端口表（module_adapters.cpp:661-678，**descriptor
 占位**词汇，按 frontmatter registry 生成词保留）:
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
@@ -91,7 +91,7 @@ INVALID 禁静默回退，upm.h:88-95）；未知 frame_id → evaluate_c NaN。
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.phase2.upm-fit`（占位）；execution_class=
-`cpu_heavy`；parallel_ok=True（module_adapters.cpp:599-616）。占位
+`cpu_heavy`；parallel_ok=True（module_adapters.cpp:661-678）。占位
 ID 清单（旧派生词汇，P2-XX-INT 对齐修订）: SCI-P2-UPM-001/
 ALG-P2-UPM-001/TEST-P2-UPM-001；DISP-P2UPM-004=descriptor 端口占位
 语义 persist→reload。配置=P2UpmBuildConfig 15 字段（upm.h:71-92），

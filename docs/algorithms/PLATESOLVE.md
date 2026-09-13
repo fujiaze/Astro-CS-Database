@@ -199,8 +199,14 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   拟合单线程，无跨线程浮点重结合——§5c 禁令；若实测违背，P1-WCS-TEST
   如实登记不得放宽语义）。
 - F6 legacy 桥回归：WcsTan pix2sky/sky2pix roundtrip <1e-6 deg
-  （tests/unit/p1_wcs_phot_test.cpp:50 冻结值）；lib/phase1/wcs 源码零改动
-  断言（矩阵 C7 语义）。
+  （tests/unit/p1_wcs_phot_test.cpp:50 冻结值）；B2-A1（2026-09-13）修复
+  pix2sky ξ/η deg→rad 单位错后另加**独立前向交叉绝对门**：pix2sky 输出与
+  独立 TAN 逆投影参考解（module_adapters.cpp 内 p1_tan_forward_reference，
+  与 WcsTan 的 atan(R)/asin 式不同源）角距 **≤1e-9 deg**；测试锚
+  tests/unit/p1wcs negative `n1_wcs_tan_unit_anchor` 与 units
+  `u1_f6_abs_cross`，生产门同在 p1_op_wcs。roundtrip 仅作次级不变量
+  （对 ξ/η 成对单位错零鉴别力，见 AUD-COORD F-01/F-06）；原"lib/phase1/wcs
+  源码零改动"断言已由该修复取代。
 - 回归锚：Galaxy_Center 实场 fixture（rms_arcsec=0.1431″ 基线）。容差
   冻结：上述数值在 TEST 落地时逐项写死，P1-WCS-TEST 不得放宽；fixture
   生成器注记容差来源（本节）。
@@ -214,5 +220,5 @@ ASTROMETRY §8 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy o
 ASTROMETRY §11 ↔ F2。共享 SCI（ASTROMETRY.md SCI-WCS-001，FROZEN T102
 2026-08-23）不因本附录改动；本节禁止被编排层词汇反向改写（descriptor
 astrocs.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
-API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:450-464，由 P1-WCS-INT
+API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:512-526，由 P1-WCS-INT
 对齐本合同，不作冻结依据）。

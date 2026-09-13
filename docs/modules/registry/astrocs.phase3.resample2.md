@@ -84,7 +84,7 @@ downstream: [TEST-P3-RES-001]
   local 坐标 fits_index=(511-x)*512+y（DATA_SEMANTICS §3 CDS
   oracle 冻结，nested_local_to_fits_index 权威函数）。
 - 端口词汇（wcs_plan/hips/resampled）为 descriptor 派生
-  （module_adapters.cpp:363-377），由 P3-RSMP-INT 对齐 DATA-P3-RES，
+  （module_adapters.cpp:425-439），由 P3-RSMP-INT 对齐 DATA-P3-RES，
   不作冻结依据。
 
 ## 4 公共 header、核心 symbol 与生命周期
@@ -111,7 +111,7 @@ downstream: [TEST-P3-RES-001]
 
 ## 5 Registry descriptor 与配置 schema
 
-- descriptor（module_adapters.cpp:363-377 p3_resample2_descriptor，
+- descriptor（module_adapters.cpp:425-439 p3_resample2_descriptor，
   编排层占位词汇）: module_id=`astrocs.phase3.resample2`；
   execution_class=cpu_heavy；parallel_ok=true（每 worker 独立
   sampler 的进程内并行安全，与 §7 结构性一致；单实例内无并发）；
@@ -120,7 +120,7 @@ downstream: [TEST-P3-RES-001]
   api_id=API-P3-001、test_id=TEST-P3-RES-001——占位 ID/端口由
   P3-RSMP-INT 对齐本页与 lib/phase3_rsmp/module.yaml，不作冻结
   依据。
-- 注册序: module_adapters.cpp:754 起序列（phase3_descriptor→
+- 注册序: module_adapters.cpp:816 起序列（phase3_descriptor→
   p3_wcs_descriptor→p3_resample2_descriptor→p3_writer_descriptor，
   :797-798 收尾）；配置=phase config JSON（按 PHASE API 文档）。
 

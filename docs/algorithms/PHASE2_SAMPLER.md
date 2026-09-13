@@ -425,7 +425,7 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
   SCI-UPM-001/SCI-INT-001、P2-INT-DOC SCI-INT-001、P2-REJ-DOC
   SCI-REJ-001 先例）。
 - matrix P2-SAMP 行 science_id=SCI-P2-SMP-001（descriptor 占位
-  词汇，module_adapters.cpp:591）的语义映射由本节声明——
+  词汇，module_adapters.cpp:653）的语义映射由本节声明——
   **SCI-P2-SMP-001 ⇒ SCI-UPM-001**（docs/science/PHASE2_UPM.md，
   矩阵 science_doc=docs/science/PHASE2_UPM.md，
   MOD-astrocs-phase2-sample 行，2026-09-09 P2-SAMP-DOC 冻结）。

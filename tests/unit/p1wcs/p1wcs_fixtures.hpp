@@ -23,6 +23,8 @@
 //   F3: CRPIX=(w/2+0.5, h/2+0.5) 精确; Y 翻转 CD 第 2 列符号翻转
 //   F5: 同输入 3 次 bitwise; 线程 1/2/4 bitwise
 //   F6: WcsTan roundtrip < 1e-6 deg (tests/unit/p1_wcs_phot_test.cpp:50 冻结值)
+//       + B2-A1 绝对前向交叉 ≤1e-9 deg (与 oracle_wcs_forward 独立 TAN 逆投影
+//         对拍; roundtrip 对"ξ/η deg 当 rad"成对单位错零鉴别力, AUD-COORD F-01/F-06)
 //   §9 容差来源: 收敛 0.01" (pixel/3600), 尺度容差 0.002, Huber 1.345。
 #ifndef P1WCS_FIXTURES_HPP
 #define P1WCS_FIXTURES_HPP

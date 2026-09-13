@@ -60,7 +60,7 @@ FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
 | `mosaic` | `DATA-P2-RES`→`DATA-P2-HIPS` | 可 | `UnitId::ADU`（signal surface brightness） | NESTED 球面（HEALPix nside=2^(target_order+9)，tile 512×512） |
 
 唯一权威 = DATA-P2-HIPS（DATA_SEMANTICS §20）：descriptor 端口表
-（module_adapters.cpp:677-694 p2_write_descriptor，坐标 PIXEL 与 NESTED
+（module_adapters.cpp:739-756 p2_write_descriptor，坐标 PIXEL 与 NESTED
 球面实际不符）为编排词汇，以 DATA-P2-HIPS 为准修订，P2-XX-INT 对齐。
 invalid = NaN signal + support=0（writer 库 aio_hips_writer.cpp :481-485）；ivar 缺产品=rc=7
 science/degraded（:565-574）。四概念分离红线：signal/variance/support/
@@ -80,7 +80,7 @@ stage2 配置 schema + 退出码 2/3/4/5/6/7 + diagnostics.json 键集）。
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.p2.hips_writer`（matrix P2-HIPS 行）；registry 行 ID
-沿用 `MOD-astrocs-phase2-write`；descriptor（module_adapters.cpp:677-690，
+沿用 `MOD-astrocs-phase2-write`；descriptor（module_adapters.cpp:739-752，
 module_id=astrocs.phase2.write、sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/
 test_id=TEST-P2-WR-001）为编排占位词汇，不得反向作为冻结依据，由
 P2-XX-INT 对齐本页与 lib/hips_p2/module.yaml。配置=single JSON

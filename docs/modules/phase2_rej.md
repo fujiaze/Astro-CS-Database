@@ -15,7 +15,7 @@ downstream: [TEST-P2-REJ-001]
 > 先例新建；`lib/phase2/` 一目录一套已被 P2-COV 占用，不可覆盖）；
 > 合同权威=三件套 + docs/algorithms/PHASE2_REJECTION.md
 > （ALG-P2-REJ-001，CONTRACT_READY）。descriptor 词汇
-> module_id=astrocs.phase2.reject（module_adapters.cpp:638-655，
+> module_id=astrocs.phase2.reject（module_adapters.cpp:700-717，
 > 注册 :785）为编排层占位，由 P2-XX-INT 对齐 astrocs.p2.rejection
 > （MODULE_MIGRATION_MATRIX P2-REJ 行），不得反向作为冻结依据。
 
@@ -62,7 +62,7 @@ downstream: [TEST-P2-REJ-001]
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:645-648 实测；占位
+编排层 descriptor 端口表（module_adapters.cpp:707-710 实测；占位
 词汇，按 registry 生成词保留）:
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
@@ -102,7 +102,7 @@ downstream: [TEST-P2-REJ-001]
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.phase2.reject`（占位）；execution_class=
-`cpu_heavy`；parallel_ok=True（module_adapters.cpp:640-644 实测）。
+`cpu_heavy`；parallel_ok=True（module_adapters.cpp:702-706 实测）。
 配置=stage2_common.h reject_method/reject_profile/
 reject_underdetermined_n/reject_normalization(+floor 1e-12)/
 large_scale_*（stage2_common.h:52-63）+ typed params 唯一默认源=

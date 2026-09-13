@@ -27,7 +27,7 @@ downstream: [DATA-P1-WCS, API-WCS-001, TEST-P1-WCS-001]
 
 ## 职责与明确非职责
 
-Registry production 模块(唯一源=module_adapters.cpp:450-464 descriptor)。
+Registry production 模块(唯一源=module_adapters.cpp:512-526 descriptor)。
 职责由 SCI/ALG 合同定义(见链接); 不做 SCI/ALG 之外的扩展（禁重检测、
 禁重采样、禁星表缓存管理——API-WCS-001 范围界定）。
 
@@ -78,8 +78,8 @@ BLOCK_MISSING/PLATESOLVE_FAILED 编排码（API-WCS-001 返回码节）；
 `TEST-P1-WCS-001` 对应测试(逐任务 TASK_RESULT 证据); 容差=验收冻结。
 测试设计=TEST-WCS-DESIGN-001（PLATESOLVE.md §11.4：合成线性场
 rms≤0.5″/astropy SIP oracle ≤1e-4 px/CRPIX 不变量/失败语义负例含
-CD 退化注入/bitwise 确定性/WcsTan roundtrip <1e-6 deg），fixture 生成器
-注记容差来源。
+CD 退化注入/bitwise 确定性/WcsTan roundtrip <1e-6 deg + 独立前向交叉
+≤1e-9 deg（B2-A1）），fixture 生成器注记容差来源。
 
 ## 已知限制
 

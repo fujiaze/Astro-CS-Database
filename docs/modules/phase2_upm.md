@@ -21,7 +21,7 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
 > docs/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，实现级
 > 合同，SCI/ALG 占位 ID⇒合同 ID 映射声明在其映射节）。descriptor
 > 词汇 module_id=`astrocs.phase2.upm-fit`/`astrocs.phase2.upm-apply`
-> （module_adapters.cpp:599-616/:618-632）为编排层占位，由 P2-XX-INT
+> （module_adapters.cpp:661-678/:680-694）为编排层占位，由 P2-XX-INT
 > 对齐 `astrocs.p2.upm`，不得反向作为冻结依据。
 
 ## 身份与合同落位
@@ -31,7 +31,7 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
   两行同指本页合同 `astrocs.p2.upm`）；module_id 合同值=
   `astrocs.p2.upm`（矩阵 P2-UPM 行；descriptor 占位
   `astrocs.phase2.upm-fit`/`astrocs.phase2.upm-apply`
-  module_adapters.cpp:599-632 仅编排层词汇）；dll_target=
+  module_adapters.cpp:661-694 仅编排层词汇）；dll_target=
   `astrocs_p2_upm.dll`（合同值，尚未存在，MISSING 语义归
   P2-UPM-IMPL）。
 - 合同三件套：`lib/phase2_upm/`（README r1 + module.yaml
@@ -80,7 +80,7 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:599-616 fit/:618-632
+编排层 descriptor 端口表（module_adapters.cpp:661-678 fit/:618-632
 apply 实测；占位词汇，按 registry 生成词保留）:
 
 fit 侧:
@@ -145,7 +145,7 @@ component_count/model_hash[65] + C[frame][control] FP64）；apply 输
 
 fit descriptor=module_id `astrocs.phase2.upm-fit`（占位）；apply
 descriptor=module_id `astrocs.phase2.upm-apply`（占位）
-（module_adapters.cpp:599-616/:618-632）；两 descriptor 均
+（module_adapters.cpp:661-678/:680-694）；两 descriptor 均
 execution_class=`cpu_heavy`、parallel_ok=true、api_id=API-P2-001、
 abi=c++17。占位 ID 清单（旧派生词汇，由 P2-XX-INT 对齐修订）:
 fit=SCI-P2-UPM-001/ALG-P2-UPM-001/DATA-P2-UPM/TEST-P2-UPM-001；apply=

@@ -316,4 +316,4 @@ eligibility（逐候选 i，候选索引固定序）:
   registry astrocs.phase2.integrate.md；
   INTEGRATION_ALGORITHMS.md（旧 L2 文档，ID 让位本文件）。
 - 消费者: stage2.cpp（DATA_SEMANTICS §20 域）/ acr_kernels.cpp
-  （ACR 域）/ module_adapters.cpp:657-675 descriptor 占位。
+  （ACR 域）/ module_adapters.cpp:719-737 descriptor 占位。

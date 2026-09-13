@@ -35,7 +35,7 @@ master/校准/坏点（P1-CAL/P1-COS）；Phase2 统计合并；线程授予
 | `calibrated` | `DATA-P1-CAL` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 | `stacked` | `DATA-P1-STACK` | 可 | `UnitId::ADU` | `CoordinateFrame::ICRS` |
 
-> 现状 descriptor（module_adapters.cpp:508-525）data_id=DATA-P1-STACK
+> 现状 descriptor（module_adapters.cpp:570-587）data_id=DATA-P1-STACK
 > （编排汇总语义）；模块级数据合同 DATA-P1-DRZ
 > （DATA_SEMANTICS §11，tile 累加量原始和 + finalize 归一在下游），
 > 引用对齐由 P1-DRZ-INT 处理。

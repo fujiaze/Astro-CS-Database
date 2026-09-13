@@ -229,6 +229,68 @@ Result<void> to_result(acs_status st, const char* what) {
   return Result<void>::fail(Error(dom, std::string(what) + ": " + status_str(st)));
 }
 
+// ── B2-A1 (AUD-COORD F-01/F-06): 独立前向 TAN 参考解 ──
+// 用途: p1_op_wcs 的绝对交叉门锚点。旧门 sky2pix(pix2sky(x,y)) 是同一对
+// 变换自洽求残差, 对"ξ/η 度当弧度"这类成对单位错零鉴别力 (AUD-COORD O6:
+// 绝对偏差 14306″ 时 roundtrip 仍 1e-12 px) ⇒ 恒真。
+// 本函数是与 WcsTan::pix2sky **不同源**的推导: 切点单位向量 r0 及其东向/
+// 北向正交基 (e, n = r0×e) 上做 gnomonic 投影 r ∝ r0 + ξ·e + η·n, 再
+// 归一化取 asin/atan2。ξ/η 在此显式由 deg 转 rad, 任何"deg 当弧度"回归
+// 会以 180/π 量级偏差被检出。
+// 权威: FITS-WCS Paper I §2.2 (pixel → intermediate world) + Paper II
+// (Calabretta & Greisen 2002) TAN/gnomonic; 像素输入为 FITS 1-based (与
+// WcsTan 头契约一致), CD 单位 deg/px。
+constexpr double kP1D2R = 0.01745329251994329577;   // π/180
+constexpr double kP1R2D = 57.29577951308232087680;  // 180/π
+
+void p1_tan_forward_reference(double crpix1, double crpix2, double crval1,
+                              double crval2, double cd11, double cd12,
+                              double cd21, double cd22, double x, double y,
+                              double* ra, double* dec) {
+  const double u = x - crpix1;
+  const double v = y - crpix2;
+  const double xi = (cd11 * u + cd12 * v) * kP1D2R;   // rad
+  const double eta = (cd21 * u + cd22 * v) * kP1D2R;  // rad
+  const double a0 = crval1 * kP1D2R;
+  const double d0 = crval2 * kP1D2R;
+  const double ca = std::cos(a0), sa = std::sin(a0);
+  const double c0 = std::cos(d0), s0 = std::sin(d0);
+  // r0(切点), e(东向), n = r0 × e (北向)
+  const double r0x = c0 * ca, r0y = c0 * sa, r0z = s0;
+  const double ex = -sa, ey = ca;
+  const double nx = -s0 * ca, ny = -s0 * sa, nz = c0;
+  // gnomonic: 天球方向 ∝ r0 + ξ·e + η·n (ξ,η 为切平面偏移的 tan 量)
+  double px = r0x + xi * ex + eta * nx;
+  double py = r0y + xi * ey + eta * ny;
+  double pz = r0z + eta * nz;
+  const double norm = std::sqrt(px * px + py * py + pz * pz);
+  if (std::isfinite(norm) && norm > 0.0) {
+    px /= norm;
+    py /= norm;
+    pz /= norm;
+  }
+  double sdec = pz > 1.0 ? 1.0 : (pz < -1.0 ? -1.0 : pz);
+  if (dec) *dec = std::asin(sdec) * kP1R2D;
+  double ra_deg = std::atan2(py, px) * kP1R2D;
+  if (ra_deg > 180.0) ra_deg -= 360.0;
+  if (ra_deg < -180.0) ra_deg += 360.0;
+  if (ra) *ra = ra_deg;
+}
+
+// 两天球坐标的角距 (deg, haversine; 经度环绕安全)。B2-A1 交叉门度量。
+double p1_angular_sep_deg(double ra1, double dec1, double ra2, double dec2) {
+  const double d1 = dec1 * kP1D2R, d2 = dec2 * kP1D2R;
+  double dra = (ra2 - ra1) * kP1D2R;
+  while (dra > 3.14159265358979323846) dra -= 2.0 * 3.14159265358979323846;
+  while (dra < -3.14159265358979323846) dra += 2.0 * 3.14159265358979323846;
+  const double sh = std::sin((d2 - d1) / 2.0);
+  const double sn = std::sin(dra / 2.0);
+  double s = sh * sh + std::cos(d1) * std::cos(d2) * sn * sn;
+  if (s > 1.0) s = 1.0;
+  if (s < 0.0) s = 0.0;
+  return 2.0 * std::asin(std::sqrt(s)) / kP1D2R;
+}
+
 // ── 通用 session 模块适配器 ──
 struct SessionModule : public IModule {
   ModuleDescriptor desc_;
@@ -1417,7 +1479,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   const Json& wc = doc.contains("wcs") && doc["wcs"].is_object() ? doc["wcs"] : Json::object();
   // FIX-E2E B1-A1: 显式 WCS 配置路径（Linux ipv stub 平台的合法替代, 不伪造求解）。
   // 当配置显式给出线性 WCS 8 参数时, 本节点做"显式 WCS 校验 + 透传": 校验有限性/
-  // 可逆性(det!=0) + WcsTan roundtrip 自检, 写 p1_wcs.json 并标记
+  // 可逆性(det!=0) + WcsTan roundtrip 自检 + B2-A1 独立前向交叉绝对门, 写 p1_wcs.json 并标记
   // wcs_source="explicit_config"、solver="none(explicit_config)"; 不调用 ipv, 也不
   // 冒充求解结果。未提供显式参数时保持原真实 ipv 求解链（Windows/有求解器平台）。
   const bool explicit_wcs = p1_has(wc, "crpix1") && p1_has(wc, "crpix2") &&
@@ -1454,18 +1516,39 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
         pts.emplace_back(static_cast<double>(x), static_cast<double>(y));
     Json samples = Json::array();
     double max_rt = 0.0;
+    double max_cross_deg = 0.0;
     for (const auto& [x, y] : pts) {
       double ra = 0.0, dec = 0.0, bx = 0.0, by = 0.0;
       wcs.pix2sky(x, y, &ra, &dec);
       wcs.sky2pix(ra, dec, &bx, &by);
       const double rt = std::sqrt((bx - x) * (bx - x) + (by - y) * (by - y));
       if (rt > max_rt) max_rt = rt;
+      // B2-A1: 绝对门 —— 与独立 gnomonic 前向参考解的角度残差 (见
+      // p1_tan_forward_reference 头注; 与 sky2pix/pix2sky 自洽无关)。
+      double ra_ref = 0.0, dec_ref = 0.0;
+      p1_tan_forward_reference(wcs.crpix1, wcs.crpix2, wcs.crval1, wcs.crval2,
+                               wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
+                               x, y, &ra_ref, &dec_ref);
+      const double cross = p1_angular_sep_deg(ra, dec, ra_ref, dec_ref);
+      if (cross > max_cross_deg) max_cross_deg = cross;
       samples.push_back(Json{{"x", x}, {"y", y}, {"ra", ra}, {"dec", dec},
+                             {"ra_ref", ra_ref}, {"dec_ref", dec_ref},
+                             {"forward_cross_deg", cross},
                              {"roundtrip_px", rt}});
     }
+    // roundtrip 保留为次级不变量 (正反互逆; 对成对单位错零鉴别力)。
     if (!std::isfinite(max_rt) || max_rt >= 1e-6) {
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "explicit WcsTan roundtrip " + std::to_string(max_rt) + " px exceeds 1e-6 contract"));
+    }
+    // B2-A1 绝对正确性门: 与独立前向参考解的角距 ≤1e-9 deg (≈3.6e-6")。
+    // 阈值依据: 两路径均为 FP64 且本尺度 (|xi,eta| <= ~0.1 deg) 下舍入
+    // ~1e-15 deg; 1e-9 deg 高出舍入 6 个量级; 旧缺陷偏差 ~5.6e-1 deg、
+    // +0.5px 注入 ~5.5e-5 deg 均远大于该门 => 真正可失败, 非恒真。
+    if (!std::isfinite(max_cross_deg) || max_cross_deg > 1e-9) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "explicit WcsTan forward cross " + std::to_string(max_cross_deg) +
+          " deg exceeds 1e-9 absolute contract"));
     }
     const std::string out_path = out_dir + "/p1_wcs.json";
     Json wcs_out = Json{{"schema", "DATA-P1-WCS"},
@@ -1478,12 +1561,15 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
                                      {"cd21", wcs.cd21}, {"cd22", wcs.cd22}}},
                         {"n_samples", samples.size()},
                         {"max_roundtrip_px", max_rt},
+                        {"max_forward_cross_deg", max_cross_deg},
+                        {"forward_cross_ref", "p1_tan_forward_reference"},
                         {"samples", samples}};
     if (!p1_write_text(out_path, wcs_out.dump(2)))
       return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
     (*man)["wcs_source"] = "explicit_config";
     (*man)["n_samples"] = samples.size();
     (*man)["max_roundtrip_px"] = max_rt;
+    (*man)["max_forward_cross_deg"] = max_cross_deg;
     (*man)["wcs_artifact"] = out_path;
     (*man)["artifacts"] = Json::array({out_path});
     return Result<void>::success();
@@ -1565,7 +1651,8 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
         (r.error_msg[0] ? r.error_msg : "solver returned failure") +
         " (ipv 求解器链: 非 Windows 平台为生产源内建 stub, 平台限制如实上报)"));
   }
-  // 5) 解算结果 → WcsTan roundtrip 自检（<1e-6 px 冻结合同）
+  // 5) 解算结果 → WcsTan 自检: 次级 roundtrip (<1e-6 px) + B2-A1 绝对
+  //    前向交叉门 (<=1e-9 deg, 独立 gnomonic 参考解)
   astrocs::phase1::WcsTan wcs;
   wcs.crpix1 = r.crpix[0]; wcs.crpix2 = r.crpix[1];
   wcs.crval1 = r.crval[0]; wcs.crval2 = r.crval[1];
@@ -1579,18 +1666,34 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
       pts.emplace_back(static_cast<double>(x), static_cast<double>(y));
   Json samples = Json::array();
   double max_rt = 0.0;
+  double max_cross_deg = 0.0;
   for (const auto& [x, y] : pts) {
     double ra = 0.0, dec = 0.0, bx = 0.0, by = 0.0;
     wcs.pix2sky(x, y, &ra, &dec);
     wcs.sky2pix(ra, dec, &bx, &by);
     const double rt = std::sqrt((bx - x) * (bx - x) + (by - y) * (by - y));
     if (rt > max_rt) max_rt = rt;
+    // B2-A1: 绝对门 (同 explicit 路径; 独立前向参考解)
+    double ra_ref = 0.0, dec_ref = 0.0;
+    p1_tan_forward_reference(wcs.crpix1, wcs.crpix2, wcs.crval1, wcs.crval2,
+                             wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
+                             x, y, &ra_ref, &dec_ref);
+    const double cross = p1_angular_sep_deg(ra, dec, ra_ref, dec_ref);
+    if (cross > max_cross_deg) max_cross_deg = cross;
     samples.push_back(Json{{"x", x}, {"y", y}, {"ra", ra}, {"dec", dec},
+                           {"ra_ref", ra_ref}, {"dec_ref", dec_ref},
+                           {"forward_cross_deg", cross},
                            {"roundtrip_px", rt}});
   }
   if (max_rt >= 1e-6) {
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "WcsTan roundtrip " + std::to_string(max_rt) + " px exceeds 1e-6 contract"));
+  }
+  // B2-A1 绝对正确性门 (阈值依据同 explicit 路径): <=1e-9 deg。
+  if (!std::isfinite(max_cross_deg) || max_cross_deg > 1e-9) {
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "WcsTan forward cross " + std::to_string(max_cross_deg) +
+        " deg exceeds 1e-9 absolute contract"));
   }
   const std::string out_path = out_dir + "/p1_wcs.json";
   Json wcs_out = Json{{"schema", "DATA-P1-WCS"},
@@ -1610,6 +1713,8 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
                       {"sip_order", r.sip_order},
                       {"n_samples", samples.size()},
                       {"max_roundtrip_px", max_rt},
+                      {"max_forward_cross_deg", max_cross_deg},
+                      {"forward_cross_ref", "p1_tan_forward_reference"},
                       {"samples", samples}};
   if (!p1_write_text(out_path, wcs_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
@@ -1617,6 +1722,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   (*man)["rms_px"] = r.rms_px;
   (*man)["n_samples"] = samples.size();
   (*man)["max_roundtrip_px"] = max_rt;
+  (*man)["max_forward_cross_deg"] = max_cross_deg;
   (*man)["wcs_artifact"] = out_path;
   (*man)["artifacts"] = Json::array({out_path});
   return Result<void>::success();

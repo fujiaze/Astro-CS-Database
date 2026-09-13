@@ -60,7 +60,7 @@
 | props | DATA-P3-PROPS | 必 | descriptor 词汇，HiPS properties 面 |
 | wcs_plan | DATA-P3-WCS | 可 | §28 唯一权威（入参/映射/descriptor/关键词面） |
 
-端口词汇为 descriptor 派生（module_adapters.cpp:344-361 占位
+端口词汇为 descriptor 派生（module_adapters.cpp:406-423 占位
 module_id=astrocs.phase3.wcs），由 P3-PROJ-INT 对齐，不作冻结依据。
 
 ## 6 实测偏差与整改（不修码）

@@ -158,7 +158,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 - **descriptor 占位映射声明**（占位 ID 是矩阵/descriptor 词汇，不注册
   INDEX、不入合同）：
   - `SCI-P3-WR-001`（writer descriptor sci_id，
-    lib/core/src/module_adapters.cpp:383-398 p3_writer_descriptor）⇒
+    lib/core/src/module_adapters.cpp:445-460 p3_writer_descriptor）⇒
     **SCI-P3-001**（docs/science/PHASE3_HIPS_TO_FITS.md 共享 FROZEN；
     §9a-11 G5 FITS 写 + §96 关键字冻结为科学语义来源）；
   - `ALG-P3-004`（writer descriptor alg_id）⇒ **ALG-P3-004**

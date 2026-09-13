@@ -96,7 +96,7 @@ path/to/file.ext:N（symbol）    path/to/file.ext:N + backticked symbol
   `:513` → `:556`、`noise_model.cpp:179-200` → `:179-204`。
 - `docs/algorithms/CALIBRATION_ALGORITHMS.md` / `COSMETIC_ALGORITHMS.md`：
   `CMakeLists.txt:321-333` → `:373-380`（`astrocs_calibration` 目标）。
-- `docs/algorithms/PHASE3_RSMP_IMPL.md`：`module_adapters.cpp:363-377` → `:498`
+- `docs/algorithms/PHASE3_RSMP_IMPL.md`：`module_adapters.cpp:425-439` → `:498`
   （`p3_resample2_descriptor`）。
 - `docs/algorithms/DRIZZLE_GEOMETRY.md`：DISP-DRZ-001 双方锚由 `api.cpp:88-92`
   订正为 `hp_drizzle_api.cpp:98-103`。
