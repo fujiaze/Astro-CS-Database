@@ -141,3 +141,9 @@
 - **实证**：`MOD-NOOP` 在两份清单都是 `IMPLEMENTED`，而它自身 README/`module.yaml`/`CMakeLists` 三处都是 `SKELETON` 且明写三个动词全返回 `ACS_ERR_UNSUPPORTED`；真正实现动词的 `echo` **三面零登记**（`V14-N-02`）。`PLATFORM-RUNTIME`/`PLATFORM-IO` 在 Windows 清单是 `IMPLEMENTED`，主清单是 `SKELETON` 并附言「不伪装实现完成」，实况各仅 1 个 C ABI 源（`V14-N-01`）。**同一枚举下两例判据互斥 ⇒ 缺定义，不是缺诚实。**
 - **建议条文**：①`SKELETON`/`IMPLEMENTED` 给**可执行判据**（建议：三动词皆 `UNSUPPORTED` ⇒ 必为 SKELETON；任一动词真执行 ⇒ 方可 IMPLEMENTED，且须给出宿主接线证据）；②**一份 status 源派生两平台视图**（禁 Windows `.in` 与主清单各写各的）；③contract 面补 `status` 字段，令 S4 之类的清单门**能够**校验它（现 contract 无此字段，门结构上无从下手）；④与 **C-13** 合并：登记面 status 变更须有锚与挂账。
 - **另附 V14-N-03 的独立建议**：两侧手写的 kernel 表须由**同一生成器**派生（禁双写），且守卫须是**逐列结构比较**而非文件名字符串命中（`FD-F-001` 的 `strstr` 守卫实测让 6/12 行 precision 漂移通过）。
+
+### C-20（V7 片1-2 归纳，建议入宪章/标准）静默兜底的三条硬判据
+- **①消费面必填键清单 = 写面清单**：typed-artifact（`p1_wcs.json`/`p1_snr.json`/`p1_sources.json`/`p2` 上游产物等）消费端不得对写端必写的键设默认；缺键 ⇒ `DATA` 拒并要求 schema 位。依据：`V7-N-03` 四连 + `V3-N-03` + `V7-N-05` 九键。
+- **②兜底默认值禁止与「显式拒绝值/非法值」重合**：`weight_mode=0`（上游 integrate 显式拒绝）、`target_order=0`（`nside` 全天塌缩却过值域门）、`σ_sky=0.0`、`aperture=0`、`dark_scale=1.0` 全部违规——**0 在物理上常是合法值，正是它最危险的地方**。
+- **③同一键全仓只允许一个缺省值，且判别位必须记「生效值 + 来源」而非「请求值/键存在」**：`target_order` 缺→0（p2 view）与 →−1（upm-fit）并存即违规；`sip_present`/`psf_mode`/`res.nested`/`dark_scale` 均只记声明或只记生效值的一端。依据：`V7-N-02/04/05/06/07`、`V2-N-09`、`V4-N-10`。
+- **配套机器门（并入工单 E 节）**：`E8` 遍历写端产出键集与消费端 `value(k,d)`/`count(k)` 读取点做差，缺键兜底即红；`E9` 判别位字段名与来源（`*_mode`/`*_present`/`*_source`）必须在 manifest 有「生效值+来源」二元组。
