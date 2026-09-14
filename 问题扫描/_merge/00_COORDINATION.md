@@ -532,31 +532,17 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 
 
 
-## E3 + E2 收档 / L28c 定档改回 P1 / L28d 终档 / FD-F-001 + FD-G-004 + A-36 + D-05/D-06
-### 我的授权边界犯了一例真损（D-06），先认
-- **`ctest -N` 不是只读命令**：它在 CMake 生成的构建树里会初始化 `Testing/Temporary/` 并覆写 `LastTest.log`。E3 按我给的白名单在 `build/asan/` 下跑了它，
-  我当场复验该文件**现 121 字节、mtime 09-14 11:04** ⇒ **09-11 那轮 gaia 失败正文不可恢复**（E3 用 3 处旁证复原了结论要点，未丢源码/交付物/git 索引）。
-- **责任在我不在代理**。修正两条禁令已投 E4：①非自建构建树**禁一切 `ctest` 形态**，用例清单改静态解析 `CTestTestfile.cmake`/`build.ninja`/`add_test(NAME …)`；
-  ②**禁跑 `ci/run.py` 的非 `--plan-only` 路径** —— E2 实测其 `:227` 的 `git()` 助手**没有** `--no-optional-locks`、`:460` 跑 `git status --porcelain`，**会刷新 `.git/index`**，正是你禁执行要防的那件事。
-- **对照组（进簇 10）**：E2 自己识别出同一风险，**主动没在 `build/linux-control` 跑**（6/6 缺 `_tests.cmake`，跑 `-N` 会**启动 gate 可执行并重写注册文件**），只在 `run/ci/build-gcc-release`（gitignore 内、`_tests.cmake` 均新于 exe）跑并如实自报。⇒ **代理比我的白名单更谨慎；教训：判"只读"要以"是否触碰共享树状态"为准，不以命令名义为准。**
-### E2 是本轮最重的一次交付（546 行档案），三条改变结论
-- **B-06 被证伪**：`ci-linux.yml:141` 与 `ci-windows.yml:110` **都不传 `--changed-from`** ⇒ 增量选择在当前 CI 路径上**根本不生效**（`--plan-only` 实测 selected_count=104 全量）。
-  E2 用 `importlib` 载入 `ci/run.py` 原模块、只注入预取改动集（`select_checks`/`_match_prefix`/`impact_map` **全走原函数**，不是复刻）：只改 `runtime/io`(4 文件) → **21/104**，
-  **恰好排除 UT-IO 与全部 CTEST-***，而 `tests/io/test_fits_stream_contract.py:24`、`test_hips_input_contract.py:36` 逐字硬引用 `runtime/io/{fits_core.c,hips_core.c}` ⇒ **改这两个 C 文件不会触发唯一编译/装载它们的门**。
-- **M5b-G-01 证实并加重**：交付面唯一 = `cmake/install_layout.cmake:58 install(TARGETS astrocs …)`；验收面 = `build/cli/astrocs`（`CMAKE_HOME_DIRECTORY=…/cli`、`project=astrocs_cli`）。
-  五重差异实测（BuildID/MD5/大小 6695984 vs 7178472/静态符号 only_root=95·only_cli=385/版本串带 `.dirty`），`tests/cli` 精确计数 **12 指兼容图、仅 2 指根图**（我此前说的"恒指"改"主面指"）。
-  **加重的那句**：E2 本地重算 `test_cli_build.py:55-56` 的版本串正则 ⇒ **兼容图 PASS、根图 FAIL** —— 即该门不是"恰好没验交付物"，而是**"一旦改验交付物即红"，错位被 golden 锁死**。这条要单独给负责人看。
-- **M4-F-01 的 (a) 类改判为已修复**：`add_subdirectory(lib/phase2)`（commit `c21eec50` 09-13「Batch 3 真启用（…Phase2 门进 CI…）」）、三门均为 Linux ELF、
-  所谓 Windows 制品 `astro_image_io.dll` 经 `file` 实为 **Linux ELF shared object** ⇒ "产品树不可能构建"不成立；`ctest -N` 里 `phase2_*` = **113** 条、既有 junit run=102/notrun=11。
-  同时**B 档（在图但从未被采集）本轮未获证据存在**（`ctest_registration.json`：targets_total=182、unregistered=0、verdict=PASS）。A 档七个 Oracle TU **全部不在图里**（非注释命中 0、`file(GLOB` 全树 0）。
-- **E2 的一条新线索我要单独立条**：`phase2_*` 六门走 `gtest_discover_tests`，而 `check_ctest_registration` **只数源码里的 `add_test(NAME)`**、`ci/ctest_baseline.json` 里 `phase2_` **命中 0** ⇒
-  **这 113 个用例对任何按目标名采集/基线比对的机器门双向不可见，只被全量 ctest 兜住**。这是"注册校验器与被校验对象的生成方式不匹配"，与 M8-F-004 不同机制。
-### CPU 门禁分母定档（M5a-G-002，P0）**已由 E2 量化到历史数据**
-- 分母事实：**85%/90% 那条门吃的是 1 核口径**（`resource_recorder.h:101 = (d_cpu_seconds/interval_)*100`，判据不经 `utilization_value`）；容量口径确实存在但**不喂给它**（`utilization_value:286-293` 与 `run_monitored.py:451-455` 是另一套）。**一仓两套 CPU 口径并存。**
-- 已分配容量 = **16 核**（`run/BASE-UTIL-001/env_cpu_affinity_cgroup.txt: affinity_cpus 16 / Cpus_allowed_list 0-15`；`hardware_inspect.json: available_logical_cpus 16`）。
-- 历史 668 份 `resource_summary.json`（**只读既有，未新跑**）：`cpu_p50>0` 的 177 条里 **146 条落在 100–199 档（≈1 核）**；**按 §10.5 容量口径过 85% 仅 6 条、过 90% 仅 4 条，而现行代码全判达标**。同件矛盾实证：`workers_p50=16` 与 `cpu_pct_p50=100/102/114` 大量并存。
-- 还有一颗钉子：`resource_recorder.h:243` **无条件写字面量** `"normalized_cpu_100pct_all_allocated_cores": true`，且 `mon001_recorder_test.cpp:98` **把这个字面量当断言守** ⇒ 自报"已按全部已分配核归一化"是一句永远为真的假话。
-### B-04 一半落地一半维持（E2 拒绝越界升级，正确）
-- Linux 交付件**不暴露** `p1_session_run`，且不是"导出被隐藏"而是**"未链入"**：`nm build/astrocs` 有 `T p2_session_run`/`T p3_session_run` 而无任何 `p1_session*`、`P1Api` 在 `module_adapters.cpp` 只出现 1 次（自身声明）而 `P2Api/P3Api` 各 5 次且经 `make_session_module<>` 注册、未开 LTO。
-- Windows 侧树内**无任何 `astrocs.exe`**（唯二 `.exe` 经 `file` 证为 Linux ELF）⇒ **维持"需 Fatduck 不可判"，E2 明确写"不得据此升 P0"**。
-- **假阳性预警（重要）**：兼容图 `build/cli/astrocs` 里 `T p1_session_run` **在位** ⇒ **任何用 `nm`/符号探测判"是否暴露"的检查会在非交付对象上得出"已暴露"**。这与 C-12（陈旧产物）、FD-I-001（同名异指）是同一族的第三种表现，我已把三者并列进簇 1 的"证据对象错位"子簇。
+## L28e 终档（7 条：P1×4 / P2×3）+ 前台独立复数（**枚数改判 + 我自抄错路径 + 我的排除前缀 bug**）
+- **它证伪了我派发令里的预期**：我写"79.9% 是只算生产注释的下界，补上 tests 后会明显下降" ⇒ 实测**不成立**：tests 只净新增 17 枚（3.2%）、配置 9 枚，71.3% → 66.3%。
+  **真正的危险是口径跳变**（66.3 → 31.2 → 19.2），**任何不带口径号的单值都不可用**。这是我第 8 处被下属实测推翻的预期。
+- **前台当场 python3 复数（独立于 L28e）**：`docs/contracts/DATA_ARTIFACTS.md` 全文 distinct `DATA-*` = **29**，其中**任意字面量零承载 = 10 枚**：
+  `DATA-IMG-{VAR,IVAR,WEIGHT,SUPPORT,MASK}-001`、`DATA-WCS-001`、`DATA-CAT-{PSF,PHOT}-001`、`DATA-REJ-MAP-001`、`DATA-P3-FITS-001`。
+  ⇒ **L28e 自报的"15（须复核为 13）"改判为「10 枚确证 + 3 枚待 R 层定名」**；且它名单里的 `DATA-REG-001`（实测 **97 文件承载**）与 `DATA-IMG-CAL-001`（**145 处**）**必须剔除**——这大概正是 15→13 的差额来源。
+- **我自己抄错了一处路径**：SUMMARY 里写 `docs/standards/DATA_ARTIFACTS.md`（L28e 原文即错，我未核就转述）⇒ 真身 `docs/contracts/`，已订正。**这是"错锚会沿转述链复制"的实例**，进 R 层规则：跨档案引用的路径必须每次重新解析，不得复用。
+- **前台自报本次取证的缺陷**：我的排除前缀漏了点号（写 `"/run"` 而实际是 `"./run"`）⇒ **排除全部失效，扫描面含 `run/**` 影子树共 124,348 文件**。
+  方向影响是**加强**（那 10 枚连影子树里都一次未出现），但**承载数 97/145/737 含登记面与副本，不得当"生产引用次数"引用** ⇒ 已按 H-1/H-2 就地标注。**"只读命令的排除前缀必须按 `./x` 写"**这条也进 R 层规则。
+- **D-001（范围锚）的 P1 我保留，理由写清**：它自检时诚实报"**②条文在位——不充分**"（无任何条文明文禁止范围写法），并按我的要求内置了自动降 P2 条件。
+  我的裁定：§12.3-3 的"实现引用有效 SCI/ALG"在实现侧**唯一可承载 ID 的机制就是注释**（没有别的字段、别的表），故主语争议在本条上不成立 ⇒ **P1 保留**；若负责人另裁"实现不含注释"，按其内置条件自动降 P2，**51 枚证据与名单不变**。
+- **A 类 92 枚悬在一问上**（已开 **A-37**）：`DISP-*` 是否应为机器门的一等键？若裁"否"，A 类 92 枚全改判"不该被引用"、**该族缺陷归零**；若裁"是"，则须同时解释 `ci/**`+`tools/**`+`scripts/**` 对 `DISP-` 字面量 **0 命中** 且唯一消费者只验格式闭包。
+- 两条**反向证真**它主动交了（避免误报）：`TRACEABILITY.csv` 67 行的 `implementation_files`/`test_files` 死路径 **0 条**；`DATA-TILE-001`/`DATA-HIPS-001` 的 VERIFIED 声明**属实**。
+- **INDEX v4**：**219 份定稿件 / 520 条标题，P0 81 / P1 306 / P2 133**；产出方 19 个（14 域 + L28b/c/d/e + FD）。FD 计 7 条（G-001/002/004、I-001、F-001/002、以及 FD-G-003）。
