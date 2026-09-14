@@ -949,6 +949,23 @@ target_link_libraries(xpsd_spectrum_count_bounds_test PRIVATE z m Threads::Threa
 add_test(NAME xpsd_spectrum_count_bounds
   COMMAND xpsd_spectrum_count_bounds_test ${GAIA_CAT_DATA}/bounds_work)
 
+# P19-gaia (RQS 行动单 B2 / V5-N-03): XPSD 头 magnitudeRange 声明边界回归锁
+#   共址 #include gaia_client.c 直驱 static load_xpsd_file + 公开 cone_search:
+#   ① 36 个真实 shard 范围解析值与旧 atof 逐位一致 (合法输入不变);
+#   ② low>high / nan / inf(1e999) / 空串 / 超值域 / 尾随垃圾 一律不置
+#      has_magnitude_range (放弃 shard 剪枝) + stderr 告警 + reject 计数;
+#   ③ 合法声明剪枝结果与不剪枝逐位一致。改前源下 c_inverted/c_inf/c_oor/
+#      c_garbage 四例整 shard 静默漏星 (红), 改后全绿。
+add_executable(gaia_magnitude_range_bounds_test gaia_magnitude_range_bounds_test.c)
+target_include_directories(gaia_magnitude_range_bounds_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/src)
+if(OpenMP_C_FOUND)
+  target_link_libraries(gaia_magnitude_range_bounds_test PRIVATE OpenMP::OpenMP_C)
+endif()
+target_link_libraries(gaia_magnitude_range_bounds_test PRIVATE z m Threads::Threads)
+add_test(NAME gaia_magnitude_range_bounds
+  COMMAND gaia_magnitude_range_bounds_test ${GAIA_CAT_DATA}/magrange_bounds_work)
+
 # ----------------------------------------------------------------------------
 # P1-DRZ-IMPL (SA-P1D-I): drizzle 模块适配器测试 — astrocs_p1_drizzle DLL
 #   直接路径 (#include drizzle_adapter_impl.cpp → legacy hp_drizzle_run /
