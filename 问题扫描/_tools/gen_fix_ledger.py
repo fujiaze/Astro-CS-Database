@@ -12,7 +12,7 @@ ROOT = "问题扫描"
 FIND = os.path.join(ROOT, "findings")
 BOOK = os.path.join(ROOT, "账本")
 os.makedirs(BOOK, exist_ok=True)
-ID_RE = re.compile(r"^#{2,4}\s+((?:M\w+|L\d+b?c?d?e?|FD)-[A-Z]{1,4}-\d+)\b(.*)$")
+ID_RE = re.compile(r"^#{2,4}\s+((?:M\w+|L\d+b?c?d?e?|FD|V\d)-[A-Z]{1,4}-\d+)\b(.*)$")
 KEY = [("category", ["- 类别", "**类别**", "类别:"]),
        ("priority", ["- 建议优先级", "**优先级**", "优先级:"]),
        ("position", ["- 位置", "**位置**", "位置:"]),
@@ -27,6 +27,17 @@ PRI = re.compile(r"(P0|P1|P2)")
 def cat_of(path):
     parts = path.split(os.sep)
     return parts[-3] if len(parts) >= 3 else "?"
+def blockv(b, i):
+    ls = b[i:].split("\n")
+    head = re.sub(r"^[-*\s]*[^:：]*[:：]\s*", "", ls[0]).strip("* ")
+    if head: return head
+    acc = []
+    for ln in ls[1:]:
+        if re.match(r"^- ", ln) or ln.startswith("#") or ln.startswith(">"): break
+        if not ln.strip(): break
+        acc.append(re.sub(r"^[-*\s]+", "", ln.strip()))
+    return " ；".join(acc)
+
 def rows_from(fp):
     with open(fp, encoding="utf-8", errors="replace") as f:
         lines = f.read().split("\n")
@@ -49,7 +60,7 @@ def rows_from(fp):
             for p in pats:
                 i = b.find(p)
                 if i >= 0:
-                    seg = b[i:b.find("\n", i)]
+                    seg = b[i:b.find("\n", i)] if k in ("priority","category","conf") else blockv(b, i)
                     seg = re.sub(r"^[-*\s]*[^:：]*[:：]\s*", "", seg).strip("* ")
                     if k == "evidence":
                         j = b.find("- 权威依据", i); k2 = b[i:i+400] if j < 0 else b[i:min(j, i+400)]
@@ -59,7 +70,7 @@ def rows_from(fp):
         d["category"] = re.split(r"\s*[｜|]\s*", d.get("category",""))[0].strip("* ：:")
         if not re.match(r"^[A-Z_]+$", d["category"] or ""): d["category"] = cat_of(fp)
         d.setdefault("category", cat_of(fp))
-        mp = PRI.search(d.get("priority", "")) or PRI.search(fp)
+        mp = PRI.search(d.get("priority", "")) or PRI.search(fp.upper())
         d["priority"] = (mp.group(1) if mp else "P?").upper()
         d["producer"] = re.match(r"([A-Za-z0-9]+?)_", os.path.basename(fp)).group(1) if re.match(r"([A-Za-z0-9]+?)_", os.path.basename(fp)) else os.path.basename(fp)[:-3]
         res.append(d)
