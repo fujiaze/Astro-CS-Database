@@ -2,6 +2,7 @@
 #include "resource_gate.h"
 #include "astro/phase2/stage2_common.h"
 
+#include <cmath>
 #include <cstdio>
 #include <string>
 
@@ -73,7 +74,8 @@ int main() {
     CHECK(cfg.exec.cpu_workers == 1);
   }
 
-  // 4) 确定性前提: gate 阈值公式确定 (同输入同结果)
+  // 4) 确定性前提 + M5a-G-001 冻结值回归锁(§18.2: 85%/60%; 旧 D.6 的
+  //    80%/75%/50% 已废止, 不得回归)。
   {
     GateConfig g;
     g.kind = ResKind::Compute;
@@ -82,7 +84,63 @@ int main() {
     const double t1 = compute_cores_threshold(g);
     const double t2 = compute_cores_threshold(g);
     CHECK(t1 == t2);                 // 确定性
-    CHECK(t1 == 0.80 * 2.0);         // 0.80*min(4,2)
+    CHECK(t1 == 0.85 * 2.0);         // 0.85*min(4,2) = 1.7
+    CHECK(astrocs::kCpuMeanMinPercent == 85.0);
+    CHECK(astrocs::kMon001UtilSampleMinPercent == 85.0);
+    CHECK(astrocs::kMon001QueueUtilMinPercent == 60.0);
+  }
+
+  // 4b) M5a-G-001 回归锁 case_avg_085_boundary: 已分配容量 4 → 核下限 3.4;
+  //     3.39 必须 FAIL(low_avg_cores), 3.4 恰好通过(边界含等号)。
+  {
+    GateConfig g;
+    g.kind = ResKind::Compute;
+    g.available_cpus = 4; g.selected_workers = 4; g.max_active_threads = 4;
+    g.wall_seconds = 30.0; g.has_stage_annotation = true; g.workers_p50 = 4.0;
+    g.cpu_percent = 90.0; g.iowait_percent = 1.0; g.mem_bandwidth_percent = 90.0;
+    g.cpu_p50_percent = 95.0; g.cpu_mean_percent = 90.0;  // 已归一容量百分比
+    CHECK(std::fabs(compute_cores_threshold(g) - 3.4) < 1e-9);
+    g.avg_equivalent_cores = 3.39;
+    CHECK(evaluate_gate(g) == GateDiag::LowAvgCores);
+    g.avg_equivalent_cores = 3.4;
+    CHECK(evaluate_gate(g) == GateDiag::Ok);
+  }
+
+  // 4c) M5a-G-002 回归锁 case_alloc4_observed_0p9_core_fails: 已分配 4 核、
+  //     实测 0.9 等效核(= 采集端 percent_of_one_core 90.0)必须 FAIL; 修复前
+  //     90.0 被直接当成"90%"绕过 85% 均值门(分母退化 1 核)。
+  {
+    GateConfig g;
+    g.kind = ResKind::Compute;
+    g.available_cpus = 4; g.selected_workers = 4; g.max_active_threads = 4;
+    g.granted_workers = 4;                 // 已分配容量 = 4 核(观测权威)
+    g.wall_seconds = 30.0; g.has_stage_annotation = true; g.workers_p50 = 4.0;
+    const double mean_pct = astrocs::cpu_percent_of_allocated_capacity(g, 90.0);
+    CHECK(std::fabs(mean_pct - 22.5) < 1e-9);                 // 90/4 = 22.5% 容量
+    CHECK(std::fabs(astrocs::utilization_value(g, 90.0) - 0.225) < 1e-9);
+    CHECK(astrocs::allocated_capacity_cores(g) == 4);
+    g.avg_equivalent_cores = 0.9;                             // 远低于 0.85*4
+    g.cpu_mean_percent = mean_pct;
+    g.cpu_p50_percent = astrocs::cpu_percent_of_allocated_capacity(g, 380.0);
+    CHECK(evaluate_gate(g) != GateDiag::Ok);                  // 必须 FAIL
+  }
+
+  // 4d) M5a-G-002 均值门归一回归锁: avg 核数达标也不得掩盖"容量占比不足"。
+  //     分配 4 核、实测 2.0 核(=50% 容量)、avg_equivalent_cores=3.6 →
+  //     §18.2 均值门仍必须 FAIL(cpu_mean_low); 3.6 核(=90% 容量)则通过。
+  {
+    GateConfig g;
+    g.kind = ResKind::Compute;
+    g.available_cpus = 4; g.selected_workers = 4; g.max_active_threads = 4;
+    g.granted_workers = 4;
+    g.wall_seconds = 30.0; g.has_stage_annotation = true; g.workers_p50 = 4.0;
+    g.cpu_percent = 90.0; g.iowait_percent = 1.0; g.mem_bandwidth_percent = 90.0;
+    g.avg_equivalent_cores = 3.6;
+    g.cpu_p50_percent = astrocs::cpu_percent_of_allocated_capacity(g, 380.0);  // 95%
+    g.cpu_mean_percent = astrocs::cpu_percent_of_allocated_capacity(g, 200.0); // 50%
+    CHECK(evaluate_gate(g) == GateDiag::CpuMeanLow);
+    g.cpu_mean_percent = astrocs::cpu_percent_of_allocated_capacity(g, 360.0); // 90%
+    CHECK(evaluate_gate(g) == GateDiag::Ok);
   }
 
   if (failures == 0) {

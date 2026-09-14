@@ -63,17 +63,18 @@ int main() {
     CHECK(overhead_frac < 0.02);  // <2% 目标
   }
 
-  // 4) gate 阈值: compute 且 wall>=5s 时 avg_equivalent_cores 下限 = 0.80*min(workers,cpus)
+  // 4) gate 阈值(§18.2 冻结 85%): compute 且 wall>=5s 时 avg_equivalent_cores
+  //    下限 = 0.85*min(workers,cpus)
   {
     GateConfig g;
     g.kind = ResKind::Compute;
     g.selected_workers = 2;
     g.available_cpus = 2;
     double thr = compute_cores_threshold(g);
-    CHECK(std::fabs(thr - 1.6) < 1e-9);  // 0.80*2
-    // 1 核: 0.8
+    CHECK(std::fabs(thr - 1.7) < 1e-9);  // 0.85*2
+    // 1 核: 0.85
     g.selected_workers = 1; g.available_cpus = 1;
-    CHECK(std::fabs(compute_cores_threshold(g) - 0.8) < 1e-9);
+    CHECK(std::fabs(compute_cores_threshold(g) - 0.85) < 1e-9);
     // I/O: 无 CPU 阈值
     g.kind = ResKind::Io;
     CHECK(compute_cores_threshold(g) == 0.0);

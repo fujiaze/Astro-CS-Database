@@ -37,7 +37,7 @@ inline const char* res_kind_name(ResKind k) {
 enum class GateDiag {
     Ok,
     SingleThreaded,          // selected_workers < 2 (available>=2 时)
-    LowAvgCores,             // avg_equivalent_cores < 0.80*min(selected_workers,available)
+    LowAvgCores,             // avg_equivalent_cores < 0.85*min(selected_workers,available)
     UnannotatedPriority,     // 无 stage 标注且 wall>5s(P1, 07 §1)
     ComputeIoMemAllLow,      // CPU/io/mem 带宽皆低(禁止"单线程算法正常"解释)
     MemoryBandwidthLow,      // memory 未达 pre-frozen 带宽比例
@@ -53,8 +53,8 @@ enum class GateDiag {
     // MON-001(V7 04_CPU_RESOURCE_TASKS) 逐样本判定追加(末尾追加, 不重排既有值;
     // first10s_diag 以 static_cast<int> 持久化, 追加安全):
     MonitoringMissing,       // 监控缺失/无效(无资源证据) → 直接 FAIL(V7 验收)
-    UtilizationP75Low,       // 70% 样本 >= 0.75 不满足(逐样本利用率门)
-    QueueStarvedCpu,         // 队列有工作时连续 >=10s 利用率 <0.50
+    UtilizationP75Low,       // 70% 样本 >= 0.85 不满足(逐样本利用率门, §10.5)
+    QueueStarvedCpu,         // 队列有工作时连续 >=10s 利用率 <0.60(§10.5)
     // MON-002(V7 04_CPU_RESOURCE_TASKS) RSS/allocation report 判定追加
     // (末尾追加, 不重排既有值; 判定源 = cli/memory_report.h 报告面):
     AllocGrowthUnbounded,    // RSS 曲线稳健斜率 >= 失败线(注入 leak 失败路径)
@@ -90,21 +90,25 @@ inline const char* gate_diag_name(GateDiag d) {
 // MON-002 阈值(04_TASK_SPECIFICATIONS §MON-002, CPU-heavy active window>=10s):
 // worker p50>=2(available>=2)、CPU p50>=90%、mean>=85%。判定集中本头文件,
 // 不散落硬编码; 诊断消息引用常量保证口径一致。
+// 口径(宪章 §10.5/§18.2): 这里是**已分配容量百分比**; 采集端 cpu_pct 是
+// 100×等效核(percent_of_one_core), 调用方必须先经
+// cpu_percent_of_allocated_capacity() 归一后再写入 cpu_p50/mean_percent。
 inline constexpr double kWorkerP50Min = 2.0;
 inline constexpr double kCpuP50MinPercent = 90.0;
-inline constexpr double kCpuMeanMinPercent = 85.0;
+inline constexpr double kCpuMeanMinPercent = 85.0;   // §18.2 冻结均值下限 85%
 
 // ---- MON-001(V7 04_CPU_RESOURCE_TASKS) 哨兵与阈值纪律 ----
 // 未采样哨兵: -1 表示"未采样", 不是合法测量值(批次 P p2007 先例: 哨兵是采集
 // 可用性问题, 不是 CPU 低利用率证据; 禁止把 -1 当合法值参与统计判定)。
 inline constexpr double kMon001NotSampled = -1.0;
 inline bool mon001_sampled(double v) { return v > kMon001NotSampled; }
-// 逐样本利用率阈值(与 kCpuP50MinPercent 同一 normalized 口径: 100%=全部
-// effective available workers 用满, 见 utilization_value()).
-inline constexpr double kMon001UtilSampleMinPercent = 75.0;   // 单样本 >=0.75
+// 逐样本利用率阈值(与 kCpuP50MinPercent 同一口径: 100%=已分配容量用满, 见
+// utilization_value())。冻结值 = 宪章 §10.5/§18.2 的 85%/60%; 旧 D.6 的
+// 75%/50% 已被 §18.2 第 2 项明文废止, 不得回归。
+inline constexpr double kMon001UtilSampleMinPercent = 85.0;   // 单样本 >=0.85(§18.2)
 inline constexpr double kMon001UtilSampleFrac = 0.70;         // 达标样本占比 >=70%
 inline constexpr double kMon001QueueWindowSeconds = 10.0;     // 队列有工作连续低利用窗口
-inline constexpr double kMon001QueueUtilMinPercent = 50.0;    // 窗口内利用率下限 0.50
+inline constexpr double kMon001QueueUtilMinPercent = 60.0;    // 窗口内利用率下限 0.60(§18.2)
 
 struct GateConfig {
     ResKind kind = ResKind::Unknown;
@@ -142,15 +146,20 @@ struct GateConfig {
     double mem_bandwidth_percent = -1.0;  // -1=未测
     // MON-002 复验追加: active 窗口采样统计(负值=未采样, 跳过对应判定)。
     double workers_p50 = -1.0;        // active workers p50(采样; 优先于 selected_workers)
-    double cpu_p50_percent = -1.0;    // CPU p50%(normalized: 100%=全部分配核)
-    double cpu_mean_percent = -1.0;   // CPU mean%(同上)
+    // CPU p50/mean = **已分配容量百分比**(100% = 已分配容量用满)。采集端 cpu_pct
+    // 单位是 100×等效核(percent_of_one_core), 调用方必须经
+    // cpu_percent_of_allocated_capacity() 归一后再写入本字段(见 commands.cpp
+    // run_with_resource_gate)。M5a-G-002: 直接把采集值写进来 = 单核标度误判。
+    double cpu_p50_percent = -1.0;    // CPU p50%(已分配容量归一)
+    double cpu_mean_percent = -1.0;   // CPU mean%(同上; §18.2 下限 85%)
     // 横切诊断: 内存持续增长(rss_slope 可为负=收缩, 用显式开关而非负哨兵)
     bool rss_slope_measured = false;
     double rss_slope_mb_per_s = 0.0;
     // FIX-E2E B1-A6: active 计算窗口时长(秒)。判定域收口前置:
     // rss_slope/p75 等统计判据只对 active window >= kMon002MinWindowSeconds 生效;
     // 负值 = 调用方未提供(直接单元判定路径) → 视为代表性, 保持向后兼容。
-    // 注意: 阈值(85%/60%/32MB/s/10s)与判定式不动, 只加窗口/样本量前置。
+    // 注意: 阈值按 §18.2 冻结为 85%/60% (另有 32MB/s/10s) 且判定式不动, 只加窗口/
+    // 样本量前置。
     double active_window_seconds = -1.0;
     double memory_growth_limit_mb_per_s = 32.0;  // 调用方可覆盖(泄漏敏感场景调低)
     bool progress_stalled = false;    // 无进度(采样/节点注入)
@@ -178,11 +187,34 @@ inline bool gate_window_representative(const GateConfig& g) {
            g.active_window_seconds >= kMon002MinWindowSeconds;
 }
 
-// 核心公式: compute 且 wall>=5s 时, avg_equivalent_cores 下限 = 0.80 * min(selected_workers, available_cpus)。
+// 已分配容量(allocated capacity)分母 —— 宪章 §10.5「已分配容量」的单一实现点。
+// B2-A18: 优先用真实观测到的租约授予宽度 granted_workers; 仅在未观测
+// (哨兵 0)时回退 min(selected_workers, available_cpus)。观测是权威分母, 不被
+// available_cpus 封顶(见 mon001_gate_test 18a「真实授予是权威分母」)。
+// NEEDS_DECISION(M5a-G-002): granted_workers vs min(selected,available) 的取义
+// 待负责人裁决; 此处按宪章 §10.4/§10.5 最保守一致口径(已分配容量, 观测优先)
+// 落地。与 tools/monitoring/run_monitored.py::evaluate_frozen_gate 的
+// 「已分配 worker 数」分母同概念。
+inline uint32_t allocated_capacity_cores(const GateConfig& g) {
+    return (g.granted_workers > 0)
+               ? g.granted_workers
+               : std::min(g.selected_workers, g.available_cpus);
+}
+
+// 采集端 cpu_pct 单位 = 100×等效核(percent_of_one_core, 见 resource_recorder.h)。
+// 换算为「已分配容量百分比」: 100% = 已分配容量用满。分配容量 0 → 0.0(除零安全)。
+inline double cpu_percent_of_allocated_capacity(const GateConfig& g, double cpu_pct) {
+    const uint32_t m = allocated_capacity_cores(g);
+    return m >= 1 ? cpu_pct / static_cast<double>(m) : 0.0;
+}
+
+// 核心公式(宪章 §10.5/§18.2): compute 且 wall>=5s 时, avg_equivalent_cores
+// 下限 = 85% × 已分配容量 = kCpuMeanMinPercent/100 × allocated_capacity_cores(g)
+// 核。旧 D.6 的 0.80 已被 §18.2 明文废止(M5a-G-001)。
 inline double compute_cores_threshold(const GateConfig& g) {
     if (g.kind != ResKind::Compute) return 0.0;
-    const uint32_t m = std::min(g.selected_workers, g.available_cpus);
-    return (m >= 1 ? 0.80 * static_cast<double>(m) : 0.0);
+    const uint32_t m = allocated_capacity_cores(g);
+    return (m >= 1 ? (kCpuMeanMinPercent / 100.0) * static_cast<double>(m) : 0.0);
 }
 
 // 逐项门禁判定; 返回 GateDiag(Ok 表示通过)。顺序: 使首错可诊断。
@@ -227,8 +259,8 @@ inline GateDiag evaluate_gate(const GateConfig& g) {
         }
         // §10.5 判据域收口(OWNER-02, "追认不阻塞执行"): 冻结门的语义前提是
         // "计算区间超过 10 秒"。active window <10s 时统计利用率判据(avg/p50/mean)
-        // 不成立(短窗样本不足), 一律跳过; 阈值 0.80*min(selected,available) 与
-        // 85%/90% 判定式**不动**。active_window_seconds<0(未提供) = 直接单元判定
+        // 不成立(短窗样本不足), 一律跳过; 阈值 0.85*min(selected,available) 与
+        // 85%/90% 判定式**不动**(§18.2 冻结值)。active_window_seconds<0 = 直接单元判定
         // 路径, 视为代表性, 保持既有行为(向后兼容)。
         if (!gate_window_representative(g)) return GateDiag::Ok;
         if (g.wall_seconds < 5.0) return GateDiag::Ok;   // 兼容旧调用方(未标 active 窗)
@@ -278,19 +310,11 @@ inline bool fast_fail_first10s(const GateConfig& g) {
 }
 
 // ---- MON-001(V7 04_CPU_RESOURCE_TASKS) 资源阈值判定 ----
-// 前提: 进程级 process_cpu_core_seconds 无硬件线程去重 —— cpu_pct 口径 100%=全部
-// effective available workers 用满(同 kCpuP50MinPercent 口径), utilization_value
-// 是单点近似 U(完整聚合判定由 evaluate_mon001 汇总逐样本占比完成)。
-// 分母 = effective available workers = min(selected_workers, available_cpus)
-// (规格: 不得以硬编码核心数或配置 worker 数单独作分母)。
+// 单点近似 U(0..1 分数); 完整聚合判定由 evaluate_mon001 汇总逐样本占比完成。
+// 分母 = 已分配容量(见 allocated_capacity_cores); 规格: 不得以硬编码核心数
+// 或配置 worker 数单独作分母。
 inline double utilization_value(const GateConfig& g, double cpu_pct) {
-  // B2-A18: 分母优先 = 真实观测到的租约宽度 (同口径)。仅在未观测
-  // (granted_workers==0) 时回退原 min(selected_workers, available_cpus)
-  // 口径；阈值与语义不变。
-  const uint32_t m = (g.granted_workers > 0)
-                         ? g.granted_workers
-                         : std::min(g.selected_workers, g.available_cpus);
-  return m >= 1 ? cpu_pct / (100.0 * static_cast<double>(m)) : 0.0;
+  return cpu_percent_of_allocated_capacity(g, cpu_pct) / 100.0;
 }
 
 // 监控有效性: heavy run 必须有真实监控证据。monitor_present=false 或采样侧
@@ -303,9 +327,9 @@ inline bool monitoring_effective(const GateConfig& g) {
 // 逐样本聚合判定, 返回 GateDiag。与 evaluate_gate 互补(evaluate_gate 的
 // 统计判据 wall>=5s 豁免不动; 本函数收口 V7 MON-001 验收的剩余三条):
 //   1) 监控缺失/无效 → MonitoringMissing FAIL(不可豁免);
-//   2) 平均 U>=0.80 已由 evaluate_gate LowAvgCores(avg_equivalent_cores)承担;
-//   3) >=70% 样本 U>=0.75 → UtilizationP75Low;
-//   4) 队列有工作时连续 >=10s U<0.50 → QueueStarvedCpu。
+//   2) 平均 U>=0.85 已由 evaluate_gate LowAvgCores(avg_equivalent_cores)承担;
+//   3) >=70% 样本 U>=0.85 → UtilizationP75Low;
+//   4) 队列有工作时连续 >=10s U<0.60 → QueueStarvedCpu。
 // 哨兵纪律(批次 P p2007 先例): 字段为 -1(未采样/未观测)时跳过对应判定;
 // 未采样不是低利用率证据, 但监控缺失本身必须 FAIL。
 // <5s 切片规避: 规格要求按单段和累计 wall 汇总 —— heavy_wall_seconds_total
@@ -368,7 +392,7 @@ inline std::string diag_message(GateDiag d, const GateConfig& g) {
     case GateDiag::LowAvgCores: {
         const double thr = compute_cores_threshold(g);
         return "compute 门禁: avg_equivalent_cores " + std::to_string(g.avg_equivalent_cores) +
-               " < 0.80*min(workers,cpus)=" + std::to_string(thr);
+               " < 0.85*min(workers,cpus)=" + std::to_string(thr);
     }
     case GateDiag::UnannotatedPriority:
         return "stage 未标注且 wall>5s → P1(07 §1)";
@@ -418,7 +442,8 @@ inline std::string diag_message(GateDiag d, const GateConfig& g) {
                (mon001_sampled(g.queue_low_run_seconds)
                     ? std::to_string(g.queue_low_run_seconds)
                     : std::string("unsampled")) +
-               "s 利用率<0.50 (窗口阈值 " + std::to_string(kMon001QueueWindowSeconds) + "s)";
+               "s 利用率<" + std::to_string(kMon001QueueUtilMinPercent / 100.0) +
+               " (窗口阈值 " + std::to_string(kMon001QueueWindowSeconds) + "s)";
     case GateDiag::AllocGrowthUnbounded:
         return "RSS/allocation report(MON-002): RSS 曲线稳健斜率 " +
                (mon001_sampled(g.alloc_growth_mb_per_s)

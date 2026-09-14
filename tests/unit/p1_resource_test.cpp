@@ -69,12 +69,12 @@ int main() {
     }
   }
 
-  // 4) 2 核 heavy gate: 阈值公式 0.80*min(2,2)=1.6 核
+  // 4) 2 核 heavy gate(§18.2 冻结 85%): 阈值公式 0.85*min(2,2)=1.7 核
   GateConfig g;
   g.kind = ResKind::Compute;
   g.selected_workers = 2;
   g.available_cpus = 2;
-  CHECK(std::fabs(compute_cores_threshold(g) - 1.6) < 1e-9);
+  CHECK(std::fabs(compute_cores_threshold(g) - 1.7) < 1e-9);
   CHECK(evaluate_gate(g) == astrocs::GateDiag::Ok || true);  // compute 判定由调用方注入均值
 
   // 5) 循环释放: RSS 斜率有界 (无失控内存增长)。

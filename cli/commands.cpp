@@ -905,7 +905,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     g.granted_workers = astrocs::core::granted_worker_observation()
                             .peak_active.load(std::memory_order_relaxed);
     g.max_active_threads = s.max_threads;
-    g.avg_equivalent_cores = s.avg_equivalent_cores;
+    g.avg_equivalent_cores = s.avg_equivalent_cores;   // 单位=等效核(见 monitor.h)
     g.wall_seconds = s.wall_seconds;
     g.cpu_percent = s.avg_cpu_percent;
     // MON-001 记录器已按 init/active/flush 分段标注(07 §1 stage 标注)
@@ -918,8 +918,14 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         g.workers_p50 = act.workers_p50;
         g.active_window_seconds = act.wall_seconds;   // B1-A6 判定域前置
         if (act.wall_seconds >= 10.0) {
-            g.cpu_p50_percent = act.cpu_pct_p50;
-            g.cpu_mean_percent = act.cpu_pct_mean;
+            // M5a-G-002: 采集端 act.cpu_pct_* 单位 = 100×等效核
+            // (percent_of_one_core, resource_recorder.h), 必须先按「已分配容量」
+            // (allocated_capacity_cores)归一为百分比, 再交给 evaluate_gate 的
+            // 90%/85% 判据; 否则 85%/90% 退化为 0.85/0.90 核绝对下限。
+            g.cpu_p50_percent =
+                astrocs::cpu_percent_of_allocated_capacity(g, act.cpu_pct_p50);
+            g.cpu_mean_percent =
+                astrocs::cpu_percent_of_allocated_capacity(g, act.cpu_pct_mean);
         }
         g.rss_slope_measured = true;
         g.rss_slope_mb_per_s =
@@ -933,8 +939,8 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // >=70% 样本 U>=0.75; 队列有工作时连续>=10s U<0.50。哨兵纪律: 统计不可得
     // (如 mini workload 采样不足)记 -1 跳过对应判定(p2007 先例), 不构成 FAIL
     // 证据; 监控在跑但 active 段零样本仍是 MonitoringMissing(无资源证据)。
-    // mini 任务 0.80*min(selected,available) 门的结构失配(abs-floor)为负责人
-    // 裁决项, 此处不自行放宽。
+    // mini 任务 0.85*min(selected,available) 门的结构失配(abs-floor)为负责人
+    // 裁决项, 此处不自行放宽(§18.2 冻结值 85%/60%)。
     if (d == astrocs::GateDiag::Ok) {
         const auto mon_recs = recorder.records_stage(astrocs::ResStage::Active);
         g.monitor_present = true;   // ProcessMonitor 采样线程已实际运行并落盘三产物
@@ -946,12 +952,16 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                 double pass = 0.0;
                 double q_low_run = 0.0, q_low_best = 0.0;
                 for (const auto& r : mon_recs) {
-                    // 逐样本利用率 U=ΔCPU/(interval×min(selected,available)) —
-                    // 100%=全部分配核用满; 与 utilization_value 同口径。
-                    if (astrocs::utilization_value(g, r.cpu_pct) >= 0.75) ++pass;
-                    // 队列有工作(runnable>0)且利用率<0.50 的连续 run 长度。
+                    // 逐样本利用率 U=ΔCPU/(interval×allocated_capacity) —
+                    // 100%=已分配容量用满; 与 utilization_value 同口径。
+                    // §18.2 冻结值: 单样本 85%、队列窗口 60%(常量集中在
+                    // resource_gate.h, 不散落硬编码)。
+                    if (astrocs::utilization_value(g, r.cpu_pct) >=
+                        astrocs::kMon001UtilSampleMinPercent / 100.0) ++pass;
+                    // 队列有工作(runnable>0)且利用率<60% 的连续 run 长度。
                     if (r.runnable_workers > 0 &&
-                        astrocs::utilization_value(g, r.cpu_pct) < 0.50) {
+                        astrocs::utilization_value(g, r.cpu_pct) <
+                            astrocs::kMon001QueueUtilMinPercent / 100.0) {
                         q_low_run += 0.5;  // 采样周期 0.5s(与 sampler interval 一致)
                         if (q_low_run > q_low_best) q_low_best = q_low_run;
                     } else {

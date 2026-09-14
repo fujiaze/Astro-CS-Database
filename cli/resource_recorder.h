@@ -2,7 +2,10 @@
 // 每个 heavy node 自动生成 resource_samples.csv / resource_summary.json / worker_balance.csv
 // (无需操作者额外脚本)。分 init/active/flush 阶段; 样本含 elapsed/进程与系统 CPU/
 // active+runnable workers/RSS/PSS/commit/fault/read/write/queue depth/lock wait/progress。
-// Windows/Linux 统一 "100%=全部分配核用满" normalized 口径。
+// Windows/Linux 统一 cpu_pct 单位 = "100% = 1 核满载"(percent_of_one_core,
+// 即等价核数×100; 4 核满载=400)。**不是** "100%=全部分配核用满"——已分配容量
+// 归一只在门禁侧完成(见 resource_gate.h::cpu_percent_of_allocated_capacity 与
+// commands.cpp run_with_resource_gate); M5a-G-002 修复前该自证字段与事实相反。
 // 采样开销用真实 wall 总开销计算(ProcessMonitor 已自测每样本开销)。
 // ABI 冻结(v1)不改公共 ABI; 本模块纯 CLI 侧内部工具。
 #pragma once
@@ -35,7 +38,8 @@ inline const char* res_stage_name(ResStage s) {
 struct ResRecord {
     double elapsed_seconds = 0.0;   // 距起始单调秒
     const char* stage = "init";     // init|active|flush
-    double cpu_pct = 0.0;           // 进程 CPU / 墙钟 × 100(normalized)
+    double cpu_pct = 0.0;           // 进程 ΔCPU秒 / 采样间隔 × 100 = 等效核×100
+                                    // (100=1 核满载; 非已分配容量百分比)
     double system_cpu_pct = 0.0;    // 系统级 CPU 占用(可得时)
     uint32_t active_workers = 0;    // active workers(外部注入)
     uint32_t runnable_workers = 0;  // runnable workers(外部注入)
@@ -98,6 +102,8 @@ public:
         ResRecord r;
         r.elapsed_seconds = now;
         r.stage = res_stage_name(cur_stage_);
+        // 单位 = 100×等效核(percent_of_one_core); 下游门禁按 allocated_capacity
+        // 归一后才与 85%/90% 阈值可比(M5a-G-002)。
         r.cpu_pct = interval_ > 0 ? (s.d_cpu_seconds / interval_) * 100.0 : 0.0;
         r.rss_bytes = s.rss_bytes;
         r.pss_bytes = s.pss_bytes;
@@ -239,8 +245,12 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
     {
         std::FILE* f = std::fopen((out_dir + "/resource_summary.json").c_str(), "w");
         if (!f) return false;
+        // M5a-G-002: cpu_pct 的单位是 percent_of_one_core(=100×等效核), 不是
+        // 已分配容量百分比; 旧字段无条件自证 true 与采集事实相反。保留旧键名但
+        // 置 false(下游解析兼容), 并给出真实单位键。
         std::fprintf(f, "{\"run_id\":\"%s\",\"n_samples\":%zu,\"wall_seconds\":%.3f,\"sample_overhead_ms\":%.3f,"
-                        "\"normalized_cpu_100pct_all_allocated_cores\":true,\"stages\":[",
+                        "\"normalized_cpu_100pct_all_allocated_cores\":false,"
+                        "\"cpu_pct_units\":\"percent_of_one_core\",\"stages\":[",
                         run_id.c_str(),
                         snap.size(), wall_total, sample_overhead_ms);
         const auto stats = stage_stats();
