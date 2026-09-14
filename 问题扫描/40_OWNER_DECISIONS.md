@@ -56,9 +56,16 @@
 | B-03 | B | A 线把 sigma_residual=0 转 inf 写 HISS 是否运行期发生 | M3 §6③ | 需运行（该线不在根 CMake 内） |
 | B-04 | B | packaging/astrocs.exe 是否暴露 p1_session_run（决定 M3-C-005 / M3-G-001 是否升 P0） | M3 §6④ | 需 --help/dlopen 探测 |
 | B-05 | B | Windows CRT rename 对已存在目标是失败还是替换（同仓四处注释两两矛盾）→ 决定 L24-013-① 与 S3-006 是否为真实数据丢失 | L24 §6A | 需 Fatduck 实测一次覆盖写 |
+| ~~B-06~~ | **已答且被证伪（E2 用真代码跑）**：两个 workflow **都不传 `--changed-from`**（`ci-linux.yml:141` = `python3 ci/run.py --profile …`；`ci-windows.yml:110` 同）⇒ **增量选择在当前 CI 路径上根本不生效**（`--plan-only` 实测 selected_count=104 全量）。
+  E2 未跑真 CLI（`ci/run.py:227` 的 `git()` 无 `--no-optional-locks`、`:460` 跑 `git status --porcelain` ⇒ **会刷新 `.git/index` 与并发 agent 冲突**），改用 `importlib` 载入原模块、只注入预取改动集、`select_checks`/`_match_prefix`/`impact_map` **全走原函数**：只改 `runtime/io`(4 文件) → **21/104**，而 `tests/io/test_fits_stream_contract.py:24`、`test_hips_input_contract.py:36` 逐字硬引用 `runtime/io/{fits_core.c,hips_core.c}`（2665 行）
+  ⇒ **改这两个 C 文件恰好不触发唯一编译/装载它们的 UT-IO，也不触发任何 CTEST-*** |
 | B-06 | B | 只改 runtime/io 时增量 CI 实际选择集（impact_map 缺口）；check_ctest_registration 补反向闭包后的候选噪声量 | L24 §6B/G、M5b | 需 ci/run.py --changed-from 干跑 + 报告模式跑一轮 |
 | B-07 | B | ENOSPC/只读目录注入下 properties/manifest 写失败能否穿过上层 exists() | L24 §6C | 需故障注入 |
 | B-08 | B | 发布物是否声明 longPathAware（决定 512/PATH_MAX 系缺陷定级） | L24 §6D | 需读 packaging manifest 并核 Windows 行为 |
+| ~~B-09~~ | **已答（E3 挖既有证据，无需新构建）**：四条里 **L24-001/002 的 ASan 构建条件已具备、但从无针对其触发面的运行记录** —— `build/asan` 是 `ASTROCS_ENABLE_SANITIZERS=ON` + `-fsanitize=address,undefined -fno-sanitize-recover=all` 完整插桩树，`module_entry.c.o` 带该 FLAGS、`nm` 命中 `gaia_execute`/`json_append_escaped`、`.so` 链 `libasan.so.8`；全树 `stack-buffer-overflow` 内容级 **0 命中**。
+  **缺的只是语料**：在册 fixture 生成器硬编码 `spectrumCount=343`（真实合法值）、负向仅 truncate ⇒ 触发面从未执行；08-09 V4 那轮全套 ASan/UBSan/LSan 跑的是**真实 DR3SP**（files=20 / sources=219165266 / GAIA_SANITIZE_OK）⇒ **通过≠缺陷不存在**。
+  **L24-009/010 连构建接线都不存在**（`aio_ahpx_reader.cpp` 真源零 CMake 接线、asan `build.ninja` 0 命中；v19r3 曾编进 `aio_san` 但驱动不调用 = **编译在场、执行缺位**），牵出 `ahpx/DEPRECATED.md`（tracked、07-13 自述废弃不入生产）⇒ **影响面须按死代码复核**。
+  树内 sanitizer 执行史 **11 批**，反复抓到本仓真 bug（akima 越界、`p2002 rejection.cpp:1185` 越界、gaia LSan 泄漏 294912B、2 处 SEGV）⇒ **空白≠能力空白**。**最小真跑成本已量化**（既有 asan 树增量重编 gaia 段 + 造 2 个语料 + 定 LSan 豁免策略）；**它需真编译+运行，超出当前 B-14 白名单，是否授权请你拍** |
 | B-09 | B | ASan/UBSan 实跑确证 L24-001/002/009/010 的越界（现全为静态推演+算术） | L24 §6E | 需 ASan 版构建，**与禁执行令直接冲突** |
 | B-10 | B | hips_core.c 是否被在途批次纳入构建（决定 MOC 溢出与 NULL 解引用两族定级） | L24 §6F | 需读构建配置或 RESCUE-V3 任务书 |
 | B-11 | B | mod001 64/64、两棵命令面差异、SparseEqualsDense 实跑、FOV 出片形态、inlier 语义、p1noise 追踪、avx512 exit-77 记账、fault-injection WILL_FAIL | M5b §6 + M1a §6 + L23 R1-R6 | 需构建/ctest |
@@ -89,3 +96,11 @@
 - **D-02**：前台自己犯了两处（F00-03 计票过期、F00-07a 误记锚点），均已撤回订正并建机器闸门（_tools/verify_anchors.js）。
 - **D-03**：前台一次派发把 L21/L22/L24 同时指派给两个合并域，已重切为互斥四分并逐条下达更正令。
 - **D-04**：多个叶子代理（L12/L16/L24）曾出现「宣布即将落盘但文件仍是骨架」；已用分片回传 + 反骨架令根治，并规定部分交付优于空骨架。
+- **D-05**：M8 自报启动时曾两次列目录（并**明确拒绝把自己的过程描述成"全程零 shell"**）。另记 M8 与 M6b 各一次「局部 read → 全量 write」把自己档案写坏
+  （M8 的 `_merge/M8.md` 一度截断为 160 行，已逐节重建至 244 行并自检定义数=引用数）。⇒ 协议已立禁令：**禁局部 read → 全量 write，一律整读整写或用 edit**。
+- **D-06**：**E 层授权的第一例副作用，责任在边界不在代理**。E3 按我给的白名单跑 `ctest -N`（在 `build/asan/` 下），而 `ctest -N` 在 CMake 生成的构建树里会初始化 `Testing/Temporary/` 并覆写 `LastTest.log`；
+  前台当场复验 `build/asan/Testing/Temporary/LastTest.log` **现 121 字节、mtime 09-14 11:04** ⇒ **09-11 那轮 gaia 失败正文不可恢复**（E3 以 3 处旁证复原结论要点）。**我把 `ctest -N` 列为"只读"，实际不是。**
+  **修正（已补投禁令）**：①对任何非自建构建树**禁止一切 `ctest` 形态**（含 `-N`），用例清单改静态解析 `CTestTestfile.cmake`/`build.ninja`/`add_test(NAME …)`；
+  ②**不得跑 `ci/run.py` 的非 `--plan-only` 路径** —— E2 实测其 `:227` 的 `git()` 无 `--no-optional-locks`、`:460` 跑 `git status --porcelain` ⇒ **会刷新 `.git/index` 与并发 agent 冲突**。
+  **对照组**：E2 自己识别同一风险并**主动避开** `build/linux-control`（6/6 缺 `_tests.cmake`，跑 `-N` 会启动 gate 可执行并重写注册文件），只在 `run/ci/build-gcc-release`（gitignore 内、`_tests.cmake` 均新于 exe）跑并如实自报 ⇒ **代理比我的白名单更谨慎**。
+  **教训入 E 层边界下一版：判"只读"必须以"是否触碰共享树状态"为准，不以命令名义为准。** 损失面仅旧 sanitizer 日志，未丢源码、交付物、git 索引。
