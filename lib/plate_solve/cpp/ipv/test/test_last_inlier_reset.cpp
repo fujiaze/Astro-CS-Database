@@ -114,7 +114,10 @@ int main() {
     // ---- Case 4: with_callback_f64 入口同样语义 (double 图像失败调用) ----
     {
         std::vector<double> blank((size_t)W * H, 5.0);
-        IpvParams params{};   // 显式默认
+        IpvParams params{};
+        // 宪章 §8.6 / V2-N-01: 必须经 ipv_get_default_params 填充
+        // struct_size/abi_version, 否则入口 fail-closed。
+        ipv_get_default_params(&params);
         // f64 入口 API: ipv_solve_from_memory_with_callback_d
         ipv_solve_from_memory_with_callback_d(solver, blank.data(), W, H,
                                               180.0, 0.0, 800.0, 3.45,
