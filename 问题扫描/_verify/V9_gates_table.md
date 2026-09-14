@@ -1,6 +1,6 @@
 # V9 附表：ci/checks.json 逐门五判据表（机器生成，只读复算）
 
-* 口径：python 解析 ci/checks.json；终版时点 HEAD f5c790bd，UTC 2026-09-14T17:31:53Z（北京 2026-09-15 01:31）。门数 130（本会话开始时 121；期间前台连续新增 9 门，HEAD 移动 6 次）。**登记面是活动靶**：本表与 V9.md §3 结论均按终版时点复算；邻站再增门后须重跑 问题扫描/_verify/scripts_v9_table.py 与本表。
+* 口径：python 解析 ci/checks.json；终版时点 HEAD d7f46dd0，UTC 2026-09-14T17:39:54Z（北京 2026-09-15 01:39:54）。门数 130（本会话开始时 121；期间前台连续新增 9 门，HEAD 移动 6 次）。**登记面是活动靶**：本表与 V9.md §3 结论均按终版时点复算；邻站再增门后须重跑 问题扫描/_verify/scripts_v9_table.py 与本表。
 * 生成脚本 问题扫描/_verify/scripts_v9_table.py（只读）。「paths覆盖checker」= 该门自身 checker 路径是否落在其 changed_paths 内（N：改坏 checker 不触发该门）；「paths覆盖checks.json」= 登记面改动是否触发该门。
 * 「静态判定」只填有复算直证或实测直证的行；其余留「—」。profiles 缩写 P=fast L=linux-main W=windows-main D=linux-deep。
 
