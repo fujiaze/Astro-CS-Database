@@ -43,7 +43,7 @@
 - **置信度**：高（两份 JSON 字段当场解析；引文为文件逐字内容）｜**related**：M5b-G-01（同名第二二进制，同族「门验错对象」）、M8-F-004（在册但不执行）、簇 1 机制补全、L25-005（豁免按字面量切分）、C-11/C-12
 
 ### FD-G-003 基线文件自陈「当前 linux-main 有约 10 项红灯且不得登记进基线」——其中含本审计定为「结构性空壳」的 CON-COMMENTS
-- **ID**：FD-G-003 ｜ **类别**：G_GOV_GATE ｜ **优先级**：P2（事实本身是正面证据，但它制造一处**必须写清的歧义**）
+- **ID**：FD-G-003 ｜ **类别**：G_GOV_GATE ｜ **优先级**：**P1**（前台按 C-06 恢复：L28c/FD/M3 合并曾把本条降为 P2，判定列以恢复后的 P1 为准；目录 p1/ 为权威，见 40_OWNER_DECISIONS.md C-06 与 SUMMARY.md 簇表）（事实本身是正面证据，但它制造一处**必须写清的歧义**）
 - **位置**：`ci/known_failures.json::contract.excluded_by_policy`
 - **问题说明**：该字段逐字列出「本轮 linux-main 其余红灯（**AGENTS-GOV / DATA-ARTIFACTS / THREAD-BUDGET / CON-COMMENTS / CON-FULL-INTEGRATION / UT-ARCH / UT-BACKEND / WIN-* / DEEP-***）均为在册 P1（FD-R1-010），不得登记进基线，须由域主修复」。
   ⇒ 这是一份**仓内自证的当前 CI 红态清单**，可直接为多条审计结论提供"门确实在跑"的旁证（对簇 1 是重要平衡证据，防止被读成"所有门都不跑"）。
