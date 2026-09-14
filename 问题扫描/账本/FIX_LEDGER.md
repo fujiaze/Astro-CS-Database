@@ -1,6 +1,6 @@
 # FIX_LEDGER · 修复账本（人读视图：P0 全列）
 
-- 条目总数 **548**（P0 83 / P1 313 / P2 152 / 其它 0）；机器读写面 = 
+- 条目总数 **551**（P0 84 / P1 315 / P2 152 / 其它 0）；机器读写面 = 
   `问题扫描/账本/FIX_LEDGER.csv`（**隔壁只填后 9 列**，判定列由前台重跑刷新并按 id 保留你的填写）
 - 重跑：`python3 问题扫描/_tools/gen_fix_ledger.py`
 
@@ -89,3 +89,4 @@
 | M9-H-1 | P0 | H_NUMERIC | M9 |  | Gaia 模块 manifest 拼接：snprintf 返回「本应写入数」推进指针 + 转义函数无容量入参 → 512 字节栈缓冲越界写， | FIXED | 07eb229b | ADDED:gaia_module_manifest_bounds |
 | M9-H-2 | P0 | H_NUMERIC | M9 |  | XPSD 自报 spectrumCount 无任何上限即用作分配步长与每星 memcpy 长度 → 堆越界读 + 数百 MB 级 OOM 放 | FIXED | 07eb229b | ADDED:xpsd_spectrum_count_bounds |
 | V2-N-01 | P0 | G_GOV_GATE | V2 |  | IpvParams 公共 C 结构体布局已改而仓内 ctypes 镜像未同步 ⇒ 72 字节越界写 + 字段全错位 | OPEN |  |  |
+| V2-N-08 | P0 | G_GOV_GATE | V2-D2 |  | FAST 模式的裁决前提已被同批另一提交推翻 ⇒ `psf.max_stars` 静默决定交付的 SNR／极限星等，且无任何 parity  | OPEN |  |  |
