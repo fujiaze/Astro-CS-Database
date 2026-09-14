@@ -532,28 +532,11 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 
 
 
-## 收档 E1（执行层白名单实测）—— 六项里 **4 项改判**，包括推翻我自己一个数
-- **① B-01 p1noise：改判**。E1 实测 `git ls-files | grep -ci p1noise = 8`、`ls-tree -r HEAD` 同集、入库提交 `e54cd740`（09-09）
-  ⇒ **`tests/unit/CMakeLists.txt:525-526` 与根 `CMakeLists.txt:211-213` 的「p1noise 从未入库」为假**；`ci/ctest_baseline.json:15,123-130` 冻结八目标为真，
-  且既有配置 `ctest -N` 实跑 build/ **288 用例**含 p1noise #141-148、build/asan **169 用例**含 #136-143 ⇒ `EXISTS` 门卫已激活。
-  「未入库」只对**仍 untracked** 的 `lib/snr_estimator/{CMakeLists.txt,src/module_entry.cpp,.def,.map,include/astrocs/noise/types.h}` 成立。
-  → **M3-F-004 的升 P0 条件不成立，P1 维持**（M3 自己写的条件式，被 E1 关闭）。
-- **④ B-02 snr_estimator 导出面：判否 + 一个新事实**。既有产物 `build/lib/snr_estimator/astrocs_p1_noise.so`（09-11）**当前根配置已不产该 target**（CMakeCache 0 引用），
-  `nm -D` 读其动态导出**唯一 = `astrocs_module_query_v1`**；`snr_phot_cal_quality` 仅 local(t)、`residual_scale` 符号 0 命中，全 build 的 `snr_` 前缀导出为空集。
-  **限定也记下了**：`snr_phot`/`residual_scale` 是结构体字段，nm 不覆盖，故 **M3-A-001 的语义层结论不受影响**。
-  ⇒ 这条派生出新的 **C-12「证据产物时效性门」**：**build 树里的陈旧产物会让"实测"给出假否** —— 凡以二进制为证据的门必须先断言该 target 仍在当前配置图中。
-  它与 M5b-G-01（CI 另建同名第二 `astrocs`）、L27-006（required_unit 与安装面不同源）同族，但**方向相反**：那两条是"多一个"，这条是"少一个还在"。
-- **③ checks.json 定值 114**（python3 解析，快照 09-14T02:32Z、文件干净）：fast 63 / linux-main 104 / windows-main 68 / **linux-deep 7（第四 profile，此前各域未登记）** / waivable 7。
-  **结论是"没有人报错"**：111→112→113→114 是同一条增长曲线的不同时点 ⇒ 我此前那条「裸数字必须带时点与口径」通则**被这条正面确认**，R 层一律加注不改判。
-- **⑥ 推翻我的数**：`ci/known_failures.json` 实测 `len(failures)=2`（UT-CLI、p1_noise_adapter），末改 `778fe98e`（09-12）
-  ⇒ **M8 的 2 为真，我在协调记录里写的 0 不成立**（我当时是按 `-c` 计数误读）。**这是本会话第 7 处被下属/工具推翻的转述数字**，已按新制度先复验再落笔。
-- **⑤ L28b 三数精确不可复现**（E1 写了 `l28b_rerun_v2.py` → `run/审计执行层/E1/l28b_provenance_units.csv`，真源零改动）：
-  88 头 / 13,705 行**精确复现**；2,827 单元 → 实跑 **2,719**（type 393 精确一致；func 多收内联 781↔741；field 未拆声明符 1,545↔1,693）；
-  该有 471→**380**、无溯源 442→**345**（**−21.9%**），T3/NEED 90.8%↔93.8%。**方向判据全部复现**（该有集绝大多数无溯源、伪锚能骗过朴素门）。
-  根因是 L28b 的 R-4 词表与 G-1 白名单原文以省略号收尾、未全函数化（它自己两遍也差 2,827↔2,822）→ **A-35 的"strict 报 442 单元"已降级为「量级指示 ±20-25%」**。
-  → 制度收获：**判据要能被别人跑出同一个数，词表就必须是字面量清单而不是省略号**。这条我会写进 R 层规则。
-- ②孤儿 TU 终判**无改判**：11 行五列表全 tracked=是、CMake 命中 0（顺带实测**全仓 `file(GLOB` = 0**）、两份 `ctest -N` 列表命中 0、baseline 命中 0、docs 当证据 ≥7/11；
-  `sanitize_wsl*/redteam_v19/v19r3_*/common Makefile` 等"执行者"脚本在 checks.json/ci-steps/.github 全部 0 在册 ⇒ **M8-F-004 与 M9-F-1 的静态判词获实测确证**。
-  **附带一条要转 R 层**：全仓 `file(GLOB` = 0 与 **L27-004 的前提（"测试与源用 file(GLOB) 同步，故『未挂接测试目标』断言过期"）冲突** → R 层须复核 L27-004 是否成立。
-- **E1 自报一次纪律事件**：它重复调用 edit 导致 M3-F-004/M3-A-001 各被**双写**了 E1 行，已当场检测去重（现各恰 1 行），并用 `git status` 核验除自己档案外零触碰（其余脏项属并发 agent）。
-  我已在两处追加行做了独立复核：**M3-F-004 与 M3-A-001 各 1 行、无重复**。追加式修订制度经受住了第一次实战。
+## 前台复验 E1 + 顺挖两条新治理事实（FD-G-002 / FD-G-003）
+- **E1 三个关键数我当场独立复核全过**：`known_failures.failures` 长度 = **2**、`checks.json` 顶层数组 = **114**、`git ls-files | grep -ci p1noise` = **8**、
+  全仓 `file(GLOB` = **0**。**我此前写的「known_failures = 0」根因也定位了**：我用的是 `d.get("known_failures",[])`，而真实键是 `failures` ——
+  **取错键得到的 0 被我说成"文件里没有条目"，这是第 7 处转述错**；E1 用对了键。教训同一条：解析结构化文件必须先看键名/结构，不能猜。
+- **本轮新踩一次 H-1（前台自己）**：我用 `tools.read` 取 `ci/checks.json` 全文再 `JSON.parse` → **失败**（position 42665 / line 2000），  因为 read 对 >2000 字符单行截断。改用 `python3 json.load` 才拿到字段。→ **R 层规则加一条硬约束：机器文件一律用解释器解析，禁以 read 行文本解析结构化文件**（这是它第二次咬人）。
+- **FD-G-002（P1，新发现）**：`known_failures.json::failures[0]` = `UT-CLI`/`category=WORKSPACE_HYGIENE`/`expected=fail`，其 `reason` **逐字承认**  「`astrocs graph` 产 `graph/*.json`、`memory-report` 产 `alloc_report.json`/`alloc_samples.csv`，**根因在 cli/commands.cpp 产物默认落点**」  ——正是根 AGENTS.md 明文「**禁止将运行产物产出到项目根目录**」那条。而同一 id 在 `checks.json` 里 `waivable=False`：  **声明不可豁免的检查被版本化容忍为红**，AGENTS.md 又「严禁用 waiver 掩盖红灯（R-05/R-13）」，基线合同却把 `WORKSPACE_HYGIENE` 列入 `allowed_categories`  ⇒ **两份权威文本对"这类红灯能否容忍"给出相反答案，无仲裁条文**。还有一句被低估的自述：「UT-CLI 的 17 项过时断言修复前该检查不可绿」  ⇒ **一道永不可绿、且已被容忍的门，正在充当根目录污染的唯一防线**。这是簇 1 的**第二种失守机制**：不是"结构性不会红"，而是"会红但红被制度化豁免"，  且更难发现——它有 owner、有 reason、有 first_seen_commit、有 reproducer，看起来完全合规。建议门：`waivable=False` 的 id 出现在基线即 FAIL（零假阳）。
+- **FD-G-003（P2，平衡证据 + 消歧）**：`contract.excluded_by_policy` 自陈「本轮 linux-main 其余红灯（AGENTS-GOV/DATA-ARTIFACTS/THREAD-BUDGET/**CON-COMMENTS**/  CON-FULL-INTEGRATION/UT-ARCH/UT-BACKEND/WIN-*/DEEP-*）均为在册 P1（FD-R1-010），不得登记进基线，须由域主修复」⇒ 这是**仓内自证的当前 CI 红态清单**，  可防止簇 1 被误读成"所有门都不跑"。**但必须同时给两面**：CON-COMMENTS 确实会红（红在注释卫生比率），而 M6a-G-001 定它 P0 指的是**它抓不到注释溯源**  （且 §12.2 无条文）——「会红」≠「有效」，「在册 P1 待修」≠「已验证」。
+- 另一条对你 B-09 决策直接有用：`DEEP-SAN-TSAN`、`DEEP-CLANG-BUILD`、`DEEP-COV-PY`、`DEEP-COMPLEXITY` 等 **7 项是 waivable=true**，  且 linux-deep profile **只有 7 项** ⇒ **CI 里的 sanitizer 面本就是可容忍缺席的**，所以"有 CI 覆盖 ASan"不能作为不授权实测的理由；  结合 E3 在查的「build/asan 条件已具备但无运行记录」，B-09 的决策依据会更完整。
