@@ -99,8 +99,8 @@
 - **D-05**：M8 自报启动时曾两次列目录（并**明确拒绝把自己的过程描述成"全程零 shell"**）。另记 M8 与 M6b 各一次「局部 read → 全量 write」把自己档案写坏
   （M8 的 `_merge/M8.md` 一度截断为 160 行，已逐节重建至 244 行并自检定义数=引用数）。⇒ 协议已立禁令：**禁局部 read → 全量 write，一律整读整写或用 edit**。
 - **D-06**：**E 层授权的第一例副作用，责任在边界不在代理**。E3 按我给的白名单跑 `ctest -N`（在 `build/asan/` 下），而 `ctest -N` 在 CMake 生成的构建树里会初始化 `Testing/Temporary/` 并覆写 `LastTest.log`；
-  前台当场复验 `build/asan/Testing/Temporary/LastTest.log` **现 121 字节、mtime 09-14 11:04** ⇒ **09-11 那轮 gaia 失败正文不可恢复**（E3 以 3 处旁证复原结论要点）。**我把 `ctest -N` 列为"只读"，实际不是。**
-  **修正（已补投禁令）**：①对任何非自建构建树**禁止一切 `ctest` 形态**（含 `-N`），用例清单改静态解析 `CTestTestfile.cmake`/`build.ninja`/`add_test(NAME …)`；
-  ②**不得跑 `ci/run.py` 的非 `--plan-only` 路径** —— E2 实测其 `:227` 的 `git()` 无 `--no-optional-locks`、`:460` 跑 `git status --porcelain` ⇒ **会刷新 `.git/index` 与并发 agent 冲突**。
-  **对照组**：E2 自己识别同一风险并**主动避开** `build/linux-control`（6/6 缺 `_tests.cmake`，跑 `-N` 会启动 gate 可执行并重写注册文件），只在 `run/ci/build-gcc-release`（gitignore 内、`_tests.cmake` 均新于 exe）跑并如实自报 ⇒ **代理比我的白名单更谨慎**。
-  **教训入 E 层边界下一版：判"只读"必须以"是否触碰共享树状态"为准，不以命令名义为准。** 损失面仅旧 sanitizer 日志，未丢源码、交付物、git 索引。
+  **订正（E4 并发观察 + 前台当场复验，D-06 归因不成立）**：我先把这次覆写归到 E3/我的授权上，随后 E4 报出 **11:03–11:07 并发构建 agent 正在写 `build/`**（`build/astrocs` 11:05、`build/install_manifest.txt` 11:12、`build/linux-control/**` 一批 11:03-11:07），
+  而我复验 `build/asan/Testing/Temporary/LastTest.log` 全文只有 `Start testing: Sep 14 11:04 CST` + `End testing: Sep 14 11:04 CST` **两行、零测试清单** ⇒ **不含任何 `ctest -N` 特征**（grep `169|288|Total Tests` = **0**）。
+  且 E3 自述是"发现它**已经被**覆写为空记录"（并提到一个 10:29 的前序进程）。⇒ **归因不成立，我撤回"是 E3/我授权造成"的判断，改判「原因未定，最可能是并发构建 agent 的一次 ctest 运行（0 用例）」**；
+  我无法用实验判定（做对照实验需 `cmake -B` 构建树，属禁项）。**但两条禁令保留**——它们的风险论证独立成立、不依赖此归因：对非自建构建树禁一切 `ctest` 形态；禁跑 `ci/run.py` 非 `--plan-only` 路径。
+  **元教训（这条比原判断更有价值）**：**我把"未证实的归因"写成了"我犯的错误"并向负责人报告**。自我批评也必须过三级复核：**归因与事实不同，宁可写"原因未定"也不要把没证据的因果链写成自己的错**。已入簇 10。
