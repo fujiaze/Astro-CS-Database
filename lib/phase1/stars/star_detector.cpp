@@ -11,39 +11,60 @@ namespace astrocs::phase1 {
 using astrocs::core::Error;
 using astrocs::core::ErrorDomain;
 
+namespace {
+// PSF-BG-001 (P2 性能, 判定值零变化, 负责人批准 2026-09-14):
+// 分位数选择替代"每轮整图 std::sort"(16.2 M 像素 × 5 次)。
+// std::nth_element(begin, begin+k, end) 保证位置 k 上的元素 == 整序后该位置
+// 的元素, 因此 median / MAD / bg **逐位等于旧实现**(非近似直方图), 下游
+// p1_sources.json / p1_flux.json 逐字节不变(REPORT.md §3 给 bit-pattern 对照)。
+// 保留**精确**选择是硬约束: 近似分位会移动 5σ 阈值 → 候选集变 → p1_flux 变。
+inline double nth_value(std::vector<double>& v, size_t count, size_t k) {
+  std::nth_element(v.begin(), v.begin() + static_cast<std::ptrdiff_t>(k),
+                   v.begin() + static_cast<std::ptrdiff_t>(count));
+  return v[k];
+}
+}  // namespace
+
 StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_sigma) {}
 
 bool StarDetector::estimate_background(const float* image, int w, int h,
                                        double* bg, double* sigma) {
   if (!image || w <= 0 || h <= 0 || !bg || !sigma) return false;
   const size_t n = static_cast<size_t>(w) * static_cast<size_t>(h);
-  std::vector<double> vals(n);
-  for (size_t i = 0; i < n; ++i) vals[i] = image[i];
-  // sigma-clip 2 轮: median ± 3σ
-  std::vector<double> keep = vals;
+  // 逐元素转换 (独立于候选的纯逐像素写, 可并行; 见 detect 扫描的并行注记)
+  std::vector<double> keep(n);
+  #pragma omp parallel for schedule(static)
+  for (std::ptrdiff_t i = 0; i < static_cast<std::ptrdiff_t>(n); ++i)
+    keep[static_cast<size_t>(i)] = image[i];
+  std::vector<double> scratch(n);
+  // sigma-clip 2 轮: median ± 3σ  (与旧实现同序、同值)
   for (int round = 0; round < 2; ++round) {
-    std::vector<double> sorted = keep;
-    std::sort(sorted.begin(), sorted.end());
-    const double med = sorted[sorted.size() / 2];
-    std::vector<double> dev;
-    dev.reserve(keep.size());
-    for (double v : keep) dev.push_back(std::fabs(v - med));
-    std::sort(dev.begin(), dev.end());
-    const double mad = dev[dev.size() / 2];
+    const size_t kn = keep.size();
+    std::copy(keep.begin(), keep.end(), scratch.begin());
+    const double med = nth_value(scratch, kn, kn / 2);
+    std::vector<double> dev(kn);
+    #pragma omp parallel for schedule(static)
+    for (std::ptrdiff_t i = 0; i < static_cast<std::ptrdiff_t>(kn); ++i)
+      dev[static_cast<size_t>(i)] =
+          std::fabs(keep[static_cast<size_t>(i)] - med);
+    const double mad = nth_value(dev, kn, kn / 2);
     const double s = 1.4826 * mad;
     std::vector<double> filtered;
-    filtered.reserve(keep.size());
-    for (double v : keep)
-      if (std::fabs(v - med) <= 3.0 * (s > 0 ? s : 1e-9)) filtered.push_back(v);
+    filtered.reserve(kn);
+    // 顺序保序过滤 (逐元素谓词独立, 但输出顺序承载 keep 的原序 → 串行 push_back)
+    for (size_t i = 0; i < kn; ++i)
+      if (std::fabs(keep[i] - med) <= 3.0 * (s > 0 ? s : 1e-9))
+        filtered.push_back(keep[i]);
     if (filtered.empty()) break;
     keep = std::move(filtered);
   }
-  std::vector<double> sorted = keep;
-  std::sort(sorted.begin(), sorted.end());
-  *bg = sorted[sorted.size() / 2];
+  const size_t kn = keep.size();
+  std::copy(keep.begin(), keep.end(), scratch.begin());
+  *bg = nth_value(scratch, kn, kn / 2);
+  // 归一化顺序求和 (保持旧实现的串行求和顺序 → 逐位相同; 并行归约会改末位)
   double sum = 0;
-  for (double v : keep) sum += (v - *bg) * (v - *bg);
-  *sigma = std::sqrt(sum / static_cast<double>(keep.size() > 0 ? keep.size() : 1));
+  for (size_t i = 0; i < kn; ++i) sum += (keep[i] - *bg) * (keep[i] - *bg);
+  *sigma = std::sqrt(sum / static_cast<double>(kn > 0 ? kn : 1));
   if (*sigma < 1e-9) *sigma = 1e-9;
   return true;
 }
@@ -63,18 +84,31 @@ astrocs::core::Result<StarCatalog> StarDetector::detect(const float* image, int 
   // 1) 局部峰候选: 3x3 局部最大且 > thr
   struct Cand { int x, y; double val; };
   std::vector<Cand> cands;
-  for (int y = 1; y < h - 1; ++y) {
-    for (int x = 1; x < w - 1; ++x) {
-      const double v = image[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)];
-      if (v < thr) continue;
-      bool local_max = true;
-      for (int dy = -1; dy <= 1 && local_max; ++dy)
-        for (int dx = -1; dx <= 1; ++dx) {
-          if (dx == 0 && dy == 0) continue;
-          if (image[static_cast<size_t>(y + dy) * static_cast<size_t>(w) + static_cast<size_t>(x + dx)] >= v) { local_max = false; break; }
-        }
-      if (local_max) cands.push_back({x, y, v});
+  // PSF-DET-001 (P2 性能, 输出逐位不变): 扫描行并行 + 每线程本地缓冲后合并。
+  // 与线程数无关的论证: 后续排序键 (val 降序 → x 升序 → y 升序) 在 (x,y) 唯一
+  // 时构成**全序** (无相等键), 故 std::sort 的输出序列与输入顺序无关; 其后
+  // kept / 质心 / 二阶矩 / id 全部按该固定序串行产出 ⇒ catalog 逐位确定。
+  // 线程数不在此硬编码 (宪章 §10.4): 由 OpenMP 环境 (Runtime 线程预算) 决定;
+  // 无 OpenMP 构建时 pragma 被忽略 → 串行回退, 结果不变。
+  #pragma omp parallel
+  {
+    std::vector<Cand> local;
+    #pragma omp for schedule(static) nowait
+    for (int y = 1; y < h - 1; ++y) {
+      for (int x = 1; x < w - 1; ++x) {
+        const double v = image[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)];
+        if (v < thr) continue;
+        bool is_local_max = true;
+        for (int dy = -1; dy <= 1 && is_local_max; ++dy)
+          for (int dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dy == 0) continue;
+            if (image[static_cast<size_t>(y + dy) * static_cast<size_t>(w) + static_cast<size_t>(x + dx)] >= v) { is_local_max = false; break; }
+          }
+        if (is_local_max) local.push_back({x, y, v});
+      }
     }
+    #pragma omp critical(psf_det_cand_merge)
+    cands.insert(cands.end(), local.begin(), local.end());
   }
 
   // 2) 去重: flux 降序 (tie breaker: 更左优先); 邻域 3x3 内只留最强

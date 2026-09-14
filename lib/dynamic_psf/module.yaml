@@ -154,4 +154,16 @@ notes: >-
   判定 + 钳位；theta 经 4 候选 {θ,π/2-θ,π/2+θ,π-θ} trimmed-MAD 消歧
   （dpsf_psf.cpp:389-401）。flux=2π·A·sx·sy/3 为 β=4 Moffat 解析积分
   （:406-407），FWHM=1.230310·sx/sy（:371-372）。
+  PSF-FAST-001（P2 性能批，负责人裁决 2026-09-14）：生产节点只跑 FAST ——
+  全量检测(145,884 P1-003 类)保持不变, 仅把 Moffat4 拟合限制到最亮
+  psf.max_stars 颗(节点配置, 默认 5000; 0=不截断)。完整精确路径
+  (p1_op_star_psf_precise = n_fit_limit 0) **保留但 inactive**: 开关
+  kPrecisePsfEnabled=false + if constexpr 编译期丢弃, 生产注册表不注册,
+  存活直调测试 tests/unit/p1001_real_nodes_test.cpp::
+  test_psf_fast_cap_and_inactive_precise(钩子 p1_op_star_psf_precise_json)。
+  依据: psf 端口死边 + psf_params 零消费者 + 测光正式口径=孔径测光(负责人
+  2026-09-14)。同批纯性能: pow(1+Q,4) 展开(末位 ulp 可变)、lm_solve 缓冲
+  预分配(值语义不变)、gauss_solve 保留为 [[maybe_unused]] 单次调用入口。
+  公式/默认容差(fitRadius=8, LM 1e-8/200, MOFFAT4_FWHM_FACTOR)零改动;
+  README §12 为权威登记。
   禁止声明 IMPLEMENTED（迁移落码未发生）。

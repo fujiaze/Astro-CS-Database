@@ -41,9 +41,13 @@
 p1_nodes[] 表，operation/entry 名与
 runtime/pipeline/module_ports.registry.json 冻结绑定表一致）——calibrate→
 `ac_calibrate_frame`、cosmetic→`ac_correct_frame`、star-psf→
-`StarDetector::detect`+`dpsf_fit_batch_f64`（lib/star_detector 检测 →
+`astrocs::phase1::StarDetector::detect`+`dpsf_fit_batch_f64`
+（**lib/phase1/stars** 检测 —— 该文件为 **P1-003 桥接类**，**不是**
+lib/star_detector 的 sdet；sdet 只被 wcs-platesolve 节点使用 →
 star_det v1 [N,6] → lib/dynamic_psf Moffat4 FP64 批量 PSF 拟合，
-DATA-P1-PSF 携 psf_params:FLOAT64[N,9]；P1-001 attempt 2 口径更新），
+DATA-P1-PSF 携 psf_params:FLOAT64[N,9]；P1-001 attempt 2 口径更新；
+P2/PSF-FAST-001（负责人裁决 2026-09-14）起**只对最亮 `psf.max_stars`
+颗拟合**（默认 5000），全量精确路径保留但 inactive），
 wcs-platesolve→`ipv_solve_from_memory_with_callback_d`（lib/plate_solve
 ipv 真实求解器链：sdet+gaia_client 句柄注入 → FP64 解算 → CD/CRVAL/
 CRPIX/RMS → WcsTan roundtrip 自检；求解参数 ra0/dec0/focal_length_mm/

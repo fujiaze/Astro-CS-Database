@@ -200,3 +200,38 @@ TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS.md §11.4，P1-PSF-TEST 执行）：
 (amplitude,x0,y0,sigma_x,sigma_y,beta,background)"参数序描述与本实现不符
 （实际序 B,A,x0,y0,sx,sy,theta，β 固定为 4 不可拟合），以本 README r1 为准；
 历史细节归本目录 `memory.md`（ARCHIVED_NON_NORMATIVE）。
+
+## 12. PSF-FAST-001 / 精确路径 INACTIVE（P2 性能批，2026-09-14 负责人裁决）
+
+**生产路径 = FAST（唯一启用模式）**。节点 `p1_op_star_psf`（lib/core/src/
+module_adapters.cpp）先做**全量**星点检测（DATA-P1-SOURCES 与下游孔径测光
+`p1_flux.json` 逐字节不变），再只把**最亮 `psf.max_stars` 颗**（节点配置，
+默认 5000；0 = 不截断）送进 `dpsf_fit_batch_f64`。依据：`psf` 输出端口为
+死边、`psf_params` 在仓库内零消费者，且测光正式口径 = **孔径测光**（负责人
+2026-09-14 裁决）。全量 145,884 颗拟合实测 156.7 s/帧；最亮 5000 颗 ≈ 4 s。
+
+**精确 PSF 路径保留但 inactive（不工作）**：
+- 实现位置：`module_adapters.cpp` 的 `p1_op_star_psf_precise(doc, man)`
+  （= `p1_op_star_psf_impl(doc, man, /*n_fit_limit=*/`0)`，全量星 Moffat4 拟合）。
+- 开关：`constexpr bool kPrecisePsfEnabled = false;` —— 生产入口
+  `p1_op_star_psf` 用 `if constexpr` 分发，恒 false ⇒ 精确分支被编译期丢弃，
+  生产路径**永不进入**。**算法实现不删除**（负责人明确要求保留）。
+- 生产注册表（`register_phase_modules` 的 `p1_nodes[]`）**不注册**该路径。
+- 存活测试（防死代码清理）：`tests/unit/p1001_real_nodes_test.cpp::
+  test_psf_fast_cap_and_inactive_precise` 经公共钩子
+  `astrocs::core::p1_op_star_psf_precise_json`（声明见 include/astrocs/core/
+  module_adapters.h）直接调用它，断言全量拟合仍能跑出真实结果。
+- 未来启用接线要点（一段话）：把 `kPrecisePsfEnabled` 置 true（或把节点
+  `psf.max_stars` 置 0 并把光测光口径改为 PSF 测光），同步在 DATA-P1-PSF
+  （DATA_SEMANTICS §15）、registry `astrocs.phase1.star-psf`、
+  module_ports.registry.json 与 `psf_mode` 字段登记由 fast 升 precise，
+  并按 §10.5 重评资源门禁（全量拟合单帧 >150 s）与星↔行 compact 映射（B2-A2
+  语义不变）。
+
+**同批纯性能改动（公式与默认容差零改动）**：
+- `moffat4_residual` / `compute_trimmed_mad` 的 `std::pow(1+Q,4)` 改为
+  `t=1+Q; t2=t*t; A/(t2*t2)`（末位 ulp 可能不同，见 P2 REPORT §2）。
+- `lm_solve` 的 `A`/`rhs`/`gauss_solve` 缓冲由每迭代 3 次堆分配改为
+  循环外一次性预分配（值语义逐位不变）。
+- `gauss_solve` 保留为单次调用入口（`[[maybe_unused]]`，文档锚点不变）。
+
