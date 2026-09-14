@@ -92,6 +92,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>    // P10-UTIL2-006: 节点执行窗口观测 (ASTROCS_NODE_TRACE)
 #include <cmath>
 #include <condition_variable>
 #include <cstdio>
@@ -273,6 +274,26 @@ void trace_node_lease(const char* module_id, uint32_t host_workers,
                module_id ? module_id : "?", host_workers, acquired ? 1 : 0, cap,
                available);
 }
+
+// P10-UTIL2-006 观测: ASTROCS_NODE_TRACE=1 时逐节点输出**执行窗口**的单调时钟
+// 边界 (BEGIN/END) —— 仅观测, 不改变调度/并行度/科学; 默认零输出零开销。
+// 用途: 把进程级 /proc CPU 采样精确归因到节点。注意 [lease] 行打印在**取租约**
+// 时 (heavy 节点可能在预算闸门处等待), 不能当作执行起点; 本窗口才是真实执行区间。
+double p10_monotonic_s() {
+  return std::chrono::duration<double>(
+             std::chrono::steady_clock::now().time_since_epoch())
+      .count();
+}
+
+struct P10NodeTraceGuard {
+  const char* mod;
+  double t0;
+  ~P10NodeTraceGuard() {
+    if (std::getenv("ASTROCS_NODE_TRACE"))
+      std::fprintf(stderr, "[nodetrace] END %s %.6f\n", mod ? mod : "?",
+                   p10_monotonic_s() - t0);
+  }
+};
 
 std::string status_str(acs_status st) {
   switch (st) {
@@ -2343,14 +2364,48 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       (*man)["error_kind"] = "input";
       return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
     }
-    Json results = Json::array();
-    for (const auto& s : fr.value("sources", Json::array())) {
-      const double cx = s.value("x", 0.0), cy = s.value("y", 0.0);
-      auto r = phot.measure(im.px(), im.w(), im.h(), cx, cy);
-      if (r.failed()) {
-        return Result<void>::fail(r.error());
+    // ── P10-UTIL2-003 (2026-09-14): 逐源并行化 ─────────────────────────
+    // 并行轴 = 源 (work unit = 该帧 sources 数组的一行)。Photometer::measure
+    // 是 const 且无共享可变状态 (每源只读 image、只写自己的结果槽), 因此逐源
+    // 并行线程安全且**无归约**: 结果按下标写入定长数组, 再按**原顺序**串行
+    // 组装 JSON -> 产物与串行逐位一致, 与线程数/调度顺序无关。
+    // 失败语义: 原实现遇到首个失败源立即返回其错误; 并行版记录每源失败并按
+    // 下标升序扫描, 返回**下标最小**的失败 (与串行首个失败一致)。
+    // 调度: dynamic + 小 chunk; work unit 数 = 源数, 与线程数无关。
+    const Json empty_sources = Json::array();
+    const Json& srcs =
+        fr.contains("sources") && fr["sources"].is_array() ? fr["sources"] : empty_sources;
+    const std::size_t nsrc = srcs.size();
+    std::vector<astrocs::phase1::PhotometryResult> prows(nsrc);
+    std::vector<unsigned char> pok(nsrc, 0);
+    std::vector<std::string> perr(nsrc);
+    std::vector<int> perr_dom(nsrc, 0);
+    if (nsrc > 0) {
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic, 8)
+#endif
+      for (long long i = 0; i < static_cast<long long>(nsrc); ++i) {
+        const std::size_t si = static_cast<std::size_t>(i);
+        const Json& s = srcs[si];
+        const double cx = s.value("x", 0.0), cy = s.value("y", 0.0);
+        auto r = phot.measure(im.px(), im.w(), im.h(), cx, cy);
+        if (r.failed()) {
+          perr[si] = r.error().message();
+          perr_dom[si] = static_cast<int>(r.error().domain());
+          continue;
+        }
+        prows[si] = r.value();
+        pok[si] = 1;
       }
-      const astrocs::phase1::PhotometryResult& pr = r.value();
+    }
+    Json results = Json::array();
+    for (std::size_t si = 0; si < nsrc; ++si) {
+      if (!pok[si])
+        return Result<void>::fail(
+            Error(static_cast<ErrorDomain>(perr_dom[si]), perr[si]));
+      const Json& s = srcs[si];
+      const double cx = s.value("x", 0.0), cy = s.value("y", 0.0);
+      const astrocs::phase1::PhotometryResult& pr = prows[si];
       results.push_back(Json{{"id", s.value("id", std::string())},
                              {"x", cx}, {"y", cy},
                              {"flux", pr.flux}, {"flux_error", pr.flux_error},
@@ -4621,18 +4676,65 @@ struct P1NodeModule : public IModule {
     return Result<void>::success();
   }
 
+  // P10-UTIL2-005: 声明**真实**工作量 / 并行轴 / worker 需求（取代 runtime 对所有
+  // 节点填死的 (1, budget) 占位）。声明只表达"需求量"，不含任何具体线程数（§10.4）：
+  //   - cal/cos/star-psf/photometry/noise-snr/wcs/drizzle: 帧内逐像素/逐源/逐块可
+  //     并行，需求 = 可用预算（max_workers=0 -> runtime 按 budget 回退）；
+  //   - writer: 产物为串行 JSON/.hiss 写盘（I/O），真实需求 = 1。
   Result<ModulePlan> plan(const std::string& node_id,
                           const std::string& config_json) override {
     config_ = config_json;
     ModulePlan p;
     p.node_id = node_id;
-    p.work_units = 1;
-    p.parallel_axes = {"frame-row-band"};
     p.cpu_heavy = desc_.execution_class == "cpu_heavy";
+    // 工作量 = 输入帧数（config.input_lights），最少 1（config 已在 validate 校验）。
+    uint64_t n_frames = 1;
+    try {
+      const Json doc = Json::parse(config_json);
+      if (doc.is_object() && doc.contains("input_lights") &&
+          doc["input_lights"].is_array() && !doc["input_lights"].empty())
+        n_frames = static_cast<uint64_t>(doc["input_lights"].size());
+    } catch (...) {
+      n_frames = 1;  // plan 不因 config 解析失败而 fail（validate 已先行）
+    }
+    switch (spec_.op) {
+      case P1NodeOp::Calibrate:
+      case P1NodeOp::Cosmetic:
+        p.parallel_axes = {"pixel"};
+        break;
+      case P1NodeOp::StarPsf:
+        p.parallel_axes = {"pixel", "source"};
+        break;
+      case P1NodeOp::Photometry:
+        p.parallel_axes = {"source"};
+        break;
+      case P1NodeOp::NoiseSnr:
+        p.parallel_axes = {"pixel", "source"};
+        break;
+      case P1NodeOp::WcsSolve:
+        p.parallel_axes = {"source", "triangle"};
+        break;
+      case P1NodeOp::Drizzle:
+        p.parallel_axes = {"tile", "row-band"};
+        break;
+      case P1NodeOp::Writer:
+        p.parallel_axes = {"io"};
+        break;
+    }
+    p.work_units = n_frames;
+    p.min_workers = 1;
+    // writer 是 I/O 串行写盘：显式声明 1（不为它占用整份预算）。
+    p.max_workers = (spec_.op == P1NodeOp::Writer) ? 1u : 0u;
     return Result<ModulePlan>::ok(std::move(p));
   }
 
   Result<void> execute(RunContext& ctx) override {
+    // P10-UTIL2-006: 节点真实执行窗口观测 (env-gated; 默认零开销)。
+    const double p10_node_t0 = p10_monotonic_s();
+    P10NodeTraceGuard p10_node_guard{desc_.module_id.c_str(), p10_node_t0};
+    if (std::getenv("ASTROCS_NODE_TRACE"))
+      std::fprintf(stderr, "[nodetrace] BEGIN %s %.6f\n", desc_.module_id.c_str(),
+                   p10_node_t0);
     // 预算语义与 SessionModule 一致（RT-003/P0 修复: ctx.budget 权威, lease 授权）
     const uint32_t host_workers =
         ctx.budget() ? ctx.budget()->budget() : workers_;

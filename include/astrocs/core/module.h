@@ -51,6 +51,12 @@ struct ModulePlan {
   std::vector<std::string> parallel_axes;  // 并行轴（"tile"/"row"/"sample"…）
   std::vector<std::string> kernel_ids;     // 请求的 provider kernel IDs
   bool cpu_heavy = false;               // execution class 判定
+  // P10-UTIL2-005: 节点自报的 worker 需求（供 Scheduler 的 NodeSpec min/max
+  // workers 使用，取代 runtime 对所有节点填死的 (1, budget) 占位）。
+  //   0 = 未声明 -> 调用方按可用预算回退（max_workers=budget, min_workers=1）。
+  // 模块必须按**真实**并行度声明（禁硬编码核数；不含具体线程数）。
+  uint32_t min_workers = 1;
+  uint32_t max_workers = 0;
 };
 
 // ── IModule: 模块生命周期接口 (RT-005) ──
