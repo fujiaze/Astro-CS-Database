@@ -1,0 +1,33 @@
+== CI/registration mentions: 32
+c1959436 cli/memory_report.h:17  // UnexplainedResidual。判定为 Reclaimed 而 RSS 仍有残留时显式登记
+c1959436 cli/memory_report.h:115  // 不还页的显式登记); 探针不可用/不可测时保持 0。
+c1959436 cli/memory_report.h:226  // F-14: allocator 实占口径与显式残留登记(探针不可用/不可测 = 哨兵 -1 / 0)
+c3452d48 lib/dynamic_psf/tests/p1psf/p1psf_prodpath_check.cpp:26  // ctest 目标名: p1psf_prodpath_centroid
+c3452d48 lib/photometric_calib/tests/p1phot/p1phot_fixgates.cpp:32  // ctest 目标名: p1phot_fixgates
+c3452d48 lib/plate_solve/cpp/ipv/test/test_extract_wcs_sip_failclosed.cpp:12  //         result->success = true): 断言 1/2 失败 → 本测试返回非 0 → ctest 红。
+c3452d48 lib/plate_solve/cpp/ipv/test/test_extract_wcs_sip_failclosed.cpp:14  //         断言全过 → 返回 0 → ctest 绿。
+c3452d48 lib/plate_solve/cpp/ipv/test/test_extract_wcs_sip_failclosed.cpp:25  // ctest 目标名: ipv_extract_wcs_sip_failclosed (注册钩子见 REPORT "越域残余")
+c3452d48 lib/star_detector/tests/p1star/p1star_mad_check.cpp:24  // ctest 目标名: p1star_mad
+6d74046d lib/plate_solve/cpp/ipv/include/ipv_types.h:225  // 偏差登记: docs/algorithms/IPV_PIPELINE.md proposed patch。
+6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:364  //    docs/algorithms/IPV_PIPELINE.md 走偏差登记, 本次不改冻结科学文档)。
+6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:946  //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:1244  //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:1514  //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:1841  //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+23a7f665 lib/core/src/module_adapters.cpp:1715  // （"保留实现但不工作"）; 未来若改口径, 只改此开关 + 合同登记。
+23a7f665 lib/dynamic_psf/README.md:227  module_ports.registry.json 与 `psf_mode` 字段登记由 fast 升 precise，
+23a7f665 lib/dynamic_psf/module.yaml:168  README §12 为权威登记。
+b0353303 docs/science/CONTROL_WEIGHT_SNR.md:36  | `sigma_F` | 逐源通量不确定度（科学 SNR 定义量；PSF 拟合协方差或 CCD 方程，当前实现不产出） | 消费侧定义；本文件 §2a 登记边界 |
+b0353303 lib/snr_estimator/cpp/include/snr_estimator.h:220  int    profile_half_px;     // 轮廓网格半边长 [pixel]; 0 -> auto max(30,ceil(12*FWHM))
+b0353303 lib/snr_estimator/cpp/src/snr_science.cpp:88  // snr_moffat4_profile_f64 - 离散归一化 Moffat4 beta=4 轮廓统计 (oracle 锚)
+35c85f53 cli/CMakeLists.txt:207  # P8-SNR-LINUX (2026-09-14): compatibility 独立构建源集 —— SNR 科学实现同步登记。
+35c85f53 cli/CMakeLists.txt:211  # lib/snr_estimator/cpp/src/snr_science.cpp ⇒ 两个 TU 必须同步登记, 否则
+35c85f53 cli/CMakeLists.txt:216  add_executable(astrocs main.cpp parser.cpp commands.cpp process.cpp runtime_client.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/crypto/sha256.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/backend_host/cpu_features.cpp ${CMAKE_
+35c85f53 lib/core/src/module_adapters.cpp:2408  //   aperture_radius_px, n_sky, profile_half_px, sigma_logflux_dex, n_matches,
+35c85f53 lib/phase1/noise/snr_frame_science.cpp:6  //   snr_moffat4_profile_f64         — 离散归一化 Moffat4 beta=4 轮廓统计
+35c85f53 lib/phase1/noise/snr_frame_science.h:48  int profile_half_px = 0;         // 轮廓网格半边长; 0 -> 自动 (max(30, ceil(12*FWHM)))
+0e4cee72 docs/contracts/DATA_SEMANTICS.md:810  - **审计登记（F-10）**：`p1_wcs.json` 与节点 manifest 逐帧登记
+0e4cee72 lib/core/README.md:8  > 科学定义与合同权威在 `docs/science/`、`docs/contracts/`；本 README 只登记
+0e4cee72 lib/core/README.md:27  - **审计登记（F-10）**：`p1_wcs.json` 与节点 manifest 逐帧登记
+0e4cee72 lib/core/src/module_adapters.cpp:2285  // F-10: 初始指向来源逐帧登记（含中心与 s0）, 便于事后审计
+0e4cee72 lib/core/src/module_adapters.cpp:2420  // F-10: 初始化指向来源逐帧登记（header_pointing|config|

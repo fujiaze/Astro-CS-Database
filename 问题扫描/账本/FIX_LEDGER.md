@@ -1,6 +1,6 @@
 # FIX_LEDGER · 修复账本（人读视图：P0 全列）
 
-- 条目总数 **555**（P0 84 / P1 318 / P2 153 / 其它 0）；机器读写面 = 
+- 条目总数 **559**（P0 85 / P1 320 / P2 154 / 其它 0）；机器读写面 = 
   `问题扫描/账本/FIX_LEDGER.csv`（**隔壁只填后 9 列**，判定列由前台重跑刷新并按 id 保留你的填写）
 - 重跑：`python3 问题扫描/_tools/gen_fix_ledger.py`
 
@@ -88,5 +88,6 @@
 | M9-F-1 | P0 | F_TEST_GAP | M9 |  | 本域八个恶意输入回归 TU 从不进构建：它们恰是全部 M9 边界缺陷的唯一复现件，却被 docs 当符合性证据引用 | OPEN |  |  |
 | M9-H-1 | P0 | H_NUMERIC | M9 |  | Gaia 模块 manifest 拼接：snprintf 返回「本应写入数」推进指针 + 转义函数无容量入参 → 512 字节栈缓冲越界写， | FIXED | 07eb229b | ADDED:gaia_module_manifest_bounds |
 | M9-H-2 | P0 | H_NUMERIC | M9 |  | XPSD 自报 spectrumCount 无任何上限即用作分配步长与每星 memcpy 长度 → 堆越界读 + 数百 MB 级 OOM 放 | FIXED | 07eb229b | ADDED:xpsd_spectrum_count_bounds |
+| V11-N-01 | P0 | G_GOV_GATE | V11 |  | `AioHipsSnrPoint` 镜像落后 C 头两字段 ⇒ 越界读 24 字节，且**交付 HiPS SNR 目录第 2/3 条记录是邻 | OPEN |  |  |
 | V2-N-01 | P0 | G_GOV_GATE | V2 | C-09 | IpvParams 公共 C 结构体布局已改而仓内 ctypes 镜像未同步 ⇒ 72 字节越界写 + 字段全错位 | OPEN |  |  |
 | V2-N-08 | P0 | G_GOV_GATE | V2-D2 |  | FAST 模式的裁决前提已被同批另一提交推翻 ⇒ `psf.max_stars` 静默决定交付的 SNR／极限星等，且无任何 parity  | OPEN |  |  |

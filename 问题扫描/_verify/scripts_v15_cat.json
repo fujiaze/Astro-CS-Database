@@ -1,0 +1,5196 @@
+{
+ "src_text_guard": [
+  {
+   "f": "./tests/unit/cpu_provider_test.cpp",
+   "l": 72,
+   "s": "CHECK(s.find(\"baseline_kernels_impl.inc\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu_provider_test.cpp",
+   "l": 73,
+   "s": "CHECK(s.find(\"backend_table.inc\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/io_adapter_test.cpp",
+   "l": 217,
+   "s": "CHECK(content.find(\"scheduler.h\") == std::string::npos);"
+  }
+ ],
+ "diagtext_pin": [
+  {
+   "f": "./tools/monitoring/run_monitored.py",
+   "l": 388,
+   "s": "for stream in (proc.stdout, proc.stderr):  # 显式关管道，避免 ResourceWarning"
+  },
+  {
+   "f": "./tests/runtime/test_rt007_cancel_resume.py",
+   "l": 192,
+   "s": "CHECK(rr.error().message().find(\"rt007 boom\") != std::string::npos,"
+  },
+  {
+   "f": "./tests/runtime/test_rt007_cancel_resume.py",
+   "l": 228,
+   "s": "CHECK(rr.error().message().find(\"disk write failed\") != std::string::npos,"
+  },
+  {
+   "f": "./tests/runtime/test_phase_lifecycle.py",
+   "l": 223,
+   "s": "self.assertIn(\"CROSS_PHASE_GRAPH REJECT\", r.stderr)"
+  },
+  {
+   "f": "./tests/pipeline/test_typed_dag_plan.py",
+   "l": 167,
+   "s": "self.assertIn(\"IMPLICIT_PATH\", cp.stderr)"
+  },
+  {
+   "f": "./tests/cpu/dispatch/cpu005_route_decision_test.cpp",
+   "l": 199,
+   "s": "CHECK(d2.fallback_reason.find(\"raised\") != std::string::npos ||"
+  },
+  {
+   "f": "./tests/cpu/dispatch/cpu005_route_decision_test.cpp",
+   "l": 200,
+   "s": "d2.fallback_reason.find(\"verify\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/cpu/dispatch/cpu005_route_decision_test.cpp",
+   "l": 211,
+   "s": "CHECK(d.fallback_reason.find(\"source_commit\") != std::string::npos ||"
+  },
+  {
+   "f": "./tests/cpu/dispatch/cpu005_route_decision_test.cpp",
+   "l": 212,
+   "s": "d.fallback_reason.find(\"invalid\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/cpu/dispatch/cpu005_route_decision_test.cpp",
+   "l": 222,
+   "s": "CHECK(d1.fallback_reason.find(\"vendor\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/cpu/dispatch/cpu005_route_decision_test.cpp",
+   "l": 227,
+   "s": "CHECK(d2.fallback_reason.find(\"os_abi\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/cpu/dispatch/cpu005_route_decision_test.cpp",
+   "l": 233,
+   "s": "CHECK(d3.fallback_reason.find(\"benchmark_binary\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/cpu/dispatch/cpu005_route_decision_test.cpp",
+   "l": 245,
+   "s": "CHECK(d.fallback_reason.find(\"self_test_sha256\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/cpu/dispatch/cpu005_route_decision_test.cpp",
+   "l": 269,
+   "s": "CHECK(d.fallback_reason.find(\"correctness_test\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/cpu/dispatch/cpu005_route_decision_test.cpp",
+   "l": 304,
+   "s": "CHECK(d.fallback_reason.find(\"low benefit\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/arch/test_inventory_generator.py",
+   "l": 105,
+   "s": "self.assertIn(\"zz_broken.cpp\", r.stderr, r.stderr[-800:])"
+  },
+  {
+   "f": "./tests/unit/cpu004_routing_test.cpp",
+   "l": 66,
+   "s": "CHECK(v.stale_reason.find(\"quota_signature\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu004_routing_test.cpp",
+   "l": 73,
+   "s": "CHECK(v.stale_reason.find(\"logical_available\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu004_routing_test.cpp",
+   "l": 102,
+   "s": "CHECK(r.fallback_reason.find(\"kernel not in profile\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu004_routing_test.cpp",
+   "l": 111,
+   "s": "CHECK(r.fallback_reason.find(\"malformed\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu004_routing_test.cpp",
+   "l": 129,
+   "s": "CHECK(r.fallback_reason.find(\"unsupported\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/p1_wcs_phot_test.cpp",
+   "l": 117,
+   "s": "CHECK(r.value().failure_reason.find(\"out of bounds\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/p1_noise_test.cpp",
+   "l": 105,
+   "s": "CHECK(r0.value().reason.find(\"gain\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/p1_noise_test.cpp",
+   "l": 109,
+   "s": "CHECK(rn.value().reason.find(\"read_noise\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/core_module_test.cpp",
+   "l": 47,
+   "s": "CHECK(r2.error().message().find(\"duplicate\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/core_scheduler_test.cpp",
+   "l": 88,
+   "s": "CHECK(r.error().message().find(\"bad\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/core_scheduler_test.cpp",
+   "l": 228,
+   "s": "CHECK(r.error().message().find(\"cycle\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/core_scheduler_test.cpp",
+   "l": 239,
+   "s": "CHECK(r.error().message().find(\"unknown dep\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/p2001_real_nodes_test.cpp",
+   "l": 790,
+   "s": "CHECK(ff.error().message().find(\"ivar\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/core_pipeline_test.cpp",
+   "l": 161,
+   "s": "CHECK(r.error().message().find(\"parallel\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 223,
+   "s": "CHECK(l.warning_text.find(\"generic ISA\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 224,
+   "s": "CHECK(l.warning_text.find(\"dynamic worker\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 234,
+   "s": "CHECK(s.reason.find(\"source tree\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 251,
+   "s": "CHECK(bad.reason.find(\"verify_profile_v2\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 259,
+   "s": "CHECK(foreign.reason.find(\"schema\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/io_adapter_test.cpp",
+   "l": 129,
+   "s": "CHECK(c.error().message().find(\"checksum\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/io_adapter_test.cpp",
+   "l": 152,
+   "s": "CHECK(c.error().message().find(\"write failed\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/core_checkpoint_test.cpp",
+   "l": 34,
+   "s": "CHECK(r.error().message().find(\"half-done\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/core_checkpoint_test.cpp",
+   "l": 42,
+   "s": "CHECK(r.error().message().find(\"begin\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 95,
+   "s": "CHECK(a.reason.find(\"cgroup_job\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 96,
+   "s": "CHECK(a.reason.find(\"fallback_dynamic_multithread\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 107,
+   "s": "CHECK(a.reason.find(\"user_cap\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 108,
+   "s": "CHECK(a.reason.find(\"capped\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 116,
+   "s": "CHECK(r1.reason.find(\"conservative\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 131,
+   "s": "CHECK(rf.reason.find(\"fixed_claim_rejected:fixed_cores\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 136,
+   "s": "CHECK(af.reason.find(\"fixed_claim_rejected\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 141,
+   "s": "CHECK(rw.reason.find(\"workers_fixed\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 166,
+   "s": "CHECK(a.reason.find(\"profile|\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 181,
+   "s": "CHECK(a.reason.find(\"single_thread_rejected_floor2\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 215,
+   "s": "CHECK(a.reason.find(\"user_cap\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 226,
+   "s": "CHECK(a.reason.find(\"mem_budget\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 268,
+   "s": "CHECK(a.reason.find(\"fallback_dynamic_multithread\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 272,
+   "s": "CHECK(b.reason.find(\"profile_unreadable\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/unit/cpu008_worker_advisor_test.cpp",
+   "l": 311,
+   "s": "CHECK(t.reason.find(\"fallback_io_tiny_single_worker\") != std::string::npos);"
+  },
+  {
+   "f": "./tests/backend/test_hardware_inspect.py",
+   "l": 98,
+   "s": "self.assertNotIn(\"astrocs:\", r.stderr or \"\", \"正常路径 stderr 无报错\")"
+  },
+  {
+   "f": "./tests/backend/test_p2006_canonical_pipeline.py",
+   "l": 92,
+   "s": "self.assertIn(frag, self.res.stderr, f\"session stage 日志缺 '{frag}'\")"
+  },
+  {
+   "f": "./tests/backend/test_phase3_reproject_oracle.py",
+   "l": 146,
+   "s": "self.assertIn(\"exit_code\", r.stdout, r.stderr + r.stdout[-300:])"
+  },
+  {
+   "f": "./tests/backend/test_p2002_parallel_upm.py",
+   "l": 116,
+   "s": "self.assertIn(\"sample ok\", r.stderr, \"phase2 无 sample stage\")"
+  },
+  {
+   "f": "./tests/backend/test_p2001_parallel_sampler.py",
+   "l": 107,
+   "s": "self.assertIn(\"sample ok\", r.stderr, \"phase2 无 sample stage 完成\")"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 295,
+   "s": "self.assertIn(\"stage coverage ok\", self.res.stderr, \"coverage 阶段未完成\")"
+  },
+  {
+   "f": "./tests/abi/mod001_install_load_check.py",
+   "l": 356,
+   "s": "r.returncode != 0 and \"MISSING REQUIRED\" in (r.stdout + r.stderr),"
+  },
+  {
+   "f": "./tests/cli/test_phase2_inprocess.py",
+   "l": 177,
+   "s": "self.assertIn(r.returncode, (0, 10), r.stderr[-500:])"
+  },
+  {
+   "f": "./tests/cli/test_cli_v7_surface.py",
+   "l": 162,
+   "s": "self.assertIn(\"astrocs:\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli_v7_surface.py",
+   "l": 279,
+   "s": "self.assertIn(\"astrocs:\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli001_vpi.py",
+   "l": 158,
+   "s": "self.assertIn(\"run config missing 'phase3' object\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli001_vpi.py",
+   "l": 179,
+   "s": "self.assertIn(\"config has unknown key 'backend'\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_phase3_inprocess.py",
+   "l": 126,
+   "s": "self.assertIn(\"TAN\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_phase3_inprocess.py",
+   "l": 240,
+   "s": "self.assertIn(\"hash mismatch\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_phase3_inprocess.py",
+   "l": 321,
+   "s": "self.assertIn(\"obs_filter\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_phase3_inprocess.py",
+   "l": 332,
+   "s": "self.assertIn(\"NESTED\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_phase123_pipeline.py",
+   "l": 256,
+   "s": "self.assertIn(\"input_lights must be non-empty array\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_phase123_pipeline.py",
+   "l": 271,
+   "s": "self.assertIn(\"ivar\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_phase123_pipeline.py",
+   "l": 373,
+   "s": "self.assertIn(\"unknown command\", g.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli_build.py",
+   "l": 77,
+   "s": "self.assertIn(\"unknown command\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 122,
+   "s": "self.assertIn(\"config has unknown key 'backend'\", r.stderr,"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 128,
+   "s": "self.assertIn(\"config has unknown key 'hips_dir'\", r2.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 137,
+   "s": "self.assertIn(\"config has unknown key 'backend'\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 145,
+   "s": "self.assertIn(\"config missing 'schema_version'\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 152,
+   "s": "self.assertIn('config schema_version must be \"1\"', r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 160,
+   "s": "self.assertIn(\"config missing 'inputs' object\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 165,
+   "s": "self.assertIn(\"config inputs.lights must be an array\", r2.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 171,
+   "s": "self.assertIn(\"config inputs.lights must be an array\", r3.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 179,
+   "s": "self.assertIn(\"config inputs.lights has empty path\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 185,
+   "s": "self.assertIn(\"config input not found\", r2.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 186,
+   "s": "self.assertIn(\"nofile.fits\", r2.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 195,
+   "s": "self.assertIn(\"config missing 'output_dir'\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 199,
+   "s": "self.assertIn(\"config output_dir not found\", r2.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 274,
+   "s": "self.assertIn(\"sha256 mismatch\", r2.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 280,
+   "s": "self.assertIn(\"not a v1 astrocs_run_manifest\", r3.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 291,
+   "s": "self.assertIn(\"run config missing 'phase3' object\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 352,
+   "s": "self.assertIn(\"incomplete\", rv.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 357,
+   "s": "self.assertIn(\"unknown flag\", rr.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 368,
+   "s": "self.assertIn(\"input_lights must be non-empty array\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 400,
+   "s": "self.assertIn(\"phase3 failed\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 413,
+   "s": "self.assertIn(\"phase3 failed\", r2.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli003_semantics.py",
+   "l": 423,
+   "s": "self.assertIn(\"unknown command\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_memory_growth.py",
+   "l": 117,
+   "s": "for k in (\"peak\", \"growth\", \"n\", \"slope\", \"msg\"):"
+  },
+  {
+   "f": "./tests/cli/test_p1003_drizzle_path.py",
+   "l": 47,
+   "s": "self.assertIn(\"preset\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_bench_cli.py",
+   "l": 109,
+   "s": "self.assertIn(kp.get(\"fallback_reason\"),"
+  },
+  {
+   "f": "./tests/cli/test_bench_cli.py",
+   "l": 145,
+   "s": "self.assertNotIn(\"CRASH\", r.stderr, f\"{args} 异常\")"
+  },
+  {
+   "f": "./tests/cli/test_bench_cli.py",
+   "l": 146,
+   "s": "self.assertNotIn(\"unknown command\", r.stderr, f\"{args} 参数误判\")"
+  },
+  {
+   "f": "./tests/cli/test_cli004_process_protocol.py",
+   "l": 278,
+   "s": "self.assertIn(\"astrocs:\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_resource_gate.py",
+   "l": 103,
+   "s": "self.assertIn(\"0.85\", d[\"msg\"])   # §18.2 冻结系数(旧 D.6 0.80 已废止)"
+  },
+  {
+   "f": "./tests/cli/test_cli_protocol.py",
+   "l": 127,
+   "s": "self.assertIn(\"astrocs:\", r.stderr, f\"{case} 缺 stderr 诊断\")"
+  },
+  {
+   "f": "./tests/cli/test_cli_protocol.py",
+   "l": 211,
+   "s": "self.assertIn(\"CRASH\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli_protocol.py",
+   "l": 212,
+   "s": "self.assertRegex(r.stderr, r\"run_id=[0-9a-f]{12}\")"
+  },
+  {
+   "f": "./tests/cli/test_cli_protocol.py",
+   "l": 213,
+   "s": "self.assertIn(\"command='test synthetic'\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli_protocol.py",
+   "l": 214,
+   "s": "self.assertIn(\"no credentials\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_cli_protocol.py",
+   "l": 215,
+   "s": "self.assertNotIn(self.cfg, r.stderr, \"crash report 不得含完整路径外泄\")"
+  },
+  {
+   "f": "./tests/cli/test_cli_protocol.py",
+   "l": 313,
+   "s": "self.assertIn(\"cpu profile invalid\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_iso_acr_gpu_isolation.py",
+   "l": 124,
+   "s": "self.assertIn(\"unknown key\", r.stderr, f\"{bad} 拒绝信息应为明确错误而非静默 fallback\")"
+  },
+  {
+   "f": "./tests/cli/test_phase1_inprocess.py",
+   "l": 229,
+   "s": "self.assertIn(\"precision_mode\", r.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_phase1_inprocess.py",
+   "l": 272,
+   "s": "self.assertIn(\"BAD_FLATS_OK\", r0.stdout, r0.stderr)"
+  },
+  {
+   "f": "./tests/cli/test_phase1_inprocess.py",
+   "l": 287,
+   "s": "self.assertIn(\"master_flat\", rr.stderr,"
+  },
+  {
+   "f": "./ci/bootstrap.py",
+   "l": 333,
+   "s": "for stream in (sys.stdout, sys.stderr):"
+  },
+  {
+   "f": "./ci/tests/test_ci001b_wf_step.py",
+   "l": 102,
+   "s": "self.assertIn(\"::error::\", res.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_ci001b_wf_step.py",
+   "l": 103,
+   "s": "self.assertIn(\"fail-closed\", res.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_ci001b_wf_step.py",
+   "l": 104,
+   "s": "self.assertNotIn(\"::warning::\", res.stdout + res.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_ci001b_wf_step.py",
+   "l": 166,
+   "s": "self.assertIn(\"bound_check_waivable\", res.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_ci001b_wf_step.py",
+   "l": 175,
+   "s": "self.assertIn(\"output_contract_drift\", res.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_ci001b_wf_step.py",
+   "l": 184,
+   "s": "self.assertIn(\"exec_target_missing\", res.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_gap4_empty_outputs_guard.py",
+   "l": 50,
+   "s": "self.assertIn(\"stdout/stderr\", per[\"reason\"] or \"\")"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 233,
+   "s": "self.assertIn(\"JSON 解析失败\", proc.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 240,
+   "s": "self.assertIn(\"重复检查 ID\", proc.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 384,
+   "s": "self.assertIn(\"未登记的检查 ID\", proc.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_verify_remote_run.py",
+   "l": 145,
+   "s": "self.assertIn(\"用法错误\", res.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_verify_remote_run.py",
+   "l": 150,
+   "s": "self.assertIn(\"用法错误\", res.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_verify_remote_run.py",
+   "l": 156,
+   "s": "self.assertIn(\"用法错误\", res.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_windows_ci.py",
+   "l": 236,
+   "s": "self.assertIn(\"plain stderr noise line\", res[\"output_tail\"])"
+  },
+  {
+   "f": "./ci/tests/test_ci_repair_round.py",
+   "l": 209,
+   "s": "self.assertNotIn(\"ghp_FAKE_TOKEN_FOR_TESTS\", proc.stdout + proc.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_ci_repair_round.py",
+   "l": 265,
+   "s": "self.assertIn(\"404\", proc.stderr + proc.stdout)"
+  },
+  {
+   "f": "./ci/tests/test_ci_repair_round.py",
+   "l": 364,
+   "s": "self.assertIn(\"source_sha\", proc.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_deep_profiles.py",
+   "l": 245,
+   "s": "self.assertIn(\"仓库内\", proc.stderr + proc.stdout)"
+  },
+  {
+   "f": "./ci/tests/test_deep_profiles.py",
+   "l": 314,
+   "s": "self.assertIn(\"仓库内\", proc.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_deep_profiles.py",
+   "l": 355,
+   "s": "self.assertIn(proc.returncode, (1, 3, 4, 5), proc.stderr[-400:])"
+  },
+  {
+   "f": "./ci/tests/test_deep_profiles.py",
+   "l": 356,
+   "s": "self.assertNotIn(\"ValueError\", proc.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_deep_profiles.py",
+   "l": 357,
+   "s": "self.assertNotIn(\"Traceback\", proc.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_deep_profiles.py",
+   "l": 365,
+   "s": "self.assertIn(\"仓库内\", proc.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_deep_profiles.py",
+   "l": 366,
+   "s": "self.assertNotIn(\"Traceback\", proc.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_deep_profiles.py",
+   "l": 416,
+   "s": "self.assertIn(\"stderr_tail\", summary[\"pytest\"])"
+  },
+  {
+   "f": "./ci/tests/test_runner_execution.py",
+   "l": 233,
+   "s": "self.assertIn(marker, per[\"stderr_tail\"])"
+  },
+  {
+   "f": "./ci/tests/test_workflow_lock.py",
+   "l": 385,
+   "s": "self.assertIn(\"FAIL\", res.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_workflow_lock.py",
+   "l": 437,
+   "s": "self.assertIn(\"INVALID\", res.stderr)"
+  },
+  {
+   "f": "./ci/tests/test_workflow_lock.py",
+   "l": 443,
+   "s": "self.assertIn(\"INVALID\", res.stderr)"
+  }
+ ],
+ "positive_exist": [
+  {
+   "f": "./tools/check_link_scan.py",
+   "l": 9,
+   "s": "binary = sys.argv[1] if len(sys.argv) > 1 else \"build/root-cmake/astrocs\""
+  },
+  {
+   "f": "./tools/check_cli_command_layer.py",
+   "l": 26,
+   "s": "if len(cmds) < 4:"
+  },
+  {
+   "f": "./tools/check_cli_command_layer.py",
+   "l": 37,
+   "s": "if len(paths) < 8:"
+  },
+  {
+   "f": "./tools/check_api_docs.py",
+   "l": 131,
+   "s": "doc_cmds = {c for c in doc_cmds if c.startswith(\"astrocs\") and len(c) > 7}"
+  },
+  {
+   "f": "./tools/astrocs_diagnose.py",
+   "l": 106,
+   "s": "if len(hits) >= 5:"
+  },
+  {
+   "f": "./tools/astrocs_diagnose.py",
+   "l": 128,
+   "s": "if len(hits) >= 5:"
+  },
+  {
+   "f": "./tools/astrocs_diagnose.py",
+   "l": 133,
+   "s": "if len(findings) > 200:"
+  },
+  {
+   "f": "./tools/phase1_e2e_bench.py",
+   "l": 64,
+   "s": "and len(walls) > 0"
+  },
+  {
+   "f": "./tools/gen_repo_source_manifest.py",
+   "l": 15,
+   "s": "OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else \\"
+  },
+  {
+   "f": "./tools/astro_toolkit.py",
+   "l": 302,
+   "s": "if (name.startswith(\"/\") or (len(n) >= 2 and n[1] == \":\" and n[0].isalpha())"
+  },
+  {
+   "f": "./tools/make_capsule.py",
+   "l": 15,
+   "s": "task_id, commit, note = sys.argv[1], sys.argv[2], (sys.argv[3] if len(sys.argv) > 3 else \"\")"
+  },
+  {
+   "f": "./tools/realdata/match_plan.py",
+   "l": 171,
+   "s": "sub = rest[1:] if len(rest) > 1 else []"
+  },
+  {
+   "f": "./tools/astrometry_oracle/compare_astrometry.py",
+   "l": 117,
+   "s": "if len(parts) >= 2 and parts[0].lstrip(\"-\").isdigit() and parts[1].lstrip(\"-\").isdigit():"
+  },
+  {
+   "f": "./tools/quality/check_commits_csv.py",
+   "l": 159,
+   "s": "if len(subjects) < 2:"
+  },
+  {
+   "f": "./tools/quality/known_failures_baseline.py",
+   "l": 893,
+   "s": "add(\"F-019\", \"P1\", len(provider_targets) < 3,"
+  },
+  {
+   "f": "./tools/quality/known_failures_baseline.py",
+   "l": 932,
+   "s": "add(\"F-024\", \"P1\", draft_alg or len(alg_mds) < 5,"
+  },
+  {
+   "f": "./tools/quality/known_failures_baseline.py",
+   "l": 1011,
+   "s": "if len(parts) > 10 and parts[0] == \"REL-001\" and parts[10] == \"PASS\":"
+  },
+  {
+   "f": "./tools/quality/known_failures_baseline.py",
+   "l": 1013,
+   "s": "if len(parts) > 10 and parts[0] == \"WIN-006\" and parts[10] == \"WAITING_WINDOWS\":"
+  },
+  {
+   "f": "./tools/quality/known_failures_baseline.py",
+   "l": 1063,
+   "s": "if len(f040_evidence) >= 5:"
+  },
+  {
+   "f": "./tools/quality/gen_run_graphs.py",
+   "l": 38,
+   "s": "if \"://\" in p or p.startswith(\"/\") or (len(p) > 1 and p[1] == \":\"):"
+  },
+  {
+   "f": "./tools/quality/gen_run_graphs.py",
+   "l": 41,
+   "s": "tail = parts[-2:] if len(parts) >= 2 else parts"
+  },
+  {
+   "f": "./tools/quality/gen_source_index_v61.py",
+   "l": 150,
+   "s": "if len(parts) >= 2:"
+  },
+  {
+   "f": "./tools/quality/deep_ci_driver.py",
+   "l": 79,
+   "s": "tail = lines[-25:] if len(lines) > 25 else lines"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 239,
+   "s": "tail = lines[-25:] if len(lines) > 25 else lines"
+  },
+  {
+   "f": "./tools/quality/check_source_inventory.py",
+   "l": 125,
+   "s": "mod = parts[1] if len(parts) > 1 else top"
+  },
+  {
+   "f": "./tools/quality/extract_cpp_api.py",
+   "l": 34,
+   "s": "if len(name) < 4 and not name.startswith((\"aio_\",\"ac_\",\"cc_\",\"dpsf_\",\"snr_\",\"p2_\",\"sdet_\",\"pc_\",\"ipv_\",\"gaia_\",\"healpix_\",\"aio\",\"astro\")):"
+  },
+  {
+   "f": "./tools/quality/contracts/check_api_contracts.py",
+   "l": 137,
+   "s": "if len(rows) < 300:"
+  },
+  {
+   "f": "./tools/quality/contracts/check_doc_symbols.py",
+   "l": 136,
+   "s": "if \"_\" in token and len(token) >= 3:"
+  },
+  {
+   "f": "./tools/quality/contracts/check_doc_symbols.py",
+   "l": 144,
+   "s": "is_api_like = (token.isupper() and \"_\" in token and len(token) >= 6) or token.startswith((\"p2_\",\"aio_\",\"ac_\",\"cc_\",\"dpsf_\",\"sdet_\",\"ipv_\",\"pc_\",\"snr_\",\"gaia_\"))"
+  },
+  {
+   "f": "./tools/quality/contracts/check_test_contracts.py",
+   "l": 58,
+   "s": "if len(unique_tst) < 5:"
+  },
+  {
+   "f": "./tools/monitoring/resource_probe.py",
+   "l": 82,
+   "s": "if len(parts) > 1:"
+  },
+  {
+   "f": "./tools/monitoring/run_monitored.py",
+   "l": 100,
+   "s": "if len(fields) < 15:  # state..cstime（field17 → rest 索引 14）"
+  },
+  {
+   "f": "./tools/monitoring/run_monitored.py",
+   "l": 161,
+   "s": "if len(fields) >= 2:"
+  },
+  {
+   "f": "./tools/monitoring/run_monitored.py",
+   "l": 177,
+   "s": "if len(fields) >= 2:"
+  },
+  {
+   "f": "./tests/io/test_hips_output_contract.py",
+   "l": 328,
+   "s": "self.assertIsNotNone(doc)"
+  },
+  {
+   "f": "./tests/io/test_hips_output_contract.py",
+   "l": 352,
+   "s": "self.assertIsNotNone(doc)"
+  },
+  {
+   "f": "./tests/io/test_hips_input_contract.py",
+   "l": 191,
+   "s": "self.assertTrue(tile.exists())"
+  },
+  {
+   "f": "./tests/io/test_hips_input_contract.py",
+   "l": 211,
+   "s": "self.assertTrue(tile.exists())"
+  },
+  {
+   "f": "./tests/io/test_hips_input_contract.py",
+   "l": 230,
+   "s": "self.assertTrue(tile.exists())"
+  },
+  {
+   "f": "./tests/io/test_hips_input_contract.py",
+   "l": 334,
+   "s": "self.assertGreaterEqual(cnt.value, 1)"
+  },
+  {
+   "f": "./tests/io/test_hips_input_contract.py",
+   "l": 445,
+   "s": "self.assertGreaterEqual(cnt.value, 1)"
+  },
+  {
+   "f": "./tests/io/test_fits_stream_contract.py",
+   "l": 191,
+   "s": "shape[1] if len(shape) > 1 else 0,"
+  },
+  {
+   "f": "./tests/runtime/test_phase_lifecycle.py",
+   "l": 187,
+   "s": "self.assertIsNotNone(reason)"
+  },
+  {
+   "f": "./tests/runtime/test_phase_lifecycle.py",
+   "l": 191,
+   "s": "self.assertIsNotNone(reason2)"
+  },
+  {
+   "f": "./tests/runtime/test_phase_lifecycle.py",
+   "l": 268,
+   "s": "self.assertGreater(len(first), 0)"
+  },
+  {
+   "f": "./tests/testkit/examples/fixture_hash.py",
+   "l": 14,
+   "s": "root = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path(\".\")"
+  },
+  {
+   "f": "./tests/testkit/examples/check_constant.py",
+   "l": 11,
+   "s": "n = int(sys.argv[1]) if len(sys.argv) > 1 else EXPECT"
+  },
+  {
+   "f": "./tests/testkit/examples/negative_bad_input.py",
+   "l": 30,
+   "s": "if len(sys.argv) > 2 and sys.argv[1] == \"--child\":"
+  },
+  {
+   "f": "./tests/api/test_upm_recovery_oracle.py",
+   "l": 97,
+   "s": "self.assertIsNotNone(m, \"缺 R 行\")"
+  },
+  {
+   "f": "./tests/api/test_upm_recovery_oracle.py",
+   "l": 105,
+   "s": "self.assertIsNotNone(m)"
+  },
+  {
+   "f": "./tests/api/test_upm_recovery_oracle.py",
+   "l": 116,
+   "s": "self.assertIsNotNone(m, \"缺 STABLE 行\")"
+  },
+  {
+   "f": "./tests/api/test_upm_recovery_oracle.py",
+   "l": 125,
+   "s": "self.assertIsNotNone(m, \"缺 RK 行\")"
+  },
+  {
+   "f": "./tests/api/test_upm_parallel.py",
+   "l": 88,
+   "s": "self.assertIsNotNone(m, r.stdout)"
+  },
+  {
+   "f": "./tests/api/test_upm_parallel.py",
+   "l": 108,
+   "s": "self.assertIsNotNone(m, r.stdout)"
+  },
+  {
+   "f": "./tests/api/test_reject_integration_oracle.py",
+   "l": 101,
+   "s": "self.assertIsNotNone(m, r.stdout)"
+  },
+  {
+   "f": "./tests/api/test_seam_metric_gate.py",
+   "l": 72,
+   "s": "self.assertIsNotNone(m, r.stdout)"
+  },
+  {
+   "f": "./tests/api/test_reject_parallel.py",
+   "l": 101,
+   "s": "self.assertIsNotNone(m, r.stdout)"
+  },
+  {
+   "f": "./tests/api/test_p1_api.py",
+   "l": 45,
+   "s": "self.assertIsNotNone(hp, f\"{hdr} 未找到\")"
+  },
+  {
+   "f": "./tests/cpu/avx512/check_avx512_illegal_instr.py",
+   "l": 113,
+   "s": "if len(sys.argv) < 2:"
+  },
+  {
+   "f": "./tests/version/test_adopt006_version_gate.py",
+   "l": 79,
+   "s": "self.assertIsNotNone(m, \"根 CMakeLists.txt 必须含唯一 project()\")"
+  },
+  {
+   "f": "./tests/arch/test_thread_budget.py",
+   "l": 103,
+   "s": "self.assertIsNotNone(note_posix, \"%s 必须命中登记\" % posix)"
+  },
+  {
+   "f": "./tests/arch/test_thread_budget.py",
+   "l": 104,
+   "s": "self.assertIsNotNone(note_win, \"%s 必须命中登记\" % win)"
+  },
+  {
+   "f": "./tests/arch/test_thread_budget.py",
+   "l": 112,
+   "s": "self.assertIsNotNone(note, \"%s 必须命中登记\" % posix)"
+  },
+  {
+   "f": "./tests/arch/test_budget_contract.py",
+   "l": 76,
+   "s": "self.assertIsNotNone(m, r.stdout)"
+  },
+  {
+   "f": "./tests/artifact/test_provenance.py",
+   "l": 451,
+   "s": "self.assertIsNotNone(prov)"
+  },
+  {
+   "f": "./tests/artifact/test_provenance.py",
+   "l": 453,
+   "s": "self.assertIsNotNone(prov.get(\"history\"))"
+  },
+  {
+   "f": "./tests/artifact/test_provenance.py",
+   "l": 583,
+   "s": "self.assertIsNotNone(prov)"
+  },
+  {
+   "f": "./tests/artifact/test_provenance.py",
+   "l": 624,
+   "s": "self.assertIsNotNone(prov2)"
+  },
+  {
+   "f": "./tests/artifact/test_production_store.py",
+   "l": 178,
+   "s": "self.assertIsNotNone(read)"
+  },
+  {
+   "f": "./tests/artifact/test_production_store.py",
+   "l": 287,
+   "s": "self.assertGreaterEqual(len(spy.writes), 1)"
+  },
+  {
+   "f": "./tests/artifact/test_production_store.py",
+   "l": 441,
+   "s": "self.assertIsNotNone(sidecar)"
+  },
+  {
+   "f": "./tests/unit/io_ownership_test.cpp",
+   "l": 40,
+   "s": "const std::size_t n = std::strlen(tmp) > 80 ? 80 : std::strlen(tmp);"
+  },
+  {
+   "f": "./tests/backend/test_hardware_inspect.py",
+   "l": 74,
+   "s": "self.assertGreater(d[\"ram_bytes\"], 0)"
+  },
+  {
+   "f": "./tests/backend/test_bench_harness.py",
+   "l": 44,
+   "s": "\"reason\": \" \".join(t[8:]) if len(t) > 8 else \"\"}"
+  },
+  {
+   "f": "./tests/backend/test_phase1_hotspot.py",
+   "l": 80,
+   "s": "self.assertIsNotNone(m, r.stdout)"
+  },
+  {
+   "f": "./tests/backend/fixture_common.py",
+   "l": 132,
+   "s": "if len(cpus) >= 2:"
+  },
+  {
+   "f": "./tests/backend/test_p3002_properties_order_unit.py",
+   "l": 31,
+   "s": "self.assertIsNotNone(m, \"order 上限公式缺失\")"
+  },
+  {
+   "f": "./tests/backend/test_bench_candidates.py",
+   "l": 42,
+   "s": "self.assertIsNotNone(m, avail)"
+  },
+  {
+   "f": "./tests/backend/test_bench_candidates.py",
+   "l": 66,
+   "s": "self.assertIsNotNone(m, \"MEMORY 行缺失\")"
+  },
+  {
+   "f": "./tests/backend/test_p2003_seam_oracle.py",
+   "l": 210,
+   "s": "self.assertIsNotNone(s0) and self.assertIsNotNone(s1)"
+  },
+  {
+   "f": "./tests/backend/test_p2003_seam_oracle.py",
+   "l": 260,
+   "s": "spread = float(np.std(c_vals)) if len(c_vals) > 1 else 0.0"
+  },
+  {
+   "f": "./tests/backend/test_p2006_canonical_pipeline.py",
+   "l": 86,
+   "s": "self.assertIsNotNone(final)"
+  },
+  {
+   "f": "./tests/backend/test_p2006_canonical_pipeline.py",
+   "l": 109,
+   "s": "self.assertIsNotNone(gate, \"resource gate 事件缺失\")"
+  },
+  {
+   "f": "./tests/backend/test_p2006_canonical_pipeline.py",
+   "l": 170,
+   "s": "self.assertGreater(res.get(\"n_samples\", 0), 0, \"资源采样为空\")"
+  },
+  {
+   "f": "./tests/backend/test_cpu_profile.py",
+   "l": 83,
+   "s": "self.assertGreater(m[\"mad_ns\"], 0)"
+  },
+  {
+   "f": "./tests/backend/test_cpu_profile.py",
+   "l": 148,
+   "s": "self.assertIsNotNone(v)"
+  },
+  {
+   "f": "./tests/backend/test_p3_projection_oracle.py",
+   "l": 274,
+   "s": "self.assertIsNotNone(o, f\"{code} oracle 域内点 ({x},{y})\")"
+  },
+  {
+   "f": "./tests/backend/test_p3_projection_oracle.py",
+   "l": 288,
+   "s": "self.assertIsNotNone(p, f\"{code} oracle world2pix ({ra},{dec})\")"
+  },
+  {
+   "f": "./tests/backend/test_p1002_gaps.py",
+   "l": 286,
+   "s": "self.assertIsNotNone(n)"
+  },
+  {
+   "f": "./tests/backend/test_drizzle_parallel.py",
+   "l": 80,
+   "s": "self.assertIsNotNone(m, r.stdout)"
+  },
+  {
+   "f": "./tests/backend/test_drizzle_oracle.py",
+   "l": 130,
+   "s": "self.assertTrue(0 < len(nz) <= 4, f\"覆盖应为 1-4 像素, got {len(nz)}\")"
+  },
+  {
+   "f": "./tests/backend/test_phase3_reproject_oracle.py",
+   "l": 185,
+   "s": "self.assertIsNotNone(g)"
+  },
+  {
+   "f": "./tests/backend/test_phase3_reproject_oracle.py",
+   "l": 227,
+   "s": "self.assertIsNotNone(g)"
+  },
+  {
+   "f": "./tests/backend/test_phase3_reproject_oracle.py",
+   "l": 287,
+   "s": "self.assertIsNotNone(g)"
+  },
+  {
+   "f": "./tests/backend/test_p3005_fits_output.py",
+   "l": 88,
+   "s": "self.assertGreater(fin.size, 0)"
+  },
+  {
+   "f": "./tests/backend/test_abi_v1.py",
+   "l": 59,
+   "s": "self.assertIsNotNone(dbg, f\"Debug 编译失败: {dbg_err}\")"
+  },
+  {
+   "f": "./tests/backend/test_abi_v1.py",
+   "l": 60,
+   "s": "self.assertIsNotNone(rel, f\"Release 编译失败: {rel_err}\")"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 185,
+   "s": "self.assertIsNotNone(g, \"必须发出 resource gate 事件(kind=resource)\")"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 197,
+   "s": "self.assertIsNotNone(workers, \"session 日志缺 budget workers 注入证据\")"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 207,
+   "s": "self.assertIsNotNone(rg, \"gate 拒绝缺 resource_gate 事件\")"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 268,
+   "s": "self.assertIsNotNone(self._event(\"resource_gate\"),"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 276,
+   "s": "self.assertGreater(s[\"n_samples\"], 0)"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 298,
+   "s": "self.assertIsNotNone(m, \"sample 阶段未完成(缺 obs/overlap_controls 统计)\")"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 306,
+   "s": "self.assertGreater(summ.get(\"n_obs\", 0), 0, \"session summary n_obs 为空\")"
+  },
+  {
+   "f": "./tests/backend/test_p3001_science_freeze.py",
+   "l": 54,
+   "s": "self.assertIsNotNone(m, \"session 未按 abs(dec)<=85° 拒绝\")"
+  },
+  {
+   "f": "./tests/abi/test_abi002_lifecycle.py",
+   "l": 124,
+   "s": "self.assertIsNotNone(run, f\"{cc} 探针编译失败: {cerr}\")"
+  },
+  {
+   "f": "./tests/quality/test_known_failures_baseline_ci.py",
+   "l": 495,
+   "s": "self.assertIsNotNone(check, \"verify 门必须登记\")"
+  },
+  {
+   "f": "./tests/quality/test_known_failures_baseline_ci.py",
+   "l": 507,
+   "s": "self.assertIsNotNone(check, \"check 门必须登记\")"
+  },
+  {
+   "f": "./tests/monitoring/test_log_contract.py",
+   "l": 347,
+   "s": "self.assertTrue(td.exists() or td.parent.exists())"
+  },
+  {
+   "f": "./tests/monitoring/test_monitor_contract.py",
+   "l": 380,
+   "s": "self.assertGreater(raw[\"rss_bytes\"], 0)"
+  },
+  {
+   "f": "./tests/cli/test_phase2_inprocess.py",
+   "l": 94,
+   "s": "self.assertGreater(a[\"size_bytes\"], 0)"
+  },
+  {
+   "f": "./tests/cli/test_phase2_inprocess.py",
+   "l": 103,
+   "s": "self.assertGreater(res[\"n_obs\"], 0)"
+  },
+  {
+   "f": "./tests/cli/test_monitor.py",
+   "l": 97,
+   "s": "self.assertGreater(d[\"peak_rss\"], 0)"
+  },
+  {
+   "f": "./tests/cli/test_monitor.py",
+   "l": 98,
+   "s": "self.assertGreater(d[\"max_threads\"], 0)"
+  },
+  {
+   "f": "./tests/cli/test_cli001_vpi.py",
+   "l": 133,
+   "s": "self.assertGreater(doc[\"node_count\"], 0)"
+  },
+  {
+   "f": "./tests/cli/test_cli001_vpi.py",
+   "l": 232,
+   "s": "self.assertGreaterEqual(doc[\"budget\"][\"cpu_cores\"], 1)"
+  },
+  {
+   "f": "./tests/cli/test_cli001_vpi.py",
+   "l": 314,
+   "s": "self.assertGreaterEqual(len(doc[\"products\"]), 1)"
+  },
+  {
+   "f": "./tests/cli/test_phase123_pipeline.py",
+   "l": 219,
+   "s": "self.assertIsNotNone(mv)"
+  },
+  {
+   "f": "./tests/cli/test_memory_growth.py",
+   "l": 86,
+   "s": "self.assertGreater(float(d[\"slope\"]), 0)"
+  },
+  {
+   "f": "./tests/cli/test_bench_cli.py",
+   "l": 63,
+   "s": "self.assertGreaterEqual(len(d[\"kernels\"]), 1)"
+  },
+  {
+   "f": "./tests/cli/test_bench_cli.py",
+   "l": 67,
+   "s": "self.assertGreaterEqual(kp[\"workers\"], 1)"
+  },
+  {
+   "f": "./tests/cli/test_bench_cli.py",
+   "l": 68,
+   "s": "self.assertGreaterEqual(kp[\"block\"], 1)"
+  },
+  {
+   "f": "./tests/cli/test_bench_cli.py",
+   "l": 70,
+   "s": "self.assertGreater(kp[\"median\"], 0)"
+  },
+  {
+   "f": "./tests/cli/test_cli004_process_protocol.py",
+   "l": 164,
+   "s": "self.assertGreater(len(events), 0)"
+  },
+  {
+   "f": "./tests/cli/test_cli004_process_protocol.py",
+   "l": 204,
+   "s": "self.assertGreaterEqual(e[\"workers\"], 1)"
+  },
+  {
+   "f": "./tests/cli/test_cli004_process_protocol.py",
+   "l": 212,
+   "s": "self.assertGreater(e[\"size_bytes\"], 0)"
+  },
+  {
+   "f": "./tests/cli/test_cli004_process_protocol.py",
+   "l": 312,
+   "s": "self.assertIsNotNone(harness_validate(bad, 0))"
+  },
+  {
+   "f": "./tests/cli/test_cli004_process_protocol.py",
+   "l": 314,
+   "s": "self.assertIsNotNone(harness_validate(base, 1))"
+  },
+  {
+   "f": "./tests/cli/test_cli004_process_protocol.py",
+   "l": 317,
+   "s": "self.assertIsNotNone(harness_validate(bad, 0))"
+  },
+  {
+   "f": "./tests/cli/test_cli004_process_protocol.py",
+   "l": 321,
+   "s": "self.assertIsNotNone(harness_validate(bad, 0))"
+  },
+  {
+   "f": "./tests/cli/test_cli004_process_protocol.py",
+   "l": 324,
+   "s": "self.assertIsNotNone(harness_validate(bad, 0))"
+  },
+  {
+   "f": "./tests/cli/test_phase1_inprocess.py",
+   "l": 127,
+   "s": "self.assertIsNotNone(m)"
+  },
+  {
+   "f": "./lib/healpix_db/archive/legacy/healpix_stack/tests/test_healpix_stack.py",
+   "l": 300,
+   "s": "assert len(bands) > 0, \"应有至少 1 个波段\""
+  },
+  {
+   "f": "./lib/healpix_db/archive/legacy/healpix_stack/tests/test_healpix_stack.py",
+   "l": 480,
+   "s": "assert len(bands) >= 1, \"bands 数组应非空\""
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/trace_g4_validate.py",
+   "l": 63,
+   "s": "result[\"checks\"][\"selection_ge_512\"] = len(pixels) >= 512"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/trace_g4_validate.py",
+   "l": 88,
+   "s": "result[\"checks\"][\"drizzle_sources_ge_512\"] = len(dl) >= 512"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/trace_g4_validate.py",
+   "l": 109,
+   "s": "result[\"checks\"][\"sum_contribution_ok_all\"] = sum_ok == len(dl) and len(dl) > 0"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/trace_g4_validate.py",
+   "l": 112,
+   "s": "eff_ok == len(dl) and len(dl) > 0)"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/trace_g4_validate.py",
+   "l": 118,
+   "s": "result[\"checks\"][\"leaf_ge_8192\"] = len(li) >= 8192"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/trace_g4_validate.py",
+   "l": 246,
+   "s": "if len(p) >= 6 and not line.startswith(\"#\"):"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/trace_g4_validate.py",
+   "l": 257,
+   "s": "not (len(snr_ids) > 0 and snr_ids == {i + 1 for i in range(len(snr_ids))}))"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/test_drizzle.py",
+   "l": 335,
+   "s": "assert len(brightness) > 0, \"点采样应产生至少 1 个 HP 像素\""
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/test_drizzle.py",
+   "l": 487,
+   "s": "assert \"nside\" in meta or \"n_pix\" in meta or len(meta) >= 0, \\"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 170,
+   "s": "if len(parts) > 2:"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 291,
+   "s": "self.assertIsNotNone(lib, f\"S1 rc=0 但未报出 zlib 落点\\n{log}\")"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 294,
+   "s": "self.assertTrue(os.path.exists(str(lib)),"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 358,
+   "s": "self.assertTrue(os.path.exists(str(lib)),"
+  },
+  {
+   "f": "./lib/orchestrator/tests/test_orchestrator_e2e.py",
+   "l": 210,
+   "s": "check(\"耗时记录非空\", len(timings) > 0, f\"记录了 {len(timings)} 个阶段\")"
+  },
+  {
+   "f": "./lib/orchestrator/tests/test_orchestrator_e2e.py",
+   "l": 262,
+   "s": "check(\"输出文件列表非空\", len(output_files) > 0,"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_fixtures.hpp",
+   "l": 63,
+   "s": "const std::size_t vlen = std::strlen(v) < 68 ? std::strlen(v) : 68;"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/test_p1_io_hardening.cpp",
+   "l": 287,
+   "s": "CHECK(err && std::strlen(err) > 0, \"T8 last_error 稳定可读 (屏障面 0→11 try)\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_direct_smoke.py",
+   "l": 60,
+   "s": "out = sys.argv[1] if len(sys.argv) > 1 else r\"run\\temp\\hips_smoke\""
+  },
+  {
+   "f": "./lib/common/healpix/tests/snr_hips_spatial_oracle.py",
+   "l": 55,
+   "s": "if len(parts)<6:"
+  },
+  {
+   "f": "./lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate1_psf_final_test.py",
+   "l": 206,
+   "s": "if len(outs) < 3:"
+  },
+  {
+   "f": "./ci/verify_remote_run.py",
+   "l": 224,
+   "s": "if len(fuzzy) > 1:"
+  },
+  {
+   "f": "./ci/run.py",
+   "l": 444,
+   "s": "if len(line) < 4:"
+  },
+  {
+   "f": "./ci/run.py",
+   "l": 648,
+   "s": "if len(line) < 4:"
+  },
+  {
+   "f": "./ci/run.py",
+   "l": 1004,
+   "s": "if len(active) > 1:"
+  },
+  {
+   "f": "./ci/validate_workflow_binding.py",
+   "l": 330,
+   "s": "elif len(runners) > 1:"
+  },
+  {
+   "f": "./ci/validate_registry.py",
+   "l": 215,
+   "s": "if len(cmd) < 2:"
+  },
+  {
+   "f": "./ci/verify_toolchain.py",
+   "l": 164,
+   "s": "c.check(len(entries) >= 12, f\"lock carries full 12-tool inventory (got {len(entries)})\")"
+  },
+  {
+   "f": "./ci/verify_toolchain.py",
+   "l": 201,
+   "s": "c.check(isinstance(found, list) and len(found) >= 1,"
+  },
+  {
+   "f": "./ci/ci_repair_round.py",
+   "l": 283,
+   "s": "if len(chunk) < 100:"
+  },
+  {
+   "f": "./ci/reconcile_state.py",
+   "l": 51,
+   "s": "\"CLI-002\": lambda s: s[\"status\"] == \"CLOSED\" and len(s[\"closed_commit\"]) >= 40,"
+  },
+  {
+   "f": "./ci/reconcile_state.py",
+   "l": 106,
+   "s": "and isinstance(tasks, dict) and len(tasks) > 0"
+  },
+  {
+   "f": "./ci/tests/test_run_monitored.py",
+   "l": 50,
+   "s": "self.assertIsNotNone(result[\"cpu_percent_avg\"])"
+  },
+  {
+   "f": "./ci/tests/test_run_monitored.py",
+   "l": 89,
+   "s": "self.assertIsNotNone(result[\"peak_rss_kb\"])"
+  },
+  {
+   "f": "./ci/tests/test_run_monitored.py",
+   "l": 90,
+   "s": "self.assertIsNotNone(result[\"rss_start_kb\"])"
+  },
+  {
+   "f": "./ci/tests/test_run_monitored.py",
+   "l": 194,
+   "s": "self.assertIsNotNone(result[\"exit_code\"])"
+  },
+  {
+   "f": "./ci/tests/test_run_monitored.py",
+   "l": 220,
+   "s": "self.assertGreater(loaded[\"samples\"], 0)"
+  },
+  {
+   "f": "./ci/tests/test_ci_repair_round.py",
+   "l": 231,
+   "s": "self.assertGreaterEqual(f[\"counters\"][\"gaps\"], 1)"
+  },
+  {
+   "f": "./ci/tests/test_ci_repair_round.py",
+   "l": 242,
+   "s": "self.assertGreaterEqual(f[\"counters\"][\"gaps\"], 1)"
+  },
+  {
+   "f": "./ci/tests/test_ci001_failclosed.py",
+   "l": 446,
+   "s": "self.assertIsNotNone(m, \"fatduck.yml 必须有 id=sel 步骤\")"
+  },
+  {
+   "f": "./ci/tests/test_ci001_failclosed.py",
+   "l": 449,
+   "s": "self.assertIsNotNone(rc3, \"sel 脚本必须有 rc=3 分支\")"
+  },
+  {
+   "f": "./ci/tests/test_resource_probe.py",
+   "l": 52,
+   "s": "self.assertGreaterEqual(p[\"cpu_affinity\"], 1)"
+  },
+  {
+   "f": "./ci/tests/test_resource_probe.py",
+   "l": 53,
+   "s": "self.assertGreaterEqual(p[\"cpu_logical\"], 1)"
+  },
+  {
+   "f": "./ci/tests/test_resource_probe.py",
+   "l": 55,
+   "s": "self.assertGreaterEqual(p[\"max_workers\"], 1)"
+  },
+  {
+   "f": "./ci/tests/test_resource_probe.py",
+   "l": 56,
+   "s": "self.assertGreater(p[\"mem_total_bytes\"], 0)"
+  },
+  {
+   "f": "./ci/tests/test_deep_profiles.py",
+   "l": 229,
+   "s": "self.assertGreater(report[\"totals\"][\"files\"], 0)"
+  },
+  {
+   "f": "./ci/tests/test_runner_execution.py",
+   "l": 82,
+   "s": "self.assertGreaterEqual(ci[\"summary\"][\"fail\"], 1)"
+  }
+ ],
+ "inject_reverse_lock": [
+  {
+   "f": "./tools/check_traceability.py",
+   "l": 16,
+   "s": "DEFAULT_TABLES = [os.path.join(REPO, \"artifacts\", \"prerelease_v5\", \"tables\", \"TRACEABILITY.csv\")]"
+  },
+  {
+   "f": "./tools/check_traceability.py",
+   "l": 110,
+   "s": "tables = sys.argv[1:] or DEFAULT_TABLES"
+  },
+  {
+   "f": "./tools/check_warning_suppression.py",
+   "l": 71,
+   "s": "build_cmd 参数仅供测试注入假命令 (echo 等), 生产恒为 cmake。"
+  },
+  {
+   "f": "./tools/check_unit_closure.py",
+   "l": 12,
+   "s": "主」这类冻结消歧语句; 否则 FAIL(mutation 注入二义即被抓, 无需预知内容)。"
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 4,
+   "s": "+ 期望来源审计（禁止生产函数生成期望）+ 故障注入检查。"
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 18,
+   "s": "K6 故障注入（--fault-injection）：篡改期望/断链 fixture/把 oracle 换成生产"
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 180,
+   "s": "ap.add_argument(\"--fault-injection\", action=\"store_true\", help=\"演示故障注入必败\")"
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 233,
+   "s": "if args.fault_injection:"
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 234,
+   "s": "fi_results = _fault_injection_demo(root, selected)"
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 245,
+   "s": "def _fault_injection_demo(root, selected) -> list:"
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 246,
+   "s": "\"\"\"三类故障注入演示，每次注入后 harness/示例必须 FAIL（非 0），"
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 247,
+   "s": "否则 FORBIDDEN_PASS；注入全部撤销/恢复，保证可复现："
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 251,
+   "s": "F3 破坏 oracle 独立性：registry 注入坏项（oracle 换生产符号）→"
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 258,
+   "s": "out.append(err(\"FORBIDDEN_PASS\", \"F1 篡改期望(4→5)后 harness 仍 exit 0（故障注入未生效）\"))"
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 268,
+   "s": "out.append(err(\"FORBIDDEN_PASS\", \"F2 断链 fixture 后 harness 仍 exit 0（故障注入未生效）\"))"
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 282,
+   "s": "it[\"oracle\"] = \"期望由生产函数 acs_cap_detect_v1 生成（注入）\""
+  },
+  {
+   "f": "./tools/testkit/check_testkit.py",
+   "l": 295,
+   "s": "out.append(warn(\"FAULT_INJECTION\", \"F1 篡改期望/F2 断链/F3 坏 oracle 注入后全部 FAIL（演示通过）\"))"
+  },
+  {
+   "f": "./tools/arch/check_thread_budget.py",
+   "l": 14,
+   "s": "\"aio_pipeline_engine.cpp\": \"V5 迁移整改点: n_threads 改 host budget 注入(ABI-001 落地时收编)\","
+  },
+  {
+   "f": "./tools/arch/check_thread_budget.py",
+   "l": 15,
+   "s": "\"ac_api.cpp\": \"预算注入旧形态: n 来自 orchestrator set_num_threads(ARCH-003 host callback 取代)\","
+  },
+  {
+   "f": "./tools/arch/check_thread_budget.py",
+   "l": 49,
+   "s": "\"lib/calibration/src/module_entry.cpp\": \"host budget 租约注入: 实参 leased <- executor->acquire(max_workers?:available_cpus, 被 config.max_workers 夹紧), 还原值 = omp_get_max_threads() 运行时值; 非编译期字面量; acquire 失败硬 "
+  },
+  {
+   "f": "./tools/arch/check_thread_budget.py",
+   "l": 50,
+   "s": "\"lib/drizzle/src/module_entry.cpp\": \"host budget 租约注入: 实参 want <- executor->acquire(max_workers?:available_cpus, 被 config.max_workers 夹紧)(:920), 还原值 = omp_get_max_threads() 运行时值(:932); 非编译期字面量 (ARCH-T"
+  },
+  {
+   "f": "./tools/arch/check_thread_budget.py",
+   "l": 51,
+   "s": "\"lib/cosmetic/src/module_entry.cpp\": \"host budget 租约注入: 实参 leased <- executor->acquire(max_workers?:available_cpus, 被 config.max_workers 夹紧), 还原值 = omp_get_max_threads() 运行时值; 非编译期字面量; acquire 失败硬 BUD"
+  },
+  {
+   "f": "./tools/astrometry_oracle/gen_synthetic_from_axy.py",
+   "l": 5,
+   "s": "每个检测源的真实像素位置经 base WCS 反投影为天球坐标，再由注入 WCS 投影到新像素；"
+  },
+  {
+   "f": "./tools/astrometry_oracle/gen_synthetic_from_axy.py",
+   "l": 6,
+   "s": "保留真实 FLUX（亮星层级与真实场一致），因此模式可解且服从注入 WCS。"
+  },
+  {
+   "f": "./tools/astrometry_oracle/gen_synthetic_from_axy.py",
+   "l": 7,
+   "s": "FITS 头部不写 WCS，迫使 solve-field 盲解恢复注入 WCS。"
+  },
+  {
+   "f": "./tools/quality/check_commits_csv.py",
+   "l": 14,
+   "s": "负面 fixture（--tamper）："
+  },
+  {
+   "f": "./tools/quality/check_commits_csv.py",
+   "l": 15,
+   "s": "- tamper-sha：篡改一个 parent_commit → 必须失败；"
+  },
+  {
+   "f": "./tools/quality/check_commits_csv.py",
+   "l": 179,
+   "s": "tampered = tmpd / \"COMMITS_tamper.csv\""
+  },
+  {
+   "f": "./tools/quality/check_commits_csv.py",
+   "l": 180,
+   "s": "with tampered.open(\"w\", encoding=\"utf-8\", newline=\"\") as f:"
+  },
+  {
+   "f": "./tools/quality/check_commits_csv.py",
+   "l": 182,
+   "s": "errs = check(repo, tampered, results_dir)"
+  },
+  {
+   "f": "./tools/quality/check_commits_csv.py",
+   "l": 184,
+   "s": "print(\"SELFTEST_FAIL: tampered parent not caught\", file=sys.stderr)"
+  },
+  {
+   "f": "./tools/quality/check_commits_csv.py",
+   "l": 214,
+   "s": "print(\"SELFTEST_PASS tamper/swap/unpushed all caught + real PASS\")"
+  },
+  {
+   "f": "./tools/quality/build_v19r4_package.py",
+   "l": 196,
+   "s": "- NOISE_DEFAULT_CONFIG_WIRING=PASS（NOISE-WIRE-001 39/39）"
+  },
+  {
+   "f": "./tools/quality/known_failures_baseline.py",
+   "l": 1044,
+   "s": "\"测试命令注入/破坏性路径风险\")"
+  },
+  {
+   "f": "./tools/quality/check_serial_heavy.py",
+   "l": 121,
+   "s": "r\"lease 注入|worker 数=budget\\.max_workers\")"
+  },
+  {
+   "f": "./tools/quality/check_serial_heavy.py",
+   "l": 127,
+   "s": "continue   # 默认 reference, 生产 lease 注入覆盖 (合法)"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 72,
+   "s": "DEFAULT_PRESET = \"win-msvc-17.14.39-x64\"   # configure preset（Windows 主机 condition）"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 73,
+   "s": "DEFAULT_TEST_PRESET = \"win-rel\"            # ctest preset（RelWithDebInfo）"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 76,
+   "s": "DEFAULT_BUILD_DIR = \"build/win-msvc-17.14.39-x64\"  # preset binaryDir 的仓库相对形态"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 77,
+   "s": "DEFAULT_CANDIDATE = \"run/ci/win-candidate\"         # candidate 目录（run/ 全局 ignore）"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 78,
+   "s": "DEFAULT_JUNIT = \"run/ci/win-test-junit.xml\""
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 79,
+   "s": "DEFAULT_OUTPUT = \"run/ci/win-driver-summary.json\""
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 81,
+   "s": "DEFAULT_ZIP = \"artifacts/candidate/AstroCS-candidate.zip\""
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 271,
+   "s": "preset 文件不可读时回退 DEFAULT_BUILD_DIR。"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 280,
+   "s": "return rel or DEFAULT_BUILD_DIR"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 283,
+   "s": "return DEFAULT_BUILD_DIR"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 326,
+   "s": "def stage_plan(stages: list[str], *, preset: str = DEFAULT_PRESET,"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 327,
+   "s": "build_dir: str = DEFAULT_BUILD_DIR,"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 328,
+   "s": "candidate_dir: str = DEFAULT_CANDIDATE,"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 329,
+   "s": "junit: str = DEFAULT_JUNIT,"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 330,
+   "s": "test_preset: str = DEFAULT_TEST_PRESET) -> list[dict]:"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 693,
+   "s": "preset: str = DEFAULT_PRESET, test_preset: str = DEFAULT_TEST_PRESET,"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 694,
+   "s": "build_dir: str = DEFAULT_BUILD_DIR,"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 826,
+   "s": "ap.add_argument(\"--preset\", default=DEFAULT_PRESET,"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 828,
+   "s": "ap.add_argument(\"--test-preset\", dest=\"test_preset\", default=DEFAULT_TEST_PRESET)"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 831,
+   "s": "ap.add_argument(\"--candidate-dir\", dest=\"candidate_dir\", default=DEFAULT_CANDIDATE)"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 832,
+   "s": "ap.add_argument(\"--junit\", default=DEFAULT_JUNIT)"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 834,
+   "s": "ap.add_argument(\"--zip\", dest=\"zip_out\", nargs=\"?\", const=DEFAULT_ZIP,"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 837,
+   "s": "f\"（默认 {DEFAULT_ZIP}；不传 = 只出目录）\")"
+  },
+  {
+   "f": "./tools/quality/ci_windows_driver.py",
+   "l": 838,
+   "s": "ap.add_argument(\"--output\", default=DEFAULT_OUTPUT, help=\"JSON summary 路径\")"
+  },
+  {
+   "f": "./tools/quality/contracts/check_config_contracts.py",
+   "l": 27,
+   "s": "findings.append({\"id\":\"CFG-PARSER-DEFAULT\",\"severity\":\"P1\",\"file\":str(parser_file.relative_to(repo)),\"observed\":\"weight_mode default 2 not found\",\"expected\":\"default ivar\"})"
+  },
+  {
+   "f": "./tools/monitoring/resource_probe.py",
+   "l": 24,
+   "s": "probe() 可注入 proc_root/sys_root/affinity_fn/cpu_count_fn 以便单测构造假 /proc、"
+  },
+  {
+   "f": "./tools/monitoring/resource_probe.py",
+   "l": 298,
+   "s": "mem_available）置 None。affinity_fn / cpu_count_fn 可注入用于单测。"
+  },
+  {
+   "f": "./tools/monitoring/check_log_contract.py",
+   "l": 52,
+   "s": "DEFAULT_SCHEMA = REPO_ROOT / \"runtime\" / \"logging\" / \"log_event_v1.schema.json\""
+  },
+  {
+   "f": "./tools/monitoring/check_log_contract.py",
+   "l": 158,
+   "s": "p = schema_path or DEFAULT_SCHEMA"
+  },
+  {
+   "f": "./tools/monitoring/check_log_contract.py",
+   "l": 260,
+   "s": "meta[\"schema\"] = str(schema_path or DEFAULT_SCHEMA)"
+  },
+  {
+   "f": "./tools/monitoring/check_log_contract.py",
+   "l": 293,
+   "s": "meta[\"schema\"] = str(schema_path or DEFAULT_SCHEMA)"
+  },
+  {
+   "f": "./tools/monitoring/run_monitored.py",
+   "l": 272,
+   "s": "output 非空时把 JSON 证据写到该文件。子进程环境注入 PYTHONUNBUFFERED=1"
+  },
+  {
+   "f": "./tests/io/test_fits_stream_contract.py",
+   "l": 283,
+   "s": "def test_checksum_verify_and_tamper(self):"
+  },
+  {
+   "f": "./tests/io/test_fits_stream_contract.py",
+   "l": 295,
+   "s": "self.assertEqual(st, ACS_FIO_ERR_CHECKSUM, f\"tamper rejected: {err.value}\")"
+  },
+  {
+   "f": "./tests/runtime/test_rt003_budget_wiring.py",
+   "l": 8,
+   "s": "- scheduler→RunContext 注入唯一 ThreadBudget（Scheduler::run 注入 ctx.budget）。"
+  },
+  {
+   "f": "./tests/runtime/test_rt003_budget_wiring.py",
+   "l": 58,
+   "s": "ctx.set_budget(b.value());               // scheduler 注入语义"
+  },
+  {
+   "f": "./tests/runtime/test_rt003_budget_wiring.py",
+   "l": 171,
+   "s": "static void test_scheduler_inject_and_repeat_run() {"
+  },
+  {
+   "f": "./tests/runtime/test_rt003_budget_wiring.py",
+   "l": 172,
+   "s": "Scheduler sched(2, 2);                   // budget=2（可用资源上限注入）"
+  },
+  {
+   "f": "./tests/runtime/test_rt003_budget_wiring.py",
+   "l": 176,
+   "s": "auto lease = ctx.acquire_lease(2);     // 经注入预算原子预留"
+  },
+  {
+   "f": "./tests/runtime/test_rt003_budget_wiring.py",
+   "l": 226,
+   "s": "test_scheduler_inject_and_repeat_run();"
+  },
+  {
+   "f": "./tests/api/test_upm_recovery_oracle.py",
+   "l": 6,
+   "s": "- 注入每帧常数低阶面 C(f) = base + k*f(观测=面+小噪声, 已知 k), gauge 锚定后模型求 C 场。"
+  },
+  {
+   "f": "./tests/api/test_upm_recovery_oracle.py",
+   "l": 94,
+   "s": "\"\"\"UPM 恢复注入的每帧常数低阶面: eval(f)-eval(0) == k*f(锚定帧0), 相对偏差小。\"\"\""
+  },
+  {
+   "f": "./tests/api/test_reject_parallel.py",
+   "l": 109,
+   "s": "def test_02_outlier_oracle_removes_injection(self):"
+  },
+  {
+   "f": "./tests/api/test_reject_parallel.py",
+   "l": 110,
+   "s": "\"\"\"注入 50.0 离群 → rejection 剔除后输出接近正常值(10.x)。\"\"\""
+  },
+  {
+   "f": "./tests/api/test_reject_parallel.py",
+   "l": 115,
+   "s": "f\"注入异常未被正确剔除(平均 {r['chk']/(1<<18):.4f})\")"
+  },
+  {
+   "f": "./tests/version/test_version_consistency.py",
+   "l": 121,
+   "s": "\"\"\"以 CI 同构口径跑检查器 (同一 argv 形态; CI 侧由 ci/run.py 注入 UTF-8 环境)。\"\"\""
+  },
+  {
+   "f": "./tests/version/test_version_consistency.py",
+   "l": 137,
+   "s": "P2 故障注入: 条款号同行/邻近行出现伪造版本必须 FAIL;"
+  },
+  {
+   "f": "./tests/version/test_version_consistency.py",
+   "l": 211,
+   "s": "\"\"\"故障注入必败: 条款豁免不得顺带放行同行/相邻的伪造版本。\"\"\""
+  },
+  {
+   "f": "./tests/version/test_version_consistency.py",
+   "l": 291,
+   "s": "\"pass  # 注入: 去掉标准名后裸条款号豁免\"),"
+  },
+  {
+   "f": "./tests/version/test_version_consistency.py",
+   "l": 340,
+   "s": "\"递归保护: 本进程已是故障注入子进程\")"
+  },
+  {
+   "f": "./tests/version/test_version_consistency.py",
+   "l": 342,
+   "s": "\"\"\"meta 测试: 条款号用例在故障注入下必败、未注入时必绿 (R-08 反向必败要求)。\"\"\""
+  },
+  {
+   "f": "./tests/version/test_version_consistency.py",
+   "l": 348,
+   "s": "def test_14_fault_injections_must_be_caught(self):"
+  },
+  {
+   "f": "./tests/version/test_version_consistency.py",
+   "l": 351,
+   "s": "self.assertIn(old, src, f\"{name}: 注入锚点未命中, 守卫失效\")"
+  },
+  {
+   "f": "./tests/version/test_version_consistency.py",
+   "l": 358,
+   "s": "f\"故障注入 {name} 必须被新用例抓住 (不得放水):\\n{r.stdout}\\n{r.stderr}\")"
+  },
+  {
+   "f": "./tests/version/test_version_consistency.py",
+   "l": 361,
+   "s": "\"\"\"对照组: 未注入时必须全绿 —— 证明 test_14 的红灯来自注入而非夹具本身。\"\"\""
+  },
+  {
+   "f": "./tests/version/test_version_consistency.py",
+   "l": 366,
+   "s": "f\"未注入的检查器 + 被试用例必须全绿:\\n{r.stdout}\\n{r.stderr}\")"
+  },
+  {
+   "f": "./tests/arch/test_thread_budget.py",
+   "l": 70,
+   "s": "\"\"\"负向注入: 已登记文件内出现 num_threads(<数字>) 仍必须 FAIL。"
+  },
+  {
+   "f": "./tests/arch/test_thread_budget.py",
+   "l": 121,
+   "s": "\"%s 不得被这三条预算注入登记放行\" % other)"
+  },
+  {
+   "f": "./tests/arch/test_backend_arch.py",
+   "l": 21,
+   "s": "def test_03_no_plugin_injection(self):"
+  },
+  {
+   "f": "./tests/arch/test_inventory_generator.py",
+   "l": 5,
+   "s": "施加**负向注入**, 证明:"
+  },
+  {
+   "f": "./tests/arch/test_inventory_generator.py",
+   "l": 74,
+   "s": "负向注入形态 = 同一临时树里放 K 个 lock 匹配文件; 旧实现对每个 lock 文件重复"
+  },
+  {
+   "f": "./tests/arch/test_inventory_generator.py",
+   "l": 94,
+   "s": "\"\"\"负向注入: 源文件不可读必须 fail-fast, 不得静默跳过产生不完整清单。\"\"\""
+  },
+  {
+   "f": "./tests/artifact/test_provenance.py",
+   "l": 564,
+   "s": "def test_validate_rejects_tampered_digest_field_shape(self):"
+  },
+  {
+   "f": "./tests/artifact/test_provenance.py",
+   "l": 630,
+   "s": "def test_tampered_digest_rejected_at_bind(self):"
+  },
+  {
+   "f": "./tests/artifact/test_provenance.py",
+   "l": 633,
+   "s": "data = b\"tamper\""
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 199,
+   "s": "std::string tampered = o.json;"
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 200,
+   "s": "tampered.replace(pos, 33, \"astrocs.benchmark-report/vX\");"
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 201,
+   "s": "CHECK(!astrocs::backend_host::verify_benchmark_report(tampered).empty());"
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 208,
+   "s": "std::string tampered = o.json;"
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 209,
+   "s": "tampered[pos + key.size()] = 'X';"
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 210,
+   "s": "CHECK(!astrocs::backend_host::verify_benchmark_report(tampered).empty());"
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 217,
+   "s": "std::string tampered = o.json;"
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 218,
+   "s": "tampered.replace(pos, key.size(), \"\\\"production_profile_touched\\\": true\");"
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 219,
+   "s": "CHECK(!astrocs::backend_host::verify_benchmark_report(tampered).empty());"
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 226,
+   "s": "std::string tampered = o.json;"
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 227,
+   "s": "tampered.replace(pos, key.size(), \"\\\"suite\\\": \\\"full\\\"\");"
+  },
+  {
+   "f": "./tests/unit/cpu006_bench_report_test.cpp",
+   "l": 228,
+   "s": "CHECK(!astrocs::backend_host::verify_benchmark_report(tampered).empty());"
+  },
+  {
+   "f": "./tests/unit/calibration_integration_test.cpp",
+   "l": 66,
+   "s": "/* integration descriptor / module.yaml 路径 (CMake 编译定义注入) */"
+  },
+  {
+   "f": "./tests/unit/calibration_integration_test.cpp",
+   "l": 354,
+   "s": "if (!path || !path[0]) return 0;   /* 未注入 → 不写盘 (仍可内存断言) */"
+  },
+  {
+   "f": "./tests/unit/calibration_integration_test.cpp",
+   "l": 477,
+   "s": "/* master 输入帧栈: FIX-CAL-C 变体 (n=4 < 5 → 无 NaN 注入, 纯高斯场) */"
+  },
+  {
+   "f": "./tests/unit/calibration_integration_test.cpp",
+   "l": 513,
+   "s": "printf(\"[FAIL] F-pre: ASTROCS_CAL_DLL_PATH 未注入\\n\");"
+  },
+  {
+   "f": "./tests/unit/calibration_integration_test.cpp",
+   "l": 713,
+   "s": "/* trace writer (env 注入输出路径; 未注入则仅内存断言) */"
+  },
+  {
+   "f": "./tests/unit/mon002_alloc_test.cpp",
+   "l": 305,
+   "s": "std::printf(\"MON-002 alloc report TESTS PASS (12 组: 稳定/注入leak预警/leak失败/\""
+  },
+  {
+   "f": "./tests/unit/gaia_unshuffle_test.c",
+   "l": 59,
+   "s": "/* ---- OOM 注入: malloc(SIZE_MAX) 按标准必失败 → rc=-1 (修复前静默), 数据不写 ---- */"
+  },
+  {
+   "f": "./tests/unit/cli_process_test.cpp",
+   "l": 80,
+   "s": "CHECK(astrocs::process::ok(r), \"extra_env 注入子进程\");"
+  },
+  {
+   "f": "./tests/unit/cli_process_test.cpp",
+   "l": 141,
+   "s": "tmp, \"inject_probe\","
+  },
+  {
+   "f": "./tests/unit/cpu003_profile_v2_test.cpp",
+   "l": 99,
+   "s": "auto tamper = [&](const std::string& v) {"
+  },
+  {
+   "f": "./tests/unit/cpu003_profile_v2_test.cpp",
+   "l": 104,
+   "s": "CHECK(!astrocs::backend_host::verify_profile_v2(tamper(\"not-a-version\"), commit).empty());"
+  },
+  {
+   "f": "./tests/unit/cpu003_profile_v2_test.cpp",
+   "l": 105,
+   "s": "CHECK(!astrocs::backend_host::verify_profile_v2(tamper(\"1.2\"), commit).empty());"
+  },
+  {
+   "f": "./tests/unit/cpu003_profile_v2_test.cpp",
+   "l": 106,
+   "s": "CHECK(!astrocs::backend_host::verify_profile_v2(tamper(\"\"), commit).empty());"
+  },
+  {
+   "f": "./tests/unit/cpu003_profile_v2_test.cpp",
+   "l": 107,
+   "s": "CHECK(!astrocs::backend_host::verify_profile_v2(tamper(\"1.2.x.3\"), commit).empty());"
+  },
+  {
+   "f": "./tests/unit/cpu003_profile_v2_test.cpp",
+   "l": 108,
+   "s": "CHECK(!astrocs::backend_host::verify_profile_v2(tamper(\"1.2.3 bad\"), commit).empty());"
+  },
+  {
+   "f": "./tests/unit/cpu003_profile_v2_test.cpp",
+   "l": 110,
+   "s": "CHECK(astrocs::backend_host::verify_profile_v2(tamper(\"99.99.99-alpha.9\"), commit).empty());"
+  },
+  {
+   "f": "./tests/unit/cpu003_profile_v2_test.cpp",
+   "l": 111,
+   "s": "CHECK(astrocs::backend_host::verify_profile_v2(tamper(\"0.11.0-alpha.2\"), commit).empty());"
+  },
+  {
+   "f": "./tests/unit/cpu003_profile_v2_test.cpp",
+   "l": 112,
+   "s": "CHECK(astrocs::backend_host::verify_profile_v2(tamper(\"0.0.0-alpha.0+gabcdef123456\"),"
+  },
+  {
+   "f": "./tests/unit/gaia_integration_test.c",
+   "l": 59,
+   "s": "/* integration descriptor / module.yaml 路径 (CMake 编译定义注入) */"
+  },
+  {
+   "f": "./tests/unit/gaia_integration_test.c",
+   "l": 294,
+   "s": "if (!path || !path[0]) return 0;               /* 未注入 → 不写盘 (仍可断言) */"
+  },
+  {
+   "f": "./tests/unit/gaia_integration_test.c",
+   "l": 454,
+   "s": "printf(\"[FAIL] F-pre: ASTROCS_GAIA_DLL_PATH 未注入\\n\");"
+  },
+  {
+   "f": "./tests/unit/gaia_integration_test.c",
+   "l": 614,
+   "s": "/* trace writer (env 注入输出路径; 未注入则仅内存断言) */"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 462,
+   "s": "\"NaN u must not corrupt signal plane\");"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 475,
+   "s": "\"negative variance must be rejected (product corruption, §30.4-3)\");"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 520,
+   "s": "std::fprintf(stderr, \"FAULT zero_var: session run failed: %s\\n\", err.c_str());"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 527,
+   "s": "std::fprintf(stderr, \"FAULT zero_var: read back failed\\n\");"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 532,
+   "s": "\"FAULT-INJECT zero_var: variance must be the injected silent 0\");"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 543,
+   "s": "std::fprintf(stderr, \"FAULT norm_sum: session run failed: %s\\n\", err.c_str());"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 551,
+   "s": "std::fprintf(stderr, \"FAULT norm_sum: read back failed\\n\");"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 557,
+   "s": "\"FAULT-INJECT norm_sum: constant-u field must normalize as sum(c)=1\");"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 569,
+   "s": "std::fprintf(stderr, \"FAULT skip_hdu: session run failed: %s\\n\", err.c_str());"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 576,
+   "s": "std::fprintf(stderr, \"FAULT skip_hdu: read back failed\\n\");"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 579,
+   "s": "CHECK_MSG(hi.hdus == 2, \"FAULT-INJECT skip_hdu: HDUs must stay at silent 2\");"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 790,
+   "s": "const char* fault = std::getenv(\"ASTROCS_P3002_FAULT\");"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 810,
+   "s": "\"P3-002 FAULT mode did not fail — injection ineffective\\n\");"
+  },
+  {
+   "f": "./tests/unit/p3002_uncertainty_test.cpp",
+   "l": 819,
+   "s": "(f_zero || f_norm || f_skip) ? \"  [FAULT-EFFECT-CONFIRMED]\" : \"\");"
+  },
+  {
+   "f": "./tests/unit/p3_projection_test.cpp",
+   "l": 53,
+   "s": "bool fault_mode = false;  // ASTROCS_P3PROJ_FAULT 注入模式(必败面)"
+  },
+  {
+   "f": "./tests/unit/p3_projection_test.cpp",
+   "l": 60,
+   "s": "\"FAULT-EFFECT-CONFIRMED: %s\\n\", msg);        \\"
+  },
+  {
+   "f": "./tests/unit/p3_projection_test.cpp",
+   "l": 534,
+   "s": "void test_fault_injection() {"
+  },
+  {
+   "f": "./tests/unit/p3_projection_test.cpp",
+   "l": 542,
+   "s": "const char* env = std::getenv(\"ASTROCS_P3PROJ_FAULT\");"
+  },
+  {
+   "f": "./tests/unit/p3_projection_test.cpp",
+   "l": 546,
+   "s": "fault_mode = true;  // 注入模式: 断言失败=缺陷捕获成功(预期路径)"
+  },
+  {
+   "f": "./tests/unit/p3_projection_test.cpp",
+   "l": 614,
+   "s": "test_fault_injection();"
+  },
+  {
+   "f": "./tests/unit/p3_projection_test.cpp",
+   "l": 618,
+   "s": "std::printf(\"P3-001 FAULT MODE: %d 断言失败=注入缺陷被捕获(必败面成立)\\n\","
+  },
+  {
+   "f": "./tests/unit/p3_projection_test.cpp",
+   "l": 620,
+   "s": "return 0;  // 注入模式: 捕获成功即通过(外部脚本断言非零捕获信息)"
+  },
+  {
+   "f": "./tests/unit/p3_projection_test.cpp",
+   "l": 622,
+   "s": "std::fprintf(stderr, \"FAULT MODE 未触发任何断言失败: 注入无效\\n\");"
+  },
+  {
+   "f": "./tests/unit/gaia_cat_test.c",
+   "l": 744,
+   "s": "/* N4 分配注入：create 第 1 次分配失败 → NULL，且无泄漏 */"
+  },
+  {
+   "f": "./tests/unit/gaia_cat_test.c",
+   "l": 749,
+   "s": "CHECK(c == NULL, \"注入 k=1 时 create != NULL\");"
+  },
+  {
+   "f": "./tests/unit/gaia_cat_test.c",
+   "l": 755,
+   "s": "CHECK(t_oom_fired >= 1, \"注入未触发\");"
+  },
+  {
+   "f": "./tests/unit/gaia_cat_test.c",
+   "l": 768,
+   "s": "CHECK(ci != NULL, \"注入循环 k=%d create=NULL\", k);"
+  },
+  {
+   "f": "./tests/unit/gaia_cat_test.c",
+   "l": 777,
+   "s": "\"注入 k=%d rc=%d n=%d（非法返回）\", k, rcq, n);"
+  },
+  {
+   "f": "./tests/unit/gaia_cat_test.c",
+   "l": 782,
+   "s": "CHECK(leaked == 0, \"注入 k=%d 泄漏 %ld 块（destroy 未回收）\", k, leaked);"
+  },
+  {
+   "f": "./tests/unit/p3_output_test.cpp",
+   "l": 110,
+   "s": "double tampered = 0.0;"
+  },
+  {
+   "f": "./tests/unit/p3_output_test.cpp",
+   "l": 111,
+   "s": "CHECK(fits_read_key(tf, TDOUBLE, (char*)\"CRPIX1\", &tampered, nullptr, &st) == 0);"
+  },
+  {
+   "f": "./tests/unit/p3_output_test.cpp",
+   "l": 112,
+   "s": "tampered += 1.0;   // 0.5px/1px 型系统性平移"
+  },
+  {
+   "f": "./tests/unit/p3_output_test.cpp",
+   "l": 114,
+   "s": "CHECK(fits_update_key(tf, TDOUBLE, (char*)\"CRPIX1\", &tampered, nullptr, &st) == 0);"
+  },
+  {
+   "f": "./tests/unit/p3_output_test.cpp",
+   "l": 124,
+   "s": "tampered -= 1.0;"
+  },
+  {
+   "f": "./tests/unit/p3_output_test.cpp",
+   "l": 127,
+   "s": "CHECK(fits_update_key(tf, TDOUBLE, (char*)\"CRPIX1\", &tampered, nullptr, &st) == 0);"
+  },
+  {
+   "f": "./tests/unit/cosmetic_integration_test.cpp",
+   "l": 71,
+   "s": "/* integration descriptor / module.yaml 路径 (CMake 编译定义注入) */"
+  },
+  {
+   "f": "./tests/unit/cosmetic_integration_test.cpp",
+   "l": 374,
+   "s": "if (!path || !path[0]) return 0;   /* 未注入 → 不写盘 (仍可内存断言) */"
+  },
+  {
+   "f": "./tests/unit/cosmetic_integration_test.cpp",
+   "l": 528,
+   "s": "printf(\"[FAIL] F-pre: ASTROSCOS_DLL_PATH 未注入\\n\");"
+  },
+  {
+   "f": "./tests/unit/cosmetic_integration_test.cpp",
+   "l": 730,
+   "s": "CHECK(g_fx.spikes.size() > 0, \"P3: hot spike 注入点非空 (hot 检测真实发生)\");"
+  },
+  {
+   "f": "./tests/unit/cosmetic_integration_test.cpp",
+   "l": 732,
+   "s": "/* trace writer (env 注入输出路径; 未注入则仅内存断言) */"
+  },
+  {
+   "f": "./tests/unit/cosmetic_integration_test.cpp",
+   "l": 944,
+   "s": "/* 真实检测观测: FIX-COS-B dark spike → hot == 注入点数;"
+  },
+  {
+   "f": "./tests/unit/cosmetic_integration_test.cpp",
+   "l": 947,
+   "s": "\"C9: node1 hot == FIX-COS-B 注入点数 (检测计数真实观测)\");"
+  },
+  {
+   "f": "./tests/unit/cpu_fallback_test.cpp",
+   "l": 50,
+   "s": "std::string file = dir + \"/corrupt.so\";"
+  },
+  {
+   "f": "./tests/unit/cpu_fallback_test.cpp",
+   "l": 53,
+   "s": "e.file = \"corrupt.so\";"
+  },
+  {
+   "f": "./tests/unit/cpu_fallback_test.cpp",
+   "l": 66,
+   "s": "e.file = \"corrupt.so\";"
+  },
+  {
+   "f": "./tests/unit/cpu_fallback_test.cpp",
+   "l": 133,
+   "s": "e.file = \"corrupt.so\";"
+  },
+  {
+   "f": "./tests/unit/cpu_fallback_test.cpp",
+   "l": 144,
+   "s": "std::printf(\"CPU-005 TESTS PASS (损坏/ABI mismatch/缺文件/路径注入/伪造 manifest 全拒, 优雅回退)\\n\");"
+  },
+  {
+   "f": "./tests/unit/p1001_real_nodes_test.cpp",
+   "l": 729,
+   "s": "static void test_negative_injection() {"
+  },
+  {
+   "f": "./tests/unit/p1001_real_nodes_test.cpp",
+   "l": 2009,
+   "s": "static void test_torn_artifact_fault_injection() {"
+  },
+  {
+   "f": "./tests/unit/p1001_real_nodes_test.cpp",
+   "l": 2338,
+   "s": "test_negative_injection();"
+  },
+  {
+   "f": "./tests/unit/p1001_real_nodes_test.cpp",
+   "l": 2354,
+   "s": "test_torn_artifact_fault_injection();"
+  },
+  {
+   "f": "./tests/unit/rt007_artifact_store_test.cpp",
+   "l": 86,
+   "s": "static void test_tamper_detection() {"
+  },
+  {
+   "f": "./tests/unit/rt007_artifact_store_test.cpp",
+   "l": 157,
+   "s": "test_tamper_detection();"
+  },
+  {
+   "f": "./tests/unit/p3_wcs_test.cpp",
+   "l": 129,
+   "s": "const char* f = std::getenv(\"STD_F1_BRIDGE_FAULT\");"
+  },
+  {
+   "f": "./tests/unit/p3_wcs_test.cpp",
+   "l": 139,
+   "s": "double max_nobridge_px = 0.0;        // 负向注入 A: 桥接移除 → 1px/轴"
+  },
+  {
+   "f": "./tests/unit/p3_wcs_test.cpp",
+   "l": 140,
+   "s": "double max_double_px = 0.0;          // 负向注入 B: 双重桥接 → 1px/轴"
+  },
+  {
+   "f": "./tests/unit/p3_wcs_test.cpp",
+   "l": 432,
+   "s": "\"\\\"bridge_fault_env\\\":\\\"%s\\\",\""
+  },
+  {
+   "f": "./tests/unit/p3_wcs_test.cpp",
+   "l": 435,
+   "s": "(std::getenv(\"STD_F1_BRIDGE_FAULT\") ? std::getenv(\"STD_F1_BRIDGE_FAULT\") : \"\"),"
+  },
+  {
+   "f": "./tests/unit/p3_wcs_test.cpp",
+   "l": 445,
+   "s": "\"roundtrip, STD-F1 九宫格 9x100x100 无 1px 偏移 + 负向注入必败)\\n\");"
+  },
+  {
+   "f": "./tests/unit/aio_abi_tests.cpp",
+   "l": 279,
+   "s": "const char* content = \"tamper-probe-0xAIO\";"
+  },
+  {
+   "f": "./tests/unit/aio_abi_tests.cpp",
+   "l": 299,
+   "s": "char tampered[AIO_DIGEST_HEX_LEN + 1];"
+  },
+  {
+   "f": "./tests/unit/aio_abi_tests.cpp",
+   "l": 300,
+   "s": "std::snprintf(tampered, sizeof(tampered), \"%s\", hex);"
+  },
+  {
+   "f": "./tests/unit/aio_abi_tests.cpp",
+   "l": 301,
+   "s": "tampered[0] = (tampered[0] == '0') ? '1' : '0';"
+  },
+  {
+   "f": "./tests/unit/aio_abi_tests.cpp",
+   "l": 302,
+   "s": "AIO_CHECK_MSG(cs, aio_content_hash_verify_buffer_v1(content, n, tampered) =="
+  },
+  {
+   "f": "./tests/unit/aio_abi_tests.cpp",
+   "l": 305,
+   "s": "aio_content_hash_verify_buffer_v1(content, n, tampered));"
+  },
+  {
+   "f": "./tests/unit/aio_abi_tests.cpp",
+   "l": 377,
+   "s": "AIO_CHECK(cs, f != nullptr, \"n4_tamper_write\");"
+  },
+  {
+   "f": "./tests/unit/aio_abi_tests.cpp",
+   "l": 385,
+   "s": "\"file tamper not detected\");"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 118,
+   "s": "::setenv(\"XDG_DATA_HOME\", td.c_str(), 1);"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 123,
+   "s": "::unsetenv(\"XDG_DATA_HOME\");"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 124,
+   "s": "::setenv(\"HOME\", td.c_str(), 1);"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 129,
+   "s": "::setenv(\"XDG_DATA_HOME\", td.c_str(), 1);   // 还原, 后续用例不受影响"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 166,
+   "s": "CHECK(l.reason.rfind(\"corrupted\", 0) == 0);"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 180,
+   "s": "CHECK(l.reason.rfind(\"corrupted\", 0) == 0);"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 291,
+   "s": "CHECK(classify_profile_rejection_v1(\"malformed JSON: x\", \"\") == \"corrupted\");"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 301,
+   "s": "CHECK(classify_profile_rejection_v1(\"\", \"profile/hw malformed JSON\") == \"corrupted\");"
+  },
+  {
+   "f": "./tests/unit/cpu007_profile_store_test.cpp",
+   "l": 302,
+   "s": "CHECK(classify_profile_rejection_v1(\"\", \"\") == \"corrupted\");   // 未知保守归损坏"
+  },
+  {
+   "f": "./tests/unit/drizzle_precision_default_test.cpp",
+   "l": 321,
+   "s": "std::printf(\"RESCUE-FD-02 DRIZZLE PRECISION DEFAULT TESTS PASS\\n\");"
+  },
+  {
+   "f": "./tests/unit/drizzle_precision_default_test.cpp",
+   "l": 324,
+   "s": "std::fprintf(stderr, \"RESCUE-FD-02 DRIZZLE PRECISION DEFAULT TESTS FAIL (%d)\\n\","
+  },
+  {
+   "f": "./tests/unit/mon002_gate_test.cpp",
+   "l": 412,
+   "s": "\"B7-F14 回归锁 4 组: 注入leak必FAIL/仅分配器缓存必PASS且字段非零/探针不可用回退RSS/真实T4 Reclaimed)\\n\");"
+  },
+  {
+   "f": "./tests/unit/p1_resource_test.cpp",
+   "l": 78,
+   "s": "CHECK(evaluate_gate(g) == astrocs::GateDiag::Ok || true);  // compute 判定由调用方注入均值"
+  },
+  {
+   "f": "./tests/unit/cpu_backend_exception_test.cpp",
+   "l": 116,
+   "s": "caught_std.fetch_add(1);  // 注入确为 std::exception 派生"
+  },
+  {
+   "f": "./tests/unit/cpu_backend_exception_test.cpp",
+   "l": 134,
+   "s": "CHECK(caught_std.load() >= 1);       // 注入生效且为 std::exception 派生"
+  },
+  {
+   "f": "./tests/unit/rt001_unique_executor_test.cpp",
+   "l": 324,
+   "s": "::setenv(\"ASTROCS_RT001_FAULT\", \"resample_drop_band\", 1);"
+  },
+  {
+   "f": "./tests/unit/rt001_unique_executor_test.cpp",
+   "l": 329,
+   "s": "::unsetenv(\"ASTROCS_RT001_FAULT\");"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 33,
+   "s": "int run_injected_child(const char* group, const std::string& fault_name) {"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 34,
+   "s": "const std::string fault_env = \"ASTROCS_AIO_FAULT=\" + fault_name;"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 35,
+   "s": "std::vector<char> fbuf(fault_env.begin(), fault_env.end());"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 59,
+   "s": "static int run_injected_group(const char* group) {"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 95,
+   "s": "const char* fault = std::getenv(\"ASTROCS_AIO_SELFCHECK_FAULT\");"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 97,
+   "s": "const int child_rc = run_injected_child(\"units\", name);"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 100,
+   "s": "\"SELFCHECK: fault-inject '%s' 后 units 仍 PASS — 恒 PASS 占位, 注入机制失效\\n\","
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 110,
+   "s": "const int child_rc = run_injected_child(\"negative\", \"n2_verify_mismatch_shortcut\");"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 113,
+   "s": "\"SELFCHECK: fault-inject 'n2_verify_mismatch_shortcut' 后 negative 仍 PASS — 注入机制失效\\n\");"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 123,
+   "s": "const int child_rc = run_injected_child(\"negative\", \"n3_file_size_skip\");"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 126,
+   "s": "\"SELFCHECK: fault-inject 'n3_file_size_skip' 后 negative 仍 PASS — 注入机制失效\\n\");"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 142,
+   "s": "if (argc >= 2 && std::strcmp(argv[1], \"units\") == 0) return run_injected_group(\"units\");"
+  },
+  {
+   "f": "./tests/unit/aio_abi_selfcheck.cpp",
+   "l": 143,
+   "s": "if (argc >= 2 && std::strcmp(argv[1], \"negative\") == 0) return run_injected_group(\"negative\");"
+  },
+  {
+   "f": "./tests/unit/aio_abi_test_main.hpp",
+   "l": 45,
+   "s": "const char* env = std::getenv(\"ASTROCS_AIO_FAULT\");"
+  },
+  {
+   "f": "./tests/unit/aio_abi_test_main.hpp",
+   "l": 59,
+   "s": "void note_injected(const char* name) {"
+  },
+  {
+   "f": "./tests/unit/aio_abi_test_main.hpp",
+   "l": 61,
+   "s": "std::fprintf(stderr, \"FAULT-INJECT %s (deterministic failure injection)\\n\", name);"
+  },
+  {
+   "f": "./tests/unit/aio_abi_test_main.hpp",
+   "l": 72,
+   "s": "(cs).note_injected(faultname);                                      \\"
+  },
+  {
+   "f": "./tests/unit/aio_abi_test_main.hpp",
+   "l": 86,
+   "s": "(cs).note_injected(faultname);                                      \\"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 448,
+   "s": "static void test_s302_integration_projection(bool fault_inject) {"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 480,
+   "s": "const int32_t nrej_bias = fault_inject ? 1 : 0;"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 762,
+   "s": "static void test_f_p2002_02_n_ineligible_identity(bool fault_inject) {"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 793,
+   "s": "if (fault_inject) {"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 1170,
+   "s": "static void test_s303_provenance_keys(bool fault_inject) {"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 1218,
+   "s": "if (fault_inject) {"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 1220,
+   "s": "\"FAULT-INJECT: provenance keys must all be present; missing\""
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 1259,
+   "s": "static void test_s303_aio_channel_real_values(bool fault_inject) {"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 1334,
+   "s": "if (fault_inject)"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 1436,
+   "s": "if (fault_inject) {"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 1438,
+   "s": "\"FAULT-INJECT(aio): 等价缺陷 = 诊断平面偏移 1 → 逐像素/verify 断言必败\");"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 1669,
+   "s": "const char* fault = std::getenv(\"ASTROCS_P2002_FAULT\");"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 1679,
+   "s": "setenv(\"P2002_PROBE\", \"1\", 1);"
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 1707,
+   "s": "\"depth=3 1v4 parity + FAULT=identity 注入必败 + per-sample 掩码\""
+  },
+  {
+   "f": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+   "l": 1708,
+   "s": "\" fail-closed 注入必败)\\n\");"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp",
+   "l": 45,
+   "s": "const std::string& fault_env) {"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp",
+   "l": 57,
+   "s": "if (!fault_env.empty()) {"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp",
+   "l": 58,
+   "s": "env_pair = \"ASTROCS_P1WCS_FAULT=\" + fault_env;"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp",
+   "l": 92,
+   "s": "const char* f = std::getenv(\"ASTROCS_P1WCS_SELFCHECK_FAULT_A\");"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp",
+   "l": 98,
+   "s": "\"恒 PASS 占位, 注入机制失效\\n\","
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp",
+   "l": 110,
+   "s": "const char* f = std::getenv(\"ASTROCS_P1WCS_SELFCHECK_FAULT_B\");"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp",
+   "l": 117,
+   "s": "\"argv 注入通道失效\\n\","
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp",
+   "l": 132,
+   "s": "\"SELFCHECK: 无注入重入 units FAIL (rc=%d) — 重入路径受损\\n\","
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_test_main.hpp",
+   "l": 81,
+   "s": "\"n1_wcs_tan_bridge_removed\",  // negative: 去桥接注入必被检出 (B2-A1)"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_test_main.hpp",
+   "l": 82,
+   "s": "\"n1_wcs_tan_bridge_doubled\",  // negative: 双桥接注入必被检出 (B2-A1)"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_test_main.hpp",
+   "l": 109,
+   "s": "if (const char* f = std::getenv(\"ASTROCS_P1WCS_FAULT\")) {"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_test_main.hpp",
+   "l": 143,
+   "s": "void note_injected(const char* name) {"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_test_main.hpp",
+   "l": 145,
+   "s": "std::fprintf(stderr, \"FAULT-INJECT %s (deterministic failure injection)\\n\", name);"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_test_main.hpp",
+   "l": 153,
+   "s": "/* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_test_main.hpp",
+   "l": 157,
+   "s": "(cs).note_injected(faultname);                                 \\"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_test_main.hpp",
+   "l": 170,
+   "s": "(cs).note_injected(faultname);                                 \\"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_tests_apbp.cpp",
+   "l": 434,
+   "s": "cs.note_injected(\"f2x_cross_export\");"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py",
+   "l": 18,
+   "s": "b) 负向注入「桥接移除」(origin=1) 与「双重桥接」(origin=0 且 x0+1):"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py",
+   "l": 60,
+   "s": "WRONG_OFFSETS = (0.0, -1.0, 2.0)   # 负向注入: 移除/错置桥接"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py",
+   "l": 216,
+   "s": "\"negative_injection_offsets_px\": list(WRONG_OFFSETS),"
+  },
+  {
+   "f": "./tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py",
+   "l": 460,
+   "s": "print(\"STD-F1 BRIDGE CROSS PASS (九宫格 18 格无 1px 偏移; 负向注入全部检出)\")"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 417,
+   "s": "/* u6: discard 幂等 + 负向 + 注入假清有效性证明 (p1_discard_noop) */"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 429,
+   "s": "/* 注入假清: 返回 OK 但残留仍在 → 证明常规 discard 真实删除"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 433,
+   "s": "setenv(\"ASTROCS_HIPS_PUBLISH_FAULT\", \"p1_discard_noop\", 1);"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 435,
+   "s": "unsetenv(\"ASTROCS_HIPS_PUBLISH_FAULT\");"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 478,
+   "s": "setenv(\"ASTROCS_HIPS_PUBLISH_FAULT\", \"p1_fsync_fail\", 1);"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 482,
+   "s": "unsetenv(\"ASTROCS_HIPS_PUBLISH_FAULT\");"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 500,
+   "s": "setenv(\"ASTROCS_HIPS_PUBLISH_FAULT\", \"p1_promote_fail\", 1);"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 504,
+   "s": "unsetenv(\"ASTROCS_HIPS_PUBLISH_FAULT\");"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 520,
+   "s": "setenv(\"ASTROCS_HIPS_PUBLISH_FAULT\", \"p1_stage_create_fail\", 1);"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 524,
+   "s": "unsetenv(\"ASTROCS_HIPS_PUBLISH_FAULT\");"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 557,
+   "s": "/* kill 中断: 子进程驻留 staging 期 (p1_stage_slow_write 注入) 被 SIGKILL →"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 569,
+   "s": "/* 子进程: 注入 slow → 驻留 staging 期; SIGKILL 由父进程施加 */"
+  },
+  {
+   "f": "./tests/unit/p1_hips/publish_atomic_test.c",
+   "l": 570,
+   "s": "setenv(\"ASTROCS_HIPS_PUBLISH_FAULT\", \"p1_stage_slow_write\", 1);"
+  },
+  {
+   "f": "./tests/backend/fixture_common.py",
+   "l": 21,
+   "s": "DEFAULT_FDIR = os.path.join(REPO, \"run\", \"temp\", \"p2003_dbg\", \"f1f2\")"
+  },
+  {
+   "f": "./tests/backend/fixture_common.py",
+   "l": 73,
+   "s": "def ensure_f1f2_hips(fdir=DEFAULT_FDIR):"
+  },
+  {
+   "f": "./tests/backend/fixture_common.py",
+   "l": 125,
+   "s": "16c 全核下阈值 12.8 核超出 mini fixture 算力。budget 注入链 P0 修复后"
+  },
+  {
+   "f": "./tests/backend/fixture_common.py",
+   "l": 126,
+   "s": "(module_adapters execute 以 ctx.budget() 权威注入) session budget = 真机"
+  },
+  {
+   "f": "./tests/backend/test_p3_output.py",
+   "l": 6,
+   "s": "断言 flush(数据写出)→fsync→rename; ASTROCS_FAIL_FSYNC=1 注入 fsync 失败 →"
+  },
+  {
+   "f": "./tests/backend/test_p3_output.py",
+   "l": 8,
+   "s": "- test_09..11: sha256 失败分支 (读失败注入 / 不存在 / 不可读) — 失败必须错误传播,"
+  },
+  {
+   "f": "./tests/backend/test_p3_output.py",
+   "l": 63,
+   "s": "\"\"\"构建带 hash-fail 注入钩子的探针 (正常路径行为与 probe_main 同源)。\"\"\""
+  },
+  {
+   "f": "./tests/backend/test_p3_output.py",
+   "l": 80,
+   "s": "\"-Dastrocs_hash_fail_inject\", *incs, *srcs,"
+  },
+  {
+   "f": "./tests/backend/test_p3_output.py",
+   "l": 275,
+   "s": "\"\"\"fsync 失败注入 → 写路径必须报 IO 错误, 不 rename 发布任何产物。\"\"\""
+  },
+  {
+   "f": "./tests/backend/test_p3_output.py",
+   "l": 292,
+   "s": "\"\"\"写路径 sha256 读失败注入 → P3_OUT_IO, 产物回滚, 无假哈希发布。\"\"\""
+  },
+  {
+   "f": "./tests/backend/test_calibration_oracle.py",
+   "l": 40,
+   "s": "bstack[2*N+7]=NAN;   // NaN 注入在 generate_master 的逐像素统计路径 (显式跳过 NaN)"
+  },
+  {
+   "f": "./tests/backend/test_p1002_gaps.py",
+   "l": 11,
+   "s": "completeness=检出/注入, FP=纯噪声图检出数, centroid 误差 vs 注入中心(预冻结 <0.5px),"
+  },
+  {
+   "f": "./tests/backend/test_p1002_gaps.py",
+   "l": 12,
+   "s": "FWHM vs 注入 σ 的解析关系 FWHM=2.3548σ(预冻结容差)。"
+  },
+  {
+   "f": "./tests/backend/test_p1002_gaps.py",
+   "l": 19,
+   "s": "已知 flux/background/PSF → 光圈测光恢复 flux(与注入 flux 解析关系比对);"
+  },
+  {
+   "f": "./tests/backend/test_p1002_gaps.py",
+   "l": 37,
+   "s": "FWHM_REL_TOL = 0.08                      # FWHM 相对容差(与注入 σ 解析关系)"
+  },
+  {
+   "f": "./tests/backend/test_p1002_gaps.py",
+   "l": 291,
+   "s": "\"\"\"贪心匹配: 每个注入星找最近检出(误差<tol)。返回 (matched, fp_count)。\"\"\""
+  },
+  {
+   "f": "./tests/backend/test_p1002_gaps.py",
+   "l": 353,
+   "s": "不进入测光计数(sat 拒绝语义), 非饱和星 sat=0 进入测光且 flux 与注入一致。\"\"\""
+  },
+  {
+   "f": "./tests/backend/test_p1002_gaps.py",
+   "l": 390,
+   "s": "\"\"\"通量恢复: 检出 flux(振幅 A)≈ 注入 A(预冻结容差, 非饱和星相对误差<8%)。\"\"\""
+  },
+  {
+   "f": "./tests/backend/test_p1002_gaps.py",
+   "l": 531,
+   "s": "\"\"\"已知 flux/background/PSF(高斯 σ=2, A=5000): 光圈测光恢复 flux≈Σ 解析 PSF, 背景≈注入。\"\"\""
+  },
+  {
+   "f": "./tests/backend/test_p1002_gaps.py",
+   "l": 554,
+   "s": "\"\"\"flux 线性: A=5000 与 A=20000 的恢复比值 = 注入比值(容差 1%)。\"\"\""
+  },
+  {
+   "f": "./tests/backend/test_wcs_psf_oracle.py",
+   "l": 9,
+   "s": "并与注入 flux 比对(不调库的测光 estimator, 独立第一性原理)。"
+  },
+  {
+   "f": "./tests/backend/test_wcs_psf_oracle.py",
+   "l": 147,
+   "s": "def test_03_aperture_flux_matches_injected(self):"
+  },
+  {
+   "f": "./tests/backend/test_drizzle_oracle.py",
+   "l": 13,
+   "s": "· flux 守恒: 单次 drop 归一化后 sum ≈ 注入 flux(pixfrac 归一化下与解析吻合)"
+  },
+  {
+   "f": "./tests/backend/test_abi_loader.py",
+   "l": 2,
+   "s": "\"\"\"ABI-002 测试: manifest/hash/ABI/ISA/路径注入 全拒绝且无 illegal instruction。\"\"\""
+  },
+  {
+   "f": "./tests/backend/test_abi_loader.py",
+   "l": 156,
+   "s": "def test_07_path_injection_rejected(self):"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 31,
+   "s": "P0 budget 注入链修复后实测注记(module_adapters.cpp execute 以 ctx.budget()"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 42,
+   "s": "--make-seam6 增强, 属在途域, 非预算注入链缺陷); gate 判据本体按合同"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 73,
+   "s": "\"\"\"从 session stderr 提取 host budget workers(N)(注入链正向证据)。"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 197,
+   "s": "self.assertIsNotNone(workers, \"session 日志缺 budget workers 注入证据\")"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 214,
+   "s": "(真机分配核), p2 sampler/upm worker 数随 N 注入(修复前恒 2)。"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 222,
+   "s": "\"session cpus < 本机可用核(注入链未打通)\")"
+  },
+  {
+   "f": "./tests/backend/test_p2007_joint_gate.py",
+   "l": 227,
+   "s": "P0 budget 注入链修复后: MON-002 CPU 口径(active window≥10s 采样,"
+  },
+  {
+   "f": "./tests/abi/test_secure_loader.py",
+   "l": 318,
+   "s": "tampered = os.path.join(work, \"tampered.so\")"
+  },
+  {
+   "f": "./tests/abi/test_secure_loader.py",
+   "l": 322,
+   "s": "open(tampered, \"wb\").write(bytes(data))"
+  },
+  {
+   "f": "./tests/abi/test_secure_loader.py",
+   "l": 323,
+   "s": "r = run([probe, \"load\", \"module\", tampered, \"astrocs.test.good\", good_sha,"
+  },
+  {
+   "f": "./tests/abi/test_secure_loader.py",
+   "l": 324,
+   "s": "\"ABI-003-fixture-good\", os.path.dirname(tampered), \"1\"])"
+  },
+  {
+   "f": "./tests/abi/test_secure_loader.py",
+   "l": 325,
+   "s": "check(\"N2 tampered file hash mismatch rejected\","
+  },
+  {
+   "f": "./tests/abi/test_secure_loader.py",
+   "l": 454,
+   "s": "r = run([probe, \"load\", \"module\", tampered, \"astrocs.test.good\", good_sha,"
+  },
+  {
+   "f": "./tests/abi/test_secure_loader.py",
+   "l": 455,
+   "s": "\"-\", os.path.dirname(tampered), \"1\"])"
+  },
+  {
+   "f": "./tests/abi/test_secure_loader.py",
+   "l": 458,
+   "s": "good_sha[:16] not in r.stdout and tampered not in r.stdout,"
+  },
+  {
+   "f": "./tests/abi/mod001_install_load_check.py",
+   "l": 34,
+   "s": "S8 安装树完整性负向（fail-closed 破坏性注入, 最后执行）: 删除"
+  },
+  {
+   "f": "./tests/abi/mod001_install_load_check.py",
+   "l": 42,
+   "s": "测试有牙齿: S6 负路径与 S7/S8 注入在本脚本内直接证明\"断链/篡改/缺失必败\","
+  },
+  {
+   "f": "./tests/abi/mod001_install_load_check.py",
+   "l": 309,
+   "s": "f\"S6 注入: sha256 篡改 {mid}\")"
+  },
+  {
+   "f": "./tests/abi/mod001_install_load_check.py",
+   "l": 312,
+   "s": "f\"S6 注入: module_id 错配 {mid}\")"
+  },
+  {
+   "f": "./tests/abi/mod001_install_load_check.py",
+   "l": 317,
+   "s": "\"S6 注入: root 越界 (build 树路径 vs 安装树 root)\")"
+  },
+  {
+   "f": "./tests/abi/mod001_install_load_check.py",
+   "l": 321,
+   "s": "\"S6 注入: 文件缺失\")"
+  },
+  {
+   "f": "./tests/abi/mod001_install_load_check.py",
+   "l": 355,
+   "s": "check(\"S8 注入: 删科学 DLL → verify_install_tree 必败(MISSING REQUIRED)\","
+  },
+  {
+   "f": "./tests/abi/mod001_install_load_check.py",
+   "l": 359,
+   "s": "check(\"S8 注入: 删科学 DLL → CLI modules verify 必败(无静态 fallback)\","
+  },
+  {
+   "f": "./tests/abi/mod001_install_load_check.py",
+   "l": 363,
+   "s": "check(\"S8 注入: 删科学 DLL\", False, f\"victim missing: {victim}\")"
+  },
+  {
+   "f": "./tests/abi/test_abi005_echo.py",
+   "l": 245,
+   "s": "tampered = os.path.join(work, \"tampered_echo.so\")"
+  },
+  {
+   "f": "./tests/abi/test_abi005_echo.py",
+   "l": 248,
+   "s": "open(tampered, \"wb\").write(bytes(data))"
+  },
+  {
+   "f": "./tests/abi/test_abi005_echo.py",
+   "l": 249,
+   "s": "r = run([probe, \"load\", \"module\", tampered, ECHO_MID, echo_sha,"
+  },
+  {
+   "f": "./tests/abi/test_abi005_echo.py",
+   "l": 250,
+   "s": "ECHO_BUILD, os.path.dirname(tampered), \"1\"])"
+  },
+  {
+   "f": "./tests/abi/test_abi005_echo.py",
+   "l": 331,
+   "s": "shutil.copy(tampered, os.path.join(base3, \"modules\", \"astrocs_echo.so\"))"
+  },
+  {
+   "f": "./tests/quality/test_known_failures_baseline_ci.py",
+   "l": 19,
+   "s": "T7  check 红：构造一个不在基线的假失败 → FAIL（负向注入必败）"
+  },
+  {
+   "f": "./tests/quality/test_known_failures_baseline_ci.py",
+   "l": 28,
+   "s": "环境无关性（FD-R1-018，前台轮末 CI 取证裁定）：ci/run.py 会给**每个**检查注入"
+  },
+  {
+   "f": "./tests/quality/test_known_failures_baseline_ci.py",
+   "l": 103,
+   "s": "ci/run.py 对每个检查注入 ASTROCS_CI_OUT_ROOT（= 本次 run 证据根），CI 内"
+  },
+  {
+   "f": "./tests/quality/test_known_failures_baseline_ci.py",
+   "l": 243,
+   "s": "\"\"\"T6–T9：失败集 ⊆ 基线 动态判定（含负向注入必败）。\"\"\""
+  },
+  {
+   "f": "./tests/quality/test_known_failures_baseline_ci.py",
+   "l": 266,
+   "s": "\"\"\"T7：构造一个不在基线的假失败 → rc=1（负向注入必败）。\"\"\""
+  },
+  {
+   "f": "./tests/quality/test_known_failures_baseline_ci.py",
+   "l": 378,
+   "s": "\"\"\"T12c：未给来源旗标时取 ASTROCS_CI_OUT_ROOT/checks（ci/run.py 注入形态）。\"\"\""
+  },
+  {
+   "f": "./tests/quality/test_docchk002_mutation.py",
+   "l": 8,
+   "s": "③ 单位: 注入 Drizzle 式无冻结二义(\"ADU 或 ADU/pixel\" / 裸 \"ADU/e⁻\") → check_unit_closure FAIL;"
+  },
+  {
+   "f": "./tests/quality/test_docchk002_mutation.py",
+   "l": 9,
+   "s": "④ 单位: 注入但带冻结语句 → check_unit_closure PASS。"
+  },
+  {
+   "f": "./tests/quality/test_docchk002_mutation.py",
+   "l": 84,
+   "s": "def test_06_unit_ambiguity_injection_fails(self):"
+  },
+  {
+   "f": "./tests/quality/test_docchk002_mutation.py",
+   "l": 89,
+   "s": "def test_07_unit_or_ambiguity_injection_fails(self):"
+  },
+  {
+   "f": "./tests/quality/test_doc_line_anchors.py",
+   "l": 6,
+   "s": "结构（先红后绿 + 负向注入必败）："
+  },
+  {
+   "f": "./tests/quality/test_doc_line_anchors.py",
+   "l": 8,
+   "s": "2) 合成最小仓库 fixture：逐条注入漂移/破坏，检查器必须 rc!=0 且给出对应规则码；"
+  },
+  {
+   "f": "./tests/quality/test_doc_line_anchors.py",
+   "l": 9,
+   "s": "注入移除后必须回到 rc=0（证明失败由注入引起，非恒真装饰）；"
+  },
+  {
+   "f": "./tests/quality/test_doc_line_anchors.py",
+   "l": 183,
+   "s": "def test_f11_restore_after_each_injection(self):"
+  },
+  {
+   "f": "./tests/quality/test_doc_line_anchors.py",
+   "l": 184,
+   "s": "\"\"\"每次注入后还原，检查器必须回到绿——失败由注入引起，非恒真。\"\"\""
+  },
+  {
+   "f": "./tests/monitoring/test_log_contract.py",
+   "l": 172,
+   "s": "def test_no_newline_injection(self):"
+  },
+  {
+   "f": "./tests/monitoring/test_log_contract.py",
+   "l": 173,
+   "s": "ev = make_event(1, diagnostic=\"跨行\\n注入\")"
+  },
+  {
+   "f": "./tests/monitoring/test_log_contract.py",
+   "l": 177,
+   "s": "self.assertEqual(json.loads(line)[\"diagnostic\"], \"跨行\\n注入\")"
+  },
+  {
+   "f": "./tests/monitoring/test_frozen_gate.py",
+   "l": 22,
+   "s": "G8 故障注入必败：对 G1 通过样例注入\"监控失明\"（抹掉 CPU 样本）→ 判定必须"
+  },
+  {
+   "f": "./tests/monitoring/test_frozen_gate.py",
+   "l": 23,
+   "s": "翻转为 fail（若门禁返回 pass 即测试失败——门禁可被注入击败 = 无效）；"
+  },
+  {
+   "f": "./tests/monitoring/test_frozen_gate.py",
+   "l": 24,
+   "s": "G9 run_monitored CLI 集成：--gate-workers/--gate-effective-cpus 注入合成"
+  },
+  {
+   "f": "./tests/monitoring/test_frozen_gate.py",
+   "l": 197,
+   "s": "def test_g8_fault_injection_blind_monitor(self):"
+  },
+  {
+   "f": "./tests/monitoring/test_frozen_gate.py",
+   "l": 203,
+   "s": "s[\"cpu_percent\"] = None  # 注入: 监控失明（CPU 采样全部失效）"
+  },
+  {
+   "f": "./tests/monitoring/test_monitor_contract.py",
+   "l": 49,
+   "s": "\"\"\"确定性伪 Linux 后端：严格递增计数器（测试用；非真实观测注入）。\"\"\""
+  },
+  {
+   "f": "./tests/monitoring/test_monitor_contract.py",
+   "l": 225,
+   "s": "def test_byte_tamper_detected(self):"
+  },
+  {
+   "f": "./tests/monitoring/test_monitor_contract.py",
+   "l": 227,
+   "s": "csv = self._make_csv(td, \"run-tamper\")"
+  },
+  {
+   "f": "./tests/monitoring/test_monitor_contract.py",
+   "l": 240,
+   "s": "v = verify_csv(csv, run_id=\"run-tamper\")"
+  },
+  {
+   "f": "./tests/monitoring/test_run_graph_render.py",
+   "l": 65,
+   "s": "def make_trace_jsonl(*, tamper_node: str = \"\", zero_dll: bool = False,"
+  },
+  {
+   "f": "./tests/monitoring/test_run_graph_render.py",
+   "l": 69,
+   "s": "artifact_publish）；可注入篡改/缺失/无 node_id 行。\"\"\""
+  },
+  {
+   "f": "./tests/monitoring/test_run_graph_render.py",
+   "l": 105,
+   "s": "if tamper_node and nid == tamper_node:"
+  },
+  {
+   "f": "./tests/monitoring/test_run_graph_render.py",
+   "l": 338,
+   "s": "def test_call_count_tamper_detected(self):"
+  },
+  {
+   "f": "./tests/monitoring/test_run_graph_render.py",
+   "l": 350,
+   "s": "def test_artifact_hash_tamper_detected(self):"
+  },
+  {
+   "f": "./tests/monitoring/test_run_graph_render.py",
+   "l": 361,
+   "s": "def test_status_tamper_detected(self):"
+  },
+  {
+   "f": "./tests/cli/test_cli001_vpi.py",
+   "l": 335,
+   "s": "def test_14_inspect_human_mode_and_delete_injection(self):"
+  },
+  {
+   "f": "./tests/cli/test_memory_growth.py",
+   "l": 3,
+   "s": "验收(07 §5): 注入泄漏被抓; 稳定 cache 不误判; 报告含曲线摘要。\"\"\""
+  },
+  {
+   "f": "./tests/cli/test_memory_growth.py",
+   "l": 82,
+   "s": "def test_01_injected_leak_detected(self):"
+  },
+  {
+   "f": "./tests/cli/test_memory_growth.py",
+   "l": 83,
+   "s": "\"\"\"注入线性泄漏(每轮+64KB) → leak。\"\"\""
+  },
+  {
+   "f": "./lib/calibration/tests/p1cal/p1cal_tests_selfcheck.cpp",
+   "l": 39,
+   "s": "const char* fault = std::getenv(\"P1CAL_SELFCHECK_FAULT\");"
+  },
+  {
+   "f": "./lib/calibration/tests/p1cal/p1cal_tests_selfcheck.cpp",
+   "l": 41,
+   "s": "std::string fault_env = \"ASTROCS_P1CAL_FAULT=\" + name;"
+  },
+  {
+   "f": "./lib/calibration/tests/p1cal/p1cal_tests_selfcheck.cpp",
+   "l": 42,
+   "s": "std::vector<char> fbuf(fault_env.begin(), fault_env.end());"
+  },
+  {
+   "f": "./lib/calibration/tests/p1cal/p1cal_tests_selfcheck.cpp",
+   "l": 64,
+   "s": "\"SELFCHECK: fault-inject '%s' 后 units 仍 PASS — 恒 PASS 占位, 注入机制失效\\n\","
+  },
+  {
+   "f": "./lib/calibration/tests/p1cal/p1cal_tests_selfcheck.cpp",
+   "l": 79,
+   "s": "if (std::getenv(\"ASTROCS_P1CAL_FAULT\") != nullptr && argc >= 2) {"
+  },
+  {
+   "f": "./lib/calibration/tests/p1cal/p1cal_tests_core.cpp",
+   "l": 580,
+   "s": "P1CAL_CHECK_EQ(cs, h2, static_cast<int>(want_hot_count) + 1);  // 结构 4 hot + 角点注入"
+  },
+  {
+   "f": "./lib/calibration/tests/p1cal/p1cal_test_main.hpp",
+   "l": 41,
+   "s": "void note_injected(const char* name) {"
+  },
+  {
+   "f": "./lib/calibration/tests/p1cal/p1cal_test_main.hpp",
+   "l": 43,
+   "s": "std::fprintf(stderr, \"FAULT-INJECT %s (deterministic failure injection)\\n\", name);"
+  },
+  {
+   "f": "./lib/calibration/tests/p1cal/p1cal_test_main.hpp",
+   "l": 51,
+   "s": "/* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\"
+  },
+  {
+   "f": "./lib/calibration/tests/p1cal/p1cal_test_main.hpp",
+   "l": 55,
+   "s": "(cs).note_injected(faultname);                                 \\"
+  },
+  {
+   "f": "./lib/calibration/tests/p1cal/p1cal_test_main.hpp",
+   "l": 90,
+   "s": "if (const char* f = std::getenv(\"ASTROCS_P1CAL_FAULT\")) {"
+  },
+  {
+   "f": "./lib/healpix_db/archive/legacy/healpix_stack/tests/test_hp_stack_hiss.py",
+   "l": 15,
+   "s": "2. sigma-clip 剔除: 注入离群值, 验证被剔除"
+  },
+  {
+   "f": "./lib/healpix_db/archive/legacy/healpix_stack/tests/test_hp_stack_hiss.py",
+   "l": 128,
+   "s": "\"\"\"测试 2: 11 帧中注入 1 个离群值, 验证 sigma-clip 剔除"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_test_main.hpp",
+   "l": 55,
+   "s": "void note_injected(const char* name) {"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_test_main.hpp",
+   "l": 58,
+   "s": "\"FAULT-INJECT %s (deterministic failure injection)\\n\","
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_test_main.hpp",
+   "l": 68,
+   "s": "(cs).note_injected(faultname);                                \\"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_test_main.hpp",
+   "l": 84,
+   "s": "(cs).note_injected(faultname);                                \\"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_test_main.hpp",
+   "l": 106,
+   "s": "if (const char* f = std::getenv(\"ASTROCS_P1DRZ_FAULT\")) {"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+   "l": 26,
+   "s": "const InjectionCase k_injections[] = {"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+   "l": 35,
+   "s": "if (fault && ::setenv(\"ASTROCS_P1DRZ_FAULT\", fault, 1) != 0)"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+   "l": 37,
+   "s": "if (!fault) ::unsetenv(\"ASTROCS_P1DRZ_FAULT\");"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+   "l": 49,
+   "s": "if (argc >= 1 && std::getenv(\"ASTROCS_P1DRZ_FAULT\") != nullptr) {"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+   "l": 68,
+   "s": "for (const auto& c : k_injections) {"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+   "l": 69,
+   "s": "std::string fault_env = \"ASTROCS_P1DRZ_FAULT=\" + std::string(c.name);"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+   "l": 70,
+   "s": "std::vector<char> env_buf(fault_env.begin(), fault_env.end());"
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+   "l": 106,
+   "s": "\"[p1drz-selfcheck] == P1-DRZ-TEST selfcheck: baseline PASS + %zu 注入\""
+  },
+  {
+   "f": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+   "l": 108,
+   "s": "sizeof(k_injections) / sizeof(k_injections[0]), failed);"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 29,
+   "s": "S2  有效 root + LIB 注入     -> rc=0, 库 == <root>/lib/<注入名>, 版本 == fake"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 31,
+   "s": "注入名刻意取 FindZLIB NAMES 之外, 复刻 vcpkg"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 33,
+   "s": "S2b 有效 root + 无 LIB 注入  -> configure 必败 (missing: ZLIB_LIBRARY):"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 35,
+   "s": "S3  无效 root + LIB 注入     -> 与 S1 逐字段同口径 (退回系统搜索, 基线不变)"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 36,
+   "s": "S4  故障注入                -> 临时副本剥掉 ACS_ZLIB_LIB 消费块后 S2 场景必败"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 89,
+   "s": "\"\"\"受控子进程环境: 清掉所有会影响 FindZLIB 的继承项, 再按场景注入。\"\"\""
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 300,
+   "s": "def test_s2_valid_root_with_injected_lib_succeeds(self):"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 301,
+   "s": "\"\"\"S2: 有效 root + ACS_ZLIB_LIB 注入 -> rc=0 且两个 env 都被消费。\"\"\""
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 309,
+   "s": "f\"S2 zlib 库未落在 ACS_ZLIB_LIB 注入的文件上 (got=\""
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 316,
+   "s": "f\"S2 ZLIB_LIBRARY 缓存项不是注入库 (got=\""
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 326,
+   "s": "def test_s2b_valid_root_without_injected_lib_fails_closed(self):"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 339,
+   "s": "\"\"\"S3: 无效 root (+LIB 注入) -> 与 S1 逐字段同口径。\"\"\""
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 361,
+   "s": "def test_s4_fault_injection_without_acs_zlib_lib_consumption(self):"
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 378,
+   "s": "f\"故障注入未被检出: 未消费 ACS_ZLIB_LIB 也 configure \""
+  },
+  {
+   "f": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+   "l": 399,
+   "s": "假红。本用例在同一路径上注入反向分隔符 (混合形态) 与 \"..\" 冗余, 断言"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/sdet_oom_interposer.c",
+   "l": 20,
+   "s": "/* 加载探针: negative 组 dlsym(RTLD_DEFAULT) 验证 interposer 真实预载"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/sdet_oom_interposer.c",
+   "l": 24,
+   "s": "/* 显式 arm (导出): 从调用点重置计数并锚定注入点 — 检测段注入需要排除"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_test_main.hpp",
+   "l": 34,
+   "s": "const char* f = std::getenv(\"ASTROCS_P1STAR_FAULT\");"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_test_main.hpp",
+   "l": 57,
+   "s": "std::printf(\"FAULT-INJECT %s\\n\", name);"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_core.cpp",
+   "l": 529,
+   "s": "arm_fn arm = (arm_fn)dlsym(RTLD_DEFAULT, \"sdet_oom_arm\");"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_core.cpp",
+   "l": 579,
+   "s": "if (total_path) setenv(\"OOM_TOTAL\", total_path, 1);"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_core.cpp",
+   "l": 580,
+   "s": "else unsetenv(\"OOM_TOTAL\");"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_core.cpp",
+   "l": 618,
+   "s": "void* sym = dlsym(RTLD_DEFAULT, \"sdet_oom_interposer_magic\");"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_core.cpp",
+   "l": 652,
+   "s": "P1STAR_CHECK(cs, p.count >= 0, \"oom_gap_no_silent_corruption\");"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_core.cpp",
+   "l": 666,
+   "s": "P1STAR_CHECK(cs, p.count >= 0, \"oom_gap_no_silent_corruption\");"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+   "l": 38,
+   "s": "int run_injected_child(const char* group, const std::string& fault_name) {"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+   "l": 39,
+   "s": "const std::string fault_env = \"ASTROCS_P1STAR_FAULT=\" + fault_name;"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+   "l": 40,
+   "s": "std::vector<char> fbuf(fault_env.begin(), fault_env.end());"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+   "l": 66,
+   "s": "unsetenv(\"ASTROCS_P1STAR_FAULT\");"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+   "l": 80,
+   "s": "const char* fault = std::getenv(\"ASTROCS_P1STAR_SELFCHECK_FAULT_A\");"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+   "l": 82,
+   "s": "const int child_rc = run_injected_child(\"units\", name);"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+   "l": 86,
+   "s": "\"注入机制失效\\n\", name.c_str());"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+   "l": 97,
+   "s": "const char* fault = std::getenv(\"ASTROCS_P1STAR_SELFCHECK_FAULT_B\");"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+   "l": 99,
+   "s": "const int child_rc = run_injected_child(\"oracle\", name);"
+  },
+  {
+   "f": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+   "l": 102,
+   "s": "\"SELFCHECK: fault-inject '%s' 后 oracle 仍 PASS — 注入机制失效\\n\","
+  },
+  {
+   "f": "./lib/dynamic_psf/tests/p1psf/p1psf_tests_selfcheck.cpp",
+   "l": 40,
+   "s": "const char* fault = std::getenv(\"P1PSF_SELFCHECK_FAULT\");"
+  },
+  {
+   "f": "./lib/dynamic_psf/tests/p1psf/p1psf_tests_selfcheck.cpp",
+   "l": 42,
+   "s": "std::string fault_env = \"ASTROCS_P1PSF_FAULT=\" + name;"
+  },
+  {
+   "f": "./lib/dynamic_psf/tests/p1psf/p1psf_tests_selfcheck.cpp",
+   "l": 43,
+   "s": "std::vector<char> fbuf(fault_env.begin(), fault_env.end());"
+  },
+  {
+   "f": "./lib/dynamic_psf/tests/p1psf/p1psf_tests_selfcheck.cpp",
+   "l": 65,
+   "s": "\"SELFCHECK: fault-inject '%s' 后 units 仍 PASS — 恒 PASS 占位, 注入机制失效\\n\","
+  },
+  {
+   "f": "./lib/dynamic_psf/tests/p1psf/p1psf_tests_selfcheck.cpp",
+   "l": 80,
+   "s": "if (std::getenv(\"ASTROCS_P1PSF_FAULT\") != nullptr && argc >= 2) {"
+  },
+  {
+   "f": "./lib/dynamic_psf/tests/p1psf/p1psf_test_main.hpp",
+   "l": 75,
+   "s": "void note_injected(const char* name) {"
+  },
+  {
+   "f": "./lib/dynamic_psf/tests/p1psf/p1psf_test_main.hpp",
+   "l": 78,
+   "s": "\"FAULT-INJECT %s (deterministic failure injection)\\n\","
+  },
+  {
+   "f": "./lib/dynamic_psf/tests/p1psf/p1psf_test_main.hpp",
+   "l": 88,
+   "s": "(cs).note_injected(faultname);                                \\"
+  },
+  {
+   "f": "./lib/dynamic_psf/tests/p1psf/p1psf_test_main.hpp",
+   "l": 116,
+   "s": "(cs).note_injected(faultname);                                \\"
+  },
+  {
+   "f": "./lib/dynamic_psf/tests/p1psf/p1psf_test_main.hpp",
+   "l": 138,
+   "s": "if (const char* f = std::getenv(\"ASTROCS_P1PSF_FAULT\")) {"
+  },
+  {
+   "f": "./lib/acr/tests/unit/test_hardware_profile.cpp",
+   "l": 321,
+   "s": "EXPECT_STREQ(hw_profile_state_str(HwProfileState::Corrupt), \"corrupt\");"
+  },
+  {
+   "f": "./lib/snr_estimator/tests/p1noise/p1noise_test_main.hpp",
+   "l": 46,
+   "s": "void note_injected(const char* name) {"
+  },
+  {
+   "f": "./lib/snr_estimator/tests/p1noise/p1noise_test_main.hpp",
+   "l": 48,
+   "s": "std::fprintf(stderr, \"FAULT-INJECT %s (deterministic failure injection)\\n\", name);"
+  },
+  {
+   "f": "./lib/snr_estimator/tests/p1noise/p1noise_test_main.hpp",
+   "l": 56,
+   "s": "/* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */              \\"
+  },
+  {
+   "f": "./lib/snr_estimator/tests/p1noise/p1noise_test_main.hpp",
+   "l": 60,
+   "s": "(cs).note_injected(faultname);                                    \\"
+  },
+  {
+   "f": "./lib/snr_estimator/tests/p1noise/p1noise_test_main.hpp",
+   "l": 94,
+   "s": "if (const char* f = std::getenv(\"ASTROCS_P1NOISE_FAULT\")) {"
+  },
+  {
+   "f": "./lib/snr_estimator/tests/p1noise/p1noise_tests_selfcheck.cpp",
+   "l": 46,
+   "s": "const char* fault = std::getenv(\"P1NOISE_SELFCHECK_FAULT\");"
+  },
+  {
+   "f": "./lib/snr_estimator/tests/p1noise/p1noise_tests_selfcheck.cpp",
+   "l": 48,
+   "s": "std::string fault_env = \"ASTROCS_P1NOISE_FAULT=\" + name;"
+  },
+  {
+   "f": "./lib/snr_estimator/tests/p1noise/p1noise_tests_selfcheck.cpp",
+   "l": 49,
+   "s": "std::vector<char> fbuf(fault_env.begin(), fault_env.end());"
+  },
+  {
+   "f": "./lib/snr_estimator/tests/p1noise/p1noise_tests_selfcheck.cpp",
+   "l": 71,
+   "s": "\"SELFCHECK: fault-inject '%s' 后 units 仍 PASS — 恒 PASS 占位, 注入机制失效\\n\","
+  },
+  {
+   "f": "./lib/snr_estimator/tests/p1noise/p1noise_tests_selfcheck.cpp",
+   "l": 86,
+   "s": "if (std::getenv(\"ASTROCS_P1NOISE_FAULT\") != nullptr && argc >= 2) {"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+   "l": 34,
+   "s": "int run_injected_group(const char* group) {"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+   "l": 43,
+   "s": "int run_injected_child(const char* group, const std::string& fault_name) {"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+   "l": 44,
+   "s": "const std::string fault_env = \"ASTROCS_P1SESS_FAULT=\" + fault_name;"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+   "l": 45,
+   "s": "std::vector<char> fbuf(fault_env.begin(), fault_env.end());"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+   "l": 82,
+   "s": "const char* fault = std::getenv(\"ASTROCS_P1SESS_SELFCHECK_FAULT\");"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+   "l": 84,
+   "s": "const int child_rc = run_injected_child(\"units\", name);"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+   "l": 87,
+   "s": "\"SELFCHECK: fault-inject '%s' 后 units 仍 PASS — 恒 PASS 占位, 注入机制失效\\n\","
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+   "l": 98,
+   "s": "const int child_rc = run_injected_child(\"negative\", \"n1_validate_reject\");"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+   "l": 105,
+   "s": "\"SELFCHECK phase3: fault-inject 'n1_validate_reject' → child rc=%d (第二注入点通过)\\n\","
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+   "l": 120,
+   "s": "return run_injected_group(argv[1]);"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_test_main.hpp",
+   "l": 58,
+   "s": "const char* f = std::getenv(\"ASTROCS_P1SESS_FAULT\");"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_test_main.hpp",
+   "l": 76,
+   "s": "void note_injected(const char* name) {"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_test_main.hpp",
+   "l": 78,
+   "s": "std::fprintf(stderr, \"FAULT-INJECT %s (deterministic failure injection)\\n\", name);"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_test_main.hpp",
+   "l": 86,
+   "s": "/* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_test_main.hpp",
+   "l": 90,
+   "s": "(cs).note_injected(faultname);                                 \\"
+  },
+  {
+   "f": "./lib/phase1_session/tests/p1sess/p1sess_test_main.hpp",
+   "l": 105,
+   "s": "(cs).note_injected(faultname);                                 \\"
+  },
+  {
+   "f": "./lib/phase2/tests/synthetic_gate.cpp",
+   "l": 1100,
+   "s": "const double grad_bound = 0.5;   // 注入场最大幅度梯度（/弧度）"
+  },
+  {
+   "f": "./lib/phase2/tests/synthetic_gate.cpp",
+   "l": 1294,
+   "s": "<< \"真实 tile seam 两侧 C 跳变必须由注入连续场 delta + 插值噪声解释\";"
+  },
+  {
+   "f": "./lib/phase2/tests/synthetic_gate.cpp",
+   "l": 2806,
+   "s": "EXPECT_GE(rej, 20u) << \"20% 污染下至少拒绝全部注入离群\";"
+  },
+  {
+   "f": "./lib/phase2/tests/synthetic_gate.cpp",
+   "l": 2808,
+   "s": "EXPECT_EQ(acc[idx], 0u) << \"注入离群 index=\" << idx << \" 必须被拒\";"
+  },
+  {
+   "f": "./lib/phase2/tests/synthetic_gate.cpp",
+   "l": 5459,
+   "s": "j[\"frames\"][0] = \"corrupted\";"
+  },
+  {
+   "f": "./lib/phase2/tests/synthetic_gate.cpp",
+   "l": 5463,
+   "s": "j[\"controls\"] = \"corrupted\";"
+  },
+  {
+   "f": "./lib/phase2/tests/synthetic_gate.cpp",
+   "l": 5470,
+   "s": "j[\"C\"][0] = \"corrupted\";"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_tests_core.cpp",
+   "l": 94,
+   "s": "P1PHOT_FAULT_POINT(\"units_pre\");"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_tests_core.cpp",
+   "l": 125,
+   "s": "FixPhotFrame fx = fix_phot_a_inject_k(seed, 30, k, false);"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_tests_core.cpp",
+   "l": 170,
+   "s": "FixPhotFrame fx = fix_phot_a_inject_k(seed, 40, k, true);"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_tests_core.cpp",
+   "l": 234,
+   "s": "FixPhotFrame fx = fix_phot_a_inject_k(seed, 12, 1.7, true);"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_tests_core.cpp",
+   "l": 285,
+   "s": "FixPhotFrame fx = fix_phot_a_inject_k(seed, 8, 1.4, false);"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_tests_core.cpp",
+   "l": 444,
+   "s": "P1PHOT_FAULT_POINT(\"gaia_pre\");"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_tests_core.cpp",
+   "l": 504,
+   "s": "P1PHOT_CHECK(cs, rc == 0, \"GAIA: v2 通道 rc=0 (stub 数据注入)\");"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_tests_core.cpp",
+   "l": 607,
+   "s": "P1PHOT_FAULT_POINT(\"legacy_pre\");"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_fixtures.hpp",
+   "l": 66,
+   "s": "double k = 2.5;  // 注入乘性偏移: F_instr = k·F_syn (location=log10 k)"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_fixtures.hpp",
+   "l": 77,
+   "s": "std::vector<int> outlier_psf_rows;  // F2: IRLS 离群注入的 PSF 行号"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_fixtures.hpp",
+   "l": 82,
+   "s": "inline FixPhotFrame fix_phot_a_inject_k(std::uint64_t seed, int n_pairs,"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_fixtures.hpp",
+   "l": 127,
+   "s": "FixPhotFrame fx = fix_phot_a_inject_k(seed, n_pairs, k, true);"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_test_main.hpp",
+   "l": 37,
+   "s": "const char* e = std::getenv(\"ASTROCS_P1PHOT_FAULT\");"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_test_main.hpp",
+   "l": 41,
+   "s": "static std::string selfcheck_fault_env() {"
+  },
+  {
+   "f": "./lib/phase1/tests/p1phot/p1phot_test_main.hpp",
+   "l": 42,
+   "s": "const char* e = std::getenv(\"P1PHOT_SELFCHECK_FAULT\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 26,
+   "s": "static int corrupt_snr_tsv(const std::string& out) {"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 45,
+   "s": "if (!f) { std::fprintf(stderr, \"corrupt open fail: %s\\n\", p.c_str()); return -1; }"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 61,
+   "s": "std::printf(\"corrupt_snr_tsv files=%d injected_bad_lines=%d\\n\", files, bad_lines);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 65,
+   "s": "static int corrupt_properties(const std::string& out, const std::string& sub) {"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 82,
+   "s": "static int corrupt_moc(const std::string& out, const std::string& sub) {"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 154,
+   "s": "if (!pre) { std::fprintf(stderr, \"pre-corrupt snr open fail: %s\\n\", aio_hips_reader_last_error()); return 7; }"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 159,
+   "s": "std::printf(\"pre_corrupt_catalog got=%d rows:\", got);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 164,
+   "s": "if (got != 2) { std::fprintf(stderr, \"pre-corrupt catalog size unexpected\\n\"); return 7; }"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 167,
+   "s": "if (!have1 || !have2) { std::fprintf(stderr, \"pre-corrupt ids unexpected\\n\"); return 7; }"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 170,
+   "s": "if (corrupt_snr_tsv(out) != 0) { std::fprintf(stderr, \"corrupt tsv setup fail\\n\"); return 7; }"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 171,
+   "s": "if (corrupt_moc(out, \"signal\") != 0) { std::fprintf(stderr, \"corrupt moc setup fail\\n\"); return 8; }"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 174,
+   "s": "if (!ds) { std::fprintf(stderr, \"snr open fail after corrupt: %s\\n\", aio_hips_reader_last_error()); return 9; }"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 182,
+   "s": "std::fprintf(stderr, \"snr catalog after corrupt unexpected: got=%d\\n\", got);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 189,
+   "s": "std::fprintf(stderr, \"snr catalog after corrupt ids: got=%d sid0=%lld sid1=%lld\\n\","
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 194,
+   "s": "std::printf(\"snr_catalog_after_corrupt got=%d ids_ok\\n\", got);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 199,
+   "s": "if (corrupt_properties(out, \"signal\") != 0) { std::fprintf(stderr, \"corrupt props setup fail\\n\"); return 11; }"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 202,
+   "s": "if (d2) { std::fprintf(stderr, \"signal open should fail after properties corrupt\\n\"); aio_hips_close(d2); return 12; }"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 203,
+   "s": "std::printf(\"signal_open_after_props_corrupt gracefully_null\\n\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 209,
+   "s": "std::printf(\"signal_open_after_moc_corrupt graceful_open_fail\\n\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+   "l": 212,
+   "s": "std::printf(\"signal_open_after_moc_corrupt tiles=%d\\n\", tc);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/v5_maptile_oracle.py",
+   "l": 25,
+   "s": "HIPSGEN_DEFAULT = ROOT / r\"run\\temp\\Hipsgen.jar\""
+  },
+  {
+   "f": "./lib/astro_image_io/tests/v5_maptile_oracle.py",
+   "l": 263,
+   "s": "ap.add_argument(\"--hipsgen\", type=Path, default=HIPSGEN_DEFAULT)"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/hiss_experiment_suite.cpp",
+   "l": 868,
+   "s": "std::string path = g_raw_dir + \"/_checksum_tamper.hiss\";"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/test_checksum.cpp",
+   "l": 228,
+   "s": "static void test_02_crc32c_tamper_detection() {"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/test_checksum.cpp",
+   "l": 232,
+   "s": "const char* path = \"test_checksum_tamper.hiss\";"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/test_checksum.cpp",
+   "l": 284,
+   "s": "uint8_t tampered_byte = (uint8_t)(orig_byte ^ 0xFF);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/test_checksum.cpp",
+   "l": 286,
+   "s": "if (tampered_byte == orig_byte) tampered_byte = 0x00;"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/test_checksum.cpp",
+   "l": 289,
+   "s": "fs.write((const char*)&tampered_byte, 1);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/test_checksum.cpp",
+   "l": 296,
+   "s": "(unsigned)tampered_byte);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/test_checksum.cpp",
+   "l": 508,
+   "s": "test_02_crc32c_tamper_detection();"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_properties.cpp",
+   "l": 306,
+   "s": "bool neg_seen = false;  // F3 负 flux 注入必须保留 (I1 精确负值)"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_properties.cpp",
+   "l": 310,
+   "s": "if (s < 0.0) { neg_seen = true; continue; }    // F3 注入域"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp",
+   "l": 57,
+   "s": "void note_injected(const char* name) {"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp",
+   "l": 59,
+   "s": "std::fprintf(stderr, \"FAULT-INJECT %s (deterministic failure injection)\\n\", name);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp",
+   "l": 67,
+   "s": "/* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp",
+   "l": 71,
+   "s": "(cs).note_injected(faultname);                                 \\"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp",
+   "l": 86,
+   "s": "(cs).note_injected(faultname);                                 \\"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp",
+   "l": 141,
+   "s": "const char* f = std::getenv(\"ASTROCS_P1HIPS_FAULT\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+   "l": 893,
+   "s": "{\"ASTROCS_HIPS_PROV_FAULT\", \"missing_key\", dp_scenario_full,"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+   "l": 895,
+   "s": "{\"ASTROCS_HIPS_PROV_FAULT\", \"value_drift\", dp_scenario_full,"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+   "l": 897,
+   "s": "{\"ASTROCS_HIPS_DIAG_FAULT\", \"sentinel\", dp_scenario_diag_values,"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+   "l": 899,
+   "s": "{\"ASTROCS_HIPS_DIAG_FAULT\", \"skip_write\", dp_scenario_diag_values,"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+   "l": 901,
+   "s": "{\"ASTROCS_HIPS_VERIFY_FAULT\", \"shortcut\", dp_scenario_placeholder,"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+   "l": 905,
+   "s": "::setenv(fc.env, fc.value, 1);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+   "l": 908,
+   "s": "::unsetenv(fc.env);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+   "l": 911,
+   "s": "\"SELFCHECK(diag_prov): 注入 %s=%s 后场景仍 PASS — 恒 PASS 占位/注入失效\\n\","
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+   "l": 920,
+   "s": "\"P1HIPS SELFCHECK(diag_prov) PASS (baseline + 5 注入点双向验证)\\n\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+   "l": 36,
+   "s": "int run_injected_child(const char* group, const std::string& fault_name) {"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+   "l": 37,
+   "s": "const std::string fault_env = \"ASTROCS_P1HIPS_FAULT=\" + fault_name;"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+   "l": 38,
+   "s": "std::vector<char> fbuf(fault_env.begin(), fault_env.end());"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+   "l": 64,
+   "s": "static int run_injected_group(const char* group) {"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+   "l": 86,
+   "s": "const char* fault = std::getenv(\"ASTROCS_P1HIPS_SELFCHECK_FAULT\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+   "l": 88,
+   "s": "const int child_rc = run_injected_child(\"units\", name);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+   "l": 91,
+   "s": "\"SELFCHECK: fault-inject '%s' 后 units 仍 PASS — 恒 PASS 占位, 注入机制失效\\n\","
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+   "l": 102,
+   "s": "const int child_rc = run_injected_child(\"oracle\", \"o1_fits_mapping_bitwise\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+   "l": 105,
+   "s": "\"SELFCHECK: fault-inject 'o1_fits_mapping_bitwise' 后 oracle 仍 PASS — 注入机制失效\\n\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+   "l": 120,
+   "s": "std::fprintf(stderr, \"SELFCHECK phase4: diag_prov 注入自检 FAIL (rc=%d)\\n\", rc);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+   "l": 135,
+   "s": "return run_injected_group(argv[1]);"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 410,
+   "s": "if (p2hips::injected(\"ASTROCS_HIPS_DIAG_FAULT\", \"sentinel\")) {"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 411,
+   "s": "P2H_CHECK(rc == 0, \"N1[inject]: sentinel 注入下守卫被绕过 (判别力证明)\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 505,
+   "s": "void negative_verify_tamper() {"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 571,
+   "s": "void selfcheck_injection() {"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 575,
+   "s": "const bool inj_missing = p2hips::injected(\"ASTROCS_HIPS_PROV_FAULT\", \"missing_key\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 576,
+   "s": "const bool inj_sentinel = p2hips::injected(\"ASTROCS_HIPS_DIAG_FAULT\", \"sentinel\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 578,
+   "s": "\"S1: 必须以注入模式运行 (ASTROCS_HIPS_PROV_FAULT=missing_key 或\""
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 579,
+   "s": "\" ASTROCS_HIPS_DIAG_FAULT=sentinel); 本组用于证明断言有判别力\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 582,
+   "s": "P2H_CHECK(b.ok, \"S1: 注入模式下产品集仍可构建 (注入点是等价缺陷而非崩溃)\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 601,
+   "s": "P2H_CHECK(detected, \"S1: 注入的等价缺陷在磁盘面可观测 (断言可判)\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 604,
+   "s": "P2H_CHECK(rc != 0, \"S1: 注入下 verify 必败 (判别力证明)\");"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 620,
+   "s": "negative_verify_tamper();"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 630,
+   "s": "{\"selfcheck\", selfcheck_injection},"
+  },
+  {
+   "f": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+   "l": 636,
+   "s": "{\"negative_verify\", negative_verify_tamper}});"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_gaia_stub.cpp",
+   "l": 57,
+   "s": "if (cfg.fail_mode != 0) return -2;  // 锥形搜索失败注入 → 被测 rc=-3 路径"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_units.cpp",
+   "l": 100,
+   "s": "P1PHOT_CHECK_MSG(cs, rc == 0, \"u1_scale_injection\", \"rc=%d k=%g\", rc, k);"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_units.cpp",
+   "l": 108,
+   "s": "P1PHOT_CHECK_MSG(cs, loc_ok, \"u1_scale_injection\","
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_units.cpp",
+   "l": 111,
+   "s": "P1PHOT_CHECK_MSG(cs, rel_close_d(scale, want_scale, 1e-9), \"u1_scale_injection\","
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_gaia_stub.hpp",
+   "l": 41,
+   "s": "int fail_mode = 0;      // 0=ok, 1=cone search 失败注入"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_fixgates.cpp",
+   "l": 153,
+   "s": "\"b42_three_stars_pass: scale=10^-0.1 (SCI-PHOT §11 合成注入)\");"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+   "l": 36,
+   "s": "int run_injected_child(const char* group, const std::string& fault_name) {"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+   "l": 37,
+   "s": "const std::string fault_env = \"ASTROCS_P1PHOT_FAULT=\" + fault_name;"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+   "l": 38,
+   "s": "std::vector<char> fbuf(fault_env.begin(), fault_env.end());"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+   "l": 63,
+   "s": "static int run_injected_group(const char* group) {"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+   "l": 85,
+   "s": "const char* fault = std::getenv(\"ASTROCS_P1PHOT_SELFCHECK_FAULT\");"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+   "l": 86,
+   "s": "const std::string name = fault ? fault : \"u1_scale_injection\";"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+   "l": 87,
+   "s": "const int child_rc = run_injected_child(\"units\", name);"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+   "l": 90,
+   "s": "\"SELFCHECK: fault-inject '%s' 后 units 仍 PASS — 恒 PASS 占位, 注入机制失效\\n\","
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+   "l": 101,
+   "s": "const int child_rc = run_injected_child(\"oracle\", \"o1_irls_reference\");"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+   "l": 104,
+   "s": "\"SELFCHECK: fault-inject 'o1_irls_reference' 后 oracle 仍 PASS — 注入机制失效\\n\");"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+   "l": 122,
+   "s": "return run_injected_group(argv[1]);"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp",
+   "l": 53,
+   "s": "void note_injected(const char* name) {"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp",
+   "l": 55,
+   "s": "std::fprintf(stderr, \"FAULT-INJECT %s (deterministic failure injection)\\n\", name);"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp",
+   "l": 63,
+   "s": "/* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp",
+   "l": 67,
+   "s": "(cs).note_injected(faultname);                                 \\"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp",
+   "l": 82,
+   "s": "(cs).note_injected(faultname);                                 \\"
+  },
+  {
+   "f": "./lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp",
+   "l": 129,
+   "s": "const char* f = std::getenv(\"ASTROCS_P1PHOT_FAULT\");"
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_fixtures.hpp",
+   "l": 62,
+   "s": "std::vector<std::size_t> spikes;  // 注入位置 (行主序索引)"
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_fixtures.hpp",
+   "l": 177,
+   "s": "bool dark_has_nan;      // true: dark 中央位注入 NaN (统计污染变体)"
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_tests_selfcheck.cpp",
+   "l": 41,
+   "s": "const char* fault = std::getenv(\"P1COS_SELFCHECK_FAULT\");"
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_tests_selfcheck.cpp",
+   "l": 43,
+   "s": "std::string fault_env = \"ASTROCS_P1COS_FAULT=\" + name;"
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_tests_selfcheck.cpp",
+   "l": 44,
+   "s": "std::vector<char> fbuf(fault_env.begin(), fault_env.end());"
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_tests_selfcheck.cpp",
+   "l": 66,
+   "s": "\"SELFCHECK: fault-inject '%s' 后 units 仍 PASS — 恒 PASS 占位, 注入机制失效\\n\","
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_tests_selfcheck.cpp",
+   "l": 81,
+   "s": "if (std::getenv(\"ASTROCS_P1COS_FAULT\") != nullptr && argc >= 2) {"
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_test_main.hpp",
+   "l": 46,
+   "s": "void note_injected(const char* name) {"
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_test_main.hpp",
+   "l": 48,
+   "s": "std::fprintf(stderr, \"FAULT-INJECT %s (deterministic failure injection)\\n\", name);"
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_test_main.hpp",
+   "l": 56,
+   "s": "/* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\"
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_test_main.hpp",
+   "l": 60,
+   "s": "(cs).note_injected(faultname);                                 \\"
+  },
+  {
+   "f": "./lib/cosmetic/tests/p1cos/p1cos_test_main.hpp",
+   "l": 95,
+   "s": "if (const char* f = std::getenv(\"ASTROCS_P1COS_FAULT\")) {"
+  },
+  {
+   "f": "./ci/bootstrap.py",
+   "l": 37,
+   "s": "DEFAULT_POLICY = Path(__file__).resolve().parent / \"toolchain.policy.json\""
+  },
+  {
+   "f": "./ci/bootstrap.py",
+   "l": 348,
+   "s": "parser.add_argument(\"--policy\", default=str(DEFAULT_POLICY),"
+  },
+  {
+   "f": "./ci/bootstrap.py",
+   "l": 349,
+   "s": "help=f\"toolchain policy JSON（默认 {DEFAULT_POLICY.name}）\")"
+  },
+  {
+   "f": "./ci/wf_step.py",
+   "l": 33,
+   "s": "DEFAULT_MANIFEST = Path(__file__).resolve().parent / \"workflow_binding.json\""
+  },
+  {
+   "f": "./ci/wf_step.py",
+   "l": 34,
+   "s": "DEFAULT_REGISTRY = Path(__file__).resolve().parent / \"checks.json\""
+  },
+  {
+   "f": "./ci/wf_step.py",
+   "l": 35,
+   "s": "DEFAULT_OUT_DIR = \"run/ci/wf_step\""
+  },
+  {
+   "f": "./ci/wf_step.py",
+   "l": 141,
+   "s": "ap.add_argument(\"--manifest\", default=str(DEFAULT_MANIFEST))"
+  },
+  {
+   "f": "./ci/wf_step.py",
+   "l": 142,
+   "s": "ap.add_argument(\"--registry\", default=str(DEFAULT_REGISTRY))"
+  },
+  {
+   "f": "./ci/wf_step.py",
+   "l": 143,
+   "s": "ap.add_argument(\"--repo-root\", default=None, help=\"仓库根覆盖（单测注入 fixture）\")"
+  },
+  {
+   "f": "./ci/wf_step.py",
+   "l": 144,
+   "s": "ap.add_argument(\"--out-dir\", default=DEFAULT_OUT_DIR)"
+  },
+  {
+   "f": "./ci/verify_actions_lock.py",
+   "l": 38,
+   "s": "DEFAULT_LOCK = Path(__file__).resolve().parent / \"actions.lock.json\""
+  },
+  {
+   "f": "./ci/verify_actions_lock.py",
+   "l": 47,
+   "s": "REQUEST_TIMEOUT_DEFAULT = 20.0"
+  },
+  {
+   "f": "./ci/verify_actions_lock.py",
+   "l": 243,
+   "s": "parser.add_argument(\"--lock\", default=str(DEFAULT_LOCK),"
+  },
+  {
+   "f": "./ci/verify_actions_lock.py",
+   "l": 247,
+   "s": "parser.add_argument(\"--timeout\", type=float, default=REQUEST_TIMEOUT_DEFAULT,"
+  },
+  {
+   "f": "./ci/verify_actions_lock.py",
+   "l": 248,
+   "s": "help=f\"单次 HTTP 超时秒数（默认 {REQUEST_TIMEOUT_DEFAULT:g}）\")"
+  },
+  {
+   "f": "./ci/verify_remote_run.py",
+   "l": 63,
+   "s": "_TIMEOUT_DEFAULT = 15.0"
+  },
+  {
+   "f": "./ci/verify_remote_run.py",
+   "l": 131,
+   "s": "\"\"\"惰性构建禁用自动重定向的 opener（单测可注入替代 _OPENER）。\"\"\""
+  },
+  {
+   "f": "./ci/verify_remote_run.py",
+   "l": 386,
+   "s": "ap.add_argument(\"--timeout\", type=float, default=_TIMEOUT_DEFAULT,"
+  },
+  {
+   "f": "./ci/verify_remote_run.py",
+   "l": 387,
+   "s": "help=f\"单请求超时秒数（默认 {_TIMEOUT_DEFAULT:g}）\")"
+  },
+  {
+   "f": "./ci/check_version.py",
+   "l": 20,
+   "s": "[4] CLI 版本定义点 (实际形态: 无手抄常量, 全部由生成链注入):"
+  },
+  {
+   "f": "./ci/check_version.py",
+   "l": 23,
+   "s": "c) cli/version_generated.h.in 必须含注入点 @ASTROCS_VERSION_STRING@;"
+  },
+  {
+   "f": "./ci/check_version.py",
+   "l": 168,
+   "s": "\"版本注入模板必须含 @ASTROCS_VERSION_STRING@ 占位\")"
+  },
+  {
+   "f": "./ci/check_version.py",
+   "l": 171,
+   "s": "\"cli/version_generated.h.in\", None, \"缺失\", \"版本注入模板不存在\")"
+  },
+  {
+   "f": "./ci/check_version.py",
+   "l": 209,
+   "s": "\"0 处 alpha 字面量 (生成链注入)\" if not lit_rows"
+  },
+  {
+   "f": "./ci/select_candidate.py",
+   "l": 75,
+   "s": "REQUEST_TIMEOUT_DEFAULT = 20.0"
+  },
+  {
+   "f": "./ci/select_candidate.py",
+   "l": 506,
+   "s": "parser.add_argument(\"--timeout\", type=float, default=REQUEST_TIMEOUT_DEFAULT,"
+  },
+  {
+   "f": "./ci/select_candidate.py",
+   "l": 507,
+   "s": "help=f\"单次 HTTP 超时秒数（默认 {REQUEST_TIMEOUT_DEFAULT:g}）\")"
+  },
+  {
+   "f": "./ci/select_candidate.py",
+   "l": 521,
+   "s": "\"detail\": \"无 --repository 且无 GITHUB_REPOSITORY（hosted 环境才注入）\","
+  },
+  {
+   "f": "./ci/run.py",
+   "l": 19,
+   "s": "- 检查命令以 argv 数组执行（永不 shell=True），杜绝 shell 注入。"
+  },
+  {
+   "f": "./ci/run.py",
+   "l": 50,
+   "s": "DEFAULT_LOG_LIMIT = 8 * 1024 * 1024  # 单检查日志截断上限（字节），原始文件全量保留"
+  },
+  {
+   "f": "./ci/run.py",
+   "l": 839,
+   "s": "limit = DEFAULT_LOG_LIMIT"
+  },
+  {
+   "f": "./ci/run.py",
+   "l": 1175,
+   "s": "help=\"注册表路径覆盖（默认 ci/checks.json；供单元测试注入 fixture）\")"
+  },
+  {
+   "f": "./ci/run.py",
+   "l": 1177,
+   "s": "help=\"impact_map 路径覆盖（默认 ci/impact_map.json；供单元测试注入）\")"
+  },
+  {
+   "f": "./ci/run.py",
+   "l": 1179,
+   "s": "help=\"仓库根覆盖（默认由脚本位置推导；供单元测试注入 /tmp fixture 仓库）\")"
+  },
+  {
+   "f": "./ci/validate_workflow_binding.py",
+   "l": 61,
+   "s": "DEFAULT_MANIFEST = Path(__file__).resolve().parent / \"workflow_binding.json\""
+  },
+  {
+   "f": "./ci/validate_workflow_binding.py",
+   "l": 62,
+   "s": "DEFAULT_REGISTRY = Path(__file__).resolve().parent / \"checks.json\""
+  },
+  {
+   "f": "./ci/validate_workflow_binding.py",
+   "l": 63,
+   "s": "DEFAULT_LOCK = Path(__file__).resolve().parent / \"actions.lock.json\""
+  },
+  {
+   "f": "./ci/validate_workflow_binding.py",
+   "l": 64,
+   "s": "DEFAULT_WORKFLOW_DIR = \".github/workflows\""
+  },
+  {
+   "f": "./ci/validate_workflow_binding.py",
+   "l": 560,
+   "s": "ap.add_argument(\"--workflow-dir\", default=DEFAULT_WORKFLOW_DIR)"
+  },
+  {
+   "f": "./ci/validate_workflow_binding.py",
+   "l": 566,
+   "s": "manifest = Path(args.manifest) if args.manifest else repo / \"ci\" / DEFAULT_MANIFEST.name"
+  },
+  {
+   "f": "./ci/validate_workflow_binding.py",
+   "l": 567,
+   "s": "registry = Path(args.registry) if args.registry else repo / \"ci\" / DEFAULT_REGISTRY.name"
+  },
+  {
+   "f": "./ci/validate_workflow_binding.py",
+   "l": 568,
+   "s": "lock = Path(args.lock) if args.lock else repo / \"ci\" / DEFAULT_LOCK.name"
+  },
+  {
+   "f": "./ci/resource_monitor.py",
+   "l": 62,
+   "s": "path_injected = monitor_dir not in sys.path"
+  },
+  {
+   "f": "./ci/resource_monitor.py",
+   "l": 63,
+   "s": "if path_injected:"
+  },
+  {
+   "f": "./ci/resource_monitor.py",
+   "l": 73,
+   "s": "if path_injected:"
+  },
+  {
+   "f": "./ci/ci_repair_round.py",
+   "l": 42,
+   "s": "DEFAULT_API = \"https://api.github.com\""
+  },
+  {
+   "f": "./ci/ci_repair_round.py",
+   "l": 78,
+   "s": "\"root_cause\": \"lib/{cosmetic,drizzle,calibration}/src/module_entry.cpp 的 *_OMP_SET 宏经 omp_set_num_threads 注入，未登记进 tools/arch/check_thread_budget.py REGISTERED\","
+  },
+  {
+   "f": "./ci/ci_repair_round.py",
+   "l": 81,
+   "s": "\"minimal_patch\": \"三处宏是 host budget 注入形态（非硬编码字面量）：登记进 tools/arch/check_thread_budget.py REGISTERED（键=module_entry.cpp 不可，须逐文件路径键），或按 ARCH-004 改为经 host callback 注入\","
+  },
+  {
+   "f": "./ci/ci_repair_round.py",
+   "l": 126,
+   "s": "\"root_cause\": \"lib/gaia_xpsd_client/CMakeLists.txt:68 find_package(ZLIB REQUIRED) 只消费 ACS_ZLIB_ROOT，未消费 runner 注入的 ACS_ZLIB_LIB=zs.lib → ZLIB_LIBRARY 未命中（found version 1.3.2, missing ZLIB_LIBRARY）\","
+  },
+  {
+   "f": "./ci/ci_repair_round.py",
+   "l": 688,
+   "s": "ap.add_argument(\"--api-base\", default=DEFAULT_API)"
+  },
+  {
+   "f": "./ci/steps/collect_bootstrap_diag.py",
+   "l": 70,
+   "s": "ap.add_argument(\"--repo-root\", default=None, help=\"仓库根覆盖（单测注入 fixture）\")"
+  },
+  {
+   "f": "./ci/tests/test_ci001b_wf_step.py",
+   "l": 120,
+   "s": "def test_tampered_candidate_fails(self):"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 2,
+   "s": "\"\"\"V8-CI-009 负向测试（owner=SA-CI-32）：离线注入违反守卫的样例并确认拒绝路径。"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 5,
+   "s": "- 所有注入仅在 tempfile 临时副本 / fixture 仓库上进行，绝不改动主仓库既有守卫脚本、"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 19,
+   "s": "注入样例被拒绝；镜像断言自身先对真实 fatduck.yml 做 sanity 校验（防镜像空洞）。"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 56,
+   "s": "\"\"\"fixture 仓库（git init + 结果 schema 副本），执行层注入一律用它。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 102,
+   "s": "\"\"\"版本漂移注入：主机不可能满足的 toolchain policy。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 116,
+   "s": "\"\"\"构造可通过 manifest/SHA256SUMS 结构校验的 zip 条目，再叠加注入成员。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 160,
+   "s": "违反任一约束即 AssertionError —— 注入样例依赖该断言失败来证明\"守卫拒绝\"。"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 211,
+   "s": "f\"{job_name}: {uses} 未锁完整 SHA（tag/短 SHA 注入被拒）\""
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 216,
+   "s": "\"\"\"镜像守卫对真实 fatduck.yml 必须通过 —— 保证注入用例的拒绝并非镜像空洞。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 367,
+   "s": "不消费 WRITE_LEASE。本用例不做注入、不断言拒绝，仅锚定裁决现状。"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 400,
+   "s": "\"\"\"类 6：PR/fork 触发 Fatduck → 触发器白名单守卫拒绝（测试层守卫，临时副本注入）。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 402,
+   "s": "def _inject(self, mutate) -> Path:"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 411,
+   "s": "path = self._inject(lambda d: _on(d).update("
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 418,
+   "s": "path = self._inject(lambda d: _on(d).update({\"workflow_dispatch\": None}))"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 436,
+   "s": "step[\"uses\"] = \"actions/checkout@v7.0.1\"        # tag 注入"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 440,
+   "s": "def test_tampered_lock_short_sha_rejected(self):"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 460,
+   "s": "\"\"\"类 8：hardcoded core（注册表 check 命令硬编码线程 / 执行链环境注入）。"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 512,
+   "s": "裁决（V8-CI-009 GAP 补齐轮）：硬编码线程的注入通道是 registry 命令参数，"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 514,
+   "s": "等由 hosted runner 干净环境保障）。本用例仅锚定裁决现状，不做注入。"
+  },
+  {
+   "f": "./ci/tests/test_negative_guards.py",
+   "l": 623,
+   "s": "\"\"\"类 12：fatduck-validate 注入 checkout 步骤 → 测试层守卫拒绝。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_verify_remote_run.py",
+   "l": 8,
+   "s": "2. 在线核验（monkeypatch _http_get/_http_get_bytes 注入假 API 响应）："
+  },
+  {
+   "f": "./ci/tests/test_verify_remote_run.py",
+   "l": 14,
+   "s": "6. 凭据纪律：Authorization 仅在 GITHUB_TOKEN 环境时注入；token 不进输出。"
+  },
+  {
+   "f": "./ci/tests/test_verify_remote_run.py",
+   "l": 162,
+   "s": "\"\"\"假 API 注入：优先级 / 回退 / 全过路径。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_verify_remote_run.py",
+   "l": 362,
+   "s": "\"\"\"可注入 transport：按脚本序列返回响应/抛 3xx HTTPError，并记录每跳请求。"
+  },
+  {
+   "f": "./ci/tests/test_windows_ci.py",
+   "l": 168,
+   "s": "[\"cmake\", \"--preset\", DRV.DEFAULT_PRESET])"
+  },
+  {
+   "f": "./ci/tests/test_windows_ci.py",
+   "l": 174,
+   "s": "self.assertIn(\"--parallel\", build)  # 并行度由 host 探测注入"
+  },
+  {
+   "f": "./ci/tests/test_windows_ci.py",
+   "l": 177,
+   "s": "[\"--output-junit\", DRV.DEFAULT_JUNIT])"
+  },
+  {
+   "f": "./ci/tests/test_windows_ci.py",
+   "l": 180,
+   "s": "self.assertIn(DRV.DEFAULT_BUILD_DIR, inst)"
+  },
+  {
+   "f": "./ci/tests/test_windows_ci.py",
+   "l": 261,
+   "s": "DRV.DEFAULT_BUILD_DIR)"
+  },
+  {
+   "f": "./ci/tests/test_windows_ci.py",
+   "l": 311,
+   "s": "self.assertEqual(prov[\"preset\"][\"configure\"], DRV.DEFAULT_PRESET)"
+  },
+  {
+   "f": "./ci/tests/test_ci_repair_round.py",
+   "l": 220,
+   "s": "\"\"\"负向注入必须失败：伪造/缺失证据不得产出 GREEN，也不得静默丢弃。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_ci001b_binding.py",
+   "l": 6,
+   "s": "2. 负向注入必败（逐条独立 fixture 仓库，离线）："
+  },
+  {
+   "f": "./ci/tests/test_ci001b_binding.py",
+   "l": 146,
+   "s": "\"\"\"每条负向注入必须在对应规则上必败（validator 非空转）。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_ctest_registration.py",
+   "l": 53,
+   "s": "\"p3_projection_fault\": \"CTEST-P3-PROJECTION-FAULT\","
+  },
+  {
+   "f": "./ci/tests/test_ctest_registration.py",
+   "l": 69,
+   "s": "\"add_test(NAME ci_reg_002_negative_injection COMMAND demo_test nope)\\n\""
+  },
+  {
+   "f": "./ci/tests/test_ctest_registration.py",
+   "l": 78,
+   "s": "\"\"\"负向注入必败：未注册的新 add_test 目标一律 FAIL。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_ctest_registration.py",
+   "l": 89,
+   "s": "self.assertIn(\"ci_reg_002_negative_injection <- CMakeLists.txt\", joined)"
+  },
+  {
+   "f": "./ci/tests/test_resource_monitor_shim.py",
+   "l": 7,
+   "s": "入 sys.path\"注入，run_monitored 的同目录导入（fallback ``import"
+  },
+  {
+   "f": "./ci/tests/_helpers.py",
+   "l": 4,
+   "s": "所有测试在 tempfile 临时目录中构建独立 git 仓库并注入小型 checks fixture，"
+  },
+  {
+   "f": "./ci/tests/test_ci001_failclosed.py",
+   "l": 189,
+   "s": "不强制 frozen_gate。注入形态：真 shim --gate-required 包装，真证据落"
+  },
+  {
+   "f": "./ci/tests/test_ci001_failclosed.py",
+   "l": 214,
+   "s": "\"\"\"故障注入：请求判定但监控证据无 frozen_gate → FAIL(monitor_gate_missing)。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_ci001_failclosed.py",
+   "l": 253,
+   "s": "\"\"\"矛盾注入：verdict=fail 但 exit_code=0（门禁未传导退出码）→ 必败。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_ci001_failclosed.py",
+   "l": 361,
+   "s": "\"\"\"故障注入：--gate-required + 计算区间 15s + 空转子进程 → 门禁 fail → exit 10 → FAIL。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_resource_probe.py",
+   "l": 9,
+   "s": "- 非硬编码证明：注入不同 affinity（含缩容）时 effective/max_workers 跟随变化；"
+  },
+  {
+   "f": "./ci/tests/test_resource_probe.py",
+   "l": 12,
+   "s": "纯 stdlib；全部探测以注入 proc_root/sys_root/affinity_fn/cpu_count_fn 完成。"
+  },
+  {
+   "f": "./ci/tests/test_resource_probe.py",
+   "l": 177,
+   "s": "\"\"\"注入缩容 affinity：effective/max_workers 必须跟随变化（非硬编码核数）。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_resource_probe.py",
+   "l": 193,
+   "s": "\"\"\"sched_getaffinity 不可得 → fallback os.cpu_count 注入值。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_impact_map.py",
+   "l": 10,
+   "s": "lib 规则；未覆盖路径触发 fallback；--impact-map 注入覆盖生效。"
+  },
+  {
+   "f": "./ci/tests/test_impact_map.py",
+   "l": 279,
+   "s": "\"\"\"--impact-map 注入生效（--impact-map ci/impact_map.json --plan-only 组合语义）。\"\"\""
+  },
+  {
+   "f": "./ci/tests/test_impact_map.py",
+   "l": 293,
+   "s": "self.assertEqual(selected, {\"V-NS\"}, \"注入映射应完全替换默认映射\")"
+  },
+  {
+   "f": "./ci/tests/test_deep_profiles.py",
+   "l": 262,
+   "s": "hosted \"No rule to make target 'qa-sanitize'\" exit 2。注入 run_step"
+  },
+  {
+   "f": "./ci/tests/test_deep_profiles.py",
+   "l": 546,
+   "s": "identification is GNU）。与 sanitizer 分支同构：注入 run_step 捕获"
+  },
+  {
+   "f": "./ci/tests/test_workflow_lock.py",
+   "l": 519,
+   "s": "members[\"README.txt\"] = b\"tampered\\n\""
+  }
+ ],
+ "selfwitness_cand": []
+}
