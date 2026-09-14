@@ -86,8 +86,8 @@ struct MagIterOutcome {
     int    n_returned = 0;       // 末次成功查询返回星数 (N_returned)
     int    n_target = 0;         // 输入 n_target
     double n_target_eff = 0.0;   // n_target × m_lim_safety
-    bool   converged = false;    // |N-N_target|/N_target <= tol, 或触顶视为达标
-    bool   capped = false;       // 触到 Gaia 每文件返回上限 (截断, 已停用 alpha 更新)
+    bool   converged = false;    // |N-N_target|/N_target <= tol 且**未触顶** (真收敛)
+    bool   capped = false;       // 触到 Gaia 每文件返回上限 (n_ret >= cap; 截断, 不入差分)
     bool   query_failed = false; // 查询返回错误
     bool   valid = false;        // 至少有一次成功且非空查询
     double alpha_final = 0.0;    // 末次使用的 alpha
@@ -107,6 +107,12 @@ MagIterOutcome estimate_mag_lim_iterative(
     double exposure_s,
     const IPVSolverParams& params,
     Logger* logger = nullptr);
+
+// P14-N-10 (RQS V2-N-10 缺陷 1): 把迭代结果逐项落到**交付面** StarSelection。
+// 唯一映射点: ipv_select 的 4 条生产路径都经 gaia_query_mag_iterative 调它,
+// 保证 converged / query_failed / capped / n_queries(m_lim_iterations) /
+// mag_lim_final 全部可观测（旧实现丢 converged/query_failed 且把触顶记成收敛）。
+void mag_iter_apply_to_selection(const MagIterOutcome& mi, StarSelection& out);
 
 // 自适应步长迭代极限星等 (线性步长, 遗留; P4-magiter 起生产路径不再使用)
 void density_match_iterate(

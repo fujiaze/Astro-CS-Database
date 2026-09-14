@@ -43,6 +43,21 @@ target_link_libraries(ipv_mag_iter_test PRIVATE
 add_test(NAME ipv_mag_iter COMMAND ipv_mag_iter_test)
 
 # ============================================================================
+# P14-N-10 (RQS V2-N-10 缺陷 1) — mag-iter 交付面回归锁
+# ----------------------------------------------------------------------------
+# 锁 converged / query_failed / capped / n_queries / mag_lim_final / alpha
+# 全部落到交付结构 StarSelection (唯一映射点 mag_iter_apply_to_selection,
+# 4 条 ipv_select 路径共用)。旧实现丢 converged/query_failed 且触顶记收敛。
+# ============================================================================
+add_executable(ipv_mag_iter_delivery_test
+  ${P1IPVTEST_DIR}/test_mag_iter_delivery.cpp)
+target_include_directories(ipv_mag_iter_delivery_test PRIVATE
+  ${P1IPV_DIR}/include)
+target_link_libraries(ipv_mag_iter_delivery_test PRIVATE
+  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
+add_test(NAME ipv_mag_iter_delivery COMMAND ipv_mag_iter_delivery_test)
+
+# ============================================================================
 # P11-IPV-BUDGET — 三角形匹配搜索预算 fail-closed 回归锁
 # ----------------------------------------------------------------------------
 # 被测面: triangle_match (src/ipv_triangle.cpp, 生产源) 经生产静态库

@@ -161,7 +161,8 @@ static void test_cap_defense() {
         Stub s; s.N_star = 1e9; s.cap_value = 200000.0;
         MagIterOutcome o = run_iter(s, 60, p);
         CHECK(o.capped, "触顶: capped=true");
-        CHECK(o.converged, "触顶: 视为已达标 (converged=true)");
+        // P14-N-10 缺陷 1: 触顶不是收敛 (旧实现错记 converged=true)。
+        CHECK(!o.converged, "触顶: capped -> converged=false (旧实现错记 true)");
         CHECK(o.query_count == 1, "触顶: 不再继续查询 (query_count==1)");
         CHECK(o.n_returned == 200000, "触顶: N_returned==200000");
         CHECK(bits(o.alpha_final) == bits(p.m_lim_alpha_prior),
@@ -172,13 +173,24 @@ static void test_cap_defense() {
         Stub s; s.N_star = 1e9; s.cap_value = 600000.0;
         MagIterOutcome o = run_iter(s, 60, p);
         CHECK(o.capped && o.n_returned == 600000, "触顶: 600000 (3x 每文件上限) 同样判触顶");
-        CHECK(o.converged && o.query_count == 1, "触顶: 600000 立即达标终止");
+        CHECK(!o.converged && o.query_count == 1, "触顶: 600000 终止且非收敛");
     }
-    // 3c: 非整数倍不误判
+    // 3c: 低于每文件上限不误判
     {
         Stub s; s.N_star = 180.0; s.m_star = 12.0;
         MagIterOutcome o = run_iter(s, 60, p);
-        CHECK(!o.capped, "触顶: 非整数倍返回不被误判为触顶");
+        CHECK(!o.capped, "触顶: 低于每文件上限返回不被误判为触顶");
+    }
+    // 3d (P14-N-10 缺陷 2): 部分文件截断 => 总数 = k*cap + partial (非整数倍)。
+    // 旧 fmod 启发式漏判 (fmod(250000,200000)=50000!=0); 新可靠判据
+    // (n_ret >= 每文件上限) 必须判触顶。
+    {
+        Stub s; s.N_star = 1e9; s.cap_value = 250000.0;   // 200000 + 50000
+        MagIterOutcome o = run_iter(s, 60, p);
+        CHECK(o.capped, "触顶: 部分文件截断 250000 (非整数倍) 必须判触顶");
+        CHECK(!o.converged, "触顶: 部分截断同样不是收敛");
+        CHECK(o.n_returned == 250000, "触顶: N_returned==250000");
+        CHECK(o.query_count == 1, "触顶: 部分截断立即终止 (不入 alpha 差分)");
     }
 }
 
@@ -264,6 +276,63 @@ static void test_error_paths() {
     CHECK(!o1.valid && o1.query_count == 1, "异常: 首次查询失败 -> invalid");
 }
 
+// ===========================================================================
+// 8. 失效面 fail-closed 锁 (P14-N-10 缺陷 3)
+//   NaN/非法 focal 或 exposure / 非法 alpha 限幅 => 明确无效 (零查询),
+//   不得静默 clamp 到 13.0 后照常迭代。
+// ===========================================================================
+static void test_invalid_inputs() {
+    IPVSolverParams p;
+    // focal = NaN
+    {
+        Stub s; s.N_star = 180.0;
+        MagIterOutcome o = run_iter(s, 60, p, std::nan(""), 300.0);
+        CHECK(!o.valid, "失效面: focal=NaN -> invalid");
+        CHECK(o.query_count == 0, "失效面: focal=NaN -> 零查询 (不静默迭代)");
+        CHECK(!(o.m_lim_final == 13.0), "失效面: focal=NaN 不得静默落 13.0");
+    }
+    // exposure = NaN
+    {
+        Stub s; s.N_star = 180.0;
+        MagIterOutcome o = run_iter(s, 60, p, 1877.0, std::nan(""));
+        CHECK(!o.valid, "失效面: exposure=NaN -> invalid");
+        CHECK(o.query_count == 0, "失效面: exposure=NaN -> 零查询");
+    }
+    // focal <= 0
+    {
+        Stub s; s.N_star = 180.0;
+        MagIterOutcome o = run_iter(s, 60, p, 0.0, 300.0);
+        CHECK(!o.valid && o.query_count == 0, "失效面: focal=0 -> invalid 且零查询");
+    }
+    // exposure <= 0
+    {
+        Stub s; s.N_star = 180.0;
+        MagIterOutcome o = run_iter(s, 60, p, 1877.0, 0.0);
+        CHECK(!o.valid && o.query_count == 0, "失效面: exposure=0 -> invalid 且零查询");
+    }
+    // alpha_min <= 0 (旧实现只把它当限幅下界, <=0 时静默禁用 alpha 更新)
+    {
+        IPVSolverParams pa; pa.m_lim_alpha_min = 0.0;
+        Stub s; s.N_star = 180.0;
+        MagIterOutcome o = run_iter(s, 60, pa);
+        CHECK(!o.valid && o.query_count == 0, "失效面: alpha_min=0 -> invalid 且零查询");
+    }
+    // alpha_max <= alpha_min
+    {
+        IPVSolverParams pa; pa.m_lim_alpha_max = pa.m_lim_alpha_min;
+        Stub s; s.N_star = 180.0;
+        MagIterOutcome o = run_iter(s, 60, pa);
+        CHECK(!o.valid && o.query_count == 0,
+              "失效面: alpha_max<=alpha_min -> invalid 且零查询");
+    }
+    // 合法性保持: 生产默认参数仍然正常迭代 (不误伤)
+    {
+        Stub s; s.N_star = 180.0; s.m_star = 13.0;
+        MagIterOutcome o = run_iter(s, 60, p);
+        CHECK(o.valid && o.query_count >= 1, "失效面: 合法默认参数仍正常迭代 (不误伤)");
+    }
+}
+
 int main() {
     std::printf("=== P4-magiter ipv_mag_iter 单元/回归锁 ===\n");
     test_convergence();
@@ -274,6 +343,7 @@ int main() {
     test_query_bound();
     test_param_override();
     test_error_paths();
+    test_invalid_inputs();
     std::printf("=== checks=%d fail=%d ===\n", g_check, g_fail);
     if (g_fail != 0) { std::printf("RESULT: FAIL\n"); return 1; }
     std::printf("RESULT: PASS\n");

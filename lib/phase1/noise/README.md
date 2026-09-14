@@ -46,13 +46,28 @@ variance 与 ivar 显式不混。公式权威: SCI-NOISE-001。
 **禁止**：本路径不再输出任何「整帧 SNR 标量」；snr=1.0 不得作为 unknown 伪装
 （退化行保持 NaN/null，n_snr_catalogue 显式计数）。
 
-**SNR 目录成员** = 上游 p1_sources.json 的 psf_params（PSF 有效星，
-p1_psf.json::n_valid 同源）∩ sources（提供 flux / fwhm_px）——
-与 P5 控制点路径的有效星判据一致。
+**交付样本定义（P14-N-08，RQS V2-N-08，2026-09-15 修订）**：
+帧级 SNR / 5-sigma 深度一律来自 **DATA-P1-SOURCES.sources 的全部测光有效源**
+（flux>0 且 fwhm_px>0），**与性能开关 `psf.max_stars` 完全解耦** —— 旧实现取
+`psf_params`（受 `psf.max_stars` 截断的最亮 ≤5000 颗）∩ sources，交付数值由
+最亮子集决定且下游读不出截断（系统性偏乐观，P8 REPORT 遗留缺陷）。唯一允许影响
+交付样本大小的开关是配置 `snr.max_sources`（默认 0 = 不限），生效即
+`truncated=true`。
 
-**lib/core 接线（越域，单独补丁）**：让 p1_op_noise 读入逐源目录并落盘新字段需要改
-lib/core/src/module_adapters.cpp（P7 独占）。本批**未改仓库树中的 lib/core**，
-改动以补丁交付：run/perf-fix/P8-snr-linux/patches/out-of-scope/lib-core-snr-wiring.patch
-（+ module_adapters.cpp.patched 完整副本）；SNR 配置块 snr 的键注册同批以
-cli-parser-snr-config-key.patch 交付（同属越域）。端到端验证通过用户命名空间内
-bind-mount 这些副本完成（仓库文件逐字节未变，见 REPORT §6）。
+**样本真实性 provenance（p1_snr.json 帧块，P14-N-08 新增）**：
+
+| 字段 | 定义 |
+|---|---|
+| snr_sample | 所用样本定义（字符串：全部测光有效 sources，与 psf.max_stars 解耦） |
+| n_sources | 上游目录可用源总数（DATA-P1-SOURCES.sources 长度） |
+| n_snr_available | 其中测光有效（flux>0 且 fwhm_px>0）的源数 |
+| truncated | 交付样本是否被 `snr.max_sources` 上限截断（bool） |
+| snr_max_sources | 生效的交付样本上限（0 = 不限） |
+| psf_mode | 上游 PSF 拟合**真实模式**（"fast"/"precise"/"unavailable"，非字面量） |
+| n_fit_input | 上游真正送入 Moffat4 拟合的星数（provenance，**不**影响本帧 SNR） |
+| psf_fit_truncated | 上游拟合输入是否被 `psf.max_stars` 截断（provenance） |
+
+**lib/core 接线（P8 越域补丁 → P14 落树）**：`p1_op_noise` / `p1_op_star_psf_impl`
+位于 lib/core/src/module_adapters.cpp（P8 以补丁交付、P14 直接落树）。P14 同批新增
+两个**测试专用直调钩子** `p1_op_star_psf_json` / `p1_op_noise_json`（生产注册表
+不变），供 tests/unit/p1snr/p1snr_frame_parity_test.cpp 端到端 parity 锁直调。

@@ -96,7 +96,12 @@ struct StarSelection {
     int    n_fov;            // 投影过滤后 FOV 矩形内 Gaia 星数 (N_fov)
     int    gaia_query_calls; // 本帧 Gaia 圆锥查询调用次数
     double gaia_query_ms;    // 本帧 Gaia 圆锥查询累计墙钟 (ms)
-    bool   m_lim_capped;     // 是否触到 Gaia 每文件返回上限 (200000 整数倍 => 截断)
+    bool   m_lim_capped;     // 是否触到 Gaia 每文件返回上限 (n_ret >= 每文件上限 => 截断)
+    // P14-N-10 (RQS V2-N-10 缺陷 1): 迭代失效面落交付面 (fail-closed 可观测)。
+    // 旧实现只落 m_lim_capped, 且把触顶错记为 converged=true; converged /
+    // query_failed 不可读 => 下游无法区分「真收敛」「查询失败」「触顶降级」。
+    bool   m_lim_converged;  // |N-N_target|/N_target <= tol 且未触顶 (真收敛)
+    bool   m_lim_query_failed;// 某次 Gaia 查询返回错误 (末次成功结果被采用)
     double m_lim_alpha_final;// 末次使用的 alpha (dlog10N/dmag)
     double rho_img;          // 图像侧星密度
     double rho_target;       // 目标星密度
