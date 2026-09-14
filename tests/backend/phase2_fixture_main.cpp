@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -193,7 +194,7 @@ static bool write_analytic_frame(const std::string& path) {
 
 int main(int argc, char** argv) {
     if (argc < 3) {
-        std::fprintf(stderr, "usage: --make <dir> | --make-noivar <dir> | --make-field <dir> | --make-nan <dir> | --make-seam <dir> | --make-analytic <dir>\n");
+        std::fprintf(stderr, "usage: --make <dir> | --make-noivar <dir> | --make-field <dir> | --make-nan <dir> | --make-seam <dir> | --make-seam6 <dir> | --make-seam-n <dir> <N> | --make-analytic <dir>\n");
         return 2;
     }
     const std::string mode = argv[1], dir = argv[2];
@@ -228,6 +229,22 @@ int main(int argc, char** argv) {
         for (int i = 0; i < 6; ++i) {
             std::snprintf(name, sizeof(name), "SEAM%d.hips", i);
             if (!write_seam_frame(dir + "/" + name, modes[i], offs[i])) return 3;
+        }
+    } else if (mode == "--make-seam-n") {
+        // RESCUE-FD-08b(自标定 workload): N 块 seam HiPS, N 由 test 侧按实测吞吐
+        // 选取(见 tests/backend/test_p2007_joint_gate.py)。模式/偏移按 6 周期轮换,
+        // 并按周期附加区分偏移(+43*cyc), 保证每块内容互异; frame_id = 文件名
+        // basename(lib/phase2/src/coverage.cpp:138)故 SEAMi.hips 亦互异。
+        if (argc < 4) return 2;
+        const int n = std::atoi(argv[3]);
+        if (n < 1 || n > 4096) return 2;
+        const int offs[6] = {+10, -5, +3, -8, +6, -2};
+        const int modes[6] = {2, 3, 0, 1, 3, 2};
+        char name[64];
+        for (int i = 0; i < n; ++i) {
+            const int j = i % 6, cyc = i / 6;
+            std::snprintf(name, sizeof(name), "SEAM%d.hips", i);
+            if (!write_seam_frame(dir + "/" + name, modes[j], offs[j] + 43 * cyc)) return 3;
         }
     } else {
         return 2;

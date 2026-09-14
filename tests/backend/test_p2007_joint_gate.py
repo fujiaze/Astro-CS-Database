@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """test_p2007_joint_gate.py — P2-007 (G5) Phase2 接缝与资源联合门。
-在 2c2g 运行 production seam workload(6 块 mini HiPS) ≥10s, 保存科学+资源证据:
+运行 production seam workload(自标定 N 块 mini HiPS, N≥6)使 active_wall 稳过
+10s 冻结锚, 保存科学+资源证据:
+  (RESCUE-FD-08b: 块数由 setUpClass 先做 3 块小样本吞吐标定再外推选到期望
+   active_wall≈12s, 不再拍固定数字 —— 固定 6 块在 CI 4c runner 实测 8.5s 命中红。)
   A) 科学: seam 校正有效(M/C 非空, 校正后帧间差异下降, 源不被拟合);
   B) 资源: Runtime 多 worker(workers_p50≥2), CPU p50≥90%/mean≥85%(2c2g 门),
      active_wall≥10s, 峰值 RSS 有界;
   C) 联合: CPU 不达门时不得因 seam 数值好而 PASS(gate 事件必须 ok)。
 
 CLI-002 迁移注记 (commit de2d6d7f) + 实测口径变更:
-  - 顶层 `run --phases` 删除 → `phase2 run`; seam6 fixture 目录(run/temp/p2007_seam6,
-    历史手工产物, run/* 不入库)由 fixture_common.ensure_seam6_hips() 自建
-    (fixture exe --make-seam6 模式, P2-007 G5 原生成方, 6 块 SEAM0..5.hips)。
+  - 顶层 `run --phases` 删除 → `phase2 run`; seam fixture 目录(run/temp/p2007_seam/n<N>,
+    run/* 不入库)由 fixture_common.ensure_seam_hips(N) 自建
+    (fixture exe --make-seam-n 模式; N 由本文件自标定, 下界 6 块保持原 seam6 语境)。
   - 现行 CLI 无 "gate" 事件 kind; 资源门证据 = kind=="resource"/message=="resource gate"
     事件(verdict + wall_seconds/workers_p50/cpu_p50_percent/cpu_mean_percent)。
   - 联合门语义判定(实测, 本机 16c): session budget 恒 2 workers, 而门禁阈值 =
@@ -21,7 +24,7 @@ CLI-002 迁移注记 (commit de2d6d7f) + 实测口径变更:
       * 机制一致性: verdict 与 rc 联动 — verdict=="ok" ⇔ rc==0; verdict!=""ok" ⇔
         rc==10 且 kind=="resource_gate"/severity=="error" 事件存在(联合门拒绝语义
         本体: 资源不达门 → run FAIL, 数值好不可赎回);
-      * workload 强度: seam6 workload 实测 active wall≥10s + 采样充分
+      * workload 强度: 自标定 seam workload 实测 active wall≥10s + 采样充分
         (n_samples≥10, 阈值判定非短窗豁免路径) + workers_p50≥2(2c budget 下多 worker);
       * RSS 有界(resource_summary.json active 段 rss_peak_bytes < 512MB)。
 
@@ -50,13 +53,15 @@ CLI-002 迁移注记 (commit de2d6d7f) + 实测口径变更:
 """
 import glob
 import json
+import math
 import os
 import re
 import subprocess
 import tempfile
+import time
 import unittest
 
-from tests.backend.fixture_common import ensure_seam6_hips  # noqa: E402
+from tests.backend.fixture_common import ensure_seam_hips  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EXE = os.path.join(REPO, "build", "astrocs")
@@ -77,30 +82,88 @@ def _session_budget_workers(stderr_text):
 
 
 class TestP2007JointGate(unittest.TestCase):
+    # ── RESCUE-FD-08b: 自标定 workload 参数(不得改判据/阈值, 仅定规模) ──
+    CAL_FRAMES = 3        # 标定小样本块数(实测吞吐)
+    MIN_FRAMES = 6        # 下界 = 原 6 块 seam 语境
+    MAX_FRAMES = 24       # 上界: 保证生成+运行上界 <60s(见 docstring)
+    TARGET_WALL = 12.0    # 期望 active_wall 下限(10s 冻结锚 + 20% 余量)
+    RETRY_FLOOR = 12.0    # 实测 < TARGET_WALL 时按实测吞吐再放大一次(至多一次)
+
+    @classmethod
+    def _run_phase2(cls, paths, tag):
+        """跑一次 phase2 run, 返回 (res, evs, out_dir, gate_wall_seconds, cfg)。"""
+        out = os.path.join(cls.tmp, tag)
+        os.makedirs(out, exist_ok=True)
+        cfg = os.path.join(out, "cfg.json")
+        json.dump({"schema_version": "1",
+                   "inputs": {"lights": paths, "darks": [], "flats": [], "bias": []},
+                   "output_dir": out}, open(cfg, "w"))
+        t0 = time.monotonic()
+        res = subprocess.run([EXE, "phase2", "run", "--config", cfg,
+                              "--events-jsonl", "--resource-detail", "summary"],
+                             capture_output=True, text=True, timeout=400)
+        dt = time.monotonic() - t0
+        evs = []
+        for line in res.stdout.splitlines():
+            try:
+                evs.append(json.loads(line))
+            except Exception:
+                pass
+        gate = None
+        for e in evs:
+            if e.get("kind") == "resource" and e.get("message") == "resource gate":
+                gate = e
+        # 判据同 test_01: 用 gate 事件的 wall_seconds(monitor 窗口, 与断言同源);
+        # 无 gate 事件(整链失败)时退回墙钟, 由后续断言暴露失败, 不静默。
+        wall = float(gate["wall_seconds"]) if (gate and "wall_seconds" in gate) else dt
+        return res, evs, out, wall, cfg
+
+    @classmethod
+    def _seam_paths(cls, n):
+        _, paths = ensure_seam_hips(n)
+        for p in paths:
+            assert os.path.isdir(p), f"缺 seam 数据 {p}"
+        return paths
+
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="p2007_")
-        cls.out = os.path.join(cls.tmp, "out")
-        os.makedirs(cls.out, exist_ok=True)
-        seam_dir = ensure_seam6_hips()
-        paths = [os.path.join(seam_dir, f"SEAM{i}.hips") for i in range(6)]
-        for p in paths:
-            assert os.path.isdir(p), f"缺 seam 数据 {p}"
-        cls.cfg = os.path.join(cls.tmp, "cfg.json")
-        json.dump({"schema_version": "1",
-                   "inputs": {"lights": paths, "darks": [], "flats": [], "bias": []},
-                   "output_dir": cls.out}, open(cls.cfg, "w"))
-        # 现行参数面: --events-jsonl + --resource-detail summary 均为 phase2 run
-        # 存活 flag(kRules); 旧顶层 `run --phases` 已删除。
-        cls.res = subprocess.run([EXE, "phase2", "run", "--config", cls.cfg,
-                                  "--events-jsonl", "--resource-detail", "summary"],
-                                 capture_output=True, text=True, timeout=400)
-        cls.evs = []
-        for line in cls.res.stdout.splitlines():
-            try:
-                cls.evs.append(json.loads(line))
-            except Exception:
-                pass
+        # ── 1) 自标定: 3 块小样本实测吞吐(active_wall/块), 线性外推到 TARGET_WALL ──
+        cal_paths = cls._seam_paths(cls.CAL_FRAMES)
+        cal_res, _, _, cal_wall, _ = cls._run_phase2(cal_paths, "cal")
+        assert cal_res.returncode in (0, 10), (
+            "标定 run 非门拒绝失败: " + cal_res.stderr[-300:])
+        cls.cal_wall = cal_wall
+        cls.per_frame = max(cal_wall / float(cls.CAL_FRAMES), 0.05)
+        n = int(math.ceil(cls.TARGET_WALL / cls.per_frame)) + 1   # +1 块余量
+        n = max(cls.MIN_FRAMES, min(cls.MAX_FRAMES, n))
+        # ── 2) 全量 workload: 按标定块数生成/运行 ──
+        paths = cls._seam_paths(n)
+        cls.res, cls.evs, cls.out, cls.wall, cls.cfg = cls._run_phase2(paths, "full")
+        # ── 3) 有界补跑(闭环, 至多 2 次): seam 链含与块数无关的固定开销(coverage/
+        #      UPM/reject/integrate/write), 单点标定把固定开销摊入每块 → 低估块数。
+        #      故用**已有两点**(3 块标定 + 本次全量)拟合 wall(n)=a+b*n 的边际成本
+        #      b, 反解 wall=TARGET 所需块数; 第一次补跑后若仍低于 10s 锚再补一次
+        #      (至多 3 次全量运行, 上界可控)。判据/阈值仍一字未动。 ──
+        prev_n, prev_wall = cls.CAL_FRAMES, cls.cal_wall
+        for attempt, floor in enumerate((cls.RETRY_FLOOR, 10.0)):
+            if cls.wall >= floor or n >= cls.MAX_FRAMES:
+                break
+            dn = n - prev_n
+            b = (cls.wall - prev_wall) / dn if dn > 0 else 0.0
+            a = cls.wall - b * n
+            if b > 1e-3:
+                n2 = int(math.ceil((cls.TARGET_WALL - a) / b))
+            else:
+                n2 = int(math.ceil(n * (cls.TARGET_WALL + 2.0) / max(cls.wall, 0.5)))
+            n2 = min(cls.MAX_FRAMES, max(n + 1, n2))
+            prev_n, prev_wall = n, cls.wall
+            n = n2
+            paths = cls._seam_paths(n)
+            cls.res, cls.evs, cls.out, cls.wall, cls.cfg = cls._run_phase2(
+                paths, "full%d" % (attempt + 2))
+        cls.n_frames = len(paths)
+        cls.paths = paths
 
     def _event(self, kind, msg_part=None):
         for e in self.evs:
@@ -112,7 +175,12 @@ class TestP2007JointGate(unittest.TestCase):
         return self._event("resource", "resource gate")
 
     def test_01_workload_ten_seconds(self):
-        """production seam workload(6 块) ≥10s(active_wall, 采样充分)。"""
+        """production seam workload(自标定 N 块) ≥10s(active_wall, 采样充分)。
+
+        块数 N 由 setUpClass 按 3 块小样本实测吞吐线性外推选到期望 active_wall
+        ≈TARGET_WALL(12s, 即 10s 锚 + 20% 余量), 故不随宿主速度漂移; 10s 锚与
+        verdict 断言均未放宽。实测 N/标定见 resource_summary.json 与报告。
+        """
         g = self._gate_event()
         self.assertIsNotNone(g, "必须发出 resource gate 事件(kind=resource)")
         self.assertGreaterEqual(g["wall_seconds"], 10.0,
@@ -232,7 +300,9 @@ class TestP2007JointGate(unittest.TestCase):
         self.assertGreater(int(m.group(2)), 0, "overlap 控制点为空(UPM 无输入)")
         summ = self._event("resource", "session summary")
         if summ is not None:
-            self.assertEqual(summ.get("n_inputs"), 6, "6 帧输入未全被接受")
+            # 自标定块数同步(断言意图不变: 全部输入帧必须被接受; 非放宽)
+            self.assertEqual(summ.get("n_inputs"), self.n_frames,
+                             f"{self.n_frames} 帧输入未全被接受")
             self.assertGreater(summ.get("n_obs", 0), 0, "session summary n_obs 为空")
         # run manifest 互引: astrocs_run_<run_id>.json 与事件流 run_id 一致
         manifests = sorted(glob.glob(os.path.join(self.out, "astrocs_run_*.json")))
