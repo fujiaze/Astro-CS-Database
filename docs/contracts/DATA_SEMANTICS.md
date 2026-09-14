@@ -463,7 +463,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 
 | 输出 | dtype/shape | 单位/域 | 语义 |
 |---|---|---|---|
-| out_pixels | 同输入 dtype `[h·w]` | ADU | I_cal=I·scale（f32 通道 ImageCorrector :63-77；f64 内联 pc_api.cpp:1023-1028）；退化=恒等拷贝 |
+| out_pixels | 同输入 dtype `[h·w]` | 未定标/退化=ADU；已定标（scale≠1 且 n_matched>0）=模型通带积分辐照度（F_syn 单位） | I_cal=I·scale（f32 通道 ImageCorrector :63-77；f64 内联 pc_api.cpp:1023-1028）；退化=恒等拷贝。写盘 BUNIT 必须随 PHOTAPPL 区分（§11.1 PHOTSCAL/PHOTAPPL 行），禁止在已定标帧标 BUNIT=ADU <!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S2) --> |
 | out_scale_factor | double 标量 | 无量纲 | 10^(−location)（IRLS/Tukey，star_matcher.cpp:527-529）；退化/一致集空=1.0 |
 | out_sigma_residual | double 标量 | dex（log10 flux-ratio） | MAD(r_inliers)/0.6745（:551-560）；下游换算 sigma_mag/sigma_cal_rel 由 snr_phot_cal_quality 承担（API-NOISE-001 边界） |
 | out_n_matched | int32 标量 | 颗 | IRLS inliers 数（fit_used） |
@@ -479,8 +479,12 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 - FP64 全链路（f32 输入升 double）；out_pixels f32 通道经 float 截断
   （诊断级截断在 ImageCorrector，f64 通道全 double）。
 - r 方向恒为 log10(F_instr/F_syn)（F_instr=PSF flux ADU，F_syn=W·m⁻²·nm⁻¹
-  积分值）——scale 为无量纲乘性因子，量纲比进入 log 前由合同锚定，禁止
-  反向（SCI-PHOT-001 §10）。
+  积分值）。`r_i = log10(F_instr,i/F_syn,i)` 是**有量纲比值**的对数；`location`
+  的单位为 **dex(ADU / [F_syn 单位])**，其中 F_syn 的单位为模型通带积分辐照度
+  （W·m⁻²·nm）；`scale = 10^(−location)` 的单位为 **[F_syn 单位]/ADU**。合同在此
+  **显式声明参考通量单位**；只有在声明单位后，才允许称 scale 为无量纲乘性因子。
+  禁止反向（SCI-PHOT-001 §10）。
+  <!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S1) -->
 - determinism=fixed_reduction_order：F_syn 逐星独立（OpenMP dynamic,64）、
   像素逐元素独立（static）→ 输出 bitwise 与线程数无关（README §7）。
 

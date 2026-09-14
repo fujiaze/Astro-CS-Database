@@ -189,3 +189,52 @@ p1_noise_test.cpp :312-316）去留由 P1-NOISE-IMPL 决定并登记其
 TASK_RESULT。迁移不得改变 ALG-NOISE-001..003 公式语义与 DATA-P1-NOISE
 数据语义（SCI-NOISE-001..015 未变更前）。本 README/合同只描述现状，
 禁止声明 IMPLEMENTED（落码验收后由 IMPL 任务更新）。
+## 11. P5-SNR 逐源 SNR 科学修正（2026-09-14，负责人授权）
+
+> 授权：负责人 2026-09-14 明示批准修改冻结/科学文档（ASTROCS_PROJECT_CONSTITUTION
+> §1.2 变更流程由负责人放行）。依据：`run/release-rescue/science-phot/
+> PHOTOMETRY_LITERATURE_REVIEW.md` §C.3（SNR 模型正确形式）与 §D.2 S4。
+
+**唯一定义式（本模块权威，snr_science.cpp）**
+
+| 量 | 定义式 | 单位/量纲 | 出处 |
+|---|---|---|---|
+| 逐源最优提取 SNR | `sigma_F^-2 = sum_i P_i^2/sigma_i^2 ; SNR_F = F/sigma_F` | `[1]` / `sigma_F [ADU]` | Horne 1986（综述 §C.3.1 i） |
+| 逐像素方差 | `sigma_i^2 = sigma_sky^2 + max(F*P_i,0)/gain + (read_noise_e/gain)^2` | `[ADU^2]` | Howell 1989 CCD 方程（§C.3.1 ii） |
+| 孔径 SNR | `S_ap=F*f_in(r) ; Var_ap=S_ap/gain + n_pix*sigma_sky^2*(1+n_pix/n_sky) ; SNR_ap=S_ap/sqrt(Var_ap)` | `[1]` | Howell 1989（§C.3.1 ii） |
+| 孔径改正 | `f_in(r) = 1 - (1 + r^2/(2 sigma^2))^-3`（Moffat4 beta=4 解析） | `[1]` | SCI-PSF-001 §5 + 综述 §C.3.1 |
+| 5-sigma 点源深度 | `F_5 = 5*sigma_F(ref) ; m_5 = ZP - 2.5*log10(F_5)` | `F_5 [ADU]`, `m_5 [mag]` | 综述 §C.3.1 iii |
+| 零点标准误 | `sigma_kappa,stat ~ 1.253*sigma_residual/sqrt(N)` | `[dex]` | 综述 §C.2.2（高斯 median SE） |
+
+**被重定义/退休的字段（schema 变更说明）**
+
+- `SnrControlPoint*.snr_psf`（控制点值）：`(A-B)/residual_scale`（SNR-008 已退休）
+  → **逐源最优提取 SNR_F**（无量纲）。生产路径 `snr_estimator.cpp` 的 4 处计算
+  （`snr_estimate`/`snr_estimate_f64`/`snr_extract_model`/`_v2`/`_v3`）统一改为调用
+  `snr_source_snr_f64`；`sigma_sky` 取 `residual_scale/0.7316727929211932`（10-90%
+  trimmed mean |residual| → Gaussian σ），gain 未知故为天空受限。
+- `SnrModel*.snr_phot`：`1/(ln10*sigma_residual)`（与真值之比跨 3 个数量级，非 SNR）
+  → **IDW 归一化对成员**（无量纲，值 = `median(SNR_F)`）；`median_snr` 同值，使
+  drizzle IDW 重建 `snr_phot*IDW/median_snr == IDW(SNR_F)`（即逐位置绝对 SNR）。
+- `SnrModel*.median_source_snr`（新增，无量纲）= `median(SNR_F)`。
+- `SnrModel*.frame_depth_flux5_adu`（新增，`[ADU]`）= `5*sigma_F(ref)`。
+- `SnrModel*.frame_depth_m5_mag`（新增，`[mag]`）= `ZP-2.5*log10(F_5)`；PSF 块无 ZP 时为 NaN。
+- `PhotometricCalibrationQuality` 新增 `sigma_location_se_dex` / `sigma_location_se_mag`
+  （`[dex]`/`[mag]`）：零点标准误 `1.253*sigma_logflux_dex/sqrt(n_matches)`。
+  原 `sigma_logflux_dex/sigma_mag/sigma_cal_rel` 仍为**逐星定标散度**，语义不变。
+- 稠密 `snr_estimate*` 图：不再乘帧级标量，直接输出 IDW 后的逐位置绝对 SNR（legacy diagnostic）。
+- 兼容性：`snr_phot`/`median_snr` 字段名与 C ABI 布局保留（orchestrator 不改名即可编译）；
+  新字段追加在 `SnrModelV2/V3` 末尾。旧消费者若按 `snr_phot*IDW/median_snr` 重建，
+  结果变为 IDW(SNR_F)（正确化，非回归）。
+
+**验证**
+
+- 新增 CTest 回归锁 `p1snr_science_{units,oracle,negative,production,determinism}`
+  （`tests/p1noise/p1snr_science_test.cpp`；被测面 `snr_science.cpp` + `snr_estimator.cpp`）。
+- 独立 NumPy oracle：`run/perf-fix/P5-snr/harness/snr_oracle.py` + `snr_oracle_probe.cpp`，
+  复算 5 个真实源（P2 t4_a `p1_sources.json`）+ 2 个合成场景（CCD 方程 / 天空受限），
+  94 点全过，`rtol 1e-9`，实测 max rel residual 3.8e-14。
+
+**已知边界（诚实声明）**：生产控制点路径无 gain/read-noise（PSF 块不含），故用
+`residual_scale` 的经验高斯 σ 作逐像素噪声尺度；完整 CCD 方程路径由 `snr_source_snr_f64`
+在 gain 已知时启用（新增 API，待编排层接线，属写域外）。

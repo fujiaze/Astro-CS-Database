@@ -6,7 +6,7 @@
 
 - 上游: `SCI-PHOT-001` (r=log10(F_instr/F_syn) IRLS Tukey c=4.685, mag_tolerance=3.0)
 - 输入: 仪器流量 `F_instr` + 合成流量 `F_syn` (Gaia XP)
-- 输出: `PhotometricCalibrationQuality` (sigma_mag, sigma_cal_rel, zero_point) + scale
+- 输出: `PhotometricCalibrationQuality` (sigma_mag, sigma_cal_rel) + scale<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S4：删除无定义式、结构体无字段的 zero_point) -->
 
 ## 2 离散公式
 

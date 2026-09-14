@@ -1,9 +1,13 @@
 // snr_estimator.cpp - SNR 估算模块实现
-// 乘法模型: SNR(pixel) = SNR_phot × (SNR_psf(pixel) / median(SNR_psf))
 //
-// SNR_phot = 1.0 / (ln(10) × sigma_residual) 全帧常数
-// SNR_psf(pixel) = IDW(PSF星位置, (A-B)/mad) 反距离加权插值 (legacy heuristic;
-// 旧 (A-B)/mad 路径已由 SNR-008 退休, 生产权重走 noise_model 空背景方差)
+// P5-SNR (2026-09-14, 负责人授权): SNR 科学修正。
+//   * 逐源控制点值: 旧退休量 (A-B)/residual_scale (SNR-008) ->
+//     Horne 1986 最优提取 SNR_F = F*sqrt(sum_i P_i^2)/sigma_pix (snr_science.cpp)。
+//   * 帧级量: 旧全帧常数 snr_phot=1/(ln10*sigma_residual) (与真值之比跨 3 个数量级,
+//     非 SNR) -> 帧级科学基准 5-sigma 点源深度 F_5/m_5 (模型字段 frame_depth_*)。
+//   * 本文件的稠密 SNR 图 (snr_estimate*) 为 legacy diagnostic: 现在直接输出 IDW 的
+//     逐位置绝对 SNR, 不再乘任何帧级标量。
+// 依据: run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md §C.3/§D.2 S4。
 // - A: psf[i*9+6] (振幅), B: psf[i*9+1] (局部背景)
 // - psf[i*9+7] 历史名 "mad", 实为 residual_scale (10-90% trimmed mean abs
 //   residual, SCI-PSF §2), 非真 MAD
@@ -18,7 +22,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -38,6 +44,68 @@ double medianValue(std::vector<double>& v) {
         med = (v[n / 2 - 1] + med) * 0.5;
     }
     return med;
+}
+
+// P5-SNR (2026-09-14, 负责人授权): 逐源科学 SNR —— Horne 1986 最优提取。
+// 输入为 PSF 块的一行 [status,B,flux,cx,cy,fwhm,A,mad(residual_scale),ecc]:
+//   F              = flux [ADU] (缺失/非正时用 Moffat4 beta=4 解析积分 2*pi*A*sigma^2/3 兜底)
+//   sigma_px       = fwhm / 1.230310                      [SCI-PSF FWHM=1.230310*sigma]
+//   sigma_sky_adu  = residual_scale / 0.7316727929211932  [10-90% trimmed mean -> Gaussian sigma]
+// gain 未知 (PSF 块无 gain) => 天空受限最优提取:
+//   SNR_F = F * sqrt(sum_i P_i^2) / sigma_sky
+// 旧 (A-B)/residual_scale (SNR-008 退休量) 不再进入科学输出。
+inline double sourceSnrFromPsfRow(const double* row) {
+    const double flux = row[2];
+    const double A = row[6];
+    const double residual_scale = row[7];
+    double fwhm = row[5];
+    if (!std::isfinite(residual_scale) || !(residual_scale > 0.0)) return 0.0;
+    if (!std::isfinite(fwhm) || !(fwhm > 0.0)) fwhm = 1.230310;  // 兜底 sigma=1px
+    double F = flux;
+    if (!std::isfinite(F) || !(F > 0.0)) {
+        const double sigma = fwhm / 1.230310;
+        F = 2.0 * M_PI * A * sigma * sigma / 3.0;
+    }
+    if (!std::isfinite(F) || !(F > 0.0)) return 0.0;
+    SnrSourceParams p;
+    std::memset(&p, 0, sizeof(p));
+    p.flux_adu = F;
+    p.fwhm_px = fwhm;
+    p.sigma_sky_adu = residual_scale / 0.7316727929211932;
+    SnrSourceResult res;
+    if (snr_source_snr_f64(&p, &res) != 0) return 0.0;
+    if (!std::isfinite(res.snr_optimal) || !(res.snr_optimal > 0.0)) return 0.0;
+    return res.snr_optimal;
+}
+
+// 帧级科学基准: 由有效星的 median FWHM 与 median sigma_sky 构造显式参考轮廓,
+// F_5 = 5*sqrt(Var(F))  [ADU] (天空受限); m_5 需 ZP, PSF 块无 ZP 时为 NaN。
+inline void frameDepthFromPsf(const double* psf, int n_stars,
+                              double* out_flux5, double* out_m5) {
+    if (out_flux5) *out_flux5 = 0.0;
+    if (out_m5) *out_m5 = std::nan("");
+    if (!psf || n_stars <= 0) return;
+    std::vector<double> fwhm, sig;
+    fwhm.reserve((size_t)n_stars);
+    sig.reserve((size_t)n_stars);
+    for (int i = 0; i < n_stars; ++i) {
+        const double* row = psf + i * 9;
+        if (row[0] != 0.0) continue;
+        if (row[6] <= row[1]) continue;
+        if (!(row[7] > 0.0)) continue;
+        double f = row[5];
+        if (!std::isfinite(f) || !(f > 0.0)) f = 1.230310;
+        fwhm.push_back(f);
+        sig.push_back(row[7] / 0.7316727929211932);
+    }
+    if (fwhm.empty()) return;
+    const double med_fwhm = medianValue(fwhm);
+    const double med_sigma = medianValue(sig);
+    if (!(med_fwhm > 0.0) || !(med_sigma > 0.0)) return;
+    double sum_p2 = 0.0, p_center = 0.0;
+    if (snr_moffat4_profile_f64(med_fwhm, 0.0, 0, &sum_p2, &p_center) != 0) return;
+    if (!(sum_p2 > 0.0)) return;
+    if (out_flux5) *out_flux5 = 5.0 * med_sigma / std::sqrt(sum_p2);
 }
 
 }  // namespace
@@ -72,15 +140,16 @@ SNR_API int snr_estimate(const float* data, int h, int w,
         return 2;
     }
 
-    // ---- SNR_phot 全帧常数 ----
-    const double LN10 = 2.302585092994045684017991454684;
-    double snr_phot = 1.0 / (LN10 * sigma_residual);
-    fprintf(stderr, "[snr] SNR_phot = 1/(ln(10)*sigma) = 1/(%.6f*%.6f) = %.6f\n",
-            LN10, sigma_residual, snr_phot);
+    // ---- P5-SNR: 旧全帧常数 snr_phot = 1/(ln10*sigma_residual) 已退休 ----
+    // 该量与真值之比跨 3 个数量级 (PHOTOMETRY_LITERATURE_REVIEW §C.3.3), 不是 SNR。
+    // 退化基准取 1.0 (不伪装帧 SNR); 科学 SNR 由逐源 SNR_F 承载。
+    const double snr_phot = 1.0;
+    fprintf(stderr, "[snr] P5-SNR: 无帧级 SNR 标量 (退化基准=%.1f, sigma_residual=%.6f 仅记账)\n",
+            snr_phot, sigma_residual);
 
-    // ---- 退化路径: n_stars <= 0 (返回 1, 全填 SNR_phot) ----
+    // ---- 退化路径: n_stars <= 0 (返回 1, 全填退化基准) ----
     if (n_stars <= 0) {
-        fprintf(stderr, "[snr] degenerate: n_stars=%d <= 0, fill SNR_phot=%.6f\n",
+        fprintf(stderr, "[snr] degenerate: n_stars=%d <= 0, fill %.1f\n",
                 n_stars, snr_phot);
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < N; ++i) {
@@ -115,7 +184,9 @@ SNR_API int snr_estimate(const float* data, int h, int w,
         if (A <= B) { ++n_skip_ab; continue; }
         if (residual_scale <= 0.0) { ++n_skip_residual_scale; continue; }
 
-        double s = (A - B) / residual_scale; // 旧 (A-B)/mad legacy 口径, 数值不变
+        // P5-SNR: 退休量 (A-B)/residual_scale -> Horne 1986 逐源最优提取 SNR
+        double s = sourceSnrFromPsfRow(row);
+        if (!(s > 0.0)) { ++n_skip_residual_scale; continue; }
         star_x.push_back(cx);
         star_y.push_back(cy);
         star_snr.push_back(s);
@@ -197,7 +268,8 @@ SNR_API int snr_estimate(const float* data, int h, int w,
                 snr_psf = median_snr;  // 边界兜底
             }
 
-            double snr = snr_phot * (snr_psf / median_snr);
+            // P5-SNR: 控制点已是绝对逐源 SNR_F; IDW 重建即该位置 SNR (无帧级重标定)
+            double snr = snr_psf;
             out_snr[y * w + x] = (float)snr;
         }
     }
@@ -242,15 +314,14 @@ SNR_API int snr_estimate_f64(const double* data, int h, int w,
         return 2;
     }
 
-    // ---- SNR_phot 全帧常数 ----
-    const double LN10 = 2.302585092994045684017991454684;
-    double snr_phot = 1.0 / (LN10 * sigma_residual);
-    fprintf(stderr, "[snr_f64] SNR_phot = 1/(ln(10)*sigma) = 1/(%.6f*%.6f) = %.6f\n",
-            LN10, sigma_residual, snr_phot);
+    // ---- P5-SNR: 旧全帧常数 snr_phot = 1/(ln10*sigma_residual) 已退休 ----
+    const double snr_phot = 1.0;
+    fprintf(stderr, "[snr_f64] P5-SNR: 无帧级 SNR 标量 (退化基准=%.1f, sigma_residual=%.6f 仅记账)\n",
+            snr_phot, sigma_residual);
 
-    // ---- 退化路径: n_stars <= 0 (返回 1, 全填 SNR_phot) ----
+    // ---- 退化路径: n_stars <= 0 (返回 1, 全填退化基准) ----
     if (n_stars <= 0) {
-        fprintf(stderr, "[snr_f64] degenerate: n_stars=%d <= 0, fill SNR_phot=%.6f\n",
+        fprintf(stderr, "[snr_f64] degenerate: n_stars=%d <= 0, fill %.1f\n",
                 n_stars, snr_phot);
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < N; ++i) {
@@ -282,7 +353,9 @@ SNR_API int snr_estimate_f64(const double* data, int h, int w,
         if (A <= B) { ++n_skip_ab; continue; }
         if (residual_scale <= 0.0) { ++n_skip_residual_scale; continue; }
 
-        double s = (A - B) / residual_scale; // 旧 (A-B)/mad legacy 口径, 数值不变
+        // P5-SNR: 退休量 (A-B)/residual_scale -> Horne 1986 逐源最优提取 SNR
+        double s = sourceSnrFromPsfRow(row);
+        if (!(s > 0.0)) { ++n_skip_residual_scale; continue; }
         star_x.push_back(cx);
         star_y.push_back(cy);
         star_snr.push_back(s);
@@ -363,7 +436,8 @@ SNR_API int snr_estimate_f64(const double* data, int h, int w,
                 snr_psf = median_snr;
             }
 
-            double snr = snr_phot * (snr_psf / median_snr);
+            // P5-SNR: 控制点已是绝对逐源 SNR_F; IDW 重建即该位置 SNR (无帧级重标定)
+            double snr = snr_psf;
             out_snr[y * w + x] = (float)snr;
         }
     }
@@ -509,11 +583,8 @@ SNR_API int snr_extract_model(const double* psf, int n_stars,
         return 2;
     }
 
-    // SNR_phot 全局标量
-    const double LN10 = 2.302585092994045684;
-    double snr_phot = 1.0 / (LN10 * sigma_residual);
-    out_model->snr_phot = snr_phot;
-    fprintf(stderr, "[snr_model] SNR_phot = %.6f\n", snr_phot);
+    // P5-SNR: 无帧级 SNR 标量; snr_phot/median_snr 为 IDW 归一化对 (见头文件重定义),
+    // 在下方 median(SNR_F) 计算后赋值。
 
     // 退化: n_stars <= 0
     if (n_stars <= 0) {
@@ -541,7 +612,9 @@ SNR_API int snr_extract_model(const double* psf, int n_stars,
         if (A <= B) { ++n_skip_ab; continue; }
         if (residual_scale <= 0.0) { ++n_skip_residual_scale; continue; }
 
-        double s = (A - B) / residual_scale; // 旧 (A-B)/mad legacy 口径, 数值不变
+        // P5-SNR: 退休量 (A-B)/residual_scale -> Horne 1986 逐源最优提取 SNR
+        double s = sourceSnrFromPsfRow(row);
+        if (!(s > 0.0)) { ++n_skip_residual_scale; continue; }
         star_x.push_back(cx);
         star_y.push_back(cy);
         star_snr.push_back(s);
@@ -558,11 +631,17 @@ SNR_API int snr_extract_model(const double* psf, int n_stars,
         return 1;
     }
 
-    // median(SNR_psf)
+    // median(逐源 SNR_F)
     std::vector<double> snr_copy = star_snr;
     double median_snr = medianValue(snr_copy);
+    // IDW 归一化对: snr_phot == median_snr => 重建 = IDW(SNR_F)
     out_model->median_snr = median_snr;
-    fprintf(stderr, "[snr_model] median(SNR_psf) = %.6f\n", median_snr);
+    out_model->snr_phot = median_snr;
+    out_model->median_source_snr = median_snr;
+    frameDepthFromPsf(psf, n_stars, &out_model->frame_depth_flux5_adu,
+                      &out_model->frame_depth_m5_mag);
+    fprintf(stderr, "[snr_model] median(SNR_F)=%.6f F5=%.6g ADU m5=%.4g mag\n",
+            median_snr, out_model->frame_depth_flux5_adu, out_model->frame_depth_m5_mag);
 
     if (median_snr <= 0.0) {
         fprintf(stderr, "[snr_model] warning: median_snr <= 0\n");
@@ -639,9 +718,7 @@ SNR_API int snr_extract_model_v2(const double* psf, int n_stars,
         fprintf(stderr, "[snr_model_v2] degenerate: sigma_residual=%g <= 0\n", sigma_residual);
         return 2;
     }
-    const double LN10 = 2.302585092994045684;
-    double snr_phot = 1.0 / (LN10 * sigma_residual);
-    out_model->snr_phot = snr_phot;
+    // P5-SNR: snr_phot 为 IDW 归一化对, 在 median(SNR_F) 后赋值
 
     if (n_stars <= 0) {
         fprintf(stderr, "[snr_model_v2] degenerate: n_stars=%d <= 0\n", n_stars);
@@ -659,8 +736,11 @@ SNR_API int snr_extract_model_v2(const double* psf, int n_stars,
         if (status != 0.0) continue;
         if (A <= B) continue;
         if (residual_scale <= 0.0) continue;
+        // P5-SNR: 退休量 (A-B)/residual_scale -> Horne 1986 逐源最优提取 SNR
+        double s = sourceSnrFromPsfRow(row);
+        if (!(s > 0.0)) continue;
         star_x.push_back(cx); star_y.push_back(cy);
-        star_snr.push_back((A - B) / residual_scale); // 旧 (A-B)/mad legacy 口径, 数值不变
+        star_snr.push_back(s);
     }
     int n_valid = (int)star_x.size();
     if (n_valid <= 0) {
@@ -670,6 +750,10 @@ SNR_API int snr_extract_model_v2(const double* psf, int n_stars,
     std::vector<double> snr_copy = star_snr;
     double median_snr = medianValue(snr_copy);
     out_model->median_snr = median_snr;
+    out_model->snr_phot = median_snr;
+    out_model->median_source_snr = median_snr;
+    frameDepthFromPsf(psf, n_stars, &out_model->frame_depth_flux5_adu,
+                      &out_model->frame_depth_m5_mag);
     if (median_snr <= 0.0) {
         fprintf(stderr, "[snr_model_v2] warning: median_snr <= 0\n");
         return 1;
@@ -737,9 +821,7 @@ SNR_API int snr_extract_model_v3(const double* psf, int n_stars,
         fprintf(stderr, "[snr_model_v3] degenerate: sigma_residual=%g <= 0\n", sigma_residual);
         return 2;
     }
-    const double LN10 = 2.302585092994045684;
-    double snr_phot = 1.0 / (LN10 * sigma_residual);
-    out_model->snr_phot = snr_phot;
+    // P5-SNR: snr_phot 为 IDW 归一化对, 在 median(SNR_F) 后赋值
 
     if (n_stars <= 0) {
         fprintf(stderr, "[snr_model_v3] degenerate: n_stars=%d <= 0\n", n_stars);
@@ -765,7 +847,9 @@ SNR_API int snr_extract_model_v3(const double* psf, int n_stars,
         if (residual_scale <= 0.0) continue;
         ValidRow vr;
         vr.x = cx; vr.y = cy;
-        vr.snr = (A - B) / residual_scale; // 旧 (A-B)/mad legacy 口径, 数值不变
+        // P5-SNR: 退休量 (A-B)/residual_scale -> Horne 1986 逐源最优提取 SNR
+        vr.snr = sourceSnrFromPsfRow(row);
+        if (!(vr.snr > 0.0)) continue;
         vr.star_id = star_ids ? star_ids[i] : 0;
         vr.qf = quality_flags ? quality_flags[i] : 0u;
         vr.ps = photometric_status ? photometric_status[i] : 0u;
@@ -781,6 +865,10 @@ SNR_API int snr_extract_model_v3(const double* psf, int n_stars,
     for (const auto& v : valid) snr_copy.push_back(v.snr);
     double median_snr = medianValue(snr_copy);
     out_model->median_snr = median_snr;
+    out_model->snr_phot = median_snr;
+    out_model->median_source_snr = median_snr;
+    frameDepthFromPsf(psf, n_stars, &out_model->frame_depth_flux5_adu,
+                      &out_model->frame_depth_m5_mag);
     if (median_snr <= 0.0) {
         fprintf(stderr, "[snr_model_v3] warning: median_snr <= 0\n");
         return 1;

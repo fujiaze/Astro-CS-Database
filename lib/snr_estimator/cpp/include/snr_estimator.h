@@ -39,9 +39,14 @@ extern "C" {
 // 禁止当作逐像素 inverse-variance 权重。
 // ---------------------------------------------------------------------------
 typedef struct {
-    double sigma_logflux_dex;  // 测光残差散度 (dex / log10 flux-ratio)
-    double sigma_mag;          // 2.5 × dex (mag)
-    double sigma_cal_rel;      // ln(10) × dex (相对标定散度, 无量纲)
+    double sigma_logflux_dex;  // 测光残差散度 (dex / log10 flux-ratio) — 逐星散度, 非零点误差
+    double sigma_mag;          // 2.5 × dex (mag) — 逐星散度
+    double sigma_cal_rel;      // ln(10) × dex (相对标定散度, 无量纲) — 逐星散度
+    // P5-SNR 订正 (2026-09-14, 负责人授权; SCI-PHOT-001 / PHOTOMETRY_LITERATURE_REVIEW C.2.2):
+    // sigma_residual 是参考星样本的散射, 零点标准误必须除以 sqrt(N):
+    //   sigma_location_se_dex ≈ 1.253 * sigma_logflux_dex / sqrt(n_matches)
+    double sigma_location_se_dex;  // 零点标准误 (dex); N<=0 或 sigma<=0 时为 0
+    double sigma_location_se_mag;  // 2.5 × sigma_location_se_dex (mag)
     int    n_matches;          // 匹配 Gaia 星数
     int    fit_status;         // 0=ok, 1=degenerate (无有效匹配), 2=invalid input
 } PhotometricCalibrationQuality;
@@ -185,8 +190,76 @@ SNR_API double snr_noise_gain_variance(double signal,
                                        double read_noise_e);
 
 // ============================================================================
-// SNR 估算 - 乘法模型
+// P5-SNR 逐源科学 SNR (2026-09-14, 负责人授权修改冻结/科学文档)
+//
+// 依据 (逐字锚): run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md
+//   §C.3.1 Horne 1986 最优提取  Var(F)^-1 = sum_i P_i^2/sigma_i^2, SNR_F = F/sigma_F
+//   §C.3.1 孔径 CCD 方程 (Howell 1989) + Moffat4 beta=4 孔径改正 (growth curve)
+//   §C.3.1 帧级科学基准 = 5-sigma 点源深度 m_5 = ZP - 2.5*log10(5*sigma_F(ref))
+//   §C.2.2 零点标准误 sigma_kappa,stat ~ 1.253*sigma_residual/sqrt(N)
+//   §C.3.3 旧 snr_phot=1/(ln10*sigma_residual) 与真值之比跨 3 个数量级 (非 SNR)
+//   §A.4.5 旧 (A-B)/residual_scale 已由 SNR-008 宣布退休
+//
+// 单位/量纲 (强制, 见 §C.3.1):
+//   flux_adu [ADU]; fwhm_px/sigma_px [pixel]; sigma_sky_adu [ADU];
+//   gain_e_per_adu [e-/ADU]; read_noise_e [e-]; zero_point_mag [mag];
+//   snr_* [无量纲]; sigma_f_* [ADU]; flux5_adu [ADU]; m5_mag [mag]
+// ============================================================================
+
+// 逐源 SNR 输入参数 (全部显式, 无隐式帧级标量)
+typedef struct {
+    double flux_adu;            // F: 总通量 [ADU] (>0 必须)
+    double fwhm_px;             // Moffat4 FWHM [pixel]; <=0 时改用 sigma_px
+    double sigma_px;            // Moffat4 各向同性 sigma [pixel]
+    double sigma_sky_adu;       // 逐像素空背景 rms [ADU] (>0 必须)
+    double gain_e_per_adu;      // 增益 [e-/ADU]; <=0 = 未知 (不加源泊松项)
+    double read_noise_e;        // 读出噪声 [e-]; 仅 gain>0 时进入
+    double aperture_radius_px;  // 孔径半径 [pixel]; <=0 -> 1.5*FWHM
+    double n_sky;               // 天空环像素数; <=0 -> n_pix
+    double zero_point_mag;      // 零点 [mag]; 0 -> m5_mag = NaN
+    int    profile_half_px;     // 轮廓网格半边长 [pixel]; 0 -> auto max(30,ceil(12*FWHM))
+} SnrSourceParams;
+
+// 逐源 SNR 输出 (单位见上)
+typedef struct {
+    double snr_optimal;            // Horne 1986 最优提取 SNR [无量纲]
+    double sigma_f_optimal_adu;    // 最优提取通量不确定度 sigma_F [ADU]
+    double snr_aperture;           // 孔径 CCD 方程 SNR [无量纲] (未做孔径改正)
+    double sigma_f_aperture_adu;   // 孔径通量不确定度 (含孔径改正) [ADU]
+    double enclosed_fraction;      // Moffat4 beta=4 圈入流量分数 f_in(r) [无量纲]
+    double aperture_correction;    // 1/f_in(r) [无量纲]
+    double n_pix;                  // 孔径面积 pi*r^2 [pixel]
+    double sum_p2;                 // sum_i P_i^2 (匹配滤波因子) [1/pixel]
+    double snr_peak;               // 峰值型 SNR (仅诊断, 不得作科学输出) [无量纲]
+    double flux5_adu;              // 5*sigma_F,opt [ADU]
+    double m5_mag;                 // 5-sigma 点源深度 [mag]; zero_point<=0 时 NaN
+    int    status;                 // 0=ok, 1=退化输入 (NaN/非正)
+} SnrSourceResult;
+
+// 逐源科学 SNR (Horne 最优提取 + 孔径 CCD 方程 + 孔径改正)
+SNR_API int snr_source_snr_f64(const SnrSourceParams* params,
+                               SnrSourceResult* out);
+
+// 离散归一化 Moffat4 beta=4 轮廓统计 (oracle 锚, 网格规则冻结)
+// 输出 sum_i P_i^2 [1/pixel] 与中心像素 P [1]
+SNR_API int snr_moffat4_profile_f64(double fwhm_px, double sigma_px, int half_px,
+                                    double* out_sum_p2, double* out_p_center);
+
+// 帧级科学基准 = 5-sigma 点源深度。reference 必须来自显式参考源。
+// F_5 = 5*sigma_F(ref) [ADU]; m_5 = ZP - 2.5*log10(F_5) [mag]
+SNR_API int snr_frame_depth_f64(const SnrSourceResult* reference,
+                                double zero_point_mag,
+                                double* out_flux5_adu,
+                                double* out_m5_mag);
+
+// 零点标准误 (dex): 1.253 * sigma_logflux_dex / sqrt(n_matches)
+SNR_API double snr_calib_zero_point_standard_error(double sigma_logflux_dex,
+                                                   int n_matches);
+
+// ============================================================================
+// SNR 估算 - 旧乘法模型 (legacy heuristic, 非科学 SNR)
 // SNR(pixel) = SNR_phot × (SNR_psf(pixel) / median(SNR_psf))
+// P5-SNR: 本段仅保留 ABI; 生产控制点值已改为逐源 Horne SNR (见上)。
 //
 // 输入:
 // data - 图像像素 float32 [h*w] (行优先, 来自 CALIBRATE 阶段)
@@ -285,7 +358,9 @@ typedef enum {
 typedef struct {
     double ra;       // 球面赤经 (度)
     double dec;      // 球面赤纬 (度)
-    float  snr_psf;  // legacy (A-B)/mad 控制点值 (列 7 实为 residual_scale; SNR-008 已退休路径)
+    // P5-SNR (2026-09-14): 逐源最优提取 SNR_F [无量纲, Horne 1986]。
+    // 旧 (A-B)/residual_scale 为 SNR-008 已退休量, 不再进入生产路径。
+    float  snr_psf;
 } SnrControlPoint;
 #pragma pack(pop)
 static_assert(sizeof(SnrControlPoint) == 20, "SnrControlPoint must be 20 bytes (packed, matches HioSnrControlPoint)");
@@ -297,7 +372,7 @@ static_assert(sizeof(SnrControlPoint) == 20, "SnrControlPoint must be 20 bytes (
 typedef struct {
     double ra;       // 球面赤经 (度)
     double dec;      // 球面赤纬 (度)
-    double snr_psf;  // legacy (A-B)/mad 控制点值 (列 7 实为 residual_scale; SNR-008 已退休路径)
+    double snr_psf;  // 逐源最优提取 SNR_F [无量纲, Horne 1986] (P5-SNR)
 } SnrControlPointF64;
 #pragma pack(pop)
 static_assert(sizeof(SnrControlPointF64) == 24, "SnrControlPointF64 must be 24 bytes");
@@ -348,10 +423,13 @@ typedef struct {
     uint32_t n_points;
     uint8_t  value_dtype;   // 0 = SnrControlPointV3[], 1 = SnrControlPointF64V3[]
     uint8_t  reserved[3];
-    void*    points;
-    double   snr_phot;
-    double   median_snr;
+    void*    points;           // 逐源绝对 SNR_F 控制点
+    double   snr_phot;         // IDW 全局尺度 [无量纲] = median(SNR_F) (P5-SNR 重定义)
+    double   median_snr;       // IDW 归一化基准 [无量纲] = median(SNR_F) (P5-SNR 重定义)
     double   idw_power;
+    double   median_source_snr;     // median(逐源 SNR_F) [无量纲]
+    double   frame_depth_flux5_adu; // F_5 = 5*sigma_F(ref) [ADU]
+    double   frame_depth_m5_mag;    // m_5 [mag]; 无 ZP 时 NaN
 } SnrModelV3;
 
 // ============================================================================
@@ -363,10 +441,13 @@ typedef struct {
     uint32_t n_points;
     uint8_t  value_dtype;
     uint8_t  reserved[3];
-    void*    points;           // 按 value_dtype 解释
-    double   snr_phot;
-    double   median_snr;
+    void*    points;           // 按 value_dtype 解释 (逐源绝对 SNR_F)
+    double   snr_phot;         // IDW 全局尺度 [无量纲] = median(SNR_F) (P5-SNR 重定义)
+    double   median_snr;       // IDW 归一化基准 [无量纲] = median(SNR_F) (P5-SNR 重定义)
     double   idw_power;
+    double   median_source_snr;     // median(逐源 SNR_F) [无量纲]
+    double   frame_depth_flux5_adu; // F_5 = 5*sigma_F(ref) [ADU]
+    double   frame_depth_m5_mag;    // m_5 [mag]; 无 ZP 时 NaN
 } SnrModelV2;
 
 // ============================================================================
@@ -378,9 +459,16 @@ typedef struct {
 typedef struct {
     uint32_t n_points;          // 控制点数
     SnrControlPoint* points;    // 控制点数组 (调用者负责释放, 用 snr_free_model)
-    double   snr_phot;          // 1/(ln10×sigma_residual) 全局标量
-    double   median_snr;        // median(snr_psf) 归一化基准
+    // P5-SNR 重定义 (2026-09-14): 控制点 snr_psf 现为绝对逐源 SNR_F, 故 IDW 重建
+    // 的全局尺度与归一化基准均置 1.0 (使 snr_phot*IDW/median_snr == IDW(SNR_F))。
+    // 二者不再是"帧级 SNR 标量"; 帧级科学基准见 snr_frame_depth_f64 (m_5)。
+    double   snr_phot;          // IDW 全局尺度 [无量纲] = median(SNR_F) (P5-SNR 重定义)
+    double   median_snr;        // IDW 归一化基准 [无量纲] = median(SNR_F) (P5-SNR 重定义)
     double   idw_power;         // IDW 幂次 (默认 2.0)
+    // P5-SNR 新增帧级科学量 (有定义式/单位; 取代"整帧 SNR 标量"):
+    double   median_source_snr;     // median(逐源 SNR_F) [无量纲]
+    double   frame_depth_flux5_adu; // 5-sigma 点源极限通量 F_5 = 5*sigma_F(ref) [ADU]
+    double   frame_depth_m5_mag;    // 5-sigma 点源深度 ZP-2.5*log10(F_5) [mag]; 无 ZP 时 NaN
 } SnrModel;
 
 // ============================================================================

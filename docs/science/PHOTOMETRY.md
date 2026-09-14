@@ -4,15 +4,15 @@
 
 ## 1 目的与非目标
 
-- **目的**：将仪器流量 `F_instr` 校准到以 Gaia 合成通量 `F_syn` 为参考的相对/绝对光度尺度，估计零点 `location`、尺度因子 `scale` 及残差 QA `sigma_residual / sigma_mag`。
+- **目的**：将仪器流量 `F_instr` 校准到**锚在 Gaia XP 绝对分光刻度（CALSPEC 溯源）的模型通带**光度尺度；模型通带当前为 `T(λ)·Q(λ)·λ`，**不含光学系统透过率与大气消光**（记为未建模项）。在模型通带内的结果可称「绝对通量（Gaia XP 刻度）」；跨通带/换系统/波段外通量不在本合同范围。估计零点 `location`、尺度因子 `scale` 及残差 QA `sigma_residual / sigma_mag`。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S6) -->
 - **非目标**：不处理带通外颜色项高阶效应（仅 QA 暴露残差分布）；不估计逐像素噪声方差（SCI-NOISE 边界）；不做大气消光时变建模。
 
 ## 2 符号表
 
 | 符号 | 含义 | 出现位置 |
 |---|---|---|
-| `F_instr` | 仪器通量 (ADU·px 或 e⁻) | 输入 |
-| `F_syn` | 合成通量（Gaia 星表模型） | 输入 |
+| `F_instr` | 仪器通量 (ADU；e⁻ 需 gain，当前不可得) | 输入 |
+| `F_syn` | 合成通量 = `∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`（Gaia 星表模型） | 输入（单位：W·m⁻²·nm，模型通带积分辐照度）<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S7) --> |
 | `r_i` | `log10(F_instr/F_syn)` dex | 定标核心 |
 | `delta_i` | `−2.5·log10(F_instr)−G_Gaia` mag | 星等一致性 |
 | `location` | IRLS/Tukey 稳健位置（dex） | `star_matcher.cpp:478-525` |
@@ -26,7 +26,7 @@
 
 ## 3 物理量和单位
 
-- `F_instr, F_syn`: ADU·px 或 e⁻（同尺度）；`r, location, S, sigma_residual`: dex (`log10` 比值)；`delta, sigma_mag`: mag；`scale, sigma_cal_rel`: 无量纲/相对误差（`sigma_cal_rel = ln10·sigma_residual`）；`qf` 无量纲标志。
+- `F_instr`: ADU（e⁻ 需 gain，当前不可得）；`F_syn`: W·m⁻²·nm（模型通带积分辐照度，`F_syn = ∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`）；二者**不同量纲**，其比值的对数即 `location`（见 DATA_SEMANTICS §14.3）；`r, location, S, sigma_residual`: dex（`r_i = log10(F_instr/F_syn)` 是**有量纲比值**的对数，`location` 单位 dex(ADU/[F_syn 单位])，`scale = 10^{−location}` 单位 [F_syn 单位]/ADU）；`delta, sigma_mag`: mag；`sigma_cal_rel`: 相对误差（`sigma_cal_rel = ln10·sigma_residual`）；`qf` 无量纲标志。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S1/S7) -->
 
 ## 3a 坐标 frame
 
@@ -66,7 +66,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 ## 6 假设
 
-- Gaia 合成星表在观测带通内提供可信参考；大气/仪器零点在观测尺度稳定；饱和判据可靠（`psf_status==0` 且无 `SATURATED` 标志）。
+- Gaia 合成星表（Gaia XP 绝对分光刻度，CALSPEC 溯源）在本模型通带内提供可信参考；**模型通带不含光学系统透过率与大气消光**（未建模项，跨帧会成为帧间系统差）；大气/仪器零点在观测尺度稳定；饱和判据可靠（`psf_status==0` 且无 `SATURATED` 标志）。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S6) -->
 
 ## 7 独立不变量
 

@@ -5,301 +5,540 @@
       "wl_min": 420.0,
       "wl_max": 524.0,
       "val_min": 0.002,
-      "val_max": 0.978
+      "val_max": 0.978,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Antlia V Pro Series B'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Antlia V Pro Series G": {
       "n_points": 53,
       "wl_min": 480.0,
       "wl_max": 584.0,
       "val_min": 0.001,
-      "val_max": 0.982
+      "val_max": 0.982,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Antlia V Pro Series G'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Antlia V Pro Series R": {
       "n_points": 64,
       "wl_min": 594.0,
       "wl_max": 720.0,
       "val_min": 0.0,
-      "val_max": 0.988
+      "val_max": 0.988,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Antlia V Pro Series R'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astrodon E-series B": {
       "n_points": 67,
       "wl_min": 386.0,
       "wl_max": 518.0,
       "val_min": 0.01,
-      "val_max": 0.99
+      "val_max": 0.99,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astrodon E-series B'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astrodon E-series G": {
       "n_points": 55,
       "wl_min": 492.0,
       "wl_max": 600.0,
       "val_min": 0.01,
-      "val_max": 0.98
+      "val_max": 0.98,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astrodon E-series G'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astrodon E-series R": {
       "n_points": 88,
       "wl_min": 576.0,
       "wl_max": 750.0,
       "val_min": 0.007,
-      "val_max": 0.98
+      "val_max": 0.98,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astrodon E-series R'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astrodon I-series B": {
       "n_points": 67,
       "wl_min": 386.0,
       "wl_max": 518.0,
       "val_min": 0.01,
-      "val_max": 0.99
+      "val_max": 0.99,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astrodon I-series B'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astrodon I-series G": {
       "n_points": 62,
       "wl_min": 482.0,
       "wl_max": 604.0,
       "val_min": 0.007,
-      "val_max": 0.99
+      "val_max": 0.99,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astrodon I-series G'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astrodon I-series R": {
       "n_points": 64,
       "wl_min": 582.0,
       "wl_max": 708.0,
       "val_min": 0.01,
-      "val_max": 0.99
+      "val_max": 0.99,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astrodon I-series R'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astronomik Deep Sky B": {
       "n_points": 54,
       "wl_min": 416.0,
       "wl_max": 522.0,
       "val_min": 0.0,
-      "val_max": 0.969
+      "val_max": 0.969,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astronomik Deep Sky B'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astronomik Deep Sky G": {
       "n_points": 50,
       "wl_min": 484.0,
       "wl_max": 582.0,
       "val_min": 0.0,
-      "val_max": 0.98
+      "val_max": 0.98,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astronomik Deep Sky G'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astronomik Deep Sky R": {
       "n_points": 60,
       "wl_min": 586.0,
       "wl_max": 704.0,
       "val_min": 0.003,
-      "val_max": 0.972
+      "val_max": 0.972,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astronomik Deep Sky R'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astronomik Typ 2c B": {
       "n_points": 65,
       "wl_min": 402.0,
       "wl_max": 530.0,
       "val_min": 0.0,
-      "val_max": 0.963
+      "val_max": 0.963,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astronomik Typ 2c B'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astronomik Typ 2c G": {
       "n_points": 90,
       "wl_min": 456.0,
       "wl_max": 634.0,
       "val_min": 0.002,
-      "val_max": 0.984
+      "val_max": 0.984,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astronomik Typ 2c G'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astronomik Typ 2c R": {
       "n_points": 69,
       "wl_min": 542.0,
       "wl_max": 678.0,
       "val_min": 0.001,
-      "val_max": 0.991
+      "val_max": 0.991,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astronomik Typ 2c R'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astronomik UV-IR Block L-1": {
       "n_points": 7,
       "wl_min": 300.0,
       "wl_max": 800.0,
       "val_min": 0.0,
-      "val_max": 1.0
+      "val_max": 1.0,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astronomik UV-IR Block L-1'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astronomik UV-IR Block L-2": {
       "n_points": 7,
       "wl_min": 300.0,
       "wl_max": 800.0,
       "val_min": 0.0,
-      "val_max": 1.0
+      "val_max": 1.0,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astronomik UV-IR Block L-2'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Astronomik UV-IR Block L-3": {
       "n_points": 7,
       "wl_min": 300.0,
       "wl_max": 800.0,
       "val_min": 0.0,
-      "val_max": 1.0
+      "val_max": 1.0,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Astronomik UV-IR Block L-3'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Baader B": {
       "n_points": 68,
       "wl_min": 388.0,
       "wl_max": 522.0,
       "val_min": 0.013,
-      "val_max": 0.982
+      "val_max": 0.982,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Baader B'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Baader G": {
       "n_points": 55,
       "wl_min": 484.0,
       "wl_max": 592.0,
       "val_min": 0.007,
-      "val_max": 0.986
+      "val_max": 0.986,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Baader G'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Baader R": {
       "n_points": 73,
       "wl_min": 572.0,
       "wl_max": 716.0,
       "val_min": 0.008,
-      "val_max": 0.988
+      "val_max": 0.988,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Baader R'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Baader UV/IR Cut / L CMOS Optimized": {
       "n_points": 7,
       "wl_min": 300.0,
       "wl_max": 800.0,
       "val_min": 0.0,
-      "val_max": 1.0
+      "val_max": 1.0,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Baader UV/IR Cut / L CMOS Optimized'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
+    },
+    "Baader 7nm H-alpha": {
+      "n_points": 21,
+      "wl_min": 640.0,
+      "wl_max": 672.0,
+      "val_min": 0.001,
+      "val_max": 0.97,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Baader 7nm H-alpha'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
+    },
+    "Baader 8.5nm OIII": {
+      "n_points": 25,
+      "wl_min": 484.0,
+      "wl_max": 518.0,
+      "val_min": 0.001,
+      "val_max": 0.98,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Baader 8.5nm OIII'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Chroma B": {
       "n_points": 49,
       "wl_min": 414.0,
       "wl_max": 510.0,
       "val_min": 0.002,
-      "val_max": 0.988
+      "val_max": 0.988,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Chroma B'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Chroma G": {
       "n_points": 57,
       "wl_min": 486.0,
       "wl_max": 598.0,
       "val_min": 0.009,
-      "val_max": 0.996
+      "val_max": 0.996,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Chroma G'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Chroma R": {
       "n_points": 69,
       "wl_min": 578.0,
       "wl_max": 714.0,
       "val_min": 0.011,
-      "val_max": 0.985
+      "val_max": 0.985,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Chroma R'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "IDAS LPS P3 Light Pollution": {
       "n_points": 504,
       "wl_min": 299.0,
       "wl_max": 802.0,
       "val_min": 0.003,
-      "val_max": 0.984
+      "val_max": 0.984,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'IDAS LPS P3 Light Pollution'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Johnson B": {
       "n_points": 420,
       "wl_min": 359.5,
       "wl_max": 569.0,
       "val_min": 0.001,
-      "val_max": 0.994
+      "val_max": 0.994,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Johnson B'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Johnson I": {
       "n_points": 464,
       "wl_min": 697.5,
       "wl_max": 929.0,
       "val_min": 0.001,
-      "val_max": 0.999
+      "val_max": 0.999,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Johnson I'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Johnson R": {
       "n_points": 772,
       "wl_min": 546.0,
       "wl_max": 931.5,
       "val_min": 0.001,
-      "val_max": 0.995
+      "val_max": 0.995,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Johnson R'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Johnson U": {
       "n_points": 222,
       "wl_min": 308.5,
       "wl_max": 419.0,
       "val_min": 0.001,
-      "val_max": 0.994
+      "val_max": 0.994,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Johnson U'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Johnson V": {
       "n_points": 517,
       "wl_min": 473.0,
       "wl_max": 731.0,
       "val_min": 0.001,
-      "val_max": 0.998
+      "val_max": 0.998,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Johnson V'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Optolong B": {
       "n_points": 76,
       "wl_min": 374.0,
       "wl_max": 524.0,
       "val_min": 0.0,
-      "val_max": 0.973
+      "val_max": 0.973,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Optolong B'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Optolong G": {
       "n_points": 58,
       "wl_min": 464.0,
       "wl_max": 578.0,
       "val_min": 0.0,
-      "val_max": 0.977
+      "val_max": 0.977,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Optolong G'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "OPTOLONG L-PRO Light Pollution": {
       "n_points": 400,
       "wl_min": 350.0,
       "wl_max": 749.0,
       "val_min": 0.003,
-      "val_max": 0.986
+      "val_max": 0.986,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'OPTOLONG L-PRO Light Pollution'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Optolong R": {
       "n_points": 90,
       "wl_min": 566.0,
       "wl_max": 744.0,
       "val_min": 0.0,
-      "val_max": 0.99
+      "val_max": 0.99,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'Optolong R'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "SDSS g": {
       "n_points": 313,
       "wl_min": 389.0,
       "wl_max": 545.0,
       "val_min": 0.001,
-      "val_max": 0.993
+      "val_max": 0.993,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'SDSS g'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "SDSS i": {
       "n_points": 315,
       "wl_min": 678.5,
       "wl_max": 835.5,
       "val_min": 0.001,
-      "val_max": 0.998
+      "val_max": 0.998,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'SDSS i'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "SDSS r": {
       "n_points": 299,
       "wl_min": 539.0,
       "wl_max": 688.0,
       "val_min": 0.001,
-      "val_max": 0.994
+      "val_max": 0.994,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'SDSS r'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "SDSS u": {
       "n_points": 183,
       "wl_min": 304.0,
       "wl_max": 395.0,
       "val_min": 0.001,
-      "val_max": 0.99
+      "val_max": 0.99,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'SDSS u'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "SDSS z": {
       "n_points": 601,
       "wl_min": 800.0,
       "wl_max": 1100.0,
       "val_min": 0.001,
-      "val_max": 0.999
+      "val_max": 0.999,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'SDSS z'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "ZWO B": {
       "n_points": 63,
       "wl_min": 418.0,
       "wl_max": 542.0,
       "val_min": 0.002,
-      "val_max": 0.961
+      "val_max": 0.961,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'ZWO B'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "ZWO G": {
       "n_points": 57,
       "wl_min": 502.0,
       "wl_max": 614.0,
       "val_min": 0.002,
-      "val_max": 0.982
+      "val_max": 0.982,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'ZWO G'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "ZWO R": {
       "n_points": 76,
       "wl_min": 592.0,
       "wl_max": 742.0,
       "val_min": 0.0,
-      "val_max": 0.989
+      "val_max": 0.989,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Curve key names a commercial filter product 'ZWO R'; the manufacturer or measured-curve source has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/filters.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     }
   },
   "qe": {
@@ -308,84 +547,144 @@
       "wl_min": 204.0,
       "wl_max": 1096.0,
       "val_min": 0.055,
-      "val_max": 0.9358
+      "val_max": 0.9358,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": "GSENSE2020BSI",
+      "uncertainty_note": "Curve key names sensor model 'GSENSE2020BSI'; the vendor datasheet/measurement has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "GSENSE400BSI": {
       "n_points": 400,
       "wl_min": 200.0,
       "wl_max": 998.0,
       "val_min": 0.1572,
-      "val_max": 0.9591
+      "val_max": 0.9591,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": "GSENSE400BSI",
+      "uncertainty_note": "Curve key names sensor model 'GSENSE400BSI'; the vendor datasheet/measurement has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "GSENSE400FSI": {
       "n_points": 400,
       "wl_min": 200.0,
       "wl_max": 998.0,
       "val_min": 0.1006,
-      "val_max": 0.8616
+      "val_max": 0.8616,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": "GSENSE400FSI",
+      "uncertainty_note": "Curve key names sensor model 'GSENSE400FSI'; the vendor datasheet/measurement has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "GSENSE4040BSI": {
       "n_points": 447,
       "wl_min": 204.0,
       "wl_max": 1096.0,
       "val_min": 0.055,
-      "val_max": 0.9358
+      "val_max": 0.9358,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": "GSENSE4040BSI",
+      "uncertainty_note": "Curve key names sensor model 'GSENSE4040BSI'; the vendor datasheet/measurement has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "GSENSE4040FSI": {
       "n_points": 349,
       "wl_min": 300.0,
       "wl_max": 996.0,
       "val_min": 0.0614,
-      "val_max": 0.6187
+      "val_max": 0.6187,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": "GSENSE4040FSI",
+      "uncertainty_note": "Curve key names sensor model 'GSENSE4040FSI'; the vendor datasheet/measurement has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Ideal QE curve": {
       "n_points": 6,
       "wl_min": 1.0,
       "wl_max": 2500.0,
       "val_min": 1.0,
-      "val_max": 1.0
+      "val_max": 1.0,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": null,
+      "uncertainty_note": "Synthetic ideal reference curve (Q=1) used for equivalence tests; not a measured device curve. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "KAF-16200": {
       "n_points": 300,
       "wl_min": 400.0,
       "wl_max": 998.0,
       "val_min": 0.0363,
-      "val_max": 0.589
+      "val_max": 0.589,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": "KAF-16200",
+      "uncertainty_note": "Curve key names sensor model 'KAF-16200'; the vendor datasheet/measurement has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "KAF-16803": {
       "n_points": 343,
       "wl_min": 360.0,
       "wl_max": 1044.0,
       "val_min": 0.0036,
-      "val_max": 0.5964
+      "val_max": 0.5964,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": "KAF-16803",
+      "uncertainty_note": "Curve key names sensor model 'KAF-16803'; the vendor datasheet/measurement has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "KAF-8300": {
       "n_points": 64,
       "wl_min": 360.0,
       "wl_max": 990.0,
       "val_min": 0.0448,
-      "val_max": 0.5656
+      "val_max": 0.5656,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": "KAF-8300",
+      "uncertainty_note": "Curve key names sensor model 'KAF-8300'; the vendor datasheet/measurement has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Sony IMX183": {
       "n_points": 54,
       "wl_min": 400.0,
       "wl_max": 1000.0,
       "val_min": 0.092,
-      "val_max": 0.997
+      "val_max": 0.997,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": "Sony IMX183",
+      "uncertainty_note": "Curve key names sensor model 'Sony IMX183'; the vendor datasheet/measurement has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Sony IMX411/455/461/533/571": {
       "n_points": 298,
       "wl_min": 402.0,
       "wl_max": 996.0,
       "val_min": 0.0507,
-      "val_max": 0.9172
+      "val_max": 0.9172,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": "Sony IMX411/455/461/533/571",
+      "uncertainty_note": "Curve key names sensor model 'Sony IMX411/455/461/533/571'; the vendor datasheet/measurement has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     },
     "Sony IMX492": {
       "n_points": 73,
       "wl_min": 340.0,
       "wl_max": 1060.0,
       "val_min": 0.0081,
-      "val_max": 0.8216
+      "val_max": 0.8216,
+      "source": "unverified: original curve source not recorded in repository",
+      "url": null,
+      "retrieved": null,
+      "instrument": "Sony IMX492",
+      "uncertainty_note": "Curve key names sensor model 'Sony IMX492'; the vendor datasheet/measurement has not been verified in-repository. Original source (vendor/database/paper), URL and retrieval date are not recorded anywhere in the repository; provenance unverified. Statistics (n_points/wl_min/wl_max/val_min/val_max) are computed from data/response_curves/qe_curves.json and are unaffected. Treat absolute calibration claims based on this curve as unverified until a traceable source is registered."
     }
   }
 }

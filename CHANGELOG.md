@@ -6,6 +6,53 @@
 > `0.11.0-alpha.1+g<commit12>`）。本节记录当前 alpha 集成事实；历史轮次节
 > （下方 V19R8…V12）仅供追溯，不冒充当前状态（约束 §F.8 / VERSION_NAMESPACES
 > history 命名空间）。基线提交 `6affe3009985452f5bc0bdf654aa95a4b61b2d2e`。
+### P5-SNR 逐源 SNR 科学修正（2026-09-14，负责人授权，scientific_change=YES）
+
+> **负责人授权**：2026-09-14 负责人明示批准修改冻结/科学文档（
+> 「前面那个冻结文档我批准你修改。需要把 SNR 改成对的。」），依
+> `ASTROCS_PROJECT_CONSTITUTION.md` §1.2 变更流程放行。依据：
+> `run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md` §C.3 / §D.2。
+
+**问题**：现行 `snr_phot = 1/(ln10·sigma_residual)` 把帧级定标散度当成逐源 SNR
+（与真值之比跨 3 个数量级，F=1e3→1e6 ADU 时 0.39→0.0004）；`(A−B)/residual_scale` 是
+SNR-008 已宣布退休的量却仍在生产路径（`lib/snr_estimator/cpp/src/snr_estimator.cpp`
+原 :118/:544 等 4 处）；σ 传递漏 /√N；文献中不存在「不确定度 + 局部 PSF SNR →
+帧 SNR 标量」的构造。
+
+**改前 → 改后（逐字段）**
+
+| 字段 | 改前 | 改后 | 单位 |
+|---|---|---|---|
+| 控制点 `SnrControlPoint*.snr_psf` | `(A−B)/residual_scale`（退休量 SNR-008） | `SNR_F = F·sqrt(Σ_i P_i²/σ_i²)`（Horne 1986 最优提取） | 无量纲 |
+| `SnrModel*.snr_phot` | `1/(ln10·sigma_residual)`（帧级常数，非 SNR） | `median(SNR_F)`（IDW 归一化对成员） | 无量纲 |
+| `SnrModel*.median_snr` | `median((A−B)/residual_scale)` | `median(SNR_F)` | 无量纲 |
+| `SnrModel*.median_source_snr` | （无） | `median(SNR_F)` | 无量纲 |
+| `SnrModel*.frame_depth_flux5_adu` | （无） | `F_5 = 5·σ_F(ref)` | ADU |
+| `SnrModel*.frame_depth_m5_mag` | （无） | `m_5 = ZP − 2.5·log10(5σ_F(ref))` | mag |
+| `PhotometricCalibrationQuality.sigma_location_se_dex` | （无；sigma_residual 被当帧级量） | `1.253·sigma_logflux_dex/√N` | dex |
+| `PhotometricCalibrationQuality.sigma_location_se_mag` | （无） | `2.5·sigma_location_se_dex` | mag |
+
+**实现**：新增 `lib/snr_estimator/cpp/src/snr_science.cpp`（Horne 最优提取 / CCD 方程 /
+Moffat4 β=4 孔径改正 `f_in(r)=1−(1+r²/(2σ²))⁻³` / 5σ 深度 / 零点标准误）；
+`snr_estimator.cpp` 4 处控制点计算改调该实现；`noise_model.cpp::snr_phot_cal_quality`
+补 /√N 标准误。
+
+**文档订正（S1–S10，负责人授权）**：`docs/contracts/DATA_SEMANTICS.md`（§14.2/§14.3 单位）、
+`docs/contracts/PUBLIC_API.md`、`docs/science/PHOTOMETRY.md`、`docs/science/PSF.md`、
+`docs/science/CONTROL_WEIGHT_SNR.md`（`local_snr`/`frame_snr` 重定义为相对质量权重场，新增帧级
+科学基准 `m_5`）、`docs/science/NOISE_MODEL.md`、`docs/algorithms/PHOTOMETRIC_FIT.md`（删幽灵量
+`zero_point`）、`docs/modules/registry/astrocs.phase1.photometry.md`（ELECTRON→ADU）、
+`lib/photometric_calib/README.md`、`lib/photometric_calib/docs/algorithm.md`（标
+ARCHIVED_NON_NORMATIVE 并订正 4 处失实）、`lib/photometric_calib/cpp/test/filter_qe_provenance.json`
+（57 条补 source/url/retrieved/instrument/uncertainty_note，来源不可证者诚实标 unverified）。
+逐条改前/改后对照见 `run/perf-fix/P5-snr/docs/S_CHANGES.md`。
+
+**验证**：①`p1_flux.json`/`p1_wcs.json`/`p1_sources.json` 与改前**逐位相同**
+（sha256 `bc18d11f…` / `e7431e90…` / `57ef76fc…`）；②SNR 字段按新定义变化（控制点、
+`snr_phot`、`median_snr`、新帧级字段）并有独立 NumPy oracle 支撑（5 真实源 + 2 合成场景，
+94 点，rtol 1e-9，实测 max rel residual 3.8e-14）；③全量串行 ctest 全绿（含新增
+`p1snr_science_{units,oracle,negative,production,determinism}`）；④确定性（与线程数无关）。
+
 
 ### GOV-001 → GOV-005 治理链（W0/W1 集成，均 scientific_change=NO）
 

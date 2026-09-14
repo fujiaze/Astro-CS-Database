@@ -285,6 +285,15 @@ SNR_API int snr_phot_cal_quality(double sigma_logflux_dex, int n_matches,
     out->sigma_logflux_dex = sigma_logflux_dex;
     out->sigma_mag         = 2.5 * sigma_logflux_dex;
     out->sigma_cal_rel     = kLn10 * sigma_logflux_dex;
+    // P5-SNR 订正 (2026-09-14, 负责人授权; PHOTOMETRY_LITERATURE_REVIEW §C.2.2):
+    // sigma_residual 是逐星定标散度, 不是零点误差。高斯下 median 的标准误
+    // sigma_kappa,stat ~ 1.253*sigma_residual/sqrt(N_eff); 旧实现未除 sqrt(N),
+    // N=200 时把零点误差高估约 11 倍。
+    if (n_matches > 0) {
+        out->sigma_location_se_dex =
+            snr_calib_zero_point_standard_error(sigma_logflux_dex, n_matches);
+        out->sigma_location_se_mag = 2.5 * out->sigma_location_se_dex;
+    }
     out->fit_status        = (n_matches > 0) ? 0 : 1;
     return 0;
 }
