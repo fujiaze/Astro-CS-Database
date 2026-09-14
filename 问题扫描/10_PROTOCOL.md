@@ -112,3 +112,11 @@
   去重、改判优先级；最终写 `findings/<类别代码>/p<0|1|2>/<slice码>.md` 与 `_merge/<合并代理码>.md`
   （含剔除/降级/改判清单与二次验证结论）。
 - 全程中文。任何代理不得改动仓库既有文件。
+
+## 8. 执行层（E 层）授权边界 —— **负责人已授权 B-14（一次性）**
+
+- **允许**：`git ls-files` / `git --no-optional-locks status` / `git rev-parse` 等**不改索引**的查询；对**已存在**产物做 `nm` / `objdump` / `readelf` / `strings` 只读检查；`ctest -N`（**仅列出**用例名）；读取既有 `CMakeCache.txt` / `CTestTestfile.cmake`；`find` / `grep` / `wc`；`python3` 做纯文本分析与本地重算。
+- **输出**：只允许写入 `问题扫描/**` 与 **`run/审计执行层/E*/**`**（`run/*` 全 gitignore，符合根目录规范「禁止将运行产物产出到项目根目录」）。
+- **禁止（一律不得触碰）**：任何编译器/链接器/make/ninja 调用；`cmake -B` / `--build` / 任何 configure；**运行**测试、二进制、CLI、脚本产生的构建；`git add/commit/checkout/stash/reset/clean`（提交只由前台在本目录路径上做）；写入或修改 `run/审计执行层/` 与 `问题扫描/` 之外的任何路径；连接 Fatduck/Windows 节点；删除或改名任何文件（含 `run/**` 内的 AGENTS.md —— **负责人已裁定不改名**）。
+- **仍属无法判定、不得强行定档**：需 Windows/UCRT 真实行为者（B-05 rename 语义、B-08 longPathAware 的运行时效果、B-06 的 Windows 侧选择集）、需新构建 ASan/UBSan 后实跑者（B-09 —— **本轮只允许在既有 `build/asan/**` 与既有日志里找证据，不得新建构建**）、需真实数据端到端者（B-13）、需外网原文者（B-12）。
+- **纪律**：E 层每条结论必须写「命令 + 输出摘录」；凡与静态推演结论不符，**以实测为准并标"改判"**；E 层**不改级别定义、不新增总述条目**，只做「无法判定 → 四态」的落地。
