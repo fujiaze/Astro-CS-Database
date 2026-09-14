@@ -3388,6 +3388,74 @@
       ]
     },
     {
+      "id": "CTEST-GAIA-MANIFEST-BOUNDS",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "gaia_module_manifest_bounds",
+        "--output",
+        "run/ci/ctest/gaia_module_manifest_bounds.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/gaia_module_manifest_bounds.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "gaia_module_manifest_bounds"
+      ]
+    },
+    {
+      "id": "CTEST-XPSD-SPECTRUM-COUNT-BOUNDS",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "xpsd_spectrum_count_bounds",
+        "--output",
+        "run/ci/ctest/xpsd_spectrum_count_bounds.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/xpsd_spectrum_count_bounds.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "xpsd_spectrum_count_bounds"
+      ]
+    },
+    {
       "id": "KNOWN-FAILURES-BASELINE-CHECK",
       "profiles": [
         "linux-main"

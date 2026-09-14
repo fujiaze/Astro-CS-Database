@@ -915,6 +915,41 @@ set_tests_properties(gaia_integration PROPERTIES
   ENVIRONMENT "ASTROCS_GAIA_DLL_PATH=$<TARGET_FILE:astrocs_catalog_gaia>;ASTROCS_GAIA_INT_TRACE_OUT=${GAIA_INT_TRACE_OUT}")
 
 # ----------------------------------------------------------------------------
+# M9-H-1 / M9-H-2 (B1-memory): 内存安全回归锁
+#   gaia_module_manifest_bounds: module_entry.c 栈缓冲 head[512]/buf[512] 容量
+#     边界 (长 catalog_dir / 全转义串; 含尺寸查询阶段);
+#   xpsd_spectrum_count_bounds: gaia_client.c::load_xpsd_file 自报
+#     spectrumCount 上下界 (0/344/100000/-1/非数字)。
+#   两个 TU 均共址 #include 生产源以直驱 static 函数; gaia_module_manifest_bounds
+#   另编译链接 gaia_client.c (module_entry.c 仅 include 其头)。
+# ----------------------------------------------------------------------------
+add_executable(gaia_module_manifest_bounds_test gaia_module_manifest_bounds_test.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/src/gaia_client.c)
+target_include_directories(gaia_module_manifest_bounds_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_compile_definitions(gaia_module_manifest_bounds_test PRIVATE
+  ASTROCS_ABI_SHARED=1
+  ASTROCS_ABI_EXPORTS=1)
+if(OpenMP_C_FOUND)
+  target_link_libraries(gaia_module_manifest_bounds_test PRIVATE OpenMP::OpenMP_C)
+endif()
+target_link_libraries(gaia_module_manifest_bounds_test PRIVATE z m Threads::Threads)
+add_test(NAME gaia_module_manifest_bounds
+  COMMAND gaia_module_manifest_bounds_test ${GAIA_CAT_DATA}/bounds_work)
+
+add_executable(xpsd_spectrum_count_bounds_test xpsd_spectrum_count_bounds_test.c)
+target_include_directories(xpsd_spectrum_count_bounds_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/gaia_xpsd_client/src)
+if(OpenMP_C_FOUND)
+  target_link_libraries(xpsd_spectrum_count_bounds_test PRIVATE OpenMP::OpenMP_C)
+endif()
+target_link_libraries(xpsd_spectrum_count_bounds_test PRIVATE z m Threads::Threads)
+add_test(NAME xpsd_spectrum_count_bounds
+  COMMAND xpsd_spectrum_count_bounds_test ${GAIA_CAT_DATA}/bounds_work)
+
+# ----------------------------------------------------------------------------
 # P1-DRZ-IMPL (SA-P1D-I): drizzle 模块适配器测试 — astrocs_p1_drizzle DLL
 #   直接路径 (#include drizzle_adapter_impl.cpp → legacy hp_drizzle_run /
 #   hp_drizzle_reverse_run 统计面, 链 astrocs_drizzle STATIC, 与 p1drz_tests

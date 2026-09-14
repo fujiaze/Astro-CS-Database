@@ -1005,6 +1005,20 @@ static uint8_t *read_leaf_block(XPSDFileInternal *xf, uint64_t block_offset,
     return scratch;  /* 回退: 返回scratch (缓存插入失败时) */
 }
 
+static void close_xpsd_file(XPSDFileInternal *xf);
+
+/* M9-H-2: XPSD 文件自报字段严格解析——只接受十进制无符号整数且 ≤ limit;
+ * 语法非法 (负号/非数字/尾随垃圾) 或越界一律返回 0。 */
+static int parse_bounded_int(const char* s, int limit, int* out) {
+    if (!s || *s < '0' || *s > '9') return 0;
+    char* end = NULL;
+    long v = strtol(s, &end, 10);
+    if (end == s || (*end != '\0' && *end != ',')) return 0;
+    if (v < 0 || v > (long)limit) return 0;
+    *out = (int)v;
+    return 1;
+}
+
 static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
     memset(xf, 0, sizeof(*xf));
     /* V18R3: 显式截断拷贝，避免 strncpy 截断告警且保证 null 终止 */
@@ -1065,7 +1079,14 @@ static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
             while (*p) {
                 if (strncmp(p, "spectrumStart=", 14) == 0) { xf->spectrum_start = atoi(p + 14); }
                 else if (strncmp(p, "spectrumStep=", 13) == 0) { xf->spectrum_step = atoi(p + 13); }
-                else if (strncmp(p, "spectrumCount=", 14) == 0) { xf->spectrum_count = atoi(p + 14); }
+                else if (strncmp(p, "spectrumCount=", 14) == 0) {
+                    /* M9-H-2: 自报计数不得用作无界分配步长/memcpy 长度。
+                     * 非数字/负数/超 WL_COUNT → 整文件拒绝 (不放大分配)。 */
+                    if (!parse_bounded_int(p + 14, WL_COUNT, &xf->spectrum_count)) {
+                        close_xpsd_file(xf);
+                        return -1;
+                    }
+                }
                 else if (strncmp(p, "spectrumBits=", 13) == 0) { xf->spectrum_bits = atoi(p + 13); }
                 p = strchr(p, ',');
                 if (!p) break;
@@ -1080,6 +1101,15 @@ static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
 
     extract_tag_text(xml, "DatabaseIdentifier", xf->db_identifier, sizeof(xf->db_identifier));
     xf->has_spectrum = (strstr(xf->db_identifier, "GaiaDR3SP") != NULL);
+    /* M9-H-2: 光谱文件自报计数必须落在 [1, WL_COUNT]。上限=Gaia DR3 固定光谱
+     * 网格 343 (DATA_SEMANTICS spectrum_wl), 同时保证 spec_collector_push 每星
+     * memcpy 不超过记录光谱起点 (p+40) 之后 344 字节可读区 (STAR_STRIDE_SP=384);
+     * 0/缺失同样视为损坏并整文件拒绝 (修复前四种"==0 才兜底"会放行畸形文件)。 */
+    if (xf->has_spectrum &&
+        (xf->spectrum_count < 1 || xf->spectrum_count > WL_COUNT)) {
+        close_xpsd_file(xf);
+        return -1;
+    }
     xf->star_stride = xf->has_spectrum ? STAR_STRIDE_SP : STAR_STRIDE_NOSP;
 
     const char *tree_search = xml;
