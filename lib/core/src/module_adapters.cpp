@@ -2,8 +2,12 @@
 // P1-001 (attempt 2): Phase1 8 类节点唯一真实 operation 委托（ARCH-P0-001 整改）:
 //   calibration    → ac_calibrate_frame     (lib/calibration C ABI)
 //   cosmetic       → ac_correct_frame       (lib/calibration C ABI)
-//   star-psf       → StarDetector::detect    (lib/phase1/stars) + StarSource
-//                    fwhm_px/ellipticity 作 PSF 特性输出（不接 dpsf_fit_batch）
+//   star-psf       → astrocs::phase1::StarDetector::detect  (lib/phase1/stars
+//                                        的 P1-003 桥接类, **不是** lib/star_detector
+//                                        sdet) → star_det v1 [N,6] →
+//                                        dpsf_fit_batch_f64 (lib/dynamic_psf Moffat4
+//                                        FP64); P2/PSF-FAST-001 起只对最亮
+//                                        psf.max_stars 颗拟合（默认 5000）
 //   wcs-platesolve → WcsTan::pix2sky         (lib/phase1/wcs; 配置/初始 WCS
 //                    像素→天球投影, 标定语义; 真实求解器接线归各 IMPL 任务)
 //   photometry     → Photometer::measure     (lib/phase1/photometry)
@@ -1487,18 +1491,35 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
-// ── op: detect_sources（真实检测+拟合链: lib/star_detector sdet 检测 →
-//      star_det v1 [N,6] → lib/dynamic_psf dpsf_fit_batch_f64 Moffat4 批量
-//      PSF 拟合（生产源零 diff; DPSF-PREC-105/FP64 双精度）; 输出
-//      DATA-P1-SOURCES + DATA-P1-PSF(psf_params:FLOAT64[N,9])）──
-Result<void> p1_op_star_psf(const Json& doc, Json* man) {
+// ── op: detect_sources（真实检测+拟合链: lib/phase1/stars 的
+//      phase1::StarDetector 检测（局部峰 + 5×5 质心/二阶矩 + sigma-clip
+//      背景, 5σ）→ star_det v1 [N,6] → lib/dynamic_psf dpsf_fit_batch_f64
+//      Moffat4 批量 PSF 拟合（生产源零 diff; DPSF-PREC-105/FP64 双精度）;
+//      输出 DATA-P1-SOURCES + DATA-P1-PSF(psf_params:FLOAT64[N,9])。
+//
+//      ⚠ 注释订正 (P2, 2026-09-14): 本节点检测器是 lib/phase1/stars 的
+//      P1-003 桥接类 astrocs::phase1::StarDetector（d3af6ffa 引入），
+//      **不是** lib/star_detector 的 sdet —— sdet（sdet_create /
+//      sdet_detect_ex_f64, 带 maxStars 截断）只被 wcs-platesolve 节点使用
+//      （module_adapters.cpp:1995 sp.maxStars=2000）。旧注释误标为
+//      "lib/star_detector sdet 检测"; 误述源自 9e09941a 的提交信息。
+//
+//      PSF-FAST-001 (负责人裁决 2026-09-14): 生产路径只跑 FAST ——
+//      DATA-P1-SOURCES 全量检测**不动**（p1_sources.json 与下游孔径测光
+//      p1_flux.json 逐字节不变），只把 Moffat4 拟合限制到**最亮 N_fit 颗**
+//      （配置 psf.max_stars, 默认 5000, 禁编译期硬编码; 0 = 不截断=全量精确）。
+//      依据: psf_params 在仓库内零消费者、psf 端口为死边、测光正式口径=孔径
+//      测光（负责人 2026-09-14 裁决）; 全量 145,884 颗拟合实测 156.7 s/帧,
+//      最亮 5000 颗 ~4 s（REPORT.md §4）。完整精确路径保留为
+//      p1_op_star_psf_precise（inactive, kPrecisePsfEnabled=false）。
+Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
   const std::string out_dir = doc.value("output_dir", std::string("."));
   const astrocs::phase1::StarDetector det(5.0);
   Json frames = Json::array();
   std::vector<double> fwhm_xs, fwhm_ys, ells;
-  int64_t n_valid_total = 0, n_total_total = 0;
+  int64_t n_valid_total = 0, n_total_total = 0, n_fit_total = 0;
   for (const auto& l : doc["input_lights"]) {
     // IR 输入端口 = artifact:cos → 消费 cosmetic 节点产物（CORE-RACE-001 接线）
     const std::string path = p1_cleaned_input_path(doc, l.get<std::string>());
@@ -1515,30 +1536,50 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
     // star_det v1 检测视图 [N,6]: x/y/flux/mag/saturated/has_saturated
     // mag 由积分通量真实换算（-2.5log10, 零/负通量 → +99 如实标记）
     const size_t N = cat.sources.size();
-    std::vector<double> dets(N * 6, 0.0);
-    for (size_t i = 0; i < N; ++i) {
-      const auto& s = cat.sources[i];
-      dets[i * 6 + 0] = s.x;
-      dets[i * 6 + 1] = s.y;
-      dets[i * 6 + 2] = s.flux;
-      dets[i * 6 + 3] = (s.flux > 0.0)
+    // PSF-FAST-001: 拟合输入 = 最亮 N_fit 颗（检测全量 N 保持不变）。
+    // 选取: flux 降序 partial_sort, 同 flux 按检测下标升序 tie-break（确定性）;
+    // 选完**按检测下标升序重排**, 使 star_id ↔ psf 行的 compact 映射口径与
+    // B2-A2 完全一致（逐星真值索引仍由 psf_status 承载）。
+    std::vector<int> fit_idx(N);
+    for (size_t i = 0; i < N; ++i) fit_idx[i] = static_cast<int>(i);
+    size_t N_fit = N;
+    if (n_fit_limit > 0 && static_cast<size_t>(n_fit_limit) < N) {
+      std::partial_sort(fit_idx.begin(),
+                        fit_idx.begin() + n_fit_limit, fit_idx.end(),
+                        [&](int a, int b) {
+                          const double fa = cat.sources[static_cast<size_t>(a)].flux;
+                          const double fb = cat.sources[static_cast<size_t>(b)].flux;
+                          if (fa != fb) return fa > fb;   // 亮度降序
+                          return a < b;                    // tie-break: 检测序
+                        });
+      fit_idx.resize(static_cast<size_t>(n_fit_limit));
+      std::sort(fit_idx.begin(), fit_idx.end());
+      N_fit = static_cast<size_t>(n_fit_limit);
+    }
+    std::vector<double> dets(N_fit * 6, 0.0);
+    for (size_t k = 0; k < N_fit; ++k) {
+      const auto& s = cat.sources[static_cast<size_t>(fit_idx[k])];
+      dets[k * 6 + 0] = s.x;
+      dets[k * 6 + 1] = s.y;
+      dets[k * 6 + 2] = s.flux;
+      dets[k * 6 + 3] = (s.flux > 0.0)
           ? -2.5 * std::log10(s.flux) : 99.0;
-      dets[i * 6 + 4] = (s.quality & 1) ? 1.0 : 0.0;   // saturated
-      dets[i * 6 + 5] = (cat.n_saturated > 0) ? 1.0 : 0.0;
+      dets[k * 6 + 4] = (s.quality & 1) ? 1.0 : 0.0;   // saturated
+      dets[k * 6 + 5] = (cat.n_saturated > 0) ? 1.0 : 0.0;
     }
     // 真实 PSF 拟合: dpsf_fit_batch_f64（float32 检测帧 → double 全链拟合,
     // 数据保真升精度; 默认拟合参数）
-    std::vector<double> psf_params(N * 9, 0.0);
-    // B2-A2 (RESCUE-P0-05): 逐星拟合状态 out_status[i] 按【检测下标】报告结果;
-    // 成功行在 psf_params 中顺序 compact 存放。消费方必须按状态映射,
-    // 禁止按 i < n_valid 前缀截断（否则 NaN 行贴真实 star_id、有效星被丢弃）。
-    std::vector<int> psf_status(N, DPSF_PSF_STATUS_FIT_FAILED);
+    std::vector<double> psf_params(N_fit * 9, 0.0);
+    // B2-A2 (RESCUE-P0-05): 逐星拟合状态 out_status[k] 按【拟合输入下标 k】
+    // 报告结果（k → 检测下标 fit_idx[k]）; 成功行在 psf_params 中顺序 compact
+    // 存放。消费方必须按状态映射, 禁止按 k < n_valid 前缀截断。
+    std::vector<int> psf_status(N_fit, DPSF_PSF_STATUS_FIT_FAILED);
     int n_valid = 0;
-    if (N > 0) {
+    if (N_fit > 0) {
       std::vector<double> dbuf(static_cast<size_t>(im.w()) * static_cast<size_t>(im.h()));
       for (size_t i = 0; i < dbuf.size(); ++i) dbuf[i] = static_cast<double>(im.px()[i]);
       const int drc = dpsf_fit_batch_f64(
-          dbuf.data(), im.w(), im.h(), dets.data(), static_cast<int>(N),
+          dbuf.data(), im.w(), im.h(), dets.data(), static_cast<int>(N_fit),
           nullptr, psf_params.data(), &n_valid, psf_status.data());
       if (drc != 0) {
         return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -1546,12 +1587,12 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
       }
       if (n_valid <= 0) {
         return Result<void>::fail(Error(ErrorDomain::DATA,
-            "dpsf_fit_batch_f64: 0/" + std::to_string(N) + " fits converged"));
+            "dpsf_fit_batch_f64: 0/" + std::to_string(N_fit) + " fits converged"));
       }
-      // 成功行按检测下标升序 compact; 逐星按真值索引取行 (row 只读)
+      // 成功行按拟合输入序（== 检测序）compact; 逐星按真值索引取行 (row 只读)
       int row = 0;
-      for (size_t i = 0; i < N; ++i) {
-        if (psf_status[i] != DPSF_PSF_STATUS_OK) continue;
+      for (size_t k = 0; k < N_fit; ++k) {
+        if (psf_status[k] != DPSF_PSF_STATUS_OK) continue;
         // [7]=fwhm_x [8]=fwhm_y; sx=sigma_x → fwhm=2.3548*sx（由 9 列取 [7]/[8] 权威值）
         fwhm_xs.push_back(psf_params[static_cast<size_t>(row) * 9 + 7]);
         fwhm_ys.push_back(psf_params[static_cast<size_t>(row) * 9 + 8]);
@@ -1564,6 +1605,7 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
       n_valid_total += n_valid;
     }
     n_total_total += static_cast<int64_t>(N);
+    n_fit_total += static_cast<int64_t>(N_fit);
     Json sources = Json::array();
     for (const auto& s : cat.sources) {
       sources.push_back(Json{{"id", s.id}, {"x", s.x}, {"y", s.y},
@@ -1575,8 +1617,9 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
     Json psf_rows = Json::array();
     {
       int row = 0;
-      for (size_t i = 0; i < N; ++i) {
-        if (psf_status[i] != DPSF_PSF_STATUS_OK) continue;
+      for (size_t k = 0; k < N_fit; ++k) {
+        if (psf_status[k] != DPSF_PSF_STATUS_OK) continue;
+        const size_t i = static_cast<size_t>(fit_idx[k]);   // PSF-FAST-001: 子集映射
         psf_rows.push_back(Json{{"star_id", cat.sources[i].id},
                                 {"B", psf_params[static_cast<size_t>(row)*9+0]},
                                 {"A", psf_params[static_cast<size_t>(row)*9+1]},
@@ -1616,7 +1659,15 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
                       // DPSF_PSF_STATUS_OK compact; 失败星不入 psf_params)
                       {"status_schema", DPSF_PSF_STATUS_SCHEMA},
                       {"entry", "dpsf_fit_batch_f64"},
+                      // PSF-FAST-001 (负责人裁决 2026-09-14): 生产路径只跑 fast。
+                      // n_sources = 全量检测星数（与 p1_sources.n_detected 一致,
+                      // 未截断）; n_fit_input = 实际送入拟合的最亮星数（配置
+                      // psf.max_stars）。median_* 统计口径 = **拟合子集**的成功星
+                      // （旧口径 = 全量 145,884 颗含 54% 失败星的混合集）。
+                      // 精确路径保留但 inactive（见 p1_op_star_psf_precise）。
+                      {"psf_mode", "fast"},
                       {"n_sources", n_total_total},
+                      {"n_fit_input", n_fit_total},
                       {"n_valid", n_valid_total},
                       {"median_fwhm_x_px", median(fwhm_xs)},
                       {"median_fwhm_y_px", median(fwhm_ys)},
@@ -1626,11 +1677,46 @@ Result<void> p1_op_star_psf(const Json& doc, Json* man) {
   }
   (*man)["frames"] = static_cast<uint64_t>(frames.size());
   (*man)["n_sources"] = n_total_total;
+  (*man)["n_fit_input"] = n_fit_total;      // PSF-FAST-001
+  (*man)["psf_mode"] = "fast";              // PSF-FAST-001
   (*man)["n_psf_valid"] = n_valid_total;
   (*man)["sources_artifact"] = src_path;
   (*man)["psf_artifact"] = psf_path;
   (*man)["artifacts"] = Json::array({src_path, psf_path});
   return Result<void>::success();
+}
+
+// ── PSF-FAST-001: 拟合星数上限（节点级配置, 禁硬编码, 宪章 §10.4）────────────
+// 与 wcs 节点 sp.maxStars=2000（同文件 wcs-platesolve 段）同为节点配置口径。
+// psf.max_stars: 送入 Moffat4 拟合的**最亮星数**; 0 = 不截断（全量精确路径）。
+int p1_psf_fit_limit(const Json& doc) {
+  const Json psf = (p1_has(doc, "psf") && doc["psf"].is_object())
+                       ? doc["psf"] : Json::object();
+  return p1_int(psf, "max_stars", 5000);
+}
+
+// ── PSF-FAST-001 / INACTIVE: 完整精确 PSF 路径（保留实现, 生产路径不调用）──────
+// 负责人裁决 2026-09-14: (a) 测光正式口径 = 孔径测光（现状实现）; (b) psf 端口
+// 为死边、psf_params 在仓库内零消费者, 故 PSF 测光本轮及后续都不作为要求。
+// ⇒ 精确 PSF 生产上不启用; 但按裁决**完整实现予以保留**（不删算法代码）。
+// 唯一启用开关（恒 false ⇒ 生产路径永不进入精确分支）:
+constexpr bool kPrecisePsfEnabled = false;
+
+// 节点级精确路径: 与 FAST 同链, 唯一差别 = n_fit_limit=0（**全量**检测星不截断）。
+// 直调测试: tests/unit/p1001_real_nodes_test.cpp::test_starpsf_precise_inactive_
+// direct_call（证明本路径仍可编译且能跑出结果, 防止被当作死代码清理）。
+Result<void> p1_op_star_psf_precise(const Json& doc, Json* man) {
+  return p1_op_star_psf_impl(doc, man, /*n_fit_limit=*/0);
+}
+
+// 生产入口（p1_nodes 表绑定 operation=detect_sources）: FAST 模式。
+Result<void> p1_op_star_psf(const Json& doc, Json* man) {
+  // 唯一 dispatch 点。kPrecisePsfEnabled 恒 false ⇒ 编译期丢弃精确分支
+  // （"保留实现但不工作"）; 未来若改口径, 只改此开关 + 合同登记。
+  if constexpr (kPrecisePsfEnabled) {
+    return p1_op_star_psf_precise(doc, man);
+  }
+  return p1_op_star_psf_impl(doc, man, p1_psf_fit_limit(doc));
 }
 
 // ── B2-A17 (AUD-COORD F-03): SIP 系数桥接 ─────────────────────────────────────────
@@ -5596,6 +5682,30 @@ Result<void> write_run_context(const std::string& out_dir, const std::string& ru
     return Result<void>::fail(Error(ErrorDomain::IO,
         "cannot finalize run context: " + ec.message()));
   return Result<void>::success();
+}
+
+// PSF-FAST-001 / INACTIVE: 精确 PSF 路径的**直调测试钩子**（声明见
+// include/astrocs/core/module_adapters.h）。生产注册表（register_phase_modules）
+// **不注册**本路径; 本钩子只供测试证明精确实现仍可编译、仍能跑出结果,
+// 防止 inactive 代码被当作死代码清理（负责人裁决 2026-09-14）。
+// 入参/出参用 std::string 承载 JSON: core 公共头不引入 nlohmann 实现依赖。
+// n_fit_limit=0 ⇒ 全量星 Moffat4 拟合（= PSF-FAST-001 之前的旧口径）。
+Result<void> p1_op_star_psf_precise_json(const std::string& config_json,
+                                         std::string* manifest_json) {
+  Json doc;
+  try {
+    doc = Json::parse(config_json);
+  } catch (const std::exception& e) {
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        std::string("p1_op_star_psf_precise_json: bad config json: ") + e.what()));
+  }
+  if (!doc.is_object())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "p1_op_star_psf_precise_json: config must be a JSON object"));
+  Json man = Json::object();
+  auto rc = p1_op_star_psf_impl(doc, &man, /*n_fit_limit=*/0);
+  if (manifest_json) *manifest_json = man.dump();
+  return rc;
 }
 
 Result<void> register_phase_modules(ModuleRegistry& registry) {

@@ -499,6 +499,12 @@ target_include_directories(astrocs_phase1_stars PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1/stars
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_stars PUBLIC astrocs_contracts)
+# P2 (PSF-DET-001/PSF-BG-001): 检测器扫描/逐像素转换用 OpenMP。无 OpenMP 时
+# #pragma omp 被忽略 → 串行回退且结果逐位不变; 线程数不在本库硬编码
+# (宪章 §10.4), 由 Runtime 注入的 OpenMP 环境决定。与 astrocs_p1_sdet:548 同款。
+if(UNIX AND OpenMP_CXX_FOUND)
+  target_link_libraries(astrocs_phase1_stars PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 # P1-001 (attempt 2) + RESCUE-FD-05: B 线真实求解器/拟合器接线——
 # 生产源零 diff 只读编译进 STATIC（ipv 13 TU + gaia_client.c(C) + dpsf 3 TU）；

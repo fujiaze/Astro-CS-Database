@@ -2151,6 +2151,59 @@ static void test_psf_partial_fit_identity() {
   cleanup_fixture(fx);
 }
 
+// ══ 11. PSF-FAST-001 (负责人裁决 2026-09-14): FAST 截断 + INACTIVE 精确路径 ══
+// (a) 生产入口 = FAST: DATA-P1-SOURCES 全量检测**不动**, 仅把 Moffat4 拟合限制到
+//     最亮 psf.max_stars 颗（默认 5000, 节点配置, 禁硬编码）;
+// (b) 完整精确 PSF 路径**保留但 inactive**（kPrecisePsfEnabled=false, 生产路径
+//     不调用）; 本测试用直调钩子证明该实现仍可编译且能跑出真实结果,
+//     防止 inactive 代码被当作死代码清理。
+static void test_psf_fast_cap_and_inactive_precise() {
+  Fixture fx = make_fixture("psffast");
+  // 双星场 (10,10)/(22,22): 检测 2 颗 → 可分辨"检测全量"与"拟合截断"
+  TwoStarCfg tc{100.0f, 8000.0f, 6000.0f};
+  const std::string light = (fx.dir / "multi.fits").string();
+  CHECK(p1sess::write_fits_file(light, kW, kH, two_star_pixel, &tc) == 0);
+  const std::string cfg = R"({
+    "input_lights": [")" + light + R"("],
+    "output_dir": ")" + fx.out_dir + R"(",
+    "psf": {"max_stars": 1}
+  })";
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  RunContext ctx;
+  json man = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx);
+  CHECK_MSG(man.value("status", "") == "ok", "FAST psf node must succeed");
+  CHECK(man.value("psf_mode", std::string()) == "fast");
+  CHECK_MSG(man.value("n_sources", (std::int64_t)0) >= 2,
+            "全量检测必须保留 >=2 颗 (FAST 不截断检测)");
+  CHECK_MSG(man.value("n_fit_input", (std::int64_t)0) == 1,
+            "psf.max_stars=1 必须把拟合输入截到 1 颗 (节点配置生效)");
+  json cat = json::parse(read_file(man.value("sources_artifact", "")));
+  json psf = json::parse(read_file(man.value("psf_artifact", "")));
+  const std::size_t n_det = cat["frames"][0].value("n_detected", (std::size_t)0);
+  CHECK_MSG(n_det >= 2, "DATA-P1-SOURCES 全量检测不得被 FAST 截断");
+  CHECK(cat["frames"][0]["sources"].size() == n_det);
+  CHECK(psf.value("n_sources", (std::size_t)0) == n_det);   // 全量检测计数
+  CHECK(psf.value("n_fit_input", (std::size_t)0) == 1);     // 拟合截断生效
+  CHECK(psf.value("psf_mode", std::string()) == "fast");
+  // (b) inactive 精确路径直调 (不经生产注册表): 忽略 psf.max_stars, 全量拟合
+  std::string man_precise;
+  auto rc = astrocs::core::p1_op_star_psf_precise_json(cfg, &man_precise);
+  CHECK_MSG(rc.ok(), ("inactive precise PSF path must still run: " +
+                      (rc.ok() ? std::string() : rc.error().message())).c_str());
+  json psf2 = json::parse(read_file(fx.out_dir + "/p1_psf.json"));
+  CHECK_MSG(psf2.value("n_fit_input", (std::size_t)0) == n_det,
+            "精确路径必须拟合全量检测星 (忽略 psf.max_stars)");
+  CHECK_MSG(psf2.value("n_valid", (std::size_t)0) >= 1,
+            "精确路径必须产出真实拟合结果 (非空实现)");
+  CHECK_MSG(psf2.contains("psf_mode"), "DATA-P1-PSF 必须带 psf_mode 字段");
+  std::printf("[PSF-FAST-001] fast: n_det=%zu n_fit_input=1; precise(inactive): ", n_det);
+  std::printf("n_fit_input=%zu n_valid=%zu\n",
+              psf2.value("n_fit_input", (std::size_t)0),
+              psf2.value("n_valid", (std::size_t)0));
+  cleanup_fixture(fx);
+}
+
 // ══ 11. CORE-RACE-001: 科学语义零变化（修复前/后 bitwise golden 对照）══════
 // P1001_GOLDEN_DIR=<dir>: 1 worker 全链跑一次并把确定性产物字节存为基线;
 // P1001_GOLDEN_CMP=<dir>: 同样跑一次与基线逐字节比较（不一致 = 科学漂移）。
@@ -2272,6 +2325,7 @@ int main() {
   test_worker_parity_bitwise();
   test_torn_artifact_fault_injection();
   test_psf_partial_fit_identity();
+  test_psf_fast_cap_and_inactive_precise();
   test_golden_parity();
   if (failures == 0) {
     std::printf("P1-001 REAL NODES PASS (8 节点唯一真实 operation + call_count=1 + complete 门 fail-closed + 下游零调用)\n");

@@ -839,15 +839,23 @@ int test_negative() {
         }
     }
 
-    // N7: ITERATION_LIMIT(3) 非零回填 (FIX-PSF-D sharp σ=0.45; probe 实证
-    //     st=3, B=100.12 A=1664.1 cx=24.000000 sx=0.463509; 钳位边界迭代
-    //     耗尽, README §6 码 3 行为锚)
+    // N7: ITERATION_LIMIT(3) 非零回填 (FIX-PSF-D sharp σ=0.45 的**弱幅**变体
+    //     A=500 —— probe 实证 st=3, B=100.061 A=484.797 cx/cy=48 sx=0.3558;
+    //     钳位边界迭代耗尽, README §6 码 3 行为锚)。
+    //
+    //     PSF-POW-001 (P2 性能): Moffat-4 模型 (1+Q)^4 由 std::pow 改为
+    //     (t*t)*(t*t)。公式与容差零改动, 但末位 ulp 轨迹变化使原 A=2000 样本
+    //     改为收敛 (st=0) —— 该样本处于收敛/耗尽刀口上。此处改用同 σ、同图、
+    //     同真值 B 的 A=500 样本: probe 实测在**新旧两套公式**下均为 st=3
+    //     (旧 B=100.0611 A=484.7967 sx=0.355818 / 新 B=100.0610 A=484.7967
+    //     sx=0.357647), 因而码 3 覆盖对 PSF-POW-001 稳定。回填锚值随之更新。
+    //     证据: run/perf-fix/P2-psf/logs/15_iter_limit_{old,new}.txt
     {
-        const FixPsfD d = fix_psf_d();
+        const FixPsfA sh = fix_psf_a(100.0, 500.0, 48.0, 48.0, 0.45, 96, 96);
         const DPSFFitParams p = default_params();
-        double cx = d.sharp.star.cx, cy = d.sharp.star.cy;
+        double cx = sh.star.cx, cy = sh.star.cy;
         DPSFFitResult* rs = nullptr;
-        const int rc = dpsf_fit_batch_d(d.sharp.f64.data(), d.sharp.w, d.sharp.h, &cx, &cy, 1, &p, &rs);
+        const int rc = dpsf_fit_batch_d(sh.f64.data(), sh.w, sh.h, &cx, &cy, 1, &p, &rs);
         P1PSF_CHECK(cs, rc == 0 && rs, F_NEG);
         if (rs) {
             const DPSFFitResult& r = rs[0];
@@ -858,9 +866,9 @@ int test_negative() {
                 P1PSF_CHECK(cs, std::isfinite(r.B) && std::isfinite(r.A) &&
                                 std::isfinite(r.cx) && std::isfinite(r.sx), F_NEG);
                 P1PSF_CHECK_MSG(cs, std::fabs(r.B - 100.0) <= 0.5, F_NEG,
-                                "N7: B=%.6f (回填锚 100.12±0.5)", r.B);
-                P1PSF_CHECK_MSG(cs, rel_err(r.A, 1664.0912) <= 1e-3, F_NEG,
-                                "N7: A=%.6f (回填锚 1664.09)", r.A);
+                                "N7: B=%.6f (回填锚 100.061±0.5)", r.B);
+                P1PSF_CHECK_MSG(cs, rel_err(r.A, 484.7967) <= 1e-3, F_NEG,
+                                "N7: A=%.6f (回填锚 484.797)", r.A);
                 P1PSF_CHECK_MSG(cs, std::fabs(r.cx - 48.0) <= 1e-3 &&
                                     std::fabs(r.cy - 48.0) <= 1e-3, F_NEG,
                                 "N7: cx=%.8f cy=%.8f (96x96 图星心 48/48)",

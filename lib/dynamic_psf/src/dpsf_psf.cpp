@@ -31,9 +31,10 @@ struct SamplePixel {
     double val;
 };
 
-static bool gauss_solve(int n, const double* A, const double* b, double* x) {
-    // CodeQL #1：int 乘法提升到 size_t 再分配，避免大矩阵尺寸溢出
-    std::vector<double> aug((std::size_t)n * (std::size_t)(n + 1));
+// PSF-BUF-001 (P2 性能, 分配策略零语义变化): 增补调用方自带缓冲的变体,
+// 供 lm_solve 在迭代循环外一次性预分配 (旧实现每迭代 1 次堆分配;
+// 145,884 星 × ≤200 迭代 ⇒ 最多 2,900 万次 malloc/free)。
+static bool gauss_solve_buf(int n, const double* A, const double* b, double* x, double* aug) {
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++)
             aug[i * (n + 1) + j] = A[i * n + j];
@@ -70,6 +71,16 @@ static bool gauss_solve(int n, const double* A, const double* b, double* x) {
     return true;
 }
 
+// 兼容入口 (旧签名, 单次调用自带缓冲): CodeQL #1 int 乘法提升到 size_t 再分配,
+// 避免大矩阵尺寸溢出。lm_solve 走 gauss_solve_buf 预分配路径。
+// [[maybe_unused]]: P2 后唯一调用方 lm_solve 改走预分配变体; 本入口保留为
+// 文档锚点 (STAR_PSF_ALGORITHMS.md:174 / dynamic_psf/README.md:91,137 引用
+// "gauss_solve 奇异 → λ×10 重试") 与后续单次调用入口, 不参与热路径。
+[[maybe_unused]] static bool gauss_solve(int n, const double* A, const double* b, double* x) {
+    std::vector<double> aug((std::size_t)n * (std::size_t)(n + 1));
+    return gauss_solve_buf(n, A, b, x, aug.data());
+}
+
 static void moffat4_residual(double* params, int m, void* userdata, double* fvec) {
     const SamplePixel* samples = static_cast<const SamplePixel*>(userdata);
     double B = params[0], A = params[1], x0 = params[2], y0 = params[3];
@@ -97,7 +108,11 @@ static void moffat4_residual(double* params, int m, void* userdata, double* fvec
             fvec[i] = 1e10;
             continue;
         }
-        double model = B + A / std::pow(1.0 + Q, 4.0);
+        // PSF-POW-001 (P2 性能): (1+Q)^4 用 (t*t)*(t*t), t=1+Q 展开;
+        // 公式与容差零改动, 仅末位 ulp 可能与 std::pow 不同 (REPORT.md §2 量化)。
+        const double t = 1.0 + Q;
+        const double t2 = t * t;
+        double model = B + A / (t2 * t2);
         fvec[i] = samples[i].val - model;
     }
 }
@@ -109,6 +124,11 @@ static int lm_solve(int m, int n, double* x, void* userdata,
     std::vector<double> J((std::size_t)m * (std::size_t)n);
     std::vector<double> JtJ((std::size_t)n * (std::size_t)n), Jtf(n),
         delta(n), x_new(n);
+    // PSF-BUF-001 (P2 性能, 分配策略零语义变化): A / rhs / gauss_solve 的 aug
+    // 由"每迭代 3 次堆分配"改为循环外一次性预分配 (值语义逐位不变:
+    // A 仍由 JtJ 逐元素拷贝后再加 lambda, rhs 仍为 -Jtf)。
+    std::vector<double> A((std::size_t)n * (std::size_t)n), rhs(n),
+        aug((std::size_t)n * (std::size_t)(n + 1));
 
     double lambda = 1e-3;
 
@@ -142,13 +162,12 @@ static int lm_solve(int m, int n, double* x, void* userdata,
             Jtf[i] = sum;
         }
 
-        std::vector<double> A(JtJ);
+        std::copy(JtJ.begin(), JtJ.end(), A.begin());
         for (int i = 0; i < n; i++) A[i * n + i] += lambda;
 
-        std::vector<double> rhs(n);
         for (int i = 0; i < n; i++) rhs[i] = -Jtf[i];
 
-        if (!gauss_solve(n, A.data(), rhs.data(), delta.data())) {
+        if (!gauss_solve_buf(n, A.data(), rhs.data(), delta.data(), aug.data())) {
             lambda *= 10.0;
             continue;
         }
@@ -218,7 +237,10 @@ static double compute_trimmed_mad(const SamplePixel* samples, int m, const doubl
         double ddx = samples[i].dx - x0;
         double ddy = samples[i].dy - y0;
         double Q = p1 * ddx * ddx + 2.0 * p2 * ddx * ddy + p3 * ddy * ddy;
-        double model = B + A / std::pow(1.0 + std::max(Q, 0.0), 4.0);
+        // PSF-POW-001 (P2 性能): 与 moffat4_residual 同式同改, 公式零改动。
+        const double t = 1.0 + std::max(Q, 0.0);
+        const double t2 = t * t;
+        double model = B + A / (t2 * t2);
         abs_res[i] = std::abs(samples[i].val - model);
     }
 
