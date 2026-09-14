@@ -70,3 +70,31 @@ target_include_directories(p1drz_selfcheck_test PRIVATE
 target_compile_definitions(p1drz_selfcheck_test PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(p1drz_selfcheck_test PRIVATE astrocs_drizzle ${ASTROCS_OMP_TARGET})
 add_test(NAME p1drz_selfcheck COMMAND p1drz_selfcheck_test)
+
+# ---------------------------------------------------------------------------
+# P15a: 线程预算不变式探针 (determinism; 非 ctest 门, 供任务实测)
+# 用法: p1drz_thread_probe <prefix> <threads> <nside> <W> <H> <amp> <sigma> <seed> [fp64]
+# 输出 <prefix>.hiss / .canon / .order; 不同线程预算须逐位一致。
+# ---------------------------------------------------------------------------
+add_executable(p1drz_thread_probe
+  ${P1DRZ_DIR}/p1drz_thread_probe.cpp)
+target_include_directories(p1drz_thread_probe PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/..
+  ${P1DRZ_DIR})
+target_compile_definitions(p1drz_thread_probe PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
+target_link_libraries(p1drz_thread_probe PRIVATE astrocs_drizzle ${ASTROCS_OMP_TARGET})
+
+# ---------------------------------------------------------------------------
+# P15a: 线程预算不变式 *回归锁* (taskset 口径, Linux-only)
+# 同一输入在不同 CPU 份额 (taskset 1/2/4/8/16) 下 drizzle 产物科学载荷
+# (elapsed 归一后的 .norm.hiss) sha256 必须逐位相同。口径见脚本头注:
+# 不用 OMP_NUM_THREADS (Runtime ScopedOmpWorkerInjection 会覆盖), 用 taskset
+# 固定 affinity → 引擎 omp_get_max_threads() 读取预算。非 Linux 平台不注册。
+# ---------------------------------------------------------------------------
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_test(NAME p1drz_taskset_invariance
+    COMMAND bash ${P1DRZ_DIR}/p1drz_taskset_invariance.sh
+            $<TARGET_FILE:p1drz_thread_probe>
+            ${CMAKE_CURRENT_BINARY_DIR}/p1drz_taskset_work)
+  set_tests_properties(p1drz_taskset_invariance PROPERTIES TIMEOUT 900)
+endif()
