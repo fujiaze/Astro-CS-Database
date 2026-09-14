@@ -3252,11 +3252,40 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   const uint64_t hiss_nleaf = n_leaf_per_tile;
   const uint64_t tile_leaf_span = 512ULL * 512ULL;
   const uint64_t std_parent_count = 12ULL * (1ULL << (2 * (leaf_order - 9)));
+  // P21-HIPS-WRITER (性能 P0): 旧实现的外层是 `for parent in [0,std_parent_count)`,
+  // 内层线性扫描全部 HISS tile（`if ((tile_ipix[t]·nleaf)>>18) != parent continue`）
+  // = O(std_parent_count × n_tiles) 整表扫描: T2 auto 3,145,728 × 115 ≈ 3.6e8 次
+  // 迭代、单线程静默约 207 s, 把全程 CPU 均值拉到 3.18 核（P17 §5.2; 违反宪章
+  // §10.5/§17.6 单线程长计算）。改为**先建桶**:
+  //   每个 HISS tile 的归属标准 parent 由同一判据 (base_leaf>>18) 唯一确定
+  //   (tile_leaf_span = 2^18, hiss_nleaf ≤ 2^18 且为 2 的幂 ⇒ 一个 HISS tile
+  //   至多落进一个标准 parent), 建桶 O(T) + 排序 O(T log T), 遍历只走**非空**
+  //   parent ⇒ O(P+T)。P17 §5.2 建议的同款结构。
+  // 逐字节等价: parent 升序遍历 = 原 for 升序; 桶内 tile 索引升序 = 原 t 升序;
+  // parent ≥ std_parent_count 的越界 tile 在原实现中永不进入循环体 ⇒ 建桶时
+  // 同样丢弃。写出序列、缓冲内容与归约顺序与原实现逐位一致（P15a 固定顺序归约）。
+  // P21 观测 (进节点 manifest, 供回归测试与 §10.5 资源归因):
+  //   aggregation_scan_steps = tile↔parent 归属判定次数
+  //     (旧实现 = std_parent_count × n_tiles; 新实现 = 2 × n_tiles)
+  //   aggregation_parents_visited = 实际进入聚合体的标准 parent 数
+  uint64_t aggregation_scan_steps = 0;
+  uint64_t aggregation_parents_visited = 0;
+  std::vector<std::pair<uint64_t, uint64_t>> tile_buckets;  // (parent, tile idx)
+  tile_buckets.reserve(static_cast<size_t>(n_tiles));
+  for (uint64_t t = 0; t < n_tiles; ++t) {
+    ++aggregation_scan_steps;
+    const uint64_t p = (tile_ipix[t] * hiss_nleaf) >> 18;
+    if (p >= std_parent_count) continue;  // 原 for 界: 越界 parent 不写出
+    tile_buckets.emplace_back(p, t);
+  }
+  std::sort(tile_buckets.begin(), tile_buckets.end());  // parent 升序, 同 parent 按 t
   std::vector<float> sig_buf(tile_leaf_span, 0.0f);
   std::vector<float> cov_buf(tile_leaf_span, 0.0f);
   std::vector<uint8_t> seen(tile_leaf_span, 0);
   int64_t n_tiles_written = 0;
-  for (uint64_t parent = 0; parent < std_parent_count; ++parent) {
+  for (size_t bucket_i = 0; bucket_i < tile_buckets.size(); ) {
+    const uint64_t parent = tile_buckets[bucket_i].first;
+    ++aggregation_parents_visited;
     // B2-A15: 每个标准 parent 迭代前清空 signal/coverage 缓冲与 seen mask。
     // 旧实现只在循环外分配一次 (sig_buf/cov_buf 不清零), 稀疏视场下未覆盖
     // 偏移保留上一个 parent 的 signal/coverage, 被 AIO 当真实数据写出
@@ -3277,10 +3306,13 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     std::fill(sig_buf.begin(), sig_buf.end(), 0.0f);
     std::fill(cov_buf.begin(), cov_buf.end(), 0.0f);
     bool touched = false;
-    for (uint64_t t = 0; t < n_tiles; ++t) {
-      // 该 HISS tile 是否属于本标准 tile（parent_ipix 前缀判定, NESTED 同构）
+    // P21: 只遍历本 parent 桶内的 HISS tile（桶内 tile 索引升序 = 原 t 升序）
+    for (; bucket_i < tile_buckets.size() &&
+           tile_buckets[bucket_i].first == parent;
+         ++bucket_i) {
+      ++aggregation_scan_steps;
+      const uint64_t t = tile_buckets[bucket_i].second;
       const uint64_t base_leaf = tile_ipix[t] * hiss_nleaf;
-      if ((base_leaf >> 18) != parent) continue;
       float* signal = nullptr; uint32_t n_signal = 0;
       double* signal64 = nullptr;
       uint8_t* support = nullptr; uint32_t n_support = 0;
@@ -3400,6 +3432,12 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   if (!p1_write_text(out_path, final_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_tiles"] = n_tiles;
+  // P21-HIPS-WRITER: 聚合扫描工作量观测 (O(P+T) 不变量; 见本 op 建桶注释)
+  (*man)["aggregation_mode"] = "parent_bucket";
+  (*man)["aggregation_parent_span"] = static_cast<int64_t>(std_parent_count);
+  (*man)["aggregation_parents_visited"] =
+      static_cast<int64_t>(aggregation_parents_visited);
+  (*man)["aggregation_scan_steps"] = static_cast<int64_t>(aggregation_scan_steps);
   (*man)["hips_root"] = out_dir;
   (*man)["final_artifact"] = out_path;
   (*man)["artifacts"] = Json::array({out_path, props});
