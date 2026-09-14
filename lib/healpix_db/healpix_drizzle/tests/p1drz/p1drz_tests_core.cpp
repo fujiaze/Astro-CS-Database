@@ -22,6 +22,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 using namespace p1drz;
 using drizzle::DrizzleConfig;
 using drizzle::DrizzleStats;
@@ -212,21 +216,111 @@ int group_properties() {
         P1DRZ_CHECK_MSG(g_cs, w12 < 1e-12 && w13 < 1e-12, "determinism",
                         "properties: 1/2/4 线程 sumFlux worst_rel=%.3e/%.3e (<1e-12)",
                         w12, w13);
-        // bitwise: 同线程数重复跑必须 bitwise 一致 (确定性铁律)
-        const DrizzleConfig cfg1 = make_cfg(NSIDE, 1.0, 1, true);
-        std::vector<TileAccumulatorT<double>> tiles_r;
-        DrizzleStats st_r;
-        const std::string err_r = run_drizzle_f64(img, cfg1, nullptr, tiles_r, st_r);
-        if (err_r.empty()) {
-            const std::vector<LeafRec> r1 = extract_leafs(tiles_r, 9);
-            bool bitwise = r1.size() == runs[0].size();
-            for (std::size_t i = 0; bitwise && i < r1.size(); ++i)
-                bitwise = std::memcmp(&r1[i].sumFlux, &runs[0][i].sumFlux,
-                                      sizeof(double)) == 0 &&
-                          r1[i].ipix == runs[0][i].ipix &&
-                          r1[i].nContrib == runs[0][i].nContrib;
-            P1DRZ_CHECK_MSG(g_cs, bitwise, "determinism",
-                            "properties: 同线程重复跑 bitwise 一致");
+    }
+
+    // -----------------------------------------------------------------------
+    // P15a DRIZZLE-DET-001: 线程预算不变式 (硬要求: 产物与线程数无关)
+    // -----------------------------------------------------------------------
+    // 修复前 (按线程号合并) 跨线程预算只有 ~1e-12 相对一致; 硬要求是逐位相同。
+    // 用较高图像 (多 stripe) 覆盖 1/2/3/4/5/8/16 线程预算, 覆盖三条口径:
+    //   (a) config.threads 显式线程数 (FP64 / FP32);
+    //   (b) config.threads=0 + omp_set_num_threads(k) —— 与 Runtime
+    //       ScopedOmpWorkerInjection 注入口径一致 (taskset 等价面);
+    //   (c) 同预算重复运行 (可复现性)。
+    {
+        const int inv_threads[] = {1, 2, 3, 4, 5, 8, 16};
+        FitsImage img_big = fix_drz_b_gaussian(32, 256, 5000.0, 3.0,
+                                               20260915ULL, 0.0);
+        auto bits_equal = [](const std::vector<LeafRec>& a,
+                             const std::vector<LeafRec>& b) -> bool {
+            if (a.size() != b.size()) return false;
+            for (std::size_t i = 0; i < a.size(); ++i) {
+                if (a[i].ipix != b[i].ipix || a[i].nContrib != b[i].nContrib)
+                    return false;
+                if (std::memcmp(&a[i].sumFlux, &b[i].sumFlux, sizeof(double)) != 0)
+                    return false;
+                if (std::memcmp(&a[i].sumArea, &b[i].sumArea, sizeof(double)) != 0)
+                    return false;
+                if (std::memcmp(&a[i].sumVarNum, &b[i].sumVarNum, sizeof(double)) != 0)
+                    return false;
+            }
+            return true;
+        };
+
+        // (a) FP64 显式线程预算逐位不变
+        std::vector<LeafRec> ref64;
+        bool ok64 = true, any64 = false;
+        for (int t : inv_threads) {
+            const DrizzleConfig cfg = make_cfg(NSIDE, 1.0, t, true);
+            std::vector<TileAccumulatorT<double>> tl;
+            DrizzleStats st;
+            const std::string err = run_drizzle_f64(img_big, cfg, nullptr, tl, st);
+            P1DRZ_CHECK_MSG(g_cs, err.empty(), "determinism",
+                            "P15a: FP64 %d-thread run: %s", t, err.c_str());
+            if (!err.empty()) { ok64 = false; continue; }
+            const std::vector<LeafRec> lr = extract_leafs(tl, 9);
+            if (!any64) { ref64 = lr; any64 = true; }
+            else if (!bits_equal(ref64, lr)) ok64 = false;
+        }
+        P1DRZ_CHECK_MSG(g_cs, any64 && ok64, "determinism",
+                        "P15a: FP64 1..16 线程预算 sumFlux/sumArea/sumVarNum 逐位恒等");
+
+        // (b) FP32 显式线程预算逐位不变
+        std::vector<LeafRec> ref32;
+        bool ok32 = true, any32 = false;
+        for (int t : inv_threads) {
+            const DrizzleConfig cfg = make_cfg(NSIDE, 1.0, t, false);
+            std::vector<TileAccumulatorT<float>> tl;
+            DrizzleStats st;
+            const std::string err = run_drizzle_f32(img_big, cfg, tl, st);
+            P1DRZ_CHECK_MSG(g_cs, err.empty(), "determinism",
+                            "P15a: FP32 %d-thread run: %s", t, err.c_str());
+            if (!err.empty()) { ok32 = false; continue; }
+            const std::vector<LeafRec> lr = extract_leafs(tl, 9);
+            if (!any32) { ref32 = lr; any32 = true; }
+            else if (!bits_equal(ref32, lr)) ok32 = false;
+        }
+        P1DRZ_CHECK_MSG(g_cs, any32 && ok32, "determinism",
+                        "P15a: FP32 1..16 线程预算 sumFlux/sumArea/sumVarNum 逐位恒等");
+
+        // (c) Runtime 注入口径: config.threads=0 + omp_set_num_threads(k)
+#if defined(_OPENMP)
+        {
+            const int prev = omp_get_max_threads();
+            std::vector<LeafRec> ref_inj;
+            bool ok_inj = true, any_inj = false;
+            for (int k : inv_threads) {
+                omp_set_num_threads(k);
+                const DrizzleConfig cfg = make_cfg(NSIDE, 1.0, 0, true);
+                std::vector<TileAccumulatorT<double>> tl;
+                DrizzleStats st;
+                const std::string err = run_drizzle_f64(img_big, cfg, nullptr, tl, st);
+                if (!err.empty()) { ok_inj = false; continue; }
+                const std::vector<LeafRec> lr = extract_leafs(tl, 9);
+                if (!any_inj) { ref_inj = lr; any_inj = true; }
+                else if (!bits_equal(ref_inj, lr)) ok_inj = false;
+            }
+            omp_set_num_threads(prev);
+            P1DRZ_CHECK_MSG(g_cs, any_inj && ok_inj, "determinism",
+                            "P15a: omp_set_num_threads 注入 (config.threads=0) 1..16 逐位恒等");
+            P1DRZ_CHECK_MSG(g_cs, any_inj && bits_equal(ref64, ref_inj), "determinism",
+                            "P15a: Runtime 注入口径与显式 threads 口径逐位一致");
+        }
+#endif
+
+        // (d) 同预算重复运行逐位一致
+        {
+            const DrizzleConfig cfg = make_cfg(NSIDE, 1.0, 8, true);
+            std::vector<TileAccumulatorT<double>> t1, t2;
+            DrizzleStats s1, s2;
+            const std::string e1 = run_drizzle_f64(img_big, cfg, nullptr, t1, s1);
+            const std::string e2 = run_drizzle_f64(img_big, cfg, nullptr, t2, s2);
+            P1DRZ_CHECK_MSG(g_cs, e1.empty() && e2.empty(), "determinism",
+                            "P15a: 重复运行: %s|%s", e1.c_str(), e2.c_str());
+            if (e1.empty() && e2.empty())
+                P1DRZ_CHECK_MSG(g_cs,
+                                bits_equal(extract_leafs(t1, 9), extract_leafs(t2, 9)),
+                                "determinism", "P15a: 同预算重复运行逐位一致");
         }
     }
 

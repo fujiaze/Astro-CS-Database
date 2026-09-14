@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <mutex>
+#include <condition_variable>
 #include <algorithm>
 #include <string>
 #include <unordered_set>
@@ -621,8 +622,15 @@ static void sample_quadtree(const WcsSip& wcsip,
 // 3D 切向量 Jacobian 天然包含 SIP 多项式 + TAN 投影的非线性 Jacobian, 且
 // 天然处理 RA wrap 和极区稳定性, 比 CD 矩阵行列式法更准确.
 // ============================================================================
-int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
+int compute_auto_nside_ex(const WcsParams& wcs, int img_w, int img_h,
+                          AutoNsideInfo* out)
 {
+    // 失败时清零诊断输出 (禁止把上一次/未初始化值当决策依据)
+    auto fail = [&]() -> int {
+        if (out) *out = AutoNsideInfo{};
+        return 0;
+    };
+
     // NSIDE 钳位范围 (WP-B 步骤5 修复)
     // NSIDE_MIN = 16 (2^4): 像素尺度 ~3.66°, 覆盖大视场粗像素
     // NSIDE_MAX = 4194304 (2^22): 像素尺度 ~0.0503", 支持 0.1"/px 输入 1~2 倍过采样
@@ -632,14 +640,14 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
     if (!wcs.has_wcs || img_w <= 0 || img_h <= 0) {
         fprintf(stderr, "[drizzle_engine] compute_auto_nside: WCS 无效或图像尺寸非法 "
                 "(has_wcs=%d, w=%d, h=%d)\n", (int)wcs.has_wcs, img_w, img_h);
-        return 0;
+        return fail();
     }
 
     // 构造 WCS+SIP 转换器 (含 SIP 前向多项式 + TAN 投影 + CD 矩阵)
     WcsSip wcsip(wcs);
     if (!wcsip.hasWcs()) {
         fprintf(stderr, "[drizzle_engine] compute_auto_nside: WcsSip 初始化失败\n");
-        return 0;
+        return fail();
     }
 
     // 移植: 自适应四叉树 Jacobian 采样 (替代固定 9×9 网格)
@@ -666,7 +674,7 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
 
     if (finest_arcsec >= 1e30 || finest_arcsec <= 0.0) {
         fprintf(stderr, "[drizzle_engine] compute_auto_nside: 所有采样点局部尺度无效, 无法计算\n");
-        return 0;
+        return fail();
     }
 
     // 移植: HEALPix 特征尺度由像素面积公式一致计算 (禁止魔数 210960/1186.18)
@@ -693,6 +701,7 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
     }
 
     // 钳位到 [NSIDE_MIN, NSIDE_MAX] = [16, 4194304] (2^4 到 2^22)
+    const bool clamped = (nside < NSIDE_MIN) || (nside > NSIDE_MAX);
     if (nside < NSIDE_MIN) nside = NSIDE_MIN;
     if (nside > NSIDE_MAX) nside = NSIDE_MAX;
 
@@ -706,7 +715,21 @@ int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
             finest_arcsec, nside_min_real, nside, hp_res_arcsec, oversample,
             NSIDE_MIN, NSIDE_MAX);
 
+    if (out) {
+        out->nside = nside;
+        out->finest_arcsec = finest_arcsec;
+        out->hp_res_arcsec = hp_res_arcsec;
+        out->oversample = oversample;
+        out->clamped = clamped;
+        out->nside_min_real = nside_min_real;
+    }
     return nside;
+}
+
+// 兼容包装: 只取推荐 NSIDE (旧调用方语义不变)
+int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h)
+{
+    return compute_auto_nside_ex(wcs, img_w, img_h, nullptr);
 }
 
 // ============================================================================
@@ -1548,6 +1571,70 @@ void DrizzleEngine::processPixelSharedTiled(
 }
 
 // ============================================================================
+// P15a DRIZZLE-DET-001: 线程预算无关的确定性归约原语
+// ----------------------------------------------------------------------------
+// 缺陷 (P12 实测): 原实现对 y 行做 schedule(static) 并行, 每线程各持一个
+// Tile 累加 map, 最后按线程号 (thread 1..N-1 依次并入 thread 0) 合并。浮点加法
+// 不满足结合律 ⇒ 每个 leaf 的 sumFlux/sumArea 结合树随线程数变化
+// (taskset 4 与 8 之间 p1_stack 载荷不同字节)。同线程重复运行 bitwise 一致,
+// 但跨线程预算不成立。
+//
+// 修复: 把归约结合树完全定义为 *输入* 的函数 ——
+//   ① 把 y 行划分为固定的 stripe 数 N_s (仅依赖 img.height, 与线程数无关);
+//   ② 每个 stripe 由唯一一个线程按 (y,x) 行主序累加 (无 atomic, 无竞争);
+//   ③ 各 stripe 局部结果按 stripe 索引升序合并 (固定顺序, 与线程数无关)。
+// 因此最终累加顺序只依赖输入与 stripe 划分, 与 taskset/OMP 实际线程数无关。
+//
+// stripe 数只决定归约树形状与并行粒度, 不是 worker 数: worker 数仍唯一来自
+// config.threads / omp_get_max_threads (Runtime 预算), 本函数不设线程、不硬编码
+// worker。内存以 "至多线程数个 scratch map" 为界 (见下方有序合并流水线), 与
+// 修复前 per-thread map 的内存同阶。
+// ============================================================================
+namespace {
+
+// 确定性 stripe 数: 仅由输入高度决定 (与线程预算无关)。
+// 目标: 每 stripe 至少 kMinRows 行 (摊薄调度/合并开销), stripe 数有上限。
+inline uint32_t drizzle_deterministic_stripe_count(int height) {
+    constexpr int      kMinRows      = 16;   // 每 stripe 最少行数
+    constexpr uint32_t kMaxStripes   = 256;  // stripe 数上限 (归约开销有界)
+    if (height <= 0) return 1;
+    uint32_t n = (uint32_t)(((uint64_t)height + (uint64_t)kMinRows - 1) /
+                            (uint64_t)kMinRows);
+    if (n == 0) n = 1;
+    if (n > kMaxStripes) n = kMaxStripes;
+    if ((uint32_t)height < n) n = (uint32_t)height;
+    return n;
+}
+
+// 把 src 的局部结果按 *固定顺序* 合并进 dst (src 迭代序由 src 的构建序决定,
+// 而 src 是单个 stripe 内按行主序构建的 ⇒ 与线程数无关)。
+template <typename Scalar>
+void merge_tile_map_into(
+    std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>& dst,
+    const std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>& src) {
+    for (const auto& kv : src) {
+        const uint64_t parent = kv.first;
+        const TileAccumulatorT<Scalar>& tile = kv.second;
+        if (tile.touched.empty()) continue;
+        TileAccumulatorT<Scalar>& d = dst[parent];
+        if (d.touched.empty()) d.parent_ipix = parent;
+        for (uint32_t local : tile.touched) {
+            if (local >= d.pixels.size()) d.pixels.resize((size_t)local + 1);
+            TileLeafAccumulatorT<Scalar>& dl = d.pixels[local];
+            const TileLeafAccumulatorT<Scalar>& sl = tile.pixels[local];
+            if (dl.nContrib == 0) d.touched.push_back(local);
+            dl.sumFlux   += sl.sumFlux;
+            dl.sumArea   += sl.sumArea;
+            dl.sumVarNum += sl.sumVarNum;
+            dl.nContrib  += sl.nContrib;
+        }
+    }
+}
+
+
+} // namespace
+
+// ============================================================================
 // drizzleTiledImpl - Tile 级 Drizzle 核心实现 (模板 Scalar=float/double)
 //
 // 线程本地 map 以 parent_ipix 为 key, leaf 连续数组寻址 ( TILE_ACCUMULATOR_DESIGN)
@@ -1647,6 +1734,18 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     // 阶段的全局 OpenMP 行为）；线程数经 parallel 子句局部限定。
     std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> threadTiles(static_cast<size_t>(num_threads));
     std::vector<DrizzleOpCounters> threadCounters(static_cast<size_t>(num_threads));
+    std::vector<double> prof_geom_tl(static_cast<size_t>(num_threads), 0.0);
+    std::vector<double> prof_wcs_tl(static_cast<size_t>(num_threads), 0.0);
+
+    // P15a DRIZZLE-DET-001: 确定性 stripe 归约状态。
+    // n_stripes 仅由 img.height 决定 (与线程数无关); stripe 是归约/并行单元,
+    // 不是 worker 数。
+    const uint32_t n_stripes = drizzle_deterministic_stripe_count(img.height);
+    std::unordered_map<uint64_t, TileAccumulatorT<Scalar>> canonicalTiles;
+    std::atomic<uint32_t> next_stripe{0};
+    uint32_t merge_cursor = 0;              // 下一个待合并的 stripe 索引
+    std::mutex merge_mu;
+    std::condition_variable merge_cv;
 
     // 整帧 run 常量（nside/hp_res/阈值 cos/位运算 shift/mask）
     const double THRESH_60ARCSEC = 60.0 * (M_PI / 180.0) / 3600.0;
@@ -1667,16 +1766,18 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 
     // 阶段计时 profile—— (PERF-001): fine 逐像素计时默认关闭
     const bool fine = drizzle_fine_profile_enabled();
-    double prof_geom_s = 0.0;
-    double prof_wcs_s = 0.0;
 
-    #pragma omp parallel for schedule(static) num_threads(num_threads) \
-        reduction(+:nSourcePixels,prof_geom_s,prof_wcs_s)
-    for (int y = 0; y < img.height; y++) {
+    // P15a DRIZZLE-DET-001: 并行域按 *固定 stripe* 划分 (与线程数无关)。
+    // 每个 stripe 由唯一线程按 (y,x) 行主序累加进线程本地 scratch map;
+    // 完成后按 stripe 索引升序合并进 canonicalTiles —— 归约结合树与线程数无关。
+    // 采用 "完成后立即按序合并" 流水线, 使同时存活的 scratch map 以线程数为界
+    // (与修复前 per-thread map 同阶), 避免一次性持有 n_stripes 个 map 的内存。
+    #pragma omp parallel num_threads(num_threads)
+    {
 #ifdef _OPENMP
-        int tid = omp_get_thread_num();
+        const int tid = omp_get_thread_num();
 #else
-        int tid = 0;  // 串行退化
+        const int tid = 0;  // 串行退化
 #endif
         auto& tileMap = threadTiles[static_cast<size_t>(tid)];
 
@@ -1684,18 +1785,30 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         // 时 clear（避免跨 run NSIDE 不同导致几何污染；容量有界见类定义）
         run_target_cache(rctx.target_cache_run_gen);
 
-        // 预计算本行底/顶两行网格顶点的天球坐标 (WCS double 精度, 每顶点一次;
-        // 几何数据在 processPixelSharedTiled 内转 Scalar 存储)
-        thread_local std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
+        // 行级顶点缓存 (跨 stripe 复用; 每线程私有, 无竞争)
+        std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
         // 行级顶点 Vec3 缓存（免每像素 8 次 sin/cos 重算）
-        thread_local std::vector<spherical::Vec3> bot_vec, top_vec;
+        std::vector<spherical::Vec3> bot_vec, top_vec;
         if (shared_vertices) {
-            auto t_wcs0 = fine ? std::chrono::high_resolution_clock::now()
-                               : std::chrono::time_point<std::chrono::high_resolution_clock>{};
             bot_ra.resize(static_cast<size_t>(img.width) + 1); bot_dec.resize(static_cast<size_t>(img.width) + 1);
             top_ra.resize(static_cast<size_t>(img.width) + 1); top_dec.resize(static_cast<size_t>(img.width) + 1);
             bot_vec.resize(static_cast<size_t>(img.width) + 1);
             top_vec.resize(static_cast<size_t>(img.width) + 1);
+        }
+
+        for (;;) {
+            const uint32_t stripe = next_stripe.fetch_add(1, std::memory_order_relaxed);
+            if (stripe >= n_stripes) break;
+            // 固定块边界: 仅依赖 height 与 stripe 数 (与线程数无关)
+            const int y0 = (int)((uint64_t)stripe * (uint64_t)img.height / (uint64_t)n_stripes);
+            const int y1 = (int)(((uint64_t)stripe + 1) * (uint64_t)img.height / (uint64_t)n_stripes);
+
+            tileMap.clear();   // scratch 只承载本 stripe 的贡献 (行主序; 释放上一 stripe 的像素缓冲, 峰值内存与修复前同为 O(线程数) 个 map)
+
+        for (int y = y0; y < y1; y++) {
+        if (shared_vertices) {
+            auto t_wcs0 = fine ? std::chrono::high_resolution_clock::now()
+                               : std::chrono::time_point<std::chrono::high_resolution_clock>{};
             for (int vx = 0; vx <= img.width; vx++) {
                 wcs.pixelToSky(vx - 0.5, y - 0.5, bot_ra[static_cast<size_t>(vx)], bot_dec[static_cast<size_t>(vx)]);
                 wcs.pixelToSky(vx - 0.5, y + 0.5, top_ra[static_cast<size_t>(vx)], top_dec[static_cast<size_t>(vx)]);
@@ -1705,7 +1818,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
                     top_ra[static_cast<size_t>(vx)], top_dec[static_cast<size_t>(vx)]);
             }
             if (fine) {
-                prof_wcs_s += std::chrono::duration<double>(
+                prof_wcs_tl[static_cast<size_t>(tid)] += std::chrono::duration<double>(
                     std::chrono::high_resolution_clock::now() - t_wcs0).count();
             }
         }
@@ -1736,7 +1849,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
                 if (varianceValue <= 0.0f) continue;  // 合法数据边界, 非掩膜
             }
 
-            nSourcePixels++;
+            // P15a: 源像素总数由 per-thread 操作计数确定性求和得到 (不使用 reduction)
             threadCounters[static_cast<size_t>(tid)].source_pixels++;
 
             if (shared_vertices) {
@@ -1749,7 +1862,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
                                         cv, wcs, config, hp, (uint32_t)shift, mask,
                                         rctx, tileMap);
                 if (fine) {
-                    prof_geom_s += std::chrono::duration<double>(
+                    prof_geom_tl[static_cast<size_t>(tid)] += std::chrono::duration<double>(
                         std::chrono::high_resolution_clock::now() - t_g).count();
                 }
             } else {
@@ -1759,31 +1872,34 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
                                   varianceValue, threadCounters[static_cast<size_t>(tid)],
                                   wcs, config, hp, (uint32_t)shift, mask, rctx, tileMap);
                 if (fine) {
-                    prof_geom_s += std::chrono::duration<double>(
+                    prof_geom_tl[static_cast<size_t>(tid)] += std::chrono::duration<double>(
                         std::chrono::high_resolution_clock::now() - t_g).count();
                 }
             }
-        }
-    }
+        }  // for (int x ...)
+        }  // for (int y ...) —— 本 stripe 行主序累加结束
 
-    // 6. 合并所有线程的 tile 到线程 0 (仅按 parent 合并 touched leaf, 不逐 key)
-    for (int t = 1; t < num_threads; t++) {
-        for (auto& [parent, tile] : threadTiles[static_cast<size_t>(t)]) {
-            if (tile.touched.empty()) continue;
-            auto& dst = threadTiles[0][parent];
-            if (dst.touched.empty()) dst.parent_ipix = parent;
-            for (uint32_t local : tile.touched) {
-                if (local >= dst.pixels.size()) dst.pixels.resize((size_t)local + 1);
-                TileLeafAccumulatorT<Scalar>& d = dst.pixels[local];
-                const TileLeafAccumulatorT<Scalar>& s = tile.pixels[local];
-                if (d.nContrib == 0) dst.touched.push_back(local);
-                d.sumFlux   += s.sumFlux;
-                d.sumArea   += s.sumArea;
-                d.sumVarNum += s.sumVarNum;
-                d.nContrib  += s.nContrib;
+        // P15a: 有序合并 —— 等待所有 stripe 索引更小的块全部合并完成后, 再以固定
+        // 顺序并入 canonicalTiles。合并顺序只依赖 stripe 索引 (输入决定), 与线程
+        // 数/调度无关 ⇒ 产物对线程预算不变。
+        {
+            std::unique_lock<std::mutex> lk(merge_mu);
+            merge_cv.wait(lk, [&] { return merge_cursor == stripe; });
+            // 固定顺序合并: stripe 0 直接接管为 canonical (与修复前 thread0 同构,
+            // 避免多一份 map 的内存), 其余 stripe 按升序并入; 归约顺序 = stripe 升序。
+            if (stripe == 0u) {
+                canonicalTiles = std::move(tileMap);
+                tileMap.clear();
+            } else {
+                merge_tile_map_into(canonicalTiles, tileMap);
+                tileMap.clear();
             }
+            ++merge_cursor;
+            lk.unlock();
+            merge_cv.notify_all();
         }
-    }
+        }  // for (;;) stripe 工作循环
+    }  // omp parallel
 
     // 6b. 合并线程操作计数
     DrizzleOpCounters totalOps;
@@ -1796,14 +1912,23 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             (int64_t)img.height * 2 * ((int64_t)img.width + 1);
     }
 
-    // 7. 输出 tiles (线程 0, 合并后) — 直接供 writeHisTiles 流式写入
+    // 7. 输出 tiles (canonical = 按 stripe 索引升序合并后的唯一结果) — 直接供
+    // writeHisTiles 流式写入。P15a: 输出顺序按 parent_ipix 升序规范化, 使 tile
+    // directory 写盘顺序也与线程预算/容器迭代序无关 (确定性最大化)。
     int64_t nHealpixPixels = 0;
-    tiles.reserve(threadTiles[0].size());
-    for (auto& [parent, tile] : threadTiles[0]) {
+    tiles.reserve(canonicalTiles.size());
+    for (auto& [parent, tile] : canonicalTiles) {
         if (tile.touched.empty()) continue;
         nHealpixPixels += (int64_t)tile.touched.size();
         tiles.push_back(std::move(tile));
     }
+    std::sort(tiles.begin(), tiles.end(),
+              [](const TileAccumulatorT<Scalar>& a, const TileAccumulatorT<Scalar>& b) {
+                  return a.parent_ipix < b.parent_ipix;
+              });
+
+    // P15a: 源像素总数 = per-thread 操作计数之和 (整数, 固定 tid 顺序 ⇒ 确定性)
+    nSourcePixels = totalOps.source_pixels;
 
     // 8. G4: leaf 内部值 dump + flush (实际累计 buffer, 供 HiPS readback 对照)
     if (drizzle_trace::enabled()) {
@@ -1848,14 +1973,30 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     stats.op_tile_lookups    = totalOps.tile_lookups;
     stats.op_heap_allocations = totalOps.heap_allocations;
 
-    // 汇总线程池 thread_local 阶段计时
-    double prof_cand_t = 0.0, prof_overlap_t = 0.0;
-#pragma omp parallel
+    // 汇总线程池 thread_local 阶段计时 (P15a: 去掉 atomic 累加, 改为按 tid 写入
+    // 定长数组后固定顺序求和 —— 消除竞争热点, 且与线程调度无关)。
+    double prof_geom_s = 0.0, prof_wcs_s = 0.0, prof_cand_t = 0.0, prof_overlap_t = 0.0;
     {
-#pragma omp atomic
-        prof_cand_t += g_tl_prof_cand;
-#pragma omp atomic
-        prof_overlap_t += g_tl_prof_overlap;
+        std::vector<double> cand_tl(static_cast<size_t>(num_threads), 0.0);
+        std::vector<double> overlap_tl(static_cast<size_t>(num_threads), 0.0);
+#pragma omp parallel num_threads(num_threads)
+        {
+#ifdef _OPENMP
+            const int t = omp_get_thread_num();
+#else
+            const int t = 0;
+#endif
+            if (t < num_threads) {
+                cand_tl[static_cast<size_t>(t)] = g_tl_prof_cand;
+                overlap_tl[static_cast<size_t>(t)] = g_tl_prof_overlap;
+            }
+        }
+        for (int t = 0; t < num_threads; t++) {
+            prof_cand_t += cand_tl[static_cast<size_t>(t)];
+            prof_overlap_t += overlap_tl[static_cast<size_t>(t)];
+            prof_geom_s += prof_geom_tl[static_cast<size_t>(t)];
+            prof_wcs_s += prof_wcs_tl[static_cast<size_t>(t)];
+        }
     }
     // overlap 路径统计 (spherical_overlap 内 thread_local)
     long long n_quick = 0, n_fully = 0, n_dropin = 0, n_sh = 0;
