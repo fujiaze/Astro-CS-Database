@@ -67,3 +67,13 @@
 - **一条支撑「禁行号锚 / `C-18`」的新实测**：复核期间 HEAD 由 `521095b` 推进到 `d2493d55`，`gaia_client.c` **同文件内漂移不等量（+1 到 +60）**——`WL_COUNT :27→:28`、`MAX_STARS_RESULT :31→:32`、`QUERY_CACHE_CAPACITY :113→:127`、`cos_dec` 守卫 `:922→:935`、**1.2 裕量 `:923→:936`**、`AE_C45_FACTOR :956→:969`、**0.25 剪枝 `:2054→:2114`** ⇒ 任何按行号写的锚/门在同一天内就会失效。**这不是观点，是实测数字。**
 - **`E5` 扩展（V8-N-04）**：现判据「串里含 `run/` 即红」**抓不到裸文档名形态** ⇒ 须并判「**`REPORT.md`/`*.md` + `§N` 引用且在仓内无可解析宿主** 即红」；实测 15 处（12 处无前缀），且全仓唯一在册 `REPORT.md` 在 `lib/plate_solve/cpp/ipv/`，**其节名与被引内容不对应** ⇒ 会把复核者指向错模块。
 - **`E10` 新增（V8-N-07 / `A-44`）**：凡注释/文档/合同出现「负责人裁(决|定|授权|要求)」+ 日期，**必须在 `40_OWNER_DECISIONS.md` 或 `CHANGELOG.md` 有同日期条目**，否则红。实测 39 行援引中两族 0 登记（P5-SNR 那族已登记＝合规正例可照抄）。该门同时封住"以裁决名义自证"与"合同自指导致成环"两种路径。
+
+## §A 工单订正（V9 实测后由前台改写，**邻站以此为准，勿照旧文施工**）
+- **A3 `CTEST-REGISTRATION` 关闭（已转绿）**：`scripts_v9_ctestreg.py` 现值 `TARGETS_TOTAL 206 / BASELINE_TOTAL 160 / EXPLICIT 46 / STRUCTURAL 0 / **UNREGISTERED 0** / STALE_BASELINE 0 / DANGLING 0 / PATTERN_NOT_IN_COMMAND 0 / VERDICT: PASS`（前台 `efde9ef6`/`23ffd698` 补登记 5 门所致）。⇒ **旧 A3 行作废，照它施工是无效工。**
+- **A1 改写（根因换掉）**：不是「文档缺 PSF 关键词」，而是 **`c3452d48` 净删三行 frozen 科学门**（`SCI-PSF-001`/`SCI-REJ-001`/`SCI-ACR-EQUIV-001`）。⇒ **修法=回滚这三行**；**严禁往文档补词凑子串过门**（那是 `A-38`/`E1` 要拦的行为）。命中表现已含 **REJ 0**（旧工单漏报）。
+- **A2 改写（两条一起修）**：①BOM 在 **HEAD blob**（非本机脏，`git show` 前三字节 `ef bb bf`）⇒ 去 BOM 并提交；②`check_traceability_matrix.py:387-390` **早退遮蔽 5 行发散** ⇒ 去早退、同批报全；只去 BOM 仍不够。
+- **新增 A5 `CON-API-CONTRACTS`**（非豁免三 profile，必红）：`API_CONTRACTS.csv:371` 的 `estimate_mag_lim_by_density` 已被 `6d74046d` 从 `ipv_select.h` 删除 ⇒ 删该行或改 `RETIRED` 并登记，**注释行不算声明**。
+- **新增 A6 `DOC-LINE-ANCHORS`**（非豁免，必红）：13 条 `C4`（PLATESOLVE 11 + P3RSMP-DESCRIPTOR + NOISE-MINPATCH + NOISE-CMAKE）⇒ 订正锚；**建议同批改「文件::符号」定位**（行号已实测同日漂 +1..+60）。
+- **D 节改数**：`known_failures.json` **现 1 条**（`p1_noise_adapter`），check 面豁免 **0** ⇒ 旧「35 条 / 29 条过期」作废。
+- **施工顺序提示**：实体红 4-5 个经 `CON-FULL-INTEGRATION`（聚合 10 checker）与 `KNOWN-FAILURES-BASELINE-CHECK`（未登记新红即红）扇出成 **6-7 个红门** ⇒ 先修根因门再跑聚合门，否则"修一个冒两个"。
+- **给邻站的一条本机环境警告**：未跟踪的 `设计大纲/_evidence` 影子树会让锚类工具在**本机**多报 35 条 `C2 ambiguous`（13 → 48）⇒ **以 CI 口径（仅 tracked）为准**。
