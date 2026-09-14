@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <errno.h>    /* P19-gaia: strtod 溢出判定 (ERANGE) */
 #include <time.h>
 
 #ifdef _OPENMP
@@ -29,6 +30,19 @@
 #define STAR_STRIDE_NOSP 32
 #define MAX_FILES 32
 #define MAX_STARS_RESULT 200000
+
+/* P19-gaia (RQS 行动单 B2 / V5-N-03): magnitudeRange 声明的值域窗。
+ * 出处:
+ *   ① 问题扫描/findings/H_NUMERIC/p1/V5.md V5-N-03 建议值域窗 [-10, 40];
+ *   ② 仓库内 36 个真实 shard (GaiaDR3 16 + GaiaDR3SP 20) 头内 magnitudeRange
+ *      实测包络: low ∈ [-2.00, 21.05], high ∈ [16.59, 25.59] (DR3 生产目录
+ *      16 片 + DR3SP 20 片, 登记于 run/perf-fix/P1-gaia/evidence/
+ *      shard_magranges.tsv); [-10, 40] 完全包含该包络, low 侧余量 >= 8 mag、
+ *      high 侧余量 >= 14 mag —— 仅用于拒绝"荒唐声明", 不改变任何合法生产
+ *      shard 的解析值 (逐位不变见 tests/unit/gaia_magnitude_range_bounds_test.c);
+ *   ③ Gaia DR3 G 星等为物理带通星等, 负值/极大值声明均无产品语义。 */
+#define GAIA_MAG_RANGE_MIN (-10.0)
+#define GAIA_MAG_RANGE_MAX ( 40.0)
 
 /* V18R3 测试钩子（仅测试程序定义 GAIA_ALLOC_TEST 时生效）：
  * 将本文件内所有堆分配重定向到测试包装，支持分配故障注入。 */
@@ -218,6 +232,7 @@ typedef struct {
     char db_identifier[256];
     double magnitude_low, magnitude_high;
     int has_magnitude_range;  /* G1: XML magnitudeRange 是否成功解析 (0=不参与 shard 剪枝, 保守) */
+    int magnitude_range_invalid; /* P19-gaia: 声明存在但非法 (已告警, 放弃该文件剪枝) */
     int total_sources;
     int has_spectrum;
     int star_stride;
@@ -254,6 +269,7 @@ struct GaiaClient {
     int file_count;
     GaiaDbType db_type;
     int db_type_detected;
+    int magnitude_range_reject_count; /* P19-gaia: 声明非法而放弃剪枝的文件数 (可见统计) */
     QueryCache query_cache;  /* 查询结果缓存 (60s TTL) */
     BlockCacheBudget block_budget; /* G3b: 客户端级解压块缓存总预算 (所有文件共享) */
 #ifdef _WIN32
@@ -834,32 +850,29 @@ static const char *find_tag(const char *xml, const char *tag) {
     return p;
 }
 
-static void parse_attr_after(const char *start, const char *attr, char *out, int out_size) {
+/* P19-gaia: 返回值 = 是否取到带引号的属性值 (1=属性存在且闭合引号; 0=缺失/
+ * 未加引号/无闭合)。magnitudeRange 需区分"属性缺失"(正常, 不告警) 与
+ * "属性存在但值为空/畸形"(必须告警并放弃剪枝); 其余调用点忽略返回值, 行为不变。 */
+static int parse_attr_after(const char *start, const char *attr, char *out, int out_size) {
     out[0] = '\0';
     char pattern[256];
     snprintf(pattern, sizeof(pattern), "%s=", attr);
     const char *a = strstr(start, pattern);
-    if (!a) return;
+    if (!a) return 0;
     a += strlen(pattern);
-    if (*a == '"') {
+    if (*a == '"' || *a == '\'') {
+        char quote = *a;
         a++;
-        const char *end = strchr(a, '"');
+        const char *end = strchr(a, quote);
         if (end) {
             int len = (int)(end - a);
             if (len >= out_size) len = out_size - 1;
             memcpy(out, a, len);
             out[len] = '\0';
-        }
-    } else if (*a == '\'') {
-        a++;
-        const char *end = strchr(a, '\'');
-        if (end) {
-            int len = (int)(end - a);
-            if (len >= out_size) len = out_size - 1;
-            memcpy(out, a, len);
-            out[len] = '\0';
+            return 1;
         }
     }
+    return 0;
 }
 
 static int parse_int_after(const char *start, const char *attr, int def) {
@@ -1157,6 +1170,26 @@ static int parse_bounded_int(const char* s, int limit, int* out) {
     return 1;
 }
 
+/* P19-gaia (RQS B2 / V5-N-03): XPSD 头 magnitudeRange 分量的有界解析。
+ * 与 parse_bounded_int (M9-H-2 同批先例) 同款严格纪律, 作用于 double:
+ *   ① 整 token 必须被完整消费 (strtod 后必须到 '\0', 拒 "12.5abc" 尾随垃圾);
+ *   ② strtod 不得溢出/下溢 (errno==ERANGE, 拒 "1e999" -> ±inf);
+ *   ③ isfinite (拒 nan / inf);
+ *   ④ 落在 [lo, hi] 值域窗内。
+ * 任一失败返回 0; 调用方据此放弃该 shard 的星等剪枝 (宁可不剪不可漏星)。 */
+static int parse_bounded_double(const char *s, double lo, double hi, double *out) {
+    if (!s || !*s) return 0;
+    char *end = NULL;
+    errno = 0;
+    double v = strtod(s, &end);
+    if (end == s || *end != '\0') return 0;   /* 非数字 / 尾随垃圾 */
+    if (errno == ERANGE) return 0;             /* 上溢/下溢 (含 ±inf) */
+    if (!isfinite(v)) return 0;                /* nan / inf */
+    if (v < lo || v > hi) return 0;            /* 值域窗 */
+    *out = v;
+    return 1;
+}
+
 static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
     memset(xf, 0, sizeof(*xf));
     /* V18R3: 显式截断拷贝，避免 strncpy 截断告警且保证 null 终止 */
@@ -1192,15 +1225,38 @@ static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
 
     const char *data_tag = find_tag(xml, "Data");
     if (data_tag) {
+        /* P19-gaia (RQS 行动单 B2 / V5-N-03): 修复前以裸 atof 解析
+         * magnitudeRange 并仅校验"XML 逗号存在", 畸形声明 (low>high 颠倒 /
+         * nan / 1e999->inf / 空串 / 超值域 / 尾随垃圾) 会经 :2054 成为**整
+         * 文件 (shard) 剪枝谓词**⇒ 整 shard 静默漏星。现改为 parse_bounded_
+         * double 有界解析; **任一校验失败不置 has_magnitude_range** (放弃该
+         * shard 剪枝, 宁可不剪不可漏星) + 可见告警 + 计数。 */
         char mags[64];
-        parse_attr_after(data_tag, "magnitudeRange", mags, sizeof(mags));
-        if (mags[0]) {
+        int mag_present = parse_attr_after(data_tag, "magnitudeRange", mags, sizeof(mags));
+        if (mag_present) {
+            char raw[64];
+            snprintf(raw, sizeof(raw), "%s", mags);
             char *comma = strchr(mags, ',');
+            double lo = 0.0, hi = 0.0;
+            int ok = 0;
             if (comma) {
                 *comma = '\0';
-                xf->magnitude_low = atof(mags);
-                xf->magnitude_high = atof(comma + 1);
+                ok = parse_bounded_double(mags, GAIA_MAG_RANGE_MIN, GAIA_MAG_RANGE_MAX, &lo) &&
+                     parse_bounded_double(comma + 1, GAIA_MAG_RANGE_MIN, GAIA_MAG_RANGE_MAX, &hi) &&
+                     lo <= hi;
+            }
+            if (ok) {
+                xf->magnitude_low = lo;
+                xf->magnitude_high = hi;
                 xf->has_magnitude_range = 1;  /* G1: 声明有效才允许按星等剪枝 */
+            } else {
+                xf->magnitude_range_invalid = 1;  /* 计数在 client 侧聚合 */
+                fprintf(stderr,
+                        "gaia_client: WARNING magnitudeRange declaration rejected "
+                        "(file=%s decl=\"%s\"): shard-level magnitude pruning "
+                        "disabled for this file (conservative: never silently drop "
+                        "stars)\n",
+                        xf->filepath, raw);
             }
         }
         char pos_str[64];
@@ -1920,6 +1976,8 @@ GaiaClient *gaia_client_create_ex(const char *data_dir, GaiaDbType db_type) {
         char fullpath[1024];
         snprintf(fullpath, sizeof(fullpath), "%s\\%s", data_dir, fd.cFileName);
         if (load_xpsd_file(&client->files[client->file_count], fullpath) == 0) {
+            if (client->files[client->file_count].magnitude_range_invalid)
+                client->magnitude_range_reject_count++;  /* P19-gaia 可见计数 */
             if (file_matches_db_type(&client->files[client->file_count], db_type)) {
                 client->file_count++;
             } else {
@@ -1938,6 +1996,8 @@ GaiaClient *gaia_client_create_ex(const char *data_dir, GaiaDbType db_type) {
             char fullpath[1024];
             snprintf(fullpath, sizeof(fullpath), "%s/%s", data_dir, ent->d_name);
             if (load_xpsd_file(&client->files[client->file_count], fullpath) == 0) {
+                if (client->files[client->file_count].magnitude_range_invalid)
+                    client->magnitude_range_reject_count++;  /* P19-gaia 可见计数 */
                 if (file_matches_db_type(&client->files[client->file_count], db_type)) {
                     client->file_count++;
                 } else {
@@ -2205,6 +2265,14 @@ int gaia_client_get_total_sources(GaiaClient *client) {
         total += client->files[i].total_sources;
     }
     return total;
+}
+
+/* P19-gaia (V5-N-03): 因 magnitudeRange 声明非法而放弃整 shard 星等剪枝的
+ * 文件数 (可见统计)。0 = 所有文件声明合法或缺失 (与历史行为一致); >0 = 有
+ * 畸形声明被拒并已 fprintf(stderr) 告警。 */
+int gaia_client_get_magnitude_range_reject_count(GaiaClient *client) {
+    if (!client) return 0;
+    return client->magnitude_range_reject_count;
 }
 
 int gaia_client_cone_search_with_spectrum(

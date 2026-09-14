@@ -152,6 +152,12 @@ typedef struct {
 
 int gaia_client_collect_plan_stats(GaiaClient *client, GaiaPlanStats *out_stats);
 
+/* P19-gaia (RQS 行动单 B2 / V5-N-03): 因文件内 magnitudeRange 声明非法 (low>high
+ * 颠倒 / nan / inf / 空串 / 超值域 / 尾随垃圾) 而放弃整 shard 星等剪枝的文件数，
+ * 供测试与诊断读取的可见统计字段。非导出面 (无 GAIA_EXPORT)，不改变 legacy
+ * 调用方；0 表示所有文件声明合法或缺失 (行为与历史一致)。 */
+int gaia_client_get_magnitude_range_reject_count(GaiaClient *client);
+
 /* worker 租借注入：execute 期生效（0=历史默认 OpenMP team，direct 路径不变） */
 void gaia_set_worker_lease(int threads);
 
