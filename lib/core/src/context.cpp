@@ -211,6 +211,15 @@ Result<std::shared_ptr<ThreadBudget>> create_thread_budget(uint32_t budget) noex
   return Result<std::shared_ptr<ThreadBudget>>::ok(std::move(b));
 }
 
+// ── P7-UTIL-002: 派发公平份额提示（thread_local；0 = 无提示） ──
+static thread_local uint32_t g_dispatch_budget_hint = 0;
+
+void set_dispatch_budget_hint(uint32_t workers) noexcept {
+  g_dispatch_budget_hint = workers;
+}
+
+uint32_t dispatch_budget_hint() noexcept { return g_dispatch_budget_hint; }
+
 // ── RT-003: RunContext::acquire_lease 接真实 ThreadBudget 原子预留 ──
 // 消灭伪授权：不再退回 ThreadLease::make。lease RAII 析构自动归还；
 // 取消/异常路径经 ThreadLease 析构统一回收。
@@ -222,7 +231,10 @@ ThreadLease RunContext::acquire_lease(uint32_t requested) const {
   }
   if (requested == 0) requested = 1;
   const uint32_t cap = b->budget();
-  const uint32_t want = requested < cap ? requested : cap;
+  uint32_t want = requested < cap ? requested : cap;
+  // P7-UTIL-002: 收缩到本次调度的公平份额（无提示/无并发时提示为整份预算）。
+  const uint32_t hint = dispatch_budget_hint();
+  if (hint > 0 && hint < want) want = hint;
   return b->acquire(1u, want, AcquirePolicy::NONBLOCK);
 }
 
