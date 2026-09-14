@@ -32,27 +32,27 @@
 口径：Python raw 字符串；作用于 .c/.h/.cpp/.hpp/.py 与 docs/**.md；排除 archive/、third_party/、docs/archive/、*.log、evidence/*.csv。
 下表"族"列即建议 id。正则只做候选召回，判定靠 1.4/1.5。
 
-| 族（建议 id） | 召回正则 | 已知宿主（符号） | 当前值一致性 |
-|---|---|---|---|
-| NC-MAD-TO-SIGMA | 1[.]4826[0-9]* | noise_model.h::kMadToSigma；snr noise_model.cpp:61；sdet_api.cpp:227；sdet_image.cpp:495/524；photometer.cpp::sky_sigma；star_detector.cpp:51；baseline_provider.cpp:320/335；baseline_kernels_impl.inc:129/137；frame_qc_grid.py | 红（15 位 与 4 位 rel -1.496e-06 并存，FP32 -1.514e-06） |
-| NC-MAD-INV | 0[.]6745[0-9]* | 0[.]6744[0-9]* | star_matcher.cpp::_MAD_SCALE；photometric_calib.h 四处注释；p1phot_oracle.hpp:68 | 红（1/0.6745 rel -1.519615e-05；Φ⁻¹(3/4)=0.6744897501960817） |
-| NC-TRIM-TO-SIGMA | 0[.]731672[0-9]* | 0[.]731673(?![0-9]) | noise_model.cpp::kTrimMeanToSigma；snr_science.cpp::kTrimMeanToSigma；snr_estimator.cpp:74/99；PSF.md；STAR_PSF_ALGORITHMS.md:56-57 | 红（16 位对解析 0.731673095280613 rel -4.13e-07；同文三套位数） |
-| NC-MOFFAT4-FWHM | 1[.]23031[0-9]* | 1[.]230307[0-9]* | snr_science.cpp::kMoffat4FwhmFactor；dpsf_psf.cpp::MOFFAT4_FWHM_FACTOR；snr_estimator.cpp:63/66/97 | 红（对解析 1.2303076525901024 rel +1.907986e-06；且同值兼作 fwhm 兜底） |
-| NC-LN10 | 2[.]302585[0-9]* | snr noise_model.cpp:34；snr_science.cpp:33 | 黄（位数不同，归一 0 ulp） |
-| NC-PI / NC-DEG2RAD / NC-AE-C45 | 3[.]14159265[0-9]* | 1[.]5707963267948966 | 1[.]1107207345395915 | 180[.]0 / M_PI | gaia_client.c::DEG2RAD/RAD2DEG/AE_GLOBAL_FACTOR/AE_C45_FACTOR；snr_science.cpp::kPi | 绿（π/(2√2) 与 π/2 逐位一致，本轴唯一全绿族） |
-| NC-MAG-DECODE | [ * ]0[.]001 | -[ * ]1[.]5 | +[ * ]24(?![0-9.]) | gaia_client.c 五处 mag_raw*0.001-1.5（G/BP/RP） | 红（三常数内联 5 次，无具名点；口径仅 docs/algorithms/GAIA_QUERY.md 公式行） |
-| NC-DEX-to-MAG | 2[.]5 \* sigma | 2[.]5 \* | snr noise_model.cpp:286/295；PHOTOMETRY 侧 | 绿（定义常数 2.5，但无 id 绑定 ⇒ NO_AUTHORITY 类） |
-| NC-MAG-LIM-EXPOSURE | \b6\.0\b.*log10 | 1\.5 \* std::log10 | 2\.0 \* std::log10 | \b13\.0\b | -4\.0 | ipv_select.cpp::compute_initial_mag_cut 与 :408-409 内联式；:394 m0_hi；ipv_types.h::m_lim_m0_offset | 红（两份实现差 4.000 mag；13.0 无承载） |
-| NC-MAG-ITER | 0\.2885 | m_lim_(safety|max_iter|zero_step|alpha_(prior|min|max)) | -6\.0.*6\.0 | ipv_types.h 默认 与 ipv_select.cpp:395-400/492 兜底 | 红（默认↔兜底双写无锁；±6.0 全无承载） |
-| NC-GATE-CPU-* | 85\.0 | 0\.85 | 60\.0 | 0\.60 | 90\.0 | 0\.70 | \b10\.0\b | kWorkerP50Min | cli/resource_gate.h:96-111/184；tools/monitoring/run_monitored.py:451-456 | 红（跨语言手抄；90.0/0.70 无冻结文本；10.0 开闭相反） |
-| NC-GATE-MEM-* | 32\.0 | 32ull \* 1024 | kAlloc[A-Za-z]* | 0\.5 | cli/memory_report.h:47-57；cli/resource_gate.h:164 | 红（同数字三义、比较号 >/>= 不一致、覆盖通道只作用一条） |
-| NC-GAIA-CAP-PER-FILE | \b200000\b | MAX_STARS_RESULT | m_lim_gaia_cap_per_file | 64LL \* 200000LL | gaia_client.c；ipv_types.h:244；module_entry.c::kQueryCacheCap；GAIA_QUERY.md:147/222；PUBLIC_API.md:93 | 红（1 具名(.c 私有)+3 复制；派生乘积两 TU 各算） |
-| NC-XPSD-WLGRID | \b343\b | WL_COUNT | \b336\b | \b1020\b | spectrumStep= | wl_step | gaia_client.c::WL_COUNT/STAR_STRIDE_SP/parse；fixture_gen；xpsd_spectrum_count_bounds_test；gaia_cat_test；DR3SP_SCHEMA_AUDIT.md:29；spectrum_integrator.cpp::wl_step | 红（真库 step=2 与 fixture step=1 且被 CHECK 钉死） |
-| NC-BBOX-MARGIN / NC-MAG-PRUNE-MARGIN / NC-COS-GUARD | \* 1\.2 \b | radius_deg \* 1\.2 | \+ 0\.25 | cos_dec < 0\.01 | 1e-15 | gaia_client.c:923/922/2054/897 | 红（裕量无适用域登记；无大半径回退守卫） |
-| NC-UPM-GRID / NC-PATH-BUF | \bgrid\b.*= *8 | != *8 | \b512\b | \+ *511 | ACS_FIO_PATH_MAX | upm.h/upm.cpp:245/414、sampler.cpp:1449；gaia_client.c 两处 +511 | 红（4 处字面量 0 具名；512-1 手写两处而 ACS_FIO_PATH_MAX 在册不用） |
-| NC-CACHE-SIZES | \b8192\b | QUERY_CACHE_CAPACITY | \* 64LL | 4ULL \* 1024 \* 1024 \* 1024 | 60(?!\d) \*\* /TTL | gaia_client.c::BLOCK_CACHE_CAPACITY/QUERY_CACHE_CAPACITY/TTL/MAX_MEMORY/MEMORY_PRESSURE_THRESHOLD | 黄（4GB 同值两义：块预算 与 内存压力阈值） |
-| NC-EPS-FLOORS | 1e-12 | 1e-9 | 1e-6(?![0-9]) | 1e-3(?![0-9]) | 1e-15 | noise_model.cpp:353/411（floor 与回退各写）；ipv_types.h:229 | 黄 |
-| NC-NTARGET | n_target_cap | std::max\(50 | \b60\b 附近注释"统一为 60" | ipv_select.cpp:317-318；ipv_types.h::img_n_target；PLATESOLVE.md §5:115 | 红（[50,60] 与两套文本口径互斥） |
+下表为召回规则清单（每行一条族；命中即要求 id 绑定，未绑定判 NO_AUTHORITY）。正则内含 | 作择一，故本处以行式给出而非 markdown 表格。
+
+- NC-MAD-TO-SIGMA ｜ 召回：1[.]4826[0-9]* ｜ 宿主：noise_model.h::kMadToSigma；snr noise_model.cpp:61；sdet_api.cpp:227；sdet_image.cpp:495/524；photometer.cpp::sky_sigma；star_detector.cpp:51；baseline_provider.cpp:320/335；baseline_kernels_impl.inc:129/137；frame_qc_grid.py ｜ 红（15 位 与 4 位 rel -1.496e-06 并存，FP32 -1.514e-06）
+- NC-MAD-INV ｜ 召回：0[.]6745[0-9]* | 0[.]6744[0-9]* ｜ 宿主：star_matcher.cpp::_MAD_SCALE；photometric_calib.h 四处注释；p1phot_oracle.hpp:68 ｜ 红（1/0.6745 rel -1.519615e-05；Φ⁻¹(3/4)=0.6744897501960817）
+- NC-TRIM-TO-SIGMA ｜ 召回：0[.]731672[0-9]* | 0[.]731673(?![0-9]) ｜ 宿主：noise_model.cpp::kTrimMeanToSigma；snr_science.cpp::kTrimMeanToSigma；snr_estimator.cpp:74/99；PSF.md；STAR_PSF_ALGORITHMS.md:56-57 ｜ 红（16 位对解析 0.731673095280613 rel -4.13e-07；同文三套位数）
+- NC-MOFFAT4-FWHM ｜ 召回：1[.]23031[0-9]* | 1[.]230307[0-9]* ｜ 宿主：snr_science.cpp::kMoffat4FwhmFactor；dpsf_psf.cpp::MOFFAT4_FWHM_FACTOR；snr_estimator.cpp:63/66/97 ｜ 红（对解析 1.2303076525901024 rel +1.907986e-06；且同值兼作 fwhm 兜底）
+- NC-LN10 ｜ 召回：2[.]302585[0-9]* ｜ 宿主：snr noise_model.cpp:34；snr_science.cpp:33 ｜ 黄（位数不同，归一 0 ulp）
+- NC-PI / NC-DEG2RAD / NC-AE-C45 ｜ 召回：3[.]14159265[0-9]* | 1[.]5707963267948966 | 1[.]1107207345395915 | 180[.]0 / M_PI ｜ 宿主：gaia_client.c::DEG2RAD/RAD2DEG/AE_GLOBAL_FACTOR/AE_C45_FACTOR；snr_science.cpp::kPi ｜ 绿（π/(2√2) 与 π/2 逐位一致，本轴唯一全绿族）
+- NC-MAG-DECODE ｜ 召回：[ * ]0[.]001 | -[ * ]1[.]5 | +[ * ]24(?![0-9.]) ｜ 宿主：gaia_client.c 五处 mag_raw*0.001-1.5（G/BP/RP） ｜ 红（三常数内联 5 次，无具名点；口径仅 docs/algorithms/GAIA_QUERY.md 公式行）
+- NC-DEX-to-MAG ｜ 召回：2[.]5 \* sigma | 2[.]5 \* ｜ 宿主：snr noise_model.cpp:286/295；PHOTOMETRY 侧 ｜ 绿（定义常数 2.5，但无 id 绑定 ⇒ NO_AUTHORITY 类）
+- NC-MAG-LIM-EXPOSURE ｜ 召回：\b6\.0\b.*log10 | 1\.5 \* std::log10 | 2\.0 \* std::log10 | \b13\.0\b | -4\.0 ｜ 宿主：ipv_select.cpp::compute_initial_mag_cut 与 :408-409 内联式；:394 m0_hi；ipv_types.h::m_lim_m0_offset ｜ 红（两份实现差 4.000 mag；13.0 无承载）
+- NC-MAG-ITER ｜ 召回：0\.2885 | m_lim_(safety | max_iter | zero_step | alpha_(prior | min | max)) | -6\.0.*6\.0 ｜ 宿主：ipv_types.h 默认 与 ipv_select.cpp:395-400/492 兜底 ｜ 红（默认↔兜底双写无锁；±6.0 全无承载）
+- NC-GATE-CPU-* ｜ 召回：85\.0 | 0\.85 | 60\.0 | 0\.60 | 90\.0 | 0\.70 | \b10\.0\b | kWorkerP50Min ｜ 宿主：cli/resource_gate.h:96-111/184；tools/monitoring/run_monitored.py:451-456 ｜ 红（跨语言手抄；90.0/0.70 无冻结文本；10.0 开闭相反）
+- NC-GATE-MEM-* ｜ 召回：32\.0 | 32ull \* 1024 | kAlloc[A-Za-z]* | 0\.5 ｜ 宿主：cli/memory_report.h:47-57；cli/resource_gate.h:164 ｜ 红（同数字三义、比较号 >/>= 不一致、覆盖通道只作用一条）
+- NC-GAIA-CAP-PER-FILE ｜ 召回：\b200000\b | MAX_STARS_RESULT | m_lim_gaia_cap_per_file | 64LL \* 200000LL ｜ 宿主：gaia_client.c；ipv_types.h:244；module_entry.c::kQueryCacheCap；GAIA_QUERY.md:147/222；PUBLIC_API.md:93 ｜ 红（1 具名(.c 私有)+3 复制；派生乘积两 TU 各算）
+- NC-XPSD-WLGRID ｜ 召回：\b343\b | WL_COUNT | \b336\b | \b1020\b | spectrumStep= | wl_step ｜ 宿主：gaia_client.c::WL_COUNT/STAR_STRIDE_SP/parse；fixture_gen；xpsd_spectrum_count_bounds_test；gaia_cat_test；DR3SP_SCHEMA_AUDIT.md:29；spectrum_integrator.cpp::wl_step ｜ 红（真库 step=2 与 fixture step=1 且被 CHECK 钉死）
+- NC-BBOX-MARGIN / NC-MAG-PRUNE-MARGIN / NC-COS-GUARD ｜ 召回：\* 1\.2 \b | radius_deg \* 1\.2 | \+ 0\.25 | cos_dec < 0\.01 | 1e-15 ｜ 宿主：gaia_client.c:923/922/2054/897 ｜ 红（裕量无适用域登记；无大半径回退守卫）
+- NC-UPM-GRID / NC-PATH-BUF ｜ 召回：\bgrid\b.*= *8 | != *8 | \b512\b | \+ *511 | ACS_FIO_PATH_MAX ｜ 宿主：upm.h/upm.cpp:245/414、sampler.cpp:1449；gaia_client.c 两处 +511 ｜ 红（4 处字面量 0 具名；512-1 手写两处而 ACS_FIO_PATH_MAX 在册不用）
+- NC-CACHE-SIZES ｜ 召回：\b8192\b | QUERY_CACHE_CAPACITY | \* 64LL | 4ULL \* 1024 \* 1024 \* 1024 | 60(?!\d) \*\* /TTL ｜ 宿主：gaia_client.c::BLOCK_CACHE_CAPACITY/QUERY_CACHE_CAPACITY/TTL/MAX_MEMORY/MEMORY_PRESSURE_THRESHOLD ｜ 黄（4GB 同值两义：块预算 与 内存压力阈值）
+- NC-EPS-FLOORS ｜ 召回：1e-12 | 1e-9 | 1e-6(?![0-9]) | 1e-3(?![0-9]) | 1e-15 ｜ 宿主：noise_model.cpp:353/411（floor 与回退各写）；ipv_types.h:229 ｜ 黄
+- NC-NTARGET ｜ 召回：n_target_cap | std::max\(50 | \b60\b 附近注释"统一为 60" ｜ 宿主：ipv_select.cpp:317-318；ipv_types.h::img_n_target；PLATESOLVE.md §5:115 ｜ 红（[50,60] 与两套文本口径互斥）
 
 不扫为常数的数字（避免误报）：数组下标/位移/位宽（&3、>>5、*8 sizeof）、纯结构常数（row[9]、40 字节头）、时间戳与 seed（SplitMix64 常量、0x5EED…）、日志格式串中的数字、evidence CSV/日志。
 

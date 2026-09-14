@@ -1,6 +1,6 @@
 # FIX_LEDGER · 修复账本（人读视图：P0 全列）
 
-- 条目总数 **613**（P0 88 / P1 351 / P2 171 / 其它 3）；机器读写面 = 
+- 条目总数 **617**（P0 88 / P1 351 / P2 175 / 其它 3）；机器读写面 = 
   `问题扫描/账本/FIX_LEDGER.csv`（**隔壁只填后 9 列**，判定列由前台重跑刷新并按 id 保留你的填写）
 - 重跑：`python3 问题扫描/_tools/gen_fix_ledger.py`
 
@@ -92,5 +92,5 @@
 | V11-N-04 | P0 | G_GOV_GATE | V11-b |  | （P0）ctypes **少传第 9 个参数** `out_status` ⇒ C 侧把未初始化栈槽当指针，**既往垃圾地址写、又据其垃圾值 | OPEN |  |  |
 | V11-N-05 | P0 | G_GOV_GATE | V11-b |  | （P0，结构性）ABI 协商与自检的 6 个合同函数**生产面零实现、零调用**，唯一实现住在**测试自己的探针副本**里 ⇒ 那道门在自证 | OPEN |  |  |
 | V13-N-03 | P0 | G_GOV_GATE | V13 |  | 审计状态铸造面：713/713 行机械铸 `VERIFIED` 并铸 `findings_p0..3=0`、7 个 `*_ok=PASS`， | OPEN |  |  |
-| V2-N-01 | P0 | G_GOV_GATE | V2 | C-09 | IpvParams 公共 C 结构体布局已改而仓内 ctypes 镜像未同步 ⇒ 72 字节越界写 + 字段全错位 | OPEN |  |  |
+| V2-N-01 | P0 | G_GOV_GATE | V2 | C-09 | IpvParams 公共 C 结构体布局已改而仓内 ctypes 镜像未同步 ⇒ 72 字节越界写 + 字段全错位 | FIXED | fbfcfac0 | ADDED:ipv_abi_layout_lock |
 | V2-N-08 | P0 | G_GOV_GATE | V2-D2 |  | FAST 模式的裁决前提已被同批另一提交推翻 ⇒ `psf.max_stars` 静默决定交付的 SNR／极限星等，且无任何 parity  | OPEN |  |  |
