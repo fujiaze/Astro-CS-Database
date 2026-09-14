@@ -2330,6 +2330,134 @@ static void test_golden_parity() {
   cleanup_fixture(fx);
 }
 
+// ── P17-NSIDE: drizzle 采样率合规 (1x-2x) 与 nside 来源可见性 ──────────────
+// 合同 (负责人裁定, 采样率等价 drizzle 1x-2x):
+//  * drizzle.nside 缺省/0/空 => 自动 (compute_auto_nside: 最细局部输入像素尺度
+//    → 最小 2 次幂 nside 使 hp_res <= finest, 即 1~2x 线性过采样),
+//    nside_source=auto, 决策依据 (finest/hp_res/oversample) 进产物与 manifest;
+//  * 显式 nside>0 => 原样使用 (nside_source=explicit); 若导致 hp_res > finest
+//    (欠采样) 则 nside_conflict=undersampled 必须可见 (记录, 不静默);
+//  * nside_mode 合同外取值 / auto 模式与显式 nside 冲突 / explicit 模式缺 nside
+//    => DATA fail-closed。
+static void test_p17_nside_sampling_compliance() {
+  Fixture fx = make_fixture("p17nside");
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  RunContext ctx;
+  // 72"/px 合成 WCS: auto nside 落在 4096 (hp_res≈51.5", 过采样≈1.4x),
+  // 且显式 512 必然欠采样 (hp_res=412" >> 72"), 便于双向断言。
+  const std::string wcs = R"("wcs": {"crpix1": 16.0, "crpix2": 16.0, "crval1": 10.0, "crval2": 20.0,
+              "cd11": -0.02, "cd12": 0.0,
+              "cd21": 0.0, "cd22": 0.02})";
+  auto make_cfg = [&](const std::string& drz) {
+    return std::string(R"({
+      "input_lights": [")") + fx.light1 + R"("],
+      "output_dir": ")" + fx.out_dir + R"(",
+      )" + wcs + R"(,
+      "drizzle": )" + drz + R"(
+    })";
+  };
+  // (1) nside 缺省 => 自动 (合规默认), provenance 完整且 1x-2x
+  {
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.drizzle",
+                        make_cfg(R"({"nested": 1, "pixfrac": 1.0, "precision_mode": 0})"),
+                        ctx, &rc);
+    CHECK_MSG(rc.ok(), "P17: 缺省 nside 必须自动计算而非拒绝");
+    CHECK_MSG(man.value("nside_source", std::string()) == "auto",
+              "P17: 缺省 nside 的 nside_source 必须是 auto");
+    CHECK_MSG(man.value("nside", 0) >= 512, "P17: auto nside 必须 >= 512 (HiPS 下限)");
+    const double finest = man.value("finest_input_arcsec", 0.0);
+    const double hpres = man.value("hp_res_arcsec", 0.0);
+    const double f = man.value("oversample_factor", 0.0);
+    CHECK_MSG(finest > 0.0 && hpres > 0.0, "P17: auto 决策依据必须落 manifest");
+    CHECK_MSG(hpres <= finest * (1.0 + 1e-9), "P17: auto nside 不得欠采样 (hp_res<=finest)");
+    CHECK_MSG(f >= 1.0 && f < 2.0, "P17: auto 过采样倍率必须落在 [1,2)");
+    CHECK_MSG(man.value("nside_conflict", std::string()) == "none",
+              "P17: 合规 auto 的 nside_conflict 必须是 none");
+    json st;
+    try { st = json::parse(read_file(fx.out_dir + "/p1_stack.json")); } catch (...) { CHECK(false); }
+    CHECK_MSG(st.value("nside_source", std::string()) == "auto",
+              "P17: p1_stack.json 必须记 nside_source");
+    CHECK_MSG(st.value("oversample_factor", 0.0) >= 1.0,
+              "P17: p1_stack.json 必须记过采样倍率");
+  }
+  // (2) 显式 nside_mode=1x_to_2x_drizzle => 同自动 (合规默认)
+  {
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.drizzle",
+                        make_cfg(R"({"nside_mode": "1x_to_2x_drizzle", "nested": 1,
+                                     "pixfrac": 1.0, "precision_mode": 0})"),
+                        ctx, &rc);
+    CHECK_MSG(rc.ok(), "P17: nside_mode=1x_to_2x_drizzle 必须可用");
+    CHECK(man.value("nside_source", std::string()) == "auto");
+    CHECK(man.value("nside_mode", std::string()) == "1x_to_2x_drizzle");
+  }
+  // (3) 显式 nside=512 => 欠采样: 成功但冲突可见 (nside_source=explicit)
+  {
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.drizzle",
+                        make_cfg(R"({"nside": 512, "nested": 1, "pixfrac": 1.0,
+                                     "precision_mode": 0})"),
+                        ctx, &rc);
+    CHECK_MSG(rc.ok(), "P17: 显式 nside 是强制输入, 必须原样执行 (另当别论)");
+    CHECK(man.value("nside_source", std::string()) == "explicit");
+    CHECK_MSG(man.value("nside_conflict", std::string()) == "undersampled",
+              "P17: 显式 512 欠采样必须被标记 (禁静默)");
+    CHECK_MSG(man.value("oversample_factor", 1.0) < 1.0,
+              "P17: 欠采样时过采样倍率 < 1");
+    CHECK_MSG(man.value("auto_nside", 0) >= 512,
+              "P17: 欠采样时必须同时记录合规 auto nside 供对照");
+  }
+  // (4) nside_mode 合同外取值 => DATA fail-closed
+  {
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.drizzle",
+             make_cfg(R"({"nside_mode": "whatever", "nested": 1, "pixfrac": 1.0,
+                          "precision_mode": 0})"),
+             ctx, &rc);
+    CHECK_MSG(rc.failed(), "P17: 合同外 nside_mode 必须拒绝");
+  }
+  // (5) auto 模式与显式 nside>0 冲突 => fail-closed (禁静默二选一)
+  {
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.drizzle",
+             make_cfg(R"({"nside_mode": "1x_to_2x_drizzle", "nside": 4096,
+                          "nested": 1, "pixfrac": 1.0, "precision_mode": 0})"),
+             ctx, &rc);
+    CHECK_MSG(rc.failed(), "P17: auto 模式 + 显式 nside 冲突必须拒绝");
+  }
+  // (6) nside_mode=explicit 但缺 nside => fail-closed
+  {
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.drizzle",
+             make_cfg(R"({"nside_mode": "explicit", "nested": 1, "pixfrac": 1.0,
+                          "precision_mode": 0})"),
+             ctx, &rc);
+    CHECK_MSG(rc.failed(), "P17: explicit 模式缺 nside 必须拒绝");
+  }
+  // (7) nside 非 2 的幂 (显式) => 引擎层拒绝 (不静默向上取整)
+  {
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.drizzle",
+             make_cfg(R"({"nside": 300, "nested": 1, "pixfrac": 1.0, "precision_mode": 0})"),
+             ctx, &rc);
+    CHECK_MSG(rc.failed(), "P17: 非 2 次幂 nside 必须拒绝");
+  }
+  // (8) 显式强制输入同时给出理由 => 允许 (另当别论)
+  {
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.drizzle",
+                        make_cfg(R"({"nside": 4096, "nside_mode": "explicit",
+                                     "nside_reason": "operator preview", "nested": 1,
+                                     "pixfrac": 1.0, "precision_mode": 0})"),
+                        ctx, &rc);
+    CHECK_MSG(rc.ok(), "P17: 显式 nside_mode=explicit + nside>0 必须可用");
+    CHECK(man.value("nside_source", std::string()) == "explicit");
+  }
+  cleanup_fixture(fx);
+}
+
 int main() {
   test_nodes_real_operation();
   test_runtime_chain_call_count_1();
@@ -2344,6 +2472,8 @@ int main() {
   test_b2a15_writer_stale_buffer_and_support();
   test_b2a15_ghost_discontinuous_multiparent();
   test_b2a17_sip_bridge();
+  // P17-NSIDE: drizzle 采样率合规 (1x-2x) + nside 来源/欠采样可见性
+  test_p17_nside_sampling_compliance();
   test_determinism();
   // CORE-RACE-001（p1001 链并发撕裂读）: 独立产物路径 / IR 接线一致性 /
   // 并发全链 N 次连跑 / 1-N worker parity / 故障注入

@@ -75,6 +75,31 @@ HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
                                        int precision_mode);
 
 // ============================================================================
+// P17-NSIDE: 自动 NSIDE 决策 (采样率等价 drizzle 1x-2x) 的正式 C ABI。
+//
+// 语义 (负责人裁定): nside 缺省 (0/空/未给出) => 自动; 依据帧内 WCS/SIP 的
+// 最细局部输入像素尺度 finest (自适应四叉树 + 3D 切向量 Jacobian), 取最小
+// 2 次幂 NSIDE 使 HEALPix 特征尺度 hp_res = 211034.6/nside <= finest
+// => 线性过采样倍率 finest/hp_res ∈ [1, 2); nside 钳位 [16, 2^22]。
+//
+// frame: 输入帧 (需含 "data" 块 [H,W] 与 "header" KV WCS/SIP; 与 hp_drizzle_run
+//        同源解析, 保证决策输入 == drizzle 输入)
+// result: 决策依据输出 (nside/finest/hp_res/oversample/clamped)
+// 返回: 0=成功; 非 0=失败 (result->error_msg 给出原因)
+// ============================================================================
+typedef struct {
+    int     nside;            // 推荐 NSIDE (2 的幂); 失败时 0
+    double  finest_arcsec;    // 最细局部输入像素尺度 (角秒/像素)
+    double  hp_res_arcsec;    // 所选 NSIDE 的 HEALPix 特征尺度 (角秒)
+    double  oversample;       // hp_res/finest (引擎口径; 0.5~1 = 1~2 倍过采样)
+    int     clamped;          // 1 = nside 被 [16, 2^22] 钳位 (决策不自由)
+    char    error_msg[512];   // 失败原因
+} HpAutoNsideResult;
+
+HP_DRIZZLE_API int hp_drizzle_compute_auto_nside(PipelineFrame* frame,
+                                                 HpAutoNsideResult* result);
+
+// ============================================================================
 // 反向 Drizzle (Sphere -> Plane, 球面面积语义) — 签字修正 REV-101 正式 C ABI
 // ============================================================================
 
