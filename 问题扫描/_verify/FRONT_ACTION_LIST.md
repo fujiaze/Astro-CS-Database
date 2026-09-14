@@ -90,3 +90,9 @@
 - **立刻做（V9-N-17，P0）**：`CTEST-P1DRZ-TASKSET-INVARIANCE` 的被测脚本在无 `taskset` 时 `exit 0` ⇒ **你为 DRIZZLE-DET-001 装的那把锁在缺 taskset 的节点上永不红**；三层静默（脚本 0 / 无 `--fail-if-no-tests` / `exit 77` 被吸收）同向。①改 `FAIL` 或仅在 `waivable=true` 门上 skip；②③见 §B-2。做完我升 `VERIFIED`。
 - **立刻做（V9-N-16，P0）**：`TRACEABILITY` 门末行无条件 `return 0` 且改写受跟踪文件 `reports/v19r2/.../traceability_check.json` ⇒ 改真退出码 + `mutates_workspace=false`。
 - 新门建议 **`E12`**：`waivable` 翻转即作废旧证据（6 个 DEEP 门证据停在 09-05，其中 2 门现已非豁免）。
+
+## §D-2 校准注记（V17 片3；**不进账本，但会改变你的施工对象**）
+- **`V15-N-07` 的原因描述订正**：`ASTROCS_REPO` 并非"CI 未设"——`tests/unit/CMakeLists.txt:730-734` 已把 `core_pipeline`/`cpu_provider`/`cpu_bench`/`io_adapter`/`p1_ir_facade`/`p2_ir_facade` 六项 `ENVIRONMENT` 设为 `CMAKE_SOURCE_DIR`，**消费集 = 注入集（6=6）**；Python 侧由 `tests/backend` 五文件自带 + `cli_test_hygiene.py:33 setdefault`。⇒ **其"未设 ⇒ 恒绿"仅对非 ctest 直跑成立**；ctest 下 `io_adapter` 的真实残余是**「头文件迁名 ⇒ `content=""` ⇒ 5 条负断言仍绿」＝缺 `is_open`，不是缺 env**。**别再往 CI 加 env 注入**（已存在，那是修一个不存在的东西）。
+- **`npos` 全仓方向名单**（575 行 ∩ 读仓内源文件 52 文件，逐站读上下文）：**纯负向假绿且读仓内源，全仓仅 `io_adapter_test.cpp:217-221` 一站**。三站方向为**红**：`p1_ir_facade`（`CHECK(find!=npos)`）、`p2_ir_facade`（`CHECK(n_nodes==4)`）、`p2002`（`ASTROCS_REPO_ROOT` 编译锚正确）⇒ 这三站"补 `is_open`" 是**诊断面修复，不能按假绿门报功**。已有前置正例**勿动**：`cpu_bench_test.cpp:78`（`CHECK(fp!=nullptr)+if(fp){…}`）、`mon001_recorder`（先 `CHECK(write_all)` 再读产物）、`core_pipeline`（`f.good()` + `CHECK(!base.empty())`）、`test_logger`/`test_orchestrator_cli`（负 `npos` 与正向 `ASSERT_CONTAINS` 同函数成对）。⇒ **不存在"批量把 npos 当 fail-open 改"的空间**。
+- **轴③总结论（跨条新机制，挂簇 1 家族）**：本仓 **env 门控零处造成"未设 ⇒ 检查不存在"**；真实弱化**统一在"被检物自身存在性"面**——源/产物清单漂移时门**静默缩面**，且 **PASS 文案不披露实扫数**（⇒ 这正是 `E13` 要断"实扫数 > 0"的理由）。未判：windows hosted `g++` 存在性（`skipUnless(which(g++))` 12 处 = `M3-F-001` 已在册）。
+- 施工归类（V17 建议，我采纳）：`N-01`/`N-03`/`N-05`/`N-06` → `F_TEST_GAP`；`N-02`/`N-04` → `G_GOV_GATE`。
