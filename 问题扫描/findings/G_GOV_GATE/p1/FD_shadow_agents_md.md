@@ -22,3 +22,31 @@
 - **置信度**：高（18 份清点、4 种长度、UNTRACKED 判定、四段引文全部一手）
 - **related**：M8a-C-001（同型不同主体：README 面向人且被跟踪 vs AGENTS 面向 agent 且在免报区，**不并档**）、M6b-G-002（状态声明无单一事实源）、M6a §10（wiki 权威性待裁，本条提供实证）、M4-F-01/M2a-F-1/L23-004（构建孤儿形态，本条为**指令面同族**）、L25-005（豁免按字面目录名切分 = 换目录即逃检，与本条同根因）、C-10/C-07、F00-11
 - **状态**：登记为问题，**不处置**（负责人 2026 裁定）；R 层不得因"未修复"重复计为残余风险之外的新条目
+
+### FD-G-002 唯一执行「禁止运行产物落项目根目录」的门被永久容忍为红，且该检查自身声明 `waivable=False`
+
+- **ID**：FD-G-002 ｜ **类别**：G_GOV_GATE ｜ **优先级**：**P1**（负责人裁定前不下 P0）
+- **位置**：`ci/known_failures.json::failures[0]`（`check_id=UT-CLI`、`kind=check`、`category=WORKSPACE_HYGIENE`、`expected=fail`、`owner=SA-CLI`）；
+  `ci/checks.json::UT-CLI`（同一 id 的登记项，实测字段 `waivable=False`、`profiles=["linux-main"]`、`mutates_workspace`、`dirty_ignore_exact`、`dirty_ignore_prefixes`）；
+  根因面 `cli/commands.cpp`（基线 reason 字段自述产物默认落点）
+- **问题说明（三条同时成立）**：
+  ① 基线条目的 `reason` **逐字承认**：`astrocs graph` 产 `graph/*.json`、`memory-report` 产 `alloc_report.json`/`alloc_samples.csv`，
+     「**根因在 cli/commands.cpp 产物默认落点（域外，非 tests/cli 断言面）**」——而根 AGENTS.md「目录规范（强制）」明文「**禁止将运行产物产出到项目根目录**」并规定     「发现根目录散落产物，整理归位…」。⇒ **一条强制禁止性条款的唯一执行门，处于版本化的常容忍红态**。
+  ② **自相矛盾的登记**：同一 id 在 `checks.json` 里 `waivable=False`（声明不可豁免），却在 `known_failures.json` 里以 `expected=fail` 被长期容忍；
+     而 AGENTS.md「状态机」要素明文「放行一律走 waiver 登记…且**严禁用 waiver 掩盖红灯（裁决 R-05/R-13）**」。
+     基线合同的 `allowed_categories` 又把 `WORKSPACE_HYGIENE` 列为**可登记类** ⇒ **仓内两份权威文本对"这一类红灯能不能容忍"给出相反答案**，无仲裁条文。
+  ③ 基线 reason 末尾还有一句被低估的话：「**UT-CLI 的 17 项过时断言修复前该检查不可绿**」⇒ 即使产物落点被修好，     该门仍因自身断言过时而不可绿。**一道"永不可绿 + 已被容忍"的门，同时充当着根目录污染的唯一防线**。
+- **影响**：AGENTS.md 的目录规范在本仓库**没有任何有效机器执行**（这不是新增猜测，是基线文件的自述）；任何 agent 往根目录写产物都不会让 CI 变红，  因为该检查的红已被版本化接纳为 KNOWN。与本审计簇 1 的关系：它不是「结构性不会红」（那是 discover 0 用例、恒 return 0），  而是**「会红，但红已被制度化豁免」——同一失守的第二种机制**，且这一种更难被发现，因为它看起来完全合规（有 owner、有 reason、有 first_seen_commit、有 reproducer）。
+- **依据条款**：AGENTS.md「目录规范（强制）」末段与「状态机」要素（R-05/R-13）；宪章 §12.3-10（声明与执行须同源）、§14.5（放行与 waiver）
+- **建议处置**：①由负责人裁定 `WORKSPACE_HYGIENE` 到底可不可登记（可 → 删 AGENTS.md R-05/R-13 中与之冲突的一半；不可 → 把该条目移出基线并修 `cli/commands.cpp` 落点）；  ②无论哪向，**同一提交内**必须同时修 UT-CLI 的 17 项过时断言，否则该门仍在"永不可绿"状态；③建议新增机器门：`checks.json` 中 `waivable=False` 的 id 出现在 `known_failures.json` 即 FAIL（零假阳、可当天入门）
+- **取证口径**：JS `JSON.parse` 直读 `ci/checks.json` **失败**（`read` 对 >2000 字符单行截断，position 42665/line 2000）⇒ 改用 `python3 json.load` 才拿到字段；  本报告内所有 checks/基线数字均由 python3 解析得出。**这是 H-1 陷阱对前台自己的第二次命中**（第一次是 M6b 的 CSV），已记入 R 层规则：机器文件一律用解释器解析，禁以 read 行文本解析结构化文件。
+- **置信度**：高（两份 JSON 字段当场解析；引文为文件逐字内容）｜**related**：M5b-G-01（同名第二二进制，同族「门验错对象」）、M8-F-004（在册但不执行）、簇 1 机制补全、L25-005（豁免按字面量切分）、C-11/C-12
+
+### FD-G-003 基线文件自陈「当前 linux-main 有约 10 项红灯且不得登记进基线」——其中含本审计定为「结构性空壳」的 CON-COMMENTS
+- **ID**：FD-G-003 ｜ **类别**：G_GOV_GATE ｜ **优先级**：P2（事实本身是正面证据，但它制造一处**必须写清的歧义**）
+- **位置**：`ci/known_failures.json::contract.excluded_by_policy`
+- **问题说明**：该字段逐字列出「本轮 linux-main 其余红灯（**AGENTS-GOV / DATA-ARTIFACTS / THREAD-BUDGET / CON-COMMENTS / CON-FULL-INTEGRATION / UT-ARCH / UT-BACKEND / WIN-* / DEEP-***）均为在册 P1（FD-R1-010），不得登记进基线，须由域主修复」。
+  ⇒ 这是一份**仓内自证的当前 CI 红态清单**，可直接为多条审计结论提供"门确实在跑"的旁证（对簇 1 是重要平衡证据，防止被读成"所有门都不跑"）。
+  **但歧义必须消除**：M6a-G-001 把 CON-COMMENTS 定为 P0「结构性空壳」，而这里它显示为**红灯**。两者**不互斥且都成立**：  该门确实在跑并且会红（红在注释卫生比率面），但它**抓不到注释溯源类问题**（M6a 的判词对象是后者）；  「会红」不等于「有效」，「在册 P1 待域主修复」也不等于「已验证」。这条是防止负责人把两条结论误读成互相否证而写。
+- **建议处置**：引用 CON-COMMENTS 时一律同时给两面（红态来源=比率判据；缺口=零溯源判据且 §12.2 无条文）；FD-R1-010 与 `docs/audit` 登记册的一致性交 R 层核
+- **置信度**：高（字段逐字引）｜**related**：M6a-G-001（P0）、M5a-G-005（THREAD-BUDGET 同类）、簇 1、簇 10 口径注
