@@ -28,6 +28,17 @@ import matplotlib.pyplot as plt
 from astropy.io import fits as astropy_fits
 from astropy.wcs import WCS, Sip
 
+# 权威 ctypes 镜像 (单一事实源, 宪章 §8.6 / V2-N-01):
+# 本工具不再自带 IpvParams/IpvWcsResult 定义, 一律 import 同目录镜像模块,
+# 由 ctest 门 ipv_abi_layout_lock 与 C 头逐字段机器对账。
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ipv_abi_mirror import (  # noqa: E402
+    IpvParams,
+    IpvWcsResult,
+    IPV_PARAMS_ABI_VERSION,
+    IPV_PARAMS_STRUCT_SIZE,
+)
+
 ROOT = r"F:\Astro dev\Astro CS Normalization Database"
 plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
 plt.rcParams["axes.unicode_minus"] = False
@@ -56,47 +67,6 @@ class SDetParams(ctypes.Structure):
                 ("fitRadius", ctypes.c_int),
                 ("fwhmClipSigma", ctypes.c_float),
                 ("maxAxisRatio", ctypes.c_float)]
-
-
-class IpvParams(ctypes.Structure):
-    _fields_ = [("polygon_sides", ctypes.c_int),
-                ("n_pivot", ctypes.c_int),
-                ("sigma_d_arcsec", ctypes.c_double),
-                ("vote_threshold", ctypes.c_int),
-                ("ransac_max_iter", ctypes.c_int),
-                ("ransac_inlier_threshold_arcsec", ctypes.c_double),
-                ("s_min", ctypes.c_double),
-                ("s_max", ctypes.c_double),
-                ("img_n_target", ctypes.c_int),
-                ("gaia_density_ratio", ctypes.c_double),
-                ("gaia_query_radius_factor", ctypes.c_double),
-                ("m_lim_step", ctypes.c_double),
-                ("m_lim_max_iter", ctypes.c_int),
-                ("density_tolerance", ctypes.c_double),
-                ("log_dir", ctypes.c_char * 256)]
-
-
-class IpvWcsResult(ctypes.Structure):
-    _fields_ = [("cd", ctypes.c_double * 4),
-                ("crval", ctypes.c_double * 2),
-                ("crpix", ctypes.c_double * 2),
-                ("sip_order", ctypes.c_int),
-                ("sip_a", ctypes.c_double * 36),
-                ("sip_b", ctypes.c_double * 36),
-                ("sip_ap_order", ctypes.c_int),
-                ("sip_ap", ctypes.c_double * 36),
-                ("sip_bp", ctypes.c_double * 36),
-                ("rms_px", ctypes.c_double),
-                ("rms_arcsec", ctypes.c_double),
-                ("n_pairs", ctypes.c_int),
-                ("success", ctypes.c_int),
-                ("n_detected", ctypes.c_int),
-                ("n_catalog", ctypes.c_int),
-                ("trans_order", ctypes.c_int),
-                ("best_inliers", ctypes.c_int),
-                ("ctype1", ctypes.c_char * 16),
-                ("ctype2", ctypes.c_char * 16),
-                ("error_msg", ctypes.c_char * 256)]
 
 
 class DPSFFitParams(ctypes.Structure):
@@ -190,6 +160,15 @@ def detect_and_solve(img16, header):
     ipv.ipv_get_default_params.argtypes = [ctypes.POINTER(IpvParams)]
     params = IpvParams()
     ipv.ipv_get_default_params(ctypes.byref(params))
+    # fail-closed: 若 DLL 与镜像 ABI 不一致 (尺寸/版本), 立即中止而非按错误布局
+    # 继续写参数 (V2-N-01 P0: 旧镜像 352 vs C 424 => 72 字节越界写)。
+    if (params.struct_size != IPV_PARAMS_STRUCT_SIZE
+            or params.abi_version != IPV_PARAMS_ABI_VERSION):
+        raise RuntimeError(
+            "IpvParams ABI 不匹配: DLL struct_size=%d abi_version=%d, "
+            "镜像 struct_size=%d abi_version=%d; 请同步 ipv_abi_mirror.py 并重编 DLL"
+            % (params.struct_size, params.abi_version,
+               IPV_PARAMS_STRUCT_SIZE, IPV_PARAMS_ABI_VERSION))
     log_dir = (ROOT + r"\run\logs\plate_solve").encode()
     params.log_dir = log_dir[:255]
 

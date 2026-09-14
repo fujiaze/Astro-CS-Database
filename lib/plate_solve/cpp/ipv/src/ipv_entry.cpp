@@ -198,6 +198,39 @@ void set_error_msg(char* dst, size_t dst_size, const char* msg) {
     dst[n] = '\0';
 }
 
+// ---------------------------------------------------------------------------
+// ABI 自描述校验 (宪章 §8.6; V2-N-01 P18)
+//
+// IpvParams 首部携带 struct_size/abi_version。所有接受 const IpvParams* 的
+// 公共入口在解引用前必须校验:
+//   - params == nullptr: 合法 (表示使用 C++ 默认值), 放行;
+//   - struct_size != sizeof(IpvParams) 或 abi_version != IPV_PARAMS_ABI_VERSION:
+//     fail-closed —— 写非空 error_msg 并返回 0, 不进入 to_solver_params(),
+//     从而杜绝"按大结构体写小缓冲"的越界/错位。
+// 返回 true = 可按 IpvParams 安全访问; false = 不得继续。
+// ---------------------------------------------------------------------------
+bool validate_params_abi(const IpvParams* params, IpvWcsResult* result,
+                         const char* api_name) {
+    if (params == nullptr) return true;
+    if (params->struct_size != static_cast<uint32_t>(sizeof(IpvParams)) ||
+        params->abi_version != IPV_PARAMS_ABI_VERSION) {
+        char msg[192];
+        std::snprintf(msg, sizeof(msg),
+                      "%s: IpvParams ABI 不匹配 (caller struct_size=%u abi_version=%u, "
+                      "expected struct_size=%u abi_version=%u); 请重新编译调用方 / 同步 "
+                      "ipv_abi_mirror.py",
+                      api_name != nullptr ? api_name : "ipv",
+                      static_cast<unsigned>(params->struct_size),
+                      static_cast<unsigned>(params->abi_version),
+                      static_cast<unsigned>(sizeof(IpvParams)),
+                      static_cast<unsigned>(IPV_PARAMS_ABI_VERSION));
+        set_error_msg(result != nullptr ? result->error_msg : nullptr,
+                      result != nullptr ? sizeof(result->error_msg) : 0, msg);
+        return false;
+    }
+    return true;
+}
+
 // 修复: 将 solve 调用 + try/catch 隔离到独立函数
 // 动机: ipv_solve 的 try/catch 在栈上生成 SEH 记录, solve 内部的大栈使用
 // (FlipModeResult results[4] 等) 可能覆盖 SEH 记录, 导致返回到 ctypes 时崩溃。
@@ -334,6 +367,10 @@ IPV_API void ipv_get_default_params(IpvParams* params) {
     if (params == nullptr) return;
     std::memset(params, 0, sizeof(IpvParams));
 
+    // 宪章 §8.6: 首部 ABI 自描述。调用方 (含 ctypes 镜像) 在后续入口被校验。
+    params->struct_size = static_cast<uint32_t>(sizeof(IpvParams));
+    params->abi_version = IPV_PARAMS_ABI_VERSION;
+
     ipv::IPVSolverParams def;  // 使用 C++ 默认值
 
     params->polygon_sides                  = def.polygon_sides;
@@ -423,6 +460,9 @@ IPV_API int ipv_solve(
 
     // ipv_solve 本身无 try/catch, 避免 SEH 记录栈损坏
     // 异常捕获由 do_solve_impl 负责
+    // 宪章 §8.6 / V2-N-01: 入口处 ABI 校验, 不匹配 fail-closed (不进入解引用)。
+    if (!validate_params_abi(params, result, __func__)) return 0;
+
     ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
     ipv::IPVSolverParams sp = to_solver_params(params);
     return do_solve_impl(s, image_path, ra0, dec0,
@@ -463,6 +503,9 @@ IPV_API int ipv_solve_from_memory(
 
     // ipv_solve_from_memory 本身无 try/catch, 避免 SEH 记录栈损坏
     // 异常捕获由 do_solve_from_memory_impl 负责
+    // 宪章 §8.6 / V2-N-01: 入口处 ABI 校验, 不匹配 fail-closed (不进入解引用)。
+    if (!validate_params_abi(params, result, __func__)) return 0;
+
     ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
     ipv::IPVSolverParams sp = to_solver_params(params);
     return do_solve_from_memory_impl(s, pixels, width, height, ra0, dec0,
@@ -608,6 +651,9 @@ IPV_API int ipv_solve_from_detections_v1(
         return 0;
     }
 
+    // 宪章 §8.6 / V2-N-01: 入口处 ABI 校验, 不匹配 fail-closed (不进入解引用)。
+    if (!validate_params_abi(params, result, __func__)) return 0;
+
     ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
     ipv::IPVSolverParams sp = to_solver_params(params);
     return do_solve_from_detections_v1_impl(s, detections, n_detections,
@@ -650,6 +696,9 @@ IPV_API int ipv_solve_from_memory_with_callback(
                       "无效参数: width/height 必须为正数");
         return 0;
     }
+
+    // 宪章 §8.6 / V2-N-01: 入口处 ABI 校验, 不匹配 fail-closed (不进入解引用)。
+    if (!validate_params_abi(params, result, __func__)) return 0;
 
     ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
     ipv::IPVSolverParams sp = to_solver_params(params);
@@ -694,6 +743,9 @@ IPV_API int ipv_solve_from_memory_with_callback_d(
                       "无效参数: width/height 必须为正数");
         return 0;
     }
+
+    // 宪章 §8.6 / V2-N-01: 入口处 ABI 校验, 不匹配 fail-closed (不进入解引用)。
+    if (!validate_params_abi(params, result, __func__)) return 0;
 
     ipv::IPVSolver* s = static_cast<ipv::IPVSolver*>(solver);
     ipv::IPVSolverParams sp = to_solver_params(params);

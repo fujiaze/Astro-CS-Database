@@ -58,3 +58,49 @@ target_link_libraries(ipv_triangle_budget_test PRIVATE
   astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
 add_test(NAME ipv_triangle_budget COMMAND ipv_triangle_budget_test)
 set_tests_properties(ipv_triangle_budget PROPERTIES TIMEOUT 120)
+
+# ============================================================================
+# P18 (RQS V2-N-01, P0) — IpvParams / IpvWcsResult C↔ctypes 布局一致性锁
+# ----------------------------------------------------------------------------
+# 根因: ipv_api.h::IpvParams 在 P4 批增删字段 (删 m_lim_step / +10 double /
+# log_dir 96->168) 后, 诊断工具自带的 ctypes 镜像未同步 => Python 352 vs C 424,
+# ipv_get_default_params 的 memset(params,0,sizeof(IpvParams)) 对 352 字节
+# 缓冲越界写 72 字节 (内存安全, P0)。宪章 §8.6。
+#
+# 机械防护 (两层):
+#   A) 布局锁 ipv_abi_layout_probe (只 include ipv_api.h, 无 windows.h) 输出
+#      sizeof/offsetof JSON, 由 ipv_abi_layout_lock.py 与仓内唯一权威镜像
+#      lib/plate_solve/tools/ipv_abi_mirror.py 逐字段比对; 偏移/大小/字段名/
+#      顺序任一不一致 => FAIL。ipv_abi_layout_lock_selfcheck 用被破坏镜像
+#      反向证明该门会失败 (非恒真)。
+#   B) 运行时 fail-closed 锁 ipv_params_abi_failclosed_test: 五个公共入口在
+#      struct_size/abi_version 不匹配时必须返回 0 且 error_msg 点名 ABI。
+# ============================================================================
+add_executable(ipv_abi_layout_probe
+  ${P1IPVTEST_DIR}/ipv_abi_layout_probe.cpp)
+target_include_directories(ipv_abi_layout_probe PRIVATE
+  ${P1IPV_DIR}/include)
+
+add_test(NAME ipv_abi_layout_lock
+  COMMAND ${CMAKE_COMMAND} -E env
+          IPV_LAYOUT_PROBE=$<TARGET_FILE:ipv_abi_layout_probe>
+          python3 ${P1IPVTEST_DIR}/ipv_abi_layout_lock.py
+          --probe $<TARGET_FILE:ipv_abi_layout_probe>)
+set_tests_properties(ipv_abi_layout_lock PROPERTIES TIMEOUT 120)
+
+add_test(NAME ipv_abi_layout_lock_selfcheck
+  COMMAND ${CMAKE_COMMAND} -E env
+          IPV_LAYOUT_PROBE=$<TARGET_FILE:ipv_abi_layout_probe>
+          python3 ${P1IPVTEST_DIR}/ipv_abi_layout_lock.py
+          --probe $<TARGET_FILE:ipv_abi_layout_probe> --selfcheck)
+set_tests_properties(ipv_abi_layout_lock_selfcheck PROPERTIES TIMEOUT 120)
+
+add_executable(ipv_params_abi_failclosed_test
+  ${P1IPVTEST_DIR}/ipv_params_abi_failclosed_test.cpp)
+target_include_directories(ipv_params_abi_failclosed_test PRIVATE
+  ${P1IPV_DIR}/include)
+target_link_libraries(ipv_params_abi_failclosed_test PRIVATE
+  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
+add_test(NAME ipv_params_abi_failclosed COMMAND ipv_params_abi_failclosed_test)
+set_tests_properties(ipv_params_abi_failclosed PROPERTIES TIMEOUT 120)
+

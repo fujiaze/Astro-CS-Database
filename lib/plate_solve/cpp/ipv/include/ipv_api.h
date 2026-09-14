@@ -61,7 +61,25 @@ typedef struct {
 } IpvWcsResult;
 
 // C 友好的参数结构体 (POD)
+//
+// ABI 契约 (宪章 §8.6 "跨 DLL 边界使用版本化 C ABI ... 结构体带
+// struct_size/abi_version"): 首部两个 uint32_t 自描述字段。
+//   - 调用方应先调用 ipv_get_default_params() 填充 (该函数会写入这两个字段),
+//     或自行构造时显式设置
+//         params.struct_size = sizeof(IpvParams);
+//         params.abi_version = IPV_PARAMS_ABI_VERSION;
+//   - 所有公共入口在 params != NULL 时校验二者; 任一不匹配一律 fail-closed
+//     (返回 0 并写 error_msg), 绝不按本结构体尺寸去写更小的调用方缓冲。
+//   - 字段增删/重排/改类型 => 必须同步抬高 IPV_PARAMS_ABI_VERSION, 并同步
+//     lib/plate_solve/tools/ipv_abi_mirror.py; ctest 门 ipv_abi_layout_lock
+//     会用 C 探针 sizeof/offsetof 机器校验二者逐字段一致。
+#define IPV_PARAMS_ABI_VERSION 2u
+
 typedef struct {
+    /* --- ABI 自描述 (宪章 §8.6; 必须在首部, 偏移 0/4) --- */
+    uint32_t struct_size;            /* = sizeof(IpvParams) */
+    uint32_t abi_version;            /* = IPV_PARAMS_ABI_VERSION */
+    /* --- 求解参数 --- */
     int    polygon_sides;
     int    n_pivot;
     double sigma_d_arcsec;
