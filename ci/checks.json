@@ -3592,6 +3592,40 @@
       ]
     },
     {
+      "id": "CTEST-IPV-MAG-ITER",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "ipv_mag_iter",
+        "--output",
+        "run/ci/ctest/ipv_mag_iter.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/ipv_mag_iter.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "ipv_mag_iter"
+      ]
+    },
+    {
       "id": "KNOWN-FAILURES-BASELINE-CHECK",
       "profiles": [
         "linux-main"
