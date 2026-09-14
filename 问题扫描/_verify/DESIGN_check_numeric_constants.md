@@ -41,18 +41,18 @@
 - NC-LN10 ｜ 召回：2[.]302585[0-9]* ｜ 宿主：snr noise_model.cpp:34；snr_science.cpp:33 ｜ 黄（位数不同，归一 0 ulp）
 - NC-PI / NC-DEG2RAD / NC-AE-C45 ｜ 召回：3[.]14159265[0-9]* | 1[.]5707963267948966 | 1[.]1107207345395915 | 180[.]0 / M_PI ｜ 宿主：gaia_client.c::DEG2RAD/RAD2DEG/AE_GLOBAL_FACTOR/AE_C45_FACTOR；snr_science.cpp::kPi ｜ 绿（π/(2√2) 与 π/2 逐位一致，本轴唯一全绿族）
 - NC-MAG-DECODE ｜ 召回：[ * ]0[.]001 | -[ * ]1[.]5 | +[ * ]24(?![0-9.]) ｜ 宿主：gaia_client.c 五处 mag_raw*0.001-1.5（G/BP/RP） ｜ 红（三常数内联 5 次，无具名点；口径仅 docs/algorithms/GAIA_QUERY.md 公式行）
-- NC-DEX-to-MAG ｜ 召回：2[.]5 \* sigma | 2[.]5 \* ｜ 宿主：snr noise_model.cpp:286/295；PHOTOMETRY 侧 ｜ 绿（定义常数 2.5，但无 id 绑定 ⇒ NO_AUTHORITY 类）
+- NC-DEX-to-MAG ｜ 召回：\b2\.5\b \* （dex→mag 与 mag→dex 两处）｜ 宿主：snr noise_model.cpp:286/295；PHOTOMETRY 侧 ｜ 绿（定义常数 2.5，但无 id 绑定 ⇒ NO_AUTHORITY 类）
 - NC-MAG-LIM-EXPOSURE ｜ 召回：\b6\.0\b.*log10 | 1\.5 \* std::log10 | 2\.0 \* std::log10 | \b13\.0\b | -4\.0 ｜ 宿主：ipv_select.cpp::compute_initial_mag_cut 与 :408-409 内联式；:394 m0_hi；ipv_types.h::m_lim_m0_offset ｜ 红（两份实现差 4.000 mag；13.0 无承载）
-- NC-MAG-ITER ｜ 召回：0\.2885 | m_lim_(safety | max_iter | zero_step | alpha_(prior | min | max)) | -6\.0.*6\.0 ｜ 宿主：ipv_types.h 默认 与 ipv_select.cpp:395-400/492 兜底 ｜ 红（默认↔兜底双写无锁；±6.0 全无承载）
+- NC-MAG-ITER ｜ 召回：0\.2885 | m_lim_safety | m_lim_max_iter | m_lim_zero_step | m_lim_alpha_prior | m_lim_alpha_min | m_lim_alpha_max | -6\.0.*6\.0 ｜ 宿主：ipv_types.h 默认 与 ipv_select.cpp:395-400/492 兜底 ｜ 红（默认↔兜底双写无锁；±6.0 全无承载）
 - NC-GATE-CPU-* ｜ 召回：85\.0 | 0\.85 | 60\.0 | 0\.60 | 90\.0 | 0\.70 | \b10\.0\b | kWorkerP50Min ｜ 宿主：cli/resource_gate.h:96-111/184；tools/monitoring/run_monitored.py:451-456 ｜ 红（跨语言手抄；90.0/0.70 无冻结文本；10.0 开闭相反）
 - NC-GATE-MEM-* ｜ 召回：32\.0 | 32ull \* 1024 | kAlloc[A-Za-z]* | 0\.5 ｜ 宿主：cli/memory_report.h:47-57；cli/resource_gate.h:164 ｜ 红（同数字三义、比较号 >/>= 不一致、覆盖通道只作用一条）
 - NC-GAIA-CAP-PER-FILE ｜ 召回：\b200000\b | MAX_STARS_RESULT | m_lim_gaia_cap_per_file | 64LL \* 200000LL ｜ 宿主：gaia_client.c；ipv_types.h:244；module_entry.c::kQueryCacheCap；GAIA_QUERY.md:147/222；PUBLIC_API.md:93 ｜ 红（1 具名(.c 私有)+3 复制；派生乘积两 TU 各算）
-- NC-XPSD-WLGRID ｜ 召回：\b343\b | WL_COUNT | \b336\b | \b1020\b | spectrumStep= | wl_step ｜ 宿主：gaia_client.c::WL_COUNT/STAR_STRIDE_SP/parse；fixture_gen；xpsd_spectrum_count_bounds_test；gaia_cat_test；DR3SP_SCHEMA_AUDIT.md:29；spectrum_integrator.cpp::wl_step ｜ 红（真库 step=2 与 fixture step=1 且被 CHECK 钉死）
-- NC-BBOX-MARGIN / NC-MAG-PRUNE-MARGIN / NC-COS-GUARD ｜ 召回：\* 1\.2 \b | radius_deg \* 1\.2 | \+ 0\.25 | cos_dec < 0\.01 | 1e-15 ｜ 宿主：gaia_client.c:923/922/2054/897 ｜ 红（裕量无适用域登记；无大半径回退守卫）
+- NC-XPSD-WLGRID ｜ 召回：\b343\b | WL_COUNT | \b336\b | \b1020\b | spectrumStep= | wl_step | STAR_STRIDE_SP ｜ 宿主：gaia_client.c::WL_COUNT/STAR_STRIDE_SP/parse；fixture_gen；xpsd_spectrum_count_bounds_test；gaia_cat_test；DR3SP_SCHEMA_AUDIT.md:29；spectrum_integrator.cpp::wl_step ｜ 红（真库 step=2 与 fixture step=1 且被 CHECK 钉死）
+- NC-BBOX-MARGIN / NC-MAG-PRUNE-MARGIN / NC-COS-GUARD ｜ 召回：radius_deg \* 1\.2 | \+ 0\.25 | cos_dec < 0\.01 | 1e-15 ｜ 宿主：gaia_client.c:923/922/2054/897 ｜ 红（裕量无适用域登记；无大半径回退守卫）
 - NC-UPM-GRID / NC-PATH-BUF ｜ 召回：\bgrid\b.*= *8 | != *8 | \b512\b | \+ *511 | ACS_FIO_PATH_MAX ｜ 宿主：upm.h/upm.cpp:245/414、sampler.cpp:1449；gaia_client.c 两处 +511 ｜ 红（4 处字面量 0 具名；512-1 手写两处而 ACS_FIO_PATH_MAX 在册不用）
-- NC-CACHE-SIZES ｜ 召回：\b8192\b | QUERY_CACHE_CAPACITY | \* 64LL | 4ULL \* 1024 \* 1024 \* 1024 | 60(?!\d) \*\* /TTL ｜ 宿主：gaia_client.c::BLOCK_CACHE_CAPACITY/QUERY_CACHE_CAPACITY/TTL/MAX_MEMORY/MEMORY_PRESSURE_THRESHOLD ｜ 黄（4GB 同值两义：块预算 与 内存压力阈值）
+- NC-CACHE-SIZES ｜ 召回：\b8192\b | QUERY_CACHE_CAPACITY | 4ULL \* 1024 \* 1024 \* 1024 | QUERY_CACHE_TTL_SEC ｜ 宿主：gaia_client.c::BLOCK_CACHE_CAPACITY/QUERY_CACHE_CAPACITY/TTL/MAX_MEMORY/MEMORY_PRESSURE_THRESHOLD ｜ 黄（4GB 同值两义：块预算 与 内存压力阈值）
 - NC-EPS-FLOORS ｜ 召回：1e-12 | 1e-9 | 1e-6(?![0-9]) | 1e-3(?![0-9]) | 1e-15 ｜ 宿主：noise_model.cpp:353/411（floor 与回退各写）；ipv_types.h:229 ｜ 黄
-- NC-NTARGET ｜ 召回：n_target_cap | std::max\(50 | \b60\b 附近注释"统一为 60" ｜ 宿主：ipv_select.cpp:317-318；ipv_types.h::img_n_target；PLATESOLVE.md §5:115 ｜ 红（[50,60] 与两套文本口径互斥）
+- NC-NTARGET ｜ 召回：n_target_cap | std::max\(50 | \b60\b（配合注释「统一为 60」） ｜ 宿主：ipv_select.cpp:317-318；ipv_types.h::img_n_target；PLATESOLVE.md §5:115 ｜ 红（[50,60] 与两套文本口径互斥）
 
 不扫为常数的数字（避免误报）：数组下标/位移/位宽（&3、>>5、*8 sizeof）、纯结构常数（row[9]、40 字节头）、时间戳与 seed（SplitMix64 常量、0x5EED…）、日志格式串中的数字、evidence CSV/日志。
 
