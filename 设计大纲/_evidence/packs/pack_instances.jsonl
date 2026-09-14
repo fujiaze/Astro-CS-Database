@@ -1,0 +1,5374 @@
+[
+ {
+  "form": "worktree",
+  "path": "artifacts/prerelease_v5/AUDIT_REVIEW",
+  "nfile": 34,
+  "bytes": 167004,
+  "ledgers": [
+   {
+    "file": "TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "phase",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "preferred_host",
+     "status"
+    ],
+    "rows": 98,
+    "status_col": "status",
+    "status_dist": {
+     "PASS": 88,
+     "BLOCKED": 1,
+     "REVIEW_PENDING": 1,
+     "IN_PROGRESS": 1,
+     "NOT_STARTED": 7
+    },
+    "n_id": 98,
+    "ids_sample": [
+     "BASE-001",
+     "GOV-001",
+     "VER-001",
+     "TRACE-001",
+     "DOC-001",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "SCI-006",
+     "SCI-007",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ALG-005",
+     "ALG-006",
+     "ALG-007",
+     "REV-001",
+     "ARCH-001",
+     "ARCH-002",
+     "ARCH-003",
+     "ARCH-004",
+     "ARCH-005",
+     "API-001",
+     "API-002",
+     "API-003",
+     "API-004",
+     "API-005",
+     "CLI-001",
+     "CLI-002",
+     "CLI-003",
+     "CLI-004",
+     "CLI-005",
+     "P3-001",
+     "P3-002",
+     "P3-003",
+     "P3-004",
+     "CLI-006"
+    ]
+   }
+  ],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS V5 预发布控制包：单一 CLI / amd64 CPU 自适应"
+   ],
+   [
+    2,
+    "0. 本包的唯一目标"
+   ],
+   [
+    2,
+    "1. 不可解释、不可放宽的硬约束"
+   ],
+   [
+    2,
+    "2. 首次启动后 30 分钟内"
+   ],
+   [
+    2,
+    "3. 连续执行状态机"
+   ],
+   [
+    2,
+    "4. 唯一允许停止的条件"
+   ],
+   [
+    2,
+    "5. 最终 PASS 含义"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": {
+   "ok": 33,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "manifest": "{'schema_version': 1, 'package': 'AstroCS-audit-59649edc0480', 'version': '0.9.0-alpha.1', 'commit': '59649edc0480a4e663ed37bd3e56215ba729526a', 'files': [{'path': '00_READ_FIRST.md', 'sha256': '475c0bcc85773236336854e050c038617672c6126bea8864dbc42bcdc095d96f', 'size': 3965}, {'path': 'BUILD_RESULTS.csv', 'sha256': '0fa2a54b6547def5f0961f1f2fae46fabb2de92d2511960e8d4ec34d71ea1618', 'size': 440}, {'path': 'CHECKPOINTS.csv', 'sha256': '23ed7c84203332b3e59357d856831566bc8244660a94a7930fcf4c2d9c132f90', 'size': 884}, {'path': 'COMMITS.csv', 'sha256': 'e3f286dac825f7624139127e49ba20ba192049a32fbc984b859802650edad926', 'size': 29106}, {'path': 'CPU_PROFILE_RESULTS.csv', 'sha256': '81e30b94c90c448401dc3961550eafc2fb3bf157f51dba0e12fb1b6c65263ffb', 'size': 226}, {'path': 'FINAL_REPORT.md', 'sha256",
+  "identity": "prerelease_v5/AUDIT_REVIEW",
+  "git_events": {
+   "first": [
+    "fd4e11edc6d4c57285219e3ad87c0226e2d85bec",
+    "2026-08-30T17:53:51+08:00"
+   ],
+   "last": [
+    "ef0858c55a424a245d60c95f82c9b381d2531c35",
+    "2026-08-30T13:54:10+08:00"
+   ],
+   "adds": [
+    [
+     "ef0858c55a424a245d60c95f82c9b381d2531c35",
+     "2026-08-30T13:54:10+08:00"
+    ],
+    [
+     "ef0858c55a424a245d60c95f82c9b381d2531c35",
+     "2026-08-30T13:54:10+08:00"
+    ],
+    [
+     "ef0858c55a424a245d60c95f82c9b381d2531c35",
+     "2026-08-30T13:54:10+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 8
+  }
+ },
+ {
+  "form": "worktree",
+  "path": "artifacts/prerelease_v5/audit_src",
+  "nfile": 33,
+  "bytes": 163572,
+  "ledgers": [
+   {
+    "file": "TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "phase",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "preferred_host",
+     "status"
+    ],
+    "rows": 98,
+    "status_col": "status",
+    "status_dist": {
+     "PASS": 88,
+     "BLOCKED": 1,
+     "REVIEW_PENDING": 1,
+     "IN_PROGRESS": 1,
+     "NOT_STARTED": 7
+    },
+    "n_id": 98,
+    "ids_sample": [
+     "BASE-001",
+     "GOV-001",
+     "VER-001",
+     "TRACE-001",
+     "DOC-001",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "SCI-006",
+     "SCI-007",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ALG-005",
+     "ALG-006",
+     "ALG-007",
+     "REV-001",
+     "ARCH-001",
+     "ARCH-002",
+     "ARCH-003",
+     "ARCH-004",
+     "ARCH-005",
+     "API-001",
+     "API-002",
+     "API-003",
+     "API-004",
+     "API-005",
+     "CLI-001",
+     "CLI-002",
+     "CLI-003",
+     "CLI-004",
+     "CLI-005",
+     "P3-001",
+     "P3-002",
+     "P3-003",
+     "P3-004",
+     "CLI-006"
+    ]
+   }
+  ],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS V5 预发布控制包：单一 CLI / amd64 CPU 自适应"
+   ],
+   [
+    2,
+    "0. 本包的唯一目标"
+   ],
+   [
+    2,
+    "1. 不可解释、不可放宽的硬约束"
+   ],
+   [
+    2,
+    "2. 首次启动后 30 分钟内"
+   ],
+   [
+    2,
+    "3. 连续执行状态机"
+   ],
+   [
+    2,
+    "4. 唯一允许停止的条件"
+   ],
+   [
+    2,
+    "5. 最终 PASS 含义"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": null,
+  "manifest": "{'schema_version': 1, 'package': 'AstroCS-audit-59649edc0480', 'version': '0.9.0-alpha.1', 'commit': '59649edc0480a4e663ed37bd3e56215ba729526a', 'files': [{'path': '00_READ_FIRST.md', 'sha256': '475c0bcc85773236336854e050c038617672c6126bea8864dbc42bcdc095d96f', 'size': 3965}, {'path': 'BUILD_RESULTS.csv', 'sha256': '0fa2a54b6547def5f0961f1f2fae46fabb2de92d2511960e8d4ec34d71ea1618', 'size': 440}, {'path': 'CHECKPOINTS.csv', 'sha256': '23ed7c84203332b3e59357d856831566bc8244660a94a7930fcf4c2d9c132f90', 'size': 884}, {'path': 'COMMITS.csv', 'sha256': 'e3f286dac825f7624139127e49ba20ba192049a32fbc984b859802650edad926', 'size': 29106}, {'path': 'CPU_PROFILE_RESULTS.csv', 'sha256': '81e30b94c90c448401dc3961550eafc2fb3bf157f51dba0e12fb1b6c65263ffb', 'size': 226}, {'path': 'FINAL_REPORT.md', 'sha256",
+  "identity": "prerelease_v5/audit_src",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "worktree",
+  "path": "engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1",
+  "nfile": 855,
+  "bytes": 41378301,
+  "ledgers": [
+   {
+    "file": "CONTROL_V4/AstroCS_MAIN_PRERELEASE_CONTROL_V4_CPU_ADAPTIVE_20260828/02_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "phase",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "preferred_host",
+     "status"
+    ],
+    "rows": 54,
+    "status_col": "status",
+    "status_dist": {
+     "NOT_STARTED": 54
+    },
+    "n_id": 54,
+    "ids_sample": [
+     "BASE-001",
+     "GOV-001",
+     "BASE-002",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "SCI-006",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ALG-005",
+     "DOC-001",
+     "DOC-002",
+     "REV-001",
+     "QA-001",
+     "QA-002",
+     "QA-003",
+     "CPU-001",
+     "CPU-002",
+     "CPU-003",
+     "CPU-004",
+     "MON-001",
+     "MON-002",
+     "PAR-001",
+     "PAR-002",
+     "PAR-003",
+     "PAR-004",
+     "PAR-005",
+     "PAR-006",
+     "PAR-007",
+     "REV-002",
+     "SYN-001",
+     "SYN-002",
+     "SYN-003",
+     "SYN-004",
+     "SYN-005",
+     "SYN-006"
+    ]
+   },
+   {
+    "file": "CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/05_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "title",
+     "depends_on",
+     "platform",
+     "change_class",
+     "heavy_compute",
+     "commit_required",
+     "scope",
+     "acceptance",
+     "status"
+    ],
+    "rows": 88,
+    "status_col": "status",
+    "status_dist": {
+     "NOT_STARTED": 88
+    },
+    "n_id": 88,
+    "ids_sample": [
+     "BAS-001",
+     "BAS-002",
+     "BAS-003",
+     "BAS-004",
+     "VER-001",
+     "DOC-001",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "DATA-001",
+     "ARCH-001",
+     "API-001",
+     "TEST-001",
+     "BLD-001",
+     "CORE-001",
+     "CORE-002",
+     "CORE-003",
+     "CORE-004",
+     "CORE-005",
+     "CORE-006",
+     "CORE-007",
+     "CORE-008",
+     "IO-001",
+     "IO-002",
+     "IO-003",
+     "IO-004",
+     "CPU-001",
+     "CPU-002",
+     "CPU-003",
+     "CPU-004",
+     "CPU-005",
+     "CPU-006",
+     "CPU-007",
+     "CPU-008",
+     "P1-001",
+     "P1-002",
+     "P1-003",
+     "P1-004",
+     "P1-005",
+     "P1-006"
+    ]
+   },
+   {
+    "file": "REAUDIT_V3/v3_reaudit/02_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "checkpoint",
+     "status"
+    ],
+    "rows": 62,
+    "status_col": "status",
+    "status_dist": {
+     "PASS": 47,
+     "FAIL": 1,
+     "IN_PROGRESS": 3,
+     "BLOCKED": 4,
+     "NOT_STARTED": 7
+    },
+    "n_id": 62,
+    "ids_sample": [
+     "ID-001",
+     "ID-002",
+     "ID-003",
+     "CON-001",
+     "CON-002",
+     "CON-003",
+     "CON-004",
+     "CON-005",
+     "CON-006",
+     "CON-007",
+     "CON-008",
+     "CON-009",
+     "CON-010",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ORA-001",
+     "ARCH-001",
+     "ARCH-002",
+     "API-001",
+     "API-002",
+     "API-003",
+     "API-004",
+     "API-005",
+     "DOC-001",
+     "CHK-001",
+     "CHK-002",
+     "CHK-003",
+     "CHK-004",
+     "CHK-005",
+     "CHK-006",
+     "BLD-001",
+     "BLD-002",
+     "BLD-003"
+    ]
+   },
+   {
+    "file": "RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/02_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "phase",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "preferred_host",
+     "status"
+    ],
+    "rows": 98,
+    "status_col": "status",
+    "status_dist": {
+     "PASS": 88,
+     "BLOCKED": 1,
+     "REVIEW_PENDING": 1,
+     "IN_PROGRESS": 1,
+     "NOT_STARTED": 7
+    },
+    "n_id": 98,
+    "ids_sample": [
+     "BASE-001",
+     "GOV-001",
+     "VER-001",
+     "TRACE-001",
+     "DOC-001",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "SCI-006",
+     "SCI-007",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ALG-005",
+     "ALG-006",
+     "ALG-007",
+     "REV-001",
+     "ARCH-001",
+     "ARCH-002",
+     "ARCH-003",
+     "ARCH-004",
+     "ARCH-005",
+     "API-001",
+     "API-002",
+     "API-003",
+     "API-004",
+     "API-005",
+     "CLI-001",
+     "CLI-002",
+     "CLI-003",
+     "CLI-004",
+     "CLI-005",
+     "P3-001",
+     "P3-002",
+     "P3-003",
+     "P3-004",
+     "CLI-006"
+    ]
+   }
+  ],
+  "read_first": "CONTROL_V4/AstroCS_MAIN_PRERELEASE_CONTROL_V4_CPU_ADAPTIVE_20260828/00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS V4：CPU 自适应预发布控制"
+   ],
+   [
+    2,
+    "目标"
+   ],
+   [
+    2,
+    "本包优先级"
+   ],
+   [
+    2,
+    "硬规则"
+   ],
+   [
+    2,
+    "启动顺序"
+   ],
+   [
+    2,
+    "审核责任"
+   ],
+   [
+    2,
+    "唯一允许状态"
+   ]
+  ],
+  "spec_files": [],
+  "tasks_files": [
+   "tasks/P09-001.md",
+   "tasks/P09-002.md",
+   "tasks/P09-003.md",
+   "tasks/P10-001.md",
+   "tasks/P10-002.md",
+   "tasks/P10-003.md",
+   "tasks/P10-004.md",
+   "tasks/P10-005.md",
+   "tasks/P10-006.md",
+   "tasks/P11-001.md",
+   "tasks/P11-002.md",
+   "tasks/P11-003.md",
+   "tasks/P11-004.md",
+   "tasks/P11-005.md",
+   "tasks/P11-006.md",
+   "tasks/P12-001.md",
+   "tasks/P12-002.md",
+   "tasks/P12-003.md",
+   "tasks/P12-004.md",
+   "tasks/P12-005.md",
+   "tasks/P12-006.md",
+   "tasks/P13-001.md",
+   "tasks/P13-002.md",
+   "tasks/P13-003.md",
+   "tasks/P13-004.md",
+   "tasks/P14-001.md",
+   "tasks/P14-002.md",
+   "tasks/P14-003.md",
+   "tasks/P14-004.md",
+   "tasks/P14-005.md",
+   "tasks/P14-006.md",
+   "tasks/P14-007.md",
+   "tasks/P14-008.md",
+   "tasks/P15-001.md",
+   "tasks/P15-002.md",
+   "tasks/P15-003.md",
+   "tasks/P15-004.md",
+   "tasks/P15-005.md",
+   "tasks/P15-006.md",
+   "tasks/P15-007.md",
+   "tasks/P15-008.md",
+   "tasks/P16-001.md",
+   "tasks/P16-002.md",
+   "tasks/P16-003.md",
+   "tasks/P16-004.md",
+   "tasks/P16-005.md",
+   "tasks/P16-006.md",
+   "tasks/P17-001.md",
+   "tasks/P17-002.md",
+   "tasks/P17-003.md",
+   "tasks/QA-V19R7-QUALITY-OPTIMIZATION.md",
+   "tasks/QA-V19R8-QUALITY-OPTIMIZATION.md",
+   "tasks/acr/00_READ_FIRST.md",
+   "tasks/acr/01_FROZEN_REQUIREMENTS.md",
+   "tasks/acr/02_SYSTEM_ARCHITECTURE.md",
+   "tasks/acr/03_PUBLIC_API_SPEC.md",
+   "tasks/acr/04_KERNEL_MODEL_AND_LIMITS.md",
+   "tasks/acr/05_OPEN_SOURCE_REUSE_PLAN.md",
+   "tasks/acr/06_HARDWARE_PROFILE_BENCHMARK_SPEC.md",
+   "tasks/acr/07_COST_MODEL_AND_DYNAMIC_SCHEDULING.md",
+   "tasks/acr/08_RESOURCE_CONTROL_SPEC.md",
+   "tasks/acr/09_FUTURE_ALGORITHM_INTEGRATION_GUIDE.md",
+   "tasks/acr/10_PHASES_TASKS_ACCEPTANCE.md",
+   "tasks/acr/11_GIT_BRANCH_AND_AGENT_RULES.md",
+   "tasks/acr/12_TEST_VALIDATION_MATRIX.md",
+   "tasks/acr/13_DELIVERY_PACKAGE_RULES.md",
+   "tasks/acr/14_RISK_REGISTER.md",
+   "tasks/acr/15_DECISIONS.md",
+   "tasks/acr/16_AGENT_MASTER_INSTRUCTION.md",
+   "tasks/acr/17_CLASSIC_EXPERIMENT_SUITE.md",
+   "tasks/acr/18_MAIN_MERGE_AND_DORMANT_INTEGRATION.md",
+   "tasks/acr/19_CURRENT_BRANCH_CORRECTION_TASKS.md",
+   "tasks/acr/20_PHASE_I_AUDIT_ACTION_PLAN.md",
+   "tasks/acr/21_COMMIT_F_CORRECTION_PLAN.md",
+   "tasks/acr/22_FIX_REVIEW_CORRECTION_PLAN.md",
+   "tasks/acr/AUDIT_REPORT_2026-08-02.md",
+   "tasks/acr/audits/COMMIT_F_AUDIT.md",
+   "tasks/acr/audits/FIX_REVIEW_AUDIT.md",
+   "tasks/acr/checklist.md",
+   "tasks/acr/examples/README.md",
+   "tasks/acr/templates/evidence_index.template.md",
+   "tasks/acr/templates/fix_review_evidence_checklist.md",
+   "tasks/acr/templates/git_report.template.md",
+   "tasks/acr/templates/merge_report.template.md",
+   "tasks/acr/templates/path_guard_report.template.md"
+  ],
+  "scripts": [],
+  "schemas": [
+   "schemas/stage2.schema.json"
+  ],
+  "templates": [
+   "templates/ADR.md",
+   "templates/BLOCKED_REPORT.md",
+   "templates/EVIDENCE_INDEX.md",
+   "templates/P11_004_DECISION.md",
+   "templates/REVIEW_REPORT.md",
+   "templates/SESSION_CHECKPOINT.md",
+   "templates/TASK_REPORT.md",
+   "templates/TEST_REPORT.md"
+  ],
+  "sums": {
+   "ok": 122,
+   "mismatch": 9,
+   "missing": 1,
+   "mismatch_list": [
+    "AUTONOMOUS_ENTRY.md",
+    "contracts/wcs_authoritative_pairs.schema.json",
+    "control/CURRENT_TASK.md",
+    "control/DECISION_REGISTER.md",
+    "control/MASTER_TASK_REGISTER.csv",
+    "control/PROJECT_STATE.yaml",
+    "control/REQUIREMENTS_TRACEABILITY.csv",
+    "control/RISK_REGISTER.csv",
+    "docs/18_CODE_CHANGE_MAP.md"
+   ]
+  },
+  "start_prompt": "解压最新AstroCS修复开发包，读取AUTONOMOUS_ENTRY.md，迁移v1.2进度并持续执行，仅硬阻塞或全部完成时汇报。\n",
+  "identity": "archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1",
+  "git_events": {
+   "first": [
+    "b7b2dea70dbcdacdcf6eb762609a908abdeab697",
+    "2026-09-02T22:15:41+08:00"
+   ],
+   "last": [
+    "b7b2dea70dbcdacdcf6eb762609a908abdeab697",
+    "2026-09-02T22:15:41+08:00"
+   ],
+   "adds": [
+    [
+     "b7b2dea70dbcdacdcf6eb762609a908abdeab697",
+     "2026-09-02T22:15:41+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 856
+  }
+ },
+ {
+  "form": "worktree",
+  "path": "engineering/control/archive/2026-09-09_superseded_V8.1_CI_CONTROL_20260905",
+  "nfile": 57,
+  "bytes": 389487,
+  "ledgers": [],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "00｜唯一执行入口"
+   ],
+   [
+    2,
+    "目标"
+   ],
+   [
+    2,
+    "先读顺序"
+   ],
+   [
+    2,
+    "不得违反"
+   ],
+   [
+    2,
+    "包自检"
+   ],
+   [
+    2,
+    "完成定义"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_FROZEN_CONSTRAINTS.md",
+   "02_CURRENT_STATE_AUDIT.md",
+   "03_VM_AND_CI_ARCHITECTURE.md",
+   "04_FOREGROUND_AGENT_RUNBOOK.md",
+   "06_TASK_GRAPH_AND_GATES.md",
+   "07_CI_MACHINE_CONTRACT.md",
+   "08_MAIN_ONLY_GIT_PROTOCOL.md",
+   "09_WINDOWS_AND_FATDUCK_VALIDATION.md",
+   "10_SECURITY_AND_RUNNER.md",
+   "11_EVIDENCE_AND_AUDIT_PACKAGE.md",
+   "12_FAILURE_POLICY.md",
+   "13_PRIMARY_REFERENCES.md",
+   "14_TOKEN_EFFICIENT_EXECUTION.md",
+   "15_SUPERSESSION_NOTICE.md"
+  ],
+  "tasks_files": [
+   "tasks/01_WORKSPACE_ADOPTION_TASKS.md",
+   "tasks/02_CI_TASKS.md",
+   "tasks/03_P0_REMEDIATION_TASKS.md",
+   "tasks/04_FATDUCK_AND_RELEASE_TASKS.md"
+  ],
+  "scripts": [],
+  "schemas": [],
+  "templates": [
+   "templates/AGENTS_VM_APPEND.md",
+   "templates/DISPATCH.json",
+   "templates/FATDUCK_HARNESS_CONTRACT.md",
+   "templates/OWNER_REVIEW_ISSUE.md",
+   "templates/fatduck-realdata.yml",
+   "templates/linux-ci.yml",
+   "templates/windows-ci.yml"
+  ],
+  "sums": {
+   "ok": 54,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "start_prompt": "严格执行00_READ_FIRST.md：在现有main工作区原地接入双平台CI和Fatduck终验；禁止克隆、迁移、分支及worktree。\n",
+  "identity": "2026-09-09_superseded_V8.1_CI_CONTROL_20260905",
+  "git_events": {
+   "first": [
+    "8e03d7da9feacd9a85f6ecd02aab51d4a61b5a0e",
+    "2026-09-10T02:22:41+08:00"
+   ],
+   "last": [
+    "8e03d7da9feacd9a85f6ecd02aab51d4a61b5a0e",
+    "2026-09-10T02:22:41+08:00"
+   ],
+   "adds": [
+    [
+     "8e03d7da9feacd9a85f6ecd02aab51d4a61b5a0e",
+     "2026-09-10T02:22:41+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 58
+  }
+ },
+ {
+  "form": "worktree",
+  "path": "reports/REAUDIT_V3/v3_audit",
+  "nfile": 18,
+  "bytes": 56822,
+  "ledgers": [
+   {
+    "file": "TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "checkpoint",
+     "status"
+    ],
+    "rows": 62,
+    "status_col": "status",
+    "status_dist": {
+     "PASS": 10,
+     "IN_PROGRESS": 1,
+     "NOT_STARTED": 51
+    },
+    "n_id": 62,
+    "ids_sample": [
+     "ID-001",
+     "ID-002",
+     "ID-003",
+     "CON-001",
+     "CON-002",
+     "CON-003",
+     "CON-004",
+     "CON-005",
+     "CON-006",
+     "CON-007",
+     "CON-008",
+     "CON-009",
+     "CON-010",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ORA-001",
+     "ARCH-001",
+     "ARCH-002",
+     "API-001",
+     "API-002",
+     "API-003",
+     "API-004",
+     "API-005",
+     "DOC-001",
+     "CHK-001",
+     "CHK-002",
+     "CHK-003",
+     "CHK-004",
+     "CHK-005",
+     "CHK-006",
+     "BLD-001",
+     "BLD-002",
+     "BLD-003"
+    ]
+   }
+  ],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS 预发布重审 (V3) — CP0 身份与数据审核包"
+   ],
+   [
+    2,
+    "候选/起点"
+   ],
+   [
+    2,
+    "Gate"
+   ],
+   [
+    2,
+    "状态"
+   ],
+   [
+    2,
+    "计数"
+   ],
+   [
+    2,
+    "结论"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": {
+   "ok": 1,
+   "mismatch": 16,
+   "missing": 0,
+   "mismatch_list": [
+    "00_READ_FIRST.md",
+    "BUILD_RESULTS.csv",
+    "CHECKPOINT_RESULTS.csv",
+    "COMMITS.csv",
+    "EXTERNAL_WORKTREE_CHANGES.md",
+    "FINDINGS.csv",
+    "GIT_STATE_CP0.txt",
+    "LARGE_ARTIFACT_MANIFEST.csv",
+    "PERF_RESULTS.csv",
+    "SUMMARY.json",
+    "TASK_LEDGER.csv",
+    "TEST_RESULTS.csv",
+    "TRACEABILITY.csv",
+    "data_manifest.csv",
+    "host_toolchain.json"
+   ]
+  },
+  "manifest": "{'schema': 'AstroCS-audit-manifest-v3', 'created_utc': '2026-08-27T12:28:10.334871+00:00', 'file_count': 16, 'total_bytes': 48959, 'files': [{'path': '00_READ_FIRST.md', 'size_bytes': 1384, 'sha256': 'c59ea72e455d6e3e20fa22f7745095efadf98e4ece4c9accff27d8c044e02eb0'}, {'path': 'BUILD_RESULTS.csv', 'size_bytes': 155, 'sha256': '4ff8290c3c6989462453d8c939db097daba5b897bcf9e1a7ba531115e0900ebe'}, {'path': 'CHECKPOINT_RESULTS.csv', 'size_bytes': 1638, 'sha256': '31f3c3b3c6fa295be620319c06b84718dbd57bbd8c96c627340b1785561a1455'}, {'path': 'COMMITS.csv', 'size_bytes': 110, 'sha256': 'eecca40311d28c7c5dd4963f96e527da3a36c9e148e0f1e60ae955cc5025a95c'}, {'path': 'EXTERNAL_WORKTREE_CHANGES.md', 'size_bytes': 842, 'sha256': '53cf2a310f83f2db31ab626b438113b855514f9c258e2d8b118258be30078f24'}, {'path':",
+  "identity": "REAUDIT_V3/v3_audit",
+  "git_events": {
+   "first": [
+    "ac2ced532a1abbbfab620d3390e277cfa1f0ecdc",
+    "2026-08-27T23:11:52+08:00"
+   ],
+   "last": [
+    "ac2ced532a1abbbfab620d3390e277cfa1f0ecdc",
+    "2026-08-27T23:11:52+08:00"
+   ],
+   "adds": [],
+   "dels": [],
+   "mod_n": 3
+  }
+ },
+ {
+  "form": "worktree",
+  "path": "reports/REAUDIT_V3/v3_cp0",
+  "nfile": 18,
+  "bytes": 52877,
+  "ledgers": [
+   {
+    "file": "TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "checkpoint",
+     "status"
+    ],
+    "rows": 62,
+    "status_col": "status",
+    "status_dist": {
+     "PASS": 3,
+     "NOT_STARTED": 59
+    },
+    "n_id": 62,
+    "ids_sample": [
+     "ID-001",
+     "ID-002",
+     "ID-003",
+     "CON-001",
+     "CON-002",
+     "CON-003",
+     "CON-004",
+     "CON-005",
+     "CON-006",
+     "CON-007",
+     "CON-008",
+     "CON-009",
+     "CON-010",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ORA-001",
+     "ARCH-001",
+     "ARCH-002",
+     "API-001",
+     "API-002",
+     "API-003",
+     "API-004",
+     "API-005",
+     "DOC-001",
+     "CHK-001",
+     "CHK-002",
+     "CHK-003",
+     "CHK-004",
+     "CHK-005",
+     "CHK-006",
+     "BLD-001",
+     "BLD-002",
+     "BLD-003"
+    ]
+   }
+  ],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS 预发布重审 (V3) — CP0 身份与数据审核包"
+   ],
+   [
+    2,
+    "候选/起点"
+   ],
+   [
+    2,
+    "Gate"
+   ],
+   [
+    2,
+    "状态"
+   ],
+   [
+    2,
+    "计数"
+   ],
+   [
+    2,
+    "结论"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": {
+   "ok": 1,
+   "mismatch": 16,
+   "missing": 0,
+   "mismatch_list": [
+    "00_READ_FIRST.md",
+    "BUILD_RESULTS.csv",
+    "CHECKPOINT_RESULTS.csv",
+    "COMMITS.csv",
+    "EXTERNAL_WORKTREE_CHANGES.md",
+    "FINDINGS.csv",
+    "GIT_STATE_CP0.txt",
+    "LARGE_ARTIFACT_MANIFEST.csv",
+    "PERF_RESULTS.csv",
+    "SUMMARY.json",
+    "TASK_LEDGER.csv",
+    "TEST_RESULTS.csv",
+    "TRACEABILITY.csv",
+    "data_manifest.csv",
+    "host_toolchain.json"
+   ]
+  },
+  "manifest": "{'schema': 'AstroCS-audit-manifest-v3', 'created_utc': '2026-08-27T12:28:10.334871+00:00', 'file_count': 16, 'total_bytes': 48959, 'files': [{'path': '00_READ_FIRST.md', 'size_bytes': 1384, 'sha256': 'c59ea72e455d6e3e20fa22f7745095efadf98e4ece4c9accff27d8c044e02eb0'}, {'path': 'BUILD_RESULTS.csv', 'size_bytes': 155, 'sha256': '4ff8290c3c6989462453d8c939db097daba5b897bcf9e1a7ba531115e0900ebe'}, {'path': 'CHECKPOINT_RESULTS.csv', 'size_bytes': 1638, 'sha256': '31f3c3b3c6fa295be620319c06b84718dbd57bbd8c96c627340b1785561a1455'}, {'path': 'COMMITS.csv', 'size_bytes': 110, 'sha256': 'eecca40311d28c7c5dd4963f96e527da3a36c9e148e0f1e60ae955cc5025a95c'}, {'path': 'EXTERNAL_WORKTREE_CHANGES.md', 'size_bytes': 842, 'sha256': '53cf2a310f83f2db31ab626b438113b855514f9c258e2d8b118258be30078f24'}, {'path':",
+  "identity": "REAUDIT_V3/v3_cp0",
+  "git_events": {
+   "first": [
+    "ac2ced532a1abbbfab620d3390e277cfa1f0ecdc",
+    "2026-08-27T23:11:52+08:00"
+   ],
+   "last": [
+    "ac2ced532a1abbbfab620d3390e277cfa1f0ecdc",
+    "2026-08-27T23:11:52+08:00"
+   ],
+   "adds": [],
+   "dels": [],
+   "mod_n": 3
+  }
+ },
+ {
+  "form": "worktree",
+  "path": "工程控制",
+  "nfile": 323,
+  "bytes": 4164783,
+  "ledgers": [
+   {
+    "file": "AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "title",
+     "owner_id",
+     "lane",
+     "depends_on",
+     "spec_ref",
+     "write_scope",
+     "timeout_sec",
+     "domain",
+     "status"
+    ],
+    "rows": 57,
+    "status_col": "status",
+    "status_dist": {
+     "PASSED": 29,
+     "IN_PROGRESS": 5,
+     "NOT_STARTED": 23
+    },
+    "n_id": 57,
+    "ids_sample": [
+     "BASE-001",
+     "GOV-001",
+     "GOV-002",
+     "WCS-001",
+     "WCS-002",
+     "WCS-003",
+     "PSF-001",
+     "DATA-001",
+     "AIO-001",
+     "AIO-002",
+     "P1-001",
+     "P2-001",
+     "P2-002",
+     "P3-001",
+     "P3-002",
+     "P1-HIPS-DIGEST-001",
+     "RT-001",
+     "MOD-001",
+     "CLI-001",
+     "CI-001",
+     "REAL-000",
+     "CI-REG-002",
+     "CI-REPAIR-001",
+     "CI-BASELINE-001",
+     "STD-REG-001",
+     "STD-F1-ADJ",
+     "DOC-CONV-001",
+     "SCI-F2-001",
+     "SCI-F3-001",
+     "SCI-ANCHOR-001",
+     "UT-CLI-MAINT",
+     "RT-001A",
+     "RT-001B",
+     "MOD-001A",
+     "MOD-001B",
+     "CLI-001B",
+     "CI-001B",
+     "GOV-AGENTS-001",
+     "CI-DATA-REG-001",
+     "CI-VER-CHK-001"
+    ]
+   },
+   {
+    "file": "AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/TASK_LEDGER_V1_ARCHIVE.csv",
+    "header": [
+     "task_id",
+     "title",
+     "owner_id",
+     "lane",
+     "depends_on",
+     "spec_ref",
+     "write_scope",
+     "timeout_sec",
+     "domain",
+     "status"
+    ],
+    "rows": 30,
+    "status_col": "status",
+    "status_dist": {
+     "PASSED": 9,
+     "PASSED_FINDING_OPEN": 1,
+     "NOT_STARTED": 19,
+     "IN_FLIGHT": 1
+    },
+    "n_id": 30,
+    "ids_sample": [
+     "BASE-001",
+     "GOV-001",
+     "GOV-002",
+     "WCS-001",
+     "WCS-002",
+     "WCS-003",
+     "PSF-001",
+     "DATA-001",
+     "BASE-UTIL-001",
+     "P1-HIPS-DIGEST-001",
+     "ARCH-AUDIT-P1",
+     "AIO-001",
+     "AIO-002",
+     "P1-001",
+     "P2-001",
+     "P2-002",
+     "P3-001",
+     "P3-002",
+     "RT-001",
+     "MOD-001",
+     "CLI-001",
+     "CI-001",
+     "CI-002",
+     "REAL-000",
+     "REAL-001",
+     "VIS-001",
+     "WIN-001",
+     "DOC-001",
+     "AUD-001",
+     "PACK-001"
+    ]
+   },
+   {
+    "file": "AstroCS_V7_MODULAR_REFOUNDATION_CONTROL_20260902_FINAL3/TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "wave",
+     "owner_id",
+     "kind",
+     "depends_on",
+     "mutex_lock",
+     "resource_class",
+     "commit_subject",
+     "spec_ref",
+     "acceptance",
+     "alias_of"
+    ],
+    "rows": 191,
+    "status_col": null,
+    "status_dist": {},
+    "n_id": 191,
+    "ids_sample": [
+     "CTL-001",
+     "ID-001",
+     "ID-002",
+     "ID-003",
+     "AUD-001",
+     "GOV-001",
+     "GOV-002",
+     "GOV-003",
+     "GOV-004",
+     "GOV-005",
+     "DOC-001",
+     "TST-001",
+     "ARC-001",
+     "BLD-001",
+     "BLD-002",
+     "BLD-003",
+     "BLD-004",
+     "ABI-001",
+     "ABI-002",
+     "ABI-003",
+     "ABI-004",
+     "ABI-005",
+     "ABI-006",
+     "CLI-001",
+     "CLI-002",
+     "CLI-003",
+     "CLI-004",
+     "DATA-001",
+     "DATA-002",
+     "DATA-003",
+     "DATA-004",
+     "IO-001",
+     "IO-002",
+     "IO-003",
+     "RT-001",
+     "RT-002",
+     "RT-003",
+     "RT-004",
+     "RT-005",
+     "RT-006"
+    ]
+   }
+  ],
+  "read_first": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "00｜唯一执行入口"
+   ],
+   [
+    2,
+    "目标"
+   ],
+   [
+    2,
+    "先读顺序"
+   ],
+   [
+    2,
+    "不得违反"
+   ],
+   [
+    2,
+    "包自检"
+   ],
+   [
+    2,
+    "完成定义"
+   ]
+  ],
+  "spec_files": [],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": null,
+  "identity": "工程控制",
+  "git_events": {
+   "first": [
+    "5a250999a33f7639af2a11b074cdd2b641b0712b",
+    "2026-09-13T13:15:19+08:00"
+   ],
+   "last": [
+    "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+    "2026-07-29T20:09:57+08:00"
+   ],
+   "adds": [
+    [
+     "f5f944a512017642193f687356e6a8b83c20997e",
+     "2026-09-12T18:52:52+08:00"
+    ],
+    [
+     "e6b1ea87a5ba8a51371b1b3eae5e20f54fc45883",
+     "2026-09-12T16:25:19+08:00"
+    ],
+    [
+     "e6b1ea87a5ba8a51371b1b3eae5e20f54fc45883",
+     "2026-09-12T16:25:19+08:00"
+    ],
+    [
+     "e6b1ea87a5ba8a51371b1b3eae5e20f54fc45883",
+     "2026-09-12T16:25:19+08:00"
+    ],
+    [
+     "e6b1ea87a5ba8a51371b1b3eae5e20f54fc45883",
+     "2026-09-12T16:25:19+08:00"
+    ],
+    [
+     "e6b1ea87a5ba8a51371b1b3eae5e20f54fc45883",
+     "2026-09-12T16:25:19+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+     "2026-08-28T20:54:30+08:00"
+    ],
+    [
+     "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+     "2026-08-28T20:54:30+08:00"
+    ],
+    [
+     "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+     "2026-08-28T20:54:30+08:00"
+    ],
+    [
+     "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+     "2026-08-28T20:54:30+08:00"
+    ],
+    [
+     "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+     "2026-08-28T20:54:30+08:00"
+    ],
+    [
+     "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+     "2026-08-28T20:54:30+08:00"
+    ]
+   ],
+   "mod_n": 870
+  }
+ },
+ {
+  "form": "zip",
+  "path": "engineering/control/archive/2026-09-09_superseded_V8.1_CI_CONTROL_20260905/baseline/AstroCS_ALPHA3_MODULAR_REFOUNDATION_CONTROL_V7_1_20260902_FINAL3.zip",
+  "nfile": 99,
+  "bytes": 398022,
+  "sha256": "005448fb3b6892d3063d23149692fbd9226a892a2c1891e4cb8d14a80e8491c3",
+  "zip": {
+   "tops": [
+    "00_READ_FIRST.md",
+    "01_OWNER_FROZEN_CONSTRAINTS.md",
+    "02_CURRENT_BASELINE_AUDIT.md",
+    "03_TARGET_PRODUCT_AND_ARCHITECTURE.md",
+    "04_FOREGROUND_AGENT_RUNBOOK.md",
+    "05_FIXED_SUBAGENT_BINDINGS.yaml"
+   ],
+   "markers": [
+    "00_READ_FIRST.md",
+    "START_PROMPT.txt"
+   ],
+   "ledger": {
+    "file": "TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "wave",
+     "owner_id",
+     "kind",
+     "depends_on",
+     "mutex_lock",
+     "resource_class",
+     "commit_subject",
+     "spec_ref",
+     "acceptance",
+     "alias_of"
+    ],
+    "rows": 191,
+    "n_id": 191
+   },
+   "read_first_head": "# AstroCS Alpha 模块化重构控制包：先读我\n\n控制包 ID：`ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7`  \n发布日期：`2026-09-02`  \n冻结起始提交：`c1696156583c68c9a3a65287639c726937e9f6e7`  \n冻结起始版本：`0.10.0-alpha.2`  \n目标版本：`0.11.0-alpha.1`  \n正式分支：`main`  \n正式平台：Windows x64；Linux x64 为控制/轻验证平台  \n状态：可执行控制包；任何历史 V4/V5/V6/V18/V19 控制文件均不得覆盖本包。\n\n## 1. 本轮唯一目标\n\n把当前能够工作的但架构、文档和执行真实性仍不可靠的 AstroCS，收敛为可预发布的纯 CPU 模块化产品，同时保持既有科学定义不因架构迁移而漂移。\n\n必须同时实现：\n\n1. Phase1、Phase2、Phase3 分别运行、分别配置、分别验收；不得在同一进程自动串联。\n2. Windows 发布物只有一个用户入口 `astrocs.exe`，科学模块、Runtime、I/O、CPU provider 以 DLL 交付。\n3. 每个 DAG 节点绑定一个真实模块操作，不得以多个节点重复包装同一个 Session。\n4. 一个共享执行器和一个真实 ThreadBudget 管理所有重计算；重计算不得单线程或长期低利用率。\n5. ACR 保留但不进入当前生产构建、加载、benchmark 或发布包。\n6. baseline/AVX2/FMA/AVX-512 仅在热点 kernel 上提供，按硬件安全检查、正确性自测和逐 kernel benchmark 选择；无 profile 一律 baseline。\n7. SCI → ALG → DATA/API/ARCH → 源码符号/module manifest → TEST → 当前提交证据全链闭合。\n8. 每个模块有独立源码、README、manifest 和可复用 unit/property/oracle/negative/performance 测试。\n9. Phase3 独立完成 TAN、SIN、ZEA、CAR、AIT，以及 `nearest`、`healpix_interp4`，使用流式 FITS 输出。\n10. 最终在 Windows 进行一次候选提交的真实数据/32R/接缝/资源验证，不反复跑历史全版本。\n\n## 2. 执行者第一小时必须完成\n\n前台 Agent `FG-000` 依次执行，任何一步失败均不得把控制包称为有效：\n\n1. 在仓库外建立本轮工作根：`ASTROCS_WORK_ROOT/{control,worktrees,returns,logs,reports,build,install,audit,tmp}`。\n2. 复制本控制包到 `ASTROCS_WORK_ROOT/control/active/`，运行 `python validators/validate_control.py --root <控制包目录>`。\n3. 保存输出；必须出现 `CONTROL_PASS`，否则仅允许修复传输损坏，不得开始开发。\n4. 读取本文件、`01_OWNER_FROZ",
+   "spec_files": [
+    "checklists/00_FOREGROUND_AGENT_CHECKLIST.md",
+    "checklists/01_SUBAGENT_RETURN_CHECKLIST.md",
+    "checklists/02_MODULE_ACCEPTANCE_CHECKLIST.md",
+    "checklists/03_WINDOWS_RELEASE_CHECKLIST.md",
+    "checklists/04_AUDIT_PACKAGE_CHECKLIST.md",
+    "checklists/05_INDEPENDENT_REVIEW_CHECKLIST.md",
+    "tasks/00_TASK_EXECUTION_CONTRACT.md",
+    "tasks/01_W0_GOVERNANCE_TASKS.md",
+    "tasks/02_ABI_BUILD_CLI_TASKS.md",
+    "tasks/03_RUNTIME_DATA_IO_TASKS.md",
+    "tasks/04_CPU_RESOURCE_TASKS.md",
+    "tasks/05_PHASE1_TASKS.md",
+    "tasks/06_PHASE2_TASKS.md",
+    "tasks/07_PHASE3_TASKS.md",
+    "tasks/08_QA_LINUX_TASKS.md",
+    "tasks/09_WINDOWS_RELEASE_TASKS.md",
+    "tasks/10_AUDIT_PACKAGING_TASKS.md"
+   ]
+  },
+  "identity": "2026-09-09_superseded_V8.1_CI_CONTROL_20260905/baseline",
+  "git_events": {
+   "touch_last": "8e03d7da9feacd9a85f6ecd02aab51d4a61b5a0e 2026-09-10T02:22:41+08:00"
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/_control_packs/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_ALPHA_20260828.zip",
+  "nfile": 37,
+  "bytes": 100077,
+  "sha256": "42a03c0b09168f3e865b05aa65578701beb74c268f0d52000cf3e4e82eecb7d8",
+  "zip": {
+   "tops": [
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828"
+   ],
+   "markers": [
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/00_READ_FIRST.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/START_PROMPT.txt"
+   ],
+   "ledger": {
+    "file": "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/02_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "phase",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "preferred_host",
+     "status"
+    ],
+    "rows": 98,
+    "n_id": 98
+   },
+   "read_first_head": "# AstroCS V5 预发布控制包：单一 CLI / amd64 CPU 自适应\n\n## 0. 本包的唯一目标\n\n在当前 `main` 上收敛出可发布候选：科学定义、算法、架构、接口、实现和测试可追溯且一致；Windows/Linux 只向用户暴露一个 CLI；重计算由纯 CPU 多后端按逐内核 benchmark 自适应选择；任何长时间低利用率、内存异常增长或静默串行均不得通过。\n\n本包取代 V3/V4 的未完成门禁。历史报告仅作为问题线索，历史 PASS、历史数值输出和历史性能结果均不是当前证据。禁止为等价性反复运行历史版本。\n\n## 1. 不可解释、不可放宽的硬约束\n\n1. 只在 `main` 开发；不得创建分支。每个 Task 一个原子 commit，成功后立即 push。\n2. 仅支持 `amd64/x86-64`；不得扩大到 ARM、NEON、SVE 或 32 位。\n3. 发布包每个平台只暴露一个入口：Windows `astrocs.exe`，Linux `astrocs`。\n4. Phase1、Phase2、Phase3 必须由该 CLI 的稳定命令和内部接口调用；发布包不得携带旧 Phase 可执行程序。\n5. 当前不得接入 ACR/GPU/Mixed。ACR 可保留为 dormant 代码，但生产路由、测试和默认配置不得触达它。\n6. 重计算必须并行且自动采集 CPU、内存、I/O、线程和阶段信息。低利用率不是 WARN，是 FAIL。\n7. 禁止硬编码 CPU 核数、worker 数、AVX 路径或全局 `-march=native/-mavx*`。\n8. ISA、workers、block/chunk 均由硬件安全检测与逐内核 benchmark 选择。没有可用 profile 时必须走保守 amd64 baseline，但仍按进程 affinity 动态多线程。\n9. 数值验证由文档推导的独立合成 Oracle 完成；容差必须在看到结果前冻结。\n10. Windows 最终 32R 真实数据只跑当前候选一次；不得跑历史版本，不得用旧输出冒充。\n11. 除最终发布包外，不设等待外部批准的停止点。Fatduck 离线时继续 Linux 可执行任务。\n12. Task 状态只能来自 `02_TASK_LEDGER.csv`；叙述性报告不得把 PARTIAL/WARN/未运行改写为 PASS。\n\n## 2. 首次启动后 30 分钟内\n\n依次执行，不得先改代码：\n\n1. 解包到仓库外，运行 `python3 scripts/validate_control.py .`，必须输出 `CONTROL_PASS`。\n2. 阅读本文件、`01_PRODUCT_ARCHITECTURE.md`、`02_TASK_LEDGER.csv`、`03_TASK_DETAILS.md`。\n3. 阅读仓库根 `AGENTS.md`、`memory.md` 和相关模块 `memory.md`；不得让过长历史 memory 替代当前源码核实。\n4. `git fetch origin --prune`，记录 `HEAD/main/origin/main/status/remote`；remote 输出必须脱敏。\n5. 将 `11_AGENTS_MD_REQ",
+   "spec_files": [
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/00_READ_FIRST.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/01_PRODUCT_ARCHITECTURE.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/02_TASK_LEDGER.csv",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/03_TASK_DETAILS.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/04_CLI_COMMAND_AND_PROTOCOL_CONTRACT.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/05_CPU_BACKEND_ABI_AND_PACKAGING.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/06_BENCHMARK_AND_PROFILE_SPEC.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/07_RESOURCE_MONITOR_AND_UTILIZATION_GATE.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/08_SCIENCE_SYNTHETIC_AND_EXTERNAL_REVIEW.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/09_LINUX_WINDOWS_BUILD_RELEASE.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/10_GIT_REVIEW_CAPSULE_AUDIT_PACKAGE.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/11_AGENTS_MD_REQUIRED_BLOCK.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/12_V3_V4_MIGRATION.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/13_ALPHA_VERSION_AND_PHASE3.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/14_V4_COVERAGE_MATRIX.md",
+    "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/15_CONTINUOUS_CHECKPOINTS.md"
+   ]
+  },
+  "identity": "_control_packs",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/_control_packs/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830.zip",
+  "nfile": 46,
+  "bytes": 200775,
+  "sha256": "fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689",
+  "zip": {
+   "tops": [
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830"
+   ],
+   "markers": [
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/00_READ_FIRST.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/AGENTS_REPLACEMENT.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/MANIFEST.json",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/START_PROMPT.txt"
+   ],
+   "ledger": {
+    "file": "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/05_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "title",
+     "depends_on",
+     "platform",
+     "change_class",
+     "heavy_compute",
+     "commit_required",
+     "scope",
+     "acceptance",
+     "status"
+    ],
+    "rows": 88,
+    "n_id": 88
+   },
+   "read_first_head": "# AstroCS V6 系统重构控制包：执行入口\n\n控制包版本：`V6.0`  \n目标软件版本：`0.10.0-alpha.1`  \n冻结源码基线：`main@587fe0e341a780da726917f40ed77f610de0c73f`  \n生成日期：`2026-08-30`  \n工作分支：仅 `main`\n\n## 1. 任务目标\n\n在不改变已冻结科学语义的前提下，把当前由多套编排器、临时 CLI 路径和旧工具拼接的工程，迁移为：\n\n`统一 CLI → Pipeline Runtime → 类型化数据管道 → 模块注册表 → 科学模块 → 纯 CPU 后端 → I/O/Artifact Store`\n\n本轮不是增加功能，也不是再做历史版本全量对比。本轮必须建立以后可长期迭代的工程基座，使 SCI、ALG、DATA、ARCH、API、MOD、源码符号、TEST 和现场证据形成机器可检查的闭环。\n\n## 2. 文档优先级\n\n发生冲突时严格按下列顺序处理，不得自行折中：\n\n1. `01_ASTROCS_ENGINEERING_CONSTRAINTS.md`：最高工程约束，禁止 Agent 修改或重新解释。\n2. 本控制包的任务台账、合同和门禁。\n3. 当前仓库已冻结的有效 SCI/ALG/DATA 合同。\n4. 当前源码只作为“现状证据”，不因代码已经存在就自动成为正确设计。\n5. 历史报告、HANDOVER、自报 PASS 只作线索，不作为验收证据。\n\n若 SCI/ALG 文档互相冲突，标记 `SCIENCE_CONFLICT`，完成不依赖该冲突的任务；仅在冲突会导致不同科学结果时请求负责人决定。\n\n## 3. 执行前必须完成\n\n- 验证控制包：`python3 scripts/validate_control.py .`\n- 读取 `01`、`02`、`03`、`04`、`05_TASK_LEDGER.csv` 和当前任务对应合同。\n- `git fetch origin --prune`，确认 `HEAD == main == origin/main`；否则停止代码修改并报告。\n- 禁止创建分支；禁止 force push、reset --hard、覆盖外部修改。\n- 将任务台账复制为仓库内 `evidence/refactor/TASK_LEDGER.csv`，状态只能按脚本规则迁移。\n- 冻结起点清单、源码 commit、工具链、机器与外部数据引用；不把真实数据复制进仓库。\n\n## 4. 连续执行规则\n\n检查点用于自动判定和生成证据，不是人工停工点。除下列真实阻塞外，Agent 必须连续推进所有可做任务：\n\n- 权限、凭据或必需数据缺失；\n- main 与 origin/main 无法安全对齐；\n- 科学定义存在会改变数值结果的冲突；\n- 必须执行破坏性操作；\n- 不可恢复的构建/硬件故障；\n- 最终发布需要负责人进行 HiPS 视觉审核。\n\nWindows 离线不是总任务阻塞。标记相关任务 `WAITING_WINDOWS`，继续 Linux、文档、静态分析、合成数据和不依赖 Windows 的工作。禁止像旧 CP0 一样为了等待普通外部审核而整轮停工。\n\n## 5. 修改纪律\n\n- 一个任务一个原子 commit；通过任务级验收后立即",
+   "spec_files": [
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/00_READ_FIRST.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/01_ASTROCS_ENGINEERING_CONSTRAINTS.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/02_BASELINE_AUDIT.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/03_TARGET_ARCHITECTURE.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/04_MIGRATION_AND_GATES.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/05_TASK_LEDGER.csv",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/06_TASK_SPECIFICATIONS.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/07_SCIENCE_AND_TEST_MATRIX.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/08_CPU_PARALLEL_BACKEND.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/09_DOCUMENTATION_AND_MACHINE_CHECKS.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/10_LINUX_WINDOWS_EXECUTION.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/11_GIT_MAIN_ONLY.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/12_AUDIT_PACKAGE_SPEC.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/13_RELEASE_ACCEPTANCE.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/14_PRIMARY_REFERENCES.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/15_GATE_CHECKLISTS.md",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/16_ACCEPTANCE_MATRIX.csv",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/17_RISK_REGISTER.csv",
+    "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/18_CURRENT_TO_TARGET_MAPPING.csv"
+   ]
+  },
+  "identity": "_control_packs",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/_control_packs/AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912.zip",
+  "nfile": 24,
+  "bytes": 33161,
+  "sha256": "14ee6592f0e1e6b556bdaeb156ba33e1898d2998cf3e97ab7d09dcb401f6fdf5",
+  "zip": {
+   "tops": [
+    "AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912"
+   ],
+   "markers": [
+    "AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912/00_READ_FIRST.md",
+    "AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912/START_PROMPT.txt"
+   ],
+   "ledger": null,
+   "read_first_head": "# AstroCS 科学重审与全流程恢复工作包 V3\n\n本包不依赖 CPRun、CP 插件、任务图解析器或其他专用调度框架。  \n适用仓库：`fujiaze/Astro-CS-Database` 的 `main`  \n输入状态提示：`f5f944a512017642193f687356e6a8b83c20997e`，但执行时必须以当前 `origin/main` 为准。\n\n## 唯一目标\n\n在不回退既有重构成果的前提下，依据外部权威标准和独立 Oracle 重审科学定义与代码，尽快恢复：\n\n1. 当前源码可构建；\n2. Phase1、Phase2、Phase3 分别通过真实 CLI 运行，并由测试编排依次交换持久化产品；\n3. Linux CI 与全量真实数据终验成功，并冻结 Linux 科学基线；\n4. Windows 只在冻结算法上处理编译、ABI、安装树和跨平台数值对拍，随后 Fatduck 验证；\n5. 文档、合同、实现、测试与证据在最终 SHA 上一致。\n\n## 执行原则\n\n- 先收敛为一个前台和一份活动控制包；旧会话、旧控制包不得继续派工。\n- 审计可以并行；任何 tracked 源码写入都走 `repo-write` 单通道。\n- 前台只派发、审证、集成、提交；Worker 不执行 git 写操作。\n- 不新建分支/worktree/仓库；不 reset/stash/clean/rebase；不覆盖未提交内容。\n- 900 余提交时的可运行版本只用于 git archaeology 和行为线索，不 checkout、运行、整树复制或盲目回退。\n- 第一可运行闭环优先于目录美化、接口扩展、覆盖率扩建、Phase3 新投影、ACR、GUI。\n- 不靠 waiver、skip、扩大 known-failures、放宽容差或把 partial 写成 complete 获得绿灯。\n- 所有外部进程、网络、CI、真实数据和硬件等待必须设置明确超时；重计算同步记录 CPU、内存和磁盘 I/O。\n- Phase 独立产品语义保持不变；测试编排器可以依次调用三个 CLI，但产品中不得新增隐式三阶段连跑命令。\n- Linux 是本轮科学实现与算法冻结平台。Linux 基线冻结后，Windows 阶段不得修改科学公式、默认参数、容差、数据语义或测试真值；确需修改时必须撤销冻结并回到 Linux 重跑。\n\n## 前台启动\n\n1. 读取本文件、`FRONT_DESK_RUNBOOK.md`、`TASK_LIST.md` 和 01–02 两份基线。\n2. 直接把 `tasks/RESCUE-SNAPSHOT.md` 全文交给一个 SubAgent。\n3. 验收快照后，同时派发五个审计任务；后续严格按 `TASK_LIST.md` 推进。\n4. 前台不亲自实施源码任务；只负责派发、审查机器证据、串行集成、提交和最终汇报。\n\n启动提示词见 `START_PROMPT.txt`，不超过 100 字。任务状态可在当前会话中维护；若必须跨会话，在 `run/release-rescue/HANDOFF.md` 写一页简短交接，不建立复杂台账。\n\n最终只允许报告：`READY_FOR_OWNER_REVIEW`、`NOT_READY`、`BLOCKED_EXTERNAL` 或",
+   "spec_files": [
+    "AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912/00_READ_FIRST.md",
+    "AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912/01_SCIENCE_AUTHORITY_BASELINE.md",
+    "AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912/02_E2E_ACCEPTANCE.md"
+   ]
+  },
+  "identity": "_control_packs",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/_control_packs/AstroCS_V6_1_REWORK_CONTROL_20260831.zip",
+  "nfile": 47,
+  "bytes": 214426,
+  "sha256": "903018212bfb584b1aaf0dd05b318d8171d1a5b3af43014ab020834e9359ede6",
+  "zip": {
+   "tops": [
+    "AstroCS_V6_1_REWORK_CONTROL_20260831"
+   ],
+   "markers": [
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/00_READ_FIRST.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/MANIFEST.json",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/START_PROMPT.txt"
+   ],
+   "ledger": null,
+   "read_first_head": "# AstroCS V6.1 Alpha 重构打回控制包\n\n控制包：`AstroCS-V6.1-REWORK`  \n目标版本：`0.10.0-alpha.2`  \n上轮控制包 SHA-256：`fdad8e40123a757cfcdd51429261ca2e9c915f640e69adba8eb449ee2850f689`  \n被审审核包 SHA-256：`137e3ed14ef85142f5897c93ac718f4f22713977282815e2ddd7288f62e6696a`  \n审核包自报 commit：`b16d422a40fefedbdedab1749cfb8ebc06189736`（尚未被接受为基线）  \n开发分支：仅 `main`\n\n## 1. 结论与目标\n\n上轮结果正式打回。不得继承“81 PASS、Linux 侧完成、G11 PASS”等状态。本包不是要求回退到历史版本，也不是要求重复比较旧版；它要求在当前 `main` 上完成真正的生产架构、纯 CPU 并行、科学 Oracle、文档—代码闭环及双平台发布验证。\n\n只有执行完本包全部非 Owner 任务，Windows 最终验证完成，审核包自验证通过后，Agent 才能输出 `READY_FOR_OWNER_REVIEW`。Agent 永远无权输出 `ALPHA_RELEASE_APPROVED`。\n\n## 2. 最高优先级\n\n冲突时依次服从：\n\n1. 仓库根 `AstroCS_ENGINEERING_CONSTRAINTS.md`；\n2. 本文件和 `03_REWORK_TASK_LEDGER.csv`；\n3. 本包各专项合同；\n4. 已核实的当前 SCI/ALG/DATA 合同；\n5. 当前源码仅是待审对象，不能因为已存在就成为正确设计；\n6. 历史报告、自报 PASS、旧测试日志仅作线索。\n\n## 3. 启动动作（必须按顺序）\n\n1. 在独立控制目录解压本包，运行 `python3 scripts/validate_control.py .`，必须得到 `CONTROL_PASS`。\n2. 阅读 `01_INDEPENDENT_AUDIT_CONCLUSION.md`、`02_FINDINGS.csv`、`03_REWORK_TASK_LEDGER.csv` 和当前任务规格。\n3. `git fetch origin --prune`；确认当前分支仅为 `main`，且 `HEAD == main == origin/main`。\n4. 验证 `b16d422...` 是否为当前 `main` 祖先；若不是，记录为 `SOURCE_IDENTITY_FAIL`，禁止修改代码并汇报。\n5. 创建仓库内本轮证据目录 `evidence/v6_1_rework/`，复制任务台账；不得覆盖上轮证据。\n6. 运行 `scripts/known_failure_scan.py <repo>`；起点预期失败，结果保存为 `KNOWN_FAILURES_BASELINE.json`。\n7. 从 `R0-001` 连续执行，不设 CP0、普通外部审核或人工等待点。\n\n## 4. 不得自由发挥\n\n- 不改任务 ID、依赖、验收条件和严重度；需要新增任务只能追加，不得删改原任务。\n- 不创建",
+   "spec_files": [
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/00_READ_FIRST.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/01_ASTROCS_ENGINEERING_CONSTRAINTS.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/01_INDEPENDENT_AUDIT_CONCLUSION.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/02_FINDINGS.csv",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/03_REWORK_TASK_LEDGER.csv",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/04_TASK_SPECIFICATIONS.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/05_GATE_CHECKLISTS.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/06_ARCHITECTURE_ACCEPTANCE.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/07_SCIENCE_AND_TEST_ACCEPTANCE.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/08_CPU_RESOURCE_ACCEPTANCE.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/09_DOCUMENTATION_AND_MACHINE_CHECKS.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/10_LINUX_WINDOWS_RELEASE_FLOW.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/11_GIT_MAIN_ONLY.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/12_AUDIT_PACKAGE_SPEC.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/13_OWNER_REVIEW.md",
+    "AstroCS_V6_1_REWORK_CONTROL_20260831/14_PRIMARY_REFERENCES.md"
+   ]
+  },
+  "identity": "_control_packs",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/_control_packs/AstroCS_REAUDIT_V3_REVIEWPACK_20260828T1126Z.zip",
+  "nfile": 46,
+  "bytes": 25853362,
+  "sha256": "76a43bddb9e7958c8e719baee9d74d84bc92514a974892cbfba28889a4949089",
+  "zip": {
+   "tops": [
+    "AstroCS_REAUDIT_V3_REVIEWPACK_20260828T1126Z"
+   ],
+   "markers": [],
+   "ledger": {
+    "file": "AstroCS_REAUDIT_V3_REVIEWPACK_20260828T1126Z/01_ledger/02_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "checkpoint",
+     "status"
+    ],
+    "rows": 62,
+    "n_id": 62
+   },
+   "read_first_head": null,
+   "spec_files": [
+    "AstroCS_REAUDIT_V3_REVIEWPACK_20260828T1126Z/00_README.md"
+   ]
+  },
+  "identity": "_control_packs",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/_control_packs/AstroCS_ALPHA3_MODULAR_REFOUNDATION_CONTROL_V7_1_20260902_FINAL3.zip",
+  "nfile": 99,
+  "bytes": 398022,
+  "sha256": "005448fb3b6892d3063d23149692fbd9226a892a2c1891e4cb8d14a80e8491c3",
+  "zip": {
+   "tops": [
+    "00_READ_FIRST.md",
+    "01_OWNER_FROZEN_CONSTRAINTS.md",
+    "02_CURRENT_BASELINE_AUDIT.md",
+    "03_TARGET_PRODUCT_AND_ARCHITECTURE.md",
+    "04_FOREGROUND_AGENT_RUNBOOK.md",
+    "05_FIXED_SUBAGENT_BINDINGS.yaml"
+   ],
+   "markers": [
+    "00_READ_FIRST.md",
+    "START_PROMPT.txt"
+   ],
+   "ledger": {
+    "file": "TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "wave",
+     "owner_id",
+     "kind",
+     "depends_on",
+     "mutex_lock",
+     "resource_class",
+     "commit_subject",
+     "spec_ref",
+     "acceptance",
+     "alias_of"
+    ],
+    "rows": 191,
+    "n_id": 191
+   },
+   "read_first_head": "# AstroCS Alpha 模块化重构控制包：先读我\n\n控制包 ID：`ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7`  \n发布日期：`2026-09-02`  \n冻结起始提交：`c1696156583c68c9a3a65287639c726937e9f6e7`  \n冻结起始版本：`0.10.0-alpha.2`  \n目标版本：`0.11.0-alpha.1`  \n正式分支：`main`  \n正式平台：Windows x64；Linux x64 为控制/轻验证平台  \n状态：可执行控制包；任何历史 V4/V5/V6/V18/V19 控制文件均不得覆盖本包。\n\n## 1. 本轮唯一目标\n\n把当前能够工作的但架构、文档和执行真实性仍不可靠的 AstroCS，收敛为可预发布的纯 CPU 模块化产品，同时保持既有科学定义不因架构迁移而漂移。\n\n必须同时实现：\n\n1. Phase1、Phase2、Phase3 分别运行、分别配置、分别验收；不得在同一进程自动串联。\n2. Windows 发布物只有一个用户入口 `astrocs.exe`，科学模块、Runtime、I/O、CPU provider 以 DLL 交付。\n3. 每个 DAG 节点绑定一个真实模块操作，不得以多个节点重复包装同一个 Session。\n4. 一个共享执行器和一个真实 ThreadBudget 管理所有重计算；重计算不得单线程或长期低利用率。\n5. ACR 保留但不进入当前生产构建、加载、benchmark 或发布包。\n6. baseline/AVX2/FMA/AVX-512 仅在热点 kernel 上提供，按硬件安全检查、正确性自测和逐 kernel benchmark 选择；无 profile 一律 baseline。\n7. SCI → ALG → DATA/API/ARCH → 源码符号/module manifest → TEST → 当前提交证据全链闭合。\n8. 每个模块有独立源码、README、manifest 和可复用 unit/property/oracle/negative/performance 测试。\n9. Phase3 独立完成 TAN、SIN、ZEA、CAR、AIT，以及 `nearest`、`healpix_interp4`，使用流式 FITS 输出。\n10. 最终在 Windows 进行一次候选提交的真实数据/32R/接缝/资源验证，不反复跑历史全版本。\n\n## 2. 执行者第一小时必须完成\n\n前台 Agent `FG-000` 依次执行，任何一步失败均不得把控制包称为有效：\n\n1. 在仓库外建立本轮工作根：`ASTROCS_WORK_ROOT/{control,worktrees,returns,logs,reports,build,install,audit,tmp}`。\n2. 复制本控制包到 `ASTROCS_WORK_ROOT/control/active/`，运行 `python validators/validate_control.py --root <控制包目录>`。\n3. 保存输出；必须出现 `CONTROL_PASS`，否则仅允许修复传输损坏，不得开始开发。\n4. 读取本文件、`01_OWNER_FROZ",
+   "spec_files": [
+    "checklists/00_FOREGROUND_AGENT_CHECKLIST.md",
+    "checklists/01_SUBAGENT_RETURN_CHECKLIST.md",
+    "checklists/02_MODULE_ACCEPTANCE_CHECKLIST.md",
+    "checklists/03_WINDOWS_RELEASE_CHECKLIST.md",
+    "checklists/04_AUDIT_PACKAGE_CHECKLIST.md",
+    "checklists/05_INDEPENDENT_REVIEW_CHECKLIST.md",
+    "tasks/00_TASK_EXECUTION_CONTRACT.md",
+    "tasks/01_W0_GOVERNANCE_TASKS.md",
+    "tasks/02_ABI_BUILD_CLI_TASKS.md",
+    "tasks/03_RUNTIME_DATA_IO_TASKS.md",
+    "tasks/04_CPU_RESOURCE_TASKS.md",
+    "tasks/05_PHASE1_TASKS.md",
+    "tasks/06_PHASE2_TASKS.md",
+    "tasks/07_PHASE3_TASKS.md",
+    "tasks/08_QA_LINUX_TASKS.md",
+    "tasks/09_WINDOWS_RELEASE_TASKS.md",
+    "tasks/10_AUDIT_PACKAGING_TASKS.md"
+   ]
+  },
+  "identity": "_control_packs",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/_control_packs/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905.zip",
+  "nfile": 56,
+  "bytes": 386677,
+  "sha256": "77a4b03a622c63cc3bf9622351dc2363a0f35adef46ca79aea4e749b48fd6eff",
+  "zip": {
+   "tops": [
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905"
+   ],
+   "markers": [
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/00_READ_FIRST.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/START_PROMPT.txt"
+   ],
+   "ledger": null,
+   "read_first_head": "# 00｜唯一执行入口\n\n## 目标\n\n在服务器上已经存在且正在使用的 AstroCS `main` 工作区内原地继续。不得创建、克隆、移动或替换仓库。先冻结现有状态，再接入 GitHub 托管 Linux/Windows CI，修复已确认的架构、科学、文档和 CPU 并行问题；Fatduck 只用 CI 产出的 Windows 候选程序运行本地真实数据终验。\n\n## 先读顺序\n\n1. `01_FROZEN_CONSTRAINTS.md`\n2. `02_CURRENT_STATE_AUDIT.md`\n3. `03_VM_AND_CI_ARCHITECTURE.md`\n4. `04_FOREGROUND_AGENT_RUNBOOK.md`\n5. `CONTROL_TASK_LEDGER.csv`\n6. 当前任务对应的 `tasks/*.md`\n7. `GATE_REQUIREMENTS.csv`\n\n## 不得违反\n\n- 从当前目录运行 `git rev-parse --show-toplevel` 获取现有仓库根目录；禁止假定固定绝对路径。\n- 只在现有 `main` 开发；禁止新分支、`git worktree`、额外 clone、仓库搬迁、目录重新规划和新建开发账户。\n- 首先记录 `HEAD/main/origin/main`、remote、完整 `git status --porcelain=v2` 和现有任务证据。不得自动 `reset`、`stash`、`clean`、`rebase` 或删除现有文件。\n- 前台 Agent 只分发、机器验收、提交、push、状态汇总和打包；固定子 Agent 执行任务。\n- 只读任务可以并行；同一现有工作区的 tracked 文件写入必须串行。\n- 一个任务一个原子 commit，直接 push `main`；禁止 amend、force push 和历史重写。\n- 机器检查自动推进。除缺少权限/凭据、远端分叉无法快进、Fatduck 离线及最终发布裁定外，不等待用户签字。\n- 不做历史版本全链路重算。数值正确性使用科学文档推导的合成 Oracle、解析解、守恒量和不变量。\n- 当前生产只使用纯 CPU；ACR 保留但不可进入生产路由。\n- heavy 计算必须动态并行，并采集 CPU、线程、内存、IO、进度和 worker 负载；单线程或持续低利用率直接失败。\n- 不硬编码核心数、线程数或 SIMD 路径；benchmark 生成主机配置。没有配置时使用保守通用 amd64 路径。\n- Phase1、Phase2、Phase3 独立调用、独立恢复、独立验收，不强制串行执行。\n\n## 包自检\n\n在控制包目录执行：\n\n```bash\npython3 validators/validate_control.py --root .\npython3 validators/selftest.py --root .\n```\n\n自检通过后执行 `V81-ADOPT-001`。控制包不得被解压覆盖项目源码；其位置沿用项目现有控制目录惯例。若尚无惯例，仅在仓库内建立一个明确的活动控制目录，不移动任何既有内容。\n\n## 完成定义\n\n1. `G-ADOPT`、`G-CI`、`G-FIX`、`G-FAT` 自动证据满足；\n2. ",
+   "spec_files": [
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/00_READ_FIRST.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/01_FROZEN_CONSTRAINTS.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/02_CURRENT_STATE_AUDIT.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/03_VM_AND_CI_ARCHITECTURE.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/04_FOREGROUND_AGENT_RUNBOOK.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/05_FIXED_SUBAGENT_BINDINGS.yaml",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/06_TASK_GRAPH_AND_GATES.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/07_CI_MACHINE_CONTRACT.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/08_MAIN_ONLY_GIT_PROTOCOL.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/09_WINDOWS_AND_FATDUCK_VALIDATION.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/10_SECURITY_AND_RUNNER.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/11_EVIDENCE_AND_AUDIT_PACKAGE.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/12_FAILURE_POLICY.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/13_PRIMARY_REFERENCES.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/14_TOKEN_EFFICIENT_EXECUTION.md",
+    "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/15_SUPERSESSION_NOTICE.md"
+   ]
+  },
+  "identity": "_control_packs",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/_control_packs/AstroCS_MAIN_PRERELEASE_REAUDIT_CONTROL_V3_20260827.zip",
+  "nfile": 21,
+  "bytes": 51229,
+  "sha256": "fcd96d697a58e13c16bc00045185a94ee9b3ee76b045de744100e3c8fa6e50e2",
+  "zip": {
+   "tops": [
+    "00_READ_FIRST.md",
+    "01_WORKFLOW_AND_GATES.md",
+    "02_TASK_LEDGER.csv",
+    "03_TASK_SPECIFICATIONS.md",
+    "04_CHECKPOINT_CHECKLISTS.md",
+    "05_NUMERICAL_AND_PERFORMANCE_GATES.md"
+   ],
+   "markers": [
+    "00_READ_FIRST.md"
+   ],
+   "ledger": {
+    "file": "02_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "checkpoint",
+     "status"
+    ],
+    "rows": 62,
+    "n_id": 62
+   },
+   "read_first_head": "# AstroCS MAIN 预发布重审控制 V3\n\n## 唯一目标\n\n把 AstroCS `main` 收敛到可预发布状态，使：\n\n`SCI 科学定义 -> ALG 算法推导 -> ARCH/API 软件合同 -> SRC 实现 -> TEST/运行证据`\n\n逐项可追溯且相互一致，并消除生产重计算单线程、接缝回归和虚假质量门禁。\n\n## 不可变规则\n\n1. 只在 `main` 开发；禁止创建开发分支、PR 分支、审计分支或 prerelease 分支。\n2. 当前任务开始时执行 `git fetch origin`，以当时 `origin/main` 为唯一候选起点并记录 SHA；不得假设仍是 `535e738`。\n3. 历史锚只允许 `git archive <sha>` 导出到仓库外；禁止在历史锚上提交，禁止为历史锚创建分支。\n4. 每个 Task 恰好一个原子 commit；验证通过后立即 push `main`。push 失败必须停止。\n5. 禁止 force-push、reset --hard、改写历史、删除用户改动。\n6. Agent 无权改变任务、阈值、状态词、豁免条件和执行顺序。\n7. 唯一状态词：`NOT_STARTED / IN_PROGRESS / PASS / FAIL / BLOCKED`。\n8. `BLOCKED` 必须给出外部阻塞证据；代码缺陷、测试失败、性能不达标只能记 `FAIL`。\n9. 任何生产重计算阶段持续超过 1 秒时不得单线程；累计串行计算时间不得超过总计算时间 1%。\n10. 并行门禁未通过前，禁止启动 32R 全量、历史 A/B/C 全量或其他超过 60 秒的科学运行。\n11. 所有命令有 timeout，输出日志；禁止后台放任运行、轮询到无限期、反复重跑完整基准。\n12. Agent 只能报告证据，最终 PASS/REJECT 由外部审核人裁决。\n\n## 执行入口\n\n1. 读取本文件。\n2. 运行 `python3 scripts/validate_control.py .`；非零立即停止。\n3. 逐行执行 `02_TASK_LEDGER.csv`，不得跳号。\n4. 每个 Task 按 `03_TASK_SPECIFICATIONS.md` 执行并更新模板台账。\n5. 到达 Checkpoint 时按 `04_CHECKPOINT_CHECKLISTS.md` 打包；等待外部审核，不得自行跨关。\n\n## 当前证据起点\n\nV2 审核时 main 为 `535e73879662346ee1f599d7a9cae96c6c23680d`，但该 SHA 只是历史证据起点。V3 实际起点必须在任务开始时重新冻结。\n\n历史接缝锚：\n\n- A：`b38b446e6`（辅助历史对照）；\n- B：`83471979a`（预定接缝基线，必须完成运行后才可成为数值 oracle）；\n- C：V3 起点 `origin/main`；\n- D：V3 完成候选 `origin/main`。\n\n## 立即停止条件\n\n- 不在 `main`；\n- `HEAD != main != origin/main`；\n- 存在来源不明的 tracked 修改；\n- 任务前一 Checkpoint 未获外部 PASS；\n- 生产计算运行时 `",
+   "spec_files": []
+  },
+  "identity": "_control_packs",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/_control_packs/AstroCS_MAIN_AUDIT_SUPPLEMENT_V2_20260826.zip",
+  "nfile": 2,
+  "bytes": 34912,
+  "sha256": "493870e7b7cd6433cf9d91da8623e0908b62b5bcb67baa8f0fac34b96a33d197",
+  "zip": {
+   "tops": [
+    "AstroCS_MAIN_AUDIT_CONCLUSION_535e738_20260826.md",
+    "AstroCS_MAIN_AUDIT_SUPPLEMENT_CONTROL_V2_20260826.md"
+   ],
+   "markers": [],
+   "ledger": null,
+   "read_first_head": null,
+   "spec_files": []
+  },
+  "identity": "_control_packs",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/_control_packs/AstroCS_MAIN_PRERELEASE_CONTROL_V4_CPU_ADAPTIVE_20260828.zip",
+  "nfile": 26,
+  "bytes": 47997,
+  "sha256": "f41aacec3d85cf5ac205b78472e8657a0bbbb8b1e41cc511c904311da139ce0a",
+  "zip": {
+   "tops": [
+    "00_READ_FIRST.md",
+    "01_SCOPE_AND_WORKFLOW.md",
+    "02_TASK_LEDGER.csv",
+    "03_TASK_DETAILS.md",
+    "04_CPU_AUTOTUNE_SPEC.md",
+    "05_RESOURCE_MONITOR_SPEC.md"
+   ],
+   "markers": [
+    "00_READ_FIRST.md"
+   ],
+   "ledger": {
+    "file": "02_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "phase",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "preferred_host",
+     "status"
+    ],
+    "rows": 54,
+    "n_id": 54
+   },
+   "read_first_head": "# AstroCS V4：CPU 自适应预发布控制\n\n## 目标\n\n以当前 `origin/main` 为唯一开发对象，完成科学定义、算法、架构/API、代码和测试的正向统一；使用纯 CPU 自适应并行；最终只运行一次当前候选32R并生成 HiPS 审核产品。\n\n## 本包优先级\n\n本包完全替代 V3。V3 的历史 A/B/C、ACR GPU/Mixed、逐 Checkpoint 外审和历史32R任务全部取消。\n\n## 硬规则\n\n1. 只在 `main` 开发；每个修改任务一个原子 commit，测试通过后立即 push。\n2. 不运行、不构建、不比较任何历史版本；数值正确性来自文档推导的合成 Oracle。\n3. ACR 暂不接入生产；不得执行 GPU/Mixed 任务。保留模块源码但标记 dormant。\n4. 禁止硬编码 CPU 核心数、线程数或全局 AVX/AVX2/AVX-512 编译选项。\n5. 每个重计算 kernel 必须有安全标量参考路径；SIMD 变体只在编译器支持且运行时硬件/OS允许时注册。\n6. 指令集和 worker 数由本机 benchmark 选择并缓存；缓存失效条件必须完整。\n7. 所有预计或实际超过5秒的计算命令必须由资源监控包装器启动；没有 profile 证据等于未运行。\n8. CPU 重计算阶段不得单线程或长期低利用率；I/O/元数据短串行允许，但必须与计算阶段分开计时。\n9. Linux 负责静态/文档/合成小测/调度；Fatduck 在线时负责 Windows 编译、benchmark、真实数据和重计算。\n10. Fatduck 离线时继续全部 Linux 可执行任务；禁止因 Windows 离线闲等。\n11. 任务连续执行，不在中间等待外审；只有无法获得新权限、科学定义必须由用户裁决或最终发布包完成时才停止。\n12. 最终审核包压缩后不超过25 MiB，单文件不超过5 MiB；禁止原始数据、完整 HiPS、长日志和像素 CSV。\n\n## 启动顺序\n\n1. 运行 `python3 scripts/validate_control.py .`。\n2. 读取当前根 `memory.md`、相关模块 `memory.md`、`AGENTS.md` 和正式 docs。\n3. 执行 `02_TASK_LEDGER.csv`，依赖满足后连续推进。\n4. 失败时在当前任务范围内定位、修复、复测；不得用豁免把 FAIL 改 PASS。\n5. 完成最后任务后输出 `AWAITING_EXTERNAL_RELEASE_REVIEW`。\n\n## 审核责任\n\nAgent 负责收集代码事实、起草文档、实现和机器验证；核心 SCI/ALG 推导、文献依据及科学一致性的最终核实由外部审核人完成。每个 commit 生成审查胶囊，但不中断独立任务。最终发布不得只依据 Agent 自报 PASS。\n\n## 唯一允许状态\n\n`NOT_STARTED / IN_PROGRESS / PASS / FAIL / BLOCKED / DEFERRED / REVIEW_PENDING`\n\n`DEFERRED` 仅用于本控制明确排除的 ACR GPU/Mixed 和历史版本任务，不得用于隐藏当前范围缺陷。\n",
+   "spec_files": []
+  },
+  "identity": "_control_packs",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/_control_packs/AstroCS_V5_AUDIT_REVIEW_20260830.zip",
+  "nfile": 32,
+  "bytes": 159662,
+  "sha256": "0aede9d3fddcb4a8bfe7cdd237880058d5ffcc002ef193734fb223e35f31b97b",
+  "zip": {
+   "tops": [
+    "AUDIT_REVIEW"
+   ],
+   "markers": [
+    "AUDIT_REVIEW/00_READ_FIRST.md",
+    "AUDIT_REVIEW/MANIFEST.json"
+   ],
+   "ledger": {
+    "file": "AUDIT_REVIEW/TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "phase",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "preferred_host",
+     "status"
+    ],
+    "rows": 98,
+    "n_id": 98
+   },
+   "read_first_head": "# AstroCS V5 预发布控制包：单一 CLI / amd64 CPU 自适应\n\n## 0. 本包的唯一目标\n\n在当前 `main` 上收敛出可发布候选：科学定义、算法、架构、接口、实现和测试可追溯且一致；Windows/Linux 只向用户暴露一个 CLI；重计算由纯 CPU 多后端按逐内核 benchmark 自适应选择；任何长时间低利用率、内存异常增长或静默串行均不得通过。\n\n本包取代 V3/V4 的未完成门禁。历史报告仅作为问题线索，历史 PASS、历史数值输出和历史性能结果均不是当前证据。禁止为等价性反复运行历史版本。\n\n## 1. 不可解释、不可放宽的硬约束\n\n1. 只在 `main` 开发；不得创建分支。每个 Task 一个原子 commit，成功后立即 push。\n2. 仅支持 `amd64/x86-64`；不得扩大到 ARM、NEON、SVE 或 32 位。\n3. 发布包每个平台只暴露一个入口：Windows `astrocs.exe`，Linux `astrocs`。\n4. Phase1、Phase2、Phase3 必须由该 CLI 的稳定命令和内部接口调用；发布包不得携带旧 Phase 可执行程序。\n5. 当前不得接入 ACR/GPU/Mixed。ACR 可保留为 dormant 代码，但生产路由、测试和默认配置不得触达它。\n6. 重计算必须并行且自动采集 CPU、内存、I/O、线程和阶段信息。低利用率不是 WARN，是 FAIL。\n7. 禁止硬编码 CPU 核数、worker 数、AVX 路径或全局 `-march=native/-mavx*`。\n8. ISA、workers、block/chunk 均由硬件安全检测与逐内核 benchmark 选择。没有可用 profile 时必须走保守 amd64 baseline，但仍按进程 affinity 动态多线程。\n9. 数值验证由文档推导的独立合成 Oracle 完成；容差必须在看到结果前冻结。\n10. Windows 最终 32R 真实数据只跑当前候选一次；不得跑历史版本，不得用旧输出冒充。\n11. 除最终发布包外，不设等待外部批准的停止点。Fatduck 离线时继续 Linux 可执行任务。\n12. Task 状态只能来自 `02_TASK_LEDGER.csv`；叙述性报告不得把 PARTIAL/WARN/未运行改写为 PASS。\n\n## 2. 首次启动后 30 分钟内\n\n依次执行，不得先改代码：\n\n1. 解包到仓库外，运行 `python3 scripts/validate_control.py .`，必须输出 `CONTROL_PASS`。\n2. 阅读本文件、`01_PRODUCT_ARCHITECTURE.md`、`02_TASK_LEDGER.csv`、`03_TASK_DETAILS.md`。\n3. 阅读仓库根 `AGENTS.md`、`memory.md` 和相关模块 `memory.md`；不得让过长历史 memory 替代当前源码核实。\n4. `git fetch origin --prune`，记录 `HEAD/main/origin/main/status/remote`；remote 输出必须脱敏。\n5. 将 `11_AGENTS_MD_REQ",
+   "spec_files": [
+    "AUDIT_REVIEW/00_READ_FIRST.md"
+   ]
+  },
+  "identity": "_control_packs",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/baseline/AstroCS_ALPHA3_MODULAR_REFOUNDATION_CONTROL_V7_1_20260902_FINAL3.zip",
+  "nfile": 99,
+  "bytes": 398022,
+  "sha256": "005448fb3b6892d3063d23149692fbd9226a892a2c1891e4cb8d14a80e8491c3",
+  "zip": {
+   "tops": [
+    "00_READ_FIRST.md",
+    "01_OWNER_FROZEN_CONSTRAINTS.md",
+    "02_CURRENT_BASELINE_AUDIT.md",
+    "03_TARGET_PRODUCT_AND_ARCHITECTURE.md",
+    "04_FOREGROUND_AGENT_RUNBOOK.md",
+    "05_FIXED_SUBAGENT_BINDINGS.yaml"
+   ],
+   "markers": [
+    "00_READ_FIRST.md",
+    "START_PROMPT.txt"
+   ],
+   "ledger": {
+    "file": "TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "wave",
+     "owner_id",
+     "kind",
+     "depends_on",
+     "mutex_lock",
+     "resource_class",
+     "commit_subject",
+     "spec_ref",
+     "acceptance",
+     "alias_of"
+    ],
+    "rows": 191,
+    "n_id": 191
+   },
+   "read_first_head": "# AstroCS Alpha 模块化重构控制包：先读我\n\n控制包 ID：`ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7`  \n发布日期：`2026-09-02`  \n冻结起始提交：`c1696156583c68c9a3a65287639c726937e9f6e7`  \n冻结起始版本：`0.10.0-alpha.2`  \n目标版本：`0.11.0-alpha.1`  \n正式分支：`main`  \n正式平台：Windows x64；Linux x64 为控制/轻验证平台  \n状态：可执行控制包；任何历史 V4/V5/V6/V18/V19 控制文件均不得覆盖本包。\n\n## 1. 本轮唯一目标\n\n把当前能够工作的但架构、文档和执行真实性仍不可靠的 AstroCS，收敛为可预发布的纯 CPU 模块化产品，同时保持既有科学定义不因架构迁移而漂移。\n\n必须同时实现：\n\n1. Phase1、Phase2、Phase3 分别运行、分别配置、分别验收；不得在同一进程自动串联。\n2. Windows 发布物只有一个用户入口 `astrocs.exe`，科学模块、Runtime、I/O、CPU provider 以 DLL 交付。\n3. 每个 DAG 节点绑定一个真实模块操作，不得以多个节点重复包装同一个 Session。\n4. 一个共享执行器和一个真实 ThreadBudget 管理所有重计算；重计算不得单线程或长期低利用率。\n5. ACR 保留但不进入当前生产构建、加载、benchmark 或发布包。\n6. baseline/AVX2/FMA/AVX-512 仅在热点 kernel 上提供，按硬件安全检查、正确性自测和逐 kernel benchmark 选择；无 profile 一律 baseline。\n7. SCI → ALG → DATA/API/ARCH → 源码符号/module manifest → TEST → 当前提交证据全链闭合。\n8. 每个模块有独立源码、README、manifest 和可复用 unit/property/oracle/negative/performance 测试。\n9. Phase3 独立完成 TAN、SIN、ZEA、CAR、AIT，以及 `nearest`、`healpix_interp4`，使用流式 FITS 输出。\n10. 最终在 Windows 进行一次候选提交的真实数据/32R/接缝/资源验证，不反复跑历史全版本。\n\n## 2. 执行者第一小时必须完成\n\n前台 Agent `FG-000` 依次执行，任何一步失败均不得把控制包称为有效：\n\n1. 在仓库外建立本轮工作根：`ASTROCS_WORK_ROOT/{control,worktrees,returns,logs,reports,build,install,audit,tmp}`。\n2. 复制本控制包到 `ASTROCS_WORK_ROOT/control/active/`，运行 `python validators/validate_control.py --root <控制包目录>`。\n3. 保存输出；必须出现 `CONTROL_PASS`，否则仅允许修复传输损坏，不得开始开发。\n4. 读取本文件、`01_OWNER_FROZ",
+   "spec_files": [
+    "checklists/00_FOREGROUND_AGENT_CHECKLIST.md",
+    "checklists/01_SUBAGENT_RETURN_CHECKLIST.md",
+    "checklists/02_MODULE_ACCEPTANCE_CHECKLIST.md",
+    "checklists/03_WINDOWS_RELEASE_CHECKLIST.md",
+    "checklists/04_AUDIT_PACKAGE_CHECKLIST.md",
+    "checklists/05_INDEPENDENT_REVIEW_CHECKLIST.md",
+    "tasks/00_TASK_EXECUTION_CONTRACT.md",
+    "tasks/01_W0_GOVERNANCE_TASKS.md",
+    "tasks/02_ABI_BUILD_CLI_TASKS.md",
+    "tasks/03_RUNTIME_DATA_IO_TASKS.md",
+    "tasks/04_CPU_RESOURCE_TASKS.md",
+    "tasks/05_PHASE1_TASKS.md",
+    "tasks/06_PHASE2_TASKS.md",
+    "tasks/07_PHASE3_TASKS.md",
+    "tasks/08_QA_LINUX_TASKS.md",
+    "tasks/09_WINDOWS_RELEASE_TASKS.md",
+    "tasks/10_AUDIT_PACKAGING_TASKS.md"
+   ]
+  },
+  "identity": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/baseline",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "artifacts/AstroCS_AUDIT_REVIEWPACK_20260909T133841Z.zip",
+  "nfile": 14556,
+  "bytes": 205347794,
+  "sha256": "3b5d9c230473e4210bac0e1e636cfef317df524307e908ce0f1f17940c16ab2c",
+  "zip": {
+   "tops": [
+    ".clang-format",
+    ".editorconfig",
+    ".gitattributes",
+    ".github",
+    ".gitignore",
+    "AGENTS.md"
+   ],
+   "markers": [
+    "artifacts/prerelease_v5/AUDIT_REVIEW/00_READ_FIRST.md",
+    "artifacts/prerelease_v5/AUDIT_REVIEW/MANIFEST.json",
+    "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/00_READ_FIRST.md",
+    "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/START_PROMPT.txt",
+    "engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/AUTONOMOUS_ENTRY.md",
+    "engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/CONTROL_V4/AstroCS_MAIN_PRERELEASE_CONTROL_V4_CPU_ADAPTIVE_20260828/00_READ_FIRST.md",
+    "engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/00_READ_FIRST.md",
+    "engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/AGENTS_REPLACEMENT.md"
+   ],
+   "ledger": {
+    "file": "artifacts/prerelease_v5/AUDIT_REVIEW/TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "phase",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "preferred_host",
+     "status"
+    ],
+    "rows": 98,
+    "n_id": 98
+   },
+   "read_first_head": "# AstroCS V5 预发布控制包：单一 CLI / amd64 CPU 自适应\n\n## 0. 本包的唯一目标\n\n在当前 `main` 上收敛出可发布候选：科学定义、算法、架构、接口、实现和测试可追溯且一致；Windows/Linux 只向用户暴露一个 CLI；重计算由纯 CPU 多后端按逐内核 benchmark 自适应选择；任何长时间低利用率、内存异常增长或静默串行均不得通过。\n\n本包取代 V3/V4 的未完成门禁。历史报告仅作为问题线索，历史 PASS、历史数值输出和历史性能结果均不是当前证据。禁止为等价性反复运行历史版本。\n\n## 1. 不可解释、不可放宽的硬约束\n\n1. 只在 `main` 开发；不得创建分支。每个 Task 一个原子 commit，成功后立即 push。\n2. 仅支持 `amd64/x86-64`；不得扩大到 ARM、NEON、SVE 或 32 位。\n3. 发布包每个平台只暴露一个入口：Windows `astrocs.exe`，Linux `astrocs`。\n4. Phase1、Phase2、Phase3 必须由该 CLI 的稳定命令和内部接口调用；发布包不得携带旧 Phase 可执行程序。\n5. 当前不得接入 ACR/GPU/Mixed。ACR 可保留为 dormant 代码，但生产路由、测试和默认配置不得触达它。\n6. 重计算必须并行且自动采集 CPU、内存、I/O、线程和阶段信息。低利用率不是 WARN，是 FAIL。\n7. 禁止硬编码 CPU 核数、worker 数、AVX 路径或全局 `-march=native/-mavx*`。\n8. ISA、workers、block/chunk 均由硬件安全检测与逐内核 benchmark 选择。没有可用 profile 时必须走保守 amd64 baseline，但仍按进程 affinity 动态多线程。\n9. 数值验证由文档推导的独立合成 Oracle 完成；容差必须在看到结果前冻结。\n10. Windows 最终 32R 真实数据只跑当前候选一次；不得跑历史版本，不得用旧输出冒充。\n11. 除最终发布包外，不设等待外部批准的停止点。Fatduck 离线时继续 Linux 可执行任务。\n12. Task 状态只能来自 `02_TASK_LEDGER.csv`；叙述性报告不得把 PARTIAL/WARN/未运行改写为 PASS。\n\n## 2. 首次启动后 30 分钟内\n\n依次执行，不得先改代码：\n\n1. 解包到仓库外，运行 `python3 scripts/validate_control.py .`，必须输出 `CONTROL_PASS`。\n2. 阅读本文件、`01_PRODUCT_ARCHITECTURE.md`、`02_TASK_LEDGER.csv`、`03_TASK_DETAILS.md`。\n3. 阅读仓库根 `AGENTS.md`、`memory.md` 和相关模块 `memory.md`；不得让过长历史 memory 替代当前源码核实。\n4. `git fetch origin --prune`，记录 `HEAD/main/origin/main/status/remote`；remote 输出必须脱敏。\n5. 将 `11_AGENTS_MD_REQ",
+   "spec_files": []
+  },
+  "identity": "artifacts",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "artifacts/prerelease_v5/AUDIT_PACKAGE_587fe0e341a7.zip",
+  "nfile": 1699,
+  "bytes": 15518698,
+  "sha256": "81b7e39ed80c273b41057babb9f7aed3262aa097f95537d214e37906a298c14b",
+  "zip": {
+   "tops": [
+    ".clang-format",
+    ".editorconfig",
+    ".gitattributes",
+    ".gitignore",
+    "00_README.md",
+    "AGENTS.md"
+   ],
+   "markers": [
+    "MANIFEST.json",
+    "evidence/audit_review/00_READ_FIRST.md",
+    "evidence/audit_review/MANIFEST.json",
+    "evidence/reports/REAUDIT_V3/v3_audit/00_READ_FIRST.md",
+    "evidence/reports/REAUDIT_V3/v3_audit/MANIFEST.json",
+    "evidence/reports/REAUDIT_V3/v3_cp0/00_READ_FIRST.md",
+    "evidence/reports/REAUDIT_V3/v3_cp0/MANIFEST.json"
+   ],
+   "ledger": {
+    "file": "evidence/audit_review/TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "phase",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "preferred_host",
+     "status"
+    ],
+    "rows": 98,
+    "n_id": 98
+   },
+   "read_first_head": "{\n \"schema_version\": 1,\n \"package\": \"AstroCS-audit-587fe0e341a7\",\n \"version\": \"0.9.0-alpha.1\",\n \"commit\": \"587fe0e341a780da726917f40ed77f610de0c73f\",\n \"total_bytes\": 14936073,\n \"files\": [\n  {\n   \"path\": \".clang-format\",\n   \"source\": \".clang-format\",\n   \"size\": 436,\n   \"sha256\": \"e87deb303a93078ba9d99b4a99b45cfd47eaf6e2b5eb8fe434d19c139a6f9358\"\n  },\n  {\n   \"path\": \".editorconfig\",\n   \"source\": \".editorconfig\",\n   \"size\": 264,\n   \"sha256\": \"51db027592986ac39e1c498419429d1c8dba4c62b45ab5797d3b2b10687257c5\"\n  },\n  {\n   \"path\": \".gitattributes\",\n   \"source\": \".gitattributes\",\n   \"size\": 409,\n   \"sha256\": \"dfee8a722364cd168c34fdcab6e34f35eb867f9881a920aab9bba82420f366b5\"\n  },\n  {\n   \"path\": \".gitignore\",\n   \"source\": \".gitignore\",\n   \"size\": 1938,\n   \"sha256\": \"decd2414a3763bf1ce413708094670cbb53a5b6651d04a1c70f131c121e91acd\"\n  },\n  {\n   \"path\": \"AGENTS.md\",\n   \"source\": \"AGENTS.md\",\n   \"size\": 3279,\n   \"sha256\": \"5e22fbbbca0eb7f9c930af0a781d8290b2662c51db25a10990e9461a80c39cb2\"\n  },\n  {\n   \"path\": \"CHANGELOG.md\",\n   \"source\": \"CHANGELOG.md\",\n   \"size\": 4287,\n   \"sha256\": \"f12cbb2b64020e8fb721fc896dcc9f8274821dfe41a2a7095be7c7dfe3aff48a\"\n  },\n  {\n   \"path\": \"FATDUCK_ACCESS.md\",\n   \"source\": \"FATDUCK_ACCESS.md\",\n   \"size\": 2153,\n   \"sha256\": \"4e1d653a46143e478a5b0f9d1d2701d7e2930352936c2b4b9336ddecc17e373a\"\n  },\n  {\n   \"path\": \"HANDOVER.md\",\n   \"source\": \"HANDOVER.md\",\n   \"size\": 4017",
+   "spec_files": []
+  },
+  "identity": "artifacts/prerelease_v5",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "artifacts/prerelease_v5/review/C1_SCI_ALG_REVIEW.zip",
+  "nfile": 15,
+  "bytes": 230643,
+  "sha256": "1299964b2092085cbdc8286151f74083cf35cdc86bb9b66c4d26dee29f5db2bb",
+  "zip": {
+   "tops": [
+    "C1_MANIFEST.json",
+    "capsules"
+   ],
+   "markers": [],
+   "ledger": null,
+   "read_first_head": null,
+   "spec_files": []
+  },
+  "identity": "prerelease_v5/review",
+  "git_events": {
+   "touch_last": "c1b70086347479feadfd28f8cb8c6d5a563ece97 2026-08-28T22:14:12+08:00"
+  }
+ },
+ {
+  "form": "zip",
+  "path": "设计大纲/_evidence/packs/history_zip/AstroCS_Delivery_20260729.zip",
+  "nfile": 10,
+  "bytes": 21978944,
+  "sha256": "5fd7add31d824c8af2effc00aa0bae1b9aac87061669895c7447c83155175e88",
+  "zip": {
+   "tops": [
+    "code",
+    "documents",
+    "说明.md"
+   ],
+   "markers": [
+    "documents/AUTONOMOUS_ENTRY.md"
+   ],
+   "ledger": null,
+   "read_first_head": "# AstroCS v1.3 修复与续开发自治入口\n\n你是本仓库的长期工程 Agent。立即执行，不要只给计划，不要要求用户手工解压、选择任务或重复确认。\n\n## 1. 安装、迁移与恢复\n\n1. 将当前目录视为 AstroCS 仓库根目录，先记录 Git 分支、HEAD、工作树和用户未提交修改；不得覆盖、删除或提交用户原有修改。\n2. 查找最新且结构有效的 `AstroCS_Recovery_Development_Pack*.zip`，解压并将包根目录保留为 `工程控制/`。\n3. 运行：\n\n   `python 工程控制/tools/migrate_from_v12.py --repo . --new-root 工程控制`\n\n   该步骤必须迁移 `engineering_v1.2/` 的任务状态、证据与检查点，不得把已完成任务重置为 TODO。若 P11-004 为 DEFERRED/BLOCKED/FAILED，则恢复为待执行修复任务。\n4. 运行：\n\n   `python 工程控制/tools/validate_pack.py 工程控制`\n\n5. 阅读顺序：`README.md` → `docs/00_PHASE_GOAL_AND_BOUNDARIES.md` → `docs/23_P11_004_REVIEW_DECISION.md` → `docs/24_WCS_VALIDATION_V2_SPEC.md` → `docs/26_P11_RECOVERY_RUNBOOK.md` → Agent 规则 → 状态文件 → 当前任务。\n\n## 2. P11-004 强制裁决\n\n当前证据不能证明 WCS 生产端错误。旧诊断把求解器 RANSAC inlier 对换成全星表 kd-tree 最近邻对，导致误配、饱和星和质心偏差进入残差，不能与 IPV RMS 直接比较。\n\n必须实施“双层闭环”：\n\n1. 固定求解器的权威 inlier 对应关系；\n2. 仅使用最终序列化到 Header/PipelineFrame 的标准 WCS/SIP，独立把这些 Gaia 星回投到像素；\n3. 比较外部 WCS 回投与 detector 坐标，同时比较外部 WCS 预测与求解器内部预测；\n4. 全星表重新匹配只作为二级诊断，不再作为 P11 硬 Gate。\n\n分支规则：\n\n- 权威星对闭环通过：P11-004 以 `NO_CODE_CHANGE_REQUIRED` 完成，禁止为通过 Gate 修改 CD/SIP/CRPIX；\n- 权威星对闭环失败且出现一致的符号、旋转、尺度或位置误差：才允许在 WCS 生产端最小修复；\n- 无论哪一分支，均进入 P11-005 的 710 全量回归。\n\n## 3. 续开发范围\n\n本包完整继承 v1.2 尚未完成内容：T1–T4 与主校准帧整理、测光修复、SNR/HISS、全 TestData Stage1、银心三片 32 帧梯度/叠加、浏览器异步 Tile 与 GPU Renderer、统一回归和用户结果展示。\n\n浏览器工作可与 P11/P12 调查并行，但同一时刻只能有一个主代码修改任务；先统一接口再并行无依赖工作。\n\n## 4. 执行与停止\n\n每项任务：事实基线 → 失败复现 → 最小实现 → 分层测试 → 真实数据 → ",
+   "spec_files": []
+  },
+  "identity": "packs/history_zip",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "设计大纲/_evidence/packs/history_zip/AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip",
+  "nfile": 74,
+  "bytes": 96866,
+  "sha256": "3e10847e11de079ff36512512934e7ddc53f74523c0f0ab2e328cbed5196434a",
+  "zip": {
+   "tops": [
+    "AstroCS_Authoritative_Development_Pack_v2.0"
+   ],
+   "markers": [
+    "AstroCS_Authoritative_Development_Pack_v2.0/AUTONOMOUS_ENTRY.md",
+    "AstroCS_Authoritative_Development_Pack_v2.0/START_PROMPT.txt"
+   ],
+   "ledger": null,
+   "read_first_head": "# AstroCS 权威开发包自主入口\n\n## 1. 入口地位\n\n本文件是 Agent 的执行入口；本包根目录 `README.md` 是项目唯一权威总文档。任何历史 Spec、Task、报告、源码注释与 README 冲突时，以 README 为准。\n\n## 2. 首次执行\n\n1. 定位 AstroCS 仓库根目录，确认存在 `.git`、`lib/` 或现有项目文件。\n2. 不修改用户原始 TestData、Gaia 数据、历史 HISS/HCSD 和审计证据。\n3. 将仓库现有 `README.md` 备份到 `docs/archive/README_pre_authoritative_<UTC>.md`。\n4. 将本包 `README.md` 安装为仓库根目录 `README.md`。\n5. 将本包的 `engineering_authoritative/` 内容复制到仓库根目录同名目录；本包内对应内容即 `agent/ docs/ control/ tasks/ checklists/ contracts/ templates/ tools/ migration/ evidence/`。\n6. 运行 `python tools/validate_pack.py --pack-root <本包目录>`；所有外部进程必须有超时。\n7. 运行 `python tools/install_and_migrate.py --repo <仓库根目录> --pack <本包目录>`；脚本仅备份、安装和生成迁移报告，不删除用户数据。\n8. 阅读顺序：`README.md` → `migration/CURRENT_STATE_AND_SCOPE_MIGRATION.md` → `control/PROJECT_STATE.yaml` → 当前 Gate 和 Task。\n\n## 3. 核心执行原则\n\n- 不继续机械执行旧 v1.2/v1.3 的 50 项任务；先迁移有效成果和未完成范围。\n- 已确认成果不得重做：PlateSolve 单次内部检测共享、709/710 A/B、基础测光匹配修复、SNR写入HISS等。\n- 旧 281 份 HISS 只作为调试资产，不作为最终全量回归证据。\n- 在 Gate A–H 完成前禁止启动 710 帧最终全量回归。\n- Stage2 禁止混合不同规范滤镜，禁止乘性梯度，禁止选单一参考帧替代全局共识曲面。\n- 浏览器是科学检查工具；CLI模拟循环不得作为真实GUI性能证据。\n- 普通任务只保留简短状态、测试日志和提交；每个 Gate 只写一份合并验收报告。\n- Python、外部进程、网络与可能阻塞操作必须设置明确超时。\n\n## 4. 执行顺序\n\n按 Gate A → I 执行。仅在依赖无冲突时并行：\n\n- Gate A 数据与校准整理；\n- Gate B Stage1代表帧；\n- Gate C HISS正式契约与压缩；\n- Gate D 多帧Stage1一致性；\n- Gate E 全局加性梯度和合成注入；\n- Gate F 银心三片最小闭环；\n- Gate G 银心32帧正式叠加；\n- Gate H 资源感知编排器与压力验证；\n- Gate I 格式冻结、710帧回归和发布准备。\n\n## 5. 汇报条件\n\nAgent 持",
+   "spec_files": []
+  },
+  "identity": "packs/history_zip",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "设计大纲/_evidence/packs/history_zip/AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip",
+  "nfile": 92,
+  "bytes": 114829,
+  "sha256": "a87648ec9bc7a1bb4680d79e755b7c3f68696fab01e6ad86c9b68fff3c39e060",
+  "zip": {
+   "tops": [
+    "AstroCS_CLI_Core_Development_Pack"
+   ],
+   "markers": [
+    "AstroCS_CLI_Core_Development_Pack/AUTONOMOUS_ENTRY.md",
+    "AstroCS_CLI_Core_Development_Pack/START_PROMPT.txt"
+   ],
+   "ledger": null,
+   "read_first_head": "# AstroCS CLI 内核自治开发入口\n\n你是本仓库的长期工程 Agent。当前目标不是开发 GUI，而是把 AstroCS 做成可由 GUI/JavaScript 稳定控制的原生 CLI 算法内核，并使用真实数据完整跑通 Stage 1 与 Stage 2。\n\n## 启动动作\n\n1. 将本压缩包解压到仓库根目录的 `engineering/`；若已有 `engineering/`，合并文档但不得覆盖 `control/PROJECT_STATE.yaml`、`control/CURRENT_TASK.md` 和既有证据。\n2. 读取顺序：\n   - `README.md`\n   - `docs/00_PRODUCT_AND_CURRENT_GOAL.md`\n   - `docs/01_BASELINE_AND_KNOWN_GAPS.md`\n   - `docs/02_CLI_CORE_ARCHITECTURE.md`\n   - `docs/03_END_TO_END_DATAFLOW_AND_LIFETIME.md`\n   - `docs/05_STAR_DETECT_PSF_DEDUP_SPEC.md`\n   - `agent/MASTER_AGENT_INSTRUCTIONS.md`\n   - `control/PROJECT_STATE.yaml`\n   - `control/CURRENT_TASK.md`\n   - 当前任务文件\n3. 先核查仓库、分支、工作树、依赖模块和真实数据，不要先改代码。\n4. 从 `control/CURRENT_TASK.md` 指定任务开始，按依赖顺序持续推进，不等待用户逐项确认。\n5. 每个任务必须有实现证据、测试报告、独立复核和状态更新；仅在真实硬阻塞或全部完成时停止。\n\n## 最高优先级边界\n\n- 当前产品核心是 CLI + Orchestrator + PipelineFrame + 算法模块。\n- GUI 后续通过 JavaScript/进程协议控制 CLI，不直接访问 DLL 或图像内存。\n- PowerShell、Python 仅是开发辅助，不属于产品运行时主链。\n- 真实数据跑通优先于继续堆新功能。\n- 必需模块缺失、数据块缺失、算法被跳过或静默降级必须判定失败。\n- 重复星点检测必须按 `docs/05_STAR_DETECT_PSF_DEDUP_SPEC.md` 修复：一次检测，板解算与 PSF 共用同一 `star_det`。\n",
+   "spec_files": []
+  },
+  "identity": "packs/history_zip",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "设计大纲/_evidence/packs/history_zip/AstroCS_Stage1_HISS_Delivery_2026-07-31.zip",
+  "nfile": 50,
+  "bytes": 689806,
+  "sha256": "2eceeff476b54ecfd653b37e42e487c1be0f7b008b240eb48ff46d0de3b3e883",
+  "zip": {
+   "tops": [
+    "00_README.md",
+    "APPLY_IN_PLACE.md",
+    "DELETE_LIST.txt",
+    "MANIFEST.json",
+    "MANIFEST.sha256",
+    "changed_files"
+   ],
+   "markers": [
+    "MANIFEST.json"
+   ],
+   "ledger": null,
+   "read_first_head": "[\r\n  {\r\n    \"path\": \"00_README.md\",\r\n    \"size\": 5320,\r\n    \"sha256\": \"cd3c165fa83b43f88adef8fad8c27ab5c5afacdef76da03fdad055d53c592138\"\r\n  },\r\n  {\r\n    \"path\": \"APPLY_IN_PLACE.md\",\r\n    \"size\": 4433,\r\n    \"sha256\": \"1ea94b254efe352d6f2b873a8a8af7368622cf1c91ef2c6c887b21582f08237a\"\r\n  },\r\n  {\r\n    \"path\": \"changed_files/lib/astro_image_io/build.ps1\",\r\n    \"size\": 7616,\r\n    \"sha256\": \"bb740adfbf2e1e48dc5cc03068f719f650bc3a8b0559990cde3fb9ed9251a436\"\r\n  },\r\n  {\r\n    \"path\": \"changed_files/lib/astro_image_io/include/hiss_format.h\",\r\n    \"size\": 14466,\r\n    \"sha256\": \"9edf3e65b4cc060bbc1e3e47a13ff979c94485981a9a2fb114245faf2c86a8c0\"\r\n  },\r\n  {\r\n    \"path\": \"changed_files/lib/astro_image_io/Makefile\",\r\n    \"size\": 813,\r\n    \"sha256\": \"3de852c8160e1ccbc718026ec2e2adcc51a0fee947aa2e1983fbe229924d3cd0\"\r\n  },\r\n  {\r\n    \"path\": \"changed_files/lib/astro_image_io/memory.md\",\r\n    \"size\": 10716,\r\n    \"sha256\": \"6f3cdcd5602f7fbe14884010e2b6884d522f3b4f4e04da583346165aad66e851\"\r\n  },\r\n  {\r\n    \"path\": \"changed_files/lib/astro_image_io/src/hiss_codec.cpp\",\r\n    \"size\": 12522,\r\n    \"sha256\": \"bca53055c9ea27d804b503a5476073278a9d48fe89d0ea20332c251d23db5c62\"\r\n  },\r\n  {\r\n    \"path\": \"changed_files/lib/astro_image_io/src/hiss_common.cpp\",\r\n    \"size\": 10152,\r\n    \"sha256\": \"786d6ef77e1e7e24b74f0e90ae60cb829454cf30add0205eaf0df8a829943956\"\r\n  },\r\n  {\r\n    \"path\": \"changed_files/lib/astro_image_io/",
+   "spec_files": []
+  },
+  "identity": "packs/history_zip",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "zip",
+  "path": "设计大纲/_evidence/packs/history_zip/AstroCS_ALPHA3_MODULAR_REFOUNDATION_CONTROL_V7_1_20260902_FINAL3.zip",
+  "nfile": 99,
+  "bytes": 398022,
+  "sha256": "005448fb3b6892d3063d23149692fbd9226a892a2c1891e4cb8d14a80e8491c3",
+  "zip": {
+   "tops": [
+    "00_READ_FIRST.md",
+    "01_OWNER_FROZEN_CONSTRAINTS.md",
+    "02_CURRENT_BASELINE_AUDIT.md",
+    "03_TARGET_PRODUCT_AND_ARCHITECTURE.md",
+    "04_FOREGROUND_AGENT_RUNBOOK.md",
+    "05_FIXED_SUBAGENT_BINDINGS.yaml"
+   ],
+   "markers": [
+    "00_READ_FIRST.md",
+    "START_PROMPT.txt"
+   ],
+   "ledger": {
+    "file": "TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "wave",
+     "owner_id",
+     "kind",
+     "depends_on",
+     "mutex_lock",
+     "resource_class",
+     "commit_subject",
+     "spec_ref",
+     "acceptance",
+     "alias_of"
+    ],
+    "rows": 191,
+    "n_id": 191
+   },
+   "read_first_head": "# AstroCS Alpha 模块化重构控制包：先读我\n\n控制包 ID：`ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7`  \n发布日期：`2026-09-02`  \n冻结起始提交：`c1696156583c68c9a3a65287639c726937e9f6e7`  \n冻结起始版本：`0.10.0-alpha.2`  \n目标版本：`0.11.0-alpha.1`  \n正式分支：`main`  \n正式平台：Windows x64；Linux x64 为控制/轻验证平台  \n状态：可执行控制包；任何历史 V4/V5/V6/V18/V19 控制文件均不得覆盖本包。\n\n## 1. 本轮唯一目标\n\n把当前能够工作的但架构、文档和执行真实性仍不可靠的 AstroCS，收敛为可预发布的纯 CPU 模块化产品，同时保持既有科学定义不因架构迁移而漂移。\n\n必须同时实现：\n\n1. Phase1、Phase2、Phase3 分别运行、分别配置、分别验收；不得在同一进程自动串联。\n2. Windows 发布物只有一个用户入口 `astrocs.exe`，科学模块、Runtime、I/O、CPU provider 以 DLL 交付。\n3. 每个 DAG 节点绑定一个真实模块操作，不得以多个节点重复包装同一个 Session。\n4. 一个共享执行器和一个真实 ThreadBudget 管理所有重计算；重计算不得单线程或长期低利用率。\n5. ACR 保留但不进入当前生产构建、加载、benchmark 或发布包。\n6. baseline/AVX2/FMA/AVX-512 仅在热点 kernel 上提供，按硬件安全检查、正确性自测和逐 kernel benchmark 选择；无 profile 一律 baseline。\n7. SCI → ALG → DATA/API/ARCH → 源码符号/module manifest → TEST → 当前提交证据全链闭合。\n8. 每个模块有独立源码、README、manifest 和可复用 unit/property/oracle/negative/performance 测试。\n9. Phase3 独立完成 TAN、SIN、ZEA、CAR、AIT，以及 `nearest`、`healpix_interp4`，使用流式 FITS 输出。\n10. 最终在 Windows 进行一次候选提交的真实数据/32R/接缝/资源验证，不反复跑历史全版本。\n\n## 2. 执行者第一小时必须完成\n\n前台 Agent `FG-000` 依次执行，任何一步失败均不得把控制包称为有效：\n\n1. 在仓库外建立本轮工作根：`ASTROCS_WORK_ROOT/{control,worktrees,returns,logs,reports,build,install,audit,tmp}`。\n2. 复制本控制包到 `ASTROCS_WORK_ROOT/control/active/`，运行 `python validators/validate_control.py --root <控制包目录>`。\n3. 保存输出；必须出现 `CONTROL_PASS`，否则仅允许修复传输损坏，不得开始开发。\n4. 读取本文件、`01_OWNER_FROZ",
+   "spec_files": [
+    "checklists/00_FOREGROUND_AGENT_CHECKLIST.md",
+    "checklists/01_SUBAGENT_RETURN_CHECKLIST.md",
+    "checklists/02_MODULE_ACCEPTANCE_CHECKLIST.md",
+    "checklists/03_WINDOWS_RELEASE_CHECKLIST.md",
+    "checklists/04_AUDIT_PACKAGE_CHECKLIST.md",
+    "checklists/05_INDEPENDENT_REVIEW_CHECKLIST.md",
+    "tasks/00_TASK_EXECUTION_CONTRACT.md",
+    "tasks/01_W0_GOVERNANCE_TASKS.md",
+    "tasks/02_ABI_BUILD_CLI_TASKS.md",
+    "tasks/03_RUNTIME_DATA_IO_TASKS.md",
+    "tasks/04_CPU_RESOURCE_TASKS.md",
+    "tasks/05_PHASE1_TASKS.md",
+    "tasks/06_PHASE2_TASKS.md",
+    "tasks/07_PHASE3_TASKS.md",
+    "tasks/08_QA_LINUX_TASKS.md",
+    "tasks/09_WINDOWS_RELEASE_TASKS.md",
+    "tasks/10_AUDIT_PACKAGING_TASKS.md"
+   ]
+  },
+  "identity": "packs/history_zip",
+  "git_events": {
+   "touch_last": null
+  }
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/a78f5430/AstroCS_Stage1_HISS_Delivery",
+  "nfile": 51,
+  "bytes": 686461,
+  "git_events": {
+   "first": [
+    "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+    "2026-07-31T18:29:02+08:00"
+   ],
+   "last": [
+    "78a9121dad1619674358ed3379a089618187e1aa",
+    "2026-07-31T12:55:14+08:00"
+   ],
+   "adds": [
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ],
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ],
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ],
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ],
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ],
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ]
+   ],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [
+   "00_README.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": null,
+  "manifest": "[{'path': '00_README.md', 'size': 5320, 'sha256': 'cd3c165fa83b43f88adef8fad8c27ab5c5afacdef76da03fdad055d53c592138'}, {'path': 'APPLY_IN_PLACE.md', 'size': 4433, 'sha256': '1ea94b254efe352d6f2b873a8a8af7368622cf1c91ef2c6c887b21582f08237a'}, {'path': 'changed_files/lib/astro_image_io/build.ps1', 'size': 7616, 'sha256': 'bb740adfbf2e1e48dc5cc03068f719f650bc3a8b0559990cde3fb9ed9251a436'}, {'path': 'changed_files/lib/astro_image_io/include/hiss_format.h', 'size': 14466, 'sha256': '9edf3e65b4cc060bbc1e3e47a13ff979c94485981a9a2fb114245faf2c86a8c0'}, {'path': 'changed_files/lib/astro_image_io/Makefile', 'size': 813, 'sha256': '3de852c8160e1ccbc718026ec2e2adcc51a0fee947aa2e1983fbe229924d3cd0'}, {'path': 'changed_files/lib/astro_image_io/memory.md', 'size': 10716, 'sha256': '6f3cdcd5602f7fbe148840",
+  "identity": "AstroCS_Stage1_HISS_Delivery"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/a78f5430/_agent_package",
+  "nfile": 13,
+  "bytes": 30800,
+  "git_events": {
+   "first": [
+    "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+    "2026-07-31T18:29:02+08:00"
+   ],
+   "last": [
+    "78a9121dad1619674358ed3379a089618187e1aa",
+    "2026-07-31T12:55:14+08:00"
+   ],
+   "adds": [
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ],
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ],
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ],
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ],
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ],
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ]
+   ],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": null,
+  "identity": "_agent_package"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/a78f5430/_agent_package/AstroCS_Stage1_HISS_Agent_Package_2026-07-31",
+  "nfile": 13,
+  "bytes": 30645,
+  "git_events": {
+   "first": [
+    "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+    "2026-07-31T18:29:02+08:00"
+   ],
+   "last": [
+    "78a9121dad1619674358ed3379a089618187e1aa",
+    "2026-07-31T12:55:14+08:00"
+   ],
+   "adds": [
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ]
+   ],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [
+   "01_EXECUTION_ORDER.md",
+   "02_FROZEN_STAGE1_HISS_SPEC.md",
+   "03_WIKI_UPDATE_REQUIREMENTS.md",
+   "04_IMPLEMENTATION_REQUIREMENTS.md",
+   "05_CPP_EXPERIMENT_PLAN.md",
+   "06_TEST_AND_ACCEPTANCE.md",
+   "07_FINAL_DELIVERY_STRUCTURE.md",
+   "08_DECISION_QUEUE_TEMPLATE.md",
+   "09_DELIVERY_REVIEW_CHECKLIST.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": null,
+  "manifest": "[{'path': '00_AGENT_START.txt', 'size': 183, 'sha256': 'aec7ea3a983460c3c25c3bd4b9d772f1b1c0dc79c080376999a7b920eb248015'}, {'path': '01_EXECUTION_ORDER.md', 'size': 2688, 'sha256': '641d84c54082c36d25b24ac9c4e4a9d1e53e21726b558b276479161270d57a0c'}, {'path': '02_FROZEN_STAGE1_HISS_SPEC.md', 'size': 7642, 'sha256': '2cd8b8bf0ae1fa924a07038c23de1d48d5d59fdc423d46a3a0fe369f838cffb5'}, {'path': '03_WIKI_UPDATE_REQUIREMENTS.md', 'size': 2351, 'sha256': '86123c31d21828b92e0aae87eecfa5cc52fb28d5f8a90eb2ee312c053f36b1a6'}, {'path': '04_IMPLEMENTATION_REQUIREMENTS.md', 'size': 2958, 'sha256': 'b97a8f6dd6795b26debda3075551e7a1378b3408fd46b5c99194723fd21a69de'}, {'path': '05_CPP_EXPERIMENT_PLAN.md', 'size': 3231, 'sha256': '514d84a4450bc3fa9f5737c596f1ace2574684e70e3a52d457db0d9246988c06'}, {'path':",
+  "identity": "AstroCS_Stage1_HISS_Agent_Package_2026-07-31"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/036a3bb5/_new_pack_v1.1",
+  "nfile": 93,
+  "bytes": 115411,
+  "git_events": {
+   "first": [
+    "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+    "2026-07-29T20:09:57+08:00"
+   ],
+   "last": [
+    "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+    "2026-07-25T13:04:19+08:00"
+   ],
+   "adds": [
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ],
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ],
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ],
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ],
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ],
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ]
+   ],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": null,
+  "identity": "_new_pack_v1.1"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/036a3bb5/_new_pack_v1.1/AstroCS_CLI_Core_Development_Pack",
+  "nfile": 93,
+  "bytes": 115280,
+  "git_events": {
+   "first": [
+    "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+    "2026-07-29T20:09:57+08:00"
+   ],
+   "last": [
+    "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+    "2026-07-25T13:04:19+08:00"
+   ],
+   "adds": [
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ],
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ]
+   ],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [],
+  "tasks_files": [
+   "tasks/P00-001.md",
+   "tasks/P00-002.md",
+   "tasks/P00-003.md",
+   "tasks/P01-001.md",
+   "tasks/P01-002.md",
+   "tasks/P01-003.md",
+   "tasks/P02-001.md",
+   "tasks/P02-002.md",
+   "tasks/P02-003.md",
+   "tasks/P02-004.md",
+   "tasks/P02-005.md",
+   "tasks/P02-006.md",
+   "tasks/P02-007.md",
+   "tasks/P03-001.md",
+   "tasks/P03-002.md",
+   "tasks/P03-003.md",
+   "tasks/P03-004.md",
+   "tasks/P04-001.md",
+   "tasks/P04-002.md",
+   "tasks/P04-003.md",
+   "tasks/P04-004.md",
+   "tasks/P05-001.md",
+   "tasks/P05-002.md",
+   "tasks/P05-003.md",
+   "tasks/P06-001.md",
+   "tasks/P06-002.md",
+   "tasks/P06-003.md",
+   "tasks/P07-001.md",
+   "tasks/P07-002.md",
+   "tasks/P08-001.md",
+   "tasks/P08-002.md"
+  ],
+  "scripts": [],
+  "schemas": [],
+  "templates": [
+   "templates/ADR.md",
+   "templates/BLOCKED_REPORT.md",
+   "templates/EVIDENCE_INDEX.md",
+   "templates/PLATESOLVE_AB_REPORT.md",
+   "templates/REVIEW_REPORT.md",
+   "templates/TASK_REPORT.md",
+   "templates/TEST_REPORT.md"
+  ],
+  "sums": {
+   "ok": 91,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "start_prompt": "解压最新AstroCS开发包，读取AUTONOMOUS_ENTRY.md，按状态文件持续执行，仅在硬阻塞或全部完成时汇报。\n",
+  "identity": "AstroCS_CLI_Core_Development_Pack"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/a78f5430/_v2_pack/AstroCS_Authoritative_Development_Pack_v2.0",
+  "nfile": 75,
+  "bytes": 97484,
+  "git_events": {
+   "first": [
+    "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+    "2026-07-31T18:29:02+08:00"
+   ],
+   "last": [
+    "75b05f72d6a041e3cbbde5e10efc5b4a69deaaba",
+    "2026-07-30T10:47:48+08:00"
+   ],
+   "adds": [
+    [
+     "75b05f72d6a041e3cbbde5e10efc5b4a69deaaba",
+     "2026-07-30T10:47:48+08:00"
+    ],
+    [
+     "75b05f72d6a041e3cbbde5e10efc5b4a69deaaba",
+     "2026-07-30T10:47:48+08:00"
+    ],
+    [
+     "75b05f72d6a041e3cbbde5e10efc5b4a69deaaba",
+     "2026-07-30T10:47:48+08:00"
+    ],
+    [
+     "75b05f72d6a041e3cbbde5e10efc5b4a69deaaba",
+     "2026-07-30T10:47:48+08:00"
+    ],
+    [
+     "75b05f72d6a041e3cbbde5e10efc5b4a69deaaba",
+     "2026-07-30T10:47:48+08:00"
+    ],
+    [
+     "75b05f72d6a041e3cbbde5e10efc5b4a69deaaba",
+     "2026-07-30T10:47:48+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ]
+   ],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [],
+  "tasks_files": [
+   "tasks/A-001.md",
+   "tasks/A-002.md",
+   "tasks/A-003.md",
+   "tasks/A-004.md",
+   "tasks/B-001.md",
+   "tasks/B-002.md",
+   "tasks/B-003.md",
+   "tasks/C-001.md",
+   "tasks/C-002.md",
+   "tasks/C-003.md",
+   "tasks/C-004.md",
+   "tasks/D-001.md",
+   "tasks/E-001.md",
+   "tasks/E-002.md",
+   "tasks/E-003.md",
+   "tasks/E-004.md",
+   "tasks/F-001.md",
+   "tasks/F-002.md",
+   "tasks/G-001.md",
+   "tasks/G-002.md",
+   "tasks/G-003.md",
+   "tasks/G-004.md",
+   "tasks/G-005.md",
+   "tasks/H-001.md",
+   "tasks/H-002.md",
+   "tasks/H-003.md",
+   "tasks/H-004.md",
+   "tasks/I-001.md",
+   "tasks/I-002.md",
+   "tasks/I-003.md"
+  ],
+  "scripts": [],
+  "schemas": [],
+  "templates": [
+   "templates/ADR.md",
+   "templates/BLOCKED_REPORT.md",
+   "templates/GATE_REPORT.md"
+  ],
+  "sums": {
+   "ok": 71,
+   "mismatch": 1,
+   "missing": 0,
+   "mismatch_list": [
+    "control/MASTER_TASK_REGISTER.csv"
+   ]
+  },
+  "start_prompt": "解压最新AstroCS权威开发包，读取AUTONOMOUS_ENTRY.md，安装根README并按权威Gate持续执行，仅硬阻塞或全部完成时汇报。\n",
+  "identity": "AstroCS_Authoritative_Development_Pack_v2.0"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/a78f5430/_wiki_freeze/AstroCS_Stage1_Wiki_Freeze_2026-07-30",
+  "nfile": 24,
+  "bytes": 52888,
+  "git_events": {
+   "first": [
+    "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+    "2026-07-31T18:29:02+08:00"
+   ],
+   "last": [
+    "78a9121dad1619674358ed3379a089618187e1aa",
+    "2026-07-31T12:55:14+08:00"
+   ],
+   "adds": [
+    [
+     "78a9121dad1619674358ed3379a089618187e1aa",
+     "2026-07-31T12:55:14+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ]
+   ],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": null,
+  "manifest": "{'README.md': {'sha256': '20fd869f959e4201b35305f50d79e984b61b9b1eae10c7f5790c95d990c6d3ee', 'size': 1060}, 'tools/Push-Wiki.ps1': {'sha256': '82dc098c6fecd77e81169732d98531c5485a5db8eb931e823a62d9dc82abc083', 'size': 3526}, 'wiki/HISS-格式规范.md': {'sha256': '7d562fb09c327be99ee200ee08fb1bec8fb7206ab9155851ef91748292a5cc62', 'size': 3574}, 'wiki/Home.md': {'sha256': '961c9c488fc6e8dec21567cd80a076819162658b74c1c4aa92f8087bd030b8ca', 'size': 1806}, 'wiki/Stage1-CLI接口.md': {'sha256': '76c3ecff0c495fb36b15296f1e4642f63b2c9c51741021c9136fa4d11768cbc2', 'size': 1758}, 'wiki/Stage1-Drizzle规范.md': {'sha256': 'ad5cfa807ea66c8f7c01507852df1188850b88523cd894111c4693d9dbd2ffc6', 'size': 2759}, 'wiki/Stage1-开发治理.md': {'sha256': '1eaf799ba9d51860de8d06cf42d081294e7ed1abf1938905c8be47a9097c650c', 'size': ",
+  "identity": "AstroCS_Stage1_Wiki_Freeze_2026-07-30"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/8e03d7da/engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
+  "nfile": 57,
+  "bytes": 544806,
+  "git_events": {
+   "first": [
+    "a4fdee3f446de08cda50889a223740237b2da4a0",
+    "2026-09-05T17:51:10+08:00"
+   ],
+   "last": [
+    "a4fdee3f446de08cda50889a223740237b2da4a0",
+    "2026-09-05T17:51:10+08:00"
+   ],
+   "adds": [
+    [
+     "a4fdee3f446de08cda50889a223740237b2da4a0",
+     "2026-09-05T17:51:10+08:00"
+    ],
+    [
+     "a4fdee3f446de08cda50889a223740237b2da4a0",
+     "2026-09-05T17:51:10+08:00"
+    ],
+    [
+     "a4fdee3f446de08cda50889a223740237b2da4a0",
+     "2026-09-05T17:51:10+08:00"
+    ],
+    [
+     "a4fdee3f446de08cda50889a223740237b2da4a0",
+     "2026-09-05T17:51:10+08:00"
+    ],
+    [
+     "a4fdee3f446de08cda50889a223740237b2da4a0",
+     "2026-09-05T17:51:10+08:00"
+    ],
+    [
+     "a4fdee3f446de08cda50889a223740237b2da4a0",
+     "2026-09-05T17:51:10+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "00｜唯一执行入口"
+   ],
+   [
+    2,
+    "目标"
+   ],
+   [
+    2,
+    "先读顺序"
+   ],
+   [
+    2,
+    "不得违反"
+   ],
+   [
+    2,
+    "包自检"
+   ],
+   [
+    2,
+    "完成定义"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_FROZEN_CONSTRAINTS.md",
+   "02_CURRENT_STATE_AUDIT.md",
+   "03_VM_AND_CI_ARCHITECTURE.md",
+   "04_FOREGROUND_AGENT_RUNBOOK.md",
+   "06_TASK_GRAPH_AND_GATES.md",
+   "07_CI_MACHINE_CONTRACT.md",
+   "08_MAIN_ONLY_GIT_PROTOCOL.md",
+   "09_WINDOWS_AND_FATDUCK_VALIDATION.md",
+   "10_SECURITY_AND_RUNNER.md",
+   "11_EVIDENCE_AND_AUDIT_PACKAGE.md",
+   "12_FAILURE_POLICY.md",
+   "13_PRIMARY_REFERENCES.md",
+   "14_TOKEN_EFFICIENT_EXECUTION.md",
+   "15_SUPERSESSION_NOTICE.md"
+  ],
+  "tasks_files": [
+   "tasks/01_WORKSPACE_ADOPTION_TASKS.md",
+   "tasks/02_CI_TASKS.md",
+   "tasks/03_P0_REMEDIATION_TASKS.md",
+   "tasks/04_FATDUCK_AND_RELEASE_TASKS.md"
+  ],
+  "scripts": [],
+  "schemas": [],
+  "templates": [
+   "templates/AGENTS_VM_APPEND.md",
+   "templates/DISPATCH.json",
+   "templates/FATDUCK_HARNESS_CONTRACT.md",
+   "templates/OWNER_REVIEW_ISSUE.md",
+   "templates/fatduck-realdata.yml",
+   "templates/linux-ci.yml",
+   "templates/windows-ci.yml"
+  ],
+  "sums": {
+   "ok": 50,
+   "mismatch": 4,
+   "missing": 0,
+   "mismatch_list": [
+    "baseline/AstroCS_ALPHA3_MODULAR_REFOUNDATION_CONTROL_V7_1_20260902_FINAL3.zip",
+    "baseline/REVIEW_CLAIMED_TASK_STATE.csv",
+    "baseline/REVIEW_FINDINGS.csv",
+    "baseline/V7_1_STATIC_TASK_LEDGER.csv"
+   ]
+  },
+  "start_prompt": "严格执行00_READ_FIRST.md：在现有main工作区原地接入双平台CI和Fatduck终验；禁止克隆、迁移、分支及worktree。\n",
+  "identity": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/036a3bb5/engineering_archive_v1.0",
+  "nfile": 154,
+  "bytes": 838803,
+  "git_events": {
+   "first": [
+    "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+    "2026-07-29T20:09:57+08:00"
+   ],
+   "last": [
+    "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+    "2026-07-25T13:04:19+08:00"
+   ],
+   "adds": [
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ],
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ],
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ],
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ],
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ],
+    [
+     "ba4f0d34f5749695becc4ac91aa57e0029e9a98a",
+     "2026-07-25T13:04:19+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ]
+   ],
+   "mod_n": 59
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [
+   "00_START_HERE.md",
+   "01_PROJECT_CHARTER.md",
+   "02_BASELINE_AUDIT.md",
+   "03_TARGET_SYSTEM_ARCHITECTURE.md",
+   "04_ENGINEERING_CONTROL_MODEL.md",
+   "05_REPOSITORY_AND_DEPENDENCY_MANAGEMENT.md",
+   "06_DATA_MANAGEMENT_SPEC.md",
+   "07_INTERFACE_MANAGEMENT_SPEC.md",
+   "08_CONFIGURATION_AND_BUILD_SPEC.md",
+   "09_TEST_AND_VERIFICATION_STRATEGY.md",
+   "10_REFERENCE_DATASET_SPEC.md",
+   "11_STAGE1_VALIDATION_SPEC.md",
+   "12_STAGE2_STACKING_VALIDATION_SPEC.md",
+   "13_OBSERVABILITY_AND_DIAGNOSTICS_SPEC.md",
+   "14_RELEASE_AND_VERSIONING_SPEC.md",
+   "15_ROADMAP_AND_GATES.md"
+  ],
+  "tasks_files": [
+   "tasks/P00_BASELINE_AND_REPOSITORY_INTEGRITY.md",
+   "tasks/P01_BUILD_REPRODUCIBILITY.md",
+   "tasks/P02_DATA_CONTRACT_FREEZE.md",
+   "tasks/P03_INTERFACE_CONTRACT_FREEZE.md",
+   "tasks/P04_TEST_INFRASTRUCTURE.md",
+   "tasks/P05_STAGE1_VERIFICATION.md",
+   "tasks/P06_STAGE2_SYSTEMATIC_DEBUG.md",
+   "tasks/P07_PERFORMANCE_AND_STABILITY.md",
+   "tasks/P08_RELEASE_AND_FUTURE.md"
+  ],
+  "scripts": [],
+  "schemas": [],
+  "templates": [
+   "templates/ADR.md",
+   "templates/BLOCKED_REPORT.md",
+   "templates/DATASET_CARD.md",
+   "templates/DEFECT_REPORT.md",
+   "templates/EVIDENCE_INDEX.md",
+   "templates/INTERFACE_CONTRACT.md",
+   "templates/RELEASE_NOTE.md",
+   "templates/REVIEW_REPORT.md",
+   "templates/SESSION_CHECKPOINT.md",
+   "templates/TASK_REPORT.md",
+   "templates/TEST_REPORT.md"
+  ],
+  "sums": null,
+  "identity": "036a3bb5/engineering_archive_v1.0"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/a78f5430/engineering_authoritative",
+  "nfile": 177,
+  "bytes": 942929,
+  "git_events": {
+   "first": [
+    "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+    "2026-07-31T18:29:02+08:00"
+   ],
+   "last": [
+    "75b05f72d6a041e3cbbde5e10efc5b4a69deaaba",
+    "2026-07-30T10:47:48+08:00"
+   ],
+   "adds": [
+    [
+     "b00464f9c967963410f657fc112aa809e5234a39",
+     "2026-07-30T16:26:26+08:00"
+    ],
+    [
+     "b00464f9c967963410f657fc112aa809e5234a39",
+     "2026-07-30T16:26:26+08:00"
+    ],
+    [
+     "b00464f9c967963410f657fc112aa809e5234a39",
+     "2026-07-30T16:26:26+08:00"
+    ],
+    [
+     "caa6cb9de7bf22b577ef6bc3ae3e6040076675a4",
+     "2026-07-30T16:17:23+08:00"
+    ],
+    [
+     "5a41e2853536f3e9dc1bec01670e754f2bac79ad",
+     "2026-07-30T15:50:16+08:00"
+    ],
+    [
+     "5a41e2853536f3e9dc1bec01670e754f2bac79ad",
+     "2026-07-30T15:50:16+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ],
+    [
+     "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+     "2026-07-31T18:29:02+08:00"
+    ]
+   ],
+   "mod_n": 35
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [],
+  "tasks_files": [
+   "tasks/A-001.md",
+   "tasks/A-002.md",
+   "tasks/A-003.md",
+   "tasks/A-004.md",
+   "tasks/B-001.md",
+   "tasks/B-002.md",
+   "tasks/B-003.md",
+   "tasks/C-001.md",
+   "tasks/C-002.md",
+   "tasks/C-003.md",
+   "tasks/C-004.md",
+   "tasks/D-001.md",
+   "tasks/E-001.md",
+   "tasks/E-002.md",
+   "tasks/E-003.md",
+   "tasks/E-004.md",
+   "tasks/F-001.md",
+   "tasks/F-002.md",
+   "tasks/G-001.md",
+   "tasks/G-002.md",
+   "tasks/G-003.md",
+   "tasks/G-004.md",
+   "tasks/G-005.md",
+   "tasks/H-001.md",
+   "tasks/H-002.md",
+   "tasks/H-003.md",
+   "tasks/H-004.md",
+   "tasks/I-001.md",
+   "tasks/I-002.md",
+   "tasks/I-003.md"
+  ],
+  "scripts": [],
+  "schemas": [],
+  "templates": [
+   "templates/ADR.md",
+   "templates/BLOCKED_REPORT.md",
+   "templates/GATE_REPORT.md"
+  ],
+  "sums": null,
+  "identity": "a78f5430/engineering_authoritative"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/036a3bb5/engineering_v1.2",
+  "nfile": 343,
+  "bytes": 14515885,
+  "git_events": {
+   "first": [
+    "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+    "2026-07-29T20:09:57+08:00"
+   ],
+   "last": [
+    "0d1857de5ccc3ed1c69180db2a2623ebb3d2ecae",
+    "2026-07-27T17:55:32+08:00"
+   ],
+   "adds": [
+    [
+     "93ee0258eac2db03dd0914b681cc607560e5f939",
+     "2026-07-28T13:39:10+08:00"
+    ],
+    [
+     "93ee0258eac2db03dd0914b681cc607560e5f939",
+     "2026-07-28T13:39:10+08:00"
+    ],
+    [
+     "93ee0258eac2db03dd0914b681cc607560e5f939",
+     "2026-07-28T13:39:10+08:00"
+    ],
+    [
+     "93ee0258eac2db03dd0914b681cc607560e5f939",
+     "2026-07-28T13:39:10+08:00"
+    ],
+    [
+     "93ee0258eac2db03dd0914b681cc607560e5f939",
+     "2026-07-28T13:39:10+08:00"
+    ],
+    [
+     "93ee0258eac2db03dd0914b681cc607560e5f939",
+     "2026-07-28T13:39:10+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ]
+   ],
+   "mod_n": 35
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [],
+  "tasks_files": [
+   "tasks/P09-001.md",
+   "tasks/P09-002.md",
+   "tasks/P09-003.md",
+   "tasks/P10-001.md",
+   "tasks/P10-002.md",
+   "tasks/P10-003.md",
+   "tasks/P10-004.md",
+   "tasks/P10-005.md",
+   "tasks/P10-006.md",
+   "tasks/P11-001.md",
+   "tasks/P11-002.md",
+   "tasks/P11-003.md",
+   "tasks/P11-004.md",
+   "tasks/P11-005.md",
+   "tasks/P11-006.md",
+   "tasks/P12-001.md",
+   "tasks/P12-002.md",
+   "tasks/P12-003.md",
+   "tasks/P12-004.md",
+   "tasks/P12-005.md",
+   "tasks/P12-006.md",
+   "tasks/P13-001.md",
+   "tasks/P13-002.md",
+   "tasks/P13-003.md",
+   "tasks/P13-004.md",
+   "tasks/P14-001.md",
+   "tasks/P14-002.md",
+   "tasks/P14-003.md",
+   "tasks/P14-004.md",
+   "tasks/P14-005.md",
+   "tasks/P14-006.md",
+   "tasks/P14-007.md",
+   "tasks/P14-008.md",
+   "tasks/P15-001.md",
+   "tasks/P15-002.md",
+   "tasks/P15-003.md",
+   "tasks/P15-004.md",
+   "tasks/P15-005.md",
+   "tasks/P15-006.md",
+   "tasks/P15-007.md",
+   "tasks/P15-008.md",
+   "tasks/P16-001.md",
+   "tasks/P16-002.md",
+   "tasks/P16-003.md",
+   "tasks/P16-004.md",
+   "tasks/P16-005.md",
+   "tasks/P16-006.md",
+   "tasks/P17-001.md",
+   "tasks/P17-002.md",
+   "tasks/P17-003.md"
+  ],
+  "scripts": [],
+  "schemas": [],
+  "templates": [
+   "templates/ADR.md",
+   "templates/BLOCKED_REPORT.md",
+   "templates/EVIDENCE_INDEX.md",
+   "templates/REVIEW_REPORT.md",
+   "templates/SESSION_CHECKPOINT.md",
+   "templates/TASK_REPORT.md",
+   "templates/TEST_REPORT.md"
+  ],
+  "sums": {
+   "ok": 115,
+   "mismatch": 5,
+   "missing": 0,
+   "mismatch_list": [
+    "control/CURRENT_TASK.md",
+    "control/DECISION_REGISTER.md",
+    "control/MASTER_TASK_REGISTER.csv",
+    "control/PROJECT_STATE.yaml",
+    "control/REQUIREMENTS_TRACEABILITY.csv"
+   ]
+  },
+  "start_prompt": "解压最新AstroCS下一阶段开发包，读取AUTONOMOUS_ENTRY.md，按状态持续执行；仅硬阻塞或全部完成时汇报。\n",
+  "identity": "036a3bb5/engineering_v1.2"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/036a3bb5/engineering_v1.3",
+  "nfile": 401,
+  "bytes": 15374688,
+  "git_events": {
+   "first": [
+    "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+    "2026-07-29T20:09:57+08:00"
+   ],
+   "last": [
+    "f4ec8b24e1a090b7129f3afd87ccb4a0e88b1036",
+    "2026-07-28T16:02:17+08:00"
+   ],
+   "adds": [
+    [
+     "977f1381bf470b3f04f2b195d7c1ee10b5e23185",
+     "2026-07-29T19:33:41+08:00"
+    ],
+    [
+     "977f1381bf470b3f04f2b195d7c1ee10b5e23185",
+     "2026-07-29T19:33:41+08:00"
+    ],
+    [
+     "977f1381bf470b3f04f2b195d7c1ee10b5e23185",
+     "2026-07-29T19:33:41+08:00"
+    ],
+    [
+     "977f1381bf470b3f04f2b195d7c1ee10b5e23185",
+     "2026-07-29T19:33:41+08:00"
+    ],
+    [
+     "977f1381bf470b3f04f2b195d7c1ee10b5e23185",
+     "2026-07-29T19:33:41+08:00"
+    ],
+    [
+     "c755334b639a0c6bb908a21245488b0ee945934d",
+     "2026-07-29T12:11:45+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ],
+    [
+     "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+     "2026-07-29T20:09:57+08:00"
+    ]
+   ],
+   "mod_n": 60
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [],
+  "tasks_files": [
+   "tasks/P09-001.md",
+   "tasks/P09-002.md",
+   "tasks/P09-003.md",
+   "tasks/P10-001.md",
+   "tasks/P10-002.md",
+   "tasks/P10-003.md",
+   "tasks/P10-004.md",
+   "tasks/P10-005.md",
+   "tasks/P10-006.md",
+   "tasks/P11-001.md",
+   "tasks/P11-002.md",
+   "tasks/P11-003.md",
+   "tasks/P11-004.md",
+   "tasks/P11-005.md",
+   "tasks/P11-006.md",
+   "tasks/P12-001.md",
+   "tasks/P12-002.md",
+   "tasks/P12-003.md",
+   "tasks/P12-004.md",
+   "tasks/P12-005.md",
+   "tasks/P12-006.md",
+   "tasks/P13-001.md",
+   "tasks/P13-002.md",
+   "tasks/P13-003.md",
+   "tasks/P13-004.md",
+   "tasks/P14-001.md",
+   "tasks/P14-002.md",
+   "tasks/P14-003.md",
+   "tasks/P14-004.md",
+   "tasks/P14-005.md",
+   "tasks/P14-006.md",
+   "tasks/P14-007.md",
+   "tasks/P14-008.md",
+   "tasks/P15-001.md",
+   "tasks/P15-002.md",
+   "tasks/P15-003.md",
+   "tasks/P15-004.md",
+   "tasks/P15-005.md",
+   "tasks/P15-006.md",
+   "tasks/P15-007.md",
+   "tasks/P15-008.md",
+   "tasks/P16-001.md",
+   "tasks/P16-002.md",
+   "tasks/P16-003.md",
+   "tasks/P16-004.md",
+   "tasks/P16-005.md",
+   "tasks/P16-006.md",
+   "tasks/P17-001.md",
+   "tasks/P17-002.md",
+   "tasks/P17-003.md"
+  ],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": {
+   "ok": 113,
+   "mismatch": 6,
+   "missing": 13,
+   "mismatch_list": [
+    "contracts/wcs_authoritative_pairs.schema.json",
+    "control/CURRENT_TASK.md",
+    "control/DECISION_REGISTER.md",
+    "control/MASTER_TASK_REGISTER.csv",
+    "control/PROJECT_STATE.yaml",
+    "control/REQUIREMENTS_TRACEABILITY.csv"
+   ]
+  },
+  "start_prompt": "解压最新AstroCS修复开发包，读取AUTONOMOUS_ENTRY.md，迁移v1.2进度并持续执行，仅硬阻塞或全部完成时汇报。\n",
+  "identity": "036a3bb5/engineering_v1.3"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/b7b2dea7/工程控制/CONTROL_V4/AstroCS_MAIN_PRERELEASE_CONTROL_V4_CPU_ADAPTIVE_20260828",
+  "nfile": 27,
+  "bytes": 48410,
+  "git_events": {
+   "first": [
+    "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+    "2026-08-28T20:54:30+08:00"
+   ],
+   "last": [
+    "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+    "2026-08-28T20:54:30+08:00"
+   ],
+   "adds": [
+    [
+     "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+     "2026-08-28T20:54:30+08:00"
+    ],
+    [
+     "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+     "2026-08-28T20:54:30+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 0
+  },
+  "ledgers": [
+   {
+    "file": "02_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "phase",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "preferred_host",
+     "status"
+    ],
+    "rows": 54,
+    "status_col": "status",
+    "status_dist": {
+     "NOT_STARTED": 54
+    },
+    "n_id": 54,
+    "ids_sample": [
+     "BASE-001",
+     "GOV-001",
+     "BASE-002",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "SCI-006",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ALG-005",
+     "DOC-001",
+     "DOC-002",
+     "REV-001",
+     "QA-001",
+     "QA-002",
+     "QA-003",
+     "CPU-001",
+     "CPU-002",
+     "CPU-003",
+     "CPU-004",
+     "MON-001",
+     "MON-002",
+     "PAR-001",
+     "PAR-002",
+     "PAR-003",
+     "PAR-004",
+     "PAR-005",
+     "PAR-006",
+     "PAR-007",
+     "REV-002",
+     "SYN-001",
+     "SYN-002",
+     "SYN-003",
+     "SYN-004",
+     "SYN-005",
+     "SYN-006"
+    ]
+   }
+  ],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS V4：CPU 自适应预发布控制"
+   ],
+   [
+    2,
+    "目标"
+   ],
+   [
+    2,
+    "本包优先级"
+   ],
+   [
+    2,
+    "硬规则"
+   ],
+   [
+    2,
+    "启动顺序"
+   ],
+   [
+    2,
+    "审核责任"
+   ],
+   [
+    2,
+    "唯一允许状态"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_SCOPE_AND_WORKFLOW.md",
+   "03_TASK_DETAILS.md",
+   "04_CPU_AUTOTUNE_SPEC.md",
+   "05_RESOURCE_MONITOR_SPEC.md",
+   "06_SYNTHETIC_VALIDATION_MATRIX.md",
+   "07_DOC_CODE_CONSISTENCY.md",
+   "08_LINUX_WINDOWS_POLICY.md",
+   "09_GIT_AND_AUDIT_PACKAGE.md",
+   "10_AGENTS_MD_REQUIRED_BLOCK.md",
+   "11_V3_INHERITANCE_AND_INVALIDATION.md",
+   "12_REVIEW_CAPSULE_AND_EXTERNAL_AUDIT.md"
+  ],
+  "tasks_files": [],
+  "scripts": [
+   "scripts/package_final.py",
+   "scripts/validate_control.py",
+   "scripts/validate_final_package.py"
+  ],
+  "schemas": [],
+  "templates": [
+   "templates/BUILD_RESULTS.csv",
+   "templates/COMMITS.csv",
+   "templates/CPU_PROFILE_RESULTS.csv",
+   "templates/FINDINGS.csv",
+   "templates/LARGE_ARTIFACTS.csv",
+   "templates/RESOURCE_RESULTS.csv",
+   "templates/REVIEW_CAPSULE_INDEX.csv",
+   "templates/SCIENCE_CLAIMS.csv",
+   "templates/TEST_RESULTS.csv",
+   "templates/TRACEABILITY.csv"
+  ],
+  "sums": null,
+  "identity": "AstroCS_MAIN_PRERELEASE_CONTROL_V4_CPU_ADAPTIVE_20260828"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/b7b2dea7/工程控制/CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830",
+  "nfile": 47,
+  "bytes": 201174,
+  "git_events": {
+   "first": [
+    "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+    "2026-08-30T23:20:14+08:00"
+   ],
+   "last": [
+    "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+    "2026-08-30T23:20:14+08:00"
+   ],
+   "adds": [
+    [
+     "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+     "2026-08-30T23:20:14+08:00"
+    ],
+    [
+     "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+     "2026-08-30T23:20:14+08:00"
+    ],
+    [
+     "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+     "2026-08-30T23:20:14+08:00"
+    ],
+    [
+     "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+     "2026-08-30T23:20:14+08:00"
+    ],
+    [
+     "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+     "2026-08-30T23:20:14+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 0
+  },
+  "ledgers": [
+   {
+    "file": "05_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "title",
+     "depends_on",
+     "platform",
+     "change_class",
+     "heavy_compute",
+     "commit_required",
+     "scope",
+     "acceptance",
+     "status"
+    ],
+    "rows": 88,
+    "status_col": "status",
+    "status_dist": {
+     "NOT_STARTED": 88
+    },
+    "n_id": 88,
+    "ids_sample": [
+     "BAS-001",
+     "BAS-002",
+     "BAS-003",
+     "BAS-004",
+     "VER-001",
+     "DOC-001",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "DATA-001",
+     "ARCH-001",
+     "API-001",
+     "TEST-001",
+     "BLD-001",
+     "CORE-001",
+     "CORE-002",
+     "CORE-003",
+     "CORE-004",
+     "CORE-005",
+     "CORE-006",
+     "CORE-007",
+     "CORE-008",
+     "IO-001",
+     "IO-002",
+     "IO-003",
+     "IO-004",
+     "CPU-001",
+     "CPU-002",
+     "CPU-003",
+     "CPU-004",
+     "CPU-005",
+     "CPU-006",
+     "CPU-007",
+     "CPU-008",
+     "P1-001",
+     "P1-002",
+     "P1-003",
+     "P1-004",
+     "P1-005",
+     "P1-006"
+    ]
+   }
+  ],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS V6 系统重构控制包：执行入口"
+   ],
+   [
+    2,
+    "1. 任务目标"
+   ],
+   [
+    2,
+    "2. 文档优先级"
+   ],
+   [
+    2,
+    "3. 执行前必须完成"
+   ],
+   [
+    2,
+    "4. 连续执行规则"
+   ],
+   [
+    2,
+    "5. 修改纪律"
+   ],
+   [
+    2,
+    "6. 绝对禁止项"
+   ],
+   [
+    2,
+    "7. 完成定义"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_ASTROCS_ENGINEERING_CONSTRAINTS.md",
+   "02_BASELINE_AUDIT.md",
+   "03_TARGET_ARCHITECTURE.md",
+   "04_MIGRATION_AND_GATES.md",
+   "06_TASK_SPECIFICATIONS.md",
+   "07_SCIENCE_AND_TEST_MATRIX.md",
+   "08_CPU_PARALLEL_BACKEND.md",
+   "09_DOCUMENTATION_AND_MACHINE_CHECKS.md",
+   "10_LINUX_WINDOWS_EXECUTION.md",
+   "11_GIT_MAIN_ONLY.md",
+   "12_AUDIT_PACKAGE_SPEC.md",
+   "13_RELEASE_ACCEPTANCE.md",
+   "14_PRIMARY_REFERENCES.md",
+   "15_GATE_CHECKLISTS.md"
+  ],
+  "tasks_files": [],
+  "scripts": [
+   "scripts/package_audit.py",
+   "scripts/selftest.py",
+   "scripts/validate_audit.py",
+   "scripts/validate_control.py",
+   "scripts/validate_task_graph.py"
+  ],
+  "schemas": [
+   "schemas/audit_summary.schema.json",
+   "schemas/cpu_profile.schema.json",
+   "schemas/data_artifact.schema.json",
+   "schemas/module_descriptor.schema.json",
+   "schemas/pipeline_ir.schema.json",
+   "schemas/task_result.schema.json"
+  ],
+  "templates": [
+   "templates/ALG_CONTRACT.md",
+   "templates/CHANGE_REVIEW.md",
+   "templates/LARGE_ARTIFACT_MANIFEST.csv",
+   "templates/MODULE_README.md",
+   "templates/OWNER_REVIEW.md",
+   "templates/RESOURCE_SUMMARY.csv",
+   "templates/SCI_CONTRACT.md",
+   "templates/TASK_REPORT.md",
+   "templates/TEST_SUMMARY.csv"
+  ],
+  "sums": {
+   "ok": 44,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "manifest": "{'schema': 'astrocs.control-manifest/v1', 'control_version': 'V6.0', 'target_version': '0.10.0-alpha.1', 'baseline_commit': '587fe0e341a780da726917f40ed77f610de0c73f', 'engineering_constraints_sha256': 'dc47fbbbeccb239fc1834a985b357d6ded50080977708b6ea5c9811bf4de4b92', 'generated_utc': '2026-08-30T15:06:37Z', 'files': [{'path': '00_READ_FIRST.md', 'size': 4736, 'sha256': 'ef821216c25c6e7a6f16b2648b449ab1962d25b77cf3097f32ae7f119376d99c'}, {'path': '01_ASTROCS_ENGINEERING_CONSTRAINTS.md', 'size': 17423, 'sha256': 'dc47fbbbeccb239fc1834a985b357d6ded50080977708b6ea5c9811bf4de4b92'}, {'path': '02_BASELINE_AUDIT.md', 'size': 7456, 'sha256': '41f80ce73c2ee403980075083320dfc3d6652b46f3584d24946dcf42b54c0438'}, {'path': '03_TARGET_ARCHITECTURE.md', 'size': 12798, 'sha256': '4b96586fc5044ad10cddd63",
+  "start_prompt": "校验控制包，严格按00入口和任务DAG连续重构main；一任务一提交推送，未过硬门不得称完成。\n",
+  "identity": "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/ac2ced53/工程控制/REAUDIT_V3/v3_audit",
+  "nfile": 19,
+  "bytes": 57150,
+  "git_events": {
+   "first": [
+    "3703650df136a5dff27361f3ef8232509a7628c7",
+    "2026-08-27T23:08:54+08:00"
+   ],
+   "last": [
+    "3703650df136a5dff27361f3ef8232509a7628c7",
+    "2026-08-27T23:08:54+08:00"
+   ],
+   "adds": [
+    [
+     "3703650df136a5dff27361f3ef8232509a7628c7",
+     "2026-08-27T23:08:54+08:00"
+    ],
+    [
+     "3703650df136a5dff27361f3ef8232509a7628c7",
+     "2026-08-27T23:08:54+08:00"
+    ],
+    [
+     "3703650df136a5dff27361f3ef8232509a7628c7",
+     "2026-08-27T23:08:54+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 0
+  },
+  "ledgers": [
+   {
+    "file": "TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "checkpoint",
+     "status"
+    ],
+    "rows": 62,
+    "status_col": "status",
+    "status_dist": {
+     "PASS": 10,
+     "IN_PROGRESS": 1,
+     "NOT_STARTED": 51
+    },
+    "n_id": 62,
+    "ids_sample": [
+     "ID-001",
+     "ID-002",
+     "ID-003",
+     "CON-001",
+     "CON-002",
+     "CON-003",
+     "CON-004",
+     "CON-005",
+     "CON-006",
+     "CON-007",
+     "CON-008",
+     "CON-009",
+     "CON-010",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ORA-001",
+     "ARCH-001",
+     "ARCH-002",
+     "API-001",
+     "API-002",
+     "API-003",
+     "API-004",
+     "API-005",
+     "DOC-001",
+     "CHK-001",
+     "CHK-002",
+     "CHK-003",
+     "CHK-004",
+     "CHK-005",
+     "CHK-006",
+     "BLD-001",
+     "BLD-002",
+     "BLD-003"
+    ]
+   }
+  ],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS 预发布重审 (V3) — CP0 身份与数据审核包"
+   ],
+   [
+    2,
+    "候选/起点"
+   ],
+   [
+    2,
+    "Gate"
+   ],
+   [
+    2,
+    "状态"
+   ],
+   [
+    2,
+    "计数"
+   ],
+   [
+    2,
+    "结论"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": {
+   "ok": 1,
+   "mismatch": 16,
+   "missing": 0,
+   "mismatch_list": [
+    "00_READ_FIRST.md",
+    "BUILD_RESULTS.csv",
+    "CHECKPOINT_RESULTS.csv",
+    "COMMITS.csv",
+    "EXTERNAL_WORKTREE_CHANGES.md",
+    "FINDINGS.csv",
+    "GIT_STATE_CP0.txt",
+    "LARGE_ARTIFACT_MANIFEST.csv",
+    "PERF_RESULTS.csv",
+    "SUMMARY.json",
+    "TASK_LEDGER.csv",
+    "TEST_RESULTS.csv",
+    "TRACEABILITY.csv",
+    "data_manifest.csv",
+    "host_toolchain.json"
+   ]
+  },
+  "manifest": "{'schema': 'AstroCS-audit-manifest-v3', 'created_utc': '2026-08-27T12:28:10.334871+00:00', 'file_count': 16, 'total_bytes': 48959, 'files': [{'path': '00_READ_FIRST.md', 'size_bytes': 1384, 'sha256': 'c59ea72e455d6e3e20fa22f7745095efadf98e4ece4c9accff27d8c044e02eb0'}, {'path': 'BUILD_RESULTS.csv', 'size_bytes': 155, 'sha256': '4ff8290c3c6989462453d8c939db097daba5b897bcf9e1a7ba531115e0900ebe'}, {'path': 'CHECKPOINT_RESULTS.csv', 'size_bytes': 1638, 'sha256': '31f3c3b3c6fa295be620319c06b84718dbd57bbd8c96c627340b1785561a1455'}, {'path': 'COMMITS.csv', 'size_bytes': 110, 'sha256': 'eecca40311d28c7c5dd4963f96e527da3a36c9e148e0f1e60ae955cc5025a95c'}, {'path': 'EXTERNAL_WORKTREE_CHANGES.md', 'size_bytes': 842, 'sha256': '53cf2a310f83f2db31ab626b438113b855514f9c258e2d8b118258be30078f24'}, {'path':",
+  "identity": "REAUDIT_V3/v3_audit"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/ac2ced53/工程控制/REAUDIT_V3/v3_cp0",
+  "nfile": 19,
+  "bytes": 53201,
+  "git_events": {
+   "first": [
+    "3703650df136a5dff27361f3ef8232509a7628c7",
+    "2026-08-27T23:08:54+08:00"
+   ],
+   "last": [
+    "3703650df136a5dff27361f3ef8232509a7628c7",
+    "2026-08-27T23:08:54+08:00"
+   ],
+   "adds": [
+    [
+     "3703650df136a5dff27361f3ef8232509a7628c7",
+     "2026-08-27T23:08:54+08:00"
+    ],
+    [
+     "3703650df136a5dff27361f3ef8232509a7628c7",
+     "2026-08-27T23:08:54+08:00"
+    ],
+    [
+     "3703650df136a5dff27361f3ef8232509a7628c7",
+     "2026-08-27T23:08:54+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 0
+  },
+  "ledgers": [
+   {
+    "file": "TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "checkpoint",
+     "status"
+    ],
+    "rows": 62,
+    "status_col": "status",
+    "status_dist": {
+     "PASS": 3,
+     "NOT_STARTED": 59
+    },
+    "n_id": 62,
+    "ids_sample": [
+     "ID-001",
+     "ID-002",
+     "ID-003",
+     "CON-001",
+     "CON-002",
+     "CON-003",
+     "CON-004",
+     "CON-005",
+     "CON-006",
+     "CON-007",
+     "CON-008",
+     "CON-009",
+     "CON-010",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ORA-001",
+     "ARCH-001",
+     "ARCH-002",
+     "API-001",
+     "API-002",
+     "API-003",
+     "API-004",
+     "API-005",
+     "DOC-001",
+     "CHK-001",
+     "CHK-002",
+     "CHK-003",
+     "CHK-004",
+     "CHK-005",
+     "CHK-006",
+     "BLD-001",
+     "BLD-002",
+     "BLD-003"
+    ]
+   }
+  ],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS 预发布重审 (V3) — CP0 身份与数据审核包"
+   ],
+   [
+    2,
+    "候选/起点"
+   ],
+   [
+    2,
+    "Gate"
+   ],
+   [
+    2,
+    "状态"
+   ],
+   [
+    2,
+    "计数"
+   ],
+   [
+    2,
+    "结论"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": {
+   "ok": 1,
+   "mismatch": 16,
+   "missing": 0,
+   "mismatch_list": [
+    "00_READ_FIRST.md",
+    "BUILD_RESULTS.csv",
+    "CHECKPOINT_RESULTS.csv",
+    "COMMITS.csv",
+    "EXTERNAL_WORKTREE_CHANGES.md",
+    "FINDINGS.csv",
+    "GIT_STATE_CP0.txt",
+    "LARGE_ARTIFACT_MANIFEST.csv",
+    "PERF_RESULTS.csv",
+    "SUMMARY.json",
+    "TASK_LEDGER.csv",
+    "TEST_RESULTS.csv",
+    "TRACEABILITY.csv",
+    "data_manifest.csv",
+    "host_toolchain.json"
+   ]
+  },
+  "manifest": "{'schema': 'AstroCS-audit-manifest-v3', 'created_utc': '2026-08-27T12:28:10.334871+00:00', 'file_count': 16, 'total_bytes': 48959, 'files': [{'path': '00_READ_FIRST.md', 'size_bytes': 1384, 'sha256': 'c59ea72e455d6e3e20fa22f7745095efadf98e4ece4c9accff27d8c044e02eb0'}, {'path': 'BUILD_RESULTS.csv', 'size_bytes': 155, 'sha256': '4ff8290c3c6989462453d8c939db097daba5b897bcf9e1a7ba531115e0900ebe'}, {'path': 'CHECKPOINT_RESULTS.csv', 'size_bytes': 1638, 'sha256': '31f3c3b3c6fa295be620319c06b84718dbd57bbd8c96c627340b1785561a1455'}, {'path': 'COMMITS.csv', 'size_bytes': 110, 'sha256': 'eecca40311d28c7c5dd4963f96e527da3a36c9e148e0f1e60ae955cc5025a95c'}, {'path': 'EXTERNAL_WORKTREE_CHANGES.md', 'size_bytes': 842, 'sha256': '53cf2a310f83f2db31ab626b438113b855514f9c258e2d8b118258be30078f24'}, {'path':",
+  "identity": "REAUDIT_V3/v3_cp0"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/b7b2dea7/工程控制/REAUDIT_V3/v3_reaudit",
+  "nfile": 24,
+  "bytes": 57211,
+  "git_events": {
+   "first": [
+    "6a947f518963b41e4546dd05d6219d06250ffd8c",
+    "2026-08-28T19:29:31+08:00"
+   ],
+   "last": [
+    "3703650df136a5dff27361f3ef8232509a7628c7",
+    "2026-08-27T23:08:54+08:00"
+   ],
+   "adds": [
+    [
+     "3703650df136a5dff27361f3ef8232509a7628c7",
+     "2026-08-27T23:08:54+08:00"
+    ],
+    [
+     "3703650df136a5dff27361f3ef8232509a7628c7",
+     "2026-08-27T23:08:54+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 27
+  },
+  "ledgers": [
+   {
+    "file": "02_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "checkpoint",
+     "status"
+    ],
+    "rows": 62,
+    "status_col": "status",
+    "status_dist": {
+     "PASS": 47,
+     "FAIL": 1,
+     "IN_PROGRESS": 3,
+     "BLOCKED": 4,
+     "NOT_STARTED": 7
+    },
+    "n_id": 62,
+    "ids_sample": [
+     "ID-001",
+     "ID-002",
+     "ID-003",
+     "CON-001",
+     "CON-002",
+     "CON-003",
+     "CON-004",
+     "CON-005",
+     "CON-006",
+     "CON-007",
+     "CON-008",
+     "CON-009",
+     "CON-010",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ORA-001",
+     "ARCH-001",
+     "ARCH-002",
+     "API-001",
+     "API-002",
+     "API-003",
+     "API-004",
+     "API-005",
+     "DOC-001",
+     "CHK-001",
+     "CHK-002",
+     "CHK-003",
+     "CHK-004",
+     "CHK-005",
+     "CHK-006",
+     "BLD-001",
+     "BLD-002",
+     "BLD-003"
+    ]
+   }
+  ],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS MAIN 预发布重审控制 V3"
+   ],
+   [
+    2,
+    "唯一目标"
+   ],
+   [
+    2,
+    "不可变规则"
+   ],
+   [
+    2,
+    "执行入口"
+   ],
+   [
+    2,
+    "当前证据起点"
+   ],
+   [
+    2,
+    "立即停止条件"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_WORKFLOW_AND_GATES.md",
+   "03_TASK_SPECIFICATIONS.md",
+   "04_CHECKPOINT_CHECKLISTS.md",
+   "05_NUMERICAL_AND_PERFORMANCE_GATES.md",
+   "06_GIT_MAIN_ONLY.md",
+   "07_AUDIT_PACKAGE_SPEC.md",
+   "08_V2_INHERITED_FINDINGS.md",
+   "09_CONTINUOUS_EXECUTION_ORDER.md",
+   "10_REVIEWER_DEVIATIONS.md"
+  ],
+  "tasks_files": [],
+  "scripts": [
+   "scripts/package_audit.py",
+   "scripts/validate_audit_package.py",
+   "scripts/validate_control.py"
+  ],
+  "schemas": [],
+  "templates": [
+   "templates/BUILD_RESULTS.csv",
+   "templates/CHECKPOINT_RESULTS.csv",
+   "templates/COMMITS.csv",
+   "templates/FINDINGS.csv",
+   "templates/LARGE_ARTIFACT_MANIFEST.csv",
+   "templates/PERF_RESULTS.csv",
+   "templates/SUMMARY.schema.json",
+   "templates/TEST_RESULTS.csv",
+   "templates/TRACEABILITY.csv"
+  ],
+  "sums": null,
+  "identity": "REAUDIT_V3/v3_reaudit"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/b12305ed/工程控制/REAUDIT_V4/v4_reaudit",
+  "nfile": 24,
+  "bytes": 72610,
+  "git_events": {
+   "first": [
+    "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+    "2026-08-28T20:54:30+08:00"
+   ],
+   "last": [
+    "020cdc994dc42035c6eba7efd68c07e19d175415",
+    "2026-08-28T20:36:03+08:00"
+   ],
+   "adds": [
+    [
+     "020cdc994dc42035c6eba7efd68c07e19d175415",
+     "2026-08-28T20:36:03+08:00"
+    ],
+    [
+     "020cdc994dc42035c6eba7efd68c07e19d175415",
+     "2026-08-28T20:36:03+08:00"
+    ]
+   ],
+   "dels": [
+    [
+     "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+     "2026-08-28T20:54:30+08:00"
+    ],
+    [
+     "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+     "2026-08-28T20:54:30+08:00"
+    ]
+   ],
+   "mod_n": 1
+  },
+  "ledgers": [
+   {
+    "file": "02_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "gate",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "checkpoint",
+     "status"
+    ],
+    "rows": 98,
+    "status_col": "status",
+    "status_dist": {
+     "PASS": 5,
+     "NOT_STARTED": 93
+    },
+    "n_id": 98,
+    "ids_sample": [
+     "C0-001",
+     "C0-002",
+     "C0-003",
+     "C0-004",
+     "C0-005",
+     "C1-001",
+     "C1-002",
+     "C1-003",
+     "C1-004",
+     "C1-005",
+     "C1-006",
+     "C1-007",
+     "C1-008",
+     "C2-001",
+     "C2-002",
+     "C2-003",
+     "C2-004",
+     "C2-005",
+     "C2-006",
+     "C2-007",
+     "C2-008",
+     "C3-001",
+     "C3-002",
+     "C3-003",
+     "C3-004",
+     "C3-005",
+     "C3-006",
+     "C3-007",
+     "C3-008",
+     "C3-009",
+     "C3-010",
+     "C4-001",
+     "C4-002",
+     "C4-003",
+     "C4-004",
+     "C4-005",
+     "C4-006",
+     "C4-007",
+     "C4-008",
+     "C4-009"
+    ]
+   }
+  ],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS MAIN 预发布重审控制 V4"
+   ],
+   [
+    2,
+    "唯一目标"
+   ],
+   [
+    2,
+    "不可变规则"
+   ],
+   [
+    2,
+    "执行入口"
+   ],
+   [
+    2,
+    "当前证据起点（继承）"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_WORKFLOW_AND_GATES.md",
+   "03_TASK_SPECIFICATIONS.md",
+   "04_CHECKPOINT_CHECKLISTS.md",
+   "05_NUMERICAL_AND_PERFORMANCE_GATES.md",
+   "06_GIT_MAIN_ONLY.md",
+   "07_AUDIT_PACKAGE_SPEC.md",
+   "08_V2_INHERITED_FINDINGS.md"
+  ],
+  "tasks_files": [],
+  "scripts": [
+   "scripts/make_capsule.sh",
+   "scripts/package_audit.py",
+   "scripts/validate_audit_package.py",
+   "scripts/validate_control.py"
+  ],
+  "schemas": [],
+  "templates": [
+   "templates/BUILD_RESULTS.csv",
+   "templates/CHECKPOINT_RESULTS.csv",
+   "templates/COMMITS.csv",
+   "templates/FINDINGS.csv",
+   "templates/LARGE_ARTIFACT_MANIFEST.csv",
+   "templates/PERF_RESULTS.csv",
+   "templates/SUMMARY.schema.json",
+   "templates/TEST_RESULTS.csv",
+   "templates/TRACEABILITY.csv"
+  ],
+  "sums": null,
+  "identity": "REAUDIT_V4/v4_reaudit"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/b7b2dea7/工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828",
+  "nfile": 38,
+  "bytes": 99859,
+  "git_events": {
+   "first": [
+    "3ca7f974b039f87bd6a37c2a0023539e265918fc",
+    "2026-08-30T17:07:02+08:00"
+   ],
+   "last": [
+    "f99e80d8574dd19b305312c0e66006cc01584a41",
+    "2026-08-28T20:58:26+08:00"
+   ],
+   "adds": [
+    [
+     "f99e80d8574dd19b305312c0e66006cc01584a41",
+     "2026-08-28T20:58:26+08:00"
+    ],
+    [
+     "f99e80d8574dd19b305312c0e66006cc01584a41",
+     "2026-08-28T20:58:26+08:00"
+    ],
+    [
+     "f99e80d8574dd19b305312c0e66006cc01584a41",
+     "2026-08-28T20:58:26+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 105
+  },
+  "ledgers": [
+   {
+    "file": "02_TASK_LEDGER.csv",
+    "header": [
+     "task_id",
+     "phase",
+     "depends_on",
+     "scope",
+     "required_commit",
+     "required_push",
+     "preferred_host",
+     "status"
+    ],
+    "rows": 98,
+    "status_col": "status",
+    "status_dist": {
+     "PASS": 88,
+     "BLOCKED": 1,
+     "REVIEW_PENDING": 1,
+     "IN_PROGRESS": 1,
+     "NOT_STARTED": 7
+    },
+    "n_id": 98,
+    "ids_sample": [
+     "BASE-001",
+     "GOV-001",
+     "VER-001",
+     "TRACE-001",
+     "DOC-001",
+     "SCI-001",
+     "SCI-002",
+     "SCI-003",
+     "SCI-004",
+     "SCI-005",
+     "SCI-006",
+     "SCI-007",
+     "ALG-001",
+     "ALG-002",
+     "ALG-003",
+     "ALG-004",
+     "ALG-005",
+     "ALG-006",
+     "ALG-007",
+     "REV-001",
+     "ARCH-001",
+     "ARCH-002",
+     "ARCH-003",
+     "ARCH-004",
+     "ARCH-005",
+     "API-001",
+     "API-002",
+     "API-003",
+     "API-004",
+     "API-005",
+     "CLI-001",
+     "CLI-002",
+     "CLI-003",
+     "CLI-004",
+     "CLI-005",
+     "P3-001",
+     "P3-002",
+     "P3-003",
+     "P3-004",
+     "CLI-006"
+    ]
+   }
+  ],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS V5 预发布控制包：单一 CLI / amd64 CPU 自适应"
+   ],
+   [
+    2,
+    "0. 本包的唯一目标"
+   ],
+   [
+    2,
+    "1. 不可解释、不可放宽的硬约束"
+   ],
+   [
+    2,
+    "2. 首次启动后 30 分钟内"
+   ],
+   [
+    2,
+    "3. 连续执行状态机"
+   ],
+   [
+    2,
+    "4. 唯一允许停止的条件"
+   ],
+   [
+    2,
+    "5. 最终 PASS 含义"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_PRODUCT_ARCHITECTURE.md",
+   "03_TASK_DETAILS.md",
+   "04_CLI_COMMAND_AND_PROTOCOL_CONTRACT.md",
+   "05_CPU_BACKEND_ABI_AND_PACKAGING.md",
+   "06_BENCHMARK_AND_PROFILE_SPEC.md",
+   "07_RESOURCE_MONITOR_AND_UTILIZATION_GATE.md",
+   "08_SCIENCE_SYNTHETIC_AND_EXTERNAL_REVIEW.md",
+   "09_LINUX_WINDOWS_BUILD_RELEASE.md",
+   "10_GIT_REVIEW_CAPSULE_AUDIT_PACKAGE.md",
+   "11_AGENTS_MD_REQUIRED_BLOCK.md",
+   "12_V3_V4_MIGRATION.md",
+   "13_ALPHA_VERSION_AND_PHASE3.md",
+   "14_V4_COVERAGE_MATRIX.md",
+   "15_CONTINUOUS_CHECKPOINTS.md"
+  ],
+  "tasks_files": [],
+  "scripts": [
+   "scripts/package_final.py",
+   "scripts/validate_control.py",
+   "scripts/validate_final_package.py"
+  ],
+  "schemas": [
+   "schemas/cli_event.schema.json",
+   "schemas/cpu_profile.schema.json"
+  ],
+  "templates": [
+   "templates/BUILD_RESULTS.csv",
+   "templates/CHECKPOINTS.csv",
+   "templates/COMMITS.csv",
+   "templates/CPU_PROFILE_RESULTS.csv",
+   "templates/FINDINGS.csv",
+   "templates/LARGE_ARTIFACTS.csv",
+   "templates/RELEASE_ARTIFACTS.csv",
+   "templates/RESOURCE_RESULTS.csv",
+   "templates/REVIEW_CAPSULE_INDEX.csv",
+   "templates/SCIENCE_CLAIMS.csv",
+   "templates/SUMMARY.json",
+   "templates/TEST_RESULTS.csv",
+   "templates/TRACEABILITY.csv"
+  ],
+  "sums": {
+   "ok": 35,
+   "mismatch": 1,
+   "missing": 0,
+   "mismatch_list": [
+    "02_TASK_LEDGER.csv"
+   ]
+  },
+  "start_prompt": "在当前仓库外解压 V5 控制包，先运行 scripts/validate_control.py，再严格执行 00_READ_FIRST.md 与 02_TASK_LEDGER.csv。只在 main 原子 commit 并立即 push；不得创建分支、不得反复运行历史版本、不得接入 ACR/GPU。实现 Windows/Linux 单一 astrocs CLI、Phase1/2/3 内部调用、amd64 私有 CPU backend、逐内核 benchmark/profile 和强制资源门禁；无 profile 走 baseline 但仍按 affinity 多线程。Linux 连续完成静态/文档/合成/构建，Fatduck 在线后完成 Windows 正式 benchmark、合成、小真实数据及当前候选唯一一次 32R。除最终发布审核外不得停等外部批准；低利用率、内存异常增长、未验证或报告矛盾一律不得 PASS。\n",
+  "identity": "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/b7b2dea7/工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE",
+  "nfile": 21,
+  "bytes": 45179,
+  "git_events": {
+   "first": [
+    "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+    "2026-08-27T23:14:47+08:00"
+   ],
+   "last": [
+    "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+    "2026-08-27T23:14:47+08:00"
+   ],
+   "adds": [],
+   "dels": [],
+   "mod_n": 2
+  },
+  "ledgers": [],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS ACR 工程控制包"
+   ],
+   [
+    2,
+    "1. 唯一目标"
+   ],
+   [
+    2,
+    "2. 路由目标"
+   ],
+   [
+    2,
+    "3. 本轮必须完成"
+   ],
+   [
+    2,
+    "4. 明确不做"
+   ],
+   [
+    2,
+    "5. 权威阅读顺序"
+   ],
+   [
+    2,
+    "6. 工程启动词"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_SCOPE_AND_DECISIONS.md",
+   "02_TARGET_ARCHITECTURE.md",
+   "03_PUBLIC_API_AND_PARTITION_CONTRACT.md",
+   "04_BENCHMARK_AND_OPERATION_PROFILE.md",
+   "05_MIXED_ROUTING_AND_CHUNKING.md",
+   "06_DATA_RESIDENCY_AND_MEMORY.md",
+   "07_TEST_AND_ACCEPTANCE.md",
+   "08_CURRENT_EXECUTION_PLAN.md",
+   "09_GIT_AND_DELIVERY.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [
+   "schemas/compute_config.example.yaml",
+   "schemas/execution_report.schema.json",
+   "schemas/memory_budget_report.schema.json",
+   "schemas/operation_profile.schema.json"
+  ],
+  "templates": [
+   "templates/evidence_checklist.md"
+  ],
+  "sums": {
+   "ok": 19,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/b7b2dea7/工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE_V2",
+  "nfile": 22,
+  "bytes": 54011,
+  "git_events": {
+   "first": [
+    "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+    "2026-08-27T23:14:47+08:00"
+   ],
+   "last": [
+    "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+    "2026-08-27T23:14:47+08:00"
+   ],
+   "adds": [],
+   "dels": [],
+   "mod_n": 2
+  },
+  "ledgers": [],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS ACR 工程控制包"
+   ],
+   [
+    2,
+    "1. 唯一目标"
+   ],
+   [
+    2,
+    "2. 当前已保留能力"
+   ],
+   [
+    2,
+    "3. 当前尚未完成"
+   ],
+   [
+    2,
+    "4. 本轮只做"
+   ],
+   [
+    2,
+    "5. 明确不做"
+   ],
+   [
+    2,
+    "6. 阅读顺序"
+   ],
+   [
+    2,
+    "7. 工程启动词"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_SCOPE_AND_DECISIONS.md",
+   "02_TARGET_ARCHITECTURE.md",
+   "03_PUBLIC_API_AND_PARTITION_CONTRACT.md",
+   "04_BENCHMARK_AND_OPERATION_PROFILE.md",
+   "05_MIXED_ROUTING_AND_CHUNKING.md",
+   "06_DATA_RESIDENCY_AND_MEMORY.md",
+   "07_TEST_AND_ACCEPTANCE.md",
+   "08_CURRENT_EXECUTION_PLAN.md",
+   "09_GIT_AND_DELIVERY.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [
+   "schemas/compute_config.example.yaml",
+   "schemas/execution_report.schema.json",
+   "schemas/memory_budget_report.schema.json",
+   "schemas/operation_profile.schema.json"
+  ],
+  "templates": [
+   "templates/evidence_checklist.md"
+  ],
+  "sums": {
+   "ok": 0,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V2"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/b7b2dea7/工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE_V3",
+  "nfile": 22,
+  "bytes": 55441,
+  "git_events": {
+   "first": [
+    "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+    "2026-08-27T23:14:47+08:00"
+   ],
+   "last": [
+    "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+    "2026-08-27T23:14:47+08:00"
+   ],
+   "adds": [],
+   "dels": [],
+   "mod_n": 2
+  },
+  "ledgers": [],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS ACR 工程控制包"
+   ],
+   [
+    2,
+    "1. 唯一目标"
+   ],
+   [
+    2,
+    "2. 已经确认可保留"
+   ],
+   [
+    2,
+    "3. 当前仍未完成"
+   ],
+   [
+    2,
+    "4. 本轮只做"
+   ],
+   [
+    2,
+    "5. 明确不做"
+   ],
+   [
+    2,
+    "6. 阅读顺序"
+   ],
+   [
+    2,
+    "7. 工程启动词"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_SCOPE_AND_DECISIONS.md",
+   "02_TARGET_ARCHITECTURE.md",
+   "03_PUBLIC_API_AND_PARTITION_CONTRACT.md",
+   "04_BENCHMARK_AND_OPERATION_PROFILE.md",
+   "05_MIXED_ROUTING_AND_CHUNKING.md",
+   "06_DATA_RESIDENCY_AND_MEMORY.md",
+   "07_TEST_AND_ACCEPTANCE.md",
+   "08_CURRENT_EXECUTION_PLAN.md",
+   "09_GIT_AND_DELIVERY.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [
+   "schemas/compute_config.example.yaml",
+   "schemas/execution_report.schema.json",
+   "schemas/memory_budget_report.schema.json",
+   "schemas/operation_profile.schema.json"
+  ],
+  "templates": [
+   "templates/evidence_checklist.md"
+  ],
+  "sums": {
+   "ok": 0,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V3"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/b7b2dea7/工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE_V4",
+  "nfile": 23,
+  "bytes": 47541,
+  "git_events": {
+   "first": [
+    "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+    "2026-08-27T23:14:47+08:00"
+   ],
+   "last": [
+    "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+    "2026-08-27T23:14:47+08:00"
+   ],
+   "adds": [],
+   "dels": [],
+   "mod_n": 2
+  },
+  "ledgers": [],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS ACR 工程控制包"
+   ],
+   [
+    2,
+    "1. 本轮唯一目标"
+   ],
+   [
+    2,
+    "2. 冻结定位"
+   ],
+   [
+    2,
+    "3. 冻结执行模型"
+   ],
+   [
+    2,
+    "4. 本轮禁止事项"
+   ],
+   [
+    2,
+    "5. 当前基线"
+   ],
+   [
+    2,
+    "6. 阅读顺序"
+   ],
+   [
+    2,
+    "7. 工程启动词"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_ARCHITECTURE_FREEZE.md",
+   "02_BUSINESS_INTEGRATION_BOUNDARY.md",
+   "03_MIXED_EXECUTION_MODEL.md",
+   "04_WEIGHTED_INTEGRATION_EXAMPLE.md",
+   "05_BENCHMARK_MATRIX_AND_FAIRNESS.md",
+   "06_TEST_AND_ACCEPTANCE.md",
+   "07_CURRENT_EXECUTION_PLAN.md",
+   "08_GIT_AND_DELIVERY.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [
+   "schemas/weighted_integration_benchmark.example.yaml",
+   "schemas/weighted_integration_report.schema.json"
+  ],
+  "templates": [
+   "templates/evidence_checklist.md"
+  ],
+  "sums": {
+   "ok": 21,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V4"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/e1604f14/工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE",
+  "nfile": 21,
+  "bytes": 45176,
+  "git_events": {
+   "first": [
+    "0030c3a5abae46893748454bdf692c155b3d0ad6",
+    "2026-08-05T17:06:20+08:00"
+   ],
+   "last": [
+    "0030c3a5abae46893748454bdf692c155b3d0ad6",
+    "2026-08-05T17:06:20+08:00"
+   ],
+   "adds": [
+    [
+     "0030c3a5abae46893748454bdf692c155b3d0ad6",
+     "2026-08-05T17:06:20+08:00"
+    ],
+    [
+     "0030c3a5abae46893748454bdf692c155b3d0ad6",
+     "2026-08-05T17:06:20+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS ACR 工程控制包"
+   ],
+   [
+    2,
+    "1. 唯一目标"
+   ],
+   [
+    2,
+    "2. 路由目标"
+   ],
+   [
+    2,
+    "3. 本轮必须完成"
+   ],
+   [
+    2,
+    "4. 明确不做"
+   ],
+   [
+    2,
+    "5. 权威阅读顺序"
+   ],
+   [
+    2,
+    "6. 工程启动词"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_SCOPE_AND_DECISIONS.md",
+   "02_TARGET_ARCHITECTURE.md",
+   "03_PUBLIC_API_AND_PARTITION_CONTRACT.md",
+   "04_BENCHMARK_AND_OPERATION_PROFILE.md",
+   "05_MIXED_ROUTING_AND_CHUNKING.md",
+   "06_DATA_RESIDENCY_AND_MEMORY.md",
+   "07_TEST_AND_ACCEPTANCE.md",
+   "08_CURRENT_EXECUTION_PLAN.md",
+   "09_GIT_AND_DELIVERY.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [
+   "schemas/compute_config.example.yaml",
+   "schemas/execution_report.schema.json",
+   "schemas/memory_budget_report.schema.json",
+   "schemas/operation_profile.schema.json"
+  ],
+  "templates": [
+   "templates/evidence_checklist.md"
+  ],
+  "sums": {
+   "ok": 19,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/e1604f14/工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V2",
+  "nfile": 22,
+  "bytes": 54008,
+  "git_events": {
+   "first": [
+    "40c9d21612aa021e4b92cf46ee8f9760742167e3",
+    "2026-08-06T11:21:47+08:00"
+   ],
+   "last": [
+    "40c9d21612aa021e4b92cf46ee8f9760742167e3",
+    "2026-08-06T11:21:47+08:00"
+   ],
+   "adds": [
+    [
+     "40c9d21612aa021e4b92cf46ee8f9760742167e3",
+     "2026-08-06T11:21:47+08:00"
+    ],
+    [
+     "40c9d21612aa021e4b92cf46ee8f9760742167e3",
+     "2026-08-06T11:21:47+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS ACR 工程控制包"
+   ],
+   [
+    2,
+    "1. 唯一目标"
+   ],
+   [
+    2,
+    "2. 当前已保留能力"
+   ],
+   [
+    2,
+    "3. 当前尚未完成"
+   ],
+   [
+    2,
+    "4. 本轮只做"
+   ],
+   [
+    2,
+    "5. 明确不做"
+   ],
+   [
+    2,
+    "6. 阅读顺序"
+   ],
+   [
+    2,
+    "7. 工程启动词"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_SCOPE_AND_DECISIONS.md",
+   "02_TARGET_ARCHITECTURE.md",
+   "03_PUBLIC_API_AND_PARTITION_CONTRACT.md",
+   "04_BENCHMARK_AND_OPERATION_PROFILE.md",
+   "05_MIXED_ROUTING_AND_CHUNKING.md",
+   "06_DATA_RESIDENCY_AND_MEMORY.md",
+   "07_TEST_AND_ACCEPTANCE.md",
+   "08_CURRENT_EXECUTION_PLAN.md",
+   "09_GIT_AND_DELIVERY.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [
+   "schemas/compute_config.example.yaml",
+   "schemas/execution_report.schema.json",
+   "schemas/memory_budget_report.schema.json",
+   "schemas/operation_profile.schema.json"
+  ],
+  "templates": [
+   "templates/evidence_checklist.md"
+  ],
+  "sums": {
+   "ok": 0,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V2"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/e1604f14/工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V3",
+  "nfile": 22,
+  "bytes": 55438,
+  "git_events": {
+   "first": [
+    "a36c482515fd34e77676a1dc35443cb684b5dca6",
+    "2026-08-06T13:24:26+08:00"
+   ],
+   "last": [
+    "a36c482515fd34e77676a1dc35443cb684b5dca6",
+    "2026-08-06T13:24:26+08:00"
+   ],
+   "adds": [
+    [
+     "a36c482515fd34e77676a1dc35443cb684b5dca6",
+     "2026-08-06T13:24:26+08:00"
+    ],
+    [
+     "a36c482515fd34e77676a1dc35443cb684b5dca6",
+     "2026-08-06T13:24:26+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS ACR 工程控制包"
+   ],
+   [
+    2,
+    "1. 唯一目标"
+   ],
+   [
+    2,
+    "2. 已经确认可保留"
+   ],
+   [
+    2,
+    "3. 当前仍未完成"
+   ],
+   [
+    2,
+    "4. 本轮只做"
+   ],
+   [
+    2,
+    "5. 明确不做"
+   ],
+   [
+    2,
+    "6. 阅读顺序"
+   ],
+   [
+    2,
+    "7. 工程启动词"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_SCOPE_AND_DECISIONS.md",
+   "02_TARGET_ARCHITECTURE.md",
+   "03_PUBLIC_API_AND_PARTITION_CONTRACT.md",
+   "04_BENCHMARK_AND_OPERATION_PROFILE.md",
+   "05_MIXED_ROUTING_AND_CHUNKING.md",
+   "06_DATA_RESIDENCY_AND_MEMORY.md",
+   "07_TEST_AND_ACCEPTANCE.md",
+   "08_CURRENT_EXECUTION_PLAN.md",
+   "09_GIT_AND_DELIVERY.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [
+   "schemas/compute_config.example.yaml",
+   "schemas/execution_report.schema.json",
+   "schemas/memory_budget_report.schema.json",
+   "schemas/operation_profile.schema.json"
+  ],
+  "templates": [
+   "templates/evidence_checklist.md"
+  ],
+  "sums": {
+   "ok": 0,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V3"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/e1604f14/工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V4",
+  "nfile": 23,
+  "bytes": 47538,
+  "git_events": {
+   "first": [
+    "38b8570205fb3506d286e66b9d8503ddc3b89de8",
+    "2026-08-06T18:46:20+08:00"
+   ],
+   "last": [
+    "38b8570205fb3506d286e66b9d8503ddc3b89de8",
+    "2026-08-06T18:46:20+08:00"
+   ],
+   "adds": [
+    [
+     "38b8570205fb3506d286e66b9d8503ddc3b89de8",
+     "2026-08-06T18:46:20+08:00"
+    ],
+    [
+     "38b8570205fb3506d286e66b9d8503ddc3b89de8",
+     "2026-08-06T18:46:20+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 0
+  },
+  "ledgers": [],
+  "read_first": "00_READ_FIRST.md",
+  "read_first_headings": [
+   [
+    1,
+    "AstroCS ACR 工程控制包"
+   ],
+   [
+    2,
+    "1. 本轮唯一目标"
+   ],
+   [
+    2,
+    "2. 冻结定位"
+   ],
+   [
+    2,
+    "3. 冻结执行模型"
+   ],
+   [
+    2,
+    "4. 本轮禁止事项"
+   ],
+   [
+    2,
+    "5. 当前基线"
+   ],
+   [
+    2,
+    "6. 阅读顺序"
+   ],
+   [
+    2,
+    "7. 工程启动词"
+   ]
+  ],
+  "spec_files": [
+   "00_READ_FIRST.md",
+   "01_ARCHITECTURE_FREEZE.md",
+   "02_BUSINESS_INTEGRATION_BOUNDARY.md",
+   "03_MIXED_EXECUTION_MODEL.md",
+   "04_WEIGHTED_INTEGRATION_EXAMPLE.md",
+   "05_BENCHMARK_MATRIX_AND_FAIRNESS.md",
+   "06_TEST_AND_ACCEPTANCE.md",
+   "07_CURRENT_EXECUTION_PLAN.md",
+   "08_GIT_AND_DELIVERY.md"
+  ],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [
+   "schemas/weighted_integration_benchmark.example.yaml",
+   "schemas/weighted_integration_report.schema.json"
+  ],
+  "templates": [
+   "templates/evidence_checklist.md"
+  ],
+  "sums": {
+   "ok": 21,
+   "mismatch": 0,
+   "missing": 0,
+   "mismatch_list": []
+  },
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V4"
+ },
+ {
+  "form": "recovered_from_history",
+  "path": "history/49ea5c1e/工程控制/tasks/acr",
+  "nfile": 4,
+  "bytes": 47160,
+  "git_events": {
+   "first": [
+    "12fb99f386197173e21c261bc1ea94922725784d",
+    "2026-08-04T11:22:01+08:00"
+   ],
+   "last": [
+    "49ea5c1e1f14d6e3ed0aa89bf01c4f0f1dfab57c",
+    "2026-08-02T19:56:07+08:00"
+   ],
+   "adds": [
+    [
+     "49ea5c1e1f14d6e3ed0aa89bf01c4f0f1dfab57c",
+     "2026-08-02T19:56:07+08:00"
+    ],
+    [
+     "49ea5c1e1f14d6e3ed0aa89bf01c4f0f1dfab57c",
+     "2026-08-02T19:56:07+08:00"
+    ]
+   ],
+   "dels": [],
+   "mod_n": 6
+  },
+  "ledgers": [],
+  "read_first": null,
+  "read_first_headings": null,
+  "spec_files": [],
+  "tasks_files": [],
+  "scripts": [],
+  "schemas": [],
+  "templates": [],
+  "sums": null,
+  "identity": "acr"
+ },
+ {
+  "form": "zip_recovered_from_history",
+  "path": "history_zip/AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip",
+  "nfile": 74,
+  "bytes": 96866,
+  "sha256": "3e10847e11de079ff36512512934e7ddc53f74523c0f0ab2e328cbed5196434a",
+  "git_events": {
+   "touch_last": "b9d20c5020316b20adc15caaf2f6472f9e9d504e"
+  },
+  "identity": "AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip"
+ },
+ {
+  "form": "zip_recovered_from_history",
+  "path": "history_zip/AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip",
+  "nfile": 92,
+  "bytes": 114829,
+  "sha256": "a87648ec9bc7a1bb4680d79e755b7c3f68696fab01e6ad86c9b68fff3c39e060",
+  "git_events": {
+   "touch_last": "036a3bb5a7e3b92cffb39418642c14a068a9a30b"
+  },
+  "identity": "AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip"
+ },
+ {
+  "form": "zip_recovered_from_history",
+  "path": "history_zip/AstroCS_Delivery_20260729.zip",
+  "nfile": 10,
+  "bytes": 21978944,
+  "sha256": "5fd7add31d824c8af2effc00aa0bae1b9aac87061669895c7447c83155175e88",
+  "git_events": {
+   "touch_last": "a78f5430f9fad9585b88e7ef9ac93c754d25725c"
+  },
+  "identity": "AstroCS_Delivery_20260729.zip"
+ },
+ {
+  "form": "zip_recovered_from_history",
+  "path": "history_zip/AstroCS_Stage1_HISS_Delivery_2026-07-31.zip",
+  "nfile": 50,
+  "bytes": 689806,
+  "sha256": "2eceeff476b54ecfd653b37e42e487c1be0f7b008b240eb48ff46d0de3b3e883",
+  "git_events": {
+   "touch_last": "a78f5430f9fad9585b88e7ef9ac93c754d25725c"
+  },
+  "identity": "AstroCS_Stage1_HISS_Delivery_2026-07-31.zip"
+ },
+ {
+  "form": "zip_recovered_from_history",
+  "path": "history_zip/AstroCS_ALPHA3_MODULAR_REFOUNDATION_CONTROL_V7_1_20260902_FINAL3.zip",
+  "nfile": 99,
+  "bytes": 398022,
+  "sha256": "005448fb3b6892d3063d23149692fbd9226a892a2c1891e4cb8d14a80e8491c3",
+  "git_events": {
+   "touch_last": "8e03d7da9feacd9a85f6ecd02aab51d4a61b5a0e"
+  },
+  "identity": "AstroCS_ALPHA3_MODULAR_REFOUNDATION_CONTROL_V7_1_20260902_FINAL3.zip"
+ },
+ {
+  "form": "zip_recovered_from_history",
+  "path": "history_zip/AstroCS_CP0.zip",
+  "nfile": 18,
+  "bytes": 53050,
+  "sha256": "c79f50d7cdf8e9348d96b516cdead13bf94b2c649612a0591c4240fcb84f8e82",
+  "git_events": {
+   "touch_last": "ac2ced532a1abbbfab620d3390e277cfa1f0ecdc"
+  },
+  "identity": "AstroCS_CP0.zip"
+ }
+]

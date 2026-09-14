@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+156,c3865eb6,2026-07-27,fujiaze,L,4,重叠复核,compact/0156-c3865eb6.md,cards/0156-c3865eb6.md,P07-002 长批次与故障稳定性 (VERDICT: PASS)
+157,29cb2912,2026-07-27,fujiaze,L,4,重叠复核,compact/0157-29cb2912.md,cards/0157-29cb2912.md,P07-002 补充证据: logs/ + HISS 输出文件
+158,889944ad,2026-07-27,fujiaze,M,2,重叠复核,compact/0158-889944ad.md,cards/0158-889944ad.md,P08-001 CLI Core v1 发布包 (VERDICT: PASS)
+159,dc774c6d,2026-07-27,fujiaze,M,2,重叠复核,compact/0159-dc774c6d.md,cards/0159-dc774c6d.md,P08-002 最终独立复核与交接: v1.1 开发包交付完成 (VERDICT: PASS)
+160,a3b468dd,2026-07-27,fujiaze,M,2,重叠复核,compact/0160-a3b468dd.md,cards/0160-a3b468dd.md,"P08-002 补充提交: logs/ 证据文件 (被 .gitignore logs/ 规则忽略, 用 -f 强制添加)"
+161,ed145a70,2026-07-27,fujiaze,L,4,重叠复核,compact/0161-ed145a70.md,cards/0161-ed145a70.md,docs: 补充项目 README + 生成 v1.1 审计包
+162,0d1857de,2026-07-27,fujiaze,L,4,重叠复核,compact/0162-0d1857de.md,cards/0162-0d1857de.md,P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+163,06df865b,2026-07-27,fujiaze,M,2,重叠复核,compact/0163-06df865b.md,cards/0163-06df865b.md,P09-002: 统一共享检测命名为 INTERNAL_DETECTION_SHARED_EXPORT
+164,73a33b79,2026-07-27,fujiaze,L,4,重叠复核,compact/0164-73a33b79.md,cards/0164-73a33b79.md,P09-003: 冻结测光失败帧与浏览器性能基线数据
+165,bb6963b4,2026-07-27,fujiaze,L,4,重叠复核,compact/0165-bb6963b4.md,cards/0165-bb6963b4.md,P10-001: 读取全部 TestData 子目录说明文档
+166,fb1ad490,2026-07-27,fujiaze,L,4,主责,compact/0166-fb1ad490.md,cards/0166-fb1ad490.md,P10-002: 建立 T1-T4 设备档案 (DONE)
+167,2005b3c1,2026-07-27,fujiaze,M,2,主责,compact/0167-2005b3c1.md,cards/0167-2005b3c1.md,P10-003: 盘点全部主校准帧 (DONE)
+168,3919ebc7,2026-07-27,fujiaze,L,4,主责,compact/0168-3919ebc7.md,cards/0168-3919ebc7.md,P10-004: 冻结滤镜规范名和别名 (DONE)
+169,d0e87144,2026-07-27,fujiaze,L,4,主责,compact/0169-d0e87144.md,cards/0169-d0e87144.md,P10-005: implement Light-to-Master resolver with 587/710 resolved
+170,f0708761,2026-07-27,fujiaze,S,1,主责,compact/0170-f0708761.md,cards/0170-f0708761.md,feat(P10-006): complete T1-T4 representative frame calibration validation
+171,411b406d,2026-07-27,fujiaze,M,2,主责,compact/0171-411b406d.md,cards/0171-411b406d.md,feat(P11-001): freeze coordinate conventions (FROZEN)
+172,222d5ce8,2026-07-27,fujiaze,L,4,主责,compact/0172-222d5ce8.md,cards/0172-222d5ce8.md,P11-002: establish standard WCS real star pair closure diagnostic tool
+173,5784ce74,2026-07-28,fujiaze,L,4,主责,compact/0173-5784ce74.md,cards/0173-5784ce74.md,"P11-003: reproduce WCS closure defects on T1-T4 representative frames (16/16 diagnosed, 8/"
+174,93ee0258,2026-07-28,fujiaze,L,4,主责,compact/0174-93ee0258.md,cards/0174-93ee0258.md,"P11-004: export review bundle and defer (DEFERRED, awaiting review feedback)"
+175,f4ec8b24,2026-07-28,fujiaze,L,4,主责,compact/0175-f4ec8b24.md,cards/0175-f4ec8b24.md,P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+176,33e070a6,2026-07-28,fujiaze,L,4,主责,compact/0176-33e070a6.md,cards/0176-33e070a6.md,P11-005: add PlateSolve 710-frame regression evidence (709/710 success)
+177,fe65e9e6,2026-07-28,fujiaze,S,1,主责,compact/0177-fe65e9e6.md,cards/0177-fe65e9e6.md,"P11-005: mark DONE (IPV_SOLVER_VERIFIED_BY_USER), prepare P11-006"
+178,81fc276f,2026-07-28,fujiaze,S,1,主责,compact/0178-81fc276f.md,cards/0178-81fc276f.md,"memory: record P11-005 completion (710-frame regression, ipv verified by user)"
+179,d4b73320,2026-07-28,fujiaze,S,1,主责,compact/0179-d4b73320.md,cards/0179-d4b73320.md,P11-006: fix CRPIX conflict in ipv_wcs.cpp (unify to width/2.0+0.5 per P11-001 frozen valu
+180,785d7404,2026-07-28,fujiaze,S,1,主责,compact/0180-785d7404.md,cards/0180-785d7404.md,P11-006: update CLI capabilities with WCS schema versions and authoritative pairs export
+181,96b527e3,2026-07-28,fujiaze,M,2,主责,compact/0181-96b527e3.md,cards/0181-96b527e3.md,P11-006: add coordinate convention v2 and task evidence
+182,36cf2e59,2026-07-28,fujiaze,S,1,主责,compact/0182-36cf2e59.md,cards/0182-36cf2e59.md,P11-006: extend wcs_authoritative_pairs schema with provenance fields
+183,bd7b9fa8,2026-07-28,fujiaze,S,1,主责,compact/0183-bd7b9fa8.md,cards/0183-bd7b9fa8.md,"P11-006: mark DONE, update control files (coordinate convention v2 + CLI capabilities + pr"
+184,d2593f54,2026-07-28,fujiaze,S,1,主责,compact/0184-d2593f54.md,cards/0184-d2593f54.md,P11-005: update task report with P11-006 offset_px removal correction
+185,f4816192,2026-07-28,fujiaze,S,1,主责,compact/0185-f4816192.md,cards/0185-f4816192.md,"memory: record P11-006 completion (coordinate convention v2, CRPIX fix, CLI capabilities, "
+186,b6d19e56,2026-07-28,fujiaze,M,2,主责,compact/0186-b6d19e56.md,cards/0186-b6d19e56.md,P12-001: add PhotometricDiag struct with 17 stage counters to photometric DLL
+187,cc53c006,2026-07-28,fujiaze,S,1,主责,compact/0187-cc53c006.md,cards/0187-cc53c006.md,P12-001: integrate PhotometricDiag into orchestrator (photo_stats KV + photometry_report.j
+188,9b4f2f78,2026-07-28,fujiaze,S,1,主责,compact/0188-9b4f2f78.md,cards/0188-9b4f2f78.md,P12-001: sync Python ctypes wrapper with PhotometricDiag output parameter
+189,8ccdf362,2026-07-28,fujiaze,M,2,主责,compact/0189-8ccdf362.md,cards/0189-8ccdf362.md,"P12-001: add task evidence (spec, task report, test report, contract test)"
+190,b69b09cb,2026-07-28,fujiaze,S,1,主责,compact/0190-b69b09cb.md,cards/0190-b69b09cb.md,"P12-001: mark DONE, update control files (photometric diagnostic struct + CLI quality_metr"
+191,a6d1040a,2026-07-28,fujiaze,M,2,主责,compact/0191-a6d1040a.md,cards/0191-a6d1040a.md,P12-002: fix KdTree2D direction bug and add bidirectional unique matching
+192,b7b18794,2026-07-28,fujiaze,L,4,主责,compact/0192-b7b18794.md,cards/0192-b7b18794.md,P12-003: 验证光谱积分与响应曲线无回归
+193,67161dc3,2026-07-28,fujiaze,S,1,主责,compact/0193-67161dc3.md,cards/0193-67161dc3.md,memory: 记录 P12-003 完成（验证光谱积分与响应曲线无回归）
+194,b854d9a7,2026-07-28,fujiaze,L,4,主责,compact/0194-b854d9a7.md,cards/0194-b854d9a7.md,P12-004: T1-T4 与滤镜类别测光矩阵验证
+195,60ce5032,2026-07-28,fujiaze,L,4,主责,compact/0195-60ce5032.md,cards/0195-60ce5032.md,P12-005: 修复 SNR 模型与 HISS 持久化 (16/16 Gate PASS)
+196,38470d2b,2026-07-28,fujiaze,S,1,主责,compact/0196-38470d2b.md,cards/0196-38470d2b.md,memory: 记录 P12-004/P12-005 完成（initDiag 修复、scale_factor 误判、HA/OIII 滤光片、中文路径绕过，16/16 Gate PA
+197,5fc85c25,2026-07-29,fujiaze,M,2,主责,compact/0197-5fc85c25.md,cards/0197-5fc85c25.md,P12-006: 生成 Stage1 代表矩阵正式 HISS (16/16 PASS)
+198,c755334b,2026-07-29,fujiaze,L,4,主责,compact/0198-c755334b.md,cards/0198-c755334b.md,feat(P13-001): 建立 Stage1 全 TestData 批处理与恢复入口
+199,61d49fa9,2026-07-29,fujiaze,S,1,主责,compact/0199-61d49fa9.md,cards/0199-61d49fa9.md,P13-002 修复 snr_evaluator 栈溢出 (0xC00000FD)
+200,e5aeaacb,2026-07-29,fujiaze,M,2,主责,compact/0200-e5aeaacb.md,cards/0200-e5aeaacb.md,新增浏览器 CLI 后台调试工具 + 修复浏览器打不开
+201,04226a9a,2026-07-29,fujiaze,S,1,主责,compact/0201-04226a9a.md,cards/0201-04226a9a.md,P13-002 修复 snr_evaluator 栈溢出 (根因修正)
+202,977f1381,2026-07-29,fujiaze,M,2,主责,compact/0202-977f1381.md,cards/0202-977f1381.md,docs(v1.3): 生成 P13-002 审计交付包 + 根目录整理
+203,036a3bb5,2026-07-29,fujiaze,L,4,主责,compact/0203-036a3bb5.md,cards/0203-036a3bb5.md,chore: 根目录整理 + 工程控制包重命名
+204,75b05f72,2026-07-30,fujiaze,L,4,主责,compact/0204-75b05f72.md,cards/0204-75b05f72.md,feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+205,3950ddb5,2026-07-30,fujiaze,L,4,主责,compact/0205-3950ddb5.md,cards/0205-3950ddb5.md,feat(A-002): 整理T1-T4设备档案与说明文档
+206,853e6a55,2026-07-30,fujiaze,M,2,主责,compact/0206-853e6a55.md,cards/0206-853e6a55.md,"feat(A-003,A-004): 滤镜别名清单 + Light到Master严格解析器"
+207,3c219af8,2026-07-30,fujiaze,S,1,主责,compact/0207-3c219af8.md,cards/0207-3c219af8.md,feat(Gate A): Gate A 全部通过 + 进入 Gate B
+208,4e7fa494,2026-07-30,fujiaze,M,2,主责,compact/0208-4e7fa494.md,cards/0208-4e7fa494.md,feat(B-001): 选择3个代表帧+配置，全部RESOLVED
+209,a7e61746,2026-07-30,fujiaze,M,2,主责,compact/0209-a7e61746.md,cards/0209-a7e61746.md,feat(B-002): 3帧Stage1全部成功，科学统计良好
+210,2d32460c,2026-07-30,fujiaze,M,2,主责,compact/0210-2d32460c.md,cards/0210-2d32460c.md,feat(Gate B): Gate B 全部通过 + 进入 Gate C
+211,51d89849,2026-07-30,fujiaze,L,4,主责,compact/0211-51d89849.md,cards/0211-51d89849.md,"feat(C-001,H-001~H-003): HISS v2契约冻结 + H链资源监测完成"
+212,38b05b0e,2026-07-30,fujiaze,M,2,主责,compact/0212-38b05b0e.md,cards/0212-38b05b0e.md,"feat(C-002): HISS v2读写器实现完成, 37/37测试PASS"
+213,af38cf1e,2026-07-30,fujiaze,L,4,主责,compact/0213-af38cf1e.md,cards/0213-af38cf1e.md,feat(Gate C): Gate C 全部通过 + 进入 Gate D
+214,5518d0bc,2026-07-30,fujiaze,M,2,主责,compact/0214-5518d0bc.md,cards/0214-5518d0bc.md,feat(Gate D): Gate D全部通过 + F-001完成 + 进入Gate E
+215,f9d0a14c,2026-07-30,fujiaze,L,4,主责,compact/0215-f9d0a14c.md,cards/0215-f9d0a14c.md,feat(Gate E): Gate E全部通过 + 进入Gate G
+216,aa210b93,2026-07-30,fujiaze,L,4,主责,compact/0216-aa210b93.md,cards/0216-aa210b93.md,"feat(G-001~G-003,F-002): 叠加链完成 + H链全DONE"
+217,5a41e285,2026-07-30,fujiaze,M,2,主责,compact/0217-5a41e285.md,cards/0217-5a41e285.md,feat(I-001): 冻结格式、CLI和算法契约
+218,d91acf10,2026-07-30,fujiaze,S,1,主责,compact/0218-d91acf10.md,cards/0218-d91acf10.md,fix(p13-001): 修复 stage1_batch_runner 中文路径导致 orchestrator C++ 文件系统错误
+219,caa6cb9d,2026-07-30,fujiaze,S,1,主责,compact/0219-caa6cb9d.md,cards/0219-caa6cb9d.md,feat(I-002): 阶段A 15帧代表帧验证通过 + 启动710帧全量回归
+220,cb1b20e0,2026-07-30,fujiaze,S,1,主责,compact/0220-cb1b20e0.md,cards/0220-cb1b20e0.md,"feat(p13-001): 支持环境变量覆盖输出目录, 启用3设备并行回归"

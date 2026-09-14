@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1256,fd4e11ed,2026-08-30,付家泽,M,2,重叠复核,compact/1256-fd4e11ed.md,cards/1256-fd4e11ed.md,"(审核包重打+补全) assemble_audit.py: windows_32r_run_id=4f885b8b8fd4(32R phase2), blockers 更新为实际剩"
+1257,5d9061f4,2026-08-30,付家泽,S,1,重叠复核,compact/1257-5d9061f4.md,cards/1257-5d9061f4.md,"(WIN-006/007 资源内存门控 PASS-运行型) phase2 --resource-detail: budget workers=16(cpus=16), obs=96"
+1258,774a7616,2026-08-30,付家泽,S,1,重叠复核,compact/1258-774a7616.md,cards/1258-774a7616.md,"(统一SHA状态) Linux二进制重建(cmake, exit0)doctor PASS无回归, 版本字符串 g5d9061f481a4(HEAD漂移; Windows=gb84"
+1259,587fe0e3,2026-08-30,付家泽,S,1,重叠复核,compact/1259-587fe0e3.md,cards/1259-587fe0e3.md,"(统一SHA续) Windows重建(MSBuild18.3.0, cmake msys64)exit0; 强制main.cpp重编译后版本串仍gb842899eb8fb→版本串在"
+1260,ac2d230d,2026-08-30,付家泽,S,1,重叠复核,compact/1260-ac2d230d.md,cards/1260-ac2d230d.md,(审核包打包工具) tools/pack_audit_package.py: 打包基线代码(不含数据/第三方/二进制/运行时)+证据为 zip. 产物 artifacts/prer
+1261,4b1b948e,2026-08-30,付家泽,L,4,重叠复核,compact/1261-4b1b948e.md,cards/1261-4b1b948e.md,BAS-001: 冻结仓库身份与控制包基线
+1262,debeb0a3,2026-08-30,付家泽,M,2,重叠复核,compact/1262-debeb0a3.md,cards/1262-debeb0a3.md,BAS-002: 冻结当前构建目标与生产入口
+1263,e4fa8a36,2026-08-30,付家泽,S,1,重叠复核,compact/1263-e4fa8a36.md,cards/1263-e4fa8a36.md,BAS-003: 冻结静态调用图与线程入口清单
+1264,8d89088e,2026-08-30,付家泽,S,1,重叠复核,compact/1264-8d89088e.md,cards/1264-8d89088e.md,BAS-004: 登记 P0 所有权与科学语义风险 + G0 门禁达成
+1265,ecc805d4,2026-08-30,付家泽,M,2,重叠复核,compact/1265-ecc805d4.md,cards/1265-ecc805d4.md,VER-001: 建立唯一版本来源 0.10.0-alpha.1
+1266,0f78c111,2026-08-30,付家泽,M,2,主责,compact/1266-0f78c111.md,cards/1266-0f78c111.md,DOC-001: 建立合同 ID 注册表
+1267,7b43ed1c,2026-08-30,付家泽,S,1,主责,compact/1267-7b43ed1c.md,cards/1267-7b43ed1c.md,SCI-001: 冻结 Phase1 科学定义(确认冻结+owner摘要)
+1268,e765161d,2026-08-30,付家泽,S,1,主责,compact/1268-e765161d.md,cards/1268-e765161d.md,SCI-002: 冻结 Phase2 科学定义(确认冻结)
+1269,4a7fe628,2026-08-30,付家泽,S,1,主责,compact/1269-4a7fe628.md,cards/1269-4a7fe628.md,SCI-003: 设计 Phase3 科学定义(确认冻结)
+1270,e351f3fb,2026-08-30,付家泽,M,2,主责,compact/1270-e351f3fb.md,cards/1270-e351f3fb.md,DATA-001: 冻结跨模块数据语义与 artifact schema
+1271,a858df3f,2026-08-30,付家泽,S,1,主责,compact/1271-a858df3f.md,cards/1271-a858df3f.md,ARCH-001: 冻结 Runtime 与职责边界
+1272,02839ac0,2026-08-30,付家泽,S,1,主责,compact/1272-02839ac0.md,cards/1272-02839ac0.md,API-001: 冻结公共 API 与错误模型
+1273,c7ec1003,2026-08-30,付家泽,S,1,主责,compact/1273-c7ec1003.md,cards/1273-c7ec1003.md,TEST-001: 建立科学测试矩阵
+1274,aa4298a7,2026-08-30,付家泽,S,1,主责,compact/1274-aa4298a7.md,cards/1274-aa4298a7.md,G1: 合同真相层门禁达成 checklist(8/8)
+1275,338eecc2,2026-08-30,付家泽,M,2,主责,compact/1275-338eecc2.md,cards/1275-338eecc2.md,BLD-001: 建立显式根 CMake 目标图
+1276,c572aa1f,2026-08-31,付家泽,M,2,主责,compact/1276-c572aa1f.md,cards/1276-c572aa1f.md,CORE-001: 实现公共 Result/Error/Cancel 语义
+1277,3e98a22d,2026-08-31,付家泽,M,2,主责,compact/1277-3e98a22d.md,cards/1277-3e98a22d.md,CORE-002: 实现 DataArtifact 与 Provenance
+1278,e29aae75,2026-08-31,付家泽,M,2,主责,compact/1278-e29aae75.md,cards/1278-e29aae75.md,CORE-003: 实现 ModuleDescriptor 注册表
+1279,c497a284,2026-08-31,付家泽,M,2,主责,compact/1279-c497a284.md,cards/1279-c497a284.md,CORE-004: 实现 Pipeline IR 解析与静态验证
+1280,6389105a,2026-08-31,付家泽,M,2,主责,compact/1280-6389105a.md,cards/1280-6389105a.md,CORE-005: 实现 RunContext 服务接口
+1281,dedbfad7,2026-08-31,付家泽,M,2,主责,compact/1281-dedbfad7.md,cards/1281-dedbfad7.md,CORE-006: 实现统一 DAG 调度与线程租约
+1282,06b10d1a,2026-08-31,付家泽,M,2,主责,compact/1282-06b10d1a.md,cards/1282-06b10d1a.md,CORE-007: 实现 checkpoint 与幂等恢复
+1283,e498e7bf,2026-08-31,付家泽,M,2,主责,compact/1283-e498e7bf.md,cards/1283-e498e7bf.md,CORE-008: 实现统一日志与指标服务
+1284,82185a05,2026-08-31,付家泽,S,1,主责,compact/1284-82185a05.md,cards/1284-82185a05.md,G2-RUNTIME: Runtime gate 9/9 PASS
+1285,2f39880c,2026-08-31,付家泽,M,2,主责,compact/1285-2f39880c.md,cards/1285-2f39880c.md,IO-001: 实现 I/O adapter 接口与 Artifact 事务
+1286,1878fa52,2026-08-31,付家泽,M,2,主责,compact/1286-1878fa52.md,cards/1286-1878fa52.md,IO-002: aio_image* canonical deleter 全覆盖
+1287,63167789,2026-08-31,付家泽,S,1,主责,compact/1287-63167789.md,cards/1287-63167789.md,IO-003: CFITSIO 显式 reentrant + per-worker 独立 reader
+1288,09228a1c,2026-08-31,付家泽,S,1,主责,compact/1288-09228a1c.md,cards/1288-09228a1c.md,IO-004: 2/4/8 worker 随机 tile 读取压力
+1289,af6cb259,2026-08-31,付家泽,M,2,主责,compact/1289-af6cb259.md,cards/1289-af6cb259.md,CPU-001: C ABI 结构全带 size/version + 边界头纯净
+1290,5b628296,2026-08-31,付家泽,S,1,主责,compact/1290-5b628296.md,cards/1290-5b628296.md,CPU-002: baseline AMD64 + Runtime lease 多线程验证
+1291,79dbcfa6,2026-08-31,付家泽,S,1,主责,compact/1291-79dbcfa6.md,cards/1291-79dbcfa6.md,CPU-003: CPUID/OSXSAVE/XGETBV 核验 + feature 匹配降级
+1292,4560aaf9,2026-08-31,付家泽,S,1,主责,compact/1292-4560aaf9.md,cards/1292-4560aaf9.md,CPU-004: AVX2/AVX-512 provider 同 kernel 语义 + 降级链
+1293,fef908c4,2026-08-31,付家泽,S,1,主责,compact/1293-fef908c4.md,cards/1293-fef908c4.md,CPU-005: 损坏 provider/ABI mismatch/缺 kernel 优雅 fallback
+1294,3019381b,2026-08-31,付家泽,S,1,主责,compact/1294-3019381b.md,cards/1294-3019381b.md,CPU-006: benchmark 顺序链 + Oracle 门验证
+1295,d9c89637,2026-08-31,付家泽,S,1,主责,compact/1295-d9c89637.md,cards/1295-d9c89637.md,CPU-007: profile 字段完整性 + 失效判定 + 回退语义
+1296,351e1855,2026-08-31,付家泽,S,1,主责,compact/1296-351e1855.md,cards/1296-351e1855.md,CPU-008: 资源监测器采样 + 开销 + gate 阈值
+1297,f65fcc98,2026-08-31,付家泽,S,1,主责,compact/1297-f65fcc98.md,cards/1297-f65fcc98.md,G3-GATE: I/O 与 CPU gate 8/8 PASS
+1298,fe92b6e5,2026-08-31,付家泽,S,1,主责,compact/1298-fe92b6e5.md,cards/1298-fe92b6e5.md,P1-001: Phase1 old-symbol 映射表 + 无 blocker
+1299,6f80c913,2026-08-31,付家泽,S,1,主责,compact/1299-6f80c913.md,cards/1299-6f80c913.md,P1-002: synthetic fixtures 解析公式逐像素比较
+1300,d3af6ffa,2026-08-31,付家泽,M,2,主责,compact/1300-d3af6ffa.md,cards/1300-d3af6ffa.md,P1-003: StarDetector 5 场景 + catalog 质量字段
+1301,366b9f8c,2026-08-31,付家泽,M,2,主责,compact/1301-366b9f8c.md,cards/1301-366b9f8c.md,P1-004: WCS roundtrip + Photometry 回归 + 失败显式
+1302,a63a66ae,2026-08-31,付家泽,M,2,主责,compact/1302-a63a66ae.md,cards/1302-a63a66ae.md,P1-005: Noise/SNR SCI 公式 + Monte Carlo 验证
+1303,ed9f3b0d,2026-08-31,付家泽,S,1,主责,compact/1303-ed9f3b0d.md,cards/1303-ed9f3b0d.md,P1-006: NSIDE 派生(无 2048 硬编码) + RA wrap
+1304,466c6fa4,2026-08-31,付家泽,S,1,主责,compact/1304-466c6fa4.md,cards/1304-466c6fa4.md,P1-007: HiPS writer 合法产品 + verify 重开 hash
+1305,c22819a2,2026-08-31,付家泽,S,1,主责,compact/1305-c22819a2.md,cards/1305-c22819a2.md,P1-008: canonical IR 节点 + preset 开关 + facade 验证
+1306,e1c6126e,2026-08-31,付家泽,S,1,主责,compact/1306-e1c6126e.md,cards/1306-e1c6126e.md,P1-009: 2 核 heavy synthetic 资源记录 + 多 frame
+1307,fb4d023e,2026-08-31,付家泽,S,1,主责,compact/1307-fb4d023e.md,cards/1307-fb4d023e.md,G4-GATE: Phase1 gate 10/10 PASS
+1308,f056f917,2026-08-31,付家泽,S,1,主责,compact/1308-f056f917.md,cards/1308-f056f917.md,P2-001: Phase2 Stage2 步骤映射 + ACR 禁迁移
+1309,6ef62a41,2026-08-31,付家泽,S,1,主责,compact/1309-6ef62a41.md,cards/1309-6ef62a41.md,P2-002: heavy 禁 workers=1 门禁 + cpu_workers 校验
+1310,fab26511,2026-08-31,付家泽,S,1,主责,compact/1310-fab26511.md,cards/1310-fab26511.md,P2-003: 三块重叠 UPM 合成验证(接缝/源/加性)
+1311,957accff,2026-08-31,付家泽,S,1,主责,compact/1311-957accff.md,cards/1311-957accff.md,P2-004: block plan 预算/峰值重算修复 + 无全局 cache
+1312,ab52854f,2026-08-31,付家泽,S,1,主责,compact/1312-ab52854f.md,cards/1312-ab52854f.md,P2-005: rejection 10 方法独立 fixture + AUTO 路由
+1313,3c66e64e,2026-08-31,付家泽,S,1,主责,compact/1313-3c66e64e.md,cards/1313-3c66e64e.md,P2-006: writer 输出语义(ivar 非模糊 weight) + integrate
+1314,ab45a63a,2026-08-31,付家泽,S,1,主责,compact/1314-ab45a63a.md,cards/1314-ab45a63a.md,P2-007: canonical Phase2 IR 全链 + facade 验证
+1315,b31a3780,2026-08-31,付家泽,S,1,主责,compact/1315-b31a3780.md,cards/1315-b31a3780.md,P2-008: seam 数值门+资源门同时通过
+1316,f5e1177a,2026-08-31,付家泽,S,1,主责,compact/1316-f5e1177a.md,cards/1316-f5e1177a.md,G5-GATE: Phase2 gate 10/10 PASS
+1317,be2d6c0d,2026-08-31,付家泽,S,1,主责,compact/1317-be2d6c0d.md,cards/1317-be2d6c0d.md,P3-001: 移除 prototype registry/preset + 文档状态统一
+1318,a994fe1d,2026-08-31,付家泽,S,1,主责,compact/1318-a994fe1d.md,cards/1318-a994fe1d.md,P3-002: WCS 溢出检查 + 配置合同上限(无硬编码 20000)
+1319,e4275ecc,2026-08-31,付家泽,S,1,主责,compact/1319-e4275ecc.md,cards/1319-e4275ecc.md,P3-003: tile 分工 + 插值/几何 fixtures
+1320,0b8117e2,2026-08-31,付家泽,S,1,主责,compact/1320-0b8117e2.md,cards/1320-0b8117e2.md,P3-004: coverage 与边界语义

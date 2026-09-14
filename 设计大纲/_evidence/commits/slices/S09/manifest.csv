@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+431,cc1d6923,2026-08-06,fujiaze,S,1,重叠复核,compact/0431-cc1d6923.md,cards/0431-cc1d6923.md,fix(acr): gate auto devices before worker start
+432,83291adf,2026-08-06,fujiaze,S,1,重叠复核,compact/0432-83291adf.md,cards/0432-83291adf.md,feat(acr): persist real cuda device buffer residency
+433,233359d0,2026-08-06,fujiaze,S,1,重叠复核,compact/0433-233359d0.md,cards/0433-233359d0.md,fix(acr): private partials and merge for reduce and drizzle
+434,eba1c23d,2026-08-06,fujiaze,S,1,重叠复核,compact/0434-eba1c23d.md,cards/0434-eba1c23d.md,feat(acr): pinned reservation ledger
+435,c82013ee,2026-08-06,fujiaze,S,1,重叠复核,compact/0435-c82013ee.md,cards/0435-c82013ee.md,docs(acr): record focused v2 fix progress
+436,e107061c,2026-08-06,fujiaze,S,1,重叠复核,compact/0436-e107061c.md,cards/0436-e107061c.md,"fix(acr): drizzle buffer roles, residency input roles and serial gpu tests"
+437,0f451b28,2026-08-06,fujiaze,S,1,重叠复核,compact/0437-0f451b28.md,cards/0437-0f451b28.md,"docs: wiki 指针更新 (Phase1 未闭合, NOT_SYNCED 标记)"
+438,a36c4825,2026-08-06,fujiaze,M,2,重叠复核,compact/0438-a36c4825.md,cards/0438-a36c4825.md,fix(acr): correct cost units and separate qualification from gpu eligibility
+439,c00266eb,2026-08-06,fujiaze,S,1,重叠复核,compact/0439-c00266eb.md,cards/0439-c00266eb.md,fix(acr): makespan heterogeneous mixed claim and preserve recommended chunk
+440,a50a97a2,2026-08-06,fujiaze,M,2,重叠复核,compact/0440-a50a97a2.md,cards/0440-a50a97a2.md,fix(drizzle): R13 候选安全 (CAND-001) — 外接半径 1.1 证明 + 面内畸变修复 + 独立 Oracle
+441,1344c930,2026-08-06,fujiaze,M,2,主责,compact/0441-1344c930.md,cards/0441-1344c930.md,"test(drizzle): R13 科学补齐 (SCI-001..004, DOMAIN-001) — 13/13"
+442,5e62ef5b,2026-08-06,fujiaze,S,1,主责,compact/0442-5e62ef5b.md,cards/0442-5e62ef5b.md,feat(acr): real dispatcher residency execution with prefetch and resident launcher
+443,7f02d2fd,2026-08-06,fujiaze,M,2,主责,compact/0443-7f02d2fd.md,cards/0443-7f02d2fd.md,feat(drizzle): Sphere -> Plane 真面积 Drizzle (R13 REV-001)
+444,c8dc867f,2026-08-06,fujiaze,S,1,主责,compact/0444-c8dc867f.md,cards/0444-c8dc867f.md,fix(acr): partial scratch contract with attempt reset
+445,3ec62c36,2026-08-06,fujiaze,S,1,主责,compact/0445-3ec62c36.md,cards/0445-3ec62c36.md,fix(acr): staging ledger semantics and resident peak accounting
+446,41797b3a,2026-08-06,fujiaze,S,1,主责,compact/0446-41797b3a.md,cards/0446-41797b3a.md,test(acr): qualified cpu-only routing and partial scratch contract
+447,450e78c6,2026-08-06,fujiaze,M,2,主责,compact/0447-450e78c6.md,cards/0447-450e78c6.md,perf(hiss): HISS I/O 修复 (R13 HISS_IO_REPAIR) — 写入 119s->12.9s (4096^2 等规模)
+448,83c4696d,2026-08-06,fujiaze,M,2,主责,compact/0448-83c4696d.md,cards/0448-83c4696d.md,perf(hiss): HISS Verify 单句柄 session API (R13 HISS_IO_REPAIR) — 130s->0.85s
+449,610d7b6a,2026-08-06,fujiaze,S,1,主责,compact/0449-610d7b6a.md,cards/0449-610d7b6a.md,test(acr): stable gpu test ordering and record v3 progress
+450,6babe222,2026-08-06,fujiaze,S,1,主责,compact/0450-6babe222.md,cards/0450-6babe222.md,"perf(hiss): Reader/Transform 逐Tile日志门控 (R13 HISS_IO_REPAIR) — Verify 40s->~1s, 写入 33s->~3s"
+451,08a758ab,2026-08-06,fujiaze,S,1,主责,compact/0451-08a758ab.md,cards/0451-08a758ab.md,"docs(memory): R13 Phase1 最终闭合验收记录 (完整帧 45.43s, 门禁全过, 偏差如实记录)"
+452,ed50c33e,2026-08-06,fujiaze,M,2,主责,compact/0452-ed50c33e.md,cards/0452-ed50c33e.md,feat(reverse): 正式集成反向球面面积 Drizzle (REV-101..107)
+453,c7d3b8ff,2026-08-06,fujiaze,S,1,主责,compact/0453-c7d3b8ff.md,cards/0453-c7d3b8ff.md,"fix(spherical): 候选安全上界 1.25 + WCS 收敛阈值下限 + 大半球契约 (ORA-101/103, REV-107)"
+454,6f7bba7d,2026-08-06,fujiaze,M,2,主责,compact/0454-6f7bba7d.md,cards/0454-6f7bba7d.md,test(reverse+oracle): 解析球面科学矩阵 30/30 + DLL API 8/8 + edge-cross Oracle 0漏报 + 历史红灯清零
+455,af29af93,2026-08-06,fujiaze,S,1,主责,compact/0455-af29af93.md,cards/0455-af29af93.md,"docs(memory): Phase1 签字修正验收记录 (Reverse Drizzle 30/30, Oracle 0漏报, 完整FP32 50.37s)"
+456,ef2106cb,2026-08-06,fujiaze,M,2,主责,compact/0456-ef2106cb.md,cards/0456-ef2106cb.md,acr: freeze focused mixed execution contracts
+457,b78c58d3,2026-08-06,fujiaze,M,2,主责,compact/0457-b78c58d3.md,cards/0457-b78c58d3.md,acr: add resident cuda weighted integration launcher
+458,771fc80a,2026-08-06,fujiaze,M,2,主责,compact/0458-771fc80a.md,cards/0458-771fc80a.md,acr: add weighted integration cpu openmp and mixed benchmark
+459,fd0e8531,2026-08-06,fujiaze,M,2,主责,compact/0459-fd0e8531.md,cards/0459-fd0e8531.md,acr: add weighted integration correctness and residency tests
+460,38b85702,2026-08-06,fujiaze,M,2,主责,compact/0460-38b85702.md,cards/0460-38b85702.md,docs(acr): freeze architecture and weighted integration control package
+461,153042d2,2026-08-06,fujiaze,S,1,主责,compact/0461-153042d2.md,cards/0461-153042d2.md,fix(acr): remove submit debug fprintf leftovers from invocation path
+462,7d966297,2026-08-06,fujiaze,S,1,主责,compact/0462-7d966297.md,cards/0462-7d966297.md,docs(acr): record weighted integration perf fix and results
+463,eb52e066,2026-08-06,fujiaze,M,2,主责,compact/0463-eb52e066.md,cards/0463-eb52e066.md,fix(signoff): 微型修正 — 真实负值场/SIP5/严格阈值 (MICROFIX #2-4)
+464,8c501102,2026-08-06,fujiaze,S,1,主责,compact/0464-8c501102.md,cards/0464-8c501102.md,"docs(memory): Phase1 基础算法闭合 — 最终签字微修正验收记录 (eb52e06, wiki 6739028)"
+465,584b04ee,2026-08-07,fujiaze,M,2,主责,compact/0465-584b04ee.md,cards/0465-584b04ee.md,"fix(acr): fair weighted benchmark scenarios, real stats, chunk calibration, single-stream "
+466,323b441f,2026-08-07,fujiaze,S,1,主责,compact/0466-323b441f.md,cards/0466-323b441f.md,docs(acr): record fair weighted benchmark and real stats round
+467,8aefbcd8,2026-08-07,fujiaze,S,1,主责,compact/0467-8aefbcd8.md,cards/0467-8aefbcd8.md,fix(acr): align weighted benchmark report to schema 1.1 gates and vram peaks
+468,3502e496,2026-08-07,fujiaze,M,2,主责,compact/0468-3502e496.md,cards/0468-3502e496.md,"fix(dataflow): Phase1 彻底冻结 BLOCKER 修复 (DF-001..004, TYPE-001/002, STRUCT-001, CFG-001)"
+469,9a5c70f4,2026-08-07,fujiaze,S,1,主责,compact/0469-9a5c70f4.md,cards/0469-9a5c70f4.md,docs(memory): Phase1 彻底冻结验证 — BLOCKER 修复记录 (3502e49)
+470,11bbfd41,2026-08-07,fujiaze,M,2,主责,compact/0470-11bbfd41.md,cards/0470-11bbfd41.md,fix(fuzz+abi): Gate 1/4 — AIO ABI 握手 + 固定种子 Fuzz + HISS 资源上限 + snr_model payload 修正
+471,8563c8d4,2026-08-07,fujiaze,L,4,主责,compact/0471-8563c8d4.md,cards/0471-8563c8d4.md,"feat(acr): benchmark-driven routing with route profile v2, estimator and holdout replay"
+472,c0ae7fe7,2026-08-07,fujiaze,S,1,主责,compact/0472-c0ae7fe7.md,cards/0472-c0ae7fe7.md,chore(acr): ignore local build2 configure directory
+473,1d75c2b9,2026-08-07,fujiaze,S,1,主责,compact/0473-1d75c2b9.md,cards/0473-1d75c2b9.md,fix(chain): T4 裁剪链端到端验证修复 (FITS master 回退 / snr_model payload 28 / points 偏移)
+474,b4122f38,2026-08-07,fujiaze,S,1,主责,compact/0474-b4122f38.md,cards/0474-b4122f38.md,docs(memory): Phase1 彻底冻结验证 — Fuzz/ABI/链/真实数据矩阵结果与未完成项 (1d75c2b)
+475,c161c7b3,2026-08-07,fujiaze,S,1,主责,compact/0475-c161c7b3.md,cards/0475-c161c7b3.md,fix(acr): align weighted benchmark report to schema 1.3 replay and scenario fields
+476,7c5cd373,2026-08-07,fujiaze,M,2,主责,compact/0476-7c5cd373.md,cards/0476-7c5cd373.md,"fix(acr): per-token chunk service curves, mixed e2e primary cost, scenario isolation and 8"
+477,2a7fbe3b,2026-08-07,fujiaze,S,1,主责,compact/0477-2a7fbe3b.md,cards/0477-2a7fbe3b.md,fix(acr): serialize chunk service curves at operation top level per schema
+478,70ac84cc,2026-08-07,fujiaze,S,1,主责,compact/0478-70ac84cc.md,cards/0478-70ac84cc.md,"docs(memory): 根目录清理 — 旧工程包/审核包归档至 archive_deliverables, 每系列保留最新"
+479,ab486b62,2026-08-07,fujiaze,M,2,主责,compact/0479-ab486b62.md,cards/0479-ab486b62.md,refactor(pipeline): 修订星点链 PSF/STAR_MEASURE 先于 PLATESOLVE
+480,3a0b0c15,2026-08-07,fujiaze,L,4,主责,compact/0480-3a0b0c15.md,cards/0480-3a0b0c15.md,test(gate4): DR3SP schema 审计 + GaiaXPy 官方 Oracle 对比 + PSF Photutils Oracle
+481,30293051,2026-08-07,fujiaze,M,2,主责,compact/0481-30293051.md,cards/0481-30293051.md,feat(hips): IVOA HiPS 迁移 — AIO 唯一写入器 + 编排器接入 + Gate3/7 Oracle
+482,3d21c724,2026-08-08,fujiaze,S,1,主责,compact/0482-3d21c724.md,cards/0482-3d21c724.md,feat(trace): Gate 8 实际 buffer 随机抽样 trace 观察器
+483,597b3d01,2026-08-08,fujiaze,S,1,主责,compact/0483-597b3d01.md,cards/0483-597b3d01.md,docs(memory): Phase1 Full Freeze v2 — 修订流水线/DR3SP GaiaXPy/HiPS/trace 进展与 PSF-001 BLOCKER
+484,4ed69ce1,2026-08-08,fujiaze,S,1,主责,compact/0484-4ed69ce1.md,cards/0484-4ed69ce1.md,chore(wiki): Phase1 Full Freeze v2 状态同步 (wiki 4274db4)
+485,230e7b02,2026-08-08,fujiaze,M,2,主责,compact/0485-230e7b02.md,cards/0485-230e7b02.md,tool(diag): Gaia 星点重投影 vs sdet/DPSF 视觉验证 (PSF-001 归因)
+486,ee582449,2026-08-08,fujiaze,S,1,主责,compact/0486-ee582449.md,cards/0486-ee582449.md,fix(psf+chain): PSF-001 坐标契约修复 + 星点链消费 PSF 拟合中心
+487,863a8490,2026-08-08,fujiaze,M,2,主责,compact/0487-863a8490.md,cards/0487-863a8490.md,test(psf): Phase A 坐标契约最终测试 — G1-G6 全过
+488,70edb842,2026-08-08,fujiaze,M,2,主责,compact/0488-70edb842.md,cards/0488-70edb842.md,feat(xpsd): PCL 官方解码生产链 — fluxMin/fluxMul 线性解码替代 uint8*10^-0.4G
+489,f75d4eb4,2026-08-08,fujiaze,S,1,主责,compact/0489-f75d4eb4.md,cards/0489-f75d4eb4.md,"fix(reverse): 增加 WCS 物理范围校验 (crval DEC∈[-90,90], CD 元素有限且 ≤1°/px)"
+490,732c3a62,2026-08-08,fujiaze,M,2,主责,compact/0490-732c3a62.md,cards/0490-732c3a62.md,"chore(configs): 移除旧 schema 配置, configs/ 仅保留 stage1.schema.json + stage1.template.json"
+491,57112296,2026-08-08,fujiaze,S,1,主责,compact/0491-57112296.md,cards/0491-57112296.md,docs(memory): XPSD 官方解码语义与生产链记录 (Phase B)
+492,4769979c,2026-08-08,fujiaze,M,2,主责,compact/0492-4769979c.md,cards/0492-4769979c.md,feat(acr): scenario-level qualification and probe/final stats in route profile v2
+493,91737ae1,2026-08-08,fujiaze,M,2,主责,compact/0493-91737ae1.md,cards/0493-91737ae1.md,"fix(acr): 2D chunk service interpolation, scenario-gated routing and diagnostic replay mod"
+494,d61c7560,2026-08-08,fujiaze,M,2,主责,compact/0494-d61c7560.md,cards/0494-d61c7560.md,"fix(acr): fit/probe/final isolation, real adaptive refinement, true cold mixed, chunk stri"
+495,23378a25,2026-08-08,fujiaze,M,2,主责,compact/0495-23378a25.md,cards/0495-23378a25.md,"fix(acr): replay report from profile, scenario-grouped best and real gates in weighted ben"

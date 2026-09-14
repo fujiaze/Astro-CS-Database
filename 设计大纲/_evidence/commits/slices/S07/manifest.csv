@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+321,8c616f1c,2026-08-03,fujiaze,S,1,重叠复核,compact/0321-8c616f1c.md,cards/0321-8c616f1c.md,refactor(r10): orchestrator.cpp 手写JSON解析器替换为 nlohmann/json
+322,8653bd54,2026-08-03,fujiaze,L,4,重叠复核,compact/0322-8653bd54.md,cards/0322-8653bd54.md,refactor(r10): Python 生产层彻底清理
+323,12fb99f3,2026-08-04,fujiaze,M,2,重叠复核,compact/0323-12fb99f3.md,cards/0323-12fb99f3.md,docs(acr): 同步 Fix Review 控制包（22_FIX_REVIEW_CORRECTION_PLAN + schemas + audits）
+324,a664f87a,2026-08-04,fujiaze,M,2,重叠复核,compact/0324-a664f87a.md,cards/0324-a664f87a.md,fix(acr): make dynamic work pool concurrency-safe (F-fix 5)
+325,56f95a87,2026-08-04,fujiaze,M,2,重叠复核,compact/0325-56f95a87.md,cards/0325-56f95a87.md,feat(acr): introduce real per-device executors and cost-driven claims (F-fix 6 + F-fix 7)
+326,45022dcf,2026-08-04,fujiaze,M,2,重叠复核,compact/0326-45022dcf.md,cards/0326-45022dcf.md,feat(acr): implement recoverable utilization and memory backpressure (F-fix 9)
+327,bd036f3e,2026-08-04,fujiaze,L,4,重叠复核,compact/0327-bd036f3e.md,cards/0327-bd036f3e.md,feat(r10): 真正全链路 FP32/FP64 双精度 ABI 改造
+328,c6efe310,2026-08-04,fujiaze,M,2,重叠复核,compact/0328-c6efe310.md,cards/0328-c6efe310.md,fix(r10): HISS_VERIFY 全Tile验证 + SNR点原因分类 + inspect precision
+329,67123a45,2026-08-04,fujiaze,M,2,重叠复核,compact/0329-67123a45.md,cards/0329-67123a45.md,feat(acr): real CudaExecutor for true GPU mixed execution (F-fix 8)
+330,248080f8,2026-08-04,fujiaze,M,2,重叠复核,compact/0330-248080f8.md,cards/0330-248080f8.md,fix(acr): make CudaExecutor truly execute user kernel for real Mixed (F-fix 8)
+331,09c8e368,2026-08-04,fujiaze,S,1,主责,compact/0331-09c8e368.md,cards/0331-09c8e368.md,feat(acr): UTF-8 safe SHA-256 manifest tool for evidence (F-fix 10)
+332,d557aea9,2026-08-04,fujiaze,L,4,主责,compact/0332-d557aea9.md,cards/0332-d557aea9.md,test(acr): produce single-head real mixed and resource-control evidence (F-fix 10)
+333,eef53e79,2026-08-04,fujiaze,M,2,主责,compact/0333-eef53e79.md,cards/0333-eef53e79.md,test(acr): add ASan sanitizer evidence (F-fix 10)
+334,8cb22a99,2026-08-04,fujiaze,M,2,主责,compact/0334-8cb22a99.md,cards/0334-8cb22a99.md,fix(r10): SnrControlPoint 结构体打包 bug 修复 (根因: 1609 SNR 点丢失)
+335,7bd88e6f,2026-08-04,fujiaze,S,1,主责,compact/0335-7bd88e6f.md,cards/0335-7bd88e6f.md,"docs(env): AGENTS.md 增补已确定的编译环境, 清理已合并分支"
+336,b4b2bced,2026-08-04,fujiaze,L,4,主责,compact/0336-b4b2bced.md,cards/0336-b4b2bced.md,docs(readme): 根 README 精简重写 + orchestrator README 对齐 JSON 唯一入口
+337,54b1caf9,2026-08-04,fujiaze,M,2,主责,compact/0337-54b1caf9.md,cards/0337-54b1caf9.md,docs(evidence): R10-001 证据归档 - 双精度/SNR/验收自审
+338,e16dc35f,2026-08-04,fujiaze,S,1,主责,compact/0338-e16dc35f.md,cards/0338-e16dc35f.md,chore(wiki): 更新 AstroCS.wiki 子模块指针至 R10 Wiki 同步提交
+339,e8da7c49,2026-08-04,fujiaze,S,1,主责,compact/0339-e8da7c49.md,cards/0339-e8da7c49.md,docs(evidence): 验收自审 27/27 闭合 (源码清理 + SHA256 清单)
+340,62d7cb8a,2026-08-04,fujiaze,M,2,主责,compact/0340-62d7cb8a.md,cards/0340-62d7cb8a.md,chore(tools): 删除 tools/ 工具集 (astro_toolkit 等)
+341,6e9dc1b8,2026-08-04,fujiaze,M,2,主责,compact/0341-6e9dc1b8.md,cards/0341-6e9dc1b8.md,chore(docs): 删除 docs/ 本地参考文档 (Wiki 已确定为唯一权威)
+342,a53c97de,2026-08-04,fujiaze,M,2,主责,compact/0342-a53c97de.md,cards/0342-a53c97de.md,feat(toolchain): 新增统一工具链 toolchain.ps1 + 审核包工作流与命名规范
+343,dac3b8cf,2026-08-04,fujiaze,M,2,主责,compact/0343-dac3b8cf.md,cards/0343-dac3b8cf.md,chore(tools): 按新控制包要求恢复 astro_toolkit (自 62d7cb8^)
+344,0a3de3da,2026-08-04,fujiaze,M,2,主责,compact/0344-0a3de3da.md,cards/0344-0a3de3da.md,refactor(acr): separate cpu callbacks from accelerator kernel registry
+345,d85596a8,2026-08-04,fujiaze,L,4,主责,compact/0345-d85596a8.md,cards/0345-d85596a8.md,feat(r11): 正式 Schema validator + typed 配置直接驱动 + 逐 Gate 控制
+346,e5a700a2,2026-08-04,fujiaze,M,2,主责,compact/0346-e5a700a2.md,cards/0346-e5a700a2.md,fix(acr): replace dynamic vector blocks with stable work tokens
+347,d0cc7239,2026-08-04,fujiaze,M,2,主责,compact/0347-d0cc7239.md,cards/0347-d0cc7239.md,feat(acr): add real cpu device executor via kernel registry
+348,5065e8da,2026-08-04,fujiaze,M,2,主责,compact/0348-5065e8da.md,cards/0348-5065e8da.md,feat(acr): schedule per-device work claims from cost estimates
+349,ea62d787,2026-08-04,fujiaze,S,1,主责,compact/0349-ea62d787.md,cards/0349-ea62d787.md,fix(r11): NSIDE/BROWSER_VERIFY 阶段修复 + 移除 Phase1 fast-math + Schema 哈希一致
+350,f738fdf0,2026-08-04,fujiaze,M,2,主责,compact/0350-f738fdf0.md,cards/0350-f738fdf0.md,feat(acr): implement time-windowed recoverable resource control
+351,56874dd0,2026-08-04,fujiaze,M,2,主责,compact/0351-56874dd0.md,cards/0351-56874dd0.md,feat(acr): real cuda bridge executor and registry-based classic kernels
+352,cb6444df,2026-08-04,fujiaze,S,1,主责,compact/0352-cb6444df.md,cards/0352-cb6444df.md,test(acr): fix ProfileReload timeout and add real MSVC ASan verification
+353,7c67328a,2026-08-04,fujiaze,L,4,主责,compact/0353-7c67328a.md,cards/0353-7c67328a.md,chore(acr): remove in-repo evidence (external single-head generation only)
+354,195ae01d,2026-08-04,fujiaze,S,1,主责,compact/0354-195ae01d.md,cards/0354-195ae01d.md,docs(acr): record second fix review progress in module memory
+355,969461dc,2026-08-04,fujiaze,S,1,主责,compact/0355-969461dc.md,cards/0355-969461dc.md,feat(r11): HISS_VERIFY 增加 SNR 控制点读取与汇总核对 (HISS-103)
+356,cb3e6a37,2026-08-04,fujiaze,S,1,主责,compact/0356-cb3e6a37.md,cards/0356-cb3e6a37.md,fix(acr): first-claim fairness gate for real mixed dispatch
+357,28bb0045,2026-08-04,fujiaze,S,1,主责,compact/0357-28bb0045.md,cards/0357-28bb0045.md,test(acr): size-aware tolerance for fp32 l2 norm classic experiment
+358,44b3a706,2026-08-04,fujiaze,S,1,主责,compact/0358-44b3a706.md,cards/0358-44b3a706.md,test(acr): avoid mingw+onetbb process-exit stack overflow in test harness
+359,c0bcca01,2026-08-04,fujiaze,S,1,主责,compact/0359-c0bcca01.md,cards/0359-c0bcca01.md,"test(r11): 单元测试适配 v1.1 Schema, 224/224 通过"
+360,2bda7080,2026-08-04,fujiaze,S,1,主责,compact/0360-2bda7080.md,cards/0360-2bda7080.md,test(acr): sustained 50/80/95/100% load verification with real sampling
+361,0999d163,2026-08-04,fujiaze,S,1,主责,compact/0361-0999d163.md,cards/0361-0999d163.md,feat(drizzle): 小图 Drizzle 剖析基准 + AGENTS 工具状态修复
+362,a6823fc6,2026-08-05,fujiaze,S,1,主责,compact/0362-a6823fc6.md,cards/0362-a6823fc6.md,feat(browser): Browser UI/后端 FP32/FP64 双精度接线 (HISS-105/106)
+363,48b543a1,2026-08-05,fujiaze,S,1,主责,compact/0363-48b543a1.md,cards/0363-48b543a1.md,perf(drizzle): 阶段3第一步 - 线程配置化 + static 调度 + 去每线程4M桶预分配
+364,c1e51c93,2026-08-05,fujiaze,S,1,主责,compact/0364-c1e51c93.md,cards/0364-c1e51c93.md,refactor(drizzle): 阶段4 WCS 共享顶点路径实现 (pixfrac=1)
+365,c79f3a83,2026-08-05,fujiaze,S,1,主责,compact/0365-c79f3a83.md,cards/0365-c79f3a83.md,perf(drizzle): 阶段5 候选路径重构 - NESTED 直接枚举 + 圆心预过滤
+366,f4dde849,2026-08-05,fujiaze,S,1,主责,compact/0366-f4dde849.md,cards/0366-f4dde849.md,"perf(drizzle): 候选缓冲 1.2→1.0×res (代码注释标称上界), 1024² FP32 达 8.4×"
+367,f0eda298,2026-08-05,fujiaze,S,1,主责,compact/0367-f0eda298.md,cards/0367-f0eda298.md,fix(acr): make work-token completion attempt-atomic
+368,e447a556,2026-08-05,fujiaze,S,1,主责,compact/0368-e447a556.md,cards/0368-e447a556.md,feat(psf): FP32 模式 PSF 拟合 float 直通 (PREC-105)
+369,1a0dc50e,2026-08-05,fujiaze,S,1,主责,compact/0369-1a0dc50e.md,cards/0369-1a0dc50e.md,docs: 阶段1 文档一致性 - 移除过时 fast-math 描述与错误完成声明
+370,be7c68b5,2026-08-05,fujiaze,M,2,主责,compact/0370-be7c68b5.md,cards/0370-be7c68b5.md,fix(acr): enforce numeric and invocation contracts
+371,4ff88662,2026-08-05,fujiaze,S,1,主责,compact/0371-4ff88662.md,cards/0371-4ff88662.md,fix(acr): select eligible executors from device cost
+372,0f1d3943,2026-08-05,fujiaze,S,1,主责,compact/0372-0f1d3943.md,cards/0372-0f1d3943.md,fix(acr): derive execution reports from per-device completions
+373,8b6ee883,2026-08-05,fujiaze,S,1,主责,compact/0373-8b6ee883.md,cards/0373-8b6ee883.md,test(browser): 双精度测试自包含 - tiny 合成 FP32/FP64 HISS (阶段1)
+374,3247125e,2026-08-05,fujiaze,S,1,主责,compact/0374-3247125e.md,cards/0374-3247125e.md,feat(hiss): metadata 双 dtype 字段 + astro_image_io Makefile 修复 (阶段1)
+375,8b33fa17,2026-08-05,fujiaze,S,1,主责,compact/0375-8b33fa17.md,cards/0375-8b33fa17.md,fix(hiss): HISS_VERIFY 缺 precision_mode 字段硬失败 (HISS-101)
+376,4f68a1af,2026-08-05,fujiaze,M,2,主责,compact/0376-4f68a1af.md,cards/0376-4f68a1af.md,feat(acr): per-device adaptive control basics; utilization target loop demoted to reportin
+377,18e6dcdf,2026-08-05,fujiaze,M,2,主责,compact/0377-18e6dcdf.md,cards/0377-18e6dcdf.md,feat(hiss): FP64 SNR 子块 (PREC-109/HISS-102) - 全链 dtype 感知
+378,68266341,2026-08-05,fujiaze,S,1,主责,compact/0378-68266341.md,cards/0378-68266341.md,feat(sdet): StarDetector FP64 第一步 - 图像原语 _d (double) 变体 (PREC-108)
+379,086df45a,2026-08-05,fujiaze,M,2,主责,compact/0379-086df45a.md,cards/0379-086df45a.md,refactor(acr): unify real benchmark and hardware-profile pipeline
+380,997cf4c6,2026-08-05,fujiaze,S,1,主责,compact/0380-997cf4c6.md,cards/0380-997cf4c6.md,"test(acr): expand sanitizer coverage to cpu executor, contracts and controller"
+381,dcb8c197,2026-08-05,fujiaze,M,2,主责,compact/0381-dcb8c197.md,cards/0381-dcb8c197.md,refactor(drizzle): 阶段6 Tile 局部累加 + 流式写入 (取消每leaf unordered_map)
+382,d7601233,2026-08-05,fujiaze,S,1,主责,compact/0382-d7601233.md,cards/0382-d7601233.md,docs(acr): record 24-plan completion progress and holdout tolerance
+383,a407392d,2026-08-05,fujiaze,M,2,主责,compact/0383-a407392d.md,cards/0383-a407392d.md,feat(drizzle): 阶段7 真 Scalar 累计模板化 + WCS/球面几何模板双实例
+384,3b7c545e,2026-08-05,fujiaze,M,2,主责,compact/0384-3b7c545e.md,cards/0384-3b7c545e.md,fix(acr): make qualification kernels race-free and workload-equivalent
+385,fd42381b,2026-08-05,fujiaze,S,1,主责,compact/0385-fd42381b.md,cards/0385-fd42381b.md,fix(acr): harden cuda bridge capacities and chunked convolution

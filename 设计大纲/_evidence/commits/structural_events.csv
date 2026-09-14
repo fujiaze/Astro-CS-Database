@@ -1,0 +1,1002 @@
+seq,sha8,date,kind,count,detail,subject
+1,4a2750bd,2026-05-24,NEWDIR,1,首次出现 lib/gaia_xpsd_client,Initial commit: Gaia DR3 XPSD Client
+2,802becc2,2026-05-24,NEWDIR,1,首次出现 lib/astro_image_io,Initial commit: Astro Image IO
+3,850973a7,2026-05-24,NEWDIR,1,首次出现 lib/star_detector,"feat: Star Detector - astronomical star detector with PSF fitting filter, FWHM clipping and roundnes"
+14,1013feb6,2026-06-03,SILENT,7,距上一提交（拓扑序）7 天,feat: half-threshold saturated star detection + candidate pre-filter + OpenMP parallelization
+17,8c0762ca,2026-07-07,SILENT,31,距上一提交（拓扑序）31 天,feat: V5.0 Gaussian PSF + GSL trust-region LM + 代码清理
+18,12c55ed6,2026-05-24,NEWDIR,1,首次出现 lib/dynamic_psf,feat: Dynamic PSF - Moffat4 PSF fitting engine with 16bit input and batch mode
+19,941b82a2,2026-06-07,SILENT,14,距上一提交（拓扑序）14 天,fix(search_recursive): add projection center point to AzimuthalEquidistant bbox computation
+21,7691d768,2026-07-10,SILENT,47,距上一提交（拓扑序）47 天,feat: expose DR3SP spectrum interface (BP/RP spectra + magBP/magRP)
+24,a88d9789,2026-07-10,NEWDIR,1,首次出现 lib/calibration,feat: Astro Calibration C++ module
+31,0c08aeb5,2026-07-11,NEWDIR,1,首次出现 lib/healpix_db,feat: HEALpix Database - 球面存储与可视化系统
+35,f75ae3f0,2026-07-12,NEWDIR,1,首次出现 lib/photometric_calib,v1.0: 鲁棒流量校准 Python 开发原型
+39,55d69dd0,2026-07-12,DELETE,28,删除 28 文件（批量移除/归档）,refactor: split ahpx_io/stack/drizzle into independent repos
+45,e27ff13d,2026-07-12,NEWDIR,1,首次出现 lib/data_pipeline,feat: initial Astro-Data-Pipline - memory pipeline C++ implementation
+75,8399f940,2026-07-15,NEWDIR,1,首次出现 lib/snr_estimator,feat: SNR 估算模块初始版本 (乘法模型)
+76,127c4a96,2026-07-15,NEWDIR,1,首次出现 lib/orchestrator,feat: 管线编排引擎初始版本 (9节点管线 + SNR集成)
+94,75835599,2026-07-16,NEWDIR,1,首次出现 lib/plate_solve,重构: 根目录调试文件整理 + 模块内部冗余清理（2026-07-16）
+95,7604fdca,2026-07-16,DELETE,40,删除 40 文件（批量移除/归档）,"归档: 遗留浏览器+healpix_lod+healpix_io 源码归档, 依赖迁移至 astro_image_io, SingleFrameView 废弃（2026-07-16）"
+100,c384de17,2026-07-24,SILENT,6,距上一提交（拓扑序）6 天,chore: initialize main repository
+112,d411565e,2026-07-24,NEWDIR,1,首次出现 docs/ARCHITECTURE.md,"docs: integrate root documentation, specs, and gitignore into main repo"
+112,d411565e,2026-07-24,NEWDIR,1,首次出现 docs/DESIGN_IMPL_GAP.md,"docs: integrate root documentation, specs, and gitignore into main repo"
+112,d411565e,2026-07-24,NEWDIR,1,首次出现 docs/PIPELINE_OVERVIEW.md,"docs: integrate root documentation, specs, and gitignore into main repo"
+112,d411565e,2026-07-24,NEWDIR,1,首次出现 docs/PROJECT_OVERVIEW.md,"docs: integrate root documentation, specs, and gitignore into main repo"
+112,d411565e,2026-07-24,NEWDIR,1,首次出现 docs/superpowers,"docs: integrate root documentation, specs, and gitignore into main repo"
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+118,1ac74251,2026-07-24,NEWDIR_BATCH,25,"首次出现 25 个目录，例: engineering/00_START_HERE.md, engineering/01_PROJECT_CHARTER.md, engineering/02_BASELINE_AUDIT.md, engineering/03_TARGET_SYSTEM_ARCHITECTURE.md, engineering/04_ENGINEERING_CONTROL_MODEL.md, engineering/05_",P00-001: 冻结并复核主仓库基线
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,NEWDIR_BATCH,39,"首次出现 39 个目录，例: AstroCS_CLI_Core_Development_Pack_2026-07-24_v1.1.zip, _commit_msg_p02.txt, _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack, bootstrap.ps1, build.ps1, engineering/AUTONOMOUS_ENTRY.md",P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,RENAME50,59,改名或移动 59 文件（目录重构）,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,PACKNEW,1,新增包文件 _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack/AUTONOMOUS_ENTRY.md,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,PACKNEW,1,新增包文件 _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack/START_PROMPT.txt,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,PACKNEW,1,新增包文件 engineering/AUTONOMOUS_ENTRY.md,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+128,ba4f0d34,2026-07-25,PACKNEW,1,新增包文件 engineering/START_PROMPT.txt,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API
+151,5ec98660,2026-07-27,NEWDIR,1,首次出现 tools/README.md,tools: 新增 astro_toolkit.py Python 工具集（跳过沙箱确认）
+151,5ec98660,2026-07-27,NEWDIR,1,首次出现 tools/astro_toolkit.py,tools: 新增 astro_toolkit.py Python 工具集（跳过沙箱确认）
+153,50310948,2026-07-27,NEWDIR,1,首次出现 tools/_p06_003_commit_msg.txt,P06-003 HCSD 输出与独立读取 (VERDICT: PASS)
+154,4c1f546e,2026-07-27,NEWDIR,1,首次出现 tools/_p07_001_git.json,P07-001 性能与峰值内存基线 (VERDICT: PASS)
+156,c3865eb6,2026-07-27,NEWDIR,1,首次出现 tools/_p07_002_setup.json,P07-002 长批次与故障稳定性 (VERDICT: PASS)
+156,c3865eb6,2026-07-27,NEWDIR,1,首次出现 tools/_p07_002_setup.log,P07-002 长批次与故障稳定性 (VERDICT: PASS)
+158,889944ad,2026-07-27,NEWDIR,1,首次出现 dist/AstroCS-CLI-v1,P08-001 CLI Core v1 发布包 (VERDICT: PASS)
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+161,ed145a70,2026-07-27,NEWDIR_BATCH,23,"首次出现 23 个目录，例: README.md, audit/AstroCS-v1.1-audit-pack, engineering/engineering, tools/_commit_audit.json, tools/_commit_audit_msg.txt, tools/_p06_002_commit_msg.txt",docs: 补充项目 README + 生成 v1.1 审计包
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,NEWDIR_BATCH,24,"首次出现 24 个目录，例: _toolkit_configs/install_v12.json, _toolkit_configs/install_v12.log, _toolkit_configs/p09_001_baseline.json, _toolkit_configs/p09_001_baseline.log, _toolkit_configs/p09_001_commit_msg.txt, _toolkit_configs",P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,PACKNEW,1,新增包文件 engineering_v1.2/AUTONOMOUS_ENTRY.md,P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+162,0d1857de,2026-07-27,PACKNEW,1,新增包文件 engineering_v1.2/START_PROMPT.txt,P09-001 冻结 v1.1 事实基线并建立 v1.2 证据 (VERDICT: PASS)
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,NEWDIR_BATCH,15,"首次出现 15 个目录，例: engineering_v1.3/AUTONOMOUS_ENTRY.md, engineering_v1.3/MANIFEST.md, engineering_v1.3/PACKAGE_VERSION.txt, engineering_v1.3/README.md, engineering_v1.3/SHA256SUMS.txt, engineering_v1.3/START_PROMPT.txt",P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,PACKNEW,1,新增包文件 engineering_v1.3/AUTONOMOUS_ENTRY.md,P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+175,f4ec8b24,2026-07-28,PACKNEW,1,新增包文件 engineering_v1.3/START_PROMPT.txt,P11-004: 完成 WCS Gate v2 双层闭环验证与 SIP 序列化修复
+202,977f1381,2026-07-29,NEWDIR,1,首次出现 engineering_v1.3/AUDIT_PACK.md,docs(v1.3): 生成 P13-002 审计交付包 + 根目录整理
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,NEWDIR_BATCH,16,"首次出现 16 个目录，例: 工程控制/AUDIT_PACK.md, 工程控制/AUTONOMOUS_ENTRY.md, 工程控制/MANIFEST.md, 工程控制/PACKAGE_VERSION.txt, 工程控制/README.md, 工程控制/SHA256SUMS.txt",chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,RENAME50,455,改名或移动 455 文件（目录重构）,chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,DELETE,3786,删除 3786 文件（批量移除/归档）,chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,PACKDEL,1,删除包文件 _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack/AUTONOMOUS_ENTRY.md,chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,PACKDEL,1,删除包文件 _new_pack_v1.1/AstroCS_CLI_Core_Development_Pack/START_PROMPT.txt,chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,PACKDEL,1,删除包文件 engineering/AUTONOMOUS_ENTRY.md,chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,PACKDEL,1,删除包文件 engineering/START_PROMPT.txt,chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,PACKDEL,1,删除包文件 engineering_v1.2/AUTONOMOUS_ENTRY.md,chore: 根目录整理 + 工程控制包重命名
+203,036a3bb5,2026-07-29,PACKDEL,1,删除包文件 engineering_v1.2/START_PROMPT.txt,chore: 根目录整理 + 工程控制包重命名
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Authoritative_Development_Pack_2026-07-30_v2.0.zip, AstroCS_Delivery_20260729.zip, _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0, engineering_authoritative/agent, engineering_authoritative/c",feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,PACKNEW,1,新增包文件 _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0/AUTONOMOUS_ENTRY.md,feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+204,75b05f72,2026-07-30,PACKNEW,1,新增包文件 _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0/START_PROMPT.txt,feat(A-001): 安装权威开发包 v2.0，完成 README 迁移
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,NEWDIR_BATCH,13,"首次出现 13 个目录，例: AstroCS_Stage1_HISS_Delivery/00_README.md, AstroCS_Stage1_HISS_Delivery/APPLY_IN_PLACE.md, AstroCS_Stage1_HISS_Delivery/DELETE_LIST.txt, AstroCS_Stage1_HISS_Delivery/MANIFEST.json, AstroCS_Stage1_HISS_Deli",feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,PACKNEW,1,新增包文件 AstroCS_Stage1_HISS_Delivery/MANIFEST.json,feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,PACKNEW,1,新增包文件 _agent_package/AstroCS_Stage1_HISS_Agent_Package_2026-07-31/MANIFEST.json,feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+226,78a9121d,2026-07-31,PACKNEW,1,新增包文件 _wiki_freeze/AstroCS_Stage1_Wiki_Freeze_2026-07-30/MANIFEST.json,feat(Stage1): 完成Stage1/HISS规范化交付 (Phase 0-6)
+227,b4bcf8e7,2026-07-31,NEWDIR,1,首次出现 docs/stage1_fix,docs(stage1_fix): 新增Stage1/HISS修复规范文档
+237,a78f5430,2026-07-31,NEWDIR,1,首次出现 工程控制/migration,chore: 整理根目录 + 创建 AGENT.md
+237,a78f5430,2026-07-31,DELETE,338,删除 338 文件（批量移除/归档）,chore: 整理根目录 + 创建 AGENT.md
+237,a78f5430,2026-07-31,PACKDEL,1,删除包文件 AstroCS_Stage1_HISS_Delivery/MANIFEST.json,chore: 整理根目录 + 创建 AGENT.md
+237,a78f5430,2026-07-31,PACKDEL,1,删除包文件 _agent_package/AstroCS_Stage1_HISS_Agent_Package_2026-07-31/MANIFEST.json,chore: 整理根目录 + 创建 AGENT.md
+237,a78f5430,2026-07-31,PACKDEL,1,删除包文件 _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0/AUTONOMOUS_ENTRY.md,chore: 整理根目录 + 创建 AGENT.md
+237,a78f5430,2026-07-31,PACKDEL,1,删除包文件 _v2_pack/AstroCS_Authoritative_Development_Pack_v2.0/START_PROMPT.txt,chore: 整理根目录 + 创建 AGENT.md
+237,a78f5430,2026-07-31,PACKDEL,1,删除包文件 _wiki_freeze/AstroCS_Stage1_Wiki_Freeze_2026-07-30/MANIFEST.json,chore: 整理根目录 + 创建 AGENT.md
+243,428746c6,2026-07-31,DELETE,21,删除 21 文件（批量移除/归档）,feat(stage1): Phase A Wiki重写 + B2 query_pixel测试 + E checksum候选注册
+264,37ed737d,2026-08-01,NEWDIR,1,首次出现 tools/_r05_photapply_commit_msg.txt,fix(calibration): R05-B07 apply_photometry 拒绝 photscal<=0
+264,37ed737d,2026-08-01,NEWDIR,1,首次出现 tools/_r05_rebuild_photapply.json,fix(calibration): R05-B07 apply_photometry 拒绝 photscal<=0
+265,efdfe2c0,2026-08-01,NEWDIR,1,首次出现 tools/_r05_precise_acceptance_commit_msg.txt,test(drizzle): R05 Gate D PRECISE验收矩阵 52/52 PASS
+266,821a1856,2026-08-01,NEWDIR,1,首次出现 tools/_r05_fast_experiment_commit_msg.txt,experiment(drizzle): R05 Gate E FAST C++对照实验 288 cases
+270,e841eb88,2026-08-02,NEWDIR,1,首次出现 tools/_r06_analyze_fast.py,experiment(drizzle): R06 正确NSIDE重做FAST C++对照实验 288 cases
+271,32d6bcce,2026-08-02,NEWDIR,1,首次出现 tools/_r06_make_delivery.py,chore(tools): R06 交付工具脚本 - ZIP生成+FAST分析+Wiki哈希
+271,32d6bcce,2026-08-02,NEWDIR,1,首次出现 tools/_r06_wiki_hashes.py,chore(tools): R06 交付工具脚本 - ZIP生成+FAST分析+Wiki哈希
+272,f8d749e4,2026-08-02,NEWDIR,1,首次出现 lib/acr,docs(acr): freeze bottom-only scope and dependency ADRs
+278,aec0ac38,2026-08-02,NEWDIR,1,首次出现 tools/_r07_ref_msg.txt,test(reference): R07 修复 reference_overlap 边界一致性
+279,502dbf5d,2026-08-02,NEWDIR,1,首次出现 tools/_r07_fast_msg.txt,fix(fast): R07-B08/M01/M02/M03 修复 FAST 切平面重叠计算
+293,49ea5c1e,2026-08-02,PACKNEW,1,新增包文件 工程控制/tasks/acr/00_AGENT_START_PROMPT.txt,docs(acr): replace fixed-share routing with hardware profiling
+293,49ea5c1e,2026-08-02,PACKNEW,1,新增包文件 工程控制/tasks/acr/00_READ_FIRST.md,docs(acr): replace fixed-share routing with hardware profiling
+310,23d07ed4,2026-08-03,DELETE,32,删除 32 文件（批量移除/归档）,"feat(r10): 删除生产Python封装, 实现FP32/FP64双精度模式"
+322,8653bd54,2026-08-03,DELETE,69,删除 69 文件（批量移除/归档）,refactor(r10): Python 生产层彻底清理
+327,bd036f3e,2026-08-04,NEWDIR,1,首次出现 lib/common,feat(r10): 真正全链路 FP32/FP64 双精度 ABI 改造
+332,d557aea9,2026-08-04,DELETE,64,删除 64 文件（批量移除/归档）,test(acr): produce single-head real mixed and resource-control evidence (F-fix 10)
+406,0030c3a5,2026-08-05,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE/00_AGENT_START_PROMPT.txt,refactor(acr): focus runtime on target pixel operations
+406,0030c3a5,2026-08-05,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE/00_READ_FIRST.md,refactor(acr): focus runtime on target pixel operations
+429,40c9d216,2026-08-06,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V2/00_AGENT_START_PROMPT.txt,fix(acr): hierarchical operation profile reader and full roundtrip
+429,40c9d216,2026-08-06,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V2/00_READ_FIRST.md,fix(acr): hierarchical operation profile reader and full roundtrip
+438,a36c4825,2026-08-06,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V3/00_AGENT_START_PROMPT.txt,fix(acr): correct cost units and separate qualification from gpu eligibility
+438,a36c4825,2026-08-06,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V3/00_READ_FIRST.md,fix(acr): correct cost units and separate qualification from gpu eligibility
+460,38b85702,2026-08-06,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V4/00_AGENT_START_PROMPT.txt,docs(acr): freeze architecture and weighted integration control package
+460,38b85702,2026-08-06,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V4/00_READ_FIRST.md,docs(acr): freeze architecture and weighted integration control package
+522,bce606a4,2026-08-09,NEWDIR,1,首次出现 tools/astrometry_oracle,feat(oracle): Astrometry.net 外部 Oracle 实际执行 synthetic+real 盲解全过 (V4 G5)
+550,198d69e0,2026-08-10,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE/00_AGENT_START_PROMPT.txt,merge(acr): add astrocompute-runtime as dormant acceleration base
+550,198d69e0,2026-08-10,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE/00_READ_FIRST.md,merge(acr): add astrocompute-runtime as dormant acceleration base
+550,198d69e0,2026-08-10,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V2/00_AGENT_START_PROMPT.txt,merge(acr): add astrocompute-runtime as dormant acceleration base
+550,198d69e0,2026-08-10,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V2/00_READ_FIRST.md,merge(acr): add astrocompute-runtime as dormant acceleration base
+550,198d69e0,2026-08-10,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V3/00_AGENT_START_PROMPT.txt,merge(acr): add astrocompute-runtime as dormant acceleration base
+550,198d69e0,2026-08-10,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V3/00_READ_FIRST.md,merge(acr): add astrocompute-runtime as dormant acceleration base
+550,198d69e0,2026-08-10,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V4/00_AGENT_START_PROMPT.txt,merge(acr): add astrocompute-runtime as dormant acceleration base
+550,198d69e0,2026-08-10,PACKNEW,1,新增包文件 工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V4/00_READ_FIRST.md,merge(acr): add astrocompute-runtime as dormant acceleration base
+550,198d69e0,2026-08-10,PACKNEW,1,新增包文件 工程控制/tasks/acr/00_AGENT_START_PROMPT.txt,merge(acr): add astrocompute-runtime as dormant acceleration base
+550,198d69e0,2026-08-10,PACKNEW,1,新增包文件 工程控制/tasks/acr/00_READ_FIRST.md,merge(acr): add astrocompute-runtime as dormant acceleration base
+553,1a38f400,2026-08-10,NEWDIR,1,首次出现 lib/phase2,feat(phase2): W1 wiki sync + stage2 schema; W2 freeze UPM/rejection interfaces in lib/phase2
+553,1a38f400,2026-08-10,NEWDIR,1,首次出现 工程控制/configs,feat(phase2): W1 wiki sync + stage2 schema; W2 freeze UPM/rejection interfaces in lib/phase2
+553,1a38f400,2026-08-10,NEWDIR,1,首次出现 工程控制/schemas,feat(phase2): W1 wiki sync + stage2 schema; W2 freeze UPM/rejection interfaces in lib/phase2
+616,42c801de,2026-08-12,NEWDIR,1,首次出现 launch/start_browser.ps1,feat(phase2-v9): HiPS browser real-data readiness - HiPS 2D sky view (multi-order LOD + viewport til
+619,cfb676ca,2026-08-12,NEWDIR,1,首次出现 launch/demo_gc.json,feat(phase2-v11): HiPS external-oracle diagnostics - --lod strict-leaf|hierarchy (no parent fallback
+624,5a9eadcf,2026-08-13,NEWDIR,1,首次出现 docs/architecture,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/PUBLIC_API/PIPELINE/C
+624,5a9eadcf,2026-08-13,NEWDIR,1,首次出现 docs/backlog,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/PUBLIC_API/PIPELINE/C
+624,5a9eadcf,2026-08-13,NEWDIR,1,首次出现 docs/browser,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/PUBLIC_API/PIPELINE/C
+624,5a9eadcf,2026-08-13,NEWDIR,1,首次出现 docs/contracts,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/PUBLIC_API/PIPELINE/C
+624,5a9eadcf,2026-08-13,NEWDIR,1,首次出现 docs/development,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/PUBLIC_API/PIPELINE/C
+624,5a9eadcf,2026-08-13,NEWDIR,1,首次出现 docs/performance,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/PUBLIC_API/PIPELINE/C
+624,5a9eadcf,2026-08-13,NEWDIR,1,首次出现 docs/validation,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/PUBLIC_API/PIPELINE/C
+624,5a9eadcf,2026-08-13,NEWDIR,1,首次出现 reports/api_inventory.md,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/PUBLIC_API/PIPELINE/C
+624,5a9eadcf,2026-08-13,NEWDIR,1,首次出现 reports/pipeline_audit.md,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/PUBLIC_API/PIPELINE/C
+624,5a9eadcf,2026-08-13,NEWDIR,1,首次出现 tools/config_consistency_check.py,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/PUBLIC_API/PIPELINE/C
+626,1f94e9f9,2026-08-13,NEWDIR,1,首次出现 reports/browser_performance.md,docs(phase2-v14): final status + technical debt + performance reports; V14 audit summary (FROZEN_CAN
+626,1f94e9f9,2026-08-13,NEWDIR,1,首次出现 reports/final_status.md,docs(phase2-v14): final status + technical debt + performance reports; V14 audit summary (FROZEN_CAN
+626,1f94e9f9,2026-08-13,NEWDIR,1,首次出现 reports/phase1_performance.md,docs(phase2-v14): final status + technical debt + performance reports; V14 audit summary (FROZEN_CAN
+626,1f94e9f9,2026-08-13,NEWDIR,1,首次出现 reports/phase2_performance.md,docs(phase2-v14): final status + technical debt + performance reports; V14 audit summary (FROZEN_CAN
+626,1f94e9f9,2026-08-13,NEWDIR,1,首次出现 reports/technical_debt_closed.md,docs(phase2-v14): final status + technical debt + performance reports; V14 audit summary (FROZEN_CAN
+646,dbb3eecc,2026-08-14,NEWDIR,1,首次出现 reports/phase2_wbpp_stf_fix.md,docs(phase2-v14): WBPP rejection + STF 3-control fix audit report (methods/auto/satellite evidence/k
+647,4b92989f,2026-08-14,NEWDIR,1,首次出现 self_review/round0_contract.md,fix(phase2-v15): rejection semantic closure - typed params/planning-layer auto/WBPP 2.9.1 policy/eli
+651,f2d7f5a1,2026-08-14,NEWDIR,1,首次出现 reports/browser_stf.md,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+reports+round1 findings
+651,f2d7f5a1,2026-08-14,NEWDIR,1,首次出现 reports/duplicate_cleanup.md,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+reports+round1 findings
+651,f2d7f5a1,2026-08-14,NEWDIR,1,首次出现 reports/performance.md,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+reports+round1 findings
+651,f2d7f5a1,2026-08-14,NEWDIR,1,首次出现 reports/rejection_semantics.md,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+reports+round1 findings
+651,f2d7f5a1,2026-08-14,NEWDIR,1,首次出现 reports/satellite_rejection.md,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+reports+round1 findings
+651,f2d7f5a1,2026-08-14,NEWDIR,1,首次出现 reports/semantic_path_inventory.csv,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+reports+round1 findings
+651,f2d7f5a1,2026-08-14,NEWDIR,1,首次出现 reports/wbpp_policy.md,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+reports+round1 findings
+651,f2d7f5a1,2026-08-14,NEWDIR,1,首次出现 self_review/round1_implementation_findings.json,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+reports+round1 findings
+652,77879c72,2026-08-14,NEWDIR,1,首次出现 self_review/round2_semantic.md,test(phase2-v15): oracle edge assertion aligned with INVALID_INPUT contract; self-review rounds 2-5
+652,77879c72,2026-08-14,NEWDIR,1,首次出现 self_review/round3_adversarial.json,test(phase2-v15): oracle edge assertion aligned with INVALID_INPUT contract; self-review rounds 2-5
+652,77879c72,2026-08-14,NEWDIR,1,首次出现 self_review/round3_science.md,test(phase2-v15): oracle edge assertion aligned with INVALID_INPUT contract; self-review rounds 2-5
+652,77879c72,2026-08-14,NEWDIR,1,首次出现 self_review/round4_performance.md,test(phase2-v15): oracle edge assertion aligned with INVALID_INPUT contract; self-review rounds 2-5
+652,77879c72,2026-08-14,NEWDIR,1,首次出现 self_review/round5_redteam.md,test(phase2-v15): oracle edge assertion aligned with INVALID_INPUT contract; self-review rounds 2-5
+653,8a772cae,2026-08-14,NEWDIR,1,首次出现 self_review/round6_final_verification.md,docs(phase2-v15): FINALIZATION_SELF_REVIEW=PASS after 6 rounds + clean-tree verification
+658,1145a28f,2026-08-14,NEWDIR,1,首次出现 reports/full_e2e.md,reports+v16: final status / feature matrix / normalization / satellite v2 / full e2e / upgraded self
+658,1145a28f,2026-08-14,NEWDIR,1,首次出现 reports/rejection_normalization.md,reports+v16: final status / feature matrix / normalization / satellite v2 / full e2e / upgraded self
+658,1145a28f,2026-08-14,NEWDIR,1,首次出现 reports/satellite_v2.md,reports+v16: final status / feature matrix / normalization / satellite v2 / full e2e / upgraded self
+658,1145a28f,2026-08-14,NEWDIR,1,首次出现 reports/wbpp_feature_matrix.md,reports+v16: final status / feature matrix / normalization / satellite v2 / full e2e / upgraded self
+661,03d5d961,2026-08-14,NEWDIR,1,首次出现 tools/migrate_stage2_config.py,"chore(phase2-v17): legacy removal - healpix_stack moved to archive/legacy, orchestrator legacy Stage"
+661,03d5d961,2026-08-14,NEWDIR,1,首次出现 tools/no_legacy_production_reference.py,"chore(phase2-v17): legacy removal - healpix_stack moved to archive/legacy, orchestrator legacy Stage"
+664,85851c2f,2026-08-14,NEWDIR,1,首次出现 tools/api_doc_consistency.py,docs(phase2-v17): docs/API/config machine consistency - PUBLIC_API/SCIENCE_FREEZE/rejection_semantic
+665,2d3b31fc,2026-08-14,NEWDIR,1,首次出现 tools/phase1_e2e_bench.py,"fix(phase1-v17): orchestrator rebuild after legacy removal - restore load_module braces, drop GRADIE"
+666,a46e7028,2026-08-14,NEWDIR,1,首次出现 reports/phase1_source_audit.md,"reports+v17: Phase1 source audit (single call graph, no hidden path), performance reports (Phase2/br"
+667,88293174,2026-08-14,NEWDIR,1,首次出现 tools/assemble_v17_review_pkg.py,"tools+v17: repo source manifest generator (4197 files SHA256), review package assembler, round6 clea"
+667,88293174,2026-08-14,NEWDIR,1,首次出现 tools/gen_repo_source_manifest.py,"tools+v17: repo source manifest generator (4197 files SHA256), review package assembler, round6 clea"
+668,d00b9f42,2026-08-14,NEWDIR,1,首次出现 reports/controlled_rejection_truth.md,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_scale/controlled_reje
+668,d00b9f42,2026-08-14,NEWDIR,1,首次出现 reports/docs_consistency.md,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_scale/controlled_reje
+668,d00b9f42,2026-08-14,NEWDIR,1,首次出现 reports/integration_contract.md,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_scale/controlled_reje
+668,d00b9f42,2026-08-14,NEWDIR,1,首次出现 reports/large_scale_rejection.md,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_scale/controlled_reje
+668,d00b9f42,2026-08-14,NEWDIR,1,首次出现 reports/legacy_removal.md,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_scale/controlled_reje
+668,d00b9f42,2026-08-14,NEWDIR,1,首次出现 reports/wbpp_final.md,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_scale/controlled_reje
+673,137f20d5,2026-08-15,NEWDIR,1,首次出现 reports/drizzle_optimization.md,"reports(phase1-v18): drizzle optimization record - PERF-001..005/010 implemented, oracle equivalence"
+677,c8c40855,2026-08-15,NEWDIR,1,首次出现 reports/hotpath_complexity.csv,"reports(phase1-v18r2): resource timeline before/after (RSS 37.5GB->1.2GB, exit 40s->0.7s), hotpath c"
+677,c8c40855,2026-08-15,NEWDIR,1,首次出现 reports/repeated_work.md,"reports(phase1-v18r2): resource timeline before/after (RSS 37.5GB->1.2GB, exit 40s->0.7s), hotpath c"
+677,c8c40855,2026-08-15,NEWDIR,1,首次出现 reports/resource_timeline.md,"reports(phase1-v18r2): resource timeline before/after (RSS 37.5GB->1.2GB, exit 40s->0.7s), hotpath c"
+683,f12d39a1,2026-08-15,NEWDIR,1,首次出现 reports/bottleneck_classification.md,reports(phase1-v18r2): final status + bottleneck classification + hips io + phase1/2 performance + d
+683,f12d39a1,2026-08-15,NEWDIR,1,首次出现 reports/code_quality.md,reports(phase1-v18r2): final status + bottleneck classification + hips io + phase1/2 performance + d
+683,f12d39a1,2026-08-15,NEWDIR,1,首次出现 reports/hips_io_optimization.md,reports(phase1-v18r2): final status + bottleneck classification + hips io + phase1/2 performance + d
+683,f12d39a1,2026-08-15,NEWDIR,1,首次出现 reports/phase1_final_performance.md,reports(phase1-v18r2): final status + bottleneck classification + hips io + phase1/2 performance + d
+683,f12d39a1,2026-08-15,NEWDIR,1,首次出现 reports/phase2_regression.md,reports(phase1-v18r2): final status + bottleneck classification + hips io + phase1/2 performance + d
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+691,1d3a34c2,2026-08-15,NEWDIR_BATCH,17,"首次出现 17 个目录，例: CHANGELOG.md, docs/BUILD_RELEASE.md, docs/CONFIG_REFERENCE.md, docs/DATA_CONTRACTS.md, docs/DEVELOPER_GUIDE.md, docs/DIAGNOSTICS.md",docs(v19): diagnostics tool + full pre-release developer/science documentation
+694,729f150c,2026-08-15,NEWDIR,1,首次出现 tools/gen_v19_evidence.py,fix(v19-round5): red-team 17/17 - variance no-data tile skip + evidence tools
+694,729f150c,2026-08-15,NEWDIR,1,首次出现 tools/redteam_v19.py,fix(v19-round5): red-team 17/17 - variance no-data tile skip + evidence tools
+695,c0753e33,2026-08-15,NEWDIR,1,首次出现 tools/docs_machine_consistency.py,docs(v19-round6): machine consistency PASS - config/error/stage/SNR/product/drizzle
+697,9c415bc1,2026-08-15,NEWDIR,1,首次出现 docs/TRACEABILITY.csv,feat(phase2): UPM frame binding + persistence with synthetic gate coverage
+698,729bc3b9,2026-08-15,NEWDIR,1,首次出现 reports/v19r2,chore(v19r2-s0): full-repo inventory on merged HEAD
+698,729bc3b9,2026-08-15,NEWDIR,1,首次出现 tools/quality,chore(v19r2-s0): full-repo inventory on merged HEAD
+700,8ab2efbd,2026-08-15,NEWDIR,1,首次出现 docs/README-DOCS.md,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs
+700,8ab2efbd,2026-08-15,NEWDIR,1,首次出现 docs/RELEASE_STATUS.md,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs
+700,8ab2efbd,2026-08-15,NEWDIR,1,首次出现 docs/algorithms,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs
+700,8ab2efbd,2026-08-15,NEWDIR,1,首次出现 docs/diagnostics,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs
+700,8ab2efbd,2026-08-15,NEWDIR,1,首次出现 docs/history,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs
+700,8ab2efbd,2026-08-15,NEWDIR,1,首次出现 docs/modules,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs
+700,8ab2efbd,2026-08-15,NEWDIR,1,首次出现 docs/science,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs
+700,8ab2efbd,2026-08-15,NEWDIR,1,首次出现 docs/standards,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs
+700,8ab2efbd,2026-08-15,NEWDIR,1,首次出现 tools/gen_v19_source_snapshot.py,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs
+715,23c11c19,2026-08-16,NEWDIR,1,首次出现 reports/v19r3,quality(v19r3-s7): direct static analysis 100% coverage + fix findings
+730,e91e06f5,2026-08-21,SILENT,5,距上一提交（拓扑序）5 天,"fix(v19r6r2-w1): Tier-A 7 blockers closure - CAL window, AIO truncation, GAIA zero/dangling, ORCH FP"
+737,86ec26c1,2026-08-22,NEWDIR,1,首次出现 reports/v19r7_quality,chore(qa): fix machine_consistency linux path + before scan [QA-V19R7-A1-01/02]
+743,233c82b6,2026-08-22,NEWDIR,1,首次出现 evidence/QA-V19R7-A2-08,docs(qa): audit findings summary A Gate [QA-V19R7-A2-08]
+744,b1e3d138,2026-08-22,NEWDIR,1,首次出现 evidence/QA-V19R7-A2-01,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2]
+744,b1e3d138,2026-08-22,NEWDIR,1,首次出现 evidence/QA-V19R7-A2-02,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2]
+744,b1e3d138,2026-08-22,NEWDIR,1,首次出现 evidence/QA-V19R7-A2-03,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2]
+744,b1e3d138,2026-08-22,NEWDIR,1,首次出现 evidence/QA-V19R7-A2-04,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2]
+744,b1e3d138,2026-08-22,NEWDIR,1,首次出现 evidence/QA-V19R7-A2-05,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2]
+744,b1e3d138,2026-08-22,NEWDIR,1,首次出现 evidence/QA-V19R7-A2-06,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2]
+744,b1e3d138,2026-08-22,NEWDIR,1,首次出现 evidence/QA-V19R7-A2-07,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2]
+821,f1cf87a6,2026-08-22,NEWDIR,1,首次出现 reports/v19r8_quality,chore(checkpoint): round03 53/95 V19R8 trio 255+185+421 [R03]
+936,10b91990,2026-08-22,NEWDIR,1,首次出现 reports/science_doc_review.md,"docs(science): stage A review 10+2 PASS, P0=0 [science_freeze]"
+937,8c799f4c,2026-08-22,NEWDIR,1,首次出现 reports/algorithm_doc_review.md,"docs(algorithms): stage B review 11/11 PASS, P0=0 + 2 minimal edits"
+938,a6c88115,2026-08-22,NEWDIR,1,首次出现 docs/API_REFERENCE.md,docs(architecture): stage C engineering anchor — ARCHITECTURE + API_REFERENCE + CODE_CHANGE_MAP [sta
+938,a6c88115,2026-08-22,NEWDIR,1,首次出现 reports/engineering_doc_review.md,docs(architecture): stage C engineering anchor — ARCHITECTURE + API_REFERENCE + CODE_CHANGE_MAP [sta
+942,dc196346,2026-08-22,NEWDIR,1,首次出现 reports/self_review_round1.md,reports: self_review round1 P0=0 P1=4 (fix 3 commits) + 4 machine PASS [round1]
+943,af720917,2026-08-22,NEWDIR,1,首次出现 reports/self_review_round2.md,reports: self_review round2 0 P0/0 P1 (doc dim) + 4 machine PASS + 0新增 [round2] — confirmation round
+944,b8d215d0,2026-08-22,NEWDIR,1,首次出现 reports/stage2_fix_report.md,fix(phase2): sampler parallel+streaming+frame_id cache 14min→~90s [P0] 4/4 PASS
+965,535e7387,2026-08-25,NEWDIR,1,首次出现 docs/audit,feat(pre-release): complete R70 AstroCS v20 pre-release science closure (all fixes from prerelease/v
+965,535e7387,2026-08-25,NEWDIR,1,首次出现 docs/phase2,feat(pre-release): complete R70 AstroCS v20 pre-release science closure (all fixes from prerelease/v
+965,535e7387,2026-08-25,NEWDIR,1,首次出现 docs/release,feat(pre-release): complete R70 AstroCS v20 pre-release science closure (all fixes from prerelease/v
+978,3703650d,2026-08-27,NEWDIR,1,首次出现 工程控制/REAUDIT_V3,REAUDIT_V3: 将外部审计目录中的工程控制/审核记录移入 工程控制/REAUDIT_V3
+978,3703650d,2026-08-27,PACKNEW,1,新增包文件 工程控制/REAUDIT_V3/v3_audit/00_READ_FIRST.md,REAUDIT_V3: 将外部审计目录中的工程控制/审核记录移入 工程控制/REAUDIT_V3
+978,3703650d,2026-08-27,PACKNEW,1,新增包文件 工程控制/REAUDIT_V3/v3_audit/MANIFEST.json,REAUDIT_V3: 将外部审计目录中的工程控制/审核记录移入 工程控制/REAUDIT_V3
+978,3703650d,2026-08-27,PACKNEW,1,新增包文件 工程控制/REAUDIT_V3/v3_cp0/00_READ_FIRST.md,REAUDIT_V3: 将外部审计目录中的工程控制/审核记录移入 工程控制/REAUDIT_V3
+978,3703650d,2026-08-27,PACKNEW,1,新增包文件 工程控制/REAUDIT_V3/v3_cp0/MANIFEST.json,REAUDIT_V3: 将外部审计目录中的工程控制/审核记录移入 工程控制/REAUDIT_V3
+978,3703650d,2026-08-27,PACKNEW,1,新增包文件 工程控制/REAUDIT_V3/v3_reaudit/00_READ_FIRST.md,REAUDIT_V3: 将外部审计目录中的工程控制/审核记录移入 工程控制/REAUDIT_V3
+978,3703650d,2026-08-27,LEDGER,3,"改台账 TASK_LEDGER.csv, TASK_LEDGER.csv, 02_TASK_LEDGER.csv",REAUDIT_V3: 将外部审计目录中的工程控制/审核记录移入 工程控制/REAUDIT_V3
+979,ac2ced53,2026-08-27,NEWDIR,1,首次出现 reports/REAUDIT_V3,REAUDIT_V3: 控制包仅保留在 工程控制，已完成报告移入 reports/REAUDIT_V3
+979,ac2ced53,2026-08-27,RENAME50,333,改名或移动 333 文件（目录重构）,REAUDIT_V3: 控制包仅保留在 工程控制，已完成报告移入 reports/REAUDIT_V3
+979,ac2ced53,2026-08-27,LEDGER,2,"改台账 TASK_LEDGER.csv, TASK_LEDGER.csv",REAUDIT_V3: 控制包仅保留在 工程控制，已完成报告移入 reports/REAUDIT_V3
+980,e1604f14,2026-08-27,NEWDIR,1,首次出现 reports/archive,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放
+980,e1604f14,2026-08-27,NEWDIR,1,首次出现 reports/v14,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放
+980,e1604f14,2026-08-27,NEWDIR,1,首次出现 reports/v15,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放
+980,e1604f14,2026-08-27,NEWDIR,1,首次出现 reports/v16,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放
+980,e1604f14,2026-08-27,NEWDIR,1,首次出现 reports/v17,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放
+980,e1604f14,2026-08-27,NEWDIR,1,首次出现 reports/v18r2,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放
+980,e1604f14,2026-08-27,NEWDIR,1,首次出现 reports/v19r8,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放
+980,e1604f14,2026-08-27,NEWDIR,1,首次出现 工程控制/archive,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放
+980,e1604f14,2026-08-27,RENAME50,126,改名或移动 126 文件（目录重构）,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放
+981,63178f51,2026-08-27,NEWDIR,1,首次出现 reports/README.md,docs(reports): 添加 reports 目录版本归档说明
+983,cfb49bd6,2026-08-27,LEDGER,1,改台账 02_TASK_LEDGER.csv,docs(control): CON-008 PASS — 记录 ledger/commits/progress 与生产接入结论
+985,c2e5e24d,2026-08-27,LEDGER,1,改台账 02_TASK_LEDGER.csv,docs(control): CON-009 PASS — 记录 ledger/commits 与确定性矩阵结论
+986,53a1cc04,2026-08-27,LEDGER,1,改台账 02_TASK_LEDGER.csv,docs(reaudit): CON-010 FAIL — 生产 CLI 2T SIGSEGV (sampler 并行 AIO 读竞态)
+1004,591775e2,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G3 SCI-001 权威索引 PASS (唯一 science authority)
+1005,dcef903a,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G3 SCI-002 PASS — 冻结 Noise/SNR/variance/ivar + 补冻 local_snr/frame quality
+1006,44a3ea8f,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G3 SCI-003 PASS — 冻结 Drizzle flux/面亮度语义 + 修正常量场不变量
+1007,8923af74,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G3 SCI-004 PASS — UPM gauge/Huber 对齐 spec 与代码
+1008,d445b6d6,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G3 SCI-005 PASS — Rejection/Integration 规则与图层语义核对
+1009,24ee7eae,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G3 ALG-001 PASS — noise/snr 推导补全数据布局与误差预算
+1010,977d2b46,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G3 ALG-002/003/004 PASS — 补全 Drizzle/UPM/Rejection 数据布局与误差预算
+1011,35569185,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G3 ORA-001 PASS — 科学 oracle 套件核对（独立期望值+预冻结容差）
+1012,f226383a,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G4 ARCH/API/DOC/CHK-005 PASS — 机器检查器全绿 + DOC-001 断链修复
+1013,a791aec3,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G4 CHK-006 mutation gate 核验(IN_PROGRESS)
+1018,4a3c1997,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,fix(reaudit): 更正 BLD-001 置 PASS (depends_on=CP4)
+1019,add3ed55,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G5 TST-001 PASS — 全新 Release+Debug 构建(0 error/0 warning)
+1020,96cc15cf,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G5 BLD-002/003 AIO 可移植性与 Windows 泄漏核验(IN_PROGRESS)
+1021,6908666b,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): 审核人要求 ACR CPU/GPU 异构计算跳过(只做纯CPU) — 控制包+审核包同步
+1023,8c66692f,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,fix(reaudit): 更正 TST-003 置 IN_PROGRESS (scope 文本/yes-no 实际值)
+1025,9ba61730,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): G5 BLD-004 PASS — static/cmd linker 缺陷已修复并验证
+1026,3c45ca93,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,"feat(reaudit): G5 TST-002/004/005 核验 — 机器枚举467通过/32失败(全为外部依赖), stage1链路三重外部物料缺失"
+1028,d0f946f7,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,"feat(reaudit): G6 WIN-001/002 PASS — Fatduck Windows 远程验证(数据在Fatduck, 审核人确认)"
+1029,e8d63e7a,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): TST-004 判 PASS — 合成 CLI 端到端由 Windows 233/0 + Linux stage2 81P 交叉覆盖
+1030,808af7a7,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,"feat(reaudit): G7 RUN-001 PASS — 历史锚A/B只读构建(归档SHA两平台交叉一致, binary SHA在案)"
+1031,0fb5a646,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,"feat(reaudit): G7 RUN-002 PASS — 2帧A/B/C/D小矩阵(真实数据), 配置语义映射验证成立, D相对C零数值回归"
+1033,44d69155,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,"feat(reaudit): G4 CHK-006 PASS — mutation 门禁判定(关键mutation检出, 2未检项归因:顺序无关合同/存在性级局限)"
+1034,620aac41,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,"feat(reaudit): G5 TST-002 PASS — 测试机器枚举闭环(467通过/32失败全部有外部依赖或平台预期证据, Windows 233/0交叉证实)"
+1036,6a947f51,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(reaudit): 审核包生成 + 停止时点记账 — 按审核人指示停止打包(控制包打回重做)
+1037,020cdc99,2026-08-28,NEWDIR,1,首次出现 工程控制/REAUDIT_V4,feat(v4): C0-001 V4控制包本体 — 98原子任务账本+C0..C9检查点链+SCI/ALG/ARCH/CODE/Oracle/门禁规格+强校验器(CONTROL_PASS files
+1037,020cdc99,2026-08-28,PACKNEW,1,新增包文件 工程控制/REAUDIT_V4/v4_reaudit/00_READ_FIRST.md,feat(v4): C0-001 V4控制包本体 — 98原子任务账本+C0..C9检查点链+SCI/ALG/ARCH/CODE/Oracle/门禁规格+强校验器(CONTROL_PASS files
+1037,020cdc99,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(v4): C0-001 V4控制包本体 — 98原子任务账本+C0..C9检查点链+SCI/ALG/ARCH/CODE/Oracle/门禁规格+强校验器(CONTROL_PASS files
+1038,ae643541,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,feat(v4): C0-002..005 — 起点 SHA 冻结(020cdc9)+双平台工具链盘点(2核Linux/16线程Fatduck实测)+V3五项债务登记映射+98行初始化核验+revie
+1039,b12305ed,2026-08-28,NEWDIR,1,首次出现 工程控制/CONTROL_V4,"chore(v5): 按用户指示移除自造V4重审控制包并归位用户上传的V4_CPU_ADAPTIVE原包 — 自造包由前会话020cdc9/ae64354引入(98任务,非用户物料),历史不重写仅从当"
+1039,b12305ed,2026-08-28,DELETE,21,删除 21 文件（批量移除/归档）,"chore(v5): 按用户指示移除自造V4重审控制包并归位用户上传的V4_CPU_ADAPTIVE原包 — 自造包由前会话020cdc9/ae64354引入(98任务,非用户物料),历史不重写仅从当"
+1039,b12305ed,2026-08-28,PACKNEW,1,新增包文件 工程控制/CONTROL_V4/AstroCS_MAIN_PRERELEASE_CONTROL_V4_CPU_ADAPTIVE_20260828/00_READ_FIRST.md,"chore(v5): 按用户指示移除自造V4重审控制包并归位用户上传的V4_CPU_ADAPTIVE原包 — 自造包由前会话020cdc9/ae64354引入(98任务,非用户物料),历史不重写仅从当"
+1039,b12305ed,2026-08-28,PACKDEL,1,删除包文件 工程控制/REAUDIT_V4/v4_reaudit/00_READ_FIRST.md,"chore(v5): 按用户指示移除自造V4重审控制包并归位用户上传的V4_CPU_ADAPTIVE原包 — 自造包由前会话020cdc9/ae64354引入(98任务,非用户物料),历史不重写仅从当"
+1039,b12305ed,2026-08-28,LEDGER,2,"改台账 02_TASK_LEDGER.csv, 02_TASK_LEDGER.csv","chore(v5): 按用户指示移除自造V4重审控制包并归位用户上传的V4_CPU_ADAPTIVE原包 — 自造包由前会话020cdc9/ae64354引入(98任务,非用户物料),历史不重写仅从当"
+1040,1c580eb9,2026-08-28,NEWDIR,1,首次出现 reports/evidence,chore(v5): 前会话遗留工作树变更归位 — evidence/QA-V19R7-A2-*与self_review/round0-6按AGENTS目录规范移至reports/(BASE-001登
+1040,1c580eb9,2026-08-28,NEWDIR,1,首次出现 reports/self_review,chore(v5): 前会话遗留工作树变更归位 — evidence/QA-V19R7-A2-*与self_review/round0-6按AGENTS目录规范移至reports/(BASE-001登
+1042,f99e80d8,2026-08-28,NEWDIR,1,首次出现 artifacts/prerelease_v5,(BASE-001) 起点冻结与V3/V4风险登记 — BASELINE.json(HEAD=main=origin/main=3895142三SHA一致)+RISK_REGISTER 6风险入账+自
+1042,f99e80d8,2026-08-28,NEWDIR,1,首次出现 tools/make_capsule.py,(BASE-001) 起点冻结与V3/V4风险登记 — BASELINE.json(HEAD=main=origin/main=3895142三SHA一致)+RISK_REGISTER 6风险入账+自
+1042,f99e80d8,2026-08-28,NEWDIR,1,首次出现 工程控制/RELEASE_V5,(BASE-001) 起点冻结与V3/V4风险登记 — BASELINE.json(HEAD=main=origin/main=3895142三SHA一致)+RISK_REGISTER 6风险入账+自
+1042,f99e80d8,2026-08-28,PACKNEW,1,新增包文件 工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/00_READ_FIRST.md,(BASE-001) 起点冻结与V3/V4风险登记 — BASELINE.json(HEAD=main=origin/main=3895142三SHA一致)+RISK_REGISTER 6风险入账+自
+1042,f99e80d8,2026-08-28,PACKNEW,1,新增包文件 工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/START_PROMPT.txt,(BASE-001) 起点冻结与V3/V4风险登记 — BASELINE.json(HEAD=main=origin/main=3895142三SHA一致)+RISK_REGISTER 6风险入账+自
+1042,f99e80d8,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(BASE-001) 起点冻结与V3/V4风险登记 — BASELINE.json(HEAD=main=origin/main=3895142三SHA一致)+RISK_REGISTER 6风险入账+自
+1043,15720f5e,2026-08-28,NEWDIR,1,首次出现 tools/check_agents_gov.py,"(GOV-001) AGENTS合并V5必需短块与连续执行状态机 — check_agents_gov 10/10要素+mutation试金石通过,删除pwsh/GitBash默认环境旧表述,GUI改"
+1043,15720f5e,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,"(GOV-001) AGENTS合并V5必需短块与连续执行状态机 — check_agents_gov 10/10要素+mutation试金石通过,删除pwsh/GitBash默认环境旧表述,GUI改"
+1044,9fe142e0,2026-08-28,NEWDIR,1,首次出现 docs/VERSIONING.md,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.schema.json+一致性check
+1044,9fe142e0,2026-08-28,NEWDIR,1,首次出现 schemas/version.schema.json,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.schema.json+一致性check
+1044,9fe142e0,2026-08-28,NEWDIR,1,首次出现 tests/version,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.schema.json+一致性check
+1044,9fe142e0,2026-08-28,NEWDIR,1,首次出现 tools/check_version_consistency.py,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.schema.json+一致性check
+1044,9fe142e0,2026-08-28,NEWDIR,1,首次出现 tools/gen_version.py,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.schema.json+一致性check
+1044,9fe142e0,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.schema.json+一致性check
+1045,45e64640,2026-08-28,NEWDIR,1,首次出现 tests/__init__.py,(TRACE-001) 六层追溯schema与检查器 — claim_id格式+R1-R7链规则+引用存在(路径/符号级)+VER域6claim种子+5测试含删层mutation必失败+unittes
+1045,45e64640,2026-08-28,NEWDIR,1,首次出现 tests/traceability,(TRACE-001) 六层追溯schema与检查器 — claim_id格式+R1-R7链规则+引用存在(路径/符号级)+VER域6claim种子+5测试含删层mutation必失败+unittes
+1045,45e64640,2026-08-28,NEWDIR,1,首次出现 tools/check_traceability.py,(TRACE-001) 六层追溯schema与检查器 — claim_id格式+R1-R7链规则+引用存在(路径/符号级)+VER域6claim种子+5测试含删层mutation必失败+unittes
+1045,45e64640,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(TRACE-001) 六层追溯schema与检查器 — claim_id格式+R1-R7链规则+引用存在(路径/符号级)+VER域6claim种子+5测试含删层mutation必失败+unittes
+1046,4dd9385b,2026-08-28,NEWDIR,1,首次出现 docs/GLOSSARY.md,(DOC-001) 术语单位词典冻结 — GLOSSARY 18核心术语唯一含义+bad_mask极性实测(1=坏点)+pixel_weight与frame_quality_weight消歧+alia
+1046,4dd9385b,2026-08-28,NEWDIR,1,首次出现 tests/glossary,(DOC-001) 术语单位词典冻结 — GLOSSARY 18核心术语唯一含义+bad_mask极性实测(1=坏点)+pixel_weight与frame_quality_weight消歧+alia
+1046,4dd9385b,2026-08-28,NEWDIR,1,首次出现 tools/check_glossary.py,(DOC-001) 术语单位词典冻结 — GLOSSARY 18核心术语唯一含义+bad_mask极性实测(1=坏点)+pixel_weight与frame_quality_weight消歧+alia
+1046,4dd9385b,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(DOC-001) 术语单位词典冻结 — GLOSSARY 18核心术语唯一含义+bad_mask极性实测(1=坏点)+pixel_weight与frame_quality_weight消歧+alia
+1047,cc64ba1a,2026-08-28,NEWDIR,1,首次出现 tests/sciencelint,(SCI-001) Calibration科学合同补全 — Frames/专属问题7项逐锚回答/Primary literature 3条核验定位/Acceptance+SYN-001映射+scien
+1047,cc64ba1a,2026-08-28,NEWDIR,1,首次出现 tools/science_contract_lint.py,(SCI-001) Calibration科学合同补全 — Frames/专属问题7项逐锚回答/Primary literature 3条核验定位/Acceptance+SYN-001映射+scien
+1047,cc64ba1a,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SCI-001) Calibration科学合同补全 — Frames/专属问题7项逐锚回答/Primary literature 3条核验定位/Acceptance+SYN-001映射+scien
+1048,805f13ee,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SCI-002) WCS PSF Photometry合同补全 — 三份各补Frames/专属问题/Primary literature(Paper I II+Tukey4.685 PMC核验+Mo
+1049,1823a1e9,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SCI-003) Noise SNR合同补全 — Frames/专属问题5项(blank sky·Poisson仅诊断·权重归一适用域)/文献定位声明/Acceptance+SYN-003映射+cl
+1050,084ee91a,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,"(SCI-004) Drizzle合同补全 — Frames/专属问题6项(footprint·pixfrac(0,1]·support=D_p·协方差非目标)/FruchterHook2002定位声"
+1051,025bc941,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SCI-005) UPM合同补全 — Frames/专属问题6项(观测方程·basis·正则化·gauge退化·接缝预冻结SYN-005)/项目原创声明+Huber1964定位/Acceptance
+1052,43820f0f,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SCI-006) Rejection Integration合同补全 — 两份各补Frames/专属问题(7方法统计假设·表驱动阈值·auto路由可判定·smallN·identity保持)/Ros
+1053,7895a584,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SCI-007) Phase3 HiPS→FITS科学合同 — SCI-P3-001 15节+12科学项逐项冻结(order_needed公式/仅TAN/仅ICRS/parity/bilinear默
+1054,199b21e2,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ALG-001) Calibration离散算法V5重验 — 去硬编码num_threads+combine归约顺序冻结+variance/mask传播边界+SIMD安全与取消点+CPU-only策
+1055,0d4c5b69,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ALG-002) WCS PSF Photometry离散算法V5重验 — 三份删GPU路径改CPU-only worker pool+SIMD安全(固定序归约禁重结合)+取消点+claim ID格
+1057,e6effdc0,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,"(ALG-003) 账本补正 — ALG-003置PASS并披露状态机违规(IN_PROGRESS sed任务名错配未生效, commit 76e5383内为NOT_STARTED), 测试证据胶囊真"
+1058,6f2f4139,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ALG-004) Drizzle离散算法V5重验 — 删GPU candidate kernel改CPU-only worker pool+候选序固定归约禁重结合+SIMD安全+取消点帧原子性+cs
+1060,6feab667,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ALG-005) UPM稀疏求解接缝算法V5重验 — 删GPU块求值改CPU-only(IRLS串行reference+块级affinity池)+法方程固定序归约禁重结合+整模型原子取消点+PHAS
+1062,26890d3e,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,"(ALG-006) Rejection Integration离散算法V5重验 — 两份删GPU切分改CPU-only行带池+固定序归约禁重结合+掩膜/结果行带原子取消点+ID规范化,lint 2文件"
+1064,48910002,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ALG-007) Phase3重采样算法 — 新建PHASE3_RESAMPLE.md(ALG-P3-001..004) G1-G5与SCI-P3 §9a一一对应(WCS CD-only+parit
+1066,c1b70086,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(REV-001) C1审阅包 — 14胶囊(SCI/ALG)聚合+机读C1_MANIFEST(gates全过·unresolved_science=0)+CHECKPOINTS追加C1行+REV-0
+1068,bc0ccfe9,2026-08-28,NEWDIR,1,首次出现 tests/arch,(ARCH-001) 生产执行清单 — 符号检索七类原语217行(exe46/OpenMP25文件/线程创建62/锁46/队列1/ACR24配置守卫/IO写13)+幂等生成器+5机器门(exe=0·a
+1068,bc0ccfe9,2026-08-28,NEWDIR,1,首次出现 tools/arch,(ARCH-001) 生产执行清单 — 符号检索七类原语217行(exe46/OpenMP25文件/线程创建62/锁46/队列1/ACR24配置守卫/IO写13)+幂等生成器+5机器门(exe=0·a
+1068,bc0ccfe9,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ARCH-001) 生产执行清单 — 符号检索七类原语217行(exe46/OpenMP25文件/线程创建62/锁46/队列1/ACR24配置守卫/IO写13)+幂等生成器+5机器门(exe=0·a
+1070,ba126db2,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ARCH-002) V5单一CLI架构冻结 — 重写ARCHITECTURE.md(唯一astrocs入口·旧exe迁移·Phase1/2/3 in-process·生命周期·错误取消恢复·7不变量
+1072,1625ca94,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ARCH-003) CPU Backend架构冻结 — 05全条目落成(六查信任边界·C ABI v1全字段·七类kernel注册挂SCI-ALG链·回退4条·发布manifest+doctor)+
+1074,7818e663,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ARCH-004) 全局ThreadBudget架构 — 单一预算(affinity∩cgroup∩Job)+五阶段画像+异步两类+取消逐内核+静态checker(7处命中逐一定性登记:aio/ac
+1076,2dd8d07c,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ARCH-005) Phase3模块架构冻结 — 四单元单向流(Reader/TileCache/Resampler/FitsWriter)+跨tile访问(cache无科学决策·missing不伪
+1078,e08512ba,2026-08-28,NEWDIR,1,首次出现 docs/api,(API-001) 公共C ABI基础层v1冻结 — acs_命名五结构handshake+逐字段单位/所有权+九错误码+thread_budget租借+并发合同模板+C/C++双独立编译落锤+6机器
+1078,e08512ba,2026-08-28,NEWDIR,1,首次出现 tests/api,(API-001) 公共C ABI基础层v1冻结 — acs_命名五结构handshake+逐字段单位/所有权+九错误码+thread_budget租借+并发合同模板+C/C++双独立编译落锤+6机器
+1078,e08512ba,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(API-001) 公共C ABI基础层v1冻结 — acs_命名五结构handshake+逐字段单位/所有权+九错误码+thread_budget租借+并发合同模板+C/C++双独立编译落锤+6机器
+1080,4cf1fdb6,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(API-002) CLI协议合同v1冻结 — 04逐条落地(13命令树+handler追溯+11退出码唯一源+JSONL十必含五扩展+acs_cancel取消链+70脱敏crash)+04§6六条c
+1082,5dfbd20d,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(API-003) Phase1 API定义v1冻结 — p1_session五函数生命周期+底层10行登记表(并发五字段+test ID)+ac_set_num_threads迁移点TB-ARCH-
+1084,f5735ed2,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(API-004) Phase2 API定义v1冻结 — 所有权图七对象(p2_upm_close真实释放·修正臆造符号)+逐函数14行全名化五字段+预算绑定Σ≤全局+错误映射rc→acs_statu
+1086,b36c74dc,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(API-005) Phase3 API定义v1冻结 — p3_session五函数+request十一字段约束+显式拒绝清单与SCI-P3同源交叉核对+missing/NaN非错误语义+result
+1088,07bc18b9,2026-08-28,NEWDIR,1,首次出现 cli/CMakeLists.txt,(CLI-001) 单一astrocs target落地 — 严格C++17双平台main(help13行golden+version json+exit2 stub)+CMake版本单源g<hash
+1088,07bc18b9,2026-08-28,NEWDIR,1,首次出现 cli/main.cpp,(CLI-001) 单一astrocs target落地 — 严格C++17双平台main(help13行golden+version json+exit2 stub)+CMake版本单源g<hash
+1088,07bc18b9,2026-08-28,NEWDIR,1,首次出现 cli/version_generated.h.in,(CLI-001) 单一astrocs target落地 — 严格C++17双平台main(help13行golden+version json+exit2 stub)+CMake版本单源g<hash
+1088,07bc18b9,2026-08-28,NEWDIR,1,首次出现 tests/cli,(CLI-001) 单一astrocs target落地 — 严格C++17双平台main(help13行golden+version json+exit2 stub)+CMake版本单源g<hash
+1088,07bc18b9,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(CLI-001) 单一astrocs target落地 — 严格C++17双平台main(help13行golden+version json+exit2 stub)+CMake版本单源g<hash
+1090,d484f7c5,2026-08-28,NEWDIR,1,首次出现 cli/cancel_token.h,(CLI-002) 统一parser+JSONL协议+cancel+crash boundary — 命令树白名单14拒绝面+config init/validate真实现(0/3/7映射)+10必含
+1090,d484f7c5,2026-08-28,NEWDIR,1,首次出现 cli/exit_codes.h,(CLI-002) 统一parser+JSONL协议+cancel+crash boundary — 命令树白名单14拒绝面+config init/validate真实现(0/3/7映射)+10必含
+1090,d484f7c5,2026-08-28,NEWDIR,1,首次出现 cli/jsonl.h,(CLI-002) 统一parser+JSONL协议+cancel+crash boundary — 命令树白名单14拒绝面+config init/validate真实现(0/3/7映射)+10必含
+1090,d484f7c5,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(CLI-002) 统一parser+JSONL协议+cancel+crash boundary — 命令树白名单14拒绝面+config init/validate真实现(0/3/7映射)+10必含
+1092,8b7cf3e0,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(CLI-003) config/manifest/verify闭环 — MANIFEST_VERIFY_V1合同+config全量校验(白名单键/schema_version=2/文件存在)+pro
+1094,7718a2f8,2026-08-28,NEWDIR,1,首次出现 include/astrocs,(ABI-001) C ABI v1落地 — 单一头C11/C++17双编译+host services(计数allocator/atomic cancel/CAS预算)+12条目kernel表(05
+1094,7718a2f8,2026-08-28,NEWDIR,1,首次出现 lib/backend_host,(ABI-001) C ABI v1落地 — 单一头C11/C++17双编译+host services(计数allocator/atomic cancel/CAS预算)+12条目kernel表(05
+1094,7718a2f8,2026-08-28,NEWDIR,1,首次出现 tests/backend,(ABI-001) C ABI v1落地 — 单一头C11/C++17双编译+host services(计数allocator/atomic cancel/CAS预算)+12条目kernel表(05
+1094,7718a2f8,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ABI-001) C ABI v1落地 — 单一头C11/C++17双编译+host services(计数allocator/atomic cancel/CAS预算)+12条目kernel表(05
+1096,0c49a370,2026-08-28,NEWDIR,1,首次出现 tools/gen_backends_manifest.py,(ABI-002) backend加载安全化 — CPUID+OSXSAVE+XGETBV实测+affinity可用CPU+manifest解析不猜+预检五查(裸文件名白名单/ABI/hash实测/r
+1096,0c49a370,2026-08-28,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ABI-002) backend加载安全化 — CPUID+OSXSAVE+XGETBV实测+affinity可用CPU+manifest解析不猜+预检五查(裸文件名白名单/ABI/hash实测/r
+1098,1761491b,2026-08-29,NEWDIR,1,首次出现 tools/check_baseline_opcodes.py,(ABI-003) baseline全生产kernel — 12 kernel实现在budget租借行带并行外层(确定性: 元素独立无跨线程归约)+Oracle(Python独立参考12op全比对)+
+1098,1761491b,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ABI-003) baseline全生产kernel — 12 kernel实现在budget租借行带并行外层(确定性: 元素独立无跨线程归约)+Oracle(Python独立参考12op全比对)+
+1100,1ae33eb4,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ISA-001) ISA热点测量与AVX2变体决策 — 共享表backend_table.inc抽参+avx2变体DSO(同impl零漂移)+实机profile(hips+28%/calibrati
+1103,0eeb3b5f,2026-08-29,NEWDIR,1,首次出现 schemas/hardware_inspect.schema.json,(BENCH-001) 硬件画像v1 — CPUID/XCR0/affinity数组/available=affinity∩cgroup/SMT/NUMA/RAM/cache/OS/compiler/
+1103,0eeb3b5f,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(BENCH-001) 硬件画像v1 — CPUID/XCR0/affinity数组/available=affinity∩cgroup/SMT/NUMA/RAM/cache/OS/compiler/
+1105,9aad31ec,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(BENCH-002) harness顺序合同 — 独立scalar Oracle先行(失败禁用不计时)+预热不计时+9样本稳健统计(median/MAD/p05/p95)+correctness_h
+1107,87ff58ba,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,"(BENCH-003) 候选生成+内存基线 — worker候选{1,中位,全部}全派生(avail3→{1,2,3})+block=L2派生几何公比4+memory read/write/copy/"
+1109,e8767daf,2026-08-29,NEWDIR,1,首次出现 tools/validate_cpu_profile.py,(BENCH-004) profile生命周期 — cpu_profile生成器(schema同构+指纹)+validate三态(schema/stale: ISA-affinity-commit-指
+1109,e8767daf,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(BENCH-004) profile生命周期 — cpu_profile生成器(schema同构+指纹)+validate三态(schema/stale: ISA-affinity-commit-指
+1111,0cd9db94,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(BENCH-005) benchmark/doctor CLI — profile_gen入库(quick单kernel/full 12kernel矩阵)+ASTROCS_COMMIT_SHA注入+
+1113,c5629be6,2026-08-29,NEWDIR,1,首次出现 lib/phase1_session,(CLI-004) Phase1进程内接入 — p1_session四段式(API-P1-001冻结)+budget注入ac_set_num_threads+帧粒度取消+monitor事件+AIO/C
+1113,c5629be6,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(CLI-004) Phase1进程内接入 — p1_session四段式(API-P1-001冻结)+budget注入ac_set_num_threads+帧粒度取消+monitor事件+AIO/C
+1115,0a448f67,2026-08-29,NEWDIR,1,首次出现 lib/phase2_session,"(CLI-005) Phase2进程内接入 — p2_session生产路由(coverage→sampler→UPM→persist, API-P2-001冻结)+预算绑定(sampler=1/up"
+1115,0a448f67,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,"(CLI-005) Phase2进程内接入 — p2_session生产路由(coverage→sampler→UPM→persist, API-P2-001冻结)+预算绑定(sampler=1/up"
+1117,9fb12dc0,2026-08-29,NEWDIR,1,首次出现 lib/phase3_session,(P3-001) HiPS properties严格解析 — 必需键全查(5键)/值域(order0-20/width512/fits/frame)/重复键拒/边界order/缺tile探测/安全路径
+1117,9fb12dc0,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(P3-001) HiPS properties严格解析 — 必需键全查(5键)/值域(order0-20/width512/fits/frame)/重复键拒/边界order/缺tile探测/安全路径
+1119,be902e60,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(P3-002) TAN WCS正反变换 — 描述符(CRPIX pixel-center/CD含PA旋转/parity符号)+球面三角正逆+RA归一+极点5度/半球四角守卫+独立向量法参考逐点一致(
+1121,1dadaf3c,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(P3-003) 重采样器 — order selector确定性+nearest/bilinear跨tile+coverage/mask/NaN语义(SS=NaN+C=1)+未支持模式显式拒(var
+1123,5717ffc7,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(P3-004) FITS原子写 — tmp+rename原子替换+header(BITPIX-32/BSCALE/BZERO/BUNIT+WCS全量)+provenance(HIPSID/ORDER
+1125,bcc6cb7b,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(CLI-006) phase3 run 生产路由 — p3_session(create/validate/run/inspect/destroy)+显式拒清单(非TAN/非ICRS/|dec|<5
+1127,502a26f5,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(CLI-006) ledger PASS
+1128,91c92f51,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(CLI-007) run --phases 真编排 — 逐phase进程内(p1/p2/p3 session)+artifact聚合(role=phaseN_output+sha256+size)+
+1129,551795e8,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(CLI-007) 表行登记+ledger PASS — COMMITS/CAP-CLI-007
+1130,1fb0d06b,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(CLI-008) install tree scanner — cmake --install staging→scan断言恰一用户exe(astrocs)+无旧phase/benchmark/to
+1131,79a1676d,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(CLI-008) 表行登记+ledger PASS — COMMITS/CAP-CLI-008
+1132,d8b440dc,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ISA-002) AVX(无FMA)变体 — 完整测量防污染验证; AVX被已SHIP avx2严格主导→NOT_SHIPPED(完整测量在案); 206/206
+1133,31fc96b3,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ISA-002) 表行登记+ledger PASS — COMMITS/CAP-ISA-002
+1134,85a244f3,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ISA-003) AVX2+FMA capability 复验+登记 — FMA(vfnmadd)+ymm 双向证明+median测量 calibration+11.7%/hips+28.3% SH
+1135,e3cbbafc,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ISA-003) 表行登记+ledger PASS — COMMITS/CAP-ISA-003
+1136,22d0b081,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ISA-004) AVX512F 变体 — vm-bj支持AVX512故完整复测; zmm证明+median测量 calibration+3.8%/hips+29.5%; 对已SHIP avx2无额
+1137,2f23b897,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ISA-004) 表行登记+ledger PASS — COMMITS/CAP-ISA-004
+1138,bdcb231a,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ISA-005) 整数/位操作热点审计 — 12kernel无位操作热点; -mbmi2 -mpopcnt编译零位操作指令→NOT_APPLICABLE(不写空DLL); 218/218
+1139,a06c45b0,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ISA-005) 表行登记+ledger PASS — COMMITS/CAP-ISA-005
+1140,db85028a,2026-08-29,NEWDIR,1,首次出现 cli/monitor.h,(MON-001) 进程/系统资源监控模块 — /proc采集(CPU/RSS/IO/thread/ctxsw)+sysinfo+单调时钟+采样开销测量; 修正stat字段解析; 222/222
+1140,db85028a,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(MON-001) 进程/系统资源监控模块 — /proc采集(CPU/RSS/IO/thread/ctxsw)+sysinfo+单调时钟+采样开销测量; 修正stat字段解析; 222/222
+1141,1409a23c,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(MON-001) 表行登记+ledger PASS — COMMITS/CAP-MON-001
+1142,af69a9c4,2026-08-29,NEWDIR,1,首次出现 cli/resource_events.h,(MON-002) 资源事件分层 — --resource-detail summary|timeseries+resource/backend事件(07§2指标)+downsample≤121点+无
+1142,af69a9c4,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(MON-002) 资源事件分层 — --resource-detail summary|timeseries+resource/backend事件(07§2指标)+downsample≤121点+无
+1143,9f80df0e,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(MON-002) 表行登记+ledger PASS — COMMITS/CAP-MON-002
+1144,ea97cc71,2026-08-29,NEWDIR,1,首次出现 cli/resource_gate.h,"(MON-003) 资源门禁 — 07分类(compute/memory/io/mixed)+公式(0.80*min(workers,cpus))+first-10s快速失败+exit 10+诊断分类"
+1144,ea97cc71,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,"(MON-003) 资源门禁 — 07分类(compute/memory/io/mixed)+公式(0.80*min(workers,cpus))+first-10s快速失败+exit 10+诊断分类"
+1145,12328080,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(MON-003) 表行登记+ledger PASS — COMMITS/CAP-MON-003
+1146,50fedef8,2026-08-29,NEWDIR,1,首次出现 cli/memory_growth.h,(MON-004) 内存增长分析 — 20循环+预热剔除+Theil-Sen稳健斜率+峰值/retained+OOM预警+泄漏/增长/震荡分类; 242/242
+1146,50fedef8,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(MON-004) 内存增长分析 — 20循环+预热剔除+Theil-Sen稳健斜率+峰值/retained+OOM预警+泄漏/增长/震荡分类; 242/242
+1147,df1539cf,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(MON-004) 表行登记+ledger PASS — COMMITS/CAP-MON-004
+1148,866dfd1d,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ISO-001) ACR/GPU/Mixed隔离 — 生产选路不触ACR/GPU(符号扫描0+注册不可达+manifest无该字段)+配置请求ACR明确拒绝(exit3)+发行包纯CPU; 248/
+1149,f49808af,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(ISO-001) 表行登记+ledger PASS — COMMITS/CAP-ISO-001
+1150,163e9e56,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(PAR-001) 有界队列/backpressure/error/cancel + I/O compute overlap + 无全局串行锁 — BoundedAsyncQueue运行时把关; 25
+1151,5ad37814,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(PAR-001) 表行登记+ledger PASS — COMMITS/CAP-PAR-001
+1152,e7034892,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(PAR-002) sampler N-worker 正加速阻塞: 库级cfitsio并发读SIGSEGV — 记录BLOCKED+阻断报告
+1154,96ed7e89,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(PAR-003) UPM并行验证: 线程本地/归约分离+确定性+内存有界 PASS
+1156,1c726180,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(PAR-004) Drizzle并行验证: 元素独立归约+确定性+1/N scaling+worker派生 PASS
+1158,a4fdb874,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(PAR-005) Rejection/Integration并行验证: 确定性+frame identity+outlier oracle PASS
+1160,d7ec494e,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,"(PAR-006) Phase1噪声内核优化: 免冗余tmp拷贝+scratch, before/after微基准 PASS"
+1162,9a6c58fb,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(PAR-007) 统一thread budget合同验证: 嵌套stress不超标+禁硬编码 PASS
+1164,607b37e3,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SYN-001) Calibration独立合成Oracle: master bias/dark/flat+calibrate两种模式全后端全线程 PASS
+1166,a0db92e5,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SYN-002) WCS星场+解析PSF+已知flux/background+frame roundtrip 独立合成Oracle PASS
+1168,d721aa58,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SYN-003) Noise/SNR estimator独立合成Oracle PASS
+1170,3b0d393c,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SYN-004) Drizzle独立合成Oracle与不变量 PASS
+1172,db6f7b42,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SYN-005) UPM solver独立合成Oracle PASS
+1174,4e88797d,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SYN-006) Rejection/Integration独立合成Oracle PASS
+1176,266f0815,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SYN-007) Phase3 HiPS-TAN FITS独立重投影Oracle PASS (13 §5 全部case)
+1178,80e6ad71,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SYN-008) 三块重叠合成场 seam指标门槛 PASS
+1180,2743ae0a,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(SYN-009) CLI Phase1/2/3端到端合成pipeline PASS
+1182,ea1145fb,2026-08-29,NEWDIR,1,首次出现 tests/quality,(DOCCHK-001) 机器核对文档函数名/签名/schema/命令/退出码 PASS
+1182,ea1145fb,2026-08-29,NEWDIR,1,首次出现 tools/check_api_docs.py,(DOCCHK-001) 机器核对文档函数名/签名/schema/命令/退出码 PASS
+1182,ea1145fb,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(DOCCHK-001) 机器核对文档函数名/签名/schema/命令/退出码 PASS
+1184,8a0a02f8,2026-08-29,NEWDIR,1,首次出现 tools/check_unit_closure.py,(DOCCHK-002) 六层追溯闭环66claim+单位二义性mutation门 PASS
+1184,8a0a02f8,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(DOCCHK-002) 六层追溯闭环66claim+单位二义性mutation门 PASS
+1186,8ff83696,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(LNX-001) amd64 clean Debug+Release 构建零错误; 清零 unused/truncation 警告债 PASS
+1188,def1cb03,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(LNX-002) inspect doctor quick benchmark profile fallback ISA安全 golden PASS
+1190,27c2053c,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(LNX-003) 全量小合成 42 oracle + CLI golden + 资源门禁低利用率fixture必FAIL + 20-loop memory PASS
+1192,8c21173b,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(LNX-004) 修复P1 aligned_alloc size非align倍数+2死存储; 0 P0/P1 PASS
+1194,5364fc17,2026-08-29,NEWDIR,1,首次出现 tools/make_linux_release.py,(LNX-005) Linux alpha amd64发布包生成器+SBOM/manifest/hash+空目录smoke单exe PASS
+1194,5364fc17,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(LNX-005) Linux alpha amd64发布包生成器+SBOM/manifest/hash+空目录smoke单exe PASS
+1196,962d18c9,2026-08-29,NEWDIR,1,首次出现 tools/make_rev2_capsule.py,(REV-002) 完整ARCH/API/headers/core-source/oracles/checkers/Linux-reports审阅胶囊生成器; REVIEW_PENDING
+1196,962d18c9,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(REV-002) 完整ARCH/API/headers/core-source/oracles/checkers/Linux-reports审阅胶囊生成器; REVIEW_PENDING
+1198,406f6f5e,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(WIN-001) Fatduck探测: 克隆同main SHA f82ffa8 clean; testdata inventory hash一致; 32R数据分发归WIN-006/7 PASS
+1213,55d521af,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(WIN-002) MSVC amd64 clean Debug+Release 零错误构建 PASS; CLI协议10/10 OK; doctor PASS
+1216,574af339,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(WIN-003) doctor PASS + full benchmark 12 kernel 逐kernel选择 + AVX512检查(AMD无AVX512) + profile冻结VALID; 
+1220,024869c8,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(WIN-004) 全测试套件 PASS: Linux 320 tests OK + Windows可跑套件全绿; 记录g++-fixture平台边界与两处跨平台修复
+1224,4cd15562,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,(WIN-005) MSVC /analyze 0错误 + ASan无泄漏/invalid access + 取消/路径测试跨平台全绿; 修复2处P1候选; 登记 PASS
+1226,4b757a65,2026-08-29,LEDGER,1,改台账 02_TASK_LEDGER.csv,"(WIN-006) BLOCKED: 银心 Galaxy_Center_T4 真实帧与 T4 母版在本机缺失, 无下载源; 记录阻断对象/命令/时间; WIN-007/008 同数据依赖"
+1231,b8ce3669,2026-08-30,NEWDIR,1,首次出现 tools/make_windows_release.py,(WIN-009) 新增 Windows 发布包工具 make_windows_release.py: 单一 astrocs.exe+私有VC运行时DLL+MANIFEST/SBOM/licenses
+1232,ef0858c5,2026-08-30,NEWDIR,1,首次出现 tools/assemble_audit.py,"(审核包) 按当前现状汇总最终审核包(AUDIT_REVIEW whitelist)+如实 FINAL_REPORT/SUMMARY: 87 PASS, 2 BLOCKED(WIN-006 phase"
+1232,ef0858c5,2026-08-30,PACKNEW,1,新增包文件 artifacts/prerelease_v5/AUDIT_REVIEW/00_READ_FIRST.md,"(审核包) 按当前现状汇总最终审核包(AUDIT_REVIEW whitelist)+如实 FINAL_REPORT/SUMMARY: 87 PASS, 2 BLOCKED(WIN-006 phase"
+1232,ef0858c5,2026-08-30,PACKNEW,1,新增包文件 artifacts/prerelease_v5/AUDIT_REVIEW/MANIFEST.json,"(审核包) 按当前现状汇总最终审核包(AUDIT_REVIEW whitelist)+如实 FINAL_REPORT/SUMMARY: 87 PASS, 2 BLOCKED(WIN-006 phase"
+1232,ef0858c5,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,"(审核包) 按当前现状汇总最终审核包(AUDIT_REVIEW whitelist)+如实 FINAL_REPORT/SUMMARY: 87 PASS, 2 BLOCKED(WIN-006 phase"
+1233,a098a75e,2026-08-30,LEDGER,1,改台账 02_TASK_LEDGER.csv,(WIN-009) Windows alpha amd64 发布包+SBOM/licenses/hash+smoke PASS: AstroCS-Windows-amd64-0.9.0-alpha.1
+1235,ec7a8cdc,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,"(审核包/win009) 刷新审核包至当前现状: 88 PASS (WIN-009 PASS), Windows alpha 登记 RELEASE_ARTIFACTS; validator 仍如实 F"
+1242,52e9541d,2026-08-30,LEDGER,2,"改台账 TASK_LEDGER.csv, 02_TASK_LEDGER.csv",(审核包 item#9) 机器一致性校对: 纠正依赖边(PASS依赖非PASS=0) - WIN-009 依赖 WIN-008|VER-001 -> VER-001(发布打包(SBOM/hash/sm
+1251,3ca7f974,2026-08-30,LEDGER,1,改台账 02_TASK_LEDGER.csv,(控制包) WIN-006 BLOCKED -> IN_PROGRESS: 真实银心代表链路(phase1 6帧 exit0 → 逐帧drizzle nside2048 → phase2 exit0 
+1256,fd4e11ed,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,"(审核包重打+补全) assemble_audit.py: windows_32r_run_id=4f885b8b8fd4(32R phase2), blockers 更新为实际剩余(WIN-006真"
+1260,ac2d230d,2026-08-30,NEWDIR,1,首次出现 tools/pack_audit_package.py,(审核包打包工具) tools/pack_audit_package.py: 打包基线代码(不含数据/第三方/二进制/运行时)+证据为 zip. 产物 artifacts/prerelease_v5/
+1261,4b1b948e,2026-08-30,NEWDIR,1,首次出现 evidence/refactor,BAS-001: 冻结仓库身份与控制包基线
+1261,4b1b948e,2026-08-30,NEWDIR,1,首次出现 工程控制/CONTROL_V6,BAS-001: 冻结仓库身份与控制包基线
+1261,4b1b948e,2026-08-30,PACKNEW,1,新增包文件 工程控制/CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/00_READ_FIRST.md,BAS-001: 冻结仓库身份与控制包基线
+1261,4b1b948e,2026-08-30,PACKNEW,1,新增包文件 工程控制/CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/MANIFEST.json,BAS-001: 冻结仓库身份与控制包基线
+1261,4b1b948e,2026-08-30,PACKNEW,1,新增包文件 工程控制/CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/START_PROMPT.txt,BAS-001: 冻结仓库身份与控制包基线
+1261,4b1b948e,2026-08-30,LEDGER,2,"改台账 TASK_LEDGER.csv, 05_TASK_LEDGER.csv",BAS-001: 冻结仓库身份与控制包基线
+1262,debeb0a3,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,BAS-002: 冻结当前构建目标与生产入口
+1263,e4fa8a36,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,BAS-003: 冻结静态调用图与线程入口清单
+1264,8d89088e,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,BAS-004: 登记 P0 所有权与科学语义风险 + G0 门禁达成
+1265,ecc805d4,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,VER-001: 建立唯一版本来源 0.10.0-alpha.1
+1266,0f78c111,2026-08-30,NEWDIR,1,首次出现 schemas/contract_index.schema.json,DOC-001: 建立合同 ID 注册表
+1266,0f78c111,2026-08-30,NEWDIR,1,首次出现 tests/contracts,DOC-001: 建立合同 ID 注册表
+1266,0f78c111,2026-08-30,NEWDIR,1,首次出现 tools/check_contract_graph.py,DOC-001: 建立合同 ID 注册表
+1266,0f78c111,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,DOC-001: 建立合同 ID 注册表
+1267,7b43ed1c,2026-08-30,NEWDIR,1,首次出现 docs/review,SCI-001: 冻结 Phase1 科学定义(确认冻结+owner摘要)
+1267,7b43ed1c,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,SCI-001: 冻结 Phase1 科学定义(确认冻结+owner摘要)
+1268,e765161d,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,SCI-002: 冻结 Phase2 科学定义(确认冻结)
+1269,4a7fe628,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,SCI-003: 设计 Phase3 科学定义(确认冻结)
+1270,e351f3fb,2026-08-30,NEWDIR,1,首次出现 tools/check_data_artifacts.py,DATA-001: 冻结跨模块数据语义与 artifact schema
+1270,e351f3fb,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,DATA-001: 冻结跨模块数据语义与 artifact schema
+1271,a858df3f,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,ARCH-001: 冻结 Runtime 与职责边界
+1272,02839ac0,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,API-001: 冻结公共 API 与错误模型
+1273,c7ec1003,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,TEST-001: 建立科学测试矩阵
+1275,338eecc2,2026-08-30,NEWDIR,1,首次出现 cmake/cfitsio_sources.cmake,BLD-001: 建立显式根 CMake 目标图
+1275,338eecc2,2026-08-30,NEWDIR,1,首次出现 tests/unit,BLD-001: 建立显式根 CMake 目标图
+1275,338eecc2,2026-08-30,NEWDIR,1,首次出现 tools/check_link_scan.py,BLD-001: 建立显式根 CMake 目标图
+1275,338eecc2,2026-08-30,NEWDIR,1,首次出现 tools/gen_cfitsio_list.py,BLD-001: 建立显式根 CMake 目标图
+1275,338eecc2,2026-08-30,LEDGER,1,改台账 TASK_LEDGER.csv,BLD-001: 建立显式根 CMake 目标图
+1276,c572aa1f,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CORE-001: 实现公共 Result/Error/Cancel 语义
+1277,3e98a22d,2026-08-31,NEWDIR,1,首次出现 lib/core,CORE-002: 实现 DataArtifact 与 Provenance
+1277,3e98a22d,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CORE-002: 实现 DataArtifact 与 Provenance
+1278,e29aae75,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CORE-003: 实现 ModuleDescriptor 注册表
+1279,c497a284,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CORE-004: 实现 Pipeline IR 解析与静态验证
+1280,6389105a,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CORE-005: 实现 RunContext 服务接口
+1281,dedbfad7,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CORE-006: 实现统一 DAG 调度与线程租约
+1282,06b10d1a,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CORE-007: 实现 checkpoint 与幂等恢复
+1283,e498e7bf,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CORE-008: 实现统一日志与指标服务
+1285,2f39880c,2026-08-31,NEWDIR,1,首次出现 lib/io,IO-001: 实现 I/O adapter 接口与 Artifact 事务
+1285,2f39880c,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,IO-001: 实现 I/O adapter 接口与 Artifact 事务
+1286,1878fa52,2026-08-31,NEWDIR,1,首次出现 tools/check_aio_ownership.py,IO-002: aio_image* canonical deleter 全覆盖
+1286,1878fa52,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,IO-002: aio_image* canonical deleter 全覆盖
+1287,63167789,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,IO-003: CFITSIO 显式 reentrant + per-worker 独立 reader
+1288,09228a1c,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,IO-004: 2/4/8 worker 随机 tile 读取压力
+1289,af6cb259,2026-08-31,NEWDIR,1,首次出现 tools/check_abi_boundary.py,CPU-001: C ABI 结构全带 size/version + 边界头纯净
+1289,af6cb259,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CPU-001: C ABI 结构全带 size/version + 边界头纯净
+1290,5b628296,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CPU-002: baseline AMD64 + Runtime lease 多线程验证
+1291,79dbcfa6,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CPU-003: CPUID/OSXSAVE/XGETBV 核验 + feature 匹配降级
+1292,4560aaf9,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CPU-004: AVX2/AVX-512 provider 同 kernel 语义 + 降级链
+1293,fef908c4,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CPU-005: 损坏 provider/ABI mismatch/缺 kernel 优雅 fallback
+1294,3019381b,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CPU-006: benchmark 顺序链 + Oracle 门验证
+1295,d9c89637,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CPU-007: profile 字段完整性 + 失效判定 + 回退语义
+1296,351e1855,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CPU-008: 资源监测器采样 + 开销 + gate 阈值
+1298,fe92b6e5,2026-08-31,NEWDIR,1,首次出现 docs/refactor,P1-001: Phase1 old-symbol 映射表 + 无 blocker
+1298,fe92b6e5,2026-08-31,NEWDIR,1,首次出现 tools/check_p1_symbol_map.py,P1-001: Phase1 old-symbol 映射表 + 无 blocker
+1298,fe92b6e5,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P1-001: Phase1 old-symbol 映射表 + 无 blocker
+1299,6f80c913,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P1-002: synthetic fixtures 解析公式逐像素比较
+1300,d3af6ffa,2026-08-31,NEWDIR,1,首次出现 lib/phase1,P1-003: StarDetector 5 场景 + catalog 质量字段
+1300,d3af6ffa,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P1-003: StarDetector 5 场景 + catalog 质量字段
+1301,366b9f8c,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P1-004: WCS roundtrip + Photometry 回归 + 失败显式
+1302,a63a66ae,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P1-005: Noise/SNR SCI 公式 + Monte Carlo 验证
+1303,ed9f3b0d,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P1-006: NSIDE 派生(无 2048 硬编码) + RA wrap
+1304,466c6fa4,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P1-007: HiPS writer 合法产品 + verify 重开 hash
+1305,c22819a2,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P1-008: canonical IR 节点 + preset 开关 + facade 验证
+1306,e1c6126e,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P1-009: 2 核 heavy synthetic 资源记录 + 多 frame
+1308,f056f917,2026-08-31,NEWDIR,1,首次出现 tools/check_p2_symbol_map.py,P2-001: Phase2 Stage2 步骤映射 + ACR 禁迁移
+1308,f056f917,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P2-001: Phase2 Stage2 步骤映射 + ACR 禁迁移
+1309,6ef62a41,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P2-002: heavy 禁 workers=1 门禁 + cpu_workers 校验
+1310,fab26511,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P2-003: 三块重叠 UPM 合成验证(接缝/源/加性)
+1311,957accff,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P2-004: block plan 预算/峰值重算修复 + 无全局 cache
+1312,ab52854f,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P2-005: rejection 10 方法独立 fixture + AUTO 路由
+1313,3c66e64e,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P2-006: writer 输出语义(ivar 非模糊 weight) + integrate
+1314,ab45a63a,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P2-007: canonical Phase2 IR 全链 + facade 验证
+1315,b31a3780,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P2-008: seam 数值门+资源门同时通过
+1317,be2d6c0d,2026-08-31,NEWDIR,1,首次出现 tools/check_p3_status.py,P3-001: 移除 prototype registry/preset + 文档状态统一
+1317,be2d6c0d,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P3-001: 移除 prototype registry/preset + 文档状态统一
+1318,a994fe1d,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P3-002: WCS 溢出检查 + 配置合同上限(无硬编码 20000)
+1319,e4275ecc,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P3-003: tile 分工 + 插值/几何 fixtures
+1320,0b8117e2,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P3-004: coverage 与边界语义
+1321,c9a22b5d,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P3-005: FITS 重开验证修复 + checksum
+1322,bfb07282,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,P3-006: Phase3 全链组装验证 (mini HiPS→sampler→FITS)
+1324,bb2d9fcd,2026-08-31,NEWDIR,1,首次出现 tools/check_cli_command_layer.py,CLI-001: 稳定 command 层 (kRules 表驱动)
+1324,bb2d9fcd,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CLI-001: 稳定 command 层 (kRules 表驱动)
+1325,e5b84f30,2026-08-31,NEWDIR,1,首次出现 tools/check_cli_run_preset.py,CLI-002: run preset/IR 驱动 + Artifact 哈希链
+1325,e5b84f30,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CLI-002: run preset/IR 驱动 + Artifact 哈希链
+1326,d93054c0,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CLI-003: test synthetic 接通真实合成门
+1327,317566c0,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,LEG-001: CLI drizzle 降级测试 wrapper + 去 2048 硬编码
+1328,fb0d081d,2026-08-31,NEWDIR,1,首次出现 tools/check_legacy_exit.py,LEG-002: 旧 Orchestrator 退出生产
+1328,fb0d081d,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,LEG-002: 旧 Orchestrator 退出生产
+1329,94512274,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,LEG-003: AIO PipelineEngine 调度职责退出
+1330,6a66acab,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,LEG-004: 旧 Stage2 退出 + ACR dormant 隔离
+1332,8e7b2c95,2026-08-31,NEWDIR,1,首次出现 tools/check_l0_docs.py,DOC-002: L0 负责人审查文档 (REVIEW + 5 顶层)
+1332,8e7b2c95,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,DOC-002: L0 负责人审查文档 (REVIEW + 5 顶层)
+1333,b63958b2,2026-08-31,NEWDIR,1,首次出现 tools/check_module_readmes.py,DOC-003: 每模块 L2 README + 合同链接
+1333,b63958b2,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,DOC-003: 每模块 L2 README + 合同链接
+1334,cda2898b,2026-08-31,NEWDIR,1,首次出现 tools/check_ast_api.py,DOC-004: Clang AST public 符号校验
+1334,cda2898b,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,DOC-004: Clang AST public 符号校验
+1335,6608b166,2026-08-31,NEWDIR,1,首次出现 tools/check_pipeline_trace.py,DOC-005: 静态 Pipeline 图与运行 trace 一致性
+1335,6608b166,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,DOC-005: 静态 Pipeline 图与运行 trace 一致性
+1337,1c7da8de,2026-08-31,NEWDIR,1,首次出现 tools/check_release_layout.py,REL-001: 发布布局校验工具 + 干净 smoke
+1337,1c7da8de,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,REL-001: 发布布局校验工具 + 干净 smoke
+1338,97f6ee8e,2026-08-31,NEWDIR,1,首次出现 tools/check_final_traceability.py,REL-002: 最终追溯校验 + 旧入口扫描
+1338,97f6ee8e,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,REL-002: 最终追溯校验 + 旧入口扫描
+1339,b840ed64,2026-08-31,NEWDIR,1,首次出现 scripts/package_audit.py,REL-003: 白名单审核包打包+验证
+1339,b840ed64,2026-08-31,NEWDIR,1,首次出现 scripts/validate_audit.py,REL-003: 白名单审核包打包+验证
+1339,b840ed64,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,REL-003: 白名单审核包打包+验证
+1340,a7faa502,2026-08-31,NEWDIR,1,首次出现 tools/gen_visual_views.py,REL-004: 负责人视觉验收视图就绪 (REVIEW_PENDING)
+1340,a7faa502,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,REL-004: 负责人视觉验收视图就绪 (REVIEW_PENDING)
+1345,457dcf6b,2026-08-31,NEWDIR,1,首次出现 tools/check_release_consistency.py,G11-CONSISTENCY: 发布一致性校验 (VERSION/SBOM/checksums)
+1347,38f62f2a,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,LNX-001..005: Linux 平台任务全 PASS
+1348,41943d42,2026-08-31,NEWDIR,1,首次出现 tools/check_warning_suppression.py,QA-001: 生产警告抑制清零 (P2/P3 去 -w)
+1348,41943d42,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,QA-001: 生产警告抑制清零 (P2/P3 去 -w)
+1349,f8001e29,2026-08-31,NEWDIR,1,首次出现 tools/check_serial_hardcode.py,QA-002: 串行/硬编码静态禁令 + GLOB 清零 + ACR 剔出
+1349,f8001e29,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,QA-002: 串行/硬编码静态禁令 + GLOB 清零 + ACR 剔出
+1350,6a7bdb49,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,QA-003: Sanitizer 验证 (ASan 全组合成 PASS)
+1351,1ee07955,2026-08-31,NEWDIR,1,首次出现 tools/check_duplication.py,QA-004: 重复实现与所有权审查
+1351,1ee07955,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,QA-004: 重复实现与所有权审查
+1352,60493ea3,2026-08-31,NEWDIR,1,首次出现 tools/check_reproducible_build.py,QA-005: 可复现构建依赖与 SBOM
+1352,60493ea3,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,QA-005: 可复现构建依赖与 SBOM
+1354,196b2e8e,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,G10-WIN: WIN-001..006 登记 WAITING_WINDOWS
+1355,8be6eb4e,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,G10-WIN: WIN-001..006 WAITING_WINDOWS (修复 LEDGER 完整性)
+1361,a3d16d85,2026-08-31,NEWDIR,1,首次出现 evidence/v6_1_rework,"R0-001: 冻结当前 main 身份 (三 SHA 相同, b16d422 为祖先, 工作树 205 项全分类, CONTROL_PASS)"
+1361,a3d16d85,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"R0-001: 冻结当前 main 身份 (三 SHA 相同, b16d422 为祖先, 工作树 205 项全分类, CONTROL_PASS)"
+1362,31b10cab,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"R0-002: 完整自有源码清单 (58 targets 1120 文件, 生产源全部证明存在, 负例缺源 FAIL)"
+1363,d7b202ec,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"R0-003: V6.1 证据台账与状态机验证器 (10 负例 PASS, 冻结台账 hash 未变, TASK_RESULT schema 一致)"
+1364,50673825,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,R0-004: 复现并冻结 40 项已知问题 (40/40 REPRODUCED) + G0 门清单 8/8 PASS
+1365,a52dcce1,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"GOV-001: 任务证据与 commit 绑定 (COMMITS.csv 连续链, 篡改/交换/缺push 负例全抓, 旧结果 schema 修复)"
+1366,c1585123,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"GOV-002: gate 与依赖状态机 (12 负例全抓, 全部错误聚合, 任务数校验, F-034/035 闭环)"
+1367,99a79200,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"VER-001: 版本推进 0.10.0-alpha.2 (VERSION 单源, 生产源码 0.1.0/alpha.1 清零, P3 provenance 派生, checker PASS)"
+1368,abb75893,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"CHK-001: 生产可达调用图检查器 (compile_commands+nm, 负例抓 session/drizzle 直连, JSON/DOT 图, ACR 零可达)"
+1369,1490bae5,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"CHK-002: 非空静态图/运行图检查器 (--ir/--module-index/--trace 必填, 7 负例全抓, 空 trace FAIL)"
+1370,80a00b1e,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"CHK-003: serial-heavy 与资源接线检查器 (P2 宏关/P3 双循环/无 gate caller 负例全抓, allowlist 登记)"
+1372,ef9e34db,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"RT-001: 冻结 Runtime 与模块公共合同 (Runtime/ModulePlan/IModule/ThreadBudget/RAII lease, ABI layout 测试 9/9 PA"
+1373,30c83b45,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"RT-002: 全局原子 ThreadBudget 租约 (三策略 RAII 归还, 双节点不超卖/异常/取消恢复, 8x PASS)"
+1374,a03077ec,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"RT-003: 并发安全 RunContext (快照访问/唯一 producer/TSan 修复 scheduler budget 竞争, 4 测试 TSan PASS)"
+1375,90cf35a8,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"RT-004: nlohmann 驱动 PipelineIR 解析+ModuleRegistry 静态验证 (9 错误种类全 fixture, CLI 重链接通过)"
+1376,c764c2be,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"RT-005: 可执行 ModuleRegistry (真实 Phase1/2/3 工厂, 合同校验/重复端口/heavy+serial/ACR 拒, nlohmann index)"
+1377,d0114cd4,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"RT-006: 唯一 Scheduler+Runtime DAG 调度 (节点级失败传播/内存回压/node-ID 状态/add_node move 修复, TSan PASS)"
+1378,d5f5143a,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"RT-007: 类型化 ArtifactStore (role 绑定 P1→P2→P3, 篡改检测, 唯一 producer, JSON roundtrip)"
+1379,84191084,2026-08-31,NEWDIR,1,首次出现 cli/commands.cpp,"RT-008: CLI 接入唯一 Runtime (main 拆分, run/phase 走 runtime_client, cfitsio 并行 I/O 串行化, CHK-001 REACH_PAS"
+1379,84191084,2026-08-31,NEWDIR,1,首次出现 cli/parser.cpp,"RT-008: CLI 接入唯一 Runtime (main 拆分, run/phase 走 runtime_client, cfitsio 并行 I/O 串行化, CHK-001 REACH_PAS"
+1379,84191084,2026-08-31,NEWDIR,1,首次出现 cli/runtime_client.cpp,"RT-008: CLI 接入唯一 Runtime (main 拆分, run/phase 走 runtime_client, cfitsio 并行 I/O 串行化, CHK-001 REACH_PAS"
+1379,84191084,2026-08-31,NEWDIR,1,首次出现 cli/runtime_client.h,"RT-008: CLI 接入唯一 Runtime (main 拆分, run/phase 走 runtime_client, cfitsio 并行 I/O 串行化, CHK-001 REACH_PAS"
+1379,84191084,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"RT-008: CLI 接入唯一 Runtime (main 拆分, run/phase 走 runtime_client, cfitsio 并行 I/O 串行化, CHK-001 REACH_PAS"
+1380,90cad495,2026-08-31,NEWDIR,1,首次出现 cli/cli_common.h,"RT-009: 真实静态与observed运行图 (NodeTrace, static/observed/L0+sidecar, graph命令, 路径脱敏; 补录 cli_common.h)"
+1380,90cad495,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,"RT-009: 真实静态与observed运行图 (NodeTrace, static/observed/L0+sidecar, graph命令, 路径脱敏; 补录 cli_common.h)"
+1381,8df1a86d,2026-08-31,NEWDIR,1,首次出现 tools/gen_provider_manifests.py,CPU-001/CPU-002: 独立provider构建与能力配额检测 (AVX2/AVX512 targets+manifest+selftest+负例+ISA泄漏检查; cgroup v1+qu
+1381,8df1a86d,2026-08-31,LEDGER,1,改台账 TASK_LEDGER.csv,CPU-001/CPU-002: 独立provider构建与能力配额检测 (AVX2/AVX512 targets+manifest+selftest+负例+ISA泄漏检查; cgroup v1+qu
+1382,d3cd1a6c,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"CPU-003: v2 benchmark profile 与 verify-profile 复读 (12 kernel Oracle PASS, 3 provider DSO 实测, 864 raw"
+1384,37e06ea8,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"CPU-004: 逐 kernel 自适应路由 (v2 profile 机器一致性校验, unsupported 回 baseline 但多线程, kernel_routes 输出)"
+1386,5b13e214,2026-09-01,NEWDIR,1,首次出现 cli/resource_recorder.h,"MON-001: 资源监测接入每个 heavy node (resource_samples.csv/resource_summary.json/worker_balance.csv 自动生成, in"
+1386,5b13e214,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"MON-001: 资源监测接入每个 heavy node (resource_samples.csv/resource_summary.json/worker_balance.csv 自动生成, in"
+1388,575f68e8,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,MON-002: 资源门禁接入生产控制流 (first-10s 快速失败 + 结束 evaluate_gate → RESOURCE(10)+diagnosis)
+1391,1c4b2802,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"MON-003: 2核合成 workload 门禁验证 (5 kernel ≥10s, 多核生产通过, 单核负 fixture 失败, harness 干扰如实记录)"
+1393,b0ad63c3,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"P1-001: Phase1 8 类模块注册 (cosmetic/star-psf/wcs-platesolve/photometry/noise-snr/drizzle/writer, 端口+执行类"
+1395,c626780f,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"P1-003: Drizzle 路径清理验证 (CLI 无 hp_drizzle_run_hips/spawn_frame_from_fits 直连, cmd_drizzle 仅 preset, ca"
+1397,70c2701b,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"P1-002: 生产 Oracle 补齐 (stars/PSF 五场景+completeness/FP/FWHM, WCS 扰动/无解, photometry 饱和拒绝; ABI 遗留测试同步)"
+1399,a0a8df2b,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"P1-004: Phase1 数值与资源联合门 (resource_summary 引用 run_id 与 science manifest 互引, 6 Oracle 同 commit 全绿)"
+1401,10d1c318,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"P2-001: 并行化生产 Coverage/Sampler (std::thread + Runtime lease 多 worker, 移除 OpenMP 默认关闭与 _MSC_VER 排除, N"
+1403,f37d4a09,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"P2-002: 并行化生产 UPM 求解 (per-obs/control/frame CG 走 Runtime lease, worker-local 规约, N==1 persist 一致)"
+1405,2211d0a9,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"P2-003: 生产接缝 Oracle (三块 mini HiPS + phase2 run 端到端; M 吸收背景差/C 校空间残差, before→after 下降, 源不拟合)"
+1407,bb78ff6b,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,P2-004: 排异/积分生产 Oracle (cosmic/低样本/NaN-ivar/AUTO 解析/integration weighted mean/all-rejected/frame ide
+1409,afb0cf3e,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,P2-005: Block/IO 内存计划验证 (block plan 有界/禁 35GB 稠密 cache/峰值 RSS ≤ 容差/覆盖完整)
+1411,b27600d6,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,P2-006: Canonical Phase2 Pipeline (IR 7 节点链 coverage..write; observed trace 逐节点匹配 static graph)
+1413,fa677b5a,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,P2-007: Phase2 接缝与资源联合门 (6 块 seam workload ≥10s; workers≥2/CPU≥90% 达门; 科学+资源双证)
+1415,9e8ba103,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,P3-001: Phase3 科学与算法冻结 (abs(dec)<=85° 单一条件统一 SCI/API/session/WCS; 冻结项审计)
+1417,3227578a,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"P3-002: properties/order/unit (order_sel 上限=输入实际 order; BUNIT 合同缺省 ADU, 移除 Jy/beam)"
+1419,c62daea4,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,P3-003: Runtime 并行 tile resampler (row-band work units; 每 worker 独立 sampler+cache; 1/N 等价; 禁 hardwar
+1421,267b3ed0,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,P3-004: 独立球面重采样 Oracle (常数/解析场 cos²dec vs 独立 TAN reference; RA wrap; 旋转 TAN; 无人工接缝)
+1423,d6af18a1,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,P3-005: FITS 输出校验与 provenance (bitpix -32/-64 真实决定 buffer; 关键字/coverage/provenance 完整)
+1425,3617b6c4,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,P3-006: Phase3 生产 Pipeline 与资源门 (IR 5 节点链 properties→wcs→resample2→writer→verify; ≥10s; 科学/资源/trace 
+1427,b67a9167,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,DOC-001: 重建合同 front matter 与完整图 (36 合同图/生产可达/源索引/注释卫生 全 PASS)
+1429,e70f7d94,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,DOC-002: 重建当前版本追溯矩阵 (63 行追溯/66 claims 最终追溯/18 DATA artifact 全 PASS)
+1431,50d9759f,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,DOC-003: 重建全公共 API AST 语义检查 (API docs/ABI/AST 全 PASS; max_tiles 守卫实现; CLI doc 同步)
+1433,5eda0bc9,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"DOC-004: 补齐所有生产模块 README (22 个 registry 模块 README, 生成器 gen_module_readmes 以 descriptor 为源)"
+1435,8a3dec6f,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,DOC-005: 重建 L0 负责人文档 (REVIEW.md V6.1 进度+组件状态表; 5 L0 链接完整; 追溯诚实)
+1437,8ba2f265,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"DOC-006: 统一注释命名与代码可读性 (任务号注释 0 残留, 保留合同 ID; hygiene 0 违规)"
+1439,e25f3f0c,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,QA-001: 零警告与静态分析 (GCC/Clang 严格 flags 0 warning; clang-tidy/cppcheck P0/P1 清零)
+1440,8003297f,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"QA-002: Sanitizer 全路径 (ASan/UBSan/LSan 56/56, TSan 定向 28/28, 修复 cpu_abi leak 与 p1_resource race)"
+1441,46e8dbb0,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"QA-003: 依赖许可 SBOM 与可复现构建 (CycloneDX 1.5, nlohmann/cfitsio/zlib 锁定, 编译链 metadata)"
+1443,b8879dae,2026-09-01,LEDGER,1,改台账 TASK_LEDGER.csv,"LNX-001: Linux 干净构建 (GCC Release + Clang Debug 全新目录 0 warning, 56/56 PASS, compile_commands/link map"
+1445,25dc4562,2026-09-02,LEDGER,1,改台账 TASK_LEDGER.csv,"LNX-002: Linux 全合成科学测试 (astrocs test synthetic all 7/7 PASS, 模块 56/56, machine summary)"
+1446,db5c3bd1,2026-09-02,LEDGER,1,改台账 TASK_LEDGER.csv,"LNX-003: Sanitizer 现场复验 (新 build 目录 ASan/LSan 56/56, TSan 28/28, 绑定 commit)"
+1448,2baf4ecd,2026-09-02,LEDGER,1,改台账 TASK_LEDGER.csv,"LNX-004: 2c2g 资源与恢复 (P1/P2/P3 heavy 门禁 PASS, cancel/resume/低内存 backpressure, 修复 cancel 接线)"
+1450,c7dee933,2026-09-02,LEDGER,1,改台账 TASK_LEDGER.csv,"LNX-005: 真实数据冒烟尝试 (Fatduck 离线, WAITING_WINDOWS/NOT_RUN_EXTERNAL_OFFLINE, WIN-004 仍为强制真实门)"
+1452,e1045969,2026-09-02,LEDGER,1,改台账 TASK_LEDGER.csv,"WIN-001..006: Fatduck 离线 WAITING_WINDOWS 登记 (非伪造 PASS, 下一在线窗口执行)"
+1453,294c2b76,2026-09-02,LEDGER,1,改台账 TASK_LEDGER.csv,"REL-001: Linux alpha.2 发布包完成, Windows 待 Fatduck (WAITING_WINDOWS)"
+1454,8c71f7ab,2026-09-02,NEWDIR,1,首次出现 工程控制/AstroCS_V6_1_REWORK_CONTROL_20260831,"REL-002: FINDINGS P0/P1 关闭 36/40 (resolution_commit+evidence 绑定, 遗留 F-032/033/036 REL-003 与 F-037 WI"
+1456,edcc8688,2026-09-02,LEDGER,1,改台账 TASK_LEDGER.csv,"LNX-005: 台账状态修正为 WAITING_DATA (Fatduck 真实数据待取非 Windows 编译窗口, validator 规则4 合规; TASK_RESULT 保持 WAITIN"
+1458,faad602d,2026-09-02,LEDGER,1,改台账 TASK_LEDGER.csv,"REL-003: 审核包一致性 (LNX-001 parent_commit 修正为真实 QA-003 SHA, LNX-005 PASS 诚实登记, COMMITS 57 任务含 LNX-005)"
+1459,24c7eec7,2026-09-02,NEWDIR,1,首次出现 dist/audit,"REL-003: 审核包 Linux 侧交付 (1309 文件 validator 双 PASS NOT_READY, dist/audit ZIP, FINDINGS 36/40, COMMITS "
+1463,fed64294,2026-09-02,NEWDIR,1,首次出现 cmake/win32_pthread_shim,WIN-001: cfitsio MSVC pthread shim (SRWLOCK 映射) + NOMINMAX 全局定义 (std::min/max 宏污染)
+1475,065c81de,2026-09-02,NEWDIR,1,首次出现 tools/doccheck,docs(governance): GOV-001 冻结Alpha工程约束
+1476,bbe2e59e,2026-09-02,NEWDIR,1,首次出现 runtime/logging,feat(logging): LOG-001 统一结构化日志接口
+1476,bbe2e59e,2026-09-02,NEWDIR,1,首次出现 tests/monitoring,feat(logging): LOG-001 统一结构化日志接口
+1476,bbe2e59e,2026-09-02,NEWDIR,1,首次出现 tools/monitoring,feat(logging): LOG-001 统一结构化日志接口
+1477,1c3d1dc9,2026-09-02,NEWDIR,1,首次出现 contracts/config,docs(architecture): ARC-001 冻结DLL产品边界
+1478,f260b804,2026-09-02,NEWDIR,1,首次出现 cmake/toolchain,build(msvc): BLD-001 冻结Windows发布工具链
+1478,f260b804,2026-09-02,NEWDIR,1,首次出现 packaging/schemas,build(msvc): BLD-001 冻结Windows发布工具链
+1478,f260b804,2026-09-02,NEWDIR,1,首次出现 packaging/windows,build(msvc): BLD-001 冻结Windows发布工具链
+1478,f260b804,2026-09-02,PRESET,1,改 CMakePresets.json,build(msvc): BLD-001 冻结Windows发布工具链
+1479,2df77afe,2026-09-02,NEWDIR,1,首次出现 contracts/data,feat(data): DATA-001 冻结类型化产物合同
+1479,2df77afe,2026-09-02,NEWDIR,1,首次出现 runtime/artifact_store,feat(data): DATA-001 冻结类型化产物合同
+1479,2df77afe,2026-09-02,NEWDIR,1,首次出现 tests/artifact,feat(data): DATA-001 冻结类型化产物合同
+1480,b7b2dea7,2026-09-02,NEWDIR,1,首次出现 docs/DOCUMENT_INDEX.yaml,docs(governance): GOV-002 归档非当前工程文档
+1480,b7b2dea7,2026-09-02,NEWDIR,1,首次出现 docs/archive,docs(governance): GOV-002 归档非当前工程文档
+1480,b7b2dea7,2026-09-02,RENAME50,881,改名或移动 881 文件（目录重构）,docs(governance): GOV-002 归档非当前工程文档
+1480,b7b2dea7,2026-09-02,LEDGER,4,"改台账 02_TASK_LEDGER.csv, 05_TASK_LEDGER.csv, 02_TASK_LEDGER.csv, 02_TASK_LEDGER.csv",docs(governance): GOV-002 归档非当前工程文档
+1482,39e77317,2026-09-02,NEWDIR,1,首次出现 docs/governance,build(version): GOV-003 统一Alpha版本事实源
+1483,5d38ebd7,2026-09-02,NEWDIR,1,首次出现 runtime/pipeline,feat(runtime): RT-001 实现类型化运行图
+1483,5d38ebd7,2026-09-02,NEWDIR,1,首次出现 tests/pipeline,feat(runtime): RT-001 实现类型化运行图
+1483,5d38ebd7,2026-09-02,NEWDIR,1,首次出现 tests/runtime,feat(runtime): RT-001 实现类型化运行图
+1484,c1ee791a,2026-09-02,NEWDIR,1,首次出现 docs/interfaces,feat(data): DATA-002 定义三阶段产品交换合同
+1486,caee3e67,2026-09-03,NEWDIR,1,首次出现 modules/services,feat(io): IO-001 实现流式FITS读写API并修复F32字节序
+1486,caee3e67,2026-09-03,NEWDIR,1,首次出现 runtime/io,feat(io): IO-001 实现流式FITS读写API并修复F32字节序
+1486,caee3e67,2026-09-03,NEWDIR,1,首次出现 tests/io,feat(io): IO-001 实现流式FITS读写API并修复F32字节序
+1487,5de08133,2026-09-03,NEWDIR,1,首次出现 tests/abi,test(abi): ABI-002 冻结ABI生命周期语义
+1488,56ab85ba,2026-09-03,NEWDIR,1,首次出现 runtime/core,refactor(runtime): RT-002 隔离阶段运行时生命周期
+1489,6affe300,2026-09-03,NEWDIR,1,首次出现 docs/owner,docs(owner): GOV-004 建立负责人审查入口
+1492,46b0d8e1,2026-09-03,NEWDIR,1,首次出现 cmake/install_layout.cmake,build(layout): BLD-003 建立模块化安装骨架
+1492,46b0d8e1,2026-09-03,NEWDIR,1,首次出现 modules/conformance,build(layout): BLD-003 建立模块化安装骨架
+1492,46b0d8e1,2026-09-03,NEWDIR,1,首次出现 packaging/README.md,build(layout): BLD-003 建立模块化安装骨架
+1492,46b0d8e1,2026-09-03,NEWDIR,1,首次出现 packaging/astrocs.product.json,build(layout): BLD-003 建立模块化安装骨架
+1492,46b0d8e1,2026-09-03,NEWDIR,1,首次出现 packaging/install-tree.contract.json,build(layout): BLD-003 建立模块化安装骨架
+1492,46b0d8e1,2026-09-03,NEWDIR,1,首次出现 packaging/licenses,build(layout): BLD-003 建立模块化安装骨架
+1492,46b0d8e1,2026-09-03,NEWDIR,1,首次出现 packaging/verify_install_tree.py,build(layout): BLD-003 建立模块化安装骨架
+1493,64a2f996,2026-09-03,NEWDIR,1,首次出现 packaging/dependency-lock.json,build(deps): BLD-004 锁定依赖与许可证边界
+1493,64a2f996,2026-09-03,NEWDIR,1,首次出现 packaging/gen_sbom_input.py,build(deps): BLD-004 锁定依赖与许可证边界
+1495,0d32c07d,2026-09-03,NEWDIR,1,首次出现 providers/cpu,feat(cpu): CPU-001 实现ISA与OS安全探测
+1495,0d32c07d,2026-09-03,NEWDIR,1,首次出现 tests/cpu,feat(cpu): CPU-001 实现ISA与OS安全探测
+1497,da5ca108,2026-09-03,NEWDIR,1,首次出现 runtime/module_loader,feat(loader): ABI-003 实现受限DLL加载
+1500,2a8676bf,2026-09-03,NEWDIR,1,首次出现 docs/traceability,test(traceability): DOC-001 建立机器追溯合同
+1500,2a8676bf,2026-09-03,NEWDIR,1,首次出现 schemas/traceability_matrix.schema.json,test(traceability): DOC-001 建立机器追溯合同
+1500,2a8676bf,2026-09-03,NEWDIR,1,首次出现 tools/traceability,test(traceability): DOC-001 建立机器追溯合同
+1504,40b5687b,2026-09-03,NEWDIR,1,首次出现 runtime/registry,feat(registry): ABI-004 接入动态模块注册
+1505,b09e4b2c,2026-09-03,NEWDIR,1,首次出现 tests/testkit,test(testkit): TST-001 冻结模块验证结构
+1505,b09e4b2c,2026-09-03,NEWDIR,1,首次出现 tools/testkit,test(testkit): TST-001 冻结模块验证结构
+1515,4ca0d0e9,2026-09-04,NEWDIR,1,首次出现 runtime/monitoring,feat(monitor): LOG-002 资源监控 CSV 落盘与机器验证
+1518,0b0d2694,2026-09-04,NEWDIR,1,首次出现 tools/graph,docs(graph): LOG-003 运行图渲染工具
+1521,a4fdee3f,2026-09-05,NEWDIR,1,首次出现 evidence/v8_1_ci_control,chore(control): V81-ADOPT-001 注册控制包 V8.1 并冻结工作区身份 [V81-ADOPT-001]
+1521,a4fdee3f,2026-09-05,PACKNEW,1,新增包文件 engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/00_READ_FIRST.md,chore(control): V81-ADOPT-001 注册控制包 V8.1 并冻结工作区身份 [V81-ADOPT-001]
+1521,a4fdee3f,2026-09-05,PACKNEW,1,新增包文件 engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/START_PROMPT.txt,chore(control): V81-ADOPT-001 注册控制包 V8.1 并冻结工作区身份 [V81-ADOPT-001]
+1521,a4fdee3f,2026-09-05,LEDGER,2,"改台账 CONTROL_TASK_LEDGER.csv, V7_1_STATIC_TASK_LEDGER.csv",chore(control): V81-ADOPT-001 注册控制包 V8.1 并冻结工作区身份 [V81-ADOPT-001]
+1522,af9ecdc5,2026-09-05,NEWDIR,1,首次出现 ci/verify_workspace_adoption.py,chore(evidence): V81-ADOPT-002 冻结预存状态与远端关系 [V81-ADOPT-002]
+1522,af9ecdc5,2026-09-05,CI,1,改 ci/ 下文件（机器门口径）,chore(evidence): V81-ADOPT-002 冻结预存状态与远端关系 [V81-ADOPT-002]
+1523,98c2354f,2026-09-05,NEWDIR,1,首次出现 ci/reconcile_state.py,chore(evidence): V81-ADOPT-003 任务证据对账重建 TASK_STATE 191 项 [V81-ADOPT-003]
+1523,98c2354f,2026-09-05,CI,1,改 ci/ 下文件（机器门口径）,chore(evidence): V81-ADOPT-003 任务证据对账重建 TASK_STATE 191 项 [V81-ADOPT-003]
+1524,becc85a0,2026-09-05,NEWDIR,1,首次出现 ci/toolchain.lock.json,chore(ci): V81-ADOPT-004 Agent 主机工具链盘点与锁存 [V81-ADOPT-004]
+1524,becc85a0,2026-09-05,NEWDIR,1,首次出现 ci/toolchain.policy.json,chore(ci): V81-ADOPT-004 Agent 主机工具链盘点与锁存 [V81-ADOPT-004]
+1524,becc85a0,2026-09-05,NEWDIR,1,首次出现 ci/verify_toolchain.py,chore(ci): V81-ADOPT-004 Agent 主机工具链盘点与锁存 [V81-ADOPT-004]
+1524,becc85a0,2026-09-05,NEWDIR,1,首次出现 docs/operations,chore(ci): V81-ADOPT-004 Agent 主机工具链盘点与锁存 [V81-ADOPT-004]
+1524,becc85a0,2026-09-05,CI,3,改 ci/ 下文件（机器门口径）,chore(ci): V81-ADOPT-004 Agent 主机工具链盘点与锁存 [V81-ADOPT-004]
+1526,b4f923cc,2026-09-05,NEWDIR,1,首次出现 ci/check_version.py,chore(version): V81-ADOPT-006 统一活动版本源至 0.11.0-alpha.2 并同步冻结约束版本行 [V81-ADOPT-006]
+1526,b4f923cc,2026-09-05,CI,1,改 ci/ 下文件（机器门口径）,chore(version): V81-ADOPT-006 统一活动版本源至 0.11.0-alpha.2 并同步冻结约束版本行 [V81-ADOPT-006]
+1527,0acfb514,2026-09-05,NEWDIR,1,首次出现 ci/INVENTORY_REPORT.md,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001]
+1527,0acfb514,2026-09-05,NEWDIR,1,首次出现 ci/checks.json,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001]
+1527,0acfb514,2026-09-05,NEWDIR,1,首次出现 ci/impact_map.json,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001]
+1527,0acfb514,2026-09-05,NEWDIR,1,首次出现 ci/validate_registry.py,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001]
+1527,0acfb514,2026-09-05,NEWDIR,1,首次出现 tests/test_index.csv,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001]
+1527,0acfb514,2026-09-05,CI,4,改 ci/ 下文件（机器门口径）,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001]
+1528,459da629,2026-09-06,NEWDIR,1,首次出现 ci/checks.schema.json,feat(ci): V8-CI-002 统一确定性 CI 执行器、结果 schema 与 29 项单测 [V8-CI-002]
+1528,459da629,2026-09-06,NEWDIR,1,首次出现 ci/ci_result.schema.json,feat(ci): V8-CI-002 统一确定性 CI 执行器、结果 schema 与 29 项单测 [V8-CI-002]
+1528,459da629,2026-09-06,NEWDIR,1,首次出现 ci/run.py,feat(ci): V8-CI-002 统一确定性 CI 执行器、结果 schema 与 29 项单测 [V8-CI-002]
+1528,459da629,2026-09-06,NEWDIR,1,首次出现 ci/tests,feat(ci): V8-CI-002 统一确定性 CI 执行器、结果 schema 与 29 项单测 [V8-CI-002]
+1528,459da629,2026-09-06,CI,8,改 ci/ 下文件（机器门口径）,feat(ci): V8-CI-002 统一确定性 CI 执行器、结果 schema 与 29 项单测 [V8-CI-002]
+1530,df01ea7b,2026-09-06,CI,2,改 ci/ 下文件（机器门口径）,feat(ci): V8-CI-003 动态资源探测与统一监控 wrapper [V8-CI-003]
+1532,c583e59d,2026-09-06,CI,2,改 ci/ 下文件（机器门口径）,feat(ci): V8-CI-004 changed path→checks 映射与 fast profile 实测 [V8-CI-004]
+1534,e1fde093,2026-09-06,NEWDIR,1,首次出现 ci/resource_monitor.py,feat(ci): V8-CI-005 linux-deep 检查注册与 deep 构建驱动链 [V8-CI-005]
+1534,e1fde093,2026-09-06,NEWDIR,1,首次出现 cmake/qa_coverage_report.sh,feat(ci): V8-CI-005 linux-deep 检查注册与 deep 构建驱动链 [V8-CI-005]
+1534,e1fde093,2026-09-06,NEWDIR,1,首次出现 docs/quality,feat(ci): V8-CI-005 linux-deep 检查注册与 deep 构建驱动链 [V8-CI-005]
+1534,e1fde093,2026-09-06,CI,6,改 ci/ 下文件（机器门口径）,feat(ci): V8-CI-005 linux-deep 检查注册与 deep 构建驱动链 [V8-CI-005]
+1536,847a7a6b,2026-09-06,CI,3,改 ci/ 下文件（机器门口径）,feat(ci): V8-CI-006 Windows 构建驱动与 candidate 打包链 [V8-CI-006]
+1538,a032c0cc,2026-09-06,NEWDIR,1,首次出现 .github/workflows,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007]
+1538,a032c0cc,2026-09-06,NEWDIR,1,首次出现 ci/actions.lock.json,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007]
+1538,a032c0cc,2026-09-06,NEWDIR,1,首次出现 ci/bootstrap.py,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007]
+1538,a032c0cc,2026-09-06,NEWDIR,1,首次出现 ci/select_profile.py,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007]
+1538,a032c0cc,2026-09-06,NEWDIR,1,首次出现 ci/validate_candidate.py,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007]
+1538,a032c0cc,2026-09-06,NEWDIR,1,首次出现 ci/verify_actions_lock.py,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007]
+1538,a032c0cc,2026-09-06,CI,7,改 ci/ 下文件（机器门口径）,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007]
+1540,9b3fe93e,2026-09-06,NEWDIR,1,首次出现 ci/select_candidate.py,feat(ci): V8-CI-008 Fatduck 三 job workflow 与候选选择器 [V8-CI-008]
+1540,9b3fe93e,2026-09-06,CI,3,改 ci/ 下文件（机器门口径）,feat(ci): V8-CI-008 Fatduck 三 job workflow 与候选选择器 [V8-CI-008]
+1542,1e50d49e,2026-09-06,CI,3,改 ci/ 下文件（机器门口径）,feat(ci): V8-CI-009 负向测试矩阵与守卫补齐 [V8-CI-009]
+1547,2508a379,2026-09-06,CI,3,改 ci/ 下文件（机器门口径）,fix(ci): V8-CI-010 修复轮 2 工具链 policy 校准与产物路径对齐 [V8-CI-010]
+1548,77da09ef,2026-09-06,CI,9,改 ci/ 下文件（机器门口径）,fix(ci): V8-CI-010 修复轮 3 monitor shim 导入链与 bootstrap UTF-8 [V8-CI-010]
+1549,7e974087,2026-09-06,CI,3,改 ci/ 下文件（机器门口径）,fix(ci): V8-CI-010 修复轮 4 run/ 预检豁免与 MSVC preset 可移植化 [V8-CI-010]
+1549,7e974087,2026-09-06,PRESET,1,改 CMakePresets.json,fix(ci): V8-CI-010 修复轮 4 run/ 预检豁免与 MSVC preset 可移植化 [V8-CI-010]
+1550,05f18274,2026-09-06,CI,2,改 ci/ 下文件（机器门口径）,fix(ci): V8-CI-010 修复轮 5 失败可观测性 error_lines 与 junit 上传 [V8-CI-010]
+1553,2ca7361e,2026-09-06,NEWDIR,1,首次出现 ci/verify_remote_run.py,fix(ci): V8-CI-012 修复轮 1 ASan 目标旗标/coverage 工具链/远端验证器 [V8-CI-012]
+1553,2ca7361e,2026-09-06,CI,4,改 ci/ 下文件（机器门口径）,fix(ci): V8-CI-012 修复轮 1 ASan 目标旗标/coverage 工具链/远端验证器 [V8-CI-012]
+1554,485b8b86,2026-09-06,CI,3,改 ci/ 下文件（机器门口径）,fix(ci): V8-CI-012 修复轮 2 重定向剥凭据/coverage 路径与报告步解耦 [V8-CI-012]
+1555,52e71804,2026-09-06,CI,1,改 ci/ 下文件（机器门口径）,fix(ci): V8-CI-012 修复轮 3 coverage clang 强制与 pytest 失败可观测 [V8-CI-012]
+1557,b0733710,2026-09-06,NEWDIR,1,首次出现 schemas/cpu_profile.schema.json,fix(backend): cpu_profile.schema 断链修复与 V6.1 布局路径收敛 [V8-CI-012]
+1558,06e288ab,2026-09-06,CI,1,改 ci/ 下文件（机器门口径）,fix(ci): coverage 安装面闭包与 F9-c pytest_tail 扩窗 [V8-CI-012]
+1559,b6001684,2026-09-06,CI,1,改 ci/ 下文件（机器门口径）,fix(chore): 刷新 Agent 主机工具链 lock：补装后 9 项 missing 清零 [V81-ADOPT-004]
+1560,f2ea0928,2026-09-06,NEWDIR,1,首次出现 schemas/task_result.schema.json,fix(tests): 工程控制 untracked 断链修复批次 2（CLI 协议合同 + task_result schema rehome）[V8-CI-012]
+1564,d4a54632,2026-09-06,CI,1,改 ci/ 下文件（机器门口径）,fix(ci): deep 安装面补 libgsl-dev（p1002 sdet fixture 依赖）[V8-CI-012]
+1569,58d91a4c,2026-09-06,NEWDIR,1,首次出现 evidence/ciqa,fix(ci): deep 防线测试合同同步 + CIQA 独立攻击审查报告入档 [V8-CI-012 后续]
+1569,58d91a4c,2026-09-06,CI,1,改 ci/ 下文件（机器门口径）,fix(ci): deep 防线测试合同同步 + CIQA 独立攻击审查报告入档 [V8-CI-012 后续]
+1570,af12a528,2026-09-06,CI,2,改 ci/ 下文件（机器门口径）,fix(ci): fatduck 候选认定绑定 workflow path（关闭 CIQA P1-GAP-2）[V8-CI-012 后续]
+1571,d524ea73,2026-09-06,NEWDIR,1,首次出现 ci/verify_ciqa_report.py,fix(ci): 落地 V8-CIQA-001 验收器 verify_ciqa_report.py（关闭 CIQA P1-GAP-1）[V8-CI-012 后续]
+1571,d524ea73,2026-09-06,CI,1,改 ci/ 下文件（机器门口径）,fix(ci): 落地 V8-CIQA-001 验收器 verify_ciqa_report.py（关闭 CIQA P1-GAP-1）[V8-CI-012 后续]
+1572,63721d70,2026-09-06,CI,1,改 ci/ 下文件（机器门口径）,fix(windows): P0-A hosted Windows CI 12 项收敛 [V8-CI-012 后续]
+1572,63721d70,2026-09-06,PRESET,1,改 CMakePresets.json,fix(windows): P0-A hosted Windows CI 12 项收敛 [V8-CI-012 后续]
+1574,e4f77ccb,2026-09-06,CI,2,改 ci/ 下文件（机器门口径）,fix(checkers): 波次1 检查器语义修正 4 项（ENG-CONSTRAINTS/TOOLCHAIN-VERIFY/WORKSPACE-ADOPTION/SERIAL-HARDCODE）[
+1580,6cf2a327,2026-09-06,CI,1,改 ci/ 下文件（机器门口径）,fix(governance): RECONCILE-STATE 台账同步 + UT-BACKEND/UT-CLI timeout 治理 + test_05 mutation 修复（subagent 
+1581,ddd6d0be,2026-09-06,CI,1,改 ci/ 下文件（机器门口径）,fix(checkers): reconcile_state commit_ledger 自参照豁免语义（subagent 交付）
+1584,efd15baa,2026-09-06,CI,1,改 ci/ 下文件（机器门口径）,fix(ci): bootstrap 工具链 floor 前缀幂等化（subagent 交付）
+1586,f896d1bb,2026-09-06,CI,1,改 ci/ 下文件（机器门口径）,fix(conformance): 探针模块版本单源 alpha.1→alpha.2 + registry 断言动态化 + bootstrap_utf8 动态断言（subagent 交付）
+1598,3f56240b,2026-09-07,CI,1,改 ci/ 下文件（机器门口径）,fix(ci): UT-CPU-AVX512 无 AVX-512F 宿主合同化 SKIP——runner 宿主 gate + run.py SKIP_EXIT_CODE=77（复审 N1）
+1605,4b87aef6,2026-09-07,NEWDIR,1,首次出现 lib/cosmetic,"docs(P1-COS-DOC): cosmetic 模块合同冻结——ALG-COS-001..005/DATA-P1-COS/API-COS-001/trace（控制包 3/140, wave W1"
+1607,e53ac984,2026-09-07,NEWDIR,1,首次出现 lib/drizzle,"docs(P1-DRZ-DOC): drizzle 模块合同冻结——ALG-DRZ-001/DATA-P1-DRZ/API-DRZ-001/trace（控制包 4/140, wave W1）"
+1609,943b023a,2026-09-07,NEWDIR,1,首次出现 lib/hips,"docs(P1-HIPS-DOC): HiPS writer 模块合同冻结——ALG-HIPS-001..005/DATA-P1-HIPS/API-HIPS-001/trace（控制包 5/140, "
+1613,47a1ec4f,2026-09-07,CI,6,改 ci/ 下文件（机器门口径）,fix(ciqa): GAP-3/4 P2 闭环——select_candidate digest 强制校验 + fatduck 独立复核步 + runner 空 outputs 第二重防线（CIQA
+1620,09a7a95f,2026-09-08,NEWDIR,1,首次出现 ci/prepare_linux_fixtures.py,fix(ci): V8.1 CI 双平台收敛——parser session-mode/Windows junit 落点/linux fixture+构建树步
+1620,09a7a95f,2026-09-08,CI,1,改 ci/ 下文件（机器门口径）,fix(ci): V8.1 CI 双平台收敛——parser session-mode/Windows junit 落点/linux fixture+构建树步
+1624,fe4ca383,2026-09-08,CI,1,改 ci/ 下文件（机器门口径）,Merge branch 'main' of https://github.com/fujiaze/Astro-CS-Database
+1665,c0b464cf,2026-09-08,NEWDIR,1,首次出现 lib/hips_p2,docs(P2-HIPS-DOC): hips_writer 模块合同冻结——ALG-P2-HIPS-001..004/DATA-P2-HIPS/API-P2-HIPS-001/trace（控制包 1
+1668,b05288b8,2026-09-08,CI,1,改 ci/ 下文件（机器门口径）,refactor(governance): COMMIT_LEDGER 检查去递归化——覆盖事实=git log，ledger 降级任务映射登记（三不变量：存在性/schema/防改史，负例自证5/5
+1670,0ef34a5e,2026-09-08,CI,3,改 ci/ 下文件（机器门口径）,fix(ci): per-check dirty 豁免显式登记——CLI cancel 合同 write_run_manifest(输出/仓库根)、资源监控三件套、benchmark MEASUREM
+1676,84c6715a,2026-09-08,NEWDIR,1,首次出现 lib/phase2_int,"docs(P2-INT-DOC): integration 模块合同冻结——ALG-P2-INT-001/DATA-P2-INT/API-P2-INT-001/trace（控制包 14/140, wa"
+1679,b80404eb,2026-09-08,CI,1,改 ci/ 下文件（机器门口径）,fix(ci): R9 双平台收敛——R8 全量失败根因处置（5 CON/DATA + gsl + p1004 fixture + inventory 漂移）
+1681,dd89e530,2026-09-08,NEWDIR,1,首次出现 cli/process.cpp,fix(p1-batchG): cli P1×2+bench verdict——std::system 拼接族×2 改跨平台进程API(argv零shell解析+timeout消毒+exit检查)/b
+1681,dd89e530,2026-09-08,NEWDIR,1,首次出现 cli/process.h,fix(p1-batchG): cli P1×2+bench verdict——std::system 拼接族×2 改跨平台进程API(argv零shell解析+timeout消毒+exit检查)/b
+1682,5c43dc04,2026-09-08,NEWDIR,1,首次出现 cmake/astrocs.product.windows.json.in,fix(ci): R10 Windows 收敛——ctest exit8 根因(p1_session_manifest POSIX-only fixture)与 WIN-PACKAGE exit5 根
+1683,fa60113b,2026-09-08,NEWDIR,1,首次出现 cli/astrocs_process.h,fix(ci): R11 Windows build exit1 根因——cli/process.h 重命名 astrocs_process.h(消 MSVC <thread> 的 <process.
+1684,6f668c87,2026-09-08,NEWDIR,1,首次出现 lib/phase2_rej,"docs(P2-REJ-DOC): rejection 模块合同冻结——ALG-P2-REJ-001/DATA-P2-REJ(§22)/API-P2-REJ-001/trace（控制包 15/140,"
+1692,e654d4c2,2026-09-08,NEWDIR,1,首次出现 lib/phase2_samp,docs(P2-SAMP-DOC): sampling 模块合同冻结——ALG-P2-SMP-001(108锚实测)/DATA-P2-SMP(§23)/API-P2-SMP-001/三件套（控制包 1
+1704,f506ef7f,2026-09-08,NEWDIR,1,首次出现 lib/phase2_upm,docs(P2-UPM-DOC): UPM 域冻结合同——ALG-UPM-001 原位修订(std::thread实测锚)+ALG-P2-UPM-IMPL-001 实现级合同+DATA-P2-UPM/
+1714,3d876fa3,2026-09-08,NEWDIR,1,首次出现 lib/phase3_fits,docs(P3-FITS-DOC): FITS 写出域冻结合同——ALG-P3-FITS-IMPL-001(17节)+DATA-P3-FITS/§27+API-P3-FITS-001+INDEX+6双
+1722,de15efc9,2026-09-08,NEWDIR,1,首次出现 lib/phase3_proj,"docs(P3-PROJ-DOC): 投影域冻结合同——ALG-P3-PROJ-IMPL-001(14节,G1/G2承接,公式零改动)+DATA-P3-WCS/§28+API-P3-PROJ-001+"
+1726,d74c1a90,2026-09-09,NEWDIR,1,首次出现 lib/phase3_rsmp,"docs(P3-RSMP-DOC): 重采样域冻结合同——ALG-P3-RSMP-IMPL-001(14节,G3/G4承接)+DATA-P3-RES/§29+API-P3-RSMP-001+INDEX"
+1731,692a4216,2026-09-09,NEWDIR,1,首次出现 cli/protocol.h,feat(cli): CLI-004 冻结 GUI 进程协议 v1——protocol.h ValidateEventV1 发送端硬网关(10必填字段/sequence单调/kind冻结5类/fina
+1731,692a4216,2026-09-09,NEWDIR,1,首次出现 schemas/jsonl_event_v1.schema.json,feat(cli): CLI-004 冻结 GUI 进程协议 v1——protocol.h ValidateEventV1 发送端硬网关(10必填字段/sequence单调/kind冻结5类/fina
+1738,a030a3e7,2026-09-09,NEWDIR,1,首次出现 tests/oracle,"test(CAT-GAIA-TEST): gaia 目录可复用验证面——gaia_cat_test 七模式(#include 源+GAIA_ALLOC_TEST 地址簿泄漏检测钩子,wild free"
+1754,acceab68,2026-09-09,NEWDIR,1,首次出现 cli/memory_report.h,test(resource): MON-002 增加内存增长检测——memory_report.h 双探针(glibc mallinfo2+/proc smaps_rollup Private_C+D
+1762,948dfcba,2026-09-09,NEWDIR,1,首次出现 reports/P1-COS-IMPL-module-impl-report.md,feat(P1-COS-IMPL): cosmetic 迁移独立模块——astrocs_p1_cosmetic SHARED(module_entry.cpp C ABI v1 九操作:纯标量迷你JS
+1770,1959dc89,2026-09-09,NEWDIR,1,首次出现 reports/P1-HIPS-IMPL-module-impl-report.md,feat(P1-HIPS-IMPL): hips_writer 迁移独立模块——astrocs_p1_hips_writer SHARED(生产闭包2TU+cfitsio源PIC零改动重编译+九操作C
+1781,64c1e988,2026-09-09,NEWDIR,1,首次出现 contracts/schemas_tmp,fix(P1-HIPS-TEST): tree_digest FITS CHECKSUM/DATASUM 时间戳归一化——fnv_file 对 .fits/.fts 头区(开头到END卡80对齐逐卡上
+1781,64c1e988,2026-09-09,NEWDIR,1,首次出现 packaging/launch,fix(P1-HIPS-TEST): tree_digest FITS CHECKSUM/DATASUM 时间戳归一化——fnv_file 对 .fits/.fts 头区(开头到END卡80对齐逐卡上
+1782,009ee419,2026-09-09,NEWDIR,1,首次出现 contracts/schemas,chore(repo): 根目录归纳第二批——①launch/(2文件)→packaging/launch/ ②graph/孤儿图产物→artifacts/graph/ ③schemas/(7个合同s
+1782,009ee419,2026-09-09,CI,1,改 ci/ 下文件（机器门口径）,chore(repo): 根目录归纳第二批——①launch/(2文件)→packaging/launch/ ②graph/孤儿图产物→artifacts/graph/ ③schemas/(7个合同s
+1784,4d3feaf4,2026-09-09,NEWDIR,1,首次出现 工程控制/cprun-v4-pack-template,chore(工程控制): 收录 cprun-v4 控制包模板（owner 指定审核包随附件——control-pack.json 示例/TEMPLATE.control-pack.jsonc 全字段注
+1784,4d3feaf4,2026-09-09,PACKNEW,1,新增包文件 工程控制/cprun-v4-pack-template/control-pack.json,chore(工程控制): 收录 cprun-v4 控制包模板（owner 指定审核包随附件——control-pack.json 示例/TEMPLATE.control-pack.jsonc 全字段注
+1785,789c5b6c,2026-09-09,DELETE,368,删除 368 文件（批量移除/归档）,"chore(repo): BASS DR3 用户数据区全目录 gitignore 收紧（原跟踪索引 coords.csv.gz 11.8M/index.csv.gz/dates 等二进制产物出库,原地"
+1787,8e03d7da,2026-09-10,NEWDIR,1,首次出现 工程控制/ACTIVITY_STATE.md,chore(GOV-002): 旧控制包归档统一活动状态——V8.1 CI 控制包 tracked 镜像 56 文件原样 mv 入 engineering/control/archive/2026-0
+1787,8e03d7da,2026-09-10,RENAME50,56,改名或移动 56 文件（目录重构）,chore(GOV-002): 旧控制包归档统一活动状态——V8.1 CI 控制包 tracked 镜像 56 文件原样 mv 入 engineering/control/archive/2026-0
+1787,8e03d7da,2026-09-10,LEDGER,2,"改台账 CONTROL_TASK_LEDGER.csv, V7_1_STATIC_TASK_LEDGER.csv",chore(GOV-002): 旧控制包归档统一活动状态——V8.1 CI 控制包 tracked 镜像 56 文件原样 mv 入 engineering/control/archive/2026-0
+1788,d1ac4dfc,2026-09-10,CI,1,改 ci/ 下文件（机器门口径）,fix(GOV-002-F1): reconcile_state V71_LEDGER 常量改指归档路径 engineering/control/archive/2026-09-09_supersed
+1796,e9547c02,2026-09-10,NEWDIR,1,首次出现 工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909,"feat(控制包): 负责人三裁决落地——新增 WCS-003(AP/BP布局扩展+消费方迭代反演恢复冻结1e-4px,裁决1选B,拒绝缩fixture与改门,G-SCI 加挂 WCS-003 依赖达"
+1796,e9547c02,2026-09-10,PACKNEW,1,新增包文件 工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/00_READ_FIRST.md,"feat(控制包): 负责人三裁决落地——新增 WCS-003(AP/BP布局扩展+消费方迭代反演恢复冻结1e-4px,裁决1选B,拒绝缩fixture与改门,G-SCI 加挂 WCS-003 依赖达"
+1796,e9547c02,2026-09-10,PACKNEW,1,新增包文件 工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/control-pack.json,"feat(控制包): 负责人三裁决落地——新增 WCS-003(AP/BP布局扩展+消费方迭代反演恢复冻结1e-4px,裁决1选B,拒绝缩fixture与改门,G-SCI 加挂 WCS-003 依赖达"
+1796,e9547c02,2026-09-10,LEDGER,1,改台账 TASK_LEDGER.csv,"feat(控制包): 负责人三裁决落地——新增 WCS-003(AP/BP布局扩展+消费方迭代反演恢复冻结1e-4px,裁决1选B,拒绝缩fixture与改门,G-SCI 加挂 WCS-003 依赖达"
+1797,85a5fc60,2026-09-10,LEDGER,1,改台账 TASK_LEDGER.csv,chore(gov): 控制包 rev3 入库（负责人真实数据验收指令落地 04_OWNER_DECISIONS_20260910）——新增 REAL-000(真实数据审计+testdata/inde
+1812,e9b82ea4,2026-09-11,CI,5,改 ci/ 下文件（机器门口径）,feat(CI-001): 收紧CI注册表与资源fail-closed(基线 026717fd)——①不可 waiver: ci/checks.json WIN-BUILD-RELEASE/WIN-T
+1813,ca948367,2026-09-11,CI,3,改 ci/ 下文件（机器门口径）,fix(CI/F-CI-001-01): owner 裁决 WIN-* 移出资源门——ci/checks.json WIN-BUILD-RELEASE/WIN-TEST-UNIT/WIN-PACKAG
+1815,9f6b72b5,2026-09-11,NEWDIR,1,首次出现 tests/realdata,feat(REAL-000): 真实数据审计索引v1.2与确定性匹配计划(04_OWNER_DECISIONS rev3 指令落地)——①盘点对账: testdata 944 文件逐文件 sha256
+1815,9f6b72b5,2026-09-11,NEWDIR,1,首次出现 tools/realdata,feat(REAL-000): 真实数据审计索引v1.2与确定性匹配计划(04_OWNER_DECISIONS rev3 指令落地)——①盘点对账: testdata 944 文件逐文件 sha256
+1816,05059019,2026-09-12,CI,4,改 ci/ 下文件（机器门口径）,"fix(CI/F-CI-002-04+06): 监控门判定合同收口(owner 裁决原则一致化, 2026-09-11)——①F-CI-002-04: ci/checks.json WIN-* 三项 "
+1818,71cdc28f,2026-09-12,NEWDIR,1,首次出现 ci/ci_repair_round.py,feat(CI/CI-REPAIR-001): CI修复常驻线轮报器(Checks API全量回拉+失败job日志+归因映射)
+1818,71cdc28f,2026-09-12,CI,2,改 ci/ 下文件（机器门口径）,feat(CI/CI-REPAIR-001): CI修复常驻线轮报器(Checks API全量回拉+失败job日志+归因映射)
+1819,d3097319,2026-09-12,NEWDIR,1,首次出现 ci/ctest_baseline.json,feat(CI/CI-REG-002): 新增测试全注册与关键检查不可豁免(STD-F7 四项处置 + STD-F10 落地)
+1819,d3097319,2026-09-12,CI,9,改 ci/ 下文件（机器门口径）,feat(CI/CI-REG-002): 新增测试全注册与关键检查不可豁免(STD-F7 四项处置 + STD-F10 落地)
+1821,830b38c6,2026-09-12,CI,2,改 ci/ 下文件（机器门口径）,fix(CI/CI-REPAIR-001): 轮报器复跑暴露的两处缺陷修正(SKIPPED误判红灯 + artifact截断)
+1822,778fe98e,2026-09-12,NEWDIR,1,首次出现 ci/known_failures.json,feat(CI/CI-BASELINE-001): known-failures 基线机器化——失败集 ⊆ 版本化基线成为不可豁免 CI 门（STD-F9 处置）
+1822,778fe98e,2026-09-12,CI,6,改 ci/ 下文件（机器门口径）,feat(CI/CI-BASELINE-001): known-failures 基线机器化——失败集 ⊆ 版本化基线成为不可豁免 CI 门（STD-F9 处置）
+1823,a67bbc83,2026-09-12,NEWDIR,1,首次出现 ci/WORKFLOW_BINDING_AUDIT.md,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁复验)
+1823,a67bbc83,2026-09-12,NEWDIR,1,首次出现 ci/steps,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁复验)
+1823,a67bbc83,2026-09-12,NEWDIR,1,首次出现 ci/validate_workflow_binding.py,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁复验)
+1823,a67bbc83,2026-09-12,NEWDIR,1,首次出现 ci/wf_step.py,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁复验)
+1823,a67bbc83,2026-09-12,NEWDIR,1,首次出现 ci/workflow_binding.json,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁复验)
+1823,a67bbc83,2026-09-12,CI,13,改 ci/ 下文件（机器门口径）,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁复验)
+1828,e6b1ea87,2026-09-12,LEDGER,2,"改台账 TASK_LEDGER.csv, TASK_LEDGER_V1_ARCHIVE.csv",feat(GOV/rev6): V2 控制包前台接续重编——裁决留档+CI红灯全承接+写域补正（FG-000）
+1830,178222a7,2026-09-12,LEDGER,1,改台账 TASK_LEDGER.csv,chore(GOV/rev6.1): 控制包写域分道——repo-write 单道拆为 5 条按域互斥道，真实并行度 1→7
+1832,a628bc21,2026-09-12,LEDGER,1,改台账 TASK_LEDGER.csv,docs(GOV/rev6.1): 裁决 R-15/R-16/R-17——checks.json 单写者 + 并行度按真实文件写域 + 门禁不得阻塞修复
+1840,0c9130d6,2026-09-12,CI,2,改 ci/ 下文件（机器门口径）,chore(CI): 注册 UT-GAIA-ZLIB + UT-BACKEND timeout 提额 + UT-VERSION changed_paths（前台唯一写者 R-15）
+1841,4f11d965,2026-09-12,CI,1,改 ci/ 下文件（机器门口径）,fix(CI): 订正 impact_map 提交的缩进抖动——恢复原格式，仅保留语义改动
+1846,4fc3917e,2026-09-12,CI,1,改 ci/ 下文件（机器门口径）,chore(CI): 注册 STD-F1 桥接门 + p2hips 独立验证门（消除 C3 注册债）
+1848,3fd9e5e2,2026-09-12,CI,1,改 ci/ 下文件（机器门口径）,docs(SCI/SCI-ANCHOR-001): 冻结文档行号锚全量复测器 + 36 文档 793 锚订正 + CI 门 DOC-LINE-ANCHORS（BASE=56fe14c1）
+1859,43c5c488,2026-09-13,NEWDIR,1,首次出现 问题扫描/00_README.md,docs(audit/RQS): 建立全项目只读问题扫描工作区与作业规程
+1859,43c5c488,2026-09-13,NEWDIR,1,首次出现 问题扫描/10_PROTOCOL.md,docs(audit/RQS): 建立全项目只读问题扫描工作区与作业规程
+1859,43c5c488,2026-09-13,NEWDIR,1,首次出现 问题扫描/20_AGENT_PLAN.md,docs(audit/RQS): 建立全项目只读问题扫描工作区与作业规程
+1859,43c5c488,2026-09-13,NEWDIR,1,首次出现 问题扫描/_cache,docs(audit/RQS): 建立全项目只读问题扫描工作区与作业规程
+1859,43c5c488,2026-09-13,NEWDIR,1,首次出现 问题扫描/findings,docs(audit/RQS): 建立全项目只读问题扫描工作区与作业规程
+1860,14102f65,2026-09-13,NEWDIR,1,首次出现 问题扫描/_merge,docs(audit/RQS): 前台独立取证 F00 与合并期协调记录
+1872,c21eec50,2026-09-13,CI,2,改 ci/ 下文件（机器门口径）,fix(CI/B3): Batch 3 真启用（Windows GSL/接缝门/Phase2 门进 CI/并发归因/known-failures/FD-01）
+1873,91024e7f,2026-09-13,CI,2,改 ci/ 下文件（机器门口径）,ci(REG/B3-A4+A5): 注册 CTEST-PHASE2-GATES + 基线门 linux-main 末位静态强制（前台单写者）
+1875,f5b4b56f,2026-09-13,NEWDIR,1,首次出现 问题扫描/_tools,docs(audit/RQS): 横向轴档案 L22/L27 与 R 层复验工作清单
+1891,2e9ec742,2026-09-14,NEWDIR,1,首次出现 问题扫描/INDEX.md,docs(audit/RQS): INDEX 机械汇总草稿 + 同事实归属裁决示例
+1894,1fdfb0b5,2026-09-14,CI,1,改 ci/ 下文件（机器门口径）,fix(CI/B3b-1): 补交 FD-02 回归测试源文件 + 注册 CTEST-DRIZZLE-PRECISION-DEFAULT
+1895,e84b10a3,2026-09-14,NEWDIR,1,首次出现 问题扫描/40_OWNER_DECISIONS.md,docs(audit/RQS): M3 定稿 43 条（P0 7/P1 26/P2 10）+ 建 40_OWNER_DECISIONS.md（A17/B13/C9/D4）
+1897,2e10f302,2026-09-14,NEWDIR,1,首次出现 问题扫描/SUMMARY.md,docs(audit/RQS): SUMMARY 系统性根因簇十组 + 残余风险三态表 + 未覆盖面诚实声明
+1912,e60edcec,2026-09-14,CI,1,改 ci/ 下文件（机器门口径）,fix(SCI/FD-05): Linux 生产 plate-solve 平台绑定移植 + 常驻回归门（RESCUE-FD-05）
+1927,fa5581a0,2026-09-14,CI,1,改 ci/ 下文件（机器门口径）,test(CLI/FD-14): UT-CLI 工作区污染清零（known-failures 基线可删的前置）
+1944,ccc7a933,2026-09-14,CI,1,改 ci/ 下文件（机器门口径）,ci(BASELINE): 删除 ci/known_failures.json 的 UT-CLI 基线项（removal_condition 已满足 → 只减不增）
+1945,1d2f0736,2026-09-14,NEWDIR,1,首次出现 问题扫描/账本,docs(audit/RQS): 新增机器化修复账本 FIX_LEDGER（521 条 / P0 82 / 判定列只读+处置列可写，重跑按 id 保留填写）
+1947,07eb229b,2026-09-14,CI,1,改 ci/ 下文件（机器门口径）,fix(RQS/B1): 内存安全 P0 —— M9-H-1 gaia manifest 栈越界写、M9-H-2 XPSD 自报 spectrumCount 无界（堆越界读+OOM）
+1950,adaeb531,2026-09-14,CI,2,改 ci/ 下文件（机器门口径）,fix(RQS/B2): 门禁硬化 —— 恢复冻结资源门、假门转真门、UT-ABI 采集补齐
+1953,c3452d48,2026-09-14,CI,1,改 ci/ 下文件（机器门口径）,fix(RQS/B4): Phase1/PSF/测光域 7 条 —— SIP 奇异失败码、PHOT 参考星门、真 MAD、追溯锚订正
+1956,6d74046d,2026-09-14,CI,1,改 ci/ 下文件（机器门口径）,perf(P4): 极限星等割线迭代替换一次性密度公式（含 FOV 供星缺陷修正）
+1962,bc8f3893,2026-09-14,NEWDIR,1,首次出现 问题扫描/_verify,docs(audit/RQS): 复核层开张 —— 账本 verified_* 首填(V1前自查5条) + A-39 + 我自己一次改判

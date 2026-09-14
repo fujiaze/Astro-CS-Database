@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1091,2774a26d,2026-08-28,付家泽,S,1,重叠复核,compact/1091-2774a26d.md,cards/1091-2774a26d.md,(CLI-002) 表行登记 — COMMITS/CAP-CLI-002
+1092,8b7cf3e0,2026-08-28,付家泽,M,2,重叠复核,compact/1092-8b7cf3e0.md,cards/1092-8b7cf3e0.md,(CLI-003) config/manifest/verify闭环 — MANIFEST_VERIFY_V1合同+config全量校验(白名单键/schema_version=2
+1093,12d650c0,2026-08-28,付家泽,S,1,重叠复核,compact/1093-12d650c0.md,cards/1093-12d650c0.md,(CLI-003) 表行登记 — COMMITS/CAP-CLI-003
+1094,7718a2f8,2026-08-28,付家泽,M,2,重叠复核,compact/1094-7718a2f8.md,cards/1094-7718a2f8.md,(ABI-001) C ABI v1落地 — 单一头C11/C++17双编译+host services(计数allocator/atomic cancel/CAS预算)+12条目
+1095,72fc2e17,2026-08-28,付家泽,S,1,重叠复核,compact/1095-72fc2e17.md,cards/1095-72fc2e17.md,(ABI-001) 表行登记 — COMMITS/CAP-ABI-001
+1096,0c49a370,2026-08-28,付家泽,M,2,重叠复核,compact/1096-0c49a370.md,cards/1096-0c49a370.md,(ABI-002) backend加载安全化 — CPUID+OSXSAVE+XGETBV实测+affinity可用CPU+manifest解析不猜+预检五查(裸文件名白名单/AB
+1097,42d1eedd,2026-08-28,付家泽,S,1,重叠复核,compact/1097-42d1eedd.md,cards/1097-42d1eedd.md,(ABI-002) 表行登记 — COMMITS/CAP-ABI-002
+1098,1761491b,2026-08-29,付家泽,M,2,重叠复核,compact/1098-1761491b.md,cards/1098-1761491b.md,(ABI-003) baseline全生产kernel — 12 kernel实现在budget租借行带并行外层(确定性: 元素独立无跨线程归约)+Oracle(Python独立参
+1099,904f73d2,2026-08-29,付家泽,S,1,重叠复核,compact/1099-904f73d2.md,cards/1099-904f73d2.md,(ABI-003) 表行登记 — COMMITS/CAP-ABI-003
+1100,1ae33eb4,2026-08-29,付家泽,M,2,重叠复核,compact/1100-1ae33eb4.md,cards/1100-1ae33eb4.md,(ISA-001) ISA热点测量与AVX2变体决策 — 共享表backend_table.inc抽参+avx2变体DSO(同impl零漂移)+实机profile(hips+28%
+1101,1e023166,2026-08-29,付家泽,S,1,主责,compact/1101-1e023166.md,cards/1101-1e023166.md,(ISA-001) 表行登记 — COMMITS/CAP-ISA-001
+1102,2f20a99d,2026-08-29,付家泽,L,4,主责,compact/1102-2f20a99d.md,cards/1102-2f20a99d.md,(ISA-001) 收尾入库 — 37个review胶囊zip+thread checker REGISTERED补录(baseline worker预算驱动)+FATDUCK_A
+1103,0eeb3b5f,2026-08-29,付家泽,M,2,主责,compact/1103-0eeb3b5f.md,cards/1103-0eeb3b5f.md,(BENCH-001) 硬件画像v1 — CPUID/XCR0/affinity数组/available=affinity∩cgroup/SMT/NUMA/RAM/cache/OS
+1104,face0963,2026-08-29,付家泽,S,1,主责,compact/1104-face0963.md,cards/1104-face0963.md,(BENCH-001) 表行登记 — COMMITS/CAP-BENCH-001
+1105,9aad31ec,2026-08-29,付家泽,M,2,主责,compact/1105-9aad31ec.md,cards/1105-9aad31ec.md,(BENCH-002) harness顺序合同 — 独立scalar Oracle先行(失败禁用不计时)+预热不计时+9样本稳健统计(median/MAD/p05/p95)+cor
+1106,c4cfcdc7,2026-08-29,付家泽,S,1,主责,compact/1106-c4cfcdc7.md,cards/1106-c4cfcdc7.md,(BENCH-002) 表行登记 — COMMITS/CAP-BENCH-002
+1107,87ff58ba,2026-08-29,付家泽,M,2,主责,compact/1107-87ff58ba.md,cards/1107-87ff58ba.md,"(BENCH-003) 候选生成+内存基线 — worker候选{1,中位,全部}全派生(avail3→{1,2,3})+block=L2派生几何公比4+memory read/w"
+1108,1ac24e94,2026-08-29,付家泽,S,1,主责,compact/1108-1ac24e94.md,cards/1108-1ac24e94.md,(BENCH-003) 表行登记 — COMMITS/CAP-BENCH-003
+1109,e8767daf,2026-08-29,付家泽,M,2,主责,compact/1109-e8767daf.md,cards/1109-e8767daf.md,(BENCH-004) profile生命周期 — cpu_profile生成器(schema同构+指纹)+validate三态(schema/stale: ISA-affinit
+1110,9fc40ba8,2026-08-29,付家泽,S,1,主责,compact/1110-9fc40ba8.md,cards/1110-9fc40ba8.md,(BENCH-004) 表行登记 — COMMITS/CAP-BENCH-004
+1111,0cd9db94,2026-08-29,付家泽,M,2,主责,compact/1111-0cd9db94.md,cards/1111-0cd9db94.md,(BENCH-005) benchmark/doctor CLI — profile_gen入库(quick单kernel/full 12kernel矩阵)+ASTROCS_COM
+1112,804d79c2,2026-08-29,付家泽,S,1,主责,compact/1112-804d79c2.md,cards/1112-804d79c2.md,(BENCH-005) 表行登记 — COMMITS/CAP-BENCH-005
+1113,c5629be6,2026-08-29,付家泽,M,2,主责,compact/1113-c5629be6.md,cards/1113-c5629be6.md,(CLI-004) Phase1进程内接入 — p1_session四段式(API-P1-001冻结)+budget注入ac_set_num_threads+帧粒度取消+monit
+1114,4360cbc5,2026-08-29,付家泽,S,1,主责,compact/1114-4360cbc5.md,cards/1114-4360cbc5.md,(CLI-004) 表行登记 — COMMITS/CAP-CLI-004
+1115,0a448f67,2026-08-29,付家泽,M,2,主责,compact/1115-0a448f67.md,cards/1115-0a448f67.md,"(CLI-005) Phase2进程内接入 — p2_session生产路由(coverage→sampler→UPM→persist, API-P2-001冻结)+预算绑定(sa"
+1116,809be751,2026-08-29,付家泽,S,1,主责,compact/1116-809be751.md,cards/1116-809be751.md,(CLI-005) 表行登记 — COMMITS/CAP-CLI-005
+1117,9fb12dc0,2026-08-29,付家泽,M,2,主责,compact/1117-9fb12dc0.md,cards/1117-9fb12dc0.md,(P3-001) HiPS properties严格解析 — 必需键全查(5键)/值域(order0-20/width512/fits/frame)/重复键拒/边界order/缺t
+1118,95901d17,2026-08-29,付家泽,S,1,主责,compact/1118-95901d17.md,cards/1118-95901d17.md,(P3-001) 表行登记 — COMMITS/CAP-P3-001
+1119,be902e60,2026-08-29,付家泽,M,2,主责,compact/1119-be902e60.md,cards/1119-be902e60.md,(P3-002) TAN WCS正反变换 — 描述符(CRPIX pixel-center/CD含PA旋转/parity符号)+球面三角正逆+RA归一+极点5度/半球四角守卫+独立
+1120,9cb899e4,2026-08-29,付家泽,S,1,主责,compact/1120-9cb899e4.md,cards/1120-9cb899e4.md,(P3-002) 表行登记 — COMMITS/CAP-P3-002
+1121,1dadaf3c,2026-08-29,付家泽,M,2,主责,compact/1121-1dadaf3c.md,cards/1121-1dadaf3c.md,(P3-003) 重采样器 — order selector确定性+nearest/bilinear跨tile+coverage/mask/NaN语义(SS=NaN+C=1)+未支
+1122,78212919,2026-08-29,付家泽,S,1,主责,compact/1122-78212919.md,cards/1122-78212919.md,(P3-003) 表行登记 — COMMITS/CAP-P3-003
+1123,5717ffc7,2026-08-29,付家泽,M,2,主责,compact/1123-5717ffc7.md,cards/1123-5717ffc7.md,(P3-004) FITS原子写 — tmp+rename原子替换+header(BITPIX-32/BSCALE/BZERO/BUNIT+WCS全量)+provenance(HI
+1124,19a9ce3e,2026-08-29,付家泽,S,1,主责,compact/1124-19a9ce3e.md,cards/1124-19a9ce3e.md,(P3-004) 表行登记 — COMMITS/CAP-P3-004
+1125,bcc6cb7b,2026-08-29,付家泽,M,2,主责,compact/1125-bcc6cb7b.md,cards/1125-bcc6cb7b.md,(CLI-006) phase3 run 生产路由 — p3_session(create/validate/run/inspect/destroy)+显式拒清单(非TAN/非IC
+1126,e93ed603,2026-08-29,付家泽,S,1,主责,compact/1126-e93ed603.md,cards/1126-e93ed603.md,(CLI-006) 表行登记 — COMMITS/CAP-CLI-006
+1127,502a26f5,2026-08-29,付家泽,S,1,主责,compact/1127-502a26f5.md,cards/1127-502a26f5.md,(CLI-006) ledger PASS
+1128,91c92f51,2026-08-29,付家泽,M,2,主责,compact/1128-91c92f51.md,cards/1128-91c92f51.md,(CLI-007) run --phases 真编排 — 逐phase进程内(p1/p2/p3 session)+artifact聚合(role=phaseN_output+sha
+1129,551795e8,2026-08-29,付家泽,S,1,主责,compact/1129-551795e8.md,cards/1129-551795e8.md,(CLI-007) 表行登记+ledger PASS — COMMITS/CAP-CLI-007
+1130,1fb0d06b,2026-08-29,付家泽,S,1,主责,compact/1130-1fb0d06b.md,cards/1130-1fb0d06b.md,(CLI-008) install tree scanner — cmake --install staging→scan断言恰一用户exe(astrocs)+无旧phase/be
+1131,79a1676d,2026-08-29,付家泽,S,1,主责,compact/1131-79a1676d.md,cards/1131-79a1676d.md,(CLI-008) 表行登记+ledger PASS — COMMITS/CAP-CLI-008
+1132,d8b440dc,2026-08-29,付家泽,S,1,主责,compact/1132-d8b440dc.md,cards/1132-d8b440dc.md,(ISA-002) AVX(无FMA)变体 — 完整测量防污染验证; AVX被已SHIP avx2严格主导→NOT_SHIPPED(完整测量在案); 206/206
+1133,31fc96b3,2026-08-29,付家泽,S,1,主责,compact/1133-31fc96b3.md,cards/1133-31fc96b3.md,(ISA-002) 表行登记+ledger PASS — COMMITS/CAP-ISA-002
+1134,85a244f3,2026-08-29,付家泽,S,1,主责,compact/1134-85a244f3.md,cards/1134-85a244f3.md,(ISA-003) AVX2+FMA capability 复验+登记 — FMA(vfnmadd)+ymm 双向证明+median测量 calibration+11.7%/hip
+1135,e3cbbafc,2026-08-29,付家泽,S,1,主责,compact/1135-e3cbbafc.md,cards/1135-e3cbbafc.md,(ISA-003) 表行登记+ledger PASS — COMMITS/CAP-ISA-003
+1136,22d0b081,2026-08-29,付家泽,S,1,主责,compact/1136-22d0b081.md,cards/1136-22d0b081.md,(ISA-004) AVX512F 变体 — vm-bj支持AVX512故完整复测; zmm证明+median测量 calibration+3.8%/hips+29.5%; 对已S
+1137,2f23b897,2026-08-29,付家泽,S,1,主责,compact/1137-2f23b897.md,cards/1137-2f23b897.md,(ISA-004) 表行登记+ledger PASS — COMMITS/CAP-ISA-004
+1138,bdcb231a,2026-08-29,付家泽,S,1,主责,compact/1138-bdcb231a.md,cards/1138-bdcb231a.md,(ISA-005) 整数/位操作热点审计 — 12kernel无位操作热点; -mbmi2 -mpopcnt编译零位操作指令→NOT_APPLICABLE(不写空DLL); 218
+1139,a06c45b0,2026-08-29,付家泽,S,1,主责,compact/1139-a06c45b0.md,cards/1139-a06c45b0.md,(ISA-005) 表行登记+ledger PASS — COMMITS/CAP-ISA-005
+1140,db85028a,2026-08-29,付家泽,M,2,主责,compact/1140-db85028a.md,cards/1140-db85028a.md,(MON-001) 进程/系统资源监控模块 — /proc采集(CPU/RSS/IO/thread/ctxsw)+sysinfo+单调时钟+采样开销测量; 修正stat字段解析; 
+1141,1409a23c,2026-08-29,付家泽,S,1,主责,compact/1141-1409a23c.md,cards/1141-1409a23c.md,(MON-001) 表行登记+ledger PASS — COMMITS/CAP-MON-001
+1142,af69a9c4,2026-08-29,付家泽,M,2,主责,compact/1142-af69a9c4.md,cards/1142-af69a9c4.md,(MON-002) 资源事件分层 — --resource-detail summary|timeseries+resource/backend事件(07§2指标)+downsam
+1143,9f80df0e,2026-08-29,付家泽,S,1,主责,compact/1143-9f80df0e.md,cards/1143-9f80df0e.md,(MON-002) 表行登记+ledger PASS — COMMITS/CAP-MON-002
+1144,ea97cc71,2026-08-29,付家泽,M,2,主责,compact/1144-ea97cc71.md,cards/1144-ea97cc71.md,"(MON-003) 资源门禁 — 07分类(compute/memory/io/mixed)+公式(0.80*min(workers,cpus))+first-10s快速失败+ex"
+1145,12328080,2026-08-29,付家泽,S,1,主责,compact/1145-12328080.md,cards/1145-12328080.md,(MON-003) 表行登记+ledger PASS — COMMITS/CAP-MON-003
+1146,50fedef8,2026-08-29,付家泽,M,2,主责,compact/1146-50fedef8.md,cards/1146-50fedef8.md,(MON-004) 内存增长分析 — 20循环+预热剔除+Theil-Sen稳健斜率+峰值/retained+OOM预警+泄漏/增长/震荡分类; 242/242
+1147,df1539cf,2026-08-29,付家泽,S,1,主责,compact/1147-df1539cf.md,cards/1147-df1539cf.md,(MON-004) 表行登记+ledger PASS — COMMITS/CAP-MON-004
+1148,866dfd1d,2026-08-29,付家泽,S,1,主责,compact/1148-866dfd1d.md,cards/1148-866dfd1d.md,(ISO-001) ACR/GPU/Mixed隔离 — 生产选路不触ACR/GPU(符号扫描0+注册不可达+manifest无该字段)+配置请求ACR明确拒绝(exit3)+发行包
+1149,f49808af,2026-08-29,付家泽,S,1,主责,compact/1149-f49808af.md,cards/1149-f49808af.md,(ISO-001) 表行登记+ledger PASS — COMMITS/CAP-ISO-001
+1150,163e9e56,2026-08-29,付家泽,S,1,主责,compact/1150-163e9e56.md,cards/1150-163e9e56.md,(PAR-001) 有界队列/backpressure/error/cancel + I/O compute overlap + 无全局串行锁 — BoundedAsyncQueu
+1151,5ad37814,2026-08-29,付家泽,S,1,主责,compact/1151-5ad37814.md,cards/1151-5ad37814.md,(PAR-001) 表行登记+ledger PASS — COMMITS/CAP-PAR-001
+1152,e7034892,2026-08-29,付家泽,S,1,主责,compact/1152-e7034892.md,cards/1152-e7034892.md,(PAR-002) sampler N-worker 正加速阻塞: 库级cfitsio并发读SIGSEGV — 记录BLOCKED+阻断报告
+1153,77d96c35,2026-08-29,付家泽,S,1,主责,compact/1153-77d96c35.md,cards/1153-77d96c35.md,(PAR-002) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX: BLOCKED报告 + 阻断项胶囊
+1154,96ed7e89,2026-08-29,付家泽,S,1,主责,compact/1154-96ed7e89.md,cards/1154-96ed7e89.md,(PAR-003) UPM并行验证: 线程本地/归约分离+确定性+内存有界 PASS
+1155,7f346b61,2026-08-29,付家泽,S,1,主责,compact/1155-7f346b61.md,cards/1155-7f346b61.md,(PAR-003) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX: PASS验证报告+胶囊

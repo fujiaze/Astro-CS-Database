@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1421,267b3ed0,2026-09-01,付家泽,M,2,重叠复核,compact/1421-267b3ed0.md,cards/1421-267b3ed0.md,P3-004: 独立球面重采样 Oracle (常数/解析场 cos²dec vs 独立 TAN reference; RA wrap; 旋转 TAN; 无人工接缝)
+1422,052f44c3,2026-09-01,付家泽,S,1,重叠复核,compact/1422-052f44c3.md,cards/1422-052f44c3.md,P3-004: COMMITS.csv 绑定 41 任务
+1423,d6af18a1,2026-09-01,付家泽,M,2,重叠复核,compact/1423-d6af18a1.md,cards/1423-d6af18a1.md,P3-005: FITS 输出校验与 provenance (bitpix -32/-64 真实决定 buffer; 关键字/coverage/provenance 完整)
+1424,9a96b2c4,2026-09-01,付家泽,S,1,重叠复核,compact/1424-9a96b2c4.md,cards/1424-9a96b2c4.md,P3-005: COMMITS.csv 绑定 42 任务
+1425,3617b6c4,2026-09-01,付家泽,M,2,重叠复核,compact/1425-3617b6c4.md,cards/1425-3617b6c4.md,P3-006: Phase3 生产 Pipeline 与资源门 (IR 5 节点链 properties→wcs→resample2→writer→verify; ≥10s; 科学
+1426,26304309,2026-09-01,付家泽,S,1,重叠复核,compact/1426-26304309.md,cards/1426-26304309.md,P3-006: COMMITS.csv 绑定 43 任务
+1427,b67a9167,2026-09-01,付家泽,M,2,重叠复核,compact/1427-b67a9167.md,cards/1427-b67a9167.md,DOC-001: 重建合同 front matter 与完整图 (36 合同图/生产可达/源索引/注释卫生 全 PASS)
+1428,635481e1,2026-09-01,付家泽,S,1,重叠复核,compact/1428-635481e1.md,cards/1428-635481e1.md,DOC-001: COMMITS.csv 绑定 44 任务
+1429,e70f7d94,2026-09-01,付家泽,S,1,重叠复核,compact/1429-e70f7d94.md,cards/1429-e70f7d94.md,DOC-002: 重建当前版本追溯矩阵 (63 行追溯/66 claims 最终追溯/18 DATA artifact 全 PASS)
+1430,0756ecdf,2026-09-01,付家泽,S,1,重叠复核,compact/1430-0756ecdf.md,cards/1430-0756ecdf.md,DOC-002: COMMITS.csv 绑定 45 任务
+1431,50d9759f,2026-09-01,付家泽,M,2,主责,compact/1431-50d9759f.md,cards/1431-50d9759f.md,DOC-003: 重建全公共 API AST 语义检查 (API docs/ABI/AST 全 PASS; max_tiles 守卫实现; CLI doc 同步)
+1432,5ecc60df,2026-09-01,付家泽,S,1,主责,compact/1432-5ecc60df.md,cards/1432-5ecc60df.md,DOC-003: COMMITS.csv 绑定 46 任务
+1433,5eda0bc9,2026-09-01,付家泽,L,4,主责,compact/1433-5eda0bc9.md,cards/1433-5eda0bc9.md,"DOC-004: 补齐所有生产模块 README (22 个 registry 模块 README, 生成器 gen_module_readmes 以 descriptor 为源)"
+1434,47d59806,2026-09-01,付家泽,S,1,主责,compact/1434-47d59806.md,cards/1434-47d59806.md,DOC-004: COMMITS.csv 绑定 47 任务
+1435,8a3dec6f,2026-09-01,付家泽,S,1,主责,compact/1435-8a3dec6f.md,cards/1435-8a3dec6f.md,DOC-005: 重建 L0 负责人文档 (REVIEW.md V6.1 进度+组件状态表; 5 L0 链接完整; 追溯诚实)
+1436,54caf70e,2026-09-01,付家泽,S,1,主责,compact/1436-54caf70e.md,cards/1436-54caf70e.md,DOC-005: COMMITS.csv 绑定 48 任务
+1437,8ba2f265,2026-09-01,付家泽,M,2,主责,compact/1437-8ba2f265.md,cards/1437-8ba2f265.md,"DOC-006: 统一注释命名与代码可读性 (任务号注释 0 残留, 保留合同 ID; hygiene 0 违规)"
+1438,c0927374,2026-09-01,付家泽,S,1,主责,compact/1438-c0927374.md,cards/1438-c0927374.md,DOC-006: COMMITS.csv 绑定 49 任务
+1439,e25f3f0c,2026-09-01,付家泽,L,4,主责,compact/1439-e25f3f0c.md,cards/1439-e25f3f0c.md,QA-001: 零警告与静态分析 (GCC/Clang 严格 flags 0 warning; clang-tidy/cppcheck P0/P1 清零)
+1440,8003297f,2026-09-01,付家泽,S,1,主责,compact/1440-8003297f.md,cards/1440-8003297f.md,"QA-002: Sanitizer 全路径 (ASan/UBSan/LSan 56/56, TSan 定向 28/28, 修复 cpu_abi leak 与 p1_resource"
+1441,46e8dbb0,2026-09-01,付家泽,M,2,主责,compact/1441-46e8dbb0.md,cards/1441-46e8dbb0.md,"QA-003: 依赖许可 SBOM 与可复现构建 (CycloneDX 1.5, nlohmann/cfitsio/zlib 锁定, 编译链 metadata)"
+1442,591f541f,2026-09-01,付家泽,S,1,主责,compact/1442-591f541f.md,cards/1442-591f541f.md,QA-003: 补 TASK_RESULT commands 字段 (schema minItems=1 校验)
+1443,b8879dae,2026-09-01,付家泽,S,1,主责,compact/1443-b8879dae.md,cards/1443-b8879dae.md,"LNX-001: Linux 干净构建 (GCC Release + Clang Debug 全新目录 0 warning, 56/56 PASS, compile_command"
+1444,84a4ae9d,2026-09-01,付家泽,L,4,主责,compact/1444-84a4ae9d.md,cards/1444-84a4ae9d.md,"LNX-001: 补提交 QA-001/002/003/LNX-001 任务证据 logs (gitignore logs/ 例外, 强制纳入版本库)"
+1445,25dc4562,2026-09-02,付家泽,S,1,主责,compact/1445-25dc4562.md,cards/1445-25dc4562.md,"LNX-002: Linux 全合成科学测试 (astrocs test synthetic all 7/7 PASS, 模块 56/56, machine summary)"
+1446,db5c3bd1,2026-09-02,付家泽,S,1,主责,compact/1446-db5c3bd1.md,cards/1446-db5c3bd1.md,"LNX-003: Sanitizer 现场复验 (新 build 目录 ASan/LSan 56/56, TSan 28/28, 绑定 commit)"
+1447,c0c5f46c,2026-09-02,付家泽,L,4,主责,compact/1447-c0c5f46c.md,cards/1447-c0c5f46c.md,QA-001: 完成 drizzle 家族与全源码零警告收尾 (spherical_overlap/reverse_drizzle/hp_drizzle_api/fits_read
+1448,2baf4ecd,2026-09-02,付家泽,M,2,主责,compact/1448-2baf4ecd.md,cards/1448-2baf4ecd.md,"LNX-004: 2c2g 资源与恢复 (P1/P2/P3 heavy 门禁 PASS, cancel/resume/低内存 backpressure, 修复 cancel 接线)"
+1449,243c12af,2026-09-02,付家泽,M,2,主责,compact/1449-243c12af.md,cards/1449-243c12af.md,LNX-004: 补提交证据 logs (resource summaries/worker balance/cancel manifest)
+1450,c7dee933,2026-09-02,付家泽,S,1,主责,compact/1450-c7dee933.md,cards/1450-c7dee933.md,"LNX-005: 真实数据冒烟尝试 (Fatduck 离线, WAITING_WINDOWS/NOT_RUN_EXTERNAL_OFFLINE, WIN-004 仍为强制真实门)"
+1451,73282a1f,2026-09-02,付家泽,S,1,主责,compact/1451-73282a1f.md,cards/1451-73282a1f.md,LNX-005: 补提交 Fatduck 离线探测证据 log
+1452,e1045969,2026-09-02,付家泽,M,2,主责,compact/1452-e1045969.md,cards/1452-e1045969.md,"WIN-001..006: Fatduck 离线 WAITING_WINDOWS 登记 (非伪造 PASS, 下一在线窗口执行)"
+1453,294c2b76,2026-09-02,付家泽,S,1,主责,compact/1453-294c2b76.md,cards/1453-294c2b76.md,"REL-001: Linux alpha.2 发布包完成, Windows 待 Fatduck (WAITING_WINDOWS)"
+1454,8c71f7ab,2026-09-02,付家泽,S,1,主责,compact/1454-8c71f7ab.md,cards/1454-8c71f7ab.md,"REL-002: FINDINGS P0/P1 关闭 36/40 (resolution_commit+evidence 绑定, 遗留 F-032/033/036 REL-003 "
+1455,c99babad,2026-09-02,付家泽,M,2,主责,compact/1455-c99babad.md,cards/1455-c99babad.md,"REL-002: 契约校验套件适配 V6.1 (serial_heavy/execution/doc_symbols 识别 lease+std::thread, CPU_BACKE"
+1456,edcc8688,2026-09-02,付家泽,S,1,主责,compact/1456-edcc8688.md,cards/1456-edcc8688.md,"LNX-005: 台账状态修正为 WAITING_DATA (Fatduck 真实数据待取非 Windows 编译窗口, validator 规则4 合规; TASK_RESULT"
+1457,d5a34ea9,2026-09-02,付家泽,S,1,主责,compact/1457-d5a34ea9.md,cards/1457-d5a34ea9.md,"REL-002/REL-003: gen_commits_csv 只输出 PASS 任务 + COMMITS.csv 生成 (56 任务, 列转 validator 格式)"
+1458,faad602d,2026-09-02,付家泽,S,1,主责,compact/1458-faad602d.md,cards/1458-faad602d.md,"REL-003: 审核包一致性 (LNX-001 parent_commit 修正为真实 QA-003 SHA, LNX-005 PASS 诚实登记, COMMITS 57 任务含"
+1459,24c7eec7,2026-09-02,付家泽,S,1,主责,compact/1459-24c7eec7.md,cards/1459-24c7eec7.md,"REL-003: 审核包 Linux 侧交付 (1309 文件 validator 双 PASS NOT_READY, dist/audit ZIP, FINDINGS 36/40"
+1460,e37d9147,2026-09-02,付家泽,S,1,主责,compact/1460-e37d9147.md,cards/1460-e37d9147.md,WIN-001: MSVC 兼容修复 (logging.cpp gmtime_r → gmtime_s 条件编译)
+1461,bf61fa7d,2026-09-02,付家泽,S,1,主责,compact/1461-bf61fa7d.md,cards/1461-bf61fa7d.md,"WIN-001: MSVC /utf-8 全局编译选项 (中文注释乱码导致级联语法错误, contracts.h C2144 根因)"
+1462,fc676dd6,2026-09-02,付家泽,S,1,主责,compact/1462-fc676dd6.md,cards/1462-fc676dd6.md,"WIN-001: MSVC 构建依赖适配 (cfitsio pthread/zlib via MSYS2+ACS_ZLIB_ROOT, cpu nlohmann include, "
+1463,fed64294,2026-09-02,付家泽,S,1,主责,compact/1463-fed64294.md,cards/1463-fed64294.md,WIN-001: cfitsio MSVC pthread shim (SRWLOCK 映射) + NOMINMAX 全局定义 (std::min/max 宏污染)
+1464,a8cfb8c7,2026-09-02,付家泽,S,1,主责,compact/1464-a8cfb8c7.md,cards/1464-a8cfb8c7.md,"WIN-001: pthread shim 去除 windows.h include (手动声明 SRWLock, 避免 winnt.h 冲突)"
+1465,1713b758,2026-09-02,付家泽,S,1,主责,compact/1465-1713b758.md,cards/1465-1713b758.md,WIN-001: shim SRWLock guard 兼容 windows.h + PTHREAD_MUTEX_RECURSIVE + unistd.h shim + _USE_
+1466,8c03ddf1,2026-09-02,付家泽,S,1,主责,compact/1466-8c03ddf1.md,cards/1466-8c03ddf1.md,"WIN-001: pthread shim 改纯原子自旋锁 (零 windows.h/SDK 依赖, 消除 SRWLOCK 重定义)"
+1467,3b304df7,2026-09-02,付家泽,S,1,主责,compact/1467-3b304df7.md,cards/1467-3b304df7.md,WIN-001: zlib 库名 libz.lib + aio third_party include (nlohmann)
+1468,95958371,2026-09-02,付家泽,S,1,主责,compact/1468-95958371.md,cards/1468-95958371.md,WIN-001: hiss_format.h undef OPTIONAL/REQUIRED (Windows 宏污染 SubblockFlags 枚举值)
+1469,d80d26d9,2026-09-02,付家泽,S,1,主责,compact/1469-d80d26d9.md,cards/1469-d80d26d9.md,WIN-001: undef Windows 噪音宏 (ERROR 等) — context.h 自清理 + monitor.h 统一清理 windows.h 引入点
+1470,46acc590,2026-09-02,付家泽,S,1,主责,compact/1470-46acc590.md,cards/1470-46acc590.md,WIN-001: m 链接 UNIX guard + shim strtok_r (cfitsio _REENTRANT)
+1471,2e6bf329,2026-09-02,付家泽,S,1,主责,compact/1471-2e6bf329.md,cards/1471-2e6bf329.md,WIN-001: 修复 CMakeLists 冗余 endif (m/z 链接块结构)
+1472,ce8a8455,2026-09-02,付家泽,S,1,主责,compact/1472-ce8a8455.md,cards/1472-ce8a8455.md,WIN-001: strtok_r 手写实现 (避免 strtok_s UCRT 冲突 C2040)
+1473,8d1a957c,2026-09-02,付家泽,S,1,主责,compact/1473-8d1a957c.md,cards/1473-8d1a957c.md,"WIN-001: shim strtok_r nullptr→NULL (cfitsio 为 C 文件, C 模式无 nullptr)"
+1474,c1696156,2026-09-02,付家泽,S,1,主责,compact/1474-c1696156.md,cards/1474-c1696156.md,WIN-001: tests MSVC 兼容 (io_reentrant z 链接分支 + p3_output_test popen→filesystem)
+1475,065c81de,2026-09-02,付家泽,M,2,主责,compact/1475-065c81de.md,cards/1475-065c81de.md,docs(governance): GOV-001 冻结Alpha工程约束
+1476,bbe2e59e,2026-09-02,付家泽,M,2,主责,compact/1476-bbe2e59e.md,cards/1476-bbe2e59e.md,feat(logging): LOG-001 统一结构化日志接口
+1477,1c3d1dc9,2026-09-02,付家泽,M,2,主责,compact/1477-1c3d1dc9.md,cards/1477-1c3d1dc9.md,docs(architecture): ARC-001 冻结DLL产品边界
+1478,f260b804,2026-09-02,付家泽,M,2,主责,compact/1478-f260b804.md,cards/1478-f260b804.md,build(msvc): BLD-001 冻结Windows发布工具链
+1479,2df77afe,2026-09-02,付家泽,M,2,主责,compact/1479-2df77afe.md,cards/1479-2df77afe.md,feat(data): DATA-001 冻结类型化产物合同
+1480,b7b2dea7,2026-09-02,付家泽,L,4,主责,compact/1480-b7b2dea7.md,cards/1480-b7b2dea7.md,docs(governance): GOV-002 归档非当前工程文档
+1481,76b85d45,2026-09-02,付家泽,M,2,主责,compact/1481-76b85d45.md,cards/1481-76b85d45.md,feat(abi): ABI-001 定义模块C ABI v1
+1482,39e77317,2026-09-02,付家泽,M,2,主责,compact/1482-39e77317.md,cards/1482-39e77317.md,build(version): GOV-003 统一Alpha版本事实源
+1483,5d38ebd7,2026-09-02,付家泽,M,2,主责,compact/1483-5d38ebd7.md,cards/1483-5d38ebd7.md,feat(runtime): RT-001 实现类型化运行图
+1484,c1ee791a,2026-09-02,付家泽,M,2,主责,compact/1484-c1ee791a.md,cards/1484-c1ee791a.md,feat(data): DATA-002 定义三阶段产品交换合同
+1485,3e7f7581,2026-09-03,付家泽,S,1,主责,compact/1485-3e7f7581.md,cards/1485-3e7f7581.md,feat(build): BLD-002 建立唯一根 CMake 构建图
