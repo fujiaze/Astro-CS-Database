@@ -1,6 +1,6 @@
 # FIX_LEDGER · 修复账本（人读视图：P0 全列）
 
-- 条目总数 **641**（P0 88 / P1 371 / P2 179 / 其它 3）；机器读写面 = 
+- 条目总数 **650**（P0 89 / P1 377 / P2 181 / 其它 3）；机器读写面 = 
   `问题扫描/账本/FIX_LEDGER.csv`（**隔壁只填后 9 列**，判定列由前台重跑刷新并按 id 保留你的填写）
 - 重跑：`python3 问题扫描/_tools/gen_fix_ledger.py`
 
@@ -94,3 +94,4 @@
 | V13-N-03 | P0 | G_GOV_GATE | V13 |  | 审计状态铸造面：713/713 行机械铸 `VERIFIED` 并铸 `findings_p0..3=0`、7 个 `*_ok=PASS`， | OPEN |  |  |
 | V2-N-01 | P0 | G_GOV_GATE | V2 | C-09 | IpvParams 公共 C 结构体布局已改而仓内 ctypes 镜像未同步 ⇒ 72 字节越界写 + 字段全错位 | FIXED | fbfcfac0 | ADDED:ipv_abi_layout_lock |
 | V2-N-08 | P0 | G_GOV_GATE | V2-D2 |  | FAST 模式的裁决前提已被同批另一提交推翻 ⇒ `psf.max_stars` 静默决定交付的 SNR／极限星等，且无任何 parity  | OPEN |  |  |
+| V9-N-07 | P0 | G_GOV_GATE | V9-b |  | （P0·机制①最纯形态）**5 道非豁免门在 CI 里只跑 `--selftest`**：真实判定模式需要交付物参数，而 CI 从不传 ⇒  | OPEN |  |  |
