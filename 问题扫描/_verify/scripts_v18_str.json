@@ -1,0 +1,6138 @@
+[
+ {
+  "file": "./lib/acr/qualification/benchmarks/arithmetic_benchmark.cpp",
+  "line": 394,
+  "macro": "ACR_BENCH_REGISTER_ARITH",
+  "params": [
+   "OP_NAME",
+   "OP_ENUM",
+   "PREC",
+   "T"
+  ],
+  "never_used": [
+   "OP_ENUM",
+   "PREC",
+   "T"
+  ],
+  "body": "\\\n    BENCHMARK(OP_NAME##_##PREC##_baseline)                                                \\\n        ->Arg(1024)->Arg(4096)->Arg(16384)                                                \\\n        ->Unit(::benchmark::kMicro"
+ },
+ {
+  "file": "./lib/acr/qualification/benchmarks/reduction_benchmark.cpp",
+  "line": 235,
+  "macro": "ACR_BENCH_DEFINE_REDUCE",
+  "params": [
+   "OP_NAME",
+   "OP_ENUM",
+   "MODE_NAME",
+   "MODE_ENUM",
+   "IN_T",
+   "ACC_T",
+   "LABEL"
+  ],
+  "never_used": [
+   "OP_NAME",
+   "MODE_NAME",
+   "LABEL"
+  ],
+  "body": "\\\n    static void reduce_##OP_NAME##_##MODE_NAME##_##LABEL(::benchmark::State& st) {          \\\n        run_reduce_bench<IN_T, ACC_T>(st, OP_ENUM, MODE_ENUM);                              \\\n    }                         "
+ },
+ {
+  "file": "./lib/acr/qualification/benchmarks/stream_benchmark.cpp",
+  "line": 120,
+  "macro": "ACR_BENCH_SELECT",
+  "params": [
+   "T",
+   "OP",
+   "ISA"
+  ],
+  "never_used": [
+   "OP",
+   "ISA"
+  ],
+  "body": "\\\n    if constexpr (std::is_same_v<T, float>) {                                            \\\n        switch (op) {                                                                    \\\n            case StreamOp::Copy:   r"
+ },
+ {
+  "file": "./lib/acr/qualification/benchmarks/stream_benchmark.cpp",
+  "line": 296,
+  "macro": "ACR_BENCH_REGISTER_STREAM",
+  "params": [
+   "OP_NAME",
+   "OP_ENUM",
+   "PREC",
+   "T",
+   "FIXTURE"
+  ],
+  "never_used": [
+   "OP_ENUM",
+   "PREC"
+  ],
+  "body": "\\\n    BENCHMARK_DEFINE_F(FIXTURE, OP_NAME##_##PREC##_baseline)(::benchmark::State& st) {  \\\n        run_stream_bench<T>(this, st);                                                        \\\n    }                           "
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 145,
+  "macro": "_0",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "A##B"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 147,
+  "macro": "_2",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "A##B     /* K&R ANSI C p.230: .. identifier is not replaced */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 302,
+  "macro": "CFC_",
+  "params": [
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "UN"
+  ],
+  "body": "_(LN,_)      /* Lowercase FORTRAN symbols.     */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 307,
+  "macro": "CFC_",
+  "params": [
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "LN"
+  ],
+  "body": "(UN)         /* Uppercase FORTRAN symbols.     */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 309,
+  "macro": "CFC_",
+  "params": [
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "LN"
+  ],
+  "body": "UN           /* Uppercase FORTRAN symbols.     */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 315,
+  "macro": "CFC_",
+  "params": [
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "UN"
+  ],
+  "body": "LN           /* Either case FORTRAN symbols.   */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 318,
+  "macro": "orig_fcallsc",
+  "params": [
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "LN"
+  ],
+  "body": "UN"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 320,
+  "macro": "CFC_",
+  "params": [
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "UN"
+  ],
+  "body": "LN           /* Lowercase FORTRAN symbols.     */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 339,
+  "macro": "COMMON_BLOCK",
+  "params": [
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "UN"
+  ],
+  "body": "_(_C,LN)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 342,
+  "macro": "COMMON_BLOCK",
+  "params": [
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "UN"
+  ],
+  "body": "_(LN,__)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 345,
+  "macro": "COMMON_BLOCK",
+  "params": [
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "UN"
+  ],
+  "body": "_3(_,LN,_)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 446,
+  "macro": "CF_SET_GETARG",
+  "params": [
+   "ARGC",
+   "ARGV"
+  ],
+  "never_used": [
+   "ARGC",
+   "ARGV"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 526,
+  "macro": "C2FLOGICALV",
+  "params": [
+   "A",
+   "I"
+  ],
+  "never_used": [
+   "A",
+   "I"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 527,
+  "macro": "F2CLOGICALV",
+  "params": [
+   "A",
+   "I"
+  ],
+  "never_used": [
+   "A",
+   "I"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 743,
+  "macro": "PDOUBLE_cfVP",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 744,
+  "macro": "PFLOAT_cfVP",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 751,
+  "macro": "PINT_cfVP",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 753,
+  "macro": "PLOGICAL_cfVP",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A"
+  ],
+  "body": "int *B __CFORTRAN__PCTYPE__UNUSED__ ;      /* Returning LOGICAL in FUNn and SUBn */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 760,
+  "macro": "BYTE_cfVCF",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 761,
+  "macro": "DOUBLE_cfVCF",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 763,
+  "macro": "FLOAT_cfVCF",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 767,
+  "macro": "INT_cfVCF",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 768,
+  "macro": "LOGICAL_cfVCF",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 769,
+  "macro": "LONG_cfVCF",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 770,
+  "macro": "SHORT_cfVCF",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 782,
+  "macro": "INTV_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 783,
+  "macro": "INTVV_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 784,
+  "macro": "INTVVV_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 785,
+  "macro": "INTVVVV_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 786,
+  "macro": "INTVVVVV_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 787,
+  "macro": "INTVVVVVV_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 788,
+  "macro": "INTVVVVVVV_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 789,
+  "macro": "PINT_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "F"
+  ],
+  "body": "_(T,_cfVP)(A,B)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 790,
+  "macro": "PVOID_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 792,
+  "macro": "ROUTINE_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "F"
+  ],
+  "body": "void (*B)(CF_NULL_PROTO) = (cfCAST_FUNCTION)A;"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 794,
+  "macro": "ROUTINE_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 796,
+  "macro": "SIMPLE_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 798,
+  "macro": "STRING_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "F"
+  ],
+  "body": "static struct {fstring f; unsigned clen;} B =  \\\n                                       {{0,DSC$K_DTYPE_T,DSC$K_CLASS_S,NULL},0};"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 800,
+  "macro": "PSTRING_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "F"
+  ],
+  "body": "static fstring B={0,DSC$K_DTYPE_T,DSC$K_CLASS_S,NULL};"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 801,
+  "macro": "STRINGV_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "F"
+  ],
+  "body": "static fstringvector B =                       \\\n  {sizeof(A),DSC$K_DTYPE_T,DSC$K_CLASS_A,NULL,0,0,{0,0,1,1,1},1,0,NULL,0,{1,0}};"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 803,
+  "macro": "PSTRINGV_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "F"
+  ],
+  "body": "static fstringvector B =                       \\\n          {0,DSC$K_DTYPE_T,DSC$K_CLASS_A,NULL,0,0,{0,0,1,1,1},1,0,NULL,0,{1,0}};"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 806,
+  "macro": "STRING_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "F"
+  ],
+  "body": "struct {unsigned int clen, flen; char *nombre;} B;"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 807,
+  "macro": "STRINGV_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "F"
+  ],
+  "body": "struct {char *s, *fs; unsigned flen; char *nombre;} B;"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 808,
+  "macro": "PSTRING_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "F"
+  ],
+  "body": "int     B;"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 809,
+  "macro": "PSTRINGV_cfV",
+  "params": [
+   "T",
+   "A",
+   "B",
+   "F"
+  ],
+  "never_used": [
+   "T",
+   "A",
+   "F"
+  ],
+  "body": "struct{char *fs; unsigned int sizeofA,flen;}B;"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 818,
+  "macro": "DEFAULT_cfA",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 819,
+  "macro": "LOGICAL_cfA",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "A"
+  ],
+  "body": "B=C2FLOGICAL(B);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 820,
+  "macro": "PLOGICAL_cfA",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B"
+  ],
+  "body": "A=C2FLOGICAL(A);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 832,
+  "macro": "APATRINGV_cfA",
+  "params": [
+   "A",
+   "B",
+   "sA",
+   "filA",
+   "silA"
+  ],
+  "never_used": [
+   "filA"
+  ],
+  "body": "\\\n B.fs=c2fstrv(A,A,(B.flen=(silA)-1)+1,B.sizeofA=(sA));"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 835,
+  "macro": "STRINGV_cfA",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": "\\\n    AATRINGV_cfA((char *)A,B,sizeof(A),firstindexlength(A),secondindexlength(A))"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 837,
+  "macro": "PSTRINGV_cfA",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": "\\\n   APATRINGV_cfA((char *)A,B,sizeof(A),firstindexlength(A),secondindexlength(A))"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 846,
+  "macro": "PBYTE_cfAAP",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 847,
+  "macro": "PDOUBLE_cfAAP",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 848,
+  "macro": "PFLOAT_cfAAP",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "FLOATVVVVVVV_cfPP &A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 849,
+  "macro": "PINT_cfAAP",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 851,
+  "macro": "PLONG_cfAAP",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 852,
+  "macro": "PSHORT_cfAAP",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 855,
+  "macro": "INT_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "&B"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 856,
+  "macro": "INTV_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "_(T,VVVVVV_cfPP) A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 857,
+  "macro": "INTVV_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "_(T,VVVVV_cfPP)  A[0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 858,
+  "macro": "INTVVV_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "_(T,VVVV_cfPP)   A[0][0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 859,
+  "macro": "INTVVVV_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "_(T,VVV_cfPP)    A[0][0][0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 860,
+  "macro": "INTVVVVV_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "_(T,VV_cfPP)     A[0][0][0][0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 861,
+  "macro": "INTVVVVVV_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "_(T,V_cfPP)      A[0][0][0][0][0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 862,
+  "macro": "INTVVVVVVV_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "_(T,_cfPP)       A[0][0][0][0][0][0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 864,
+  "macro": "PVOID_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "(void *) A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 866,
+  "macro": "ROUTINE_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "&B"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 868,
+  "macro": "ROUTINE_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "(cfCAST_FUNCTION)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 873,
+  "macro": "STRINGV_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "&B"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 876,
+  "macro": "STRINGV_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "_cptofcd(B.fs,B.flen)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 878,
+  "macro": "STRINGV_cfAA",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "B.fs"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 886,
+  "macro": "JCF",
+  "params": [
+   "TN",
+   "I"
+  ],
+  "never_used": [
+   "TN",
+   "I"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 887,
+  "macro": "KCF",
+  "params": [
+   "TN",
+   "I"
+  ],
+  "never_used": [
+   "TN",
+   "I"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 891,
+  "macro": "DEFAULT_cfJ",
+  "params": [
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": ",0"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 893,
+  "macro": "DEFAULT_cfJ",
+  "params": [
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 909,
+  "macro": "DEFAULT_cfKK",
+  "params": [
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 922,
+  "macro": "DEFAULT_cfW",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 923,
+  "macro": "LOGICAL_cfW",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 924,
+  "macro": "PLOGICAL_cfW",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A"
+  ],
+  "body": "*B=F2CLOGICAL(*B);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 926,
+  "macro": "PSTRING_cfW",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "kill_trailing(A,' ');"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 928,
+  "macro": "STRINGV_cfW",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A"
+  ],
+  "body": "_cf_free(B.dsc$a_pointer);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 934,
+  "macro": "STRINGV_cfW",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A"
+  ],
+  "body": "_cf_free(B.s);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 953,
+  "macro": "PVOID_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "void *                A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 955,
+  "macro": "ROUTINE_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "void (**A)(CF_NULL_PROTO)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 957,
+  "macro": "ROUTINE_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "void ( *A)(CF_NULL_PROTO)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 960,
+  "macro": "STRING_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "fstring *             A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 961,
+  "macro": "STRINGV_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "fstringvector *       A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 964,
+  "macro": "STRING_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "_fcd                  A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 965,
+  "macro": "STRINGV_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "_fcd                  A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 967,
+  "macro": "STRING_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "char *                A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 968,
+  "macro": "STRINGV_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "char *                A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1015,
+  "macro": "ABSOFT_cf1",
+  "params": [
+   "T0"
+  ],
+  "never_used": [
+   "T0"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1016,
+  "macro": "ABSOFT_cf2",
+  "params": [
+   "T0"
+  ],
+  "never_used": [
+   "T0"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1017,
+  "macro": "ABSOFT_cf3",
+  "params": [
+   "T0"
+  ],
+  "never_used": [
+   "T0"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1070,
+  "macro": "CFARGT20",
+  "params": [
+   "F",
+   "S",
+   "M",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE",
+   "TF",
+   "TG",
+   "TH",
+   "TI",
+   "TJ",
+   "TK"
+  ],
+  "never_used": [
+   "M"
+  ],
+  "body": "\\\n F(T1,1,0)  F(T2,2,1)  F(T3,3,1)  F(T4,4,1)  F(T5,5,1)  F(T6,6,1)  F(T7,7,1)   \\\n F(T8,8,1)  F(T9,9,1)  F(TA,10,1) F(TB,11,1) F(TC,12,1) F(TD,13,1) F(TE,14,1)  \\\n F(TF,15,1) F(TG,16,1) F(TH,17,1) F(TI,18,1) F(TJ,19,1) "
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1104,
+  "macro": "CFARGT14",
+  "params": [
+   "F",
+   "S",
+   "M",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE"
+  ],
+  "never_used": [
+   "M"
+  ],
+  "body": "\\\n F(T1,1,0) S(T1,1) F(T2,2,1)  S(T2,2)  F(T3,3,1)  S(T3,3)  F(T4,4,1)  S(T4,4)  \\\n F(T5,5,1) S(T5,5) F(T6,6,1)  S(T6,6)  F(T7,7,1)  S(T7,7)  F(T8,8,1)  S(T8,8)  \\\n F(T9,9,1) S(T9,9) F(TA,10,1) S(TA,10) F(TB,11,1) S(TB,1"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1109,
+  "macro": "CFARGT27",
+  "params": [
+   "F",
+   "S",
+   "M",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE",
+   "TF",
+   "TG",
+   "TH",
+   "TI",
+   "TJ",
+   "TK",
+   "TL",
+   "TM",
+   "TN",
+   "TO",
+   "TP",
+   "TQ",
+   "TR"
+  ],
+  "never_used": [
+   "M"
+  ],
+  "body": "\\\n F(T1,1,0)  S(T1,1)  F(T2,2,1)  S(T2,2)  F(T3,3,1)  S(T3,3)  F(T4,4,1)  S(T4,4)  \\\n F(T5,5,1)  S(T5,5)  F(T6,6,1)  S(T6,6)  F(T7,7,1)  S(T7,7)  F(T8,8,1)  S(T8,8)  \\\n F(T9,9,1)  S(T9,9)  F(TA,10,1) S(TA,10) F(TB,11,1) "
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1118,
+  "macro": "CFARGT20",
+  "params": [
+   "F",
+   "S",
+   "M",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE",
+   "TF",
+   "TG",
+   "TH",
+   "TI",
+   "TJ",
+   "TK"
+  ],
+  "never_used": [
+   "M"
+  ],
+  "body": "\\\n F(T1,1,0)  S(T1,1)  F(T2,2,1)  S(T2,2)  F(T3,3,1)  S(T3,3)  F(T4,4,1)  S(T4,4)  \\\n F(T5,5,1)  S(T5,5)  F(T6,6,1)  S(T6,6)  F(T7,7,1)  S(T7,7)  F(T8,8,1)  S(T8,8)  \\\n F(T9,9,1)  S(T9,9)  F(TA,10,1) S(TA,10) F(TB,11,1) "
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1243,
+  "macro": "PROTOCCALLSFSUB14",
+  "params": [
+   "UN",
+   "LN",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE"
+  ],
+  "never_used": [
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE"
+  ],
+  "body": "\\\n         PROTOCCALLSFSUB0(UN,LN)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1245,
+  "macro": "PROTOCCALLSFSUB20",
+  "params": [
+   "UN",
+   "LN",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE",
+   "TF",
+   "TG",
+   "TH",
+   "TI",
+   "TJ",
+   "TK"
+  ],
+  "never_used": [
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE",
+   "TF",
+   "TG",
+   "TH",
+   "TI",
+   "TJ",
+   "TK"
+  ],
+  "body": "\\\n         PROTOCCALLSFSUB0(UN,LN)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1247,
+  "macro": "PROTOCCALLSFSUB27",
+  "params": [
+   "UN",
+   "LN",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE",
+   "TF",
+   "TG",
+   "TH",
+   "TI",
+   "TJ",
+   "TK",
+   "TL",
+   "TM",
+   "TN",
+   "TO",
+   "TP",
+   "TQ",
+   "TR"
+  ],
+  "never_used": [
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE",
+   "TF",
+   "TG",
+   "TH",
+   "TI",
+   "TJ",
+   "TK",
+   "TL",
+   "TM",
+   "TN",
+   "TO",
+   "TP",
+   "TQ",
+   "TR"
+  ],
+  "body": "\\\n         PROTOCCALLSFSUB0(UN,LN)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1286,
+  "macro": "CPPPROTOCLSFSUB0",
+  "params": [
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "UN",
+   "LN"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1287,
+  "macro": "CPPPROTOCLSFSUB14",
+  "params": [
+   "UN",
+   "LN",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE"
+  ],
+  "never_used": [
+   "UN",
+   "LN",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1288,
+  "macro": "CPPPROTOCLSFSUB20",
+  "params": [
+   "UN",
+   "LN",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE",
+   "TF",
+   "TG",
+   "TH",
+   "TI",
+   "TJ",
+   "TK"
+  ],
+  "never_used": [
+   "UN",
+   "LN",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE",
+   "TF",
+   "TG",
+   "TH",
+   "TI",
+   "TJ",
+   "TK"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1289,
+  "macro": "CPPPROTOCLSFSUB27",
+  "params": [
+   "UN",
+   "LN",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE",
+   "TF",
+   "TG",
+   "TH",
+   "TI",
+   "TJ",
+   "TK",
+   "TL",
+   "TM",
+   "TN",
+   "TO",
+   "TP",
+   "TQ",
+   "TR"
+  ],
+  "never_used": [
+   "UN",
+   "LN",
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE",
+   "TF",
+   "TG",
+   "TH",
+   "TI",
+   "TJ",
+   "TK",
+   "TL",
+   "TM",
+   "TN",
+   "TO",
+   "TP",
+   "TQ",
+   "TR"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1434,
+  "macro": "__SEP_0",
+  "params": [
+   "TN",
+   "cfCOMMA"
+  ],
+  "never_used": [
+   "TN",
+   "cfCOMMA"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1436,
+  "macro": "INT_cfSEP",
+  "params": [
+   "T",
+   "B"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "_(A,B)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1484,
+  "macro": "CFARGS0",
+  "params": [
+   "A",
+   "T",
+   "V",
+   "W",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "never_used": [
+   "V",
+   "W",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "body": "_3(T,_cf,A)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1485,
+  "macro": "CFARGS1",
+  "params": [
+   "A",
+   "T",
+   "V",
+   "W",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "never_used": [
+   "W",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "body": "_3(T,_cf,A)(V)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1486,
+  "macro": "CFARGS2",
+  "params": [
+   "A",
+   "T",
+   "V",
+   "W",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "never_used": [
+   "X",
+   "Y",
+   "Z"
+  ],
+  "body": "_3(T,_cf,A)(V,W)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1487,
+  "macro": "CFARGS3",
+  "params": [
+   "A",
+   "T",
+   "V",
+   "W",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "never_used": [
+   "Y",
+   "Z"
+  ],
+  "body": "_3(T,_cf,A)(V,W,X)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1488,
+  "macro": "CFARGS4",
+  "params": [
+   "A",
+   "T",
+   "V",
+   "W",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "never_used": [
+   "Z"
+  ],
+  "body": "_3(T,_cf,A)(V,W,X,Y)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1583,
+  "macro": "CF_0_cfINT",
+  "params": [
+   "N",
+   "A",
+   "B",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "never_used": [
+   "N",
+   "A",
+   "B",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1598,
+  "macro": "PVOID_cfU",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "void  *A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1599,
+  "macro": "ROUTINE_cfU",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "void (*A)(CF_NULL_PROTO)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1600,
+  "macro": "VOID_cfU",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "void   A    /* Needed for C calls FORTRAN sub.s.  */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1601,
+  "macro": "STRING_cfU",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "char  *A    /*            via VOID and wrapper.   */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1602,
+  "macro": "STRINGV_cfU",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "char  *A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1603,
+  "macro": "PSTRING_cfU",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "char  *A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1604,
+  "macro": "PSTRINGV_cfU",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "char  *A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1605,
+  "macro": "ZTRINGV_cfU",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "char  *A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1606,
+  "macro": "PZTRINGV_cfU",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "char  *A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1610,
+  "macro": "VOID_cfUU",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "/* Needed for FORTRAN calls C sub.s.  */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1611,
+  "macro": "STRING_cfUU",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "char *A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1673,
+  "macro": "INT_cfGZ",
+  "params": [
+   "T",
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "A0=CFC_(UN,LN)("
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1674,
+  "macro": "VOID_cfGZ",
+  "params": [
+   "T",
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "CFC_(UN,LN)("
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1676,
+  "macro": "STRING_cfGZ",
+  "params": [
+   "T",
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "CFC_(UN,LN)(&A0"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1679,
+  "macro": "STRING_cfGZ",
+  "params": [
+   "T",
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "CFC_(UN,LN)( A0"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1681,
+  "macro": "STRING_cfGZ",
+  "params": [
+   "T",
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "CFC_(UN,LN)( A0,MAX_LEN_FORTRAN_FUNCTION_STRING"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1705,
+  "macro": "INTV_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1706,
+  "macro": "INTVV_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(A)[0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1707,
+  "macro": "INTVVV_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(A)[0][0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1708,
+  "macro": "INTVVVV_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(A)[0][0][0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1709,
+  "macro": "INTVVVVV_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(A)[0][0][0][0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1710,
+  "macro": "INTVVVVVV_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(A)[0][0][0][0][0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1711,
+  "macro": "INTVVVVVVV_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(A)[0][0][0][0][0][0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1713,
+  "macro": "STRING_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(char *)   A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1714,
+  "macro": "STRINGV_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(char *)   A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1715,
+  "macro": "PSTRING_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(char *)   A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1716,
+  "macro": "PSTRINGV_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(char *)   A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1717,
+  "macro": "PVOID_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(void *)   A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1718,
+  "macro": "ROUTINE_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(cfCAST_FUNCTION)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1719,
+  "macro": "ZTRINGV_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(char *)   A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1720,
+  "macro": "PZTRINGV_cfB",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "(char *)   A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1723,
+  "macro": "DEFAULT_cfS",
+  "params": [
+   "M",
+   "I",
+   "A"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "A"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1724,
+  "macro": "LOGICAL_cfS",
+  "params": [
+   "M",
+   "I",
+   "A"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "A"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1725,
+  "macro": "PLOGICAL_cfS",
+  "params": [
+   "M",
+   "I",
+   "A"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "A"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1726,
+  "macro": "STRING_cfS",
+  "params": [
+   "M",
+   "I",
+   "A"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": ",sizeof(A)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1727,
+  "macro": "STRINGV_cfS",
+  "params": [
+   "M",
+   "I",
+   "A"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": ",( (unsigned)0xFFFF*firstindexlength(A) \\\n                              +secondindexlength(A))"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1729,
+  "macro": "PSTRING_cfS",
+  "params": [
+   "M",
+   "I",
+   "A"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": ",sizeof(A)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1731,
+  "macro": "ZTRINGV_cfS",
+  "params": [
+   "M",
+   "I",
+   "A"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "A"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1732,
+  "macro": "PZTRINGV_cfS",
+  "params": [
+   "M",
+   "I",
+   "A"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "A"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1739,
+  "macro": "DEFAULT_cfH",
+  "params": [
+   "M",
+   "I",
+   "A"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "A"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1740,
+  "macro": "LOGICAL_cfH",
+  "params": [
+   "S",
+   "U",
+   "B"
+  ],
+  "never_used": [
+   "S",
+   "U",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1741,
+  "macro": "PLOGICAL_cfH",
+  "params": [
+   "S",
+   "U",
+   "B"
+  ],
+  "never_used": [
+   "S",
+   "U",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1748,
+  "macro": "ZTRINGV_cfH",
+  "params": [
+   "S",
+   "U",
+   "B"
+  ],
+  "never_used": [
+   "S",
+   "U",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1749,
+  "macro": "PZTRINGV_cfH",
+  "params": [
+   "S",
+   "U",
+   "B"
+  ],
+  "never_used": [
+   "S",
+   "U",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1837,
+  "macro": "CF_0_cfSTR",
+  "params": [
+   "N",
+   "T",
+   "A",
+   "B",
+   "C",
+   "D",
+   "E"
+  ],
+  "never_used": [
+   "N",
+   "T",
+   "A",
+   "B",
+   "C",
+   "D",
+   "E"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1841,
+  "macro": "DEFAULT_cfC",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1842,
+  "macro": "LOGICAL_cfC",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "C"
+  ],
+  "body": "A=C2FLOGICAL( A);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1843,
+  "macro": "PLOGICAL_cfC",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "C"
+  ],
+  "body": "*A=C2FLOGICAL(*A);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1845,
+  "macro": "STRING_cfC",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": "(B.clen=strlen(A),B.f.dsc$a_pointer=A,         \\\n        C==sizeof(char*)||C==(unsigned)(B.clen+1)?B.f.dsc$w_length=B.clen:     \\\n          (memset((A)+B.clen,' ',C-B.clen-1),A[B.f.dsc$w_length=C-1]='\\0'));"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1849,
+  "macro": "PSTRING_cfC",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": "(B.dsc$a_pointer=A, C==sizeof(char*) ?         \\\n             B.dsc$w_length=strlen(A):  (A[C-1]='\\0',B.dsc$w_length=strlen(A), \\\n       memset((A)+B.dsc$w_length,' ',C-B.dsc$w_length-1), B.dsc$w_length=C-1));"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1853,
+  "macro": "STRING_cfC",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": "(B.nombre=A,B.clen=strlen(A),                             \\\n                C==sizeof(char*)||C==(unsigned)(B.clen+1)?B.flen=B.clen:       \\\n                        (memset(B.nombre+B.clen,' ',C-B.clen-1),B.nombre[B.flen"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1856,
+  "macro": "PSTRING_cfC",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": "(C==sizeof(char*)? B=strlen(A):                \\\n                    (A[C-1]='\\0',B=strlen(A),memset((A)+B,' ',C-B-1),B=C-1));"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1860,
+  "macro": "STRINGV_cfC",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": "\\\n        AATRINGV_cfA(    A,B,(C/0xFFFF)*(C%0xFFFF),C/0xFFFF,C%0xFFFF)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1862,
+  "macro": "PSTRINGV_cfC",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": "\\\n       APATRINGV_cfA(    A,B,(C/0xFFFF)*(C%0xFFFF),C/0xFFFF,C%0xFFFF)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1864,
+  "macro": "ZTRINGV_cfC",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "never_used": [
+   "C"
+  ],
+  "body": "\\\n        AATRINGV_cfA(    A,B, (_3(M,_ELEMS_,I))*((_3(M,_ELEMLEN_,I))+1),       \\\n                              (_3(M,_ELEMS_,I)), (_3(M,_ELEMLEN_,I))+1   )"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1867,
+  "macro": "PZTRINGV_cfC",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "C"
+  ],
+  "never_used": [
+   "C"
+  ],
+  "body": "\\\n       APATRINGV_cfA(    A,B, (_3(M,_ELEMS_,I))*((_3(M,_ELEMLEN_,I))+1),       \\\n                              (_3(M,_ELEMS_,I)), (_3(M,_ELEMLEN_,I))+1   )"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1871,
+  "macro": "BYTE_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1872,
+  "macro": "DOUBLE_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1874,
+  "macro": "FLOAT_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1877,
+  "macro": "FLOAT_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "A"
+  ],
+  "body": "&B /* unprototyped functions to double. Cannot    */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1879,
+  "macro": "INT_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1880,
+  "macro": "LOGICAL_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1881,
+  "macro": "LONG_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1882,
+  "macro": "SHORT_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1883,
+  "macro": "PBYTE_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1884,
+  "macro": "PDOUBLE_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1885,
+  "macro": "PFLOAT_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1886,
+  "macro": "PINT_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1888,
+  "macro": "PLONG_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1889,
+  "macro": "PSHORT_cfCCC",
+  "params": [
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1893,
+  "macro": "INTV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1894,
+  "macro": "INTVV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1895,
+  "macro": "INTVVV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1896,
+  "macro": "INTVVVV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1897,
+  "macro": "INTVVVVV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1898,
+  "macro": "INTVVVVVV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1899,
+  "macro": "INTVVVVVVV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1901,
+  "macro": "PVOID_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1903,
+  "macro": "ROUTINE_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "&A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1905,
+  "macro": "ROUTINE_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1907,
+  "macro": "SIMPLE_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1909,
+  "macro": "STRING_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "&B.f"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1910,
+  "macro": "STRINGV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "&B"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1911,
+  "macro": "PSTRING_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "&B"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1912,
+  "macro": "PSTRINGV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "&B"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1915,
+  "macro": "STRING_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "_cptofcd(A,B.flen)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1916,
+  "macro": "STRINGV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "_cptofcd(B.s,B.flen)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1917,
+  "macro": "PSTRING_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "_cptofcd(A,B)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1918,
+  "macro": "PSTRINGV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "_cptofcd(A,B.flen)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1920,
+  "macro": "STRING_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1921,
+  "macro": "STRINGV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "B.fs"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1922,
+  "macro": "PSTRING_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "B"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1923,
+  "macro": "PSTRINGV_cfCC",
+  "params": [
+   "T",
+   "A",
+   "B"
+  ],
+  "never_used": [
+   "T",
+   "A"
+  ],
+  "body": "B.fs"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 1952,
+  "macro": "CCALLSFFUN0",
+  "params": [
+   "UN",
+   "LN"
+  ],
+  "never_used": [
+   "LN"
+  ],
+  "body": "CFFUN(UN)()"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2067,
+  "macro": "STRING_cfMP",
+  "params": [
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE"
+  ],
+  "never_used": [
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "T5",
+   "T6",
+   "T7",
+   "T8",
+   "T9",
+   "TA",
+   "TB",
+   "TC",
+   "TD",
+   "TE"
+  ],
+  "body": "CF_NULL_PROTO"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2109,
+  "macro": "DCF",
+  "params": [
+   "TN",
+   "I"
+  ],
+  "never_used": [
+   "TN",
+   "I"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2110,
+  "macro": "DDCF",
+  "params": [
+   "TN",
+   "I"
+  ],
+  "never_used": [
+   "TN",
+   "I"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2111,
+  "macro": "DDDCF",
+  "params": [
+   "TN",
+   "I"
+  ],
+  "never_used": [
+   "TN",
+   "I"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2119,
+  "macro": "DEFAULT_cfQ",
+  "params": [
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2120,
+  "macro": "LOGICAL_cfQ",
+  "params": [
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2121,
+  "macro": "PLOGICAL_cfQ",
+  "params": [
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2127,
+  "macro": "PPSTRING_cfQ",
+  "params": [
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2164,
+  "macro": "BYTE_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "*A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2165,
+  "macro": "DOUBLE_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "*A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2166,
+  "macro": "FLOAT_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "*A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2167,
+  "macro": "INT_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "*A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2168,
+  "macro": "LOGICAL_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "F2CLOGICAL(*A)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2169,
+  "macro": "LONG_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "*A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2170,
+  "macro": "LONGLONG_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "*A /* added by MR December 2005 */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2171,
+  "macro": "SHORT_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "*A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2172,
+  "macro": "BYTEV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2173,
+  "macro": "DOUBLEV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2174,
+  "macro": "FLOATV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "VOIDP A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2175,
+  "macro": "INTV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2176,
+  "macro": "LOGICALV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2177,
+  "macro": "LONGV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2178,
+  "macro": "LONGLONGV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A /* added by MR December 2005 */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2179,
+  "macro": "SHORTV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2180,
+  "macro": "BYTEVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* We have to cast to void *,*/"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2181,
+  "macro": "BYTEVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* since we don't know the   */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2182,
+  "macro": "BYTEVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* dimensions of the array.  */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2183,
+  "macro": "BYTEVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* i.e. Unfortunately, can't */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2184,
+  "macro": "BYTEVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* check that the type       */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2185,
+  "macro": "BYTEVVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* matches the prototype.    */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2186,
+  "macro": "DOUBLEVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2187,
+  "macro": "DOUBLEVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2188,
+  "macro": "DOUBLEVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2189,
+  "macro": "DOUBLEVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2190,
+  "macro": "DOUBLEVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2191,
+  "macro": "DOUBLEVVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2192,
+  "macro": "FLOATVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2193,
+  "macro": "FLOATVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2194,
+  "macro": "FLOATVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2195,
+  "macro": "FLOATVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2196,
+  "macro": "FLOATVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2197,
+  "macro": "FLOATVVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2198,
+  "macro": "INTVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2199,
+  "macro": "INTVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2200,
+  "macro": "INTVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2201,
+  "macro": "INTVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2202,
+  "macro": "INTVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2203,
+  "macro": "INTVVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2204,
+  "macro": "LOGICALVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2205,
+  "macro": "LOGICALVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2206,
+  "macro": "LOGICALVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2207,
+  "macro": "LOGICALVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2208,
+  "macro": "LOGICALVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2209,
+  "macro": "LOGICALVVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2210,
+  "macro": "LONGVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2211,
+  "macro": "LONGVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2212,
+  "macro": "LONGVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2213,
+  "macro": "LONGVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2214,
+  "macro": "LONGVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2215,
+  "macro": "LONGVVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2216,
+  "macro": "LONGLONGVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* added by MR December 2005 */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2217,
+  "macro": "LONGLONGVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* added by MR December 2005 */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2218,
+  "macro": "LONGLONGVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* added by MR December 2005 */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2219,
+  "macro": "LONGLONGVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* added by MR December 2005 */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2220,
+  "macro": "LONGLONGVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* added by MR December 2005 */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2221,
+  "macro": "LONGLONGVVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A /* added by MR December 2005 */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2222,
+  "macro": "SHORTVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2223,
+  "macro": "SHORTVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2224,
+  "macro": "SHORTVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2225,
+  "macro": "SHORTVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2226,
+  "macro": "SHORTVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2227,
+  "macro": "SHORTVVVVVVV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(void *)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2228,
+  "macro": "PBYTE_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2229,
+  "macro": "PDOUBLE_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2230,
+  "macro": "PFLOAT_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "VOIDP A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2231,
+  "macro": "PINT_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2232,
+  "macro": "PLOGICAL_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "((*A=F2CLOGICAL(*A)),A)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2233,
+  "macro": "PLONG_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2234,
+  "macro": "PLONGLONG_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A /* added by MR December 2005 */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2235,
+  "macro": "PSHORT_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2236,
+  "macro": "PVOID_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2238,
+  "macro": "ROUTINE_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "B",
+   "D"
+  ],
+  "body": "_(ROUTINE_,I)  (*A)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2240,
+  "macro": "ROUTINE_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "B",
+   "D"
+  ],
+  "body": "_(ROUTINE_,I)    A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2252,
+  "macro": "STRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "D"
+  ],
+  "body": "TTTTSTR( A->dsc$a_pointer,B,A->dsc$w_length)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2253,
+  "macro": "STRINGV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "D"
+  ],
+  "body": "TTTTSTRV(A->dsc$a_pointer, B,           \\\n                                             A->dsc$w_length , A->dsc$l_m[0])"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2255,
+  "macro": "PSTRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "D"
+  ],
+  "body": "TTSTR( A->dsc$a_pointer,B,A->dsc$w_length)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2256,
+  "macro": "PPSTRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A->dsc$a_pointer"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2259,
+  "macro": "STRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "D"
+  ],
+  "body": "TTTTSTR( _fcdtocp(A),B,_fcdlen(A))"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2260,
+  "macro": "STRINGV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "D"
+  ],
+  "body": "TTTTSTRV(_fcdtocp(A),B,_fcdlen(A),      \\\n                              num_elem(_fcdtocp(A),_fcdlen(A),_3(M,_STRV_A,I)))"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2262,
+  "macro": "PSTRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "D"
+  ],
+  "body": "TTSTR( _fcdtocp(A),B,_fcdlen(A))"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2263,
+  "macro": "PPSTRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "_fcdtocp(A)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2265,
+  "macro": "STRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": "TTTTSTR( A,B,D)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2267,
+  "macro": "PSTRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I"
+  ],
+  "body": "TTSTR( A,B,D)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2268,
+  "macro": "PPSTRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2273,
+  "macro": "CF_0_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2276,
+  "macro": "DEFAULT_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "A",
+   "B",
+   "D"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2277,
+  "macro": "LOGICAL_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "A",
+   "B",
+   "D"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2278,
+  "macro": "PLOGICAL_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "B",
+   "D"
+  ],
+  "body": "*A=C2FLOGICAL(*A);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2279,
+  "macro": "STRING_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "A",
+   "D"
+  ],
+  "body": "if (B) _cf_free(B);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2280,
+  "macro": "STRINGV_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "A",
+   "D"
+  ],
+  "body": "_cf_free(B);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2286,
+  "macro": "PSTRING_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "D"
+  ],
+  "body": "RRRRPSTR( A->dsc$a_pointer,B,A->dsc$w_length)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2287,
+  "macro": "PSTRINGV_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "D"
+  ],
+  "body": "RRRRPSTRV(A->dsc$a_pointer,B,A->dsc$w_length)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2290,
+  "macro": "PSTRING_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "D"
+  ],
+  "body": "RRRRPSTR( _fcdtocp(A),B,_fcdlen(A))"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2291,
+  "macro": "PSTRINGV_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "D"
+  ],
+  "body": "RRRRPSTRV(_fcdtocp(A),B,_fcdlen(A))"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/cfortran.h",
+  "line": 2298,
+  "macro": "PPSTRING_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "A",
+   "B",
+   "D"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_l.c",
+  "line": 401,
+  "macro": "YY_LESS_LINENO",
+  "params": [
+   "n"
+  ],
+  "never_used": [
+   "n"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_l.c",
+  "line": 402,
+  "macro": "YY_LINENO_REWIND_TO",
+  "params": [
+   "ptr"
+  ],
+  "never_used": [
+   "ptr"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_y.c",
+  "line": 526,
+  "macro": "YY_USE",
+  "params": [
+   "E"
+  ],
+  "never_used": [
+   "E"
+  ],
+  "body": "/* empty */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_y.c",
+  "line": 551,
+  "macro": "YY_INITIAL_VALUE",
+  "params": [
+   "Value"
+  ],
+  "never_used": [
+   "Value"
+  ],
+  "body": "/* Nothing. */"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_y.c",
+  "line": 599,
+  "macro": "YYSTACK_FREE",
+  "params": [
+   "Ptr"
+  ],
+  "never_used": [
+   "Ptr"
+  ],
+  "body": "do { /* empty */; } while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_y.c",
+  "line": 815,
+  "macro": "yytable_value_is_error",
+  "params": [
+   "Yyn"
+  ],
+  "never_used": [
+   "Yyn"
+  ],
+  "body": "\\\n  0"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_y.c",
+  "line": 1406,
+  "macro": "YY_SYMBOL_PRINT",
+  "params": [
+   "Title",
+   "Kind",
+   "Value",
+   "Location"
+  ],
+  "never_used": [
+   "Location"
+  ],
+  "body": "\\\ndo {                                                                      \\\n  if (yydebug)                                                            \\\n    {                                                             "
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_y.c",
+  "line": 1511,
+  "macro": "YYDPRINTF",
+  "params": [
+   "Args"
+  ],
+  "never_used": [
+   "Args"
+  ],
+  "body": "((void) 0)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_y.c",
+  "line": 1512,
+  "macro": "YY_SYMBOL_PRINT",
+  "params": [
+   "Title",
+   "Kind",
+   "Value",
+   "Location"
+  ],
+  "never_used": [
+   "Title",
+   "Kind",
+   "Value",
+   "Location"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_y.c",
+  "line": 1513,
+  "macro": "YY_STACK_PRINT",
+  "params": [
+   "Bottom",
+   "Top"
+  ],
+  "never_used": [
+   "Bottom",
+   "Top"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_y.c",
+  "line": 1514,
+  "macro": "YY_REDUCE_PRINT",
+  "params": [
+   "Rule"
+  ],
+  "never_used": [
+   "Rule"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 40,
+  "macro": "LONGV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "D"
+  ],
+  "body": "( (_(B,N) = * _3(M,_LONGV_A,I)), \\\n\t\t\t\t    B = F2Clongv(_(B,N),A) )"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 42,
+  "macro": "PLONG_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "D"
+  ],
+  "body": "((B=*A),&B)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 43,
+  "macro": "LONGV_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "D"
+  ],
+  "body": "C2Flongv(_(B,N),A,B);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 44,
+  "macro": "PLONG_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "D"
+  ],
+  "body": "*A=B;"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 45,
+  "macro": "LONGV_cfH",
+  "params": [
+   "S",
+   "U",
+   "B"
+  ],
+  "never_used": [
+   "S",
+   "U",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 46,
+  "macro": "PLONG_cfH",
+  "params": [
+   "S",
+   "U",
+   "B"
+  ],
+  "never_used": [
+   "S",
+   "U",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 87,
+  "macro": "PPSTRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(unsigned char*)A->dsc$a_pointer"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 94,
+  "macro": "STRINGV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "D"
+  ],
+  "body": "TTTTSTRV(A->dsc$a_pointer, B, \\\n                                         A->dsc$w_length, \\\n                                         num_elem(A->dsc$a_pointer, \\\n                                                  A->dsc$w"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 101,
+  "macro": "PPSTRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(unsigned char*)_fcdtocp(A)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 103,
+  "macro": "PPSTRING_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(unsigned char*)A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 109,
+  "macro": "STRINGV_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "A",
+   "D"
+  ],
+  "body": "free(B[0]); free(B);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 182,
+  "macro": "BYTE_cfQ",
+  "params": [
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 183,
+  "macro": "BYTEV_cfQ",
+  "params": [
+   "B"
+  ],
+  "never_used": [
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 184,
+  "macro": "BYTE_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "A",
+   "B",
+   "D"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 185,
+  "macro": "BYTEV_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "A",
+   "B",
+   "D"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 188,
+  "macro": "BYTE_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "fstring * A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 189,
+  "macro": "BYTEV_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "fstringvector * A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 190,
+  "macro": "BYTE_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(INTEGER_BYTE)((A->dsc$a_pointer)[0])"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 191,
+  "macro": "BYTEV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(INTEGER_BYTE*)A->dsc$a_pointer"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 194,
+  "macro": "BYTE_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "_fcd A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 195,
+  "macro": "BYTEV_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "_fcd A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 196,
+  "macro": "BYTE_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(INTEGER_BYTE)((_fcdtocp(A))[0])"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 197,
+  "macro": "BYTEV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(INTEGER_BYTE*)_fcdtocp(A)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 199,
+  "macro": "BYTE_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "INTEGER_BYTE * A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 200,
+  "macro": "BYTEV_cfN",
+  "params": [
+   "T",
+   "A"
+  ],
+  "never_used": [
+   "T"
+  ],
+  "body": "INTEGER_BYTE * A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 201,
+  "macro": "BYTE_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A[0]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 202,
+  "macro": "BYTEV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "A"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 218,
+  "macro": "LOGICALV_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "D"
+  ],
+  "body": "(_(B,N)= * _3(M,_LOGV_A,I), \\\n                                            B=F2CcopyLogVect(_(B,N),A))"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 220,
+  "macro": "LOGICALV_cfR",
+  "params": [
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "D"
+  ],
+  "body": "C2FcopyLogVect(_(B,N),A,B);"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 221,
+  "macro": "LOGICALV_cfH",
+  "params": [
+   "S",
+   "U",
+   "B"
+  ],
+  "never_used": [
+   "S",
+   "U",
+   "B"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 252,
+  "macro": "FITSUNIT_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "gFitsFiles[*A]"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/f77_wrap.h",
+  "line": 256,
+  "macro": "PFITSUNIT_cfT",
+  "params": [
+   "M",
+   "I",
+   "A",
+   "B",
+   "D"
+  ],
+  "never_used": [
+   "M",
+   "I",
+   "B",
+   "D"
+  ],
+  "body": "(gFitsFiles + *A)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/fitsio2.h",
+  "line": 34,
+  "macro": "ffstrtok",
+  "params": [
+   "str",
+   "tok",
+   "save"
+  ],
+  "never_used": [
+   "save"
+  ],
+  "body": "strtok(str, tok)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/zuncompress.c",
+  "line": 43,
+  "macro": "Assert",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "never_used": [
+   "cond",
+   "msg"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/zuncompress.c",
+  "line": 44,
+  "macro": "Trace",
+  "params": [
+   "x"
+  ],
+  "never_used": [
+   "x"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/zuncompress.c",
+  "line": 45,
+  "macro": "Tracev",
+  "params": [
+   "x"
+  ],
+  "never_used": [
+   "x"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/zuncompress.c",
+  "line": 46,
+  "macro": "Tracevv",
+  "params": [
+   "x"
+  ],
+  "never_used": [
+   "x"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/zuncompress.c",
+  "line": 47,
+  "macro": "Tracec",
+  "params": [
+   "c",
+   "x"
+  ],
+  "never_used": [
+   "c",
+   "x"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/zuncompress.c",
+  "line": 48,
+  "macro": "Tracecv",
+  "params": [
+   "c",
+   "x"
+  ],
+  "never_used": [
+   "c",
+   "x"
+  ],
+  "body": ""
+ },
+ {
+  "file": "./lib/drizzle/src/module_entry.cpp",
+  "line": 47,
+  "macro": "DRZ_OMP_SET",
+  "params": [
+   "n"
+  ],
+  "never_used": [
+   "n"
+  ],
+  "body": "((void)0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_browser_qt/core/gl_renderer.cpp",
+  "line": 169,
+  "macro": "LOAD_GL_FUNC",
+  "params": [
+   "name"
+  ],
+  "never_used": [
+   "name"
+  ],
+  "body": "\\\n        p##name = reinterpret_cast<PFN_##name>( \\\n            reinterpret_cast<void*>(wglGetProcAddress(#name))); \\\n        if (!p##name) { \\\n            LOG_ERROR(\"load_gl_functions: 加载 \" #name \" 失败\"); \\\n            r"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_browser_qt/core/logger.h",
+  "line": 83,
+  "macro": "LOG_DEBUG",
+  "params": [
+   "fmt",
+   "..."
+  ],
+  "never_used": [
+   "fmt"
+  ],
+  "body": "((void)0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/poly_clip.cpp",
+  "line": 24,
+  "macro": "POLY_LOG",
+  "params": [
+   "fmt",
+   "..."
+  ],
+  "never_used": [
+   "fmt"
+  ],
+  "body": "do {} while(0)"
+ }
+]

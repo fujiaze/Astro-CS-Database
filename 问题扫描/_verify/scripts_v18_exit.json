@@ -1,0 +1,1820 @@
+[
+ {
+  "file": "./lib/astro_image_io/tests/hips_robust_sanitize_driver.cpp",
+  "counters": [
+   "graceful_open_fail"
+  ],
+  "returns": [
+   "0",
+   "10",
+   "11",
+   "12",
+   "2",
+   "3",
+   "4",
+   "5",
+   "6",
+   "7",
+   "8",
+   "9"
+  ],
+  "used": [],
+  "mlines": 125
+ },
+ {
+  "file": "./lib/astro_image_io/tests/hiss_correctness_test.cpp",
+  "counters": [
+   "g_failures",
+   "test_05_hard_failure_exptime_missing"
+  ],
+  "returns": [
+   "g_failures.empty() ? 0 : 1"
+  ],
+  "used": [
+   "g_failures"
+  ],
+  "mlines": 68
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p1hips/p1hips_digest_verify.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 149
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_checksum.cpp",
+  "counters": [
+   "g_fail_count"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 26
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_drizzle_integration.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "1",
+   "g_fail == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 41
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_precision_dual.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 25
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_query_pixel.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2"
+  ],
+  "used": [],
+  "mlines": 56
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_snr_unknown_block.cpp",
+  "counters": [
+   "g_fail_count"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 28
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_tile_model.cpp",
+  "counters": [
+   "g_fail_count"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 25
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_transform.cpp",
+  "counters": [
+   "g_fail_count"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 43
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_writer_integration.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 29
+ },
+ {
+  "file": "./lib/calibration/tests/test_photometry_apply.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "(g_fail == 0) ? 0 : 1"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 27
+ },
+ {
+  "file": "./lib/dynamic_psf/test/test_dpsf_nan_sort.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "g_failures == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_failures"
+  ],
+  "mlines": 88
+ },
+ {
+  "file": "./lib/dynamic_psf/tests/p1psf/p1psf_prodpath_check.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 63
+ },
+ {
+  "file": "./lib/gaia_xpsd_client/test/test_spec_collector_ownership.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "g_failures == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_failures"
+  ],
+  "mlines": 67
+ },
+ {
+  "file": "./lib/healpix_db/archive/legacy/healpix_stack/gradient/test_snr_evaluator.cpp",
+  "counters": [
+   "n_fail"
+  ],
+  "returns": [
+   "n_fail > 0 ? 1 : 0"
+  ],
+  "used": [
+   "n_fail"
+  ],
+  "mlines": 196
+ },
+ {
+  "file": "./lib/healpix_db/healpix_browser_qt/tests/test_geometry_truth.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "2",
+   "3",
+   "g_fail == 0 ? 0 : 1",
+   "sky.sample_at(ra, dec, order, *out) == 0"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 197
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp",
+  "counters": [
+   "fail"
+  ],
+  "returns": [
+   "1",
+   "fail"
+  ],
+  "used": [
+   "fail"
+  ],
+  "mlines": 134
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+  "counters": [
+   "failed"
+  ],
+  "returns": [
+   "1",
+   "127",
+   "failed == 0 ? 0 : 1",
+   "p1drz_run_core_groups(2, argv2)"
+  ],
+  "used": [
+   "failed"
+  ],
+  "mlines": 65
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/reference_overlap.cpp",
+  "counters": [
+   "g_fail_count"
+  ],
+  "returns": [
+   "(g_fail_count == 0) ? 0 : 1"
+  ],
+  "used": [
+   "g_fail_count"
+  ],
+  "mlines": 17
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/reverse_drizzle_science_test.cpp",
+  "counters": [
+   "fails"
+  ],
+  "returns": [
+   "-500.0 + 100.0 * v.z",
+   "1000.0",
+   "1000.0 + 300.0 * (0.6*v.x + 0.8*v.z)",
+   "1000.0 + 50000.0 * std::exp(-(d*d) / (2.0*sigma*sigma))",
+   "g_fail == 0 ? 0 : 1"
+  ],
+  "used": [],
+  "mlines": 280
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/test_nside_pixfrac.cpp",
+  "counters": [
+   "g_tests_failed"
+  ],
+  "returns": [
+   "(g_tests_failed == 0) ? 0 : 1"
+  ],
+  "used": [
+   "g_tests_failed"
+  ],
+  "mlines": 29
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/test_spherical_overlap.cpp",
+  "counters": [
+   "g_fail_count"
+  ],
+  "returns": [
+   "(g_fail_count == 0) ? 0 : 1"
+  ],
+  "used": [
+   "g_fail_count"
+  ],
+  "mlines": 25
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_checkpoint.cpp",
+  "counters": [
+   "g_fail_count"
+  ],
+  "returns": [
+   "(g_fail_count == 0) ? 0 : 1"
+  ],
+  "used": [
+   "g_fail_count"
+  ],
+  "mlines": 29
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_dll_loader.cpp",
+  "counters": [
+   "g_fail_count"
+  ],
+  "returns": [
+   "(g_fail_count == 0) ? 0 : 1"
+  ],
+  "used": [
+   "g_fail_count"
+  ],
+  "mlines": 25
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_logger.cpp",
+  "counters": [
+   "g_fail_count"
+  ],
+  "returns": [
+   "(g_fail_count == 0) ? 0 : 1"
+  ],
+  "used": [
+   "g_fail_count"
+  ],
+  "mlines": 30
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp",
+  "counters": [
+   "g_fail_count"
+  ],
+  "returns": [
+   "(g_fail_count == 0) ? 0 : 1"
+  ],
+  "used": [
+   "g_fail_count"
+  ],
+  "mlines": 27
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_p1_batchB_fixes.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "g_failures == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_failures"
+  ],
+  "mlines": 140
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_p1_batchH_star_coord.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "g_failures == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_failures"
+  ],
+  "mlines": 8
+ },
+ {
+  "file": "./lib/phase1_session/tests/test_p1_session_manifest.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2"
+  ],
+  "used": [],
+  "mlines": 113
+ },
+ {
+  "file": "./lib/photometric_calib/tests/p1phot/p1phot_fixgates.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 159
+ },
+ {
+  "file": "./lib/plate_solve/cpp/ipv/test/ipv_params_abi_failclosed_test.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "1",
+   "g_failures == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_failures"
+  ],
+  "mlines": 91
+ },
+ {
+  "file": "./lib/plate_solve/cpp/ipv/test/test_extract_wcs_sip_failclosed.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 68
+ },
+ {
+  "file": "./lib/plate_solve/cpp/ipv/test/test_kvector.cpp",
+  "counters": [
+   "failures",
+   "n_fail"
+  ],
+  "returns": [
+   "0",
+   "n_fail"
+  ],
+  "used": [
+   "n_fail"
+  ],
+  "mlines": 38
+ },
+ {
+  "file": "./lib/plate_solve/cpp/ipv/test/test_last_inlier_reset.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "g_failures == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_failures"
+  ],
+  "mlines": 97
+ },
+ {
+  "file": "./lib/plate_solve/cpp/ipv/test/test_mag_iter.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 14
+ },
+ {
+  "file": "./lib/plate_solve/cpp/ipv/test/test_triangle_budget.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 53
+ },
+ {
+  "file": "./lib/snr_estimator/tests/p1noise/p1snr_science_test.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "g_fail == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 159
+ },
+ {
+  "file": "./lib/star_detector/test/sdet_angle_guard_test.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 61
+ },
+ {
+  "file": "./lib/star_detector/tests/p1star/p1star_mad_check.cpp",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 59
+ },
+ {
+  "file": "./modules/conformance/echo/tests/unit/echo_host_callback_test.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 446
+ },
+ {
+  "file": "./modules/conformance/noop/tests/unit/noop_handshake_test.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 56
+ },
+ {
+  "file": "./modules/services/io/tests/fits_core_selftest.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 30
+ },
+ {
+  "file": "./modules/services/io/tests/hips_core_selftest.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2"
+  ],
+  "used": [],
+  "mlines": 19
+ },
+ {
+  "file": "./tests/abi/abi002_lifecycle_probe.c",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 9
+ },
+ {
+  "file": "./tests/backend/abi_selftest_main.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "failures == 0 ? 0 : 1"
+  ],
+  "used": [
+   "failures"
+  ],
+  "mlines": 57
+ },
+ {
+  "file": "./tests/backend/mon003_synthetic_main.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2"
+  ],
+  "used": [],
+  "mlines": 129
+ },
+ {
+  "file": "./tests/cpu/avx2/provider_avx2_capability_gate_test.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 36
+ },
+ {
+  "file": "./tests/cpu/avx2/provider_avx2_handshake_test.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 111
+ },
+ {
+  "file": "./tests/cpu/avx2/provider_avx2_so_load_test.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2"
+  ],
+  "used": [],
+  "mlines": 90
+ },
+ {
+  "file": "./tests/cpu/avx512/provider_avx512_capability_gate_test.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 44
+ },
+ {
+  "file": "./tests/cpu/avx512/provider_avx512_handshake_test.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 121
+ },
+ {
+  "file": "./tests/cpu/avx512/provider_avx512_so_load_test.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2"
+  ],
+  "used": [],
+  "mlines": 104
+ },
+ {
+  "file": "./tests/cpu/baseline/provider_capability_gate_test.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 27
+ },
+ {
+  "file": "./tests/cpu/baseline/provider_handshake_test.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 96
+ },
+ {
+  "file": "./tests/cpu/baseline/provider_so_load_test.c",
+  "counters": [
+   "g_failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2"
+  ],
+  "used": [],
+  "mlines": 85
+ },
+ {
+  "file": "./tests/cpu/dispatch/cpu_capability_matrix_test.c",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 132
+ },
+ {
+  "file": "./tests/unit/calibration_adapter_test.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "2",
+   "g_fail ? 1 : 0"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 475
+ },
+ {
+  "file": "./tests/unit/calibration_integration_test.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "2",
+   "g_fail == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 476
+ },
+ {
+  "file": "./tests/unit/cli_bench_verdict_test.cpp",
+  "counters": [
+   "fail_count"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 66
+ },
+ {
+  "file": "./tests/unit/cli_process_test.cpp",
+  "counters": [
+   "fail_count",
+   "spawn_failed"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 108
+ },
+ {
+  "file": "./tests/unit/cli_wideconv_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 10
+ },
+ {
+  "file": "./tests/unit/core_artifact_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 11
+ },
+ {
+  "file": "./tests/unit/core_checkpoint_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 13
+ },
+ {
+  "file": "./tests/unit/core_context_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 13
+ },
+ {
+  "file": "./tests/unit/core_contracts_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 14
+ },
+ {
+  "file": "./tests/unit/core_logging_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 12
+ },
+ {
+  "file": "./tests/unit/core_module_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 11
+ },
+ {
+  "file": "./tests/unit/core_pipeline_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 20
+ },
+ {
+  "file": "./tests/unit/core_scheduler_test.cpp",
+  "counters": [
+   "failures",
+   "test_failure_propagation",
+   "test_recovery_skip_after_failure"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 17
+ },
+ {
+  "file": "./tests/unit/cosmetic_adapter_test.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "1",
+   "g_fail ? 1 : 0"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 481
+ },
+ {
+  "file": "./tests/unit/cosmetic_integration_test.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "2",
+   "g_fail == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 565
+ },
+ {
+  "file": "./tests/unit/cpu001_negative_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 75
+ },
+ {
+  "file": "./tests/unit/cpu001_provider_selftest.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2",
+   "77"
+  ],
+  "used": [],
+  "mlines": 101
+ },
+ {
+  "file": "./tests/unit/cpu003_profile_v2_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "pb.json.substr(0, pos) + repl + pb.json.substr(pos + orig.si"
+  ],
+  "used": [],
+  "mlines": 125
+ },
+ {
+  "file": "./tests/unit/cpu006_bench_report_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 212
+ },
+ {
+  "file": "./tests/unit/cpu_abi_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 12
+ },
+ {
+  "file": "./tests/unit/cpu_bench_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 73
+ },
+ {
+  "file": "./tests/unit/cpu_fallback_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 107
+ },
+ {
+  "file": "./tests/unit/cpu_features_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 47
+ },
+ {
+  "file": "./tests/unit/cpu_lease_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 70
+ },
+ {
+  "file": "./tests/unit/cpu_monitor_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 76
+ },
+ {
+  "file": "./tests/unit/cpu_profile_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 43
+ },
+ {
+  "file": "./tests/unit/cpu_provider_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 62
+ },
+ {
+  "file": "./tests/unit/drizzle_adapter_test.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2"
+  ],
+  "used": [],
+  "mlines": 125
+ },
+ {
+  "file": "./tests/unit/drizzle_precision_default_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 79
+ },
+ {
+  "file": "./tests/unit/executor_provider_race_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 8
+ },
+ {
+  "file": "./tests/unit/gaia_adapter_test.c",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "2",
+   "g_fail ? 1 : 0"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 672
+ },
+ {
+  "file": "./tests/unit/gaia_cat_test.c",
+  "counters": [
+   "t_fail_after",
+   "t_failures"
+  ],
+  "returns": [
+   "2",
+   "mode_dump(argv[2], argv[3])",
+   "mode_negative(argv[2], argv[3])",
+   "mode_performance(argv[2], argv[3])",
+   "mode_properties(argv[2])",
+   "mode_truncate(argv[2])",
+   "mode_unit(argv[2])",
+   "mode_worker(argv[2])"
+  ],
+  "used": [],
+  "mlines": 19
+ },
+ {
+  "file": "./tests/unit/gaia_integration_test.c",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "2",
+   "g_fail == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 408
+ },
+ {
+  "file": "./tests/unit/gaia_magnitude_range_bounds_test.c",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "g_fail ? 1 : 0"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 210
+ },
+ {
+  "file": "./tests/unit/gaia_module_manifest_bounds_test.c",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2"
+  ],
+  "used": [],
+  "mlines": 99
+ },
+ {
+  "file": "./tests/unit/gaia_unshuffle_test.c",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 10
+ },
+ {
+  "file": "./tests/unit/io_adapter_test.cpp",
+  "counters": [
+   "failures",
+   "test_transaction_write_failure_not_silent"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 17
+ },
+ {
+  "file": "./tests/unit/io_ownership_test.cpp",
+  "counters": [
+   "failures",
+   "probe_failure_exit"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "failures == 0 ? 0 : 1"
+  ],
+  "used": [
+   "failures"
+  ],
+  "mlines": 60
+ },
+ {
+  "file": "./tests/unit/io_reentrant_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 58
+ },
+ {
+  "file": "./tests/unit/ipv_platform_binding_test.cpp",
+  "counters": [
+   "fails"
+  ],
+  "returns": [
+   "1",
+   "fails ? 1 : 0"
+  ],
+  "used": [
+   "fails"
+  ],
+  "mlines": 94
+ },
+ {
+  "file": "./tests/unit/master_flat_median_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 14
+ },
+ {
+  "file": "./tests/unit/mon001_gate_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 255
+ },
+ {
+  "file": "./tests/unit/mon001_recorder_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 92
+ },
+ {
+  "file": "./tests/unit/mon002_alloc_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 229
+ },
+ {
+  "file": "./tests/unit/mon002_gate_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 374
+ },
+ {
+  "file": "./tests/unit/p1001_modules_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 67
+ },
+ {
+  "file": "./tests/unit/p1001_real_nodes_test.cpp",
+  "counters": [
+   "failed",
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 35
+ },
+ {
+  "file": "./tests/unit/p15_artifact_collect_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 11
+ },
+ {
+  "file": "./tests/unit/p1_calibration_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 37
+ },
+ {
+  "file": "./tests/unit/p1_hips/adapter_test.c",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "g_fail ? 1 : 0"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 26
+ },
+ {
+  "file": "./tests/unit/p1_hips/publish_atomic_test.c",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "g_fail ? 1 : 0"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 29
+ },
+ {
+  "file": "./tests/unit/p1_hips_writer_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 72
+ },
+ {
+  "file": "./tests/unit/p1_ir_facade_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 62
+ },
+ {
+  "file": "./tests/unit/p1_noise_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 13
+ },
+ {
+  "file": "./tests/unit/p1_nside_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 10
+ },
+ {
+  "file": "./tests/unit/p1_resource_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 66
+ },
+ {
+  "file": "./tests/unit/p1_stars_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 14
+ },
+ {
+  "file": "./tests/unit/p1_wcs_phot_test.cpp",
+  "counters": [
+   "failures",
+   "test_photometry_out_of_bounds_fails"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 12
+ },
+ {
+  "file": "./tests/unit/p1snr/p1snr_linux_test.cpp",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "2",
+   "g_fail == 0 ? 0 : 1"
+  ],
+  "used": [
+   "g_fail"
+  ],
+  "mlines": 19
+ },
+ {
+  "file": "./tests/unit/p2001_real_nodes_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 14
+ },
+ {
+  "file": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 47
+ },
+ {
+  "file": "./tests/unit/p2_block_plan_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 92
+ },
+ {
+  "file": "./tests/unit/p2_ir_facade_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 55
+ },
+ {
+  "file": "./tests/unit/p2_output_semantics_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 127
+ },
+ {
+  "file": "./tests/unit/p2_rejection_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 80
+ },
+ {
+  "file": "./tests/unit/p2_seam_gate_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 61
+ },
+ {
+  "file": "./tests/unit/p2_upm_synthetic_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "diffs[diffs.size() / 2]"
+  ],
+  "used": [],
+  "mlines": 89
+ },
+ {
+  "file": "./tests/unit/p2_workers_test.cpp",
+  "counters": [
+   "case_alloc4_observed_0p9_core_fails",
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 127
+ },
+ {
+  "file": "./tests/unit/p3002_real_nodes_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 12
+ },
+ {
+  "file": "./tests/unit/p3002_uncertainty_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 35
+ },
+ {
+  "file": "./tests/unit/p3_assembly_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2"
+  ],
+  "used": [],
+  "mlines": 111
+ },
+ {
+  "file": "./tests/unit/p3_coverage_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 67
+ },
+ {
+  "file": "./tests/unit/p3_interp_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 75
+ },
+ {
+  "file": "./tests/unit/p3_output_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 127
+ },
+ {
+  "file": "./tests/unit/p3_projection_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1",
+   "2"
+  ],
+  "used": [],
+  "mlines": 69
+ },
+ {
+  "file": "./tests/unit/p3_wcs_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 111
+ },
+ {
+  "file": "./tests/unit/rt001_abi_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 14
+ },
+ {
+  "file": "./tests/unit/rt001_unique_executor_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 12
+ },
+ {
+  "file": "./tests/unit/rt002_budget_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 13
+ },
+ {
+  "file": "./tests/unit/rt003_context_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 10
+ },
+ {
+  "file": "./tests/unit/rt005_registry_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 12
+ },
+ {
+  "file": "./tests/unit/rt006_scheduler_test.cpp",
+  "counters": [
+   "failures",
+   "test_failure_propagation"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 14
+ },
+ {
+  "file": "./tests/unit/rt007_artifact_store_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 13
+ },
+ {
+  "file": "./tests/unit/rt008_runtime_client_test.cpp",
+  "counters": [
+   "failures"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 12
+ },
+ {
+  "file": "./tests/unit/rt009_node_trace_test.cpp",
+  "counters": [
+   "failures",
+   "test_validate_failure_no_manifest"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 9
+ },
+ {
+  "file": "./tests/unit/xpsd_spectrum_count_bounds_test.c",
+  "counters": [
+   "g_fail"
+  ],
+  "returns": [
+   "0",
+   "1"
+  ],
+  "used": [],
+  "mlines": 42
+ }
+]

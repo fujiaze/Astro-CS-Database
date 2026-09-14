@@ -1,0 +1,308 @@
+[
+ {
+  "name": "ASTROCS_AIO_FAULT",
+  "prod_reads": [
+   "./lib/astro_image_io/src/aio_abi.cpp"
+  ],
+  "test_reads": [
+   "./tests/unit/aio_abi_test_main.hpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_AIO_SELFCHECK_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./tests/unit/aio_abi_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_HASH_FAIL_INJECT",
+  "prod_reads": [
+   "./lib/phase3_session/p3_output.cpp"
+  ],
+  "test_reads": [],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_HIPS_DIAG_FAULT",
+  "prod_reads": [
+   "./lib/astro_image_io/src/hips/aio_hips_writer.cpp"
+  ],
+  "test_reads": [
+   "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_HIPS_PROV_FAULT",
+  "prod_reads": [
+   "./lib/astro_image_io/src/hips/aio_hips_writer.cpp"
+  ],
+  "test_reads": [
+   "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_HIPS_PUBLISH_FAULT",
+  "prod_reads": [
+   "./lib/hips/src/aio_publish.cpp"
+  ],
+  "test_reads": [
+   "./tests/unit/p1_hips/publish_atomic_test.c"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_HIPS_VERIFY_FAULT",
+  "prod_reads": [
+   "./lib/astro_image_io/src/hips/aio_hips_writer.cpp"
+  ],
+  "test_reads": [
+   "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1CAL_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/calibration/tests/p1cal/p1cal_test_main.hpp",
+   "./lib/calibration/tests/p1cal/p1cal_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1COS_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/cosmetic/tests/p1cos/p1cos_test_main.hpp",
+   "./lib/cosmetic/tests/p1cos/p1cos_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1DRZ_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_test_main.hpp",
+   "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1HIPS_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1HIPS_SELFCHECK_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1NOISE_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/snr_estimator/tests/p1noise/p1noise_test_main.hpp",
+   "./lib/snr_estimator/tests/p1noise/p1noise_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1PHOT_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1PHOT_SELFCHECK_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1PSF_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/dynamic_psf/tests/p1psf/p1psf_test_main.hpp",
+   "./lib/dynamic_psf/tests/p1psf/p1psf_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1SESS_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/phase1_session/tests/p1sess/p1sess_test_main.hpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1SESS_SELFCHECK_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1STAR_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/star_detector/tests/p1star/p1star_test_main.hpp",
+   "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": true
+ },
+ {
+  "name": "ASTROCS_P1STAR_SELFCHECK_FAULT_A",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1STAR_SELFCHECK_FAULT_B",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1WCS_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./tests/unit/p1wcs/p1wcs_test_main.hpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1WCS_SELFCHECK_FAULT_A",
+  "prod_reads": [],
+  "test_reads": [
+   "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P1WCS_SELFCHECK_FAULT_B",
+  "prod_reads": [],
+  "test_reads": [
+   "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P2002_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./tests/unit/p2002_unc_rej_prov_test.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P3002_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./tests/unit/p3002_uncertainty_test.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "ASTROCS_P3PROJ_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./tests/unit/p3_projection_test.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": true
+ },
+ {
+  "name": "ASTROCS_RT001_FAULT",
+  "prod_reads": [
+   "./lib/core/src/module_adapters.cpp"
+  ],
+  "test_reads": [
+   "./tests/unit/rt001_unique_executor_test.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "P1CAL_SELFCHECK_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/calibration/tests/p1cal/p1cal_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "P1COS_SELFCHECK_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/cosmetic/tests/p1cos/p1cos_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "P1NOISE_SELFCHECK_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/snr_estimator/tests/p1noise/p1noise_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ },
+ {
+  "name": "P1PSF_SELFCHECK_FAULT",
+  "prod_reads": [],
+  "test_reads": [
+   "./lib/dynamic_psf/tests/p1psf/p1psf_tests_selfcheck.cpp"
+  ],
+  "ci_checksjson": false,
+  "ctest_env": false
+ }
+]
