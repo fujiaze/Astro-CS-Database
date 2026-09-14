@@ -532,11 +532,22 @@ gaia_client.h:14、README:22/39、integration.json:57）自称 J2000。M2 主类
 
 
 
-## 前台复验 E1 + 顺挖两条新治理事实（FD-G-002 / FD-G-003）
-- **E1 三个关键数我当场独立复核全过**：`known_failures.failures` 长度 = **2**、`checks.json` 顶层数组 = **114**、`git ls-files | grep -ci p1noise` = **8**、
-  全仓 `file(GLOB` = **0**。**我此前写的「known_failures = 0」根因也定位了**：我用的是 `d.get("known_failures",[])`，而真实键是 `failures` ——
-  **取错键得到的 0 被我说成"文件里没有条目"，这是第 7 处转述错**；E1 用对了键。教训同一条：解析结构化文件必须先看键名/结构，不能猜。
-- **本轮新踩一次 H-1（前台自己）**：我用 `tools.read` 取 `ci/checks.json` 全文再 `JSON.parse` → **失败**（position 42665 / line 2000），  因为 read 对 >2000 字符单行截断。改用 `python3 json.load` 才拿到字段。→ **R 层规则加一条硬约束：机器文件一律用解释器解析，禁以 read 行文本解析结构化文件**（这是它第二次咬人）。
-- **FD-G-002（P1，新发现）**：`known_failures.json::failures[0]` = `UT-CLI`/`category=WORKSPACE_HYGIENE`/`expected=fail`，其 `reason` **逐字承认**  「`astrocs graph` 产 `graph/*.json`、`memory-report` 产 `alloc_report.json`/`alloc_samples.csv`，**根因在 cli/commands.cpp 产物默认落点**」  ——正是根 AGENTS.md 明文「**禁止将运行产物产出到项目根目录**」那条。而同一 id 在 `checks.json` 里 `waivable=False`：  **声明不可豁免的检查被版本化容忍为红**，AGENTS.md 又「严禁用 waiver 掩盖红灯（R-05/R-13）」，基线合同却把 `WORKSPACE_HYGIENE` 列入 `allowed_categories`  ⇒ **两份权威文本对"这类红灯能否容忍"给出相反答案，无仲裁条文**。还有一句被低估的自述：「UT-CLI 的 17 项过时断言修复前该检查不可绿」  ⇒ **一道永不可绿、且已被容忍的门，正在充当根目录污染的唯一防线**。这是簇 1 的**第二种失守机制**：不是"结构性不会红"，而是"会红但红被制度化豁免"，  且更难发现——它有 owner、有 reason、有 first_seen_commit、有 reproducer，看起来完全合规。建议门：`waivable=False` 的 id 出现在基线即 FAIL（零假阳）。
-- **FD-G-003（P2，平衡证据 + 消歧）**：`contract.excluded_by_policy` 自陈「本轮 linux-main 其余红灯（AGENTS-GOV/DATA-ARTIFACTS/THREAD-BUDGET/**CON-COMMENTS**/  CON-FULL-INTEGRATION/UT-ARCH/UT-BACKEND/WIN-*/DEEP-*）均为在册 P1（FD-R1-010），不得登记进基线，须由域主修复」⇒ 这是**仓内自证的当前 CI 红态清单**，  可防止簇 1 被误读成"所有门都不跑"。**但必须同时给两面**：CON-COMMENTS 确实会红（红在注释卫生比率），而 M6a-G-001 定它 P0 指的是**它抓不到注释溯源**  （且 §12.2 无条文）——「会红」≠「有效」，「在册 P1 待修」≠「已验证」。
-- 另一条对你 B-09 决策直接有用：`DEEP-SAN-TSAN`、`DEEP-CLANG-BUILD`、`DEEP-COV-PY`、`DEEP-COMPLEXITY` 等 **7 项是 waivable=true**，  且 linux-deep profile **只有 7 项** ⇒ **CI 里的 sanitizer 面本就是可容忍缺席的**，所以"有 CI 覆盖 ASan"不能作为不授权实测的理由；  结合 E3 在查的「build/asan 条件已具备但无运行记录」，B-09 的决策依据会更完整。
+## L28c / L28d 首批回传 + 一条**交付面误判的根因**（FD-I-001），已裁定并回传
+- **L28d 订正我采信**：根 CMake **不编 `providers/`** —— 非注释命中 0，`:220-221` 的 target 源是 `lib/backend_host/baseline_backend.cpp`。
+  ⇒ **L28b §4-3「根 :220 把 providers 编入生产」作废**。但我顺着查出更值钱的一层：**`providers/` 一名两指** ——
+  `packaging/astrocs.product.json:17` 的 `PROV-CPU-BASELINE`/`kind=provider`/`status=IMPLEMENTED` 其 `rel_path` 是 `providers/astrocs_cpu_baseline.so`，
+  而这个路径只是 `OUTPUT_NAME` + `PREFIX ""` 造出的 **install 别名**，源在 backend_host。⇒ 同一目录名既指**不编译的源目录**、又指**已交付单元所在路径**，**全仓无一处文件说明这区分**。
+- **立 FD-I-001（P1）**，判词写死：**交付面的唯一判据 = target 源列表 + product.json 单元，不是目录名、不是注释、不是 install 路径字面量**。
+  实测危害不是理论：**两个独立代理先后栽在同一处**（L28b 说"编入生产"、L28c 说"两个已交付 ISA 头"），都是**读注释与路径名推断交付面**。
+  建议门：product.json 每个 IMPLEMENTED 单元的 rel_path 必须能反查到某 target 的源文件，反查不到即 FAIL（与 L27-006 同族可一并实现）。
+  **处置沿用你对 `run/**` 的裁定风格**：只登记不动文件（改名会牵动 install-tree contract，风险大于收益）。
+- **给 L28c 下了五条裁定**（已投递）：①「已交付 ISA 头」定语不成立，影响面改「接线面/计划中」并引 `:125` 自证未接线；②补一句 `baseline_provider_v1.h` 被 `baseline_provider.cpp:89` 指为权威而该 .cpp 同样不在编译面 ⇒ 整链休眠、CPU-002 一落地全激活；
+  ③②③项（ALG-001 三锚不可解析、KERNEL_COUNT 2u/1u/12u 与 KIDX 相符）**不受影响照交**；④按 M8a 那三条准则自检（断言可为假 / 条文在位 / 后果达交付面），
+  若第三条只剩「接线面」，**就按 P2 交并写升级条件，我不替你把 P2 抬成 P1**。
+- **L28d 首批三条已收（上限 12，分片回传第 1/3）**：D-001 `MAX_DIST = 100.0` 注释宣称「IPV 100 角秒 ≈ 50px×2″/px」而**无 ÷ 步骤**（量纲实为 px，有效阈是原实现 2 倍、日志单位亦错）；
+  D-002 `hp_epsilon` 主说明块把本文件自己废止的旧口径当现行事实（乘子差 10⁶、256 段=2⁸ 正是 :570-571 量化的爆炸场景）；D-003 阻尼过渡带注释用中段值 t≈0.53 冒充上限（实为 1e6，低估 4-5 个数量级）。
+- **两条正面结论比 finding 更值钱**：①R-6a **新增 0** —— 9 条屏障自述里 5 条本轴复算为一致（compressor 3/3、ahpx_api 4/4、healpix_io 24/24、pipeline 26/26、pipeline_engine 9/9）⇒ **L28b-D-003 的三处错不外溢**；
+  ②「未见撒谎」逐条重算清单（`fits_reader:130` 返回值表 0..4、`gaia_client.c:73` 4 个并行循环实配 4 处 pragma、`sampler.cpp:608` 原因码集合、`cosmetic_corrector` 的 1.4826×MAD 同式、`p3_resample.h:19` 选阶语义、
+  `spherical_overlap` 六处 ≈ 断言、`dpsf_psf.cpp:24` 的 1.2303 复算 1.2303077）⇒ 这是**给负责人的"哪些注释是真的"清单**，修复时不必连坐。
+- **L28d 语料口径**：生产实现体全集 = 根 add_library/add_executable 源列表 + 6 个在根图的模块子 CMakeLists，排除 tests/third_party/acr/browser_qt/不在根图的 6 个模块 ⇒ **程序内解析去重 114 个 TU**，取 25 件、逐件给取件理由。这个分母是可复算的，R 层沿用。
+- 撞车处治规范：L28d 主动报告「`ipv_select.cpp:56` 的 206.265 错 1000 倍，叶子 L01-018 已报该子事实，但 **M1a-D-002 重锚到 ipv_types.h 时未把这颗子事实落进位置列**」⇒ 这是**重锚过程丢信息**的新毛病，并簇时补挂，已记 R 层检查项。
