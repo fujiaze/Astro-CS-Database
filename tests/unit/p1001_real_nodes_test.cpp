@@ -2458,6 +2458,197 @@ static void test_p17_nside_sampling_compliance() {
   cleanup_fixture(fx);
 }
 
+// ── P21-HIPS-WRITER: 聚合扫描 O(P+T) 建桶回归 ─────────────────────────────
+// 病征 (P17 §5.2): writer 的 HISS→HiPS 聚合是 O(std_parent_count × n_tiles)
+// 整表扫描 —— T2 auto 3,145,728 × 115 ≈ 3.6e8 次迭代、单线程静默 ~207 s,
+// 把全程 CPU 均值压到 3.18 核 (违反宪章 §10.5/§17.6)。
+// 修复 = 先按 (base_leaf>>18) 给 tile 建桶, 再只遍历**非空** parent。
+// 本测试用 nside=65536 (std_parent_count = 196,608, HiPS Norder=7) + 4 个
+// 分散 HISS tile (含上界 parent 196607) 同时锁定两件事:
+//   (a) 归属精确: 每个 HISS tile 落进正确的标准 parent, signal/support
+//       数值逐 tile 可区分 (建桶判据必须与旧 (base_leaf>>18) 逐位等价);
+//   (b) 复杂度: 节点 manifest 的 aggregation_scan_steps ≈ 2×n_tiles, 而
+//       aggregation_parent_span = 196,608。回退成整表扫描 ⇒ scan_steps 变
+//       196608×4 = 786,432 (或 aggregation_mode 字段消失) ⇒ 本测试必红。
+constexpr uint32_t kP21Nside = 65536;
+constexpr uint64_t kP21Parents[4] = {0, 1, 100000, 196607};
+constexpr float    kP21Signal[4]  = {0.5f, 1.5f, 2.5f, 3.5f};
+constexpr uint8_t  kP21Sup[4]     = {255, 128, 64, 32};
+constexpr uint64_t kP21CoverLeaves = 256;  // 每 HISS tile 仅覆盖前 256 叶
+
+bool make_p21_scatter_hiss(const std::string& path) {
+  const uint32_t nside = kP21Nside;
+  const uint32_t depth = hiss::compute_tile_depth(nside);
+  const uint32_t tile_nside = hiss::compute_tile_nside(nside);
+  const uint32_t n_leaf = 1u << (2 * depth);
+  const double a_cell = 4.0 * 3.14159265358979323846 /
+                        (12.0 * static_cast<double>(nside) *
+                         static_cast<double>(nside));
+  hiss::HissGridSpec grid;
+  grid.nside = nside; grid.tile_nside = tile_nside;
+  grid.ordering = 1; grid.radesys = 0; grid.pixfrac = 1.0;
+  hiss::HissMetadata hmeta;
+  hmeta.nside = nside; hmeta.tile_nside = tile_nside;
+  hmeta.ordering = 1; hmeta.radesys = 0; hmeta.pixfrac = 1.0;
+  hmeta.photappl = 0;
+  std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU");
+  hiss::HissWriter writer;
+  if (writer.open(path, grid, hmeta) != 0) return false;
+  for (int t = 0; t < 4; ++t) {
+    hiss::DrizzleTileAccumulator acc;
+    acc.tile_nside = tile_nside;
+    acc.parent_ipix = kP21Parents[t];
+    acc.pixel_area = a_cell;
+    acc.pixels.resize(n_leaf);
+    for (uint64_t i = 0; i < kP21CoverLeaves; ++i) {
+      acc.pixels[i].sum_flux = kP21Signal[t];
+      acc.pixels[i].sum_area =
+          (static_cast<double>(kP21Sup[t]) / 255.0) * a_cell;
+    }
+    if (writer.add_tile(kP21Parents[t], acc, nullptr,
+                        hiss::OccupancyMode::FULL) != 0) {
+      writer.cancel();
+      return false;
+    }
+  }
+  return writer.finalize() == 0;
+}
+
+bool hips_tile_at(const std::string& root, const char* plane, uint32_t norder,
+                  uint64_t tile, std::vector<float>* out) {
+  const std::string p = root + "/" + plane + "/Norder" + std::to_string(norder) +
+                        "/Dir" + std::to_string(tile / 10000) + "/Npix" +
+                        std::to_string(tile % 10000) + ".fits";
+  return read_hips_tile(p, out);
+}
+
+static void test_p21_writer_aggregation_buckets() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  Fixture fx = make_fixture("p21");
+  const std::string hiss = fx.out_dir + "/p1_stack.hiss";
+  CHECK_MSG(make_p21_scatter_hiss(hiss), "P21: scatter HISS fixture");
+  {
+    uint32_t ns = 0, tn = 0, dp = 0, nl = 0; uint64_t nt = 0, np = 0;
+    char* meta = nullptr; uint64_t* tips = nullptr;
+    CHECK(aio_hiss_inspect(hiss.c_str(), &ns, &tn, &dp, &nl, &nt, &np, &meta,
+                           &tips) == 0);
+    CHECK(ns == kP21Nside && nt == 4 && nl == 262144u);
+    if (meta) aio_hio_free(meta);
+    if (tips) aio_hio_free(tips);
+  }
+  RunContext ctx;
+  const std::string cfg = R"({
+    "input_lights": [")" + fx.light1 + R"("],
+    "output_dir": ")" + fx.out_dir + R"(",
+    "filter_passband": "R"
+  })";
+  Result<void> wrc;
+  json wman = run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
+  CHECK_MSG(wrc.ok(), ("P21: writer must consume scatter HISS: " +
+                       (wrc.failed() ? wrc.error().message()
+                                     : std::string())).c_str());
+  if (wrc.failed()) { cleanup_fixture(fx); return; }
+  // (b) 复杂度不变量 (确定性断言; 不依赖计时)
+  CHECK_MSG(wman.value("aggregation_mode", std::string()) == "parent_bucket",
+            "P21: writer 聚合必须走 parent 建桶 (禁回退 O(P×T) 整表扫描)");
+  const int64_t span = wman.value("aggregation_parent_span", static_cast<int64_t>(0));
+  const int64_t steps = wman.value("aggregation_scan_steps", static_cast<int64_t>(0));
+  const int64_t visited =
+      wman.value("aggregation_parents_visited", static_cast<int64_t>(0));
+  CHECK_MSG(span == 196608,
+            ("P21: std_parent_count 应为 196608, got " +
+             std::to_string(span)).c_str());
+  CHECK_MSG(visited == 4,
+            ("P21: 非空 parent 数必须 = 4, got " +
+             std::to_string(visited)).c_str());
+  CHECK_MSG(steps <= 4 * 4,
+            ("P21: 聚合扫描步数必须 O(n_tiles) 而非 O(P×T) (got " +
+             std::to_string(steps) + "; 整表扫描为 " +
+             std::to_string(span * 4) + ")").c_str());
+  {
+    json fin0;
+    try { fin0 = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+    CHECK(fin0.value("n_tiles_written", 0) == 4);
+    CHECK(fin0.value("n_tiles", 0u) == 4u);
+  }
+  // (a) 归属与数值精确 (4 个 parent 各自独立的 signal 常量)
+  const uint32_t norder = 7;  // log2(65536) - 9
+  double sig_seen[4] = {0.0, 0.0, 0.0, 0.0};
+  for (int t = 0; t < 4; ++t) {
+    std::vector<float> sig, sup;
+    const std::string tag = std::to_string(kP21Parents[t]);
+    CHECK_MSG(hips_tile_at(fx.out_dir, "signal", norder, kP21Parents[t], &sig),
+              ("P21: signal tile 可读 parent " + tag).c_str());
+    CHECK_MSG(hips_tile_at(fx.out_dir, "support", norder, kP21Parents[t], &sup),
+              ("P21: support tile 可读 parent " + tag).c_str());
+    if (sig.size() != 512ull * 512ull || sup.size() != sig.size()) {
+      CHECK_MSG(false, "P21: HiPS tile 必须 512x512");
+      continue;
+    }
+    // 读侧不变量 (与 AIO 的 surface-brightness 约定及 NESTED→FITS 像元置换无关):
+    //   (i)   有限 signal 像元数 == 本 tile 的 HISS 覆盖叶数 (256) —— 覆盖守恒,
+    //         既不丢也不多 (旧实现 valid_mask 缺失时会多出幽灵像元);
+    //   (ii)  本 tile 内所有有限 signal 严格同值 (常量夹具) —— 任何跨 parent /
+    //         跨 tile 的桶归属错位都会破坏常量性;
+    //   (iii) support 恰在 256 个像元上等于 round(255·A/A_p)/255 =
+    //         kP21Sup[t]/255 (HISS 面积比连续缩放), 其余像元 support == 0;
+    //   (iv)  4 个 parent 的 signal 常量两两不同, 且随 support 减小严格增大
+    //         (与 AIO "surface brightness = flux/covered_area" 一致)。
+    const double exp_sup = static_cast<double>(kP21Sup[t]) / 255.0;
+    uint64_t fin = 0, sup_ok = 0, sup_nz = 0;
+    double s_min = 1e300, s_max = -1e300;
+    for (size_t i = 0; i < sig.size(); ++i) {
+      if (std::isfinite(sig[i])) {
+        ++fin;
+        s_min = std::min(s_min, static_cast<double>(sig[i]));
+        s_max = std::max(s_max, static_cast<double>(sig[i]));
+      }
+      if (std::fabs(sup[i]) > 1e-6) {
+        ++sup_nz;
+        if (std::fabs(static_cast<double>(sup[i]) - exp_sup) < 0.01) ++sup_ok;
+      }
+    }
+    CHECK_MSG(fin == kP21CoverLeaves,
+              ("P21: parent " + tag + " 有效 signal 像元数必须 = HISS 覆盖叶数 256, got " +
+               std::to_string(fin)).c_str());
+    CHECK_MSG(fin > 0 && std::fabs(s_max - s_min) <= 1e-5 * std::fabs(s_max),
+              ("P21: parent " + tag + " tile 内 signal 必须是单一常量 (禁跨 tile 串扰): min=" +
+               std::to_string(s_min) + " max=" + std::to_string(s_max)).c_str());
+    CHECK_MSG(sup_nz == kP21CoverLeaves && sup_ok == sup_nz,
+              ("P21: parent " + tag + " support 必须在 256 个像元上等于 " +
+               std::to_string(kP21Sup[t]) + "/255, got nz=" + std::to_string(sup_nz) +
+               " ok=" + std::to_string(sup_ok)).c_str());
+    sig_seen[t] = (fin > 0) ? s_min : 0.0;
+  }
+  // (iv) 4 个 parent 的 signal 常量互不相同且随 support 减小单调增大
+  {
+    bool distinct = true, monotonic = true;
+    for (int i = 0; i < 4; ++i) {
+      for (int j = i + 1; j < 4; ++j) {
+        if (std::fabs(sig_seen[i] - sig_seen[j]) <=
+            1e-6 * std::max(std::fabs(sig_seen[i]), 1.0))
+          distinct = false;
+      }
+    }
+    for (int i = 1; i < 4; ++i) {
+      if (!(sig_seen[i] > sig_seen[i - 1])) monotonic = false;
+    }
+    CHECK_MSG(distinct && monotonic,
+              ("P21: 4 个 parent 的 signal 常量必须两两不同且随 support 递减而递增"
+               " (桶归属错位会破坏): " + std::to_string(sig_seen[0]) + "," +
+               std::to_string(sig_seen[1]) + "," + std::to_string(sig_seen[2]) + "," +
+               std::to_string(sig_seen[3])).c_str());
+  }
+  // 缺失 parent 不得被凭空写出 (稀疏性守恒: 只有 4 个 parent 有 tile)
+  {
+    std::vector<float> ghost;
+    CHECK_MSG(!hips_tile_at(fx.out_dir, "signal", norder, 12345, &ghost),
+              "P21: 未被 HISS 覆盖的 parent 不得写出 signal tile");
+  }
+  cleanup_fixture(fx);
+}
+
 int main() {
   test_nodes_real_operation();
   test_runtime_chain_call_count_1();
@@ -2474,6 +2665,8 @@ int main() {
   test_b2a17_sip_bridge();
   // P17-NSIDE: drizzle 采样率合规 (1x-2x) + nside 来源/欠采样可见性
   test_p17_nside_sampling_compliance();
+  // P21-HIPS-WRITER: writer 聚合 O(P+T) 建桶 (性能 P0; 确定性回归)
+  test_p21_writer_aggregation_buckets();
   test_determinism();
   // CORE-RACE-001（p1001 链并发撕裂读）: 独立产物路径 / IR 接线一致性 /
   // 并发全链 N 次连跑 / 1-N worker parity / 故障注入
