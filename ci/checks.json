@@ -3796,6 +3796,142 @@
       ]
     },
     {
+      "id": "CTEST-IPV-ABI-LAYOUT-LOCK",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "ipv_abi_layout_lock",
+        "--output",
+        "run/ci/ctest/ipv_abi_layout_lock.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/ipv_abi_layout_lock.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/plate_solve/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "ipv_abi_layout_lock"
+      ]
+    },
+    {
+      "id": "CTEST-IPV-ABI-LAYOUT-LOCK-SELFCHECK",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "ipv_abi_layout_lock_selfcheck",
+        "--output",
+        "run/ci/ctest/ipv_abi_layout_lock_selfcheck.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/ipv_abi_layout_lock_selfcheck.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/plate_solve/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "ipv_abi_layout_lock_selfcheck"
+      ]
+    },
+    {
+      "id": "CTEST-IPV-PARAMS-ABI-FAILCLOSED",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "ipv_params_abi_failclosed",
+        "--output",
+        "run/ci/ctest/ipv_params_abi_failclosed.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/ipv_params_abi_failclosed.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/plate_solve/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "ipv_params_abi_failclosed"
+      ]
+    },
+    {
+      "id": "CTEST-GAIA-MAGNITUDE-RANGE-BOUNDS",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "gaia_magnitude_range_bounds",
+        "--output",
+        "run/ci/ctest/gaia_magnitude_range_bounds.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/gaia_magnitude_range_bounds.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/gaia_xpsd_client/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "gaia_magnitude_range_bounds"
+      ]
+    },
+    {
       "id": "KNOWN-FAILURES-BASELINE-CHECK",
       "profiles": [
         "linux-main"
