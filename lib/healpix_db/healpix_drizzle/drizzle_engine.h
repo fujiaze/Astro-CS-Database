@@ -88,12 +88,27 @@ struct TileAccumulatorT {
 };
 using TileAccumulator = TileAccumulatorT<double>;  // 兼容别名 (FP64/旧接口)
 
+// 自动 NSIDE 决策依据 (P17-NSIDE: 供节点 provenance / 欠采样告警)
+// 引擎口径 oversample = hp_res/finest ∈ (0,1] 表示 HEALPix 特征尺度不粗于
+// 最细输入尺度 (对应 [1,2) 倍线性过采样; 即 1/oversample = 过采样倍率)。
+struct AutoNsideInfo {
+    int    nside = 0;             // 推荐 NSIDE (2 的幂), 0 表示失败
+    double finest_arcsec = 0.0;   // 最细局部输入像素尺度 (角秒/像素)
+    double hp_res_arcsec = 0.0;   // 所选 NSIDE 的 HEALPix 特征尺度 (角秒)
+    double oversample = 0.0;      // hp_res/finest (引擎口径; 0.5~1 = 1~2 倍过采样)
+    bool   clamped = false;       // nside 是否被 [16, 2^22] 钳位 (决策不自由)
+    double nside_min_real = 0.0;  // 未取 2 次幂前的 nside 下界 (诊断用)
+};
+
 // 自动 NSIDE 计算 (02_FROZEN §5)
 // 依据 WCS/SIP 局部 Jacobian 找到最细输入像素尺度, 选择最小 2 次幂 NSIDE
 // 使 HEALPix 线性像素尺度不粗于该最细尺度 (1~2 倍线性过采样)
 // wcs: WCS/SIP 参数
 // img_w, img_h: 图像尺寸
+// out: 可选诊断输出 (决策依据); 传 nullptr 表示只取 nside
 // 返回: 推荐 NSIDE (2 的幂), 0 表示失败
+int compute_auto_nside_ex(const WcsParams& wcs, int img_w, int img_h,
+                          AutoNsideInfo* out);
 int compute_auto_nside(const WcsParams& wcs, int img_w, int img_h);
 
 // Drizzle 结果统计

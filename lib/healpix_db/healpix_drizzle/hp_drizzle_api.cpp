@@ -385,6 +385,131 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
 }
 
 // ============================================================================
+// read_wcs_params_from_frame - 从 frame header KV 读取 WCS/SIP → WcsParams
+//
+// P17-NSIDE: 单一权威解析点 —— hp_drizzle_run (run_drizzle_internal) 与
+// hp_drizzle_compute_auto_nside 共用同一解析结果, 避免两处 WCS/SIP 读取漂移
+// (auto nside 的输入必须与真正 drizzle 的输入逐字段一致, 否则决策失真)。
+// 返回: 0=成功; -9=缺 WCS; -10=SIP order 越界 (与 run_drizzle_internal 同码)
+// err: 失败时错误信息 (成功时清空)
+// ============================================================================
+static int read_wcs_params_from_frame(PipelineFrame* frame, WcsParams& wcs,
+                                      std::string& err)
+{
+    err.clear();
+    double crval1 = aio_frame_kv_get_double(frame, "header", "CRVAL1", 0.0);
+    double crval2 = aio_frame_kv_get_double(frame, "header", "CRVAL2", 0.0);
+    double crpix1 = aio_frame_kv_get_double(frame, "header", "CRPIX1", 0.0);
+    double crpix2 = aio_frame_kv_get_double(frame, "header", "CRPIX2", 0.0);
+    double cd11   = aio_frame_kv_get_double(frame, "header", "CD1_1", 0.0);
+    double cd12   = aio_frame_kv_get_double(frame, "header", "CD1_2", 0.0);
+    double cd21   = aio_frame_kv_get_double(frame, "header", "CD2_1", 0.0);
+    double cd22   = aio_frame_kv_get_double(frame, "header", "CD2_2", 0.0);
+    double cdelt1 = aio_frame_kv_get_double(frame, "header", "CDELT1", 0.0);
+    double cdelt2 = aio_frame_kv_get_double(frame, "header", "CDELT2", 0.0);
+    double crota2 = aio_frame_kv_get_double(frame, "header", "CROTA2", 0.0);
+
+    wcs.crval[0] = crval1;
+    wcs.crval[1] = crval2;
+    wcs.crpix[0] = crpix1;
+    wcs.crpix[1] = crpix2;
+    wcs.cd[0] = cd11;
+    wcs.cd[1] = cd12;
+    wcs.cd[2] = cd21;
+    wcs.cd[3] = cd22;
+    wcs.has_wcs = false;
+
+    const char* ctype1_str = aio_frame_kv_get(frame, "header", "CTYPE1");
+    const char* ctype2_str = aio_frame_kv_get(frame, "header", "CTYPE2");
+    if (ctype1_str) std::strncpy(wcs.ctype1, ctype1_str, sizeof(wcs.ctype1) - 1);
+    if (ctype2_str) std::strncpy(wcs.ctype2, ctype2_str, sizeof(wcs.ctype2) - 1);
+
+    // 判断是否有效 WCS: 需要 CRVAL + CRPIX + CD (或 CDELT)
+    bool has_cd = (cd11 != 0.0 || cd22 != 0.0);
+    bool has_cdelt = (cdelt1 != 0.0 && cdelt2 != 0.0);
+
+    if (has_cd) {
+        wcs.has_wcs = true;
+    } else if (has_cdelt && crval1 != 0.0 && crval2 != 0.0) {
+        // 无 CD 矩阵时, 用 CDELT+CROTA2 构造
+        const double DEG2RAD = 0.017453292519943295769;
+        double cosr = std::cos(crota2 * DEG2RAD);
+        double sinr = std::sin(crota2 * DEG2RAD);
+        wcs.cd[0] = cdelt1 * cosr;
+        wcs.cd[1] = -cdelt2 * sinr;
+        wcs.cd[2] = cdelt1 * sinr;
+        wcs.cd[3] = cdelt2 * cosr;
+        wcs.has_wcs = true;
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 使用 CDELT+CROTA2 构造 CD 矩阵\n");
+    }
+
+    if (!wcs.has_wcs) {
+        err = "header 缺少 WCS 信息";
+        return -9;
+    }
+
+    // SIP 系数 (若存在 A_ORDER); 正式支持 [0,5], 越界硬失败 (禁静默截断)
+    const char* a_order_str = aio_frame_kv_get(frame, "header", "A_ORDER");
+    if (a_order_str) {
+        int a_order = atoi(a_order_str);
+        const char* b_order_str = aio_frame_kv_get(frame, "header", "B_ORDER");
+        int b_order = b_order_str ? atoi(b_order_str) : a_order;
+        const char* ap_order_str_early = aio_frame_kv_get(frame, "header", "AP_ORDER");
+        int ap_order = ap_order_str_early ? atoi(ap_order_str_early) : 0;
+        const char* bp_order_str_early = aio_frame_kv_get(frame, "header", "BP_ORDER");
+        int bp_order = bp_order_str_early ? atoi(bp_order_str_early) : ap_order;
+        if (a_order < 0 || a_order > 5 || b_order < 0 || b_order > 5 ||
+            ap_order < 0 || ap_order > 5 || bp_order < 0 || bp_order > 5) {
+            err = "SIP order 非法: 正式支持 [0,5] (A_ORDER/B_ORDER/AP_ORDER/BP_ORDER 之一越界)";
+            return -10;
+        }
+        wcs.sip.order = a_order;
+
+        for (int i = 0; i <= a_order; i++) {
+            for (int j = 0; j <= a_order; j++) {
+                if (i + j == 0 || i + j > a_order) continue;
+                char key[32];
+                std::snprintf(key, sizeof(key), "A_%d_%d", i, j);
+                const char* val = aio_frame_kv_get(frame, "header", key);
+                if (val) wcs.sip.a[i * 6 + j] = std::atof(val);
+
+                std::snprintf(key, sizeof(key), "B_%d_%d", i, j);
+                val = aio_frame_kv_get(frame, "header", key);
+                if (val) wcs.sip.b[i * 6 + j] = std::atof(val);
+            }
+        }
+
+        const char* ap_order_str = aio_frame_kv_get(frame, "header", "AP_ORDER");
+        if (ap_order_str) {
+            int ap_order2 = atoi(ap_order_str);
+            const char* bp_order_str = aio_frame_kv_get(frame, "header", "BP_ORDER");
+            int bp_order2 = bp_order_str ? atoi(bp_order_str) : ap_order2;
+            wcs.sip.ap_order = ap_order2;
+
+            for (int i = 0; i <= ap_order2; i++) {
+                for (int j = 0; j <= ap_order2; j++) {
+                    if (i + j == 0 || i + j > ap_order2) continue;
+                    char key[32];
+                    std::snprintf(key, sizeof(key), "AP_%d_%d", i, j);
+                    const char* val = aio_frame_kv_get(frame, "header", key);
+                    if (val) wcs.sip.ap[i * 6 + j] = std::atof(val);
+
+                    std::snprintf(key, sizeof(key), "BP_%d_%d", i, j);
+                    val = aio_frame_kv_get(frame, "header", key);
+                    if (val) wcs.sip.bp[i * 6 + j] = std::atof(val);
+                }
+            }
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SIP A_ORDER=%d B_ORDER=%d AP_ORDER=%d BP_ORDER=%d\n",
+                    a_order, b_order, ap_order2, bp_order2);
+        } else {
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SIP A_ORDER=%d B_ORDER=%d (无逆向 AP/BP)\n",
+                    a_order, b_order);
+        }
+    }
+    return 0;
+}
+
+// ============================================================================
 // run_drizzle_internal - 共享 Drizzle 执行 (parse frame -> drizzle ->
 // [legacy .hiss] / [HiPS 直写] 输出)
 //
@@ -499,22 +624,7 @@ try {
     fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: data 块 %dx%d %s\n", width, height,
             data_is_f64 ? "float64" : "float32");
 
-    // 3. 从 header KV 块读取 WCS 字段
-    double crval1 = aio_frame_kv_get_double(frame, "header", "CRVAL1", 0.0);
-    double crval2 = aio_frame_kv_get_double(frame, "header", "CRVAL2", 0.0);
-    double crpix1 = aio_frame_kv_get_double(frame, "header", "CRPIX1", 0.0);
-    double crpix2 = aio_frame_kv_get_double(frame, "header", "CRPIX2", 0.0);
-    double cd11   = aio_frame_kv_get_double(frame, "header", "CD1_1", 0.0);
-    double cd12   = aio_frame_kv_get_double(frame, "header", "CD1_2", 0.0);
-    double cd21   = aio_frame_kv_get_double(frame, "header", "CD2_1", 0.0);
-    double cd22   = aio_frame_kv_get_double(frame, "header", "CD2_2", 0.0);
-
-    // CDELT/CROTA2 备选 (无 CD 矩阵时使用)
-    double cdelt1 = aio_frame_kv_get_double(frame, "header", "CDELT1", 0.0);
-    double cdelt2 = aio_frame_kv_get_double(frame, "header", "CDELT2", 0.0);
-    double crota2 = aio_frame_kv_get_double(frame, "header", "CROTA2", 0.0);
-
-    // 4. 构造 WCS 参数 + 像素数据
+    // 3+4. 像素数据构造 + WCS/SIP 解析
     // 双精度 ABI: 根据 data 块类型填充 pixels (float32) 或 pixels_f64 (float64)
     // FP64 模式下 pixels_f64 被填充, use_f64=true, drizzle_f64 从此字段读取
     // FP32 模式下 pixels 被填充, use_f64=false, drizzle 从此字段读取 (向后兼容)
@@ -534,121 +644,23 @@ try {
     img.bzero = 0.0;
     img.bscale = 1.0;
 
+    // P17-NSIDE: WCS/SIP 解析收敛到 read_wcs_params_from_frame 单一权威点,
+    // 与 hp_drizzle_compute_auto_nside 共用, 保证 auto nside 的输入与真正
+    // drizzle 的输入逐字段一致 (否则 1x-2x 决策失真)。
+    {
+        std::string wcs_err;
+        const int wcs_rc = read_wcs_params_from_frame(frame, img.wcs, wcs_err);
+        if (wcs_rc != 0) {
+            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: %s\n", wcs_err.c_str());
+            setErrorMsg(result, wcs_err);
+            return wcs_rc;
+        }
+    }
     WcsParams& wcs = img.wcs;
-    wcs.crval[0] = crval1;
-    wcs.crval[1] = crval2;
-    wcs.crpix[0] = crpix1;
-    wcs.crpix[1] = crpix2;
-    wcs.cd[0] = cd11;
-    wcs.cd[1] = cd12;
-    wcs.cd[2] = cd21;
-    wcs.cd[3] = cd22;
-    wcs.has_wcs = false;
-
-    // CTYPE1/CTYPE2
-    const char* ctype1_str = aio_frame_kv_get(frame, "header", "CTYPE1");
-    const char* ctype2_str = aio_frame_kv_get(frame, "header", "CTYPE2");
-    if (ctype1_str) std::strncpy(wcs.ctype1, ctype1_str, sizeof(wcs.ctype1) - 1);
-    if (ctype2_str) std::strncpy(wcs.ctype2, ctype2_str, sizeof(wcs.ctype2) - 1);
-
-    // 判断是否有效 WCS: 需要 CRVAL + CRPIX + CD (或 CDELT)
-    bool has_cd = (cd11 != 0.0 || cd22 != 0.0);
-    bool has_cdelt = (cdelt1 != 0.0 && cdelt2 != 0.0);
-
-    if (has_cd) {
-        wcs.has_wcs = true;
-    } else if (has_cdelt && crval1 != 0.0 && crval2 != 0.0) {
-        // 无 CD 矩阵时, 用 CDELT+CROTA2 构造
-        const double DEG2RAD = 0.017453292519943295769;
-        double cosr = std::cos(crota2 * DEG2RAD);
-        double sinr = std::sin(crota2 * DEG2RAD);
-        wcs.cd[0] = cdelt1 * cosr;
-        wcs.cd[1] = -cdelt2 * sinr;
-        wcs.cd[2] = cdelt1 * sinr;
-        wcs.cd[3] = cdelt2 * cosr;
-        wcs.has_wcs = true;
-        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: 使用 CDELT+CROTA2 构造 CD 矩阵\n");
-    }
-
-    if (!wcs.has_wcs) {
-        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: header 缺少 WCS 信息 (CD 或 CDELT+CRVAL+CRPIX)\n");
-        setErrorMsg(result, "header 缺少 WCS 信息");
-        return -9;
-    }
 
     fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: WCS CRVAL=(%.6f,%.6f) CRPIX=(%.3f,%.3f) CD=[%.3e,%.3e,%.3e,%.3e]\n",
             wcs.crval[0], wcs.crval[1], wcs.crpix[0], wcs.crpix[1],
             wcs.cd[0], wcs.cd[1], wcs.cd[2], wcs.cd[3]);
-
-    // 5. 读取 SIP 系数 (若存在 A_ORDER)
-    // P0-1: SIP order 正式支持 [0,5] (6×6 系数数组), 与 hp_drizzle_reverse_run
-    // 同口径 (REV 修正): order<0 或 >5 硬失败返回错误码, 禁止静默截断。
-    // 此前此处 atoi 无上界校验, 恶意 frame header A_ORDER=8 会使循环写入
-    // wcs.sip.a[i*6+j] (i*6+j 最大 8*6+8=56 > 35) 越界写栈对象。
-    // 错误码 -10: 沿用本函数负数错误码风格 (-9 为缺 WCS)。
-    const char* a_order_str = aio_frame_kv_get(frame, "header", "A_ORDER");
-    if (a_order_str) {
-        int a_order = atoi(a_order_str);
-        const char* b_order_str = aio_frame_kv_get(frame, "header", "B_ORDER");
-        int b_order = b_order_str ? atoi(b_order_str) : a_order;
-        const char* ap_order_str_early = aio_frame_kv_get(frame, "header", "AP_ORDER");
-        int ap_order = ap_order_str_early ? atoi(ap_order_str_early) : 0;
-        const char* bp_order_str_early = aio_frame_kv_get(frame, "header", "BP_ORDER");
-        int bp_order = bp_order_str_early ? atoi(bp_order_str_early) : ap_order;
-        if (a_order < 0 || a_order > 5 || b_order < 0 || b_order > 5 ||
-            ap_order < 0 || ap_order > 5 || bp_order < 0 || bp_order > 5) {
-            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SIP order 非法 "
-                            "(A=%d B=%d AP=%d BP=%d, 正式支持 [0,5])\n",
-                    a_order, b_order, ap_order, bp_order);
-            setErrorMsg(result, "SIP order 非法: 正式支持 [0,5] (A_ORDER/B_ORDER/"
-                                "AP_ORDER/BP_ORDER 之一越界)");
-            return -10;
-        }
-        wcs.sip.order = a_order;
-
-        // 读取 A_i_j / B_i_j (跳过 (0,0), i+j<=order)
-        for (int i = 0; i <= a_order; i++) {
-            for (int j = 0; j <= a_order; j++) {
-                if (i + j == 0 || i + j > a_order) continue;
-                char key[32];
-                std::snprintf(key, sizeof(key), "A_%d_%d", i, j);
-                const char* val = aio_frame_kv_get(frame, "header", key);
-                if (val) wcs.sip.a[i * 6 + j] = std::atof(val);
-
-                std::snprintf(key, sizeof(key), "B_%d_%d", i, j);
-                val = aio_frame_kv_get(frame, "header", key);
-                if (val) wcs.sip.b[i * 6 + j] = std::atof(val);
-            }
-        }
-
-        // 读取 AP_i_j / BP_i_j (逆向 SIP)
-        const char* ap_order_str = aio_frame_kv_get(frame, "header", "AP_ORDER");
-        if (ap_order_str) {
-            int ap_order = atoi(ap_order_str);
-            const char* bp_order_str = aio_frame_kv_get(frame, "header", "BP_ORDER");
-            int bp_order = bp_order_str ? atoi(bp_order_str) : ap_order;
-            wcs.sip.ap_order = ap_order;
-
-            for (int i = 0; i <= ap_order; i++) {
-                for (int j = 0; j <= ap_order; j++) {
-                    if (i + j == 0 || i + j > ap_order) continue;
-                    char key[32];
-                    std::snprintf(key, sizeof(key), "AP_%d_%d", i, j);
-                    const char* val = aio_frame_kv_get(frame, "header", key);
-                    if (val) wcs.sip.ap[i * 6 + j] = std::atof(val);
-
-                    std::snprintf(key, sizeof(key), "BP_%d_%d", i, j);
-                    val = aio_frame_kv_get(frame, "header", key);
-                    if (val) wcs.sip.bp[i * 6 + j] = std::atof(val);
-                }
-            }
-            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SIP A_ORDER=%d B_ORDER=%d AP_ORDER=%d BP_ORDER=%d\n",
-                    a_order, b_order, ap_order, bp_order);
-        } else {
-            fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: SIP A_ORDER=%d B_ORDER=%d (无逆向 AP/BP)\n",
-                    a_order, b_order);
-        }
-    }
 
     // 5.5 读取 "snr_model" 块 (稀疏控制点, AIO_BLOCK_RAW) → SnrEvaluator 重建逐像素 SNR
     // 序列化格式 (与 .hiss snr_format=1 一致):
@@ -1273,4 +1285,78 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
         return -11;
     }
 }
+
+// ============================================================================
+// hp_drizzle_compute_auto_nside - P17-NSIDE 自动 NSIDE 决策正式入口
+//
+// 复用 read_wcs_params_from_frame (与 hp_drizzle_run 同一解析点) 与
+// drizzle::compute_auto_nside_ex。决策依据 (finest/hp_res/oversample/clamped)
+// 回填给调用方写 provenance; 不合法输入与缺失 WCS 一律 fail-closed (禁静默)。
+// ============================================================================
+HP_DRIZZLE_API int hp_drizzle_compute_auto_nside(PipelineFrame* frame,
+                                                 HpAutoNsideResult* result)
+{
+    auto setErr = [&](const std::string& msg) {
+        if (!result) return;
+        size_t n = msg.copy(result->error_msg, sizeof(result->error_msg) - 1);
+        result->error_msg[n] = '\0';
+    };
+    try {
+        if (!result) return 1;
+        std::memset(result, 0, sizeof(HpAutoNsideResult));
+        if (!frame) {
+            fprintf(stderr, "[hp_drizzle_api] compute_auto_nside: frame 为空\n");
+            setErr("frame 为空");
+            return 1;
+        }
+        const AioBlock* data_blk = aio_frame_get_block(frame, "data");
+        if (!data_blk || data_blk->n_dims < 2) {
+            fprintf(stderr, "[hp_drizzle_api] compute_auto_nside: 'data' 块缺失或维度 < 2\n");
+            setErr("'data' 块缺失或维度 < 2");
+            return 1;
+        }
+        const int height = data_blk->dims[0];
+        const int width  = data_blk->dims[1];
+        if (width <= 0 || height <= 0) {
+            fprintf(stderr, "[hp_drizzle_api] compute_auto_nside: 'data' 块尺寸非法 (%dx%d)\n",
+                    width, height);
+            setErr("'data' 块尺寸非法");
+            return 1;
+        }
+        WcsParams wcs;
+        std::string wcs_err;
+        if (read_wcs_params_from_frame(frame, wcs, wcs_err) != 0) {
+            fprintf(stderr, "[hp_drizzle_api] compute_auto_nside: %s\n", wcs_err.c_str());
+            setErr(wcs_err);
+            return 1;
+        }
+        AutoNsideInfo info;
+        const int nside = compute_auto_nside_ex(wcs, width, height, &info);
+        if (nside <= 0) {
+            fprintf(stderr, "[hp_drizzle_api] compute_auto_nside: 决策失败 (%dx%d)\n",
+                    width, height);
+            setErr("自动 NSIDE 决策失败 (无有效采样尺度)");
+            return 1;
+        }
+        result->nside = nside;
+        result->finest_arcsec = info.finest_arcsec;
+        result->hp_res_arcsec = info.hp_res_arcsec;
+        result->oversample = info.oversample;
+        result->clamped = info.clamped ? 1 : 0;
+        fprintf(stderr, "[hp_drizzle_api] compute_auto_nside: nside=%d, finest=%.6f\", "
+                "hp_res=%.6f\", oversample=%.4f, clamped=%d\n",
+                nside, info.finest_arcsec, info.hp_res_arcsec, info.oversample,
+                info.clamped ? 1 : 0);
+        return 0;
+    } catch (const std::exception& e) {
+        fprintf(stderr, "[hp_drizzle_api] compute_auto_nside: C 边界捕获异常: %s\n", e.what());
+        setErr(std::string("内部异常: ") + e.what());
+        return 11;
+    } catch (...) {
+        fprintf(stderr, "[hp_drizzle_api] compute_auto_nside: C 边界捕获未知异常\n");
+        setErr("内部未知异常");
+        return 11;
+    }
+}
+
 

@@ -2822,11 +2822,71 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             ? wj["ctype2"].get<std::string>()
             : (sip.present ? std::string("DEC--TAN-SIP") : std::string("DEC--TAN"));
   const bool has_drz = p1_has(doc, "drizzle") && doc["drizzle"].is_object();
-  if (!has_drz || !p1_has(doc["drizzle"], "nside"))
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "drizzle requires 'drizzle.nside' (科学参数禁 silent default)"));
+  if (!has_drz)
+    return Result<void>::fail(Error(ErrorDomain::DATA, "drizzle config required"));
   const Json& dj = doc["drizzle"];
-  const int nside = p1_int(dj, "nside", 0);
+  // ── P17-NSIDE: nside 采样率合规 (采样率等价 drizzle 1x-2x, 负责人裁定) ──
+  // 语义:
+  //  * drizzle.nside 缺省 / null / 0 / "" ⇒ **自动**: 从帧 WCS/SIP 调
+  //    hp_drizzle_compute_auto_nside (最细局部输入像素尺度 → 最小 2 次幂 nside
+  //    使 hp_res <= finest, 即 1~2× 线性过采样, nside 钳位 [16, 2^22])。
+  //    这是**合规默认**, 不是 silent default: 决策依据 (finest/hp_res/过采样倍率)
+  //    与 nside_source=auto 全部写入产物与节点 manifest。
+  //  * drizzle.nside > 0 ⇒ **显式强制输入 (另当别论)**: 原样使用, 记
+  //    nside_source=explicit; 若显式值使 hp_res > finest (欠采样), 则**必须可见**:
+  //    高亮 stderr 告警 + nside_conflict=undersampled + 欠采样倍率写产物/manifest
+  //    (宪章 §17.6 禁静默降级; 不由本节点静默改写用户显式值)。
+  //  * drizzle.nside_mode 若显式给出则优先并校验: "1x_to_2x_drizzle"|"auto" ⇒
+  //    自动 (此时 nside 必须缺省/0/空, 否则语义冲突 fail-closed); "explicit" ⇒
+  //    必须同时给 nside>0。合同外取值 → DATA fail-closed。
+  const bool nside_mode_given = p1_has(dj, "nside_mode");
+  std::string nside_mode = "unspecified";  // 未给出 ≠ auto: 由 nside 是否存在决定
+  if (nside_mode_given) {
+    if (!dj.at("nside_mode").is_string())
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "drizzle.nside_mode must be a string"));
+    nside_mode = dj.at("nside_mode").get<std::string>();
+    if (nside_mode == "1x_to_2x_drizzle") nside_mode = "auto";
+    if (nside_mode != "auto" && nside_mode != "explicit")
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "drizzle.nside_mode must be '1x_to_2x_drizzle'|'auto'|'explicit', got: '"
+          + nside_mode + "'"));
+  }
+  // nside 解析: 缺省/null/0/"" = 自动; 整数 >0 = 显式; 其余类型拒绝 (禁隐式转换)
+  int nside = 0;
+  bool nside_given = false;
+  if (p1_has(dj, "nside")) {
+    const Json& nv = dj.at("nside");
+    if (nv.is_string()) {
+      if (!nv.get<std::string>().empty())
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "drizzle.nside string must be empty (''=auto); non-empty strings rejected"));
+    } else if (nv.is_number_unsigned() || nv.is_number_integer()) {
+      nside = p1_int(dj, "nside", 0);
+      if (nside < 0)
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "drizzle.nside must be >= 0 (0=auto)"));
+      nside_given = (nside > 0);
+    } else if (nv.is_number_float()) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "drizzle.nside must be an integer (0=auto); float rejected (no truncation)"));
+    } else {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "drizzle.nside must be integer|null|'' (empty=auto)"));
+    }
+  }
+  // 冲突/缺参只对"显式给出 mode"成立 (未给出 mode 时 nside 存在 = explicit,
+  // 缺省 = auto, 与负责人裁定一致)。
+  if (nside_mode == "explicit" && !nside_given)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "drizzle.nside_mode='explicit' requires drizzle.nside > 0"));
+  if (nside_mode == "auto" && nside_given)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "drizzle.nside_mode=1x_to_2x_drizzle conflicts with explicit drizzle.nside>0; "
+        "omit nside (auto) or set nside_mode='explicit'"));
+  const bool auto_nside = (nside_mode == "auto") ||
+                          (!nside_mode_given && !nside_given);
+  const std::string nside_source = auto_nside ? "auto" : "explicit";
   // B1-A9: HiPS NESTED 合同缺省 nested=1（旧缺省 0 被 drizzle 引擎直接拒绝, 链不可达）。
   const int nested = p1_int(dj, "nested", 1);
   const double pixfrac = p1_num(dj, "pixfrac", 1.0);
@@ -2844,7 +2904,6 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         "precision_mode must be integer 0 (FP32) or 1 (FP64);"
         " boolean/float/string are rejected (no silent coercion)"));
   const int precision_mode = p1_int(dj, "precision_mode", -1);
-  if (nside <= 0) return Result<void>::fail(Error(ErrorDomain::DATA, "nside must be > 0"));
   if (nested != 0 && nested != 1)
     return Result<void>::fail(Error(ErrorDomain::DATA, "nested must be 0 or 1"));
   if (precision_mode != 0 && precision_mode != 1)
@@ -3005,6 +3064,44 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     aio_pipeline_frame_destroy(frame);
     return Result<void>::fail(Error(ErrorDomain::IO, "add data block failed"));
   }
+  // ── P17-NSIDE: 最终 nside 决策 + 采样率 provenance/告警 ─────────────────
+  // 自动 (nside 缺省/0/空 或 nside_mode=1x_to_2x_drizzle): 必须成功, 否则 DATA
+  // fail-closed。显式 (nside>0): 原样使用, 但 best-effort 复核采样率并把任何
+  // 欠采样标记为 nside_conflict=undersampled + 高亮 stderr 告警 (禁静默降级)。
+  const double HEALPIX_SCALE_PER_NSIDE_ARCSEC =
+      std::sqrt(M_PI / 3.0) * (180.0 / M_PI) * 3600.0;  // ≈ 211034.6 "/nside
+  HpAutoNsideResult auto_res;
+  std::memset(&auto_res, 0, sizeof(auto_res));
+  const int auto_rc = hp_drizzle_compute_auto_nside(frame, &auto_res);
+  if (auto_nside) {
+    if (auto_rc != 0 || auto_res.nside <= 0) {
+      aio_pipeline_frame_destroy(frame);
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          std::string("auto nside (1x_to_2x_drizzle) failed: ") +
+          (auto_res.error_msg[0] ? auto_res.error_msg : "(no detail)")));
+    }
+    nside = auto_res.nside;
+  }
+  // 采样率合规复核: oversample_factor = finest_input / hp_res ∈ [1,2) 即合规;
+  // < 1 表示输出像素比输入粗 (欠采样)。
+  std::string nside_conflict = "unknown";
+  double finest_input_arcsec = 0.0, hp_res_arcsec = 0.0, oversample_factor = 0.0;
+  if (auto_rc == 0 && auto_res.finest_arcsec > 0.0 && nside > 0) {
+    finest_input_arcsec = auto_res.finest_arcsec;
+    hp_res_arcsec = HEALPIX_SCALE_PER_NSIDE_ARCSEC / static_cast<double>(nside);
+    oversample_factor = finest_input_arcsec / hp_res_arcsec;
+    nside_conflict = (hp_res_arcsec > finest_input_arcsec) ? "undersampled" : "none";
+  }
+  if (nside_conflict == "undersampled") {
+    const double under = (finest_input_arcsec > 0.0)
+                             ? hp_res_arcsec / finest_input_arcsec : 0.0;
+    fprintf(stderr,
+        "[drizzle_node][P17-NSIDE][WARN] 显式 drizzle.nside=%d 欠采样: "
+        "hp_res=%.4f\" 粗于 finest_input=%.4f\" (欠采样 %.2fx); "
+        "合规 1x-2x 应取 nside=%d。本次按用户显式值执行 (nside_source=explicit), "
+        "该降级已在 p1_stack.json / manifest 标记 nside_conflict=undersampled。\n",
+        nside, hp_res_arcsec, finest_input_arcsec, under, auto_res.nside);
+  }
   HpDrizzleResult res;
   std::memset(&res, 0, sizeof(res));
   const std::string hiss_path = out_dir + "/p1_stack.hiss";
@@ -3017,6 +3114,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         (res.error_msg[0] ? res.error_msg : "(no detail)")));
   }
   const std::string out_path = out_dir + "/p1_stack.json";
+  // P17-NSIDE: 采样率 provenance (nside 来源 + 决策依据 + 合规判定) —— 每个
+  // 产物与节点 manifest 都带, 使 1x-2x 合规性与任何显式降级完全可机检。
+  const std::string nside_mode_out = auto_nside ? "1x_to_2x_drizzle" : "explicit";
+  const int auto_nside_value = (auto_rc == 0) ? auto_res.nside : 0;
   Json stack_out = Json{{"schema", "DATA-P1-STACK"},
                         {"nside", res.nside}, {"nested", res.nested},
                         {"pixfrac", res.pixfrac}, {"precision_mode", precision_mode},
@@ -3024,6 +3125,14 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                         {"sip_order", sip.present ? sip.order : 0},
                         {"sip_ap_order", sip.present ? sip.ap_order : 0},
                         {"ctype1", ctype1_kv}, {"ctype2", ctype2_kv},
+                        {"nside_source", nside_source},
+                        {"nside_mode", nside_mode_out},
+                        {"auto_nside", auto_nside_value},
+                        {"finest_input_arcsec", finest_input_arcsec},
+                        {"hp_res_arcsec", hp_res_arcsec},
+                        {"oversample_factor", oversample_factor},
+                        {"nside_conflict", nside_conflict},
+                        {"nside_clamped", auto_res.clamped != 0},
                         {"n_healpix_pixels", static_cast<int64_t>(res.n_healpix_pixels)},
                         {"n_source_pixels", static_cast<int64_t>(res.n_source_pixels)},
                         {"elapsed_sec", static_cast<double>(res.elapsed_sec)},
@@ -3036,6 +3145,15 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   (*man)["precision_mode"] = precision_mode;
   (*man)["sip_present"] = sip.present;
   (*man)["sip_order"] = sip.present ? sip.order : 0;
+  (*man)["nside"] = res.nside;
+  (*man)["nside_source"] = nside_source;
+  (*man)["nside_mode"] = nside_mode_out;
+  (*man)["auto_nside"] = auto_nside_value;
+  (*man)["finest_input_arcsec"] = finest_input_arcsec;
+  (*man)["hp_res_arcsec"] = hp_res_arcsec;
+  (*man)["oversample_factor"] = oversample_factor;
+  (*man)["nside_conflict"] = nside_conflict;
+  (*man)["nside_clamped"] = auto_res.clamped != 0;
   (*man)["photometry_applied"] = photometry_applied;
   (*man)["photscal"] = photscal;
   (*man)["photometry_provenance"] = have_phot_prov ? "p1_phot.json" : "absent";
