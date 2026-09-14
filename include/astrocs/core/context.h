@@ -151,6 +151,18 @@ class ThreadBudget {
 // 失败返回 Error(RESOURCE)。
 Result<std::shared_ptr<ThreadBudget>> create_thread_budget(uint32_t budget) noexcept;
 
+// ── P7-UTIL-002: 调度派发公平份额提示（thread_local） ──
+// Scheduler 在派发每个节点前写入"本节点可用的预算份额"（= budget / 同批在途节点数），
+// 节点执行结束复位为 0（无提示）。RunContext::acquire_lease 据此把 requested 收缩到
+// 该份额，避免同一 DAG 层内先派发的节点独占整份 ThreadBudget、把后派发节点饿成
+// 1 线程。实测缺陷（修复前）：photometry 独占 16 槽 → wcs-platesolve 得空租约
+// cap=1 → 该节点内 ipv triangle_match 与 star_detector 检测全链路单线程 14.1 s
+// （违反宪章 §10.5「任何连续 10 s 只有一个活跃计算线程即失败」）。
+// 无并发时份额 = 整份预算，acquire/释放/降级判定语义不变；thread_local：每个
+// scheduler worker 线程一次只执行一个节点，无竞争。
+void set_dispatch_budget_hint(uint32_t workers) noexcept;
+uint32_t dispatch_budget_hint() noexcept;
+
 // ── RT-006 线程本地观测（scheduler worker 执行节点期间的当前节点/provider） ──
 // scheduler 的 worker 线程各自顺序执行节点 fn；节点归属按线程本地判定，
 // 避免并发节点共享 RunContext 时的交叉归属。executor worker 任务线程亦同。

@@ -72,6 +72,11 @@
 #include "noise_model.h"
 #include "wcs_tan.h"
 
+// P7-UTIL-001: 节点级 OpenMP 并行度注入的保存/恢复需要 ICV 访问器。
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 // P3-002: Phase3 唯一真实 operation 节点生产头（lib/phase3_session 冻结 C++
 // 内核, 静态库 astrocs_phase3_session 已在 astrocs_module_adapters 链接闭包;
 // 相对路径 include 同 "../../phase1/stars/star_detector.h" 先例, 根 CMake
@@ -87,6 +92,7 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstdio>
+#include <cstdlib>   // P7-UTIL-001: std::getenv (ASTROCS_LEASE_TRACE 观测开关)
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -96,6 +102,7 @@
 #include <mutex>
 #include <thread>
 #include <utility>
+#include <mutex>
 #include <vector>
 
 // CORE-RACE-001: 临时文件命名需要进程号（见 p1_staging_path）
@@ -204,6 +211,65 @@ struct HostSession {
     if (valid && state) astrocs_host_services_destroy_state_v1(state);
   }
 };
+
+// ── P7-UTIL-001: 节点级 OMP 并行度注入 (作用域 RAII, 不污染进程/线程 ICV) ──
+//
+// 缺陷 (实测): 原实现直接用 ac_set_num_threads(hs.host.budget.max_workers) 把
+// 节点租约大小写进**当前线程的 OpenMP nthreads-var ICV 且永不恢复**。当 Scheduler
+// 并发派发同一 DAG 层内的多个 cpu_heavy 节点时, 唯一 ThreadBudget 是"先到先得整份"
+// (RunContext::acquire_lease → ThreadBudget::acquire(1, want, NONBLOCK) 取 min(want,
+// available)), 落败节点的 cap=1 于是被写进该调度线程的 ICV; 该线程上**之后所有节点**
+// 的 OpenMP 代码 (ipv triangle_match / star_detector 检测等) 一律退化为 1 线程, 且
+// 该线程被池复用时污染持续存在 —— 违反宪章 §10.5「任何连续 10 s 低于 60% 或只有
+// 一个活跃计算线程均失败」。
+//
+// 证据: LD_PRELOAD 拦截 libgomp omp_set_num_threads + addr2line, 命中两次, 栈为
+//   std::thread(Scheduler::run pool) → Scheduler::run lambda → std::function invoke
+//   → RuntimeImpl::load_pipeline lambda → P1NodeModule::execute → omp_set_num_threads(1)
+// 随后 ipv_triangle.cpp 的 omp_get_max_threads() 返回 1 (日志 "[并行 1 线程]")。
+//
+// 修复语义: **仅**把租约值注入限制在节点 execute 的作用域内, 退出 (正常/异常/取消
+// 路径) 恢复进入前的 ICV。不改变 lease 的申请/释放、lease.acquired() 判定与
+// "拿不到整份预算就降级" 的行为 (降级只影响该节点自身的并行度, 不再外溢)。
+// 线程数仍唯一来自 host budget (宪章 §10.4), 无任何硬编码。
+class ScopedOmpWorkerInjection {
+ public:
+  explicit ScopedOmpWorkerInjection(int workers) {
+#ifdef _OPENMP
+    prev_ = omp_get_max_threads();
+    if (workers > 0) omp_set_num_threads(workers);
+#else
+    (void)workers;
+#endif
+  }
+  ~ScopedOmpWorkerInjection() {
+#ifdef _OPENMP
+    if (prev_ > 0) omp_set_num_threads(prev_);
+#endif
+  }
+  ScopedOmpWorkerInjection(const ScopedOmpWorkerInjection&) = delete;
+  ScopedOmpWorkerInjection& operator=(const ScopedOmpWorkerInjection&) = delete;
+
+ private:
+#ifdef _OPENMP
+  int prev_ = -1;
+#endif
+};
+
+// P7-UTIL-001 观测: ASTROCS_LEASE_TRACE=1 时逐节点输出租约/预算快照
+// (默认零输出零开销; 供 §10.5 资源门禁与后续排期定位"节点级降级").
+void trace_node_lease(const char* module_id, uint32_t host_workers,
+                      bool acquired, uint32_t cap, uint32_t available) {
+  static const bool on = [] {
+    const char* v = std::getenv("ASTROCS_LEASE_TRACE");
+    return v && v[0] == '1';
+  }();
+  if (!on) return;
+  std::fprintf(stderr,
+               "[lease] %s host_workers=%u acquired=%d cap=%u budget_available=%u\n",
+               module_id ? module_id : "?", host_workers, acquired ? 1 : 0, cap,
+               available);
+}
 
 std::string status_str(acs_status st) {
   switch (st) {
@@ -4426,7 +4492,12 @@ struct P1NodeModule : public IModule {
           desc_.module_id + ": host services init failed"));
     }
     // 重计算线程注入（约束: 禁硬编码; host budget=唯一权威）
-    ac_set_num_threads(static_cast<int>(hs.host.budget.max_workers));
+    // P7-UTIL-001: 作用域内注入节点租约并行度, 退出 (含异常/取消) 自动恢复 ——
+    // 不再把降级节点的 cap 永久写进调度线程的进程 ICV。
+    trace_node_lease(desc_.module_id.c_str(), host_workers, lease.acquired(), cap,
+                     ctx.budget() ? ctx.budget()->available() : 0u);
+    ScopedOmpWorkerInjection omp_worker_injection(
+        static_cast<int>(hs.host.budget.max_workers));
     ctx.set_provider("baseline");
     ctx.record_trace([&] {
       TraceEvent e;
@@ -4597,7 +4668,12 @@ struct P2NodeModule : public IModule {
       return Result<void>::fail(Error(ErrorDomain::RESOURCE,
           desc_.module_id + ": host services init failed"));
     }
-    ac_set_num_threads(static_cast<int>(hs.host.budget.max_workers));
+    // P7-UTIL-001: 作用域内注入节点租约并行度, 退出 (含异常/取消) 自动恢复 ——
+    // 不再把降级节点的 cap 永久写进调度线程的进程 ICV。
+    trace_node_lease(desc_.module_id.c_str(), host_workers, lease.acquired(), cap,
+                     ctx.budget() ? ctx.budget()->available() : 0u);
+    ScopedOmpWorkerInjection omp_worker_injection(
+        static_cast<int>(hs.host.budget.max_workers));
     ctx.set_provider("baseline");
     ctx.record_trace([&] {
       TraceEvent e;

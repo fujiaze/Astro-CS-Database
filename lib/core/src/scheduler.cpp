@@ -121,6 +121,8 @@ Result<void> Scheduler::run(
     if (spec.deps.empty()) ready.push_back(id);
   }
   std::atomic<uint32_t> active{0};
+  // P7-UTIL-003: "声明满额预算"的 cpu_heavy 节点互斥闸门（run 内局部，不跨 run 残留）
+  std::mutex heavy_mu;
   std::atomic<bool> cancelled_run{false};
   std::atomic<uint64_t> mem_used{0};
   std::string fail_node;
@@ -144,6 +146,7 @@ Result<void> Scheduler::run(
     while (true) {
       std::string node_id;
       uint64_t node_mem = 0;
+      bool heavy_node = false;  // P7-UTIL-003: 锁内判定"声明满额预算的 cpu_heavy"
       {
         std::unique_lock<std::mutex> lk(mtx);
         cv.wait(lk, [&] {
@@ -217,7 +220,32 @@ Result<void> Scheduler::run(
         mem_used.fetch_add(node_mem);
         status[node_id] = NodeStatus::RUNNING;
         ++active;
+        // P7-UTIL-002: 同批在途/排队节点均分唯一 ThreadBudget —— 派发时把本节点可用
+        // 份额写入 thread_local（无并发时 = 整份预算）。修复前先派发者独占整份预算
+        // （ThreadBudget::acquire 取 min(want, available)），后派发者得空租约降级为
+        // 1 线程并持续整个节点。份额只约束本节点并行度，不改变 acquire/释放/降级判定
+        // 语义，也不改变 DAG 并发语义（Σ 在途份额 ≤ budget；两条 cpu_heavy 节点仍并发，
+        // 见 tests/unit/core_scheduler_test.cpp CORE-006）。
+        // "声明需要整份预算"的 cpu_heavy 节点互斥执行（见下方 heavy_gate）：使每个
+        // 都能拿到它声明的满额，而不是被先到者挤成 1 线程。
+        heavy_node = (nit != nodes_.end() &&
+                      nit->second.resource_class == "cpu_heavy" &&
+                      budget_ > 0 && nit->second.max_workers >= budget_);
+        if (heavy_node) {
+          set_dispatch_budget_hint(budget_);
+        } else {
+          const uint32_t concurrent =
+              active.load() + static_cast<uint32_t>(ready.size());
+          const uint32_t share = (budget_ > 0 && concurrent > 0)
+                                     ? std::max<uint32_t>(1u, budget_ / concurrent)
+                                     : budget_;
+          set_dispatch_budget_hint(share);
+        }
       }
+      // P7-UTIL-003: 仅在"多个节点都声明需要整份预算"时互斥（声明需求不冲突的
+      // independent 节点仍并发 —— tests/unit/core_scheduler_test.cpp CORE-006）。
+      std::unique_lock<std::mutex> heavy_gate;
+      if (heavy_node) heavy_gate = std::unique_lock<std::mutex>(heavy_mu);
       // 执行
       bool node_ok = true;
       {
@@ -277,6 +305,7 @@ Result<void> Scheduler::run(
           }
         }
       }
+      set_dispatch_budget_hint(0);  // P7-UTIL-002: 节点结束复位（异常路径亦到达）
       {
         std::lock_guard<std::mutex> lk(mtx);
         --active;
