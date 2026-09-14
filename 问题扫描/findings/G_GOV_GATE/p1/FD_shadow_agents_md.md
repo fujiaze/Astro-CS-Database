@@ -50,3 +50,16 @@
   **但歧义必须消除**：M6a-G-001 把 CON-COMMENTS 定为 P0「结构性空壳」，而这里它显示为**红灯**。两者**不互斥且都成立**：  该门确实在跑并且会红（红在注释卫生比率面），但它**抓不到注释溯源类问题**（M6a 的判词对象是后者）；  「会红」不等于「有效」，「在册 P1 待域主修复」也不等于「已验证」。这条是防止负责人把两条结论误读成互相否证而写。
 - **建议处置**：引用 CON-COMMENTS 时一律同时给两面（红态来源=比率判据；缺口=零溯源判据且 §12.2 无条文）；FD-R1-010 与 `docs/audit` 登记册的一致性交 R 层核
 - **置信度**：高（字段逐字引）｜**related**：M6a-G-001（P0）、M5a-G-005（THREAD-BUDGET 同类）、簇 1、簇 10 口径注
+### FD-G-004 同一检查项在 `checks.json` 写 `waivable=false`、在证据里被记为 `SKIPPED(waivable)`：豁免状态无单一事实源（第二实例）
+- **ID**：FD-G-004 ｜ **类别**：G_GOV_GATE ｜ **优先级**：**P1** ｜ producer=FD（由 E3 上报、前台当场复验）
+- **位置**：`ci/checks.json::UT-CPU-AVX512`（前台当场 python3 解析：`waivable=False`；同族 `UT-CPU-BASELINE`/`UT-CPU-DISPATCH`/`UT-CPU-AVX2` **四项全 `waivable=False`**）；
+  `evidence/**` 的 aud-ci-live 转述把 `UT-CPU-AVX512` 记作 `SKIPPED(waivable)`；跳过合同在 `tests/unit/CMakeLists.txt::cpu001_provider_selftest_avx512`（`SKIP_RETURN_CODE 77`，**按符号引用，行号已漂移**）
+- **问题说明**：avx512 自测在缺指令集的机器上以退出码 77 主动跳过，`SKIP_RETURN_CODE 77` 使它在 CI 眼里是"正常的 Skipped"；
+  而证据层把它写成"waivable"，配置层它明明是 `waivable=false`。⇒ **"这项到底被豁免了、还是合理地跳过了、还是仍然必须绿"三件事在两份文本里说法不同**，
+  且跳过是**静默的**（Skipped 不计入失败），所以一台永远没有 avx512 的 runner 会永远"通过"CPU-001 的 avx512 面。
+  这条与 FD-G-002 同一族（声明与执行面不符）但机制不同：FD-G-002 是"不可豁免项被基线容忍为红"，本条是"**可跳过被记账成可豁免**"，两者都是**豁免语义没有单一事实源**。
+- **影响**：CPU provider 的 ISA 分派面（§10.2/§10.3）在无该指令集的环境上**没有任何有效验证**，而账面显示已覆盖；这与 M9 §4「平台盲区」是同一形态的 **ISA 维度版本**。
+- **依据条款**：宪章 §10.2、§10.3、§12.3-10（状态与声明须同源）、§15.4（验证职责矩阵）；AGENTS.md「状态机」要素（waiver 登记唯一入口）
+- **建议处置**：①统一豁免语义：`SKIP_RETURN_CODE` 类"环境性跳过"必须在 checks/registry 里有一个区别于 `waivable` 与 `PASS` 的第四态并计入覆盖率；
+  ②机器门：`checks.json` 的 `waivable` 与证据层记账值不一致即 FAIL（零假阳、可当天入门）；③CPU-001 的 avx512 面须显式声明"仅在某 runner 上有效"，否则不得计为已覆盖
+- **置信度**：高（四项 waivable 值当场解析；跳过合同按符号定位）｜ **related**：FD-G-002（同族第一实例）、M9.md §4（平台盲区总述，本条补 ISA 维度）、M5b-G-01（门验错对象）、簇 1 第三种机制、A-31 同批
