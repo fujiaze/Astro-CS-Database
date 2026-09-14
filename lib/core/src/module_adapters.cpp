@@ -1608,6 +1608,12 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
   const std::string out_dir = doc.value("output_dir", std::string("."));
+  // ── P14-N-08 (RQS V2-N-08): psf_mode 必须是**真实模式**, 不得为字面量 ──────
+  // 模式由生效的拟合上限派生: n_fit_limit>0 ⇒ "fast"(只拟合最亮 N 颗);
+  // n_fit_limit==0 ⇒ "precise"(全量无截断)。生产 dispatch (p1_op_star_psf) 依
+  // kPrecisePsfEnabled + 节点配置决定传入值; 精确直调路径传 0。
+  const std::string psf_mode = (n_fit_limit > 0) ? std::string("fast")
+                                                 : std::string("precise");
   const astrocs::phase1::StarDetector det(5.0);
   Json frames = Json::array();
   std::vector<double> fwhm_xs, fwhm_ys, ells;
@@ -1732,6 +1738,15 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
                           {"background", cat.background},
                           {"noise_sigma", cat.noise_sigma},
                           {"n_psf_valid", n_valid},
+                          // P14-N-08 (RQS V2-N-08): 交付样本真实性 provenance——
+                          // psf_mode=真实模式; n_sources=可用源总数(全量检测);
+                          // n_fit_input=真正送入 Moffat4 拟合的星数(受性能上限);
+                          // psf_fit_truncated=拟合输入是否被 psf.max_stars 截断。
+                          {"psf_mode", psf_mode},
+                          {"n_sources", static_cast<int64_t>(N)},
+                          {"n_fit_input", static_cast<int64_t>(N_fit)},
+                          {"fit_limit", n_fit_limit},
+                          {"psf_fit_truncated", N_fit < N},
                           {"sources", sources},
                           {"psf_params", psf_rows}});
   }
@@ -1751,15 +1766,21 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
                       // DPSF_PSF_STATUS_OK compact; 失败星不入 psf_params)
                       {"status_schema", DPSF_PSF_STATUS_SCHEMA},
                       {"entry", "dpsf_fit_batch_f64"},
-                      // PSF-FAST-001 (负责人裁决 2026-09-14): 生产路径只跑 fast。
+                      // PSF-FAST-001 (负责人裁决 2026-09-14) + P14-N-08:
+                      // psf_mode = 真实模式（n_fit_limit>0 ⇒ "fast"/"precise",
+                      // 由 p1_op_star_psf_impl 派生, 不再是字面量）。
                       // n_sources = 全量检测星数（与 p1_sources.n_detected 一致,
                       // 未截断）; n_fit_input = 实际送入拟合的最亮星数（配置
                       // psf.max_stars）。median_* 统计口径 = **拟合子集**的成功星
                       // （旧口径 = 全量 145,884 颗含 54% 失败星的混合集）。
+                      // truncated = 拟合输入被 psf.max_stars 截断（性能开关, 只
+                      // 影响拟合成本; 交付 SNR/深度不读该子集, 见 p1_op_noise）。
                       // 精确路径保留但 inactive（见 p1_op_star_psf_precise）。
-                      {"psf_mode", "fast"},
+                      {"psf_mode", psf_mode},
                       {"n_sources", n_total_total},
                       {"n_fit_input", n_fit_total},
+                      {"fit_limit", n_fit_limit},
+                      {"truncated", n_fit_total < n_total_total},
                       {"n_valid", n_valid_total},
                       {"median_fwhm_x_px", median(fwhm_xs)},
                       {"median_fwhm_y_px", median(fwhm_ys)},
@@ -1770,7 +1791,9 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   (*man)["frames"] = static_cast<uint64_t>(frames.size());
   (*man)["n_sources"] = n_total_total;
   (*man)["n_fit_input"] = n_fit_total;      // PSF-FAST-001
-  (*man)["psf_mode"] = "fast";              // PSF-FAST-001
+  (*man)["psf_mode"] = psf_mode;            // P14-N-08: 真实模式 (非字面量)
+  (*man)["fit_limit"] = n_fit_limit;        // P14-N-08
+  (*man)["psf_fit_truncated"] = n_fit_total < n_total_total;  // P14-N-08
   (*man)["n_psf_valid"] = n_valid_total;
   (*man)["sources_artifact"] = src_path;
   (*man)["psf_artifact"] = psf_path;
@@ -2634,6 +2657,10 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   }
 
   // ── P8: SNR 科学配置 (可选; 缺省 = 无 gain/read-noise/ZP) ──
+  // P14-N-08: snr.max_sources = **交付样本上限** (默认 0 = 不限)。这是唯一
+  // 允许影响交付 SNR 样本大小的显式开关, 且生效时必须置 truncated=true;
+  // 与性能开关 psf.max_stars 完全解耦（后者只影响 PSF 拟合, 不进 SNR 样本）。
+  int snr_max_sources = 0;
   astrocs::phase1::SnrFrameScienceConfig sci_cfg;
   if (doc.contains("snr") && doc["snr"].is_object()) {
     const Json& sc = doc["snr"];
@@ -2646,6 +2673,8 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     sci_cfg.sigma_logflux_dex = sc.value("sigma_logflux_dex", 0.0);
     sci_cfg.n_matches = sc.value("n_matches", 0);
     sci_cfg.reference_flux_adu = sc.value("reference_flux_adu", 0.0);
+    snr_max_sources = sc.value("max_sources", 0);
+    if (snr_max_sources < 0) snr_max_sources = 0;   // <0 非法 -> 视为不限
   }
 
   Json frames = Json::array();
@@ -2689,24 +2718,55 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
       frame["frame_depth_m5_mag"] = nullptr;
       frame["sigma_location_se_dex"] = nullptr;
       frame["sigma_location_se_mag"] = nullptr;
+      frame["truncated"] = false;
+      frame["psf_mode"] = "unavailable";
     } else {
       astrocs::phase1::SnrFrameScienceConfig cfg = sci_cfg;
       cfg.sigma_sky_adu = src_frame->value("noise_sigma", 0.0);
-      // SNR 目录 = PSF 有效星集合 (psf_params) ∩ 检测目录 (sources, 提供 flux/fwhm)
-      std::map<std::string, std::pair<double, double>> cat;
-      for (const auto& s : src_frame->value("sources", Json::array())) {
-        cat[s.value("id", std::string())] =
-            std::make_pair(s.value("flux", 0.0), s.value("fwhm_px", 0.0));
-      }
+      // ── P14-N-08/N-09 (RQS V2-N-08 + V2-N-09): 交付 SNR 样本真实性 ──────
+      // 交付样本 = DATA-P1-SOURCES.sources 的**全部测光有效源** (flux>0 且
+      // fwhm_px>0), **不再**取 psf_params —— 后者是受性能开关 psf.max_stars
+      // (默认 5000) 截断的「最亮子集」, 会被静默当成 SNR 目录 ⇒ 交付的
+      // median_snr / frame_depth_m5_mag 由最亮 ≤5000 颗决定, 系统性偏乐观。
+      // 本实现与 psf.max_stars 解耦: 后者不得改变交付的 SNR/深度数值。
+      const Json all_sources =
+          (src_frame->contains("sources") && (*src_frame)["sources"].is_array())
+              ? (*src_frame)["sources"] : Json::array();
       std::vector<astrocs::phase1::SnrSourceRow> rows;
-      for (const auto& p : src_frame->value("psf_params", Json::array())) {
-        const auto it = cat.find(p.value("star_id", std::string()));
-        if (it == cat.end()) continue;
+      rows.reserve(all_sources.size());
+      for (const auto& s : all_sources) {
         astrocs::phase1::SnrSourceRow row;
-        row.id = it->first;
-        row.flux_adu = it->second.first;
-        row.fwhm_px = it->second.second;
-        rows.push_back(row);
+        row.id = s.value("id", std::string());
+        row.flux_adu = s.value("flux", 0.0);
+        row.fwhm_px = s.value("fwhm_px", 0.0);
+        // 测光有效判据与 compute_snr_frame_science 内部一致 (flux>0, fwhm>0);
+        // 此处先剔除不可计算行, 使 n_sources 如实反映可用样本。
+        if (!(std::isfinite(row.flux_adu) && row.flux_adu > 0.0)) continue;
+        if (!(std::isfinite(row.fwhm_px) && row.fwhm_px > 0.0)) continue;
+        rows.push_back(std::move(row));
+      }
+      const std::size_t n_snr_available = rows.size();
+      // 显式交付样本上限 (snr.max_sources; 默认 0 = 不限): 一旦生效即如实置
+      // truncated=true（下游可读）; 默认路径**不截断** ⇒ 样本 = 全量有效源。
+      bool snr_sample_truncated = false;
+      if (snr_max_sources > 0 &&
+          rows.size() > static_cast<std::size_t>(snr_max_sources)) {
+        std::partial_sort(
+            rows.begin(),
+            rows.begin() + static_cast<std::ptrdiff_t>(snr_max_sources),
+            rows.end(),
+            [](const astrocs::phase1::SnrSourceRow& a,
+               const astrocs::phase1::SnrSourceRow& b) {
+              if (a.flux_adu != b.flux_adu) return a.flux_adu > b.flux_adu;
+              return a.id < b.id;   // tie-break: id 升序 (确定性)
+            });
+        rows.resize(static_cast<std::size_t>(snr_max_sources));
+        std::sort(rows.begin(), rows.end(),
+                  [](const astrocs::phase1::SnrSourceRow& a,
+                     const astrocs::phase1::SnrSourceRow& b) {
+                    return a.id < b.id;
+                  });
+        snr_sample_truncated = true;
       }
       const astrocs::phase1::SnrFrameScienceResult sci =
           astrocs::phase1::compute_snr_frame_science(rows, cfg);
@@ -2714,6 +2774,22 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
       frame["snr_catalogue_reason"] = sci.reason;
       frame["n_snr_input"] = sci.n_input;
       frame["n_snr_catalogue"] = sci.n_used;
+      // ── P14-N-08: 交付样本 provenance（下游可读, 截断不再静默）──────────
+      // snr_sample = 所用样本定义; n_sources = 上游可用源总数;
+      // truncated = 该交付样本是否被样本上限 (snr.max_sources) 截断;
+      // psf_mode/n_fit_input/psf_fit_truncated = 上游 PSF 拟合 provenance
+      // （只作如实登记, 不影响本帧 SNR/深度数值）。
+      frame["snr_sample"] =
+          "all photometrically valid sources from DATA-P1-SOURCES.sources "
+          "(flux>0, fwhm_px>0); independent of psf.max_stars / psf_params";
+      frame["n_sources"] = static_cast<int64_t>(all_sources.size());
+      frame["n_snr_available"] = static_cast<int64_t>(n_snr_available);
+      frame["truncated"] = snr_sample_truncated;
+      frame["snr_max_sources"] = snr_max_sources;
+      frame["psf_mode"] = src_frame->value("psf_mode", std::string("unavailable"));
+      frame["n_fit_input"] =
+          src_frame->value("n_fit_input", static_cast<int64_t>(-1));
+      frame["psf_fit_truncated"] = src_frame->value("psf_fit_truncated", false);
       frame["snr_phot"] = sci.snr_phot;
       frame["median_snr"] = sci.median_snr;
       frame["median_source_snr"] = sci.median_source_snr;

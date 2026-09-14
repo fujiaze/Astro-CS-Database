@@ -426,6 +426,38 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   var_ADU=max(signal,0)/gain+(rn/gain)² 仅诊断（SNR-005，不入生产——
   §4a/SCI §10 域外引用）。
 
+### 13.4 p1_snr.json 帧级科学 SNR 交付字段（DATA-P1-SNR/2，P14 样本真实性）
+
+> ID: DATA-P1-SNR（编排产物；registry descriptor data_id）  状态: ACTIVE
+> 生产落点: module_adapters.cpp::p1_op_noise → `<out_dir>/p1_snr.json`
+> 依据: RQS V2-N-08 + V2-N-09（P14-N-08 / P14-N-09 修复）。本节与 §13 的
+> DATA-P1-NOISE（NoiseModel 参数与逐像素场）不同：这里是编排层**逐帧科学
+> SNR / 5-sigma 深度聚合产物**的字段集合。
+
+| 字段 | dtype | 单位/值域 | 语义 / invalid |
+|---|---|---|---|
+| snr_phot / median_snr / median_source_snr | f64 | [1] | 三者同一值 = median(SNR_F)（SNR_F=F/sigma_F, Horne 1986） |
+| frame_depth_flux5_adu | f64 | ADU | F_5 = 5·sigma_F(ref)；参考轮廓 = 目录中位 FWHM + 帧 sigma_sky |
+| frame_depth_m5_mag | f64/null | mag | m_5 = ZP − 2.5·log10(F_5)；无 ZP → null |
+| n_snr_input | i64 | 颗 | 交付样本行数（含 snr.max_sources 截断后） |
+| n_snr_catalogue | i64 | 颗 | 其中成功算出 SNR_F 的行数 |
+| snr_sample | string | — | **样本定义**：全部测光有效 sources（flux>0, fwhm_px>0），与 psf.max_stars 解耦 |
+| n_sources | i64 | 颗 | 上游目录可用源总数（DATA-P1-SOURCES.sources 长度） |
+| n_snr_available | i64 | 颗 | 上游目录中测光有效的源数 |
+| truncated | bool | — | 交付样本是否被 snr.max_sources 上限截断 |
+| snr_max_sources | i64 | 颗 | 生效的交付样本上限（0 = 不限） |
+| psf_mode | string | — | 上游 PSF 真实模式 fast/precise/unavailable（**非字面量**） |
+| n_fit_input | i64 | 颗 | 上游真正送入 Moffat4 拟合的星数（provenance；-1 = 上游未记录） |
+| psf_fit_truncated | bool | — | 上游拟合输入是否被 psf.max_stars 截断（provenance） |
+
+**样本真实性约束（P14-N-08/N-09；机器锁 tests/unit/p1snr/
+p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）与
+`psf.max_stars=5000`（或任何值）两次运行，交付的 `snr_phot` / `median_snr` /
+`frame_depth_flux5_adu` / `frame_depth_m5_mag` / `n_snr_input` /
+`n_snr_catalogue` **必须逐位一致**（`psf.max_stars` 仅性能用途）；人为用
+`snr.max_sources` 截断交付样本时 `truncated=true` 且上述数值**确实不同**
+（证明 parity 锁非恒真）。
+
 ## 14. Phase1 photometry 模块输入/输出数据（DATA-P1-PHOT）
 
 > ID: DATA-P1-PHOT  状态: CONTRACT_READY（P1-PHOT-DOC 冻结，2026-09-07）

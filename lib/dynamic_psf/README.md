@@ -210,6 +210,13 @@ module_adapters.cpp）先做**全量**星点检测（DATA-P1-SOURCES 与下游�
 死边、`psf_params` 在仓库内零消费者，且测光正式口径 = **孔径测光**（负责人
 2026-09-14 裁决）。全量 145,884 颗拟合实测 156.7 s/帧；最亮 5000 颗 ≈ 4 s。
 
+**P14-N-08 订正（2026-09-15）**：`psf.max_stars` 仅是**性能开关**，只限制
+`dpsf_fit_batch_f64` 的拟合输入；它**不得**再影响交付的帧级 SNR / 极限星等。
+P14 起 `p1_op_noise` 的 SNR 样本 = `DATA-P1-SOURCES.sources` 的全部测光有效源
+（与 `psf_params` 解耦），且 `p1_op_star_psf_impl` 在 p1_sources.json / p1_psf.json
+逐帧如实记录 `psf_mode`（真实模式 "fast"/"precise"，不再是字面量）、
+`n_sources` / `n_fit_input` / `psf_fit_truncated`；`psf_params` 的截断不再静默。
+
 **精确 PSF 路径保留但 inactive（不工作）**：
 - 实现位置：`module_adapters.cpp` 的 `p1_op_star_psf_precise(doc, man)`
   （= `p1_op_star_psf_impl(doc, man, /*n_fit_limit=*/`0)`，全量星 Moffat4 拟合）。

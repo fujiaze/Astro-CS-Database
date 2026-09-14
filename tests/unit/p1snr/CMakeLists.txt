@@ -29,3 +29,22 @@ set_tests_properties(
   p1snr_linux_units p1snr_linux_oracle p1snr_linux_contract
   p1snr_linux_negative p1snr_linux_determinism
   PROPERTIES LABELS "p1snr")
+
+# ============================================================================
+# P14-N-08/N-09 (RQS V2-N-08 + V2-N-09) — 交付 SNR/极限星等样本真实性 parity 锁
+# ----------------------------------------------------------------------------
+# 端到端直调生产 op (p1_op_star_psf_json / p1_op_noise_json):
+#   A. psf.max_stars=0/5000/2 三次运行, 交付 SNR/深度逐位一致 (性能开关解耦);
+#   B. psf_mode/n_fit_input/n_sources/truncated/psf_fit_truncated/snr_sample
+#      如实落到产物;
+#   C. snr.max_sources 人为截断 -> truncated=true 且数值确实不同 (非恒真)。
+# ============================================================================
+add_executable(p1snr_frame_parity_test p1snr_frame_parity_test.cpp)
+target_include_directories(p1snr_frame_parity_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/phase1_session/tests/p1sess)
+target_link_libraries(p1snr_frame_parity_test PRIVATE
+  astrocs_module_adapters astrocs_core astrocs_phase1_session)
+add_test(NAME p1snr_frame_parity COMMAND p1snr_frame_parity_test)
+set_tests_properties(p1snr_frame_parity PROPERTIES LABELS "p1snr")

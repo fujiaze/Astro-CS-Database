@@ -3932,6 +3932,73 @@
       ]
     },
     {
+      "id": "CTEST-P1SNR-FRAME-PARITY",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p1snr_frame_parity",
+        "--output",
+        "run/ci/ctest/p1snr_frame_parity.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p1snr_frame_parity.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/core/**",
+        "lib/snr_estimator/**",
+        "tests/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p1snr_frame_parity"
+      ]
+    },
+    {
+      "id": "CTEST-IPV-MAG-ITER-DELIVERY",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "ipv_mag_iter_delivery",
+        "--output",
+        "run/ci/ctest/ipv_mag_iter_delivery.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/ipv_mag_iter_delivery.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/plate_solve/**",
+        "tests/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "ipv_mag_iter_delivery"
+      ]
+    },
+    {
       "id": "KNOWN-FAILURES-BASELINE-CHECK",
       "profiles": [
         "linux-main"

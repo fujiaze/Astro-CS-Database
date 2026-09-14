@@ -388,6 +388,35 @@ MagIterOutcome estimate_mag_lim_iterative(
         return out;
     }
 
+    // ── P14-N-10 (RQS V2-N-10 缺陷 3): 失效面 fail-closed + 显式报错 ────────
+    // 旧实现用 std::max(focal,1.0)/std::max(exposure,0.1) 把 NaN 静默吞掉,
+    // 再经 m0_hi=min(clamp_hi,13.0) 落到 13.0 —— 无 error、无标记。改为:
+    // 非有限 / 非正 focal 或 exposure ⇒ invalid + error (不做任何查询);
+    // alpha 限幅非法 (alpha_min<=0 / alpha_max<=alpha_min / 非有限) 同样拒绝,
+    // 否则 alpha 差分更新会被静默禁用或产生未定义限幅行为。
+    if (!std::isfinite(focal_length_mm) || !(focal_length_mm > 0.0)) {
+        if (logger) logger->error(
+            "estimate_mag_lim_iterative: 非法 focal_length_mm (NaN/Inf/<=0) -> fail-closed");
+        return out;
+    }
+    if (!std::isfinite(exposure_s) || !(exposure_s > 0.0)) {
+        if (logger) logger->error(
+            "estimate_mag_lim_iterative: 非法 exposure_s (NaN/Inf/<=0) -> fail-closed");
+        return out;
+    }
+    if (!std::isfinite(params.m_lim_alpha_min) ||
+        !(params.m_lim_alpha_min > 0.0)) {
+        if (logger) logger->error(
+            "estimate_mag_lim_iterative: m_lim_alpha_min 必须有限且 >0 -> fail-closed");
+        return out;
+    }
+    if (!std::isfinite(params.m_lim_alpha_max) ||
+        !(params.m_lim_alpha_max > params.m_lim_alpha_min)) {
+        if (logger) logger->error(
+            "estimate_mag_lim_iterative: m_lim_alpha_max 必须有限且 > m_lim_alpha_min -> fail-closed");
+        return out;
+    }
+
     // 参数合法化 (外部配置写坏时不得死循环/除零)
     const double clamp_lo = std::min(params.m_lim_clamp_lo, params.m_lim_clamp_hi);
     const double clamp_hi = std::max(params.m_lim_clamp_lo, params.m_lim_clamp_hi);
@@ -445,18 +474,26 @@ MagIterOutcome estimate_mag_lim_iterative(
         n_last_ok = n_ret;
         out.alpha_final = alpha;
 
-        // 触顶检测: 返回数恰为"每文件返回上限"的整数倍 => collector 饱和截断。
-        // 触顶时停用 alpha 更新且视为已达标 (alpha->0 会使割线步长发散)。
-        const bool capped = (n_ret > 0 && cap_unit > 0.0
-                             && std::fmod(static_cast<double>(n_ret), cap_unit) == 0.0);
+        // ── P14-N-10 (RQS V2-N-10 缺陷 2): 可靠触顶判据, 弃用 fmod 启发式 ──
+        // 缺陷: 旧判据 fmod(n_ret, cap_unit)==0 只识别「总数恰为上限整数倍」,
+        // 部分文件截断 (总数 = k*cap + partial) 会漏判; 漏判的截断样本仍进入
+        // alpha 差分, 污染局部斜率。
+        // 可靠判据: gaia_client 每文件顺序截断使**任一被截断文件恰返回
+        // cap_unit 条**, 故 n_ret >= cap_unit 即必有一文件触顶 (k*cap 与
+        // cap+partial 均被捕获, 无漏判)。n_ret==cap_unit 的巧合按 fail-safe
+        // 处理 (宁可标记截断, 不可静默使用被截断样本)。
+        // 触顶 ⇒ capped=true 且 converged 保持 **false** (旧实现错记为 true);
+        // break 在 alpha 差分之前 ⇒ 截断的 N 不进入差分。
+        const bool capped = (n_ret > 0 && cap_unit > 0.0 &&
+                             static_cast<double>(n_ret) >= cap_unit);
         if (capped) {
             out.capped    = true;
-            out.converged = true;
+            out.converged = false;   // P14-N-10 缺陷 1: 触顶 != 收敛
             if (logger) {
                 char buf[320];
                 std::snprintf(buf, sizeof(buf),
-                    "极限星等迭代: m=%.3f 返回 %d 触到每文件上限 %.0f 的整数倍, "
-                    "停用 alpha 更新 (按 N>=N_target 处理)", m, n_ret, cap_unit);
+                    "极限星等迭代: m=%.3f 返回 %d >= 每文件上限 %.0f, 判定触顶截断; "
+                    "converged=false 且截断样本不入 alpha 差分", m, n_ret, cap_unit);
                 logger->warn(buf);
             }
             break;
@@ -509,6 +546,22 @@ MagIterOutcome estimate_mag_lim_iterative(
 }
 
 // ----------------------------------------------------------------------------
+// mag_iter_apply_to_selection - 迭代结果 -> 交付面 StarSelection (P14-N-10 缺陷 1)
+// 唯一映射点; 生产 4 条路径都经 gaia_query_mag_iterative 调本函数, 保证
+// converged / query_failed / capped / n_queries(m_lim_iterations) / mag_lim_final
+// / alpha 全部可观测（旧实现丢 converged/query_failed 且把触顶记为收敛）。
+// ----------------------------------------------------------------------------
+void mag_iter_apply_to_selection(const MagIterOutcome& mi, StarSelection& out) {
+    out.m_lim_final        = mi.m_lim_final;
+    out.n_gaia_final       = mi.n_returned;
+    out.m_lim_iterations   = mi.query_count;
+    out.m_lim_capped       = mi.capped;
+    out.m_lim_converged    = mi.converged;
+    out.m_lim_query_failed = mi.query_failed;
+    out.m_lim_alpha_final  = mi.alpha_final;
+}
+
+// ----------------------------------------------------------------------------
 // gaia_query_mag_iterative - 4 个 ipv_select 路径共用的"迭代查询"封装
 //
 // 把 estimate_mag_lim_iterative 接到 gaia_query_stars 上, 并把末次成功查询的
@@ -523,7 +576,8 @@ static int gaia_query_mag_iterative(
     std::vector<float>& cat_mag,
     double& m_lim_final, int& query_count, int& n_returned,
     int& gaia_calls, double& gaia_query_ms,
-    bool& capped, double& alpha_final)
+    bool& capped, double& alpha_final,
+    StarSelection* out_sel)
 {
     std::vector<double> ok_ra, ok_dec;
     std::vector<float>  ok_mag;
@@ -570,6 +624,8 @@ static int gaia_query_mag_iterative(
         if (logger) logger->error(buf);
         return -1;
     }
+    // P14-N-10: 迭代失效面落交付面 (唯一映射点)。
+    if (out_sel) mag_iter_apply_to_selection(mi, *out_sel);
     return 0;
 }
 
@@ -959,7 +1015,7 @@ int ipv_select(
             params, logger, "ipv_select",
             cat_ra, cat_dec, cat_mag,
             m_lim_final, m_lim_iters, n_gaia_final,
-            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final) != 0) {
+            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final, &output) != 0) {
         return -1;
     }
     if (logger) {
@@ -971,13 +1027,12 @@ int ipv_select(
             m_lim_capped ? 1 : 0, m_lim_alpha_final, gaia_calls, gaia_query_ms);
         logger->info(buf);
     }
-    output.m_lim_final = m_lim_final;
-    output.n_gaia_final = n_gaia_final;
-    output.m_lim_iterations = m_lim_iters;
+    // P14-N-10: mag-iter 交付面字段 (m_lim_final/n_gaia_final/m_lim_iterations/
+    // m_lim_capped/m_lim_converged/m_lim_query_failed/m_lim_alpha_final) 由
+    // gaia_query_mag_iterative → mag_iter_apply_to_selection 统一落盘; 此处只补
+    // Gaia 调用计数与墙钟。
     output.gaia_query_calls = gaia_calls;
     output.gaia_query_ms = gaia_query_ms;
-    output.m_lim_capped = m_lim_capped;
-    output.m_lim_alpha_final = m_lim_alpha_final;
 
     // --- Step 9: Gnomonic 投影 + FOV 内过滤 ---
     if (logger) logger->info("Step 7: Gnomonic 投影 + FOV 过滤");
@@ -1257,7 +1312,7 @@ int ipv_select_from_memory(
             params, logger, "ipv_select_from_memory",
             cat_ra, cat_dec, cat_mag,
             m_lim_final, m_lim_iters, n_gaia_final,
-            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final) != 0) {
+            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final, &output) != 0) {
         return -1;
     }
     if (logger) {
@@ -1269,13 +1324,12 @@ int ipv_select_from_memory(
             m_lim_capped ? 1 : 0, m_lim_alpha_final, gaia_calls, gaia_query_ms);
         logger->info(buf);
     }
-    output.m_lim_final = m_lim_final;
-    output.n_gaia_final = n_gaia_final;
-    output.m_lim_iterations = m_lim_iters;
+    // P14-N-10: mag-iter 交付面字段 (m_lim_final/n_gaia_final/m_lim_iterations/
+    // m_lim_capped/m_lim_converged/m_lim_query_failed/m_lim_alpha_final) 由
+    // gaia_query_mag_iterative → mag_iter_apply_to_selection 统一落盘; 此处只补
+    // Gaia 调用计数与墙钟。
     output.gaia_query_calls = gaia_calls;
     output.gaia_query_ms = gaia_query_ms;
-    output.m_lim_capped = m_lim_capped;
-    output.m_lim_alpha_final = m_lim_alpha_final;
 
     // --- Step 9: Gnomonic 投影 + FOV 内过滤 ---
     if (logger) logger->info("Step 7: Gnomonic 投影 + FOV 过滤");
@@ -1527,7 +1581,7 @@ int ipv_select_from_detections(
             params, logger, "ipv_select_from_detections",
             cat_ra, cat_dec, cat_mag,
             m_lim_final, m_lim_iters, n_gaia_final,
-            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final) != 0) {
+            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final, &output) != 0) {
         return -1;
     }
     if (logger) {
@@ -1539,13 +1593,12 @@ int ipv_select_from_detections(
             m_lim_capped ? 1 : 0, m_lim_alpha_final, gaia_calls, gaia_query_ms);
         logger->info(buf);
     }
-    output.m_lim_final = m_lim_final;
-    output.n_gaia_final = n_gaia_final;
-    output.m_lim_iterations = m_lim_iters;
+    // P14-N-10: mag-iter 交付面字段 (m_lim_final/n_gaia_final/m_lim_iterations/
+    // m_lim_capped/m_lim_converged/m_lim_query_failed/m_lim_alpha_final) 由
+    // gaia_query_mag_iterative → mag_iter_apply_to_selection 统一落盘; 此处只补
+    // Gaia 调用计数与墙钟。
     output.gaia_query_calls = gaia_calls;
     output.gaia_query_ms = gaia_query_ms;
-    output.m_lim_capped = m_lim_capped;
-    output.m_lim_alpha_final = m_lim_alpha_final;
 
     // --- Step 9: Gnomonic 投影 + FOV 内过滤 ---
     if (logger) logger->info("Step 7: Gnomonic 投影 + FOV 过滤");
@@ -1854,7 +1907,7 @@ static int ipv_select_from_memory_with_callback_impl(
             params, logger, "ipv_select_from_memory_with_callback",
             cat_ra, cat_dec, cat_mag,
             m_lim_final, m_lim_iters, n_gaia_final,
-            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final) != 0) {
+            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final, &output) != 0) {
         return -1;
     }
     if (logger) {
@@ -1866,13 +1919,12 @@ static int ipv_select_from_memory_with_callback_impl(
             m_lim_capped ? 1 : 0, m_lim_alpha_final, gaia_calls, gaia_query_ms);
         logger->info(buf);
     }
-    output.m_lim_final = m_lim_final;
-    output.n_gaia_final = n_gaia_final;
-    output.m_lim_iterations = m_lim_iters;
+    // P14-N-10: mag-iter 交付面字段 (m_lim_final/n_gaia_final/m_lim_iterations/
+    // m_lim_capped/m_lim_converged/m_lim_query_failed/m_lim_alpha_final) 由
+    // gaia_query_mag_iterative → mag_iter_apply_to_selection 统一落盘; 此处只补
+    // Gaia 调用计数与墙钟。
     output.gaia_query_calls = gaia_calls;
     output.gaia_query_ms = gaia_query_ms;
-    output.m_lim_capped = m_lim_capped;
-    output.m_lim_alpha_final = m_lim_alpha_final;
 
     // --- Step 9: Gnomonic 投影 + FOV 内过滤 ---
     if (logger) logger->info("Step 7: Gnomonic 投影 + FOV 过滤");
