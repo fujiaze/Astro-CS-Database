@@ -34,6 +34,12 @@
 > 另记 E2 的量化的钉子：**CPU 门吃 1 核口径而机器有 16 核**，历史 177 条有值样本中 146 条落在 100–199 档（≈1 核），
 > **按 §10.5 容量口径过 85% 仅 6 条、过 90% 仅 4 条，而现行代码全判达标**（M5a-G-002 由静态推演升为历史数据实证）。
 
+> **E4 再补第五种（记账面）**：**0 用例 / 0 输出 / 自宣跳过 一律记 PASS** —— `WIN-TEST-UNIT` 连续 10 次真机 PASS 而 stage 日志是 `No tests were found!!!`、junit `tests="0"` ⇒
+> **Windows C++ 单测自 2026-09-07 后一次没跑过，账面全绿**；`API-DOCS` 双空输出被 `EMPTY_OUTPUT_SILENCE_EXEMPT` 制度化；`WARNING-SUPPRESSION` 自宣 `无可用构建树` 仍 PASS。
+> 另 **`linux-main − windows-main = 40 项`**（含 UT-CLI/UT-IO/UT-ABI/CTEST-LINUX-FULL+24）⇒ CLI/IO 合同族对 Windows **根本没声明**，而非"验了但恒零"。定档 **FD-F-003 = P0**（§15.3/§17.1 发布门禁面）。
+> **前台自纠（簇 10 加一条）**：我曾把一次 `build/asan/LastTest.log` 覆写**归因为自己的授权错误并向你报告**，E4 的并发观察（11:03-11:07 并发 agent 正写 `build/astrocs`/`install_manifest.txt`）+ 我复验该文件**无 `ctest -N` 特征** ⇒ **归因撤回为"原因未定"**。
+> 教训：**归因与事实是两回事，自我批评同样要过三级复核；没证据的因果链宁可写"未定"。**
+
 ## 簇 2 · "符合性"结论的生成逻辑本身失真（本轮最重的单条根因）
 - **M3-G-002（P0）＋ M2a-B-2（已并入）**：`docs/standards/STANDARDS_REGISTRY.md` 六个冻结域的 CONFORMANT 判定式
   **一律不包含其条款自身的判据维度** —— `D.image:104-110` 丢"同一单位与语义"（致 DISP-IMG-001 被自判覆盖）；`D.cal:237` 丢"误差传播与退化标记"；
