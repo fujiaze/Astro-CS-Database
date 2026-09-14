@@ -186,3 +186,19 @@ add_test(NAME p1star_mad COMMAND p1star_mad_check_test)
 set_tests_properties(p1star_mad PROPERTIES
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
   ENVIRONMENT "OMP_NUM_THREADS=1")
+
+# ----------------------------------------------------------------------------
+# SDET-ANGLE-001 (P11): 朝向角归一化有界 / fail-closed 回归锁。
+# 被测面 = sdet_angle_guard.h (header-only, 生产 sdet_api.cpp 同源 include);
+# 纯函数无 GSL/无 IO 依赖, 独立最小目标。修复前同一逻辑对 alpha=±inf 永不
+# 返回 (见本批 E2E: 标定帧单核 >900s 挂死), 本测试在修复后锁定:
+# 非有限/超界 -> 有界时间 false; 有限值 -> 与冻结迭代式逐位一致。
+# TIMEOUT 10s 为防回归挂死的硬兜底 (修复前该目标会 timeout 红)。
+# ----------------------------------------------------------------------------
+add_executable(p1star_angle_guard_test ${CMAKE_CURRENT_SOURCE_DIR}/../../test/sdet_angle_guard_test.cpp)
+target_include_directories(p1star_angle_guard_test PRIVATE ${SDET_SRC_DIR})
+add_test(NAME p1star_angle_guard COMMAND p1star_angle_guard_test)
+set_tests_properties(p1star_angle_guard PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
+  TIMEOUT 10
+  PASS_REGULAR_EXPRESSION "SDET_ANGLE_GUARD: PASS")
