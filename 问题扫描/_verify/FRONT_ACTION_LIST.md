@@ -87,3 +87,6 @@
 - **`UT-CLI` 的 `dirty_ignore` 去掉根目录裸名**（`V9-N-15`）：改 `run/cli_runs/**` 并把 56 个根目录 `astrocs_run_*.json` 归位。
 - **两条自证规则（写进 RQS 协议，适用于你我双方）**：①**"定向复跑全绿"不构成 fast 绿**（74/130 门不可达，含必红的 `DOC-LINE-ANCHORS` 与已转绿的 `CTEST-REGISTRATION`）⇒ 定向复跑后必须补跑不可达清单；②**改 checker 必须同批改其 `changed_paths`**，否则该类复跑看不到新行为。
 - **新门建议 `E11`**：`waivable=false` 的门的 command 里含 `--selftest`/`--selfcheck` ⇒ 红。
+- **立刻做（V9-N-17，P0）**：`CTEST-P1DRZ-TASKSET-INVARIANCE` 的被测脚本在无 `taskset` 时 `exit 0` ⇒ **你为 DRIZZLE-DET-001 装的那把锁在缺 taskset 的节点上永不红**；三层静默（脚本 0 / 无 `--fail-if-no-tests` / `exit 77` 被吸收）同向。①改 `FAIL` 或仅在 `waivable=true` 门上 skip；②③见 §B-2。做完我升 `VERIFIED`。
+- **立刻做（V9-N-16，P0）**：`TRACEABILITY` 门末行无条件 `return 0` 且改写受跟踪文件 `reports/v19r2/.../traceability_check.json` ⇒ 改真退出码 + `mutates_workspace=false`。
+- 新门建议 **`E12`**：`waivable` 翻转即作废旧证据（6 个 DEEP 门证据停在 09-05，其中 2 门现已非豁免）。
