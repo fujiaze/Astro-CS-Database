@@ -315,6 +315,11 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         // P1-001: 真实节点域科学参数（drizzle: nside/nested/pixfrac/precision;
         // wcs: ipv 求解链参数——非 silent default, 缺失即节点 DATA 拒绝）
         "drizzle", "wcs",
+        // P8-SNR-LINUX (2026-09-14): SNR 科学配置块 (gain_e_per_adu/
+        //   read_noise_e/zero_point_mag/sigma_logflux_dex/n_matches 等),
+        //   由 p1_op_noise 消费; 缺失 = 未知 gain/ZP (天空受限最优提取,
+        //   m_5 = null)。不放宽任何既有键校验。
+        "snr",
         // phase2 平铺 (p2_session / canonical P2 节点链 消费面)
         // B1-A4: 节点实际消费键必须可达, 否则配置被 parser 拒绝而链路不可闭合。
         // 节点侧键集（module_adapters P2NodeModule::validate_config + op 读取）:

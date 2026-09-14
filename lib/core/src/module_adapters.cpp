@@ -70,6 +70,9 @@
 
 #include "photometer.h"
 #include "noise_model.h"
+// P8-SNR-LINUX: 逐源 SNR 帧级聚合 (lib/phase1/noise), 其公式实现为
+// lib/snr_estimator/cpp/src/snr_science.cpp (已编入 astrocs_phase1_noise)。
+#include "snr_frame_science.h"
 #include "wcs_tan.h"
 
 // P7-UTIL-001: 节点级 OpenMP 并行度注入的保存/恢复需要 ICV 访问器。
@@ -2389,11 +2392,65 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
 }
 
 // ── op: estimate_snr（唯一真实入口 NoiseModel::estimate; SCI-NOISE-001 公式）──
+//
+// P8-SNR-LINUX (2026-09-14): 本节点的 SNR 输出改为**逐源科学 SNR**
+//   (lib/phase1/noise/snr_frame_science.h -> lib/snr_estimator/cpp/src/snr_science.cpp
+//    唯一权威实现, 已编入 astrocs_phase1_noise):
+//     snr_phot == median_snr == median_source_snr == median(SNR_F),
+//     SNR_F = F/sigma_F (Horne 1986 最优提取; sigma_F^-2 = sum_i P_i^2/sigma_i^2)。
+//   帧级科学基准改为 5sigma 点源深度 frame_depth_flux5_adu / frame_depth_m5_mag;
+//   **不再输出任何"整帧 SNR 标量"**。local_snr/frame_snr 按 SCI-CW-001 §2a/§4
+//   重定义为相对质量权重场 / 5sigma 深度 (非校准信噪比)。
+// 输入: 上游 star-psf 节点产物 p1_sources.json (逐源 flux/fwhm_px + 帧级
+//   noise_sigma + psf_params 的 PSF 有效星集合; 与 measure_flux 同源)。
+//   上游缺失/不可解析 -> DATA 失败 (fail-fast; 不写貌似成功的 p1_snr.json)。
+// 配置 (可选): doc["snr"] = {gain_e_per_adu, read_noise_e, zero_point_mag,
+//   aperture_radius_px, n_sky, profile_half_px, sigma_logflux_dex, n_matches,
+//   reference_flux_adu}; 缺省 = 未知 gain/ZP (天空受限最优提取, m_5 = NaN)。
 Result<void> p1_op_noise(const Json& doc, Json* man) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
   const std::string out_dir = doc.value("output_dir", std::string("."));
   const astrocs::phase1::NoiseModel model;
+
+  // ── P8: 上游 DATA-P1-SOURCES = 逐源 SNR 目录的唯一来源 (fail-fast) ──
+  const std::string src_path = out_dir + "/p1_sources.json";
+  Json src_frames = Json::array();
+  {
+    std::error_code ec;
+    if (!std::filesystem::exists(std::filesystem::u8path(src_path), ec))
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "p1_sources.json missing (upstream star-psf artifact required): " + src_path));
+    std::ifstream sf(std::filesystem::u8path(src_path), std::ios::binary);
+    if (!sf) return Result<void>::fail(Error(ErrorDomain::IO, "cannot open: " + src_path));
+    try {
+      const Json sj = Json::parse(std::string((std::istreambuf_iterator<char>(sf)),
+                                             std::istreambuf_iterator<char>()));
+      if (!sj.is_object() || !sj.contains("frames") || !sj["frames"].is_array())
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "p1_sources.json must be an object with a 'frames' array: " + src_path));
+      src_frames = sj["frames"];
+    } catch (const std::exception& e) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          std::string("p1_sources.json parse failed: ") + e.what()));
+    }
+  }
+
+  // ── P8: SNR 科学配置 (可选; 缺省 = 无 gain/read-noise/ZP) ──
+  astrocs::phase1::SnrFrameScienceConfig sci_cfg;
+  if (doc.contains("snr") && doc["snr"].is_object()) {
+    const Json& sc = doc["snr"];
+    sci_cfg.gain_e_per_adu = sc.value("gain_e_per_adu", 0.0);
+    sci_cfg.read_noise_e = sc.value("read_noise_e", 0.0);
+    sci_cfg.zero_point_mag = sc.value("zero_point_mag", 0.0);
+    sci_cfg.aperture_radius_px = sc.value("aperture_radius_px", 0.0);
+    sci_cfg.n_sky = sc.value("n_sky", 0.0);
+    sci_cfg.profile_half_px = sc.value("profile_half_px", 0);
+    sci_cfg.sigma_logflux_dex = sc.value("sigma_logflux_dex", 0.0);
+    sci_cfg.n_matches = sc.value("n_matches", 0);
+    sci_cfg.reference_flux_adu = sc.value("reference_flux_adu", 0.0);
+  }
+
   Json frames = Json::array();
   for (const auto& l : doc["input_lights"]) {
     // cosmetic 下游（cos → psf → phot → snr）: 消费 artifact:cos 产物
@@ -2408,16 +2465,111 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     auto r = model.estimate(px);
     if (r.failed()) return Result<void>::fail(r.error());
     const astrocs::phase1::NoiseResult& nr = r.value();
-    frames.push_back(Json{{"file", p1_base_name(path)},
-                          {"variance", nr.variance}, {"ivar", nr.ivar},
-                          {"sigma", nr.sigma}, {"background", nr.background},
-                          {"valid", nr.valid}, {"reason", nr.reason}});
+    const std::string base = p1_base_name(path);
+    Json frame = Json{{"file", base},
+                      {"variance", nr.variance}, {"ivar", nr.ivar},
+                      {"sigma", nr.sigma}, {"background", nr.background},
+                      {"valid", nr.valid}, {"reason", nr.reason}};
+    // ── P8: 逐源科学 SNR (仅当上游目录含同帧时附加) ──
+    frame["snr_schema"] = "DATA-P1-SNR/2";
+    frame["snr_definition"] =
+        "SNR_F = F/sigma_F (Horne 1986 optimal extraction; "
+        "sigma_F^-2 = sum_i P_i^2/sigma_i^2); frame-level science benchmark = "
+        "5-sigma point-source depth (SCI-CW-001 2a)";
+    const Json* src_frame = nullptr;
+    for (const auto& fr : src_frames) {
+      if (fr.is_object() && fr.value("file", std::string()) == base) {
+        src_frame = &fr;
+        break;
+      }
+    }
+    if (src_frame == nullptr) {
+      frame["snr_catalogue_status"] = "unavailable_no_upstream_frame";
+      frame["snr_phot"] = nullptr;
+      frame["median_snr"] = nullptr;
+      frame["median_source_snr"] = nullptr;
+      frame["frame_depth_flux5_adu"] = nullptr;
+      frame["frame_depth_m5_mag"] = nullptr;
+      frame["sigma_location_se_dex"] = nullptr;
+      frame["sigma_location_se_mag"] = nullptr;
+    } else {
+      astrocs::phase1::SnrFrameScienceConfig cfg = sci_cfg;
+      cfg.sigma_sky_adu = src_frame->value("noise_sigma", 0.0);
+      // SNR 目录 = PSF 有效星集合 (psf_params) ∩ 检测目录 (sources, 提供 flux/fwhm)
+      std::map<std::string, std::pair<double, double>> cat;
+      for (const auto& s : src_frame->value("sources", Json::array())) {
+        cat[s.value("id", std::string())] =
+            std::make_pair(s.value("flux", 0.0), s.value("fwhm_px", 0.0));
+      }
+      std::vector<astrocs::phase1::SnrSourceRow> rows;
+      for (const auto& p : src_frame->value("psf_params", Json::array())) {
+        const auto it = cat.find(p.value("star_id", std::string()));
+        if (it == cat.end()) continue;
+        astrocs::phase1::SnrSourceRow row;
+        row.id = it->first;
+        row.flux_adu = it->second.first;
+        row.fwhm_px = it->second.second;
+        rows.push_back(row);
+      }
+      const astrocs::phase1::SnrFrameScienceResult sci =
+          astrocs::phase1::compute_snr_frame_science(rows, cfg);
+      frame["snr_catalogue_status"] = sci.valid ? "ok" : "degenerate";
+      frame["snr_catalogue_reason"] = sci.reason;
+      frame["n_snr_input"] = sci.n_input;
+      frame["n_snr_catalogue"] = sci.n_used;
+      frame["snr_phot"] = sci.snr_phot;
+      frame["median_snr"] = sci.median_snr;
+      frame["median_source_snr"] = sci.median_source_snr;
+      frame["frame_depth_flux5_adu"] = sci.frame_depth_flux5_adu;
+      frame["frame_depth_m5_mag"] = sci.frame_depth_m5_mag;
+      frame["sigma_location_se_dex"] = sci.sigma_location_se_dex;
+      frame["sigma_location_se_mag"] = sci.sigma_location_se_mag;
+      frame["sigma_location_se_status"] =
+          (cfg.sigma_logflux_dex > 0.0 && cfg.n_matches > 0)
+              ? std::string("ok")
+              : std::string("unavailable_no_calibration_residual");
+      frame["snr_reference"] = Json{
+          {"profile", "median_fwhm_of_catalogue_sky_limited"},
+          {"flux_adu", sci.reference_flux_adu},
+          {"fwhm_px", sci.reference_fwhm_px},
+          {"snr_f", sci.reference_snr_f},
+          {"sigma_f_adu", sci.reference_sigma_f_adu}};
+      Json vals = Json::array();
+      Json sarr = Json::array();
+      for (std::size_t i = 0; i < rows.size(); ++i) {
+        vals.push_back(sci.local_snr[i]);
+        sarr.push_back(Json{{"id", rows[i].id},
+                            {"flux_adu", rows[i].flux_adu},
+                            {"fwhm_px", rows[i].fwhm_px},
+                            {"snr_f", sci.snr_f[i]},
+                            {"sigma_f_adu", sci.sigma_f_adu[i]},
+                            {"local_snr", sci.local_snr[i]}});
+      }
+      frame["local_snr"] = Json{
+          {"definition",
+           "relative quality weight = SNR_F/median(SNR_F) (SCI-CW-001 4 "
+           "quality_weight; NOT a calibrated signal-to-noise ratio)"},
+          {"units", "1"},
+          {"values", vals}};
+      frame["frame_snr"] = Json{
+          {"definition",
+           "5-sigma point-source depth = F_5 [ADU] / m_5 [mag] (SCI-CW-001 2a); "
+           "NOT a whole-frame scalar SNR"},
+          {"flux5_adu", sci.frame_depth_flux5_adu},
+          {"m5_mag", sci.frame_depth_m5_mag},
+          {"zero_point_mag", cfg.zero_point_mag}};
+      frame["sources"] = sarr;
+    }
+    frames.push_back(frame);
   }
   const std::string out_path = out_dir + "/p1_snr.json";
-  Json snr_out = Json{{"schema", "DATA-P1-SNR"}, {"frames", frames}};
+  Json snr_out = Json{{"schema", "DATA-P1-SNR"},
+                      {"schema_version", "2"},
+                      {"frames", frames}};
   if (!p1_write_text(out_path, snr_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_frames"] = frames.size();
+  (*man)["snr_schema"] = "DATA-P1-SNR/2";
   (*man)["snr_artifact"] = out_path;
   (*man)["artifacts"] = Json::array({out_path});
   return Result<void>::success();

@@ -488,7 +488,14 @@ target_include_directories(astrocs_phase1_phot PUBLIC
 target_link_libraries(astrocs_phase1_phot PUBLIC astrocs_contracts)
 
 # phase1 noise (P1-005 SCI-NOISE-001)
-add_library(astrocs_phase1_noise STATIC lib/phase1/noise/noise_model.cpp)
+# P8-SNR-LINUX (2026-09-14): Linux 生产路径 SNR 接线 —— 把 P5-SNR 唯一权威科学实现
+# lib/snr_estimator/cpp/src/snr_science.cpp 编入本目标 (此前未在根 CMake 主图,
+# 生产实际的 SNR 由另一份实现产出)。帧级聚合在
+# lib/phase1/noise/snr_frame_science.cpp (零公式副本, 只调 snr_science C ABI)。
+add_library(astrocs_phase1_noise STATIC
+  lib/phase1/noise/noise_model.cpp
+  lib/phase1/noise/snr_frame_science.cpp
+  lib/snr_estimator/cpp/src/snr_science.cpp)
 target_include_directories(astrocs_phase1_noise PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1/noise ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_noise PUBLIC astrocs_contracts)
