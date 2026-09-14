@@ -42,14 +42,6 @@
 - **取证口径**：JS `JSON.parse` 直读 `ci/checks.json` **失败**（`read` 对 >2000 字符单行截断，position 42665/line 2000）⇒ 改用 `python3 json.load` 才拿到字段；  本报告内所有 checks/基线数字均由 python3 解析得出。**这是 H-1 陷阱对前台自己的第二次命中**（第一次是 M6b 的 CSV），已记入 R 层规则：机器文件一律用解释器解析，禁以 read 行文本解析结构化文件。
 - **置信度**：高（两份 JSON 字段当场解析；引文为文件逐字内容）｜**related**：M5b-G-01（同名第二二进制，同族「门验错对象」）、M8-F-004（在册但不执行）、簇 1 机制补全、L25-005（豁免按字面量切分）、C-11/C-12
 
-### FD-G-003 基线文件自陈「当前 linux-main 有约 10 项红灯且不得登记进基线」——其中含本审计定为「结构性空壳」的 CON-COMMENTS
-- **ID**：FD-G-003 ｜ **类别**：G_GOV_GATE ｜ **优先级**：**P1**（前台按 C-06 恢复：L28c/FD/M3 合并曾把本条降为 P2，判定列以恢复后的 P1 为准；目录 p1/ 为权威，见 40_OWNER_DECISIONS.md C-06 与 SUMMARY.md 簇表）（事实本身是正面证据，但它制造一处**必须写清的歧义**）
-- **位置**：`ci/known_failures.json::contract.excluded_by_policy`
-- **问题说明**：该字段逐字列出「本轮 linux-main 其余红灯（**AGENTS-GOV / DATA-ARTIFACTS / THREAD-BUDGET / CON-COMMENTS / CON-FULL-INTEGRATION / UT-ARCH / UT-BACKEND / WIN-* / DEEP-***）均为在册 P1（FD-R1-010），不得登记进基线，须由域主修复」。
-  ⇒ 这是一份**仓内自证的当前 CI 红态清单**，可直接为多条审计结论提供"门确实在跑"的旁证（对簇 1 是重要平衡证据，防止被读成"所有门都不跑"）。
-  **但歧义必须消除**：M6a-G-001 把 CON-COMMENTS 定为 P0「结构性空壳」，而这里它显示为**红灯**。两者**不互斥且都成立**：  该门确实在跑并且会红（红在注释卫生比率面），但它**抓不到注释溯源类问题**（M6a 的判词对象是后者）；  「会红」不等于「有效」，「在册 P1 待域主修复」也不等于「已验证」。这条是防止负责人把两条结论误读成互相否证而写。
-- **建议处置**：引用 CON-COMMENTS 时一律同时给两面（红态来源=比率判据；缺口=零溯源判据且 §12.2 无条文）；FD-R1-010 与 `docs/audit` 登记册的一致性交 R 层核
-- **置信度**：高（字段逐字引）｜**related**：M6a-G-001（P0）、M5a-G-005（THREAD-BUDGET 同类）、簇 1、簇 10 口径注
 ### FD-G-004 同一检查项在 `checks.json` 写 `waivable=false`、在证据里被记为 `SKIPPED(waivable)`：豁免状态无单一事实源（第二实例）
 - **ID**：FD-G-004 ｜ **类别**：G_GOV_GATE ｜ **优先级**：**P1** ｜ producer=FD（由 E3 上报、前台当场复验）
 - **位置**：`ci/checks.json::UT-CPU-AVX512`（前台当场 python3 解析：`waivable=False`；同族 `UT-CPU-BASELINE`/`UT-CPU-DISPATCH`/`UT-CPU-AVX2` **四项全 `waivable=False`**）；
