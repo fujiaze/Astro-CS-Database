@@ -73,3 +73,21 @@ target_include_directories(p1psf_selfcheck_test PRIVATE
   ${P1PSF_DIR})
 target_link_libraries(p1psf_selfcheck_test PRIVATE ${ASTROCS_OMP_TARGET})
 add_test(NAME p1psf_selfcheck COMMAND p1psf_selfcheck_test)
+
+# ----------------------------------------------------------------------------
+# B4-5 共址回归锁 (M3b-F-01): p1psf_prodpath_centroid — 质心门必须按生产路径
+# 定义 (sdet 系初值, 不用 gate2 的 "+0.5 offset 匹配真值" 口径), 并以
+# SCI-P1-STAR-001 §1 冻结绝对门 |Δc| <= 0.3px (SNR>=20 域) 断言;
+# converged-init 仅作拟合器本征精度旁证门 (T2)。构型含 findings 要求的
+# "非整数真值中心 + sdet 系初值", T3 为偏移初值拉回对照 (排除停驻)。
+# 被测面: dpsf_fit_batch_f32 生产实现 (dpsf_psf.cpp)。
+# ----------------------------------------------------------------------------
+add_executable(p1psf_prodpath_check_test
+  ${P1PSF_DIR}/p1psf_prodpath_check.cpp
+  ${P1PSF_PROD_SOURCES})
+target_include_directories(p1psf_prodpath_check_test PRIVATE
+  ${P1PSF_INC}
+  ${P1PSF_SRC}
+  ${P1PSF_DIR})
+target_link_libraries(p1psf_prodpath_check_test PRIVATE ${ASTROCS_OMP_TARGET})
+add_test(NAME p1psf_prodpath_centroid COMMAND p1psf_prodpath_check_test)

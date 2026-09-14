@@ -119,18 +119,27 @@ int pc_calibrate_simple(
                          sip_order, sip_a, sip_b, sip_ap, sip_bp);
 
     // ---- 2. 星-图匹配 + IRLS/Tukey 清洗 (: 输出 scale + sigma_residual) ----
+    // B4-2/B4-3: 先判通 (initDiag) → KD-tree 匹配 (保留 psf 行号) →
+    // 带 quality_flags 的 cleanAndScale (SCI-PHOT-001 §4/§8 星数门 + 饱和门)。
     pc::StarMatcher matcher;
+    if (out_diag) std::memset(out_diag, 0, sizeof(PhotometricDiag));  // 阶段6/7/8 由 cleanAndScale 覆盖
     double scale = 1.0;
     double sigma_residual = 0.0;
-    std::vector<pc::StarMatch> matches = matcher.matchAndClean(
+    std::vector<pc::StarMatch> raw_matches = matcher.matchWithKdTree(
         wcs, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn, n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf,
         2.0,  // match_radius_px (: 收紧 3.0 -> 2.0)
+        out_diag,      // 透传诊断 (阶段2/3/4/6/8)
+        width, height);
+    std::vector<int> match_rows;
+    match_rows.reserve(raw_matches.size());
+    for (const pc::StarMatch& m : raw_matches) match_rows.push_back(m.psf_idx);
+    std::vector<pc::StarMatch> matches = matcher.cleanAndScale(
+        raw_matches, &match_rows, nullptr,
         3.0,  // mag_tolerance (: 星等一致性容忍度, mag)
         &scale,
         &sigma_residual,
-        out_diag,      // 透传诊断 (阶段2/3/4/6/7/8)
-        width, height);
+        out_diag);     // 诊断 (阶段6/7/8)
 
     int n_matched = (int)matches.size();
     std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, scale=%.6e, sigma_residual=%.6f\n",
@@ -369,19 +378,27 @@ int pc_calibrate_simple_with_gaia(
                          sip_order, sip_a, sip_b, sip_ap, sip_bp);
 
     // ---- 6. 星-图匹配 + IRLS/Tukey 清洗 (: 输出 scale + sigma_residual) ----
+    // B4-2/B4-3: KD-tree 匹配保留 psf 行号 → 带 quality_flags 的 cleanAndScale。
     pc::StarMatcher matcher;
+    if (out_diag) std::memset(out_diag, 0, sizeof(PhotometricDiag));
     double scale = 1.0;
     double sigma_residual = 0.0;
-    std::vector<pc::StarMatch> matches = matcher.matchAndClean(
+    std::vector<pc::StarMatch> raw_matches = matcher.matchWithKdTree(
         wcs,
         gaia_ra.data(), gaia_dec.data(), gaia_mag.data(), gaia_fsyn.data(), n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf,
         2.0,   // match_radius_px (: 收紧 3.0 -> 2.0)
+        out_diag,      // 透传诊断 (阶段2/3/4/6/8)
+        width, height);
+    std::vector<int> match_rows;
+    match_rows.reserve(raw_matches.size());
+    for (const pc::StarMatch& m : raw_matches) match_rows.push_back(m.psf_idx);
+    std::vector<pc::StarMatch> matches = matcher.cleanAndScale(
+        raw_matches, &match_rows, nullptr,
         3.0,   // mag_tolerance (: 星等一致性容忍度, mag)
         &scale,
         &sigma_residual,
-        out_diag,      // 透传诊断 (阶段2/3/4/6/7/8)
-        width, height);
+        out_diag);     // 诊断 (阶段6/7/8)
 
     int n_matched = (int)matches.size();
     std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, scale=%.6e, sigma_residual=%.6f\n",
@@ -492,16 +509,21 @@ int pc_calibrate_simple_f64(
                          cd11, cd12, cd21, cd22,
                          sip_order, sip_a, sip_b, sip_ap, sip_bp);
 
-    // ---- 2. 星-图匹配 + IRLS/Tukey 清洗 ----
+    // ---- 2. 星-图匹配 + IRLS/Tukey 清洗 (B4-2/B4-3 同 f32 通道) ----
     pc::StarMatcher matcher;
+    if (out_diag) std::memset(out_diag, 0, sizeof(PhotometricDiag));
     double scale = 1.0;
     double sigma_residual = 0.0;
-    std::vector<pc::StarMatch> matches = matcher.matchAndClean(
+    std::vector<pc::StarMatch> raw_matches = matcher.matchWithKdTree(
         wcs, gaia_ra, gaia_dec, gaia_mag, gaia_fsyn, n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf,
-        2.0, 3.0,
-        &scale, &sigma_residual,
-        out_diag, width, height);
+        2.0, out_diag, width, height);
+    std::vector<int> match_rows;
+    match_rows.reserve(raw_matches.size());
+    for (const pc::StarMatch& m : raw_matches) match_rows.push_back(m.psf_idx);
+    std::vector<pc::StarMatch> matches = matcher.cleanAndScale(
+        raw_matches, &match_rows, nullptr, 3.0,
+        &scale, &sigma_residual, out_diag);
 
     int n_matched = (int)matches.size();
     std::fprintf(stderr, "[pc_api] 匹配+清洗完成(FP64): %d 颗, scale=%.6e, sigma_residual=%.6f\n",
@@ -729,17 +751,22 @@ int pc_calibrate_simple_with_gaia_f64(
                          cd11, cd12, cd21, cd22,
                          sip_order, sip_a, sip_b, sip_ap, sip_bp);
 
-    // ---- 6. 星-图匹配 + IRLS/Tukey 清洗 ----
+    // ---- 6. 星-图匹配 + IRLS/Tukey 清洗 (B4-2/B4-3 同 f32 通道) ----
     pc::StarMatcher matcher;
+    if (out_diag) std::memset(out_diag, 0, sizeof(PhotometricDiag));
     double scale = 1.0;
     double sigma_residual = 0.0;
-    std::vector<pc::StarMatch> matches = matcher.matchAndClean(
+    std::vector<pc::StarMatch> raw_matches = matcher.matchWithKdTree(
         wcs,
         gaia_ra.data(), gaia_dec.data(), gaia_mag.data(), gaia_fsyn.data(), n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf,
-        2.0, 3.0,
-        &scale, &sigma_residual,
-        out_diag, width, height);
+        2.0, out_diag, width, height);
+    std::vector<int> match_rows;
+    match_rows.reserve(raw_matches.size());
+    for (const pc::StarMatch& m : raw_matches) match_rows.push_back(m.psf_idx);
+    std::vector<pc::StarMatch> matches = matcher.cleanAndScale(
+        raw_matches, &match_rows, nullptr, 3.0,
+        &scale, &sigma_residual, out_diag);
 
     int n_matched = (int)matches.size();
     std::fprintf(stderr, "[pc_api] 匹配+清洗完成(FP64): %d 颗, scale=%.6e, sigma_residual=%.6f\n",
@@ -1013,9 +1040,12 @@ int run_with_gaia_impl(
         gaia_ra.data(), gaia_dec.data(), gaia_mag.data(), gaia_fsyn.data(), n_gaia,
         psf_cx, psf_cy, psf_flux, psf_status, n_psf,
         2.0, out_diag, width, height);
+    std::vector<int> match_rows;
+    match_rows.reserve(raw_matches.size());
+    for (const pc::StarMatch& m : raw_matches) match_rows.push_back(m.psf_idx);
     std::vector<pc::StarMatch> matches = matcher.cleanAndScale(
-        raw_matches, 3.0, &scale, &sigma_residual, out_diag,
-        out_records ? &match_reasons : nullptr);
+        raw_matches, &match_rows, nullptr, 3.0, &scale, &sigma_residual,
+        out_diag, out_records ? &match_reasons : nullptr);
 
     int n_matched = (int)matches.size();
     std::fprintf(stderr, "[pc_api] 匹配+清洗完成: %d 颗, scale=%.6e, sigma_residual=%.6f\n",

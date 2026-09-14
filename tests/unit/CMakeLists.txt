@@ -1157,6 +1157,10 @@ endif()
 # 被测面: ipv 数学内核 TU 直编 (生产源零改动) + lib/phase1/wcs WcsTan。
 add_subdirectory(p1wcs p1wcs)
 # --- P1-WCS-TEST end --------------------------------------------------------
+# B4-1 (M1a-C-002) 回归锁: extract_wcs_sip 线性奇异必须显式失败
+# 模块自带测试目录 lib/plate_solve/cpp/ipv/test/CMakeLists.txt
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../lib/plate_solve/cpp/ipv/test p1ipvtest)
+# --- B4-1 end ---------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------

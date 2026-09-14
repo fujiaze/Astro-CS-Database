@@ -4,8 +4,18 @@ Gate 2 (Phase1 Full Freeze v2): PSF/STAR_MEASURE 外部 Oracle 对比
 
 对比: AstroCS (star_detector + dynamic_psf DLL) vs Photutils vs 解析真值
 指标: 质心 / 通量 / FWHM / 椭率 / 背景
-冻结门 (Phase1 签字微修正):
-  质心误差 <= 0.01 目标像素; FWHM <= 1%; 椭率 <= 0.005; 均匀场 rel_std <= 1e-4
+
+门的两类地位 (M3b-F-01 整改; **不得混用**):
+  [验收门 / ACCEPTANCE] 按**生产路径**定义 —— 初值来自 sdet 检测坐标
+    (astrocs_production_path), 真值 + 0.5 仅用于把 truth 换算到 DPSF 的
+    像素中心约定后逐星配对, 不改变判据对象。
+      centroid_p95_le_0.3px_production  — SCI-P1-STAR-001 §1 冻结绝对验收项
+        |Δc| <= 0.3 px @SNR>=20 (FROZEN; 阈值不在本脚本内重定义)。
+      fwhm_median_le_1pct / ell_median_le_0.005 / flux_median_le_1pct
+        也一律取 astrocs_production_path 的统计量。
+  [旁证门 / NOT ACCEPTANCE] 仅证明"拟合器本征精度", 不得用于宣称验收:
+      centroid_p95_le_0.01px_converged — 以 floor(检测坐标) 作整数初始
+        (非生产配置) 的收敛对照, 命名与注释显式标注"非验收"。
 
 用法:
   py -3.12 gate2_psf_oracle.py --out <dir> [--n-stars 120] [--seed 42]
@@ -291,26 +301,38 @@ def main():
           f"{results['astrocs_converged_init']['centroid_median_px']:.4f}px p95="
           f"{results['astrocs_converged_init']['centroid_p95_px']:.4f}")
 
-    # 冻结门判定 (解析真值, AstroCS; 使用收敛初始化证明拟合器精度,
-    # 生产路径质心偏差作为已记录 BLOCKER)
+    # ── 门判定 (M3b-F-01 整改: 验收门 = 生产路径; converged = 旁证) ─────
+    # 验收门全部取 astrocs_production_path (sdet 检测坐标为初值的生产配置);
+    # converged-init 只作拟合器本征精度旁证, 名称带 _converged_not_acceptance。
     ac = results["astrocs_converged_init"]
     ac_p = results["astrocs_production_path"]
     gates = {
-        "centroid_p95_le_0.01px_converged": ac["centroid_p95_px"] is not None and ac["centroid_p95_px"] <= 0.01,
+        # [验收门] SCI-P1-STAR-001 §1 冻结绝对质心门 |Δc| <= 0.3px @SNR>=20
+        "centroid_p95_le_0.3px_production": (
+            ac_p["centroid_p95_px"] is not None
+            and ac_p["centroid_p95_px"] <= 0.3),
         "fwhm_median_le_1pct": ac_p["fwhm_median_rel"] is not None and ac_p["fwhm_median_rel"] <= 0.01,
         "ell_median_le_0.005": ac_p["ell_median"] is not None and ac_p["ell_median"] <= 0.005,
         "flux_median_le_1pct": ac_p["flux_median_rel"] is not None and ac_p["flux_median_rel"] <= 0.01,
         "photutils_oracle_centroid_p95_le_0.05px": results["photutils"]["centroid_p95_px"] is not None
         and results["photutils"]["centroid_p95_px"] <= 0.05,
+        # [旁证门 / 非验收] 拟合器本征精度 (整数初始化, 非生产配置)
+        "centroid_p95_le_0.01px_converged_not_acceptance": (
+            ac["centroid_p95_px"] is not None and ac["centroid_p95_px"] <= 0.01),
     }
     convention_note = ("star_detector/DPSF 坐标 = array index + 0.5 (像素中心, FITS 约定); "
-                       "Photutils DAOStarFinder = array index 约定. 对比时分别使用对应真值约定.")
-    blocker = ("BLOCKER (PSF-001): dpsf_fit_batch_f32 以 sdet 像素中心坐标 (truth+0.5) 为初始时, "
-               "LM 收敛到整数像素中心 (误差 ~0.5px); 以整数为初始则精确收敛 (<=0.01px). "
+                       "Photutils DAOStarFinder = array index 约定. 对比时分别使用对应真值约定. "
+                       "gate 分类 (M3b-F-01): *production* 为验收门; "
+                       "*converged_not_acceptance* 为拟合器本征精度旁证门, "
+                       "**不构成 PSF-001 验收依据**.")
+    blocker = ("BLOCKER (PSF-001, 未闭合): 生产路径 (sdet 系初值) 质心偏差仍是本门失败项. "
+               "以整数初值的 converged 对照精确收敛, 说明拟合器本身可达 <=0.01px; "
+               "因此差异集中在 sdet 检测坐标与 DPSF 输入约定之间的端到端坐标契约 "
+               "(M3b-C-01, 属负责人裁决面, 本脚本不单方面定义). "
                "最小复现: Moffat4 星 truth=(315.045,443.485), sdet=(315.545,443.985), "
                "fit(sdet init)=(315.002,443.002), fit(int init)=(315.547,443.985). "
-               "影响: 生产路径 PSF 质心系统性 ~0.5px 偏差. 按修改预算作为 BLOCKER 记录, "
-               "不在此包修改冻结的 PSF 数学 (需单独 BLOCKER 修复周期 + 模块回归).")
+               "在 M3b-C-01 裁决落地前, centroid_p95_le_0.3px_production 保持红灯, "
+               "PSF-001 保持未闭合 (禁止以 converged 旁证门宣告验收)。")
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, "gate2_result.json"), "w", encoding="utf-8") as f:
         json.dump({"results": results, "gates": gates, "convention_note": convention_note,

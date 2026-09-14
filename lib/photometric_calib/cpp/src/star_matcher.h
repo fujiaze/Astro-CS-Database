@@ -1,8 +1,21 @@
 #ifndef PC_STAR_MATCHER_H
 #define PC_STAR_MATCHER_H
 
+#include <cstdint>
 #include <vector>
 #include "wcs_transform.h"
+
+// quality_flags 位定义 (与 photometric_calib.h 的 PC_QF_*/SNR_QF_* 同值)。
+// 见 photometric_calib.h 头部注释; 此处重复仅为免去测试面必须包含 C ABI 头。
+#ifndef PC_QF_SATURATED
+#define PC_QF_SATURATED       (1u << 1)
+#endif
+#ifndef PC_QF_HAS_SATURATED
+#define PC_QF_HAS_SATURATED   (1u << 2)
+#endif
+#ifndef PC_QF_SATURATED_MASK
+#define PC_QF_SATURATED_MASK  (PC_QF_SATURATED | PC_QF_HAS_SATURATED)
+#endif
 
 // 前向声明, 定义在 photometric_calib.h (C API 头文件)
 struct PhotometricDiag;
@@ -85,9 +98,28 @@ public:
     // 3) 对剩余匹配的 r = log10(F_instr/F_syn) 做 IRLS + Tukey biweight 稳健位置估计
     // 4) 输出 scale = 10^(-location), sigma_residual = MAD(r_inliers)/0.6745
     // 返回 IRLS inliers (Tukey 权重 > 0)
+    //
+    // B4-2 (M3-C-001) 冻结门 (SCI-PHOT-001 §4/§5/§8):
+    //   |r_consistent| < 3 → NO_DATA: 不写 scale (scale 保持 1.0), fit_used=0;
+    //   |r_inliers|  < 2 → 不估计 sigma_residual (保持 0)。
+    // B4-3 (M3-C-002) 有效域 (SCI-PHOT-001 §4/§10):
+    //   quality_flags[i] (与 psf 行对齐; nullptr=不过滤) 含
+    //   PC_QF_SATURATED|PC_QF_HAS_SATURATED 的匹配星在均数/IRLS 之前排除,
+    //   并计 rejected_quality。
     // out_diag (可为 nullptr): 填充阶段6/7/8 字段
     std::vector<StarMatch> cleanAndScale(
         const std::vector<StarMatch>& matches, double mag_tolerance,
+        double* out_scale_factor = nullptr,
+        double* out_sigma_residual = nullptr,
+        PhotometricDiag* out_diag = nullptr,
+        std::vector<int>* out_match_reasons = nullptr);
+
+    // B4-2/B4-3 重载: match_indices[k] = matches[k] 对应的 psf 行号 (与
+    // quality_flags 对齐); nullptr 表示缺省 k。
+    std::vector<StarMatch> cleanAndScale(
+        const std::vector<StarMatch>& matches,
+        std::vector<int>* match_indices,
+        const uint32_t* quality_flags, double mag_tolerance,
         double* out_scale_factor = nullptr,
         double* out_sigma_residual = nullptr,
         PhotometricDiag* out_diag = nullptr,

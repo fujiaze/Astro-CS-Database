@@ -380,6 +380,22 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
     double* out_scale_factor, double* out_sigma_residual,
     PhotometricDiag* out_diag,
     std::vector<int>* out_match_reasons) {
+    // 兼容入口 (无 psf 行映射 / 无质量位): 行为与旧签名逐行等价。
+    std::vector<int> identity;
+    identity.reserve(matches.size());
+    for (size_t k = 0; k < matches.size(); ++k) identity.push_back((int)k);
+    return cleanAndScale(matches, &identity, nullptr, mag_tolerance,
+                         out_scale_factor, out_sigma_residual, out_diag,
+                         out_match_reasons);
+}
+
+std::vector<StarMatch> StarMatcher::cleanAndScale(
+    const std::vector<StarMatch>& matches,
+    std::vector<int>* match_indices,
+    const uint32_t* quality_flags, double mag_tolerance,
+    double* out_scale_factor, double* out_sigma_residual,
+    PhotometricDiag* out_diag,
+    std::vector<int>* out_match_reasons) {
 
     int n_in = (int)matches.size();
     LOG_INFO("[star_matcher] cleanAndScale: 输入 %d 颗, 星等容忍 %.2f mag",
@@ -388,21 +404,53 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
     if (out_scale_factor) *out_scale_factor = 1.0;
     if (out_sigma_residual) *out_sigma_residual = 0.0;
     // Phase1 v2: per-match reason 数组 (0=inlier, 1=mag-rejected, 2=IRLS-outlier,
-    // 3=invalid flux/non-finite, 4=not-in-consistent-set, 5=unmatched)
+    // 3=invalid flux/non-finite, 4=not-in-consistent-set, 5=unmatched,
+    // 7=quality-rejected(饱和/质量标志))
     if (out_match_reasons) out_match_reasons->assign((size_t)n_in, 5);
 
     if (n_in == 0) {
         return {};
     }
 
+    // ---- 0. B4-3 (M3-C-002): SCI-PHOT §4/§10 质量/饱和位有效域过滤 ----
+    // quality_flags 与 psf 输入行对齐; match_indices[k] 给出 matches[k] 的
+    // psf 行号。含 PC_QF_SATURATED|PC_QF_HAS_SATURATED 的星**不进入**匹配与
+    // 定标 (不是"拟合后再剔除"), 计 rejected_quality。
+    std::vector<int> quality_pass;      // 保留的 matches 下标
+    quality_pass.reserve((size_t)n_in);
+    int n_quality_rejected = 0;
+    for (int i = 0; i < n_in; ++i) {
+        int row = i;
+        if (match_indices != nullptr) {
+            if ((size_t)i >= match_indices->size()) continue;  // 映射缺失 → 拒
+            row = (*match_indices)[(size_t)i];
+        }
+        bool saturated = false;
+        if (quality_flags != nullptr && row >= 0) {
+            saturated = (quality_flags[row] & PC_QF_SATURATED_MASK) != 0u;
+        }
+        if (saturated) {
+            if (out_match_reasons) (*out_match_reasons)[(size_t)i] = 7;
+            ++n_quality_rejected;
+            continue;
+        }
+        quality_pass.push_back(i);
+    }
+    if (n_quality_rejected > 0) {
+        LOG_INFO("[star_matcher] B4-3 质量位有效域: 排除 %d 颗 (SATURATED/HAS_SATURATED, "
+                 "SCI-PHOT-001 §4/§10), 剩余 %d 颗",
+                 n_quality_rejected, (int)quality_pass.size());
+    }
+
     // ---- 1. 计算有效 r = log10(F_instr/F_syn) 和 delta = -2.5*log10(F_instr) - gaia_mag ----
     std::vector<double> r_vals, delta_vals;
-    std::vector<int> valid_idx;  // 在 matches 中的索引
-    r_vals.reserve(n_in);
-    delta_vals.reserve(n_in);
-    valid_idx.reserve(n_in);
+    std::vector<int> valid_idx;  // 在 matches 中的索引 (已过质量位)
+    r_vals.reserve(quality_pass.size());
+    delta_vals.reserve(quality_pass.size());
+    valid_idx.reserve(quality_pass.size());
 
-    for (int i = 0; i < n_in; ++i) {
+    for (size_t qi = 0; qi < quality_pass.size(); ++qi) {
+        const int i = quality_pass[qi];
         if (matches[i].f_instr <= 0.0 || matches[i].f_syn <= 0.0) continue;
         double r = std::log10(matches[i].f_instr / matches[i].f_syn);
         if (!std::isfinite(r)) continue;
@@ -421,13 +469,16 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
             for (int i = 0; i < n_in; ++i) (*out_match_reasons)[(size_t)i] = 3;
         }
         if (out_diag) {
-            out_diag->rejected_quality = n_in;  // 全部因 F<=0/非有限 被拒绝
+            // 全部因 F<=0/非有限 (质量位剔除另计)
+            out_diag->rejected_quality =
+                n_in - n_quality_rejected;  // 全部因 F<=0/非有限 被拒绝
             out_diag->fit_used = 0;
             out_diag->robust_iterations = 0;
             out_diag->scale_factor = 1.0;
             out_diag->sigma_residual = 0.0;
-            LOG_INFO("[star_matcher] P12-001 阶段6/7: rejected_quality=%d (全部无效), fit_used=0",
-                     n_in);
+            LOG_INFO("[star_matcher] P12-001 阶段6/7: rejected_quality=%d (全部无效)"
+                     " + quality=%d, fit_used=0",
+                     out_diag->rejected_quality, n_quality_rejected);
         }
         return {};
     }
@@ -459,17 +510,27 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
     LOG_INFO("[star_matcher] 星等一致性: 通过 %d, 拒绝 %d (median_delta=%.4f, tol=%.2f mag)",
              (int)mag_consistent_idx.size(), n_mag_rejected, median_delta, mag_tolerance);
 
-    if (r_consistent.empty()) {
-        LOG_INFO("[star_matcher] 警告: 星等一致性过滤后无匹配星");
+    // ---- 2.1 B4-2 (M3-C-001): SCI-PHOT-001 §4/§5/§8 冻结参考星数门 ----
+    //   |r_consistent| >= 3 才进 IRLS; 否则 NO_DATA (退化显式返回):
+    //   scale 保持 1.0 (不写 scale)、fit_used=0、sigma_residual=0、不迭代。
+    //   §8 "无星/星数不足 → 返回 NO_DATA, scale=1.0、fit_used=0" 同义。
+    //   禁止以 1~2 颗星定标整帧 (宪章 §5.3 / §11 / §14.4)。
+    if (r_consistent.size() < 3) {
+        LOG_INFO("[star_matcher] 警告: 星等一致性后参考星 %d < 3 → NO_DATA 退化 "
+                 "(SCI-PHOT-001 §4/§8); 不写 scale, fit_used=0",
+                 (int)r_consistent.size());
         if (out_diag) {
-            int n_invalid = n_in - (int)valid_idx.size();
-            out_diag->rejected_quality = n_invalid + n_mag_rejected;
+            int n_invalid = n_in - n_quality_rejected - (int)valid_idx.size();
+            out_diag->rejected_quality =
+                n_quality_rejected + n_invalid + n_mag_rejected;
             out_diag->fit_used = 0;
             out_diag->robust_iterations = 0;
             out_diag->scale_factor = 1.0;
             out_diag->sigma_residual = 0.0;
-            LOG_INFO("[star_matcher] P12-001 阶段6/7: rejected_quality=%d (invalid=%d + mag=%d), fit_used=0",
-                     out_diag->rejected_quality, n_invalid, n_mag_rejected);
+            LOG_INFO("[star_matcher] P12-001 阶段6/7: rejected_quality=%d "
+                     "(quality=%d + invalid=%d + mag=%d), fit_used=0",
+                     out_diag->rejected_quality, n_quality_rejected,
+                     n_invalid, n_mag_rejected);
         }
         return {};
     }
@@ -549,13 +610,19 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
     }
 
     // sigma_residual = MAD(r_inliers)/0.6745 (供 SNR 模块使用)
+    // B4-2 (M3-C-001): SCI-PHOT-001 §4/§8 冻结门 |r_inliers| >= 2 才估计;
+    // 否则 sigma_residual = 0 (不可估计, 不是"零离散度"), 语义与 SCI §8 一致。
     double sigma_residual = 0.0;
-    if (!r_inliers.empty()) {
+    if (r_inliers.size() >= 2) {
         std::vector<double> dev;
         dev.reserve(r_inliers.size());
         for (double r : r_inliers) dev.push_back(std::fabs(r - location));
         double mad_in = medianOf(dev);
         sigma_residual = (mad_in > 0.0) ? (mad_in / _MAD_SCALE) : 0.0;
+    } else {
+        LOG_INFO("[star_matcher] B4-2: |r_inliers|=%d < 2 → sigma_residual=0 "
+                 "(不可估计; SCI-PHOT-001 §4/§8)",
+                 (int)r_inliers.size());
     }
     if (out_sigma_residual) *out_sigma_residual = sigma_residual;
 
@@ -577,8 +644,10 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
 
     // 阶段6/7/8: 填充诊断结构体
     if (out_diag) {
-        int n_invalid = n_in - (int)valid_idx.size();  // F<=0/非有限
-        out_diag->rejected_quality = n_invalid + n_mag_rejected + n_irls_outlier;
+        // F<=0/非有限 (已扣除质量位剔除)
+        int n_invalid = n_in - n_quality_rejected - (int)valid_idx.size();
+        out_diag->rejected_quality = n_quality_rejected + n_invalid +
+                                     n_mag_rejected + n_irls_outlier;
         out_diag->fit_used = (int)cleaned.size();
         out_diag->robust_iterations = irls_iter_count;
         out_diag->scale_factor = scale;
@@ -589,10 +658,11 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
             out_diag->r_max = *std::max_element(r_inliers.begin(), r_inliers.end());
         }
         LOG_INFO("[star_matcher] P12-001 阶段6/7/8: rejected_quality=%d "
-                 "(invalid=%d + mag=%d + irls=%d), fit_used=%d, "
+                 "(quality=%d + invalid=%d + mag=%d + irls=%d), fit_used=%d, "
                  "robust_iterations=%d, scale=%.6e, sigma=%.6f",
-                 out_diag->rejected_quality, n_invalid, n_mag_rejected,
-                 n_irls_outlier, out_diag->fit_used, out_diag->robust_iterations,
+                 out_diag->rejected_quality, n_quality_rejected, n_invalid,
+                 n_mag_rejected, n_irls_outlier, out_diag->fit_used,
+                 out_diag->robust_iterations,
                  out_diag->scale_factor, out_diag->sigma_residual);
         if (!r_inliers.empty()) {
             LOG_INFO("[star_matcher] P12-001 阶段8: r_inliers "

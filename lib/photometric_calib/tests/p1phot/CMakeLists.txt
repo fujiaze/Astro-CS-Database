@@ -25,6 +25,9 @@
 #   p1phot/p1phot_tests_perf.cpp      — performance 基线哨兵 (比值语义)
 #   p1phot/p1phot_tests_selfcheck.cpp — 故障注入必败自检 (fork/execve argv
 #                                     子进程双注入点)
+#   p1phot/p1phot_fixgates.cpp        — B4-2/B4-3 回归锁 (M3-C-001 参考星数门
+#                                     |r_consistent|>=3 / |r_inliers|>=2;
+#                                     M3-C-002 quality_flags 饱和有效域过滤)
 #
 # 被测面: 现状唯一生产实现 lib/photometric_calib/cpp/src 五 TU (pc_api/
 # star_matcher/wcs_transform/image_corrector/spectrum_integrator, C ABI 六导出
@@ -44,6 +47,7 @@
 #                         + NaN/Inf + 出参向后兼容
 #   p1phot_performance  — perf 哨兵 (parity 4x / trend 0.25x, 比值语义)
 #   p1phot_selfcheck    — 故障注入必败自检 (验收: 注入可失败, 双注入点)
+#   p1phot_fixgates     — B4-2/B4-3 回归锁 (参考星数门 + 饱和质量位门)
 # ============================================================================
 
 set(P1PHOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -127,3 +131,21 @@ target_include_directories(p1phot_selfcheck_test PRIVATE
   ${P1PHOT_ROOT}/include)
 target_link_libraries(p1phot_selfcheck_test PRIVATE ${P1PHOT_OMP_TARGET})
 add_test(NAME p1phot_selfcheck COMMAND p1phot_selfcheck_test)
+
+# ----------------------------------------------------------------------------
+# B4-2/B4-3 共址回归锁 (M3-C-001 SCI-PHOT 参考星数门 / M3-C-002 饱和质量位门):
+#   p1phot_fixgates — |r_consistent|>=3 / |r_inliers|>=2 门 + quality_flags
+#   有效域过滤 (饱和星不得进入零点拟合) + 对照用例排除恒真/恒假。
+# 被测面: star_matcher.cpp 生产实现 (pc::StarMatcher::cleanAndScale)。
+# ----------------------------------------------------------------------------
+add_executable(p1phot_fixgates_test
+  ${P1PHOT_DIR}/p1phot_fixgates.cpp
+  ${P1PHOT_SRC}/star_matcher.cpp
+  ${P1PHOT_SRC}/wcs_transform.cpp)
+target_include_directories(p1phot_fixgates_test PRIVATE
+  ${P1PHOT_DIR}
+  ${P1PHOT_INC}
+  ${P1PHOT_SRC}
+  ${P1PHOT_ROOT}/include)
+target_link_libraries(p1phot_fixgates_test PRIVATE ${P1PHOT_OMP_TARGET})
+add_test(NAME p1phot_fixgates COMMAND p1phot_fixgates_test)
