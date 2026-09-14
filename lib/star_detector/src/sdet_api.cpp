@@ -84,8 +84,23 @@ struct PSFFitData {
     size_t NbRows;      // 矩阵行数 (未使用, 兼容保留)
     size_t NbCols;      // 矩阵列数 (未使用, 兼容保留)
     const SamplePixel* samples;  // IPv 样本 (dx, dy 已含 +0.5 偏移)
-    double rmse;        // 输出: RMSE
+    double rmse;        // 输出: RMSE = sqrt(Σres²/n)
+    // B4-4 (M3b-H-01): 拟合残差的真实 MAD = median(|res − median(res)|)。
+    // 供 InternalFitResult.mad 使用 (NOISE_MODEL.md:17/:135 冻结的 MAD→σ
+    // 换算 1.482602218505602 只作用于 MAD 而非 RMSE)。
+    std::vector<double> residuals;
 };
+
+// 内部: 有代表性的中位数 (nth_element, 与 sdet_image.cpp 的 robust_median 同式)
+static double sdet_median_of(std::vector<double>& v) {
+    if (v.empty()) return 0.0;
+    const size_t m = v.size() / 2;
+    std::nth_element(v.begin(), v.begin() + m, v.end());
+    double hi = v[m];
+    if (v.size() % 2 == 1) return hi;
+    std::nth_element(v.begin(), v.begin() + (m - 1), v.begin() + m);
+    return 0.5 * (v[m - 1] + hi);
+}
 
 // PSF 拟合
 // 参数: x[0]=B, x[1]=A, x[2]=x0, x[3]=y0, x[4]=SX=2σ², x[5]=fr, x[6]=alpha
@@ -122,6 +137,11 @@ static int sdet_gaussian_f(const gsl_vector* x, void* params, gsl_vector* f) {
         sumres += val * val;
     }
     d->rmse = sqrt(sumres / n);
+    // B4-4: 保留残差供真实 MAD 计算 (n 与 samples/y 固定, 每次调用覆盖)
+    d->residuals.resize(n);
+    for (size_t k = 0; k < n; ++k) {
+        d->residuals[k] = static_cast<double>(gsl_vector_get(f, k));
+    }
     return GSL_SUCCESS;
 }
 
@@ -199,9 +219,11 @@ SfError reject_star(const InternalFitResult& fit, bool has_saturated,
     double fwhm_min = std::min(fit.fwhm_x, fit.fwhm_y);
     double roundness_ratio = fwhm_min / fwhm_max;  // 始终 <= 1.0
     if (roundness_ratio < 0.5) return SF_ROUNDNESS_BELOW_CRIT;
-    // RMSE 检查（饱和星豁免）：mad*1.4826/A > 0.2 拒绝
+    // 残差稳健门（饱和星豁免）：σ_res = MAD(residuals)·1.482602218505602,
+    // σ_res/A > 0.2 拒绝。1.482602218505602 为 NOISE_MODEL.md:135 冻结值
+    // (1/Φ⁻¹(3/4)), 换算对象是 MAD (B4-4/M3b-H-01)。
     if (!has_saturated && fit.A > 0.0) {
-        double rmse_ratio = fit.mad * 1.4826 / fit.A;
+        double rmse_ratio = fit.mad * 1.482602218505602 / fit.A;
         if (rmse_ratio > 0.2) return SF_RMSE_TOO_LARGE;
     }
     // FWHM 上限完全
@@ -412,7 +434,16 @@ static int sdet_lm_fit(const T* image, int width,
     result->theta = theta;
     result->fwhm_x = fwhm_x;
     result->fwhm_y = fwhm_y;
-    result->mad = pdata.rmse;
+    // B4-4 (M3b-H-01): 输出真实 MAD (中位绝对偏差), 不再以 RMSE 冒充。
+    // 排异门 (reject_star) 再做一次 MAD→σ 换算 (·1.482602218505602), 与
+    // NOISE_MODEL.md:17/:135 冻结语义一致 (换算对象是 MAD, 不是 RMSE)。
+    {
+        double median_res = sdet_median_of(pdata.residuals);
+        std::vector<double> deviations;
+        deviations.reserve(pdata.residuals.size());
+        for (double r : pdata.residuals) deviations.push_back(std::fabs(r - median_res));
+        result->mad = sdet_median_of(deviations);
+    }
 
     gsl_multifit_nlinear_free(work);
     return SDET_FIT_OK;

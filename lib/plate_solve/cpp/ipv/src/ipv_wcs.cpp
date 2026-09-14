@@ -338,8 +338,17 @@ void extract_wcs_sip(
         // 注意: 用 trans 线性项的逆, 不是 result->cd 的逆 (差 3600 倍)
         // cd_inv[0][0] = invdet * cd[1][1], cd = trans 线性项
         const double det_lin = trans_for_sip.x10 * trans_for_sip.y01 - trans_for_sip.x01 * trans_for_sip.y10;
-        if (std::abs(det_lin) < 1e-15) {
-            if (logger) logger->warn("extract_wcs_sip: TRANS 线性项奇异 (det≈0), 跳过 SIP");
+        if (!trans.valid || !std::isfinite(det_lin) || std::abs(det_lin) < 1e-15) {
+            // 冻结语义: SCI-WCS-001 §8 / ALG-WCS-001 §11.1 — trans 线性奇异
+            // (共线/退化配置) 必须显式失败, 禁止以未修正畸变的线性 TAN
+            // (CRPIX/CD 坍缩值) 冒充合格解 (宪章 §6.3 禁静默降级、§14.4 fail-fast)。
+            result->success = false;
+            std::snprintf(result->error, sizeof(result->error),
+                          "WCS 拒绝: TRANS 线性项奇异/无效 (det_lin=%.3e < 1e-15), "
+                          "拒绝 SIP 推导并失败 (SCI-WCS-001 §8 / ALG-WCS-001 §11.1)",
+                          det_lin);
+            if (logger) logger->error(result->error);
+            return;
         } else {
             const double inv_det_lin = 1.0 / det_lin;
             const double cd_inv_00 =  inv_det_lin * trans_for_sip.y01;   // 像素/角秒

@@ -160,3 +160,29 @@ set_tests_properties(p1star_selfcheck PROPERTIES
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
   ENVIRONMENT "OMP_NUM_THREADS=1;ASTROCS_P1STAR_FAULT="
   PASS_REGULAR_EXPRESSION "SELFCHECK PASS")
+
+# ----------------------------------------------------------------------------
+# B4-4 共址回归锁 (M3b-H-01): p1star_mad — MAD 列必须真算 MAD (中位绝对偏差)
+# 而非 RMSE×1.4826; 常数位数统一到 NOISE_MODEL.md:135 冻结值
+# 1.482602218505602。含离群样本上 mad·1.4826 != rmse·1.4826 为判据。
+# 被测面: sdet_image.cpp (sdet_robust_mad/_d) + sdet_api.cpp (InternalFitResult.mad)
+# ----------------------------------------------------------------------------
+# 被测源 = 与 p1star_tests 同一 ${SDET_SRC} 全量生产 TU 集 (sdet_api 依赖
+# sdet_log/sdet_detector/sdet_background 的符号, 只挑两三个 TU 会链接失败;
+# 直接复用本文件既有变量, 避免另立生产 target)。
+add_executable(p1star_mad_check_test
+  ${P1STAR_DIR}/p1star_mad_check.cpp
+  ${SDET_SRC})
+target_include_directories(p1star_mad_check_test PRIVATE
+  ${SDET_GSL_INCLUDE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${SDET_SRC_DIR}
+  ${P1STAR_DIR})
+target_link_libraries(p1star_mad_check_test PRIVATE ${SDET_GSL_LINK})
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(p1star_mad_check_test PRIVATE OpenMP::OpenMP_CXX)
+endif()
+add_test(NAME p1star_mad COMMAND p1star_mad_check_test)
+set_tests_properties(p1star_mad PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
+  ENVIRONMENT "OMP_NUM_THREADS=1")

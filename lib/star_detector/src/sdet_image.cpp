@@ -490,7 +490,9 @@ float sdet_robust_mad(const float* data, int n) {
         deviations[i] = std::fabs(data[i] - med);
     }
     float mad = sdet_robust_median(deviations.data(), n);
-    return mad * 1.4826f; // MAD→σ 1.4826 (Gaussian, NOISE_MODEL.md / STAR_PSF_ALGORITHMS.md)
+    // MAD→σ 换算: NOISE_MODEL.md:135 冻结 1.482602218505602 = 1/Φ⁻¹(3/4)
+    // (B4-4/M3b-H-01 位数纪律: 常数位数统一到 NOISE_MODEL 冻结值)。
+    return mad * 1.482602218505602f;
 }
 
 // ============================================================================
@@ -518,7 +520,8 @@ double sdet_robust_mad_d(const double* data, int n) {
         deviations[i] = std::fabs(data[i] - med);
     }
     double mad = sdet_robust_median_d(deviations.data(), n);
-    return mad * 1.4826; // MAD→σ 1.4826 (Gaussian, NOISE_MODEL.md)
+    // MAD→σ 换算: NOISE_MODEL.md:135 冻结 1.482602218505602 = 1/Φ⁻¹(3/4)
+    return mad * 1.482602218505602;
 }
 
 void sdet_downsample(const float* src, int sw, int sh, float* dst, int dw, int dh) {
