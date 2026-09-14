@@ -39,31 +39,9 @@
     "excluded_by_policy": "02_GATES_AND_EXECUTION.md「P0/P1、Windows build/test/package、manifest/hash、真实数据完整性不可 waiver」——本轮 linux-main 其余红灯（AGENTS-GOV/DATA-ARTIFACTS/THREAD-BUDGET/CON-COMMENTS/CON-FULL-INTEGRATION/UT-ARCH/UT-BACKEND/WIN-*/DEEP-*）均为在册 P1（FD-R1-010），不得登记进基线，须由域主修复；基线只收 05 号登记册/负责人指令显式指名的预存项。"
   },
   "base_commit": "f8778bbbf010e92f49670dd9d2fbef7fe98d6731",
-  "generated_utc": "2026-09-12T05:20:00Z",
+  "generated_utc": "2026-09-14T04:31:22Z",
   "registered_by": "CI-BASELINE-001",
   "failures": [
-    {
-      "check_id": "UT-CLI",
-      "unit": "UT-CLI",
-      "kind": "check",
-      "category": "WORKSPACE_HYGIENE",
-      "owner": "SA-CLI",
-      "owner_note": "承接节点 UT-CLI-MAINT（control-pack TASK_LEDGER.csv:32；CI-REPAIR-001 归因表 owner_node 同源）",
-      "reason": "UT-CLI（mutates_workspace=false）在 linux-main 下以 FAIL(dirty) 结束：CLI 运行产物按设计落仓库根（astrocs graph → graph/*.json、memory-report → alloc_report.json/alloc_samples.csv），checks 前后 git status --porcelain=v1 -uall 对比出现新增条目即违规。根因在 cli/commands.cpp 产物默认落点（域外，非 tests/cli 断言面），UT-CLI 的 17 项过时断言修复前该检查不可绿。",
-      "first_seen_commit": "0acfb5141a9b92bff5f04e1bb3b296fca88a66b0",
-      "first_seen_note": "0acfb514（V8-CI-001 注册 UT-CLI 检查项，失败自此在 CI 面可见）",
-      "source_sha": "f8778bbbf010e92f49670dd9d2fbef7fe98d6731",
-      "reproducer": "python3 ci/run.py --profile linux-main --check UT-CLI --output-root run/ci/known-failures/utcli",
-      "expiry": "2026-12-31T00:00:00Z",
-      "expected": "fail",
-      "removal_condition": "cli 侧把运行产物默认落 run/resource/（AGENTS.md 目录规范）或 tests/cli 显式传 --out-dir run/... 后 UT-CLI 转绿；转绿即由 KNOWN-FAILURES-BASELINE-CHECK 的 stale 判定强制删除本项（07 合同：修复后必须删除，不能重新增加）。",
-      "evidence": [
-        "run/ci/ci-baseline-001/out-utcli-before/checks/UT-CLI.json（verdict=FAIL(dirty)，dirty.violations 列根目录产物）",
-        "05_FINDINGS_REGISTER_20260911.md §A.1 FD-R1-010（UT-CLI 红灯在册，承接节点 UT-CLI-MAINT）",
-        "ci/ci_repair_round.py:115 ATTRIBUTION['UT-CLI']（root_cause_path=cli/commands.cpp，in_whitelist=false）"
-      ],
-      "registered_by": "CI-BASELINE-001"
-    },
     {
       "check_id": "p1_noise_adapter",
       "unit": "p1_noise_adapter",
@@ -88,6 +66,18 @@
         "run/ci/ci-baseline-001/ctest_full_pre.log（当前门卫关闭：168 目标中无 p1_noise_adapter，零失败）"
       ],
       "registered_by": "CI-BASELINE-001"
+    }
+  ],
+  "removals": [
+    {
+      "check_id": "UT-CLI",
+      "removed_utc": "2026-09-14T04:31:22Z",
+      "reason": "removal_condition 满足：tests/cli 已把 CLI/夹具子进程 cwd 统一落 run/test_cli_cwd（显式 run/ 落位路径），UT-CLI 由 FAIL(dirty) 转绿（干净检出 174 OK / 0 failures；FD-14 commit fa5581a0），且 F-13 符号用例亦已转绿（f849860a）。07 合同：修复后必须删除基线项，不能重新增加。",
+      "verified_by": "FRONT-DESK",
+      "evidence": [
+        "run/release-rescue/fd-utcli/REPORT.md",
+        "run/release-rescue/fd-f13-check/utcli.log（前台独立：Ran 174 OK, skipped=2）"
+      ]
     }
   ]
 }
