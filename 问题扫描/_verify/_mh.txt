@@ -1,0 +1,12 @@
+lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp
+lib/astro_image_io/tests/p2hips/p2hips_test_main.hpp
+lib/calibration/tests/p1cal/p1cal_test_main.hpp
+lib/cosmetic/tests/p1cos/p1cos_test_main.hpp
+lib/dynamic_psf/tests/p1psf/p1psf_test_main.hpp
+lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_test_main.hpp
+lib/phase1_session/tests/p1sess/p1sess_test_main.hpp
+lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp
+lib/snr_estimator/tests/p1noise/p1noise_test_main.hpp
+lib/star_detector/tests/p1star/p1star_test_main.hpp
+tests/unit/aio_abi_test_main.hpp
+tests/unit/p1wcs/p1wcs_test_main.hpp

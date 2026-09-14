@@ -1,0 +1,130 @@
+{
+ "lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp": [
+  {
+   "line": 64,
+   "text": "#define P1HIPS_CHECK(cs, cond, faultname)                                  \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1hips::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+  },
+  {
+   "line": 80,
+   "text": "#define P1HIPS_CHECK_MSG(cs, cond, faultname, ...)                         \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1hips::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s — \",              \\\n                         __FILE__, __LINE__, #cond);                       \\\n            std::fprintf(stderr, __VA_ARGS__);                             \\\n            std::fprintf(stderr, \"\\n\");                                    \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+  },
+  {
+   "line": 97,
+   "text": "#define P1HIPS_CHECK_EQ(cs, got, want)                                     \\\n    do {                                                                   \\\n        const long long g_ = (long long)(got);                             \\\n        const long long w_ = (long long)(want);                            \\\n        if (!(g_ == w_)) {                                                 \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: got=%lld want=%lld (%s)\\n\", \\\n                         __FILE__, __LINE__,                             \\\n                         static_cast<long long>(g_),                     \\\n                         static_cast<long long>(w_), #got);              \\\n            ++(cs).failures;                                             \\\n        }                                                                  \\\n    } while (0)"
+  }
+ ],
+ "lib/astro_image_io/tests/p2hips/p2hips_test_main.hpp": [
+  {
+   "line": 34,
+   "text": "#define P2H_CHECK(cond, msg)     ::p2hips::check_impl((cond), #cond, (msg), __FILE__, __LINE__)"
+  }
+ ],
+ "lib/calibration/tests/p1cal/p1cal_test_main.hpp": [
+  {
+   "line": 48,
+   "text": "#define P1CAL_CHECK(cs, cond, faultname)                                   \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1cal::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+  },
+  {
+   "line": 64,
+   "text": "#define P1CAL_CHECK_EQ(cs, got, want)                                      \\\n    do {                                                                   \\\n        const auto g_ = (got), w_ = (want);                                \\\n        if (!(g_ == w_)) {                                                 \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: got=%lld want=%lld (%s)\\n\", \\\n                         __FILE__, __LINE__,                             \\\n                         static_cast<long long>(g_),                     \\\n                         static_cast<long long>(w_), #got);              \\\n            ++(cs).failures;                                             \\\n        }                                                                  \\\n    } while (0)"
+  }
+ ],
+ "lib/cosmetic/tests/p1cos/p1cos_test_main.hpp": [
+  {
+   "line": 53,
+   "text": "#define P1COS_CHECK(cs, cond, faultname)                                   \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1cos::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+  },
+  {
+   "line": 69,
+   "text": "#define P1COS_CHECK_EQ(cs, got, want)                                      \\\n    do {                                                                   \\\n        const auto g_ = (got), w_ = (want);                                \\\n        if (!(g_ == w_)) {                                                 \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: got=%lld want=%lld (%s)\\n\", \\\n                         __FILE__, __LINE__,                             \\\n                         static_cast<long long>(g_),                     \\\n                         static_cast<long long>(w_), #got);              \\\n            ++(cs).failures;                                             \\\n        }                                                                  \\\n    } while (0)"
+  }
+ ],
+ "lib/dynamic_psf/tests/p1psf/p1psf_test_main.hpp": [
+  {
+   "line": 84,
+   "text": "#define P1PSF_CHECK(cs, cond, faultname)                                  \\\n    do {                                                                  \\\n        if ((faultname) != nullptr &&                                     \\\n            p1psf::FaultRegistry::instance().injected(faultname)) {       \\\n            (cs).note_injected(faultname);                                \\\n            ++(cs).failures;                                              \\\n        } else if (!(cond)) {                                             \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",              \\\n                         __FILE__, __LINE__, #cond);                      \\\n            ++(cs).failures;                                              \\\n        }                                                                 \\\n    } while (0)"
+  },
+  {
+   "line": 98,
+   "text": "#define P1PSF_CHECK_EQ(cs, got, want)                                     \\\n    do {                                                                  \\\n        const long long _g = (long long)(got);                            \\\n        const long long _w = (long long)(want);                           \\\n        if (_g != _w) {                                                   \\\n            std::fprintf(stderr, \"CHECK_EQ failed %s:%d: got=%lld want=%lld\\n\", \\\n                         __FILE__, __LINE__, _g, _w);                     \\\n            ++(cs).failures;                                              \\\n        }                                                                 \\\n    } while (0)"
+  },
+  {
+   "line": 110,
+   "text": "#define P1PSF_CHECK_MSG(cs, cond, faultname, ...)                        \\\n    do {                                                                  \\\n        char _m[512];                                                     \\\n        std::snprintf(_m, sizeof(_m), __VA_ARGS__);                       \\\n        if ((faultname) != nullptr &&                                     \\\n            p1psf::FaultRegistry::instance().injected(faultname)) {       \\\n            (cs).note_injected(faultname);                                \\\n            ++(cs).failures;                                              \\\n        } else if (!(cond)) {                                             \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s | %s\\n\",         \\\n                         __FILE__, __LINE__, #cond, _m);                  \\\n            ++(cs).failures;                                              \\\n        }                                                                 \\\n    } while (0)"
+  }
+ ],
+ "lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_test_main.hpp": [
+  {
+   "line": 64,
+   "text": "#define P1DRZ_CHECK(cs, cond, faultname)                                  \\\n    do {                                                                  \\\n        if ((faultname) != nullptr &&                                     \\\n            p1drz::FaultRegistry::instance().injected(faultname)) {       \\\n            (cs).note_injected(faultname);                                \\\n            ++(cs).failures;                                              \\\n        } else if (!(cond)) {                                             \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",              \\\n                         __FILE__, __LINE__, #cond);                      \\\n            ++(cs).failures;                                              \\\n        }                                                                 \\\n    } while (0)"
+  },
+  {
+   "line": 78,
+   "text": "#define P1DRZ_CHECK_MSG(cs, cond, faultname, ...)                        \\\n    do {                                                                  \\\n        char _m[512];                                                     \\\n        std::snprintf(_m, sizeof(_m), __VA_ARGS__);                       \\\n        if ((faultname) != nullptr &&                                     \\\n            p1drz::FaultRegistry::instance().injected(faultname)) {       \\\n            (cs).note_injected(faultname);                                \\\n            ++(cs).failures;                                              \\\n        } else if (!(cond)) {                                             \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s | %s\\n\",         \\\n                         __FILE__, __LINE__, #cond, _m);                  \\\n            ++(cs).failures;                                              \\\n        }                                                                 \\\n    } while (0)"
+  }
+ ],
+ "lib/phase1_session/tests/p1sess/p1sess_test_main.hpp": [
+  {
+   "line": 83,
+   "text": "#define P1SESS_CHECK(cs, cond, faultname)                                  \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1sess::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+  },
+  {
+   "line": 99,
+   "text": "#define P1SESS_CHECK_MSG(cs, cond, faultname, ...)                         \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1sess::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s — \",              \\\n                         __FILE__, __LINE__, #cond);                       \\\n            std::fprintf(stderr, __VA_ARGS__);                             \\\n            std::fprintf(stderr, \"\\n\");                                    \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+  },
+  {
+   "line": 117,
+   "text": "#define P1SESS_CHECK_EQ(cs, got, want)                                     \\\n    do {                                                                   \\\n        const long long g_ = (long long)(got);                             \\\n        const long long w_ = (long long)(want);                             \\\n        if (!(g_ == w_)) {                                                 \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: got=%lld want=%lld (%s)\\n\", \\\n                         __FILE__, __LINE__,                              \\\n                         static_cast<long long>(g_),                      \\\n                         static_cast<long long>(w_), #got);               \\\n            ++(cs).failures;                                              \\\n        }                                                                  \\\n    } while (0)"
+  }
+ ],
+ "lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp": [
+  {
+   "line": 60,
+   "text": "#define P1PHOT_CHECK(cs, cond, faultname)                                  \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1phot::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+  },
+  {
+   "line": 76,
+   "text": "#define P1PHOT_CHECK_MSG(cs, cond, faultname, ...)                         \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1phot::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s — \",              \\\n                         __FILE__, __LINE__, #cond);                       \\\n            std::fprintf(stderr, __VA_ARGS__);                             \\\n            std::fprintf(stderr, \"\\n\");                                    \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+  }
+ ],
+ "lib/snr_estimator/tests/p1noise/p1noise_test_main.hpp": [
+  {
+   "line": 53,
+   "text": "#define P1NOISE_CHECK(cs, cond, faultname)                                    \\\n    do {                                                                      \\\n        if ((cs).fault_reported && (faultname) != nullptr) {                  \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */              \\\n            ++(cs).failures;                                                  \\\n        } else if (faultname != nullptr &&                                    \\\n                   p1noise::FaultRegistry::instance().injected(faultname)) {  \\\n            (cs).note_injected(faultname);                                    \\\n            ++(cs).failures;                                                  \\\n        } else if (!(cond)) {                                                 \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",                  \\\n                         __FILE__, __LINE__, #cond);                          \\\n            ++(cs).failures;                                                  \\\n        }                                                                     \\\n    } while (0)"
+  },
+  {
+   "line": 69,
+   "text": "#define P1NOISE_CHECK_EQ(cs, got, want)                                       \\\n    do {                                                                      \\\n        const long long g_ = static_cast<long long>(got);                     \\\n        const long long w_ = static_cast<long long>(want);                    \\\n        if (!(g_ == w_)) {                                                    \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: got=%lld want=%lld (%s)\\n\", \\\n                         __FILE__, __LINE__, g_, w_, #got);                   \\\n            ++(cs).failures;                                                  \\\n        }                                                                     \\\n    } while (0)"
+  }
+ ],
+ "lib/star_detector/tests/p1star/p1star_test_main.hpp": [
+  {
+   "line": 70,
+   "text": "#define P1STAR_CHECK(cs, cond, name) \\\n    (cs).record(static_cast<bool>(cond), (name), __FILE__, __LINE__)"
+  },
+  {
+   "line": 72,
+   "text": "#define P1STAR_CHECK_EQ(cs, a, b, name) \\\n    (cs).record((a) == (b), (name), __FILE__, __LINE__)"
+  }
+ ],
+ "tests/unit/aio_abi_test_main.hpp": [
+  {
+   "line": 66,
+   "text": "#define AIO_CHECK(cs, cond, faultname)                                          \\\n    do {                                                                        \\\n        if ((cs).fault_reported && (faultname) != nullptr) {                    \\\n            ++(cs).failures;                                                    \\\n        } else if ((faultname) != nullptr &&                                    \\\n                   ::aio_abi_test::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                      \\\n            ++(cs).failures;                                                    \\\n        } else if (!(cond)) {                                                   \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n            ++(cs).failures;                                                    \\\n        }                                                                       \\\n    } while (0)"
+  },
+  {
+   "line": 80,
+   "text": "#define AIO_CHECK_MSG(cs, cond, faultname, ...)                                 \\\n    do {                                                                        \\\n        if ((cs).fault_reported && (faultname) != nullptr) {                    \\\n            ++(cs).failures;                                                    \\\n        } else if ((faultname) != nullptr &&                                    \\\n                   ::aio_abi_test::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                      \\\n            ++(cs).failures;                                                    \\\n        } else if (!(cond)) {                                                   \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s — \", __FILE__, __LINE__, #cond); \\\n            std::fprintf(stderr, __VA_ARGS__);                                  \\\n            std::fprintf(stderr, \"\\n\");                                         \\\n            ++(cs).failures;                                                    \\\n        }                                                                       \\\n    } while (0)"
+  }
+ ],
+ "tests/unit/p1wcs/p1wcs_test_main.hpp": [
+  {
+   "line": 150,
+   "text": "#define P1WCS_CHECK(cs, cond, faultname)                                   \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1wcs::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+  },
+  {
+   "line": 166,
+   "text": "#define P1WCS_CHECK_NEAR(cs, got, want, tol, faultname)                    \\\n    do {                                                                   \\\n        const double g_ = (got), w_ = (want), t_ = (tol);                  \\\n        if (p1wcs::FaultRegistry::instance().injected(faultname)) {        \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!((g_ - w_) <= t_ && (w_ - g_) <= t_)) {                \\\n            std::fprintf(stderr,                                        \\\n                         \"CHECK failed %s:%d: %s got=%.12g want=%.12g tol=%.3g\\n\", \\\n                         __FILE__, __LINE__, #got, g_, w_, t_);            \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+  }
+ ]
+}
