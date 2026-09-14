@@ -215,6 +215,65 @@ TEST(Phase2Upm, S0IdentityCalibrationNoChange) {
     p2_upm_close(model);
 }
 
+// M7-C-001 (RQS-B3): UPM 网格边长 G 必须等于 UPM 网格常数 8；G != 8 时
+// control 场会按错误格架插值后被当作科学校正量扣除，必须显式拒绝（rc=3），
+// 禁止静默错格架；几何 hash 已纳入实际 G。
+TEST(Phase2Upm, ControlGridMismatchRejected) {
+    std::vector<P2ControlObservation> obs{
+        make_obs(0, 0, 10.0, 10.0),
+        make_obs(0, 1, 12.0, 10.0),
+        make_obs(0, 2, 11.0, 10.0),
+    };
+    P2UpmBuildConfig bad{};
+    bad.grid = 4;   // 采样器可配 1..64，但 UPM 网格常数 = 8
+    void* model = nullptr;
+    EXPECT_NE(p2_upm_build(obs.data(), obs.size(), &bad, &model), 0)
+        << "G != 8 must be rejected (no silent wrong grid)";
+    EXPECT_EQ(model, nullptr);
+    P2UpmBuildConfig ok{};   // 默认 grid = 8
+    model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &ok, &model), 0);
+    char gh[128] = {0};
+    ASSERT_EQ(p2_upm_geometry_hash(model, gh, sizeof(gh)), 0);
+    // 输出为 sha256 hex；hash payload 含 "grid=<G>"（upm.cpp），G 恒为
+    // 已校验常数 8，故几何摘要唯一确定。
+    EXPECT_EQ(std::string(gh).size(), 64u)
+        << "geometry hash must be sha256 hex: " << gh;
+    p2_upm_close(model);
+}
+
+// M4-C-02 (RQS-B3): SCI-UPM-001 §9a:133 冻结弱零锚 λ0=1e-3 必须被生产装配
+// 显式透传。stage2 入口（p2_stage2_make_upm_cfg）在此直接断言；p2_session 与
+// module_adapters::fit_upm 两处装配显式赋同值（module_adapters 由 p2001 节点
+// 链断言模型 JSON），修复前两处 zero-init 得 0 → 三入口 model_hash 分叉。
+TEST(P2EntryParity, zero_anchor_default) {
+    // 1) stage2 生产装配函数透传 SCI 冻结 1e-3
+    P2Stage2Config s2{};
+    const P2UpmBuildConfig m = p2_stage2_make_upm_cfg(s2, 0, "deadbeef");
+    EXPECT_DOUBLE_EQ(m.zero_anchor_weight, 1e-3);
+    // 2) 弱零锚进入 model_hash：λ0=0 与 λ0=1e-3 必不同（三入口同值才可比）
+    std::vector<P2ControlObservation> obs{
+        make_obs(0, 0, 10.0, 10.0),
+        make_obs(0, 1, 12.0, 10.0),
+        make_obs(0, 2, 11.0, 10.0),
+    };
+    P2UpmBuildConfig z0{};
+    z0.zero_anchor_weight = 0.0;
+    P2UpmBuildConfig z1{};
+    z1.zero_anchor_weight = 1e-3;
+    void* ma = nullptr;
+    void* mb = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &z0, &ma), 0);
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &z1, &mb), 0);
+    P2ModelInfo ia{}, ib{};
+    ASSERT_EQ(p2_upm_info(ma, &ia), 0);
+    ASSERT_EQ(p2_upm_info(mb, &ib), 0);
+    EXPECT_STRNE(ia.model_hash, ib.model_hash)
+        << "zero_anchor_weight must enter model_hash";
+    p2_upm_close(ma);
+    p2_upm_close(mb);
+}
+
 // CON-005: UPM build 1T/2T 确定性。同输入分别 cpu_workers=1 / =2 建立模型，
 // 结构性计数(control/component/frame)必须 exact；模型内容哈希与标定输出按容差一致。
 TEST(Phase2UpmParallel, OneTvsTwoTDetermine) {

@@ -987,6 +987,16 @@ try {
         return -1;
     }
 
+    // M2a-H-1: 请求精度必须与 data 块 dtype 一致 —— 禁止「元数据声称 FP64
+    // 而实际 binary32 累加」（宪章 §5.3 / ALG-DRZ-001 B2-A12 fail-closed）。
+    if (config.precision_mode == 1 && !data_is_f64) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: precision_mode=FP64 但 "
+                        "'data' 块为 FLOAT32 (累积域与请求不一致, 显式拒绝)\n");
+        setErrorMsg(result, "precision_mode=FP64 但 'data' 块为 FLOAT32: "
+                    "累积域必须与请求精度一致 (no silent precision downgrade)");
+        return -14;
+    }
+
     // 5.6: 读取 "variance" 块 (逐像素方差图,
     // FLOAT32/64 [H,W], 由 SNR 阶段 NoiseWeightModelV1 填充)
     // → 方差传播 sumVarNum += v_j × w_jp²

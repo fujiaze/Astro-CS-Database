@@ -645,6 +645,87 @@ int main(int argc, char** argv) {
         if (inst) api->destroy(inst);
     }
 
+    /* D6. by_coords 部分未命中: match_idx 载荷长度 = n_coords（坐标序 + −1）
+     * M2a-C-1 回归锁：旧实现按 matched_count 截断载荷，未命中坐标的 −1
+     * 位置丢失，行↔坐标映射不可恢复。合同 DATA_SEMANTICS §8.2。 */
+    {
+        enum { NC = 4 };
+        const GaiaCatRefStar* refs[2];
+        double ra_arr[NC], de_arr[NC];
+        refs[0] = find_star(1, 0);
+        refs[1] = find_star(1, 1);
+        ra_arr[0] = refs[0]->ra; de_arr[0] = refs[0]->dec;
+        ra_arr[1] = refs[1]->ra; de_arr[1] = refs[1]->dec;
+        /* 两个必然未命中坐标（对跖 RA +180°，60" 半径内无目录星） */
+        ra_arr[2] = fmod(refs[0]->ra + 180.0, 360.0);
+        de_arr[2] = -refs[0]->dec;
+        ra_arr[3] = fmod(refs[1]->ra + 180.0, 360.0);
+        de_arr[3] = -refs[1]->dec;
+        char ral[512] = {0}, del[512] = {0};
+        for (int i = 0; i < NC; i++) {
+            char a[48], b[48];
+            snprintf(a, sizeof(a), "%s%.17g", i ? "," : "", ra_arr[i]);
+            snprintf(b, sizeof(b), "%s%.17g", i ? "," : "", de_arr[i]);
+            strcat(ral, a);
+            strcat(del, b);
+        }
+        GaiaSpectrumStar* ds = NULL; uint8_t* dsp = NULL; int* didx = NULL; int dn = 0;
+        int drc = gaia_client_query_spectrum_by_coords(direct, ra_arr, de_arr, NC,
+                                                       60.0, -100.0, 100.0,
+                                                       &ds, &dsp, &didx, &dn);
+        CHECK(drc == 0 && dn == 2,
+              "by_coords_partial_miss: direct matched rows == 2 (coords 0,1)");
+        CHECK(didx != NULL && didx[0] == 0 && didx[1] == 1 &&
+              didx[2] == -1 && didx[3] == -1,
+              "by_coords_partial_miss: direct match_idx = {0,1,-1,-1}");
+        char cfg[1024];
+        snprintf(cfg, sizeof(cfg),
+                 "{\"op\":\"query_spectrum_by_coords\",\"catalog_dir\":\"%s\","
+                 "\"ra_list\":[%s],\"dec_list\":[%s],"
+                 "\"match_radius_arcsec\":60.0,"
+                 "\"mag_low\":-100.0,\"mag_high\":100.0}", dir, ral, del);
+        acs_module_instance_v1* inst = NULL;
+        memset(&err, 0, sizeof(err));
+        err.head.struct_size = (uint32_t)sizeof(acs_error_info_v1);
+        err.head.abi_version = ACS_ABI_VERSION_V1;
+        sj.data = cfg; sj.size = strlen(cfg);
+        int create_ok = (api->create(api, sj, plain_host, &inst, &err) == ACS_OK);
+        acs_status rc2 = ACS_ERR_INTERNAL;
+        char* out = create_ok ? exec_collect(api->execute, inst, cfg, &rc2) : NULL;
+        CHECK(create_ok && rc2 == ACS_OK && out != NULL,
+              "by_coords_partial_miss: DLL create+execute ok");
+        if (out) {
+            double nc = 0, cnt = 0;
+            CHECK(tjson_num(out, "n_coords", &nc) && (int)nc == NC,
+                  "by_coords_partial_miss: JSON n_coords == input coordinate count");
+            CHECK(tjson_num(out, "count", &cnt) && (int)cnt == dn,
+                  "by_coords_partial_miss: JSON count == matched rows");
+            const char* p = strstr(out, "\"match_idx_base64\":\"");
+            if (!p) {
+                printf("[FAIL] by_coords_partial_miss: missing match_idx payload\n");
+                g_fail++;
+            } else {
+                p += strlen("\"match_idx_base64\":\"");
+                const char* e = strchr(p, '"');
+                uint64_t L = e ? (uint64_t)(e - p) : 0;
+                char* b64 = (char*)malloc((size_t)L + 1);
+                memcpy(b64, p, (size_t)L); b64[L] = '\0';
+                uint64_t bn = 0;
+                uint8_t* got = b64_decode(b64, &bn);
+                CHECK(got && bn == (uint64_t)NC * sizeof(int),
+                      "by_coords_partial_miss: payload length == n_coords * sizeof(int32)");
+                if (got && bn == (uint64_t)NC * sizeof(int)) {
+                    CHECK(memcmp(got, didx, (size_t)bn) == 0,
+                          "by_coords_partial_miss: payload bitwise == direct (coordinate order + -1)");
+                }
+                free(b64); free(got);
+            }
+            free(out);
+        }
+        free(ds); free(dsp); free(didx);
+        if (inst) api->destroy(inst);
+    }
+
     /* E1. executor 租借: acquire/release 计数 + leased_workers/leased */
     {
         ex_stub ex;

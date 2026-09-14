@@ -771,7 +771,7 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
                         ? (uint64_t)count * (uint64_t)spec_count : 0;
     uint64_t b64_rows_cap = row_bytes ? b64_encoded_len(row_bytes) : 3;
     uint64_t b64_spec_cap = spec_bytes ? b64_encoded_len(spec_bytes) : 3;
-    uint64_t b64_idx_cap  = match_idx ? b64_encoded_len((uint64_t)count * sizeof(int)) : 3;
+    uint64_t b64_idx_cap  = match_idx ? b64_encoded_len((uint64_t)c.n_coords * sizeof(int)) : 3;
     uint64_t b64_sra_cap  = solver_ra  ? b64_encoded_len((uint64_t)count * sizeof(double)) : 3;
     uint64_t b64_sdec_cap = solver_dec ? b64_encoded_len((uint64_t)count * sizeof(double)) : 3;
     uint64_t b64_smag_cap = solver_mag ? b64_encoded_len((uint64_t)count * sizeof(float)) : 3;
@@ -788,10 +788,10 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
         head_ok = json_append_fmt(&hw, head_end,
                    "\"module_id\":\"%s\",\"op\":\"%s\",\"status\":0,"
                    "\"db_type\":%d,\"file_count\":%u,\"count\":%d,"
-                   "\"leased_workers\":%u,\"leased\":%s,"
+                   "\"n_coords\":%d,\"leased_workers\":%u,\"leased\":%s,"
                    "\"schema\":",
                    kModuleId, c.op, gaia_client_get_db_type(cli),
-                   (unsigned)file_count, count, (unsigned)leased,
+                   (unsigned)file_count, count, c.n_coords, (unsigned)leased,
                    lease_active ? "true" : "false");
     const char* schema = "{}";
     if (!strcmp(c.op, ASTROCS_GAIA_OP_CONE))
@@ -930,7 +930,9 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
             if (match_idx) {
                 size_t kl = strlen(keys[2]);
                 memcpy(w, keys[2], kl); w += kl;
-                b64_encode((const uint8_t*)match_idx, (uint64_t)count * sizeof(int), w);
+                b64_encode((const uint8_t*)match_idx, (uint64_t)c.n_coords * sizeof(int), w);
+                /* M2a-C-1: match_idx 载荷长度 = n_coords（坐标序 + −1 表未匹配），
+                 * 不得截断为 matched_count；见 DATA_SEMANTICS §8.2。 */
                 w += strlen(w);
                 *w++ = '"';
             }

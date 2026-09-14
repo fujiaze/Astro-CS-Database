@@ -242,6 +242,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     // (cfg 拷贝后此处不强制, 保持调用方意图)
     if (cfg.control_reliability <= 0.0) cfg.control_reliability = 1.0;
     if (cfg.zero_anchor_weight < 0.0) cfg.zero_anchor_weight = 1e-3;
+    if (cfg.grid != 8) return 3;   // M7-C-001: UPM 网格常数不一致 → 显式拒绝
     if (cfg.smoothing_lambda < 0.0) cfg.smoothing_lambda = 0.0;
     if (cfg.target_order < 0) {
         // 空间 UPM 必须知道 control leaf 层级（order = target+9）
@@ -256,7 +257,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     m->info.precision = 1;  // fp64 reference
     m->info.observation_count = n_obs;
     m->info.target_order = (std::uint32_t)cfg.target_order;
-    m->grid = 8;
+    m->grid = cfg.grid;   // M7-C-001: 实际 G 进入几何/模型（已校验 ==8）
     m->cell_side = 512 / m->grid;
     const int tile_shift = 9;         // leaf order = target+9 -> tile shift 18/2
 
@@ -947,6 +948,7 @@ int p2_upm_save(const void* model, const char* path) {
     j["format"] = "astrocs-upm-v2";
     j["version"] = m->info.version;
     j["target_order"] = m->info.target_order;
+    j["grid"] = m->grid;
     j["precision"] = m->info.precision;
     j["robust_loss"] = m->cfg.robust_loss;
     j["snr_weight_mode"] = m->cfg.snr_weight_mode;
@@ -1059,7 +1061,8 @@ int p2_upm_open(const char* path, void** out_model) {
         m->objective = j.value("objective", 0.0);
         m->component_count = j.value("component_count", (std::size_t)1);
         m->info.component_count = (std::uint32_t)m->component_count;
-        m->grid = 8;
+        m->grid = (int)j.value("grid", 8);
+        if (m->grid != 8) { delete m; return 1; }   // M7-C-001 打开处网格校验
         m->cell_side = 512 / m->grid;
         // DATA-UPM-MODEL-001：frame_id_by_index 必须显式持久化；
         // 缺失、非数组、含重复或非法项的文件一律拒绝，禁止猜测顺序。

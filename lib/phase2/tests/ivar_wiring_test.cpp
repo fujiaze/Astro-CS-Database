@@ -111,7 +111,8 @@ void write_hips(const std::string& dir, const FrameSpec& spec,
 }
 
 std::string write_config(const std::vector<std::string>& dirs,
-                         const std::string& out_dir) {
+                         const std::string& out_dir,
+                         bool legacy_fallback = false) {
     std::string cfg = tmp_dir() + "/stage2_wire.json";
     std::ofstream f(cfg);
     f << "{\"version\":1,\"inputs\":{\"hips\":[";
@@ -122,10 +123,21 @@ std::string write_config(const std::vector<std::string>& dirs,
     f << "],\"target_order\":\"auto\"},\"model\":{\"robust_loss\":\"huber\","
          "\"snr_weight_mode\":\"snr2_normalized\",\"smoothing\":0.0},"
          "\"integration\":{\"precision\":\"fp32\",\"rejection\":{\"method\":"
-         "\"none\"},\"weight_mode\":\"ivar\"},\"output\":{\"hips\":\""
-      << out_dir << "\"},\"diagnostics\":{\"enabled\":true}}";
+         "\"none\"},\"weight_mode\":\"ivar\",\"legacy_allow_weight_fallback\":"
+      << (legacy_fallback ? "true" : "false")
+      << "},\"output\":{\"hips\":\"" << out_dir
+      << "\"},\"diagnostics\":{\"enabled\":true}}";
     f.close();
     return cfg;
+}
+
+// std::system 返回码归一（POSIX 需解码 wait status）。
+int exit_code(int st) {
+#if defined(_WIN32)
+    return st;
+#else
+    return ((st & 0x7f) == 0) ? ((st >> 8) & 0xff) : st;
+#endif
 }
 
 std::string stage2_exe() {
@@ -416,4 +428,63 @@ TEST(Phase2IvarWiring, WireProductionStage2PerFrameIvar) {
     }
     EXPECT_EQ(n_perm_diff, 0u)
         << "WIRE-IVAR-005: 帧置换改变输出 (max_diff=" << max_diff << ")";
+}
+
+// M4-C-03 (RQS-B3): 某帧 ivar 产品可打开、但个别 tile 读失败时，默认必须
+// fail-closed（宪章 §6.3：无量纲 support 不得冒充 ADU^-2 ivar），与 IR 节点链
+// (module_adapters p2_op_integrate "ivar tile read failed where corrected data
+// exists") 归一；仅显式 legacy_allow_weight_fallback=true 才降级并逐像素计数。
+TEST(Phase2IvarWiring, IvarTileMissingFailClosed) {
+    namespace fs = std::filesystem;
+    fs::create_directories(tmp_dir());
+    const std::size_t npix = (std::size_t)kTileWidth * kTileWidth;
+    std::vector<std::string> dirs;
+    for (const auto& spec : kFrames) {
+        std::vector<float> sig(npix), sup(npix, 1.0f), iv(npix);
+        for (std::size_t z = 0; z < npix; ++z) {
+            sig[z] = (float)(kTruth + 0.01 * (double)(z % 512));
+            iv[z] = (float)spec.ivar_base;
+        }
+        const std::string dir = tmp_dir() + "/missing_" + spec.name + ".hips";
+        fs::remove_all(dir);
+        write_hips(dir, spec, sig, sup, iv);
+        dirs.push_back(dir);
+        if (spec.name == "B") {
+            // 破坏 B 的 variance/ivar tile 文件（dataset/properties 保留）→
+            // 打开成功但 tile 读取失败（tile 级 ivar 缺失）。
+            for (const char* sub : {"variance", "ivar"}) {
+                const std::string root = dir + "/" + sub;
+                std::error_code ec2;
+                if (!fs::exists(root)) continue;
+                for (fs::recursive_directory_iterator it(root, ec2), e;
+                     it != e; it.increment(ec2)) {
+                    if (ec2) break;
+                    if (it->is_regular_file() && it->path().extension() == ".fits") {
+                        std::ofstream bad(it->path(),
+                                          std::ios::binary | std::ios::trunc);
+                        bad << "NOT-A-FITS-TILE";
+                    }
+                }
+            }
+        }
+    }
+    // 默认：fail-closed（rc=7）。
+    const std::string out_fc = tmp_dir() + "/out_missing_fc.hips";
+    fs::remove_all(out_fc);
+    const int rc_fc = run_stage2(write_config(dirs, out_fc), 1);
+    EXPECT_EQ(exit_code(rc_fc), 7)
+        << "默认必须 fail-closed rc=7（support 不得冒充 ivar）";
+    // 显式 legacy 开关：放行 + diagnostics 逐像素计数。
+    const std::string out_leg = tmp_dir() + "/out_missing_legacy.hips";
+    fs::remove_all(out_leg);
+    const int rc_leg = run_stage2(write_config(dirs, out_leg, true), 1);
+    EXPECT_EQ(exit_code(rc_leg), 0)
+        << "legacy_allow_weight_fallback=true 应放行";
+    std::ifstream df(out_leg + "/diagnostics.json");
+    ASSERT_TRUE(df.good()) << "legacy 诊断落盘缺失";
+    const std::string dj((std::istreambuf_iterator<char>(df)),
+                         std::istreambuf_iterator<char>());
+    EXPECT_NE(dj.find("\"ivar_tile_read_fallback_pixels\""), std::string::npos);
+    EXPECT_NE(dj.find("\"legacy_allow_weight_fallback\": true"),
+              std::string::npos);
 }

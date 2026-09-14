@@ -463,5 +463,6 @@ P2UpmBuildConfig p2_stage2_make_upm_cfg(const P2Stage2Config& cfg,
     mcfg.tolerance = cfg.tolerance;
     mcfg.target_order = target_order;
     mcfg.cpu_workers = cfg.exec.cpu_workers;   // CON-005: UPM build 并行 worker 预算(CON-002 唯一来源)
+    mcfg.grid = cfg.control_grid_per_tile;     // M7-C-001: UPM G 必须 == 采样器 G（UPM 侧校验）
     return mcfg;
 }

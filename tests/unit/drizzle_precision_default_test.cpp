@@ -69,16 +69,21 @@ std::vector<float> make_image() {
   return img;
 }
 
+// M2a-H-1: 真 FP64 输入图像 —— 值带 binary32 不可精确表示的尾数，用于验证
+// 实际累加域确实是 binary64（FLOAT32 累加会把值量化到 f32）。
+std::vector<double> make_image_f64() {
+  std::vector<double> img((size_t)W * H, 0.0);
+  for (int y = 0; y < H; ++y)
+    for (int x = 0; x < W; ++x) {
+      const double dx = (double)x - 32.0, dy = (double)y - 32.0;
+      img[(size_t)y * W + x] = 1000.0 * std::exp(-(dx * dx + dy * dy) / 18.0) +
+                               10.0 + 1.0 / (7.0 + (double)(x * 37 + y));
+    }
+  return img;
+}
+
 // 与 drizzle_adapter_test 同构的最小 TAN 帧 (dims[0]=H, dims[1]=W)。
-PipelineFrame* make_frame(const std::vector<float>& img) {
-  PipelineFrame* f = aio_pipeline_frame_create();
-  if (!f) return nullptr;
-  int dims[2] = {H, W};
-  if (aio_frame_add_block(f, "data", AIO_BLOCK_FLOAT32, (void*)img.data(),
-                          (int64_t)(size_t)W * H, dims, 2, "fd02") != 0) {
-    aio_pipeline_frame_destroy(f);
-    return nullptr;
-  }
+bool set_frame_kvs(PipelineFrame* f) {
   const struct { const char* k; const char* v; } kvs[] = {
       {"CRVAL1", "202.5"}, {"CRVAL2", "47.2"},
       {"CRPIX1", "32.0"}, {"CRPIX2", "32.0"},
@@ -89,17 +94,49 @@ PipelineFrame* make_frame(const std::vector<float>& img) {
       {"FILTER", "g"}, {"EXPTIME", "30.0"},
   };
   for (const auto& kv : kvs)
-    if (aio_frame_kv_set(f, "header", kv.k, kv.v) != 0) {
-      aio_pipeline_frame_destroy(f);
-      return nullptr;
-    }
+    if (aio_frame_kv_set(f, "header", kv.k, kv.v) != 0) return false;
+  return true;
+}
+PipelineFrame* make_frame(const std::vector<float>& img) {
+  PipelineFrame* f = aio_pipeline_frame_create();
+  if (!f) return nullptr;
+  int dims[2] = {H, W};
+  if (aio_frame_add_block(f, "data", AIO_BLOCK_FLOAT32, (void*)img.data(),
+                          (int64_t)(size_t)W * H, dims, 2, "fd02") != 0 ||
+      !set_frame_kvs(f)) {
+    aio_pipeline_frame_destroy(f);
+    return nullptr;
+  }
+  return f;
+}
+// M2a-H-1: FLOAT64 data 块 → 真 binary64 累加域（与 precision_mode=1 一致）。
+PipelineFrame* make_frame_f64(const std::vector<double>& img) {
+  PipelineFrame* f = aio_pipeline_frame_create();
+  if (!f) return nullptr;
+  int dims[2] = {H, W};
+  if (aio_frame_add_block(f, "data", AIO_BLOCK_FLOAT64, (void*)img.data(),
+                          (int64_t)(size_t)W * H, dims, 2, "fd02") != 0 ||
+      !set_frame_kvs(f)) {
+    aio_pipeline_frame_destroy(f);
+    return nullptr;
+  }
   return f;
 }
 
 // 运行一次库调用; prec_kv==nullptr → 不写 PRECISION KV。
-int run_case(const std::string& out_path, int param, const char* prec_kv) {
-  const std::vector<float> img = make_image();
-  PipelineFrame* f = make_frame(img);
+// f64_frame=true → FLOAT64 data 块（FP64 请求的合法输入，M2a-H-1）。
+int run_case(const std::string& out_path, int param, const char* prec_kv,
+             bool f64_frame = false) {
+  PipelineFrame* f = nullptr;
+  std::vector<float> img;
+  std::vector<double> img64;
+  if (f64_frame) {
+    img64 = make_image_f64();
+    f = make_frame_f64(img64);
+  } else {
+    img = make_image();
+    f = make_frame(img);
+  }
   if (!f) return -999;
   if (prec_kv) aio_frame_kv_set(f, "header", "PRECISION", prec_kv);
   HpDrizzleResult res;
@@ -179,6 +216,33 @@ bool signals_equivalent(const std::string& f32_path, const std::string& f64_path
   return ok;
 }
 
+// M2a-H-1 签名：统计 f64 signal tile 中「不可被 binary32 精确表示」的非零值。
+// FP64 请求若实际 binary32 累加 → 值经 f32 量化 → 计数恒 0。
+uint64_t count_f64_nonfloat(const std::string& path) {
+  uint32_t ns = 0, tn = 0, dp = 0, nl = 0;
+  uint64_t nt = 0, npx = 0;
+  char* m = nullptr;
+  uint64_t* tips = nullptr;
+  if (aio_hiss_inspect(path.c_str(), &ns, &tn, &dp, &nl, &nt, &npx, &m, &tips) != 0) {
+    if (m) aio_hio_free(m);
+    if (tips) aio_hio_free(tips);
+    return 0;
+  }
+  uint64_t n_nonfloat = 0;
+  for (uint64_t t = 0; t < nt; ++t) {
+    double* s = nullptr;
+    uint32_t n = 0;
+    if (aio_hiss_read_tile_signal_f64(path.c_str(), tips[t], &s, &n) == 0) {
+      for (uint32_t i = 0; i < n; ++i)
+        if (s[i] != 0.0 && (double)(float)s[i] != s[i]) ++n_nonfloat;
+      if (s) aio_hio_free(s);
+    }
+  }
+  if (m) aio_hio_free(m);
+  if (tips) aio_hio_free(tips);
+  return n_nonfloat;
+}
+
 }  // namespace
 
 int main() {
@@ -195,10 +259,12 @@ int main() {
   std::snprintf(p4, sizeof(p4), "%s/explicit_fp32.hiss", dir.string().c_str());
   std::snprintf(p5, sizeof(p5), "%s/explicit_fp64.hiss", dir.string().c_str());
   std::snprintf(p6, sizeof(p6), "%s/kv_bogus.hiss", dir.string().c_str());
+  char p7[512];
+  std::snprintf(p7, sizeof(p7), "%s/reject_f32_fp64.hiss", dir.string().c_str());
 
   int prec = -99;
   // T1: 缺省 (-1, 无 KV) → FP64 (宪章 §5.3)
-  CHECK_MSG(run_case(p1, -1, nullptr) == 0, "T1 default run must succeed");
+  CHECK_MSG(run_case(p1, -1, nullptr, true) == 0, "T1 default run must succeed");
   CHECK_MSG(hiss_precision(p1, &prec), "T1 HISS metadata readable");
   CHECK_MSG(prec == 1, ("T1 -1 + no PRECISION KV must accumulate FP64 (got " +
                         std::to_string(prec) + ")").c_str());
@@ -208,7 +274,7 @@ int main() {
   CHECK(run_case(p2, -1, "fp32") == 0);
   CHECK(hiss_precision(p2, &prec) && prec == 0);
   prec = -99;
-  CHECK(run_case(p3, -1, "fp64") == 0);
+  CHECK(run_case(p3, -1, "fp64", true) == 0);
   CHECK(hiss_precision(p3, &prec) && prec == 1);
 
   // T4/T5: 参数显式 0/1
@@ -216,20 +282,39 @@ int main() {
   CHECK(run_case(p4, 0, nullptr) == 0);
   CHECK(hiss_precision(p4, &prec) && prec == 0);
   prec = -99;
-  CHECK(run_case(p5, 1, nullptr) == 0);
+  CHECK(run_case(p5, 1, nullptr, true) == 0);
   CHECK(hiss_precision(p5, &prec) && prec == 1);
 
   // T6: 未知 PRECISION 值 → fail-closed (绝不静默 FP32)
   const int rc6 = run_case(p6, -1, "bogus");
   CHECK_MSG(rc6 != 0, "T6 unknown PRECISION KV must be rejected (no silent FP32)");
 
-  // T7: 显式 FP32/FP64 累积等价 (同一帧, 逐 tile)
+  // T8 (M2a-H-1): 请求 FP64 而 data 块 FLOAT32 → 显式拒绝
+  // （fail-closed，禁止元数据声称 FP64 而实际 binary32 累加）。
+  CHECK_MSG(run_case(p7, 1, nullptr, false) != 0,
+            "T8 FLOAT32 data block + precision_mode=1 must be rejected");
+
+  // T7 (M2a-H-1 修正): FP32 与真 FP64 累积不再数值等价——旧断言 max_rel<1e-5
+  // 编码的正是「FP64 请求实际按 binary32 累加」的缺陷。修正后 FP64 走真
+  // binary64 域，二者应同尺度但存在可辨差异（T9 给出 f64 签名佐证）。
   double max_rel = 1e9;
   CHECK_MSG(signals_equivalent(p4, p5, &max_rel),
             "T7 FP32/FP64 HISS readable and same tile set");
-  CHECK_MSG(max_rel < 1e-5,
-            ("T7 explicit FP32/FP64 signal equivalence max_rel=" +
+  CHECK_MSG(max_rel > 0.0,
+            ("T7 FP32 vs true-FP64 must differ max_rel=" +
              std::to_string(max_rel)).c_str());
+  CHECK_MSG(max_rel < 1e-3,
+            ("T7 FP32 vs true-FP64 same-scale max_rel=" +
+             std::to_string(max_rel)).c_str());
+
+  // T9 (M2a-H-1 / drizzle_precision_consistency): FP64 请求必须产生真 binary64
+  // 累加签名（f32 不可精确表示）。修复前节点恒提交 FLOAT32 块 → binary32 累加
+  // → 计数 == 0（红）；修复后 > 0（绿）。
+  const uint64_t n_nonfloat = count_f64_nonfloat(p5);
+  std::printf("drizzle precision: p5 f64 nonfloat-count=%llu\n",
+              (unsigned long long)n_nonfloat);
+  CHECK_MSG(n_nonfloat > 0,
+            "T9 FP64 request must yield binary32-inexact (true FP64) accumulation");
 
   std::filesystem::remove_all(dir, ec);
   if (failures == 0) {

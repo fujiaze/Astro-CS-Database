@@ -94,18 +94,18 @@ double kcorr_lookup(double pixfrac, double scale_arcsec) {
     };
     const double pf = std::clamp(pixfrac, 0.5, 1.0);
     const double sc = std::clamp(scale_arcsec, 300.0, 600.0);
-    // 双线性插值
-    const double wi = (pf - pf_grid[0]) / (pf_grid[2] - pf_grid[0]);
-    const double i0 = wi * 2.0, i1 = i0 + 1.0;   // 网格列
-    const std::size_t c0 = (std::size_t)std::min(i0, 2.0);
-    const std::size_t c1 = (std::size_t)std::min(i1, 2.0);
-    const double fx = i0 - (double)c0;
-    const double r0 =
+    // pixfrac 网格 {0.5,0.8,1.0} 非均匀：两段各自归一化的线性插值，
+    // 不得按 [0.5,1.0] 均匀网格取列（F2 角点须精确等于表值）。
+    const bool lo = (pf <= pf_grid[1]);
+    const std::size_t c0 = lo ? 0u : 1u;
+    const std::size_t c1 = lo ? 1u : 2u;
+    const double fx = (pf - pf_grid[c0]) / (pf_grid[c1] - pf_grid[c0]);
+    const double w0 = 1.0 - fx;
+    const double r0 =   // scale 网格 {300,600} 均匀：权重式保证端点 exact
         (sc_grid[1] - sc) / (sc_grid[1] - sc_grid[0]);
-    // 先按 scale 行插值，再按 pixfrac 列插值
-    const double k_r0 = k[0][c0] + (k[0][c1] - k[0][c0]) * fx;
-    const double k_r1 = k[1][c0] + (k[1][c1] - k[1][c0]) * fx;
-    return k_r0 + (k_r1 - k_r0) * (1.0 - r0);
+    const double k_r0 = k[0][c0] * w0 + k[0][c1] * fx;   // scale 行插值
+    const double k_r1 = k[1][c0] * w0 + k[1][c1] * fx;
+    return k_r0 * r0 + k_r1 * (1.0 - r0);               // pixfrac 列插值
 }
 
 // 从帧 HiPS properties 解析 Drizzle provenance
@@ -1154,3 +1154,11 @@ int p2_sample_controls_cached(const P2CoverageResult* coverage,
 }
 
 } // extern "C"
+
+// ── 测试接缝 (ALG-P2-SMP-001 §11.3 F2) ──
+// 仅供内部测试驱动匿名命名空间的 kcorr_lookup：与生产同一实现、同一冻结
+// 表值；不进入任何产品入口、不改变导出符号面（static 库内部）。
+extern "C" double astrocs_phase2_kcorr_lookup_for_test(double pixfrac,
+                                                       double scale_arcsec) {
+    return kcorr_lookup(pixfrac, scale_arcsec);
+}
