@@ -25,6 +25,7 @@ set(DRZ_PROD_SOURCES
     ${DRZ_PROD_DIR}/drizzle_engine.cpp
     ${DRZ_PROD_DIR}/reverse_drizzle.cpp
     ${DRZ_PROD_DIR}/hp_drizzle_api.cpp
+    ${DRZ_PROD_DIR}/hp_drizzle_hips_api.cpp
     ${DRZ_PROD_DIR}/astro_sphere_sink.cpp
     ${DRZ_PROD_DIR}/snr_evaluator.cpp
 )

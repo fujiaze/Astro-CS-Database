@@ -40,7 +40,7 @@ INCLUDES = -I. -I$(AIO_DIR)/include -I$(AIO_DIR)/src -I../../common
 #   spherical_overlap.cpp  - 球面 HEALPix 边界 + Girard 定理 + 候选查询 (02_FROZEN §8)
 #   drizzle_engine.cpp     - drizzle 重投影核心算法 (调用 hiss_write 输出 .hiss)
 #   hp_drizzle_api.cpp     - 对外 C ABI 接口
-SRCS = fits_reader.cpp wcs_sip.cpp poly_clip.cpp spherical_overlap.cpp drizzle_engine.cpp reverse_drizzle.cpp hp_drizzle_api.cpp astro_sphere_sink.cpp
+SRCS = fits_reader.cpp wcs_sip.cpp poly_clip.cpp spherical_overlap.cpp drizzle_engine.cpp reverse_drizzle.cpp hp_drizzle_api.cpp hp_drizzle_hips_api.cpp astro_sphere_sink.cpp
 
 # 依赖模块源文件 (静态编译进来, 避免跨 dll 依赖; 模块内私有实现)
 # B4-01: healpix_core 已去重为 shim，权威在 ../../common/healpix/healpix_core.cpp
