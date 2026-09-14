@@ -1,6 +1,6 @@
 # FIX_LEDGER · 修复账本（人读视图：P0 全列）
 
-- 条目总数 **594**（P0 86 / P1 341 / P2 164 / 其它 3）；机器读写面 = 
+- 条目总数 **597**（P0 90 / P1 340 / P2 164 / 其它 3）；机器读写面 = 
   `问题扫描/账本/FIX_LEDGER.csv`（**隔壁只填后 9 列**，判定列由前台重跑刷新并按 id 保留你的填写）
 - 重跑：`python3 问题扫描/_tools/gen_fix_ledger.py`
 
@@ -89,6 +89,10 @@
 | M9-H-1 | P0 | H_NUMERIC | M9 |  | Gaia 模块 manifest 拼接：snprintf 返回「本应写入数」推进指针 + 转义函数无容量入参 → 512 字节栈缓冲越界写， | FIXED | 07eb229b | ADDED:gaia_module_manifest_bounds |
 | M9-H-2 | P0 | H_NUMERIC | M9 |  | XPSD 自报 spectrumCount 无任何上限即用作分配步长与每星 memcpy 长度 → 堆越界读 + 数百 MB 级 OOM 放 | FIXED | 07eb229b | ADDED:xpsd_spectrum_count_bounds |
 | V11-N-01 | P0 | G_GOV_GATE | V11 |  | `AioHipsSnrPoint` 镜像落后 C 头两字段 ⇒ 越界读 24 字节，且**交付 HiPS SNR 目录第 2/3 条记录是邻 | OPEN |  |  |
+| V11-N-04 | P0 | G_GOV_GATE | V11-b |  | （P0）ctypes **少传第 9 个参数** `out_status` ⇒ C 侧把未初始化栈槽当指针，**既往垃圾地址写、又据其垃圾值 | OPEN |  |  |
+| V11-N-05 | P0 | G_GOV_GATE | V11-b |  | （P0，结构性）ABI 协商与自检的 6 个合同函数**生产面零实现、零调用**，唯一实现住在**测试自己的探针副本**里 ⇒ 那道门在自证 | OPEN |  |  |
+| V11-N-06 | P0 | G_GOV_GATE | V11-b |  | （P1）同一个 `struct_size` 判据在仓内有**三套互斥语义**，头规定的那套几乎没人用 | OPEN |  |  |
+| V11-N-07 | P0 | G_GOV_GATE | V11-b |  | （P1）唯一的 `struct_size` 机器门 `ABI-BOUNDARY`：**语料与被保护面 8/8 零交集**，且"扩语料即假绿" | OPEN |  |  |
 | V13-N-03 | P0 | G_GOV_GATE | V13 |  | 审计状态铸造面：713/713 行机械铸 `VERIFIED` 并铸 `findings_p0..3=0`、7 个 `*_ok=PASS`， | OPEN |  |  |
 | V2-N-01 | P0 | G_GOV_GATE | V2 | C-09 | IpvParams 公共 C 结构体布局已改而仓内 ctypes 镜像未同步 ⇒ 72 字节越界写 + 字段全错位 | OPEN |  |  |
 | V2-N-08 | P0 | G_GOV_GATE | V2-D2 |  | FAST 模式的裁决前提已被同批另一提交推翻 ⇒ `psf.max_stars` 静默决定交付的 SNR／极限星等，且无任何 parity  | OPEN |  |  |
