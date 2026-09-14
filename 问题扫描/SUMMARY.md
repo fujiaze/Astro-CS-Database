@@ -93,7 +93,7 @@
 > `docs/TRACEABILITY.csv:41-64` 标 VERIFIED、ID 字面量在 lib/tests/ci/tools **全零命中**，因为 ID 是 `tools/quality/v19r3_traceability.py:294/:311`
 > **用 f-string 铸造出来的**，且 `TEST-UPMW-005` 的 `test_ids` 列填的是诊断号 `UPMW-005`；对照同表 `TEST-SNR-001` 在 `noise_model_science_test.cpp:5` 有头锚。
 > ⇒ 此前六例都是"引错对象"或"共源"，这例是 **"生成器自造 ID 再自证"** —— 注册表把程序产出的字符串当作"测试已验证"的证据，**任何引用检查都必然通过，因为字符串本来就是它印的**。
-> **L28e-E-002 的机器根因可直接写门**：`docs/standards/DATA_ARTIFACTS.md` §1 schema 表 15 枚数据合同 ID 在真源任意字面量**零承载**，
+> **L28e-E-002 的机器根因可直接写门**：**`docs/contracts/DATA_ARTIFACTS.md`**（我此前按 L28e 原文写成 `docs/standards/`，属 PATH_MISMATCH，已订正）§1 schema 表的数据合同 ID 在真源任意字面量**零承载**（枚数 15 → 待定为 10～13，见下），
 > 而同表 RAW/CAL 有 4/7 处、HIPS/TILE 有 15/5 处，该文件 `:42-48` 还自证"五处代码侧举证"纪律 ⇒ **纪律写在同一张表上方，行却是空的**；
 > 唯一消费者 `tools/check_data_artifacts.py`（`ci/checks.json:332` 在册）判据**只验表内唯一性/格式/列完整，不验承载 ⇒ 空挂行恒 PASS**。
 > ⇒ 已并入 **C-06**：§12.3-9 之外必须加**"承载存在性"**（引用存在 ≠ 被引用物真承载该语义）。
