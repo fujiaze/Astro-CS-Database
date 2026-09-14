@@ -13,6 +13,7 @@
 #include "sdet_detector.h"
 #include "sdet_image.h"
 #include "sdet_log.h"
+#include "sdet_angle_guard.h"   // SDET-ANGLE-001: 有界/fail-closed 朝向角归一化
 #include <cstdlib>
 #include <cstring>
 #include <chrono>
@@ -411,18 +412,22 @@ static int sdet_lm_fit(const T* image, int width,
     double fwhm_x = sx * TWO_SQRT_2_LOG2;
     double fwhm_y = sy * TWO_SQRT_2_LOG2;
 
+    // SDET-ANGLE-001 (P11): 朝向角归一化必须有界且 fail-closed。
+    // 原实现 `while (fabs(angle_deg) > 90.0) angle_deg ±= 180.0;` 在 GSL LM
+    // 返回 alpha=±inf (或 |angle_deg| 极大) 时永不终止 —— 单核 100% CPU 挂死,
+    // 违反宪章 §10.5/§17.6; 原紧随其后的 |angle_deg|>10000 保护在循环之后属
+    // 死代码。现由 normalize_angle_deg_bounded 提供: 非有限/超界 -> 明确失败;
+    // 有限值 -> 与冻结迭代式逐步相同的 ±180 序列 (逐位一致)。
     double angle_deg = -alpha * 180.0 / M_PI;
-    while (fabs(angle_deg) > 90.0) {
-        if (angle_deg > 0.0) angle_deg -= 180.0;
-        else angle_deg += 180.0;
-    }
-    double theta = angle_deg * M_PI / 180.0;
-
-    if (fabs(angle_deg) > 10000.0) {
+    double angle_deg_norm = 0.0;
+    if (!astrocs::star_detector::normalize_angle_deg_bounded(angle_deg,
+                                                             &angle_deg_norm)) {
         gsl_multifit_nlinear_free(work);
         result->status = SDET_FIT_NO_CONVERGENCE;
         return SDET_FIT_NO_CONVERGENCE;
     }
+    angle_deg = angle_deg_norm;
+    double theta = angle_deg * M_PI / 180.0;
 
     result->status = SDET_FIT_OK;
     result->B = B;
