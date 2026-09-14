@@ -538,7 +538,10 @@ static acs_status gaia_plan(const acs_module_api_v1* self,
     }
     gaia_client_destroy(client);
 
-    /* memory 估计: mmap 常驻 + 每 worker scratch + 查询/块缓存合同上限 */
+    /* memory 估计: mmap 常驻 + 每 worker scratch + 查询/块缓存合同上限。
+     * G3b: kBlockCacheCap 现为**客户端级总预算** (gaia_client.c block_budget,
+     *   BLOCK_CACHE_MAX_MEMORY, 所有 XPSD 文件共享), 与本节按 client 估算的口径一致;
+     * G3a: kQueryCacheCap 已在 gaia_client.c 落实为 QUERY_CACHE_MAX_BYTES。 */
     const long long kBlockCacheCap = (long long)(4ULL * 1024 * 1024 * 1024);
     const long long kQueryCacheCap = 64LL * 200000LL * (long long)(sizeof(double) * 3);
     long long mem_est = stats.mmap_bytes

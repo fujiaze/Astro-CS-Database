@@ -112,7 +112,21 @@ static int gaia_cancel_hit(void) {
 #define BLOCK_CACHE_MASK       (BLOCK_CACHE_CAPACITY - 1)
 #define QUERY_CACHE_CAPACITY   64     /* 查询结果缓存最大条目数 */
 #define QUERY_CACHE_TTL_SEC    60     /* 查询结果缓存TTL (秒) */
-#define BLOCK_CACHE_MAX_MEMORY (4ULL * 1024 * 1024 * 1024) /* 解压块缓存最大4GB */
+/* G3b: 解压块缓存总预算。历史语义为"每个 XPSD 文件各 4GB"(BlockCache 嵌在
+ * XPSDFileInternal 内), MAX_FILES=32 时同一客户端理论上可累积 32×4GB; 现改为
+ * **客户端级总预算**——常量值不变(保留原常量作为默认总预算值), 但由
+ * GaiaClient.block_budget 统一记账, 客户端内所有文件共享此上限(淘汰仍按
+ * 各文件 LRU)。 */
+#define BLOCK_CACHE_MAX_MEMORY (4ULL * 1024 * 1024 * 1024) /* 解压块缓存客户端总预算 4GB */
+/* G3a: 查询结果缓存总字节上限 = 模块 plan 合同值 kQueryCacheCap
+ * (来源: lib/gaia_xpsd_client/src/module_entry.c plan() 的
+ *  const long long kQueryCacheCap = 64LL * 200000LL * sizeof(double)*3;)
+ *   = QUERY_CACHE_CAPACITY(64) × MAX_STARS_RESULT(200000) × 3×sizeof(double)(24B)
+ *   = 307,200,000 B ≈ 293 MiB (合同记作 "307 MB")。
+ * 条目数上限由 QUERY_CACHE_CAPACITY(64) 槽位给出; 两者共同约束上限, 超限按
+ * LRU 淘汰 (lookup 命中刷新 last_access)。 */
+#define QUERY_CACHE_MAX_BYTES \
+    ((size_t)QUERY_CACHE_CAPACITY * (size_t)MAX_STARS_RESULT * (sizeof(double) * 3))
 #define MEMORY_PRESSURE_THRESHOLD (4ULL * 1024 * 1024 * 1024) /* 可用内存<4GB时触发释放 */
 /* V18R3: 缓存键版本号。当 dataset / 字段集合 / 参数语义发生破坏性变化时,
  * 递增此版本号即可让旧缓存条目自然失效 (lookup 时 version 不匹配则跳过)。
@@ -155,6 +169,20 @@ typedef struct {
     size_t total_memory;
 } BlockCache;
 
+/* G3b: 客户端级解压块缓存总预算 (GaiaClient 持有, 所有 XPSD 文件共享)。
+ * 锁语义: 插入/淘汰在持 per-file bc_lock 的前提下调用 budget 记账,
+ * 加锁顺序恒为 file-lock → budget-lock, 不存在反向路径 (无死锁)。 */
+typedef struct {
+#ifdef _WIN32
+    CRITICAL_SECTION lock;
+#else
+    pthread_mutex_t lock;
+#endif
+    int lock_ok;            /* 锁初始化成功标志 */
+    size_t total_memory;    /* 当前所有文件解压块缓存字节合计 */
+    size_t max_memory;      /* 客户端总预算 (= BLOCK_CACHE_MAX_MEMORY) */
+} BlockCacheBudget;
+
 /* ===== 查询结果缓存 ===== */
 typedef struct {
     /* V18R3: 精确查询语义键（不做量化舍入）。命中条件=与本次查询的
@@ -173,7 +201,8 @@ typedef struct {
      * +4B/星/条目 (64 条上限, 可忽略)。 */
     double *out_mag;                   /* 缓存的Mag数组 (double, bitwise 往返) */
     int out_count;                     /* 星数 */
-    time_t timestamp;                  /* 缓存创建时间 */
+    time_t timestamp;                  /* 缓存创建时间 (TTL 过期判定) */
+    time_t last_access;                /* G3a: 最近命中时间 (LRU 淘汰判定) */
     int valid;                         /* 是否有效 */
     int version;                       /* P02-006: 缓存键版本号, 用于在 schema 变更时让旧条目失效 */
 } QueryCacheEntry;
@@ -188,6 +217,7 @@ typedef struct {
     char filepath[1024];
     char db_identifier[256];
     double magnitude_low, magnitude_high;
+    int has_magnitude_range;  /* G1: XML magnitudeRange 是否成功解析 (0=不参与 shard 剪枝, 保守) */
     int total_sources;
     int has_spectrum;
     int star_stride;
@@ -209,7 +239,8 @@ typedef struct {
 #endif
     uint8_t *mmap_data;
     size_t mmap_size;
-    BlockCache block_cache;  /* 解压块缓存 (保留到关闭) */
+    BlockCache block_cache;  /* 解压块缓存 (保留到关闭); G3b: 受 client->block_budget 约束 */
+    BlockCacheBudget *budget; /* G3b: 客户端级总预算 (NULL=独立文件, 退回 per-file 上限语义) */
 #ifdef _WIN32
     CRITICAL_SECTION bc_lock;   /* B4-P1-2: block_cache 互斥锁 */
 #else
@@ -224,6 +255,7 @@ struct GaiaClient {
     GaiaDbType db_type;
     int db_type_detected;
     QueryCache query_cache;  /* 查询结果缓存 (60s TTL) */
+    BlockCacheBudget block_budget; /* G3b: 客户端级解压块缓存总预算 (所有文件共享) */
 #ifdef _WIN32
     CRITICAL_SECTION cache_lock;
 #else
@@ -365,6 +397,57 @@ static int check_memory_pressure(void) {
     return 0;
 }
 
+/* ===== G3b: 客户端级解压块缓存总预算 =====
+ * 所有记账在持 per-file bc_lock 期间发生, budget 锁只保护 total_memory 的
+ * 读-改-写; 加锁顺序 file-lock → budget-lock, 全代码无反向获取路径。 */
+static void block_budget_init(BlockCacheBudget *b) {
+    b->total_memory = 0;
+    b->max_memory = (size_t)BLOCK_CACHE_MAX_MEMORY;
+#ifdef _WIN32
+    bc_lock_init(&b->lock);
+    b->lock_ok = 1;
+#else
+    b->lock_ok = (bc_lock_init(&b->lock) == 0);
+#endif
+}
+
+static void block_budget_destroy(BlockCacheBudget *b) {
+    if (b->lock_ok) bc_lock_destroy(&b->lock);
+    b->lock_ok = 0;
+    b->total_memory = 0;
+}
+
+/* 快照: 当前客户端所有文件解压块缓存字节合计 */
+static size_t block_budget_used(BlockCacheBudget *b) {
+    if (!b) return 0;
+    if (b->lock_ok) bc_lock_acquire(&b->lock);
+    size_t v = b->total_memory;
+    if (b->lock_ok) bc_lock_release(&b->lock);
+    return v;
+}
+
+/* 原子"检查并预留": 仅当 total+delta ≤ 预算时才记账并返回 1 */
+static int block_budget_try_reserve(BlockCacheBudget *b, size_t delta) {
+    if (!b) return 1;
+    int ok = 1;
+    if (b->lock_ok) bc_lock_acquire(&b->lock);
+    if (b->total_memory + delta > b->max_memory) {
+        ok = 0;
+    } else {
+        b->total_memory += delta;
+    }
+    if (b->lock_ok) bc_lock_release(&b->lock);
+    return ok;
+}
+
+static void block_budget_release(BlockCacheBudget *b, size_t delta) {
+    if (!b) return;
+    if (b->lock_ok) bc_lock_acquire(&b->lock);
+    if (b->total_memory >= delta) b->total_memory -= delta;
+    else b->total_memory = 0;
+    if (b->lock_ok) bc_lock_release(&b->lock);
+}
+
 /* ===== 解压块缓存函数 ===== */
 
 static void block_cache_init(BlockCache *bc) {
@@ -374,12 +457,17 @@ static void block_cache_init(BlockCache *bc) {
     bc->total_memory = 0;
 }
 
-static void block_cache_free(BlockCache *bc) {
+/* 释放整表; budget 用于同步扣减客户端级记账 (NULL=独立文件/初始化失败路径) */
+static void block_cache_free(BlockCache *bc, BlockCacheBudget *budget) {
     if (!bc->entries) return;
     for (int i = 0; i < bc->capacity; i++) {
         if (bc->entries[i].data) {
+            size_t freed = bc->entries[i].data_size;
             free(bc->entries[i].data);
             bc->entries[i].data = NULL;
+            bc->entries[i].data_size = 0;
+            bc->entries[i].block_offset = 0;
+            block_budget_release(budget, freed);
         }
     }
     free(bc->entries);
@@ -397,6 +485,28 @@ static uint32_t block_hash(uint64_t key) {
     h *= 0xc4ceb9fe1a85ec53ULL;
     h ^= h >> 33;
     return (uint32_t)(h & BLOCK_CACHE_MASK);
+}
+
+/* 淘汰 bc 中最旧 (LRU) 的一个条目, 同步 per-file 与客户端级记账。
+ * 前提: 调用方已持 xf->bc_lock (bc 结构被独占)。 */
+static void block_cache_evict_oldest_locked(BlockCache *bc, BlockCacheBudget *budget) {
+    time_t oldest = TIME_MAX;
+    int oldest_idx = -1;
+    for (int i = 0; i < bc->capacity; i++) {
+        if (bc->entries[i].block_offset != 0 && bc->entries[i].last_access < oldest) {
+            oldest = bc->entries[i].last_access;
+            oldest_idx = i;
+        }
+    }
+    if (oldest_idx < 0) return;
+    size_t freed = bc->entries[oldest_idx].data_size;
+    free(bc->entries[oldest_idx].data);
+    bc->entries[oldest_idx].data = NULL;
+    bc->entries[oldest_idx].data_size = 0;
+    bc->entries[oldest_idx].block_offset = 0;
+    bc->count--;
+    bc->total_memory -= freed;
+    block_budget_release(budget, freed);
 }
 
 /* 查找解压块缓存 (B4-P1-2: 无锁内核, 前提=调用方已持 xf->bc_lock), 命中返回指针, 未命中返回NULL */
@@ -425,34 +535,37 @@ static uint8_t *block_cache_lookup(XPSDFileInternal *xf, uint64_t block_offset, 
 }
 
 /* 插入解压块缓存 (B4-P1-2: 无锁内核, 前提=调用方已持 xf->bc_lock)。
+ * G3b: budget!=NULL 时按**客户端总量**判定——先淘汰本文件 LRU 直到可容纳,
+ * 再原子预留; 若预算被其他文件占用/并发占满则拒绝插入 (回退 scratch)。
+ * budget==NULL 时保持历史 per-file 上限语义 (独立文件/测试路径)。
  * 返回: 成功=缓存内副本指针 (锁保护下读取安全); 失败=NULL (调用方回退 scratch) */
-static uint8_t *block_cache_insert_locked(BlockCache *bc, uint64_t block_offset,
+static uint8_t *block_cache_insert_locked(BlockCache *bc, BlockCacheBudget *budget,
+                                           uint64_t block_offset,
                                            const uint8_t *data, uint32_t data_size) {
     if (!bc->entries || data_size == 0) return NULL;
 
-    /* 内存压力检查: 超限则淘汰最旧的1/4 */
-    if (bc->total_memory + data_size > BLOCK_CACHE_MAX_MEMORY || check_memory_pressure()) {
-        /* 按last_access排序, 淘汰最旧的1/4条目 */
-        int to_evict = bc->count / 4 + 1;
-        /* 简单策略: 扫描找最旧的条目淘汰 */
-        for (int e = 0; e < to_evict && bc->count > 0; e++) {
-            time_t oldest = TIME_MAX;
-            int oldest_idx = -1;
-            for (int i = 0; i < bc->capacity; i++) {
-                if (bc->entries[i].block_offset != 0 &&
-                    bc->entries[i].last_access < oldest) {
-                    oldest = bc->entries[i].last_access;
-                    oldest_idx = i;
-                }
-            }
-            if (oldest_idx >= 0) {
-                free(bc->entries[oldest_idx].data);
-                bc->total_memory -= bc->entries[oldest_idx].data_size;
-                bc->entries[oldest_idx].data = NULL;
-                bc->entries[oldest_idx].block_offset = 0;
-                bc->count--;
-            }
+    int pressure = check_memory_pressure();
+
+    if (budget) {
+        /* 按客户端总预算淘汰本文件最旧条目 (跨文件不取其他锁, 避免锁序反转) */
+        size_t guard = (size_t)bc->capacity + 1;
+        while (bc->count > 0 &&
+               block_budget_used(budget) + data_size > budget->max_memory &&
+               guard-- > 0) {
+            block_cache_evict_oldest_locked(bc, budget);
         }
+        if (pressure && bc->count > 0) {
+            int to_evict = bc->count / 4 + 1;
+            for (int e = 0; e < to_evict && bc->count > 0; e++)
+                block_cache_evict_oldest_locked(bc, budget);
+        }
+        /* 原子预留本次插入的字节; 失败=客户端预算已被占满 → 不缓存 */
+        if (!block_budget_try_reserve(budget, data_size)) return NULL;
+    } else if (bc->total_memory + data_size > BLOCK_CACHE_MAX_MEMORY || pressure) {
+        /* 历史 per-file 语义: 淘汰最旧 1/4 */
+        int to_evict = bc->count / 4 + 1;
+        for (int e = 0; e < to_evict && bc->count > 0; e++)
+            block_cache_evict_oldest_locked(bc, NULL);
     }
 
     /* 开放寻址插入 */
@@ -462,7 +575,7 @@ static uint8_t *block_cache_insert_locked(BlockCache *bc, uint64_t block_offset,
         if (bc->entries[i].block_offset == 0) {
             /* 空槽, 插入 */
             uint8_t *copy = (uint8_t *)malloc(data_size);
-            if (!copy) return NULL;
+            if (!copy) { block_budget_release(budget, data_size); return NULL; }
             memcpy(copy, data, data_size);
             bc->entries[i].block_offset = block_offset;
             bc->entries[i].data = copy;
@@ -477,38 +590,47 @@ static uint8_t *block_cache_insert_locked(BlockCache *bc, uint64_t block_offset,
             if (bc->entries[i].data_size == data_size) {
                 memcpy(bc->entries[i].data, data, data_size);
                 bc->entries[i].last_access = time(NULL);
+                block_budget_release(budget, data_size);  /* 同键同大小: 无净增, 退回预留 */
                 return bc->entries[i].data;
             }
-            /* 大小不同, 替换 */
-            free(bc->entries[i].data);
-            bc->entries[i].data = NULL;
+            /* 大小不同, 替换 (同一 block_offset 大小通常不变, 此分支为防御性)。
+             * 记账按净额 delta = new-old 精确调整: 先退回预留, 若净增则原子预留
+             * 净增部分, 预留失败则保持旧条目不动并回退 scratch; 净减直接释放。 */
+            size_t old_size = bc->entries[i].data_size;
+            block_budget_release(budget, data_size);  /* 退回整额预留 */
+            if (budget && data_size > old_size &&
+                !block_budget_try_reserve(budget, data_size - old_size)) {
+                return NULL;  /* 预算不足, 旧条目原样保留 */
+            }
             uint8_t *copy = (uint8_t *)malloc(data_size);
             if (!copy) {
-                bc->total_memory -= bc->entries[i].data_size;
-                bc->entries[i].block_offset = 0;
-                bc->entries[i].data_size = 0;
-                bc->count--;
-                return NULL;
+                if (budget && data_size > old_size)
+                    block_budget_release(budget, data_size - old_size);
+                return NULL;  /* 旧条目原样保留 */
             }
             memcpy(copy, data, data_size);
-            bc->total_memory -= bc->entries[i].data_size;
+            free(bc->entries[i].data);
             bc->entries[i].data = copy;
             bc->entries[i].data_size = data_size;
             bc->entries[i].last_access = time(NULL);
+            bc->total_memory -= old_size;
             bc->total_memory += data_size;
+            if (budget && data_size < old_size)
+                block_budget_release(budget, old_size - data_size);
             return copy;
         }
     }
     /* 哈希表满, 不插入 */
+    block_budget_release(budget, data_size);
     return NULL;
 }
 
-/* 插入解压块缓存 (B4-P1-2: 持 xf->bc_lock) */
+/* 插入解压块缓存 (B4-P1-2: 持 xf->bc_lock); G3b: xf->budget 为客户端级预算 */
 static uint8_t *block_cache_insert(XPSDFileInternal *xf, uint64_t block_offset,
                                     const uint8_t *data, uint32_t data_size) {
     uint8_t *result = NULL;
     if (xf->bc_lock_ok) bc_lock_acquire(&xf->bc_lock);
-    result = block_cache_insert_locked(&xf->block_cache, block_offset, data, data_size);
+    result = block_cache_insert_locked(&xf->block_cache, xf->budget, block_offset, data, data_size);
     if (xf->bc_lock_ok) bc_lock_release(&xf->bc_lock);
     return result;
 }
@@ -587,7 +709,8 @@ static int query_cache_lookup(GaiaClient *client, double ra, double dec,
             qc->entries[i].mag_high == mag_high &&
             qc->entries[i].db_type == client->db_type_detected &&
             qc->entries[i].file_count == client->file_count) {
-            /* 命中 */
+            /* 命中 (G3a: 刷新 LRU 最近访问时间, 不改命中判定) */
+            qc->entries[i].last_access = now;
             *out_ra = qc->entries[i].out_ra;
             *out_dec = qc->entries[i].out_dec;
             *out_mag = qc->entries[i].out_mag;
@@ -624,6 +747,16 @@ static void query_cache_insert(GaiaClient *client, double ra, double dec,
     memcpy(new_dec, out_dec, dec_size);
     memcpy(new_mag, out_mag, mag_size);
 
+    size_t entry_bytes = (size_t)out_count * (sizeof(double) * 3);
+
+    /* G3a: 单条超总字节上限 (合同 kQueryCacheCap) → 整条不缓存。 */
+    if (entry_bytes > (size_t)QUERY_CACHE_MAX_BYTES) {
+        free(new_ra);
+        free(new_dec);
+        free(new_mag);
+        return;
+    }
+
     /* 内存压力检查 */
     if (check_memory_pressure()) {
         query_cache_evict_expired(qc);
@@ -635,34 +768,38 @@ static void query_cache_insert(GaiaClient *client, double ra, double dec,
         }
     }
 
-    /* 找空槽或最旧的条目 */
-    int slot = -1;
-    time_t oldest = TIME_MAX;
-    for (int i = 0; i < QUERY_CACHE_CAPACITY; i++) {
-        if (!qc->entries[i].valid) {
-            slot = i;
-            break;
+    /* G3a: 条目数上限 QUERY_CACHE_CAPACITY(64) 或总字节上限 QUERY_CACHE_MAX_BYTES
+     * 超限时按 LRU (last_access 最旧) 淘汰, 直到可容纳本条。淘汰只减少存量,
+     * 不改变任意未淘汰条目的精确键匹配/命中结果。 */
+    while (qc->count >= QUERY_CACHE_CAPACITY ||
+           qc->total_memory + entry_bytes > (size_t)QUERY_CACHE_MAX_BYTES) {
+        int lru = -1;
+        time_t oldest = TIME_MAX;
+        for (int i = 0; i < QUERY_CACHE_CAPACITY; i++) {
+            if (qc->entries[i].valid && qc->entries[i].last_access < oldest) {
+                oldest = qc->entries[i].last_access;
+                lru = i;
+            }
         }
-        if (qc->entries[i].timestamp < oldest) {
-            oldest = qc->entries[i].timestamp;
-            slot = i;  /* 备选: 替换最旧的 */
-        }
+        if (lru < 0) break;  /* 不变式: count>0 时必有 valid 条目 */
+        free(qc->entries[lru].out_ra);
+        free(qc->entries[lru].out_dec);
+        free(qc->entries[lru].out_mag);
+        qc->total_memory -= ((size_t)qc->entries[lru].out_count * (sizeof(double) * 3));
+        qc->entries[lru].valid = 0;
+        qc->count--;
     }
 
+    /* 找空槽 (淘汰后必存在: count < QUERY_CACHE_CAPACITY) */
+    int slot = -1;
+    for (int i = 0; i < QUERY_CACHE_CAPACITY; i++) {
+        if (!qc->entries[i].valid) { slot = i; break; }
+    }
     if (slot < 0) {
         free(new_ra);
         free(new_dec);
         free(new_mag);
         return;
-    }
-
-    /* 如果覆盖旧条目, 先释放 */
-    if (qc->entries[slot].valid) {
-        free(qc->entries[slot].out_ra);
-        free(qc->entries[slot].out_dec);
-        free(qc->entries[slot].out_mag);
-        qc->total_memory -= ((size_t)qc->entries[slot].out_count * (sizeof(double) * 3));
-        qc->count--;
     }
 
     /* commit 新条目 */
@@ -678,9 +815,10 @@ static void query_cache_insert(GaiaClient *client, double ra, double dec,
     qc->entries[slot].file_count = client->file_count;
     qc->entries[slot].out_count = out_count;
     qc->entries[slot].timestamp = time(NULL);
+    qc->entries[slot].last_access = qc->entries[slot].timestamp;  /* G3a: LRU 起点 */
     qc->entries[slot].valid = 1;
     qc->entries[slot].version = GAIA_CACHE_VERSION;
-    qc->total_memory += ((size_t)out_count * (sizeof(double) * 3));
+    qc->total_memory += entry_bytes;
     qc->count++;
 }
 
@@ -1058,7 +1196,12 @@ static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
         parse_attr_after(data_tag, "magnitudeRange", mags, sizeof(mags));
         if (mags[0]) {
             char *comma = strchr(mags, ',');
-            if (comma) { *comma = '\0'; xf->magnitude_low = atof(mags); xf->magnitude_high = atof(comma + 1); }
+            if (comma) {
+                *comma = '\0';
+                xf->magnitude_low = atof(mags);
+                xf->magnitude_high = atof(comma + 1);
+                xf->has_magnitude_range = 1;  /* G1: 声明有效才允许按星等剪枝 */
+            }
         }
         char pos_str[64];
         parse_attr_after(data_tag, "position", pos_str, sizeof(pos_str));
@@ -1184,7 +1327,7 @@ static void close_xpsd_file(XPSDFileInternal *xf) {
     /* 释放解压块缓存 (B4-P1-2: 先锁再释放, 期间无其他线程可访问;
      * OpenMP 区结束即隐式 barrier, 所有工作线程已汇合) */
     if (xf->bc_lock_ok) bc_lock_acquire(&xf->bc_lock);
-    block_cache_free(&xf->block_cache);
+    block_cache_free(&xf->block_cache, xf->budget);
     if (xf->bc_lock_ok) bc_lock_release(&xf->bc_lock);
     if (xf->bc_lock_ok) bc_lock_destroy(&xf->bc_lock);
     xf->bc_lock_ok = 0;
@@ -1763,6 +1906,9 @@ GaiaClient *gaia_client_create_ex(const char *data_dir, GaiaDbType db_type) {
     /* 初始化查询结果缓存 */
     query_cache_init(&client->query_cache);
 
+    /* G3b: 初始化客户端级解压块缓存总预算 */
+    block_budget_init(&client->block_budget);
+
 #ifdef _WIN32
     char pattern[1024];
     snprintf(pattern, sizeof(pattern), "%s\\*.xpsd", data_dir);
@@ -1808,6 +1954,10 @@ GaiaClient *gaia_client_create_ex(const char *data_dir, GaiaDbType db_type) {
         client->db_type_detected = is_dr3sp ? GAIA_DB_DR3SP : GAIA_DB_DR3;
     }
 
+    /* G3b: 已接受的文件共享客户端级块缓存总预算 (查询期插入时记账) */
+    for (int f = 0; f < client->file_count; f++)
+        client->files[f].budget = &client->block_budget;
+
     return client;
 }
 
@@ -1819,6 +1969,9 @@ void gaia_client_destroy(GaiaClient *client) {
 
     for (int i = 0; i < client->file_count; i++)
         close_xpsd_file(&client->files[i]);
+
+    /* G3b: 所有文件缓存已释放并回冲记账后销毁总预算锁 */
+    block_budget_destroy(&client->block_budget);
 
     if (client->cache_lock_initialized) {
 #ifdef _WIN32
@@ -1891,6 +2044,14 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     for (int f = 0; f < nfiles; f++) {
         if (gaia_cancel_hit()) continue;   /* 迁移: 文件循环边界取消检查点 */
         XPSDFileInternal *xf = &client->files[f];
+        /* G1: 星等 shard 剪枝——每个 XPSD 文件是按星等切片的 shard, 文件声明
+         * magnitudeRange=[magnitude_low, magnitude_high]。若该文件星等下界高于
+         * 本次查询上限 + 0.25 mag 裕量, 则文件内每条记录的 magG ≥ magnitude_low
+         * > mag_high, 在叶子过滤 (search_recursive) 中一律被丢弃, 对结果贡献恒为
+         * 0, 故可跳过整文件四叉树遍历。0.25 mag 裕量用于容忍 XML 声明边界不
+         * 严格的情形 (必须保守, 绝不可漏掉可能命中的 shard)。逐位等价证据见
+         * run/perf-fix/P1-gaia/REPORT.md。 */
+        if (xf->has_magnitude_range && xf->magnitude_low > mag_high + 0.25) continue;
         uint32_t scratch_size = xf->global_max_block_size;
         if (scratch_size == 0) scratch_size = 65536;
         uint8_t *scratch = (uint8_t *)malloc(scratch_size);
