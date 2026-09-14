@@ -42,8 +42,13 @@
 # 直接复用, 冻结容差不变)。
 # ============================================================================
 
+# P5-SNR: noise_model.cpp 的 snr_phot_cal_quality 现消费 snr_science.cpp 的
+# snr_calib_zero_point_standard_error (零点标准误 1.253*sigma/sqrt(N)), 故生产源闭包
+# 增加 snr_science.cpp (唯一权威实现, 零本地副本)。
 set(P1NOISE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(P1NOISE_PROD_SRC ${CMAKE_SOURCE_DIR}/lib/snr_estimator/cpp/src/noise_model.cpp)
+set(P1NOISE_PROD_SRC
+  ${CMAKE_SOURCE_DIR}/lib/snr_estimator/cpp/src/noise_model.cpp
+  ${CMAKE_SOURCE_DIR}/lib/snr_estimator/cpp/src/snr_science.cpp)
 set(P1NOISE_PROD_INC ${CMAKE_SOURCE_DIR}/lib/snr_estimator/cpp/include)
 
 # 被测面 (生产源只读编译; EXCLUDE_FROM_ALL 不入主构建/安装面)
@@ -88,3 +93,31 @@ if(UNIX)
   target_link_libraries(p1noise_selfcheck_test PRIVATE m)
 endif()
 add_test(NAME p1noise_selfcheck COMMAND p1noise_selfcheck_test)
+# ============================================================================
+# P5-SNR (2026-09-14, 负责人授权): 逐源 SNR 科学修正回归锁 (TEST-P5-SNR)
+#   被测面 = snr_science.cpp (Horne 1986 / CCD 方程 / 5-sigma 深度 / 零点标准误)
+#            + snr_estimator.cpp 生产控制点路径 (snr_extract_model_v3)
+#   oracle = 测试内独立长双精度暴力实现 + NumPy oracle 锚值
+#            (run/perf-fix/P5-snr/harness/snr_oracle.py)
+#   OpenMP: snr_estimator.cpp 的 <omp.h> 已由 _OPENMP 守卫; 本目标无 OMP。
+# ============================================================================
+set(P5SNR_SRC
+  ${CMAKE_SOURCE_DIR}/lib/snr_estimator/cpp/src/snr_science.cpp
+  ${CMAKE_SOURCE_DIR}/lib/snr_estimator/cpp/src/snr_estimator.cpp)
+add_library(p5snr_under_test STATIC ${P5SNR_SRC})
+target_include_directories(p5snr_under_test PUBLIC ${P1NOISE_PROD_INC})
+set_target_properties(p5snr_under_test PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    POSITION_INDEPENDENT_CODE ON)
+if(UNIX)
+  target_link_libraries(p5snr_under_test PUBLIC m)
+endif()
+
+add_executable(p1snr_science_test ${P1NOISE_DIR}/p1snr_science_test.cpp)
+target_link_libraries(p1snr_science_test PRIVATE p5snr_under_test)
+add_test(NAME p1snr_science_units COMMAND p1snr_science_test units)
+add_test(NAME p1snr_science_oracle COMMAND p1snr_science_test oracle)
+add_test(NAME p1snr_science_negative COMMAND p1snr_science_test negative)
+add_test(NAME p1snr_science_production COMMAND p1snr_science_test production)
+add_test(NAME p1snr_science_determinism COMMAND p1snr_science_test determinism)

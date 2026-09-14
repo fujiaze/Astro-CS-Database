@@ -483,8 +483,12 @@
 ### 单位/dtype/shape
 
 见 DATA_SEMANTICS §14（唯一权威）：pixels f32(v2)/f64(f64_v2) `[h·w]`
-ADU；scale 无量纲；sigma_residual dex；records residual=dex；WCS deg/px；
+ADU；`out_pixels` 未定标/退化=ADU，已定标（scale≠1 且 n_matched>0）=
+模型通带积分辐照度（F_syn 单位，`I_cal=I·scale`）；`scale` 单位 [F_syn 单位]/ADU
+（=10^(−location)，`location` 单位 dex(ADU/[F_syn 单位])，F_syn 单位 W·m⁻²·nm；
+量纲见 DATA_SEMANTICS §14.3）；sigma_residual dex；records residual=dex；WCS deg/px；
 光谱 uint8 编码 F(λ)=byte·flux_mul+flux_min（W·m⁻²·nm⁻¹）。
+<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S1/S2) -->
 
 
 ### 线程安全与确定性

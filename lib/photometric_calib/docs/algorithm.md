@@ -5,6 +5,14 @@
 > 日期: 2026-07-09
 > 状态: 已实现
 
+> **ARCHIVED_NON_NORMATIVE**（2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S9）
+> 本文件为遗留设计稿，**不得作为权威**；其中物理推导与数值多处失实：`F_syn` **不等于**
+> 未衰减仪器流量；生产积分网格为 **1.0 nm**（原文 `0.1 nm` 失实）；合成测光精度**不由
+> Akima 插值决定**（主项为通带/大气未建模项）。现行权威为 `docs/science/PHOTOMETRY.md`
+> （SCI-PHOT-001）+ `docs/algorithms/PHOTOMETRIC_FIT.md` §13 +
+> `lib/photometric_calib/README.md` r1（CONTRACT_READY）。
+> <!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S9) -->
+
 ---
 
 ## 1. 问题定义
@@ -104,7 +112,7 @@ F_syn,i = ∫ S_i(λ) × T(λ) × Q(λ) × λ dλ
 
 - **插值**：Akima 子样条插值，避免过冲
 - **积分法则**：Simpson 1/3 复合公式
-- **步长**：0.1 nm
+- **步长**：0.1 nm（[ARCHIVED/失实]：生产实现为重叠区 **1.0 nm** 均匀网格，`spectrum_integrator.cpp:247`；见文首横幅）
 - **积分范围**：[λ_min, λ_max]，取滤光片、光谱、QE 曲线三者的重叠区间（Gaia 光谱数据覆盖 336-1020 nm）
 
 ### 3.4 合成星等
@@ -143,7 +151,7 @@ r_i = log10(F_instr,i / F_syn,i)
 
 取对数的原因：乘性梯度在对数域变为加性，便于多项式拟合；同时压缩动态范围，提高稳健性。
 
-**物理推导**：图像模型 `I = I_star × M + S` 中 M 为渐晕因子，`F_instr = I_star × M`，`F_syn = I_star`，故 `r = log10(F_instr/F_syn) = log10(M)`。拟合曲面 `r(x,y)` 即为 `log10(M(x,y))`，`M = 10^r = M_true`，校正 `I_cal = (I-S)/M = I_star`（正确）。
+**[ARCHIVED/失实] 物理推导**（原文声称 `F_syn = I_star`，把 Gaia 合成通量等同于"未衰减的仪器流量"，量纲与物理均错）：正确关系为 `r_i = log10(F_instr,i/F_syn,i) = log10 κ + ε_i`，其中 `κ` 为曝光×增益⁻¹×有效口径×像素立体角等帧/滤镜内常数乘积，`ε_i` 为第 i 颗星的通带失配项；`F_instr` 单位 ADU、`F_syn` 单位 W·m⁻²·nm，二者不同量纲（正确单位见 `docs/science/PHOTOMETRY.md` §3 与 `docs/contracts/DATA_SEMANTICS.md` §14.3）。拟合曲面经零点吸收的是 `log10 κ + med(ε)`，**不是** `log10(M)`；原文 `M = 10^r = M_true`、`I_cal=(I-S)/M=I_star`（正确）不成立。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S9) -->
 
 ### 4.2 星-图匹配
 
@@ -327,7 +335,7 @@ I_cal(x, y) = (I(x, y) - S(x, y)) / M(x, y)
 校正后图像乘以全局缩放因子，使所有 Gaia 参考星的平均校正通量等于其平均合成通量：
 
 ```
-scale = median(F_syn,i / F_cal,i)  （在乘性梯度校正后）
+scale = median(F_syn,i / F_cal,i)  # [ARCHIVED/失实] 现行实现为 IRLS/Tukey 稳健 location 后 scale=10^(−location)（docs/algorithms/PHOTOMETRIC_FIT.md §2 F6；lib/photometric_calib/README.md §4）
 I_final(x, y) = I_cal(x, y) × scale
 ```
 
@@ -343,7 +351,7 @@ I_final(x, y) = I_cal(x, y) × scale
 
 | 来源 | 量级 | 缓解措施 |
 |------|------|---------|
-| 合成测光不确定性 | ~1-3% | Akima 插值 + 0.1nm 积分精度 |
+| 合成测光不确定性 | ~1-3%（[ARCHIVED/失实]：精度主项为通带失配，不由插值决定） | 生产积分网格 1.0nm（`spectrum_integrator.cpp:247`，原文 0.1nm 失实）；Akima 插值非精度主项 |
 | PSF 拟合噪声 | ~1-5% | 稳健回归 + MAD 清洗 |
 | Gaia 光谱数据噪声 | ~1% | 仅用高信噪比星（G < 16） |
 | 滤光片曲线不确定 | ~2-5% | 使用校准曲线数据 |

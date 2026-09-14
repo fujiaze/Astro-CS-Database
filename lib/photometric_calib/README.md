@@ -62,8 +62,8 @@ QA 换算 sigma_mag/sigma_cal_rel 现状由 snr_estimator 的 snr_phot_cal_quali
 | 入 | filter_wl/trans、qe_wl/trans | double `[count]` | nm / [0,1] |
 | 入 | spectrum_wl | double `[343]`（336..1020nm step 2nm） | nm |
 | 入 | WCS/SIP | crval/crpix/CD4 元 + sip_order(≤2)/a/b/ap/bp `[36]`（i*6+j） | deg/pixel |
-| 出 | out_pixels | 同输入 dtype `[h·w]` | ADU（I_cal=I·scale） |
-| 出 | out_scale_factor | double 标量 | 无量纲乘性因子 |
+| 出 | out_pixels | 同输入 dtype `[h·w]` | 未定标/退化=ADU；已定标（scale≠1 且 n_matched>0）=模型通带积分辐照度（F_syn 单位），I_cal=I·scale；写盘 BUNIT 随 PHOTAPPL 区分（DATA_SEMANTICS §14.2） |
+| 出 | out_scale_factor | double 标量 | 10^(−location)，单位 [F_syn 单位]/ADU（location 单位 dex(ADU/[F_syn 单位])；DATA_SEMANTICS §14.3）<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S2/S1) --> |
 | 出 | out_sigma_residual | double 标量 | dex（log10 flux-ratio） |
 | 出 | out_n_matched | int32 标量 | 颗 |
 | 出 | out_diag（PhotometricDiag） | 17 字段 | 计数/dex/pixel |

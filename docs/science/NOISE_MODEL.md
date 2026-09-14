@@ -95,7 +95,7 @@ Gain/Readnoise 诊断模型 (仅 diagnostic, NOT FOR PRODUCTION):
 ## 9a 专属问题回答（SCI-003 指定问题逐项）
 
 - **signal/noise/blank sky**：`x`=校准后空背景像素值（ADU 同标度）；noise=空背景随机分量；blank sky 样本域=星点 `fixed conservative rmax` 掩膜 + 5σ≤2 轮裁剪后的合格 patch（§5）。
-- **SNR**：本合同不产出 SNR 图；SNR 由消费侧以 `signal/√variance` 构成，本层唯一产出为 `variance/ivar`（GLOSSARY `variance/ivar`）。
+- **SNR**：本合同不产出 SNR 图。消费侧可以构成**逐像素探测显著性** `signal/√variance`，但该量**不含源泊松项**（`variance` 仅空背景），不是源的通量信噪比；源通量 SNR 必须另行定义（逐源 `σ_F`，见 CONTROL_WEIGHT_SNR.md §1）。本层唯一产出为 `variance/ivar`（GLOSSARY `variance/ivar`）。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S5) -->
 - **variance/ivar**：`variance`=ADU²（平面场或全局兜底），`ivar=1/max(variance,floor)` 精确倒数（§7 量纲不变量）；零/负/NaN 条件：负平面预测 clamp 至 floor、`floor<=0` 回退 `1e-12`、非有限输入在参数域拒绝（§8）。
 - **Poisson+read noise**：`var_ADU=max(signal,0)/gain+(read_noise_e/gain)²` **仅诊断路径**（SNR-005 交叉验证），生产唯一基线为 empirical MAD（`source==0`，NO-01 P0，§10）。
 - **权重归一与适用域**：`ivar` 作为 Phase2 逐像素科学权重直接入加权（归一在消费侧 `Σw/Σ`），适用域=空背景随机分量；不含源泊松项/系统项/协方差（Drizzle 后相关见 UNCERTAINTY_AND_COVARIANCE.md）；`ivar=0` 显式表示不可用，禁止伪装（§7 空 support 不传播）。
