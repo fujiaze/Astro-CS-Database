@@ -1,0 +1,3459 @@
+[
+ {
+  "file": "./providers/cpu/avx2/include/astrocs/cpu/avx2_provider_v1.h",
+  "line": 74,
+  "name": "ACS_CPU_AVX2_REQUIRED_FEATURES",
+  "body": "#define ACS_CPU_AVX2_REQUIRED_FEATURES \\\n    (ACS_CAP_FEAT_AVX | ACS_CAP_FEAT_AVX2 | ACS_CAP_FEAT_FMA)",
+  "kind": "obj-like(no params)"
+ },
+ {
+  "file": "./providers/cpu/avx512/include/astrocs/cpu/avx512_provider_v1.h",
+  "line": 88,
+  "name": "ACS_CPU_AVX512_REQUIRED_FEATURES",
+  "body": "#define ACS_CPU_AVX512_REQUIRED_FEATURES \\\n    (uint64_t)ACS_CAP_GROUP_AVX512_SUBSET",
+  "kind": "obj-like(no params)"
+ },
+ {
+  "file": "./tests/runtime/test_rt003_budget_wiring.py",
+  "line": 45,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/runtime/test_rt006_trace.py",
+  "line": 61,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    ++g_checks;                                                           \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/runtime/test_rt004_executor.py",
+  "line": 51,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/runtime/test_rt005_plan_estimator.py",
+  "line": 48,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    ++g_checks;                                                           \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/runtime/test_rt007_cancel_resume.py",
+  "line": 64,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg)                                              \\\n  do {                                                                \\\n    ++g_checks;                                                       \\\n    if (!(cond)) {                                                    \\\n      std::printf(\"FAIL[%s:%d] %s\\n\", __func__, __LINE__, msg);       \\\n      ++g_failures;                                                   \\\n    }                                                                 \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx2/provider_avx2_handshake_test.c",
+  "line": 36,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx2/provider_avx2_handshake_test.c",
+  "line": 43,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx2/provider_avx2_capability_gate_test.c",
+  "line": 28,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx2/provider_avx2_capability_gate_test.c",
+  "line": 35,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx2/provider_avx2_so_load_test.c",
+  "line": 32,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx2/provider_avx2_so_load_test.c",
+  "line": 39,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/baseline/provider_capability_gate_test.c",
+  "line": 24,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/baseline/provider_capability_gate_test.c",
+  "line": 31,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/baseline/provider_handshake_test.c",
+  "line": 29,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/baseline/provider_handshake_test.c",
+  "line": 36,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/baseline/provider_so_load_test.c",
+  "line": 31,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/baseline/provider_so_load_test.c",
+  "line": 38,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx512/provider_avx512_so_load_test.c",
+  "line": 37,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx512/provider_avx512_so_load_test.c",
+  "line": 44,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx512/provider_avx512_handshake_test.c",
+  "line": 41,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx512/provider_avx512_handshake_test.c",
+  "line": 48,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx512/provider_avx512_capability_gate_test.c",
+  "line": 28,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/avx512/provider_avx512_capability_gate_test.c",
+  "line": 35,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/dispatch/cpu005_route_decision_test.cpp",
+  "line": 28,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                           \\\n  do {                                                                        \\\n    if (!(cond)) {                                                            \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                             \\\n    }                                                                         \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/cpu/dispatch/cpu_capability_matrix_test.c",
+  "line": 23,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg)                                                     \\\n    do {                                                                     \\\n        if (!(cond)) {                                                       \\\n            fprintf(stderr, \"CHECK FAIL %s:%d: %s\\n\", __FILE__, __LINE__, msg); \\\n            ++failures;                                                      \\\n        }                                                                    \\\n    } while (0)"
+ },
+ {
+  "file": "./tests/unit/mon001_gate_test.cpp",
+  "line": 16,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu006_bench_report_test.cpp",
+  "line": 24,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                        \\\n  do {                                                                     \\\n    if (!(cond)) {                                                         \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                          \\\n    }                                                                      \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cli_wideconv_test.cpp",
+  "line": 17,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/master_flat_median_test.cpp",
+  "line": 14,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/master_flat_median_test.cpp",
+  "line": 21,
+  "name": "CHECK_MSG",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK_MSG(cond, msg)                                              \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, (msg)); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_nside_test.cpp",
+  "line": 10,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/core_context_test.cpp",
+  "line": 10,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p3_coverage_test.cpp",
+  "line": 10,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/io_ownership_test.cpp",
+  "line": 19,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p2_seam_gate_test.cpp",
+  "line": 16,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/calibration_integration_test.cpp",
+  "line": 75,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "name"
+  ],
+  "eval_map": {
+   "cond": true,
+   "name": false
+  },
+  "body": "#define CHECK(cond, name) do { \\\n    if (cond) printf(\"[PASS] %s\\n\", (name)); \\\n    else { printf(\"[FAIL] %s (line %d)\\n\", (name), __LINE__); g_fail++; } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/p2_workers_test.cpp",
+  "line": 17,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/mon002_alloc_test.cpp",
+  "line": 20,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu004_routing_test.cpp",
+  "line": 11,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_wcs_phot_test.cpp",
+  "line": 15,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/calibration_adapter_test.cpp",
+  "line": 52,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "name"
+  ],
+  "eval_map": {
+   "cond": true,
+   "name": false
+  },
+  "body": "#define CHECK(cond, name) do { \\\n    if (cond) printf(\"PASS: %s\\n\", (name)); \\\n    else { printf(\"FAIL: %s\\n\", (name)); g_fail++; } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_noise_test.cpp",
+  "line": 15,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/core_logging_test.cpp",
+  "line": 10,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/core_module_test.cpp",
+  "line": 10,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/gaia_unshuffle_test.c",
+  "line": 18,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/core_scheduler_test.cpp",
+  "line": 13,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/rt002_budget_test.cpp",
+  "line": 20,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cosmetic_adapter_test.cpp",
+  "line": 54,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "name"
+  ],
+  "eval_map": {
+   "cond": true,
+   "name": false
+  },
+  "body": "#define CHECK(cond, name) do { \\\n    if (cond) printf(\"PASS: %s\\n\", (name)); \\\n    else { printf(\"FAIL: %s\\n\", (name)); g_fail++; } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/cli_process_test.cpp",
+  "line": 22,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg)                                                  \\\n    do {                                                                  \\\n        if (!(cond)) {                                                    \\\n            std::fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__,  \\\n                         (msg));                                          \\\n            ++fail_count;                                                 \\\n        }                                                                 \\\n    } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1001_modules_test.cpp",
+  "line": 12,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p2001_real_nodes_test.cpp",
+  "line": 55,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p2001_real_nodes_test.cpp",
+  "line": 62,
+  "name": "CHECK_MSG",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK_MSG(cond, msg)                                              \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s -- %s\\n\", __FILE__,    \\\n                   __LINE__, #cond, (msg));                               \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu003_profile_v2_test.cpp",
+  "line": 22,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/gaia_integration_test.c",
+  "line": 68,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "name"
+  ],
+  "eval_map": {
+   "cond": true,
+   "name": false
+  },
+  "body": "#define CHECK(cond, name) do { \\\n    if (cond) printf(\"[PASS] %s\\n\", (name)); \\\n    else { printf(\"[FAIL] %s (line %d)\\n\", (name), __LINE__); g_fail++; } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/p3002_uncertainty_test.cpp",
+  "line": 64,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p3002_uncertainty_test.cpp",
+  "line": 71,
+  "name": "CHECK_MSG",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK_MSG(cond, msg)                                              \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s -- %s\\n\", __FILE__,    \\\n                   __LINE__, #cond, (msg));                               \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p3_projection_test.cpp",
+  "line": 55,
+  "name": "CHECK_MSG",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK_MSG(cond, msg)                                              \\\n    do {                                                                  \\\n        if (fault_mode) {                                                 \\\n            if (!(cond)) {                                                \\\n                std::fprintf(stderr,                                       \\\n                             \"FAULT-EFFECT-CONFIRMED: %s\\n\", msg);        \\\n                ++failures;                                               \\\n            }                                                             \\\n        } else if (!(cond)) {                                             \\\n            std::fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__,            \\\n                         __LINE__, msg);                                  \\\n            ++failures;                                                   \\\n        }                                                                 \\\n    } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu_provider_test.cpp",
+  "line": 10,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/gaia_cat_test.c",
+  "line": 157,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "..."
+  ],
+  "eval_map": {
+   "cond": true,
+   "...": false
+  },
+  "body": "#define CHECK(cond, ...) do { \\\n    if (!(cond)) { \\\n        fprintf(stderr, \"[FAIL] %s:%d: \", __func__, __LINE__); \\\n        fprintf(stderr, __VA_ARGS__); \\\n        fprintf(stderr, \"\\n\"); \\\n        t_failures++; \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/gaia_cat_test.c",
+  "line": 166,
+  "name": "CHECK_KI",
+  "params": [
+   "cond",
+   "ki",
+   "..."
+  ],
+  "eval_map": {
+   "cond": true,
+   "ki": false,
+   "...": false
+  },
+  "body": "#define CHECK_KI(cond, ki, ...) do { \\\n    if (!(cond)) { \\\n        fprintf(stderr, \"[EXPECTED-FAIL %s] %s:%d: \", ki, __func__, __LINE__); \\\n        fprintf(stderr, __VA_ARGS__); \\\n        fprintf(stderr, \"\\n\"); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/rt001_abi_test.cpp",
+  "line": 15,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/rt001_abi_test.cpp",
+  "line": 23,
+  "name": "CHECK_SIZE",
+  "params": [
+   "T",
+   "n"
+  ],
+  "eval_map": {
+   "T": false,
+   "n": false
+  },
+  "body": "#define CHECK_SIZE(T, n) CHECK(sizeof(T) == (n))"
+ },
+ {
+  "file": "./tests/unit/rt001_abi_test.cpp",
+  "line": 24,
+  "name": "CHECK_ALIGN",
+  "params": [
+   "T",
+   "n"
+  ],
+  "eval_map": {
+   "T": false,
+   "n": false
+  },
+  "body": "#define CHECK_ALIGN(T, n) CHECK(alignof(T) == (n))"
+ },
+ {
+  "file": "./tests/unit/rt001_abi_test.cpp",
+  "line": 25,
+  "name": "CHECK_OFFSET",
+  "params": [
+   "T",
+   "member",
+   "off"
+  ],
+  "eval_map": {
+   "T": false,
+   "member": false,
+   "off": false
+  },
+  "body": "#define CHECK_OFFSET(T, member, off) CHECK(offsetof(T, member) == (off))"
+ },
+ {
+  "file": "./tests/unit/p3_assembly_test.cpp",
+  "line": 17,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p3_output_test.cpp",
+  "line": 18,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cosmetic_integration_test.cpp",
+  "line": 80,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "name"
+  ],
+  "eval_map": {
+   "cond": true,
+   "name": false
+  },
+  "body": "#define CHECK(cond, name) do { \\\n    if (cond) printf(\"[PASS] %s\\n\", (name)); \\\n    else { printf(\"[FAIL] %s (line %d)\\n\", (name), __LINE__); g_fail++; } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu_abi_test.cpp",
+  "line": 9,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_stars_test.cpp",
+  "line": 14,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu_fallback_test.cpp",
+  "line": 17,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1001_real_nodes_test.cpp",
+  "line": 56,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1001_real_nodes_test.cpp",
+  "line": 63,
+  "name": "CHECK_MSG",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK_MSG(cond, msg)                                              \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s -- %s\\n\", __FILE__,    \\\n                   __LINE__, #cond, (msg));                               \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/rt003_context_test.cpp",
+  "line": 18,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/core_contracts_test.cpp",
+  "line": 11,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu_bench_test.cpp",
+  "line": 17,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/core_artifact_test.cpp",
+  "line": 10,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/rt006_scheduler_test.cpp",
+  "line": 16,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/rt007_artifact_store_test.cpp",
+  "line": 15,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu001_provider_selftest.cpp",
+  "line": 30,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu_monitor_test.cpp",
+  "line": 18,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/core_pipeline_test.cpp",
+  "line": 17,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_calibration_test.cpp",
+  "line": 11,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p3_wcs_test.cpp",
+  "line": 15,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/executor_provider_race_test.cpp",
+  "line": 17,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p2_block_plan_test.cpp",
+  "line": 8,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu007_profile_store_test.cpp",
+  "line": 31,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                        \\\n  do {                                                                     \\\n    if (!(cond)) {                                                         \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                          \\\n    }                                                                      \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/io_adapter_test.cpp",
+  "line": 20,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p2_rejection_test.cpp",
+  "line": 10,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p2_ir_facade_test.cpp",
+  "line": 8,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu001_negative_test.cpp",
+  "line": 19,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/drizzle_precision_default_test.cpp",
+  "line": 42,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/drizzle_precision_default_test.cpp",
+  "line": 49,
+  "name": "CHECK_MSG",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK_MSG(cond, msg)                                              \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, (msg)); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p2_output_semantics_test.cpp",
+  "line": 10,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu_lease_test.cpp",
+  "line": 16,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/mon002_gate_test.cpp",
+  "line": 17,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p3_interp_test.cpp",
+  "line": 9,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/rt008_runtime_client_test.cpp",
+  "line": 8,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/rt005_registry_test.cpp",
+  "line": 17,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cli_bench_verdict_test.cpp",
+  "line": 11,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg)                                                 \\\n    do {                                                                 \\\n        if (!(cond)) {                                                   \\\n            std::fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, \\\n                         (msg));                                         \\\n            ++fail_count;                                                \\\n        }                                                                \\\n    } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_resource_test.cpp",
+  "line": 19,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_hips_writer_test.cpp",
+  "line": 13,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/io_reentrant_test.cpp",
+  "line": 14,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/rt009_node_trace_test.cpp",
+  "line": 11,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p15_artifact_collect_test.cpp",
+  "line": 22,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu_backend_exception_test.cpp",
+  "line": 38,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                     \\\n    do {                                                                \\\n        if (!(cond)) {                                                  \\\n            std::printf(\"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n            std::exit(1);                                               \\\n        }                                                               \\\n    } while (0)"
+ },
+ {
+  "file": "./tests/unit/core_checkpoint_test.cpp",
+  "line": 10,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/rt001_unique_executor_test.cpp",
+  "line": 63,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/rt001_unique_executor_test.cpp",
+  "line": 70,
+  "name": "CHECK_MSG",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK_MSG(cond, msg)                                              \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s -- %s\\n\", __FILE__,    \\\n                   __LINE__, #cond, (msg));                               \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p3002_real_nodes_test.cpp",
+  "line": 57,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p3002_real_nodes_test.cpp",
+  "line": 64,
+  "name": "CHECK_MSG",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK_MSG(cond, msg)                                              \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s -- %s\\n\", __FILE__,    \\\n                   __LINE__, #cond, (msg));                               \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p2_upm_synthetic_test.cpp",
+  "line": 10,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/drizzle_adapter_test.cpp",
+  "line": 43,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "name"
+  ],
+  "eval_map": {
+   "cond": true,
+   "name": false
+  },
+  "body": "#define CHECK(cond, name) do { \\\n    if (cond) printf(\"PASS: %s\\n\", (name)); \\\n    else { printf(\"FAIL: %s\\n\", (name)); g_fail++; } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/mon001_recorder_test.cpp",
+  "line": 16,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/aio_abi_test_main.hpp",
+  "line": 66,
+  "name": "AIO_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "faultname"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": false
+  },
+  "body": "#define AIO_CHECK(cs, cond, faultname)                                          \\\n    do {                                                                        \\\n        if ((cs).fault_reported && (faultname) != nullptr) {                    \\\n            ++(cs).failures;                                                    \\\n        } else if ((faultname) != nullptr &&                                    \\\n                   ::aio_abi_test::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                      \\\n            ++(cs).failures;                                                    \\\n        } else if (!(cond)) {                                                   \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n            ++(cs).failures;                                                    \\\n        }                                                                       \\\n    } while (0)"
+ },
+ {
+  "file": "./tests/unit/aio_abi_test_main.hpp",
+  "line": 80,
+  "name": "AIO_CHECK_MSG",
+  "params": [
+   "cs",
+   "cond",
+   "faultname",
+   "..."
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": false,
+   "...": false
+  },
+  "body": "#define AIO_CHECK_MSG(cs, cond, faultname, ...)                                 \\\n    do {                                                                        \\\n        if ((cs).fault_reported && (faultname) != nullptr) {                    \\\n            ++(cs).failures;                                                    \\\n        } else if ((faultname) != nullptr &&                                    \\\n                   ::aio_abi_test::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                      \\\n            ++(cs).failures;                                                    \\\n        } else if (!(cond)) {                                                   \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s — \", __FILE__, __LINE__, #cond); \\\n            std::fprintf(stderr, __VA_ARGS__);                                  \\\n            std::fprintf(stderr, \"\\n\");                                         \\\n            ++(cs).failures;                                                    \\\n        }                                                                       \\\n    } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu_features_test.cpp",
+  "line": 12,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu_profile_test.cpp",
+  "line": 12,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/cpu008_worker_advisor_test.cpp",
+  "line": 35,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                        \\\n  do {                                                                     \\\n    if (!(cond)) {                                                         \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                          \\\n    }                                                                      \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_ir_facade_test.cpp",
+  "line": 11,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+  "line": 79,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+  "line": 86,
+  "name": "CHECK_MSG",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK_MSG(cond, msg)                                              \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: %s -- %s\\n\", __FILE__,    \\\n                   __LINE__, #cond, (msg));                               \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+  "line": 94,
+  "name": "CHECK_EQ_INT",
+  "params": [
+   "got",
+   "want"
+  ],
+  "eval_map": {
+   "got": false,
+   "want": false
+  },
+  "body": "#define CHECK_EQ_INT(got, want)                                           \\\n  do {                                                                    \\\n    const long long g_ = (long long)(got);                                \\\n    const long long w_ = (long long)(want);                               \\\n    if (g_ != w_) {                                                       \\\n      std::fprintf(stderr, \"CHECK failed %s:%d: got=%lld want=%lld (%s)\\n\", \\\n                   __FILE__, __LINE__, g_, w_, #got);                     \\\n      ++failures;                                                         \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./tests/unit/gaia_adapter_test.c",
+  "line": 47,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "name"
+  ],
+  "eval_map": {
+   "cond": true,
+   "name": false
+  },
+  "body": "#define CHECK(cond, name) do { \\\n    if (cond) printf(\"[PASS] %s\\n\", (name)); \\\n    else { printf(\"[FAIL] %s (line %d)\\n\", (name), __LINE__); g_fail++; } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/p1wcs/p1wcs_test_main.hpp",
+  "line": 150,
+  "name": "P1WCS_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "faultname"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": true
+  },
+  "body": "#define P1WCS_CHECK(cs, cond, faultname)                                   \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1wcs::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1wcs/p1wcs_test_main.hpp",
+  "line": 166,
+  "name": "P1WCS_CHECK_NEAR",
+  "params": [
+   "cs",
+   "got",
+   "want",
+   "tol",
+   "faultname"
+  ],
+  "eval_map": {
+   "cs": false,
+   "got": false,
+   "want": false,
+   "tol": false,
+   "faultname": false
+  },
+  "body": "#define P1WCS_CHECK_NEAR(cs, got, want, tol, faultname)                    \\\n    do {                                                                   \\\n        const double g_ = (got), w_ = (want), t_ = (tol);                  \\\n        if (p1wcs::FaultRegistry::instance().injected(faultname)) {        \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!((g_ - w_) <= t_ && (w_ - g_) <= t_)) {                \\\n            std::fprintf(stderr,                                        \\\n                         \"CHECK failed %s:%d: %s got=%.12g want=%.12g tol=%.3g\\n\", \\\n                         __FILE__, __LINE__, #got, g_, w_, t_);            \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_noise/adapter_test.cpp",
+  "line": 53,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg)                                                    \\\n    do {                                                                    \\\n        if (cond) {                                                         \\\n            g_pass++;                                                       \\\n        } else {                                                            \\\n            g_fail++;                                                       \\\n            std::printf(\"FAIL [%s] %s (line %d)\\n\", g_case, msg, __LINE__); \\\n        }                                                                   \\\n    } while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_hips/publish_atomic_test.c",
+  "line": 46,
+  "name": "EXPECT",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define EXPECT(cond) do { \\\n    if (!(cond)) { \\\n        printf(\"FAIL [%s] %s:%d: %s\\n\", g_case, __FILE__, __LINE__, #cond); \\\n        g_fail++; \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_hips/publish_atomic_test.c",
+  "line": 53,
+  "name": "EXPECT_STR",
+  "params": [
+   "hay",
+   "needle"
+  ],
+  "eval_map": {
+   "hay": true,
+   "needle": false
+  },
+  "body": "#define EXPECT_STR(hay, needle) do { \\\n    if (!(hay) || !strstr((hay), (needle))) { \\\n        printf(\"FAIL [%s] %s:%d: \\\"%s\\\" missing \\\"%s\\\"\\n\", \\\n               g_case, __FILE__, __LINE__, (hay) ? (hay) : \"(null)\", needle); \\\n        g_fail++; \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_hips/adapter_test.c",
+  "line": 36,
+  "name": "EXPECT",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define EXPECT(cond) do { \\\n    if (!(cond)) { \\\n        printf(\"FAIL [%s] %s:%d: %s\\n\", g_case, __FILE__, __LINE__, #cond); \\\n        g_fail++; \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/unit/p1_hips/adapter_test.c",
+  "line": 43,
+  "name": "EXPECT_STR",
+  "params": [
+   "hay",
+   "needle"
+  ],
+  "eval_map": {
+   "hay": true,
+   "needle": false
+  },
+  "body": "#define EXPECT_STR(hay, needle) do { \\\n    if (!(hay) || !strstr((hay), (needle))) { \\\n        printf(\"FAIL [%s] %s:%d: \\\"%s\\\" missing \\\"%s\\\"\\n\", \\\n               g_case, __FILE__, __LINE__, (hay) ? (hay) : \"(null)\", (needle)); \\\n        g_fail++; \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./tests/backend/test_p2005_block_io.py",
+  "line": 35,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); ++failures; } } while (0)"
+ },
+ {
+  "file": "./tests/backend/test_p2004_reject_integrate.py",
+  "line": 29,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, #cond); ++failures; } } while (0)"
+ },
+ {
+  "file": "./lib/calibration/tests/test_photometry_apply.cpp",
+  "line": 68,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(cond, msg) do { \\\n    if (cond) record_pass(msg); \\\n    else record_fail(msg); \\\n} while(0)"
+ },
+ {
+  "file": "./lib/calibration/tests/test_photometry_apply.cpp",
+  "line": 73,
+  "name": "ASSERT_FLOAT_NEAR",
+  "params": [
+   "actual",
+   "expected",
+   "eps",
+   "msg"
+  ],
+  "eval_map": {
+   "actual": false,
+   "expected": false,
+   "eps": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_FLOAT_NEAR(actual, expected, eps, msg) do { \\\n    float a = (float)(actual); \\\n    float e = (float)(expected); \\\n    if (std::fabs(a - e) <= (eps)) record_pass(msg); \\\n    else { char buf[128]; std::snprintf(buf, sizeof(buf), \"got=%g expected=%g\", a, e); record_fail(msg, buf); } \\\n} while(0)"
+ },
+ {
+  "file": "./lib/calibration/tests/p1cal/p1cal_test_main.hpp",
+  "line": 48,
+  "name": "P1CAL_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "faultname"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": true
+  },
+  "body": "#define P1CAL_CHECK(cs, cond, faultname)                                   \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1cal::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/calibration/tests/p1cal/p1cal_test_main.hpp",
+  "line": 64,
+  "name": "P1CAL_CHECK_EQ",
+  "params": [
+   "cs",
+   "got",
+   "want"
+  ],
+  "eval_map": {
+   "cs": false,
+   "got": false,
+   "want": false
+  },
+  "body": "#define P1CAL_CHECK_EQ(cs, got, want)                                      \\\n    do {                                                                   \\\n        const auto g_ = (got), w_ = (want);                                \\\n        if (!(g_ == w_)) {                                                 \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: got=%lld want=%lld (%s)\\n\", \\\n                         __FILE__, __LINE__,                             \\\n                         static_cast<long long>(g_),                     \\\n                         static_cast<long long>(w_), #got);              \\\n            ++(cs).failures;                                             \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/drizzle_l3_full_fp32.cpp",
+  "line": 24,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/drizzle_acceptance_test.cpp",
+  "line": 32,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/drizzle_science_matrix_test.cpp",
+  "line": 46,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/candidate_oracle_test.cpp",
+  "line": 31,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/test_nside_pixfrac.cpp",
+  "line": 68,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "cond",
+   "name",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "name": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(cond, name, msg) do { \\\n    if (cond) { test_pass(name); } \\\n    else { test_fail(name, msg); } \\\n} while(0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/test_nside_pixfrac.cpp",
+  "line": 73,
+  "name": "ASSERT_FALSE",
+  "params": [
+   "cond",
+   "name",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "name": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_FALSE(cond, name, msg) ASSERT_TRUE(!(cond), name, msg)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/reverse_drizzle_science_test.cpp",
+  "line": 34,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/variance_propagation_test.cpp",
+  "line": 33,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/drizzle_l2_test.cpp",
+  "line": 24,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/drizzle_nonfinite_test.cpp",
+  "line": 37,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/test_spherical_overlap.cpp",
+  "line": 52,
+  "name": "ASSERT_NEAR",
+  "params": [
+   "name",
+   "actual",
+   "expected",
+   "tol"
+  ],
+  "eval_map": {
+   "name": false,
+   "actual": false,
+   "expected": false,
+   "tol": false
+  },
+  "body": "#define ASSERT_NEAR(name, actual, expected, tol) do { \\\n    double a = (actual), e = (expected), t = (tol); \\\n    double diff = std::fabs(a - e); \\\n    if (diff <= t) { \\\n        TEST_PASS(name); \\\n    } else { \\\n        char buf[256]; \\\n        snprintf(buf, sizeof(buf), \"actual=%.12g, expected=%.12g, diff=%.6g, tol=%.6g\", \\\n                 a, e, diff, t); \\\n        TEST_FAIL(name, buf); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/test_spherical_overlap.cpp",
+  "line": 65,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "name",
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "name": false,
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(name, cond, msg) do { \\\n    if (cond) { TEST_PASS(name); } else { TEST_FAIL(name, msg); } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/reverse_api_test.cpp",
+  "line": 30,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/reference_overlap.cpp",
+  "line": 60,
+  "name": "ASSERT_NEAR",
+  "params": [
+   "name",
+   "actual",
+   "expected",
+   "tol"
+  ],
+  "eval_map": {
+   "name": false,
+   "actual": false,
+   "expected": false,
+   "tol": false
+  },
+  "body": "#define ASSERT_NEAR(name, actual, expected, tol) do { \\\n    double a = (actual), e = (expected), t = (tol); \\\n    double diff = std::fabs(a - e); \\\n    if (diff <= t) { \\\n        TEST_PASS(name); \\\n    } else { \\\n        char buf[256]; \\\n        snprintf(buf, sizeof(buf), \"actual=%.12g, expected=%.12g, diff=%.6g, tol=%.6g\", \\\n                 a, e, diff, t); \\\n        TEST_FAIL(name, buf); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/reference_overlap.cpp",
+  "line": 73,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "name",
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "name": false,
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(name, cond, msg) do { \\\n    if (cond) { TEST_PASS(name); } else { TEST_FAIL(name, msg); } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/drizzle_l0_test.cpp",
+  "line": 31,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/drizzle_science_completion_test.cpp",
+  "line": 29,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/drizzle_freeze_test.cpp",
+  "line": 33,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/p0_sip_order_guard_test.cpp",
+  "line": 49,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", (msg)); ++g_pass; } \\\n    else      { printf(\"  [FAIL] %s\\n\", (msg)); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/reverse_drizzle_test.cpp",
+  "line": 23,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/oracle_edge_crossing_test.cpp",
+  "line": 30,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/oracle_independent_test.cpp",
+  "line": 32,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_test_main.hpp",
+  "line": 64,
+  "name": "P1DRZ_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "faultname"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": false
+  },
+  "body": "#define P1DRZ_CHECK(cs, cond, faultname)                                  \\\n    do {                                                                  \\\n        if ((faultname) != nullptr &&                                     \\\n            p1drz::FaultRegistry::instance().injected(faultname)) {       \\\n            (cs).note_injected(faultname);                                \\\n            ++(cs).failures;                                              \\\n        } else if (!(cond)) {                                             \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",              \\\n                         __FILE__, __LINE__, #cond);                      \\\n            ++(cs).failures;                                              \\\n        }                                                                 \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_test_main.hpp",
+  "line": 78,
+  "name": "P1DRZ_CHECK_MSG",
+  "params": [
+   "cs",
+   "cond",
+   "faultname",
+   "..."
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": false,
+   "...": false
+  },
+  "body": "#define P1DRZ_CHECK_MSG(cs, cond, faultname, ...)                        \\\n    do {                                                                  \\\n        char _m[512];                                                     \\\n        std::snprintf(_m, sizeof(_m), __VA_ARGS__);                       \\\n        if ((faultname) != nullptr &&                                     \\\n            p1drz::FaultRegistry::instance().injected(faultname)) {       \\\n            (cs).note_injected(faultname);                                \\\n            ++(cs).failures;                                              \\\n        } else if (!(cond)) {                                             \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s | %s\\n\",         \\\n                         __FILE__, __LINE__, #cond, _m);                  \\\n            ++(cs).failures;                                              \\\n        }                                                                 \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_browser_qt/tests/test_browser_dual_dtype.cpp",
+  "line": 14,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"[PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"[FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/gaia_xpsd_client/test/test_spec_collector_ownership.c",
+  "line": 84,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); } \\\n    else      { printf(\"  [FAIL] %s\\n\", msg); ++g_failures; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/star_detector/test/sdet_saturation_cursor_test.cpp",
+  "line": 49,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/star_detector/test/sdet_fp64_test.cpp",
+  "line": 17,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/star_detector/tests/p1star/p1star_test_main.hpp",
+  "line": 70,
+  "name": "P1STAR_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "name"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": false,
+   "name": false
+  },
+  "body": "#define P1STAR_CHECK(cs, cond, name) \\\n    (cs).record(static_cast<bool>(cond), (name), __FILE__, __LINE__)"
+ },
+ {
+  "file": "./lib/star_detector/tests/p1star/p1star_test_main.hpp",
+  "line": 72,
+  "name": "P1STAR_CHECK_EQ",
+  "params": [
+   "cs",
+   "a",
+   "b",
+   "name"
+  ],
+  "eval_map": {
+   "cs": false,
+   "a": false,
+   "b": false,
+   "name": false
+  },
+  "body": "#define P1STAR_CHECK_EQ(cs, a, b, name) \\\n    (cs).record((a) == (b), (name), __FILE__, __LINE__)"
+ },
+ {
+  "file": "./lib/star_detector/tests/p1star/p1star_mad_check.cpp",
+  "line": 37,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg)                                                  \\\n    do {                                                                  \\\n        if (cond) { std::printf(\"  [PASS] %s\\n\", msg); }                 \\\n        else { std::printf(\"  [FAIL] %s\\n\", msg); ++g_failures; }        \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/dynamic_psf/test/test_dpsf_nan_sort.cpp",
+  "line": 29,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { std::printf(\"  [PASS] %s\\n\", msg); } \\\n    else      { std::printf(\"  [FAIL] %s\\n\", msg); ++g_failures; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/dynamic_psf/tests/p1psf/p1psf_test_main.hpp",
+  "line": 84,
+  "name": "P1PSF_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "faultname"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": false
+  },
+  "body": "#define P1PSF_CHECK(cs, cond, faultname)                                  \\\n    do {                                                                  \\\n        if ((faultname) != nullptr &&                                     \\\n            p1psf::FaultRegistry::instance().injected(faultname)) {       \\\n            (cs).note_injected(faultname);                                \\\n            ++(cs).failures;                                              \\\n        } else if (!(cond)) {                                             \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",              \\\n                         __FILE__, __LINE__, #cond);                      \\\n            ++(cs).failures;                                              \\\n        }                                                                 \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/dynamic_psf/tests/p1psf/p1psf_test_main.hpp",
+  "line": 98,
+  "name": "P1PSF_CHECK_EQ",
+  "params": [
+   "cs",
+   "got",
+   "want"
+  ],
+  "eval_map": {
+   "cs": false,
+   "got": false,
+   "want": false
+  },
+  "body": "#define P1PSF_CHECK_EQ(cs, got, want)                                     \\\n    do {                                                                  \\\n        const long long _g = (long long)(got);                            \\\n        const long long _w = (long long)(want);                           \\\n        if (_g != _w) {                                                   \\\n            std::fprintf(stderr, \"CHECK_EQ failed %s:%d: got=%lld want=%lld\\n\", \\\n                         __FILE__, __LINE__, _g, _w);                     \\\n            ++(cs).failures;                                              \\\n        }                                                                 \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/dynamic_psf/tests/p1psf/p1psf_test_main.hpp",
+  "line": 110,
+  "name": "P1PSF_CHECK_MSG",
+  "params": [
+   "cs",
+   "cond",
+   "faultname",
+   "..."
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": false,
+   "...": false
+  },
+  "body": "#define P1PSF_CHECK_MSG(cs, cond, faultname, ...)                        \\\n    do {                                                                  \\\n        char _m[512];                                                     \\\n        std::snprintf(_m, sizeof(_m), __VA_ARGS__);                       \\\n        if ((faultname) != nullptr &&                                     \\\n            p1psf::FaultRegistry::instance().injected(faultname)) {       \\\n            (cs).note_injected(faultname);                                \\\n            ++(cs).failures;                                              \\\n        } else if (!(cond)) {                                             \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s | %s\\n\",         \\\n                         __FILE__, __LINE__, #cond, _m);                  \\\n            ++(cs).failures;                                              \\\n        }                                                                 \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/dynamic_psf/tests/p1psf/p1psf_prodpath_check.cpp",
+  "line": 42,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg)                                                  \\\n    do {                                                                  \\\n        if (cond) { std::printf(\"  [PASS] %s\\n\", msg); }                 \\\n        else { std::printf(\"  [FAIL] %s\\n\", msg); ++g_failures; }        \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_dll_loader.cpp",
+  "line": 30,
+  "name": "TEST_CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define TEST_CHECK(cond, msg)                                                  \\\n    do {                                                                       \\\n        if (cond) {                                                            \\\n            std::cerr << \"  [PASS] \" << (msg) << std::endl;                    \\\n            ++g_pass_count;                                                    \\\n        } else {                                                               \\\n            std::cerr << \"  [FAIL] \" << (msg)                                  \\\n                      << \" (line \" << __LINE__ << \")\" << std::endl;            \\\n            ++g_fail_count;                                                    \\\n        }                                                                      \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp",
+  "line": 68,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(cond, msg)                                                  \\\n    do {                                                                        \\\n        if (!(cond)) {                                                          \\\n            std::cerr << \"  [FAIL] \" << (msg)                                   \\\n                      << \" (line \" << __LINE__ << \")\" << std::endl;             \\\n            ++g_fail_count;                                                     \\\n        } else {                                                                \\\n            std::cout << \"  [PASS] \" << (msg) << std::endl;                     \\\n            ++g_pass_count;                                                     \\\n        }                                                                       \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp",
+  "line": 80,
+  "name": "ASSERT_EQ",
+  "params": [
+   "a",
+   "b",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_EQ(a, b, msg) ASSERT_TRUE((a) == (b), msg)"
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp",
+  "line": 81,
+  "name": "ASSERT_FALSE",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_FALSE(cond, msg) ASSERT_TRUE(!(cond), msg)"
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp",
+  "line": 82,
+  "name": "ASSERT_CONTAINS",
+  "params": [
+   "str",
+   "substr",
+   "msg"
+  ],
+  "eval_map": {
+   "str": false,
+   "substr": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_CONTAINS(str, substr, msg) \\\n    ASSERT_TRUE((str).find(substr) != std::string::npos, msg)"
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_p1_batchH_star_coord.cpp",
+  "line": 29,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    ++g_checks; \\\n    if (cond) { std::cout << \"  [PASS] \" << (msg) << \"\\n\"; } \\\n    else { ++g_failures; std::cout << \"  [FAIL] \" << (msg) << \"\\n\"; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_logger.cpp",
+  "line": 56,
+  "name": "TEST_CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define TEST_CHECK(cond, msg)                                                  \\\n    do {                                                                       \\\n        if (cond) {                                                            \\\n            std::cerr << \"  [PASS] \" << (msg) << std::endl;                    \\\n            ++g_pass_count;                                                    \\\n        } else {                                                               \\\n            std::cerr << \"  [FAIL] \" << (msg)                                  \\\n                      << \" (line \" << __LINE__ << \")\" << std::endl;            \\\n            ++g_fail_count;                                                    \\\n        }                                                                      \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_checkpoint.cpp",
+  "line": 36,
+  "name": "TEST_CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define TEST_CHECK(cond, msg)                                                  \\\n    do {                                                                       \\\n        if (cond) {                                                            \\\n            std::cerr << \"  [PASS] \" << (msg) << std::endl;                    \\\n            ++g_pass_count;                                                    \\\n        } else {                                                               \\\n            std::cerr << \"  [FAIL] \" << (msg)                                  \\\n                      << \" (line \" << __LINE__ << \")\" << std::endl;            \\\n            ++g_fail_count;                                                    \\\n        }                                                                      \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_p1_batchB_fixes.cpp",
+  "line": 42,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    ++g_checks; \\\n    if (cond) { std::cout << \"  [PASS] \" << (msg) << \"\\n\"; } \\\n    else { ++g_failures; std::cout << \"  [FAIL] \" << (msg) << \"\\n\"; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/snr_estimator/tests/p1noise/p1noise_test_main.hpp",
+  "line": 53,
+  "name": "P1NOISE_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "faultname"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": true
+  },
+  "body": "#define P1NOISE_CHECK(cs, cond, faultname)                                    \\\n    do {                                                                      \\\n        if ((cs).fault_reported && (faultname) != nullptr) {                  \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */              \\\n            ++(cs).failures;                                                  \\\n        } else if (faultname != nullptr &&                                    \\\n                   p1noise::FaultRegistry::instance().injected(faultname)) {  \\\n            (cs).note_injected(faultname);                                    \\\n            ++(cs).failures;                                                  \\\n        } else if (!(cond)) {                                                 \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",                  \\\n                         __FILE__, __LINE__, #cond);                          \\\n            ++(cs).failures;                                                  \\\n        }                                                                     \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/snr_estimator/tests/p1noise/p1noise_test_main.hpp",
+  "line": 69,
+  "name": "P1NOISE_CHECK_EQ",
+  "params": [
+   "cs",
+   "got",
+   "want"
+  ],
+  "eval_map": {
+   "cs": false,
+   "got": false,
+   "want": false
+  },
+  "body": "#define P1NOISE_CHECK_EQ(cs, got, want)                                       \\\n    do {                                                                      \\\n        const long long g_ = static_cast<long long>(got);                     \\\n        const long long w_ = static_cast<long long>(want);                    \\\n        if (!(g_ == w_)) {                                                    \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: got=%lld want=%lld (%s)\\n\", \\\n                         __FILE__, __LINE__, g_, w_, #got);                   \\\n            ++(cs).failures;                                                  \\\n        }                                                                     \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/snr_estimator/cpp/test/noise_model_science_test.cpp",
+  "line": 34,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/snr_estimator/cpp/test/snr_reconcile_test.cpp",
+  "line": 22,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); ++g_pass; } \\\n    else { printf(\"  [FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/plate_solve/cpp/ipv/test/test_last_inlier_reset.cpp",
+  "line": 29,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", msg); } \\\n    else      { printf(\"  [FAIL] %s\\n\", msg); ++g_failures; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/plate_solve/cpp/ipv/test/test_extract_wcs_sip_failclosed.cpp",
+  "line": 44,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg)                                                  \\\n    do {                                                                  \\\n        if (cond) {                                                       \\\n            std::printf(\"  [PASS] %s\\n\", msg);                            \\\n        } else {                                                          \\\n            std::printf(\"  [FAIL] %s\\n\", msg);                            \\\n            ++g_failures;                                                 \\\n        }                                                                 \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/plate_solve/cpp/ipv/test/test_mag_iter.cpp",
+  "line": 28,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg)                                                        \\\n    do {                                                                        \\\n        ++g_check;                                                              \\\n        if (!(cond)) {                                                          \\\n            std::printf(\"FAIL: %s  (%s:%d)\\n\", (msg), __FILE__, __LINE__);     \\\n            ++g_fail;                                                           \\\n        } else {                                                                \\\n            std::printf(\"ok  : %s\\n\", (msg));                                   \\\n        }                                                                       \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/phase1_session/tests/test_p1_session_manifest.cpp",
+  "line": 25,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg)                                                        \\\n    do {                                                                        \\\n        ++checks;                                                               \\\n        if (!(cond)) {                                                          \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\", __FILE__, __LINE__, \\\n                         msg);                                                  \\\n            ++failures;                                                         \\\n        }                                                                       \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/phase1_session/tests/p1sess/p1sess_test_main.hpp",
+  "line": 83,
+  "name": "P1SESS_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "faultname"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": true
+  },
+  "body": "#define P1SESS_CHECK(cs, cond, faultname)                                  \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1sess::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/phase1_session/tests/p1sess/p1sess_test_main.hpp",
+  "line": 99,
+  "name": "P1SESS_CHECK_MSG",
+  "params": [
+   "cs",
+   "cond",
+   "faultname",
+   "..."
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": true,
+   "...": false
+  },
+  "body": "#define P1SESS_CHECK_MSG(cs, cond, faultname, ...)                         \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1sess::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s — \",              \\\n                         __FILE__, __LINE__, #cond);                       \\\n            std::fprintf(stderr, __VA_ARGS__);                             \\\n            std::fprintf(stderr, \"\\n\");                                    \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/phase1_session/tests/p1sess/p1sess_test_main.hpp",
+  "line": 117,
+  "name": "P1SESS_CHECK_EQ",
+  "params": [
+   "cs",
+   "got",
+   "want"
+  ],
+  "eval_map": {
+   "cs": false,
+   "got": false,
+   "want": false
+  },
+  "body": "#define P1SESS_CHECK_EQ(cs, got, want)                                     \\\n    do {                                                                   \\\n        const long long g_ = (long long)(got);                             \\\n        const long long w_ = (long long)(want);                             \\\n        if (!(g_ == w_)) {                                                 \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: got=%lld want=%lld (%s)\\n\", \\\n                         __FILE__, __LINE__,                              \\\n                         static_cast<long long>(g_),                      \\\n                         static_cast<long long>(w_), #got);               \\\n            ++(cs).failures;                                              \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/backend_host/avx512_backend.cpp",
+  "line": 11,
+  "name": "ASTROCS_BACKEND_REQUIRED_FEATURES",
+  "body": "#define ASTROCS_BACKEND_REQUIRED_FEATURES (ACS_FEAT_AVX512F)",
+  "kind": "obj-like(no params)"
+ },
+ {
+  "file": "./lib/backend_host/avx2_backend.cpp",
+  "line": 10,
+  "name": "ASTROCS_BACKEND_REQUIRED_FEATURES",
+  "body": "#define ASTROCS_BACKEND_REQUIRED_FEATURES (ACS_FEAT_AVX2 | ACS_FEAT_FMA)",
+  "kind": "obj-like(no params)"
+ },
+ {
+  "file": "./lib/phase1/tests/p1phot/p1phot_test_main.hpp",
+  "line": 68,
+  "name": "P1PHOT_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "name"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "name": false
+  },
+  "body": "#define P1PHOT_CHECK(cs, cond, name)                                        \\\n    do {                                                                    \\\n        ++(cs).total;                                                       \\\n        if (!(cond)) {                                                      \\\n            ++(cs).failed;                                                  \\\n            char _buf[256];                                                 \\\n            std::snprintf(_buf, sizeof(_buf), \"%s (line %d)\", name,         \\\n                          __LINE__);                                        \\\n            (cs).failures.push_back(_buf);                                  \\\n            std::fprintf(stderr, \"[p1phot][FAIL] %s (line %d)\\n\", name,     \\\n                         __LINE__);                                         \\\n        } else {                                                            \\\n            std::fprintf(stderr, \"[p1phot][ok] %s\\n\", name);                \\\n        }                                                                   \\\n        std::fflush(stderr);                                                \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/phase1/tests/p1phot/p1phot_test_main.hpp",
+  "line": 85,
+  "name": "P1PHOT_CHECK_NEAR",
+  "params": [
+   "cs",
+   "got",
+   "want",
+   "tol",
+   "name"
+  ],
+  "eval_map": {
+   "cs": false,
+   "got": false,
+   "want": false,
+   "tol": false,
+   "name": false
+  },
+  "body": "#define P1PHOT_CHECK_NEAR(cs, got, want, tol, name)                          \\\n    do {                                                                     \\\n        double _g = (got), _w = (want), _t = (tol);                          \\\n        double _d = _g > _w ? _g - _w : _w - _g;                             \\\n        P1PHOT_CHECK(cs, _d <= _t, name);                                    \\\n        if (_d > _t)                                                         \\\n            std::fprintf(stderr, \"    got=%.17g want=%.17g diff=%.3g tol=%.3g\\n\", \\\n                         _g, _w, _d, _t);                                    \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_query_pixel.cpp",
+  "line": 53,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(cond, msg) \\\n    if (!(cond)) { \\\n        std::string m = std::string(\"[TEST \") + std::to_string(id) + \"] FAIL: \" + (msg); \\\n        fprintf(stderr, \"  FAIL: %s\\n\", (msg)); \\\n        g_failures.push_back(m); \\\n        return; \\\n    } else { \\\n        fprintf(stderr, \"  OK: %s\\n\", (msg)); \\\n    }"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_query_pixel.cpp",
+  "line": 63,
+  "name": "ASSERT_NEAR",
+  "params": [
+   "a",
+   "b",
+   "tol",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "tol": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_NEAR(a, b, tol, msg) \\\n    if (std::fabs((double)(a) - (double)(b)) > (tol)) { \\\n        char buf[512]; \\\n        std::snprintf(buf, sizeof(buf), \"%s (got=%.6g expected=%.6g tol=%.6g)\", \\\n                      (msg), (double)(a), (double)(b), (double)(tol)); \\\n        std::string m = std::string(\"[TEST \") + std::to_string(id) + \"] FAIL: \" + buf; \\\n        fprintf(stderr, \"  FAIL: %s\\n\", buf); \\\n        g_failures.push_back(m); \\\n        return; \\\n    } else { \\\n        fprintf(stderr, \"  OK: %s (got=%.6g)\\n\", (msg), (double)(a)); \\\n    }"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_wph_cli_browser.cpp",
+  "line": 35,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { fprintf(stderr, \"  OK: %s\\n\", msg); g_pass++; } \\\n    else { fprintf(stderr, \"  FAIL: %s\\n\", msg); g_fail++; } \\\n} while(0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_p1_io_hardening.cpp",
+  "line": 51,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", (msg)); ++g_pass; } \\\n    else      { printf(\"  [FAIL] %s\\n\", (msg)); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_drizzle_integration.cpp",
+  "line": 64,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { fprintf(stderr, \"  OK: %s\\n\", msg); g_pass++; } \\\n    else { fprintf(stderr, \"  FAIL: %s\\n\", msg); g_fail++; } \\\n} while(0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_drizzle_integration.cpp",
+  "line": 69,
+  "name": "CHECK_NEAR",
+  "params": [
+   "a",
+   "b",
+   "tol",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "tol": false,
+   "msg": false
+  },
+  "body": "#define CHECK_NEAR(a, b, tol, msg) do { \\\n    double _a = (double)(a), _b = (double)(b), _d = _a - _b; \\\n    if (_d < 0) _d = -_d; \\\n    if (_d <= (double)(tol)) { fprintf(stderr, \"  OK: %s (val=%g)\\n\", msg, _a); g_pass++; } \\\n    else { fprintf(stderr, \"  FAIL: %s (got=%g, want=%g, tol=%g)\\n\", msg, _a, _b, (double)(tol)); g_fail++; } \\\n} while(0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_snr_unknown_block.cpp",
+  "line": 58,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(cond, msg) do { \\\n    if (cond) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s\\n\", msg); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (line %d)\\n\", msg, __LINE__); \\\n        return; \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_snr_unknown_block.cpp",
+  "line": 70,
+  "name": "ASSERT_EQ_INT",
+  "params": [
+   "a",
+   "b",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_EQ_INT(a, b, msg) do { \\\n    long _a = (long)(a); \\\n    long _b = (long)(b); \\\n    if (_a == _b) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s (=%ld)\\n\", msg, _a); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (got=%ld, want=%ld, line %d)\\n\", \\\n                msg, _a, _b, __LINE__); \\\n        return; \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_snr_unknown_block.cpp",
+  "line": 85,
+  "name": "ASSERT_EQ_FLT",
+  "params": [
+   "a",
+   "b",
+   "tol",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "tol": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_EQ_FLT(a, b, tol, msg) do { \\\n    double _a = (double)(a); \\\n    double _b = (double)(b); \\\n    double _d = _a - _b; \\\n    if (_d < 0) _d = -_d; \\\n    if (_d <= (double)(tol)) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s (a=%g, b=%g)\\n\", msg, _a, _b); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (got=%g, want=%g, tol=%g, line %d)\\n\", \\\n                msg, _a, _b, (double)(tol), __LINE__); \\\n        return; \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/pipeline_frame_contract_test.cpp",
+  "line": 15,
+  "name": "CHECK",
+  "params": [
+   "c",
+   "m"
+  ],
+  "eval_map": {
+   "c": true,
+   "m": false
+  },
+  "body": "#define CHECK(c,m) do{ if(c){std::printf(\"[PASS] %s\\n\",m);pass++;}else{std::printf(\"[FAIL] %s\\n\",m);failc++;}}while(0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_tile_model.cpp",
+  "line": 39,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(cond, msg) do { \\\n    if (cond) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s\\n\", msg); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (line %d)\\n\", msg, __LINE__); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_tile_model.cpp",
+  "line": 50,
+  "name": "ASSERT_EQ_INT",
+  "params": [
+   "a",
+   "b",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_EQ_INT(a, b, msg) do { \\\n    long _a = (long)(a); \\\n    long _b = (long)(b); \\\n    if (_a == _b) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s (=%ld)\\n\", msg, _a); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (got=%ld, want=%ld, line %d)\\n\", \\\n                msg, _a, _b, __LINE__); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_tile_model.cpp",
+  "line": 64,
+  "name": "ASSERT_EQ_FLT",
+  "params": [
+   "a",
+   "b",
+   "tol",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "tol": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_EQ_FLT(a, b, tol, msg) do { \\\n    double _a = (double)(a); \\\n    double _b = (double)(b); \\\n    double _d = _a - _b; \\\n    if (_d < 0) _d = -_d; \\\n    if (_d <= (double)(tol)) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s (a=%g, b=%g)\\n\", msg, _a, _b); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (got=%g, want=%g, tol=%g, line %d)\\n\", \\\n                msg, _a, _b, (double)(tol), __LINE__); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/dataflow_fuzz.cpp",
+  "line": 35,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { ++g_pass; } \\\n    else { std::printf(\"[FAIL] %s\\n\", msg); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_transform.cpp",
+  "line": 70,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(cond, msg) do { \\\n    if (cond) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s\\n\", msg); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (line %d)\\n\", msg, __LINE__); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_transform.cpp",
+  "line": 81,
+  "name": "ASSERT_EQ_INT",
+  "params": [
+   "a",
+   "b",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_EQ_INT(a, b, msg) do { \\\n    long _a = (long)(a); \\\n    long _b = (long)(b); \\\n    if (_a == _b) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s (=%ld)\\n\", msg, _a); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (got=%ld, want=%ld, line %d)\\n\", \\\n                msg, _a, _b, __LINE__); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_transform.cpp",
+  "line": 95,
+  "name": "ASSERT_EQ_FLT",
+  "params": [
+   "a",
+   "b",
+   "tol",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "tol": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_EQ_FLT(a, b, tol, msg) do { \\\n    double _a = (double)(a); \\\n    double _b = (double)(b); \\\n    double _d = _a - _b; \\\n    if (_d < 0) _d = -_d; \\\n    if (_d <= (double)(tol)) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s (a=%g, b=%g)\\n\", msg, _a, _b); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (got=%g, want=%g, tol=%g, line %d)\\n\", \\\n                msg, _a, _b, (double)(tol), __LINE__); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_checksum.cpp",
+  "line": 54,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(cond, msg) do { \\\n    if (cond) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s\\n\", msg); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (line %d)\\n\", msg, __LINE__); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_checksum.cpp",
+  "line": 65,
+  "name": "ASSERT_EQ_INT",
+  "params": [
+   "a",
+   "b",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_EQ_INT(a, b, msg) do { \\\n    long _a = (long)(a); \\\n    long _b = (long)(b); \\\n    if (_a == _b) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s (=%ld)\\n\", msg, _a); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (got=%ld, want=%ld, line %d)\\n\", \\\n                msg, _a, _b, __LINE__); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_checksum.cpp",
+  "line": 79,
+  "name": "ASSERT_EQ_FLT",
+  "params": [
+   "a",
+   "b",
+   "tol",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "tol": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_EQ_FLT(a, b, tol, msg) do { \\\n    double _a = (double)(a); \\\n    double _b = (double)(b); \\\n    double _d = _a - _b; \\\n    if (_d < 0) _d = -_d; \\\n    if (_d <= (double)(tol)) { \\\n        g_pass_count++; \\\n        fprintf(stdout, \"  OK: %s (a=%g, b=%g)\\n\", msg, _a, _b); \\\n    } else { \\\n        g_fail_count++; \\\n        fprintf(stderr, \"  FAIL: %s (got=%g, want=%g, tol=%g, line %d)\\n\", \\\n                msg, _a, _b, (double)(tol), __LINE__); \\\n    } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_p0_io_hardening.cpp",
+  "line": 39,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { printf(\"  [PASS] %s\\n\", (msg)); ++g_pass; } \\\n    else      { printf(\"  [FAIL] %s\\n\", (msg)); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_writer_integration.cpp",
+  "line": 57,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(cond, msg) \\\n    if (!(cond)) { \\\n        std::string m = std::string(\"[TEST \") + std::to_string(id) + \"] FAIL: \" + (msg); \\\n        fprintf(stderr, \"  FAIL: %s\\n\", (msg)); \\\n        g_failures.push_back(m); \\\n        return; \\\n    } else { \\\n        fprintf(stderr, \"  OK: %s\\n\", (msg)); \\\n    }"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_writer_integration.cpp",
+  "line": 67,
+  "name": "ASSERT_NEAR",
+  "params": [
+   "a",
+   "b",
+   "tol",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "tol": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_NEAR(a, b, tol, msg) \\\n    if (std::fabs((double)(a) - (double)(b)) > (tol)) { \\\n        char buf[512]; \\\n        std::snprintf(buf, sizeof(buf), \"%s (got=%.6g expected=%.6g tol=%.6g)\", \\\n                      (msg), (double)(a), (double)(b), (double)(tol)); \\\n        std::string m = std::string(\"[TEST \") + std::to_string(id) + \"] FAIL: \" + buf; \\\n        fprintf(stderr, \"  FAIL: %s\\n\", buf); \\\n        g_failures.push_back(m); \\\n        return; \\\n    } else { \\\n        fprintf(stderr, \"  OK: %s (got=%.6g)\\n\", (msg), (double)(a)); \\\n    }"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_precision_dual.cpp",
+  "line": 70,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(cond, msg) \\\n    if (!(cond)) { \\\n        FAIL(msg); \\\n        return; \\\n    } else { \\\n        fprintf(stderr, \"  OK: %s\\n\", (msg)); \\\n        g_test_passed++; \\\n    }"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/hiss_correctness_test.cpp",
+  "line": 55,
+  "name": "ASSERT_TRUE",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define ASSERT_TRUE(cond, msg) \\\n    if (!(cond)) { \\\n        std::string m = std::string(\"[TEST \") + std::to_string(id) + \"] FAIL: \" + (msg); \\\n        fprintf(stderr, \"  FAIL: %s\\n\", (msg)); \\\n        g_failures.push_back(m); \\\n        return; \\\n    } else { \\\n        fprintf(stderr, \"  OK: %s\\n\", (msg)); \\\n    }"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/hiss_correctness_test.cpp",
+  "line": 66,
+  "name": "ASSERT_NEAR",
+  "params": [
+   "a",
+   "b",
+   "tol",
+   "msg"
+  ],
+  "eval_map": {
+   "a": false,
+   "b": false,
+   "tol": false,
+   "msg": false
+  },
+  "body": "#define ASSERT_NEAR(a, b, tol, msg) \\\n    if (std::fabs((double)(a) - (double)(b)) > (tol)) { \\\n        char buf[512]; \\\n        std::snprintf(buf, sizeof(buf), \"%s (got=%.6g expected=%.6g tol=%.6g)\", (msg), (double)(a), (double)(b), (double)(tol)); \\\n        std::string m = std::string(\"[TEST \") + std::to_string(id) + \"] FAIL: \" + buf; \\\n        fprintf(stderr, \"  FAIL: %s\\n\", buf); \\\n        g_failures.push_back(m); \\\n        return; \\\n    } else { \\\n        fprintf(stderr, \"  OK: %s (got=%.6g)\\n\", (msg), (double)(a)); \\\n    }"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp",
+  "line": 64,
+  "name": "P1HIPS_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "faultname"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": true
+  },
+  "body": "#define P1HIPS_CHECK(cs, cond, faultname)                                  \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1hips::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp",
+  "line": 80,
+  "name": "P1HIPS_CHECK_MSG",
+  "params": [
+   "cs",
+   "cond",
+   "faultname",
+   "..."
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": true,
+   "...": false
+  },
+  "body": "#define P1HIPS_CHECK_MSG(cs, cond, faultname, ...)                         \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1hips::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s — \",              \\\n                         __FILE__, __LINE__, #cond);                       \\\n            std::fprintf(stderr, __VA_ARGS__);                             \\\n            std::fprintf(stderr, \"\\n\");                                    \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp",
+  "line": 97,
+  "name": "P1HIPS_CHECK_EQ",
+  "params": [
+   "cs",
+   "got",
+   "want"
+  ],
+  "eval_map": {
+   "cs": false,
+   "got": false,
+   "want": false
+  },
+  "body": "#define P1HIPS_CHECK_EQ(cs, got, want)                                     \\\n    do {                                                                   \\\n        const long long g_ = (long long)(got);                             \\\n        const long long w_ = (long long)(want);                            \\\n        if (!(g_ == w_)) {                                                 \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: got=%lld want=%lld (%s)\\n\", \\\n                         __FILE__, __LINE__,                             \\\n                         static_cast<long long>(g_),                     \\\n                         static_cast<long long>(w_), #got);              \\\n            ++(cs).failures;                                             \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p1hips/p1hips_digest_verify.cpp",
+  "line": 40,
+  "name": "VERIFY",
+  "params": [
+   "cond",
+   "name"
+  ],
+  "eval_map": {
+   "cond": true,
+   "name": false
+  },
+  "body": "#define VERIFY(cond, name)                                                     \\\n    do {                                                                       \\\n        if (cond) {                                                            \\\n            std::printf(\"  PASS %s\\n\", name);                                  \\\n        } else {                                                               \\\n            std::printf(\"  FAIL %s (%s:%d)\\n\", name, __FILE__, __LINE__);      \\\n            ++g_fail;                                                          \\\n        }                                                                      \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p2hips/p2hips_test_main.hpp",
+  "line": 34,
+  "name": "P2H_CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": false,
+   "msg": false
+  },
+  "body": "#define P2H_CHECK(cond, msg)     ::p2hips::check_impl((cond), #cond, (msg), __FILE__, __LINE__)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/fitsio.h",
+  "line": 726,
+  "name": "NGP_TOKEN_NOT_EXPECT",
+  "body": "#define\tNGP_TOKEN_NOT_EXPECT\t(NGP_ERRBASE + 9)\t/* token not expected here */",
+  "kind": "obj-like(no params)"
+ },
+ {
+  "file": "./lib/astro_image_io/third_party/cfitsio/eval_y.c",
+  "line": 567,
+  "name": "YY_ASSERT",
+  "params": [
+   "E"
+  ],
+  "eval_map": {
+   "E": false
+  },
+  "body": "#define YY_ASSERT(E) ((void) (0 && (E)))"
+ },
+ {
+  "file": "./lib/astro_image_io/include/hiss_format.h",
+  "line": 248,
+  "name": "HISS_ERR_UNKNOWN_REQUIRED",
+  "body": "#define HISS_ERR_UNKNOWN_REQUIRED  -7   // 未知必需子块 (规范 §13 要求拒绝)",
+  "kind": "obj-like(no params)"
+ },
+ {
+  "file": "./lib/astro_image_io/include/hiss_format.h",
+  "line": 272,
+  "name": "HISS_TLV_FLAG_REQUIRED",
+  "body": "#define HISS_TLV_FLAG_REQUIRED 0x01  // 必需 TLV (未知必需 → 拒绝)",
+  "kind": "obj-like(no params)"
+ },
+ {
+  "file": "./lib/common/tests/test_precision.cpp",
+  "line": 33,
+  "name": "RUNTIME_CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define RUNTIME_CHECK(cond, msg) \\\n    do { \\\n        if (!(cond)) { \\\n            std::fprintf(stderr, \"[FAIL] %s:%d: %s\\n\", __FILE__, __LINE__, (msg)); \\\n            return 1; \\\n        } \\\n    } while(0)"
+ },
+ {
+  "file": "./lib/photometric_calib/tests/p1phot/p1phot_fixgates.cpp",
+  "line": 48,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg)                                                  \\\n    do {                                                                  \\\n        if (cond) {                                                       \\\n            std::printf(\"  [PASS] %s\\n\", msg);                            \\\n        } else {                                                          \\\n            std::printf(\"  [FAIL] %s\\n\", msg);                            \\\n            ++g_failures;                                                 \\\n        }                                                                 \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp",
+  "line": 60,
+  "name": "P1PHOT_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "faultname"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": true
+  },
+  "body": "#define P1PHOT_CHECK(cs, cond, faultname)                                  \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1phot::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp",
+  "line": 76,
+  "name": "P1PHOT_CHECK_MSG",
+  "params": [
+   "cs",
+   "cond",
+   "faultname",
+   "..."
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": true,
+   "...": false
+  },
+  "body": "#define P1PHOT_CHECK_MSG(cs, cond, faultname, ...)                         \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1phot::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s — \",              \\\n                         __FILE__, __LINE__, #cond);                       \\\n            std::fprintf(stderr, __VA_ARGS__);                             \\\n            std::fprintf(stderr, \"\\n\");                                    \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/photometric_calib/cpp/test/test_p0_pc_api_exception_barrier.cpp",
+  "line": 37,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { std::printf(\"  [PASS] %s\\n\", (msg)); ++g_pass; } \\\n    else      { std::printf(\"  [FAIL] %s\\n\", (msg)); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/photometric_calib/cpp/test/test_p0_sip_order_guard.cpp",
+  "line": 42,
+  "name": "CHECK",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": true,
+   "msg": false
+  },
+  "body": "#define CHECK(cond, msg) do { \\\n    if (cond) { std::printf(\"  [PASS] %s\\n\", (msg)); ++g_pass; } \\\n    else      { std::printf(\"  [FAIL] %s\\n\", (msg)); ++g_fail; } \\\n} while (0)"
+ },
+ {
+  "file": "./lib/cosmetic/src/module_entry.cpp",
+  "line": 777,
+  "name": "COS_CANCEL_CHECKPOINT",
+  "params": [
+   "what"
+  ],
+  "eval_map": {
+   "what": false
+  },
+  "body": "    #define COS_CANCEL_CHECKPOINT(what)                                     \\\n        do {                                                                \\\n            if (inst->host && inst->host->cancel &&                          \\\n                inst->host->cancel->is_cancelled &&                          \\\n                inst->host->cancel->is_cancelled(                            \\\n                    inst->host->cancel->user_data)) {                        \\\n                if (lease_active) {                                          \\\n                    if (ex->release) ex->release(ex->user_data, leased);     \\\n                    if (omp_prev > 0) COS_OMP_SET(omp_prev);                 \\\n                }                                                            \\\n                return efill(err, ACS_ERR_CANCELLED,                         \\\n                             ACS_ERR_DOMAIN_CANCELLED,                       \\\n                             \"cancelled \" what, ACS_DIAG_ECODE_NONE);        \\\n            }                                                                \\\n        } while (0)"
+ },
+ {
+  "file": "./lib/cosmetic/tests/p1cos/p1cos_test_main.hpp",
+  "line": 53,
+  "name": "P1COS_CHECK",
+  "params": [
+   "cs",
+   "cond",
+   "faultname"
+  ],
+  "eval_map": {
+   "cs": false,
+   "cond": true,
+   "faultname": true
+  },
+  "body": "#define P1COS_CHECK(cs, cond, faultname)                                   \\\n    do {                                                                   \\\n        if ((cs).fault_reported && (faultname) != nullptr) {               \\\n            /* 已注入本组: 后续 CHECK 全部计为失败 (测试必败) */            \\\n            ++(cs).failures;                                               \\\n        } else if (faultname != nullptr &&                                 \\\n                   p1cos::FaultRegistry::instance().injected(faultname)) { \\\n            (cs).note_injected(faultname);                                 \\\n            ++(cs).failures;                                               \\\n        } else if (!(cond)) {                                              \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: %s\\n\",               \\\n                         __FILE__, __LINE__, #cond);                       \\\n            ++(cs).failures;                                               \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./lib/cosmetic/tests/p1cos/p1cos_test_main.hpp",
+  "line": 69,
+  "name": "P1COS_CHECK_EQ",
+  "params": [
+   "cs",
+   "got",
+   "want"
+  ],
+  "eval_map": {
+   "cs": false,
+   "got": false,
+   "want": false
+  },
+  "body": "#define P1COS_CHECK_EQ(cs, got, want)                                      \\\n    do {                                                                   \\\n        const auto g_ = (got), w_ = (want);                                \\\n        if (!(g_ == w_)) {                                                 \\\n            std::fprintf(stderr, \"CHECK failed %s:%d: got=%lld want=%lld (%s)\\n\", \\\n                         __FILE__, __LINE__,                             \\\n                         static_cast<long long>(g_),                     \\\n                         static_cast<long long>(w_), #got);              \\\n            ++(cs).failures;                                             \\\n        }                                                                  \\\n    } while (0)"
+ },
+ {
+  "file": "./include/astrocs/abi/status_codes.h",
+  "line": 69,
+  "name": "ACS_STATIC_ASSERT",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": false,
+   "msg": false
+  },
+  "body": "#define ACS_STATIC_ASSERT(cond, msg) static_assert((cond), msg)"
+ },
+ {
+  "file": "./include/astrocs/abi/status_codes.h",
+  "line": 71,
+  "name": "ACS_STATIC_ASSERT",
+  "params": [
+   "cond",
+   "msg"
+  ],
+  "eval_map": {
+   "cond": false,
+   "msg": false
+  },
+  "body": "#define ACS_STATIC_ASSERT(cond, msg) _Static_assert((cond), msg)"
+ },
+ {
+  "file": "./modules/conformance/echo/tests/unit/echo_host_callback_test.c",
+  "line": 40,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./modules/conformance/echo/tests/unit/echo_host_callback_test.c",
+  "line": 47,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./modules/conformance/noop/tests/unit/noop_handshake_test.c",
+  "line": 24,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./modules/conformance/noop/tests/unit/noop_handshake_test.c",
+  "line": 31,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./modules/services/io/tests/hips_core_selftest.c",
+  "line": 26,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./modules/services/io/tests/hips_core_selftest.c",
+  "line": 33,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./modules/services/io/tests/fits_core_selftest.c",
+  "line": 35,
+  "name": "CHECK",
+  "params": [
+   "cond"
+  ],
+  "eval_map": {
+   "cond": true
+  },
+  "body": "#define CHECK(cond)                                                       \\\n  do {                                                                    \\\n    if (!(cond)) {                                                        \\\n      fprintf(stderr, \"FAIL %s:%d: %s\\n\", __FILE__, __LINE__, #cond);     \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ },
+ {
+  "file": "./modules/services/io/tests/fits_core_selftest.c",
+  "line": 42,
+  "name": "CHECK_ST",
+  "params": [
+   "expect",
+   "actual",
+   "what"
+  ],
+  "eval_map": {
+   "expect": false,
+   "actual": false,
+   "what": false
+  },
+  "body": "#define CHECK_ST(expect, actual, what)                                    \\\n  do {                                                                    \\\n    int _e = (expect), _a = (actual);                                     \\\n    if (_e != _a) {                                                       \\\n      fprintf(stderr, \"FAIL %s:%d: %s expect=%d got=%d\\n\", __FILE__,      \\\n              __LINE__, what, _e, _a);                                    \\\n      ++g_failures;                                                       \\\n    }                                                                     \\\n  } while (0)"
+ }
+]
