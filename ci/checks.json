@@ -3999,6 +3999,40 @@
       ]
     },
     {
+      "id": "CTEST-P1DRZ-MERGE-PIPELINE-LOCK",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p1drz_merge_pipeline_lock",
+        "--output",
+        "run/ci/ctest/p1drz_merge_pipeline_lock.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p1drz_merge_pipeline_lock.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/healpix_db/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p1drz_merge_pipeline_lock"
+      ]
+    },
+    {
       "id": "KNOWN-FAILURES-BASELINE-CHECK",
       "profiles": [
         "linux-main"
