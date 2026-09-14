@@ -20,7 +20,9 @@
 //   flux5_adu           [ADU]      5-sigma 点源极限通量
 //   m5_mag              [mag]      5-sigma 点源深度 (ZP<=0 时 NaN)
 
-#include "snr_estimator.h"
+// P8-SNR-LINUX: 相对包含, 使本 TU 可被任意目标 (含根图 astrocs_phase1_noise)
+// 以 sources 直接编译, 无需为该目标额外注入 include 目录 (生产源零副本)。
+#include "../include/snr_estimator.h"
 
 #include <cmath>
 #include <cstring>

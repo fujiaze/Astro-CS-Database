@@ -1304,3 +1304,11 @@ target_link_libraries(ipv_platform_binding_test PRIVATE
   astrocs_p1_ipv astrocs_p1_sdet astrocs_aio)
 add_test(NAME ipv_platform_binding COMMAND ipv_platform_binding_test)
 
+# ----------------------------------------------------------------------------
+# P8-SNR-LINUX (2026-09-14): Linux 生产路径逐源 SNR 回归锁。
+# 被测面 = 根图真实目标 astrocs_phase1_noise (含 P5 唯一权威科学实现
+# lib/snr_estimator/cpp/src/snr_science.cpp + P8 聚合层 snr_frame_science.cpp);
+# 注册 5 组 ctest (见 tests/unit/p1snr/CMakeLists.txt)。构建期链接失败即为接线缺失。
+# ----------------------------------------------------------------------------
+add_subdirectory(p1snr p1snr)
+
