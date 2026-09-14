@@ -1,0 +1,817 @@
+[
+ {
+  "file": "./tools/quality/check_commits_csv.py",
+  "line": 147,
+  "fn": "_selftest"
+ },
+ {
+  "file": "./tools/quality/known_failures_baseline.py",
+  "line": 574,
+  "fn": "run_selftest"
+ },
+ {
+  "file": "./tools/quality/gen_run_graphs.py",
+  "line": 238,
+  "fn": "selftest"
+ },
+ {
+  "file": "./tools/quality/check_pipeline_graph.py",
+  "line": 228,
+  "fn": "_selftest"
+ },
+ {
+  "file": "./tests/io/test_hips_output_contract.py",
+  "line": 336,
+  "fn": "test_modified_file_changes_tree_hash"
+ },
+ {
+  "file": "./tests/io/test_hips_output_contract.py",
+  "line": 357,
+  "fn": "test_tile_verify_matches_c_verifier"
+ },
+ {
+  "file": "./tests/runtime/test_rt006_trace.py",
+  "line": 526,
+  "fn": "test_no_session_duplicate_module_registry_typo"
+ },
+ {
+  "file": "./tests/runtime/test_rt005_plan_estimator.py",
+  "line": 469,
+  "fn": "test_kernel_ids_authoritative"
+ },
+ {
+  "file": "./tests/traceability/test_traceability.py",
+  "line": 47,
+  "fn": "test_02_delete_any_layer_ref_must_fail"
+ },
+ {
+  "file": "./tests/traceability/test_traceability.py",
+  "line": 68,
+  "fn": "test_04_missing_reference_must_fail"
+ },
+ {
+  "file": "./tests/pipeline/test_typed_dag_plan.py",
+  "line": 156,
+  "fn": "test_cli_rejects_implicit_path"
+ },
+ {
+  "file": "./tests/version/test_adopt006_version_gate.py",
+  "line": 113,
+  "fn": "test_06_mutation_version_file_drift_fails"
+ },
+ {
+  "file": "./tests/version/test_adopt006_version_gate.py",
+  "line": 122,
+  "fn": "test_07_mutation_project_triple_drift_fails"
+ },
+ {
+  "file": "./tests/version/test_adopt006_version_gate.py",
+  "line": 130,
+  "fn": "test_08_mutation_cli_literal_drift_fails"
+ },
+ {
+  "file": "./tests/version/test_adopt006_version_gate.py",
+  "line": 141,
+  "fn": "test_09_mutation_active_doc_drift_fails"
+ },
+ {
+  "file": "./tests/version/test_adopt006_version_gate.py",
+  "line": 148,
+  "fn": "test_10_mutation_missing_doc_set_fails"
+ },
+ {
+  "file": "./tests/version/test_version_consistency.py",
+  "line": 57,
+  "fn": "test_03_reject_forbidden_prerelease"
+ },
+ {
+  "file": "./tests/version/test_version_consistency.py",
+  "line": 70,
+  "fn": "test_05_mutation_forged_literal_must_fail"
+ },
+ {
+  "file": "./tests/version/test_version_consistency.py",
+  "line": 209,
+  "fn": "test_10_forged_version_on_clause_line_still_fails"
+ },
+ {
+  "file": "./tests/version/test_version_consistency.py",
+  "line": 257,
+  "fn": "test_13_checker_output_bitwise_deterministic"
+ },
+ {
+  "file": "./tests/version/test_version_consistency.py",
+  "line": 347,
+  "fn": "test_14_fault_injections_must_be_caught"
+ },
+ {
+  "file": "./tests/artifact/test_provenance.py",
+  "line": 629,
+  "fn": "test_tampered_digest_rejected_at_bind"
+ },
+ {
+  "file": "./tests/artifact/test_production_store.py",
+  "line": 314,
+  "fn": "test_bypass_not_in_store_and_rejected"
+ },
+ {
+  "file": "./tests/artifact/test_production_store.py",
+  "line": 329,
+  "fn": "test_try_publish_without_store_helper"
+ },
+ {
+  "file": "./tests/unit/p3002_uncertainty_test.cpp",
+  "line": 189,
+  "fn": "sample_center"
+ },
+ {
+  "file": "./tests/unit/p3002_uncertainty_test.cpp",
+  "line": 483,
+  "fn": "test_w4_inconsistent"
+ },
+ {
+  "file": "./tests/unit/p3_projection_test.cpp",
+  "line": 534,
+  "fn": "test_fault_injection"
+ },
+ {
+  "file": "./tests/unit/gaia_cat_test.c",
+  "line": 857,
+  "fn": "mode_dump"
+ },
+ {
+  "file": "./tests/unit/p1001_real_nodes_test.cpp",
+  "line": 729,
+  "fn": "test_negative_injection"
+ },
+ {
+  "file": "./tests/unit/p1001_real_nodes_test.cpp",
+  "line": 1137,
+  "fn": "test_b2a14_photappl_provenance"
+ },
+ {
+  "file": "./tests/unit/cpu_backend_exception_test.cpp",
+  "line": 98,
+  "fn": "run_case"
+ },
+ {
+  "file": "./tests/unit/aio_abi_selfcheck.cpp",
+  "line": 33,
+  "fn": "run_injected_child"
+ },
+ {
+  "file": "./tests/unit/aio_abi_selfcheck.cpp",
+  "line": 59,
+  "fn": "run_injected_group"
+ },
+ {
+  "file": "./tests/unit/aio_abi_selfcheck.cpp",
+  "line": 75,
+  "fn": "run_selfcheck"
+ },
+ {
+  "file": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+  "line": 448,
+  "fn": "test_s302_integration_projection"
+ },
+ {
+  "file": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+  "line": 557,
+  "fn": "test_f_p2002_01_rejection_parity"
+ },
+ {
+  "file": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+  "line": 762,
+  "fn": "test_f_p2002_02_n_ineligible_identity"
+ },
+ {
+  "file": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+  "line": 1034,
+  "fn": "test_f_p2002_03_sample_mask_failclosed"
+ },
+ {
+  "file": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+  "line": 1170,
+  "fn": "test_s303_provenance_keys"
+ },
+ {
+  "file": "./tests/unit/p2002_unc_rej_prov_test.cpp",
+  "line": 1259,
+  "fn": "test_s303_aio_channel_real_values"
+ },
+ {
+  "file": "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp",
+  "line": 44,
+  "fn": "run_child"
+ },
+ {
+  "file": "./tests/unit/p1wcs/p1wcs_tests_selfcheck.cpp",
+  "line": 77,
+  "fn": "run_selfcheck"
+ },
+ {
+  "file": "./tests/unit/p1wcs/p1wcs_tests_negative.cpp",
+  "line": 194,
+  "fn": "test_negative"
+ },
+ {
+  "file": "./tests/unit/p1_hips/publish_atomic_test.c",
+  "line": 325,
+  "fn": "run_units"
+ },
+ {
+  "file": "./tests/backend/test_p3_output.py",
+  "line": 290,
+  "fn": "test_09_write_hash_fail_no_publish_no_fake_anchor"
+ },
+ {
+  "file": "./tests/backend/test_p3006_production_pipeline.py",
+  "line": 66,
+  "fn": "test_01_ir_chain_5_nodes"
+ },
+ {
+  "file": "./tests/backend/test_cpu_profile.py",
+  "line": 88,
+  "fn": "test_02_stale_isa_state"
+ },
+ {
+  "file": "./tests/backend/test_cpu_profile.py",
+  "line": 102,
+  "fn": "test_03_stale_affinity_and_commit"
+ },
+ {
+  "file": "./tests/backend/test_cpu_profile.py",
+  "line": 117,
+  "fn": "test_04_oracle_fail_verdict_fail"
+ },
+ {
+  "file": "./tests/glossary/test_glossary.py",
+  "line": 26,
+  "fn": "test_02_duplicate_term_must_fail"
+ },
+ {
+  "file": "./tests/glossary/test_glossary.py",
+  "line": 30,
+  "fn": "test_03_ambiguity_phrase_must_fail"
+ },
+ {
+  "file": "./tests/sciencelint/test_sciencelint.py",
+  "line": 30,
+  "fn": "test_03_bad_claim_id_must_fail"
+ },
+ {
+  "file": "./tests/sciencelint/test_sciencelint.py",
+  "line": 34,
+  "fn": "test_04_missing_anchor_file_must_fail"
+ },
+ {
+  "file": "./tests/quality/test_known_failures_baseline_ci.py",
+  "line": 206,
+  "fn": "test_t3_never_waivable_category_rejected"
+ },
+ {
+  "file": "./tests/quality/test_known_failures_baseline_ci.py",
+  "line": 225,
+  "fn": "test_t4_expired_entry_fails"
+ },
+ {
+  "file": "./tests/quality/test_known_failures_baseline_ci.py",
+  "line": 278,
+  "fn": "test_t7b_check_kind_fake_failure_fails"
+ },
+ {
+  "file": "./tests/quality/test_known_failures_baseline_ci.py",
+  "line": 295,
+  "fn": "test_t8_stale_entry_fails"
+ },
+ {
+  "file": "./tests/quality/test_known_failures_baseline_ci.py",
+  "line": 325,
+  "fn": "test_t9b_missing_junit_fails_closed"
+ },
+ {
+  "file": "./tests/quality/test_known_failures_baseline_ci.py",
+  "line": 473,
+  "fn": "test_t10b_empty_or_broken_is_error"
+ },
+ {
+  "file": "./tests/quality/test_doc_machine_check.py",
+  "line": 34,
+  "fn": "test_00_clean_repo_passes"
+ },
+ {
+  "file": "./tests/quality/test_doc_machine_check.py",
+  "line": 50,
+  "fn": "test_01_rename_function_fails"
+ },
+ {
+  "file": "./tests/quality/test_doc_machine_check.py",
+  "line": 58,
+  "fn": "test_02_delete_registration_row_fails"
+ },
+ {
+  "file": "./tests/quality/test_doc_machine_check.py",
+  "line": 67,
+  "fn": "test_03_signature_change_fails"
+ },
+ {
+  "file": "./tests/quality/test_doc_machine_check.py",
+  "line": 75,
+  "fn": "test_04_exit_code_remove_fails"
+ },
+ {
+  "file": "./tests/quality/test_doc_machine_check.py",
+  "line": 88,
+  "fn": "test_05_command_tree_mutation_fails"
+ },
+ {
+  "file": "./tests/quality/test_doc_machine_check.py",
+  "line": 105,
+  "fn": "test_06_schema_field_mutation_fails"
+ },
+ {
+  "file": "./tests/monitoring/test_monitor_contract.py",
+  "line": 381,
+  "fn": "test_windows_stub_not_available_and_raises"
+ },
+ {
+  "file": "./tests/monitoring/test_run_graph_render.py",
+  "line": 337,
+  "fn": "test_call_count_tamper_detected"
+ },
+ {
+  "file": "./tests/monitoring/test_run_graph_render.py",
+  "line": 349,
+  "fn": "test_artifact_hash_tamper_detected"
+ },
+ {
+  "file": "./tests/monitoring/test_run_graph_render.py",
+  "line": 360,
+  "fn": "test_status_tamper_detected"
+ },
+ {
+  "file": "./tests/cli/test_phase2_inprocess.py",
+  "line": 122,
+  "fn": "test_04_error_mapping"
+ },
+ {
+  "file": "./tests/cli/test_cli_v7_surface.py",
+  "line": 158,
+  "fn": "test_04_version_rejects_unknown_flag"
+ },
+ {
+  "file": "./tests/cli/test_cli_v7_surface.py",
+  "line": 275,
+  "fn": "test_06_unknown_command_nonzero"
+ },
+ {
+  "file": "./tests/cli/test_cli_v7_surface.py",
+  "line": 411,
+  "fn": "test_07_selftest_rejects_unknown_flag"
+ },
+ {
+  "file": "./tests/cli/test_cli001_vpi.py",
+  "line": 251,
+  "fn": "test_11_plan_zero_io_and_error"
+ },
+ {
+  "file": "./tests/cli/test_phase3_inprocess.py",
+  "line": 118,
+  "fn": "test_02_rejected_projection_returns_2"
+ },
+ {
+  "file": "./tests/cli/test_phase3_inprocess.py",
+  "line": 127,
+  "fn": "test_03_rejected_center_near_pole"
+ },
+ {
+  "file": "./tests/cli/test_phase3_inprocess.py",
+  "line": 135,
+  "fn": "test_04_rejected_scale_bounds"
+ },
+ {
+  "file": "./tests/cli/test_phase3_inprocess.py",
+  "line": 202,
+  "fn": "test_08_run_resume_hash_mismatch"
+ },
+ {
+  "file": "./tests/cli/test_phase3_inprocess.py",
+  "line": 293,
+  "fn": "test_10_coverage_requires_filter_and_nested_ordering"
+ },
+ {
+  "file": "./tests/cli/test_monitor_events.py",
+  "line": 84,
+  "fn": "test_01_resource_detail_flag_accepted"
+ },
+ {
+  "file": "./tests/cli/test_phase123_pipeline.py",
+  "line": 324,
+  "fn": "test_07_resume_hash_mismatch"
+ },
+ {
+  "file": "./tests/cli/test_phase123_pipeline.py",
+  "line": 339,
+  "fn": "test_08_run_graphs"
+ },
+ {
+  "file": "./tests/cli/test_cli_build.py",
+  "line": 73,
+  "fn": "test_04_unknown_command_exit_2"
+ },
+ {
+  "file": "./tests/cli/test_cli003_semantics.py",
+  "line": 237,
+  "fn": "test_11_verify_is_recompute_only_no_io_no_rerun"
+ },
+ {
+  "file": "./tests/cli/test_bench_cli.py",
+  "line": 157,
+  "fn": "test_08_verify_profile_negative"
+ },
+ {
+  "file": "./tests/cli/test_cli004_process_protocol.py",
+  "line": 147,
+  "fn": "test_01_harness_stream_contract_failure_path"
+ },
+ {
+  "file": "./tests/cli/test_cli_protocol.py",
+  "line": 103,
+  "fn": "test_03_parser_rejects"
+ },
+ {
+  "file": "./tests/cli/test_cli_protocol.py",
+  "line": 279,
+  "fn": "test_02_missing_schema_version_is_input_error"
+ },
+ {
+  "file": "./tests/cli/test_cli_protocol.py",
+  "line": 298,
+  "fn": "test_06_show_effective_stale_profile_5"
+ },
+ {
+  "file": "./tests/cli/test_cli_protocol.py",
+  "line": 342,
+  "fn": "test_09_verify_happy_path_and_mutations"
+ },
+ {
+  "file": "./tests/cli/test_iso_acr_gpu_isolation.py",
+  "line": 106,
+  "fn": "test_03_config_requests_acr_gpu_rejected"
+ },
+ {
+  "file": "./tests/cli/test_iso_acr_gpu_isolation.py",
+  "line": 155,
+  "fn": "test_06_phase3_manifest_no_acr_gpu"
+ },
+ {
+  "file": "./tests/cli/test_phase1_inprocess.py",
+  "line": 147,
+  "fn": "test_04_error_mapping"
+ },
+ {
+  "file": "./tests/cli/test_phase1_inprocess.py",
+  "line": 202,
+  "fn": "test_07_empty_input_lights_fail_closed"
+ },
+ {
+  "file": "./tests/cli/test_phase1_inprocess.py",
+  "line": 218,
+  "fn": "test_08_drizzle_nested_default_and_precision_required"
+ },
+ {
+  "file": "./tests/cli/test_phase1_inprocess.py",
+  "line": 260,
+  "fn": "test_10_invalid_master_flat_fail_closed"
+ },
+ {
+  "file": "./lib/calibration/tests/p1cal/p1cal_tests_selfcheck.cpp",
+  "line": 24,
+  "fn": "run_selfcheck"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+  "line": 34,
+  "fn": "run_child_phase"
+ },
+ {
+  "file": "./lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp",
+  "line": 193,
+  "fn": "group_properties"
+ },
+ {
+  "file": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+  "line": 299,
+  "fn": "test_s2_valid_root_with_injected_lib_succeeds"
+ },
+ {
+  "file": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+  "line": 325,
+  "fn": "test_s2b_valid_root_without_injected_lib_fails_closed"
+ },
+ {
+  "file": "./lib/gaia_xpsd_client/tests/test_gaia_zlib_configure_contract.py",
+  "line": 360,
+  "fn": "test_s4_fault_injection_without_acs_zlib_lib_consumption"
+ },
+ {
+  "file": "./lib/star_detector/tests/p1star/p1star_tests_core.cpp",
+  "line": 526,
+  "fn": "oom_child_main"
+ },
+ {
+  "file": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+  "line": 38,
+  "fn": "run_injected_child"
+ },
+ {
+  "file": "./lib/star_detector/tests/p1star/p1star_tests_selfcheck.cpp",
+  "line": 63,
+  "fn": "run_selfcheck"
+ },
+ {
+  "file": "./lib/dynamic_psf/tests/p1psf/p1psf_tests_selfcheck.cpp",
+  "line": 25,
+  "fn": "run_selfcheck"
+ },
+ {
+  "file": "./lib/dynamic_psf/tests/p1psf/p1psf_tests_core.cpp",
+  "line": 625,
+  "fn": "test_negative"
+ },
+ {
+  "file": "./lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp",
+  "line": 1509,
+  "fn": "test_part6_json_entry_stage1_execution"
+ },
+ {
+  "file": "./lib/snr_estimator/tests/p1noise/p1noise_tests_selfcheck.cpp",
+  "line": 31,
+  "fn": "run_selfcheck"
+ },
+ {
+  "file": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+  "line": 43,
+  "fn": "run_injected_child"
+ },
+ {
+  "file": "./lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp",
+  "line": 68,
+  "fn": "run_selfcheck"
+ },
+ {
+  "file": "./lib/phase2/tests/synthetic_gate.cpp",
+  "line": 5015,
+  "fn": "permute_upm_file"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/hiss_experiments.cpp",
+  "line": 414,
+  "fn": "measure_compress_decompress"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_drizzle_integration.cpp",
+  "line": 363,
+  "fn": "test_07_lz4_roundtrip"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_drizzle_integration.cpp",
+  "line": 466,
+  "fn": "test_08_zstd_roundtrip"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/dataflow_fuzz.cpp",
+  "line": 91,
+  "fn": "fuzz_cache"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/dataflow_fuzz.cpp",
+  "line": 275,
+  "fn": "fuzz_snr_model"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/hiss_experiment_suite.cpp",
+  "line": 219,
+  "fn": "register_all_zstd_variants"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_checksum.cpp",
+  "line": 137,
+  "fn": "test_01_crc32c_roundtrip"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/test_precision_dual.cpp",
+  "line": 491,
+  "fn": "test_05_precision_difference"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+  "line": 523,
+  "fn": "test_diag_prov_negative"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+  "line": 848,
+  "fn": "dp_scenario_declared_missing"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp",
+  "line": 870,
+  "fn": "test_diag_prov_selfcheck"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+  "line": 36,
+  "fn": "run_injected_child"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp",
+  "line": 73,
+  "fn": "run_selfcheck"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+  "line": 365,
+  "fn": "negative_param_domain"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+  "line": 438,
+  "fn": "negative_provenance_params"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+  "line": 505,
+  "fn": "negative_verify_tamper"
+ },
+ {
+  "file": "./lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp",
+  "line": 571,
+  "fn": "selfcheck_injection"
+ },
+ {
+  "file": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+  "line": 36,
+  "fn": "run_injected_child"
+ },
+ {
+  "file": "./lib/photometric_calib/tests/p1phot/p1phot_tests_selfcheck.cpp",
+  "line": 72,
+  "fn": "run_selfcheck"
+ },
+ {
+  "file": "./lib/cosmetic/tests/p1cos/p1cos_tests_selfcheck.cpp",
+  "line": 26,
+  "fn": "run_selfcheck"
+ },
+ {
+  "file": "./ci/tests/test_ci001b_wf_step.py",
+  "line": 119,
+  "fn": "test_tampered_candidate_fails"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 227,
+  "fn": "test_invalid_json_registry_rejected_exit2"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 259,
+  "fn": "test_forged_pass_real_fail_still_fail"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 324,
+  "fn": "test_summary_recomputed_from_execution"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 348,
+  "fn": "test_workspace_mutation_rejected_fail_dirty"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 385,
+  "fn": "test_unregistered_relative_script_rejected_by_r4"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 409,
+  "fn": "test_pull_request_trigger_rejected"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 416,
+  "fn": "test_workflow_dispatch_trigger_rejected"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 439,
+  "fn": "test_tampered_lock_short_sha_rejected"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 470,
+  "fn": "test_registry_j4_argument_rejected_r9"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 482,
+  "fn": "test_registry_threads_argument_rejected_r9"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 526,
+  "fn": "test_heavy_without_monitor_rejected_r7"
+ },
+ {
+  "file": "./ci/tests/test_negative_guards.py",
+  "line": 538,
+  "fn": "test_heavy_in_fast_profile_rejected_r8"
+ },
+ {
+  "file": "./ci/tests/test_windows_ci.py",
+  "line": 150,
+  "fn": "test_stage_parsing_canonical_dedupe_and_reject"
+ },
+ {
+  "file": "./ci/tests/test_windows_ci.py",
+  "line": 375,
+  "fn": "test_runner_skips_windows_checks_on_linux"
+ },
+ {
+  "file": "./ci/tests/test_ci001b_binding.py",
+  "line": 137,
+  "fn": "test_live_repo_scope_is_two_workflows"
+ },
+ {
+  "file": "./ci/tests/test_ctest_registration.py",
+  "line": 83,
+  "fn": "test_unregistered_new_add_test_fails"
+ },
+ {
+  "file": "./ci/tests/test_ci001_failclosed.py",
+  "line": 212,
+  "fn": "test_evidence_without_frozen_gate_fails_closed"
+ },
+ {
+  "file": "./ci/tests/test_ci001_failclosed.py",
+  "line": 251,
+  "fn": "test_evidence_with_contradicted_gate_fail_fails_closed"
+ },
+ {
+  "file": "./ci/tests/test_ci001_failclosed.py",
+  "line": 271,
+  "fn": "test_evidence_with_illegal_verdict_fails_closed"
+ },
+ {
+  "file": "./ci/tests/test_ci001_failclosed.py",
+  "line": 289,
+  "fn": "test_evidence_without_monitor_samples_fails_closed"
+ },
+ {
+  "file": "./ci/tests/test_runner_selection.py",
+  "line": 196,
+  "fn": "test_changed_from_unmapped_path_empty_fails"
+ },
+ {
+  "file": "./ci/tests/test_runner_execution.py",
+  "line": 117,
+  "fn": "test_sigterm_yields_signal_verdict"
+ },
+ {
+  "file": "./ci/tests/test_runner_execution.py",
+  "line": 147,
+  "fn": "test_dirty_violation_for_non_mutating_check"
+ },
+ {
+  "file": "./ci/tests/test_workflow_lock.py",
+  "line": 86,
+  "fn": "test_rejects_short_sha"
+ },
+ {
+  "file": "./ci/tests/test_workflow_lock.py",
+  "line": 97,
+  "fn": "test_rejects_duplicate_entry"
+ },
+ {
+  "file": "./ci/tests/test_workflow_lock.py",
+  "line": 108,
+  "fn": "test_rejects_missing_field"
+ },
+ {
+  "file": "./ci/tests/test_workflow_lock.py",
+  "line": 171,
+  "fn": "test_windows_candidate_gate_is_registry_bound"
+ },
+ {
+  "file": "./ci/tests/test_workflow_lock.py",
+  "line": 297,
+  "fn": "test_bad_sha_format_exit3"
+ },
+ {
+  "file": "./ci/tests/test_workflow_lock.py",
+  "line": 516,
+  "fn": "test_sums_hash_mismatch_rejected"
+ }
+]
