@@ -97,4 +97,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             $<TARGET_FILE:p1drz_thread_probe>
             ${CMAKE_CURRENT_BINARY_DIR}/p1drz_taskset_work)
   set_tests_properties(p1drz_taskset_invariance PROPERTIES TIMEOUT 900)
+
+  # P22: 池化归约流水线不变式锁 (高瘦帧 256x1024 = 64 stripe, FP32/FP64,
+  # taskset 1/2/4/8/16 x 两轮重复; 覆盖池耗尽/归还与跨线程归约归属)。
+  add_test(NAME p1drz_merge_pipeline_lock
+    COMMAND bash ${P1DRZ_DIR}/p1drz_merge_pipeline_lock.sh
+            $<TARGET_FILE:p1drz_thread_probe>
+            ${CMAKE_CURRENT_BINARY_DIR}/p1drz_merge_work)
+  set_tests_properties(p1drz_merge_pipeline_lock PROPERTIES TIMEOUT 900)
 endif()
