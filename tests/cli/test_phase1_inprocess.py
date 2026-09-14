@@ -7,6 +7,9 @@ EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "cli", "astr
 REGISTRY = os.path.join(REPO, "runtime", "pipeline", "module_ports.registry.json")
 FIX = "/tmp/astrocs_p1_fixture"   # 由 setUpClass 编译
 
+# FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+
 
 def frozen_phase1_chain():
     """module_ports.registry.json 冻结的 phase1 端口链 (module_id 顺序)。"""
@@ -61,7 +64,7 @@ class TestPhase1InProcess(unittest.TestCase):
         os.makedirs(cls.data)
         os.makedirs(cls.out)
         r = subprocess.run([cls.fixture, "--make", cls.data], capture_output=True, text=True,
-                           timeout=120)
+                           timeout=120, cwd=run_cwd())
         assert "FIXTURES_OK" in r.stdout, r.stderr
         cls.cfg = os.path.join(cls.tmp, "cfg.json")
         # FIX-E2E B1-A1: 正式 phase1 链为 8 节点（cal→cos→psf→wcs→phot→snr→drz→wr）,
@@ -85,7 +88,7 @@ class TestPhase1InProcess(unittest.TestCase):
 
     def _run(self, *args, **kw):
         return subprocess.run([EXE, *args], capture_output=True, text=True,
-                              timeout=kw.pop("timeout", 120), **kw)
+                              timeout=kw.pop("timeout", 120), cwd=run_cwd(), **kw)
 
     def test_01_run_complete_events_manifest_verify(self):
         r = self._run("phase1", "run", "--config", self.cfg, "--events-jsonl")
@@ -119,7 +122,7 @@ class TestPhase1InProcess(unittest.TestCase):
         """数值 Oracle: (200-bias-k*(dark-bias))/flat = (200-100-50)/1.25 = 40(精确)。"""
         for f in ("calibrated_light_1.fits", "calibrated_light_2.fits"):
             r = subprocess.run([self.fixture, "--mean", os.path.join(self.out, f)],
-                               capture_output=True, text=True, timeout=60)
+                               capture_output=True, text=True, timeout=60, cwd=run_cwd())
             m = re.search(r"MEAN ([\d.]+)", r.stdout)
             self.assertIsNotNone(m)
             self.assertAlmostEqual(float(m.group(1)), 40.0, places=4, msg=f)
@@ -128,7 +131,8 @@ class TestPhase1InProcess(unittest.TestCase):
         """验收核心: 运行中进程树无子进程(取消钩子窗口内检查 /proc/<pid>/task/*/children)。"""
         env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="2500")
         p = subprocess.Popen([EXE, "phase1", "run", "--config", self.cfg, "--events-jsonl"],
-                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env)
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
+                             cwd=run_cwd())
         time.sleep(0.8)
         children = []
         task_dir = f"/proc/{p.pid}/task"
@@ -156,7 +160,7 @@ class TestPhase1InProcess(unittest.TestCase):
         self.assertEqual(r2.returncode, 3)
         # master 尺寸不匹配 → 2(PARAM→ARGS); 造一个 32x32 的 master
         small = subprocess.run([self.fixture, "--make", self.data], capture_output=True,
-                               timeout=60)  # noop 复用
+                               timeout=60, cwd=run_cwd())  # noop 复用
         cfg3 = os.path.join(self.tmp, "cfg3.json")
         # FIX-E2E B1-A1: 无 master 校准路径仍合法, 但正式 8 节点链要求 drizzle/wcs 配置。
         json.dump({"input_lights": [os.path.join(self.data, "light_1.fits")],
@@ -172,7 +176,8 @@ class TestPhase1InProcess(unittest.TestCase):
     def test_05_cancel_mid_run(self):
         env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="3000")
         p = subprocess.Popen([EXE, "phase1", "run", "--config", self.cfg, "--events-jsonl"],
-                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env)
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
+                             cwd=run_cwd())
         time.sleep(0.6)
         p.send_signal(signal.SIGINT)
         out, _ = p.communicate(timeout=30)
@@ -263,7 +268,7 @@ class TestPhase1InProcess(unittest.TestCase):
         bad_dir = os.path.join(self.tmp, "badflat")
         os.makedirs(bad_dir, exist_ok=True)
         r0 = subprocess.run([self.fixture, "--make-bad-flat", bad_dir],
-                            capture_output=True, text=True, timeout=120)
+                            capture_output=True, text=True, timeout=120, cwd=run_cwd())
         self.assertIn("BAD_FLATS_OK", r0.stdout, r0.stderr)
         for name in ("flat_zero.fits", "flat_neg.fits", "flat_nan.fits"):
             bad = os.path.join(bad_dir, name)

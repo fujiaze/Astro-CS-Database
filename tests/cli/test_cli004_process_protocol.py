@@ -16,6 +16,9 @@ import json, os, re, shutil, signal, subprocess, tempfile, time, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EXE = os.path.join(REPO, "build", "cli", "astrocs")
 CLI_DIR = os.path.join(REPO, "cli")
+
+# FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
 SCHEMA = os.path.join(REPO, "contracts", "schemas", "jsonl_event_v1.schema.json")
 
 # §4 冻结 kind 扩展字段(独立重实现 — 与 cli/protocol.h 生产侧互为对偶)
@@ -111,7 +114,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         cls.data = os.path.join(cls.tmp, "data")
         os.makedirs(cls.data)
         r = subprocess.run([cls.fixture, "--make", cls.data], capture_output=True,
-                           text=True, timeout=120)
+                           text=True, timeout=120, cwd=run_cwd())
         assert "FIXTURES_OK" in r.stdout, r.stderr
 
     @classmethod
@@ -147,7 +150,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         errf = os.path.join(self.tmp, "o1_stderr.txt")
         with open(errf, "w") as ef:
             p = subprocess.Popen([EXE, "phase1", "run", "--config", cfg, "--events-jsonl"],
-                                 stdout=subprocess.PIPE, stderr=ef, text=True)
+                                 stdout=subprocess.PIPE, stderr=ef, text=True, cwd=run_cwd())
             events, raw = [], []
             for line in p.stdout:          # 真流式: 逐行读取(非 communicate 后解析)
                 raw.append(line)
@@ -187,7 +190,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         cfg = self._cfg(out, [os.path.join(self.data, "light_1.fits"),
                               os.path.join(self.data, "light_2.fits")])
         r = subprocess.run([EXE, "phase1", "run", "--config", cfg, "--events-jsonl"],
-                           capture_output=True, text=True, timeout=300)
+                           capture_output=True, text=True, timeout=300, cwd=run_cwd())
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
         events = jsonl_lines(r.stdout)
         for i, ev in enumerate(events):
@@ -215,7 +218,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         self.assertEqual(man["status"], "complete")
         self.assertEqual(man["run_id"], fin["run_id"])
         v = subprocess.run([EXE, "verify", "--run-manifest", mf["path"], "--json"],
-                           capture_output=True, text=True, timeout=60)
+                           capture_output=True, text=True, timeout=60, cwd=run_cwd())
         self.assertEqual(v.returncode, 0, v.stderr[-200:])
 
     # ── 3. 外部 harness: 取消 → 9 + cancelled + 恢复读取 incomplete manifest ──
@@ -225,7 +228,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="8000")
         p = subprocess.Popen([EXE, "phase1", "run", "--config", cfg, "--events-jsonl"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                             env=env)
+                             cwd=run_cwd(), env=env)
         time.sleep(0.5)
         p.send_signal(signal.SIGINT)
         out_s, err_s = p.communicate(timeout=30)
@@ -244,7 +247,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         self.assertEqual(man["status"], "incomplete")
         self.assertEqual(man["run_id"], fin["run_id"])
         v = subprocess.run([EXE, "verify", "--run-manifest", mf[-1]["path"], "--json"],
-                           capture_output=True, text=True, timeout=60)
+                           capture_output=True, text=True, timeout=60, cwd=run_cwd())
         self.assertEqual(v.returncode, 8, "incomplete manifest verify → 8")
 
     # ── 4. run directory 布局合同 ──
@@ -252,7 +255,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         out = os.path.join(self.tmp, "o4"); os.makedirs(out)
         cfg = self._empty_cfg(out)
         r = subprocess.run([EXE, "phase1", "run", "--config", cfg, "--events-jsonl"],
-                           capture_output=True, text=True, timeout=120)
+                           capture_output=True, text=True, timeout=120, cwd=run_cwd())
         events = jsonl_lines(r.stdout)
         mf = [e for e in events if e["kind"] == "artifact" and e.get("role") == "run_manifest"][-1]
         self.assertEqual(os.path.dirname(os.path.abspath(mf["path"])),
@@ -269,13 +272,13 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         # 负向: 未知协议旗标混入 → 2, stdout 无输出(无污染)
         r = subprocess.run([EXE, "phase1", "run", "--config", cfg,
                             "--events-jsonl", "--json"],
-                           capture_output=True, text=True, timeout=60)
+                           capture_output=True, text=True, timeout=60, cwd=run_cwd())
         self.assertEqual(r.returncode, 2)
         self.assertEqual(r.stdout, "")
         self.assertIn("astrocs:", r.stderr)
         # 负向: 非 events 模式 stdout 是人类文本, 不混 JSONL 事件流
         r2 = subprocess.run([EXE, "phase1", "run", "--config", cfg],
-                            capture_output=True, text=True, timeout=120)
+                            capture_output=True, text=True, timeout=120, cwd=run_cwd())
         self.assertEqual(r2.returncode, 2)
         self.assertNotIn('"kind"', r2.stdout)
         self.assertRegex(os.path.basename(r2.stdout.strip()), r"^astrocs_run_[0-9a-f]{12}\.json$")

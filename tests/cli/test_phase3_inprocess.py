@@ -6,6 +6,9 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 EXE = os.path.join(REPO, "build", "cli", "astrocs")
 AIO = os.path.join(REPO, "lib", "astro_image_io")
 
+# FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+
 
 def cfitsio_objs(tmp):
     objs = []
@@ -52,7 +55,7 @@ class TestPhase3InProcess(unittest.TestCase):
         os.makedirs(cls.out)
         # 每 tile 常量 1..12 的 field
         r = subprocess.run([cls.fixture, "--make-field", cls.data], capture_output=True,
-                           text=True, timeout=300)
+                           text=True, timeout=300, cwd=run_cwd())
         assert "HIPS_FIXTURES_OK" in r.stdout, r.stderr
         cls.hips = os.path.join(cls.data, "FIELD.hips")
         cls.cfg = os.path.join(cls.tmp, "cfg.json")
@@ -73,7 +76,7 @@ class TestPhase3InProcess(unittest.TestCase):
 
     def _run(self, *args, **kw):
         return subprocess.run([EXE, *args], capture_output=True, text=True,
-                              timeout=kw.pop("timeout", 300), **kw)
+                              timeout=kw.pop("timeout", 300), cwd=run_cwd(), **kw)
 
     def test_01_production_route_complete(self):
         """实际生产函数路由: properties→WCS→sampling→原子FITS; 事件+manifest complete。"""

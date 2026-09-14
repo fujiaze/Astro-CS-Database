@@ -26,6 +26,9 @@ CLI = os.path.join(REPO, "cli")
 BUILD = os.path.join(REPO, "build", "cli")
 EXE = os.path.join(BUILD, "astrocs")
 
+# FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+
 
 def built():
     if not os.path.isfile(EXE):
@@ -42,7 +45,7 @@ def run(*args, cwd=None, env=None, timeout=60):
         e.update(env)
     return subprocess.run([built(), *args], capture_output=True, text=True,
                           encoding="utf-8", errors="replace", timeout=timeout,
-                          cwd=cwd, env=e)
+                          cwd=cwd if cwd is not None else run_cwd(), env=e)
 
 
 def jsonl_lines(stdout):

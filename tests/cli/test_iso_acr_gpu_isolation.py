@@ -10,6 +10,9 @@ BUILD = os.path.join(REPO, "build", "cli")
 EXE = os.path.join(BUILD, "astrocs")
 AIO = os.path.join(REPO, "lib", "astro_image_io")
 
+# FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+
 # ACR/GPU/Mixed 关联标识(禁词); "mixed" 作为资源类别在 gate/events 中合法, 但不得作为生产后端选路。
 ACR_GPU_TERMS = re.compile(
     r'\b(acr|cuda|gpu_route|cuda_bridge|device_executor|kernel_registry|mosaic_reject_cuda|'
@@ -63,7 +66,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
                 data = os.path.join(cls.tmp, "data")
                 os.makedirs(data)
                 r2 = subprocess.run([fixture, "--make-field", data], capture_output=True,
-                                    text=True, timeout=300)
+                                    text=True, timeout=300, cwd=run_cwd())
                 if "HIPS_FIXTURES_OK" in r2.stdout:
                     cls.hips = os.path.join(data, "FIELD.hips")
 
@@ -116,7 +119,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
             json.dump(cfg, open(cp, "w"))
             # CLI-002: run --phases 3 已移除 → phase3 run 单相入口(等价拒绝面)
             r = subprocess.run([EXE, "phase3", "run", "--config", cp],
-                               capture_output=True, text=True, timeout=120)
+                               capture_output=True, text=True, timeout=120, cwd=run_cwd())
             self.assertNotEqual(r.returncode, 0, f"{bad} 应被拒绝")
             self.assertIn("unknown key", r.stderr, f"{bad} 拒绝信息应为明确错误而非静默 fallback")
             self.assertEqual(r.returncode, 3, f"{bad} 应为 exit 3(INPUT)")
@@ -140,7 +143,8 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
         if not os.path.isfile(os.path.join(BUILD, "astrocs")):
             self.skipTest("无 built CLI")
         # 用 CLI 自身 inspect 后端清单, 校验 id 均为 CPU 变体
-        r = subprocess.run([EXE, "doctor", "--json"], capture_output=True, text=True, timeout=60)
+        r = subprocess.run([EXE, "doctor", "--json"], capture_output=True, text=True,
+                           timeout=60, cwd=run_cwd())
         self.assertEqual(r.returncode, 0, r.stderr)
         doc = json.loads(r.stdout)
         backends = doc.get("backends", [])
@@ -166,7 +170,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
                               "coverage_output": "mask", "max_tiles": 64}},
                   open(cfg, "w"))
         r = subprocess.run([EXE, "phase3", "run", "--config", cfg],
-                           capture_output=True, text=True, timeout=300)
+                           capture_output=True, text=True, timeout=300, cwd=run_cwd())
         if r.returncode != 0:
             self.skipTest(f"phase3 run 未成功: {r.stderr[-200:]}")
         mf = os.path.join(out, "run_manifest.json")

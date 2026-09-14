@@ -6,12 +6,16 @@ header 解析直连; drizzle 命令拒绝生产调用(仅测试 preset); wrapper
 """
 import json
 import os
+import shutil
 import subprocess
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EXE = os.path.join(REPO, "build", "astrocs")
 CLI_DIR = os.path.join(REPO, "cli")
+
+# FIX-UTCLI-HYGIENE: 子进程 cwd / 证据落点统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
 
 
 class TestP1003DrizzlePath(unittest.TestCase):
@@ -37,7 +41,8 @@ class TestP1003DrizzlePath(unittest.TestCase):
         """cmd_drizzle 拒绝生产调用(仅测试 preset), 退出码 ARGS(2)。"""
         if not os.path.isfile(EXE):
             self.skipTest("CLI 二进制缺失")
-        r = subprocess.run([EXE, "drizzle"], capture_output=True, text=True, timeout=60)
+        r = subprocess.run([EXE, "drizzle"], capture_output=True, text=True, timeout=60,
+                           cwd=run_cwd())
         self.assertEqual(r.returncode, 2, r.stderr)
         self.assertIn("preset", r.stderr)
 
@@ -52,8 +57,22 @@ class TestP1003DrizzlePath(unittest.TestCase):
         cc = os.path.join(REPO, "build", "compile_commands.json")
         if not os.path.isfile(cc):
             self.skipTest("compile_commands.json 缺失(checker 依赖)")
+        # FIX-UTCLI-HYGIENE: checker 把可达图证据硬写到
+        # <repo>/evidence/v6_1_rework/tasks/CHK-001/（tracked 受控文件，
+        # tools/quality/check_prod_reachability.py:140）。UT-CLI 以
+        # mutates_workspace=false 执行，重写 tracked evidence 即 dirty 违规，而
+        # checker 无输出目录开关（产品域禁改）。测试侧用 run/ 下 scratch repo 视图：
+        # 只读符号链接 cli/include/lib（checker 扫描面与真 repo 逐字节一致）+
+        # 本地 evidence/ 输出目录；checker 的读取与判定完全不变，仅证据落点进入
+        # gitignore 的 run/。
+        scratch = os.path.join(run_cwd(), "reach_scratch")
+        shutil.rmtree(scratch, ignore_errors=True)
+        os.makedirs(scratch)
+        for sub in ("cli", "include", "lib"):
+            os.symlink(os.path.join(REPO, sub), os.path.join(scratch, sub))
         r = subprocess.run(
-            ["python3", checker, "--repo", REPO, "--binary", EXE],
+            ["python3", checker, "--repo", scratch, "--binary", EXE,
+             "--compile-commands", cc],
             capture_output=True, text=True, timeout=180)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("REACH_PASS", r.stdout)

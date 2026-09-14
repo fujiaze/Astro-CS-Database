@@ -5,6 +5,10 @@ import json, os, re, shutil, subprocess, tempfile, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CLI = os.path.join(REPO, "cli")
 
+# FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+
+
 def _repo_version():
     """版本单源: 根 VERSION 文件(cli/CMakeLists.txt 与 tools/gen_version.py 同源读取)。"""
     with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as fh:
@@ -42,7 +46,8 @@ class TestCliBuild(unittest.TestCase):
         shutil.rmtree(cls.bdir, ignore_errors=True)
 
     def run_cli(self, *args):
-        return subprocess.run([self.exe, *args], capture_output=True, text=True, timeout=30)
+        return subprocess.run([self.exe, *args], capture_output=True, text=True, timeout=30,
+                              cwd=run_cwd())
 
     def test_01_version_format(self):
         r = self.run_cli("--version")

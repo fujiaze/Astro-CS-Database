@@ -6,6 +6,9 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 EXE = os.path.join(REPO, "build", "cli", "astrocs")
 AIO = os.path.join(REPO, "lib", "astro_image_io")
 
+# FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+
 
 def cfitsio_objs(tmp):
     objs = []
@@ -51,7 +54,7 @@ class TestPhase2InProcess(unittest.TestCase):
         cls.out = os.path.join(cls.tmp, "out")
         os.makedirs(cls.out)
         r = subprocess.run([cls.fixture, "--make", cls.data], capture_output=True, text=True,
-                           timeout=300)
+                           timeout=300, cwd=run_cwd())
         assert "HIPS_FIXTURES_OK" in r.stdout, r.stderr
         cls.cfg = os.path.join(cls.tmp, "cfg.json")
         json.dump({
@@ -66,7 +69,7 @@ class TestPhase2InProcess(unittest.TestCase):
 
     def _run(self, *args, **kw):
         return subprocess.run([EXE, *args], capture_output=True, text=True,
-                              timeout=kw.pop("timeout", 300), **kw)
+                              timeout=kw.pop("timeout", 300), cwd=run_cwd(), **kw)
 
     def test_01_production_route_complete(self):
         """实际生产函数路由: coverage→sample→UPM; 事件+manifest complete+verify。"""
@@ -103,7 +106,8 @@ class TestPhase2InProcess(unittest.TestCase):
     def test_03_no_subprocess(self):
         env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="2500")
         p = subprocess.Popen([EXE, "phase2", "run", "--config", self.cfg, "--events-jsonl"],
-                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env)
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
+                             cwd=run_cwd())
         time.sleep(0.8)
         children = []
         task_dir = f"/proc/{p.pid}/task"
@@ -138,7 +142,8 @@ class TestPhase2InProcess(unittest.TestCase):
     def test_05_cancel_mid_run(self):
         env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="3000")
         p = subprocess.Popen([EXE, "phase2", "run", "--config", self.cfg, "--events-jsonl"],
-                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env)
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
+                             cwd=run_cwd())
         time.sleep(0.6)
         p.send_signal(signal.SIGINT)
         out, _ = p.communicate(timeout=30)

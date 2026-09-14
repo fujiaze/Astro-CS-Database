@@ -22,6 +22,9 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "cli", "astrocs"))
 AIO = os.path.join(REPO, "lib", "astro_image_io")
 
+# FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+
 SKIP_FITS = r"f77_wrap|drvrgsiftp|drvrsmem|smem|vms|windumpexts|iter_[abc]|" \
             r"cookbook|speed_test|fpack|funpack|fitscopy|listhead|liststruc|" \
             r"imcopy|imarith|tabcompile|sortcol|tabselect"
@@ -97,16 +100,18 @@ class TestPhase123Pipeline(unittest.TestCase):
                         *_aio_srcs(), *objs, "-lz", "-lzstd", "-llz4", "-o", cls.p2],
                        capture_output=True, text=True, timeout=600)
         cls.p1data = os.path.join(cls.tmp, "p1data"); os.makedirs(cls.p1data)
-        r = subprocess.run([cls.p1, "--make", cls.p1data], capture_output=True, text=True, timeout=120)
+        r = subprocess.run([cls.p1, "--make", cls.p1data], capture_output=True, text=True,
+                           timeout=120, cwd=run_cwd())
         assert "FIXTURES_OK" in r.stdout, r.stderr
         # 含 variance/ivar 的 Phase2 fixture (B1-A5 真实不确定度面正例)
         cls.hips = os.path.join(cls.tmp, "hips"); os.makedirs(cls.hips)
         for m in ("--make", "--make-field", "--make-nan"):
-            subprocess.run([cls.p2, m, cls.hips], capture_output=True, text=True, timeout=120)
+            subprocess.run([cls.p2, m, cls.hips], capture_output=True, text=True, timeout=120,
+                           cwd=run_cwd())
         # 无 ivar 的 Phase2 fixture (默认 weight_mode=2 负例)
         cls.noivar = os.path.join(cls.tmp, "noivar"); os.makedirs(cls.noivar)
         subprocess.run([cls.p2, "--make-noivar", cls.noivar], capture_output=True,
-                       text=True, timeout=120)
+                       text=True, timeout=120, cwd=run_cwd())
         # 逐帧 Phase1 持久化产品目录
         cls.p1a = os.path.join(cls.tmp, "p1_light1"); os.makedirs(cls.p1a)
         cls.p1b = os.path.join(cls.tmp, "p1_light2"); os.makedirs(cls.p1b)
@@ -152,7 +157,7 @@ class TestPhase123Pipeline(unittest.TestCase):
 
     def _run(self, phase_cmd, cfg, timeout=300):
         return subprocess.run([EXE, phase_cmd, "run", "--config", cfg, "--events-jsonl"],
-                              capture_output=True, text=True, timeout=timeout)
+                              capture_output=True, text=True, timeout=timeout, cwd=run_cwd())
 
     @staticmethod
     def _artifact_names(man):
@@ -184,7 +189,7 @@ class TestPhase123Pipeline(unittest.TestCase):
             self.assertGreater(a["size_bytes"], 0, a["path"])
         mf = manifest_event(jsonl_lines(r.stdout))["path"]
         v = subprocess.run([EXE, "verify", "--json", "--run-manifest", mf],
-                           capture_output=True, text=True, timeout=120)
+                           capture_output=True, text=True, timeout=120, cwd=run_cwd())
         self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
         return man
 
@@ -209,7 +214,7 @@ class TestPhase123Pipeline(unittest.TestCase):
             self.assertTrue(os.path.isfile(os.path.join(out, "signal", "properties")),
                             "Phase1 必须持久化 IVOA HiPS signal/properties")
             rr = subprocess.run([self.p1, "--mean", os.path.join(out, "calibrated_light_%d.fits" % idx)],
-                                capture_output=True, text=True, timeout=60)
+                                capture_output=True, text=True, timeout=60, cwd=run_cwd())
             mv = re.search(r"MEAN ([\d.]+)", rr.stdout)
             self.assertIsNotNone(mv)
             # (200-100-1*(150-100))/1.25 = 40 精确
@@ -306,7 +311,8 @@ class TestPhase123Pipeline(unittest.TestCase):
         cfg = self._p3_cfg(out, os.path.join(self.hips, "FIELD.hips"))
         env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="4000")
         p = subprocess.Popen([EXE, "phase3", "run", "--config", cfg, "--events-jsonl"],
-                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env)
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
+                             cwd=run_cwd())
         time.sleep(1.0)
         p.send_signal(signal.SIGINT)
         p.wait(timeout=60)
@@ -357,12 +363,12 @@ class TestPhase123Pipeline(unittest.TestCase):
                             "--ir", os.path.join(gdir, "static_graph.json"),
                             "--module-index", mods,
                             "--trace", os.path.join(gdir, "observed_trace.json")],
-                           capture_output=True, text=True, timeout=120)
+                           capture_output=True, text=True, timeout=120, cwd=run_cwd())
         self.assertEqual(c.returncode, 0, c.stderr[-400:])
         self.assertIn("PIPELINE_GRAPH_PASS", c.stdout)
         g = subprocess.run([EXE, "graph", "--preset", "1,2,3", "--config", cfg,
                             "--output", os.path.join(self.tmp, "gstatic")],
-                           capture_output=True, text=True, timeout=120)
+                           capture_output=True, text=True, timeout=120, cwd=run_cwd())
         self.assertEqual(g.returncode, 2, g.stderr[-200:])
         self.assertIn("unknown command", g.stderr)
 

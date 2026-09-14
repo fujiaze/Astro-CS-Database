@@ -7,9 +7,15 @@ CLI = os.path.join(REPO, "cli")
 BUILD = os.path.join(REPO, "build", "cli")
 EXE = os.path.join(BUILD, "astrocs")
 VALIDATOR = os.path.join(REPO, "tools", "validate_cpu_profile.py")
+
+# FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+
+
 def binary_commit_full():
     """二进制内嵌构建 commit(40hex): --version 的 +g<hash12> → git 全哈希。"""
-    r = subprocess.run([EXE, "--version"], capture_output=True, text=True, timeout=30)
+    r = subprocess.run([EXE, "--version"], capture_output=True, text=True, timeout=30,
+                       cwd=run_cwd())
     m = re.search(r"\+g([0-9a-f]{12})", r.stdout)
     assert m, r.stdout
     full = subprocess.run(["git", "-C", REPO, "rev-parse", m.group(1)],
@@ -18,12 +24,14 @@ def binary_commit_full():
 
 
 def run(*args, timeout=240):
-    return subprocess.run([EXE, *args], capture_output=True, text=True, timeout=timeout)
+    return subprocess.run([EXE, *args], capture_output=True, text=True, timeout=timeout,
+                          cwd=run_cwd())
 
 
 def binary_commit_prefix():
     """二进制内嵌构建 commit(12hex): 来自 --version 输出 +g<hash12>。"""
-    r = subprocess.run([EXE, "--version"], capture_output=True, text=True, timeout=30)
+    r = subprocess.run([EXE, "--version"], capture_output=True, text=True, timeout=30,
+                       cwd=run_cwd())
     m = re.search(r"\+g([0-9a-f]{12})", r.stdout)
     assert m, r.stdout
     return m.group(1)
@@ -181,7 +189,7 @@ class TestBenchCli(unittest.TestCase):
         with open(evl, "w") as f:
             r = subprocess.run([EXE, "benchmark", "cpu", "--quick", "--output", out,
                                 "--events-jsonl"], stdout=f, stderr=subprocess.PIPE,
-                               text=True, timeout=120)
+                               text=True, timeout=120, cwd=run_cwd())
         self.assertEqual(r.returncode, 0, r.stderr)
         lines = [json.loads(l) for l in open(evl) if l.strip()]
         raw = [e for e in lines if e.get("message") == "raw candidate"]
