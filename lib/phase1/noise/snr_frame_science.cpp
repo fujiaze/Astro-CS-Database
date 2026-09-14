@@ -95,18 +95,40 @@ SnrFrameScienceResult compute_snr_frame_science(
   }
 
   // --- 逐源科学 SNR (无共享可变状态; 逐行独立 -> 与并行度无关) ---
+  //
+  // P10-UTIL2-001 (2026-09-14): 逐源并行化。
+  //   并行轴 = 源 (work unit = catalogue 行); 每行只读输入、只写自己的定长槽位
+  //   (rn_snr/rn_sigmaf/rok 的第 i 项) —— 无共享可变状态、无归约、无锁。
+  //   确定性论证: 并行区是逐行独立的标量计算, 结果写回**按下标固定**的数组;
+  //   串行 compact 阶段严格按 i 升序复现原 for 的取值与先后 (原 skip-continue
+  //   语义由 rok[] 标记 + 升序扫描 1:1 复刻), 故 used_* 序列与串行逐位一致
+  //   -> 后续 median/参考轮廓/产物与线程数、调度顺序均无关。
+  //   调度 dynamic(小 chunk): work unit 数 = catalogue 行数, 与线程数无关。
+  const std::size_t n_src = sources.size();
+  std::vector<unsigned char> rok(n_src, 0);
+  std::vector<double> rn_snr(n_src, nan_value());
+  std::vector<double> rn_sigmaf(n_src, nan_value());
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic, 1)
+#endif
+  for (long long i = 0; i < static_cast<long long>(n_src); ++i) {
+    SnrSourceResult r;
+    if (!source_snr(sources[static_cast<std::size_t>(i)], cfg, &r)) continue;
+    rn_snr[static_cast<std::size_t>(i)] = r.snr_optimal;
+    rn_sigmaf[static_cast<std::size_t>(i)] = r.sigma_f_optimal_adu;
+    rok[static_cast<std::size_t>(i)] = 1;
+  }
   std::vector<double> used_snr;
   std::vector<double> used_fwhm;
   std::vector<double> used_flux;
-  used_snr.reserve(sources.size());
-  used_fwhm.reserve(sources.size());
-  used_flux.reserve(sources.size());
-  for (std::size_t i = 0; i < sources.size(); ++i) {
-    SnrSourceResult r;
-    if (!source_snr(sources[i], cfg, &r)) continue;
-    out.snr_f[i] = r.snr_optimal;
-    out.sigma_f_adu[i] = r.sigma_f_optimal_adu;
-    used_snr.push_back(r.snr_optimal);
+  used_snr.reserve(n_src);
+  used_fwhm.reserve(n_src);
+  used_flux.reserve(n_src);
+  for (std::size_t i = 0; i < n_src; ++i) {
+    if (!rok[i]) continue;
+    out.snr_f[i] = rn_snr[i];
+    out.sigma_f_adu[i] = rn_sigmaf[i];
+    used_snr.push_back(rn_snr[i]);
     used_fwhm.push_back(sources[i].fwhm_px);
     used_flux.push_back(sources[i].flux_adu);
   }

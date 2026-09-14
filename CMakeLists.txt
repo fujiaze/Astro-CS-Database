@@ -499,6 +499,13 @@ add_library(astrocs_phase1_noise STATIC
 target_include_directories(astrocs_phase1_noise PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1/noise ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_noise PUBLIC astrocs_contracts)
+# P10-UTIL2-007: 噪声统计 (median/MAD 次序统计量选择) 与逐源 SNR 聚合使用 OpenMP。
+# 无 OpenMP 时 #pragma omp 被忽略 -> 串行回退且结果逐位不变; 线程数不在本库
+# 硬编码 (宪章 §10.4), 由 Runtime 注入的 OpenMP 环境决定。与
+# astrocs_phase1_stars / astrocs_p1_sdet / astrocs_p1_dpsf 同款接线。
+if(UNIX AND OpenMP_CXX_FOUND)
+  target_link_libraries(astrocs_phase1_noise PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 # phase1 stars (P1-003 StarDetector)
 add_library(astrocs_phase1_stars STATIC lib/phase1/stars/star_detector.cpp)

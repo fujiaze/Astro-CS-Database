@@ -8,6 +8,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <map>
@@ -98,8 +99,25 @@ class RuntimeImpl final : public Runtime {
       spec.node_id = n.node_id;
       spec.deps = deps_of[n.node_id];
       spec.resource_class = n.resource_class;
+      // P10-UTIL2-005: 由节点 plan() 自报真实 worker 需求，取代对全部节点填死的
+      // (1, budget) 占位。plan() 只表达需求量（不含具体线程数，§10.4）：
+      //   max_workers==0 -> 按可用预算回退 (budget)；否则取 min(budget, 声明值)。
+      // 预算仍由 Scheduler 的唯一 ThreadBudget + P7 份额均分/租约语义分配。
       spec.min_workers = 1;
       spec.max_workers = budget_;
+      {
+        auto mi = registry_.create(n.module_id);
+        if (mi.ok()) {
+          auto pl = mi.value()->plan(n.node_id, n.config_json);
+          if (pl.ok()) {
+            const uint32_t mn = pl.value().min_workers ? pl.value().min_workers : 1u;
+            const uint32_t mx = pl.value().max_workers;
+            spec.min_workers = mn;
+            spec.max_workers =
+                (mx == 0) ? budget_ : std::min(budget_, std::max(mx, mn));
+          }
+        }
+      }
       spec.estimated_memory_bytes = 0;
       // 每个节点执行: 创建模块实例 → plan(config) → execute（模块内部走 session/lease）
       // RT-006: 在真实运行点写 trace 事件（禁止 config 值冒充观测）。
