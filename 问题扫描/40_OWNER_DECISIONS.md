@@ -113,3 +113,14 @@
 - **一条易被忽略的关键事实**：**P5 单独看不在根交付图**（`CMakeLists.txt:210-215` 已按 `F-CI-002-01` 解除 `add_subdirectory(lib/snr_estimator)`），且 P5 commit 自陈「Linux 二进制改前/改后 sha256 完全相同」⇒ **SNR 修正的交付闭合完全依赖 P8，复核与验收必须两半一起看**。
 - **两个分支的处置**：①若裁定 SNR 是**交付量** ⇒ 必须补 `DISP-*` 偏差登记，并纠正 `CONTROL_WEIGHT_SNR.md:66/71/40/§2a` 仍把 `weights[s]=support[s]×snr_v²` 标为 `weight_mode=2` 的残留（= `M3-A-002`/`A-02` 本体，本次授权编辑"改了一半"）⇒ 才能关掉 A-02；②若裁定仍是**诊断量** ⇒ P8 写入交付 JSON 的 `snr_phot=median(SNR_F)` 需回退，且 `A-40` 与 `V1-N-04`（SCI 文本称"不产出 σ_F"而代码正产出）一并订正。
 - **附带催办**：`M3-A-001`/`M3-A-002`（本域两个 P0）在 `账本/FIX_LEDGER.csv` 仍 `fix_state=OPEN` ⇒ **已改代码未挂账**。
+
+### A-41（V4 转达，需你裁并落档）`allocator_cache_residual_bytes` 是否设上界
+- 现状：该字段**全仓无任何判据**（只出现在 `memory_report.h` 与一个测试里），而 T4 证据的 `cache_residual ≈ 2.53 GB` 与真泄漏在数据上**不可区分**，字段名还过实（读起来像"已判定的缓存残留"）。⇒ **非 malloc 通道（直接 mmap / 自池 / 栈 / 大静态）的泄漏零判别力**（`V4-N-12`，P2）。
+- 建议：给一个**明确上界或比值判据**，或把它降级为纯诊断字段（不进 verdict）并改名 `allocator_cache_residual_bytes_unbounded_diag`；无论哪种都须在 `RESOURCE_MONITORING_CONTRACT` 登记（现在没登记）。
+
+### A-42（V4 转达，需你裁并落档）F-14 的 `0.5` / `32MiB` 是否随新被测量重标定
+- 证据（V4 独立复算 gitignored 的 T4 `alloc_report.json`，schema 仍 v1）：`frac 0.414`（RSS 口径）对 `frac_alloc 0.92264`（分配器口径）⇒ **同一次 run 换口径前判负、换后判正，门强度降 2.23×，而 0.5/32MiB 一字未改、无出处**；`OWNER-07` 未落本档（V4 grep 0 命中）、账本亦无 B7/`c1959436` 行。
+- 建议：要么按新口径重标定（给统计依据，如多轮 T4 分布的分位数），要么把阈值挂 `DISP-*` 登记为**已知偏差**并说明为何 0.5 仍适用。**注意**：此项与 `V4-N-10`（RSS 回退分支非单调、且 Windows/MSVC 正式节点恒走此分支）必须同批裁——先裁阈值会留下"单调泄漏在发布平台恒通过"。
+
+### A-43（V4 转达）`allocated_capacity_cores` 取义 = 即 A-39，代码现自标 `NEEDS_DECISION` 未落
+- 补充事实（V4 结论 2/5 与 V6 一致）：**同一文件文案仍滞留旧值** `resource_gate.h:170/:171/:395/:432` 的 `0.75/0.50/min(workers,cpus)` 属**交付面**（进 verdict JSON 与 stderr）⇒ 与实现不同源（`V4-N-02`）。请 A-39 一并裁定时要求文案同源订正。
