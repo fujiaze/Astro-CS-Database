@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1036,6a947f51,2026-08-28,付家泽,S,1,重叠复核,compact/1036-6a947f51.md,cards/1036-6a947f51.md,feat(reaudit): 审核包生成 + 停止时点记账 — 按审核人指示停止打包(控制包打回重做)
+1037,020cdc99,2026-08-28,付家泽,M,2,重叠复核,compact/1037-020cdc99.md,cards/1037-020cdc99.md,feat(v4): C0-001 V4控制包本体 — 98原子任务账本+C0..C9检查点链+SCI/ALG/ARCH/CODE/Oracle/门禁规格+强校验器(CONTROL_
+1038,ae643541,2026-08-28,付家泽,S,1,重叠复核,compact/1038-ae643541.md,cards/1038-ae643541.md,feat(v4): C0-002..005 — 起点 SHA 冻结(020cdc9)+双平台工具链盘点(2核Linux/16线程Fatduck实测)+V3五项债务登记映射+98行初
+1039,b12305ed,2026-08-28,付家泽,L,4,重叠复核,compact/1039-b12305ed.md,cards/1039-b12305ed.md,"chore(v5): 按用户指示移除自造V4重审控制包并归位用户上传的V4_CPU_ADAPTIVE原包 — 自造包由前会话020cdc9/ae64354引入(98任务,非用户物料"
+1040,1c580eb9,2026-08-28,付家泽,M,2,重叠复核,compact/1040-1c580eb9.md,cards/1040-1c580eb9.md,chore(v5): 前会话遗留工作树变更归位 — evidence/QA-V19R7-A2-*与self_review/round0-6按AGENTS目录规范移至reports/
+1041,38951423,2026-08-28,付家泽,M,2,重叠复核,compact/1041-38951423.md,cards/1041-38951423.md,chore(v5): 补全self_review/旧路径删除侧 — 完成reports/self_review归位(1c580eb漏staging)
+1042,f99e80d8,2026-08-28,付家泽,L,4,重叠复核,compact/1042-f99e80d8.md,cards/1042-f99e80d8.md,(BASE-001) 起点冻结与V3/V4风险登记 — BASELINE.json(HEAD=main=origin/main=3895142三SHA一致)+RISK_REGIST
+1043,15720f5e,2026-08-28,付家泽,S,1,重叠复核,compact/1043-15720f5e.md,cards/1043-15720f5e.md,"(GOV-001) AGENTS合并V5必需短块与连续执行状态机 — check_agents_gov 10/10要素+mutation试金石通过,删除pwsh/GitBash默认"
+1044,9fe142e0,2026-08-28,付家泽,M,2,重叠复核,compact/1044-9fe142e0.md,cards/1044-9fe142e0.md,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.schema.jso
+1045,45e64640,2026-08-28,付家泽,M,2,重叠复核,compact/1045-45e64640.md,cards/1045-45e64640.md,(TRACE-001) 六层追溯schema与检查器 — claim_id格式+R1-R7链规则+引用存在(路径/符号级)+VER域6claim种子+5测试含删层mutation必
+1046,4dd9385b,2026-08-28,付家泽,M,2,主责,compact/1046-4dd9385b.md,cards/1046-4dd9385b.md,(DOC-001) 术语单位词典冻结 — GLOSSARY 18核心术语唯一含义+bad_mask极性实测(1=坏点)+pixel_weight与frame_quality_wei
+1047,cc64ba1a,2026-08-28,付家泽,M,2,主责,compact/1047-cc64ba1a.md,cards/1047-cc64ba1a.md,(SCI-001) Calibration科学合同补全 — Frames/专属问题7项逐锚回答/Primary literature 3条核验定位/Acceptance+SYN-0
+1048,805f13ee,2026-08-28,付家泽,M,2,主责,compact/1048-805f13ee.md,cards/1048-805f13ee.md,(SCI-002) WCS PSF Photometry合同补全 — 三份各补Frames/专属问题/Primary literature(Paper I II+Tukey4.68
+1049,1823a1e9,2026-08-28,付家泽,S,1,主责,compact/1049-1823a1e9.md,cards/1049-1823a1e9.md,(SCI-003) Noise SNR合同补全 — Frames/专属问题5项(blank sky·Poisson仅诊断·权重归一适用域)/文献定位声明/Acceptance+SY
+1050,084ee91a,2026-08-28,付家泽,S,1,主责,compact/1050-084ee91a.md,cards/1050-084ee91a.md,"(SCI-004) Drizzle合同补全 — Frames/专属问题6项(footprint·pixfrac(0,1]·support=D_p·协方差非目标)/FruchterH"
+1051,025bc941,2026-08-28,付家泽,S,1,主责,compact/1051-025bc941.md,cards/1051-025bc941.md,(SCI-005) UPM合同补全 — Frames/专属问题6项(观测方程·basis·正则化·gauge退化·接缝预冻结SYN-005)/项目原创声明+Huber1964定位/
+1052,43820f0f,2026-08-28,付家泽,S,1,主责,compact/1052-43820f0f.md,cards/1052-43820f0f.md,(SCI-006) Rejection Integration合同补全 — 两份各补Frames/专属问题(7方法统计假设·表驱动阈值·auto路由可判定·smallN·ident
+1053,7895a584,2026-08-28,付家泽,S,1,主责,compact/1053-7895a584.md,cards/1053-7895a584.md,(SCI-007) Phase3 HiPS→FITS科学合同 — SCI-P3-001 15节+12科学项逐项冻结(order_needed公式/仅TAN/仅ICRS/parity
+1054,199b21e2,2026-08-28,付家泽,M,2,主责,compact/1054-199b21e2.md,cards/1054-199b21e2.md,(ALG-001) Calibration离散算法V5重验 — 去硬编码num_threads+combine归约顺序冻结+variance/mask传播边界+SIMD安全与取消点
+1055,0d4c5b69,2026-08-28,付家泽,M,2,主责,compact/1055-0d4c5b69.md,cards/1055-0d4c5b69.md,(ALG-002) WCS PSF Photometry离散算法V5重验 — 三份删GPU路径改CPU-only worker pool+SIMD安全(固定序归约禁重结合)+取消点
+1056,76e53837,2026-08-28,付家泽,S,1,主责,compact/1056-76e53837.md,cards/1056-76e53837.md,(ALG-003) Noise SNR离散算法V5重验 — 删GPU patch切分改CPU-only+平面LS固定序归约禁重结合+SIMD安全(fill连续无别名·g_model
+1057,e6effdc0,2026-08-28,付家泽,S,1,主责,compact/1057-e6effdc0.md,cards/1057-e6effdc0.md,"(ALG-003) 账本补正 — ALG-003置PASS并披露状态机违规(IN_PROGRESS sed任务名错配未生效, commit 76e5383内为NOT_STARTED"
+1058,6f2f4139,2026-08-28,付家泽,S,1,主责,compact/1058-6f2f4139.md,cards/1058-6f2f4139.md,(ALG-004) Drizzle离散算法V5重验 — 删GPU candidate kernel改CPU-only worker pool+候选序固定归约禁重结合+SIMD安全+
+1059,d9a88716,2026-08-28,付家泽,S,1,主责,compact/1059-d9a88716.md,cards/1059-d9a88716.md,"(ALG-004) 表行登记 — COMMITS/CAP-ALG-004(胶囊sha+尺寸), ledger行尾归一LF(无内容变化)"
+1060,6feab667,2026-08-28,付家泽,S,1,主责,compact/1060-6feab667.md,cards/1060-6feab667.md,(ALG-005) UPM稀疏求解接缝算法V5重验 — 删GPU块求值改CPU-only(IRLS串行reference+块级affinity池)+法方程固定序归约禁重结合+整模型
+1061,8e54f60d,2026-08-28,付家泽,S,1,主责,compact/1061-8e54f60d.md,cards/1061-8e54f60d.md,(ALG-005) 表行登记 — COMMITS/CAP-ALG-005
+1062,26890d3e,2026-08-28,付家泽,S,1,主责,compact/1062-26890d3e.md,cards/1062-26890d3e.md,(ALG-006) Rejection Integration离散算法V5重验 — 两份删GPU切分改CPU-only行带池+固定序归约禁重结合+掩膜/结果行带原子取消点+ID规范
+1063,ab02f032,2026-08-28,付家泽,S,1,主责,compact/1063-ab02f032.md,cards/1063-ab02f032.md,(ALG-006) 表行登记 — COMMITS/CAP-ALG-006
+1064,48910002,2026-08-28,付家泽,S,1,主责,compact/1064-48910002.md,cards/1064-48910002.md,(ALG-007) Phase3重采样算法 — 新建PHASE3_RESAMPLE.md(ALG-P3-001..004) G1-G5与SCI-P3 §9a一一对应(WCS CD-
+1065,3791e6a6,2026-08-28,付家泽,S,1,主责,compact/1065-3791e6a6.md,cards/1065-3791e6a6.md,(ALG-007) 表行登记 — COMMITS/CAP-ALG-007
+1066,c1b70086,2026-08-28,付家泽,S,1,主责,compact/1066-c1b70086.md,cards/1066-c1b70086.md,(REV-001) C1审阅包 — 14胶囊(SCI/ALG)聚合+机读C1_MANIFEST(gates全过·unresolved_science=0)+CHECKPOINTS追
+1067,7b4d6bac,2026-08-28,付家泽,S,1,主责,compact/1067-7b4d6bac.md,cards/1067-7b4d6bac.md,(REV-001) 表行登记 — COMMITS/CAP-REV-001
+1068,bc0ccfe9,2026-08-28,付家泽,M,2,主责,compact/1068-bc0ccfe9.md,cards/1068-bc0ccfe9.md,(ARCH-001) 生产执行清单 — 符号检索七类原语217行(exe46/OpenMP25文件/线程创建62/锁46/队列1/ACR24配置守卫/IO写13)+幂等生成器+5机
+1069,ac0c2d68,2026-08-28,付家泽,S,1,主责,compact/1069-ac0c2d68.md,cards/1069-ac0c2d68.md,(ARCH-001) 表行登记 — COMMITS/CAP-ARCH-001
+1070,ba126db2,2026-08-28,付家泽,S,1,主责,compact/1070-ba126db2.md,cards/1070-ba126db2.md,(ARCH-002) V5单一CLI架构冻结 — 重写ARCHITECTURE.md(唯一astrocs入口·旧exe迁移·Phase1/2/3 in-process·生命周期·错
+1071,f88ae165,2026-08-28,付家泽,S,1,主责,compact/1071-f88ae165.md,cards/1071-f88ae165.md,(ARCH-002) 表行登记 — COMMITS/CAP-ARCH-002
+1072,1625ca94,2026-08-28,付家泽,S,1,主责,compact/1072-1625ca94.md,cards/1072-1625ca94.md,(ARCH-003) CPU Backend架构冻结 — 05全条目落成(六查信任边界·C ABI v1全字段·七类kernel注册挂SCI-ALG链·回退4条·发布manifes
+1073,2efb0361,2026-08-28,付家泽,S,1,主责,compact/1073-2efb0361.md,cards/1073-2efb0361.md,(ARCH-003) 表行登记 — COMMITS/CAP-ARCH-003
+1074,7818e663,2026-08-28,付家泽,S,1,主责,compact/1074-7818e663.md,cards/1074-7818e663.md,(ARCH-004) 全局ThreadBudget架构 — 单一预算(affinity∩cgroup∩Job)+五阶段画像+异步两类+取消逐内核+静态checker(7处命中逐一定
+1075,33eff8d3,2026-08-28,付家泽,S,1,主责,compact/1075-33eff8d3.md,cards/1075-33eff8d3.md,(ARCH-004) 表行登记 — COMMITS/CAP-ARCH-004
+1076,2dd8d07c,2026-08-28,付家泽,S,1,主责,compact/1076-2dd8d07c.md,cards/1076-2dd8d07c.md,(ARCH-005) Phase3模块架构冻结 — 四单元单向流(Reader/TileCache/Resampler/FitsWriter)+跨tile访问(cache无科学决策
+1077,35a1ba45,2026-08-28,付家泽,S,1,主责,compact/1077-35a1ba45.md,cards/1077-35a1ba45.md,(ARCH-005) 表行登记 — COMMITS/CAP-ARCH-005
+1078,e08512ba,2026-08-28,付家泽,S,1,主责,compact/1078-e08512ba.md,cards/1078-e08512ba.md,(API-001) 公共C ABI基础层v1冻结 — acs_命名五结构handshake+逐字段单位/所有权+九错误码+thread_budget租借+并发合同模板+C/C++双
+1079,28f151de,2026-08-28,付家泽,S,1,主责,compact/1079-28f151de.md,cards/1079-28f151de.md,(API-001) 表行登记 — COMMITS/CAP-API-001
+1080,4cf1fdb6,2026-08-28,付家泽,S,1,主责,compact/1080-4cf1fdb6.md,cards/1080-4cf1fdb6.md,(API-002) CLI协议合同v1冻结 — 04逐条落地(13命令树+handler追溯+11退出码唯一源+JSONL十必含五扩展+acs_cancel取消链+70脱敏cras
+1081,d3f965b7,2026-08-28,付家泽,S,1,主责,compact/1081-d3f965b7.md,cards/1081-d3f965b7.md,(API-002) 表行登记 — COMMITS/CAP-API-002
+1082,5dfbd20d,2026-08-28,付家泽,S,1,主责,compact/1082-5dfbd20d.md,cards/1082-5dfbd20d.md,(API-003) Phase1 API定义v1冻结 — p1_session五函数生命周期+底层10行登记表(并发五字段+test ID)+ac_set_num_threads迁
+1083,a1d4be74,2026-08-28,付家泽,S,1,主责,compact/1083-a1d4be74.md,cards/1083-a1d4be74.md,(API-003) 表行登记 — COMMITS/CAP-API-003
+1084,f5735ed2,2026-08-28,付家泽,S,1,主责,compact/1084-f5735ed2.md,cards/1084-f5735ed2.md,(API-004) Phase2 API定义v1冻结 — 所有权图七对象(p2_upm_close真实释放·修正臆造符号)+逐函数14行全名化五字段+预算绑定Σ≤全局+错误映射rc
+1085,3357ff9d,2026-08-28,付家泽,S,1,主责,compact/1085-3357ff9d.md,cards/1085-3357ff9d.md,(API-004) 表行登记 — COMMITS/CAP-API-004
+1086,b36c74dc,2026-08-28,付家泽,S,1,主责,compact/1086-b36c74dc.md,cards/1086-b36c74dc.md,(API-005) Phase3 API定义v1冻结 — p3_session五函数+request十一字段约束+显式拒绝清单与SCI-P3同源交叉核对+missing/NaN非错
+1087,ca04eb55,2026-08-28,付家泽,S,1,主责,compact/1087-ca04eb55.md,cards/1087-ca04eb55.md,(API-005) 表行登记 — COMMITS/CAP-API-005
+1088,07bc18b9,2026-08-28,付家泽,M,2,主责,compact/1088-07bc18b9.md,cards/1088-07bc18b9.md,(CLI-001) 单一astrocs target落地 — 严格C++17双平台main(help13行golden+version json+exit2 stub)+CMake
+1089,efe0c66f,2026-08-28,付家泽,S,1,主责,compact/1089-efe0c66f.md,cards/1089-efe0c66f.md,(CLI-001) 表行登记 — COMMITS/CAP-CLI-001
+1090,d484f7c5,2026-08-28,付家泽,L,4,主责,compact/1090-d484f7c5.md,cards/1090-d484f7c5.md,(CLI-002) 统一parser+JSONL协议+cancel+crash boundary — 命令树白名单14拒绝面+config init/validate真实现(0/3
+1091,2774a26d,2026-08-28,付家泽,S,1,主责,compact/1091-2774a26d.md,cards/1091-2774a26d.md,(CLI-002) 表行登记 — COMMITS/CAP-CLI-002
+1092,8b7cf3e0,2026-08-28,付家泽,M,2,主责,compact/1092-8b7cf3e0.md,cards/1092-8b7cf3e0.md,(CLI-003) config/manifest/verify闭环 — MANIFEST_VERIFY_V1合同+config全量校验(白名单键/schema_version=2
+1093,12d650c0,2026-08-28,付家泽,S,1,主责,compact/1093-12d650c0.md,cards/1093-12d650c0.md,(CLI-003) 表行登记 — COMMITS/CAP-CLI-003
+1094,7718a2f8,2026-08-28,付家泽,M,2,主责,compact/1094-7718a2f8.md,cards/1094-7718a2f8.md,(ABI-001) C ABI v1落地 — 单一头C11/C++17双编译+host services(计数allocator/atomic cancel/CAS预算)+12条目
+1095,72fc2e17,2026-08-28,付家泽,S,1,主责,compact/1095-72fc2e17.md,cards/1095-72fc2e17.md,(ABI-001) 表行登记 — COMMITS/CAP-ABI-001
+1096,0c49a370,2026-08-28,付家泽,M,2,主责,compact/1096-0c49a370.md,cards/1096-0c49a370.md,(ABI-002) backend加载安全化 — CPUID+OSXSAVE+XGETBV实测+affinity可用CPU+manifest解析不猜+预检五查(裸文件名白名单/AB
+1097,42d1eedd,2026-08-28,付家泽,S,1,主责,compact/1097-42d1eedd.md,cards/1097-42d1eedd.md,(ABI-002) 表行登记 — COMMITS/CAP-ABI-002
+1098,1761491b,2026-08-29,付家泽,M,2,主责,compact/1098-1761491b.md,cards/1098-1761491b.md,(ABI-003) baseline全生产kernel — 12 kernel实现在budget租借行带并行外层(确定性: 元素独立无跨线程归约)+Oracle(Python独立参
+1099,904f73d2,2026-08-29,付家泽,S,1,主责,compact/1099-904f73d2.md,cards/1099-904f73d2.md,(ABI-003) 表行登记 — COMMITS/CAP-ABI-003
+1100,1ae33eb4,2026-08-29,付家泽,M,2,主责,compact/1100-1ae33eb4.md,cards/1100-1ae33eb4.md,(ISA-001) ISA热点测量与AVX2变体决策 — 共享表backend_table.inc抽参+avx2变体DSO(同impl零漂移)+实机profile(hips+28%

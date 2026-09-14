@@ -1,0 +1,394 @@
+路径,层级,当前存在,现存文件数,被提交触及次数,累计增行,累计删行,引入_seq,引入_sha8,引入日期,引入消息,最后改动_seq,最后改动_sha8,最后改动日期
+evidence/v8_1_ci_control,目录,是,2153,189,49884,6665,1521,a4fdee3f,2026-09-05,chore(control): V81-ADOPT-001 注册控制包 V8.1 并冻结工作区身份 [V81-ADOPT-001],1780,9690c1da,2026-09-09
+lib/healpix_db,目录,是,171,157,100229,32261,31,0c08aeb5,2026-07-11,feat: HEALpix Database - 球面存储与可视化系统,1951,dce8abd4,2026-09-14
+tests/unit,目录,是,114,150,34157,306,1275,338eecc2,2026-08-30,BLD-001: 建立显式根 CMake 目标图,1980,0e4cee72,2026-09-14
+artifacts/prerelease_v5,目录,是,242,146,3822,177,1042,f99e80d8,2026-08-28,(BASE-001) 起点冻结与V3/V4风险登记 — BASELINE.json(HEAD=main=origin/main=3895142三SHA一致)+R,1635,57319b1e,2026-09-08
+lib/phase2,目录,是,57,144,25808,4983,553,1a38f400,2026-08-10,feat(phase2): W1 wiki sync + stage2 schema; W2 freeze UPM/rejection interfaces i,1951,dce8abd4,2026-09-14
+lib/acr,目录,是,218,137,111806,13501,272,f8d749e4,2026-08-02,docs(acr): freeze bottom-only scope and dependency ADRs,1690,1efef060,2026-09-08
+lib/astro_image_io,目录,是,353,123,338817,20453,2,802becc2,2026-05-24,Initial commit: Astro Image IO,1888,23f96b9c,2026-09-14
+evidence/v6_1_rework,目录,是,347,110,65897,1687,1361,a3d16d85,2026-08-31,"R0-001: 冻结当前 main 身份 (三 SHA 相同, b16d422 为祖先, 工作树 205 项全分类, CONTROL_PASS)",1754,acceab68,2026-09-09
+lib/orchestrator,目录,是,53,105,54312,21599,76,127c4a96,2026-07-15,feat: 管线编排引擎初始版本 (9节点管线 + SNR集成),1690,1efef060,2026-09-08
+evidence/refactor,目录,是,298,96,7045,466,1261,4b1b948e,2026-08-30,BAS-001: 冻结仓库身份与控制包基线,1594,4f6e2b65,2026-09-07
+docs/algorithms,目录,是,30,74,9549,1064,700,8ab2efbd,2026-08-15,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs,1958,b0353303,2026-09-14
+tests/backend,目录,是,145,63,9524,474,1094,7718a2f8,2026-08-28,(ABI-001) C ABI v1落地 — 单一头C11/C++17双编译+host services(计数allocator/atomic cancel/C,1924,23a91351,2026-09-14
+docs/contracts,目录,是,9,58,6433,195,624,5a9eadcf,2026-08-13,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/P,1980,0e4cee72,2026-09-14
+tools/quality,目录,是,98,57,12989,236,698,729bc3b9,2026-08-15,chore(v19r2-s0): full-repo inventory on merged HEAD,1959,80c32b19,2026-09-14
+lib/core,目录,是,14,55,10303,628,1277,3e98a22d,2026-08-31,CORE-002: 实现 DataArtifact 与 Provenance,1980,0e4cee72,2026-09-14
+docs/architecture,目录,是,32,52,2807,203,624,5a9eadcf,2026-08-13,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/P,1951,dce8abd4,2026-09-14
+reports/evidence,目录,是,49,50,2002,39,1040,1c580eb9,2026-08-28,chore(v5): 前会话遗留工作树变更归位 — evidence/QA-V19R7-A2-*与self_review/round0-6按AGENTS目录规范,1259,587fe0e3,2026-08-30
+lib/photometric_calib,目录,是,63,49,113159,48075,35,f75ae3f0,2026-07-12,v1.0: 鲁棒流量校准 Python 开发原型,1958,b0353303,2026-09-14
+tests/cli,目录,是,63,48,5073,407,1088,07bc18b9,2026-08-28,(CLI-001) 单一astrocs target落地 — 严格C++17双平台main(help13行golden+version json+exit2 s,1950,adaeb531,2026-09-14
+reports/REAUDIT_V3,目录,是,349,41,986,115,979,ac2ced53,2026-08-27,REAUDIT_V3: 控制包仅保留在 工程控制，已完成报告移入 reports/REAUDIT_V3,1036,6a947f51,2026-08-28
+engineering/evidence,已不在树中,否,,40,1290251,995063,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,203,036a3bb5,2026-07-29
+lib/gaia_xpsd_client,目录,是,15,40,11387,2302,1,4a2750bd,2026-05-24,Initial commit: Gaia DR3 XPSD Client,1955,bd4bc23b,2026-09-14
+docs/science,目录,是,15,39,2401,468,700,8ab2efbd,2026-08-15,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs,1958,b0353303,2026-09-14
+docs/modules,目录,是,49,37,5216,473,700,8ab2efbd,2026-08-15,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs,1958,b0353303,2026-09-14
+include/astrocs,目录,是,23,37,3209,86,1094,7718a2f8,2026-08-28,(ABI-001) C ABI v1落地 — 单一头C11/C++17双编译+host services(计数allocator/atomic cancel/C,1977,57c04256,2026-09-14
+lib/star_detector,目录,是,31,37,18196,3929,3,850973a7,2026-05-24,"feat: Star Detector - astronomical star detector with PSF fitting filter, FWHM c",1971,8dc0220e,2026-09-14
+lib/plate_solve,目录,是,50,36,44637,6536,94,75835599,2026-07-16,重构: 根目录调试文件整理 + 模块内部冗余清理（2026-07-16）,1972,b858b76d,2026-09-14
+docs/DOCUMENT_INDEX.yaml,目录或文件,否,,35,643,34,1480,b7b2dea7,2026-09-02,docs(governance): GOV-002 归档非当前工程文档,1855,344e0c9c,2026-09-13
+lib/calibration,目录,是,33,35,20863,5390,24,a88d9789,2026-07-10,feat: Astro Calibration C++ module,1884,1dce779d,2026-09-13
+cli/CMakeLists.txt,目录或文件,否,,33,338,71,1088,07bc18b9,2026-08-28,(CLI-001) 单一astrocs target落地 — 严格C++17双平台main(help13行golden+version json+exit2 s,1961,35c85f53,2026-09-14
+cli/commands.cpp,目录或文件,否,,33,3013,492,1379,84191084,2026-08-31,"RT-008: CLI 接入唯一 Runtime (main 拆分, run/phase 走 runtime_client, cfitsio 并行 I/O 串行",1950,adaeb531,2026-09-14
+lib/snr_estimator,目录,是,27,32,7602,507,75,8399f940,2026-07-15,feat: SNR 估算模块初始版本 (乘法模型),1961,35c85f53,2026-09-14
+engineering/control,目录,是,912,31,3726,759,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,1787,8e03d7da,2026-09-10
+lib/backend_host,目录,是,27,31,5370,258,1094,7718a2f8,2026-08-28,(ABI-001) C ABI v1落地 — 单一头C11/C++17双编译+host services(计数allocator/atomic cancel/C,1743,aceca50c,2026-09-09
+reports/v19r8_quality,目录,是,24,31,2168,400,821,f1cf87a6,2026-08-22,chore(checkpoint): round03 53/95 V19R8 trio 255+185+421 [R03],930,b26db31a,2026-08-22
+lib/dynamic_psf,目录,是,24,28,7193,830,18,12c55ed6,2026-05-24,feat: Dynamic PSF - Moffat4 PSF fitting engine with 16bit input and batch mode,1957,23a7f665,2026-09-14
+lib/phase3_session,目录,是,11,28,2290,159,1117,9fb12dc0,2026-08-29,(P3-001) HiPS properties严格解析 — 必需键全查(5键)/值域(order0-20/width512/fits/frame)/重复键拒/,1857,66906609,2026-09-13
+ci/tests,目录,是,67,27,7767,203,1528,459da629,2026-09-06,feat(ci): V8-CI-002 统一确定性 CI 执行器、结果 schema 与 29 项单测 [V8-CI-002],1823,a67bbc83,2026-09-12
+docs/traceability,目录,是,4,24,2690,1689,1500,2a8676bf,2026-09-03,test(traceability): DOC-001 建立机器追溯合同,1953,c3452d48,2026-09-14
+ci/checks.json,目录或文件,否,,22,3726,65,1527,0acfb514,2026-09-05,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001],1956,6d74046d,2026-09-14
+cli/main.cpp,目录或文件,否,,21,1755,1677,1088,07bc18b9,2026-08-28,(CLI-001) 单一astrocs target落地 — 严格C++17双平台main(help13行golden+version json+exit2 s,1719,47ac0d40,2026-09-08
+lib/phase1_session,目录,是,16,16,3149,101,1113,c5629be6,2026-08-29,(CLI-004) Phase1进程内接入 — p1_session四段式(API-P1-001冻结)+budget注入ac_set_num_threads+帧,1957,23a7f665,2026-09-14
+cli/parser.cpp,目录或文件,否,,15,545,79,1379,84191084,2026-08-31,"RT-008: CLI 接入唯一 Runtime (main 拆分, run/phase 走 runtime_client, cfitsio 并行 I/O 串行",1961,35c85f53,2026-09-14
+lib/common,目录,是,16,15,2012,252,327,bd036f3e,2026-08-04,feat(r10): 真正全链路 FP32/FP64 双精度 ABI 改造,1694,9f85b422,2026-09-08
+docs/api,目录,是,6,14,403,13,1078,e08512ba,2026-08-28,(API-001) 公共C ABI基础层v1冻结 — acs_命名五结构handshake+逐字段单位/所有权+九错误码+thread_budget租借+并发合,1872,c21eec50,2026-09-13
+tests/api,目录,是,32,14,930,6,1078,e08512ba,2026-08-28,(API-001) 公共C ABI基础层v1冻结 — acs_命名五结构handshake+逐字段单位/所有权+九错误码+thread_budget租借+并发合,1872,c21eec50,2026-09-13
+cli/runtime_client.cpp,目录或文件,否,,12,506,79,1379,84191084,2026-08-31,"RT-008: CLI 接入唯一 Runtime (main 拆分, run/phase 走 runtime_client, cfitsio 并行 I/O 串行",1930,adfdda7e,2026-09-14
+lib/phase1,目录,是,18,12,1184,75,1300,d3af6ffa,2026-08-31,P1-003: StarDetector 5 场景 + catalog 质量字段,1977,57c04256,2026-09-14
+ci/run.py,目录或文件,否,,11,1321,20,1528,459da629,2026-09-06,feat(ci): V8-CI-002 统一确定性 CI 执行器、结果 schema 与 29 项单测 [V8-CI-002],1822,778fe98e,2026-09-12
+reports/final_status.md,已不在树中,否,,11,195,175,626,1f94e9f9,2026-08-13,docs(phase2-v14): final status + technical debt + performance reports; V14 audit,980,e1604f14,2026-08-27
+reports/v19r7_quality,目录,是,29,10,2496,58,737,86ec26c1,2026-08-22,chore(qa): fix machine_consistency linux path + before scan [QA-V19R7-A1-01/02],806,03368585,2026-08-22
+tests/quality,目录,是,12,10,1113,13,1182,ea1145fb,2026-08-29,(DOCCHK-001) 机器核对文档函数名/签名/schema/命令/退出码 PASS,1950,adaeb531,2026-09-14
+tools/check_version_consistency.py,目录或文件,否,,10,202,19,1044,9fe142e0,2026-08-28,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.,1836,19bdf1ab,2026-09-12
+docs/review,目录,是,5,9,551,56,1267,7b43ed1c,2026-08-30,SCI-001: 冻结 Phase1 科学定义(确认冻结+owner摘要),1826,327b6c30,2026-09-12
+tests/abi,目录,是,17,9,2715,22,1487,5de08133,2026-09-03,test(abi): ABI-002 冻结ABI生命周期语义,1950,adaeb531,2026-09-14
+reports/stage2_fix_report.md,已不在树中,否,,8,302,47,944,b8d215d0,2026-08-22,fix(phase2): sampler parallel+streaming+frame_id cache 14min→~90s [P0] 4/4 PASS,980,e1604f14,2026-08-27
+reports/v19r2,目录,是,31,8,4472,719,698,729bc3b9,2026-08-15,chore(v19r2-s0): full-repo inventory on merged HEAD,1455,c99babad,2026-09-02
+reports/v19r3,目录,是,35,8,9439,729,715,23c11c19,2026-08-16,quality(v19r3-s7): direct static analysis 100% coverage + fix findings,980,e1604f14,2026-08-27
+tests/runtime,目录,是,23,8,2993,3,1483,5d38ebd7,2026-09-02,feat(runtime): RT-001 实现类型化运行图,1585,0d548519,2026-09-06
+tests/version,目录,是,8,8,547,11,1044,9fe142e0,2026-08-28,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.,1836,19bdf1ab,2026-09-12
+ci/validate_registry.py,目录或文件,否,,7,312,7,1527,0acfb514,2026-09-05,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001],1950,adaeb531,2026-09-14
+cli/monitor.h,目录或文件,否,,7,378,23,1140,db85028a,2026-08-29,(MON-001) 进程/系统资源监控模块 — /proc采集(CPU/RSS/IO/thread/ctxsw)+sysinfo+单调时钟+采样开销测量; 修正,1923,48ceee59,2026-09-14
+cli/resource_gate.h,目录或文件,否,,7,510,50,1144,ea97cc71,2026-08-29,"(MON-003) 资源门禁 — 07分类(compute/memory/io/mixed)+公式(0.80*min(workers,cpus))+first-",1950,adaeb531,2026-09-14
+cli/resource_recorder.h,目录或文件,否,,7,297,8,1386,5b13e214,2026-09-01,MON-001: 资源监测接入每个 heavy node (resource_samples.csv/resource_summary.json/worker_,1950,adaeb531,2026-09-14
+docs/TRACEABILITY.csv,目录或文件,否,,7,110,46,697,9c415bc1,2026-08-15,feat(phase2): UPM frame binding + persistence with synthetic gate coverage,1953,c3452d48,2026-09-14
+docs/interfaces,目录,是,6,7,1140,1,1484,c1ee791a,2026-09-02,feat(data): DATA-002 定义三阶段产品交换合同,1526,b4f923cc,2026-09-05
+docs/refactor,已不在树中,否,,7,133,1,1298,fe92b6e5,2026-08-31,P1-001: Phase1 old-symbol 映射表 + 无 blocker,1480,b7b2dea7,2026-09-02
+tests/arch,目录,是,23,7,502,0,1068,bc0ccfe9,2026-08-28,(ARCH-001) 生产执行清单 — 符号检索七类原语217行(exe46/OpenMP25文件/线程创建62/锁46/队列1/ACR24配置守卫/IO写13,1843,da74dcad,2026-09-12
+tests/cpu,目录,是,21,7,4433,2,1495,0d32c07d,2026-09-03,feat(cpu): CPU-001 实现ISA与OS安全探测,1599,c4cbafd6,2026-09-07
+tools/arch,目录,是,4,7,255,22,1068,bc0ccfe9,2026-08-28,(ARCH-001) 生产执行清单 — 符号检索七类原语217行(exe46/OpenMP25文件/线程创建62/锁46/队列1/ACR24配置守卫/IO写13,1843,da74dcad,2026-09-12
+tools/docs_machine_consistency.py,目录或文件,否,,7,202,20,695,c0753e33,2026-08-15,docs(v19-round6): machine consistency PASS - config/error/stage/SNR/product/driz,737,86ec26c1,2026-08-22
+ci/toolchain.policy.json,目录或文件,否,,6,85,8,1524,becc85a0,2026-09-05,chore(ci): V81-ADOPT-004 Agent 主机工具链盘点与锁存 [V81-ADOPT-004],1574,e4f77ccb,2026-09-06
+docs/ARCHITECTURE.md,目录或文件,否,,6,418,235,112,d411565e,2026-07-24,"docs: integrate root documentation, specs, and gitignore into main repo",940,d792056d,2026-08-22
+docs/development,目录,是,3,6,143,21,624,5a9eadcf,2026-08-13,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/P,940,d792056d,2026-08-22
+engineering/contracts,已不在树中,否,,6,1537,1537,128,ba4f0d34,2026-07-25,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API,203,036a3bb5,2026-07-29
+engineering/tools,已不在树中,否,,6,5689,4631,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,203,036a3bb5,2026-07-29
+lib/phase2_session,目录,是,5,6,644,5,1115,0a448f67,2026-08-29,"(CLI-005) Phase2进程内接入 — p2_session生产路由(coverage→sampler→UPM→persist, API-P2-001冻",1951,dce8abd4,2026-09-14
+reports/browser_performance.md,已不在树中,否,,6,72,6,626,1f94e9f9,2026-08-13,docs(phase2-v14): final status + technical debt + performance reports; V14 audit,980,e1604f14,2026-08-27
+tests/monitoring,目录,是,13,6,1387,2,1476,bbe2e59e,2026-09-02,feat(logging): LOG-001 统一结构化日志接口,1809,91440c16,2026-09-11
+tools/assemble_audit.py,目录或文件,否,,6,292,26,1232,ef0858c5,2026-08-30,"(审核包) 按当前现状汇总最终审核包(AUDIT_REVIEW whitelist)+如实 FINAL_REPORT/SUMMARY: 87 PASS, 2 B",1256,fd4e11ed,2026-08-30
+tools/astro_toolkit.py,目录或文件,否,,6,1017,500,151,5ec98660,2026-07-27,tools: 新增 astro_toolkit.py Python 工具集（跳过沙箱确认）,1701,6c5f5fc9,2026-09-08
+tools/config_consistency_check.py,目录或文件,否,,6,330,69,624,5a9eadcf,2026-08-13,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/P,1701,6c5f5fc9,2026-09-08
+tools/doccheck,目录,是,4,6,741,17,1475,065c81de,2026-09-02,docs(governance): GOV-001 冻结Alpha工程约束,1701,6c5f5fc9,2026-09-08
+ci/impact_map.json,目录或文件,否,,5,2062,1373,1527,0acfb514,2026-09-05,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001],1841,4f11d965,2026-09-12
+cli/cli_common.h,目录或文件,否,,5,113,2,1380,90cad495,2026-08-31,"RT-009: 真实静态与observed运行图 (NodeTrace, static/observed/L0+sidecar, graph命令, 路径脱敏; ",1719,47ac0d40,2026-09-08
+contracts/config,目录,是,4,5,427,3,1477,1c3d1dc9,2026-09-02,docs(architecture): ARC-001 冻结DLL产品边界,1586,f896d1bb,2026-09-06
+contracts/data,目录,是,11,5,1069,4,1479,2df77afe,2026-09-02,feat(data): DATA-001 冻结类型化产物合同,1854,1012fa41,2026-09-13
+docs/browser,目录,是,1,5,49,3,624,5a9eadcf,2026-08-13,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/P,651,f2d7f5a1,2026-08-14
+docs/validation,目录,是,1,5,110,33,624,5a9eadcf,2026-08-13,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/P,669,c9b8dfc3,2026-08-14
+lib/cosmetic,目录,是,17,5,3505,16,1605,4b87aef6,2026-09-07,docs(P1-COS-DOC): cosmetic 模块合同冻结——ALG-COS-001..005/DATA-P1-COS/API-COS-001/trac,1810,59fdeab3,2026-09-11
+lib/data_pipeline,已不在树中,否,,5,5279,2652,45,e27ff13d,2026-07-12,feat: initial Astro-Data-Pipline - memory pipeline C++ implementation,680,25a6479b,2026-08-15
+lib/drizzle,目录,是,8,5,1915,5,1607,e53ac984,2026-09-07,docs(P1-DRZ-DOC): drizzle 模块合同冻结——ALG-DRZ-001/DATA-P1-DRZ/API-DRZ-001/trace（控制包 ,1943,f849860a,2026-09-14
+lib/hips,目录,是,10,5,2635,37,1609,943b023a,2026-09-07,docs(P1-HIPS-DOC): HiPS writer 模块合同冻结——ALG-HIPS-001..005/DATA-P1-HIPS/API-HIPS-0,1872,c21eec50,2026-09-13
+providers/cpu,目录,是,10,5,2541,1,1495,0d32c07d,2026-09-03,feat(cpu): CPU-001 实现ISA与OS安全探测,1588,1938b7aa,2026-09-07
+reports/phase1_performance.md,已不在树中,否,,5,90,16,626,1f94e9f9,2026-08-13,docs(phase2-v14): final status + technical debt + performance reports; V14 audit,980,e1604f14,2026-08-27
+runtime/artifact_store,目录,是,9,5,2886,11,1479,2df77afe,2026-09-02,feat(data): DATA-001 冻结类型化产物合同,1507,1df9a7ee,2026-09-03
+tests/artifact,目录,是,12,5,1615,5,1479,2df77afe,2026-09-02,feat(data): DATA-001 冻结类型化产物合同,1585,0d548519,2026-09-06
+tools/gen_audit_pack.py,目录或文件,否,,5,381,184,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,738,d22a3ff6,2026-08-22
+tools/monitoring,目录,是,8,5,1572,15,1476,bbe2e59e,2026-09-02,feat(logging): LOG-001 统一结构化日志接口,1812,e9b82ea4,2026-09-11
+ci/bootstrap.py,目录或文件,否,,4,407,12,1538,a032c0cc,2026-09-06,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007],1584,efd15baa,2026-09-06
+ci/checks.schema.json,目录或文件,否,,4,138,15,1528,459da629,2026-09-06,feat(ci): V8-CI-002 统一确定性 CI 执行器、结果 schema 与 29 项单测 [V8-CI-002],1819,d3097319,2026-09-12
+ci/reconcile_state.py,目录或文件,否,,4,299,35,1523,98c2354f,2026-09-05,chore(evidence): V81-ADOPT-003 任务证据对账重建 TASK_STATE 191 项 [V81-ADOPT-003],1788,d1ac4dfc,2026-09-10
+cli/jsonl.h,目录或文件,否,,4,126,3,1090,d484f7c5,2026-08-28,(CLI-002) 统一parser+JSONL协议+cancel+crash boundary — 命令树白名单14拒绝面+config init/valid,1731,692a4216,2026-09-09
+cli/runtime_client.h,目录或文件,否,,4,52,1,1379,84191084,2026-08-31,"RT-008: CLI 接入唯一 Runtime (main 拆分, run/phase 走 runtime_client, cfitsio 并行 I/O 串行",1712,f7fa3160,2026-09-08
+docs/KNOWN_LIMITATIONS.md,目录或文件,否,,4,24,5,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,921,d793f39e,2026-08-22
+docs/RELEASE_STATUS.md,目录或文件,否,,4,19,3,700,8ab2efbd,2026-08-15,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs,933,af3ee37b,2026-08-22
+docs/VERSIONING.md,目录或文件,否,,4,40,3,1044,9fe142e0,2026-08-28,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.,1526,b4f923cc,2026-09-05
+reports/api_inventory.md,已不在树中,否,,4,160,59,624,5a9eadcf,2026-08-13,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/P,980,e1604f14,2026-08-27
+reports/performance.md,已不在树中,否,,4,81,3,651,f2d7f5a1,2026-08-14,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+repo,980,e1604f14,2026-08-27
+reports/phase2_performance.md,已不在树中,否,,4,68,18,626,1f94e9f9,2026-08-13,docs(phase2-v14): final status + technical debt + performance reports; V14 audit,980,e1604f14,2026-08-27
+reports/rejection_semantics.md,已不在树中,否,,4,127,7,651,f2d7f5a1,2026-08-14,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+repo,980,e1604f14,2026-08-27
+reports/semantic_path_inventory.csv,已不在树中,否,,4,47,22,651,f2d7f5a1,2026-08-14,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+repo,980,e1604f14,2026-08-27
+reports/wbpp_policy.md,已不在树中,否,,4,114,32,651,f2d7f5a1,2026-08-14,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+repo,980,e1604f14,2026-08-27
+runtime/io,目录,是,8,4,3784,0,1486,caee3e67,2026-09-03,feat(io): IO-001 实现流式FITS读写API并修复F32字节序,1590,6825cb53,2026-09-07
+tests/traceability,目录,是,14,4,417,2,1045,45e64640,2026-08-28,(TRACE-001) 六层追溯schema与检查器 — claim_id格式+R1-R7链规则+引用存在(路径/符号级)+VER域6claim种子+5测试含删,1782,009ee419,2026-09-09
+tools/check_warning_suppression.py,目录或文件,否,,4,138,25,1348,41943d42,2026-08-31,QA-001: 生产警告抑制清零 (P2/P3 去 -w),1701,6c5f5fc9,2026-09-08
+tools/validate_cpu_profile.py,目录或文件,否,,4,160,30,1109,e8767daf,2026-08-29,(BENCH-004) profile生命周期 — cpu_profile生成器(schema同构+指纹)+validate三态(schema/stale: I,1782,009ee419,2026-09-09
+ci/prepare_linux_fixtures.py,目录或文件,否,,3,287,1,1620,09a7a95f,2026-09-08,fix(ci): V8.1 CI 双平台收敛——parser session-mode/Windows junit 落点/linux fixture+构建树步,1679,b80404eb,2026-09-08
+ci/select_candidate.py,目录或文件,否,,3,573,2,1540,9b3fe93e,2026-09-06,feat(ci): V8-CI-008 Fatduck 三 job workflow 与候选选择器 [V8-CI-008],1613,47a1ec4f,2026-09-07
+ci/steps,目录,是,4,3,161,0,1823,a67bbc83,2026-09-12,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁,1950,adaeb531,2026-09-14
+cli/process.cpp,目录或文件,否,,3,219,4,1681,dd89e530,2026-09-08,fix(p1-batchG): cli P1×2+bench verdict——std::system 拼接族×2 改跨平台进程API(argv零shell解析,1719,47ac0d40,2026-09-08
+docs/API_REFERENCE.md,目录或文件,否,,3,160,2,938,a6c88115,2026-08-22,docs(architecture): stage C engineering anchor — ARCHITECTURE + API_REFERENCE + ,1853,01eaba36,2026-09-13
+docs/CONFIG_REFERENCE.md,已不在树中,否,,3,46,1,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/DEVELOPER_GUIDE.md,目录或文件,否,,3,49,4,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,883,323bb339,2026-08-22
+docs/DRIZZLE.md,已不在树中,否,,3,60,1,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/README-DOCS.md,目录或文件,否,,3,24,2,700,8ab2efbd,2026-08-15,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs,941,9a426040,2026-08-22
+docs/history,已不在树中,否,,3,21,1,700,8ab2efbd,2026-08-15,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs,1480,b7b2dea7,2026-09-02
+docs/owner,目录,是,5,3,890,176,1489,6affe300,2026-09-03,docs(owner): GOV-004 建立负责人审查入口,1826,327b6c30,2026-09-12
+docs/standards,目录,是,15,3,1003,3,700,8ab2efbd,2026-08-15,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs,1845,8069d85d,2026-09-12
+engineering/MANIFEST.md,已不在树中,否,,3,47,47,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,203,036a3bb5,2026-07-29
+engineering/agent,已不在树中,否,,3,423,62,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,203,036a3bb5,2026-07-29
+engineering/checklists,已不在树中,否,,3,197,78,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,203,036a3bb5,2026-07-29
+engineering/tasks,已不在树中,否,,3,1440,1222,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,203,036a3bb5,2026-07-29
+engineering/templates,已不在树中,否,,3,294,195,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,203,036a3bb5,2026-07-29
+evidence/ciqa,目录,是,1,3,631,315,1569,58d91a4c,2026-09-06,fix(ci): deep 防线测试合同同步 + CIQA 独立攻击审查报告入档 [V8-CI-012 后续],1613,47a1ec4f,2026-09-07
+lib/hips_p2,目录,是,3,3,391,2,1665,c0b464cf,2026-09-08,docs(P2-HIPS-DOC): hips_writer 模块合同冻结——ALG-P2-HIPS-001..004/DATA-P2-HIPS/API-P2-,1844,e89ce10e,2026-09-12
+lib/io,目录,是,1,3,218,11,1285,2f39880c,2026-08-31,IO-001: 实现 I/O adapter 接口与 Artifact 事务,1716,90680db9,2026-09-08
+modules/conformance,目录,是,12,3,2218,7,1492,46b0d8e1,2026-09-03,build(layout): BLD-003 建立模块化安装骨架,1586,f896d1bb,2026-09-06
+packaging/README.md,目录或文件,否,,3,43,4,1492,46b0d8e1,2026-09-03,build(layout): BLD-003 建立模块化安装骨架,1817,e6254d4d,2026-09-12
+packaging/astrocs.product.json,目录或文件,否,,3,27,8,1492,46b0d8e1,2026-09-03,build(layout): BLD-003 建立模块化安装骨架,1817,e6254d4d,2026-09-12
+packaging/install-tree.contract.json,目录或文件,否,,3,26,1,1492,46b0d8e1,2026-09-03,build(layout): BLD-003 建立模块化安装骨架,1817,e6254d4d,2026-09-12
+packaging/schemas,目录,是,4,3,191,0,1478,f260b804,2026-09-02,build(msvc): BLD-001 冻结Windows发布工具链,1493,64a2f996,2026-09-03
+reports/duplicate_cleanup.md,已不在树中,否,,3,42,35,651,f2d7f5a1,2026-08-14,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+repo,980,e1604f14,2026-08-27
+reports/full_e2e.md,已不在树中,否,,3,50,2,658,1145a28f,2026-08-14,reports+v16: final status / feature matrix / normalization / satellite v2 / full,980,e1604f14,2026-08-27
+reports/rejection_normalization.md,已不在树中,否,,3,58,3,658,1145a28f,2026-08-14,reports+v16: final status / feature matrix / normalization / satellite v2 / full,980,e1604f14,2026-08-27
+reports/satellite_rejection.md,已不在树中,否,,3,67,5,651,f2d7f5a1,2026-08-14,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+repo,980,e1604f14,2026-08-27
+reports/satellite_v2.md,已不在树中,否,,3,101,17,658,1145a28f,2026-08-14,reports+v16: final status / feature matrix / normalization / satellite v2 / full,980,e1604f14,2026-08-27
+reports/wbpp_feature_matrix.md,已不在树中,否,,3,56,6,658,1145a28f,2026-08-14,reports+v16: final status / feature matrix / normalization / satellite v2 / full,980,e1604f14,2026-08-27
+runtime/pipeline,目录,是,8,3,1418,0,1483,5d38ebd7,2026-09-02,feat(runtime): RT-001 实现类型化运行图,1930,adfdda7e,2026-09-14
+tests/io,目录,是,13,3,1610,0,1486,caee3e67,2026-09-03,feat(io): IO-001 实现流式FITS读写API并修复F32字节序,1510,442958df,2026-09-03
+tools/README.md,目录或文件,否,,3,166,83,151,5ec98660,2026-07-27,tools: 新增 astro_toolkit.py Python 工具集（跳过沙箱确认）,343,dac3b8cf,2026-08-04
+tools/api_doc_consistency.py,目录或文件,否,,3,257,23,664,85851c2f,2026-08-14,docs(phase2-v17): docs/API/config machine consistency - PUBLIC_API/SCIENCE_FREEZ,1701,6c5f5fc9,2026-09-08
+tools/assemble_v17_review_pkg.py,目录或文件,否,,3,355,12,667,88293174,2026-08-14,"tools+v17: repo source manifest generator (4197 files SHA256), review package as",738,d22a3ff6,2026-08-22
+tools/check_cli_run_preset.py,目录或文件,否,,3,84,22,1325,e5b84f30,2026-08-31,CLI-002: run preset/IR 驱动 + Artifact 哈希链,1583,5e457d42,2026-09-06
+tools/check_legacy_exit.py,目录或文件,否,,3,86,1,1328,fb0d081d,2026-08-31,LEG-002: 旧 Orchestrator 退出生产,1330,6a66acab,2026-08-31
+tools/check_release_consistency.py,目录或文件,否,,3,68,10,1345,457dcf6b,2026-08-31,G11-CONSISTENCY: 发布一致性校验 (VERSION/SBOM/checksums),1701,6c5f5fc9,2026-09-08
+tools/check_reproducible_build.py,目录或文件,否,,3,117,21,1352,60493ea3,2026-08-31,QA-005: 可复现构建依赖与 SBOM,1593,f0bc039a,2026-09-07
+tools/make_linux_release.py,目录或文件,否,,3,175,4,1194,5364fc17,2026-08-29,(LNX-005) Linux alpha amd64发布包生成器+SBOM/manifest/hash+空目录smoke单exe PASS,1367,99a79200,2026-08-31
+tools/make_windows_release.py,目录或文件,否,,3,188,4,1231,b8ce3669,2026-08-30,(WIN-009) 新增 Windows 发布包工具 make_windows_release.py: 单一 astrocs.exe+私有VC运行时DLL+MA,1367,99a79200,2026-08-31
+tools/science_contract_lint.py,目录或文件,否,,3,85,9,1047,cc64ba1a,2026-08-28,(SCI-001) Calibration科学合同补全 — Frames/专属问题7项逐锚回答/Primary literature 3条核验定位/Accept,1572,63721d70,2026-09-06
+ci/actions.lock.json,目录或文件,否,,2,41,2,1538,a032c0cc,2026-09-06,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007],1540,9b3fe93e,2026-09-06
+ci/ci_repair_round.py,目录或文件,否,,2,734,5,1818,71cdc28f,2026-09-12,feat(CI/CI-REPAIR-001): CI修复常驻线轮报器(Checks API全量回拉+失败job日志+归因映射),1821,830b38c6,2026-09-12
+ci/known_failures.json,目录或文件,否,,2,106,23,1822,778fe98e,2026-09-12,feat(CI/CI-BASELINE-001): known-failures 基线机器化——失败集 ⊆ 版本化基线成为不可豁免 CI 门（STD-F9 处置,1944,ccc7a933,2026-09-14
+ci/resource_monitor.py,目录或文件,否,,2,82,0,1534,e1fde093,2026-09-06,feat(ci): V8-CI-005 linux-deep 检查注册与 deep 构建驱动链 [V8-CI-005],1548,77da09ef,2026-09-06
+ci/toolchain.lock.json,目录或文件,否,,2,191,47,1524,becc85a0,2026-09-05,chore(ci): V81-ADOPT-004 Agent 主机工具链盘点与锁存 [V81-ADOPT-004],1559,b6001684,2026-09-06
+ci/validate_candidate.py,目录或文件,否,,2,312,3,1538,a032c0cc,2026-09-06,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007],1542,1e50d49e,2026-09-06
+ci/verify_remote_run.py,目录或文件,否,,2,473,3,1553,2ca7361e,2026-09-06,fix(ci): V8-CI-012 修复轮 1 ASan 目标旗标/coverage 工具链/远端验证器 [V8-CI-012],1554,485b8b86,2026-09-06
+ci/verify_workspace_adoption.py,目录或文件,否,,2,257,7,1522,af9ecdc5,2026-09-05,chore(evidence): V81-ADOPT-002 冻结预存状态与远端关系 [V81-ADOPT-002],1574,e4f77ccb,2026-09-06
+ci/workflow_binding.json,目录或文件,否,,2,229,2,1823,a67bbc83,2026-09-12,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁,1872,c21eec50,2026-09-13
+cli/memory_report.h,目录或文件,否,,2,671,57,1754,acceab68,2026-09-09,test(resource): MON-002 增加内存增长检测——memory_report.h 双探针(glibc mallinfo2+/proc smap,1949,c1959436,2026-09-14
+cli/process.h,已不在树中,否,,2,45,0,1681,dd89e530,2026-09-08,fix(p1-batchG): cli P1×2+bench verdict——std::system 拼接族×2 改跨平台进程API(argv零shell解析,1683,fa60113b,2026-09-08
+cli/resource_events.h,目录或文件,否,,2,136,1,1142,af69a9c4,2026-08-29,(MON-002) 资源事件分层 — --resource-detail summary|timeseries+resource/backend事件(07§2指,1439,e25f3f0c,2026-09-01
+contracts/schemas_tmp,已不在树中,否,,2,0,0,1781,64c1e988,2026-09-09,fix(P1-HIPS-TEST): tree_digest FITS CHECKSUM/DATASUM 时间戳归一化——fnv_file 对 .fits/.f,1782,009ee419,2026-09-09
+docs/BUILD_RELEASE.md,已不在树中,否,,2,32,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/DATA_CONTRACTS.md,已不在树中,否,,2,44,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/DESIGN_IMPL_GAP.md,已不在树中,否,,2,687,687,112,d411565e,2026-07-24,"docs: integrate root documentation, specs, and gitignore into main repo",203,036a3bb5,2026-07-29
+docs/DIAGNOSTICS.md,已不在树中,否,,2,47,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/ERROR_TAXONOMY.md,已不在树中,否,,2,57,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/MODULE_INDEX.md,已不在树中,否,,2,17,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/PERFORMANCE.md,已不在树中,否,,2,28,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/PHASE2.md,已不在树中,否,,2,49,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/PIPELINE_OVERVIEW.md,已不在树中,否,,2,59,59,112,d411565e,2026-07-24,"docs: integrate root documentation, specs, and gitignore into main repo",203,036a3bb5,2026-07-29
+docs/PROJECT_OVERVIEW.md,已不在树中,否,,2,217,217,112,d411565e,2026-07-24,"docs: integrate root documentation, specs, and gitignore into main repo",203,036a3bb5,2026-07-29
+docs/SCIENTIFIC_ALGORITHMS.md,已不在树中,否,,2,17,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/SNR_NOISE_MODEL.md,已不在树中,否,,2,120,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/TESTING_AND_ACCEPTANCE.md,已不在树中,否,,2,33,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,700,8ab2efbd,2026-08-15
+docs/archive,目录,是,28,2,2275,2,1480,b7b2dea7,2026-09-02,docs(governance): GOV-002 归档非当前工程文档,1491,9bc3d0fd,2026-09-03
+docs/governance,目录,是,1,2,108,9,1482,39e77317,2026-09-02,build(version): GOV-003 统一Alpha版本事实源,1526,b4f923cc,2026-09-05
+docs/performance,目录,是,2,2,42,0,624,5a9eadcf,2026-08-13,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/P,627,7baeaa99,2026-08-13
+docs/phase2,已不在树中,否,,2,89,0,965,535e7387,2026-08-25,feat(pre-release): complete R70 AstroCS v20 pre-release science closure (all fix,1480,b7b2dea7,2026-09-02
+docs/release,已不在树中,否,,2,47,0,965,535e7387,2026-08-25,feat(pre-release): complete R70 AstroCS v20 pre-release science closure (all fix,1480,b7b2dea7,2026-09-02
+docs/stage1_fix,已不在树中,否,,2,1057,1057,227,b4bcf8e7,2026-07-31,docs(stage1_fix): 新增Stage1/HISS修复规范文档,341,6e9dc1b8,2026-08-04
+docs/superpowers,已不在树中,否,,2,9564,9564,112,d411565e,2026-07-24,"docs: integrate root documentation, specs, and gitignore into main repo",203,036a3bb5,2026-07-29
+engineering/00_START_HERE.md,已不在树中,否,,2,54,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/01_PROJECT_CHARTER.md,已不在树中,否,,2,73,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/02_BASELINE_AUDIT.md,已不在树中,否,,2,106,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/03_TARGET_SYSTEM_ARCHITECTURE.md,已不在树中,否,,2,123,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/04_ENGINEERING_CONTROL_MODEL.md,已不在树中,否,,2,92,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/05_REPOSITORY_AND_DEPENDENCY_MANAGEMENT.md,已不在树中,否,,2,97,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/06_DATA_MANAGEMENT_SPEC.md,已不在树中,否,,2,146,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/07_INTERFACE_MANAGEMENT_SPEC.md,已不在树中,否,,2,100,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/08_CONFIGURATION_AND_BUILD_SPEC.md,已不在树中,否,,2,74,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/09_TEST_AND_VERIFICATION_STRATEGY.md,已不在树中,否,,2,109,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/10_REFERENCE_DATASET_SPEC.md,已不在树中,否,,2,66,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/11_STAGE1_VALIDATION_SPEC.md,已不在树中,否,,2,107,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/12_STAGE2_STACKING_VALIDATION_SPEC.md,已不在树中,否,,2,127,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/13_OBSERVABILITY_AND_DIAGNOSTICS_SPEC.md,已不在树中,否,,2,64,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/14_RELEASE_AND_VERSIONING_SPEC.md,已不在树中,否,,2,48,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/15_ROADMAP_AND_GATES.md,已不在树中,否,,2,61,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/AUTONOMOUS_ENTRY.md,已不在树中,否,,2,30,30,128,ba4f0d34,2026-07-25,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API,203,036a3bb5,2026-07-29
+engineering/PACKAGE_SHA256.txt,已不在树中,否,,2,68,0,118,1ac74251,2026-07-24,P00-001: 冻结并复核主仓库基线,128,ba4f0d34,2026-07-25
+engineering/PACKAGE_VERSION.txt,已不在树中,否,,2,1,1,128,ba4f0d34,2026-07-25,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API,203,036a3bb5,2026-07-29
+engineering/README.md,已不在树中,否,,2,28,28,128,ba4f0d34,2026-07-25,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API,203,036a3bb5,2026-07-29
+engineering/SHA256SUMS.txt,已不在树中,否,,2,91,91,128,ba4f0d34,2026-07-25,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API,203,036a3bb5,2026-07-29
+engineering/START_PROMPT.txt,已不在树中,否,,2,1,1,128,ba4f0d34,2026-07-25,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API,203,036a3bb5,2026-07-29
+engineering/docs,已不在树中,否,,2,1063,1063,128,ba4f0d34,2026-07-25,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API,203,036a3bb5,2026-07-29
+engineering/engineering,已不在树中,否,,2,62,62,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,203,036a3bb5,2026-07-29
+engineering/reference,已不在树中,否,,2,88,88,128,ba4f0d34,2026-07-25,P02-002/P02-005: v1.1包部署+P00-P02证据+候选路径API,203,036a3bb5,2026-07-29
+evidence/QA-V19R7-A2-01,已不在树中,否,,2,37,0,744,b1e3d138,2026-08-22,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2],1040,1c580eb9,2026-08-28
+evidence/QA-V19R7-A2-02,已不在树中,否,,2,40,0,744,b1e3d138,2026-08-22,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2],1040,1c580eb9,2026-08-28
+evidence/QA-V19R7-A2-03,已不在树中,否,,2,43,0,744,b1e3d138,2026-08-22,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2],1040,1c580eb9,2026-08-28
+evidence/QA-V19R7-A2-04,已不在树中,否,,2,44,0,744,b1e3d138,2026-08-22,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2],1040,1c580eb9,2026-08-28
+evidence/QA-V19R7-A2-05,已不在树中,否,,2,40,0,744,b1e3d138,2026-08-22,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2],1040,1c580eb9,2026-08-28
+evidence/QA-V19R7-A2-06,已不在树中,否,,2,43,0,744,b1e3d138,2026-08-22,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2],1040,1c580eb9,2026-08-28
+evidence/QA-V19R7-A2-07,已不在树中,否,,2,45,0,744,b1e3d138,2026-08-22,chore(qa): mark A stage DONE + evidence indices [QA-V19R7-A2],1040,1c580eb9,2026-08-28
+evidence/QA-V19R7-A2-08,已不在树中,否,,2,68,0,743,233c82b6,2026-08-22,docs(qa): audit findings summary A Gate [QA-V19R7-A2-08],1040,1c580eb9,2026-08-28
+lib/phase3_proj,目录,是,5,2,911,8,1722,de15efc9,2026-09-08,"docs(P3-PROJ-DOC): 投影域冻结合同——ALG-P3-PROJ-IMPL-001(14节,G1/G2承接,公式零改动)+DATA-P3-WCS/",1806,9953f103,2026-09-11
+modules/services,目录,是,4,2,1147,0,1486,caee3e67,2026-09-03,feat(io): IO-001 实现流式FITS读写API并修复F32字节序,1490,316d4175,2026-09-03
+reports/algorithm_doc_review.md,已不在树中,否,,2,124,0,937,8c799f4c,2026-08-22,"docs(algorithms): stage B review 11/11 PASS, P0=0 + 2 minimal edits",980,e1604f14,2026-08-27
+reports/bottleneck_classification.md,已不在树中,否,,2,8,0,683,f12d39a1,2026-08-15,reports(phase1-v18r2): final status + bottleneck classification + hips io + phas,980,e1604f14,2026-08-27
+reports/browser_stf.md,已不在树中,否,,2,46,0,651,f2d7f5a1,2026-08-14,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+repo,980,e1604f14,2026-08-27
+reports/code_quality.md,已不在树中,否,,2,5,0,683,f12d39a1,2026-08-15,reports(phase1-v18r2): final status + bottleneck classification + hips io + phas,980,e1604f14,2026-08-27
+reports/controlled_rejection_truth.md,已不在树中,否,,2,41,0,668,d00b9f42,2026-08-14,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_s,980,e1604f14,2026-08-27
+reports/docs_consistency.md,已不在树中,否,,2,32,0,668,d00b9f42,2026-08-14,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_s,980,e1604f14,2026-08-27
+reports/drizzle_optimization.md,已不在树中,否,,2,47,0,673,137f20d5,2026-08-15,reports(phase1-v18): drizzle optimization record - PERF-001..005/010 implemented,980,e1604f14,2026-08-27
+reports/engineering_doc_review.md,已不在树中,否,,2,98,0,938,a6c88115,2026-08-22,docs(architecture): stage C engineering anchor — ARCHITECTURE + API_REFERENCE + ,980,e1604f14,2026-08-27
+reports/hips_io_optimization.md,已不在树中,否,,2,5,0,683,f12d39a1,2026-08-15,reports(phase1-v18r2): final status + bottleneck classification + hips io + phas,980,e1604f14,2026-08-27
+reports/hotpath_complexity.csv,已不在树中,否,,2,13,0,677,c8c40855,2026-08-15,"reports(phase1-v18r2): resource timeline before/after (RSS 37.5GB->1.2GB, exit 4",980,e1604f14,2026-08-27
+reports/integration_contract.md,已不在树中,否,,2,66,0,668,d00b9f42,2026-08-14,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_s,980,e1604f14,2026-08-27
+reports/large_scale_rejection.md,已不在树中,否,,2,62,0,668,d00b9f42,2026-08-14,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_s,980,e1604f14,2026-08-27
+reports/legacy_removal.md,已不在树中,否,,2,56,0,668,d00b9f42,2026-08-14,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_s,980,e1604f14,2026-08-27
+reports/phase1_final_performance.md,已不在树中,否,,2,6,0,683,f12d39a1,2026-08-15,reports(phase1-v18r2): final status + bottleneck classification + hips io + phas,980,e1604f14,2026-08-27
+reports/phase1_source_audit.md,已不在树中,否,,2,77,0,666,a46e7028,2026-08-14,"reports+v17: Phase1 source audit (single call graph, no hidden path), performanc",980,e1604f14,2026-08-27
+reports/phase2_regression.md,已不在树中,否,,2,5,0,683,f12d39a1,2026-08-15,reports(phase1-v18r2): final status + bottleneck classification + hips io + phas,980,e1604f14,2026-08-27
+reports/phase2_wbpp_stf_fix.md,已不在树中,否,,2,64,0,646,dbb3eecc,2026-08-14,docs(phase2-v14): WBPP rejection + STF 3-control fix audit report (methods/auto/,980,e1604f14,2026-08-27
+reports/pipeline_audit.md,已不在树中,否,,2,45,0,624,5a9eadcf,2026-08-13,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/P,980,e1604f14,2026-08-27
+reports/repeated_work.md,已不在树中,否,,2,36,0,677,c8c40855,2026-08-15,"reports(phase1-v18r2): resource timeline before/after (RSS 37.5GB->1.2GB, exit 4",980,e1604f14,2026-08-27
+reports/resource_timeline.md,已不在树中,否,,2,50,0,677,c8c40855,2026-08-15,"reports(phase1-v18r2): resource timeline before/after (RSS 37.5GB->1.2GB, exit 4",980,e1604f14,2026-08-27
+reports/science_doc_review.md,已不在树中,否,,2,127,0,936,10b91990,2026-08-22,"docs(science): stage A review 10+2 PASS, P0=0 [science_freeze]",980,e1604f14,2026-08-27
+reports/self_review_round1.md,已不在树中,否,,2,99,0,942,dc196346,2026-08-22,reports: self_review round1 P0=0 P1=4 (fix 3 commits) + 4 machine PASS [round1],980,e1604f14,2026-08-27
+reports/self_review_round2.md,已不在树中,否,,2,89,0,943,af720917,2026-08-22,reports: self_review round2 0 P0/0 P1 (doc dim) + 4 machine PASS + 0新增 [round2] ,980,e1604f14,2026-08-27
+reports/technical_debt_closed.md,已不在树中,否,,2,18,0,626,1f94e9f9,2026-08-13,docs(phase2-v14): final status + technical debt + performance reports; V14 audit,980,e1604f14,2026-08-27
+reports/wbpp_final.md,已不在树中,否,,2,41,0,668,d00b9f42,2026-08-14,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_s,980,e1604f14,2026-08-27
+runtime/monitoring,目录,是,12,2,1364,1,1515,4ca0d0e9,2026-09-04,feat(monitor): LOG-002 资源监控 CSV 落盘与机器验证,1572,63721d70,2026-09-06
+tests/contracts,目录,是,6,2,107,0,1266,0f78c111,2026-08-30,DOC-001: 建立合同 ID 注册表,1270,e351f3fb,2026-08-30
+tests/sciencelint,目录,是,5,2,54,0,1047,cc64ba1a,2026-08-28,(SCI-001) Calibration科学合同补全 — Frames/专属问题7项逐锚回答/Primary literature 3条核验定位/Accept,1054,199b21e2,2026-08-28
+tools/_commit_audit.json,已不在树中,否,,2,8,8,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,162,0d1857de,2026-07-27
+tools/_commit_audit_msg.txt,已不在树中,否,,2,12,12,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,162,0d1857de,2026-07-27
+tools/_p06_002_commit_msg.txt,已不在树中,否,,2,28,28,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p06_002_run_snr_debug.json,已不在树中,否,,2,38,38,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p06_002_run_snr_debug.log,已不在树中,否,,2,83,83,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p06_002_run_tests.json,已不在树中,否,,2,158,158,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p06_002_run_tests.log,已不在树中,否,,2,352,352,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p06_003_commit_msg.txt,已不在树中,否,,2,12,12,153,50310948,2026-07-27,P06-003 HCSD 输出与独立读取 (VERDICT: PASS),243,428746c6,2026-07-31
+tools/_p07_001_git.json,已不在树中,否,,2,52,52,154,4c1f546e,2026-07-27,P07-001 性能与峰值内存基线 (VERDICT: PASS),243,428746c6,2026-07-31
+tools/_p07_001_git.log,已不在树中,否,,2,126,126,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p07_001_git2.json,已不在树中,否,,2,5,5,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p07_001_git2.log,已不在树中,否,,2,51,51,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p07_002_commit_msg2.txt,已不在树中,否,,2,8,8,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p07_002_git.json,已不在树中,否,,2,70,70,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p07_002_git.log,已不在树中,否,,2,144,144,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p07_002_git2.json,已不在树中,否,,2,5,5,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p07_002_git2.log,已不在树中,否,,2,51,51,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p07_002_setup.json,已不在树中,否,,2,9,9,156,c3865eb6,2026-07-27,P07-002 长批次与故障稳定性 (VERDICT: PASS),243,428746c6,2026-07-31
+tools/_p07_002_setup.log,已不在树中,否,,2,108,108,156,c3865eb6,2026-07-27,P07-002 长批次与故障稳定性 (VERDICT: PASS),243,428746c6,2026-07-31
+tools/_p08_001_commit_msg.txt,已不在树中,否,,2,18,18,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p08_001_release.json,已不在树中,否,,2,55,55,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p08_001_release.log,已不在树中,否,,2,93,93,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/_p08_dll_deps.txt,已不在树中,否,,2,1,1,161,ed145a70,2026-07-27,docs: 补充项目 README + 生成 v1.1 审计包,243,428746c6,2026-07-31
+tools/check_api_docs.py,目录或文件,否,,2,389,1,1182,ea1145fb,2026-08-29,(DOCCHK-001) 机器核对文档函数名/签名/schema/命令/退出码 PASS,1782,009ee419,2026-09-09
+tools/check_cli_command_layer.py,目录或文件,否,,2,59,10,1324,bb2d9fcd,2026-08-31,CLI-001: 稳定 command 层 (kRules 表驱动),1576,3a4b265b,2026-09-06
+tools/check_contract_graph.py,目录或文件,否,,2,109,2,1266,0f78c111,2026-08-30,DOC-001: 建立合同 ID 注册表,1663,d699d8ca,2026-09-08
+tools/check_duplication.py,目录或文件,否,,2,59,2,1351,1ee07955,2026-08-31,QA-004: 重复实现与所有权审查,1593,f0bc039a,2026-09-07
+tools/check_final_traceability.py,目录或文件,否,,2,51,2,1338,97f6ee8e,2026-08-31,REL-002: 最终追溯校验 + 旧入口扫描,1367,99a79200,2026-08-31
+tools/check_glossary.py,目录或文件,否,,2,94,1,1046,4dd9385b,2026-08-28,(DOC-001) 术语单位词典冻结 — GLOSSARY 18核心术语唯一含义+bad_mask极性实测(1=坏点)+pixel_weight与frame_q,1572,63721d70,2026-09-06
+tools/check_module_readmes.py,目录或文件,否,,2,62,7,1333,b63958b2,2026-08-31,DOC-003: 每模块 L2 README + 合同链接,1701,6c5f5fc9,2026-09-08
+tools/check_p3_status.py,目录或文件,否,,2,48,5,1317,be2d6c0d,2026-08-31,P3-001: 移除 prototype registry/preset + 文档状态统一,1576,3a4b265b,2026-09-06
+tools/check_pipeline_trace.py,目录或文件,否,,2,126,31,1335,6608b166,2026-08-31,DOC-005: 静态 Pipeline 图与运行 trace 一致性,1701,6c5f5fc9,2026-09-08
+tools/check_serial_hardcode.py,目录或文件,否,,2,89,4,1349,f8001e29,2026-08-31,QA-002: 串行/硬编码静态禁令 + GLOB 清零 + ACR 剔出,1574,e4f77ccb,2026-09-06
+tools/check_traceability.py,目录或文件,否,,2,125,1,1045,45e64640,2026-08-28,(TRACE-001) 六层追溯schema与检查器 — claim_id格式+R1-R7链规则+引用存在(路径/符号级)+VER域6claim种子+5测试含删,1184,8a0a02f8,2026-08-29
+tools/check_unit_closure.py,目录或文件,否,,2,114,2,1184,8a0a02f8,2026-08-29,(DOCCHK-002) 六层追溯闭环66claim+单位二义性mutation门 PASS,1701,6c5f5fc9,2026-09-08
+tools/gen_v19_evidence.py,目录或文件,否,,2,220,1,694,729f150c,2026-08-15,fix(v19-round5): red-team 17/17 - variance no-data tile skip + evidence tools,738,d22a3ff6,2026-08-22
+tools/gen_v19_source_snapshot.py,目录或文件,否,,2,88,1,700,8ab2efbd,2026-08-15,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs,738,d22a3ff6,2026-08-22
+tools/pack_audit_package.py,目录或文件,否,,2,117,1,1260,ac2d230d,2026-08-30,(审核包打包工具) tools/pack_audit_package.py: 打包基线代码(不含数据/第三方/二进制/运行时)+证据为 zip. 产物 arti,1782,009ee419,2026-09-09
+tools/phase1_e2e_bench.py,目录或文件,否,,2,142,1,665,2d3b31fc,2026-08-14,fix(phase1-v17): orchestrator rebuild after legacy removal - restore load_module,686,44a23e52,2026-08-15
+tools/redteam_v19.py,目录或文件,否,,2,269,1,694,729f150c,2026-08-15,fix(v19-round5): red-team 17/17 - variance no-data tile skip + evidence tools,738,d22a3ff6,2026-08-22
+tools/traceability,目录,是,3,2,511,1,1500,2a8676bf,2026-09-03,test(traceability): DOC-001 建立机器追溯合同,1782,009ee419,2026-09-09
+ci/INVENTORY_REPORT.md,目录或文件,否,,1,79,0,1527,0acfb514,2026-09-05,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001],1527,0acfb514,2026-09-05
+ci/WORKFLOW_BINDING_AUDIT.md,目录或文件,否,,1,93,0,1823,a67bbc83,2026-09-12,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁,1823,a67bbc83,2026-09-12
+ci/check_version.py,目录或文件,否,,1,274,0,1526,b4f923cc,2026-09-05,chore(version): V81-ADOPT-006 统一活动版本源至 0.11.0-alpha.2 并同步冻结约束版本行 [V81-ADOPT-006],1526,b4f923cc,2026-09-05
+ci/ci_result.schema.json,目录或文件,否,,1,15,0,1528,459da629,2026-09-06,feat(ci): V8-CI-002 统一确定性 CI 执行器、结果 schema 与 29 项单测 [V8-CI-002],1528,459da629,2026-09-06
+ci/ctest_baseline.json,目录或文件,否,,1,184,0,1819,d3097319,2026-09-12,feat(CI/CI-REG-002): 新增测试全注册与关键检查不可豁免(STD-F7 四项处置 + STD-F10 落地),1819,d3097319,2026-09-12
+ci/select_profile.py,目录或文件,否,,1,103,0,1538,a032c0cc,2026-09-06,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007],1538,a032c0cc,2026-09-06
+ci/validate_workflow_binding.py,目录或文件,否,,1,587,0,1823,a67bbc83,2026-09-12,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁,1823,a67bbc83,2026-09-12
+ci/verify_actions_lock.py,目录或文件,否,,1,319,0,1538,a032c0cc,2026-09-06,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007],1538,a032c0cc,2026-09-06
+ci/verify_ciqa_report.py,目录或文件,否,,1,126,0,1571,d524ea73,2026-09-06,fix(ci): 落地 V8-CIQA-001 验收器 verify_ciqa_report.py（关闭 CIQA P1-GAP-1）[V8-CI-012 后续,1571,d524ea73,2026-09-06
+ci/verify_toolchain.py,目录或文件,否,,1,208,0,1524,becc85a0,2026-09-05,chore(ci): V81-ADOPT-004 Agent 主机工具链盘点与锁存 [V81-ADOPT-004],1524,becc85a0,2026-09-05
+ci/wf_step.py,目录或文件,否,,1,247,0,1823,a67bbc83,2026-09-12,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁,1823,a67bbc83,2026-09-12
+cli/astrocs_process.h,目录或文件,否,,1,0,0,1683,fa60113b,2026-09-08,fix(ci): R11 Windows build exit1 根因——cli/process.h 重命名 astrocs_process.h(消 MSVC ,1683,fa60113b,2026-09-08
+cli/cancel_token.h,目录或文件,否,,1,41,0,1090,d484f7c5,2026-08-28,(CLI-002) 统一parser+JSONL协议+cancel+crash boundary — 命令树白名单14拒绝面+config init/valid,1090,d484f7c5,2026-08-28
+cli/exit_codes.h,目录或文件,否,,1,21,0,1090,d484f7c5,2026-08-28,(CLI-002) 统一parser+JSONL协议+cancel+crash boundary — 命令树白名单14拒绝面+config init/valid,1090,d484f7c5,2026-08-28
+cli/memory_growth.h,目录或文件,否,,1,136,0,1146,50fedef8,2026-08-29,(MON-004) 内存增长分析 — 20循环+预热剔除+Theil-Sen稳健斜率+峰值/retained+OOM预警+泄漏/增长/震荡分类; 242/242,1146,50fedef8,2026-08-29
+cli/protocol.h,目录或文件,否,,1,97,0,1731,692a4216,2026-09-09,feat(cli): CLI-004 冻结 GUI 进程协议 v1——protocol.h ValidateEventV1 发送端硬网关(10必填字段/sequ,1731,692a4216,2026-09-09
+cli/version_generated.h.in,目录或文件,否,,1,3,0,1088,07bc18b9,2026-08-28,(CLI-001) 单一astrocs target落地 — 严格C++17双平台main(help13行golden+version json+exit2 s,1088,07bc18b9,2026-08-28
+contracts/schemas,目录,是,7,1,0,0,1782,009ee419,2026-09-09,chore(repo): 根目录归纳第二批——①launch/(2文件)→packaging/launch/ ②graph/孤儿图产物→artifacts/gr,1782,009ee419,2026-09-09
+docs/GLOSSARY.md,目录或文件,否,,1,25,0,1046,4dd9385b,2026-08-28,(DOC-001) 术语单位词典冻结 — GLOSSARY 18核心术语唯一含义+bad_mask极性实测(1=坏点)+pixel_weight与frame_q,1046,4dd9385b,2026-08-28
+docs/TROUBLESHOOTING.md,目录或文件,否,,1,40,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,691,1d3a34c2,2026-08-15
+docs/audit,目录,是,3,1,118,0,965,535e7387,2026-08-25,feat(pre-release): complete R70 AstroCS v20 pre-release science closure (all fix,965,535e7387,2026-08-25
+docs/backlog,目录,是,1,1,9,0,624,5a9eadcf,2026-08-13,docs(phase2-v14): finalization docs + config consistency tool - DATA_SEMANTICS/P,624,5a9eadcf,2026-08-13
+docs/diagnostics,目录,是,1,1,31,0,700,8ab2efbd,2026-08-15,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs,700,8ab2efbd,2026-08-15
+docs/operations,目录,是,1,1,61,0,1524,becc85a0,2026-09-05,chore(ci): V81-ADOPT-004 Agent 主机工具链盘点与锁存 [V81-ADOPT-004],1524,becc85a0,2026-09-05
+docs/quality,目录,是,2,1,65,0,1534,e1fde093,2026-09-06,feat(ci): V8-CI-005 linux-deep 检查注册与 deep 构建驱动链 [V8-CI-005],1534,e1fde093,2026-09-06
+lib/phase2_int,目录,是,3,1,256,0,1676,84c6715a,2026-09-08,docs(P2-INT-DOC): integration 模块合同冻结——ALG-P2-INT-001/DATA-P2-INT/API-P2-INT-001/,1676,84c6715a,2026-09-08
+lib/phase2_rej,目录,是,3,1,309,0,1684,6f668c87,2026-09-08,docs(P2-REJ-DOC): rejection 模块合同冻结——ALG-P2-REJ-001/DATA-P2-REJ(§22)/API-P2-REJ-0,1684,6f668c87,2026-09-08
+lib/phase2_samp,目录,是,3,1,321,0,1692,e654d4c2,2026-09-08,docs(P2-SAMP-DOC): sampling 模块合同冻结——ALG-P2-SMP-001(108锚实测)/DATA-P2-SMP(§23)/API-,1692,e654d4c2,2026-09-08
+lib/phase2_upm,目录,是,3,1,451,0,1704,f506ef7f,2026-09-08,docs(P2-UPM-DOC): UPM 域冻结合同——ALG-UPM-001 原位修订(std::thread实测锚)+ALG-P2-UPM-IMPL-00,1704,f506ef7f,2026-09-08
+lib/phase3_fits,目录,是,3,1,397,0,1714,3d876fa3,2026-09-08,docs(P3-FITS-DOC): FITS 写出域冻结合同——ALG-P3-FITS-IMPL-001(17节)+DATA-P3-FITS/§27+API-,1714,3d876fa3,2026-09-08
+lib/phase3_rsmp,目录,是,3,1,363,0,1726,d74c1a90,2026-09-09,"docs(P3-RSMP-DOC): 重采样域冻结合同——ALG-P3-RSMP-IMPL-001(14节,G3/G4承接)+DATA-P3-RES/§29+A",1726,d74c1a90,2026-09-09
+packaging/dependency-lock.json,目录或文件,否,,1,149,0,1493,64a2f996,2026-09-03,build(deps): BLD-004 锁定依赖与许可证边界,1493,64a2f996,2026-09-03
+packaging/gen_sbom_input.py,目录或文件,否,,1,168,0,1493,64a2f996,2026-09-03,build(deps): BLD-004 锁定依赖与许可证边界,1493,64a2f996,2026-09-03
+packaging/launch,目录,是,2,1,0,0,1781,64c1e988,2026-09-09,fix(P1-HIPS-TEST): tree_digest FITS CHECKSUM/DATASUM 时间戳归一化——fnv_file 对 .fits/.f,1781,64c1e988,2026-09-09
+packaging/licenses,目录,是,3,1,57,0,1492,46b0d8e1,2026-09-03,build(layout): BLD-003 建立模块化安装骨架,1492,46b0d8e1,2026-09-03
+packaging/verify_install_tree.py,目录或文件,否,,1,118,0,1492,46b0d8e1,2026-09-03,build(layout): BLD-003 建立模块化安装骨架,1492,46b0d8e1,2026-09-03
+packaging/windows,目录,是,2,1,46,0,1478,f260b804,2026-09-02,build(msvc): BLD-001 冻结Windows发布工具链,1478,f260b804,2026-09-02
+reports/P1-COS-IMPL-module-impl-report.md,目录或文件,否,,1,100,0,1762,948dfcba,2026-09-09,feat(P1-COS-IMPL): cosmetic 迁移独立模块——astrocs_p1_cosmetic SHARED(module_entry.cpp ,1762,948dfcba,2026-09-09
+reports/P1-HIPS-IMPL-module-impl-report.md,目录或文件,否,,1,80,0,1770,1959dc89,2026-09-09,feat(P1-HIPS-IMPL): hips_writer 迁移独立模块——astrocs_p1_hips_writer SHARED(生产闭包2TU+cf,1770,1959dc89,2026-09-09
+reports/README.md,目录或文件,否,,1,16,0,981,63178f51,2026-08-27,docs(reports): 添加 reports 目录版本归档说明,981,63178f51,2026-08-27
+reports/archive,目录,是,3,1,0,0,980,e1604f14,2026-08-27,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放,980,e1604f14,2026-08-27
+reports/self_review,目录,是,8,1,283,0,1040,1c580eb9,2026-08-28,chore(v5): 前会话遗留工作树变更归位 — evidence/QA-V19R7-A2-*与self_review/round0-6按AGENTS目录规范,1040,1c580eb9,2026-08-28
+reports/v14,目录,是,4,1,0,0,980,e1604f14,2026-08-27,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放,980,e1604f14,2026-08-27
+reports/v15,目录,是,3,1,0,0,980,e1604f14,2026-08-27,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放,980,e1604f14,2026-08-27
+reports/v16,目录,是,1,1,0,0,980,e1604f14,2026-08-27,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放,980,e1604f14,2026-08-27
+reports/v17,目录,是,15,1,0,0,980,e1604f14,2026-08-27,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放,980,e1604f14,2026-08-27
+reports/v18r2,目录,是,10,1,0,0,980,e1604f14,2026-08-27,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放,980,e1604f14,2026-08-27
+reports/v19r8,目录,是,4,1,0,0,980,e1604f14,2026-08-27,组织工程控制/报告：历史控制包归档，reports 按版本分目录存放,980,e1604f14,2026-08-27
+runtime/core,目录,是,3,1,329,0,1488,56ab85ba,2026-09-03,refactor(runtime): RT-002 隔离阶段运行时生命周期,1488,56ab85ba,2026-09-03
+runtime/logging,目录,是,4,1,424,0,1476,bbe2e59e,2026-09-02,feat(logging): LOG-001 统一结构化日志接口,1476,bbe2e59e,2026-09-02
+runtime/module_loader,目录,是,3,1,953,0,1497,da5ca108,2026-09-03,feat(loader): ABI-003 实现受限DLL加载,1497,da5ca108,2026-09-03
+runtime/registry,目录,是,2,1,1165,0,1504,40b5687b,2026-09-03,feat(registry): ABI-004 接入动态模块注册,1504,40b5687b,2026-09-03
+scripts/package_audit.py,目录或文件,否,,1,67,0,1339,b840ed64,2026-08-31,REL-003: 白名单审核包打包+验证,1339,b840ed64,2026-08-31
+scripts/validate_audit.py,目录或文件,否,,1,33,0,1339,b840ed64,2026-08-31,REL-003: 白名单审核包打包+验证,1339,b840ed64,2026-08-31
+tests/__init__.py,目录或文件,否,,1,0,0,1045,45e64640,2026-08-28,(TRACE-001) 六层追溯schema与检查器 — claim_id格式+R1-R7链规则+引用存在(路径/符号级)+VER域6claim种子+5测试含删,1045,45e64640,2026-08-28
+tests/glossary,目录,是,5,1,50,0,1046,4dd9385b,2026-08-28,(DOC-001) 术语单位词典冻结 — GLOSSARY 18核心术语唯一含义+bad_mask极性实测(1=坏点)+pixel_weight与frame_q,1046,4dd9385b,2026-08-28
+tests/oracle,目录,是,1,1,170,0,1738,a030a3e7,2026-09-09,test(CAT-GAIA-TEST): gaia 目录可复用验证面——gaia_cat_test 七模式(#include 源+GAIA_ALLOC_TEST,1738,a030a3e7,2026-09-09
+tests/pipeline,目录,是,5,1,171,0,1483,5d38ebd7,2026-09-02,feat(runtime): RT-001 实现类型化运行图,1483,5d38ebd7,2026-09-02
+tests/realdata,目录,是,6,1,509,0,1815,9f6b72b5,2026-09-11,feat(REAL-000): 真实数据审计索引v1.2与确定性匹配计划(04_OWNER_DECISIONS rev3 指令落地)——①盘点对账: testd,1815,9f6b72b5,2026-09-11
+tests/test_index.csv,目录或文件,否,,1,23,0,1527,0acfb514,2026-09-05,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001],1527,0acfb514,2026-09-05
+tests/testkit,目录,是,11,1,562,0,1505,b09e4b2c,2026-09-03,test(testkit): TST-001 冻结模块验证结构,1505,b09e4b2c,2026-09-03
+tools/_r05_fast_experiment_commit_msg.txt,已不在树中,否,,1,16,0,266,821a1856,2026-08-01,experiment(drizzle): R05 Gate E FAST C++对照实验 288 cases,266,821a1856,2026-08-01
+tools/_r05_photapply_commit_msg.txt,已不在树中,否,,1,6,0,264,37ed737d,2026-08-01,fix(calibration): R05-B07 apply_photometry 拒绝 photscal<=0,264,37ed737d,2026-08-01
+tools/_r05_precise_acceptance_commit_msg.txt,已不在树中,否,,1,11,0,265,efdfe2c0,2026-08-01,test(drizzle): R05 Gate D PRECISE验收矩阵 52/52 PASS,265,efdfe2c0,2026-08-01
+tools/_r05_rebuild_photapply.json,已不在树中,否,,1,38,0,264,37ed737d,2026-08-01,fix(calibration): R05-B07 apply_photometry 拒绝 photscal<=0,264,37ed737d,2026-08-01
+tools/_r06_analyze_fast.py,已不在树中,否,,1,75,0,270,e841eb88,2026-08-02,experiment(drizzle): R06 正确NSIDE重做FAST C++对照实验 288 cases,270,e841eb88,2026-08-02
+tools/_r06_make_delivery.py,已不在树中,否,,1,616,0,271,32d6bcce,2026-08-02,chore(tools): R06 交付工具脚本 - ZIP生成+FAST分析+Wiki哈希,271,32d6bcce,2026-08-02
+tools/_r06_wiki_hashes.py,已不在树中,否,,1,24,0,271,32d6bcce,2026-08-02,chore(tools): R06 交付工具脚本 - ZIP生成+FAST分析+Wiki哈希,271,32d6bcce,2026-08-02
+tools/_r07_fast_msg.txt,已不在树中,否,,1,15,0,279,502dbf5d,2026-08-02,fix(fast): R07-B08/M01/M02/M03 修复 FAST 切平面重叠计算,279,502dbf5d,2026-08-02
+tools/_r07_ref_msg.txt,已不在树中,否,,1,15,0,278,aec0ac38,2026-08-02,test(reference): R07 修复 reference_overlap 边界一致性,278,aec0ac38,2026-08-02
+tools/astrocs_diagnose.py,目录或文件,否,,1,225,0,691,1d3a34c2,2026-08-15,docs(v19): diagnostics tool + full pre-release developer/science documentation,691,1d3a34c2,2026-08-15
+tools/astrometry_oracle,目录,是,6,1,348,0,522,bce606a4,2026-08-09,feat(oracle): Astrometry.net 外部 Oracle 实际执行 synthetic+real 盲解全过 (V4 G5),522,bce606a4,2026-08-09
+tools/check_abi_boundary.py,目录或文件,否,,1,62,0,1289,af6cb259,2026-08-31,CPU-001: C ABI 结构全带 size/version + 边界头纯净,1289,af6cb259,2026-08-31
+tools/check_agents_gov.py,目录或文件,否,,1,42,0,1043,15720f5e,2026-08-28,"(GOV-001) AGENTS合并V5必需短块与连续执行状态机 — check_agents_gov 10/10要素+mutation试金石通过,删除pwsh",1043,15720f5e,2026-08-28
+tools/check_aio_ownership.py,目录或文件,否,,1,55,0,1286,1878fa52,2026-08-31,IO-002: aio_image* canonical deleter 全覆盖,1286,1878fa52,2026-08-31
+tools/check_ast_api.py,目录或文件,否,,1,71,0,1334,cda2898b,2026-08-31,DOC-004: Clang AST public 符号校验,1334,cda2898b,2026-08-31
+tools/check_baseline_opcodes.py,目录或文件,否,,1,42,0,1098,1761491b,2026-08-29,(ABI-003) baseline全生产kernel — 12 kernel实现在budget租借行带并行外层(确定性: 元素独立无跨线程归约)+Oracle,1098,1761491b,2026-08-29
+tools/check_data_artifacts.py,目录或文件,否,,1,100,0,1270,e351f3fb,2026-08-30,DATA-001: 冻结跨模块数据语义与 artifact schema,1270,e351f3fb,2026-08-30
+tools/check_l0_docs.py,目录或文件,否,,1,38,0,1332,8e7b2c95,2026-08-31,DOC-002: L0 负责人审查文档 (REVIEW + 5 顶层),1332,8e7b2c95,2026-08-31
+tools/check_link_scan.py,目录或文件,否,,1,37,0,1275,338eecc2,2026-08-30,BLD-001: 建立显式根 CMake 目标图,1275,338eecc2,2026-08-30
+tools/check_p1_symbol_map.py,目录或文件,否,,1,46,0,1298,fe92b6e5,2026-08-31,P1-001: Phase1 old-symbol 映射表 + 无 blocker,1298,fe92b6e5,2026-08-31
+tools/check_p2_symbol_map.py,目录或文件,否,,1,53,0,1308,f056f917,2026-08-31,P2-001: Phase2 Stage2 步骤映射 + ACR 禁迁移,1308,f056f917,2026-08-31
+tools/check_release_layout.py,目录或文件,否,,1,45,0,1337,1c7da8de,2026-08-31,REL-001: 发布布局校验工具 + 干净 smoke,1337,1c7da8de,2026-08-31
+tools/gen_backends_manifest.py,目录或文件,否,,1,60,0,1096,0c49a370,2026-08-28,(ABI-002) backend加载安全化 — CPUID+OSXSAVE+XGETBV实测+affinity可用CPU+manifest解析不猜+预检五查(,1096,0c49a370,2026-08-28
+tools/gen_cfitsio_list.py,目录或文件,否,,1,16,0,1275,338eecc2,2026-08-30,BLD-001: 建立显式根 CMake 目标图,1275,338eecc2,2026-08-30
+tools/gen_provider_manifests.py,目录或文件,否,,1,186,0,1381,8df1a86d,2026-08-31,CPU-001/CPU-002: 独立provider构建与能力配额检测 (AVX2/AVX512 targets+manifest+selftest+负例+I,1381,8df1a86d,2026-08-31
+tools/gen_repo_source_manifest.py,目录或文件,否,,1,140,0,667,88293174,2026-08-14,"tools+v17: repo source manifest generator (4197 files SHA256), review package as",667,88293174,2026-08-14
+tools/gen_version.py,目录或文件,否,,1,55,0,1044,9fe142e0,2026-08-28,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.,1044,9fe142e0,2026-08-28
+tools/gen_visual_views.py,目录或文件,否,,1,59,0,1340,a7faa502,2026-08-31,REL-004: 负责人视觉验收视图就绪 (REVIEW_PENDING),1340,a7faa502,2026-08-31
+tools/graph,目录,是,2,1,942,0,1518,0b0d2694,2026-09-04,docs(graph): LOG-003 运行图渲染工具,1518,0b0d2694,2026-09-04
+tools/make_capsule.py,目录或文件,否,,1,53,0,1042,f99e80d8,2026-08-28,(BASE-001) 起点冻结与V3/V4风险登记 — BASELINE.json(HEAD=main=origin/main=3895142三SHA一致)+R,1042,f99e80d8,2026-08-28
+tools/make_rev2_capsule.py,目录或文件,否,,1,161,0,1196,962d18c9,2026-08-29,(REV-002) 完整ARCH/API/headers/core-source/oracles/checkers/Linux-reports审阅胶囊生成器; ,1196,962d18c9,2026-08-29
+tools/migrate_stage2_config.py,目录或文件,否,,1,71,0,661,03d5d961,2026-08-14,"chore(phase2-v17): legacy removal - healpix_stack moved to archive/legacy, orche",661,03d5d961,2026-08-14
+tools/no_legacy_production_reference.py,目录或文件,否,,1,65,0,661,03d5d961,2026-08-14,"chore(phase2-v17): legacy removal - healpix_stack moved to archive/legacy, orche",661,03d5d961,2026-08-14
+tools/realdata,目录,是,3,1,859,0,1815,9f6b72b5,2026-09-11,feat(REAL-000): 真实数据审计索引v1.2与确定性匹配计划(04_OWNER_DECISIONS rev3 指令落地)——①盘点对账: testd,1815,9f6b72b5,2026-09-11
+tools/testkit,目录,是,1,1,340,0,1505,b09e4b2c,2026-09-03,test(testkit): TST-001 冻结模块验证结构,1505,b09e4b2c,2026-09-03

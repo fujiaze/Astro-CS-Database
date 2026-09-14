@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+981,63178f51,2026-08-27,付家泽,S,1,重叠复核,compact/0981-63178f51.md,cards/0981-63178f51.md,docs(reports): 添加 reports 目录版本归档说明
+982,0ed8ed95,2026-08-27,付家泽,S,1,重叠复核,compact/0982-0ed8ed95.md,cards/0982-0ed8ed95.md,CON-008: 补有界异步 IO 生产型失败/队列/多worker测试与线程安全合同
+983,cfb49bd6,2026-08-27,付家泽,S,1,重叠复核,compact/0983-cfb49bd6.md,cards/0983-cfb49bd6.md,docs(control): CON-008 PASS — 记录 ledger/commits/progress 与生产接入结论
+984,f86afc88,2026-08-27,付家泽,S,1,重叠复核,compact/0984-f86afc88.md,cards/0984-f86afc88.md,CON-009: 补并行确定性矩阵重复 2T 校验与 CON-009 结论记录
+985,c2e5e24d,2026-08-27,付家泽,S,1,重叠复核,compact/0985-c2e5e24d.md,cards/0985-c2e5e24d.md,docs(control): CON-009 PASS — 记录 ledger/commits 与确定性矩阵结论
+986,53a1cc04,2026-08-27,付家泽,S,1,重叠复核,compact/0986-53a1cc04.md,cards/0986-53a1cc04.md,docs(reaudit): CON-010 FAIL — 生产 CLI 2T SIGSEGV (sampler 并行 AIO 读竞态)
+987,f343090a,2026-08-27,付家泽,S,1,重叠复核,compact/0987-f343090a.md,cards/0987-f343090a.md,fix(phase2 sampler): 并行采样 AIO 读串行化，消除 cfitsio 并发读 SIGSEGV
+988,411d729e,2026-08-27,付家泽,S,1,重叠复核,compact/0988-411d729e.md,cards/0988-411d729e.md,"docs(reaudit): CON-010 更新——崩溃已修复,但并行效率门禁仍 FAIL"
+989,bb1b3ba6,2026-08-27,付家泽,S,1,重叠复核,compact/0989-bb1b3ba6.md,cards/0989-bb1b3ba6.md,docs(reaudit): CON-010 补充可执行技术阻塞与根因(串行化源)
+990,ee5126af,2026-08-27,付家泽,S,1,重叠复核,compact/0990-ee5126af.md,cards/0990-ee5126af.md,docs(reaudit): CON-010 确认门禁失败工作负载无关(Amdahl 上限 ~1.34x)
+991,43b7a4d3,2026-08-28,付家泽,S,1,主责,compact/0991-43b7a4d3.md,cards/0991-43b7a4d3.md,perf(phase2 upm): 并行化 UPM 稠密缓存物化 compute(worker 数显式)
+992,57ccb8bd,2026-08-28,付家泽,S,1,主责,compact/0992-57ccb8bd.md,cards/0992-57ccb8bd.md,"docs(reaudit): CON-010 补记——稠密物化 write-bound, 并行化计算收益甚微"
+993,3baf0cae,2026-08-28,付家泽,S,1,主责,compact/0993-3baf0cae.md,cards/0993-3baf0cae.md,"docs(reaudit): CON-010 修正 upm_persist 瓶颈——非磁盘, 预编译 aio 库 byte-copy"
+994,e7912b0a,2026-08-28,付家泽,S,1,主责,compact/0994-e7912b0a.md,cards/0994-e7912b0a.md,"docs(reaudit): CON-010 规格级冲突——CON-008 与 CON-010 互斥, 现 PASS 基于非合规 stopgap"
+995,a2c29d3a,2026-08-28,付家泽,S,1,主责,compact/0995-a2c29d3a.md,cards/0995-a2c29d3a.md,"docs(reaudit): CON-010 差分结果=数据位级一致(确定性成立), 仅 FITS 时间戳元数据异"
+996,b396f9af,2026-08-28,付家泽,S,1,主责,compact/0996-b396f9af.md,cards/0996-b396f9af.md,docs(reaudit): CON-010 新增序列化源4——积分逐帧校准段串行(先于 omp rejection)
+997,67e45a40,2026-08-28,付家泽,S,1,主责,compact/0997-67e45a40.md,cards/0997-67e45a40.md,"docs(reaudit): CON-010 新增序列化源5——稠密缓存物化是""死重""(积分从不读它)"
+998,2cd8e392,2026-08-28,付家泽,S,1,主责,compact/0998-2cd8e392.md,cards/0998-2cd8e392.md,"docs(reaudit): CON-010 生产配置复测——upm_persist 是 diagnostics-only, 核心瓶颈是采样器+积分"
+999,a6e511f8,2026-08-28,付家泽,S,1,主责,compact/0999-a6e511f8.md,cards/0999-a6e511f8.md,"docs(reaudit): CON-010 瓶颈实证——并行校准为负结果, 主导瓶颈是 rejection 跨步聚集"
+1000,806ec6f2,2026-08-28,付家泽,S,1,主责,compact/1000-806ec6f2.md,cards/1000-806ec6f2.md,docs(reaudit): CON-010 确认转置为跨模块改动——collector 是 frame-major 且被 ACR 复用
+1001,20b7b243,2026-08-28,付家泽,S,1,主责,compact/1001-20b7b243.md,cards/1001-20b7b243.md,docs(reaudit): CON-010 积分内部实测拆分——fill(aio tile reads)=2.118s 串行 + rejection=2.072s 不缩放
+1002,c0bac24c,2026-08-28,付家泽,S,1,主责,compact/1002-c0bac24c.md,cards/1002-c0bac24c.md,docs(reaudit): CON-010 Amdahl 界与门禁不可满足性确证
+1003,80738810,2026-08-28,付家泽,S,1,主责,compact/1003-80738810.md,cards/1003-80738810.md,"docs(reaudit): 记录审核人裁决——CON-010 影响不大, 跳过/放行, 不计为继续执行的阻塞"
+1004,591775e2,2026-08-28,付家泽,S,1,主责,compact/1004-591775e2.md,cards/1004-591775e2.md,feat(reaudit): G3 SCI-001 权威索引 PASS (唯一 science authority)
+1005,dcef903a,2026-08-28,付家泽,S,1,主责,compact/1005-dcef903a.md,cards/1005-dcef903a.md,feat(reaudit): G3 SCI-002 PASS — 冻结 Noise/SNR/variance/ivar + 补冻 local_snr/frame quality
+1006,44a3ea8f,2026-08-28,付家泽,S,1,主责,compact/1006-44a3ea8f.md,cards/1006-44a3ea8f.md,feat(reaudit): G3 SCI-003 PASS — 冻结 Drizzle flux/面亮度语义 + 修正常量场不变量
+1007,8923af74,2026-08-28,付家泽,S,1,主责,compact/1007-8923af74.md,cards/1007-8923af74.md,feat(reaudit): G3 SCI-004 PASS — UPM gauge/Huber 对齐 spec 与代码
+1008,d445b6d6,2026-08-28,付家泽,S,1,主责,compact/1008-d445b6d6.md,cards/1008-d445b6d6.md,feat(reaudit): G3 SCI-005 PASS — Rejection/Integration 规则与图层语义核对
+1009,24ee7eae,2026-08-28,付家泽,S,1,主责,compact/1009-24ee7eae.md,cards/1009-24ee7eae.md,feat(reaudit): G3 ALG-001 PASS — noise/snr 推导补全数据布局与误差预算
+1010,977d2b46,2026-08-28,付家泽,S,1,主责,compact/1010-977d2b46.md,cards/1010-977d2b46.md,feat(reaudit): G3 ALG-002/003/004 PASS — 补全 Drizzle/UPM/Rejection 数据布局与误差预算
+1011,35569185,2026-08-28,付家泽,S,1,主责,compact/1011-35569185.md,cards/1011-35569185.md,feat(reaudit): G3 ORA-001 PASS — 科学 oracle 套件核对（独立期望值+预冻结容差）
+1012,f226383a,2026-08-28,付家泽,S,1,主责,compact/1012-f226383a.md,cards/1012-f226383a.md,feat(reaudit): G4 ARCH/API/DOC/CHK-005 PASS — 机器检查器全绿 + DOC-001 断链修复
+1013,a791aec3,2026-08-28,付家泽,S,1,主责,compact/1013-a791aec3.md,cards/1013-a791aec3.md,feat(reaudit): G4 CHK-006 mutation gate 核验(IN_PROGRESS)
+1014,7ec0c89f,2026-08-28,付家泽,S,1,主责,compact/1014-7ec0c89f.md,cards/1014-7ec0c89f.md,feat(reaudit): G5 构建/测试基线记录(BLD-001 缺根级入口 + TST-002 env FAIL)
+1015,357f7ba1,2026-08-28,付家泽,S,1,主责,compact/1015-357f7ba1.md,cards/1015-357f7ba1.md,"fix(reaudit): 更正 G5 基线 — TST-002(phase2) 全绿, 先前 ivar_wiring FAIL 系 CWD 误用"
+1016,10b68177,2026-08-28,付家泽,S,1,主责,compact/1016-10b68177.md,cards/1016-10b68177.md,fix(build): sampler.cpp 把 <atomic>/<mutex>/<thread> 移出 OpenMP 守卫 — 修复默认(非OpenMP)构建
+1017,ef19a5e0,2026-08-28,付家泽,S,1,主责,compact/1017-ef19a5e0.md,cards/1017-ef19a5e0.md,feat(reaudit): G5 BLD-001 PASS — 根级 build.sh 入口 + 更新基线
+1018,4a3c1997,2026-08-28,付家泽,S,1,主责,compact/1018-4a3c1997.md,cards/1018-4a3c1997.md,fix(reaudit): 更正 BLD-001 置 PASS (depends_on=CP4)
+1019,add3ed55,2026-08-28,付家泽,S,1,主责,compact/1019-add3ed55.md,cards/1019-add3ed55.md,feat(reaudit): G5 TST-001 PASS — 全新 Release+Debug 构建(0 error/0 warning)
+1020,96cc15cf,2026-08-28,付家泽,S,1,主责,compact/1020-96cc15cf.md,cards/1020-96cc15cf.md,feat(reaudit): G5 BLD-002/003 AIO 可移植性与 Windows 泄漏核验(IN_PROGRESS)
+1021,6908666b,2026-08-28,付家泽,S,1,主责,compact/1021-6908666b.md,cards/1021-6908666b.md,feat(reaudit): 审核人要求 ACR CPU/GPU 异构计算跳过(只做纯CPU) — 控制包+审核包同步
+1022,66889e86,2026-08-28,付家泽,S,1,主责,compact/1022-66889e86.md,cards/1022-66889e86.md,feat(reaudit): G5 TST-003 sanitizer 核验(IN_PROGRESS)
+1023,8c66692f,2026-08-28,付家泽,S,1,主责,compact/1023-8c66692f.md,cards/1023-8c66692f.md,fix(reaudit): 更正 TST-003 置 IN_PROGRESS (scope 文本/yes-no 实际值)
+1024,12b6c0b8,2026-08-28,付家泽,S,1,主责,compact/1024-12b6c0b8.md,cards/1024-12b6c0b8.md,fix(build): BLD-003/004 — orchestrator(stage1 CLI) Linux 构建修复 + TST-004 CLI 测试 POSIX 化
+1025,9ba61730,2026-08-28,付家泽,S,1,主责,compact/1025-9ba61730.md,cards/1025-9ba61730.md,feat(reaudit): G5 BLD-004 PASS — static/cmd linker 缺陷已修复并验证
+1026,3c45ca93,2026-08-28,付家泽,S,1,主责,compact/1026-3c45ca93.md,cards/1026-3c45ca93.md,"feat(reaudit): G5 TST-002/004/005 核验 — 机器枚举467通过/32失败(全为外部依赖), stage1链路三重外部物料缺失"
+1027,7737f539,2026-08-28,付家泽,S,1,主责,compact/1027-7737f539.md,cards/1027-7737f539.md,fix(build): 修复 mkdir -p 在 Windows cmd.exe 下的回归 — 按 OS 条件选择测试目录创建命令
+1028,d0f946f7,2026-08-28,付家泽,S,1,主责,compact/1028-d0f946f7.md,cards/1028-d0f946f7.md,"feat(reaudit): G6 WIN-001/002 PASS — Fatduck Windows 远程验证(数据在Fatduck, 审核人确认)"
+1029,e8d63e7a,2026-08-28,付家泽,S,1,主责,compact/1029-e8d63e7a.md,cards/1029-e8d63e7a.md,feat(reaudit): TST-004 判 PASS — 合成 CLI 端到端由 Windows 233/0 + Linux stage2 81P 交叉覆盖
+1030,808af7a7,2026-08-28,付家泽,S,1,主责,compact/1030-808af7a7.md,cards/1030-808af7a7.md,"feat(reaudit): G7 RUN-001 PASS — 历史锚A/B只读构建(归档SHA两平台交叉一致, binary SHA在案)"
+1031,0fb5a646,2026-08-28,付家泽,S,1,主责,compact/1031-0fb5a646.md,cards/1031-0fb5a646.md,"feat(reaudit): G7 RUN-002 PASS — 2帧A/B/C/D小矩阵(真实数据), 配置语义映射验证成立, D相对C零数值回归"
+1032,ae3ea36a,2026-08-28,付家泽,S,1,主责,compact/1032-ae3ea36a.md,cards/1032-ae3ea36a.md,"docs(reaudit): TST-004 报告更新 — 审核人确认数据在 Fatduck, Windows 233/0 解除外部依赖阻断"
+1033,44d69155,2026-08-28,付家泽,S,1,主责,compact/1033-44d69155.md,cards/1033-44d69155.md,"feat(reaudit): G4 CHK-006 PASS — mutation 门禁判定(关键mutation检出, 2未检项归因:顺序无关合同/存在性级局限)"
+1034,620aac41,2026-08-28,付家泽,S,1,主责,compact/1034-620aac41.md,cards/1034-620aac41.md,"feat(reaudit): G5 TST-002 PASS — 测试机器枚举闭环(467通过/32失败全部有外部依赖或平台预期证据, Windows 233/0交叉证实)"
+1035,2e34fb08,2026-08-28,付家泽,S,1,主责,compact/1035-2e34fb08.md,cards/1035-2e34fb08.md,docs(reaudit): BLD-002/003 现状核验与A/B范围选项(Windows泄漏已清除部分双平台验证; AIO/模块DLL体系待审核人裁定)
+1036,6a947f51,2026-08-28,付家泽,S,1,主责,compact/1036-6a947f51.md,cards/1036-6a947f51.md,feat(reaudit): 审核包生成 + 停止时点记账 — 按审核人指示停止打包(控制包打回重做)
+1037,020cdc99,2026-08-28,付家泽,M,2,主责,compact/1037-020cdc99.md,cards/1037-020cdc99.md,feat(v4): C0-001 V4控制包本体 — 98原子任务账本+C0..C9检查点链+SCI/ALG/ARCH/CODE/Oracle/门禁规格+强校验器(CONTROL_
+1038,ae643541,2026-08-28,付家泽,S,1,主责,compact/1038-ae643541.md,cards/1038-ae643541.md,feat(v4): C0-002..005 — 起点 SHA 冻结(020cdc9)+双平台工具链盘点(2核Linux/16线程Fatduck实测)+V3五项债务登记映射+98行初
+1039,b12305ed,2026-08-28,付家泽,L,4,主责,compact/1039-b12305ed.md,cards/1039-b12305ed.md,"chore(v5): 按用户指示移除自造V4重审控制包并归位用户上传的V4_CPU_ADAPTIVE原包 — 自造包由前会话020cdc9/ae64354引入(98任务,非用户物料"
+1040,1c580eb9,2026-08-28,付家泽,M,2,主责,compact/1040-1c580eb9.md,cards/1040-1c580eb9.md,chore(v5): 前会话遗留工作树变更归位 — evidence/QA-V19R7-A2-*与self_review/round0-6按AGENTS目录规范移至reports/
+1041,38951423,2026-08-28,付家泽,M,2,主责,compact/1041-38951423.md,cards/1041-38951423.md,chore(v5): 补全self_review/旧路径删除侧 — 完成reports/self_review归位(1c580eb漏staging)
+1042,f99e80d8,2026-08-28,付家泽,L,4,主责,compact/1042-f99e80d8.md,cards/1042-f99e80d8.md,(BASE-001) 起点冻结与V3/V4风险登记 — BASELINE.json(HEAD=main=origin/main=3895142三SHA一致)+RISK_REGIST
+1043,15720f5e,2026-08-28,付家泽,S,1,主责,compact/1043-15720f5e.md,cards/1043-15720f5e.md,"(GOV-001) AGENTS合并V5必需短块与连续执行状态机 — check_agents_gov 10/10要素+mutation试金石通过,删除pwsh/GitBash默认"
+1044,9fe142e0,2026-08-28,付家泽,M,2,主责,compact/1044-9fe142e0.md,cards/1044-9fe142e0.md,(VER-001) alpha单一版本源与机器化同步检查 — VERSION=0.9.0-alpha.1唯一源+gen_version生成接口+version.schema.jso
+1045,45e64640,2026-08-28,付家泽,M,2,主责,compact/1045-45e64640.md,cards/1045-45e64640.md,(TRACE-001) 六层追溯schema与检查器 — claim_id格式+R1-R7链规则+引用存在(路径/符号级)+VER域6claim种子+5测试含删层mutation必

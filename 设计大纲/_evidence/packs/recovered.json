@@ -1,0 +1,368 @@
+{
+ "AstroCS_Stage1_HISS_Delivery": {
+  "pack_rel_path": "AstroCS_Stage1_HISS_Delivery",
+  "identity": "AstroCS_Stage1_HISS_Delivery",
+  "recovered_files": 50,
+  "recovered_from_rev": "a78f5430f9fad9585b88e7ef9ac93c754d25725c^",
+  "delete_commits": [
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c"
+  ],
+  "first_commit": "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+  "last_commit": "78a9121dad1619674358ed3379a089618187e1aa"
+ },
+ "_agent_package": {
+  "pack_rel_path": "_agent_package",
+  "identity": "_agent_package",
+  "recovered_files": 12,
+  "recovered_from_rev": "a78f5430f9fad9585b88e7ef9ac93c754d25725c^",
+  "delete_commits": [
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c"
+  ],
+  "first_commit": "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+  "last_commit": "78a9121dad1619674358ed3379a089618187e1aa"
+ },
+ "_agent_package/AstroCS_Stage1_HISS_Agent_Package_2026-07-31": {
+  "pack_rel_path": "_agent_package/AstroCS_Stage1_HISS_Agent_Package_2026-07-31",
+  "identity": "AstroCS_Stage1_HISS_Agent_Package_2026-07-31",
+  "recovered_files": 12,
+  "recovered_from_rev": "a78f5430f9fad9585b88e7ef9ac93c754d25725c^",
+  "delete_commits": [
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c"
+  ],
+  "first_commit": "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+  "last_commit": "78a9121dad1619674358ed3379a089618187e1aa"
+ },
+ "_new_pack_v1.1": {
+  "pack_rel_path": "_new_pack_v1.1",
+  "identity": "_new_pack_v1.1",
+  "recovered_files": 92,
+  "recovered_from_rev": "036a3bb5a7e3b92cffb39418642c14a068a9a30b^",
+  "delete_commits": [
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b"
+  ],
+  "first_commit": "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+  "last_commit": "ba4f0d34f5749695becc4ac91aa57e0029e9a98a"
+ },
+ "_new_pack_v1.1/AstroCS_CLI_Core_Development_Pack": {
+  "pack_rel_path": "_new_pack_v1.1/AstroCS_CLI_Core_Development_Pack",
+  "identity": "AstroCS_CLI_Core_Development_Pack",
+  "recovered_files": 92,
+  "recovered_from_rev": "036a3bb5a7e3b92cffb39418642c14a068a9a30b^",
+  "delete_commits": [
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b"
+  ],
+  "first_commit": "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+  "last_commit": "ba4f0d34f5749695becc4ac91aa57e0029e9a98a"
+ },
+ "_v2_pack/AstroCS_Authoritative_Development_Pack_v2.0": {
+  "pack_rel_path": "_v2_pack/AstroCS_Authoritative_Development_Pack_v2.0",
+  "identity": "AstroCS_Authoritative_Development_Pack_v2.0",
+  "recovered_files": 74,
+  "recovered_from_rev": "a78f5430f9fad9585b88e7ef9ac93c754d25725c^",
+  "delete_commits": [
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c"
+  ],
+  "first_commit": "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+  "last_commit": "75b05f72d6a041e3cbbde5e10efc5b4a69deaaba"
+ },
+ "_wiki_freeze/AstroCS_Stage1_Wiki_Freeze_2026-07-30": {
+  "pack_rel_path": "_wiki_freeze/AstroCS_Stage1_Wiki_Freeze_2026-07-30",
+  "identity": "AstroCS_Stage1_Wiki_Freeze_2026-07-30",
+  "recovered_files": 23,
+  "recovered_from_rev": "a78f5430f9fad9585b88e7ef9ac93c754d25725c^",
+  "delete_commits": [
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c"
+  ],
+  "first_commit": "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+  "last_commit": "78a9121dad1619674358ed3379a089618187e1aa"
+ },
+ "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905": {
+  "pack_rel_path": "engineering/control/active/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
+  "identity": "AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905",
+  "recovered_files": 56,
+  "recovered_from_rev": "a4fdee3f446de08cda50889a223740237b2da4a0",
+  "delete_commits": [],
+  "first_commit": "a4fdee3f446de08cda50889a223740237b2da4a0",
+  "last_commit": "a4fdee3f446de08cda50889a223740237b2da4a0"
+ },
+ "engineering_archive_v1.0": {
+  "pack_rel_path": "engineering_archive_v1.0",
+  "identity": "engineering_archive_v1.0",
+  "recovered_files": 153,
+  "recovered_from_rev": "036a3bb5a7e3b92cffb39418642c14a068a9a30b^",
+  "delete_commits": [
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b"
+  ],
+  "first_commit": "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+  "last_commit": "ba4f0d34f5749695becc4ac91aa57e0029e9a98a"
+ },
+ "engineering_authoritative": {
+  "pack_rel_path": "engineering_authoritative",
+  "identity": "engineering_authoritative",
+  "recovered_files": 176,
+  "recovered_from_rev": "a78f5430f9fad9585b88e7ef9ac93c754d25725c^",
+  "delete_commits": [
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+   "a78f5430f9fad9585b88e7ef9ac93c754d25725c"
+  ],
+  "first_commit": "a78f5430f9fad9585b88e7ef9ac93c754d25725c",
+  "last_commit": "75b05f72d6a041e3cbbde5e10efc5b4a69deaaba"
+ },
+ "engineering_v1.2": {
+  "pack_rel_path": "engineering_v1.2",
+  "identity": "engineering_v1.2",
+  "recovered_files": 342,
+  "recovered_from_rev": "036a3bb5a7e3b92cffb39418642c14a068a9a30b^",
+  "delete_commits": [
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b"
+  ],
+  "first_commit": "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+  "last_commit": "0d1857de5ccc3ed1c69180db2a2623ebb3d2ecae"
+ },
+ "engineering_v1.3": {
+  "pack_rel_path": "engineering_v1.3",
+  "identity": "engineering_v1.3",
+  "recovered_files": 400,
+  "recovered_from_rev": "036a3bb5a7e3b92cffb39418642c14a068a9a30b^",
+  "delete_commits": [
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+   "036a3bb5a7e3b92cffb39418642c14a068a9a30b"
+  ],
+  "first_commit": "036a3bb5a7e3b92cffb39418642c14a068a9a30b",
+  "last_commit": "f4ec8b24e1a090b7129f3afd87ccb4a0e88b1036"
+ },
+ "工程控制/CONTROL_V4": {
+  "pack_rel_path": "工程控制/CONTROL_V4",
+  "identity": "CONTROL_V4",
+  "recovered_files": 26,
+  "recovered_from_rev": "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+  "delete_commits": [],
+  "first_commit": "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+  "last_commit": "b12305ed0df13318f9b0369d1d87e8c2e63edd28"
+ },
+ "工程控制/CONTROL_V4/AstroCS_MAIN_PRERELEASE_CONTROL_V4_CPU_ADAPTIVE_20260828": {
+  "pack_rel_path": "工程控制/CONTROL_V4/AstroCS_MAIN_PRERELEASE_CONTROL_V4_CPU_ADAPTIVE_20260828",
+  "identity": "AstroCS_MAIN_PRERELEASE_CONTROL_V4_CPU_ADAPTIVE_20260828",
+  "recovered_files": 26,
+  "recovered_from_rev": "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+  "delete_commits": [],
+  "first_commit": "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+  "last_commit": "b12305ed0df13318f9b0369d1d87e8c2e63edd28"
+ },
+ "工程控制/CONTROL_V6": {
+  "pack_rel_path": "工程控制/CONTROL_V6",
+  "identity": "CONTROL_V6",
+  "recovered_files": 46,
+  "recovered_from_rev": "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+  "delete_commits": [],
+  "first_commit": "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+  "last_commit": "4b1b948e3b3710cbd7e84030fbb1a363128f0da2"
+ },
+ "工程控制/CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830": {
+  "pack_rel_path": "工程控制/CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830",
+  "identity": "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830",
+  "recovered_files": 46,
+  "recovered_from_rev": "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+  "delete_commits": [],
+  "first_commit": "4b1b948e3b3710cbd7e84030fbb1a363128f0da2",
+  "last_commit": "4b1b948e3b3710cbd7e84030fbb1a363128f0da2"
+ },
+ "工程控制/REAUDIT_V3": {
+  "pack_rel_path": "工程控制/REAUDIT_V3",
+  "identity": "工程控制/REAUDIT_V3",
+  "recovered_files": 355,
+  "recovered_from_rev": "3703650df136a5dff27361f3ef8232509a7628c7",
+  "delete_commits": [],
+  "first_commit": "6a947f518963b41e4546dd05d6219d06250ffd8c",
+  "last_commit": "3703650df136a5dff27361f3ef8232509a7628c7"
+ },
+ "工程控制/REAUDIT_V3/v3_audit": {
+  "pack_rel_path": "工程控制/REAUDIT_V3/v3_audit",
+  "identity": "REAUDIT_V3/v3_audit",
+  "recovered_files": 18,
+  "recovered_from_rev": "3703650df136a5dff27361f3ef8232509a7628c7",
+  "delete_commits": [],
+  "first_commit": "3703650df136a5dff27361f3ef8232509a7628c7",
+  "last_commit": "3703650df136a5dff27361f3ef8232509a7628c7"
+ },
+ "工程控制/REAUDIT_V3/v3_cp0": {
+  "pack_rel_path": "工程控制/REAUDIT_V3/v3_cp0",
+  "identity": "REAUDIT_V3/v3_cp0",
+  "recovered_files": 18,
+  "recovered_from_rev": "3703650df136a5dff27361f3ef8232509a7628c7",
+  "delete_commits": [],
+  "first_commit": "3703650df136a5dff27361f3ef8232509a7628c7",
+  "last_commit": "3703650df136a5dff27361f3ef8232509a7628c7"
+ },
+ "工程控制/REAUDIT_V3/v3_reaudit": {
+  "pack_rel_path": "工程控制/REAUDIT_V3/v3_reaudit",
+  "identity": "REAUDIT_V3/v3_reaudit",
+  "recovered_files": 22,
+  "recovered_from_rev": "3703650df136a5dff27361f3ef8232509a7628c7",
+  "delete_commits": [],
+  "first_commit": "6a947f518963b41e4546dd05d6219d06250ffd8c",
+  "last_commit": "3703650df136a5dff27361f3ef8232509a7628c7"
+ },
+ "工程控制/REAUDIT_V4": {
+  "pack_rel_path": "工程控制/REAUDIT_V4",
+  "identity": "工程控制/REAUDIT_V4",
+  "recovered_files": 23,
+  "recovered_from_rev": "b12305ed0df13318f9b0369d1d87e8c2e63edd28^",
+  "delete_commits": [
+   "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+   "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+   "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+   "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+   "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+   "b12305ed0df13318f9b0369d1d87e8c2e63edd28"
+  ],
+  "first_commit": "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+  "last_commit": "020cdc994dc42035c6eba7efd68c07e19d175415"
+ },
+ "工程控制/REAUDIT_V4/v4_reaudit": {
+  "pack_rel_path": "工程控制/REAUDIT_V4/v4_reaudit",
+  "identity": "REAUDIT_V4/v4_reaudit",
+  "recovered_files": 23,
+  "recovered_from_rev": "b12305ed0df13318f9b0369d1d87e8c2e63edd28^",
+  "delete_commits": [
+   "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+   "b12305ed0df13318f9b0369d1d87e8c2e63edd28"
+  ],
+  "first_commit": "b12305ed0df13318f9b0369d1d87e8c2e63edd28",
+  "last_commit": "020cdc994dc42035c6eba7efd68c07e19d175415"
+ },
+ "工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828": {
+  "pack_rel_path": "工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828",
+  "identity": "AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828",
+  "recovered_files": 37,
+  "recovered_from_rev": "f99e80d8574dd19b305312c0e66006cc01584a41",
+  "delete_commits": [],
+  "first_commit": "3ca7f974b039f87bd6a37c2a0023539e265918fc",
+  "last_commit": "f99e80d8574dd19b305312c0e66006cc01584a41"
+ },
+ "工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE": {
+  "pack_rel_path": "工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE",
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE",
+  "recovered_files": 20,
+  "recovered_from_rev": "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+  "delete_commits": [],
+  "first_commit": "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+  "last_commit": "e1604f141c2ef5280f163bb2f5b823e74c272f41"
+ },
+ "工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE_V2": {
+  "pack_rel_path": "工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE_V2",
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V2",
+  "recovered_files": 21,
+  "recovered_from_rev": "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+  "delete_commits": [],
+  "first_commit": "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+  "last_commit": "e1604f141c2ef5280f163bb2f5b823e74c272f41"
+ },
+ "工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE_V3": {
+  "pack_rel_path": "工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE_V3",
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V3",
+  "recovered_files": 21,
+  "recovered_from_rev": "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+  "delete_commits": [],
+  "first_commit": "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+  "last_commit": "e1604f141c2ef5280f163bb2f5b823e74c272f41"
+ },
+ "工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE_V4": {
+  "pack_rel_path": "工程控制/archive/ACR_FOCUSED_CONTROL_PACKAGE_V4",
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V4",
+  "recovered_files": 22,
+  "recovered_from_rev": "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+  "delete_commits": [],
+  "first_commit": "e1604f141c2ef5280f163bb2f5b823e74c272f41",
+  "last_commit": "e1604f141c2ef5280f163bb2f5b823e74c272f41"
+ },
+ "工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE": {
+  "pack_rel_path": "工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE",
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE",
+  "recovered_files": 20,
+  "recovered_from_rev": "0030c3a5abae46893748454bdf692c155b3d0ad6",
+  "delete_commits": [],
+  "first_commit": "0030c3a5abae46893748454bdf692c155b3d0ad6",
+  "last_commit": "0030c3a5abae46893748454bdf692c155b3d0ad6"
+ },
+ "工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V2": {
+  "pack_rel_path": "工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V2",
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V2",
+  "recovered_files": 21,
+  "recovered_from_rev": "40c9d21612aa021e4b92cf46ee8f9760742167e3",
+  "delete_commits": [],
+  "first_commit": "40c9d21612aa021e4b92cf46ee8f9760742167e3",
+  "last_commit": "40c9d21612aa021e4b92cf46ee8f9760742167e3"
+ },
+ "工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V3": {
+  "pack_rel_path": "工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V3",
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V3",
+  "recovered_files": 21,
+  "recovered_from_rev": "a36c482515fd34e77676a1dc35443cb684b5dca6",
+  "delete_commits": [],
+  "first_commit": "a36c482515fd34e77676a1dc35443cb684b5dca6",
+  "last_commit": "a36c482515fd34e77676a1dc35443cb684b5dca6"
+ },
+ "工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V4": {
+  "pack_rel_path": "工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE_V4",
+  "identity": "ACR_FOCUSED_CONTROL_PACKAGE_V4",
+  "recovered_files": 22,
+  "recovered_from_rev": "38b8570205fb3506d286e66b9d8503ddc3b89de8",
+  "delete_commits": [],
+  "first_commit": "38b8570205fb3506d286e66b9d8503ddc3b89de8",
+  "last_commit": "38b8570205fb3506d286e66b9d8503ddc3b89de8"
+ },
+ "工程控制/tasks/acr": {
+  "pack_rel_path": "工程控制/tasks/acr",
+  "identity": "acr",
+  "recovered_files": 3,
+  "recovered_from_rev": "49ea5c1e1f14d6e3ed0aa89bf01c4f0f1dfab57c^",
+  "delete_commits": [],
+  "first_commit": "12fb99f386197173e21c261bc1ea94922725784d",
+  "last_commit": "49ea5c1e1f14d6e3ed0aa89bf01c4f0f1dfab57c"
+ }
+}

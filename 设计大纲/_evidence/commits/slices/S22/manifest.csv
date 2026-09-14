@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1146,50fedef8,2026-08-29,付家泽,M,2,重叠复核,compact/1146-50fedef8.md,cards/1146-50fedef8.md,(MON-004) 内存增长分析 — 20循环+预热剔除+Theil-Sen稳健斜率+峰值/retained+OOM预警+泄漏/增长/震荡分类; 242/242
+1147,df1539cf,2026-08-29,付家泽,S,1,重叠复核,compact/1147-df1539cf.md,cards/1147-df1539cf.md,(MON-004) 表行登记+ledger PASS — COMMITS/CAP-MON-004
+1148,866dfd1d,2026-08-29,付家泽,S,1,重叠复核,compact/1148-866dfd1d.md,cards/1148-866dfd1d.md,(ISO-001) ACR/GPU/Mixed隔离 — 生产选路不触ACR/GPU(符号扫描0+注册不可达+manifest无该字段)+配置请求ACR明确拒绝(exit3)+发行包
+1149,f49808af,2026-08-29,付家泽,S,1,重叠复核,compact/1149-f49808af.md,cards/1149-f49808af.md,(ISO-001) 表行登记+ledger PASS — COMMITS/CAP-ISO-001
+1150,163e9e56,2026-08-29,付家泽,S,1,重叠复核,compact/1150-163e9e56.md,cards/1150-163e9e56.md,(PAR-001) 有界队列/backpressure/error/cancel + I/O compute overlap + 无全局串行锁 — BoundedAsyncQueu
+1151,5ad37814,2026-08-29,付家泽,S,1,重叠复核,compact/1151-5ad37814.md,cards/1151-5ad37814.md,(PAR-001) 表行登记+ledger PASS — COMMITS/CAP-PAR-001
+1152,e7034892,2026-08-29,付家泽,S,1,重叠复核,compact/1152-e7034892.md,cards/1152-e7034892.md,(PAR-002) sampler N-worker 正加速阻塞: 库级cfitsio并发读SIGSEGV — 记录BLOCKED+阻断报告
+1153,77d96c35,2026-08-29,付家泽,S,1,重叠复核,compact/1153-77d96c35.md,cards/1153-77d96c35.md,(PAR-002) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX: BLOCKED报告 + 阻断项胶囊
+1154,96ed7e89,2026-08-29,付家泽,S,1,重叠复核,compact/1154-96ed7e89.md,cards/1154-96ed7e89.md,(PAR-003) UPM并行验证: 线程本地/归约分离+确定性+内存有界 PASS
+1155,7f346b61,2026-08-29,付家泽,S,1,重叠复核,compact/1155-7f346b61.md,cards/1155-7f346b61.md,(PAR-003) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX: PASS验证报告+胶囊
+1156,1c726180,2026-08-29,付家泽,S,1,主责,compact/1156-1c726180.md,cards/1156-1c726180.md,(PAR-004) Drizzle并行验证: 元素独立归约+确定性+1/N scaling+worker派生 PASS
+1157,11ad0610,2026-08-29,付家泽,S,1,主责,compact/1157-11ad0610.md,cards/1157-11ad0610.md,(PAR-004) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX: PASS验证报告+胶囊
+1158,a4fdb874,2026-08-29,付家泽,S,1,主责,compact/1158-a4fdb874.md,cards/1158-a4fdb874.md,(PAR-005) Rejection/Integration并行验证: 确定性+frame identity+outlier oracle PASS
+1159,88fd3ed6,2026-08-29,付家泽,S,1,主责,compact/1159-88fd3ed6.md,cards/1159-88fd3ed6.md,(PAR-005) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX: PASS验证报告+胶囊
+1160,d7ec494e,2026-08-29,付家泽,S,1,主责,compact/1160-d7ec494e.md,cards/1160-d7ec494e.md,"(PAR-006) Phase1噪声内核优化: 免冗余tmp拷贝+scratch, before/after微基准 PASS"
+1161,529ad09a,2026-08-29,付家泽,S,1,主责,compact/1161-529ad09a.md,cards/1161-529ad09a.md,(PAR-006) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX: PASS验证报告+胶囊
+1162,9a6c58fb,2026-08-29,付家泽,S,1,主责,compact/1162-9a6c58fb.md,cards/1162-9a6c58fb.md,(PAR-007) 统一thread budget合同验证: 嵌套stress不超标+禁硬编码 PASS
+1163,68ada456,2026-08-29,付家泽,S,1,主责,compact/1163-68ada456.md,cards/1163-68ada456.md,(PAR-007) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX: budget合同验证报告+胶囊
+1164,607b37e3,2026-08-29,付家泽,M,2,主责,compact/1164-607b37e3.md,cards/1164-607b37e3.md,(SYN-001) Calibration独立合成Oracle: master bias/dark/flat+calibrate两种模式全后端全线程 PASS
+1165,e729428b,2026-08-29,付家泽,S,1,主责,compact/1165-e729428b.md,cards/1165-e729428b.md,(SYN-001) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX
+1166,a0db92e5,2026-08-29,付家泽,S,1,主责,compact/1166-a0db92e5.md,cards/1166-a0db92e5.md,(SYN-002) WCS星场+解析PSF+已知flux/background+frame roundtrip 独立合成Oracle PASS
+1167,c03eb894,2026-08-29,付家泽,S,1,主责,compact/1167-c03eb894.md,cards/1167-c03eb894.md,(SYN-002) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX
+1168,d721aa58,2026-08-29,付家泽,S,1,主责,compact/1168-d721aa58.md,cards/1168-d721aa58.md,(SYN-003) Noise/SNR estimator独立合成Oracle PASS
+1169,678b290d,2026-08-29,付家泽,S,1,主责,compact/1169-678b290d.md,cards/1169-678b290d.md,(SYN-003) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX
+1170,3b0d393c,2026-08-29,付家泽,S,1,主责,compact/1170-3b0d393c.md,cards/1170-3b0d393c.md,(SYN-004) Drizzle独立合成Oracle与不变量 PASS
+1171,7372dfb5,2026-08-29,付家泽,S,1,主责,compact/1171-7372dfb5.md,cards/1171-7372dfb5.md,(SYN-004) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX
+1172,db6f7b42,2026-08-29,付家泽,S,1,主责,compact/1172-db6f7b42.md,cards/1172-db6f7b42.md,(SYN-005) UPM solver独立合成Oracle PASS
+1173,183986e8,2026-08-29,付家泽,S,1,主责,compact/1173-183986e8.md,cards/1173-183986e8.md,(SYN-005) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX
+1174,4e88797d,2026-08-29,付家泽,S,1,主责,compact/1174-4e88797d.md,cards/1174-4e88797d.md,(SYN-006) Rejection/Integration独立合成Oracle PASS
+1175,d3417ceb,2026-08-29,付家泽,S,1,主责,compact/1175-d3417ceb.md,cards/1175-d3417ceb.md,(SYN-006) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX
+1176,266f0815,2026-08-29,付家泽,M,2,主责,compact/1176-266f0815.md,cards/1176-266f0815.md,(SYN-007) Phase3 HiPS-TAN FITS独立重投影Oracle PASS (13 §5 全部case)
+1177,99aeed15,2026-08-29,付家泽,S,1,主责,compact/1177-99aeed15.md,cards/1177-99aeed15.md,(SYN-007) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX
+1178,80e6ad71,2026-08-29,付家泽,M,2,主责,compact/1178-80e6ad71.md,cards/1178-80e6ad71.md,(SYN-008) 三块重叠合成场 seam指标门槛 PASS
+1179,cd0831d8,2026-08-29,付家泽,S,1,主责,compact/1179-cd0831d8.md,cards/1179-cd0831d8.md,(SYN-008) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX
+1180,2743ae0a,2026-08-29,付家泽,M,2,主责,compact/1180-2743ae0a.md,cards/1180-2743ae0a.md,(SYN-009) CLI Phase1/2/3端到端合成pipeline PASS
+1181,bc812985,2026-08-29,付家泽,S,1,主责,compact/1181-bc812985.md,cards/1181-bc812985.md,(SYN-009) 胶囊登记 COMMITS/REVIEW_CAPSULE_INDEX
+1182,ea1145fb,2026-08-29,付家泽,M,2,主责,compact/1182-ea1145fb.md,cards/1182-ea1145fb.md,(DOCCHK-001) 机器核对文档函数名/签名/schema/命令/退出码 PASS
+1183,eb18b646,2026-08-29,付家泽,S,1,主责,compact/1183-eb18b646.md,cards/1183-eb18b646.md,(DOCCHK-001) 登记审阅胶囊 COMMITS/REVIEW_CAPSULE_INDEX
+1184,8a0a02f8,2026-08-29,付家泽,M,2,主责,compact/1184-8a0a02f8.md,cards/1184-8a0a02f8.md,(DOCCHK-002) 六层追溯闭环66claim+单位二义性mutation门 PASS
+1185,c49004d3,2026-08-29,付家泽,S,1,主责,compact/1185-c49004d3.md,cards/1185-c49004d3.md,(DOCCHK-002) 登记审阅胶囊 COMMITS/REVIEW_CAPSULE_INDEX
+1186,8ff83696,2026-08-29,付家泽,S,1,主责,compact/1186-8ff83696.md,cards/1186-8ff83696.md,(LNX-001) amd64 clean Debug+Release 构建零错误; 清零 unused/truncation 警告债 PASS
+1187,ca4c02c8,2026-08-29,付家泽,S,1,主责,compact/1187-ca4c02c8.md,cards/1187-ca4c02c8.md,(LNX-001) 登记审阅胶囊 COMMITS/REVIEW_CAPSULE_INDEX
+1188,def1cb03,2026-08-29,付家泽,S,1,主责,compact/1188-def1cb03.md,cards/1188-def1cb03.md,(LNX-002) inspect doctor quick benchmark profile fallback ISA安全 golden PASS
+1189,5a70dd88,2026-08-29,付家泽,S,1,主责,compact/1189-5a70dd88.md,cards/1189-5a70dd88.md,(LNX-002) 登记审阅胶囊 COMMITS/REVIEW_CAPSULE_INDEX
+1190,27c2053c,2026-08-29,付家泽,S,1,主责,compact/1190-27c2053c.md,cards/1190-27c2053c.md,(LNX-003) 全量小合成 42 oracle + CLI golden + 资源门禁低利用率fixture必FAIL + 20-loop memory PASS
+1191,7cc3cf6d,2026-08-29,付家泽,S,1,主责,compact/1191-7cc3cf6d.md,cards/1191-7cc3cf6d.md,(LNX-003) 登记审阅胶囊 COMMITS/REVIEW_CAPSULE_INDEX
+1192,8c21173b,2026-08-29,付家泽,S,1,主责,compact/1192-8c21173b.md,cards/1192-8c21173b.md,(LNX-004) 修复P1 aligned_alloc size非align倍数+2死存储; 0 P0/P1 PASS
+1193,570f6013,2026-08-29,付家泽,S,1,主责,compact/1193-570f6013.md,cards/1193-570f6013.md,(LNX-004) 登记审阅胶囊 COMMITS/REVIEW_CAPSULE_INDEX
+1194,5364fc17,2026-08-29,付家泽,M,2,主责,compact/1194-5364fc17.md,cards/1194-5364fc17.md,(LNX-005) Linux alpha amd64发布包生成器+SBOM/manifest/hash+空目录smoke单exe PASS
+1195,e7998c1c,2026-08-29,付家泽,S,1,主责,compact/1195-e7998c1c.md,cards/1195-e7998c1c.md,(LNX-005) 登记审阅胶囊 COMMITS/REVIEW_CAPSULE_INDEX
+1196,962d18c9,2026-08-29,付家泽,S,1,主责,compact/1196-962d18c9.md,cards/1196-962d18c9.md,(REV-002) 完整ARCH/API/headers/core-source/oracles/checkers/Linux-reports审阅胶囊生成器; REVIEW_PEN
+1197,f82ffa87,2026-08-29,付家泽,S,1,主责,compact/1197-f82ffa87.md,cards/1197-f82ffa87.md,(REV-002) 登记审阅胶囊 COMMITS/REVIEW_CAPSULE_INDEX
+1198,406f6f5e,2026-08-29,付家泽,S,1,主责,compact/1198-406f6f5e.md,cards/1198-406f6f5e.md,(WIN-001) Fatduck探测: 克隆同main SHA f82ffa8 clean; testdata inventory hash一致; 32R数据分发归WIN-006
+1199,751d9d47,2026-08-29,付家泽,S,1,主责,compact/1199-751d9d47.md,cards/1199-751d9d47.md,(WIN-001) 登记审阅胶囊 COMMITS/REVIEW_CAPSULE_INDEX
+1200,222427b6,2026-08-29,付家泽,S,1,主责,compact/1200-222427b6.md,cards/1200-222427b6.md,(WIN-002) MSVC跨平台: sched_getaffinity/xgetbv/gmtime_r/LoadLibraryExA guards + CMake MSVC fl
+1201,d2e00987,2026-08-29,付家泽,S,1,主责,compact/1201-d2e00987.md,cards/1201-d2e00987.md,(WIN-002) MSVC: NOMINMAX 消windows.h min/max宏冲突; __cpuidex 正确签名; LoadLibraryExA 搜索flags防御化
+1202,57f90a0f,2026-08-29,付家泽,S,1,主责,compact/1202-57f90a0f.md,cards/1202-57f90a0f.md,(WIN-002) MSVC: 全局 NOMINMAX 编译定义消除 windows.h min/max 宏冲突
+1203,66934677,2026-08-29,付家泽,S,1,主责,compact/1203-66934677.md,cards/1203-66934677.md,"(WIN-002) MSVC: 用mingw64 zlib(zlib.h+libz.a)链接, 链接zonly"
+1204,31cf3be2,2026-08-29,付家泽,S,1,主责,compact/1204-31cf3be2.md,cards/1204-31cf3be2.md,(WIN-002) MSVC: 用 MSVC-built zlib(libz.lib)提供cfitsio依赖
+1205,c8cb1815,2026-08-29,付家泽,S,1,主责,compact/1205-c8cb1815.md,cards/1205-c8cb1815.md,(WIN-002) MSVC: 移动 p1_session read_image/image_w/h/px 辅助到 extern C 外(C-linkage 不能返回 unique
+1206,1016ce2f,2026-08-29,付家泽,S,1,主责,compact/1206-1016ce2f.md,cards/1206-1016ce2f.md,(WIN-002) MSVC: _USE_MATH_DEFINES定义M_PI; p3_output POSIX→_前缀宏; hips_properties用dirent_win 
+1207,4c2e2b80,2026-08-29,付家泽,S,1,主责,compact/1207-4c2e2b80.md,cards/1207-4c2e2b80.md,(WIN-002) MSVC: p3_output gethostname→GetComputerNameA(主机名未使用)
+1208,a7945efa,2026-08-29,付家泽,S,1,主责,compact/1208-a7945efa.md,cards/1208-a7945efa.md,"(WIN-002) MSVC: sampler __try→try/catch(/EHa), coverage parse_props移出extern C, upm.h加cstdd"
+1209,22344697,2026-08-29,付家泽,S,1,主责,compact/1209-22344697.md,cards/1209-22344697.md,(WIN-002) MSVC: sampler catch(...) 去掉_exception_code(仅限__except)
+1210,5cdafc7b,2026-08-29,付家泽,S,1,主责,compact/1210-5cdafc7b.md,cards/1210-5cdafc7b.md,"(WIN-002) MSVC: cfitsio 需 unistd.h, 提供 win_compat shim 加入 CFITSIO include path"

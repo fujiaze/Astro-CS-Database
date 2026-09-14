@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1751,c042f0c4,2026-09-09,付家泽,S,1,重叠复核,compact/1751-c042f0c4.md,cards/1751-c042f0c4.md,"chore(state): P1-DRZ-TEST 台账 CLOSED 同步（fg_machine_verified, commit 902d2e20）"
+1752,054af3a3,2026-09-09,付家泽,M,2,重叠复核,compact/1752-054af3a3.md,cards/1752-054af3a3.md,feat(CAT-GAIA-INT): gaia 模块集成 descriptor+typed ports+调用计数——integration/astrocs_catalog_gai
+1753,94074a32,2026-09-09,付家泽,S,1,重叠复核,compact/1753-94074a32.md,cards/1753-94074a32.md,"chore(state): CAT-GAIA-INT 台账 CLOSED 同步（fg_machine_verified, commit 054af3a3）"
+1754,acceab68,2026-09-09,付家泽,M,2,重叠复核,compact/1754-acceab68.md,cards/1754-acceab68.md,test(resource): MON-002 增加内存增长检测——memory_report.h 双探针(glibc mallinfo2+/proc smaps_rollup P
+1755,a5e4da42,2026-09-09,付家泽,S,1,重叠复核,compact/1755-a5e4da42.md,cards/1755-a5e4da42.md,chore(evidence): MON-002 COMMITS.csv 回填+台账 CLOSED（commit 94074a32）
+1756,2c065ace,2026-09-09,付家泽,L,4,重叠复核,compact/1756-2c065ace.md,cards/1756-2c065ace.md,feat(P1-DRZ-IMPL): drizzle 迁移独立模块——lib/drizzle 九操作 C ABI v1 adapter(module_entry.cpp vtabl
+1757,4f150bfc,2026-09-09,付家泽,S,1,重叠复核,compact/1757-4f150bfc.md,cards/1757-4f150bfc.md,"chore(state): P1-DRZ-IMPL 台账 CLOSED 同步（fg_machine_verified, commit 2c065ace）"
+1758,adf820ac,2026-09-09,付家泽,L,4,重叠复核,compact/1758-adf820ac.md,cards/1758-adf820ac.md,feat(P1-CAL-IMPL): calibration 迁移独立模块——astrocs_p1_calibration SHARED(PIC/C++17/OpenMP) leg
+1759,0fa802dc,2026-09-09,付家泽,S,1,重叠复核,compact/1759-0fa802dc.md,cards/1759-0fa802dc.md,"chore(state): P1-CAL-IMPL 台账 CLOSED 同步（fg_machine_verified, commit adf820ac）"
+1760,58d20223,2026-09-09,付家泽,M,2,重叠复核,compact/1760-58d20223.md,cards/1760-58d20223.md,feat(P1-CAL-INT): calibration 模块集成 descriptor+typed ports+调用计数——integration/astrocs_p1_cal
+1761,fd9adf19,2026-09-09,付家泽,S,1,主责,compact/1761-fd9adf19.md,cards/1761-fd9adf19.md,"chore(state): P1-CAL-INT 台账 CLOSED 同步（fg_machine_verified, commit 58d20223）"
+1762,948dfcba,2026-09-09,付家泽,L,4,主责,compact/1762-948dfcba.md,cards/1762-948dfcba.md,feat(P1-COS-IMPL): cosmetic 迁移独立模块——astrocs_p1_cosmetic SHARED(module_entry.cpp C ABI v1 九
+1763,d01f919f,2026-09-09,付家泽,S,1,主责,compact/1763-d01f919f.md,cards/1763-d01f919f.md,"chore(state): P1-COS-IMPL 台账 CLOSED 同步（fg_machine_verified, commit 948dfcba）"
+1764,5e7d7f46,2026-09-09,付家泽,M,2,主责,compact/1764-5e7d7f46.md,cards/1764-5e7d7f46.md,feat(P1-COS-INT): cosmetic 模块集成 descriptor+typed ports+调用计数——integration/astrocs_p1_cosmet
+1765,dc2f5f3e,2026-09-09,付家泽,S,1,主责,compact/1765-dc2f5f3e.md,cards/1765-dc2f5f3e.md,"chore(state): P1-COS-INT 台账 CLOSED 同步（fg_machine_verified, commit 5e7d7f46）"
+1766,c19b4a59,2026-09-09,付家泽,L,4,主责,compact/1766-c19b4a59.md,cards/1766-c19b4a59.md,test(P1-HIPS-TEST): HIPS 可复用验证面——p1hips 9文件(固定seed F1/F3/F5/F6 f64f32双精度/独立oracle FITS读回+M
+1767,f83dd8f0,2026-09-09,付家泽,S,1,主责,compact/1767-f83dd8f0.md,cards/1767-f83dd8f0.md,"chore(state): P1-HIPS-TEST 台账 CLOSED 同步（fg_machine_verified, commit c19b4a59）"
+1768,858efc98,2026-09-09,付家泽,S,1,主责,compact/1768-858efc98.md,cards/1768-858efc98.md,chore(memory): 控制包执行模式指针+会话交接指针（HANDOFF_CONTROL_PACK_20260909.md）
+1769,e54cd740,2026-09-09,付家泽,M,2,主责,compact/1769-e54cd740.md,cards/1769-e54cd740.md,test(P1-NOISE-TEST): noise 模型可复用验证面——p1noise 8文件(固定seed fixture splitmix64+Box-Muller f64f
+1770,1959dc89,2026-09-09,付家泽,L,4,主责,compact/1770-1959dc89.md,cards/1770-1959dc89.md,feat(P1-HIPS-IMPL): hips_writer 迁移独立模块——astrocs_p1_hips_writer SHARED(生产闭包2TU+cfitsio源PIC零
+1771,2763386e,2026-09-09,付家泽,M,2,主责,compact/1771-2763386e.md,cards/1771-2763386e.md,test(P1-PSF-TEST): dynamic_psf 可复用验证面——p1psf 8文件1787行(固定seed FIX-PSF-A..E splitmix64+Box-M
+1772,ab2f6ade,2026-09-09,付家泽,M,2,主责,compact/1772-ab2f6ade.md,cards/1772-ab2f6ade.md,test(P1-SESSION-TEST): phase1_session 可复用验证面——p1sess 9文件(固定seed FIX-SESS-A..F splitmix64/独
+1773,8e5dfab6,2026-09-09,付家泽,M,2,主责,compact/1773-8e5dfab6.md,cards/1773-8e5dfab6.md,test(P1-STAR-TEST): star_detector 可复用验证面——p1star 9文件1683行(固定seed FIX-STAR-A..G mt19937_64+
+1774,5e45e65e,2026-09-09,付家泽,S,1,主责,compact/1774-5e45e65e.md,cards/1774-5e45e65e.md,chore(state): P1-HIPS-IMPL/P1-NOISE-TEST/P1-PSF-TEST/P1-SESSION-TEST/P1-STAR-TEST 台账 CLOSE
+1775,19ef3722,2026-09-09,付家泽,S,1,主责,compact/1775-19ef3722.md,cards/1775-19ef3722.md,chore(repo): 根目录整洁基线——约170散落项归位(100+ astrocs_run_*.json→run/cli_runs/、11控制包zip+审核证据请求+包规范.
+1776,ae147df3,2026-09-09,付家泽,L,4,主责,compact/1776-ae147df3.md,cards/1776-ae147df3.md,test(P1-PHOT-TEST): photometric_calib 可复用验证面——p1phot 14文件(固定seed FIX-PHOT-A..F SplitMix64/
+1777,d342b3fa,2026-09-09,付家泽,S,1,主责,compact/1777-d342b3fa.md,cards/1777-d342b3fa.md,"chore(state): P1-PHOT-TEST 台账 CLOSED 同步（fg_machine_verified, commit ae147df3）"
+1778,2e018dd0,2026-09-09,付家泽,S,1,主责,compact/1778-2e018dd0.md,cards/1778-2e018dd0.md,"chore(state): TASK_STATE counts 重算同步（CLOSED 81→104/NOT_STARTED 108→85, total 191, updated_"
+1779,30296a9f,2026-09-09,付家泽,L,4,主责,compact/1779-30296a9f.md,cards/1779-30296a9f.md,test(P1-WCS-TEST): plate_solve 可复用验证面——p1wcs 11文件(6独立推导器 gnomonic闭式·Cramer·inv(M)q·TAN前向·固
+1780,9690c1da,2026-09-09,付家泽,S,1,主责,compact/1780-9690c1da.md,cards/1780-9690c1da.md,"chore(state): P1-WCS-TEST 台账 CLOSED 同步（fg_machine_verified, commit 30296a9f）+counts 重算"
+1781,64c1e988,2026-09-09,付家泽,M,2,主责,compact/1781-64c1e988.md,cards/1781-64c1e988.md,fix(P1-HIPS-TEST): tree_digest FITS CHECKSUM/DATASUM 时间戳归一化——fnv_file 对 .fits/.fts 头区(开头到E
+1782,009ee419,2026-09-09,付家泽,M,2,主责,compact/1782-009ee419.md,cards/1782-009ee419.md,chore(repo): 根目录归纳第二批——①launch/(2文件)→packaging/launch/ ②graph/孤儿图产物→artifacts/graph/ ③sche
+1783,32a252f8,2026-09-09,付家泽,S,1,主责,compact/1783-32a252f8.md,cards/1783-32a252f8.md,chore(memory): 旧控制包作废归档登记（disarm 于 42/140）+ 根目录归纳两批锚点 + 新工程包交接锚 + DISP 候选清单
+1784,4d3feaf4,2026-09-09,付家泽,M,2,主责,compact/1784-4d3feaf4.md,cards/1784-4d3feaf4.md,chore(工程控制): 收录 cprun-v4 控制包模板（owner 指定审核包随附件——control-pack.json 示例/TEMPLATE.control-pack.
+1785,789c5b6c,2026-09-09,付家泽,L,4,主责,compact/1785-789c5b6c.md,cards/1785-789c5b6c.md,chore(repo): BASS DR3 用户数据区全目录 gitignore 收紧（原跟踪索引 coords.csv.gz 11.8M/index.csv.gz/dates 等
+1786,d8c821db,2026-09-10,付家泽,M,2,主责,compact/1786-d8c821db.md,cards/1786-d8c821db.md,"feat(GOV-001): 宪章冻结——ASTROCS_PROJECT_CONSTITUTION.md DRAFT_FOR_OWNER_REVIEW→FROZEN, §18 落定"
+1787,8e03d7da,2026-09-10,付家泽,L,4,主责,compact/1787-8e03d7da.md,cards/1787-8e03d7da.md,chore(GOV-002): 旧控制包归档统一活动状态——V8.1 CI 控制包 tracked 镜像 56 文件原样 mv 入 engineering/control/arch
+1788,d1ac4dfc,2026-09-10,付家泽,S,1,主责,compact/1788-d1ac4dfc.md,cards/1788-d1ac4dfc.md,fix(GOV-002-F1): reconcile_state V71_LEDGER 常量改指归档路径 engineering/control/archive/2026-09-0
+1789,86af39d8,2026-09-10,付家泽,S,1,主责,compact/1789-86af39d8.md,cards/1789-86af39d8.md,test(WCS-001): 独立WCS Oracle量纲修复收口——oracle-1..6 逐一量纲审查(oracle_gnomonic_inv 漏S归一·oracle_wcs_
+1790,99713034,2026-09-10,付家泽,M,2,主责,compact/1790-99713034.md,cards/1790-99713034.md,"feat(DATA-001): 冻结 Phase2/Phase3 不确定度产品合同 DATA-UNC-001（目标态,实现不得先行）——§30 四节: ①Phase2 varian"
+1791,04556761,2026-09-10,付家泽,S,1,主责,compact/1791-04556761.md,cards/1791-04556761.md,fix(WCS-002): SIP逆模型与空对边界整改——①ipv_wcs.cpp extract_wcs_sip 5.3段 AP/BP 网格反变换 7×7→41×41·拟合阶→布
+1792,ef1ccfcc,2026-09-10,付家泽,M,2,主责,compact/1792-ef1ccfcc.md,cards/1792-ef1ccfcc.md,fix(PSF-001): dpsf_fit_batch 批量 ABI 尺寸边界修复（DISP-PSF-007 整改）——新增 static dpsf_batch_dims_che
+1793,00b73fc1,2026-09-10,付家泽,M,2,主责,compact/1793-00b73fc1.md,cards/1793-00b73fc1.md,feat(AIO-001): 建立唯一 AIO C ABI v1 与内容哈希复核——include/astrocs/io/aio_abi_v1.h 合同头(aio_status 1
+1794,36f2edfa,2026-09-10,付家泽,M,2,主责,compact/1794-36f2edfa.md,cards/1794-36f2edfa.md,feat(AIO-002): HiPS 原子发布与临时目录清理——publish.h 原子发布原语 v1 合同头(4 原语 stage_create/stage_discard/t
+1795,9e09941a,2026-09-10,付家泽,L,4,主责,compact/1795-9e09941a.md,cards/1795-9e09941a.md,feat(P1-001): Phase1 真实节点与 complete 门三域真实化——①star-psf: lib/star_detector sdet 检测→star_det 
+1796,e9547c02,2026-09-10,付家泽,L,4,主责,compact/1796-e9547c02.md,cards/1796-e9547c02.md,"feat(控制包): 负责人三裁决落地——新增 WCS-003(AP/BP布局扩展+消费方迭代反演恢复冻结1e-4px,裁决1选B,拒绝缩fixture与改门,G-SCI 加挂 W"
+1797,85a5fc60,2026-09-10,付家泽,L,4,主责,compact/1797-85a5fc60.md,cards/1797-85a5fc60.md,chore(gov): 控制包 rev3 入库（负责人真实数据验收指令落地 04_OWNER_DECISIONS_20260910）——新增 REAL-000(真实数据审计+tes
+1798,439f9f20,2026-09-10,付家泽,L,4,主责,compact/1798-439f9f20.md,cards/1798-439f9f20.md,feat(P2-001): Phase2 真实算法节点——7 节点唯一真实 operation 委托(ARCH-P0-001 Phase2 侧整改: 原工厂委托 P2Api ses
+1799,8545d70a,2026-09-10,付家泽,S,1,主责,compact/1799-8545d70a.md,cards/1799-8545d70a.md,fix(P1-001-F4): 补录 p1001_real_nodes_test 注册块——P1-001 提交 9e09941a 遗漏 tests/unit/CMakeLists.
+1800,9e0fa3a8,2026-09-10,付家泽,M,2,主责,compact/1800-9e0fa3a8.md,cards/1800-9e0fa3a8.md,feat(P2-002): Phase2 不确定度排异与 provenance 产品——新增 contracts/data/phase2_uncertainty_rejection
+1801,991e3e2e,2026-09-10,付家泽,M,2,主责,compact/1801-991e3e2e.md,cards/1801-991e3e2e.md,fix(P0/F-P2-002-01): p2_op_reject gather 契约三重错位整改（P2-002 重大 finding 紧急修复）——①gin.value_stri
+1802,eb315b20,2026-09-11,付家泽,S,1,主责,compact/1802-eb315b20.md,cards/1802-eb315b20.md,docs(handover): 交接文档更新——ASTROCS-CONSTITUTION-ALIGNMENT-V1 执行快照(HEAD=991e3e2e): 12 任务闭环提交链/
+1803,45f80776,2026-09-11,付家泽,M,2,主责,compact/1803-45f80776.md,cards/1803-45f80776.md,fix(P1-HIPS-DIGEST-001): p1hips tree_digest 多 HDU 归一化修复——p1hips_tests_units.cpp 归一化内核由 fit
+1804,45695873,2026-09-11,付家泽,S,1,主责,compact/1804-45695873.md,cards/1804-45695873.md,chore(gov): GOV-002 复跑验收与登记面更新——ACTIVITY_STATE §5 补记 BASE-001 冻结参照核对实况(F4: V8.1 baseline/V
+1805,b8d9a69c,2026-09-11,付家泽,M,2,主责,compact/1805-b8d9a69c.md,cards/1805-b8d9a69c.md,feat(WCS-003): AP/BP布局扩展与消费方迭代式反演达冻结门——①SIPCoeffs 布局扩展(owner 裁决1选B): 追加扩展逆向布局 APx/BPx[100]
+1806,9953f103,2026-09-11,付家泽,M,2,主责,compact/1806-9953f103.md,cards/1806-9953f103.md,feat(P3-001): 建立投影registry与冻结投影实现(宪章§18.1 四投影)——registry v1 冻结表(kP3ProjectionRegistryVersi
+1807,9662afa8,2026-09-11,付家泽,M,2,主责,compact/1807-9662afa8.md,cards/1807-9662afa8.md,"feat(P3-002): Phase3 不确定度传播与扩展 HDU 科学面(DATA-P3-UNC-001 §30.4 落地, 上位宪章 §7.1/§7.3)——p3_resam"
+1808,1a56ffb7,2026-09-11,付家泽,M,2,主责,compact/1808-1a56ffb7.md,cards/1808-1a56ffb7.md,"feat(P3-002): Phase3 五子节点唯一真实 operation 委托(宪章 §7.2/§8.2 整改, P1-001/P2-001 先例同构)——lib/core/"
+1809,91440c16,2026-09-11,付家泽,M,2,主责,compact/1809-91440c16.md,cards/1809-91440c16.md,feat(RT-001): 接入唯一Executor与实测资源门(宪章 §10.4 work-unit 租约+§10.5/§18.2 冻结阈值落地)——①唯一 executor 生
+1810,59fdeab3,2026-09-11,付家泽,M,2,主责,compact/1810-59fdeab3.md,cards/1810-59fdeab3.md,feat(MOD-001): 完成科学DLL安装加载验证与产品清单(宪章 §8.4 安装面+§8.1 产品清单+§18.4 签名清单加载)——①F-AIO-003 闭环: lib/
+1811,026717fd,2026-09-11,付家泽,M,2,主责,compact/1811-026717fd.md,cards/1811-026717fd.md,"feat(CLI-001): 完成薄CLI validate/plan/inspect 命令面(宪章 §8.1, 基线 59fdeab3)——①cli/parser.cpp: kR"
+1812,e9b82ea4,2026-09-11,付家泽,M,2,主责,compact/1812-e9b82ea4.md,cards/1812-e9b82ea4.md,feat(CI-001): 收紧CI注册表与资源fail-closed(基线 026717fd)——①不可 waiver: ci/checks.json WIN-BUILD-REL
+1813,ca948367,2026-09-11,付家泽,S,1,主责,compact/1813-ca948367.md,cards/1813-ca948367.md,fix(CI/F-CI-001-01): owner 裁决 WIN-* 移出资源门——ci/checks.json WIN-BUILD-RELEASE/WIN-TEST-UNIT/
+1814,f74fc20f,2026-09-11,付家泽,S,1,主责,compact/1814-f74fc20f.md,cards/1814-f74fc20f.md,fix(CI/F-CI-002-01+02+03): Linux 构建断链与 TASK-RESULT-SCHEMA 口径修复(owner 裁决执行)——①根 CMakeLists.
+1815,9f6b72b5,2026-09-11,付家泽,L,4,主责,compact/1815-9f6b72b5.md,cards/1815-9f6b72b5.md,feat(REAL-000): 真实数据审计索引v1.2与确定性匹配计划(04_OWNER_DECISIONS rev3 指令落地)——①盘点对账: testdata 944 文件

@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+486,ee582449,2026-08-08,fujiaze,S,1,重叠复核,compact/0486-ee582449.md,cards/0486-ee582449.md,fix(psf+chain): PSF-001 坐标契约修复 + 星点链消费 PSF 拟合中心
+487,863a8490,2026-08-08,fujiaze,M,2,重叠复核,compact/0487-863a8490.md,cards/0487-863a8490.md,test(psf): Phase A 坐标契约最终测试 — G1-G6 全过
+488,70edb842,2026-08-08,fujiaze,M,2,重叠复核,compact/0488-70edb842.md,cards/0488-70edb842.md,feat(xpsd): PCL 官方解码生产链 — fluxMin/fluxMul 线性解码替代 uint8*10^-0.4G
+489,f75d4eb4,2026-08-08,fujiaze,S,1,重叠复核,compact/0489-f75d4eb4.md,cards/0489-f75d4eb4.md,"fix(reverse): 增加 WCS 物理范围校验 (crval DEC∈[-90,90], CD 元素有限且 ≤1°/px)"
+490,732c3a62,2026-08-08,fujiaze,M,2,重叠复核,compact/0490-732c3a62.md,cards/0490-732c3a62.md,"chore(configs): 移除旧 schema 配置, configs/ 仅保留 stage1.schema.json + stage1.template.json"
+491,57112296,2026-08-08,fujiaze,S,1,重叠复核,compact/0491-57112296.md,cards/0491-57112296.md,docs(memory): XPSD 官方解码语义与生产链记录 (Phase B)
+492,4769979c,2026-08-08,fujiaze,M,2,重叠复核,compact/0492-4769979c.md,cards/0492-4769979c.md,feat(acr): scenario-level qualification and probe/final stats in route profile v2
+493,91737ae1,2026-08-08,fujiaze,M,2,重叠复核,compact/0493-91737ae1.md,cards/0493-91737ae1.md,"fix(acr): 2D chunk service interpolation, scenario-gated routing and diagnostic replay mod"
+494,d61c7560,2026-08-08,fujiaze,M,2,重叠复核,compact/0494-d61c7560.md,cards/0494-d61c7560.md,"fix(acr): fit/probe/final isolation, real adaptive refinement, true cold mixed, chunk stri"
+495,23378a25,2026-08-08,fujiaze,M,2,重叠复核,compact/0495-23378a25.md,cards/0495-23378a25.md,"fix(acr): replay report from profile, scenario-grouped best and real gates in weighted ben"
+496,effc4308,2026-08-08,fujiaze,S,1,主责,compact/0496-effc4308.md,cards/0496-effc4308.md,test(acr): route estimator scenario/2D-chunk tests and focused mixed dispatcher reuse
+497,7c1e3497,2026-08-08,fujiaze,S,1,主责,compact/0497-7c1e3497.md,cards/0497-7c1e3497.md,docs(acr): record BDR Reviewed correction round and verification results
+498,5d5be0ac,2026-08-08,fujiaze,L,4,主责,compact/0498-5d5be0ac.md,cards/0498-5d5be0ac.md,feat(hips): Phase1 V3 HiPS 直写生产链 — Drizzle→AIO 无 HISS 中转
+499,2dd84a33,2026-08-08,fujiaze,M,2,主责,compact/0499-2dd84a33.md,cards/0499-2dd84a33.md,"test(gate7): HiPS 直写产品集独立验证 (astropy, 不经 AIO)"
+500,7abe75f6,2026-08-08,fujiaze,S,1,主责,compact/0500-7abe75f6.md,cards/0500-7abe75f6.md,test(acr): stabilize focused mixed auto benchmark with 5-round median and auto warmup
+501,e66e267f,2026-08-08,fujiaze,S,1,主责,compact/0501-e66e267f.md,cards/0501-e66e267f.md,"test(acr): record-only axpy cross-device ordering (memory-bound, >=0.5 guard)"
+502,49b01cac,2026-08-08,fujiaze,S,1,主责,compact/0502-49b01cac.md,cards/0502-49b01cac.md,fix(gaia)+test(sanitize): WSL ASan/UBSan/LSan 可移植核心
+503,30feb203,2026-08-08,fujiaze,S,1,主责,compact/0503-30feb203.md,cards/0503-30feb203.md,"fix(acr): cpu-only auto uses estimate chunk, remove in-test tbb shutdown crash"
+504,a1a71b95,2026-08-08,fujiaze,S,1,主责,compact/0504-a1a71b95.md,cards/0504-a1a71b95.md,test(hips): tile mapping 独立 Oracle (astropy-healpix) mismatch=0
+505,245a0e34,2026-08-08,fujiaze,S,1,主责,compact/0505-245a0e34.md,cards/0505-245a0e34.md,docs(memory): Phase1 V3 进度同步 + gate8 trace 扩展 (dr3sp lineage/生产末端顺序)
+506,b01f3092,2026-08-08,fujiaze,S,1,主责,compact/0506-b01f3092.md,cards/0506-b01f3092.md,docs(readme): Phase1 V3 生产末端 HiPS + HISS deprecated 状态同步
+507,1878e6d8,2026-08-08,fujiaze,M,2,主责,compact/0507-1878e6d8.md,cards/0507-1878e6d8.md,chore: AstroCS.wiki 子模块指针同步 + 补录上一轮冻结验证测试源码
+508,881dba93,2026-08-08,fujiaze,S,1,主责,compact/0508-881dba93.md,cards/0508-881dba93.md,"fix(acr): global-index hash for resident drizzle, gpu attempt clear, minGW oneTBB skip"
+509,da5a2807,2026-08-08,fujiaze,S,1,主责,compact/0509-da5a2807.md,cards/0509-da5a2807.md,test(acr): run focused mixed performance tests serially to avoid load-guard flaky skip
+510,936c6a31,2026-08-09,fujiaze,S,1,主责,compact/0510-936c6a31.md,cards/0510-936c6a31.md,docs(acr): record BDR3 final benchmark conclusions and limits
+511,be0f6089,2026-08-09,fujiaze,S,1,主责,compact/0511-be0f6089.md,cards/0511-be0f6089.md,fix(acr): compare e2e interpolation lower_bound against usable.end()
+512,98d0d61f,2026-08-09,fujiaze,M,2,主责,compact/0512-98d0d61f.md,cards/0512-98d0d61f.md,"fix(acr): keep final holdout untouched, split probe model selection from fixed final eval"
+513,4ad240d9,2026-08-09,fujiaze,M,2,主责,compact/0513-4ad240d9.md,cards/0513-4ad240d9.md,feat(acr): scenario-joint route-regret adaptive refinement
+514,6d810a37,2026-08-09,fujiaze,M,2,主责,compact/0514-6d810a37.md,cards/0514-6d810a37.md,fix(snr)+feat(healpix): 共享 HEALPix core + SNR 稳定 ID 闭环 (V4)
+515,942aa0f8,2026-08-09,fujiaze,S,1,主责,compact/0515-942aa0f8.md,cards/0515-942aa0f8.md,fix(acr): standard-only authoritative profile publication with calibration metadata
+516,4f8bc732,2026-08-09,fujiaze,M,2,主责,compact/0516-4f8bc732.md,cards/0516-4f8bc732.md,feat(browser): HiPS->AIO Reader 后端 + headless 硬门 (V4 G3)
+517,af82e0f7,2026-08-09,fujiaze,M,2,主责,compact/0517-af82e0f7.md,cards/0517-af82e0f7.md,feat(acr): close benchmark-driven routing into dispatcher with legacy launcher
+518,686f7959,2026-08-09,fujiaze,L,4,主责,compact/0518-686f7959.md,cards/0518-686f7959.md,feat(trace)+fix(snr): V4 G4 actual-buffer trace 全链证据 (V4 G4)
+519,f8e51c89,2026-08-09,fujiaze,L,4,主责,compact/0519-f8e51c89.md,cards/0519-f8e51c89.md,fix(hips): SNR Catalogue metadata.xml 标准 VOTable + 推荐元数据 + Oracle 路径解码修正 (V4 G5 Hipsgen)
+520,560c417b,2026-08-09,fujiaze,S,1,主责,compact/0520-560c417b.md,cards/0520-560c417b.md,test(acr): stabilize bdr mixed dispatch test against cpu worker race
+521,8653f9ee,2026-08-09,fujiaze,S,1,主责,compact/0521-8653f9ee.md,cards/0521-8653f9ee.md,docs(acr): record dispatcher finalization results and limits
+522,bce606a4,2026-08-09,fujiaze,M,2,主责,compact/0522-bce606a4.md,cards/0522-bce606a4.md,feat(oracle): Astrometry.net 外部 Oracle 实际执行 synthetic+real 盲解全过 (V4 G5)
+523,c0853fde,2026-08-09,fujiaze,L,4,主责,compact/0523-c0853fde.md,cards/0523-c0853fde.md,test(g6): V4 sanitizer 全链 ASan/UBSan/LSan + 空间 fuzz + 损坏输入全过 (V4 G6) - 共享 HEALPix core 1M 
+524,b686df73,2026-08-09,fujiaze,L,4,主责,compact/0524-b686df73.md,cards/0524-b686df73.md,test(g7): T4 post-fix 双精度 crop + 唯一一次完整 FP32 全过 (V4 G7) - T1 全盘搜索确认无数据 -> BLOCKED_EXTERNAL
+525,56ffccc4,2026-08-09,fujiaze,S,1,主责,compact/0525-56ffccc4.md,cards/0525-56ffccc4.md,docs(readme): orchestrator 生产链同步 HiPS 直写/HISS deprecated (V4 G8)
+526,450f13c2,2026-08-09,fujiaze,S,1,主责,compact/0526-450f13c2.md,cards/0526-450f13c2.md,chore(wiki): Phase1 V4 状态页 + HISS deprecated 同步 (wiki 0c94b56)
+527,a268aba2,2026-08-09,fujiaze,M,2,主责,compact/0527-a268aba2.md,cards/0527-a268aba2.md,"feat(acr): route-centric qualification, real gpu direct, residency generation closure, rea"
+528,bf93e71a,2026-08-09,fujiaze,S,1,主责,compact/0528-bf93e71a.md,cards/0528-bf93e71a.md,"fix(acr): robust p95 score guard, real cold mixed uploads, boundary probes, gpu settle"
+529,21a5dc5d,2026-08-09,fujiaze,M,2,主责,compact/0529-21a5dc5d.md,cards/0529-21a5dc5d.md,feat(core): 共享 HEALPix core 标准 tile 排列 (V5 HIPS-IMG-001) - 新增 nested_local_to_fits_index/x
+530,b7c4d458,2026-08-09,fujiaze,M,2,主责,compact/0530-b7c4d458.md,cards/0530-b7c4d458.md,feat(orchestrator): V5 CFG-001/002 生产链 output.hips 权威 + HISS legacy - schema/template/pars
+531,e2b41e55,2026-08-09,fujiaze,S,1,主责,compact/0531-e2b41e55.md,cards/0531-e2b41e55.md,perf(acr): skip pool coverage/state serialization on gpu direct fast path; docs(acr): reco
+532,bb467535,2026-08-09,fujiaze,M,2,主责,compact/0532-bb467535.md,cards/0532-bb467535.md,test(v5): MAPTILES 全像素外部 Oracle + SNR 精度 round-trip harness
+533,5f35c928,2026-08-09,fujiaze,S,1,主责,compact/0533-5f35c928.md,cards/0533-5f35c928.md,test(v5): WSL ASan/UBSan/LSan sanitizer 扩展共享 tile 映射全量覆盖 (G7) - 1M 全天 Oracle mismatch=0 - 
+534,155642f7,2026-08-09,fujiaze,S,1,主责,compact/0534-155642f7.md,cards/0534-155642f7.md,fix(orchestrator+drizzle): V5 G3/G4 回归 - json_config: output.hiss 可选时输出父目录检查先 contains 再访问
+535,105d68ab,2026-08-09,fujiaze,S,1,主责,compact/0535-105d68ab.md,cards/0535-105d68ab.md,docs(acr): record route/residency/generation closure final results
+536,a18b5391,2026-08-09,fujiaze,S,1,主责,compact/0536-a18b5391.md,cards/0536-a18b5391.md,"docs(readme+memory): V5 状态同步 — 标准 HiPS tile 排列/SNR 精度/生产配置 0.8/唯一一次 T4 full FP32 全过, code "
+537,033d7c9c,2026-08-09,fujiaze,S,1,主责,compact/0537-033d7c9c.md,cards/0537-033d7c9c.md,chore(wiki): Phase1 V5 状态页 + Project_Status 同步 (wiki faa40fb)
+538,0c9a363c,2026-08-09,fujiaze,S,1,主责,compact/0538-0c9a363c.md,cards/0538-0c9a363c.md,docs(memory): V5 审核包 SHA 记录 (38ea32dd)
+539,22733380,2026-08-09,fujiaze,S,1,主责,compact/0539-22733380.md,cards/0539-22733380.md,docs(acr): fix final evidence head reference to 105d68a
+540,725e4893,2026-08-09,fujiaze,S,1,主责,compact/0540-725e4893.md,cards/0540-725e4893.md,docs(acr): record qualified final benchmark with business adapter readiness
+541,86142ec4,2026-08-09,fujiaze,S,1,主责,compact/0541-86142ec4.md,cards/0541-86142ec4.md,docs(v6): 归档清理 - 旧 HISS/pixfrac 生产描述修正 (无逻辑变化) - README run/ 目录描述: Drizzle/HISS -> Drizzle
+542,f55e7846,2026-08-09,fujiaze,S,1,主责,compact/0542-f55e7846.md,cards/0542-f55e7846.md,chore(wiki): V5/V6 状态同步 + PHASE1=FROZEN 字面量移除 (wiki a34a264) - Home/Project_Status/V5_Stat
+543,e7c58363,2026-08-09,fujiaze,S,1,主责,compact/0543-e7c58363.md,cards/0543-e7c58363.md,docs(memory): V6 审核包 SHA 记录 (39bed5eb)
+544,2a009a05,2026-08-09,fujiaze,S,1,主责,compact/0544-2a009a05.md,cards/0544-2a009a05.md,"docs(memory): V6 审核包 SHA 更新 (73cdd6be) - summary 补 V5_POSTFIX 计数键, 重打包"
+545,7caa7289,2026-08-09,fujiaze,S,1,主责,compact/0545-7caa7289.md,cards/0545-7caa7289.md,"fix(acr): same-pointer generation invalidation, real resource snapshot, gpu direct fallbac"
+546,ea1d01c1,2026-08-09,fujiaze,S,1,主责,compact/0546-ea1d01c1.md,cards/0546-ea1d01c1.md,"fix(acr): vram incremental gate in estimator, real auto report fields, benchmark ready agg"
+547,af7cbea7,2026-08-09,fujiaze,M,2,主责,compact/0547-af7cbea7.md,cards/0547-af7cbea7.md,"test(acr): same-pointer generation, vram gate and gpu fallback injection tests"
+548,303c38e8,2026-08-09,fujiaze,S,1,主责,compact/0548-303c38e8.md,cards/0548-303c38e8.md,perf(acr): cache memory snapshot within 100ms window to avoid per-dispatch nvml cost
+549,e949b306,2026-08-09,fujiaze,S,1,主责,compact/0549-e949b306.md,cards/0549-e949b306.md,"docs(acr): record base closure fixes for generation, resource snapshot and gpu fallback"
+550,198d69e0,2026-08-10,fujiaze,L,4,主责,compact/0550-198d69e0.md,cards/0550-198d69e0.md,merge(acr): add astrocompute-runtime as dormant acceleration base

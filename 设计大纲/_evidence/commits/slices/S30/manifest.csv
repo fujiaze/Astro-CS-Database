@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1586,f896d1bb,2026-09-06,付家泽,M,2,重叠复核,compact/1586-f896d1bb.md,cards/1586-f896d1bb.md,fix(conformance): 探针模块版本单源 alpha.1→alpha.2 + registry 断言动态化 + bootstrap_utf8 动态断言（subagent
+1587,e51a423a,2026-09-07,付家泽,M,2,重叠复核,compact/1587-e51a423a.md,cards/1587-e51a423a.md,fix(windows): ctest 7 失败根因闭环 + monitor Win32 采样 + driver 全量日志 tee（subagent 交付）
+1588,1938b7aa,2026-09-07,付家泽,S,1,重叠复核,compact/1588-1938b7aa.md,cards/1588-1938b7aa.md,fix(wave4): UT-API 断言同步 / UT-IO numpy 环境依赖 / UT-CPU-AVX512 fortified memset（subagent 交付）
+1589,f5e4b647,2026-09-07,付家泽,S,1,重叠复核,compact/1589-f5e4b647.md,cards/1589-f5e4b647.md,"fix(inventory): PRODUCTION_EXECUTION_INVENTORY.csv 重新生成同步（负责人确认, subagent 交付）"
+1590,6825cb53,2026-09-07,付家泽,S,1,重叠复核,compact/1590-6825cb53.md,cards/1590-6825cb53.md,fix(windows): MSVC C2065 EDQUOT + monitor.h Win32 采样 API 修正（subagent 交付）
+1591,ab84dc16,2026-09-07,付家泽,S,1,重叠复核,compact/1591-ab84dc16.md,cards/1591-ab84dc16.md,fix(monitor): MON-001 复验 PASS + 恢复 ResourceRecorder 生产接线（subagent 交付）
+1592,3da0670b,2026-09-07,付家泽,M,2,重叠复核,compact/1592-3da0670b.md,cards/1592-3da0670b.md,fix(gate): MON-002 复验 PASS——first-10s gate 接线 + 阈值补齐 + 豁免矛盾修正（subagent 交付）
+1593,f0bc039a,2026-09-07,付家泽,M,2,重叠复核,compact/1593-f0bc039a.md,cards/1593-f0bc039a.md,fix(qa): QA-001..005 复验全 PASS——3 个 checker 环境适配修复（subagent 交付）
+1594,4f6e2b65,2026-09-07,付家泽,M,2,重叠复核,compact/1594-4f6e2b65.md,cards/1594-4f6e2b65.md,chore(evidence): CPU-006/007/008 + LNX-003/004/005 复验 reverify 全 PASS（subagent 交付）
+1595,da0cf578,2026-09-07,付家泽,S,1,重叠复核,compact/1595-da0cf578.md,cards/1595-da0cf578.md,fix(tests): Windows 残余 3 ctest 修复——ACP 第二层编码墙 + /tmp 遗留 + avx512 诊断（subagent 交付）
+1596,16867c25,2026-09-07,付家泽,S,1,主责,compact/1596-16867c25.md,cards/1596-16867c25.md,fix(ci): DEEP profile 三失败闭环——cfitsio TSAN 抑制接线 + avx512 selftest 合同化 SKIP（subagent 交付）
+1597,96818b52,2026-09-07,付家泽,S,1,主责,compact/1597-96818b52.md,cards/1597-96818b52.md,fix(gov): GOV-001 COMMITS.csv 台账同步——MON-001/002 reverify 后 task_result_sha256 漂移（复审 A 组发现）
+1598,3f56240b,2026-09-07,付家泽,S,1,主责,compact/1598-3f56240b.md,cards/1598-3f56240b.md,fix(ci): UT-CPU-AVX512 无 AVX-512F 宿主合同化 SKIP——runner 宿主 gate + run.py SKIP_EXIT_CODE=77（复审
+1599,c4cbafd6,2026-09-07,付家泽,S,1,主责,compact/1599-c4cbafd6.md,cards/1599-c4cbafd6.md,fix(cpu): verify_profile_v2 版本字面量钉死改 semver 格式校验——CPU-005 select 正路径恢复（复审 N3）
+1600,7c3d66e2,2026-09-07,付家泽,L,4,主责,compact/1600-7c3d66e2.md,cards/1600-7c3d66e2.md,"docs(CAT-GAIA-DOC): Gaia XPSD 模块合同冻结——README/module.yaml/ALG-DATA-API/trace（控制包 1/140, wav"
+1601,fa261e84,2026-09-07,付家泽,L,4,主责,compact/1601-fa261e84.md,cards/1601-fa261e84.md,"chore(state): CAT-GAIA-DOC 台账 CLOSED 同步（fg_verified_commit, commit 7c3d66e2）"
+1602,925fb26e,2026-09-07,付家泽,M,2,主责,compact/1602-925fb26e.md,cards/1602-925fb26e.md,"docs(P1-CAL-DOC): 校准模块合同冻结——ALG-CAL-001..006/DATA-P1-CAL/API-CAL-001/trace（控制包 2/140, wave"
+1603,b1b07b36,2026-09-07,付家泽,S,1,主责,compact/1603-b1b07b36.md,cards/1603-b1b07b36.md,"chore(state): P1-CAL-DOC 台账 CLOSED 同步（fg_verified_commit, commit 925fb26e）"
+1604,e4bcef83,2026-09-07,付家泽,S,1,主责,compact/1604-e4bcef83.md,cards/1604-e4bcef83.md,chore(state): COMMIT_LEDGER 行1602 字段schema修正（tag→task_id+date，恢复 reconcile PASS）
+1605,4b87aef6,2026-09-07,付家泽,M,2,主责,compact/1605-4b87aef6.md,cards/1605-4b87aef6.md,docs(P1-COS-DOC): cosmetic 模块合同冻结——ALG-COS-001..005/DATA-P1-COS/API-COS-001/trace（控制包 3/14
+1606,a59b17e7,2026-09-07,付家泽,S,1,主责,compact/1606-a59b17e7.md,cards/1606-a59b17e7.md,"chore(state): P1-COS-DOC 台账 CLOSED 同步（fg_verified_commit, commit 4b87aef6）"
+1607,e53ac984,2026-09-07,付家泽,M,2,主责,compact/1607-e53ac984.md,cards/1607-e53ac984.md,"docs(P1-DRZ-DOC): drizzle 模块合同冻结——ALG-DRZ-001/DATA-P1-DRZ/API-DRZ-001/trace（控制包 4/140, wav"
+1608,860639be,2026-09-07,付家泽,S,1,主责,compact/1608-860639be.md,cards/1608-860639be.md,"chore(state): P1-DRZ-DOC 台账 CLOSED 同步（fg_verified_commit, commit e53ac984）"
+1609,943b023a,2026-09-07,付家泽,M,2,主责,compact/1609-943b023a.md,cards/1609-943b023a.md,docs(P1-HIPS-DOC): HiPS writer 模块合同冻结——ALG-HIPS-001..005/DATA-P1-HIPS/API-HIPS-001/trace（控
+1610,ad155f96,2026-09-07,付家泽,S,1,主责,compact/1610-ad155f96.md,cards/1610-ad155f96.md,"chore(state): P1-HIPS-DOC 台账 CLOSED 同步（fg_verified_commit, commit 943b023a）"
+1611,a1b0e555,2026-09-07,付家泽,M,2,主责,compact/1611-a1b0e555.md,cards/1611-a1b0e555.md,docs(P1-NOISE-DOC): noise/snr 模块合同冻结——ALG-NOISE-001..003/DATA-P1-NOISE/API-NOISE-001/trace
+1612,95c41faa,2026-09-07,付家泽,S,1,主责,compact/1612-95c41faa.md,cards/1612-95c41faa.md,"chore(state): P1-NOISE-DOC 台账 CLOSED 同步（fg_verified_commit, commit a1b0e555）"
+1613,47a1ec4f,2026-09-07,付家泽,M,2,主责,compact/1613-47a1ec4f.md,cards/1613-47a1ec4f.md,fix(ciqa): GAP-3/4 P2 闭环——select_candidate digest 强制校验 + fatduck 独立复核步 + runner 空 outputs 
+1614,87bb7b7f,2026-09-07,付家泽,M,2,主责,compact/1614-87bb7b7f.md,cards/1614-87bb7b7f.md,docs(P1-PHOT-DOC): photometric_calib 模块合同冻结——ALG-PHOT-001..002/DATA-P1-PHOT/API-PHOT-001/t
+1615,77040478,2026-09-07,付家泽,S,1,主责,compact/1615-77040478.md,cards/1615-77040478.md,"chore(state): P1-PHOT-DOC 台账 CLOSED 同步（fg_verified_commit, commit 87bb7b7f）"
+1616,5eb0c19c,2026-09-07,付家泽,M,2,主责,compact/1616-5eb0c19c.md,cards/1616-5eb0c19c.md,docs(P1-PSF-DOC): dynamic_psf 模块合同冻结——ALG-STARPSF-001/DATA-P1-PSF/API-PSF-001/trace（控制包 8/
+1617,a8fa7a76,2026-09-07,付家泽,S,1,主责,compact/1617-a8fa7a76.md,cards/1617-a8fa7a76.md,"chore(state): P1-PSF-DOC 台账 CLOSED 同步（fg_verified_commit, commit 5eb0c19c）"
+1618,bb075b93,2026-09-08,付家泽,M,2,主责,compact/1618-bb075b93.md,cards/1618-bb075b93.md,docs(P1-SESSION-DOC): Phase1 assembly 合同冻结——DATA-P1-SESSION/API-P1-SESSION/DAG 节点表/trace（控
+1619,9ae1f1d4,2026-09-08,付家泽,S,1,主责,compact/1619-9ae1f1d4.md,cards/1619-9ae1f1d4.md,"chore(state): P1-SESSION-DOC 台账 CLOSED 同步（fg_verified_commit, commit bb075b93）"
+1620,09a7a95f,2026-09-08,付家泽,M,2,主责,compact/1620-09a7a95f.md,cards/1620-09a7a95f.md,fix(ci): V8.1 CI 双平台收敛——parser session-mode/Windows junit 落点/linux fixture+构建树步
+1621,cb9cf6dd,2026-09-08,付家泽,S,1,主责,compact/1621-cb9cf6dd.md,cards/1621-cb9cf6dd.md,chore(state): V8.1-CI 台账行追加 (commit 09a7a95f)
+1622,d92062a7,2026-09-08,付家泽,M,2,主责,compact/1622-d92062a7.md,cards/1622-d92062a7.md,docs(P1-STAR-DOC): star_detector 模块合同冻结——ALG-STARDET-001/SCI-P1-STAR-001/DATA-P1-STAR/API-
+1623,91499488,2026-09-08,付家泽,S,1,主责,compact/1623-91499488.md,cards/1623-91499488.md,fix(ci): COMMIT_LEDGER 补登 9ae1f1d4d676/cb9cf6dd55c5——RECONCILE-STATE commit_ledger missing
+1624,fe4ca383,2026-09-08,付家泽,M,2,主责,compact/1624-fe4ca383.md,cards/1624-fe4ca383.md,Merge branch 'main' of https://github.com/fujiaze/Astro-CS-Database
+1625,58cbabf3,2026-09-08,付家泽,S,1,主责,compact/1625-58cbabf3.md,cards/1625-58cbabf3.md,Merge remote-tracking branch 'origin/main'
+1626,da91ee9f,2026-09-08,付家泽,S,1,主责,compact/1626-da91ee9f.md,cards/1626-da91ee9f.md,chore(state): COMMIT_LEDGER 补登 merge 链缺失行（fe4ca383/58cbabf3/d92062a7/91499488）恢复 reconcile
+1627,5f6244a4,2026-09-08,付家泽,S,1,主责,compact/1627-5f6244a4.md,cards/1627-5f6244a4.md,"chore(state): P1-STAR-DOC 台账 CLOSED 同步（fg_verified_commit, commit d92062a7）"
+1628,f3678efa,2026-09-08,付家泽,S,1,主责,compact/1628-f3678efa.md,cards/1628-f3678efa.md,"fix(p3-wcs): P0 east_right CD2_2 对齐 G1 冻结公式——CD=R(-PA)·diag(sgn_x·s,sgn_y·s) 消除 y 镜像（bug 狩"
+1629,ddfb6dbe,2026-09-08,付家泽,M,2,主责,compact/1629-ddfb6dbe.md,cards/1629-ddfb6dbe.md,fix(tests): P0 backend 4 测试 CLI-002 入口迁移——run --phases/graph 死入口→phase1/2/3 run 存活面+fixtur
+1630,a5a01cf2,2026-09-08,付家泽,S,1,主责,compact/1630-a5a01cf2.md,cards/1630-a5a01cf2.md,fix(ci): Windows candidate 链打通——dumpbin PATH 注入+validate 守卫；RT-009 write_run_graphs 接线+ben
+1631,aa785859,2026-09-08,付家泽,S,1,主责,compact/1631-aa785859.md,cards/1631-aa785859.md,fix(ci): Windows evidence 补传 win-package-summary/monitor json（outputs 契约路径）——package exit 
+1632,e17788e6,2026-09-08,付家泽,S,1,主责,compact/1632-e17788e6.md,cards/1632-e17788e6.md,fix(docs): STAR_DETECTION 补 §5 物理量和单位（ADU/px/deg，语义零改动）——SCI-UNITS-MISSING 修复，CON-SCIENCE-
+1633,fdd76dac,2026-09-08,付家泽,S,1,主责,compact/1633-fdd76dac.md,cards/1633-fdd76dac.md,chore(state): 台账补登 a5a01cf2/ddfb6dbe/aa785859——reconcile commit_ledger missing=3 修复
+1634,e4407340,2026-09-08,付家泽,S,1,主责,compact/1634-e4407340.md,cards/1634-e4407340.md,index on ci-fix: fdd76dac chore(state): 台账补登 a5a01cf2/ddfb6dbe/aa785859——reconcile commit_
+1635,57319b1e,2026-09-08,付家泽,M,2,主责,compact/1635-57319b1e.md,cards/1635-57319b1e.md,On ci-fix: ci-dirty-rest
+1636,a769d202,2026-09-08,付家泽,S,1,主责,compact/1636-a769d202.md,cards/1636-a769d202.md,fix(ci): package 失败时 verification_details 逐项落 summary+candidate 树上传——exported_abi/dll_load
+1637,9628b7c9,2026-09-08,付家泽,S,1,主责,compact/1637-9628b7c9.md,cards/1637-9628b7c9.md,chore(state): 台账补登 a769d202
+1638,48e2f75f,2026-09-08,付家泽,S,1,主责,compact/1638-48e2f75f.md,cards/1638-48e2f75f.md,chore(state): 台账补登 e17788e6/fdd76dac
+1639,9023b14c,2026-09-08,付家泽,S,1,主责,compact/1639-9023b14c.md,cards/1639-9023b14c.md,chore(state): 台账补登 9628b7c9（上一轮漏登，本轮 HEAD 自参照豁免）
+1640,21b325a6,2026-09-08,付家泽,S,1,主责,compact/1640-21b325a6.md,cards/1640-21b325a6.md,fix(core): P0 budget 注入链打通——host budget 权威优先消除 workers_=2 截断，多核宿主并行度 2→N（bug 狩猎 R3，MON-002
+1641,4d919013,2026-09-08,付家泽,S,1,主责,compact/1641-4d919013.md,cards/1641-4d919013.md,chore(state): 台账补登 48e2f75f——reconcile commit_ledger missing 修复
+1642,ed787ed6,2026-09-08,付家泽,S,1,主责,compact/1642-ed787ed6.md,cards/1642-ed787ed6.md,chore(state): 台账补登 21b325a6——reconcile commit_ledger missing 修复
+1643,9f031197,2026-09-08,付家泽,S,1,主责,compact/1643-9f031197.md,cards/1643-9f031197.md,chore(state): 台账缺登全量补齐（追赶合并漂移）——reconcile 收敛
+1644,cb548e24,2026-09-08,付家泽,S,1,主责,compact/1644-cb548e24.md,cards/1644-cb548e24.md,chore(state): 台账补登 ed787ed6——reconcile 收敛
+1645,a3bf767b,2026-09-08,付家泽,S,1,主责,compact/1645-a3bf767b.md,cards/1645-a3bf767b.md,chore(state): 台账补登 9f031197——reconcile 收敛
+1646,ce8d4a5c,2026-09-08,付家泽,S,1,主责,compact/1646-ce8d4a5c.md,cards/1646-ce8d4a5c.md,chore(state): 台账补登 cb548e24——reconcile 收敛（守则固化：每次 commit 前 append 当前 HEAD sha，杜绝追赶循环）
+1647,64902198,2026-09-08,付家泽,S,1,主责,compact/1647-64902198.md,cards/1647-64902198.md,chore(state): 台账补登 a3bf767b——reconcile 终收敛
+1648,f2e439a6,2026-09-08,付家泽,S,1,主责,compact/1648-f2e439a6.md,cards/1648-f2e439a6.md,"chore(state): 台账补登 ce8d4a5c——稳态恢复（ledger 尾行=HEAD-1, HEAD 自参照豁免）"
+1649,d3235bdd,2026-09-08,付家泽,S,1,主责,compact/1649-d3235bdd.md,cards/1649-d3235bdd.md,chore(state): 台账补登 64902198——missing=={HEAD} 单元素豁免态恢复
+1650,d277e0ec,2026-09-08,付家泽,S,1,主责,compact/1650-d277e0ec.md,cards/1650-d277e0ec.md,chore(state): 台账补登 f2e439a6——missing=={HEAD} 豁免态（终）

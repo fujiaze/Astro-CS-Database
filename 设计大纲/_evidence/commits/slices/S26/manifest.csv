@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1366,c1585123,2026-08-31,付家泽,S,1,重叠复核,compact/1366-c1585123.md,cards/1366-c1585123.md,"GOV-002: gate 与依赖状态机 (12 负例全抓, 全部错误聚合, 任务数校验, F-034/035 闭环)"
+1367,99a79200,2026-08-31,付家泽,L,4,重叠复核,compact/1367-99a79200.md,cards/1367-99a79200.md,"VER-001: 版本推进 0.10.0-alpha.2 (VERSION 单源, 生产源码 0.1.0/alpha.1 清零, P3 provenance 派生, checker"
+1368,abb75893,2026-08-31,付家泽,M,2,重叠复核,compact/1368-abb75893.md,cards/1368-abb75893.md,"CHK-001: 生产可达调用图检查器 (compile_commands+nm, 负例抓 session/drizzle 直连, JSON/DOT 图, ACR 零可达)"
+1369,1490bae5,2026-08-31,付家泽,M,2,重叠复核,compact/1369-1490bae5.md,cards/1369-1490bae5.md,"CHK-002: 非空静态图/运行图检查器 (--ir/--module-index/--trace 必填, 7 负例全抓, 空 trace FAIL)"
+1370,80a00b1e,2026-08-31,付家泽,M,2,重叠复核,compact/1370-80a00b1e.md,cards/1370-80a00b1e.md,"CHK-003: serial-heavy 与资源接线检查器 (P2 宏关/P3 双循环/无 gate caller 负例全抓, allowlist 登记)"
+1371,545bd4d4,2026-08-31,付家泽,S,1,重叠复核,compact/1371-545bd4d4.md,cards/1371-545bd4d4.md,G1-STATUS: G1 门清单 7/7 PASS (治理/版本/检查器)
+1372,ef9e34db,2026-08-31,付家泽,M,2,重叠复核,compact/1372-ef9e34db.md,cards/1372-ef9e34db.md,"RT-001: 冻结 Runtime 与模块公共合同 (Runtime/ModulePlan/IModule/ThreadBudget/RAII lease, ABI layout"
+1373,30c83b45,2026-08-31,付家泽,M,2,重叠复核,compact/1373-30c83b45.md,cards/1373-30c83b45.md,"RT-002: 全局原子 ThreadBudget 租约 (三策略 RAII 归还, 双节点不超卖/异常/取消恢复, 8x PASS)"
+1374,a03077ec,2026-08-31,付家泽,M,2,重叠复核,compact/1374-a03077ec.md,cards/1374-a03077ec.md,"RT-003: 并发安全 RunContext (快照访问/唯一 producer/TSan 修复 scheduler budget 竞争, 4 测试 TSan PASS)"
+1375,90cf35a8,2026-08-31,付家泽,M,2,重叠复核,compact/1375-90cf35a8.md,cards/1375-90cf35a8.md,"RT-004: nlohmann 驱动 PipelineIR 解析+ModuleRegistry 静态验证 (9 错误种类全 fixture, CLI 重链接通过)"
+1376,c764c2be,2026-08-31,付家泽,M,2,主责,compact/1376-c764c2be.md,cards/1376-c764c2be.md,"RT-005: 可执行 ModuleRegistry (真实 Phase1/2/3 工厂, 合同校验/重复端口/heavy+serial/ACR 拒, nlohmann index"
+1377,d0114cd4,2026-08-31,付家泽,M,2,主责,compact/1377-d0114cd4.md,cards/1377-d0114cd4.md,"RT-006: 唯一 Scheduler+Runtime DAG 调度 (节点级失败传播/内存回压/node-ID 状态/add_node move 修复, TSan PASS)"
+1378,d5f5143a,2026-08-31,付家泽,M,2,主责,compact/1378-d5f5143a.md,cards/1378-d5f5143a.md,"RT-007: 类型化 ArtifactStore (role 绑定 P1→P2→P3, 篡改检测, 唯一 producer, JSON roundtrip)"
+1379,84191084,2026-08-31,付家泽,L,4,主责,compact/1379-84191084.md,cards/1379-84191084.md,"RT-008: CLI 接入唯一 Runtime (main 拆分, run/phase 走 runtime_client, cfitsio 并行 I/O 串行化, CHK-001"
+1380,90cad495,2026-08-31,付家泽,M,2,主责,compact/1380-90cad495.md,cards/1380-90cad495.md,"RT-009: 真实静态与observed运行图 (NodeTrace, static/observed/L0+sidecar, graph命令, 路径脱敏; 补录 cli_com"
+1381,8df1a86d,2026-08-31,付家泽,M,2,主责,compact/1381-8df1a86d.md,cards/1381-8df1a86d.md,CPU-001/CPU-002: 独立provider构建与能力配额检测 (AVX2/AVX512 targets+manifest+selftest+负例+ISA泄漏检查; cg
+1382,d3cd1a6c,2026-09-01,付家泽,L,4,主责,compact/1382-d3cd1a6c.md,cards/1382-d3cd1a6c.md,"CPU-003: v2 benchmark profile 与 verify-profile 复读 (12 kernel Oracle PASS, 3 provider DSO 实"
+1383,065aa340,2026-09-01,付家泽,S,1,主责,compact/1383-065aa340.md,cards/1383-065aa340.md,CPU-003: COMMITS.csv 全量绑定 22 任务 + RT-001 parent 修正 + 生成/验证器支持双任务合并提交
+1384,37e06ea8,2026-09-01,付家泽,M,2,主责,compact/1384-37e06ea8.md,cards/1384-37e06ea8.md,"CPU-004: 逐 kernel 自适应路由 (v2 profile 机器一致性校验, unsupported 回 baseline 但多线程, kernel_routes 输出"
+1385,f10edacc,2026-09-01,付家泽,S,1,主责,compact/1385-f10edacc.md,cards/1385-f10edacc.md,"CPU-004: COMMITS.csv 绑定 23 任务 (parent 匹配优先, 双任务合并提交支持)"
+1386,5b13e214,2026-09-01,付家泽,M,2,主责,compact/1386-5b13e214.md,cards/1386-5b13e214.md,MON-001: 资源监测接入每个 heavy node (resource_samples.csv/resource_summary.json/worker_balance.cs
+1387,6c69848a,2026-09-01,付家泽,S,1,主责,compact/1387-6c69848a.md,cards/1387-6c69848a.md,MON-001: COMMITS.csv 绑定 24 任务
+1388,575f68e8,2026-09-01,付家泽,M,2,主责,compact/1388-575f68e8.md,cards/1388-575f68e8.md,MON-002: 资源门禁接入生产控制流 (first-10s 快速失败 + 结束 evaluate_gate → RESOURCE(10)+diagnosis)
+1389,16abea46,2026-09-01,付家泽,S,1,主责,compact/1389-16abea46.md,cards/1389-16abea46.md,MON-002: COMMITS.csv 绑定 25 任务
+1390,0a24e857,2026-09-01,付家泽,S,1,主责,compact/1390-0a24e857.md,cards/1390-0a24e857.md,"TEST: CLI 回归 test_06 适配 CPU-004 v2 profile 校验 (stale=机器一致性拒绝, benchmark quick 生成合法 profile"
+1391,1c4b2802,2026-09-01,付家泽,M,2,主责,compact/1391-1c4b2802.md,cards/1391-1c4b2802.md,"MON-003: 2核合成 workload 门禁验证 (5 kernel ≥10s, 多核生产通过, 单核负 fixture 失败, harness 干扰如实记录)"
+1392,0b58d3f4,2026-09-01,付家泽,S,1,主责,compact/1392-0b58d3f4.md,cards/1392-0b58d3f4.md,MON-003: COMMITS.csv 绑定 26 任务
+1393,b0ad63c3,2026-09-01,付家泽,M,2,主责,compact/1393-b0ad63c3.md,cards/1393-b0ad63c3.md,P1-001: Phase1 8 类模块注册 (cosmetic/star-psf/wcs-platesolve/photometry/noise-snr/drizzle/writ
+1394,21df35cf,2026-09-01,付家泽,S,1,主责,compact/1394-21df35cf.md,cards/1394-21df35cf.md,P1-001: COMMITS.csv 绑定 27 任务
+1395,c626780f,2026-09-01,付家泽,S,1,主责,compact/1395-c626780f.md,cards/1395-c626780f.md,"P1-003: Drizzle 路径清理验证 (CLI 无 hp_drizzle_run_hips/spawn_frame_from_fits 直连, cmd_drizzle 仅 "
+1396,56da7faa,2026-09-01,付家泽,S,1,主责,compact/1396-56da7faa.md,cards/1396-56da7faa.md,P1-003: COMMITS.csv 绑定 28 任务
+1397,70c2701b,2026-09-01,付家泽,M,2,主责,compact/1397-70c2701b.md,cards/1397-70c2701b.md,"P1-002: 生产 Oracle 补齐 (stars/PSF 五场景+completeness/FP/FWHM, WCS 扰动/无解, photometry 饱和拒绝; ABI "
+1398,14baed5d,2026-09-01,付家泽,S,1,主责,compact/1398-14baed5d.md,cards/1398-14baed5d.md,P1-002: COMMITS.csv 绑定 29 任务
+1399,a0a8df2b,2026-09-01,付家泽,M,2,主责,compact/1399-a0a8df2b.md,cards/1399-a0a8df2b.md,"P1-004: Phase1 数值与资源联合门 (resource_summary 引用 run_id 与 science manifest 互引, 6 Oracle 同 comm"
+1400,157a1d06,2026-09-01,付家泽,S,1,主责,compact/1400-157a1d06.md,cards/1400-157a1d06.md,P1-004: COMMITS.csv 绑定 30 任务
+1401,10d1c318,2026-09-01,付家泽,M,2,主责,compact/1401-10d1c318.md,cards/1401-10d1c318.md,"P2-001: 并行化生产 Coverage/Sampler (std::thread + Runtime lease 多 worker, 移除 OpenMP 默认关闭与 _MSC"
+1402,e8a07e02,2026-09-01,付家泽,S,1,主责,compact/1402-e8a07e02.md,cards/1402-e8a07e02.md,P2-001: COMMITS.csv 绑定 31 任务
+1403,f37d4a09,2026-09-01,付家泽,M,2,主责,compact/1403-f37d4a09.md,cards/1403-f37d4a09.md,"P2-002: 并行化生产 UPM 求解 (per-obs/control/frame CG 走 Runtime lease, worker-local 规约, N==1 pers"
+1404,eb116a25,2026-09-01,付家泽,S,1,主责,compact/1404-eb116a25.md,cards/1404-eb116a25.md,P2-002: COMMITS.csv 绑定 32 任务
+1405,2211d0a9,2026-09-01,付家泽,M,2,主责,compact/1405-2211d0a9.md,cards/1405-2211d0a9.md,"P2-003: 生产接缝 Oracle (三块 mini HiPS + phase2 run 端到端; M 吸收背景差/C 校空间残差, before→after 下降, 源不拟合"
+1406,65668e4e,2026-09-01,付家泽,S,1,主责,compact/1406-65668e4e.md,cards/1406-65668e4e.md,P2-003: COMMITS.csv 绑定 33 任务
+1407,bb78ff6b,2026-09-01,付家泽,M,2,主责,compact/1407-bb78ff6b.md,cards/1407-bb78ff6b.md,P2-004: 排异/积分生产 Oracle (cosmic/低样本/NaN-ivar/AUTO 解析/integration weighted mean/all-rejected
+1408,01b8d8da,2026-09-01,付家泽,S,1,主责,compact/1408-01b8d8da.md,cards/1408-01b8d8da.md,P2-004: COMMITS.csv 绑定 34 任务
+1409,afb0cf3e,2026-09-01,付家泽,M,2,主责,compact/1409-afb0cf3e.md,cards/1409-afb0cf3e.md,P2-005: Block/IO 内存计划验证 (block plan 有界/禁 35GB 稠密 cache/峰值 RSS ≤ 容差/覆盖完整)
+1410,2b44f9a8,2026-09-01,付家泽,S,1,主责,compact/1410-2b44f9a8.md,cards/1410-2b44f9a8.md,P2-005: COMMITS.csv 绑定 35 任务
+1411,b27600d6,2026-09-01,付家泽,M,2,主责,compact/1411-b27600d6.md,cards/1411-b27600d6.md,P2-006: Canonical Phase2 Pipeline (IR 7 节点链 coverage..write; observed trace 逐节点匹配 static g
+1412,2cb60258,2026-09-01,付家泽,S,1,主责,compact/1412-2cb60258.md,cards/1412-2cb60258.md,P2-006: COMMITS.csv 绑定 36 任务
+1413,fa677b5a,2026-09-01,付家泽,M,2,主责,compact/1413-fa677b5a.md,cards/1413-fa677b5a.md,P2-007: Phase2 接缝与资源联合门 (6 块 seam workload ≥10s; workers≥2/CPU≥90% 达门; 科学+资源双证)
+1414,9d03a5b7,2026-09-01,付家泽,S,1,主责,compact/1414-9d03a5b7.md,cards/1414-9d03a5b7.md,P2-007: COMMITS.csv 绑定 37 任务
+1415,9e8ba103,2026-09-01,付家泽,M,2,主责,compact/1415-9e8ba103.md,cards/1415-9e8ba103.md,P3-001: Phase3 科学与算法冻结 (abs(dec)<=85° 单一条件统一 SCI/API/session/WCS; 冻结项审计)
+1416,f3fc3bbf,2026-09-01,付家泽,S,1,主责,compact/1416-f3fc3bbf.md,cards/1416-f3fc3bbf.md,P3-001: COMMITS.csv 绑定 38 任务
+1417,3227578a,2026-09-01,付家泽,M,2,主责,compact/1417-3227578a.md,cards/1417-3227578a.md,"P3-002: properties/order/unit (order_sel 上限=输入实际 order; BUNIT 合同缺省 ADU, 移除 Jy/beam)"
+1418,01803fd7,2026-09-01,付家泽,S,1,主责,compact/1418-01803fd7.md,cards/1418-01803fd7.md,P3-002: COMMITS.csv 绑定 39 任务
+1419,c62daea4,2026-09-01,付家泽,M,2,主责,compact/1419-c62daea4.md,cards/1419-c62daea4.md,P3-003: Runtime 并行 tile resampler (row-band work units; 每 worker 独立 sampler+cache; 1/N 等价;
+1420,7d773cbb,2026-09-01,付家泽,S,1,主责,compact/1420-7d773cbb.md,cards/1420-7d773cbb.md,P3-003: COMMITS.csv 绑定 40 任务
+1421,267b3ed0,2026-09-01,付家泽,M,2,主责,compact/1421-267b3ed0.md,cards/1421-267b3ed0.md,P3-004: 独立球面重采样 Oracle (常数/解析场 cos²dec vs 独立 TAN reference; RA wrap; 旋转 TAN; 无人工接缝)
+1422,052f44c3,2026-09-01,付家泽,S,1,主责,compact/1422-052f44c3.md,cards/1422-052f44c3.md,P3-004: COMMITS.csv 绑定 41 任务
+1423,d6af18a1,2026-09-01,付家泽,M,2,主责,compact/1423-d6af18a1.md,cards/1423-d6af18a1.md,P3-005: FITS 输出校验与 provenance (bitpix -32/-64 真实决定 buffer; 关键字/coverage/provenance 完整)
+1424,9a96b2c4,2026-09-01,付家泽,S,1,主责,compact/1424-9a96b2c4.md,cards/1424-9a96b2c4.md,P3-005: COMMITS.csv 绑定 42 任务
+1425,3617b6c4,2026-09-01,付家泽,M,2,主责,compact/1425-3617b6c4.md,cards/1425-3617b6c4.md,P3-006: Phase3 生产 Pipeline 与资源门 (IR 5 节点链 properties→wcs→resample2→writer→verify; ≥10s; 科学
+1426,26304309,2026-09-01,付家泽,S,1,主责,compact/1426-26304309.md,cards/1426-26304309.md,P3-006: COMMITS.csv 绑定 43 任务
+1427,b67a9167,2026-09-01,付家泽,M,2,主责,compact/1427-b67a9167.md,cards/1427-b67a9167.md,DOC-001: 重建合同 front matter 与完整图 (36 合同图/生产可达/源索引/注释卫生 全 PASS)
+1428,635481e1,2026-09-01,付家泽,S,1,主责,compact/1428-635481e1.md,cards/1428-635481e1.md,DOC-001: COMMITS.csv 绑定 44 任务
+1429,e70f7d94,2026-09-01,付家泽,S,1,主责,compact/1429-e70f7d94.md,cards/1429-e70f7d94.md,DOC-002: 重建当前版本追溯矩阵 (63 行追溯/66 claims 最终追溯/18 DATA artifact 全 PASS)
+1430,0756ecdf,2026-09-01,付家泽,S,1,主责,compact/1430-0756ecdf.md,cards/1430-0756ecdf.md,DOC-002: COMMITS.csv 绑定 45 任务

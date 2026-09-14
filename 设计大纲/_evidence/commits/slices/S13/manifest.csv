@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+651,f2d7f5a1,2026-08-14,fujiaze,M,2,重叠复核,compact/0651-f2d7f5a1.md,cards/0651-f2d7f5a1.md,fix(phase2-v15): ACR-path underdetermined counting uses resolved plan; docs+reports+round1
+652,77879c72,2026-08-14,fujiaze,S,1,重叠复核,compact/0652-77879c72.md,cards/0652-77879c72.md,test(phase2-v15): oracle edge assertion aligned with INVALID_INPUT contract; self-review r
+653,8a772cae,2026-08-14,fujiaze,S,1,重叠复核,compact/0653-8a772cae.md,cards/0653-8a772cae.md,docs(phase2-v15): FINALIZATION_SELF_REVIEW=PASS after 6 rounds + clean-tree verification
+654,2e52c437,2026-08-14,fujiaze,S,1,重叠复核,compact/0654-2e52c437.md,cards/0654-2e52c437.md,docs(phase2-v15): project memory progress entries for V15 final semantic closure
+655,ef6ab2fa,2026-08-14,fujiaze,M,2,重叠复核,compact/0655-ef6ab2fa.md,cards/0655-ef6ab2fa.md,"fix(phase2-v16): profile split (wbpp_current group-level vs astrocs_adaptive), RejectionNo"
+656,fd145ee8,2026-08-14,fujiaze,S,1,重叠复核,compact/0656-fd145ee8.md,cards/0656-fd145ee8.md,fix(phase2-v16): ScratchVec heap-mode migration (n>64 crash fix); real 16-exposure satelli
+657,37bebb9b,2026-08-14,fujiaze,S,1,重叠复核,compact/0657-37bebb9b.md,cards/0657-37bebb9b.md,"config(phase2-v16): WBPP Light defaults (linearFit 5/3.5, percentile 0.2/0.1), profile ast"
+658,1145a28f,2026-08-14,fujiaze,M,2,重叠复核,compact/0658-1145a28f.md,cards/0658-1145a28f.md,reports+v16: final status / feature matrix / normalization / satellite v2 / full e2e / upg
+659,b72e3023,2026-08-14,fujiaze,S,1,重叠复核,compact/0659-b72e3023.md,cards/0659-b72e3023.md,docs(phase2-v16): project memory progress entries
+660,ed7a544d,2026-08-14,fujiaze,M,2,重叠复核,compact/0660-ed7a544d.md,cards/0660-ed7a544d.md,"fix(phase2-v17): integration non-finite weight/support -> INVALID_INPUT (never OK+NaN), ex"
+661,03d5d961,2026-08-14,fujiaze,L,4,主责,compact/0661-03d5d961.md,cards/0661-03d5d961.md,"chore(phase2-v17): legacy removal - healpix_stack moved to archive/legacy, orchestrator le"
+662,efdbe7e2,2026-08-14,fujiaze,M,2,主责,compact/0662-efdbe7e2.md,cards/0662-efdbe7e2.md,fix(phase2-v17): controlled clean rejection truth (FPR/Siril same-case/science preservatio
+663,c7cb2e69,2026-08-14,fujiaze,M,2,主责,compact/0663-c7cb2e69.md,cards/0663-c7cb2e69.md,feat(phase2-v17): astrocs.large_scale_rejection.v1 - connected-component grow on per-frame
+664,85851c2f,2026-08-14,fujiaze,M,2,主责,compact/0664-85851c2f.md,cards/0664-85851c2f.md,docs(phase2-v17): docs/API/config machine consistency - PUBLIC_API/SCIENCE_FREEZE/rejectio
+665,2d3b31fc,2026-08-14,fujiaze,S,1,主责,compact/0665-2d3b31fc.md,cards/0665-2d3b31fc.md,"fix(phase1-v17): orchestrator rebuild after legacy removal - restore load_module braces, d"
+666,a46e7028,2026-08-14,fujiaze,M,2,主责,compact/0666-a46e7028.md,cards/0666-a46e7028.md,"reports+v17: Phase1 source audit (single call graph, no hidden path), performance reports "
+667,88293174,2026-08-14,fujiaze,M,2,主责,compact/0667-88293174.md,cards/0667-88293174.md,"tools+v17: repo source manifest generator (4197 files SHA256), review package assembler, r"
+668,d00b9f42,2026-08-14,fujiaze,M,2,主责,compact/0668-d00b9f42.md,cards/0668-d00b9f42.md,reports+v17: V17 required deliverables - integration_contract/wbpp_final/large_scale/contr
+669,c9b8dfc3,2026-08-14,fujiaze,M,2,主责,compact/0669-c9b8dfc3.md,cards/0669-c9b8dfc3.md,"v17-final: freeze PASS - clean-tree verification (74/74 clean build, real 16-frame E2E war"
+670,3547b108,2026-08-14,fujiaze,S,1,主责,compact/0670-3547b108.md,cards/0670-3547b108.md,"tools+v17: review package assembler - SHA256SUMS generation, before/after performance JSON"
+671,df5cbb5d,2026-08-15,fujiaze,L,4,主责,compact/0671-df5cbb5d.md,cards/0671-df5cbb5d.md,perf(phase1-v18): Drizzle/HiPS profiling + hot-path optimizations - coarse full-wall timin
+672,ce071948,2026-08-15,fujiaze,S,1,主责,compact/0672-ce071948.md,cards/0672-ce071948.md,"perf(phase1-v18): SNR model RAII (PERF-010 leak fix), thread-local scratch reuse for candi"
+673,137f20d5,2026-08-15,fujiaze,S,1,主责,compact/0673-137f20d5.md,cards/0673-137f20d5.md,"reports(phase1-v18): drizzle optimization record - PERF-001..005/010 implemented, oracle e"
+674,f5e24335,2026-08-15,fujiaze,S,1,主责,compact/0674-f5e24335.md,cards/0674-f5e24335.md,perf(phase1-v18r2): gaia cone-search polar-plane pruning - fix 16.3GB/13s per query (Azimu
+675,4147f9ce,2026-08-15,fujiaze,S,1,主责,compact/0675-4147f9ce.md,cards/0675-4147f9ce.md,perf(phase1-v18r2): gaia spectrum search same polar-plane pruning - PHOTOMETRIC 17.8s/36GB
+676,77fc48eb,2026-08-15,fujiaze,S,1,主责,compact/0676-77fc48eb.md,cards/0676-77fc48eb.md,"perf(phase1-v18r2): drizzle row-level Vec3 vertex cache (shared corners, no per-pixel sin/"
+677,c8c40855,2026-08-15,fujiaze,S,1,主责,compact/0677-c8c40855.md,cards/0677-c8c40855.md,"reports(phase1-v18r2): resource timeline before/after (RSS 37.5GB->1.2GB, exit 40s->0.7s),"
+678,578b4814,2026-08-15,fujiaze,S,1,主责,compact/0678-578b4814.md,cards/0678-578b4814.md,refactor(phase1-v18r2): SHA-256 unified to lib/common/crypto - remove orchestrator sha256_
+679,53ff1143,2026-08-15,fujiaze,S,1,主责,compact/0679-53ff1143.md,cards/0679-53ff1143.md,refactor(acr-v18r2): SHA-256 unified to lib/common/crypto - remove 2 duplicate SHA256 stru
+680,25a6479b,2026-08-15,fujiaze,L,4,主责,compact/0680-25a6479b.md,cards/0680-25a6479b.md,refactor(phase1-v18r2): remove duplicate lib/data_pipeline (CODE-001) - canonical is astro
+681,f4f5138f,2026-08-15,fujiaze,M,2,主责,compact/0681-f4f5138f.md,cards/0681-f4f5138f.md,refactor(phase1-v18r2): omp_set_num_threads -> parallel num_threads clause (no global side
+682,c9d05625,2026-08-15,fujiaze,M,2,主责,compact/0682-c9d05625.md,cards/0682-c9d05625.md,"self-review(phase1-v18r2): Round0-6 resource-driven audit - 15 red-team hypotheses closed,"
+683,f12d39a1,2026-08-15,fujiaze,M,2,主责,compact/0683-f12d39a1.md,cards/0683-f12d39a1.md,reports(phase1-v18r2): final status + bottleneck classification + hips io + phase1/2 perfo
+684,348ca1e8,2026-08-15,fujiaze,M,2,主责,compact/0684-348ca1e8.md,cards/0684-348ca1e8.md,fix(gaia-v18r3): provably-conservative polar prune + exact cache key + transactional repla
+685,871092f8,2026-08-15,fujiaze,M,2,主责,compact/0685-871092f8.md,cards/0685-871092f8.md,refactor(v18r3): full first-party warnings zero -Wall -Wextra -Wpedantic
+686,44a23e52,2026-08-15,fujiaze,S,1,主责,compact/0686-44a23e52.md,cards/0686-44a23e52.md,tools(phase1-bench): incremental per-frame log + partial.json persistence
+687,87173cf7,2026-08-15,fujiaze,S,1,主责,compact/0687-87173cf7.md,cards/0687-87173cf7.md,docs(gaia-v18r3): module memory - V18R3 polar prune/cache/memory-safety/trace closure reco
+688,f6727773,2026-08-15,fujiaze,M,2,主责,compact/0688-f6727773.md,cards/0688-f6727773.md,feat(snr-v19): three-layer noise model - PhotometricCalibrationQuality/PsfFitQuality/Noise
+689,05cccb4e,2026-08-15,fujiaze,M,2,主责,compact/0689-05cccb4e.md,cards/0689-05cccb4e.md,feat(drizzle-v19): variance propagation (DRZ-014) + operation counters + HiPS variance/iva
+690,eb48cefe,2026-08-15,fujiaze,M,2,主责,compact/0690-eb48cefe.md,cards/0690-eb48cefe.md,feat(phase2-v19): ivar science weight model - UPM/integration/ACR retire raw-star-SNR
+691,1d3a34c2,2026-08-15,fujiaze,M,2,主责,compact/0691-1d3a34c2.md,cards/0691-1d3a34c2.md,docs(v19): diagnostics tool + full pre-release developer/science documentation
+692,5c2a98ca,2026-08-15,fujiaze,M,2,主责,compact/0692-5c2a98ca.md,cards/0692-5c2a98ca.md,fix(v19-round2): first-party warnings zero -Wall -Wextra -Wpedantic (full repo)
+693,04ffaa0f,2026-08-15,fujiaze,S,1,主责,compact/0693-04ffaa0f.md,cards/0693-04ffaa0f.md,test(phase2-v19): G5WeightTruthGate - UPM-calibrated ivar unbiased (SNR-015)
+694,729f150c,2026-08-15,fujiaze,M,2,主责,compact/0694-729f150c.md,cards/0694-729f150c.md,fix(v19-round5): red-team 17/17 - variance no-data tile skip + evidence tools
+695,c0753e33,2026-08-15,fujiaze,S,1,主责,compact/0695-c0753e33.md,cards/0695-c0753e33.md,docs(v19-round6): machine consistency PASS - config/error/stage/SNR/product/drizzle
+696,dab83fa5,2026-08-15,fujiaze,S,1,主责,compact/0696-dab83fa5.md,cards/0696-dab83fa5.md,docs(v19): module memories + root memory - V19 pre-release closure record
+697,9c415bc1,2026-08-15,fujiaze,M,2,主责,compact/0697-9c415bc1.md,cards/0697-9c415bc1.md,feat(phase2): UPM frame binding + persistence with synthetic gate coverage
+698,729bc3b9,2026-08-15,fujiaze,L,4,主责,compact/0698-729bc3b9.md,cards/0698-729bc3b9.md,chore(v19r2-s0): full-repo inventory on merged HEAD
+699,5c7032db,2026-08-15,fujiaze,S,1,主责,compact/0699-5c7032db.md,cards/0699-5c7032db.md,docs(v19r2-s1): contract freeze - 44 authoritative science/algorithm IDs
+700,8ab2efbd,2026-08-15,fujiaze,L,4,主责,compact/0700-8ab2efbd.md,cards/0700-8ab2efbd.md,docs(v19r2-s2): authoritative L0-L5 doc hierarchy + 64 contract IDs
+701,c8a0a7ba,2026-08-15,fujiaze,L,4,主责,compact/0701-c8a0a7ba.md,cards/0701-c8a0a7ba.md,chore(v19r2-s3): comment hygiene - migrate round/audit history markers from production com
+702,4265b603,2026-08-15,fujiaze,S,1,主责,compact/0702-4265b603.md,cards/0702-4265b603.md,test(v19r2-s6): F-V19R2-DRZ-001 - SIP subdivision area assertion to science tolerance
+703,e82ca0f2,2026-08-15,fujiaze,M,2,主责,compact/0703-e82ca0f2.md,cards/0703-e82ca0f2.md,fix(v19r2-s6): reject unknown UPM frame id + atomic sparse-model write
+704,7538cbf0,2026-08-15,fujiaze,S,1,主责,compact/0704-7538cbf0.md,cards/0704-7538cbf0.md,fix(v19r2-s4): zero first-party warnings with -Wall -Wextra -Wpedantic
+705,1727a0cd,2026-08-15,fujiaze,S,1,主责,compact/0705-1727a0cd.md,cards/0705-1727a0cd.md,docs(v19r2-s5): science/algorithm trace - TRACEABILITY 30 rows + mapping + checker
+706,feb12ee0,2026-08-15,fujiaze,L,4,主责,compact/0706-feb12ee0.md,cards/0706-feb12ee0.md,docs(v19r2-s7-s9): diagnostics/consistency reports + round0-6 self review
+707,2871a517,2026-08-15,fujiaze,S,1,主责,compact/0707-2871a517.md,cards/0707-2871a517.md,chore(v19r2-s3): audit status updater tool
+708,2885bea5,2026-08-15,fujiaze,S,1,主责,compact/0708-2885bea5.md,cards/0708-2885bea5.md,docs(v19r2): changelog entry - traceable foundation closure
+709,edfdd1d1,2026-08-15,fujiaze,S,1,主责,compact/0709-edfdd1d1.md,cards/0709-edfdd1d1.md,chore(v19r2-s10): review package builder
+710,1752e8ca,2026-08-16,fujiaze,M,2,主责,compact/0710-1752e8ca.md,cards/0710-1752e8ca.md,fix(phase2-v19r3-s1): UPM control-variance science weight + integration/ACR contract
+711,ce8ec527,2026-08-16,fujiaze,M,2,主责,compact/0711-ce8ec527.md,cards/0711-ce8ec527.md,perf(drizzle-v19r3-s3): bounded target-ipix geometry cache + op counters
+712,a3506d64,2026-08-16,fujiaze,M,2,主责,compact/0712-a3506d64.md,cards/0712-a3506d64.md,docs(v19r3-s4): authoritative science/algorithm/module docs for V19R3 contracts
+713,fb59df96,2026-08-16,fujiaze,L,4,主责,compact/0713-fb59df96.md,cards/0713-fb59df96.md,chore(v19r3-s10): comment hygiene - strip round/audit/task markers + stale skeleton commen
+714,c4131430,2026-08-16,fujiaze,S,1,主责,compact/0714-c4131430.md,cards/0714-c4131430.md,chore: untrack stray v18r2 dll backup
+715,23c11c19,2026-08-16,fujiaze,L,4,主责,compact/0715-23c11c19.md,cards/0715-23c11c19.md,quality(v19r3-s7): direct static analysis 100% coverage + fix findings

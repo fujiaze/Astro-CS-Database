@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1311,957accff,2026-08-31,付家泽,S,1,重叠复核,compact/1311-957accff.md,cards/1311-957accff.md,P2-004: block plan 预算/峰值重算修复 + 无全局 cache
+1312,ab52854f,2026-08-31,付家泽,S,1,重叠复核,compact/1312-ab52854f.md,cards/1312-ab52854f.md,P2-005: rejection 10 方法独立 fixture + AUTO 路由
+1313,3c66e64e,2026-08-31,付家泽,S,1,重叠复核,compact/1313-3c66e64e.md,cards/1313-3c66e64e.md,P2-006: writer 输出语义(ivar 非模糊 weight) + integrate
+1314,ab45a63a,2026-08-31,付家泽,S,1,重叠复核,compact/1314-ab45a63a.md,cards/1314-ab45a63a.md,P2-007: canonical Phase2 IR 全链 + facade 验证
+1315,b31a3780,2026-08-31,付家泽,S,1,重叠复核,compact/1315-b31a3780.md,cards/1315-b31a3780.md,P2-008: seam 数值门+资源门同时通过
+1316,f5e1177a,2026-08-31,付家泽,S,1,重叠复核,compact/1316-f5e1177a.md,cards/1316-f5e1177a.md,G5-GATE: Phase2 gate 10/10 PASS
+1317,be2d6c0d,2026-08-31,付家泽,S,1,重叠复核,compact/1317-be2d6c0d.md,cards/1317-be2d6c0d.md,P3-001: 移除 prototype registry/preset + 文档状态统一
+1318,a994fe1d,2026-08-31,付家泽,S,1,重叠复核,compact/1318-a994fe1d.md,cards/1318-a994fe1d.md,P3-002: WCS 溢出检查 + 配置合同上限(无硬编码 20000)
+1319,e4275ecc,2026-08-31,付家泽,S,1,重叠复核,compact/1319-e4275ecc.md,cards/1319-e4275ecc.md,P3-003: tile 分工 + 插值/几何 fixtures
+1320,0b8117e2,2026-08-31,付家泽,S,1,重叠复核,compact/1320-0b8117e2.md,cards/1320-0b8117e2.md,P3-004: coverage 与边界语义
+1321,c9a22b5d,2026-08-31,付家泽,S,1,主责,compact/1321-c9a22b5d.md,cards/1321-c9a22b5d.md,P3-005: FITS 重开验证修复 + checksum
+1322,bfb07282,2026-08-31,付家泽,S,1,主责,compact/1322-bfb07282.md,cards/1322-bfb07282.md,P3-006: Phase3 全链组装验证 (mini HiPS→sampler→FITS)
+1323,d3f0b37a,2026-08-31,付家泽,S,1,主责,compact/1323-d3f0b37a.md,cards/1323-d3f0b37a.md,G6-GATE: Phase3 gate 8/8 PASS
+1324,bb2d9fcd,2026-08-31,付家泽,S,1,主责,compact/1324-bb2d9fcd.md,cards/1324-bb2d9fcd.md,CLI-001: 稳定 command 层 (kRules 表驱动)
+1325,e5b84f30,2026-08-31,付家泽,S,1,主责,compact/1325-e5b84f30.md,cards/1325-e5b84f30.md,CLI-002: run preset/IR 驱动 + Artifact 哈希链
+1326,d93054c0,2026-08-31,付家泽,S,1,主责,compact/1326-d93054c0.md,cards/1326-d93054c0.md,CLI-003: test synthetic 接通真实合成门
+1327,317566c0,2026-08-31,付家泽,S,1,主责,compact/1327-317566c0.md,cards/1327-317566c0.md,LEG-001: CLI drizzle 降级测试 wrapper + 去 2048 硬编码
+1328,fb0d081d,2026-08-31,付家泽,S,1,主责,compact/1328-fb0d081d.md,cards/1328-fb0d081d.md,LEG-002: 旧 Orchestrator 退出生产
+1329,94512274,2026-08-31,付家泽,S,1,主责,compact/1329-94512274.md,cards/1329-94512274.md,LEG-003: AIO PipelineEngine 调度职责退出
+1330,6a66acab,2026-08-31,付家泽,S,1,主责,compact/1330-6a66acab.md,cards/1330-6a66acab.md,LEG-004: 旧 Stage2 退出 + ACR dormant 隔离
+1331,b891eda3,2026-08-31,付家泽,S,1,主责,compact/1331-b891eda3.md,cards/1331-b891eda3.md,G7-GATE: 唯一生产路径 gate 8/8 PASS
+1332,8e7b2c95,2026-08-31,付家泽,M,2,主责,compact/1332-8e7b2c95.md,cards/1332-8e7b2c95.md,DOC-002: L0 负责人审查文档 (REVIEW + 5 顶层)
+1333,b63958b2,2026-08-31,付家泽,M,2,主责,compact/1333-b63958b2.md,cards/1333-b63958b2.md,DOC-003: 每模块 L2 README + 合同链接
+1334,cda2898b,2026-08-31,付家泽,S,1,主责,compact/1334-cda2898b.md,cards/1334-cda2898b.md,DOC-004: Clang AST public 符号校验
+1335,6608b166,2026-08-31,付家泽,S,1,主责,compact/1335-6608b166.md,cards/1335-6608b166.md,DOC-005: 静态 Pipeline 图与运行 trace 一致性
+1336,8989c7f8,2026-08-31,付家泽,S,1,主责,compact/1336-8989c7f8.md,cards/1336-8989c7f8.md,G8-GATE: 文档与质量 gate 9/9 PASS
+1337,1c7da8de,2026-08-31,付家泽,S,1,主责,compact/1337-1c7da8de.md,cards/1337-1c7da8de.md,REL-001: 发布布局校验工具 + 干净 smoke
+1338,97f6ee8e,2026-08-31,付家泽,S,1,主责,compact/1338-97f6ee8e.md,cards/1338-97f6ee8e.md,REL-002: 最终追溯校验 + 旧入口扫描
+1339,b840ed64,2026-08-31,付家泽,S,1,主责,compact/1339-b840ed64.md,cards/1339-b840ed64.md,REL-003: 白名单审核包打包+验证
+1340,a7faa502,2026-08-31,付家泽,S,1,主责,compact/1340-a7faa502.md,cards/1340-a7faa502.md,REL-004: 负责人视觉验收视图就绪 (REVIEW_PENDING)
+1341,16643bc1,2026-08-31,付家泽,S,1,主责,compact/1341-16643bc1.md,cards/1341-16643bc1.md,G9-TIMEOUT: 外部命令 timeout/log 纪律 (test synthetic)
+1342,43de4ac2,2026-08-31,付家泽,S,1,主责,compact/1342-43de4ac2.md,cards/1342-43de4ac2.md,G9-CLANG: omp.h 宏保护 + OpenMP 可选 (clang Debug 构建)
+1343,0940febb,2026-08-31,付家泽,S,1,主责,compact/1343-0940febb.md,cards/1343-0940febb.md,G9-GATE: Linux 平台 gate 6/6 PASS
+1344,42d5dd78,2026-08-31,付家泽,S,1,主责,compact/1344-42d5dd78.md,cards/1344-42d5dd78.md,G10-GATE: Windows 离线登记 (WAITING_WINDOWS)
+1345,457dcf6b,2026-08-31,付家泽,S,1,主责,compact/1345-457dcf6b.md,cards/1345-457dcf6b.md,G11-CONSISTENCY: 发布一致性校验 (VERSION/SBOM/checksums)
+1346,04a00e11,2026-08-31,付家泽,S,1,主责,compact/1346-04a00e11.md,cards/1346-04a00e11.md,G11-GATE: 发布 gate Linux 侧 7/7 PASS
+1347,38f62f2a,2026-08-31,付家泽,S,1,主责,compact/1347-38f62f2a.md,cards/1347-38f62f2a.md,LNX-001..005: Linux 平台任务全 PASS
+1348,41943d42,2026-08-31,付家泽,S,1,主责,compact/1348-41943d42.md,cards/1348-41943d42.md,QA-001: 生产警告抑制清零 (P2/P3 去 -w)
+1349,f8001e29,2026-08-31,付家泽,S,1,主责,compact/1349-f8001e29.md,cards/1349-f8001e29.md,QA-002: 串行/硬编码静态禁令 + GLOB 清零 + ACR 剔出
+1350,6a7bdb49,2026-08-31,付家泽,S,1,主责,compact/1350-6a7bdb49.md,cards/1350-6a7bdb49.md,QA-003: Sanitizer 验证 (ASan 全组合成 PASS)
+1351,1ee07955,2026-08-31,付家泽,S,1,主责,compact/1351-1ee07955.md,cards/1351-1ee07955.md,QA-004: 重复实现与所有权审查
+1352,60493ea3,2026-08-31,付家泽,S,1,主责,compact/1352-60493ea3.md,cards/1352-60493ea3.md,QA-005: 可复现构建依赖与 SBOM
+1353,04a5d7cc,2026-08-31,付家泽,S,1,主责,compact/1353-04a5d7cc.md,cards/1353-04a5d7cc.md,G8-QA: QA-001..005 质量门 5/5 PASS
+1354,196b2e8e,2026-08-31,付家泽,S,1,主责,compact/1354-196b2e8e.md,cards/1354-196b2e8e.md,G10-WIN: WIN-001..006 登记 WAITING_WINDOWS
+1355,8be6eb4e,2026-08-31,付家泽,S,1,主责,compact/1355-8be6eb4e.md,cards/1355-8be6eb4e.md,G10-WIN: WIN-001..006 WAITING_WINDOWS (修复 LEDGER 完整性)
+1356,32be7024,2026-08-31,付家泽,S,1,主责,compact/1356-32be7024.md,cards/1356-32be7024.md,"REL-STATUS: 最终发布状态 (Linux 完成, Windows/视觉待负责人)"
+1357,ae140e5d,2026-08-31,付家泽,S,1,主责,compact/1357-ae140e5d.md,cards/1357-ae140e5d.md,"REL-STATUS: 措辞修正 (无模糊完成措辞, checker PASS)"
+1358,00032018,2026-08-31,付家泽,S,1,主责,compact/1358-00032018.md,cards/1358-00032018.md,"MEM: V6 重构终态记录 (Linux 完成, 待外部发布审核)"
+1359,b16d422a,2026-08-31,付家泽,S,1,主责,compact/1359-b16d422a.md,cards/1359-b16d422a.md,REL-STATUS: owner review 措辞 (14/14 检查器全 PASS)
+1360,30a3516a,2026-08-31,付家泽,S,1,主责,compact/1360-30a3516a.md,cards/1360-30a3516a.md,"G10-STATUS: 最终审核包记录 (b16d422, 568 files)"
+1361,a3d16d85,2026-08-31,付家泽,M,2,主责,compact/1361-a3d16d85.md,cards/1361-a3d16d85.md,"R0-001: 冻结当前 main 身份 (三 SHA 相同, b16d422 为祖先, 工作树 205 项全分类, CONTROL_PASS)"
+1362,31b10cab,2026-08-31,付家泽,L,4,主责,compact/1362-31b10cab.md,cards/1362-31b10cab.md,"R0-002: 完整自有源码清单 (58 targets 1120 文件, 生产源全部证明存在, 负例缺源 FAIL)"
+1363,d7b202ec,2026-08-31,付家泽,M,2,主责,compact/1363-d7b202ec.md,cards/1363-d7b202ec.md,"R0-003: V6.1 证据台账与状态机验证器 (10 负例 PASS, 冻结台账 hash 未变, TASK_RESULT schema 一致)"
+1364,50673825,2026-08-31,付家泽,M,2,主责,compact/1364-50673825.md,cards/1364-50673825.md,R0-004: 复现并冻结 40 项已知问题 (40/40 REPRODUCED) + G0 门清单 8/8 PASS
+1365,a52dcce1,2026-08-31,付家泽,M,2,主责,compact/1365-a52dcce1.md,cards/1365-a52dcce1.md,"GOV-001: 任务证据与 commit 绑定 (COMMITS.csv 连续链, 篡改/交换/缺push 负例全抓, 旧结果 schema 修复)"
+1366,c1585123,2026-08-31,付家泽,S,1,主责,compact/1366-c1585123.md,cards/1366-c1585123.md,"GOV-002: gate 与依赖状态机 (12 负例全抓, 全部错误聚合, 任务数校验, F-034/035 闭环)"
+1367,99a79200,2026-08-31,付家泽,L,4,主责,compact/1367-99a79200.md,cards/1367-99a79200.md,"VER-001: 版本推进 0.10.0-alpha.2 (VERSION 单源, 生产源码 0.1.0/alpha.1 清零, P3 provenance 派生, checker"
+1368,abb75893,2026-08-31,付家泽,M,2,主责,compact/1368-abb75893.md,cards/1368-abb75893.md,"CHK-001: 生产可达调用图检查器 (compile_commands+nm, 负例抓 session/drizzle 直连, JSON/DOT 图, ACR 零可达)"
+1369,1490bae5,2026-08-31,付家泽,M,2,主责,compact/1369-1490bae5.md,cards/1369-1490bae5.md,"CHK-002: 非空静态图/运行图检查器 (--ir/--module-index/--trace 必填, 7 负例全抓, 空 trace FAIL)"
+1370,80a00b1e,2026-08-31,付家泽,M,2,主责,compact/1370-80a00b1e.md,cards/1370-80a00b1e.md,"CHK-003: serial-heavy 与资源接线检查器 (P2 宏关/P3 双循环/无 gate caller 负例全抓, allowlist 登记)"
+1371,545bd4d4,2026-08-31,付家泽,S,1,主责,compact/1371-545bd4d4.md,cards/1371-545bd4d4.md,G1-STATUS: G1 门清单 7/7 PASS (治理/版本/检查器)
+1372,ef9e34db,2026-08-31,付家泽,M,2,主责,compact/1372-ef9e34db.md,cards/1372-ef9e34db.md,"RT-001: 冻结 Runtime 与模块公共合同 (Runtime/ModulePlan/IModule/ThreadBudget/RAII lease, ABI layout"
+1373,30c83b45,2026-08-31,付家泽,M,2,主责,compact/1373-30c83b45.md,cards/1373-30c83b45.md,"RT-002: 全局原子 ThreadBudget 租约 (三策略 RAII 归还, 双节点不超卖/异常/取消恢复, 8x PASS)"
+1374,a03077ec,2026-08-31,付家泽,M,2,主责,compact/1374-a03077ec.md,cards/1374-a03077ec.md,"RT-003: 并发安全 RunContext (快照访问/唯一 producer/TSan 修复 scheduler budget 竞争, 4 测试 TSan PASS)"
+1375,90cf35a8,2026-08-31,付家泽,M,2,主责,compact/1375-90cf35a8.md,cards/1375-90cf35a8.md,"RT-004: nlohmann 驱动 PipelineIR 解析+ModuleRegistry 静态验证 (9 错误种类全 fixture, CLI 重链接通过)"

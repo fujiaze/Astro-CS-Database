@@ -1,0 +1,19 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1971,8dc0220e,2026-09-14,付家泽,S,1,重叠复核,compact/1971-8dc0220e.md,cards/1971-8dc0220e.md,fix(star_detector): 修复朝向角归一化无限循环导致生产挂死（P11）
+1972,b858b76d,2026-09-14,付家泽,S,1,重叠复核,compact/1972-b858b76d.md,cards/1972-b858b76d.md,perf(ipv): triangle_match 枚举加搜索预算上界 + 明确 fail-closed 原因（P11）
+1973,e978c4af,2026-09-14,付家泽,M,2,重叠复核,compact/1973-e978c4af.md,cards/1973-e978c4af.md,docs(audit/RQS): V2 片1 立条 —— V2-N-01 P0（IpvParams 布局改而 ctypes 镜像未同步 ⇒ 72 字节越界写 + 无 struct_
+1974,4c67378f,2026-09-14,付家泽,S,1,重叠复核,compact/1974-4c67378f.md,cards/1974-4c67378f.md,"docs(audit/RQS): V2 片2 立条 P1 两条 —— V2-N-03(算法文档把被修的错口径钉成规范 RMSE=mad·1.4826, 本轮最该改的一行) 与 V2"
+1975,8a219a7d,2026-09-14,付家泽,S,1,重叠复核,compact/1975-8a219a7d.md,cards/1975-8a219a7d.md,docs(audit/RQS): V2 片2 P2 三条 —— V2-N-05(MAD 可为 0 ⇒ 门恒不触发的新失效模式) / V2-N-06(锁自述失实: 宣称的断言4不存在
+1976,5db3c905,2026-09-14,付家泽,S,1,重叠复核,compact/1976-5db3c905.md,cards/1976-5db3c905.md,docs(audit/RQS): V2 收工立条 —— V2-N-08 升 P0(FAST 裁决前提被同批 35c85f53 推翻 ⇒ psf.max_stars 静默决定交付 S
+1977,57c04256,2026-09-14,付家泽,M,2,重叠复核,compact/1977-57c04256.md,cards/1977-57c04256.md,perf(P10): 利用率第二轮 —— noise 目标补 -fopenmp、逐源并行、按需预算；SNR/测光串行 I/O 定量
+1978,b2b6676c,2026-09-14,付家泽,M,2,重叠复核,compact/1978-b2b6676c.md,cards/1978-b2b6676c.md,"docs(audit/RQS): V6 片3 立 P1 两条 —— V6-N-04(冻结 SCI 的推导权威指向 gitignored run/, 全批 50 处新引用/14 文件"
+1979,ec128edb,2026-09-14,付家泽,S,1,重叠复核,compact/1979-ec128edb.md,cards/1979-ec128edb.md,docs(audit/RQS): 前台自验脚本入库（回应 V6 提醒：核实我 9777193d 的 priority/release_blocker 大改是否只是 P? 补全而非越
+1980,0e4cee72,2026-09-14,付家泽,M,2,重叠复核,compact/1980-0e4cee72.md,cards/1980-0e4cee72.md,fix(P9): p1_op_wcs 移除帧头 WCS 初始指向，新增 header_pointing（OBJCTRA/OBJCTDEC + 焦距/像元）
+1981,910d671f,2026-09-14,付家泽,S,1,主责,compact/1981-910d671f.md,cards/1981-910d671f.md,"docs(audit/RQS): V4 与 V6 终片落账 —— V4-N-04(我把 M8-F-001 自降 PARTIAL, 校验器有条目不等于条目会红) + V6-N-10("
+1982,0bd7eace,2026-09-14,付家泽,S,1,主责,compact/1982-0bd7eace.md,cards/1982-0bd7eace.md,docs(audit/RQS): V4 终片落账 —— 新开 A-41(allocator_cache_residual 无判据⇒非 malloc 通道零判别力) / A-42(F
+1983,b6a9a8f9,2026-09-14,付家泽,S,1,主责,compact/1983-b6a9a8f9.md,cards/1983-b6a9a8f9.md,docs(audit/RQS): V4 收尾自纠第 2 处 —— M8-F-002 由 VERIFIED 降 PARTIAL(V4-N-05: 注入分支自带退出码表达式与主路径尾 
+1984,df16f008,2026-09-14,付家泽,S,1,主责,compact/1984-df16f008.md,cards/1984-df16f008.md,docs(audit/RQS): 复核结论批量回填 verified_* 全 20 条(V6 片4 全量核账 + V4 两处自降 + V2/V3/V5 单项) + 开出 V7..V
+1985,521095b8,2026-09-14,付家泽,M,2,主责,compact/1985-521095b8.md,cards/1985-521095b8.md,docs(audit/RQS): 隔壁工单 FRONT_ACTION_LIST.md（A 让 CI 变绿四处 / B 内存安全与静默数据损失六处 / C 文档合同同源九处 / D 
+1986,56b5e662,2026-09-14,付家泽,L,4,主责,compact/1986-56b5e662.md,cards/1986-56b5e662.md,"docs(audit/RQS): C-15/C-9 规模实测入库（全仓 run/** 引用 573 处/194 文件, 分类后仅 A 类=以 run 为证据权威才计入 C-15, "
+1987,3ab94f8f,2026-09-14,付家泽,L,4,主责,compact/1987-3ab94f8f.md,cards/1987-3ab94f8f.md,docs(audit/RQS): 立 V16-N-01 P1 —— known_failures.json 两条 waiver 依据指向 gitignored run/ ⇒ 无据豁
+1988,5617a512,2026-09-14,付家泽,S,1,主责,compact/1988-5617a512.md,cards/1988-5617a512.md,"fix(audit/RQS): 账本抽取器 V 前缀只匹配一位数字 => V10..V15 的条目会静默不入账本, 改 V..d+（本轮第三次撞『工具不认自己的输出』, 已记）"

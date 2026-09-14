@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1861,95961406,2026-09-13,付家泽,L,4,重叠复核,compact/1861-95961406.md,cards/1861-95961406.md,docs(audit/RQS): 科学域叶子扫描档案 L01-L10（原始取证，未合并）
+1862,2213cc76,2026-09-13,付家泽,M,2,重叠复核,compact/1862-2213cc76.md,cards/1862-2213cc76.md,docs(audit/RQS): 横向叶子档案 L12/L13/L17/L18 与协调记录
+1863,6f0b9880,2026-09-13,付家泽,M,2,重叠复核,compact/1863-6f0b9880.md,cards/1863-6f0b9880.md,docs(audit/RQS): 叶子档案 L11（运行时/线程预算/CPU 后端/ACR）与协调记录
+1864,cd328f81,2026-09-13,付家泽,S,1,重叠复核,compact/1864-cd328f81.md,cards/1864-cd328f81.md,docs(audit/RQS): 由已发现失败模式反推的第二波横向扫描轴 L19-L25
+1865,9a3b5a7d,2026-09-13,付家泽,M,2,重叠复核,compact/1865-9a3b5a7d.md,cards/1865-9a3b5a7d.md,fix(SCI/B2-A15+A17+A18): HISS 部分覆盖/support 量化 + SIP 桥接 + 资源门真实观测（RESCUE-V3 P1 终批）
+1866,a731b0fa,2026-09-13,付家泽,M,2,重叠复核,compact/1866-a731b0fa.md,cards/1866-a731b0fa.md,docs(audit/RQS): 叶子档案 L15（国际标准横向六域）与协调记录
+1867,68fc6493,2026-09-13,付家泽,S,1,重叠复核,compact/1867-68fc6493.md,cards/1867-68fc6493.md,docs(audit/RQS): 追加 L26-L28 三条横向轴与合并层映射
+1868,08970259,2026-09-13,付家泽,M,2,重叠复核,compact/1868-08970259.md,cards/1868-08970259.md,docs(audit/RQS): 叶子档案 L16（追溯链与机器检查有效性）与协调记录
+1869,bc1e4e57,2026-09-13,付家泽,M,2,重叠复核,compact/1869-bc1e4e57.md,cards/1869-bc1e4e57.md,docs(audit/RQS): 叶子档案 L03(HiPS/HEALPix/AIO) 与 L25(依赖与派生代码合规) 及协调记录
+1870,b346c32a,2026-09-13,付家泽,M,2,重叠复核,compact/1870-b346c32a.md,cards/1870-b346c32a.md,docs(audit/RQS): 横向轴档案 L21(物理量口径矩阵) 与协调记录
+1871,b966d95c,2026-09-13,付家泽,M,2,主责,compact/1871-b966d95c.md,cards/1871-b966d95c.md,docs(audit/RQS): 叶子档案 L14(注释广度 Phase2/3) 与协调记录
+1872,c21eec50,2026-09-13,付家泽,M,2,主责,compact/1872-c21eec50.md,cards/1872-c21eec50.md,fix(CI/B3): Batch 3 真启用（Windows GSL/接缝门/Phase2 门进 CI/并发归因/known-failures/FD-01）
+1873,91024e7f,2026-09-13,付家泽,S,1,主责,compact/1873-91024e7f.md,cards/1873-91024e7f.md,ci(REG/B3-A4+A5): 注册 CTEST-PHASE2-GATES + 基线门 linux-main 末位静态强制（前台单写者）
+1874,8caacaef,2026-09-13,付家泽,M,2,主责,compact/1874-8caacaef.md,cards/1874-8caacaef.md,"docs(audit/RQS): 叶子档案 L06(星点检测与 PSF, 7 条 P0) 与协调记录 — 纵向 18/18 闭合"
+1875,f5b4b56f,2026-09-13,付家泽,M,2,主责,compact/1875-f5b4b56f.md,cards/1875-f5b4b56f.md,docs(audit/RQS): 横向轴档案 L22/L27 与 R 层复验工作清单
+1876,e0d04d8a,2026-09-13,付家泽,L,4,主责,compact/1876-e0d04d8a.md,cards/1876-e0d04d8a.md,docs(audit/RQS): 第一份定稿域 M4（Phase2 排异与马赛克，31 条：P0 7/P1 18/P2 6）
+1877,9672bc45,2026-09-13,付家泽,S,1,主责,compact/1877-9672bc45.md,cards/1877-9672bc45.md,docs(audit/RQS): 提升前台亲验证据为 F00-07（独立于叶子代理交付）
+1878,80351f38,2026-09-13,付家泽,L,4,主责,compact/1878-80351f38.md,cards/1878-80351f38.md,docs(audit/RQS): 合并层定稿批次 M1a/M2a/M5a/M5b（天测投影/Drizzle星表/运行时/CLI治理）
+1879,2a26267c,2026-09-13,付家泽,M,2,主责,compact/1879-2a26267c.md,cards/1879-2a26267c.md,docs(audit/RQS): L24 健壮性轴分片1（3 条 P0，前台代录）+ 各 M 处置表
+1880,5702150d,2026-09-13,付家泽,M,2,主责,compact/1880-5702150d.md,cards/1880-5702150d.md,docs(audit/RQS): 定稿批次 M1a(44 条/P0 10) 与 M5b(43 条/P0 8)、L24 分片 2、F00-07
+1881,a6f448e4,2026-09-13,付家泽,S,1,主责,compact/1881-a6f448e4.md,cards/1881-a6f448e4.md,docs(audit/RQS): L24 健壮性轴分片3（3 条 P1，前台代录，锚点逐字复验）
+1882,dc3d8c8b,2026-09-13,付家泽,S,1,主责,compact/1882-dc3d8c8b.md,cards/1882-dc3d8c8b.md,docs(audit/RQS): L24 分片4（3 条 P1）— 本轴小结升格为两条系统性结论
+1883,a627f1e6,2026-09-13,付家泽,M,2,主责,compact/1883-a627f1e6.md,cards/1883-a627f1e6.md,docs(audit/RQS): 前台自纠撤回 F00-07b 误记锚点 + M1a/M5b/M5a/L26 收档记录
+1884,1dce779d,2026-09-13,付家泽,M,2,主责,compact/1884-1dce779d.md,cards/1884-1dce779d.md,fix(SCI/B2b): drizzle 库边界精度缺省 FP64 + 帧级 median 剔 NaN + A15 幽灵注入证明（残差）
+1885,137a6632,2026-09-14,付家泽,M,2,主责,compact/1885-137a6632.md,cards/1885-137a6632.md,docs(audit/RQS): 正式撤回 F00-07a（前台误记锚点）+ L19/L20/L23 三轴档案入库
+1886,0a237f85,2026-09-14,付家泽,L,4,主责,compact/1886-0a237f85.md,cards/1886-0a237f85.md,docs(audit/RQS): M2a 定稿 46 条（P0 6/P1 24/P2 16）+ 第二波横向轴档案与处置表
+1887,611b051a,2026-09-14,付家泽,S,1,主责,compact/1887-611b051a.md,cards/1887-611b051a.md,fix(SCI/B2c): 关闭 CON-DOC-SYMBOLS 红 + 校验和确定性（修产物，RESCUE-FD-03）
+1888,23f96b9c,2026-09-14,付家泽,S,1,主责,compact/1888-23f96b9c.md,cards/1888-23f96b9c.md,fix(AIO/FD-04): metadata.fits 写成合法 FITS（SIMPLE/BITPIX/NAXIS/EXTEND/END）
+1889,d6af8090,2026-09-14,付家泽,L,4,主责,compact/1889-d6af8090.md,cards/1889-d6af8090.md,docs(audit/RQS): M6b 定稿 22 条（P0 4/P1 12/P2 6）+ 全局方法论警示两条
+1890,099616d9,2026-09-14,付家泽,S,1,主责,compact/1890-099616d9.md,cards/1890-099616d9.md,docs(audit/RQS): 订正 F00-01/F00-04 转述数字并刷新复验监视清单
+1891,2e9ec742,2026-09-14,付家泽,S,1,主责,compact/1891-2e9ec742.md,cards/1891-2e9ec742.md,docs(audit/RQS): INDEX 机械汇总草稿 + 同事实归属裁决示例
+1892,4ef2e2b6,2026-09-14,付家泽,S,1,主责,compact/1892-4ef2e2b6.md,cards/1892-4ef2e2b6.md,docs(audit/RQS): INDEX 改用正确路径分层计数并给出类别×优先级矩阵
+1893,1d608e34,2026-09-14,付家泽,S,1,主责,compact/1893-1d608e34.md,cards/1893-1d608e34.md,docs(audit/RQS): M3 定稿 51 条（P0 7/P1 25/P2 19）+ 移交改道记录
+1894,1fdfb0b5,2026-09-14,付家泽,M,2,主责,compact/1894-1fdfb0b5.md,cards/1894-1fdfb0b5.md,fix(CI/B3b-1): 补交 FD-02 回归测试源文件 + 注册 CTEST-DRIZZLE-PRECISION-DEFAULT
+1895,e84b10a3,2026-09-14,付家泽,M,2,主责,compact/1895-e84b10a3.md,cards/1895-e84b10a3.md,docs(audit/RQS): M3 定稿 43 条（P0 7/P1 26/P2 10）+ 建 40_OWNER_DECISIONS.md（A17/B13/C9/D4）
+1896,752c7915,2026-09-14,付家泽,S,1,主责,compact/1896-752c7915.md,cards/1896-752c7915.md,docs(audit/RQS): M3 与 M6a 收档 — 第一波十域合并全部完成（333 条/P0 68）
+1897,2e10f302,2026-09-14,付家泽,S,1,主责,compact/1897-2e10f302.md,cards/1897-2e10f302.md,docs(audit/RQS): SUMMARY 系统性根因簇十组 + 残余风险三态表 + 未覆盖面诚实声明
+1898,cbb07805,2026-09-14,付家泽,S,1,主责,compact/1898-cbb07805.md,cards/1898-cbb07805.md,docs(audit/RQS): M6b 二次复核回执入档 — 确立截断伪影的可复核口径
+1899,b72da8a4,2026-09-14,付家泽,L,4,主责,compact/1899-b72da8a4.md,cards/1899-b72da8a4.md,docs(audit/RQS): M2b 定稿 29 条（P0 10）+ 三条裁决入 40 文件 + 对已收工域移交改道
+1900,37aca154,2026-09-14,付家泽,S,1,主责,compact/1900-37aca154.md,cards/1900-37aca154.md,fix(CI/B3b-2): 关闭 DATA-ARTIFACTS 与 UT-ARCH 真红（RESCUE-FD-06/07）
+1901,1de724d4,2026-09-14,付家泽,M,2,主责,compact/1901-1de724d4.md,cards/1901-1de724d4.md,docs(audit/RQS): M8 定稿 26 条（P0 4/P1 15/P2 7）+ 主落裁定 + 裁决项 A-24~A-29
+1902,123d4e1d,2026-09-14,付家泽,S,1,主责,compact/1902-123d4e1d.md,cards/1902-123d4e1d.md,docs(audit/RQS): M8 收档台账与「裸数字必须带时点」通则
+1903,2facd638,2026-09-14,付家泽,M,2,主责,compact/1903-2facd638.md,cards/1903-2facd638.md,docs(audit/RQS): M7 收档 — 三方数学争议结案、A-05 撤回、三级复核纪律
+1904,4ba2403b,2026-09-14,付家泽,S,1,主责,compact/1904-4ba2403b.md,cards/1904-4ba2403b.md,docs(audit/RQS): F00-08 — 前台第二次凭空生成的公开记录与制度补丁
+1905,4d21e93d,2026-09-14,付家泽,L,4,主责,compact/1905-4d21e93d.md,cards/1905-4d21e93d.md,docs(audit/RQS): M9 收档 + 补录我漏掉的 L24-013/014/015 + 全层数字统一为 113/68
+1906,28295d61,2026-09-14,付家泽,M,2,主责,compact/1906-28295d61.md,cards/1906-28295d61.md,docs(audit/RQS): L24 计数对账闭合（P0:3/P1:10/P2:2 = 15）+ M2b 六件移交去向落账
+1907,64d5da9e,2026-09-14,付家泽,S,1,主责,compact/1907-64d5da9e.md,cards/1907-64d5da9e.md,docs(audit/RQS): 改派 L28b（注释溯源接力·范围收窄为四件事）+ 十四域合并里程碑
+1908,81f3c26f,2026-09-14,付家泽,S,1,主责,compact/1908-81f3c26f.md,cards/1908-81f3c26f.md,docs(audit/RQS): 前台合规自纠两条 + 新增 A-30/A-09b
+1909,1bbaf0a3,2026-09-14,付家泽,S,1,主责,compact/1909-1bbaf0a3.md,cards/1909-1bbaf0a3.md,"docs(audit/RQS): 补录 L24-014/015（前台分片流水遗漏, M9 指出的缺口闭合）"
+1910,12dcb8f4,2026-09-14,付家泽,M,2,主责,compact/1910-12dcb8f4.md,cards/1910-12dcb8f4.md,"docs(audit/RQS): 锚点核验器 v3 —— 处置强度分五档, 210 条假警报不再可能导致误撤条"
+1911,8d9e966f,2026-09-14,付家泽,S,1,主责,compact/1911-8d9e966f.md,cards/1911-8d9e966f.md,docs(audit/RQS): M7 路径全量审计收档 —— 抓到的是核验器 v2 自身的盲区
+1912,e60edcec,2026-09-14,付家泽,M,2,主责,compact/1912-e60edcec.md,cards/1912-e60edcec.md,fix(SCI/FD-05): Linux 生产 plate-solve 平台绑定移植 + 常驻回归门（RESCUE-FD-05）
+1913,52af7818,2026-09-14,付家泽,L,4,主责,compact/1913-52af7818.md,cards/1913-52af7818.md,docs(audit/RQS): M8a 收档（31 条/P0 1）+ 前台独立复验其许可 P0 五锚全命中 + A-31~A-33
+1914,a3eae6da,2026-09-14,付家泽,S,1,主责,compact/1914-a3eae6da.md,cards/1914-a3eae6da.md,docs(audit/RQS): F00-09 订正我上一条「五锚全部命中」的过早背书 —— 复验后事实更硬
+1915,5289e4eb,2026-09-14,付家泽,S,1,主责,compact/1915-5289e4eb.md,cards/1915-5289e4eb.md,"docs(audit/RQS): INDEX v2 — 修正路径解析并按类别×优先级出矩阵, 加跨域主题唯一总述表"
+1916,bed82382,2026-09-14,付家泽,S,1,主责,compact/1916-bed82382.md,cards/1916-bed82382.md,docs(audit/RQS): INDEX 域名标签去重（MM4→M4）
+1917,fc4ef16a,2026-09-14,付家泽,M,2,主责,compact/1917-fc4ef16a.md,cards/1917-fc4ef16a.md,docs(audit/RQS): F00-02 部分撤回 —— 我「已复验」里含不存在的文件与错行号(第三次同类)
+1918,7add91d6,2026-09-14,付家泽,S,1,主责,compact/1918-7add91d6.md,cards/1918-7add91d6.md,"docs(audit/RQS): 簇1 补记 —— io_ownership 确已注册并进基线, 不是漏注册而是在册的门永不会红"
+1919,32b38b4b,2026-09-14,付家泽,S,1,主责,compact/1919-32b38b4b.md,cards/1919-32b38b4b.md,docs(audit/RQS): F00 全量机械自审 —— 我自己写的每条 path::符号 逐条回读真源
+1920,cdb6d54a,2026-09-14,付家泽,S,1,主责,compact/1920-cdb6d54a.md,cards/1920-cdb6d54a.md,docs(audit/RQS): F00-11 影子树内的 agent 指令文件与冻结宪章在唯一入口上正面冲突
+1921,7c980ab4,2026-09-14,付家泽,S,1,主责,compact/1921-7c980ab4.md,cards/1921-7c980ab4.md,docs(audit/RQS): F00-11 影子树 agent 指令文件与冻结宪章在唯一入口上正面冲突 + C-10/A-34
+1922,f4f88d54,2026-09-14,付家泽,M,2,主责,compact/1922-f4f88d54.md,cards/1922-f4f88d54.md,"docs(audit/RQS): L28b 交档 — 最后一个轴落地, 27 轴 + 14 域全部收工; INDEX v3"
+1923,48ceee59,2026-09-14,付家泽,S,1,主责,compact/1923-48ceee59.md,cards/1923-48ceee59.md,fix(BACKEND/FD-08): 清零 UT-BACKEND 13 项预存真红 + 修 resume 误报与观测链缺失
+1924,23a91351,2026-09-14,付家泽,S,1,主责,compact/1924-23a91351.md,cards/1924-23a91351.md,test(BACKEND/FD-08b): p2007 10s 锚 workload 自标定（CI 4 核 8.5s → ≥12s）
+1925,cb4405d8,2026-09-14,付家泽,S,1,主责,compact/1925-cb4405d8.md,cards/1925-cb4405d8.md,docs(audit/RQS): 负责人两裁定落地 —— B-14 授权(E 层边界入规程) + A-34 不改名仅登记为问题

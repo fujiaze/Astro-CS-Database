@@ -1,0 +1,56 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1,4a2750bd,2026-05-24,fujiaze,M,2,主责,compact/0001-4a2750bd.md,cards/0001-4a2750bd.md,Initial commit: Gaia DR3 XPSD Client
+2,802becc2,2026-05-24,fujiaze,L,4,主责,compact/0002-802becc2.md,cards/0002-802becc2.md,Initial commit: Astro Image IO
+3,850973a7,2026-05-24,fujiaze,L,4,主责,compact/0003-850973a7.md,cards/0003-850973a7.md,"feat: Star Detector - astronomical star detector with PSF fitting filter, FWHM clipping an"
+4,cebab976,2026-05-24,fujiaze,S,1,主责,compact/0004-cebab976.md,cards/0004-cebab976.md,添加百度网盘下载链接
+5,1ddbe246,2026-05-24,fujiaze,S,1,主责,compact/0005-1ddbe246.md,cards/0005-1ddbe246.md,删除多余文字
+6,2ce5598e,2026-05-26,fujiaze,M,2,主责,compact/0006-2ce5598e.md,cards/0006-2ce5598e.md,feat: 基于SExtractor背景估计 + 修复Moffat4坐标计算
+7,b33f88da,2026-05-26,fujiaze,S,1,主责,compact/0007-b33f88da.md,cards/0007-b33f88da.md,docs: README添加检测效果示例图像
+8,25d71815,2026-05-26,fujiaze,S,1,主责,compact/0008-25d71815.md,cards/0008-25d71815.md,docs: 添加代码注释，说明核心算法原理
+9,23f3ee5f,2026-05-26,fujiaze,S,1,主责,compact/0009-23f3ee5f.md,cards/0009-23f3ee5f.md,Update README.md
+10,08a8766a,2026-05-27,fujiaze,M,2,主责,compact/0010-08a8766a.md,cards/0010-08a8766a.md,Add multi-database support (GaiaDR3 and GaiaDR3SP)
+11,1153cd95,2026-05-27,fujiaze,S,1,主责,compact/0011-1153cd95.md,cards/0011-1153cd95.md,Merge branch 'master' of github.com:fujiaze/Gaia-DR3SP-C-Client
+12,8cbeef6d,2026-05-27,fujiaze,M,2,主责,compact/0012-8cbeef6d.md,cards/0012-8cbeef6d.md,feat: add saturated star detection with debug image output
+13,7eb45fce,2026-05-27,fujiaze,S,1,主责,compact/0013-7eb45fce.md,cards/0013-7eb45fce.md,chore: compress example2 image to JPEG for faster push
+14,1013feb6,2026-06-03,fujiaze,L,4,主责,compact/0014-1013feb6.md,cards/0014-1013feb6.md,feat: half-threshold saturated star detection + candidate pre-filter + OpenMP parallelizat
+15,787ab234,2026-06-04,fujiaze,M,2,主责,compact/0015-787ab234.md,cards/0015-787ab234.md,feat: 自适应fitRadius - 基于连通域大小自动估算FWHM
+16,22e727ff,2026-06-06,fujiaze,M,2,主责,compact/0016-22e727ff.md,cards/0016-22e727ff.md,feat: add L1 query cache (60s TTL) and L2 decompressed block cache
+17,8c0762ca,2026-07-07,fujiaze,L,4,主责,compact/0017-8c0762ca.md,cards/0017-8c0762ca.md,feat: V5.0 Gaussian PSF + GSL trust-region LM + 代码清理
+18,12c55ed6,2026-05-24,fujiaze,M,2,主责,compact/0018-12c55ed6.md,cards/0018-12c55ed6.md,feat: Dynamic PSF - Moffat4 PSF fitting engine with 16bit input and batch mode
+19,941b82a2,2026-06-07,fujiaze,M,2,主责,compact/0019-941b82a2.md,cards/0019-941b82a2.md,fix(search_recursive): add projection center point to AzimuthalEquidistant bbox computatio
+20,48396682,2026-05-24,fujiaze,L,4,主责,compact/0020-48396682.md,cards/0020-48396682.md,feat: Astro Image IO C++ native implementation - FITS/XISF read/write with Python ctypes b
+21,7691d768,2026-07-10,fujiaze,M,2,主责,compact/0021-7691d768.md,cards/0021-7691d768.md,feat: expose DR3SP spectrum interface (BP/RP spectra + magBP/magRP)
+22,51adc4d7,2026-07-10,fujiaze,M,2,主责,compact/0022-51adc4d7.md,cards/0022-51adc4d7.md,refactor: split spectrum and photometry APIs for separation of concerns
+23,b58ff404,2026-07-10,fujiaze,S,1,主责,compact/0023-b58ff404.md,cards/0023-b58ff404.md,fix: FITS keyword write_card quote logic + BZERO/BSCALE filtering
+24,a88d9789,2026-07-10,fujiaze,M,2,主责,compact/0024-a88d9789.md,cards/0024-a88d9789.md,feat: Astro Calibration C++ module
+25,ce62842f,2026-07-10,fujiaze,M,2,主责,compact/0025-ce62842f.md,cards/0025-ce62842f.md,feat: batch processing + README + UTF-8 path support + FITS write optimization
+26,0107e3d7,2026-07-10,fujiaze,S,1,主责,compact/0026-0107e3d7.md,cards/0026-0107e3d7.md,feat: UTF-8 path support + FITS write optimization
+27,c4b5333b,2026-07-11,fujiaze,M,2,主责,compact/0027-c4b5333b.md,cards/0027-c4b5333b.md,feat: add batch coordinate spectrum query API (OpenMP parallel)
+28,0349b723,2026-07-11,fujiaze,S,1,主责,compact/0028-0349b723.md,cards/0028-0349b723.md,fix: Moffat4 PSF flux使用解析积分替代窗口累加
+29,3b39d126,2026-07-11,fujiaze,L,4,主责,compact/0029-3b39d126.md,cards/0029-3b39d126.md,feat: calibration module with C++ OpenMP cosmetic corrector (C++)
+30,4c7f5df9,2026-07-11,fujiaze,L,4,主责,compact/0030-4c7f5df9.md,cards/0030-4c7f5df9.md,feat: calibration module with C++ OpenMP cosmetic corrector (C++)
+31,0c08aeb5,2026-07-11,fujiaze,L,4,主责,compact/0031-0c08aeb5.md,cards/0031-0c08aeb5.md,feat: HEALpix Database - 球面存储与可视化系统
+32,9d0da974,2026-07-12,fujiaze,S,1,主责,compact/0032-9d0da974.md,cards/0032-9d0da974.md,update astro_image_io.py
+33,07795923,2026-07-12,fujiaze,S,1,主责,compact/0033-07795923.md,cards/0033-07795923.md,update Makefile and dpsf_psf.cpp
+34,e53c8865,2026-07-12,fujiaze,S,1,主责,compact/0034-e53c8865.md,cards/0034-e53c8865.md,update gaia_client.c
+35,f75ae3f0,2026-07-12,fujiaze,L,4,主责,compact/0035-f75ae3f0.md,cards/0035-f75ae3f0.md,v1.0: 鲁棒流量校准 Python 开发原型
+36,787679bb,2026-07-12,fujiaze,M,2,主责,compact/0036-787679bb.md,cards/0036-787679bb.md,refactor: 重命名 gradient_estimator 为 flux_calibrator 并封存天光校正
+37,ebc8197a,2026-07-12,fujiaze,S,1,主责,compact/0037-ebc8197a.md,cards/0037-ebc8197a.md,docs: 更新 README 为 Flux Calibration 并添加 45 帧性能数据
+38,51b8c7b6,2026-07-12,fujiaze,L,4,主责,compact/0038-51b8c7b6.md,cards/0038-51b8c7b6.md,"feat: add ahpx I/O, compressor, and pipeline framework"
+39,55d69dd0,2026-07-12,fujiaze,L,4,主责,compact/0039-55d69dd0.md,cards/0039-55d69dd0.md,refactor: split ahpx_io/stack/drizzle into independent repos
+40,e3f0f782,2026-07-12,fujiaze,M,2,主责,compact/0040-e3f0f782.md,cards/0040-e3f0f782.md,feat: add pipeline orchestration engine with OpenMP parallel batch execution
+41,c0073c9f,2026-07-12,fujiaze,L,4,主责,compact/0041-c0073c9f.md,cards/0041-c0073c9f.md,refactor: migrate PipelineFrame to named-block container model with KV/cache/export
+42,bc894de2,2026-07-12,fujiaze,L,4,主责,compact/0042-bc894de2.md,cards/0042-bc894de2.md,feat: rewrite photometric_calib as C++ DLL with simplified algorithm
+43,9fcd406b,2026-07-12,fujiaze,M,2,主责,compact/0043-9fcd406b.md,cards/0043-9fcd406b.md,"feat: C++ migration complete - fix FITS export, add memory pipeline"
+44,ddf17ca3,2026-07-12,fujiaze,M,2,主责,compact/0044-ddf17ca3.md,cards/0044-ddf17ca3.md,﻿feat: switch calibrate_data to C++ DLL path
+45,e27ff13d,2026-07-12,fujiaze,L,4,主责,compact/0045-e27ff13d.md,cards/0045-e27ff13d.md,feat: initial Astro-Data-Pipline - memory pipeline C++ implementation
+46,2767c66b,2026-07-12,fujiaze,M,2,主责,compact/0046-2767c66b.md,cards/0046-2767c66b.md,refactor: archive residual Python photometric files
+47,312dd8ad,2026-07-12,fujiaze,S,1,主责,compact/0047-312dd8ad.md,cards/0047-312dd8ad.md,"perf: fix PSF performance regression (9.26s -> 0.26s, -97.1%)"
+48,9d6b200a,2026-07-12,fujiaze,S,1,主责,compact/0048-9d6b200a.md,cards/0048-9d6b200a.md,fix: dynamic buffer for .ahpx header JSON reading
+49,9de3fa88,2026-07-13,fujiaze,M,2,主责,compact/0049-9de3fa88.md,cards/0049-9de3fa88.md,docs: update memory.md and README to v2.0 C++ DLL version
+50,9e366aed,2026-07-13,fujiaze,S,1,主责,compact/0050-9e366aed.md,cards/0050-9e366aed.md,docs: add module memory.md and update README with performance fix
+51,675d351d,2026-07-13,fujiaze,S,1,主责,compact/0051-675d351d.md,cards/0051-675d351d.md,docs: add module memory.md and update README with GitHub repo info
+52,5c2a5e7f,2026-07-13,fujiaze,S,1,主责,compact/0052-5c2a5e7f.md,cards/0052-5c2a5e7f.md,docs: update memory.md and README with C++ DLL switch status
+53,39498757,2026-07-13,fujiaze,S,1,主责,compact/0053-39498757.md,cards/0053-39498757.md,docs: add module memory.md and update README with GitHub repo info
+54,65a52de3,2026-07-13,fujiaze,S,1,主责,compact/0054-65a52de3.md,cards/0054-65a52de3.md,docs: add module memory.md and update README with usage examples
+55,75c6ab30,2026-07-13,fujiaze,S,1,主责,compact/0055-75c6ab30.md,cards/0055-75c6ab30.md,docs: add module memory.md and update README with GitHub repo info

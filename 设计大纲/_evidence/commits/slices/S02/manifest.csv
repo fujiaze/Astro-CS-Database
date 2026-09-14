@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+46,2767c66b,2026-07-12,fujiaze,M,2,重叠复核,compact/0046-2767c66b.md,cards/0046-2767c66b.md,refactor: archive residual Python photometric files
+47,312dd8ad,2026-07-12,fujiaze,S,1,重叠复核,compact/0047-312dd8ad.md,cards/0047-312dd8ad.md,"perf: fix PSF performance regression (9.26s -> 0.26s, -97.1%)"
+48,9d6b200a,2026-07-12,fujiaze,S,1,重叠复核,compact/0048-9d6b200a.md,cards/0048-9d6b200a.md,fix: dynamic buffer for .ahpx header JSON reading
+49,9de3fa88,2026-07-13,fujiaze,M,2,重叠复核,compact/0049-9de3fa88.md,cards/0049-9de3fa88.md,docs: update memory.md and README to v2.0 C++ DLL version
+50,9e366aed,2026-07-13,fujiaze,S,1,重叠复核,compact/0050-9e366aed.md,cards/0050-9e366aed.md,docs: add module memory.md and update README with performance fix
+51,675d351d,2026-07-13,fujiaze,S,1,重叠复核,compact/0051-675d351d.md,cards/0051-675d351d.md,docs: add module memory.md and update README with GitHub repo info
+52,5c2a5e7f,2026-07-13,fujiaze,S,1,重叠复核,compact/0052-5c2a5e7f.md,cards/0052-5c2a5e7f.md,docs: update memory.md and README with C++ DLL switch status
+53,39498757,2026-07-13,fujiaze,S,1,重叠复核,compact/0053-39498757.md,cards/0053-39498757.md,docs: add module memory.md and update README with GitHub repo info
+54,65a52de3,2026-07-13,fujiaze,S,1,重叠复核,compact/0054-65a52de3.md,cards/0054-65a52de3.md,docs: add module memory.md and update README with usage examples
+55,75c6ab30,2026-07-13,fujiaze,S,1,重叠复核,compact/0055-75c6ab30.md,cards/0055-75c6ab30.md,docs: add module memory.md and update README with GitHub repo info
+56,e72ffb9c,2026-07-13,fujiaze,S,1,主责,compact/0056-e72ffb9c.md,cards/0056-e72ffb9c.md,docs: add missing memory.md with version history and algorithm details
+57,c3664ea7,2026-07-13,fujiaze,S,1,主责,compact/0057-c3664ea7.md,cards/0057-c3664ea7.md,docs: refresh memory.md with repo restructure record
+58,037c1b26,2026-07-13,fujiaze,S,1,主责,compact/0058-037c1b26.md,cards/0058-037c1b26.md,docs: refresh memory.md with repo restructure record
+59,f63e922b,2026-07-13,fujiaze,S,1,主责,compact/0059-f63e922b.md,cards/0059-f63e922b.md,docs: refresh memory.md with repo restructure record
+60,81b0ec5f,2026-07-13,fujiaze,S,1,主责,compact/0060-81b0ec5f.md,cards/0060-81b0ec5f.md,docs: refresh memory.md with repo restructure record
+61,95f7ba9c,2026-07-13,fujiaze,S,1,主责,compact/0061-95f7ba9c.md,cards/0061-95f7ba9c.md,docs: refresh memory.md with repo restructure record
+62,2a6a4d37,2026-07-13,fujiaze,S,1,主责,compact/0062-2a6a4d37.md,cards/0062-2a6a4d37.md,docs: refresh memory.md with repo restructure record
+63,557a4d12,2026-07-13,fujiaze,S,1,主责,compact/0063-557a4d12.md,cards/0063-557a4d12.md,docs: refresh memory.md with repo restructure and updated links
+64,bd7da16c,2026-07-13,fujiaze,S,1,主责,compact/0064-bd7da16c.md,cards/0064-bd7da16c.md,docs: update version to V5.0 in README
+65,6a6cc8c5,2026-07-13,fujiaze,S,1,主责,compact/0065-6a6cc8c5.md,cards/0065-6a6cc8c5.md,chore: ignore python/tests/output directory
+66,3fc4bfe4,2026-07-14,fujiaze,L,4,主责,compact/0066-3fc4bfe4.md,cards/0066-3fc4bfe4.md,fix: STF预设单位重构 + .hiss改球面渲染消除摩尔纹
+67,6cea0691,2026-07-14,fujiaze,M,2,主责,compact/0067-6cea0691.md,cards/0067-6cea0691.md,fix: 重写视角控制为赤道仪相机 + 修复 look_at_matrix 矩阵存储 bug + 菱形像素几何修正
+68,dbb9ed05,2026-07-14,fujiaze,S,1,主责,compact/0068-dbb9ed05.md,cards/0068-dbb9ed05.md,"﻿fix(browser): 同步 drizzle pixfrac=1.0 修复, 外扩系数 1.25 → 1.02"
+69,86047733,2026-07-15,fujiaze,M,2,主责,compact/0069-86047733.md,cards/0069-86047733.md,feat(browser): LOD动态网格+uint8降采样+双击启动部署
+70,cc6ad0e5,2026-07-15,fujiaze,M,2,主责,compact/0070-cc6ad0e5.md,cards/0070-cc6ad0e5.md,feat(photometric): P0/P1/P2 性能优化 + 能量守恒测试
+71,f78d3b7d,2026-07-15,fujiaze,S,1,主责,compact/0071-f78d3b7d.md,cards/0071-f78d3b7d.md,"feat(psf): extend psf block from [N,6] to [N,9] (add A/mad/eccentricity for SNR module)"
+72,8ef816bb,2026-07-15,fujiaze,S,1,主责,compact/0072-8ef816bb.md,cards/0072-8ef816bb.md,"docs(psf): update psf block format comment [N,6] to [N,9]"
+73,5ebb2f7f,2026-07-15,fujiaze,S,1,主责,compact/0073-5ebb2f7f.md,cards/0073-5ebb2f7f.md,feat(photometric): expose sigma_residual out-param for SNR module §14
+74,ec7aebcc,2026-07-15,fujiaze,S,1,主责,compact/0074-ec7aebcc.md,cards/0074-ec7aebcc.md,feat(io): .hiss 格式扩展 snr 通道 + Python 绑定 (断层2+3)
+75,8399f940,2026-07-15,fujiaze,M,2,主责,compact/0075-8399f940.md,cards/0075-8399f940.md,feat: SNR 估算模块初始版本 (乘法模型)
+76,127c4a96,2026-07-15,fujiaze,L,4,主责,compact/0076-127c4a96.md,cards/0076-127c4a96.md,feat: 管线编排引擎初始版本 (9节点管线 + SNR集成)
+77,caf89974,2026-07-16,fujiaze,L,4,主责,compact/0077-caf89974.md,cards/0077-caf89974.md,feat(aio): merge healpix_io into aio + selective build system (spec G1+G2)
+78,484bc610,2026-07-16,fujiaze,L,4,主责,compact/0078-484bc610.md,cards/0078-484bc610.md,refactor: archive scripts/ + add configs/ (spec G3 Phase 2)
+79,d3e1a9ed,2026-07-16,fujiaze,L,4,主责,compact/0079-d3e1a9ed.md,cards/0079-d3e1a9ed.md,refactor: merge subdirs into python/ (spec G5 Phase 3)
+80,53bad25e,2026-07-16,fujiaze,S,1,主责,compact/0080-53bad25e.md,cards/0080-53bad25e.md,refactor: update photometric_adapter import path (spec G5 Phase 3)
+81,5a37322a,2026-07-16,fujiaze,L,4,主责,compact/0081-5a37322a.md,cards/0081-5a37322a.md,feat(gradient_2d): step4 C++化为独立 stage (STAGE_GRADIENT_2D)
+82,7c7df79f,2026-07-16,fujiaze,M,2,主责,compact/0082-7c7df79f.md,cards/0082-7c7df79f.md,Phase 5: C++ pipeline design - two-stage 10-node pipeline (spec section 2.3)
+83,03cbf2b8,2026-07-16,fujiaze,M,2,主责,compact/0083-03cbf2b8.md,cards/0083-03cbf2b8.md,"Phase 6: documentation sync (spec section 2.3, G8)"
+84,fbc2361f,2026-07-16,fujiaze,S,1,主责,compact/0084-fbc2361f.md,cards/0084-fbc2361f.md,fix(dll_loader): resolve DLL code=126 loading failures for all 10 modules
+85,978f48d8,2026-07-16,fujiaze,M,2,主责,compact/0085-978f48d8.md,cards/0085-978f48d8.md,feat(stage_handlers): implement actual DLL calls for 10 stage handlers
+86,7aa763b5,2026-07-16,fujiaze,M,2,主责,compact/0086-7aa763b5.md,cards/0086-7aa763b5.md,feat(platesolve): implement stage 2 PLATESOLVE with ipv_solve_from_memory
+87,78257227,2026-07-16,fujiaze,S,1,主责,compact/0087-78257227.md,cards/0087-78257227.md,docs: update memory.md with PLATESOLVE implementation details
+88,1fc051a0,2026-07-16,fujiaze,M,2,主责,compact/0088-1fc051a0.md,cards/0088-1fc051a0.md,feat(stage_handlers): implement PSF/PHOTOMETRIC/GRADIENT_2D stage handlers
+89,31e467bd,2026-07-16,fujiaze,S,1,主责,compact/0089-31e467bd.md,cards/0089-31e467bd.md,docs: update memory.md with PSF/PHOTOMETRIC/GRADIENT_2D implementation
+90,b1068137,2026-07-16,fujiaze,S,1,主责,compact/0090-b1068137.md,cards/0090-b1068137.md,fix(stage2): assign hiss_files to member variables to enable GRADIENT_SPHERE
+91,99211b99,2026-07-16,fujiaze,S,1,主责,compact/0091-99211b99.md,cards/0091-99211b99.md,docs: record stage2 multi-frame (2 frames) validation results
+92,5817eecf,2026-07-16,fujiaze,S,1,主责,compact/0092-5817eecf.md,cards/0092-5817eecf.md,整理: 根目录 run_healpix.bat 移入 healpix_browser_qt/（2026-07-16）
+93,1fce1248,2026-07-16,fujiaze,S,1,主责,compact/0093-1fce1248.md,cards/0093-1fce1248.md,整理: 根目录调试脚本归档 + 高价值工具保留（2026-07-16）
+94,75835599,2026-07-16,fujiaze,L,4,主责,compact/0094-75835599.md,cards/0094-75835599.md,重构: 根目录调试文件整理 + 模块内部冗余清理（2026-07-16）
+95,7604fdca,2026-07-16,fujiaze,L,4,主责,compact/0095-7604fdca.md,cards/0095-7604fdca.md,"归档: 遗留浏览器+healpix_lod+healpix_io 源码归档, 依赖迁移至 astro_image_io, SingleFrameView 废弃（2026-07-16"
+96,cd86827c,2026-07-16,fujiaze,S,1,主责,compact/0096-cd86827c.md,cards/0096-cd86827c.md,fix(psf): 修正 Moffat4 FWHM 因子 0.87 → 1.2303 + memory 迁入 PSF 性能优化记录（2026-07-16）
+97,a0ff3dd5,2026-07-16,fujiaze,S,1,主责,compact/0097-a0ff3dd5.md,cards/0097-a0ff3dd5.md,feat(snr): 新增 snr_extract_model 稀疏控制点模型提取 API（2026-07-16）
+98,ee8e5437,2026-07-18,fujiaze,M,2,主责,compact/0098-ee8e5437.md,cards/0098-ee8e5437.md,"refactor(stage1): 归档 GRADIENT_2D 节点, stage1 由 8 节点缩减为 7 节点"
+99,875f01a9,2026-07-18,fujiaze,L,4,主责,compact/0099-875f01a9.md,cards/0099-875f01a9.md,refactor: 归档 gradient_2d 模块到 archive/ (stage1 不再做曲面拟合)
+100,c384de17,2026-07-24,fujiaze,S,1,主责,compact/0100-c384de17.md,cards/0100-c384de17.md,chore: initialize main repository
+101,b684ab25,2026-07-24,fujiaze,L,4,主责,compact/0101-b684ab25.md,cards/0101-b684ab25.md,Merge remote-tracking branch 'astro_image_io/main'
+102,58daf22c,2026-07-24,fujiaze,L,4,主责,compact/0102-58daf22c.md,cards/0102-58daf22c.md,Merge remote-tracking branch 'calibration/main'
+103,b92fefe3,2026-07-24,fujiaze,L,4,主责,compact/0103-b92fefe3.md,cards/0103-b92fefe3.md,Merge remote-tracking branch 'data_pipeline/main'
+104,2325bae9,2026-07-24,fujiaze,M,2,主责,compact/0104-2325bae9.md,cards/0104-2325bae9.md,Merge remote-tracking branch 'dynamic_psf/main'
+105,f727ab83,2026-07-24,fujiaze,L,4,主责,compact/0105-f727ab83.md,cards/0105-f727ab83.md,Merge remote-tracking branch 'gaia_xpsd_client/main'
+106,8c03d08e,2026-07-24,fujiaze,L,4,主责,compact/0106-8c03d08e.md,cards/0106-8c03d08e.md,Merge remote-tracking branch 'healpix_db/main'
+107,6a2ce3d3,2026-07-24,fujiaze,L,4,主责,compact/0107-6a2ce3d3.md,cards/0107-6a2ce3d3.md,Merge remote-tracking branch 'orchestrator/main'
+108,3746a61f,2026-07-24,fujiaze,L,4,主责,compact/0108-3746a61f.md,cards/0108-3746a61f.md,Merge remote-tracking branch 'photometric_calib/main'
+109,dabf35e1,2026-07-24,fujiaze,L,4,主责,compact/0109-dabf35e1.md,cards/0109-dabf35e1.md,Merge remote-tracking branch 'plate_solve/main'
+110,98ec469c,2026-07-24,fujiaze,M,2,主责,compact/0110-98ec469c.md,cards/0110-98ec469c.md,Merge remote-tracking branch 'snr_estimator/main'

@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1806,9953f103,2026-09-11,付家泽,M,2,重叠复核,compact/1806-9953f103.md,cards/1806-9953f103.md,feat(P3-001): 建立投影registry与冻结投影实现(宪章§18.1 四投影)——registry v1 冻结表(kP3ProjectionRegistryVersi
+1807,9662afa8,2026-09-11,付家泽,M,2,重叠复核,compact/1807-9662afa8.md,cards/1807-9662afa8.md,"feat(P3-002): Phase3 不确定度传播与扩展 HDU 科学面(DATA-P3-UNC-001 §30.4 落地, 上位宪章 §7.1/§7.3)——p3_resam"
+1808,1a56ffb7,2026-09-11,付家泽,M,2,重叠复核,compact/1808-1a56ffb7.md,cards/1808-1a56ffb7.md,"feat(P3-002): Phase3 五子节点唯一真实 operation 委托(宪章 §7.2/§8.2 整改, P1-001/P2-001 先例同构)——lib/core/"
+1809,91440c16,2026-09-11,付家泽,M,2,重叠复核,compact/1809-91440c16.md,cards/1809-91440c16.md,feat(RT-001): 接入唯一Executor与实测资源门(宪章 §10.4 work-unit 租约+§10.5/§18.2 冻结阈值落地)——①唯一 executor 生
+1810,59fdeab3,2026-09-11,付家泽,M,2,重叠复核,compact/1810-59fdeab3.md,cards/1810-59fdeab3.md,feat(MOD-001): 完成科学DLL安装加载验证与产品清单(宪章 §8.4 安装面+§8.1 产品清单+§18.4 签名清单加载)——①F-AIO-003 闭环: lib/
+1811,026717fd,2026-09-11,付家泽,M,2,重叠复核,compact/1811-026717fd.md,cards/1811-026717fd.md,"feat(CLI-001): 完成薄CLI validate/plan/inspect 命令面(宪章 §8.1, 基线 59fdeab3)——①cli/parser.cpp: kR"
+1812,e9b82ea4,2026-09-11,付家泽,M,2,重叠复核,compact/1812-e9b82ea4.md,cards/1812-e9b82ea4.md,feat(CI-001): 收紧CI注册表与资源fail-closed(基线 026717fd)——①不可 waiver: ci/checks.json WIN-BUILD-REL
+1813,ca948367,2026-09-11,付家泽,S,1,重叠复核,compact/1813-ca948367.md,cards/1813-ca948367.md,fix(CI/F-CI-001-01): owner 裁决 WIN-* 移出资源门——ci/checks.json WIN-BUILD-RELEASE/WIN-TEST-UNIT/
+1814,f74fc20f,2026-09-11,付家泽,S,1,重叠复核,compact/1814-f74fc20f.md,cards/1814-f74fc20f.md,fix(CI/F-CI-002-01+02+03): Linux 构建断链与 TASK-RESULT-SCHEMA 口径修复(owner 裁决执行)——①根 CMakeLists.
+1815,9f6b72b5,2026-09-11,付家泽,L,4,重叠复核,compact/1815-9f6b72b5.md,cards/1815-9f6b72b5.md,feat(REAL-000): 真实数据审计索引v1.2与确定性匹配计划(04_OWNER_DECISIONS rev3 指令落地)——①盘点对账: testdata 944 文件
+1816,05059019,2026-09-12,付家泽,S,1,主责,compact/1816-05059019.md,cards/1816-05059019.md,"fix(CI/F-CI-002-04+06): 监控门判定合同收口(owner 裁决原则一致化, 2026-09-11)——①F-CI-002-04: ci/checks.json"
+1817,e6254d4d,2026-09-12,付家泽,M,2,主责,compact/1817-e6254d4d.md,cards/1817-e6254d4d.md,fix(CI/F-CI-002-05+07): gaia ZLIB ROOT 消费与 p1_noise 清单安装面对齐(f74fc20f 裁决收尾)——①F-CI-002-05: 
+1818,71cdc28f,2026-09-12,astrocs-agent,M,2,主责,compact/1818-71cdc28f.md,cards/1818-71cdc28f.md,feat(CI/CI-REPAIR-001): CI修复常驻线轮报器(Checks API全量回拉+失败job日志+归因映射)
+1819,d3097319,2026-09-12,AstroCS Agent,M,2,主责,compact/1819-d3097319.md,cards/1819-d3097319.md,feat(CI/CI-REG-002): 新增测试全注册与关键检查不可豁免(STD-F7 四项处置 + STD-F10 落地)
+1820,f8778bbb,2026-09-12,astrocs-agent,M,2,主责,compact/1820-f8778bbb.md,cards/1820-f8778bbb.md,chore(gov): round1 前台验收并入 05 号 findings 登记册（V2 rev5）
+1821,830b38c6,2026-09-12,astrocs-agent,S,1,主责,compact/1821-830b38c6.md,cards/1821-830b38c6.md,fix(CI/CI-REPAIR-001): 轮报器复跑暴露的两处缺陷修正(SKIPPED误判红灯 + artifact截断)
+1822,778fe98e,2026-09-12,付家泽,M,2,主责,compact/1822-778fe98e.md,cards/1822-778fe98e.md,feat(CI/CI-BASELINE-001): known-failures 基线机器化——失败集 ⊆ 版本化基线成为不可豁免 CI 门（STD-F9 处置）
+1823,a67bbc83,2026-09-12,付家泽,L,4,主责,compact/1823-a67bbc83.md,cards/1823-a67bbc83.md,feat(CI/CI-001B): workflow与注册表联动核死(workflow只调run.py + 候选缺失fail-closed + actions锁复验)
+1824,fb7f232a,2026-09-12,付家泽,M,2,主责,compact/1824-fb7f232a.md,cards/1824-fb7f232a.md,feat(DOC/STD-REG-001): 国际标准冻结注册表——六域符合性清单与偏差指针入册（STD-F6 处置）
+1825,da3c4b4a,2026-09-12,付家泽,S,1,主责,compact/1825-da3c4b4a.md,cards/1825-da3c4b4a.md,fix(CI/CI-BASELINE-001/FD-R1-018): 新测试环境无关化——剔除 ci/run.py 注入的 ASTROCS_CI_OUT_ROOT，修复 CI 内 
+1826,327b6c30,2026-09-12,astrocs-frontdesk,M,2,主责,compact/1826-327b6c30.md,cards/1826-327b6c30.md,feat(DOC/DOC-CONV-001): L0与模块状态文档收敛——状态词阶梯落地+已修复项陈旧NOT_VERIFIED清除（BASE=da3c4b4a）
+1827,54287b48,2026-09-12,astrocs-frontdesk,M,2,主责,compact/1827-54287b48.md,cards/1827-54287b48.md,test(SCI/SCI-F2-001): 新增 §30.2 逐样本拒绝恒等式机器门（RED 证据 + 域外最小补丁文本，BASE=327b6c30）
+1828,e6b1ea87,2026-09-12,付家泽,L,4,主责,compact/1828-e6b1ea87.md,cards/1828-e6b1ea87.md,feat(GOV/rev6): V2 控制包前台接续重编——裁决留档+CI红灯全承接+写域补正（FG-000）
+1829,b40c8a49,2026-09-12,付家泽,S,1,主责,compact/1829-b40c8a49.md,cards/1829-b40c8a49.md,docs(GOV/GOV-AGENTS-001): AGENTS.md 宪章要素映射对齐——AGENTS-GOV 由 10/10 MISS 转 PASS（裁决 R-07）
+1830,178222a7,2026-09-12,付家泽,M,2,主责,compact/1830-178222a7.md,cards/1830-178222a7.md,chore(GOV/rev6.1): 控制包写域分道——repo-write 单道拆为 5 条按域互斥道，真实并行度 1→7
+1831,57f7bd80,2026-09-12,付家泽,S,1,主责,compact/1831-57f7bd80.md,cards/1831-57f7bd80.md,docs(GOV/rev6): 05 号登记册续写附录B——rev6 裁决轮 findings 与 GOV-AGENTS-001 验收（FG-000）
+1832,a628bc21,2026-09-12,付家泽,S,1,主责,compact/1832-a628bc21.md,cards/1832-a628bc21.md,docs(GOV/rev6.1): 裁决 R-15/R-16/R-17——checks.json 单写者 + 并行度按真实文件写域 + 门禁不得阻塞修复
+1833,2fdd6626,2026-09-12,付家泽,S,1,主责,compact/1833-2fdd6626.md,cards/1833-2fdd6626.md,fix(CI/CI-DATA-REG-001): DATA-HIPS-001/DATA-TILE-001 登记补齐——DATA-ARTIFACTS 红灯转绿（裁决 R-04）
+1834,f9e4d921,2026-09-12,付家泽,S,1,主责,compact/1834-f9e4d921.md,cards/1834-f9e4d921.md,docs(GOV/rev6.2): 裁决 R-18/R-19/R-20——停用CP框架 + 共享工作树前台合并 + 热点文件三重处置
+1835,1dc5447d,2026-09-12,付家泽,S,1,主责,compact/1835-1dc5447d.md,cards/1835-1dc5447d.md,test(CON-COMMENT-001): 测试头 invariant 补真实 SCI/ALG ID 锚（CON-COMMENTS + CON-FULL-INTEGRATION 
+1836,19bdf1ab,2026-09-12,付家泽,M,2,主责,compact/1836-19bdf1ab.md,cards/1836-19bdf1ab.md,fix(CI/CI-VER-CHK-001): 版本一致性检查器条款号误判收窄——UT-VERSION 转绿（裁决 R-08）
+1837,af56020c,2026-09-12,付家泽,M,2,主责,compact/1837-af56020c.md,cards/1837-af56020c.md,fix(CI/WCS-PATH-001): p1wcs astropy 交叉脚本去除硬编码绝对路径 + fail-fast——CTEST-P1WCS-ASTROPY-CROSS 转
+1838,09ca8aec,2026-09-12,付家泽,S,1,主责,compact/1838-09ca8aec.md,cards/1838-09ca8aec.md,docs(GOV/rev6.2): 05 号登记册附录 C——执行期新增 finding C.1–C.9（含 1 项 P1 真实产品缺陷）
+1839,27909ddf,2026-09-12,付家泽,M,2,主责,compact/1839-27909ddf.md,cards/1839-27909ddf.md,fix(CI/CI-WIN-001): gaia zlib 消费口径对齐根 cfitsio 段——WIN-BUILD-RELEASE/WIN-PACKAGE-CANDIDATE 断
+1840,0c9130d6,2026-09-12,付家泽,M,2,主责,compact/1840-0c9130d6.md,cards/1840-0c9130d6.md,chore(CI): 注册 UT-GAIA-ZLIB + UT-BACKEND timeout 提额 + UT-VERSION changed_paths（前台唯一写者 R-15）
+1841,4f11d965,2026-09-12,付家泽,M,2,主责,compact/1841-4f11d965.md,cards/1841-4f11d965.md,fix(CI): 订正 impact_map 提交的缩进抖动——恢复原格式，仅保留语义改动
+1842,43f0c429,2026-09-12,付家泽,M,2,主责,compact/1842-43f0c429.md,cards/1842-43f0c429.md,fix(CORE/CORE-RACE-001): 消除 p1 cosmetic→drizzle 并发撕裂读 + Phase1 落盘原子化
+1843,da74dcad,2026-09-12,付家泽,M,2,主责,compact/1843-da74dcad.md,cards/1843-da74dcad.md,fix(ARCH/ARCH-TB-001): 线程预算登记实证 + 生成器加固——THREAD-BUDGET 与 UT-ARCH 转绿
+1844,e89ce10e,2026-09-12,astrocs-frontdesk,L,4,主责,compact/1844-e89ce10e.md,cards/1844-e89ce10e.md,feat(DATA/SCI-F3-001): AIO NREJ/NUSED int32 通道 + §30.3 五键双写 + verify 双向核验（BASE=54287b48）
+1845,8069d85d,2026-09-12,付家泽,M,2,主责,compact/1845-8069d85d.md,cards/1845-8069d85d.md,fix(WCS/STD-F1-ADJ): STD-F1 导出边界桥接合同化 + 九宫格回归锁——1px 偏移疑点闭环（裁决 R-02 方案 b / R-25）
+1846,4fc3917e,2026-09-12,付家泽,M,2,主责,compact/1846-4fc3917e.md,cards/1846-4fc3917e.md,chore(CI): 注册 STD-F1 桥接门 + p2hips 独立验证门（消除 C3 注册债）
+1847,56fe14c1,2026-09-12,付家泽,S,1,主责,compact/1847-56fe14c1.md,cards/1847-56fe14c1.md,docs(GOV/rev6.2): 05 号登记册附录 D——双前台事故(D.0) + P0 用户入口缺陷 + 测试鉴别力缺口 + FG-CI-01..10
+1848,3fd9e5e2,2026-09-12,astrocs-frontdesk,M,2,主责,compact/1848-3fd9e5e2.md,cards/1848-3fd9e5e2.md,docs(SCI/SCI-ANCHOR-001): 冻结文档行号锚全量复测器 + 36 文档 793 锚订正 + CI 门 DOC-LINE-ANCHORS（BASE=56fe14
+1849,f5f944a5,2026-09-12,付家泽,S,1,主责,compact/1849-f5f944a5.md,cards/1849-f5f944a5.md,docs(GOV/rev6.2): 新增 08 号前台交接说明——停用 CP 插件 + 重启前状态快照 + 在跑任务写域 + 优先级
+1850,5a250999,2026-09-13,付家泽,S,1,主责,compact/1850-5a250999.md,cards/1850-5a250999.md,docs(GOV/rev6.3): 登记 RESCUE-V3 为唯一 ACTIVE 控制包——对齐包 V1 转 ARCHIVED_SUPERSEDED（原位保留）
+1851,3848fc61,2026-09-13,付家泽,M,2,主责,compact/1851-3848fc61.md,cards/1851-3848fc61.md,fix(E2E/B1): 恢复 Phase1 8 节点链与 HiPS 持久化（RESCUE-V3 Batch 1）
+1852,a6449610,2026-09-13,付家泽,L,4,主责,compact/1852-a6449610.md,cards/1852-a6449610.md,fix(SCI/B2-A1): WcsTan deg/rad 单位错修复 + p1_op_wcs 绝对前向交叉门（RESCUE-V3 Batch 2）
+1853,01eaba36,2026-09-13,付家泽,M,2,主责,compact/1853-01eaba36.md,cards/1853-01eaba36.md,fix(SCI/B2-A2): 星 ID ↔ PSF compact 错位修复 + 逐星 status（RESCUE-V3 P0-05）
+1854,1012fa41,2026-09-13,付家泽,M,2,主责,compact/1854-1012fa41.md,cards/1854-1012fa41.md,fix(SCI/B2-A3): Phase2 逐样本拒绝掩码平面 + integrate fail-closed（RESCUE-V3 P0-09）
+1855,344e0c9c,2026-09-13,付家泽,M,2,主责,compact/1855-344e0c9c.md,cards/1855-344e0c9c.md,fix(SCI/B2-A4+A5): Phase3 投影/frame/coverage 三键 fail-closed（RESCUE-V3 P0-07/P1-23）
+1856,bc059562,2026-09-13,付家泽,S,1,主责,compact/1856-bc059562.md,cards/1856-bc059562.md,fix(SCI/B2-A6): 标定 ×10 夹具/Oracle 口径纠偏 + master flat fail-closed（RESCUE-V3 P0-06）
+1857,66906609,2026-09-13,付家泽,L,4,主责,compact/1857-66906609.md,cards/1857-66906609.md,fix(SCI/B2-A7..A10): integration/coverage/FITS 校验和/运行溯源（RESCUE-V3 P1 组上半）
+1858,b32246c4,2026-09-13,付家泽,M,2,主责,compact/1858-b32246c4.md,cards/1858-b32246c4.md,fix(SCI/B2-A12..A16): drizzle 精度门/暗场 EXPTIME/PHOTAPPL 溯源/测光 fail-closed（RESCUE-V3 P1）
+1859,43c5c488,2026-09-13,付家泽,L,4,主责,compact/1859-43c5c488.md,cards/1859-43c5c488.md,docs(audit/RQS): 建立全项目只读问题扫描工作区与作业规程
+1860,14102f65,2026-09-13,付家泽,M,2,主责,compact/1860-14102f65.md,cards/1860-14102f65.md,docs(audit/RQS): 前台独立取证 F00 与合并期协调记录
+1861,95961406,2026-09-13,付家泽,L,4,主责,compact/1861-95961406.md,cards/1861-95961406.md,docs(audit/RQS): 科学域叶子扫描档案 L01-L10（原始取证，未合并）
+1862,2213cc76,2026-09-13,付家泽,M,2,主责,compact/1862-2213cc76.md,cards/1862-2213cc76.md,docs(audit/RQS): 横向叶子档案 L12/L13/L17/L18 与协调记录
+1863,6f0b9880,2026-09-13,付家泽,M,2,主责,compact/1863-6f0b9880.md,cards/1863-6f0b9880.md,docs(audit/RQS): 叶子档案 L11（运行时/线程预算/CPU 后端/ACR）与协调记录
+1864,cd328f81,2026-09-13,付家泽,S,1,主责,compact/1864-cd328f81.md,cards/1864-cd328f81.md,docs(audit/RQS): 由已发现失败模式反推的第二波横向扫描轴 L19-L25
+1865,9a3b5a7d,2026-09-13,付家泽,M,2,主责,compact/1865-9a3b5a7d.md,cards/1865-9a3b5a7d.md,fix(SCI/B2-A15+A17+A18): HISS 部分覆盖/support 量化 + SIP 桥接 + 资源门真实观测（RESCUE-V3 P1 终批）
+1866,a731b0fa,2026-09-13,付家泽,M,2,主责,compact/1866-a731b0fa.md,cards/1866-a731b0fa.md,docs(audit/RQS): 叶子档案 L15（国际标准横向六域）与协调记录
+1867,68fc6493,2026-09-13,付家泽,S,1,主责,compact/1867-68fc6493.md,cards/1867-68fc6493.md,docs(audit/RQS): 追加 L26-L28 三条横向轴与合并层映射
+1868,08970259,2026-09-13,付家泽,M,2,主责,compact/1868-08970259.md,cards/1868-08970259.md,docs(audit/RQS): 叶子档案 L16（追溯链与机器检查有效性）与协调记录
+1869,bc1e4e57,2026-09-13,付家泽,M,2,主责,compact/1869-bc1e4e57.md,cards/1869-bc1e4e57.md,docs(audit/RQS): 叶子档案 L03(HiPS/HEALPix/AIO) 与 L25(依赖与派生代码合规) 及协调记录
+1870,b346c32a,2026-09-13,付家泽,M,2,主责,compact/1870-b346c32a.md,cards/1870-b346c32a.md,docs(audit/RQS): 横向轴档案 L21(物理量口径矩阵) 与协调记录

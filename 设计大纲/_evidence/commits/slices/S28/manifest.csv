@@ -1,0 +1,66 @@
+seq,sha8,日期,作者,分级,权重,角色,紧凑卡,全卡,消息首行
+1476,bbe2e59e,2026-09-02,付家泽,M,2,重叠复核,compact/1476-bbe2e59e.md,cards/1476-bbe2e59e.md,feat(logging): LOG-001 统一结构化日志接口
+1477,1c3d1dc9,2026-09-02,付家泽,M,2,重叠复核,compact/1477-1c3d1dc9.md,cards/1477-1c3d1dc9.md,docs(architecture): ARC-001 冻结DLL产品边界
+1478,f260b804,2026-09-02,付家泽,M,2,重叠复核,compact/1478-f260b804.md,cards/1478-f260b804.md,build(msvc): BLD-001 冻结Windows发布工具链
+1479,2df77afe,2026-09-02,付家泽,M,2,重叠复核,compact/1479-2df77afe.md,cards/1479-2df77afe.md,feat(data): DATA-001 冻结类型化产物合同
+1480,b7b2dea7,2026-09-02,付家泽,L,4,重叠复核,compact/1480-b7b2dea7.md,cards/1480-b7b2dea7.md,docs(governance): GOV-002 归档非当前工程文档
+1481,76b85d45,2026-09-02,付家泽,M,2,重叠复核,compact/1481-76b85d45.md,cards/1481-76b85d45.md,feat(abi): ABI-001 定义模块C ABI v1
+1482,39e77317,2026-09-02,付家泽,M,2,重叠复核,compact/1482-39e77317.md,cards/1482-39e77317.md,build(version): GOV-003 统一Alpha版本事实源
+1483,5d38ebd7,2026-09-02,付家泽,M,2,重叠复核,compact/1483-5d38ebd7.md,cards/1483-5d38ebd7.md,feat(runtime): RT-001 实现类型化运行图
+1484,c1ee791a,2026-09-02,付家泽,M,2,重叠复核,compact/1484-c1ee791a.md,cards/1484-c1ee791a.md,feat(data): DATA-002 定义三阶段产品交换合同
+1485,3e7f7581,2026-09-03,付家泽,S,1,重叠复核,compact/1485-3e7f7581.md,cards/1485-3e7f7581.md,feat(build): BLD-002 建立唯一根 CMake 构建图
+1486,caee3e67,2026-09-03,付家泽,L,4,主责,compact/1486-caee3e67.md,cards/1486-caee3e67.md,feat(io): IO-001 实现流式FITS读写API并修复F32字节序
+1487,5de08133,2026-09-03,付家泽,M,2,主责,compact/1487-5de08133.md,cards/1487-5de08133.md,test(abi): ABI-002 冻结ABI生命周期语义
+1488,56ab85ba,2026-09-03,付家泽,M,2,主责,compact/1488-56ab85ba.md,cards/1488-56ab85ba.md,refactor(runtime): RT-002 隔离阶段运行时生命周期
+1489,6affe300,2026-09-03,付家泽,M,2,主责,compact/1489-6affe300.md,cards/1489-6affe300.md,docs(owner): GOV-004 建立负责人审查入口
+1490,316d4175,2026-09-03,付家泽,L,4,主责,compact/1490-316d4175.md,cards/1490-316d4175.md,feat(io): IO-002 建立HiPS输入合同
+1491,9bc3d0fd,2026-09-03,付家泽,L,4,主责,compact/1491-9bc3d0fd.md,cards/1491-9bc3d0fd.md,docs(governance): GOV-005 清理陈旧现状与记忆
+1492,46b0d8e1,2026-09-03,付家泽,M,2,主责,compact/1492-46b0d8e1.md,cards/1492-46b0d8e1.md,build(layout): BLD-003 建立模块化安装骨架
+1493,64a2f996,2026-09-03,付家泽,M,2,主责,compact/1493-64a2f996.md,cards/1493-64a2f996.md,build(deps): BLD-004 锁定依赖与许可证边界
+1494,c1e02339,2026-09-03,付家泽,M,2,主责,compact/1494-c1e02339.md,cards/1494-c1e02339.md,feat(artifact): DATA-003 接入生产ArtifactStore
+1495,0d32c07d,2026-09-03,付家泽,M,2,主责,compact/1495-0d32c07d.md,cards/1495-0d32c07d.md,feat(cpu): CPU-001 实现ISA与OS安全探测
+1496,9cc5cb51,2026-09-03,付家泽,M,2,主责,compact/1496-9cc5cb51.md,cards/1496-9cc5cb51.md,build(acr): ACR-001 固化首发休眠边界
+1497,da5ca108,2026-09-03,付家泽,M,2,主责,compact/1497-da5ca108.md,cards/1497-da5ca108.md,feat(loader): ABI-003 实现受限DLL加载
+1498,a0e118ed,2026-09-03,付家泽,M,2,主责,compact/1498-a0e118ed.md,cards/1498-a0e118ed.md,feat(scheduler): RT-003 接入原子线程预算
+1499,9256587d,2026-09-03,付家泽,M,2,主责,compact/1499-9256587d.md,cards/1499-9256587d.md,feat(provenance): DATA-004 完善产物溯源
+1500,2a8676bf,2026-09-03,付家泽,M,2,主责,compact/1500-2a8676bf.md,cards/1500-2a8676bf.md,test(traceability): DOC-001 建立机器追溯合同
+1501,c20a94c9,2026-09-03,付家泽,M,2,主责,compact/1501-c20a94c9.md,cards/1501-c20a94c9.md,feat(cpu): CPU-002 提供保守基线后端
+1502,a37aeb58,2026-09-03,付家泽,S,1,主责,compact/1502-a37aeb58.md,cards/1502-a37aeb58.md,test(runtime): RT-003 适配 core_context 预算语义
+1503,d823895f,2026-09-03,付家泽,M,2,主责,compact/1503-d823895f.md,cards/1503-d823895f.md,feat(cpu): CPU-003 增加AVX2热点后端
+1504,40b5687b,2026-09-03,付家泽,M,2,主责,compact/1504-40b5687b.md,cards/1504-40b5687b.md,feat(registry): ABI-004 接入动态模块注册
+1505,b09e4b2c,2026-09-03,付家泽,M,2,主责,compact/1505-b09e4b2c.md,cards/1505-b09e4b2c.md,test(testkit): TST-001 冻结模块验证结构
+1506,deef06d8,2026-09-03,付家泽,M,2,主责,compact/1506-deef06d8.md,cards/1506-deef06d8.md,feat(scheduler): RT-004 建立共享执行器
+1507,1df9a7ee,2026-09-03,付家泽,M,2,主责,compact/1507-1df9a7ee.md,cards/1507-1df9a7ee.md,feat(provenance): DATA-004 补漏 production_store 溯源接线
+1508,d9c39803,2026-09-03,付家泽,L,4,主责,compact/1508-d9c39803.md,cards/1508-d9c39803.md,test(abi): ABI-005 增加echo契约探针模块
+1509,4bb34b68,2026-09-03,付家泽,M,2,主责,compact/1509-4bb34b68.md,cards/1509-4bb34b68.md,feat(runtime): RT-005 完善模块资源计划
+1510,442958df,2026-09-03,付家泽,M,2,主责,compact/1510-442958df.md,cards/1510-442958df.md,feat(io): IO-003 实现原子产物发布
+1511,b99fcd80,2026-09-03,付家泽,M,2,主责,compact/1511-b99fcd80.md,cards/1511-b99fcd80.md,feat(cpu): CPU-004 增加AVX512热点后端
+1512,b2e3b0af,2026-09-04,付家泽,M,2,主责,compact/1512-b2e3b0af.md,cards/1512-b2e3b0af.md,feat(trace): RT-006 记录真实运行事实
+1513,9096d08d,2026-09-04,付家泽,M,2,主责,compact/1513-9096d08d.md,cards/1513-9096d08d.md,feat(cpu): CPU-005 固化逐内核后端选择
+1514,10a59723,2026-09-04,付家泽,M,2,主责,compact/1514-10a59723.md,cards/1514-10a59723.md,feat(cli): CLI-001 V7 统一命令面骨架
+1515,4ca0d0e9,2026-09-04,付家泽,L,4,主责,compact/1515-4ca0d0e9.md,cards/1515-4ca0d0e9.md,feat(monitor): LOG-002 资源监控 CSV 落盘与机器验证
+1516,3b6fc397,2026-09-04,付家泽,S,1,主责,compact/1516-3b6fc397.md,cards/1516-3b6fc397.md,docs(index): LOG-002 补登 RESOURCE_MONITORING_CONTRACT 文档索引
+1517,e78dac6a,2026-09-04,付家泽,M,2,主责,compact/1517-e78dac6a.md,cards/1517-e78dac6a.md,feat(runtime): RT-007 固化取消失败与恢复语义
+1518,0b0d2694,2026-09-04,付家泽,M,2,主责,compact/1518-0b0d2694.md,cards/1518-0b0d2694.md,docs(graph): LOG-003 运行图渲染工具
+1519,de2d6d7f,2026-09-05,付家泽,M,2,主责,compact/1519-de2d6d7f.md,cards/1519-de2d6d7f.md,refactor(cli): CLI-002 隔离三个阶段入口
+1520,257ae1f4,2026-09-05,付家泽,M,2,主责,compact/1520-257ae1f4.md,cards/1520-257ae1f4.md,test(cli): CLI-003 固化阶段子命令语义
+1521,a4fdee3f,2026-09-05,付家泽,L,4,主责,compact/1521-a4fdee3f.md,cards/1521-a4fdee3f.md,chore(control): V81-ADOPT-001 注册控制包 V8.1 并冻结工作区身份 [V81-ADOPT-001]
+1522,af9ecdc5,2026-09-05,付家泽,M,2,主责,compact/1522-af9ecdc5.md,cards/1522-af9ecdc5.md,chore(evidence): V81-ADOPT-002 冻结预存状态与远端关系 [V81-ADOPT-002]
+1523,98c2354f,2026-09-05,付家泽,L,4,主责,compact/1523-98c2354f.md,cards/1523-98c2354f.md,chore(evidence): V81-ADOPT-003 任务证据对账重建 TASK_STATE 191 项 [V81-ADOPT-003]
+1524,becc85a0,2026-09-05,付家泽,M,2,主责,compact/1524-becc85a0.md,cards/1524-becc85a0.md,chore(ci): V81-ADOPT-004 Agent 主机工具链盘点与锁存 [V81-ADOPT-004]
+1525,1ecbf10e,2026-09-05,付家泽,M,2,主责,compact/1525-1ecbf10e.md,cards/1525-1ecbf10e.md,docs(index): V81-ADOPT-005 补登工具链快照恢复活动索引 [V81-ADOPT-005]
+1526,b4f923cc,2026-09-05,付家泽,L,4,主责,compact/1526-b4f923cc.md,cards/1526-b4f923cc.md,chore(version): V81-ADOPT-006 统一活动版本源至 0.11.0-alpha.2 并同步冻结约束版本行 [V81-ADOPT-006]
+1527,0acfb514,2026-09-05,付家泽,L,4,主责,compact/1527-0acfb514.md,cards/1527-0acfb514.md,feat(ci): V8-CI-001 检查器与测试资产盘点注册 70 项 [V8-CI-001]
+1528,459da629,2026-09-06,付家泽,L,4,主责,compact/1528-459da629.md,cards/1528-459da629.md,feat(ci): V8-CI-002 统一确定性 CI 执行器、结果 schema 与 29 项单测 [V8-CI-002]
+1529,c5924da5,2026-09-06,付家泽,S,1,主责,compact/1529-c5924da5.md,cards/1529-c5924da5.md,chore(ci): V8-CI-003 分发与写租约 base 对齐 459da629 [V8-CI-003]
+1530,df01ea7b,2026-09-06,付家泽,L,4,主责,compact/1530-df01ea7b.md,cards/1530-df01ea7b.md,feat(ci): V8-CI-003 动态资源探测与统一监控 wrapper [V8-CI-003]
+1531,b2d31bfe,2026-09-06,付家泽,S,1,主责,compact/1531-b2d31bfe.md,cards/1531-b2d31bfe.md,chore(ci): V8-CI-004 分发与写租约 [V8-CI-004]
+1532,c583e59d,2026-09-06,付家泽,L,4,主责,compact/1532-c583e59d.md,cards/1532-c583e59d.md,feat(ci): V8-CI-004 changed path→checks 映射与 fast profile 实测 [V8-CI-004]
+1533,d41f4516,2026-09-06,付家泽,S,1,主责,compact/1533-d41f4516.md,cards/1533-d41f4516.md,chore(ci): V8-CI-005 分发与写租约 [V8-CI-005]
+1534,e1fde093,2026-09-06,付家泽,L,4,主责,compact/1534-e1fde093.md,cards/1534-e1fde093.md,feat(ci): V8-CI-005 linux-deep 检查注册与 deep 构建驱动链 [V8-CI-005]
+1535,f5d579bc,2026-09-06,付家泽,S,1,主责,compact/1535-f5d579bc.md,cards/1535-f5d579bc.md,chore(ci): V8-CI-006 分发与写租约 [V8-CI-006]
+1536,847a7a6b,2026-09-06,付家泽,L,4,主责,compact/1536-847a7a6b.md,cards/1536-847a7a6b.md,feat(ci): V8-CI-006 Windows 构建驱动与 candidate 打包链 [V8-CI-006]
+1537,a90dbb90,2026-09-06,付家泽,S,1,主责,compact/1537-a90dbb90.md,cards/1537-a90dbb90.md,chore(ci): V8-CI-007 分发与写租约 [V8-CI-007]
+1538,a032c0cc,2026-09-06,付家泽,L,4,主责,compact/1538-a032c0cc.md,cards/1538-a032c0cc.md,feat(ci): V8-CI-007 双平台 workflow、action 锁与 CI 辅助链 [V8-CI-007]
+1539,16441987,2026-09-06,付家泽,S,1,主责,compact/1539-16441987.md,cards/1539-16441987.md,chore(ci): V8-CI-008 分发与写租约 [V8-CI-008]
+1540,9b3fe93e,2026-09-06,付家泽,M,2,主责,compact/1540-9b3fe93e.md,cards/1540-9b3fe93e.md,feat(ci): V8-CI-008 Fatduck 三 job workflow 与候选选择器 [V8-CI-008]
