@@ -85,26 +85,36 @@ def ensure_f1f2_hips(fdir=DEFAULT_FDIR):
 
 
 SEAM6_DIR = os.path.join(REPO, "run", "temp", "p2007_seam6", "seam6")
+SEAM_ROOT = os.path.join(REPO, "run", "temp", "p2007_seam")
+
+
+def ensure_seam_hips(n, fdir=None):
+    """确保存在 n 块 P2-007 seam fixture: SEAM0..SEAM{n-1}.hips；返回 (fdir, paths)。
+
+    RESCUE-FD-08b(自标定 workload): p2007 用例先在 test 侧用小样本实测吞吐, 再据
+    实测选块数, 使 active_wall 稳过 10s 冻结锚(不拍固定数字, 不受宿主速度漂移影响)。
+    fixture exe 的 `--make-seam-n <dir> <N>` 生成 N 块模式轮换/偏移交替的 mini
+    HiPS; 缺省落 `run/temp/p2007_seam/n<N>`(按 N 缓存)。
+    """
+    if fdir is None:
+        fdir = os.path.join(SEAM_ROOT, "n%d" % n)
+    paths = [os.path.join(fdir, "SEAM%d.hips" % i) for i in range(n)]
+    if all(os.path.isdir(p) for p in paths):
+        return fdir, paths
+    exe = _build_fixture_exe()
+    os.makedirs(fdir, exist_ok=True)
+    r = subprocess.run([exe, "--make-seam-n", fdir, str(n)], capture_output=True,
+                       text=True, timeout=900)
+    assert "HIPS_FIXTURES_OK" in r.stdout, "[fixture_common make-seam-n] " + r.stderr[-600:]
+    assert all(os.path.isdir(p) for p in paths), "SEAM0..N-1.hips 生成失败: " + fdir
+    return fdir, paths
 
 
 def ensure_seam6_hips(fdir=SEAM6_DIR):
-    """确保 fdir 下存在 P2-007 seam6 fixture: SEAM0..SEAM5.hips 共 6 块。
-
-    fixture exe 的 `--make-seam6` 模式（P2-007 G5）按模式轮换/交替偏移生成 6 块
-    mini HiPS，保证 UPM 可求解且 run ≥10s。历史形态该目录由手工操作产出
-    （run/ 属临时操作目录），无 CI 注册生成方；本函数补齐同 ensure_f1f2_hips
-    的自愈语义。
-    """
-    paths = [os.path.join(fdir, "SEAM%d.hips" % i) for i in range(6)]
-    if all(os.path.isdir(p) for p in paths):
-        return fdir
-    exe = _build_fixture_exe()
-    os.makedirs(fdir, exist_ok=True)
-    r = subprocess.run([exe, "--make-seam6", fdir], capture_output=True, text=True,
-                       timeout=300)
-    assert "HIPS_FIXTURES_OK" in r.stdout, "[fixture_common make-seam6] " + r.stderr[-600:]
-    assert all(os.path.isdir(p) for p in paths), "SEAM0..5.hips 生成失败: " + fdir
-    return fdir
+    """确保 fdir 下存在 P2-007 seam6 fixture: SEAM0..SEAM5.hips 共 6 块（兼容入口）。"""
+    fdir2, paths = ensure_seam_hips(6, fdir)
+    assert all(os.path.isdir(p) for p in paths), "SEAM0..5.hips 生成失败: " + fdir2
+    return fdir2
 
 
 def two_cpu_preexec():
