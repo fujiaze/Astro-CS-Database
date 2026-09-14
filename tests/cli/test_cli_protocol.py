@@ -7,6 +7,9 @@ CLI = os.path.join(REPO, "cli")
 BUILD = os.path.join(REPO, "build", "cli")
 EXE = os.path.join(BUILD, "astrocs")
 
+# FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+
 def _repo_version():
     """版本单源: 根 VERSION 文件(cli/CMakeLists.txt 与 tools/gen_version.py 同源读取)。"""
     with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as fh:
@@ -54,7 +57,8 @@ def run(*args, env=None):
     if env:
         e.update(env)
     return subprocess.run([built(), *args], capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", timeout=60, env=e)
+                          encoding="utf-8", errors="replace", timeout=60,
+                          cwd=run_cwd(), env=e)
 
 def jsonl_lines(stdout):
     return [json.loads(l) for l in stdout.splitlines() if l.strip()]
@@ -67,6 +71,13 @@ class TestGolden(unittest.TestCase):
         cls.cfg = os.path.join(cls.tmp, "pipeline_config.json")
         r = run("config", "init", "--output", cls.cfg)
         assert r.returncode == 0, r.stderr
+        # FIX-UTCLI-HYGIENE: config init 缺省 output_dir="."（cli/commands.cpp run
+        # 路径按 cwd 相对落盘）会让 phase1/2 run 把 astrocs_run_*.json / run_context.json /
+        # resource_* / alloc_* 写进子进程 cwd（仓库根）。把 output_dir 显式改到测试
+        # 自己的绝对临时目录：产物不出测试沙箱，事件里的 manifest path 也保持绝对可读。
+        _d = json.load(open(cls.cfg, encoding="utf-8"))
+        _d["output_dir"] = cls.tmp
+        json.dump(_d, open(cls.cfg, "w", encoding="utf-8"))
 
     @classmethod
     def tearDownClass(cls):
@@ -175,7 +186,8 @@ class TestGolden(unittest.TestCase):
         p = subprocess.Popen([built(), "phase1", "run", "--config", self.cfg,
                               "--events-jsonl"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                             env={**os.environ, **env}, creationflags=creationflags)
+                             cwd=run_cwd(), env={**os.environ, **env},
+                             creationflags=creationflags)
         time.sleep(0.4)
         if os.name == "nt":
             # Windows: subprocess.send_signal 不支持 SIGINT; 经 SetConsoleCtrlHandler 接收控制台信号置取消
@@ -384,7 +396,8 @@ class TestManifestVerify(unittest.TestCase):
         p = subprocess.Popen([built(), "phase2", "run", "--config", self.cfg,
                               "--events-jsonl"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                             env={**os.environ, **env}, creationflags=creationflags)
+                             cwd=run_cwd(), env={**os.environ, **env},
+                             creationflags=creationflags)
         time.sleep(0.4)
         if os.name == "nt":
             p.send_signal(signal.CTRL_BREAK_EVENT)

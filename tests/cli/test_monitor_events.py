@@ -9,6 +9,9 @@ BUILD = os.path.join(REPO, "build", "cli")
 EXE = os.path.join(BUILD, "astrocs")
 AIO = os.path.join(REPO, "lib", "astro_image_io")
 
+# FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
+from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+
 # 复用 phase3 inprocess 测试的 cfitsio_objs 组装
 try:
     from tests.cli.test_phase3_inprocess import cfitsio_objs as cfitsio_objs
@@ -45,7 +48,7 @@ class TestMonitorEvents(unittest.TestCase):
             data = os.path.join(cls.tmp, "data")
             os.makedirs(data)
             r2 = subprocess.run([fixture, "--make-field", data], capture_output=True,
-                                text=True, timeout=300)
+                                text=True, timeout=300, cwd=run_cwd())
             if "HIPS_FIXTURES_OK" in r2.stdout:
                 cls.hips = os.path.join(data, "FIELD.hips")
         # run config
@@ -68,7 +71,8 @@ class TestMonitorEvents(unittest.TestCase):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
     def _run(self, *args):
-        return subprocess.run([EXE, *args], capture_output=True, text=True, timeout=300)
+        return subprocess.run([EXE, *args], capture_output=True, text=True, timeout=300,
+                              cwd=run_cwd())
 
     def _events(self, out):
         evs = []
@@ -145,7 +149,7 @@ int main(){
                            capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
         o = subprocess.run([os.path.join(self.tmp, "enum")], capture_output=True,
-                           text=True, timeout=30).stdout.strip()
+                           text=True, timeout=30, cwd=run_cwd()).stdout.strip()
         self.assertEqual(o, "compute memory io mixed unknown")
 
     def test_06_stage_kind_classify_cpp(self):
@@ -171,7 +175,7 @@ int main(){
                            capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
         o = subprocess.run([os.path.join(self.tmp, "classify")], capture_output=True,
-                           text=True, timeout=30).stdout
+                           text=True, timeout=30, cwd=run_cwd()).stdout
         self.assertIn("compute=compute", o)
         self.assertIn("unknown_unannoted_5s=1", o, "无标注>5s 必须 P1")
         self.assertIn("compute_annoted_5s=0", o, "compute 标注不触发 P1")

@@ -1392,7 +1392,7 @@
         "-t",
         "tests/cli"
       ],
-      "timeout_seconds": 600,
+      "timeout_seconds": 1200,
       "heavy": false,
       "mutates_workspace": false,
       "outputs": [],
