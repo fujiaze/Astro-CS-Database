@@ -34,6 +34,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 INC = os.path.join(REPO, "include")
@@ -142,6 +143,13 @@ def scan_no_static_echo():
             for fn in files:
                 if not (fn.endswith(".c") or fn.endswith(".h") or
                         fn.endswith(".cpp")):
+                    continue
+                # M8-F-001 校正: module_entry.* 是各模块 DLL 对
+                # astrocs_module_query_v1 的**合法唯一实现**(见 docstring),
+                # 不属于"宿主静态 echo 副本"; 旧扫描把 lib/<module>/src/
+                # module_entry.* 一并当宿主直调(6 处误报), 使本脚本恒 FAIL 且
+                # 因未被 discover 采集而长期不可见。
+                if fn.startswith("module_entry."):
                     continue
                 p = os.path.join(root, fn)
                 try:
@@ -355,6 +363,14 @@ def main():
             print(f"KEEP workdir: {work}")
         else:
             shutil.rmtree(work, ignore_errors=True)
+
+
+class TestAbi005EchoAcceptance(unittest.TestCase):
+    """M8-F-001: 原为 main() 直跑验收脚本, unittest discover 采集 0 用例 ⇒
+    UT-ABI 门空转。以 TestCase 包装 main() 使门真实执行; 直跑入口保留。"""
+
+    def test_acceptance_script_passes(self):
+        self.assertEqual(main(), 0, "ABI-005 echo 验收脚本返回非零")
 
 
 if __name__ == "__main__":

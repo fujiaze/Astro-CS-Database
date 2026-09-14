@@ -25,6 +25,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 INC = os.path.join(REPO, "include")
@@ -503,6 +504,14 @@ def main():
             print(f"KEEP workdir: {work}")
         else:
             shutil.rmtree(work, ignore_errors=True)
+
+
+class TestSecureLoaderAcceptance(unittest.TestCase):
+    """M8-F-001: 原为 main() 直跑验收脚本, unittest discover 采集 0 用例 ⇒
+    UT-ABI 门空转。以 TestCase 包装 main() 使门真实执行; 直跑入口保留。"""
+
+    def test_acceptance_script_passes(self):
+        self.assertEqual(main(), 0, "ABI-003 安全 loader 验收脚本返回非零")
 
 
 if __name__ == "__main__":

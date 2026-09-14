@@ -22,15 +22,25 @@ class TestCliSingleInstall(unittest.TestCase):
         # 禁止 install 规则。扫描对象改用根图构建树 (CI build 步产出; 漂移修复)。
         # 断言语义不变: install 树恰一个用户 exe astrocs + 无 legacy exe 泄漏。
         cls.bdir = os.path.join(REPO, "build")
+        # install 规则源 = 真实 CMake 构建目录(有 CMakeCache.txt); 根 build/
+        # 只是 CI 步 cp 出的漂移检查面, 自身无 install 规则。
+        cls.cmake_dir = os.path.join(cls.bdir, "linux-control")
+        if not os.path.isfile(os.path.join(cls.cmake_dir, "CMakeCache.txt")):
+            cls.cmake_dir = cls.bdir
         have_tree = all(os.path.isfile(os.path.join(
             cls.bdir, p)) for p in ("astrocs", "libastrocs_runtime.so"))
         if not have_tree:
-            raise unittest.SkipTest(
-                "需根图构建树 build/{astrocs,libastrocs_runtime.so} "
-                "(BLD-002; CI 构建步产出)")
+            msg = ("需根图构建树 build/{astrocs,libastrocs_runtime.so} "
+                   "(BLD-002; ci/steps/linux_build_root_graph.sh 产出)")
+            # M8-F-003: CI 面缺前置产物是硬失败(门失效), 不得静默 SKIP;
+            # 仅本地开发环境(无 CI 标记)允许跳过。
+            if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+                raise AssertionError(
+                    msg + " — CI 构建步未产出前置产物, 该门恒 SKIP = 未执行")
+            raise unittest.SkipTest(msg)
         cls.prefix = os.path.join(cls.tmp, "prefix")
-        r = subprocess.run(["cmake", "--install", cls.bdir, "--prefix", cls.prefix],
-                           capture_output=True, text=True, timeout=120)
+        r = subprocess.run(["cmake", "--install", cls.cmake_dir, "--prefix", cls.prefix],
+                           capture_output=True, text=True, timeout=300)
         cls.install_rc = r.returncode
         cls.install_err = r.stderr
 
@@ -51,7 +61,7 @@ class TestCliSingleInstall(unittest.TestCase):
     def test_02_exactly_one_user_exe(self):
         """install 树 bin/ 必须恰一个用户 exe, 即 astrocs。"""
         if self.install_rc != 0:
-            self.skipTest("install 失败")
+            self.fail(f"install 失败 rc={self.install_rc}: {self.install_err[-300:]}")
         exes = []
         for root, _dirs, files in os.walk(self.prefix):
             for f in files:
@@ -68,7 +78,7 @@ class TestCliSingleInstall(unittest.TestCase):
     def test_03_no_legacy_exe_leaked(self):
         """install 树不得含任何旧 phase/benchmark/tool/test 可执行目标。"""
         if self.install_rc != 0:
-            self.skipTest("install 失败")
+            self.fail(f"install 失败 rc={self.install_rc}: {self.install_err[-300:]}")
         for fpath in self._install_files():
             base = os.path.splitext(os.path.basename(fpath))[0]
             if LEGACY_EXES.match(base):
@@ -77,7 +87,7 @@ class TestCliSingleInstall(unittest.TestCase):
     def test_04_no_shellout_in_install(self):
         """安装树只应含 CLI 与必要的共享库/数据, 不得含 script 转发到子进程的执行器。"""
         if self.install_rc != 0:
-            self.skipTest("install 失败")
+            self.fail(f"install 失败 rc={self.install_rc}: {self.install_err[-300:]}")
         files = self._install_files()
         # 允许的数据/库扩展; 禁止可执行脚本类(e.g. .sh/.py 可穿透执行旧 exe)
         for fpath in files.values():
@@ -87,7 +97,7 @@ class TestCliSingleInstall(unittest.TestCase):
     def test_05_install_tree_only_bin_and_astroc_data(self):
         """install 树仅含 bin(或 lib)下的用户产物, 不携带源码/第三方便携 exe。"""
         if self.install_rc != 0:
-            self.skipTest("install 失败")
+            self.fail(f"install 失败 rc={self.install_rc}: {self.install_err[-300:]}")
         files = self._install_files()
         for rel in files:
             self.assertFalse(rel.endswith((".cpp", ".h", ".c", ".hpp")),

@@ -26,7 +26,7 @@ int main(int argc, char** argv){
     // 枚举 K, 构造场景 A/B(每场景两态), 由 --case <id> 选择
     const std::string c = (argc>1)?argv[1]:"";
     GateConfig base; base.available_cpus=4; base.selected_workers=4;
-    base.max_active_threads=4; base.avg_equivalent_cores=3.2;
+    base.max_active_threads=4; base.avg_equivalent_cores=3.6;  // §18.2: 0.85*4=3.4 下限
     base.wall_seconds=6.0; base.has_stage_annotation=true; base.cpu_percent=80.0;
     base.iowait_percent=1.0; base.mem_bandwidth_percent=90.0;
     if (c=="compute-ok"){ base.kind=ResKind::Compute; show("r", evaluate_gate(base)); }
@@ -100,7 +100,7 @@ int main(int argc, char** argv){
         self.assertEqual(self._gate("unannotated")["r"], "unannotated_priority")
         d = self._gate("diag")
         self.assertEqual(d["r"], "low_avg_cores")
-        self.assertIn("0.80", d["msg"])
+        self.assertIn("0.85", d["msg"])   # §18.2 冻结系数(旧 D.6 0.80 已废止)
 
     def test_07_fast_fail_first10s(self):
         """首 10s 低 CPU+非 IO+非内存饱和 → 快速失败; 否则不触发。"""

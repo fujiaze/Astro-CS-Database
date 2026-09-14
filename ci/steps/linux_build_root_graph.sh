@@ -22,7 +22,15 @@ timeout 1200 cmake --build build/linux-control -j 2 \
 mkdir -p build/cli && cmake -S cli -B build/cli -DCMAKE_BUILD_TYPE=Release \
   -DASTROCS_ENABLE_ACR=OFF >/dev/null
 timeout 2400 cmake --build build/cli -j 2 --target astrocs
+# M8-F-003: UT-CLI test_cli_single_install 前置产物是根 build/ 构建树的
+# build/{astrocs,libastrocs_runtime.so} 双件; 旧步只 cp astrocs, 缺 .so ⇒
+# 该门 setUpClass 恒 SkipTest(CI 执行数为 0)。此处补建 runtime 平台库并落根树。
+# 注: 该门的 install 面走 build/linux-control(cm/install_layout.cmake 白名单),
+# 干净树必须把 install 载荷目标一并构建, 否则 cmake --install 会在
+# libastrocs_io.so / modules/*.so 处缺失失败(旧步只建 astrocs)。
+timeout 2400 cmake --build build/linux-control -j 2 --target   astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline   astrocs_catalog_gaia astrocs_p1_drizzle astrocs_p1_calibration   astrocs_p1_cosmetic astrocs_p1_hips_writer
 mkdir -p build && cp -f build/linux-control/astrocs build/astrocs
+cp -f build/linux-control/libastrocs_runtime.so build/libastrocs_runtime.so
 # tests/backend oracle fixture(如 test_phase3_reproject_oracle)用
 # -IREPO/build 取 version_generated.h; 根 build/ 仅被 cp 二进制,
 # 需补生成头(R19 34204130361 UT-BACKEND setUpClass 实证)。

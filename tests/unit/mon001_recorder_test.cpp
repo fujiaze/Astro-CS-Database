@@ -95,7 +95,10 @@ int main() {
     std::ifstream sum(dir + "/resource_summary.json");
     std::string js((std::istreambuf_iterator<char>(sum)), {});
     CHECK(js.find("\"n_samples\":10") != std::string::npos);
-    CHECK(js.find("\"normalized_cpu_100pct_all_allocated_cores\":true") != std::string::npos);
+    // M5a-G-002: cpu_pct 单位 = percent_of_one_core(非"已分配容量百分比");
+    // 旧自证字段必须为 false(修复前无条件硬写 true, 与采集事实相反)。
+    CHECK(js.find("\"normalized_cpu_100pct_all_allocated_cores\":false") != std::string::npos);
+    CHECK(js.find("\"cpu_pct_units\":\"percent_of_one_core\"") != std::string::npos);
     CHECK(js.find("\"stage\":\"active\"") != std::string::npos);
     CHECK(js.find("sample_overhead_ms") != std::string::npos);
     std::ifstream bal(dir + "/worker_balance.csv");

@@ -25,7 +25,10 @@
       自身参数（--timeout/--output/--）白名单放行，-- 之后的子命令仍扫描。
   R10 linux-main 选中序末位必须是聚合型 KNOWN-FAILURES-BASELINE-CHECK
       （B3-A5/R-15：它读同 run 全部上游 per-check 结果与 JUnit，排在中间
-      就读不全）→ last_linux_main_entry_must_be_check_gate。
+      就读不全）→ last_linux_main_entry_must_be_check_gate；
+  R11 unittest discover 目录采集用例数必须 > 0，且目录内每个"直跑验收脚本"
+      （模块级 def main + sys.exit(main())）必须贡献 >=1 个 TestCase 用例
+      （M8-F-001: 0 用例入口在 CI 内永不执行却记 PASS）→ discover_case_gap。
 
 输出: stdout 一份 JSON 摘要 {"registry", "checks", "errors", "verdict"}；
       全部通过 exit 0，任一 FAIL exit 1。本脚本只读，不写任何文件。
@@ -33,6 +36,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import pathlib
 import re
@@ -70,6 +74,69 @@ HARDCODED_THREAD_RE = re.compile(
     re.IGNORECASE,
 )
 MONITOR_SCRIPT = "ci/resource_monitor.py"
+
+
+def _collect_test_files(root: pathlib.Path, pattern: str) -> list[pathlib.Path]:
+    """按 unittest discover 语义收集候选文件: 目录内 + 含 __init__.py 的子包。"""
+    files = sorted(p for p in root.glob(pattern) if p.is_file())
+    for sub in sorted(root.iterdir()):
+        if sub.is_dir() and (sub / "__init__.py").is_file():
+            files.extend(_collect_test_files(sub, pattern))
+    return files
+
+
+def _discover_case_gap(where: str, target: pathlib.Path, cmd: list[str]) -> list[str]:
+    """R11：unittest discover 目录不得 0 用例, 且直跑验收脚本必须可被采集。
+
+    M8-F-001 根因: tests/abi 的四个验收脚本 (main() + sys.exit(main())) 无
+    TestCase 类, discover 只收到 0 用例却记 PASS; 纯"目录用例数>0"无法发现
+    (同目录另有 abi002 的 18 例)。故两条判据并用:
+      1) 目录采集用例数 == 0 → 门空转;
+      2) 每个"直跑验收脚本"(模块级 def main + sys.exit(main())) 必须贡献
+         >=1 个 TestCase test_* 方法 —— 否则该脚本在 CI 内永不执行。
+    静态 AST 解析, 无副作用(不 import 被测模块)。
+    """
+    pattern = "test*.py"
+    if "-p" in cmd:
+        pattern = cmd[cmd.index("-p") + 1]
+    total = 0
+    problems: list[str] = []
+    for f in _collect_test_files(target, pattern):
+        rel = f.relative_to(REPO)
+        try:
+            tree = ast.parse(f.read_text(encoding="utf-8", errors="ignore"))
+        except SyntaxError as exc:
+            problems.append(f"R11 {where}: {rel} 解析失败: {exc}")
+            continue
+        has_main = any(
+            isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == "main"
+            for n in tree.body)
+        direct_run = any(
+            isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+            and n.func.attr == "exit" and n.args
+            and isinstance(n.args[0], ast.Call)
+            and isinstance(n.args[0].func, ast.Name)
+            and n.args[0].func.id == "main"
+            for n in ast.walk(tree))
+        cases = 0
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            bases = [ast.unparse(b) for b in node.bases]
+            if any("TestCase" in b for b in bases):
+                cases += sum(
+                    1 for x in node.body
+                    if isinstance(x, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and x.name.startswith("test"))
+        total += cases
+        if direct_run and has_main and cases == 0:
+            problems.append(
+                f"R11 {where}: {rel} 是直跑验收脚本(main+sys.exit)但 discover "
+                f"采集 0 用例 —— 该门在 CI 内永不执行")
+    if total == 0:
+        problems.append(
+            f"R11 {where}: discover 目录 {target.relative_to(REPO)} 采集 0 用例(门空转)")
+    return problems
 
 
 def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]:
@@ -154,6 +221,10 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
                         target = REPO / cmd[cmd.index("-s") + 1]
                         if not target.is_dir():
                             errors.append(f"R4 {where}.command -s: dir not found: {cmd[cmd.index('-s') + 1]}")
+                        else:
+                            # R11（M8-F-001）: discover 采集用例数 > 0 且直跑
+                            # 验收脚本必须可被采集。
+                            errors.extend(_discover_case_gap(where, target, cmd))
                     else:
                         errors.append(f"R4 {where}.command[1]: flag {cmd[1]!r} without resolvable target")
                 else:

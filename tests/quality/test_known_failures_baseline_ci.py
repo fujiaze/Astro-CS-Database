@@ -126,18 +126,64 @@ class TestBaselineVerify(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
 
     def test_t1_real_repo_baseline_verifies(self):
-        """T1：真实版本化基线 verify → rc=0（现场漂移即红）。"""
+        """T1：真实版本化基线 verify → rc=0（现场漂移即红）。
+
+        FD-B2（CI 轮 4 复盘）：本用例曾把「基线必须有 >=2 条且必须含 UT-CLI」
+        钉成期望 —— 而 UT-CLI 已按账本 removal_condition 合法修复并删除条目
+        （07 合同原文：修复后必须删除对应基线项，不能重新增加）。这属审计簇 9
+        「修复即扩散 / 反向钉死」同型实例：门把可合法漂移的**条目清单**当成
+        不变量。改为只断言契约语义（rc/verdict/结构/可达性/conditional 门卫项），
+        条目增减交给 T1b 的正向回归用例覆盖。
+        """
         proc = run_tool(["--mode", "verify", "--repo", str(REPO)])
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         report = json.loads(proc.stdout)
         self.assertEqual(report["verdict"], "PASS")
-        self.assertGreaterEqual(report["entries"], 2)
+        # 结构合法：entries 计数与 entry_detail 一致（不钉具体条数）
+        self.assertIsInstance(report.get("entries"), int)
+        self.assertIsInstance(report.get("entry_detail"), list)
+        self.assertEqual(report["entries"], len(report["entry_detail"]))
+        self.assertGreaterEqual(report["entries"], 1, "基线至少应保留 1 条在册项")
         units = {d["unit"] for d in report["entry_detail"]}
+        # conditional 门卫项（门卫未激活=不出现，故登记为 conditional）仍在册
         self.assertIn("p1_noise_adapter", units)   # F-AIO-001 显式登记
-        self.assertIn("UT-CLI", units)             # UT-CLI 修复前遗留显式登记
         for d in report["entry_detail"]:
             self.assertEqual(d["first_seen_reachability"], "reachable",
                              "首次登记 commit 必须可达：%s" % d)
+
+    def test_t1b_legal_entry_removal_still_verifies(self):
+        """T1b 回归锁：合法的「条目数减少」必须仍 rc=0。
+
+        07 合同：基线项修复后必须删除，不能重新增加。故从现基线复制并删掉条目
+        （含 2→1 与 1→0 两形态）后 verify 必须仍然 PASS —— 防止 T1 再次把条目
+        清单钉死、下次合法删除再被误红（CI 轮 4 UT-QUALITY FAIL 复发锁）。
+        """
+        base = json.loads(BASELINE.read_text(encoding="utf-8"))
+        self.assertGreaterEqual(len(base["failures"]), 1, "基线应有在册项")
+        # 1→0：删掉唯一条目
+        reduced = dict(base)
+        reduced["failures"] = []
+        path = write_baseline(self.tmp / "reduced_zero.json", reduced["failures"])
+        proc = run_tool(["--mode", "verify", "--repo", str(REPO),
+                         "--baseline", str(path)])
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(json.loads(proc.stdout)["verdict"], "PASS")
+        # 2→1：复制真条目 + 一个真实注册 ctest 单元，再删其一
+        e1 = dict(base["failures"][0])
+        e2 = dict(base["failures"][0])
+        e2["check_id"] = "p1wcs_units"
+        e2["unit"] = "p1wcs_units"
+        e2["category"] = "TOOLING_DRIFT"
+        path2 = write_baseline(self.tmp / "reduced_one.json", [e1])
+        proc2 = run_tool(["--mode", "verify", "--repo", str(REPO),
+                          "--baseline", str(path2)])
+        self.assertEqual(proc2.returncode, 0, proc2.stdout + proc2.stderr)
+        self.assertEqual(len(json.loads(proc2.stdout)["entry_detail"]), 1)
+        # 对照：两条都登记同样合法（证明 2→1 是"减少"而非 fixture 本身非法）
+        path3 = write_baseline(self.tmp / "two.json", [e1, e2])
+        proc3 = run_tool(["--mode", "verify", "--repo", str(REPO),
+                          "--baseline", str(path3)])
+        self.assertEqual(proc3.returncode, 0, proc3.stdout + proc3.stderr)
 
     def test_t2_structure_negative(self):
         """T2：缺字段 / 未知 unit / 重复登记 → rc=1。"""
