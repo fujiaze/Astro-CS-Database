@@ -145,9 +145,14 @@ set(P2_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src/hips/aio_hips_reader.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src/aio_upm.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/astro_image_io/src/hips/aio_hips_writer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../lib/common/healpix/healpix_core.cpp)
-# Phase1 Final Closure: 生产 Drizzle→HiPS 链(cli 需链接 hp_drizzle_run_hips; 见 hp_drizzle_api.h)
+# Phase1 Final Closure: 生产 Drizzle 链(cli 生产闭包仅需 hp_drizzle_run legacy .hiss;
+# F-13: hp_drizzle_run_hips 已拆至 hp_drizzle_hips_api.cpp, CLI 不再静态拉入). 见 hp_drizzle_api.h
 # 排除模块内 heapix_core.cpp 去重 shim(cli 已链接 lib/common/healpix/healpix_core.cpp)
 set(DRIZZLE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib/healpix_db/healpix_drizzle)
+# F-13: 本 compat 工程把源直接编入 exe(非静态库惰性取成员), 故不能包含
+# hp_drizzle_hips_api.cpp —— 否则 run_hips 无论是否被引用都进二进制。
+# compat CLI 生产闭包只经 module_adapters 用 hp_drizzle_run(legacy .hiss),
+# 不引用 run_hips; 模块 astrocs_p1_drizzle / tests/unit 对拍目标自行编译该 TU。
 set(DRIZZLE_SRCS
   ${DRIZZLE_DIR}/fits_reader.cpp ${DRIZZLE_DIR}/wcs_sip.cpp ${DRIZZLE_DIR}/poly_clip.cpp
   ${DRIZZLE_DIR}/spherical_overlap.cpp ${DRIZZLE_DIR}/drizzle_engine.cpp

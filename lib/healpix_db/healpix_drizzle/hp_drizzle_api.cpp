@@ -13,6 +13,7 @@
 #include "snr_evaluator.h"  // SnrEvaluator (KD-tree IDW 重建逐像素 SNR; 模块内私有实现)
 #include "aio_healpix_io.h"         // HioSnrModel, HioSnrControlPoint (向后兼容宏)
 #include "astro_sphere_sink.h"      // Phase1: Drizzle -> AIO HiPS 直写
+#include "hp_drizzle_internal.h"    // F-13: run_drizzle_internal / setErrorMsg (run_hips 已迁出本 TU)
 
 #include <cstdio>
 #include <cstring>
@@ -174,13 +175,9 @@ HP_DRIZZLE_API const char* hp_drizzle_reverse_version(void) {
 }
 
 // ============================================================================
-// 辅助: 将 std::string 错误信息拷贝到 result->error_msg (截断到 511 字节)
+// 辅助 setErrorMsg 已迁至 hp_drizzle_internal.h (F-13: 与 hp_drizzle_run_hips
+// 所在 TU 共享); 本 TU 经该头内的 static inline 版本使用, 行为逐字节不变。
 // ============================================================================
-static void setErrorMsg(HpDrizzleResult* result, const std::string& msg) {
-    if (!result) return;
-    size_t n = msg.copy(result->error_msg, sizeof(result->error_msg) - 1);
-    result->error_msg[n] = '\0';
-}
 
 // ============================================================================
 // hp_drizzle_fits_to_ahpx - 执行 Drizzle: FITS → .hiss
@@ -396,7 +393,7 @@ HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
 // write_legacy_hiss: 是否同时写 legacy .hiss (validation.legacy_hiss_compare)
 // output_path: legacy .hiss 路径 (write_legacy_hiss 时必需)
 // ============================================================================
-static int run_drizzle_internal(PipelineFrame* frame,
+int run_drizzle_internal(PipelineFrame* frame,
                                 int nside, int nested, double pixfrac,
                                 const char* output_path,
                                 const char* hips_dir,
@@ -1267,39 +1264,3 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
     }
 }
 
-// ============================================================================
-// hp_drizzle_run_hips - Phase1 Final Closure 正式末端:
-// Drizzle TileAccumulator -> AIO HiPS 直写 (无 HISS 中转)
-// hips_dir: HiPS 产品集根目录 (signal/support/snr 子产品)
-// legacy_hiss_path: 可选 legacy .hiss 路径 (nullptr=不写, 仅 validation 用)
-// ============================================================================
-HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
-                                       int nside, int nested, double pixfrac,
-                                       const char* hips_dir,
-                                       const char* legacy_hiss_path,
-                                       HpDrizzleResult* result,
-                                       int precision_mode)
-{
-    // P1 (R9-A): C 边界异常屏障, 同 hp_drizzle_run 薄壳 (对齐 -11)。
-    try {
-    return run_drizzle_internal(frame, nside, nested, pixfrac,
-                                legacy_hiss_path, hips_dir,
-                                /*write_hips=*/true,
-                                /*write_legacy_hiss=*/(legacy_hiss_path && legacy_hiss_path[0] != '\0'),
-                                result, precision_mode);
-    } catch (const std::exception& e) {
-        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run_hips: C 边界捕获异常: %s\n", e.what());
-        if (result) {
-            std::memset(result, 0, sizeof(HpDrizzleResult));
-            setErrorMsg(result, std::string("内部异常: ") + e.what());
-        }
-        return -11;
-    } catch (...) {
-        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run_hips: C 边界捕获未知异常\n");
-        if (result) {
-            std::memset(result, 0, sizeof(HpDrizzleResult));
-            setErrorMsg(result, "内部未知异常");
-        }
-        return -11;
-    }
-}

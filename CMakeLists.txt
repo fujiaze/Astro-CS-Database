@@ -413,6 +413,7 @@ add_library(astrocs_drizzle STATIC
   lib/healpix_db/healpix_drizzle/drizzle_engine.cpp
   lib/healpix_db/healpix_drizzle/reverse_drizzle.cpp
   lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp
+  lib/healpix_db/healpix_drizzle/hp_drizzle_hips_api.cpp
   lib/healpix_db/healpix_drizzle/astro_sphere_sink.cpp
   lib/healpix_db/healpix_drizzle/snr_evaluator.cpp)
 target_include_directories(astrocs_drizzle PUBLIC
