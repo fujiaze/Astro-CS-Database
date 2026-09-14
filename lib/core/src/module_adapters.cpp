@@ -39,6 +39,7 @@
 
 #include "astro_calibration.h"
 #include "astro_image_io.h"
+#include "aio_fits.h"        // AIOImageData 完整布局: 写出前归一化样本格式为 FP32
 #include "hp_drizzle_api.h"
 
 // P1-001 口径更新: 真实求解器/拟合器/HiPS writer 生产头（模块库零 diff 只读调用）
@@ -725,6 +726,10 @@ ModuleDescriptor p1_drizzle_descriptor() {
   d.parallel_ok = true;
   d.ports = {
       {"calibrated", "DATA-P1-CAL", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      // F-8 (RESCUE): drz 的真实 header KV 来源是 wcs 节点产物 p1_wcs.json;
+      // 声明为 typed 输入端口使 IR 依赖边可绑定（artifact:p1_wcs）, 调度器据此
+      // 保证 wcs 先落盘再 drizzle, 不再依赖并发文件约定。
+      {"wcs", "DATA-P1-WCS", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
       {"stacked", "DATA-P1-STACK", false, UnitId::ADU, CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-DRIZ-001";
@@ -962,13 +967,55 @@ P1Image p1_read_image(const std::string& path) {
 }
 
 // 帧完整性守卫（fail-closed, 补 aio_read 数据缺字 WARN 放行的缝隙）:
-// AIOImageData 无部分读标志 ABI; 以可落盘事实为准——文件体积必须 ≥ 头 2880
-// 字节 + 像素域 BITPIX=-32 字节数（截断坏帧在此确定性拒绝; 与 U6/U3 "truncated
-// input must not complete" 语义同源, fail-closed 不留伪产物）。
+// AIOImageData 无部分读标志 ABI; 以真实磁盘布局为准——每像素字节数取自 aio
+// 读入的真实样本布局（FITS BITPIX / XISF sample format; BSCALE/BZERO 只做
+// 数值缩放、不改变文件体积）, 头域长度取 FITS 主头实测的 2880 字节块数
+//（非 FITS 沿用单块 2880 的保守下界）。要求 头字节 + w*h*(|BITPIX|/8) 全部落盘。
+// 溯源: 旧实现硬编码 4 B/px（隐含 BITPIX=-32），而真实亮场全为 BITPIX=16
+//（2 B/px）→ 全部被误判"不可读"（RESCUE F-7, 源自 9e09941a P1-001，非本包
+// 引入）。本判据不放松截断检测: 32/64 位浮点需求反而更大; 位深/头域不可得即
+// fail-closed（与 U6/U3 "truncated input must not complete" 语义同源, 不留伪产物）。
+bool p1_is_fits_file(const std::string& path) {
+  std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
+  if (!f) return false;
+  char magic[6] = {0};
+  f.read(magic, 6);
+  return f.gcount() == 6 && std::strncmp(magic, "SIMPLE", 6) == 0;
+}
+
+uint64_t p1_fits_primary_header_bytes(const std::string& path) {
+  std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
+  if (!f) return 0;
+  char blk[2880];
+  // 上限 100 块（288 KB）避免无 END 的病态头无限读
+  for (uint64_t blocks = 1; blocks <= 100; ++blocks) {
+    if (!f.read(blk, sizeof(blk))) return 0;
+    for (int i = 0; i < 36; ++i) {
+      const char* c = blk + i * 80;
+      if (std::strncmp(c, "END", 3) == 0 && (c[3] == ' ' || c[3] == '\0'))
+        return blocks * 2880ull;
+    }
+  }
+  return 0;  // 主头无 END → fail-closed
+}
+
 bool p1_image_sane(const P1Image& im, const std::string& path) {
   if (!im.ok() || im.w() <= 0 || im.h() <= 0 || im.px() == nullptr) return false;
-  const uint64_t need =
-      2880ull + static_cast<uint64_t>(im.w()) * static_cast<uint64_t>(im.h()) * 4ull;
+  const AIOImageOptions opt = aio_get_options(im.p);
+  if (opt.bits_per_sample <= 0) return false;  // 位深不可得 → fail-closed
+  const uint64_t bpp = static_cast<uint64_t>(opt.bits_per_sample) / 8ull;
+  if (bpp == 0) return false;
+  const uint64_t a = static_cast<uint64_t>(im.w());
+  const uint64_t b = static_cast<uint64_t>(im.h());
+  if (a > UINT64_MAX / b) return false;
+  const uint64_t pixels = a * b;
+  if (pixels > UINT64_MAX / bpp) return false;
+  const uint64_t data = pixels * bpp;
+  // FITS: 主头实测块数; 非 FITS（XISF 等）: 单块保守下界, 与旧实现同口径
+  const uint64_t header = p1_is_fits_file(path) ? p1_fits_primary_header_bytes(path)
+                                                : 2880ull;
+  if (header == 0 || data > UINT64_MAX - header) return false;
+  const uint64_t need = header + data;
   std::error_code ec;
   const auto sz = std::filesystem::file_size(std::filesystem::u8path(path), ec);
   return !ec && static_cast<uint64_t>(sz) >= need;
@@ -1063,8 +1110,16 @@ bool p1_atomic_publish(const std::string& staging, const std::string& final_path
 }
 
 // FITS 原子落盘（临时文件在目标同目录 → rename 不跨文件系统）
+// RESCUE 真实链路修复: 节点计算缓冲恒为 FP32（aio 的 float* 域）。若复用源图
+// 句柄（源为 BITPIX=16/float_sample=0），aio_write_fits 会按源元数据写 int16 并
+// 对越界值回绕，产出损坏产品（实测 cal 产物与源相关性仅 0.065，真实 16 位数据
+// 的 wcs 求解因此稳定失败）。写出前把样本格式归一为 FP32, 与缓冲真实类型一致。
 bool p1_write_fits_atomic(const P1Image& im, const std::string& final_path,
                           std::string* err) {
+  if (im.ok() && im.p != nullptr) {
+    im.p->bits_per_sample = 32;
+    im.p->float_sample = 1;
+  }
   const std::string staging = p1_staging_path(final_path);
   if (aio_write_fits(im.p, staging.c_str()) != 0) {
     if (err) *err = "write failed: " + final_path;
@@ -1732,15 +1787,16 @@ Json p1_sip_to_json(const P1SipCoeffs& sip) {
 // ── op: plate_solve（真实求解器链: lib/plate_solve ipv——sdet 句柄 +
 //      gaia_client 句柄注入 IPVSolver → ipv_solve_from_memory_with_callback_d
 //      FP64 全链解算 → IpvWcsResult(CD/CRVAL/CRPIX/RMS) → WcsTan roundtrip
-//      自检。生产源零 diff（ipv 非 Windows 平台为源内 stub: 求解必失败 →
-//      节点 DATA fail-closed 如实报平台限制, Windows 侧即真实求解）──
+//      自检。生产源零 diff（FD-05 后 Linux amd64 与 Windows 经同一组 C API
+//      静态/动态直连真实求解器; 源内已无平台 stub, 两平台均为真实求解）。
+//      F-9 起求解器输出边界另加 parity/尺度绝对合理性闸门（见 ipv extract_wcs_sip）──
 Result<void> p1_op_wcs(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
   if (!p1_has(doc, "input_lights") || doc["input_lights"].empty()) {
     return Result<void>::fail(Error(ErrorDomain::DATA, "input_lights required"));
   }
   const Json& wc = doc.contains("wcs") && doc["wcs"].is_object() ? doc["wcs"] : Json::object();
-  // FIX-E2E B1-A1: 显式 WCS 配置路径（Linux ipv stub 平台的合法替代, 不伪造求解）。
+  // FIX-E2E B1-A1: 显式 WCS 配置路径（调用方给定线性 WCS 时的校验/透传通道, 不伪造求解）。
   // 当配置显式给出线性 WCS 8 参数时, 本节点做"显式 WCS 校验 + 透传": 校验有限性/
   // 可逆性(det!=0) + WcsTan roundtrip 自检 + B2-A1 独立前向交叉绝对门, 写 p1_wcs.json 并标记
   // wcs_source="explicit_config"、solver="none(explicit_config)"; 不调用 ipv, 也不
@@ -1863,17 +1919,38 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     (*man)["artifacts"] = Json::array({out_path});
     return Result<void>::success();
   }
-  // 真实求解链必需参数: 初始指向/光学尺度/Gaia 数据目录（缺失显式拒绝, 禁 silent default）
-  const double ra0 = p1_num(wc, "ra0", std::numeric_limits<double>::quiet_NaN());
-  const double dec0 = p1_num(wc, "dec0", std::numeric_limits<double>::quiet_NaN());
+  // 真实求解链必需参数: 光学尺度/Gaia 数据目录（缺失显式拒绝, 禁 silent default）
   const double focal_mm = p1_num(wc, "focal_length_mm", std::numeric_limits<double>::quiet_NaN());
   const double pixel_um = p1_num(wc, "pixel_size_um", std::numeric_limits<double>::quiet_NaN());
   const std::string gaia_dir = wc.value("gaia_data_dir", std::string());
-  if (std::isnan(ra0) || std::isnan(dec0) || std::isnan(focal_mm) ||
-      std::isnan(pixel_um) || gaia_dir.empty()) {
+  if (std::isnan(focal_mm) || std::isnan(pixel_um) || gaia_dir.empty()) {
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "wcs config requires ra0/dec0/focal_length_mm/pixel_size_um/gaia_data_dir "
+        "wcs config requires focal_length_mm/pixel_size_um/gaia_data_dir "
         "(real ipv solve chain; no silent defaults)"));
+  }
+  // ── F-10 (RESCUE): 初始化指向来源策略显式化（禁 silent 用错误指向）─────────
+  // 真实 906 帧中 31 帧无逐帧头 WCS, 仅有 OBJCTRA/OBJCTDEC（靶标坐标, 对 M42_M4
+  // 等面板与真实面板中心相差约 0.8°）。本节点不猜测指向, 由调用方以
+  // wcs.init_source 显式声明来源, 未声明即 config:
+  //   config         : config.wcs.ra0/dec0（调用方给定的数据集指向）
+  //   header_crval   : 被解算帧 FITS 主头的 CRVAL1/2（逐帧可靠指向）
+  //   neighbor_crval : config.wcs.neighbor_ra0/neighbor_dec0（同夜相邻已解帧 CRVAL）
+  // 非法值 / 来源不可得 → DATA fail-closed（不给错解）。逐帧自动邻居检索与
+  // OBJCTRA 粗指向回退属跨帧策略, 登记为待负责人确认项（见交付报告 F-10）。
+  const std::string init_source = wc.value("init_source", std::string("config"));
+  if (init_source != "config" && init_source != "header_crval" &&
+      init_source != "neighbor_crval") {
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "wcs.init_source must be one of config|header_crval|neighbor_crval"));
+  }
+  double ra0 = std::numeric_limits<double>::quiet_NaN();
+  double dec0 = std::numeric_limits<double>::quiet_NaN();
+  if (init_source == "config") {
+    ra0 = p1_num(wc, "ra0", ra0);
+    dec0 = p1_num(wc, "dec0", dec0);
+  } else if (init_source == "neighbor_crval") {
+    ra0 = p1_num(wc, "neighbor_ra0", ra0);
+    dec0 = p1_num(wc, "neighbor_dec0", dec0);
   }
   const std::string frame0 = p1_calibrated_path(doc, doc["input_lights"][0].get<std::string>());
   P1Image im = p1_read_image(frame0);
@@ -1881,6 +1958,23 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     (*man)["error_kind"] = "input";
     return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + frame0));
   }
+  if (init_source == "header_crval") {
+    const AIOImageMetadata meta = aio_get_metadata(im.p);
+    if (!meta.wcs.has_wcs || !std::isfinite(meta.wcs.crval1) ||
+        !std::isfinite(meta.wcs.crval2)) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "wcs.init_source=header_crval but frame header has no CRVAL1/CRVAL2: " +
+          frame0 + " (fail-closed; 无逐帧 WCS 帧须显式用 neighbor_crval/config)"));
+    }
+    ra0 = meta.wcs.crval1;
+    dec0 = meta.wcs.crval2;
+  }
+  if (std::isnan(ra0) || std::isnan(dec0)) {
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "wcs init pointing unavailable for init_source=" + init_source +
+        " (ra0/dec0 missing; 禁 silent default)"));
+  }
+  (*man)["wcs_init_source"] = init_source;
   // 资源 RAII（按 orchestrator PLATESOLVE 销毁顺序: ipv → sdet → gaia）
   StarDetectorHandle sdet = nullptr;
   GaiaClient* gaia = nullptr;
@@ -1938,7 +2032,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::DATA,
         std::string("ipv_solve_from_memory_with_callback_d failed: ") +
         (r.error_msg[0] ? r.error_msg : "solver returned failure") +
-        " (ipv 求解器链: 非 Windows 平台为生产源内建 stub, 平台限制如实上报)"));
+        " (ipv 真实求解器链: 求解失败或解被 parity/尺度合理性闸门拒绝)"));
   }
   // 5) 解算结果 → WcsTan 自检: 次级 roundtrip (<1e-6 px) + B2-A1 绝对
   //    前向交叉门 (<=1e-9 deg, 独立 gnomonic 参考解)
@@ -2009,6 +2103,9 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   if (const Json sj = p1_sip_to_json(sip); !sj.is_null()) wcs_obj["sip"] = sj;
   Json wcs_out = Json{{"schema", "DATA-P1-WCS"},
                       {"solver", "ipv_solve_from_memory_with_callback_d"},
+                      {"wcs_source", "ipv"},
+                      // F-10: 初始化指向来源显式登记（config|header_crval|neighbor_crval）
+                      {"wcs_init_source", init_source},
                       {"initial", false},
                       {"wcs", wcs_obj},
                       {"ctype1", std::string(r.ctype1)},

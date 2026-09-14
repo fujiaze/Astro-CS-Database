@@ -107,6 +107,7 @@
           "resource_class": "cpu_heavy",
           "ports": [
             { "name": "calibrated", "direction": "input", "data_schema_id": "DATA-P1-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
+            { "name": "wcs", "direction": "input", "data_schema_id": "DATA-P1-WCS", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[1]" },
             { "name": "stacked", "direction": "output", "data_schema_id": "DATA-P1-STACK", "unit": "ADU", "coordinate": "ICRS", "scalar": "f32", "shape_hint": "[H,W]" }
           ]
         }

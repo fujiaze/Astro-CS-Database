@@ -760,13 +760,16 @@ void IPVSolver::solve(
     }
 
     // v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
-    cache_last_inliers_(
-        rep_result.matched, U_for_wcs,
-        selection.gaia_ra, selection.gaia_dec,
-        rep_result.trans, s0,
-        rep_result.ra0, rep_result.dec0,
-        img_width, img_height,
-        robust_refine_applied);
+    // F-9: 被 parity/尺度合理性闸门拒绝的解不得进入权威 inlier 缓存。
+    if (result->success) {
+        cache_last_inliers_(
+            rep_result.matched, U_for_wcs,
+            selection.gaia_ra, selection.gaia_dec,
+            rep_result.trans, s0,
+            rep_result.ra0, rep_result.dec0,
+            img_width, img_height,
+            robust_refine_applied);
+    }
 
     // 9. 最终日志
     logger_.info("==== IPVSolver::solve 完成 (V4.22) ====");
@@ -1138,13 +1141,16 @@ void IPVSolver::solve_from_memory(
     }
 
     // v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
-    cache_last_inliers_(
-        rep_result.matched, U_for_wcs,
-        selection.gaia_ra, selection.gaia_dec,
-        rep_result.trans, s0,
-        rep_result.ra0, rep_result.dec0,
-        img_width, img_height,
-        robust_refine_applied);
+    // F-9: 被 parity/尺度合理性闸门拒绝的解不得进入权威 inlier 缓存。
+    if (result->success) {
+        cache_last_inliers_(
+            rep_result.matched, U_for_wcs,
+            selection.gaia_ra, selection.gaia_dec,
+            rep_result.trans, s0,
+            rep_result.ra0, rep_result.dec0,
+            img_width, img_height,
+            robust_refine_applied);
+    }
 
     // 9. 最终日志
     logger_.info("==== IPVSolver::solve_from_memory 完成 (V4.22) ====");
@@ -1422,13 +1428,16 @@ void IPVSolver::solve_post_select(
                   result->trans_order, result->sip.order, (int)result->success);
 
     // v1.3: 缓存最终权威 inlier 数据 (供 WCS Gate v2 双层闭环)
-    cache_last_inliers_(
-        rep_result.matched, U_for_wcs,
-        selection.gaia_ra, selection.gaia_dec,
-        rep_result.trans, s0,
-        rep_result.ra0, rep_result.dec0,
-        img_width, img_height,
-        robust_refine_applied);
+    // F-9: 被 parity/尺度合理性闸门拒绝的解不得进入权威 inlier 缓存。
+    if (result->success) {
+        cache_last_inliers_(
+            rep_result.matched, U_for_wcs,
+            selection.gaia_ra, selection.gaia_dec,
+            rep_result.trans, s0,
+            rep_result.ra0, rep_result.dec0,
+            img_width, img_height,
+            robust_refine_applied);
+    }
 }
 
 // ===========================================================================

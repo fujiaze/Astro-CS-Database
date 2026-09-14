@@ -162,8 +162,13 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
         mk("snr", "astrocs.phase1.noise-snr",
            {{"fluxes", "artifact:p1_flux"}}, {{"snr", "artifact:p1_snr"}},
            "cpu_heavy", true),
+        // F-8 (RESCUE): drz 必须声明消费 artifact:p1_wcs —— 否则 drz 与 wcs 同为
+        // cal 下游并发执行, drz 在 p1_wcs.json 落盘前按 out_dir 文件约定读到空/
+        // 陈旧 header（6B-R2 真实 CLI 3/3 rc=7 "header 缺少 WCS 信息"）。该依赖边令
+        // 调度器先执行 wcs 节点; 产物登记仍在 pipeline outputs 兜底。
         mk("drz", "astrocs.phase1.drizzle",
-           {{"calibrated", "artifact:cal"}}, {{"stacked", "artifact:p1_stack"}},
+           {{"calibrated", "artifact:cal"}, {"wcs", "artifact:p1_wcs"}},
+           {{"stacked", "artifact:p1_stack"}},
            "cpu_heavy", true),
         mk("wr", "astrocs.phase1.writer",
            {{"stacked", "artifact:p1_stack"}}, {{"fits", "artifact:p1_hips"}},

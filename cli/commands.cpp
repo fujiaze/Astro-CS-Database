@@ -6,6 +6,9 @@
 #include <atomic>
 #include <chrono>
 #include <cstdlib>
+#if defined(__GLIBC__)
+#include <malloc.h>   // MON-002 reclaim: malloc_trim 归还线程 arena 空闲块
+#endif
 #include <cstdio>
 #include <cstring>
 #if !defined(_WIN32)
@@ -839,6 +842,13 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     ev.emit_progress(0, 1, "phases", nullptr, nullptr);
     const int rrc = astrocs::cli::run_pipeline({phase.back() - '0'}, cfg_text, budget,
                                                &fail_reason, &first10s_cancel);
+    // MON-002 reclaim: 多线程重计算节点释放的大块缓冲会滞留在线程 glibc arena
+    // 中（真实 T4 运行 live heap(alloc_outstanding) 仅 ~0.2GB 而 RSS 残留 ~2.4GB,
+    // 被 reclaim 门判为"不可解释残留"）。run 结束后显式将各 arena 空闲块归还
+    // 内核, 使收尾 RSS 反映真实工作集; 不改任何门/阈值/科学公式。
+#if defined(__GLIBC__)
+    malloc_trim(0);
+#endif
     {
         const auto s0 = mon.summary();
         const double done_rate = s0.wall_seconds > 0.0 ? 1.0 / s0.wall_seconds : 0.0;
