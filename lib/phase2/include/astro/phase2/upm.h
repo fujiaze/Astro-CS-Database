@@ -73,7 +73,7 @@ typedef struct {
     int    snr_weight_mode;       // 0=snr2_normalized（首版）
     double huber_delta;           // Huber delta（默认 1.345）
     double smoothing_lambda;      // 图平滑权重（默认 0=关闭）
-    double zero_anchor_weight;    // 弱零校正锚权重（默认 1e-3）
+    double zero_anchor_weight;    // 弱零校正锚权重（生产装配显式 1e-3，SCI §9a:133）
     int    max_iterations;        // IRLS 最大迭代（默认 100）
     double tolerance;             // 收敛容差（默认 1e-6）
     int    target_order;          // 模型目标 order（-1=auto）
@@ -89,6 +89,10 @@ typedef struct {
     // CON-005 并行观察/聚合 worker 数（0=auto；1=串行默认）。仅 P2_ENABLE_OPENMP
     // 且 >1 时并行 compute_raw/聚合；gauge/连通分量/收敛/归并保持固定顺序。
     int    cpu_workers;          // 来自 Runtime lease(p2_session 传 budget.max_workers); 1=串行 reference
+    // M7-C-001: UPM 控制 cell 网格边长 G，必须 == 采样器
+    // control_grid_per_tile 且 == UPM 网格常数 8；不等时 p2_upm_build* 返回 3
+    // （禁静默错格架：control 场会按错误格架插值）。
+    int    grid = 8;
 } P2UpmBuildConfig;
 
 // ===== 构建 / 持久化 / 求值 =====

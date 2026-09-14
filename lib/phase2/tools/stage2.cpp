@@ -604,7 +604,7 @@ int main(int argc, char** argv) {
 
     std::atomic<std::uint64_t> total_pixels{0}, total_rejected{0}, total_fallback{0};
     std::uint64_t large_scale_grown = 0;   // grow 新增拒绝样本数
-    std::atomic<std::uint64_t> dbg_reject_px{0}, dbg_fallback_px{0}, dbg_zero_px{0};
+    std::atomic<std::uint64_t> dbg_reject_px{0}, dbg_fallback_px{0}, dbg_zero_px{0}, ivar_tile_fallback_px{0};  // M4-C-03 legacy 降级像素计数
     std::atomic<std::uint64_t> underdetermined_px{0};  // REJECTION_UNDERDETERMINED
     std::atomic<std::uint64_t> px_depth_0{0};  // mutually exclusive depth 诊断
     std::map<std::uint32_t, std::uint64_t> reject_hist;  // 每像素拒绝样本数分布
@@ -1111,6 +1111,11 @@ int main(int argc, char** argv) {
                                 (std::size_t)orig * chunk_pixels + i];
                             weights[s] = iv;
                             ++tl_local_ivar_used;
+                        } else if (orig < depth && ivr[frames[orig]] != nullptr) {
+                            // M4-C-03: 帧本应有 ivar 产品（ivr 已打开）但本 tile
+                            // 读失败——禁止静默用 support（无量纲）冒充 ivar。
+                            if (!cfg.legacy_allow_weight_fallback) { fail = 2; return; }
+                            ++ivar_tile_fallback_px; weights[s] = support_v[s];
                         } else {
                             weights[s] = support_v[s];
                         }
@@ -1315,6 +1320,11 @@ int main(int argc, char** argv) {
                 for (const auto& kv : per_thread_hist[(std::size_t)t])
                     reject_hist[kv.first] += kv.second;
             }
+            if (cpu_fail.load() == 2) {
+                log("M4-C-03 ivar tile read failed without legacy fallback → rc=7");
+                p2_upm_close(model);
+                return 7;
+            }
             if (cpu_fail.load() != 0) {
                 log("CON-006 CPU pixel parallel fatal");
                 p2_upm_close(model);
@@ -1368,9 +1378,17 @@ int main(int argc, char** argv) {
                             // 贡献，ZERO_VALID_WEIGHT）。禁止静默换 support。
                             weights[s] = iv;
                             ++local_ivar_used;
+                        } else if (orig < depth && ivr[frames[orig]] != nullptr) {
+                            // M4-C-03: 帧本应有 ivar 产品但本 tile 读失败。
+                            if (!cfg.legacy_allow_weight_fallback) {
+                                log("M4-C-03 ivar tile read failed: frame=" +
+                                    std::to_string(frames[orig]) + " → fail-closed");
+                                p2_upm_close(model);
+                                return 7;
+                            }
+                            ++ivar_tile_fallback_px; weights[s] = support_v[s];
                         } else {
-                            // 缺 ivar 产品：仅显式 fallback 路径可达
-                            // （打开时已 gate），降级 support 并计数。
+                            // 缺 ivar 产品（ivr==nullptr）：仅显式 fallback 可用。
                             weights[s] = support_v[s];
                         }
                     }
@@ -1731,6 +1749,8 @@ int main(int argc, char** argv) {
         diag["weight_mode"] = cfg.weight_mode;
         diag["local_ivar_used"] = local_ivar_used;
         diag["ivar_product_missing"] = ivar_product_missing;
+        diag["legacy_allow_weight_fallback"] = cfg.legacy_allow_weight_fallback;
+        diag["ivar_tile_read_fallback_pixels"] = ivar_tile_fallback_px.load();
         diag["local_snr_unavailable_controls"] = local_snr_unavailable;
         diag["upm_sigma_floor"] = cfg.sigma_floor;
         diag["upm_support_power"] = cfg.support_power;

@@ -188,7 +188,7 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
     uc.tolerance = 1e-6;
     uc.target_order = static_cast<int>(cov.target_order);
     // 空间 UPM 必须显式 control leaf 层级(order=target+9); 取 coverage 实测值
-    uc.sigma_floor = 1e-3;
+    uc.sigma_floor = 1e-3; uc.zero_anchor_weight = 1e-3; uc.grid = sc.control_grid_per_tile;  // SCI-UPM-001 §9a:133; M7-C-001 G
     uc.support_power = 1.0;
     uc.use_ivar_weight = 1;
     uc.control_reliability = 1.0;

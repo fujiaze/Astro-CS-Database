@@ -387,7 +387,12 @@ static void test_ivar_chain_real_operation() {
       CHECK(f.get<uint64_t>() != 0);   // frame_id 0 = 失败哨兵, 禁止传播
     CHECK(smp.value("input_manifest_hash", "").size() == 64);
   }
-  json man_fit = run_node(reg, "astrocs.phase2.upm-fit", ivar_cfg(fx), ctx2);
+  // M4-C-02: 本 fixture 为近秩亏合成面（126 obs / 128 control-frame 槽）；
+  // SCI 冻结弱零锚 λ0=1e-3（生产缺省）会使其 IRLS 达 max_iterations 且
+  // objective 4235（λ0=0 时 2 次收敛、objective 0）——见 B3 REPORT leftover。
+  // 本用例只验证 node 接线，显式关闭 λ0 以隔离；生产缺省仍为 1e-3。
+  json man_fit = run_node(reg, "astrocs.phase2.upm-fit",
+                          ivar_cfg(fx, R"(,"upm":{"zero_anchor_weight":0.0})"), ctx2);
   CHECK(man_fit.value("operation", "") == "fit_upm");
   CHECK(man_fit.value("entry", "") == "astrocs_phase2_upmfit_v1");
   CHECK(fs::exists(fs::path(man_fit.value("upm_model_bin", ""))));

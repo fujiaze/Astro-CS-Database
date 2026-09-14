@@ -189,7 +189,7 @@ n_ret            = max(N_retained, 1.0)                    # :838 防零除
   → kcorr_lookup(pixfrac, scale)（:547-555；scale 未知→300" 档
   保守 ：554）；lookup 表 :91-94 冻结数值
   {1.2112,1.3925,1.4980 | 2.3958,2.8971,3.2035}（300"/600" ×
-  pixfrac 0.5/0.8/1.0），双线性插值 :97-108，域外 clamp
+  pixfrac 0.5/0.8/1.0），两段分段线性插值（非均匀网格）:97-108，域外 clamp
   [0.5,1.0]×[300,600]（:95-96）；provenance 缺失/无有效 pixfrac →
   cfg.control_k_corr（:839 回退链 frames[i].kcorr>0 ? per-frame
   : cfg.control_k_corr）；per-frame 覆盖关系与 PHASE2_SAMPLER 旧节
@@ -402,7 +402,7 @@ lib/phase2/CMakeLists.txt:28 option 保留仅影响旧 target 编译面）。
 | # | 设计面 | 冻结容差 | 现状测试锚 |
 |---|---|---|---|
 | F1 | 统计量单元：median odd/even/负值/重复/乱序/NaN 过滤；MAD=1.4826×median 偏差 | 逐值 bitwise（EXPECT_DOUBLE_EQ） | synthetic_gate.cpp:3594 G1StatisticsCorrectness（先例在库） |
-| F2 | kcorr_lookup 边界与角点：pf∈{0.5,0.8,1.0}×sc∈{300,600} 九值、域外 clamp、provenance 缺失回退 1.4 | 角点值 exact；插值点 rtol 1e-12 | 无（新建；表值 :91-94） |
+| F2 | kcorr_lookup 边界与角点：pf∈{0.5,0.8,1.0}×sc∈{300,600} 九值、域外 clamp、provenance 缺失回退 1.4 | 角点值 exact；插值点 rtol 1e-12 | phase2_sampler.kcorr.corner_exact（新建；表值 :91-94） |
 | F3 | control_variance 解析 oracle（Python 复算 k_corr×(π/2)×σ²/N_ret） | rtol 1e-12；UPMW-004 MC 基线 3σ | synthetic_gate.cpp:4001/:4061/:4089（先例在库） |
 | F4 | 坐标/tile 映射：单 tile 合成 → 64 cell (ra,dec,leaf_ipix) 对独立 HEALPix 参考实现 | atol 1e-9 deg；cell 索引单射 exact | 无（新建） |
 | F5 | constant/gradient/impulse 验证面：constant patch（σ→1e-12 floor 路径）、线性梯度 patch（亮端 clipping 方向性）、单像素 impulse（bfrac=1/n_total 路径） | cvar rtol 1e-12；接受/拒绝判定 exact | 无（新建；公式 :829-843） |

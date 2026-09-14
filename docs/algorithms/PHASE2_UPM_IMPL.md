@@ -361,8 +361,8 @@ frames 重复 rc=1、C 行数≠frame 数 rc=1、dense stale rc=2。fixture
 
 ## 13 容差与冻结清单（默认值 2026-09-10 实测）
 
-**P2UpmBuildConfig 默认值**（cfg_in=null 缺省面 ：218-245；生产组装
-p2_session.cpp:187-195 同值）：
+**P2UpmBuildConfig 默认值**（cfg_in=null 缺省面 ：218-245；两处生产组装
+p2_session.cpp:187-195 与 module_adapters.cpp:3152-3176 均显式赋 zero_anchor_weight=1e-3）：
 
 | 参数 | 默认 | 锚（upm.cpp） |
 |---|---|---|

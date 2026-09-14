@@ -110,7 +110,7 @@ frame_id / manifest / RA-Dec 度 / NESTED / 512-tile 映射
 | magG / magBP / magRP | float64 | mag | `raw×0.001−1.5`；DR3 数据下 BP/RP 恒 0（sentinel，非真值） |
 | flux_min, flux_mul | float32 | W·m⁻²·nm⁻¹ | 无光谱记录时 0（sentinel） |
 | 光谱字节块 | uint8[343]/星 | 行主序 `out_spectra[i*spec_n + j]` | 解码 `byte*flux_mul+flux_min`；`out_spectra=NULL` 表示无光谱 |
-| out_match_idx | int32 | 坐标序 | −1 = 该坐标未匹配 |
+| out_match_idx | int32 | 坐标序；长度 = `n_coords`（= 结果 JSON `n_coords` 字段） | −1 = 该坐标未匹配 |
 | out_ra/out_dec (solver) | float64 | deg | out_mag float32 mag |
 | out_count | int32 | 行数 | 0 = 空结果（合法，非错误） |
 

@@ -2393,13 +2393,44 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       }
     }
   }
-  // PipelineFrame: data [H,W] f32 + header KV（hp_drizzle_run 合同: dims[0]=H, dims[1]=W）
+  // PipelineFrame: data [H,W] + header KV（hp_drizzle_run 合同: dims[0]=H, dims[1]=W）。
+  // M2a-H-1: data 块 dtype 必须与 drizzle.precision_mode 一致（FP64 请求 →
+  // FLOAT64 块，走真 binary64 累加域）；否则元数据声称 FP64 而实际 binary32。
   PipelineFrame* frame = aio_pipeline_frame_create();
   if (!frame) return Result<void>::fail(Error(ErrorDomain::RESOURCE, "frame create failed"));
   const int dims[2] = {im.h(), im.w()};
-  int rc = aio_frame_add_block(frame, "data", AIO_BLOCK_FLOAT32, im.px(),
-                               static_cast<int64_t>(im.w()) * static_cast<int64_t>(im.h()),
-                               dims, 2, "p1 drizzle node input plane");
+  const uint64_t n_px = (uint64_t)im.w() * (uint64_t)im.h();
+  std::vector<double> px64;
+  const void* px_ptr = im.px();
+  AioBlockType blk_type = AIO_BLOCK_FLOAT32;
+  if (precision_mode == 1) {
+    if (aio_get_dtype(im.p) == 1) {
+      const double* s = aio_get_pixel_data_f64(im.p);
+      px64.assign(s, s + (size_t)n_px);
+    } else {
+      const float* s = im.px();
+      px64.resize((size_t)n_px);
+      for (uint64_t i = 0; i < n_px; ++i) px64[i] = (double)s[i];
+    }
+    px_ptr = px64.data();
+    blk_type = AIO_BLOCK_FLOAT64;
+  }
+  int rc = aio_frame_add_block(frame, "data", blk_type, const_cast<void*>(px_ptr),
+                               (int64_t)n_px, dims, 2,
+                               precision_mode == 1
+                                   ? "p1 drizzle node input plane (FP64)"
+                                   : "p1 drizzle node input plane (FP32)");
+  if (rc == 0) {
+    // 显式一致性自检（无 silent 缺省）：块 dtype 必须匹配 precision_mode。
+    const AioBlock* db = aio_frame_get_block(frame, "data");
+    const AioBlockType want =
+        (precision_mode == 1) ? AIO_BLOCK_FLOAT64 : AIO_BLOCK_FLOAT32;
+    if (!db || db->type != want) {
+      aio_pipeline_frame_destroy(frame);
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "drizzle precision consistency: data block dtype != precision_mode"));
+    }
+  }
   if (rc == 0) {
     // header KV: WCS 7 参数 + 派生确定性字段
     struct KV { const char* k; char v[64]; };
@@ -3064,7 +3095,7 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
   Json artifact = Json{{"schema", "DATA-P2-SMP"},
                        {"entry", "p2_sample_controls_cached"},
                        {"input_manifest_hash", manifest_hash},
-                       {"target_order", view.cov.target_order},
+                       {"target_order", view.cov.target_order}, {"control_grid_per_tile", sc.control_grid_per_tile},
                        {"frame_ids", fid_j},
                        {"n_obs", n_obs},
                        {"n_controls", n_controls},
@@ -3158,7 +3189,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   // target_order = coverage 实测值（p2_session 同款; 空间 UPM 显式 control
   // leaf 层级 order=target+9 由模型内部展开）
   uc.target_order = smp_doc.value("target_order", -1);
-  uc.sigma_floor = 1e-3;
+  uc.sigma_floor = 1e-3; uc.zero_anchor_weight = 1e-3; uc.grid = smp_doc.value("control_grid_per_tile", 8);  // SCI-UPM-001 §9a:133; M7-C-001 G
   uc.support_power = 1.0;
   uc.use_ivar_weight = 1;          // production（SCI-UPM-WEIGHT-001 冻结）
   uc.control_reliability = 1.0;
@@ -3174,6 +3205,9 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     uc.huber_delta = upm_cfg["huber_delta"].get<double>();
   if (upm_cfg.contains("smoothing_lambda"))
     uc.smoothing_lambda = upm_cfg["smoothing_lambda"].get<double>();
+  // M4-C-02: 与 stage2_common 对称的显式覆盖面；缺省保持 SCI §9a:133 λ0=1e-3。
+  if (upm_cfg.contains("zero_anchor_weight"))
+    uc.zero_anchor_weight = upm_cfg["zero_anchor_weight"].get<double>();
 
   void* model = nullptr;
   const int rc = p2_upm_build_geo(obs.data(), obs.size(),

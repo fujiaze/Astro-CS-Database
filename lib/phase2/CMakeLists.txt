@@ -89,6 +89,14 @@ if(GTest_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
     add_executable(phase2_async_io tests/async_io_test.cpp)
     target_link_libraries(phase2_async_io PRIVATE phase2 GTest::gtest_main)
+    # RQS-B3 / M4-C-01 (ALG-P2-SMP-001 11.3 F2): kcorr_lookup non-uniform
+    # pixfrac grid piecewise-linear + exact corners; drives production impl
+    # via the internal seam at the end of sampler.cpp.
+    add_executable(phase2_sampler tests/kcorr_lookup_test.cpp)
+    target_include_directories(phase2_sampler PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/include)
+    target_link_libraries(phase2_sampler PRIVATE phase2 GTest::gtest_main
+        ${CMAKE_CURRENT_SOURCE_DIR}/../astro_image_io/astro_image_io.dll)
     include(GoogleTest)
     # V3 B3-A4: 每个 Phase2 门的发现测试统一加 TEST_PREFIX "phase2_<gate>."，
     # 使全量 ctest 中的 Phase2 科学门可归因、可 grep（"ctest -N | grep -i
@@ -106,6 +114,8 @@ if(GTest_FOUND)
         TEST_PREFIX "phase2_sampler_parallel.")
     gtest_discover_tests(phase2_async_io DISCOVERY_MODE PRE_TEST
         TEST_PREFIX "phase2_async_io.")
+    gtest_discover_tests(phase2_sampler DISCOVERY_MODE PRE_TEST
+        TEST_PREFIX "phase2_sampler.")
 endif()
 
 # BLD-002: 以下工具降级为 compatibility (EXCLUDE_FROM_ALL) —— 非正式 ALL target,
