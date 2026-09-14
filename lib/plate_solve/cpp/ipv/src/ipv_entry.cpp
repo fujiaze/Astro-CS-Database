@@ -111,7 +111,16 @@ ipv::IPVSolverParams to_solver_params(const IpvParams* src) {
     dst.img_n_target                 = src->img_n_target;
     dst.gaia_density_ratio           = src->gaia_density_ratio;
     dst.gaia_query_radius_factor     = src->gaia_query_radius_factor;
-    dst.m_lim_step                   = src->m_lim_step;
+    dst.m_lim_alpha_prior            = src->m_lim_alpha_prior;
+    dst.m_lim_alpha_min              = src->m_lim_alpha_min;
+    dst.m_lim_alpha_max              = src->m_lim_alpha_max;
+    dst.m_lim_safety                 = src->m_lim_safety;
+    dst.m_lim_m0_exposure_s          = src->m_lim_m0_exposure_s;
+    dst.m_lim_m0_offset              = src->m_lim_m0_offset;
+    dst.m_lim_clamp_lo               = src->m_lim_clamp_lo;
+    dst.m_lim_clamp_hi               = src->m_lim_clamp_hi;
+    dst.m_lim_zero_step              = src->m_lim_zero_step;
+    dst.m_lim_gaia_cap_per_file      = src->m_lim_gaia_cap_per_file;
     dst.m_lim_max_iter               = src->m_lim_max_iter;
     dst.density_tolerance            = src->density_tolerance;
 
@@ -338,7 +347,16 @@ IPV_API void ipv_get_default_params(IpvParams* params) {
     params->img_n_target                   = def.img_n_target;
     params->gaia_density_ratio             = def.gaia_density_ratio;
     params->gaia_query_radius_factor       = def.gaia_query_radius_factor;
-    params->m_lim_step                     = def.m_lim_step;
+    params->m_lim_alpha_prior              = def.m_lim_alpha_prior;
+    params->m_lim_alpha_min                = def.m_lim_alpha_min;
+    params->m_lim_alpha_max                = def.m_lim_alpha_max;
+    params->m_lim_safety                   = def.m_lim_safety;
+    params->m_lim_m0_exposure_s            = def.m_lim_m0_exposure_s;
+    params->m_lim_m0_offset                = def.m_lim_m0_offset;
+    params->m_lim_clamp_lo                 = def.m_lim_clamp_lo;
+    params->m_lim_clamp_hi                 = def.m_lim_clamp_hi;
+    params->m_lim_zero_step                = def.m_lim_zero_step;
+    params->m_lim_gaia_cap_per_file        = def.m_lim_gaia_cap_per_file;
     params->m_lim_max_iter                 = def.m_lim_max_iter;
     params->density_tolerance              = def.density_tolerance;
     // log_dir 保持 '\0' (空字符串 = 不写日志)

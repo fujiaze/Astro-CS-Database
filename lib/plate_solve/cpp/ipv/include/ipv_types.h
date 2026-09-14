@@ -90,8 +90,14 @@ struct StarSelection {
     int    img_height;       // 图像高度(像素)
     double fov_diag_deg;     // FOV 对角线(度)
     double m_lim_final;      // 最终极限星等
-    int    n_gaia_final;     // 最终 Gaia 星数
-    int    m_lim_iterations; // 极限星等迭代次数
+    int    n_gaia_final;     // 最终 Gaia 星数 (= N_returned, 末次查询返回数)
+    int    m_lim_iterations; // 极限星等迭代次数 (= query_count, Gaia 查询次数)
+    // P4-magiter 新增可观测 (回归/调度用; 均由 ipv_select 各路径填充)
+    int    n_fov;            // 投影过滤后 FOV 矩形内 Gaia 星数 (N_fov)
+    int    gaia_query_calls; // 本帧 Gaia 圆锥查询调用次数
+    double gaia_query_ms;    // 本帧 Gaia 圆锥查询累计墙钟 (ms)
+    bool   m_lim_capped;     // 是否触到 Gaia 每文件返回上限 (200000 整数倍 => 截断)
+    double m_lim_alpha_final;// 末次使用的 alpha (dlog10N/dmag)
     double rho_img;          // 图像侧星密度
     double rho_target;       // 目标星密度
     double s0;               // 像素尺度 (arcsec/pixel) - 新增
@@ -211,9 +217,33 @@ struct IPVSolverParams {
     int    img_n_target = 20;               // 图像侧目标星数
     double gaia_density_ratio = 1.5;        // Gaia 密度比
     double gaia_query_radius_factor = 0.55; // Gaia 查询半径因子
-    double m_lim_step = 0.5;                // 极限星等步长
-    int    m_lim_max_iter = 10;             // 极限星等最大迭代
-    double density_tolerance = 0.1;         // 密度容差
+
+    // --- 极限星等割线迭代 (P4-magiter) ---
+    // 替换原 m_lim_step=0.5 线性步长 (割线迭代不需要固定步长)。
+    // 依据: run/perf-fix/P4-magiter/REPORT.md (实测 alpha 中位 0.2885;
+    // "FOV 内 >= n_target 颗" 需 safety>=3, 10/10 帧通过)。
+    // 偏差登记: docs/algorithms/IPV_PIPELINE.md proposed patch。
+    // alpha = dlog10(N)/dmag 的局部斜率; 先验取自 10 帧真实 N(m) 曲线中位拟合值
+    // (实测 0.243–0.456, R^2>0.986), 迭代中用相邻两次查询有限差分更新。
+    double m_lim_alpha_prior = 0.2885;      // alpha 先验
+    double m_lim_alpha_min = 1e-3;          // alpha 更新限幅下界
+    double m_lim_alpha_max = 100.0;         // alpha 更新限幅上界
+    // 目标星数倍率: N_target = n_target × m_lim_safety。
+    // safety=3 是 10 帧样本上"FOV 内 >= n_target 颗"全部通过的最小值 (余量 +0.36..+1.07 mag)。
+    double m_lim_safety = 3.0;
+    // 初值 m0 = clamp(6 + 1.5*log10(f_mm) + 2*log10(t_s) + m_lim_m0_offset, clamp_lo, 13)
+    // 该曝光公式在真实帧上系统性偏暗 3.5–5.5 mag, 故 offset 默认 -4.0。
+    double m_lim_m0_exposure_s = 180.0;     // 名义曝光(s); 调用方未提供真实曝光时使用
+    double m_lim_m0_offset = -4.0;          // 曝光公式系统偏差修正 (mag)
+    double m_lim_clamp_lo = 6.0;            // 迭代星等下界 (低于此无星)
+    double m_lim_clamp_hi = 22.0;           // 迭代星等上界 (仅迭代夹取, 不再作兜底查询值)
+    double m_lim_zero_step = 3.0;           // N=0 (初值过亮) 时的 +mag 步长
+    // Gaia 客户端"每文件返回上限" (lib/gaia_xpsd_client/src/gaia_client.c MAX_STARS_RESULT,
+    // 该常量由 P1 持有, 本模块只读该数量用于饱和检测: 返回数为其整数倍 => collector 截断)。
+    // 触顶时停用 alpha 更新并视为已达标 (防 alpha->0 使割线步长发散)。
+    double m_lim_gaia_cap_per_file = 200000.0;
+    int    m_lim_max_iter = 4;              // 最大 Gaia 查询次数 (原线性步长最大迭代, 语义替换)
+    double density_tolerance = 0.1;         // 迭代终止相对容差 (复用)
 
     // --- 日志 ---
     const char* log_dir = nullptr;          // NULL=不写日志, 否则写到此目录

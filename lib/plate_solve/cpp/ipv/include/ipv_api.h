@@ -73,9 +73,20 @@ typedef struct {
     int    img_n_target;
     double gaia_density_ratio;
     double gaia_query_radius_factor;
-    double m_lim_step;
-    int    m_lim_max_iter;
-    double density_tolerance;
+    /* 极限星等割线迭代参数 (P4-magiter; 与 ipv::IPVSolverParams 逐字段对应)。
+     * 原 m_lim_step (线性步长) 已由 m_lim_alpha_prior 替换 (割线迭代无需固定步长)。 */
+    double m_lim_alpha_prior;        /* alpha 先验 (dlog10(N)/dmag), 默认 0.2885 */
+    double m_lim_alpha_min;          /* alpha 更新限幅下界, 默认 1e-3 */
+    double m_lim_alpha_max;          /* alpha 更新限幅上界, 默认 100 */
+    double m_lim_safety;             /* N_target = n_target × safety, 默认 3 */
+    double m_lim_m0_exposure_s;      /* m0 初值名义曝光(s), 默认 180 */
+    double m_lim_m0_offset;          /* 曝光公式偏差修正(mag), 默认 -4.0 */
+    double m_lim_clamp_lo;           /* 迭代星等下界, 默认 6 */
+    double m_lim_clamp_hi;           /* 迭代星等上界, 默认 22 */
+    double m_lim_zero_step;          /* N=0 时 +mag 步长, 默认 3 */
+    double m_lim_gaia_cap_per_file;  /* 触顶检测: Gaia 每文件返回上限, 默认 200000 */
+    int    m_lim_max_iter;           /* 最大 Gaia 查询次数, 默认 4 */
+    double density_tolerance;        /* 迭代终止相对容差, 默认 0.1 */
     char   log_dir[256];     // 空字符串=不写日志
 } IpvParams;
 

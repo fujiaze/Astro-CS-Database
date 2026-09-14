@@ -65,19 +65,50 @@ double compute_initial_mag_cut(
     double focal_length_mm, double exposure_time_s,
     Logger* logger = nullptr);
 
-// 基于天球平均星点密度直接估算极限星等
-// 模型: ρ(G) = 5 × 10^(1.3×(G-10)) 颗/平方度 (Gaia DR3 G 波段近似)
-// 反解: G = 10 + log10(ρ/5) / 1.3
-// 输入: n_required=所需星数, area_sqdeg=查询区域面积
-// 安全余量: 在估算值基础上 +0.5 mag 保证查出的星数 > n_required
-// 返回: 估算的极限星等 (clip 到 [6, 18])
-double estimate_mag_lim_by_density(
-    int n_required,
-    double area_sqdeg,
+// ===========================================================================
+// 极限星等割线迭代 (P4-magiter) —— 替换原 estimate_mag_lim_by_density
+// ---------------------------------------------------------------------------
+// 背景: 原一次性密度公式 ρ(G) = 5 × 10^(1.3×(G-10)) 的 α=1.3 与真实 Gaia
+// 密度实测差 4–5 个数量级 (实测 α 中位 0.2885), 导致 4/10 真实帧"FOV 内
+// 不足 n_target 颗"; 且 mag=22 兜底会触发 Gaia 每文件 200000 条的顺序截断
+// (科学有偏)。改用割线迭代 + 触顶防御; 证据见 run/perf-fix/P4-magiter/REPORT.md。
+// ===========================================================================
+
+// Gaia 查询回调: 对给定极限星等执行一次圆锥查询。
+// 返回 0=成功 / 非 0=失败; n_returned 写出本次返回星数 (失败时可为 0)。
+// 星表数组由实现捕获的引用写出 (须与调用点末次成功查询一致)。
+using MagQueryFn = std::function<int(double mag, int& n_returned)>;
+
+// 割线迭代结果 (逐项可观测, 供回归与调度)
+struct MagIterOutcome {
+    double m_lim_final = 0.0;    // 末次成功查询使用的极限星等 (valid 时有效)
+    int    query_count = 0;      // Gaia 查询次数 (<= params.m_lim_max_iter)
+    int    n_returned = 0;       // 末次成功查询返回星数 (N_returned)
+    int    n_target = 0;         // 输入 n_target
+    double n_target_eff = 0.0;   // n_target × m_lim_safety
+    bool   converged = false;    // |N-N_target|/N_target <= tol, 或触顶视为达标
+    bool   capped = false;       // 触到 Gaia 每文件返回上限 (截断, 已停用 alpha 更新)
+    bool   query_failed = false; // 查询返回错误
+    bool   valid = false;        // 至少有一次成功且非空查询
+    double alpha_final = 0.0;    // 末次使用的 alpha
+};
+
+// 割线迭代: m_next = m + (log10(N_target) - log10(N)) / alpha
+// - 初值 m0 = clamp(6 + 1.5*log10(f_mm) + 2*log10(t_s) + m_lim_m0_offset, clamp_lo, 13)
+// - N_target = n_target × m_lim_safety
+// - alpha 先验 m_lim_alpha_prior, 用相邻两次查询有限差分更新, 限幅 [min, max]
+// - 终止: |N - N_target|/N_target <= density_tolerance, 或查询次数达 m_lim_max_iter
+// - N == 0 -> m += m_lim_zero_step; 触顶 -> 停用 alpha 更新且视为达标
+// - m 全程夹取 [m_lim_clamp_lo, m_lim_clamp_hi]
+MagIterOutcome estimate_mag_lim_iterative(
+    const MagQueryFn& query_func,
+    int n_target,
+    double focal_length_mm,
+    double exposure_s,
+    const IPVSolverParams& params,
     Logger* logger = nullptr);
 
-// 自适应步长迭代极限星等
-// 默认不再使用, 保留作为兜底 (estimate_mag_lim_by_density 失败时)
+// 自适应步长迭代极限星等 (线性步长, 遗留; P4-magiter 起生产路径不再使用)
 void density_match_iterate(
     std::function<int(double, double, double, double)> query_func,
     double center_ra, double center_dec, double query_radius_deg,

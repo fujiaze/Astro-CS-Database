@@ -354,50 +354,223 @@ double compute_initial_mag_cut(
 }
 
 // ----------------------------------------------------------------------------
-// estimate_mag_lim_by_density - 基于天球平均星点密度直接估算极限星等
-// 用户指导: "根据天球的平均星点密度, 搞一个根据视场角自动估算需要的极限星等的公式,
-// 保证查出来的星比需要的多就行"
-// 模型 (Gaia DR3 G 波段近似, 由公开星表密度数据拟合):
-// ρ(G) = 5 × 10^(1.3×(G-10)) 颗/平方度
-// (G=10 → 5, G=12 → 30, G=14 → 150, G=16 → 800, G=18 → 4000)
-// 反解: G = 10 + log10(ρ/5) / 1.3
-// 安全余量: +0.5 mag 保证查出的星数 >= n_required
-// clip 到 [6, 18]: 过亮查询不到星, 过暗密度模型偏差大
+// estimate_mag_lim_iterative - 极限星等割线迭代 (P4-magiter)
+//
+// 替换原一次性密度公式 estimate_mag_lim_by_density (ρ(G)=5×10^(1.3·(G-10)))。
+// 实测依据 (run/perf-fix/P4-magiter/REPORT.md; 原始数据 run/release-rescue/
+// perf-study/exp-A-magiter):
+//  - 真实 alpha = dlog10(N)/dmag 实测 0.243–0.456 (中位 0.2885, R²>0.986);
+//    原代码/文档写死的 1.3 使密度模型高估 4–5 个数量级 (已在
+//    docs/algorithms/IPV_PIPELINE.md 走偏差登记, 本次不改冻结科学文档)。
+//  - 原"一次性公式 + 补救 +1.0mag×2 + mag=22 兜底"在 4/10 真实帧上
+//    "FOV 内不足 n_target 颗" (最短 -0.47 mag); 割线迭代 safety=3 时 10/10
+//    通过 (余量 +0.36..+1.07 mag), 且 6/10 帧匹配输入逐位不变。
+//  - mag=22 兜底查询会触发 gaia_client MAX_STARS_RESULT(每文件 200000 条) 的
+//    顺序截断 (按文件遍历序而非星等) => 科学有偏, 故删除该兜底。
+//
+// 割线步进: m_next = m + (log10(N_target) - log10(N)) / alpha
+// 全部参数来自 IPVSolverParams (宪章 §10.4 禁硬编码)。
 // ----------------------------------------------------------------------------
-double estimate_mag_lim_by_density(
-    int n_required,
-    double area_sqdeg,
+MagIterOutcome estimate_mag_lim_iterative(
+    const MagQueryFn& query_func,
+    int n_target,
+    double focal_length_mm,
+    double exposure_s,
+    const IPVSolverParams& params,
     Logger* logger)
 {
-    if (n_required <= 0 || area_sqdeg <= 0.0) {
-        if (logger) logger->warn("estimate_mag_lim_by_density: 参数非法, 返回默认 m=14");
-        return 14.0;
+    MagIterOutcome out;
+    out.n_target = n_target;
+    out.alpha_final = params.m_lim_alpha_prior;
+
+    if (!query_func || n_target <= 0) {
+        if (logger) logger->error("estimate_mag_lim_iterative: query_func 为空或 n_target 非正");
+        return out;
     }
 
-    // 目标密度 (颗/平方度)
-    double rho_target = static_cast<double>(n_required) / area_sqdeg;
+    // 参数合法化 (外部配置写坏时不得死循环/除零)
+    const double clamp_lo = std::min(params.m_lim_clamp_lo, params.m_lim_clamp_hi);
+    const double clamp_hi = std::max(params.m_lim_clamp_lo, params.m_lim_clamp_hi);
+    const double m0_hi    = std::min(clamp_hi, 13.0);   // 初值上界 13
+    const double safety   = (params.m_lim_safety > 0.0) ? params.m_lim_safety : 3.0;
+    const double tol      = (params.density_tolerance > 0.0) ? params.density_tolerance : 0.1;
+    const int    max_q    = (params.m_lim_max_iter > 0) ? params.m_lim_max_iter : 4;
+    const double zero_step= (params.m_lim_zero_step > 0.0) ? params.m_lim_zero_step : 3.0;
+    const double cap_unit = params.m_lim_gaia_cap_per_file;
+    double alpha = (params.m_lim_alpha_prior > 0.0) ? params.m_lim_alpha_prior : 0.2885;
 
-    // 反解极限星等
-    // log10(rho/5) = 1.3 × (G - 10)
-    // G = 10 + log10(rho/5) / 1.3
-    double G = 10.0 + std::log10(rho_target / 5.0) / 1.3;
+    const double N_target = static_cast<double>(n_target) * safety;
+    out.n_target_eff = N_target;
 
-    // 安全余量: +0.5 mag (放宽星等, 保证查出的星数 > n_required)
-    // 理论上 +0.5 mag 对应约 2× 密度 (10^0.65 ≈ 4.5×), 足以覆盖密度起伏
-    G += 0.5;
-
-    // clip 到 [6, 18]
-    if (G < 6.0) G = 6.0;
-    if (G > 18.0) G = 18.0;
+    // 初值 m0 (曝光公式在真实帧上系统性偏暗 3.5–5.5 mag -> m_lim_m0_offset=-4)
+    const double f_safe = std::max(focal_length_mm, 1.0);
+    const double t_safe = std::max(exposure_s, 0.1);
+    double m = 6.0 + 1.5 * std::log10(f_safe) + 2.0 * std::log10(t_safe)
+             + params.m_lim_m0_offset;
+    m = std::min(std::max(m, clamp_lo), m0_hi);
 
     if (logger) {
-        char buf[256];
+        char buf[512];
         std::snprintf(buf, sizeof(buf),
-            "密度估算极限星等: G=%.3f (n_required=%d, area=%.4f°², rho_target=%.2f/°²)",
-            G, n_required, area_sqdeg, rho_target);
+            "极限星等割线迭代: m0=%.3f (f=%.2fmm, t=%.1fs), n_target=%d, safety=%.2f, "
+            "N_target=%.1f, alpha0=%.4f, tol=%.3f, max_queries=%d",
+            m, focal_length_mm, exposure_s, n_target, safety, N_target, alpha, tol, max_q);
         logger->info(buf);
     }
-    return G;
+
+    double m_prev = 0.0, logN_prev = 0.0;
+    bool   have_prev = false;
+    double m_last_ok = 0.0;
+    int    n_last_ok = 0;
+
+    for (int it = 0; it < max_q; ++it) {
+        int n_ret = 0;
+        const int rc = query_func(m, n_ret);
+        out.query_count++;
+        if (rc != 0) {
+            out.query_failed = true;
+            if (logger) {
+                char buf[256];
+                std::snprintf(buf, sizeof(buf),
+                    "极限星等迭代: 第 %d 次查询失败 (m=%.3f), 使用末次成功结果",
+                    it + 1, m);
+                logger->warn(buf);
+            }
+            break;
+        }
+        out.m_lim_final = m;
+        out.n_returned  = n_ret;
+        out.valid       = true;
+        m_last_ok = m;
+        n_last_ok = n_ret;
+        out.alpha_final = alpha;
+
+        // 触顶检测: 返回数恰为"每文件返回上限"的整数倍 => collector 饱和截断。
+        // 触顶时停用 alpha 更新且视为已达标 (alpha->0 会使割线步长发散)。
+        const bool capped = (n_ret > 0 && cap_unit > 0.0
+                             && std::fmod(static_cast<double>(n_ret), cap_unit) == 0.0);
+        if (capped) {
+            out.capped    = true;
+            out.converged = true;
+            if (logger) {
+                char buf[320];
+                std::snprintf(buf, sizeof(buf),
+                    "极限星等迭代: m=%.3f 返回 %d 触到每文件上限 %.0f 的整数倍, "
+                    "停用 alpha 更新 (按 N>=N_target 处理)", m, n_ret, cap_unit);
+                logger->warn(buf);
+            }
+            break;
+        }
+
+        const double rel = std::abs(static_cast<double>(n_ret) - N_target) / N_target;
+        if (logger) {
+            char buf[320];
+            std::snprintf(buf, sizeof(buf),
+                "极限星等迭代: iter=%d m=%.4f N=%d (N_target=%.1f, 偏差=%.1f%%, alpha=%.4f)",
+                it + 1, m, n_ret, N_target, rel * 100.0, alpha);
+            logger->info(buf);
+        }
+        if (rel <= tol) { out.converged = true; break; }
+
+        if (n_ret == 0) {
+            // 初值过亮 (窄场可能): 避免 log10(0), 直接暗移
+            have_prev = false;
+            m = std::min(std::max(m + zero_step, clamp_lo), clamp_hi);
+            continue;
+        }
+
+        const double logN = std::log10(static_cast<double>(n_ret) + 0.5);
+        if (have_prev && m != m_prev) {
+            const double a_new = (logN - logN_prev) / (m - m_prev);
+            if (a_new > params.m_lim_alpha_min && a_new < params.m_lim_alpha_max) {
+                alpha = a_new;                  // 实测局部斜率更新 (限幅后)
+                out.alpha_final = alpha;
+            }
+        }
+        double step = (std::log10(N_target) - logN) / alpha;
+        if (!std::isfinite(step)) step = 0.0;
+        step = std::min(std::max(step, -6.0), 6.0);
+        m_prev    = m;
+        logN_prev = logN;
+        have_prev = true;
+        m = std::min(std::max(m + step, clamp_lo), clamp_hi);
+    }
+
+    if (!out.converged && out.valid && logger) {
+        char buf[320];
+        std::snprintf(buf, sizeof(buf),
+            "极限星等迭代: 达到查询次数上界 %d 仍未进入 %.0f%% 容差 "
+            "(m=%.3f, N=%d, N_target=%.1f), 采用当前结果",
+            max_q, tol * 100.0, m_last_ok, n_last_ok, N_target);
+        logger->warn(buf);
+    }
+    if (out.valid) { out.m_lim_final = m_last_ok; out.n_returned = n_last_ok; }
+    return out;
+}
+
+// ----------------------------------------------------------------------------
+// gaia_query_mag_iterative - 4 个 ipv_select 路径共用的"迭代查询"封装
+//
+// 把 estimate_mag_lim_iterative 接到 gaia_query_stars 上, 并把末次成功查询的
+// 星表数组留在 cat_ra/cat_dec/cat_mag 供 Step 9 投影使用。
+// 返回 0=成功 (cat_* 有效且 >=2 颗), -1=失败 (调用方按原语义 return -1)。
+// ----------------------------------------------------------------------------
+static int gaia_query_mag_iterative(
+    void* gaia_handle, double ra, double dec, double query_radius_deg,
+    int n_target, double focal_length_mm,
+    const IPVSolverParams& params, Logger* logger, const char* tag,
+    std::vector<double>& cat_ra, std::vector<double>& cat_dec,
+    std::vector<float>& cat_mag,
+    double& m_lim_final, int& query_count, int& n_returned,
+    int& gaia_calls, double& gaia_query_ms,
+    bool& capped, double& alpha_final)
+{
+    std::vector<double> ok_ra, ok_dec;
+    std::vector<float>  ok_mag;
+    bool   have_ok = false;
+    double ok_m    = 0.0;
+
+    gaia_calls    = 0;
+    gaia_query_ms = 0.0;
+
+    MagQueryFn qf = [&](double m_q, int& n_ret) -> int {
+        const double t0 = omp_get_wtime();
+        const int rc = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg,
+                                        m_q, cat_ra, cat_dec, cat_mag);
+        gaia_query_ms += (omp_get_wtime() - t0) * 1000.0;
+        ++gaia_calls;
+        if (rc != 0) { n_ret = 0; return rc; }
+        // 保存末次成功结果 (后续查询失败时仍可用, 不丢星表)
+        ok_ra = cat_ra; ok_dec = cat_dec; ok_mag = cat_mag;
+        have_ok = true; ok_m = m_q;
+        n_ret = static_cast<int>(cat_ra.size());
+        return 0;
+    };
+
+    MagIterOutcome mi = estimate_mag_lim_iterative(
+        qf, n_target, focal_length_mm, params.m_lim_m0_exposure_s, params, logger);
+
+    query_count = mi.query_count;
+    n_returned  = mi.n_returned;
+    capped      = mi.capped;
+    alpha_final = mi.alpha_final;
+    m_lim_final = mi.valid ? mi.m_lim_final : ok_m;
+
+    if (!have_ok || !mi.valid) {
+        if (logger) logger->error(std::string(tag) + ": Gaia 星表查询失败 (无成功查询结果)");
+        return -1;
+    }
+    // 恢复末次成功查询的星表数组 (末次查询失败时 cat_* 已被清空)
+    cat_ra = ok_ra; cat_dec = ok_dec; cat_mag = ok_mag;
+    if (cat_ra.size() < 2) {
+        char buf[320];
+        std::snprintf(buf, sizeof(buf),
+            "%s: Gaia 星表查询星数过少 (N_returned=%d, m_lim=%.3f)",
+            tag, static_cast<int>(cat_ra.size()), m_lim_final);
+        if (logger) logger->error(buf);
+        return -1;
+    }
+    return 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -590,7 +763,7 @@ int ipv_select(
     [[maybe_unused]] double ra, [[maybe_unused]] double dec,
     double focal_length_mm,
     double pixel_size_um,
-    [[maybe_unused]] const IPVSolverParams& params,
+    const IPVSolverParams& params,
     StarSelection& output,
     Logger* logger)
 {
@@ -766,62 +939,45 @@ int ipv_select(
     output.rho_target = rho_target;
     output.s0 = s0;  // 供后续 Phase (相对向量法等) 使用
 
-    // --- Step 6: 基于天球平均密度直接估算极限星等 ---
-    // 用户指导: "根据天球的平均星点密度, 搞一个根据视场角自动估算需要的极限星等的公式,
-    // 保证查出来的星比需要的多就行。初始只需要很小的极限星等"
-    // 用 query_area 估算, +0.5 mag 安全余量, 一次查询即可, 不再迭代
-    if (logger) logger->info("Step 5: V4.9 密度公式估算极限星等 (替代迭代)");
-    double m_lim_final = estimate_mag_lim_by_density(n_target, query_area_sqdeg, logger);
-    int m_lim_iters = 0;  // 不再迭代
-
-    // --- Step 7: 用估算的极限星等查询 Gaia 星表 (一次查询) ---
-    if (logger) {
-        char buf[256];
-        std::snprintf(buf, sizeof(buf), "Step 6: 用 m_lim=%.3f 查询 Gaia 星表", m_lim_final);
-        logger->info(buf);
-    }
+    // --- Step 6: 极限星等割线迭代 (P4-magiter) ---
+    // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
+    //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
+    //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
+    //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+    if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
+    double m_lim_final = 0.0;
+    int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)
+    int    n_gaia_final = 0;       // = N_returned (末次成功查询返回星数)
+    bool   m_lim_capped = false;
+    double m_lim_alpha_final = params.m_lim_alpha_prior;
+    int    gaia_calls = 0;
+    double gaia_query_ms = 0.0;
     std::vector<double> cat_ra, cat_dec;
     std::vector<float> cat_mag;
-    int q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_lim_final,
-                                  cat_ra, cat_dec, cat_mag);
-
-    // 补救: 若一次查询不足, 逐步放宽 (最多 2 次, 每次 +1.0 mag)
-    int rescue_count = 0;
-    while ((q_ret != 0 || (int)cat_ra.size() < n_target) && rescue_count < 2) {
-        double m_rescue = m_lim_final + 1.0 * (rescue_count + 1);
-        if (logger) {
-            char buf[256];
-            std::snprintf(buf, sizeof(buf),
-                "V4.9 补救查询 %d: Gaia 返回 %d < n_target=%d, 放宽到 m=%.3f",
-                rescue_count + 1, (int)cat_ra.size(), n_target, m_rescue);
-            logger->warn(buf);
-        }
-        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
-        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_rescue,
-                                  cat_ra, cat_dec, cat_mag);
-        if (q_ret == 0 && (int)cat_ra.size() >= n_target) {
-            m_lim_final = m_rescue;
-            break;
-        }
-        rescue_count++;
-    }
-
-    // 最终兜底: mag=22
-    if (q_ret != 0 || cat_ra.size() < 2) {
-        if (logger) logger->warn("Gaia 返回过少, 启用 mag=22 兜底查询");
-        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
-        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, 22.0,
-                                  cat_ra, cat_dec, cat_mag);
-    }
-    if (q_ret != 0 || cat_ra.size() < 2) {
-        if (logger) logger->error("ipv_select: Gaia 星表查询星数过少");
+    if (gaia_query_mag_iterative(
+            gaia_handle, ra, dec, query_radius_deg, n_target, focal_length_mm,
+            params, logger, "ipv_select",
+            cat_ra, cat_dec, cat_mag,
+            m_lim_final, m_lim_iters, n_gaia_final,
+            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final) != 0) {
         return -1;
     }
-
-    int n_gaia_final = (int)cat_ra.size();
+    if (logger) {
+        char buf[512];
+        std::snprintf(buf, sizeof(buf),
+            "Step 6: Gaia 迭代完成 m_lim_final=%.3f, query_count=%d, N_returned=%d, "
+            "capped=%d, alpha=%.4f, gaia_calls=%d, gaia_ms=%.1f",
+            m_lim_final, m_lim_iters, n_gaia_final,
+            m_lim_capped ? 1 : 0, m_lim_alpha_final, gaia_calls, gaia_query_ms);
+        logger->info(buf);
+    }
     output.m_lim_final = m_lim_final;
     output.n_gaia_final = n_gaia_final;
     output.m_lim_iterations = m_lim_iters;
+    output.gaia_query_calls = gaia_calls;
+    output.gaia_query_ms = gaia_query_ms;
+    output.m_lim_capped = m_lim_capped;
+    output.m_lim_alpha_final = m_lim_alpha_final;
 
     // --- Step 9: Gnomonic 投影 + FOV 内过滤 ---
     if (logger) logger->info("Step 7: Gnomonic 投影 + FOV 过滤");
@@ -867,6 +1023,7 @@ int ipv_select(
         if (logger) logger->error("ipv_select: FOV 内 Gaia 星数过少");
         return -1;
     }
+    output.n_fov = static_cast<int>(fov_idx.size());   // N_fov (P4-magiter 可观测)
 
     // --- Step 10: 按星等升序 (最亮优先) 取前 n_target 颗 ---
     // 注: fov_idx 通常 <1000, 并行排序收益有限, 保持 std::sort
@@ -920,7 +1077,7 @@ int ipv_select_from_memory(
     [[maybe_unused]] double ra, [[maybe_unused]] double dec,
     double focal_length_mm,
     double pixel_size_um,
-    [[maybe_unused]] const IPVSolverParams& params,
+    const IPVSolverParams& params,
     StarSelection& output,
     Logger* logger)
 {
@@ -1080,59 +1237,45 @@ int ipv_select_from_memory(
     output.rho_target = rho_target;
     output.s0 = s0;
 
-    // --- Step 6: 基于天球平均密度直接估算极限星等 ---
-    if (logger) logger->info("Step 5: V4.9 密度公式估算极限星等 (替代迭代)");
-    double m_lim_final = estimate_mag_lim_by_density(n_target, query_area_sqdeg, logger);
-    int m_lim_iters = 0;
-
-    // --- Step 7: 用估算的极限星等查询 Gaia 星表 (一次查询) ---
-    if (logger) {
-        char buf[256];
-        std::snprintf(buf, sizeof(buf), "Step 6: 用 m_lim=%.3f 查询 Gaia 星表", m_lim_final);
-        logger->info(buf);
-    }
+    // --- Step 6: 极限星等割线迭代 (P4-magiter) ---
+    // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
+    //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
+    //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
+    //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+    if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
+    double m_lim_final = 0.0;
+    int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)
+    int    n_gaia_final = 0;       // = N_returned (末次成功查询返回星数)
+    bool   m_lim_capped = false;
+    double m_lim_alpha_final = params.m_lim_alpha_prior;
+    int    gaia_calls = 0;
+    double gaia_query_ms = 0.0;
     std::vector<double> cat_ra, cat_dec;
     std::vector<float> cat_mag;
-    int q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_lim_final,
-                                  cat_ra, cat_dec, cat_mag);
-
-    // 补救: 若一次查询不足, 逐步放宽 (最多 2 次, 每次 +1.0 mag)
-    int rescue_count = 0;
-    while ((q_ret != 0 || (int)cat_ra.size() < n_target) && rescue_count < 2) {
-        double m_rescue = m_lim_final + 1.0 * (rescue_count + 1);
-        if (logger) {
-            char buf[256];
-            std::snprintf(buf, sizeof(buf),
-                "V4.9 补救查询 %d: Gaia 返回 %d < n_target=%d, 放宽到 m=%.3f",
-                rescue_count + 1, (int)cat_ra.size(), n_target, m_rescue);
-            logger->warn(buf);
-        }
-        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
-        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_rescue,
-                                  cat_ra, cat_dec, cat_mag);
-        if (q_ret == 0 && (int)cat_ra.size() >= n_target) {
-            m_lim_final = m_rescue;
-            break;
-        }
-        rescue_count++;
-    }
-
-    // 最终兜底: mag=22
-    if (q_ret != 0 || cat_ra.size() < 2) {
-        if (logger) logger->warn("Gaia 返回过少, 启用 mag=22 兜底查询");
-        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
-        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, 22.0,
-                                  cat_ra, cat_dec, cat_mag);
-    }
-    if (q_ret != 0 || cat_ra.size() < 2) {
-        if (logger) logger->error("ipv_select_from_memory: Gaia 星表查询星数过少");
+    if (gaia_query_mag_iterative(
+            gaia_handle, ra, dec, query_radius_deg, n_target, focal_length_mm,
+            params, logger, "ipv_select_from_memory",
+            cat_ra, cat_dec, cat_mag,
+            m_lim_final, m_lim_iters, n_gaia_final,
+            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final) != 0) {
         return -1;
     }
-
-    int n_gaia_final = (int)cat_ra.size();
+    if (logger) {
+        char buf[512];
+        std::snprintf(buf, sizeof(buf),
+            "Step 6: Gaia 迭代完成 m_lim_final=%.3f, query_count=%d, N_returned=%d, "
+            "capped=%d, alpha=%.4f, gaia_calls=%d, gaia_ms=%.1f",
+            m_lim_final, m_lim_iters, n_gaia_final,
+            m_lim_capped ? 1 : 0, m_lim_alpha_final, gaia_calls, gaia_query_ms);
+        logger->info(buf);
+    }
     output.m_lim_final = m_lim_final;
     output.n_gaia_final = n_gaia_final;
     output.m_lim_iterations = m_lim_iters;
+    output.gaia_query_calls = gaia_calls;
+    output.gaia_query_ms = gaia_query_ms;
+    output.m_lim_capped = m_lim_capped;
+    output.m_lim_alpha_final = m_lim_alpha_final;
 
     // --- Step 9: Gnomonic 投影 + FOV 内过滤 ---
     if (logger) logger->info("Step 7: Gnomonic 投影 + FOV 过滤");
@@ -1173,6 +1316,7 @@ int ipv_select_from_memory(
         if (logger) logger->error("ipv_select_from_memory: FOV 内 Gaia 星数过少");
         return -1;
     }
+    output.n_fov = static_cast<int>(fov_idx.size());   // N_fov (P4-magiter 可观测)
 
     // --- Step 10: 按星等升序 (最亮优先) 取前 n_target 颗 ---
     std::sort(fov_idx.begin(), fov_idx.end(),
@@ -1222,7 +1366,7 @@ int ipv_select_from_detections(
     [[maybe_unused]] double ra, [[maybe_unused]] double dec,
     double focal_length_mm,
     double pixel_size_um,
-    [[maybe_unused]] const IPVSolverParams& params,
+    const IPVSolverParams& params,
     StarSelection& output,
     Logger* logger)
 {
@@ -1363,59 +1507,45 @@ int ipv_select_from_detections(
     output.rho_target = rho_target;
     output.s0 = s0;
 
-    // --- Step 6: 基于天球平均密度直接估算极限星等 ---
-    if (logger) logger->info("Step 5: V4.9 密度公式估算极限星等 (替代迭代)");
-    double m_lim_final = estimate_mag_lim_by_density(n_target, query_area_sqdeg, logger);
-    int m_lim_iters = 0;
-
-    // --- Step 7: 用估算的极限星等查询 Gaia 星表 (一次查询) ---
-    if (logger) {
-        char buf[256];
-        std::snprintf(buf, sizeof(buf), "Step 6: 用 m_lim=%.3f 查询 Gaia 星表", m_lim_final);
-        logger->info(buf);
-    }
+    // --- Step 6: 极限星等割线迭代 (P4-magiter) ---
+    // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
+    //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
+    //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
+    //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+    if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
+    double m_lim_final = 0.0;
+    int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)
+    int    n_gaia_final = 0;       // = N_returned (末次成功查询返回星数)
+    bool   m_lim_capped = false;
+    double m_lim_alpha_final = params.m_lim_alpha_prior;
+    int    gaia_calls = 0;
+    double gaia_query_ms = 0.0;
     std::vector<double> cat_ra, cat_dec;
     std::vector<float> cat_mag;
-    int q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_lim_final,
-                                  cat_ra, cat_dec, cat_mag);
-
-    // 补救: 若一次查询不足, 逐步放宽 (最多 2 次, 每次 +1.0 mag)
-    int rescue_count = 0;
-    while ((q_ret != 0 || (int)cat_ra.size() < n_target) && rescue_count < 2) {
-        double m_rescue = m_lim_final + 1.0 * (rescue_count + 1);
-        if (logger) {
-            char buf[256];
-            std::snprintf(buf, sizeof(buf),
-                "V4.9 补救查询 %d: Gaia 返回 %d < n_target=%d, 放宽到 m=%.3f",
-                rescue_count + 1, (int)cat_ra.size(), n_target, m_rescue);
-            logger->warn(buf);
-        }
-        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
-        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_rescue,
-                                  cat_ra, cat_dec, cat_mag);
-        if (q_ret == 0 && (int)cat_ra.size() >= n_target) {
-            m_lim_final = m_rescue;
-            break;
-        }
-        rescue_count++;
-    }
-
-    // 最终兜底: mag=22
-    if (q_ret != 0 || cat_ra.size() < 2) {
-        if (logger) logger->warn("Gaia 返回过少, 启用 mag=22 兜底查询");
-        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
-        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, 22.0,
-                                  cat_ra, cat_dec, cat_mag);
-    }
-    if (q_ret != 0 || cat_ra.size() < 2) {
-        if (logger) logger->error("ipv_select_from_detections: Gaia 星表查询星数过少");
+    if (gaia_query_mag_iterative(
+            gaia_handle, ra, dec, query_radius_deg, n_target, focal_length_mm,
+            params, logger, "ipv_select_from_detections",
+            cat_ra, cat_dec, cat_mag,
+            m_lim_final, m_lim_iters, n_gaia_final,
+            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final) != 0) {
         return -1;
     }
-
-    int n_gaia_final = (int)cat_ra.size();
+    if (logger) {
+        char buf[512];
+        std::snprintf(buf, sizeof(buf),
+            "Step 6: Gaia 迭代完成 m_lim_final=%.3f, query_count=%d, N_returned=%d, "
+            "capped=%d, alpha=%.4f, gaia_calls=%d, gaia_ms=%.1f",
+            m_lim_final, m_lim_iters, n_gaia_final,
+            m_lim_capped ? 1 : 0, m_lim_alpha_final, gaia_calls, gaia_query_ms);
+        logger->info(buf);
+    }
     output.m_lim_final = m_lim_final;
     output.n_gaia_final = n_gaia_final;
     output.m_lim_iterations = m_lim_iters;
+    output.gaia_query_calls = gaia_calls;
+    output.gaia_query_ms = gaia_query_ms;
+    output.m_lim_capped = m_lim_capped;
+    output.m_lim_alpha_final = m_lim_alpha_final;
 
     // --- Step 9: Gnomonic 投影 + FOV 内过滤 ---
     if (logger) logger->info("Step 7: Gnomonic 投影 + FOV 过滤");
@@ -1456,6 +1586,7 @@ int ipv_select_from_detections(
         if (logger) logger->error("ipv_select_from_detections: FOV 内 Gaia 星数过少");
         return -1;
     }
+    output.n_fov = static_cast<int>(fov_idx.size());   // N_fov (P4-magiter 可观测)
 
     // --- Step 10: 按星等升序 (最亮优先) 取前 n_target 颗 ---
     std::sort(fov_idx.begin(), fov_idx.end(),
@@ -1506,7 +1637,7 @@ static int ipv_select_from_memory_with_callback_impl(
     [[maybe_unused]] double ra, [[maybe_unused]] double dec,
     double focal_length_mm,
     double pixel_size_um,
-    [[maybe_unused]] const IPVSolverParams& params,
+    const IPVSolverParams& params,
     [[maybe_unused]] DetectionSinkFn callback,
     [[maybe_unused]] void* user_data,
     StarSelection& output,
@@ -1703,57 +1834,45 @@ static int ipv_select_from_memory_with_callback_impl(
     output.rho_target = rho_target;
     output.s0 = s0;
 
-    // --- Step 6: 基于天球平均密度直接估算极限星等 ---
-    if (logger) logger->info("Step 5: V4.9 密度公式估算极限星等 (替代迭代)");
-    double m_lim_final = estimate_mag_lim_by_density(n_target, query_area_sqdeg, logger);
-    int m_lim_iters = 0;
-
-    // --- Step 7: 用估算的极限星等查询 Gaia 星表 (一次查询) ---
-    if (logger) {
-        char buf[256];
-        std::snprintf(buf, sizeof(buf), "Step 6: 用 m_lim=%.3f 查询 Gaia 星表", m_lim_final);
-        logger->info(buf);
-    }
+    // --- Step 6: 极限星等割线迭代 (P4-magiter) ---
+    // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
+    //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
+    //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
+    //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+    if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
+    double m_lim_final = 0.0;
+    int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)
+    int    n_gaia_final = 0;       // = N_returned (末次成功查询返回星数)
+    bool   m_lim_capped = false;
+    double m_lim_alpha_final = params.m_lim_alpha_prior;
+    int    gaia_calls = 0;
+    double gaia_query_ms = 0.0;
     std::vector<double> cat_ra, cat_dec;
     std::vector<float> cat_mag;
-    int q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_lim_final,
-                                  cat_ra, cat_dec, cat_mag);
-
-    int rescue_count = 0;
-    while ((q_ret != 0 || (int)cat_ra.size() < n_target) && rescue_count < 2) {
-        double m_rescue = m_lim_final + 1.0 * (rescue_count + 1);
-        if (logger) {
-            char buf[256];
-            std::snprintf(buf, sizeof(buf),
-                "V4.9 补救查询 %d: Gaia 返回 %d < n_target=%d, 放宽到 m=%.3f",
-                rescue_count + 1, (int)cat_ra.size(), n_target, m_rescue);
-            logger->warn(buf);
-        }
-        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
-        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, m_rescue,
-                                  cat_ra, cat_dec, cat_mag);
-        if (q_ret == 0 && (int)cat_ra.size() >= n_target) {
-            m_lim_final = m_rescue;
-            break;
-        }
-        rescue_count++;
-    }
-
-    if (q_ret != 0 || cat_ra.size() < 2) {
-        if (logger) logger->warn("Gaia 返回过少, 启用 mag=22 兜底查询");
-        cat_ra.clear(); cat_dec.clear(); cat_mag.clear();
-        q_ret = gaia_query_stars(gaia_handle, ra, dec, query_radius_deg, 22.0,
-                                  cat_ra, cat_dec, cat_mag);
-    }
-    if (q_ret != 0 || cat_ra.size() < 2) {
-        if (logger) logger->error("ipv_select_from_memory_with_callback: Gaia 星表查询星数过少");
+    if (gaia_query_mag_iterative(
+            gaia_handle, ra, dec, query_radius_deg, n_target, focal_length_mm,
+            params, logger, "ipv_select_from_memory_with_callback",
+            cat_ra, cat_dec, cat_mag,
+            m_lim_final, m_lim_iters, n_gaia_final,
+            gaia_calls, gaia_query_ms, m_lim_capped, m_lim_alpha_final) != 0) {
         return -1;
     }
-
-    int n_gaia_final = (int)cat_ra.size();
+    if (logger) {
+        char buf[512];
+        std::snprintf(buf, sizeof(buf),
+            "Step 6: Gaia 迭代完成 m_lim_final=%.3f, query_count=%d, N_returned=%d, "
+            "capped=%d, alpha=%.4f, gaia_calls=%d, gaia_ms=%.1f",
+            m_lim_final, m_lim_iters, n_gaia_final,
+            m_lim_capped ? 1 : 0, m_lim_alpha_final, gaia_calls, gaia_query_ms);
+        logger->info(buf);
+    }
     output.m_lim_final = m_lim_final;
     output.n_gaia_final = n_gaia_final;
     output.m_lim_iterations = m_lim_iters;
+    output.gaia_query_calls = gaia_calls;
+    output.gaia_query_ms = gaia_query_ms;
+    output.m_lim_capped = m_lim_capped;
+    output.m_lim_alpha_final = m_lim_alpha_final;
 
     // --- Step 9: Gnomonic 投影 + FOV 内过滤 ---
     if (logger) logger->info("Step 7: Gnomonic 投影 + FOV 过滤");
@@ -1794,6 +1913,7 @@ static int ipv_select_from_memory_with_callback_impl(
         if (logger) logger->error("ipv_select_from_memory_with_callback: FOV 内 Gaia 星数过少");
         return -1;
     }
+    output.n_fov = static_cast<int>(fov_idx.size());   // N_fov (P4-magiter 可观测)
 
     // --- Step 10: 按星等升序 (最亮优先) 取前 n_target 颗 ---
     std::sort(fov_idx.begin(), fov_idx.end(),
