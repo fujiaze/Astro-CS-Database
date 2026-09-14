@@ -7,6 +7,16 @@
 // 统计判定, n_sentinel 呈现; reclaim_frac 不可计算记 -1(未采样非合法值, 不是
 // 0 回落证据)。判定用整条曲线(Theil-Sen 稳健斜率+首末/留存), 峰值只是呈现
 // 字段之一 —— 禁止只看峰值(规格验收)。
+// F-14(OWNER-07)执行侧裁决: reclaim 判定优先以**分配器实占**(allocator
+// outstanding)为被测量 —— reclaim_frac_alloc=(peak_alloc-last_alloc)/peak_alloc,
+// 阈值与残差容差不变(0.5 / 32MiB); glibc arena 不向 OS 归还已释放页导致的 RSS
+// 残留不再被误判为"程序不还内存"。分配器探针不可用(非 glibc /
+// allocator_probe_available=false)或其峰值实占低于残差容差(不足以解释进程内存)
+// 时回退 RSS 老口径, 判定行为不变。防漏硬条件不放松: 探针可用且
+// last_alloc_outstanding > 32MiB 且 reclaim_frac_alloc < 0.5 → 仍判
+// UnexplainedResidual。判定为 Reclaimed 而 RSS 仍有残留时显式登记
+// allocator_cache_residual_bytes(收尾 RSS 中不被 live outstanding 解释的部分),
+// 不静默通过。schema 由 astrocs.memory-report/v1 升 v2(新增字段, 旧字段语义不变)。
 // allocator outstanding 探针: Linux glibc mallinfo2(uordblks+hblkhd);
 // 非 glibc 平台保持 0 且 allocator_probe_available=false(显式未采样, 不冒充)。
 // private 探针: /proc/self/smaps_rollup Private_Clean+Private_Dirty; 不可得=0
@@ -84,6 +94,94 @@ inline const char* alloc_reclaim_verdict_name(AllocReclaimVerdict v) {
     return "unknown";
 }
 
+// ---- F-14(OWNER-07): 回落判定被测量选择(分配器实占优先) ----
+// 与采样曲线解耦的纯输入/输出(AllocationRecorder 生产路径与单测共用同一判定源);
+// 阈值常量集中在上方, 本函数不引入任何新阈值。
+struct AllocReclaimInputs {
+    uint64_t peak_rss_bytes = 0;
+    uint64_t last_rss_bytes = 0;
+    uint64_t peak_alloc_outstanding_bytes = 0;
+    uint64_t last_alloc_outstanding_bytes = 0;
+    bool allocator_probe_available = false;
+    bool rss_peak_in_window = false;    // RSS 峰值落在结尾窗(时间窗逃逸, 保留)
+    bool alloc_peak_in_window = false;  // allocator 峰值落在结尾窗
+};
+
+struct AllocReclaimDecision {
+    double reclaim_frac = -1.0;        // RSS 口径回落比例(旧字段语义不变; -1=不可算)
+    double reclaim_frac_alloc = -1.0;  // allocator 口径回落比例(-1=探针不可用/不可测)
+    uint64_t retained_bytes = 0;       // RSS 口径 peak-last(旧字段语义不变)
+    // 收尾 RSS 中不被分配器 live outstanding 解释的部分(分配器已归还但 arena
+    // 不还页的显式登记); 探针不可用/不可测时保持 0。
+    uint64_t allocator_cache_residual_bytes = 0;
+    bool alloc_measure_used = false;   // true=判定以 allocator 实占为主被测量
+    AllocReclaimVerdict verdict = AllocReclaimVerdict::InsufficientSamples;
+};
+
+// 报告面呈现判定所用被测量(reclaim_measure 字段)。
+inline const char* alloc_reclaim_measure_name(bool alloc_measure_used) {
+    return alloc_measure_used ? "allocator" : "rss";
+}
+
+// 分配器实占可用性: 探针可用且峰值实占 >= 残差容差。低于容差的 outstanding
+// 不足以解释进程内存(例如合成 RSS-only 曲线或极小进程), 此时以它作被测量既
+// 不能判负也不能判正 —— 回退 RSS 口径(与 F-14 前行为一致, 不放宽任何阈值)。
+inline bool alloc_reclaim_measure_usable(const AllocReclaimInputs& in) {
+    return in.allocator_probe_available &&
+           in.peak_alloc_outstanding_bytes >= kAllocReclaimResidualTolBytes;
+}
+
+inline AllocReclaimDecision decide_allocation_reclaim(const AllocReclaimInputs& in) {
+    AllocReclaimDecision d;
+    if (in.peak_rss_bytes == 0) return d;   // InsufficientSamples, reclaim_frac=-1
+    d.retained_bytes = in.peak_rss_bytes > in.last_rss_bytes
+                           ? in.peak_rss_bytes - in.last_rss_bytes : 0;
+    d.reclaim_frac = static_cast<double>(d.retained_bytes) /
+                     static_cast<double>(in.peak_rss_bytes);
+    if (alloc_reclaim_measure_usable(in)) {
+        const uint64_t alloc_retained =
+            in.peak_alloc_outstanding_bytes > in.last_alloc_outstanding_bytes
+                ? in.peak_alloc_outstanding_bytes - in.last_alloc_outstanding_bytes : 0;
+        d.reclaim_frac_alloc = static_cast<double>(alloc_retained) /
+                               static_cast<double>(in.peak_alloc_outstanding_bytes);
+        d.allocator_cache_residual_bytes =
+            in.last_rss_bytes > in.last_alloc_outstanding_bytes
+                ? in.last_rss_bytes - in.last_alloc_outstanding_bytes : 0;
+        d.alloc_measure_used = true;
+        // 防漏硬条件(不放松): 收尾仍实占 > 残差容差 且 回落 < 阈值 → 真实泄漏,
+        // 不受时间窗逃逸(PeakInWindow)豁免。
+        if (in.last_alloc_outstanding_bytes > kAllocReclaimResidualTolBytes &&
+            d.reclaim_frac_alloc < kAllocMinReclaimFrac) {
+            d.verdict = AllocReclaimVerdict::UnexplainedResidual;
+            return d;
+        }
+        // 时间窗逃逸保留: 分配器峰值落在结尾窗内 = 仍在活跃分配, 不判负。
+        if (in.alloc_peak_in_window) {
+            d.verdict = AllocReclaimVerdict::PeakInWindow;
+            return d;
+        }
+        if (d.reclaim_frac_alloc >= kAllocMinReclaimFrac ||
+            alloc_retained <= kAllocReclaimResidualTolBytes) {
+            d.verdict = AllocReclaimVerdict::Reclaimed;
+            return d;
+        }
+        d.verdict = AllocReclaimVerdict::UnexplainedResidual;
+        return d;
+    }
+    // RSS 口径回退(探针不可用/不可测): 与 F-14 前逐字一致。
+    if (in.rss_peak_in_window) {
+        d.verdict = AllocReclaimVerdict::PeakInWindow;
+        return d;
+    }
+    if (d.reclaim_frac >= kAllocMinReclaimFrac ||
+        d.retained_bytes <= kAllocReclaimResidualTolBytes) {
+        d.verdict = AllocReclaimVerdict::Reclaimed;
+        return d;
+    }
+    d.verdict = AllocReclaimVerdict::UnexplainedResidual;
+    return d;
+}
+
 // 单行曲线样本(sampled=0 为采样失败哨兵行: 入曲线留证, 不入统计)。
 struct AllocSamplePoint {
     double t_seconds = 0.0;
@@ -96,9 +194,11 @@ struct AllocSamplePoint {
     uint8_t sampled = 1;                // 0=采样失败哨兵(非法值, 不入统计)
 };
 
-// 报告(astrocs.memory-report/v1; 原始曲线在 alloc_samples.csv, 本结构为摘要)。
+// 报告(astrocs.memory-report/v2; 原始曲线在 alloc_samples.csv, 本结构为摘要)。
+// v2 = F-14 新增 reclaim_frac_alloc / allocator_cache_residual_bytes /
+// reclaim_measure(旧字段名与语义不变)。
 struct AllocReport {
-    static constexpr const char* kSchema = "astrocs.memory-report/v1";
+    static constexpr const char* kSchema = "astrocs.memory-report/v2";
     std::size_t n_samples = 0;         // 有效样本(哨兵除外)
     std::size_t n_sentinel = 0;        // 采样失败哨兵行数(显式呈现)
     std::size_t n_curve = 0;           // 曲线总行数(有效+哨兵)
@@ -123,8 +223,55 @@ struct AllocReport {
     double reclaim_frac = -1.0;        // -1=未采样/不可计算(哨兵纪律, 非 0 回落)
     uint64_t retained_bytes = 0;       // peak - last(>0 即残留)
     AllocReclaimVerdict reclaim_verdict = AllocReclaimVerdict::InsufficientSamples;
+    // F-14: allocator 实占口径与显式残留登记(探针不可用/不可测 = 哨兵 -1 / 0)
+    double reclaim_frac_alloc = -1.0;
+    uint64_t allocator_cache_residual_bytes = 0;
+    bool reclaim_measure_alloc = false;
     double alloc_sample_overhead_ms = 0.0;  // 每 tick 探针开销均值(实测呈现)
 };
+
+// 报告 JSON 序列化(schema v2)。独立于记录器: AllocationRecorder::write_all 调用,
+// 单测可用构造报告直接落盘验证字段; 字段集中一处, 不散落。
+inline bool write_alloc_report_json(const std::string& out_dir, const AllocReport& r) {
+    std::FILE* f = std::fopen((out_dir + "/alloc_report.json").c_str(), "w");
+    if (!f) return false;
+    std::fprintf(f,
+        "{\"schema\":\"astrocs.memory-report/v2\",\"n_samples\":%zu,\"n_sentinel\":%zu,"
+        "\"n_curve\":%zu,\"wall_seconds\":%.3f,"
+        "\"peak_rss_bytes\":%llu,\"last_rss_bytes\":%llu,"
+        "\"peak_commit_bytes\":%llu,\"last_commit_bytes\":%llu,"
+        "\"peak_cache_bytes\":%llu,"
+        "\"peak_alloc_outstanding_bytes\":%llu,\"last_alloc_outstanding_bytes\":%llu,"
+        "\"allocator_probe_available\":%s,\"private_probe_available\":%s,"
+        "\"rss_slope_bytes_per_s\":%.3f,\"rss_growth_mb_per_s\":%.3f,"
+        "\"slope_points\":%zu,\"growth_verdict\":\"%s\","
+        "\"reclaim_measure\":\"%s\",\"reclaim_frac\":%.3f,\"reclaim_frac_alloc\":%.3f,"
+        "\"retained_bytes\":%llu,\"allocator_cache_residual_bytes\":%llu,"
+        "\"reclaim_verdict\":\"%s\","
+        "\"thresholds\":{\"growth_unbounded_mb_per_s\":%.1f,\"growth_warn_mb_per_s\":%.1f,"
+        "\"min_reclaim_frac\":%.2f,\"residual_tol_bytes\":%llu},"
+        "\"alloc_sample_overhead_ms\":%.3f}\n",
+        r.n_samples, r.n_sentinel, r.n_curve, r.wall_seconds,
+        (unsigned long long)r.peak_rss_bytes, (unsigned long long)r.last_rss_bytes,
+        (unsigned long long)r.peak_commit_bytes, (unsigned long long)r.last_commit_bytes,
+        (unsigned long long)r.peak_cache_bytes,
+        (unsigned long long)r.peak_alloc_outstanding_bytes,
+        (unsigned long long)r.last_alloc_outstanding_bytes,
+        r.allocator_probe_available ? "true" : "false",
+        r.private_probe_available ? "true" : "false",
+        r.rss_slope_bytes_per_s, r.rss_growth_mb_per_s, r.slope_points,
+        alloc_growth_verdict_name(r.growth_verdict),
+        alloc_reclaim_measure_name(r.reclaim_measure_alloc),
+        r.reclaim_frac, r.reclaim_frac_alloc,
+        (unsigned long long)r.retained_bytes,
+        (unsigned long long)r.allocator_cache_residual_bytes,
+        alloc_reclaim_verdict_name(r.reclaim_verdict),
+        kAllocGrowthUnboundedMbPerS, kAllocGrowthWarnMbPerS,
+        kAllocMinReclaimFrac, (unsigned long long)kAllocReclaimResidualTolBytes,
+        r.alloc_sample_overhead_ms);
+    std::fclose(f);
+    return true;
+}
 
 // glibc allocator outstanding 探针(非 glibc=0 且不可用显式呈现, 不冒充)。
 inline uint64_t read_alloc_outstanding() {
@@ -267,41 +414,8 @@ public:
             }
             std::fclose(f);
         }
-        // ---- alloc_report.json ----
-        {
-            std::FILE* f = std::fopen((out_dir + "/alloc_report.json").c_str(), "w");
-            if (!f) return false;
-            std::fprintf(f,
-                "{\"schema\":\"astrocs.memory-report/v1\",\"n_samples\":%zu,\"n_sentinel\":%zu,"
-                "\"n_curve\":%zu,\"wall_seconds\":%.3f,"
-                "\"peak_rss_bytes\":%llu,\"last_rss_bytes\":%llu,"
-                "\"peak_commit_bytes\":%llu,\"last_commit_bytes\":%llu,"
-                "\"peak_cache_bytes\":%llu,"
-                "\"peak_alloc_outstanding_bytes\":%llu,\"last_alloc_outstanding_bytes\":%llu,"
-                "\"allocator_probe_available\":%s,\"private_probe_available\":%s,"
-                "\"rss_slope_bytes_per_s\":%.3f,\"rss_growth_mb_per_s\":%.3f,"
-                "\"slope_points\":%zu,\"growth_verdict\":\"%s\","
-                "\"reclaim_frac\":%.3f,\"retained_bytes\":%llu,\"reclaim_verdict\":\"%s\","
-                "\"thresholds\":{\"growth_unbounded_mb_per_s\":%.1f,\"growth_warn_mb_per_s\":%.1f,"
-                "\"min_reclaim_frac\":%.2f,\"residual_tol_bytes\":%llu},"
-                "\"alloc_sample_overhead_ms\":%.3f}\n",
-                r.n_samples, r.n_sentinel, r.n_curve, r.wall_seconds,
-                (unsigned long long)r.peak_rss_bytes, (unsigned long long)r.last_rss_bytes,
-                (unsigned long long)r.peak_commit_bytes, (unsigned long long)r.last_commit_bytes,
-                (unsigned long long)r.peak_cache_bytes,
-                (unsigned long long)r.peak_alloc_outstanding_bytes,
-                (unsigned long long)r.last_alloc_outstanding_bytes,
-                r.allocator_probe_available ? "true" : "false",
-                r.private_probe_available ? "true" : "false",
-                r.rss_slope_bytes_per_s, r.rss_growth_mb_per_s, r.slope_points,
-                alloc_growth_verdict_name(r.growth_verdict),
-                r.reclaim_frac, (unsigned long long)r.retained_bytes,
-                alloc_reclaim_verdict_name(r.reclaim_verdict),
-                kAllocGrowthUnboundedMbPerS, kAllocGrowthWarnMbPerS,
-                kAllocMinReclaimFrac, (unsigned long long)kAllocReclaimResidualTolBytes,
-                r.alloc_sample_overhead_ms);
-            std::fclose(f);
-        }
+        // ---- alloc_report.json (schema v2; 序列化集中在 write_alloc_report_json) ----
+        if (!write_alloc_report_json(out_dir, r)) return false;
         return true;
     }
 
@@ -372,26 +486,28 @@ private:
             r.reclaim_verdict = AllocReclaimVerdict::InsufficientSamples;
             r.reclaim_frac = -1.0;
         } else {
-            r.retained_bytes = r.peak_rss_bytes > r.last_rss_bytes
-                                   ? r.peak_rss_bytes - r.last_rss_bytes : 0;
-            r.reclaim_frac = static_cast<double>(r.retained_bytes) /
-                             static_cast<double>(r.peak_rss_bytes);
-            // 峰值落在结尾窗内=仍在活跃(工作集未到回收点), 不判回落失败。
-            bool peak_in_window = false;
-            for (const auto* p : valid)
-                if (p->rss_bytes == r.peak_rss_bytes &&
-                    r.wall_seconds - p->t_seconds <= kAllocReclaimWindowSeconds) {
-                    peak_in_window = true;
-                    break;
-                }
-            if (peak_in_window) {
-                r.reclaim_verdict = AllocReclaimVerdict::PeakInWindow;
-            } else if (r.reclaim_frac >= kAllocMinReclaimFrac ||
-                       r.retained_bytes <= kAllocReclaimResidualTolBytes) {
-                r.reclaim_verdict = AllocReclaimVerdict::Reclaimed;
-            } else {
-                r.reclaim_verdict = AllocReclaimVerdict::UnexplainedResidual;
+            // F-14: 被测量在 decide_allocation_reclaim 内选择(allocator 实占优先;
+            // 探针不可用/不可测回退 RSS)。两个口径的峰值时刻各自计算, 时间窗逃逸
+            // (PeakInWindow)按所选被测量判断。
+            AllocReclaimInputs in;
+            in.peak_rss_bytes = r.peak_rss_bytes;
+            in.last_rss_bytes = r.last_rss_bytes;
+            in.peak_alloc_outstanding_bytes = r.peak_alloc_outstanding_bytes;
+            in.last_alloc_outstanding_bytes = r.last_alloc_outstanding_bytes;
+            in.allocator_probe_available = r.allocator_probe_available;
+            for (const auto* p : valid) {
+                if (r.wall_seconds - p->t_seconds > kAllocReclaimWindowSeconds) continue;
+                if (p->rss_bytes == r.peak_rss_bytes) in.rss_peak_in_window = true;
+                if (p->alloc_outstanding_bytes == r.peak_alloc_outstanding_bytes)
+                    in.alloc_peak_in_window = true;
             }
+            const AllocReclaimDecision dec = decide_allocation_reclaim(in);
+            r.reclaim_frac = dec.reclaim_frac;
+            r.reclaim_frac_alloc = dec.reclaim_frac_alloc;
+            r.retained_bytes = dec.retained_bytes;
+            r.allocator_cache_residual_bytes = dec.allocator_cache_residual_bytes;
+            r.reclaim_measure_alloc = dec.alloc_measure_used;
+            r.reclaim_verdict = dec.verdict;
         }
         if (overhead_ns_ > 0 && !pts_.empty())
             r.alloc_sample_overhead_ms =
@@ -456,11 +572,22 @@ inline bool validate_alloc_report(const std::string& dir) {
         !extract_u64("last_rss_bytes", &last) ||
         !extract_f64("rss_slope_bytes_per_s", &slope) || !extract_f64("reclaim_frac", &frac))
         return false;
+    // F-14: v2 必含 reclaim_frac_alloc/allocator_cache_residual_bytes/reclaim_measure
+    // (缺字段=旧 v1 报告或篡改拒绝)。
+    double frac_alloc = 0.0;
+    unsigned long long cache_residual = 0;
+    if (!extract_f64("reclaim_frac_alloc", &frac_alloc) ||
+        !extract_u64("allocator_cache_residual_bytes", &cache_residual) ||
+        js.find("\"reclaim_measure\":") == std::string::npos)
+        return false;
+    (void)frac_alloc;
+    (void)cache_residual;
     if (n_curve != t.size() || n_samples != y.size() || n_sentinel != sentinel) return false;
-    if (js.find("astrocs.memory-report/v1") == std::string::npos) return false;
+    if (js.find("astrocs.memory-report/v2") == std::string::npos) return false;
     if (y.empty()) {
         if (peak != 0 || last != 0) return false;
         if (frac >= 0.0) return false;   // 未采样必须 -1 哨兵, 不得冒充 0 回落
+        if (frac_alloc >= 0.0 || cache_residual != 0) return false;  // 未采样同哨兵纪律
         return true;
     }
     unsigned long long rpeak = 0, rlast = 0;
