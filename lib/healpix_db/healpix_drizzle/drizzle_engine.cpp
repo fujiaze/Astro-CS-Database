@@ -1732,18 +1732,37 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 #endif
     // 不再调用全局 omp_set_num_threads（会改变进程后续
     // 阶段的全局 OpenMP 行为）；线程数经 parallel 子句局部限定。
-    std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> threadTiles(static_cast<size_t>(num_threads));
     std::vector<DrizzleOpCounters> threadCounters(static_cast<size_t>(num_threads));
     std::vector<double> prof_geom_tl(static_cast<size_t>(num_threads), 0.0);
     std::vector<double> prof_wcs_tl(static_cast<size_t>(num_threads), 0.0);
+    // P22: 归约流水线观测 (仅 ASTROCS_DRIZZLE_FINE_PROFILE=1 时维护, 不改变数值)
+    std::vector<double> profP_accum(static_cast<size_t>(num_threads), 0.0);
+    std::vector<double> profP_merge_wait(static_cast<size_t>(num_threads), 0.0);
+    std::vector<double> profP_merge_work(static_cast<size_t>(num_threads), 0.0);
+    std::vector<uint64_t> profP_leafops(static_cast<size_t>(num_threads), 0);
+    std::vector<uint64_t> profP_merge_count(static_cast<size_t>(num_threads), 0);
+    double profP_par_wall = 0.0;
 
     // P15a DRIZZLE-DET-001: 确定性 stripe 归约状态。
     // n_stripes 仅由 img.height 决定 (与线程数无关); stripe 是归约/并行单元,
     // 不是 worker 数。
     const uint32_t n_stripes = drizzle_deterministic_stripe_count(img.height);
     std::unordered_map<uint64_t, TileAccumulatorT<Scalar>> canonicalTiles;
+    // P22 DRIZZLE-PAR: scratch map 池 + 待归约槽。
+    // 池大小 K = num_threads (worker 数唯一来自 config.threads / omp_get_max_threads,
+    // 不硬编码、不新建线程池)。线程累加完一个 stripe 后把 map 放进待归约槽并
+    // 立刻认领下一个 stripe; 任意线程按 stripe 索引升序合并 pending 槽 ⇒
+    // 归约结合树仍是 "stripe 0..n-1 升序左折叠" (与 P15a 逐位一致), 但合并与
+    // 累加重叠, 串行合并不再进入关键路径。同批存活的 map 数 = K, 峰值内存与
+    // P15a 的 per-thread scratch 同阶 (K 个, 不随 stripe 数增长)。
+    const int kScratchPool = num_threads;
+    std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> scratchPool(
+        static_cast<size_t>(kScratchPool));
+    std::vector<char> poolFree(static_cast<size_t>(kScratchPool), 1);
+    std::vector<int> pendingStripe(static_cast<size_t>(n_stripes), -1);
     std::atomic<uint32_t> next_stripe{0};
     uint32_t merge_cursor = 0;              // 下一个待合并的 stripe 索引
+    bool merge_in_progress = false;         // 同一时刻只有一个归约在写 canonicalTiles
     std::mutex merge_mu;
     std::condition_variable merge_cv;
 
@@ -1767,11 +1786,13 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     // 阶段计时 profile—— (PERF-001): fine 逐像素计时默认关闭
     const bool fine = drizzle_fine_profile_enabled();
 
-    // P15a DRIZZLE-DET-001: 并行域按 *固定 stripe* 划分 (与线程数无关)。
-    // 每个 stripe 由唯一线程按 (y,x) 行主序累加进线程本地 scratch map;
-    // 完成后按 stripe 索引升序合并进 canonicalTiles —— 归约结合树与线程数无关。
-    // 采用 "完成后立即按序合并" 流水线, 使同时存活的 scratch map 以线程数为界
-    // (与修复前 per-thread map 同阶), 避免一次性持有 n_stripes 个 map 的内存。
+    // P22 DRIZZLE-PAR: 并行域按 *固定 stripe* 划分 (与线程数无关)。
+    // 每个 stripe 由唯一线程按 (y,x) 行主序累加进池中 scratch map; map 存入
+    // 待归约槽后线程立即认领下一个 stripe, 任意线程按 stripe 索引升序合并 pending
+    // 槽 —— 归约结合树仍是 stripe 升序左折叠 (与 P15a 逐位一致), 但合并与累加
+    // 重叠, 串行合并不再进入关键路径 (P22 剖面: T4 合并 4.4 s 原全部叠加在墙上)。
+    auto t_par0 = fine ? std::chrono::high_resolution_clock::now()
+                       : std::chrono::time_point<std::chrono::high_resolution_clock>{};
     #pragma omp parallel num_threads(num_threads)
     {
 #ifdef _OPENMP
@@ -1779,7 +1800,6 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 #else
         const int tid = 0;  // 串行退化
 #endif
-        auto& tileMap = threadTiles[static_cast<size_t>(tid)];
 
         // 每线程 target-ipix geometry cache 随 run generation 切换
         // 时 clear（避免跨 run NSIDE 不同导致几何污染；容量有界见类定义）
@@ -1797,13 +1817,56 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         }
 
         for (;;) {
-            const uint32_t stripe = next_stripe.fetch_add(1, std::memory_order_relaxed);
-            if (stripe >= n_stripes) break;
-            // 固定块边界: 仅依赖 height 与 stripe 数 (与线程数无关)
-            const int y0 = (int)((uint64_t)stripe * (uint64_t)img.height / (uint64_t)n_stripes);
-            const int y1 = (int)(((uint64_t)stripe + 1) * (uint64_t)img.height / (uint64_t)n_stripes);
+            std::unique_lock<std::mutex> lk(merge_mu);
+            auto t_w0 = fine ? std::chrono::high_resolution_clock::now()
+                             : std::chrono::time_point<std::chrono::high_resolution_clock>{};
+            merge_cv.wait(lk, [&] {
+                if (next_stripe.load(std::memory_order_relaxed) < n_stripes) {
+                    for (int i = 0; i < kScratchPool; i++)
+                        if (poolFree[static_cast<size_t>(i)]) return true;
+                }
+                if (!merge_in_progress && merge_cursor < n_stripes &&
+                    pendingStripe[merge_cursor] >= 0) return true;
+                return next_stripe.load(std::memory_order_relaxed) >= n_stripes &&
+                       merge_cursor >= n_stripes;
+            });
+            if (fine) {
+                profP_merge_wait[static_cast<size_t>(tid)] +=
+                    std::chrono::duration<double>(
+                        std::chrono::high_resolution_clock::now() - t_w0).count();
+            }
+            if (next_stripe.load(std::memory_order_relaxed) >= n_stripes &&
+                merge_cursor >= n_stripes) {
+                lk.unlock();
+                break;   // 所有 stripe 已归约
+            }
 
-            tileMap.clear();   // scratch 只承载本 stripe 的贡献 (行主序; 释放上一 stripe 的像素缓冲, 峰值内存与修复前同为 O(线程数) 个 map)
+            // (1) 有空闲 scratch map 且仍有 stripe ⇒ 认领并累加 (优先保持累加并行)
+            int mi = -1;
+            if (next_stripe.load(std::memory_order_relaxed) < n_stripes) {
+                for (int i = 0; i < kScratchPool; i++) {
+                    if (poolFree[static_cast<size_t>(i)]) {
+                        poolFree[static_cast<size_t>(i)] = 0;
+                        mi = i;
+                        break;
+                    }
+                }
+            }
+            if (mi >= 0) {
+                const uint32_t stripe = next_stripe.fetch_add(1, std::memory_order_relaxed);
+                if (stripe >= n_stripes) {   // 竞争: stripe 已被取尽, 归还 map
+                    poolFree[static_cast<size_t>(mi)] = 1;
+                    merge_cv.notify_all();
+                    continue;
+                }
+                lk.unlock();
+                auto& tileMap = scratchPool[static_cast<size_t>(mi)];
+                tileMap.clear();   // scratch 只承载本 stripe 的贡献 (行主序)
+                auto t_acc0 = fine ? std::chrono::high_resolution_clock::now()
+                                   : std::chrono::time_point<std::chrono::high_resolution_clock>{};
+                // 固定块边界: 仅依赖 height 与 stripe 数 (与线程数无关)
+                const int y0 = (int)((uint64_t)stripe * (uint64_t)img.height / (uint64_t)n_stripes);
+                const int y1 = (int)(((uint64_t)stripe + 1) * (uint64_t)img.height / (uint64_t)n_stripes);
 
         for (int y = y0; y < y1; y++) {
         if (shared_vertices) {
@@ -1878,28 +1941,60 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             }
         }  // for (int x ...)
         }  // for (int y ...) —— 本 stripe 行主序累加结束
-
-        // P15a: 有序合并 —— 等待所有 stripe 索引更小的块全部合并完成后, 再以固定
-        // 顺序并入 canonicalTiles。合并顺序只依赖 stripe 索引 (输入决定), 与线程
-        // 数/调度无关 ⇒ 产物对线程预算不变。
-        {
-            std::unique_lock<std::mutex> lk(merge_mu);
-            merge_cv.wait(lk, [&] { return merge_cursor == stripe; });
-            // 固定顺序合并: stripe 0 直接接管为 canonical (与修复前 thread0 同构,
-            // 避免多一份 map 的内存), 其余 stripe 按升序并入; 归约顺序 = stripe 升序。
-            if (stripe == 0u) {
-                canonicalTiles = std::move(tileMap);
-                tileMap.clear();
-            } else {
-                merge_tile_map_into(canonicalTiles, tileMap);
-                tileMap.clear();
-            }
-            ++merge_cursor;
-            lk.unlock();
-            merge_cv.notify_all();
+        if (fine) {
+            profP_accum[static_cast<size_t>(tid)] += std::chrono::duration<double>(
+                std::chrono::high_resolution_clock::now() - t_acc0).count();
         }
+        // P22: 把 scratch map 放入待归约槽, 不再由本线程就地合并; 立即回到循环
+        // 顶部认领下一个 stripe ⇒ 累加与归约解耦 (归约顺序仍由 stripe 索引决定)。
+        lk.lock();
+        pendingStripe[stripe] = mi;
+        merge_cv.notify_all();
+        continue;
+            }  // if (mi >= 0)
+
+            // (2) 无空闲 scratch map: 按 stripe 索引升序归约 pending 槽。
+            //     与 P15a 的左折叠 (stripe 0..n-1 依次并入 canonical) 完全同序
+            //     ⇒ 浮点结合树逐位一致; 归约在锁外执行, merge_in_progress 保证
+            //     同一时刻只有一个归约在写 canonicalTiles。
+            {
+                const int m = pendingStripe[merge_cursor];
+                pendingStripe[merge_cursor] = -1;
+                merge_in_progress = true;
+                const uint32_t mc = merge_cursor;
+                const auto t_m0 = std::chrono::high_resolution_clock::now();
+                uint64_t p22_ops = 0;
+                if (fine) {
+                    for (const auto& kv : scratchPool[static_cast<size_t>(m)])
+                        p22_ops += kv.second.touched.size();
+                }
+                lk.unlock();
+                if (mc == 0u) {
+                    // stripe 0 直接接管为 canonical (与 P15a 同构, 避免多一份 map)
+                    canonicalTiles = std::move(scratchPool[static_cast<size_t>(m)]);
+                } else {
+                    merge_tile_map_into(canonicalTiles, scratchPool[static_cast<size_t>(m)]);
+                }
+                scratchPool[static_cast<size_t>(m)].clear();
+                lk.lock();
+                poolFree[static_cast<size_t>(m)] = 1;
+                merge_cursor = mc + 1;
+                merge_in_progress = false;
+                if (fine) {
+                    profP_merge_work[static_cast<size_t>(tid)] += std::chrono::duration<double>(
+                        std::chrono::high_resolution_clock::now() - t_m0).count();
+                    profP_leafops[static_cast<size_t>(tid)] += p22_ops;
+                    profP_merge_count[static_cast<size_t>(tid)] += 1;
+                }
+                merge_cv.notify_all();
+                continue;
+            }
         }  // for (;;) stripe 工作循环
     }  // omp parallel
+    if (fine) {
+        profP_par_wall = std::chrono::duration<double>(
+            std::chrono::high_resolution_clock::now() - t_par0).count();
+    }
 
     // 6b. 合并线程操作计数
     DrizzleOpCounters totalOps;
@@ -2007,6 +2102,32 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         n_fully += f;
         n_dropin += d;
         n_sh += s;
+    }
+    // P22: 归约流水线剖面 (与 [profile] 同级, 仅 ASTROCS_DRIZZLE_FINE_PROFILE=1)。
+    // par_wall/accum_cpu/merge_wait_cpu/merge_work_cpu 用于区分 "累加并行度" 与
+    // "归约串行关键路径": merge_work_cpu 是全部归约 CPU 秒 (归约串行),
+    // merge_wait_cpu 是线程等待可归约槽/空闲 map 的 CPU 秒 (越接近 0 越好)。
+    if (fine) {
+        double p22_accum = 0.0, p22_wait = 0.0, p22_work = 0.0, p22_worst = 0.0;
+        uint64_t p22_leaf = 0, p22_nm = 0;
+        for (int t = 0; t < num_threads; t++) {
+            p22_accum += profP_accum[static_cast<size_t>(t)];
+            p22_wait += profP_merge_wait[static_cast<size_t>(t)];
+            p22_work += profP_merge_work[static_cast<size_t>(t)];
+            p22_leaf += profP_leafops[static_cast<size_t>(t)];
+            p22_nm += profP_merge_count[static_cast<size_t>(t)];
+            const double busy = profP_accum[static_cast<size_t>(t)] +
+                                profP_merge_wait[static_cast<size_t>(t)] +
+                                profP_merge_work[static_cast<size_t>(t)];
+            if (busy > p22_worst) p22_worst = busy;
+        }
+        fprintf(stderr,
+                "[drizzle_engine][p22] par_wall=%.3f accum_cpu=%.3f merge_wait_cpu=%.3f "
+                "merge_work_cpu=%.3f worst_thread=%.3f leaf_ops=%llu nmerge=%llu "
+                "out_sort=%.3f n_stripes=%u nthreads=%d canontiles=%zu\n",
+                profP_par_wall, p22_accum, p22_wait, p22_work, p22_worst,
+                (unsigned long long)p22_leaf, (unsigned long long)p22_nm,
+                0.0, (unsigned)n_stripes, num_threads, canonicalTiles.size());
     }
     fprintf(stderr,
             "[drizzle_engine][profile] wcs=%.3fs geom=%.3fs cand=%.3fs overlap=%.3fs "
