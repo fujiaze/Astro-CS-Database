@@ -1,0 +1,7 @@
+# V2-N-01 状态更新（IpvParams ABI 越界写）+ L23-001 措辞订正
+
+- **修复已在树（时点 HEAD `2f03dd89`，00:47）**：隔壁新增 4 文件 `lib/plate_solve/cpp/ipv/tools/ipv_abi_mirror.py`、`ipv_abi_layout_lock.py`、`ipv_abi_layout_probe.cpp`、`ipv_params_abi_failclosed_test.cpp`，并改动 `include/ipv_api.h`、`src/ipv_entry.cpp`、`tools/diag_gaia_psf_projection.py`；两把锁**已登记** `ci/checks.json:3811-3897`。⇒ **走的是"①纳入采集面 + ②补 `struct_size` 让运行期自拒"两条同时做**，正是 V11 建议应扩散到 `aio_hips`/`gaia`/`dynamic_psf` 三家的形态。
+- **V11 独立验证（不是采信自报）**：`importlib` 加载新权威镜像与现头两侧比对 ⇒ **`IpvParams` 432 字节 / 26 字段一致、`IpvWcsResult` 1560 / 20 字段一致**（脚本 `_v11_mirror_probe.py`）。⇒ **`V2-N-01` 判 `VERIFIED`（静态面）**；两把新锁**是否真会红未判**（V11 只确认登记存在），随 `V9` 的全门清单一起定性。
+- **一条口径提醒（防后来者算错）**：加了 `struct_size` 之后 `IpvParams` 是 **432**，不是修复前的 424，也不是旧镜像的 352。**历史值 72 字节越界写仍然成立且不要再"订正"**——V11 曾疑心它算错、起草改判 64，复算后**证伪了自己**（`424-352=72`，并由 `log_dir` 168↔96、`density_tolerance` 160↔88、`m_lim_max_iter` 152↔80 **三处独立锚互证**）。**请把 72 当已定稿事实。**
+- **`L23-001` 措辞需更新（V11 转达，我确认）**：该条原述「`tests/abi` 三个脚本无 TestCase ⇒ discover 收 0 用例仍 OK」的**成因已变**——AST 实测 `tests/abi` 现有 TestCase（`test_abi002_lifecycle.py` 为 **4 类 18 法**，另 4 个文件各 1 类），**仍为 0 的只有 `mod001_install_load_check.py`**；现因是「**有类但 `UT-ABI` 仅 `linux-main` + `abi002` 在全仓 CMakeLists/cmake 零命中（不在构建面）**」。⇒ 判"0 用例"的机制从"没类"移到"不在构建/采集面"，**整改方向随之改变**（补构建面，而不是补类）。
+- **本文件的 related 轴**：`V2-N-01`（本条）、`V11-N-01/02/03/04`（同族未修部分，**仍是活的 P0/P1**）、`V11-N-05`（ABI 合同函数生产面零实现）、`V11-N-06`（`struct_size` 三套语义——**本条修复用的正是 B 语义（严格相等）**，若将来按 `S-1`/`C-14` 统一到 A 尾扩展兼容，**这三个会话入口会反过来判红**，必须同批改）。
