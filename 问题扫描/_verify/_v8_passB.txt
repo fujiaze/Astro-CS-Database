@@ -1,0 +1,55 @@
+== PATH with no host (not tracked, not on disk): 32
+  dce8abd4 lib/phase2/CMakeLists.txt:95 -> tests/kcorr_lookup_test.cpp
+  c3452d48 lib/dynamic_psf/tests/p1psf/p1psf_oracle.hpp:119 -> lib/star_detector/tests/p1star
+  c3452d48 lib/plate_solve/cpp/ipv/test/CMakeLists.txt:2 -> lib/plate_solve/cpp/ipv
+  6d74046d lib/plate_solve/cpp/ipv/include/ipv_types.h:225 -> docs/algorithms/IPV_PIPELINE.md
+  6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:364 -> docs/algorithms/IPV_PIPELINE.md
+  6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:946 -> docs/algorithms/IPV_PIPELINE.md
+  6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:1244 -> docs/algorithms/IPV_PIPELINE.md
+  6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:1514 -> docs/algorithms/IPV_PIPELINE.md
+  6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:1841 -> docs/algorithms/IPV_PIPELINE.md
+  23a7f665 lib/core/src/module_adapters.cpp:5 -> lib/phase1/stars
+  23a7f665 lib/core/src/module_adapters.cpp:6 -> lib/star_detector
+  23a7f665 lib/core/src/module_adapters.cpp:8 -> lib/dynamic_psf
+  23a7f665 lib/core/src/module_adapters.cpp:1494 -> lib/phase1/stars
+  23a7f665 lib/core/src/module_adapters.cpp:1496 -> lib/dynamic_psf
+  23a7f665 lib/core/src/module_adapters.cpp:1500 -> lib/phase1/stars
+  23a7f665 lib/core/src/module_adapters.cpp:1502 -> lib/star_detector
+  23a7f665 lib/core/src/module_adapters.cpp:1505 -> lib/star_detector
+  23a7f665 lib/dynamic_psf/README.md:206 -> lib/core/src
+  23a7f665 lib/dynamic_psf/README.md:222 -> include/astrocs/core
+  23a7f665 lib/phase1/stars/README.md:32 -> lib/star_detector
+  23a7f665 lib/phase1_session/README.md:45 -> lib/phase1/stars
+  23a7f665 lib/phase1_session/README.md:46 -> lib/star_detector
+  b0353303 lib/snr_estimator/README.md:233 -> tests/p1noise/p1snr_science_test.cpp
+  35c85f53 lib/core/src/module_adapters.cpp:73 -> lib/phase1/noise
+  35c85f53 lib/phase1/noise/README.md:29 -> include/link
+  35c85f53 lib/phase1/noise/README.md:53 -> lib/core
+  35c85f53 lib/phase1/noise/README.md:54 -> lib/core
+  0e4cee72 lib/core/README.md:1 -> lib/core
+  0e4cee72 lib/core/README.md:8 -> docs/science
+  0e4cee72 lib/core/README.md:8 -> docs/contracts
+  0e4cee72 lib/core/README.md:34 -> lib/core
+  0e4cee72 lib/core/README.md:35 -> tests/unit
+
+== :NNN anchor beyond file end: 0
+
+== run/ references in added prose: 17
+distinct run-ref mentions: 17 files: 14
+  bd4bc23b lib/gaia_xpsd_client/src/gaia_client.c:2053 -> run/perf-fix/P1-gaia/REPORT.md
+  6d74046d lib/plate_solve/cpp/ipv/include/ipv_select.h:74 -> run/perf-fix/P4-magiter/REPORT.md
+  6d74046d lib/plate_solve/cpp/ipv/include/ipv_types.h:223 -> run/perf-fix/P4-magiter/REPORT.md
+  6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:360 -> run/perf-fix/P4-magiter/REPORT.md
+  6d74046d lib/plate_solve/cpp/ipv/src/ipv_select.cpp:360 -> run/release-rescue
+  23a7f665 lib/dynamic_psf/tests/p1psf/p1psf_tests_core.cpp:852 -> run/perf-fix/P2-psf/logs/15_iter_limit_
+  b0353303 docs/science/CONTROL_WEIGHT_SNR.md:51 -> run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md
+  b0353303 lib/snr_estimator/README.md:195 -> run/release-rescue/science-phot
+  b0353303 lib/snr_estimator/README.md:234 -> run/perf-fix/P5-snr/harness/snr_oracle.py
+  b0353303 lib/snr_estimator/cpp/include/snr_estimator.h:195 -> run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md
+  b0353303 lib/snr_estimator/cpp/src/snr_estimator.cpp:10 -> run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md
+  b0353303 lib/snr_estimator/cpp/src/snr_science.cpp:3 -> run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md
+  b0353303 lib/snr_estimator/tests/p1noise/CMakeLists.txt:101 -> run/perf-fix/P5-snr/harness/snr_oracle.py
+  b0353303 lib/snr_estimator/tests/p1noise/p1snr_science_test.cpp:7 -> run/perf-fix/P5-snr/harness/snr_oracle.py
+  b0353303 lib/snr_estimator/tests/p1noise/p1snr_science_test.cpp:10 -> run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md
+  35c85f53 lib/phase1/noise/README.md:55 -> run/perf-fix/P8-snr-linux/patches/out-of-scope/lib-core-snr-wiring.patch
+  35c85f53 lib/phase1/noise/snr_frame_science.cpp:11 -> run/perf-fix/P5-snr/harness/snr_oracle.py
