@@ -21,6 +21,19 @@
 > ⇒ **这不是"漏注册"，是一道登记在册、进基线名单、被历史报告当真门引用的门，而它在结构上永远不会红。**
 > 同族另一例（`tests/abi` 三个脚本无 TestCase → discover 收 0 用例仍 OK）与它一起说明：**在册名单与基线名单都不能当"门有效"的证据**，
 > 只有「断言结果影响退出码」+「0 用例即 FAIL」这两条判据才可以。故 C-02 的三向门必须加**第四向：采集数>0 之外，还要断言数>0 且 failures 进退出码**。
+> **前台补记（E2/E3/FD 系列）· 簇 1 的失守机制升至四种，且已可命名**：
+> ①**结构上不会红**（`check_comment_hygiene.py::main` 恒 `return 0`、`io_ownership_test::failures` 不进退出码、discover 收 0 用例仍 OK）；
+> ②**红被制度化豁免**（FD-G-002：`UT-CLI` 在 `checks.json` 是 `waivable=False`，却被 `known_failures.json` 以 `expected=fail` 版本化容忍，
+> 而其 reason 逐字承认根因正是 AGENTS.md 明令禁止的「运行产物落项目根目录」；FD-G-004：`UT-CPU-AVX512` 同项 `waivable=False` 却被证据记成 `SKIPPED(waivable)`，`SKIP_RETURN_CODE 77` 使无该指令集的 runner 永远"通过"）；
+> ③**门验错对象**（M5b-G-01：验收的是 `cmake -S cli` 兼容图产物、交付的是根图 `install(TARGETS astrocs)`；E2 重算版本串正则得**兼容图 PASS、根图 FAIL** ⇒ 
+> **一旦改验交付物即红，错位被 golden 锁死**；C-12：`build/…/astrocs_p1_noise.so` 是当前配置已不产的遗留物，`nm` 会对不存在的交付物下"判否"；
+> FD-I-001：`providers/` 一名两指；FD-B-004：符号探测会在兼容图 exe 上读到 `T p1_session_run` 而误判"已暴露"）；
+> ④**子串断言守卫（FD-F-001/FD-F-002 新命名）**：用 `find(字面量)` 对**文本产物**断言 —— `cpu_provider_test.cpp` 用 `s.find("backend_table.inc")` 守"禁复制漂移"（测源文件名，不测表内容），
+> `mon001_recorder_test.cpp:98` 用 `js.find("\"normalized_cpu_100pct_all_allocated_cores\":true")` 守一条 CPU 归一化声明，而该值是 `cli/resource_recorder.h:243` **硬写的字面量**。
+> **④比①②③更难识别：它有 CHECK、有 ctest、有 PASS，只是断言与不变量之间没有逻辑蕴含关系。**
+> 另记 E2 的量化的钉子：**CPU 门吃 1 核口径而机器有 16 核**，历史 177 条有值样本中 146 条落在 100–199 档（≈1 核），
+> **按 §10.5 容量口径过 85% 仅 6 条、过 90% 仅 4 条，而现行代码全判达标**（M5a-G-002 由静态推演升为历史数据实证）。
+
 ## 簇 2 · "符合性"结论的生成逻辑本身失真（本轮最重的单条根因）
 - **M3-G-002（P0）＋ M2a-B-2（已并入）**：`docs/standards/STANDARDS_REGISTRY.md` 六个冻结域的 CONFORMANT 判定式
   **一律不包含其条款自身的判据维度** —— `D.image:104-110` 丢"同一单位与语义"（致 DISP-IMG-001 被自判覆盖）；`D.cal:237` 丢"误差传播与退化标记"；
