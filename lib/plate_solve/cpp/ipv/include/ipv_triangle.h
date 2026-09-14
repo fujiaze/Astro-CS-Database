@@ -54,6 +54,11 @@ struct TriangleMatchResult {
     int    n_triangles_B;                // B 侧三角形数
     int    max_vote;                     // 最大票数
     bool   success;
+    // P11-IPV-BUDGET: 搜索预算 (三角形对枚举工作量上界) 是否在进入 O(n_A·n_B)
+    // 投票前被触发。true 时 success=false 且 fail_reason 非空 —— 显式失败原因,
+    // 绝不静默继续或返回错解 (宪章 §14.4 fail-fast / §17.6 禁单线程长计算)。
+    bool   budget_exhausted = false;
+    char   fail_reason[160] = {0};
 };
 
 // ---------------------------------------------------------------------------

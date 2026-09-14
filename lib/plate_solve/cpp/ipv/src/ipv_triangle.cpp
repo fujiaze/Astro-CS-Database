@@ -24,6 +24,7 @@
 #include "ipv_log.h"
 
 #include <cmath>
+#include <cstdio>
 #include <algorithm>
 #include <vector>
 #include <omp.h>
@@ -485,6 +486,23 @@ static void top_vote_getters(
 }
 
 // ===========================================================================
+// P11-IPV-BUDGET: make_vote_matrix 的工作量 = n_A_tri × n_B_tri 次描述符
+// 比较。n=60 时 C(60,3)² = 34220² = 1.171e9 (实测 16 线程 ~50ms / 单线程
+// ~1.5s), 属有界且可并行; 但若调用方传入明显更大的 n_target, 该乘积按 n^6
+// 增长 (n=200 时 1.7e12), 会造成无界/超长单线程计算。这里在**生成三角形之前**
+// 用剪枝前上界 C(n,3)² 做预算判定: 超界立即 fail-closed 并给出明确原因。
+// 2e9 > 生产 n=60 的上界 1.171e9, 故对生产路径**永不触发**, 结果逐位不变;
+// 仅拦截病态放大输入 (n>=66)。
+static constexpr unsigned long long IPV_TRIANGLE_MATCH_MAX_VOTE_OPS =
+    2000000000ULL;
+
+static unsigned long long choose3_ull(int n) {
+    if (n < 3) return 0ULL;
+    unsigned long long a = (unsigned long long)n;
+    return a * (a - 1ULL) * (a - 2ULL) / 6ULL;
+}
+
+// ===========================================================================
 // 单轮匹配: 给定 (n_A, n_B) 执行一次完整 triangle match
 // 返回 TriangleMatchResult (不含自适应逻辑)
 // 添加 s0 参数, 计算 scale 约束 [1/(s0*1.2), 1/(s0*0.8)] (±20%)
@@ -517,6 +535,31 @@ static TriangleMatchResult triangle_match_single(
     if (n_stars_A < 3 || n_stars_B < 3) {
         g_triangle_logger.warn("triangle_match_single: 限制后星数 < 3");
         return result;
+    }
+
+    // P11-IPV-BUDGET: 进入 O(n_A_tri·n_B_tri) 枚举前的搜索预算判定。
+    // 用剪枝前上界 C(n_A,3)·C(n_B,3) 保守估计; 超界 -> 明确失败, 不分配/不枚举。
+    {
+        unsigned long long tri_a_ub = choose3_ull(n_stars_A);
+        unsigned long long tri_b_ub = choose3_ull(n_stars_B);
+        unsigned long long ops_ub =
+            (tri_b_ub > 0ULL && tri_a_ub > IPV_TRIANGLE_MATCH_MAX_VOTE_OPS / tri_b_ub)
+                ? (IPV_TRIANGLE_MATCH_MAX_VOTE_OPS + 1ULL)   // 防溢出: 视为超界
+                : tri_a_ub * tri_b_ub;
+        if (ops_ub > IPV_TRIANGLE_MATCH_MAX_VOTE_OPS) {
+            result.budget_exhausted = true;
+            result.success = false;
+            result.max_vote = 0;
+            std::snprintf(result.fail_reason, sizeof(result.fail_reason),
+                          "triangle_match budget exhausted: n_A=%d n_B=%d "
+                          "C(n,3)^2 upper bound=%llu > limit=%llu "
+                          "(bounds the O(n_A_tri*n_B_tri) vote enumeration)",
+                          n_stars_A, n_stars_B, ops_ub,
+                          IPV_TRIANGLE_MATCH_MAX_VOTE_OPS);
+            g_triangle_logger.errorf("triangle_match_single: %s",
+                                     result.fail_reason);
+            return result;
+        }
     }
 
     // 计算 scale 约束 (percent_scale_range=20%)
@@ -638,6 +681,12 @@ TriangleMatchResult triangle_match(
             nA = std::min(nA, (int)U.size());
             nB = std::min(nB, (int)W.size());
             TriangleMatchResult r = triangle_match_single(U, W, nA, nB, tolerance, s0);
+            // P11-IPV-BUDGET: 预算耗尽必须原样上抛 (max_vote=0 不会走下面的
+            // "更高票" 分支, 若不特判会被丢弃成无原因的默认失败)。
+            if (r.budget_exhausted) {
+                best_result = r;
+                break;
+            }
             if (r.max_vote > best_result.max_vote) {
                 best_result = r;
             }
@@ -648,6 +697,12 @@ TriangleMatchResult triangle_match(
                                 stage, nA, nB);
 
         TriangleMatchResult r = triangle_match_single(U, W, nA, nB, tolerance, s0);
+
+        // P11-IPV-BUDGET: 预算耗尽原样上抛并停止 (显式失败原因, fail-closed)。
+        if (r.budget_exhausted) {
+            best_result = r;
+            break;
+        }
 
         // 保留 max_vote 更高的结果
         if (r.max_vote > best_result.max_vote) {
