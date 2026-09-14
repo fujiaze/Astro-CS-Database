@@ -37,6 +37,7 @@
 #include "gaia_client.h"
 
 #include <math.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -380,13 +381,54 @@ static void b64_encode(const uint8_t* src, uint64_t n, char* dst) {
     dst[o] = '\0';
 }
 
-/* JSON 字符串值内联 (catalog_dir 等借用值; 只处理 " 与 \, 控制字符降为 '?') */
-static void json_append_escaped(char** w, const char* s) {
+/* JSON 字符串值内联 (catalog_dir 等借用值; 只处理 " 与 \, 控制字符降为 '?')
+ *
+ * M9-H-1: 全部拼接 helper 显式带容量——end 指向缓冲最后 1 字节 (保留收尾位),
+ * 越界不写入并返回 0, 由调用方整次失败 (不产出产品)。对齐同文件 :101-105
+ * 出参 strbuf 的 BUFFER_TOO_SMALL 纪律, 不新增风格。 */
+
+/* 追加转义后的 JSON 字符串值; 返回 1=完整写入 / 0=空间不足 */
+static int json_append_escaped(char** w, const char* end, const char* s) {
+    char* p = *w;
     for (; *s; s++) {
-        if (*s == '"' || *s == '\\') { *(*w)++ = '\\'; *(*w)++ = *s; }
-        else if ((unsigned char)*s < 0x20) *(*w)++ = '?';
-        else *(*w)++ = *s;
+        size_t need = (*s == '"' || *s == '\\') ? 2u : 1u;
+        if ((size_t)(end - p) < need) return 0;
+        if (need == 2u) { *p++ = '\\'; *p++ = *s; }
+        else if ((unsigned char)*s < 0x20) *p++ = '?';
+        else *p++ = *s;
     }
+    *w = p;
+    return 1;
+}
+
+/* 追加单字符; 返回 1=成功 / 0=触边 */
+static int json_append_ch(char** w, const char* end, char ch) {
+    if (*w >= end) return 0;
+    *(*w)++ = ch;
+    return 1;
+}
+
+/* 追加 n 字节原样片段 (schema 字面量等); 返回 1=成功 / 0=空间不足 */
+static int json_append_raw(char** w, const char* end, const char* s, size_t n) {
+    if ((size_t)(end - *w) < n) return 0;
+    memcpy(*w, s, n);
+    *w += n;
+    return 1;
+}
+
+/* 格式化追加: 按 min(实际应写, 剩余) 夹紧——截断时把游标钉在 end 且返回 0,
+ * 绝不越过容量 (snprintf 返回值=截断前应写长度, 不得直接用于推进)。 */
+static int json_append_fmt(char** w, const char* end, const char* fmt, ...) {
+    size_t cap = (size_t)(end - *w);
+    if (cap == 0) return 0;
+    va_list ap;
+    va_start(ap, fmt);
+    int n = vsnprintf(*w, cap, fmt, ap);
+    va_end(ap);
+    if (n < 0) return 0;
+    if ((size_t)n >= cap) { *w = (char*)end; return 0; }
+    *w += (size_t)n;
+    return 1;
 }
 
 /* ───────── 实例 ───────── */
@@ -734,11 +776,16 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
     uint64_t b64_sdec_cap = solver_dec ? b64_encoded_len((uint64_t)count * sizeof(double)) : 3;
     uint64_t b64_smag_cap = solver_mag ? b64_encoded_len((uint64_t)count * sizeof(float)) : 3;
 
-    /* 第一遍: 只算尺寸 (data=NULL → strbuf.size=所需) */
+    /* 第一遍: 只算尺寸 (data=NULL → strbuf.size=所需)。
+     * M9-H-1: head 是固定栈缓冲, 全部拼接点显式带容量并夹紧; 任一触边即
+     * 整次失败 (PARAM + BUFFER_TOO_SMALL), 不产出产品, 尺寸查询阶段同样拒绝
+     * ——不在栈上越界写, 也不把越界长度经 memcpy 回读进交付 JSON。 */
     char head[512];
     char* hw = head;
-    *hw++ = '{';
-    hw += snprintf(hw, (size_t)(head + sizeof(head) - hw),
+    const char* head_end = head + sizeof(head) - 1;   /* 保留 1 字节收尾位 */
+    int head_ok = json_append_ch(&hw, head_end, '{');
+    if (head_ok)
+        head_ok = json_append_fmt(&hw, head_end,
                    "\"module_id\":\"%s\",\"op\":\"%s\",\"status\":0,"
                    "\"db_type\":%d,\"file_count\":%u,\"count\":%d,"
                    "\"leased_workers\":%u,\"leased\":%s,"
@@ -764,17 +811,27 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
     else /* solver */
         schema = "{\"ra\":\"f64\",\"dec\":\"f64\",\"mag\":\"f32\"}";
     size_t schema_len = strlen(schema);
-    memcpy(hw, schema, schema_len);
-    hw += schema_len;
-    if (spec_bytes) {
-        hw += snprintf(hw, (size_t)(head + sizeof(head) - hw),
+    if (head_ok) head_ok = json_append_raw(&hw, head_end, schema, schema_len);
+    if (head_ok && spec_bytes)
+        head_ok = json_append_fmt(&hw, head_end,
                        ",\"spec_start_nm\":%d,\"spec_step_nm\":%d,\"spec_count\":%d",
                        spec_start, spec_step, spec_count);
+    if (head_ok) head_ok = json_append_fmt(&hw, head_end, ",\"catalog_dir\":\"");
+    if (head_ok) head_ok = json_append_escaped(&hw, head_end, c.catalog_dir);
+    if (head_ok) head_ok = json_append_ch(&hw, head_end, '"');
+    if (!head_ok) {
+        efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+              ACS_DIAG_ECODE_BUFFER_TOO_SMALL,
+              "gaia: manifest head buffer too small (catalog_dir too long)");
+        free(row_ptr); free(spectra); free(match_idx);
+        free(solver_ra); free(solver_dec); free(solver_mag);
+        gaia_cfg_free(&c);
+        inst->executing = 0;
+        inst->exec_count++;
+        inst->last_status = ACS_ERR_PARAM;
+        snprintf(inst->last_op, sizeof(inst->last_op), "%s", c.op);
+        return ACS_ERR_PARAM;
     }
-    hw += snprintf(hw, (size_t)(head + sizeof(head) - hw),
-                   ",\"catalog_dir\":\"");
-    json_append_escaped(&hw, c.catalog_dir);
-    *hw++ = '"';
     const char* tail_keys[6];
     tail_keys[0] = ",\"data_base64\":\"";
     tail_keys[1] = "\",\"spectra_base64\":\"";
@@ -927,19 +984,29 @@ static acs_status gaia_inspect(const acs_module_instance_v1* inst_raw,
               ACS_DIAG_ECODE_NULL_CALLBACK, "gaia: null inspect buffer");
         return ACS_ERR_PARAM;
     }
+    /* M9-H-1: 同型第二站点——容量显式传入, 触边即 PARAM + BUFFER_TOO_SMALL,
+     * 不产出诊断 JSON (修复前 w 越过 buf+512 后 snprintf 以近无限 max 写)。 */
     char buf[512];
-    snprintf(buf, sizeof(buf),
+    char* w = buf;
+    const char* w_end = buf + sizeof(buf) - 1;   /* 保留 1 字节收尾位 */
+    int ok = json_append_fmt(&w, w_end,
              "{\"module_id\":\"%s\",\"exec_count\":%llu,\"last_op\":\"%s\","
              "\"last_status\":%d,\"last_workers\":%u,"
              "\"catalog_dir\":\"",
              kModuleId, (unsigned long long)inst->exec_count,
              inst->last_op[0] ? inst->last_op : "", (int)inst->last_status,
              (unsigned)inst->last_workers);
-    char* w = buf + strlen(buf);
-    json_append_escaped(&w, inst->cfg.catalog_dir);
-    snprintf(w, (size_t)(buf + sizeof(buf) - w),
-             "\",cancel_req\":%d,\"state\":%u}",
-             inst->cancel_req, (unsigned)inst->state);
+    if (ok) ok = json_append_escaped(&w, w_end, inst->cfg.catalog_dir);
+    if (ok)
+        ok = json_append_fmt(&w, w_end, "\",cancel_req\":%d,\"state\":%u}",
+                             inst->cancel_req, (unsigned)inst->state);
+    if (!ok) {
+        efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
+              ACS_DIAG_ECODE_BUFFER_TOO_SMALL,
+              "gaia: inspect buffer too small (catalog_dir too long)");
+        return ACS_ERR_PARAM;
+    }
+    *w = '\0';
     return strbuf_write_cstr(out_json, buf, err);
 }
 
