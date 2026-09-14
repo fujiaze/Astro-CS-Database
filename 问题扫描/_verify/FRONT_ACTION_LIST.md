@@ -77,3 +77,13 @@
 - **D 节改数**：`known_failures.json` **现 1 条**（`p1_noise_adapter`），check 面豁免 **0** ⇒ 旧「35 条 / 29 条过期」作废。
 - **施工顺序提示**：实体红 4-5 个经 `CON-FULL-INTEGRATION`（聚合 10 checker）与 `KNOWN-FAILURES-BASELINE-CHECK`（未登记新红即红）扇出成 **6-7 个红门** ⇒ 先修根因门再跑聚合门，否则"修一个冒两个"。
 - **给邻站的一条本机环境警告**：未跟踪的 `设计大纲/_evidence` 影子树会让锚类工具在**本机**多报 35 条 `C2 ambiguous`（13 → 48）⇒ **以 CI 口径（仅 tracked）为准**。
+
+## §B-2 门修复的第二半（V9 片3-4；**只修必红门不够，这些门永远不会红**）
+- **修 4 道 `--selftest` 门**（`V9-N-07` P0）：`ISA-LEAK`/`PROD-REACH`/`PRODUCTION-GRAPH`/`LOG-CONTRACT` 增传交付物参数并令缺产物即 `FAIL`，或改名 + 另立真门。
+- **`CON-COMMENTS` 去 `re.S`**（`V9-N-08`）：否则删那行注释后门依旧永不红。
+- **`_ctest_argv` 无条件加 `--fail-if-no-tests`**（`V9-N-09`）+ 补 20 个零证据门的执行面 + `CTEST-PHASE2-GATES` 补 `ctest_targets`。
+- **exit 77 限定 `waivable=true` 可用**（`V9-N-10`）：`UT-CPU-AVX512(waivable=false)` 已实测以 77 隐身一次。
+- **`CI-BINDING-TESTS` 采集面 9% → 全量**（`V9-N-14`）：`-p "test_ci001b_*.py"` 改 `-p "test_*.py"`；给 `validate_registry.py`/`check_registration_timeouts.py` 各立一门。
+- **`UT-CLI` 的 `dirty_ignore` 去掉根目录裸名**（`V9-N-15`）：改 `run/cli_runs/**` 并把 56 个根目录 `astrocs_run_*.json` 归位。
+- **两条自证规则（写进 RQS 协议，适用于你我双方）**：①**"定向复跑全绿"不构成 fast 绿**（74/130 门不可达，含必红的 `DOC-LINE-ANCHORS` 与已转绿的 `CTEST-REGISTRATION`）⇒ 定向复跑后必须补跑不可达清单；②**改 checker 必须同批改其 `changed_paths`**，否则该类复跑看不到新行为。
+- **新门建议 `E11`**：`waivable=false` 的门的 command 里含 `--selftest`/`--selfcheck` ⇒ 红。
