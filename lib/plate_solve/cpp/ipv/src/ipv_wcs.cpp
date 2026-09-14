@@ -695,6 +695,64 @@ void extract_wcs_sip(
         }
     }
 
+    // ------------------------------------------------------------------
+    // 8.5 绝对合理性闸门 (RESCUE F-9): 尺度可行域 + 残差/内点充分条件
+    // 旧接受判据只有上游的 it_result.success && n_inliers>=3（见 solve_post_select），
+    // 无绝对合理性约束 ⇒ flying-dutchman 误配产生的镜像解或错误尺度解以
+    // success=1 返回（假阳性 WCS，比 fail-closed 更危险；6B-R2 全量 906 帧实测
+    // 4 帧镜像假阳性、19 帧 >1px 场梯度）。
+    //
+    // 判据 (a): 解出像素尺度 sqrt(|det(CD)|)*3600 与初值光学尺度 s0 之比必须落在
+    //   [0.8, 1.25]（与 triangle_match 的 ±20% 尺度约束同源；894 干净帧实测
+    //   ratio∈[0.969,1.02]，4 镜像帧 ratio 1.35–2.55，其中 idx342 ratio 1.146）。
+    //   **不以 det 符号做全局判据**：det 手性随调用方 U 约定而变——真实求解器
+    //   U 为 Y-up，输出 Y 翻转后干净解 det>0、镜像解 det<0；而合成 fixture 的
+    //   U→W 为纯旋转，翻转后 det<0 却仍是既有 7 个 p1wcs 单测的合法解（既有
+    //   validate_wcs 亦以 |det| 为准）。故改用手性无关的尺度比 + 残差 + 内点判据。
+    // 判据 (b)(c): 残差 rms_px>0.5 或内点 n_pairs<12 → 拒（与 DISP-WCS-001
+    //   冻结负测试语义同源；不含 det 符号）。
+    // 不放宽任何既有阈值; 失败返回确定性 fail-closed 且 error 非空（FD-05 F4 语义）。
+    // ------------------------------------------------------------------
+    {
+        const double det = result->cd.cd11 * result->cd.cd22 -
+                           result->cd.cd12 * result->cd.cd21;
+        if (std::isfinite(s0) && s0 > 0.0) {
+            const double scale_arcsec = std::sqrt(std::fabs(det)) * 3600.0;
+            const double ratio = scale_arcsec / s0;
+            if (!std::isfinite(det) || !std::isfinite(ratio) ||
+                ratio < 0.8 || ratio > 1.25) {
+                result->success = false;
+                std::snprintf(result->error, sizeof(result->error),
+                              "WCS 拒绝: 解出尺度 %.4f\"/px 与初值 %.4f\"/px 之比 %.3f "
+                              "超出可行域 [0.8,1.25] (RESCUE F-9)",
+                              scale_arcsec, s0, ratio);
+                if (logger) logger->error(result->error);
+                return;
+            }
+        }
+        // (c)(d) 残差/内点最小充分条件 —— 与 DISP-WCS-001 冻结语义一致
+        // (tests/unit/p1wcs/p1wcs_tests_negative.cpp: "rms>0.5 或 n_inliers<12 的
+        //  success 解 = 冒充"): 真实 874 有头 WCS 干净帧实测 n_pairs∈[21,56]、
+        // rms_px∈[0.03,0.322]; 而 M42_M4 误配解 n_pairs∈[6,21]、rms_px∈[0.94,2.17]。
+        // 该门把"大残差/内点枯竭"的解确定性 fail-closed, 不放宽任何既有阈值。
+        if (!std::isfinite(result->rms_px) || result->rms_px > 0.5) {
+            result->success = false;
+            std::snprintf(result->error, sizeof(result->error),
+                          "WCS 拒绝: 拟合残差 rms_px=%.4f > 0.5 (DISP-WCS-001 冻结语义, RESCUE F-9)",
+                          result->rms_px);
+            if (logger) logger->error(result->error);
+            return;
+        }
+        if (result->n_pairs < 12) {
+            result->success = false;
+            std::snprintf(result->error, sizeof(result->error),
+                          "WCS 拒绝: 内点数 n_pairs=%d < 12 (DISP-WCS-001 冻结语义, RESCUE F-9)",
+                          result->n_pairs);
+            if (logger) logger->error(result->error);
+            return;
+        }
+    }
+
     if (logger) {
         char buf[512];
         std::snprintf(buf, sizeof(buf),
