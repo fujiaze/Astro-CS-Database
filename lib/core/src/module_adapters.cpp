@@ -100,6 +100,8 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
+#include <string>
 #include <limits>
 #include <map>
 #include <memory>
@@ -1960,6 +1962,112 @@ Json p1_sip_to_json(const P1SipCoeffs& sip) {
               {"a", sa}, {"b", sb}, {"ap", sap}, {"bp", sbp}};
 }
 
+// ── P9 (F-10): 帧自有关键字读取 —— 初始指向/板尺度只从非 WCS 关键字推导 ───
+// 负责人裁定: 帧头 WCS（CRVAL1/2、PLTSOLVD、CD/PC、SIP）未授权, 不得作为
+// 初始指向或任何解算输入。下面两个 helper 只读 OBJCTRA/OBJCTDEC/RA/DEC/
+// FOCALLEN/XPIXSZ 一类观测关键字, 不触碰任何 WCS 关键字。
+// 板尺度常量: 206.265 = (180×3600)/π × 1e-3, 把 (XPIXSZ μm)/(FOCALLEN mm)
+// 直接转为 角秒/像素 —— 与求解器唯一权威常量 ipv_select.cpp:57
+// IPV_ARCSEC_PER_UM_PER_MM(=206.265) 及 DATA_SEMANTICS §18.1 逐位一致。
+// （206264.806 是 asec/rad 常量, 只有当 XPIXSZ 以 mm 记时才成立; FITS 头
+//  XPIXSZ 以 μm 记, 故统一用 206.265, 避免 1e-3 量纲错。）
+static constexpr double kP9AsecPerUmPerMm = 206.265;
+std::string p1_header_kw_str(const P1Image& im, const char* key) {
+  if (!im.ok()) return std::string();
+  const int n = aio_get_keyword_count(im.p);
+  for (int i = 0; i < n; ++i) {
+    const AIOFITSKeyword kw = aio_get_keyword(im.p, i);
+    if (std::strcmp(kw.name, key) == 0) return std::string(kw.value);
+  }
+  return std::string();
+}
+
+// 六进制/十进制角度解析: "18 11 14.00" / "18:11:14" / "18h11m14s" / "272.8"。
+// is_ra=true 时结果 ×15（OBJCTRA/RA 约定为小时）并归一化到 [0,360)。
+// 解析失败返回 false（调用方 fail-closed, 禁 silent default）。
+bool p1_parse_ra_dec_deg(const std::string& raw, bool is_ra, double* out_deg) {
+  std::string t;
+  t.reserve(raw.size());
+  bool neg = false;
+  for (char c : raw) {
+    switch (c) {
+      case 'h': case 'H': case 'd': case 'D':
+      case 'm': case 'M': case 's': case 'S':
+      case ':': case '/': case '\'': case '"':
+        t.push_back(' '); break;
+      case '-':
+        neg = true; t.push_back('-'); break;
+      default: t.push_back(c);
+    }
+  }
+  std::istringstream is(t);
+  std::vector<double> v;
+  double x = 0.0;
+  while (is >> x) v.push_back(x);
+  if (v.empty()) return false;
+  double mag = 0.0, div = 1.0;
+  for (size_t k = 0; k < v.size() && k < 3; ++k) {
+    if (v[k] < 0.0) neg = true;
+    mag += std::fabs(v[k]) / div;
+    div *= 60.0;
+  }
+  if (!std::isfinite(mag)) return false;
+  double deg = is_ra ? mag * 15.0 : mag;
+  if (is_ra) {
+    deg = std::fmod(deg, 360.0);
+    if (deg < 0.0) deg += 360.0;
+  } else if (neg) {
+    deg = -deg;
+  }
+  *out_deg = deg;
+  return true;
+}
+
+// ── P9: header_pointing 初始指向 + 板尺度（帧自有关键字, 非帧头 WCS）──────
+// 中心: OBJCTRA/OBJCTDEC（六进制, RA 小时×15）, 回退 RA/DEC;
+// 板尺度: s0 = 206.265 * XPIXSZ / FOCALLEN（FOCALLEN 单位 mm, XPIXSZ 单位 μm;
+// 常量与求解器 ipv_select.cpp:57 唯一权威一致, 见 kP9AsecPerUmPerMm 注释）。
+// 任一不可得 → 返回 false 并写 *why（调用方 DATA fail-closed, 禁 silent default）。
+bool p1_header_pointing(const P1Image& im, double* ra0, double* dec0,
+                        double* focal_mm, double* pixel_um, double* s0,
+                        std::string* src, std::string* why) {
+  const AIOImageMetadata meta = aio_get_metadata(im.p);
+  std::string ra_s = p1_header_kw_str(im, "OBJCTRA");
+  std::string de_s = p1_header_kw_str(im, "OBJCTDEC");
+  const char* used = nullptr;
+  if (!ra_s.empty() && !de_s.empty()) {
+    used = "OBJCTRA/OBJCTDEC";
+  } else {
+    ra_s = p1_header_kw_str(im, "RA");
+    de_s = p1_header_kw_str(im, "DEC");
+    if (!ra_s.empty() && !de_s.empty()) used = "RA/DEC";
+  }
+  if (used == nullptr) {
+    *why = "frame header has no pointing keywords (OBJCTRA/OBJCTDEC, RA/DEC)";
+    return false;
+  }
+  double ra = 0.0, dec = 0.0;
+  if (!p1_parse_ra_dec_deg(ra_s, true, &ra) ||
+      !p1_parse_ra_dec_deg(de_s, false, &dec)) {
+    *why = std::string("frame pointing keyword unparseable: ") + used +
+           "='" + ra_s + "'/'" + de_s + "'";
+    return false;
+  }
+  if (!meta.observation.has_focallen || !meta.observation.has_xpixsz ||
+      !(meta.observation.focallen > 0.0) || !(meta.observation.xpixsz > 0.0)) {
+    *why = "frame header lacks valid FOCALLEN/XPIXSZ "
+           "(needed for s0=206.265*XPIXSZ/FOCALLEN, XPIXSZ in um)";
+    return false;
+  }
+  *ra0 = ra;
+  *dec0 = dec;
+  *focal_mm = meta.observation.focallen;
+  *pixel_um = meta.observation.xpixsz;
+  *s0 = kP9AsecPerUmPerMm * meta.observation.xpixsz / meta.observation.focallen;
+  *src = std::string(used) + "+FOCALLEN/XPIXSZ";
+  return true;
+}
+
 // ── op: plate_solve（真实求解器链: lib/plate_solve ipv——sdet 句柄 +
 //      gaia_client 句柄注入 IPVSolver → ipv_solve_from_memory_with_callback_d
 //      FP64 全链解算 → IpvWcsResult(CD/CRVAL/CRPIX/RMS) → WcsTan roundtrip
@@ -2095,38 +2203,57 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     (*man)["artifacts"] = Json::array({out_path});
     return Result<void>::success();
   }
-  // 真实求解链必需参数: 光学尺度/Gaia 数据目录（缺失显式拒绝, 禁 silent default）
-  const double focal_mm = p1_num(wc, "focal_length_mm", std::numeric_limits<double>::quiet_NaN());
-  const double pixel_um = p1_num(wc, "pixel_size_um", std::numeric_limits<double>::quiet_NaN());
-  const std::string gaia_dir = wc.value("gaia_data_dir", std::string());
-  if (std::isnan(focal_mm) || std::isnan(pixel_um) || gaia_dir.empty()) {
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "wcs config requires focal_length_mm/pixel_size_um/gaia_data_dir "
-        "(real ipv solve chain; no silent defaults)"));
-  }
-  // ── F-10 (RESCUE): 初始化指向来源策略显式化（禁 silent 用错误指向）─────────
-  // 真实 906 帧中 31 帧无逐帧头 WCS, 仅有 OBJCTRA/OBJCTDEC（靶标坐标, 对 M42_M4
-  // 等面板与真实面板中心相差约 0.8°）。本节点不猜测指向, 由调用方以
-  // wcs.init_source 显式声明来源, 未声明即 config:
-  //   config         : config.wcs.ra0/dec0（调用方给定的数据集指向）
-  //   header_crval   : 被解算帧 FITS 主头的 CRVAL1/2（逐帧可靠指向）
-  //   neighbor_crval : config.wcs.neighbor_ra0/neighbor_dec0（同夜相邻已解帧 CRVAL）
-  // 非法值 / 来源不可得 → DATA fail-closed（不给错解）。逐帧自动邻居检索与
-  // OBJCTRA 粗指向回退属跨帧策略, 登记为待负责人确认项（见交付报告 F-10）。
-  const std::string init_source = wc.value("init_source", std::string("config"));
-  if (init_source != "config" && init_source != "header_crval" &&
+  // ── F-10 / P9: 初始化指向来源策略显式化（禁 silent 用错误指向）───────────
+  // 负责人裁定（P9）: 帧头 WCS **未授权** —— 本节点不得读取/使用帧头的
+  // CRVAL1/2、PLTSOLVD、CD/PC 或 SIP 作为初始指向或任何解算输入。
+  // 初始指向与板尺度只允许以下三种来源, 由 wcs.init_source 显式声明, 默认
+  // 首选 header_pointing（帧自身关键字总能推出中心与板尺度）:
+  //   header_pointing : 帧自有关键字 —— 中心 OBJCTRA/OBJCTDEC（六进制, RA 小时
+  //                     ×15; 回退 RA/DEC）; 板尺度 s0=206.265*XPIXSZ/FOCALLEN
+  //                     （FOCALLEN mm, XPIXSZ μm）。**不读帧头 WCS**。
+  //   config          : config.wcs.ra0/dec0 与 config focal_length_mm/pixel_size_um
+  //                     （调用方给定的数据集指向; 与帧头 WCS 无关）。
+  //   neighbor_crval  : config.wcs.neighbor_ra0/neighbor_dec0 —— 该来源必须来自
+  //                     **我们自己已解出的产物**（本管线 p1_wcs.json 的 crval, 由
+  //                     调用方从历史产物回填）, 明确不是帧头 WCS。
+  // 非法值 / 来源不可得 → DATA fail-closed（不给错解, 禁 silent default）。
+  const std::string init_source = wc.value("init_source", std::string("header_pointing"));
+  if (init_source != "header_pointing" && init_source != "config" &&
       init_source != "neighbor_crval") {
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "wcs.init_source must be one of config|header_crval|neighbor_crval"));
+        "wcs.init_source must be one of header_pointing|config|neighbor_crval "
+        "(header_crval removed: 帧头 WCS 未授权)"));
   }
+  // Gaia 数据目录是真实求解链必需的数据参数（不可从帧推出, 仍须显式给出）
+  const std::string gaia_dir = wc.value("gaia_data_dir", std::string());
+  if (gaia_dir.empty()) {
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "wcs config requires gaia_data_dir (real ipv solve chain; no silent defaults)"));
+  }
+  double focal_mm = std::numeric_limits<double>::quiet_NaN();
+  double pixel_um = std::numeric_limits<double>::quiet_NaN();
   double ra0 = std::numeric_limits<double>::quiet_NaN();
   double dec0 = std::numeric_limits<double>::quiet_NaN();
-  if (init_source == "config") {
-    ra0 = p1_num(wc, "ra0", ra0);
-    dec0 = p1_num(wc, "dec0", dec0);
-  } else if (init_source == "neighbor_crval") {
-    ra0 = p1_num(wc, "neighbor_ra0", ra0);
-    dec0 = p1_num(wc, "neighbor_dec0", dec0);
+  double s0_arcsec_px = std::numeric_limits<double>::quiet_NaN();
+  std::string init_center_src;  // 指向来源（配置键或帧关键字, F-10 审计）
+  if (init_source == "config" || init_source == "neighbor_crval") {
+    focal_mm = p1_num(wc, "focal_length_mm", std::numeric_limits<double>::quiet_NaN());
+    pixel_um = p1_num(wc, "pixel_size_um", std::numeric_limits<double>::quiet_NaN());
+    if (std::isnan(focal_mm) || std::isnan(pixel_um)) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "wcs.init_source=" + init_source +
+          " requires config focal_length_mm/pixel_size_um (no silent defaults)"));
+    }
+    s0_arcsec_px = kP9AsecPerUmPerMm * pixel_um / focal_mm;
+    if (init_source == "config") {
+      ra0 = p1_num(wc, "ra0", ra0);
+      dec0 = p1_num(wc, "dec0", dec0);
+      init_center_src = "config.wcs.ra0/dec0";
+    } else {
+      ra0 = p1_num(wc, "neighbor_ra0", ra0);
+      dec0 = p1_num(wc, "neighbor_dec0", dec0);
+      init_center_src = "config.wcs.neighbor_ra0/neighbor_dec0(own_solved_product)";
+    }
   }
   const std::string frame0 = p1_calibrated_path(doc, doc["input_lights"][0].get<std::string>());
   P1Image im = p1_read_image(frame0);
@@ -2134,23 +2261,33 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     (*man)["error_kind"] = "input";
     return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + frame0));
   }
-  if (init_source == "header_crval") {
-    const AIOImageMetadata meta = aio_get_metadata(im.p);
-    if (!meta.wcs.has_wcs || !std::isfinite(meta.wcs.crval1) ||
-        !std::isfinite(meta.wcs.crval2)) {
+  if (init_source == "header_pointing") {
+    std::string why, src;
+    if (!p1_header_pointing(im, &ra0, &dec0, &focal_mm, &pixel_um,
+                            &s0_arcsec_px, &src, &why)) {
       return Result<void>::fail(Error(ErrorDomain::DATA,
-          "wcs.init_source=header_crval but frame header has no CRVAL1/CRVAL2: " +
-          frame0 + " (fail-closed; 无逐帧 WCS 帧须显式用 neighbor_crval/config)"));
+          "wcs.init_source=header_pointing but " + why +
+          " (fail-closed; frame " + frame0 + ")"));
     }
-    ra0 = meta.wcs.crval1;
-    dec0 = meta.wcs.crval2;
+    init_center_src = src;
   }
   if (std::isnan(ra0) || std::isnan(dec0)) {
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "wcs init pointing unavailable for init_source=" + init_source +
         " (ra0/dec0 missing; 禁 silent default)"));
   }
+  if (!std::isfinite(focal_mm) || !std::isfinite(pixel_um) ||
+      !(focal_mm > 0.0) || !(pixel_um > 0.0)) {
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "wcs init plate scale unavailable for init_source=" + init_source +
+        " (FOCALLEN/XPIXSZ invalid; 禁 silent default)"));
+  }
+  // F-10: 初始指向来源逐帧登记（含中心与 s0）, 便于事后审计
   (*man)["wcs_init_source"] = init_source;
+  (*man)["wcs_init_center_src"] = init_center_src;
+  (*man)["wcs_init_ra0_deg"] = ra0;
+  (*man)["wcs_init_dec0_deg"] = dec0;
+  (*man)["wcs_init_s0_arcsec_px"] = s0_arcsec_px;
   // 资源 RAII（按 orchestrator PLATESOLVE 销毁顺序: ipv → sdet → gaia）
   StarDetectorHandle sdet = nullptr;
   GaiaClient* gaia = nullptr;
@@ -2280,8 +2417,13 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   Json wcs_out = Json{{"schema", "DATA-P1-WCS"},
                       {"solver", "ipv_solve_from_memory_with_callback_d"},
                       {"wcs_source", "ipv"},
-                      // F-10: 初始化指向来源显式登记（config|header_crval|neighbor_crval）
+                      // F-10: 初始化指向来源逐帧登记（header_pointing|config|
+                      // neighbor_crval）, 含中心与板尺度 s0, 便于事后审计。
                       {"wcs_init_source", init_source},
+                      {"wcs_init_center_src", init_center_src},
+                      {"wcs_init_ra0_deg", ra0},
+                      {"wcs_init_dec0_deg", dec0},
+                      {"wcs_init_s0_arcsec_px", s0_arcsec_px},
                       {"initial", false},
                       {"wcs", wcs_obj},
                       {"ctype1", std::string(r.ctype1)},

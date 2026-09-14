@@ -401,9 +401,11 @@ static void test_nodes_real_operation() {
   }
   {
     const std::string gaia_dir = find_repo_gaia_dir();
+    // P9: 显式 config 来源（默认已改为 header_pointing; 本用例验证 config 通道）
     const std::string wcs_full = wcs_base +
-        R"("ra0": 10.0, "dec0": 20.0, "focal_length_mm": 400.0,
-            "pixel_size_um": 3.76, "gaia_data_dir": ")" + gaia_dir + R"("}})";
+        R"("init_source": "config", "ra0": 10.0, "dec0": 20.0,
+            "focal_length_mm": 400.0, "pixel_size_um": 3.76,
+            "gaia_data_dir": ")" + gaia_dir + R"("}})";
     Result<void> rc;
     json man_wcs = run_node(reg, "astrocs.phase1.wcs-platesolve", wcs_full, ctx, &rc);
     CHECK(man_wcs.value("operation", "") == "plate_solve");
@@ -414,6 +416,32 @@ static void test_nodes_real_operation() {
     CHECK_MSG(rc.failed(), "Linux: ipv stub must fail-closed (no fake WCS)");
     CHECK(rc.error().domain() == astrocs::core::ErrorDomain::DATA);
 #endif
+  }
+  // P9: 帧头 WCS 未授权 —— init_source=header_crval 必须被拒绝（fail-closed,
+  // 不得回退到帧头 CRVAL1/2 或任何 silent default）。
+  {
+    const std::string gaia_dir = find_repo_gaia_dir();
+    const std::string cfg = wcs_base +
+        R"("init_source": "header_crval", "ra0": 10.0, "dec0": 20.0,
+            "focal_length_mm": 400.0, "pixel_size_um": 3.76,
+            "gaia_data_dir": ")" + gaia_dir + R"("}})";
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.wcs-platesolve", cfg, ctx, &rc);
+    CHECK_MSG(rc.failed(),
+              "P9: init_source=header_crval must be rejected (帧头 WCS 未授权)");
+    CHECK(rc.error().domain() == astrocs::core::ErrorDomain::DATA);
+  }
+  // P9: header_pointing 在无指向关键字的帧上 fail-closed（该 fixture light 只有
+  // SIMPLE/BITPIX/NAXIS*, 无 OBJCTRA/OBJCTDEC/RA/DEC/FOCALLEN/XPIXSZ）。
+  {
+    const std::string gaia_dir = find_repo_gaia_dir();
+    const std::string cfg = wcs_base +
+        R"("init_source": "header_pointing", "gaia_data_dir": ")" + gaia_dir + R"("}})";
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.wcs-platesolve", cfg, ctx, &rc);
+    CHECK_MSG(rc.failed(),
+              "P9: header_pointing without pointing keywords must fail-closed");
+    CHECK(rc.error().domain() == astrocs::core::ErrorDomain::DATA);
   }
 
   // photometry：Photometer aperture 积分（对已检测源）

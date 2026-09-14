@@ -785,6 +785,38 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 - 释放纪律：ipv_solve_destroy（ipv_entry.cpp:249）整句柄释放；gaia/
   detector 句柄由调用方（orchestrator init :1621-1643）管理。
 
+### 18.5 初始指向来源（wcs.init_source，P9 / F-10 负责人裁定）
+
+> 权威实现：生产节点 `lib/core/src/module_adapters.cpp:p1_op_wcs`（CLI
+> `astrocs phase1 run` 的 WCS 节点）。负责人裁定原文：「我从来没有允许过使用
+> 帧头 wcs」「帧头有没有 wcs 不重要啊，有焦距，相元大小，赤经赤纬指向吗」。
+
+`wcs.init_source` 取值唯一权威如下（枚举外一律 DATA fail-closed，禁 silent
+default）：
+
+| 取值 | 中心 | 板尺度 s0 | 语义 |
+|---|---|---|---|
+| `header_pointing`（默认首选） | 帧自有关键字 `OBJCTRA`/`OBJCTDEC`（六进制；RA 为**小时**，×15 转度），回退 `RA`/`DEC` | `206.265·XPIXSZ/FOCALLEN`（FOCALLEN mm、XPIXSZ μm） | 只用帧自身观测关键字；**不读帧头 WCS**。缺指向/尺度关键字 → fail-closed |
+| `config` | `config.wcs.ra0/dec0` | `206.265·pixel_size_um/focal_length_mm` | 调用方给定的数据集指向（与帧头 WCS 无关） |
+| `neighbor_crval` | `config.wcs.neighbor_ra0/neighbor_dec0` | 同 `config` | 邻帧来源必须来自**我们自己已解出的产物**（本管线 `p1_wcs.json` 的 CRVAL），由调用方回填；**明确不是帧头 WCS** |
+
+- **`header_crval` 已移除（未授权）**：`p1_op_wcs` 不得读取/使用帧头
+  CRVAL1/2、`PLTSOLVD`、`CD`/`PC` 或 `SIP` 作为初始指向或任何解算输入；
+  传 `init_source=header_crval` 一律 DATA 拒绝（不静默回退）。
+- 帧头 WCS 未授权的实测证据（P9 全库 906 帧扫描）：31 帧无 `CRVAL1/2`
+  （1×Galaxy_Center_T4 + 30×M42 拼图），另 1 帧（NGC55 idx561）帧头 CRVAL
+  自身偏差 ~0.88°（其 `OBJCTRA/OBJCTDEC` 正确）；906/906 帧均有
+  `FOCALLEN`+`XPIXSZ`+`OBJCTRA`+`OBJCTDEC`，故 header_pointing 恒可推导。
+- **审计登记（F-10）**：`p1_wcs.json` 与节点 manifest 逐帧登记
+  `wcs_init_source` / `wcs_init_center_src` / `wcs_init_ra0_deg` /
+  `wcs_init_dec0_deg` / `wcs_init_s0_arcsec_px`。
+- **板尺度常量量纲**：`206.265 = (180×3600)/π × 1e-3`，即 §18.1 的
+  `s0=206.265·pixel_um/focal_mm`（ipv_select.cpp:57 `IPV_ARCSEC_PER_UM_PER_MM`）。
+  `206264.806` 是角秒/弧度常量，仅当 XPIXSZ 以 **mm** 记时成立；FITS 头
+  `XPIXSZ` 以 μm 记，故 header_pointing 与 config 两条路径统一用 206.265，
+  与求解器内部 s0 逐位一致（禁 1e-3 量纲错）。
+- 本枚举是编排层配置词汇；不改动 §18.1/§18.2 的 ipv C ABI 合同与科学定义。
+
 ## 19. Phase2 coverage（lib/phase2）模块输入/输出数据（DATA-COV-001）
 
 > ID: DATA-COV-001  状态: CONTRACT_READY（P2-COV-DOC 冻结，2026-09-07）
