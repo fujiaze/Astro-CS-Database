@@ -506,8 +506,16 @@ void IPVSolver::solve(
         logger_.error("triangle_match 失败或票数不足, 终止求解");
         logger_.errorf("  诊断: success=%d, max_vote=%d (阈值=3), n_target_used=%d",
                        (int)tri_result.success, tri_result.max_vote, n_target_used);
-        std::snprintf(fail_result.error, sizeof(fail_result.error),
-                      "%s", "triangle_match 失败或票数不足, 终止求解");
+        // P11-IPV-BUDGET: 搜索预算耗尽时必须给出**明确失败原因** (fail-closed),
+        // 不得退化成笼统文案或静默继续。
+        if (tri_result.budget_exhausted && tri_result.fail_reason[0] != '\0') {
+            logger_.errorf("  预算: %s", tri_result.fail_reason);
+            std::snprintf(fail_result.error, sizeof(fail_result.error), "%s",
+                          tri_result.fail_reason);
+        } else {
+            std::snprintf(fail_result.error, sizeof(fail_result.error),
+                          "%s", "triangle_match 失败或票数不足, 终止求解");
+        }
         *result = fail_result;
         return;
     }
@@ -904,8 +912,15 @@ void IPVSolver::solve_from_memory(
         logger_.error("triangle_match 失败或票数不足, 终止求解");
         logger_.errorf("  诊断: success=%d, max_vote=%d (阈值=3), n_target_used=%d",
                        (int)tri_result.success, tri_result.max_vote, n_target_used);
-        std::snprintf(fail_result.error, sizeof(fail_result.error),
-                      "%s", "triangle_match 失败或票数不足, 终止求解");
+        // P11-IPV-BUDGET: 预算耗尽给出明确失败原因 (fail-closed)。
+        if (tri_result.budget_exhausted && tri_result.fail_reason[0] != '\0') {
+            logger_.errorf("  预算: %s", tri_result.fail_reason);
+            std::snprintf(fail_result.error, sizeof(fail_result.error), "%s",
+                          tri_result.fail_reason);
+        } else {
+            std::snprintf(fail_result.error, sizeof(fail_result.error),
+                          "%s", "triangle_match 失败或票数不足, 终止求解");
+        }
         *result = fail_result;
         return;
     }
@@ -1232,8 +1247,15 @@ void IPVSolver::solve_post_select(
         logger_.error("triangle_match 失败或票数不足, 终止求解");
         logger_.errorf("  诊断: success=%d, max_vote=%d (阈值=3)",
                        (int)tri_result.success, tri_result.max_vote);
-        std::snprintf(fail_result.error, sizeof(fail_result.error),
-                      "%s", "triangle_match 失败或票数不足, 终止求解");
+        // P11-IPV-BUDGET: 预算耗尽给出明确失败原因 (fail-closed)。
+        if (tri_result.budget_exhausted && tri_result.fail_reason[0] != '\0') {
+            logger_.errorf("  预算: %s", tri_result.fail_reason);
+            std::snprintf(fail_result.error, sizeof(fail_result.error), "%s",
+                          tri_result.fail_reason);
+        } else {
+            std::snprintf(fail_result.error, sizeof(fail_result.error),
+                          "%s", "triangle_match 失败或票数不足, 终止求解");
+        }
         *result = fail_result;
         return;
     }

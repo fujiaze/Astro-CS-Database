@@ -41,3 +41,20 @@ target_include_directories(ipv_mag_iter_test PRIVATE
 target_link_libraries(ipv_mag_iter_test PRIVATE
   astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
 add_test(NAME ipv_mag_iter COMMAND ipv_mag_iter_test)
+
+# ============================================================================
+# P11-IPV-BUDGET — 三角形匹配搜索预算 fail-closed 回归锁
+# ----------------------------------------------------------------------------
+# 被测面: triangle_match (src/ipv_triangle.cpp, 生产源) 经生产静态库
+# astrocs_p1_ipv 链接。锁定: n=60 生产路径预算不触发且确定性; n>=66 越界
+# 输入进入 O(n_A_tri·n_B_tri) 枚举前即 fail-closed, 有明确 fail_reason,
+# 且在有界时间内返回 (不分配/不枚举)。
+# ============================================================================
+add_executable(ipv_triangle_budget_test
+  ${P1IPVTEST_DIR}/test_triangle_budget.cpp)
+target_include_directories(ipv_triangle_budget_test PRIVATE
+  ${P1IPV_DIR}/include)
+target_link_libraries(ipv_triangle_budget_test PRIVATE
+  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
+add_test(NAME ipv_triangle_budget COMMAND ipv_triangle_budget_test)
+set_tests_properties(ipv_triangle_budget PROPERTIES TIMEOUT 120)
