@@ -3626,6 +3626,176 @@
       ]
     },
     {
+      "id": "CTEST-P1SNR-SCIENCE-ALL",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p1snr_science_.*",
+        "--output",
+        "run/ci/ctest/p1snr_science_all.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p1snr_science_all.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p1snr_science_*"
+      ]
+    },
+    {
+      "id": "CTEST-P1SNR-LINUX-ALL",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p1snr_linux_.*",
+        "--output",
+        "run/ci/ctest/p1snr_linux_all.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p1snr_linux_all.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p1snr_linux_*"
+      ]
+    },
+    {
+      "id": "CTEST-P1DRZ-TASKSET-INVARIANCE",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p1drz_taskset_invariance",
+        "--output",
+        "run/ci/ctest/p1drz_taskset_invariance.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p1drz_taskset_invariance.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p1drz_taskset_invariance"
+      ]
+    },
+    {
+      "id": "CTEST-P1STAR-ANGLE-GUARD",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p1star_angle_guard",
+        "--output",
+        "run/ci/ctest/p1star_angle_guard.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p1star_angle_guard.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p1star_angle_guard"
+      ]
+    },
+    {
+      "id": "CTEST-IPV-TRIANGLE-BUDGET",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "ipv_triangle_budget",
+        "--output",
+        "run/ci/ctest/ipv_triangle_budget.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/ipv_triangle_budget.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "ipv_triangle_budget"
+      ]
+    },
+    {
       "id": "KNOWN-FAILURES-BASELINE-CHECK",
       "profiles": [
         "linux-main"
