@@ -1,0 +1,51 @@
+{
+  "covariance_schema": "astrocs.v6.covariance/v1",
+  "schema_version": 1,
+  "propagation": "C_out = R C_in R^T",
+  "scalar_form": "Var(out) = c^T C_in c = Sum_{i,j} c_i c_j [C_in]_{ij}",
+  "representation": "diagonal_variance_plus_correlation_kernel",
+  "combination_coefficients": [
+    0.25,
+    0.25,
+    0.25,
+    0.25
+  ],
+  "variance_from": "actual_combination_coefficients",
+  "input_covariance": "provided",
+  "input_covariance_ref": "covariance/in/run-3",
+  "variance_plane": {
+    "units": "ADU^2/px^4",
+    "dtype": "float32",
+    "invalid_policy": "nan_or_support_le_0"
+  },
+  "ivar_plane": {
+    "units": "px^4/ADU^2",
+    "dtype": "float32",
+    "invalid_policy": "nan_or_support_le_0"
+  },
+  "correlation_kernel": {
+    "kernel_id": "drizzle_rho_v1",
+    "scale": 1.5,
+    "rho_summary": {
+      "mean_abs_rho": 0.19,
+      "max_abs_rho": 0.57
+    }
+  },
+  "avail": "available",
+  "forbidden_variance_sources": [
+    "median_source_snr",
+    "median_snr",
+    "source_snr_median",
+    "support",
+    "coverage",
+    "fwhm",
+    "psf_residual",
+    "residual",
+    "weight",
+    "psfsw_robust_weight",
+    "psfsw",
+    "effective_psf",
+    "source_snr"
+  ],
+  "provenance_ref": "provenance/v1/run-3"
+}

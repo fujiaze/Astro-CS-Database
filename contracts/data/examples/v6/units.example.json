@@ -1,0 +1,123 @@
+{
+  "units_schema": "astrocs.v6.units/v1",
+  "schema_version": 1,
+  "table": [
+    {
+      "symbol": "signal_sb",
+      "unit": "ADU/px^2",
+      "meaning": "Phase1 Drizzle/HiPS 面亮度 signal",
+      "variance_unit": "ADU^2/px^4",
+      "ivar_unit": "px^4/ADU^2",
+      "domain": "Phase1 signal",
+      "anchor": "FZ-UNIT-SIGNAL-SB; DRIZZLE.md §5:48",
+      "gate": "G-BUNIT-SEMANTICS"
+    },
+    {
+      "symbol": "pixel_variance_in",
+      "unit": "ADU^2",
+      "meaning": "输入源像素逐像素方差 v_j",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "domain": "Drizzle 输入",
+      "anchor": "FZ-UNIT-VAR-IN; DRIZZLE.md §3:27",
+      "gate": "G-BUNIT-QUADRATIC"
+    },
+    {
+      "symbol": "sb_variance_out",
+      "unit": "ADU^2/px^4",
+      "meaning": "Phase1 输出面亮度方差 variance_p",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "domain": "Phase1 variance",
+      "anchor": "FZ-UNIT-VAR-SB; DRIZZLE.md §5:55",
+      "gate": "G-BUNIT-QUADRATIC"
+    },
+    {
+      "symbol": "sb_ivar_out",
+      "unit": "px^4/ADU^2",
+      "meaning": "Phase1 输出 ivar",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "domain": "Phase1 ivar",
+      "anchor": "FZ-UNIT-IVAR-SB; DRIZZLE.md §5:56",
+      "gate": "G-BUNIT-QUADRATIC"
+    },
+    {
+      "symbol": "W_info",
+      "unit": "ADU^-2",
+      "meaning": "点源信息权重 = 1/Var(F_hat)",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "domain": "Phase1/Phase2 点源",
+      "anchor": "FZ-UNIT-WINFO; PSF_SIGNAL_WEIGHT §2:35",
+      "gate": "G-WINFO-UNIT"
+    },
+    {
+      "symbol": "Q",
+      "unit": "ADU^-1",
+      "meaning": "点源线性充分统计量",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "domain": "Phase2 point_information",
+      "anchor": "FZ-UNIT-Q; UNIFIED §4",
+      "gate": "G-Q-UNIT"
+    },
+    {
+      "symbol": "flux",
+      "unit": "ADU",
+      "meaning": "F_hat 点源通量估计",
+      "variance_unit": "ADU^2",
+      "ivar_unit": "ADU^-2",
+      "domain": "Phase1/2/3 点源",
+      "anchor": "FZ-UNIT-FLUX; UNIFIED §4",
+      "gate": "G-FLUX-UNIT"
+    },
+    {
+      "symbol": "psfsw_robust_weight",
+      "unit": "1",
+      "meaning": "无量纲组内相对复合权重",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "domain": "Phase2 psfsw_robust",
+      "anchor": "FZ-UNIT-PSFSW; PSF_SIGNAL_WEIGHT §3",
+      "gate": "G-PSFSW-UNIT"
+    },
+    {
+      "symbol": "phase2_mosaic_signal",
+      "unit": "BUNIT(声明)",
+      "meaning": "Phase2 马赛克 signal; 面亮度产品则 ADU/px^2",
+      "variance_unit": "BUNIT^2",
+      "ivar_unit": "1/BUNIT^2",
+      "domain": "Phase2",
+      "anchor": "FZ-UNIT-SIGNAL-SB; DESIGN-P2 §9",
+      "gate": "G-BUNIT-SEMANTICS"
+    },
+    {
+      "symbol": "phase3_var_out",
+      "unit": "BUNIT^2",
+      "meaning": "Phase3 输出方差 = 主 HDU BUNIT 平方",
+      "variance_unit": null,
+      "ivar_unit": "1/BUNIT^2",
+      "domain": "Phase3",
+      "anchor": "FZ-P3-BUNIT-QUADRATIC; DATA_SEMANTICS §30.4",
+      "gate": "G-BUNIT-QUADRATIC"
+    }
+  ],
+  "quadratic_law": {
+    "statement": "variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2",
+    "freeze_id": "FZ-P3-BUNIT-QUADRATIC"
+  },
+  "bunit_semantics": {
+    "rule": "BUNIT 必须量纲可判: (a) 显式含 px 幂次(canonical ADU/px^2 与 ADU^2/px^4); 或 (b) BUNIT=ADU 时 provenance 必须声明 pixel_semantics=surface_brightness + pixel_area_power=-2 + 目标像素面积",
+    "freeze_id": "FZ-BUNIT-SEMANTICS",
+    "pixel_area_power_defaults": {
+      "signal_sb": -2,
+      "sb_variance_out": -4,
+      "sb_ivar_out": 4,
+      "flux": 0,
+      "Q": 0,
+      "W_info": 0,
+      "psfsw_robust_weight": 0
+    }
+  }
+}

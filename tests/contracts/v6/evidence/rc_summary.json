@@ -1,0 +1,47 @@
+{
+  "task": "SCHEMA-INTEGRATE-001",
+  "baseline_head": "ac04289dea9d3ccb3dad8310dade53e75162447f",
+  "steps": [
+    {
+      "step": "schema-meta",
+      "rc": 0,
+      "mode": "bundled-structural",
+      "detail": {
+        "bad": []
+      }
+    },
+    {
+      "step": "oracle",
+      "rc": 0,
+      "checks_total": 40,
+      "checks_passed": 40,
+      "failures": []
+    },
+    {
+      "step": "negative-mutations",
+      "rc": 0,
+      "total": 34,
+      "missed": [],
+      "wrong_gate": []
+    },
+    {
+      "step": "UT-CONTRACTS",
+      "rc": 0,
+      "tests_run": 28
+    },
+    {
+      "step": "examples-official",
+      "rc": 0,
+      "mode": "not-available-optional",
+      "optional": true,
+      "detail": {}
+    },
+    {
+      "step": "examples-bundled",
+      "rc": 0,
+      "count": 10,
+      "bad": []
+    }
+  ],
+  "overall": "PASS"
+}

@@ -1,0 +1,44 @@
+{
+  "weight_mode_schema": "astrocs.v6.weight-mode/v1",
+  "schema_version": 1,
+  "weight_mode": "psfsw_robust",
+  "mode_class": "production",
+  "science_objective": "conventional integration depth with auditable composite weight",
+  "deferred_modes_documented": [
+    "psf_snr_power"
+  ],
+  "legacy_superseded": {
+    "0": "support_x_snr2",
+    "1": "equal",
+    "2": "pixel_ivar"
+  },
+  "legacy_integer_allowed": false,
+  "weight": {
+    "kind": "psfsw_robust_weight",
+    "units": "1",
+    "group_normalized": true,
+    "sources": [
+      "psfsw.signal",
+      "psfsw.concentration",
+      "psfsw.noise",
+      "psfsw.background"
+    ]
+  },
+  "primitives": {
+    "psfsw.signal": "sum of PSF-fit flux",
+    "psfsw.concentration": "mean PSF flux / A_NEA",
+    "psfsw.noise": "robust scale",
+    "psfsw.background": "robust mean background"
+  },
+  "covariance_ref": "covariance/v1/run-3",
+  "effective_psf_ref": "effective-psf/v1/run-3",
+  "parameter_effectiveness": {
+    "declared_parameters": [
+      "weight_mode",
+      "psfsw_exponents"
+    ],
+    "applied_in_combination_coefficients": true,
+    "applied_in_effective_psf": true
+  },
+  "provenance_ref": "provenance/v1/run-3"
+}

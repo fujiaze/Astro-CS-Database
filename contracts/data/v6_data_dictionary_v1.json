@@ -1,0 +1,1036 @@
+{
+  "dictionary_schema": "astrocs.v6.data-dictionary/v1",
+  "schema_version": 1,
+  "task": "SCHEMA-INTEGRATE-001",
+  "wave": 6,
+  "status": "PRODUCTION_INTEGRATED",
+  "baseline_head": "ac04289dea9d3ccb3dad8310dade53e75162447f",
+  "freeze_contract": "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json",
+  "freeze_baseline_head": "ebefe00d3cb9018d61b7b3e8d3d7694191c1f333",
+  "semantic_authority": "reports/v6/science-adjudication/adjudications.json",
+  "controller_authority": "工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/CONTROLLER_LOG.md",
+  "schema_index": [
+    {
+      "schema_id": "https://astrocs.local/schemas/v6/units.v1.schema.json",
+      "path": "contracts/schemas/v6/astrocs.v6.units.v1.schema.json",
+      "version": 1,
+      "clause_ids": [
+        "FZ-UNIT-SIGNAL-SB",
+        "FZ-UNIT-Q",
+        "FZ-UNIT-FLUX",
+        "FZ-UNIT-WINFO",
+        "FZ-UNIT-PSFSW",
+        "FZ-UNIT-VAR-IN",
+        "FZ-UNIT-VAR-SB",
+        "FZ-UNIT-IVAR-SB",
+        "FZ-P3-BUNIT-QUADRATIC",
+        "FZ-BUNIT-SEMANTICS"
+      ],
+      "source_proposal": "contracts/proposals/v6/data/astrocs.v6.units.v1.schema.json"
+    },
+    {
+      "schema_id": "https://astrocs.local/schemas/v6/signal.v1.schema.json",
+      "path": "contracts/schemas/v6/astrocs.v6.signal.v1.schema.json",
+      "version": 1,
+      "clause_ids": [
+        "FZ-FORMULA-DRIZZLE-SB",
+        "FZ-GATE-CONST-SB",
+        "FZ-COND-FLUX-CONSERV",
+        "FZ-DEGRADE-SCALAR",
+        "FZ-BUNIT-SEMANTICS"
+      ],
+      "source_proposal": "contracts/proposals/v6/data/astrocs.v6.signal.v1.schema.json"
+    },
+    {
+      "schema_id": "https://astrocs.local/schemas/v6/covariance.v1.schema.json",
+      "path": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
+      "version": 1,
+      "clause_ids": [
+        "FZ-FORMULA-COV-PROP",
+        "FZ-FORMULA-GLS",
+        "FZ-GATE-PIXIVAR-APPROX",
+        "FZ-GATE-PARENT-VAR",
+        "FZ-PROV-SHARED-SYSTEMATIC",
+        "FZ-GATE-PSFSW-COV"
+      ],
+      "source_proposal": "contracts/proposals/v6/data/astrocs.v6.covariance.v1.schema.json"
+    },
+    {
+      "schema_id": "https://astrocs.local/schemas/v6/psf.v1.schema.json",
+      "path": "contracts/schemas/v6/astrocs.v6.psf.v1.schema.json",
+      "version": 1,
+      "clause_ids": [
+        "FZ-COND-WHITENOISE",
+        "FZ-GATE-MEDIAN-SNR",
+        "FZ-GATE-SUPPORT-COVERAGE",
+        "FZ-DEGRADE-SCALAR"
+      ],
+      "source_proposal": "contracts/proposals/v6/data/astrocs.v6.psf.v1.schema.json"
+    },
+    {
+      "schema_id": "https://astrocs.local/schemas/v6/effective-psf.v1.schema.json",
+      "path": "contracts/schemas/v6/astrocs.v6.effective-psf.v1.schema.json",
+      "version": 1,
+      "clause_ids": [
+        "FZ-GATE-PSFSW-EPSF",
+        "FZ-P3-FAILCLOSED"
+      ],
+      "source_proposal": "contracts/proposals/v6/data/astrocs.v6.effective-psf.v1.schema.json"
+    },
+    {
+      "schema_id": "https://astrocs.local/schemas/v6/point-information.v1.schema.json",
+      "path": "contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json",
+      "version": 1,
+      "clause_ids": [
+        "FZ-FORMULA-WINFO",
+        "FZ-FORMULA-Q",
+        "FZ-FORMULA-FHAT",
+        "FZ-UNIT-WINFO",
+        "FZ-COND-WHITENOISE",
+        "FZ-DEGRADE-SCALAR"
+      ],
+      "source_proposal": "contracts/proposals/v6/data/astrocs.v6.point-information.v1.schema.json"
+    },
+    {
+      "schema_id": "https://astrocs.local/schemas/v6/weight-mode.v1.schema.json",
+      "path": "contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json",
+      "version": 1,
+      "clause_ids": [
+        "FZ-MODE-PRODUCTION",
+        "FZ-MODE-BASELINE",
+        "FZ-MODE-DEFERRED",
+        "FZ-FIELD-WEIGHTMODE",
+        "FZ-GATE-MEDIAN-SNR",
+        "FZ-GATE-SUPPORT-COVERAGE"
+      ],
+      "source_proposal": "contracts/proposals/v6/data/astrocs.v6.weight-mode.v1.schema.json"
+    },
+    {
+      "schema_id": "https://astrocs.local/schemas/v6/psfsw.v1.schema.json",
+      "path": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "version": 1,
+      "clause_ids": [
+        "FZ-FIELD-PSFSW-4COMP",
+        "FZ-FIELD-PSFSW-UNIT",
+        "FZ-FORMULA-PSFSW-COMPOSITE",
+        "FZ-GATE-PSFSW-FAILCLOSED",
+        "FZ-GATE-PSFSW-COV",
+        "FZ-GATE-PSFSW-EPSF"
+      ],
+      "source_proposal": "contracts/proposals/v6/data/astrocs.v6.psfsw.v1.schema.json"
+    },
+    {
+      "schema_id": "https://astrocs.local/schemas/v6/provenance.v1.schema.json",
+      "path": "contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json",
+      "version": 1,
+      "clause_ids": [
+        "FZ-PROV-MINIMAL-SET",
+        "FZ-PROV-SHARED-SYSTEMATIC",
+        "FZ-PROV-KCORR",
+        "FZ-DEGRADE-SCALAR",
+        "FZ-BUNIT-SEMANTICS",
+        "FZ-COND-FLUX-CONSERV"
+      ],
+      "source_proposal": "contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json"
+    },
+    {
+      "schema_id": "https://astrocs.local/schemas/v6/phase3.v1.schema.json",
+      "path": "contracts/schemas/v6/astrocs.v6.phase3.v1.schema.json",
+      "version": 1,
+      "clause_ids": [
+        "FZ-P3-MODES",
+        "FZ-P3-FAILCLOSED",
+        "FZ-P3-QW-RECOMPUTE",
+        "FZ-P3-KERNEL-REGISTRY",
+        "FZ-P3-BUNIT-QUADRATIC",
+        "FZ-FORMULA-COV-PROP"
+      ],
+      "source_proposal": "contracts/proposals/v6/data/astrocs.v6.phase3.v1.schema.json"
+    }
+  ],
+  "examples_index": [
+    "contracts/data/examples/v6/covariance.example.json",
+    "contracts/data/examples/v6/effective-psf.example.json",
+    "contracts/data/examples/v6/phase3.example.json",
+    "contracts/data/examples/v6/point-information.example.json",
+    "contracts/data/examples/v6/provenance.example.json",
+    "contracts/data/examples/v6/psf.example.json",
+    "contracts/data/examples/v6/psfsw.example.json",
+    "contracts/data/examples/v6/signal.example.json",
+    "contracts/data/examples/v6/units.example.json",
+    "contracts/data/examples/v6/weight-mode.example.json"
+  ],
+  "frozen_units_table": [
+    {
+      "symbol": "signal_sb",
+      "unit": "ADU/px^2",
+      "meaning": "Phase1 Drizzle/HiPS 面亮度 signal",
+      "variance_unit": "ADU^2/px^4",
+      "ivar_unit": "px^4/ADU^2",
+      "clause_id": "FZ-UNIT-SIGNAL-SB"
+    },
+    {
+      "symbol": "pixel_variance_in",
+      "unit": "ADU^2",
+      "meaning": "输入源像素逐像素方差 v_j",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "clause_id": "FZ-UNIT-VAR-IN"
+    },
+    {
+      "symbol": "W_info",
+      "unit": "ADU^-2",
+      "meaning": "点源信息权重 = 1/Var(F_hat)",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "clause_id": "FZ-UNIT-WINFO"
+    },
+    {
+      "symbol": "Q",
+      "unit": "ADU^-1",
+      "meaning": "点源线性充分统计量",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "clause_id": "FZ-UNIT-Q"
+    },
+    {
+      "symbol": "flux",
+      "unit": "ADU",
+      "meaning": "F_hat 点源通量估计",
+      "variance_unit": "ADU^2",
+      "ivar_unit": "ADU^-2",
+      "clause_id": "FZ-UNIT-FLUX"
+    },
+    {
+      "symbol": "psfsw_robust_weight",
+      "unit": "1",
+      "meaning": "无量纲组内相对复合权重",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "clause_id": "FZ-UNIT-PSFSW"
+    },
+    {
+      "symbol": "phase2_mosaic_signal",
+      "unit": "BUNIT(声明)",
+      "meaning": "Phase2 马赛克 signal; 面亮度产品则 ADU/px^2",
+      "variance_unit": "BUNIT^2",
+      "ivar_unit": "1/BUNIT^2",
+      "clause_id": "FZ-UNIT-SIGNAL-SB"
+    },
+    {
+      "symbol": "phase3_var_out",
+      "unit": "BUNIT^2",
+      "meaning": "Phase3 输出方差 = 主 HDU BUNIT 平方",
+      "variance_unit": null,
+      "ivar_unit": "1/BUNIT^2",
+      "clause_id": "FZ-P3-BUNIT-QUADRATIC"
+    }
+  ],
+  "design_units_table": [
+    {
+      "symbol": "signal_sb",
+      "unit": "ADU/px^2",
+      "meaning": "Phase1 Drizzle/HiPS 面亮度 signal",
+      "variance_unit": "ADU^2/px^4",
+      "ivar_unit": "px^4/ADU^2",
+      "clause_id": "FZ-UNIT-SIGNAL-SB"
+    },
+    {
+      "symbol": "sb_variance_out",
+      "unit": "ADU^2/px^4",
+      "meaning": "Phase1 输出面亮度方差 variance_p",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "clause_id": "FZ-UNIT-VAR-SB"
+    },
+    {
+      "symbol": "sb_ivar_out",
+      "unit": "px^4/ADU^2",
+      "meaning": "Phase1 输出 ivar",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "clause_id": "FZ-UNIT-IVAR-SB"
+    },
+    {
+      "symbol": "pixel_variance_in",
+      "unit": "ADU^2",
+      "meaning": "输入源像素逐像素方差 v_j",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "clause_id": "FZ-UNIT-VAR-IN"
+    },
+    {
+      "symbol": "W_info",
+      "unit": "ADU^-2",
+      "meaning": "点源信息权重 = 1/Var(F_hat)",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "clause_id": "FZ-UNIT-WINFO"
+    },
+    {
+      "symbol": "Q",
+      "unit": "ADU^-1",
+      "meaning": "点源线性充分统计量",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "clause_id": "FZ-UNIT-Q"
+    },
+    {
+      "symbol": "flux",
+      "unit": "ADU",
+      "meaning": "F_hat 点源通量估计",
+      "variance_unit": "ADU^2",
+      "ivar_unit": "ADU^-2",
+      "clause_id": "FZ-UNIT-FLUX"
+    },
+    {
+      "symbol": "psfsw_robust_weight",
+      "unit": "1",
+      "meaning": "无量纲组内相对复合权重",
+      "variance_unit": null,
+      "ivar_unit": null,
+      "clause_id": "FZ-UNIT-PSFSW"
+    },
+    {
+      "symbol": "phase2_mosaic_signal",
+      "unit": "BUNIT(声明)",
+      "meaning": "Phase2 马赛克 signal; 面亮度产品则 ADU/px^2",
+      "variance_unit": "BUNIT^2",
+      "ivar_unit": "1/BUNIT^2",
+      "clause_id": "FZ-UNIT-SIGNAL-SB"
+    },
+    {
+      "symbol": "phase3_var_out",
+      "unit": "BUNIT^2",
+      "meaning": "Phase3 输出方差 = 主 HDU BUNIT 平方",
+      "variance_unit": null,
+      "ivar_unit": "1/BUNIT^2",
+      "clause_id": "FZ-P3-BUNIT-QUADRATIC"
+    }
+  ],
+  "quadratic_law": {
+    "statement": "variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2",
+    "freeze_id": "FZ-P3-BUNIT-QUADRATIC"
+  },
+  "bunit_semantics": {
+    "rule": "BUNIT 必须量纲可判: (a) 显式含 px 幂次(canonical ADU/px^2 与 ADU^2/px^4); 或 (b) BUNIT=ADU 时 provenance 必须声明 pixel_semantics=surface_brightness + pixel_area_power=-2 + 目标像素面积",
+    "freeze_id": "FZ-BUNIT-SEMANTICS",
+    "pixel_area_power_defaults": {
+      "signal_sb": -2,
+      "sb_variance_out": -4,
+      "sb_ivar_out": 4,
+      "flux": 0,
+      "Q": 0,
+      "W_info": 0,
+      "psfsw_robust_weight": 0
+    },
+    "judgeable_units": [
+      "ADU/px^2",
+      "ADU^2/px^4",
+      "px^4/ADU^2"
+    ]
+  },
+  "weight_modes": {
+    "production": [
+      "point_information",
+      "surface_gls",
+      "psfsw_robust"
+    ],
+    "documented_baseline": [
+      "equal",
+      "pixel_ivar"
+    ],
+    "deferred": [
+      "psf_snr_power"
+    ],
+    "legacy_superseded": {
+      "0": "support_x_snr2",
+      "1": "equal",
+      "2": "pixel_ivar"
+    },
+    "legacy_integer_allowed": false,
+    "production_forbidden_values": [
+      "psf_snr_power",
+      "auto",
+      "support_x_snr2",
+      0
+    ],
+    "mode_details": [
+      {
+        "mode": "point_information",
+        "status": "PRODUCTION_FROZEN",
+        "weight_object": "W_info",
+        "units": "ADU^-2",
+        "authoritative_formula": "Q_k=a_k P_k^T C_k^-1 d_k; W_info,k=a_k^2 P_k^T C_k^-1 P_k; F_hat=Q/W; Var=1/W",
+        "covariance_source": "combination_coefficients",
+        "effective_psf_required": true,
+        "group_normalized": false,
+        "clause_id": "FZ-FORMULA-WINFO"
+      },
+      {
+        "mode": "surface_gls",
+        "status": "PRODUCTION_FROZEN",
+        "weight_object": "A^T C^-1 A",
+        "units": "1/(surface_brightness^2)",
+        "authoritative_formula": "x_hat=(A^T C^-1 A)^-1 A^T C^-1 d; Cov=(A^T C^-1 A)^-1",
+        "covariance_source": "combination_coefficients",
+        "effective_psf_required": true,
+        "group_normalized": false,
+        "clause_id": "FZ-FORMULA-GLS"
+      },
+      {
+        "mode": "psfsw_robust",
+        "status": "PRODUCTION_FROZEN",
+        "weight_object": "psfsw_robust_weight",
+        "units": "1",
+        "authoritative_formula": "Wt_k=C_norm*S^alpha*Conc^beta/(N^gamma*B^delta); W_psfsw,k=Wt_k/median_j(Wt_j)",
+        "covariance_source": "combination_coefficients",
+        "effective_psf_required": true,
+        "group_normalized": true,
+        "clause_id": "FZ-FORMULA-PSFSW-COMPOSITE"
+      },
+      {
+        "mode": "equal",
+        "status": "DOCUMENTED_BASELINE",
+        "weight_object": "unit_weight",
+        "units": "1",
+        "authoritative_formula": "I_out=mean_k d_k",
+        "covariance_source": "combination_coefficients",
+        "effective_psf_required": true,
+        "group_normalized": false,
+        "clause_id": "FZ-MODE-BASELINE"
+      },
+      {
+        "mode": "pixel_ivar",
+        "status": "DOCUMENTED_BASELINE",
+        "weight_object": "pixel_ivar",
+        "units": "1/BUNIT^2",
+        "authoritative_formula": "I_out=Sum_k w_k d_k/Sum_k w_k, w_k=1/v_k",
+        "covariance_source": "combination_coefficients",
+        "effective_psf_required": true,
+        "group_normalized": false,
+        "clause_id": "FZ-MODE-BASELINE"
+      },
+      {
+        "mode": "psf_snr_power",
+        "status": "DEFERRED_NOT_PRODUCTION",
+        "weight_object": "ratio_of_powers",
+        "units": "1",
+        "authoritative_formula": "DEFERRED (未冻结)",
+        "covariance_source": "combination_coefficients",
+        "effective_psf_required": true,
+        "group_normalized": true,
+        "clause_id": "FZ-MODE-DEFERRED",
+        "controller_ref": "C-004.1"
+      }
+    ]
+  },
+  "weight_vocabulary_ref": "contracts/data/v6_weight_vocabulary_v1.json",
+  "migration_map_ref": "contracts/data/v6_migration_map_v1.json",
+  "forbidden": {
+    "weight_source_tokens": [
+      "median_source_snr",
+      "median_snr",
+      "source_snr_median",
+      "med_source_snr",
+      "support",
+      "support_area",
+      "coverage",
+      "coverage_area",
+      "fwhm",
+      "psf_fwhm",
+      "median_fwhm",
+      "source_fwhm",
+      "residual",
+      "psf_residual",
+      "psf_fit_residual",
+      "fit_residual",
+      "psfsw_robust_weight",
+      "psfsw"
+    ],
+    "psfsw_forbidden_keys": [
+      "ivar",
+      "inverse_variance",
+      "variance",
+      "var",
+      "sigma",
+      "sigma2",
+      "fisher",
+      "fisher_information",
+      "information",
+      "w_info",
+      "w_psf"
+    ],
+    "psfsw_extended_guard_keys": [
+      "snr",
+      "snr2",
+      "support",
+      "coverage"
+    ],
+    "production_weight_mode_forbidden_values": [
+      "psf_snr_power",
+      "auto",
+      "support_x_snr2",
+      0
+    ]
+  },
+  "declared_weight_sources": {
+    "point_information": [
+      "psf",
+      "photometric_response",
+      "noise_covariance"
+    ],
+    "surface_gls": [
+      "design_matrix",
+      "noise_covariance",
+      "upm_scale"
+    ],
+    "psfsw_robust": [
+      "psfsw.signal",
+      "psfsw.concentration",
+      "psfsw.noise",
+      "psfsw.background"
+    ],
+    "equal": [
+      "unit_weight"
+    ],
+    "pixel_ivar": [
+      "pixel_ivar"
+    ]
+  },
+  "provenance_minimal_set": [
+    {
+      "path": "product.type_id",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "product.schema_version",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "software_sha",
+      "clause_id": "FZ-PROV-MINIMAL-SET",
+      "constraint": "40 hex"
+    },
+    {
+      "path": "run_id",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "input_product_hashes",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "config_hash",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "units.bunit",
+      "clause_id": "FZ-BUNIT-SEMANTICS"
+    },
+    {
+      "path": "units.pixel_semantics",
+      "clause_id": "FZ-BUNIT-SEMANTICS"
+    },
+    {
+      "path": "units.pixel_area_power",
+      "clause_id": "FZ-BUNIT-SEMANTICS"
+    },
+    {
+      "path": "units.target_pixel_area",
+      "clause_id": "FZ-BUNIT-SEMANTICS"
+    },
+    {
+      "path": "coordinate.frame",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "pixel_semantics",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "sampling",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "algorithm_ids",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "module",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "provider",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "approximations",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "degradations",
+      "clause_id": "FZ-DEGRADE-SCALAR"
+    },
+    {
+      "path": "normalization_version",
+      "clause_id": "FZ-COND-FLUX-CONSERV"
+    },
+    {
+      "path": "weight_mode_version",
+      "clause_id": "FZ-FIELD-WEIGHTMODE"
+    },
+    {
+      "path": "correlation_summary",
+      "clause_id": "FZ-PROV-SHARED-SYSTEMATIC"
+    },
+    {
+      "path": "flux_conservation_factor",
+      "clause_id": "FZ-COND-FLUX-CONSERV"
+    },
+    {
+      "path": "k_corr",
+      "clause_id": "FZ-PROV-KCORR"
+    },
+    {
+      "path": "generated_utc",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    },
+    {
+      "path": "output_hash",
+      "clause_id": "FZ-PROV-MINIMAL-SET"
+    }
+  ],
+  "concentration_unit_authority": {
+    "authoritative_unit": "component_flux_unit/px^2",
+    "a_nea_unit": "px^2",
+    "component_flux_unit": "组内常量、显式声明；S_k/N_k/B_k 共享该单位，Conc_k = component_flux_unit/px^2",
+    "anchor": "ALG-P2-PSFSW-001 单位一致性规则; FZ-FIELD-PSFSW-4COMP; FZ-COND-WHITENOISE",
+    "registered_text_error": {
+      "file": "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md",
+      "section": "§4.2 四分量表",
+      "line": 203,
+      "as_written": "ADU/px",
+      "disposition": "W12 待修文本错误（DOC-CONVERGE-001 + 负责人签字后修正 FROZEN 正文）；生产 schema 与数据字典合法域**不含** 'ADU/px'",
+      "not_silently_adopted": true
+    },
+    "legacy_proposal_example": "contracts/proposals/v6/data/examples/psfsw.example.json 原写 'ADU/px'；生产正例 contracts/data/examples/v6/psfsw.example.json 已按唯一权威修正为 'ADU/px^2'"
+  },
+  "fail_closed": [
+    {
+      "gate": "G-BUNIT-SEMANTICS",
+      "clause_id": "FZ-BUNIT-SEMANTICS",
+      "condition": "BUNIT=ADU 且 provenance 无 pixel_semantics=surface_brightness + pixel_area_power=-2",
+      "disposition": "unavailable/REJECT"
+    },
+    {
+      "gate": "G-PSFSW-UNIT",
+      "clause_id": "FZ-UNIT-PSFSW",
+      "condition": "psfsw weight.units 含 flux^-2/ivar 或 != '1'",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-PSFSW-NORMALIZATION",
+      "clause_id": "FZ-FIELD-PSFSW-UNIT",
+      "condition": "group_normalized=false / scope=global / median_target != 1",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-PSFSW-4COMP",
+      "clause_id": "FZ-FIELD-PSFSW-4COMP",
+      "condition": "四分量塌陷/缺分量/measurement_id 重复/p05>p50>p95",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-PSFSW-4COMP-UNITS",
+      "clause_id": "FZ-FIELD-PSFSW-4COMP",
+      "condition": "concentration.units != component_flux_unit/px^2（或 legacy 'ADU/px'）",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-PSFSW-FAILCLOSED",
+      "clause_id": "FZ-GATE-PSFSW-FAILCLOSED",
+      "condition": "valid=false 而 weight_value 非 null，或 reason 不在 5 项白名单，或回退 median source SNR",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-PSFSW-COV",
+      "clause_id": "FZ-GATE-PSFSW-COV",
+      "condition": "variance_from=psfsw_robust_weight / Var=1/W_psfsw / psfsw 禁止键",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-EPSF-PRESENT",
+      "clause_id": "FZ-GATE-PSFSW-EPSF",
+      "condition": "三生产模式缺 effective PSF / 只给 FWHM 标量",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-WEIGHT-SOURCES",
+      "clause_id": "FZ-GATE-MEDIAN-SNR",
+      "condition": "weight.sources 命中诊断别名集",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-WEIGHTMODE-ENUM",
+      "clause_id": "FZ-MODE-PRODUCTION",
+      "condition": "未知模式 / legacy 0 / auto / support_x_snr2 / psf_snr_power 进生产",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-COV-VARIANCE-FROM",
+      "clause_id": "FZ-FORMULA-COV-PROP",
+      "condition": "从权重标量/诊断量反推 variance",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-COV-CORRELATION-KERNEL",
+      "clause_id": "FZ-PROV-SHARED-SYSTEMATIC",
+      "condition": "只出对角 variance 而无相关核/可重建算子摘要",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-PARENT-VAR-DEFICIT",
+      "clause_id": "FZ-GATE-PARENT-VAR",
+      "condition": "HiPS 父级对角归约声明为精确",
+      "disposition": "REJECT/unavailable"
+    },
+    {
+      "gate": "G-KCORR-DOMAIN",
+      "clause_id": "FZ-PROV-KCORR",
+      "condition": "k_corr=1 忽略相关 / 缺适用域 / 跨域外推",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-KCORR-CALIBRATION",
+      "clause_id": "FZ-PROV-KCORR",
+      "condition": "缺标定脚本/固定种子",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-PROV-MINIMAL-SET",
+      "clause_id": "FZ-PROV-MINIMAL-SET",
+      "condition": "provenance 缺最小集键",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-UNAVAILABLE-REASON",
+      "clause_id": "FZ-PROV-MINIMAL-SET",
+      "condition": "unavailable 无 reason/scope 或占位键",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-DEGRADE-SCALAR",
+      "clause_id": "FZ-DEGRADE-SCALAR",
+      "condition": "标量降级缺 p05/p50/p95/双门",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-P3-KERNEL-REGISTRY",
+      "clause_id": "FZ-P3-KERNEL-REGISTRY",
+      "condition": "未注册核进生产 / registered 无 Oracle",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-P3-QW-RECOMPUTE",
+      "clause_id": "FZ-P3-QW-RECOMPUTE",
+      "condition": "重采样输入 Q/W 代替输出帧重算",
+      "disposition": "REJECT"
+    },
+    {
+      "gate": "G-P3-VISUALIZATION",
+      "clause_id": "FZ-P3-FAILCLOSED",
+      "condition": "visualization 且 measurement_capable=true",
+      "disposition": "REJECT"
+    }
+  ],
+  "open_registry": {
+    "controller_refs": [
+      "C-004.1",
+      "C-004.2",
+      "C-004.3",
+      "C-004.4",
+      "C-004.5",
+      "C-004.6",
+      "C-006",
+      "C-007"
+    ],
+    "design_open_items": [
+      "DI-01",
+      "DI-02",
+      "DI-03",
+      "DI-04",
+      "DI-05",
+      "DI-06",
+      "DI-07",
+      "OI-01",
+      "OI-02",
+      "OI-03",
+      "OI-04",
+      "OI-05",
+      "OPEN-P2S-01",
+      "OPEN-P2S-02",
+      "OPEN-P2S-03",
+      "P3-OPEN-EPSILON-CORR",
+      "PF-01",
+      "PF-02",
+      "PF-03",
+      "PF-04",
+      "PF-05",
+      "PF-06",
+      "PF-07",
+      "AR-032-GAP",
+      "AR-034-GAP",
+      "AR-035-GAP",
+      "AR-036-SIGNOFF"
+    ],
+    "w6_closed": [
+      "DI-01",
+      "DI-07"
+    ],
+    "w6_carried": [
+      "DI-06"
+    ],
+    "note": "DI-01（词表归一）与 DI-07（weight_units '1' vs dimensionless_relative 双射）由本任务闭合；DI-06（plane 枚举与 runtime validator 同提交）因 runtime 不在 write_scope 保持 OPEN。"
+  },
+  "clause_registry": {
+    "total": 96,
+    "counts_by_status": {
+      "FROZEN": 39,
+      "OPEN": 8,
+      "PENDING_OWNER_SIGNOFF": 49
+    },
+    "ids_by_status": {
+      "FROZEN": [
+        "FZ-AP1-GLS-QW-RTOL",
+        "FZ-CAL-FLOOR",
+        "FZ-CAL-QUANTUM-DEFAULT",
+        "FZ-COND-WHITENOISE",
+        "FZ-DEGRADE-SCALAR",
+        "FZ-FIELD-PSFSW-4COMP",
+        "FZ-FIELD-PSFSW-UNIT",
+        "FZ-FIELD-WEIGHTMODE",
+        "FZ-FORMULA-COV-PROP",
+        "FZ-FORMULA-FHAT",
+        "FZ-FORMULA-GLS",
+        "FZ-FORMULA-PSFSW-COMPOSITE",
+        "FZ-FORMULA-Q",
+        "FZ-FORMULA-WINFO",
+        "FZ-GATE-MEDIAN-SNR",
+        "FZ-GATE-PIXIVAR-APPROX",
+        "FZ-GATE-PSFSW-COV",
+        "FZ-GATE-PSFSW-EPSF",
+        "FZ-GATE-PSFSW-FAILCLOSED",
+        "FZ-GATE-SUPPORT-COVERAGE",
+        "FZ-MODE-BASELINE",
+        "FZ-MODE-DEFERRED",
+        "FZ-MODE-PRODUCTION",
+        "FZ-P3-BUNIT-QUADRATIC",
+        "FZ-P3-FAILCLOSED",
+        "FZ-P3-KERNEL-REGISTRY",
+        "FZ-P3-MODES",
+        "FZ-P3-OMEGA-NONCONST",
+        "FZ-P3-QW-RECOMPUTE",
+        "FZ-PROV-KCORR",
+        "FZ-PROV-MINIMAL-SET",
+        "FZ-PROV-SHARED-SYSTEMATIC",
+        "FZ-REJ-INHERITED-THRESH",
+        "FZ-UNIT-FLUX",
+        "FZ-UNIT-PSFSW",
+        "FZ-UNIT-Q",
+        "FZ-UNIT-SIGNAL-SB",
+        "FZ-UNIT-WINFO",
+        "FZ-UPM-CONVERGENCE"
+      ],
+      "OPEN": [
+        "CF-T-P3-CORR-EPSILON",
+        "QF-G-BASE-03",
+        "QF-G-INJ-01",
+        "QF-G-INJ-02",
+        "QF-G-INJ-03",
+        "QF-G-INJ-07",
+        "QF-G-RD-01",
+        "QF-G-RD-02"
+      ],
+      "PENDING_OWNER_SIGNOFF": [
+        "CF-T-CONST-SB-TOL",
+        "FZ-AP1-DEFICIT-THRESH",
+        "FZ-AP2PT-CORR-RATIO-MIN",
+        "FZ-AP2PT-SNR-IDENT-RTOL",
+        "FZ-AP2S-EPS-PIXIVAR",
+        "FZ-AP2S-EPS-PIXIVAR-SUP",
+        "FZ-AP2S-EPSF-RTOL",
+        "FZ-AP2S-IDENT-RTOL",
+        "FZ-AP2S-KAPPA-MAX",
+        "FZ-AP2S-MC-RELTOL",
+        "FZ-AP2S-RANK-RTOL",
+        "FZ-AP2S-REJ-BSS-MIN",
+        "FZ-AP2S-REJ-CALIB-ABS",
+        "FZ-AP2S-REJ-CALIB-BINMIN",
+        "FZ-AP2S-UPM-MINFRAMES",
+        "FZ-BUNIT-SEMANTICS",
+        "FZ-COND-FLUX-CONSERV",
+        "FZ-FORMULA-DRIZZLE-SB",
+        "FZ-FORMULA-DRIZZLE-VAR",
+        "FZ-GATE-CONST-SB",
+        "FZ-GATE-PARENT-VAR",
+        "FZ-PROV-KCORR-VALUE",
+        "FZ-UNIT-IVAR-SB",
+        "FZ-UNIT-VAR-IN",
+        "FZ-UNIT-VAR-SB",
+        "PSFSW-BASELINE-NONINFERIOR",
+        "PSFSW-COMPOSITE-ALPHA",
+        "PSFSW-COMPOSITE-BETA",
+        "PSFSW-COMPOSITE-CNORM",
+        "PSFSW-COMPOSITE-DELTA",
+        "PSFSW-COMPOSITE-FLOOR",
+        "PSFSW-COMPOSITE-GAMMA",
+        "PSFSW-T-BOOT",
+        "PSFSW-T-CI",
+        "PSFSW-T-COVMC",
+        "PSFSW-T-DEPTH",
+        "PSFSW-T-DEPTH-K",
+        "PSFSW-T-DEPTH-RHO",
+        "PSFSW-T-DEPTH-SPAN",
+        "PSFSW-T-EPSFTOL",
+        "PSFSW-T-FLUXBIAS",
+        "PSFSW-T-NMIN",
+        "PSFSW-T-NPREF",
+        "PSFSW-T-NROBUST",
+        "PSFSW-T-NU",
+        "PSFSW-T-NU-LOW",
+        "PSFSW-T-POWERLOSS",
+        "PSFSW-T-TREND",
+        "PSFSW-T-WRANGE"
+      ]
+    },
+    "signoff_items": [
+      {
+        "id": "SO-01",
+        "topic": "F-OBS-01 DRIZZLE §3 术语/单位修正",
+        "reason": "FROZEN SCI 术语修正",
+        "owner": "项目负责人 + CONTRACT-FREEZE-001",
+        "authority": "宪章 §1.2",
+        "status": "PENDING_OWNER_SIGNOFF"
+      },
+      {
+        "id": "SO-02",
+        "topic": "F-OBS-02 / S2 面亮度归一改为 (B) 面亮度保持",
+        "reason": "FROZEN DRIZZLE.md §5/§7/§11 公式变更 + 重跑全部 Drizzle 不变量/variance 门",
+        "owner": "项目负责人 + CONTRACT-FREEZE-001",
+        "authority": "宪章 §1.2",
+        "status": "PENDING_OWNER_SIGNOFF"
+      },
+      {
+        "id": "SO-03",
+        "topic": "S3 常量场 Oracle 判据取代 DRIZZLE §11",
+        "reason": "FROZEN 判据取代登记",
+        "owner": "项目负责人 + CONTRACT-FREEZE-001",
+        "authority": "宪章 §1.2",
+        "status": "PENDING_OWNER_SIGNOFF"
+      },
+      {
+        "id": "SO-04",
+        "topic": "AR-030/AR-031 协方差产品非目标声明取代",
+        "reason": "FROZEN DRIZZLE §1/§9a 取代登记",
+        "owner": "项目负责人 + CONTRACT-FREEZE-001",
+        "authority": "宪章 §1.2",
+        "status": "PENDING_OWNER_SIGNOFF"
+      },
+      {
+        "id": "SO-05",
+        "topic": "AR-036/AR-019/AR-026 宪章 §10.5/§17.6 记录/裁决分离",
+        "reason": "宪章修订须负责人签字；不得由 Agent 放宽",
+        "owner": "项目负责人",
+        "authority": "宪章 §1.2/§18",
+        "status": "PENDING_OWNER_SIGNOFF"
+      },
+      {
+        "id": "SO-06",
+        "topic": "AR-032 非 v6 SCI 迁移/取代清单",
+        "reason": "跨文档权威裁定与 DOC-CONVERGE 收口",
+        "owner": "项目负责人 + CONTRACT-FREEZE-001 + DOC-CONVERGE-001",
+        "authority": "PROJECT_SPEC §11",
+        "status": "PENDING_OWNER_SIGNOFF"
+      },
+      {
+        "id": "SO-07",
+        "topic": "F-OBS-03/F-OBS-04/F-OBS-05 的数值阈值/数据面/标定",
+        "reason": "误差门数值、低秩数据面、k_corr 标定脚本须 W3/W4 冻结并由负责人确认",
+        "owner": "ALG-P1-001/ALG-P2-UPM-001/CONTRACT-FREEZE-001 + 负责人",
+        "authority": "CSI 冻结流程",
+        "status": "PENDING_OWNER_SIGNOFF"
+      }
+    ],
+    "controller_only_items": [
+      {
+        "id": "CTRL-F1",
+        "topic": "F1 工作树不等于 HEAD (16 回退 + 10 删除)",
+        "ruling_owner": "控制器",
+        "ref": "C-004.6",
+        "status": "registered_only"
+      },
+      {
+        "id": "CTRL-AR033",
+        "topic": "根构建面 (CMakeLists) 无 V6 owner",
+        "ruling_owner": "控制器",
+        "ref": "C-004.4",
+        "status": "registered_only"
+      },
+      {
+        "id": "CTRL-AR034",
+        "topic": "7 项历史 CI 红",
+        "ruling_owner": "控制器/DOC-CONVERGE-001/RUNTIME-CI-001",
+        "ref": "AR-034",
+        "status": "registered_only"
+      },
+      {
+        "id": "CTRL-AR035",
+        "topic": "785 缺陷账本无销账任务",
+        "ruling_owner": "控制器",
+        "ref": "AR-035",
+        "status": "registered_only"
+      },
+      {
+        "id": "CTRL-AR036",
+        "topic": "宪章修订签字项",
+        "ruling_owner": "项目负责人",
+        "ref": "AR-036",
+        "status": "registered_only"
+      }
+    ],
+    "superseded_sections": [
+      "SUP-01",
+      "SUP-02",
+      "SUP-03",
+      "SUP-04",
+      "SUP-05",
+      "SUP-06",
+      "SUP-07",
+      "SUP-08",
+      "SUP-09",
+      "SUP-10"
+    ],
+    "policy": "PENDING_OWNER_SIGNOFF 条款保持 pending 并 fail-closed，任何生产 artifact 不得将其写成 FROZEN。"
+  },
+  "boundary": {
+    "no_commit": true,
+    "no_push": true,
+    "write_scope": [
+      "contracts/schemas/",
+      "contracts/data/",
+      "docs/contracts/",
+      "tests/contracts/v6/"
+    ],
+    "not_reintroduced": [
+      "P33-COEF §12.2 snr_coefficient 落位段",
+      "P27 生产路径不消费的 IpvParams 字段节"
+    ],
+    "frozen_not_modified": [
+      "docs/science/**",
+      "docs/owner/**",
+      "docs/design/**",
+      "docs/references/**"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "effective_psf_schema": "astrocs.v6.effective-psf/v1",
+  "schema_version": 1,
+  "effective_psf_id": "epsf_run3_psfsw",
+  "definition": "impulse_response_of_combination",
+  "product_family": "phase2_psfsw_integration",
+  "formula_family": "conventional_coadd",
+  "formula_ref": "P_eff = Sum_k alpha_k a_k (P_k (x) K_k) / Sum_k alpha_k a_k",
+  "normalization": "integral",
+  "values_or_model": { "kind": "model", "model": { "family": "empirical_grid", "shape": [9, 9] } },
+  "kernel_transfer": [ { "frame_id": "f1", "kernel_id": "bilinear_4quad", "kernel_version": "v1" } ],
+  "combination_coefficients_ref": "covariance/v1/run-3#combination_coefficients",
+  "input_psf_refs": ["psf/f1", "psf/f2"],
+  "fwhm_from_effective": { "value": 3.9, "unit": "px", "role": "derived_diagnostic" },
+  "reproducibility": { "p_eff_hash": "0000000000000000000000000000000000000000000000000000000000000000", "kernel_set_hash": "sha256:ee" },
+  "provenance_ref": "provenance/v1/run-3"
+}
