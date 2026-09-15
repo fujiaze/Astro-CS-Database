@@ -107,12 +107,15 @@ class TestPhase1InProcess(unittest.TestCase):
                  e.get("role") == "run_manifest"][-1]["path"]
         m = json.load(open(mpath, encoding="utf-8"))
         self.assertEqual(m["status"], "complete")
-        # FIX-E2E B1-A1: 全链产物（校准 FITS + p1_*.json + p1_stack.hiss + HiPS
-        # properties）必须全部入 run manifest; 旧断言 ==2 只编码了 cal 两节点断链态。
+        # FIX-E2E B1-A1: 全链产物（校准 FITS + p1_*.json + 标准 HiPS 事实面）
+        # 必须全部入 run manifest; 旧断言 ==2 只编码了 cal 两节点断链态。
+        # P23 一级: 生产末端直写标准 HiPS, 不再落 legacy 单文件容器, 故
+        # 旧单文件容器产物从必备集移除; 等价覆盖 = signal/properties + Moc
+        # + metadata.fits（见下方 HiPS 断言）。
         names = {os.path.basename(a["path"]) for a in m["artifacts"]}
         self.assertTrue({"calibrated_light_1.fits", "calibrated_light_2.fits"} <= names)
         self.assertTrue({"p1_sources.json", "p1_psf.json", "p1_wcs.json", "p1_flux.json",
-                         "p1_snr.json", "p1_stack.hiss", "p1_final.json"} <= names)
+                         "p1_snr.json", "p1_final.json"} <= names)
         for a in m["artifacts"]:
             self.assertTrue(a["sha256"] and os.path.isfile(a["path"]), a["path"])
         v = self._run("verify", "--json", "--run-manifest", mpath)
