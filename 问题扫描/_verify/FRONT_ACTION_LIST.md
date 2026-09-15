@@ -99,3 +99,9 @@
 - **`E14` 新增（V18/`G-A`）**：`TEST-ASSERT-BYPASS` —— 静态扫断言宏体，判"注入分支排在 `!(cond)` 之前"或"`ok = !ok` 覆盖结论"或"首名命中后无条件 `++failures`"三种旁路形态；挂 `check_ctest_registration.py` C1–C6 旁，`fast`、`waivable=false`。⇒ **与 `E11` 分列，不合并**（判据对象分别是源文件与 `checks.json`）。
 - **`G-D` 前置件（先做这个才谈得上 `C-21①`）**：`ci/checks.json` schema 加 `env`/`variants` 维度并让 `ci/run.py` 消费；现状是 130 条门里 `ASTROCS_*` 零出现。
 - **一条别误修（V18 自纠③④）**：`lib/astro_image_io/third_party/cfitsio/**` 的 370 条宏是 vendored token-pasting，**不是**旁路断言；`tests/monitoring` 的 24 个负例真实存在，**问题在 `LOG-CONTRACT` 门不跑它们**（改法是自检内嵌负例集，不是新增负例测试）。
+
+## §G 前台提交纪律（负责人指示，我违反过一次后定死）
+- **只提交自己范围内的内容**：`git add` 一律路径限定到 `问题扫描/账本/`、`问题扫描/_tools/`、`问题扫描/findings/`、`问题扫描/40_OWNER_DECISIONS.md`、`问题扫描/SUMMARY.md`、`问题扫描/INDEX.md` 与我本人的 `_verify/_front_*.py`。
+- **禁止**：`git add -A` / `git add .` / 整目录 `问题扫描`；**禁止提交** `_recheck/`（RC 片在途）、`_verify/<轴名>*.md`（子代理在途）、`_merge/`、以及任何非我撰写的文件。
+- **事故记录**：我曾以 `git add -A` 清理自建副本时顺带提交了 `问题扫描/_recheck/RC7.md`（当时在途）与某轴 `_verify` 档案。因 §14.5 禁历史重写，不改写历史，仅在此留痕并定规。
+- 附带后果：`账本/FIX_LEDGER.csv` 由我单人写；子代理只出 `RECHECK-VERDICT` 建议，回写由我在同一原子提交完成，且**每次重算后必须 diff 行列数与隔壁已填处置数（当前 22）**。

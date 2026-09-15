@@ -17,7 +17,7 @@ import os, shutil, subprocess, tempfile, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CAL_INC = os.path.join(REPO, "lib", "calibration", "include")
 CAL_SRC = os.path.join(REPO, "lib", "calibration", "src")
-AIO_INC = os.path.join(REPO, "lib", "astro_image_io", "include")
+HISS_INC = os.path.join(REPO, "lib", "astro_image_io", "include")
 
 DRIVER = r'''
 #include "astro_calibration.h"
@@ -193,7 +193,7 @@ class TestCalibrationOracle(unittest.TestCase):
                  "dark_optimizer.cpp", "ac_api.cpp"]]
         cls.exe = os.path.join(cls.tmp, "cal_drv")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-fopenmp",
-                            f"-I{CAL_INC}", f"-I{os.path.join(REPO, 'include')}", f"-I{AIO_INC}",
+                            f"-I{CAL_INC}", f"-I{os.path.join(REPO, 'include')}", f"-I{HISS_INC}",
                             drv, *srcs, "-lgomp", "-pthread", "-o", cls.exe],
                            capture_output=True, text=True, timeout=600)
         assert r.returncode == 0, "[compile]\n" + r.stderr[-1200:]
