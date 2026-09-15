@@ -303,6 +303,30 @@ doc_index:
     - path: "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md"
       status: ACTIVE_NORMATIVE
       notes: "IO-003 原子产物发布合同（IO-003 集成补登）"
+    - path: "docs/owner/PROJECT_SPEC.md"
+      status: ACTIVE_NORMATIVE
+      notes: "ASTROCS-PROJECT-SPEC-002：冻结宪章之下唯一目标态设计总规范；不承载实施流水账"
+    - path: "docs/design/PHASE1_DETAILED_DESIGN.md"
+      status: ACTIVE_NORMATIVE
+      notes: "DESIGN-P1-001：Phase1 单帧观测模型、PSF/噪声/信息产品目标态"
+    - path: "docs/design/PHASE2_DETAILED_DESIGN.md"
+      status: ACTIVE_NORMATIVE
+      notes: "DESIGN-P2-001：Phase2 UPM/排异及扩展源与点源最优合并目标态"
+    - path: "docs/design/PHASE3_DETAILED_DESIGN.md"
+      status: ACTIVE_NORMATIVE
+      notes: "DESIGN-P3-001：Phase3 HiPS 到科学 WCS FITS 目标态"
+    - path: "docs/science/UNIFIED_SCIENCE_MODEL.md"
+      status: ACTIVE_NORMATIVE
+      notes: "ASTROCS-SCIENCE-MODEL-001：统一 SNR/PSF information/covariance 与跨阶段合同"
+    - path: "docs/science/PSF_SIGNAL_WEIGHT.md"
+      status: ACTIVE_NORMATIVE
+      notes: "SCI-PSFW-001：严格 point information 与 PixInsight-style psfsw_robust 可选集成双轨合同"
+    - path: "docs/references/SCIENTIFIC_REFERENCES.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "ASTROCS-REFERENCES-001：项目科学与格式参考文献总档案"
+    - path: "docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md"
+      status: ACTIVE_INFORMATIVE
+      notes: "B1-B90/U1-U3 测光、PSF、SNR、Gaia XP 文献调查 tracked 原文快照；仅作参考，不覆盖统一科学模型"
     - path: "docs/owner/ARCHITECTURE_OVERVIEW.md"
       status: ACTIVE_NORMATIVE
       notes: "GOV-004 L0 负责人架构总览"

@@ -3,10 +3,27 @@
 > 目标产品：`0.11.0-alpha.2`（根 `VERSION`，GOV-003 唯一源）。
 > 检出基提交：`6affe3009985452f5bc0bdf654aa95a4b61b2d2e`（GOV-005 工作树检出基，
 > 2026-09-02 时点历史值；当前 HEAD 以 `git rev-parse HEAD` 为准）。
-> 负责人入口：`REVIEW.md` + `docs/owner/`（L0，GOV-004）；现状/发布口径见
+> 负责人设计入口：`docs/owner/PROJECT_SPEC.md`（冻结宪章之下唯一目标态总规范）以及
+> `docs/design/PHASE1_DETAILED_DESIGN.md`、`PHASE2_DETAILED_DESIGN.md`、
+> `PHASE3_DETAILED_DESIGN.md`；统一科学定义见 `docs/science/UNIFIED_SCIENCE_MODEL.md`。
+> 项目采用的科学与格式参考文献统一留档于 `docs/references/SCIENTIFIC_REFERENCES.md`，
+> 具体 SCI/设计 claim 仍须给出论文节/式和项目推导差异。现状/发布口径见
 > `docs/owner/RELEASE_STATUS.md` 与 `docs/KNOWN_LIMITATIONS.md`。
-> 本 README 只给项目定位与入口，不复制权威文档内容；科学/算法/架构/发布权威
-> 见 `docs/` 分层体系与 `AstroCS_ENGINEERING_CONSTRAINTS.md`（根冻结约束）。
+> 根 `ASTROCS_PROJECT_CONSTITUTION.md` 是 FROZEN 唯一最高约束；
+> `AstroCS_ENGINEERING_CONSTRAINTS.md` 已降级为历史参照。
+
+
+## 目标态设计与科学参考
+
+- [最高设计细节规范](docs/owner/PROJECT_SPEC.md)：项目必须做到什么。
+- [Phase1 详细设计](docs/design/PHASE1_DETAILED_DESIGN.md)：单帧观测模型、PSF/噪声/信息产品。
+- [Phase2 详细设计](docs/design/PHASE2_DETAILED_DESIGN.md)：UPM、排异、扩展源与点源最优合并。
+- [Phase3 详细设计](docs/design/PHASE3_DETAILED_DESIGN.md)：HiPS→WCS FITS、采样和不确定度传播。
+- [统一科学定义](docs/science/UNIFIED_SCIENCE_MODEL.md)：SNR、inverse variance、PSF information 与跨阶段合同。
+- [PSF Signal Weight](docs/science/PSF_SIGNAL_WEIGHT.md)：严格 W_info 与 PixInsight-style `psfsw_robust` 正式可选集成双轨。当前实施入口为 `工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/`（并行子代理 DAG）。
+- [科学与格式参考文献档案](docs/references/SCIENTIFIC_REFERENCES.md)：Horne/Naylor、Zackay & Ofek、PixInsight PSFSW、Drizzle、HEALPix/HiPS、FITS WCS、全局相对定标与排异；并纳入既有测光专项 [B1]–[B90] [tracked 原文快照](docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md)及核验规则。
+
+README 不复制公式；上述文件是设计与引用入口。
 
 ## 是什么
 
@@ -16,7 +33,7 @@ AstroCS 是天文 CCD 图像校准与标准化数据库系统。产品模型（�
 - **Phase1**：单帧 light + masters/catalog/config → 单帧标准化 IVOA HiPS + manifest
   （校准/定标/星点/WCS/测光/噪声/SNR/Drizzle/投影）。
 - **Phase2**：任意一组合同兼容 HiPS → 马赛克 HiPS + UPM/rejection/integration
-  provenance（联合光度模型、稳健排异、ivar 加权叠加）。
+  provenance；支持扩展源 GLS、点源 information/Q-W 及 PixInsight-style `psfsw_robust` 三种显式集成模式。
 - **Phase3**：任一合同兼容 HiPS（不要求来自 Phase2）→ 平面 FITS +
   WCS/coverage/validity/provenance。
 
