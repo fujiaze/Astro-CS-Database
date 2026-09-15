@@ -1,0 +1,14 @@
+{
+ "meta": {
+  "axis": "SA",
+  "task": "第一轮悬空锚归因与替代锚修复表",
+  "head": "a3a343a4",
+  "date": "2026-09-15",
+  "generator": "问题扫描/_verify/SA_anchor_repair.json（SA 轴只读复算产出）",
+  "scope": "问题扫描/findings/**.md（294 份）",
+  "calibers": "见 .md §口径声明",
+  "status": "SKELETON（回填中）"
+ },
+ "category_counts": {},
+ "anchors": []
+}

@@ -1,0 +1,1118 @@
+[
+ {
+  "file": "cmake/win32_pthread_shim/pthread.h",
+  "line": 14,
+  "name": "pthread_mutex_t",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 54
+ },
+ {
+  "file": "cmake/win32_pthread_shim/pthread.h",
+  "line": 18,
+  "name": "pthread_mutexattr_t",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 15
+ },
+ {
+  "file": "include/astrocs/abi/artifact_api_v1.h",
+  "line": 54,
+  "name": "acs_artifact_service_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 2358
+ },
+ {
+  "file": "include/astrocs/abi/host_api_v1.h",
+  "line": 45,
+  "name": "acs_logger_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 142
+ },
+ {
+  "file": "include/astrocs/abi/host_api_v1.h",
+  "line": 53,
+  "name": "acs_cancel_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 101
+ },
+ {
+  "file": "include/astrocs/abi/host_api_v1.h",
+  "line": 63,
+  "name": "acs_executor_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 261
+ },
+ {
+  "file": "include/astrocs/abi/host_api_v1.h",
+  "line": 75,
+  "name": "acs_host_api_v1",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": true,
+  "body_len": 1206
+ },
+ {
+  "file": "include/astrocs/abi/lifecycle_v1.h",
+  "line": 180,
+  "name": "acs_version_negotiation_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 336
+ },
+ {
+  "file": "include/astrocs/abi/module_api_v1.h",
+  "line": 40,
+  "name": "acs_module_descriptor_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 694
+ },
+ {
+  "file": "include/astrocs/abi/module_api_v1.h",
+  "line": 57,
+  "name": "acs_module_api_v1",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": true,
+  "body_len": 2368
+ },
+ {
+  "file": "include/astrocs/abi/module_api_v1.h",
+  "line": 114,
+  "name": "acs_kernel_desc_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 271
+ },
+ {
+  "file": "include/astrocs/abi/module_api_v1.h",
+  "line": 122,
+  "name": "acs_provider_api_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 564
+ },
+ {
+  "file": "include/astrocs/abi/status_codes.h",
+  "line": 93,
+  "name": "acs_head",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 108
+ },
+ {
+  "file": "include/astrocs/abi/status_codes.h",
+  "line": 101,
+  "name": "acs_str_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 109
+ },
+ {
+  "file": "include/astrocs/abi/status_codes.h",
+  "line": 109,
+  "name": "acs_strbuf_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 169
+ },
+ {
+  "file": "include/astrocs/abi/status_codes.h",
+  "line": 118,
+  "name": "acs_span_u8",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 64
+ },
+ {
+  "file": "include/astrocs/abi/status_codes.h",
+  "line": 124,
+  "name": "acs_span_f32",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 61
+ },
+ {
+  "file": "include/astrocs/abi/status_codes.h",
+  "line": 130,
+  "name": "acs_span_f64",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 61
+ },
+ {
+  "file": "include/astrocs/abi/status_codes.h",
+  "line": 189,
+  "name": "acs_error_info_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 292
+ },
+ {
+  "file": "include/astrocs/abi/status_codes.h",
+  "line": 202,
+  "name": "acs_allocator_v1",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": true,
+  "body_len": 206
+ },
+ {
+  "file": "include/astrocs/common_abi_v1.h",
+  "line": 20,
+  "name": "acs_head",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 103
+ },
+ {
+  "file": "include/astrocs/common_abi_v1.h",
+  "line": 25,
+  "name": "acs_span_f32",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 166
+ },
+ {
+  "file": "include/astrocs/common_abi_v1.h",
+  "line": 31,
+  "name": "acs_span_f64",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 61
+ },
+ {
+  "file": "include/astrocs/common_abi_v1.h",
+  "line": 37,
+  "name": "acs_span_u8",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 61
+ },
+ {
+  "file": "include/astrocs/common_abi_v1.h",
+  "line": 75,
+  "name": "acs_allocator",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 250
+ },
+ {
+  "file": "include/astrocs/common_abi_v1.h",
+  "line": 84,
+  "name": "acs_logger",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 154
+ },
+ {
+  "file": "include/astrocs/common_abi_v1.h",
+  "line": 92,
+  "name": "acs_cancel",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 128
+ },
+ {
+  "file": "include/astrocs/common_abi_v1.h",
+  "line": 100,
+  "name": "acs_thread_budget",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 346
+ },
+ {
+  "file": "include/astrocs/common_abi_v1.h",
+  "line": 110,
+  "name": "astrocs_host_services_v1",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 178
+ },
+ {
+  "file": "include/astrocs/common_abi_v1.h",
+  "line": 125,
+  "name": "astrocs_kernel_entry_v1",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 700
+ },
+ {
+  "file": "include/astrocs/common_abi_v1.h",
+  "line": 146,
+  "name": "astrocs_backend_api_v1",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 991
+ },
+ {
+  "file": "include/astrocs/io/aio_abi_v1.h",
+  "line": 69,
+  "name": "aio_abi_info_v1",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 460
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_healpix_io.h",
+  "line": 38,
+  "name": "HioSnrControlPoint",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 109
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_healpix_io.h",
+  "line": 48,
+  "name": "HioSnrControlPointF64",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 112
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_healpix_io.h",
+  "line": 61,
+  "name": "HioSnrModel",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 317
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_healpix_io.h",
+  "line": 70,
+  "name": "HioSnrModelF64",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 133
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_hips.h",
+  "line": 69,
+  "name": "AstroSphereTileView",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 367
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_hips.h",
+  "line": 84,
+  "name": "AioHipsSnrPoint",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 336
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_hips.h",
+  "line": 153,
+  "name": "AioHipsDiagTileView",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 125
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_hips.h",
+  "line": 213,
+  "name": "AioHipsVerifyReport",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 711
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_hips.h",
+  "line": 253,
+  "name": "AioHipsTile",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 101
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_pipeline.h",
+  "line": 46,
+  "name": "AioKVEntry",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 42
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_pipeline.h",
+  "line": 62,
+  "name": "AioBlock",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 434
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_pipeline.h",
+  "line": 73,
+  "name": "PipelineFrame",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 186
+ },
+ {
+  "file": "lib/astro_image_io/include/aio_pipeline.h",
+  "line": 83,
+  "name": "AstroAbiInfo",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 265
+ },
+ {
+  "file": "lib/astro_image_io/include/astro_image_io.h",
+  "line": 30,
+  "name": "AIOFITSKeyword",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 122
+ },
+ {
+  "file": "lib/astro_image_io/include/astro_image_io.h",
+  "line": 36,
+  "name": "AIOImageGeometry",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 52
+ },
+ {
+  "file": "lib/astro_image_io/include/astro_image_io.h",
+  "line": 42,
+  "name": "AIOImageOptions",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 50
+ },
+ {
+  "file": "lib/astro_image_io/include/astro_image_io.h",
+  "line": 47,
+  "name": "AIOWCSKeywords",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 375
+ },
+ {
+  "file": "lib/astro_image_io/include/astro_image_io.h",
+  "line": 63,
+  "name": "AIOObservationMetadata",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 381
+ },
+ {
+  "file": "lib/astro_image_io/include/astro_image_io.h",
+  "line": 76,
+  "name": "AIOCalibrationMetadata",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 193
+ },
+ {
+  "file": "lib/astro_image_io/include/astro_image_io.h",
+  "line": 86,
+  "name": "AIOImageMetadata",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 167
+ },
+ {
+  "file": "lib/backend_host/baseline_kernels.h",
+  "line": 30,
+  "name": "acs_baseline_params_v1",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": true,
+  "body_len": 680
+ },
+ {
+  "file": "lib/dynamic_psf/include/dynamic_psf.h",
+  "line": 17,
+  "name": "DPSFFitResult",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 221
+ },
+ {
+  "file": "lib/dynamic_psf/include/dynamic_psf.h",
+  "line": 38,
+  "name": "DPSFFitParams",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 61
+ },
+ {
+  "file": "lib/gaia_xpsd_client/src/gaia_client.h",
+  "line": 45,
+  "name": "GaiaStar",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 163
+ },
+ {
+  "file": "lib/gaia_xpsd_client/src/gaia_client.h",
+  "line": 57,
+  "name": "GaiaSpectrumStar",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 241
+ },
+ {
+  "file": "lib/gaia_xpsd_client/src/gaia_client.h",
+  "line": 68,
+  "name": "GaiaPhotometryStar",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 87
+ },
+ {
+  "file": "lib/gaia_xpsd_client/src/gaia_client.h",
+  "line": 142,
+  "name": "GaiaPlanStats",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 509
+ },
+ {
+  "file": "lib/healpix_db/archive/legacy/healpix_stack/hp_stack_api.h",
+  "line": 31,
+  "name": "HpStackResult",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 144
+ },
+ {
+  "file": "lib/healpix_db/healpix_drizzle/hp_drizzle_api.h",
+  "line": 22,
+  "name": "HpDrizzleResult",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 252
+ },
+ {
+  "file": "lib/healpix_db/healpix_drizzle/hp_drizzle_api.h",
+  "line": 90,
+  "name": "HpAutoNsideResult",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 350
+ },
+ {
+  "file": "lib/healpix_db/healpix_drizzle/hp_drizzle_api.h",
+  "line": 107,
+  "name": "HpReverseDrizzleInput",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 979
+ },
+ {
+  "file": "lib/healpix_db/healpix_drizzle/hp_drizzle_api.h",
+  "line": 134,
+  "name": "HpReverseDrizzleResult",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 358
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/block.h",
+  "line": 25,
+  "name": "P2BlockPlannerInput",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 409
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/block.h",
+  "line": 36,
+  "name": "P2BlockPlan",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 220
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/coverage.h",
+  "line": 26,
+  "name": "P2MocCell",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 114
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/coverage.h",
+  "line": 31,
+  "name": "P2HipsInputInfo",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 405
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/coverage.h",
+  "line": 45,
+  "name": "P2CoverageResult",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 276
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/integrate.h",
+  "line": 36,
+  "name": "P2PixelStack",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 257
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/integrate.h",
+  "line": 53,
+  "name": "P2PixelResult",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 504
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 100,
+  "name": "P2SigmaParams",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 136
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 106,
+  "name": "P2LinearFitParams",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 124
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 112,
+  "name": "P2EsdParams",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 91
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 117,
+  "name": "P2PercentileParams",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 115
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 122,
+  "name": "P2MinmaxParams",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 144
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 128,
+  "name": "P2RcrParams",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 60
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 144,
+  "name": "P2LargeScaleParams",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 213
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 152,
+  "name": "P2RejectionPlan",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 967
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 172,
+  "name": "P2RejectionPlanRequest",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 483
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 199,
+  "name": "P2EligibilityInput",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 410
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 210,
+  "name": "P2EligibilityOutput",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 500
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 227,
+  "name": "P2EligibilityGatherInput",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 814
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 247,
+  "name": "P2EligibilityGatherOutput",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 583
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 267,
+  "name": "P2CandidateStack",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 256
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 276,
+  "name": "P2RejectionDecision",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 295
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 300,
+  "name": "P2SampleStackView",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 605
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/rejection.h",
+  "line": 316,
+  "name": "P2RejectionResult",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 259
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/sampler.h",
+  "line": 32,
+  "name": "P2SamplerConfig",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 1577
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/sampler.h",
+  "line": 63,
+  "name": "P2SampleStats",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 695
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/sampler.h",
+  "line": 77,
+  "name": "P2ControlNode",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 153
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/upm.h",
+  "line": 31,
+  "name": "P2ControlObservation",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 1061
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/upm.h",
+  "line": 60,
+  "name": "P2ModelInfo",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 269
+ },
+ {
+  "file": "lib/phase2/include/astro/phase2/upm.h",
+  "line": 71,
+  "name": "P2UpmBuildConfig",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 1406
+ },
+ {
+  "file": "lib/photometric_calib/cpp/include/photometric_calib.h",
+  "line": 51,
+  "name": "PcMatchRecord",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 532
+ },
+ {
+  "file": "lib/plate_solve/cpp/ipv/include/ipv_api.h",
+  "line": 39,
+  "name": "IpvWcsResult",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 991
+ },
+ {
+  "file": "lib/plate_solve/cpp/ipv/include/ipv_api.h",
+  "line": 78,
+  "name": "IpvParams",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 1468
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 41,
+  "name": "PhotometricCalibrationQuality",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 693
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 73,
+  "name": "PsfFitQualityRow",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 585
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 108,
+  "name": "SnrNoiseModelConfig",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 825
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 127,
+  "name": "NoiseWeightModelV1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 806
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 210,
+  "name": "SnrSourceParams",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 648
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 224,
+  "name": "SnrSourceResult",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 776
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 309,
+  "name": "SnrSipCoeffs",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 217
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 320,
+  "name": "SnrWcsParams",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 265
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 358,
+  "name": "SnrControlPoint",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 205
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 372,
+  "name": "SnrControlPointF64",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 133
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 387,
+  "name": "SnrControlPointV3",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 143
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 399,
+  "name": "SnrControlPointF64V3",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 143
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 422,
+  "name": "SnrModelV3",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 554
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 440,
+  "name": "SnrModelV2",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 512
+ },
+ {
+  "file": "lib/snr_estimator/cpp/include/snr_estimator.h",
+  "line": 459,
+  "name": "SnrModel",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 796
+ },
+ {
+  "file": "lib/star_detector/include/star_detector.h",
+  "line": 17,
+  "name": "SDetParams",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 230
+ },
+ {
+  "file": "modules/services/io/include/astrocs/io/fits_stream_v1.h",
+  "line": 71,
+  "name": "acs_fio_trace_hooks_v1",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 365
+ },
+ {
+  "file": "modules/services/io/include/astrocs/io/fits_stream_v1.h",
+  "line": 86,
+  "name": "acs_fio_keyword_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": false,
+  "body_len": 128
+ },
+ {
+  "file": "modules/services/io/include/astrocs/io/fits_stream_v1.h",
+  "line": 93,
+  "name": "acs_fio_header_v1",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 394
+ },
+ {
+  "file": "providers/cpu/baseline/include/astrocs/cpu/baseline_provider_v1.h",
+  "line": 122,
+  "name": "acs_cpu_baseline_params_v1",
+  "struct_size": true,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 780
+ },
+ {
+  "file": "providers/cpu/common/include/astrocs/cpu/capability_v1.h",
+  "line": 76,
+  "name": "acs_cap_result_v1",
+  "struct_size": true,
+  "abi_version": true,
+  "acs_head": false,
+  "body_len": 1248
+ },
+ {
+  "file": "runtime/module_loader/secure_loader.h",
+  "line": 83,
+  "name": "acs_load_manifest_unit_v1",
+  "struct_size": false,
+  "abi_version": true,
+  "acs_head": true,
+  "body_len": 690
+ },
+ {
+  "file": "runtime/module_loader/secure_loader.h",
+  "line": 97,
+  "name": "acs_loader_options_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 404
+ },
+ {
+  "file": "runtime/module_loader/secure_loader.h",
+  "line": 112,
+  "name": "acs_loaded_module_v1",
+  "struct_size": false,
+  "abi_version": true,
+  "acs_head": true,
+  "body_len": 782
+ },
+ {
+  "file": "runtime/registry/module_registry.h",
+  "line": 65,
+  "name": "acs_registry_entry_v1",
+  "struct_size": false,
+  "abi_version": true,
+  "acs_head": true,
+  "body_len": 1200
+ },
+ {
+  "file": "runtime/registry/module_registry.h",
+  "line": 97,
+  "name": "acs_registry_finding_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 294
+ },
+ {
+  "file": "runtime/registry/module_registry.h",
+  "line": 106,
+  "name": "acs_registry_options_v1",
+  "struct_size": false,
+  "abi_version": false,
+  "acs_head": true,
+  "body_len": 607
+ }
+]

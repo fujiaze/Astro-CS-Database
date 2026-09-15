@@ -1,0 +1,176 @@
+=== except handlers whose body is pass/continue/print-only (175) ===
+ci/bootstrap.py:339  except (ValueError, OSError)  except (ValueError, OSError): pass 
+ci/check_version.py:197  except OSError  except OSError as exc: lit_rows.append((p, None, None, f"读取失败: {exc}")) continue for i, ln in enumerate(text.splitlines(), 1):
+ci/ci_repair_round.py:257  except Exception  except Exception:                            # noqa: BLE001 pass return exc.code, body, dict(exc.headers or {})
+ci/reconcile_state.py:64  except (subprocess.TimeoutExpired, OSError)  except (subprocess.TimeoutExpired, OSError): continue raise SystemExit("FATAL: cannot locate git repository root")
+ci/reconcile_state.py:196  except Exception  except Exception as exc:  # noqa: BLE001 check("commit_ledger", False, str(exc)) 
+ci/resource_monitor.py:76  except ValueError  except ValueError:  # 已被包装脚本改动：不强求恢复 pass return 0
+ci/run.py:145  except (OSError, ValueError)  except (OSError, ValueError): continue if not isinstance(data, dict) or "cpu_samples" not in data:
+ci/run.py:401  except (ValueError, TypeError)  except (ValueError, TypeError): errors.append(f"failures[{idx}] expiry 不是合法 ISO8601 时间：{entry['expiry']!r}") cleaned.append(entry)
+ci/run.py:706  except OSError  except OSError: pass 
+ci/run.py:878  except subprocess.TimeoutExpired  except subprocess.TimeoutExpired:  # pragma: no cover pass 
+ci/steps/collect_bootstrap_diag.py:52  except json.JSONDecodeError  except json.JSONDecodeError: pass for line in reversed((res.stderr or "").strip().splitlines()):
+ci/steps/collect_bootstrap_diag.py:57  except json.JSONDecodeError  except json.JSONDecodeError: continue if isinstance(cand, dict) and cand.get("verdict") == "FAIL":
+ci/validate_candidate.py:166  except json.JSONDecodeError  except json.JSONDecodeError as exc: err("source_manifest_invalid", f"SOURCE_MANIFEST.json 非法 JSON：{exc}")
+ci/validate_candidate.py:244  except json.JSONDecodeError  except json.JSONDecodeError as exc: err("provenance_invalid", f"BUILD_PROVENANCE.json 非法 JSON：{exc}") else:
+ci/validate_registry.py:108  except SyntaxError  except SyntaxError as exc: problems.append(f"R11 {where}: {rel} 解析失败: {exc}") continue has_main = any(
+ci/validate_workflow_binding.py:213  except Exception  except Exception as exc:  # noqa: BLE001 err("lock_invalid", str(lock_path), repr(exc)) report["actions_lock"] = {"entries": lock_
+ci/verify_actions_lock.py:220  except ShaMismatch  except ShaMismatch as exc: results.append({"action": action, "tag": tag, "expected_sha": expected, "observed_sha": None, "ok": Fal
+ci/verify_workspace_adoption.py:143  except (ValueError, OSError)  except (ValueError, OSError) as exc: failures.append(f"[FAIL] REMOTE_RELATION.json 解析失败: {exc}") 
+ci/verify_workspace_adoption.py:186  except ValueError  except ValueError as exc: failures.append(f"[FAIL] ahead/behind 解析: {exc}") else:
+lib/acr/ci/check_acr_dormant.py:115  except json.JSONDecodeError  except json.JSONDecodeError: fails.append("ACK-ACR-003: CMakePresets.json unparseable") cps = pj.get("configurePresets", []) if is
+lib/acr/ci/sha256_utf8.py:76  except Exception  except Exception as e: stats['errors'].append({'path': rel_path, 'error': str(e)}) 
+lib/healpix_db/healpix_drizzle/tests/test_pipeline_adapter.py:58  except (OSError, FileNotFoundError)  except (OSError, FileNotFoundError): pass os.environ["PATH"] = _dll_dir + ";" + os.environ.get("PATH", "")
+lib/healpix_db/healpix_drizzle/tests/trace_g4_validate.py:44  except Exception  except Exception: pass return rows
+lib/orchestrator/tests/test_orchestrator_e2e.py:53  except (OSError, FileNotFoundError)  except (OSError, FileNotFoundError): pass 
+lib/orchestrator/tests/test_orchestrator_e2e.py:63  except (OSError, FileNotFoundError)  except (OSError, FileNotFoundError): pass 
+lib/orchestrator/tests/test_orchestrator_e2e.py:122  except Exception  except Exception as e: print(f"[FAIL] CalibrateParams 加载失败: {e}") 
+lib/orchestrator/tests/test_orchestrator_e2e.py:133  except Exception  except Exception as e: print(f"[FAIL] PlateSolveParams 加载失败: {e}") 
+lib/orchestrator/tests/test_orchestrator_e2e.py:144  except Exception  except Exception as e: print(f"[FAIL] PhotometricParams 加载失败: {e}") 
+lib/orchestrator/tests/test_orchestrator_e2e.py:155  except Exception  except Exception as e: print(f"[FAIL] DrizzleParams 加载失败: {e}") 
+lib/orchestrator/tests/test_orchestrator_e2e.py:283  except Exception  except Exception as e: check(".ahpx header JSON 可读", False, f"读取失败: {e}")
+lib/orchestrator/tests/test_orchestrator_e2e.py:340  except Exception  except Exception as e: print(f"[FAIL] PlateSolveParams 构造失败: {e}") else:
+lib/orchestrator/tests/test_orchestrator_e2e.py:352  except Exception  except Exception as e: print(f"[FAIL] PhotometricParams 构造失败: {e}") else:
+lib/orchestrator/tests/test_orchestrator_e2e.py:365  except Exception  except Exception as e: print(f"[FAIL] DrizzleParams 构造失败: {e}") else:
+lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate1_psf_final_test.py:276  except Exception  except Exception:  # noqa: BLE001 continue perr = np.array(perr)
+lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py:205  except Exception  except Exception:  # noqa: BLE001 continue return rows
+lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate4_gaiaxpy_compare.py:229  except Exception  except Exception as e:  # noqa: BLE001 print(f"[gate4] C++ 校验失败 {sid}: {e}") continue py_fsyn = compute_f_syn(u8, XPSD_WL, wl_g, t
+lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate8_trace_check.py:35  except Exception  except Exception:  # noqa: BLE001 continue stages[obj["stage"]] = obj
+lib/photometric_calib/cpp/test/test_energy_conservation.py:57  except (AttributeError, OSError)  except (AttributeError, OSError): pass 
+lib/photometric_calib/cpp/test/test_spectrum_integrator_golden.py:606  except Exception  except Exception: pass 
+lib/plate_solve/tools/diag_gaia_psf_projection.py:248  except Exception  except Exception:  # noqa: BLE001 pass return xs, ys, psf_x, psf_y, psf_ok, res, gaia_ra, gaia_dec, gaia_mag, inliers
+lib/plate_solve/tools/diag_projection_plot.py:26  except OSError  except OSError: pass 
+lib/plate_solve/tools/diag_projection_plot.py:34  except OSError  except OSError: pass 
+lib/snr_estimator/test/test_snr_estimator.py:290  except Exception  except Exception as e: print(f"  [FAIL] {name}: {e}") results.append((name, False)) 
+packaging/gen_sbom_input.py:77  except Exception  except Exception: continue for lineno, line in enumerate(text.splitlines(), 1):
+runtime/artifact_store/production_store.py:373  except Exception  except Exception: continue  # 损坏 manifest 不是成功对象 if not isinstance(doc, dict) or doc.get("status") != _COMPLETE:
+runtime/artifact_store/production_store.py:850  except OSError  except OSError: pass return None
+runtime/artifact_store/production_store.py:863  except OSError  except OSError: pass 
+runtime/artifact_store/provenance.py:189  except ProvenanceError  except ProvenanceError as exc: errs.append(str(exc)) return errs
+runtime/artifact_store/provenance.py:235  except ProvenanceError  except ProvenanceError as exc: errs.append(str(exc)) if "digest" not in entry:
+runtime/artifact_store/provenance.py:325  except ProvenanceError  except ProvenanceError: pass if versions != sorted(versions):
+runtime/io/fits_verify.py:429  except Exception  except Exception as exc: print(f"FAIL {p}: {exc}") sys.exit(1)
+runtime/io/hips_output_store.py:181  except OSError  except OSError: pass 
+runtime/io/hips_output_store.py:207  except OSError  except OSError as exc: _raise_perm(exc, f"mkdir {p}") try:
+runtime/io/hips_output_store.py:211  except OSError  except OSError: pass 
+runtime/io/hips_output_store.py:217  except OSError  except OSError as exc: _raise_perm(exc, f"open {p}") try:
+runtime/io/hips_output_store.py:227  except OSError  except OSError: pass _raise_perm(exc, f"write {p}")
+runtime/io/hips_output_store.py:233  except OSError  except OSError: pass raise
+runtime/io/hips_output_store.py:240  except OSError  except OSError as exc: _raise_perm(exc, f"copy {dst}") try:
+runtime/io/hips_output_store.py:248  except OSError  except OSError: pass 
+runtime/io/hips_output_store.py:254  except OSError  except OSError as exc: _raise_perm(exc, f"rename {tmp} -> {final}") 
+runtime/io/hips_output_store.py:260  except OSError  except OSError as exc: _raise_perm(exc, f"unlink {p}") 
+runtime/io/hips_output_store.py:269  except OSError  except OSError as exc: _raise_perm(exc, f"remove {p}") 
+runtime/io/hips_output_store.py:398  except Exception  except Exception: continue if not isinstance(doc, dict) or doc.get("status") != _COMPLETE:
+runtime/io/hips_output_store.py:569  except OSError  except OSError: pass raise
+runtime/io/hips_output_store.py:615  except OSError  except OSError: pass 
+runtime/io/hips_output_store.py:625  except OSError  except OSError: pass 
+runtime/monitoring/linux_procfs.py:129  except ValueError  except ValueError: pass elif line.startswith("nonvoluntary_ctxt_switches:"):
+runtime/monitoring/linux_procfs.py:136  except ValueError  except ValueError: pass return out
+runtime/monitoring/linux_procfs.py:155  except ValueError  except ValueError: pass return out
+runtime/monitoring/monitor.py:287  except Exception  except Exception as exc:  # 边界采样失败不阻塞切换；显式记录 self._errors.append(f"set_phase 边界采样失败: {type(exc).__name__}: {exc}") self.phase = ph
+runtime/monitoring/monitor.py:504  except Exception  except Exception as exc: self._errors.append( f"采样失败: {type(exc).__name__}: {exc}")
+runtime/monitoring/monitor.py:523  except Exception  except Exception as exc: self._errors.append(f"baseline 采样失败: {type(exc).__name__}: {exc}") self._thread = threading.Thread(target
+runtime/monitoring/monitor.py:538  except Exception  except Exception as exc: self._errors.append(f"stop 末样本失败: {type(exc).__name__}: {exc}") th = self._thread
+runtime/monitoring/monitor.py:566  except OSError  except OSError: pass 
+runtime/monitoring/monitor.py:676  except ValueError  except ValueError: errs.append(f"seq 非整数: {seq_s!r}") continue if seq != expect_seq:
+runtime/monitoring/trace_feed.py:130  except Exception  except Exception:  # 非法 JSON 行跳过 continue if isinstance(obj, dict):
+runtime/pipeline/trace_replay.py:128  except Exception  except Exception: continue if not isinstance(ev, dict) or ev.get("type") != "module_call":
+tests/abi/test_abi005_echo.py:157  except OSError  except OSError: continue # 直调形态: 标识后紧跟 '(' 且前一个非引号字符（排除 dlsym 字符串）
+tests/arch/test_inventory_generator.py:100  except (OSError, NotImplementedError)  except (OSError, NotImplementedError) as exc:   # 平台不支持符号链接 self.skipTest("本平台不支持创建符号链接: %s" % exc) r, _ = _run(td, gen)
+tests/backend/test_p1002_gaps.py:212  except Exception  except Exception: pass 
+tests/backend/test_p1004_joint_gate.py:108  except Exception  except Exception: pass return evs
+tests/backend/test_p2006_canonical_pipeline.py:73  except Exception  except Exception: pass 
+tests/backend/test_p2007_joint_gate.py:110  except Exception  except Exception: pass gate = None
+tests/cli/test_cli001_vpi.py:70  except OSError  except OSError: continue out[fp] = (st.st_mtime_ns, st.st_size)
+tests/cli/test_cli003_semantics.py:65  except OSError  except OSError: continue out[fp] = (st.st_mtime_ns, st.st_size)
+tests/cli/test_phase123_pipeline.py:175  except Exception  except Exception: pass return out
+tests/cli/test_phase3_inprocess.py:247  except ImportError  except ImportError: self.skipTest("astropy 不可用（独立 Oracle 缺失，不得伪造 PASS）") import warnings
+tests/cpu/dispatch/run_cpu_capability_checks.py:174  except json.JSONDecodeError  except json.JSONDecodeError as e: fail(f"probe run {i}: stdout 非合法 JSON: {e}") continue outs.append(text)
+tests/io/test_fits_stream_contract.py:229  except Exception  except Exception as e:  # pragma: no cover self.skipTest(f"astropy unavailable: {e}") arr = np.linspace(-2, 8, 30, dtype=np.float6
+tests/io/test_fits_stream_contract.py:245  except Exception  except Exception as e:  # pragma: no cover self.skipTest(f"astropy unavailable: {e}") arr = np.arange(20, dtype=np.float32).reshap
+tests/io/test_fits_stream_contract.py:259  except Exception  except Exception as e:  # pragma: no cover self.skipTest(f"astropy unavailable: {e}") arr = np.arange(64, dtype=np.float32).reshap
+tests/io/test_hips_output_contract.py:221  except KeyboardInterrupt  except KeyboardInterrupt: pass return s
+tests/io/test_hips_output_contract.py:257  except KeyboardInterrupt  except KeyboardInterrupt: pass self.assertFalse(s.has_complete_manifest("signal"))
+tests/unit/p1wcs/p1wcs_astropy_cross.py:218  except WorkDirError  except WorkDirError as exc: problems.append("positive control failed: %s" % exc) 
+tools/assemble_v17_review_pkg.py:20  except Exception  except Exception: pass cwd = Path.cwd()
+tools/assemble_v17_review_pkg.py:306  except ValueError  except ValueError: errors.append("bad line: " + line) continue p = verify_dir / rel
+tools/astro_toolkit.py:260  except FileNotFoundError  except FileNotFoundError: pass return {"ok": True, "exit_code": 0, "stdout": json.dumps(deleted), "stderr": "",
+tools/astrocs_diagnose.py:113  except OSError  except OSError as e: findings.append({"file": path, "error": str(e)}) continue hits = []
+tools/check_api_docs.py:72  except OSError  except OSError: continue for m in pat.finditer(txt):
+tools/check_api_docs.py:354  except Exception  except Exception as e: self.fail("schema %s 解析失败: %s" % (f, e)) if not seen and not os.path.isdir(schema_dirs[0]):
+tools/check_contract_graph.py:21  except ImportError  except ImportError: print("CONTRACT_GRAPH_FAIL: 需要 PyYAML (pip install pyyaml)", file=sys.stderr) sys.exit(2) 
+tools/check_pipeline_trace.py:66  except Exception  except Exception: continue stages = doc.get("stages") or []
+tools/doccheck/check_doc_index.py:88  except Exception  except Exception as exc: results.append(check("yaml_parse", False, str(exc))) 
+tools/doccheck/check_doc_index.py:139  except Exception  except Exception: no_header.append(p + "(读失败)") continue if "ARCHIVED" not in head:
+tools/doccheck/check_version_namespaces.py:210  except Exception  except Exception as exc:  # noqa: BLE001 results.append(check("gen_version_from_source", False, str(exc))) else:
+tools/doccheck/check_version_namespaces.py:221  except Exception  except Exception:  # noqa: BLE001 pass 
+tools/docs_machine_consistency.py:32  except Exception  except Exception: pass # fallback: cwd if it looks like project root
+tools/gen_audit_pack.py:25  except Exception  except Exception: pass cwd = Path.cwd()
+tools/gen_v19_evidence.py:27  except Exception  except Exception: pass cwd = os.getcwd()
+tools/gen_v19_evidence.py:106  except OSError  except OSError: continue for other, od in MODS.items():
+tools/gen_v19_evidence.py:157  except Exception  except Exception: out.append({"dll": name, "export": "(scan failed)"}) return out
+tools/gen_v19_source_snapshot.py:27  except Exception  except Exception: pass cwd = os.getcwd()
+tools/gen_v19_source_snapshot.py:69  except OSError  except OSError: continue with open(os.path.join(REV, "source", "source_manifest.csv"), "w",
+tools/gen_v19_source_snapshot.py:79  except OSError  except OSError: continue print(f"source files: {len(paths)}")
+tools/graph/render_run_graph.py:901  except Exception  except Exception as exc:  # pragma: no cover problems.append(f"SVG 非法: {exc}") if problems:
+tools/monitoring/resource_probe.py:169  except ValueError  except ValueError: continue if key == "MemTotal":
+tools/monitoring/run_monitored.py:124  except ValueError  except ValueError: continue return out
+tools/monitoring/run_monitored.py:197  except ValueError  except ValueError: continue rchar = values.get("rchar", values.get("read_bytes"))
+tools/monitoring/run_monitored.py:370  except OSError  except OSError: pass try:
+tools/monitoring/run_monitored.py:374  except subprocess.TimeoutExpired  except subprocess.TimeoutExpired:  # 极端情况：强杀单进程兜底 proc.kill() proc.wait(timeout=15) break
+tools/monitoring/run_monitored.py:392  except OSError  except OSError: pass finished_utc = datetime.now(timezone.utc).isoformat()
+tools/no_legacy_production_reference.py:44  except Exception  except Exception: continue txt = strip_comments(txt)
+tools/quality/build_v19r2_package.py:34  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/build_v19r3_package.py:33  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/build_v19r4_package.py:33  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/check_comment_hygiene.py:36  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/check_comment_hygiene.py:83  except OSError  except OSError: continue for i, raw in enumerate(lines, 1):
+tools/quality/check_complexity.py:65  except OSError  except OSError: continue lines = text.count("\n") + (0 if text.endswith("\n") else 1)
+tools/quality/check_isa_leak.py:104  except (OSError, RuntimeError)  except (OSError, RuntimeError) as exc: errors.append(f"avx2 lib 反汇编失败: {exc}") else:
+tools/quality/check_isa_leak.py:113  except (OSError, RuntimeError)  except (OSError, RuntimeError) as exc: errors.append(f"avx512 lib 反汇编失败: {exc}") else:
+tools/quality/check_prod_reachability.py:195  except ValueError  except ValueError: continue if crel.startswith(("include/", "lib/", "cli/")):
+tools/quality/check_source_inventory.py:38  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/check_task_result_schema.py:80  except (ValueError, TypeError)  except (ValueError, TypeError): errs.append(f"commands[{index}] bad started_utc") try:
+tools/quality/check_task_result_schema.py:84  except (ValueError, TypeError)  except (ValueError, TypeError): errs.append(f"commands[{index}] bad duration_seconds") ev = doc.get("evidence", [])
+tools/quality/check_task_result_schema.py:94  except (ValueError, TypeError)  except (ValueError, TypeError): errs.append("bad created_utc") if len(doc.get("expected_commit_subject", "")) < 8:
+tools/quality/check_traceability.py:32  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/ci_windows_driver.py:223  except Exception  except Exception: proc.kill() else:
+tools/quality/ci_windows_driver.py:237  except Exception  except Exception: pass tail = lines[-25:] if len(lines) > 25 else lines
+tools/quality/ci_windows_driver.py:281  except Exception  except Exception: pass return DEFAULT_BUILD_DIR
+tools/quality/ci_windows_driver.py:295  except Exception  except Exception: pass return {}
+tools/quality/ci_windows_driver.py:395  except OSError  except OSError: pass return removed
+tools/quality/contracts/check_doc_symbols.py:19  except OSError  except OSError: continue return False
+tools/quality/contracts/check_doc_symbols.py:51  except bare  except: pass # Load known files known_files = set(str(p.relative_to(repo)) for p in repo.rglob("*") if p.is_file())
+tools/quality/contracts/check_full_integration.py:34  except bare  except: pass # Check P0/P1: 豁免必须条件化, 否则 DELIVERED 永远可达。 # 豁免白名单口径(来自 T411/T500 上下文): 仅 T407 的 FORBID-HARDCODE-THREADS
+tools/quality/contracts/check_full_integration.py:52  except Exception  except Exception as e: findings.append({"id":"INTEG-P1-FAIL","severity":"P1","symbol":tool,"observed":f"cannot obtain T407 finding
+tools/quality/extract_cpp_api.py:68  except Exception  except Exception as e: print(f"warn: {h}: {e}", file=sys.stderr) # Dedupe by symbol+header
+tools/quality/frame_qc_grid.py:369  except Exception  except Exception: pass if ap is None:
+tools/quality/frame_qc_grid.py:426  except Exception  except Exception: continue return out
+tools/quality/gen_source_index_v61.py:206  except ValueError  except ValueError: resolved.append(src) target_map.setdefault(target, []).extend(resolved)
+tools/quality/known_failures_baseline.py:208  except Exception  except Exception as exc: errors.append(CTEST_BASELINE_REL + " 无法解析：" + str(exc)) try:
+tools/quality/known_failures_baseline.py:292  except (ValueError, TypeError)  except (ValueError, TypeError): errors.append("V2 %s expiry 不是合法 ISO8601：%r" % (where, entry["expiry"])) if expected == EXPECT_CON
+tools/quality/known_failures_baseline.py:417  except Exception  except Exception: continue if isinstance(data, dict) and isinstance(data.get("id"), str):
+tools/quality/known_failures_baseline.py:472  except (ValueError, TypeError)  except (ValueError, TypeError): pass 
+tools/quality/known_failures_baseline.py:1065  except Exception  except Exception: continue add("F-040", "P2", f040_repro,
+tools/quality/strip_version_comments.py:33  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/strip_version_comments.py:56  except OSError  except OSError: pass raise
+tools/quality/strip_version_comments.py:146  except (OSError, UnicodeDecodeError)  except (OSError, UnicodeDecodeError) as e: # 跳过该文件：绝不写回，也绝不用 errors="replace" 重读 print(f"[skip] {p}: {type(e).__name__}: {e}", fil
+tools/quality/update_audit_status.py:31  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/v19r3_audit.py:47  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/v19r3_static.py:39  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/v19r3_strip_comments.py:38  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/v19r3_strip_comments.py:61  except OSError  except OSError: pass raise
+tools/quality/v19r3_strip_comments.py:155  except (OSError, UnicodeDecodeError)  except (OSError, UnicodeDecodeError) as e: # 跳过该文件：绝不写回，也绝不用 errors="replace" 重读 print(f"[skip] {p}: {type(e).__name__}: {e}", fil
+tools/quality/v19r3_traceability.py:41  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/v19r4_strip_comments.py:36  except Exception  except Exception: pass cwd = os.getcwd()
+tools/quality/v19r4_strip_comments.py:59  except OSError  except OSError: pass raise
+tools/quality/v19r4_strip_comments.py:125  except (OSError, UnicodeDecodeError)  except (OSError, UnicodeDecodeError) as e: # 跳过该文件：绝不写回，也绝不用 errors="replace" 重读 print(f"[skip] {p}: {type(e).__name__}: {e}", fil
+tools/redteam_v19.py:30  except Exception  except Exception: pass cwd = os.getcwd()
+tools/redteam_v19.py:216  except OSError  except OSError: continue if re.search(r"\(A\s*-\s*B\)\s*/\s*mad", txt):
+tools/testkit/check_testkit.py:318  except Exception  except Exception as exc:  # noqa: BLE001 print(f"TOOLING_FAILURE: 写 json-out 失败 {exc}", file=sys.stderr) if errors:
+tools/traceability/check_traceability_matrix.py:326  except Exception  except Exception:  # noqa: BLE001 pass for d in AUTHORITY_DIRS.get(layer, []):
+tools/traceability/check_traceability_matrix.py:339  except Exception  except Exception:  # noqa: BLE001 continue if re.search(r"\b" + re.escape(ident) + r"\b", text):
+tools/traceability/check_traceability_matrix.py:356  except Exception  except Exception:  # noqa: BLE001 continue m = re.search(r"^id:\s*(MOD-\S+)", head, re.M)
+tools/traceability/check_traceability_matrix.py:438  except Exception  except Exception as exc:  # noqa: BLE001 print(f"TOOLING_FAILURE: 写 json-out 失败 {exc}", file=sys.stderr) if errors:
+tools/traceability/check_traceability_matrix.py:450  except Exception  except Exception:  # noqa: BLE001 pass print(f"TRACEABILITY_MATRIX_PASS modules={rows} errors=0"

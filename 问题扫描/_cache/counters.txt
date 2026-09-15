@@ -1,0 +1,81 @@
+=== counters with no decision use (80) ===
+ci/ci_repair_round.py:712  findings=findings = collect(args, token)  loads=2 in_decision=False  fn=main
+ci/run.py:883  violations=violations = detect_dirty(before, after, ignore_prefixes, ignore_exact)  loads=1 in_decision=False  fn=execute_check
+ci/tests/test_ctest_registration.py:101  errors=errors = self._verdict(FIXTURE_SRC, _empty_registry(),  loads=1 in_decision=False  fn=test_baseline_covered_target_passes
+ci/tests/test_ctest_registration.py:106  errors=errors = self._verdict(  loads=2 in_decision=False  fn=test_stale_pattern_fails
+ci/tests/test_ctest_registration.py:116  errors=errors = self._verdict(  loads=2 in_decision=False  fn=test_registered_but_not_executed_fails
+ci/tests/test_ctest_registration.py:125  errors=errors = self._verdict(FIXTURE_SRC, _empty_registry(),  loads=2 in_decision=False  fn=test_stale_baseline_fails
+ci/tests/test_ctest_registration.py:131  errors=errors = self._verdict("add_test(demo_units demo_test)\n",  loads=2 in_decision=False  fn=test_non_name_add_test_fails_closed
+ci/tests/test_ctest_registration.py:85  errors=errors = self._verdict(FIXTURE_SRC_UNREGISTERED, _empty_registry(), {"targets":   loads=2 in_decision=False  fn=test_unregistered_new_add_test_fails
+ci/tests/test_ctest_registration.py:92  errors=errors = self._verdict(  loads=1 in_decision=False  fn=test_registered_target_passes
+ci/tests/test_fatduck_workflow.py:630  failed=failed = {"verdict": "no_candidate", "reason_code": "linux_not_green"}  loads=1 in_decision=False  fn=test_github_output_lines_candidate_and_no_candidate
+ci/tests/test_impact_map.py:137  missing=missing = [i for i in ids if i not in self.mapped_ids]  loads=2 in_decision=False  fn=test_nine_required_classes_covered
+ci/tests/test_impact_map.py:143  missing=missing = sorted(base - set(rule["checks"]))  loads=2 in_decision=False  fn=test_every_rule_carries_base_core
+ci/tests/test_impact_map.py:165  missing=missing = sorted(core_nine - fb)  loads=2 in_decision=False  fn=test_fallback_minimal_core
+ci/tests/test_negative_guards.py:447  bad=bad = Path(tmp) / "lock.json"  loads=2 in_decision=False  fn=test_tampered_lock_short_sha_rejected
+ci/tests/test_run_monitored.py:233  violations=violations = RM.evaluate({"peak_rss_kb": None, "rss_start_kb": None},  loads=2 in_decision=False  fn=test_rss_unavailable_fails_closed
+ci/tests/test_run_monitored.py:239  violations=violations = RM.evaluate({"cpu_percent_avg": None}, min_cpu_percent=10)  loads=1 in_decision=False  fn=test_low_cpu_unavailable_fails_closed
+ci/tests/test_run_monitored.py:69  violations=violations = RM.evaluate(result, min_cpu_percent=50)  loads=2 in_decision=False  fn=test_sleep_low_cpu_flagged
+ci/tests/test_run_monitored.py:95  violations=violations = RM.evaluate(result, max_rss_growth_kb=32 * 1024)  loads=2 in_decision=False  fn=test_memory_growth_leak_flagged
+ci/tests/test_runner_contract.py:142  bad=bad = kf_entry()  # 缺 reason  loads=2 in_decision=False  fn=test_structure_invalid_baseline_fails
+ci/tests/test_runner_selection.py:120  bad=bad = H.check(id="CHK-BAD")  loads=2 in_decision=False  fn=test_registry_missing_required_field
+ci/tests/test_workflow_lock.py:100  bad=bad = Path(tmp) / "lock.json"  loads=2 in_decision=False  fn=test_rejects_duplicate_entry
+ci/tests/test_workflow_lock.py:111  bad=bad = Path(tmp) / "lock.json"  loads=2 in_decision=False  fn=test_rejects_missing_field
+ci/tests/test_workflow_lock.py:300  bad=bad = Path(tmp) / "lock.json"  loads=2 in_decision=False  fn=test_bad_sha_format_exit3
+ci/tests/test_workflow_lock.py:378  bad=bad = {it["tool"] for it in items if not it["ok"]}  loads=1 in_decision=False  fn=test_version_below_minimum_fails_that_item_only
+ci/tests/test_workflow_lock.py:89  bad=bad = Path(tmp) / "lock.json"  loads=2 in_decision=False  fn=test_rejects_short_sha
+ci/verify_remote_run.py:333  bad=bad = ", ".join(f"{j['name']}={j['conclusion']}"  loads=1 in_decision=False  fn=verify_workflow
+lib/healpix_db/healpix_drizzle/tests/trace_g4_validate.py:57  errors=errors = []  loads=2 in_decision=False  fn=main
+lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/download_xp_sample.py:144  n_fail=n_fail = 0  loads=1 in_decision=False  fn=main
+tests/abi/test_abi002_lifecycle.py:143  bad=bad = re.findall(r"#include\s*[<\"](string|vector|iostream|sstream|fstream|"  loads=2 in_decision=False  fn=test_04_no_stl_no_throw_across_boundary
+tests/api/test_p2_api.py:26  missing=missing = [s for s in SYMBOLS if s not in self.hdr_text]  loads=2 in_decision=False  fn=test_01_every_symbol_in_headers
+tests/api/test_p2_api.py:30  missing=missing = [s for s in SYMBOLS if s not in self.s]  loads=2 in_decision=False  fn=test_02_every_symbol_documented
+tests/artifact/test_manifest_schema_negative.py:56  bad=bad = text.replace('"size": 104857600', '"size": NaN')  loads=1 in_decision=False  fn=test_nan_literal
+tests/artifact/test_manifest_schema_negative.py:95  bad=bad = text[:ins] + dup + text[ins:]  loads=1 in_decision=False  fn=test_duplicate_producer_key
+tests/backend/test_p3_output.py:305  missing=missing = os.path.join(self.tmp, "no_such_file.fits")  loads=1 in_decision=False  fn=test_10_verify_missing_file_fails_not_fake_hash
+tests/cli/test_bench_cli.py:246  bad=bad = os.path.join(self.tmp, "all_fail.json")  loads=2 in_decision=False  fn=test_11_verdict_fail_exit_nonzero_semantics
+tests/cli/test_cli004_process_protocol.py:311  bad=bad = dict(base); del bad["stage"]  loads=6 in_decision=False  fn=test_07_negative_stream_rejected_by_contract
+tests/cli/test_cli_protocol.py:145  missing=missing = run("config", "validate", "--config", os.path.join(self.tmp, "nope.jso  loads=1 in_decision=False  fn=test_05_config_validate_mapping
+tests/cli/test_cli_protocol.py:147  bad=bad = os.path.join(self.tmp, "bad.json")  loads=2 in_decision=False  fn=test_05_config_validate_mapping
+tests/cli/test_iso_acr_gpu_isolation.py:184  bad=bad = [k for k in m if self._has_acr_term(k) or  loads=2 in_decision=False  fn=test_06_phase3_manifest_no_acr_gpu
+tests/cli/test_iso_acr_gpu_isolation.py:82  violations=violations = []  loads=3 in_decision=False  fn=test_01_production_sources_no_acr_gpu
+tests/cli/test_phase1_inprocess.py:150  bad=bad = os.path.join(self.tmp, "missing.json")  loads=2 in_decision=False  fn=test_04_error_mapping
+tests/cli/test_phase1_inprocess.py:274  bad=bad = os.path.join(bad_dir, name)  loads=3 in_decision=False  fn=test_10_invalid_master_flat_fail_closed
+tests/cli/test_phase2_inprocess.py:125  bad=bad = os.path.join(self.tmp, "badpath.json")  loads=2 in_decision=False  fn=test_04_error_mapping
+tests/cli/test_phase3_inprocess.py:263  bad=bad = [str(x.message) for x in w  loads=2 in_decision=False  fn=test_09_fits_standard_checksum_and_wcs_provenance
+tests/contracts/test_data_artifacts_negative.py:31  bad=bad = TBL.replace("| f32 | [H,W] | ADU | pixel | NaN | unique | FITS |", "| f32   loads=1 in_decision=False  fn=test_missing_column
+tests/contracts/test_data_artifacts_negative.py:40  bad=bad = TBL.replace("DATA-IMG-RAW-001", "DATA-IMG-RAW")  loads=1 in_decision=False  fn=test_bad_id
+tests/io/test_hips_input_contract.py:192  bad=bad = np.zeros((511, 512), dtype=np.float32)  # shape=(NAXIS2行, NAXIS1列)  loads=1 in_decision=False  fn=test_reject_layout_mismatch_naxis
+tests/io/test_hips_input_contract.py:348  missing=missing = [x for x in range(48) if x not in ips]  loads=3 in_decision=False  fn=test_tile_status_present_missing
+tests/io/test_hips_output_contract.py:124  bad=bad = b"\x00" * 2880 * 2  # 非 FITS  loads=1 in_decision=False  fn=test_invalid_fits_tile_rejected_no_success_object
+tests/monitoring/test_log_contract.py:112  bad=bad = make_event(1).to_dict()  loads=4 in_decision=False  fn=test_seq_pattern_constraints
+tests/monitoring/test_log_contract.py:135  bad=bad = make_event(3, level="error", event="error", diagnostic="d",  loads=4 in_decision=False  fn=test_error_required_and_positive
+tests/monitoring/test_log_contract.py:321  bad=bad = make_event(2, level="error", event="error", diagnostic="d",  loads=2 in_decision=False  fn=test_error_payload_checker
+tests/monitoring/test_log_contract.py:77  bad=bad = make_event(1).to_dict()  loads=4 in_decision=False  fn=test_missing_field_rejected
+tests/monitoring/test_log_contract.py:91  bad=bad = make_event(1).to_dict()  loads=2 in_decision=False  fn=test_unknown_field_rejected
+tests/monitoring/test_log_contract.py:99  bad=bad = make_event(1).to_dict()  loads=4 in_decision=False  fn=test_enum_level_event_rejected
+tests/oracle/gaia_oracle.py:149  bad=bad = 0  loads=2 in_decision=False  fn=main
+tests/pipeline/test_typed_dag_plan.py:159  bad=bad = pathlib.Path(td) / "bad.json"  loads=2 in_decision=False  fn=test_cli_rejects_implicit_path
+tests/sciencelint/test_sciencelint.py:32  bad=bad = REAL.replace("> ID: SCI-CAL-001", "> ID: SCI-cal-1")  loads=1 in_decision=False  fn=test_03_bad_claim_id_must_fail
+tests/sciencelint/test_sciencelint.py:36  bad=bad = REAL.replace("lib/calibration/src/calibrator.cpp", "lib/calibration/src/NO  loads=1 in_decision=False  fn=test_04_missing_anchor_file_must_fail
+tests/traceability/test_traceability.py:66  bad=bad = _seed().replace("ALG-VER-001", "ALG-ver-001")  loads=1 in_decision=False  fn=test_03_duplicate_and_bad_id
+tests/traceability/test_traceability.py:70  bad=bad = _seed().replace("docs/VERSIONING.md,2-生成接口", "docs/NO_SUCH.md,2-生成接口")  loads=1 in_decision=False  fn=test_04_missing_reference_must_fail
+tests/version/test_version_consistency.py:235  bad=bad = os.path.join(td, "docs", "STD_GUARD.md")  loads=2 in_decision=False  fn=test_11_bare_clause_in_standard_context_and_guard
+tests/version/test_version_consistency.py:247  drift=drift = f"{b}-alpha.{a + 1}"  loads=1 in_decision=False  fn=test_12_alpha_drift_not_masked_by_clause_exemption
+tests/version/test_version_consistency.py:60  bad=f.write("1.0.0-rc.1\n"); bad = f.name  loads=2 in_decision=False  fn=test_03_reject_forbidden_prerelease
+tools/api_doc_consistency.py:58  problems=problems = []  loads=17 in_decision=False  fn=main
+tools/astrocs_diagnose.py:182  findings=findings = scan_logs(args.run_dir, args.timeout)  loads=3 in_decision=False  fn=main
+tools/gen_v19_evidence.py:198  findings=findings = {  loads=1 in_decision=False  fn=main
+tools/quality/check_source_inventory.py:198  missing=missing = sorted(v19 - tracked)  loads=3 in_decision=False  fn=main
+tools/quality/contracts/check_api_contracts.py:46  findings=findings = []  loads=12 in_decision=False  fn=main
+tools/quality/contracts/check_build_graph.py:16  findings=findings = []  loads=8 in_decision=False  fn=main
+tools/quality/contracts/check_comments.py:24  findings=findings = []  loads=4 in_decision=False  fn=main
+tools/quality/contracts/check_config_contracts.py:16  findings=findings = []  loads=10 in_decision=False  fn=main
+tools/quality/contracts/check_doc_symbols.py:31  findings=findings = []  loads=4 in_decision=False  fn=main
+tools/quality/contracts/check_execution_contracts.py:28  findings=findings = []  loads=3 in_decision=False  fn=main
+tools/quality/contracts/check_forbidden_patterns.py:16  findings=findings = []  loads=5 in_decision=False  fn=main
+tools/quality/contracts/check_science_units.py:16  findings=findings = []  loads=6 in_decision=False  fn=main
+tools/quality/contracts/check_test_contracts.py:16  findings=findings = []  loads=7 in_decision=False  fn=main
+tools/quality/contracts/check_traceability.py:20  findings=findings = []  loads=7 in_decision=False  fn=main
+tools/quality/known_failures_baseline.py:637  bad=bad = dict(FIXTURE_ENTRY)  loads=2 in_decision=False  fn=run_selftest
+tools/quality/v19r3_audit.py:162  violations=violations = comment_violations(path) if is_code else []  loads=2 in_decision=False  fn=f_checks
