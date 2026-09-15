@@ -3833,6 +3833,105 @@
       ]
     },
     {
+      "id": "CTEST-P36-SCHED-OVERLAP",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p36_sched_overlap",
+        "--output",
+        "run/ci/ctest/p36_sched_overlap.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p36_sched_overlap.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/core/src/scheduler.cpp"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p36_sched_overlap"
+      ]
+    },
+    {
+      "id": "CTEST-P36-FRAME-ADMISSION",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p36_frame_admission",
+        "--output",
+        "run/ci/ctest/p36_frame_admission.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p36_frame_admission.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "cli/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p36_frame_admission"
+      ]
+    },
+    {
+      "id": "CTEST-P36-RESOURCE-SEGMENTS",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p36_resource_segments",
+        "--output",
+        "run/ci/ctest/p36_resource_segments.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p36_resource_segments.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "cli/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p36_resource_segments"
+      ]
+    },
+    {
       "id": "CTEST-P1STAR-ANGLE-GUARD",
       "profiles": [
         "linux-main"

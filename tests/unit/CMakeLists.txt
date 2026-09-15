@@ -283,6 +283,25 @@ target_include_directories(cpu004_routing_test PRIVATE
 target_link_libraries(cpu004_routing_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME cpu004_routing COMMAND cpu004_routing_test)
 
+# P36 D1: 调度重叠准入契约 (联合 max-min 公平准入 / 不超卖 / 需求上限 / 阴性对照)
+add_executable(p36_sched_overlap_test p36_sched_overlap_test.cpp)
+target_include_directories(p36_sched_overlap_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_link_libraries(p36_sched_overlap_test PRIVATE astrocs_core)
+add_test(NAME p36_sched_overlap COMMAND p36_sched_overlap_test)
+
+# P36 D5: 帧级并发内存准入契约 (纯函数)
+add_executable(p36_frame_admission_test p36_frame_admission_test.cpp)
+target_include_directories(p36_frame_admission_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+target_link_libraries(p36_frame_admission_test PRIVATE astrocs_contracts)
+add_test(NAME p36_frame_admission COMMAND p36_frame_admission_test)
+
+# P36 D2: 资源记录分帧/分段设域 (段内峰值 / 重叠归属 / 产物)
+add_executable(p36_resource_segments_test p36_resource_segments_test.cpp)
+target_include_directories(p36_resource_segments_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+target_link_libraries(p36_resource_segments_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME p36_resource_segments COMMAND p36_resource_segments_test)
+
 # MON-001 (G3): 资源记录器(采样/阶段分段/统计/三产物)
 add_executable(mon001_recorder_test mon001_recorder_test.cpp)
 target_include_directories(mon001_recorder_test PRIVATE
