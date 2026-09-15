@@ -154,3 +154,38 @@
 - 预存差异：本包开工前既有 868 行脏清单已逐步裁定；**剩 12 个 tracked 差异**（artifacts/prerelease_v5
   3、reports/v19r2 3、evidence/v6_1_rework 2、问题扫描 4）与本包无关，保持未提交。
 - 包状态：**NOT_READY**（剩余 WIN-VERIFY-001 / DOC-CONVERGE-001 / FINAL-AUDIT-001 / OWNER-PACK-001）。
+
+## C-009 Wave 11 结论与 CI 红线（控制器独立复核）（2026-09-15）
+### WIN-VERIFY-001 = AWAITING_WINDOWS_VALIDATION（不是 PASS）
+- Fatduck（100.104.10.71:22）**不可达**：ssh rc=255 Connection timed out、/dev/tcp rc=124、
+  ping 100% loss、tailscale 显示 windows offline（last seen 3h ago）。按 §15.3 不阻塞，但
+  **不得**宣称 Windows 通过、**不得**据此发布。
+- GitHub Actions 侧（公开 REST API）：基线 SHA 的 Windows CI run 35012779853 failure，失败步
+  = Run MSVC tests and package candidate（exit 1），Upload candidate skipped → **无候选**；3 次
+  Fatduck Validation 全部 failure（no-candidate / CI-001 fail-closed）。
+- 32/32 Windows 验证用例（同 SHA 候选安装 / ABI / 长路径 / >2GiB / 真实产品）全部 UNAVAILABLE，
+  sha256 清单如实留空。
+- 欠账：FD-F-003（P0 OPEN：Windows C++ 单测门长期「0 用例 PASS」）；§17.12 门 7（同 SHA
+  Linux/Windows CI 通过）与门 8（Fatduck 复验）均未满足。
+### AR-034 部分清账（控制器建面动作 `b7c4f35e`）
+- v6_p3_rsmp 的 ctest 用例名由 p3_rsmp_*_test 改为 **v6_p3_rsmp_core/oracle/gate** 并显式 add_test，
+  同时修好 ci/checks.json 里 V6-CTEST-UNIT 的 --expect-glob v6_p3_rsmp_* 覆盖缺口。
+  CTEST-REGISTRATION 的 unregistered 由 3 项降为 **2 项**（余 ipv_dead_params_lock /
+  ipv_dead_params_lock_selfcheck，**非 V6**）。
+### 控制器独立复核的 CI 事实（§14.5 判定依据）
+- **Linux CI 整条 V6 线持续红**：公共 API 逐 commit 核对，自 `ebefe00d`（Wave 3）到当前全部
+  linux=failure；**AR-033 注册并非肇因**（其之前已红），但红线未消。
+- 本地以 repo 自带入口复现 linux-main 关键门：
+  - `THREAD-BUDGET` **FAIL**：`lib/core/src/module_adapters.cpp:245,252` 的 omp_set_num_threads
+    未登记（**属 P36 回退态**；该文件工作树状态由 C-007/C-008 的 F1 裁定固化，修正需 owner 授权）。
+  - `CTEST-REGISTRATION` **FAIL**：余 2 项非 V6 的 IPV 残项（见上）。
+  - `VERSION-CONSISTENCY` 本地 **PASS**（与 SCHEMA-INTEGRATE-001 曾报的 4 项不同调用面：那 4 项在
+    **未修改**的 docs/references 归档文件内；此处不作为 CI 红因，留待澄清）。
+  - `AGENTS-GOV`、`KNOWN-FAILURES-BASELINE-VERIFY` 本地 PASS。
+- **结论：§14.5 完成顺序中的「GitHub CI 通过」未满足**，故本控制包不得宣布完成；最终状态
+  **NOT_READY**。W12/W13/W14 可继续（宪章不禁停工），但 FINAL-AUDIT-001 与 OWNER-PACK-001
+  必须如实携带该红线，不得以 waiver 掩盖。
+### 负责人裁决项（在 C-008 基础上增补）
+8. **CI 红线归属**：THREAD-BUDGET（P36 回退态 module_adapters.cpp 的线程预算旁路）是否授权修正；
+   2 项 IPV CTEST-REGISTRATION 残项归属；Windows MSVC「Run MSVC tests and package candidate」
+   失败根因（需有 token 的环境取回 win-stage-*.log / win-package-summary.json）。
