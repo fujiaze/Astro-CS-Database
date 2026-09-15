@@ -81,3 +81,53 @@
   - 锚订正件（只改锚不撤条）：M1a-A-006（calloc :1829→:2072）、M2a-A-3（:2266→:2525）、M2a-E-2、M3b-E-01、M5a-E-001、M6a-I-002（DATA :1978→:2046）、V1-N-04（:2544→:2808）、M3-C-005/M2a-C-12 的 cosmetic real_ingest.cpp 路径=不存在（疑混 lib/calibration 通道）。
   - 事实订正件：M7-I-204「4..5 无定义」对 sampler 通道不成立（§23.3 自 e654d4c2 起 6 值齐全）；V18-N-02 的"列表可各自漂移"已因共享 BANNED_* 常量部分缓解。
 - 本片全程只读：read/glob/grep + 问题扫描内 python3 + git --no-optional-locks（show/log/diff/ls-files/merge-base），无 git 写、无账本写、无构建/测试执行。
+
+## 三、逐条证据附录（关键命令 → 输出摘录；均为本会话在 HEAD 实测）
+
+### A. FIXED 件（修在哪 + 是否修全）
+
+**[0] FD-F-002 = FIXED(部分)**
+- `grep -n normalized_cpu_100pct_all_allocated_cores cli/resource_recorder.h` → `252:"\"normalized_cpu_100pct_all_allocated_cores\":false,"`（前随注释 :246-248「M5a-G-002: cpu_pct 的单位是 percent_of_one_core…旧字段无条件自证 true 与采集事实相反。保留旧键名但置 false…并给出真实单位键」+ 新键 `"cpu_pct_units":"percent_of_one_core"`）
+- `grep -n … tests/unit/mon001_recorder_test.cpp` → `100:CHECK(js.find("\"…\":false") …)`、`:101` 同型断言 units 键
+- 修全判定：谎报声明已消除；但守卫仍是 find(字面量) 形态（机制名「子串断言守卫」在两处仍在用），同族他站 FD-F-001：`grep -n 'backend_table.inc' tests/unit/cpu_provider_test.cpp` → `73: CHECK(s.find("backend_table.inc") != std::string::npos);` 原样。修复 commit=adaeb531（merge-base --is-ancestor 证在 base 内 ⇒ 报告写作时点早于该修）。
+
+**[8] M2a-C-7 = FIXED**
+- `grep -n 'BlockCacheBudget\|block_budget' lib/gaia_xpsd_client/src/gaia_client.c` → `274: BlockCacheBudget block_budget; /* G3b: 客户端级…所有文件共享 */`、`2019: client->files[f].budget = &client->block_budget;`、`1966: block_budget_init(...)`
+- 判据复算：`block_cache_insert_locked`（:558-580）budget!=NULL 分支 `while (block_budget_used(budget)+data_size > budget->max_memory) evict…` + `:579 if (!block_budget_try_reserve(budget, data_size)) return NULL;` —— 资源上限按客户端总量生效（原「每文件 4GB×32」消失）
+- `git log -1 --oneline -S 'BlockCacheBudget' -- …/gaia_client.c` → `bd4bc23b perf(P1): …解块缓存客户端总预算`；文档侧 gaia_client.h:3 已改述「客户端级总预算 4GB…所有 XPSD 文件间共享」；GAIA_QUERY.md:157/232「≤4GB」全局口径转真。残余：NULL 预算回退 per-file 语义，注释明示「独立文件/测试路径」。
+
+**[16] M3-E-001 = FIXED(部分)**（账本已标 FIXED=c3452d48）
+- 修在哪：`python3` 解析 docs/traceability/TRACEABILITY_MATRIX.json → MOD-astrocs-phase1-calibration：`test_id=TEST-CAL-001;TEST-CAL-DESIGN-001`、`test_path=lib/calibration/tests/p1cal (ctest p1cal_units/…); tests/backend/test_calibration_oracle.py; tests/unit/CMakeLists.txt:441 master_flat_median+…`、src_path 含 ac_correct_frame/ac_set_num_threads 全 14 符号 ⇒ 权威面 VERIFIED 行锚指真实载体，机制（测试锚不覆盖被验门）在权威面消失。
+- 未修全（逐条实测）：`git show HEAD:docs/TRACEABILITY.csv | sed -n 20p` → 仍 `TEST-CAL-001,lib/calibration/tests/test_photometry_apply.cpp,…,VERIFIED` 且 public_api 列无 ac_correct_frame；`grep -n SUPERSEDED docs/TRACEABILITY.csv` → 0；TEST_MATRIX.md:32 原样；`grep -c TST- docs/science/{CALIBRATION,PHOTOMETRY,NOISE_MODEL}.md` → 3/1/2；matrix CSV `grep -c SUPERSEDED`=2 而 `grep -c '^MOD'`=30；`find docs -name '02_FROZEN*'`=0 且 CALIBRATION_ALGORITHMS.md:172/:199/:406 仍引；PHOTOMETRY.md:3/TRACE csv:22 仍引 flux_calibrator（ls 该目录失败）。
+
+**[17] M3-I-002 = FIXED(机制在 base 前已不存在/锚失效)**
+- `git show HEAD:docs/science/PHASE1_API.md` → 「路径不在 HEAD 中」；`git log --all --follow -- 该路径` → 空（从未入库）；`git grep 不在本契约 521095b8 -- docs` 与 HEAD 全域 grep → 0 命中 ⇒ 原报文本在 base 与 HEAD 都不存在。
+- 现树合规形态：`grep -n ac_set_num_threads docs/api/PHASE1_API_V1.md` → `:27 | … | TB-ARCH-004(checker 管控; V5 迁移整改点: 由 p1 budget 注入取代, ABI-001 收编)`；`grep -n DISP-CAL-002 docs/algorithms/CALIBRATION_ALGORITHMS.md` → `:260/:397` 偏差登记在位；头声明 astro_calibration.h:158。建议前台按 CLOSED(锚失效注记) 处理。
+
+**[22] M4-F-06 = FIXED(部分)**
+- `grep -rn 'stage coverage' lib/` → `module_adapters.cpp:3711 std::fprintf(stderr, "stage coverage ok: cells=%llu\n", …)`（前随 RESCUE-FD-08 注释「IR 通道的 coverage 节点把实测 union cell 数写 stderr…数值来自真实 p2_coverage_build 结果, 不造假」）+ `:3859 stage sample ok: obs=…`；`grep -rn 'session run: budget' lib/ cli/` → `cli/commands.cpp:1107` 新点在 cmd_phase2_run 生产路径。
+- 测试侧：test_p2006 test_01 现文只断 returncode/final ok/两 stage frag/registry；p2007 `_session_budget_workers` 正则现可由 :1107 满足 ⇒ 「断言依赖生产链不发的日志」机制消除。
+- 未修全：5/7 节点逐节点证据仍缺（测试注释自认「session stderr 仅对起手节点打 stage 日志, 逐节点 status 落盘无载体 — IMPL/INT」）；红/绿终态属 CI 执行面（维持原条 §6 注）。
+
+**[47] M9-H-1 = FIXED(修全)**（账本 FIXED=07eb229b）
+- 机制复算（原三要素逐项查）：①无容量转义器 → 现签名 `json_append_escaped(char** w, const char* end, const char* s)`（module_entry.c:391）返回 int 溢出位；②snprintf 返回值推进 → 现整段改带界 append 链 `head_end = head + sizeof(head) - 1; int head_ok = json_append_ch(&hw, head_end, '{'); …`（:786-825）每步失败短路、`:40 if (!head_ok)` PARAM+BUFFER_TOO_SMALL（:784 注释「整次失败…尺寸查询阶段同样拒绝」⇒ 原⑤触发前移面同修）；③第二站点 gaia_inspect 同型（:992 注释「M9-H-1: 同型第二站点——容量显式传入」）。
+- 回归在册：`grep -rn gaia_module_manifest_bounds tests/ ci/` → tests/unit/gaia_module_manifest_bounds_test.c + tests/unit/CMakeLists.txt:919/:926 add_executable。同族他站：lib/hips/src/module_entry.cpp（S1-001）属另条，不影响本条「修全」判定（本条缺陷面=gaia 两站点）。
+
+**[56] V2-N-01 = FIXED(修全)**（账本 FIXED=fbfcfac0）
+- 结构自描述：ipv_api.h:76-81 `#define IPV_PARAMS_ABI_VERSION 2u` + `uint32_t struct_size;`@0/abi@4；5 公共入口 `if (!validate_params_abi(params, result, __func__)) return 0;`（ipv_entry.cpp:464/:507/:655/:701/:748，函数体 :212）。
+- 镜像单一事实源：`lib/plate_solve/tools/ipv_abi_mirror.py` 在位；diag 脚本改为两侧比对（:165-170 mismatch 即报「请同步 ipv_abi_mirror.py 并重编 DLL」）。
+- 锁在册：`grep -n 'ipv_abi_layout_lock' ci/checks.json` → :3811/:3829 采集 + :3845 selfcheck；ipv_params_abi_failclosed_test.cpp 存在于 cpp/test/。越界写机制复算消失（旧 struct_size 值会被拒）。「同类他站」=GaiaSpectrumStar 旧镜像未同步 → 已单列 [50] V11-N-03=STILL，不并入本条。
+
+### B. 特殊判定件
+
+**[53] V12-N-17 = 不可复核（暂记 CANNOT_STATIC 位）**
+- 三级复核：①宿主指针失效：`grep '2.17' 问题扫描/findings/A_SCI_DEF/p1/V12.md`=0、该档案小节只有 V12-N-01/03/05/06；②值检索：`grep -rn '22\.5|20\.6|20\.48' lib cli tools providers modules docs(合同/科学) --include 源码/文档` 无任何 zp/零点语境命中（唯一 20.48 在 browser_qt 合成星表 gen_ref_source.py:88，与光度零点无关）；③缓存面：_v21_corpus.txt/DESIGN_check_numeric_constants.md/设计大纲 检索 0 命中。⇒ 不得判 STILL，亦无修复证据；建议前台标记「锚失效待原轴补证」重派或撤条。
+
+**[55] V18-N-02 = STILL(缓解注记)**
+- `sed -n '95,108p;207,232p' tools/quality/check_prod_reachability.py` → main 扫描 `cli_sources=[cli/main.cpp]`+BANNED 双循环；_selftest 以 fake_cli 重写同一 `re.findall/endswith` 算法。两处共享常量（:33/:41）⇒ 列表漂移面关闭，程序性漂移（源集合、匹配步骤两份实现）仍在，未抽出单一判定函数。
+
+**[57] V4-N-04 = STILL**
+- `grep -c validate_registry ci/checks.json` → 0；`grep -n validate_registry ci/tests/test_workflow_lock.py` → 624 唯一调用者；CI-BINDING-TESTS `-p test_ci001b_*.py`（checks.json:2399）不收该文件 ⇒ R11 strict 采集面仍零执行。
+
+**[28] M5b-G-16 = STILL(部分缓解) 关键证据**
+- `sed -n '100,106p' cli/commands.cpp` → kConfigTemplate 仍 `"output_dir": "."`；bench 默认 `:2349 : "cpu_profile.json"`；豁免 `checks.json:1412-1414 astrocs_run_/run/`；缓解：`grep -n 'FIX-E2E B1-A8' cli/parser.cpp` → :389-397 平铺会话缺/空 output_dir 拒（exit 2），known_failures.json UT-CLI 已入 removals（2026-09-14）。残留：显式 "."（模板默认值）仍合法直通 ⇒ 合规调用仍写根。
