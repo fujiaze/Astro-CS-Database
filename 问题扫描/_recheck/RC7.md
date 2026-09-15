@@ -165,7 +165,60 @@
 - 我的抽核输出：types.h:55 `#define DRZ_CFG_KEY_NESTED "nested"  /* 0=RING 1=NESTED */`（并列口径未订正）；module_entry.cpp:417-418 `c->nested = (found && nested != 0.0) ? 1 : 0;`（缺键即 RING 语义 0）；引擎三处硬拒实测 :769/:894/:1666「HISS requires NESTED ordering, RING not supported」（子代理报 :768/:893/:1665 为其 if 行，同站点）⇒ validate(:536-544) 放行、execute(:927) 必被拒，fail-closed 通道仍不可达；core 侧缺省 1 现漂至 module_adapters.cpp:2966-2967
 - 建议标记：STILL(重锚 types.h:55、module_entry.cpp:417-418/536-544/927、engine:769/894/1666、adapters:2966)
 
-<!-- 后续 B/D/E/F/G 组收齐后统一回填 -->
+
+### F 组（子代理复验 + 我抽核：运行时内存安全/数值/登记面簇，索引 45–52）
+
+> 时点注：本组复验时工作树已前进到 `a20a1db8`/`89c4f85d`；我独立核过 `git --no-optional-locks diff --name-only -z a3a343a4..HEAD` = 194 文件、**非 问题扫描/ 路径 0 个** ⇒ 全部前进提交均为档案，本组判定对 a3a343a4 等价成立。
+
+#### [45] M9-G-4 — STILL
+- 命令：`grep -rn 'define ACS_FIO_PATH_MAX' modules/`；`sed -n '1075,1100p;1178,1262p' runtime/io/fits_core.c`；`git --no-optional-locks log --oneline 521095b8..HEAD -- runtime/io/fits_core.c`（空）
+- 关键输出：fits_stream_v1.h:33 `#define ACS_FIO_PATH_MAX 512`；acs_fio_writer_v1_s :1077-1078 target/tmp 同为 512；:1228 `snprintf(wr->target,sizeof,…,"%s",path_utf8)` 不查截断；:1099 `snprintf(out,cap,"%s.tmp.%ld.%lu",…)` 不查返回值；begin 校验面 :1187-1214 无 path 长度校验（全文件唯一 strlen 在 :1705 无关）；:1216 overwrite 探针用未截断路径、实写用截断 tmp；:1231 "w+b"；:1480 `rename(wr->tmp, wr->target)`
+- 判据：两个 512 同长 + 无校验 ⇒ 长路径下 tmp 与 target 塌缩为同一串、原子提交退化为原地覆薄的机制未变；同库正对照 hips_core.c::hips_join_path(:533 溢出即报错) 仍未被采纳；lib/ cli/ 零调用 ⇒ 生产不可达、P1 不上调
+- 建议标记：STILL(重锚 :1077/:1095-1100/:1228-1231/:1480)
+
+#### [46] M9-H-6 — STILL
+- 命令：`grep -n 'parseHeader\|::readRaw\|extractNumber\|fseek\|ftell\|fstat' lib/astro_image_io/src/ahpx/aio_ahpx_reader.cpp`；`git --no-optional-locks log --oneline 521095b8..HEAD -- <该文件>`（空）
+- 关键输出：:350/:356 `blk.offset/size = (uint64_t)extractNumber(…)`（:108 返回 double）；:441 `std::fseek(m_fp,(long)offset,SEEK_SET)` 无 _fseeki64/fseeko 分支；文件长度对照（ftell/fstat/SEEK_END）0 命中；:461 `std::vector<uint8_t> compData(blk->size)` 分配先于读；:473/:491 `estSize = blk->size*8`；:419/:424/:432 `(int)extractNumber` 赋 w/h/c 无范围校验
+- 判据：LLP64 (long) 折叠命中合法偏移时 fseek/fread 双双"成功"而读错块的机制完整；措辞收窄一处——readRaw 的 `bytesRead != size` 短读拒(:448-452) 使"越过 EOF"被读面兜住，故残余是"错块 + 巨额预分配 + 无 fsize 对照"三件
+- 建议标记：STILL(原锚即现锚；注短读拒为部分缓解)
+
+#### [47] V10-N-01 — STILL（我亲读复核通过）
+- 命令：`sed -n '418,435p;505,532p' lib/healpix_db/healpix_drizzle/fits_reader.cpp`；`git --no-optional-locks log --oneline 521095b8..HEAD -- lib/healpix_db/healpix_drizzle/fits_reader.cpp`（空）；`grep -n 'pixels\.size()' lib/healpix_db/healpix_drizzle/drizzle_engine.cpp`
+- 我的复核输出：:424-427 `if (got < data_size) { fprintf(警告…); n_pixels = got / bytes_per_pixel; // 按实际读取量处理 }`、:431 `img.pixels.resize(n_pixels);`、:514-516 `img.width = width; img.height = height;`（头声明值）、:530 `return true;` ⇒ 短读后仍成功返回；消费侧 drizzleTiled 现行 :1896/:1900/:1905/:1911 索引 `pixels[(size_t)y*(size_t)img.width+(size_t)x]`、循环界 :1868-1871/:1889 全用声明宽高，输入侧零 size() 校验（现存的 846/964/1622/2360 均为输出侧）
+- 判据：越界读机制原样；P22 两提交（8c977118/0765064c）只重排归约顺序、未增输入校验（git log 对 fits_reader.cpp 为空）；正对照 aio_xisf 硬拒(:507) 与同文件 RGB 挡(:503) 仍在，说明是"该站漏做"而非口径缺失；截断 FITS 负例在 drizzle 测试面 0 命中
+- 建议标记：STILL(重锚 fits_reader.cpp:425-431/514-515/530；消费侧 drizzle_engine.cpp:1896-1911)
+
+#### [48] V10-N-09 — STILL
+- 命令：`grep -n 'strtol(.*nullptr, 10)' cli/commands.cpp`；`sed -n '20,23p' lib/astro_image_io/src/aio_log.cpp lib/dynamic_psf/src/dpsf_log.cpp lib/star_detector/src/sdet_log.cpp`；五文件 `git log 521095b8..HEAD`（空）
+- 关键输出：commands.cpp:204/:1081/:1286/:1672 四处 `std::strtol(sleep_ms, nullptr, 10)`（行号与档案逐字吻合，:205 直入 deadline 可负无界）；同 TU 正对照 :288-294 `strtoul(tmo,&end,10)` + 全串消费 + v∈(0,86400]；三 log 站 `int v = std::atoi(env);` 原样；sampler.cpp:128-129 atof + (0,1] 挡原样
+- 内容订正（我复核认同）：三 log 站实为 `(v>=0&&v<=3)?v:INFO` ⇒ "非数字→atoi=0→静默最低级"成立，但"负值→静默 0"不成立（负值落 INFO 回退）；主判据（同 TU 双纪律未推广）不变
+- 建议标记：STILL(重锚 :204/:1081/:1286/:1672；订正负值档描述)
+
+#### [49] V11-N-08 — STILL
+- 命令：`sed -n '69,78p' include/astrocs/io/aio_abi_v1.h`；`sed -n '83,93p' lib/astro_image_io/include/aio_pipeline.h`；`sed -n '736,765p' lib/orchestrator/cpp/src/orchestrator.cpp`；`grep -rn 'enum_fingerprint' lib cli runtime include modules tests`；五文件 git log（空）
+- 关键输出：甲 struct_size 在前(:70)、乙 abi_version 在前(:84)/struct_size 第二(:85)；include/astrocs/abi/status_codes.h:147-148 仍把"first/second"两种口径冻成断言；aio_abi.cpp:101-103 只对甲严校；orchestrator :749-754 五项判据**独不比 struct_size**，:760-762 却把 struct_size 写进"握手通过"日志；enum_fingerprint 全仓仅 2 命中（声明 :87 + 常量 0x5A1C0001 :166），零比较点
+- 判据：门检结构与交付结构仍是两份字段顺序相反的同名概念类型；"被算被记不参与执行"纹面原封
+- 建议标记：STILL(原锚即现锚)
+
+#### [50] V12-N-06 — STILL
+- 命令（三级）：`git --no-optional-locks grep -n 'docs/algorithms/IPV_PIPELINE' HEAD -- 'lib'`；`git ls-files | grep -i ipv_pipeline`；`git --no-optional-locks show HEAD:docs/algorithms/IPV_PIPELINE.md`；`git --no-optional-locks log --diff-filter=D --all -- '*IPV_PIPELINE*'`
+- 关键输出：L1 恰 6 命中且全是注释自身，现行号 ipv_types.h:238（原 225，+13 漂移）、ipv_select.cpp:364（精确）/:1002/:1299/:1568/:1894（原 946/1244/1514/1841，+56 漂移）；L2 唯一实存文件是 `lib/plate_solve/IPV_PIPELINE.md`（不在 docs/）；L3 工作树/HEAD 无该路径、无删除记录；真实文档 `grep -c DISP` = 0，:118/:123 仍写 \`ρ(G)=5×10^(1.3×(G-10))\` 作现行步骤；BASE 与 HEAD 站点数同为 5+1 ⇒ 3d8e04db 只致行漂未修复；依据 run/perf-fix/P4-magiter/REPORT.md 本地存在但 gitignored（`git ls-files run/` 仅 .gitkeep）
+- 判据：「已登记故不动冻结文档」的登记锚仍指向不存在路径 ⇒ 论证前提失效原样成立
+- 建议标记：STILL(重锚 ipv_types.h:238、ipv_select.cpp:364/1002/1299/1568/1894)
+
+#### [51] V12-N-14 — 缺失确认（四态之外；建议撤案 REJECT，勿记 FIXED）
+- 命令（三级 + 全史）：L1 `grep -rn 'kMoffatBeta\|k_beta_prior\|2\.5531628' lib docs include run/`（0）；L2 `git --no-optional-locks show 521095b8:lib/dynamic_psf/src/dpsf_psf.cpp | grep -c 'kMoffatBeta'`（0）、`git ls-files | grep -i psf_fitting`（空）；L3 我另跑 `git --no-optional-locks log --all --oneline -S 'kMoffatBetaLower'` 与 `-S '2.5531628'`
+- 关键输出（我的独立复核）：两条 -S 查询的**唯一命中都是 17fa5ff7**，即该 finding 自身文本的提交；`git grep '2\.553' HEAD -- lib docs include tests tools cli runtime modules contracts` 仅命中 gate4 证据 CSV 的浮点串（2.5531272872211268 等），非源码；现行 dpsf_psf.cpp 为固定 β=4 的 Moffat4（:25 `MOFFAT4_FWHM_FACTOR = 1.230310`、:393-394 `fwhm_x = FACTOR*sx`/`fwhm_y = FACTOR*sy`），全文无 2.5 字面量；STAR_PSF_ALGORITHMS.md 通篇 β=4（:7/:55/:140/:192）、PSF.md:92 明令禁 β≠4；`docs/algorithms/PSF_FITTING_VARIANTS.md` 工作树/HEAD/BASE/全史均不存在
+- 判据：无修复 commit（非 FIXED）、他站零命中（非 MOVED）、纯静态即可判且判空（非 CANNOT_STATIC）⇒ 所报「三套 β 先验互斥 + 文档自称 2.553 实回退 2.5」的机制在 a3a343a4 与全部历史均无载体，代码与两份文档口径一致（β=4）
+- 建议标记：REJECT(锚点全史不存在；请核该 finding 产出快照来源；账本如需四态请单列"缺失确认"，不得计 FIXED)
+
+#### [52] V13-N-05 — STILL（28 枚口径复算为 27 纯零 + 1 枚仅 legacy 档案文案）
+- 命令：`git -c core.quotepath=off grep -l -z <ID> HEAD` 逐 42 枚分类（剔除登记面 docs/TRACEABILITY.csv、docs/traceability/、tools/quality/v19r3_traceability.py、reports/v19r3/ 与扫描自引用档案）；`sed -n '284,292p' tools/quality/v19r3_traceability.py`；`sed -n '12p;213,222p' tools/traceability/check_traceability_matrix.py`
+- 关键输出：纯零 27/42 = SCI 13（SCI-UPM-002..010 九枚 + SCI-NOISE-004/006/009/010 四枚）+ TEST 14（TEST-PR-UPM-002..010 九枚 + TEST-UPMW-002/003/005/006/007 五枚），与档案逐枚吻合；差的 1 枚 SCI-NOISE-012 仅存在于 legacy 控制包档案 QA-V19R7/R8 文案 ⇒ 若不计档案文案宿主则 28 枚原样复现；生成器 pr_tests 现 :284-292 仍 index4/7 同指 `UpmPersistRoundtripChainNoDrift`、5/8 同指 `InsertionOrderIndependent` ⇒ 10 行实 8 实体；C5 原文(:12) 只管三键唯一，实现 :213-222 无"行↔测试实体"维度 ⇒ 无机器门成立；`docs/TRACEABILITY.csv` 的脏改经我核为**纯 CRLF 行尾差异**（`git diff HEAD` 空、cmp 首差在第 200 字节 \\r）⇒ HEAD 判定与工作树内容一致
+- 新锚：tools/quality/v19r3_traceability.py::_gen_range_rows(:284-292、pr_tests[i-1] :299)；tools/traceability/check_traceability_matrix.py(:12/:213-222)；lib/phase2/tests/synthetic_gate.cpp(:5214/:5260)
+- 建议标记：STILL(重锚 :284-292；注记 012 仅档案文案)
+
+<!-- 后续 B/D/E/G 组收齐后统一回填 -->
 
 ## 三、统计（收工回填）
 

@@ -18,7 +18,8 @@
 - 机理: child = `"%s\\%s"`(path,name) 截断结果 = path+name 的前缀；前缀可命中同父目录真实兄弟（如 `Npix_123` 截为 `Npix_12`）→ publish_stat_exists(:115) 判存在 → 递归 PUBLISH_UNLINK/PUBLISH_RMDIR 整删；fsync_tree 面则 fsync 错对象、n_files/total_bytes 错源（校验计数≠实际发布树）。promote 的"目标拒绝非空"(:356-361) 因同型截断（pat 缓冲）可在错路径上探测，非空拒绝失效
 - 触发预算: strlen(parent)+1+len(name) ≥ 1024。Linux PATH_MAX=4096 → 511~4095 合法深径可覆盖（引 M9-G-4【E4-实测】行口径）；中文目录 3 B/字加剧。生产接线：astrocs.p1.hips 事务面 stage/discard/promote（引 M9-C-1 影响行"生产可达"口径）。实际深路径复现 = 需运行期，未判
 - 权威依据: 宪章 §11:404（临时/原子提交与"失败不得留下可被误认半成品"）、§8.3（AIO 唯一 I/O 边界）、§14.4
-- related: M9-G-4（不同文件不同机理：512 截断塌缩；本条是删除面越权）、M9-C-1（同文件 ANSI 面）、簇 6（新边界不继承老边界纪律：同文件 stage_create 已有正确检查形态）
+- 目录创建失败处理子面（同文件同纪律族）: ::publish_mkdir_parents :98-113 —— 注释自述「EEXIST 忽略」而实现为 **PUBLISH_MKDIR 返回与 errno 全丢弃**（:107/:111 两处不判任何返回值）：中间段 EACCES/ENOSPC/EROFS 被吞，真实原因不可恢复；错误只能在 :311 末段 `PUBLISH_MKDIR(stage)` 处显形且塌缩为不带 errno 的 AIO_PUBLISH_ERR_IO（"归因可定位"违 §11 结构化诊断与 CLI_PROTOCOL"失败可归因"精神；对照 :312 EEXIST→STATE 尚有分档，父段失败连分档都没有）
+- related: M9-G-4（不同文件不同机理：512 截断塌缩；本条是删除面越权）、M9-C-1（同文件 ANSI 面）、簇 6（新边界不继承老边界纪律：同文件 stage_create 已有正确检查形态）、W4-R2-04（CLI 侧 create_directories 吞错同族）
 - 建议处置: 三处 snprintf 判 `n>=cap` 即返回 ERR_IO（对齐 :299/:328 写法）；或将缓冲提到 PATH_MAX 并统一动态分配；补「深径+同名兄弟」负例（断言拒删/错删零发生）
 
 ### W4-R2-02（P1）aio_publish 递归删除随符号链接（POSIX stat 判目录 / Win 不检 REPARSE_POINT）+ stage 名完全确定 + 「同名残留自愈删除」→ 并发互踩与树外删除（CWE-59），Windows 大小写不敏感放大
