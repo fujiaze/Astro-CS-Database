@@ -242,23 +242,51 @@
 - ⑤C++ CSV 无 fingerprint/来源链未变（Python 合同侧另有 21 列+指纹）。
 - 新锚：monitor.h:70/:146/:160/:197；memory_report.h:299-304；commands.cpp:900；resource_gate.h:130-166/:229-237；recorder :52/:90/:116/:230/:244-246；宪章:396-397。
 
-### [23] M5a-G-005（P0/G_GOV_GATE）— 判定：待填
+### [23] M5a-G-005（P0/G_GOV_GATE）
 - 原报标题：THREAD-BUDGET 机器门空转：扫描面、正则与行级豁免三重漏检并被单测固化
+判定：**STILL**（三重漏检 + 单测固化原样；锚点零漂移）
+- tools/arch/check_thread_budget.py：SCAN_ROOTS=[REPO/lib] :6（providers/runtime/cli 面全域不可见——如 providers/cpu/baseline、runtime 侧 omp/std::thread 从不入扫描）；EXEMPT 文件名级豁免 :7-11；PATTERNS :69-75 —— std::thread 正则 `std::thread\s*\(|std::thread\s+\w+` **不匹配 std::vector<std::thread> 成员声明**（">" 非 \s/\(），executor.cpp:39/:217、sampler.cpp:890、upm.cpp pool、p3_session.cpp:327 等 vector 形态全部漏检（HEAD 实测这些行仍在，语义为线程池成员）；行级豁免 `row_exempt = is_exempt or "watchdog" in line` :92-94——任何一行含 "watchdog" 即整行放行，不限于豁免文件。
+- 恒定输出串 :118「THREAD_BUDGET_CHECK_PASS 未登记线程创建=0…」被 tests/arch/test_thread_budget.py::test_01_real_repo_passes:16 assertIn 钉成期望（判据=检查器自己的 stdout，簇 1 机制①）。
+- ci/checks.json::THREAD-BUDGET :555-576 未变（waivable=false，changed_paths 仅 lib/**/include/**）。
+- 新锚：同原报。
 
-### [24] M5b-C-03（P1/C_DOC_CODE_GAP）— 判定：待填
+### [24] M5b-C-03（P1/C_DOC_CODE_GAP）
 - 原报标题：顶层幽灵命令 drizzle 在分发表却不在 help 与冻结命令树；未接线用 ARGS(2) 表达；诊断指向已删选项
+判定：**STILL**（两主站原样；第三子项「诊断指向已删选项」已不成立——记录订正）
+- cli/parser.cpp::kRules :61 仍登记 {"drizzle", {--config,--events-jsonl,--nside,--pixfrac}}；kHelp :66-92 顶层命令清单仍**无** astrocs drizzle（只列 test synthetic --group）；cli/commands.cpp::dispatch :2514 仍路由 drizzle→cmd_drizzle（:1897-1905，emit ARGS "test_preset_only" 返回 astrocs::ARGS=2——「未接线用 ARGS(2) 表达」未变，与 cmd_stub :216-222 同款）；docs/api/CLI_PROTOCOL_V1.md §1 冻结命令树仍无 drizzle 独立命令；docs/contracts/ARCH-001.md:83 LEG-001 行仍写「CLI drizzle 直呼 hp_drizzle_run_hips」——与现实现（仅回 preset 提示）又添一帧失真。
+- 订正：诊断指向的 `test synthetic --group drizzle` 现在**有效**（parser.cpp:199-200 kGroups 含 "drizzle"，commands.cpp:2516-2517 接受），原报「指向已删选项」在 HEAD 不再成立。
+- 新锚：parser.cpp:61/:66-92/:199-200、commands.cpp:2514/:1897-1905/:216-222、ARCH-001.md:83。
 
-### [25] M5b-E-04（P1/E_TRACE_BREAK）— 判定：待填
+### [25] M5b-E-04（P1/E_TRACE_BREAK）
 - 原报标题：acs_status/acs_head 在 legacy 与 abi 头族重复定义，其声称的机器检查文件不存在
+判定：**STILL**（双定义与虚构检查锚原样，锚零漂移）
+- include/astrocs/abi/status_codes.h :9-10 仍写「机器检查见 tests/abi/run_abi_checks.sh」——该文件在 HEAD 不存在（git grep run_abi_checks 仅命中此注释与审计档案；tests/abi/ 目录实况为 abi00x_*.c / test_*.py，无 run_abi_checks.sh）；:25-29 仍自述「与 legacy 共享 acs_head/acs_status/acs_span 系列…不得同一 TU 混合 include」但无机器执行者；:151-166 `typedef enum acs_status` 与 include/astrocs/common_abi_v1.h :20-23(acs_head)/:55-67(acs_status) 同名双定义原样。
+- docs/standards/API_STANDARD.md:11 禁重定义规则句未动。API-DOCS 类门对该无覆盖（簇 1 之「悬空引用」形态）。
+- 新锚：同原报。
 
-### [26] M5b-G-06（P0/G_GOV_GATE）— 判定：待填
+### [26] M5b-G-06（P0/G_GOV_GATE）
 - 原报标题：§18.4「只加载随产品签名清单发布的官方模块」在机器上无实现：产品不加载、hash 全 null、唯一闭环测试不进 CI
+判定：**STILL**（主机制原样；第三子项「闭环测试不进 CI」已过期，需订正措辞）
+- ①产品不加载：CMakeLists.txt:629-633 target_link_libraries(astrocs PRIVATE astrocs_core astrocs_aio astrocs_hips astrocs_calibration astrocs_phase2 astrocs_drizzle astrocs_cpu …) 静态链全部科学库；git grep acs_secure_loader HEAD -- CMakeLists.txt cmake cli lib → **0 命中**（loader 只活在 runtime/registry 与其测试，产品 CLI 从不调用）⇒ §18.4「只加载随产品签名清单发布的官方模块」在产品运行面仍无实现。
+- ②hash 全 null：packaging/astrocs.product.json:8-17 十 unit 的 sha256 仍全 null，:6 note 自证「sha256 维持 null…loader 对空期望跳过 hash」——签名清单无完整性校验。
+- ③订正：闭环测试**已在 CI**——tests/abi/test_mod001_install_load_check.py:32-43 有 TestCase（调 mod001.main() 断言 rc==0），且 ci/checks.json UT-ABI（:1645 起 linux-main，discover -s tests/abi）会采集；「唯一闭环测试不进 CI」措辞过期。但该门 hosted-only（windows 产物在 Linux 树）且其有效性依赖 L23-001 已登记的 discover 采集数问题——不改本条主判。
+- cli/commands.cpp 现锚：unit_file_present :1970、cmd_modules_verify :2098、cmd_selftest :2177（原 :1889/:2017/:2096 漂移 +81/+113/+175 内）。astrocs_runtime/astrocs_io SHARED 各仅 1 个 C 源（CMakeLists:133/:146）未变。
+- 建议标记：维持 OPEN，子项③改述。
 
-### [27] M5b-G-14（P1/G_GOV_GATE）— 判定：待填
+### [27] M5b-G-14（P1/G_GOV_GATE）
 - 原报标题：导出符号与 ABI 合同一致性（§12.3-6）实际无有效检查：门只判符号表非空，Linux 侧零覆盖
+判定：**STILL**（判据=非空、Linux 零覆盖原样；文件未改）
+- tools/quality/ci_windows_driver.py:605-626：真跑分支 `ok = res["exit_code"]==0 and bool(exports)`——只判 dumpbin /EXPORTS 退出码+符号表非空，**从不比对 module_api_v1.h 合同符号集**（:586-591 声明文案承诺「astrocs_runtime 导出 acs_artifact_*、astrocs_io 导出 acs_fio_*」但代码无该前缀判据——声明超前于实现）；Linux 分支 :580-601 把全部四项标 executed=False hosted_note（Linux 侧零覆盖），非 Windows 主机该项恒绿（记 executed=False 不判红）。
+- include/astrocs/abi/module_api_v1.h:7-12 唯一导出合同未变；cmake/install_layout.cmake:91-96 modules/providers 安装未变；CMakeLists.txt WINDOWS_EXPORT_ALL_SYMBOLS 现 :137/:151/:228（原报 :146-153/:217-236，行锚漂移，内容同）。
+- 新锚：ci_windows_driver.py:586-591/:605-626、CMakeLists.txt:137/:151/:228。
 
-### [28] M5b-I-05（P2/I_DOC_HYGIENE）— 判定：待填
+### [28] M5b-I-05（P2/I_DOC_HYGIENE）
 - 原报标题：CI 元文档的规模计数与多项路径/条目已与注册表脱节
+判定：**STILL**（计数脱节进一步恶化）
+- ci/INVENTORY_REPORT.md:6/:18/:31 仍称 ci/checks.json「70 项」；HEAD 实测 python json 解析 len(checks)=**135**（base..HEAD 的 checks.json 改动又净增，脱节从 60 → 65）。
+- ci/WORKFLOW_BINDING_AUDIT.md:29 仍写「注册表（90+4 项）」——与 135 不符（该文件未改）。
+- ci/impact_map.json:649 触发路径仍含 `launch/**`（根目录无 launch/，实体在 packaging/launch/ ⇒ 该路径永不匹配，关联门永不增量触发）；:4 notes 未动。
+- 新锚：INVENTORY_REPORT.md:6/:18/:31、WORKFLOW_BINDING_AUDIT.md:29、impact_map.json:649。
 
 ### [29] M6a-D-001（P1/D_COMMENT）— 判定：待填
 - 原报标题：生产注释承担「未登记的裁决请求」角色：SCI 冻结 1e-4 px 门被同文件注释自证一步法数学不可达；裁决与偏差 ID 只活在注释与控制包台账里，docs 权威登记面（STANDARDS_REGISTRY / PLATESOLVE §11.3）对 DISP-WCS-007、DISP-WCS-008 零命中（来源 L13-001 的注释层残余；科学定档在 M1a）
