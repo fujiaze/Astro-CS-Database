@@ -192,3 +192,29 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 | DISP-P2UPM-002 | upm.h:89-91 cpu_workers 注释漂移（"仅 P2_ENABLE_OPENMP 且>1 时并行" vs 实现纯 std::thread 段、无 OpenMP 条件） | upm.h:89-91 vs upm.cpp:515-559/:615-637/:1479-1497 |
 | DISP-P2UPM-003 | p2_session upm 覆盖键仅 {max_iterations,huber_delta,smoothing_lambda}，zero_anchor_weight/tolerance 等无 config 键 | p2_session.cpp:196-204 |
 | DISP-P2UPM-004 | descriptor 端口语义占位（fit 行 upm_model 标可选输出、apply 行标必选输入，与 persist→reload 真实数据流不符） | module_adapters.cpp:599-632 |
+
+---
+
+## 追加：V6 目标态乘法/加性分离（IMPL-P2-UPM-001，2026-09-15）
+
+> 本节由 W5 任务 \`IMPL-P2-UPM-001\` 追加；不改写上文 P2-UPM-DOC 历史文本。
+
+- V6 目标态在既有加性 UPM 之外新增\*\*乘法/加性分离\*\*求解面：
+  \`y_k(p) = g_k*s(p) + b_k\`（\`ALG-P2S-UPM.1\`），公共 API 见
+  \`lib/phase2/include/astro/phase2/upm.h\` 的 \`P2UpmMa*\` / \`p2_upm_ma_*\`
+  / \`p2_upm_control_variance\`；实现见 \`lib/phase2/src/upm.cpp\`。
+- 覆盖：overlap graph（连通分量）、每分量独立 gauge（\`g_ref=1,b_ref=0\`）、
+  秩（\`FZ-AP2S-RANK-RTOL=1e-10\`）、条件数（\`FZ-AP2S-KAPPA-MAX=1e6\`）、
+  \`min_frames=2\`（\`FZ-AP2S-UPM-MINFRAMES\`）、参数协方差
+  \`C_theta=(JᵀWJ)^-1\` 与 \`C_out=C_stat+J_out C_theta J_outᵀ\`
+  （\`FZ-FORMULA-COV-PROP\`）、欠定/秩亏/κ 超限 fail-closed。
+- 上文 "不处理乘性尺度差（已撤销，SCI-UPM 非目标）" 为 V5/历史加性
+  模型口径；V6 以 \`ALG-P2S-UPM.1\` 取代（只登记，详见
+  \`lib/phase2_upm/memory.md\` 的 V6 追加节）。
+- 共址测试：\`tests/unit/v6_p2_upm/\`（5 个 ctest 用例 + 负向 fail-closed
+  门 + 独立 NumPy Oracle 锚 + 6 条冻结 mutation 全红）；证据
+  \`run/v6/IMPL-P2-UPM-001/\`。
+- 开放项（只登记不裁决）：DI-04（k_corr 标定/MC 复跑，OPEN）、
+  OPEN-P2S-02（乘法尺度生产数据面/schema，OPEN）、OPEN-P2S-03（跨帧
+  完整 C 低秩/相关核表示，OPEN）。
+

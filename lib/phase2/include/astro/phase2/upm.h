@@ -183,6 +183,164 @@ P2_API int p2_upm_materialize_dense_n(
 
 P2_API int p2_upm_close(void* model);
 
+// ===========================================================================
+// V6 目标态：UPM 乘法/加性分离求解器（ALG-P2S-UPM.1..8）
+// ---------------------------------------------------------------------------
+// 模型（ALG-P2S-UPM.1，FZ 语义冻结 / docs/contracts/v6/frozen）：
+//     y_k(p) = g_k * s(p) + b_k + eps_k(p)
+//   g_k   每帧乘法光度响应（相对参考帧无量纲；单位 1）——不得藏进加性场；
+//   b_k   每帧加性背景（帧级常数，单位 ADU）；
+//   s(p)  潜在真实场（参考帧口径，单位 ADU）；
+//   eps   随机项；观测权重 = control_ivar = 1/control_variance。
+//
+// 分离不变量（宪章 §6.3）：g_k 与 b_k 分别估计，禁止互相代替 / 禁止把乘法
+// 尺度隐藏在加性梯度曲面。空间加性场 b_k(x) 的数据面表示属 OPEN-P2S-02
+// （DATA-DESIGN-001 / SCHEMA-INTEGRATE-001），本 API 只实现帧级 b_k；空间
+// 变化由 s(p) 承载，不自行定值 OPEN 项。
+//
+// overlap graph / gauge（ALG-P2S-UPM.2）：
+//   frame-control 二分图连通分量；每分量独立 gauge，ref = 分量内最小
+//   frame_id，scale gauge g_ref=1，level gauge b_ref=0（共 2*n_components）。
+//
+// 秩 / 条件数（ALG-P2S-UPM.3/.4）：
+//   rank(J) == n_free = n_p + 2F - 2*n_components；
+//   奇异值判据 sigma_i/sigma_max > rank_rtol（FZ-AP2S-RANK-RTOL=1e-10）；
+//   kappa = cond_2( D^-1 (J^T W J) D^-1 )，D=diag(列范数)，上限
+//   kappa_max（FZ-AP2S-KAPPA-MAX=1e6）；超限 fail-closed，禁止静默欠定解。
+//   min_frames（FZ-AP2S-UPM-MINFRAMES=2）：单帧分量禁拟合 g，须显式
+//   additive-only 降级声明。
+//
+// 参数协方差（ALG-P2S-UPM.5/.6，FZ-FORMULA-COV-PROP）：
+//   C_theta = (J^T W J)^-1（gauge 消除后的可辨识子空间）；
+//   C_out   = C_stat + J_out C_theta J_out^T。
+//   禁止由权重标量/诊断量反推 variance；禁止 variance=1/W_psfsw。
+//
+// 参数向量布局（p2_upm_ma_param_cov 输出顺序，确定性）：
+//   full = [ s_j : control_id 升序 ] ++ [ g_k : frame_id 升序 ]
+//          ++ [ b_k : frame_id 升序 ]，去掉 gauge 固定项后按 full 下标升序
+//   即 free 参数顺序；n_free = n_p + 2F - 2*n_components。
+//
+// 返回值（负数/正数语义，全部 fail-closed）：
+//   0  ok
+//   1  参数错误（空指针/空数据/非法配置）
+//   2  缺/非法 control_ivar（<=0 或非有限；production 禁止静默回退 legacy）
+//   3  秩亏（rank < n_free；含恒常 s 场导致的 g/b 退化）
+//   4  kappa > kappa_max
+//   5  单帧分量未声明 additive-only（FZ-AP2S-UPM-MINFRAMES）
+//   6  共享系统项按独立处理（未表示共享项声明为已表示）
+//   7  k_corr provenance 不完整/越域（FZ-PROV-KCORR）
+//   8  非有限解（求解失败）
+// ===========================================================================
+
+// UPM 乘法/加性观测（一个 control 点 p 的一帧观测 k）。
+typedef struct {
+    std::uint64_t frame_id;
+    std::uint64_t control_id;   // overlap graph 的 control 节点 id
+    double value;               // y_k(p)，单位 ADU
+    double control_ivar;        // 1/control_variance，单位 ADU^-2；必须 >0 有限
+} P2UpmMaObservation;
+
+// UPM 乘法/加性构建配置（默认值在 upm.cpp 中生效）。
+typedef struct {
+    int    min_frames;          // FZ-AP2S-UPM-MINFRAMES，默认 2
+    double rank_rtol;           // FZ-AP2S-RANK-RTOL，默认 1e-10
+    double kappa_max;           // FZ-AP2S-KAPPA-MAX，默认 1e6
+    // 0 = min_frame_id gauge（g_ref=1, b_ref=0）；其他值 → 参数错误。
+    int    gauge_mode;
+    // 1 = 显式声明单帧分量 additive-only 降级（g=1 固定，不拟合 g）；
+    // 0（默认）= 单帧分量 fail-closed（rc=5）。
+    int    allow_additive_only_single_frame;
+    // 1 = C_in 含未表示共享系统项（低秩/相关核）→ fail-closed rc=6；默认 0。
+    int    c_in_has_unrepresented_shared_terms;
+    // 收敛参数（FZ-UPM-CONVERGENCE，原样继承，不改）。
+    double huber_delta;         // 默认 1.345
+    int    max_iterations;      // 默认 100
+    double tolerance;           // 默认 1e-6
+    double sigma_floor;         // 默认 1e-3
+    // 默认 1e-3（FZ-UPM-CONVERGENCE 继承值，为合同/provenance 一致性保留）。
+    // 乘法/加性模型的退化由显式 gauge + 秩门 fail-closed 处理，本求解器
+    // 不对 b_k 施加弱零锚（加零锚会引入偏差）。
+    double zero_anchor_weight;
+    // k_corr provenance（FZ-PROV-KCORR）。k_corr<=0 表示未声明（不使用）；
+    // >0 时必须提供非空 applicability_domain，且只能是域内冻结值 1.4
+    // （无固定种子 MC 标定 run 时不得外推/忽略相关 → rc=7）。
+    double k_corr;              // 默认 0（未声明）
+    const char* k_corr_applicability_domain;  // 可空
+    const char* k_corr_calibration_run_id;    // 可空
+    const char* flux_conservation_factor;     // provenance 透传，可空
+} P2UpmMaConfig;
+
+// 模型摘要（gauge/秩/条件数/自由度）。
+typedef struct {
+    std::uint32_t version;
+    std::uint64_t n_controls;
+    std::uint64_t n_frames;
+    std::uint64_t n_components;
+    std::uint64_t n_observations;
+    std::uint64_t n_params;       // n_free（gauge 消除后）
+    std::uint64_t rank;           // rank(J) 于解处
+    double rank_rtol;
+    double kappa;
+    double kappa_max;
+    int min_frames;
+    int gauge_mode;
+    int iterations;
+    int additive_only_components; // 显式 additive-only 降级的分量数
+    char model_hash[65];
+} P2UpmMaInfo;
+
+// 构建并联合求解（overlap graph + gauge + 乘法/加性 GN-IRLS + 秩/κ 门）。
+P2_API int p2_upm_ma_build(
+    const P2UpmMaObservation* obs, std::uint64_t n_obs,
+    const P2UpmMaConfig* cfg, void** out_model);
+
+P2_API int p2_upm_ma_info(const void* model, P2UpmMaInfo* out_info);
+
+// 取某观测节点解：g_k / b_k / s(p)。out_* 可空表示不取该项。
+// 未知 frame_id / control_id → 1。
+P2_API int p2_upm_ma_solution(
+    const void* model, std::uint64_t frame_id, std::uint64_t control_id,
+    double* out_g, double* out_b, double* out_s);
+
+// frame -> 连通分量下标；control -> 连通分量下标。未知 id → 返回 1。
+P2_API int p2_upm_ma_component_of_frame(
+    const void* model, std::uint64_t frame_id, std::uint64_t* out_component);
+P2_API int p2_upm_ma_component_of_control(
+    const void* model, std::uint64_t control_id, std::uint64_t* out_component);
+// 每分量 gauge 参考帧（分量内最小 frame_id；与构建顺序无关）。
+P2_API int p2_upm_ma_component_ref_frame(
+    const void* model, std::uint64_t component, std::uint64_t* out_ref_frame_id);
+
+// C_theta = (J^T W J)^-1，n_params × n_params，row-major（ld >= n_params）。
+P2_API int p2_upm_ma_param_cov(const void* model, double* out_C, std::uint64_t ld);
+
+// C_out = C_stat + J_out C_theta J_out^T（FZ-FORMULA-COV-PROP）。
+// J_out: m × n_params row-major（ld_J >= n_params）；C_stat: m × m row-major
+// （ld_C >= m）；out_C_out: m × m row-major（ld_out >= m）。禁止权重反推。
+P2_API int p2_upm_ma_c_out(
+    const void* model, const double* J_out, std::uint64_t ld_J, std::uint64_t m,
+    const double* C_stat, std::uint64_t ld_C,
+    double* out_C_out, std::uint64_t ld_out);
+
+// provenance JSON（FZ-PROV-MINIMAL-SET / ALG-P2S-UPM.8）：gauge_mode、
+// 每分量 ref_frame_id、rank、rank_rtol、kappa、kappa_max、C_theta 摘要、
+// k_corr+适用域、flux_conservation_factor、model_hash、min_frames、
+// any_fail_closed_reason。成功构建时 reason 为空串。
+P2_API int p2_upm_ma_provenance(
+    const void* model, char* out_json, std::size_t buf_size);
+
+P2_API void p2_upm_ma_close(void* model);
+
+// ALG-P2S-UPM.7 / FZ-PROV-KCORR：control_variance = k_corr*(pi/2)*sigma_bg^2/N。
+// fail-closed：N<1、sigma_bg<=0、k_corr 非有限或 <=0 → 1；
+// k_corr==1.0（忽略相关）→ 2；k_corr!=1.4 且无 calibration_run_id → 3
+// （域外推，DI-04 未复跑标定）；applicability_domain 空 → 4。
+// 返回 0 时写 out_control_variance / out_control_ivar（均可空）。
+P2_API int p2_upm_control_variance(
+    double k_corr, double sigma_bg, std::uint64_t n_retained,
+    const char* applicability_domain, const char* calibration_run_id,
+    double* out_control_variance, double* out_control_ivar);
+
 #ifdef __cplusplus
 }
 #endif

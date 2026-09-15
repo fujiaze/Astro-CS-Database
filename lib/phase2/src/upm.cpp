@@ -1566,3 +1566,855 @@ int p2_upm_close(void* model) {
 }
 
 } // extern "C"
+
+// ===========================================================================
+// V6 目标态：UPM 乘法/加性分离求解器（ALG-P2S-UPM.1..8）
+// 见 lib/phase2/include/astro/phase2/upm.h 顶部契约与 docs/contracts/v6/frozen。
+// ===========================================================================
+namespace {
+
+const double kMaPiHalf = 1.57079632679489661923132169163975144209858469968755;
+const double kMaKCcorrFrozenInDomain = 1.4;   // FZ-PROV-KCORR-VALUE
+
+struct MaDsu {
+    std::vector<int> parent;
+    void init(int n) {
+        parent.resize((std::size_t)n);
+        for (int i = 0; i < n; ++i) parent[(std::size_t)i] = i;
+    }
+    int find(int x) {
+        while (parent[(std::size_t)x] != x) {
+            parent[(std::size_t)x] = parent[(std::size_t)parent[(std::size_t)x]];
+            x = parent[(std::size_t)x];
+        }
+        return x;
+    }
+    void unite(int a, int b) {
+        const int ra = find(a), rb = find(b);
+        if (ra != rb) parent[(std::size_t)rb] = ra;
+    }
+};
+
+// Cyclic Jacobi eigen-decomposition（对称矩阵，row-major n×n）。
+// A 按值传入可被覆盖；evals 输出特征值；evecs 非空时输出 n×n row-major，
+// 第 k 列 = 第 k 个特征向量。返回 false 仅当 n<0。
+bool ma_eig(std::vector<double> A, int n, std::vector<double>& evals,
+            std::vector<double>* evecs) {
+    if (n < 0) return false;
+    evals.assign((std::size_t)(n > 0 ? n : 0), 0.0);
+    std::vector<double> V;
+    if (evecs != nullptr) {
+        V.assign((std::size_t)n * (std::size_t)n, 0.0);
+        for (int i = 0; i < n; ++i) V[(std::size_t)i * (std::size_t)n + (std::size_t)i] = 1.0;
+    }
+    const int max_sweeps = 200;
+    for (int sweep = 0; sweep < max_sweeps; ++sweep) {
+        double off = 0.0;
+        for (int p = 0; p < n; ++p)
+            for (int q = p + 1; q < n; ++q) {
+                const double v = A[(std::size_t)p * (std::size_t)n + (std::size_t)q];
+                off += v * v;
+            }
+        if (off <= 0.0) break;
+        for (int p = 0; p < n; ++p) {
+            for (int q = p + 1; q < n; ++q) {
+                const double apq = A[(std::size_t)p * (std::size_t)n + (std::size_t)q];
+                if (!std::isfinite(apq) || std::fabs(apq) < 1e-300) continue;
+                const double app = A[(std::size_t)p * (std::size_t)n + (std::size_t)p];
+                const double aqq = A[(std::size_t)q * (std::size_t)n + (std::size_t)q];
+                const double theta = (aqq - app) / (2.0 * apq);
+                const double sgn = (theta >= 0.0) ? 1.0 : -1.0;
+                const double t = sgn / (std::fabs(theta) + std::sqrt(theta * theta + 1.0));
+                const double c = 1.0 / std::sqrt(t * t + 1.0);
+                const double s = t * c;
+                // A <- A J（列 p,q），随后 A <- J^T A（行 p,q）：
+                // 显式两步正交相似变换（Givens），保证 A_final = V^T A V，
+                // 特征向量矩阵 V 可用于 V Λ^-1 V^T = A^-1。
+                for (int i = 0; i < n; ++i) {
+                    const double aip = A[(std::size_t)i * (std::size_t)n + (std::size_t)p];
+                    const double aiq = A[(std::size_t)i * (std::size_t)n + (std::size_t)q];
+                    A[(std::size_t)i * (std::size_t)n + (std::size_t)p] = c * aip - s * aiq;
+                    A[(std::size_t)i * (std::size_t)n + (std::size_t)q] = s * aip + c * aiq;
+                }
+                for (int i = 0; i < n; ++i) {
+                    const double api = A[(std::size_t)p * (std::size_t)n + (std::size_t)i];
+                    const double aqi = A[(std::size_t)q * (std::size_t)n + (std::size_t)i];
+                    A[(std::size_t)p * (std::size_t)n + (std::size_t)i] = c * api - s * aqi;
+                    A[(std::size_t)q * (std::size_t)n + (std::size_t)i] = s * api + c * aqi;
+                }
+                if (evecs != nullptr) {
+                    for (int i = 0; i < n; ++i) {
+                        const double vip = V[(std::size_t)i * (std::size_t)n + (std::size_t)p];
+                        const double viq = V[(std::size_t)i * (std::size_t)n + (std::size_t)q];
+                        V[(std::size_t)i * (std::size_t)n + (std::size_t)p] = c * vip - s * viq;
+                        V[(std::size_t)i * (std::size_t)n + (std::size_t)q] = s * vip + c * viq;
+                    }
+                }
+                A[(std::size_t)p * (std::size_t)n + (std::size_t)q] = 0.0;
+                A[(std::size_t)q * (std::size_t)n + (std::size_t)p] = 0.0;
+                (void)app;
+                (void)aqq;
+            }
+        }
+    }
+    for (int i = 0; i < n; ++i) evals[(std::size_t)i] = A[(std::size_t)i * (std::size_t)n + (std::size_t)i];
+    if (evecs != nullptr) *evecs = V;
+    return true;
+}
+
+// Cholesky 解 A x = b（A row-major n×n SPD，按值传入可加 jitter）。b 输出 x。
+bool ma_chol_solve(std::vector<double> A, std::vector<double>& b, int n) {
+    if (n <= 0) return true;
+    for (int attempt = 0; attempt < 4; ++attempt) {
+        std::vector<double> L((std::size_t)n * (std::size_t)n, 0.0);
+        bool ok = true;
+        for (int i = 0; i < n && ok; ++i) {
+            for (int j = 0; j <= i; ++j) {
+                double sum = A[(std::size_t)i * (std::size_t)n + (std::size_t)j];
+                for (int k = 0; k < j; ++k)
+                    sum -= L[(std::size_t)i * (std::size_t)n + (std::size_t)k] *
+                           L[(std::size_t)j * (std::size_t)n + (std::size_t)k];
+                if (i == j) {
+                    if (!(sum > 0.0) || !std::isfinite(sum)) { ok = false; break; }
+                    L[(std::size_t)i * (std::size_t)n + (std::size_t)i] = std::sqrt(sum);
+                } else {
+                    L[(std::size_t)i * (std::size_t)n + (std::size_t)j] =
+                        sum / L[(std::size_t)j * (std::size_t)n + (std::size_t)j];
+                }
+            }
+        }
+        if (ok) {
+            std::vector<double> y((std::size_t)n, 0.0);
+            for (int i = 0; i < n; ++i) {
+                double sum = b[(std::size_t)i];
+                for (int k = 0; k < i; ++k)
+                    sum -= L[(std::size_t)i * (std::size_t)n + (std::size_t)k] * y[(std::size_t)k];
+                y[(std::size_t)i] = sum / L[(std::size_t)i * (std::size_t)n + (std::size_t)i];
+            }
+            for (int i = n - 1; i >= 0; --i) {
+                double sum = y[(std::size_t)i];
+                for (int k = i + 1; k < n; ++k)
+                    sum -= L[(std::size_t)k * (std::size_t)n + (std::size_t)i] * b[(std::size_t)k];
+                b[(std::size_t)i] = sum / L[(std::size_t)i * (std::size_t)n + (std::size_t)i];
+            }
+            return true;
+        }
+        double scale = 0.0;
+        for (int i = 0; i < n; ++i)
+            scale = std::max(scale, std::fabs(A[(std::size_t)i * (std::size_t)n + (std::size_t)i]));
+        const double jit = (scale > 0.0 ? scale : 1.0) * 1e-12 * (double)(attempt + 1);
+        for (int i = 0; i < n; ++i) A[(std::size_t)i * (std::size_t)n + (std::size_t)i] += jit;
+    }
+    return false;
+}
+
+struct MaObsRec {
+    int fi;
+    int ci;
+    double y;
+    double ivar;
+};
+
+struct MaModel {
+    P2UpmMaConfig cfg;
+    P2UpmMaInfo info;
+    std::vector<std::uint64_t> frame_ids;    // 升序
+    std::vector<std::uint64_t> control_ids;  // 升序
+    std::map<std::uint64_t, std::size_t> frame_index;
+    std::map<std::uint64_t, std::size_t> control_index;
+    std::vector<std::size_t> frame_component;
+    std::vector<std::size_t> control_component;
+    std::vector<std::uint64_t> component_ref_frame;   // 分量 -> 参考 frame_id
+    std::vector<int> component_additive_only;
+    std::vector<long long> free_of_full;     // full 下标 -> free 下标（-1 = gauge 固定）
+    std::vector<std::size_t> full_of_free;   // free 下标 -> full 下标
+    std::size_t n_full{0};
+    std::size_t n_free{0};
+    std::vector<double> theta_full;          // size n_full（gauge 固定项写入约定值）
+    std::vector<double> C_theta;             // n_free × n_free row-major
+    std::vector<double> sigma;               // 奇异值降序
+    double kappa{0.0};
+    std::size_t rank{0};
+    int iterations{0};
+    std::string model_hash;
+};
+
+// 在给定 theta_full 与观测上计算（统计）正规矩阵 H = Jᵀ W J（W=diag(ivar)）
+// 与（可选）robust 目标。cols 复用见调用方。
+void ma_normal_matrix(const MaModel& m, const std::vector<MaObsRec>& recs,
+                      std::vector<double>& H) {
+    const std::size_t np = m.control_ids.size();
+    const std::size_t nf = m.frame_ids.size();
+    const std::size_t n = m.n_free;
+    H.assign(n * n, 0.0);
+    for (const MaObsRec& o : recs) {
+        const double gk = m.theta_full[np + (std::size_t)o.fi];
+        const double sp = m.theta_full[(std::size_t)o.ci];
+        long long js[3];
+        double ja[3];
+        int nc = 0;
+        const long long a_s = m.free_of_full[(std::size_t)o.ci];
+        if (a_s >= 0) { js[nc] = a_s; ja[nc] = gk; ++nc; }
+        const long long a_g = m.free_of_full[np + (std::size_t)o.fi];
+        if (a_g >= 0) { js[nc] = a_g; ja[nc] = sp; ++nc; }
+        const long long a_b = m.free_of_full[np + nf + (std::size_t)o.fi];
+        if (a_b >= 0) { js[nc] = a_b; ja[nc] = 1.0; ++nc; }
+        for (int a = 0; a < nc; ++a) {
+            for (int b = 0; b < nc; ++b)
+                H[(std::size_t)js[a] * n + (std::size_t)js[b]] += o.ivar * ja[a] * ja[b];
+        }
+    }
+}
+
+// 加权 Jacobian J_w = W^{1/2} J（m×n row-major，W=C_in^-1=diag(control_ivar)）。
+void ma_weighted_jacobian(const MaModel& m, const std::vector<MaObsRec>& recs,
+                          std::vector<double>& Jw) {
+    const std::size_t np = m.control_ids.size();
+    const std::size_t nf = m.frame_ids.size();
+    const std::size_t n = m.n_free;
+    Jw.assign(recs.size() * n, 0.0);
+    for (std::size_t i = 0; i < recs.size(); ++i) {
+        const MaObsRec& o = recs[i];
+        const double gk = m.theta_full[np + (std::size_t)o.fi];
+        const double sp = m.theta_full[(std::size_t)o.ci];
+        const double sw = std::sqrt(o.ivar);
+        const long long a_s = m.free_of_full[(std::size_t)o.ci];
+        if (a_s >= 0) Jw[i * n + (std::size_t)a_s] = sw * gk;
+        const long long a_g = m.free_of_full[np + (std::size_t)o.fi];
+        if (a_g >= 0) Jw[i * n + (std::size_t)a_g] = sw * sp;
+        const long long a_b = m.free_of_full[np + nf + (std::size_t)o.fi];
+        if (a_b >= 0) Jw[i * n + (std::size_t)a_b] = sw;
+    }
+}
+
+// J_w 的奇异值（全精度）：一步 Jacobi（Hestenes one-sided）直接正交化 J_w 的列，
+// 收敛后列范数即奇异值。对 J_w 直接求 σ_i，避免经 (JᵀJ) 平方导致小奇异值精度
+// 损失（FZ-AP2S-RANK-RTOL=1e-10 需要 σ 自身精度）。mrows<n 时对 J_wᵀ 做（σ 不变）。
+bool ma_singular_values(const std::vector<double>& Jw, std::size_t mrows,
+                        std::size_t n, std::vector<double>& sigma) {
+    const bool transposed = mrows < n;
+    const std::size_t R = transposed ? n : mrows;
+    const std::size_t C = transposed ? mrows : n;
+    if (R == 0 || C == 0) { sigma.clear(); return true; }
+    std::vector<double> A(R * C, 0.0);
+    if (!transposed) {
+        A = Jw;
+    } else {
+        for (std::size_t i = 0; i < mrows; ++i)
+            for (std::size_t j = 0; j < n; ++j) A[j * C + i] = Jw[i * n + j];
+    }
+    for (int sweep = 0; sweep < 100; ++sweep) {
+        double maxoff = 0.0;
+        for (std::size_t p = 0; p < C; ++p) {
+            for (std::size_t q = p + 1; q < C; ++q) {
+                double alpha = 0.0, beta = 0.0, gamma = 0.0;
+                for (std::size_t i = 0; i < R; ++i) {
+                    const double ap = A[i * C + p];
+                    const double aq = A[i * C + q];
+                    alpha += ap * ap;
+                    beta += aq * aq;
+                    gamma += ap * aq;
+                }
+                if (!(alpha > 0.0) || !(beta > 0.0)) continue;
+                const double g = std::fabs(gamma) / std::sqrt(alpha * beta);
+                maxoff = std::max(maxoff, g);
+                if (!(g > 1e-15) || !std::isfinite(g)) continue;
+                const double zeta = (beta - alpha) / (2.0 * gamma);
+                const double sgn = (zeta >= 0.0) ? 1.0 : -1.0;
+                const double t = sgn / (std::fabs(zeta) + std::sqrt(1.0 + zeta * zeta));
+                const double c = 1.0 / std::sqrt(1.0 + t * t);
+                const double s = c * t;
+                for (std::size_t i = 0; i < R; ++i) {
+                    const double ap = A[i * C + p];
+                    const double aq = A[i * C + q];
+                    A[i * C + p] = c * ap - s * aq;
+                    A[i * C + q] = s * ap + c * aq;
+                }
+            }
+        }
+        if (maxoff <= 1e-15) break;
+    }
+    sigma.assign(C, 0.0);
+    for (std::size_t j = 0; j < C; ++j) {
+        double s = 0.0;
+        for (std::size_t i = 0; i < R; ++i) s += A[i * C + j] * A[i * C + j];
+        sigma[j] = std::sqrt(s);
+    }
+    std::sort(sigma.begin(), sigma.end(), std::greater<double>());
+    return true;
+}
+
+double ma_objective(const MaModel& m, const std::vector<MaObsRec>& recs) {
+    const std::size_t np = m.control_ids.size();
+    const std::size_t nf = m.frame_ids.size();
+    double obj = 0.0;
+    for (const MaObsRec& o : recs) {
+        const double model = m.theta_full[np + (std::size_t)o.fi] * m.theta_full[(std::size_t)o.ci] +
+                             m.theta_full[np + nf + (std::size_t)o.fi];
+        const double r = o.y - model;
+        const double sigma_eff = std::max(std::sqrt(1.0 / o.ivar), m.cfg.sigma_floor);
+        obj += o.ivar * huber_rho(r / sigma_eff, m.cfg.huber_delta);
+    }
+    return obj;
+}
+
+} // namespace
+
+extern "C" {
+
+int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
+                    const P2UpmMaConfig* cfg_in, void** out_model) {
+    if (out_model == nullptr || obs == nullptr || n_obs == 0) return 1;
+    *out_model = nullptr;
+
+    MaModel* m = new MaModel();
+    std::memset(&m->cfg, 0, sizeof(m->cfg));
+    if (cfg_in != nullptr) m->cfg = *cfg_in;
+    P2UpmMaConfig& cfg = m->cfg;
+    if (cfg.min_frames <= 0) cfg.min_frames = 2;                       // FZ-AP2S-UPM-MINFRAMES
+    if (!(cfg.rank_rtol > 0.0) || !std::isfinite(cfg.rank_rtol)) cfg.rank_rtol = 1e-10;
+    if (!(cfg.kappa_max > 0.0) || !std::isfinite(cfg.kappa_max)) cfg.kappa_max = 1e6;
+    if (!(cfg.huber_delta > 0.0)) cfg.huber_delta = 1.345;            // FZ-UPM-CONVERGENCE
+    if (cfg.max_iterations <= 0) cfg.max_iterations = 100;
+    if (!(cfg.tolerance > 0.0)) cfg.tolerance = 1e-6;
+    if (!(cfg.sigma_floor > 0.0)) cfg.sigma_floor = 1e-3;
+    if (cfg.zero_anchor_weight < 0.0) cfg.zero_anchor_weight = 1e-3;
+    if (cfg.gauge_mode != 0) { delete m; return 1; }   // 仅 min_frame_id gauge
+
+    // ---- 观测校验（rc=2：缺/非法 control_ivar，production 禁静默回退）----
+    std::set<std::uint64_t> frame_set, control_set;
+    for (std::uint64_t i = 0; i < n_obs; ++i) {
+        const P2UpmMaObservation& o = obs[i];
+        if (!std::isfinite(o.value)) { delete m; return 1; }
+        if (!(o.control_ivar > 0.0) || !std::isfinite(o.control_ivar)) { delete m; return 2; }
+        frame_set.insert(o.frame_id);
+        control_set.insert(o.control_id);
+    }
+    if (frame_set.empty() || control_set.empty()) { delete m; return 1; }
+
+    // ---- 共享系统项按独立处理 → rc=6（ADJ-OBS-01 / ALG-P2S-UPM.8）----
+    if (cfg.c_in_has_unrepresented_shared_terms != 0) { delete m; return 6; }
+
+    // ---- k_corr provenance（FZ-PROV-KCORR；rc=7）----
+    if (cfg.k_corr > 0.0) {
+        if (!std::isfinite(cfg.k_corr)) { delete m; return 7; }
+        if (cfg.k_corr == 1.0) { delete m; return 7; }   // 忽略相关，禁
+        if (cfg.k_corr_applicability_domain == nullptr ||
+            cfg.k_corr_applicability_domain[0] == '\0') { delete m; return 7; }
+        if (cfg.k_corr != kMaKCcorrFrozenInDomain &&
+            (cfg.k_corr_calibration_run_id == nullptr ||
+             cfg.k_corr_calibration_run_id[0] == '\0')) { delete m; return 7; }
+    }
+
+    m->frame_ids.assign(frame_set.begin(), frame_set.end());
+    m->control_ids.assign(control_set.begin(), control_set.end());
+    const std::size_t nf = m->frame_ids.size();
+    const std::size_t np = m->control_ids.size();
+    for (std::size_t i = 0; i < nf; ++i) m->frame_index[m->frame_ids[i]] = i;
+    for (std::size_t i = 0; i < np; ++i) m->control_index[m->control_ids[i]] = i;
+
+    // ---- 观测规范化（确定性排序，顺序无关）----
+    std::vector<MaObsRec> recs;
+    recs.reserve((std::size_t)n_obs);
+    for (std::uint64_t i = 0; i < n_obs; ++i) {
+        MaObsRec r;
+        r.fi = (int)m->frame_index[obs[i].frame_id];
+        r.ci = (int)m->control_index[obs[i].control_id];
+        r.y = obs[i].value;
+        r.ivar = obs[i].control_ivar;
+        recs.push_back(r);
+    }
+    std::sort(recs.begin(), recs.end(), [](const MaObsRec& a, const MaObsRec& b) {
+        if (a.fi != b.fi) return a.fi < b.fi;
+        if (a.ci != b.ci) return a.ci < b.ci;
+        if (a.y != b.y) return a.y < b.y;
+        return a.ivar < b.ivar;
+    });
+
+    // ---- overlap graph：frame-control 二分图连通分量（确定性边序）----
+    MaDsu dsu;
+    dsu.init((int)(nf + np));
+    std::vector<std::pair<int, int>> edges;
+    edges.reserve(recs.size());
+    for (const MaObsRec& r : recs) edges.push_back({r.fi, (int)nf + r.ci});
+    std::sort(edges.begin(), edges.end());
+    edges.erase(std::unique(edges.begin(), edges.end()), edges.end());
+    for (const auto& e : edges) dsu.unite(e.first, e.second);
+    std::vector<int> roots((std::size_t)(nf + np), 0);
+    std::vector<int> unique_roots;
+    for (int i = 0; i < (int)(nf + np); ++i) {
+        roots[(std::size_t)i] = dsu.find(i);
+        unique_roots.push_back(roots[(std::size_t)i]);
+    }
+    std::sort(unique_roots.begin(), unique_roots.end());
+    unique_roots.erase(std::unique(unique_roots.begin(), unique_roots.end()), unique_roots.end());
+    const std::size_t ncomp = unique_roots.size();
+    std::map<int, std::size_t> comp_of_root;
+    for (std::size_t c = 0; c < ncomp; ++c) comp_of_root[unique_roots[c]] = c;
+    m->frame_component.assign(nf, 0);
+    m->control_component.assign(np, 0);
+    for (std::size_t i = 0; i < nf; ++i) m->frame_component[i] = comp_of_root[roots[i]];
+    for (std::size_t i = 0; i < np; ++i) m->control_component[i] = comp_of_root[roots[nf + i]];
+
+    std::vector<int> comp_nframes(ncomp, 0);
+    for (std::size_t i = 0; i < nf; ++i) comp_nframes[m->frame_component[i]] += 1;
+    m->component_ref_frame.assign(ncomp, 0);
+    m->component_additive_only.assign(ncomp, 0);
+    for (std::size_t c = 0; c < ncomp; ++c) {
+        bool first = true;
+        for (std::size_t i = 0; i < nf; ++i) {
+            if (m->frame_component[i] != c) continue;
+            if (first || m->frame_ids[i] < m->component_ref_frame[c]) {
+                m->component_ref_frame[c] = m->frame_ids[i];
+                first = false;
+            }
+        }
+    }
+
+    // ---- min_frames（FZ-AP2S-UPM-MINFRAMES；rc=5）----
+    for (std::size_t c = 0; c < ncomp; ++c) {
+        if (comp_nframes[c] < cfg.min_frames) {
+            if (cfg.allow_additive_only_single_frame != 0) {
+                m->component_additive_only[c] = 1;   // 显式 additive-only 降级
+            } else {
+                delete m;
+                return 5;
+            }
+        }
+    }
+
+    // ---- gauge（ALG-P2S-UPM.2）：g_ref=1, b_ref=0 ----
+    m->n_full = np + 2 * nf;
+    m->free_of_full.assign(m->n_full, -1);
+    for (std::size_t c = 0; c < ncomp; ++c) {
+        std::size_t rfi = 0;
+        bool found = false;
+        for (std::size_t i = 0; i < nf; ++i) {
+            if (m->frame_component[i] == c && m->frame_ids[i] == m->component_ref_frame[c]) {
+                rfi = i;
+                found = true;
+                break;
+            }
+        }
+        if (!found) { delete m; return 1; }
+        m->free_of_full[np + rfi] = -2;          // scale gauge 固定
+        m->free_of_full[np + nf + rfi] = -2;     // level gauge 固定
+    }
+    m->full_of_free.clear();
+    {
+        long long k = 0;
+        for (std::size_t j = 0; j < m->n_full; ++j) {
+            if (m->free_of_full[j] == -1) {
+                m->free_of_full[j] = k++;
+                m->full_of_free.push_back(j);
+            }
+        }
+        m->n_free = (std::size_t)k;
+        for (std::size_t j = 0; j < m->n_full; ++j)
+            if (m->free_of_full[j] == -2) m->free_of_full[j] = -1;
+    }
+    if (m->n_free == 0) { delete m; return 1; }
+
+    // ---- 初值：g=1, b=0, s=control 加权均值 ----
+    m->theta_full.assign(m->n_full, 0.0);
+    for (std::size_t k = 0; k < nf; ++k) m->theta_full[np + k] = 1.0;
+    for (std::size_t p = 0; p < np; ++p) {
+        double sw = 0.0, sy = 0.0;
+        for (const MaObsRec& r : recs) {
+            if ((std::size_t)r.ci != p) continue;
+            sw += r.ivar;
+            sy += r.ivar * r.y;
+        }
+        m->theta_full[p] = (sw > 0.0) ? sy / sw : 0.0;
+    }
+    for (std::size_t c = 0; c < ncomp; ++c) {
+        for (std::size_t i = 0; i < nf; ++i) {
+            if (m->frame_component[i] == c && m->frame_ids[i] == m->component_ref_frame[c]) {
+                m->theta_full[np + nf + i] = 0.0;
+            }
+        }
+    }
+
+    // ---- GN-IRLS（Huber，FZ-UPM-CONVERGENCE）----
+    double lambda = 1e-6;
+    double obj_old = ma_objective(*m, recs);
+    int iters = 0;
+    for (int iter = 0; iter < cfg.max_iterations; ++iter) {
+        ++iters;
+        // GN/IRLS 正规矩阵只含 robust 权重 w=ivar*huber（不得叠加统计权重）
+        std::vector<double> H(m->n_free * m->n_free, 0.0);
+        std::vector<double> gv(m->n_free, 0.0);
+        for (const MaObsRec& o : recs) {
+            const double gk = m->theta_full[np + (std::size_t)o.fi];
+            const double sp = m->theta_full[(std::size_t)o.ci];
+            const double model = gk * sp + m->theta_full[np + nf + (std::size_t)o.fi];
+            const double r = o.y - model;
+            const double sigma_eff = std::max(std::sqrt(1.0 / o.ivar), cfg.sigma_floor);
+            const double w = o.ivar * huber_w(r / sigma_eff, cfg.huber_delta);
+            long long js[3];
+            double ja[3];
+            int nc = 0;
+            const long long a_s = m->free_of_full[(std::size_t)o.ci];
+            if (a_s >= 0) { js[nc] = a_s; ja[nc] = gk; ++nc; }
+            const long long a_g = m->free_of_full[np + (std::size_t)o.fi];
+            if (a_g >= 0) { js[nc] = a_g; ja[nc] = sp; ++nc; }
+            const long long a_b = m->free_of_full[np + nf + (std::size_t)o.fi];
+            if (a_b >= 0) { js[nc] = a_b; ja[nc] = 1.0; ++nc; }
+            for (int a = 0; a < nc; ++a) {
+                gv[(std::size_t)js[a]] += w * ja[a] * r;
+                for (int b = 0; b < nc; ++b)
+                    H[(std::size_t)js[a] * m->n_free + (std::size_t)js[b]] += w * ja[a] * ja[b];
+            }
+        }
+        for (std::size_t j = 0; j < m->n_free; ++j)
+            H[j * m->n_free + j] *= (1.0 + lambda);
+        std::vector<double> delta = gv;
+        if (!ma_chol_solve(H, delta, (int)m->n_free)) {
+            lambda *= 10.0;
+            if (lambda > 1e12) break;
+            continue;
+        }
+        const std::vector<double> theta_before = m->theta_full;
+        double maxstep = 0.0;
+        for (std::size_t j = 0; j < m->n_free; ++j) {
+            const double d = delta[j];
+            if (!std::isfinite(d)) { maxstep = std::numeric_limits<double>::infinity(); break; }
+            m->theta_full[m->full_of_free[j]] += d;
+            maxstep = std::max(maxstep, std::fabs(d));
+        }
+        const double obj_new = ma_objective(*m, recs);
+        if (std::isfinite(obj_new) && obj_new <= obj_old) {
+            obj_old = obj_new;
+            lambda = std::max(lambda * 0.3, 1e-12);
+            if (maxstep < cfg.tolerance) break;
+        } else {
+            m->theta_full = theta_before;
+            lambda *= 10.0;
+            if (lambda > 1e12) break;
+        }
+    }
+    // ---- 数值 polish：主循环收敛门（tol=1e-6，FZ-UPM-CONVERGENCE，不改）
+    //      满足后，在同 robust 权重下再做少量纯 Gauss-Newton 步压到机器精度；
+    //      只收紧、不放宽任何冻结阈值。----
+    for (int polish = 0; polish < 8; ++polish) {
+        std::vector<double> Hp(m->n_free * m->n_free, 0.0);
+        std::vector<double> gvp(m->n_free, 0.0);
+        for (const MaObsRec& o : recs) {
+            const double gk = m->theta_full[np + (std::size_t)o.fi];
+            const double sp = m->theta_full[(std::size_t)o.ci];
+            const double model = gk * sp + m->theta_full[np + nf + (std::size_t)o.fi];
+            const double r = o.y - model;
+            const double sigma_eff = std::max(std::sqrt(1.0 / o.ivar), cfg.sigma_floor);
+            const double w = o.ivar * huber_w(r / sigma_eff, cfg.huber_delta);
+            long long js[3];
+            double ja[3];
+            int nc = 0;
+            const long long a_s = m->free_of_full[(std::size_t)o.ci];
+            if (a_s >= 0) { js[nc] = a_s; ja[nc] = gk; ++nc; }
+            const long long a_g = m->free_of_full[np + (std::size_t)o.fi];
+            if (a_g >= 0) { js[nc] = a_g; ja[nc] = sp; ++nc; }
+            const long long a_b = m->free_of_full[np + nf + (std::size_t)o.fi];
+            if (a_b >= 0) { js[nc] = a_b; ja[nc] = 1.0; ++nc; }
+            for (int a = 0; a < nc; ++a) {
+                gvp[(std::size_t)js[a]] += w * ja[a] * r;
+                for (int b = 0; b < nc; ++b)
+                    Hp[(std::size_t)js[a] * m->n_free + (std::size_t)js[b]] += w * ja[a] * ja[b];
+            }
+        }
+        std::vector<double> dp = gvp;
+        if (!ma_chol_solve(Hp, dp, (int)m->n_free)) break;
+        double maxstep = 0.0;
+        bool finite = true;
+        for (std::size_t j = 0; j < m->n_free; ++j) {
+            if (!std::isfinite(dp[j])) { finite = false; break; }
+            m->theta_full[m->full_of_free[j]] += dp[j];
+            maxstep = std::max(maxstep, std::fabs(dp[j]));
+        }
+        if (!finite || maxstep < 1e-13) break;
+    }
+    m->iterations = iters;
+    for (std::size_t j = 0; j < m->n_full; ++j)
+        if (!std::isfinite(m->theta_full[j])) { delete m; return 8; }
+
+    // ---- 解处统计正规矩阵（W = C_in^-1 = diag(control_ivar)）----
+    std::vector<double> H;
+    ma_normal_matrix(*m, recs, H);
+    const std::size_t n = m->n_free;
+
+    // 秩（FZ-AP2S-RANK-RTOL）：J_w 奇异值（对称嵌入，保留小奇异值精度）
+    std::vector<double> sigma;
+    {
+        std::vector<double> Jw;
+        ma_weighted_jacobian(*m, recs, Jw);
+        if (!ma_singular_values(Jw, recs.size(), n, sigma)) { delete m; return 8; }
+    }
+    const double smax = sigma.empty() ? 0.0 : sigma[0];
+    std::size_t rank = 0;
+    if (smax > 0.0) {
+        for (std::size_t i = 0; i < sigma.size(); ++i)
+            if (sigma[i] / smax > cfg.rank_rtol) ++rank;
+    }
+    if (rank < n) { delete m; return 3; }   // 秩亏 / 恒常 s 导致 g-b 退化
+
+    // C_theta = (JᵀWJ)^-1（gauge 消除后可辨识子空间）
+    std::vector<double> evals;
+    std::vector<double> evecs;
+    if (!ma_eig(H, (int)n, evals, &evecs)) { delete m; return 8; }
+    std::vector<double> Cth((std::size_t)n * n, 0.0);
+    bool inv_ok = true;
+    for (std::size_t a = 0; a < n && inv_ok; ++a) {
+        for (std::size_t b = 0; b < n && inv_ok; ++b) {
+            double sum = 0.0;
+            for (std::size_t k = 0; k < n; ++k) {
+                const double ek = evals[k];
+                if (!(ek > 0.0) || !std::isfinite(ek)) { inv_ok = false; break; }
+                sum += evecs[a * n + k] * (1.0 / ek) * evecs[b * n + k];
+            }
+            Cth[a * n + b] = sum;
+        }
+    }
+    if (!inv_ok) { delete m; return 8; }
+
+    // 条件数（ALG-P2S-UPM.4；FZ-AP2S-KAPPA-MAX）
+    // kappa = cond_2( D^-1 (JᵀWJ) D^-1 ), D=diag(列范数)（列均衡消除单位伪病态）
+    std::vector<double> M((std::size_t)n * n, 0.0);
+    bool col_ok = true;
+    for (std::size_t j = 0; j < n; ++j)
+        if (!(H[j * n + j] > 0.0) || !std::isfinite(H[j * n + j])) { col_ok = false; break; }
+    if (!col_ok) { delete m; return 3; }
+    for (std::size_t i = 0; i < n; ++i) {
+        const double di = std::sqrt(H[i * n + i]);
+        for (std::size_t j = 0; j < n; ++j) {
+            const double dj = std::sqrt(H[j * n + j]);
+            M[i * n + j] = H[i * n + j] / (di * dj);
+        }
+    }
+    std::vector<double> mevals;
+    if (!ma_eig(M, (int)n, mevals, nullptr)) { delete m; return 8; }
+    double lmin = std::numeric_limits<double>::infinity();
+    double lmax = 0.0;
+    for (std::size_t i = 0; i < n; ++i) {
+        lmin = std::min(lmin, mevals[i]);
+        lmax = std::max(lmax, mevals[i]);
+    }
+    const double kappa = (lmin > 0.0) ? (lmax / lmin)
+                                      : std::numeric_limits<double>::infinity();
+    if (!std::isfinite(kappa) || kappa > cfg.kappa_max) { delete m; return 4; }
+
+    m->sigma = sigma;
+    m->rank = rank;
+    m->kappa = kappa;
+    m->C_theta = Cth;
+
+    // ---- model hash（确定性）----
+    {
+        std::ostringstream p;
+        p << std::setprecision(17);
+        p << "upm-ma-v1|F=" << nf << "|P=" << np << "|C=" << ncomp
+          << "|gauge=min_frame_id|min_frames=" << cfg.min_frames
+          << "|rank_rtol=" << cfg.rank_rtol << "|kappa_max=" << cfg.kappa_max;
+        for (std::size_t c = 0; c < ncomp; ++c)
+            p << "|ref" << c << "=" << m->component_ref_frame[c]
+              << "|addonly" << c << "=" << m->component_additive_only[c];
+        for (const MaObsRec& r : recs)
+            p << "|o" << r.fi << "," << r.ci << "," << r.y << "," << r.ivar;
+        for (std::size_t j = 0; j < m->n_full; ++j) p << "|t" << j << "=" << m->theta_full[j];
+        const std::string payload = p.str();
+        const std::string hx = astrocs::crypto::sha256_hex(payload.data(), payload.size());
+        std::memset(m->info.model_hash, 0, sizeof(m->info.model_hash));
+        std::memcpy(m->info.model_hash, hx.c_str(), std::min<std::size_t>(64, hx.size()));
+    }
+
+    int addonly = 0;
+    for (std::size_t c = 0; c < ncomp; ++c) addonly += m->component_additive_only[c];
+    m->info.version = 1;
+    m->info.n_controls = (std::uint64_t)np;
+    m->info.n_frames = (std::uint64_t)nf;
+    m->info.n_components = (std::uint64_t)ncomp;
+    m->info.n_observations = n_obs;
+    m->info.n_params = (std::uint64_t)n;
+    m->info.rank = (std::uint64_t)rank;
+    m->info.rank_rtol = cfg.rank_rtol;
+    m->info.kappa = kappa;
+    m->info.kappa_max = cfg.kappa_max;
+    m->info.min_frames = cfg.min_frames;
+    m->info.gauge_mode = 0;
+    m->info.iterations = iters;
+    m->info.additive_only_components = addonly;
+
+    *out_model = m;
+    return 0;
+}
+
+int p2_upm_ma_info(const void* model, P2UpmMaInfo* out_info) {
+    if (model == nullptr || out_info == nullptr) return 1;
+    *out_info = static_cast<const MaModel*>(model)->info;
+    return 0;
+}
+
+int p2_upm_ma_solution(const void* model, std::uint64_t frame_id,
+                       std::uint64_t control_id, double* out_g, double* out_b,
+                       double* out_s) {
+    if (model == nullptr) return 1;
+    const MaModel* m = static_cast<const MaModel*>(model);
+    if (out_s != nullptr) {
+        const auto it = m->control_index.find(control_id);
+        if (it == m->control_index.end()) return 1;
+        *out_s = m->theta_full[it->second];
+    }
+    if (out_g != nullptr || out_b != nullptr) {
+        const auto it = m->frame_index.find(frame_id);
+        if (it == m->frame_index.end()) return 1;
+        const std::size_t np = m->control_ids.size();
+        const std::size_t nf = m->frame_ids.size();
+        if (out_g != nullptr) *out_g = m->theta_full[np + it->second];
+        if (out_b != nullptr) *out_b = m->theta_full[np + nf + it->second];
+    }
+    return 0;
+}
+
+int p2_upm_ma_component_of_frame(const void* model, std::uint64_t frame_id,
+                                 std::uint64_t* out_component) {
+    if (model == nullptr || out_component == nullptr) return 1;
+    const MaModel* m = static_cast<const MaModel*>(model);
+    const auto it = m->frame_index.find(frame_id);
+    if (it == m->frame_index.end()) return 1;
+    *out_component = (std::uint64_t)m->frame_component[it->second];
+    return 0;
+}
+
+int p2_upm_ma_component_of_control(const void* model, std::uint64_t control_id,
+                                   std::uint64_t* out_component) {
+    if (model == nullptr || out_component == nullptr) return 1;
+    const MaModel* m = static_cast<const MaModel*>(model);
+    const auto it = m->control_index.find(control_id);
+    if (it == m->control_index.end()) return 1;
+    *out_component = (std::uint64_t)m->control_component[it->second];
+    return 0;
+}
+
+int p2_upm_ma_component_ref_frame(const void* model, std::uint64_t component,
+                                  std::uint64_t* out_ref_frame_id) {
+    if (model == nullptr || out_ref_frame_id == nullptr) return 1;
+    const MaModel* m = static_cast<const MaModel*>(model);
+    if (component >= m->component_ref_frame.size()) return 1;
+    *out_ref_frame_id = m->component_ref_frame[(std::size_t)component];
+    return 0;
+}
+
+int p2_upm_ma_param_cov(const void* model, double* out_C, std::uint64_t ld) {
+    if (model == nullptr || out_C == nullptr) return 1;
+    const MaModel* m = static_cast<const MaModel*>(model);
+    if (ld < m->n_free) return 1;
+    for (std::size_t i = 0; i < m->n_free; ++i)
+        for (std::size_t j = 0; j < m->n_free; ++j)
+            out_C[i * (std::size_t)ld + j] = m->C_theta[i * m->n_free + j];
+    return 0;
+}
+
+int p2_upm_ma_c_out(const void* model, const double* J_out, std::uint64_t ld_J,
+                    std::uint64_t m_rows, const double* C_stat, std::uint64_t ld_C,
+                    double* out_C_out, std::uint64_t ld_out) {
+    if (model == nullptr || J_out == nullptr || C_stat == nullptr || out_C_out == nullptr) return 1;
+    const MaModel* mm = static_cast<const MaModel*>(model);
+    const std::size_t n = mm->n_free;
+    if (ld_J < n || ld_C < m_rows || ld_out < m_rows) return 1;
+    for (std::uint64_t a = 0; a < m_rows; ++a) {
+        for (std::uint64_t b = 0; b < m_rows; ++b) {
+            double s = C_stat[a * ld_C + b];
+            for (std::size_t i = 0; i < n; ++i) {
+                const double jai = J_out[a * ld_J + i];
+                if (jai == 0.0) continue;
+                for (std::size_t j = 0; j < n; ++j)
+                    s += jai * mm->C_theta[i * n + j] * J_out[b * ld_J + j];
+            }
+            out_C_out[a * ld_out + b] = s;
+        }
+    }
+    return 0;
+}
+
+int p2_upm_ma_provenance(const void* model, char* out_json, std::size_t buf_size) {
+    if (model == nullptr || out_json == nullptr || buf_size == 0) return 1;
+    const MaModel* m = static_cast<const MaModel*>(model);
+    const P2UpmMaConfig& cfg = m->cfg;
+    nlohmann::json j;
+    j["version"] = m->info.version;
+    j["gauge_mode"] = "min_frame_id";
+    j["gauge_mode_id"] = 0;
+    j["min_frames"] = m->info.min_frames;
+    j["n_frames"] = m->info.n_frames;
+    j["n_controls"] = m->info.n_controls;
+    j["n_components"] = m->info.n_components;
+    j["n_observations"] = m->info.n_observations;
+    j["n_params"] = m->info.n_params;
+    j["rank"] = m->info.rank;
+    j["rank_rtol"] = m->info.rank_rtol;
+    j["kappa"] = m->info.kappa;
+    j["kappa_max"] = m->info.kappa_max;
+    j["additive_only_components"] = m->info.additive_only_components;
+    j["iterations"] = m->info.iterations;
+    nlohmann::json refs = nlohmann::json::array();
+    for (std::size_t c = 0; c < m->component_ref_frame.size(); ++c)
+        refs.push_back(m->component_ref_frame[c]);
+    j["component_ref_frame_ids"] = refs;
+    j["covariance_method"] = "propagated_from_composite_coefficients";
+    j["variance_from"] = "combination_coefficients";
+    j["variance_from_weight"] = false;
+    j["uses_relative_weight_as_ivar"] = false;
+    j["J_C_theta_JT_present"] = true;
+    j["C_theta"] = {{"method", "(J^T W J)^-1"},
+                    {"dims", {m->n_free, m->n_free}},
+                    {"digest", astrocs::crypto::sha256_hex(
+                                   m->C_theta.data(),
+                                   m->C_theta.size() * sizeof(double))}};
+    if (cfg.k_corr > 0.0) {
+        j["k_corr"] = cfg.k_corr;
+        j["k_corr_applicability_domain"] =
+            cfg.k_corr_applicability_domain ? cfg.k_corr_applicability_domain : "";
+        j["k_corr_calibration_run_id"] =
+            cfg.k_corr_calibration_run_id ? cfg.k_corr_calibration_run_id : "";
+    } else {
+        j["k_corr"] = nullptr;
+    }
+    j["flux_conservation_factor"] =
+        cfg.flux_conservation_factor ? nlohmann::json(cfg.flux_conservation_factor)
+                                     : nlohmann::json(nullptr);
+    j["model_hash"] = m->info.model_hash;
+    j["any_fail_closed_reason"] = "";
+    const std::string s = j.dump();
+    if (s.size() + 1 > buf_size) return 2;
+    std::memcpy(out_json, s.data(), s.size());
+    out_json[s.size()] = '\0';
+    return 0;
+}
+
+void p2_upm_ma_close(void* model) {
+    if (model == nullptr) return;
+    delete static_cast<MaModel*>(model);
+}
+
+int p2_upm_control_variance(double k_corr, double sigma_bg,
+                            std::uint64_t n_retained,
+                            const char* applicability_domain,
+                            const char* calibration_run_id,
+                            double* out_control_variance,
+                            double* out_control_ivar) {
+    if (n_retained < 1) return 1;
+    if (!(sigma_bg > 0.0) || !std::isfinite(sigma_bg)) return 1;
+    if (!(k_corr > 0.0) || !std::isfinite(k_corr)) return 1;
+    if (k_corr == 1.0) return 2;                       // 忽略相关 → REJECT
+    if (k_corr != kMaKCcorrFrozenInDomain &&
+        (calibration_run_id == nullptr || calibration_run_id[0] == '\0')) {
+        return 3;                                      // 域外推（DI-04 未复跑标定）
+    }
+    if (applicability_domain == nullptr || applicability_domain[0] == '\0') return 4;
+    const double cv = k_corr * kMaPiHalf * sigma_bg * sigma_bg / (double)n_retained;
+    if (!(cv > 0.0) || !std::isfinite(cv)) return 1;
+    if (out_control_variance != nullptr) *out_control_variance = cv;
+    if (out_control_ivar != nullptr) *out_control_ivar = 1.0 / cv;
+    return 0;
+}
+
+} // extern "C"
+
