@@ -980,6 +980,87 @@ focal_length_mm mm；pixel_size_um μm；输出 cd deg/pixel、crval deg
   API，不声明 DLL 化完成）；测试设计 TEST-WCS-DESIGN-001（§11.4）由
   P1-WCS-TEST 执行落 TEST-P1-WCS-001 + EVIDENCE。
 
+### P27：生产路径不消费的 `IpvParams` 字段（“配置不生效”标注）
+
+> 登记: P27-DEAD-PARAMS（2026-09-15）。本节只做**明确标注**，不改变任何默认值、
+> 公式或容差，也不改变 API/ABI（`IpvParams`/`IpvWcsResult` 布局与字段不变）。
+> 机器锁: ctest `ipv_dead_params_lock` + `ipv_dead_params_lock_selfcheck`；
+> 证据与逐字段核对表: P27 交付报告（任务工作区 run/perf-fix/P27-dead-params/REPORT.md，run/ 为 gitignore 临时面）。
+
+生产解算链（CLI `phase1 run` → `p1_op_wcs`，lib/core/src/module_adapters.cpp:2100）:
+
+```
+phase1 run → p1_op_wcs（ipv_get_default_params，非用户配置）
+  → ipv_solve_from_memory_with_callback_d（ipv_entry.cpp:715）
+  → IPVSolver::solve_from_memory_with_callback_f64（ipv_solver.cpp:1617）
+  → solve_post_select（ipv_solver.cpp:1185）
+      triangle_match(U, W, 60, 60, 0.002, s0)   ← 4 个字面量常数
+      robust_refine_wcs(..., RobustRefineParams{}, ...)  ← 字面量默认构造
+```
+
+`solve_from_memory_with_callback_f64` 在选星前执行 `p_adapt.img_n_target = 60;`
+硬覆盖；`polygon_match` / `polygon_match_adaptive` / `geometric_vote` /
+`extract_consensus` / `prosac_verify` 在 `lib/plate_solve/cpp/ipv/src/` 内**零调用点**
+（仅 `test/` 与 `include/` 声明）。
+
+#### P27-Q1：生产路径是否存在“配置/CLI → `IpvParams`”注入？（结论：不存在）
+
+**不存在任何把用户配置写入 `IpvParams` 的代码路径。**证据（全部实测引用点）：
+
+1. `p1_op_wcs`（lib/core/src/module_adapters.cpp:2100）对 `wcs` 配置对象只读键：
+   `init_source`(:2243)、`gaia_data_dir`(:2251)、`focal_length_mm`/`pixel_size_um`
+   (:2364-2365)、`ra0`/`dec0`/`neighbor_ra0`/`neighbor_dec0`(:2373-2378)、
+   `crpix1·2`/`crval1·2`/`cd11·12·21·22`(:2117-2120)、`sip`(:1863)——
+   **无任何 IPV 求解参数键**。
+2. `p1_op_wcs` 对 `IpvParams` 的唯一字段访问是 `ip.log_dir`（:2360 清零）；
+   其余全部来自 `ipv_get_default_params(&ip)`（:2359）。该事实由机器锁 freeze 为
+   `frozen_literals` 项 `p1_op_wcs.no_ipv_params_from_config`（正则
+   `\bip\.(?!log_dir\b)[A-Za-z_]` 匹配数必须为 0）。
+3. legacy 编排路径 `orchestrator.cpp` 同样只 `fn_get_default_params(&params)`
+   （:2015/:2028）再覆盖 `log_dir`（:2029-2031），随后 `ipv_solve_from_detections_v1`（:2035）。
+4. 配置键清单 `问题扫描/_cache/v20_keys.json` 对 `pivot`/`ransac`/`polygon`/`s_min`/
+   `s_max`/`n_target`/`mag_lim`/`sigma_d`/`vote`/`density` **零命中**；
+   `docs/development/CONFIG_SCHEMA.md` 亦无求解参数键。
+
+**范围结论**：`IpvParams` 的 24 个字段**全部不可由用户配置影响**（其值恒为编译期默认值）。
+其中 8 个字段即便将来接线也仍无生产代码读取（死字段）。真正常被用户配置影响、并能改变
+解算结果的是**另外的入参**：`ra0`/`dec0`/`focal_length_mm`/`pixel_size_um`（初始指向与
+板尺度）与显式 WCS 透传（`wcs.crpix*/crval*/cd*/sip`，该面 `solver=none`，不调用 IPV）。
+
+**对既往“改 IPV 参数做对照实验”结论的影响**：凡是通过配置/CLI/`IpvParams` 改变上述字段
+的 A/B 实验，两臂实际完全相同（无操作），其“无差异/有差异”结论不成立；只有**改源码常量
+并重新编译**（如 `n_target=60`、`0.002`、`m_lim_safety`）或直接以 C++ API 传参
+（如 `test_mag_iter.cpp` 对 `m_lim_*` 的单元测试）才是有效对照。
+
+#### P27-Q2：字段状态表
+
+| 字段 | 状态 | 说明 |
+|---|---|---|
+| `polygon_sides` | dead | 生产路径 0 引用点 |
+| `n_pivot` | dead | 仅 `polygon_match(_adaptive)`（src 内零调用点）引用 |
+| `sigma_d_arcsec` | dead | 全仓无任何引用点 |
+| `ransac_max_iter` | dead | 仅 `prosac_verify`（src 内零调用点）引用 |
+| `ransac_inlier_threshold_arcsec` | dead | 仅 `prosac_verify` / `geometric_vote`（均零调用点）引用 |
+| `good_rms_threshold` | dead | 仅 `prosac_verify`（零调用点）引用；亦不在 C ABI |
+| `s_min` / `s_max` | dead | 仅 `prosac_verify`（零调用点）引用 |
+| `vote_threshold` | log_only | `solve_post_select` 仅写入日志；判据为字面量 `max_vote < 3` |
+| `img_n_target` | shadowed | 上游 `p_adapt.img_n_target = 60` 硬覆盖 |
+| `log_dir` | shadowed | `module_adapters.cpp` 将 `ip.log_dir` 清零 |
+| `gaia_density_ratio`、`gaia_query_radius_factor`、`m_lim_alpha_prior`、`m_lim_alpha_min`、`m_lim_alpha_max`、`m_lim_safety`、`m_lim_m0_exposure_s`、`m_lim_m0_offset`、`m_lim_clamp_lo`、`m_lim_clamp_hi`、`m_lim_zero_step`、`m_lim_gaia_cap_per_file`、`m_lim_max_iter`、`density_tolerance` | code-live | **代码真实消费，但配置不可达**（值恒为编译期默认值；见 P27-Q1） |
+
+相关结构体 `ipv::RobustRefineParams`（`ipv_robust_refine.h`）**全部 31 个字段同样不可达**：
+`solve_post_select` 传字面量 `RobustRefineParams{}`（默认构造，ipv_solver.cpp:1409）。
+
+**防误用机器锁**：`lib/plate_solve/cpp/ipv/test/ipv_dead_params_manifest.json` 冻结上述
+事实；`ipv_dead_params_lock.py` 从生产入口按真实调用边求函数闭包（93 函数），逐字段校验
+引用点白名单，并校验“死匹配器零调用”“常数/默认值字面量”“生产入口无配置注入”。任何人
+新接线任一死字段、删除真实消费、接线死匹配器、把常数换成配置、或给生产入口加入配置注入，
+锁都会变红并提示“请同步更新清单与文档”。`ipv_dead_params_lock_selfcheck.py` 用 4 类反例
+（死字段新接线 / 真消费被删 / 死匹配器接线 / 常数换成配置）证明锁非恒真。
+
+选项 B（真接线）与选项 C（删字段）的影响评估（**仅报告，未实施**）见 P27 交付报告 §6
+（任务工作区 run/perf-fix/P27-dead-params/REPORT.md）。
+
 ## Coverage union C API（API-COV-001）
 
 > ID: API-COV-001  状态: CONTRACT_READY（P2-COV-DOC 冻结，2026-09-07）

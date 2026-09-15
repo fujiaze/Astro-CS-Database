@@ -119,3 +119,42 @@ target_link_libraries(ipv_params_abi_failclosed_test PRIVATE
 add_test(NAME ipv_params_abi_failclosed COMMAND ipv_params_abi_failclosed_test)
 set_tests_properties(ipv_params_abi_failclosed PROPERTIES TIMEOUT 120)
 
+# ============================================================================
+# P27 死字段防误用锁 (负责人裁决 A: 不改解算行为, 只标注 + 机器锁)
+# ----------------------------------------------------------------------------
+# 生产路径 phase1 run -> p1_op_wcs -> ipv_solve_from_memory_with_callback_d
+# -> solve_from_memory_with_callback_f64 -> solve_post_select 中:
+#   - triangle_match(U, W, 60, 60, 0.002, s0) 参数为**字面量常数**;
+#   - p_adapt.img_n_target = 60 硬覆盖配置;
+#   - polygon_match / polygon_match_adaptive / geometric_vote /
+#     extract_consensus / prosac_verify 在 src/ 内零调用点;
+#   - robust_refine_wcs 收到 RobustRefineParams{} 字面量默认构造。
+# => IPVSolverParams / RobustRefineParams 的部分字段在生产路径完全不被读取,
+#    改配置既不改行为也不报错 ("配置不生效" 型误用)。
+#
+# 机器锁把"死字段清单"(ipv_dead_params_manifest.json) 变成可执行断言:
+#   1) 生产链函数闭包 (源码级调用图, 从生产入口可达) 内:
+#      - dead 字段读取点数必须为 0; live/shadowed 字段必须等于冻结值;
+#      - 出现未登记读取点 => FAIL (有人新接线);
+#   2) 生产链内调用已判定不可达的匹配器 (dead_symbols) => FAIL;
+#   3) 生产路径常数/默认值来源 (frozen_literals) 被换成配置 => FAIL;
+#   4) 配置结构体字段集合与清单不一致 => FAIL;
+#   5) 生产链闭包与清单不一致 => FAIL。
+# 任一 FAIL 均提示"请同步更新清单与文档"。
+#
+# 阴性对照 ipv_dead_params_lock_selfcheck 证明锁非恒真:
+#   P1 死字段新接线 / P2 真消费被删 / P3 死匹配器接线 / P4 常数换成配置
+#   四类反例锁均变红, 恢复后变绿。
+# 详见 run/perf-fix/P27-dead-params/REPORT.md。
+# ============================================================================
+add_test(NAME ipv_dead_params_lock
+  COMMAND python3 ${P1IPVTEST_DIR}/ipv_dead_params_lock.py
+          --manifest ${P1IPVTEST_DIR}/ipv_dead_params_manifest.json)
+set_tests_properties(ipv_dead_params_lock PROPERTIES TIMEOUT 180)
+
+add_test(NAME ipv_dead_params_lock_selfcheck
+  COMMAND python3 ${P1IPVTEST_DIR}/ipv_dead_params_selfcheck.py
+          --manifest ${P1IPVTEST_DIR}/ipv_dead_params_manifest.json)
+set_tests_properties(ipv_dead_params_lock_selfcheck PROPERTIES TIMEOUT 300)
+
+

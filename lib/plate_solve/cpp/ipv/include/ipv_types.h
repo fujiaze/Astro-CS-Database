@@ -200,6 +200,17 @@ struct FlipModeResult {
     bool           success;
 };
 
+// [P27-DEAD-PARAMS] 生产路径不消费字段标注（负责人裁决 A；机器锁 ipv_dead_params_lock）:
+//   【全局】生产路径无任何 "配置/CLI -> IpvParams" 注入路径 (p1_op_wcs 仅
+//   ipv_get_default_params + 清零 log_dir; wcs 配置对象无 IPV 参数键) =>
+//   本结构体 24 字段全部不可由用户配置影响, 值恒为编译期默认值。
+//   dead (0 引用点): polygon_sides, n_pivot, sigma_d_arcsec, ransac_max_iter,
+//                    ransac_inlier_threshold_arcsec, s_min, s_max
+//   log_only:       vote_threshold (仅日志; 判据为字面量 3)
+//   shadowed:       img_n_target (=60 硬覆盖), log_dir (上游清零)
+//   代码真实消费但配置不可达: gaia_* 两项 + m_lim_* 全部 + density_tolerance
+// 详见 ipv_api.h 尾部 [P27-DEAD-PARAMS] 注释、docs/contracts/PUBLIC_API.md §P27、
+// run/perf-fix/P27-dead-params/REPORT.md。不改变任何默认值/公式/容差。
 // IPVSolver 参数
 struct IPVSolverParams {
     // --- 多边形匹配 ---
