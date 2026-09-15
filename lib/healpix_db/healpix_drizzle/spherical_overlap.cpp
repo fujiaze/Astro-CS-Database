@@ -1384,17 +1384,15 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
 // ============================================================================
 const TargetPixelGeometry* TargetGeomCache::get_or_build(
     const healpix::HealpixCore& hp, std::uint64_t ipix, bool* built_out) {
+    // P35 (性能 P0, 零数值影响): 命中路径 O(1)。
+    // 旧实现每次命中做一次 O(lru_.size()) 线性扫描找 key (容量 8192 最坏 ~8192
+    // 次比较); 现用 std::list::splice 直接把该 key 的结点移到 MRU 端。
+    // 命中/未命中/淘汰顺序与旧的"逐次线性触达"LRU 语义完全相同, 缓存内容
+    // (TargetPixelGeometry) 与调用序列的数值结果逐位不变。
     auto it = map_.find(ipix);
     if (it != map_.end()) {
         ++hits_;
-        // LRU touch：移到 deque 前端
-        for (auto d = lru_.begin(); d != lru_.end(); ++d) {
-            if (*d == ipix) {
-                lru_.erase(d);
-                break;
-            }
-        }
-        lru_.push_front(ipix);
+        lru_.splice(lru_.begin(), lru_, it->second.lru_it);
         if (built_out) *built_out = false;
         return &it->second.geom;
     }
@@ -1406,14 +1404,18 @@ const TargetPixelGeometry* TargetGeomCache::get_or_build(
     get_healpix_boundary4<double>(hp, ipix, hp.getNside(), tg.boundary4);
     tg.ready = true;
     // 插入 + LRU 淘汰（容量有界）
-    map_[ipix] = Entry{ipix, tg};
     lru_.push_front(ipix);
+    Entry e;
+    e.ipix = ipix;
+    e.geom = std::move(tg);
+    e.lru_it = lru_.begin();
+    auto ins = map_.emplace(ipix, std::move(e));
     while (map_.size() > capacity_) {
         const std::uint64_t victim = lru_.back();
         lru_.pop_back();
         map_.erase(victim);
     }
-    const TargetPixelGeometry* out = &map_.find(ipix)->second.geom;
+    const TargetPixelGeometry* out = &ins.first->second.geom;
     if (built_out) *built_out = true;
     return out;
 }
@@ -1515,6 +1517,183 @@ void query_candidate_pixels(
 }
 
 // ============================================================================
+// P35 (性能 P0, K2): 快速候选盒共享 helper。
+//   p35_compute_fast_box 与 query_candidate_pixels_fast 原实现的盒计算逐行一致
+//   (同一逻辑源), 使 fast / incremental 两条路径的盒判定 (含极冠/跨 face 回退)
+//   完全相同 —— 增量路径候选集合逐像素全等的基础。
+// ============================================================================
+struct FastCandidateBox {
+    int face = 0, x0 = 0, x1 = 0, y0 = 0, y1 = 0;
+    double cos_lim = 0.0;
+    Vec3 center{0.0, 0.0, 0.0};
+};
+
+static inline uint32_t p35_compact1(uint64_t x) {
+    x &= 0x5555555555555555ull;
+    x = (x | (x >> 1))  & 0x3333333333333333ull;
+    x = (x | (x >> 2))  & 0x0F0F0F0F0F0F0F0Full;
+    x = (x | (x >> 4))  & 0x00FF00FF00FF00FFull;
+    x = (x | (x >> 8))  & 0x0000FFFF0000FFFFull;
+    x = (x | (x >> 16)) & 0x00000000FFFFFFFFull;
+    return (uint32_t)x;
+}
+static inline uint64_t p35_spread1(uint32_t v) {
+    uint64_t x = v & 0x00000000FFFFFFFFull;
+    x = (x | (x << 16)) & 0x0000FFFF0000FFFFull;
+    x = (x | (x << 8))  & 0x00FF00FF00FF00FFull;
+    x = (x | (x << 4))  & 0x0F0F0F0F0F0F0F0Full;
+    x = (x | (x << 2))  & 0x3333333333333333ull;
+    x = (x | (x << 1))  & 0x5555555555555555ull;
+    return x;
+}
+static inline uint64_t p35_morton2(int x, int y) {
+    return p35_spread1((uint32_t)x) | (p35_spread1((uint32_t)y) << 1);
+}
+// 与 query_candidate_pixels_fast 过滤段同一公式 (权威 hp.pix2ang → sin/cos)
+static inline Vec3 p35_cell_center_vec(const healpix::HealpixCore& hp,
+                                       uint64_t ipix) {
+    double t, p;
+    hp.pix2ang((int64_t)ipix, &t, &p);
+    double st = std::sin(t);
+    return Vec3{st * std::cos(p), st * std::sin(p), std::cos(t)};
+}
+
+template <typename T>
+static bool p35_compute_fast_box(const std::vector<Vec3T<T>>& drop_corners,
+                                 const healpix::HealpixCore& hp,
+                                 FastCandidateBox& bx) {
+    // 1. drop 球面包围圆 (内部 double 计算: 候选是几何完备性判定)
+    double cx_ = 0.0, cy_ = 0.0, cz_ = 0.0;
+    for (const Vec3T<T>& v : drop_corners) {
+        cx_ += double(v.x); cy_ += double(v.y); cz_ += double(v.z);
+    }
+    double cl_ = std::sqrt(cx_ * cx_ + cy_ * cy_ + cz_ * cz_);
+    double ci_ = (cl_ < 1e-300) ? 1.0 : 1.0 / cl_;
+    Vec3 center = {cx_ * ci_, cy_ * ci_, cz_ * ci_};
+    double max_angle = 0.0;
+    for (const Vec3T<T>& v : drop_corners) {
+        double d = double(v.x) * center.x + double(v.y) * center.y +
+                   double(v.z) * center.z;
+        d = std::max(-1.0, std::min(1.0, d));
+        double ang = std::acos(d);
+        if (ang > max_angle) max_angle = ang;
+    }
+    double hp_res_arcsec = hp.pixelResolutionArcsec();
+    double hp_res_rad    = hp_res_arcsec * ARCSEC_TO_RAD;
+    double buffer_rad    = HP_CIRCUMRADIUS_FACTOR * hp_res_rad;
+    double query_radius_rad = max_angle + buffer_rad;
+    double ra_c, dec_c;
+    vec_to_radec<double>(center, ra_c, dec_c);
+    // 2. 中心像素 NESTED (face, ix, iy)
+    int nside = hp.getNside();
+    uint64_t nside64 = (uint64_t)nside;
+    uint64_t per_face = nside64 * nside64;
+    uint64_t cipix = (uint64_t)hp.radec2pix(ra_c, dec_c);
+    int face = (int)(cipix / per_face);
+    uint64_t rem = cipix % per_face;
+    int ix0 = (int)p35_compact1(rem);
+    int iy0 = (int)p35_compact1(rem >> 1);
+    // 3. 半径转像素单位, 取上整
+    double radius_px_d = query_radius_rad / hp_res_rad;
+    int delta = (int)std::ceil(radius_px_d);
+    if (delta < 0) delta = 0;
+    if (delta > nside - 1) delta = nside - 1;
+    bool in_polar_cap = false;
+    if (face <= 3)      in_polar_cap = (ix0 + iy0 > nside);
+    else if (face >= 8) in_polar_cap = (ix0 + iy0 < nside);
+    bool box_touches_polar = false;
+    if (face <= 3)      box_touches_polar = ((ix0 + iy0) + 2 * delta >= nside);
+    else if (face >= 8) box_touches_polar = ((ix0 + iy0) - 2 * delta <= nside);
+    if (in_polar_cap || box_touches_polar) return false;
+    // 赤道带: 面内畸变安全系数 1.15 (实测最坏 1.14 @ 极冠边界带 <0.08Ns)
+    delta = (int)std::ceil(radius_px_d * 1.15);
+    if (delta < 0) delta = 0;
+    if (delta > nside - 1) delta = nside - 1;
+    int x0 = ix0 - delta, x1 = ix0 + delta;
+    int y0 = iy0 - delta, y1 = iy0 + delta;
+    if (x0 < 0 || y0 < 0 || x1 > nside - 1 || y1 > nside - 1) return false;
+    bx.face = face; bx.x0 = x0; bx.x1 = x1; bx.y0 = y0; bx.y1 = y1;
+    bx.cos_lim = std::cos(double(query_radius_rad));
+    bx.center = center;
+    return true;
+}
+
+// ============================================================================
+// P35 (性能 P0, K2): 增量候选枚举。
+// 复用上一源像素盒交集格已算好的中心向量, 只对新盒 − 旧盒做 morton+pix2ang;
+// 然后用新圆心对**全部**盒内格 (含上一轮被过滤的格) 重新做球面距离过滤。
+// 输出 (排序后 ipix 列表) 与 query_candidate_pixels_fast 逐像素全等。
+// ============================================================================
+template <typename T>
+void query_candidate_pixels_incremental(
+    const std::vector<Vec3T<T>>& drop_corners,
+    const healpix::HealpixCore& hp,
+    std::vector<uint64_t>& candidates,
+    CandidateBoxState& state,
+    bool* used_fallback)
+{
+    candidates.clear();
+    if (used_fallback) *used_fallback = false;
+    if (drop_corners.empty()) { state.reset(); return; }
+    const int nside = hp.getNside();
+    if (state.nside != nside) { state.reset(); state.nside = nside; }
+
+    FastCandidateBox bx;
+    if (!p35_compute_fast_box<T>(drop_corners, hp, bx)) {
+        // 回退保守路径: 状态失效, 下一像素重建
+        query_candidate_pixels<T>(drop_corners, hp, candidates);
+        if (used_fallback) *used_fallback = true;
+        state.ok = false;
+        state.cells.clear();
+        return;
+    }
+    const uint64_t nside64 = (uint64_t)nside;
+    const uint64_t face_base = (uint64_t)bx.face * nside64 * nside64;
+
+    if (state.ok && state.face == bx.face) {
+        // 保留交集格 (含上一轮被过滤者 —— 必须全部用新圆心重判),
+        // 追加"新盒 − 旧盒"的格。
+        std::vector<CandidateBoxState::Cell> kept;
+        kept.reserve(state.cells.size() + 64);
+        for (const auto& c : state.cells) {
+            if (c.ix >= bx.x0 && c.ix <= bx.x1 && c.iy >= bx.y0 && c.iy <= bx.y1)
+                kept.push_back(c);
+        }
+        for (int iy = bx.y0; iy <= bx.y1; ++iy) {
+            for (int ix = bx.x0; ix <= bx.x1; ++ix) {
+                if (ix >= state.x0 && ix <= state.x1 &&
+                    iy >= state.y0 && iy <= state.y1) continue;   // 已在交集
+                uint64_t ipix = face_base + p35_morton2(ix, iy);
+                kept.push_back({ipix, p35_cell_center_vec(hp, ipix), ix, iy});
+            }
+        }
+        state.cells.swap(kept);
+    } else {
+        state.cells.clear();
+        state.cells.reserve((size_t)(bx.x1 - bx.x0 + 1) *
+                            (size_t)(bx.y1 - bx.y0 + 1));
+        for (int iy = bx.y0; iy <= bx.y1; ++iy) {
+            for (int ix = bx.x0; ix <= bx.x1; ++ix) {
+                uint64_t ipix = face_base + p35_morton2(ix, iy);
+                state.cells.push_back({ipix, p35_cell_center_vec(hp, ipix), ix, iy});
+            }
+        }
+    }
+    state.ok = true; state.face = bx.face;
+    state.x0 = bx.x0; state.x1 = bx.x1; state.y0 = bx.y0; state.y1 = bx.y1;
+
+    // 新圆心球面距离过滤 (与 fast 路径同一公式/阈值)
+    candidates.reserve(state.cells.size());
+    for (const auto& c : state.cells) {
+        if (c.v.x * bx.center.x + c.v.y * bx.center.y + c.v.z * bx.center.z
+                >= bx.cos_lim) {
+            candidates.push_back(c.ipix);
+        }
+    }
+    std::sort(candidates.begin(), candidates.end());
+}
+
+// ============================================================================
 // query_candidate_pixels_fast - NESTED 直接候选枚举 (, 替代 queryDisc BFS)
 //
 // 保守性: 任何与 drop 相交的 HEALPix 像素, 其中心必然落在
@@ -1534,123 +1713,23 @@ void query_candidate_pixels_fast(
     if (used_fallback) *used_fallback = false;
     if (drop_corners.empty()) return;
 
-    // 1. drop 球面包围圆 (内部 double 计算: 候选是几何完备性判定,
-    // float 舍入会抖动 delta/中心导致 FP32/FP64 候选集合不一致;
-    // 候选集合本身为整数 ipix, 与 Scalar 类型无关)
-    double cx_ = 0.0, cy_ = 0.0, cz_ = 0.0;
-    for (const Vec3T<T>& v : drop_corners) {
-        cx_ += double(v.x); cy_ += double(v.y); cz_ += double(v.z);
-    }
-    double cl_ = std::sqrt(cx_ * cx_ + cy_ * cy_ + cz_ * cz_);
-    double ci_ = (cl_ < 1e-300) ? 1.0 : 1.0 / cl_;
-    Vec3 center = {cx_ * ci_, cy_ * ci_, cz_ * ci_};
-    double max_angle = 0.0;
-    for (const Vec3T<T>& v : drop_corners) {
-        double d = double(v.x) * center.x + double(v.y) * center.y + double(v.z) * center.z;
-        d = std::max(-1.0, std::min(1.0, d));
-        double ang = std::acos(d);
-        if (ang > max_angle) max_angle = ang;
-    }
-
-    double hp_res_arcsec = hp.pixelResolutionArcsec();
-    double hp_res_rad    = hp_res_arcsec * ARCSEC_TO_RAD;
-    double buffer_rad    = HP_CIRCUMRADIUS_FACTOR * hp_res_rad;
-    double query_radius_rad = max_angle + buffer_rad;
-
-    double ra_c, dec_c;
-    vec_to_radec<double>(center, ra_c, dec_c);
-
-    // 2. 中心像素 NESTED (face, ix, iy) — 公开 radec2pix + 自实现 morton 解交织
-    int nside = hp.getNside();
-    uint64_t nside64 = (uint64_t)nside;
-    uint64_t per_face = nside64 * nside64;
-    uint64_t cipix = (uint64_t)hp.radec2pix(ra_c, dec_c);
-    int face = (int)(cipix / per_face);
-    uint64_t rem = cipix % per_face;
-    auto deinterleave = [](uint64_t v, bool odd) -> uint32_t {
-        auto compact = [](uint64_t x) -> uint64_t {
-            x &= 0x5555555555555555ull;
-            x = (x | (x >> 1))  & 0x3333333333333333ull;
-            x = (x | (x >> 2))  & 0x0F0F0F0F0F0F0F0Full;
-            x = (x | (x >> 4))  & 0x00FF00FF00FF00FFull;
-            x = (x | (x >> 8))  & 0x0000FFFF0000FFFFull;
-            x = (x | (x >> 16)) & 0x00000000FFFFFFFFull;
-            return x;
-        };
-        return (uint32_t)compact(odd ? (v >> 1) : v);
-    };
-    int ix0 = (int)deinterleave(rem, false);
-    int iy0 = (int)deinterleave(rem, true);
-
-    // 3. 半径转像素单位 (线性尺度), 取上整 (预过滤已保证精确半径, 无需 +1 裕量)
-    double radius_px_d = query_radius_rad / hp_res_rad;
-    int delta = (int)std::ceil(radius_px_d);
-    if (delta < 0) delta = 0;
-    if (delta > nside - 1) delta = nside - 1;
-
-    // 面内畸变与极冠回退。
-    // HEALPix face 内 (ix,iy) 平面距离与球面角距不成正比, 面内畸变率
-    // (面内 1 像素对应球面角距 / hp_res) 实测 (scan_face_distortion,
-    // nside=512 全 face 网格扫描):
-    // - 赤道带内部 (离极冠边界 >0.2Ns): 0.9999 x hp_res (无畸变)
-    // - 极冠边界带 (<0.08Ns): 0.874 x hp_res (畸变 1.14x)
-    // - 极冠像素: 0.798 x hp_res (畸变 1.25x)
-    // → 快速路径仅用于赤道带, delta 乘 1.25 安全系数 (签字修正
-    // ORACLE_HARDENING: 赤道带 |z|<=2/3 面内畸变解析上界
-    // ds/dx_face=(1/nside)·sqrt(4/9+π²cos²θ/16), 最坏在 z=±2/3:
-    // cosθ=sqrt(5/9), sqrt(4/9+5π²/144)≈0.8872 → 面距离/球面角距
-    // ≤1/0.8872≈1.127; 经验扫描最坏 1.14; 取 1.25 覆盖解析+浮点);
-    // 极冠 (bighp 0-3 的 ix+iy>Ns, bighp 8-11 的 ix+iy<Ns) 回退球面查询
-    // (queryDisc 3.0 buffer, 与面内畸变无关, 天然正确)。
-    bool in_polar_cap = false;
-    if (face <= 3)      in_polar_cap = (ix0 + iy0 > nside);
-    else if (face >= 8) in_polar_cap = (ix0 + iy0 < nside);
-    // 中心像素在赤道侧但枚举盒可能延伸进极冠 (解析上界仅对赤道带成立,
-    // 极冠畸变 1.25x 无安全系数) → 枚举盒任何像素触及极冠即回退保守路径。
-    // face 0-3: 极冠 = ix+iy > Ns, 盒最大 ix+iy = ix0+iy0+2*delta
-    // face 8-11: 极冠 = ix+iy < Ns, 盒最小 ix+iy = ix0+iy0-2*delta
-    bool box_touches_polar = false;
-    if (face <= 3)      box_touches_polar = ((ix0 + iy0) + 2 * delta >= nside);
-    else if (face >= 8) box_touches_polar = ((ix0 + iy0) - 2 * delta <= nside);
-    if (in_polar_cap || box_touches_polar) {
+    // 盒计算抽取为共享 helper (p35_compute_fast_box), 语义与原实现逐行一致;
+    // fast / incremental 共用同一判定, 保证回退决策完全相同。
+    FastCandidateBox fbx;
+    if (!p35_compute_fast_box<T>(drop_corners, hp, fbx)) {
+        // 极冠 / 盒触及 face 边界 / 角 / 极区接缝: 回退保守 PRECISE 候选
+        // (query_candidate_pixels: queryDisc 圆盘, 天然跨 face)。
         query_candidate_pixels<T>(drop_corners, hp, candidates);
         if (used_fallback) *used_fallback = true;
         return;
     }
-    // 赤道带: 面内畸变安全系数 1.15 (实测最坏 1.14 @ 极冠边界带 <0.08Ns)
-    delta = (int)std::ceil(radius_px_d * 1.15);
-    if (delta < 0) delta = 0;
-    if (delta > nside - 1) delta = nside - 1;
-
-    // 4. 边界判断 + 枚举 ( CANDIDATE_QUERY_REPAIR):
-    // 仅当枚举包围盒完全位于中心 base face 内部时, 才允许 face 内快速枚举
-    // (可证明不会跨 face, 零漏选由 Oracle 矩阵验证)。
-    // 包围盒触及 face 边界/角/极区接缝时, 回退保守 PRECISE 候选
-    // (query_candidate_pixels: queryDisc 圆盘, 天然跨 face, buffer 3.0×hp_res)。
-    // 禁止只裁剪中心 face (会漏相邻 face 真相交像素)。
-    int x0 = ix0 - delta, x1 = ix0 + delta;
-    int y0 = iy0 - delta, y1 = iy0 + delta;
-    if (x0 < 0 || y0 < 0 || x1 > nside - 1 || y1 > nside - 1) {
-        // 边界回退: 保守 inclusive 查询 (跨 face / 极区 / RA 跨界均安全)
-        query_candidate_pixels<T>(drop_corners, hp, candidates);
-        if (used_fallback) *used_fallback = true;
-        return;
-    }
+    const int nside = hp.getNside();
+    const uint64_t nside64 = (uint64_t)nside;
+    const int x0 = fbx.x0, x1 = fbx.x1, y0 = fbx.y0, y1 = fbx.y1;
+    const Vec3& center = fbx.center;
+    const double cos_lim = fbx.cos_lim;
     // 快速路径统计: 单 face 内部枚举 (无跨 face)
     candidates.reserve((size_t)(x1 - x0 + 1) * (size_t)(y1 - y0 + 1));
-    // NESTED morton 交织 (标准位操作, 纯数学, 不依赖 healpix_core 私有接口)
-    auto morton = [](int x, int y) -> uint64_t {
-        auto spread = [](uint32_t v) -> uint64_t {
-            uint64_t x = v & 0x00000000FFFFFFFFull;
-            x = (x | (x << 16)) & 0x0000FFFF0000FFFFull;
-            x = (x | (x << 8))  & 0x00FF00FF00FF00FFull;
-            x = (x | (x << 4))  & 0x0F0F0F0F0F0F0F0Full;
-            x = (x | (x << 2))  & 0x3333333333333333ull;
-            x = (x | (x << 1))  & 0x5555555555555555ull;
-            return x;
-        };
-        return spread((uint32_t)x) | (spread((uint32_t)y) << 1);
-    };
     // 4b. 不再做平面圆预过滤 ( 修复):
     // 面内 (ix,iy)→球面映射在菱形网格对角线方向不单调 — 平面距离
     // sqrt(2) 的对角像素其球面距离可能 < query_radius, 平面圆
@@ -1658,17 +1737,18 @@ void query_candidate_pixels_fast(
     // 实测: drop 质心落在 4 像素公共角附近, 真实相交像素在对角方向
     // 被滤, 通量丢失 0.6%)。整个包围盒 (2delta+1)² 全枚举,
     // 由下方精确球面圆心距离过滤负责去重/裁剪, 所有 NSIDE 统一正确。
+    // (NESTED morton 交织与增量路径共用 p35_morton2, 同一实现)
+    const uint64_t face_base = (uint64_t)fbx.face * nside64 * nside64;
     for (int iy = y0; iy <= y1; ++iy) {
         for (int ix = x0; ix <= x1; ++ix) {
-            uint64_t ipix = (uint64_t)face * nside64 * nside64 + morton(ix, iy);
-            candidates.push_back(ipix);
+            candidates.push_back(face_base + p35_morton2(ix, iy));
         }
     }
     // 5. 圆心距离预过滤 (保守: 像素中心在查询圆盘内才保留)
     // 查询圆盘半径 = max_angle + 1.0×hp_res (像素外接圆半径上界;
     // 零漏选由候选 Oracle 矩阵对全部 face/NSIDE 验证)。
     // 过滤掉正方形包围盒的边角, 减少后续 compute_overlap_area 调用。
-    double cos_lim = std::cos(double(query_radius_rad));
+    // (cos_lim / center 已由 p35_compute_fast_box 提供)
     std::vector<uint64_t> filtered;
     filtered.reserve(candidates.size());
     for (uint64_t ipix : candidates) {
@@ -1769,5 +1849,11 @@ template void query_candidate_pixels_fast<float>(
 template void query_candidate_pixels_fast<double>(
     const std::vector<Vec3T<double>>&, const healpix::HealpixCore&,
     std::vector<uint64_t>&, bool*);
+template void query_candidate_pixels_incremental<float>(
+    const std::vector<Vec3T<float>>&, const healpix::HealpixCore&,
+    std::vector<uint64_t>&, CandidateBoxState&, bool*);
+template void query_candidate_pixels_incremental<double>(
+    const std::vector<Vec3T<double>>&, const healpix::HealpixCore&,
+    std::vector<uint64_t>&, CandidateBoxState&, bool*);
 
 } // namespace spherical
