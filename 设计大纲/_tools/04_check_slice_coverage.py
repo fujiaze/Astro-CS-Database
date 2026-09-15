@@ -21,10 +21,14 @@ for sid in sids:
         if r["角色"] == "主责": prim.append(r)
     rf = os.path.join(RPT, "H-%s.md" % sid)
     txt = open(rf, encoding="utf-8").read() if os.path.exists(rf) else ""
+    # 逐条正文已下沉到证据层（11_split_slice_reports.py），覆盖核对同时看报告树三段与证据层条目
+    gf = os.path.join(REPO, "设计大纲/_evidence/commits/逐条详析/H-%s.md" % sid)
+    gtxt = open(gf, encoding="utf-8").read() if os.path.exists(gf) else ""
+    both = txt + "\n" + gtxt
     covered = []
     for r in prim:
         seq = r["seq"]; sha = r["sha8"]
-        hit = bool(re.search(r"(?<!\d)0*%s(?!\d)" % int(seq), txt)) or (sha in txt)
+        hit = bool(re.search(r"(?<!\d)0*%s(?!\d)" % int(seq), both)) or (sha in both)
         if hit: covered.append(seq)
     miss = [r["seq"] for r in prim if r["seq"] not in covered]
     miss_total += len(miss)

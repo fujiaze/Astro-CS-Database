@@ -7,4 +7,3 @@ _evidence/packs/history_zip/
 _evidence/packs/pack_files.jsonl
 _evidence/**/_run*.log
 _evidence/**/_warnings.txt
-_tools/_*.py

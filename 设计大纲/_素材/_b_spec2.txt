@@ -1,0 +1,12 @@
+DEL|、v1.3 要求的 review_inputs/P11-004_review_bundle.zip 全史零 blob 致其机器门不可能通过（P-G01 缺口 2、P-G11 缺口 1）|（P-G11 缺口 1）
+DEL|、RQS 的 verified_state 仅覆盖二十一条属预期而非缺陷|（P-G16 缺口 9）
+DEL|、FATDUCK_PENDING 越出 V7 枚举|（P-G10 缺口 12）
+DEL|、门名三套互不一致|（P-G13 缺口 6）
+DEL|、untracked 仅是取证时点事实|（P-G14 缺口 10）
+DEL|，两个形态另有各自的 manifest 失败|（P-G12 §一、digest_verify §3.6）
+DEL|，抽查十一号无一可归因|（P-G06 事实 4）
+DEL|，其一在台账内且各有交付件|（P-G13 §7.3）
+DEL|其中不符项直指台账本体的有五处（V5 两实例、V7 解包件、v2.0 复原件、V6.1 解包件另加一项 |（P-G14 §一）
+DEL|其字段含 recovered_from_rev、recovered_files、delete_commits 与首末提交共七项|七项
+DEL|（十四号规格二十一行承接矩阵）|
+DEL|（该消息零次提及 V7）|
