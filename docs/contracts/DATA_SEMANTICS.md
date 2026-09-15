@@ -262,10 +262,10 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | sumArea（HiPS SUPPORT 底数） | 同上 `[512][512]`/tile | sr（Σa_jp；support=Σarea/A_p 归一在 sink/writer） | covered_area≤0 → variance/ivar 记 NaN（合法，aio_hips_writer.cpp:615-622） |
 | sumVarNum → variance/ivar 产品 | 同上 | ADU²；ivar=1/variance | 仅当 varianceValue>0 累加（drizzle_engine.cpp:1531-1534）；无 variance 输入不产 variance 产品（AIO_HIPS_PRODUCT_ALL 非 V19） |
 | nContrib（tile 内 leaf 计数） | int `[512][512]`/tile | 贡献源像素数 | 0 = touched 集合外（不写） |
-| SNR 控制点子块（有 snr_model 时） | local_ipix + snr | 像素序、无量纲 | 逐 tile 内嵌 HissSnrBlock |
+| SNR 控制点子块（有 snr_model 时） | local_ipix + snr | 像素序、无量纲 | 逐 tile 内嵌 SNR 子块（legacy 容器格式） |
 | HiPS 产品集 | hips_dir 目录树（Norder/Shard 目录 + properties） | — | 直写硬门 tile_depth=9、nside≥512（astro_sphere_sink.cpp:36-51）；overwrite 清理由编排层（orchestrator.cpp:3345-3354） |
-| legacy .hiss（仅 legacy_hiss_compare=true） | HissWriter 文件 | — | 非正式产品；HISS_VERIFY 验证通道（orchestrator.cpp:3397 起） |
-| operation_counts.json | JSON 剖面文件 | — | 与 .hiss 同目录（api.cpp:1074-1117） |
+| legacy 单文件堆栈容器 | （P23 一级已删除） | — | **生产路径不再落任何 legacy 容器；Phase1 末端为 hp_drizzle_run_phase1_hips 直写标准 HiPS（module_adapters.cpp p1_op_drizzle）。旧的 p1_stack 容器与 p1_op_writer 的容器读面已移除；新末端产物与旧链逐字节一致（signal/support 全 tile + Moc.fits + metadata.fits）。** |
+| operation_counts.json | JSON 剖面文件 | — | 通用 HiPS 直写档（hips_profile=0）写 `<hips_dir>/operation_counts.json`；Phase1 生产档（hips_profile=1）不写，使产物文件集与旧 writer 一致（astro_sphere_sink.cpp write_hips_phase1） |
 | p1_stack.json（编排 provenance，module_adapters.cpp p1_op_drizzle） | JSON: schema=DATA-P1-STACK/nside/nested/pixfrac/precision_mode/n_healpix_pixels/n_source_pixels/elapsed_sec/artifact/entry + **B2-A17** sip_present/sip_order/sip_ap_order/ctype1/ctype2 | — | frame header 实际下发 SIP 的逐项可追溯证据；无 SIP → sip_present=false 且 ctype1/2 不含 `-SIP`（不冒充观测） |
 | HpDrizzleResult 统计 | int64/int/double + error_msg[512] | — | n_healpix_pixels/n_source_pixels/nside/nested/pixfrac/elapsed_sec；错误时 error_msg 非空 |
 
@@ -311,7 +311,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | moc_order | uint | — | 0=auto（=tile_order）；>0 取 min(moc_order, tile_order) 静默钳位（:419，DISP-HIPS-005） |
 | AstroSphereTileView: parent_ipix | uint64 | NESTED ipix（Norder K） | ≥12·4^K 拒绝 rc=−3（:433-437）；width/leaf_order/dtype 不匹配拒绝 rc=−2（:428-431） |
 | AstroSphereTileView: flux_sum | float32 或 float64 `[512×512]` NESTED local 行主序 | ADU（drizzle 层 ADU·w 加权和，§11.2） | 非 NULL 强制；无效像素处理见 §12.4 |
-| AstroSphereTileView: covered_area | 同上 | sr | 归一分母；≤0/非有限 → signal=NaN、support=0。**B2-A15**：Phase1 writer 侧（module_adapters.cpp p1_op_writer）由 HISS 支持度 uint8 面按 `support/255·A_cell` 连续缩放并置 `valid_mask`=本 parent 实际触及叶像素，未覆盖偏移不再保留上一个 parent 的缓冲（`covered_area_model="hiss_support_ratio_x_A_cell"`）。 |
+| AstroSphereTileView: covered_area | 同上 | sr | 归一分母；≤0/非有限 → signal=NaN、support=0。**B2-A15**：Phase1 末端（astro_sphere_sink.cpp write_hips_phase1）把 sumArea 先按 `lround(255·clamp(sumArea/A_cell,0,1))/255·A_cell` 的 uint8 面积比连续缩放，再置 `valid_mask`=本 parent 实际触及叶像素，未覆盖像素一律 invalid（signal=NaN/support=0），不保留上一个 parent 的缓冲（`covered_area_model="support_ratio_x_A_cell"`）。**P23 一级：该换算与旧 writer 读取 legacy 容器后的产物逐字节一致（signal/support 全部 tile 与 Moc.fits、metadata.fits 相同）。** |
 | AstroSphereTileView: valid_mask | uint8 `[512×512]` | — | 可 NULL（=全有效，:466/:606） |
 | AstroSphereTileView: var_num_sum | 同 flux_sum dtype `[512×512]` | ADU²（Σ v_j·w_jp²，drizzle 侧分子） | variance/ivar 产品时强制非 NULL（缺失 rc=−2 :575-576）；≤0/非有限 → 该像素 variance/ivar=NaN |
 | SNR 点（aio_hips_write_snr_points 累计缓存） | AioHipsSnrPoint: star_id int64 / ra,dec double / snr double / quality_flags uint（位 1=PSF_OK,2=saturated,4=has_saturated,8=photo_matched,16=photo_rejected）/ photometric_status uint（0=unmatched,1=used,2=rejected） | 度、度、无量纲 | SNR 产品关闭时忽略；无点 → 不写 snr 目录（:888） |
@@ -382,8 +382,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 - 对齐规则：调用方（P1-HIPS-INT 接线）必须让 writer 输出到发布层 staging
   区、经 IO-003 门禁后对外可见；不得以 writer 直写目录冒认 IO-003 原子
   语义；同 out_dir 重跑的旧残留清理由发布层 staging 隔离解决（writer 自身
-  不清理）。对照：HISS 容器有 .partial/atomic_replace（独立通道，
-  hiss_stream_writer.cpp:259-260,:644-655），与本边界无关。
+  不清理）。
 
 ## 13. Phase1 noise 模块输入/输出数据（DATA-P1-NOISE）
 
@@ -421,7 +420,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 - 像素域 0-based 坐标（GLOSSARY `pixel_coordinate`），无 WCS/天球参与；
   patch 中心 ctrl_x_px/ctrl_y_px 为 patch 几何中心（(x0+x1)/2）。
 - FP64 全链路统计（f32 输入升 double 计）；fill 输出 float32 截断
-  （HISS SNR 子块冻结格式，诊断值非科学累加值）。
+  （诊断值非科学累加值）。
 - 量纲不变量：ivar=1/max(variance,floor) 精确互倒（SCI §7）；gain 模型
   var_ADU=max(signal,0)/gain+(rn/gain)² 仅诊断（SNR-005，不入生产——
   §4a/SCI §10 域外引用）。

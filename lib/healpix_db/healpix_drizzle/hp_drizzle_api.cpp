@@ -525,7 +525,9 @@ int run_drizzle_internal(PipelineFrame* frame,
                                 bool write_hips,
                                 bool /*write_legacy_hiss*/,
                                 HpDrizzleResult* result,
-                                int precision_mode)
+                                int precision_mode,
+                                int hips_profile,
+                                const char* hips_filter_passband)
 try {
     // 0. G4: actual-buffer trace 状态清理 (env 由 drizzleTiledImpl 内读取)
     drizzle_trace::reset();
@@ -1150,11 +1152,21 @@ try {
         // DrizzleMeta 供 sink 写 provenance
         meta.fits_meta["src_pixel_scale_arcsec"] = std::to_string(
             std::fabs(img.wcs.cd[0]) * 3600.0);
-        bool hips_ok = img.use_f64
-            ? write_hips_direct<double>(tiles_f64, config, meta, hips_dir, snr_pts,
-                                        variancePtr ? 1 : 0, errMsg)
-            : write_hips_direct<float>(tiles_f32, config, meta, hips_dir, snr_pts,
-                                       variancePtr ? 1 : 0, errMsg);
+        bool hips_ok = true;
+        if (hips_profile == 1) {
+            // Phase1 生产末端: 与旧 writer 节点逐字节等价的标准 HiPS 直写。
+            const std::string filter_pb =
+                hips_filter_passband ? std::string(hips_filter_passband) : std::string();
+            hips_ok = img.use_f64
+                ? write_hips_phase1<double>(tiles_f64, config, hips_dir, filter_pb, errMsg)
+                : write_hips_phase1<float>(tiles_f32, config, hips_dir, filter_pb, errMsg);
+        } else {
+            hips_ok = img.use_f64
+                ? write_hips_direct<double>(tiles_f64, config, meta, hips_dir, snr_pts,
+                                            variancePtr ? 1 : 0, errMsg)
+                : write_hips_direct<float>(tiles_f32, config, meta, hips_dir, snr_pts,
+                                           variancePtr ? 1 : 0, errMsg);
+        }
         if (!hips_ok) {
             fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 直写失败: %s\n", errMsg.c_str());
             setErrorMsg(result, "HiPS 直写失败: " + errMsg);
@@ -1162,8 +1174,8 @@ try {
         }
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 已直写 %s (无 HISS 中转)\n",
                 hips_dir);
-        // 操作计数证据
-        {
+        // 操作计数证据 (仅通用档; Phase1 档产物目录与旧 writer 保持同一文件集)
+        if (hips_profile != 1) {
             const std::string ops_path = std::string(hips_dir) + "/operation_counts.json";
             FILE* f = std::fopen(ops_path.c_str(), "wb");
             if (f) {
@@ -1268,7 +1280,8 @@ HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
                                 output_path, nullptr,
                                 /*write_hips=*/false,
                                 /*write_legacy_hiss=*/(output_path && output_path[0] != '\0'),
-                                result, precision_mode);
+                                result, precision_mode,
+                                /*hips_profile=*/0, /*hips_filter_passband=*/nullptr);
     } catch (const std::exception& e) {
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: C 边界捕获异常: %s\n", e.what());
         if (result) {
