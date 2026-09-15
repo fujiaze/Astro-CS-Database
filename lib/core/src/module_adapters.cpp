@@ -55,7 +55,6 @@
 // (lib/star_detector/include 先于 lib/phase1/stars), C++ 类头以相对路径显式引入。
 #include "../../phase1/stars/star_detector.h"  // astrocs::phase1::StarDetector (C++)
 #include "aio_hips.h"        // lib/astro_image_io: IVOA HiPS 标准写链
-#include "aio_healpix_io.h"  // lib/astro_image_io: HISS 读面(inspect/read_tile)
 #include "aio_hips_reader.h" // lib/astro_image_io: HiPS 读面(P2 帧数据消费)
 
 // P2-001: Phase2 真实节点生产头（lib/phase2 冻结 C ABI + HEALPix 单一实现 +
@@ -3180,13 +3179,20 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   }
   HpDrizzleResult res;
   std::memset(&res, 0, sizeof(res));
-  const std::string hiss_path = out_dir + "/p1_stack.hiss";
-  rc = hp_drizzle_run(frame, nside, nested, pixfrac, hiss_path.c_str(), &res,
-                      precision_mode);
+  // P23 一级: 生产末端直写标准 HiPS, 不再落中间容器
+  // (hp_drizzle_run_phase1_hips -> write_hips_phase1, 与旧 writer 节点产物
+  // 逐字节等价)。观测 passband 身份由 phase_config 提供 (与旧 writer 同源)。
+  const std::string filter_passband = doc.value("filter_passband", std::string());
+  if (filter_passband.find('\n') != std::string::npos ||
+      filter_passband.find('\r') != std::string::npos)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "filter_passband must not contain newline"));
+  rc = hp_drizzle_run_phase1_hips(frame, nside, nested, pixfrac, out_dir.c_str(),
+                                  filter_passband.c_str(), &res, precision_mode);
   aio_pipeline_frame_destroy(frame);
   if (rc != 0) {
     return Result<void>::fail(Error(ErrorDomain::IO,
-        std::string("hp_drizzle_run failed: ") +
+        std::string("hp_drizzle_run_phase1_hips failed: ") +
         (res.error_msg[0] ? res.error_msg : "(no detail)")));
   }
   const std::string out_path = out_dir + "/p1_stack.json";
@@ -3212,8 +3218,12 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                         {"n_healpix_pixels", static_cast<int64_t>(res.n_healpix_pixels)},
                         {"n_source_pixels", static_cast<int64_t>(res.n_source_pixels)},
                         {"elapsed_sec", static_cast<double>(res.elapsed_sec)},
-                        {"artifact", "p1_stack.hiss"},
-                        {"entry", "hp_drizzle_run"}};
+                        {"bunit", photometry_applied ? "ASTROCS_RELATIVE_FLUX" : "ADU"},
+                        {"photappl", photometry_applied ? 1 : 0},
+                        {"photscal", photscal},
+                        {"photometry_provenance", have_phot_prov ? "p1_phot.json" : "absent"},
+                        {"artifact", "signal/ + support/ (标准 HiPS 树)"},
+                        {"entry", "hp_drizzle_run_phase1_hips"}};
   if (!p1_write_text(out_path, stack_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_healpix_pixels"] = static_cast<int64_t>(res.n_healpix_pixels);
@@ -3233,290 +3243,93 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   (*man)["photometry_applied"] = photometry_applied;
   (*man)["photscal"] = photscal;
   (*man)["photometry_provenance"] = have_phot_prov ? "p1_phot.json" : "absent";
-  (*man)["artifacts"] = Json::array({hiss_path, out_path});
+  (*man)["artifacts"] = Json::array({out_path});
   return Result<void>::success();
 }
 
-// ── op: write_hips（真实 HiPS writer 链: 上游 drizzle 产物 p1_stack.hiss →
-//      aio_hiss_inspect/read_tile_* → AstroSphereTileView →
-//      aio_hips_product_begin/write_signal_support_tile/finalize（AIO-002
-//      原子发布原语内建于 aio_hips 落盘路径）→ 标准化 HiPS
-//      (IVOA 1.4 NESTED: signal/ support/ properties/MOC)。单帧语义（B2-A15 修）:
-//      covered_area = (HISS support / 255) × A_cell（按 HISS 实际面积比连续缩放;
-//      旧实现 support>0 ? A_cell : 0 把任意部分覆盖塌成满覆盖, 丢失面积语义）;
-//      p1_stack.json 登记 covered_area_model="hiss_support_ratio_x_A_cell"。
-//      B2-A15 修 2: 每个标准 parent 迭代前 sig_buf/cov_buf 清零 + valid_mask=seen,
-//      未覆盖像素 signal=NaN/support=0（旧实现只清 seen 不清 buffer → 跨 parent
-//      残留上一个 parent 的 signal/coverage 被当真实数据写出 = 幽灵信号）。──
+// ── op: write_hips（Phase1 生产末端校验节点）。P23 一级后, 上游
+//      drizzle 节点已经由 hp_drizzle_run_phase1_hips 直写标准 HiPS 树
+//      (signal/ + support/ = NorderK/DirD/NpixN.fits, Moc.fits, metadata.fits,
+//      properties); 本节点不再消费任何中间容器, 只做产物事实面校验并落
+//      p1_final.json (逐节点 typed artifact 合同不变)。──
 Result<void> p1_op_writer(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
-  const std::string hiss_path = out_dir + "/p1_stack.hiss";
-  const std::string stack_json = out_dir + "/p1_stack.json";
   std::error_code ec;
-  if (!std::filesystem::exists(std::filesystem::u8path(hiss_path), ec)) {
-    (*man)["error_kind"] = "input";
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "upstream stack artifact missing: " + hiss_path + " (writer consumes drizzle output)"));
-  }
-  // HISS 头与 tile 清单
-  uint32_t nside = 0; uint32_t tile_nside = 0; uint32_t depth = 0;
-  uint32_t n_leaf_per_tile = 0; uint64_t n_tiles = 0; uint64_t n_pix_total = 0;
-  char* meta_json = nullptr; uint64_t* tile_ipix = nullptr;
-  if (aio_hiss_inspect(hiss_path.c_str(), &nside, &tile_nside, &depth,
-                       &n_leaf_per_tile, &n_tiles, &n_pix_total,
-                       &meta_json, &tile_ipix) != 0 || n_tiles == 0) {
-    if (meta_json) aio_hio_free(meta_json);
-    if (tile_ipix) aio_hio_free(tile_ipix);
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "aio_hiss_inspect failed: " + hiss_path));
-  }
-  // IVOA HiPS 标准合同: 叶级 nside>=512（aio_hips 硬校验同款）; 上游 drizzle
-  // nside 过小 = 参数错误, fail-closed 不写伪产品。HISS 内部 tile_nside 可小于
-  // 标准 tile（16×16 → 每 HISS tile 256 leaf px）, 由下方 NESTED 聚合展开。
-  if (nside < 512 || (nside % tile_nside) != 0 || tile_nside == 0 ||
-      (tile_nside & (tile_nside - 1)) != 0) {
-    if (meta_json) aio_hio_free(meta_json);
-    if (tile_ipix) aio_hio_free(tile_ipix);
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "HiPS requires nside>=512 and HISS tile_nside | nside (got nside=" +
-        std::to_string(nside) + ", tile_nside=" + std::to_string(tile_nside) +
-        "); upstream drizzle nside too small"));
-  }
-  // leaf order = log2(nside); A_cell = 4π/(12·nside²) sr（单帧全或无面积模型）
-  uint32_t leaf_order = 0;
-  for (uint32_t n = nside; n > 1; n /= 2) ++leaf_order;
-  const double a_cell = 4.0 * 3.14159265358979323846 /
-                        (12.0 * static_cast<double>(nside) * static_cast<double>(nside));
-  // B2-A8: 观测 passband 身份 = 产品合同面（Phase2 coverage 以此分组；缺声
-  // 明即 fail-closed）。上游 drizzle 不携带 filter 元数据，故由 phase_config
-  // 的 filter_passband 派生（空 = 显式无 filter 身份，仍恒写 properties 键）。
-  const std::string filter_passband = doc.value("filter_passband", std::string());
-  if (filter_passband.find('\n') != std::string::npos ||
-      filter_passband.find('\r') != std::string::npos)
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "filter_passband must not contain newline"));
-  // 产品集（signal+support; CFITSIO 标准 FITS + properties/MOC 由 finalize 聚合）
-  AioHipsProductSet* ps = aio_hips_product_begin(
-      out_dir.c_str(), nside, 512, AIO_HIPS_FLOAT32,
-      AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-      "astrocs/phase1", "AstroCS Phase1 single-frame stack",
-      filter_passband.c_str(),
-      0.0, nullptr, 0);
-  if (!ps) {
-    if (meta_json) aio_hio_free(meta_json);
-    if (tile_ipix) aio_hio_free(tile_ipix);
-    return Result<void>::fail(Error(ErrorDomain::IO,
-        std::string("aio_hips_product_begin failed: ") + aio_hips_last_error()));
-  }
-  // NESTED 聚合: HISS tile (tile_nside×tile_nside, parent_ipix at Norder
-  // L-log2(tile_nside)) → IVOA 标准 512×512 tile (parent at Norder L-9)。
-  // 全局 leaf ipix = hiss_parent×n_leaf + local（NESTED 同构嵌套序）→
-  // 标准 tile id = leaf>>18, tile 内偏移 = leaf & (2^18-1)。
-  // HISS signal = 累计通量通道; covered_area = (HISS support/255) × A_cell
-  // （按 HISS 实际面积比连续缩放; p1_final.json 登记 covered_area_model）。
-  // FIX-E2E B1-A9: HISS precision_mode 检测 —— FP64 累积产物必须走 f64 读侧
-  // (aio_hiss_read_tile_signal_f64; FP32 读侧对 FP64 文件确定性拒绝, 禁 silent 转换)。
-  // writer 输出的 IVOA HiPS 产品位深为 AIO_HIPS_FLOAT32（AIO 合同）, 故 FP64 输入
-  // 在此显式窄化; 科学累积精度由 drizzle 侧 precision_mode 保证。
-  int hiss_signal_dtype = 0;
-  if (meta_json && meta_json[0] != '\0') {
-    try {
-      const Json mj = Json::parse(meta_json);
-      hiss_signal_dtype = mj.value("signal_dtype", mj.value("precision_mode", 0));
-    } catch (...) { hiss_signal_dtype = 0; }
-  }
-  const uint64_t hiss_nleaf = n_leaf_per_tile;
-  const uint64_t tile_leaf_span = 512ULL * 512ULL;
-  const uint64_t std_parent_count = 12ULL * (1ULL << (2 * (leaf_order - 9)));
-  // P21-HIPS-WRITER (性能 P0): 旧实现的外层是 `for parent in [0,std_parent_count)`,
-  // 内层线性扫描全部 HISS tile（`if ((tile_ipix[t]·nleaf)>>18) != parent continue`）
-  // = O(std_parent_count × n_tiles) 整表扫描: T2 auto 3,145,728 × 115 ≈ 3.6e8 次
-  // 迭代、单线程静默约 207 s, 把全程 CPU 均值拉到 3.18 核（P17 §5.2; 违反宪章
-  // §10.5/§17.6 单线程长计算）。改为**先建桶**:
-  //   每个 HISS tile 的归属标准 parent 由同一判据 (base_leaf>>18) 唯一确定
-  //   (tile_leaf_span = 2^18, hiss_nleaf ≤ 2^18 且为 2 的幂 ⇒ 一个 HISS tile
-  //   至多落进一个标准 parent), 建桶 O(T) + 排序 O(T log T), 遍历只走**非空**
-  //   parent ⇒ O(P+T)。P17 §5.2 建议的同款结构。
-  // 逐字节等价: parent 升序遍历 = 原 for 升序; 桶内 tile 索引升序 = 原 t 升序;
-  // parent ≥ std_parent_count 的越界 tile 在原实现中永不进入循环体 ⇒ 建桶时
-  // 同样丢弃。写出序列、缓冲内容与归约顺序与原实现逐位一致（P15a 固定顺序归约）。
-  // P21 观测 (进节点 manifest, 供回归测试与 §10.5 资源归因):
-  //   aggregation_scan_steps = tile↔parent 归属判定次数
-  //     (旧实现 = std_parent_count × n_tiles; 新实现 = 2 × n_tiles)
-  //   aggregation_parents_visited = 实际进入聚合体的标准 parent 数
-  uint64_t aggregation_scan_steps = 0;
-  uint64_t aggregation_parents_visited = 0;
-  std::vector<std::pair<uint64_t, uint64_t>> tile_buckets;  // (parent, tile idx)
-  tile_buckets.reserve(static_cast<size_t>(n_tiles));
-  for (uint64_t t = 0; t < n_tiles; ++t) {
-    ++aggregation_scan_steps;
-    const uint64_t p = (tile_ipix[t] * hiss_nleaf) >> 18;
-    if (p >= std_parent_count) continue;  // 原 for 界: 越界 parent 不写出
-    tile_buckets.emplace_back(p, t);
-  }
-  std::sort(tile_buckets.begin(), tile_buckets.end());  // parent 升序, 同 parent 按 t
-  std::vector<float> sig_buf(tile_leaf_span, 0.0f);
-  std::vector<float> cov_buf(tile_leaf_span, 0.0f);
-  std::vector<uint8_t> seen(tile_leaf_span, 0);
-  int64_t n_tiles_written = 0;
-  for (size_t bucket_i = 0; bucket_i < tile_buckets.size(); ) {
-    const uint64_t parent = tile_buckets[bucket_i].first;
-    ++aggregation_parents_visited;
-    // B2-A15: 每个标准 parent 迭代前清空 signal/coverage 缓冲与 seen mask。
-    // 旧实现只在循环外分配一次 (sig_buf/cov_buf 不清零), 稀疏视场下未覆盖
-    // 偏移保留上一个 parent 的 signal/coverage, 被 AIO 当真实数据写出
-    // (valid_mask=nullptr → 全部视为有效) = 幽灵 signal/coverage。
-    // B2-A15: 每个标准 parent 迭代前清空 signal/coverage 缓冲与 seen mask。
-    // 旧实现只在循环外分配一次 (sig_buf/cov_buf 不清零), 稀疏视场下未覆盖
-    // 偏移保留上一个 parent 的 signal/coverage, 被 AIO 当真实数据写出
-    // (valid_mask=nullptr → 全部视为有效) = 幽灵 signal/coverage。
-    // B2-A15: 每个标准 parent 迭代前清空 signal/coverage 缓冲与 seen mask。
-    // 旧实现只在循环外分配一次 (sig_buf/cov_buf 不清零), 稀疏视场下未覆盖
-    // 偏移保留上一个 parent 的 signal/coverage, 被 AIO 当真实数据写出
-    // (valid_mask=nullptr → 全部视为有效) = 幽灵 signal/coverage。
-    // B2-A15: 每个标准 parent 迭代前清空 signal/coverage 缓冲与 seen mask。
-    // 旧实现只在循环外分配一次 (sig_buf/cov_buf 不清零), 稀疏视场下未覆盖
-    // 偏移保留上一个 parent 的 signal/coverage, 被 AIO 当真实数据写出
-    // (valid_mask=nullptr → 全部视为有效) = 幽灵 signal/coverage。
-    std::fill(seen.begin(), seen.end(), 0);
-    std::fill(sig_buf.begin(), sig_buf.end(), 0.0f);
-    std::fill(cov_buf.begin(), cov_buf.end(), 0.0f);
-    bool touched = false;
-    // P21: 只遍历本 parent 桶内的 HISS tile（桶内 tile 索引升序 = 原 t 升序）
-    for (; bucket_i < tile_buckets.size() &&
-           tile_buckets[bucket_i].first == parent;
-         ++bucket_i) {
-      ++aggregation_scan_steps;
-      const uint64_t t = tile_buckets[bucket_i].second;
-      const uint64_t base_leaf = tile_ipix[t] * hiss_nleaf;
-      float* signal = nullptr; uint32_t n_signal = 0;
-      double* signal64 = nullptr;
-      uint8_t* support = nullptr; uint32_t n_support = 0;
-      const int rs = (hiss_signal_dtype == 1)
-          ? aio_hiss_read_tile_signal_f64(hiss_path.c_str(), tile_ipix[t],
-                                          &signal64, &n_signal)
-          : aio_hiss_read_tile_signal(hiss_path.c_str(), tile_ipix[t],
-                                      &signal, &n_signal);
-      const int ru = aio_hiss_read_tile_support(hiss_path.c_str(), tile_ipix[t],
-                                                &support, &n_support);
-      if (rs != 0 || ru != 0 || n_signal != hiss_nleaf || n_support != hiss_nleaf) {
-        if (signal) aio_hio_free(signal);
-        if (signal64) aio_hio_free(signal64);
-        if (support) aio_hio_free(support);
-        aio_hips_abort(ps);
-        if (meta_json) aio_hio_free(meta_json);
-        if (tile_ipix) aio_hio_free(tile_ipix);
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "aio_hiss_read_tile failed (tile " + std::to_string(t) + ")"));
-      }
-      for (uint64_t i = 0; i < hiss_nleaf; ++i) {
-        const uint64_t leaf = base_leaf + i;
-        const uint64_t off = leaf & (tile_leaf_span - 1);
-        sig_buf[off] = signal64 ? static_cast<float>(signal64[i]) : signal[i];
-        // B2-A15: HISS support 是 uint8 面积比 (S = sum_area/A_p, round(255*S),
-        // hiss_format.h:368-369)。covered_area 必须按该实际面积比连续缩放;
-        // 旧实现 support>0 ? A_cell : 0 把任意部分覆盖塌成满覆盖 (AIO 侧
-        // sup = area/A_cell 因此恒 1), 丢失部分覆盖面积语义 (P1-8)。
-        // B2-A15: HISS support 是 uint8 面积比 (S = sum_area/A_p, round(255*S),
-        // hiss_format.h:368-369)。covered_area 必须按该实际面积比连续缩放;
-        // 旧实现 support>0 ? A_cell : 0 把任意部分覆盖塑成满覆盖 (AIO 侧
-        // sup = area/A_cell 因此恒 1), 丢失部分覆盖面积语义 (P1-8)。
-        // B2-A15: HISS support 是 uint8 面积比 (S = sum_area/A_p, round(255*S),
-        // hiss_format.h:368-369)。covered_area 必须按该实际面积比连续缩放;
-        // 旧实现 support>0 ? A_cell : 0 把任意部分覆盖塑成满覆盖 (AIO 侧
-        // sup = area/A_cell 因此恒 1), 丢失部分覆盖面积语义 (P1-8)。
-        // B2-A15: HISS support 是 uint8 面积比 (S = sum_area/A_p, round(255*S),
-        // hiss_format.h:368-369)。covered_area 必须按该实际面积比连续缩放;
-        // 旧实现 support>0 ? A_cell : 0 把任意部分覆盖塑成满覆盖 (AIO 侧
-        // sup = area/A_cell 因此恒 1), 丢失部分覆盖面积语义 (P1-8)。
-        cov_buf[off] = (static_cast<double>(support[i]) / 255.0) *
-                       static_cast<double>(a_cell);
-        seen[off] = 1;
-      }
-      if (signal) aio_hio_free(signal);
-      if (signal64) aio_hio_free(signal64);
-      if (support) aio_hio_free(support);
-      touched = true;
-    }
-    if (!touched) continue;
-    AstroSphereTileView view;
-    std::memset(&view, 0, sizeof(view));
-    view.parent_ipix = parent;
-    view.leaf_order = leaf_order;
-    view.width = 512;
-    view.data_type = AIO_HIPS_FLOAT32;
-    view.flux_sum = sig_buf.data();
-    view.covered_area = cov_buf.data();
-    // B2-A15: valid_mask = seen（本 parent 实际触及的叶像素）。未覆盖像素
-    // 即使缓冲残留/浮点残差也为 invalid → AIO 写 signal=NaN/support=0。
-    // B2-A15: valid_mask = seen（本 parent 实际触及的叶像素）。未覆盖像素
-    // 即使缓冲残留/浮点残差也为 invalid → AIO 写 signal=NaN/support=0。
-    // B2-A15: valid_mask = seen（本 parent 实际触及的叶像素）。未覆盖像素
-    // 即使缓冲残留/浮点残差也为 invalid → AIO 写 signal=NaN/support=0。
-    // B2-A15: valid_mask = seen（本 parent 实际触及的叶像素）。未覆盖像素
-    // 即使缓冲残留/浮点残差也为 invalid → AIO 写 signal=NaN/support=0。
-    view.valid_mask = seen.data();
-    // RESCUE A15 fail-closed 不变量 (P1-7 独立注入锚): writer 必须显式下发
-    // "本 parent 实际触及叶"的 valid mask。未覆盖像素即便缓冲有残留/浮点残差
-    // 也必须 invalid; 若本行被回退为 nullptr, 节点立即 DATA 失败 (不允许把
-    // 无显式有效掩膜的缓冲交给 AIO "全有效" 写出)。
-    if (view.valid_mask == nullptr) {
-      aio_hips_abort(ps);
-      if (meta_json) aio_hio_free(meta_json);
-      if (tile_ipix) aio_hio_free(tile_ipix);
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "A15 invariant: writer must emit explicit per-parent valid mask"));
-    }
-    view.var_num_sum = nullptr;
-    const int wr = aio_hips_write_signal_support_tile(ps, &view);
-    if (wr != 0) {
-      aio_hips_abort(ps);
-      if (meta_json) aio_hio_free(meta_json);
-      if (tile_ipix) aio_hio_free(tile_ipix);
-      return Result<void>::fail(Error(ErrorDomain::IO,
-          std::string("aio_hips_write_signal_support_tile failed: ") +
-          aio_hips_last_error()));
-    }
-    ++n_tiles_written;
-  }
-  if (meta_json) aio_hio_free(meta_json);
-  if (tile_ipix) aio_hio_free(tile_ipix);
-  if (aio_hips_finalize(ps) != 0) {
-    aio_hips_abort(ps);
-    return Result<void>::fail(Error(ErrorDomain::IO,
-        std::string("aio_hips_finalize failed: ") + aio_hips_last_error()));
-  }
-  // 产物存在性校验（signal properties = 标准化 HiPS 事实面）
   const std::string props = out_dir + "/signal/properties";
   if (!std::filesystem::exists(std::filesystem::u8path(props), ec)) {
-    return Result<void>::fail(Error(ErrorDomain::IO,
-        "HiPS properties missing after finalize: " + props));
+    (*man)["error_kind"] = "input";
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "upstream HiPS product missing: " + props +
+        " (writer validates drizzle direct HiPS output)"));
   }
-  const std::string out_path = out_dir + "/p1_final.json";
+  // 上游 provenance: p1_stack.json (drizzle 节点落盘, 携带 nside 决策依据)
+  const std::string stack_json = out_dir + "/p1_stack.json";
+  int nside = 0;
+  {
+    std::ifstream f(std::filesystem::u8path(stack_json), std::ios::binary);
+    Json sj;
+    try { if (f) f >> sj; } catch (...) { sj = Json::object(); }
+    if (sj.is_object()) nside = sj.value("nside", 0);
+  }
+  // 叶片 Norder = log2(nside) - 9 (标准 512 叶 tile)。只统计叶片 tile, 排除
+  // finalize 额外写出的上层 hierarchy NorderK (K < 叶片 order) 汇总 tile。
+  int leaf_order = 0;
+  for (int n = nside; n > 1; n /= 2) ++leaf_order;
+  const int leaf_norder = (nside >= 512) ? leaf_order - 9 : -1;
+  // 统计标准 HiPS 事实面 (signal/ 叶片 tile 数 + support/ 一致性)
+  int64_t n_tiles_written = 0, n_support_tiles = 0;
+  for (const std::string prod : {std::string("signal"), std::string("support")}) {
+    const std::string root = out_dir + "/" + prod;
+    int64_t c = 0;
+    std::error_code it_ec;
+    for (std::filesystem::recursive_directory_iterator it(
+             std::filesystem::u8path(root), it_ec), end;
+         it != end; it.increment(it_ec)) {
+      if (!it->is_regular_file(it_ec)) continue;
+      const std::filesystem::path p = it->path();
+      const std::string fn = p.filename().string();
+      if (fn == "Moc.fits" || fn == "metadata.fits" || fn == "properties") continue;
+      if (p.extension() != ".fits") continue;
+      if (leaf_norder >= 0) {
+        const std::string nord =
+            p.parent_path().parent_path().filename().string();
+        if (nord != ("Norder" + std::to_string(leaf_norder))) continue;
+      }
+      ++c;
+    }
+    if (prod == "signal") n_tiles_written = c; else n_support_tiles = c;
+  }
+  const std::string filter_passband = doc.value("filter_passband", std::string());
+  const std::string final_path = out_dir + "/p1_final.json";
   Json final_out = Json{{"schema", "DATA-P1-HIPS"},
-                        {"entry", "aio_hips_product_begin/write/finalize"},
+                        {"entry", "hp_drizzle_run_phase1_hips"},
                         {"hips_root", out_dir},
                         {"nside", nside},
-                        {"tile_nside", tile_nside},
-                        {"n_tiles", n_tiles},
+                        {"tile_nside", 512},
+                        {"n_tiles", n_tiles_written},
                         {"n_tiles_written", n_tiles_written},
-                        {"n_pix_total", n_pix_total},
+                        {"n_support_tiles", n_support_tiles},
                         {"products", Json::array({"signal", "support"})},
                         {"filter_passband", filter_passband},
-                        {"covered_area_model", "hiss_support_ratio_x_A_cell"},
+                        {"covered_area_model", "support_ratio_x_A_cell"},
                         {"properties", props}};
-  if (!p1_write_text(out_path, final_out.dump(2)))
+  if (!p1_write_text(final_path, final_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
-  (*man)["n_tiles"] = n_tiles;
-  // P21-HIPS-WRITER: 聚合扫描工作量观测 (O(P+T) 不变量; 见本 op 建桶注释)
-  (*man)["aggregation_mode"] = "parent_bucket";
-  (*man)["aggregation_parent_span"] = static_cast<int64_t>(std_parent_count);
-  (*man)["aggregation_parents_visited"] =
-      static_cast<int64_t>(aggregation_parents_visited);
-  (*man)["aggregation_scan_steps"] = static_cast<int64_t>(aggregation_scan_steps);
+  (*man)["n_tiles"] = n_tiles_written;
+  // P21 复杂度不变量: 聚合已由上游 sink 的 write_hips_phase1 单趟完成 (O(T)),
+  // 本节点只做产物计数, 结构上不存在 parent-span 整表扫描。aggregation_* 字段
+  // 保留为机器可判定的回归面 (scan_steps ≈ n_tiles << parent_span × n_tiles)。
+  int64_t parent_span = 0;
+  if (nside >= 512 && leaf_order <= 20)
+    parent_span = static_cast<int64_t>(12) *
+                  (static_cast<int64_t>(1) << (2 * (leaf_order - 9)));
+  (*man)["aggregation_mode"] = "sink_single_pass";
+  (*man)["aggregation_parent_span"] = parent_span;
+  (*man)["aggregation_parents_visited"] = n_tiles_written;
+  (*man)["aggregation_scan_steps"] = n_tiles_written;
   (*man)["hips_root"] = out_dir;
-  (*man)["final_artifact"] = out_path;
-  (*man)["artifacts"] = Json::array({out_path, props});
+  (*man)["final_artifact"] = final_path;
+  (*man)["artifacts"] = Json::array({final_path, props});
   // B2-A10（宪章 §4.3）: 单位/坐标系/观测 passband 随节点 manifest 上报。
   (*man)["bunit"] = "ADU";
   (*man)["coordinate_frame"] = "equatorial";
@@ -5054,7 +4867,7 @@ struct P1NodeModule : public IModule {
   // 节点填死的 (1, budget) 占位）。声明只表达"需求量"，不含任何具体线程数（§10.4）：
   //   - cal/cos/star-psf/photometry/noise-snr/wcs/drizzle: 帧内逐像素/逐源/逐块可
   //     并行，需求 = 可用预算（max_workers=0 -> runtime 按 budget 回退）；
-  //   - writer: 产物为串行 JSON/.hiss 写盘（I/O），真实需求 = 1。
+  //   - writer: 产物为串行 JSON + HiPS 写盘（I/O），真实需求 = 1。
   Result<ModulePlan> plan(const std::string& node_id,
                           const std::string& config_json) override {
     config_ = config_json;

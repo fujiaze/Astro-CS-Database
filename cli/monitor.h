@@ -23,7 +23,7 @@
 // WIN-001: windows.h 噪音宏 (ERROR/OPTIONAL/REQUIRED/interface/NEAR/FAR/small/DELETE/YIELD/
 // TRUE/FALSE 等) 会污染其后 include 的 AstroCS 头 (enum 值/标识符, C2143/C2065 级联)。
 // windows.h 内宏用途已展开完毕; undef 恢复干净命名空间 (monitor.h 是主 CLI 链唯一
-// windows.h 引入点, 此处清理一次保护全部下游头; 同 context.h/hiss_format.h 自清理配合)。
+// windows.h 引入点, 此处清理一次保护全部下游头; 与下游公共头的 include 自清理配合)。
 #ifdef ERROR
 #undef ERROR
 #endif
