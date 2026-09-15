@@ -264,4 +264,51 @@ IPV_API int ipv_get_last_inliers(void* solver, double* out_buffer, int max_count
 }
 #endif
 
+// ---------------------------------------------------------------------------
+// [P27-DEAD-PARAMS] 当前生产路径**不消费**的字段（负责人裁决 A：不改解算行为，
+// 只做明确标注 + 机器锁防误用）。
+//
+// 生产路径（CLI `phase1 run` -> p1_op_wcs，lib/core/src/module_adapters.cpp:2100）:
+//   p1_op_wcs -> ipv_solve_from_memory_with_callback_d
+//             -> IPVSolver::solve_from_memory_with_callback_f64
+//             -> solve_post_select (ipv_solver.cpp:1185)
+// solve_post_select 中 triangle_match(U, W, 60, 60, 0.002, s0) 的参数是**字面量常数**，
+// 且 solve_from_memory_with_callback_f64 在选星前 `p_adapt.img_n_target = 60;` 硬覆盖；
+// 参数又来自 ipv_get_default_params（不是用户配置）。
+//
+// 【全局结论，Q1】生产路径**没有任何 "配置/CLI -> IpvParams" 注入代码**：p1_op_wcs 调
+//   ipv_get_default_params(&ip) 后仅清除 ip.log_dir；wcs 配置对象只读 init_source /
+//   gaia_data_dir / focal_length_mm / pixel_size_um / ra0 / dec0 / neighbor_ra0 /
+//   neighbor_dec0 / crpix1·2 / crval1·2 / cd11·12·21·22 / sip，**不含任何 IPV 求解参数键**
+//   （配置键清单 问题扫描/_cache/v20_keys.json 对 pivot/ransac/polygon/s_min/s_max/
+//   mag_lim/n_target/sigma_d/vote/density 零命中）。legacy orchestrator 路径同样仅
+//   fn_get_default_params(&params) + 覆盖 log_dir（orchestrator.cpp:2015/2028-2033）。
+// => 本结构体 24 个字段**全部不可由用户配置影响**（值恒为编译期默认值）；其中 8 个即便
+//    将来接线也仍无生产代码读取。故下列字段改配置**既不改行为也不报错**（"配置不生效"型误用）：
+////
+//   dead（生产路径 0 读取点）:
+//     polygon_sides, n_pivot, sigma_d_arcsec, ransac_max_iter,
+//     ransac_inlier_threshold_arcsec, s_min, s_max
+//   log_only（仅写日志，判据是字面量 3）:
+//     vote_threshold
+//   shadowed（上游以字面量覆盖/清零）:
+//     img_n_target (=60), log_dir (module_adapters.cpp 清零)
+//
+// 代码真实消费但配置不可达（值恒为默认值）: gaia_density_ratio, gaia_query_radius_factor,
+//   m_lim_alpha_prior, m_lim_alpha_min, m_lim_alpha_max, m_lim_safety,
+//   m_lim_m0_exposure_s, m_lim_m0_offset, m_lim_clamp_lo, m_lim_clamp_hi,
+//   m_lim_zero_step, m_lim_gaia_cap_per_file, m_lim_max_iter, density_tolerance。
+//
+// 同类结构体 ipv::RobustRefineParams（ipv_robust_refine.h）全部字段亦不可达：
+//   生产调用点传字面量 `RobustRefineParams{}`（默认构造）。
+//
+// 机器锁: ctest 目标 ipv_dead_params_lock（lib/plate_solve/cpp/ipv/test/
+//   ipv_dead_params_lock.py + ipv_dead_params_manifest.json）——死字段被新接线、
+//   真消费被删、死匹配器被接线、常数被换成配置，任一发生即变红。
+//   阴性对照: ipv_dead_params_lock_selfcheck（4 类反例全红、恢复即绿）。
+// 逐字段核对表与证据: run/perf-fix/P27-dead-params/REPORT.md
+// 本注释不改变任何默认值 / 公式 / 容差。
+// ---------------------------------------------------------------------------
+
 #endif // IPV_API_H
+

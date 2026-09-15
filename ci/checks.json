@@ -4206,6 +4206,78 @@
       "ctest_targets": [
         "compare_products_quality"
       ]
+    },
+    {
+      "id": "CTEST-IPV-DEAD-PARAMS-LOCK",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "ipv_dead_params_lock",
+        "--output",
+        "run/ci/ctest/ipv_dead_params_lock.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/ipv_dead_params_lock.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/plate_solve/**",
+        "tests/**",
+        "ci/checks.json",
+        "CMakeLists.txt",
+        "docs/contracts/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "ipv_dead_params_lock"
+      ]
+    },
+    {
+      "id": "CTEST-IPV-DEAD-PARAMS-LOCK-SELFCHECK",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "ipv_dead_params_lock_selfcheck",
+        "--output",
+        "run/ci/ctest/ipv_dead_params_lock_selfcheck.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/ipv_dead_params_lock_selfcheck.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/plate_solve/**",
+        "tests/**",
+        "ci/checks.json",
+        "CMakeLists.txt",
+        "docs/contracts/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "ipv_dead_params_lock_selfcheck"
+      ]
     }
   ]
 }
