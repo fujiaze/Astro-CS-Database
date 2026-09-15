@@ -9,7 +9,7 @@ SCI-ADJ-001,PASS,2,SCI-OBS-001;SCI-PSFW-001;SCI-P2-001;SCI-P3-001;AUDIT-REVIEW-0
 DATA-DESIGN-001,READY,3,SCI-ADJ-001,docs/contracts/v6/data/;contracts/proposals/v6/data/,,,
 ALG-P1-001,READY,3,SCI-ADJ-001,docs/algorithms/v6/phase1/,,,
 ALG-P2-POINT-001,READY,3,SCI-ADJ-001,docs/algorithms/v6/phase2-point/,,,
-ALG-P2-PSFSW-001,READY,3,SCI-ADJ-001,docs/algorithms/v6/phase2-psfsw/,,,
+ALG-P2-PSFSW-001,PASS,3,SCI-ADJ-001,docs/algorithms/v6/phase2-psfsw/,915d8cd9-450a-41c7-99c9-c5b6b5c43cac,docs/algorithms/v6/phase2-psfsw/PSFSW_ALGORITHM_SPEC.md;run/v6/alg-p2-psfsw/summary.json,oracle194-194;mut26-caught;docaudit84-84;scope-0
 ALG-P2-SURF-001,READY,3,SCI-ADJ-001,docs/algorithms/v6/phase2-surface/,,,
 ALG-P3-001,READY,3,SCI-ADJ-001,docs/algorithms/v6/phase3/,,,
 QA-MATRIX-001,READY,3,SCI-ADJ-001,docs/validation/v6/;reports/v6/qa-design/,,,
