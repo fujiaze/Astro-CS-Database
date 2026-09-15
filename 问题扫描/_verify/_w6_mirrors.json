@@ -1,0 +1,202 @@
+[
+ {
+  "file": "lib/astro_image_io/tests/hips_mapping_oracle.py",
+  "line": 29,
+  "cls": "AstroSphereTileView",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/astro_image_io/tests/v5_maptile_oracle.py",
+  "line": 29,
+  "cls": "AstroSphereTileView",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/astro_image_io/tests/v5_snr_precision_roundtrip.py",
+  "line": 23,
+  "cls": "AstroSphereTileView",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/astro_image_io/tests/v5_snr_precision_roundtrip.py",
+  "line": 33,
+  "cls": "AioHipsSnrPoint",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate1_psf_final_test.py",
+  "line": 33,
+  "cls": "SDetParams",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate1_psf_final_test.py",
+  "line": 45,
+  "cls": "DPSFFitParams",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate1_psf_final_test.py",
+  "line": 51,
+  "cls": "DPSFFitResult",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py",
+  "line": 85,
+  "cls": "SDetParams",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py",
+  "line": 148,
+  "cls": "DPSFFitParams",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/xpsd_cpp_crosscheck.py",
+  "line": 42,
+  "cls": "GaiaSpectrumStar",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/xpsd_production_validation.py",
+  "line": 48,
+  "cls": "GaiaSpectrumStar",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/plate_solve/tools/diag_gaia_psf_projection.py",
+  "line": 60,
+  "cls": "SDetParams",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/plate_solve/tools/diag_gaia_psf_projection.py",
+  "line": 72,
+  "cls": "DPSFFitParams",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/plate_solve/tools/diag_gaia_psf_projection.py",
+  "line": 78,
+  "cls": "GaiaSpectrumStar",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/plate_solve/tools/ipv_abi_mirror.py",
+  "line": 28,
+  "cls": "IpvParams",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "lib/plate_solve/tools/ipv_abi_mirror.py",
+  "line": 70,
+  "cls": "IpvWcsResult",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "tests/io/hips_output_fixture.py",
+  "line": 30,
+  "cls": "FioKeyword",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "tests/io/hips_output_fixture.py",
+  "line": 36,
+  "cls": "FioHeader",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "tests/io/make_hips_fixture.py",
+  "line": 71,
+  "cls": "FioKeyword",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "tests/io/make_hips_fixture.py",
+  "line": 77,
+  "cls": "FioHeader",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "tests/io/test_fits_stream_contract.py",
+  "line": 58,
+  "cls": "FioKeyword",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "tests/io/test_fits_stream_contract.py",
+  "line": 64,
+  "cls": "FioHeader",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "tests/io/test_fits_stream_contract.py",
+  "line": 74,
+  "cls": "Reader",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "tests/io/test_fits_stream_contract.py",
+  "line": 78,
+  "cls": "Writer",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ },
+ {
+  "file": "tests/io/test_fits_stream_contract.py",
+  "line": 82,
+  "cls": "TraceHooks",
+  "n_fields": 0,
+  "has_struct_size": false,
+  "has_abi_version": false
+ }
+]
