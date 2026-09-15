@@ -38,7 +38,6 @@
 #include "astrocs_process.h"
 #include "protocol.h"
 #include "resource_recorder.h"
-#include "frame_admission.h"
 
 extern "C" {
 int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
@@ -724,23 +723,6 @@ static void emit_phase_stats_resource(astrocs::JsonlEmitter& ev, const std::stri
     return astrocs::is_unannotated_priority(annotation, wall_seconds);
 }
 
-// P36 D2: /proc/meminfo 单字段读取(kB); 不可得返回 0(不冒充)。
-static uint64_t read_meminfo_kb(const char* key) {
-    std::ifstream f("/proc/meminfo");
-    if (!f) return 0;
-    const std::string k = std::string(key) + ":";
-    std::string line;
-    while (std::getline(f, line)) {
-        if (line.rfind(k, 0) == 0) {
-            std::istringstream is(line.substr(k.size()));
-            unsigned long long v = 0;
-            is >> v;
-            return v;
-        }
-    }
-    return 0;
-}
-
 // MON-004 资源门禁生产接线(cli/resource_gate.h 唯一生产调用点; 冻结约束:
 // 重计算禁止单线程并自动资源监控, 低利用率/异常内存增长为失败):
 // 后台线程对 run_pipeline 执行期采样(ProcessMonitor::tick), 结束后按 07 合同
@@ -895,80 +877,6 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     recorder.set_stage(astrocs::ResStage::Flush);
     sampling.store(false, std::memory_order_relaxed);
     sampler.join();
-    // P36 D2: 分段设域 —— 用 Runtime 真实节点执行窗口 (NodeTrace) 给资源曲线设域。
-    // 重叠执行的节点各自成段; 段内 RSS 峰值 = 该窗口的进程峰值 (上界, 不拆到线程级)。
-    // 边界来自观测 (started_utc + duration_ms), 不从配置值编造。
-    std::vector<astrocs::ResNodeSegmentInput> res_segments;
-    {
-        std::vector<astrocs::core::Runtime::NodeTrace> tr;
-        astrocs::cli::collect_node_trace(&tr);
-        for (const auto& t : tr) {
-            const int64_t s_ms = astrocs::res_parse_utc_ms(t.started_utc);
-            if (s_ms <= 0) continue;  // 时间不可定位 → 不伪造分段
-            astrocs::ResNodeSegmentInput in;
-            in.segment_id = t.node_id;
-            in.start_epoch_ms = s_ms;
-            in.end_epoch_ms = s_ms + static_cast<int64_t>(t.duration_ms);
-            in.granted_workers = static_cast<uint32_t>(t.granted_workers);
-            res_segments.push_back(std::move(in));
-        }
-    }
-    // P36 D2: 帧域标识 —— 单帧 config (input_lights 恰 1 项) 用其 basename; 多帧用
-    // run_id (本进程内节点作用于全部帧, 无逐帧切分观测, 不冒充逐帧归属)。
-    std::string frame_id = ev.run_id();
-    {
-        try {
-            const nlohmann::json d = nlohmann::json::parse(cfg_text);
-            if (d.contains("input_lights") && d["input_lights"].is_array() &&
-                d["input_lights"].size() == 1 && d["input_lights"][0].is_string()) {
-                const std::string p = d["input_lights"][0].get<std::string>();
-                const auto slash = p.find_last_of("/\\");
-                frame_id = (slash == std::string::npos) ? p : p.substr(slash + 1);
-            }
-        } catch (...) {
-        }
-    }
-    // P36 D5: 帧级并发内存准入判定 (显式契约, 见 cli/frame_admission.h)。输入全部
-    // 派生/实测: MemTotal/MemAvailable = /proc/meminfo; peak = 本次实测进程峰值
-    // (source=measured_this_run); 可用 ASTROCS_FRAME_PEAK_BYTES 显式覆盖
-    // (source=explicit)。只记录判定 (P26 记录/裁决分离), 不修改退出码。
-    nlohmann::json admission = nlohmann::json::object();
-    {
-        astrocs::FrameAdmissionParams ap;
-        ap.mem_total_bytes = read_meminfo_kb("MemTotal") * 1024ull;
-        ap.mem_available_bytes = read_meminfo_kb("MemAvailable") * 1024ull;
-        ap.cpu_budget = budget > 0 ? budget : 1u;
-        ap.min_workers_per_frame = 2u;  // P24 §2.2 触发判据 b_min=2 (策略参数, 非线程数)
-        ap.active_frames = 1u;
-        const astrocs::ProcessMonitor::Summary mon_a = mon.summary();
-        ap.single_frame_peak_bytes = mon_a.peak_rss_bytes;
-        ap.peak_source = astrocs::FramePeakSource::MeasuredThisRun;
-        if (const char* pk = std::getenv("ASTROCS_FRAME_PEAK_BYTES")) {
-            const unsigned long long v = std::strtoull(pk, nullptr, 10);
-            if (v > 0) {
-                ap.single_frame_peak_bytes = v;
-                ap.peak_source = astrocs::FramePeakSource::Explicit;
-            }
-        }
-        const astrocs::FrameAdmissionDecision ad = astrocs::frame_admission_decide(ap);
-        admission = {
-            {"contract", "P36-D5: K_mem=max(1,floor((MemTotal-reserve)/peak)); concurrent <=> K_mem>=2 && MemAvailable>=2*peak+reserve"},
-            {"mem_total_bytes", ap.mem_total_bytes},
-            {"mem_available_bytes", ap.mem_available_bytes},
-            {"single_frame_peak_bytes", ap.single_frame_peak_bytes},
-            {"peak_source", astrocs::frame_peak_source_name(ap.peak_source)},
-            {"reserve_bytes", ad.reserve_bytes},
-            {"cpu_budget", ap.cpu_budget},
-            {"min_workers_per_frame", ap.min_workers_per_frame},
-            {"k_mem", ad.k_mem},
-            {"k_cpu", ad.k_cpu},
-            {"k_final", ad.k_final},
-            {"concurrent", ad.concurrent},
-            {"reason", ad.reason},
-        };
-        // P36: 判定只落盘 (resource_summary.json += cli/frame_admission.json 不新增;
-        // 既有 resource 事件协议要求冻结扩展字段, 故不在此发裸事件 —— 记录/裁决分离 P26)。
-    }
     // MON-001: run 收尾自动生成 resource_samples.csv / resource_summary.json /
     // worker_balance.csv(无需操作者脚本; 管线失败也留资源证据)。开销占比由
     // summary.sample_overhead_ms(真实累计采样 wall / 总 wall 口径的原料)度量。
@@ -979,8 +887,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
             catch (...) { return std::string("."); }
         }();
         const bool wrote = recorder.write_all(res_out_dir, mon_s.wall_seconds,
-                                              mon_s.sample_overhead_ms, ev.run_id(),
-                                              frame_id, res_segments, admission.dump());
+                                              mon_s.sample_overhead_ms);
         if (!wrote) {
             std::fprintf(stderr, "astrocs: warning: resource files not written to %s\n",
                          sanitize(res_out_dir).c_str());

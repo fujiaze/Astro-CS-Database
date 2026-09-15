@@ -9,56 +9,17 @@
 //     域 IO/DATA/...，见 RT-008）。
 //   - 取消/失败传播: FAILED 根 + 依赖 SKIPPED + 独立节点完成; 取消置位后所有
 //     PLANNED/QUEUED 节点标 CANCELLED。
-// B13-R13-2 修复: 内存回压等待不得忙等自旋; 回压只压内存超限节点, 不队头阻塞
-//   整队 (HoL: ready 中首个满足内存约束的节点即可执行; active==0 时放行队首推进)。
-//
-// P36 D1 调度重叠契约 (取代 P7-UTIL-003 的全局 heavy_gate 互斥):
-// ---------------------------------------------------------------------------
-// 缺陷 (P24 §4.1 实测): 旧实现用一把全局 heavy_mu 把所有"声明满额预算"的
-//   cpu_heavy 节点串行化 —— Σ节点墙钟 == 整 run 墙钟 (零重叠), 38.8% 墙钟落在
-//   平均只用 ~1.6 核的低并行度节点上。串行根因不是"资源真冲突", 而是判定只问
-//   "是否声明满额"就整段互斥; 而**互不冲突**的判定应按声明需求与空闲预算比较。
-//
-// 三种模式 (ASTROCS_SCHED_OVERLAP, 每次 run 起始读取):
-//   demand (默认): 需求准入 —— 节点 i 的预留 r_i = 声明需求 D_i (max_workers,
-//     0 -> budget; 上限即租约上限), 当且仅当 free = budget - Σ在途预留 >= D_i
-//     且内存约束满足时准入; 一次锁内对就绪集合逐个准入 ⇒ **需求之和 <= 预算的
-//     节点真正重叠**。节点永不低于声明需求运行 —— 因为模块 OMP team 在节点起始
-//     固定 (ScopedOmpWorkerInjection), 降级不可恢复, 故本模式零退化。
-//   fair: max-min 公平均分 (P24 R1-1 的"朴素释放互斥") —— 仅作测量/阴性对照:
-//     满额节点会在同伴在途时以 free/k 启动并把该宽度保持到节点结束。
-//   legacy (=0/off): 旧 P7-UTIL-003 全局互斥 (一次仅一个节点在途) —— 回滚对照。
-// 不变量 (三模式共同): Σ在途预留 <= budget_ (不超卖); r_i <= D_i; 无空租约
-//   ⇒ 模块不会回退到未记账的 cap=1 线程。单进程仍只有一个 Scheduler 与一个
-//   ThreadBudget 源 (§10.4); 无私有线程池; 无硬编码线程数 (D_i 全部来自模块
-//   plan() 声明, P10-UTIL2-005 通道)。
+// B13-R13-2 修复: 内存回压等待不得忙等自旋 (修复前 notify_all+continue 于
+//   "ready 非空"谓词下热循环烧 CPU); 回压只压内存超限节点, 不队头阻塞整队
+//   (HoL: ready 中首个满足内存约束的节点即可执行; active==0 时放行队首保证推进)。
 #include "astrocs/core/scheduler.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <deque>
 #include <set>
-#include <string>
 #include <mutex>
 
 namespace astrocs::core {
-
-namespace {
-
-// P36 D1: 重叠准入模式 (默认 demand)。
-enum class SchedOverlapMode { kDemand = 0, kFair = 1, kLegacy = 2 };
-
-SchedOverlapMode sched_overlap_mode() {
-  const char* v = std::getenv("ASTROCS_SCHED_OVERLAP");
-  if (!v || !v[0]) return SchedOverlapMode::kDemand;  // 默认需求准入
-  const std::string s(v);
-  if (s == "fair") return SchedOverlapMode::kFair;
-  if (s == "0" || s == "off" || s == "false" || s == "legacy")
-    return SchedOverlapMode::kLegacy;
-  return SchedOverlapMode::kDemand;
-}
-
-}  // namespace
 
 Scheduler::Scheduler(uint32_t available_cpu, uint32_t budget,
                      uint64_t memory_limit_bytes)
@@ -126,9 +87,14 @@ Result<void> Scheduler::run(
     ctx.set_trace_store(obs_store_);
     ctx.set_run_id(obs_run_id_);
   }
-  // RT-007: run 边界 —— 每 run 起始清除调度器取消位。
+  // RT-007: run 边界 —— 每 run 起始清除调度器取消位。取消语义只作用于「当前正在
+  // 执行的 run」：run 外（调度器空闲）调 cancel() 只置位 cancel_，随后 run() 起始
+  // 清除它，避免一次历史取消让后续全新 run 无条件失败（陈旧取消不跨 run 泄漏）。
+  // run 中 cancel()（外部线程）置位 cancel_ + 唤醒当前 run 的 ctx token → 本 run
+  // 结束；该次取消已被消费，不会残留到下一 run。
   cancel_.store(false, std::memory_order_release);
   ctx.cancel_token().reset();
+  // 登记本次 run 的活动 token：cancel() 能桥到 ctx（Scheduler 与 RunContext 统一）。
   {
     std::lock_guard<std::mutex> lock(run_mu_);
     active_token_ = &ctx.cancel_token();
@@ -142,55 +108,27 @@ Result<void> Scheduler::run(
   } token_guard{this};
   std::mutex mtx;
   std::condition_variable cv;
+  // B13-R13-2: 回压等待专用 cv (与就绪通知 cv 分离; 谓词挂起替代忙等自旋)
+  std::condition_variable bp_cv;
   std::map<std::string, NodeStatus> status = status_;
   std::map<std::string, int> remaining_deps;
   std::map<std::string, std::vector<std::string>> rev;
+  // B13-R13-2: deque 支持锁内扫描 (跳过队首超限节点, 消除队头阻塞)
   std::deque<std::string> ready;
-  // P36 D1: 已准入待执行队列 + 每节点预算预留账本 (Σ reserved <= budget_)。
-  std::deque<std::string> admitted;
-  std::map<std::string, uint32_t> reserved_of;
   for (const auto& [id, spec] : nodes_) {
     remaining_deps[id] = static_cast<int>(spec.deps.size());
     for (const auto& d : spec.deps) rev[d].push_back(id);
     if (spec.deps.empty()) ready.push_back(id);
   }
   std::atomic<uint32_t> active{0};
-  std::atomic<uint32_t> reserved_total{0};   // Σ 在途预留槽 (不变量: <= budget_)
-  std::atomic<uint64_t> mem_used{0};
-  // P36 D1: 状态代际 —— 完成/新就绪时自增并 notify, 挂起的 worker 据此重跑准入
-  // (替代"ready 非空"谓词, 避免预算/内存受限时的忙等自旋)。
-  std::atomic<uint64_t> epoch{0};
+  // P7-UTIL-003: "声明满额预算"的 cpu_heavy 节点互斥闸门（run 内局部，不跨 run 残留）
+  std::mutex heavy_mu;
   std::atomic<bool> cancelled_run{false};
+  std::atomic<uint64_t> mem_used{0};
   std::string fail_node;
   std::string fail_msg;
   ErrorDomain fail_domain = ErrorDomain::INTERNAL;  // RT-008: 保留节点原始错误域
   std::set<std::string> blocked;  // 失败节点的传递依赖（SKIPPED）
-
-  const SchedOverlapMode mode = sched_overlap_mode();
-
-  // P36 D1: 节点声明需求 —— max_workers (0 -> budget) 为可并行度上限; min_workers
-  // 为不可降级下限。二者来自模块 plan() 声明 (P10-UTIL2-005 通道), 调度器不硬编码。
-  auto demand_of = [&](const std::string& id) -> uint32_t {
-    auto it = nodes_.find(id);
-    if (it == nodes_.end()) return 1;
-    const uint32_t m = std::max<uint32_t>(1u, it->second.min_workers);
-    uint32_t d = it->second.max_workers;
-    if (d == 0 || d > budget_) d = budget_;
-    return std::max(d, m);
-  };
-  auto min_of = [&](const std::string& id) -> uint32_t {
-    auto it = nodes_.find(id);
-    return it == nodes_.end() ? 1u : std::max<uint32_t>(1u, it->second.min_workers);
-  };
-  auto mem_of = [&](const std::string& id) -> uint64_t {
-    auto it = nodes_.find(id);
-    return it == nodes_.end() ? 0u : it->second.estimated_memory_bytes;
-  };
-  auto mem_ok = [&](const std::string& id, uint64_t need) -> bool {
-    // 与旧回压语义一致: active>0 时才严格判定; 无在途时放行 (无死锁推进)。
-    if (memory_limit_bytes_ == 0 || active.load() == 0) return true;
-    return mem_used.load() + need <= memory_limit_bytes_;
-  };
 
   auto compute_blocked = [&](const std::string& root) {
     std::set<std::string> out;
@@ -204,188 +142,123 @@ Result<void> Scheduler::run(
     blocked = std::move(out);
   };
 
-  // P36 D1: 账本准入 (调用者持 mtx)。先传播失败下游 SKIPPED, 再按模式准入。
-  auto admit_locked = [&]() {
-    // (a) 失败上游的传递依赖 → SKIPPED (不占预算/内存), 并传播新就绪节点
-    bool changed = true;
-    while (changed) {
-      changed = false;
-      for (auto it = ready.begin(); it != ready.end();) {
-        if (blocked.count(*it)) {
-          const std::string id = *it;
-          status[id] = NodeStatus::SKIPPED;
-          for (const auto& nxt : rev[id]) {
-            if (--remaining_deps[nxt] == 0) ready.push_back(nxt);
-          }
-          it = ready.erase(it);
-          changed = true;
-        } else {
-          ++it;
-        }
-      }
-    }
-    if (ready.empty()) return;
-
-    auto admit_one = [&](std::deque<std::string>::iterator it, uint32_t r) {
-      const std::string id = *it;
-      reserved_of[id] = r;
-      reserved_total.fetch_add(r, std::memory_order_relaxed);
-      mem_used.fetch_add(mem_of(id), std::memory_order_relaxed);
-      status[id] = NodeStatus::RUNNING;
-      active.fetch_add(1, std::memory_order_relaxed);
-      admitted.push_back(id);
-      ready.erase(it);
-      ++epoch;
-    };
-
-    if (mode == SchedOverlapMode::kLegacy) {
-      // 旧全局互斥: 一次仅一个节点在途; 独占时拿声明需求 (<= budget)。
-      if (active.load() > 0) return;
-      for (auto it = ready.begin(); it != ready.end(); ++it) {
-        const uint32_t d = demand_of(*it);
-        if (d > budget_) continue;
-        if (!mem_ok(*it, mem_of(*it))) continue;
-        admit_one(it, d);
-        return;
-      }
-      return;
-    }
-
-    const uint32_t free_budget =
-        budget_ - reserved_total.load(std::memory_order_relaxed);
-    if (free_budget == 0) return;
-
-    if (mode == SchedOverlapMode::kDemand) {
-      // 需求准入: 逐个按声明需求预留, 需求之和 <= 预算的节点真正重叠。
-      for (auto it = ready.begin(); it != ready.end();) {
-        const uint32_t d = demand_of(*it);
-        if (d > budget_ - reserved_total.load(std::memory_order_relaxed)) {
-          ++it;
-          continue;
-        }
-        if (!mem_ok(*it, mem_of(*it))) { ++it; continue; }
-        admit_one(it, d);
-        it = ready.begin();  // 重新扫描 (预留/内存已变化, 队列可能仍有序)
-      }
-      return;
-    }
-
-    // kFair: max-min 公平均分 (测量/阴性对照; 会让满额节点以 free/k 启动)。
-    std::vector<std::string> elig;
-    std::map<std::string, uint32_t> alloc;
-    for (auto it = ready.begin(); it != ready.end(); ++it) {
-      if (!mem_ok(*it, mem_of(*it))) continue;
-      elig.push_back(*it);
-      alloc[*it] = 0u;
-    }
-    if (elig.empty()) return;
-    uint32_t remaining = free_budget;
-    std::vector<std::string> act = elig;
-    while (!act.empty() && remaining > 0) {
-      const uint32_t share = std::max<uint32_t>(
-          1u, remaining / static_cast<uint32_t>(act.size()));
-      std::vector<std::string> next;
-      for (const auto& id : act) {
-        const uint32_t d = demand_of(id);
-        const uint32_t have = alloc[id];
-        const uint32_t room = d > have ? d - have : 0u;
-        const uint32_t add = std::min(share, std::min(room, remaining));
-        alloc[id] = have + add;
-        remaining -= add;
-        if (alloc[id] < d) next.push_back(id);
-      }
-      if (next.size() == act.size() && share <= 1u) break;
-      act.swap(next);
-    }
-    for (auto it = ready.begin(); it != ready.end();) {
-      const std::string id = *it;
-      const uint32_t r = alloc.count(id) ? alloc[id] : 0u;
-      if (r < min_of(id) || !mem_ok(id, mem_of(id))) { ++it; continue; }
-      admit_one(it, r);
-      it = ready.begin();  // erase 后重启扫描 (alloc 固定, 剩余节点逐一准入)
-    }
-  };
-
-  // P36 D1: 防御路径 —— active==0 且有就绪节点却仍未准入时强制准入队首至少
-  // min_workers 槽, 保证无死锁推进。
-  auto force_admit_front_locked = [&]() {
-    if (ready.empty()) return;
-    const std::string id = ready.front();
-    ready.pop_front();
-    const uint32_t free_budget =
-        budget_ > reserved_total.load(std::memory_order_relaxed)
-            ? budget_ - reserved_total.load(std::memory_order_relaxed)
-            : 1u;
-    const uint32_t r = std::max(min_of(id), std::min(free_budget, demand_of(id)));
-    reserved_of[id] = r;
-    reserved_total.fetch_add(r, std::memory_order_relaxed);
-    mem_used.fetch_add(mem_of(id), std::memory_order_relaxed);
-    status[id] = NodeStatus::RUNNING;
-    active.fetch_add(1, std::memory_order_relaxed);
-    admitted.push_back(id);
-    ++epoch;
-  };
-
   auto worker = [&]() {
-    uint64_t seen_epoch = 0;
     while (true) {
       std::string node_id;
-      uint32_t my_reserved = 0u;
+      uint64_t node_mem = 0;
+      bool heavy_node = false;  // P7-UTIL-003: 锁内判定"声明满额预算的 cpu_heavy"
       {
         std::unique_lock<std::mutex> lk(mtx);
-        for (;;) {
-          if (cancelled_run.load()) {
-            // 取消: 已准入未执行 / 仍就绪的节点就地 CANCELLED 并释放预留
-            while (!admitted.empty()) {
-              const std::string id = admitted.front(); admitted.pop_front();
-              auto ri = reserved_of.find(id);
-              if (ri != reserved_of.end()) {
-                reserved_total.fetch_sub(ri->second, std::memory_order_relaxed);
-                mem_used.fetch_sub(mem_of(id), std::memory_order_relaxed);
-                reserved_of.erase(ri);
-                --active;
-              }
-              status[id] = NodeStatus::CANCELLED;
-            }
-            while (!ready.empty()) {
-              status[ready.front()] = NodeStatus::CANCELLED;
-              ready.pop_front();
-            }
-            return;
+        cv.wait(lk, [&] {
+          return cancelled_run.load() || !ready.empty() || active.load() == 0;
+        });
+        if (cancelled_run.load()) {
+          while (!ready.empty()) {
+            auto id = ready.front(); ready.pop_front();
+            status[id] = NodeStatus::CANCELLED;
           }
-          if (admitted.empty()) admit_locked();
-          if (!admitted.empty()) break;
-          if (ready.empty() && active.load() == 0) return;  // 全部完成
-          if (active.load() == 0) {
-            // 防御: 无在途且就绪却未准入 → 强制推进 (不死锁)
-            force_admit_front_locked();
-            continue;
-          }
-          cv.wait(lk, [&] {
-            return cancelled_run.load() || !admitted.empty() ||
-                   active.load() == 0 ||
-                   epoch.load(std::memory_order_relaxed) != seen_epoch;
-          });
-          seen_epoch = epoch.load(std::memory_order_relaxed);
+          return;
         }
-        node_id = admitted.front();
-        admitted.pop_front();
-        my_reserved = reserved_of.count(node_id) ? reserved_of[node_id] : 1u;
-        // P36 D1: 本节点可用份额 = 预留槽数 (经 thread_local hint 收缩
-        // RunContext::acquire_lease 的 want, 不超卖)。
-        set_dispatch_budget_hint(my_reserved);
+        if (ready.empty()) {
+          if (active.load() == 0) return;  // 全部完成
+          continue;  // 有在途任务: 回 cv.wait 谓词挂起 (完成路径 notify), 非忙等
+        }
+        // B13-R13-2: 内存回压 — 锁内扫描 ready 队列, 取第一个满足内存约束的
+        // 节点执行 (修复前只看队首, 超限即 notify_all+continue 忙等自旋烧 CPU
+        // 且阻塞整队 = 队头阻塞)。全部超限 → bp_cv 谓词挂起 (零 CPU), 由
+        // active 完成路径 notify 唤醒; active==0 (无在途可释放) 时放行队首
+        // 保证无死锁推进。内存预留语义 (mem_used+need<=limit) 不变。
+        bool dispatched = false;
+        if (memory_limit_bytes_ > 0 && active.load() > 0) {
+          for (auto it = ready.begin(); it != ready.end(); ++it) {
+            auto cit = nodes_.find(*it);
+            const uint64_t need =
+                cit != nodes_.end() ? cit->second.estimated_memory_bytes : 0;
+            if (mem_used.load() + need <= memory_limit_bytes_) {
+              node_id = *it;
+              ready.erase(it);
+              dispatched = true;
+              break;
+            }
+          }
+          if (!dispatched) {
+            // 全部就绪节点超限: 挂起等待在途节点释放内存 (谓词等待, 非自旋)。
+            // active==0 或取消必须唤醒: 无在途可释放时放行队首, 防挂死。
+            bp_cv.wait(lk, [&] {
+              if (cancelled_run.load() || active.load() == 0) return true;
+              for (const auto& id : ready) {
+                auto cit = nodes_.find(id);
+                const uint64_t need = cit != nodes_.end()
+                                          ? cit->second.estimated_memory_bytes
+                                          : 0;
+                if (mem_used.load() + need <= memory_limit_bytes_) return true;
+              }
+              return false;
+            });
+            if (cancelled_run.load()) continue;  // 回到外层走取消分支
+            continue;  // active==0 / 有可调度节点 → 回外层重新评估
+          }
+        } else {
+          // 无内存限制或无在途任务 (active==0): 直接取队首 (回压豁免保证推进)
+          node_id = ready.front();
+          ready.pop_front();
+          dispatched = true;
+        }
+        if (!dispatched) continue;  // 不可达 (防御)
+        auto nit = nodes_.find(node_id);
+        if (nit != nodes_.end()) node_mem = nit->second.estimated_memory_bytes;
+        if (blocked.count(node_id)) {
+          // 失败节点的传递依赖 → SKIPPED（不执行），继续推进依赖计数
+          status[node_id] = NodeStatus::SKIPPED;
+          for (const auto& nxt : rev[node_id]) {
+            if (--remaining_deps[nxt] == 0) ready.push_back(nxt);
+          }
+          cv.notify_all();
+          bp_cv.notify_all();  // 新就绪节点可能满足内存约束, 唤醒回压等待者
+          continue;
+        }
+        mem_used.fetch_add(node_mem);
+        status[node_id] = NodeStatus::RUNNING;
+        ++active;
+        // P7-UTIL-002: 同批在途/排队节点均分唯一 ThreadBudget —— 派发时把本节点可用
+        // 份额写入 thread_local（无并发时 = 整份预算）。修复前先派发者独占整份预算
+        // （ThreadBudget::acquire 取 min(want, available)），后派发者得空租约降级为
+        // 1 线程并持续整个节点。份额只约束本节点并行度，不改变 acquire/释放/降级判定
+        // 语义，也不改变 DAG 并发语义（Σ 在途份额 ≤ budget；两条 cpu_heavy 节点仍并发，
+        // 见 tests/unit/core_scheduler_test.cpp CORE-006）。
+        // "声明需要整份预算"的 cpu_heavy 节点互斥执行（见下方 heavy_gate）：使每个
+        // 都能拿到它声明的满额，而不是被先到者挤成 1 线程。
+        heavy_node = (nit != nodes_.end() &&
+                      nit->second.resource_class == "cpu_heavy" &&
+                      budget_ > 0 && nit->second.max_workers >= budget_);
+        if (heavy_node) {
+          set_dispatch_budget_hint(budget_);
+        } else {
+          const uint32_t concurrent =
+              active.load() + static_cast<uint32_t>(ready.size());
+          const uint32_t share = (budget_ > 0 && concurrent > 0)
+                                     ? std::max<uint32_t>(1u, budget_ / concurrent)
+                                     : budget_;
+          set_dispatch_budget_hint(share);
+        }
       }
+      // P7-UTIL-003: 仅在"多个节点都声明需要整份预算"时互斥（声明需求不冲突的
+      // independent 节点仍并发 —— tests/unit/core_scheduler_test.cpp CORE-006）。
+      std::unique_lock<std::mutex> heavy_gate;
+      if (heavy_node) heavy_gate = std::unique_lock<std::mutex>(heavy_mu);
       // 执行
       bool node_ok = true;
       {
         auto it = nodes_.find(node_id);
         if (it != nodes_.end() && it->second.fn) {
-          // RT-006: 节点执行期间线程本地归属当前 node；RAII 复位。
+          // RT-006: 节点执行期间线程本地归属当前 node（观测事件按节点归属；
+          // 并发节点在各自 worker 线程，无交叉）。RAII 复位：异常路径也清理 TLS。
           trace_set_current_node(node_id);
           struct NodeTlsGuard {
             ~NodeTlsGuard() { trace_set_current_node(""); }
           } tls_guard;
-          // 首败者记录：同一锁内判定 + 写入。
+          // 首败者记录：同一锁内判定 + 写入（并发节点同时失败只保留第一失败根，
+          // 避免裸读 fail_node 的数据竞争；SKIPPED 闭包在同锁 compute_blocked）。
           auto record_failure = [&](const std::string& nid, std::string msg,
                                     ErrorDomain dom) {
             std::lock_guard<std::mutex> lk(mtx);
@@ -400,23 +273,31 @@ Result<void> Scheduler::run(
             auto r = it->second.fn(node_id, ctx);
             node_ok = r.ok();
             if (r.failed()) {
+              // RT-008: 保留节点原始错误域(IO/DATA/...)
               record_failure(node_id, r.error().message(), r.error().domain());
             }
           } catch (const std::exception& e) {
+            // RT-007: 节点 fn 抛 C++ 异常不得杀死 worker/不得泄漏 → 统一按节点
+            // 失败传播。C++ 异常无 Result 域 → 归 INTERNAL（非显式域错误）。
             node_ok = false;
             record_failure(node_id, std::string("node fn threw: ") + e.what(),
                            ErrorDomain::INTERNAL);
           } catch (...) {
+            // 非 std 异常（如裸 throw）：同样按 INTERNAL 节点失败传播，不逃逸 worker。
             node_ok = false;
             record_failure(node_id, "node fn threw (non-std exception)",
                            ErrorDomain::INTERNAL);
           }
         }
         if ((ctx.cancelled() || cancel_.load()) && !cancelled_run.load()) {
-          // RT-007: 取消观察 —— 结果弃用, run 进入 cancelled。
+          // RT-007: 取消观察 —— 本节点在取消置位后返回 → 该节点结果弃用，且本 run
+          // 进入 cancelled（首次观察到取消的节点领取 CANCELLED 失败根；若此前已有
+          // 真实失败根，保留原根/原域，取消只负责收尾分类）。
           node_ok = false;
           std::lock_guard<std::mutex> lk(mtx);
           cancelled_run.store(true);
+          // 取消 latch 变化是回压等待者的谓词条件, 唤醒避免其在 run 收尾挂死
+          bp_cv.notify_all();
           if (fail_node.empty()) {
             fail_node = node_id;
             fail_msg = "cancelled";
@@ -424,16 +305,14 @@ Result<void> Scheduler::run(
           }
         }
       }
-      set_dispatch_budget_hint(0);  // P36 D1: 节点结束复位（异常路径亦到达）
+      set_dispatch_budget_hint(0);  // P7-UTIL-002: 节点结束复位（异常路径亦到达）
       {
         std::lock_guard<std::mutex> lk(mtx);
         --active;
-        mem_used.fetch_sub(mem_of(node_id), std::memory_order_relaxed);
-        auto ri = reserved_of.find(node_id);
-        if (ri != reserved_of.end()) {
-          reserved_total.fetch_sub(ri->second, std::memory_order_relaxed);
-          reserved_of.erase(ri);
-        }
+        mem_used.fetch_sub(node_mem);
+        // RT-007: 取消已 latch 的 run 内, 在途节点结果一律弃用（不得标 COMPLETED,
+        // 无 false-success）。真实失败根（先于取消记录, 非取消 root）仍标 FAILED;
+        // 其余（含取消观察节点自身）标 CANCELLED。
         NodeStatus st;
         if (!cancelled_run.load()) {
           st = node_ok ? NodeStatus::COMPLETED : NodeStatus::FAILED;
@@ -449,8 +328,10 @@ Result<void> Scheduler::run(
             if (--remaining_deps[nxt] == 0) ready.push_back(nxt);
           }
         }
-        ++epoch;  // 预算/内存释放 + 新就绪 → 唤醒挂起 worker 重跑准入
         cv.notify_all();
+        // B13-R13-2: 在途节点完成 → mem_used 下降 / 新节点就绪 / run 收尾,
+        // 均为回压等待者的谓词变化, 必须 notify 唤醒 (替代原忙等轮询)。
+        bp_cv.notify_all();
       }
     }
   };
@@ -471,6 +352,11 @@ Result<void> Scheduler::run(
     statuses->reserve(status.size());
     for (const auto& [id, st] : status) statuses->emplace_back(id, st);
   }
+  // RT-007 收尾分类:
+  //   - 真实失败根先于取消记录（非 CANCELLED 域）→ 返回原域失败（取消不掩盖
+  //     已发生的真实失败; 无 false-success/无错误域丢失）;
+  //   - 取消为决定根（cancel root / 仅 CANCELLED 域）→ 返回 CANCELLED;
+  //   - 无失败 → 成功。
   if (cancelled_run.load() &&
       (fail_node.empty() || fail_domain == ErrorDomain::CANCELLED)) {
     return Result<void>::fail(Error(ErrorDomain::CANCELLED,
