@@ -1,0 +1,7 @@
+100% tests passed, 0 tests failed out of 79
+Total Test time (real) = 141.23 sec
+The following tests FAILED:
+	 36 - cpu007_profile_store (Failed)
+	138 - p1hips_performance (Failed)
+Errors while running CTest
+Output from these tests are in: /tmp/astrocs-audit/build/Testing/Temporary/LastTest.log

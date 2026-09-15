@@ -1,0 +1,19 @@
+PASS T1 F_hat==GLS  120.1778114 vs 120.1778114
+PASS T1 Var==1/W==GLS var  0.5174888932 vs 0.5174888932
+PASS T2 white-noise W==exact diagonal W  1.452457545 vs 1.452457545
+PASS T3 GLS normal eq  [3.60822483e-16 1.47104551e-15]
+   info: GLS [ 2.5806062  -1.73972639] OLS [ 2.31386109 -1.46661104]  (should differ)
+PASS T4 C_out=R C_in R^T
+PASS T5 S_p code==frozen  [10.95238095  9.31034483] vs [10.95238095  9.31034483]
+PASS T5 w_SB==a/A_pixel
+PASS T5 const-SB S_p==B0  [7.5 7.5]
+PASS T5 var code==Sum v w^2/D^2  [0.00989938 0.01074985] vs [0.00989938 0.01074985]
+PASS T5 scaling law
+PASS T6 group median=1 (cnorm=1.0)  1.0
+PASS T6 group median=1 (cnorm=1000.0)  1.0
+PASS T6 group median=1 (cnorm=0.001)  1.0
+PASS T6 monotone increasing in S
+PASS T6 monotone decreasing in N
+PASS T6 1/W != any declared variance source  (contract-level, see report)
+
+TOTAL FAILURES: 0 []

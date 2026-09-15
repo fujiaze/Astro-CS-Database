@@ -1,0 +1,7 @@
+== ssh ==
+ssh: connect to host 100.104.10.71 port 22: Connection timed out
+ssh_rc=255
+== tcp ==
+tcp_rc=124
+== tailscale ==
+100.104.10.71   fatduck          fujiaze04@  windows  active; relay "sfo"; offline, last seen 4h ago, tx 4524 rx 0       
