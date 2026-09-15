@@ -102,3 +102,55 @@
   待注册：`astrocs_v6_aio`、`astrocs_p3_rsmp`、9 个 `add_subdirectory(tests/unit/v6_*)`、
   以及新生产源进入生产库的接线（含 `lib/astro_image_io/v6/src/*`）。
 - 台账：Wave 6（SCHEMA-INTEGRATE-001）置 READY。
+
+## C-008 Wave 6–10 集成、AR-033 清账与负责人裁决项（2026-09-15）
+### 集成链（每任务单 commit + 立即 push main，均已独立复跑）
+- Wave 6 SCHEMA-INTEGRATE-001 `2ac6b758`（10 生产 schema + 词典/词表/迁移映射；词表归一单一权威）
+- Wave 7 P3-INTEGRATE-001 `a689eff2`、P1-INTEGRATE-001 `960d6051`
+- Wave 8 P2-INTEGRATE-001 `4c0296e0`
+- Wave 9 RUNTIME-CI-001 `0d8e98f1`
+- Wave 10 REAL-SCIENCE-001 `815f161f`、PERF-SCALE-001 `f8470f4c`
+- F1 局部裁定：W6 `ac04289d`（docs/contracts 两处 P33/P27 回退态）、W7 `95703e63`（P33
+  snr_frame_coefficient 删除 + P35 p3_resample 回退）、W9 `393db3fb`（P36 六文件回退族）、
+  构建面 `c7432fa0`（3 个 CMakeLists + 8 个已删测试，与回退态自洽）
+- **AR-033 清账 `3e7fbc44`**（控制器 C-004.4 集成动作）：根构建面注册 4 个 V6 生产库
+  （astrocs_v6_aio、astrocs_p3_rsmp、astrocs_v6_phase1_product、astrocs_v6_phase2_integrate）
+  与 13 个 add_subdirectory（9 个 tests/unit/v6_*、tests/integration/v6_{p1,p2,p3}、
+  tests/system/v6_runtime），置于 lib/phase2 之后满足依赖顺序。验证：根 configure rc=0；
+  定向构建 rc=0（0 error）；根图注册 **79 个 V6 ctest**；实跑 98% passed（79/81，2 项非 V6
+  既有测试因未定向构建而 Not Run）。**AR-033 关闭。**
+### 负责人裁决项（阻塞 READY_FOR_OWNER_REVIEW）
+1. **SO-05 资源门（最高优先）**：PERF-SCALE-001 实测 16 worker 活跃窗口 CPU 均值 **65.09%**
+   （冻结门 85%）、p50 87.63%（门 90%）；已按 C-007 以 record_only_pending_owner_signoff 记录，
+   hard_fail=false，未自行裁决。同批记录 memory_growth_unbounded@16w（34.01 MB/s ≥ 32，斜率随
+   墙钟缩短升高，疑启动工作集爬坡）与全预算 alloc_reclaim_missing。**§10.5/§17.6 门是否启用自动
+   判决、以及 16w 低利用率是否判失败，须负责人签字。**
+2. **schema 交叉张力**（P3-INTEGRATE-001 报告）：provenance.v1 的 allOf（bunit=ADU ⇒
+   pixel_semantics=surface_brightness ∧ pixel_area_power=-2）与 signal.v1（integrated_flux ⇒
+   pixel_area_power=0）使**纯积分通量主面不可表达**；AIO bunit_dimension_decidable 亦只接受 SB-ADU。
+   需裁定 FZ-UNIT-FLUX 与 FZ-BUNIT-SEMANTICS 的适用关系（是否修订 schema/gate）。
+3. **quantity.units 未收敛**（P1-INTEGRATE-001 报告）：生产 schema 中为自由 string，篡改
+   W_info.units 仍可过 schema（C++ 重开门已补齐）；建议收紧为 const/enum。相关系数：
+   covariance.v1 对角 representation 强制 operator_descriptor，而 kind 枚举缺「校准 Jacobian」。
+4. **AIO FITS 实数格式**：FitsCard::make_real 用 %.12g 产生小写 e，astropy 判 not FITS standard
+   （p3_proj_v6::fits_keywords 同）。P1/P3 集成任务各自在产物层规范为大写 E 绕过，**AIO 本身待修**；
+   因 lib/astro_image_io/v6 已属 IMPL-AIO-001 已提交写域，未由控制器擅自改，列为待办。
+5. **F-CAR / F-AIT legacy 投影错误**（C-007 登记，仍未裁决）：legacy p3_projection.cpp 的 CAR
+   赤纬反号（偏差 96°）、AIT 缺 Paper II √2（残差 13.05 px）；legacy 文件与其逆向测试
+   tests/unit/p3_projection_test.cpp 不属任何 V6 写域，需负责人授权后才能独立修正。
+6. **Phase2 CLI 真实数据不可达**：PERF-SCALE-001 报 Phase2 三生产模式 CLI 端到端 fail-closed
+   （node upm_fit: control ivar 缺失 / obs=0 overlap_controls=0）；REAL-SCIENCE-001 亦未跑真实
+   FITS 产品链（write_phase1_product → run_point_information/run_psfsw_robust）。属数据流覆盖缺口。
+7. Phase1 provenance.k_corr 是否豁免（Phase1 无 UPM）；施工法见 FZ-PROV-KCORR 域内继承常数 1.4。
+### 诚实性登记（不得冒认）
+- REAL-SCIENCE-001 的 equal/exposure/ivar 三口径为 **DOCUMENTED_BASELINE（驱动内实现）**，
+  仅 W_info 与 PSFSW 走冻结库函数；该验收证明的是 V6 两条生产口径相对文档化基线的行为，
+  **不是**全链生产路径端到端验收。
+- 49 条 PENDING_OWNER_SIGNOFF 与 8 条条款级 OPEN 保持 fail-closed；psf_snr_power 保持 DEFERRED；
+  未解冻任何冻结公式/容差/门。
+- Windows/Fatduck 复验：控制器实测 Fatduck（100.104.10.71:22）**连接超时不可达**；按 §15.3
+  不阻塞 Linux 工作，WIN-VERIFY-001 只能交付 Windows 验证包并置 AWAITING_WINDOWS_VALIDATION，
+  不得宣称 Windows 通过、不得据此发布。
+- 预存差异：本包开工前既有 868 行脏清单已逐步裁定；**剩 12 个 tracked 差异**（artifacts/prerelease_v5
+  3、reports/v19r2 3、evidence/v6_1_rework 2、问题扫描 4）与本包无关，保持未提交。
+- 包状态：**NOT_READY**（剩余 WIN-VERIFY-001 / DOC-CONVERGE-001 / FINAL-AUDIT-001 / OWNER-PACK-001）。
