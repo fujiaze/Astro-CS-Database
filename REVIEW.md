@@ -27,7 +27,14 @@ RT 唯一 executor + 实测资源门、MOD 科学模块安装面、CLI validate/
 
 | 文档 | 内容 |
 |---|---|
-| [SCIENCE_OVERVIEW](docs/owner/SCIENCE_OVERVIEW.md) | 科学权威源汇总、Phase1/2/3 逐项状态、诚实缺口 |
+| [PROJECT_SPEC](docs/owner/PROJECT_SPEC.md) | **冻结宪章之下唯一目标态设计总规范：只描述项目必须做到什么** |
+| [PHASE1_DETAILED_DESIGN](docs/design/PHASE1_DETAILED_DESIGN.md) | 单帧观测模型、PSF/噪声/point-information 产品 |
+| [PHASE2_DETAILED_DESIGN](docs/design/PHASE2_DETAILED_DESIGN.md) | UPM/排异、扩展源 GLS 与点源 Q/W 最优合并 |
+| [PHASE3_DETAILED_DESIGN](docs/design/PHASE3_DETAILED_DESIGN.md) | HiPS 到科学 WCS FITS、采样及 covariance/PSF 传播 |
+| [UNIFIED_SCIENCE_MODEL](docs/science/UNIFIED_SCIENCE_MODEL.md) | SNR、inverse variance、PSF information 的跨阶段定义 |
+| [PSF_SIGNAL_WEIGHT](docs/science/PSF_SIGNAL_WEIGHT.md) | W_info 与 PixInsight-style psfsw_robust 正式集成双轨、适用域和验收 |
+| [SCIENTIFIC_REFERENCES](docs/references/SCIENTIFIC_REFERENCES.md) | 项目采用的外部科学与格式依据总档案 |
+| [SCIENCE_OVERVIEW](docs/owner/SCIENCE_OVERVIEW.md) | 历史状态投影视图；若与 PROJECT_SPEC/统一科学模型冲突，必须迁移 |
 | [PIPELINE_OVERVIEW](docs/owner/PIPELINE_OVERVIEW.md) | 三 Phase 隔离模型、各 Phase 内部链与节点绑定、跨 Phase 磁盘交换 |
 | [ARCHITECTURE_OVERVIEW](docs/owner/ARCHITECTURE_OVERVIEW.md) | Windows 优先、ACR dormant、唯一 Runtime、DLL 边界、依赖方向 |
 | [RELEASE_STATUS](docs/owner/RELEASE_STATUS.md) | **状态词阶梯（§0 唯一口径）**、冻结面清单、未完成清单、发布 Gate 口径 |
@@ -57,9 +64,9 @@ RT 唯一 executor + 实测资源门、MOD 科学模块安装面、CLI validate/
 
 ## 4. 当前进度（Gate 与波次口径）
 
-- 当前唯一 ACTIVE 控制包 = **ASTROCS-CONSTITUTION-ALIGNMENT-V1**
-  （`工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/`，基线 789c5b6c）；
-  其 GOV-001 已完成（宪章 FROZEN，ASTROCS-CONSTITUTION-001，四项负责人裁决 §18）。
+- 当前唯一 ACTIVE 工程包 = **AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915**
+  （`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/`）；从 `BASE-OWN-001` 开始。
+  执行主 Agent 仅作控制器，把所有 READY 且写域互斥任务并行派发给子代理、简审返回并集成提交；不得亲自执行任务正文。V5 及更早包均只作历史证据。
 - 本轮执行态：cprun run **`Rmtxvlrtfa66eb7` rev23**（V2 谱系 47 任务并入后按
   `06_V2_PACK_DESIGN_20260911.md` 六条线组织）；活动状态唯一登记源 =
   `工程控制/ACTIVITY_STATE.md`，任务状态唯一源 = 该包 `TASK_LEDGER.csv`

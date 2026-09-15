@@ -9,7 +9,7 @@
 
 ## 1. 状态枚举
 
-- `ACTIVE`：唯一当前执行控制包；其余包一律不得执行。
+- `ACTIVE`：唯一当前静态工程实施包；其余包一律不得执行。ACTIVE 不表示已注册任何插件运行。
 - `ARCHIVED_SUPERSEDED`：已被上位文件或更新控制包替代；仅作历史线索。
 - `ARCHIVED_DISARMED`：中途 disarm 终止的队列线；未完成任务状态保留作历史，不得据此续作。
 - `REFERENCE_TEMPLATE`：非控制包的格式模板/规范/原件归档区。
@@ -18,7 +18,10 @@
 
 | 包 / 条目 | 包 ID | 状态 | 位置 | 说明 |
 |---|---|---|---|---|
-| AstroCS 科学重审与全流程恢复工作包 V3 | `AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912` | ACTIVE | 解压件：`工程控制/AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912/`；zip 原件：`工程控制/_control_packs/AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912.zip` | 2026-09-13 负责人指令：「使用该工程包替代以前的工程包，作为权威并执行」。不依赖 CPRun/CP 插件，前台直接以 SubAgent 派发；基线 SHA `f5f944a5`，阶段 0 `RESCUE-SNAPSHOT` 已冻结（`run/release-rescue/snapshot/STARTUP_SNAPSHOT.json`） |
+| AstroCS V6 并行科学与工程实施包 | `AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915` | ACTIVE | `工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/` | 35 任务、15 波次；执行主 Agent 作为控制器并行派发所有 READY 且写域互斥的任务给子代理，仅作简审与集成提交；首任务 `BASE-OWN-001` |
+| AstroCS 目标设计落地工程包 V5 | `AstroCS_TARGET_DESIGN_IMPLEMENTATION_V5_20260915` | ARCHIVED_SUPERSEDED | `工程控制/AstroCS_TARGET_DESIGN_IMPLEMENTATION_V5_20260915/` | 因原包禁止子代理且将 PSFSW 限于非正式用途，被允许并行子代理并正式支持 `psfsw_robust` 的 V6 替代，不得继续执行 |
+| AstroCS 收尾控制包 V4 | `AstroCS_CLOSEOUT_CONTROL_V4_20260915` | ARCHIVED_SUPERSEDED | `工程控制/AstroCS_CLOSEOUT_CONTROL_V4_20260915/` | 2026-09-15 曾用于问题收集和初版收尾规划；因顶层 SNR/Phase2 weighting 口径错误，由 V5 完整替代，不得继续执行 |
+| AstroCS 科学重审与全流程恢复工作包 V3 | `AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912` | ARCHIVED_SUPERSEDED | 解压件：`工程控制/AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912/`；zip 原件：`工程控制/_control_packs/AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912.zip` | 2026-09-15 被收尾控制包 V4 替代；审核与实施历史保留，但不得继续派工；其成果和未决项先经 V4 归纳，现统一由 `docs/owner/PROJECT_SPEC.md`、三份 Phase 详细设计及 V5 `RULINGS.md` 裁决 |
 | ASTROCS-CONSTITUTION-ALIGNMENT-V1 | `AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909` | ARCHIVED_SUPERSEDED | `工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/`（**原位保留**：`docs/standards/checks/check_standards_registry.py` 等多处检查器引用其 `05_FINDINGS_REGISTER_20260911.md`，不得移动/删除） | 2026-09-13 被 RESCUE-V3 取代；历史裁决 R-01..R-31 与 findings 登记册仅作追溯线索，本包不得继续派工或据此续作 |
 | V8.1 CI 控制包 | `AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905` | ARCHIVED_SUPERSEDED | 解压件：`工程控制/AstroCS_ALPHA0.11.0_EXISTING_WORKSPACE_CI_CONTROL_V8_1_20260905/`；tracked 镜像：`engineering/control/archive/2026-09-09_superseded_V8.1_CI_CONTROL_20260905/`（56 文件原样移动，SHA-256 零差异，GOV-002） | 治理前提被宪章 supersession 替代；其 `01_FROZEN_CONSTRAINTS.md` 上级来源已降级 ARCHIVED_NON_NORMATIVE；归档说明见镜像目录 `README_ARCHIVED.md` |
 | V7 MODULAR REFOUNDATION | `AstroCS_V7_MODULAR_REFOUNDATION_CONTROL_20260902_FINAL3` | ARCHIVED_DISARMED | `工程控制/AstroCS_V7_MODULAR_REFOUNDATION_CONTROL_20260902_FINAL3/`（台账 `TASK_LEDGER.csv` SHA-256 见 BASE-001 冻结） | 140 任务队列 disarm 终止于 42/140（41 submit + NOISE-IMPL 沿旧包收尾）；旧 cp 运行 `Rmtuajdhv73d430` 已 force 替换废弃；队列台账/TASK_STATE/CSV/COMMIT_LEDGER reconcile --strict rc=0；未完成任务保留 NOT_STARTED 作历史；交接锚 = `memory.md` item 9 |
@@ -36,8 +39,8 @@
 - 未跟踪半成品（P1-NOISE-IMPL）：`lib/snr_estimator/CMakeLists.txt`、
   `lib/snr_estimator/include/`、`lib/snr_estimator/src/`、`tests/unit/p1_noise/`；
 - 根 `CMakeLists.txt` 追加块未提交（预存 8 个 tracked modified 之一）；
-- 处置去向：交由当前 ACTIVE 包 `AstroCS_RELEASE_RESCUE_CONTROL_V3_20260912`
-  按其任务图（`TASK_LIST.md`）正式裁决；在此之前任何任务不得引用为当前实现或顺手删除。
+- 处置去向：交由当前 ACTIVE 包 `AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915`
+  的 `BASE-OWN-001` 先归属，再按任务图正式裁决；在此之前不得引用为当前实现或顺手删除。
 
 ## 4. V7 线未修候选与挂账去向（登记，不处置）
 
@@ -51,9 +54,9 @@
 
 ## 5. 旧台账冻结参照
 
-旧包台账/检查点共 9 文件 SHA-256 冻结于 cprun run `Rmtucy2cqced995` 的
+旧包台账/检查点共 9 文件 SHA-256 冻结于历史 cprun run `Rmtucy2cqced995` 的
 BASE-001 证据（`evidence/BASE-001/freeze_snapshot_r1.json` `ledgers` 字段）：
-本 ACTIVE 包 `TASK_LEDGER.csv`、V6.1 `03_REWORK_TASK_LEDGER.csv`、
+旧 V8.1 台账（不是当前 ACTIVE 包）、V6.1 `03_REWORK_TASK_LEDGER.csv`、
 V7 `TASK_LEDGER.csv`、V8.1 `CONTROL_TASK_LEDGER.csv`/`CURRENT_CHECKPOINT.json`/
 `baseline/V7_1_STATIC_TASK_LEDGER.csv` 及 V8.1 tracked 镜像同哈希三份。
 归档移动后 V8.1 镜像三文件内容 SHA-256 不变（仅路径变更，git R100 56/56 证明）。
