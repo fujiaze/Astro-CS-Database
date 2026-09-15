@@ -1,0 +1,151 @@
+{
+  "schema": "astrocs.v6.perf.PERF-SCALE-001/v1",
+  "task": "PERF-SCALE-001",
+  "wave": 10,
+  "git_head": "5eb702bd72649e498022ca34e4810886b1a6b800",
+  "cli_version": "astrocs 0.11.0-alpha.2+g5eb702bd72649e498022ca34e4810886b1a6b800",
+  "recommended_status": "REVIEW_REQUIRED",
+  "determinism_worker_independence": {
+    "verdict": "PASS",
+    "cli_phase1_real_data": {
+      "science_products": 18,
+      "raw_identical": 14,
+      "normalized_identical": 18,
+      "raw_diff_files": [
+        "p1_final.json (output path)",
+        "p1_stack.json (elapsed_sec)",
+        "signal/properties (creation date)",
+        "support/properties (creation date)"
+      ]
+    },
+    "cli_phase3_three_modes": {
+      "per_mode_science_products": 7,
+      "raw_identical": 4,
+      "normalized_identical": 7,
+      "raw_diff_files": [
+        "output_phase3.fits (RUNID/CHECKSUM header; data arrays bitwise equal)",
+        "p3_verify.json (path/run_id/recorded product sha)",
+        "p3_writer.json (same)"
+      ]
+    },
+    "official_write_paths_1_4_16": {
+      "v6_p1_phase1_write": "46e62599...258f (identical)",
+      "v6_p2_three_modes_write": "9ef8cbfd...f33d (identical)",
+      "v6_p3_export_write": "23ca5bf1...f912 (identical)"
+    },
+    "same_budget_control": "same raw-diff set as cross-budget -> differences are run-scoped, not worker-dependent",
+    "gate_sensitivity": "PASS (payload flip + FITS data flip change digest; RUNID-only patch does not)"
+  },
+  "scaling_workload": "astrocs phase1 run, LDN43 T2 4096x4096 real frame, taskset affinity = worker budget",
+  "scaling": {
+    "workers_1": {
+      "wall_s": 123.01,
+      "proc_cpu_s": 122.67,
+      "eq_cores": 0.996,
+      "speedup": 1,
+      "efficiency": 1
+    },
+    "workers_4": {
+      "wall_s": 50.59,
+      "proc_cpu_s": 179.07,
+      "eq_cores": 3.552,
+      "speedup": 2.432,
+      "efficiency": 0.608
+    },
+    "workers_16": {
+      "wall_s": 22.02,
+      "proc_cpu_s": 215.26,
+      "eq_cores": 9.746,
+      "speedup": 5.586,
+      "efficiency": 0.349
+    }
+  },
+  "resource_gate_s10_5": {
+    "policy": "record_only_pending_owner_signoff",
+    "signoff_id": "SO-05",
+    "hard_fail": false,
+    "auto_adjudication_allowed": false,
+    "thresholds_cited": {
+      "cpu_mean_min_percent_of_allocated": 85,
+      "cpu_p50_min_percent_of_allocated": 90,
+      "consecutive_low_window_seconds": 10,
+      "consecutive_low_util_percent": 60,
+      "memory_growth_limit_mb_per_s": 32
+    },
+    "measured_active_cpu_mean_percent_of_allocated": {
+      "1": 99.55,
+      "4": 90.68,
+      "16": 65.09
+    },
+    "measured_active_cpu_p50_percent_of_allocated": {
+      "1": 100,
+      "4": 99.5,
+      "16": 87.63
+    },
+    "findings": [
+      "cpu_mean_low@16",
+      "cpu_p50_low@16",
+      "memory_growth_unbounded@16 (in-band alloc, max 34.01 MB/s >= 32)",
+      "alloc_reclaim_missing@1,4,16"
+    ],
+    "note": "no PASS/FAIL declared; 16-worker mean below the frozen 85% threshold requires owner signoff",
+    "measured_inband_alloc_growth_mb_per_s": {
+      "1": {
+        "median": 0.001,
+        "verdicts": [
+          "stable"
+        ]
+      },
+      "4": {
+        "median": 1.165,
+        "max": 1.227,
+        "verdicts": [
+          "stable"
+        ]
+      },
+      "16": {
+        "median": 25.03,
+        "max": 34.014,
+        "verdicts": [
+          "growing",
+          "unbounded"
+        ]
+      }
+    }
+  },
+  "release_gate_facts_s17_6": {
+    "only_single_thread_in_recompute": false,
+    "detail_single_thread": "active compute threads mean 4.15@4w, 14.44@16w; 1w is the serial baseline",
+    "unbounded_memory_growth_observed": true,
+    "detail_memory": "in-band alloc_growth_unbounded@16w (34.01 MB/s >= 32); all budgets alloc_reclaim_missing; slope increases as wall shortens (5.98/15.37/34.01 MB/s) -> likely startup working-set ramp, not proven unbounded; registered for owner adjudication"
+  },
+  "negative_checks": {
+    "A1_json_payload_flip": "PASS (gate red)",
+    "A2_fits_data_flip": "PASS (gate red)",
+    "A3_fits_runid_only": "PASS (normalized signature unchanged)",
+    "B_omp_num_threads_1_at_16": "NON-DETECTION (Runtime ScopedOmpWorkerInjection overrides OMP_NUM_THREADS)",
+    "B2_contention_injection": "RECORDED (mean 41.2% of alloc, 34.68s below 60% -> 3 findings)",
+    "C_lease_trace": "RECORDED (each node acquires whole budget cap=16 sequentially, no nesting)",
+    "cli_mode_matrix": "PASS 23/23"
+  },
+  "unavailable": {
+    "phase2_cli_three_modes_real_data": "fail-closed: upm_fit requires control ivar; sample obs=0",
+    "phase3_cli_resource_utilization": "wall ~0.75s, outside >=10s judgement domain",
+    "windows_fatduck": "out of scope (WIN-VERIFY-001)"
+  },
+  "artifacts": {
+    "report": "reports/v6/performance/PERF-SCALE-001.md",
+    "measurement_index": "artifacts/v6/performance/ARTIFACTS_INDEX.json",
+    "perf_summary": "artifacts/v6/performance/p1_real_ldn43_4k_perf_summary.json",
+    "resource_gate_record": "artifacts/v6/performance/p1_real_ldn43_4k_resource_gate_record.json",
+    "determinism": "artifacts/v6/performance/determinism_cli_p1.json",
+    "log_root": "run/v6/performance/"
+  },
+  "discipline": {
+    "committed": false,
+    "pushed": false,
+    "subagents_spawned": false,
+    "fabricated_data": false,
+    "write_scope_only": true
+  }
+}

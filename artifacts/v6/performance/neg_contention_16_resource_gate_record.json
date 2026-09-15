@@ -1,0 +1,53 @@
+{
+  "schema": "astrocs.v6.perf.resource-gate-record/v1",
+  "name": "neg_contention_16",
+  "thresholds_source": "ASTROCS_PROJECT_CONSTITUTION.md §10.5 / §18.2 (frozen)",
+  "thresholds": {
+    "mean_percent_of_allocated": 85.0,
+    "p50_percent_of_allocated": 90.0,
+    "consecutive_window_seconds": 10.0,
+    "consecutive_util_percent": 60.0,
+    "memory_growth_mb_per_s": 32.0,
+    "min_active_compute_threads": 2
+  },
+  "so05": {
+    "signoff_id": "SO-05",
+    "signoff_status": "PENDING_OWNER_SIGNOFF",
+    "measurement_policy": "record_only",
+    "auto_adjudication_policy": "auto_adjudication_withheld_pending_owner_signoff",
+    "hard_fail": false
+  },
+  "status": "record_only_pending_owner_signoff",
+  "hard_fail": false,
+  "findings": [
+    {
+      "kind": "cpu_mean_low",
+      "budget": 16,
+      "detail": "active-stage CPU mean 41.20% of allocated < 85%",
+      "would_fail_if_signed": true
+    },
+    {
+      "kind": "cpu_p50_low",
+      "budget": 16,
+      "detail": "active-stage CPU p50 48.88% of allocated < 90%",
+      "would_fail_if_signed": true
+    },
+    {
+      "kind": "consecutive_low_utilization",
+      "budget": 16,
+      "detail": "consecutive 34.7s below 60% of allocated (window >= 10s)",
+      "would_fail_if_signed": true
+    },
+    {
+      "kind": "alloc_reclaim_missing",
+      "budget": 16,
+      "detail": "in-band alloc report reclaim_verdict=unexplained_residual",
+      "would_fail_if_signed": true
+    }
+  ],
+  "facts_for_release_gates": {
+    "only_single_thread_in_recompute_observed": false,
+    "unbounded_memory_growth_observed": false
+  },
+  "note": "PENDING_OWNER_SIGNOFF: findings are recorded facts, not a PASS/FAIL verdict."
+}

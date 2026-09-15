@@ -1,0 +1,98 @@
+{
+  "schema": "astrocs.v6.determinism/v1",
+  "budgets": [
+    1,
+    4,
+    16
+  ],
+  "results": [
+    {
+      "name": "v6_p1_phase1_write",
+      "source": "tests/integration/v6_p1",
+      "runs": [
+        {
+          "budget": 1,
+          "rc": 0,
+          "cpus": "0",
+          "digest": "46e62599919bac0d3ef2b6eaaede608cd7a1ecb3e6171f39e7bf57de5220258f",
+          "n_files": 4
+        },
+        {
+          "budget": 4,
+          "rc": 0,
+          "cpus": "0,1,2,3",
+          "digest": "46e62599919bac0d3ef2b6eaaede608cd7a1ecb3e6171f39e7bf57de5220258f",
+          "n_files": 4
+        },
+        {
+          "budget": 16,
+          "rc": 0,
+          "cpus": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+          "digest": "46e62599919bac0d3ef2b6eaaede608cd7a1ecb3e6171f39e7bf57de5220258f",
+          "n_files": 4
+        }
+      ],
+      "ok": true,
+      "error": ""
+    },
+    {
+      "name": "v6_p2_three_modes_write",
+      "source": "tests/integration/v6_p2",
+      "runs": [
+        {
+          "budget": 1,
+          "rc": 0,
+          "cpus": "0",
+          "digest": "9ef8cbfd472d0b4e4f83754cf2da259a746283e2510ca07f3ad56fc99e9df33d",
+          "n_files": 17
+        },
+        {
+          "budget": 4,
+          "rc": 0,
+          "cpus": "0,1,2,3",
+          "digest": "9ef8cbfd472d0b4e4f83754cf2da259a746283e2510ca07f3ad56fc99e9df33d",
+          "n_files": 17
+        },
+        {
+          "budget": 16,
+          "rc": 0,
+          "cpus": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+          "digest": "9ef8cbfd472d0b4e4f83754cf2da259a746283e2510ca07f3ad56fc99e9df33d",
+          "n_files": 17
+        }
+      ],
+      "ok": true,
+      "error": ""
+    },
+    {
+      "name": "v6_p3_export_write",
+      "source": "tests/integration/v6_p3",
+      "runs": [
+        {
+          "budget": 1,
+          "rc": 0,
+          "cpus": "0",
+          "digest": "23ca5bf145c28b834f373f376a35a6c0ffb2a350abb92ae8d13bd10c8fcdf912",
+          "n_files": 9
+        },
+        {
+          "budget": 4,
+          "rc": 0,
+          "cpus": "0,1,2,3",
+          "digest": "23ca5bf145c28b834f373f376a35a6c0ffb2a350abb92ae8d13bd10c8fcdf912",
+          "n_files": 9
+        },
+        {
+          "budget": 16,
+          "rc": 0,
+          "cpus": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+          "digest": "23ca5bf145c28b834f373f376a35a6c0ffb2a350abb92ae8d13bd10c8fcdf912",
+          "n_files": 9
+        }
+      ],
+      "ok": true,
+      "error": ""
+    }
+  ],
+  "verdict": "PASS"
+}

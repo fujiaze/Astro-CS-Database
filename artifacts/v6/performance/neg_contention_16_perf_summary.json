@@ -1,0 +1,76 @@
+{
+  "schema": "astrocs.v6.perf.summary/v1",
+  "name": "neg_contention_16",
+  "budgets": [
+    16
+  ],
+  "reps": 1,
+  "metrics_units": {
+    "cpu_pct": "percent_of_one_core (100 = 1 core fully busy)",
+    "cpu_mean_percent_of_allocated": "100 = allocated capacity fully busy",
+    "rss_growth_mb_per_s": "least-squares slope over sampled window"
+  },
+  "per_budget": {
+    "16": {
+      "allocated_cores": 16,
+      "n_reps": 1,
+      "rc_all_zero": true,
+      "wall_seconds_median": 34.93033144599758,
+      "wall_seconds_all": [
+        34.93033144599758
+      ],
+      "proc_cpu_seconds_median": 220.24,
+      "avg_equivalent_cores_median": 6.305121963714884,
+      "external_cpu_mean_percent_of_allocated_median": 39.40701227321802,
+      "inband_active_n": 1,
+      "inband_active_cpu_pct_mean": 659.27,
+      "inband_active_cpu_mean_percent_of_allocated": 41.204375,
+      "inband_active_cpu_p50_percent_of_allocated": 48.875,
+      "inband_active_cpu_p95_percent_of_allocated": 53.875,
+      "inband_active_wall_seconds": 32.501,
+      "inband_active_workers_p50": 16.0,
+      "inband_active_compute_threads_peak": 17,
+      "inband_per_thread_cpu_max_pct": 100.0,
+      "inband_io_wait_pct_mean": 0.36,
+      "rss_peak_bytes_median": 972394496,
+      "pss_peak_bytes_median": 969515008,
+      "read_bytes_median": 0,
+      "write_bytes_median": 135008256,
+      "io_wait_percent_external_median": 0.3435409715139399,
+      "threads_peak_median": 49,
+      "rss_growth_mb_per_s_external_median": 14.276627361861687,
+      "inband_alloc_growth_mb_per_s_median": 8.097,
+      "inband_alloc_growth_mb_per_s_max": 8.097,
+      "inband_alloc_growth_verdicts": [
+        "growing"
+      ],
+      "inband_alloc_reclaim_verdicts": [
+        "unexplained_residual"
+      ],
+      "inband_active_read_bytes_sum": 0.0,
+      "inband_active_write_bytes_sum": 132763648.0,
+      "inband_active_queue_depth_max": 0.0,
+      "inband_active_lock_wait_ns_sum": 0.0,
+      "inband_active_runnable_workers_max": 16.0,
+      "inband_active_compute_threads_mean": 15.333333333333334,
+      "external_active": {
+        "max_consecutive_below_60pct_s_median": 34.679163919063285,
+        "active_compute_threads_min_of_min": 1,
+        "active_compute_threads_max_of_max": 17,
+        "active_compute_threads_mean_median": 13.372093023255815,
+        "intervals_with_single_thread_total": 17,
+        "intervals_total": 129
+      },
+      "speedup_vs_16": 1.0,
+      "parallel_efficiency_vs_16": 1.0,
+      "wall_per_equivalent_core_s": 5.5399929845952025
+    }
+  },
+  "so05": {
+    "signoff_id": "SO-05",
+    "signoff_status": "PENDING_OWNER_SIGNOFF",
+    "measurement_policy": "record_only",
+    "auto_adjudication_policy": "auto_adjudication_withheld_pending_owner_signoff",
+    "hard_fail": false
+  }
+}
