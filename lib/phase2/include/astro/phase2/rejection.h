@@ -324,6 +324,154 @@ typedef struct {
 
 P2_API int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out);
 
+// =====================================================================
+// V6 分类排异（ALG-P2S-REJ.1..7；DESIGN-P2-001 §5）
+//
+// 语义：
+// - 阈值使用**预测残差方差** sigma_eff^2 = sigma_phase1^2 + J C_theta J^T
+//   （单位：signal ADU/px^2，variance ADU^2/px^4）。禁止用裸原始残差
+//   （未含 UPM 参数不确定度）作阈值（ALG-P2S-REJ.3，fail-closed）。
+// - 每样本输出 reason（4 继承：accepted/rejected_low/rejected_high/
+//   underdetermined）+ reason_class（6 污染类，与拒绝方向正交，
+//   ADJ-GEN-02）+ probability（仅门/推断，禁止进权重面）。
+// - 继承阈值（sigma 4.0/3.0/8、linear_fit 5.0/3.5/8、percentile 0.2/0.1、
+//   ESD alpha 0.05/max 10、large_scale 8/2/2 等）原样继承 ALG-REJ-001，
+//   本层不得改动（FZ-REJ-INHERITED-THRESH）。
+// =====================================================================
+
+// reason_class：污染机制（与 reason 方向字段分别落在两个字段）。
+enum P2RejectClass {
+    P2_CLASS_NONE = 0,            // 未归入任何污染类
+    P2_CLASS_COSMIC_RAY = 1,      // 宇宙线/热像素（单帧紧凑，不生长）
+    P2_CLASS_SATELLITE_TRAIL = 2, // 卫星线/拖线（大尺度结构生长）
+    P2_CLASS_BAD_COLUMN = 3,      // 坏列/坏像素（固定列坐标跨帧一致）
+    P2_CLASS_MOVING_SOURCE = 4,   // 移动源（科学信号，默认保留独立层）
+    P2_CLASS_CLOUD_GRADIENT = 5,  // 云/梯度（低频残差与 UPM 背景失配）
+    P2_CLASS_DEFOCUS_TRAIL = 6    // 失焦/拖线（PSF 形状/集中度失配）
+};
+#define P2_REJECT_CLASS_COUNT 7
+
+#define P2_CLASS_SEMANTIC_NONE        "none"
+#define P2_CLASS_SEMANTIC_COSMIC_RAY  "cosmic_ray"
+#define P2_CLASS_SEMANTIC_SAT_TRAIL   "satellite_trail"
+#define P2_CLASS_SEMANTIC_BAD_COLUMN  "bad_column"
+#define P2_CLASS_SEMANTIC_MOVING_SRC  "moving_source"
+#define P2_CLASS_SEMANTIC_CLOUD_GRAD  "cloud_gradient"
+#define P2_CLASS_SEMANTIC_DEFOCUS     "defocus_trail"
+
+// 噪声模型声明位：sigma_eff 必须同时含 Phase1 噪声与 UPM 参数不确定度，
+// 否则 fail-closed（P2_STATUS_INVALID_INPUT）。
+#define P2_NOISE_PHASE1_DECLARED 0x1u
+#define P2_NOISE_UPM_DECLARED    0x2u
+#define P2_NOISE_REQUIRED        (P2_NOISE_PHASE1_DECLARED | P2_NOISE_UPM_DECLARED)
+
+// 校准门数值（ALG-P2S-REJ.4；状态 PENDING_OWNER_SIGNOFF SO-07）。
+// fail-closed：按文档值实现，未签字生效前不得放宽（不得改成更松的值）。
+#define P2_REJ_CALIB_BINMIN   50u
+#define P2_REJ_CALIB_ABS      0.10
+#define P2_REJ_CALIB_BSS_MIN  0.10
+
+// 分类 profile 版本（方法/证据门/后验参数版本化，宪章 §6.3）。
+#define P2_REJECT_CLASSIFY_PROFILE "astrocs.rejection.classify.v1"
+// v1 profile 常量（未版本化改动 → invalid_configuration）
+#define P2_REJ_PROFILE_MOTION_MIN_PX  0.5
+#define P2_REJ_PROFILE_PSF_ANOMALY_MIN 0.2
+#define P2_REJ_PROFILE_CONTAM_PRIOR   0.05
+#define P2_REJ_PROFILE_OUTLIER_KAPPA  4.0
+#define P2_REJ_PROFILE_BIN_COUNT      10u
+
+// 返回污染类 canonical id（未知→"unknown"）。
+P2_API const char* p2_rejection_class_id(int reason_class);
+
+// 校验 plan 的继承阈值（ALG-REJ-001）未被改动：
+// 返回 1 = 全部继承值一致；0 = 任一被改动（调用方 → invalid_configuration）。
+P2_API int p2_reject_plan_thresholds_inherited(const P2RejectionPlan* plan);
+
+// 权重面守卫：tokens 为将写入 weight.sources/weight_value/variance_from 的
+// 来源名。命中禁止 token（rejection/probability/support/coverage/median SN
+// R/FWHM/residual/psfsw）或延迟/legacy 模式值（psf_snr_power/auto/
+// support_x_snr2/0）→ 返回非 0（REJECT）。
+P2_API int p2_rejection_weight_surface_guard(const char* const* tokens,
+                                             std::size_t count,
+                                             char* err, std::size_t err_cap);
+
+// ---- 分类排异配置（阈值必须继承；profile 常量版本化） ----
+typedef struct {
+    P2RejectionPlan plan;        // method 必须 explicit；阈值必须继承值
+    const char* profile_version; // 必须 = P2_REJECT_CLASSIFY_PROFILE
+    double motion_min_px;        // 移动源分类门（v1=0.5 px）
+    double psf_anomaly_min;      // 失焦/拖线 PSF 形状异常门（v1=0.2，无量纲）
+    double contamination_prior;  // 后验先验 P(污染)（v1=0.05）
+    double outlier_inflation;    // 后验污染膨胀 kappa（v1=4.0）
+    int keep_moving_source;      // 1=移动源保留独立层、不进删除 mask（默认 1）
+} P2RejectClassifyConfig;
+
+// 每样本证据（判据域；调用方从像素邻域/跨帧/UPM 残差计算）。
+// residual/sigma_phase1 单位 ADU/px^2；upm_variance 单位 ADU^2/px^4。
+typedef struct {
+    const double* residual;          // r = d - model
+    const double* sigma_phase1;      // sigma_phase1
+    const double* upm_variance;      // J C_theta J^T（标量对角）
+    const std::uint8_t* noise_flags; // P2_NOISE_* 位（每样本）
+    const std::uint8_t* large_scale_growth;   // 可空（1=结构生长）
+    const std::uint8_t* compact_single_frame; // 可空（1=单帧紧凑）
+    const std::uint8_t* column_consistent;    // 可空（1=固定列一致）
+    const double* cross_frame_motion;         // 可空（px，单调位移幅度）
+    const std::uint8_t* low_frequency;        // 可空（1=低频/UPM 背景失配）
+    const double* psf_shape_anomaly;          // 可空（无量纲相对偏差）
+    std::uint32_t count;
+} P2RejectClassifyInput;
+
+typedef struct {
+    std::uint8_t* reasons;         // P2RejectReason（容量 count）
+    std::uint8_t* reason_classes;  // P2RejectClass（容量 count）
+    std::uint8_t* deleted;         // 1=进入排异删除（容量 count）
+    std::uint8_t* preserved;       // 1=移动源保留独立层（容量 count）
+    double* sigma_eff;             // sqrt(sigma_phase1^2+UPM)（容量 count）
+    double* z;                     // r/sigma_eff（容量 count）
+    double* probability;           // p in [0,1]（容量 count）
+    double* class_probability;     // count × P2_REJECT_CLASS_COUNT（行主序）
+    std::uint32_t accepted_count;
+    std::uint32_t rejected_low;
+    std::uint32_t rejected_high;
+    double recall;                 // 拒绝率；n<=2 全接受 → 0.0 显式
+    int status;                    // P2RejectStatus
+} P2RejectClassifyOutput;
+
+// 分类排异主入口（确定性：固定序，无随机，无堆分配依赖顺序）。
+P2_API int p2_reject_classify(const P2RejectClassifyInput* in,
+                              const P2RejectClassifyConfig* cfg,
+                              P2RejectClassifyOutput* out);
+
+// ---- probability 校准门（ALG-P2S-REJ.4） ----
+enum P2RejectCalibrationStatus {
+    P2_CALIB_OK = 0,
+    P2_CALIB_INSUFFICIENT_SAMPLES = 1, // 无箱达到 BINMIN → 不可评估
+    P2_CALIB_RELIABILITY_FAIL = 2,     // max|obs-mean(p)| > ABS
+    P2_CALIB_BSS_FAIL = 3,             // BSS <= BSS_MIN（或 BS_ref 退化）
+    P2_CALIB_INVALID_INPUT = 4
+};
+
+typedef struct {
+    int status;                        // P2RejectCalibrationStatus
+    double brier;                      // BS = mean((p-y)^2)
+    double brier_ref;                  // BS_ref = 基础率常数预测
+    double bss;                        // BSS = 1 - BS/BS_ref
+    double max_abs_reliability_dev;    // 合格箱 max|obs-mean(p)|
+    std::uint32_t bins_total;
+    std::uint32_t bins_used;           // n_bin >= BINMIN
+    std::uint32_t bins_skipped_small;  // n_bin in (0,BINMIN)：覆盖须登记
+    std::uint32_t used_samples;        // 参与判定样本
+    int probability_is_scientific_gate; // 1 当且仅当 status==OK
+} P2RejectCalibrationOutput;
+
+// 在预注册污染注入集上评 probability 校准（训练/验收样本须不同）。
+P2_API int p2_reject_calibration(const double* probability,
+                                 const std::uint8_t* truth,
+                                 std::uint32_t count,
+                                 std::uint32_t bin_count,
+                                 P2RejectCalibrationOutput* out);
+
 #ifdef __cplusplus
 }
 #endif
