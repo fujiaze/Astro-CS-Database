@@ -1,0 +1,41 @@
+{"check":"psf_profile_reject_negative_sample","expect_reject":true,"got_reject":true,"reason":"negative_sample","pass":true}
+{"check":"psf_profile_reject_not_normalized","expect_reject":true,"got_reject":true,"reason":"not_normalized","pass":true}
+{"check":"psf_profile_reject_null","expect_reject":true,"got_reject":true,"reason":"null_input","pass":true}
+{"check":"w_info_reject_nonpositive_sigma2","expect_reject":true,"got_reject":true,"reason":"non_positive_sigma2","pass":true}
+{"check":"w_info_accept_valid_control","expect_reject":false,"got_reject":false,"reason":"","pass":true}
+{"check":"combine_reject_empty","expect_reject":true,"got_reject":true,"reason":"no_points","pass":true}
+{"check":"psfsw_composite_reject_nonpositive_background","expect_reject":true,"got_reject":true,"reason":"background_nonpositive","pass":true}
+{"check":"psfsw_composite_accept_valid_control","expect_reject":false,"got_reject":false,"reason":"","pass":true}
+{"check":"psfsw_reject_too_few_stars","expect_reject":true,"got_reject":true,"reason":"too_few_stars","pass":true}
+{"check":"psfsw_reject_nonpositive_anea","expect_reject":true,"got_reject":true,"reason":"non_positive_a_nea","pass":true}
+{"check":"coadd_reject_ragged","expect_reject":true,"got_reject":true,"reason":"ragged_input","pass":true}
+{"check":"covariance_reject_wrong_size","expect_reject":true,"got_reject":true,"reason":"covariance_size_mismatch","pass":true}
+{"check":"production_modes_exclude_psf_snr_power","expect_reject":true,"got_reject":true,"reason":"production set has 3 modes, psf_snr_power not production","pass":true}
+{"check":"forbidden_weight_aliases_present","expect_reject":true,"got_reject":true,"reason":"median_source_snr/support/coverage/fwhm/psfsw","pass":true}
+{"check":"psfsw_record_g06_variance_from_weight","gate":"PSFSW-G06","base_has":false,"mutant_has":true,"pass":true}
+{"check":"psfsw_record_g05_ivar_key","gate":"PSFSW-G05","base_has":false,"mutant_has":true,"pass":true}
+{"check":"psfsw_record_g02_flux_units","gate":"PSFSW-G02","base_has":false,"mutant_has":true,"pass":true}
+{"check":"psfsw_record_g07_fwhm_only_epsf","gate":"PSFSW-G07","base_has":false,"mutant_has":true,"pass":true}
+{"check":"psfsw_record_g21_legacy_integer","gate":"PSFSW-G21","base_has":false,"mutant_has":true,"pass":true}
+{"check":"route2_production_point_information","ok":true,"detail":"point_information","pass":true}
+{"check":"route2_production_surface_gls","ok":true,"detail":"surface_gls","pass":true}
+{"check":"route2_production_psfsw_robust","ok":true,"detail":"psfsw_robust","pass":true}
+{"check":"route2_baseline_equal","ok":true,"detail":"equal","pass":true}
+{"check":"route2_baseline_pixel_ivar","ok":true,"detail":"pixel_ivar","pass":true}
+{"check":"route2_reject_psf_snr_power","ok":true,"detail":"psf_snr_power","pass":true}
+{"check":"route2_reject_auto","ok":true,"detail":"auto","pass":true}
+{"check":"route2_reject_support_x_snr2","ok":true,"detail":"support_x_snr2","pass":true}
+{"check":"route2_reject_0","ok":true,"detail":"0","pass":true}
+{"check":"route2_reject_bogus","ok":true,"detail":"bogus","pass":true}
+{"check":"route2_reject_empty","ok":true,"detail":"","pass":true}
+{"check":"route_legacy_int_0_reject","ok":true,"detail":"0","pass":true}
+{"check":"route_legacy_int_1_baseline","ok":true,"detail":"1","pass":true}
+{"check":"route_legacy_int_2_baseline","ok":true,"detail":"2","pass":true}
+{"check":"route3_production_surface_brightness","ok":true,"detail":"surface_brightness","pass":true}
+{"check":"route3_production_point_source_flux","ok":true,"detail":"point_source_flux","pass":true}
+{"check":"route3_production_visualization","ok":true,"detail":"visualization","pass":true}
+{"check":"route3_reject_bogus","ok":true,"detail":"bogus_export","pass":true}
+{"check":"no_implicit_phase_chain_run","ok":true,"detail":"run","pass":true}
+{"check":"phase2_run_not_chained","ok":true,"detail":"phase2 run","pass":true}
+{"check":"phase1_run_not_chained","ok":true,"detail":"phase1 run","pass":true}
+{"summary":{"pass":40,"fail":0}}
