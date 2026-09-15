@@ -12,7 +12,7 @@ ROOT = "问题扫描"
 FIND = os.path.join(ROOT, "findings")
 BOOK = os.path.join(ROOT, "账本")
 os.makedirs(BOOK, exist_ok=True)
-ID_RE = re.compile(r"^#{2,4}\s+((?:M\w+|L\d+b?c?d?e?|FD|V\d+|W\d+)-[A-Z]{1,4}\d*-\d+)\b(.*)$")
+ID_RE = re.compile(r"^#{2,4}\s+((?:M\w+|L\d+b?c?d?e?|FD|V\d+|W\d+|SA)-[A-Z]{1,4}\d*-\d+)\b(.*)$")
 KEY = [("category", ["- 类别", "**类别**", "类别:"]),
        ("priority", ["- 建议优先级", "**优先级**", "优先级:"]),
        ("position", ["- 位置", "**位置**", "位置:"]),
@@ -94,7 +94,7 @@ if os.path.exists(dp):
         if m: cur = m.group(1)
         for rid in seen:
             if rid in ln and cur: dec.setdefault(rid, cur)
-FIXCOLS = ["fix_state","fix_commit","fix_date","regression_test","fixed_by","fix_note","verified_state","verified_by","verified_date"]
+FIXCOLS = ["fix_state","fix_commit","fix_date","regression_test","fixed_by","fix_note","verified_state","verified_by","verified_date","verified_note"]
 JUDG = ["id","priority","category","producer","release_blocker","owner_decision","title","position","evidence","impact","clause","related","suggested_disposition","evidence_file","source_line_state"]
 prev = {}
 old = os.path.join(BOOK, "FIX_LEDGER.csv")
