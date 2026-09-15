@@ -72,7 +72,6 @@
 // P8-SNR-LINUX: 逐源 SNR 帧级聚合 (lib/phase1/noise), 其公式实现为
 // lib/snr_estimator/cpp/src/snr_science.cpp (已编入 astrocs_phase1_noise)。
 #include "snr_frame_science.h"
-#include "snr_frame_coefficient.h"
 #include "wcs_tan.h"
 
 // P7-UTIL-001: 节点级 OpenMP 并行度注入的保存/恢复需要 ICV 访问器。
@@ -1162,24 +1161,6 @@ int p1_int(const Json& c, const char* key, int dflt) {
 std::string p1_base_name(const std::string& path) {
   const size_t slash = path.find_last_of("/\\");
   return slash == std::string::npos ? path : path.substr(slash + 1);
-}
-
-// ── P33-FMATCH (P25-F2): 上游目录帧匹配的归一化原语 ───────────────────────
-// p1_match_key = 基名 -> 剥**最后一个扩展名** -> 再剥流水线前缀
-//   （calibrated_ / cleaned_，最多 2 层）。
-// 例: calibrated_X.fits -> X; cleaned_X.fts -> X; X.fts -> X。
-// 动机（P25 实测 NGC55）: 上游 p1_sources.json 记录 calibrated_X.fits, 而下游
-// 节点按 input_lights 解析出 X.fits（或反之 .fts/.fits）→ 旧精确名 join 静默 null。
-std::string p1_match_key(const std::string& name) {
-  std::string base = p1_base_name(name);
-  const size_t dot = base.find_last_of('.');
-  if (dot != std::string::npos && dot != 0) base = base.substr(0, dot);
-  for (int i = 0; i < 2; ++i) {
-    if (base.rfind("calibrated_", 0) == 0) base = base.substr(11);
-    else if (base.rfind("cleaned_", 0) == 0) base = base.substr(8);
-    else break;
-  }
-  return base;
 }
 
 // ── CORE-RACE-001: 原子发布原语（禁就地覆写共享产物路径）────────────────────
@@ -2696,8 +2677,6 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   }
 
   Json frames = Json::array();
-  int n_match_exact = 0;   // P33-FMATCH: 精确名命中的帧数 (provenance)
-  int n_match_stem = 0;    // P33-FMATCH: 经 stem 归一化命中的帧数 (非 0 = 上游扩展名不一致)
   for (const auto& l : doc["input_lights"]) {
     // cosmetic 下游（cos → psf → phot → snr）: 消费 artifact:cos 产物
     const std::string path = p1_cleaned_input_path(doc, l.get<std::string>());
@@ -2722,65 +2701,25 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
         "SNR_F = F/sigma_F (Horne 1986 optimal extraction; "
         "sigma_F^-2 = sum_i P_i^2/sigma_i^2); frame-level science benchmark = "
         "5-sigma point-source depth (SCI-CW-001 2a)";
-    // ── P33-FMATCH (P25-F2 静默数据丢失修复) ────────────────────────────
-    // 缺陷 (P25 实测, NGC55): 旧实现按**精确文件名(含扩展名)** join 上游
-    // p1_sources.json 的 frames[].file。当上游记录 X.fts 而本节点解析到
-    // X.fits (或反之) 时比较失败 -> snr_catalogue_status=
-    // "unavailable_no_upstream_frame" 且全部 SNR 字段 null, 而节点仍返回成功
-    // ⇒ **静默数据丢失** (整帧 SNR 目录丢失却不报错)。
-    // 修复 (fail-closed, 不允许静默全 null):
-    //   1) 精确名匹配 (原语义, 行为不变);
-    //   2) 退化为归一化键 (去扩展名 + 去 calibrated_/cleaned_ 前缀) 匹配: 唯一
-    //      命中即采用, 显式 stderr 告警 + manifest 计数 +
-    //      该帧落 snr_catalogue_match="normalized" (provenance);
-    //   3) 无任何命中 -> DATA 失败 (不写 p1_snr.json, 不落 null 帧);
-    //   4) 同归一化键多命中 -> 显式歧义失败 (不猜)。
-    // 匹配方式落 frame["snr_catalogue_match"] = "exact"|"normalized"。
-    const std::string mkey = p1_match_key(base);
     const Json* src_frame = nullptr;
-    const Json* src_frame_norm = nullptr;
-    int norm_hits = 0;
     for (const auto& fr : src_frames) {
-      if (!fr.is_object()) continue;
-      const std::string fr_file = fr.value("file", std::string());
-      if (fr_file == base) { src_frame = &fr; break; }
-      if (p1_match_key(fr_file) == mkey) { src_frame_norm = &fr; ++norm_hits; }
-    }
-    std::string match_kind;
-    if (src_frame != nullptr) {
-      match_kind = "exact";
-      ++n_match_exact;
-    } else if (norm_hits == 1) {
-      src_frame = src_frame_norm;
-      match_kind = "normalized";
-      ++n_match_stem;
-      std::fprintf(stderr,
-          "[p33-fmatch] WARN 帧 '%s' 与上游 p1_sources.json 无精确名匹配; "
-          "已按归一化键 '%s' 匹配到 '%s' (扩展名/流水线前缀不一致, 计数入 manifest)\n",
-          base.c_str(), mkey.c_str(),
-          src_frame_norm->value("file", std::string()).c_str());
-    } else if (norm_hits > 1) {
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "p1_sources.json has " + std::to_string(norm_hits) +
-          " frames sharing normalized key '" + mkey + "' (ambiguous for input frame '" +
-          base + "'); refusing normalized match (fail-closed)"));
-    } else {
-      std::string avail;
-      int shown = 0;
-      for (const auto& fr : src_frames) {
-        if (!fr.is_object()) continue;
-        if (shown > 0) avail += ", ";
-        if (++shown > 5) { avail += ", ..."; break; }
-        avail += fr.value("file", std::string());
+      if (fr.is_object() && fr.value("file", std::string()) == base) {
+        src_frame = &fr;
+        break;
       }
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "no upstream p1_sources.json frame matches input frame '" + base +
-          "' (normalized key '" + mkey + "') after exact+normalized matching; "
-          "available upstream frames: [" + avail +
-          "] (fail-closed: 不写 p1_snr.json)"));
     }
-    frame["snr_catalogue_match"] = match_kind;
-    {
+    if (src_frame == nullptr) {
+      frame["snr_catalogue_status"] = "unavailable_no_upstream_frame";
+      frame["snr_phot"] = nullptr;
+      frame["median_snr"] = nullptr;
+      frame["median_source_snr"] = nullptr;
+      frame["frame_depth_flux5_adu"] = nullptr;
+      frame["frame_depth_m5_mag"] = nullptr;
+      frame["sigma_location_se_dex"] = nullptr;
+      frame["sigma_location_se_mag"] = nullptr;
+      frame["truncated"] = false;
+      frame["psf_mode"] = "unavailable";
+    } else {
       astrocs::phase1::SnrFrameScienceConfig cfg = sci_cfg;
       cfg.sigma_sky_adu = src_frame->value("noise_sigma", 0.0);
       // ── P14-N-08/N-09 (RQS V2-N-08 + V2-N-09): 交付 SNR 样本真实性 ──────
@@ -2867,62 +2806,23 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
           {"fwhm_px", sci.reference_fwhm_px},
           {"snr_f", sci.reference_snr_f},
           {"sigma_f_adu", sci.reference_sigma_f_adu}};
-      // ── P33-COEF: 帧级单一 SNR 系数 (取代 18-77 MB/帧逐源数组) ──────────
-      // 负责人 2026-09-15 设计变更: "一帧内 SNR 近似一致, 用一个系数" ——
-      // 交付 = 帧级系数 (median(SNR_F), 与 snr_phot/median_snr 同量) + 样本
-      // 定义 + 离散度/灵敏度/噪声尺度 provenance; **逐源数组不再落盘**。
-      // 选型与边界证据见 run/perf-fix/P33-snr-model/REPORT.md 与 DATA_SEMANTICS
-      // §13.5 (低阶矩阵不得冒充局部 SNR 场)。
-      {
-        std::vector<double> deliv_flux;
-        deliv_flux.reserve(rows.size());
-        for (const auto& r : rows) deliv_flux.push_back(r.flux_adu);
-        astrocs::phase1::SnrFrameCoefficientConfig coef_cfg;
-        if (doc.contains("snr") && doc["snr"].is_object())
-          coef_cfg.match_half_dex = doc["snr"].value("coef_match_half_dex", 0.10);
-        const astrocs::phase1::SnrFrameCoefficient coef =
-            astrocs::phase1::compute_snr_frame_coefficient(sci, deliv_flux,
-                                                           coef_cfg);
-        Json cj = Json::parse(
-            astrocs::phase1::snr_frame_coefficient_to_json(coef));
-        // 噪声尺度 provenance: 上游目录 sigma 与生产 NoiseModel 在**同一图像**上
-        // 的逐像素 sigma 及其比值 —— 系数与 sigma_sky 成 1:1, 两者分歧大时该帧
-        // 系数应被消费者怀疑 (P33-COEF 实测 cat/NoiseModel = 0.72-0.97,
-        // cat/局部 512px = 0.28-2.25)。
-        const double cat_sigma = src_frame->value("noise_sigma", 0.0);
-        cj["noise_scale"] = Json{
-            {"upstream_catalogue_sigma_adu",
-             (cat_sigma > 0.0) ? Json(cat_sigma) : Json(nullptr)},
-            {"noisemodel_sigma_adu", (nr.sigma > 0.0) ? Json(nr.sigma) : Json(nullptr)},
-            {"upstream_over_noisemodel",
-             (nr.sigma > 0.0 && cat_sigma > 0.0) ? Json(cat_sigma / nr.sigma)
-                                                 : Json(nullptr)}};
-        cj["frame_depth"] = Json{{"flux5_adu", sci.frame_depth_flux5_adu},
-                                 {"m5_mag", sci.frame_depth_m5_mag},
-                                 {"snr_phot", sci.snr_phot},
-                                 {"median_snr", sci.median_snr}};
-        frame["snr_coefficient"] = std::move(cj);
-        frame["snr_coefficient_schema"] = "DATA-P1-SNR-COEF/1";
-      }
-      // local_snr 相对质量权重场: 只留分布摘要 (逐源数组已由 snr_coefficient 取代)。
-      double ls_min = 0.0, ls_max = 0.0;
-      {
-        bool first = true;
-        for (std::size_t i = 0; i < rows.size(); ++i) {
-          const double v = sci.local_snr[i];
-          if (!std::isfinite(v)) continue;
-          if (first) { ls_min = ls_max = v; first = false; }
-          else { if (v < ls_min) ls_min = v; if (v > ls_max) ls_max = v; }
-        }
+      Json vals = Json::array();
+      Json sarr = Json::array();
+      for (std::size_t i = 0; i < rows.size(); ++i) {
+        vals.push_back(sci.local_snr[i]);
+        sarr.push_back(Json{{"id", rows[i].id},
+                            {"flux_adu", rows[i].flux_adu},
+                            {"fwhm_px", rows[i].fwhm_px},
+                            {"snr_f", sci.snr_f[i]},
+                            {"sigma_f_adu", sci.sigma_f_adu[i]},
+                            {"local_snr", sci.local_snr[i]}});
       }
       frame["local_snr"] = Json{
           {"definition",
            "relative quality weight = SNR_F/median(SNR_F) (SCI-CW-001 4 "
            "quality_weight; NOT a calibrated signal-to-noise ratio)"},
           {"units", "1"},
-          {"values_persisted", false},
-          {"summary", Json{{"n", sci.n_used}, {"median", 1.0},
-                           {"min", ls_min}, {"max", ls_max}}}};
+          {"values", vals}};
       frame["frame_snr"] = Json{
           {"definition",
            "5-sigma point-source depth = F_5 [ADU] / m_5 [mag] (SCI-CW-001 2a); "
@@ -2930,11 +2830,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
           {"flux5_adu", sci.frame_depth_flux5_adu},
           {"m5_mag", sci.frame_depth_m5_mag},
           {"zero_point_mag", cfg.zero_point_mag}};
-      // P33-COEF: 逐源数组 (sources[] / local_snr.values[]) 不再落盘;
-      // 其信息由 snr_coefficient 的帧级系数 + 样本/离散度 provenance 承载
-      // (P25 已证该数组仓内无机器消费者; 上游 p1_sources.json 仍是逐源测光
-      // 的唯一留存处)。
-      frame["sources_persisted"] = false;
+      frame["sources"] = sarr;
     }
     frames.push_back(frame);
   }
@@ -2945,10 +2841,6 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   if (!p1_write_text(out_path, snr_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_frames"] = frames.size();
-  // P33-FMATCH: 上游帧匹配 provenance —— n_snr_frame_match_stem != 0 表示本轮
-  // 有帧依赖 stem 归一化 (上游扩展名不一致); 旧实现这些帧会静默全 null。
-  (*man)["n_snr_frame_match_exact"] = n_match_exact;
-  (*man)["n_snr_frame_match_stem"] = n_match_stem;
   (*man)["snr_schema"] = "DATA-P1-SNR/2";
   (*man)["snr_artifact"] = out_path;
   (*man)["artifacts"] = Json::array({out_path});
