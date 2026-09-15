@@ -48,3 +48,56 @@ target_link_libraries(p1snr_frame_parity_test PRIVATE
   astrocs_module_adapters astrocs_core astrocs_phase1_session)
 add_test(NAME p1snr_frame_parity COMMAND p1snr_frame_parity_test)
 set_tests_properties(p1snr_frame_parity PROPERTIES LABELS "p1snr")
+
+# ============================================================================
+# P33-COEF — 帧级单一 SNR 系数 (lib/phase1/noise/snr_frame_coefficient.cpp)
+# ----------------------------------------------------------------------------
+# 负责人 2026-09-15 设计变更: 一帧一个 SNR 系数, 不再交付稀疏控制点/IDW 层。
+# 被测面 = 生产目标 astrocs_phase1_noise 的系数聚合:
+#   value/robust(样本选择与非恒真)/determinism(顺序无关)/negative(fail-closed)
+#   /serialize(JSON 往返与字段)。
+# ============================================================================
+add_executable(p1snr_frame_coefficient_test p1snr_frame_coefficient_test.cpp)
+target_link_libraries(p1snr_frame_coefficient_test PRIVATE astrocs_phase1_noise)
+if(UNIX)
+  target_link_libraries(p1snr_frame_coefficient_test PRIVATE m)
+endif()
+add_test(NAME p1snr_scf_value COMMAND p1snr_frame_coefficient_test value)
+add_test(NAME p1snr_scf_robust COMMAND p1snr_frame_coefficient_test robust)
+add_test(NAME p1snr_scf_determinism COMMAND p1snr_frame_coefficient_test determinism)
+add_test(NAME p1snr_scf_negative COMMAND p1snr_frame_coefficient_test negative)
+add_test(NAME p1snr_scf_serialize COMMAND p1snr_frame_coefficient_test serialize)
+set_tests_properties(
+  p1snr_scf_value p1snr_scf_robust p1snr_scf_determinism
+  p1snr_scf_negative p1snr_scf_serialize
+  PROPERTIES LABELS "p1snr")
+
+# ============================================================================
+# P33-FMATCH (P25-F2) — 上游帧匹配: stem 归一化 + fail-closed (静默数据丢失修复)
+# ----------------------------------------------------------------------------
+# 端到端经生产模块注册表跑真实 star-psf -> 篡改 p1_sources.json 的 file 字段
+# -> 单独跑 noise-snr:
+#   p1snr_fmatch_exact     — 精确名匹配 (正例: match=exact, snr_phot 有限)
+#   p1snr_fmatch_stem      — 仅扩展名不一致 (.fits/.fts) -> stem 匹配成功,
+#                            match=stem 且 snr_phot 与 exact 案逐位一致,
+#                            manifest n_snr_frame_match_stem=1 (旧实现静默全 null)
+#   p1snr_fmatch_missing   — 无匹配 -> 节点显式失败且不落 p1_snr.json
+#   p1snr_fmatch_ambiguous — 同 stem 多命中 (均非精确名) -> 显式歧义失败
+# ============================================================================
+add_executable(p1snr_frame_match_test p1snr_frame_match_test.cpp)
+target_include_directories(p1snr_frame_match_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/phase1_session/tests/p1sess)
+target_link_libraries(p1snr_frame_match_test PRIVATE
+  astrocs_module_adapters astrocs_core astrocs_phase1_session)
+add_test(NAME p1snr_fmatch_exact COMMAND p1snr_frame_match_test exact)
+add_test(NAME p1snr_fmatch_stem COMMAND p1snr_frame_match_test stem)
+add_test(NAME p1snr_fmatch_prefix COMMAND p1snr_frame_match_test prefix)
+add_test(NAME p1snr_fmatch_missing COMMAND p1snr_frame_match_test missing)
+add_test(NAME p1snr_fmatch_ambiguous COMMAND p1snr_frame_match_test ambiguous)
+set_tests_properties(
+  p1snr_fmatch_exact p1snr_fmatch_stem p1snr_fmatch_prefix p1snr_fmatch_missing
+  p1snr_fmatch_ambiguous
+  PROPERTIES LABELS "p1snr")
+

@@ -495,9 +495,14 @@ target_link_libraries(astrocs_phase1_phot PUBLIC astrocs_contracts)
 add_library(astrocs_phase1_noise STATIC
   lib/phase1/noise/noise_model.cpp
   lib/phase1/noise/snr_frame_science.cpp
+  lib/phase1/noise/snr_frame_coefficient.cpp
   lib/snr_estimator/cpp/src/snr_science.cpp)
 target_include_directories(astrocs_phase1_noise PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1/noise ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# P33-SNR-SPARSE: 稀疏 SNR 控制点模型的 JSON 序列化用 vendored nlohmann/json
+# (仅 .cpp 使用, 不进公共头依赖面)。
+target_include_directories(astrocs_phase1_noise PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 target_link_libraries(astrocs_phase1_noise PUBLIC astrocs_contracts)
 # P10-UTIL2-007: 噪声统计 (median/MAD 次序统计量选择) 与逐源 SNR 聚合使用 OpenMP。
 # 无 OpenMP 时 #pragma omp 被忽略 -> 串行回退且结果逐位不变; 线程数不在本库
