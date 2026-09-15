@@ -1,0 +1,174 @@
+{
+  "schema": "astrocs.v6.owner-package.evidence-index/v1",
+  "task": "OWNER-PACK-001",
+  "baseline_head": "6b45995231cb873e6b33a3817353d266633f6d9f",
+  "hash_algorithm": "sha256",
+  "computed_by": "sha256sum (本包实测)",
+  "entries": [
+    {
+      "path": "reports/v6/final-audit/FINAL-AUDIT-001_REPORT.md",
+      "sha256": "a0ca74094799fdb4a00d759ec27754922a0d4d23380326906967cb434c805b4b",
+      "note": "终审全文（NOT_READY）"
+    },
+    {
+      "path": "reports/v6/final-audit/findings.json",
+      "sha256": "366a643dac35b1951e12d4a99812b5dd9a4b16aeb4d0104ac183f88b3ce81ff7",
+      "note": "23 条 findings 机读源"
+    },
+    {
+      "path": "reports/v6/final-audit/findings.csv",
+      "sha256": "b6d26efe7983684b8715724c1c74a2a5f0e0b9c2194e44b05b3945e85172bf34",
+      "note": "findings 表"
+    },
+    {
+      "path": "reports/v6/final-audit/evidence/independent_oracle.py",
+      "sha256": "a2be5d24e92259daca50822ecf5d17ba7c31efcf4e86478962692384b9b3a96a",
+      "note": "独立 Oracle（17/17）"
+    },
+    {
+      "path": "reports/v6/release-review/04_RELEASE_REVIEW_SECTION14_5.md",
+      "sha256": "dc6fd8b8e7d717b7e880555fdb4a622a94c9cee76a364afe14343c5e6ab51f12",
+      "note": "§14.5 发布复核"
+    },
+    {
+      "path": "artifacts/v6/release-review/release_review_verdict.json",
+      "sha256": "6d13d6d107520a177c38a81cb5830e42a02fb1a1d673bacdad84a21e933f5766",
+      "note": "机读发布判定"
+    },
+    {
+      "path": "reports/v6/performance/PERF-SCALE-001.md",
+      "sha256": "484e438f5f687a62a1bd42360d76f5bf0490b51312fd56f7046581137e4c1308",
+      "note": "性能验收（SO-05）"
+    },
+    {
+      "path": "artifacts/v6/performance/p1_real_ldn43_4k_resource_gate_record.json",
+      "sha256": "e235fbc0ce066ae4c229a42f93faf002ba07da38aca65de6bb9288078bb9a0ed",
+      "note": "资源门记录（record_only）"
+    },
+    {
+      "path": "artifacts/v6/performance/PERF-SCALE-001_summary.json",
+      "sha256": "3046de8f9471db016e9067f812759c011e826330af14655ca3e999584b7754b6",
+      "note": "性能汇总（REVIEW_REQUIRED）"
+    },
+    {
+      "path": "artifacts/v6/performance/p1_real_ldn43_4k_perf_table.csv",
+      "sha256": "f468505b1b76c731dc7285db90427ec8a9fc3be4b20f80cf10465e954f2fac06",
+      "note": "性能表"
+    },
+    {
+      "path": "reports/v6/real-science/REAL-SCIENCE-001_REPORT.md",
+      "sha256": "0d28e4141e09ccef186f6a114ba39c0c6e439e431cd6431024902265a642eda0",
+      "note": "真实科学验收报告"
+    },
+    {
+      "path": "artifacts/v6/real-science/five_mode_measurements.json",
+      "sha256": "5e4118417d03b22f17e29bd9577899bd1eedb87774f7d8235a291294c5887481",
+      "note": "五口径实测"
+    },
+    {
+      "path": "artifacts/v6/real-science/oracle_results.json",
+      "sha256": "a7e5dc7394535f2bfdaed9e30fd9bf0244df4f854664c1dd4e74690f7ac58609",
+      "note": "486/486 Oracle"
+    },
+    {
+      "path": "reports/v6/windows/WIN-VERIFY-001.md",
+      "sha256": "bef6a942369d7b0f4b96a3b445fa9afeafc2bb97f488ed3fae43a3735a2712b4",
+      "note": "Windows 验证包（AWAITING）"
+    },
+    {
+      "path": "artifacts/v6/windows/FATDUCK_REACHABILITY.json",
+      "sha256": "556312822ddb9d251161b65c03222d62e4784a33c656c68fda9f5c889e034c98",
+      "note": "Fatduck 不可达证据"
+    },
+    {
+      "path": "artifacts/v6/windows/GITHUB_ACTIONS_EVIDENCE.json",
+      "sha256": "ce91c08fa3d088a3742348ab1ca92e75cb128c52b6f214c349d91f34d1299125",
+      "note": "Windows CI failure 证据"
+    },
+    {
+      "path": "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json",
+      "sha256": "efc4f258bc407e0054171f95d4bf272611334128badc1caf517c75bf56d3369c",
+      "note": "96 条款冻结（39/49/8）"
+    },
+    {
+      "path": "reports/v6/contract-review/01_FREEZE_STATUS_MATRIX.md",
+      "sha256": "4e0e9c76361a77d66fc3ef460a30b76b44ddf6ea0bef21ea7ec691b225d2262e",
+      "note": "冻结状态矩阵"
+    },
+    {
+      "path": "reports/v6/contract-review/04_OPEN_ITEMS_AND_SIGNOFF.md",
+      "sha256": "b88fd326cecd12dfa2f6d511bf8b7830fc9f1016cb0b8b2d3d113e3a014be6a6",
+      "note": "开放项/签字清单"
+    },
+    {
+      "path": "reports/v6/qa-design/case_ledger.json",
+      "sha256": "578d978ff022d501298207b769d2923dc3ebbf041a08b42401c4a82f7418ffed",
+      "note": "QA 台账（W10 门未执行）"
+    },
+    {
+      "path": "reports/v6/qa-design/qa_matrix.json",
+      "sha256": "a21f9c2c76b5ce38005ffaa026b1d78d92dc8ff200a1a3f780285afc9f1df1ba",
+      "note": "QA 矩阵"
+    },
+    {
+      "path": "reports/v6/science-adjudication/adjudications.json",
+      "sha256": "bd9f63c0db7e153db291b460ca9a73c9338496688e875ef0c55760a547866867",
+      "note": "科学裁决机读源"
+    },
+    {
+      "path": "reports/v6/review-audit/00_导读.md",
+      "sha256": "b9455f38ac93f834399506a3caef7815de395efcc45ada688d5df58b9513b503",
+      "note": "审核导读"
+    },
+    {
+      "path": "工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/TASK_LEDGER.csv",
+      "sha256": "25de4561acad350a6a4abee2a3d84f4ed099c6008369e12cf0670902d54c46ae",
+      "note": "任务状态唯一源"
+    },
+    {
+      "path": "工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/CONTROLLER_LOG.md",
+      "sha256": "e39d3c665a2571cb06b29886f664995a8287f32699bb0a27f6a69db21322dfe4",
+      "note": "C-001..C-010"
+    },
+    {
+      "path": "contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json",
+      "sha256": "254a983b5cc3c232a6549b04ab4a16b9b6b71d16be0bdcaebcd2f781202d5de3",
+      "note": "allOf 单位张力"
+    },
+    {
+      "path": "contracts/schemas/v6/astrocs.v6.signal.v1.schema.json",
+      "sha256": "23e014f4fa03c81481a425002a670ec7aa9c894f1f0ba14821cab62185d9b73e",
+      "note": "integrated_flux/allOf"
+    },
+    {
+      "path": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
+      "sha256": "b6bad1a2e1fa85615fa13f385670d99782d93f62c389fb3cebc356050e4dd8e9",
+      "note": "operator_descriptor 枚举"
+    },
+    {
+      "path": "contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json",
+      "sha256": "d68091737350e1a0d1cc9d54b3baf15fe52040a7d4d860effa25eea5e3d7e10f",
+      "note": "quantity.units 自由 string"
+    },
+    {
+      "path": "lib/astro_image_io/v6/src/v6_fits.cpp",
+      "sha256": "b24ebf4759d02ff64417def9385ae526225da5ee6035067b6432e74af00a66b1",
+      "note": "%.12g 小写 e"
+    },
+    {
+      "path": "lib/phase3_proj/p3_projection.cpp",
+      "sha256": "6fdcba8d3dfceba4f07881c50bb0c1d19247d7f05f73b88400bdb985f2a25203",
+      "note": "legacy CAR/AIT"
+    },
+    {
+      "path": "VERSION",
+      "sha256": "c42c9d58f54f29085af17d9f96fb3caf922a9abdac2f02dd10654174a5309a55",
+      "note": "0.11.0-alpha.2（未提升）"
+    },
+    {
+      "path": "artifacts/v6/owner-package/logs/10_ci_redline_recheck.log",
+      "sha256": "58194b07dd515b46376cca242fe58f5a39b69f7a3bd8bf59f9f155771bd7b747",
+      "note": "本包 CI 独立复跑原始日志"
+    }
+  ]
+}
