@@ -748,6 +748,25 @@ target_include_directories(p3_sampler_cache_test PRIVATE
 target_link_libraries(p3_sampler_cache_test PRIVATE astrocs_phase3_session astrocs_hips astrocs_aio astrocs_common)
 add_test(NAME p3_sampler_cache COMMAND p3_sampler_cache_test)
 
+add_executable(p35_bilinear_memo_test p35_bilinear_memo_test.cpp)
+target_include_directories(p35_bilinear_memo_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_session
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common/healpix)
+target_link_libraries(p35_bilinear_memo_test PRIVATE
+  astrocs_phase3_session astrocs_hips astrocs_aio astrocs_common)
+add_test(NAME p35_bilinear_memo COMMAND p35_bilinear_memo_test)
+
+add_executable(p35_candidate_incremental_test p35_candidate_incremental_test.cpp)
+target_include_directories(p35_candidate_incremental_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/healpix_db/healpix_drizzle
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common/healpix
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include)
+target_link_libraries(p35_candidate_incremental_test PRIVATE
+  astrocs_drizzle ${CMAKE_DL_LIBS} ${ASTROCS_OMP_TARGET})
+add_test(NAME p35_candidate_incremental COMMAND p35_candidate_incremental_test)
+
 # 依赖 ASTROCS_REPO 定位仓库内资源文件的测试统一注入仓库根路径，
 # 保证 ctest 无论从哪个工作目录启动均可解析 (QA-001 ctest 回归全绿)
 set_tests_properties(
