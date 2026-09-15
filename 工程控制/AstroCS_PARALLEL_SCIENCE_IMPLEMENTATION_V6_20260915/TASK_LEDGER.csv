@@ -28,8 +28,8 @@ P1-INTEGRATE-001,PASS,7,IMPL-P1-CAL-001;IMPL-P1-PSFW-001;IMPL-P1-DRZ-001;IMPL-AI
 P3-INTEGRATE-001,PASS,7,IMPL-P3-PROJ-001;IMPL-P3-RSMP-001;IMPL-AIO-001;SCHEMA-INTEGRATE-001,lib/phase3_session/;tests/integration/v6_p3/,acd21cd5-33fe-44b9-8470-19b1fcffc0b0,lib/phase3_session/p3_v6_export.cpp;tests/integration/v6_p3/EVIDENCE.md;run/v6/p3-intg/logs/final_run.log,ctest3-3;oracle183-checks;neg16-16-red;astropy7-OK
 P2-INTEGRATE-001,PASS,8,IMPL-P2-UPM-001;IMPL-P2-REJ-001;IMPL-P2-SAMP-001;P1-INTEGRATE-001;SCHEMA-INTEGRATE-001,lib/phase2/src/integrate.cpp;lib/phase2/include/astro/phase2/integrate.h;lib/phase2/src/block.cpp;lib/phase2/include/astro/phase2/block.h;lib/phase2_int/;lib/phase2_session/;tests/integration/v6_p2/,69e74e54-6238-412f-a408-f5cb002d9939,lib/phase2_int/v6/src/phase2_integrate.cpp;tests/integration/v6_p2/v6_p2_integrate_test.cpp;run/v6/P2-INTEGRATE-001/logs/14_ctest_final.log,ctest5-5;checks102;neg18-18-red;oracle-numpy-rel1e-9
 RUNTIME-CI-001,PASS,9,P1-INTEGRATE-001;P2-INTEGRATE-001;P3-INTEGRATE-001,runtime/;lib/core/;cli/;tools/v6/;ci/;.github/;tests/system/v6_runtime/,8cbf3323-066d-4aa0-8e57-c15270c92d8c,cli/v6_runtime_contract.h;runtime/v6_budget.py;tools/v6/v6_runtime_oracle.py;tests/system/v6_runtime/,ctest11-11;oracle2869-0;mut11-11;climatrix23-23;SO-05-record-only
-REAL-SCIENCE-001,BLOCKED,10,"RUNTIME-CI-001","artifacts/v6/real-science/;reports/v6/real-science/;run/v6/real-science/",,,
-PERF-SCALE-001,BLOCKED,10,"RUNTIME-CI-001","artifacts/v6/performance/;reports/v6/performance/;run/v6/performance/",,,
+REAL-SCIENCE-001,READY,10,RUNTIME-CI-001,artifacts/v6/real-science/;reports/v6/real-science/;run/v6/real-science/,,,
+PERF-SCALE-001,READY,10,RUNTIME-CI-001,artifacts/v6/performance/;reports/v6/performance/;run/v6/performance/,,,
 WIN-VERIFY-001,BLOCKED,11,"REAL-SCIENCE-001;PERF-SCALE-001","artifacts/v6/windows/;reports/v6/windows/",,,
 DOC-CONVERGE-001,BLOCKED,12,"WIN-VERIFY-001","docs/;README.md;REVIEW.md;CHANGELOG.md;reports/v6/release-review/;artifacts/v6/release-review/",,,
 FINAL-AUDIT-001,BLOCKED,13,"DOC-CONVERGE-001","reports/v6/final-audit/",,,
