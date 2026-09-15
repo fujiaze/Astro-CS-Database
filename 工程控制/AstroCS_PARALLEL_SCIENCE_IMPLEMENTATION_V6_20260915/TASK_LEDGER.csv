@@ -22,7 +22,7 @@ IMPL-P2-REJ-001,PASS,5,CONTRACT-FREEZE-001,lib/phase2/src/rejection.cpp;lib/phas
 IMPL-P2-SAMP-001,PASS,5,CONTRACT-FREEZE-001,lib/phase2/src/sampler.cpp;lib/phase2/src/coverage.cpp;lib/phase2/include/astro/phase2/sampler.h;lib/phase2/include/astro/phase2/coverage.h;lib/phase2_samp/;tests/unit/v6_p2_samp/,169ecae0-f489-407d-b246-29063ec80c87,lib/phase2/src/coverage.cpp;tests/unit/v6_p2_samp/v6_p2_samp_test.cpp;run/v6/p2-samp/summary.json,ctest10-10;checks174;oracle98-0;mut8-8-caught
 IMPL-P3-PROJ-001,PASS,5,CONTRACT-FREEZE-001,lib/phase3_proj/;tests/unit/v6_p3_proj/,d5b6e76f-694d-4c1b-a50d-abd178cb6467,lib/phase3_proj/p3_proj_v6.cpp;tests/unit/v6_p3_proj/;run/v6/IMPL-P3-PROJ-001/REPORT.md,ctest8-8;astropy-oracle8-8;mut5-caught;F-CAR/F-AIT-open
 IMPL-P3-RSMP-001,READY,5,CONTRACT-FREEZE-001,lib/phase3_rsmp/;tests/unit/v6_p3_rsmp/,,,
-IMPL-AIO-001,READY,5,CONTRACT-FREEZE-001,lib/astro_image_io/;tests/unit/v6_aio/,,,
+IMPL-AIO-001,PASS,5,CONTRACT-FREEZE-001,lib/astro_image_io/;tests/unit/v6_aio/,e010f6e4-adeb-4ec2-98e9-6f54959ada95,lib/astro_image_io/v6/src/v6_atomic_publish.cpp;tests/unit/v6_aio/v6_aio_test.cpp;run/v6/impl-aio-001/SUMMARY.md,ctest9-9;astropy-checksum3-3;oracle10-10;implmut12-12-caught
 SCHEMA-INTEGRATE-001,BLOCKED,6,"CONTRACT-FREEZE-001","contracts/schemas/;contracts/data/;docs/contracts/;tests/contracts/v6/",,,
 P1-INTEGRATE-001,BLOCKED,7,"IMPL-P1-CAL-001;IMPL-P1-PSFW-001;IMPL-P1-DRZ-001;IMPL-AIO-001;SCHEMA-INTEGRATE-001","lib/phase1/;lib/phase1_session/;tests/integration/v6_p1/",,,
 P3-INTEGRATE-001,BLOCKED,7,"IMPL-P3-PROJ-001;IMPL-P3-RSMP-001;IMPL-AIO-001;SCHEMA-INTEGRATE-001","lib/phase3_session/;tests/integration/v6_p3/",,,
