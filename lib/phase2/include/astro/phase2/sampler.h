@@ -131,6 +131,120 @@ P2_API int p2_sample_controls_cached(
     std::uint64_t ctrl_capacity,
     char* err, std::size_t err_size);
 
+// ===========================================================================
+// V6 目标态：空间模型求值、空间摘要与帧级标量降级门
+// ---------------------------------------------------------------------------
+// 冻结锚：
+//   DESIGN-P2 §7 / UNIFIED §8 : PSF/背景/variance/photometric response/
+//       point information 默认是空间量，Phase2 必须在输出位置求值；压成
+//       帧级标量必须同时过 (a) 空间残差/趋势门 与 (b) 功率损失门，并输出
+//       p05/p50/p95 + 最大系统偏差 + 采样覆盖 + 模型误差 + 适用域；否则
+//       保留 map/model/control points；
+//   FZ-DEGRADE-SCALAR        : 缺分位数/未过门即 REJECT；
+//   FZ-GATE-SUPPORT-COVERAGE : support/coverage 只作门，不得冒充权重；
+//   FZ-COND-WHITENOISE       : 白噪声近似为条件式（本求值器不产生权重）；
+//   SO-07（PENDING_OWNER_SIGNOFF）: 残差/趋势与功率损失阈值数值待签，
+//       本实现不自行定值；调用方未显式声明阈值即 fail-closed。
+// ---------------------------------------------------------------------------
+// 单位（冻结表，不在此重定义）：signal_sb=ADU/px^2、sb_variance_out=
+// ADU^2/px^4、W_info=ADU^-2、Q=ADU^-1、flux=ADU、psfsw_robust_weight=1。
+// 求值器按调用方声明的量求值，不改变单位、不发明权重、不把值当 variance。
+// 值必须来自 Phase1 模型；缺失/NaN 一律 fail-closed，禁止零填。
+// ===========================================================================
+
+typedef enum {
+    P2_SPATIAL_OK            = 0,  // 求值成功
+    P2_SPATIAL_OUT_OF_DOMAIN = 1,  // 输出位置在模型节点域外：禁止外插
+    P2_SPATIAL_MISSING_NODE  = 2,  // 双线性支撑节点缺失/NaN：禁止零填/退化
+    P2_SPATIAL_INVALID_MODEL = 3   // 模型非法（空/尺寸<2/步长<=0/非有限）
+} P2SpatialEvalStatus;
+
+// 规则网格空间模型：节点 (ix,iy) 位于
+//   (ra0_deg + ix*step_deg, dec0_deg + iy*step_deg)，
+// value/valid row-major = [iy*nx + ix]。valid==0 与 value=NaN 同义（缺失）。
+typedef struct {
+    double ra0_deg;
+    double dec0_deg;
+    double step_deg;
+    std::uint64_t nx;
+    std::uint64_t ny;
+    const double* value;         // 长度 nx*ny，NaN=缺失
+    const std::uint8_t* valid;   // 长度 nx*ny，0=缺失
+} P2SpatialGridModel;
+
+typedef struct {
+    P2SpatialEvalStatus status;
+    double value;                // status==P2_SPATIAL_OK 时有效
+    std::uint64_t n_used_nodes;  // 参与插值的有效节点数（成功时=4）
+    char err[256];
+} P2SpatialEval;
+
+// 确定性双线性求值（DESIGN-P2 §7）。域内 0<=fx<=nx-1 且 0<=fy<=ny-1；
+// 边界（恰在节点/右/上边）精确取该边节点，不做外插。
+// 四角任一 valid==0 或值非有限 → P2_SPATIAL_MISSING_NODE（禁止跳过/零填）。
+// 返回 0=status 为 P2_SPATIAL_OK；1=未成功（status 已写，err 已写）。
+P2_API int p2_spatial_model_eval(const P2SpatialGridModel* model,
+                                 double ra_deg, double dec_deg,
+                                 P2SpatialEval* out);
+
+// 空间摘要（ADJ-GEN-04 摘要面：分位数 + 最大系统偏差 + 采样覆盖 + 模型误差）。
+// 只统计有效节点；有效节点值必须全部有限（任一非有限 → rc=1 fail-closed）。
+// 无有效节点 → rc=1。分位数为最近秩法 index=floor(p*(n_valid-1))（确定性）。
+// sampling_coverage = n_valid / n_nodes ∈ [0,1]；
+// max_systematic_deviation = max|v - p50|；model_error = RMS(v - p50)。
+typedef struct {
+    std::uint64_t n_nodes;
+    std::uint64_t n_valid;
+    double p05;
+    double p50;
+    double p95;
+    double max_systematic_deviation;
+    double model_error;
+    double sampling_coverage;
+} P2SpatialSummary;
+
+P2_API int p2_spatial_model_summary(const P2SpatialGridModel* model,
+                                    P2SpatialSummary* out,
+                                    char* err, std::size_t err_size);
+
+// 帧级标量降级门阈值（FZ-DEGRADE-SCALAR）。数值属 SO-07
+// PENDING_OWNER_SIGNOFF：thresholds_declared=0 或阈值非正/非有限 →
+// fail-closed（P2_SCALAR_UNAVAILABLE），不得自行定值、不得放宽。
+typedef struct {
+    int thresholds_declared;   // 1 = 调用方显式声明以下冻结阈值
+    double residual_trend_max; // (a) 空间残差/趋势门上限（相对量）
+    double power_loss_max;     // (b) 功率损失门上限（detection power 相对损失）
+} P2ScalarGateThresholds;
+
+// 标量摘要输入（压缩前必须完整；summary_complete=0 或缺键 → fail-closed）。
+typedef struct {
+    int summary_complete;      // 1 = 以下 p05..适用域全部声明
+    double spatial_residual_p95;      // (a) 空间残差 p95
+    double spatial_trend;             // (a) 空间趋势 max|线性拟合值|/p50
+    double power_loss;                // (b) 功率损失（detection power 相对损失）
+    double p05;
+    double p50;
+    double p95;
+    double max_systematic_deviation;
+    double sampling_coverage;
+    double model_error;
+    char applicability_domain[128];
+} P2ScalarSummaryInput;
+
+typedef enum {
+    P2_SCALAR_ALLOWED        = 0,  // 双门通过 + 摘要完整 → 允许帧级标量
+    P2_SCALAR_RETAIN_SPATIAL = 1,  // 门未过 → 必须保留 map/model/control points
+    P2_SCALAR_UNAVAILABLE    = 2   // 阈值未声明 / 摘要缺键 / 非法值 → fail-closed
+} P2ScalarDegradeVerdict;
+
+// 帧级标量降级门（FZ-DEGRADE-SCALAR）。verdict 始终写出（out 非空时）。
+// 返回 0=ALLOWED（可标量）；1=RETAIN_SPATIAL 或 UNAVAILABLE（fail-closed，
+// err 写原因）；2=参数错误（th/s/out 为空）。
+P2_API int p2_scalar_degrade_gate(const P2ScalarGateThresholds* th,
+                                  const P2ScalarSummaryInput* s,
+                                  P2ScalarDegradeVerdict* out_verdict,
+                                  char* err, std::size_t err_size);
+
 #ifdef __cplusplus
 }
 #endif

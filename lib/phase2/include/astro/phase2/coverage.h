@@ -9,6 +9,7 @@
 // - Ω = MOC_1 ∪ ... ∪ MOC_N（NESTED，允许不连通分量）。
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -59,6 +60,109 @@ P2_API int p2_coverage_build(
     P2CoverageResult* out);
 
 P2_API int p2_coverage_free(P2CoverageResult* out);
+
+// ===========================================================================
+// V6 目标态：coverage/support 区分、确定性边界与权重角色门
+// ---------------------------------------------------------------------------
+// 冻结锚：
+//   FZ-GATE-SUPPORT-COVERAGE : support/coverage 只作门（gate），不得作
+//                              inverse-variance / SNR / 科学权重 / variance；
+//                              进 weight.sources 即 REJECT；
+//   FZ-GATE-MEDIAN-SNR       : median(SNR_F)/median_source_snr/fwhm/residual
+//                              仅诊断，进权重面即 REJECT（C-004.2）；
+//   FZ-MODE-PRODUCTION       : 生产模式仅 point_information / surface_gls /
+//                              psfsw_robust；
+//   FZ-MODE-DEFERRED         : psf_snr_power 不得进生产路由（C-004.1）；
+//   FZ-FIELD-WEIGHTMODE      : legacy 整数 0(=support x snr^2) 不得进科学
+//                              权重面；
+//   DESIGN-P2 §8             : 分块/并行只改执行，不改归约次序；跨 tile
+//                              边界状态有确定边界协议；缺失不得静默零填。
+// 语义源：docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json
+//         （forbidden.weight_source_tokens / production_weight_mode_forbidden_values
+//          / weight_modes.production）。本头文件不得另造词表（C-004.3）。
+//
+// 单位（冻结表，本模块不重定义）：signal_sb=ADU/px^2、sb_variance_out=
+// ADU^2/px^4、sb_ivar_out=px^4/ADU^2、W_info=ADU^-2、psfsw_robust_weight=1。
+// support/coverage 无量纲且不是 weight。
+// ===========================================================================
+
+// 输出元素状态：封闭枚举。缺失/NaN 规范以 P2_CELL_UNAVAILABLE 显式表达，
+// 禁止零填成 P2_CELL_COVERED_UNSUPPORTED（否则"未知"被冒充为"已知无支撑"）。
+typedef enum {
+    P2_CELL_UNCOVERED           = 0,  // 不在 coverage union 内
+    P2_CELL_COVERED_UNSUPPORTED = 1,  // 在 union 内，支撑已测知但 < min_support_frames
+    P2_CELL_SUPPORTED           = 2,  // 在 union 内，支撑已测知且 >= min_support_frames
+    P2_CELL_UNAVAILABLE         = 3   // coverage/support 缺失或 NaN：fail-closed，
+                                      // 不得零填、不得当"无支撑"或"有支撑"使用
+} P2CellState;
+
+// coverage/support 判定输入。两独立面：
+//   - coverage      : union 覆盖指示（1=在 Ω 内）；缺失以 coverage_known=0 表示；
+//   - support_frames: 该元素的有效支撑帧计数（来自各帧 support 层）；
+//   - support_known : 1=计数已测知；0=缺失/NaN（禁止用 support_frames=0 冒充）。
+// support_frames < min_support_frames 只影响门判定，绝不产生任何权重。
+typedef struct {
+    std::uint64_t n_cells;
+    const std::uint8_t*  coverage;        // 长度 n_cells，1=在 union 内
+    const std::uint8_t*  coverage_known;  // 长度 n_cells，1=已测知（可空=全部已知）
+    const std::uint32_t* support_frames;  // 长度 n_cells，有效支撑帧计数
+    const std::uint8_t*  support_known;   // 长度 n_cells，1=已测知（不得可空）
+    std::uint32_t min_support_frames;     // 门（只作门，非权重）
+} P2CoverageSupportInput;
+
+// 确定性分类。同一输入 → 逐位相同输出，与遍历/分块/worker 数无关。
+// 规则（fail-closed）：
+//   coverage_known==0 或 support_known==0 → P2_CELL_UNAVAILABLE；
+//   coverage==0                            → P2_CELL_UNCOVERED；
+//   support_frames < min_support_frames     → P2_CELL_COVERED_UNSUPPORTED；
+//   否则                                    → P2_CELL_SUPPORTED。
+// out_* 计数均可空；out_n_unavailable 统计缺失（未被零填）。
+// 返回 0=ok；1=参数错误（空输入/空 out_state/n_cells==0）。
+P2_API int p2_coverage_support_classify(
+    const P2CoverageSupportInput* in,
+    P2CellState* out_state,
+    std::uint64_t* out_n_supported,
+    std::uint64_t* out_n_covered_unsupported,
+    std::uint64_t* out_n_uncovered,
+    std::uint64_t* out_n_unavailable,
+    char* err, std::size_t err_size);
+
+// 跨 tile 边界的确定性归属（DESIGN-P2 §8）。给定叶级 ipix 与父聚合位移
+// leaf_shift（父 order 比叶 order 粗 leaf_shift 级），owner = ipix >> (2*leaf_shift)。
+// 边界（同父）叶节点因此恰好归属同一唯一 owner，与进入方向/worker 无关。
+// leaf_shift<0 或 shift 过大（2*leaf_shift>=64）→ 返回 UINT64_MAX（非法哨兵）。
+P2_API std::uint64_t p2_tile_boundary_owner(std::uint64_t leaf_ipix,
+                                            int leaf_shift);
+
+// 确定性规约序：把（可能无序、可重复的）ipix 集合规范化为升序去重序列。
+// 同一集合 → 同一序列（与输入顺序、分块方式、worker 数无关）。
+// capacity 不足时返回 1 且 out_n 写真实需求（probe/fill 协议）。
+// out_n 可空。输入含重复项不报错（去重）。
+P2_API int p2_deterministic_reduction_order(
+    const std::uint64_t* ipix_in, std::uint64_t n_in,
+    std::uint64_t* out_sorted, std::uint64_t capacity,
+    std::uint64_t* out_n,
+    char* err, std::size_t err_size);
+
+// 权重来源 token 门（FZ-GATE-SUPPORT-COVERAGE / FZ-GATE-MEDIAN-SNR /
+// FZ-FIELD-WEIGHTMODE）。逐 token 做大小写不敏感全等匹配冻结集合
+// forbidden.weight_source_tokens（另含 psfsw_robust_weight/psfsw 等）；
+// 任一命中 → rc=1 + 原因（token 名）。token==NULL/空串跳过。
+// 本函数只做拒绝，不产生权重，也不重排/改写词表。
+// 返回 0=通过；1=命中禁止 token；2=参数错误（tokens==NULL 且 n>0）。
+P2_API int p2_weight_source_token_reject(
+    const char* const* tokens, std::uint64_t n,
+    char* err, std::size_t err_size);
+
+// 生产权重模式门（FZ-MODE-PRODUCTION / FZ-MODE-DEFERRED /
+// FZ-MODE-BASELINE）。allowed 集合 = {point_information, surface_gls,
+// psfsw_robust}；显式拒绝 psf_snr_power / auto / support_x_snr2 / 空串 /
+// NULL / 未知值。equal / pixel_ivar 属 documented baseline（可识别但不作
+// 生产模式）。mode 为 "equal" 或 "pixel_ivar" → rc=2（baseline，非生产）
+// 且 err 说明不得声明科学最优。
+// 返回 0=生产模式；1=禁止/未知（REJECT）；2=baseline 模式（非生产）。
+P2_API int p2_weight_mode_check(const char* mode,
+                                char* err, std::size_t err_size);
 
 #ifdef __cplusplus
 }
