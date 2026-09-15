@@ -1,0 +1,3846 @@
+[
+{
+"path": "lib/calibration/src/module_entry.cpp",
+"line": 644,
+"fn": "decode_plane",
+"params": "const char* b64, uint64_t bl, uint64_t plane_bytes, bytes* plane, acs_error_info_v1* err, const char* what",
+"unused": [
+[
+"what",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/calibration/src/module_entry.cpp",
+"line": 663,
+"fn": "build_out_manifest",
+"params": "const exec_cfg& c, int is_f64, const uint8_t* out_plane, uint64_t plane_bytes, double actual_k, int64_t hot, int64_t cold, std::string* out_json, acs_error_info_v1* err",
+"unused": [
+[
+"err",
+"unref"
+]
+]
+},
+{
+"path": "lib/calibration/src/module_entry.cpp",
+"line": 944,
+"fn": "cal_describe",
+"params": "const acs_module_api_v1* self, acs_str_v1 module_id, acs_module_descriptor_v1* out_desc",
+"unused": [
+[
+"self",
+"unref"
+]
+]
+},
+{
+"path": "lib/calibration/src/module_entry.cpp",
+"line": 999,
+"fn": "cal_validate_config",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/calibration/src/module_entry.cpp",
+"line": 1038,
+"fn": "cal_plan",
+"params": "const acs_module_api_v1* self, acs_str_v1 node_id, acs_str_v1 config_json, acs_strbuf_v1* out_plan_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/calibration/src/module_entry.cpp",
+"line": 1112,
+"fn": "cal_create",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, const acs_host_api_v1* host, acs_module_instance_v1** out, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/calibration/src/module_entry.cpp",
+"line": 1325,
+"fn": "astrocs_module_query_v1",
+"params": "uint32_t host_abi, const acs_host_api_v1* host, const acs_module_api_v1** out_api",
+"unused": [
+[
+"host",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/calibration/src/dark_optimizer.cpp",
+"line": 49,
+"fn": "optimize_dark_k",
+"params": "const float* light, const float* bias, const float* dark, const float* flat, int w, int h, float k_init, hiss::Stage1Diagnostics& diagnostics",
+"unused": [
+[
+"flat",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/calibration/tests/test_photometry_apply.cpp",
+"line": 10,
+"fn": "record_fail",
+"params": "const char* msg, const char* detail = nullptr",
+"unused": [
+[
+"nullptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/calibration/tests/p1cal/p1cal_tests_core.cpp",
+"line": 7,
+"fn": "near_equal",
+"params": "double got, double want, double rtol = kRtol, double atol = kAtol",
+"unused": [
+[
+"kRtol",
+"unref"
+],
+[
+"kAtol",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/archive/legacy/healpix_stack/hp_stack_api.cpp",
+"line": 385,
+"fn": "hp_stack_run",
+"params": "const PipelineFrame** frames, int n_frames, const char* output_path, HpStackResult* result",
+"unused": [
+[
+"frames",
+"void-cast"
+],
+[
+"n_frames",
+"void-cast"
+],
+[
+"output_path",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/healpix_db/archive/legacy/healpix_stack/stack_engine.cpp",
+"line": 12,
+"fn": "StackEngine",
+"params": "const StackDbConfig& config) : m_config(config",
+"unused": [
+[
+"config",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/archive/legacy/healpix_stack/gradient/gradient_sampler.cpp",
+"line": 81,
+"fn": "rejectStars",
+"params": " const std::vector<int64_t>& nbr_ipix, const healpix::HealpixCore& hp, const double* gaia_ra, const double* gaia_dec, const float* gaia_mag, int n_gaia, double star_reject_base_arcsec, double star_rej",
+"unused": [
+[
+"zero_threshold",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_drizzle/spherical_overlap.cpp",
+"line": 241,
+"fn": "get_healpix_boundary",
+"params": " const healpix::HealpixCore& hp, uint64_t ipix, int nside",
+"unused": [
+[
+"nside",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_drizzle/spherical_overlap.cpp",
+"line": 290,
+"fn": "get_healpix_boundary4",
+"params": "const healpix::HealpixCore& hp, uint64_t ipix, int nside, std::array<Vec3T<T>, 4>& out",
+"unused": [
+[
+"nside",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_drizzle/spherical_overlap.cpp",
+"line": 373,
+"fn": "get_healpix_boundary_sampled",
+"params": " const healpix::HealpixCore& hp, uint64_t ipix, int nside, int samples_per_edge",
+"unused": [
+[
+"nside",
+"void-cast"
+],
+[
+"samples_per_edge",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_drizzle/spherical_overlap.cpp",
+"line": 584,
+"fn": "planar_polygon_area_n",
+"params": "const Vec3* pts, int n, const Vec3* center = nullptr",
+"unused": [
+[
+"nullptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_drizzle/drizzle_engine.cpp",
+"line": 732,
+"fn": "getHealpixCorners",
+"params": "const healpix::HealpixCore& hp, int64_t ipix, double ra0, double dec0, std::vector<SkyCoord>& corners",
+"unused": [
+[
+"ra0",
+"void-cast"
+],
+[
+"dec0",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_drizzle/drizzle_engine.cpp",
+"line": 1030,
+"fn": "processPixelSharedTiled",
+"params": " double px, double py, Scalar pixelValue, float , float , float varianceValue, DrizzleOpCounters& counters, const spherical::Vec3 corners_v[4], const WcsSip& wcs, const DrizzleConfig& config, const he",
+"unused": [
+[
+"float",
+"unref"
+],
+[
+"float",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_drizzle/tests/reverse_drizzle_science_test.cpp",
+"line": 219,
+"fn": "run_case",
+"params": "const WcsParams& w, int W, int H, int nside, double pixfrac, double B0, const std::function<double(const Vec3&)>& B, bool linear, double b0, const Vec3& c, bool sb_check, const std::vector<double>* su",
+"unused": [
+[
+"nullptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp",
+"line": 28,
+"fn": "main",
+"params": "int argc, char** argv",
+"unused": [
+[
+"argv",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_perf.cpp",
+"line": 43,
+"fn": "main",
+"params": "int argc, char** argv",
+"unused": [
+[
+"argc",
+"void-cast"
+],
+[
+"argv",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/core/browser_backend.cpp",
+"line": 6,
+"fn": "BrowserBackend",
+"params": ") : is_hiss_(false), nside_(0), n_pix_(0), nested_(1), all_ipix_(nullptr), all_pixel_(nullptr",
+"unused": [
+[
+"nullptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/core/browser_backend.cpp",
+"line": 338,
+"fn": "decide_target_nside",
+"params": "const ViewParams& view, uint64_t leaf_ipix, int viewport_w, int viewport_h",
+"unused": [
+[
+"leaf_ipix",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/core/gl_renderer.cpp",
+"line": 341,
+"fn": "GLRenderer",
+"params": ") : sphere_program_(0), quad_program_(0), sphere_vao_(0), sphere_vbo_(0), sphere_ibo_(0), sphere_index_count_(0), quad_vao_(0), quad_vbo_(0), current_frame_(0), cached_stf_(), cached_data_min_(0.0f), ",
+"unused": [
+[
+"false",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/core/gl_renderer.cpp",
+"line": 798,
+"fn": "need_rebuild_mesh",
+"params": "const ViewParams& view, int viewport_w, int viewport_h",
+"unused": [
+[
+"viewport_h",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/core/stf_engine.cpp",
+"line": 129,
+"fn": "to_uniforms",
+"params": "const STFParams& params, float data_min, float data_max, float no_data_value",
+"unused": [
+[
+"data_min",
+"void-cast"
+],
+[
+"data_max",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/tests/test_stf_engine.cpp",
+"line": 3,
+"fn": "approx",
+"params": "float a, float b, float eps = 1e-5f",
+"unused": [
+[
+"f",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/app/stf_panel.cpp",
+"line": 3,
+"fn": "STFPanel",
+"params": "QWidget* parent) : QDockWidget(\"STF \u63a7\u5236\", parent), auto_button_(nullptr",
+"unused": [
+[
+"nullptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/app/stf_bar.cpp",
+"line": 7,
+"fn": "STFBar",
+"params": "QWidget* parent) : QWidget(parent",
+"unused": [
+[
+"parent",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/app/browser_cli.cpp",
+"line": 240,
+"fn": "run_dataset_stats",
+"params": "const std::string& dir, JsonOut& json, int layer",
+"unused": [
+[
+"layer",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/app/main_window.cpp",
+"line": 24,
+"fn": "MainWindow",
+"params": "QWidget* parent) : QMainWindow(parent), backend_(std::make_unique<BrowserBackend>()), current_view_(nullptr), stf_panel_(nullptr), status_file_(nullptr), status_view_(nullptr), status_mouse_(nullptr",
+"unused": [
+[
+"nullptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/app/main_window.cpp",
+"line": 310,
+"fn": "on_tile_layer_changed",
+"params": "int index",
+"unused": [
+[
+"index",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/widgets/abstract_view.cpp",
+"line": 4,
+"fn": "AbstractView",
+"params": "QWidget* parent) : QOpenGLWidget(parent), backend_(nullptr), renderer_(nullptr), data_min_(0.0f), data_max_(1.0f), no_data_value_(0.0f), gl_initialized_(false), data_range_computed_(false",
+"unused": [
+[
+"false",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/widgets/sphere_view.cpp",
+"line": 241,
+"fn": "handle_touch_end",
+"params": "QTouchEvent* event",
+"unused": [
+[
+"event",
+"unref"
+]
+]
+},
+{
+"path": "lib/healpix_db/healpix_browser_qt/widgets/hips_view.cpp",
+"line": 7,
+"fn": "HipsView",
+"params": "QWidget* parent) : QWidget(parent",
+"unused": [
+[
+"parent",
+"unref"
+]
+]
+},
+{
+"path": "lib/hips/src/module_entry.cpp",
+"line": 244,
+"fn": "hips_cfg_free",
+"params": "hips_cfg* c",
+"unused": [
+[
+"c",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/hips/src/module_entry.cpp",
+"line": 511,
+"fn": "hips_describe",
+"params": "const acs_module_api_v1* self, acs_str_v1 module_id, acs_module_descriptor_v1* out_desc",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/hips/src/module_entry.cpp",
+"line": 534,
+"fn": "hips_validate_config",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/hips/src/module_entry.cpp",
+"line": 539,
+"fn": "hips_plan",
+"params": "const acs_module_api_v1* self, acs_str_v1 node_id, acs_str_v1 config_json, acs_strbuf_v1* out_plan_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/hips/src/module_entry.cpp",
+"line": 599,
+"fn": "hips_create",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, const acs_host_api_v1* host, acs_module_instance_v1** out, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/hips/src/module_entry.cpp",
+"line": 986,
+"fn": "astrocs_module_query_v1",
+"params": "uint32_t host_abi, const acs_host_api_v1* host, const acs_module_api_v1** out_api",
+"unused": [
+[
+"host",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/drizzle/src/module_entry.cpp",
+"line": 435,
+"fn": "drz_describe",
+"params": "const acs_module_api_v1* self, acs_str_v1 module_id, acs_module_descriptor_v1* out_desc",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/drizzle/src/module_entry.cpp",
+"line": 464,
+"fn": "drz_validate_config",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/drizzle/src/module_entry.cpp",
+"line": 475,
+"fn": "drz_plan",
+"params": "const acs_module_api_v1* self, acs_str_v1 node_id, acs_str_v1 config_json, acs_strbuf_v1* out_plan_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/drizzle/src/module_entry.cpp",
+"line": 546,
+"fn": "drz_create",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, const acs_host_api_v1* host, acs_module_instance_v1** out, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/drizzle/src/module_entry.cpp",
+"line": 1179,
+"fn": "astrocs_module_query_v1",
+"params": "uint32_t host_abi, const acs_host_api_v1* host, const acs_module_api_v1** out_api",
+"unused": [
+[
+"host",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/gaia_xpsd_client/src/module_entry.c",
+"line": 358,
+"fn": "gaia_describe",
+"params": "const acs_module_api_v1* self, acs_str_v1 module_id, acs_module_descriptor_v1* out_desc",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/gaia_xpsd_client/src/module_entry.c",
+"line": 391,
+"fn": "gaia_validate_config",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/gaia_xpsd_client/src/module_entry.c",
+"line": 404,
+"fn": "gaia_plan",
+"params": "const acs_module_api_v1* self, acs_str_v1 node_id, acs_str_v1 config_json, acs_strbuf_v1* out_plan_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+],
+[
+"node_id",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/gaia_xpsd_client/src/module_entry.c",
+"line": 483,
+"fn": "gaia_create",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, const acs_host_api_v1* host, acs_module_instance_v1** out, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/gaia_xpsd_client/src/module_entry.c",
+"line": 524,
+"fn": "gaia_execute",
+"params": "acs_module_instance_v1* inst_raw, acs_str_v1 input_manifest_json, acs_str_v1 config_json, acs_strbuf_v1* out_manifest_json, acs_error_info_v1* err",
+"unused": [
+[
+"input_manifest_json",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/gaia_xpsd_client/src/module_entry.c",
+"line": 898,
+"fn": "astrocs_module_query_v1",
+"params": "uint32_t host_abi, const acs_host_api_v1* host, const acs_module_api_v1** out_api",
+"unused": [
+[
+"host",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/star_detector/src/sdet_api.cpp",
+"line": 397,
+"fn": "sdet_moffat4_fit",
+"params": "const T* image, int width, int height, double cx, double cy, int rect_x0, int rect_y0, int rect_x1, int rect_y1, InternalFitResult* result, LMWorkspace* = nullptr, double sat_threshold = 0.0, double =",
+"unused": [
+[
+"nullptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/profile/profile_reader.cpp",
+"line": 164,
+"fn": "parse_overhead",
+"params": "JsonParser& p, FixedOverhead& out",
+"unused": [
+[
+"out",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/profile/profile_reader.cpp",
+"line": 190,
+"fn": "parse_library",
+"params": "JsonParser& p, LibraryCapability& out",
+"unused": [
+[
+"out",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/profile/profile_reader.cpp",
+"line": 215,
+"fn": "parse_device",
+"params": "JsonParser& p, DeviceProfile& out",
+"unused": [
+[
+"out",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/qualification/benchmarks/numa_benchmark.cpp",
+"line": 73,
+"fn": "free_numa",
+"params": "hwloc_topology_t topo, void* ptr, std::size_t ",
+"unused": [
+[
+"size_t",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/qualification/benchmarks/stream_benchmark.cpp",
+"line": 77,
+"fn": "select_kernel",
+"params": "IsaLabel isa",
+"unused": [
+[
+"isa",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/qualification/focused/focused_operations.cpp",
+"line": 328,
+"fn": "reference_drizzle_scatter",
+"params": "const std::vector<float>& x, std::vector<double>& bins_out, std::size_t n_bins, std::uint64_t seed",
+"unused": [
+[
+"seed",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/acr/qualification/focused/focused_benchmark.cpp",
+"line": 115,
+"fn": "run",
+"params": "FocusedProfileKind kind, bool enable_gpu",
+"unused": [
+[
+"kind",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/acr/core/runtime.cpp",
+"line": 348,
+"fn": "submit_serial",
+"params": "Range1D range, RangeKernelFn fn, void* user_data, ReleaseFn rel, ExecutionHints ",
+"unused": [
+[
+"ExecutionHints",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/core/runtime.cpp",
+"line": 446,
+"fn": "range_chunk_thunk",
+"params": "std::size_t , std::size_t begin, std::size_t end, void* ud",
+"unused": [
+[
+"size_t",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/tests/classic/e18_workpool.cpp",
+"line": 36,
+"fn": "make_mixed_estimate",
+"params": "std::size_t n",
+"unused": [
+[
+"n",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/tests/classic/e18_workpool.cpp",
+"line": 234,
+"fn": "run_profile_hash_unchanged",
+"params": "const std::string& case_id",
+"unused": [
+[
+"case_id",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/tests/classic/e10_mandelbrot.cpp",
+"line": 32,
+"fn": "run_mandelbrot",
+"params": "std::size_t w, std::size_t h, double cx_min, double cx_max, double cy_min, double cy_max, int max_iter, const std::string& case_id, const std::string& region_label",
+"unused": [
+[
+"region_label",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/tests/classic/e12_fft.cpp",
+"line": 223,
+"fn": "run_fft_library_skipped",
+"params": "std::size_t n, const std::string& kind, const std::string& case_id",
+"unused": [
+[
+"kind",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/acr/tests/unit/test_invocation_dispatch.cpp",
+"line": 74,
+"fn": "MockSchedulingExecutor",
+"params": "std::size_t rec, std::size_t min_chunk, std::atomic<bool>* on_first_submit = nullptr) : rec_(rec), min_chunk_(min_chunk), on_first_submit_(on_first_submit",
+"unused": [
+[
+"rec",
+"unref"
+],
+[
+"min_chunk",
+"unref"
+],
+[
+"on_first_submit",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/tests/unit/test_invocation_dispatch.cpp",
+"line": 126,
+"fn": "GatedCpuExecutor",
+"params": "std::size_t rec, std::size_t min_chunk, std::atomic<bool>* gpu_started) : CpuExecutor(\"cpu\", rec, min_chunk), gpu_started_(gpu_started",
+"unused": [
+[
+"rec",
+"unref"
+],
+[
+"min_chunk",
+"unref"
+],
+[
+"rec",
+"unref"
+],
+[
+"gpu_started",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/tests/unit/test_invocation_dispatch.cpp",
+"line": 147,
+"fn": "make_mock_executor",
+"params": "ExecutorRegistry& reg, std::size_t rec, std::size_t min_chunk, std::atomic<bool>* on_first_submit = nullptr",
+"unused": [
+[
+"nullptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/examples/weighted_integration/route_profile_calibration.cpp",
+"line": 224,
+"fn": "fill_stats_from_result",
+"params": "RouteSamplePoint& st, const scheduler::CostAwareResult& r, std::uint64_t setup_h2d, bool accumulate = false",
+"unused": [
+[
+"false",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/scheduler/mixed_route_planner.cpp",
+"line": 76,
+"fn": "should_claim",
+"params": "const MixedRoutePlan& plan, const std::string& device_backend, std::size_t remaining, std::size_t queue_depth, double device_measured_ns_per_item, double other_measured_ns_per_item, bool allow_first_b",
+"unused": [
+[
+"queue_depth",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/scheduler/device_executor.cpp",
+"line": 23,
+"fn": "CpuExecutor",
+"params": "const std::string& id, std::size_t recommended_chunk, std::size_t min_chunk, const KernelRegistry* registry) : id_str_(id) , recommended_chunk_(recommended_chunk) , min_chunk_(min_chunk) , registry_(r",
+"unused": [
+[
+"recommended_chunk",
+"unref"
+],
+[
+"min_chunk",
+"unref"
+],
+[
+"registry",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/scheduler/dispatcher.cpp",
+"line": 1837,
+"fn": "dispatch_invocation",
+"params": " const TaskDescriptor& task, const cost::CostEstimate& estimate, const KernelInvocation& invocation",
+"unused": [
+[
+"task",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/acr/backends/cuda/cuda_bridge_loader.cpp",
+"line": 145,
+"fn": "CudaBridgeExecutor",
+"params": "void* handle, int device, std::string name) : handle_(handle), device_(device), name_(std::move(name)",
+"unused": [
+[
+"handle",
+"unref"
+],
+[
+"device",
+"unref"
+]
+]
+},
+{
+"path": "lib/acr/backends/cuda/cuda_executor.cpp",
+"line": 4,
+"fn": "CudaExecutor",
+"params": "int device_id, std::size_t recommended_chunk, std::size_t min_chunk, const KernelRegistry* registry) : device_id_(device_id) , device_id_str_(\"cuda:\" + std::to_string(device_id)) , recommended_chunk_(",
+"unused": [
+[
+"device_id",
+"unref"
+],
+[
+"recommended_chunk",
+"unref"
+],
+[
+"min_chunk",
+"unref"
+],
+[
+"registry",
+"unref"
+]
+]
+},
+{
+"path": "lib/core/src/executor.cpp",
+"line": 145,
+"fn": "IoExecutor",
+"params": "uint32_t max_concurrency, uint32_t queue_capacity) : impl_(std::make_unique<Impl>(max_concurrency, queue_capacity)",
+"unused": [
+[
+"max_concurrency",
+"unref"
+]
+]
+},
+{
+"path": "lib/core/src/scheduler.cpp",
+"line": 4,
+"fn": "Scheduler",
+"params": "uint32_t available_cpu, uint32_t budget, uint64_t memory_limit_bytes) : budget_(std::max<uint32_t>(1, std::min(budget, std::max<uint32_t>(1, available_cpu)))), memory_limit_bytes_(memory_limit_bytes",
+"unused": [
+[
+"available_cpu",
+"unref"
+],
+[
+"budget",
+"unref"
+],
+[
+"memory_limit_bytes",
+"unref"
+]
+]
+},
+{
+"path": "lib/core/src/logging.cpp",
+"line": 47,
+"fn": "Logger",
+"params": "LogLevel min_level) : min_level_(min_level",
+"unused": [
+[
+"min_level",
+"unref"
+]
+]
+},
+{
+"path": "lib/core/src/artifact.cpp",
+"line": 124,
+"fn": "extract_uint",
+"params": "const std::string& in, const char* k, uint64_t* out",
+"unused": [
+[
+"out",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/src/dll_loader.cpp",
+"line": 377,
+"fn": "get_proc_address",
+"params": "HMODULE , const std::string& ",
+"unused": [
+[
+"HMODULE",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/src/dll_loader.cpp",
+"line": 381,
+"fn": "free_library",
+"params": "HMODULE ",
+"unused": [
+[
+"HMODULE",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/src/cli_command.cpp",
+"line": 10,
+"fn": "p04004_sigint_handler",
+"params": "int sig",
+"unused": [
+[
+"sig",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/tests/test_dll_loader.cpp",
+"line": 259,
+"fn": "main",
+"params": "int argc, char* argv[]",
+"unused": [
+[
+"argc",
+"unref"
+],
+[
+"argv",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp",
+"line": 1704,
+"fn": "main",
+"params": "int argc, char* argv[]",
+"unused": [
+[
+"argc",
+"unref"
+],
+[
+"argv",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/tests/test_checkpoint.cpp",
+"line": 513,
+"fn": "main",
+"params": "int argc, char* argv[]",
+"unused": [
+[
+"argc",
+"unref"
+],
+[
+"argv",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 108,
+"fn": "schema_ref",
+"params": "const std::string &id, root_schema *root) : schema(root), id_(id",
+"unused": [
+[
+"id",
+"unref"
+],
+[
+"id",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 150,
+"fn": "root_schema",
+"params": "schema_loader &&loader, format_checker &&format, content_checker &&content) : loader_(std::move(loader)), format_check_(std::move(format)), content_check_(std::move(content)",
+"unused": [
+[
+"loader",
+"unref"
+],
+[
+"format",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 451,
+"fn": "is_validate_complete",
+"params": "const json &, const json::json_pointer &, error_handler &e, const logical_combination_error_handler &esub, size_t, size_t current_schema_index",
+"unused": [
+[
+"size_t",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 466,
+"fn": "is_validate_complete",
+"params": "const json &, const json::json_pointer &, error_handler &, const logical_combination_error_handler &, size_t count, size_t",
+"unused": [
+[
+"size_t",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 473,
+"fn": "is_validate_complete",
+"params": "const json &instance, const json::json_pointer &ptr, error_handler &e, const logical_combination_error_handler &, size_t count, size_t",
+"unused": [
+[
+"size_t",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 725,
+"fn": "string",
+"params": "json &sch, root_schema *root) : schema(root",
+"unused": [
+[
+"root",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 832,
+"fn": "numeric",
+"params": "const json &sch, root_schema *root, std::set<std::string> &kw) : schema(root",
+"unused": [
+[
+"root",
+"unref"
+],
+[
+"root",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 865,
+"fn": "null",
+"params": "json &, root_schema *root) : schema(root",
+"unused": [
+[
+"root",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 868,
+"fn": "boolean_type",
+"params": "json &, root_schema *root) : schema(root",
+"unused": [
+[
+"root",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 879,
+"fn": "boolean",
+"params": "json &sch, root_schema *root) : schema(root), true_(sch",
+"unused": [
+[
+"sch",
+"unref"
+],
+[
+"sch",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 899,
+"fn": "required",
+"params": "const std::vector<std::string> &r, root_schema *root) : schema(root), required_(r",
+"unused": [
+[
+"r",
+"unref"
+],
+[
+"r",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 1307,
+"fn": "json_validator",
+"params": "schema_loader loader, format_checker format, content_checker content) : root_(std::unique_ptr<root_schema>(new root_schema(std::move(loader), std::move(format), std::move(content)))",
+"unused": [
+[
+"loader",
+"unref"
+],
+[
+"format",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 1321,
+"fn": "json_validator",
+"params": "const json &schema, schema_loader loader, format_checker format, content_checker content) : json_validator(std::move(loader), std::move(format), std::move(content)",
+"unused": [
+[
+"loader",
+"unref"
+],
+[
+"format",
+"unref"
+]
+]
+},
+{
+"path": "lib/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp",
+"line": 1331,
+"fn": "json_validator",
+"params": "json &&schema, schema_loader loader, format_checker format, content_checker content) : json_validator(std::move(loader), std::move(format), std::move(content)",
+"unused": [
+[
+"loader",
+"unref"
+],
+[
+"format",
+"unref"
+]
+]
+},
+{
+"path": "lib/snr_estimator/src/module_entry.cpp",
+"line": 267,
+"fn": "noise_cfg_free",
+"params": "noise_cfg* c",
+"unused": [
+[
+"c",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/snr_estimator/src/module_entry.cpp",
+"line": 530,
+"fn": "noise_rows_parse_fill",
+"params": "const char* manifest, const noise_cfg* c, noise_rows* r, acs_error_info_v1* err",
+"unused": [
+[
+"c",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/snr_estimator/src/module_entry.cpp",
+"line": 571,
+"fn": "noise_describe",
+"params": "const acs_module_api_v1* self, acs_str_v1 module_id, acs_module_descriptor_v1* out_desc",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/snr_estimator/src/module_entry.cpp",
+"line": 596,
+"fn": "noise_validate_config",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/snr_estimator/src/module_entry.cpp",
+"line": 608,
+"fn": "noise_plan",
+"params": "const acs_module_api_v1* self, acs_str_v1 node_id, acs_str_v1 config_json, acs_strbuf_v1* out_plan_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/snr_estimator/src/module_entry.cpp",
+"line": 678,
+"fn": "noise_create",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, const acs_host_api_v1* host, acs_module_instance_v1** out, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/snr_estimator/src/module_entry.cpp",
+"line": 822,
+"fn": "noise_execute_estimate",
+"params": "noise_inst* inst, const char* manifest, const noise_cfg* c, acs_strbuf_v1* out_json, acs_error_info_v1* err",
+"unused": [
+[
+"out_json",
+"unref"
+]
+]
+},
+{
+"path": "lib/snr_estimator/src/module_entry.cpp",
+"line": 1026,
+"fn": "noise_execute_fill",
+"params": "noise_inst* inst, const char* manifest, const noise_cfg* c, acs_strbuf_v1* out_json, acs_error_info_v1* err",
+"unused": [
+[
+"out_json",
+"unref"
+]
+]
+},
+{
+"path": "lib/snr_estimator/src/module_entry.cpp",
+"line": 1362,
+"fn": "astrocs_module_query_v1",
+"params": "uint32_t host_abi, const acs_host_api_v1* host, const acs_module_api_v1** out_api",
+"unused": [
+[
+"host",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/snr_estimator/cpp/src/noise_model.cpp",
+"line": 250,
+"fn": "snr_psf_fit_quality",
+"params": "const double* psf, int n_stars, const int64_t* star_ids, const uint32_t* quality_flags, PsfFitQualityRow* out",
+"unused": [
+[
+"star_ids",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/plate_solve/cpp/ipv/src/ipv_angle.cpp",
+"line": 43,
+"fn": "angle_cyclic_verify",
+"params": " const StarPoint& pivot_img, const StarPoint& pivot_cat, const std::vector<StarPoint>& U, const std::vector<StarPoint>& W, const HexDescriptor& hex, const std::vector<std::pair<int,int>>& matched_neig",
+"unused": [
+[
+"hex",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/plate_solve/cpp/ipv/test/test_triangle_budget.cpp",
+"line": 6,
+"fn": "make_stars",
+"params": "int n, double s0, unsigned seed",
+"unused": [
+[
+"s0",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/plate_solve/cpp/ipv/test/test_kvector.cpp",
+"line": 38,
+"fn": "test_build",
+"params": "const std::vector<StarPoint>& W, const KVectorIndex& kv",
+"unused": [
+[
+"W",
+"unref"
+]
+]
+},
+{
+"path": "lib/phase1_session/tests/test_p1_session_manifest.cpp",
+"line": 26,
+"fn": "stub_alloc",
+"params": "void*, uint64_t n, uint64_t",
+"unused": [
+[
+"uint64_t",
+"unref"
+]
+]
+},
+{
+"path": "lib/phase1_session/tests/test_p1_session_manifest.cpp",
+"line": 28,
+"fn": "stub_log",
+"params": "void*, int, const char*, const char*",
+"unused": [
+[
+"int",
+"unref"
+]
+]
+},
+{
+"path": "lib/phase1_session/tests/p1sess/p1sess_tests_units.cpp",
+"line": 7,
+"fn": "stub_alloc",
+"params": "void*, std::uint64_t n, std::uint64_t",
+"unused": [
+[
+"uint64_t",
+"unref"
+]
+]
+},
+{
+"path": "lib/phase1_session/tests/p1sess/p1sess_tests_perf.cpp",
+"line": 8,
+"fn": "perf_alloc",
+"params": "void*, std::uint64_t n, std::uint64_t",
+"unused": [
+[
+"uint64_t",
+"unref"
+]
+]
+},
+{
+"path": "lib/phase1_session/tests/p1sess/p1sess_tests_negative.cpp",
+"line": 7,
+"fn": "n_alloc",
+"params": "void*, std::uint64_t n, std::uint64_t",
+"unused": [
+[
+"uint64_t",
+"unref"
+]
+]
+},
+{
+"path": "lib/phase1_session/tests/p1sess/p1sess_tests_properties.cpp",
+"line": 9,
+"fn": "p_alloc",
+"params": "void*, std::uint64_t n, std::uint64_t",
+"unused": [
+[
+"uint64_t",
+"unref"
+]
+]
+},
+{
+"path": "lib/phase1_session/tests/p1sess/p1sess_tests_properties.cpp",
+"line": 17,
+"fn": "p_log",
+"params": "void* ud, int, const char*, const char*",
+"unused": [
+[
+"int",
+"unref"
+]
+]
+},
+{
+"path": "lib/backend_host/host_services.cpp",
+"line": 36,
+"fn": "host_log",
+"params": "void* ud, int level, const char* component, const char* msg",
+"unused": [
+[
+"ud",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/phase2/src/cuda_bridge_stub.cpp",
+"line": 5,
+"fn": "set_tls_elapsed",
+"params": "uint64_t",
+"unused": [
+[
+"uint64_t",
+"unref"
+]
+]
+},
+{
+"path": "lib/phase2/src/upm.cpp",
+"line": 113,
+"fn": "quality_factor",
+"params": "std::uint32_t flags, int mode",
+"unused": [
+[
+"mode",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/phase2/src/rejection.cpp",
+"line": 1495,
+"fn": "reject_percentile_impl",
+"params": "const double* w, std::uint32_t n, const P2PercentileParams& prm, const double* orig_vals, double orig_median, std::uint8_t* reason, std::uint32_t* iterations, ScratchVec<double>& scratch",
+"unused": [
+[
+"orig_vals",
+"void-cast"
+],
+[
+"scratch",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/phase1/stars/star_detector.cpp",
+"line": 19,
+"fn": "StarDetector",
+"params": "double detection_sigma) : detection_sigma_(detection_sigma",
+"unused": [
+[
+"detection_sigma",
+"unref"
+]
+]
+},
+{
+"path": "lib/phase1/tests/p1phot/p1phot_tests_core.cpp",
+"line": 37,
+"fn": "call_simple_f64",
+"params": "const FixPhotFrame& fx, int threads, PhotometricDiag* diag_out = nullptr",
+"unused": [
+[
+"threads",
+"unref"
+]
+]
+},
+{
+"path": "lib/phase1/photometry/photometer.cpp",
+"line": 10,
+"fn": "Photometer",
+"params": "double aperture_radius_px, double sky_annulus_inner, double sky_annulus_outer) : aperture_radius_(aperture_radius_px), sky_inner_(sky_annulus_inner), sky_outer_(sky_annulus_outer",
+"unused": [
+[
+"aperture_radius_px",
+"unref"
+],
+[
+"sky_annulus_inner",
+"unref"
+],
+[
+"sky_annulus_outer",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/src/aio_pipeline.cpp",
+"line": 1142,
+"fn": "aio_pipeline_export_xml",
+"params": "const PipelineFrame* frame, const char* path, const char* comment",
+"unused": [
+[
+"comment",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/astro_image_io/src/healpix/aio_healpix_io.cpp",
+"line": 68,
+"fn": "hio_zstd_compress",
+"params": "const void* src, size_t srcSize, std::vector<uint8_t>& out, int level",
+"unused": [
+[
+"level",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/astro_image_io/src/healpix/aio_healpix_io.cpp",
+"line": 206,
+"fn": "aio_hiss_write",
+"params": "const char* path, uint32_t nside, int nested, uint64_t n_pix, const uint64_t* ipix, const float* pixel, const float* snr, const char* meta_json",
+"unused": [
+[
+"snr",
+"void-cast"
+],
+[
+"meta_json",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/astro_image_io/tests/test_query_pixel.cpp",
+"line": 123,
+"fn": "find_tile_pixels",
+"params": "uint32_t nside, uint32_t tile_nside, uint64_t parent_ipix, double fine_step_deg = 0.1",
+"unused": [
+[
+"tile_nside",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/tests/hiss_experiments.cpp",
+"line": 1271,
+"fn": "main",
+"params": "int argc, char* argv[]",
+"unused": [
+[
+"argc",
+"unref"
+],
+[
+"argv",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/tests/hiss_correctness_test.cpp",
+"line": 401,
+"fn": "write_test_hiss",
+"params": "const std::string& base_path, hiss::OccupancyMode occ_mode, const hiss::DrizzleTileAccumulator& acc, const hiss::HissSnrBlock* snr = nullptr",
+"unused": [
+[
+"nullptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/tests/p1hips/p1hips_tests_perf.cpp",
+"line": 60,
+"fn": "main",
+"params": "int argc, char** argv",
+"unused": [
+[
+"argc",
+"void-cast"
+],
+[
+"argv",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/astro_image_io/tests/p1hips/p1hips_tests_units.cpp",
+"line": 117,
+"fn": "write_full_f64_product",
+"params": "const std::string& dir, int flags, const char* obs_date, bool set_prov",
+"unused": [
+[
+"obs_date",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/tests/p1hips/p1hips_digest_verify.cpp",
+"line": 83,
+"fn": "make_multi_hdu",
+"params": "short v0, int ev0",
+"unused": [
+[
+"v0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/iter_a.c",
+"line": 34,
+"fn": "flux_rate",
+"params": "long totalrows, long offset, long firstrow, long nrows, int ncols, iteratorCol *cols, void *user_strct ",
+"unused": [
+[
+"offset",
+"unref"
+],
+[
+"user_strct",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrmem.c",
+"line": 42,
+"fn": "mem_create",
+"params": "char *filename, int *handle",
+"unused": [
+[
+"filename",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrmem.c",
+"line": 168,
+"fn": "stdin_checkfile",
+"params": "char *urltype, char *infile, char *outfile",
+"unused": [
+[
+"infile",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrmem.c",
+"line": 321,
+"fn": "mem_compress_openrw",
+"params": "char *filename, int rwmode, int *hdl",
+"unused": [
+[
+"rwmode",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrmem.c",
+"line": 511,
+"fn": "mem_iraf_open",
+"params": "char *filename, int rwmode, int *hdl",
+"unused": [
+[
+"rwmode",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrmem.c",
+"line": 801,
+"fn": "bzip2uncompress2mem",
+"params": "char *filename, FILE *diskfile, int hdl, size_t* filesize, int* status",
+"unused": [
+[
+"filename",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrnet.c",
+"line": 804,
+"fn": "curlProgressCallback",
+"params": "void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow",
+"unused": [
+[
+"ultotal",
+"unref"
+],
+[
+"ulnow",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrnet.c",
+"line": 2380,
+"fn": "http_checkfile",
+"params": "char *urltype, char *infile, char *outfile1",
+"unused": [
+[
+"infile",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrnet.c",
+"line": 2613,
+"fn": "https_checkfile",
+"params": "char *urltype, char *infile, char *outfile1",
+"unused": [
+[
+"infile",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrnet.c",
+"line": 2629,
+"fn": "ftps_checkfile",
+"params": "char *urltype, char *infile, char *outfile1",
+"unused": [
+[
+"infile",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap4.c",
+"line": 127,
+"fn": "VOID_cfF",
+"params": "FTI2C,fti2c) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),LONG,PSTRING,PINT,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTI2C",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap4.c",
+"line": 146,
+"fn": "VOID_cfF",
+"params": "FTL2C,ftl2c) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),LOGICAL,PSTRING,PINT,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTL2C",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap4.c",
+"line": 168,
+"fn": "VOID_cfF",
+"params": "FTR2F,ftr2f) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FLOAT,INT,PSTRING,PINT,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTR2F",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap4.c",
+"line": 185,
+"fn": "VOID_cfF",
+"params": "FTR2E,ftr2e) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FLOAT,INT,PSTRING,PINT,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTR2E",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap4.c",
+"line": 203,
+"fn": "VOID_cfF",
+"params": "FTD2F,ftd2f) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),DOUBLE,INT,PSTRING,PINT,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTD2F",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap4.c",
+"line": 222,
+"fn": "VOID_cfF",
+"params": "FTD2E,ftd2e) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),DOUBLE,INT,PSTRING,PINT,PINT,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTD2E",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/imcompress.c",
+"line": 119,
+"fn": "bz_internal_error",
+"params": "int errcode",
+"unused": [
+[
+"errcode",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/imcompress.c",
+"line": 1342,
+"fn": "imcomp_write_nocompress_tile",
+"params": "fitsfile *outfptr, long row, int datatype, void *tiledata, long tilelen, int nullcheck, void *nullflagval, int *status",
+"unused": [
+[
+"nullcheck",
+"unref"
+],
+[
+"nullflagval",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/imcompress.c",
+"line": 1518,
+"fn": "imcomp_convert_tile_tint",
+"params": " fitsfile *outfptr, void *tiledata, long tilelen, int nullcheck, void *nullflagval, int nullval, int zbitpix, double scale, double zero, int *intlength, int *status",
+"unused": [
+[
+"outfptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/imcompress.c",
+"line": 1543,
+"fn": "imcomp_convert_tile_tuint",
+"params": " fitsfile *outfptr, void *tiledata, long tilelen, int nullcheck, void *nullflagval, int nullval, int zbitpix, double scale, double zero, int *intlength, int *status",
+"unused": [
+[
+"outfptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/imcompress.c",
+"line": 4982,
+"fn": "imcomp_merge_overlap",
+"params": " char *tile, int pixlen, int ndim, long *tfpixel, long *tlpixel, char *bnullarray, char *image, long *fpixel, long *lpixel, int nullcheck, int *status",
+"unused": [
+[
+"bnullarray",
+"unref"
+],
+[
+"nullcheck",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/imcompress.c",
+"line": 5132,
+"fn": "unquantize_i1r4",
+"params": "long row, unsigned char *input, long ntodo, double scale, double zero, int dither_method, int nullcheck, unsigned char tnull, float nullval, char *nullarray, int *anynull, float *output, int *status",
+"unused": [
+[
+"dither_method",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/imcompress.c",
+"line": 5179,
+"fn": "unquantize_i2r4",
+"params": "long row, short *input, long ntodo, double scale, double zero, int dither_method, int nullcheck, short tnull, float nullval, char *nullarray, int *anynull, float *output, int *status",
+"unused": [
+[
+"dither_method",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/imcompress.c",
+"line": 5308,
+"fn": "unquantize_i1r8",
+"params": "long row, unsigned char *input, long ntodo, double scale, double zero, int dither_method, int nullcheck, unsigned char tnull, double nullval, char *nullarray, int *anynull, double *output, int *status",
+"unused": [
+[
+"dither_method",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/imcompress.c",
+"line": 5345,
+"fn": "unquantize_i2r8",
+"params": "long row, short *input, long ntodo, double scale, double zero, int dither_method, int nullcheck, short tnull, double nullval, char *nullarray, int *anynull, double *output, int *status",
+"unused": [
+[
+"dither_method",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/eval_l.c",
+"line": 2153,
+"fn": "yy_flex_strlen",
+"params": "const char * s , yyscan_t yyscanner",
+"unused": [
+[
+"yyscanner",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/eval_l.c",
+"line": 2173,
+"fn": "yywrap",
+"params": "yyscan_t scanner",
+"unused": [
+[
+"scanner",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap1.c",
+"line": 149,
+"fn": "Cffinit",
+"params": " fitsfile **fptr, const char *filename, int blocksize, int *status ",
+"unused": [
+[
+"blocksize",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap1.c",
+"line": 161,
+"fn": "Cffdkinit",
+"params": " fitsfile **fptr, const char *filename, int blocksize, int *status ",
+"unused": [
+[
+"blocksize",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/fitscore.c",
+"line": 1532,
+"fn": "fits_translate_pixkeyword",
+"params": " char *inrec, char *outrec, char *patterns[][2], int npat, int naxis, int *colnum, int *pat_num, int *i, int *j, int *n, int *m, int *l, int *status",
+"unused": [
+[
+"naxis",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/eval_y.c",
+"line": 2881,
+"fn": "if",
+"params": "yychar != FITS_PARSER_YYEMPTY",
+"unused": [
+[
+"FITS_PARSER_YYEMPTY",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/eval_y.c",
+"line": 7257,
+"fn": "yyerror",
+"params": "yyscan_t scanner, ParseData *lParse, char *s",
+"unused": [
+[
+"scanner",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap3.c",
+"line": 130,
+"fn": "VOID_cfF",
+"params": "FTGKYS,ftgkys) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,STRING,PSTRING,PSTRING,PINT,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTGKYS",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap3.c",
+"line": 148,
+"fn": "VOID_cfF",
+"params": "FTGKLS,ftgkls) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,STRING,PSTRING,PSTRING,PINT,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTGKLS",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap3.c",
+"line": 184,
+"fn": "VOID_cfF",
+"params": "FTGKNS,ftgkns) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,STRING,INT,INT,PSTRINGV,PINT,PINT,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTGKNS",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap3.c",
+"line": 236,
+"fn": "VOID_cfF",
+"params": "FTGHTB,ftghtb) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,INT,PLONG,PLONG,PINT,PSTRINGV,LONGV,PSTRINGV,PSTRINGV,PSTRING,PINT,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTGHTB",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap3.c",
+"line": 269,
+"fn": "VOID_cfF",
+"params": "FTGHBN,ftghbn) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,INT,PLONG,PINT,PSTRINGV,PSTRINGV,PSTRINGV,PSTRING,PLONG,PINT,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTGHBN",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap3.c",
+"line": 311,
+"fn": "VOID_cfF",
+"params": "FTGHBNLL,ftghbnll) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,INT,PLONGLONG,PINT,PSTRINGV,PSTRINGV,PSTRINGV,PSTRING,PLONGLONG,PINT,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTGHBNLL",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap3.c",
+"line": 382,
+"fn": "VOID_cfF",
+"params": "FTGTBH,ftgtbh) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,PLONG,PLONG,PINT,PSTRINGV,PLONG,PSTRINGV,PSTRINGV,PSTRING,PINT,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTGTBH",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap3.c",
+"line": 433,
+"fn": "VOID_cfF",
+"params": "FTGBNH,ftgbnh) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,PLONG,PINT,PSTRINGV,PSTRINGV,PSTRINGV,PSTRING,PLONG,PINT,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTGBNH",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/zcompress.c",
+"line": 47,
+"fn": "uncompress2mem",
+"params": "char *filename, FILE *diskfile, char **buffptr, size_t *buffsize, void *(*mem_realloc)(void *p, size_t newsize), size_t *filesize, int *status",
+"unused": [
+[
+"filename",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/zcompress.c",
+"line": 168,
+"fn": "uncompress2file",
+"params": "char *filename, FILE *indiskfile, FILE *outdiskfile, int *status",
+"unused": [
+[
+"filename",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrgsiftp.c",
+"line": 211,
+"fn": "done_cb",
+"params": " void * user_arg, globus_ftp_client_handle_t * handle, globus_object_t * err",
+"unused": [
+[
+"user_arg",
+"unref"
+],
+[
+"handle",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrgsiftp.c",
+"line": 232,
+"fn": "data_cb_read",
+"params": " void * user_arg, globus_ftp_client_handle_t * handle, globus_object_t * err, globus_byte_t * buffer, globus_size_t length, globus_off_t offset, globus_bool_t eof",
+"unused": [
+[
+"offset",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/drvrgsiftp.c",
+"line": 267,
+"fn": "data_cb_write",
+"params": " void * user_arg, globus_ftp_client_handle_t * handle, globus_object_t * err, globus_byte_t * buffer, globus_size_t length, globus_off_t offset, globus_bool_t eof",
+"unused": [
+[
+"length",
+"unref"
+],
+[
+"offset",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/cfileio.c",
+"line": 632,
+"fn": "if",
+"params": "*extspec",
+"unused": [
+[
+"extspec",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap2.c",
+"line": 213,
+"fn": "VOID_cfF",
+"params": "FTGCVS,ftgcvs) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,INT,LONG,LONG,LONG,STRING,PSTRINGV,PLOGICAL,PINT,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTGCVS",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap2.c",
+"line": 240,
+"fn": "VOID_cfF",
+"params": "FTGCVSLL,ftgcvsll) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,INT,LONGLONG,LONGLONG,LONG,STRING,PSTRINGV,PLOGICAL,PINT,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTGCVSLL",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/f77_wrap2.c",
+"line": 367,
+"fn": "VOID_cfF",
+"params": "FTGCFS,ftgcfs) CFARGT14(NCF,DCF,ABSOFT_cf2(VOID),FITSUNIT,INT,LONG,LONG,LONG,PSTRINGV,LOGICALV,PLOGICAL,PINT,CF_0,CF_0,CF_0,CF_0,CF_0)",
+"unused": [
+[
+"FTGCFS",
+"unref"
+],
+[
+"NCF",
+"unref"
+],
+[
+"DCF",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+],
+[
+"CF_0",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/iter_b.c",
+"line": 29,
+"fn": "str_iter",
+"params": "long totalrows, long offset, long firstrow, long nrows, int ncols, iteratorCol *cols, void *user_strct ",
+"unused": [
+[
+"offset",
+"unref"
+],
+[
+"user_strct",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/eval_f.c",
+"line": 1535,
+"fn": "ffffrw_work",
+"params": "long totalrows, long offset, long firstrow, long nrows, int nCols, iteratorCol *colData, void *userPtr ",
+"unused": [
+[
+"totalrows",
+"unref"
+],
+[
+"offset",
+"unref"
+],
+[
+"nCols",
+"unref"
+],
+[
+"colData",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/iter_c.c",
+"line": 34,
+"fn": "writehisto",
+"params": "long totaln, long offset, long firstn, long nvalues, int narrays, iteratorCol *histo, void *userPointer",
+"unused": [
+[
+"offset",
+"unref"
+],
+[
+"firstn",
+"unref"
+],
+[
+"userPointer",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/iter_c.c",
+"line": 67,
+"fn": "calchisto",
+"params": "long totalrows, long offset, long firstrow, long nrows, int ncols, iteratorCol *cols, void *userPointer",
+"unused": [
+[
+"totalrows",
+"unref"
+],
+[
+"offset",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/region.c",
+"line": 508,
+"fn": "if",
+"params": " *status ",
+"unused": [
+[
+"status",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/histo.c",
+"line": 2083,
+"fn": "ffwritehisto",
+"params": "long totaln, long pixoffset, long firstn, long nvalues, int narrays, iteratorCol *imagepars, void *userPointer",
+"unused": [
+[
+"totaln",
+"unref"
+],
+[
+"pixoffset",
+"unref"
+],
+[
+"firstn",
+"unref"
+],
+[
+"nvalues",
+"unref"
+],
+[
+"narrays",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/histo.c",
+"line": 2118,
+"fn": "ffcalchist",
+"params": "long totalrows, long offset, long firstrow, long nrows, int ncols, iteratorCol *colpars, void *userPointer",
+"unused": [
+[
+"ncols",
+"unref"
+],
+[
+"colpars",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fvrf_file.c",
+"line": 193,
+"fn": "init_report",
+"params": "FILE *out, char *rootnam ",
+"unused": [
+[
+"rootnam",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/iter_image.c",
+"line": 6,
+"fn": "main",
+"params": "int argc, char *argv[]",
+"unused": [
+[
+"argc",
+"unref"
+],
+[
+"argv",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/iter_image.c",
+"line": 27,
+"fn": "div_image",
+"params": "long totalrows, long offset, long firstrow, long nrows, int ncols, iteratorCol *cols, void *user_strct ",
+"unused": [
+[
+"totalrows",
+"unref"
+],
+[
+"offset",
+"unref"
+],
+[
+"user_strct",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/iter_var.c",
+"line": 6,
+"fn": "main",
+"params": "int argc, char *argv[]",
+"unused": [
+[
+"argc",
+"unref"
+],
+[
+"argv",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/iter_var.c",
+"line": 31,
+"fn": "flux_rate",
+"params": "long totalrows, long offset, long firstrow, long nrows, int ncols, iteratorCol *cols, void *user_strct ",
+"unused": [
+[
+"totalrows",
+"unref"
+],
+[
+"offset",
+"unref"
+],
+[
+"ncols",
+"unref"
+],
+[
+"user_strct",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fitsverify.c",
+"line": 172,
+"fn": "PILGetFname",
+"params": "char *parname, char *filename",
+"unused": [
+[
+"parname",
+"unref"
+],
+[
+"filename",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fitsverify.c",
+"line": 174,
+"fn": "PILGetString",
+"params": "char *parname, char *stringname",
+"unused": [
+[
+"parname",
+"unref"
+],
+[
+"stringname",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fitsverify.c",
+"line": 179,
+"fn": "PILGetBool",
+"params": "char *parname, int *intvalue",
+"unused": [
+[
+"parname",
+"unref"
+],
+[
+"intvalue",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fitsverify.c",
+"line": 180,
+"fn": "PILPutInt",
+"params": "char *parname, int intvalue",
+"unused": [
+[
+"parname",
+"unref"
+],
+[
+"intvalue",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fitsverify.c",
+"line": 184,
+"fn": "set_toolname",
+"params": "char *taskname",
+"unused": [
+[
+"taskname",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fitsverify.c",
+"line": 186,
+"fn": "set_toolversion",
+"params": "char *taskname",
+"unused": [
+[
+"taskname",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fitsverify.c",
+"line": 191,
+"fn": "headas_clobberfile",
+"params": "char *filename",
+"unused": [
+[
+"filename",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fitsverify.c",
+"line": 193,
+"fn": "HD_ERROR_THROW",
+"params": "char msg[256], int status",
+"unused": [
+[
+"msg",
+"unref"
+],
+[
+"status",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/ftverify.c",
+"line": 76,
+"fn": "ftverify_work",
+"params": " char *infile, char *outfile, int prehead, int prstat, char * errreport, int testdata, int testcsum, int testfill, int heasarc_conv, int testhierarch",
+"unused": [
+[
+"prehead",
+"unref"
+],
+[
+"testdata",
+"unref"
+],
+[
+"testcsum",
+"unref"
+],
+[
+"testfill",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fpackutil.c",
+"line": 1288,
+"fn": "fp_unpack_hdu",
+"params": "fitsfile *infptr, fitsfile *outfptr, fpstate fpvar, int *status",
+"unused": [
+[
+"fpvar",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fpackutil.c",
+"line": 1496,
+"fn": "fp_test_table",
+"params": "fitsfile *infptr, fitsfile *outfptr, fitsfile *outfptr2, fpstate fpvar, int *status",
+"unused": [
+[
+"outfptr2",
+"unref"
+],
+[
+"fpvar",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fpackutil.c",
+"line": 1790,
+"fn": "abort_fpack",
+"params": "int sig",
+"unused": [
+[
+"sig",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fvrf_head.c",
+"line": 952,
+"fn": "test_ext",
+"params": "fitsfile *infits, FILE* out, FitsHdu *hduptr ",
+"unused": [
+[
+"infits",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fvrf_head.c",
+"line": 1072,
+"fn": "test_array",
+"params": "fitsfile *infits, FILE* out, FitsHdu *hduptr ",
+"unused": [
+[
+"infits",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fvrf_head.c",
+"line": 1181,
+"fn": "test_tbl",
+"params": "fitsfile *infits, FILE* out, FitsHdu *hduptr ",
+"unused": [
+[
+"infits",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fvrf_head.c",
+"line": 1993,
+"fn": "test_header",
+"params": " fitsfile *infits, FILE* out, FitsHdu *hduptr ",
+"unused": [
+[
+"infits",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fvrf_head.c",
+"line": 2356,
+"fn": "parse_vtform",
+"params": "fitsfile *infits, FILE *out, FitsHdu *hduptr, int colnum, int* datacode, long* maxlen, int* isQFormat ",
+"unused": [
+[
+"hduptr",
+"unref"
+]
+]
+},
+{
+"path": "lib/astro_image_io/third_party/cfitsio/utilities/fvrf_head.c",
+"line": 2456,
+"fn": "print_summary",
+"params": "fitsfile *infits, FILE* out, FitsHdu *hduptr ",
+"unused": [
+[
+"infits",
+"unref"
+]
+]
+},
+{
+"path": "lib/photometric_calib/tests/p1phot/p1phot_gaia_stub.cpp",
+"line": 24,
+"fn": "gaia_client_cone_search_with_spectrum",
+"params": " GaiaClient* client, double , double , double , double , double , GaiaSpectrumStar** out_stars, std::uint8_t** out_spectra, int* out_count",
+"unused": [
+[
+"double",
+"unref"
+],
+[
+"double",
+"unref"
+],
+[
+"double",
+"unref"
+],
+[
+"double",
+"unref"
+],
+[
+"double",
+"unref"
+]
+]
+},
+{
+"path": "lib/photometric_calib/tests/p1phot/p1phot_tests_perf.cpp",
+"line": 72,
+"fn": "main",
+"params": "int argc, char** argv",
+"unused": [
+[
+"argc",
+"void-cast"
+],
+[
+"argv",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/photometric_calib/cpp/src/pc_api.cpp",
+"line": 17,
+"fn": "pc_calibrate_simple",
+"params": " const float* pixels, int width, int height, const double* gaia_ra, const double* gaia_dec, const double* gaia_mag, const double* gaia_fsyn, int n_gaia, const double* psf_cx, const double* psf_cy, con",
+"unused": [
+[
+"qe_wl",
+"void-cast"
+],
+[
+"qe_trans",
+"void-cast"
+],
+[
+"qe_count",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/photometric_calib/cpp/src/pc_api.cpp",
+"line": 358,
+"fn": "pc_calibrate_simple_f64",
+"params": " const double* pixels, int width, int height, const double* gaia_ra, const double* gaia_dec, const double* gaia_mag, const double* gaia_fsyn, int n_gaia, const double* psf_cx, const double* psf_cy, co",
+"unused": [
+[
+"qe_wl",
+"void-cast"
+],
+[
+"qe_trans",
+"void-cast"
+],
+[
+"qe_count",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/photometric_calib/cpp/test/test_p0_pc_api_exception_barrier.cpp",
+"line": 8,
+"fn": "gaia_client_cone_search_with_spectrum",
+"params": " GaiaClient*, double, double, double, double, double, GaiaSpectrumStar**, uint8_t**, int*",
+"unused": [
+[
+"double",
+"unref"
+],
+[
+"double",
+"unref"
+],
+[
+"double",
+"unref"
+],
+[
+"double",
+"unref"
+],
+[
+"double",
+"unref"
+]
+]
+},
+{
+"path": "lib/cosmetic/src/module_entry.cpp",
+"line": 464,
+"fn": "decode_plane",
+"params": "const char* b64, uint64_t bl, uint64_t plane_bytes, bytes* plane, acs_error_info_v1* err, const char* what",
+"unused": [
+[
+"what",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/cosmetic/src/module_entry.cpp",
+"line": 488,
+"fn": "build_out_manifest",
+"params": "const exec_cfg& c, int is_f64, const uint8_t* out_plane, uint64_t plane_bytes, int64_t hot, int64_t cold, std::string* out_json, acs_error_info_v1* err",
+"unused": [
+[
+"err",
+"unref"
+]
+]
+},
+{
+"path": "lib/cosmetic/src/module_entry.cpp",
+"line": 716,
+"fn": "cos_describe",
+"params": "const acs_module_api_v1* self, acs_str_v1 module_id, acs_module_descriptor_v1* out_desc",
+"unused": [
+[
+"self",
+"unref"
+]
+]
+},
+{
+"path": "lib/cosmetic/src/module_entry.cpp",
+"line": 777,
+"fn": "cos_validate_config",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/cosmetic/src/module_entry.cpp",
+"line": 807,
+"fn": "cos_plan",
+"params": "const acs_module_api_v1* self, acs_str_v1 node_id, acs_str_v1 config_json, acs_strbuf_v1* out_plan_json, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/cosmetic/src/module_entry.cpp",
+"line": 879,
+"fn": "cos_create",
+"params": "const acs_module_api_v1* self, acs_str_v1 config_json, const acs_host_api_v1* host, acs_module_instance_v1** out, acs_error_info_v1* err",
+"unused": [
+[
+"self",
+"void-cast"
+]
+]
+},
+{
+"path": "lib/cosmetic/src/module_entry.cpp",
+"line": 1088,
+"fn": "astrocs_module_query_v1",
+"params": "uint32_t host_abi, const acs_host_api_v1* host, const acs_module_api_v1** out_api",
+"unused": [
+[
+"host",
+"void-cast"
+]
+]
+},
+{
+"path": "providers/cpu/avx2/src/avx2_provider.cpp",
+"line": 211,
+"fn": "avx2_kernel_list",
+"params": "const acs_host_api_v1* host, uint32_t* out_count, const acs_kernel_desc_v1** out_kernels",
+"unused": [
+[
+"host",
+"void-cast"
+]
+]
+},
+{
+"path": "providers/cpu/baseline/src/baseline_provider.cpp",
+"line": 408,
+"fn": "baseline_kernel_list",
+"params": "const acs_host_api_v1* host, uint32_t* out_count, const acs_kernel_desc_v1** out_kernels",
+"unused": [
+[
+"host",
+"void-cast"
+]
+]
+},
+{
+"path": "providers/cpu/avx512/src/avx512_provider.cpp",
+"line": 197,
+"fn": "avx512_kernel_list",
+"params": "const acs_host_api_v1* host, uint32_t* out_count, const acs_kernel_desc_v1** out_kernels",
+"unused": [
+[
+"host",
+"void-cast"
+]
+]
+},
+{
+"path": "runtime/io/fits_core.c",
+"line": 975,
+"fn": "fio_write_header_block",
+"params": "fio_file* f, const fio_header* h, const char* bunit, int reserve_datasum, int reserve_checksum, fio_off_t* out_datasum_off, fio_off_t* out_checksum_off, int64_t* out_bytes, char* err, size_t cap",
+"unused": [
+[
+"err",
+"void-cast"
+],
+[
+"cap",
+"void-cast"
+]
+]
+},
+{
+"path": "runtime/io/fits_core.c",
+"line": 1338,
+"fn": "if",
+"params": "wr->f.fp",
+"unused": [
+[
+"fp",
+"unref"
+]
+]
+},
+{
+"path": "runtime/io/hips_core.c",
+"line": 308,
+"fn": "hips_parse_moc",
+"params": "acs_hips_handle_v1 h, char* err, size_t cap",
+"unused": [
+[
+"err",
+"void-cast"
+],
+[
+"cap",
+"void-cast"
+]
+]
+},
+{
+"path": "runtime/module_loader/secure_loader.c",
+"line": 272,
+"fn": "elf64_ok",
+"params": "const uint8_t* h, int32_t* detail_out",
+"unused": [
+[
+"h",
+"void-cast"
+]
+]
+},
+{
+"path": "cli/commands.cpp",
+"line": 131,
+"fn": "cmd_show_effective",
+"params": "const Parsed& p, astrocs::JsonlEmitter& ev",
+"unused": [
+[
+"ev",
+"void-cast"
+]
+]
+},
+{
+"path": "cli/commands.cpp",
+"line": 174,
+"fn": "cmd_stub",
+"params": "const Parsed& p, const std::string& phase, astrocs::JsonlEmitter& ev",
+"unused": [
+[
+"p",
+"void-cast"
+]
+]
+},
+{
+"path": "cli/commands.cpp",
+"line": 211,
+"fn": "cmd_test_synthetic",
+"params": "const Parsed& p, const std::string& group, astrocs::JsonlEmitter& ev",
+"unused": [
+[
+"p",
+"void-cast"
+]
+]
+},
+{
+"path": "cli/commands.cpp",
+"line": 1186,
+"fn": "cmd_phase_validate",
+"params": "const Parsed& p, int phase, astrocs::JsonlEmitter& ev",
+"unused": [
+[
+"ev",
+"void-cast"
+]
+]
+},
+{
+"path": "cli/commands.cpp",
+"line": 1206,
+"fn": "cmd_phase_plan",
+"params": "const Parsed& p, int phase, astrocs::JsonlEmitter& ev",
+"unused": [
+[
+"ev",
+"void-cast"
+]
+]
+},
+{
+"path": "cli/commands.cpp",
+"line": 1252,
+"fn": "cmd_phase_inspect",
+"params": "const Parsed& p, int phase, astrocs::JsonlEmitter& ev",
+"unused": [
+[
+"ev",
+"void-cast"
+]
+]
+},
+{
+"path": "cli/commands.cpp",
+"line": 1444,
+"fn": "cmd_verify",
+"params": "const Parsed& p, astrocs::JsonlEmitter& ev",
+"unused": [
+[
+"ev",
+"void-cast"
+]
+]
+},
+{
+"path": "cli/commands.cpp",
+"line": 1586,
+"fn": "cmd_drizzle",
+"params": "const Parsed& p, astrocs::JsonlEmitter& ev",
+"unused": [
+[
+"p",
+"void-cast"
+]
+]
+},
+{
+"path": "cli/commands.cpp",
+"line": 1660,
+"fn": "cmd_modules_list",
+"params": "const Parsed& p, astrocs::JsonlEmitter& ev",
+"unused": [
+[
+"ev",
+"void-cast"
+]
+]
+},
+{
+"path": "cli/commands.cpp",
+"line": 1738,
+"fn": "cmd_modules_verify",
+"params": "const Parsed& p, astrocs::JsonlEmitter& ev",
+"unused": [
+[
+"ev",
+"void-cast"
+]
+]
+},
+{
+"path": "cli/commands.cpp",
+"line": 1805,
+"fn": "cmd_selftest",
+"params": "const Parsed& p, astrocs::JsonlEmitter& ev",
+"unused": [
+[
+"ev",
+"void-cast"
+]
+]
+}
+]

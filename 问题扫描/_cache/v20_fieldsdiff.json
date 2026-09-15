@@ -1,0 +1,357 @@
+[
+{
+"header": "include/astrocs/common_abi_v1.h",
+"struct": "acs_span_f32",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/common_abi_v1.h",
+"struct": "acs_span_f64",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/common_abi_v1.h",
+"struct": "acs_span_u8",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/common_abi_v1.h",
+"struct": "astrocs_kernel_entry_v1",
+"field": "science_contract_id",
+"writers": 0,
+"readers": 4,
+"w_files": [],
+"r_files": [
+"tests/backend/abi_selftest_main.cpp",
+"tests/backend/cheat_backend.cpp",
+"tests/unit/cpu001_provider_selftest.cpp"
+]
+},
+{
+"header": "include/astrocs/common_abi_v1.h",
+"struct": "astrocs_kernel_entry_v1",
+"field": "algorithm_id",
+"writers": 0,
+"readers": 4,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"tests/backend/cheat_backend.cpp"
+]
+},
+{
+"header": "include/astrocs/common_abi_v1.h",
+"struct": "astrocs_kernel_entry_v1",
+"field": "kernel_version",
+"writers": 0,
+"readers": 2,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"tests/backend/cheat_backend.cpp"
+]
+},
+{
+"header": "include/astrocs/common_abi_v1.h",
+"struct": "astrocs_backend_api_v1",
+"field": "backend_build_id",
+"writers": 0,
+"readers": 1,
+"w_files": [],
+"r_files": [
+"tests/unit/cpu001_provider_selftest.cpp"
+]
+},
+{
+"header": "include/astrocs/common_abi_v1.h",
+"struct": "astrocs_backend_api_v1",
+"field": "backend_sha256",
+"writers": 0,
+"readers": 1,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen_v2.cpp"
+]
+},
+{
+"header": "include/astrocs/io/aio_abi_v1.h",
+"struct": "aio_abi_info_v1",
+"field": "capability_bits",
+"writers": 0,
+"readers": 1,
+"w_files": [],
+"r_files": [
+"tests/unit/aio_abi_tests.cpp"
+]
+},
+{
+"header": "include/astrocs/io/aio_abi_v1.h",
+"struct": "aio_abi_info_v1",
+"field": "hash_algorithm_name",
+"writers": 0,
+"readers": 1,
+"w_files": [],
+"r_files": [
+"tests/unit/aio_abi_tests.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/artifact_api_v1.h",
+"struct": "acs_artifact_service_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/status_codes.h",
+"struct": "acs_str_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/status_codes.h",
+"struct": "acs_strbuf_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/status_codes.h",
+"struct": "acs_span_u8",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/status_codes.h",
+"struct": "acs_span_f32",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/status_codes.h",
+"struct": "acs_span_f64",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/status_codes.h",
+"struct": "acs_error_info_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/status_codes.h",
+"struct": "acs_allocator_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/host_api_v1.h",
+"struct": "acs_logger_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/host_api_v1.h",
+"struct": "acs_cancel_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/host_api_v1.h",
+"struct": "acs_executor_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/host_api_v1.h",
+"struct": "acs_host_api_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/module_api_v1.h",
+"struct": "acs_module_descriptor_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/module_api_v1.h",
+"struct": "acs_module_api_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/module_api_v1.h",
+"struct": "acs_kernel_desc_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/module_api_v1.h",
+"struct": "acs_kernel_desc_v1",
+"field": "sci_contract_id",
+"writers": 0,
+"readers": 6,
+"w_files": [],
+"r_files": [
+"providers/cpu/avx2/src/avx2_provider.cpp",
+"providers/cpu/avx512/src/avx512_provider.cpp",
+"providers/cpu/baseline/src/baseline_provider.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/module_api_v1.h",
+"struct": "acs_provider_api_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+},
+{
+"header": "include/astrocs/abi/lifecycle_v1.h",
+"struct": "acs_version_negotiation_v1",
+"field": "head",
+"writers": 0,
+"readers": 50,
+"w_files": [],
+"r_files": [
+"lib/backend_host/profile_gen.cpp",
+"lib/backend_host/profile_gen_v2.cpp",
+"lib/calibration/src/module_entry.cpp"
+]
+}
+]

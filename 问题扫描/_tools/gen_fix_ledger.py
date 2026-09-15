@@ -12,7 +12,7 @@ ROOT = "问题扫描"
 FIND = os.path.join(ROOT, "findings")
 BOOK = os.path.join(ROOT, "账本")
 os.makedirs(BOOK, exist_ok=True)
-ID_RE = re.compile(r"^#{2,4}\s+((?:M\w+|L\d+b?c?d?e?|FD|V\d+)-[A-Z]{1,4}-\d+)\b(.*)$")
+ID_RE = re.compile(r"^#{2,4}\s+((?:M\w+|L\d+b?c?d?e?|FD|V\d+|W\d+)-[A-Z]{1,4}-\d+)\b(.*)$")
 KEY = [("category", ["- 类别", "**类别**", "类别:"]),
        ("priority", ["- 建议优先级", "**优先级**", "优先级:"]),
        ("position", ["- 位置", "**位置**", "位置:"]),
