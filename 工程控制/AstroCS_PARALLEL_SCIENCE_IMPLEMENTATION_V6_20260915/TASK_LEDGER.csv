@@ -5,7 +5,7 @@ SCI-PSFW-001,PASS,1,BASE-OWN-001,docs/science/v6/psfw/;run/v6/sci-psfw/,8ece1e0b
 SCI-P2-001,PASS,1,BASE-OWN-001,docs/science/v6/phase2/;run/v6/sci-p2/,e443b719-b943-48b1-b20f-67aa7fc2cb93,run/v6/sci-p2/summary.json;run/v6/sci-p2/logs/,oracle32-32-rc0;gate-mut17-red;OM1-3-red;scope-ok
 SCI-P3-001,PASS,1,BASE-OWN-001,docs/science/v6/phase3/;run/v6/sci-p3/,7c9e4427-5db8-47d2-92d3-c29a0cd6a690,docs/science/v6/phase3/PHASE3_PROPAGATION_REVIEW.md;run/v6/sci-p3/summary.json,oracle11-11-rc0;mut22-detected;docmut7-red;scope-ok
 AUDIT-REVIEW-001,PASS,1,BASE-OWN-001,reports/v6/review-audit/;run/v6/review-audit/,1cd2a403-fe82-4c25-ab69-3c390839a770,reports/v6/review-audit/00_导读.md;run/v6/review-audit/summary.json,oracle19-19-rc0;mut8-8-red;needs_controller=12;scope-ok
-SCI-ADJ-001,BLOCKED,2,"SCI-OBS-001;SCI-PSFW-001;SCI-P2-001;SCI-P3-001;AUDIT-REVIEW-001","docs/science/v6/adjudication/;reports/v6/science-adjudication/",,,
+SCI-ADJ-001,READY,2,SCI-OBS-001;SCI-PSFW-001;SCI-P2-001;SCI-P3-001;AUDIT-REVIEW-001,docs/science/v6/adjudication/;reports/v6/science-adjudication/,ctrl-w2,,unblocked:W1 5/5 PASS;inputs=F-OBS/F3/AR/S1-S4+C-004
 DATA-DESIGN-001,BLOCKED,3,"SCI-ADJ-001","docs/contracts/v6/data/;contracts/proposals/v6/data/",,,
 ALG-P1-001,BLOCKED,3,"SCI-ADJ-001","docs/algorithms/v6/phase1/",,,
 ALG-P2-POINT-001,BLOCKED,3,"SCI-ADJ-001","docs/algorithms/v6/phase2-point/",,,
