@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/v6/covariance.v1.schema.json",
+  "title": "AstroCS V6 covariance / variance / correlation 数据对象（DATA-DESIGN-001 提案）",
+  "description": "冻结不变量：报告出来的 variance/covariance 必须由实际使用的线性组合系数与输入 covariance 计算，C_out = R C_in R^T（FZ-FORMULA-COV-PROP），标量形式 Var(out)=c^T C_in c。禁止从任何权重标量反推 variance。共享系统项按 FZ-PROV-SHARED-SYSTEMATIC 三种允许形式之一表示，否则 unavailable/系统误差预算。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["covariance_schema", "schema_version", "propagation", "representation", "variance_from", "input_covariance", "avail", "forbidden_variance_sources", "provenance_ref"],
+  "properties": {
+    "covariance_schema": { "const": "astrocs.v6.covariance/v1", "x-astrocs": { "anchor": "FZ-FORMULA-COV-PROP; 宪章 §6.3", "domain": "Phase1/2/3 covariance" } },
+    "schema_version": { "const": 1, "x-astrocs": { "anchor": "宪章 §4.3", "domain": "全部" } },
+    "propagation": { "const": "C_out = R C_in R^T", "x-astrocs": { "anchor": "FZ-FORMULA-COV-PROP; UNIFIED §7; DESIGN-P3 §4; RULINGS.md #5", "domain": "Phase1/2/3", "fail_closed": "propagation 为空或缺失 -> REJECT", "gate": "G-COV-PROPAGATION" } },
+    "scalar_form": { "const": "Var(out) = c^T C_in c = Sum_{i,j} c_i c_j [C_in]_{ij}", "x-astrocs": { "anchor": "SCI-P2-001 COVARIANCE_AND_EFFECTIVE_PSF §0", "domain": "单输出标量" } },
+    "representation": {
+      "enum": ["diagonal_variance", "diagonal_variance_plus_correlation_kernel", "low_rank_factors", "common_master", "unavailable"],
+      "x-astrocs": { "anchor": "UNIFIED §6/§7; FZ-PROV-SHARED-SYSTEMATIC; ADJ-AR-02", "domain": "全部", "fail_closed": "只出对角 variance 时同时给相关核/可重建算子摘要与近似误差；否则 REJECT；无法表示共享项 -> unavailable 或系统误差预算", "gate": "G-COV-CORRELATION-KERNEL" }
+    },
+    "combination_coefficients": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "number" },
+      "x-astrocs": { "anchor": "FZ-FORMULA-COV-PROP; SCI-P2-001 §0", "domain": "全部", "fail_closed": "combination_coefficients 为空且无 operator_descriptor -> REJECT", "gate": "G-COV-COEFFICIENTS" }
+    },
+    "operator_descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "reconstructable", "summary_ref"],
+      "properties": {
+        "kind": { "enum": ["drizzle_forward", "phase2_combination", "phase3_resample"] },
+        "reconstructable": { "const": true },
+        "summary_ref": { "type": "string", "minLength": 1 }
+      },
+      "x-astrocs": { "anchor": "UNIFIED §7; ADJ-AR-02", "domain": "空间算子情形", "fail_closed": "reconstructable=false 或 summary_ref 缺失 -> REJECT", "gate": "G-COV-OPERATOR-SUMMARY" }
+    },
+    "variance_from": {
+      "enum": ["combination_coefficients", "linear_combination_coefficients", "actual_combination_coefficients"],
+      "x-astrocs": { "anchor": "FZ-GATE-PSFSW-COV; WEIGHT_PROVENANCE_GATE R6", "domain": "全部", "fail_closed": "variance_from 为 weight(s)/psfsw_robust_weight/psfsw/median_source_snr/support/coverage/fwhm/psf_residual/residual/effective_psf/source_snr 之一 -> REJECT", "gate": "G-COV-VARIANCE-FROM" }
+    },
+    "input_covariance": {
+      "enum": ["provided", "declared", "unavailable"],
+      "x-astrocs": { "anchor": "WEIGHT_PROVENANCE_GATE R6; FZ-GATE-PSFSW-COV", "domain": "全部", "fail_closed": "psfsw_robust 必须 input_covariance 非 unavailable；缺失 -> REJECT", "gate": "G-COV-INPUT" }
+    },
+    "input_covariance_ref": { "type": "string", "x-astrocs": { "anchor": "FZ-FORMULA-COV-PROP", "domain": "全部" } },
+    "surface_gls_normal_equations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authoritative_formula", "covariance_formula"],
+      "properties": {
+        "authoritative_formula": { "const": "x_hat = (A^T C^-1 A)^-1 A^T C^-1 d" },
+        "covariance_formula": { "const": "Cov(x_hat) = (A^T C^-1 A)^-1" }
+      },
+      "x-astrocs": { "anchor": "FZ-FORMULA-GLS; UNIFIED §5; ADJ-P2-02", "domain": "Phase2 surface_gls", "fail_closed": "像素 ivar 近似无适用域/误差门 -> REJECT", "gate": "G-PIXIVAR-APPROX" }
+    },
+    "variance_plane": { "$ref": "#/$defs/plane_decl", "x-astrocs": { "anchor": "FZ-UNIT-VAR-SB; FZ-UNIT-VAR-IN", "domain": "全部" } },
+    "ivar_plane": { "$ref": "#/$defs/plane_decl", "x-astrocs": { "anchor": "FZ-UNIT-IVAR-SB", "domain": "全部" } },
+    "correlation_kernel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kernel_id", "scale", "rho_summary"],
+      "properties": {
+        "kernel_id": { "type": "string", "minLength": 1 },
+        "scale": { "type": "number", "exclusiveMinimum": 0 },
+        "rho_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mean_abs_rho", "max_abs_rho"],
+          "properties": {
+            "mean_abs_rho": { "type": "number", "minimum": 0, "maximum": 1 },
+            "max_abs_rho": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      },
+      "x-astrocs": { "anchor": "UNIFIED §7; ADJ-AR-02; PHASE3_PROPAGATION_REVIEW C-P3-PROP-9", "domain": "仅对角 variance 输出时强制", "fail_closed": "缺失 -> REJECT", "gate": "G-COV-CORRELATION-KERNEL" }
+    },
+    "low_rank": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["L_ref", "rank"],
+      "properties": { "L_ref": { "type": "string", "minLength": 1 }, "rank": { "type": "integer", "minimum": 1 } },
+      "x-astrocs": { "anchor": "FZ-PROV-SHARED-SYSTEMATIC (a)", "domain": "共享系统项", "fail_closed": "C_shared=L L^T 未进传播链 -> REJECT", "gate": "G-SHARED-SYSTEMATIC" }
+    },
+    "common_master": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["master_id", "alpha_m", "alpha_unit"],
+      "properties": { "master_id": { "type": "string", "minLength": 1 }, "alpha_m": { "type": "number" }, "alpha_unit": { "type": "string" } },
+      "x-astrocs": { "anchor": "FZ-PROV-SHARED-SYSTEMATIC (c)", "domain": "共享系统项", "fail_closed": "master_id/alpha_m 缺失或未进传播链 -> REJECT", "gate": "G-SHARED-SYSTEMATIC" }
+    },
+    "diagonal_approximation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["is_lower_bound", "deficit_metric", "use_for_aperture", "threshold_ref"],
+      "properties": {
+        "is_lower_bound": { "const": true, "x-astrocs": { "anchor": "FZ-GATE-PARENT-VAR", "domain": "HiPS 父级/对角归约", "fail_closed": "声明为精确 -> REJECT", "gate": "G-PARENT-VAR-DEFICIT" } },
+        "use_for_aperture": { "const": false },
+        "threshold_ref": { "type": "string", "minLength": 1 },
+        "deficit_metric": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "value"],
+          "properties": {
+            "name": { "const": "deficit=(exact-diag)/exact" },
+            "value": { "type": "number", "minimum": 0 }
+          }
+        }
+      },
+      "x-astrocs": { "anchor": "FZ-GATE-PARENT-VAR; ADJ-F-OBS-03", "domain": "Phase1 HiPS 父级 variance", "fail_closed": "缺三要素任一 -> variance 面 unavailable", "gate": "G-PARENT-VAR-DEFICIT" }
+    },
+    "approximation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "error_gate", "actual_operator_ref"],
+      "properties": {
+        "kind": { "enum": ["pixel_ivar_degenerate", "diagonal_C"], "x-astrocs": { "anchor": "FZ-GATE-PIXIVAR-APPROX; ADJ-P2-02", "domain": "surface_gls 近似", "fail_closed": "无误差门声明即 REJECT", "gate": "G-PIXIVAR-APPROX" } },
+        "actual_operator_ref": { "type": "string", "minLength": 1 },
+        "error_gate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["metric", "value", "bound_ref"],
+          "properties": {
+            "metric": { "const": "Var_approx/Var_GLS" },
+            "value": { "type": "number", "minimum": 1 },
+            "bound_ref": { "type": "string", "minLength": 1 }
+          }
+        }
+      },
+      "x-astrocs": { "anchor": "FZ-GATE-PIXIVAR-APPROX", "domain": "surface_gls", "fail_closed": "Var_approx/Var_GLS > 1+epsilon(epsilon 由 ALG-P2-SURF-001 冻结) -> REJECT", "gate": "G-PIXIVAR-APPROX" }
+    },
+    "psfsw_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "variance_from_weight", "uses_relative_weight_as_ivar"],
+      "properties": {
+        "method": { "const": "propagated_from_composite_coefficients" },
+        "variance_from_weight": { "const": false },
+        "uses_relative_weight_as_ivar": { "const": false }
+      },
+      "x-astrocs": { "anchor": "FZ-GATE-PSFSW-COV; RULINGS.md #5", "domain": "仅 psfsw_robust 产物", "fail_closed": "method 非 propagated_from_composite_coefficients 或任一并列为 true -> REJECT", "gate": "G-PSFSW-COV" }
+    },
+    "upm_contribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["J_ref", "C_theta_ref", "variance_ratio"],
+      "properties": {
+        "J_ref": { "type": "string", "minLength": 1 },
+        "C_theta_ref": { "type": "string", "minLength": 1 },
+        "variance_ratio": { "type": "number", "minimum": 0 }
+      },
+      "x-astrocs": { "anchor": "PHASE2_DETAILED_DESIGN §4; SCI-P2-001 COVARIANCE_AND_EFFECTIVE_PSF §4", "domain": "Phase2 UPM 参数不确定度", "fail_closed": "UPM 参数不确定度未进 covariance 传播链 -> REJECT", "gate": "G-UPM-COV" }
+    },
+    "avail": { "enum": ["available", "unavailable"], "x-astrocs": { "anchor": "ADJ-GEN-03; 宪章 §18.3", "domain": "全部", "fail_closed": "unavailable 必须带 reason，禁静默缺键/占位", "gate": "G-UNAVAILABLE-REASON" } },
+    "unavailable_reason": { "enum": ["shared_systematic_unrepresentable", "input_covariance_missing", "correlation_kernel_missing", "diagonal_deficit_gate_failed", "operator_not_reconstructable"], "x-astrocs": { "anchor": "FZ-PROV-SHARED-SYSTEMATIC; FZ-GATE-PARENT-VAR", "domain": "avail=unavailable", "fail_closed": "reason 缺失或不在白名单 -> REJECT", "gate": "G-UNAVAILABLE-REASON" } },
+    "forbidden_variance_sources": {
+      "const": ["median_source_snr", "median_snr", "source_snr_median", "support", "coverage", "fwhm", "psf_residual", "residual", "weight", "psfsw_robust_weight", "psfsw", "effective_psf", "source_snr"],
+      "x-astrocs": { "anchor": "FZ-GATE-PSFSW-COV; WEIGHT_PROVENANCE_GATE R6; SCI-ADJ-001 FC §5.1", "domain": "全部", "fail_closed": "variance_from/variance 来源命中任一 -> REJECT", "gate": "G-FORBIDDEN-VARIANCE-SOURCES" }
+    },
+    "provenance_ref": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "FZ-PROV-MINIMAL-SET", "domain": "全部" } }
+  },
+  "$defs": {
+    "plane_decl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["units", "dtype", "invalid_policy"],
+      "properties": {
+        "units": { "type": "string", "enum": ["ADU^2", "ADU^2/px^4", "px^4/ADU^2", "BUNIT^2", "1/BUNIT^2"] },
+        "dtype": { "enum": ["float32", "float64"] },
+        "invalid_policy": { "const": "nan_or_support_le_0" }
+      }
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/v6/weight-mode.v1.schema.json",
+  "title": "AstroCS V6 weight_mode / weight provenance 数据对象（DATA-DESIGN-001 提案）",
+  "description": "Phase2 权重模式显式枚举与权重来源证据。生产科学模式={point_information, surface_gls, psfsw_robust}；文档基线模式={equal, pixel_ivar}(仅基线比较)；psf_snr_power=DEFERRED 不进生产路由。legacy 整数 {0=support x snr^2, 1=equal, 2=ivar} 被取代且 0 不得进科学权重面。字段词表由 SCHEMA-INTEGRATE-001(W6) 归一为单一 schema；本文件保留两套既有词表的双向映射，不发明第三套。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["weight_mode_schema", "schema_version", "weight_mode", "mode_class", "science_objective", "weight", "primitives", "covariance_ref", "effective_psf_ref", "provenance_ref"],
+  "properties": {
+    "weight_mode_schema": { "const": "astrocs.v6.weight-mode/v1", "x-astrocs": { "anchor": "FZ-FIELD-WEIGHTMODE; ADJ-S1", "domain": "Phase2" } },
+    "schema_version": { "const": 1, "x-astrocs": { "anchor": "宪章 §4.3", "domain": "全部" } },
+    "weight_mode": {
+      "enum": ["point_information", "surface_gls", "psfsw_robust", "equal", "pixel_ivar"],
+      "x-astrocs": { "anchor": "FZ-MODE-PRODUCTION; FZ-MODE-BASELINE; ADJ-S1", "domain": "Phase2 配置/路由", "fail_closed": "未知模式、legacy 0、或 psf_snr_power 进入生产枚举 -> REJECT", "gate": "G-WEIGHTMODE-ENUM" }
+    },
+    "mode_class": {
+      "enum": ["production", "documented_baseline"],
+      "x-astrocs": { "anchor": "FZ-MODE-PRODUCTION; FZ-MODE-BASELINE", "domain": "Phase2", "fail_closed": "baseline 模式声明科学最优 -> REJECT", "gate": "G-WEIGHTMODE-CLASS" }
+    },
+    "science_objective": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "UNIFIED §1", "domain": "全部", "fail_closed": "未声明 science_objective -> REJECT", "gate": "G-SCIENCE-OBJECTIVE" } },
+    "deferred_modes_documented": {
+      "const": ["psf_snr_power"],
+      "x-astrocs": { "anchor": "FZ-MODE-DEFERRED; ADJ-C004-01", "domain": "文档登记", "fail_closed": "psf_snr_power 进入生产权重枚举 -> REJECT", "gate": "G-DEFERRED-NOT-PRODUCTION" }
+    },
+    "legacy_superseded": {
+      "const": { "0": "support_x_snr2", "1": "equal", "2": "pixel_ivar" },
+      "x-astrocs": { "anchor": "ADJ-S1; ADJ-AR-01", "domain": "迁移", "fail_closed": "legacy 0(support x snr^2) 进入科学权重面 -> REJECT", "gate": "G-LEGACY-MIGRATION" }
+    },
+    "legacy_integer_allowed": { "const": false, "x-astrocs": { "anchor": "ADJ-S1", "domain": "迁移" } },
+    "weight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "units", "group_normalized", "sources"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "WEIGHT_PROVENANCE_GATE R2; ADJ-GEN-02", "domain": "全部", "fail_closed": "kind 与 mode 不匹配 -> REJECT", "gate": "G-WEIGHT-KIND" } },
+        "kind_alias_sci_psfw": { "type": "string", "x-astrocs": { "anchor": "ADJ-C004-03 token 映射", "domain": "W6 归一前别名" } },
+        "units": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "WEIGHT_PROVENANCE_GATE R5", "domain": "全部", "fail_closed": "psfsw_robust 要求 units=1 且 group_normalized=true", "gate": "G-PSFSW-UNIT" } },
+        "units_alias_sci_psfw": { "type": "string", "x-astrocs": { "anchor": "ADJ-C004-03 token 映射", "domain": "W6 归一前别名" } },
+        "group_normalized": { "type": "boolean", "x-astrocs": { "anchor": "FZ-FIELD-PSFSW-UNIT", "domain": "全部", "fail_closed": "psfsw_robust 且 group_normalized=false -> REJECT", "gate": "G-PSFSW-NORMALIZATION" } },
+        "normalization_scope_alias": { "enum": ["group", "global"], "x-astrocs": { "anchor": "ADJ-C004-03 token 映射", "domain": "W6 归一前别名" } },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "x-astrocs": { "anchor": "WEIGHT_PROVENANCE_GATE R3/R4; FZ-GATE-MEDIAN-SNR; FZ-GATE-SUPPORT-COVERAGE", "domain": "全部", "fail_closed": "sources 命中诊断别名集(median_source_snr/support/coverage/fwhm/residual...) -> REJECT", "gate": "G-WEIGHT-SOURCES" }
+        }
+      }
+    },
+    "primitives": { "type": "object", "minProperties": 1, "x-astrocs": { "anchor": "WEIGHT_PROVENANCE_GATE R4", "domain": "全部", "fail_closed": "每模式必需原始量未同时出现在 sources 与 primitives -> REJECT", "gate": "G-WEIGHT-PRIMITIVES" } },
+    "covariance_ref": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "FZ-FORMULA-COV-PROP", "domain": "全部", "fail_closed": "缺 covariance 或 variance_from 非法 -> REJECT", "gate": "G-COV-VARIANCE-FROM" } },
+    "effective_psf_ref": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "FZ-GATE-PSFSW-EPSF", "domain": "全部", "fail_closed": "缺 effective PSF -> REJECT", "gate": "G-EPSF-PRESENT" } },
+    "parameter_effectiveness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["declared_parameters", "applied_in_combination_coefficients", "applied_in_effective_psf"],
+      "properties": {
+        "declared_parameters": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "applied_in_combination_coefficients": { "const": true },
+        "applied_in_effective_psf": { "const": true }
+      },
+      "x-astrocs": { "anchor": "AR-048 (R9 参数须证明生效); FZ-FORMULA-COV-PROP", "domain": "全部", "fail_closed": "参数仅被记录而未进入实际组合系数/effective PSF -> REJECT", "gate": "G-PARAMETER-EFFECTIVENESS" }
+    },
+    "provenance_ref": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "FZ-PROV-MINIMAL-SET", "domain": "全部" } }
+  },
+  "x-astrocs-token-mapping-for-W6": [
+    { "sci_psfw_token": "weight_kind", "sci_p2_token": "weight.kind", "semantic": "权重对象种类" },
+    { "sci_psfw_token": "weight_units", "sci_p2_token": "weight.units", "semantic": "权重单位串" },
+    { "sci_psfw_token": "normalization.scope", "sci_p2_token": "group_normalized", "semantic": "归一域(组内/全局)" },
+    { "sci_psfw_token": "normalization.median_target", "sci_p2_token": "group_normalized=true (median=1)", "semantic": "组内 median 目标" }
+  ]
+}
