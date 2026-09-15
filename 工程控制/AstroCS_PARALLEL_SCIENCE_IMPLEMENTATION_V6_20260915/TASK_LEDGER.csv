@@ -15,7 +15,7 @@ ALG-P3-001,PASS,3,SCI-ADJ-001,docs/algorithms/v6/phase3/,ef736793-7240-4a94-b7be
 QA-MATRIX-001,PASS,3,SCI-ADJ-001,docs/validation/v6/;reports/v6/qa-design/,24fd9079-b618-4051-bc77-2f19cc3d7a52,reports/v6/qa-design/qa_matrix.json;reports/v6/qa-design/evidence/rc_summary.json,oracle35-35;mut56-detected;docs0-viol;zero-case-red
 CONTRACT-FREEZE-001,PASS,4,DATA-DESIGN-001;ALG-P1-001;ALG-P2-POINT-001;ALG-P2-PSFSW-001;ALG-P2-SURF-001;ALG-P3-001;QA-MATRIX-001,docs/science/v6/frozen/;docs/contracts/v6/frozen/;docs/algorithms/v6/frozen/;reports/v6/contract-review/,24aa6db4-6243-4b09-80b1-1a2e83898eaa,docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json;reports/v6/contract-review/01_FREEZE_STATUS_MATRIX.md,oracle2056-PASS;mut23-caught;doc96-consist;scope-0
 IMPL-P1-CAL-001,READY,5,CONTRACT-FREEZE-001,lib/calibration/;tests/unit/v6_p1_cal/,,,
-IMPL-P1-PSFW-001,READY,5,CONTRACT-FREEZE-001,lib/snr_estimator/;lib/dynamic_psf/;lib/photometric_calib/;tests/unit/v6_p1_psfw/,,,
+IMPL-P1-PSFW-001,PASS,5,CONTRACT-FREEZE-001,lib/snr_estimator/;lib/dynamic_psf/;lib/photometric_calib/;tests/unit/v6_p1_psfw/,37242755-6e62-4569-a8b9-75da1731cd5e,tests/unit/v6_p1_psfw/;lib/photometric_calib/cpp/src/psfsw.cpp;run/v6/IMPL-P1-PSFW-001/summary.json,ctest9-9;checks411-pass;oracle-rtol1e-9;neg-mutations-red
 IMPL-P1-DRZ-001,READY,5,CONTRACT-FREEZE-001,lib/healpix_db/;tests/unit/v6_p1_drz/,,,
 IMPL-P2-UPM-001,READY,5,CONTRACT-FREEZE-001,lib/phase2/src/upm.cpp;lib/phase2/include/astro/phase2/upm.h;lib/phase2_upm/;tests/unit/v6_p2_upm/,,,
 IMPL-P2-REJ-001,READY,5,CONTRACT-FREEZE-001,lib/phase2/src/rejection.cpp;lib/phase2/include/astro/phase2/rejection.h;lib/phase2_rej/;tests/unit/v6_p2_rej/,,,
