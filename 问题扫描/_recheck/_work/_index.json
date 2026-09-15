@@ -1,0 +1,374 @@
+{
+ "FD-F-002": {
+  "file": "问题扫描/findings/F_TEST_GAP/p1/FD_cpu_provider_test_textual_gate.md",
+  "line": 19,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "L28e-E-001": {
+  "file": "问题扫描/findings/E_TRACE_BREAK/p1/L28e.md",
+  "line": 6,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M1a-A-006": {
+  "file": "问题扫描/findings/A_SCI_DEF/p1/M1a_L01_L02.md",
+  "line": 35,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M1a-C-004": {
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M1a_L01_L02.md",
+  "line": 67,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M1a-E-001": {
+  "file": "问题扫描/findings/E_TRACE_BREAK/p1/M1a_L01_L02.md",
+  "line": 3,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M1a-G-002": {
+  "file": "问题扫描/findings/G_GOV_GATE/p1/M1a_L01_L02.md",
+  "line": 18,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M2a-A-3": {
+  "file": "问题扫描/findings/A_SCI_DEF/p1/M2a_L04_L10.md",
+  "line": 24,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M2a-C-12": {
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p1/M2a_L04_L10.md",
+  "line": 200,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M2a-C-7": {
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p1/M2a_L04_L10.md",
+  "line": 105,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M2a-E-2": {
+  "file": "问题扫描/findings/E_TRACE_BREAK/p1/M2a_L04_L10.md",
+  "line": 33,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M2a-G-2": {
+  "file": "问题扫描/findings/G_GOV_GATE/p2/M2a_L04_L10.md",
+  "line": 5,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M2a-I-3": {
+  "file": "问题扫描/findings/I_DOC_HYGIENE/p2/M2a_L04_L10.md",
+  "line": 39,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M2b-B-06": {
+  "file": "问题扫描/findings/B_STD_MISMATCH/p1/M2b_L03_L15.md",
+  "line": 25,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M2b-F-02": {
+  "file": "问题扫描/findings/F_TEST_GAP/p1/M2b_L03_L15.md",
+  "line": 7,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M3-A-003": {
+  "file": "问题扫描/findings/A_SCI_DEF/p1/M3_L05_L07.md",
+  "line": 7,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M3-C-005": {
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p1/M3_L05_L07.md",
+  "line": 37,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M3-E-001": {
+  "file": "问题扫描/findings/E_TRACE_BREAK/p0/M3_L05_L07.md",
+  "line": 9,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M3-I-002": {
+  "file": "问题扫描/findings/I_DOC_HYGIENE/p1/M3_L05_L07.md",
+  "line": 30,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M3b-A-06": {
+  "file": "问题扫描/findings/A_SCI_DEF/p1/M3b_L06.md",
+  "line": 38,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M3b-E-01": {
+  "file": "问题扫描/findings/E_TRACE_BREAK/p1/M3b_L06.md",
+  "line": 3,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M4-A-01": {
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M4_L08_L09.md",
+  "line": 5,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M4-C-07": {
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p1/M4_L08_L09.md",
+  "line": 54,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M4-F-06": {
+  "file": "问题扫描/findings/F_TEST_GAP/p1/M4_L08_L09.md",
+  "line": 55,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M5a-E-001": {
+  "file": "问题扫描/findings/E_TRACE_BREAK/p1/M5a_L11.md",
+  "line": 5,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M5a-G-007": {
+  "file": "问题扫描/findings/G_GOV_GATE/p1/M5a_L11.md",
+  "line": 55,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M5b-C-05": {
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p1/M5b_L12_L17.md",
+  "line": 37,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M5b-F-01": {
+  "file": "问题扫描/findings/F_TEST_GAP/p1/M5b_L12_L17.md",
+  "line": 3,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M5b-G-08": {
+  "file": "问题扫描/findings/G_GOV_GATE/p1/M5b_L12_L17.md",
+  "line": 20,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M5b-G-16": {
+  "file": "问题扫描/findings/G_GOV_GATE/p1/M5b_L12_L17.md",
+  "line": 139,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M5b-I-07": {
+  "file": "问题扫描/findings/I_DOC_HYGIENE/p2/M5b_L12_L17.md",
+  "line": 41,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M6a-D-003": {
+  "file": "问题扫描/findings/D_COMMENT/p1/M6a_L13_L14.md",
+  "line": 50,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M6a-D-011": {
+  "file": "问题扫描/findings/D_COMMENT/p2/M6a_L13_L14.md",
+  "line": 58,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M6a-I-002": {
+  "file": "问题扫描/findings/I_DOC_HYGIENE/p1/M6a_L13_L14.md",
+  "line": 29,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M6b-E-002": {
+  "file": "问题扫描/findings/E_TRACE_BREAK/p1/M6b_L16_L18.md",
+  "line": 3,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M6b-G-003": {
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M6b_L16_L18.md",
+  "line": 78,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M7-A-002": {
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M7_A_SCI_DEF_p0.md",
+  "line": 39,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M7-A-125": {
+  "file": "问题扫描/findings/A_SCI_DEF/p1/M7_A_SCI_DEF_p1_b.md",
+  "line": 49,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M7-A-135": {
+  "file": "问题扫描/findings/A_SCI_DEF/p1/M7_A_SCI_DEF_p1_b.md",
+  "line": 93,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M7-G-101": {
+  "file": "问题扫描/findings/G_GOV_GATE/p1/M7_G_GOV_GATE_p1.md",
+  "line": 7,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M7-I-204": {
+  "file": "问题扫描/findings/I_DOC_HYGIENE/p2/M7_I_DOC_HYGIENE_p2.md",
+  "line": 27,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M8-F-004": {
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M8_L22_L23.md",
+  "line": 65,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M8-F-012": {
+  "file": "问题扫描/findings/F_TEST_GAP/p1/M8_L22_L23.md",
+  "line": 128,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M8a-C-003": {
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p1/M8a_L25_L27.md",
+  "line": 54,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M8a-F-001": {
+  "file": "问题扫描/findings/F_TEST_GAP/p2/M8a_L25_L27.md",
+  "line": 8,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M8a-I-001": {
+  "file": "问题扫描/findings/I_DOC_HYGIENE/p2/M8a_L25_L27.md",
+  "line": 9,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M9-A-2": {
+  "file": "问题扫描/findings/A_SCI_DEF/p1/M9_L24_L26.md",
+  "line": 23,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M9-F-1": {
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M9_L24_L26.md",
+  "line": 5,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "M9-H-1": {
+  "file": "问题扫描/findings/H_NUMERIC/p0/M9_L24_L26.md",
+  "line": 5,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V1-N-04": {
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p1/V1.md",
+  "line": 7,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V10-N-04": {
+  "file": "问题扫描/findings/C_ALG_IMPL/p1/V10-b.md",
+  "line": 3,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V11-N-03": {
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V11.md",
+  "line": 24,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V13-N-08": {
+  "file": "问题扫描/findings/G_GOV_GATE/p1/V13-b.md",
+  "line": 31,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V2-N-01": {
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V2.md",
+  "line": 3,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V4-N-04": {
+  "file": "问题扫描/findings/G_GOV_GATE/p1/V4.md",
+  "line": 3,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V12-N-01": {
+  "file": "问题扫描/findings/A_SCI_DEF/p1/V12.md",
+  "line": 3,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V12-N-09": {
+  "file": "问题扫描/findings/A_SCI_DEF/p2/V12-b.md",
+  "line": 8,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V12-N-17": {
+  "file": "问题扫描/findings/A_SCI_DEF/p2/V12-c.md",
+  "line": 18,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V18-N-02": {
+  "file": "问题扫描/findings/G_GOV_GATE/p1/V18.md",
+  "line": 11,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V7-N-02": {
+  "file": "问题扫描/findings/C_ALG_IMPL/p2/V7.md",
+  "line": 21,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V7-N-10": {
+  "file": "问题扫描/findings/C_ALG_IMPL/p3/V7.md",
+  "line": 9,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V9-N-02": {
+  "file": "问题扫描/findings/G_GOV_GATE/p1/V9.md",
+  "line": 9,
+  "n_occurrences": 1,
+  "others": []
+ },
+ "V9-N-11": {
+  "file": "问题扫描/findings/G_GOV_GATE/p2/V9-c.md",
+  "line": 3,
+  "n_occurrences": 1,
+  "others": []
+ }
+}

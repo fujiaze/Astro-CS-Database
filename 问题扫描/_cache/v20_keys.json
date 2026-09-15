@@ -1,0 +1,582 @@
+{
+"output_dir": [
+"module_adapters.cpp:1232",
+"module_adapters.cpp:1242",
+"module_adapters.cpp:1249",
+"module_adapters.cpp:1341",
+"module_adapters.cpp:1610",
+"module_adapters.cpp:2101",
+"module_adapters.cpp:2479",
+"module_adapters.cpp:2633",
+"module_adapters.cpp:2855",
+"module_adapters.cpp:3252",
+"module_adapters.cpp:3677",
+"module_adapters.cpp:3749",
+"module_adapters.cpp:3870",
+"module_adapters.cpp:4039",
+"module_adapters.cpp:4190",
+"module_adapters.cpp:4428",
+"module_adapters.cpp:4798",
+"module_adapters.cpp:5335",
+"module_adapters.cpp:5477",
+"module_adapters.cpp:6210",
+"module_adapters.cpp:6283"
+],
+"input_lights": [
+"module_adapters.cpp:1287",
+"module_adapters.cpp:2102",
+"module_adapters.cpp:2991",
+"module_adapters.cpp:5068"
+],
+"master_bias": [
+"module_adapters.cpp:1368"
+],
+"master_dark": [
+"module_adapters.cpp:1369"
+],
+"master_flat": [
+"module_adapters.cpp:1370"
+],
+"dark_optimization": [
+"module_adapters.cpp:1392"
+],
+"dark_scale_factor": [
+"module_adapters.cpp:1393",
+"module_adapters.cpp:1447",
+"module_adapters.cpp:1448"
+],
+"cosmetic": [
+"module_adapters.cpp:1524",
+"module_adapters.cpp:5044"
+],
+"enabled": [
+"module_adapters.cpp:1524"
+],
+"hot_sigma": [
+"module_adapters.cpp:1533"
+],
+"cold_sigma": [
+"module_adapters.cpp:1534"
+],
+"method": [
+"module_adapters.cpp:1535"
+],
+"max_structure_size": [
+"module_adapters.cpp:1537"
+],
+"psf": [
+"module_adapters.cpp:1808"
+],
+"max_stars": [
+"module_adapters.cpp:1810"
+],
+"sip": [
+"module_adapters.cpp:1863"
+],
+"wcs": [
+"module_adapters.cpp:2105",
+"module_adapters.cpp:2872",
+"module_adapters.cpp:2875",
+"module_adapters.cpp:5046"
+],
+"crpix1": [
+"module_adapters.cpp:2111",
+"module_adapters.cpp:2117",
+"module_adapters.cpp:3075"
+],
+"crpix2": [
+"module_adapters.cpp:2111",
+"module_adapters.cpp:2117",
+"module_adapters.cpp:3076"
+],
+"crval1": [
+"module_adapters.cpp:2112",
+"module_adapters.cpp:2118",
+"module_adapters.cpp:3077"
+],
+"crval2": [
+"module_adapters.cpp:2112",
+"module_adapters.cpp:2118",
+"module_adapters.cpp:3078"
+],
+"cd11": [
+"module_adapters.cpp:2113",
+"module_adapters.cpp:2119",
+"module_adapters.cpp:3079",
+"module_adapters.cpp:5554"
+],
+"cd12": [
+"module_adapters.cpp:2113",
+"module_adapters.cpp:2119",
+"module_adapters.cpp:3080",
+"module_adapters.cpp:5555"
+],
+"cd21": [
+"module_adapters.cpp:2114",
+"module_adapters.cpp:2120",
+"module_adapters.cpp:3081",
+"module_adapters.cpp:5556"
+],
+"cd22": [
+"module_adapters.cpp:2114",
+"module_adapters.cpp:2120",
+"module_adapters.cpp:3082",
+"module_adapters.cpp:5557"
+],
+"init_source": [
+"module_adapters.cpp:2243"
+],
+"gaia_data_dir": [
+"module_adapters.cpp:2251"
+],
+"focal_length_mm": [
+"module_adapters.cpp:2263"
+],
+"pixel_size_um": [
+"module_adapters.cpp:2264"
+],
+"ra0": [
+"module_adapters.cpp:2272"
+],
+"dec0": [
+"module_adapters.cpp:2273"
+],
+"neighbor_ra0": [
+"module_adapters.cpp:2276"
+],
+"neighbor_dec0": [
+"module_adapters.cpp:2277"
+],
+"frames": [
+"module_adapters.cpp:2498",
+"module_adapters.cpp:2649"
+],
+"file": [
+"module_adapters.cpp:2512",
+"module_adapters.cpp:2707"
+],
+"sources": [
+"module_adapters.cpp:2542"
+],
+"x": [
+"module_adapters.cpp:2555",
+"module_adapters.cpp:2572"
+],
+"y": [
+"module_adapters.cpp:2555",
+"module_adapters.cpp:2572"
+],
+"id": [
+"module_adapters.cpp:2574",
+"module_adapters.cpp:2739"
+],
+"snr": [
+"module_adapters.cpp:2665",
+"module_adapters.cpp:3893"
+],
+"gain_e_per_adu": [
+"module_adapters.cpp:2667"
+],
+"read_noise_e": [
+"module_adapters.cpp:2668"
+],
+"zero_point_mag": [
+"module_adapters.cpp:2669"
+],
+"aperture_radius_px": [
+"module_adapters.cpp:2670"
+],
+"n_sky": [
+"module_adapters.cpp:2671"
+],
+"profile_half_px": [
+"module_adapters.cpp:2672"
+],
+"sigma_logflux_dex": [
+"module_adapters.cpp:2673"
+],
+"n_matches": [
+"module_adapters.cpp:2674"
+],
+"reference_flux_adu": [
+"module_adapters.cpp:2675"
+],
+"max_sources": [
+"module_adapters.cpp:2676"
+],
+"flux": [
+"module_adapters.cpp:2740"
+],
+"fwhm_px": [
+"module_adapters.cpp:2741"
+],
+"ctype1": [
+"module_adapters.cpp:2893"
+],
+"ctype2": [
+"module_adapters.cpp:2897"
+],
+"drizzle": [
+"module_adapters.cpp:2900",
+"module_adapters.cpp:5048"
+],
+"nside_mode": [
+"module_adapters.cpp:2918",
+"module_adapters.cpp:2921",
+"module_adapters.cpp:2924"
+],
+"nside": [
+"module_adapters.cpp:2934",
+"module_adapters.cpp:2935",
+"module_adapters.cpp:2941"
+],
+"nested": [
+"module_adapters.cpp:2967"
+],
+"pixfrac": [
+"module_adapters.cpp:2968"
+],
+"precision_mode": [
+"module_adapters.cpp:2974",
+"module_adapters.cpp:2978",
+"module_adapters.cpp:2982",
+"module_adapters.cpp:3325"
+],
+"schema": [
+"module_adapters.cpp:3017",
+"module_adapters.cpp:3594",
+"module_adapters.cpp:5547"
+],
+"photometry_applied": [
+"module_adapters.cpp:3020"
+],
+"photscal": [
+"module_adapters.cpp:3021"
+],
+"filter_passband": [
+"module_adapters.cpp:3293",
+"module_adapters.cpp:3620",
+"module_adapters.cpp:4848"
+],
+"signal_dtype": [
+"module_adapters.cpp:3325"
+],
+"hips_path": [
+"module_adapters.cpp:3613",
+"module_adapters.cpp:4471",
+"module_adapters.cpp:4503"
+],
+"frame_id": [
+"module_adapters.cpp:3616",
+"module_adapters.cpp:3886"
+],
+"max_leaf_order": [
+"module_adapters.cpp:3617"
+],
+"n_tiles": [
+"module_adapters.cpp:3618"
+],
+"frame_type": [
+"module_adapters.cpp:3622"
+],
+"order": [
+"module_adapters.cpp:3627"
+],
+"ipix": [
+"module_adapters.cpp:3628"
+],
+"target_order": [
+"module_adapters.cpp:3638",
+"module_adapters.cpp:3924",
+"module_adapters.cpp:4810"
+],
+"__workers": [
+"module_adapters.cpp:3774",
+"module_adapters.cpp:3930"
+],
+"control_id": [
+"module_adapters.cpp:3887",
+"module_adapters.cpp:3906"
+],
+"leaf_ipix": [
+"module_adapters.cpp:3888",
+"module_adapters.cpp:3912"
+],
+"ra_deg": [
+"module_adapters.cpp:3889",
+"module_adapters.cpp:3910",
+"module_adapters.cpp:5475",
+"module_adapters.cpp:6208"
+],
+"dec_deg": [
+"module_adapters.cpp:3890",
+"module_adapters.cpp:3911",
+"module_adapters.cpp:5475",
+"module_adapters.cpp:6208"
+],
+"value": [
+"module_adapters.cpp:3891"
+],
+"uncertainty": [
+"module_adapters.cpp:3892"
+],
+"ivar": [
+"module_adapters.cpp:3894"
+],
+"control_variance": [
+"module_adapters.cpp:3895"
+],
+"control_ivar": [
+"module_adapters.cpp:3896"
+],
+"snr_available": [
+"module_adapters.cpp:3897"
+],
+"support": [
+"module_adapters.cpp:3898",
+"module_adapters.cpp:4879"
+],
+"quality_flags": [
+"module_adapters.cpp:3899"
+],
+"tile_ipix": [
+"module_adapters.cpp:3907",
+"module_adapters.cpp:4224",
+"module_adapters.cpp:4562",
+"module_adapters.cpp:4571",
+"module_adapters.cpp:4875"
+],
+"gx": [
+"module_adapters.cpp:3908"
+],
+"gy": [
+"module_adapters.cpp:3909"
+],
+"control_grid_per_tile": [
+"module_adapters.cpp:3925"
+],
+"input_manifest_hash": [
+"module_adapters.cpp:3931",
+"module_adapters.cpp:4833",
+"module_adapters.cpp:6150"
+],
+"upm": [
+"module_adapters.cpp:3934",
+"module_adapters.cpp:5264"
+],
+"max_iterations": [
+"module_adapters.cpp:3935"
+],
+"huber_delta": [
+"module_adapters.cpp:3937"
+],
+"smoothing_lambda": [
+"module_adapters.cpp:3939"
+],
+"zero_anchor_weight": [
+"module_adapters.cpp:3942"
+],
+"persist_upm": [
+"module_adapters.cpp:4001"
+],
+"upm_save_path": [
+"module_adapters.cpp:4001"
+],
+"artifact_bin": [
+"module_adapters.cpp:4046"
+],
+"model_hash": [
+"module_adapters.cpp:4169",
+"module_adapters.cpp:4836"
+],
+"data_file": [
+"module_adapters.cpp:4176",
+"module_adapters.cpp:4269",
+"module_adapters.cpp:4560"
+],
+"tile_leaf_span": [
+"module_adapters.cpp:4201",
+"module_adapters.cpp:4445",
+"module_adapters.cpp:4822"
+],
+"reject_profile": [
+"module_adapters.cpp:4207"
+],
+"offset": [
+"module_adapters.cpp:4225",
+"module_adapters.cpp:4563",
+"module_adapters.cpp:4572",
+"module_adapters.cpp:4876"
+],
+"weight_mode": [
+"module_adapters.cpp:4448",
+"module_adapters.cpp:4824",
+"module_adapters.cpp:5268"
+],
+"legacy_allow_weight_fallback": [
+"module_adapters.cpp:4458",
+"module_adapters.cpp:5271"
+],
+"accepted": [
+"module_adapters.cpp:4514"
+],
+"nrej": [
+"module_adapters.cpp:4515"
+],
+"n_pixels": [
+"module_adapters.cpp:4518",
+"module_adapters.cpp:4519"
+],
+"sample_mask": [
+"module_adapters.cpp:4527"
+],
+"sample_mask_offset": [
+"module_adapters.cpp:4596"
+],
+"depth": [
+"module_adapters.cpp:4597"
+],
+"frame_slots": [
+"module_adapters.cpp:4606"
+],
+"uncertainty_available": [
+"module_adapters.cpp:4823",
+"module_adapters.cpp:5986",
+"module_adapters.cpp:6115"
+],
+"profile": [
+"module_adapters.cpp:4839"
+],
+"signal": [
+"module_adapters.cpp:4878"
+],
+"wsum": [
+"module_adapters.cpp:4880"
+],
+"error": [
+"module_adapters.cpp:5178",
+"module_adapters.cpp:5369",
+"module_adapters.cpp:6311"
+],
+"reject": [
+"module_adapters.cpp:5266"
+],
+"projection": [
+"module_adapters.cpp:5457",
+"module_adapters.cpp:5462",
+"module_adapters.cpp:5491",
+"module_adapters.cpp:5563",
+"module_adapters.cpp:5565",
+"module_adapters.cpp:5568"
+],
+"frame": [
+"module_adapters.cpp:5458",
+"module_adapters.cpp:5463",
+"module_adapters.cpp:5492"
+],
+"coverage_output": [
+"module_adapters.cpp:5459",
+"module_adapters.cpp:5464",
+"module_adapters.cpp:5493"
+],
+"source": [
+"module_adapters.cpp:5471",
+"module_adapters.cpp:6204"
+],
+"hips_dir": [
+"module_adapters.cpp:5472",
+"module_adapters.cpp:6205"
+],
+"center": [
+"module_adapters.cpp:5474",
+"module_adapters.cpp:6207"
+],
+"scale_deg_per_px": [
+"module_adapters.cpp:5485"
+],
+"width_px": [
+"module_adapters.cpp:5486",
+"module_adapters.cpp:5558"
+],
+"height_px": [
+"module_adapters.cpp:5487",
+"module_adapters.cpp:5559"
+],
+"sampler": [
+"module_adapters.cpp:5488",
+"module_adapters.cpp:6029",
+"module_adapters.cpp:6212"
+],
+"longitude_parity": [
+"module_adapters.cpp:5489",
+"module_adapters.cpp:6214"
+],
+"bitpix": [
+"module_adapters.cpp:5490",
+"module_adapters.cpp:6216"
+],
+"crval_ra_deg": [
+"module_adapters.cpp:5550"
+],
+"crval_dec_deg": [
+"module_adapters.cpp:5551"
+],
+"crpix_x": [
+"module_adapters.cpp:5552"
+],
+"crpix_y": [
+"module_adapters.cpp:5553"
+],
+"uncertainty_source": [
+"module_adapters.cpp:5723",
+"module_adapters.cpp:6034"
+],
+"max_tiles": [
+"module_adapters.cpp:5739",
+"module_adapters.cpp:6218"
+],
+"run_id": [
+"module_adapters.cpp:6014",
+"module_adapters.cpp:6148"
+],
+"software_version": [
+"module_adapters.cpp:6015",
+"module_adapters.cpp:6149"
+],
+"source_sha": [
+"module_adapters.cpp:6016",
+"module_adapters.cpp:6151"
+],
+"order_sel": [
+"module_adapters.cpp:6028"
+],
+"uncertainty_missing_pixels": [
+"module_adapters.cpp:6038",
+"module_adapters.cpp:6061"
+],
+"bunit": [
+"module_adapters.cpp:6044",
+"module_adapters.cpp:6070",
+"module_adapters.cpp:6092",
+"module_adapters.cpp:6154"
+],
+"output_fits": [
+"module_adapters.cpp:6133",
+"module_adapters.cpp:6140"
+],
+"product_sha256": [
+"module_adapters.cpp:6152"
+],
+"coordinate_frame": [
+"module_adapters.cpp:6153"
+],
+"algorithm_id": [
+"module_adapters.cpp:6155"
+],
+"module_build_id": [
+"module_adapters.cpp:6156"
+],
+"provider": [
+"module_adapters.cpp:6157"
+]
+}

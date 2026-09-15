@@ -1,0 +1,1613 @@
+{
+ "cmakelists_total": 52,
+ "add_test": {
+  "p1hips_units": [
+   "lib/astro_image_io/tests/p1hips/CMakeLists.txt:62"
+  ],
+  "p1hips_properties": [
+   "lib/astro_image_io/tests/p1hips/CMakeLists.txt:63"
+  ],
+  "p1hips_oracle": [
+   "lib/astro_image_io/tests/p1hips/CMakeLists.txt:64"
+  ],
+  "p1hips_negative": [
+   "lib/astro_image_io/tests/p1hips/CMakeLists.txt:65"
+  ],
+  "p1hips_performance": [
+   "lib/astro_image_io/tests/p1hips/CMakeLists.txt:74"
+  ],
+  "p1hips_selfcheck": [
+   "lib/astro_image_io/tests/p1hips/CMakeLists.txt:88"
+  ],
+  "p2hips_units": [
+   "lib/astro_image_io/tests/p2hips/CMakeLists.txt:44"
+  ],
+  "p2hips_determinism": [
+   "lib/astro_image_io/tests/p2hips/CMakeLists.txt:45"
+  ],
+  "p2hips_negative": [
+   "lib/astro_image_io/tests/p2hips/CMakeLists.txt:46"
+  ],
+  "p2hips_selfcheck": [
+   "lib/astro_image_io/tests/p2hips/CMakeLists.txt:49"
+  ],
+  "TestProg": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:354"
+  ],
+  "cookbook": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:361"
+  ],
+  "p1cal_units": [
+   "lib/calibration/tests/p1cal/CMakeLists.txt:38"
+  ],
+  "p1cal_properties": [
+   "lib/calibration/tests/p1cal/CMakeLists.txt:39"
+  ],
+  "p1cal_negative": [
+   "lib/calibration/tests/p1cal/CMakeLists.txt:40"
+  ],
+  "p1cal_cosmetic": [
+   "lib/calibration/tests/p1cal/CMakeLists.txt:41"
+  ],
+  "p1cal_performance": [
+   "lib/calibration/tests/p1cal/CMakeLists.txt:50"
+  ],
+  "p1cal_selfcheck": [
+   "lib/calibration/tests/p1cal/CMakeLists.txt:60"
+  ],
+  "p1cos_units": [
+   "lib/cosmetic/tests/p1cos/CMakeLists.txt:41"
+  ],
+  "p1cos_properties": [
+   "lib/cosmetic/tests/p1cos/CMakeLists.txt:42"
+  ],
+  "p1cos_negative": [
+   "lib/cosmetic/tests/p1cos/CMakeLists.txt:43"
+  ],
+  "p1cos_cosmetic": [
+   "lib/cosmetic/tests/p1cos/CMakeLists.txt:44"
+  ],
+  "p1cos_performance": [
+   "lib/cosmetic/tests/p1cos/CMakeLists.txt:53"
+  ],
+  "p1cos_selfcheck": [
+   "lib/cosmetic/tests/p1cos/CMakeLists.txt:63"
+  ],
+  "p1psf_units": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:48"
+  ],
+  "p1psf_properties": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:49"
+  ],
+  "p1psf_oracle": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:50"
+  ],
+  "p1psf_negative": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:51"
+  ],
+  "p1psf_boundary": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:52"
+  ],
+  "p1psf_performance": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:63"
+  ],
+  "p1psf_selfcheck": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:75"
+  ],
+  "p1psf_prodpath_centroid": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:93"
+  ],
+  "healpix_math": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:135"
+  ],
+  "stf_engine": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:139"
+  ],
+  "browser_backend": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:152"
+  ],
+  "hips_browser_backend": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:164"
+  ],
+  "geometry_truth": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:181"
+  ],
+  "p1drz_units": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:48"
+  ],
+  "p1drz_properties": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:49"
+  ],
+  "p1drz_oracle": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:50"
+  ],
+  "p1drz_negative": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:51"
+  ],
+  "p1drz_performance": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:61"
+  ],
+  "p1drz_selfcheck": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:72"
+  ],
+  "p1drz_taskset_invariance": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:95"
+  ],
+  "p1drz_merge_pipeline_lock": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:103"
+  ],
+  "p1sess_units": [
+   "lib/phase1_session/tests/p1sess/CMakeLists.txt:68"
+  ],
+  "p1sess_properties": [
+   "lib/phase1_session/tests/p1sess/CMakeLists.txt:69"
+  ],
+  "p1sess_negative": [
+   "lib/phase1_session/tests/p1sess/CMakeLists.txt:70"
+  ],
+  "p1sess_performance": [
+   "lib/phase1_session/tests/p1sess/CMakeLists.txt:71"
+  ],
+  "p1sess_selfcheck": [
+   "lib/phase1_session/tests/p1sess/CMakeLists.txt:86"
+  ],
+  "p1phot_units": [
+   "lib/photometric_calib/tests/p1phot/CMakeLists.txt:96"
+  ],
+  "p1phot_properties": [
+   "lib/photometric_calib/tests/p1phot/CMakeLists.txt:97"
+  ],
+  "p1phot_oracle": [
+   "lib/photometric_calib/tests/p1phot/CMakeLists.txt:98"
+  ],
+  "p1phot_negative": [
+   "lib/photometric_calib/tests/p1phot/CMakeLists.txt:99"
+  ],
+  "p1phot_performance": [
+   "lib/photometric_calib/tests/p1phot/CMakeLists.txt:114"
+  ],
+  "p1phot_selfcheck": [
+   "lib/photometric_calib/tests/p1phot/CMakeLists.txt:133"
+  ],
+  "p1phot_fixgates": [
+   "lib/photometric_calib/tests/p1phot/CMakeLists.txt:151"
+  ],
+  "ipv_extract_wcs_sip_failclosed": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:25"
+  ],
+  "ipv_mag_iter": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:43"
+  ],
+  "ipv_mag_iter_delivery": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:58"
+  ],
+  "ipv_triangle_budget": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:74"
+  ],
+  "ipv_abi_layout_lock": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:99"
+  ],
+  "ipv_abi_layout_lock_selfcheck": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:106"
+  ],
+  "ipv_params_abi_failclosed": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:119"
+  ],
+  "p1noise_units": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:71"
+  ],
+  "p1noise_properties": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:72"
+  ],
+  "p1noise_oracle": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:73"
+  ],
+  "p1noise_negative": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:74"
+  ],
+  "p1noise_scale_law": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:75"
+  ],
+  "p1noise_fill": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:76"
+  ],
+  "p1noise_performance": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:85"
+  ],
+  "p1noise_selfcheck": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:95"
+  ],
+  "p1snr_science_units": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:119"
+  ],
+  "p1snr_science_oracle": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:120"
+  ],
+  "p1snr_science_negative": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:121"
+  ],
+  "p1snr_science_production": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:122"
+  ],
+  "p1snr_science_determinism": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:123"
+  ],
+  "p1star_units": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:90"
+  ],
+  "p1star_properties": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:91"
+  ],
+  "p1star_oracle": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:92"
+  ],
+  "p1star_negative": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:120"
+  ],
+  "p1star_performance": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:137"
+  ],
+  "p1star_selfcheck": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:158"
+  ],
+  "p1star_mad": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:185"
+  ],
+  "p1star_angle_guard": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:200"
+  ],
+  "module:astrocs.conformance.echo": [
+   "modules/conformance/echo/CMakeLists.txt:49"
+  ],
+  "module:astrocs.conformance.noop": [
+   "modules/conformance/noop/CMakeLists.txt:55"
+  ],
+  "core_contracts": [
+   "tests/unit/CMakeLists.txt:5"
+  ],
+  "core_artifact": [
+   "tests/unit/CMakeLists.txt:10"
+  ],
+  "core_module": [
+   "tests/unit/CMakeLists.txt:15"
+  ],
+  "core_pipeline": [
+   "tests/unit/CMakeLists.txt:20"
+  ],
+  "core_context": [
+   "tests/unit/CMakeLists.txt:25"
+  ],
+  "core_scheduler": [
+   "tests/unit/CMakeLists.txt:30"
+  ],
+  "core_checkpoint": [
+   "tests/unit/CMakeLists.txt:35"
+  ],
+  "core_logging": [
+   "tests/unit/CMakeLists.txt:40"
+  ],
+  "rt001_abi": [
+   "tests/unit/CMakeLists.txt:45"
+  ],
+  "rt002_budget": [
+   "tests/unit/CMakeLists.txt:50"
+  ],
+  "rt003_context": [
+   "tests/unit/CMakeLists.txt:55"
+  ],
+  "rt005_registry": [
+   "tests/unit/CMakeLists.txt:62"
+  ],
+  "rt006_scheduler": [
+   "tests/unit/CMakeLists.txt:69"
+  ],
+  "rt007_artifact_store": [
+   "tests/unit/CMakeLists.txt:76"
+  ],
+  "rt008_runtime_client": [
+   "tests/unit/CMakeLists.txt:84"
+  ],
+  "rt009_node_trace": [
+   "tests/unit/CMakeLists.txt:93"
+  ],
+  "cli_process": [
+   "tests/unit/CMakeLists.txt:101"
+  ],
+  "cli_bench_verdict": [
+   "tests/unit/CMakeLists.txt:109"
+  ],
+  "cli_wideconv": [
+   "tests/unit/CMakeLists.txt:117"
+  ],
+  "gaia_unshuffle": [
+   "tests/unit/CMakeLists.txt:129"
+  ],
+  "io_adapter": [
+   "tests/unit/CMakeLists.txt:134"
+  ],
+  "io_ownership": [
+   "tests/unit/CMakeLists.txt:141"
+  ],
+  "io_reentrant": [
+   "tests/unit/CMakeLists.txt:155"
+  ],
+  "executor_provider_race": [
+   "tests/unit/CMakeLists.txt:169"
+  ],
+  "cpu_abi": [
+   "tests/unit/CMakeLists.txt:191"
+  ],
+  "cpu_lease": [
+   "tests/unit/CMakeLists.txt:198"
+  ],
+  "cpu_backend_exception": [
+   "tests/unit/CMakeLists.txt:209"
+  ],
+  "cpu_features": [
+   "tests/unit/CMakeLists.txt:216"
+  ],
+  "cpu_provider": [
+   "tests/unit/CMakeLists.txt:223"
+  ],
+  "cpu_fallback": [
+   "tests/unit/CMakeLists.txt:230"
+  ],
+  "cpu_bench": [
+   "tests/unit/CMakeLists.txt:237"
+  ],
+  "cpu_profile": [
+   "tests/unit/CMakeLists.txt:244"
+  ],
+  "cpu003_profile_v2": [
+   "tests/unit/CMakeLists.txt:252"
+  ],
+  "cpu006_bench_report": [
+   "tests/unit/CMakeLists.txt:260"
+  ],
+  "cpu007_profile_store": [
+   "tests/unit/CMakeLists.txt:268"
+  ],
+  "cpu008_worker_advisor": [
+   "tests/unit/CMakeLists.txt:276"
+  ],
+  "cpu004_routing": [
+   "tests/unit/CMakeLists.txt:284"
+  ],
+  "mon001_recorder": [
+   "tests/unit/CMakeLists.txt:292"
+  ],
+  "mon002_gate": [
+   "tests/unit/CMakeLists.txt:300"
+  ],
+  "mon002_alloc": [
+   "tests/unit/CMakeLists.txt:310"
+  ],
+  "mon001_gate": [
+   "tests/unit/CMakeLists.txt:319"
+  ],
+  "p1001_modules": [
+   "tests/unit/CMakeLists.txt:327"
+  ],
+  "p1001_real_nodes": [
+   "tests/unit/CMakeLists.txt:338"
+  ],
+  "p2001_real_nodes": [
+   "tests/unit/CMakeLists.txt:351"
+  ],
+  "p2002_unc_rej_prov": [
+   "tests/unit/CMakeLists.txt:367"
+  ],
+  "cpu001_selftest_baseline": [
+   "tests/unit/CMakeLists.txt:382"
+  ],
+  "cpu001_selftest_avx2": [
+   "tests/unit/CMakeLists.txt:392"
+  ],
+  "cpu001_selftest_avx512": [
+   "tests/unit/CMakeLists.txt:403"
+  ],
+  "cpu001_negative": [
+   "tests/unit/CMakeLists.txt:420"
+  ],
+  "cpu_monitor": [
+   "tests/unit/CMakeLists.txt:435"
+  ],
+  "p1_calibration": [
+   "tests/unit/CMakeLists.txt:441"
+  ],
+  "master_flat_median": [
+   "tests/unit/CMakeLists.txt:448"
+  ],
+  "hips_writer_adapter": [
+   "tests/unit/CMakeLists.txt:555"
+  ],
+  "hips_publish_atomic_units": [
+   "tests/unit/CMakeLists.txt:577"
+  ],
+  "hips_publish_atomic": [
+   "tests/unit/CMakeLists.txt:579"
+  ],
+  "p1_stars": [
+   "tests/unit/CMakeLists.txt:587"
+  ],
+  "p1_wcs_phot": [
+   "tests/unit/CMakeLists.txt:594"
+  ],
+  "p1_noise": [
+   "tests/unit/CMakeLists.txt:600"
+  ],
+  "p1_nside": [
+   "tests/unit/CMakeLists.txt:608"
+  ],
+  "r9b_healpix_neighbors": [
+   "tests/unit/CMakeLists.txt:614"
+  ],
+  "p1_hips_writer": [
+   "tests/unit/CMakeLists.txt:620"
+  ],
+  "p1_ir_facade": [
+   "tests/unit/CMakeLists.txt:627"
+  ],
+  "p1_session_manifest": [
+   "tests/unit/CMakeLists.txt:638"
+  ],
+  "p1_resource": [
+   "tests/unit/CMakeLists.txt:660"
+  ],
+  "p2_workers": [
+   "tests/unit/CMakeLists.txt:667"
+  ],
+  "p2_upm_synthetic": [
+   "tests/unit/CMakeLists.txt:671"
+  ],
+  "p2_block_plan": [
+   "tests/unit/CMakeLists.txt:677"
+  ],
+  "p2_rejection": [
+   "tests/unit/CMakeLists.txt:683"
+  ],
+  "p2_output_semantics": [
+   "tests/unit/CMakeLists.txt:689"
+  ],
+  "p2_ir_facade": [
+   "tests/unit/CMakeLists.txt:693"
+  ],
+  "p2_seam_gate": [
+   "tests/unit/CMakeLists.txt:699"
+  ],
+  "p3_wcs": [
+   "tests/unit/CMakeLists.txt:705"
+  ],
+  "p3_interp": [
+   "tests/unit/CMakeLists.txt:709"
+  ],
+  "p3_coverage": [
+   "tests/unit/CMakeLists.txt:713"
+  ],
+  "p3_output": [
+   "tests/unit/CMakeLists.txt:720"
+  ],
+  "p3_assembly": [
+   "tests/unit/CMakeLists.txt:728"
+  ],
+  "cal_photometry_apply": [
+   "tests/unit/CMakeLists.txt:755"
+  ],
+  "p1_io_hardening": [
+   "tests/unit/CMakeLists.txt:769"
+  ],
+  "p15_artifact_collect": [
+   "tests/unit/CMakeLists.txt:783"
+  ],
+  "gaia_cat_unit": [
+   "tests/unit/CMakeLists.txt:838"
+  ],
+  "gaia_cat_properties": [
+   "tests/unit/CMakeLists.txt:840"
+  ],
+  "gaia_cat_worker": [
+   "tests/unit/CMakeLists.txt:842"
+  ],
+  "gaia_cat_negative": [
+   "tests/unit/CMakeLists.txt:844"
+  ],
+  "gaia_cat_truncate": [
+   "tests/unit/CMakeLists.txt:846"
+  ],
+  "gaia_cat_performance": [
+   "tests/unit/CMakeLists.txt:848"
+  ],
+  "gaia_cat_dump": [
+   "tests/unit/CMakeLists.txt:851"
+  ],
+  "gaia_cat_polar_ref_dump": [
+   "tests/unit/CMakeLists.txt:853"
+  ],
+  "gaia_cat_oracle": [
+   "tests/unit/CMakeLists.txt:858"
+  ],
+  "gaia_cat_adapter": [
+   "tests/unit/CMakeLists.txt:888"
+  ],
+  "gaia_integration": [
+   "tests/unit/CMakeLists.txt:912"
+  ],
+  "gaia_module_manifest_bounds": [
+   "tests/unit/CMakeLists.txt:939"
+  ],
+  "xpsd_spectrum_count_bounds": [
+   "tests/unit/CMakeLists.txt:949"
+  ],
+  "gaia_magnitude_range_bounds": [
+   "tests/unit/CMakeLists.txt:966"
+  ],
+  "drizzle_adapter": [
+   "tests/unit/CMakeLists.txt:990"
+  ],
+  "drizzle_precision_default": [
+   "tests/unit/CMakeLists.txt:1005"
+  ],
+  "calibration_adapter": [
+   "tests/unit/CMakeLists.txt:1019"
+  ],
+  "calibration_integration": [
+   "tests/unit/CMakeLists.txt:1050"
+  ],
+  "cosmetic_adapter": [
+   "tests/unit/CMakeLists.txt:1075"
+  ],
+  "cosmetic_integration": [
+   "tests/unit/CMakeLists.txt:1109"
+  ],
+  "p1_noise_adapter": [
+   "tests/unit/CMakeLists.txt:1166"
+  ],
+  "aio_abi_units": [
+   "tests/unit/CMakeLists.txt:1202"
+  ],
+  "aio_abi_negative": [
+   "tests/unit/CMakeLists.txt:1203"
+  ],
+  "aio_abi_selfcheck": [
+   "tests/unit/CMakeLists.txt:1216"
+  ],
+  "p3_projection_units": [
+   "tests/unit/CMakeLists.txt:1242"
+  ],
+  "p3_projection_fault": [
+   "tests/unit/CMakeLists.txt:1243"
+  ],
+  "p3002_real_nodes": [
+   "tests/unit/CMakeLists.txt:1273"
+  ],
+  "p3002_uncertainty": [
+   "tests/unit/CMakeLists.txt:1286"
+  ],
+  "rt001_unique_executor": [
+   "tests/unit/CMakeLists.txt:1306"
+  ],
+  "ipv_platform_binding": [
+   "tests/unit/CMakeLists.txt:1322"
+  ],
+  "p1snr_linux_units": [
+   "tests/unit/p1snr/CMakeLists.txt:23"
+  ],
+  "p1snr_linux_oracle": [
+   "tests/unit/p1snr/CMakeLists.txt:24"
+  ],
+  "p1snr_linux_contract": [
+   "tests/unit/p1snr/CMakeLists.txt:25"
+  ],
+  "p1snr_linux_negative": [
+   "tests/unit/p1snr/CMakeLists.txt:26"
+  ],
+  "p1snr_linux_determinism": [
+   "tests/unit/p1snr/CMakeLists.txt:27"
+  ],
+  "p1snr_frame_parity": [
+   "tests/unit/p1snr/CMakeLists.txt:49"
+  ],
+  "p1wcs_performance": [
+   "tests/unit/p1wcs/CMakeLists.txt:101"
+  ],
+  "p1wcs_selfcheck": [
+   "tests/unit/p1wcs/CMakeLists.txt:117"
+  ],
+  "p1wcs_units": [
+   "tests/unit/p1wcs/CMakeLists.txt:121"
+  ],
+  "p1wcs_properties": [
+   "tests/unit/p1wcs/CMakeLists.txt:122"
+  ],
+  "p1wcs_oracle": [
+   "tests/unit/p1wcs/CMakeLists.txt:123"
+  ],
+  "p1wcs_negative": [
+   "tests/unit/p1wcs/CMakeLists.txt:124"
+  ],
+  "p1wcs_apbp": [
+   "tests/unit/p1wcs/CMakeLists.txt:126"
+  ],
+  "p1wcs_astropy_cross": [
+   "tests/unit/p1wcs/CMakeLists.txt:132"
+  ],
+  "p1wcs_std_f1_bridge_cross": [
+   "tests/unit/p1wcs/CMakeLists.txt:155"
+  ]
+ },
+ "add_executable": {
+  "astrocs": [
+   "CMakeLists.txt:612",
+   "cli/CMakeLists.txt:216"
+  ],
+  "acr_example_minimal": [
+   "lib/acr/examples/CMakeLists.txt:2"
+  ],
+  "acr_example_chunk": [
+   "lib/acr/examples/CMakeLists.txt:5"
+  ],
+  "acr_example_cuda_axpy": [
+   "lib/acr/examples/CMakeLists.txt:10"
+  ],
+  "acr_weighted_integration_benchmark": [
+   "lib/acr/examples/weighted_integration/CMakeLists.txt:28"
+  ],
+  "acr-benchmark-gb": [
+   "lib/acr/qualification/CMakeLists.txt:93"
+  ],
+  "acr-benchmark-focused": [
+   "lib/acr/qualification/CMakeLists.txt:109"
+  ],
+  "acr_test_classic": [
+   "lib/acr/tests/classic/CMakeLists.txt:59"
+  ],
+  "acr_test_fault": [
+   "lib/acr/tests/fault/CMakeLists.txt:15"
+  ],
+  "acr_test_sanitizer": [
+   "lib/acr/tests/fault/CMakeLists.txt:32"
+  ],
+  "acr_test_sanitizer_actual": [
+   "lib/acr/tests/fault/CMakeLists.txt:45"
+  ],
+  "acr_test_persistence": [
+   "lib/acr/tests/fault/CMakeLists.txt:60"
+  ],
+  "acr_test_weighted_integration": [
+   "lib/acr/tests/integration/CMakeLists.txt:4"
+  ],
+  "acr_test_focused_mixed": [
+   "lib/acr/tests/unit/CMakeLists.txt:3"
+  ],
+  "acr_test_api": [
+   "lib/acr/tests/unit/CMakeLists.txt:15"
+  ],
+  "acr_test_buffer": [
+   "lib/acr/tests/unit/CMakeLists.txt:18"
+  ],
+  "acr_test_topology": [
+   "lib/acr/tests/unit/CMakeLists.txt:22"
+  ],
+  "acr_test_qualification": [
+   "lib/acr/tests/unit/CMakeLists.txt:30"
+  ],
+  "acr_test_scheduler": [
+   "lib/acr/tests/unit/CMakeLists.txt:39"
+  ],
+  "acr_test_utilization": [
+   "lib/acr/tests/unit/CMakeLists.txt:47"
+  ],
+  "acr_test_cuda": [
+   "lib/acr/tests/unit/CMakeLists.txt:58"
+  ],
+  "acr_test_task_descriptor": [
+   "lib/acr/tests/unit/CMakeLists.txt:85"
+  ],
+  "acr_test_hardware_profile": [
+   "lib/acr/tests/unit/CMakeLists.txt:94"
+  ],
+  "acr_test_cost": [
+   "lib/acr/tests/unit/CMakeLists.txt:100"
+  ],
+  "acr_test_cpu_profile": [
+   "lib/acr/tests/unit/CMakeLists.txt:106"
+  ],
+  "acr_test_api_traits": [
+   "lib/acr/tests/unit/CMakeLists.txt:117"
+  ],
+  "acr_test_kernel_registry": [
+   "lib/acr/tests/unit/CMakeLists.txt:126"
+  ],
+  "acr_test_work_pool": [
+   "lib/acr/tests/unit/CMakeLists.txt:132"
+  ],
+  "acr_test_device_executor": [
+   "lib/acr/tests/unit/CMakeLists.txt:141"
+  ],
+  "acr_test_invocation_dispatch": [
+   "lib/acr/tests/unit/CMakeLists.txt:150"
+  ],
+  "acr_test_resource_control": [
+   "lib/acr/tests/unit/CMakeLists.txt:160"
+  ],
+  "acr_test_profile_holdout": [
+   "lib/acr/tests/unit/CMakeLists.txt:170"
+  ],
+  "acr_test_focused_operation": [
+   "lib/acr/tests/unit/CMakeLists.txt:179"
+  ],
+  "acr_test_route_estimator": [
+   "lib/acr/tests/unit/CMakeLists.txt:188"
+  ],
+  "acr_test_route_calibration": [
+   "lib/acr/tests/unit/CMakeLists.txt:198"
+  ],
+  "acr_test_dispatcher_bdr": [
+   "lib/acr/tests/unit/CMakeLists.txt:223"
+  ],
+  "acr_test_mixed_route": [
+   "lib/acr/tests/unit/CMakeLists.txt:247"
+  ],
+  "acr_test_residency": [
+   "lib/acr/tests/unit/CMakeLists.txt:257"
+  ],
+  "acr_test_cuda_bridge": [
+   "lib/acr/tests/unit/CMakeLists.txt:267"
+  ],
+  "acr_test_cuda_bridge_chunk": [
+   "lib/acr/tests/unit/CMakeLists.txt:279"
+  ],
+  "acr-benchmark": [
+   "lib/acr/tools/acr_benchmark/CMakeLists.txt:7"
+  ],
+  "acr-classic-runner": [
+   "lib/acr/tools/acr_classic_runner/CMakeLists.txt:12"
+  ],
+  "acr-report": [
+   "lib/acr/tools/acr_report/CMakeLists.txt:6"
+  ],
+  "acr-status": [
+   "lib/acr/tools/acr_status/CMakeLists.txt:7"
+  ],
+  "p1hips_tests": [
+   "lib/astro_image_io/tests/p1hips/CMakeLists.txt:47"
+  ],
+  "p1hips_perf_test": [
+   "lib/astro_image_io/tests/p1hips/CMakeLists.txt:68"
+  ],
+  "p1hips_selfcheck_test": [
+   "lib/astro_image_io/tests/p1hips/CMakeLists.txt:77"
+  ],
+  "p1hips_digest_verify": [
+   "lib/astro_image_io/tests/p1hips/CMakeLists.txt:93"
+  ],
+  "p2hips_tests": [
+   "lib/astro_image_io/tests/p2hips/CMakeLists.txt:38"
+  ],
+  "TestProg": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:352"
+  ],
+  "cookbook": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:359"
+  ],
+  "Iter_Image": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:369"
+  ],
+  "Iter_Var": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:375"
+  ],
+  "fpack": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:388"
+  ],
+  "funpack": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:391"
+  ],
+  "fitscopy": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:394"
+  ],
+  "fitsverify": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:397"
+  ],
+  "imcopy": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:404"
+  ],
+  "smem": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:408"
+  ],
+  "speed": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:412"
+  ],
+  "p1cal_tests": [
+   "lib/calibration/tests/p1cal/CMakeLists.txt:30"
+  ],
+  "p1cal_perf_test": [
+   "lib/calibration/tests/p1cal/CMakeLists.txt:44"
+  ],
+  "p1cal_selfcheck_test": [
+   "lib/calibration/tests/p1cal/CMakeLists.txt:53"
+  ],
+  "p1cos_tests": [
+   "lib/cosmetic/tests/p1cos/CMakeLists.txt:33"
+  ],
+  "p1cos_perf_test": [
+   "lib/cosmetic/tests/p1cos/CMakeLists.txt:47"
+  ],
+  "p1cos_selfcheck_test": [
+   "lib/cosmetic/tests/p1cos/CMakeLists.txt:56"
+  ],
+  "p1psf_tests": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:38"
+  ],
+  "p1psf_perf_test": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:55"
+  ],
+  "p1psf_selfcheck_test": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:66"
+  ],
+  "p1psf_prodpath_check_test": [
+   "lib/dynamic_psf/tests/p1psf/CMakeLists.txt:85"
+  ],
+  "healpix_browser_qt": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:83"
+  ],
+  "browser_cli": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:101"
+  ],
+  "test_healpix_math": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:130"
+  ],
+  "test_stf_engine": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:137"
+  ],
+  "test_browser_backend": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:141"
+  ],
+  "test_hips_browser_backend": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:154"
+  ],
+  "test_geometry_truth": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:166"
+  ],
+  "p1drz_tests": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:37"
+  ],
+  "p1drz_perf_test": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:54"
+  ],
+  "p1drz_selfcheck_test": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:64"
+  ],
+  "p1drz_thread_probe": [
+   "lib/healpix_db/healpix_drizzle/tests/p1drz/CMakeLists.txt:79"
+  ],
+  "p1sess_tests": [
+   "lib/phase1_session/tests/p1sess/CMakeLists.txt:54"
+  ],
+  "p1sess_selfcheck_test": [
+   "lib/phase1_session/tests/p1sess/CMakeLists.txt:75"
+  ],
+  "phase2_synthetic_gate": [
+   "lib/phase2/CMakeLists.txt:77"
+  ],
+  "phase2_ivar_wiring": [
+   "lib/phase2/CMakeLists.txt:80"
+  ],
+  "phase2_execution_options": [
+   "lib/phase2/CMakeLists.txt:83"
+  ],
+  "phase2_routing": [
+   "lib/phase2/CMakeLists.txt:85"
+  ],
+  "phase2_sampler_parallel": [
+   "lib/phase2/CMakeLists.txt:87"
+  ],
+  "phase2_async_io": [
+   "lib/phase2/CMakeLists.txt:90"
+  ],
+  "phase2_sampler": [
+   "lib/phase2/CMakeLists.txt:95"
+  ],
+  "astrocs-stage2": [
+   "lib/phase2/CMakeLists.txt:123"
+  ],
+  "calibrated_pair_diag": [
+   "lib/phase2/CMakeLists.txt:136"
+  ],
+  "rejection_cli": [
+   "lib/phase2/CMakeLists.txt:141"
+  ],
+  "p1phot_tests": [
+   "lib/photometric_calib/tests/p1phot/CMakeLists.txt:79"
+  ],
+  "p1phot_perf_test": [
+   "lib/photometric_calib/tests/p1phot/CMakeLists.txt:102"
+  ],
+  "p1phot_selfcheck_test": [
+   "lib/photometric_calib/tests/p1phot/CMakeLists.txt:117"
+  ],
+  "p1phot_fixgates_test": [
+   "lib/photometric_calib/tests/p1phot/CMakeLists.txt:141"
+  ],
+  "ipv_extract_wcs_sip_failclosed_test": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:19"
+  ],
+  "ipv_mag_iter_test": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:37"
+  ],
+  "ipv_mag_iter_delivery_test": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:52"
+  ],
+  "ipv_triangle_budget_test": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:68"
+  ],
+  "ipv_abi_layout_probe": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:94"
+  ],
+  "ipv_params_abi_failclosed_test": [
+   "lib/plate_solve/cpp/ipv/test/CMakeLists.txt:113"
+  ],
+  "p1noise_tests": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:62"
+  ],
+  "p1noise_perf_test": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:79"
+  ],
+  "p1noise_selfcheck_test": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:88"
+  ],
+  "p1snr_science_test": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:117"
+  ],
+  "p1star_tests": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:74"
+  ],
+  "p1star_perf_test": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:126"
+  ],
+  "p1star_selfcheck_test": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:146"
+  ],
+  "p1star_mad_check_test": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:173"
+  ],
+  "p1star_angle_guard_test": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:198"
+  ],
+  "echo_host_callback_test": [
+   "modules/conformance/echo/CMakeLists.txt:40"
+  ],
+  "noop_handshake_test": [
+   "modules/conformance/noop/CMakeLists.txt:46"
+  ],
+  "core_contracts_test": [
+   "tests/unit/CMakeLists.txt:2"
+  ],
+  "core_artifact_test": [
+   "tests/unit/CMakeLists.txt:7"
+  ],
+  "core_module_test": [
+   "tests/unit/CMakeLists.txt:12"
+  ],
+  "core_pipeline_test": [
+   "tests/unit/CMakeLists.txt:17"
+  ],
+  "core_context_test": [
+   "tests/unit/CMakeLists.txt:22"
+  ],
+  "core_scheduler_test": [
+   "tests/unit/CMakeLists.txt:27"
+  ],
+  "core_checkpoint_test": [
+   "tests/unit/CMakeLists.txt:32"
+  ],
+  "core_logging_test": [
+   "tests/unit/CMakeLists.txt:37"
+  ],
+  "rt001_abi_test": [
+   "tests/unit/CMakeLists.txt:42"
+  ],
+  "rt002_budget_test": [
+   "tests/unit/CMakeLists.txt:47"
+  ],
+  "rt003_context_test": [
+   "tests/unit/CMakeLists.txt:52"
+  ],
+  "rt005_registry_test": [
+   "tests/unit/CMakeLists.txt:57"
+  ],
+  "rt006_scheduler_test": [
+   "tests/unit/CMakeLists.txt:64"
+  ],
+  "rt007_artifact_store_test": [
+   "tests/unit/CMakeLists.txt:71"
+  ],
+  "rt008_runtime_client_test": [
+   "tests/unit/CMakeLists.txt:78"
+  ],
+  "rt009_node_trace_test": [
+   "tests/unit/CMakeLists.txt:87"
+  ],
+  "cli_process_test": [
+   "tests/unit/CMakeLists.txt:96"
+  ],
+  "cli_bench_verdict_test": [
+   "tests/unit/CMakeLists.txt:104"
+  ],
+  "cli_wideconv_test": [
+   "tests/unit/CMakeLists.txt:112"
+  ],
+  "gaia_unshuffle_test": [
+   "tests/unit/CMakeLists.txt:121"
+  ],
+  "io_adapter_test": [
+   "tests/unit/CMakeLists.txt:131"
+  ],
+  "io_ownership_test": [
+   "tests/unit/CMakeLists.txt:136"
+  ],
+  "io_reentrant_test": [
+   "tests/unit/CMakeLists.txt:143"
+  ],
+  "executor_provider_race_test": [
+   "tests/unit/CMakeLists.txt:160"
+  ],
+  "cpu_abi_test": [
+   "tests/unit/CMakeLists.txt:188"
+  ],
+  "cpu_lease_test": [
+   "tests/unit/CMakeLists.txt:193"
+  ],
+  "cpu_backend_exception_test": [
+   "tests/unit/CMakeLists.txt:204"
+  ],
+  "cpu_features_test": [
+   "tests/unit/CMakeLists.txt:211"
+  ],
+  "cpu_provider_test": [
+   "tests/unit/CMakeLists.txt:218"
+  ],
+  "cpu_fallback_test": [
+   "tests/unit/CMakeLists.txt:225"
+  ],
+  "cpu_bench_test": [
+   "tests/unit/CMakeLists.txt:232"
+  ],
+  "cpu_profile_test": [
+   "tests/unit/CMakeLists.txt:239"
+  ],
+  "cpu003_profile_v2_test": [
+   "tests/unit/CMakeLists.txt:247"
+  ],
+  "cpu006_bench_report_test": [
+   "tests/unit/CMakeLists.txt:255"
+  ],
+  "cpu007_profile_store_test": [
+   "tests/unit/CMakeLists.txt:263"
+  ],
+  "cpu008_worker_advisor_test": [
+   "tests/unit/CMakeLists.txt:271"
+  ],
+  "cpu004_routing_test": [
+   "tests/unit/CMakeLists.txt:279"
+  ],
+  "mon001_recorder_test": [
+   "tests/unit/CMakeLists.txt:287"
+  ],
+  "mon002_gate_test": [
+   "tests/unit/CMakeLists.txt:295"
+  ],
+  "mon002_alloc_test": [
+   "tests/unit/CMakeLists.txt:305"
+  ],
+  "mon001_gate_test": [
+   "tests/unit/CMakeLists.txt:314"
+  ],
+  "p1001_modules_test": [
+   "tests/unit/CMakeLists.txt:322"
+  ],
+  "p1001_real_nodes_test": [
+   "tests/unit/CMakeLists.txt:332"
+  ],
+  "p2001_real_nodes_test": [
+   "tests/unit/CMakeLists.txt:343"
+  ],
+  "p2002_unc_rej_prov_test": [
+   "tests/unit/CMakeLists.txt:357"
+  ],
+  "cpu001_provider_selftest_baseline": [
+   "tests/unit/CMakeLists.txt:376"
+  ],
+  "cpu001_provider_selftest_avx2": [
+   "tests/unit/CMakeLists.txt:384"
+  ],
+  "cpu001_provider_selftest_avx512": [
+   "tests/unit/CMakeLists.txt:395"
+  ],
+  "cpu001_negative_test": [
+   "tests/unit/CMakeLists.txt:414"
+  ],
+  "cpu_monitor_test": [
+   "tests/unit/CMakeLists.txt:430"
+  ],
+  "p1_calibration_test": [
+   "tests/unit/CMakeLists.txt:437"
+  ],
+  "master_flat_median_test": [
+   "tests/unit/CMakeLists.txt:444"
+  ],
+  "hips_writer_adapter_test": [
+   "tests/unit/CMakeLists.txt:544"
+  ],
+  "hips_publish_atomic_test": [
+   "tests/unit/CMakeLists.txt:566"
+  ],
+  "p1_stars_test": [
+   "tests/unit/CMakeLists.txt:583"
+  ],
+  "p1_wcs_phot_test": [
+   "tests/unit/CMakeLists.txt:589"
+  ],
+  "p1_noise_test": [
+   "tests/unit/CMakeLists.txt:596"
+  ],
+  "p1_nside_test": [
+   "tests/unit/CMakeLists.txt:602"
+  ],
+  "r9b_healpix_neighbors_test": [
+   "tests/unit/CMakeLists.txt:612"
+  ],
+  "p1_hips_writer_test": [
+   "tests/unit/CMakeLists.txt:616"
+  ],
+  "p1_ir_facade_test": [
+   "tests/unit/CMakeLists.txt:623"
+  ],
+  "p1_session_manifest_test": [
+   "tests/unit/CMakeLists.txt:631"
+  ],
+  "p1_resource_test": [
+   "tests/unit/CMakeLists.txt:655"
+  ],
+  "p2_workers_test": [
+   "tests/unit/CMakeLists.txt:662"
+  ],
+  "p2_upm_synthetic_test": [
+   "tests/unit/CMakeLists.txt:669"
+  ],
+  "p2_block_plan_test": [
+   "tests/unit/CMakeLists.txt:673"
+  ],
+  "p2_rejection_test": [
+   "tests/unit/CMakeLists.txt:679"
+  ],
+  "p2_output_semantics_test": [
+   "tests/unit/CMakeLists.txt:685"
+  ],
+  "p2_ir_facade_test": [
+   "tests/unit/CMakeLists.txt:691"
+  ],
+  "p2_seam_gate_test": [
+   "tests/unit/CMakeLists.txt:695"
+  ],
+  "p3_wcs_test": [
+   "tests/unit/CMakeLists.txt:701"
+  ],
+  "p3_interp_test": [
+   "tests/unit/CMakeLists.txt:707"
+  ],
+  "p3_coverage_test": [
+   "tests/unit/CMakeLists.txt:711"
+  ],
+  "p3_output_test": [
+   "tests/unit/CMakeLists.txt:715"
+  ],
+  "p3_assembly_test": [
+   "tests/unit/CMakeLists.txt:722"
+  ],
+  "test_photometry_apply_test": [
+   "tests/unit/CMakeLists.txt:744"
+  ],
+  "p1_io_hardening_test": [
+   "tests/unit/CMakeLists.txt:761"
+  ],
+  "p15_artifact_collect_test": [
+   "tests/unit/CMakeLists.txt:779"
+  ],
+  "gaia_xpsd_fixture_gen": [
+   "tests/unit/CMakeLists.txt:796"
+  ],
+  "gaia_cat_test": [
+   "tests/unit/CMakeLists.txt:820"
+  ],
+  "gaia_cat_polar_ref": [
+   "tests/unit/CMakeLists.txt:824"
+  ],
+  "gaia_adapter_test": [
+   "tests/unit/CMakeLists.txt:877"
+  ],
+  "gaia_integration_test": [
+   "tests/unit/CMakeLists.txt:898"
+  ],
+  "gaia_module_manifest_bounds_test": [
+   "tests/unit/CMakeLists.txt:926"
+  ],
+  "xpsd_spectrum_count_bounds_test": [
+   "tests/unit/CMakeLists.txt:942"
+  ],
+  "gaia_magnitude_range_bounds_test": [
+   "tests/unit/CMakeLists.txt:959"
+  ],
+  "drizzle_adapter_test": [
+   "tests/unit/CMakeLists.txt:979"
+  ],
+  "drizzle_precision_default_test": [
+   "tests/unit/CMakeLists.txt:996"
+  ],
+  "calibration_adapter_test": [
+   "tests/unit/CMakeLists.txt:1011"
+  ],
+  "calibration_integration_test": [
+   "tests/unit/CMakeLists.txt:1029"
+  ],
+  "cosmetic_adapter_test": [
+   "tests/unit/CMakeLists.txt:1062"
+  ],
+  "cosmetic_integration_test": [
+   "tests/unit/CMakeLists.txt:1090"
+  ],
+  "p1_noise_adapter_test": [
+   "tests/unit/CMakeLists.txt:1156"
+  ],
+  "aio_abi_tests": [
+   "tests/unit/CMakeLists.txt:1193"
+  ],
+  "aio_abi_selfcheck": [
+   "tests/unit/CMakeLists.txt:1205"
+  ],
+  "p3_projection_test": [
+   "tests/unit/CMakeLists.txt:1235"
+  ],
+  "p3002_real_nodes_test": [
+   "tests/unit/CMakeLists.txt:1262"
+  ],
+  "p3002_uncertainty_test": [
+   "tests/unit/CMakeLists.txt:1275"
+  ],
+  "rt001_unique_executor_test": [
+   "tests/unit/CMakeLists.txt:1297"
+  ],
+  "ipv_platform_binding_test": [
+   "tests/unit/CMakeLists.txt:1315"
+  ],
+  "p1snr_linux_test": [
+   "tests/unit/p1snr/CMakeLists.txt:18"
+  ],
+  "p1snr_frame_parity_test": [
+   "tests/unit/p1snr/CMakeLists.txt:42"
+  ],
+  "p1wcs_tests": [
+   "tests/unit/p1wcs/CMakeLists.txt:78"
+  ],
+  "p1wcs_perf_test": [
+   "tests/unit/p1wcs/CMakeLists.txt:93"
+  ],
+  "p1wcs_selfcheck_test": [
+   "tests/unit/p1wcs/CMakeLists.txt:104"
+  ]
+ },
+ "add_library": {
+  "astrocs_contracts": [
+   "CMakeLists.txt:95"
+  ],
+  "astrocs_io_adapter": [
+   "CMakeLists.txt:106"
+  ],
+  "astrocs_runtime": [
+   "CMakeLists.txt:133"
+  ],
+  "astrocs_io": [
+   "CMakeLists.txt:146"
+  ],
+  "astrocs_cpu_baseline": [
+   "CMakeLists.txt:220"
+  ],
+  "astrocs_core": [
+   "CMakeLists.txt:248"
+  ],
+  "astrocs_common": [
+   "CMakeLists.txt:265"
+  ],
+  "astrocs_cfitsio": [
+   "CMakeLists.txt:275"
+  ],
+  "astrocs_aio": [
+   "CMakeLists.txt:322"
+  ],
+  "astrocs_hips": [
+   "CMakeLists.txt:351"
+  ],
+  "astrocs_calibration": [
+   "CMakeLists.txt:373"
+  ],
+  "astrocs_phase2": [
+   "CMakeLists.txt:389"
+  ],
+  "astrocs_drizzle": [
+   "CMakeLists.txt:408"
+  ],
+  "astrocs_cpu": [
+   "CMakeLists.txt:440"
+  ],
+  "astrocs_cpu_avx2": [
+   "CMakeLists.txt:465"
+  ],
+  "astrocs_cpu_avx512": [
+   "CMakeLists.txt:472"
+  ],
+  "astrocs_phase1_wcs": [
+   "CMakeLists.txt:482"
+  ],
+  "astrocs_phase1_phot": [
+   "CMakeLists.txt:485"
+  ],
+  "astrocs_phase1_noise": [
+   "CMakeLists.txt:495"
+  ],
+  "astrocs_phase1_stars": [
+   "CMakeLists.txt:511"
+  ],
+  "astrocs_p1_ipv": [
+   "CMakeLists.txt:528"
+  ],
+  "astrocs_p1_dpsf": [
+   "CMakeLists.txt:548"
+  ],
+  "astrocs_p1_sdet": [
+   "CMakeLists.txt:559"
+  ],
+  "astrocs_phase1_session": [
+   "CMakeLists.txt:573"
+  ],
+  "astrocs_phase2_session": [
+   "CMakeLists.txt:582"
+  ],
+  "astrocs_phase3_session": [
+   "CMakeLists.txt:588"
+  ],
+  "astrocs_cli_process": [
+   "CMakeLists.txt:607"
+  ],
+  "astrocs_module_adapters": [
+   "CMakeLists.txt:660"
+  ],
+  "astrocs_cli_runtime": [
+   "CMakeLists.txt:684"
+  ],
+  "acr_options": [
+   "lib/acr/CMakeLists.txt:159"
+  ],
+  "acr_api": [
+   "lib/acr/api/CMakeLists.txt:2"
+  ],
+  "acr_classic_kernels": [
+   "lib/acr/backends/classic/CMakeLists.txt:5"
+  ],
+  "acr_cpu_isa": [
+   "lib/acr/backends/cpu/CMakeLists.txt:4"
+  ],
+  "acr_cuda_bridge_loader": [
+   "lib/acr/backends/cuda/CMakeLists.txt:10"
+  ],
+  "acr_cuda": [
+   "lib/acr/backends/cuda/CMakeLists.txt:47"
+  ],
+  "acr_core": [
+   "lib/acr/core/CMakeLists.txt:5"
+  ],
+  "acr_cost": [
+   "lib/acr/cost/CMakeLists.txt:4"
+  ],
+  "acr_diagnostics": [
+   "lib/acr/diagnostics/CMakeLists.txt:3"
+  ],
+  "acr_weighted_integration_example": [
+   "lib/acr/examples/weighted_integration/CMakeLists.txt:10"
+  ],
+  "acr_profile": [
+   "lib/acr/profile/CMakeLists.txt:4"
+  ],
+  "acr_qualification": [
+   "lib/acr/qualification/CMakeLists.txt:7"
+  ],
+  "acr_benchmarks": [
+   "lib/acr/qualification/CMakeLists.txt:72"
+  ],
+  "acr_routing": [
+   "lib/acr/routing/CMakeLists.txt:2"
+  ],
+  "acr_scheduler": [
+   "lib/acr/scheduler/CMakeLists.txt:3"
+  ],
+  "acr_classic_experiments": [
+   "lib/acr/tests/classic/CMakeLists.txt:42"
+  ],
+  "acr_topology": [
+   "lib/acr/topology/CMakeLists.txt:4"
+  ],
+  "acr_utilization": [
+   "lib/acr/utilization/CMakeLists.txt:11"
+  ],
+  "${LIB_NAME}": [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:257"
+  ],
+  "astrocs_p1_calibration": [
+   "lib/calibration/CMakeLists.txt:30"
+  ],
+  "astrocs_p1_cosmetic": [
+   "lib/cosmetic/CMakeLists.txt:50"
+  ],
+  "astrocs_p1_drizzle": [
+   "lib/drizzle/CMakeLists.txt:61"
+  ],
+  "astrocs_catalog_gaia": [
+   "lib/gaia_xpsd_client/CMakeLists.txt:15"
+  ],
+  "healpix_browser_core": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:35"
+  ],
+  "healpix_browser_qt_widgets": [
+   "lib/healpix_db/healpix_browser_qt/CMakeLists.txt:65"
+  ],
+  "astrocs_p1_hips_writer": [
+   "lib/hips/CMakeLists.txt:43"
+  ],
+  "phase2": [
+   "lib/phase2/CMakeLists.txt:42"
+  ],
+  "p1noise_under_test": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:55"
+  ],
+  "p5snr_under_test": [
+   "lib/snr_estimator/tests/p1noise/CMakeLists.txt:107"
+  ],
+  "p1star_oom_interposer": [
+   "lib/star_detector/tests/p1star/CMakeLists.txt:99"
+  ],
+  "astrocs_echo": [
+   "modules/conformance/echo/CMakeLists.txt:9"
+  ],
+  "astrocs_noop": [
+   "modules/conformance/noop/CMakeLists.txt:9"
+  ]
+ },
+ "add_subdirectory": {
+  "modules/conformance/noop": [
+   "CMakeLists.txt:172"
+  ],
+  "lib/gaia_xpsd_client": [
+   "CMakeLists.txt:177"
+  ],
+  "lib/drizzle": [
+   "CMakeLists.txt:184"
+  ],
+  "lib/calibration": [
+   "CMakeLists.txt:191"
+  ],
+  "lib/cosmetic": [
+   "CMakeLists.txt:199"
+  ],
+  "lib/hips": [
+   "CMakeLists.txt:208"
+  ],
+  "tests/unit": [
+   "CMakeLists.txt:694"
+  ],
+  "lib/phase2": [
+   "CMakeLists.txt:701"
+  ],
+  "${subdir}": [
+   "lib/acr/CMakeLists.txt:236"
+  ],
+  "weighted_integration": [
+   "lib/acr/examples/CMakeLists.txt:16"
+  ],
+  "unit": [
+   "lib/acr/tests/CMakeLists.txt:3"
+  ],
+  "integration": [
+   "lib/acr/tests/CMakeLists.txt:4"
+  ],
+  "classic": [
+   "lib/acr/tests/CMakeLists.txt:7"
+  ],
+  "fault": [
+   "lib/acr/tests/CMakeLists.txt:8"
+  ],
+  "../../lib/calibration/tests/p1cal": [
+   "tests/unit/CMakeLists.txt:457"
+  ],
+  "../../lib/cosmetic/tests/p1cos": [
+   "tests/unit/CMakeLists.txt:467"
+  ],
+  "../../lib/healpix_db/healpix_drizzle/tests/p1drz": [
+   "tests/unit/CMakeLists.txt:478"
+  ],
+  "../../lib/astro_image_io/tests/p1hips": [
+   "tests/unit/CMakeLists.txt:489"
+  ],
+  "../../lib/astro_image_io/tests/p2hips": [
+   "tests/unit/CMakeLists.txt:498"
+  ],
+  "../../lib/photometric_calib/tests/p1phot": [
+   "tests/unit/CMakeLists.txt:511"
+  ],
+  "../../lib/snr_estimator/tests/p1noise": [
+   "tests/unit/CMakeLists.txt:528"
+  ],
+  "../../lib/phase1_session/tests/p1sess": [
+   "tests/unit/CMakeLists.txt:650"
+  ],
+  "../../lib/dynamic_psf/tests/p1psf": [
+   "tests/unit/CMakeLists.txt:1125"
+  ],
+  "../../lib/star_detector/tests/p1star": [
+   "tests/unit/CMakeLists.txt:1136"
+  ],
+  "p1wcs": [
+   "tests/unit/CMakeLists.txt:1175"
+  ],
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../lib/plate_solve/cpp/ipv/test": [
+   "tests/unit/CMakeLists.txt:1179"
+  ],
+  "p1snr": [
+   "tests/unit/CMakeLists.txt:1330"
+  ]
+ },
+ "install": [
+  [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:296",
+   "TARGETS",
+   "TARGETS cfitsio EXPORT cfitsioTargets LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} INCLUDES D"
+  ],
+  [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:303",
+   "FILES",
+   "FILES ${H_FILES} \"${CMAKE_CURRENT_BINARY_DIR}/cfitsio_export.h\" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT Devel"
+  ],
+  [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:323",
+   "EXPORT",
+   "EXPORT cfitsioTargets FILE cfitsioTargets.cmake NAMESPACE CFITSIO:: DESTINATION ${ConfigPackageLocation}"
+  ],
+  [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:331",
+   "FILES",
+   "FILES cmake/cfitsioConfig.cmake \"${CMAKE_CURRENT_BINARY_DIR}/cfitsio/cfitsioConfigVersion.cmake\" DESTINATION ${ConfigPackageLocation} COMPONENT Devel"
+  ],
+  [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:343",
+   "FILES",
+   "FILES ${CMAKE_CURRENT_BINARY_DIR}/cfitsio.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig"
+  ],
+  [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:363",
+   "TARGETS",
+   "TARGETS cookbook RUNTIME DESTINATION bin"
+  ],
+  [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:421",
+   "TARGETS",
+   "TARGETS fpack funpack fitscopy fitsverify imcopy speed RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}"
+  ],
+  [
+   "lib/astro_image_io/third_party/cfitsio/CMakeLists.txt:423",
+   "TARGETS",
+   "TARGETS smem RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}"
+  ],
+  [
+   "lib/orchestrator/cpp/third_party/json-schema-validator/CMakeLists.txt:57",
+   "TARGETS",
+   "TARGETS nlohmann_json_schema_validator EXPORT nlohmann_json_schema_validatorTargets LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT nlohmann_json_schema_validator_Runtime NAM"
+  ]
+ ]
+}
