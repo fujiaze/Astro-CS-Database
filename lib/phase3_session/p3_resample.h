@@ -41,8 +41,42 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
                                     std::string* err);
 
 /* P3-006/DOC-003: 配置 tile cache 容量上限(内存守卫 ARCH-P3 §3)。
- * max_tiles≤0 → 恢复默认(8); 请求可降不可升超物理内存守卫由上层校验。 */
+ * max_tiles≤0 → 恢复默认(8); 请求可降不可升超物理内存守卫由上层校验。
+ * P30: 容量作用在**共享** tile 缓存上 (单位 = 512²f32 tile = 1 MiB); 多 worker
+ * 共享同一实例时总容量仍 = max_tiles, 与 worker 数无关 (峰值内存有界)。 */
 void p3_sampler_set_max_tiles(P3Sampler* s, int max_tiles);
+
+/* P30 (Phase3 导出性能 P0): 让 dst 与 src 共享同一个有界 tile 缓存。
+ * 生产路径 (module_adapters p3_op_resample / p3_session) 的每个行带 worker 各自
+ * open 一个 sampler, 修复前 worker 缓存容量恒为默认 8 (max_tiles 只设到了主
+ * sampler) → 产物工作集 (真实 M42: 523 tile) 远大于 8 时逐行抖动重复解码。
+ * 语义: 只共享只读 tile 数据与"缺失"负缓存, 不改变任何像素值; src 必须已 open;
+ * attach 后 dst 仍只由单线程使用。禁止在 signal 与 variance/ivar 之间共享
+ * (同一 tile ipix 键指向不同子产品数据)。 */
+void p3_sampler_attach_cache(P3Sampler* dst, const P3Sampler* src);
+
+/* P30: tile 缓存观测 (§10.5 资源证据: 命中率 + 真实 tile 读/失败 open 次数)。
+
+ * 语义: open_failures = 真实打进"不存在的 tile 文件"的 open 次数 (无论是否开了
+ * 负缓存), 是"未覆盖区域代价"的**可观测计数器** —— 回归用例
+ * tests/unit/p3_sampler_cache_test.cpp 据此断言"重复采样不线性增长底层 open 次数"。 */
+struct P3CacheStats {
+    unsigned long long cap_tiles = 0;         // 容量 (tile 数)
+    unsigned long long resident_tiles = 0;    // 当前常驻 (含已知缺失项)
+    unsigned long long hits = 0;
+    unsigned long long misses = 0;
+    unsigned long long absent_reads = 0;      // 写入负缓存的次数 (= 去重后的失败 open)
+    unsigned long long open_failures = 0;     // 真实失败 open 总次数 (含重试)
+    unsigned long long absent_entries = 0;    // 负缓存条目数
+    unsigned long long evictions = 0;
+};
+void p3_sampler_cache_stats(const P3Sampler* s, P3CacheStats* out);
+
+/* P30 回归对照专用: 开关"缺失 tile 负缓存"(默认 1=开)。
+ * enabled=0 精确退化为修复前语义 (每个缺失像素重试一次失败 open) —— 仅用于
+ * tests/unit/p3_sampler_cache_test.cpp 的**阴性对照**, 生产路径不得关闭。
+ * 同一输入下开关只影响 open 次数与耗时, 不改变任何像素值。 */
+void p3_sampler_set_absent_cache(P3Sampler* s, int enabled);
 
 /* nearest: 返回含样本方向的叶级像素值; coverage: 1=有值, 0=tile 缺失。
  * tile 内 NaN → *value=NaN, coverage=1(§4 非错误语义)。 */

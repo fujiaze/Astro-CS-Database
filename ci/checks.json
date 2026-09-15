@@ -2786,6 +2786,41 @@
       ]
     },
     {
+      "id": "CTEST-P3-SAMPLER-CACHE",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "p3_sampler_cache",
+        "--output",
+        "run/ci/ctest/p3_sampler_cache.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p3_sampler_cache.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "lib/**",
+        "modules/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p3_sampler_cache"
+      ]
+    },
+    {
       "id": "CTEST-P1WCS-APBP",
       "profiles": [
         "linux-main"

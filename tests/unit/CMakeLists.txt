@@ -737,6 +737,17 @@ target_include_directories(p3_assembly_test PRIVATE
 target_link_libraries(p3_assembly_test PRIVATE astrocs_phase3_session astrocs_hips astrocs_aio astrocs_common)
 add_test(NAME p3_assembly COMMAND p3_assembly_test)
 
+# P30 回归: Phase3 tile 缓存正确性守护 (未覆盖 tile 负缓存去重 + 跨 worker 共享
+# 缓存 + 容量有界 + 缓存状态不改变像素值); 阴性对照 = 关闭负缓存后 open 次数
+# 线性增长。真根因与证据见 run/perf-fix/P30-phase3-perf/REPORT.md。
+add_executable(p3_sampler_cache_test p3_sampler_cache_test.cpp)
+target_include_directories(p3_sampler_cache_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_session
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/common/healpix)
+target_link_libraries(p3_sampler_cache_test PRIVATE astrocs_phase3_session astrocs_hips astrocs_aio astrocs_common)
+add_test(NAME p3_sampler_cache COMMAND p3_sampler_cache_test)
+
 # 依赖 ASTROCS_REPO 定位仓库内资源文件的测试统一注入仓库根路径，
 # 保证 ctest 无论从哪个工作目录启动均可解析 (QA-001 ctest 回归全绿)
 set_tests_properties(

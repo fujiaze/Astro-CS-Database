@@ -5557,6 +5557,10 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
           "max_tiles above default memory guard (可降不可升)"));
     }
     p3_sampler_set_max_tiles(&samp, (int)std::max<int64_t>(1, mt));
+    // P30: 修复前 max_tiles 只设到主 sampler; 每个行带 worker 新建的 sampler
+    // 回落默认 cap=8 (工作集 523 tile 时逐行抖动重复解码)。此处同样约束
+    // uncertainty sampler (它有自己的缓存, 键同为 tile ipix, 禁与 signal 共享)。
+    p3_sampler_set_max_tiles(&u_samp, (int)std::max<int64_t>(1, mt));
   }
 
   int order_sel = -1;
@@ -5576,6 +5580,7 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   }
   std::atomic<long long> missing_px{0};
   std::atomic<int> corrupt{-1};          // 行号 (u 产品损坏 §30.4-3)
+  std::atomic<bool> cancelled{false};    // P30: 协作取消 (行带循环安全点)
   const int npts = (g.sampler == "nearest") ? 1 : 4;
 
   auto worker = [&](int y0, int y1) {
@@ -5584,6 +5589,10 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     if (p3_sampler_open_ex(g.hips_dir.c_str(), &w_samp, nullptr, nullptr, &wserr) !=
         P3_RS_OK)
       return;
+    // P30: 与本节点唯一的有界 tile 缓存共享 (容量 = max_tiles 总量, 与 worker
+    // 数无关 → 内存有界; 同一 tile 全节点只解码一次)。只读数据 + 缺失负缓存,
+    // 不改变任何像素值; 每个 worker 仍各有独立 AioHipsDataset/句柄。
+    p3_sampler_attach_cache(&w_samp, &samp);
     P3Sampler w_u{};
     P3UncertaintySource w_src = P3_UNC_NONE;
     if (unc_available &&
@@ -5592,8 +5601,14 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
       corrupt.store(-2);
       return;
     }
+    if (unc_available) p3_sampler_attach_cache(&w_u, &u_samp);   // P30: 同上
     P3WcsDescriptor w_wcs = wcs;
     for (int y = y0; y < y1 && corrupt.load() == -1; ++y) {
+      // P30: 协作取消安全点 (与 p3_session 路径同款语义)。此前本循环不检查
+      // 取消位 → SIGINT/SIGTERM 无法中止运行中的 phase3 重采样 (实测只能
+      // SIGKILL); 现在每个输出行检查一次, 取消后立即置位并跳出, 由下方统一
+      // fail-closed 返回, **不落任何半成品** (bin/fits 均在行带循环之后才写)。
+      if (ctx && ctx->cancelled()) { cancelled.store(true); break; }
       for (int x = 0; x < g.w; ++x) {
         double px_ra = 0, px_dec = 0;
         if (p3_wcs_pix2world(&w_wcs, (double)x, (double)y, &px_ra, &px_dec) !=
@@ -5696,6 +5711,12 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   }
   p3_uncertainty_close(&u_samp);
   p3_sampler_close(&samp);
+  // P30: 取消优先于"行带被丢弃"判定 (两者都 fail-closed; 取消更具体)。
+  // 取消时 p3_resampled.bin/json 尚未写出 → 无半成品产物。
+  if (cancelled.load() || (ctx && ctx->cancelled())) {
+    return Result<void>::fail(Error(ErrorDomain::CANCELLED,
+        "resample cancelled by cancellation token: fail-closed, no partial product"));
+  }
   if (band_executed.load() != nw) {
     return Result<void>::fail(Error(ErrorDomain::CANCELLED,
         "resample row-band work units dropped (executed " +
@@ -5706,6 +5727,15 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     (*man)["work_units"] = nw;                      // 提交的 work unit 数（计划面）
     (*man)["band_executed"] = band_executed.load(); // 实测完成数
     (*man)["band_active_peak"] = band_active_peak.load();  // 实测并发峰值
+    // P30 (§10.5 证据): tile 缓存命中率 / 真实 tile 读次数 / 失败 open 次数。
+    P3CacheStats cs{};
+    p3_sampler_cache_stats(&samp, &cs);
+    (*man)["tile_cache"] = Json{{"cap_tiles", cs.cap_tiles},
+                                {"resident_tiles", cs.resident_tiles},
+                                {"hits", cs.hits},
+                                {"misses", cs.misses},
+                                {"absent_reads", cs.absent_reads},
+                                {"evictions", cs.evictions}};
   }
   if (corrupt.load() != -1) {
     if (corrupt.load() == -2)
