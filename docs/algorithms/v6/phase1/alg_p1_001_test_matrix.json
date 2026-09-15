@@ -1,0 +1,315 @@
+{
+  "schema": "astrocs.v6.alg-p1-001-test-matrix/v1",
+  "spec_id": "ALG-P1-001",
+  "document_id": "ALG-P1-001-TEST-MATRIX",
+  "baseline_head": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
+  "tolerance_policy": "仅沿用已冻结数值容差（常量场 |S_p/B0-1|<1e-3、缩放律精确、GLS rel<3% 类）。本规格提案但未签字的阈值一律标 PENDING_SO07，门在未签字时 fail-closed（不得声明精确/可用）。",
+  "rows": [
+    {
+      "id": "T-CAL-01",
+      "area": "calibration_covariance",
+      "level": "oracle",
+      "input": "合成 n_frames x n_pix（解析 J=[1/f,-(1-alpha)/f,-alpha/f,-y/f]；对角独立项）",
+      "expected": "V(y_p) 与 J C_in J^T 逐像素一致；rel < 1e-12",
+      "gate": "CAL-COV-FORMULA",
+      "clause": "DESIGN-P1 §4.2; ADJ-OBS-01"
+    },
+    {
+      "id": "T-CAL-02",
+      "area": "calibration_covariance",
+      "level": "oracle",
+      "input": "同一 bias master_id 出现在 light-path 与 dark-path",
+      "expected": "系数合并为 (1-alpha)^2，不是 V_b+alpha^2 V_b（后者仅不同 master_id）",
+      "gate": "CAL-COV-FORMULA",
+      "clause": "ADJ-OBS-01; DESIGN-P1 §4.2"
+    },
+    {
+      "id": "T-CAL-03",
+      "area": "calibration_covariance",
+      "level": "oracle",
+      "input": "含共同 master 模式的帧组 + 点源组合系数 c_k",
+      "expected": "Var_joint / Var_naive_independent > 1（检测量）；朴素求和被拒",
+      "gate": "ADJ-OBS-01-SHARED",
+      "clause": "ADJ-OBS-01; ADJ-F-OBS-04"
+    },
+    {
+      "id": "T-CAL-04",
+      "area": "calibration_covariance",
+      "level": "unit",
+      "input": "variance / signal / ivar / W_info 声明",
+      "expected": "variance=signal^2; ivar=1/variance; W_info=signal^-2",
+      "gate": "CAL-UNIT",
+      "clause": "FZ-UNIT-*; CONSTITUTION §4.1"
+    },
+    {
+      "id": "T-CAL-05",
+      "area": "calibration_covariance",
+      "level": "boundary",
+      "input": "gain 或 read_noise 缺失；f_p<=0；master_id 缺失",
+      "expected": "fail-closed unavailable/REJECT，不静默造值",
+      "gate": "CAL-COV-FORMULA",
+      "clause": "DESIGN-P1 §2; ADJ-OBS-01"
+    },
+    {
+      "id": "T-CAL-06",
+      "area": "calibration_covariance",
+      "level": "property",
+      "input": "含负像素与 <floor 平场的合成帧",
+      "expected": "输出保留负值；不加 pedestal；不夹紧（与 SCI-CAL-001 §9a 一致）",
+      "gate": "CAL-NO-CLIP",
+      "clause": "CONSTITUTION §5.3; SCI-CAL-001 §9a"
+    },
+    {
+      "id": "T-CAL-07",
+      "area": "calibration_covariance",
+      "level": "structural",
+      "input": "共享项表示枚举",
+      "expected": "∈ {lowrank, correlation_kernel, common_master_id}；缺失即红",
+      "gate": "CAL-COV-REPRESENTATION",
+      "clause": "FZ-PROV-SHARED-SYSTEMATIC"
+    },
+    {
+      "id": "T-WINFO-01",
+      "area": "psf_information",
+      "level": "oracle",
+      "input": "归一 PSF P + 对角 C=sigma^2 I + a",
+      "expected": "W = a^2 sum P^2/sigma^2 == a^2/(sigma^2 A_NEA)",
+      "gate": "FZ-COND-WHITENOISE",
+      "clause": "SCI-PSFW-001 §2; ADJ-P2-01"
+    },
+    {
+      "id": "T-WINFO-02",
+      "area": "psf_information",
+      "level": "oracle",
+      "input": "归一 PSF P + 一般 SPD C + 注入 d",
+      "expected": "F_hat = Q/W == GLS 解；Var(F_hat)=1/W=c^T C c",
+      "gate": "FZ-FORMULA-WINFO",
+      "clause": "UNIFIED §4; ADJ-P2-01"
+    },
+    {
+      "id": "T-WINFO-03",
+      "area": "psf_information",
+      "level": "property",
+      "input": "同一图像改变源亮度分布/检测阈值",
+      "expected": "W_info 不变；median(source SNR) 改变",
+      "gate": "FZ-GATE-MEDIAN-SNR",
+      "clause": "DESIGN-P1 §11; ADJ-C004-02"
+    },
+    {
+      "id": "T-WINFO-04",
+      "area": "psf_information",
+      "level": "oracle",
+      "input": "a -> 2a",
+      "expected": "W(2a)/W(a) = 4（a^2 律）",
+      "gate": "FZ-FORMULA-WINFO",
+      "clause": "FZ-FORMULA-WINFO"
+    },
+    {
+      "id": "T-WINFO-05",
+      "area": "psf_information",
+      "level": "boundary",
+      "input": "只给对角 C~ 但真实 C 含相关",
+      "expected": "报告 c~^T C c~ 与相对理想 1/W 的偏差；不得直接报 1/W",
+      "gate": "FZ-FORMULA-WINFO",
+      "clause": "FZ-FORMULA-COV-PROP; PROJECT_SPEC §3"
+    },
+    {
+      "id": "T-WINFO-06",
+      "area": "psf_information",
+      "level": "structural",
+      "input": "W_info 来源字段",
+      "expected": "不得来自 median_snr/support/coverage/fwhm/residual/drizzle-ivar-only",
+      "gate": "FZ-GATE-MEDIAN-SNR",
+      "clause": "FZ-GATE-MEDIAN-SNR; ADJ-GEN-02"
+    },
+    {
+      "id": "T-WINFO-07",
+      "area": "psf_information",
+      "level": "boundary",
+      "input": "标量降级（帧级 W）",
+      "expected": "双门（空间残差/趋势 + 功率损失）+ p05/p50/p95 + 最大系统偏差 + 采样覆盖 + 模型误差 + 适用域；否则 map/model",
+      "gate": "FZ-DEGRADE-SCALAR",
+      "clause": "FZ-DEGRADE-SCALAR; ADJ-GEN-04"
+    },
+    {
+      "id": "T-PSFW-01",
+      "area": "psfsw_components",
+      "level": "structural",
+      "input": "四分量记录",
+      "expected": "signal/concentration/noise/background 齐备；measurement_id 互异",
+      "gate": "FZ-FIELD-PSFSW-4COMP",
+      "clause": "FZ-FIELD-PSFSW-4COMP; ADJ-P2-03"
+    },
+    {
+      "id": "T-PSFW-02",
+      "area": "psfsw_components",
+      "level": "oracle",
+      "input": "组内 Wt_k",
+      "expected": "W_psfsw = Wt/median(Wt) 组内 median=1 且全正",
+      "gate": "FZ-FORMULA-PSFSW-COMPOSITE",
+      "clause": "FZ-FORMULA-PSFSW-COMPOSITE"
+    },
+    {
+      "id": "T-PSFW-03",
+      "area": "psfsw_components",
+      "level": "property",
+      "input": "单变量扫描 S/Conc/N/B",
+      "expected": "Wt 对 S、Conc 单调增，对 N、B 单调减",
+      "gate": "FZ-FORMULA-PSFSW-COMPOSITE",
+      "clause": "PSFW_FREEZE_RESEARCH §4.3"
+    },
+    {
+      "id": "T-PSFW-04",
+      "area": "psfsw_components",
+      "level": "structural",
+      "input": "weight_kind/units/scope",
+      "expected": "relative_dimensionless / 1 / group；units 含 flux^-2/ivar 即红",
+      "gate": "FZ-FIELD-PSFSW-UNIT",
+      "clause": "FZ-FIELD-PSFSW-UNIT"
+    },
+    {
+      "id": "T-PSFW-05",
+      "area": "psfsw_components",
+      "level": "structural",
+      "input": "covariance 来源字段",
+      "expected": "propagated_from_composite_coefficients; variance_from_weight=false; effective_psf_id 非空",
+      "gate": "FZ-GATE-PSFSW-COV",
+      "clause": "FZ-GATE-PSFSW-COV; FZ-GATE-PSFSW-EPSF"
+    },
+    {
+      "id": "T-PSFW-06",
+      "area": "psfsw_components",
+      "level": "boundary",
+      "input": "无共同星集/背景非正/星不足/选择偏差失败/非均匀",
+      "expected": "valid=false, weight_value=null, reason ∈ 白名单；不回退 median SNR",
+      "gate": "FZ-GATE-PSFSW-FAILCLOSED",
+      "clause": "FZ-GATE-PSFSW-FAILCLOSED"
+    },
+    {
+      "id": "T-PSFW-07",
+      "area": "psfsw_components",
+      "level": "structural",
+      "input": "psfsw 产物键集合",
+      "expected": "任何层不含 ivar/variance/fisher/w_info 等禁止键",
+      "gate": "FZ-GATE-PSFSW-NOKEYS",
+      "clause": "FZ-GATE-PSFSW-NOKEYS; ADJ-GEN-02"
+    },
+    {
+      "id": "T-PSFW-08",
+      "area": "psfsw_components",
+      "level": "property",
+      "input": "共同星集构造路径",
+      "expected": "独立于待测帧测量（外部星表/参考叠加单一门限）；逐帧检测交集即红",
+      "gate": "FZ-FIELD-PSFSW-4COMP",
+      "clause": "SCI-PSFW-001 §3; PSFW_FREEZE_RESEARCH §5.2"
+    },
+    {
+      "id": "T-PSFW-09",
+      "area": "psfsw_components",
+      "level": "interface",
+      "input": "Phase1 单帧产品",
+      "expected": "输出四分量 + 未归一 Wt + 归一契约(scope=group, median_target=1) + validity；不输出单帧 median 伪归一权重",
+      "gate": "FZ-FIELD-PSFSW-4COMP",
+      "clause": "DESIGN-P1 §8.2/§10; OI-01"
+    },
+    {
+      "id": "T-DRZ-01",
+      "area": "drizzle",
+      "level": "oracle",
+      "input": "常量面亮度 x_j=B0*A_pixel_j，pixfrac ∈ {0.25,0.5,0.8,1.0}",
+      "expected": "|S_p/B0 - 1| < 1e-3（全部 pixfrac；容差沿用，不改数值）",
+      "gate": "FZ-GATE-CONST-SB",
+      "clause": "FZ-GATE-CONST-SB; ADJ-S3"
+    },
+    {
+      "id": "T-DRZ-02",
+      "area": "drizzle",
+      "level": "oracle",
+      "input": "任意场 + 全覆盖几何",
+      "expected": "Phi_out = sum_p S_p D_p = pixfrac^2 * sum_j x_j（精确）",
+      "gate": "FZ-COND-FLUX-CONSERV",
+      "clause": "FZ-COND-FLUX-CONSERV; ADJ-F-OBS-02"
+    },
+    {
+      "id": "T-DRZ-03",
+      "area": "drizzle",
+      "level": "oracle",
+      "input": "x -> alpha x",
+      "expected": "variance -> alpha^2 variance；ivar/alpha^2；逐像素精确",
+      "gate": "FZ-FORMULA-DRIZZLE-VAR",
+      "clause": "FZ-FORMULA-DRIZZLE-VAR"
+    },
+    {
+      "id": "T-DRZ-04",
+      "area": "drizzle",
+      "level": "oracle",
+      "input": "稀疏随机 footprint（输入像素独立）",
+      "expected": "diag(C_out) == sum_j c_jp^2 v_j（rel<1e-11）；Cov(S_p,S_q)=sum_j c_jp c_jq v_j",
+      "gate": "FZ-FORMULA-COV-PROP",
+      "clause": "SCI-OBS §5.1; ADJ-AR-02"
+    },
+    {
+      "id": "T-DRZ-05",
+      "area": "drizzle",
+      "level": "oracle",
+      "input": "aperture 权重 a_p（非负）",
+      "expected": "精确 aperture 方差 > 对角-only 求和（严格，权重非负）；对角-only 不得声明精确",
+      "gate": "FZ-FORMULA-COV-PROP",
+      "clause": "ADJ-AR-02; FZ-GATE-PARENT-VAR"
+    },
+    {
+      "id": "T-DRZ-06",
+      "area": "drizzle",
+      "level": "structural",
+      "input": "父级 tile variance 归约",
+      "expected": "lower_bound=true + 相关核/算子摘要 + deficit 门；否则 variance 面 unavailable",
+      "gate": "FZ-GATE-PARENT-VAR",
+      "clause": "ADJ-F-OBS-03; FZ-GATE-PARENT-VAR"
+    },
+    {
+      "id": "T-DRZ-07",
+      "area": "drizzle",
+      "level": "boundary",
+      "input": "pixfrac 非法 / RING / 多通道 / 缺 WCS",
+      "expected": "显式拒绝，不夹逼（ALG-DRZ-001）",
+      "gate": "FZ-GATE-CONST-SB",
+      "clause": "SCI-DRZ-001 §4/§8; ALG-DRZ-001 §5"
+    },
+    {
+      "id": "T-DRZ-08",
+      "area": "drizzle",
+      "level": "unit",
+      "input": "写盘 BUNIT",
+      "expected": "signal 与 variance 满足二次律；单位不可判 -> unavailable/REJECT",
+      "gate": "G-STRUCT-UNIT-LAW",
+      "clause": "FZ-BUNIT-SEMANTICS; FZ-P3-BUNIT-QUADRATIC"
+    },
+    {
+      "id": "T-X-01",
+      "area": "cross",
+      "level": "structural",
+      "input": "生产权重模式枚举",
+      "expected": "{point_information, surface_gls, psfsw_robust}；psf_snr_power/legacy 0/auto/support_x_snr2 出现即红",
+      "gate": "G-MODE-PRODUCTION",
+      "clause": "FZ-MODE-PRODUCTION; C-004.1; ADJ-S1"
+    },
+    {
+      "id": "T-X-02",
+      "area": "cross",
+      "level": "structural",
+      "input": "冻结条目继承集",
+      "expected": "inherited_frozen_ids 不得缺失任一条",
+      "gate": "G-STRUCT-FREEZE-INHERIT",
+      "clause": "SCI-ADJ-001 FREEZE_LIST §4"
+    },
+    {
+      "id": "T-X-03",
+      "area": "cross",
+      "level": "structural",
+      "input": "禁止权重来源 token",
+      "expected": "token 集完整；出现在 weight.sources/weight_value/covariance.variance_from 即红",
+      "gate": "G-STRUCT-FORBIDDEN-TOKENS",
+      "clause": "FZ-GATE-MEDIAN-SNR; FZ-GATE-SUPPORT-COVERAGE"
+    }
+  ]
+}

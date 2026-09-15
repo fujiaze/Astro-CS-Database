@@ -1,0 +1,836 @@
+{
+  "schema": "astrocs.v6.alg-p1-001/v1",
+  "spec_id": "ALG-P1-001",
+  "document_id": "ALG-P1-001-PHASE1-ALG",
+  "title": "Phase1 V6 算法实施规格（calibration covariance / PSF information / PSFSW 四分量 / Drizzle）",
+  "task": "工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/ALG-P1-001.md",
+  "wave": 3,
+  "write_scope": "docs/algorithms/v6/phase1/",
+  "baseline": {
+    "task_card_head": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
+    "verified_head": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
+    "f1_status": "registered_only(CTRL-F1/C-004.6)",
+    "f1_note": "工作树含预存回退（27 tracked-M / 10 tracked-D，含 lib/phase1/noise/snr_frame_coefficient.* 删除态）。本规格一切生产面描述以 HEAD 为准；科学锚点取自已提交 HEAD 的 SCI/ADJ 文档，不依赖工作树回退态。F1 为控制器级事项，只登记不裁决。"
+  },
+  "status_words": {
+    "own_status": "REVIEW_REQUIRED_OR_PASS_PENDING_CONTROLLER",
+    "no_release_claim": true,
+    "no_verified_claim": true
+  },
+  "authority_chain": [
+    "ASTROCS_PROJECT_CONSTITUTION.md (ASTROCS-CONSTITUTION-001, FROZEN)",
+    "docs/owner/PROJECT_SPEC.md (§3/§4/§5/§7/§8/§9/§10/§11)",
+    "docs/design/PHASE1_DETAILED_DESIGN.md (DESIGN-P1-001 §1/§2/§4.1/§4.2/§6/§8.1/§8.2/§8.3/§9/§10/§11)",
+    "docs/science/UNIFIED_SCIENCE_MODEL.md (ASTROCS-SCIENCE-MODEL-001 §2..§11)",
+    "docs/science/PSF_SIGNAL_WEIGHT.md (SCI-PSFW-001 §1..§8)",
+    "docs/science/v6/adjudication/SCI-ADJ-001_FREEZE_LIST.md + SCI-ADJ-001_CONFLICT_MATRIX.md",
+    "reports/v6/science-adjudication/adjudications.json",
+    "00_READ_FIRST.md / RULINGS.md / CONTROLLER_LOG.md (C-004, not overturned)"
+  ],
+  "inherited_frozen_ids": [
+    "FZ-UNIT-WINFO",
+    "FZ-UNIT-PSFSW",
+    "FZ-BUNIT-SEMANTICS",
+    "FZ-FORMULA-DRIZZLE-SB",
+    "FZ-GATE-CONST-SB",
+    "FZ-FORMULA-WINFO",
+    "FZ-FORMULA-GLS",
+    "FZ-GATE-PIXIVAR-APPROX",
+    "FZ-FORMULA-COV-PROP",
+    "FZ-FIELD-PSFSW-4COMP",
+    "FZ-GATE-PSFSW-COV",
+    "FZ-GATE-PSFSW-EPSF",
+    "FZ-MODE-PRODUCTION",
+    "FZ-MODE-DEFERRED",
+    "FZ-GATE-MEDIAN-SNR",
+    "FZ-P3-QW-RECOMPUTE",
+    "FZ-P3-FAILCLOSED",
+    "FZ-DEGRADE-SCALAR",
+    "FZ-PROV-KCORR",
+    "FZ-UNIT-SIGNAL-SB",
+    "FZ-UNIT-VAR-IN",
+    "FZ-UNIT-VAR-SB",
+    "FZ-UNIT-IVAR-SB",
+    "FZ-UNIT-Q",
+    "FZ-UNIT-FLUX",
+    "FZ-FORMULA-DRIZZLE-VAR",
+    "FZ-COND-FLUX-CONSERV",
+    "FZ-COND-WHITENOISE",
+    "FZ-FORMULA-Q",
+    "FZ-FORMULA-FHAT",
+    "FZ-FORMULA-PSFSW-COMPOSITE",
+    "FZ-FIELD-PSFSW-UNIT",
+    "FZ-FIELD-WEIGHTMODE",
+    "FZ-GATE-PSFSW-FAILCLOSED",
+    "FZ-PROV-SHARED-SYSTEMATIC",
+    "FZ-PROV-MINIMAL-SET",
+    "FZ-GATE-PARENT-VAR",
+    "FZ-GATE-SUPPORT-COVERAGE",
+    "FZ-MODE-BASELINE",
+    "FZ-DEGRADE-SCALAR"
+  ],
+  "units_table": {
+    "x_j": "ADU",
+    "B_j": "ADU/px^2",
+    "signal_sb": "ADU/px^2",
+    "A_pixel_j": "px^2",
+    "a_jp": "px^2",
+    "A_drop_j": "px^2",
+    "D_p": "px^2",
+    "w_jp": "1",
+    "c_jp": "1",
+    "pixel_variance_in": "ADU^2",
+    "sb_variance_out": "ADU^2/px^4",
+    "sb_ivar_out": "px^4/ADU^2",
+    "W_info": "ADU^-2",
+    "Q": "ADU^-1",
+    "flux_F_hat": "ADU",
+    "A_NEA": "px^2",
+    "psfsw_robust_weight": "1",
+    "psfsw.signal": "ADU",
+    "psfsw.concentration": "ADU/px",
+    "psfsw.noise": "ADU",
+    "psfsw.background": "ADU",
+    "phase2_mosaic_signal": "BUNIT(declared)",
+    "phase3_var_out": "BUNIT^2"
+  },
+  "unit_laws": {
+    "variance_equals_signal_squared": "variance = signal^2; ivar = 1/variance (FZ-UNIT-*)",
+    "w_info_is_signal_power_minus_two": "W_info = signal^-2 (FZ-UNIT-WINFO)",
+    "psfsw_is_dimensionless": "psfsw_robust_weight = 1 (FZ-UNIT-PSFSW)",
+    "phase3_bunit_quadratic": "variance BUNIT = (signal BUNIT)^2 (FZ-P3-BUNIT-QUADRATIC)"
+  },
+  "algorithms": {
+    "calibration_covariance": {
+      "id": "ALG-P1-CAL-COV-001",
+      "clause_anchors": [
+        "DESIGN-P1-001 §4.1",
+        "DESIGN-P1-001 §4.2",
+        "PROJECT_SPEC §3",
+        "ADJ-OBS-01",
+        "ADJ-F-OBS-04",
+        "FZ-PROV-SHARED-SYSTEMATIC",
+        "FZ-FORMULA-COV-PROP",
+        "CONSTITUTION §4.1",
+        "CONSTITUTION §5.3"
+      ],
+      "supersedes_registration_only": "SCI-CAL-001 §9a/§1 '不传播 variance / 不建模 gain-readnoise' 与 V6 目标态冲突；按 PROJECT_SPEC §11 登记为待迁移基线，正式取代归 CONTRACT-FREEZE-001(W4)，不改 FROZEN SCI 原文。",
+      "signal": {
+        "dark_opt_0": "y_p = (r_p - d_p) / max(f_p, 0.1)   [f_p==NULL 时不做除法]",
+        "dark_opt_1": "y_p = (r_p - b_p - alpha*(d_p - b_p)) / max(f_p, 0.1),  alpha = t_light / t_dark"
+      },
+      "linearization": {
+        "jacobian": "J = d y / d(r,b,d,f) = [1/f, -(1-alpha)/f, -alpha/f, -y/f]",
+        "general": "C_cal = J C_in J^T ; 标量输出 Var(y_p) = J C_in J^T",
+        "independent_case": "Var_ind(y_p) = [ V_r,p + (1-alpha)^2 V_b,p + alpha^2 V_d,p + y_p^2 V_f,p ] / f_p^2 (同一 bias master 只计一次)",
+        "design_p1_4_2_case": "Var_ind(y_p) = [ V_r,p + V_b,p + alpha^2 (V_d,p + V_b,p) + y_p^2 V_f,p ] / f_p^2 仅在 light-path bias master 与 dark-path bias master 的 master_id 不同时成立（两次出现是不同 master 的两个独立项）；同一 master_id 时 (1-alpha)^2 合并，因 ADJ-OBS-01 要求共享 master 只进一次 covariance 通道。",
+        "negative_values": "不得裁切负值、不得加未声明 pedestal（CONSTITUTION §5.3 / SCI-CAL-001 §9a）"
+      },
+      "random_terms": [
+        {
+          "term_id": "read_noise",
+          "formula": "V_rn = (read_noise_e / gain)^2",
+          "unit": "ADU^2",
+          "coupling": "independent",
+          "source": "detector metadata (gain [e-/ADU], read_noise_e [e-])"
+        },
+        {
+          "term_id": "photon_light",
+          "formula": "V_ph = max(r_p, 0) / gain",
+          "unit": "ADU^2",
+          "coupling": "independent",
+          "source": "light frame signal + gain"
+        },
+        {
+          "term_id": "quantization",
+          "formula": "V_q = q_adu^2 / 12",
+          "unit": "ADU^2",
+          "coupling": "independent",
+          "source": "ADC quantum q_adu (default 1 ADU), declared"
+        },
+        {
+          "term_id": "dark_photon",
+          "formula": "V_dp = max(d_p, 0) / gain",
+          "unit": "ADU^2",
+          "coupling": "independent",
+          "source": "dark master signal + gain"
+        }
+      ],
+      "shared_terms": {
+        "rule": "共享 master（bias/dark/flat）的方差是 cross-frame / cross-pixel 相关的系统项，必须进入 covariance 通道，禁止按独立随机项处理（ADJ-OBS-01/ADJ-F-OBS-04）。",
+        "allowed_representations": [
+          {
+            "kind": "lowrank",
+            "form": "C_shared = L L^T",
+            "payload": "L factor entries + rank"
+          },
+          {
+            "kind": "correlation_kernel",
+            "form": "sigma (scale) + kernel",
+            "payload": "kernel id/version + scale"
+          },
+          {
+            "kind": "common_master_id",
+            "form": "master_id + intensity parameter alpha_m",
+            "payload": "master_id, alpha_m, master variance"
+          }
+        ],
+        "intensity": {
+          "master_bias": "alpha_b = -(1-alpha)/f   (dark_opt=1, same master in both paths)",
+          "master_dark": "alpha_d = -alpha/f",
+          "master_flat": "alpha_f = -y/f"
+        },
+        "master_self_variance": "V(master) = V_single_frame / N_combined + (shared common-mode term if declared); combine rule (mean/median/sigma-clip) and N_combined must be recorded.",
+        "gate": "共享项存在时，联合 covariance 得到的方差必须严格大于按独立项求和的方差（ratio > 1）；把共享项按独立处理即 REJECT。"
+      },
+      "variance_partition": {
+        "independent_random": "进入对角 variance/ivar",
+        "shared_systematic": "进入 covariance 面（低秩/相关核/共同 master ID+强度参数）",
+        "model_bias": "进入 validity/quality + 系统误差预算 + 参数 covariance，禁止伪装随机 ivar"
+      },
+      "fail_closed": [
+        "缺少 gain 或 read_noise 且未声明 variance_source → unavailable/REJECT",
+        "缺少 master_id / 归一版本 / 单位 → 单位不可判 → unavailable/REJECT",
+        "f_p <= 0 或非有限 → REJECT（不得静默用 floor 造值）",
+        "共享项无法表示且无系统误差预算 → unavailable（不得按独立项静默处理）"
+      ],
+      "outputs": {
+        "v_cal,p": "ADU^2 物理校准方差（independent + shared 表示摘要）",
+        "variance_source": "declared enum {physical, empirical_mad_fallback}",
+        "master_ids": "bias/dark/flat master_id + combine rule + N_combined",
+        "shared_systematic": "lowrank | correlation_kernel | common_master_id 三者之一"
+      }
+    },
+    "psf_information": {
+      "id": "ALG-P1-PSFINF-001",
+      "clause_anchors": [
+        "DESIGN-P1-001 §6",
+        "DESIGN-P1-001 §8.1",
+        "DESIGN-P1-001 §8.3",
+        "UNIFIED §4",
+        "UNIFIED §5",
+        "UNIFIED §8",
+        "SCI-PSFW-001 §2",
+        "FZ-FORMULA-WINFO",
+        "FZ-COND-WHITENOISE",
+        "FZ-UNIT-WINFO",
+        "FZ-DEGRADE-SCALAR",
+        "FZ-GATE-MEDIAN-SNR",
+        "ADJ-P2-01"
+      ],
+      "formulas": {
+        "psf_normalization": "P_k(u,v;x,y) >= 0, sum_p P_p = 1 (含像素响应); 支持域 S_P = {p : P_p > 0}",
+        "A_NEA": "A_NEA,k = 1 / sum_p P_k,p^2   [px^2]",
+        "W_info": "W_info,k(x,y) = a_k(x,y)^2 * P_k^T C_k^-1 P_k = 1 / Var(F_hat_k)   [ADU^-2]",
+        "white_noise": "C_k = sigma_pix,k^2 I  =>  W_info,k = a_k^2 / (sigma_pix,k^2 * A_NEA,k)  (仅条件式)",
+        "Q_Fhat": "Q_k = a_k P_k^T C_k^-1 d_k ; F_hat = sum_k Q_k / sum_k W_info,k ; Var(F_hat) = 1 / sum_k W_info,k"
+      },
+      "discrete": {
+        "diagonal_C": "W = a^2 * sum_p P_p^2 / sigma_p,p^2",
+        "general_spd_C": "solve C x = P by Cholesky; W = a^2 * P^T x",
+        "lowrank_C": "C = D + L L^T => C^-1 P = D^-1 P - D^-1 L (I + L^T D^-1 L)^-1 L^T D^-1 P (Woodbury)",
+        "approximate_diagonal_C": "若实现仅用对角 C~，必须报告 c~^T C c~（用真实 C）与相对理想 1/W 的偏差比；不得直接报告理想 1/W"
+      },
+      "spatial_default": "W_info(x,y) 默认空间量/模型/控制点；压成帧级标量必须双过 (a) 空间残差/趋势门 与 (b) 功率损失门（对最终 flux bias / variance / detection power），并带 p05/p50/p95 + 最大系统偏差 + 采样覆盖 + 模型误差 + 适用域（FZ-DEGRADE-SCALAR）。",
+      "forbidden_sources": [
+        "median_source_snr",
+        "support",
+        "coverage",
+        "fwhm",
+        "residual",
+        "drizzle_pixel_ivar_only"
+      ],
+      "diagnostic_only": [
+        "psf residual_scale",
+        "q_psf",
+        "FWHM",
+        "median source SNR"
+      ],
+      "fail_closed": [
+        "sum P != 1（超出容差）→ REJECT",
+        "C 非正定/不可解 → REJECT（不得用对角近似静默代替）",
+        "缺少 a_k 或 P_k 或 C_k 却声明 W_info → REJECT",
+        "标量降级未过双门或缺分位数 → REJECT"
+      ]
+    },
+    "psfsw_components": {
+      "id": "ALG-P1-PSFW-001",
+      "clause_anchors": [
+        "DESIGN-P1-001 §8.2",
+        "DESIGN-P2-001 §6.3",
+        "SCI-PSFW-001 §3",
+        "SCI-PSFW-001 §6",
+        "SCI-PSFW-001 §7",
+        "FZ-FIELD-PSFSW-4COMP",
+        "FZ-FIELD-PSFSW-UNIT",
+        "FZ-FORMULA-PSFSW-COMPOSITE",
+        "FZ-GATE-PSFSW-FAILCLOSED",
+        "FZ-GATE-PSFSW-COV",
+        "FZ-GATE-PSFSW-EPSF",
+        "FZ-GATE-MEDIAN-SNR",
+        "ADJ-P2-03",
+        "RULINGS #3/#4/#5"
+      ],
+      "group": "组 G = 同波段 × 同目标/重叠连通分量 × 光度已归一帧组；组内 median 归一，跨组比较必须先声明 selection function。",
+      "components": [
+        {
+          "name": "psfsw.signal",
+          "unit": "ADU",
+          "definition": "S_k = sum_{s in S_k} f_hat_{k,s}（PSF 拟合总 flux）",
+          "estimator_versioned": true
+        },
+        {
+          "name": "psfsw.concentration",
+          "unit": "ADU/px",
+          "definition": "Conc_k = mean_{s in S_k} f_hat_{k,s} / A_NEA,k",
+          "estimator_versioned": true,
+          "forbidden_substitutes": [
+            "fwhm",
+            "residual"
+          ]
+        },
+        {
+          "name": "psfsw.noise",
+          "unit": "ADU",
+          "definition": "N_k = 稳健噪声（MAD*1.482602218505602 或 Sn 类），估计器与版本显式声明",
+          "estimator_versioned": true
+        },
+        {
+          "name": "psfsw.background",
+          "unit": "ADU",
+          "definition": "B_k = 稳健均值背景（MMT 残差）必须 > 0",
+          "estimator_versioned": true
+        }
+      ],
+      "composite": {
+        "formula": "Wt_k = C_norm(version) * S_k^alpha * Conc_k^beta / (N_k^gamma * B_k^delta)",
+        "exponents": "alpha,beta,gamma,delta >= 0; 数值与 C_norm 由 W4 冻结（本任务只冻结结构与版本化要求，不擅改数值；SO-07 登记）",
+        "group_normalization": "W_psfsw,k = Wt_k / median_{j in G}(Wt_j) ; 组内 median = 1 ; 全正",
+        "phase1_interface": "Phase1 为单帧产品，无法独立形成帧组：Phase1 输出四分量 + 未归一 Wt_k + 归一契约（scope=group, median_target=1.0, 常量版本）+ validity；组内归一在 Phase2 组装帧组后执行。Phase1 不得输出以单帧 median 造出的伪归一权重，也不得回退 median SNR。"
+      },
+      "common_star_set": {
+        "independence": "共同星集 S 必须独立于待测帧的 PSFSW 测量（外部参考星表，版本化哈希；或参考叠加上的单一门限）。禁止用逐帧检测阈值分别取星后交集成共同星集。",
+        "fields": [
+          "common_star_set_id",
+          "selection_function_id",
+          "member_hash",
+          "n_common",
+          "exclusion_flags"
+        ],
+        "exclusions": [
+          "saturated",
+          "blended",
+          "trailed",
+          "moving",
+          "psf_mismatch",
+          "edge_truncated"
+        ],
+        "selection_correction": "∈ {common_star_set, explicit_selection_function, both}"
+      },
+      "spatial_summary": "每分量必须带 measurement_id（四者互异）、p05<=p50<=p95、valid_area_fraction ∈ [0,1]、单位、估计器/版本；显著空间非均匀时拆 region/tile 或拒绝标量。",
+      "fail_closed": {
+        "reasons": [
+          "no_common_star_set",
+          "background_nonpositive_undefined_transform",
+          "insufficient_valid_stars",
+          "selection_bias_gate_failed",
+          "spatial_nonuniformity_gate_failed"
+        ],
+        "rule": "valid=false 时 weight_value 必须为 null；不得回退 median source SNR（FZ-GATE-PSFSW-FAILCLOSED）。"
+      },
+      "covariance_boundary": {
+        "method": "propagated_from_composite_coefficients",
+        "variance_from_weight": false,
+        "uses_relative_weight_as_ivar": false,
+        "effective_psf_required": true,
+        "rule": "最终 covariance 一律 C_out = R C_in R^T（实际组合系数）；禁止 1/W_psfsw 或 sum(W_psfsw) 反推 variance；effective PSF 必输。"
+      },
+      "forbidden_keys": [
+        "ivar",
+        "variance",
+        "var",
+        "sigma",
+        "sigma2",
+        "inverse_variance",
+        "fisher",
+        "information",
+        "w_info",
+        "w_psf"
+      ],
+      "phase1_depth": "depth_m5 与 source_snr 为诊断/深度表达，不得作权重来源（C-004.2/ADJ-C004-02）"
+    },
+    "drizzle": {
+      "id": "ALG-P1-DRZ-SB-001 / ALG-P1-DRZ-VAR-001 / ALG-P1-DRZ-CORR-001 / ALG-P1-DRZ-FLUX-001",
+      "clause_anchors": [
+        "DESIGN-P1-001 §9",
+        "DESIGN-P1-001 §10",
+        "DESIGN-P1-001 §11",
+        "UNIFIED §7",
+        "FZ-FORMULA-DRIZZLE-SB",
+        "FZ-FORMULA-DRIZZLE-VAR",
+        "FZ-COND-FLUX-CONSERV",
+        "FZ-GATE-CONST-SB",
+        "FZ-FORMULA-COV-PROP",
+        "FZ-GATE-PARENT-VAR",
+        "ADJ-F-OBS-01",
+        "ADJ-F-OBS-02",
+        "ADJ-F-OBS-03",
+        "ADJ-S3",
+        "ADJ-AR-02",
+        "SCI-DRZ-001 §5/§7 (FROZEN, superseded parts)",
+        "ALG-DRZ-001"
+      ],
+      "geometry": {
+        "a_jp": "源像素 j 与目标 HEALPix NESTED leaf p 的球面交叠面积 [px^2/sr 等价]",
+        "A_pixel_j": "源像素 j 的面积 [px^2]",
+        "A_drop_j": "drop 面积 = pixfrac^2 * A_pixel_j [px^2]",
+        "D_p": "覆盖面积 D_p = sum_j a_jp [px^2]",
+        "pixfrac": "drop 收缩因子 ∈ (0,1]；非法值显式拒绝，不夹逼"
+      },
+      "weights": {
+        "legacy_drop_weight": "w_legacy_jp = a_jp / A_drop_j  (DRIZZLE.md §5 历史定义；pixfrac<1 时产生 S_p=B0/pixfrac^2 的失效域 = F-OBS-02)",
+        "target_sb_weight": "w_SB_jp = a_jp / A_pixel_j = pixfrac^2 * w_legacy_jp  (V6 目标态信号层权重)",
+        "relation_to_task_card": "任务卡 'correlation c_jp = w_jp/D_p' 在 V6 目标态下以 w_jp := w_SB_jp 成立；legacy w_legacy 仅作等价映射与 provenance 登记。"
+      },
+      "signal": {
+        "formula": "S_p = sum_j B_j a_jp / sum_j a_jp = sum_j w_SB_jp x_j / D_p = sum_j c_jp x_j",
+        "coefficients": {
+          "c_jp": "c_jp = w_SB_jp / D_p  (作用于 x_j，无量纲)",
+          "c_B_jp": "c_B_jp = a_jp / D_p  (作用于 B_j，无量纲)"
+        },
+        "B_j": "B_j = x_j / A_pixel_j  [ADU/px^2]",
+        "unit": "ADU/px^2 (FZ-UNIT-SIGNAL-SB)",
+        "constant_sb_invariant": "x_j = B0 * A_pixel_j => S_p = B0 对全部 pixfrac ∈ (0,1]（容差沿用 |S_p/B0 - 1| < 1e-3，不改数值）",
+        "forbidden": [
+          "S_p = F_p (漏 D_p 归一)",
+          "每像素常量 ADU x_j=C 直接断言 S_p=C",
+          "无条件 pixfrac 声明"
+        ]
+      },
+      "variance": {
+        "formula": "variance_p = sum_j c_jp^2 v_j = sum_j v_j (w_SB_jp)^2 / D_p^2",
+        "unit": "ADU^2/px^4 (FZ-UNIT-VAR-SB)",
+        "ivar": "ivar_p = 1/variance_p [px^4/ADU^2]",
+        "scale_law": "x -> alpha x  => var -> alpha^2 var, ivar -> ivar/alpha^2 (精确)",
+        "equivalence_note": "FZ-FORMULA-DRIZZLE-VAR 的 sum_j v_j w_jp^2 / D_p^2 在与 w_jp := w_SB_jp 同定义下逐字成立；legacy 归一 (w_legacy) 仅对应 pixfrac=1。"
+      },
+      "correlation": {
+        "covariance": "Cov(S_p,S_q) = sum_j c_jp c_jq v_j  (输入像素独立)",
+        "correlation_kernel": "rho_pq = Cov(S_p,S_q) / sqrt(Cov(S_p,S_p) Cov(S_q,S_q))",
+        "general": "C_out = R C_in R^T（含输入非对角项/低秩/相关核时）；只落对角 variance 必须另存相关核或可重建算子摘要（FZ-FORMULA-COV-PROP / ADJ-AR-02）",
+        "aperture": "Var(sum_p a_p S_p) = sum_{p,q} a_p a_q Cov(S_p,S_q)；对角-only 是严格下界（权重与重叠面积非负），实测缺口可为 ~2.46x；不得声明精确。",
+        "parent_tile": {
+          "exact": "Var(S_parent) = sum_{p,q} (D_p D_q / (sum D)^2) Cov(S_p,S_q)",
+          "diagonal": "variance_parent_diag = sum_p var_p D_p^2 / (sum D)^2",
+          "deficit": "deficit = (exact - diag) / exact",
+          "requirements": [
+            "显式声明下界 lower_bound=true 且不得用于 aperture/总量误差",
+            "另存相关核 rho_ij 或可重建算子摘要",
+            "误差门 deficit <= threshold"
+          ],
+          "threshold": {
+            "status": "PROPOSED_PENDING_OWNER_SIGNOFF_SO07",
+            "proposed_value": 0.2,
+            "note": "合成 footprint 实测 deficit ≈ 0.8225，故现有对角-only 归约按该门不可声明精确；数值须 W4 + 负责人签字后生效（SO-07）"
+          }
+        }
+      },
+      "flux_conservation": {
+        "definition": "Phi_out := sum_p S_p D_p（面亮度层按覆盖面积积分）",
+        "identity": "Phi_out = sum_j B_j A_drop_j = pixfrac^2 * sum_j x_j（精确，全覆盖；由 sum_p a_jp = A_drop_j 与线性性）",
+        "pixfrac_one": "pixfrac=1 时 S_p D_p = F_p^legacy 且 Phi_out = sum_j x_j（两式退化同一式）",
+        "provenance": "flux_conservation_factor = pixfrac^2 必须写入 provenance；缺因子即不可用于绝对通量（FZ-COND-FLUX-CONSERV）",
+        "failure_domain": "pixfrac<1 且消费者按 w_legacy 直接把 S_p 当绝对面亮度（缺 1/pixfrac^2 补偿）→ 光度零点偏差 1/pixfrac^2；旧产品/旧算子必须显式声明归一版本"
+      }
+    }
+  },
+  "gates": [
+    {
+      "id": "G-STRUCT-FREEZE-INHERIT",
+      "subject": "全部 inherited_frozen_ids 在规格中存在且非空",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-S1"
+      ]
+    },
+    {
+      "id": "G-STRUCT-UNIT-LAW",
+      "subject": "单位表满足 variance=signal^2, ivar=1/variance, W_info=ADU^-2, psfsw=1",
+      "kind": "unit",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-S4"
+      ]
+    },
+    {
+      "id": "G-STRUCT-FORBIDDEN-TOKENS",
+      "subject": "禁止权重来源 token 集完整且不含 psf_snr_power/legacy 0",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-S2"
+      ]
+    },
+    {
+      "id": "G-STRUCT-ALG-AREAS",
+      "subject": "四个算法域齐备",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-S3"
+      ]
+    },
+    {
+      "id": "G-STRUCT-GATES",
+      "subject": "所有冻结门（含 FZ-GATE-CONST-SB）在 gates 集合中存在",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-S5"
+      ]
+    },
+    {
+      "id": "G-MODE-PRODUCTION",
+      "subject": "生产模式 = {point_information, surface_gls, psfsw_robust}; psf_snr_power 仅 DEFERRED",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-S6"
+      ]
+    },
+    {
+      "id": "FZ-GATE-CONST-SB",
+      "subject": "按 B0 构造 x_j=B0*A_pixel_j；S_p=B0 对全部 pixfrac ∈ (0,1]；|S_p/B0-1|<1e-3",
+      "kind": "oracle",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-D1",
+        "M-D3"
+      ]
+    },
+    {
+      "id": "FZ-FORMULA-DRIZZLE-VAR",
+      "subject": "variance_p = sum_j c_jp^2 v_j；缩放律 alpha^2 精确",
+      "kind": "oracle",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-D2",
+        "M-D7"
+      ]
+    },
+    {
+      "id": "FZ-COND-FLUX-CONSERV",
+      "subject": "Phi_out = pixfrac^2 * sum_j x_j；pixfrac=1 退化 sum x_j；factor 入 provenance",
+      "kind": "oracle",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-D4"
+      ]
+    },
+    {
+      "id": "FZ-FORMULA-COV-PROP",
+      "subject": "C_out = R C_in R^T；aperture 精确方差严格大于对角-only",
+      "kind": "oracle",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-D5"
+      ]
+    },
+    {
+      "id": "FZ-GATE-PARENT-VAR",
+      "subject": "父级对角归约声明为下界 + 相关核 + deficit 门；不得声明精确",
+      "kind": "structural_or_oracle",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-D6"
+      ]
+    },
+    {
+      "id": "ADJ-OBS-01-SHARED",
+      "subject": "共享 master 存在时联合方差/独立求和 > 1；共享项按独立处理即红",
+      "kind": "oracle",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-C1"
+      ]
+    },
+    {
+      "id": "CAL-COV-FORMULA",
+      "subject": "J C_in J^T 闭式与解析参考一致（含 (1-alpha)^2 同 master 合并）",
+      "kind": "oracle",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-C2"
+      ]
+    },
+    {
+      "id": "CAL-COV-REPRESENTATION",
+      "subject": "共享项表示 ∈ {lowrank, correlation_kernel, common_master_id}",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-C3"
+      ]
+    },
+    {
+      "id": "CAL-UNIT",
+      "subject": "variance 单位 ADU^2 = signal(ADU)^2",
+      "kind": "unit",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-C4"
+      ]
+    },
+    {
+      "id": "CAL-NO-CLIP",
+      "subject": "校准输出保留负值，无未声明 pedestal",
+      "kind": "property",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-C5"
+      ]
+    },
+    {
+      "id": "FZ-FORMULA-WINFO",
+      "subject": "W_info = a^2 P^T C^-1 P = 1/Var(F_hat)；Q/W 与 GLS 一致",
+      "kind": "oracle",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-W2",
+        "M-W4"
+      ]
+    },
+    {
+      "id": "FZ-COND-WHITENOISE",
+      "subject": "W_info = a^2/(sigma_pix^2 A_NEA)；A_NEA = 1/sum P^2",
+      "kind": "oracle",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-W1",
+        "M-W3"
+      ]
+    },
+    {
+      "id": "FZ-GATE-MEDIAN-SNR",
+      "subject": "median SNR / support / coverage / fwhm / residual / drizzle-ivar-only 不得作 W_info 来源",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-W5"
+      ]
+    },
+    {
+      "id": "FZ-FIELD-PSFSW-4COMP",
+      "subject": "四分量齐备、measurement_id 互异、p05<=p50<=p95、valid_area_fraction ∈ [0,1]",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-P1",
+        "M-P6"
+      ]
+    },
+    {
+      "id": "FZ-FORMULA-PSFSW-COMPOSITE",
+      "subject": "组内 median=1 且全正；方向 S↑/Conc↑→Wt↑，N↑/B↑→Wt↓",
+      "kind": "oracle",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-P2"
+      ]
+    },
+    {
+      "id": "FZ-FIELD-PSFSW-UNIT",
+      "subject": "weight_kind=relative_dimensionless, weight_units=1, normalization.scope=group",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-P3",
+        "M-P9"
+      ]
+    },
+    {
+      "id": "FZ-GATE-PSFSW-COV",
+      "subject": "covariance.method=propagated_from_composite_coefficients; variance_from_weight=false; 禁 1/W_psfsw",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-P4"
+      ]
+    },
+    {
+      "id": "FZ-GATE-PSFSW-EPSF",
+      "subject": "effective_psf_id 非空（实际组合算子的脉冲响应）",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-P7"
+      ]
+    },
+    {
+      "id": "FZ-GATE-PSFSW-FAILCLOSED",
+      "subject": "valid=false => weight_value=null 且 reason ∈ 白名单；不得回退 median SNR",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-P5"
+      ]
+    },
+    {
+      "id": "FZ-GATE-PSFSW-NOKEYS",
+      "subject": "psfsw 产物任何层不得含 ivar/variance/fisher/w_info 等禁止键",
+      "kind": "structural",
+      "fail_closed": true,
+      "mutation_ids": [
+        "M-P8"
+      ]
+    }
+  ],
+  "forbidden_weight_source_tokens": [
+    "median_source_snr",
+    "median_snr",
+    "source_snr_median",
+    "med_source_snr",
+    "support",
+    "support_area",
+    "coverage",
+    "coverage_area",
+    "fwhm",
+    "psf_fwhm",
+    "median_fwhm",
+    "source_fwhm",
+    "residual",
+    "psf_residual",
+    "psf_fit_residual",
+    "fit_residual",
+    "psfsw_robust_weight",
+    "psfsw"
+  ],
+  "psfsw_forbidden_keys": [
+    "ivar",
+    "variance",
+    "var",
+    "sigma",
+    "sigma2",
+    "inverse_variance",
+    "fisher",
+    "information",
+    "w_info",
+    "w_psf"
+  ],
+  "production_weight_modes": [
+    "point_information",
+    "surface_gls",
+    "psfsw_robust"
+  ],
+  "documented_baseline_modes": [
+    "equal",
+    "pixel_ivar"
+  ],
+  "deferred_modes": [
+    "psf_snr_power"
+  ],
+  "forbidden_production_mode_values": [
+    "psf_snr_power",
+    "0",
+    "auto",
+    "support_x_snr2"
+  ],
+  "so_items_registered_only": [
+    {
+      "id": "SO-01",
+      "topic": "DRIZZLE §3 术语/单位修正",
+      "owner": "项目负责人 + CONTRACT-FREEZE-001",
+      "status": "registered_only_not_signed"
+    },
+    {
+      "id": "SO-02",
+      "topic": "F-OBS-02/S2 面亮度归一改为 (B) 面亮度保持 + A_drop→A_pixel",
+      "owner": "项目负责人 + CONTRACT-FREEZE-001",
+      "status": "registered_only_not_signed"
+    },
+    {
+      "id": "SO-03",
+      "topic": "S3 常量场 Oracle 判据取代 DRIZZLE §11",
+      "owner": "项目负责人 + CONTRACT-FREEZE-001",
+      "status": "registered_only_not_signed"
+    },
+    {
+      "id": "SO-04",
+      "topic": "AR-030/AR-031 协方差产品非目标声明取代",
+      "owner": "项目负责人 + CONTRACT-FREEZE-001",
+      "status": "registered_only_not_signed"
+    },
+    {
+      "id": "SO-05",
+      "topic": "AR-036/AR-019/AR-026 宪章 §10.5/§17.6",
+      "owner": "项目负责人",
+      "status": "registered_only_not_signed"
+    },
+    {
+      "id": "SO-06",
+      "topic": "AR-032 非 v6 SCI 迁移/取代清单（含 SCI-CAL-001 §9a variance 不传播）",
+      "owner": "项目负责人 + CONTRACT-FREEZE-001 + DOC-CONVERGE-001",
+      "status": "registered_only_not_signed"
+    },
+    {
+      "id": "SO-07",
+      "topic": "F-OBS-03/04/05 与 surface_gls epsilon 的数值阈值/数据面/标定脚本（含 parent deficit threshold 与非均匀/深度门阈值）",
+      "owner": "ALG-P1-001 / ALG-P2-UPM-001 / CONTRACT-FREEZE-001 + 负责人",
+      "status": "registered_only_not_signed"
+    }
+  ],
+  "controller_items_registered_only": [
+    {
+      "id": "CTRL-F1",
+      "topic": "工作树 != HEAD（27 tracked-M / 10 tracked-D）",
+      "owner": "控制器",
+      "status": "registered_only"
+    },
+    {
+      "id": "CTRL-AR033",
+      "topic": "根构建面无 V6 owner",
+      "owner": "控制器/RUNTIME-CI-001",
+      "status": "registered_only"
+    },
+    {
+      "id": "CTRL-AR034",
+      "topic": "历史 CI 红",
+      "owner": "控制器/RUNTIME-CI-001",
+      "status": "registered_only"
+    }
+  ],
+  "open_items": [
+    {
+      "id": "OI-01",
+      "topic": "Phase1 单帧无法形成 PSFSW 帧组：四分量+未归一 Wt+归一契约归 Phase1，组内 median=1 归一归 Phase2；是否为 PHASE1 §10 允许的接口拆分，须 W4 CONTRACT-FREEZE-001 批准",
+      "class": "interface_ratification",
+      "owner": "CONTRACT-FREEZE-001(W4)"
+    },
+    {
+      "id": "OI-02",
+      "topic": "DESIGN-P1 §4.2 的 V_b + alpha^2 V_b 与同 master_id 的 (1-alpha)^2 合并关系",
+      "class": "finding",
+      "owner": "CONTRACT-FREEZE-001(W4)/负责人",
+      "note": "同 master_id 时为避免把共享 master 重复计为独立项，(1-alpha)^2 合并；不同 master_id 时设计式成立。ADJ-OBS-01 优先。"
+    },
+    {
+      "id": "OI-03",
+      "topic": "SCI-CAL-001 §9a/§1 不传播 variance/不建模 gain-readnoise 与 V6 目标冲突",
+      "class": "supersede_registration",
+      "owner": "CONTRACT-FREEZE-001(W4) SO-06"
+    },
+    {
+      "id": "OI-04",
+      "topic": "docs/algorithms/v6/** 未登记进 docs/DOCUMENT_INDEX.yaml，check_doc_index.py docs_fully_covered 现为红（与 Wave1 docs/science/v6/** 同源）",
+      "class": "coverage_gap",
+      "owner": "DOC-CONVERGE-001(W12)/控制器"
+    },
+    {
+      "id": "OI-05",
+      "topic": "common star set n_common 下限、selection bias 深度稳定性阈值、四分量非均匀拆 tile 阈值 未冻结",
+      "class": "threshold_pending",
+      "owner": "ALG-P2-PSFSW-001(W3)/CONTRACT-FREEZE-001(W4) SO-07"
+    }
+  ]
+}
