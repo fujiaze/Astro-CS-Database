@@ -1,0 +1,51 @@
+{
+  "schema": "astrocs.v6.owner-package.manifest/v1",
+  "task": "OWNER-PACK-001",
+  "package_status": "NOT_READY",
+  "release_status": "NOT_RELEASED",
+  "baseline_head": "6b45995231cb873e6b33a3817353d266633f6d9f",
+  "note": "本清单不含自身（OWNER_PACKAGE_MANIFEST.json）；sha256 为 sha256sum 等价值。",
+  "file_count": 8,
+  "files": [
+    {
+      "path": "reports/v6/owner-package/00_导读.md",
+      "size": 1273,
+      "sha256": "6b3e1b26e0940b54858201490bbec82dba64c2a1a3d7653ed594abb1f217b1e2"
+    },
+    {
+      "path": "reports/v6/owner-package/OWNER-PACK-001_REVIEW_PACKAGE.md",
+      "size": 45449,
+      "sha256": "c19d09a9af0231fc51a2715ee25b8b1971d612b0fef4aa49fa2aff3f95289dbd"
+    },
+    {
+      "path": "artifacts/v6/owner-package/evidence_index.json",
+      "size": 6945,
+      "sha256": "f178706b0ca79c27af2d77868b31d33d3691ed2d94ed4c72a1350a246f87aeab"
+    },
+    {
+      "path": "artifacts/v6/owner-package/owner_decisions.json",
+      "size": 28551,
+      "sha256": "9792ae4ac1da6cc72a931520d4fee729d1c3c9f93c4fc28ba88144bd47f9a500"
+    },
+    {
+      "path": "artifacts/v6/owner-package/package_status.json",
+      "size": 4013,
+      "sha256": "43f934d1cfbc3f65e0a49d6b72d326d16551e57439a7c6228082c7dee49cde31"
+    },
+    {
+      "path": "artifacts/v6/owner-package/logs/10_ci_redline_recheck.log",
+      "size": 8590,
+      "sha256": "58194b07dd515b46376cca242fe58f5a39b69f7a3bd8bf59f9f155771bd7b747"
+    },
+    {
+      "path": "artifacts/v6/owner-package/checks/negative_checks.json",
+      "size": 1085,
+      "sha256": "59e38592365ade540d1a5c9d24c0c98bde85a5a420b242e26e4a0c22dd5598de"
+    },
+    {
+      "path": "artifacts/v6/owner-package/checks/verify_owner_package.py",
+      "size": 8954,
+      "sha256": "4e5a884832cfdf864b64bed4c4fc18aaa37727edff9c9c109f503ffc6139a1a3"
+    }
+  ]
+}

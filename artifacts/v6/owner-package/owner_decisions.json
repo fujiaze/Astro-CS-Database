@@ -1,0 +1,476 @@
+{
+  "schema": "astrocs.v6.owner-decisions/v1",
+  "task": "OWNER-PACK-001",
+  "wave": 14,
+  "package": "AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915",
+  "baseline_head": "6b45995231cb873e6b33a3817353d266633f6d9f",
+  "package_status": "NOT_READY",
+  "release_status": "NOT_RELEASED",
+  "awaiting_owner_decision_count": 12,
+  "agent_authority_note": "本包不替负责人作发布决定；下列 12 项均为 AWAITING_OWNER_DECISION。",
+  "items": [
+    {
+      "id": "OD-01",
+      "title": "SO-05 资源门裁决（§10.5/§17.6：是否启用自动判决 / 16w 低利用率是否判失败 / 内存门如何定性）",
+      "priority": "P0",
+      "facts": [
+        "PERF-SCALE-001 实测：16 worker 活跃窗口 CPU 均值 65.09%（冻结门 ≥85%）；p50 87.63%（门 ≥90%）；r0 62.86%/84.56%、r1 65.88%/87.62%、r2 65.09%/88.25%（审计与控制器均可从 run/v6/performance/p1_real_ldn43_4k_w16_r*/resource_samples.csv 复算）",
+        "memory_growth_unbounded@16w：max rss_growth 34.01 MB/s（失败线 32 MB/s，中位 25.03 MB/s）；斜率随墙钟缩短升高，疑启动工作集爬坡，未定性",
+        "全预算（1/4/16w）alloc_reclaim_missing：in-band alloc report reclaim_verdict=unexplained_residual，would_fail_if_signed=true",
+        "当前状态：record_only_pending_owner_signoff、hard_fail=false、auto_adjudication_withheld_pending_owner_signoff；未作为 PASS 理由，也未写成硬失败",
+        "注入 CPU 争用负向检查确认『连续 ≥10s <60%』门可红（34.68 s 被记录）"
+      ],
+      "evidence_pointers": [
+        "artifacts/v6/performance/p1_real_ldn43_4k_resource_gate_record.json",
+        "artifacts/v6/performance/PERF-SCALE-001_summary.json",
+        "reports/v6/performance/PERF-SCALE-001.md §5/§8",
+        "reports/v6/final-audit/findings.json#B-05",
+        "artifacts/v6/release-review/release_review_verdict.json#resource_gate_so05"
+      ],
+      "decision_needed": "①§10.5/§17.6 门是否对本包启用自动判决；②16w 低利用率（65.09%<85%、87.63%<90%）是否判失败或按 §10.5 例外（须负责人修改合同）调整；③memory_growth_unbounded@16w 与 alloc_reclaim_missing 如何定性（科学失败 / 测量假象 / 需重测）。",
+      "options": [
+        {
+          "label": "A. 不启用自动判决，SO-05 继续 record_only，本包如实携带门未达",
+          "impact": "包维持 NOT_READY；资源门未满足事实进入发布门 6 未满足，不得作为通过证据"
+        },
+        {
+          "label": "B. 启用自动判决并判 16w 失败",
+          "impact": "PERF-SCALE-001 科学门判失败；需修复并行利用率/内存行为后重跑；发布门 6 明确未满足"
+        },
+        {
+          "label": "C. 按 §10.5 例外修订合同（实测内存带宽饱和/不可并行依赖/明确 I/O 等待）",
+          "impact": "需负责人修改合同条款；修改前门仍为 85%/90% 且当前未达"
+        }
+      ],
+      "default_if_no_decision": "保持 record_only_pending_owner_signoff、hard_fail=false；资源门按未满足处理，本包维持 NOT_READY，且不得宣称资源门通过。",
+      "related_findings": [
+        "B-05",
+        "AR-036/SO-05",
+        "M-05"
+      ],
+      "controller_reviewed": true
+    },
+    {
+      "id": "OD-02",
+      "title": "AR-037（新覆盖缺口）：V6 三 Phase 生产入口在 CLI/生产中零消费者",
+      "priority": "P0",
+      "facts": [
+        "write_phase1_product / run_point_information / run_surface_gls / run_psfsw_robust / open_phase1_product / p3_v6_export 的全仓引用仅出现在自身 .cpp/.h、lib 内部与 tests/integration/v6_{p1,p2,p3}（owner-package 独立复核：排除 tests/run/build/out 后无生产消费者）",
+        "cli/commands.cpp 的 cmd_phase2_run 在 astrocs::v6cli::mode_gate(p,2,ev) 校验通过后仍调用 run_with_resource_gate(ev,'phase2',...) 走 legacy astrocs.phase2.* 节点；未调用任何 V6 run_* 函数",
+        "用户以 --mode point_information/psfsw_robust 调用时实际执行 legacy 集成路径；V6 科学链只有自测消费者",
+        "TASK_MANIFEST 中无任何任务拥有『把 V6 链接入 cli/runtime 生产路径』；W9 RUNTIME-CI-001 只落模式门与运行面契约（任务卡写明不重写科学实现）",
+        "生产可达性不成立 ⇒ 在接线前不得对外称 V6 口径已可用（§16.2/§14.3 禁止命令占位/未接线冒充完成）"
+      ],
+      "evidence_pointers": [
+        "reports/v6/final-audit/findings.json#B-04",
+        "工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/CONTROLLER_LOG.md C-010",
+        "cli/commands.cpp cmd_phase2_run（mode_gate 后 run_with_resource_gate）",
+        "lib/phase1/v6/src/phase1_product.cpp、lib/phase2_int/v6/src/phase2_integrate.cpp、lib/phase3_session/p3_v6_export.cpp"
+      ],
+      "decision_needed": "是否另立后续任务（新控制包）实现『CLI/运行时接线 V6 三 Phase 链』，并明确其 owner、write_scope 与验收门。",
+      "options": [
+        {
+          "label": "A. 另立后续任务接线三 Phase（推荐）",
+          "impact": "需新任务/新控制包；接线前 V6 生产可达性不成立，本包不得宣称三模式可用"
+        },
+        {
+          "label": "B. 明确声明为库层交付并在 product manifest 标记三 Phase unavailable",
+          "impact": "需按 §16.2 修改产品声明；用户入口仍不可达 V6 科学链，需如实对外说明"
+        },
+        {
+          "label": "C. 暂不处置",
+          "impact": "B-04 持续为 BLOCKER；不得宣称 V6 口径已可用"
+        }
+      ],
+      "default_if_no_decision": "B-04 保持 BLOCKER；V6 三生产模式生产可达性不成立；不得据此发布或对外宣称可用。",
+      "related_findings": [
+        "B-04"
+      ],
+      "controller_reviewed": true
+    },
+    {
+      "id": "OD-03",
+      "title": "M-01 PENDING 阈值授权：49 条 PENDING_OWNER_SIGNOFF 数值阈值已被生产代码当硬门执行但未签字",
+      "priority": "P0",
+      "facts": [
+        "冻结合同 96 条款 = FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8（owner-package 独立解析 docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json 复核一致）",
+        "lib/phase2_int/v6/include/astrocs/v6/phase2_integrate.h 中 kEpsPixivar=0.05、kEpsPixivarSup=0.20、kCorrRatioMin=1.05、kCommonMin=3、kKCorrFrozen=1.4 等常量标注为 PENDING_OWNER_SIGNOFF 条款（FZ-AP2S-EPS-PIXIVAR/FZ-AP2PT-CORR-RATIO-MIN/PSFSW-T-NMIN/FZ-PROV-KCORR-VALUE）但已作为硬门执行",
+        "8 条条款级 OPEN（CF-T-P3-CORR-EPSILON、QF-G-INJ-01/02/03/07、QF-G-RD-01/02、QF-G-BASE-03）未执行；QA case_ledger 中 G-RD-01/02、G-BASE-03 executed_cases=0、counts_as_pass=false、pends=true",
+        "『49 PENDING/8 OPEN 保持 fail-closed』的表述只对部分面成立"
+      ],
+      "evidence_pointers": [
+        "reports/v6/final-audit/findings.json#M-01",
+        "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json#clauses",
+        "reports/v6/contract-review/04_OPEN_ITEMS_AND_SIGNOFF.md §2/§3",
+        "reports/v6/qa-design/case_ledger.json",
+        "lib/phase2_int/v6/include/astrocs/v6/phase2_integrate.h"
+      ],
+      "decision_needed": "这些 PENDING 数值阈值是『临时生效』还是『必须先签字』；未决期间是否允许生产代码继续以其为硬门。",
+      "options": [
+        {
+          "label": "A. 逐条签字后生效（推荐）",
+          "impact": "需负责人按 SO-01..SO-07 分批签字；签字前应把相应门改为 fail-closed 或显式 pending 记录"
+        },
+        {
+          "label": "B. 授权临时生效",
+          "impact": "需明确临时生效范围与失效条件；不得写成已冻结，需在台账/合同中显式标注"
+        },
+        {
+          "label": "C. 暂不处置",
+          "impact": "『保持 fail-closed』表述不成立；不得宣称这些门已获授权"
+        }
+      ],
+      "default_if_no_decision": "阈值保持未授权状态；不得宣称 PENDING 门已获授权；相关面按 fail-closed/未签处理。",
+      "related_findings": [
+        "M-01",
+        "M-04",
+        "SO-01..SO-07"
+      ],
+      "controller_reviewed": true
+    },
+    {
+      "id": "OD-04",
+      "title": "M-02 FROZEN 文档订正确认：ALG-P1-001 §4.2 concentration 单位标签 ADU/px → ADU/px²",
+      "priority": "P0",
+      "facts": [
+        "DOC-CONVERGE-001 把 docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md §4.2 的 concentration 单位标签由 ADU/px 改为 ADU/px²；与冻结单位表、psfsw.cpp（u + '/px^2'）、astrocs.v6.psfsw.v1.schema.json（pattern = component_flux_unit + '/px^2'）一致；非公式/容差/门改动",
+        "该文档此前被本包登记为 FROZEN；schema 的 registered_text_error 原文要求『DOC-CONVERGE-001 修正，须负责人签字后方可改 FROZEN 正文』",
+        "DOC-CONVERGE-001 的 oracle 复核 38/38、convergence C4 项当前 PASS",
+        "同源 docs/science/v6/psfw/PSFW_FREEZE_RESEARCH.md:144 仍写 signal/像素（审计 m-04），未同步"
+      ],
+      "evidence_pointers": [
+        "reports/v6/final-audit/findings.json#M-02",
+        "reports/v6/final-audit/findings.json#m-04",
+        "reports/v6/release-review/01_CONVERGENCE_CORRECTIONS.md",
+        "artifacts/v6/release-review/release_review_verdict.json#concentration_fix",
+        "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md §4.2"
+      ],
+      "decision_needed": "是否事后确认该 FROZEN 正文订正；若不认可，是否对 ALG_P1_001_*.md / alg_p1_001_spec.json / verify_alg_p1_001.py 做单 commit 回退并同步把 doc-convergence C4 项改为 pending_signoff 态。",
+      "options": [
+        {
+          "label": "A. 确认订正（推荐）",
+          "impact": "Grep 与冻结单位表一致；需同步 m-04 研究文档单位文本"
+        },
+        {
+          "label": "B. 单 commit 回退 3 文件",
+          "impact": "回退后 doc-convergence 的 C4 项会转红，须同步把 C4 改为 pending_signoff 态；concentration 单位文本回到错误值"
+        },
+        {
+          "label": "C. 暂不处置",
+          "impact": "FROZEN 正文存在未签字改动，M-02 保持 MAJOR"
+        }
+      ],
+      "default_if_no_decision": "M-02 保持 MAJOR（FROZEN 正文改动未获签字确认）；不得声称该订正已获授权。",
+      "related_findings": [
+        "M-02",
+        "m-04"
+      ],
+      "controller_reviewed": true
+    },
+    {
+      "id": "OD-05",
+      "title": "M-03 F1 回退基线逐项授权：P33/P35/P36 预存回退态被固化为 V6 基线",
+      "priority": "P0",
+      "facts": [
+        "C-006..C-010 的 F1 治理提交把包开工前既有的 P33/P35/P36 回退态固化为 V6 基线：44e1cb65（P35 drizzle）、ac04289d（docs/contracts 两处 P33/P27）、95703e63（P33 snr_frame_coefficient 删除 + P35 p3_resample 回退）、393db3fb（P36 六文件回退 + ci/checks.json 删除 9 项检查登记）、c7432fa0（3 个 CMakeLists + 8 个测试目标删除）",
+        "被删除登记含 CTEST-P36-SCHED-OVERLAP/FRAME-ADMISSION/RESOURCE-SEGMENTS、CTEST-P1SNR-COEF-ALL/FMATCH-ALL、CTEST-IPV-DEAD-PARAMS-LOCK/-SELFCHECK、CTEST-P35-P3MEMO/CAND-INC 共 9 项；另删除 cli/frame_admission.h 与 8 个测试 .cpp",
+        "回退内容本身是负责人开工前的决定（RULINGS F1 要求按此基线推进），但删除清单未获负责人逐项授权",
+        "P33/P35/P36 原实现仍在 git 历史（b756c7e2 等）中，可恢复"
+      ],
+      "evidence_pointers": [
+        "reports/v6/final-audit/findings.json#M-03",
+        "工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/CONTROLLER_LOG.md C-006/C-007/C-008",
+        "git show --stat 393db3fb c7432fa0 95703e63 44e1cb65 ac04289d"
+      ],
+      "decision_needed": "逐项确认保持该基线，或指示恢复 P33/P35/P36（恢复被删检查登记与测试目标、cli/frame_admission.h 等）。",
+      "options": [
+        {
+          "label": "A. 确认保持该基线",
+          "impact": "CI/测试覆盖的削减变为已授权；需登记 waiver/说明"
+        },
+        {
+          "label": "B. 指示恢复",
+          "impact": "需按历史 commit 恢复被删检查与测试并重跑 CI；恢复后可能改变多项门状态"
+        },
+        {
+          "label": "C. 部分确认",
+          "impact": "需逐项给出保留/恢复清单"
+        }
+      ],
+      "default_if_no_decision": "M-03 保持 MAJOR（删除清单未授权）；基线维持现状但不得视为已授权。",
+      "related_findings": [
+        "M-03",
+        "B-01"
+      ],
+      "controller_reviewed": true
+    },
+    {
+      "id": "OD-06",
+      "title": "schema 交叉张力：provenance.v1 allOf 与 signal.v1 使纯积分通量主面不可表达",
+      "priority": "P0",
+      "facts": [
+        "provenance.v1 allOf：units.bunit=ADU ⇒ units.pixel_semantics=surface_brightness ∧ units.pixel_area_power=-2（owner-package 独立复核 contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json 第 534-565 行）",
+        "signal.v1 allOf：pixel_semantics=integrated_flux ⇒ pixel_area_power=0（第 348-363 行），且 pixel_area_power 的 fail_closed 声明『surface_brightness 要求 -2；flux 要求 0』",
+        "两者叠加使『bunit=ADU 且 integrated_flux』的纯积分通量主面不可表达",
+        "AIO bunit_dimension_decidable 亦只接受 SB-ADU（x-astrocs.anchor = FZ-BUNIT-SEMANTICS; FZ-UNIT-SIGNAL-SB，fail_closed: BUNIT=ADU 且无 pixel_semantics=surface_brightness+pixel_area_power=-2 -> REJECT）"
+      ],
+      "evidence_pointers": [
+        "contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json#allOf",
+        "contracts/schemas/v6/astrocs.v6.signal.v1.schema.json#allOf",
+        "工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/CONTROLLER_LOG.md C-008 §2",
+        "reports/v6/final-audit/findings.json（未单独列条，见 C-008 裁决项 6）"
+      ],
+      "decision_needed": "裁定 FZ-UNIT-FLUX 与 FZ-BUNIT-SEMANTICS 的适用关系（是否修订 schema/gate 以允许纯积分通量主面，或维持现状并明确其不可表达为设计约束）。",
+      "options": [
+        {
+          "label": "A. 修订 schema/gate 允许 integrated_flux 主面（需新 clause 与 oracle）",
+          "impact": "触及 contracts/**，须独立 commit 与合同修订；影响下游 AIO/Phase1/2/3 单位校验"
+        },
+        {
+          "label": "B. 维持现状并明确记为设计约束",
+          "impact": "纯积分通量主面继续不可表达；相关产品需以 surface_brightness 表达"
+        },
+        {
+          "label": "C. 暂不处置",
+          "impact": "张力持续；不得声称单位面已收敛"
+        }
+      ],
+      "default_if_no_decision": "维持现状；纯积分通量主面不可表达；不得声称单位/schema 交叉面已收敛。",
+      "related_findings": [
+        "C-008 裁决项 6"
+      ],
+      "controller_reviewed": true
+    },
+    {
+      "id": "OD-07",
+      "title": "quantity.units 未收敛 + covariance.v1 对角 representation 与 operator_descriptor 枚举缺项",
+      "priority": "P0",
+      "facts": [
+        "生产 schema astrocs.v6.point-information.v1.schema.json 的 $defs.quantity.units 为自由 string（owner-package 独立复核第 341-343 行），篡改 W_info.units 仍可过 schema；C++ 重开门已补齐",
+        "covariance.v1 allOf：representation=diagonal_variance ⇒ 必须 correlation_kernel 或 operator_descriptor（第 544-570 行）",
+        "covariance.v1 operator_descriptor.kind 枚举仅 {drizzle_forward, phase2_combination, phase3_resample}，无『校准 Jacobian』项"
+      ],
+      "evidence_pointers": [
+        "contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json#/$defs/quantity",
+        "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json#allOf、#operator_descriptor",
+        "工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/CONTROLLER_LOG.md C-008 §3"
+      ],
+      "decision_needed": "是否收紧 quantity.units 为 const/enum；是否为 covariance operator_descriptor.kind 增加『校准 Jacobian』枚举项。",
+      "options": [
+        {
+          "label": "A. 收紧并补枚举（需 contracts owner 独立 commit + schema oracle）",
+          "impact": "提升产品防篡改；触及 contracts/**，须重跑 schema 合同测试"
+        },
+        {
+          "label": "B. 维持现状并记录",
+          "impact": "schema 层防伪弱于 C++ 层；不得声称单位面已收紧"
+        },
+        {
+          "label": "C. 暂不处置",
+          "impact": "张力持续，列 MAJOR/裁决项"
+        }
+      ],
+      "default_if_no_decision": "维持现状；schema 层未收紧；不得声称 W_info.units 已被 schema 约束。",
+      "related_findings": [
+        "C-008 裁决项 7"
+      ],
+      "controller_reviewed": true
+    },
+    {
+      "id": "OD-08",
+      "title": "AIO FITS 实数格式：FitsCard::make_real 用 %.12g 产生小写 e，astropy 判 not FITS standard",
+      "priority": "P0",
+      "facts": [
+        "lib/astro_image_io/v6/src/v6_fits.cpp:53-58 的 FitsCard::make_real 使用 std::snprintf(buf, sizeof(buf), \"%.12g\", v)，可产生小写 e（owner-package 独立复核）",
+        "astropy 判 not FITS standard；P1/P3 集成任务各自在产物层规范为大写 E 绕过，lib/astro_image_io/v6 本身待修",
+        "该文件属 IMPL-AIO-001 已提交写域；控制器未擅自改，列为待办"
+      ],
+      "evidence_pointers": [
+        "lib/astro_image_io/v6/src/v6_fits.cpp:53",
+        "工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/CONTROLLER_LOG.md C-008 §4"
+      ],
+      "decision_needed": "是否授权修正 AIO 的 FITS 实数格式化（大写 E / 符合作者规范），以及由哪个后续任务承担。",
+      "options": [
+        {
+          "label": "A. 授权修正（推荐）",
+          "impact": "需后续任务或控制器以独立 commit 修正 v6_fits.cpp 并重跑 astropy 校验"
+        },
+        {
+          "label": "B. 维持产物层绕过",
+          "impact": "AIO 本身仍非 FITS standard；第三方工具直接读 AIO 输出可能告警"
+        },
+        {
+          "label": "C. 暂不处置",
+          "impact": "缺陷持续登记"
+        }
+      ],
+      "default_if_no_decision": "维持现状；AIO 本身仍待修；不得声称 AIO FITS 输出完全符合作者标准。",
+      "related_findings": [
+        "C-008 裁决项 4"
+      ],
+      "controller_reviewed": true
+    },
+    {
+      "id": "OD-09",
+      "title": "F-CAR / F-AIT legacy 投影错误修正授权",
+      "priority": "P0",
+      "facts": [
+        "legacy lib/phase3_proj/p3_projection.cpp 的 CAR 用 Y=−θ（第 191/198 行注释与实现），赤纬相对 FITS WCS Paper II 反号，最大偏差 345600″=96°（legacy dec == −standard dec）",
+        "legacy AIT 缺 Paper II √2 因子（第 221 行 X=2cosθ·sin(φ/2)/D），最大偏差 94885″、world→pix 残差 13.05 px",
+        "V6 层 lib/phase3_proj/p3_proj_v6.cpp 已按 Paper II 实现并过 Oracle（独立 astropy/WCSLIB 对拍）",
+        "legacy 文件与其逆向测试 tests/unit/p3_projection_test.cpp 不属任何 V6 任务写域，需负责人授权后才能独立修正"
+      ],
+      "evidence_pointers": [
+        "reports/v6/final-audit/findings.json（F-CAR/F-AIT 见 C-007 登记，未单列 finding id）",
+        "reports/v6/release-review/04_RELEASE_REVIEW_SECTION14_5.md §6.3",
+        "lib/phase3_proj/p3_projection.cpp:190-260",
+        "工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/CONTROLLER_LOG.md C-007/C-008"
+      ],
+      "decision_needed": "是否授权修正 legacy p3_projection.cpp 的 CAR 赤纬符号与 AIT √2 因子，并同步更新 tests/unit/p3_projection_test.cpp。",
+      "options": [
+        {
+          "label": "A. 授权修正（独立 commit + WCSLIB 对拍 Oracle）",
+          "impact": "修正 legacy 与 V6 层不一致；需重跑 legacy 投影测试与 astropy/WCSLIB 对拍"
+        },
+        {
+          "label": "B. 不改 legacy，仅维持 V6 层正确",
+          "impact": "legacy 路径若在生产可达仍产生错误投影；需确认 legacy 是否仍在生产路由"
+        },
+        {
+          "label": "C. 暂不处置",
+          "impact": "F-CAR/F-AIT 持续未决；不得声称 legacy 投影正确"
+        }
+      ],
+      "default_if_no_decision": "legacy 保持现状（错误持续）；不得声称 legacy CAR/AIT 与 FITS WCS Paper II 一致。",
+      "related_findings": [
+        "F-CAR",
+        "F-AIT",
+        "C-007 登记"
+      ],
+      "controller_reviewed": true
+    },
+    {
+      "id": "OD-10",
+      "title": "真实数据终验与 QA 门（B-02 / M-04）：§13.3 最终 SHA 真实数据流终验未执行",
+      "priority": "P0",
+      "facts": [
+        "无全 testdata/Gaia 数据流、无 M42/银心分进程 Phase1→Phase2 马赛克、无 §13.4 图像初审（§17.12 门 8/9 未满足）",
+        "REAL-SCIENCE-001 的 equal/exposure/ivar 三口径为 DOCUMENTED_BASELINE（驱动内实现），仅 W_info/PSFSW 走冻结库函数；为库级五口径对比，不是全链生产路径端到端验收",
+        "Phase2 CLI 真实数据 obs=0、overlap_controls=0，control ivar 缺失，端到端 fail-closed；真实 FITS 产品链 write_phase1_product → run_point_information/run_psfsw_robust 未跑",
+        "QA 矩阵 W10 真实数据门未执行且 case_ledger 未回写：G-RD-01 executed_cases=0、G-RD-02 executed_cases=0、G-BASE-03 executed_cases=0（均 counts_as_pass=false、pends=true）"
+      ],
+      "evidence_pointers": [
+        "reports/v6/final-audit/findings.json#B-02、#M-04",
+        "reports/v6/real-science/REAL-SCIENCE-001_REPORT.md §3/§9/§13",
+        "reports/v6/qa-design/case_ledger.json",
+        "reports/v6/release-review/04_RELEASE_REVIEW_SECTION14_5.md 第 3/4 步"
+      ],
+      "decision_needed": "如何补齐 §13.3 真实数据终验与 §13.4 图像初审、QA W10 真实数据门；若无法在 Fatduck/当前环境补齐，是否由负责人明确降级该门并登记。",
+      "options": [
+        {
+          "label": "A. 在最终 SHA 执行 §13.3 全量终验 + §13.4 图像初审（Linux），并回写 case_ledger",
+          "impact": "需完整 testdata/Gaia 流与 M42/银心分进程马赛克；耗时长但可使门 8/9 可达"
+        },
+        {
+          "label": "B. 由负责人明确降级该门并登记（附理由与范围）",
+          "impact": "包仍 NOT_READY 但门状态明确；不得声称门 8/9 已满足"
+        },
+        {
+          "label": "C. 暂不处置",
+          "impact": "B-02/M-04 持续 BLOCKER/MAJOR；真实数据终验未完成事实保持"
+        }
+      ],
+      "default_if_no_decision": "B-02 保持 BLOCKER、M-04 保持 MAJOR；§14.5 第 3/4 步保持 NOT_MET。",
+      "related_findings": [
+        "B-02",
+        "M-04",
+        "M-01"
+      ],
+      "controller_reviewed": true
+    },
+    {
+      "id": "OD-11",
+      "title": "CI 红线归属（B-01）：THREAD-BUDGET、2 项 IPV CTEST-REGISTRATION、Windows MSVC 失败",
+      "priority": "P0",
+      "facts": [
+        "owner-package 在基线 6b459952 独立复跑：THREAD-BUDGET rc=1 FAIL（lib/core/src/module_adapters.cpp:245,252 omp_set_num_threads 未登记，属 P36 回退态）",
+        "CTEST-REGISTRATION rc=1 FAIL：C3 未注册 add_test 目标 ipv_dead_params_lock / ipv_dead_params_lock_selfcheck（lib/plate_solve/cpp/ipv/test/CMakeLists.txt，非 V6 IPV 残项），error_count=3",
+        "AGENTS-GOV rc=0 PASS（10/10）；VERSION-CONSISTENCY rc=0 PASS（根 VERSION=0.11.0-alpha.2）",
+        "Linux CI 整条 V6 线自 ebefe00d（Wave 3）起持续红；AR-033 注册非肇因但红线未消",
+        "根全量 ctest 405/407：cpu007_profile_store 稳定 FAIL（CWD 依赖）、p1hips_performance 抖动（审计独立实跑；更正 C-008『Not Run』表述）",
+        "Windows CI run 35012779853 failure，失败步『Run MSVC tests and package candidate』exit 1、Upload candidate skipped；根因 UNKNOWN（无 token 取 win-stage-*.log）"
+      ],
+      "evidence_pointers": [
+        "reports/v6/final-audit/findings.json#B-01",
+        "artifacts/v6/owner-package/logs/10_ci_redline_recheck.log（本包独立复跑）",
+        "reports/v6/final-audit/evidence/ci_repro.log",
+        "reports/v6/windows/WIN-VERIFY-001.md §4",
+        "artifacts/v6/windows/GITHUB_ACTIONS_EVIDENCE.json"
+      ],
+      "decision_needed": "①是否授权修正 THREAD-BUDGET（P36 回退态 module_adapters.cpp）；②2 项非 V6 IPV CTEST-REGISTRATION 残项归属；③Windows MSVC 失败根因取证（需有 token 环境）与修复归属。",
+      "options": [
+        {
+          "label": "A. 授权修正并指定 owner（推荐）",
+          "impact": "需澄清与 M-03 基线的关系（修 THREAD-BUDGET 等于部分恢复 P36 相关面）；须独立 commit 与 CI 复跑"
+        },
+        {
+          "label": "B. 仅按 R-05/R-13 登记 waiver（不得掩盖红灯）",
+          "impact": "verdict 仍 FAIL；不得以 waiver 包装为通过"
+        },
+        {
+          "label": "C. 暂不处置",
+          "impact": "B-01 持续 BLOCKER；§14.5 第 2 步保持 NOT_MET"
+        }
+      ],
+      "default_if_no_decision": "Linux CI 保持红；B-01 保持 BLOCKER；§14.5 第 2 步保持 NOT_MET。",
+      "related_findings": [
+        "B-01",
+        "M-03",
+        "m-02"
+      ],
+      "controller_reviewed": true
+    },
+    {
+      "id": "OD-12",
+      "title": "其他 P0/边界：Windows MSVC 根因 UNKNOWN 与 FD-F-003、AR-032/SO-06 写保护、memory.md、预存 ci-fix/worktree",
+      "priority": "P0/P1",
+      "facts": [
+        "Windows MSVC『Run MSVC tests and package candidate』失败根因 UNKNOWN，需有 token 环境取回 win-stage-*.log / win-package-summary.json",
+        "FD-F-003（P0 OPEN）：Windows C++ 单测门长期『0 用例 PASS』（No tests were found!!!）；恢复『用例数>0』前 Windows C++ 单测面不得作为发布证据引用",
+        "AR-032/SO-06：非 v6 SCI 正文（docs/science/*.md、docs/design/**、docs/references/**、docs/owner/**）取代受 C-004.5 写保护未改写；正式 amendment 须负责人签字",
+        "memory.md 仍为 DOC-CONV-001 期（提交 327b6c30 / BASE=da3c4b4a），不在任何 V6 任务 write_scope；是否纳入本包需负责人决定",
+        "预存 ci-fix 分支（69ec459f，2026-09-08 17:18:59，已并入 main）与 worktree 列表（owner-package 实测 44 行，含 main；审计报告称 45 个注册 worktree），创建早于本包（本包运行 2026-09-15/16），非本包产物，违反 §14.1"
+      ],
+      "evidence_pointers": [
+        "reports/v6/final-audit/findings.json#i-07、#m-05",
+        "reports/v6/windows/WIN-VERIFY-001.md §6",
+        "reports/v6/release-review/03_PENDING_AND_OWNER_ITEMS.md §6.6/§6.10",
+        "git branch -a；git worktree list（本包独立复核）"
+      ],
+      "decision_needed": "①是否提供 token 环境以定位 Windows CI 根因并修复 FD-F-003；②AR-032/SO-06 正式 amendment 是否授权与时机；③memory.md 是否纳入本包或由后续任务同步；④是否批准清理预存 ci-fix 分支与 stale worktree。",
+      "options": [
+        {
+          "label": "A. 逐项处置并指定 owner/后续任务",
+          "impact": "需明确各后续任务 write_scope；清理 worktree 需负责人批准"
+        },
+        {
+          "label": "B. 仅登记不处置",
+          "impact": "FD-F-003 保持 P0 OPEN；AR-032/SO-06 保持待签；memory.md 保持陈旧；§14.1 治理债持续"
+        },
+        {
+          "label": "C. 暂不处置",
+          "impact": "各项保持 OPEN，本包如实携带"
+        }
+      ],
+      "default_if_no_decision": "各项保持 OPEN；Windows 保持 AWAITING_WINDOWS_VALIDATION；AR-032/SO-06 保持待签；memory.md 不纳入本包（保持陈旧）；不清理分支/worktree。",
+      "related_findings": [
+        "i-07",
+        "m-05",
+        "AR-032-GAP",
+        "SO-06",
+        "FD-F-003"
+      ],
+      "controller_reviewed": true
+    }
+  ]
+}
