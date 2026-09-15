@@ -1,0 +1,81 @@
+> 由 `reports/v6/contract-review/tools/gen_freeze.py` 机械渲染，与 `docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json` 同源；语义源 = `reports/v6/science-adjudication/adjudications.json` + W3 各规格；基线 HEAD = `ebefe00d3cb9018d61b7b3e8d3d7694191c1f333`。
+
+## 0. 权威与状态
+
+- 文档 ID：`CONTRACT-FREEZE-001-FROZEN-SCIENCE`；状态 = V6 目标态语义冻结（三档：FROZEN / PENDING_OWNER_SIGNOFF / OPEN）。
+- 权威分层：冻结宪章 > PROJECT_SPEC > PHASE{1,2,3} 详细设计 > UNIFIED / PSF_SIGNAL_WEIGHT > 本冻结合同 > ALG/DATA/API > 代码/测试 > 历史文档。
+- 语义继承 SCI-ADJ-001（42 条 `FZ-*`）；数值阈值继承 W3 各 ALG 规格（见 `docs/algorithms/v6/frozen/`）。
+- 未签字项（SO-01..07）一律标 `PENDING_OWNER_SIGNOFF`，不得写成已冻结；实现不得放宽、相应面 fail-closed。
+
+## 1. 冻结单位表（`FZ-UNIT-*`）
+
+| 符号 | 单位 | 含义 | 方差单位 | ivar 单位 |
+|---|---|---|---|---|
+| signal_sb | ADU/px^2 | Phase1 Drizzle/HiPS 面亮度 signal | ADU^2/px^4 | px^4/ADU^2 |
+| pixel_variance_in | ADU^2 | 输入源像素逐像素方差 v_j | None | None |
+| W_info | ADU^-2 | 点源信息权重 = 1/Var(F_hat) | None | None |
+| Q | ADU^-1 | 点源线性充分统计量 | None | None |
+| flux | ADU | F_hat 点源通量估计 | ADU^2 | ADU^-2 |
+| psfsw_robust_weight | 1 | 无量纲组内相对复合权重 | None | None |
+| phase2_mosaic_signal | BUNIT(声明) | Phase2 马赛克 signal; 面亮度产品则 ADU/px^2 | BUNIT^2 | 1/BUNIT^2 |
+| phase3_var_out | BUNIT^2 | Phase3 输出方差 = 主 HDU BUNIT 平方 | None | 1/BUNIT^2 |
+
+二次律：`variance=signal^2`、`ivar=1/variance`、`W_info=signal^-2`、`psfsw_robust_weight=1`；Phase3 variance BUNIT=(signal BUNIT)^2。
+
+## 2. 冻结 mode 表
+
+| mode | 状态 | 权重对象 | 单位 | 权威式 | covariance 来源 | effective PSF | 组内归一 | 禁止声明 |
+|---|---|---|---|---|---|---|---|---|
+| point_information | PRODUCTION_FROZEN | W_info | ADU^-2 | `Q_k=a_k P_k^T C_k^-1 d_k; W_info,k=a_k^2 P_k^T C_k^-1 P_k; F_hat=Q/W; Var=1/W` | combination_coefficients | True | False | support/coverage/median_source_snr/fwhm/residual as weight; pixel ivar equivalence for arbitrary PSF |
+| surface_gls | PRODUCTION_FROZEN | A^T C^-1 A | 1/(surface_brightness^2) | `x_hat=(A^T C^-1 A)^-1 A^T C^-1 d; Cov=(A^T C^-1 A)^-1` | combination_coefficients | True | False | pixel ivar unconditional optimality |
+| psfsw_robust | PRODUCTION_FROZEN | psfsw_robust_weight | 1 | `Wt_k=C_norm*S^alpha*Conc^beta/(N^gamma*B^delta); W_psfsw,k=Wt_k/median_j(Wt_j)` | combination_coefficients | True | True | ivar; fisher_information; variance_from_weight; 1/W_psfsw |
+| equal | DOCUMENTED_BASELINE | unit_weight | 1 | `I_out=mean_k d_k` | combination_coefficients | True | False | scientific optimality |
+| pixel_ivar | DOCUMENTED_BASELINE | pixel_ivar | 1/BUNIT^2 | `I_out=Sum_k w_k d_k/Sum_k w_k, w_k=1/v_k` | combination_coefficients | True | False | point-source optimality for arbitrary PSF |
+| psf_snr_power | DEFERRED_NOT_PRODUCTION | ratio_of_powers | 1 | `DEFERRED (未冻结)` | combination_coefficients | True | True | production; fisher_optimality |
+
+- 生产 = {point_information, surface_gls, psfsw_robust}；基线 = {equal, pixel_ivar}；延迟 = psf_snr_power（C-004.1 不解冻）。
+
+## 3. science 层冻结条款
+
+| 条款 id | 主题 | 冻结值 | 适用域 | 来源锚 | 验证门 | fail-closed 语义 | 负向 mutation | 状态 | 签字 |
+|---|---|---|---|---|---|---|---|---|---|
+| FZ-UNIT-SIGNAL-SB | S_p (Phase1 drizzle/HiPS 面亮度 signal) | ADU/px^2 | Phase1 signal | DRIZZLE.md §5:48; ADJ-F-OBS-01 | BUNIT 量纲可判门 | signal 缺 units，或 SB signal 单位 ≠ ADU/px^2 且 BUNIT 不可判 → unavailable/REJECT | 把 signal_sb 单位改为 ADU 或 ADU^2/px^4，量纲代数门必须 rc!=0 | FROZEN | - |
+| FZ-UNIT-VAR-IN | pixel_variance_in v_j | ADU^2 | Drizzle 输入逐像素方差 | DRIZZLE.md §3:27; ADJ-F-OBS-01 | 量纲代数门 | 输入逐像素方差单位 ≠ ADU^2（与输出面亮度方差混名）→ REJECT | pixel_variance_in 单位写成 ADU^2/px^4 → rc!=0 | PENDING_OWNER_SIGNOFF | SO-01 |
+| FZ-UNIT-VAR-SB | sb_variance_out variance_p | ADU^2/px^4 | Phase1 variance | DRIZZLE.md §5:55; ADJ-F-OBS-01 | variance=signal^2 | sb_variance_out ≠ ADU^2/px^4 或 variance ≠ signal^2 → REJECT | sb_variance_out 单位改 ADU^2 → rc!=0 | PENDING_OWNER_SIGNOFF | SO-01 |
+| FZ-UNIT-IVAR-SB | sb_ivar_out | px^4/ADU^2 | Phase1 ivar | DRIZZLE.md §5:56; ADJ-F-OBS-01 | ivar=1/variance | sb_ivar_out ≠ px^4/ADU^2 或 ivar ≠ 1/variance → REJECT | sb_ivar_out 单位改 ADU^-2 → rc!=0 | PENDING_OWNER_SIGNOFF | SO-01 |
+| FZ-UNIT-Q | Q_k | ADU^-1 | Phase2 point_information | UNIFIED §4; ADJ-P2-01 | Q/W 量纲自洽 | Q ≠ ADU^-1 或 Q/W 量纲不自洽 → REJECT（GATE-UNIT-01） | Q 单位改 ADU^-2 或 ADU → rc!=0 | FROZEN | - |
+| FZ-UNIT-FLUX | F_hat | ADU | Phase2 point_source | UNIFIED §4; ADJ-P2-01 | Var(F)=1/W | F_hat ≠ ADU 或 Var(F_hat) ≠ ADU^2 或 Var(F)≠1/W → REJECT | F_hat 单位改 ADU/px^2 → rc!=0 | FROZEN | - |
+| FZ-UNIT-WINFO | W_info | ADU^-2 | Phase1/Phase2 点源信息权重 | PSF_SIGNAL_WEIGHT §2:35; ADJ-GEN-01 | W_info=signal^-2 | W_info ≠ ADU^-2，或与 psfsw/ivar/signal 混名 → REJECT | W_info 单位改 ADU^-1 → rc!=0 | FROZEN | - |
+| FZ-UNIT-PSFSW | psfsw_robust_weight | 1 | Phase2 psfsw_robust | PSF_SIGNAL_WEIGHT §3/§5; ADJ-P2-03 | 无量纲门(禁 flux^-2/ivar) | psfsw_robust_weight ≠ 1 或出现 flux^-2/ivar 词 → REJECT | weight.units="flux^-2" → rc!=0 | FROZEN | - |
+| FZ-FORMULA-DRIZZLE-SB | 目标态面亮度归一 | S_p = Sum_j B_j a_jp / Sum_j a_jp, B_j=x_j/A_pixel,j (等价 c_jp=a_jp/Sum a_jp) | Phase1 Drizzle signal | DESIGN-P1 §9:120-126; UNIFIED §7; ADJ-F-OBS-02/S2 | 常量面亮度 S_p=B0 全 pixfrac | 归一版本缺失，或 legacy 归一（w=a/A_drop）用于 pixfrac<1 绝对面亮度 → REJECT/不可跨 pixfrac 合成 | 常量 ADU 构造 / 无条件 pixfrac / S_p=F_p 三错法任一 → 常量场门 rc!=0 | PENDING_OWNER_SIGNOFF | SO-02 |
+| FZ-FORMULA-DRIZZLE-VAR | Drizzle 方差传播 | variance_p = Sum_j v_j w_jp^2 / D_p^2; ivar_p=1/variance_p | Phase1 variance | DRIZZLE.md §5:53-57; ADJ-F-OBS-01 | 缩放律 x->a*x ⇒ var->a^2 var | variance_p ≠ Σ_j v_j w_jp^2/D_p^2 或缩放律破坏 → REJECT | 方差传播漏 D_p^2（或漏平方）→ rc!=0 | PENDING_OWNER_SIGNOFF | SO-02 |
+| FZ-COND-FLUX-CONSERV | 通量守恒条件不变量 | pixfrac=1: Sum_p F_p=Sum_j x_j 严格; pixfrac<1: 总输出通量=pixfrac^2*Sum_j x_j, provenance flux_conservation_factor | Phase1 flux 换算/aperture | UNIFIED §7; ADJ-F-OBS-02 | 缺 flux_conservation_factor 即不可用于绝对通量 | pixfrac<1 缺 flux_conservation_factor 却用于绝对通量/孔径 → REJECT | 删除 flux_conservation_factor 仍声明绝对通量 → rc!=0 | PENDING_OWNER_SIGNOFF | SO-02 |
+| FZ-GATE-CONST-SB | 常量场 Oracle | 按 B0 构造 x_j=B0*A_pixel_j; S_p=B0 对全部 pixfrac in (0,1]; \|S_p/B0-1\|<1e-3(沿用) | Drizzle 验收 | DRIZZLE.md §5/§7; ADJ-S3; p1drz_oracle.hpp:124-127 | 常量 ADU 构造/无条件 pixfrac/S_p=F_p 三错法必红 | 常量场门未按 B0 构造、未覆盖全部 pixfrac(0,1]、或改动容差 1e-3 → REJECT | 常量 ADU 构造 / 无条件 pixfrac / S_p=F_p 三错法 → rc!=0 | PENDING_OWNER_SIGNOFF | SO-03 |
+| FZ-FORMULA-WINFO | 点源信息权重 | W_info,k = a_k^2 P_k^T C_k^-1 P_k = 1/Var(F_hat_k) | Phase1/Phase2 点源 | UNIFIED §4; PSF_SIGNAL_WEIGHT §2; ADJ-P2-01 | W=1/Var 与 CRLB | W_info 公式被改写，或 Q/W 不数值等于 GLS，或 Var≠1/W → REJECT | W 去掉 C^-1，或 Var(F_hat)=W → rc!=0 | FROZEN | - |
+| FZ-FORMULA-Q | 点源线性充分统计量 | Q_k = a_k P_k^T C_k^-1 d_k | Phase2 point_information | UNIFIED §4:45; ADJ-P2-01 | Q/W==GLS | Q 公式被替换或量纲不自洽（Q≠ADU^-1）→ REJECT | Q 去掉 C^-1（aP^T d）→ rc!=0 | FROZEN | - |
+| FZ-FORMULA-FHAT | 通量估计与方差 | F_hat=Sum Q_k/Sum W_info,k; Var(F_hat)=1/Sum W_info,k | Phase2 point_source | UNIFIED §4:47-51; ADJ-P2-01 | 注入源 sigma_F=1/sqrt(W) | F_hat≠Q/W 或 Var(F_hat)≠1/W → REJECT | Var(F_hat)=W（去掉倒数）→ rc!=0 | FROZEN | - |
+| FZ-COND-WHITENOISE | 白噪声近似(条件式) | W_info,k = a_k^2/(sigma_pix,k^2*A_NEA,k), A_NEA=1/Sum P_p^2 | Phase1/2 点源 | PSF_SIGNAL_WEIGHT §2:30-33; ADJ-P2-01 | 仅 C 对角且 sigma_pix 声明时可用 | C 含相关项仍无条件用白噪声近似，或未声明 sigma_pix → REJECT | 非对角 C 用白噪式且未声明 sigma_pix → rc!=0 | FROZEN | - |
+| FZ-FORMULA-GLS | 扩展源 GLS | x_hat=(A^T C^-1 A)^-1 A^T C^-1 d; Cov=(A^T C^-1 A)^-1 | Phase2 surface_gls | UNIFIED §5:60-61; ADJ-P2-02 | G C G^T == (A^T C^-1 A)^-1 | surface_gls 不用 A^T C^-1 A，或用『先 coadd 后除权重』替代 → REJECT | GLS 退化为 OLS → rc!=0 | FROZEN | - |
+| FZ-GATE-PIXIVAR-APPROX | 像素 ivar 近似误差门 | 条件: 同点采样+噪声独立+a_k 一致; 门度量 Var_approx/Var_GLS <= 1+epsilon (epsilon 由 ALG-P2-SURF-001 冻结) | Phase2 surface_gls | UNIFIED §5:64; ADJ-P2-02 | 无误差门声明即 REJECT; 报告 R~ C_in R~^T | 像素 ivar 近似无误差门声明，或未报告 R~ C_in R~^T 与 Var_approx/Var_GLS → REJECT | 忽略 a_k 的 ivar 近似且宣称最优（rho>1+eps）→ rc!=0 | FROZEN | - |
+| FZ-FORMULA-COV-PROP | covariance 传播 | C_out = R C_in R^T; 标量 c^T C_in c | Phase1/2/3 | UNIFIED §7; DESIGN-P3 §4; RULINGS.md #5; ADJ-P2-03/AR-02 | 禁止从权重标量反推 variance | 由权重标量/诊断量反推 variance，或 C_out≠R C_in R^T → REJECT | variance=1/W_psfsw 或 variance_from=psfsw_robust_weight → rc!=0 | FROZEN | - |
+| FZ-FORMULA-PSFSW-COMPOSITE | PSFSW 复合与组内归一 | Wt_k=C_norm*S^alpha*Conc^beta/(N^gamma*B^delta); W_psfsw,k=Wt_k/median_j(Wt_j); 指数/常数版本化 | Phase2 psfsw_robust | PSF_SIGNAL_WEIGHT §3; PSFW_FREEZE §4.3; ADJ-P2-03 | 组内 median=1 且全正 | 组内 median≠1、出现非正 W_psfsw、或指数/常数未版本化 → REJECT | 去掉组内 median 归一（W_psfsw=Wt）→ rc!=0 | FROZEN | - |
+| FZ-MODE-PRODUCTION | 生产科学权重模式 | point_information \| surface_gls \| psfsw_robust | Phase2 配置/路由 | PROJECT_SPEC §5; PSF_SIGNAL_WEIGHT §4; C-004.1; ADJ-S1 | 未知模式/legacy 0 进生产即 REJECT | 生产模式枚举出现未知值/legacy 0/auto/support_x_snr2/psf_snr_power → REJECT | 生产枚举加入 psf_snr_power → rc!=0 | FROZEN | - |
+| FZ-MODE-BASELINE | 文档基线模式 | equal \| pixel_ivar (仅基线比较, 非科学最优声明) | Phase2 基线对比 | DESIGN-P2 §6.3; ADJ-S1 | 基线模式冒充最优即 REJECT | equal/pixel_ivar 声明科学最优或冒充生产模式 → REJECT | pixel_ivar 宣称对任意 PSF 点源最优 → rc!=0 | FROZEN | - |
+| FZ-MODE-DEFERRED | 延迟模式 | psf_snr_power (DEFERRED/NOT_IMPLEMENTED, 不进 V6 生产路由) | Phase2 | CONTROLLER_LOG C-004.1; 00_READ_FIRST; ADJ-C004-01 | 进生产模式列表即 REJECT | psf_snr_power 进生产路由或进入 schema 合法域 → REJECT（C-004.1 不得解冻） | 把 psf_snr_power 写入生产模式列表 → rc!=0 | FROZEN | - |
+| FZ-GATE-MEDIAN-SNR | median(SNR_F) 诊断 | 仅诊断/深度表达; 禁止作权重来源/weight_value/冒充 PSFSW/W_info/ivar | Phase1/Phase2 | PROJECT_SPEC §4; C-004.2; UNIFIED §11; ADJ-C004-02 | 诊断别名进 weight.sources 即 REJECT | median(SNR_F)/median_source_snr 等诊断别名进 weight.sources/weight_value → REJECT（C-004.2 不得接入权重面） | weight.sources=[median_source_snr] → rc!=0 | FROZEN | - |
+| FZ-GATE-SUPPORT-COVERAGE | support/coverage 非权重 | 不得作 inverse-variance/SNR/科学权重; 只作门 | Phase1/2/3 | 宪章 §6.3:191; UNIFIED §3; ADJ-GEN-02 | support/coverage 进 weight.sources 即 REJECT | support/coverage 作 inverse-variance/SNR/科学权重或代替 variance → REJECT | coverage 当 variance → rc!=0 | FROZEN | - |
+| FZ-P3-MODES | Phase3 输出模式 | surface_brightness \| point_source_flux \| visualization | Phase3 配置 | DESIGN-P3 §1:11-13; ADJ-P3-01 | 模式未声明即拒绝 | Phase3 模式未声明或不属 {surface_brightness, point_source_flux, visualization} → REJECT | 加入 legacy auto 模式 → rc!=0 | FROZEN | - |
+| FZ-P3-FAILCLOSED | Phase3 fail-closed | surface_brightness: 无 Omega 却 flux 换算/测量却 uncertainty unavailable/BUNIT 非二次律/对角无相关核 -> 拒; point_source_flux: 缺 PSF/PSF 未归一/缺 point_information 且不可重建/对角无相关核/缺 a/未出 effective PSF -> 拒; visualization: measurement_capable=true 或写测量层 -> 拒 | Phase3 | PHASE3_PROPAGATION_REVIEW §6 C-P3-PROP-16; DESIGN-P3 §1/§4; ADJ-P3-01 | 12 门 mutation 全红 | 12 门任一命中：SB 无 Omega 做 flux 换算/测量却 uncertainty unavailable/BUNIT 非二次律/对角无相关核；PSF 缺/未归一/缺 W 且不可重建/缺 a/未出 effective PSF；visualization measurement_capable=true 或写测量层 → REJECT | 12 条 M-P3-* mutation 逐条 rc!=0 | FROZEN | - |
+| FZ-P3-QW-RECOMPUTE | Phase3 Q/W 输出帧重算 | Q=a*pi^T C_y^-1 f; W=a^2*pi^T C_y^-1 pi; pi=S p; 禁止重采样输入 Q/W; 消费上游 W_info 不重算不替换 | Phase3 point_source_flux | PHASE3_PROPAGATION_REVIEW C-P3-PROP-14/15:175-194; ADJ-P3-01 | q^T C_y^-1 q 与 MC 一致; 对角化过度乐观须检出 | 重采样输入 Q/W、W=ΣW_in、或重算/替换上游 W_info → REJECT | 用重采样输入 W 代替输出帧重算 Q/W → rc!=0 | FROZEN | - |
+| FZ-P3-KERNEL-REGISTRY | Phase3 采样核注册 | 采样核是产品语义; bilinear_4quad 须先独立 Oracle+误差/边界定义才注册; nearest 仅 mask/诊断/显式选择; 高阶核各自注册带 Oracle | Phase3 重采样 | DESIGN-P3 §3:30-37; ADJ-S4 | 未注册/未验证核进生产即 REJECT | 未注册核进生产、nearest 作连续场科学默认、注册缺独立 Oracle/误差界/边界定义 → REJECT | bilinear_4quad 注册缺 Oracle，或零填边界 → rc!=0 | FROZEN | - |
+| FZ-P3-BUNIT-QUADRATIC | Phase3 variance BUNIT | variance BUNIT = (signal BUNIT)^2; ivar = 1/(signal BUNIT)^2 | Phase3 产品 | DATA_SEMANTICS §30.4:2475; ADJ-P3-01/GEN-01 | 非二次律即拒绝 | var BUNIT ≠ (signal BUNIT)^2 或 ivar ≠ 1/variance → REJECT | Phase3 variance BUNIT 改为 signal BUNIT 的一次幂 → rc!=0 | FROZEN | - |
+| FZ-DEGRADE-SCALAR | 帧级标量降级门 | 空间残差/趋势门 + 功率损失门 双过; 标量带 p05/p50/p95+最大系统偏差+采样覆盖+模型误差+适用域; 否则 map/model/control points | Phase1/Phase2 | UNIFIED §8:78-86; DESIGN-P1 §8.3; PROJECT_SPEC §4; ADJ-GEN-04 | 缺分位数/未过门即 REJECT | 帧级标量未同时过空间残差/趋势门与功率损失门，或缺 p05/p50/p95/最大系统偏差/采样覆盖/模型误差/适用域 → REJECT（须存 map/model/control points） | 标量摘要删除 p05/p50/p95 或功率损失门 → rc!=0 | FROZEN | - |
+| FZ-PROV-SHARED-SYSTEMATIC | 共享系统项表示 | 低秩因子 L/C_shared=L L^T 或 相关核 sigma+kernel 或 共同 master ID+强度参数; 进 covariance 传播链; 无法表示 -> unavailable 或系统误差预算 | Phase1/2/3 covariance | UNIFIED §6:68-72; PHASE1 §4.2:58; ADJ-OBS-01/F-OBS-04 | 当独立项处理即 REJECT(ratio>1 须检出) | 共享系统项按独立随机项处理且无 unavailable/系统误差预算 → REJECT | 共享系统项当独立（联合/朴素方差比>1 未检出）→ rc!=0 | FROZEN | - |
+| FZ-GATE-PARENT-VAR | HiPS 父级方差对角近似 | 声明下界 + 另存相关核/算子摘要 + 误差门 deficit=(exact-diag)/exact<=阈值(ALG 冻结) | Phase1 HiPS variance | UNIFIED §7; PROJECT_SPEC §3; ADJ-F-OBS-03 | 对角当精确即 REJECT | HiPS 父级对角归约未声明下界、未另存相关核/算子摘要、或缺 deficit 误差门 → 该 variance 面 unavailable | 把父级对角归约声明为精确（is_lower_bound=false）→ rc!=0 | PENDING_OWNER_SIGNOFF | SO-04 |
+| FZ-PROV-KCORR | k_corr 可复现口径 | 定义 k_corr=Var(median)/[pi sigma_bg^2/(2 N_retained)]; 适用域(几何/pixfrac/patch/估计器/球面)显式; 标定脚本+固定种子 MC 可复跑; 未复跑前仅域内用 1.4; 按尺度查找表保留 | Phase2 UPM | UNCERTAINTY §V19R3; sampler.cpp:81-92; ADJ-F-OBS-05 | 跨域外推/忽略相关(k_corr=1)即 REJECT | k_corr 缺适用域/标定脚本/固定种子，或跨域外推，或令 k_corr=1 忽略相关 → REJECT | k_corr 忽略相关取 1.0 → rc!=0 | FROZEN | - |
+
+## 4. 签字/取代/开放
+
+- 需负责人签字（保持待签）：SO-01..SO-07，见 `docs/science/v6/frozen/02_SIGNOFF_CONTROLLER_SUPERSEDED.md`。
+- 被取代非 v6 SCI 段：`reports/v6/contract-review/03_SUPERSEDED_SCI_SECTIONS.md`（只登记，不改写）。
+- 开放项：`reports/v6/contract-review/04_OPEN_ITEMS_AND_SIGNOFF.md`。
