@@ -738,7 +738,7 @@ set_tests_properties(
 # ----------------------------------------------------------------------------
 # TEST-CAL-001 (批次 K): photometry_apply.cpp 不在 astrocs_calibration 库源
 # 列表 (根 CMakeLists calibration 段), 与测试 TU 一并编译; HAS_ZSTD 不加 —
-# 根 CMake 从未为 astrocs_hips/astrocs_aio 定义该宏, hiss_*/aio_compressor
+# 根 CMake 从未为 astrocs_hips/astrocs_aio 定义该宏, 遗留容器 codec/compressor
 # 以无 zstd 分支自洽 (ZSTD 未编译时 writer 保持 RAW), 测试 TU 自身亦无
 # zstd 依赖, 与库既有编译形态一致。
 add_executable(test_photometry_apply_test
