@@ -1,0 +1,30 @@
+# P0 门族：历史根因 R1/R2/R4/R5/R10 与 785 合并层账本（QA-MATRIX-001）
+
+- 文档 ID：`QA-MATRIX-001-P0-FAMILY`
+- 依据：`reports/v6/review-audit/03_缺陷账本_重开清单.md` §2 根因表、`reports/v6/review-audit/05_未决风险与控制器裁决事项.md` §3 E2/E3、
+  `SCI-ADJ-001_CONFLICT_MATRIX.md` §5（AR-032/AR-034/AR-035/AR-051）。
+- 定位：**建议 + 登记**。销账任务与处置权在控制器/负责人（ADJ-AR-03）；本任务不改 CI、不改账本 id、不宣布销账。
+
+## 1. 账本层口径（强制，AR-051 / E3）
+
+- 785 是**合并层**口径：`667 + 83 + 29 + 4 + 2 = 785`（"已登记待修/需负责人裁决/已修/判定非缺陷/无法复现"，独立复算见 AUDIT-REVIEW-001 §1）。
+- 叶子层 `_cache/L*.md` 的 523 个 `L<digits>-<digits>` id 在官方抽 id 正则下**恒不匹配**，与 785 交集为 0；
+  `ROOT_CAUSES.md` 逐字引用其中 15 个作"代表条目"。
+- 因此：**任何账本数字必须带层号**（`merged_785` 或 `leaf_523`）。本 P0 门族统一标注 `ledger_layer=merged_785`。
+
+## 2. P0 门族（机器规格见 qa_matrix.json 的 `P0-01`–`P0-06`）
+
+| 门 | 根因 | 判据 | 能红 mutation |
+|---|---|---|---|
+| `P0-01` | R1 机器门"看着在跑、实际不会红" | 每门 mutation 非空且逐条实测 rc!=0；零用例/skip-only rc=2 | MUT-SPEC-01/15/16 |
+| `P0-02` | R2 子串断言/同源自证 | 每门 `oracle.truth` 非空、`must_not` 非空；禁止生产输出作唯一 expected | MUT-SPEC-07/12 |
+| `P0-03` | R4 独立 Oracle 缺位 | `oracle.kind` ∈ 白名单；历史"Oracle 全过"不得继承 | MUT-SPEC-08 |
+| `P0-04` | R10 无回归锁/反向固化 | 退休 `support×snr²`/`weight_mode=0`/`auto`/`support_x_snr2` 不得成合法规格 | MUT-SPEC-06/13 |
+| `P0-05` | AR-035/AR-051 785 销账与层口径 | 账本数字带层号；覆盖 R1/R2/R4/R5/R10 | MUT-SPEC-09 |
+| `P0-06` | R5 不可达阈值/依据虚构 | frozen 必须有真实锚；pending 必须有 owner | MUT-SPEC-10/14 |
+
+## 3. 处置建议（只登记，不代裁）
+
+1. 建议 `RUNTIME-CI-001`（W9）把 P0-01..P0-06 接入 CI，使"零用例/skip-only/门无 mutation"成为非豁免红。
+2. 建议 `FINAL-AUDIT-001`（W13）按 `merged_785` 层口径复核上述根因是否随本矩阵门族闭合；叶子层补映射由控制器决定。
+3. 7 项历史 CI 红（AR-034）由 `RUNTIME-CI-001` 逐名登记终态；本任务只登记不处置。
