@@ -247,7 +247,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（api.cpp:552-557）；reverse 通道 sip_order 校验 [0,5]（DISP-DRZ-001）。**B2-A17**：编排 drizzle 节点从 `p1_wcs.json` 读回 `wcs.sip`，经 `p1_sip_write_header_frame` 写 frame header `CTYPE1/2`（含 `-SIP`）、`A_ORDER`/`B_ORDER`、`A_i_j`/`B_i_j`、`AP_*`/`BP_*`；无 SIP → CTYPE 不含 `-SIP` 且不写任何 SIP 键（module_adapters.cpp p1_op_drizzle）。 |
 | "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；**RESCUE-FD-02**：无 KV 时库边界按宪章 §5.3 缺省 **FP64**（不再静默 FP32），未知 KV 值/参数非 -1/0/1 → 显式拒绝（返回非零，不写产物，`hp_drizzle_api.cpp:956-991`）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3313-3325）。**B2-A12**：P1 drizzle 节点不再写死 "0"，按 `drizzle.precision_mode` 写实际精度；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
 | "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`，引擎显式降级写 `BUNIT=ADU`（`drizzle_engine.cpp:1950-1956`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
-| "snr_model" 块（可选; **P33-COEF 起 SNR 节点不再产出**, 仅保留给 drizzle/HiPS 消费者接线） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h）。**P33-COEF 起 SNR 节点不再产出该块**：P33 设计变更为帧级单系数（§13.5，`snr_coefficient`）；若消费者仍需填该块，须满足归一化前提 `snr_phot == median_snr == 帧级基准`，控制值 `snr_psf` 取绝对局部 SNR_F，并由**消费者自备**的局部控制点（帧像素 -> WCS ra/dec）填入，禁止把帧级系数复制成多点伪造局部结构 |
+| "snr_model" 块（可选） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h） |
 | nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（api.cpp:398-402）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
 | nested | int 1/0 | — | 仅 1=NESTED；0=RING 硬拒绝（drizzle_engine.cpp:1575-1579） |
 | pixfrac | double | drop 与源像素之比（无量纲） | 引擎层 (0,1] 严格拒绝 ≤0/>1（:1567-1574，不夹逼）；文件通道 API 层接受 0.0 的双轨见 DISP-DRZ-003 |
@@ -331,29 +331,6 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | snr/metadata.xml + snr/properties + snr/Moc.fits | VOTable 1.3 / 文本 / BINTABLE | — | hips_cat_nrows=点数；hips_initial_ra/dec=源位置中位数（真实值，:960-973） |
 | metadata.fits（每 Image 子产品） | FITS 表头卡 PIXTYPE/ORDERING=NESTED/NSIDE/HIPSTILEWIDTH/DATAPRODTYPE | — | remove+create 直写（:770） |
 | manifest.json（根级） | JSON: format_version/hips_version="1.4"/nside/tile_width/data_type/products/n_leaf_tiles/moc_sky_fraction/astrocs_covered_sky_fraction/signal_dtype | — | 无 COMPLETE 状态字/无哈希清单（§12.5） |
-
-**P33-COEF：帧级 SNR 系数在 HiPS 产品中的落位（文件头映射，合规性）**
-
-- **权威值**：帧级 SNR 系数的唯一权威落点是 Phase1 的 `<out_dir>/p1_snr.json`
-  的 `frames[].snr_coefficient`（§13.5）；HiPS 侧只写**副本**，禁止反向覆盖。
-- **Catalogue HiPS `snr/`（既有 SNR 子产品）**：`snr/properties` 追加
-  `astrocs_snr_coefficient`（系数值）、`astrocs_snr_coefficient_estimator`、
-  `astrocs_snr_coefficient_n`、`astrocs_snr_coefficient_schema` 四个键；
-  `metadata.xml` 的 `hips_cat_nrows`（= 点表行数）语义不变。
-- **Image 子产品 `metadata.fits`**：追加 FITS 卡 `SNRCOEF`（f64 系数）、
-  `SNRCOEFN`（i64 样本数）、`SNRCOEFE`（string 估计量名，8 字符截断），
-  与 `PIXTYPE`/`ORDERING`/`NSIDE`/`DATAPRODTYPE` 同表。
-- **合规**：`properties` 是 IVOA HiPS 1.0 允许的 key=value 扩展面；追加
-  `astrocs_` 前缀键不改变 HiPS 语义，Catalogue HiPS 的点表/MOC 结构不变；
-  本设计**不新增私有目录**。
-- **接线状态（如实登记，不冒认）**：本批只落 **producer 侧**（§13.5，SNR 节点产物）；
-  上述 HiPS `properties`/`metadata.fits` 键的写入属 drizzle/HiPS 消费者
-  批次，按本合同实现。旧 `snr_model` 稀疏块（§11.1）自 P33-COEF 起
-  **不再由 SNR 节点产出**。
-- **退化**：`snr_coefficient.valid=false` 时，HiPS 侧对应键写 `null`/省略，
-  不得用 0/1 冒充。
-
-### 12.3 坐标、索引与面亮度/方差语义
 
 ### 12.3 坐标、索引与面亮度/方差语义
 
@@ -469,12 +446,6 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | truncated | bool | — | 交付样本是否被 snr.max_sources 上限截断 |
 | snr_max_sources | i64 | 颗 | 生效的交付样本上限（0 = 不限） |
 | psf_mode | string | — | 上游 PSF 真实模式 fast/precise/unavailable（**非字面量**） |
-| snr_coefficient | object | — | **P33-COEF** 帧级单一 SNR 系数（DATA-P1-SNR-COEF/1，见 §13.5）；value = median(SNR_F) = 本表 snr_phot/median_snr |
-| snr_coefficient_schema | string | — | `DATA-P1-SNR-COEF/1` |
-| snr_catalogue_match | string | — | 上游帧匹配方式：`exact`（精确名）/ `normalized`（去扩展名 + 去 calibrated_/cleaned_ 前缀后唯一命中）；无匹配或同键多命中 → 节点 DATA 失败（fail-closed，不写 p1_snr.json，不再静默全 null） |
-| sources_persisted | bool | — | **恒 false**（P33）：逐源 `sources[]` 数组不再落盘 |
-| local_snr.values_persisted | bool | — | **恒 false**（P33）：逐源相对权重数组不再落盘 |
-| local_snr.summary | object | — | {n, median=1.0, min, max} 相对质量权重场分布摘要（非逐源数组） |
 | n_fit_input | i64 | 颗 | 上游真正送入 Moffat4 拟合的星数（provenance；-1 = 上游未记录） |
 | psf_fit_truncated | bool | — | 上游拟合输入是否被 psf.max_stars 截断（provenance） |
 
@@ -485,111 +456,6 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 `n_snr_catalogue` **必须逐位一致**（`psf.max_stars` 仅性能用途）；人为用
 `snr.max_sources` 截断交付样本时 `truncated=true` 且上述数值**确实不同**
 （证明 parity 锁非恒真）。
-
-### 13.5 帧级单一 SNR 系数（DATA-P1-SNR-COEF/1，P33-COEF）
-
-> ID: DATA-P1-SNR-COEF  状态: ACTIVE（P33-COEF，2026-09-15；负责人设计变更：
-> 「一帧内 SNR 近似一致，用一个系数」）
-> 生产落点: module_adapters.cpp::p1_op_noise → p1_snr.json frames[].snr_coefficient
-> 实现: lib/phase1/noise/snr_frame_coefficient.{h,cpp}（编入 astrocs_phase1_noise，
-> 仅 .cpp 依赖 vendored nlohmann/json）
-> 上游: DATA-P1-SNR/2（§13.4）。选型与边界证据: run/perf-fix/P33-snr-model/REPORT.md
-> 与 results/CO_*.csv（6 真实帧实测）。
-
-**动机（P14/P25 实测）**：旧产物逐源落盘 `sources[]` + `local_snr.values[]`，
-交付体积 18.0-77.0 MB/帧（196 帧约 +3.8-14.8 GB），而该数组在仓内**无机器消费者**
-（`artifact:p1_snr` 为终态；phase2 `snr_weight_mode=0`）。逐源测光在
-`p1_sources.json` 已完整留存，SNR 节点的逐源数组属纯重复。
-
-**选型（6 真实帧；独立参考 = 图像侧孔径测光 SNR，背景噪声取图像下半分位宽，
-与 PSF 模型/目录方差无关；比值为估计量/参考）**：
-
-| 候选估计量 | 参考比(几何均值, 5 帧) | 逐帧范围 | 增量成本 | 判定 |
-|---|---|---|---|---|
-| `median(SNR_F)`（生产 `median_snr`） | 1.12 | 0.66-2.71 | **0**（节点已算） | **采用** |
-| trimmed-10% 均值 | 1.30 | — | O(N) | 无系统优势 |
-| 几何均值 | 1.15 | — | O(N) | 无系统优势 |
-| 通量匹配中位数 | 1.04 | — | O(N) | 作 provenance |
-| `1/sigma_sky`（像素 SNR） | 尺度不同（逐像素 vs 逐源） | — | 0 | 不可作源系数 |
-| 孔径测光 SNR（图像侧） | 1.00（定义） | — | 20-66 ms/帧 + 读图 | **强星云帧失效**；仅作 QA 参考 |
-| `1/(ln10 sigma_logflux_dex)`（HISS 旧基准） | 本 6 帧无定标残差 | — | 0 | 不可评估；语义为定标散度 |
-
-- 采用量 = `median(SNR_F)`，与 §13.4 的 `snr_phot`/`median_snr`
-  **同一量**（SCI-CW-001 §2a 帧级科学基准）：不引入新公式、不改既有标量语义，
-  只增加产品化封装与可审计 provenance。
-- 独立参考在 5 个背景主导帧上与 PSF 族一致到约 1.12x（逐帧 0.66-2.71）；
-  T3_M42_Ha 上参考自身失效（强星云中孔径背景被过减，参考偏低 5-8x），
-  该帧不作为选型依据（已在 results/CO_ratio.csv 标注）。
-
-**「一帧一个系数」的边界（必须传播；反证材料）**：
-1. **帧级成立**：系数是帧级度量（同一帧内所有源共用的尺度）。
-2. **分区级不成立**：固定通量下，512 px 分区的局部系数相对帧系数的偏离
-   p50 = **8.3%-26.3%**、p84 最高 1.9（GC_Oiii 最好 8.3%，M42_Ha 最差 26.3%）；
-   分区**观测中位数**（含源 population 效应）相对帧系数偏离 p50 = **12.6%-77.9%**
-   （仅 9.4%-59.7% 的分区落在 ±10% 内）。
-3. **噪声场不均匀**：图像下半分位宽给出的 512 px 分区 `sigma_sky` 相对散布
-   CV = 0.08（GC_Oiii）到 **3.47（M42_Ha）**、0.19-1.18（其余）→ 星云/簇聚帧
-   的局部 SNR 可以偏离帧系数数倍。
-4. **系数与 `sigma_sky` 成 1:1**：上游目录 `noise_sigma` 与生产 NoiseModel
-   在同一图像上的 `sigma` 比值 0.72-0.97（稳），但与图像实测 512 px 局部
-   `sigma` 比值 0.28-2.25 → 故本块必须随帧落 `noise_scale` provenance。
-5. **样本依赖**：暗四分位/亮四分位中位数比 ≈ 0.16（背景受限下 SNR 正比于 F），
-   故系数必须与其**样本定义**绑定（§13.4 的 `snr_sample`）；
-   `n_sources`<8 时 `sample_sensitivity.faint_over_bright` = `null`
-   （不得用 0 冒充）。
-6. **反证（本批早期实验，results/R_grid.csv、S2_scale.csv）**：稀疏控制点 + IDW
-   重建（K=64-256）可把同类分区误差从 13%-78% 降到 **2.6%-8.7%**
-   （不同分区口径，量级一致）→ 「一帧一个系数」在**分区级**是 3-10x 的近似损失；
-   若后续需要分区级精度，应按早期实验重新启用稀疏层（本设计不作废其数据）。
-
-**字段表**（`frames[].snr_coefficient`）：
-
-| 字段 | dtype | 单位/域 | 语义 |
-|---|---|---|---|
-| schema | string | — | "DATA-P1-SNR-COEF/1" |
-| valid | bool | — | 有可用样本且系数有限为正 |
-| reason | string | — | invalid 原因（空 = ok） |
-| estimator | string | — | "median_snr_f"（选定估计量） |
-| definition | string | — | 系数定义明文（`snr_frame_coefficient_definition()`） |
-| sample | string | — | 样本定义明文（与 §13.4 `snr_sample` 同义） |
-| units | string | — | "1" |
-| n_sources | i64 | 颗 | 参与样本数 |
-| value | f64/null | [1] | **系数 = median(SNR_F)**；invalid → null |
-| median_snr_f | f64/null | [1] | == value（显式留存，禁二次推导） |
-| dispersion | object | — | {p16,p50,p84} 逐源 SNR_F 分位（**非局部场**，仅帧内散布） |
-| alternatives | object | — | {trimmed10_mean_snr_f, geometric_mean_snr_f, flux_matched_median_snr_f, flux_match_half_dex, n_flux_matched}（选型可追溯） |
-| sample_sensitivity | object | — | {faint_over_bright, definition}；不可计算 → null |
-| noise_scale | object | ADU | {upstream_catalogue_sigma_adu, noisemodel_sigma_adu, upstream_over_noisemodel}；不可用 → null |
-| frame_depth | object | — | {flux5_adu, m5_mag, snr_phot, median_snr}（与 §13.4 同值，便于单点消费） |
-
-**与既有合同的关系**：`snr_phot` / `median_snr` / `median_source_snr`
-的语义与数值**逐位不变**（同一 `compute_snr_frame_science` 全样本路径）；
-本块是它们的封装 + provenance，**不是**新的科学量。
-`local_snr` 仍是相对质量权重场（§13.4），**不是**校准 SNR。
-
-**落位（文件头 / 产品元数据）**：
-- **已落地（本批）**：`p1_snr.json` 的 `frames[].snr_coefficient`
-  （产品元数据；节点唯一真实产物）。
-- **HiPS 映射（消费者批次实现，本批只定义合同）**：
-  `snr/properties` 键 `astrocs_snr_coefficient`（值）、
-  `astrocs_snr_coefficient_estimator`（估计量名）、
-  `astrocs_snr_coefficient_n`（样本数）、
-  `astrocs_snr_coefficient_schema`；Catalogue HiPS `metadata.xml` 的
-  `hips_cat_nrows` 语义不变。Image 子产品的 `metadata.fits` 追加 FITS 卡
-  `SNRCOEF`（f64）+ `SNRCOEFN`（i64）+ `SNRCOEFE`（string，8 字符截断），
-  值来源 = 同帧 `snr_coefficient.value`。**权威值只有一处**：`p1_snr.json`；
-  HiPS 侧是副本，禁止反向覆盖。
-
-**legacy `snr_model` 块（§11.1）关系**：本设计下 SNR 节点**不再产出**
-`snr_model`（稀疏控制点块）——该块仅作为 drizzle/HiPS 消费者已实现的接口保留
-（§11.1 映射），其参数若被填充须满足 §11.1 的归一化前提
-（`snr_phot == median_snr == 帧级基准`）。稀疏层设计按负责人 2026-09-15
-指令作废，早期实验数据保留在 run/perf-fix/P33-snr-model/results/ 供反证。
-
-**验证锁**：tests/unit/p1snr/p1snr_frame_coefficient_test.cpp →
-ctest `p1snr_scf_value` / `p1snr_scf_robust` / `p1snr_scf_determinism` /
-`p1snr_scf_negative` / `p1snr_scf_serialize`；
-生产节点端到端锁 `p1snr_frame_parity`（§13.4）与 `p1snr_fmatch_*`（帧匹配）。
 
 ## 14. Phase1 photometry 模块输入/输出数据（DATA-P1-PHOT）
 
