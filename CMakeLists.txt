@@ -689,6 +689,15 @@ target_include_directories(astrocs_cli_runtime PUBLIC
 target_link_libraries(astrocs_cli_runtime PUBLIC
   astrocs_core astrocs_module_adapters)
 
+# ── V6 (AR-033 / C-004.4): V6 生产库统一注册 ─────────────────────────────
+# Wave 5/7/8 交付的 V6 库（产品 IO、Phase3 重采样传播、Phase1 产品装配、
+# Phase2 三模式集成）。各子目录自带 if(NOT TARGET ...) 守卫，既支持独立
+# cmake -S <dir> 自包含构建，也可被根构建复用；此处为唯一注册点。
+add_subdirectory(lib/astro_image_io/v6)
+add_subdirectory(lib/phase3_rsmp)
+add_subdirectory(lib/phase1/v6)
+add_subdirectory(lib/phase2_int/v6)
+
 if(ASTROCS_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests/unit)
@@ -699,6 +708,24 @@ if(ASTROCS_BUILD_TESTS)
   # 单点。子目录自带 find_package(GTest QUIET); GTest 缺失时这些目标零注册,
   # 故 CI 供应 libgtest-dev 以保证有真实执行面 (不得静默零测试)。
   add_subdirectory(lib/phase2)
+
+  # ── V6 (AR-033 / C-004.4): V6 测试目标统一注册 ────────────────────────
+  # tests/unit/v6_*: Wave 5 共址单元测试（9 个）；tests/integration/v6_{p1,p2,p3}:
+  # Wave 7/8 产品链集成；tests/system/v6_runtime: Wave 9 运行面。
+  # 均只依赖上方已定义的 V6 库目标与 astrocs_phase2，故置于 lib/phase2 之后。
+  add_subdirectory(tests/unit/v6_aio v6_aio)
+  add_subdirectory(tests/unit/v6_p1_cal v6_p1_cal)
+  add_subdirectory(tests/unit/v6_p1_drz v6_p1_drz)
+  add_subdirectory(tests/unit/v6_p1_psfw v6_p1_psfw)
+  add_subdirectory(tests/unit/v6_p2_rej v6_p2_rej)
+  add_subdirectory(tests/unit/v6_p2_samp v6_p2_samp)
+  add_subdirectory(tests/unit/v6_p2_upm v6_p2_upm)
+  add_subdirectory(tests/unit/v6_p3_proj v6_p3_proj)
+  add_subdirectory(tests/unit/v6_p3_rsmp v6_p3_rsmp)
+  add_subdirectory(tests/integration/v6_p1 v6_p1_integration)
+  add_subdirectory(tests/integration/v6_p2 v6_p2_integration)
+  add_subdirectory(tests/integration/v6_p3 v6_p3_integration)
+  add_subdirectory(tests/system/v6_runtime v6_runtime)
 endif()
 
 # ── QA-006: linux-deep 附加质量目标 (V8-CI-005; 默认 OFF, 仅 linux-deep CI 开) ──
