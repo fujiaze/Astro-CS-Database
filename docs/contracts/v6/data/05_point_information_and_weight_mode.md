@@ -61,8 +61,10 @@ C-004.3 / ADJ-C004-03：schema 词表由 SCHEMA-INTEGRATE-001(W6) 归一。本�
 | 归一域（组内/全局） | `normalization.scope` | `group_normalized` |
 | 组内 median 目标 | `normalization.median_target` | `group_normalized=true (median=1)` |
 
-`weight-mode.v1` 同时包含 `kind_alias_sci_psfw` / `units_alias_sci_psfw` / `normalization_scope_alias` 三个可选别名字段，
-**目的仅是让两套门在 W6 归一前互相可认**，不是建立第三套名。归一后别名应删除。
+本提案层曾包含 `kind_alias_sci_psfw` / `units_alias_sci_psfw` / `normalization_scope_alias` 三个可选别名字段，
+**目的仅是让两套门在 W6 归一前互相可认**，不是建立第三套名。
+
+> **W6 归一已完成（DOC-CONVERGE-001/W12 收敛标注，2026-09-15）**：单一权威词表 = `contracts/data/v6_weight_vocabulary_v1.json`，canonical 字段 = `weight.kind` / `weight.units` / `weight.group_normalized` / `weight.normalization.{scope,median_target,constants_version}` / `weight.weight_value`；生产 schema（`contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json`）**不含**上述别名字段，别名只保留在迁移层 reader 规则（`legacy_aliases`）。第三套名（`weight_normalized`/`normalization_scope`/`weight_type`/…）出现即 REJECT（`FZ-FIELD-WEIGHTMODE`，`C-004.3`）。见 `docs/contracts/v6/W6_SCHEMA_INTEGRATION.md` §2 与 `docs/contracts/DATA_SEMANTICS.md` §31.4。
 
 ## 5. 参数生效证明（AR-048）
 

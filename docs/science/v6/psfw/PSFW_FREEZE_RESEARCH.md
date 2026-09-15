@@ -9,6 +9,8 @@
 上位权威（本文全部只读）：`docs/owner/PROJECT_SPEC.md`、`docs/design/PHASE1_DETAILED_DESIGN.md`、`docs/design/PHASE2_DETAILED_DESIGN.md`、`docs/design/PHASE3_DETAILED_DESIGN.md`、`docs/science/UNIFIED_SCIENCE_MODEL.md`、`docs/science/PSF_SIGNAL_WEIGHT.md`、`docs/references/SCIENTIFIC_REFERENCES.md`、`ASTROCS_PROJECT_CONSTITUTION.md`（FROZEN）。
 
 > 本文只是**冻结建议**（REVIEW 阶段的可审计输入），不是冻结结果。正式冻结由 wave 4 `CONTRACT-FREEZE-001` 写入 `docs/science/v6/frozen/`；本文中的公式、指数与归一常数最终数值交由 wave 3 `ALG-P2-PSFSW-001` 落定并经 `SCI-ADJ-001` 裁决。本任务不改任何上位规范（`docs/science/*.md`、`docs/owner/**`、`docs/design/**`、`docs/references/**` 全部只读）。
+>
+> **收敛标注（DOC-CONVERGE-001/W12，2026-09-15）**：本文 §6/§10.7/§11-R1 对 `psf_snr_power` 的「建议有条件解冻」仅为 W1 研究建议，**已被控制器裁决 `C-004.1` 取代**：本包不解冻，`psf_snr_power` 保持 `DEFERRED/NOT_IMPLEMENTED`，不进 V6 生产路由，生产枚举出现即 REJECT（`FZ-MODE-DEFERRED`）。§11-R2（双词表）由 W6 归一为单一 canonical 词表（`contracts/data/v6_weight_vocabulary_v1.json`，canonical = `weight.kind/units/group_normalized/normalization.*/weight_value`），§11-R4（帧级 `median(SNR_F)`）按 `C-004.2` 登记为**诊断/深度表达**、不得进入任何权重面（`FZ-GATE-MEDIAN-SNR`）。最终口径见 `docs/science/v6/frozen/`。
 
 ---
 

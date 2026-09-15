@@ -200,7 +200,7 @@ C_k = σ_pix,k² I   ⟹   W_info,k = a_k² / (σ_pix,k² · A_NEA,k)
 | 分量 | 规范名 | 单位 | 定义 | 备注 |
 |---|---|---|---|---|
 | signal | psfsw.signal | ADU | `S_k = Σ_{s∈S_k} f̂_{k,s}`（PSF 拟合总 flux） | 不是帧总信号、不是孔径和 |
-| concentration | psfsw.concentration | ADU/px | `Conc_k = mean_{s∈S_k} f̂_{k,s} / A_NEA,k` | **禁止**用 FWHM 或拟合残差代替 |
+| concentration | psfsw.concentration | ADU/px² | `Conc_k = mean_{s∈S_k} f̂_{k,s} / A_NEA,k` | **禁止**用 FWHM 或拟合残差代替；单位唯一权威 = `component_flux_unit/px²`（`A_NEA = 1/ΣP²`，单位 `px²`）——依据 `FZ-FIELD-PSFSW-4COMP` + `ALG-P2-PSFSW-001` 单位一致性规则 + `astrocs.v6.psfsw.v1.schema.json` 的 `concentration.units` 收紧 pattern；`ADU/px` 原为 W6 登记在案的文本错误，由 DOC-CONVERGE-001/W12 订正 |
 | noise | psfsw.noise | ADU | `N_k` = 稳健噪声（1.482602218505602·MAD 或 Sn 类，估计器与版本声明） | 不是像素 σ、不是 m5 |
 | background | psfsw.background | ADU | `B_k` = 稳健均值背景（MMT 残差），必须 > 0 | 不是 support / coverage |
 

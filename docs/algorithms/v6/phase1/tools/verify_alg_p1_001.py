@@ -442,7 +442,7 @@ def default_psfsw_record():
             "signal": {"measurement_id": "m_S", "p05": 0.8, "p50": 1.0, "p95": 1.2, "valid_area_fraction": 0.9,
                        "unit": "ADU", "value": 120.0},
             "concentration": {"measurement_id": "m_C", "p05": 0.7, "p50": 1.0, "p95": 1.3,
-                              "valid_area_fraction": 0.9, "unit": "ADU/px", "value": 4.1},
+                              "valid_area_fraction": 0.9, "unit": "ADU/px^2", "value": 4.1},
             "noise": {"measurement_id": "m_N", "p05": 0.9, "p50": 1.0, "p95": 1.1,
                       "valid_area_fraction": 0.9, "unit": "ADU", "value": 2.5},
             "background": {"measurement_id": "m_B", "p05": 0.9, "p50": 1.0, "p95": 1.2,

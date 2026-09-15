@@ -9,6 +9,14 @@
 > 的实测（命令与 rc 见 `run/docconv001/logs/`）。
 > 项目负责人只需阅读本文件及 `docs/owner/` 5 份顶层文档，底层文档/源码/日志通过
 > 证据 ID 与文件锚追溯，不要求逐文件阅读。
+>
+> **V6 包收敛补充（DOC-CONVERGE-001/W12，2026-09-15）**：本文 §4/§7/§8 已同步
+> `工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/`。V6 冻结口径唯一权威 =
+> `docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：FROZEN 39 /
+> PENDING_OWNER_SIGNOFF 49 / OPEN 8）；单一权重词表 = `contracts/data/v6_weight_vocabulary_v1.json`。
+> §14.5 六步发布复核逐项判定见 `reports/v6/release-review/04_RELEASE_REVIEW_SECTION14_5.md`，
+> 机器判定见 `artifacts/v6/release-review/release_review_verdict.json`；未决项见
+> `reports/v6/release-review/03_PENDING_AND_OWNER_ITEMS.md`。本包当前 **NOT_READY**，未发布。
 
 ## 1. 一句话结论
 
@@ -18,9 +26,14 @@ Runtime 图/工具链 preset/DLL schema/FITS 流接口/内核标准注册表）�
 三 Phase 节点化（每 DAG 节点唯一真实模块 operation）、Phase3 四投影 registry、
 RT 唯一 executor + 实测资源门、MOD 科学模块安装面、CLI validate/plan/inspect
 薄命令面均已落地（源码 + 当前提交实测绿）；遗留 run --phases 连跑已删除。
-尚未完成：Windows 发布执行面（MSVC/DLL 安装树复验）与真实数据（BASS/32R/接缝）
-验收，以及 healpix_interp4 / Phase3 流式 FITS 接入。
-当前状态：NOT_READY_FOR_RELEASE（未到 READY_FOR_OWNER_REVIEW）。
+V6 并行包已交付：96 条款冻结合同、三生产权重模式（point_information/surface_gls/psfsw_robust）、
+单一权重词表与 10 件生产 schema、三 Phase 集成、Runtime/CI 契约、真实数据五口径与性能/确定性验收。
+尚未完成：GitHub Linux CI 仍红（THREAD-BUDGET / CTEST-REGISTRATION）；Windows 复验
+AWAITING_WINDOWS_VALIDATION（Windows CI failure + Fatduck 不可达 + FD-F-003）；§14.5 的
+Linux 最终 SHA 真实数据流终验与 Agent 图像初审未达成（REAL-SCIENCE-001 为库级五口径，
+三口径为 DOCUMENTED_BASELINE；Phase2 CLI obs=0 不可达）；SO-05 资源门待裁决；
+healpix_interp4 / Phase3 流式 FITS 接入仍未实现。
+当前状态：NOT_READY（未到 READY_FOR_OWNER_REVIEW；未发布）。
 ```
 
 ## 2. 顶层文档（点击审阅，负责人 L0 直达全部权威）
@@ -67,10 +80,12 @@ RT 唯一 executor + 实测资源门、MOD 科学模块安装面、CLI validate/
 - 当前唯一 ACTIVE 工程包 = **AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915**
   （`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/`）；从 `BASE-OWN-001` 开始。
   执行主 Agent 仅作控制器，把所有 READY 且写域互斥任务并行派发给子代理、简审返回并集成提交；不得亲自执行任务正文。V5 及更早包均只作历史证据。
-- 本轮执行态：cprun run **`Rmtxvlrtfa66eb7` rev23**（V2 谱系 47 任务并入后按
-  `06_V2_PACK_DESIGN_20260911.md` 六条线组织）；活动状态唯一登记源 =
-  `工程控制/ACTIVITY_STATE.md`，任务状态唯一源 = 该包 `TASK_LEDGER.csv`
-  （foreground 逐任务机器验收；Git 主历史只含前台集成提交）。
+- 本轮执行态（V6 包）：Wave 0–12 已由控制器集成提交（每任务单 commit + 立即 push main），
+  Wave 13 `FINAL-AUDIT-001` = BLOCKED、Wave 14 `OWNER-PACK-001` = BLOCKED、
+  `WIN-VERIFY-001` = `WAITING_WINDOWS`；任务状态唯一源 = 该包 `TASK_LEDGER.csv`，
+  控制器集成/裁决留痕 = 该包 `CONTROLLER_LOG.md`（C-004..C-009）。
+- 历史执行态（DOC-CONV-001 期，仅供追溯）：cprun run `Rmtxvlrtfa66eb7` rev23；
+  活动状态登记源 = `工程控制/ACTIVITY_STATE.md`。
 - 已并入 main 的收口提交（本轮收敛依赖）：`GOV-001` 宪章冻结 `d8c821db`、
   `STD-REG-001` 标准注册表 `fb7f232a`、`CI-BASELINE-001` `778fe98e`、
   `CI-001B` `a67bbc83`、`CI-REG-002` `d3097319`。
@@ -78,7 +93,25 @@ RT 唯一 executor + 实测资源门、MOD 科学模块安装面、CLI validate/
   ARCHIVED_SUPERSEDED；V1.3–V6.1 已入 `engineering/control/archive/`），
   不得视为旧包延续执行。
 
-## 5. 组件状态（状态词按 §3；证据列均指 BASE=`da3c4b4a`）
+## 5. 组件状态（状态词按 §3）
+
+> 下表为 DOC-CONV-001 期（BASE=`da3c4b4a`）的组件投影，保留作历史追溯。
+> **V6 包收敛状态**（DOC-CONVERGE-001/W12 起；证据见 `reports/v6/` 与各包任务 `TASK_LEDGER.csv`）：
+
+| V6 面 | 状态 | 说明与证据 |
+|---|---|---|
+| V6 冻结合同（96 条款 = FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8） | `CONTRACT_READY` | `docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`；`reports/v6/contract-review/` |
+| Phase2 三生产权重模式 + 文档基线 + `psf_snr_power` DEFERRED | `IMPLEMENTED` | `{point_information, surface_gls, psfsw_robust}`；`{equal, pixel_ivar}` 仅基线；`FZ-MODE-*`；`tools/v6/v6_cli_mode_matrix.py` 23/23 |
+| 单一权重词表 + 10 件生产 schema + provenance 最小集 | `CONTRACT_READY` | `contracts/data/v6_weight_vocabulary_v1.json`、`contracts/schemas/v6/*.v1.schema.json`、`docs/contracts/DATA_SEMANTICS.md` §31 |
+| 三 Phase 集成（P1/P2/P3 integrate）+ Runtime/CI 契约 | `IMPLEMENTED` | `lib/phase{1,2,3}_session`、`lib/phase2_int`、`runtime/`、`tests/integration/v6_*`、`tests/system/v6_runtime`；台账 Wave 7–9 PASS |
+| 真实数据五口径比较（equal/exposure/ivar/W_info/PSFSW） | `IMPLEMENTED` | REAL-SCIENCE-001 PASS（Oracle 486/486；负向 40+15）；三口径为 **DOCUMENTED_BASELINE**，非全链生产路径 |
+| 性能与确定性（1/4/16 worker 逐字节确定性） | `IMPLEMENTED`（资源门除外） | PERF-SCALE-001：确定性 PASS；资源门 **PENDING_OWNER_SIGNOFF**（见下） |
+| **GitHub Linux CI** | **`FAIL`** | `THREAD-BUDGET` FAIL（P36 回退态 `lib/core/src/module_adapters.cpp:245,252`）；`CTEST-REGISTRATION` FAIL（余 2 项非 V6 IPV）；`§17.12` 门 7 未满足 |
+| **Linux 最终 SHA 真实数据流终验** | **`NOT_VERIFIED`** | §14.5 第 3 步：M42/银心终验与全链生产路径未跑；Phase2 CLI `obs=0` fail-closed |
+| **Agent 图像初审** | **`NOT_VERIFIED`** | §14.5 第 4 步：无固定显示参数的 M42/银心预览与结构化初审结论 |
+| **Windows/Fatduck 复验** | **`AWAITING_WINDOWS_VALIDATION`** | WIN-VERIFY-001：Fatduck 不可达 + Windows CI failure 无候选，32/32 UNAVAILABLE；FD-F-003 OPEN |
+| **SO-05 资源门** | **`PENDING_OWNER_SIGNOFF`** | 16w CPU mean 65.09% < 85%、p50 87.63% < 90%；`memory_growth_unbounded@16w` 未定性 |
+| 49 `PENDING_OWNER_SIGNOFF` + 8 条款级 `OPEN` | fail-closed | `reports/v6/contract-review/04_OPEN_ITEMS_AND_SIGNOFF.md`；`SO-01..07` 保持待签 |
 
 | 组件/面 | 状态 | 说明与证据（文件锚 / 命令 / rc） |
 |---|---|---|
@@ -124,7 +157,27 @@ RT 唯一 executor + 实测资源门、MOD 科学模块安装面、CLI validate/
   `docs/standards/checks/check_standards_registry.py`（STD-REG-001）、
   `tools/check_l0_docs.py`（DOC-002）；本轮全部 PASS（日志 `run/docconv001/logs/`）。
 
-## 7. 待负责人/前台决策事项（节选）
+## 7. 待负责人/前台决策事项
+
+### 7.1 V6 包（DOC-CONVERGE-001/W12，当前有效）
+
+1. **SO-05 资源门（最高优先）**：16 worker 计算区间平均 CPU 利用率 65.09% < 冻结 85%、p50 87.63% < 90%；
+   `memory_growth_unbounded@16w`（34.01 MB/s ≥ 32）与全预算 `alloc_reclaim_missing` 未定性。
+   §10.5/§17.6 门「只记录 vs 自动判决」及是否判失败须负责人签字（`AR-036`）。
+2. **CI 红线归属**：`THREAD-BUDGET` = P36 回退态 `lib/core/src/module_adapters.cpp:245,252` 的线程预算旁路，
+   是否授权修正；`CTEST-REGISTRATION` 余 2 项**非 V6** IPV 残项归属；Windows MSVC
+   「Run MSVC tests and package candidate」失败根因（需 token 取回 `win-stage-*.log`）。
+3. **Windows 复验**：Fatduck 当前不可达；Windows CI 在目标 SHA 无候选 → 只能 `AWAITING_WINDOWS_VALIDATION`；
+   `FD-F-003`（Windows C++ 单测门长期「0 用例 PASS」）须修复。
+4. **F-CAR / F-AIT legacy 投影错误**：legacy `lib/phase3_proj/p3_projection.cpp` 的 CAR 赤纬反号（96°）、
+   AIT 缺 Paper II √2（残差 13.05 px）；legacy 文件不属任何 V6 写域，须负责人授权后独立修正。
+5. **Phase2 CLI 真实数据不可达**（`obs=0` / control ivar 缺失 fail-closed）；建议以真实多帧覆盖流程
+   复验三生产模式端到端与资源面。
+6. **49 条 `PENDING_OWNER_SIGNOFF` + 8 条条款级 `OPEN`**（含 `SO-01..07`）保持 fail-closed，须逐项签字；
+   非 v6 SCI 文档（`docs/science/*.md`、`docs/design/**`、`docs/references/**`、`docs/owner/**`）的
+   正式取代由负责人签字（`AR-032`/`SO-06`；本包 `C-004.5` 禁改写其正文）。
+
+### 7.2 DOC-CONV-001 期历史事项（保留追溯）
 
 1. Phase3 四投影的生产切换（registry→会话/DLL 挂载、`lib/phase3_proj/module.yaml`
    `entrypoint` 由 MISSING 升级）排期（P3-PROJ-INT 域）。
@@ -137,8 +190,12 @@ RT 唯一 executor + 实测资源门、MOD 科学模块安装面、CLI validate/
 
 ## 8. 发布口径
 
-本 Agent 无权宣布发布（宪章 §1.2/§H）；当前不满足 READY_FOR_OWNER_REVIEW 门槛，
-如实标注 **NOT_READY_FOR_RELEASE**。
+本 Agent 无权宣布发布（宪章 §1.2/§17.12）；当前不满足 `READY_FOR_OWNER_REVIEW` 门槛，
+如实标注 **NOT_READY**。按宪章 §14.5 完成顺序的六步发布复核（任务提交 / GitHub CI /
+Linux 最终 SHA 真实数据流终验 / Agent 图像初审 / Windows 复验 / 汇总打包）逐项判定为：
+`NOT_MET` / `NOT_MET` / `NOT_MET` / `NOT_MET` / `AWAITING` / `NOT_MET`，结论 **NOT_READY / NOT_RELEASED**，
+不得宣布发布、不得提升根 `VERSION`（`0.11.0-alpha.2`）。详见
+`reports/v6/release-review/04_RELEASE_REVIEW_SECTION14_5.md`。
 
 ---
 authoring_task: GOV-004
@@ -147,3 +204,8 @@ base_main_sha: caee3e67e5a209a9e47b514f42b2b63f3dc4da4e
 convergence_task: DOC-CONV-001
 convergence_run: Rmtxvlrtfa66eb7 (rev23)
 convergence_base_sha: da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540
+v6_convergence_task: DOC-CONVERGE-001 (V6 并行包 Wave 12)
+v6_convergence_base_sha: 8e1e280e8db498aa879abd52ed8d18fa9f0eabd2
+v6_release_review_package: reports/v6/release-review/
+v6_release_review_machine_verdict: artifacts/v6/release-review/release_review_verdict.json
+v6_package_status: NOT_READY (NOT_RELEASED)

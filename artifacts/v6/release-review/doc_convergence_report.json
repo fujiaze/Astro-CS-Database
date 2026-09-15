@@ -1,0 +1,89 @@
+{
+  "base_head": "8e1e280e8db498aa879abd52ed8d18fa9f0eabd2",
+  "checks": [
+    "C1-canonical-vocabulary",
+    "C2-psfsw-not-ivar",
+    "C3-deferred-mode",
+    "C4-concentration-unit",
+    "C5-resource-gate",
+    "C6-no-released",
+    "C7-p33-p27-rollback",
+    "C8-covariance-epsf",
+    "C9-modes-exact",
+    "C10-doc-index-coverage"
+  ],
+  "fail_count": 0,
+  "findings": [],
+  "scope_in_files_scanned": 75,
+  "selftest": {
+    "cases": [
+      {
+        "desc": "units=\"flux^-2\"",
+        "expected_check": "C2",
+        "findings": 1,
+        "mutation": "C2-psfsw-as-ivar",
+        "red": true
+      },
+      {
+        "desc": "third vocabulary weight_normalized",
+        "expected_check": "C1",
+        "findings": 1,
+        "mutation": "C1-third-vocabulary",
+        "red": true
+      },
+      {
+        "desc": "16w 65.09% PASS",
+        "expected_check": "C5",
+        "findings": 1,
+        "mutation": "C5-resource-as-pass",
+        "red": true
+      },
+      {
+        "desc": "status RELEASED",
+        "expected_check": "C6",
+        "findings": 1,
+        "mutation": "C6-released",
+        "red": true
+      },
+      {
+        "desc": "concentration ADU/px",
+        "expected_check": "C4",
+        "findings": 1,
+        "mutation": "C4-ADU-per-px",
+        "red": true
+      },
+      {
+        "desc": "production modes include psf_snr_power",
+        "expected_check": "C3",
+        "findings": 1,
+        "mutation": "C3-psf_snr_power-in-production",
+        "red": true
+      },
+      {
+        "desc": "P33-COEF snr_coefficient",
+        "expected_check": "C7",
+        "findings": 2,
+        "mutation": "C7-P33-reintroduced",
+        "red": true
+      },
+      {
+        "desc": "rename weight.group_normalized (all docs)",
+        "expected_check": "C1",
+        "findings": 1,
+        "mutation": "C1-canonical-removed",
+        "red": true
+      },
+      {
+        "desc": "psfsw variance_from_weight=true",
+        "expected_check": "C2",
+        "findings": 1,
+        "mutation": "C2-variance_from_weight-true",
+        "red": true
+      }
+    ],
+    "selftest_pass": true
+  },
+  "task": "DOC-CONVERGE-001",
+  "tool": "reports/v6/release-review/tools/check_doc_convergence.py",
+  "verdict": "DOC_CONVERGENCE_PASS"
+}

@@ -11,6 +11,13 @@
 > `docs/owner/RELEASE_STATUS.md` 与 `docs/KNOWN_LIMITATIONS.md`。
 > 根 `ASTROCS_PROJECT_CONSTITUTION.md` 是 FROZEN 唯一最高约束；
 > `AstroCS_ENGINEERING_CONSTRAINTS.md` 已降级为历史参照。
+>
+> **V6 并行科学与工程实施包（`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/`）冻结口径**：
+> Phase2 生产权重模式 = `{point_information, surface_gls, psfsw_robust}`；文档基线 = `{equal, pixel_ivar}`；
+> `psf_snr_power` = **DEFERRED 且生产拒绝**。语义权威 = `docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`
+> （96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8）；单一权重词表 = `contracts/data/v6_weight_vocabulary_v1.json`。
+> §14.5 六步发布复核与未决项如实登记见 `reports/v6/release-review/`（机器判定 `artifacts/v6/release-review/release_review_verdict.json`）。
+> 当前**未发布**（NOT_READY）。
 
 
 ## 目标态设计与科学参考
@@ -33,25 +40,42 @@ AstroCS 是天文 CCD 图像校准与标准化数据库系统。产品模型（�
 - **Phase1**：单帧 light + masters/catalog/config → 单帧标准化 IVOA HiPS + manifest
   （校准/定标/星点/WCS/测光/噪声/SNR/Drizzle/投影）。
 - **Phase2**：任意一组合同兼容 HiPS → 马赛克 HiPS + UPM/rejection/integration
-  provenance；支持扩展源 GLS、点源 information/Q-W 及 PixInsight-style `psfsw_robust` 三种显式集成模式。
+  provenance；三种显式生产权重模式 `point_information`（`Q=aPᵀC⁻¹d`、`W_info=a²PᵀC⁻¹P`）、
+  `surface_gls`（扩展源 GLS）、`psfsw_robust`（PixInsight-style，**无量纲/组内 median=1、不是 ivar/Fisher**）；
+  文档基线模式 `equal`/`pixel_ivar` 仅作对照；`psf_snr_power` 保持 DEFERRED 且生产拒绝。
 - **Phase3**：任一合同兼容 HiPS（不要求来自 Phase2）→ 平面 FITS +
   WCS/coverage/validity/provenance。
 
 阶段间只通过原子发布、哈希与 provenance 完整的磁盘产品/manifest 交换
 （DATA-002）。正式平台为 Windows x64（用户只面对 `astrocs.exe`，运行时/I/O/
-科学模块/CPU provider 以 DLL 交付）；Linux amd64 仅作控制/静态分析/轻量编译/
-小合成节点（约束 §B）。ACR 为 DORMANT（生产构建默认排除，§C）。
+科学模块/CPU provider 以 DLL 交付）；Linux amd64 是控制/开发节点，**同时是 Linux 验证节点**
+（宪章 §15.1/§15.4：构建、单测、以及用本机 testdata/Gaia 完成控制包末尾真实数据流
+终验）。ACR 为 DORMANT（生产构建默认排除，宪章 §10.1/§3.3）。
 
-## 当前状态（如实，详见 docs/owner/）
+## 当前状态（如实，详见 docs/owner/ 与 reports/v6/release-review/）
 
-- Alpha 架构收敛进行中：工程约束/文档边界/版本单源/ABI v1/数据产物/Runtime 图/
-  Windows 工具链 preset/DLL schema/FITS 流接口已冻结入 main（合同面 PASS）。
-- Windows DLL 化发布安装树、MSVC 编译/测试/32R/真实数据最终验收未完成
-  （NOT_VERIFIED）；Phase3 SIN/ZEA/CAR/AIT、`healpix_interp4`、流式 FITS 接入
-  未实现（NOT_VERIFIED）。当前状态 **NOT_READY_FOR_RELEASE**。
-- 遗留 `astrocs run --phases 1,2,3` 进程内连跑与约束 §A.4 冲突，未删除
-  （FAIL，W4 范围）；约束 §F.1 每节点唯一模块 operation 未达成（W3/W4）。
-  以上均如实登记于 REVIEW/docs/owner，不冒充已实现。
+- **V6 并行科学与工程实施包**（`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/`）
+  Wave 0–12 已交付：96 条款冻结合同（FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8）、
+  三生产权重模式、单一权重词表、10 件生产 schema、三 Phase 集成、Runtime/CI 契约、
+  真实数据五口径比较与性能/确定性验收均已落 main；任务状态唯一源 = 该包 `TASK_LEDGER.csv`。
+- **未完成/未通过（不得写成已发布或已通过）**：
+  - **GitHub Linux CI 仍红**：`THREAD-BUDGET` FAIL（P36 回退态 `lib/core/src/module_adapters.cpp`
+    的 `omp_set_num_threads` 线程预算旁路未登记）；`CTEST-REGISTRATION` FAIL（余 2 项**非 V6** IPV 残项
+    `ipv_dead_params_lock`/`ipv_dead_params_lock_selfcheck`）；`§17.12` 门 7 未满足。
+  - **Windows 复验 = AWAITING_WINDOWS_VALIDATION**：Windows CI failure 且 Fatduck 不可达，32/32
+    Windows 用例 UNAVAILABLE（不冒充 Windows 通过）；`FD-F-003`（Windows C++ 单测长期 0 用例）仍 OPEN；
+    `§17.12` 门 8 未满足。
+  - **SO-05 资源门待负责人裁决**：16 worker 活跃窗口 CPU 均值 **65.09%** < 冻结 85%、p50 **87.63%** < 90%；
+    `memory_growth_unbounded@16w`（34.01 MB/s ≥ 32）与全预算 `alloc_reclaim_missing` 未定性 → 按 `C-007`
+    只记录、不自行裁决。
+  - **Phase2 CLI 真实数据不可达**（`obs=0` / control ivar 缺失 fail-closed）；REAL-SCIENCE-001 的
+    equal/exposure/ivar 三口径为 **DOCUMENTED_BASELINE**（驱动内实现），非全链生产路径端到端验收。
+- 51 条待决条款/开放项（49 `PENDING_OWNER_SIGNOFF` + 8 条款级 `OPEN`，含 `SO-01..07`）保持 fail-closed；
+  `psf_snr_power` 保持 DEFERRED；帧级 `median(SNR_F)`/support/coverage/FWHM/residual 不得冒充权重或方差来源。
+- 遗留 `astrocs run --phases 1,2,3` 进程内连跑**已删除**（实测 rc=2，宪章 §3.2）；
+  §F.1 每节点唯一模块 operation 已在三 Phase 达成。
+- 按宪章 §14.5 完成顺序，本控制包当前 **NOT_READY**（未到 `READY_FOR_OWNER_REVIEW`）；
+  Agent 无权宣布发布，根 `VERSION` = `0.11.0-alpha.2` 未提升。
 
 ## 仓库布局（模块索引权威：docs/architecture/MODULE_MAP.md、docs/modules/）
 

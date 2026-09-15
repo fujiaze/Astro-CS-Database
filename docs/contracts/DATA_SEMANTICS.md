@@ -2637,7 +2637,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 四分量分别落产品、`measurement_id` 互异、各带 `p05/p50/p95` + 有效覆盖：`psfsw.signal` / `psfsw.concentration` / `psfsw.noise` / `psfsw.background`（缺分量、塌陷、`p05>p50>p95` → REJECT）。
 单位一致性：`signal/noise/background` 共享组内常量 `component_flux_unit`（显式声明），
 **`concentration` 单位以 `component_flux_unit/px^2` 为唯一权威**（`A_NEA = 1/ΣP²`，单位 `px^2`）。
-`docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md` §4.2 表中把 concentration 写作 `ADU/px` 属**登记在案的文本错误**（`W12` 待修，DOC-CONVERGE-001 + 负责人签字后修正 FROZEN 正文）；生产 schema 合法域与数据字典**不采纳** `ADU/px`，`contracts/proposals/v6/data/examples/psfsw.example.json` 中的同名写法已在生产正例 `contracts/data/examples/v6/psfsw.example.json` 修正为 `ADU/px^2`。PSFSW 复合权重 `W_psfsw` 由组内比值定义，严格无量纲（`units="1"`，`group_normalized=true`，`normalization.scope="group"`），禁止写成 ivar/Fisher/W_info（禁止键 `ivar/variance/sigma/fisher/w_info/w_psf/…` 由 schema `propertyNames` 守卫）。
+`docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md` §4.2 表中把 concentration 写作 `ADU/px` 属**登记在案的文本错误**，已由 **DOC-CONVERGE-001（W12）** 订正为 `ADU/px²`（依据 `FZ-FIELD-PSFSW-4COMP` + `ALG-P2-PSFSW-001` 单位一致性规则 + `contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json` 的 `concentration.units` 收紧 pattern，`A_NEA=px²`；订正登记见 `reports/v6/release-review/01_CONVERGENCE_CORRECTIONS.md`，不改任何冻结公式/容差/门）；生产 schema 合法域与数据字典**不采纳** `ADU/px`，`contracts/proposals/v6/data/examples/psfsw.example.json` 中的同名写法已在生产正例 `contracts/data/examples/v6/psfsw.example.json` 修正为 `ADU/px^2`。PSFSW 复合权重 `W_psfsw` 由组内比值定义，严格无量纲（`units="1"`，`group_normalized=true`，`normalization.scope="group"`），禁止写成 ivar/Fisher/W_info（禁止键 `ivar/variance/sigma/fisher/w_info/w_psf/…` 由 schema `propertyNames` 守卫）。
 
 ### 31.8 fail-closed 摘要（完整表见 `contracts/data/v6_data_dictionary_v1.json#fail_closed`）
 

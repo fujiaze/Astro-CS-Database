@@ -561,6 +561,131 @@ doc_index:
       notes: "V17 冻结历史快照；当前科学权威以 docs/science 与约束文件为准"
     - path: "memory.md"
       status: ACTIVE_INFORMATIVE
+    # --- DOC-CONVERGE-001 (V6 并行包 Wave 12) 登记 docs/**/v6/**（闭合 OI-04 的 docs_fully_covered 红）---
+    # 语义权威：docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json（96 条款）；
+    # 状态：V6 目标态冻结/算法规格/数据设计/验证矩阵，全部 ACTIVE_NORMATIVE，纳入 doc_index 覆盖。
+    - path: "docs/algorithms/v6/frozen/00_README.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/frozen/01_NUMERIC_THRESHOLD_FREEZE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/frozen/02_GATE_AND_MUTATION_FREEZE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase1/ALG_P1_001_TEST_MATRIX.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase1/EVIDENCE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase1/README.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_GATES.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-point/README.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-psfsw/PSFSW_ALGORITHM_SPEC.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-psfsw/PSFSW_BASELINE_COMPARISON.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-psfsw/PSFSW_GATES_AND_MUTATIONS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-psfsw/README.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-COVARIANCE-EPSF.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-GLS.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-PIXIVAR-GATE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-REJECTION.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-UPM.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-VERIFICATION.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase2-surface/README.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase3/ALG-P3-001_KERNEL_REGISTRY.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase3/ALG-P3-001_VERIFICATION.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/v6/phase3/README.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/W6_SCHEMA_INTEGRATION.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/data/00_README.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/data/01_units_and_bunit.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/data/02_signal.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/data/03_covariance.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/data/04_psf_and_effective_psf.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/data/05_point_information_and_weight_mode.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/data/06_psfsw.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/data/07_provenance.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/data/08_phase3.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/data/09_verification.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/data/10_migration_and_open_items.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/frozen/00_README.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/frozen/01_DATA_CONTRACT_FREEZE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/v6/frozen/02_WEIGHT_MODE_VOCABULARY.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/adjudication/README.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/adjudication/SCI-ADJ-001_CONFLICT_MATRIX.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/adjudication/SCI-ADJ-001_FREEZE_LIST.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/frozen/00_README.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/frozen/01_SEMANTIC_FREEZE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/frozen/02_SIGNOFF_CONTROLLER_SUPERSEDED.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/observation/OBSERVATION_MODEL_REVIEW.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/phase2/COVARIANCE_AND_EFFECTIVE_PSF.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/phase2/README.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/phase2/SCI-P2-001_THREE_MODE_REVIEW.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/phase2/VERIFICATION_AND_EVIDENCE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/phase2/WEIGHT_PROVENANCE_GATE.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/phase3/PHASE3_PROPAGATION_REVIEW.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/science/v6/psfw/PSFW_FREEZE_RESEARCH.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/validation/v6/ORACLE_AND_ZERO_CASE_POLICY.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/validation/v6/P0_GATE_FAMILY.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/validation/v6/QA_MATRIX.md"
+      status: ACTIVE_NORMATIVE
+    - path: "docs/validation/v6/README.md"
+      status: ACTIVE_NORMATIVE
   archived:
     - path: "docs/archive/PRE_RELEASE_EVIDENCE_INDEX.md"
       status: ARCHIVED_NON_NORMATIVE
