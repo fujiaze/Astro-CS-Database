@@ -25,6 +25,11 @@
 2. 把 `test_monitor_events.py::test_04` 的「键存在」断言升级为**值/点数**断言：`0 < len(curve_points) <= downsample_max`（现状是自注 `only a marker array (empty)` ⇒ 把空壳钉成规格）。
 3. 把**六个科学 DLL 纳入根 `CMakeLists.txt:646-657` 的 `-Wall -Wextra` 白名单**（现仅 `-fopenmp`）⇒ 否则 R1 的四条真零引用永远没有编译期兜底。
 
+## 重发片新增的免重报锚（并入 §3，不改变任何判级）
+- `wcs.init_source` **三来源均在 `:2231-2270` 读、`:2347-2368` 真入 ipv** ⇒ 非只回显；cosmetic 五键 `:1523-1537` 读 + `:1551` 入参；`phase3.sampler`/`parity`/`bitpix`/`projection` 消费；跨节点键另含 `files.accepted`。
+- `reject_profile` 的完整链补一环：**`stage2_common.cpp:238-243` 先把 `wbpp_current` 归一为 `wbpp_2_9_1` 再拒其余** ⇒ 「默认值即非法」这一族指控在本键上不成立（可作 `C-20` 类判据的正对照模板：先归一再判域）。
+- CLI 选项读点已逐名给号（`commands.cpp:108`/`:132-151`/`:150`/`:1510`/`:1567-1568`/`:1815`/`:2230-2231`/`:2373`/`:2395-2396`/`:2566`）⇒ 若他轴要报 CLI 参数零消费，**须先排除这 11 项**。
+
 ## 需运行期或未判的边界（不得由本门代判）
 HISS metadata/props 的 `signal_dtype` 键配对（并发已把它移出 `module_adapters.cpp`，静态无法判生产者/消费者）；`reverse` 键是否应覆盖 manifest（**属负责人设计意图，准绳①**）；hips/snr 租约 detail 105 实际触发；snr TU 接线后须复跑；raw 曲线可用性；`upm.cpp:1295-1306` 半初始化脆弱点；`P2002_PROBE` 写侧 env。
 
