@@ -1469,16 +1469,10 @@ void DrizzleEngine::processPixelSharedTiled(
     // NSIDE=65536 下会使 query_radius/delta 抖动 → 通量丢失)
     thread_local std::vector<uint64_t> t_candidates;
     std::vector<uint64_t>& candidates = t_candidates;
-    // P35 (性能 P0, K2): 增量候选枚举 —— 跨源像素复用上一候选盒交集格已算好的
-    // 中心向量 (只对新盒 − 旧盒做 morton+pix2ang)。输出候选集合 (含排序) 与
-    // query_candidate_pixels_fast **逐像素全等** (回归 oracle 复现), 回退决策相同;
-    // 状态 thread_local 且候选集合与遍历顺序无关 ⇒ 与线程预算无关。
-    thread_local spherical::CandidateBoxState t_cand_state;
     const bool fine = drizzle_fine_profile_enabled();
     auto t_c0 = fine ? std::chrono::high_resolution_clock::now()
                      : std::chrono::time_point<std::chrono::high_resolution_clock>{};
-    spherical::query_candidate_pixels_incremental<double>(
-        drop_double, hp, candidates, t_cand_state);
+    spherical::query_candidate_pixels_fast<double>(drop_double, hp, candidates);
     counters.candidates += (int64_t)candidates.size();
     if (fine) {
         g_tl_prof_cand += std::chrono::duration<double>(

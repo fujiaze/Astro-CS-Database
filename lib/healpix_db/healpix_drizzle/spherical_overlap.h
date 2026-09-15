@@ -30,7 +30,6 @@
 #include <array>
 #include <cstdint>
 #include <deque>
-#include <list>
 #include <unordered_map>
 #include <vector>
 
@@ -322,14 +321,11 @@ private:
     struct Entry {
         std::uint64_t ipix;
         TargetPixelGeometry geom;
-        // P35: 保存该 key 在 LRU 链表中的位置 → 命中触达 O(1) (splice),
-        // 去掉历史实现 O(lru_.size()) 的线性扫描 (容量 8192 最坏 8192 次比较)。
-        std::list<std::uint64_t>::iterator lru_it;
     };
     std::size_t capacity_;
     std::size_t hits_ = 0;
     std::size_t misses_ = 0;
-    std::list<std::uint64_t> lru_;       // front = most recent
+    std::deque<std::uint64_t> lru_;      // front = most recent
     std::unordered_map<std::uint64_t, Entry> map_;
 };
 
@@ -373,39 +369,6 @@ void query_candidate_pixels_fast(
     const std::vector<Vec3T<T>>& drop_corners,
     const healpix::HealpixCore& hp,
     std::vector<uint64_t>& candidates,
-    bool* used_fallback = nullptr);
-
-// ============================================================================
-// P35 (drizzle 性能 P0, K2): 候选枚举**增量复用**状态 (每线程私有, 有界)。
-//
-// 相邻源像素的 9×9 候选盒在 face 内只平移约 2 格, 盒交集 (~49/81) 格的中心
-// 单位向量可直接复用上一源像素已算好的 pix2ang 结果, 只需对新盒 − 旧盒的
-// ~18 格做 morton + pix2ang。注意: 交集中**上一轮被球面距离过滤掉的格也必须
-// 用新圆心重新判定** (只重判"上一轮保留的格"会漏选, P34 首版即踩此坑)。
-//
-// 不变式 (本批 oracle 复现, 与 P34 一致): 对每个源像素, 输出候选集合与
-// query_candidate_pixels_fast **逐像素全等** (含排序); 回退 (极冠/盒跨 face)
-// 决策亦完全相同。内存: 盒 ≤(2·delta+1)² 格 × 40B, 与线程数无关。
-// ============================================================================
-struct CandidateBoxState {
-    struct Cell {
-        uint64_t ipix;
-        Vec3 v;          // 该格中心单位向量 (权威 pix2ang 结果)
-        int ix, iy;      // face 内 (ix,iy)
-    };
-    bool ok = false;     // 上一像素是否走快速盒路径
-    int nside = 0;       // nside 变化 → 状态失效 (ipix 编码随 nside 变)
-    int face = 0, x0 = 0, x1 = 0, y0 = 0, y1 = 0;
-    std::vector<Cell> cells;   // 恒等于盒 [x0..x1]×[y0..y1] 的全部格
-    void reset() { ok = false; cells.clear(); }
-};
-
-template <typename T>
-void query_candidate_pixels_incremental(
-    const std::vector<Vec3T<T>>& drop_corners,
-    const healpix::HealpixCore& hp,
-    std::vector<uint64_t>& candidates,
-    CandidateBoxState& state,
     bool* used_fallback = nullptr);
 
 } // namespace spherical
