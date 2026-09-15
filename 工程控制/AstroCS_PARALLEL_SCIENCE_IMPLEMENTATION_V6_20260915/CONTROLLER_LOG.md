@@ -74,3 +74,31 @@
      各自派发前按同一规则局部裁定；未进入任何 V6 写域的 22 个差异（历史报告、`reports/v19r2/*`、
      `tools/tasks/CHK-001/*`、根/测试 CMakeLists 等）保持原状、不作为 V6 基线一部分。
   5. 若负责人对 P35/P36 回退态另有指示，可在对应任务提交前以 revert 恢复历史提交内容。
+
+## C-007 Wave 5 集成与后续局部裁定（2026-09-15）
+- Wave 5 九项全部 PASS（每项单任务单 commit，控制器均独立构建/测试复跑）：
+  IMPL-P1-PSFW-001 `078bde5f`、IMPL-P1-CAL-001 `6c17e7d6`、IMPL-P2-REJ-001 `dfc1f8fc`、
+  IMPL-P3-PROJ-001 `e476b90e`、IMPL-P1-DRZ-001 `684a693e`、IMPL-P2-SAMP-001 `51d5b645`、
+  IMPL-P2-UPM-001 `f0502b25`、IMPL-AIO-001 `e244b284`、IMPL-P3-RSMP-001 `b5bc6af4`。
+- **F1 局部裁定（Wave 6）**：SCHEMA-INTEGRATE-001 写域命中 `docs/contracts/DATA_SEMANTICS.md`
+  与 `docs/contracts/PUBLIC_API.md`。二者工作树状态同样是**回退**（删除 P33-COEF §12.2 SNR 系数
+  落位段落与 P27 §「生产路径不消费的 IpvParams 字段」整节；合计 -257 行），与已固化的
+  P33/P35/P36 回退同源。按 C-006 规则先以独立治理提交固化这 2 个文件，使 W6 从干净基线开工。
+- 其余 32 个预存 tracked 差异保持不动；W7 P1/P3-INTEGRATE-001(4)、W9 RUNTIME-CI-001(6)、
+  W12 DOC-CONVERGE-001(2) 派发前同样局部裁定。
+- **误报更正（留痕）**：`IMPL-P2-REJ-001` 报告"upm.cpp 被并发任务改坏（语法错误）"经复核实为
+  **缺 `-I` 路径**（`aio_upm.h` 在 lib/astro_image_io/include，`crypto/sha256.h` 在
+  lib/common/crypto），`upm.cpp` 完好；控制器以项目真实 compile flags 独立链接五个 UPM 测试模式
+  全部 rc=0。另：控制器一度把 `aio_upm.{cpp,h}` 误判为 AIO-001 新建，实为**先前已提交的 tracked
+  干净文件**（0751d34f/a8169bc0），该"跨任务依赖缺口"登记已撤回。
+- **高优先级科学发现（待负责人裁决，来自 IMPL-P3-PROJ-001 的 astropy/WCSLIB 对拍）**：
+  - F-CAR：legacy `lib/phase3_proj/p3_projection.cpp` CAR 用 Y=−θ，赤纬相对 FITS WCS Paper II
+    反号（最大偏差 345600″=96°，legacy dec == −standard dec）。
+  - F-AIT：legacy AIT 缺 Paper II γ 的 √2 因子（最大偏差 94885″、world→pix 残差 13.05 px）。
+  V6 层已按 Paper II 实现并过 Oracle；legacy 文件与其逆向测试 `tests/unit/p3_projection_test.cpp`
+  不属任何 V6 任务写域 → 登记为取代项，需负责人授权后才能独立修正。
+- **AR-033 构建面欠账（控制器 W9 统一处理）**：Wave 5 交付的测试目标均只提供自注册
+  `tests/unit/v6_*/` 与局部库目标，根 `CMakeLists.txt`/`tests/unit/CMakeLists.txt` 未改；
+  待注册：`astrocs_v6_aio`、`astrocs_p3_rsmp`、9 个 `add_subdirectory(tests/unit/v6_*)`、
+  以及新生产源进入生产库的接线（含 `lib/astro_image_io/v6/src/*`）。
+- 台账：Wave 6（SCHEMA-INTEGRATE-001）置 READY。
