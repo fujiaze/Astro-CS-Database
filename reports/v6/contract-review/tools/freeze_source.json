@@ -1,0 +1,1697 @@
+{
+  "freeze_source_schema": "astrocs.v6.contract-freeze-source/v1",
+  "authored_note": "CONTRACT-FREEZE-001(W4) 冻结源：语义条目由 reports/v6/science-adjudication/adjudications.json 原样继承；本文件只补 fail-closed/负向 mutation/签字归属/数值阈值/开放项/取代清单。",
+  "signoff_map": {
+    "FZ-UNIT-VAR-IN": {
+      "so": "SO-01",
+      "reason": "F-OBS-01：DRIZZLE §3 把输入 v_j(ADU^2) 与输出 variance_p(ADU^2/px^4) 同名写作 variance；术语/单位修正须负责人签字（宪章 §1.2）"
+    },
+    "FZ-UNIT-VAR-SB": {
+      "so": "SO-01",
+      "reason": "同上（输出面亮度方差命名/单位修正）"
+    },
+    "FZ-UNIT-IVAR-SB": {
+      "so": "SO-01",
+      "reason": "同上（输出 ivar 单位 px^4/ADU^2 修正）"
+    },
+    "FZ-BUNIT-SEMANTICS": {
+      "so": "SO-01",
+      "reason": "F-OBS-01：BUNIT 量纲可判 + provenance pixel_semantics/pixel_area_power 属 FROZEN SCI 术语/单位修正"
+    },
+    "FZ-FORMULA-DRIZZLE-SB": {
+      "so": "SO-02",
+      "reason": "F-OBS-02/S2：面亮度保持归一 S_p=ΣB_j a_jp/Σa_jp 是 FROZEN DRIZZLE §5/§7 公式变更，须签字并重跑全部 Drizzle 门"
+    },
+    "FZ-FORMULA-DRIZZLE-VAR": {
+      "so": "SO-02",
+      "reason": "权重定义 w_jp:=w_SB_jp 后方差传播随 (B) 归一变化，属同一 FROZEN 公式变更"
+    },
+    "FZ-COND-FLUX-CONSERV": {
+      "so": "SO-02",
+      "reason": "通量守恒由严格不变量改为条件不变量 + flux_conservation_factor，属 FROZEN 公式变更"
+    },
+    "FZ-GATE-CONST-SB": {
+      "so": "SO-03",
+      "reason": "S3：常量场 Oracle 判据取代 FROZEN DRIZZLE §11（S_p=C 表述）须签字（容差 1e-3 不变）"
+    },
+    "FZ-GATE-PARENT-VAR": {
+      "so": "SO-04",
+      "reason": "AR-030/AR-031：DRIZZLE §1/§9a『协方差产品为非目标』被取代为强制相关核输出面，须签字"
+    }
+  },
+  "fz_contract": {
+    "FZ-UNIT-SIGNAL-SB": {
+      "layer": "science",
+      "fail_closed": "signal 缺 units，或 SB signal 单位 ≠ ADU/px^2 且 BUNIT 不可判 → unavailable/REJECT",
+      "negative_mutation": "把 signal_sb 单位改为 ADU 或 ADU^2/px^4，量纲代数门必须 rc!=0"
+    },
+    "FZ-UNIT-VAR-IN": {
+      "layer": "science",
+      "fail_closed": "输入逐像素方差单位 ≠ ADU^2（与输出面亮度方差混名）→ REJECT",
+      "negative_mutation": "pixel_variance_in 单位写成 ADU^2/px^4 → rc!=0"
+    },
+    "FZ-UNIT-VAR-SB": {
+      "layer": "science",
+      "fail_closed": "sb_variance_out ≠ ADU^2/px^4 或 variance ≠ signal^2 → REJECT",
+      "negative_mutation": "sb_variance_out 单位改 ADU^2 → rc!=0"
+    },
+    "FZ-UNIT-IVAR-SB": {
+      "layer": "science",
+      "fail_closed": "sb_ivar_out ≠ px^4/ADU^2 或 ivar ≠ 1/variance → REJECT",
+      "negative_mutation": "sb_ivar_out 单位改 ADU^-2 → rc!=0"
+    },
+    "FZ-UNIT-Q": {
+      "layer": "science",
+      "fail_closed": "Q ≠ ADU^-1 或 Q/W 量纲不自洽 → REJECT（GATE-UNIT-01）",
+      "negative_mutation": "Q 单位改 ADU^-2 或 ADU → rc!=0"
+    },
+    "FZ-UNIT-FLUX": {
+      "layer": "science",
+      "fail_closed": "F_hat ≠ ADU 或 Var(F_hat) ≠ ADU^2 或 Var(F)≠1/W → REJECT",
+      "negative_mutation": "F_hat 单位改 ADU/px^2 → rc!=0"
+    },
+    "FZ-UNIT-WINFO": {
+      "layer": "science",
+      "fail_closed": "W_info ≠ ADU^-2，或与 psfsw/ivar/signal 混名 → REJECT",
+      "negative_mutation": "W_info 单位改 ADU^-1 → rc!=0"
+    },
+    "FZ-UNIT-PSFSW": {
+      "layer": "science",
+      "fail_closed": "psfsw_robust_weight ≠ 1 或出现 flux^-2/ivar 词 → REJECT",
+      "negative_mutation": "weight.units=\"flux^-2\" → rc!=0"
+    },
+    "FZ-BUNIT-SEMANTICS": {
+      "layer": "data",
+      "fail_closed": "BUNIT=ADU 且无 pixel_semantics=surface_brightness + pixel_area_power=-2 → 单位不可判 → unavailable/REJECT",
+      "negative_mutation": "删除 provenance 的 pixel_area_power 声明 → rc!=0"
+    },
+    "FZ-FORMULA-DRIZZLE-SB": {
+      "layer": "science",
+      "fail_closed": "归一版本缺失，或 legacy 归一（w=a/A_drop）用于 pixfrac<1 绝对面亮度 → REJECT/不可跨 pixfrac 合成",
+      "negative_mutation": "常量 ADU 构造 / 无条件 pixfrac / S_p=F_p 三错法任一 → 常量场门 rc!=0"
+    },
+    "FZ-FORMULA-DRIZZLE-VAR": {
+      "layer": "science",
+      "fail_closed": "variance_p ≠ Σ_j v_j w_jp^2/D_p^2 或缩放律破坏 → REJECT",
+      "negative_mutation": "方差传播漏 D_p^2（或漏平方）→ rc!=0"
+    },
+    "FZ-COND-FLUX-CONSERV": {
+      "layer": "science",
+      "fail_closed": "pixfrac<1 缺 flux_conservation_factor 却用于绝对通量/孔径 → REJECT",
+      "negative_mutation": "删除 flux_conservation_factor 仍声明绝对通量 → rc!=0"
+    },
+    "FZ-GATE-CONST-SB": {
+      "layer": "science",
+      "fail_closed": "常量场门未按 B0 构造、未覆盖全部 pixfrac(0,1]、或改动容差 1e-3 → REJECT",
+      "negative_mutation": "常量 ADU 构造 / 无条件 pixfrac / S_p=F_p 三错法 → rc!=0"
+    },
+    "FZ-FORMULA-WINFO": {
+      "layer": "science",
+      "fail_closed": "W_info 公式被改写，或 Q/W 不数值等于 GLS，或 Var≠1/W → REJECT",
+      "negative_mutation": "W 去掉 C^-1，或 Var(F_hat)=W → rc!=0"
+    },
+    "FZ-FORMULA-Q": {
+      "layer": "science",
+      "fail_closed": "Q 公式被替换或量纲不自洽（Q≠ADU^-1）→ REJECT",
+      "negative_mutation": "Q 去掉 C^-1（aP^T d）→ rc!=0"
+    },
+    "FZ-FORMULA-FHAT": {
+      "layer": "science",
+      "fail_closed": "F_hat≠Q/W 或 Var(F_hat)≠1/W → REJECT",
+      "negative_mutation": "Var(F_hat)=W（去掉倒数）→ rc!=0"
+    },
+    "FZ-COND-WHITENOISE": {
+      "layer": "science",
+      "fail_closed": "C 含相关项仍无条件用白噪声近似，或未声明 sigma_pix → REJECT",
+      "negative_mutation": "非对角 C 用白噪式且未声明 sigma_pix → rc!=0"
+    },
+    "FZ-FORMULA-GLS": {
+      "layer": "science",
+      "fail_closed": "surface_gls 不用 A^T C^-1 A，或用『先 coadd 后除权重』替代 → REJECT",
+      "negative_mutation": "GLS 退化为 OLS → rc!=0"
+    },
+    "FZ-GATE-PIXIVAR-APPROX": {
+      "layer": "science",
+      "fail_closed": "像素 ivar 近似无误差门声明，或未报告 R~ C_in R~^T 与 Var_approx/Var_GLS → REJECT",
+      "negative_mutation": "忽略 a_k 的 ivar 近似且宣称最优（rho>1+eps）→ rc!=0"
+    },
+    "FZ-FORMULA-COV-PROP": {
+      "layer": "science",
+      "fail_closed": "由权重标量/诊断量反推 variance，或 C_out≠R C_in R^T → REJECT",
+      "negative_mutation": "variance=1/W_psfsw 或 variance_from=psfsw_robust_weight → rc!=0"
+    },
+    "FZ-FORMULA-PSFSW-COMPOSITE": {
+      "layer": "science",
+      "fail_closed": "组内 median≠1、出现非正 W_psfsw、或指数/常数未版本化 → REJECT",
+      "negative_mutation": "去掉组内 median 归一（W_psfsw=Wt）→ rc!=0"
+    },
+    "FZ-FIELD-PSFSW-4COMP": {
+      "layer": "data",
+      "fail_closed": "四分量塌陷为三、缺分量、measurement_id 重复、p05>p50>p95 或 valid_area_fraction∉[0,1] → REJECT",
+      "negative_mutation": "concentration 直接复制 signal（measurement_id 重复）→ rc!=0"
+    },
+    "FZ-FIELD-PSFSW-UNIT": {
+      "layer": "data",
+      "fail_closed": "weight.units 含 flux^-2/ivar、group_normalized=false、scope=global、median_target≠1 → REJECT",
+      "negative_mutation": "group_normalized=false → rc!=0"
+    },
+    "FZ-GATE-PSFSW-FAILCLOSED": {
+      "layer": "data",
+      "fail_closed": "valid=false 时 weight_value 非 null，或 reason 不在 5 项白名单，或回退 median source SNR → REJECT",
+      "negative_mutation": "valid=false 仍写回 median source SNR 值 → rc!=0"
+    },
+    "FZ-GATE-PSFSW-COV": {
+      "layer": "data",
+      "fail_closed": "covariance.method≠propagated_from_composite_coefficients、variance_from_weight=true、uses_relative_weight_as_ivar=true，或命中 psfsw 禁止键 → REJECT",
+      "negative_mutation": "covariance.variance_from=\"psfsw_robust_weight\"，或产物注入 ivar 键 → rc!=0"
+    },
+    "FZ-GATE-PSFSW-EPSF": {
+      "layer": "data",
+      "fail_closed": "effective_psf_id 空，或只给 FWHM 标量，或未声明归一约定 → REJECT",
+      "negative_mutation": "effective_psf={\"fwhm\":4.71} → rc!=0"
+    },
+    "FZ-MODE-PRODUCTION": {
+      "layer": "science",
+      "fail_closed": "生产模式枚举出现未知值/legacy 0/auto/support_x_snr2/psf_snr_power → REJECT",
+      "negative_mutation": "生产枚举加入 psf_snr_power → rc!=0"
+    },
+    "FZ-MODE-BASELINE": {
+      "layer": "science",
+      "fail_closed": "equal/pixel_ivar 声明科学最优或冒充生产模式 → REJECT",
+      "negative_mutation": "pixel_ivar 宣称对任意 PSF 点源最优 → rc!=0"
+    },
+    "FZ-MODE-DEFERRED": {
+      "layer": "science",
+      "fail_closed": "psf_snr_power 进生产路由或进入 schema 合法域 → REJECT（C-004.1 不得解冻）",
+      "negative_mutation": "把 psf_snr_power 写入生产模式列表 → rc!=0"
+    },
+    "FZ-FIELD-WEIGHTMODE": {
+      "layer": "data",
+      "fail_closed": "legacy 整数 0 进科学权重面、未知模式、或发明第三套词表 → REJECT",
+      "negative_mutation": "weight_mode=0（support×snr²）→ rc!=0"
+    },
+    "FZ-GATE-MEDIAN-SNR": {
+      "layer": "science",
+      "fail_closed": "median(SNR_F)/median_source_snr 等诊断别名进 weight.sources/weight_value → REJECT（C-004.2 不得接入权重面）",
+      "negative_mutation": "weight.sources=[median_source_snr] → rc!=0"
+    },
+    "FZ-GATE-SUPPORT-COVERAGE": {
+      "layer": "science",
+      "fail_closed": "support/coverage 作 inverse-variance/SNR/科学权重或代替 variance → REJECT",
+      "negative_mutation": "coverage 当 variance → rc!=0"
+    },
+    "FZ-P3-MODES": {
+      "layer": "science",
+      "fail_closed": "Phase3 模式未声明或不属 {surface_brightness, point_source_flux, visualization} → REJECT",
+      "negative_mutation": "加入 legacy auto 模式 → rc!=0"
+    },
+    "FZ-P3-FAILCLOSED": {
+      "layer": "science",
+      "fail_closed": "12 门任一命中：SB 无 Omega 做 flux 换算/测量却 uncertainty unavailable/BUNIT 非二次律/对角无相关核；PSF 缺/未归一/缺 W 且不可重建/缺 a/未出 effective PSF；visualization measurement_capable=true 或写测量层 → REJECT",
+      "negative_mutation": "12 条 M-P3-* mutation 逐条 rc!=0"
+    },
+    "FZ-P3-QW-RECOMPUTE": {
+      "layer": "science",
+      "fail_closed": "重采样输入 Q/W、W=ΣW_in、或重算/替换上游 W_info → REJECT",
+      "negative_mutation": "用重采样输入 W 代替输出帧重算 Q/W → rc!=0"
+    },
+    "FZ-P3-KERNEL-REGISTRY": {
+      "layer": "science",
+      "fail_closed": "未注册核进生产、nearest 作连续场科学默认、注册缺独立 Oracle/误差界/边界定义 → REJECT",
+      "negative_mutation": "bilinear_4quad 注册缺 Oracle，或零填边界 → rc!=0"
+    },
+    "FZ-P3-BUNIT-QUADRATIC": {
+      "layer": "science",
+      "fail_closed": "var BUNIT ≠ (signal BUNIT)^2 或 ivar ≠ 1/variance → REJECT",
+      "negative_mutation": "Phase3 variance BUNIT 改为 signal BUNIT 的一次幂 → rc!=0"
+    },
+    "FZ-DEGRADE-SCALAR": {
+      "layer": "science",
+      "fail_closed": "帧级标量未同时过空间残差/趋势门与功率损失门，或缺 p05/p50/p95/最大系统偏差/采样覆盖/模型误差/适用域 → REJECT（须存 map/model/control points）",
+      "negative_mutation": "标量摘要删除 p05/p50/p95 或功率损失门 → rc!=0"
+    },
+    "FZ-PROV-SHARED-SYSTEMATIC": {
+      "layer": "science",
+      "fail_closed": "共享系统项按独立随机项处理且无 unavailable/系统误差预算 → REJECT",
+      "negative_mutation": "共享系统项当独立（联合/朴素方差比>1 未检出）→ rc!=0"
+    },
+    "FZ-GATE-PARENT-VAR": {
+      "layer": "science",
+      "fail_closed": "HiPS 父级对角归约未声明下界、未另存相关核/算子摘要、或缺 deficit 误差门 → 该 variance 面 unavailable",
+      "negative_mutation": "把父级对角归约声明为精确（is_lower_bound=false）→ rc!=0"
+    },
+    "FZ-PROV-KCORR": {
+      "layer": "science",
+      "fail_closed": "k_corr 缺适用域/标定脚本/固定种子，或跨域外推，或令 k_corr=1 忽略相关 → REJECT",
+      "negative_mutation": "k_corr 忽略相关取 1.0 → rc!=0"
+    },
+    "FZ-PROV-MINIMAL-SET": {
+      "layer": "data",
+      "fail_closed": "provenance 缺最小集键、单位不可判、或 unavailable 无原因 → REJECT",
+      "negative_mutation": "删除 flux_conservation_factor 或 k_corr 键 → rc!=0"
+    }
+  },
+  "numeric_thresholds": [
+    {
+      "id": "PSFSW-T-DEPTH",
+      "subject": "共同星集深度稳定性最大相对偏差",
+      "value": 0.05,
+      "value_display": "0.05",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust 深度稳定性门",
+      "fail_closed": "depth_scan_max_rel_dev>0.05 → unavailable(selection_bias_gate_failed)",
+      "gate": "PSFSW-G11",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-DEPTH",
+        "contains": "0.05"
+      },
+      "negative_mutation": "深度扫描 max_rel_dev 取 0.20 → rc!=0",
+      "anchor": "PSFW_FREEZE §5.3 / SCI-PSFW-001 §7.3"
+    },
+    {
+      "id": "PSFSW-T-DEPTH-K",
+      "subject": "深度扫描点数下限",
+      "value": 5,
+      "value_display": "5",
+      "unit": "count",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust",
+      "fail_closed": "K<5 → 不可评估 → insufficient_valid_stars",
+      "gate": "PSFSW-G11",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-DEPTH-K",
+        "contains": "5"
+      },
+      "negative_mutation": "K=2 → rc!=0",
+      "anchor": "本任务冻结"
+    },
+    {
+      "id": "PSFSW-T-DEPTH-SPAN",
+      "subject": "深度跨度下限",
+      "value": 1,
+      "value_display": "1",
+      "unit": "mag",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust",
+      "fail_closed": "跨度<1.0 mag 且 n_common 变化<2 倍 → insufficient_valid_stars",
+      "gate": "PSFSW-G11",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-DEPTH-SPAN",
+        "contains": "1.0"
+      },
+      "negative_mutation": "跨度=0.2 mag → rc!=0",
+      "anchor": "本任务冻结"
+    },
+    {
+      "id": "PSFSW-T-DEPTH-RHO",
+      "subject": "单调漂移上限 |Spearman rho|",
+      "value": 0.8,
+      "value_display": "0.8",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust",
+      "fail_closed": "|rho_s|>0.8 → selection_bias_gate_failed",
+      "gate": "PSFSW-G11",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-DEPTH-RHO",
+        "contains": "0.8"
+      },
+      "negative_mutation": "rho=0.95 → rc!=0",
+      "anchor": "SCI-PSFW-001 §7.3"
+    },
+    {
+      "id": "PSFSW-T-NMIN",
+      "subject": "n_common 硬下限",
+      "value": 3,
+      "value_display": "3",
+      "unit": "stars",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust",
+      "fail_closed": "n_common<3 → valid=false+insufficient_valid_stars+weight_value=null",
+      "gate": "PSFSW-G10",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-NMIN",
+        "contains": "3"
+      },
+      "negative_mutation": "n_common=2 → rc!=0",
+      "anchor": "SCI-P2-001 R5"
+    },
+    {
+      "id": "PSFSW-T-NROBUST",
+      "subject": "n_common 稳健下限",
+      "value": 10,
+      "value_display": "10",
+      "unit": "stars",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust",
+      "fail_closed": "低于 10 → LOW 档旗标 + 非均匀阈值收紧 0.20",
+      "gate": "PSFSW-G10/G18",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-NROBUST",
+        "contains": "10"
+      },
+      "negative_mutation": "删除 LOW 档旗标 → rc!=0",
+      "anchor": "本任务冻结（W1 只建议 3）"
+    },
+    {
+      "id": "PSFSW-T-NPREF",
+      "subject": "n_common 优选值",
+      "value": 30,
+      "value_display": "30",
+      "unit": "stars",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust",
+      "fail_closed": "仅旗标，不判失败",
+      "gate": "PSFSW-G10",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-NPREF",
+        "contains": "30"
+      },
+      "negative_mutation": "把 30 当硬门拒绝合法记录 → 正向控制 rc!=0",
+      "anchor": "本任务冻结"
+    },
+    {
+      "id": "PSFSW-T-NU",
+      "subject": "分量空间非均匀上限 (p95-p05)/p50",
+      "value": 0.3,
+      "value_display": "0.3",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust 标量降级",
+      "fail_closed": "任一分量>0.30 → 拆 region/tile 或 spatial_nonuniformity_gate_failed",
+      "gate": "PSFSW-G18",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-NU",
+        "contains": "0.30"
+      },
+      "negative_mutation": "(p95-p05)/p50=0.45 → rc!=0",
+      "anchor": "FZ-DEGRADE-SCALAR / SCI-PSFW-001 §6"
+    },
+    {
+      "id": "PSFSW-T-TREND",
+      "subject": "分量系统趋势上限 max|线性拟合值|/p50",
+      "value": 0.1,
+      "value_display": "0.1",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust 标量降级",
+      "fail_closed": "趋势>0.10 → spatial_nonuniformity_gate_failed",
+      "gate": "PSFSW-G18",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-TREND",
+        "contains": "0.10"
+      },
+      "negative_mutation": "趋势=0.30 → rc!=0",
+      "anchor": "FZ-DEGRADE-SCALAR"
+    },
+    {
+      "id": "PSFSW-T-POWERLOSS",
+      "subject": "标量功率损失上限（detection power 相对损失）",
+      "value": 0.05,
+      "value_display": "0.05",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust 标量降级",
+      "fail_closed": "损失>0.05 → spatial_nonuniformity_gate_failed",
+      "gate": "PSFSW-G19",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-POWERLOSS",
+        "contains": "0.05"
+      },
+      "negative_mutation": "损失=0.20 → rc!=0",
+      "anchor": "FZ-DEGRADE-SCALAR / UNIFIED §8"
+    },
+    {
+      "id": "PSFSW-T-FLUXBIAS",
+      "subject": "标量通量偏差上限（注入源相对偏差）",
+      "value": 0.01,
+      "value_display": "0.01",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust 标量降级",
+      "fail_closed": "偏差>0.01 → spatial_nonuniformity_gate_failed",
+      "gate": "PSFSW-G19",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-FLUXBIAS",
+        "contains": "0.01"
+      },
+      "negative_mutation": "偏差=0.10 → rc!=0",
+      "anchor": "FZ-DEGRADE-SCALAR"
+    },
+    {
+      "id": "PSFSW-T-WRANGE",
+      "subject": "帧权重动态范围 guard max/min",
+      "value": 100,
+      "value_display": "100",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust",
+      "fail_closed": ">100 → 强制旗标 weight_dynamic_range_exceeded + 集中度报告（不判 unavailable）",
+      "gate": "PSFSW-G14",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-WRANGE",
+        "contains": "100"
+      },
+      "negative_mutation": "超限即判 unavailable → 正向控制 rc!=0",
+      "anchor": "本任务 guard"
+    },
+    {
+      "id": "PSFSW-T-COVMC",
+      "subject": "covariance MC 一致性 |analysis-MC|/MC",
+      "value": 0.03,
+      "value_display": "0.03",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust covariance",
+      "fail_closed": ">0.03 → REJECT",
+      "gate": "PSFSW-G06/V5",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-COVMC",
+        "contains": "0.03"
+      },
+      "negative_mutation": "rel=0.10 → rc!=0",
+      "anchor": "SC-ADJ-P203 验证门"
+    },
+    {
+      "id": "PSFSW-T-BOOT",
+      "subject": "基线声明 bootstrap 重采样下限",
+      "value": 200,
+      "value_display": "200",
+      "unit": "count",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "psfsw 基线比较",
+      "fail_closed": "<200 → 声明无效",
+      "gate": "PSFSW-G25",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-BOOT",
+        "contains": "200"
+      },
+      "negative_mutation": "bootstrap=50 → rc!=0",
+      "anchor": "本任务 / SCI-PSFW-001 §4"
+    },
+    {
+      "id": "PSFSW-T-CI",
+      "subject": "基线声明置信水平",
+      "value": 0.95,
+      "value_display": "0.95",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "psfsw 基线比较",
+      "fail_closed": "<0.95 → 声明无效",
+      "gate": "PSFSW-G25",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-CI",
+        "contains": "0.95"
+      },
+      "negative_mutation": "CI=0.68 → rc!=0",
+      "anchor": "本任务"
+    },
+    {
+      "id": "PSFSW-T-EPSFTOL",
+      "subject": "effective PSF 定义复算容差 max|P_eff_op-P_eff_analytic|",
+      "value": 1e-09,
+      "value_display": "1e-9",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "psfsw effective PSF",
+      "fail_closed": "超容差 → REJECT",
+      "gate": "PSFSW-G07/V7",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "md_table_row",
+        "locator": "PSFSW-T-EPSFTOL",
+        "contains": "1e-9"
+      },
+      "negative_mutation": "容差放宽到 1e-3 → rc!=0",
+      "anchor": "本任务 Oracle V7"
+    },
+    {
+      "id": "PSFSW-T-NU-LOW",
+      "subject": "LOW 档分量空间非均匀收紧上限",
+      "value": 0.2,
+      "value_display": "0.2",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust（3≤n_common<10）",
+      "fail_closed": "LOW 档 >0.20 → 拆 tile/unavailable",
+      "gate": "PSFSW-G18",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "substring",
+        "locator": "收紧至",
+        "contains": "0.20"
+      },
+      "negative_mutation": "LOW 档仍用 0.30 → rc!=0",
+      "anchor": "PSFSW_FROZEN_THRESHOLDS §3"
+    },
+    {
+      "id": "PSFSW-COMPOSITE-ALPHA",
+      "subject": "PSFSW 复合指数 alpha",
+      "value": 2,
+      "value_display": "2",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust 复合式",
+      "fail_closed": "指数/常数未版本化或非正方向 → REJECT",
+      "gate": "PSFSW-G14",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "substring",
+        "locator": "alpha=2, beta=1, gamma=2, delta=1, C_norm=1.0",
+        "contains": "alpha=2"
+      },
+      "negative_mutation": "alpha 改为 -2（方向反转）→ rc!=0",
+      "anchor": "PSFSW_FROZEN_THRESHOLDS §5"
+    },
+    {
+      "id": "PSFSW-COMPOSITE-BETA",
+      "subject": "PSFSW 复合指数 beta",
+      "value": 1,
+      "value_display": "1",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust 复合式",
+      "fail_closed": "同上",
+      "gate": "PSFSW-G14",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "substring",
+        "locator": "alpha=2, beta=1, gamma=2, delta=1, C_norm=1.0",
+        "contains": "beta=1"
+      },
+      "negative_mutation": "beta=0 使 Conc 无效 → rc!=0",
+      "anchor": "PSFSW_FROZEN_THRESHOLDS §5"
+    },
+    {
+      "id": "PSFSW-COMPOSITE-GAMMA",
+      "subject": "PSFSW 复合指数 gamma",
+      "value": 2,
+      "value_display": "2",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust 复合式",
+      "fail_closed": "同上",
+      "gate": "PSFSW-G14",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "substring",
+        "locator": "alpha=2, beta=1, gamma=2, delta=1, C_norm=1.0",
+        "contains": "gamma=2"
+      },
+      "negative_mutation": "gamma=-2 → rc!=0",
+      "anchor": "PSFSW_FROZEN_THRESHOLDS §5"
+    },
+    {
+      "id": "PSFSW-COMPOSITE-DELTA",
+      "subject": "PSFSW 复合指数 delta",
+      "value": 1,
+      "value_display": "1",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust 复合式",
+      "fail_closed": "同上",
+      "gate": "PSFSW-G14",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "substring",
+        "locator": "alpha=2, beta=1, gamma=2, delta=1, C_norm=1.0",
+        "contains": "delta=1"
+      },
+      "negative_mutation": "delta=0 使 B 无效 → rc!=0",
+      "anchor": "PSFSW_FROZEN_THRESHOLDS §5"
+    },
+    {
+      "id": "PSFSW-COMPOSITE-CNORM",
+      "subject": "PSFSW 归一常数 C_norm（尺度简并，不改 W_psfsw）",
+      "value": 1,
+      "value_display": "1",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust 复合式",
+      "fail_closed": "C_norm 影响 W_psfsw（违反组内中值归一）→ REJECT",
+      "gate": "PSFSW-G16",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "substring",
+        "locator": "alpha=2, beta=1, gamma=2, delta=1, C_norm=1.0",
+        "contains": "C_norm=1.0"
+      },
+      "negative_mutation": "C_norm×1e9 改变 W_psfsw（伪实现）→ rc!=0",
+      "anchor": "PSFSW_FROZEN_THRESHOLDS §5.2"
+    },
+    {
+      "id": "PSFSW-COMPOSITE-FLOOR",
+      "subject": "分量下限（S/Conc/N/B 防下溢）",
+      "value": 1e-12,
+      "value_display": "1e-12",
+      "unit": "component_flux_unit",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 psfsw_robust 截断",
+      "fail_closed": "顺序颠倒（先 floor 后 fail-closed）或取消下限 → REJECT",
+      "gate": "PSFSW-G14",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+        "kind": "substring",
+        "locator": "component_floors = 1e-12",
+        "contains": "1e-12"
+      },
+      "negative_mutation": "B≤0 先 floor 再造权重 → rc!=0",
+      "anchor": "PSFSW_FROZEN_THRESHOLDS §5.3"
+    },
+    {
+      "id": "PSFSW-BASELINE-NONINFERIOR",
+      "subject": "基线 non_inferior_to 不劣界",
+      "value": 0.02,
+      "value_display": "0.02",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "psfsw 基线比较声明门",
+      "fail_closed": "CI 下界 ≤ -0.02 却声明 non_inferior → REJECT",
+      "gate": "PSFSW-G25",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-psfsw/PSFSW_BASELINE_COMPARISON.md",
+        "kind": "substring",
+        "locator": "non_inferior_to",
+        "contains": "0.02"
+      },
+      "negative_mutation": "用 0.5 作不劣界 → rc!=0",
+      "anchor": "PSFSW_BASELINE_COMPARISON §5"
+    },
+    {
+      "id": "FZ-AP2S-EPS-PIXIVAR",
+      "subject": "pixel-ivar 近似误差门 epsilon（面积加权 p95 rho）",
+      "value": 0.05,
+      "value_display": "0.05",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 surface_gls 像素 ivar 近似",
+      "fail_closed": "rho_p95>1.05 → 拒绝/升级完整 GLS；无误差门声明即 REJECT",
+      "gate": "门 G-PIXIVAR-APPROX",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-PIXIVAR-GATE.md",
+        "kind": "md_table_row",
+        "locator": "FZ-AP2S-EPS-PIXIVAR",
+        "contains": "0.05"
+      },
+      "negative_mutation": "eps 放宽到 0.30 → rc!=0",
+      "anchor": "ALG-P2-SURF-PIXIVAR-GATE §3"
+    },
+    {
+      "id": "FZ-AP2S-EPS-PIXIVAR-SUP",
+      "subject": "pixel-ivar 逐元素硬上限（=4ε）",
+      "value": 0.2,
+      "value_display": "0.2",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 surface_gls 像素 ivar 近似",
+      "fail_closed": "任一有效元素 rho>1.20 → 该元素 fail-closed（转空间模型/unavailable）",
+      "gate": "门 G-PIXIVAR-APPROX",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-PIXIVAR-GATE.md",
+        "kind": "md_table_row",
+        "locator": "FZ-AP2S-EPS-PIXIVAR-SUP",
+        "contains": "0.20"
+      },
+      "negative_mutation": "删除逐元素硬上限 → rc!=0",
+      "anchor": "ALG-P2-SURF-PIXIVAR-GATE §3"
+    },
+    {
+      "id": "FZ-AP2S-RANK-RTOL",
+      "subject": "秩判定相对容差 sigma_i/sigma_max",
+      "value": 1e-10,
+      "value_display": "1e-10",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 surface_gls / UPM",
+      "fail_closed": "秩亏 → 该元素/块 unavailable，禁止伪逆静默",
+      "gate": "G-P2S-RANK",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-UPM.md",
+        "kind": "substring",
+        "locator": "FZ-AP2S-RANK-RTOL",
+        "contains": "1e-10"
+      },
+      "negative_mutation": "rank_rtol 放宽到 1e-4 → rc!=0",
+      "anchor": "ALG-P2-SURF-UPM §3 / GLS §5"
+    },
+    {
+      "id": "FZ-AP2S-KAPPA-MAX",
+      "subject": "条件数上限 cond_2(D^-1 A^T W A D^-1)",
+      "value": 1000000,
+      "value_display": "1000000",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 UPM/GLS 可辨识性",
+      "fail_closed": "kappa>1e6 → 分组件或 unavailable，禁止静默欠定解",
+      "gate": "G-P2S-KAPPA",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-UPM.md",
+        "kind": "substring",
+        "locator": "FZ-AP2S-KAPPA-MAX",
+        "contains": "1e6"
+      },
+      "negative_mutation": "kappa_max 放宽到 1e9 → rc!=0",
+      "anchor": "ALG-P2-SURF-UPM §4"
+    },
+    {
+      "id": "FZ-AP2S-UPM-MINFRAMES",
+      "subject": "UPM 乘法/加性可辨识最少帧数",
+      "value": 2,
+      "value_display": "2",
+      "unit": "count",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 UPM",
+      "fail_closed": "单帧区拟合 g → 禁止；须 additive-only 降级声明",
+      "gate": "G-P2S-UPM-MINF",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-UPM.md",
+        "kind": "substring",
+        "locator": "FZ-AP2S-UPM-MINFRAMES",
+        "contains": "2"
+      },
+      "negative_mutation": "min_frames=1 → rc!=0",
+      "anchor": "ALG-P2-SURF-UPM §3"
+    },
+    {
+      "id": "FZ-AP2S-IDENT-RTOL",
+      "subject": "GLS 恒等式容差 R C_in R^T == (A^T C^-1 A)^-1",
+      "value": 1e-09,
+      "value_display": "1e-9",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 surface_gls",
+      "fail_closed": "恒等式超容差 → REJECT",
+      "gate": "门 G-P2S-IDENT",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-GLS.md",
+        "kind": "substring",
+        "locator": "FZ-AP2S-IDENT-RTOL",
+        "contains": "1e-9"
+      },
+      "negative_mutation": "容差放宽到 1e-3 → rc!=0",
+      "anchor": "ALG-P2-SURF-GLS §2 / COVARIANCE-EPSF §1.1"
+    },
+    {
+      "id": "FZ-AP2S-MC-RELTOL",
+      "subject": "GLS covariance vs Monte Carlo 相对容差",
+      "value": 0.03,
+      "value_display": "0.03",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 surface_gls",
+      "fail_closed": "rel>3% → REJECT",
+      "gate": "Oracle G1.2",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-COVARIANCE-EPSF.md",
+        "kind": "substring",
+        "locator": "FZ-AP2S-MC-RELTOL",
+        "contains": "3%"
+      },
+      "negative_mutation": "reltol 放宽到 0.20 → rc!=0",
+      "anchor": "ALG-P2-SURF-COVARIANCE-EPSF §5"
+    },
+    {
+      "id": "FZ-AP2S-EPSF-RTOL",
+      "subject": "注入单位点源 vs 解析 P_eff 容差",
+      "value": 1e-12,
+      "value_display": "1e-12",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 effective PSF 传播",
+      "fail_closed": "超容差 → REJECT",
+      "gate": "Oracle E1",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-COVARIANCE-EPSF.md",
+        "kind": "substring",
+        "locator": "FZ-AP2S-EPSF-RTOL",
+        "contains": "1e-12"
+      },
+      "negative_mutation": "容差放宽到 1e-3 → rc!=0",
+      "anchor": "ALG-P2-SURF-COVARIANCE-EPSF §5"
+    },
+    {
+      "id": "FZ-AP2S-REJ-CALIB-BINMIN",
+      "subject": "rejection 校准每箱最小样本数",
+      "value": 50,
+      "value_display": "50",
+      "unit": "count",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 rejection probability 校准",
+      "fail_closed": "箱样本<50 → 该箱不参与判定但覆盖须登记",
+      "gate": "ALG-P2S-REJ.4",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-REJECTION.md",
+        "kind": "substring",
+        "locator": "FZ-AP2S-REJ-CALIB-BINMIN",
+        "contains": "50"
+      },
+      "negative_mutation": "binmin=5 → rc!=0",
+      "anchor": "ALG-P2-SURF-REJECTION §4"
+    },
+    {
+      "id": "FZ-AP2S-REJ-CALIB-ABS",
+      "subject": "rejection 可靠性绝对偏差上限 |obs-mean(p)|",
+      "value": 0.1,
+      "value_display": "0.1",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 rejection probability 校准",
+      "fail_closed": ">0.10 → 概率不得作科学门，须回退显式阈值并登记",
+      "gate": "ALG-P2S-REJ.4",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-REJECTION.md",
+        "kind": "substring",
+        "locator": "FZ-AP2S-REJ-CALIB-ABS",
+        "contains": "0.10"
+      },
+      "negative_mutation": "阈值放宽到 0.50 → rc!=0",
+      "anchor": "ALG-P2-SURF-REJECTION §4"
+    },
+    {
+      "id": "FZ-AP2S-REJ-BSS-MIN",
+      "subject": "rejection Brier skill score 下限",
+      "value": 0.1,
+      "value_display": "0.1",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 rejection probability 校准",
+      "fail_closed": "BSS≤0.10 → 概率不得作科学门",
+      "gate": "ALG-P2S-REJ.4",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-REJECTION.md",
+        "kind": "substring",
+        "locator": "FZ-AP2S-REJ-BSS-MIN",
+        "contains": "0.10"
+      },
+      "negative_mutation": "bss_min=0 → rc!=0",
+      "anchor": "ALG-P2-SURF-REJECTION §4"
+    },
+    {
+      "id": "FZ-REJ-INHERITED-THRESH",
+      "subject": "排异判定阈值（继承 ALG-REJ-001，不改）",
+      "value": "sigma 4.0/3.0/8iter; linear_fit 5.0/3.5/8; percentile 0.2/0.1; ESD alpha 0.05 max 10; large_scale min_structure 8/low 2/high 2",
+      "value_display": "sigma 4.0/3.0/8iter; linear_fit 5.0/3.5/8; percentile 0.2/0.1; ESD alpha 0.05 max 10; large_scale min_structure 8/low 2/high 2",
+      "unit": "1",
+      "status": "FROZEN",
+      "owner_signoff": null,
+      "scope": "Phase2 rejection",
+      "fail_closed": "改动任一继承阈值或 method=AUTO → invalid_configuration/invalid_method",
+      "gate": "ALG-P2S-REJ.5",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-REJECTION.md",
+        "kind": "substring",
+        "locator": "sigma 4.0/3.0/8iter",
+        "contains": "large_scale min_structure 8/low 2/high 2"
+      },
+      "negative_mutation": "改动继承阈值 → rc!=0",
+      "anchor": "ALG-REJ-001（原样继承）"
+    },
+    {
+      "id": "FZ-UPM-CONVERGENCE",
+      "subject": "UPM 迭代/收敛参数（继承 UPM_SOLVER.md，不改）",
+      "value": "Huber δ=1.345; max_iter=100; tol=1e-6; sigma_floor=1e-3; zero_anchor=1e-3",
+      "value_display": "Huber δ=1.345; max_iter=100; tol=1e-6; sigma_floor=1e-3; zero_anchor=1e-3",
+      "unit": "1",
+      "status": "FROZEN",
+      "owner_signoff": null,
+      "scope": "Phase2 UPM",
+      "fail_closed": "改动收敛参数或 sigma_floor → 与既有合同不一致",
+      "gate": "ALG-P2S-UPM.4",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-UPM.md",
+        "kind": "substring",
+        "locator": "Huber `δ=1.345`",
+        "contains": "tol=1e-6"
+      },
+      "negative_mutation": "改动 tol/σ_floor → rc!=0",
+      "anchor": "UPM_SOLVER.md（原样继承）"
+    },
+    {
+      "id": "FZ-AP2PT-SNR-IDENT-RTOL",
+      "subject": "独立帧 SNR_combined^2=ΣSNR_k^2 相对容差",
+      "value": 1e-09,
+      "value_display": "1e-9",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 point_information",
+      "fail_closed": "独立帧恒等式超容差 → REJECT",
+      "gate": "GATE-SNR-12",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md",
+        "kind": "substring",
+        "locator": "独立帧相对容差",
+        "contains": "1e-9"
+      },
+      "negative_mutation": "忘平方（SNR=ΣSNR_k）→ rc!=0",
+      "anchor": "ALG-P2-POINT-001 §7"
+    },
+    {
+      "id": "FZ-AP2PT-CORR-RATIO-MIN",
+      "subject": "相关帧朴素求和过度乐观检出阈值（joint/naive 方差比）",
+      "value": 1.05,
+      "value_display": "1.05",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 point_information 相关帧",
+      "fail_closed": "比值≥1.05 → 拒绝朴素 Σ，必须联合 C_in",
+      "gate": "GATE-CORR-04",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md",
+        "kind": "substring",
+        "locator": "correlated_detection_ratio_min",
+        "contains": "1.05"
+      },
+      "negative_mutation": "阈值放宽到 1.50 → rc!=0",
+      "anchor": "ALG-P2-POINT-001 §7"
+    },
+    {
+      "id": "CF-T-CONST-SB-TOL",
+      "subject": "Drizzle 常量面亮度门容差（沿用，不改）",
+      "value": 0.001,
+      "value_display": "0.001",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-03",
+      "scope": "Phase1 Drizzle 常量场 Oracle",
+      "fail_closed": "改动容差或未覆盖全 pixfrac → REJECT",
+      "gate": "FZ-GATE-CONST-SB",
+      "source_binding": {
+        "file": "docs/science/v6/adjudication/SCI-ADJ-001_FREEZE_LIST.md",
+        "kind": "substring",
+        "locator": "FZ-GATE-CONST-SB",
+        "contains": "1e-3"
+      },
+      "negative_mutation": "容差改为 1e-1 → rc!=0",
+      "anchor": "SCI-ADJ-001 FREEZE_LIST §3.8"
+    },
+    {
+      "id": "FZ-AP1-DEFICIT-THRESH",
+      "subject": "HiPS 父级方差 deficit=(exact-diag)/exact 阈值（提案，待签字）",
+      "value": 0.2,
+      "value_display": "0.2",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase1 HiPS 父级 variance 对角归约",
+      "fail_closed": "未签字生效前该 variance 面不得声明精确；deficit 超阈 → 标 unavailable/给相关核",
+      "gate": "FZ-GATE-PARENT-VAR",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md",
+        "kind": "substring",
+        "locator": "PROPOSED_PENDING_OWNER_SIGNOFF_SO07",
+        "contains": "0.20"
+      },
+      "negative_mutation": "对角归约声明为精确 → rc!=0",
+      "anchor": "ALG-P1-001 §6.5（提案 0.20）"
+    },
+    {
+      "id": "FZ-CAL-FLOOR",
+      "subject": "flat 归一除法下限 max(f_p, 0.1)（继承 SCI-CAL-001）",
+      "value": 0.1,
+      "value_display": "0.1",
+      "unit": "1",
+      "status": "FROZEN",
+      "owner_signoff": null,
+      "scope": "Phase1 calibration",
+      "fail_closed": "f_p≤0 或非有限仍造值 → REJECT（不得静默 floor 造值）",
+      "gate": "CAL-COV-FORMULA",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md",
+        "kind": "substring",
+        "locator": "max(f_p, 0.1)",
+        "contains": "0.1"
+      },
+      "negative_mutation": "删除 floor 并除以 0 → rc!=0",
+      "anchor": "SCI-CAL-001（原样继承）"
+    },
+    {
+      "id": "FZ-CAL-QUANTUM-DEFAULT",
+      "subject": "ADC 量化默认 q_adu",
+      "value": 1,
+      "value_display": "1",
+      "unit": "ADU",
+      "status": "FROZEN",
+      "owner_signoff": null,
+      "scope": "Phase1 calibration 量化项",
+      "fail_closed": "量化项未声明 q_adu → 缺省 1 ADU 但必须声明",
+      "gate": "CAL-COV-FORMULA",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md",
+        "kind": "substring",
+        "locator": "default 1 ADU",
+        "contains": "1 ADU"
+      },
+      "negative_mutation": "量化方差用 q=0 → rc!=0",
+      "anchor": "SCI-CAL-001（声明缺省）"
+    },
+    {
+      "id": "FZ-AP1-GLS-QW-RTOL",
+      "subject": "Q/W==GLS 与 Var=1/W 相对容差（沿用）",
+      "value": 1e-09,
+      "value_display": "1e-9",
+      "unit": "1",
+      "status": "FROZEN",
+      "owner_signoff": null,
+      "scope": "Phase1/Phase2 点源",
+      "fail_closed": "超容差 → REJECT",
+      "gate": "FZ-FORMULA-WINFO",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md",
+        "kind": "substring",
+        "locator": "GLS/Q-W rel < 1e-9",
+        "contains": "1e-9"
+      },
+      "negative_mutation": "Q/W 允许 1% 偏差 → rc!=0",
+      "anchor": "ALG-P1-001 §7 容差政策"
+    },
+    {
+      "id": "FZ-PROV-KCORR-VALUE",
+      "subject": "k_corr 已声明适用域内冻结值（未复跑标定前）",
+      "value": 1.4,
+      "value_display": "1.4",
+      "unit": "1",
+      "status": "PENDING_OWNER_SIGNOFF",
+      "owner_signoff": "SO-07",
+      "scope": "Phase2 UPM control_variance（已声明域内）",
+      "fail_closed": "跨域外推/内插或忽略相关 → REJECT",
+      "gate": "FZ-PROV-KCORR",
+      "source_binding": {
+        "file": "docs/contracts/v6/data/07_provenance.md",
+        "kind": "substring",
+        "locator": "未复跑标定前",
+        "contains": "1.4"
+      },
+      "negative_mutation": "k_corr 取 1.0 忽略相关 → rc!=0",
+      "anchor": "ADJ-F-OBS-05 / ALG-P2-SURF-UPM §6"
+    },
+    {
+      "id": "FZ-P3-OMEGA-NONCONST",
+      "subject": "逐像素立体角 Omega 非常数（CAR 视场极差证据）",
+      "value": "CAR max/min=2.0000（TAN(dec60)=1.445）",
+      "value_display": "CAR max/min=2.0000（TAN(dec60)=1.445）",
+      "unit": "1",
+      "status": "FROZEN",
+      "owner_signoff": null,
+      "scope": "Phase3 投影",
+      "fail_closed": "常数 Omega 近似冒充逐像素面积元 → REJECT",
+      "gate": "G-P3-SB-01",
+      "source_binding": {
+        "file": "docs/algorithms/v6/phase3/ALG-P3-001_VERIFICATION.md",
+        "kind": "substring",
+        "locator": "CAR",
+        "contains": "2.0000"
+      },
+      "negative_mutation": "用常数 Omega 做 flux 换算 → rc!=0",
+      "anchor": "ALG-P3-001 §2.4 / C-P3-PROP-3"
+    },
+    {
+      "id": "CF-T-P3-CORR-EPSILON",
+      "subject": "Phase3 相关核近似误差阈值 epsilon_corr",
+      "value": null,
+      "value_display": "null",
+      "unit": "1",
+      "status": "OPEN",
+      "owner_signoff": "CONTRACT-FREEZE-001(W4)+负责人(SO-07)",
+      "scope": "Phase3 covariance 相关核近似",
+      "fail_closed": "数值未落地前该面 fail-closed：只出对角且无相关核/近似误差 → REJECT",
+      "gate": "G-P3-COV-01",
+      "source_binding": null,
+      "negative_mutation": "对角化过度乐观（声明 28.71% 低于真实）未检出 → rc!=0",
+      "anchor": "ALG-P3-001 §11 / SO-07"
+    },
+    {
+      "id": "QF-G-INJ-01",
+      "subject": "注入源 flux bias 门（设计默认 2%，待冻）",
+      "value": 0.02,
+      "value_display": "0.02",
+      "unit": "rel",
+      "status": "OPEN",
+      "owner_signoff": "ALG-P2-POINT-001",
+      "scope": "Phase2 point_information 注入验证",
+      "fail_closed": "未冻结前不得以本值冒充已冻结容差；executed=0/skip-only → rc=2",
+      "gate": "G-INJ-01",
+      "source_binding": {
+        "file": "docs/validation/v6/QA_MATRIX.md",
+        "kind": "substring",
+        "locator": "G-INJ-01",
+        "contains": "0.02"
+      },
+      "negative_mutation": "删除 owner → P0-06 rc!=0",
+      "anchor": "QA_MATRIX G-INJ-01（status=pending_freeze）"
+    },
+    {
+      "id": "QF-G-INJ-02",
+      "subject": "扩展源三量一致性门（设计默认 3%，待冻）",
+      "value": 0.03,
+      "value_display": "0.03",
+      "unit": "rel",
+      "status": "OPEN",
+      "owner_signoff": "ALG-P2-SURF-001",
+      "scope": "Phase2 surface_gls 注入验证",
+      "fail_closed": "未冻结前不得冒充已冻结容差",
+      "gate": "G-INJ-02",
+      "source_binding": {
+        "file": "docs/validation/v6/QA_MATRIX.md",
+        "kind": "substring",
+        "locator": "G-INJ-02",
+        "contains": "0.03"
+      },
+      "negative_mutation": "删除 owner → P0-06 rc!=0",
+      "anchor": "QA_MATRIX G-INJ-02（status=pending_freeze）"
+    },
+    {
+      "id": "QF-G-INJ-03",
+      "subject": "W_info 注入恢复门（建议 5%，待冻）",
+      "value": 0.05,
+      "value_display": "0.05",
+      "unit": "rel",
+      "status": "OPEN",
+      "owner_signoff": "ALG-P2-PSFSW-001",
+      "scope": "Phase2/Phase1 W_info 注入验证",
+      "fail_closed": "未冻结前不得冒充已冻结容差",
+      "gate": "G-INJ-03",
+      "source_binding": {
+        "file": "docs/validation/v6/QA_MATRIX.md",
+        "kind": "substring",
+        "locator": "G-INJ-03",
+        "contains": "0.05"
+      },
+      "negative_mutation": "删除 owner → P0-06 rc!=0",
+      "anchor": "QA_MATRIX G-INJ-03（status=pending_freeze）"
+    },
+    {
+      "id": "QF-G-INJ-07",
+      "subject": "Phase3 flux 恢复门（设计默认 2%，待冻）",
+      "value": 0.02,
+      "value_display": "0.02",
+      "unit": "rel",
+      "status": "OPEN",
+      "owner_signoff": "ALG-P3-001",
+      "scope": "Phase3 注入验证",
+      "fail_closed": "未冻结前不得冒充已冻结容差",
+      "gate": "G-INJ-07",
+      "source_binding": {
+        "file": "docs/validation/v6/QA_MATRIX.md",
+        "kind": "substring",
+        "locator": "G-INJ-07",
+        "contains": "0.02"
+      },
+      "negative_mutation": "删除 owner → P0-06 rc!=0",
+      "anchor": "QA_MATRIX G-INJ-07（status=pending_freeze）"
+    },
+    {
+      "id": "QF-G-RD-01",
+      "subject": "真实数据 M42 接缝/噪声清单失败数",
+      "value": 0,
+      "value_display": "0",
+      "unit": "count",
+      "status": "OPEN",
+      "owner_signoff": "REAL-SCIENCE-001",
+      "scope": "Phase2/Phase3 真实数据",
+      "fail_closed": "W10 预注册后冻结；本值不得冒充冻结",
+      "gate": "G-RD-01",
+      "source_binding": {
+        "file": "docs/validation/v6/QA_MATRIX.md",
+        "kind": "substring",
+        "locator": "G-RD-01",
+        "contains": "0 count"
+      },
+      "negative_mutation": "删除 owner → P0-06 rc!=0",
+      "anchor": "QA_MATRIX G-RD-01（status=pending_freeze）"
+    },
+    {
+      "id": "QF-G-RD-02",
+      "subject": "真实数据银心清单失败数",
+      "value": 0,
+      "value_display": "0",
+      "unit": "count",
+      "status": "OPEN",
+      "owner_signoff": "REAL-SCIENCE-001",
+      "scope": "Phase2/Phase3 真实数据",
+      "fail_closed": "W10 预注册后冻结",
+      "gate": "G-RD-02",
+      "source_binding": {
+        "file": "docs/validation/v6/QA_MATRIX.md",
+        "kind": "substring",
+        "locator": "G-RD-02",
+        "contains": "0 count"
+      },
+      "negative_mutation": "删除 owner → P0-06 rc!=0",
+      "anchor": "QA_MATRIX G-RD-02（status=pending_freeze）"
+    },
+    {
+      "id": "QF-G-BASE-03",
+      "subject": "psfsw 基线比较效应量下界（预注册，待冻）",
+      "value": "effect_size>0",
+      "value_display": "effect_size>0",
+      "unit": "rel",
+      "status": "OPEN",
+      "owner_signoff": "ALG-P2-PSFSW-001/预注册",
+      "scope": "psfsw 基线比较",
+      "fail_closed": "预注册前不得冒充冻结；不得声明 Fisher 最优",
+      "gate": "G-BASE-03",
+      "source_binding": {
+        "file": "docs/validation/v6/QA_MATRIX.md",
+        "kind": "substring",
+        "locator": "G-BASE-03",
+        "contains": "> 0 rel"
+      },
+      "negative_mutation": "删除 owner → P0-06 rc!=0",
+      "anchor": "QA_MATRIX G-BASE-03（status=pending_freeze）"
+    }
+  ],
+  "open_items": [
+    {
+      "id": "DI-01",
+      "topic": "schema 词表单一化（SCI-PSFW 词表 vs SCI-P2 词表 → 单一 schema）",
+      "cls": "open_design",
+      "owner": "SCHEMA-INTEGRATE-001(W6)",
+      "status": "OPEN",
+      "anchor": "C-004.3; ADJ-C004-03; DATA-DESIGN-001 10_migration §2"
+    },
+    {
+      "id": "DI-02",
+      "topic": "数值阈值：surface_gls epsilon / HiPS deficit / PSFSW 指数与归一常数 / 共同星集深度稳定性阈值",
+      "cls": "threshold_pending",
+      "owner": "ALG-P2-SURF-001 / ALG-P1-001 / ALG-P2-PSFSW-001 (W3) + 负责人",
+      "status": "OPEN",
+      "anchor": "FZ-GATE-PIXIVAR-APPROX; FZ-GATE-PARENT-VAR; FZ-FORMULA-PSFSW-COMPOSITE; SO-07"
+    },
+    {
+      "id": "DI-03",
+      "topic": "shared systematic 的低秩/相关核数据面实例化",
+      "cls": "data_face",
+      "owner": "ALG-P1-001 / IMPL-P1-CAL-001 / SCHEMA-INTEGRATE-001",
+      "status": "OPEN",
+      "anchor": "FZ-PROV-SHARED-SYSTEMATIC; ADJ-F-OBS-04"
+    },
+    {
+      "id": "DI-04",
+      "topic": "k_corr 标定脚本 + 固定种子 MC 复跑",
+      "cls": "calibration",
+      "owner": "ALG-P2-UPM-001 / IMPL-P2-UPM-001 + 负责人",
+      "status": "OPEN",
+      "anchor": "FZ-PROV-KCORR; ADJ-F-OBS-05; SO-07"
+    },
+    {
+      "id": "DI-05",
+      "topic": "AR-048 参数生效证明（参数被记录 ≠ 生效）",
+      "cls": "runtime_gate",
+      "owner": "DATA-DESIGN-001(G-PARAMETER-EFFECTIVENESS) / RUNTIME-CI-001",
+      "status": "OPEN",
+      "anchor": "reports/v6/review-audit/03 AR-048"
+    },
+    {
+      "id": "DI-06",
+      "topic": "生产 schema plane 枚举扩展与 runtime validator 同一提交（F-UNC-003）",
+      "cls": "schema_runtime",
+      "owner": "SCHEMA-INTEGRATE-001(W6) / IMPL-AIO-001",
+      "status": "OPEN",
+      "anchor": "DATA_SEMANTICS §30.2 F-UNC-003"
+    },
+    {
+      "id": "DI-07",
+      "topic": "weight_units 字面量 \"1\"(冻结) vs dimensionless_relative(SCI-P2 R5) 的 W6 双射落定",
+      "cls": "vocabulary",
+      "owner": "SCHEMA-INTEGRATE-001(W6)",
+      "status": "OPEN",
+      "anchor": "C-004.3; DATA-DESIGN-001 10_migration §2b"
+    },
+    {
+      "id": "OI-01",
+      "topic": "Phase1 单帧无法形成帧组：四分量+未归一 Wt+归一契约归 Phase1，组内 median=1 归 Phase2；接口拆分须 W4 批准",
+      "cls": "interface_ratification",
+      "owner": "CONTRACT-FREEZE-001(W4)",
+      "status": "OPEN",
+      "anchor": "ALG-P1-001 §4.5/§8.3"
+    },
+    {
+      "id": "OI-02",
+      "topic": "DESIGN-P1 §4.2 的 V_b + α²V_b 与同 master_id 的 (1−α)² 合并关系",
+      "cls": "finding",
+      "owner": "CONTRACT-FREEZE-001(W4)/负责人",
+      "status": "OPEN",
+      "anchor": "ADJ-OBS-01; ALG-P1-001 §2.2"
+    },
+    {
+      "id": "OI-03",
+      "topic": "SCI-CAL-001 §9a/§1『不传播 variance / 不建模 gain-readnoise』与 V6 目标冲突（取代登记）",
+      "cls": "supersede_registration",
+      "owner": "CONTRACT-FREEZE-001(W4) SO-06",
+      "status": "OPEN",
+      "anchor": "ALG-P1-001 §2.4; SO-06"
+    },
+    {
+      "id": "OI-04",
+      "topic": "docs/**/v6/** 未登记进 docs/DOCUMENT_INDEX.yaml；check_doc_index.py docs_fully_covered 现为红",
+      "cls": "coverage_gap",
+      "owner": "DOC-CONVERGE-001(W12)/控制器",
+      "status": "OPEN",
+      "anchor": "OI-04; ALG-P1-001 §8.3"
+    },
+    {
+      "id": "OI-05",
+      "topic": "common star set n_common 下限、selection bias 深度稳定性阈值、四分量非均匀拆 tile 阈值未冻结",
+      "cls": "threshold_pending",
+      "owner": "ALG-P2-PSFSW-001(W3)/CONTRACT-FREEZE-001(W4) SO-07",
+      "status": "OPEN",
+      "anchor": "ALG-P1-001 §8.3; PSFSW-G11/G18"
+    },
+    {
+      "id": "OPEN-P2S-01",
+      "topic": "point_source 产品规范输出形态（map vs statistic）",
+      "cls": "domain_open",
+      "owner": "ALG-P2-POINT-001/控制器",
+      "status": "OPEN",
+      "anchor": "ALG-P2-SURF-VERIFICATION §6.3"
+    },
+    {
+      "id": "OPEN-P2S-02",
+      "topic": "UPM 乘法尺度 g_k 的生产数据面/schema 与空间模型表示",
+      "cls": "data_face",
+      "owner": "DATA-DESIGN-001/SCHEMA-INTEGRATE-001",
+      "status": "OPEN",
+      "anchor": "ALG-P2-SURF-VERIFICATION §6.3"
+    },
+    {
+      "id": "OPEN-P2S-03",
+      "topic": "跨帧完整联合 C 的低秩/相关核表示",
+      "cls": "data_face",
+      "owner": "DATA-DESIGN-001/CONTRACT-FREEZE-001",
+      "status": "OPEN",
+      "anchor": "ALG-P2-SURF-VERIFICATION §6.3"
+    },
+    {
+      "id": "P3-OPEN-EPSILON-CORR",
+      "topic": "Phase3 相关核近似误差阈值 epsilon_corr 具体数值",
+      "cls": "threshold_pending",
+      "owner": "CONTRACT-FREEZE-001(W4)+负责人(SO-07)",
+      "status": "OPEN",
+      "anchor": "ALG-P3-001 §11 / ALG-P3-001-VERIFICATION §8.3"
+    },
+    {
+      "id": "PF-01",
+      "topic": "G-INJ-01 注入源 flux bias 容差（设计默认 2% 未冻结）",
+      "cls": "threshold_pending",
+      "owner": "ALG-P2-POINT-001",
+      "status": "OPEN",
+      "anchor": "QA_MATRIX G-INJ-01 threshold_status=pending_freeze"
+    },
+    {
+      "id": "PF-02",
+      "topic": "G-INJ-02 扩展源三量一致性容差（设计默认 3% 未冻结）",
+      "cls": "threshold_pending",
+      "owner": "ALG-P2-SURF-001",
+      "status": "OPEN",
+      "anchor": "QA_MATRIX G-INJ-02 threshold_status=pending_freeze"
+    },
+    {
+      "id": "PF-03",
+      "topic": "G-INJ-03 W_info 注入恢复容差（建议 5% 未冻结）",
+      "cls": "threshold_pending",
+      "owner": "ALG-P2-PSFSW-001",
+      "status": "OPEN",
+      "anchor": "QA_MATRIX G-INJ-03 threshold_status=pending_freeze"
+    },
+    {
+      "id": "PF-04",
+      "topic": "G-INJ-07 Phase3 flux 恢复容差（设计默认 2% 未冻结）",
+      "cls": "threshold_pending",
+      "owner": "ALG-P3-001",
+      "status": "OPEN",
+      "anchor": "QA_MATRIX G-INJ-07 threshold_status=pending_freeze"
+    },
+    {
+      "id": "PF-05",
+      "topic": "G-RD-01 真实数据 M42 接缝/噪声清单门（W10 预注册冻结）",
+      "cls": "threshold_pending",
+      "owner": "REAL-SCIENCE-001",
+      "status": "OPEN",
+      "anchor": "QA_MATRIX G-RD-01 threshold_status=pending_freeze"
+    },
+    {
+      "id": "PF-06",
+      "topic": "G-RD-02 真实数据银心清单门（W10 预注册冻结）",
+      "cls": "threshold_pending",
+      "owner": "REAL-SCIENCE-001",
+      "status": "OPEN",
+      "anchor": "QA_MATRIX G-RD-02 threshold_status=pending_freeze"
+    },
+    {
+      "id": "PF-07",
+      "topic": "G-BASE-03 psfsw 基线比较效应量与 CI（预注册冻结）",
+      "cls": "threshold_pending",
+      "owner": "ALG-P2-PSFSW-001/预注册",
+      "status": "OPEN",
+      "anchor": "QA_MATRIX G-BASE-03 threshold_status=pending_freeze"
+    },
+    {
+      "id": "AR-032-GAP",
+      "topic": "非 v6 docs/science/*.md 在 W1–W8 无 owner；正式取代归 DOC-CONVERGE-001",
+      "cls": "coverage_gap",
+      "owner": "DOC-CONVERGE-001(W12)/SO-06",
+      "status": "OPEN",
+      "anchor": "SCI-ADJ-001_CONFLICT_MATRIX §5"
+    },
+    {
+      "id": "AR-034-GAP",
+      "topic": "7 项历史 CI 红无 V6 逐名验收锚（建议 RUNTIME-CI-001 逐名登记终态）",
+      "cls": "ci_gap",
+      "owner": "控制器/RUNTIME-CI-001",
+      "status": "OPEN",
+      "anchor": "ADJ-AR-03"
+    },
+    {
+      "id": "AR-035-GAP",
+      "topic": "785 合并层缺陷账本无销账任务（只登记，处置权在控制器/负责人）",
+      "cls": "ledger_gap",
+      "owner": "控制器/FINAL-AUDIT-001",
+      "status": "OPEN",
+      "anchor": "ADJ-AR-03; P0_GATE_FAMILY"
+    },
+    {
+      "id": "AR-036-SIGNOFF",
+      "topic": "宪章 §10.5/§17.6『记录 vs 自动判决』需负责人签字（V6 无承载）",
+      "cls": "governance_signoff",
+      "owner": "项目负责人",
+      "status": "OPEN",
+      "anchor": "ADJ-CTRL-01; SO-05"
+    }
+  ],
+  "superseded_sections": [
+    {
+      "id": "SUP-01",
+      "doc_id": "SCI-DRZ-001",
+      "file": "docs/science/DRIZZLE.md",
+      "section": "§3 物理量和单位",
+      "lines": "27",
+      "statement": "`v,variance`: ADU²；`ivar`: ADU⁻² —— 把输入逐像素方差与输出面亮度方差同名写作 variance",
+      "superseded_by": [
+        "FZ-UNIT-VAR-IN",
+        "FZ-UNIT-VAR-SB",
+        "FZ-UNIT-IVAR-SB",
+        "FZ-BUNIT-SEMANTICS"
+      ],
+      "signoff": "SO-01",
+      "suggested_wording": "把该行拆为 `pixel_variance_in`（输入 v_j，ADU^2）与 `sb_variance_out`（输出 variance_p，ADU^2/px^4）两名单列，`ivar` 单位改为 px^4/ADU^2；由负责人签字后由 DOC-CONVERGE-001 统一改写。"
+    },
+    {
+      "id": "SUP-02",
+      "doc_id": "SCI-DRZ-001",
+      "file": "docs/science/DRIZZLE.md",
+      "section": "§5 权重与归一 / §7 不变量",
+      "lines": "38-51,79-84",
+      "statement": "`w_jp=a_jp/A_drop`（A_drop=pixfrac²·A_pixel）；`S_p=B0` 仅在 pixfrac=1 成立；面亮度归一因子 A_drop vs A_pixel 分叉",
+      "superseded_by": [
+        "FZ-FORMULA-DRIZZLE-SB",
+        "FZ-FORMULA-DRIZZLE-VAR",
+        "FZ-COND-FLUX-CONSERV"
+      ],
+      "signoff": "SO-02",
+      "suggested_wording": "标注 §5/§7 为 legacy 归一：V6 目标态为面亮度保持 S_p=Σ_j B_j a_jp/Σ_j a_jp（等价 w_SB_jp=a_jp/A_pixel,j=pixfrac²·w_legacy），通量守恒为条件不变量并写 provenance.flux_conservation_factor=pixfrac²。"
+    },
+    {
+      "id": "SUP-03",
+      "doc_id": "SCI-DRZ-001",
+      "file": "docs/science/DRIZZLE.md",
+      "section": "§11 验收门",
+      "lines": "117",
+      "statement": "`流量守恒：常数场 C 的 S_p=C 全像素 max_abs==0`（把每像素常量 ADU 与常量面亮度混同）",
+      "superseded_by": [
+        "FZ-GATE-CONST-SB"
+      ],
+      "signoff": "SO-03",
+      "suggested_wording": "改为：常量场 Oracle 真值按面亮度 B0 构造 x_j=B0·A_pixel,j，门为 S_p=B0（|S_p/B0−1|<1e-3）对全部 pixfrac∈(0,1]；保留负向门（常量 ADU 构造/S_p=F_p 必红）。"
+    },
+    {
+      "id": "SUP-04",
+      "doc_id": "SCI-DRZ-001",
+      "file": "docs/science/DRIZZLE.md",
+      "section": "§1 目的与非目标 / §9a 专属问题",
+      "lines": "8,146",
+      "statement": "`协方差产品为非目标（仅方差传播，协方差文档化）`；`不存完整协方差矩阵`",
+      "superseded_by": [
+        "FZ-GATE-PARENT-VAR",
+        "FZ-FORMULA-COV-PROP",
+        "FZ-PROV-SHARED-SYSTEMATIC"
+      ],
+      "signoff": "SO-04",
+      "suggested_wording": "改为：协方差/相关核为强制输出面；只存对角 variance 时必须另存 correlation kernel rho_ij 或可重建算子摘要 + 近似误差，并声明为下界；不得声明精确。"
+    },
+    {
+      "id": "SUP-05",
+      "doc_id": "SCI-CW-001..008",
+      "file": "docs/science/CONTROL_WEIGHT_SNR.md",
+      "section": "§ 像素级 SNR 权重（weight_mode=2）",
+      "lines": "66,71",
+      "statement": "`weight_mode=2`；`weights[s] = support[s] × snr_v²`（support×SNR² 作像素级权重）",
+      "superseded_by": [
+        "FZ-MODE-PRODUCTION",
+        "FZ-FIELD-WEIGHTMODE",
+        "FZ-GATE-SUPPORT-COVERAGE",
+        "FZ-GATE-MEDIAN-SNR"
+      ],
+      "signoff": "SO-06",
+      "suggested_wording": "标注为 ARCHIVED：support×snr² 权重形态被 UNIFIED §11 撤销；support/coverage 只作门，local_snr/frame_snr 只作相对质量诊断，不得作科学权重来源；生产权重枚举改为显式三模式。"
+    },
+    {
+      "id": "SUP-06",
+      "doc_id": "SCI-ACR-EQUIV-001",
+      "file": "docs/science/ACR_EQUIVALENCE.md",
+      "section": "§4 GPU 合同",
+      "lines": "33",
+      "statement": "`weight_mode∈{auto,ivar,equal,support_x_snr2}`",
+      "superseded_by": [
+        "FZ-FIELD-WEIGHTMODE",
+        "FZ-MODE-PRODUCTION"
+      ],
+      "signoff": "SO-06",
+      "suggested_wording": "标注为 ARCHIVED/HISTORICAL：ACR 等价门不得反向定义生产权重枚举；生产权重枚举以 FZ-MODE-PRODUCTION 为唯一来源，auto/support_x_snr2/legacy 整数不得出现在产品 schema 合法取值域。"
+    },
+    {
+      "id": "SUP-07",
+      "doc_id": "SCI-INT-001",
+      "file": "docs/science/INTEGRATION.md",
+      "section": "§1 目的与非目标",
+      "lines": "8",
+      "statement": "`不存完整协方差`（作为 Integration 非目标）",
+      "superseded_by": [
+        "FZ-FORMULA-COV-PROP",
+        "FZ-GATE-PARENT-VAR"
+      ],
+      "signoff": "SO-04/SO-06",
+      "suggested_wording": "改为：不存完整巨型矩阵仍成立，但必须输出对角 variance + 相关核/可重建算子摘要 + 近似误差门；协方差/相关核为强制输出面。"
+    },
+    {
+      "id": "SUP-08",
+      "doc_id": "SCI-CAL-001",
+      "file": "docs/science/CALIBRATION.md",
+      "section": "§1 目的与非目标 / §9a 专属问题",
+      "lines": "5,91,95",
+      "statement": "`read noise：校准层不建模、不传播`；`variance 传播：本层不传播母版方差至 cal`",
+      "superseded_by": [
+        "FZ-PROV-SHARED-SYSTEMATIC",
+        "FZ-FORMULA-COV-PROP"
+      ],
+      "signoff": "SO-06",
+      "suggested_wording": "按 DESIGN-P1 §4.2 与 ADJ-OBS-01 改为：校准层传播 J C_in J^T 逐像素方差（read noise/photon/quantization/dark），共享 master 进 covariance 面（低秩/相关核/master ID+强度参数），模型偏差进 validity/quality；不存完整巨型矩阵。"
+    },
+    {
+      "id": "SUP-09",
+      "doc_id": "SCI-P3-001",
+      "file": "docs/science/PHASE3_HIPS_TO_FITS.md",
+      "section": "§1 范围与非目标 / §3 输出投影",
+      "lines": "20,100",
+      "statement": "非目标含 `variance/weight/ivar 输入产品`、`flux-per-pixel 输入模式`、`SIN/CAR 等非 TAN 投影`",
+      "superseded_by": [
+        "FZ-P3-MODES",
+        "FZ-P3-FAILCLOSED",
+        "FZ-UNIT-IVAR-SB"
+      ],
+      "signoff": "SO-06",
+      "suggested_wording": "按 DESIGN-P3 §1/§3 与 ADJ-P3-01 改为：V6 目标态支持 variance（含相关核）输入、逐像素通量/面亮度双语义与 TAN/SIN/CAR/AIT 四投影；相位/采样核由版本化 kernel registry 注册并带独立 Oracle；须负责人签字后改写。"
+    },
+    {
+      "id": "SUP-10",
+      "doc_id": "UNCERTAINTY_AND_COVARIANCE(V19R3)",
+      "file": "docs/science/UNCERTAINTY_AND_COVARIANCE.md",
+      "section": "§V19R3 control estimator 方差",
+      "lines": "21,30-48",
+      "statement": "`k_corr=1.3883`（保守 1.4）冻结值 + 口径不完整；`V19 不保存完整 covariance matrix`",
+      "superseded_by": [
+        "FZ-PROV-KCORR",
+        "FZ-GATE-PARENT-VAR"
+      ],
+      "signoff": "SO-06/SO-07",
+      "suggested_wording": "部分取代（annotation）：保留按尺度查找表与 1.4 域内值，但必须补冻结定义 k_corr=Var(median)/[π σ_bg²/(2 N_retained)]、显式适用域（几何/pixfrac/patch/估计器/球面）与固定种子 MC 标定脚本；未复跑前禁止跨域外推。『不保存完整矩阵』本身不违规（对角+相关核合法）。"
+    }
+  ]
+}
