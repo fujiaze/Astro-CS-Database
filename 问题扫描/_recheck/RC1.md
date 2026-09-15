@@ -159,3 +159,27 @@
 - 命令：`sed -n '238,245p' docs/DOCUMENT_INDEX.yaml`；`sed -n '3p' docs/audit/risk_verification_T012.csv`；`sed -n '7p;64p' docs/audit/doc_classification.csv`；`grep -n -A1 'docs/modules/orchestrator.md' docs/DOCUMENT_INDEX.yaml`
 - 新锚：三份 audit 表仍 ACTIVE_INFORMATIVE（:238-245），notes 现加「V19R2 …历史快照；权威分类见本 DOCUMENT_INDEX.yaml」；T012.csv:3 仍引 `tools/stage2.cpp:720-724 weight_mode==2 禁 ACR` 而现行 :718-726 是 large_scale_rejection 装配段（锚失准，ACR-IVAR 现注释在 stage2_common.cpp:391）；doc_classification.csv:64 称 orchestrator.md「AUTHORITATIVE」而 INDEX :343-344 记 ACTIVE_INFORMATIVE；:7 RELEASE_STATUS 行称「CANDIDATE」与现行 owner/review 多头状态（M6b-G-002）不合
 - 判据：登记状态未改（仍 ACTIVE_INFORMATIVE 而非 ARCHIVED/GENERATED）+ 内容与树不符原样；notes 的历史快照自述是缓解不构成交付（宪章 §12.3 一致性义务仍缺位）。
+### M6a-D-002 · **STILL**
+- 命令：`sed -n '14,15p;929,953p' lib/calibration/src/module_entry.cpp`；`sed -n '920,924p' lib/drizzle/src/module_entry.cpp`；`sed -n '17,19p' lib/cosmetic/src/module_entry.cpp`；`sed -n '30,32p' lib/snr_estimator/src/module_entry.cpp`
+- 新锚：calibration 文件头现 :14-15 仍写「acquire 失败 → 单线程降级 (drizzle 先例, 非致命)」，同文件 :930-931「acquire 失败/executor 缺失均为硬 BUDGET, 不取 drizzle 降级单线程路径」+ :938/:951 `ACS_ERR_BUDGET` 硬拒 —— 头注与实现相反原样；drizzle :922 注释仍「单线程降级执行 (BUDGET 缺额非致命; workers=0)」；cosmetic :19「禁单线程降级 (cpu_heavy; CAL 先例同款」；snr :30-32「P1-CAL/COS 同款…禁降级」
+- 判据：同一 host_lease 合同在四个适配器上仍是三种互斥语义（降级非致命/硬拒致命/硬占坑禁借口），且「CAL 先例」被两族各取所需地互指；无一处注释订正。
+
+### M6a-D-010 · **STILL**
+- 命令：`grep -c 'ADU' lib/calibration/include/astro_calibration.h`（=0）；`sed -n '69,79p' astro_calibration.h`；`grep -n '返回' lib/calibration/src/photometry_apply.h`（:27-31 仅列 -1..-4）；`grep -n 'return -5' lib/calibration/src/photometry_apply.cpp`（:51）；`grep -c 'ADU\|单位' lib/star_detector/include/star_detector.h`（=0）
+- 新锚：ac_calibrate_frame 注释块 :69-78 有形状无单位/生命周期/线程安全（:79 定义）；photometry_apply.h 返回码表 :27-31 仍缺实现 :51 的 `-5`；star_detector.h :17-67 单位零载句原样；20 样本抽查的 55%/15% 缺失率是历史口径判读（SUMMARY 簇 4 补已裁定与 L28b 判据不同源，不撤）
+- 判据：被点名的三实例（返回码表缺 -5、ac_calibrate_frame 无单位、star_detector.h 零单位契约）逐条复算仍在 ⇒ STILL；抽样统计面不依赖行号。
+
+### M6a-I-001 · **STILL**（7 文件滞后簇无一订正）
+- 命令：`wc -l lib/phase2/src/coverage.cpp lib/phase2/include/astro/phase2/coverage.h`（**280/64**）；`wc -l lib/phase3_session/p3_resample.h/.cpp/p3_session.cpp`（**116/366/433**）、p3_wcs.h/.cpp（**63/230**）；`grep -rn '239 行\|58 行\|165 行\|343 行' docs/contracts/PUBLIC_API.md docs/contracts/DATA_SEMANTICS.md docs/algorithms/PHASE3_*.md lib/phase2/README.md`
+- 新锚：PUBLIC_API.md :1069 与 :2100、DATA_SEMANTICS.md :856 与 :2095 均仍写「coverage.cpp 239 行」「p3_resample.cpp（239 行）」；PHASE3_RSMP_IMPL.md :13-14/:54-56 仍写 58/239/343（实测 116/366/433）；PHASE3_PROJ_IMPL.md :11-12/:46 仍写 50/165「实测 2026-09-11」（实测 63/230）；lib/phase2/README.md :10-11「239 行实测/59 行」（280/64）、:34/:69/:94/:96-97 的 coverage.cpp 行锚区间（:59-140/:144/:154-157/:20-45 等）在 +41 行增长后未回写
+- 判据：「实测 N 行」现状断言整簇滞后原样；phase3_proj 两现状陈述被代码推翻的实例亦原样。
+
+### M6b-E-001 · **STILL**（P0；恒零门换文件不换行为）
+- 命令：`sed -n '13,18p' docs/traceability/TRACEABILITY_SPEC.md`；`sed -n '13p' docs/README-DOCS.md`；`sed -n '38p' docs/DEVELOPER_GUIDE.md`；`grep -n TRACEABILITY.csv docs/standards/API_STANDARD.md docs/DOCUMENT_INDEX.yaml ci/checks.json`；比对脚本：python3 读两表按 science_id 交并
+- 新锚：SPEC 权威声明 :15-16「JSON（权威，机器真相）」零漂移；路由面全数仍指旧 CSV：README-DOCS :13「**唯一矩阵** docs/TRACEABILITY.csv」、DEVELOPER_GUIDE :38、API_STANDARD :14、DOCUMENT_INDEX :68-69（且把旧 CSV 记 ACTIVE_INFORMATIVE、MATRIX.json :78-79 并存无互斥裁决）、ci/checks.json :55/:81 changed_paths；两表数据量：CSV 63 行 / JSON modules 30 行（报告 :67/:30 → CSV 被删至 63 与 V9-N-01 相关）；可交比 ID 现 **6 个**（曾 8），TEST 证据完全一致 **0/6**（例 SCI-DRZ-001 CSV=TEST-DRZ-CAND-001@cpp 测试 vs JSON=TEST-DRZ-DESIGN-001@docs 设计）
+- 判据：双头无门比对机制原样。恒绿面更新：TRACEABILITY 门现跑 `tools/quality/check_traceability.py`（checks.json :45），其 broken 统计照打、**:159 `return 0` 无条件**（行号恰与原报告锚 :159 相同，属两版文件同线巧合，机制未变）；另一 TRACEABILITY-CODE 门跑 tools/check_traceability.py（现能 rc=1）但判决对象是 `artifacts/prerelease_v5/tables/TRACEABILITY.csv`（v5 归档表，非两矩阵）⇒ 校验对象≠交付对象新证。
+
+### M6b-G-002 · **STILL**（P0；多头与状态词互锁原样）
+- 命令：`ls docs/RELEASE_STATUS.md docs/review/RELEASE_STATUS.md docs/owner/RELEASE_STATUS.md docs/archive/review/RELEASE_STATUS.md`（4/4 存在）；`sed -n '6p' docs/RELEASE_STATUS.md`；`sed -n '29p' docs/review/RELEASE_STATUS.md`；`sed -n '12p' docs/archive/review/RELEASE_STATUS.md`；`sed -n '42,43p;208p;229p' tools/quality/validate_task_ledger.py`；`grep -n 状态机 AGENTS.md`（:28）
+- 新锚：四份并存（路径同报告）；三套状态词并立：owner 版 :14-18「状态词阶梯（唯一口径）」+ :31-32 明言取代旧 PASS 口径，但 docs/RELEASE_STATUS.md:6 仍 `PRE_RELEASE_ENGINEERING_FOUNDATION=PASS`、docs/review/RELEASE_STATUS.md:29 仍「## 3. 冻结面（PASS…）」（:29 零漂移）、archive :12 含 REVIEW_PENDING；互锁原样：validate_task_ledger.py:208/:229 把 REVIEW_PENDING 作 illegal_state 负例，AGENTS-GOV 的 REQUIRED["状态机"] 却必须含 REVIEW_PENDING 字串 → AGENTS.md:28 被迫保留「被自家校验器判非法的状态行」（新注记只是缓解措辞，义务冲突未解）；DOCUMENT_INDEX :68-69 RELEASE_STATUS=ACTIVE_INFORMATIVE 与 TRACEABILITY.csv 并存的路由歧义亦原样
+- 判据：发布/完成状态无单一事实源 + 门禁自相矛盾两腿全存。
