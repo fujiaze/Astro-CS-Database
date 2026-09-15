@@ -78,20 +78,6 @@ void p3_sampler_cache_stats(const P3Sampler* s, P3CacheStats* out);
  * 同一输入下开关只影响 open 次数与耗时, 不改变任何像素值。 */
 void p3_sampler_set_absent_cache(P3Sampler* s, int enabled);
 
-/* P35 (Phase3 导出性能 P0): bilinear 核 leaf 级记忆化开关 + 统计。
- * 只缓存权威 neighbors / pix2ang_nest 的**返回值**, 投影公式/四象限选取/权重/
- * NaN·coverage 语义逐行不变 ⇒ 输出与关闭时**逐位相同** (回归阴性对照 =
- * 开关两侧全图逐位对照)。enabled=0 仅用于回归/阴性对照; 生产默认 1。
- * 线程模型与 P30 前端热缓存一致 (每 sampler 单线程使用); 内存有界。 */
-struct P3MemoStats {
-    unsigned long long leaf_hits = 0;
-    unsigned long long leaf_misses = 0;
-    unsigned long long nb_hits = 0;
-    unsigned long long nb_misses = 0;
-};
-void p3_sampler_set_leaf_memo(P3Sampler* s, int enabled);
-void p3_sampler_memo_stats(const P3Sampler* s, P3MemoStats* out);
-
 /* nearest: 返回含样本方向的叶级像素值; coverage: 1=有值, 0=tile 缺失。
  * tile 内 NaN → *value=NaN, coverage=1(§4 非错误语义)。 */
 P3ResampleStatus p3_sample_nearest(P3Sampler* s, double ra_deg, double dec_deg,
