@@ -18,7 +18,7 @@ IMPL-P1-CAL-001,PASS,5,CONTRACT-FREEZE-001,lib/calibration/;tests/unit/v6_p1_cal
 IMPL-P1-PSFW-001,PASS,5,CONTRACT-FREEZE-001,lib/snr_estimator/;lib/dynamic_psf/;lib/photometric_calib/;tests/unit/v6_p1_psfw/,37242755-6e62-4569-a8b9-75da1731cd5e,tests/unit/v6_p1_psfw/;lib/photometric_calib/cpp/src/psfsw.cpp;run/v6/IMPL-P1-PSFW-001/summary.json,ctest9-9;checks411-pass;oracle-rtol1e-9;neg-mutations-red
 IMPL-P1-DRZ-001,READY,5,CONTRACT-FREEZE-001,lib/healpix_db/;tests/unit/v6_p1_drz/,,,
 IMPL-P2-UPM-001,READY,5,CONTRACT-FREEZE-001,lib/phase2/src/upm.cpp;lib/phase2/include/astro/phase2/upm.h;lib/phase2_upm/;tests/unit/v6_p2_upm/,,,
-IMPL-P2-REJ-001,READY,5,CONTRACT-FREEZE-001,lib/phase2/src/rejection.cpp;lib/phase2/include/astro/phase2/rejection.h;lib/phase2_rej/;tests/unit/v6_p2_rej/,,,
+IMPL-P2-REJ-001,PASS,5,CONTRACT-FREEZE-001,lib/phase2/src/rejection.cpp;lib/phase2/include/astro/phase2/rejection.h;lib/phase2_rej/;tests/unit/v6_p2_rej/,0fd41023-5fa0-41f9-ab98-7b1e2bea0049,lib/phase2/src/rejection.cpp;tests/unit/v6_p2_rej/p2_rej_v6_test.cpp;run/v6/IMPL-P2-REJ-001/SUMMARY.md,compile0;7-modes-rc0;mut12-caught;ctest6-6
 IMPL-P2-SAMP-001,READY,5,CONTRACT-FREEZE-001,lib/phase2/src/sampler.cpp;lib/phase2/src/coverage.cpp;lib/phase2/include/astro/phase2/sampler.h;lib/phase2/include/astro/phase2/coverage.h;lib/phase2_samp/;tests/unit/v6_p2_samp/,,,
 IMPL-P3-PROJ-001,READY,5,CONTRACT-FREEZE-001,lib/phase3_proj/;tests/unit/v6_p3_proj/,,,
 IMPL-P3-RSMP-001,READY,5,CONTRACT-FREEZE-001,lib/phase3_rsmp/;tests/unit/v6_p3_rsmp/,,,

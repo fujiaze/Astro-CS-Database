@@ -85,6 +85,11 @@ source_symbols:
   - p2_rejection_semantic_id
   - p2_large_scale_apply
   - p2_reject_stack
+  - p2_reject_classify
+  - p2_reject_calibration
+  - p2_rejection_class_id
+  - p2_reject_plan_thresholds_inherited
+  - p2_rejection_weight_surface_guard
 test_ids:
   - TEST-P2-REJ-001
 threading_model: host_executor_lease

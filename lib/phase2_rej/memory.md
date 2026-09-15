@@ -84,3 +84,36 @@
 - 边界: 禁改 docs/science/ 既有文件（REJECTION.md FROZEN T107）；禁改
   生产源码/测试/lib/phase2、lib/phase2_int、lib/hips_p2 既有文件；
   禁 git add/commit/push；run/local/ 产物不提交。
+
+## IMPL-P2-REJ-001（Wave 5，V6 分类排异实现）
+
+- 任务: IMPL-P2-REJ-001（wave 5，depends_on CONTRACT-FREEZE-001）。只改
+  write_scope：`lib/phase2/src/rejection.cpp`、
+  `lib/phase2/include/astro/phase2/rejection.h`、`lib/phase2_rej/`、
+  `tests/unit/v6_p2_rej/`；未改 docs/、ci/、根/测试公共 CMakeLists。
+- 新增接口（头 `rejection.h`；实现 `rejection.cpp` 末尾 V6 段）:
+  - `p2_reject_classify`：按预测残差方差
+    `sigma_eff^2 = sigma_phase1^2 + J C_theta J^T` 的阈值判定；
+    每样本 `reason`(4 继承) + `reason_class`(6 污染类，正交字段) +
+    `probability` + `class_probability` + `sigma_eff`/`z`；
+    小样本 `n<=2` → `underdetermined` 全接受、`recall=0` 显式。
+  - `p2_reject_calibration`：可靠性分箱（BINMIN=50/ABS=0.10）与
+    BSS（>0.10）门 → `probability_is_scientific_gate`。
+  - `p2_rejection_weight_surface_guard`：禁止 probability/support/coverage/
+    median SNR/FWHM/residual/psfsw/psf_snr_power/auto/0 进权重面。
+  - `p2_reject_plan_thresholds_inherited`：继承阈值逐项校验
+    （FZ-REJ-INHERITED-THRESH；改动 → INVALID_CONFIGURATION）。
+- profile: `astrocs.rejection.classify.v1`（版本化常量：motion_min 0.5 px、
+  psf_anomaly_min 0.2、prior 0.05、kappa 4.0；非冻结排异阈值）。
+  说明见本目录 `CLASSIFY_V1_PROFILE.md`。
+- fail-closed 映射（ALG-P2S-REJ.5）: 缺 Phase1 或 UPM 声明 / 非 finite /
+  `sigma_eff^2<=0` → `INVALID_INPUT`；`method=AUTO` → `INVALID_METHOD`；
+  继承阈值或 profile 常量被改 / PERCENTILE×norm≠MEDIAN_CENTER /
+  RCR×norm≠NONE → `INVALID_CONFIGURATION`；空栈 → `MIN_SAMPLES`。
+- 证据: `tests/unit/v6_p2_rej/`（`oracle_rej.py` 独立 Oracle +
+  `oracle_expected.inc` + `p2_rej_v6_test.cpp` 六组 + 自注册 CMakeLists）；
+  12 条负向 mutation 全部被检出；shadow ctest 6/6 PASS；生产 flags
+  (`-O3 -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion`) 编译零告警。
+- 未决: 校准门数值仍 PENDING_OWNER_SIGNOFF(SO-07)，按文档值 fail-closed
+  实现；本次未 commit/push（由控制器集成）。
+

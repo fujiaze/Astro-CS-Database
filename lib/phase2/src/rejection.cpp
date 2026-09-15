@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -2074,3 +2075,442 @@ int p2_large_scale_apply(std::uint8_t* low, std::uint8_t* high,
 }
 
 } // extern "C"
+
+// =====================================================================
+// V6 分类排异（ALG-P2S-REJ.1..7；DESIGN-P2-001 §5）
+//
+// 判据：预测残差方差 sigma_eff^2 = sigma_phase1^2 + J C_theta J^T
+//       z = r / sigma_eff；|z| 超继承阈值 → rejected_low/high。
+// 分类：6 污染类按证据门（reason_class 与方向正交，ADJ-GEN-02）。
+// probability：高斯混合后验 P(污染|z)，仅门/推断，禁进权重面。
+// 阈值/迭代全部继承 ALG-REJ-001，本层不重定义（FZ-REJ-INHERITED-THRESH）。
+// =====================================================================
+
+namespace {
+
+bool rej_eq(double a, double b) { return a == b; }
+
+bool rej_sigma_inherited(const P2SigmaParams& s) {
+    return rej_eq(s.lower_sigma, 4.0) && rej_eq(s.upper_sigma, 3.0) &&
+           s.max_iterations == 8;
+}
+
+// 继承阈值逐项比较（ALG-REJ-001 冻结值，任何一项改动即非继承）。
+bool rej_plan_inherited(const P2RejectionPlan& p) {
+    if (!rej_sigma_inherited(p.sigma)) return false;
+    if (!rej_sigma_inherited(p.winsorized)) return false;
+    if (!rej_sigma_inherited(p.averaged)) return false;
+    if (!rej_sigma_inherited(p.median_sigma)) return false;
+    if (!rej_eq(p.linear_fit.lower, 5.0) ||
+        !rej_eq(p.linear_fit.upper, 3.5) ||
+        p.linear_fit.max_iterations != 8)
+        return false;
+    if (!rej_eq(p.esd.alpha, 0.05) || p.esd.max_outliers != 10) return false;
+    if (!rej_eq(p.percentile.low_fraction, 0.2) ||
+        !rej_eq(p.percentile.high_fraction, 0.1))
+        return false;
+    if (p.minmax.reject_low_count != 1 || p.minmax.reject_high_count != 1 ||
+        p.minmax.min_kept != 4)
+        return false;
+    if (p.rcr.technique != 0) return false;
+    if (p.large_scale.enabled != 0 || p.large_scale.min_structure_pixels != 8 ||
+        p.large_scale.low_grow_radius_pixels != 2 ||
+        p.large_scale.high_grow_radius_pixels != 2)
+        return false;
+    return true;
+}
+
+// 高斯混合后验（log 空间，数值稳定）：
+//   H0: r ~ N(0, sigma_eff^2)；H1: r ~ N(0, kappa^2 sigma_eff^2)
+//   p = prior*pdf1 / (prior*pdf1 + (1-prior)*pdf0)
+double rej_posterior(double z, double prior, double kappa) {
+    const double zz = z * z;
+    const double log_out = -zz / (2.0 * kappa * kappa) - std::log(kappa);
+    const double log_clean = -zz / 2.0;
+    const double lo = std::log(prior) + log_out;
+    const double lc = std::log(1.0 - prior) + log_clean;
+    const double d = lc - lo;  // p = 1/(1+exp(d))
+    if (d > 700.0) return 0.0;
+    if (d < -700.0) return 1.0;
+    return 1.0 / (1.0 + std::exp(d));
+}
+
+void rej_all_underdetermined(P2RejectClassifyOutput* out, std::uint32_t n,
+                             int status) {
+    if (out->reasons != nullptr)
+        for (std::uint32_t i = 0; i < n; ++i)
+            out->reasons[i] = P2_REASON_UNDERDETERMINED;
+    if (out->reason_classes != nullptr)
+        for (std::uint32_t i = 0; i < n; ++i)
+            out->reason_classes[i] = P2_CLASS_NONE;
+    if (out->deleted != nullptr)
+        for (std::uint32_t i = 0; i < n; ++i) out->deleted[i] = 0;
+    if (out->preserved != nullptr)
+        for (std::uint32_t i = 0; i < n; ++i) out->preserved[i] = 0;
+    if (out->probability != nullptr)
+        for (std::uint32_t i = 0; i < n; ++i) out->probability[i] = 0.0;
+    if (out->z != nullptr)
+        for (std::uint32_t i = 0; i < n; ++i) out->z[i] = 0.0;
+    if (out->sigma_eff != nullptr)
+        for (std::uint32_t i = 0; i < n; ++i) out->sigma_eff[i] = 0.0;
+    if (out->class_probability != nullptr)
+        for (std::size_t i = 0;
+             i < (std::size_t)n * P2_REJECT_CLASS_COUNT; ++i)
+            out->class_probability[i] = 0.0;
+    out->accepted_count = n;
+    out->rejected_low = 0;
+    out->rejected_high = 0;
+    out->recall = 0.0;  // 全接受：recall=0 显式（不做伪剔除）
+    out->status = status;
+}
+
+} // namespace
+
+extern "C" {
+
+const char* p2_rejection_class_id(int reason_class) {
+    switch (reason_class) {
+        case P2_CLASS_NONE: return P2_CLASS_SEMANTIC_NONE;
+        case P2_CLASS_COSMIC_RAY: return P2_CLASS_SEMANTIC_COSMIC_RAY;
+        case P2_CLASS_SATELLITE_TRAIL: return P2_CLASS_SEMANTIC_SAT_TRAIL;
+        case P2_CLASS_BAD_COLUMN: return P2_CLASS_SEMANTIC_BAD_COLUMN;
+        case P2_CLASS_MOVING_SOURCE: return P2_CLASS_SEMANTIC_MOVING_SRC;
+        case P2_CLASS_CLOUD_GRADIENT: return P2_CLASS_SEMANTIC_CLOUD_GRAD;
+        case P2_CLASS_DEFOCUS_TRAIL: return P2_CLASS_SEMANTIC_DEFOCUS;
+        default: return "unknown";
+    }
+}
+
+int p2_reject_plan_thresholds_inherited(const P2RejectionPlan* plan) {
+    if (plan == nullptr) return 0;
+    return rej_plan_inherited(*plan) ? 1 : 0;
+}
+
+int p2_rejection_weight_surface_guard(const char* const* tokens,
+                                      std::size_t count, char* err,
+                                      std::size_t err_cap) {
+    if (tokens == nullptr || count == 0) {
+        set_err(err, err_cap,
+                "weight_surface_guard: empty token list（须显式声明来源）");
+        return 2;
+    }
+    // 禁止 token（FZ-GATE-MEDIAN-SNR / FZ-GATE-SUPPORT-COVERAGE /
+    // FZ-MODE-DEFERRED / ALG-P2S-REJ.3 probability 非权重）。
+    static const char* const kForbidden[] = {
+        "rejection",   "probability", "support",        "coverage",
+        "median_source_snr", "median_snr", "source_snr_median",
+        "med_source_snr", "snr", "fwhm", "residual", "psfsw",
+        "psf_snr_power", "support_x_snr2"};
+    for (std::size_t i = 0; i < count; ++i) {
+        if (tokens[i] == nullptr) continue;
+        std::string s(tokens[i]);
+        for (char& ch : s) ch = (char)std::tolower((unsigned char)ch);
+        if (s == "auto" || s == "0") {
+            set_err(err, err_cap,
+                    "weight_surface_guard: 禁止 legacy/deferred 模式值");
+            return 1;
+        }
+        for (const char* f : kForbidden) {
+            if (s.find(f) != std::string::npos) {
+                set_err(err, err_cap,
+                        "weight_surface_guard: 禁止来源进入权重面");
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+int p2_reject_classify(const P2RejectClassifyInput* in,
+                       const P2RejectClassifyConfig* cfg,
+                       P2RejectClassifyOutput* out) {
+    if (in == nullptr || cfg == nullptr || out == nullptr) return 1;
+    std::uint8_t* reasons_o = out->reasons;
+    std::uint8_t* classes_o = out->reason_classes;
+    std::uint8_t* deleted_o = out->deleted;
+    std::uint8_t* preserved_o = out->preserved;
+    double* sigma_o = out->sigma_eff;
+    double* z_o = out->z;
+    double* prob_o = out->probability;
+    double* clsprob_o = out->class_probability;
+    std::memset(out, 0, sizeof(*out));
+    out->reasons = reasons_o;
+    out->reason_classes = classes_o;
+    out->deleted = deleted_o;
+    out->preserved = preserved_o;
+    out->sigma_eff = sigma_o;
+    out->z = z_o;
+    out->probability = prob_o;
+    out->class_probability = clsprob_o;
+    const std::uint32_t n = in->count;
+    if (n == 0) {
+        out->status = P2_STATUS_MIN_SAMPLES;
+        return 0;
+    }
+    if (reasons_o == nullptr) return 1;
+
+    // ---- 配置 fail-closed ----
+    if (cfg->profile_version == nullptr ||
+        std::strcmp(cfg->profile_version, P2_REJECT_CLASSIFY_PROFILE) != 0) {
+        rej_all_underdetermined(out, n, P2_STATUS_INVALID_CONFIGURATION);
+        return 0;
+    }
+    if (cfg->plan.method < P2_REJECT_NONE ||
+        cfg->plan.method > P2_REJECT_MINMAX) {
+        // AUTO(10) 等非法方法 → INVALID_METHOD（AUTO 永不进 kernel）
+        rej_all_underdetermined(out, n, P2_STATUS_INVALID_METHOD);
+        return 0;
+    }
+    if (!rej_plan_inherited(cfg->plan)) {
+        rej_all_underdetermined(out, n, P2_STATUS_INVALID_CONFIGURATION);
+        return 0;
+    }
+    // 继承的 方法×normalization 合法性门（ALG-P2S-REJ.5 fail-closed）
+    if ((cfg->plan.method == P2_REJECT_PERCENTILE &&
+         cfg->plan.normalization != P2_NORMALIZE_MEDIAN_CENTER) ||
+        (cfg->plan.method == P2_REJECT_RCR &&
+         cfg->plan.normalization != P2_NORMALIZE_NONE)) {
+        rej_all_underdetermined(out, n, P2_STATUS_INVALID_CONFIGURATION);
+        return 0;
+    }
+    // profile v1 常量必须逐位一致（未版本化改动 → invalid_configuration）
+    if (!rej_eq(cfg->motion_min_px, P2_REJ_PROFILE_MOTION_MIN_PX) ||
+        !rej_eq(cfg->psf_anomaly_min, P2_REJ_PROFILE_PSF_ANOMALY_MIN) ||
+        !rej_eq(cfg->contamination_prior, P2_REJ_PROFILE_CONTAM_PRIOR) ||
+        !rej_eq(cfg->outlier_inflation, P2_REJ_PROFILE_OUTLIER_KAPPA) ||
+        (cfg->keep_moving_source != 0 && cfg->keep_moving_source != 1)) {
+        rej_all_underdetermined(out, n, P2_STATUS_INVALID_CONFIGURATION);
+        return 0;
+    }
+
+    if (in->residual == nullptr || in->sigma_phase1 == nullptr ||
+        in->upm_variance == nullptr || in->noise_flags == nullptr) {
+        rej_all_underdetermined(out, n, P2_STATUS_INVALID_INPUT);
+        return 0;
+    }
+
+    // ---- 每样本 fail-closed（sigma_eff 必须含 Phase1 + UPM 项）----
+    for (std::uint32_t k = 0; k < n; ++k) {
+        if ((in->noise_flags[k] & P2_NOISE_REQUIRED) !=
+            (std::uint8_t)P2_NOISE_REQUIRED) {
+            // 缺 Phase1 或 UPM 声明：sigma_eff 未含 UPM 项 → REJECT
+            rej_all_underdetermined(out, n, P2_STATUS_INVALID_INPUT);
+            return 0;
+        }
+        const double r = in->residual[k];
+        const double s1 = in->sigma_phase1[k];
+        const double uv = in->upm_variance[k];
+        if (!std::isfinite(r) || !std::isfinite(s1) || !std::isfinite(uv) ||
+            s1 < 0.0 || uv < 0.0) {
+            rej_all_underdetermined(out, n, P2_STATUS_INVALID_INPUT);
+            return 0;
+        }
+        const double s2 = s1 * s1 + uv;
+        if (!(s2 > 0.0) || !std::isfinite(s2)) {
+            rej_all_underdetermined(out, n, P2_STATUS_INVALID_INPUT);
+            return 0;
+        }
+    }
+
+    // ---- 小样本规则：n <= underdetermined_n → 全接受，recall=0 显式 ----
+    const std::uint32_t und_n =
+        cfg->plan.underdetermined_n > 0 ? cfg->plan.underdetermined_n : 2u;
+    const double lower_sigma = cfg->plan.sigma.lower_sigma;  // 4.0（继承）
+    const double upper_sigma = cfg->plan.sigma.upper_sigma;  // 3.0（继承）
+    if (n <= und_n) {
+        // 全接受 + recall=0 显式；随后回填 sigma_eff/z 组成（provenance）。
+        rej_all_underdetermined(out, n, P2_STATUS_UNDERDETERMINED);
+        for (std::uint32_t k = 0; k < n; ++k) {
+            const double se = std::sqrt(in->sigma_phase1[k] *
+                                            in->sigma_phase1[k] +
+                                        in->upm_variance[k]);
+            if (sigma_o) sigma_o[k] = se;
+            if (z_o) z_o[k] = in->residual[k] / se;
+        }
+        return 0;
+    }
+
+    const double prior = cfg->contamination_prior;
+    const double kappa = cfg->outlier_inflation;
+    const double motion_min = cfg->motion_min_px;
+    const double psf_min = cfg->psf_anomaly_min;
+
+    for (std::uint32_t k = 0; k < n; ++k) {
+        const double se =
+            std::sqrt(in->sigma_phase1[k] * in->sigma_phase1[k] +
+                      in->upm_variance[k]);
+        const double z = in->residual[k] / se;
+        if (sigma_o) sigma_o[k] = se;
+        if (z_o) z_o[k] = z;
+
+        int reason;
+        if (z <= -lower_sigma) reason = P2_REASON_REJECTED_LOW;
+        else if (z >= upper_sigma) reason = P2_REASON_REJECTED_HIGH;
+        else reason = P2_REASON_ACCEPTED;
+
+        const double p = rej_posterior(z, prior, kappa);
+        if (prob_o) prob_o[k] = p;
+        for (int c = 0; c < P2_REJECT_CLASS_COUNT; ++c) {
+            if (clsprob_o) clsprob_o[(std::size_t)k * P2_REJECT_CLASS_COUNT + c] = 0.0;
+        }
+
+        bool moving_ev = false;
+        if (in->cross_frame_motion != nullptr) {
+            const double m = in->cross_frame_motion[k];
+            moving_ev = std::isfinite(m) && m >= motion_min;
+        }
+        const bool is_outlier = (reason != P2_REASON_ACCEPTED);
+        int cls = P2_CLASS_NONE;
+        double w[P2_REJECT_CLASS_COUNT] = {0.0, 0.0, 0.0, 0.0,
+                                           0.0, 0.0, 0.0};
+        if (is_outlier || moving_ev) {
+            const bool growth =
+                in->large_scale_growth && in->large_scale_growth[k] != 0;
+            const bool compact = in->compact_single_frame &&
+                                 in->compact_single_frame[k] != 0;
+            const bool column =
+                in->column_consistent && in->column_consistent[k] != 0;
+            const bool lowfreq =
+                in->low_frequency && in->low_frequency[k] != 0;
+            double psf_anom = 0.0;
+            if (in->psf_shape_anomaly != nullptr)
+                psf_anom = in->psf_shape_anomaly[k];
+            if (!std::isfinite(psf_anom)) psf_anom = 0.0;
+            w[P2_CLASS_COSMIC_RAY] = (compact && !growth) ? 1.0 : 0.0;
+            w[P2_CLASS_SATELLITE_TRAIL] = growth ? 1.0 : 0.0;
+            w[P2_CLASS_BAD_COLUMN] = column ? 1.0 : 0.0;
+            w[P2_CLASS_MOVING_SOURCE] = moving_ev ? 1.0 : 0.0;
+            w[P2_CLASS_CLOUD_GRADIENT] = lowfreq ? 1.0 : 0.0;
+            w[P2_CLASS_DEFOCUS_TRAIL] =
+                (psf_anom >= psf_min) ? 1.0 : 0.0;
+            double wsum = 0.0;
+            for (int c = 1; c < P2_REJECT_CLASS_COUNT; ++c) wsum += w[c];
+            if (wsum > 0.0) {
+                double best = -1.0;
+                for (int c = 1; c < P2_REJECT_CLASS_COUNT; ++c) {
+                    const double pc = p * (w[c] / wsum);
+                    if (clsprob_o)
+                        clsprob_o[(std::size_t)k * P2_REJECT_CLASS_COUNT + c] =
+                            pc;
+                    if (pc > best) {  // 严格 >：并列取最小类 id（确定性）
+                        best = pc;
+                        cls = c;
+                    }
+                }
+            }
+        }
+
+        // 移动源默认保留到独立层（不删）；显式 keep=0 时按阈值照删。
+        bool preserved = (cls == P2_CLASS_MOVING_SOURCE) ? true : false;
+        bool deleted = (reason == P2_REASON_REJECTED_LOW ||
+                        reason == P2_REASON_REJECTED_HIGH);
+        if (preserved && cfg->keep_moving_source) {
+            deleted = false;
+            reason = P2_REASON_ACCEPTED;  // 保留 = 不删（reason 表示最终决策）
+        }
+
+        if (reasons_o) reasons_o[k] = (std::uint8_t)reason;
+        if (classes_o) classes_o[k] = (std::uint8_t)cls;
+        if (deleted_o) deleted_o[k] = deleted ? 1 : 0;
+        if (preserved_o) preserved_o[k] = preserved ? 1 : 0;
+
+        if (reason == P2_REASON_REJECTED_LOW) ++out->rejected_low;
+        else if (reason == P2_REASON_REJECTED_HIGH) ++out->rejected_high;
+    }
+    out->accepted_count = n - out->rejected_low - out->rejected_high;
+    out->recall =
+        (double)(out->rejected_low + out->rejected_high) / (double)n;
+    out->status = (out->accepted_count == 0) ? P2_STATUS_ALL_REJECTED
+                                             : P2_STATUS_OK;
+    return 0;
+}
+
+int p2_reject_calibration(const double* probability,
+                          const std::uint8_t* truth, std::uint32_t count,
+                          std::uint32_t bin_count,
+                          P2RejectCalibrationOutput* out) {
+    if (out == nullptr) return 1;
+    std::memset(out, 0, sizeof(*out));
+    out->status = P2_CALIB_INVALID_INPUT;
+    if (probability == nullptr || truth == nullptr || count == 0) return 0;
+    for (std::uint32_t k = 0; k < count; ++k) {
+        const double p = probability[k];
+        if (!std::isfinite(p) || p < 0.0 || p > 1.0 || truth[k] > 1)
+            return 0;
+    }
+    if (bin_count == 0) bin_count = P2_REJ_PROFILE_BIN_COUNT;
+
+    struct CalPair {
+        double p;
+        std::uint8_t y;
+        std::uint32_t idx;
+    };
+    std::vector<CalPair> v(count);
+    double bs = 0.0, sum_y = 0.0;
+    for (std::uint32_t k = 0; k < count; ++k) {
+        v[k] = CalPair{probability[k], truth[k], k};
+        const double d = probability[k] - (double)truth[k];
+        bs += d * d;
+        sum_y += (double)truth[k];
+    }
+    std::stable_sort(v.begin(), v.end(), [](const CalPair& a, const CalPair& b) {
+        if (a.p != b.p) return a.p < b.p;
+        return a.idx < b.idx;
+    });
+    out->brier = bs / (double)count;
+    const double base = sum_y / (double)count;
+    double bsref = 0.0;
+    for (std::uint32_t k = 0; k < count; ++k) {
+        const double d = base - (double)truth[k];
+        bsref += d * d;
+    }
+    out->brier_ref = bsref / (double)count;
+    out->bss = (out->brier_ref > 0.0) ? 1.0 - out->brier / out->brier_ref
+                                      : 0.0;
+    out->bins_total = bin_count;
+    double max_dev = 0.0;
+    std::uint32_t used = 0, used_samples = 0, skipped = 0;
+    for (std::uint32_t b = 0; b < bin_count; ++b) {
+        const std::uint32_t lo =
+            (std::uint32_t)((std::uint64_t)b * count / bin_count);
+        const std::uint32_t hi =
+            (std::uint32_t)((std::uint64_t)(b + 1) * count / bin_count);
+        if (hi <= lo) continue;
+        const std::uint32_t nb = hi - lo;
+        double sp = 0.0, sy = 0.0;
+        for (std::uint32_t i = lo; i < hi; ++i) {
+            sp += v[i].p;
+            sy += (double)v[i].y;
+        }
+        const double mean_p = sp / (double)nb;
+        const double obs = sy / (double)nb;
+        const double dev = std::fabs(obs - mean_p);
+        if (nb >= P2_REJ_CALIB_BINMIN) {
+            ++used;
+            used_samples += nb;
+            if (dev > max_dev) max_dev = dev;
+        } else {
+            ++skipped;  // 覆盖须登记：不足样本箱不参与判定
+        }
+    }
+    out->max_abs_reliability_dev = max_dev;
+    out->bins_used = used;
+    out->bins_skipped_small = skipped;
+    out->used_samples = used_samples;
+    if (used == 0) {
+        out->status = P2_CALIB_INSUFFICIENT_SAMPLES;
+    } else if (max_dev > P2_REJ_CALIB_ABS) {
+        out->status = P2_CALIB_RELIABILITY_FAIL;
+    } else if (!(out->brier_ref > 0.0) ||
+               !(out->bss > P2_REJ_CALIB_BSS_MIN)) {
+        out->status = P2_CALIB_BSS_FAIL;
+    } else {
+        out->status = P2_CALIB_OK;
+    }
+    out->probability_is_scientific_gate =
+        (out->status == P2_CALIB_OK) ? 1 : 0;
+    return 0;
+}
+
+} // extern "C"
+
