@@ -1,0 +1,415 @@
+dataset,star_id,mode,flux_ADU,var_ADU2,snr,fwhm_px,sum_w_adu-2,sum_q_adu-1,note
+Galaxy_Center,S000,equal,277370,14145.1,2332.15,2.25175,0.000479881,131.259,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Galaxy_Center,S000,exposure,277370,14145.1,2332.15,2.25175,0.000479881,131.259,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Galaxy_Center,S000,ivar,271763,13450.8,2343.24,2.27152,0.000479881,131.259,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Galaxy_Center,S000,w_info,273523,2083.85,5991.85,2.2617,0.000479881,131.259,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Galaxy_Center,S000,psfsw,281025,1.24161e+06,252.205,2.22893,0.000479881,131.259,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Galaxy_Center,S001,equal,250579,16229.3,1966.95,2.13041,0.000577973,140.093,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Galaxy_Center,S001,exposure,250579,16229.3,1966.95,2.13041,0.000577973,140.093,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Galaxy_Center,S001,ivar,241561,14800.4,1985.59,2.11518,0.000577973,140.093,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Galaxy_Center,S001,w_info,242387,1730.18,5827.25,2.10279,0.000577973,140.093,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Galaxy_Center,S001,psfsw,253841,1.41316e+06,213.533,2.14322,0.000577973,140.093,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Galaxy_Center,S002,equal,267782,10812.7,2575.22,2.18909,0.000624729,165.52,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Galaxy_Center,S002,exposure,267782,10812.7,2575.22,2.18909,0.000624729,165.52,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Galaxy_Center,S002,ivar,264159,9711.58,2680.53,2.2465,0.000624729,165.52,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Galaxy_Center,S002,w_info,264946,1600.69,6622.22,2.2321,0.000624729,165.52,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Galaxy_Center,S002,psfsw,270601,928722,280.793,2.19688,0.000624729,165.52,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Galaxy_Center,S017,equal,242076,11145.8,2292.97,2.13628,0.000693918,163.121,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Galaxy_Center,S017,exposure,242076,11145.8,2292.97,2.13628,0.000693918,163.121,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Galaxy_Center,S017,ivar,233916,9602.54,2387.08,2.14844,0.000693918,163.121,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Galaxy_Center,S017,w_info,235073,1441.09,6192.36,2.14289,0.000693918,163.121,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Galaxy_Center,S017,psfsw,245577,1.0098e+06,244.383,2.12069,0.000693918,163.121,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Galaxy_Center,S031,equal,211981,13233.2,1842.74,3.384,0.000410626,85.3776,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Galaxy_Center,S031,exposure,211981,13233.2,1842.74,3.384,0.000410626,85.3776,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Galaxy_Center,S031,ivar,206252,12042.2,1879.51,3.36613,0.000410626,85.3776,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Galaxy_Center,S031,w_info,207921,2435.31,4213.28,3.37313,0.000410626,85.3776,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Galaxy_Center,S031,psfsw,215249,1.19867e+06,196.604,3.39399,0.000410626,85.3776,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Galaxy_Center,S032,equal,201284,14012.4,1700.41,2.1672,0.000490022,97.0736,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Galaxy_Center,S032,exposure,201284,14012.4,1700.41,2.1672,0.000490022,97.0736,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Galaxy_Center,S032,ivar,197528,13038.9,1729.85,2.20153,0.000490022,97.0736,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Galaxy_Center,S032,w_info,198100,2040.72,4385.24,2.19302,0.000490022,97.0736,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Galaxy_Center,S032,psfsw,203225,1.20098e+06,185.442,2.16294,0.000490022,97.0736,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Galaxy_Center,S061,equal,171558,8447.03,1866.64,1.82519,0.00119647,201.674,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Galaxy_Center,S061,exposure,171558,8447.03,1866.64,1.82519,0.00119647,201.674,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Galaxy_Center,S061,ivar,165839,7172.32,1958.2,1.93969,0.00119647,201.674,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Galaxy_Center,S061,w_info,168557,835.792,5830.4,1.89096,0.00119647,201.674,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Galaxy_Center,S061,psfsw,173395,738527,201.768,1.79872,0.00119647,201.674,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Galaxy_Center,S084,equal,175058,8534.69,1894.9,2.1516,0.000850545,148.36,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Galaxy_Center,S084,exposure,175058,8534.69,1894.9,2.1516,0.000850545,148.36,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Galaxy_Center,S084,ivar,174201,7070.72,2071.66,2.23042,0.000850545,148.36,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Galaxy_Center,S084,w_info,174430,1175.72,5087.09,2.21523,0.000850545,148.36,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Galaxy_Center,S084,psfsw,176994,740157,205.73,2.13087,0.000850545,148.36,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Galaxy_Center,AGG,equal,,,,,,,n=8
+Galaxy_Center,AGG,exposure,,,,,,,n=8
+Galaxy_Center,AGG,ivar,,,,,,,n=8
+Galaxy_Center,AGG,w_info,,,,,,,n=8
+Galaxy_Center,AGG,psfsw,,,,,,,n=8
+Galaxy_Center,GROUP_TOTAL,psfsw,1.81991e+06,6.77729e+07,221.065,2.22893,,,all_stars_concatenated
+LDN43,S021,equal,699437,21908,4725.49,3.02919,0.000145327,101.602,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+LDN43,S021,exposure,699437,21908,4725.49,3.02919,0.000145327,101.602,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+LDN43,S021,ivar,700759,18993.9,5084.66,2.94579,0.000145327,101.602,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+LDN43,S021,w_info,699130,6881.05,8428.12,2.92146,0.000145327,101.602,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+LDN43,S021,psfsw,703214,1.86676e+06,514.687,2.82702,0.000145327,101.602,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+LDN43,S030,equal,601409,21160.9,4134.31,3.37455,0.000199736,118.735,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+LDN43,S030,exposure,601409,21160.9,4134.31,3.37455,0.000199736,118.735,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+LDN43,S030,ivar,596502,18182.4,4423.7,3.2966,0.000199736,118.735,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+LDN43,S030,w_info,594460,5006.61,8401.38,3.26891,0.000199736,118.735,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+LDN43,S030,psfsw,588641,1.82251e+06,436.029,3.14959,0.000199736,118.735,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+LDN43,S034,equal,568407,14709.9,4686.57,2.95715,0.000313664,176.127,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+LDN43,S034,exposure,568407,14709.9,4686.57,2.95715,0.000313664,176.127,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+LDN43,S034,ivar,563878,11749.4,5202.08,2.94048,0.000313664,176.127,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+LDN43,S034,w_info,561514,3188.13,9944.73,2.91877,0.000313664,176.127,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+LDN43,S034,psfsw,557283,1.23872e+06,500.712,2.85791,0.000313664,176.127,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+LDN43,S048,equal,575105,19020.5,4170,2.90426,0.000207235,118.302,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+LDN43,S048,exposure,575105,19020.5,4170,2.90426,0.000207235,118.302,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+LDN43,S048,ivar,573535,16775.3,4428.17,2.8704,0.000207235,118.302,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+LDN43,S048,w_info,570861,4825.44,8217.92,2.84945,0.000207235,118.302,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+LDN43,S048,psfsw,565858,1.87751e+06,412.968,2.8093,0.000207235,118.302,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+LDN43,S068,equal,525396,19907.7,3723.71,3.49705,0.000231841,120.536,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+LDN43,S068,exposure,525396,19907.7,3723.71,3.49705,0.000231841,120.536,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+LDN43,S068,ivar,520984,16249.1,4087.04,3.28588,0.000231841,120.536,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+LDN43,S068,w_info,519909,4313.3,7916.3,3.25312,0.000231841,120.536,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+LDN43,S068,psfsw,517293,1.42749e+06,432.962,3.07913,0.000231841,120.536,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+LDN43,S074,equal,546125,21787.3,3699.9,3.13785,0.000168168,92.147,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+LDN43,S074,exposure,546125,21787.3,3699.9,3.13785,0.000168168,92.147,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+LDN43,S074,ivar,547765,20616.2,3814.96,3.07928,0.000168168,92.147,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+LDN43,S074,w_info,547945,5946.42,7105.73,3.03748,0.000168168,92.147,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+LDN43,S074,psfsw,556304,2.23798e+06,371.864,3.12607,0.000168168,92.147,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+LDN43,S083,equal,526755,16875.3,4054.93,3.74143,0.000246031,130.548,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+LDN43,S083,exposure,526755,16875.3,4054.93,3.74143,0.000246031,130.548,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+LDN43,S083,ivar,531737,13753.3,4534.12,3.30126,0.000246031,130.548,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+LDN43,S083,w_info,530615,4064.53,8322.89,3.51178,0.000246031,130.548,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+LDN43,S083,psfsw,533794,1.32464e+06,463.793,3.13202,0.000246031,130.548,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+LDN43,S098,equal,475293,15171.8,3858.71,2.8485,0.000264307,126.067,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+LDN43,S098,exposure,475293,15171.8,3858.71,2.8485,0.000264307,126.067,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+LDN43,S098,ivar,478232,13745.6,4079.03,2.86265,0.000264307,126.067,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+LDN43,S098,w_info,476971,3783.48,7754.37,2.79999,0.000264307,126.067,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+LDN43,S098,psfsw,476950,1.48282e+06,391.678,2.70883,0.000264307,126.067,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+LDN43,AGG,equal,,,,,,,n=8
+LDN43,AGG,exposure,,,,,,,n=8
+LDN43,AGG,ivar,,,,,,,n=8
+LDN43,AGG,w_info,,,,,,,n=8
+LDN43,AGG,psfsw,,,,,,,n=8
+LDN43,GROUP_TOTAL,psfsw,4.49934e+06,1.06227e+08,436.546,2.82702,,,all_stars_concatenated
+M42,S000,equal,604778,4927.61,8615.45,3.1436,0.000666732,399.393,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42,S000,exposure,604778,4927.61,8615.45,3.1436,0.000666732,399.393,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42,S000,ivar,598022,4475.6,8939.06,3.17551,0.000666732,399.393,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42,S000,w_info,599030,1499.85,15467.7,3.16101,0.000666732,399.393,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42,S000,psfsw,608930,454486,903.248,3.10476,0.000666732,399.393,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42,S001,equal,575621,5438.39,7805.52,2.75058,0.000647065,370.081,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42,S001,exposure,575621,5438.39,7805.52,2.75058,0.000647065,370.081,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42,S001,ivar,571072,5017.62,8061.99,2.74769,0.000647065,370.081,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42,S001,w_info,571938,1545.44,14548.7,2.69883,0.000647065,370.081,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42,S001,psfsw,579896,475984,840.532,2.69671,0.000647065,370.081,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42,S002,equal,593281,5301.74,8148.01,3.17017,0.000626758,369.285,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42,S002,exposure,593281,5301.74,8148.01,3.17017,0.000626758,369.285,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42,S002,ivar,588082,4761.41,8522.56,3.17323,0.000626758,369.285,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42,S002,w_info,589198,1595.51,14750.7,3.15936,0.000626758,369.285,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42,S002,psfsw,597103,486114,856.408,3.13913,0.000626758,369.285,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42,S005,equal,520266,4273.55,7958.5,2.89513,0.000900667,462.865,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42,S005,exposure,520266,4273.55,7958.5,2.89513,0.000900667,462.865,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42,S005,ivar,512640,3700.47,8427.22,2.93216,0.000900667,462.865,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42,S005,w_info,513913,1110.29,15423.1,2.91435,0.000900667,462.865,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42,S005,psfsw,523622,397059,830.98,2.85633,0.000900667,462.865,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42,S006,equal,451866,4493.77,6740.68,2.65614,0.000897609,402.857,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42,S006,exposure,451866,4493.77,6740.68,2.65614,0.000897609,402.857,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42,S006,ivar,448590,4241.21,6888.19,2.64956,0.000897609,402.857,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42,S006,w_info,448811,1114.07,13446.4,2.63347,0.000897609,402.857,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42,S006,psfsw,455080,389614,729.072,2.61576,0.000897609,402.857,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42,S008,equal,464343,3864.83,7469.19,2.6384,0.00111229,509.135,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42,S008,exposure,464343,3864.83,7469.19,2.6384,0.00111229,509.135,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42,S008,ivar,456941,3240.94,8026.47,2.68527,0.00111229,509.135,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42,S008,w_info,457734,899.043,15265.9,2.85866,0.00111229,509.135,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42,S008,psfsw,467342,338497,803.261,2.60991,0.00111229,509.135,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42,S009,equal,448735,3902.97,7182.77,2.903,0.000972683,433.838,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42,S009,exposure,448735,3902.97,7182.77,2.903,0.000972683,433.838,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42,S009,ivar,445575,3690.74,7334.39,2.95153,0.000972683,433.838,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42,S009,w_info,446022,1028.08,13910.5,2.97693,0.000972683,433.838,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42,S009,psfsw,452229,356592,757.308,2.91177,0.000972683,433.838,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42,S012,equal,465806,3977.08,7386.23,3.35063,0.000699315,323.587,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42,S012,exposure,465806,3977.08,7386.23,3.35063,0.000699315,323.587,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42,S012,ivar,462357,3664.44,7637.9,3.41837,0.000699315,323.587,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42,S012,w_info,462720,1429.97,12236.4,3.42829,0.000699315,323.587,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42,S012,psfsw,468995,365431,775.827,3.35178,0.000699315,323.587,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42,AGG,equal,,,,,,,n=8
+M42,AGG,exposure,,,,,,,n=8
+M42,AGG,ivar,,,,,,,n=8
+M42,AGG,w_info,,,,,,,n=8
+M42,AGG,psfsw,,,,,,,n=8
+M42,GROUP_TOTAL,psfsw,4.1532e+06,2.61102e+07,812.788,3.10476,,,all_stars_concatenated
+M42_Halpha,S004,equal,668894,4670.84,9787.23,4.07346,0.000763706,468.035,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42_Halpha,S004,exposure,701099,5380.68,9557.86,4.09331,0.000763706,468.035,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42_Halpha,S004,ivar,603485,4012.9,9526.58,4.03444,0.000763706,468.035,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42_Halpha,S004,w_info,612848,1309.4,16936.2,4.02164,0.000763706,468.035,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42_Halpha,S004,psfsw,711485,467175,1040.94,4.05951,0.000763706,468.035,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42_Halpha,S011,equal,526243,2872.5,9818.74,3.87886,0.00116713,573.343,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42_Halpha,S011,exposure,552077,3288.46,9627.27,3.88001,0.00116713,573.343,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42_Halpha,S011,ivar,479725,2531.83,9534.01,3.85264,0.00116713,573.343,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42_Halpha,S011,w_info,491243,856.805,16782.5,3.82213,0.00116713,573.343,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42_Halpha,S011,psfsw,562389,281604,1059.79,3.82873,0.00116713,573.343,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42_Halpha,S014,equal,396263,2277.33,8303.69,2.51507,0.00231538,843.26,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42_Halpha,S014,exposure,415606,2642.42,8085.02,2.50641,0.00231538,843.26,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42_Halpha,S014,ivar,351620,1850.7,8173.45,2.49651,0.00231538,843.26,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42_Halpha,S014,w_info,364199,431.894,17524.7,2.45748,0.00231538,843.26,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42_Halpha,S014,psfsw,422536,216462,908.181,2.42941,0.00231538,843.26,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42_Halpha,S015,equal,419936,2818.88,7909.43,2.52163,0.00142659,576.211,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42_Halpha,S015,exposure,440542,3166.31,7829.08,2.51229,0.00142659,576.211,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42_Halpha,S015,ivar,394794,2637.74,7686.96,2.51947,0.00142659,576.211,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42_Halpha,S015,w_info,403909,700.973,15255.7,2.49158,0.00142659,576.211,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42_Halpha,S015,psfsw,448603,269150,864.699,2.46982,0.00142659,576.211,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42_Halpha,S016,equal,415045,2154.13,8942.52,3.07738,0.00199775,771.173,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42_Halpha,S016,exposure,435582,2483.05,8741.32,3.06178,0.00199775,771.173,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42_Halpha,S016,ivar,375871,1795.02,8871.65,3.06711,0.00199775,771.173,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42_Halpha,S016,w_info,386022,500.564,17253.7,2.9943,0.00199775,771.173,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42_Halpha,S016,psfsw,443797,204858,980.524,2.95677,0.00199775,771.173,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42_Halpha,S017,equal,389751,2440.82,7888.94,2.8436,0.00167164,616.947,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42_Halpha,S017,exposure,408893,2763.11,7778.76,2.83699,0.00167164,616.947,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42_Halpha,S017,ivar,362828,2233.32,7677.6,2.838,0.00167164,616.947,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42_Halpha,S017,w_info,369066,598.213,15089.5,2.80191,0.00167164,616.947,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42_Halpha,S017,psfsw,415870,237211,853.867,2.76296,0.00167164,616.947,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42_Halpha,S021,equal,328861,2302.8,6853.06,2.55396,0.00229139,696.823,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42_Halpha,S021,exposure,344945,2680.29,6662.85,2.52265,0.00229139,696.823,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42_Halpha,S021,ivar,290881,1834.08,6792.13,2.58199,0.00229139,696.823,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42_Halpha,S021,w_info,304104,436.415,14557,2.50046,0.00229139,696.823,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42_Halpha,S021,psfsw,350538,220773,746.041,2.41888,0.00229139,696.823,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42_Halpha,S022,equal,327844,2240.58,6926.07,2.76977,0.00229587,667.663,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+M42_Halpha,S022,exposure,344026,2629.66,6708.74,2.75262,0.00229587,667.663,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+M42_Halpha,S022,ivar,279463,1702.6,6772.81,2.80272,0.00229587,667.663,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+M42_Halpha,S022,w_info,290811,435.565,13934.3,2.7465,0.00229587,667.663,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+M42_Halpha,S022,psfsw,350081,233331,724.74,2.66175,0.00229587,667.663,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+M42_Halpha,AGG,equal,,,,,,,n=8
+M42_Halpha,AGG,exposure,,,,,,,n=8
+M42_Halpha,AGG,ivar,,,,,,,n=8
+M42_Halpha,AGG,w_info,,,,,,,n=8
+M42_Halpha,AGG,psfsw,,,,,,,n=8
+M42_Halpha,GROUP_TOTAL,psfsw,3.7053e+06,1.70445e+07,897.493,4.05951,,,all_stars_concatenated
+NGC1727,S065,equal,637884,14000.4,5391.04,3.38549,0.000228384,145.642,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC1727,S065,exposure,637884,14000.4,5391.04,3.38549,0.000228384,145.642,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC1727,S065,ivar,637675,13021.3,5588.19,3.33617,0.000228384,145.642,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC1727,S065,w_info,637707,4378.6,9637.26,3.5034,0.000228384,145.642,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC1727,S065,psfsw,640973,1.22173e+06,579.899,3.44791,0.000228384,145.642,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC1727,S075,equal,605325,19975.4,4282.93,3.25367,0.000168278,101.524,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC1727,S075,exposure,605325,19975.4,4282.93,3.25367,0.000168278,101.524,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC1727,S075,ivar,604477,18398.4,4456.45,3.17072,0.000168278,101.524,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC1727,S075,w_info,603312,5942.54,7826.29,3.08492,0.000168278,101.524,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC1727,S075,psfsw,605236,1.70737e+06,463.191,3.05813,0.000168278,101.524,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC1727,S087,equal,573805,12953.5,5041.63,3.52664,0.000237656,137.3,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC1727,S087,exposure,573805,12953.5,5041.63,3.52664,0.000237656,137.3,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC1727,S087,ivar,575287,12077.6,5234.73,3.45376,0.000237656,137.3,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC1727,S087,w_info,577729,4207.77,8906.31,3.36411,0.000237656,137.3,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC1727,S087,psfsw,580682,1.1693e+06,537.002,3.33801,0.000237656,137.3,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC1727,S088,equal,573283,15272.3,4638.92,3.18692,0.000244267,139.992,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC1727,S088,exposure,573283,15272.3,4638.92,3.18692,0.000244267,139.992,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC1727,S088,ivar,573810,13384.8,4959.77,3.10425,0.000244267,139.992,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC1727,S088,w_info,573112,4093.89,8957.18,3.03018,0.000244267,139.992,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC1727,S088,psfsw,573198,1.36218e+06,491.12,2.97076,0.000244267,139.992,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC1727,S091,equal,575157,10720.1,5555.05,3.18668,0.000302257,172.37,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC1727,S091,exposure,575157,10720.1,5555.05,3.18668,0.000302257,172.37,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC1727,S091,ivar,573550,10103.9,5705.95,3.12294,0.000302257,172.37,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC1727,S091,w_info,570275,3308.44,9914.54,3.056,0.000302257,172.37,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC1727,S091,psfsw,567955,979678,573.815,3.01697,0.000302257,172.37,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC1727,S095,equal,571685,17594.9,4309.87,3.2689,0.000175148,100.497,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC1727,S095,exposure,571685,17594.9,4309.87,3.2689,0.000175148,100.497,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC1727,S095,ivar,572964,17047.8,4388.26,3.26638,0.000175148,100.497,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC1727,S095,w_info,573782,5709.47,7593.62,3.16944,0.000175148,100.497,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC1727,S095,psfsw,575765,1.81563e+06,427.298,3.08358,0.000175148,100.497,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC1727,S111,equal,535045,10837.4,5139.57,3.30003,0.000311275,167.615,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC1727,S111,exposure,535045,10837.4,5139.57,3.30003,0.000311275,167.615,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC1727,S111,ivar,536611,9403.72,5533.63,3.24103,0.000311275,167.615,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC1727,S111,w_info,538479,3212.59,9500.39,3.15416,0.000311275,167.615,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC1727,S111,psfsw,541558,956120,553.846,3.08342,0.000311275,167.615,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC1727,S114,equal,514887,11183.4,4868.83,3.44284,0.000280818,145.446,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC1727,S114,exposure,514887,11183.4,4868.83,3.44284,0.000280818,145.446,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC1727,S114,ivar,516280,10517.4,5034.21,3.38502,0.000280818,145.446,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC1727,S114,w_info,517935,3561.02,8679.36,3.29701,0.000280818,145.446,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC1727,S114,psfsw,520212,1.01859e+06,515.442,3.26085,0.000280818,145.446,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC1727,AGG,equal,,,,,,,n=8
+NGC1727,AGG,exposure,,,,,,,n=8
+NGC1727,AGG,ivar,,,,,,,n=8
+NGC1727,AGG,w_info,,,,,,,n=8
+NGC1727,AGG,psfsw,,,,,,,n=8
+NGC1727,GROUP_TOTAL,psfsw,4.60558e+06,8.18448e+07,509.083,3.44791,,,all_stars_concatenated
+NGC247,S035,equal,917355,30506.2,5252.23,3.66962,8.80706e-05,83.1692,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC247,S035,exposure,917355,30506.2,5252.23,3.66962,8.80706e-05,83.1692,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC247,S035,ivar,940118,25692.7,5865.12,3.63193,8.80706e-05,83.1692,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC247,S035,w_info,944347,11354.5,8862.31,3.62372,8.80706e-05,83.1692,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC247,S035,psfsw,941495,2.15264e+06,641.701,3.63126,8.80706e-05,83.1692,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC247,S041,equal,811686,18981.7,5891.42,3.73072,0.00015363,128.63,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC247,S041,exposure,811686,18981.7,5891.42,3.73072,0.00015363,128.63,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC247,S041,ivar,833960,15770,6640.93,3.65254,0.00015363,128.63,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC247,S041,w_info,837268,6509.12,10377.7,3.6388,0.00015363,128.63,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC247,S041,psfsw,831830,1.30195e+06,729.015,3.65621,0.00015363,128.63,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC247,S046,equal,788090,22537,5249.61,3.59188,0.000125542,101.236,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC247,S046,exposure,788090,22537,5249.61,3.59188,0.000125542,101.236,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC247,S046,ivar,801169,19738.4,5702.54,3.6109,0.000125542,101.236,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC247,S046,w_info,806391,7965.46,9035.25,3.58266,0.000125542,101.236,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC247,S046,psfsw,808365,1.7566e+06,609.918,3.54529,0.000125542,101.236,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC247,S052,equal,757411,21638.9,5148.89,3.4627,0.000127773,99.5943,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC247,S052,exposure,757411,21638.9,5148.89,3.4627,0.000127773,99.5943,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC247,S052,ivar,775329,19345,5574.45,3.41722,0.000127773,99.5943,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC247,S052,w_info,779462,7826.37,8810.78,3.39825,0.000127773,99.5943,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC247,S052,psfsw,777214,1.59118e+06,616.143,3.40197,0.000127773,99.5943,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC247,S055,equal,743198,22079.9,5001.56,4.10809,0.000122677,93.6711,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC247,S055,exposure,743198,22079.9,5001.56,4.10809,0.000122677,93.6711,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC247,S055,ivar,760266,19280.1,5475.34,4.07366,0.000122677,93.6711,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC247,S055,w_info,763558,8151.48,8457.15,4.06232,0.000122677,93.6711,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC247,S055,psfsw,761636,1.57827e+06,606.258,4.06019,0.000122677,93.6711,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC247,S057,equal,715303,16835.1,5512.93,3.716,0.000190558,140.675,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC247,S057,exposure,715303,16835.1,5512.93,3.716,0.000190558,140.675,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC247,S057,ivar,734514,13532.7,6314.06,3.62144,0.000190558,140.675,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC247,S057,w_info,738227,5247.75,10190.7,3.60388,0.000190558,140.675,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC247,S057,psfsw,733498,1.12569e+06,691.336,3.64274,0.000190558,140.675,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC247,S058,equal,691644,20545.8,4825.26,3.36466,0.000138189,98.1473,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC247,S058,exposure,691644,20545.8,4825.26,3.36466,0.000138189,98.1473,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC247,S058,ivar,705905,18960.9,5126.45,3.32363,0.000138189,98.1473,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC247,S058,w_info,710241,7236.48,8349.14,3.30052,0.000138189,98.1473,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC247,S058,psfsw,709194,1.54714e+06,570.164,3.30932,0.000138189,98.1473,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC247,S060,equal,671570,18227.7,4974.22,3.35706,0.000152965,105.751,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC247,S060,exposure,671570,18227.7,4974.22,3.35706,0.000152965,105.751,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC247,S060,ivar,687532,16204.1,5401.08,3.31939,0.000152965,105.751,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC247,S060,w_info,691339,6537.44,8550.42,3.29299,0.000152965,105.751,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC247,S060,psfsw,688401,1.38846e+06,584.218,3.27902,0.000152965,105.751,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC247,AGG,equal,,,,,,,n=8
+NGC247,AGG,exposure,,,,,,,n=8
+NGC247,AGG,ivar,,,,,,,n=8
+NGC247,AGG,w_info,,,,,,,n=8
+NGC247,AGG,psfsw,,,,,,,n=8
+NGC247,GROUP_TOTAL,psfsw,6.25163e+06,9.95354e+07,626.621,3.63126,,,all_stars_concatenated
+NGC55,S004,equal,493406,12721.6,4374.56,4.27657,0.000283295,140.002,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC55,S004,exposure,493406,12721.6,4374.56,4.27657,0.000283295,140.002,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC55,S004,ivar,491029,12169.1,4451.21,3.71463,0.000283295,140.002,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC55,S004,w_info,494192,3529.88,8317.93,3.72105,0.000283295,140.002,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC55,S004,psfsw,502004,1.14466e+06,469.212,4.34974,0.000283295,140.002,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC55,S014,equal,440516,10949.8,4209.78,2.61449,0.000325117,143.19,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC55,S014,exposure,440516,10949.8,4209.78,2.61449,0.000325117,143.19,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC55,S014,ivar,440530,9914.74,4424.2,2.7395,0.000325117,143.19,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC55,S014,w_info,440426,3075.81,7941.32,2.66416,0.000325117,143.19,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC55,S014,psfsw,440778,1.08354e+06,423.446,2.55668,0.000325117,143.19,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC55,S015,equal,441413,12079.2,4016.31,3.83537,0.000285691,126.112,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC55,S015,exposure,441413,12079.2,4016.31,3.83537,0.000285691,126.112,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC55,S015,ivar,440302,11396.4,4124.46,3.58033,0.000285691,126.112,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC55,S015,w_info,441427,3500.28,7461.19,3.70323,0.000285691,126.112,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC55,S015,psfsw,443119,1.09201e+06,424.04,3.83744,0.000285691,126.112,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC55,S016,equal,445500,11142.4,4220.44,2.94532,0.000310965,138.574,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC55,S016,exposure,445500,11142.4,4220.44,2.94532,0.000310965,138.574,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC55,S016,ivar,445648,10546.3,4339.51,2.98007,0.000310965,138.574,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC55,S016,w_info,445627,3215.8,7858.27,2.94089,0.000310965,138.574,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC55,S016,psfsw,445443,1.05622e+06,433.426,2.93838,0.000310965,138.574,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC55,S020,equal,410646,10950.7,3924.17,2.67142,0.000330447,135.659,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC55,S020,exposure,410646,10950.7,3924.17,2.67142,0.000330447,135.659,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC55,S020,ivar,410484,10160.1,4072.37,2.77019,0.000330447,135.659,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC55,S020,w_info,410532,3026.21,7462.73,2.70619,0.000330447,135.659,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC55,S020,psfsw,411036,1.05605e+06,399.98,2.61772,0.000330447,135.659,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC55,S021,equal,409389,11138.7,3878.99,2.6679,0.000333232,136.312,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC55,S021,exposure,409389,11138.7,3878.99,2.6679,0.000333232,136.312,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC55,S021,ivar,408957,10050.8,4079.23,2.78121,0.000333232,136.312,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC55,S021,w_info,409061,3000.91,7467.27,2.70882,0.000333232,136.312,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC55,S021,psfsw,409855,1.07441e+06,395.408,2.61137,0.000333232,136.312,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC55,S024,equal,381127,11400,3569.57,3.31449,0.000310871,118.447,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC55,S024,exposure,381127,11400,3569.57,3.31449,0.000310871,118.447,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC55,S024,ivar,380869,10464.3,3723.24,3.16996,0.000310871,118.447,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC55,S024,w_info,381018,3216.77,6717.93,3.27545,0.000310871,118.447,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC55,S024,psfsw,381363,1.06925e+06,368.806,3.34838,0.000310871,118.447,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC55,S030,equal,364915,9815.82,3683.23,3.03717,0.000377024,137.44,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC55,S030,exposure,364915,9815.82,3683.23,3.03717,0.000377024,137.44,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC55,S030,ivar,363987,9008.08,3835.04,3.02541,0.000377024,137.44,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC55,S030,w_info,364538,2652.35,7078.28,3.05014,0.000377024,137.44,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC55,S030,psfsw,365897,973569,370.831,3.01195,0.000377024,137.44,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC55,AGG,equal,,,,,,,n=8
+NGC55,AGG,exposure,,,,,,,n=8
+NGC55,AGG,ivar,,,,,,,n=8
+NGC55,AGG,w_info,,,,,,,n=8
+NGC55,AGG,psfsw,,,,,,,n=8
+NGC55,GROUP_TOTAL,psfsw,3.3995e+06,6.83977e+07,411.049,4.34974,,,all_stars_concatenated
+NGC83,S032,equal,599311,5750,7903.48,3.26423,0.000617156,373.479,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC83,S032,exposure,599311,5750,7903.48,3.26423,0.000617156,373.479,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC83,S032,ivar,609252,5325.91,8348.34,3.27567,0.000617156,373.479,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC83,S032,w_info,605162,1620.34,15033.8,3.26804,0.000617156,373.479,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC83,S032,psfsw,624258,456119,924.326,3.30241,0.000617156,373.479,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC83,S033,equal,642031,6559.91,7926.96,3.24913,0.000452695,294.507,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC83,S033,exposure,642031,6559.91,7926.96,3.24913,0.000452695,294.507,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC83,S033,ivar,653184,6489.23,8108.47,3.27047,0.000452695,294.507,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC83,S033,w_info,650563,2208.99,13841.8,3.26839,0.000452695,294.507,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC83,S033,psfsw,669087,645851,832.562,3.3351,0.000452695,294.507,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC83,S038,equal,551504,5463.89,7461.01,3.01034,0.000661889,368.915,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC83,S038,exposure,551504,5463.89,7461.01,3.01034,0.000661889,368.915,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC83,S038,ivar,561069,5246.11,7746.37,3.01025,0.000661889,368.915,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC83,S038,w_info,557367,1510.83,14339.5,2.99339,0.000661889,368.915,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC83,S038,psfsw,574394,465068,842.27,3.00601,0.000661889,368.915,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC83,S039,equal,559505,5940.82,7259.07,3.07128,0.000632749,361.22,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC83,S039,exposure,559505,5940.82,7259.07,3.07128,0.000632749,361.22,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC83,S039,ivar,574068,5546.84,7707.98,3.08276,0.000632749,361.22,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC83,S039,w_info,570874,1580.41,14360.1,3.07327,0.000632749,361.22,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC83,S039,psfsw,581971,515797,810.33,3.07282,0.000632749,361.22,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC83,S040,equal,576565,5558.48,7733.4,2.9566,0.000602516,350.858,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC83,S040,exposure,576565,5558.48,7733.4,2.9566,0.000602516,350.858,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC83,S040,ivar,584798,5411.34,7949.75,2.96928,0.000602516,350.858,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC83,S040,w_info,582321,1659.71,14293.8,2.96512,0.000602516,350.858,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC83,S040,psfsw,600700,494273,854.425,3.00251,0.000602516,350.858,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC83,S042,equal,553000,4706.1,8061.11,3.02428,0.000760376,433.545,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC83,S042,exposure,553000,4706.1,8061.11,3.02428,0.000760376,433.545,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC83,S042,ivar,573395,4360.08,8683.74,3.04718,0.000760376,433.545,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC83,S042,w_info,570171,1315.14,15722.4,3.02661,0.000760376,433.545,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC83,S042,psfsw,577160,392103,921.714,3.01519,0.000760376,433.545,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC83,S046,equal,552354,5847.5,7223.24,3.27336,0.000514452,288.049,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC83,S046,exposure,552354,5847.5,7223.24,3.27336,0.000514452,288.049,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC83,S046,ivar,562105,5720.75,7431.75,3.29617,0.000514452,288.049,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC83,S046,w_info,559914,1943.82,12699.7,3.2959,0.000514452,288.049,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC83,S046,psfsw,575882,573174,760.66,3.35368,0.000514452,288.049,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC83,S047,equal,539172,5533.8,7247.96,3.29782,0.000571892,314.849,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+NGC83,S047,exposure,539172,5533.8,7247.96,3.29782,0.000571892,314.849,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+NGC83,S047,ivar,552432,5327.91,7568.33,3.33605,0.000571892,314.849,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+NGC83,S047,w_info,550539,1748.58,13165.7,3.32695,0.000571892,314.849,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+NGC83,S047,psfsw,563247,484954,808.813,3.37948,0.000571892,314.849,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+NGC83,AGG,equal,,,,,,,n=8
+NGC83,AGG,exposure,,,,,,,n=8
+NGC83,AGG,ivar,,,,,,,n=8
+NGC83,AGG,w_info,,,,,,,n=8
+NGC83,AGG,psfsw,,,,,,,n=8
+NGC83,GROUP_TOTAL,psfsw,4.7667e+06,3.22187e+07,839.776,3.30241,,,all_stars_concatenated
+Victory_Nebula,S000,equal,396540,24133.7,2552.55,4.44293,0.000205314,81.3832,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Victory_Nebula,S000,exposure,396540,24133.7,2552.55,4.44293,0.000205314,81.3832,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Victory_Nebula,S000,ivar,396231,21280.8,2716.15,4.4689,0.000205314,81.3832,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Victory_Nebula,S000,w_info,396384,4870.58,5679.7,4.45595,0.000205314,81.3832,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Victory_Nebula,S000,psfsw,396689,2.23488e+06,265.353,4.42918,0.000205314,81.3832,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Victory_Nebula,S001,equal,343079,20630.4,2388.58,2.17858,0.000285111,97.8805,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Victory_Nebula,S001,exposure,343079,20630.4,2388.58,2.17858,0.000285111,97.8805,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Victory_Nebula,S001,ivar,343310,19065.4,2486.35,2.20721,0.000285111,97.8805,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Victory_Nebula,S001,w_info,343307,3507.41,5796.82,2.19947,0.000285111,97.8805,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Victory_Nebula,S001,psfsw,343071,1.7604e+06,258.57,2.17036,0.000285111,97.8805,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Victory_Nebula,S002,equal,313702,24222.6,2015.61,2.37475,0.000270251,84.8259,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Victory_Nebula,S002,exposure,313702,24222.6,2015.61,2.37475,0.000270251,84.8259,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Victory_Nebula,S002,ivar,313905,22684.3,2084.18,2.37267,0.000270251,84.8259,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Victory_Nebula,S002,w_info,313878,3700.26,5159.94,2.36895,0.000270251,84.8259,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Victory_Nebula,S002,psfsw,313515,2.1948e+06,211.622,2.36644,0.000270251,84.8259,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Victory_Nebula,S003,equal,341833,25270,2150.36,2.41699,0.000209775,71.702,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Victory_Nebula,S003,exposure,341833,25270,2150.36,2.41699,0.000209775,71.702,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Victory_Nebula,S003,ivar,341815,23738.9,2218.51,2.45194,0.000209775,71.702,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Victory_Nebula,S003,w_info,341804,4767.01,4950.56,2.43916,0.000209775,71.702,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Victory_Nebula,S003,psfsw,341863,2.29463e+06,225.682,2.39441,0.000209775,71.702,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Victory_Nebula,S004,equal,295652,22569.6,1967.98,2.05186,0.000323714,95.6778,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Victory_Nebula,S004,exposure,295652,22569.6,1967.98,2.05186,0.000323714,95.6778,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Victory_Nebula,S004,ivar,295513,21223.6,2028.47,2.07887,0.000323714,95.6778,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Victory_Nebula,S004,w_info,295563,3089.15,5317.78,2.06788,0.000323714,95.6778,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Victory_Nebula,S004,psfsw,295736,2.0339e+06,207.367,2.03752,0.000323714,95.6778,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Victory_Nebula,S005,equal,344134,22564.3,2290.96,1.97198,0.000240907,82.9122,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Victory_Nebula,S005,exposure,344134,22564.3,2290.96,1.97198,0.000240907,82.9122,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Victory_Nebula,S005,ivar,343754,21330.7,2353.67,1.99464,0.000240907,82.9122,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Victory_Nebula,S005,w_info,344167,4150.98,5341.87,1.97557,0.000240907,82.9122,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Victory_Nebula,S005,psfsw,344596,1.97764e+06,245.04,1.96646,0.000240907,82.9122,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Victory_Nebula,S014,equal,267581,17029.5,2050.47,2.54391,0.000523603,139.759,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Victory_Nebula,S014,exposure,267581,17029.5,2050.47,2.54391,0.000523603,139.759,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Victory_Nebula,S014,ivar,266632,15035.8,2174.45,2.55312,0.000523603,139.759,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Victory_Nebula,S014,w_info,266918,1909.85,6107.72,2.55052,0.000523603,139.759,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Victory_Nebula,S014,psfsw,267835,1.55747e+06,214.614,2.5412,0.000523603,139.759,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Victory_Nebula,S102,equal,287888,25527,1801.87,2.13402,0.000278531,80.8835,DOCUMENTED_BASELINE unit_weight: I=mean_k d_k (vocab equal)
+Victory_Nebula,S102,exposure,287888,25527,1801.87,2.13402,0.000278531,80.8835,DOCUMENTED_BASELINE exposure_time_weight: alpha=t_k/Sum t
+Victory_Nebula,S102,ivar,288159,24478.1,1841.8,2.17688,0.000278531,80.8835,DOCUMENTED_BASELINE pixel_ivar: alpha=(1/v_k)/Sum(1/v_j), v_k=Sum_p sigma2
+Victory_Nebula,S102,w_info,290393,3590.26,4846.44,2.1677,0.000278531,80.8835,PRODUCTION point_information: Q/W, F=SumQ/SumW, Var=1/SumW, alpha=W/SumW
+Victory_Nebula,S102,psfsw,289576,2.26213e+06,192.532,2.11873,0.000278531,80.8835,PRODUCTION psfsw_robust: dimensionless W_psfsw (group median=1); alpha=W/SumW; C_out=R C_in R^T
+Victory_Nebula,AGG,equal,,,,,,,n=8
+Victory_Nebula,AGG,exposure,,,,,,,n=8
+Victory_Nebula,AGG,ivar,,,,,,,n=8
+Victory_Nebula,AGG,w_info,,,,,,,n=8
+Victory_Nebula,AGG,psfsw,,,,,,,n=8
+Victory_Nebula,GROUP_TOTAL,psfsw,2.59288e+06,1.30527e+08,226.951,4.42918,,,all_stars_concatenated

@@ -1,0 +1,275 @@
+{
+  "task": "REAL-SCIENCE-001",
+  "datasets": [
+    {
+      "dataset": "Galaxy_Center",
+      "object": "Galaxy_Center",
+      "telescope": "T4",
+      "input_json": "real-science/inputs/Galaxy_Center.json",
+      "input_json_sha256": "bb90e3e95feb505935033083c8fa6624b8425e36a7509ac447a7accc9515f243",
+      "n_frames": 5,
+      "n_stars": 8,
+      "frame_paths": [
+        "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+        "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@062109-180S-Red.fts",
+        "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@062457-180S-Red.fts",
+        "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@062844-180S-Red.fts",
+        "testdata/Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@063231-180S-Red.fts"
+      ],
+      "frame_sha256": [
+        "ce944ae795bde60cb76dfea07f749eb883158a20144c1df5ea0ab24d621afdb7",
+        "9af5f3382422538a476bb69481702b107be04c679527eae35df7935804f974ce",
+        "95f47fba0da750eaa8d62011843b5c4b956aba6acbcab28208eb4083963b8d05",
+        "3505ddd85f0bfa24d55e7f9f27de4a4fa166d5658f5be4ef6039bdd20c018c64",
+        "ae7d2febea5c451892d7ec40382c13ab706ea82cd1d6fce69d8632ed9dd4d1f4"
+      ],
+      "exptimes": [
+        180.0,
+        180.0,
+        180.0,
+        180.0,
+        180.0
+      ]
+    },
+    {
+      "dataset": "LDN43",
+      "object": "LDN43",
+      "telescope": "T2",
+      "input_json": "real-science/inputs/LDN43.json",
+      "input_json_sha256": "f57f22fc738b64d6c02f5f0bc2d0978431dbb11cb2f619bfa8703a4ed123db28",
+      "n_frames": 5,
+      "n_stars": 8,
+      "frame_paths": [
+        "testdata/LDN43_T2\u7d20\u6750_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250503@031525-600S-Lum.fts",
+        "testdata/LDN43_T2\u7d20\u6750_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250504@045958-600S-Lum.fts",
+        "testdata/LDN43_T2\u7d20\u6750_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250505@050403-600S-Lum.fts",
+        "testdata/LDN43_T2\u7d20\u6750_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250505@073644-600S-Lum.fts",
+        "testdata/LDN43_T2\u7d20\u6750_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250520@022502-600S-Lum.fts"
+      ],
+      "frame_sha256": [
+        "d67d56bb142dd1bc49244ad0ebe8d56c3ab4cab167f948d7c591f008fc082700",
+        "10fc40df809d64b124e56426f6a096fb58b28800c9f3fb849a11ce1043c8a7d3",
+        "b98e1bc3f4cb9d8c3b9f4bf5f943ee9aa86872b568259c2aa68bd3b64c321592",
+        "4681eb822cd05ca55b405b3c66fa8634d74e9d2f89b857b5e5743e50fb28ce2e",
+        "d1c7f196b3eef88623a2935bc29fda379c2ec45cfb0debb2b998b0d1ba636a2e"
+      ],
+      "exptimes": [
+        600.0,
+        600.0,
+        600.0,
+        600.0,
+        600.0
+      ]
+    },
+    {
+      "dataset": "M42",
+      "object": "M42",
+      "telescope": "T3",
+      "input_json": "real-science/inputs/M42.json",
+      "input_json_sha256": "8204541ec6ec34ddb3a46d327552d947bf79b43fa2fb04b6f53b9e16ea4e6f4a",
+      "n_frames": 5,
+      "n_stars": 8,
+      "frame_paths": [
+        "testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251126@041940-300S-Red.fts",
+        "testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251127@042719-300S-Red.fts",
+        "testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251128@043530-300S-Red.fts",
+        "testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251211@013548-300S-Red.fts",
+        "testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251212@021119-300S-Red.fts"
+      ],
+      "frame_sha256": [
+        "698fefe90d8c713d5b32a981c921e04f6ea3f90b41c0e51dd3f407ac9a52451b",
+        "a1e93ee02c400d70931ac0463faa7b21d5bdc6b1ee0c38aa548e5612ec46ab9d",
+        "de4c9fa3860359ebe0c9ac6d7b29305145ff546c31011dbf53b491f0e77ece99",
+        "02a5c58d9e6f4a0a44dd65cca8209be0a55791456ab3eb384efc5d5cd34f603a",
+        "4cb242d410a1326a604ee53fd02b3df5c677a269101918f8f5534acb88b2072d"
+      ],
+      "exptimes": [
+        300.0,
+        300.0,
+        300.0,
+        300.0,
+        300.0
+      ]
+    },
+    {
+      "dataset": "M42_Halpha",
+      "object": "M42",
+      "telescope": "T2",
+      "input_json": "real-science/inputs/M42_Halpha.json",
+      "input_json_sha256": "2b11968f2e36cf853bd899c5f2c43d1113288a2e72adfbf99739d1d34c5aabd7",
+      "n_frames": 5,
+      "n_stars": 8,
+      "frame_paths": [
+        "testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M1/M42_M1_T2_flying_dutchman-20251212@014241-600S-H-alpha.fts",
+        "testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M1/M42_M1_T2_flying_dutchman-20251216@031003-600S-H-alpha.fts",
+        "testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M1/M42_M1_T2_flying_dutchman-20251228@030452-600S-H-alpha.fts",
+        "testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M1/M42_M1_T2_flying_dutchman-20260108@011958-300S-H-alpha.fts",
+        "testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M1/M42_M1_T2_flying_dutchman-20260108@012701-600S-H-alpha.fts"
+      ],
+      "frame_sha256": [
+        "e85a6dfb63e08e000ead6a429fa9f1289638dd7e0bb23f951b5c6182a57cdfb9",
+        "304d0ea12f266d2d4d683630f079dd830caa57f2eb0094eb54cfda48247dbfb7",
+        "78f129b492dc33264ce8c4611a950ce06924b21ab577a4f68f81be887711de75",
+        "0590f7535c91816d56bb19d3afd8b87b0763c3a202e7ed1339f2ff826d462b7e",
+        "3a13bb12704e80712e0ca585e9e33b1cd317e1ca29b96f9a6b5620b59db2927f"
+      ],
+      "exptimes": [
+        600.0,
+        600.0,
+        600.0,
+        300.0,
+        600.0
+      ]
+    },
+    {
+      "dataset": "NGC1727",
+      "object": "NGC1727",
+      "telescope": "T2",
+      "input_json": "real-science/inputs/NGC1727.json",
+      "input_json_sha256": "05b8832b9482e1e0564e7ff8a1ba0ce8d01ca890eb9d463ea2ef0d23d890cf99",
+      "n_frames": 5,
+      "n_stars": 8,
+      "frame_paths": [
+        "testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251031@064517-600S-Red.fts",
+        "testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251110@022935-600S-Red.fts",
+        "testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251111@030445-600S-Red.fts",
+        "testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251112@034031-600S-Red.fts",
+        "testdata/NGC1727_T2_flying_dutchman/lights/NGC1727_RGBHO_T2_flying_dutchman-20251112@050641-600S-Red.fts"
+      ],
+      "frame_sha256": [
+        "f0aada0594b8475d7005336c9843c6179f805cd5478c4d0b0f2a2f1bb6efa3e4",
+        "f65c9a567da60d04a6556268612b94135937fabbc2f880472614ee55abd1dd99",
+        "c204d9e2be0a4f6497f4e7a71b3c1d1cf89bb282678bc95eabad7739115bfa03",
+        "a11effa18116d63e4dc4665c7530d87eaaa79fc1fc2fc91570e9bf83e3038a79",
+        "89d4048da183ba94aeb1a0399f2a0c9b91f47017db02358266931cbb8c58f355"
+      ],
+      "exptimes": [
+        600.0,
+        600.0,
+        600.0,
+        600.0,
+        600.0
+      ]
+    },
+    {
+      "dataset": "NGC247",
+      "object": "NGC247",
+      "telescope": "T2",
+      "input_json": "real-science/inputs/NGC247.json",
+      "input_json_sha256": "3491f80e4f603cd904d26f19e67e6f45d8d6eb717c502facdb94980ee50a6acf",
+      "n_frames": 5,
+      "n_stars": 8,
+      "frame_paths": [
+        "testdata/NGC247_T2_flying_dutchman/lights/NGC247_T2_flying_dutchman-20250816@033428-600S-Lum.fts",
+        "testdata/NGC247_T2_flying_dutchman/lights/NGC247_T2_flying_dutchman-20250816@050038-600S-Lum.fts",
+        "testdata/NGC247_T2_flying_dutchman/lights/NGC247_T2_flying_dutchman-20250817@045945-600S-Lum.fts",
+        "testdata/NGC247_T2_flying_dutchman/lights/NGC247_T2_flying_dutchman-20250817@051839-600S-Lum.fts",
+        "testdata/NGC247_T2_flying_dutchman/lights/NGC247_T2_flying_dutchman-20250829@035322-600S-Lum.fts"
+      ],
+      "frame_sha256": [
+        "6b0a2d2d0c3308704fc6b5df1f63b3ee0febd751175acd396cc13906461a293a",
+        "ab6a784b5a89bcdff56bf09e329a79d7c9c75ac34faf7ffd571475f8fd5bb472",
+        "201e225bf19d34e23858298bb086702403d6be87ce7c281ccdc1067945122393",
+        "896de11157f0051710274e56ffd888954e051f92f3c0b0653e3fd6353117cb01",
+        "6c6dafedc8892bfb148a0447428edd81285113115b1e9042325a2702c43fb148"
+      ],
+      "exptimes": [
+        600.0,
+        600.0,
+        600.0,
+        600.0,
+        600.0
+      ]
+    },
+    {
+      "dataset": "NGC55",
+      "object": "NGC55",
+      "telescope": "T3",
+      "input_json": "real-science/inputs/NGC55.json",
+      "input_json_sha256": "9c49fa34336380bd785b0c1254c7b6161b3cc5c9274cdc039bd058efb901a576",
+      "n_frames": 5,
+      "n_stars": 8,
+      "frame_paths": [
+        "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250703@075400-600S-Lum.fts",
+        "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250703@092035-600S-Lum.fts",
+        "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250703@094311-600S-Lum.fts",
+        "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250703@095523-600S-Lum.fts",
+        "testdata/NGC55_T3_flying_dutchman/lights/NGC55_T3_flying_dutchman-20250704@082623-600S-Lum.fts"
+      ],
+      "frame_sha256": [
+        "378346e32860105f27bbce2eaf76af7b64a6e04a36b8c33f538abf08da8a671f",
+        "8d60e1b4158cb88600eeededeeaa92a54394e0d712a1f0875b020505808334dc",
+        "f53b2ea984e7488356dbb7dc09e9937bcc69a8fc08e51be699773268c87088de",
+        "19031917a79d598c771877229191d842df5a1cbe723eeea80ee81a59a7d0bab8",
+        "d49de25c58c6848e322bc4b5420874704873b13efb35a12f7d3f5d9d07c749dc"
+      ],
+      "exptimes": [
+        600.0,
+        600.0,
+        600.0,
+        600.0,
+        600.0
+      ]
+    },
+    {
+      "dataset": "NGC83",
+      "object": "NGC83_cluster",
+      "telescope": "T3",
+      "input_json": "real-science/inputs/NGC83.json",
+      "input_json_sha256": "96f307a9d812d80a4fb5834ae6d36f3387a0da841e60d41214cb2f5a08b2c0f6",
+      "n_frames": 5,
+      "n_stars": 8,
+      "frame_paths": [
+        "testdata/NGC83_cluster_T3_Flying_Dutchman/lights/NGC90_2025wwk_T3_flying_dutchman-20251011@021932-600S-Green.fts",
+        "testdata/NGC83_cluster_T3_Flying_Dutchman/lights/NGC90_2025wwk_T3_flying_dutchman-20251012@024921-600S-Green.fts",
+        "testdata/NGC83_cluster_T3_Flying_Dutchman/lights/NGC90_2025wwk_T3_flying_dutchman-20251012@034129-600S-Green.fts",
+        "testdata/NGC83_cluster_T3_Flying_Dutchman/lights/NGC90_2025wwk_T3_flying_dutchman-20251017@020408-600S-Green.fts",
+        "testdata/NGC83_cluster_T3_Flying_Dutchman/lights/NGC90_2025wwk_T3_flying_dutchman-20251017@025607-600S-Green.fts"
+      ],
+      "frame_sha256": [
+        "abec224c5372985d7bdd5549518488b42e9ac95118a5ed458fa18521ee07f295",
+        "2d727dc271a00742b6c6929d584069c8a05bce15cf6198c239834345c4b46182",
+        "10a1d59904fc2376d6ad19ae91909ed30dbbc08985acec4e15dcc41d66464edb",
+        "dadd7011280d781cf5abc70e93931f74d9953cc05aa497b3aea67512b926260a",
+        "b89efbd1d1ad124221e6e4921481a7ef4c07bbf46cc4027fb2153febd3a48081"
+      ],
+      "exptimes": [
+        600.0,
+        600.0,
+        600.0,
+        600.0,
+        600.0
+      ]
+    },
+    {
+      "dataset": "Victory_Nebula",
+      "object": "Victory_Nebula",
+      "telescope": "T4",
+      "input_json": "real-science/inputs/Victory_Nebula.json",
+      "input_json_sha256": "c9e67c2ec9a8f84c5af779436f5270bb6f769c19dd503bbc6fbaf3410d63c3b1",
+      "n_frames": 5,
+      "n_stars": 8,
+      "frame_paths": [
+        "testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@035646-180S-Lum.fts",
+        "testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@040054-180S-Lum.fts",
+        "testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@040442-180S-Lum.fts",
+        "testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@040831-180S-Lum.fts",
+        "testdata/Victory_Nebula_T4_Flying_Dutchman/lights/Victory_Nebula_mosaic1_flying_dutchman-20250204@041219-180S-Lum.fts"
+      ],
+      "frame_sha256": [
+        "4b9983bc59e587368b8b5482645762be9d13fb70c84c62b26807119e0e7a51b1",
+        "5f5bea5b71bcee1fd18e041995bc06819263c14d092b4e171a2ed28b42d2408b",
+        "537720cd9e3872f4acf6a5f2395b5cf38e62a6fd4798517b00fa4253279e56e8",
+        "7275713f9ffcf70c10378ad47ab96e53e37b3ea7b63ef52fd6635d2c5c9425c0",
+        "0193b9f50eb525fbeadb6112f1ff680c90218b0925680e13067568339ef3f297"
+      ],
+      "exptimes": [
+        180.0,
+        180.0,
+        180.0,
+        180.0,
+        180.0
+      ]
+    }
+  ]
+}

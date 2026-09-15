@@ -1,0 +1,15 @@
+{"check":"phase2_cli_mode","mode":"point_information","rc":0,"expected_rc":0,"pass":true}
+{"check":"phase2_cli_mode","mode":"surface_gls","rc":0,"expected_rc":0,"pass":true}
+{"check":"phase2_cli_mode","mode":"psfsw_robust","rc":0,"expected_rc":0,"pass":true}
+{"check":"phase2_cli_mode","mode":"equal","rc":0,"expected_rc":0,"pass":true}
+{"check":"phase2_cli_mode","mode":"pixel_ivar","rc":0,"expected_rc":0,"pass":true}
+{"check":"phase2_cli_mode_reject","mode":"psf_snr_power","rc":2,"expected_rc":2,"pass":true}
+{"check":"phase2_cli_mode_reject","mode":"auto","rc":2,"expected_rc":2,"pass":true}
+{"check":"phase2_cli_mode_reject","mode":"support_x_snr2","rc":2,"expected_rc":2,"pass":true}
+{"check":"phase2_cli_mode_reject","mode":"0","rc":2,"expected_rc":2,"pass":true}
+{"check":"phase2_cli_mode_reject","mode":"1","rc":2,"expected_rc":2,"pass":true}
+{"check":"phase2_cli_mode_reject","mode":"2","rc":2,"expected_rc":2,"pass":true}
+{"check":"phase2_cli_mode_reject","mode":"bogus","rc":2,"expected_rc":2,"pass":true}
+{"check":"phase2_config_weight_mode","mode":"0","rc":2,"expected_rc":2,"pass":true}
+{"check":"phase2_config_weight_mode","mode":"1","rc":0,"expected_rc":0,"pass":true}
+{"check":"phase2_config_weight_mode","mode":"2","rc":0,"expected_rc":0,"pass":true}
