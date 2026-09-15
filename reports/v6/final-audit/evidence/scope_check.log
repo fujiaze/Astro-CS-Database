@@ -1,0 +1,36 @@
+task                     sha       files  OUT  out-of-scope
+BASE-OWN-001             4b508f28      1    0
+SCI-OBS-001              9d99fd71      2    0
+SCI-PSFW-001             24610e01      2    0
+SCI-P2-001               192fab35      6    0
+SCI-P3-001               eac43135      2    0
+AUDIT-REVIEW-001         a09a81f4      8    0
+SCI-ADJ-001              db26eec5      6    0
+DATA-DESIGN-001          2eab1fc1     29    0
+ALG-P1-001               29747831      8    0
+ALG-P2-POINT-001         28e0ac6c      4    0
+ALG-P2-PSFSW-001         1c4e5f92      6    0
+ALG-P2-SURF-001          77ce7299      8    0
+ALG-P3-001               ebefe00d      5    0
+QA-MATRIX-001            67f0456f     27    0
+CONTRACT-FREEZE-001      7a104485     50    0
+IMPL-P1-CAL-001          6c17e7d6      8    0
+IMPL-P1-PSFW-001         078bde5f     19    0
+IMPL-P1-DRZ-001          684a693e      8    0
+IMPL-P2-UPM-001          f0502b25      9    0
+IMPL-P2-REJ-001          dfc1f8fc     10    0
+IMPL-P2-SAMP-001         51d5b645      8    0
+IMPL-P3-PROJ-001         e476b90e      9    0
+IMPL-P3-RSMP-001         b5bc6af4     20    0
+IMPL-AIO-001             e244b284     24    0
+SCHEMA-INTEGRATE-001     2ac6b758     39    0
+P3-INTEGRATE-001         a689eff2      7    0
+P1-INTEGRATE-001         960d6051     10    0
+P2-INTEGRATE-001         4c0296e0     10    0
+RUNTIME-CI-001           0d8e98f1     20    0
+REAL-SCIENCE-001         815f161f     28    0
+PERF-SCALE-001           f8470f4c     41    0
+WIN-VERIFY-001           296c012f     14    0
+DOC-CONVERGE-001         46ca7573     24    0
+
+TOTAL tasks: 33  with out-of-scope files: 0
