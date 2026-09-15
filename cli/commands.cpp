@@ -56,6 +56,7 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "resource_events.h"
 #include "resource_gate.h"
 #include "astrocs/core/context.h"  // B2-A18: 租约授予观测
+#include "v6_runtime_contract.h"   // RUNTIME-CI-001: 统一预算/模式路由/SO-05 策略单一来源
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -69,6 +70,7 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 
 #include "cli_common.h"
 #include "runtime_client.h"
+#include "v6_mode_gate.h"   // RUNTIME-CI-001: V6 显式模式路由门
 
 // MON-002 资源/backend 事件发射(定义于后段, 此处前向声明供 phase run 共用引擎使用)
 // 注: cmd_run_pipeline / cmd_graph 已随 CLI-002 移除; 下述 helper(write_run_graphs /
@@ -1019,6 +1021,19 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         const astrocs::GateDiag m2 = astrocs::evaluate_mon002(g);
         if (m2 != astrocs::GateDiag::Ok) d = m2;
     }
+    // RUNTIME-CI-001 (§10.5 work units): 记录本 run 的 typed DAG 节点数（真实 IR，
+    // 非配置占位）。IR 构建失败 → 0（哨兵：不臆造工作量）。
+    const uint64_t measured_work_units = [&]() -> uint64_t {
+        std::string ir_err;
+        const std::string irj =
+            astrocs::cli::build_pipeline_ir({phase.back() - '0'}, cfg_text, &ir_err);
+        if (irj.empty()) return 0;
+        try {
+            return static_cast<uint64_t>(nlohmann::json::parse(irj)["nodes"].size());
+        } catch (...) {
+            return 0;
+        }
+    }();
     ev.emit("resource", "info", phase, "resource gate", {
         {"verdict", astrocs::gate_diag_name(d)},
         {"wall_seconds", s.wall_seconds},
@@ -1061,6 +1076,25 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"io_read_bytes", s.total_read_bytes},
         {"io_write_bytes", s.total_write_bytes},
         {"threads", s.max_threads},
+        // RUNTIME-CI-001 (§10.5 每线程 CPU / I/O wait / 队列深度 / worker 均衡):
+        // 每线程 CPU 与 active compute threads 来自 /proc/self/task 真实观测
+        // (cli/monitor.h read_thread_cpu → cli/resource_recorder.h ResRecord)。
+        {"per_thread_cpu_max_pct", act.per_thread_cpu_max_pct_peak},
+        {"per_thread_cpu_sum_pct", act.per_thread_cpu_sum_pct_mean},
+        {"active_compute_threads_peak", act.active_compute_threads_peak},
+        {"io_wait_pct", act.io_wait_pct_mean},
+        {"queue_depth_observed", g.queue_low_run_seconds >= 0.0 ? 1 : 0},
+        {"worker_balance_active_over_runnable", g.workers_p50},
+        {"work_units", measured_work_units},
+        // SO-05 记录/裁决分离（04_OPEN_ITEMS_AND_SIGNOFF SO-05；宪章 §10.5/§17.6）:
+        // 未签字前资源判据恒为 record_only + 显式 pending，绝不自动升级为硬失败。
+        {"measurement_policy", astrocs::v6runtime::kRecordOnlyPolicy},
+        {"so05_signoff_id", astrocs::v6runtime::kSo05Id},
+        {"so05_signoff_status", astrocs::v6runtime::kSo05Status},
+        {"auto_adjudication_allowed", false},
+        {"auto_adjudication_policy", astrocs::v6runtime::kNoAutoAdjudication},
+        {"one_budget_source_rule", astrocs::v6runtime::kOneBudgetSourceRule},
+        {"determinism_contract", astrocs::v6runtime::kDeterminismContractId},
     });
     // P26(负责人 T2): 记录与裁决分离。默认 record-only: 非 Ok 判定仍**完整记录**
     // (resource 事件 + resource_gate 事件 + 资源 summary/CSV 产物路径不变), 但不再
@@ -1081,7 +1115,12 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                  {"work_core_seconds", g.work_core_seconds},
                  {"workload_floor_core_seconds", astrocs::kMon003MinCoreSeconds},
                  {"workload_floor_reached", astrocs::gate_workload_above_floor(g)},
-                 {"adjudicated", astrocs::gate_workload_above_floor(g)}});
+                 // SO-05: 资源判据的自动判决权属负责人签字项；未签字前 kept record-only，
+                 // 此处只记录"若已签字是否会失败"，不改变退出码（避免擅自升级为非豁免红灯）。
+                 {"would_fail_if_so05_signed", true},
+                 {"so05_signoff_id", astrocs::v6runtime::kSo05Id},
+                 {"so05_signoff_status", astrocs::v6runtime::kSo05Status},
+                 {"auto_adjudication_allowed", false}});
         if (enforced) {
             std::fprintf(stderr, "astrocs: %s\n", why.c_str());
             return astrocs::RESOURCE;  // exit_codes.h:17 = 10
@@ -1108,6 +1147,11 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
 }
 
 int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    // RUNTIME-CI-001: 显式模式路由门（--mode / legacy weight_mode）；reject → ARGS(2)。
+    {
+        const int mrc = astrocs::v6cli::mode_gate(p, 2, ev);
+        if (mrc != astrocs::OK) return mrc;
+    }
     const std::string cfg = need_value(p, "--config");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
     if (!f) {
@@ -1241,6 +1285,11 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 
 
 int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    // RUNTIME-CI-001: 显式输出模式路由门（--export-mode）；reject → ARGS(2)。
+    {
+        const int mrc = astrocs::v6cli::mode_gate(p, 3, ev);
+        if (mrc != astrocs::OK) return mrc;
+    }
     const std::string cfg = need_value(p, "--config");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
     if (!f) {
@@ -1501,7 +1550,11 @@ int phase_ir_prereq(const Parsed& p, int phase, std::string* cfg_sha_out,
 
 // phaseN validate: 相级深层校验(不执行科学重算)
 int cmd_phase_validate(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
-    (void)ev;
+    // RUNTIME-CI-001: 显式模式路由门在 validate 面同样 fail-closed。
+    {
+        const int mrc = astrocs::v6cli::mode_gate(p, phase, ev);
+        if (mrc != astrocs::OK) return mrc;
+    }
     std::string cfg_sha, ir;
     const int rc = phase_ir_prereq(p, phase, &cfg_sha, &ir);
     if (rc != astrocs::OK) return rc;
@@ -1525,7 +1578,11 @@ int cmd_phase_validate(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
 
 // phaseN plan: typed DAG/work units/内存-IO/并行计划(确定性文档, 不执行)
 int cmd_phase_plan(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
-    (void)ev;
+    // RUNTIME-CI-001: 显式模式路由门在 plan 面同样 fail-closed。
+    {
+        const int mrc = astrocs::v6cli::mode_gate(p, phase, ev);
+        if (mrc != astrocs::OK) return mrc;
+    }
     std::string cfg_sha, ir;
     const int rc = phase_ir_prereq(p, phase, &cfg_sha, &ir);
     if (rc != astrocs::OK) return rc;

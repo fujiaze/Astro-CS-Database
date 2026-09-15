@@ -4068,6 +4068,385 @@
       ]
     },
     {
+      "id": "V6-RUNTIME-CLOSURE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/v6/check_v6_runtime_closure.py",
+        "closure",
+        "--json-out",
+        "run/v6/runtime-closure/closure.json",
+        "--oracle-out",
+        "run/v6/runtime-closure/oracle.json",
+        "--mutations-out",
+        "run/v6/runtime-closure/mutations.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/v6/runtime-closure/closure.json",
+        "run/v6/runtime-closure/oracle.json",
+        "run/v6/runtime-closure/mutations.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "cli/**",
+        "runtime/**",
+        "tools/v6/**",
+        "tests/system/v6_runtime/**",
+        "ci/checks.json"
+      ],
+      "requires_monitor": false,
+      "dirty_ignore_prefixes": [
+        "run/v6/"
+      ],
+      "prerequisite_tools": [
+        "python3"
+      ]
+    },
+    {
+      "id": "V6-CLI-MODE-ROUTING",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/v6/check_v6_runtime_closure.py",
+        "cli-mode",
+        "--json-out",
+        "run/v6/runtime-closure/cli_mode.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/v6/runtime-closure/cli_mode.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "cli/**",
+        "tools/v6/**",
+        "ci/checks.json"
+      ],
+      "requires_monitor": false,
+      "prerequisite_tools": [
+        "python3"
+      ]
+    },
+    {
+      "id": "V6-RESOURCE-GATE-POLICY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/v6/check_v6_runtime_closure.py",
+        "resource-gate",
+        "--json-out",
+        "run/v6/runtime-closure/resource_gate.json",
+        "--oracle-out",
+        "run/v6/runtime-closure/resource_gate_oracle.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/v6/runtime-closure/resource_gate.json",
+        "run/v6/runtime-closure/resource_gate_oracle.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "cli/**",
+        "runtime/**",
+        "tools/v6/**",
+        "ci/checks.json"
+      ],
+      "requires_monitor": false,
+      "dirty_ignore_prefixes": [
+        "run/v6/"
+      ],
+      "prerequisite_tools": [
+        "python3"
+      ]
+    },
+    {
+      "id": "V6-NEGATIVE-MUTATION",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/v6/check_v6_runtime_closure.py",
+        "mutations",
+        "--json-out",
+        "run/v6/runtime-closure/mutations_ci.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/v6/runtime-closure/mutations_ci.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "cli/**",
+        "runtime/**",
+        "tools/v6/**",
+        "ci/checks.json"
+      ],
+      "requires_monitor": false,
+      "dirty_ignore_prefixes": [
+        "run/v6/"
+      ],
+      "prerequisite_tools": [
+        "python3"
+      ]
+    },
+    {
+      "id": "V6-DETERMINISM",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/v6/v6_determinism_driver.py",
+        "--budgets",
+        "1,2,4,8",
+        "--json-out",
+        "run/v6/determinism/determinism.json"
+      ],
+      "timeout_seconds": 7200,
+      "heavy": true,
+      "mutates_workspace": true,
+      "outputs": [
+        "run/v6/determinism/determinism.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "cli/**",
+        "lib/**",
+        "tests/integration/**",
+        "tools/v6/**",
+        "ci/checks.json"
+      ],
+      "requires_monitor": true,
+      "dirty_ignore_prefixes": [
+        "run/v6/"
+      ],
+      "prerequisite_tools": [
+        "cmake",
+        "python3"
+      ],
+      "ctest_targets": [
+        "v6_p1_*",
+        "v6_p2_*",
+        "v6_p3_export_*"
+      ]
+    },
+    {
+      "id": "V6-CTEST-UNIT",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/v6/v6_ctest_driver.py",
+        "--group",
+        "unit",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--output",
+        "run/v6/ctest/unit.json",
+        "--expect-glob",
+        "v6_aio_*",
+        "--expect-glob",
+        "v6_p1_cal_*",
+        "--expect-glob",
+        "v6_p1_drz_*",
+        "--expect-glob",
+        "v6_p1_psfw_*",
+        "--expect-glob",
+        "p2_rej_v6_*",
+        "--expect-glob",
+        "v6_p2_samp_*",
+        "--expect-glob",
+        "v6_p2_upm_*",
+        "--expect-glob",
+        "v6_p3_proj_*",
+        "--expect-glob",
+        "v6_p3_rsmp_*",
+        "--expect-glob",
+        "v6_runtime_*"
+      ],
+      "timeout_seconds": 7200,
+      "heavy": true,
+      "mutates_workspace": true,
+      "outputs": [
+        "run/v6/ctest/unit.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "tests/unit/**",
+        "CMakeLists.txt",
+        "tools/v6/**",
+        "ci/checks.json"
+      ],
+      "requires_monitor": true,
+      "dirty_ignore_prefixes": [
+        "run/v6/"
+      ],
+      "prerequisite_tools": [
+        "cmake",
+        "python3"
+      ],
+      "ctest_targets": [
+        "v6_aio_*",
+        "v6_p1_cal_*",
+        "v6_p1_drz_*",
+        "v6_p1_psfw_*",
+        "p2_rej_v6_*",
+        "v6_p2_samp_*",
+        "v6_p2_upm_*",
+        "v6_p3_proj_*",
+        "v6_p3_rsmp_*",
+        "v6_runtime_*"
+      ]
+    },
+    {
+      "id": "V6-CTEST-INTEGRATION",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/v6/v6_ctest_driver.py",
+        "--group",
+        "integration",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--output",
+        "run/v6/ctest/integration.json",
+        "--expect",
+        "v6_p1_positive",
+        "--expect",
+        "v6_p1_group",
+        "--expect",
+        "v6_p1_negative",
+        "--expect",
+        "v6_p1_halfproduct",
+        "--expect",
+        "v6_p1_schema_oracle",
+        "--expect",
+        "v6_p2_routing",
+        "--expect",
+        "v6_p2_write",
+        "--expect",
+        "v6_p2_negative",
+        "--expect",
+        "v6_p2_halfproduct",
+        "--expect",
+        "v6_p2_oracle",
+        "--expect",
+        "v6_p3_export_positive",
+        "--expect",
+        "v6_p3_export_negative",
+        "--expect",
+        "v6_p3_export_oracle"
+      ],
+      "timeout_seconds": 7200,
+      "heavy": true,
+      "mutates_workspace": true,
+      "outputs": [
+        "run/v6/ctest/integration.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "tests/integration/**",
+        "CMakeLists.txt",
+        "tools/v6/**",
+        "ci/checks.json"
+      ],
+      "requires_monitor": true,
+      "dirty_ignore_prefixes": [
+        "run/v6/"
+      ],
+      "prerequisite_tools": [
+        "cmake",
+        "python3"
+      ],
+      "ctest_targets": [
+        "v6_p1_positive",
+        "v6_p1_group",
+        "v6_p1_negative",
+        "v6_p1_halfproduct",
+        "v6_p1_schema_oracle",
+        "v6_p2_routing",
+        "v6_p2_write",
+        "v6_p2_negative",
+        "v6_p2_halfproduct",
+        "v6_p2_oracle",
+        "v6_p3_export_positive",
+        "v6_p3_export_negative",
+        "v6_p3_export_oracle"
+      ]
+    },
+    {
+      "id": "V6-CLI-MODE-MATRIX",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/v6/v6_cli_mode_matrix.py",
+        "--cli-bin",
+        "run/ci/build-gcc-release/astrocs",
+        "--work",
+        "run/v6/cli-matrix",
+        "--json-out",
+        "run/v6/cli-matrix/matrix.json"
+      ],
+      "timeout_seconds": 1200,
+      "heavy": false,
+      "mutates_workspace": true,
+      "outputs": [
+        "run/v6/cli-matrix/matrix.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "cli/**",
+        "tools/v6/**",
+        "ci/checks.json"
+      ],
+      "requires_monitor": false,
+      "dirty_ignore_prefixes": [
+        "run/v6/"
+      ],
+      "prerequisite_tools": [
+        "python3"
+      ]
+    },
+    {
       "id": "KNOWN-FAILURES-BASELINE-CHECK",
       "profiles": [
         "linux-main"

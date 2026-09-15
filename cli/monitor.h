@@ -14,6 +14,7 @@
 #include <cstring>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #if defined(_WIN32)
@@ -52,6 +53,7 @@
 #undef YIELD
 #endif
 #else
+#include <dirent.h>
 #include <sys/sysinfo.h>
 #include <unistd.h>
 #endif
@@ -78,6 +80,16 @@ struct ProcSample {
     uint64_t sys_mem_avail = 0;    // MemAvailable(kB)
     uint64_t sys_swap_free = 0;    // SwapFree(kB)
     uint64_t page_faults = 0;      // minor+major(page faults)
+    // RUNTIME-CI-001 (§10.5 I/O wait): /proc/stat 首行 iowait(系统级, 秒)。
+    double sys_io_wait_seconds = 0.0;
+
+    // RUNTIME-CI-001 (§10.5 每线程 CPU): 逐线程累计 CPU(utime+stime, 秒)快照。
+    // thread_cpu 为 (tid, 累计秒) 列表; max/sum 由快照直接得出。
+    // Windows 无线程级廉价等价 → 保持空/0(未观测哨兵), 不臆造。
+    std::vector<std::pair<uint32_t, double>> thread_cpu;
+    double per_thread_cpu_max_seconds = 0.0;   // 单线程累计 CPU 峰值
+    double per_thread_cpu_sum_seconds = 0.0;   // 全部线程累计 CPU 之和 = 等效核秒
+    uint32_t threads_seen = 0;             // 快照线程数
 
     // 与上一采样差值的微指标
     double d_cpu_seconds = 0.0;
@@ -85,6 +97,12 @@ struct ProcSample {
     uint64_t d_read_bytes = 0;
     uint64_t d_write_bytes = 0;
     uint64_t d_ctx_switches = 0;
+    // §10.5 每线程 CPU 区间增量
+    double d_per_thread_cpu_max_seconds = 0.0;
+    double d_per_thread_cpu_sum_seconds = 0.0;
+    uint32_t d_active_compute_threads = 0;  // 区间内有正向 CPU 增量的线程数
+    // §10.5 I/O wait 区间增量(系统级 iowait 秒)
+    double d_sys_io_wait_seconds = 0.0;
 };
 
 // /proc 采样(无依赖 /proc 的字段保持 0)。返回 false 仅当无法打开关键文件。
@@ -168,6 +186,31 @@ inline bool read_proc_self(ProcSample& s) {
         }
         std::fclose(f);
     }
+    // /proc/stat 首行 "cpu  user nice system idle iowait irq softirq steal ..."
+    // iowait 是第 5 个数值(token 6); 单位 = clock ticks → 秒。
+    f = std::fopen("/proc/stat", "r");
+    if (f) {
+        char line[512];
+        if (std::fgets(line, sizeof(line), f) && std::strncmp(line, "cpu", 3) == 0) {
+            const char* p = line + 3;
+            int tok = 0;
+            while (*p != '\0' && tok < 5) {
+                while (*p == ' ') ++p;
+                if (*p == '\0' || *p == '\n') break;
+                char* end = nullptr;
+                const unsigned long long v = std::strtoull(p, &end, 10);
+                ++tok;
+                if (tok == 5) {
+                    long hz = sysconf(_SC_CLK_TCK);
+                    if (hz <= 0) hz = 100;
+                    s.sys_io_wait_seconds =
+                        static_cast<double>(v) / static_cast<double>(hz);
+                }
+                p = end;
+            }
+        }
+        std::fclose(f);
+    }
 #if !defined(_WIN32)
     // 非 Linux /proc 单文件字段: 系统内存/swap 用 sysinfo(cgroup 不感知, 记录为系统级)
     struct sysinfo si;
@@ -224,11 +267,66 @@ inline void read_cpu_time(ProcSample& s) {
 #endif
 }
 
+// RUNTIME-CI-001 (宪章 §10.5 每线程 CPU): 逐线程累计 CPU(utime+stime) 快照。
+// 读 /proc/self/task/<tid>/stat; 字段 14/15 = utime/stime(clock ticks)。
+// 无 /proc(Windows)或读取失败 → 保持空/0(未观测哨兵; 不臆造、不硬编码线程数)。
+inline void read_thread_cpu(ProcSample& s) {
+#if !defined(_WIN32)
+    DIR* d = opendir("/proc/self/task");
+    if (d == nullptr) return;
+    long hz = sysconf(_SC_CLK_TCK);
+    if (hz <= 0) hz = 100;
+    struct dirent* e = nullptr;
+    while ((e = readdir(d)) != nullptr) {
+        if (e->d_name[0] < '0' || e->d_name[0] > '9') continue;
+        const long tid = std::strtol(e->d_name, nullptr, 10);
+        if (tid <= 0) continue;
+        const std::string path = std::string("/proc/self/task/") + e->d_name + "/stat";
+        std::FILE* f = std::fopen(path.c_str(), "r");
+        if (f == nullptr) continue;
+        char buf[1024];
+        if (std::fgets(buf, sizeof(buf), f) != nullptr) {
+            // comm 可含空格/括号 → 以最后一个 ')' 为界, 其后 token1 = field 3(state)。
+            const char* rp = std::strrchr(buf, ')');
+            if (rp != nullptr) {
+                const char* p = rp + 1;
+                int tok = 0;
+                long utime = -1, stime = -1;
+                while (*p != '\0' && tok < 13) {
+                    while (*p == ' ') ++p;
+                    if (*p == '\0') break;
+                    char* end = nullptr;
+                    const long v = std::strtol(p, &end, 10);
+                    ++tok;
+                    if (end == p) { ++p; continue; }   // state 等非数字 token
+                    if (tok == 12) utime = v;          // field 14 = utime
+                    if (tok == 13) stime = v;          // field 15 = stime
+                    p = end;
+                }
+                if (utime >= 0 && stime >= 0) {
+                    const double cpu = static_cast<double>(utime + stime) /
+                                       static_cast<double>(hz);
+                    s.thread_cpu.emplace_back(static_cast<uint32_t>(tid), cpu);
+                }
+            }
+        }
+        std::fclose(f);
+    }
+    closedir(d);
+    for (const auto& t : s.thread_cpu) {
+        s.per_thread_cpu_sum_seconds += t.second;
+        if (t.second > s.per_thread_cpu_max_seconds) s.per_thread_cpu_max_seconds = t.second;
+    }
+    s.threads_seen = static_cast<uint32_t>(s.thread_cpu.size());
+#endif
+}
+
 // 单次采样(填充 ProcSample)。cpu_time 单独读以保证字段齐全。
 inline ProcSample sample() {
     ProcSample s;
     read_proc_self(s);
     read_cpu_time(s);
+    read_thread_cpu(s);
     return s;
 }
 
@@ -246,6 +344,29 @@ public:
         cur.d_read_bytes = cur.read_bytes - last_.read_bytes;
         cur.d_write_bytes = cur.write_bytes - last_.write_bytes;
         cur.d_ctx_switches = cur.ctx_switches - last_.ctx_switches;
+        // RUNTIME-CI-001: 每线程 CPU 区间增量 + 区间内有正向 CPU 的线程数。
+        // 单调累计量, 线程退出/新建按 tid 对齐; 新线程的累计值计为增量。
+        cur.d_per_thread_cpu_sum_seconds =
+            cur.per_thread_cpu_sum_seconds > last_.per_thread_cpu_sum_seconds
+                ? cur.per_thread_cpu_sum_seconds - last_.per_thread_cpu_sum_seconds : 0.0;
+        cur.d_per_thread_cpu_max_seconds =
+            cur.per_thread_cpu_max_seconds > last_.per_thread_cpu_max_seconds
+                ? cur.per_thread_cpu_max_seconds - last_.per_thread_cpu_max_seconds : 0.0;
+        {
+            std::uint32_t active = 0;
+            for (const auto& t : cur.thread_cpu) {
+                double prev = 0.0;
+                bool found = false;
+                for (const auto& o : last_.thread_cpu) {
+                    if (o.first == t.first) { prev = o.second; found = true; break; }
+                }
+                if (found ? (t.second > prev) : (t.second > 0.0)) ++active;
+            }
+            cur.d_active_compute_threads = active;
+        }
+        cur.d_sys_io_wait_seconds =
+            cur.sys_io_wait_seconds > last_.sys_io_wait_seconds
+                ? cur.sys_io_wait_seconds - last_.sys_io_wait_seconds : 0.0;
         samples_.push_back(cur);
         last_ = cur;
         ++n_;
