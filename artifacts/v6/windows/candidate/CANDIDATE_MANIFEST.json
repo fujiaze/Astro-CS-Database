@@ -1,0 +1,73 @@
+{
+  "schema": "astrocs.v6.win-verify.candidate-manifest/v1",
+  "task_id": "WIN-VERIFY-001",
+  "generated_utc": "2026-09-15T19:28:36Z",
+  "source_sha": "8f5ef3e9c84590895ebaadbb30c0e6a7ab72d467",
+  "product_version": "0.11.0-alpha.2",
+  "acr_enabled": false,
+  "candidate_identity": {
+    "github_artifact_name": "astrocs-windows-candidate-8f5ef3e9c84590895ebaadbb30c0e6a7ab72d467",
+    "zip_member_name": "AstroCS-candidate.zip",
+    "zip_inner_root": "AstroCS-candidate.zip 根 = candidate 根（BUILD_PROVENANCE.json / SOURCE_MANIFEST.json / SHA256SUMS / 产物树）",
+    "produced_by": ".github/workflows/ci-windows.yml -> python ci/run.py --profile windows-main -> WIN-PACKAGE-CANDIDATE -> tools/quality/ci_windows_driver.py --stages install,package",
+    "selection_contract": "ci/select_candidate.py：windows run conclusion==success 且同 SHA linux run green 且 artifact 含 AstroCS-candidate.zip"
+  },
+  "availability": {
+    "status": "UNAVAILABLE",
+    "reason_code": "no_candidate",
+    "reason": "基线 SHA 的 AstroCS Windows CI run 35012779853 于 2026-09-15T19:25:07Z 以 failure 结束（失败步 = Run MSVC tests and package candidate, step 5），Upload candidate 步 skipped；仓库内无 astrocs-windows-candidate-* 产物。Linux CI（run 35012779858）在同一时点仍 in_progress。",
+    "candidate_sha256": null,
+    "candidate_sha256_reason": "无候选产物，禁止编造；须在 Windows CI green 后由 ci/select_candidate.py 的 artifact_digest 或 Get-FileHash 实测填入"
+  },
+  "expected_candidate_members": [
+    "astrocs.exe",
+    "astrocs.product.json",
+    "astrocs_io.dll",
+    "astrocs_runtime.dll",
+    "licenses/CFITSIO_LICENSE.txt",
+    "licenses/LICENSE-INDEX.txt",
+    "licenses/nlohmann_json.MIT.txt",
+    "modules/astrocs_catalog_gaia.dll",
+    "modules/astrocs_noop.dll",
+    "modules/astrocs_p1_calibration.dll",
+    "modules/astrocs_p1_cosmetic.dll",
+    "modules/astrocs_p1_drizzle.dll",
+    "modules/astrocs_p1_hips_writer.dll",
+    "providers/astrocs_cpu_baseline.dll",
+    "schemas/astrocs-product.schema.json",
+    "schemas/install-tree-contract.schema.json"
+  ],
+  "expected_candidate_members_source": "packaging/install-tree.contract.json units，按 tools/quality/ci_windows_driver.py::expected_windows_artifacts 的 Windows 形态映射（exe->astrocs.exe, *.so->同名*.dll）本地只读推导",
+  "expected_extra_members": [
+    "README.txt",
+    "BUILD_PROVENANCE.json",
+    "SOURCE_MANIFEST.json",
+    "SHA256SUMS"
+  ],
+  "expected_manifest_members": [
+    "BUILD_PROVENANCE.json",
+    "SOURCE_MANIFEST.json",
+    "SHA256SUMS"
+  ],
+  "abi_expectation": {
+    "product_abi_version_header": "include/astrocs/common_abi_v1.h: ACS_ABI_VERSION_V1 = 1u",
+    "runtime_dlls_for_dumpbin_exports": [
+      "astrocs_runtime.dll",
+      "astrocs_io.dll",
+      "modules/astrocs_noop.dll",
+      "providers/astrocs_cpu_baseline.dll"
+    ],
+    "expected_export_families": {
+      "astrocs_runtime.dll": "acs_artifact_*",
+      "astrocs_io.dll": "acs_fio_*"
+    },
+    "cli_json_field": "astrocs.exe version --json -> abi_version"
+  },
+  "toolchain_expectation": {
+    "preset_configure": "win-msvc-17.14.39-x64",
+    "preset_test": "win-rel",
+    "build_config": "RelWithDebInfo",
+    "formal": "Visual Studio 2022 / MSVC v143 / Win10+ amd64 / ACR OFF",
+    "zlib_gsl_linkage": "vcpkg triplet x64-windows-static-md -> zlib/GSL 静态链接；CRT 动态 /MD"
+  }
+}

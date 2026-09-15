@@ -1,0 +1,83 @@
+{
+  "schema": "astrocs.v6.win-verify.provenance-chain/v1",
+  "task_id": "WIN-VERIFY-001",
+  "source_sha": "8f5ef3e9c84590895ebaadbb30c0e6a7ab72d467",
+  "observed_utc": "2026-09-15T19:25:29Z",
+  "chain": [
+    {
+      "step": "Windows CI",
+      "workflow": ".github/workflows/ci-windows.yml",
+      "run_id": 35012779853,
+      "event": "push",
+      "head_sha": "8f5ef3e9c84590895ebaadbb30c0e6a7ab72d467",
+      "status": "completed",
+      "conclusion": "failure",
+      "updated_at": "2026-09-15T19:25:07Z",
+      "failing_step": "5 Run MSVC tests and package candidate",
+      "candidate_upload": "skipped",
+      "evidence_artifact": {
+        "name": "windows-ci-8f5ef3e9c84590895ebaadbb30c0e6a7ab72d467",
+        "size_in_bytes": 204188,
+        "expired": false,
+        "digest": "sha256:5617018f7b027614c2aa1a00f0c5b4b8fa403a43c4157f61829e2088fcc46aee"
+      }
+    },
+    {
+      "step": "Linux CI",
+      "workflow": ".github/workflows/ci-linux.yml",
+      "run_id": 35012779858,
+      "event": "push",
+      "head_sha": "8f5ef3e9c84590895ebaadbb30c0e6a7ab72d467",
+      "status": "in_progress",
+      "conclusion": null,
+      "updated_at": "2026-09-15T19:22:59Z"
+    },
+    {
+      "step": "Fatduck Validation (trigger 1)",
+      "workflow": ".github/workflows/fatduck.yml",
+      "run_id": 35012788684,
+      "event": "workflow_run",
+      "status": "completed",
+      "conclusion": "failure",
+      "cause": "Select candidate exit 3 no-candidate",
+      "self_hosted_job": "skipped"
+    },
+    {
+      "step": "Fatduck Validation (trigger 2)",
+      "workflow": ".github/workflows/fatduck.yml",
+      "run_id": 35012969329,
+      "event": "workflow_run",
+      "status": "completed",
+      "conclusion": "failure",
+      "cause": "Select candidate exit 3 no-candidate",
+      "self_hosted_job": "skipped"
+    },
+    {
+      "step": "Fatduck Validation (trigger 3, after Windows CI failure)",
+      "workflow": ".github/workflows/fatduck.yml",
+      "run_id": 35013505132,
+      "event": "workflow_run",
+      "status": "completed",
+      "conclusion": "failure",
+      "updated_at": "2026-09-15T19:25:29Z",
+      "cause": "Select candidate exit 3 no-candidate",
+      "self_hosted_job": "skipped"
+    }
+  ],
+  "last_successful_windows_ci_on_main": {
+    "run_id": 34230322150,
+    "head_sha": "2c998e9aa7a0",
+    "created_at": "2026-09-08T13:10:11Z"
+  },
+  "last_successful_fatduck_validation": {
+    "run_id": 34597817449,
+    "head_sha": "026717fd3142",
+    "created_at": "2026-09-11T12:13:27Z"
+  },
+  "self_hosted_runner_reachability": {
+    "runner_label": "self-hosted, fatduck-realdata",
+    "tailscale_status": "offline, last seen 3h ago",
+    "ssh": "Connection timed out",
+    "conclusion": "runner 无法接单，最新三次 fatduck-validate self-hosted job 均 skipped（因 select-candidate 先失败）"
+  }
+}

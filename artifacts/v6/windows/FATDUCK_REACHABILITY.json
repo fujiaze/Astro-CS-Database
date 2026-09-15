@@ -1,0 +1,55 @@
+{
+  "schema": "astrocs.v6.win-verify.fatduck-reachability/v1",
+  "task_id": "WIN-VERIFY-001",
+  "observed_utc": "2026-09-15T19:18Z..19:28Z",
+  "node": "Fatduck (Windows 11, fujia@100.104.10.71, Tailscale)",
+  "key_reference": "/home/dsh/.ssh/id_ed25519_fatduck (仅以 -i 路径引用，未读取/复制/打印内容)",
+  "conclusion": "UNREACHABLE",
+  "probes": [
+    {
+      "id": "P1-ssh",
+      "command": "timeout 30 ssh -i /home/dsh/.ssh/id_ed25519_fatduck -o ConnectTimeout=15 -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/win_verify_known_hosts fujia@100.104.10.71 \"hostname\"",
+      "exit_code": 255,
+      "stdout_stderr": "ssh: connect to host 100.104.10.71 port 22: Connection timed out",
+      "log": "logs/01_ssh_connecttimeout.log"
+    },
+    {
+      "id": "P2-ssh-verbose",
+      "command": "timeout 30 ssh -v -i /home/dsh/.ssh/id_ed25519_fatduck -o ConnectTimeout=15 -o BatchMode=yes fujia@100.104.10.71 \"hostname\"",
+      "exit_code": 255,
+      "stdout_stderr": "debug1: Connecting to 100.104.10.71 [100.104.10.71] port 22. / debug1: connect to address 100.104.10.71 port 22: Connection timed out",
+      "log": "logs/02_ssh_verbose.log"
+    },
+    {
+      "id": "P3-tcp22",
+      "command": "timeout 20 bash -c 'exec 3<>/dev/tcp/100.104.10.71/22'",
+      "exit_code": 124,
+      "stdout_stderr": "(no output; 20s timeout)",
+      "log": "logs/03_tcp22.log"
+    },
+    {
+      "id": "P4-icmp",
+      "command": "timeout 20 ping -c 3 -W 3 100.104.10.71",
+      "exit_code": 1,
+      "stdout_stderr": "3 packets transmitted, 0 received, 100% packet loss",
+      "log": "logs/04_ping.log"
+    },
+    {
+      "id": "P5-tailscale",
+      "command": "timeout 20 tailscale status | grep -i fatduck",
+      "exit_code": 0,
+      "stdout_stderr": "100.104.10.71   fatduck   fujiaze04@  windows  offline, last seen 3h ago",
+      "log": "logs/05_tailscale.log"
+    }
+  ],
+  "environment": {
+    "kernel": "Linux 6.12.107+deb13-amd64 x86_64",
+    "host": "Agent",
+    "ssh": "OpenSSH_10.0p2 Debian-7+deb13u4",
+    "gh_cli": "NOT FOUND",
+    "GH_TOKEN": "UNSET",
+    "GITHUB_TOKEN": "UNSET",
+    "GITHUB_PAT": "UNSET"
+  },
+  "note": "按宪章 §15.3：Fatduck 离线不阻塞 Linux 开发/CI/Linux 真实数据终验；但其 Windows 复验结论只能为 AWAITING_WINDOWS_VALIDATION，且不得据此发布。"
+}

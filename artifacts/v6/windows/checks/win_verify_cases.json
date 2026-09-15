@@ -1,0 +1,475 @@
+{
+  "schema": "astrocs.v6.win-verify.case-ledger/v1",
+  "task_id": "WIN-VERIFY-001",
+  "source_sha": "8f5ef3e9c84590895ebaadbb30c0e6a7ab72d467",
+  "generated_utc": "2026-09-15T19:28:57Z",
+  "execution_plane": "Fatduck Windows 10+ amd64（宪章 §15.3：不 checkout/不编译/不运行仓库脚本；只下载 CI 候选 + 固定本地 harness）",
+  "status": "AWAITING_WINDOWS_VALIDATION",
+  "status_reason": "Fatduck ssh/TCP/ICMP 全部不可达（Tailscale offline, last seen 3h ago）；且基线 SHA 无 Windows 候选（Windows CI failure）。全部用例未在 Windows 节点执行。",
+  "zero_case_guard": "executed_cases 必须 > 0；任何 executed=false 的用例不得计入 PASS；skip-only/零用例不得判 PASS（FD-F-003 / MUT 规则）。",
+  "negative_gate_guard": "L-07 / B-06 / B-07 必须能红（注入后 rc!=0）；恒绿即该门无效。",
+  "counts": {
+    "total": 32,
+    "executed": 0,
+    "passed": 0,
+    "failed": 0,
+    "unavailable": 32
+  },
+  "cases": [
+    {
+      "id": "S-01",
+      "item": "SAME_SHA_CANDIDATE",
+      "title": "候选 zip 摘要与 GitHub artifact digest 一致",
+      "method": "对 astrocs-windows-candidate-<sha> 产物下载后 Get-FileHash AstroCS-candidate.zip；与 ci/select_candidate.py 的 artifact_member_sha256 锚比对",
+      "pass_criteria": "两者逐位相等且锚非空",
+      "fail_criteria": "任一为空或不等（fail-closed）",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "candidate_zip_sha256",
+        "select_anchor"
+      ]
+    },
+    {
+      "id": "S-02",
+      "item": "SAME_SHA_CANDIDATE",
+      "title": "candidate 内 SHA256SUMS 全成员自洽",
+      "method": "对解压 candidate 逐成员 Get-FileHash 与 SHA256SUMS 比对（SHA256SUMS 自身除外）",
+      "pass_criteria": "不一致成员数=0",
+      "fail_criteria": "任一成员缺失或不匹配",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "sha256sums_diff.txt"
+      ]
+    },
+    {
+      "id": "S-03",
+      "item": "SAME_SHA_CANDIDATE",
+      "title": "同 SHA 绑定：BUILD_PROVENANCE.json.source_sha == git HEAD",
+      "method": "读取 candidate/BUILD_PROVENANCE.json，比较 source_sha 与仓库 HEAD",
+      "pass_criteria": "source_sha == 8f5ef3e9c84590895ebaadbb30c0e6a7ab72d467",
+      "fail_criteria": "不等或字段缺失",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "build_provenance.json"
+      ]
+    },
+    {
+      "id": "S-04",
+      "item": "SAME_SHA_CANDIDATE",
+      "title": "安装树成员与 install-tree contract 推导清单一致",
+      "method": "对照 CANDIDATE_MANIFEST.expected_candidate_members 逐项 Test-Path",
+      "pass_criteria": "16/16 存在（licenses/schemas 为 required=false 仍应存在）",
+      "fail_criteria": "任一 required 成员缺失",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "install_tree_ls.txt"
+      ]
+    },
+    {
+      "id": "S-05",
+      "item": "SAME_SHA_CANDIDATE",
+      "title": "CLI 入口为单入口 astrocs.exe 且非零用例",
+      "method": "astrocs.exe --help / version --json；断言 name=astrocs 且 version 非空",
+      "pass_criteria": "rc=0 且 JSON name=astrocs/version 非空",
+      "fail_criteria": "rc!=0 或字段缺失",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "version_json"
+      ]
+    },
+    {
+      "id": "A-01",
+      "item": "ABI",
+      "title": "导出符号表非空（4 个受检 DLL）",
+      "method": "dumpbin /EXPORTS astrocs_runtime.dll|astrocs_io.dll|modules/astrocs_noop.dll|providers/astrocs_cpu_baseline.dll",
+      "pass_criteria": "4/4 exit 0 且导出符号数>0",
+      "fail_criteria": "任一 exit!=0 或符号数=0",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "dumpbin_exports.txt"
+      ]
+    },
+    {
+      "id": "A-02",
+      "item": "ABI",
+      "title": "冻结 C ABI 导出族在位",
+      "method": "在 /EXPORTS 输出中 grep acs_artifact_*（runtime）与 acs_fio_*（io）",
+      "pass_criteria": "两族各有 >=1 导出",
+      "fail_criteria": "任一族 0 命中",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "exports_runtime.txt",
+        "exports_io.txt"
+      ]
+    },
+    {
+      "id": "A-03",
+      "item": "ABI",
+      "title": "ABI 版本号一致",
+      "method": "astrocs.exe version --json 的 abi_version 与 include/astrocs/common_abi_v1.h 的 ACS_ABI_VERSION_V1(=1) 比对",
+      "pass_criteria": "相等",
+      "fail_criteria": "不等或字段缺失",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "version_json",
+        "abi_header_line"
+      ]
+    },
+    {
+      "id": "A-04",
+      "item": "ABI",
+      "title": "x64 机器类型与链接器版本",
+      "method": "dumpbin /HEADERS astrocs.exe 与各 DLL，读 machine=x64 与 linker version",
+      "pass_criteria": "machine 全为 x64；记录 MSVC linker/SDK patch",
+      "fail_criteria": "出现非 x64 机器类型",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "dumpbin_headers.txt"
+      ]
+    },
+    {
+      "id": "A-05",
+      "item": "ABI",
+      "title": "动态 CRT（/MD）依赖面",
+      "method": "dumpbin /DEPENDENTS astrocs.exe 与各 DLL，断言出现 VCRUNTIME140/MSVCP140 族",
+      "pass_criteria": "CRT 动态依赖在位（/MD 与 vcpkg static-md 一致）",
+      "fail_criteria": "缺 CRT 或出现静态 CRT 冲突证据",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "dumpbin_dependents.txt"
+      ]
+    },
+    {
+      "id": "A-06",
+      "item": "ABI",
+      "title": "zlib/GSL 静态链接（不得出现 DLL 依赖）",
+      "method": "dumpbin /DEPENDENTS 全量 grep zlib1.dll|zs.dll|gsl.dll|gslcblas.dll",
+      "pass_criteria": "0 命中（静态链接）",
+      "fail_criteria": "命中即判失败（triplet 不一致）",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "dumpbin_dependents.txt"
+      ]
+    },
+    {
+      "id": "A-07",
+      "item": "ABI",
+      "title": "DLL 同目录加载与模块注册",
+      "method": "候选根为 CWD：astrocs.exe modules list / modules verify",
+      "pass_criteria": "两者 rc=0 且模块枚举非空",
+      "fail_criteria": "任一 rc!=0 或模块数=0",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "modules_list.txt",
+        "modules_verify.txt"
+      ]
+    },
+    {
+      "id": "A-08",
+      "item": "ABI",
+      "title": "宿主自检与合成自检",
+      "method": "astrocs.exe selftest（可选 --module/--provider）",
+      "pass_criteria": "rc=0",
+      "fail_criteria": "rc!=0",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "selftest.txt"
+      ]
+    },
+    {
+      "id": "L-01",
+      "item": "LONG_PATH",
+      "title": "候选安装树置于总路径 > 260 字符处可加载",
+      "method": "将 candidate 复制到形如 D:\\<deep*14>\\candidate 使绝对路径>260，随后从该目录运行 astrocs.exe version --json",
+      "pass_criteria": "rc=0 且 JSON 正确（长路径 DLL 解析成功）",
+      "fail_criteria": "rc!=0（路径长度错误/加载失败）",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "longpath_install_dir.txt",
+        "version_from_longpath.txt"
+      ]
+    },
+    {
+      "id": "L-02",
+      "item": "LONG_PATH",
+      "title": ">260 输入 FITS 路径可 validate/plan",
+      "method": "把一个 FITS 输入放到 >260 字符路径，astrocs phase1 validate/plan --config <cfg>",
+      "pass_criteria": "rc=0 且 JSON 中输入路径被接受",
+      "fail_criteria": "路径长度错误或未处理异常",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "longpath_input.log"
+      ]
+    },
+    {
+      "id": "L-03",
+      "item": "LONG_PATH",
+      "title": ">260 输出产品路径可写盘",
+      "method": "phase1 run 输出目录置于 >260 路径，随后 inspect/verify 重开",
+      "pass_criteria": "rc=0 且产品落盘、verify rc=0",
+      "fail_criteria": "写盘失败或重开失败",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "longpath_output.log",
+        "longpath_verify.log"
+      ]
+    },
+    {
+      "id": "L-04",
+      "item": "LONG_PATH",
+      "title": "259/260/261 边界三连",
+      "method": "分别构造总长 259/260/261 的路径（末段文件名固定），逐一执行同一读写操作",
+      "pass_criteria": "261 亦成功（longPathAware + LongPathsEnabled）；若失败须给出 False 判定并记录注册表开关",
+      "fail_criteria": "任何一档返回路径错误即 FAIL（不得静默降级）",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "longpath_boundary.json"
+      ]
+    },
+    {
+      "id": "L-05",
+      "item": "LONG_PATH",
+      "title": "文件名分量 255/256 边界",
+      "method": "目录名/文件名分量 255 字符与 256 字符各一例",
+      "pass_criteria": "255 成功、256 以明确错误码干净拒绝（非崩溃）",
+      "fail_criteria": "崩溃/未定义行为/256 被静默接受",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "longpath_component.json"
+      ]
+    },
+    {
+      "id": "L-06",
+      "item": "LONG_PATH",
+      "title": "长路径下 DAO/manifest 记录完整路径",
+      "method": "检查 phase1 产物 manifest/provenance 中的路径字段",
+      "pass_criteria": "记录完整路径、无截断",
+      "fail_criteria": "路径被截断或丢失",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "longpath_manifest.json"
+      ]
+    },
+    {
+      "id": "L-07",
+      "item": "LONG_PATH",
+      "title": "负向：非法 >260 路径须 fail-closed",
+      "method": "构造含非法字符或超长分量的路径调用 CLI",
+      "pass_criteria": "返回受控错误码（非 0）且不产生半成品",
+      "fail_criteria": "rc=0 或产生残留半成品",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "longpath_negative.log"
+      ]
+    },
+    {
+      "id": "B-01",
+      "item": "BIG_FILE",
+      "title": "> 2^31 字节 FITS 写入 rc=0 且尺寸正确",
+      "method": "用 Phase3 导出/大图配置产生数据单元 > 2147483648 B 的 FITS，astrocs phase3 run",
+      "pass_criteria": "rc=0；文件大小 > 2147483648 且为 2880 的整数倍",
+      "fail_criteria": "rc!=0、尺寸不达标或未 2880 对齐",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "big_fits_size.txt",
+        "big_write.log"
+      ]
+    },
+    {
+      "id": "B-02",
+      "item": "BIG_FILE",
+      "title": "> 2^31 字节文件可重开",
+      "method": "对 B-01 产物 astrocs phase3 inspect / astrocs verify --run-manifest",
+      "pass_criteria": "rc=0 且报告数据单元字节数正确（无 32 位回绕/负数）",
+      "fail_criteria": "rc!=0 或字节数错误",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "big_reopen.log"
+      ]
+    },
+    {
+      "id": "B-03",
+      "item": "BIG_FILE",
+      "title": "CHECKSUM/DATASUM 在 > 2^31 字节下存在且自洽",
+      "method": "读取 FITS 头 CHECKSUM/DATASUM 卡；用独立 verifier 流式重算 DATASUM 并比对",
+      "pass_criteria": "DATASUM 重算一致且 CHECKSUM 卡在标准字符串格式",
+      "fail_criteria": "缺失、不等或格式非法",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "big_fits_checksum.json"
+      ]
+    },
+    {
+      "id": "B-04",
+      "item": "BIG_FILE",
+      "title": "超过 2^31 的字节偏移读取正确",
+      "method": "在数据单元 > 2^31 字节的已知偏移处读取一个字并与写入模式比对（独立 verifier）",
+      "pass_criteria": "读值与预期逐位一致（64 位偏移）",
+      "fail_criteria": "读到错误块/溢出/异常",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "big_fits_offset.json"
+      ]
+    },
+    {
+      "id": "B-05",
+      "item": "BIG_FILE",
+      "title": "数组计数 > 2^31 不出 32 位回绕",
+      "method": "构造 NAXIS1*NAXIS2 > 2^31 元素（如 int16）并核对文件尺寸与 manifest 元素数",
+      "pass_criteria": "元素数为 64 位正确值，文件尺寸与 2880 对齐推导一致",
+      "fail_criteria": "为负/回绕/尺寸不符",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "big_fits_count.json"
+      ]
+    },
+    {
+      "id": "B-06",
+      "item": "BIG_FILE",
+      "title": "负向：截断 2880 字节须校验失败",
+      "method": "把 B-01 产物截断 2880 字节后重开/verify",
+      "pass_criteria": "非 0 退出或校验失败（fail-closed）",
+      "fail_criteria": "仍判成功（假绿）",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "big_truncate.log"
+      ]
+    },
+    {
+      "id": "B-07",
+      "item": "BIG_FILE",
+      "title": "负向：>2^31 处翻转一字节须被检出",
+      "method": "翻转数据单元 > 2^31 字节处 1 字节，重算 DATASUM",
+      "pass_criteria": "DATASUM 变化且 verify 失败",
+      "fail_criteria": "校验通过（假绿）",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "big_flip.log"
+      ]
+    },
+    {
+      "id": "R-01",
+      "item": "REAL_PRODUCT",
+      "title": "Linux 真实产物跨平台重开（字节一致）",
+      "method": "把 Linux 侧 phase1/phase3 产物 + manifest 传入 Windows 节点，astrocs verify --run-manifest，并比对数据数组 SHA-256",
+      "pass_criteria": "rc=0 且数据数组逐字节一致、CHECKSUM/DATASUM 通过",
+      "fail_criteria": "不一致或 rc!=0",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "real_reopen.json"
+      ]
+    },
+    {
+      "id": "R-02",
+      "item": "REAL_PRODUCT",
+      "title": "真实数据 Phase1 五口径数值在容差内",
+      "method": "在 Fatduck 本地只读真实数据跑 Phase1，比较 REAL-SCIENCE-001 §4 参考表（如 M42 W_info SNR 14470.0、equal 13862.2；背景 1178.1±16.3 ADU）",
+      "pass_criteria": "相对偏差在验收容差内（数值口径差异按 REAL-SCIENCE-001 §7 归因）",
+      "fail_criteria": "超容差或不可复现",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "real_science_compare.json"
+      ]
+    },
+    {
+      "id": "R-03",
+      "item": "REAL_PRODUCT",
+      "title": "有效 PSF FWHM 与参考一致到 <0.5 px",
+      "method": "对同一数据集比较 FWHM（REAL-SCIENCE-001 §5 表）",
+      "pass_criteria": "|ΔFWHM| < 0.5 px",
+      "fail_criteria": "≥0.5 px 且无归因",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "fwhm_compare.json"
+      ]
+    },
+    {
+      "id": "R-04",
+      "item": "REAL_PRODUCT",
+      "title": "跨 worker 确定性 digest 与 Linux 参考一致",
+      "method": "运行 v6 写盘路径 1/4/16 worker，比较 digest 与 PERF-SCALE-001：46e62599…(p1,4 files)/9ef8cbfd…(p2,17)/23ca5bf1…(p3,9)",
+      "pass_criteria": "三路径各自跨 budget 一致，且与 Linux 参考 digest 一致（若平台字节差异存在，须逐文件归因）",
+      "fail_criteria": "跨 worker 不一致或未归因差异",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "determinism_win.json"
+      ]
+    },
+    {
+      "id": "R-05",
+      "item": "REAL_PRODUCT",
+      "title": "真实数据产物 manifest/资源曲线/图像预览齐全",
+      "method": "检查 run 目录产品 manifest、资源曲线、图像预览，公开白名单仅 JPG/脱敏指标",
+      "pass_criteria": "manifest 与资源曲线齐全；公开面仅白名单内容",
+      "fail_criteria": "缺件或泄漏原始 FITS/私有路径",
+      "executed": false,
+      "verdict": "UNAVAILABLE",
+      "verdict_reason": "Fatduck 不可达且基线 SHA 无 Windows 候选（Windows CI failure / no-candidate）；未在 Windows 节点执行，禁止编造结果。",
+      "required_evidence": [
+        "publish_whitelist.json"
+      ]
+    }
+  ]
+}
