@@ -1,6 +1,6 @@
 import os,re,json
 ROOT="问题扫描/findings"
-ID=re.compile(r"^#{2,4}\s+((?:M\w+|L\d+b?c?d?e?|FD|V\d+)-[A-Z]{1,4}-\d+)\b(.*)$")
+ID=re.compile(r"^#{2,4}\s+((?:M\w+|L\d+b?c?d?e?|FD|V\d+|W\d+)-[A-Z]{1,4}\d*-\d+)\b(.*)$")
 PRIO=re.compile(r"(?:优先级|priority)[^A-Za-z0-9]{0,4}(P[0-3])",re.I)
 move=[];files=0;total=0
 for dp,dn,fn in os.walk(ROOT):

@@ -43,9 +43,12 @@
 ### W4-R2-04（P2）CLI「完成标记」与完整性锚的吞错三处：manifest 末块 flush 不判即 rename、sha256 失败丢弃 ok 向 schema 冻结字段注入空串、目录创建 ec 丢弃
 - 类别: C_ALG_IMPL（次挂 B_STD_MISMATCH——违自订 schema）
 - 位置: `cli/commands.cpp`::write_run_manifest
-- 证据: `// Type something to search`;
+- 证据（三处）:
+  - flush 不判即 rename: :452-453 `f << m.dump(2) << "\n"; if (!f.good()) return astrocs::IO;` —— `good()` 在 ofstream 析构 flush **之前**判；尾块停留流缓冲，最后的 flush 失败（ENOSPC/设备错误）零检查，:455 `fs::rename(tmp, final, ec)` 于是把**截断的 run manifest** 以正式名原子落位。run manifest = 该次 run 的完成标记（:407 ARCH-002 §5 单元自述），违 §11「失败不得留下可被误认成正式产品的半成品」。
+  - sha256 吞错 ×4: :120/:138/:466/:579 均为 `bool ok=false; return file_sha256(x,&ok);` **丢弃 ok**；`cli/parser.cpp`:238-249 失败返回**空串**（:240 `return {};`，非 null）。而 `contracts/schemas/jsonl_event_v1.schema.json`（解释器解析）sha256 定义为 `{"type":["string","null"],"pattern":"^[0-9a-f]{64}$"}` —— 空串属 string 且不匹配 pattern（JSON Schema pattern 对 string 生效）⇒ 失败态 emit 的事件**违反自订冻结 schema**；`tests/cli/test_cli004_process_protocol.py:211` 仅在 golden 正常路径 assertRegex，失败路径零覆盖。另 :467/:122 size_bytes 失败出 null，与 :118-119 注释自述「文件 artifact 必带 sha256+size_bytes（目录 artifact 才允许 null）」相互矛盾（注释 vs 实现）。
+  - 目录创建吞错: :443 与 :483 `create_directories(u8path(...), ec)` 的 ec 均不判；:486 第二次调用**覆写同一 ec 变量**，:487 `if (ec) return;` 只可能归因 gdir 失败——out_dir 失败被掩盖；且 :478 注释自述「图产物损坏只记 warning」而 :487/:493/:495 实为无事件静默 return（注释-实现不符）。
 - 权威依据: 宪章 §11:404（不得吞错后继续生成看似成功的产品）、CLI_PROTOCOL_V1.md:37（artifact 词表）+ :44（"不得留下看似完整的"）、contracts/schemas/jsonl_event_v1.schema.json（sha256 pattern）
-- 同仓正对照: `lib/phase3_session/p3_output.cpp` R10-C（哈希失败 = 整体失败 + unlink，:361-365 区）、`lib/io/src/io_adapter.cpp`:60-69（close 后再判流状态）、`aio_publish` fclose/fsync 判
+- 同仓正对照: `lib/phase3_session/p3_output.cpp` R10-C（哈希失败 = 整体失败 + unlink，:363-367 与 :546-547 两站点）、`lib/io/src/io_adapter.cpp`:60-69（close 后再判流状态）、`aio_publish` fclose/fsync 判
 - related: M9-G-6（write_properties 同吞错族，不同主体）、M5b_L12_L17（同文件 CWD 面）、簇 1 机制④邻族（字段存在≠字段可信）
 - 建议处置: ①写 tmp 后显式 `f.close(); if(f.fail())` 再 rename；②ok=false 时该 artifact 事件 sha256 出 null（schema 允许）且同事件 severity=warn，或整体按 IO 失败退出；③create_directories 失败给独立报错
 
@@ -79,7 +82,7 @@
 ### W4-R2-08（P2）IO-001/astro_image_io/CLI 临时文件命名可预测 + 全仓零独占创建（O_EXCL/CREATE_ALWAYS/lstat 判链接 0 命中）+ overwrite=0 仅 begin 时点检查——TOCTOU/CWE-377/59 族
 - 类别: C_ALG_IMPL（交付安全，§11 提交点族的第三缺口）
 - 位置与机理:
-  1. `runtime/io/fits_core.c`::acs_fio_writer_begin_v1 —— `if(!overwrite){FILE* probe=fopen(path,"rb");…}`（:1215-1221）**只在 begin 判一次**；提交 end 的 `rename(tmp,target)`（:1480）POSIX 下对 begin 之后新出现的 target **无条件替换** ⇒ "拒绝已存在"保护窗口 = 整个写出期之外（并发第二写者的完整产品在 end 时被本事务半成品顶掉或反之）；probe 自身也是 stat-then-use
+  1. `runtime/io/fits_core.c`::acs_fio_writer_begin_v1 —— `if(!overwrite){FILE* probe=fopen(path,"rb");…}`（:1215-1222）**只在 begin 判一次**；提交 end 的 `rename(tmp,target)`（:1480）POSIX 下对 begin 之后新出现的 target **无条件替换** ⇒ "拒绝已存在"保护窗口 = 整个写出期之外（并发第二写者的完整产品在 end 时被本事务半成品顶掉或反之）；probe 自身也是 stat-then-use
   2. 同文件 ::fio_writer_make_tmp_name（:1095-1100）：`<target>.tmp.<pid>.<seq>`，seq 进程内自 0 起——同名**完全可预测**；随后 `fopen(tmp,"w+b")`（:1231）= O_CREAT|O_TRUNC **无 O_EXCL**：目录内预置该名的符号链接/他人文件被静默跟随并清空重写
   3. `lib/io/src/io_adapter.cpp`:42-44 同型（`ofstream(tmp, trunc)`，无独占）——使用者仅 `lib/orchestrator/cpp/checkpoint.cpp`，该目录不在构建图（口径引 V10-c「都不在构建图」），故不判生产可达
   4. `lib/astro_image_io/src/aio_pipeline.cpp`::aio_frame_save_cache :877：tmp = `path+".tmp"` **连 pid 都不带**——两进程并发保存同一 cache 路径 → 同 inode 混写；A 先 rename 走后 B 的已开 fp 仍写"改名后的 inode"= **正式路径**（B 的后续失败 unlink(tmp) 落空）→ §11 禁的"半截可误认产品"直接落在正式名上。现调用面仅 `lib/astro_image_io/tests/{pipeline_frame_contract_test.cpp:56,dataflow_fuzz.cpp:101}`（全仓 grep 复算）⇒ 未接线，P2 封顶
