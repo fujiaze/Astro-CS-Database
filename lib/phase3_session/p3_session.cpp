@@ -177,6 +177,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
     }
 
     // P3-006/DOC-003: max_tiles 内存守卫(ARCH-P3 §3): 请求可降不可升, 默认 min(1024, ceil(W·H/W²)+16)
+    int64_t mt = 8;   // P30: 提升到守卫块外 —— uncertainty sampler 之后也要套同一上限
     {
         const int64_t wh = (int64_t)wpx * hpx;
         int64_t default_max = 1024;
@@ -185,7 +186,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
             const int64_t need = (wh + per_tile - 1) / per_tile + 16;
             default_max = std::min<int64_t>(1024, std::max<int64_t>(8, need));
         }
-        int64_t mt = doc.value("max_tiles", (int)default_max);
+        mt = doc.value("max_tiles", (int)default_max);
         if (mt > default_max) {
             s->last_error = "max_tiles 超默认内存守卫(可降不可升)";
             return ACS_ERR_BUDGET;
@@ -218,6 +219,9 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
         }
     }
     const bool unc_available = (unc_src != P3_UNC_NONE);
+    // P30: uncertainty sampler 有自己的缓存 (键同为 tile ipix, 禁与 signal 共享),
+    // 同样按 max_tiles 约束; 修复前该上限只作用在主 signal sampler 上。
+    if (unc_available) p3_sampler_set_max_tiles(&u_samp, (int)std::max<int64_t>(1, mt));
 
     // 输出平面: S/C (+ uncertainty V/I, available 时)
     const long nelem = (long)wpx * hpx;
@@ -253,6 +257,9 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
             cancelled_at.store(-2);  // open 失败(罕见; 主线程已有有效 samp)
             return;
         }
+        // P30: 与本 run 唯一的有界 tile 缓存共享 (容量 = max_tiles 总量, 与
+        // worker 数无关 → 峰值内存有界; 同一 tile 只解码一次)。只读 + 缺失负缓存。
+        p3_sampler_attach_cache(&w_samp, &samp);
         // uncertainty 子产品: 每 worker 独立实例 (P3Sampler 非线程安全, 同款纪律)
         P3Sampler w_u{};
         P3UncertaintySource w_src = P3_UNC_NONE;
@@ -263,6 +270,7 @@ acs_status p3_session_run(acs_handle h, const acs_span_u8 request_json) {
             corrupt_at.store(-2);
             return;
         }
+        if (unc_available) p3_sampler_attach_cache(&w_u, &u_samp);   // P30: 同上
         P3WcsDescriptor w_wcs = wcs;   // 值拷贝, worker 本地
         for (int y = y0; y < y1 && cancelled_at.load() < 0 && corrupt_at.load() == -3;
              ++y) {

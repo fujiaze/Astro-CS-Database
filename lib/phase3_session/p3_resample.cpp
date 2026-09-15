@@ -1,12 +1,36 @@
 // lib/phase3_session/p3_resample.cpp — 重采样实现 (ALG-P3-003) — P3-003
 // 叶级 nside = 512·2^K(K=properties order); NEAREST/BILINEAR 均经 healpix_core
 // 权威函数(ang2pix/pix2ang/neighbors) — 禁止第二套数学核心。
+//
+// P30 (Phase3 导出性能 P0) 修复注记 —— 采样数学逐位不变, 只改 tile 存取层:
+//   修复前实测 (真实 M42 T2+Blue, 14375² = 206.6 Mpx, 0.805″/px):
+//     * 每个 worker 的 P3Sampler 是 p3_sampler_open_ex 新建实例, max_tiles
+//       (默认 804) 只设到了主 sampler 上 → worker 实际 cache.cap = 8;
+//       产物 523 个 tile 的工作集 >> 8 → 逐行抖动, 同一 tile 被反复解码。
+//     * tile 缺失(覆盖外)没有负缓存: 该平面 34.2% 像素在 MOC 之外 (实测
+//       astropy-healpix 逐格核对), 每像素最多 4 次 read_leaf → ~2.8e8 次
+//       fits_open_file 打在**不存在的文件**上; 该调用全程持有进程级
+//       aio::cfitsio_io_mutex (RT-008), 且每次构造路径/错误串 → 全进程
+//       串行化 + 高 sys 时间, 实测 17 线程只用 ~1.9 核 (门禁 §10.5 需 ≥85%)。
+//   本文件修复 = ①跨 worker 共享一个**有界 LRU** tile 缓存 (容量 = max_tiles,
+//   与 worker 数无关 → 峰值内存不随核数增长); ②缺失 tile 负缓存 (每 tile 至多
+//   一次真实 open, 结果与修复前逐位相同: 那些 open 本来就必然失败);
+//   ③每线程前端热缓存 (命中不取共享锁); ④bilinear 每像素不再堆分配;
+//   ⑤暴露缓存统计供 §10.5 资源证据。
+//   数学路径 (ang2pix_nest / pix2ang_nest / neighbors / 四象限双线性 / NaN 与
+//   coverage 语义) 与修复前逐行等价。
 #include "p3_resample.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <list>
+#include <memory>
+#include <mutex>
 #include <new>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "healpix_core.h"
@@ -18,22 +42,78 @@ namespace astrocs::phase3 {
 namespace {
 constexpr uint32_t kTileWidth = 512;
 constexpr int kReaderBuf = 512 * 512;
+// 每 sampler(生产路径 = 每工作线程一个)前端热缓存槽数: 覆盖 bilinear 单像素
+// 触及的 2-4 个 tile 及相邻行带切换, 命中时完全不进入共享缓存的锁。
+constexpr size_t kHotSlots = 8;
 
-// 简单 8-tile 缓存(确定性逐出=最旧), 跨 tile 采样避免反复 IO
-struct TileCache {
-    std::vector<uint64_t> keys;
-    std::vector<std::vector<float>> tiles;
-    size_t cap = 8;   // 默认; 可配置(max_tiles)
-    const float* get(uint64_t k) const {
-        for (size_t i = 0; i < keys.size(); ++i)
-            if (keys[i] == k) return tiles[i].data();
-        return nullptr;
+using TileData = std::vector<float>;
+
+// ── 有界 tile 缓存 (跨 worker 共享; 线程安全) ───────────────────────────────
+//  - 容量 cap = max_tiles 个 512²f32 tile (1 MiB/个), 与 worker 数无关:
+//    峰值内存 = cap MiB + Σ(每线程热缓存 pin ≤ kHotSlots 个), 有界。
+//  - LRU 逐出顺序确定, 但只影响命中率, 不影响任何像素值 (tile 内容只读)。
+//  - absent = 负缓存: tile 不存在或读失败 → 记一次, 之后直接返回缺失,
+//    不再对不存在的文件调 fits_open_file。语义与"每次 open 都失败"完全等价。
+//  - 表操作在 mu 内, tile I/O 在 mu 外 (read_tile 自带进程级 CFITSIO 互斥),
+//    避免缓存锁与 I/O 锁嵌套。
+struct SharedTileCache {
+    struct Entry {
+        std::shared_ptr<const TileData> data;
+        std::list<uint64_t>::iterator it;
+    };
+    mutable std::mutex mu;
+    size_t cap = 8;                        // 默认 (可配置 max_tiles)
+    std::list<uint64_t> lru;               // front = MRU
+    std::unordered_map<uint64_t, Entry> map;
+    std::unordered_map<uint64_t, uint8_t> absent;
+    uint64_t stat_hits = 0;
+    uint64_t stat_misses = 0;
+    uint64_t stat_absent = 0;              // 负缓存写入次数 (=真实失败 open 次数)
+    uint64_t stat_evict = 0;
+
+    std::shared_ptr<const TileData> get(uint64_t k) {
+        std::lock_guard<std::mutex> lk(mu);
+        auto it = map.find(k);
+        if (it == map.end()) { ++stat_misses; return std::shared_ptr<const TileData>(); }
+        lru.splice(lru.begin(), lru, it->second.it);
+        ++stat_hits;
+        return it->second.data;
     }
-    void put(uint64_t k, std::vector<float>&& t) {
-        if (keys.size() >= cap) { keys.erase(keys.begin()); tiles.erase(tiles.begin()); }
-        keys.push_back(k);
-        tiles.push_back(std::move(t));
+    void put(uint64_t k, std::shared_ptr<const TileData> d) {
+        std::lock_guard<std::mutex> lk(mu);
+        absent.erase(k);
+        auto it = map.find(k);
+        if (it != map.end()) {
+            it->second.data = std::move(d);
+            lru.splice(lru.begin(), lru, it->second.it);
+            return;
+        }
+        lru.push_front(k);
+        map.emplace(k, Entry{std::move(d), lru.begin()});
+        const size_t limit = cap == 0 ? 1u : cap;
+        while (map.size() > limit) {
+            const uint64_t victim = lru.back();
+            lru.pop_back();
+            map.erase(victim);
+            ++stat_evict;
+        }
     }
+    bool is_absent(uint64_t k) {
+        std::lock_guard<std::mutex> lk(mu);
+        return absent.find(k) != absent.end();
+    }
+    void mark_absent(uint64_t k) {
+        std::lock_guard<std::mutex> lk(mu);
+        absent.emplace(k, 1u);
+        ++stat_absent;
+    }
+    // P30 证据/回归: 真实失败的 tile open 次数 (与负缓存命中区分)。负缓存关闭时
+    // 该计数按"每像素重试"线性增长 —— 回归用例的阴性对照正是据此判红。
+    void note_open_failure() {
+        std::lock_guard<std::mutex> lk(mu);
+        ++stat_open_fail;
+    }
+    uint64_t stat_open_fail = 0;
 };
 }  // namespace
 
@@ -41,11 +121,61 @@ struct P3SamplerImpl {
     AioHipsDataset* ds = nullptr;
     int order = 0;                       // properties 实测 order(K)
     uint32_t leaf_nside = 512;           // 512·2^K
-    TileCache cache;
+    // 共享有界 tile 缓存: 同一工作集合的多个 worker 指向同一实例 (P30)。
+    std::shared_ptr<SharedTileCache> cache;
+    // 本 sampler 专属前端热缓存 (每线程一个 sampler ⇒ 无锁访问)。
+    //   hot_state: 0=空槽 1=命中(hot_val 有效, pin 住 tile) 2=已知缺失
+    uint64_t hot_key[kHotSlots];
+    uint8_t hot_state[kHotSlots];
+    std::shared_ptr<const TileData> hot_val[kHotSlots];
     std::string root;
     std::string last_err;
     P3UncertaintySource unc_src = P3_UNC_NONE;   // uncertainty 子产品类型标记
+    // P30: "缺失 tile 负缓存"开关 (默认开)。1=正常生产语义; 0=仅回归阴性对照
+    // (退化为修复前"每个缺失像素重试一次失败 open"), 不得用于生产配置。
+    int absent_cache = 1;
+
+    P3SamplerImpl() : cache(std::make_shared<SharedTileCache>()) {
+        for (size_t i = 0; i < kHotSlots; ++i) { hot_key[i] = ~0ull; hot_state[i] = 0; }
+    }
+    void clear_hot() {
+        for (size_t i = 0; i < kHotSlots; ++i) {
+            hot_key[i] = ~0ull; hot_state[i] = 0; hot_val[i].reset();
+        }
+    }
 };
+
+// 取一个 tile (命中返回 pin 住的共享指针; 缺失/读失败返回 nullptr)。
+// 顺序: 线程本地热缓存 → 共享 LRU(锁) → 负缓存 → 真读(进程级 CFITSIO 互斥)。
+static std::shared_ptr<const TileData> fetch_tile(P3SamplerImpl* s, uint64_t tip) {
+    const size_t slot = static_cast<size_t>(tip * 0x9E3779B97F4A7C15ull) &
+                        (kHotSlots - 1);
+    if (s->hot_state[slot] != 0 && s->hot_key[slot] == tip)
+        return s->hot_state[slot] == 1 ? s->hot_val[slot]
+                                       : std::shared_ptr<const TileData>();
+    if (std::shared_ptr<const TileData> hit = s->cache->get(tip)) {
+        s->hot_key[slot] = tip; s->hot_state[slot] = 1; s->hot_val[slot] = hit;
+        return hit;
+    }
+    if (s->absent_cache && s->cache->is_absent(tip)) {
+        s->hot_key[slot] = tip; s->hot_state[slot] = 2; s->hot_val[slot].reset();
+        return std::shared_ptr<const TileData>();
+    }
+    auto tile = std::make_shared<TileData>(static_cast<size_t>(kReaderBuf));
+    if (aio_hips_read_tile_f32(s->ds, tip, tile->data()) != 0) {
+        s->last_err = std::string("read_tile ") + std::to_string(tip) + ": " +
+                      aio_hips_reader_last_error();
+        s->cache->note_open_failure();       // 观测: 真实失败 open (含关闭负缓存时)
+        if (s->absent_cache) {
+            s->cache->mark_absent(tip);      // 负缓存 (修复前: 每像素重试)
+            s->hot_key[slot] = tip; s->hot_state[slot] = 2; s->hot_val[slot].reset();
+        }
+        return std::shared_ptr<const TileData>();
+    }
+    s->cache->put(tip, tile);
+    s->hot_key[slot] = tip; s->hot_state[slot] = 1; s->hot_val[slot] = tile;
+    return tile;
+}
 
 // 读一个叶级像素: 命中=值; tile 缺失=false(coverage=0); NaN 像素=命中(值 NaN)
 static bool read_leaf(P3SamplerImpl* s, uint64_t leaf_ipix, float* out) {
@@ -54,30 +184,15 @@ static bool read_leaf(P3SamplerImpl* s, uint64_t leaf_ipix, float* out) {
     const uint32_t leaf_order = static_cast<uint32_t>(tile_order) + 9;
     const uint64_t tip = astrocs::healpix::leaf_to_tile_nest(leaf_ipix, leaf_order,
                                                              static_cast<uint32_t>(tile_order));   // 传"阶"非 nside
-    if (const float* hit = s->cache.get(tip)) {
-        // 缓存命中: leaf→tile 内标准 HiPS 排列索引
-        const uint64_t first = astrocs::healpix::tile_to_leaf_nest(
-            tip, static_cast<uint32_t>(tile_order), leaf_order);
-        const uint64_t local = leaf_ipix - first;
-        const uint64_t fits_index = astrocs::healpix::nested_local_to_fits_index(
-            local, 9, kTileWidth);
-        *out = hit[fits_index];   // NaN 是命中(值语义, §4)
-        return true;
-    }
-    std::vector<float> tile(kReaderBuf);
-    if (aio_hips_read_tile_f32(s->ds, tip, tile.data()) != 0) {
-        s->last_err = std::string("read_tile ") + std::to_string(tip) + ": " +
-                      aio_hips_reader_last_error();
-        return false;   // 缺 tile
-    }
-    s->cache.put(tip, std::move(tile));
+    const std::shared_ptr<const TileData> tile = fetch_tile(s, tip);
+    if (!tile) return false;   // 缺 tile
+    // leaf→tile 内标准 HiPS 排列索引
     const uint64_t first = astrocs::healpix::tile_to_leaf_nest(
         tip, static_cast<uint32_t>(tile_order), leaf_order);
     const uint64_t local = leaf_ipix - first;
-    const uint64_t fits_index = astrocs::healpix::nested_local_to_fits_index(local, 9,
-                                                                             kTileWidth);
-    const float* hit = s->cache.get(tip);
-    *out = hit[fits_index];
+    const uint64_t fits_index = astrocs::healpix::nested_local_to_fits_index(
+        local, 9, kTileWidth);
+    *out = (*tile)[fits_index];   // NaN 是命中(值语义, §4)
     return true;
 }
 
@@ -107,8 +222,38 @@ P3ResampleStatus p3_resample_check_mode(const char* input_mode) {
 
 void p3_sampler_set_max_tiles(P3Sampler* s, int max_tiles) {
     if (!s || !s->impl) return;
-    if (max_tiles <= 0) { s->impl->cache.cap = 8; return; }
-    s->impl->cache.cap = static_cast<size_t>(max_tiles);
+    const size_t cap = (max_tiles <= 0) ? 8u : static_cast<size_t>(max_tiles);
+    std::lock_guard<std::mutex> lk(s->impl->cache->mu);
+    s->impl->cache->cap = cap;
+}
+
+void p3_sampler_attach_cache(P3Sampler* dst, const P3Sampler* src) {
+    if (!dst || !dst->impl || !src || !src->impl) return;
+    if (dst->impl->cache == src->impl->cache) return;
+    dst->impl->cache = src->impl->cache;   // 共享同一个有界缓存 (容量已由主 sampler 设定)
+    dst->impl->clear_hot();
+}
+
+void p3_sampler_cache_stats(const P3Sampler* s, P3CacheStats* out) {
+    if (!out) return;
+    *out = P3CacheStats{};
+    if (!s || !s->impl || !s->impl->cache) return;
+    SharedTileCache* c = s->impl->cache.get();
+    std::lock_guard<std::mutex> lk(c->mu);
+    out->cap_tiles = c->cap;
+    out->resident_tiles = c->map.size();
+    out->hits = c->stat_hits;
+    out->misses = c->stat_misses;
+    out->absent_reads = c->stat_absent;
+    out->open_failures = c->stat_open_fail;
+    out->absent_entries = c->absent.size();
+    out->evictions = c->stat_evict;
+}
+
+void p3_sampler_set_absent_cache(P3Sampler* s, int enabled) {
+    if (!s || !s->impl) return;
+    s->impl->absent_cache = enabled ? 1 : 0;
+    s->impl->clear_hot();   // 语义切换后热缓存的负项立即失效
 }
 
 P3ResampleStatus p3_sampler_open(const char* product_dir, P3Sampler* out,
@@ -165,6 +310,8 @@ P3ResampleStatus p3_sample_bilinear(P3Sampler* s, double ra_deg, double dec_deg,
     return p3_sample_bilinear_ex(s, ra_deg, dec_deg, value, coverage, nullptr, nullptr);
 }
 
+// P30: 3×3 邻域点由 std::vector 改为定长栈数组 (单像素不再堆分配); 取样/
+// 四象限选择/退化填充/双线性权重与 NaN·coverage 语义与修复前逐行等价。
 P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_deg,
                                        float* value, int* coverage,
                                        double weights[4], uint64_t leaf_ipix[4]) {
@@ -172,15 +319,14 @@ P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_d
     auto* impl = s->impl;
     const uint32_t nside = impl->leaf_nside;
     const uint64_t ipix = astrocs::healpix::ang2pix_nest(nside, ra_deg, dec_deg);
-    double c_ra = 0, c_dec = 0;
-    astrocs::healpix::pix2ang_nest(nside, ipix, c_ra, c_dec);
     // 3×3 邻域(中心+8 邻居)投影到样本点切平面
-    std::vector<uint64_t> nb = astrocs::healpix::neighbors(nside, ipix);
+    const std::vector<uint64_t> nb = astrocs::healpix::neighbors(nside, ipix);
     struct P { uint64_t ipix; double x, y; };   // 切平面坐标(deg)
-    std::vector<P> pts;
-    pts.reserve(9);
+    P pts[10];
+    int np = 0;
     const double d0r = dec_deg * M_PI / 180.0, a0r = ra_deg * M_PI / 180.0;
     auto add_pt = [&](uint64_t ip) {
+        if (np >= 10) return;
         double ra = 0, dec = 0;
         astrocs::healpix::pix2ang_nest(nside, ip, ra, dec);
         const double ar = ra * M_PI / 180.0, dr = dec * M_PI / 180.0;
@@ -190,28 +336,35 @@ P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_d
         const double xi = std::cos(dr) * std::sin(ar - a0r) / den;
         const double eta = (std::sin(dr) * std::cos(d0r) -
                             std::cos(dr) * std::sin(d0r) * std::cos(ar - a0r)) / den;
-        pts.push_back({ip, xi, eta});
+        pts[np].ipix = ip; pts[np].x = xi; pts[np].y = eta;
+        ++np;
     };
     add_pt(ipix);
     for (uint64_t n : nb) add_pt(n);
     // 四象限最近中心(确定性: 距离并列时取更小 ipix)
     const P* q[2][2] = {{nullptr, nullptr}, {nullptr, nullptr}};   // [x<0|x>0][y<0|y>0]
     double best_d[2][2] = {{1e300, 1e300}, {1e300, 1e300}};
-    for (const auto& p : pts) {
+    for (int i = 0; i < np; ++i) {
+        const P& p = pts[i];
         const int ix = p.x >= 0 ? 1 : 0;
         const int iy = p.y >= 0 ? 1 : 0;
         const double d2 = p.x * p.x + p.y * p.y;
-        if (d2 < best_d[ix][iy] || (d2 == best_d[ix][iy] && p.ipix < q[ix][iy]->ipix)) {
+        if (d2 < best_d[ix][iy] ||
+            (d2 == best_d[ix][iy] && q[ix][iy] != nullptr && p.ipix < q[ix][iy]->ipix)) {
             best_d[ix][iy] = d2;
-            q[ix][iy] = &pts[static_cast<size_t>(&p - pts.data())];
+            q[ix][iy] = &p;
         }
     }
     // 退化防护: 角点位置某些象限可能无邻域点 → 用最近邻点填充(确定性双线性退化)
     const P* nearest_pt = nullptr;
     double nd = 1e300;
-    for (const auto& p : pts) {
-        const double d2 = p.x * p.x + p.y * p.y;
-        if (d2 < nd) { nd = d2; nearest_pt = &pts[static_cast<size_t>(&p - pts.data())]; }
+    for (int i = 0; i < np; ++i) {
+        const double d2 = pts[i].x * pts[i].x + pts[i].y * pts[i].y;
+        if (d2 < nd) { nd = d2; nearest_pt = &pts[i]; }
+    }
+    if (nearest_pt == nullptr) {   // 无有效邻域点(不可达于合法 nside) → 显式缺失
+        *value = std::nanf(""); *coverage = 0;
+        return P3_RS_OK;
     }
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < 2; ++j)
@@ -248,7 +401,7 @@ P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_d
         leaf_ipix[0] = q[0][0]->ipix; leaf_ipix[1] = q[1][0]->ipix;
         leaf_ipix[2] = q[0][1]->ipix; leaf_ipix[3] = q[1][1]->ipix;
     }
-    (void)y1; (void)c_ra; (void)c_dec;
+    (void)y1;
     return P3_RS_OK;
 }
 
