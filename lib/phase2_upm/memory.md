@@ -121,3 +121,45 @@
   禁改生产源码/测试/lib/phase2、lib/phase2_int、lib/phase2_rej、
   lib/phase2_samp、lib/hips_p2 既有文件；禁 git add/commit/push；
   run/local/ 产物不提交。
+---
+
+## 追加：V6 IMPL-P2-UPM-001（2026-09-15，Wave 5）
+
+> 本节由 V6 任务 \`IMPL-P2-UPM-001\` 追加，记录 V6 目标态乘法/加性分离实现；
+> 不改写上文 P2-UPM-DOC 历史合同文本。上位：\`ALG-P2-SURF-UPM.md\`
+> （\`ALG-P2S-UPM.1..8\`）、\`docs/contracts/v6/frozen/*\`、\`docs/algorithms/v6/frozen/*\`。
+
+- 新增公共面（\`lib/phase2/include/astro/phase2/upm.h\`）：
+  \`P2UpmMaObservation\` / \`P2UpmMaConfig\` / \`P2UpmMaInfo\` +
+  \`p2_upm_ma_build/info/solution/component_of_frame/component_of_control/\`
+  \`component_ref_frame/param_cov/c_out/provenance/close\` +
+  \`p2_upm_control_variance\`。实现位于 \`lib/phase2/src/upm.cpp\`
+  （匿名 namespace helpers + \`extern "C"\` 段）。
+- 模型：\`y_k(p) = g_k * s(p) + b_k\`（\`ALG-P2S-UPM.1\`）；g/b 分别估计，
+  禁止把乘法尺度藏进加性场（宪章 §6.3）。空间加性场 b_k(x) 的数据面
+  表示属 OPEN-P2S-02（不自行定值），本实现为帧级 b_k。
+- overlap graph：frame-control 二分图连通分量（确定性边序 union-find）；
+  gauge 每分量 ref=min(frame_id)，\`g_ref=1, b_ref=0\`（\`ALG-P2S-UPM.2\`）。
+- 秩：\`sigma_i/sigma_max > 1e-10\`（\`FZ-AP2S-RANK-RTOL\`）；σ 由 Hestenes
+  一步 Jacobi 直接对 W^{1/2}J 求得（避免 (JᵀJ) 平方丢失小奇异值精度）。
+- 条件数：\`kappa = cond_2(D^-1 (JᵀWJ) D^-1) <= 1e6\`（\`FZ-AP2S-KAPPA-MAX\`）。
+- min_frames=2（\`FZ-AP2S-UPM-MINFRAMES\`）：单帧分量默认 rc=5；显式
+  additive-only 降级（\`allow_additive_only_single_frame=1\`）后 g≡1、b_ref=0。
+- 参数协方差：\`C_theta=(JᵀWJ)^-1\`（gauge 消除子空间）；
+  \`C_out = C_stat + J_out C_theta J_outᵀ\`（\`FZ-FORMULA-COV-PROP\`）；
+  禁止由权重/诊断量反推 variance。
+- fail-closed rc：0 ok / 1 参数 / 2 control_ivar / 3 秩亏 / 4 kappa /
+  5 min_frames / 6 共享系统项按独立 / 7 k_corr provenance / 8 非有限解。
+- k_corr：\`control_variance = k_corr*(pi/2)*sigma_bg^2/N_retained\`
+  （\`ALG-P2S-UPM.7\`）；k_corr=1.0（忽略相关）→ rc=2；非域内值须提供
+  固定种子 MC run id（DI-04 未复跑标定前仅域内 1.4，\`FZ-PROV-KCORR-VALUE\`）。
+- 证据：\`run/v6/IMPL-P2-UPM-001/\`（Oracle \`oracle/upm_ma_oracle.py\` +
+  \`anchors.json\`；基线 \`logs/compile_run.log\`；mutation \`logs/mutations.log\`；
+  CMake 注册结构验证 \`cmake_check/\`）。
+- 登记（只登记不裁决）：k_corr 标定脚本/固定种子 MC 复跑=DI-04（OPEN）；
+  乘法尺度生产数据面/schema=OPEN-P2S-02（OPEN）；跨帧完整 C 的低秩/
+  相关核表示=OPEN-P2S-03（OPEN）。
+- 上文 "不处理乘性尺度差（已撤销，SCI-UPM 非目标）" 为 V5/历史加性
+  模型口径；V6 目标态以 \`ALG-P2S-UPM.1\` 新增乘法 g_k 并强制乘加分离，
+  该历史句在 V6 范围内被取代（本条只登记）。
+
