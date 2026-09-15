@@ -74,6 +74,20 @@ HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
                                        HpDrizzleResult* result,
                                        int precision_mode);
 
+// Phase1 生产末端正式 C ABI: Drizzle -> 标准 HiPS 直写 (无容器中转)。
+// 产物与旧 writer 节点 (读中间容器后写 HiPS) 逐字节等价:
+// 仅 signal+support 子产品, support 按 uint8 面积比量化, 不写 variance/snr,
+// 不写 drizzle provenance; product_begin 元数据与旧 writer 一致。
+// hips_dir: HiPS 产品集根目录 (signal/ support/ Moc.fits metadata.fits properties)
+// filter_passband: obs_filter 透传 (可 NULL 或空串)
+// 返回: 0=成功, 非 0=失败 (result->error_msg 给出原因)
+HP_DRIZZLE_API int hp_drizzle_run_phase1_hips(PipelineFrame* frame,
+                                              int nside, int nested, double pixfrac,
+                                              const char* hips_dir,
+                                              const char* filter_passband,
+                                              HpDrizzleResult* result,
+                                              int precision_mode);
+
 // ============================================================================
 // P17-NSIDE: 自动 NSIDE 决策 (采样率等价 drizzle 1x-2x) 的正式 C ABI。
 //

@@ -24,6 +24,46 @@
 // hips_dir: HiPS 产品集根目录 (signal/support/snr 子产品)
 // legacy_hiss_path: 可选 legacy .hiss 路径 (nullptr=不写, 仅 validation 用)
 // ============================================================================
+// ============================================================================
+// hp_drizzle_run_phase1_hips - Phase1 生产末端正式 C ABI (无容器中转):
+// Drizzle TileAccumulator -> 标准 HiPS (signal/support/Moc/metadata/properties)。
+// 产物与旧 writer 节点 (读中间容器后写 HiPS) 逐字节等价。
+// hips_dir: HiPS 产品集根目录; filter_passband: obs_filter (可 NULL/空串)。
+// 返回: 0=成功, 非 0=失败 (result->error_msg 给出原因)。
+// ============================================================================
+HP_DRIZZLE_API int hp_drizzle_run_phase1_hips(PipelineFrame* frame,
+                                              int nside, int nested, double pixfrac,
+                                              const char* hips_dir,
+                                              const char* filter_passband,
+                                              HpDrizzleResult* result,
+                                              int precision_mode)
+{
+    // C 边界异常屏障, 同 hp_drizzle_run / hp_drizzle_run_hips 薄壳 (对齐 -11)。
+    try {
+    return run_drizzle_internal(frame, nside, nested, pixfrac,
+                                nullptr, hips_dir,
+                                /*write_hips=*/true,
+                                /*write_legacy_hiss=*/false,
+                                result, precision_mode,
+                                /*hips_profile=*/1,
+                                /*hips_filter_passband=*/filter_passband);
+    } catch (const std::exception& e) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run_phase1_hips: C 边界捕获异常: %s\n", e.what());
+        if (result) {
+            std::memset(result, 0, sizeof(HpDrizzleResult));
+            setErrorMsg(result, std::string("内部异常: ") + e.what());
+        }
+        return -11;
+    } catch (...) {
+        fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run_phase1_hips: C 边界捕获未知异常\n");
+        if (result) {
+            std::memset(result, 0, sizeof(HpDrizzleResult));
+            setErrorMsg(result, "内部未知异常");
+        }
+        return -11;
+    }
+}
+
 HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
                                        int nside, int nested, double pixfrac,
                                        const char* hips_dir,
@@ -37,7 +77,8 @@ HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
                                 legacy_hiss_path, hips_dir,
                                 /*write_hips=*/true,
                                 /*write_legacy_hiss=*/(legacy_hiss_path && legacy_hiss_path[0] != '\0'),
-                                result, precision_mode);
+                                result, precision_mode,
+                                /*hips_profile=*/0, /*hips_filter_passband=*/nullptr);
     } catch (const std::exception& e) {
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run_hips: C 边界捕获异常: %s\n", e.what());
         if (result) {
