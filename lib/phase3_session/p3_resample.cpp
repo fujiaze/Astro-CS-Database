@@ -115,6 +115,24 @@ struct SharedTileCache {
     }
     uint64_t stat_open_fail = 0;
 };
+
+// ── P35: bilinear 核 leaf 级记忆化 (per-sampler, 有界, direct-mapped) ─────────
+// 只缓存权威 astrocs::healpix 原语 (neighbors / pix2ang_nest) 的**返回值**;
+// 投影公式/四象限选取/权重/NaN·coverage 语义逐行不变 ⇒ 纯 memoization,
+// 与关闭缓存时输出逐位相同 (阴性对照回归用例据此判定)。
+constexpr size_t kMemoBits = 10;                       // 1024 槽 / sampler
+constexpr size_t kMemoSlots = size_t(1) << kMemoBits;
+static inline size_t memo_slot(uint64_t ipix) {
+    return static_cast<size_t>((ipix * 0x9E3779B97F4A7C15ull) >> (64 - kMemoBits));
+}
+struct P35LeafMemo {
+    uint64_t ipix = 0; uint32_t nside = 0; uint8_t valid = 0;
+    double ra = 0.0, dec = 0.0;
+};
+struct P35NbMemo {
+    uint64_t ipix = 0; uint32_t nside = 0; uint8_t n = 0, valid = 0;
+    uint64_t nb[8];
+};
 }  // namespace
 
 struct P3SamplerImpl {
@@ -134,6 +152,14 @@ struct P3SamplerImpl {
     // P30: "缺失 tile 负缓存"开关 (默认开)。1=正常生产语义; 0=仅回归阴性对照
     // (退化为修复前"每个缺失像素重试一次失败 open"), 不得用于生产配置。
     int absent_cache = 1;
+    // P35: bilinear leaf 级记忆化 (每 sampler 私有; 生产 = 每工作线程一个)。
+    // 只影响速度, 不影响任何像素值 (缓存值是权威原语的确定性返回值)。
+    // 有界: 2×1024 槽 × ≤80B ≈ 104 KiB/线程 (与线程预算来源一致, 无界增长禁止)。
+    P35LeafMemo leaf_memo[kMemoSlots];
+    P35NbMemo   nb_memo[kMemoSlots];
+    uint64_t memo_leaf_hits = 0, memo_leaf_misses = 0;
+    uint64_t memo_nb_hits = 0, memo_nb_misses = 0;
+    int leaf_memo_enabled = 1;
 
     P3SamplerImpl() : cache(std::make_shared<SharedTileCache>()) {
         for (size_t i = 0; i < kHotSlots; ++i) { hot_key[i] = ~0ull; hot_state[i] = 0; }
@@ -196,6 +222,46 @@ static bool read_leaf(P3SamplerImpl* s, uint64_t leaf_ipix, float* out) {
     return true;
 }
 
+// P35: 记忆化权威原语 —— 命中直接返回上次 pix2ang_nest / neighbors 的精确返回值,
+// 未命中则调用权威实现并记录。关闭开关时退化为直接调用 (阴性对照用)。
+static inline void memo_pix2ang(P3SamplerImpl* s, uint32_t nside, uint64_t ipix,
+                                double& ra, double& dec) {
+    if (!s->leaf_memo_enabled) {
+        astrocs::healpix::pix2ang_nest(nside, ipix, ra, dec);
+        return;
+    }
+    P35LeafMemo& e = s->leaf_memo[memo_slot(ipix)];
+    if (e.valid && e.ipix == ipix && e.nside == nside) {
+        ++s->memo_leaf_hits; ra = e.ra; dec = e.dec; return;
+    }
+    ++s->memo_leaf_misses;
+    astrocs::healpix::pix2ang_nest(nside, ipix, ra, dec);
+    e.ipix = ipix; e.nside = nside; e.ra = ra; e.dec = dec; e.valid = 1;
+}
+// 返回邻居个数; 前 n 个写入 out8 (权威 neighbors 的槽序/不去重语义不变)。
+static inline uint32_t memo_neighbors(P3SamplerImpl* s, uint32_t nside, uint64_t ipix,
+                                      uint64_t* out8) {
+    if (!s->leaf_memo_enabled) {
+        const std::vector<uint64_t> v = astrocs::healpix::neighbors(nside, ipix);
+        const uint32_t n = static_cast<uint32_t>(std::min<size_t>(v.size(), 8u));
+        for (uint32_t i = 0; i < n; ++i) out8[i] = v[i];
+        return n;
+    }
+    P35NbMemo& e = s->nb_memo[memo_slot(ipix)];
+    if (e.valid && e.ipix == ipix && e.nside == nside) {
+        ++s->memo_nb_hits;
+        for (uint32_t i = 0; i < e.n; ++i) out8[i] = e.nb[i];
+        return e.n;
+    }
+    ++s->memo_nb_misses;
+    const std::vector<uint64_t> v = astrocs::healpix::neighbors(nside, ipix);
+    const uint32_t n = static_cast<uint32_t>(std::min<size_t>(v.size(), 8u));
+    e.ipix = ipix; e.nside = nside; e.n = static_cast<uint8_t>(n);
+    for (uint32_t i = 0; i < n; ++i) { e.nb[i] = v[i]; out8[i] = v[i]; }
+    e.valid = 1;
+    return n;
+}
+
 P3ResampleStatus p3_order_select(int max_order, double scale_deg_per_px,
                                        int* out_order) {
     if (!out_order || max_order < 0 || max_order > kMaxOrder || !(scale_deg_per_px > 0))
@@ -254,6 +320,21 @@ void p3_sampler_set_absent_cache(P3Sampler* s, int enabled) {
     if (!s || !s->impl) return;
     s->impl->absent_cache = enabled ? 1 : 0;
     s->impl->clear_hot();   // 语义切换后热缓存的负项立即失效
+}
+
+void p3_sampler_set_leaf_memo(P3Sampler* s, int enabled) {
+    if (!s || !s->impl) return;
+    s->impl->leaf_memo_enabled = enabled ? 1 : 0;
+}
+
+void p3_sampler_memo_stats(const P3Sampler* s, P3MemoStats* out) {
+    if (!out) return;
+    *out = P3MemoStats{};
+    if (!s || !s->impl) return;
+    out->leaf_hits = s->impl->memo_leaf_hits;
+    out->leaf_misses = s->impl->memo_leaf_misses;
+    out->nb_hits = s->impl->memo_nb_hits;
+    out->nb_misses = s->impl->memo_nb_misses;
 }
 
 P3ResampleStatus p3_sampler_open(const char* product_dir, P3Sampler* out,
@@ -319,8 +400,11 @@ P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_d
     auto* impl = s->impl;
     const uint32_t nside = impl->leaf_nside;
     const uint64_t ipix = astrocs::healpix::ang2pix_nest(nside, ra_deg, dec_deg);
-    // 3×3 邻域(中心+8 邻居)投影到样本点切平面
-    const std::vector<uint64_t> nb = astrocs::healpix::neighbors(nside, ipix);
+    // 3×3 邻域(中心+8 邻居)投影到样本点切平面。
+    // P35: 邻居表与 leaf 中心 (ra,dec) 走 per-sampler 记忆化 —— 只把权威原语的
+    // 调用替换为"取同一 ipix 上次的精确返回值", 后续投影/四象限/权重逐行不变。
+    uint64_t nb_buf[8];
+    const uint32_t nb_n = memo_neighbors(impl, nside, ipix, nb_buf);
     struct P { uint64_t ipix; double x, y; };   // 切平面坐标(deg)
     P pts[10];
     int np = 0;
@@ -328,7 +412,7 @@ P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_d
     auto add_pt = [&](uint64_t ip) {
         if (np >= 10) return;
         double ra = 0, dec = 0;
-        astrocs::healpix::pix2ang_nest(nside, ip, ra, dec);
+        memo_pix2ang(impl, nside, ip, ra, dec);
         const double ar = ra * M_PI / 180.0, dr = dec * M_PI / 180.0;
         const double den = std::sin(d0r) * std::sin(dr) +
                            std::cos(d0r) * std::cos(dr) * std::cos(ar - a0r);
@@ -340,7 +424,7 @@ P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_d
         ++np;
     };
     add_pt(ipix);
-    for (uint64_t n : nb) add_pt(n);
+    for (uint32_t i = 0; i < nb_n; ++i) add_pt(nb_buf[i]);
     // 四象限最近中心(确定性: 距离并列时取更小 ipix)
     const P* q[2][2] = {{nullptr, nullptr}, {nullptr, nullptr}};   // [x<0|x>0][y<0|y>0]
     double best_d[2][2] = {{1e300, 1e300}, {1e300, 1e300}};
