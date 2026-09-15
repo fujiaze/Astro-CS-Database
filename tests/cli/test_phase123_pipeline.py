@@ -208,10 +208,8 @@ class TestPhase123Pipeline(unittest.TestCase):
             man = self._assert_manifest_closed(r, out, 1, min_art=8)
             names = self._artifact_names(man)
             self.assertIn("calibrated_light_%d.fits" % idx, names)
-            # P23 一级: 末端直写标准 HiPS, 不再落 legacy 单文件容器;
-            # 等价覆盖 = 紧随其后的 signal/properties 断言 + Moc/metadata。
             for want in ("p1_sources.json", "p1_psf.json", "p1_wcs.json", "p1_flux.json",
-                         "p1_snr.json", "p1_final.json"):
+                         "p1_snr.json", "p1_stack.hiss", "p1_final.json"):
                 self.assertIn(want, names, "缺产物 " + want)
             self.assertTrue(os.path.isfile(os.path.join(out, "signal", "properties")),
                             "Phase1 必须持久化 IVOA HiPS signal/properties")

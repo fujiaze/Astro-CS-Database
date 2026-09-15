@@ -28,10 +28,6 @@ static inline void setErrorMsg(HpDrizzleResult* result, const std::string& msg) 
 
 /* 共享 Drizzle 执行体 (定义在 hp_drizzle_api.cpp; 供 hp_drizzle_run 与
  * hp_drizzle_run_hips 两个 C 导出薄壳调用)。 */
-/* hips_profile: HiPS 直写档位 (仅 write_hips=true 时生效):
- *   0 = 通用直写 (write_hips_direct; signal+support+snr/variance, provenance)
- *   1 = Phase1 生产末端 (write_hips_phase1; 与旧 writer 节点产物逐字节等价)
- * hips_filter_passband: profile=1 的 obs_filter 透传 (可 NULL/空串). */
 int run_drizzle_internal(PipelineFrame* frame,
                          int nside, int nested, double pixfrac,
                          const char* output_path,
@@ -39,8 +35,6 @@ int run_drizzle_internal(PipelineFrame* frame,
                          bool write_hips,
                          bool write_legacy_hiss,
                          HpDrizzleResult* result,
-                         int precision_mode,
-                         int hips_profile,
-                         const char* hips_filter_passband);
+                         int precision_mode);
 
 #endif /* HP_DRIZZLE_INTERNAL_H */

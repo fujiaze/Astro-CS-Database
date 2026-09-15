@@ -217,28 +217,23 @@
 > 区间 API-P1-001..010 声明，无独立小节）；生产调用方
 > orchestrator.cpp:3256-3371 经函数指针调 hp_drizzle_run_hips。
 
-- 导出符号（7 个，全部当前真实存在，`HP_DRIZZLE_API` extern "C"）：
-  `hp_drizzle_fits_to_ahpx`（文件通道 FITS→legacy 单文件容器）、
+- 导出符号（6 个，全部当前真实存在，`HP_DRIZZLE_API` extern "C"）：
+  `hp_drizzle_fits_to_ahpx`（文件通道 FITS→.hiss）、
   `hp_drizzle_run`（PipelineFrame 帧通道）、`hp_drizzle_run_hips`
-  （帧通道 + HiPS 直写薄封装）、
-  `hp_drizzle_run_phase1_hips`（**Phase1 正式末端**：帧通道直写标准 HiPS，
-  与旧 writer 节点产物逐字节一致，P23 一级新增）、
+  （帧通道 + HiPS 直写薄封装，Phase1 正式末端）、
   `hp_drizzle_reverse_run`（Sphere→Plane 反向）、
   `hp_drizzle_reverse_capability`、`hp_drizzle_reverse_version`。
-- 签名（hp_drizzle_api.h :42-51,62-66,70-75,78-96,130-134,139-140）：
+- 签名（hp_drizzle_api.h :42-51,62-66,70-75,130-134,139-140）：
   `int hp_drizzle_run(PipelineFrame* frame, int nside, int nested,
   double pixfrac, const char* output_path, HpDrizzleResult* result,
-  int precision_mode)`；hips 变体增加可选 legacy 容器路径参数
-  （:70-75）；`int hp_drizzle_run_phase1_hips(PipelineFrame* frame, int nside,
-  int nested, double pixfrac, const char* hips_dir,
-  const char* filter_passband, HpDrizzleResult* result, int precision_mode)`
-  （:78-96）；reverse: `int hp_drizzle_reverse_run(const
+  int precision_mode)`；hips 变体增加 `const char* legacy_hiss_path`
+  （:70-75）；reverse: `int hp_drizzle_reverse_run(const
   HpReverseDrizzleInput* in, void* signal_out, void* coverage_out,
   HpReverseDrizzleResult* result)`。
 - 返回码：0=成功，非 0=失败；实测语义——文件通道正值 1..11
   （1=null 参数、2=nside 非 2 幂、3=pixfrac 越界、4=读 FITS 失败、
   5=无 WCS、6/7=SNR 读/尺寸、8/9=权重读/尺寸、10=drizzle 失败、
-  11=写 legacy 容器失败，api.cpp:168-352）；帧通道混用负值 -1..-8（参数/
+  11=写 HISS 失败，api.cpp:168-352）；帧通道混用负值 -1..-8（参数/
   块校验）、-9=无 WCS（:541-545）、-12=HiPS dir 空（:1044-1048）、
   -13=直写失败（:1066-1070）——正负两套并存无集中枚举（登记缺陷，
   迁移整改点）。reverse 返回 1..6（api.cpp:39-143）。
@@ -295,7 +290,7 @@
   `aio_hips_set_drizzle_provenance`（Phase2 k_corr 选择键）、
   `aio_hips_finalize`（properties/MOC/hierarchy/manifest 收尾+释放）、
   `aio_hips_abort`（释放句柄，不删文件——见缺陷登记）、
-  `aio_hips_write`（legacy 兼容批量入口，legacy 容器中转验证用，support uint8
+  `aio_hips_write`（legacy 兼容批量入口，HISS 中转验证用，support uint8
   0..255→covered_area=su/255·A_cell、flux_sum=signal·su/255，flags 固定
   ALL）、`aio_hips_last_error`（thread_local 文本）。
 - 签名（aio_hips.h :104-118,121-123,130-132,135-138,144-145,149,152,
@@ -736,11 +731,10 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
   psf_params:FLOAT64[N,9]）；wcs→lib/plate_solve ipv 真实求解链
   `ipv_solve_from_memory_with_callback_d`（sdet+gaia_client 句柄注入；
   非 Windows 平台为生产源内建 stub，节点 fail-closed 如实报平台限制，
-  Windows 侧真实求解；缺求解参数 DATA 拒绝）；writer→drizzle 节点经
-  `hp_drizzle_run_phase1_hips` 直写 `AstroSphereTileView`→
-  `aio_hips_product_begin/write_signal_support_tile/finalize`
-  （IVOA 1.4 标准 512×512 HiPS；P23 一级后不再经 legacy 单文件容器中转，
-  writer 节点只校验产物并落 p1_final.json）。生产源零 diff
+  Windows 侧真实求解；缺求解参数 DATA 拒绝）；writer→lib/astro_image_io
+  aio_hips 写链（p1_stack.hiss→`aio_hiss_inspect/read_tile_*`→
+  `AstroSphereTileView`→`aio_hips_product_begin/write_signal_support_tile/
+  finalize`，NESTED 聚合 IVOA 1.4 标准 512×512 HiPS）。生产源零 diff
   （只调用不修改）；三域模块库构建接线 astrocs_p1_dpsf/astrocs_p1_ipv/
   astrocs_p1_sdet（CMakeLists.txt）。
 - 如实差距（P1-001 后）：API-P1-001 冻结 7-stage 序列 vs session 现行

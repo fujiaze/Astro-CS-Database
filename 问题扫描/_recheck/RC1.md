@@ -125,3 +125,37 @@
 - 命令：`sed -n '16p;215,221p' lib/healpix_db/healpix_drizzle/tests/control_median_mc_test.cpp`；`sed -n '142p' docs/science/PHASE2_UPM.md`；`sed -n '98p' docs/algorithms/UPM_SOLVER.md`
 - 新锚：判据段现 :217-219 `if (!(k_corr >= 0.98 && k_corr <= 2.0))` 原样（复核时点 :217-219 零漂移）；头注释 :16「UPMW-005 断言 |k_corr_frozen − k_corr_empirical| 在容差内」原样——**与判据段矛盾未消**（实现是无锚宽区间）；UPM.md :142/UPM_SOLVER.md:98 仍引用「MC 实测 1.3883」为锚，测试判据不含 1.3883/1.4
 - 判据：「MC 硬门」仍为 [0.98,2.0] 宽松区间（k_corr 漂移 1.0→1.99 皆绿），头注自述与代码相反，且不锚定冻结值；另 control_median_mc 未在 p1drz/根 tests 的 CMakeLists 注册（构建孤儿同族，L22-005 域）。
+### M5a-C-004 · **STILL**
+- 命令：`grep -n 'dlopen\|TOL =\|2e-4' tests/cpu/avx2/run_provider_avx2_checks.py`；`sed -n '3p;11p' tests/cpu/avx2/provider_avx2_oracle_main.cpp`；`sed -n '24p;112,118p' docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md`；`sed -n '73p' docs/architecture/ISA_VARIANTS.md`
+- 新锚：run_provider_avx2_checks.py :10（dlopen baseline.so+avx2.so 互比）、:15（对照容差 ≤2e-4）、:54 `TOL = 2e-4`、:170-172 判定——四点与报告锚（:10-16/:54/:170-172）零漂移；oracle_main :3 仍自述「dlopen 两个独立 provider .so」、:11「baseline 对照容差」；CPU_003 :24/:112-118 容差式与「与 CPU-002 同规」原样；ISA_VARIANTS.md :73「variant Oracle …（共享源）… 与 Python 参考比对」原样
+- 判据：「与 Python 参考比对」仍只是援引性声明——核验链是 avx2↔baseline 两生产 provider 互比，Python 侧无比对生产交付物的独立参考数值面（NUMERIC_STANDARD.md:17 等价性测试条款原样）；独立性=继承 CPU-002 的历史一致声明，未做误差合成。文件在 changed 清单内但上述站点逐行未动。
+
+### M5a-G-006 · **STILL**（裸 omp 面还在扩大）
+- 命令：`grep -rn '#pragma omp parallel' lib/ --include=*.cpp --include=*.h | wc -l`（=**106**，报告时 99）；`sed -n '1p;14,16p' lib/phase2/include/astro/phase2/execution_options.h`；`grep -n '#pragma omp' lib/calibration/src/calibrator.cpp`；`sed -n '8p' docs/architecture/THREAD_BUDGET_ARCH.md`
+- 新锚：execution_options.h :1「全局执行预算唯一来源」+ :16/:24 hardware_concurrency 自取（零漂移）；calibrator.cpp 裸 omp 五站 :89/:119/:128/:162/:171（零漂移）；THREAD_BUDGET_ARCH.md:8 义务「available_cpus = affinity ∩ cgroup ∩ Job Object」；宪章「一个进程只有一个资源调度器和线程预算源」现 :367
+- 判据：第二预算源两机制全存——①execution_options 默认路径直接硬件自取（不做 affinity/cgroup 折算），与 ARCH:8 义务矛盾；②lib/ 生产 omp 隐式组队 99→106 处增长，无一处接 Runtime 预算；worker_advisor/cpu_features 的正确折算实现仍在位未被 run 路径消费（CONCURRENCY_STANDARD:5-6/:19 条款未变）。
+
+### M5b-C-04 · **STILL**（涉未入库 WIP 文件，时点须注明）
+- 命令：`sed -n '45,47p;71p;154p' include/astrocs/abi/lifecycle_v1.h`；`sed -n '1454,1464p' lib/calibration/src/module_entry.cpp`；`grep -n 'state == ACS_LC_STATE_DESTROYED' lib/*/src/module_entry.*`
+- 新锚：合同面现 lifecycle_v1.h :45/:47（execute 互斥）、:71（double destroy→ACS_ERR_STATE 类违例）、:154（destroy 再调=检测）；实现面 cal_destroy 现 :1454-1464：`if (inst->state == ACS_LC_STATE_DESTROYED) return; /* double → 忽略 */`（:1458）后 `allocator->free(...)`；同族 cosmetic :1224、drizzle :682、hips :766、gaia :1021、snr :894；`state` 裸 int 字段（:612）与 `volatile int32_t cancel_req`（:613）仍非原子
+- 判据：①double-destroy「忽略」而非合同要求的报错（destroy 签名返回 void，错误根本不可表达）原样；②检测读已释放内存原样——第二次调用先读 `inst->state`（内存已被第一次 free 归还）再判定；③execute 间互斥无实现（无锁/state CAS 检查站点未增）。**时点注**：`lib/snr_estimator/src/`、`lib/cosmetic/src/module_entry.cpp` 部分为工作树未入库文件（HEAD a3a343a4 不含 lib/snr_estimator/src/**），本判据基于工作树文本。
+
+### M5b-E-05 · **STILL**（AGENTS 子面已修，主体原样）
+- 命令：`grep -rn '宪章 §' docs/ REVIEW.md | grep -E '§[A-K]'`（RELEASE_STATUS:11、SCIENCE_OVERVIEW:79、MODULE_MAP:33 三处「宪章 §H/§F.1」）；`grep -cE '§[A-K]\.' ASTROCS_PROJECT_CONSTITUTION.md`（=0）；`REVIEW.md :133`
+- 新锚：宪章零字母节（两向 grep 复核）；字母节冒充宪章现集中于 docs/owner/RELEASE_STATUS.md:11「宪章 §1.2/§H」、SCIENCE_OVERVIEW.md:79「宪章 §F.1」、docs/architecture/MODULE_MAP.md:33、REVIEW.md:133/:82/:104（§F.1 裸引）；SCIENCE_OVERVIEW 仍双前缀混用（:40「约束 §C.1」、:92「约束 §E.5」）
+- 判据：治理引用层机制原样——ARCHIVED 文件字母条款号写作「宪章」且宪章无该节。子面订正：AGENTS.md 映射表现全为数字条款且与 check_agents_gov.py::REQUIRED(:6-18) 10/10 对齐（b40c8a49 GOV-AGENTS-001 转 PASS，早于报告时即如此）⇒ 报告 position 中 AGENTS :14/:16/:28 的「双向不一致」不立，建议账本把该子句从本条剥离；RELEASE_STANDARD.md 现仅 12 行（:19 站点灭失），TRACEABILITY_SPEC 字母引用已清。
+
+### M5b-G-07 · **STILL**
+- 命令：`find . -name 'PHASE_OVERVIEW*'`（0）；`sed -n '410,421p' ASTROCS_PROJECT_CONSTITUTION.md`；`sed -n '1,4p;27,29p' tools/check_l0_docs.py`；`grep -n '"DOC-L0"' ci/checks.json`（:370）
+- 新锚：宪章 §12.1 L0 清单现 :410-421，`docs/owner/PHASE_OVERVIEW.md` 在 :416（点名字面零漂移）；全仓该文件不存在；ci/checks.json DOC-L0 现 :370（报告 :369-389 区间内）；`tools/check_l0_docs.py` 规则行 :4 与检查体 :27-29 仍校验 **docs/review/**{SCIENCE,PIPELINE,ARCHITECTURE,RELEASE_STATUS,CHANGE_REVIEW}_OVERVIEW.md
+- 判据：门验错目录（docs/review ≠ 宪章指定 docs/owner）+ 点名文件缺失，两腿均原样；checks.json 在 changed 清单内但 DOC-L0 站点未动。
+
+### M5b-G-15 · **STILL**
+- 命令：`ls tools/check_cli_protocol.py`（不存在）；`sed -n '47p' docs/api/CLI_PROTOCOL_V1.md`；`sed -n '20,33p' tools/check_cli_command_layer.py`；`grep -n 'joined == "drizzle"' cli/commands.cpp`（:2514）
+- 新锚：承诺行现 CLI_PROTOCOL_V1.md :47「机器化一致性检查器合同(04 §6,API-002 建立 tools/check_cli_protocol.py)」——该脚本两向复核（工作树+`git ls-files tools/`）不存在；字符串存在性判据原样（:20/:22 `not in PARSER`、:29-33 token in 判断）；commands.cpp drizzle 转发现 :2514（报告 :2451 → +63）；parser.cpp kRules :36、check_api_docs.py EXIT_NAMES :27、exit_codes.h COMPUTE :13 零漂移
+- 判据：§6 承诺的检查器仍不存在，现役门仍是「源文件里有没有字面量」级判断，drizzle 类转发无规则表覆盖性核验。
+
+### M5b-I-06 · **STILL**（有缓解注记，状态未改）
+- 命令：`sed -n '238,245p' docs/DOCUMENT_INDEX.yaml`；`sed -n '3p' docs/audit/risk_verification_T012.csv`；`sed -n '7p;64p' docs/audit/doc_classification.csv`；`grep -n -A1 'docs/modules/orchestrator.md' docs/DOCUMENT_INDEX.yaml`
+- 新锚：三份 audit 表仍 ACTIVE_INFORMATIVE（:238-245），notes 现加「V19R2 …历史快照；权威分类见本 DOCUMENT_INDEX.yaml」；T012.csv:3 仍引 `tools/stage2.cpp:720-724 weight_mode==2 禁 ACR` 而现行 :718-726 是 large_scale_rejection 装配段（锚失准，ACR-IVAR 现注释在 stage2_common.cpp:391）；doc_classification.csv:64 称 orchestrator.md「AUTHORITATIVE」而 INDEX :343-344 记 ACTIVE_INFORMATIVE；:7 RELEASE_STATUS 行称「CANDIDATE」与现行 owner/review 多头状态（M6b-G-002）不合
+- 判据：登记状态未改（仍 ACTIVE_INFORMATIVE 而非 ARCHIVED/GENERATED）+ 内容与树不符原样；notes 的历史快照自述是缓解不构成交付（宪章 §12.3 一致性义务仍缺位）。
