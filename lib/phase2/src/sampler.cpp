@@ -1153,6 +1153,222 @@ int p2_sample_controls_cached(const P2CoverageResult* coverage,
                                    ctrl_capacity, err, err_size);
 }
 
+// ===========================================================================
+// V6 目标态：空间模型求值 / 空间摘要 / 帧级标量降级门
+// 冻结锚见 sampler.h V6 节。纯函数：无 I/O、无全局态、不产生任何权重。
+// 缺失/NaN 一律 fail-closed（MISSING_NODE / UNAVAILABLE），禁止零填。
+// ===========================================================================
+
+static void p2_spatial_set_err(char* err, std::size_t err_size, const char* msg) {
+    if (err == nullptr || err_size == 0) return;
+    std::snprintf(err, err_size, "%s", msg ? msg : "");
+}
+
+static bool p2_spatial_model_wellformed(const P2SpatialGridModel* m) {
+    if (m == nullptr || m->value == nullptr || m->valid == nullptr) return false;
+    if (m->nx < 2 || m->ny < 2) return false;
+    if (!(m->step_deg > 0.0) || !std::isfinite(m->step_deg)) return false;
+    if (!std::isfinite(m->ra0_deg) || !std::isfinite(m->dec0_deg)) return false;
+    return true;
+}
+
+int p2_spatial_model_eval(const P2SpatialGridModel* model,
+                          double ra_deg, double dec_deg,
+                          P2SpatialEval* out) {
+    if (out == nullptr) return 1;
+    out->status = P2_SPATIAL_INVALID_MODEL;
+    out->value = std::numeric_limits<double>::quiet_NaN();
+    out->n_used_nodes = 0;
+    p2_spatial_set_err(out->err, sizeof(out->err), "");
+    if (!p2_spatial_model_wellformed(model)) {
+        out->status = P2_SPATIAL_INVALID_MODEL;
+        p2_spatial_set_err(out->err, sizeof(out->err),
+                           "spatial_model_eval: invalid model (null/nx<2/ny<2/step<=0)");
+        return 1;
+    }
+    const double fx = (ra_deg - model->ra0_deg) / model->step_deg;
+    const double fy = (dec_deg - model->dec0_deg) / model->step_deg;
+    const double xmax = (double)(model->nx - 1);
+    const double ymax = (double)(model->ny - 1);
+    if (!std::isfinite(fx) || !std::isfinite(fy) || fx < 0.0 || fx > xmax ||
+        fy < 0.0 || fy > ymax) {
+        out->status = P2_SPATIAL_OUT_OF_DOMAIN;
+        p2_spatial_set_err(out->err, sizeof(out->err),
+                           "spatial_model_eval: output position outside model "
+                           "domain (no extrapolation; fail-closed)");
+        return 1;
+    }
+    // 取包含 fx 的格子 [ix0, ix0+1]；右/上边界钳到最后一格
+    // （ix0 <= nx-2），使边界精确取边节点，仍不外插。
+    const std::uint64_t ix0 =
+        (std::uint64_t)std::min(std::floor(fx), xmax - 1.0);
+    const std::uint64_t iy0 =
+        (std::uint64_t)std::min(std::floor(fy), ymax - 1.0);
+    const double tx = fx - (double)ix0;
+    const double ty = fy - (double)iy0;
+    const std::uint64_t ix1 = ix0 + 1;
+    const std::uint64_t iy1 = iy0 + 1;
+    const std::size_t i00 = (std::size_t)(iy0 * model->nx + ix0);
+    const std::size_t i10 = (std::size_t)(iy0 * model->nx + ix1);
+    const std::size_t i01 = (std::size_t)(iy1 * model->nx + ix0);
+    const std::size_t i11 = (std::size_t)(iy1 * model->nx + ix1);
+    const bool support_ok =
+        model->valid[i00] != 0 && model->valid[i10] != 0 &&
+        model->valid[i01] != 0 && model->valid[i11] != 0 &&
+        std::isfinite(model->value[i00]) && std::isfinite(model->value[i10]) &&
+        std::isfinite(model->value[i01]) && std::isfinite(model->value[i11]);
+    if (!support_ok) {
+        out->status = P2_SPATIAL_MISSING_NODE;
+        p2_spatial_set_err(out->err, sizeof(out->err),
+                           "spatial_model_eval: bilinear support node missing/NaN "
+                           "(no zero-fill, no constant fallback)");
+        return 1;
+    }
+    const double v00 = model->value[i00];
+    const double v10 = model->value[i10];
+    const double v01 = model->value[i01];
+    const double v11 = model->value[i11];
+    const double v = (1.0 - tx) * (1.0 - ty) * v00 +
+                     tx * (1.0 - ty) * v10 +
+                     (1.0 - tx) * ty * v01 +
+                     tx * ty * v11;
+    out->status = P2_SPATIAL_OK;
+    out->value = v;
+    out->n_used_nodes = 4;
+    return 0;
+}
+
+int p2_spatial_model_summary(const P2SpatialGridModel* model,
+                             P2SpatialSummary* out,
+                             char* err, std::size_t err_size) {
+    if (out == nullptr) return 1;
+    std::memset(out, 0, sizeof(*out));
+    if (!p2_spatial_model_wellformed(model)) {
+        p2_spatial_set_err(err, err_size,
+                           "spatial_model_summary: invalid model");
+        return 1;
+    }
+    const std::uint64_t n = model->nx * model->ny;
+    std::vector<double> vals;
+    vals.reserve((std::size_t)n);
+    for (std::uint64_t k = 0; k < n; ++k) {
+        const std::size_t s = (std::size_t)k;
+        if (model->valid[s] == 0) continue;   // 缺失跳过（不参与统计），非零填
+        const double v = model->value[s];
+        if (!std::isfinite(v)) {
+            p2_spatial_set_err(err, err_size,
+                               "spatial_model_summary: valid node has non-finite value "
+                               "(fail-closed)");
+            return 1;
+        }
+        vals.push_back(v);
+    }
+    if (vals.empty()) {
+        p2_spatial_set_err(err, err_size,
+                           "spatial_model_summary: no valid nodes");
+        return 1;
+    }
+    std::sort(vals.begin(), vals.end());
+    const std::size_t m = vals.size();
+    auto quantile = [&](double p) -> double {
+        double idx = std::floor(p * (double)(m - 1));
+        if (idx < 0.0) idx = 0.0;
+        std::size_t i = (std::size_t)idx;
+        if (i >= m) i = m - 1;
+        return vals[i];
+    };
+    out->n_nodes = n;
+    out->n_valid = (std::uint64_t)m;
+    out->p05 = quantile(0.05);
+    out->p50 = quantile(0.50);
+    out->p95 = quantile(0.95);
+    double maxdev = 0.0;
+    double sse = 0.0;
+    for (std::size_t i = 0; i < m; ++i) {
+        const double d = vals[i] - out->p50;
+        const double ad = std::fabs(d);
+        if (ad > maxdev) maxdev = ad;
+        sse += d * d;
+    }
+    out->max_systematic_deviation = maxdev;
+    out->model_error = std::sqrt(sse / (double)m);
+    out->sampling_coverage = (double)m / (double)n;
+    return 0;
+}
+
+int p2_scalar_degrade_gate(const P2ScalarGateThresholds* th,
+                           const P2ScalarSummaryInput* s,
+                           P2ScalarDegradeVerdict* out_verdict,
+                           char* err, std::size_t err_size) {
+    if (th == nullptr || s == nullptr || out_verdict == nullptr) return 2;
+    auto fail = [&](P2ScalarDegradeVerdict v, const char* msg) -> int {
+        *out_verdict = v;
+        if (err != nullptr && err_size > 0) {
+            std::snprintf(err, err_size, "%s", msg ? msg : "");
+        }
+        return 1;
+    };
+    if (!th->thresholds_declared) {
+        return fail(P2_SCALAR_UNAVAILABLE,
+                    "scalar_degrade: thresholds not declared (residual/trend and "
+                    "power-loss thresholds are SO-07 PENDING_OWNER_SIGNOFF); "
+                    "fail-closed, keep map/model/control points");
+    }
+    if (!(th->residual_trend_max > 0.0) || !std::isfinite(th->residual_trend_max) ||
+        !(th->power_loss_max > 0.0) || !std::isfinite(th->power_loss_max)) {
+        return fail(P2_SCALAR_UNAVAILABLE,
+                    "scalar_degrade: invalid thresholds (must be finite and >0; "
+                    "no relaxation permitted)");
+    }
+    if (!s->summary_complete) {
+        return fail(P2_SCALAR_UNAVAILABLE,
+                    "scalar_degrade: scalar summary incomplete (p05/p50/p95, max "
+                    "systematic deviation, sampling coverage, model error and "
+                    "applicability domain all required)");
+    }
+    if (!std::isfinite(s->p05) || !std::isfinite(s->p50) || !std::isfinite(s->p95) ||
+        !(s->p05 <= s->p50) || !(s->p50 <= s->p95)) {
+        return fail(P2_SCALAR_UNAVAILABLE,
+                    "scalar_degrade: invalid quantiles (finite p05<=p50<=p95 required)");
+    }
+    if (!std::isfinite(s->sampling_coverage) || s->sampling_coverage < 0.0 ||
+        s->sampling_coverage > 1.0) {
+        return fail(P2_SCALAR_UNAVAILABLE,
+                    "scalar_degrade: sampling_coverage outside [0,1]");
+    }
+    if (!std::isfinite(s->model_error) || s->model_error < 0.0) {
+        return fail(P2_SCALAR_UNAVAILABLE, "scalar_degrade: invalid model_error");
+    }
+    if (!std::isfinite(s->max_systematic_deviation) ||
+        s->max_systematic_deviation < 0.0) {
+        return fail(P2_SCALAR_UNAVAILABLE,
+                    "scalar_degrade: invalid max_systematic_deviation");
+    }
+    if (s->applicability_domain[0] == '\0') {
+        return fail(P2_SCALAR_UNAVAILABLE,
+                    "scalar_degrade: empty applicability_domain");
+    }
+    if (!std::isfinite(s->spatial_residual_p95) || !std::isfinite(s->spatial_trend) ||
+        !std::isfinite(s->power_loss)) {
+        return fail(P2_SCALAR_UNAVAILABLE,
+                    "scalar_degrade: non-finite gate statistics");
+    }
+    if (s->spatial_residual_p95 > th->residual_trend_max ||
+        s->spatial_trend > th->residual_trend_max) {
+        return fail(P2_SCALAR_RETAIN_SPATIAL,
+                    "scalar_degrade: spatial residual/trend gate FAILED -> keep "
+                    "map/model/control points");
+    }
+    if (s->power_loss > th->power_loss_max) {
+        return fail(P2_SCALAR_RETAIN_SPATIAL,
+                    "scalar_degrade: power-loss gate FAILED -> keep "
+                    "map/model/control points");
+    }
+    *out_verdict = P2_SCALAR_ALLOWED;
+    if (err != nullptr && err_size > 0) err[0] = '\0';
+    return 0;
+}
+
 } // extern "C"
 
 // ── 测试接缝 (ALG-P2-SMP-001 §11.3 F2) ──

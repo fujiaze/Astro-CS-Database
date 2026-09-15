@@ -277,4 +277,178 @@ int p2_coverage_free(P2CoverageResult* out) {
     return 0;
 }
 
+// ===========================================================================
+// V6 目标态：coverage/support 区分、确定性边界与权重角色门
+// 冻结锚见 coverage.h V6 节；语义源 = docs/contracts/v6/frozen/
+// astrocs.v6.contract-freeze.v1.json。禁止零填、禁止权重冒充。
+// ===========================================================================
+
+static void set_p2_err(char* err, std::size_t err_size, const char* msg) {
+    if (err == nullptr || err_size == 0) return;
+    std::snprintf(err, err_size, "%s", msg ? msg : "");
+}
+
+int p2_coverage_support_classify(const P2CoverageSupportInput* in,
+                                 P2CellState* out_state,
+                                 std::uint64_t* out_n_supported,
+                                 std::uint64_t* out_n_covered_unsupported,
+                                 std::uint64_t* out_n_uncovered,
+                                 std::uint64_t* out_n_unavailable,
+                                 char* err, std::size_t err_size) {
+    if (in == nullptr || out_state == nullptr || in->n_cells == 0 ||
+        in->coverage == nullptr || in->support_frames == nullptr ||
+        in->support_known == nullptr) {
+        set_p2_err(err, err_size,
+                   "coverage_support_classify: invalid input (null or n_cells=0)");
+        return 1;
+    }
+    std::uint64_t n_sup = 0, n_cov_unsup = 0, n_unc = 0, n_unavail = 0;
+    for (std::uint64_t i = 0; i < in->n_cells; ++i) {
+        const std::size_t k = (std::size_t)i;
+        const bool cov_known = (in->coverage_known == nullptr) ? true
+                                                               : (in->coverage_known[k] != 0);
+        const bool sup_known = (in->support_known[k] != 0);
+        P2CellState st;
+        if (!cov_known || !sup_known) {
+            // 缺失/NaN：显式 UNAVAILABLE，禁止零填为 UNCOVERED/UNSUPPORTED。
+            st = P2_CELL_UNAVAILABLE;
+            ++n_unavail;
+        } else if (in->coverage[k] == 0) {
+            st = P2_CELL_UNCOVERED;
+            ++n_unc;
+        } else if (in->support_frames[k] < in->min_support_frames) {
+            st = P2_CELL_COVERED_UNSUPPORTED;
+            ++n_cov_unsup;
+        } else {
+            st = P2_CELL_SUPPORTED;
+            ++n_sup;
+        }
+        out_state[k] = st;
+    }
+    if (out_n_supported) *out_n_supported = n_sup;
+    if (out_n_covered_unsupported) *out_n_covered_unsupported = n_cov_unsup;
+    if (out_n_uncovered) *out_n_uncovered = n_unc;
+    if (out_n_unavailable) *out_n_unavailable = n_unavail;
+    return 0;
+}
+
+std::uint64_t p2_tile_boundary_owner(std::uint64_t leaf_ipix, int leaf_shift) {
+    if (leaf_shift < 0 || leaf_shift > 31) {
+        return UINT64_MAX;  // 非法位移哨兵；调用方必须 fail-closed
+    }
+    return leaf_ipix >> (2 * leaf_shift);
+}
+
+int p2_deterministic_reduction_order(const std::uint64_t* ipix_in,
+                                     std::uint64_t n_in,
+                                     std::uint64_t* out_sorted,
+                                     std::uint64_t capacity,
+                                     std::uint64_t* out_n,
+                                     char* err, std::size_t err_size) {
+    if (ipix_in == nullptr && n_in > 0) {
+        set_p2_err(err, err_size,
+                   "deterministic_reduction_order: null input with n_in>0");
+        return 1;
+    }
+    std::vector<std::uint64_t> v(ipix_in, ipix_in + n_in);
+    std::sort(v.begin(), v.end());
+    v.erase(std::unique(v.begin(), v.end()), v.end());
+    if (out_n) *out_n = (std::uint64_t)v.size();
+    if (out_sorted == nullptr) return 0;  // 仅查询容量
+    if (capacity < (std::uint64_t)v.size()) {
+        set_p2_err(err, err_size,
+                   "deterministic_reduction_order: capacity insufficient");
+        return 1;
+    }
+    for (std::size_t i = 0; i < v.size(); ++i) out_sorted[i] = v[i];
+    return 0;
+}
+
+namespace {
+
+// 冻结 forbidden.weight_source_tokens（大小写不敏感全等匹配）。
+// 语义源 = docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json。
+const char* const kForbiddenWeightSourceTokens[] = {
+    "median_source_snr", "median_snr", "source_snr_median", "med_source_snr",
+    "support", "support_area", "coverage", "coverage_area",
+    "fwhm", "psf_fwhm", "median_fwhm", "source_fwhm",
+    "residual", "psf_residual", "psf_fit_residual", "fit_residual",
+    "psfsw_robust_weight", "psfsw",
+};
+
+bool ascii_ieq(const char* a, const char* b) {
+    if (a == nullptr || b == nullptr) return false;
+    while (*a && *b) {
+        unsigned char ca = (unsigned char)*a;
+        unsigned char cb = (unsigned char)*b;
+        if (ca >= 'A' && ca <= 'Z') ca = (unsigned char)(ca - 'A' + 'a');
+        if (cb >= 'A' && cb <= 'Z') cb = (unsigned char)(cb - 'A' + 'a');
+        if (ca != cb) return false;
+        ++a; ++b;
+    }
+    return *a == '\0' && *b == '\0';
+}
+
+}  // namespace
+
+int p2_weight_source_token_reject(const char* const* tokens, std::uint64_t n,
+                                  char* err, std::size_t err_size) {
+    if (tokens == nullptr && n > 0) {
+        set_p2_err(err, err_size, "weight_source_token_reject: null tokens");
+        return 2;
+    }
+    const std::size_t n_forbidden =
+        sizeof(kForbiddenWeightSourceTokens) / sizeof(kForbiddenWeightSourceTokens[0]);
+    for (std::uint64_t i = 0; i < n; ++i) {
+        const char* t = tokens[i];
+        if (t == nullptr || *t == '\0') continue;
+        for (std::size_t j = 0; j < n_forbidden; ++j) {
+            if (ascii_ieq(t, kForbiddenWeightSourceTokens[j])) {
+                if (err != nullptr && err_size > 0) {
+                    std::snprintf(err, err_size,
+                                  "forbidden weight source token '%s' "
+                                  "(FZ-GATE-SUPPORT-COVERAGE / FZ-GATE-MEDIAN-SNR / "
+                                  "FZ-FIELD-WEIGHTMODE: diagnostics are not weights)",
+                                  kForbiddenWeightSourceTokens[j]);
+                }
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+int p2_weight_mode_check(const char* mode, char* err, std::size_t err_size) {
+    if (mode == nullptr || *mode == '\0') {
+        set_p2_err(err, err_size,
+                   "weight_mode: missing (production modes are explicit: "
+                   "point_information|surface_gls|psfsw_robust)");
+        return 1;
+    }
+    // 冻结 production 模式（FZ-MODE-PRODUCTION）。
+    if (ascii_ieq(mode, "point_information") || ascii_ieq(mode, "surface_gls") ||
+        ascii_ieq(mode, "psfsw_robust")) {
+        return 0;
+    }
+    // 冻结 documented baseline（FZ-MODE-BASELINE）：可识别，非生产，不得声最优。
+    if (ascii_ieq(mode, "equal") || ascii_ieq(mode, "pixel_ivar")) {
+        set_p2_err(err, err_size,
+                   "weight_mode is a documented baseline (equal|pixel_ivar), "
+                   "not a production science mode; may not claim optimality");
+        return 2;
+    }
+    // legacy 整数词表（0=support_x_snr2,1=equal,2=ivar）已取代，不得入科学权重面。
+    if (ascii_ieq(mode, "0") || ascii_ieq(mode, "1") || ascii_ieq(mode, "2")) {
+        set_p2_err(err, err_size,
+                   "legacy integer weight_mode superseded (FZ-FIELD-WEIGHTMODE); "
+                   "use explicit point_information|surface_gls|psfsw_robust");
+        return 1;
+    }
+    // psf_snr_power / auto / support_x_snr2 / 未知值。
+    set_p2_err(err, err_size,
+               "forbidden or unknown production weight_mode (FZ-MODE-PRODUCTION / "
+               "FZ-MODE-DEFERRED): only point_information|surface_gls|psfsw_robust");
+    return 1;
+}
+
 } // extern "C"

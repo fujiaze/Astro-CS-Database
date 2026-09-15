@@ -86,3 +86,34 @@
 - 边界: 禁改 docs/science/ 既有文件（PHASE2_UPM.md FROZEN T106）；禁改
   生产源码/测试/lib/phase2、lib/phase2_int、lib/phase2_rej、lib/hips_p2
   既有文件；禁 git add/commit/push；run/local/ 产物不提交。
+- V6 实现登记（IMPL-P2-SAMP-001，Wave 5，2026-09-15；write_scope 显式授权
+  修改 lib/phase2/src/{sampler,coverage}.cpp 与唯一权威签名头
+  lib/phase2/include/astro/phase2/{sampler,coverage}.h；与上文 P2-SAMP-DOC
+  的"不改生产源码"边界属不同任务层级）。在 legacy 符号/语义不变的前提下
+  新增 V6 目标态纯函数面：
+  * coverage/support 区分（FZ-GATE-SUPPORT-COVERAGE）：`P2CellState` 四态
+    (UNCOVERED/COVERED_UNSUPPORTED/SUPPORTED/UNAVAILABLE)；support/coverage
+    缺失以 UNAVAILABLE 显式表达，**禁止零填**；`p2_coverage_support_classify`；
+  * 权重角色门（C-004.2 / FZ-GATE-MEDIAN-SNR / FZ-FIELD-WEIGHTMODE）：
+    `p2_weight_source_token_reject`（与冻结 forbidden.weight_source_tokens
+    全表逐项一致，大小写不敏感）+ `p2_weight_mode_check`（生产三模式；
+    psf_snr_power/auto/support_x_snr2/legacy 整数/未知 -> REJECT；
+    equal/pixel_ivar = documented baseline、非生产）；
+  * 确定性边界（DESIGN-P2 §8）：`p2_tile_boundary_owner`（跨 tile 唯一
+    owner=ipix>>2s）+ `p2_deterministic_reduction_order`（升序去重规范序，
+    与输入顺序/chunking/worker 数无关）；
+  * 空间模型求值（DESIGN-P2 §7）：`p2_spatial_model_eval`（规则网格确定性
+    双线性；支撑节点缺失/NaN -> P2_SPATIAL_MISSING_NODE、越域 ->
+    P2_SPATIAL_OUT_OF_DOMAIN，均禁止零填/外插）+
+    `p2_spatial_model_summary`（p05/p50/p95 + max_systematic_deviation +
+    model_error + sampling_coverage）；
+  * 帧级标量降级门（FZ-DEGRADE-SCALAR）：`p2_scalar_degrade_gate`（空间
+    残差/趋势门 + 功率损失门双过 + 摘要完整；阈值属 SO-07
+    PENDING_OWNER_SIGNOFF，未声明即 fail-closed，不自行定值）。
+  共址测试 `tests/unit/v6_p2_samp/`（10 ctest / 9 用例，正例+负例+逐位
+  确定性）。独立 Oracle 与结构门 `run/v6/p2-samp/oracle/check_spec.py`
+  （98 checks PASS，不与冻结 JSON 逐项一致即红）；负向 mutation
+  `run/v6/p2-samp/oracle/run_mutations.py`（8 注入全红 + 正向控制）。
+  集成：新符号编入根 `astrocs_phase2` 既有 TU，无需改根 CMake；
+  tests/unit 注册按 C-004.4 由控制器 W9 独立集成提交处理。
+
