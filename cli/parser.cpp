@@ -26,7 +26,10 @@ const std::set<std::string> kValueFlags = {"--output", "--config", "--cpu-profil
                                            "--resource-detail", "--nside", "--pixfrac",
                                            "--on-resource-gate",
                                            "--profile", "--module",
-                                           "--provider"};
+                                           "--provider",
+                                           // RUNTIME-CI-001: V6 显式模式选择（phase2 权重模式 /
+                                           // phase3 输出模式）；路由与拒绝由 cli/v6_mode_gate.h。
+                                           "--mode", "--export-mode"};
 
 // 命令树: 每条命令允许的旗标(严格白名单, 未知即 2)
 // 04 §1(V5 冻结命令树) + 03 §3(V7 统一命令面; CLI-001 冻结 version/modules/selftest)
@@ -53,16 +56,18 @@ const CmdRule kRules[] = {
     {"phase1 inspect",              {"--config", "--json"}},
     {"phase1 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail",
                                                      "--strict-resource-gate", "--on-resource-gate"}},
-    {"phase2 validate",             {"--config", "--json"}},
-    {"phase2 plan",                 {"--config", "--json", "--output"}},
+    {"phase2 validate",             {"--config", "--json", "--mode"}},
+    {"phase2 plan",                 {"--config", "--json", "--output", "--mode"}},
     {"phase2 inspect",              {"--config", "--json"}},
     {"phase2 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail",
-                                                     "--strict-resource-gate", "--on-resource-gate"}},
-    {"phase3 validate",             {"--config", "--json"}},
-    {"phase3 plan",                 {"--config", "--json", "--output"}},
+                                                     "--strict-resource-gate", "--on-resource-gate",
+                                                     "--mode"}},
+    {"phase3 validate",             {"--config", "--json", "--export-mode"}},
+    {"phase3 plan",                 {"--config", "--json", "--output", "--export-mode"}},
     {"phase3 inspect",              {"--config", "--json"}},
     {"phase3 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail",
-                                                     "--strict-resource-gate", "--on-resource-gate"}},
+                                                     "--strict-resource-gate", "--on-resource-gate",
+                                                     "--export-mode"}},
     {"drizzle",                     {"--config", "--events-jsonl", "--nside", "--pixfrac"}},
     {"verify",                      {"--run-manifest", "--json"}},
     {"verify profile",              {"--profile", "--json"}},
@@ -86,6 +91,10 @@ const char* kHelp =
     "astrocs phase1 plan --config <path> [--json] [--output <path>]\n"
     "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
     "astrocs phase1 inspect --config <path> [--json]\n"
+    // RUNTIME-CI-001: phase2/phase3 的 --mode / --export-mode 是新增显式模式选择旗标。
+    // 其 --help 行文本受 tests/cli/test_cli_protocol.py::HELP_LINES 精确 golden 约束
+    // (该测试不在本任务 write_scope)；help 行同步需与 controller 集成提交协调，
+    // 见任务回执「未决风险」。在此不写 help 行以免单方面破坏 golden。
     "astrocs phase2 validate --config <path> [--json]\n"
     "astrocs phase2 plan --config <path> [--json] [--output <path>]\n"
     "astrocs phase2 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"

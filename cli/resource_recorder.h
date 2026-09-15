@@ -52,6 +52,12 @@ struct ResRecord {
     uint64_t queue_depth = 0;       // 队列深度(外部注入)
     uint64_t lock_wait_ns = 0;      // 锁等待(外部注入)
     double progress = 0.0;          // 0..1(外部注入)
+    // RUNTIME-CI-001 (§10.5 每线程 CPU / I/O wait): 区间观测
+    uint32_t threads = 0;               // 进程线程数快照
+    uint32_t active_compute_threads = 0; // 区间内有正向 CPU 增量的线程数
+    double per_thread_cpu_max_pct = 0.0; // 单线程区间 CPU / interval × 100
+    double per_thread_cpu_sum_pct = 0.0; // 全部线程区间 CPU 和 / interval × 100
+    double io_wait_pct = 0.0;            // 系统级 iowait 占区间比例 × 100
 };
 
 // 每阶段统计: mean/p50/p95/peak/slope(规格: 统计 mean/p50/p95/peak/slope)
@@ -68,6 +74,11 @@ struct ResStageStats {
     double workers_peak = 0.0;
     uint64_t rss_peak_bytes = 0;
     int64_t rss_slope_bytes_per_s = 0;
+    // RUNTIME-CI-001 (§10.5): 每线程 CPU / active compute threads / I/O wait 汇总
+    double per_thread_cpu_max_pct_peak = 0.0;
+    double per_thread_cpu_sum_pct_mean = 0.0;
+    uint32_t active_compute_threads_peak = 0;
+    double io_wait_pct_mean = 0.0;
 };
 
 // 记录器: 线程安全; 采样由外部(monitor 线程)驱动; 阶段/注入由执行线程设置。
@@ -115,6 +126,16 @@ public:
         r.runnable_workers = runnable_workers_;
         r.queue_depth = queue_depth_;
         r.progress = progress_;
+        // RUNTIME-CI-001: 每线程 CPU + I/O wait 记录(单位与 cpu_pct 同口径:
+        // percent_of_one_core, 100=1 核满载; 门禁侧按已分配容量归一)。
+        r.threads = s.threads;
+        r.active_compute_threads = s.d_active_compute_threads;
+        r.per_thread_cpu_max_pct =
+            interval_ > 0 ? (s.d_per_thread_cpu_max_seconds / interval_) * 100.0 : 0.0;
+        r.per_thread_cpu_sum_pct =
+            interval_ > 0 ? (s.d_per_thread_cpu_sum_seconds / interval_) * 100.0 : 0.0;
+        r.io_wait_pct =
+            interval_ > 0 ? (s.d_sys_io_wait_seconds / interval_) * 100.0 : 0.0;
         records_.push_back(r);
         ++n_;
     }
@@ -191,11 +212,21 @@ inline std::vector<ResStageStats> ResourceRecorder::stage_stats() const {
         st_.n_samples = recs.size();
         if (recs.empty()) { out.push_back(st_); continue; }
         double sum_cpu = 0.0, sum_w = 0.0;
+        double sum_tcpu = 0.0, sum_iowait = 0.0;
         for (const auto* r : recs) {
             cpus.push_back(r->cpu_pct); workers.push_back(r->active_workers);
             sum_cpu += r->cpu_pct; sum_w += r->active_workers;
             if (r->rss_bytes > st_.rss_peak_bytes) st_.rss_peak_bytes = r->rss_bytes;
+            // RUNTIME-CI-001: 每线程 CPU 峰值 / 和均值, active 计算线程峰值, iowait 均值
+            if (r->per_thread_cpu_max_pct > st_.per_thread_cpu_max_pct_peak)
+                st_.per_thread_cpu_max_pct_peak = r->per_thread_cpu_max_pct;
+            sum_tcpu += r->per_thread_cpu_sum_pct;
+            if (r->active_compute_threads > st_.active_compute_threads_peak)
+                st_.active_compute_threads_peak = r->active_compute_threads;
+            sum_iowait += r->io_wait_pct;
         }
+        st_.per_thread_cpu_sum_pct_mean = sum_tcpu / static_cast<double>(recs.size());
+        st_.io_wait_pct_mean = sum_iowait / static_cast<double>(recs.size());
         st_.wall_seconds = recs.back()->elapsed_seconds - recs.front()->elapsed_seconds;
         st_.cpu_pct_mean = sum_cpu / static_cast<double>(recs.size());
         st_.cpu_pct_p50 = percentile_sorted(cpus, 0.50);
@@ -227,17 +258,21 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
         if (!f) return false;
         std::fprintf(f, "elapsed_seconds,stage,cpu_pct,system_cpu_pct,active_workers,"
                         "runnable_workers,rss_bytes,pss_bytes,commit_bytes,page_faults,"
-                        "read_bytes,write_bytes,queue_depth,lock_wait_ns,progress\n");
+                        "read_bytes,write_bytes,queue_depth,lock_wait_ns,progress,"
+                        "threads,active_compute_threads,per_thread_cpu_max_pct,"
+                        "per_thread_cpu_sum_pct,io_wait_pct\n");
         for (const auto& r : snap) {
             std::fprintf(f, "%.3f,%s,%.2f,%.2f,%u,%u,%llu,%llu,%llu,%llu,%llu,%llu,"
-                            "%llu,%llu,%.3f\n",
+                            "%llu,%llu,%.3f,%u,%u,%.2f,%.2f,%.2f\n",
                          r.elapsed_seconds, r.stage, r.cpu_pct, r.system_cpu_pct,
                          r.active_workers, r.runnable_workers,
                          (unsigned long long)r.rss_bytes, (unsigned long long)r.pss_bytes,
                          (unsigned long long)r.commit_bytes, (unsigned long long)r.page_faults,
                          (unsigned long long)r.read_bytes, (unsigned long long)r.write_bytes,
                          (unsigned long long)r.queue_depth, (unsigned long long)r.lock_wait_ns,
-                         r.progress);
+                         r.progress,
+                         r.threads, r.active_compute_threads,
+                         r.per_thread_cpu_max_pct, r.per_thread_cpu_sum_pct, r.io_wait_pct);
         }
         std::fclose(f);
     }
@@ -260,12 +295,18 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
                             "\"cpu_pct_mean\":%.2f,\"cpu_pct_p50\":%.2f,\"cpu_pct_p95\":%.2f,"
                             "\"cpu_pct_peak\":%.2f,\"workers_mean\":%.2f,\"workers_p50\":%.2f,"
                             "\"workers_peak\":%.2f,\"rss_peak_bytes\":%llu,"
-                            "\"rss_slope_bytes_per_s\":%lld}",
+                            "\"rss_slope_bytes_per_s\":%lld,"
+                            "\"per_thread_cpu_max_pct\":%.2f,"
+                            "\"per_thread_cpu_sum_pct\":%.2f,"
+                            "\"active_compute_threads_peak\":%u,"
+                            "\"io_wait_pct_mean\":%.2f}",
                             (i ? "," : ""), s.stage, (unsigned long long)s.n_samples,
                             s.wall_seconds, s.cpu_pct_mean, s.cpu_pct_p50, s.cpu_pct_p95,
                             s.cpu_pct_peak, s.workers_mean, s.workers_p50, s.workers_peak,
                             (unsigned long long)s.rss_peak_bytes,
-                            (long long)s.rss_slope_bytes_per_s);
+                            (long long)s.rss_slope_bytes_per_s,
+                            s.per_thread_cpu_max_pct_peak, s.per_thread_cpu_sum_pct_mean,
+                            s.active_compute_threads_peak, s.io_wait_pct_mean);
         }
         std::fprintf(f, "]}\n");
         std::fclose(f);
