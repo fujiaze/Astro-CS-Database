@@ -3,7 +3,7 @@ BASE-OWN-001,PASS,0,"","run/v6/base/",ctrl-6762265b,run/v6/base/baseline_freeze.
 SCI-OBS-001,PASS,1,BASE-OWN-001,docs/science/v6/observation/;run/v6/sci-obs/,6ac29d71-9622-46fc-9528-13b8b34a27b3,docs/science/v6/observation/OBSERVATION_MODEL_REVIEW.md;run/v6/sci-obs/logs/rc_summary.txt,oracle15-15-rc0;mut13-rc2;scope_check-rc0;F-OBS-01..05-open
 SCI-PSFW-001,READY,1,"BASE-OWN-001","docs/science/v6/psfw/;run/v6/sci-psfw/",,,
 SCI-P2-001,PASS,1,BASE-OWN-001,docs/science/v6/phase2/;run/v6/sci-p2/,e443b719-b943-48b1-b20f-67aa7fc2cb93,run/v6/sci-p2/summary.json;run/v6/sci-p2/logs/,oracle32-32-rc0;gate-mut17-red;OM1-3-red;scope-ok
-SCI-P3-001,READY,1,"BASE-OWN-001","docs/science/v6/phase3/;run/v6/sci-p3/",,,
+SCI-P3-001,PASS,1,BASE-OWN-001,docs/science/v6/phase3/;run/v6/sci-p3/,7c9e4427-5db8-47d2-92d3-c29a0cd6a690,docs/science/v6/phase3/PHASE3_PROPAGATION_REVIEW.md;run/v6/sci-p3/summary.json,oracle11-11-rc0;mut22-detected;docmut7-red;scope-ok
 AUDIT-REVIEW-001,PASS,1,BASE-OWN-001,reports/v6/review-audit/;run/v6/review-audit/,1cd2a403-fe82-4c25-ab69-3c390839a770,reports/v6/review-audit/00_导读.md;run/v6/review-audit/summary.json,oracle19-19-rc0;mut8-8-red;needs_controller=12;scope-ok
 SCI-ADJ-001,BLOCKED,2,"SCI-OBS-001;SCI-PSFW-001;SCI-P2-001;SCI-P3-001;AUDIT-REVIEW-001","docs/science/v6/adjudication/;reports/v6/science-adjudication/",,,
 DATA-DESIGN-001,BLOCKED,3,"SCI-ADJ-001","docs/contracts/v6/data/;contracts/proposals/v6/data/",,,
