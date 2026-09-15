@@ -1,0 +1,13 @@
+{
+  "schema": "ASTROCS-REVIEW-PACKAGE-CODE-BASELINE/v1",
+  "generated_utc": "2026-09-15T08:28:27Z",
+  "git_head": "1f7c9e81d83d556bb3a5d0a9b0b644d579a64971",
+  "git_head_short": "1f7c9e81",
+  "git_branch": "main",
+  "git_subject": "feat(P36): 调度契约落地（需求准入 + 分帧分段记录 + 内存准入契约）——附朴素释放互斥的负结果",
+  "archive": "astrocs-src-1f7c9e81.tar.gz",
+  "archive_bytes": 35393947,
+  "archive_sha256": "c4ca148c838b11281a6550a806e0dbc1ea9041a6444a9ab1c938f00db1b1b792",
+  "tracked_files_in_archive": 6914,
+  "note": "仅含 git 跟踪文件（不含 testdata/GaiaDR3SP 等只读数据与 run/ 工作产物）。复现：git checkout 1f7c9e81d83d556bb3a5d0a9b0b644d579a64971"
+}
