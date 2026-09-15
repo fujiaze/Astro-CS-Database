@@ -189,3 +189,46 @@
 8. **CI 红线归属**：THREAD-BUDGET（P36 回退态 module_adapters.cpp 的线程预算旁路）是否授权修正；
    2 项 IPV CTEST-REGISTRATION 残项归属；Windows MSVC「Run MSVC tests and package candidate」
    失败根因（需有 token 的环境取回 win-stage-*.log / win-package-summary.json）。
+
+## C-010 FINAL-AUDIT-001 受理与包级覆盖缺口（2026-09-15）
+### 独立审计结论：包总判定 **NOT_READY**（BLOCKER 5 / MAJOR 5 / MINOR 5 / INFO 8）
+审计由独立子代理对抗性执行：自建根图、自跑 `ctest -R v6_`（79/79 全过、无 skip）、自写 numpy Oracle
+17/17 复算全部关键式（**未发现符号/指数/归一错误**）、抽查 33 个任务提交 ⊆ write_scope（0 越界）、
+独立复现 CI 红线与 Fatduck 不可达。控制器已独立复核并确认其最高严重度条目。
+### B-04（新 BLOCKER，包级覆盖缺口 → 需后续任务）
+**V6 三 Phase 生产入口在 CLI/生产中零消费者**。控制器独立复核：write_phase1_product /
+run_point_information / run_surface_gls / run_psfsw_robust / open_phase1_product / p3_v6_export
+的 external_refs **全为 0**；cli/commands.cpp 的 cmd_phase2_run 在 v6cli::mode_gate 校验通过后仍调用
+run_with_resource_gate 走 **legacy** 路径。即：用户以 --mode point_information / psfsw_robust 调用时，
+**实际执行的是 legacy 集成路径**，V6 科学链只有自测消费者。
+归属：TASK_MANIFEST 中**无任何任务拥有「把 V6 链接入 cli/runtime 生产路径」**（W9 RUNTIME-CI-001 只落了
+模式门与运行面契约，其任务卡亦写明「不重写科学实现」）。登记为 **AR-037（新）**，建议由后续控制包以独立
+任务实现「CLI/运行时接线 V6 三 Phase 链」，在此之前 V6 科学的**生产可达性不成立**，不得对外称 V6 口径已可用。
+### 其余 BLOCKER/MAJOR 处置（均已写入审计 gated 清单，交负责人）
+- B-01 CI 红、B-02 真实数据终验未执行、B-03 Windows 未复验、B-05 资源门未达且 fail-open：见 C-008/C-009。
+- **M-01（重要）**：49 条 PENDING 数值阈值（eps 0.05/0.20、corr_ratio 1.05、N_min 3、k_corr 1.4 等）
+  已被生产代码**当作硬门执行**，但负责人签字尚未取得 → 「保持 fail-closed」只部分成立。需负责人确认这些
+  阈值是**临时生效**还是**必须先签字**；未决期间不得宣称这些门已获授权。
+- **M-02**：DOC-CONVERGE-001 订正了 FROZEN 算法文档 §4.2 的单位**标签**（ADU/px → ADU/px²，与冻结
+  单位表一致；非公式/容差改动）。已按审计意见登记为**负责人确认项**：若认为 FROZEN 正文改动须单独签字，
+  可对 3 个文件（ALG_P1_001_*.md、alg_p1_001_spec.json、verify_alg_p1_001.py）做**单 commit 回退**
+  （回退后 doc-convergence 的 C4 项会转红，故建议连同 C4 规则一并改为「pending_signoff」态）。
+- **M-03**：C-006/C-007/C-008 的 F1 治理提交把**包开工前既有的 P33/P35/P36 回退态**固化为 V6 基线
+  （含删除 9 项 CI 检查登记、8 个测试目标、cli/frame_admission.h）。该回退**内容本身**是负责人开工前的
+  决定、且控制包设计（RULINGS F1）要求按此基线推进；但审计正确指出**删除清单未获负责人逐项授权**。
+  登记为负责人确认项：确认保持该基线，或指示恢复 P33/P35/P36。
+- **更正 C-008 表述（m-02）**：控制器此前把根全量 ctest 的 2 项失败写成「Not Run」——那是**定向构建子集**
+  的结果；审计独立跑全量为 **405/407**，2 项为**真实失败**（cpu007_profile_store 稳定 FAIL（CWD 依赖）、
+  p1hips_performance 抖动）。此处以本次更正为准。
+### 负责人确认/裁决项汇总（最终，共 12 项）
+1 SO-05 资源门（16w 65.09% < 85%、p50 87.63% < 90%、memory_growth_unbounded@16w 未定性、全预算
+alloc_reclaim_missing；是否启用自动判决/是否判失败）；2 **AR-037 V6 链未接入 CLI/生产（生产可达性不成立）**；
+3 M-01 PENDING 阈值已作硬门执行的授权问题；4 M-02 FROZEN 单位标签订正确认（含回退路径）；
+5 M-03 F1 回退基线逐项授权；6 模式 schema 交叉张力（bunit/allOf vs integrated_flux）；
+7 quantity.units 未收敛（含 covariance operator_descriptor 枚举缺项）；8 AIO FITS 实数小写 e；
+9 F-CAR/F-AIT legacy 投影错误修正授权；10 Phase2 CLI 真实数据不可达（obs=0）与 QA W10 门悬空（M-04）；
+11 CI 红线归属（THREAD-BUDGET/2 项 IPV/Windows MSVC 根因）；12 FD-F-003、AR-032/SO-06（C-004.5 写保护
+非 v6 SCI 正文）、memory.md 是否纳入本包。
+### 包状态
+**NOT_READY / NOT_RELEASED**。§14.5 六步：任务提交 NOT_MET / GitHub CI NOT_MET / Linux 真实数据终验
+NOT_MET / Agent 图像初审 NOT_MET / Windows 复验 AWAITING / 汇总打包 NOT_MET。
