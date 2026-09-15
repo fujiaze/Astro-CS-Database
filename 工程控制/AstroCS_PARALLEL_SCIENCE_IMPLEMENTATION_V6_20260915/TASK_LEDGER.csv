@@ -2,7 +2,7 @@ task_id,state,wave,depends_on,write_scope,agent_id,evidence,review
 BASE-OWN-001,PASS,0,"","run/v6/base/",ctrl-6762265b,run/v6/base/baseline_freeze.json;run/v6/base/logs/21_verify.log,19-of-19-PASS;mut1-rc2;mut2-rc2;tracked-unchanged-37
 SCI-OBS-001,READY,1,"BASE-OWN-001","docs/science/v6/observation/;run/v6/sci-obs/",,,
 SCI-PSFW-001,READY,1,"BASE-OWN-001","docs/science/v6/psfw/;run/v6/sci-psfw/",,,
-SCI-P2-001,READY,1,"BASE-OWN-001","docs/science/v6/phase2/;run/v6/sci-p2/",,,
+SCI-P2-001,PASS,1,BASE-OWN-001,docs/science/v6/phase2/;run/v6/sci-p2/,e443b719-b943-48b1-b20f-67aa7fc2cb93,run/v6/sci-p2/summary.json;run/v6/sci-p2/logs/,oracle32-32-rc0;gate-mut17-red;OM1-3-red;scope-ok
 SCI-P3-001,READY,1,"BASE-OWN-001","docs/science/v6/phase3/;run/v6/sci-p3/",,,
 AUDIT-REVIEW-001,READY,1,"BASE-OWN-001","reports/v6/review-audit/;run/v6/review-audit/",,,
 SCI-ADJ-001,BLOCKED,2,"SCI-OBS-001;SCI-PSFW-001;SCI-P2-001;SCI-P3-001;AUDIT-REVIEW-001","docs/science/v6/adjudication/;reports/v6/science-adjudication/",,,
