@@ -2540,3 +2540,122 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
     schema + runtime validator `_PLANE_ID_SET`）与诊断统计平面（nused/
     nrej）的联动扩展约束——任何扩展必须 schema 与 validator 同一提交，
     当前无扩展需求。
+
+## 31. V6 目标态数据合同（DATA-V6-SCHEMA，SCHEMA-INTEGRATE-001/W6 集成）
+
+> 条款 ID：`DATA-V6-SCHEMA`　状态：ACTIVE（V6 目标态集成，2026-09-15）
+> 任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/SCHEMA-INTEGRATE-001.md`（Wave 6）
+> 语义权威（唯一）：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8）。
+> 生产 schema（10 件）：`contracts/schemas/v6/astrocs.v6.*.v1.schema.json`；机器数据字典：`contracts/data/v6_data_dictionary_v1.json`；
+> 单一权重词表：`contracts/data/v6_weight_vocabulary_v1.json`；迁移映射：`contracts/data/v6_migration_map_v1.json`；
+> 正例：`contracts/data/examples/v6/`；验证：`tests/contracts/v6/`（独立 Oracle + 负向 mutation）。
+> 状态语义：`PENDING_OWNER_SIGNOFF` = 条款值与文本唯一确定，但涉及 FROZEN 非 v6 SCI 修订/数值确认，须负责人按 `SO-xx` 签字后方可作为正式修订生效；**生效前相关面 fail-closed，实现不得放宽、任何产物不得写成已冻结**（宪章 §1.2）。
+
+### 31.1 单位表（`FZ-UNIT-*` / `FZ-P3-BUNIT-QUADRATIC`）
+
+| 符号 | 单位 | 含义 | 方差单位 | ivar 单位 | 条款 | 状态 |
+|---|---|---|---|---|---|---|
+| `signal_sb` | `ADU/px^2` | Phase1 Drizzle/HiPS 面亮度 signal | `ADU^2/px^4` | `px^4/ADU^2` | `FZ-UNIT-SIGNAL-SB` | FROZEN |
+| `pixel_variance_in` | `ADU^2` | 输入源像素逐像素方差 v_j | — | — | `FZ-UNIT-VAR-IN` | PENDING/SO-01 |
+| `sb_variance_out` | `ADU^2/px^4` | Phase1 输出面亮度方差 variance_p | — | — | `FZ-UNIT-VAR-SB` | PENDING/SO-01 |
+| `sb_ivar_out` | `px^4/ADU^2` | Phase1 输出 ivar | — | — | `FZ-UNIT-IVAR-SB` | PENDING/SO-01 |
+| `W_info` | `ADU^-2` | 点源信息权重 = 1/Var(F_hat) | — | — | `FZ-UNIT-WINFO` | FROZEN |
+| `Q` | `ADU^-1` | 点源线性充分统计量 | — | — | `FZ-UNIT-Q` | FROZEN |
+| `flux` (F_hat) | `ADU` | 点源通量估计 | `ADU^2` | `ADU^-2` | `FZ-UNIT-FLUX` | FROZEN |
+| `psfsw_robust_weight` | `1` | 无量纲组内相对复合权重 | — | — | `FZ-UNIT-PSFSW` | FROZEN |
+| `phase2_mosaic_signal` | `BUNIT(声明)` | Phase2 马赛克 signal；面亮度产品则 `ADU/px^2` | `BUNIT^2` | `1/BUNIT^2` | `FZ-UNIT-SIGNAL-SB` | FROZEN |
+| `phase3_var_out` | `BUNIT^2` | Phase3 输出方差 = 主 HDU BUNIT 平方 | — | `1/BUNIT^2` | `FZ-P3-BUNIT-QUADRATIC` | FROZEN |
+
+**二次律（`FZ-P3-BUNIT-QUADRATIC`）**：`variance = signal^2`、`ivar = 1/variance`；Phase3 输出 variance BUNIT = (主 HDU signal BUNIT)²。
+`W_info` 严格为 `signal^-2`；`psfsw_robust_weight` 严格无量纲 = `1`。历史 `DRIZZLE.md` §3 把输入 `v_j(ADU^2)` 与输出 `variance_p(ADU^2/px^4)` 同名写作 `variance`：V6 目标态按本条分离命名为 `pixel_variance_in`/`sb_variance_out`，属 `SO-01`（只登记，不擅改 FROZEN 正文）。
+
+### 31.2 BUNIT 量纲可判（`FZ-BUNIT-SEMANTICS`，PENDING/SO-01）
+
+写盘 BUNIT 必须量纲可判，满足 (a) 或 (b)：
+
+```text
+(a) BUNIT 显式含 px 幂次: canonical "ADU/px^2"(signal SB) 与 "ADU^2/px^4"(variance SB)
+(b) BUNIT = "ADU" 时 provenance 必须声明 pixel_semantics = "surface_brightness"
+    且 pixel_area_power = -2 且给出目标像素面积
+```
+
+仅写 `ADU` 而无 (b) 声明 = 单位不可判 → 产品标 `unavailable` 或 `REJECT`。`pixel_area_power` canonical 缺省：`signal_sb=-2`、`sb_variance_out=-4`、`sb_ivar_out=+4`、`flux/Q/W_info/psfsw_robust_weight=0`。
+机器强制：`contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json` 的 `allOf/if-then`（`bunit=ADU` ⇒ `pixel_semantics=surface_brightness` 且 `pixel_area_power=-2`；`bunit` 含 `/px^2` ⇒ `pixel_area_power=-2`）；`astrocs.v6.signal.v1.schema.json` 的 `pixel_semantics ↔ pixel_area_power` 自洽门。
+
+### 31.3 `weight_mode` 三分与 legacy 整数处置（`FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`；`FZ-FIELD-WEIGHTMODE`）
+
+| 面 | 合法值 | 语义 |
+|---|---|---|
+| 生产科学模式 | `point_information` / `surface_gls` / `psfsw_robust` | 配置显式选择，不得自动切换；各自权威式见 §31.5 与 `docs/contracts/v6/frozen/02_WEIGHT_MODE_VOCABULARY.md` |
+| 文档基线模式 | `equal` / `pixel_ivar` | 仅基线比较，**非**科学最优声明 |
+| 延迟模式 | `psf_snr_power` | DEFERRED/NOT_IMPLEMENTED（`FZ-MODE-DEFERRED`），**不进** V6 生产路由（`C-004.1`，本包不解冻） |
+
+**legacy 整数处置**（`FZ-FIELD-WEIGHTMODE`；`ADJ-S1`；迁移映射 `contracts/data/v6_migration_map_v1.json#legacy_weight_mode_disposition`）：
+`0=support×snr²` **必须拒绝**（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）；`1 → equal`；`2 → pixel_ivar`（两者仅作文档基线对照）。
+生产枚举出现 `psf_snr_power` / `auto` / `support_x_snr2` / `0` / 未知值 → REJECT。历史 `ASTROCS_WEIGHT_MODE` 整数（§30.3）与 ACR `{auto,ivar,equal,support_x_snr2}` 一律标 ARCHIVED，不得反向定义生产枚举。
+
+### 31.4 单一权重词表归一（`C-004.3`/`DI-01`/`DI-07`）
+
+两套既有权重词表归一为**单一权威**（canonical），不发明第三套；规范化只发生在 reader/迁移层，writer/schema 只产出 canonical：
+
+| 语义 | SCI-PSFW 词表 | SCI-P2 词表 | **canonical（唯一权威）** | canonical 值 |
+|---|---|---|---|---|
+| 权重对象种类 | `weight_kind` | `weight.kind` | `weight.kind` | psfsw: `psfsw_robust_weight`（legacy 别名 `relative_dimensionless`） |
+| 权重单位串 | `weight_units` | `weight.units` | `weight.units` | psfsw: `"1"`（legacy 别名 `dimensionless_relative`；`DI-07` 归一） |
+| 归一域 | `normalization.scope` | `group_normalized` | `weight.group_normalized` | psfsw: `true`（`scope="group"` 同步） |
+| 组内 median 目标 | `normalization.median_target` | `group_normalized=true (median=1)` | `weight.normalization.median_target` | `1.0` |
+
+机器事实源：`contracts/data/v6_weight_vocabulary_v1.json`（另有 `forbidden_third_vocabulary_tokens` 与双向映射）。第三套名（`weight_normalized`/`normalization_scope`/…）→ REJECT。
+
+### 31.5 provenance 最小集（`FZ-PROV-MINIMAL-SET`，FROZEN；缺键即 REJECT）
+
+`product.type_id` + `product.schema_version`、`software_sha`(40 hex)、`run_id`、`input_product_hashes`、`config_hash`、
+`units.{bunit,pixel_semantics,pixel_area_power,target_pixel_area}`、`coordinate.frame`、`pixel_semantics`、`sampling`、
+`algorithm_ids`、`module`、`provider`、`approximations`、`degradations`（含 unavailable 原因）、`normalization_version`、
+`weight_mode_version`、`correlation_summary`、`flux_conservation_factor`、`k_corr`（定义/值/适用域/标定）、`generated_utc`、`output_hash`。
+`unavailable.{flag,reason,scope}` 必填；禁止占位、静默缺键、空输出冒充完成。`k_corr.value = 1` 忽略相关 → REJECT（`FZ-PROV-KCORR`）；`k_corr` 缺适用域/标定脚本/固定种子或跨域外推 → REJECT。
+
+### 31.6 对象 schema 索引（生产）
+
+| schema `$id` | 文件 | 覆盖条款 |
+|---|---|---|
+| `astrocs.v6.units/v1` | `contracts/schemas/v6/astrocs.v6.units.v1.schema.json` | `FZ-UNIT-*`、`FZ-BUNIT-SEMANTICS`、`FZ-P3-BUNIT-QUADRATIC` |
+| `astrocs.v6.signal/v1` | `.../astrocs.v6.signal.v1.schema.json` | `FZ-FORMULA-DRIZZLE-SB`、`FZ-GATE-CONST-SB`、`FZ-COND-FLUX-CONSERV`、`FZ-DEGRADE-SCALAR` |
+| `astrocs.v6.covariance/v1` | `.../astrocs.v6.covariance.v1.schema.json` | `FZ-FORMULA-COV-PROP`、`FZ-FORMULA-GLS`、`FZ-GATE-PIXIVAR-APPROX`、`FZ-GATE-PARENT-VAR`、`FZ-PROV-SHARED-SYSTEMATIC` |
+| `astrocs.v6.psf/v1` | `.../astrocs.v6.psf.v1.schema.json` | `FZ-COND-WHITENOISE`、`FZ-GATE-MEDIAN-SNR`、`FZ-GATE-SUPPORT-COVERAGE` |
+| `astrocs.v6.effective-psf/v1` | `.../astrocs.v6.effective-psf.v1.schema.json` | `FZ-GATE-PSFSW-EPSF`、`FZ-P3-FAILCLOSED` |
+| `astrocs.v6.point-information/v1` | `.../astrocs.v6.point-information.v1.schema.json` | `FZ-FORMULA-WINFO/Q/FHAT`、`FZ-UNIT-WINFO`、`FZ-COND-WHITENOISE` |
+| `astrocs.v6.weight-mode/v1` | `.../astrocs.v6.weight-mode.v1.schema.json` | `FZ-MODE-*`、`FZ-FIELD-WEIGHTMODE`、`FZ-GATE-MEDIAN-SNR` |
+| `astrocs.v6.psfsw/v1` | `.../astrocs.v6.psfsw.v1.schema.json` | `FZ-FIELD-PSFSW-4COMP`/`-UNIT`、`FZ-FORMULA-PSFSW-COMPOSITE`、`FZ-GATE-PSFSW-FAILCLOSED`/`-COV`/`-EPSF` |
+| `astrocs.v6.provenance/v1` | `.../astrocs.v6.provenance.v1.schema.json` | `FZ-PROV-MINIMAL-SET`、`FZ-PROV-SHARED-SYSTEMATIC`、`FZ-PROV-KCORR`、`FZ-DEGRADE-SCALAR` |
+| `astrocs.v6.phase3/v1` | `.../astrocs.v6.phase3.v1.schema.json` | `FZ-P3-MODES`、`FZ-P3-FAILCLOSED`、`FZ-P3-QW-RECOMPUTE`、`FZ-P3-KERNEL-REGISTRY` |
+
+全部 10 件通过 JSON Schema 2020-12 meta-schema 校验；正例集 `contracts/data/examples/v6/` 逐条结构校验通过（详见 `tests/contracts/v6/evidence/rc_summary.json`）。
+
+### 31.7 PSFSW 四分量与 concentration 单位唯一权威（`FZ-FIELD-PSFSW-4COMP`，FROZEN）
+
+四分量分别落产品、`measurement_id` 互异、各带 `p05/p50/p95` + 有效覆盖：`psfsw.signal` / `psfsw.concentration` / `psfsw.noise` / `psfsw.background`（缺分量、塌陷、`p05>p50>p95` → REJECT）。
+单位一致性：`signal/noise/background` 共享组内常量 `component_flux_unit`（显式声明），
+**`concentration` 单位以 `component_flux_unit/px^2` 为唯一权威**（`A_NEA = 1/ΣP²`，单位 `px^2`）。
+`docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md` §4.2 表中把 concentration 写作 `ADU/px` 属**登记在案的文本错误**（`W12` 待修，DOC-CONVERGE-001 + 负责人签字后修正 FROZEN 正文）；生产 schema 合法域与数据字典**不采纳** `ADU/px`，`contracts/proposals/v6/data/examples/psfsw.example.json` 中的同名写法已在生产正例 `contracts/data/examples/v6/psfsw.example.json` 修正为 `ADU/px^2`。PSFSW 复合权重 `W_psfsw` 由组内比值定义，严格无量纲（`units="1"`，`group_normalized=true`，`normalization.scope="group"`），禁止写成 ivar/Fisher/W_info（禁止键 `ivar/variance/sigma/fisher/w_info/w_psf/…` 由 schema `propertyNames` 守卫）。
+
+### 31.8 fail-closed 摘要（完整表见 `contracts/data/v6_data_dictionary_v1.json#fail_closed`）
+
+| 违例 | 处置 | 门 |
+|---|---|---|
+| 单位错（SB signal ≠ `ADU/px^2`；BUNIT 不可判） | unavailable/REJECT | `G-BUNIT-SEMANTICS` |
+| psfsw 写成 ivar / `units="flux^-2"` | REJECT | `G-PSFSW-UNIT` |
+| weight 来源含诊断量（median(SNR_F)/support/coverage/FWHM/residual） | REJECT | `G-WEIGHT-SOURCES`/`G-DIAGNOSTIC-NOT-WEIGHT` |
+| `psf_snr_power` 进生产枚举 | REJECT | `G-WEIGHTMODE-ENUM`/`G-DEFERRED-NOT-PRODUCTION` |
+| 缺 effective PSF（只给 FWHM 标量） | REJECT | `G-EPSF-PRESENT` |
+| `k_corr=1` / 跨域外推 | REJECT | `G-KCORR-DOMAIN` |
+| `variance_from` 为权重标量 / `Var=1/W_psfsw` | REJECT | `G-COV-VARIANCE-FROM`/`G-PSFSW-COV` |
+| legacy `weight_mode=0` | REJECT | `G-LEGACY-MIGRATION` |
+
+### 31.9 边界与登记（只登记不擅改）
+
+- **不得重新引入**：本次集成保持控制器 `ac04289d` 固化的两处回退态——不在本文 §12.2 / §13.4 / §13.5 / §27 重新加回被回退的帧级单一 SNR 系数落位段或「生产路径不消费的参数登记」节；帧级 `median(SNR_F)` 只登记为诊断/深度表达（`C-004.2`），不得接入任何权重面。
+- `DI-06`（`contracts/data/phase_product_exchange.schema.json` science plane 枚举扩展与 runtime validator 同一提交；`F-UNC-003`）**保持 OPEN**：runtime validator 不在本任务写域，故本次**未**修改 exchange plane 枚举。
+- `SO-01`..`SO-07` 的 49 条 `PENDING_OWNER_SIGNOFF` 与 8 条 `OPEN` **保持原状态并 fail-closed**；本集成不使任何待签条款生效、不改冻结公式/容差/门。
+- 上游：宪章 §1.1/§4.1/§4.3/§5.3/§6.3/§18.3；`docs/owner/PROJECT_SPEC.md` §3/§4/§5/§7/§11；`docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md`；`docs/science/UNIFIED_SCIENCE_MODEL.md`；`docs/science/PSF_SIGNAL_WEIGHT.md`；`docs/science/v6/frozen/01_SEMANTIC_FREEZE.md`。
+- 消费面（配置/CLI 语义）见 `docs/contracts/PUBLIC_API.md`「V6 消费面：显式 `weight_mode` 与权重对象」；集成登记见 `docs/contracts/v6/W6_SCHEMA_INTEGRATION.md`。

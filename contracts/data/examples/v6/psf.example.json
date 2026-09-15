@@ -1,0 +1,43 @@
+{
+  "psf_schema": "astrocs.v6.psf/v1",
+  "schema_version": 1,
+  "psf_id": "psf_run3_band_r",
+  "psf_family": "moffat4",
+  "model_id": "moffat4_v1",
+  "parameters": [
+    {
+      "name": "alpha",
+      "value": 2.5,
+      "unit": "1"
+    },
+    {
+      "name": "fwhm",
+      "value": 3.2,
+      "unit": "px"
+    }
+  ],
+  "normalization_sum_P": 1.0,
+  "normalization_convention": "integral",
+  "representation": "analytic",
+  "spatial_representation": "control_points",
+  "effective_domain": "frame_footprint",
+  "fwhm": {
+    "value": 3.2,
+    "unit": "px",
+    "role": "diagnostic"
+  },
+  "fit_residual": {
+    "value": 0.007,
+    "role": "diagnostic"
+  },
+  "a_nea": {
+    "value": 12.9,
+    "unit": "px^2",
+    "context": "white_noise_only"
+  },
+  "parameter_covariance": {
+    "representation": "diagonal",
+    "ref": "psf/f1/param_cov"
+  },
+  "provenance_ref": "provenance/v1/run-3"
+}

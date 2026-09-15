@@ -1,0 +1,416 @@
+{
+  "total": 34,
+  "detected": 34,
+  "missed": [],
+  "wrong_gate": [],
+  "results": [
+    {
+      "id": "M01_psfsw_units_ivar",
+      "target": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "inject": "psfsw weight.units = flux^-2 (ivar dimension)",
+      "expected_check": "O16-psfsw",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O16-psfsw",
+        "O27-examples-positive",
+        "O30-structural-guards",
+        "O31-guard-liveness"
+      ]
+    },
+    {
+      "id": "M02_psfsw_group_normalized_false",
+      "target": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "inject": "group_normalized const false",
+      "expected_check": "O16-psfsw",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O16-psfsw",
+        "O27-examples-positive",
+        "O30-structural-guards",
+        "O31-guard-liveness"
+      ]
+    },
+    {
+      "id": "M03_psfsw_scope_global",
+      "target": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "inject": "normalization.scope = global",
+      "expected_check": "O16-psfsw",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O16-psfsw",
+        "O27-examples-positive",
+        "O30-structural-guards",
+        "O31-guard-liveness"
+      ]
+    },
+    {
+      "id": "M04_psfsw_median_target_2",
+      "target": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "inject": "normalization.median_target = 2.0",
+      "expected_check": "O16-psfsw",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O16-psfsw",
+        "O27-examples-positive",
+        "O30-structural-guards",
+        "O31-guard-liveness"
+      ]
+    },
+    {
+      "id": "M05_psfsw_drop_component_flux_unit",
+      "target": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "inject": "drop component_flux_unit from required",
+      "expected_check": "O16-psfsw",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O16-psfsw"
+      ]
+    },
+    {
+      "id": "M06_psfsw_relax_concentration_pattern",
+      "target": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "inject": "concentration.units pattern relaxed to .* (allows ADU/px)",
+      "expected_check": "O16-psfsw",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O16-psfsw",
+        "O24-concentration-authority",
+        "O30-structural-guards"
+      ]
+    },
+    {
+      "id": "M07_psfsw_validity_reason_extra",
+      "target": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "inject": "validity.reason whitelist + median_snr_fallback",
+      "expected_check": "O16-psfsw",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O16-psfsw"
+      ]
+    },
+    {
+      "id": "M08_psfsw_clear_propertynames",
+      "target": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "inject": "clear psfsw forbidden-key propertyNames guard",
+      "expected_check": "O16-psfsw",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O16-psfsw"
+      ]
+    },
+    {
+      "id": "M18_psfsw_kind_ivar",
+      "target": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "inject": "weight.kind const = ivar",
+      "expected_check": "O16-psfsw",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O16-psfsw",
+        "O27-examples-positive",
+        "O31-guard-liveness"
+      ]
+    },
+    {
+      "id": "M09_weightmode_add_deferred",
+      "target": "contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json",
+      "inject": "weight_mode enum += psf_snr_power",
+      "expected_check": "O18-mode-enum",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O18-mode-enum",
+        "O18d-no-deferred",
+        "O30-structural-guards"
+      ]
+    },
+    {
+      "id": "M10_weightmode_legacy_allowed",
+      "target": "contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json",
+      "inject": "legacy_integer_allowed const true",
+      "expected_check": "O18c-legacy",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O18c-legacy",
+        "O27-examples-positive",
+        "O30-structural-guards",
+        "O31-guard-liveness"
+      ]
+    },
+    {
+      "id": "M11_weightmode_clear_deferred",
+      "target": "contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json",
+      "inject": "deferred_modes_documented = []",
+      "expected_check": "O18b-deferred",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O18b-deferred",
+        "O27-examples-positive",
+        "O31-guard-liveness"
+      ]
+    },
+    {
+      "id": "M12_provenance_kcorr_allow_1",
+      "target": "contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json",
+      "inject": "k_corr.value != 1 structural gate removed",
+      "expected_check": "O12b-kcorr-neq1",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O12b-kcorr-neq1",
+        "O30-structural-guards",
+        "O32-pending-structural-refs"
+      ]
+    },
+    {
+      "id": "M13_provenance_drop_kcorr",
+      "target": "contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json",
+      "inject": "provenance required -= k_corr",
+      "expected_check": "O11-prov-required",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O11-prov-required",
+        "O30-structural-guards"
+      ]
+    },
+    {
+      "id": "M14_covariance_variance_from_weight",
+      "target": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
+      "inject": "variance_from enum += psfsw_robust_weight",
+      "expected_check": "O14b-variance-from",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O14b-variance-from",
+        "O30-structural-guards"
+      ]
+    },
+    {
+      "id": "M15_covariance_propagation_changed",
+      "target": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
+      "inject": "propagation const -> Var = 1/W",
+      "expected_check": "O14-propagation",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O14-propagation",
+        "O27-examples-positive",
+        "O30-structural-guards",
+        "O31-guard-liveness"
+      ]
+    },
+    {
+      "id": "M16_signal_remove_power_gate",
+      "target": "contracts/schemas/v6/astrocs.v6.signal.v1.schema.json",
+      "inject": "remove signal pixel_semantics <-> pixel_area_power structural gate",
+      "expected_check": "O30-structural-guards",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O30-structural-guards"
+      ]
+    },
+    {
+      "id": "M17_epsf_drop_id_required",
+      "target": "contracts/schemas/v6/astrocs.v6.effective-psf.v1.schema.json",
+      "inject": "effective-psf required -= effective_psf_id",
+      "expected_check": "O13-epsf-required",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O13-epsf-required",
+        "O30-structural-guards"
+      ]
+    },
+    {
+      "id": "M19_dict_winfo_unit_wrong",
+      "target": "contracts/data/v6_data_dictionary_v1.json",
+      "inject": "dictionary W_info unit -> ADU^-1",
+      "expected_check": "O03-frozen-units-table",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O03-frozen-units-table"
+      ]
+    },
+    {
+      "id": "M20_dict_forbidden_drop_fwhm",
+      "target": "contracts/data/v6_data_dictionary_v1.json",
+      "inject": "dictionary forbidden sources -= fwhm",
+      "expected_check": "O07-weight-source-tokens",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O07-weight-source-tokens"
+      ]
+    },
+    {
+      "id": "M21_dict_pending_as_frozen",
+      "target": "contracts/data/v6_data_dictionary_v1.json",
+      "inject": "signoff item status -> FROZEN (pending written as frozen)",
+      "expected_check": "O20-clause-registry",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O20-clause-registry"
+      ]
+    },
+    {
+      "id": "M22_dict_counts_wrong",
+      "target": "contracts/data/v6_data_dictionary_v1.json",
+      "inject": "pending count -> 48",
+      "expected_check": "O20-clause-registry",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O20-clause-registry"
+      ]
+    },
+    {
+      "id": "M23_dict_concentration_wrong",
+      "target": "contracts/data/v6_data_dictionary_v1.json",
+      "inject": "concentration authoritative unit -> ADU/px",
+      "expected_check": "O24-concentration-authority",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O24-concentration-authority"
+      ]
+    },
+    {
+      "id": "M24_dict_mode_units_wrong",
+      "target": "contracts/data/v6_data_dictionary_v1.json",
+      "inject": "psfsw mode_details units -> 1/flux^2",
+      "expected_check": "O06-mode-details",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O06-mode-details"
+      ]
+    },
+    {
+      "id": "M25_vocab_units_canonical_wrong",
+      "target": "contracts/data/v6_weight_vocabulary_v1.json",
+      "inject": "canonical weight.units -> dimensionless_relative",
+      "expected_check": "O22-vocabulary",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O22-vocabulary"
+      ]
+    },
+    {
+      "id": "M26_vocab_legacy0_allowed",
+      "target": "contracts/data/v6_weight_vocabulary_v1.json",
+      "inject": "legacy 0 disposition -> MIGRATE_TO",
+      "expected_check": "O22-vocabulary",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O22-vocabulary"
+      ]
+    },
+    {
+      "id": "M27_mig_legacy0_allowed",
+      "target": "contracts/data/v6_migration_map_v1.json",
+      "inject": "migration map legacy 0 action -> MIGRATE_TO",
+      "expected_check": "O23-migration-map",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O23-migration-map"
+      ]
+    },
+    {
+      "id": "M28_mig_drop_schema_file",
+      "target": "contracts/data/v6_migration_map_v1.json",
+      "inject": "drop one schema file migration",
+      "expected_check": "O23-migration-map",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O23-migration-map"
+      ]
+    },
+    {
+      "id": "M29_example_concentration_adu_px",
+      "target": "contracts/data/examples/v6/psfsw.example.json",
+      "inject": "production example concentration.units = ADU/px",
+      "expected_check": "O27-examples-positive",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O24-concentration-authority",
+        "O27-examples-positive",
+        "O31-guard-liveness"
+      ]
+    },
+    {
+      "id": "M30_example_kcorr_1",
+      "target": "contracts/data/examples/v6/provenance.example.json",
+      "inject": "production example k_corr.value = 1",
+      "expected_check": "O27-examples-positive",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O27-examples-positive",
+        "O31-guard-liveness"
+      ]
+    },
+    {
+      "id": "M34_pending_numeric_written_as_frozen",
+      "target": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "inject": "PENDING n_common numeric annotated as FROZEN",
+      "expected_check": "O32-pending-structural-refs",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O32-pending-structural-refs"
+      ]
+    },
+    {
+      "id": "M31_doc_remove_v6_section",
+      "target": "docs/contracts/DATA_SEMANTICS.md",
+      "inject": "remove DATA_SEMANTICS section-31 heading",
+      "expected_check": "O25-docs-present",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O25-docs-present"
+      ]
+    },
+    {
+      "id": "M32_doc_readd_p33_snr_coefficient",
+      "target": "docs/contracts/DATA_SEMANTICS.md",
+      "inject": "reintroduce P33-COEF SNR coefficient section",
+      "expected_check": "O26-no-p33-p27-reintroduction",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O26-no-p33-p27-reintroduction"
+      ]
+    },
+    {
+      "id": "M33_doc_readd_p27_dead_params",
+      "target": "docs/contracts/PUBLIC_API.md",
+      "inject": "reintroduce P27 dead-params section",
+      "expected_check": "O26-no-p33-p27-reintroduction",
+      "detected": true,
+      "expected_check_red": true,
+      "failed_checks": [
+        "O26-no-p33-p27-reintroduction"
+      ]
+    }
+  ]
+}

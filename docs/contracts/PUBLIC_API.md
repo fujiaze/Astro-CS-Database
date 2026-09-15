@@ -2105,3 +2105,42 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
   ALG-P3-RSMP-IMPL-001 / DATA-P3-RES（§29）；域际: API-P3-FITS-001
   （FITS 写出消费面，resampled 平面为其输入）；镜像: API-P3-001
   （FROZEN 编排面，不因本节改动）。
+
+## V6 消费面：显式 `weight_mode` 与权重对象（API-V6-WEIGHTMODE-001，SCHEMA-INTEGRATE-001/W6）
+
+> 条款 ID：`API-V6-WEIGHTMODE-001`　状态：ACTIVE（V6 目标态消费面集成，2026-09-15）
+> 语义权威：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`；数据合同：`docs/contracts/DATA_SEMANTICS.md` §31（`DATA-V6-SCHEMA`）；
+> 生产 schema：`contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json`（及 `point-information`/`psfsw`/`covariance`/`effective-psf`/`provenance`）；
+> 词表：`contracts/data/v6_weight_vocabulary_v1.json`；迁移：`contracts/data/v6_migration_map_v1.json`。本节只定义**消费面语义**，不实现公式、不改既有 API/ABI 布局。
+
+### 1. 配置面 `weight_mode`（取代 legacy 整数）
+
+| 项 | 内容 |
+|---|---|
+| 合法值（生产） | `point_information` / `surface_gls` / `psfsw_robust`（显式选择，不得自动切换） |
+| 合法值（文档基线） | `equal` / `pixel_ivar`（仅基线对照，非科学最优声明） |
+| 延迟值 | `psf_snr_power`（DEFERRED，不进 V6 生产路由；`C-004.1` 本包不解冻） |
+| 拒绝值 | `auto` / `support_x_snr2` / legacy 整数 `0` / 未知串（`G-WEIGHTMODE-ENUM`） |
+| 现有落点 | Phase2 mosaic write 消费面 `P2Stage2Config.weight_mode`（`stage2_common.h:90`）现为整数 `0/1/2`（本文 §「Phase2 mosaic write 公共消费面」:1165；`DATA_SEMANTICS` §20/§30.3） |
+
+**legacy 整数处置（reader 规则，唯一）**：`0=support×snr²` **一律拒绝**（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）；`1 → equal`；`2 → pixel_ivar`（迁移结果必须带 `weight_mode_version`，且两者不得冒充生产模式）。生产 writer 只写显式字符串模式。
+
+### 2. 权重对象 canonical 字段（单一词表，`C-004.3`/`DI-01`/`DI-07`）
+
+`weight.kind` / `weight.units` / `weight.group_normalized` / `weight.normalization.{scope,median_target,constants_version}` / `weight.weight_value`。
+两套既有权重词表（SCI-PSFW `weight_kind`/`weight_units`/`normalization.scope` 与 SCI-P2 `weight.kind`/`weight.units`/`group_normalized`）由迁移层归一为上述 canonical；生产 schema 不出现别名字段，第三套名 → REJECT。psfsw canonical 值：`kind="psfsw_robust_weight"`、`units="1"`、`group_normalized=true`、`scope="group"`、`median_target=1.0`；W_info canonical 单位 `ADU^-2`；`surface_gls` 权威式 `x_hat=(A^T C^-1 A)^-1 A^T C^-1 d`。
+
+### 3. 消费失败语义（fail-closed，无反例回退）
+
+- 模式未知 / legacy 0 / `psf_snr_power` 进生产 → 拒绝（不得回退到 any 自动权重）；
+- 权重来源含诊断量（`median_source_snr`/`median_snr`/`support`/`coverage`/`fwhm`/`residual`/…）→ 拒绝；
+- `psfsw_robust` 无量纲相对权重不得写入 ivar/variance（`Var=1/W_psfsw` → 拒绝；禁止键 `ivar/variance/sigma/fisher/w_info/w_psf`）；
+- 三生产模式缺 effective PSF（只给 FWHM 标量不算）→ 拒绝；`parameter_effectiveness` 证明参数确实进入组合系数与 effective PSF（否则拒绝，AR-048）；
+- provenance 缺最小集键 / 单位不可判 / `unavailable` 无 reason → 拒绝。
+
+### 4. 边界登记
+
+- 帧级 `median(SNR_F)` 只作诊断/深度表达，不得接入任何权重面（`C-004.2`）；本文不重新加回被 `ac04289d` 回退的帧级单一 SNR 系数落位段或参数登记回退节。
+- UPM fit 的 `snr_weight_mode`（`DATA_SEMANTICS` §25）与 `use_ivar_weight` 是拟合内部诊断开关，**不是** Phase2 集成 `weight_mode` 枚举；不得互相映射。
+- `SO-01`..`SO-07` 的待签条款保持 `PENDING_OWNER_SIGNOFF` 并 fail-closed；本节不使任何待签条款生效。
+- 验证：`tests/contracts/v6/`（独立 Oracle 对照冻结表 + 负向 mutation ≥12 条必红）。
