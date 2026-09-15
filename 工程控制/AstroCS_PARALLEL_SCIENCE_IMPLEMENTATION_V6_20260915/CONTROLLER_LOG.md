@@ -232,3 +232,21 @@ alloc_reclaim_missing；是否启用自动判决/是否判失败）；2 **AR-037
 ### 包状态
 **NOT_READY / NOT_RELEASED**。§14.5 六步：任务提交 NOT_MET / GitHub CI NOT_MET / Linux 真实数据终验
 NOT_MET / Agent 图像初审 NOT_MET / Windows 复验 AWAITING / 汇总打包 NOT_MET。
+
+## C-011 控制包收口（2026-09-15）
+- **台账终态**：35 项 = **PASS 34 / WAITING_WINDOWS 1**（WIN-VERIFY-001 为 AWAITING_WINDOWS_VALIDATION，
+  非 PASS）；无 FAIL、无 BLOCKED。
+- **集成链**：全部任务一任务一 commit 并立即 push main；控制器集成动作单列（F1 局部裁定 `ac04289d`/
+  `95703e63`/`393db3fb`/`c7432fa0`、AR-033 `3e7fbc44`、AR-034 `b7c4f35e`、治理日志 `8f5ef3e9`/
+  `8e1e280e`/`6b459952`/本提交）。全程**未使用** git add -A、未建分支/worktree、未 stash/reset/clean、
+  未 force push、未 amend。
+- **包状态（最终）：NOT_READY / NOT_RELEASED** —— 即"未就绪，需负责人裁决"，**不是发布**。
+  §17.12 门 6/7/8/9 未满足、门 10 未证实；AWAITING_EXTERNAL_RELEASE_REVIEW 未达成；VERSION 保持
+  0.11.0-alpha.2 未提升；无任何正面 RELEASED 宣称。
+- **负责人待决**：OWNER-PACK-001 的 OD-01..OD-12（见 reports/v6/owner-package/
+  OWNER-PACK-001_REVIEW_PACKAGE.md 与 artifacts/v6/owner-package/owner_decisions.json）。
+- **最需优先关注**：① **AR-037**——V6 三 Phase 生产入口在 CLI/生产中零消费者，用户 --mode 实际走
+  legacy 路径，V6 生产可达性不成立；② **SO-05**——16w CPU 均值 65.09% < 冻结 85%，资源门 fail-open；
+  ③ **CI 红线**——Linux 持续红（THREAD-BUDGET 属 P36 回退态 / CTEST-REGISTRATION 余 2 项非 V6 IPV）；
+  ④ **M-01**——49 条 PENDING 阈值已被生产代码当硬门执行但未签字。
+- **不得**以 waiver 掩盖上述红线；**不得**在负责人裁决前宣称本控制包完成或发布。
