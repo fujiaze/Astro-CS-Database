@@ -1,0 +1,31 @@
+{
+  "phase3_schema": "astrocs.v6.phase3/v1",
+  "schema_version": 1,
+  "output_mode": "point_source_flux",
+  "measurement_capable": true,
+  "omega": {
+    "units": "sr",
+    "representation": "both",
+    "required_for": ["point_source_flux"],
+    "projection_id": "TAN"
+  },
+  "kernel_registry_entry": {
+    "kernel_id": "bilinear_4quad",
+    "family": "bilinear_4quad",
+    "semantics": "surface_brightness",
+    "status": "registered",
+    "oracle_ref": "run/v6/sci-p3/tools/p3_propagation_oracle.py",
+    "boundary_definition": "footprint 边界按 coverage 归一; 缺 tile 不补 0",
+    "resample_formula": "nearest: var_out = u_in; bilinear: var_out = Sum_k c_k^2 u_k (Sum c_k=1, Sum c_k^2 != 1)"
+  },
+  "matched_filter": { "pi_ref": "pi/S/p", "S_operator_ref": "phase3/S/bilinear_4quad" },
+  "qw_recompute": {
+    "recomputed_in_output_frame": true,
+    "formula": "Q=a*pi^T C_y^-1 f; W=a^2*pi^T C_y^-1 pi; F_hat=Q/W; Var=1/W",
+    "input_w_info_consumed_without_recompute": true,
+    "C_y_ref": "phase3/C_y/with_correlation_kernel"
+  },
+  "effective_psf_ref": "effective-psf/v1/p3-run",
+  "photometric_scale_a_ref": "phase2/upm/a",
+  "provenance_ref": "provenance/v1/p3-run"
+}

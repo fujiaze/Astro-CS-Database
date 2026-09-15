@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/v6/phase3.v1.schema.json",
+  "title": "AstroCS V6 Phase3 投影/采样数据对象（DATA-DESIGN-001 提案）",
+  "description": "Phase3 的逐像素立体角 Omega_i（F3-03 归属本任务设计面）、采样核 registry 条目、输出帧 Q/W 重算记录与三模式 fail-closed 条件。y=R x, C_y=R C_x R^T；pi=S p；Q=a pi^T C_y^-1 f, W=a^2 pi^T C_y^-1 pi（FZ-P3-QW-RECOMPUTE）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["phase3_schema", "schema_version", "output_mode", "measurement_capable", "kernel_registry_entry", "omega", "provenance_ref"],
+  "properties": {
+    "phase3_schema": { "const": "astrocs.v6.phase3/v1", "x-astrocs": { "anchor": "FZ-P3-MODES; ADJ-P3-01", "domain": "Phase3" } },
+    "schema_version": { "const": 1, "x-astrocs": { "anchor": "宪章 §4.3", "domain": "全部" } },
+    "output_mode": { "enum": ["surface_brightness", "point_source_flux", "visualization"], "x-astrocs": { "anchor": "FZ-P3-MODES; DESIGN-P3 §1", "domain": "Phase3 配置", "fail_closed": "模式未声明 -> REJECT", "gate": "G-P3-MODE" } },
+    "measurement_capable": { "type": "boolean", "x-astrocs": { "anchor": "FZ-P3-FAILCLOSED; PHASE3_PROPAGATION_REVIEW §6", "domain": "Phase3", "fail_closed": "visualization 且 measurement_capable=true -> REJECT", "gate": "G-P3-VISUALIZATION" } },
+    "omega": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["units", "representation", "required_for"],
+      "properties": {
+        "units": { "const": "sr", "x-astrocs": { "anchor": "PHASE3_PROPAGATION_REVIEW C-P3-PROP-3 (Jacobian 面积元)", "domain": "Phase3", "fail_closed": "flux 换算缺 Omega 或 Omega 单位非 sr -> REJECT", "gate": "G-P3-OMEGA" } },
+        "representation": { "enum": ["per_pixel_map", "analytic_jacobian", "both"], "x-astrocs": { "anchor": "PHASE3_PROPAGATION_REVIEW C-P3-PROP-3; DESIGN-P3 §2", "domain": "Phase3" } },
+        "required_for": { "type": "array", "items": { "enum": ["surface_brightness_flux_conversion", "point_source_flux"] }, "minItems": 1, "uniqueItems": true },
+        "projection_id": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "DESIGN-P3 §2; 宪章 §7.3", "domain": "Phase3 投影 registry" } }
+      },
+      "x-astrocs": { "anchor": "F3-03; PHASE3_PROPAGATION_REVIEW C-P3-PROP-3/C-P3-PROP-16", "domain": "Phase3", "fail_closed": "surface_brightness 做 flux 换算而无逐像素 Omega -> REJECT", "gate": "G-P3-OMEGA" }
+    },
+    "kernel_registry_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kernel_id", "family", "semantics", "status", "resample_formula"],
+      "properties": {
+        "kernel_id": { "type": "string", "minLength": 1 },
+        "family": { "enum": ["nearest", "bilinear_4quad", "higher_order"], "x-astrocs": { "anchor": "FZ-P3-KERNEL-REGISTRY; ADJ-S4", "domain": "Phase3 采样核", "fail_closed": "未注册核进生产 -> REJECT", "gate": "G-P3-KERNEL-REGISTRY" } },
+        "semantics": { "enum": ["surface_brightness", "integrated_flux"], "x-astrocs": { "anchor": "DESIGN-P3 §3", "domain": "Phase3", "fail_closed": "核的通量/面亮度语义未声明 -> REJECT", "gate": "G-P3-KERNEL-REGISTRY" } },
+        "status": { "enum": ["not_registered", "registered", "deprecated"], "x-astrocs": { "anchor": "FZ-P3-KERNEL-REGISTRY", "domain": "Phase3", "fail_closed": "status != registered 用于生产 -> REJECT", "gate": "G-P3-KERNEL-REGISTRY" } },
+        "oracle_ref": { "type": "string", "x-astrocs": { "anchor": "FZ-P3-KERNEL-REGISTRY (须独立 Oracle)", "domain": "Phase3", "fail_closed": "registered 但无独立 Oracle -> REJECT", "gate": "G-P3-KERNEL-REGISTRY" } },
+        "boundary_definition": { "type": "string", "x-astrocs": { "anchor": "FZ-P3-KERNEL-REGISTRY; ADJ-S4", "domain": "Phase3", "fail_closed": "registered 但无误差/边界定义 -> REJECT", "gate": "G-P3-KERNEL-REGISTRY" } },
+        "resample_formula": { "const": "nearest: var_out = u_in; bilinear: var_out = Sum_k c_k^2 u_k (Sum c_k=1, Sum c_k^2 != 1)", "x-astrocs": { "anchor": "DATA_SEMANTICS §30.4; FZ-P3-BUNIT-QUADRATIC", "domain": "Phase3 variance 传播", "fail_closed": "误用 Sum c_k=1 归一 variance -> REJECT", "gate": "G-P3-VARIANCE-FORM" } }
+      },
+      "x-astrocs": { "anchor": "FZ-P3-KERNEL-REGISTRY; ADJ-S4; DESIGN-P3 §3", "domain": "Phase3", "fail_closed": "未注册/未验证核进生产 -> REJECT", "gate": "G-P3-KERNEL-REGISTRY" }
+    },
+    "matched_filter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pi_ref", "S_operator_ref"],
+      "properties": { "pi_ref": { "type": "string", "minLength": 1 }, "S_operator_ref": { "type": "string", "minLength": 1 } },
+      "x-astrocs": { "anchor": "FZ-P3-QW-RECOMPUTE; PHASE3_PROPAGATION_REVIEW C-P3-PROP-14", "domain": "point_source_flux", "fail_closed": "缺输出有效 PSF pi=S p -> REJECT", "gate": "G-P3-QW-RECOMPUTE" }
+    },
+    "qw_recompute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recomputed_in_output_frame", "formula", "input_w_info_consumed_without_recompute", "C_y_ref"],
+      "properties": {
+        "recomputed_in_output_frame": { "const": true, "x-astrocs": { "anchor": "FZ-P3-QW-RECOMPUTE", "domain": "point_source_flux", "fail_closed": "重采样输入 Q/W 代替输出帧重算 -> REJECT", "gate": "G-P3-QW-RECOMPUTE" } },
+        "formula": { "const": "Q=a*pi^T C_y^-1 f; W=a^2*pi^T C_y^-1 pi; F_hat=Q/W; Var=1/W" },
+        "input_w_info_consumed_without_recompute": { "const": true, "x-astrocs": { "anchor": "PHASE3_PROPAGATION_REVIEW C-P3-PROP-15 (消费上游 W_info 不重算不替换)", "domain": "point_source_flux" } },
+        "C_y_ref": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "DESIGN-P3 §4", "domain": "point_source_flux", "fail_closed": "C_y 仅对角且无相关核 -> REJECT", "gate": "G-COV-CORRELATION-KERNEL" } }
+      },
+      "x-astrocs": { "anchor": "FZ-P3-QW-RECOMPUTE; ADJ-P3-01", "domain": "point_source_flux", "fail_closed": "缺 point_information 且不可重建 -> REJECT", "gate": "G-P3-QW-RECOMPUTE" }
+    },
+    "effective_psf_ref": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "FZ-P3-FAILCLOSED; FZ-GATE-PSFSW-EPSF", "domain": "point_source_flux", "fail_closed": "point_source_flux 未输出 effective PSF -> REJECT", "gate": "G-EPSF-PRESENT" } },
+    "photometric_scale_a_ref": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "FZ-P3-FAILCLOSED (缺 a -> 拒)", "domain": "point_source_flux", "fail_closed": "缺光度尺度 a -> REJECT", "gate": "G-P3-SCALE-A" } },
+    "provenance_ref": { "type": "string", "minLength": 1, "x-astrocs": { "anchor": "FZ-PROV-MINIMAL-SET", "domain": "全部" } }
+  }
+}
