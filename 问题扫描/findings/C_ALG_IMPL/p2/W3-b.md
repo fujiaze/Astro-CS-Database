@@ -65,3 +65,5 @@
 - 说明: 「填死的 (1,budget) 占位」只换了 NodeSpec 字段来源；租约申请端仍全员 host_workers=budget()——独占时刻（concurrent=1→share=budget→hint 不缩）自报 1 的 io 类 writer 拿整份租约持有至 execute 返回。§10.4「按 work unit 申请租约」的申请量语义与自报值脱钩=「被算被记不参与执行」新成员；当前实际危害被 heavy 门与 share 均分兜住→P2。
 - 建议: acquire 请求量以 NodeSpec.max_workers 封顶（0=未声明才按预算回退），或把注释与合同语义改口「自报值仅用于闸门」。
 - 置信度: 高。related: 簇8（INDEX §三唯一总述，禁止另立）、V21-N-15/N-17（estimated_memory_bytes 恒 0 同属该面的兄弟条）、P10-UTIL2-005
+
+
