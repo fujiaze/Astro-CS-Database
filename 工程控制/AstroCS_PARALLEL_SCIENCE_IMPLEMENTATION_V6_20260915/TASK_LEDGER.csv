@@ -1,5 +1,5 @@
 task_id,state,wave,depends_on,write_scope,agent_id,evidence,review
-BASE-OWN-001,PASS,0,"","run/v6/base/",ctrl-6762265b,run/v6/base/baseline_freeze.json;run/v6/base/logs/21_verify.log,19-of-19-PASS;mut1-rc2;mut2-rc2;tracked-unchanged-37
+BASE-OWN-001,PASS,0,,run/v6/base/,ctrl-6762265b,run/v6/base/baseline_freeze.json;run/v6/base/logs/21_verify.log,19-of-19-PASS;mut1-rc2;mut2-rc2;tracked-unchanged-37
 SCI-OBS-001,PASS,1,BASE-OWN-001,docs/science/v6/observation/;run/v6/sci-obs/,6ac29d71-9622-46fc-9528-13b8b34a27b3,docs/science/v6/observation/OBSERVATION_MODEL_REVIEW.md;run/v6/sci-obs/logs/rc_summary.txt,oracle15-15-rc0;mut13-rc2;scope_check-rc0;F-OBS-01..05-open
 SCI-PSFW-001,PASS,1,BASE-OWN-001,docs/science/v6/psfw/;run/v6/sci-psfw/,8ece1e0b-29dd-4e01-bde3-c93cde32bc21,docs/science/v6/psfw/PSFW_FREEZE_RESEARCH.md;run/v6/sci-psfw/summary.json,oracle76-rc0;mut12-caught;docmut10-caught;scope-ok
 SCI-P2-001,PASS,1,BASE-OWN-001,docs/science/v6/phase2/;run/v6/sci-p2/,e443b719-b943-48b1-b20f-67aa7fc2cb93,run/v6/sci-p2/summary.json;run/v6/sci-p2/logs/,oracle32-32-rc0;gate-mut17-red;OM1-3-red;scope-ok
@@ -30,7 +30,7 @@ P2-INTEGRATE-001,PASS,8,IMPL-P2-UPM-001;IMPL-P2-REJ-001;IMPL-P2-SAMP-001;P1-INTE
 RUNTIME-CI-001,PASS,9,P1-INTEGRATE-001;P2-INTEGRATE-001;P3-INTEGRATE-001,runtime/;lib/core/;cli/;tools/v6/;ci/;.github/;tests/system/v6_runtime/,8cbf3323-066d-4aa0-8e57-c15270c92d8c,cli/v6_runtime_contract.h;runtime/v6_budget.py;tools/v6/v6_runtime_oracle.py;tests/system/v6_runtime/,ctest11-11;oracle2869-0;mut11-11;climatrix23-23;SO-05-record-only
 REAL-SCIENCE-001,PASS,10,RUNTIME-CI-001,artifacts/v6/real-science/;reports/v6/real-science/;run/v6/real-science/,0669c886-4a57-4f09-8dd5-0283cc667b56,reports/v6/real-science/REAL-SCIENCE-001_REPORT.md;artifacts/v6/real-science/five_mode_measurements.json;artifacts/v6/real-science/oracle_results.json,oracle486-0;neg40-40;cligate15-15;9datasets-360framestars
 PERF-SCALE-001,PASS,10,RUNTIME-CI-001,artifacts/v6/performance/;reports/v6/performance/;run/v6/performance/,3dae8986-183a-4efe-8f02-b6d8ee59b112,artifacts/v6/performance/PERF-SCALE-001_summary.json;reports/v6/performance/PERF-SCALE-001.md;artifacts/v6/performance/p1_real_ldn43_4k_perf_table.csv,"escalated-to-owner(SO-05):16w-cpu-mean-65.09pct-lt-85pct,p50-87.63pct-lt-90pct,mem-growth-unbounded16w,alloc-reclaim-missing;determinism-PASS(1/4/16-byte-identical);task-execution-PASS"
-WIN-VERIFY-001,BLOCKED,11,"REAL-SCIENCE-001;PERF-SCALE-001","artifacts/v6/windows/;reports/v6/windows/",,,
-DOC-CONVERGE-001,BLOCKED,12,"WIN-VERIFY-001","docs/;README.md;REVIEW.md;CHANGELOG.md;reports/v6/release-review/;artifacts/v6/release-review/",,,
-FINAL-AUDIT-001,BLOCKED,13,"DOC-CONVERGE-001","reports/v6/final-audit/",,,
-OWNER-PACK-001,BLOCKED,14,"FINAL-AUDIT-001","reports/v6/owner-package/;artifacts/v6/owner-package/",,,
+WIN-VERIFY-001,READY,11,REAL-SCIENCE-001;PERF-SCALE-001,artifacts/v6/windows/;reports/v6/windows/,,,
+DOC-CONVERGE-001,BLOCKED,12,WIN-VERIFY-001,docs/;README.md;REVIEW.md;CHANGELOG.md;reports/v6/release-review/;artifacts/v6/release-review/,,,
+FINAL-AUDIT-001,BLOCKED,13,DOC-CONVERGE-001,reports/v6/final-audit/,,,
+OWNER-PACK-001,BLOCKED,14,FINAL-AUDIT-001,reports/v6/owner-package/;artifacts/v6/owner-package/,,,
