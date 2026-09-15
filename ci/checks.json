@@ -4063,6 +4063,114 @@
         "tests/**"
       ],
       "requires_monitor": false
+    },
+    {
+      "id": "CTEST-MON004-ENFORCEMENT",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "mon004_enforcement",
+        "--output",
+        "run/ci/ctest/mon004_enforcement.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/mon004_enforcement.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "cli/**",
+        "lib/**",
+        "tools/quality/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "mon004_enforcement"
+      ]
+    },
+    {
+      "id": "CTEST-RESOURCE-MONITOR-QUALITY",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "resource_monitor_quality",
+        "--output",
+        "run/ci/ctest/resource_monitor_quality.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/resource_monitor_quality.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "cli/**",
+        "lib/**",
+        "tools/quality/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "resource_monitor_quality"
+      ]
+    },
+    {
+      "id": "CTEST-COMPARE-PRODUCTS-QUALITY",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "run/ci/build-gcc-release",
+        "--target",
+        "compare_products_quality",
+        "--output",
+        "run/ci/ctest/compare_products_quality.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/compare_products_quality.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tests/**",
+        "cli/**",
+        "lib/**",
+        "tools/quality/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "compare_products_quality"
+      ]
     }
   ]
 }

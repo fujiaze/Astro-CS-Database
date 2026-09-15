@@ -743,11 +743,28 @@ static std::string resource_detail_arg(const Parsed& p) {
     return v;
 }
 
+// P26(负责人 T2): 资源门「记录/裁决分离」开关解析。
+//   默认(record-only): 资源判据只记录 + 报告 —— resource_gate 事件 severity=warning,
+//     不改退出码; 资源 summary/CSV/曲线产物路径与字段不变(数据面不退化)。
+//   --strict-resource-gate 或 --on-resource-gate strict: 复现变更前的 rc=10 行为
+//     (resource_gate 事件 severity=error)。既有断言 rc=10 的测试走此开关, 不静默删覆盖。
+//   --on-resource-gate accept|record: 与默认等价的显式写法(端到端脚本兼容)。
+// 非法取值 → ARGS(2), 拒绝静默降级(与 --resource-detail 同纪律)。
+static bool strict_resource_gate_arg(const Parsed& p) {
+    if (p.flags.count("--strict-resource-gate")) return true;
+    if (!p.values.count("--on-resource-gate")) return false;
+    const std::string v = p.values.at("--on-resource-gate");
+    if (v == "strict" || v == "enforce") return true;
+    if (v == "accept" || v == "record" || v == "record-only") return false;
+    throw ParseError("invalid --on-resource-gate '" + v + "' (accept|strict)");
+}
+
 static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& phase,
                                   const std::string& cfg_text, uint32_t budget,
                                   std::string& fail_reason,
                                   const std::string& resource_detail = "summary",
-                                  astrocs::ProcessMonitor::Summary* summary_out = nullptr) {
+                                  astrocs::ProcessMonitor::Summary* summary_out = nullptr,
+                                  bool strict_gate = false) {
     astrocs::ProcessMonitor mon(0.5);
     // MON-001: 记录器(样本/阶段分段/worker balance)随采样线程写入; interval 与采样
     // 周期一致(0.5s), 保证 cpu_pct=ΔCPU秒/区间墙钟 的 normalized 口径成立。
@@ -840,8 +857,11 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // 粒度 = phase 粒度(run 开始 0/1, 结束 1/1): Runtime 公开合同无节点级进度回调,
     // 协议面按合同冻结 —— 粒度升级(节点/帧级采样)不改变字段结构, 消费者透明。
     ev.emit_progress(0, 1, "phases", nullptr, nullptr);
+    // P26(负责人 T2): 默认(record-only)不把资源快速失败接入协作取消 —— 计算不再
+    // 因利用率被判据提前打断(记录与裁决分离); --strict-resource-gate 恢复旧接线。
     const int rrc = astrocs::cli::run_pipeline({phase.back() - '0'}, cfg_text, budget,
-                                               &fail_reason, &first10s_cancel);
+                                               &fail_reason,
+                                               strict_gate ? &first10s_cancel : nullptr);
     // MON-002 reclaim: 多线程重计算节点释放的大块缓冲会滞留在线程 glibc arena
     // 中（真实 T4 运行 live heap(alloc_outstanding) 仅 ~0.2GB 而 RSS 残留 ~2.4GB,
     // 被 reclaim 门判为"不可解释残留"）。run 结束后显式将各 arena 空闲块归还
@@ -885,7 +905,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // 协作取消(CANCELLED); 用户 SIGINT(first10s=Ok)仍保留 9 语义。
     const astrocs::GateDiag f10 =
         static_cast<astrocs::GateDiag>(first10s_diag.load(std::memory_order_relaxed));
-    if (rrc != astrocs::OK && rrc == astrocs::CANCELLED &&
+    if (strict_gate && rrc != astrocs::OK && rrc == astrocs::CANCELLED &&
         f10 == astrocs::GateDiag::FastFailFirst10s) {
         const std::string why = "resource gate FAILED: fast_fail_first_10s (" +
                                 astrocs::diag_message(f10, astrocs::GateConfig{}) + ")";
@@ -931,6 +951,12 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         g.rss_slope_mb_per_s =
             static_cast<double>(act.rss_slope_bytes_per_s) / (1024.0 * 1024.0);
     }
+    // P26(负责人 2.A): 运行工作量(线程秒 = 等效核·秒)。有 active 段样本时用 active
+    // 判定窗(与统计判据同域); 采样不足则回退整段 wall(并如实反映为工作量的上界)。
+    // 该字段只做事实标记/报告, 不改任何 §18.2 冻结阈值与判定式。
+    const double work_win = g.active_window_seconds > 0.0 ? g.active_window_seconds
+                                                          : s.wall_seconds;
+    g.work_core_seconds = s.avg_equivalent_cores * work_win;
     // MON-002: 结束时 gate 调用; first-10s 已失败而结束判定通过时, 快速失败兜底生效。
     astrocs::GateDiag d = astrocs::evaluate_gate(g);
     if (d == astrocs::GateDiag::Ok && f10 == astrocs::GateDiag::FastFailFirst10s)
@@ -1004,6 +1030,11 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"workers_p50", g.workers_p50},
         {"cpu_p50_percent", g.cpu_p50_percent},
         {"cpu_mean_percent", g.cpu_mean_percent},
+        // P26(负责人 T2/2.A): 工作量下限事实 + 记录/裁决分离处置(见 resource_gate.h)。
+        {"work_core_seconds", g.work_core_seconds},
+        {"workload_floor_core_seconds", astrocs::kMon003MinCoreSeconds},
+        {"workload_floor_reached", astrocs::gate_workload_above_floor(g)},
+        {"resource_gate_mode", strict_gate ? "strict" : "record_only"},
         {"first_10s_gate", astrocs::gate_diag_name(f10)},
         // MON-001: 逐样本门观测证据(-1=未采样哨兵, 非合法值)。
         {"mon001_util_samples_measured", g.util_samples_measured},
@@ -1031,12 +1062,31 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"io_write_bytes", s.total_write_bytes},
         {"threads", s.max_threads},
     });
+    // P26(负责人 T2): 记录与裁决分离。默认 record-only: 非 Ok 判定仍**完整记录**
+    // (resource 事件 + resource_gate 事件 + 资源 summary/CSV 产物路径不变), 但不再
+    // 以 rc=10 阻塞; --strict-resource-gate 才恢复旧的 error + RESOURCE(10) 语义。
+    // 阈值/判定式一字未改; 工作量下限(负责人 2.A)作为事实字段一并记录。
     if (d != astrocs::GateDiag::Ok) {
-        const std::string why = "resource gate FAILED: " + std::string(astrocs::gate_diag_name(d)) +
+        const astrocs::GateEnforcement enf = astrocs::gate_enforcement(strict_gate, d);
+        const bool enforced = enf == astrocs::GateEnforcement::Enforced;
+        const std::string why = std::string(enforced ? "resource gate FAILED: "
+                                                     : "resource gate recorded (not enforced): ") +
+                                astrocs::gate_diag_name(d) +
                                 " (" + astrocs::diag_message(d, g) + ")";
-        ev.emit("resource_gate", "error", phase, why, {});
-        std::fprintf(stderr, "astrocs: %s\n", why.c_str());
-        return astrocs::RESOURCE;  // exit_codes.h:17 = 10
+        ev.emit("resource_gate", enforced ? "error" : "warning", phase, why,
+                {{"diag", astrocs::gate_diag_name(d)},
+                 {"enforcement", astrocs::gate_enforcement_name(enf)},
+                 {"strict", strict_gate},
+                 {"enforced", enforced},
+                 {"work_core_seconds", g.work_core_seconds},
+                 {"workload_floor_core_seconds", astrocs::kMon003MinCoreSeconds},
+                 {"workload_floor_reached", astrocs::gate_workload_above_floor(g)},
+                 {"adjudicated", astrocs::gate_workload_above_floor(g)}});
+        if (enforced) {
+            std::fprintf(stderr, "astrocs: %s\n", why.c_str());
+            return astrocs::RESOURCE;  // exit_codes.h:17 = 10
+        }
+        std::fprintf(stderr, "astrocs: WARNING (recorded, not enforced): %s\n", why.c_str());
     }
     // MON-002: 分层事件接线（summary 强制；timeseries 详略由 --resource-detail 控）。
     // CLI-002 移除 cmd_run_pipeline 时漏接（定义保留未调用），MON-002 验收的
@@ -1109,7 +1159,7 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     std::fflush(stderr);
     astrocs::ProcessMonitor::Summary p2_summary;
     const int rrc = run_with_resource_gate(ev, "phase2", cfg_text, budget, fail_reason,
-                              resource_detail_arg(p), &p2_summary);
+                              resource_detail_arg(p), &p2_summary, strict_resource_gate_arg(p));
     ev.stage("phase2_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
@@ -1308,7 +1358,7 @@ int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const uint32_t budget = cli_affinity_cpu_count();
     astrocs::ProcessMonitor::Summary p3_summary;
     const int rrc = run_with_resource_gate(ev, "phase3", cfg_text, budget, fail_reason,
-                              resource_detail_arg(p), &p3_summary);
+                              resource_detail_arg(p), &p3_summary, strict_resource_gate_arg(p));
     ev.stage("phase3_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
@@ -1693,7 +1743,7 @@ int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const uint32_t budget = cli_affinity_cpu_count();
     astrocs::ProcessMonitor::Summary p1_summary;
     const int rrc = run_with_resource_gate(ev, "phase1", cfg_text, budget, fail_reason,
-                              resource_detail_arg(p), &p1_summary);
+                              resource_detail_arg(p), &p1_summary, strict_resource_gate_arg(p));
     ev.stage("phase1_session", false);
 
     // FIX-E2E B1-A1: 全链 8 节点产物收集(旧写法 `if (nid != "cal") continue;` 只认

@@ -110,6 +110,20 @@ inline constexpr double kMon001UtilSampleFrac = 0.70;         // 达标样本占
 inline constexpr double kMon001QueueWindowSeconds = 10.0;     // 队列有工作连续低利用窗口
 inline constexpr double kMon001QueueUtilMinPercent = 60.0;    // 窗口内利用率下限 0.60(§18.2)
 
+// ---- P26(负责人 T2/2.A): 工作量下限 + 记录/裁决分离 ----
+// 「重计算运行」工作量下限口径 = **线程秒(thread-seconds) = 等效核·秒**:
+//   work_core_seconds := avg_equivalent_cores × active_window_seconds。
+// 依据(宪章 §10.5 判定域前提): 利用率判据只在「计算区间超过 10 秒」时才成立;
+// 一个刚够判定的重计算区间至少要在这个 10 s 窗口内持续占用 1 个等效核,
+// 即 10 核·秒 = 10 线程秒。低于下限的运行**不进入利用率裁决**(只记录事实),
+// 避免把极小冒烟/启动阶段跑成"低利用率失败"。
+// 落地分工: 程序内 work_core_seconds/gate_workload_above_floor() 只做**事实标记**
+// 与报告字段; PASS/FAIL/WARN 的建议由外挂 tools/quality/resource_monitor.py --judge
+// 按可配置阈值给出(裁决已移出程序, 见 REPORT.md 治理提示)。
+// 历史复现开关 --strict-resource-gate 按定义不咨询本下限(它复现的是变更前的
+// rc=10 行为, 供既有断言使用), 属测试面而非生产面。
+inline constexpr double kMon003MinCoreSeconds = 10.0;
+
 struct GateConfig {
     ResKind kind = ResKind::Unknown;
     uint32_t available_cpus = 0;
@@ -178,6 +192,10 @@ struct GateConfig {
     double alloc_samples_measured = kMon001NotSampled; // 有效样本数(-1=未提供; 0=面在零样本→FAIL)
     double alloc_growth_mb_per_s = kMon001NotSampled;  // RSS 稳健斜率(MB/s); -1=未采样
     AllocReclaimVerdict alloc_reclaim_verdict = AllocReclaimVerdict::InsufficientSamples;
+    // P26(负责人 2.A): 运行工作量 = 线程秒(等效核·秒)。<0 = 调用方未提供
+    // (由 work_core_seconds_of() 按 avg_equivalent_cores×window 回算, 保持单元
+    // 判定路径向后兼容)。仅作事实标记/报告, 不改变任何 §18.2 冻结阈值与判定式。
+    double work_core_seconds = -1.0;
 };
 
 // FIX-E2E B1-A6: 统计判据(window>=10s)前置。active_window_seconds<0 = 未提供。
@@ -185,6 +203,35 @@ inline constexpr double kMon002MinWindowSeconds = 10.0;
 inline bool gate_window_representative(const GateConfig& g) {
     return g.active_window_seconds < 0.0 ||
            g.active_window_seconds >= kMon002MinWindowSeconds;
+}
+
+// ---- P26(负责人 T2/2.A): 工作量下限判定 + 记录/裁决分离 ----
+// 运行工作量(线程秒) = 显式输入的 work_core_seconds; 未提供时用
+// avg_equivalent_cores × 判定窗(active_window_seconds, 未提供则 wall_seconds)回算。
+inline double work_core_seconds_of(const GateConfig& g) {
+    if (g.work_core_seconds >= 0.0) return g.work_core_seconds;
+    const double win = g.active_window_seconds > 0.0 ? g.active_window_seconds
+                                                     : g.wall_seconds;
+    return g.avg_equivalent_cores * win;
+}
+inline bool gate_workload_above_floor(const GateConfig& g) {
+    return work_core_seconds_of(g) >= kMon003MinCoreSeconds;
+}
+
+// 门禁处置(记录与裁决分离):
+//   RecordOnly —— 默认。资源判据只记录/报告(resource_gate 事件 severity=warning),
+//                 不改变进程退出码(rc 语义不再由资源判据决定)。
+//   Enforced   —— --strict-resource-gate(历史复现开关, 既有测试用): 非 Ok 判定
+//                 即 error + rc=10(RESOURCE), 与变更前一致。
+// 注意: Enforced 路径**不咨询工作量下限**(它复现的就是变更前无条件判定的行为);
+// 工作量下限作用于记录面标记与外部裁决(tools/quality/resource_monitor.py --judge)。
+enum class GateEnforcement { RecordOnly, Enforced };
+inline GateEnforcement gate_enforcement(bool strict_mode, GateDiag d) {
+    return (strict_mode && d != GateDiag::Ok) ? GateEnforcement::Enforced
+                                              : GateEnforcement::RecordOnly;
+}
+inline const char* gate_enforcement_name(GateEnforcement e) {
+    return e == GateEnforcement::Enforced ? "enforced" : "record_only";
 }
 
 // 已分配容量(allocated capacity)分母 —— 宪章 §10.5「已分配容量」的单一实现点。
