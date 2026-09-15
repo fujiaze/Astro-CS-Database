@@ -50,3 +50,27 @@
 ## C-005 转入 Wave 2
 - SCI-ADJ-001 置 READY，输入 = 五个 W1 交付 + 本日志 C-004 裁决 + 各任务登记的 F-OBS-01..05 /
   F3-01..06 / AR-032..036 / S1–S4。
+
+## C-006 Wave 3 / Wave 4 集成与 F1 局部裁定（Wave 5 放行）
+- Wave 3 七项全 PASS：ALG-P2-PSFSW-001 `1c4e5f92`、ALG-P2-POINT-001 `28e0ac6c`、
+  DATA-DESIGN-001 `2eab1fc1`、ALG-P2-SURF-001 `77ce7299`、ALG-P1-001 `29747831`、
+  QA-MATRIX-001 `67f0456f`、ALG-P3-001 `ebefe00d`。
+- Wave 4 CONTRACT-FREEZE-001 PASS `7a104485`：96 条款（FROZEN 39 / PENDING_OWNER_SIGNOFF 49 /
+  OPEN 8），Oracle 2056 checks PASS，mutation 23/23 全红，SO-01..07 保持待签。
+- **F1 基线分歧的裁定（局部化，取代 C-004.6 的"整体固化"）**：
+  1. 事实：工作树 37 个 tracked 差异全部先于本包存在，本包 17 次集成只 `git add` 任务写域，故其
+     数量始终为 37；工作树对 `spherical_overlap.{cpp,h}`、`drizzle_engine.cpp` 等文件是
+     **P35/P36 提交的整体回退**（worktree blob ≠ HEAD blob，等于 `b756c7e2` 之前的状态），
+     且删除 `p35_*`/`p36_*`/`p1snr_frame_*` 测试与 `cli/frame_admission.h`。
+  2. 与 Wave 5 的交叉面经 `TASK_MANIFEST.write_scope` 逐条比对，**仅 IMPL-P1-DRZ-001 命中 3 个文件**
+     （其余 8 个 W5 任务写域干净）。故不采用整体治理提交（会一并固化 `docs/contracts/*`、历史报告、
+     audit-line 产物等异质差异），改为**按波次、按写域局部裁定**。
+  3. 本次动作：把 `lib/healpix_db/healpix_drizzle/{drizzle_engine.cpp,spherical_overlap.cpp,
+     spherical_overlap.h}` 的**当前工作树状态**（= P35 回退态）作为独立治理提交固化，使
+     IMPL-P1-DRZ-001 从干净基线开工、其任务提交只含本任务改动。P35 原实现仍在 git 历史
+     （`b756c7e2` 等）中，可恢复。
+  4. 其余 34 个 tracked 差异**保持不动**：W6 SCHEMA-INTEGRATE-001（2 个 contracts）、
+     W7 P1/P3-INTEGRATE-001（4 个源码）、W9 RUNTIME-CI-001（6 个）、W12 DOC-CONVERGE-001（2 个）
+     各自派发前按同一规则局部裁定；未进入任何 V6 写域的 22 个差异（历史报告、`reports/v19r2/*`、
+     `tools/tasks/CHK-001/*`、根/测试 CMakeLists 等）保持原状、不作为 V6 基线一部分。
+  5. 若负责人对 P35/P36 回退态另有指示，可在对应任务提交前以 revert 恢复历史提交内容。
