@@ -1,0 +1,2 @@
+budget,rep,rc,allocated_cores,wall_seconds,proc_cpu_seconds,avg_equivalent_cores,cpu_mean_percent_of_allocated_external,rss_peak_bytes,pss_peak_bytes,read_bytes,write_bytes,io_wait_percent_external,threads_peak,rss_growth_mb_per_s,active_compute_threads_max,max_consecutive_below_60pct_s,intervals_single_thread,intervals_total
+16,0,0,16,17.980680579901673,181.82,10.11196429367827,63.19977683548919,935071744,932273152,4919296,135000064,2.335840393426034,49,28.038654742078734,17,2.5465839200187474,16,68

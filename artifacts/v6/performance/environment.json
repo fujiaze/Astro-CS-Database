@@ -1,0 +1,52 @@
+{
+  "schema": "astrocs.v6.perf.environment/v1",
+  "generated_utc": "2026-09-15T19:11:09Z",
+  "git_head": "5eb702bd72649e498022ca34e4810886b1a6b800",
+  "baseline_expected": "5eb702bd",
+  "cli_binary": {
+    "path": "build/astrocs",
+    "sha256": "3d265a55bf4e9f99bb2d29fabb7aeba4e9c7a0a0ea893e12bd3fbf765894d3bf",
+    "version_string": "astrocs 0.11.0-alpha.2+g5eb702bd72649e498022ca34e4810886b1a6b800",
+    "rebuilt_at_head": true,
+    "build_log": "run/v6/performance/build_cmake.log",
+    "build_rc": 0,
+    "note": "pre-existing binary was stale (g44e1cb65); rebuilt with cmake --build build --target astrocs -j8"
+  },
+  "host": {
+    "role": "Linux amd64 control node (CONSTITUTION §15.1)",
+    "kernel": "6.12.107+deb13-amd64",
+    "arch": "x86_64",
+    "cpu_model": "Genuine Intel(R) CPU 0000 @ 1.70GHz",
+    "affinity_cpus": 16,
+    "cpu_affinity_list": "0-15",
+    "cgroup_cpu_max": "max (unlimited)",
+    "mem_total_bytes": 16767508480,
+    "taskset_available": true,
+    "time_binary_available": true,
+    "python_astropy": true
+  },
+  "workload_data": {
+    "real_fits_light": "testdata/LDN43_T2素材_flying_dutchman/lights/LDN43_LRGBH_flying_dutchman-20250504@034648-1200S-Green.fts",
+    "calibration_masters": "testdata/T2 calibration files/{masterBias,masterDark,masterFlat}_*.xisf",
+    "input_sha256_policy": "testdata read-only; not modified"
+  },
+  "frozen_thresholds_cited": {
+    "source": "ASTROCS_PROJECT_CONSTITUTION.md §10.5 / §18.2",
+    "cpu_mean_min_percent_of_allocated": 85,
+    "cpu_p50_min_percent_of_allocated": 90,
+    "consecutive_low_window_seconds": 10,
+    "consecutive_low_util_percent": 60,
+    "memory_growth_limit_mb_per_s": 32,
+    "min_active_compute_threads": 2
+  },
+  "head_moved_after_measurement": {
+    "note": "all measurements were taken on the 5eb702bd binary; controller integrated REAL-SCIENCE-001 as 815f161f during the task",
+    "new_head": "815f161ffa830e4f6a34159ba7c51077711fa199",
+    "prod_surface_changes_5eb702bd_to_815f161f": 0,
+    "changed_top_dirs": {
+      "artifacts": 25,
+      "reports": 2,
+      "工程控制": 1
+    }
+  }
+}
