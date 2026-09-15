@@ -19,10 +19,12 @@
 // ───────────────────────── parser ─────────────────────────
 // struct ParseError / struct Parsed 定义见 cli_common.h(共享头)
 
-const std::set<std::string> kBoolFlags = {"--json", "--events-jsonl", "--quick", "--full"};
+const std::set<std::string> kBoolFlags = {"--json", "--events-jsonl", "--quick", "--full",
+                                          "--strict-resource-gate"};
 const std::set<std::string> kValueFlags = {"--output", "--config", "--cpu-profile",
                                            "--run-manifest", "--group",
                                            "--resource-detail", "--nside", "--pixfrac",
+                                           "--on-resource-gate",
                                            "--profile", "--module",
                                            "--provider"};
 
@@ -49,15 +51,18 @@ const CmdRule kRules[] = {
     {"phase1 validate",             {"--config", "--json"}},
     {"phase1 plan",                 {"--config", "--json", "--output"}},
     {"phase1 inspect",              {"--config", "--json"}},
-    {"phase1 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
+    {"phase1 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail",
+                                                     "--strict-resource-gate", "--on-resource-gate"}},
     {"phase2 validate",             {"--config", "--json"}},
     {"phase2 plan",                 {"--config", "--json", "--output"}},
     {"phase2 inspect",              {"--config", "--json"}},
-    {"phase2 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
+    {"phase2 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail",
+                                                     "--strict-resource-gate", "--on-resource-gate"}},
     {"phase3 validate",             {"--config", "--json"}},
     {"phase3 plan",                 {"--config", "--json", "--output"}},
     {"phase3 inspect",              {"--config", "--json"}},
-    {"phase3 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail"}},
+    {"phase3 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail",
+                                                     "--strict-resource-gate", "--on-resource-gate"}},
     {"drizzle",                     {"--config", "--events-jsonl", "--nside", "--pixfrac"}},
     {"verify",                      {"--run-manifest", "--json"}},
     {"verify profile",              {"--profile", "--json"}},

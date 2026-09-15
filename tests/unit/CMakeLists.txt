@@ -318,6 +318,16 @@ target_include_directories(mon001_gate_test PRIVATE
 target_link_libraries(mon001_gate_test PRIVATE astrocs_cpu astrocs_contracts astrocs_core)
 add_test(NAME mon001_gate COMMAND mon001_gate_test)
 
+# P26(负责人 T2/2.A): 资源门「记录/裁决分离」+ 工作量下限。
+# 默认 record-only(资源判据只记录, 不再以 rc=10 阻塞); --strict-resource-gate 复现
+# 旧 rc=10 语义。阈值/判定式未动; 阳性+阴性对照见 mon004_enforcement_test.cpp。
+add_executable(mon004_enforcement_test mon004_enforcement_test.cpp)
+target_include_directories(mon004_enforcement_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+target_link_libraries(mon004_enforcement_test PRIVATE astrocs_cpu astrocs_contracts)
+add_test(NAME mon004_enforcement COMMAND mon004_enforcement_test)
+
 # P1-001 (G4): Phase1 8 类模块注册(端口/执行类/Runtime 委托)
 add_executable(p1001_modules_test p1001_modules_test.cpp)
 target_include_directories(p1001_modules_test PRIVATE
@@ -738,7 +748,7 @@ set_tests_properties(
 # ----------------------------------------------------------------------------
 # TEST-CAL-001 (批次 K): photometry_apply.cpp 不在 astrocs_calibration 库源
 # 列表 (根 CMakeLists calibration 段), 与测试 TU 一并编译; HAS_ZSTD 不加 —
-# 根 CMake 从未为 astrocs_hips/astrocs_aio 定义该宏, 遗留容器 codec/compressor
+# 根 CMake 从未为 astrocs_hips/astrocs_aio 定义该宏, hiss_*/aio_compressor
 # 以无 zstd 分支自洽 (ZSTD 未编译时 writer 保持 RAW), 测试 TU 自身亦无
 # zstd 依赖, 与库既有编译形态一致。
 add_executable(test_photometry_apply_test
@@ -1328,4 +1338,23 @@ add_test(NAME ipv_platform_binding COMMAND ipv_platform_binding_test)
 # 注册 5 组 ctest (见 tests/unit/p1snr/CMakeLists.txt)。构建期链接失败即为接线缺失。
 # ----------------------------------------------------------------------------
 add_subdirectory(p1snr p1snr)
+
+# ----------------------------------------------------------------------------
+# P26 (T1/T3, 负责人裁决 1/4): 外挂资源监控(resource_monitor.py)与产物确定性比对
+# (compare_products.py)自检。纯 stdlib + 自带阴性对照(判定非恒真/恒假; 容差/忽略
+# 非全盘放行)。工具本身不依赖被测程序配合; 测试用合成曲线/合成 FITS 保证确定性。
+# ----------------------------------------------------------------------------
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+  add_test(NAME resource_monitor_quality
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../quality/test_resource_monitor.py)
+  set_tests_properties(resource_monitor_quality PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 300)
+  add_test(NAME compare_products_quality
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../quality/test_compare_products.py)
+  set_tests_properties(compare_products_quality PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 300)
+else()
+  message(WARNING "P26 quality-tool tests skipped: Python3 interpreter not found")
+endif()
 

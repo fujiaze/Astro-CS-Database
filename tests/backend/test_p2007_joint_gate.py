@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """test_p2007_joint_gate.py — P2-007 (G5) Phase2 接缝与资源联合门。
+
+P26(T2, 2026-09-15) 记录/裁决分离: 资源门默认降级为"记录 + 报告"(不再 rc=10),
+本文件既有 rc=10 断言统一经 --strict-resource-gate 复现('记录仍在, 裁决移出程序');
+test_06 覆盖默认 record-only 语义(rc==0 + warning + 工作量事实字段 + 产物路径不变),
+与 strict 分支互为阴性对照。阈值/判定式未动(§18.2 冻结值)。
 运行 production seam workload(自标定 N 块 mini HiPS, N≥6)使 active_wall 稳过
 10s 冻结锚, 保存科学+资源证据:
   (RESCUE-FD-08b: 块数由 setUpClass 先做 3 块小样本吞吐标定再外推选到期望
@@ -90,8 +95,13 @@ class TestP2007JointGate(unittest.TestCase):
     RETRY_FLOOR = 12.0    # 实测 < TARGET_WALL 时按实测吞吐再放大一次(至多一次)
 
     @classmethod
-    def _run_phase2(cls, paths, tag):
-        """跑一次 phase2 run, 返回 (res, evs, out_dir, gate_wall_seconds, cfg)。"""
+    def _run_phase2(cls, paths, tag, strict=True):
+        """跑一次 phase2 run, 返回 (res, evs, out_dir, gate_wall_seconds, cfg)。
+
+        strict=True(P26 默认): 传 --strict-resource-gate 复现变更前的 rc=10 语义
+        (资源门"记录与裁决分离"前的行为), 既有断言 rc=10 的覆盖不删。
+        strict=False: 默认 record-only —— 非 ok 判定只记录(warning)不再阻塞。
+        """
         out = os.path.join(cls.tmp, tag)
         os.makedirs(out, exist_ok=True)
         cfg = os.path.join(out, "cfg.json")
@@ -99,9 +109,11 @@ class TestP2007JointGate(unittest.TestCase):
                    "inputs": {"lights": paths, "darks": [], "flats": [], "bias": []},
                    "output_dir": out}, open(cfg, "w"))
         t0 = time.monotonic()
-        res = subprocess.run([EXE, "phase2", "run", "--config", cfg,
-                              "--events-jsonl", "--resource-detail", "summary"],
-                             capture_output=True, text=True, timeout=400)
+        argv = [EXE, "phase2", "run", "--config", cfg,
+                "--events-jsonl", "--resource-detail", "summary"]
+        if strict:
+            argv.append("--strict-resource-gate")
+        res = subprocess.run(argv, capture_output=True, text=True, timeout=400)
         dt = time.monotonic() - t0
         evs = []
         for line in res.stdout.splitlines():
@@ -268,6 +280,34 @@ class TestP2007JointGate(unittest.TestCase):
             self.assertIsNotNone(self._event("resource_gate"),
                                  "拒绝必须发出 resource_gate(error) 事件")
 
+    def test_06_default_record_only_no_block(self):
+        """P26(T2): 默认 record-only —— 资源判定不再以 rc=10 阻塞, 记录仍在。
+
+        与 test_01/test_03 的 strict 分支互为阴性对照: 同一 seam workload 下 strict
+        复现 rc=10; 默认路径必须 rc==0, 且非 ok 判定仍写 resource_gate 事件
+        (severity=warning, enforced=false, enforcement=record_only), 资源 summary/CSV
+        与 alloc 报告路径不变(记录与裁决分离, 数据面不退化)。
+        """
+        res, evs, out, wall, cfg = self._run_phase2(self.paths, "default", strict=False)
+        gate = self._event("resource", "resource gate")
+        self.assertIsNotNone(gate, "默认路径仍必须记录 resource gate 事件")
+        self.assertIn("work_core_seconds", gate, "缺工作量(线程秒)事实字段")
+        self.assertIn("workload_floor_reached", gate, "缺工作量下限事实字段")
+        self.assertIn("workload_floor_core_seconds", gate)
+        self.assertEqual(gate.get("resource_gate_mode"), "record_only")
+        self.assertEqual(res.returncode, 0,
+                         "P26 默认不得因资源判定返回 rc=10: " + res.stderr[-300:])
+        rg = self._event("resource_gate")
+        if gate.get("verdict") != "ok":
+            self.assertIsNotNone(rg, "非 ok 判定必须保留 resource_gate 记录")
+            self.assertEqual(rg.get("severity"), "warning")
+            self.assertFalse(rg.get("enforced"))
+            self.assertEqual(rg.get("enforcement"), "record_only")
+        elif rg is not None:
+            self.assertNotEqual(rg.get("severity"), "error")
+        for name in ("resource_samples.csv", "resource_summary.json", "worker_balance.csv",
+                     "alloc_samples.csv", "alloc_report.json"):
+            self.assertTrue(os.path.isfile(os.path.join(out, name)), name + " 缺失")
     def test_04_resource_summary_bounded_rss(self):
         """资源摘要: 峰值 RSS 有界(<512MB), n_samples>0, active 段 worker 证据。"""
         path = os.path.join(self.out, "resource_summary.json")
