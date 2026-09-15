@@ -1,0 +1,354 @@
+{
+ "schema": "astrocs.v6.qa-matrix.baseline/v1",
+ "task": "QA-MATRIX-001",
+ "authority": [
+  "FZ-MODE-PRODUCTION",
+  "FZ-MODE-BASELINE",
+  "FZ-MODE-DEFERRED",
+  "ADJ-S1",
+  "ADJ-P2-01",
+  "ADJ-P2-02",
+  "ADJ-P2-03",
+  "PSF_SIGNAL_WEIGHT §4/§7",
+  "DESIGN-P2 §6.3"
+ ],
+ "modes": [
+  {
+   "mode": "point_information",
+   "class": "production",
+   "weight_object": "W_info",
+   "units": "ADU^-2",
+   "authoritative_formula": "Q_k=a_k P_k^T C_k^-1 d_k; W_info,k=a_k^2 P_k^T C_k^-1 P_k; F_hat=Q/W; Var=1/W",
+   "covariance_source": "combination_coefficients",
+   "effective_psf": "required",
+   "group_normalized": false,
+   "optimality_declaration": "模型/C 门通过时可声明 BLUE/最大点源 SNR/最小通量方差",
+   "forbidden_declaration": "support/coverage/median_source_snr/fwhm/residual 作权重；对任意 PSF 的像素 ivar 等价",
+   "anchors": [
+    "FZ-FORMULA-Q",
+    "FZ-FORMULA-WINFO",
+    "FZ-FORMULA-FHAT",
+    "FZ-MODE-PRODUCTION",
+    "ADJ-P2-01"
+   ]
+  },
+  {
+   "mode": "surface_gls",
+   "class": "production",
+   "weight_object": "A^T C^-1 A",
+   "units": "1/(BUNIT^2)",
+   "authoritative_formula": "x_hat=(A^T C^-1 A)^-1 A^T C^-1 d; Cov=(A^T C^-1 A)^-1",
+   "covariance_source": "combination_coefficients",
+   "effective_psf": "required",
+   "group_normalized": false,
+   "optimality_declaration": "GLS 假设成立时可声明 Gauss-Markov BLUE",
+   "forbidden_declaration": "像素 ivar 无条件最优；无 Var_approx/Var_GLS<=1+epsilon 误差门声明",
+   "anchors": [
+    "FZ-FORMULA-GLS",
+    "FZ-GATE-PIXIVAR-APPROX",
+    "FZ-MODE-PRODUCTION",
+    "ADJ-P2-02"
+   ]
+  },
+  {
+   "mode": "psfsw_robust",
+   "class": "production",
+   "weight_object": "psfsw_robust_weight",
+   "units": "1",
+   "authoritative_formula": "Wt_k=C_norm*S^alpha*Conc^beta/(N^gamma*B^delta); W_psfsw,k=Wt_k/median_j(Wt_j)",
+   "covariance_source": "combination_coefficients",
+   "effective_psf": "required",
+   "group_normalized": true,
+   "optimality_declaration": "只能声明在指定验收数据上优于指定基线",
+   "forbidden_declaration": "ivar；fisher_information；variance_from_weight；1/W_psfsw；无共同星集回退 median source SNR",
+   "anchors": [
+    "FZ-FORMULA-PSFSW-COMPOSITE",
+    "FZ-FIELD-PSFSW-4COMP",
+    "FZ-FIELD-PSFSW-UNIT",
+    "FZ-GATE-PSFSW-COV",
+    "FZ-GATE-PSFSW-EPSF",
+    "FZ-GATE-PSFSW-FAILCLOSED",
+    "ADJ-P2-03"
+   ]
+  },
+  {
+   "mode": "equal",
+   "class": "baseline",
+   "weight_object": "unit_weight",
+   "units": "1",
+   "authoritative_formula": "I_out=mean_k d_k",
+   "covariance_source": "combination_coefficients",
+   "effective_psf": "required",
+   "group_normalized": false,
+   "optimality_declaration": "无（仅文档基线/对照）",
+   "forbidden_declaration": "scientific optimality",
+   "anchors": [
+    "FZ-MODE-BASELINE",
+    "ADJ-S1"
+   ]
+  },
+  {
+   "mode": "pixel_ivar",
+   "class": "baseline",
+   "weight_object": "pixel_ivar",
+   "units": "1/BUNIT^2",
+   "authoritative_formula": "I_out=Sum_k w_k d_k/Sum_k w_k, w_k=1/v_k",
+   "covariance_source": "combination_coefficients",
+   "effective_psf": "required",
+   "group_normalized": false,
+   "optimality_declaration": "无（扩展源在同点采样+噪声独立退化为 GLS；点源对任意 PSF 不最优）",
+   "forbidden_declaration": "point-source optimality for arbitrary PSF",
+   "anchors": [
+    "FZ-MODE-BASELINE",
+    "FZ-GATE-PIXIVAR-APPROX",
+    "ADJ-S1",
+    "UNIFIED §5/§11"
+   ]
+  },
+  {
+   "mode": "psf_snr_power",
+   "class": "deferred",
+   "weight_object": "ratio_of_powers",
+   "units": "1",
+   "authoritative_formula": "DEFERRED（未冻结）",
+   "covariance_source": "combination_coefficients",
+   "effective_psf": "required",
+   "group_normalized": true,
+   "optimality_declaration": "不得进生产；不得声明 Fisher 最优",
+   "forbidden_declaration": "production；fisher_optimality",
+   "anchors": [
+    "FZ-MODE-DEFERRED",
+    "ADJ-C004-01",
+    "C-004.1"
+   ]
+  }
+ ],
+ "metrics": [
+  {
+   "id": "M-DET",
+   "name": "point_source_detection_power",
+   "unit": "ratio",
+   "direction": "higher_better",
+   "measurement": "SNR_combined^2 或等效 detection statistic 的比值（同注入目录）"
+  },
+  {
+   "id": "M-VAR",
+   "name": "photometric_variance",
+   "unit": "ratio",
+   "direction": "lower_better",
+   "measurement": "Var(F_hat) 比值（同注入目录，对固定 F_ref）"
+  },
+  {
+   "id": "M-FBIAS",
+   "name": "flux_bias",
+   "unit": "rel",
+   "direction": "closer_to_zero",
+   "measurement": "|bias|/F_ref 同注入目录"
+  },
+  {
+   "id": "M-SBBIAS",
+   "name": "surface_brightness_bias",
+   "unit": "rel",
+   "direction": "closer_to_zero",
+   "measurement": "扩展源/梯度重建偏差"
+  },
+  {
+   "id": "M-EPSF",
+   "name": "effective_psf_fwhm",
+   "unit": "px",
+   "direction": "declared",
+   "measurement": "由 P_eff 脉冲响应测量，非 median 输入 FWHM"
+  },
+  {
+   "id": "M-ART",
+   "name": "artifact_rate",
+   "unit": "count",
+   "direction": "lower_better",
+   "measurement": "接缝/伪影/黑洞清单命中数"
+  },
+  {
+   "id": "M-NOISE",
+   "name": "predicted_vs_measured_noise",
+   "unit": "ratio",
+   "direction": "closer_to_one",
+   "measurement": "预测方差/实测散射"
+  }
+ ],
+ "comparisons": [
+  {
+   "cell": "CMP-01",
+   "candidate": "point_information",
+   "baseline": "equal",
+   "metrics": [
+    "M-DET",
+    "M-VAR",
+    "M-FBIAS",
+    "M-EPSF"
+   ],
+   "declaration_limit": "candidate 可声明最优（前提满足）；不得据此声明 equal 非法",
+   "tolerance_source": "预注册（W10 冻结数值）",
+   "pre_registration_required": true,
+   "anchors": [
+    "ADJ-P2-01",
+    "PSF_SIGNAL_WEIGHT §7.4"
+   ]
+  },
+  {
+   "cell": "CMP-02",
+   "candidate": "point_information",
+   "baseline": "pixel_ivar",
+   "metrics": [
+    "M-DET",
+    "M-VAR",
+    "M-EPSF"
+   ],
+   "declaration_limit": "candidate 可声明最小点源方差；不得声明像素 ivar 对任意 PSF 等价",
+   "tolerance_source": "PSFW K4 loss_ratio>1.5（构造性）",
+   "pre_registration_required": true,
+   "anchors": [
+    "FZ-GATE-PIXIVAR-APPROX",
+    "UNIFIED §5/§11"
+   ]
+  },
+  {
+   "cell": "CMP-03",
+   "candidate": "point_information",
+   "baseline": "psfsw_robust",
+   "metrics": [
+    "M-DET",
+    "M-VAR",
+    "M-EPSF",
+    "M-ART"
+   ],
+   "declaration_limit": "两者目标/单位不同，只报度量与偏差，不互称最优",
+   "tolerance_source": "预注册",
+   "pre_registration_required": true,
+   "anchors": [
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §5"
+   ]
+  },
+  {
+   "cell": "CMP-04",
+   "candidate": "surface_gls",
+   "baseline": "pixel_ivar",
+   "metrics": [
+    "M-VAR",
+    "M-SBBIAS",
+    "M-EPSF"
+   ],
+   "declaration_limit": "仅在同点采样+噪声独立+a_k 一致的声明域内比较",
+   "tolerance_source": "FZ-GATE-PIXIVAR-APPROX（epsilon 待 ALG-P2-SURF-001 冻结）",
+   "pre_registration_required": true,
+   "anchors": [
+    "FZ-FORMULA-GLS",
+    "ADJ-P2-02"
+   ]
+  },
+  {
+   "cell": "CMP-05",
+   "candidate": "surface_gls",
+   "baseline": "equal",
+   "metrics": [
+    "M-VAR",
+    "M-SBBIAS"
+   ],
+   "declaration_limit": "基线对照，不声明 equal 非法",
+   "tolerance_source": "预注册",
+   "pre_registration_required": true,
+   "anchors": [
+    "ADJ-P2-02",
+    "FZ-MODE-BASELINE"
+   ]
+  },
+  {
+   "cell": "CMP-06",
+   "candidate": "psfsw_robust",
+   "baseline": "equal",
+   "metrics": [
+    "M-DET",
+    "M-VAR",
+    "M-FBIAS",
+    "M-EPSF",
+    "M-ART"
+   ],
+   "declaration_limit": "只能声明在指定验收数据上优于 equal",
+   "tolerance_source": "预注册（PSF_SIGNAL_WEIGHT §7.4/7.5）",
+   "pre_registration_required": true,
+   "anchors": [
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §7.4"
+   ]
+  },
+  {
+   "cell": "CMP-07",
+   "candidate": "psfsw_robust",
+   "baseline": "pixel_ivar",
+   "metrics": [
+    "M-DET",
+    "M-VAR",
+    "M-EPSF",
+    "M-ART"
+   ],
+   "declaration_limit": "只能声明优于指定基线；不得写成 ivar/1/W_psfsw",
+   "tolerance_source": "预注册",
+   "pre_registration_required": true,
+   "anchors": [
+    "FZ-GATE-PSFSW-COV",
+    "ADJ-P2-03"
+   ]
+  },
+  {
+   "cell": "CMP-08",
+   "candidate": "psfsw_robust",
+   "baseline": "point_information",
+   "metrics": [
+    "M-DET",
+    "M-VAR",
+    "M-EPSF"
+   ],
+   "declaration_limit": "不得声明 Fisher 最优；如含 seeing/concentration penalty 必须报告 P_eff 与相对 loss",
+   "tolerance_source": "预注册",
+   "pre_registration_required": true,
+   "anchors": [
+    "PSF_SIGNAL_WEIGHT §5",
+    "ADJ-P2-03"
+   ]
+  },
+  {
+   "cell": "CMP-09",
+   "candidate": "equal",
+   "baseline": "pixel_ivar",
+   "metrics": [
+    "M-VAR",
+    "M-FBIAS"
+   ],
+   "declaration_limit": "仅基线互比，二者均不得声明科学最优",
+   "tolerance_source": "预注册",
+   "pre_registration_required": true,
+   "anchors": [
+    "FZ-MODE-BASELINE"
+   ]
+  },
+  {
+   "cell": "CMP-DEF",
+   "candidate": "psf_snr_power",
+   "baseline": "none",
+   "metrics": [],
+   "declaration_limit": "DEFERRED：本包不进生产，不参与比较结论；仅登记",
+   "tolerance_source": "C-004.1",
+   "pre_registration_required": false,
+   "anchors": [
+    "FZ-MODE-DEFERRED",
+    "ADJ-C004-01"
+   ]
+  }
+ ],
+ "declaration_rules": [
+  "psfsw_robust 只允许 '在指定验收数据上优于指定基线'；禁止 ivar/Fisher/1/W_psfsw 语义。",
+  "pixel_ivar/equal 为文档基线，禁止科学最优声明。",
+  "psf_snr_power 在本包（V6）保持 DEFERRED，不得进入生产路由（C-004.1）。",
+  "训练/调参样本不得与最终验收样本相同（PSF_SIGNAL_WEIGHT §3）。",
+  "真实数据比较必须配解析/MC/外部参考真值，不得以生产输出为唯一 expected（PROJECT_SPEC §8）。"
+ ]
+}

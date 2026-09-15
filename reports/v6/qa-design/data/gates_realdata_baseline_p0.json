@@ -1,0 +1,950 @@
+{
+ "gates": [
+  {
+   "gate_id": "G-RD-01",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "real_data_validation",
+   "title": "M42 马赛克真实数据终验",
+   "claim": "在 testdata/M42_T2T3_mosaic_Flying_dutchman（T2+T3）上检查接缝、背景、星形、排异、黑洞与预测/实测噪声，并落三模式基线比较。",
+   "anchors": [
+    "PROJECT_SPEC §8",
+    "DESIGN-P2 §10",
+    "PSF_SIGNAL_WEIGHT §7.4"
+   ],
+   "lit": [
+    "GRUEN",
+    "PADM"
+   ],
+   "inputs": [
+    "testdata/M42_T2T3_mosaic_Flying_dutchman/T2",
+    "testdata/M42_T2T3_mosaic_Flying_dutchman/T3"
+   ],
+   "outputs": [
+    "seam_metric",
+    "noise_ratio",
+    "rejection_report"
+   ],
+   "units": {
+    "noise_ratio": "1"
+   },
+   "domain": "真实数据；执行归 Wave10 REAL-SCIENCE-001；本任务只定义门。",
+   "criterion": {
+    "metric": "seam_and_noise_checklist_failures",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "pending_freeze",
+    "owner": "REAL-SCIENCE-001",
+    "ref": "DESIGN-P2 §10 验收清单"
+   },
+   "tol_source": "门度量与清单冻结（本任务）；数值阈值由 REAL-SCIENCE-001/W10 在预注册后冻结，本任务不发明。",
+   "min_cases": 6,
+   "fail_closed": "接缝/背景/星形/排异/黑洞/噪声任一未过 -> 不得标 VERIFIED。",
+   "oracle": {
+    "kind": "real_data_checklist",
+    "ref": "独立于生产输出的度量脚本 + 外部天球参考；不得以生产输出作唯一 expected。",
+    "must_not": [
+     "solely_production_output"
+    ],
+    "truth": "预注册清单 + 外部参考"
+   },
+   "mutations": [
+    "MUT-R01"
+   ],
+   "owner": "REAL-SCIENCE-001 (W10)",
+   "wave": 10,
+   "status": "defined_pending_execution"
+  },
+  {
+   "gate_id": "G-RD-02",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "real_data_validation",
+   "title": "银心真实数据终验（拥挤/排异/PSF）",
+   "claim": "在 testdata/Galaxy_Center_T4 上检查拥挤场 PSF、排异、背景梯度、黑洞与预测/实测噪声，并落模式比较。",
+   "anchors": [
+    "PROJECT_SPEC §8",
+    "DESIGN-P2 §10",
+    "PSF_SIGNAL_WEIGHT §7.4"
+   ],
+   "lit": [
+    "GRUEN",
+    "PADM"
+   ],
+   "inputs": [
+    "testdata/Galaxy_Center_T4/lights"
+   ],
+   "outputs": [
+    "crowding_metric",
+    "rejection_report",
+    "noise_ratio"
+   ],
+   "units": {
+    "noise_ratio": "1"
+   },
+   "domain": "真实拥挤场；执行归 Wave10。",
+   "criterion": {
+    "metric": "galactic_center_checklist_failures",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "pending_freeze",
+    "owner": "REAL-SCIENCE-001",
+    "ref": "DESIGN-P2 §10"
+   },
+   "tol_source": "门度量与清单冻结（本任务）；数值由 W10 预注册后冻结。",
+   "min_cases": 6,
+   "fail_closed": "任一清单项未过 -> 不得标 VERIFIED。",
+   "oracle": {
+    "kind": "real_data_checklist",
+    "ref": "独立度量 + 外部参考。",
+    "must_not": [
+     "solely_production_output"
+    ],
+    "truth": "预注册清单"
+   },
+   "mutations": [
+    "MUT-R01"
+   ],
+   "owner": "REAL-SCIENCE-001 (W10)",
+   "wave": 10,
+   "status": "defined_pending_execution"
+  },
+  {
+   "gate_id": "G-RD-03",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "real_data_validation",
+   "title": "testdata 清单锚定（T2/T3/T4 数据集存在且真实）",
+   "claim": "真实数据门必须绑定 testdata/index.json 的实际数据集：LDN43_T2素材_flying_dutchman、NGC1727_T2、NGC247_T2、M42_T2T3_mosaic、NGC55_T3、NGC83_cluster_T3、Galaxy_Center_T4、Victory_Nebula_T4。",
+   "anchors": [
+    "PROJECT_SPEC §8",
+    "testdata/index.json v1.2"
+   ],
+   "lit": [],
+   "inputs": [
+    "testdata/index.json"
+   ],
+   "outputs": [
+    "missing_datasets"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "真实数据门的前置存在性；资产原地保留，禁移动/改名/删除。",
+   "criterion": {
+    "metric": "missing_dataset_count",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "testdata/index.json v1.2 telescopes.T2/T3/T4.datasets"
+   },
+   "tol_source": "存在性（结构证据），非测量阈值；索引版本 1.2 已登记。",
+   "min_cases": 8,
+   "fail_closed": "索引与实际目录不一致 -> 真实数据门不成立（不得以缺失数据集判 PASS）。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "独立读取 testdata/index.json 与文件系统 ls 交叉。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "testdata/index.json"
+   },
+   "mutations": [
+    "MUT-R02"
+   ],
+   "owner": "REAL-SCIENCE-001 (W10) / WIN-VERIFY-001 (W11)",
+   "wave": 10,
+   "status": "defined_pending_execution"
+  },
+  {
+   "gate_id": "G-RD-04",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "oracle_independence",
+   "title": "真实数据不得作为唯一 expected",
+   "claim": "不得以当前程序输出生成唯一 expected；真实数据门必须配解析/MC/外部参考真值。",
+   "anchors": [
+    "PROJECT_SPEC §8",
+    "SCIENTIFIC_REFERENCES §G"
+   ],
+   "lit": [],
+   "inputs": [
+    "gate_manifest"
+   ],
+   "outputs": [
+    "expected_sources"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "全部门。",
+   "criterion": {
+    "metric": "gates_with_only_production_expected",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "PROJECT_SPEC §8；SCIENTIFIC_REFERENCES §G"
+   },
+   "tol_source": "结构性规则（冻结）。",
+   "min_cases": 1,
+   "fail_closed": "唯一 expected 来自生产输出 -> REJECT（AR-043 根因）。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "对整本 qa_matrix.json 的 expected_sources 做结构审计。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "PROJECT_SPEC §8 条款"
+   },
+   "mutations": [
+    "MUT-SPEC-07"
+   ],
+   "owner": "QA-MATRIX-001 / FINAL-AUDIT-001",
+   "wave": 3,
+   "status": "frozen"
+  },
+  {
+   "gate_id": "G-RD-05",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "contract_units",
+   "title": "真实产品层/单位/BUNIT 二次律复检",
+   "claim": "真实产品从磁盘独立重开后层齐全、BUNIT 量纲可判、variance BUNIT=(signal BUNIT)^2、provenance 最小集完整。",
+   "anchors": [
+    "FZ-BUNIT-SEMANTICS",
+    "FZ-P3-BUNIT-QUADRATIC",
+    "FZ-PROV-MINIMAL-SET",
+    "ADJ-GEN-03",
+    "DESIGN-P3 §5"
+   ],
+   "lit": [
+    "IVOA"
+   ],
+   "inputs": [
+    "产品 manifest",
+    "HDU 头"
+   ],
+   "outputs": [
+    "missing_keys",
+    "bunit_ok"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "Phase1/2/3 真实产品写盘。",
+   "criterion": {
+    "metric": "provenance_missing_keys + bunit_violations",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "FZ-PROV-MINIMAL-SET；FZ-P3-BUNIT-QUADRATIC"
+   },
+   "tol_source": "键集合与量纲代数（冻结）。",
+   "min_cases": 1,
+   "fail_closed": "缺键/单位不可判/unavailable 无原因 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "独立解析 FITS/HiPS 头与 manifest，不调用生产写盘代码。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "FZ-PROV-MINIMAL-SET"
+   },
+   "mutations": [
+    "MUT-R02"
+   ],
+   "owner": "IMPL-AIO-001 / SCHEMA-INTEGRATE-001",
+   "wave": 5,
+   "status": "frozen"
+  },
+  {
+   "gate_id": "G-RD-06",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "platform_validation",
+   "title": "Windows/Fatduck 复验门",
+   "claim": "Linux 结论不自动等于 Windows VERIFIED；未经 Fatduck 复验只能标 AWAITING_WINDOWS_VALIDATION；Windows 盲区检查不得恒零。",
+   "anchors": [
+    "PROJECT_SPEC §10",
+    "CONTROLLER_LOG C-003/C-004",
+    "AGENTS.md 节点映射"
+   ],
+   "lit": [],
+   "inputs": [
+    "Linux 证据",
+    "Fatduck 运行记录"
+   ],
+   "outputs": [
+    "windows_status"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "发布前平台复验；执行归 WIN-VERIFY-001 (W11)。",
+   "criterion": {
+    "metric": "windows_status",
+    "op": "==",
+    "thresh": 0,
+    "unit": "enum",
+    "status": "frozen",
+    "owner": "",
+    "ref": "PROJECT_SPEC §10；本包状态机"
+   },
+   "tol_source": "状态字面量规则（冻结）。",
+   "min_cases": 1,
+   "fail_closed": "未复验却标 VERIFIED -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "核对证据来源与状态字面量。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "PROJECT_SPEC §10"
+   },
+   "mutations": [
+    "MUT-R03"
+   ],
+   "owner": "WIN-VERIFY-001 (W11)",
+   "wave": 11,
+   "status": "defined_pending_execution"
+  },
+  {
+   "gate_id": "G-BASE-01",
+   "family": "baseline",
+   "phase": "phase2",
+   "objective": "baseline_comparison",
+   "title": "基线比较矩阵完整性 + 声明边界",
+   "claim": "矩阵行 = {point_information, surface_gls, psfsw_robust} x {equal, pixel_ivar}（+ deferred psf_snr_power 仅登记）；每格必须给出度量、方向、容差来源与声明边界；psfsw 只能声明优于指定基线，不得声明 Fisher 最优/ivar 等价。",
+   "anchors": [
+    "FZ-MODE-PRODUCTION",
+    "FZ-MODE-BASELINE",
+    "FZ-MODE-DEFERRED",
+    "ADJ-S1",
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §4/§7.4-7.5",
+    "DESIGN-P2 §6.3"
+   ],
+   "lit": [
+    "ZO17I",
+    "PI"
+   ],
+   "inputs": [
+    "baseline_matrix.json"
+   ],
+   "outputs": [
+    "missing_cells",
+    "illegal_declarations"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "Phase2 集成模式比较；预注册数据集优先。",
+   "criterion": {
+    "metric": "missing_cells + illegal_declarations",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "FZ-MODE-* + PSF_SIGNAL_WEIGHT §7.4/7.5"
+   },
+   "tol_source": "结构与枚举规则（冻结）；比较度量集合冻结，效应量阈值由预注册确定。",
+   "min_cases": 1,
+   "fail_closed": "遗漏基线/将 psfsw 当 ivar/宣称最优 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "独立校验 baseline_matrix.json 的枚举与声明列。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "FZ-MODE-*/ADJ-S1"
+   },
+   "mutations": [
+    "MUT-SPEC-04",
+    "MUT-B02",
+    "MUT-B03"
+   ],
+   "owner": "ALG-P2-POINT-001 / ALG-P2-PSFSW-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "frozen_mechanism"
+  },
+  {
+   "gate_id": "G-BASE-02",
+   "family": "baseline",
+   "phase": "phase2",
+   "objective": "baseline_comparison",
+   "title": "pixel_ivar 基线在多像素 PSF 下 != W_info",
+   "claim": "普通像素 ivar 加权平均在 PSF 跨多像素时不等于 1/W_info 且点源方差严格更大；像素 ivar 不得宣称对任意 PSF 点源最优。",
+   "anchors": [
+    "ADJ-P2-01",
+    "ADJ-P2-02",
+    "UNIFIED §5/§11",
+    "PSF_SIGNAL_WEIGHT §2",
+    "FZ-GATE-PIXIVAR-APPROX"
+   ],
+   "lit": [
+    "HORNE",
+    "ZO17I"
+   ],
+   "inputs": [
+    "P",
+    "C",
+    "a"
+   ],
+   "outputs": [
+    "loss_ratio"
+   ],
+   "units": {
+    "loss_ratio": "1"
+   },
+   "domain": "PSF 跨多像素；退化到同点采样时比值->1（声明域边界）。",
+   "criterion": {
+    "metric": "var_pixel_ivar/var_Winfo",
+    "op": ">",
+    "thresh": 1.5,
+    "unit": "ratio",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-PSFW-001 K4 实测 33.08（A_NEA=29.05）"
+   },
+   "tol_source": "构造性区分门，继承 SCI-PSFW-001 K4。",
+   "min_cases": 2,
+   "fail_closed": "宣称 pixel_ivar 等价 W_info 或对其任意 PSF 最优 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式比较像素 ivar 平均与 matched filter。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析方差比较"
+   },
+   "mutations": [
+    "MUT-M06",
+    "MUT-B01"
+   ],
+   "owner": "ALG-P2-POINT-001 / ALG-P2-SURF-001",
+   "wave": 3,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-BASE-03",
+   "family": "baseline",
+   "phase": "phase2",
+   "objective": "baseline_comparison",
+   "title": "psfsw_robust vs 指定基线（预注册，只声明优于）",
+   "claim": "psfsw_robust 在预注册 M42/银心与合成集上，与 equal/exposure/pixel-ivar/W_info 比较：分别报告 detection power、photometric variance、effective PSF、扩展源偏差与伪影；只能声明优于指定基线，不得只以看起来更好通过。",
+   "anchors": [
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §7.4/§7.5",
+    "DESIGN-P2 §6.3",
+    "FZ-GATE-PSFSW-EPSF"
+   ],
+   "lit": [
+    "PI",
+    "ZO17I"
+   ],
+   "inputs": [
+    "预注册数据集",
+    "模式产出"
+   ],
+   "outputs": [
+    "effect_size",
+    "ci",
+    "declaration"
+   ],
+   "units": {
+    "effect_size": "1"
+   },
+   "domain": "预先注册的数据与基线；训练/调参样本 != 验收样本。",
+   "criterion": {
+    "metric": "effect_size (psfsw vs specified baseline)",
+    "op": ">",
+    "thresh": 0,
+    "unit": "rel",
+    "status": "pending_freeze",
+    "owner": "ALG-P2-PSFSW-001",
+    "ref": "PSF_SIGNAL_WEIGHT §7.4/7.5（只声明优于指定基线；数值待预注册）"
+   },
+   "tol_source": "声明规则冻结（不得宣称 Fisher 最优）；效应量与 CI 由预注册/W10 冻结。",
+   "min_cases": 4,
+   "fail_closed": "未预注册 / 训练样本与验收样本相同 / 宣称 Fisher 最优 -> REJECT。",
+   "oracle": {
+    "kind": "preregistered_comparison",
+    "ref": "预注册比较协议 + 独立评估。",
+    "must_not": [
+     "astrocs_only"
+    ],
+    "truth": "预注册协议 + 外部/解析基线"
+   },
+   "mutations": [
+    "MUT-B02",
+    "MUT-B03"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / REAL-SCIENCE-001",
+   "wave": 10,
+   "status": "mechanism_frozen_tol_pending"
+  },
+  {
+   "gate_id": "G-BASE-04",
+   "family": "baseline",
+   "phase": "phase2",
+   "objective": "baseline_comparison",
+   "title": "equal 基线：仅文档基线，不得声明科学最优",
+   "claim": "equal 模式（I_out=mean_k d_k）登记为文档基线；不得声明科学最优；用于证明门非空与对照。",
+   "anchors": [
+    "FZ-MODE-BASELINE",
+    "ADJ-S1",
+    "PSF_SIGNAL_WEIGHT §4"
+   ],
+   "lit": [],
+   "inputs": [
+    "frame_group"
+   ],
+   "outputs": [
+    "I_out"
+   ],
+   "units": {
+    "I_out": "BUNIT"
+   },
+   "domain": "仅基线比较。",
+   "criterion": {
+    "metric": "equal_optimality_claims",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "FZ-MODE-BASELINE"
+   },
+   "tol_source": "结构性规则（FZ-MODE-BASELINE）。",
+   "min_cases": 1,
+   "fail_closed": "equal 声明最优 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "等权均值，纯解析。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "定义式"
+   },
+   "mutations": [
+    "MUT-B04"
+   ],
+   "owner": "P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "frozen"
+  },
+  {
+   "gate_id": "G-BASE-05",
+   "family": "baseline",
+   "phase": "phase2",
+   "objective": "mode_routing",
+   "title": "psf_snr_power 延迟：不进生产路由",
+   "claim": "psf_snr_power 保持 DEFERRED/NOT_IMPLEMENTED，不得进入 V6 生产 weight_mode 枚举与路由；生产模式列表出现即 REJECT；必须登记在 deferred_modes。",
+   "anchors": [
+    "FZ-MODE-DEFERRED",
+    "ADJ-C004-01",
+    "C-004.1",
+    "00_READ_FIRST",
+    "PSF_SIGNAL_WEIGHT §4"
+   ],
+   "lit": [
+    "PI"
+   ],
+   "inputs": [
+    "mode_registry"
+   ],
+   "outputs": [
+    "deferred_ok"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "Phase2 配置/schema/路由。",
+   "criterion": {
+    "metric": "psf_snr_power_in_production",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "C-004.1；FZ-MODE-DEFERRED"
+   },
+   "tol_source": "控制器裁决 C-004.1（不得推翻）与 FZ-MODE-DEFERRED。",
+   "min_cases": 1,
+   "fail_closed": "生产枚举含 psf_snr_power/legacy 0/auto/support_x_snr2 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "独立校验 mode 枚举集合。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "FZ-MODE-* + C-004.1"
+   },
+   "mutations": [
+    "MUT-SPEC-04"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / CONTRACT-FREEZE-001 / SCHEMA-INTEGRATE-001",
+   "wave": 3,
+   "status": "frozen"
+  },
+  {
+   "gate_id": "P0-01",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "gate_red_ability",
+   "title": "R1 机器门必须能红（非看着在跑）",
+   "claim": "每条科学门必须有至少一个已登记 mutation 使其变红；门集合中不允许存在 mutations=[] 的门；mutation 驱动必须实测 rc!=0。",
+   "anchors": [
+    "AR-041",
+    "PROJECT_SPEC §8（mutation 证明门能红）",
+    "ADJ-AR-03"
+   ],
+   "lit": [],
+   "inputs": [
+    "qa_matrix.json",
+    "mutations.json"
+   ],
+   "outputs": [
+    "gates_without_mutation",
+    "red_results"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "全部门。",
+   "criterion": {
+    "metric": "gates_without_mutation + undetected_mutations",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "PROJECT_SPEC §8；AR-041"
+   },
+   "tol_source": "结构性规则（冻结）；对应 785 合并层账本中 R1 根因（FD-F-001/M5a-G-005/M5b-G-03）。",
+   "min_cases": 2,
+   "fail_closed": "任何门零 mutation -> FAIL；mutation 未检出 -> FAIL。",
+   "oracle": {
+    "kind": "independent_driver",
+    "ref": "mutation 驱动独立于被测实现；逐条 rc 记录。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "PROJECT_SPEC §8"
+   },
+   "mutations": [
+    "MUT-SPEC-01",
+    "MUT-SPEC-15",
+    "MUT-SPEC-16"
+   ],
+   "owner": "QA-MATRIX-001 / RUNTIME-CI-001",
+   "wave": 3,
+   "status": "frozen",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "FD-F-001",
+    "M5a-G-005",
+    "M5b-G-03"
+   ]
+  },
+  {
+   "gate_id": "P0-02",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "anti_self_proof",
+   "title": "R2 子串断言/同源自证禁止（值断言）",
+   "claim": "禁止以子串存在性断言或调用被测实现生成期望；每门须声明 oracle.must_not_call 与 independent_truth，且真值来源不得为生产输出。",
+   "anchors": [
+    "AR-042",
+    "PROJECT_SPEC §8",
+    "SCIENTIFIC_REFERENCES §G"
+   ],
+   "lit": [],
+   "inputs": [
+    "gate.oracle"
+   ],
+   "outputs": [
+    "self_proof_violations"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "全部门。",
+   "criterion": {
+    "metric": "self_proof_violations",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "AR-042；PROJECT_SPEC §8"
+   },
+   "tol_source": "结构性规则；对应 785 合并层 R2 根因（FD-F-002/M5a-G-002/M5a-C-004）。",
+   "min_cases": 2,
+   "fail_closed": "真值来源 = 生产输出 / must_not_call 缺失 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "对全部门 oracle 字段做结构审计。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "PROJECT_SPEC §8"
+   },
+   "mutations": [
+    "MUT-SPEC-07",
+    "MUT-SPEC-12"
+   ],
+   "owner": "QA-MATRIX-001",
+   "wave": 3,
+   "status": "frozen",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "FD-F-002",
+    "M5a-G-002",
+    "M5a-C-004"
+   ]
+  },
+  {
+   "gate_id": "P0-03",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "independent_oracle",
+   "title": "R4 独立 Oracle 强制（解析/MC/外部参考/结构）",
+   "claim": "每门必须有独立真值来源（解析恒等、独立 NumPy、外部 WCS/HEALPix 参考或结构规则）；历史「Oracle 全过」不得直接继承。",
+   "anchors": [
+    "AR-043",
+    "PROJECT_SPEC §8",
+    "SCIENTIFIC_REFERENCES §G"
+   ],
+   "lit": [],
+   "inputs": [
+    "gate.oracle.kind"
+   ],
+   "outputs": [
+    "gates_without_oracle"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "全部门。",
+   "criterion": {
+    "metric": "gates_without_independent_oracle",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "AR-043；PROJECT_SPEC §8"
+   },
+   "tol_source": "结构性规则；对应 785 合并层 R4 根因（M7-G-104/M2a-F-1/M2b-F-01）。",
+   "min_cases": 2,
+   "fail_closed": "无独立真值来源 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "oracle.kind 必须属于白名单 {independent_numpy, independent_numpy_mc, independent_stdlib, structural, real_data_checklist, preregistered_comparison, independent_driver}。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "PROJECT_SPEC §8"
+   },
+   "mutations": [
+    "MUT-SPEC-08"
+   ],
+   "owner": "QA-MATRIX-001",
+   "wave": 3,
+   "status": "frozen",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "M7-G-104",
+    "M2a-F-1",
+    "M2b-F-01"
+   ]
+  },
+  {
+   "gate_id": "P0-04",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "regression_lock",
+   "title": "R10 回归锁：不得反向固化已退休 support×snr²",
+   "claim": "新门/规格不得把已退休的 support×snr²、legacy weight_mode=0、auto、support_x_snr2 钉成合法规格或 expected；support/coverage 只能作门。",
+   "anchors": [
+    "AR-049",
+    "ADJ-S1",
+    "ADJ-AR-01",
+    "UNIFIED §11",
+    "宪章 §6.3"
+   ],
+   "lit": [],
+   "inputs": [
+    "qa_matrix.json 全文本"
+   ],
+   "outputs": [
+    "fossilized_tokens"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "全部门与基线矩阵。",
+   "criterion": {
+    "metric": "fossilized_retired_tokens",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "AR-049；UNIFIED §11；ADJ-S1"
+   },
+   "tol_source": "结构性规则；对应 785 合并层 R10 根因（M1a-F-005/M3b-A-02/M9-F-2）。",
+   "min_cases": 2,
+   "fail_closed": "退休 token 出现在合法规格/expected -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "对 qa_matrix.json 全文本做 token 白名单/黑名单审计（值断言：token 出现在合法位置即红）。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "UNIFIED §11 + ADJ-S1"
+   },
+   "mutations": [
+    "MUT-SPEC-06",
+    "MUT-SPEC-13"
+   ],
+   "owner": "QA-MATRIX-001 / CONTRACT-FREEZE-001",
+   "wave": 3,
+   "status": "frozen",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "M1a-F-005",
+    "M3b-A-02",
+    "M9-F-2"
+   ]
+  },
+  {
+   "gate_id": "P0-05",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "ledger_layer",
+   "title": "785 合并层账本 P0 门族（带层声明）",
+   "claim": "785 缺陷账本为合并层口径（667+83+29+4+2=785），叶子层 523 个 L-id 结构性不可表达；任何账本数字必须带层号；本门族对 R1/R2/R4/R5/R10 根因逐条给出销账门。",
+   "anchors": [
+    "AR-035",
+    "AR-051",
+    "AR-041",
+    "AR-042",
+    "AR-043",
+    "AR-044",
+    "AR-049",
+    "reports/v6/review-audit/03"
+   ],
+   "lit": [],
+   "inputs": [
+    "DEFECT_LEDGER.json（只读）"
+   ],
+   "outputs": [
+    "layer_declared",
+    "p0_family_cover"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "缺陷账本口径与 P0 门族覆盖；处置权在控制器/负责人（本任务只登记）。",
+   "criterion": {
+    "metric": "ledger_numbers_without_layer + uncovered_p0_root_causes",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "AR-051（合并层口径号）；AR-035 建议 QA-MATRIX-001 增列 P0 门族"
+   },
+   "tol_source": "口径规则冻结：所有账本数字带 merged_785/leaf_523；覆盖 R1/R2/R4/R5/R10。",
+   "min_cases": 5,
+   "fail_closed": "账本数字无层号 / P0 根因无承载门 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "独立重算 785=667+83+29+4+2（复用 AUDIT-REVIEW-001 只读口径，不新增/改判 id）。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "reports/v6/review-audit/03 + DEFECT_LEDGER.json"
+   },
+   "mutations": [
+    "MUT-SPEC-09"
+   ],
+   "owner": "QA-MATRIX-001 / FINAL-AUDIT-001",
+   "wave": 3,
+   "status": "frozen_registration_only",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "AR-035",
+    "AR-051"
+   ]
+  },
+  {
+   "gate_id": "P0-06",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "reachable_thresholds",
+   "title": "R5 阈值可达/引用真实（不虚构依据）",
+   "claim": "每个数值容差必须带 threshold_status 与真实来源：frozen（引用 FZ/SCI-ADJ/W1 Oracle 实测）或 pending_freeze（带 owner ALG/W4，任务不得自称冻结）；禁止虚构依据或不可达阈值。",
+   "anchors": [
+    "AR-044",
+    "ADJ-AR-03",
+    "FZ-GATE-PIXIVAR-APPROX",
+    "SCI-ADJ-001 FREEZE_LIST §7 SO-07"
+   ],
+   "lit": [],
+   "inputs": [
+    "gate.criterion/tol_source"
+   ],
+   "outputs": [
+    "invented_thresholds"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "全部门的容差字段。",
+   "criterion": {
+    "metric": "thresholds_without_real_source",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "AR-044；FREEZE_LIST §7 SO-07"
+   },
+   "tol_source": "规则：frozen 必须有 FZ-/ADJ-/W1 实测锚；pending_freeze 必须有 owner；否则 REJECT。",
+   "min_cases": 2,
+   "fail_closed": "自称冻结但无锚 / pending 无 owner -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "逐门校验 threshold_status 与 tol_source 锚点存在性（FZ id 必须命中 FREEZE_LIST）。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "SCI-ADJ-001 FREEZE_LIST 19 required_freeze_ids + ADJ id 集合"
+   },
+   "mutations": [
+    "MUT-SPEC-10",
+    "MUT-SPEC-14"
+   ],
+   "owner": "QA-MATRIX-001 / CONTRACT-FREEZE-001",
+   "wave": 3,
+   "status": "frozen",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "AR-044"
+   ]
+  }
+ ]
+}

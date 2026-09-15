@@ -1,0 +1,492 @@
+{
+ "gates": [
+  {
+   "gate_id": "G-INJ-01",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "point_source_photometry",
+   "title": "点源注入恢复：bias/variance/SNR 组合律",
+   "claim": "注入已知 F_ref 点源后恢复通量无偏（bias<2%），方差与 1/W 一致；独立帧满足 SNR_combined^2=Sum SNR_k^2。",
+   "anchors": [
+    "FZ-FORMULA-FHAT",
+    "ADJ-P2-01",
+    "PROJECT_SPEC §8",
+    "DESIGN-P2 §10",
+    "UNIFIED §10",
+    "PSF_SIGNAL_WEIGHT §7.1"
+   ],
+   "lit": [
+    "HORNE",
+    "ZO17I"
+   ],
+   "inputs": [
+    "注入目录",
+    "P_k",
+    "a_k",
+    "C_k",
+    "seed"
+   ],
+   "outputs": [
+    "bias",
+    "sigma_F",
+    "SNR_comb^2"
+   ],
+   "units": {
+    "flux": "ADU",
+    "sigma_F": "ADU"
+   },
+   "domain": "独立帧、模型正确；相关帧场景必须走联合 C 分支。",
+   "criterion": {
+    "metric": "|bias|/F_ref",
+    "op": "<=",
+    "thresh": 0.02,
+    "unit": "rel",
+    "status": "pending_freeze",
+    "owner": "ALG-P2-POINT-001",
+    "ref": "PROJECT_SPEC §8 注入源验证理论 information 与实测 flux variance"
+   },
+   "tol_source": "门度量（bias、sigma_F vs 1/sqrt(W)）冻结；数值 2% 属设计默认，最终由 ALG-P2-POINT-001 冻结，本任务不宣称冻结数值。",
+   "min_cases": 1,
+   "fail_closed": "注入源 sigma_F 与 1/sqrt(W) 偏差超门且无原因 -> REJECT；跨帧相关简单求和 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "独立构造注入+恢复全链路（检测外）；不调用生产管线。",
+    "must_not": [
+     "astrocs",
+     "lib/",
+     "tests/"
+    ],
+    "truth": "注入已知真值 + 解析方差"
+   },
+   "mutations": [
+    "MUT-I02",
+    "MUT-I03",
+    "MUT-SPEC-10"
+   ],
+   "owner": "ALG-P2-POINT-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "mechanism_frozen_tol_pending"
+  },
+  {
+   "gate_id": "G-INJ-02",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "surface_brightness",
+   "title": "扩展源/常量场/梯度注入（GLS）",
+   "claim": "注入常量面亮度、线性梯度与已知总通量的扩展源，GLS 重建在 bias/variance/总通量上无偏；常量面亮度对全部 pixfrac 成立。",
+   "anchors": [
+    "FZ-FORMULA-GLS",
+    "FZ-GATE-CONST-SB",
+    "ADJ-P2-02",
+    "ADJ-S3",
+    "PROJECT_SPEC §8",
+    "DESIGN-P2 §10"
+   ],
+   "lit": [
+    "ZO17I",
+    "FH02"
+   ],
+   "inputs": [
+    "注入模型",
+    "A",
+    "C",
+    "pixfrac"
+   ],
+   "outputs": [
+    "bias",
+    "var",
+    "flux_tot"
+   ],
+   "units": {
+    "SB": "ADU/px^2"
+   },
+   "domain": "GLS 假设成立；像素 ivar 近似仅条件成立。",
+   "criterion": {
+    "metric": "max(|bias|/B0, |var/var_pred-1|, |flux_tot/flux_true-1|)",
+    "op": "<=",
+    "thresh": 0.03,
+    "unit": "rel",
+    "status": "pending_freeze",
+    "owner": "ALG-P2-SURF-001",
+    "ref": "PROJECT_SPEC §8 扩展源验证常量面亮度/梯度/总通量/covariance"
+   },
+   "tol_source": "门度量冻结（三量一致性）；数值 3% 设计默认，最终由 ALG-P2-SURF-001 冻结。",
+   "min_cases": 2,
+   "fail_closed": "pf<1 时 flux_conservation_factor 缺失 -> 不得用于绝对通量。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式注入+GLS 重建。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "注入真值 + (A^T C^-1 A)^-1"
+   },
+   "mutations": [
+    "MUT-A11",
+    "MUT-I03"
+   ],
+   "owner": "ALG-P2-SURF-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "mechanism_frozen_tol_pending"
+  },
+  {
+   "gate_id": "G-INJ-03",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "selection_bias",
+   "title": "星表深度不变性：W_info 样本无关、median SNR 随深度移动",
+   "claim": "改变检测阈值/星表深度，W_info（或 ratio-of-powers）逐位不变；median(source SNR) 与样本派生 PSFSW 随之移动；共同星集必须独立于待测帧测量。",
+   "anchors": [
+    "FZ-GATE-MEDIAN-SNR",
+    "ADJ-C004-02",
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §7.3",
+    "DESIGN-P1 §11",
+    "PSFW §5.3"
+   ],
+   "lit": [
+    "PI"
+   ],
+   "inputs": [
+    "星场",
+    "thresholds",
+    "星表"
+   ],
+   "outputs": [
+    "W_info",
+    "median_snr",
+    "shift"
+   ],
+   "units": {
+    "W_info": "ADU^-2"
+   },
+   "domain": "共同星集 = 外部参考星表固定子集或参考叠加单一门限；禁止逐帧阈值交集。",
+   "criterion": {
+    "metric": "max_threshold |W_info - W_info_ref| / W_info_ref",
+    "op": "<=",
+    "thresh": 0.05,
+    "unit": "rel",
+    "status": "pending_freeze",
+    "owner": "ALG-P2-PSFSW-001",
+    "ref": "PSFW_FREEZE §5.3：深度扫描相对变化 <5% 且不随深度单调漂移（建议门，数值待 ALG 冻结）"
+   },
+   "tol_source": "门度量冻结；数值 <5% 为 SCI-PSFW-001 建议口径，最终由 ALG-P2-PSFSW-001 冻结（本任务不擅自改冻结门）。",
+   "min_cases": 1,
+   "fail_closed": "selection function 缺失 / 样本派生共同星集 -> unavailable。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "同一合成星场只改检测阈值，独立计算样本无关量。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "构造已知：W_info 按构造逐位不变（PSFW K8）"
+   },
+   "mutations": [
+    "MUT-I04",
+    "MUT-I05"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / IMPL-P1-PSFW-001",
+   "wave": 5,
+   "status": "mechanism_frozen_tol_pending"
+  },
+  {
+   "gate_id": "G-INJ-04",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "single_variable_response",
+   "title": "单变量扫描方向（透明度/seeing/背景/读噪）",
+   "claim": "W_info 对透明度（a 增大）增大、对 seeing（PSF 展宽）减小、对背景/读噪增大减小；psfsw 四分量方向正确。",
+   "anchors": [
+    "FZ-FORMULA-WINFO",
+    "ADJ-P2-01",
+    "PSF_SIGNAL_WEIGHT §7.2",
+    "DESIGN-P1 §11"
+   ],
+   "lit": [
+    "HORNE",
+    "NAYLOR"
+   ],
+   "inputs": [
+    "扫描变量",
+    "P",
+    "a",
+    "C"
+   ],
+   "outputs": [
+    "direction_ok"
+   ],
+   "units": {
+    "dir": "sign"
+   },
+   "domain": "单变量扫描、其余固定；渐变至退化域须声明。",
+   "criterion": {
+    "metric": "direction_violations",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "PSF_SIGNAL_WEIGHT §7.2 方向正确；SCI-PSFW-001 K6/K8"
+   },
+   "tol_source": "解析单调性（W=a^2 P^T C^-1 P 对 a 二次增、对 sigma 减）；方向而非幅度。",
+   "min_cases": 1,
+   "fail_closed": "任一方向违反 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "解析导数符号 + 数值扫描。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析单调性"
+   },
+   "mutations": [
+    "MUT-I06"
+   ],
+   "owner": "ALG-P2-POINT-001 / ALG-P2-PSFSW-001",
+   "wave": 3,
+   "status": "frozen_mechanism"
+  },
+  {
+   "gate_id": "G-INJ-05",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "effective_psf",
+   "title": "effective PSF 脉冲响应恢复（归一约定声明）",
+   "claim": "注入单位通量点源后，实际组合算子的输出即 P_eff；peak 与 integral 归一约定按产品族声明；ΣP_eff=1（面亮度产品）或 peak=1（点源统计）。",
+   "anchors": [
+    "FZ-GATE-PSFSW-EPSF",
+    "ADJ-P2-03",
+    "COVARIANCE_AND_EFFECTIVE_PSF §3",
+    "DESIGN-P2 §9"
+   ],
+   "lit": [
+    "ZO17II",
+    "HORNE"
+   ],
+   "inputs": [
+    "注入点源",
+    "alpha_k",
+    "K_k"
+   ],
+   "outputs": [
+    "P_eff",
+    "norm"
+   ],
+   "units": {
+    "P_eff": "1"
+   },
+   "domain": "conventional 与 proper-coadd 两族；归一约定必须显式声明。",
+   "criterion": {
+    "metric": "max|P_eff - (Sum alpha_k a_k (P_k ⊗ K_k))/(Sum alpha_k a_k)|",
+    "op": "<=",
+    "thresh": 1e-09,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "COVARIANCE_AND_EFFECTIVE_PSF §3；SCI-P2-001 Oracle C6 误差 <1e-12"
+   },
+   "tol_source": "解析组合定义式恒等。",
+   "min_cases": 1,
+   "fail_closed": "缺 effective PSF 或只给 FWHM 标量 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "注入单位点源并用实际系数组合，与解析组合比对。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "脉冲响应定义式"
+   },
+   "mutations": [
+    "MUT-M05",
+    "MUT-SPEC-06"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-INJ-06",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "fail_closed",
+   "title": "psfsw fail-closed 目录（零星/少星/拥挤/梯度/云/拖线/FOV/波段）",
+   "claim": "无共同星集/背景非正且变换未定义/有效星不足/选择偏差门失败 -> unavailable（weight_value=null），禁止回退 median source SNR；零星、少星、拥挤、严重梯度、云、拖线、不同 FOV 与波段均有 fail-closed 用例。",
+   "anchors": [
+    "FZ-GATE-PSFSW-FAILCLOSED",
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §3/§7.6",
+    "DESIGN-P2 §6.3"
+   ],
+   "lit": [
+    "PI"
+   ],
+   "inputs": [
+    "帧组特征"
+   ],
+   "outputs": [
+    "unavailable",
+    "reason"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "所有 psfsw_robust 输入；reason ∈ {no_common_star_set, background_nonpositive_undefined_transform, insufficient_valid_stars, selection_bias_gate_failed, spatial_nonuniformity_gate_failed}。",
+   "criterion": {
+    "metric": "unavailable_reasons_not_in_whitelist",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "FZ-GATE-PSFSW-FAILCLOSED；PSFW §5.1"
+   },
+   "tol_source": "白名单为冻结语义（FZ-GATE-PSFSW-FAILCLOSED）；valid=false 时 weight_value=null。",
+   "min_cases": 1,
+   "fail_closed": "valid=false 但 weight_value 非 null / 回退 median SNR -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "构造退化场景断言 unavailable；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "FZ-GATE-PSFSW-FAILCLOSED 白名单"
+   },
+   "mutations": [
+    "MUT-I07",
+    "MUT-I08"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / IMPL-P1-PSFW-001",
+   "wave": 5,
+   "status": "frozen"
+  },
+  {
+   "gate_id": "G-INJ-07",
+   "family": "injection",
+   "phase": "phase3",
+   "objective": "resampling_injection",
+   "title": "Phase3 注入穿透重采样（通量/天体测量/方差恢复）",
+   "claim": "注入源经投影+采样后通量、位置与方差恢复一致；Q/W 输出帧重算与注入真值一致；WCS 正反变换与外部实现交叉。",
+   "anchors": [
+    "FZ-P3-QW-RECOMPUTE",
+    "ADJ-P3-01",
+    "C-P3-PROP-14",
+    "C-P3-PROP-15",
+    "DESIGN-P3 §7"
+   ],
+   "lit": [
+    "GC02",
+    "KO",
+    "FERNIQUE",
+    "IVOA"
+   ],
+   "inputs": [
+    "注入目录",
+    "R",
+    "S",
+    "C_y"
+   ],
+   "outputs": [
+    "flux_bias",
+    "pos_err",
+    "var_ratio"
+   ],
+   "units": {
+    "flux": "ADU",
+    "pos": "px"
+   },
+   "domain": "point_source_flux 与 surface_brightness 模式；TAN/SIN/CAR/AIT。",
+   "criterion": {
+    "metric": "|flux_rec/F_inj - 1|",
+    "op": "<=",
+    "thresh": 0.02,
+    "unit": "rel",
+    "status": "pending_freeze",
+    "owner": "ALG-P3-001",
+    "ref": "DESIGN-P3 §7 注入源恢复；C-P3-PROP-14"
+   },
+   "tol_source": "门度量冻结（flux bias/astrometry/variance）；数值 2% 设计默认，最终由 ALG-P3-001 冻结。",
+   "min_cases": 2,
+   "fail_closed": "缺 PSF/PSF 未归一/缺 a/未出 effective PSF/对角无相关核 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "独立投影+采样实现与 Astropy/WCSLIB 外部交叉。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "注入真值 + 外部 WCS 参考"
+   },
+   "mutations": [
+    "MUT-A08",
+    "MUT-I09"
+   ],
+   "owner": "ALG-P3-001 / IMPL-P3-RSMP-001 / IMPL-P3-PROJ-001",
+   "wave": 5,
+   "status": "mechanism_frozen_tol_pending"
+  },
+  {
+   "gate_id": "G-INJ-08",
+   "family": "injection",
+   "phase": "phase1",
+   "objective": "drizzle_correlation",
+   "title": "Drizzle aperture 方差低估检出",
+   "claim": "Drizzle 输出相邻像素相关，aperture 方差按逐像素方差求和会低估（构造实测 2.46x）；相关性感知 aperture 必须显式加入 Cov 项。",
+   "anchors": [
+    "ADJ-F-OBS-01",
+    "ADJ-AR-02",
+    "FZ-FORMULA-COV-PROP",
+    "UNIFIED §7",
+    "SCI-OBS-001 门 D2"
+   ],
+   "lit": [
+    "FH02"
+   ],
+   "inputs": [
+    "footprint",
+    "v_j",
+    "c_jp"
+   ],
+   "outputs": [
+    "aperture_var_true",
+    "aperture_var_diag",
+    "ratio"
+   ],
+   "units": {
+    "ratio": "1"
+   },
+   "domain": "Drizzle 后相关像素上的 aperture/总量误差。",
+   "criterion": {
+    "metric": "aperture_var_diag/aperture_var_true",
+    "op": "<",
+    "thresh": 1,
+    "unit": "ratio",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-OBS-001 D2 实测 0.40（低估 2.46x）"
+   },
+   "tol_source": "构造性不变量（低估必须被检出）；D2 参考值 0.400/0.983。",
+   "min_cases": 1,
+   "fail_closed": "把逐像素方差和当 aperture 精确方差 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式 Cov(S_p,S_q) 二次型 aperture。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析 aperture 二次型"
+   },
+   "mutations": [
+    "MUT-A10"
+   ],
+   "owner": "ALG-P1-001 / IMPL-P1-DRZ-001",
+   "wave": 5,
+   "status": "mechanism_frozen"
+  }
+ ]
+}

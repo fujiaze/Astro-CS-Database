@@ -1,0 +1,36 @@
+{
+ "task": "QA-MATRIX-001",
+ "steps": [
+  {
+   "name": "assemble",
+   "rc": 0
+  },
+  {
+   "name": "oracle_baseline",
+   "rc": 0
+  },
+  {
+   "name": "validate_spec",
+   "rc": 0
+  },
+  {
+   "name": "render_docs",
+   "rc": 0
+  },
+  {
+   "name": "check_docs",
+   "rc": 0
+  },
+  {
+   "name": "validate_spec_with_ledger",
+   "rc": 0
+  },
+  {
+   "name": "mutations",
+   "rc": 0
+  }
+ ],
+ "rc_total": 0,
+ "n_gates": 44,
+ "n_mutations": 56
+}

@@ -1,0 +1,497 @@
+{
+ "gates": [
+  {
+   "gate_id": "G-MC-01",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "point_source_photometry",
+   "title": "点源注入/散度 vs 1/sqrt(W)",
+   "claim": "对固定 F_ref 的注入点源，实测 F_hat 散度与理论 sigma_F=1/sqrt(W_info) 一致；SNR_combined^2=F_ref^2*W。",
+   "anchors": [
+    "FZ-FORMULA-FHAT",
+    "FZ-FORMULA-WINFO",
+    "ADJ-P2-01",
+    "PSF_SIGNAL_WEIGHT §7.1",
+    "DESIGN-P1 §11",
+    "UNIFIED §10"
+   ],
+   "lit": [
+    "HORNE",
+    "NAYLOR",
+    "ZO17I"
+   ],
+   "inputs": [
+    "注入 F_ref",
+    "P_k",
+    "a_k",
+    "C_k",
+    "seed",
+    "N_mc"
+   ],
+   "outputs": [
+    "Var_MC(F_hat)",
+    "1/W",
+    "rel_dev",
+    "SNR^2"
+   ],
+   "units": {
+    "Var_MC": "ADU^2",
+    "W": "ADU^-2"
+   },
+   "domain": "线性高斯、C 正确、P 归一；独立帧。",
+   "criterion": {
+    "metric": "|Var_MC(F_hat)/(1/W) - 1|",
+    "op": "<=",
+    "thresh": 0.03,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-PSFW-001 K2 实测 0.13%（N=4e5）；SCI-P2-001 C4 rel 0.48%"
+   },
+   "tol_source": "统计收敛阈 3%，继承 SCI-P2-001 C4 / SCI-PSFW-001 K2 的 3%/2% 口径；N_mc 与 seed 必须登记以保证可复跑。",
+   "min_cases": 1,
+   "fail_closed": "N_mc < 1 或 seed 缺失 -> rc=2（零用例/不可复跑即红）；跨帧相关未用联合 C -> 该 case 拒绝。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "纯 NumPy 从第一性原理生成 d_k 并做 GLS/闭式；不调用生产实现也无生产依赖。",
+    "must_not": [
+     "astrocs",
+     "lib/",
+     "tests/"
+    ],
+    "truth": "解析 1/W + 定种子 MC 散度"
+   },
+   "mutations": [
+    "MUT-M02",
+    "MUT-I02"
+   ],
+   "owner": "ALG-P2-POINT-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "mechanism_frozen_tol_inherited"
+  },
+  {
+   "gate_id": "G-MC-02",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "surface_brightness",
+   "title": "surface_gls 协方差 vs Monte Carlo",
+   "claim": "GLS 预言的 Cov=(A^T C^-1 A)^-1 与 MC 实测方差一致（rel<3%）；忽略 a_k 的像素 ivar 近似方差严格劣化（比值>1）。",
+   "anchors": [
+    "FZ-FORMULA-GLS",
+    "FZ-GATE-PIXIVAR-APPROX",
+    "ADJ-P2-02",
+    "UNIFIED §5",
+    "SCI-P2-001 Oracle C4"
+   ],
+   "lit": [
+    "ZO17I"
+   ],
+   "inputs": [
+    "A",
+    "C",
+    "seed",
+    "N_mc"
+   ],
+   "outputs": [
+    "var_pred",
+    "var_mc",
+    "rel",
+    "ratio_approx"
+   ],
+   "units": {
+    "var": "BUNIT^2"
+   },
+   "domain": "GLS 假设成立；像素 ivar 近似仅在同点采样+噪声独立+a_k 一致时可用。",
+   "criterion": {
+    "metric": "|var_mc/var_pred - 1|",
+    "op": "<=",
+    "thresh": 0.03,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-P2-001 C4 实测 rel=0.48%"
+   },
+   "tol_source": "继承 SCI-P2-001 Oracle C4 的 3% MC 口径；epsilon 上界本门冻结为存在性，数值归 ALG-P2-SURF-001（FZ-GATE-PIXIVAR-APPROX）。",
+   "min_cases": 1,
+   "fail_closed": "无 Var_approx/Var_GLS <= 1+epsilon 误差门声明 -> REJECT；必须报告 R~ C_in R~^T。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "显式 GLS 与定种子 MC。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析 (A^T C^-1 A)^-1 + MC"
+   },
+   "mutations": [
+    "MUT-M03"
+   ],
+   "owner": "ALG-P2-SURF-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "mechanism_frozen_eps_pending"
+  },
+  {
+   "gate_id": "G-MC-03",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "covariance_shared_systematic",
+   "title": "共享系统项：联合 vs 朴素求和比值 > 1",
+   "claim": "存在共同模式时联合 C 的方差严格大于 1/Sum W_k；比值必须 > 1 并被检出（共享项不得按独立项处理）。",
+   "anchors": [
+    "ADJ-OBS-01",
+    "ADJ-F-OBS-04",
+    "FZ-PROV-SHARED-SYSTEMATIC",
+    "UNIFIED §6",
+    "SCI-P2-001 Oracle C3",
+    "SCI-OBS-001 C4"
+   ],
+   "lit": [
+    "FH02",
+    "PADM"
+   ],
+   "inputs": [
+    "shared_mode_amp",
+    "n_frames",
+    "seed"
+   ],
+   "outputs": [
+    "var_joint",
+    "var_naive",
+    "ratio"
+   ],
+   "units": {
+    "ratio": "1"
+   },
+   "domain": "共同 master / 共同天空 / 重采样相关。",
+   "criterion": {
+    "metric": "var_joint/var_naive",
+    "op": ">",
+    "thresh": 1,
+    "unit": "ratio",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-P2-001 C3 1.575；SCI-OBS-001 C4 3.48"
+   },
+   "tol_source": "构造性不变量；共享幅度 0.6 sigma 的构造已由 W1 双 Oracle 提供参考值。",
+   "min_cases": 1,
+   "fail_closed": "共享项无法表示 -> variance unavailable 或系统误差预算；禁止静默按独立项发布。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "构造共享低秩项 L L^T 后联合采样。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "构造已知共享项的解析比"
+   },
+   "mutations": [
+    "MUT-M01",
+    "MUT-I01"
+   ],
+   "owner": "ALG-P2-SURF-001 / IMPL-P1-CAL-001",
+   "wave": 5,
+   "status": "mechanism_frozen"
+  },
+  {
+   "gate_id": "G-MC-04",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "conventional_integration",
+   "title": "PSFSW 方差从实际系数传播（禁止 1/W_psfsw）",
+   "claim": "Var(I_out)=Sum_{k,l} alpha_k alpha_l [C_in]_{kl} 用实际 alpha 计算并与 MC 一致；1/W_psfsw 或 Sum W_psfsw 作为方差必须被拒且可测出差异。",
+   "anchors": [
+    "FZ-GATE-PSFSW-COV",
+    "FZ-FORMULA-COV-PROP",
+    "ADJ-P2-03",
+    "RULINGS #5",
+    "COVARIANCE_AND_EFFECTIVE_PSF §5"
+   ],
+   "lit": [
+    "FH02",
+    "PI"
+   ],
+   "inputs": [
+    "W_psfsw",
+    "C_in",
+    "seed",
+    "N_mc"
+   ],
+   "outputs": [
+    "var_coeffs",
+    "var_proxy",
+    "rel",
+    "ratio"
+   ],
+   "units": {
+    "var": "BUNIT^2"
+   },
+   "domain": "psfsw_robust conventional coadd；帧独立或给定联合 C。",
+   "criterion": {
+    "metric": "|var_mc/var_coeffs - 1|",
+    "op": "<=",
+    "thresh": 0.03,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-P2-001 Oracle C7 MC rel 0.20%；var_coeffs 3.286 vs proxy 11.371"
+   },
+   "tol_source": "继承 SCI-P2-001 C7 的 3% MC 口径；proxy 与 coeffs 必须显著不同（>=10%）以证明边界可测。",
+   "min_cases": 1,
+   "fail_closed": "variance_from_weight=true / uses_relative_weight_as_ivar=true -> REJECT（键集合命中即红）。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "从实际 alpha 构造组合并 MC；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "C_out=R C_in R^T + MC"
+   },
+   "mutations": [
+    "MUT-M04",
+    "MUT-A13"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "mechanism_frozen"
+  },
+  {
+   "gate_id": "G-MC-05",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "effective_psf",
+   "title": "effective PSF：FWHM 从实际组合算子测量",
+   "claim": "FWHM(P_eff) 必须由实际组合算子脉冲响应测量；median(FWHM_k) != FWHM(P_eff)，且同一帧组在不同权重下 FWHM(P_eff) 不同。",
+   "anchors": [
+    "FZ-GATE-PSFSW-EPSF",
+    "ADJ-P2-03",
+    "COVARIANCE_AND_EFFECTIVE_PSF §3",
+    "DESIGN-P2 §6.3/§9",
+    "SCI-P2-001 Oracle C6"
+   ],
+   "lit": [
+    "ZO17II",
+    "HORNE"
+   ],
+   "inputs": [
+    "P_k",
+    "alpha_k",
+    "K_k"
+   ],
+   "outputs": [
+    "P_eff",
+    "FWHM(P_eff)",
+    "median_input_FWHM"
+   ],
+   "units": {
+    "FWHM": "px"
+   },
+   "domain": "conventional coadd 与 matched-filter/proper coadd 两族；归一约定须声明（peak/integral）。",
+   "criterion": {
+    "metric": "|FWHM(P_eff) - median_k FWHM_k| / FWHM(P_eff)",
+    "op": ">",
+    "thresh": 0,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-P2-001 C6：equal 3.805 / pixel_ivar 5.460 / W_info 5.248 / median 输入 4.756"
+   },
+   "tol_source": "构造性区分门（等式不得作为通过）；只给 FWHM 标量不构成 effective PSF（R7 REJECT）。",
+   "min_cases": 1,
+   "fail_closed": "effective_psf_id 空 / 只有 fwhm 单标量 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "注入单位点源并用实际系数组合，与解析组合比对。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "脉冲响应定义式"
+   },
+   "mutations": [
+    "MUT-M05"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-MC-06",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "estimator_optimality",
+   "title": "CRLB 紧致性与像素 ivar 损失比",
+   "claim": "线性高斯模型下 Q/W 估计量达到 Cramer-Rao 下界（相对差 <1e-12）；像素 ivar 平均相对 matched-filter 的方差损失比 > 1.5（证明基线不是最优）。",
+   "anchors": [
+    "FZ-FORMULA-WINFO",
+    "ADJ-P2-01",
+    "PSF_SIGNAL_WEIGHT §2",
+    "UNIFIED §5/§11"
+   ],
+   "lit": [
+    "HORNE",
+    "ZO17I"
+   ],
+   "inputs": [
+    "P",
+    "C",
+    "a"
+   ],
+   "outputs": [
+    "CRLB_rel",
+    "loss_ratio"
+   ],
+   "units": {
+    "CRLB_rel": "rel",
+    "loss_ratio": "ratio"
+   },
+   "domain": "线性高斯；PSF 跨多像素（退化到同点采样时 loss_ratio->1，属声明域边界）。",
+   "criterion": {
+    "metric": "|Var(Q/W) - CRLB|/CRLB",
+    "op": "<=",
+    "thresh": 1e-12,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-PSFW-001 K3 相对差 4.1e-16；K4 loss=33.08"
+   },
+   "tol_source": "CRLB 是解析下界（精确恒等）；loss_ratio>1.5 为构造性区分门，继承 K4 的 A_NEA=29.05 参考。",
+   "min_cases": 1,
+   "fail_closed": "声明像素 ivar 对任意 PSF 点源最优 -> REJECT（UNIFIED §11）。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式 Fisher 信息与估计量方差。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "CRLB 解析 + 显式矩阵"
+   },
+   "mutations": [
+    "MUT-M06",
+    "MUT-B01"
+   ],
+   "owner": "ALG-P2-POINT-001",
+   "wave": 3,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-MC-07",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "upm_uncertainty",
+   "title": "UPM 参数不确定度进入 covariance",
+   "claim": "C_out=C_stat+J C_theta J^T：含 UPM 参数项与不含项的方差比 > 1 且可计算；UPM 项缺失必须被检出。",
+   "anchors": [
+    "ADJ-P2-01",
+    "DESIGN-P2 §4",
+    "UNIFIED §6",
+    "COVARIANCE_AND_EFFECTIVE_PSF §4",
+    "SCI-P2-001 Oracle C9"
+   ],
+   "lit": [
+    "PADM",
+    "GRUEN"
+   ],
+   "inputs": [
+    "J",
+    "C_theta",
+    "C_stat"
+   ],
+   "outputs": [
+    "ratio"
+   ],
+   "units": {
+    "ratio": "1"
+   },
+   "domain": "UPM 参数（光度尺度 g_k、背景 b_k）有不确定度时。",
+   "criterion": {
+    "metric": "(C_stat + J C_theta J^T)/C_stat",
+    "op": ">",
+    "thresh": 1,
+    "unit": "ratio",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-P2-001 Oracle C9 实测 2.0"
+   },
+   "tol_source": "构造性不变量；SCI-P2-001 C9 的含项/不含项比 = 2.0。",
+   "min_cases": 1,
+   "fail_closed": "UPM 断图/欠定 -> 显式失败/分组件，不得静默发布。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式 Jacobian 与参数协方差构造。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析传播 C_out=C_stat+J C_theta J^T"
+   },
+   "mutations": [
+    "MUT-M07"
+   ],
+   "owner": "ALG-P2-UPM-001 / IMPL-P2-UPM-001",
+   "wave": 5,
+   "status": "mechanism_frozen"
+  },
+  {
+   "gate_id": "G-MC-08",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "upm_control_variance",
+   "title": "k_corr 可复现口径与适用域",
+   "claim": "定义 k_corr=Var(median)/[pi sigma_bg^2/(2 N_retained)]；固定种子 MC 必须复现方向 k_corr>1 且脚本可复跑；未复跑前仅允许在已声明域内取 1.4，禁止外推。",
+   "anchors": [
+    "FZ-PROV-KCORR",
+    "ADJ-F-OBS-05",
+    "UNCERTAINTY_AND_COVARIANCE §V19R3",
+    "SCI-OBS-001 门 D5"
+   ],
+   "lit": [
+    "STARCK"
+   ],
+   "inputs": [
+    "pixfrac",
+    "patch",
+    "N_retained",
+    "estimator_version",
+    "seed"
+   ],
+   "outputs": [
+    "k_corr",
+    "domain"
+   ],
+   "units": {
+    "k_corr": "1"
+   },
+   "domain": "显式声明几何/pixfrac/control patch/估计器/是否球面；域外禁用。",
+   "criterion": {
+    "metric": "k_corr",
+    "op": ">",
+    "thresh": 1,
+    "unit": "ratio",
+    "status": "frozen",
+    "owner": "ALG-P2-UPM-001",
+    "ref": "SCI-OBS-001 D5 实测 2.1909；冻结值 1.3883/1.4（域内）"
+   },
+   "tol_source": "方向不变量（k_corr>1）为门；冻结数值 1.4 仅域内可用（SO-07 数值阈值由负责人确认，本任务不发明）。",
+   "min_cases": 1,
+   "fail_closed": "k_corr=1（忽略相关）或域外外推且未更新 provenance -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "平面 pixfrac=0.8 独立 MC，固定亚像素 shift；与生产球面几何解耦。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "定义式 + 定种子 MC"
+   },
+   "mutations": [
+    "MUT-M08"
+   ],
+   "owner": "ALG-P2-UPM-001 / IMPL-P2-UPM-001",
+   "wave": 5,
+   "status": "mechanism_frozen_value_pending_SO-07",
+   "signoff": "SO-07（k_corr 标定脚本与数值阈值）— 只登记不签署"
+  }
+ ]
+}

@@ -1,0 +1,759 @@
+{
+ "schema": "astrocs.v6.qa-matrix.mutations/v1",
+ "task": "QA-MATRIX-001",
+ "mutations": [
+  {
+   "id": "MUT-A01",
+   "mech": "science",
+   "inject": "point_information 用 (A^T A)^-1 A^T d 取代 GLS（丢 C^-1）",
+   "rule": "G-ANA-01",
+   "targets": [
+    "G-ANA-01"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "GLS 退化为 OLS 必须使 Q/W 恒等门变红"
+  },
+  {
+   "id": "MUT-A02",
+   "mech": "science",
+   "inject": "实际组合系数 c 乘以 1.10 后报告 F_hat=c^T d、Var=c^T C c",
+   "rule": "G-ANA-02",
+   "targets": [
+    "G-ANA-01",
+    "G-ANA-02"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "替代 SCI-P2-001 OM1；系数错误必须被 c^T C c == 1/W 门检出"
+  },
+  {
+   "id": "MUT-A04",
+   "mech": "science",
+   "inject": "GLS 协方差用忽略 a_k 的 R~ 计算 R~ C R~^T 并声称等于 (A^T C^-1 A)^-1",
+   "rule": "G-ANA-04",
+   "targets": [
+    "G-ANA-04"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "近似系数必须报告比值且不等号成立"
+  },
+  {
+   "id": "MUT-A05",
+   "mech": "science",
+   "inject": "白噪声式取倒数 W=a^2 sigma^2 A_NEA",
+   "rule": "G-ANA-05",
+   "targets": [
+    "G-ANA-05"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "条件恒等必须精确"
+  },
+  {
+   "id": "MUT-A06",
+   "mech": "science",
+   "inject": "单位表把 W_info 记为 ADU^2（量纲混名）",
+   "rule": "G-ANA-06",
+   "targets": [
+    "G-ANA-06"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "量纲指数必须与 FREEZE_LIST §1 一致"
+  },
+  {
+   "id": "MUT-A07",
+   "mech": "science",
+   "inject": "PSFSW 跳过组内归一（W_psfsw=Wt）",
+   "rule": "G-ANA-07",
+   "targets": [
+    "G-ANA-07"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "组内 median=1 是冻结定义式"
+  },
+  {
+   "id": "MUT-A08",
+   "mech": "science",
+   "inject": "Phase3 直接重采样输入 Q/W 而非在输出帧以 pi=S p 重算",
+   "rule": "G-ANA-08",
+   "targets": [
+    "G-ANA-08",
+    "G-INJ-07"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "C-P3-PROP-14 禁止重采样输入 Q/W"
+  },
+  {
+   "id": "MUT-A09",
+   "mech": "science",
+   "inject": "Phase3 var_out=Sum c_k u_k（误用 Sum c_k=1 归一方差）",
+   "rule": "G-ANA-09",
+   "targets": [
+    "G-ANA-09"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "SCI-OBS-001 门 P2 mutation p3_sigma_c_equals_1"
+  },
+  {
+   "id": "MUT-A10",
+   "mech": "science",
+   "inject": "Drizzle variance_p=Sum v_j w_jp^2（漏 /D_p^2）",
+   "rule": "G-ANA-10",
+   "targets": [
+    "G-ANA-10",
+    "G-INJ-08"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "SCI-OBS-001 门 D1 mutation drizzle_missing_D2"
+  },
+  {
+   "id": "MUT-A11",
+   "mech": "science",
+   "inject": "常量场用每像素常量 ADU x_j=C 构造并断言 S_p=C",
+   "rule": "G-ANA-11",
+   "targets": [
+    "G-ANA-11",
+    "G-INJ-02"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "ADJ-S3 三错法之一（必须按 B0 构造）"
+  },
+  {
+   "id": "MUT-A12",
+   "mech": "science",
+   "inject": "point_information 权威式替换为像素 ivar 加权平均",
+   "rule": "G-ANA-01",
+   "targets": [
+    "G-ANA-01"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "UNIFIED §11 撤销像素 ivar 对任意 PSF 最优"
+  },
+  {
+   "id": "MUT-A13",
+   "mech": "science",
+   "inject": "把 psfsw_robust_weight 写入 ivar（variance=1/W_psfsw）",
+   "rule": "G-MC-04",
+   "targets": [
+    "G-ANA-07",
+    "G-MC-04"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "FZ-GATE-PSFSW-COV；RULINGS #5"
+  },
+  {
+   "id": "MUT-A14",
+   "mech": "science",
+   "inject": "Drizzle variance_p=Sum v_j w_jp/D_p^2（漏平方）",
+   "rule": "G-ANA-10",
+   "targets": [
+    "G-ANA-10"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "SCI-OBS-001 门 D1 mutation drizzle_missing_square"
+  },
+  {
+   "id": "MUT-A15",
+   "mech": "science",
+   "inject": "宣称常量面亮度不变量对任意 pixfrac 无条件成立（沿用 w=a/A_drop 且声称 S_p=B0）",
+   "rule": "G-ANA-11",
+   "targets": [
+    "G-ANA-11"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "ADJ-S3 三错法之一；SCI-OBS-001 门 D4 mutation"
+  },
+  {
+   "id": "MUT-A16",
+   "mech": "science",
+   "inject": "把 S_p 定义为 F_p（漏 D_p 归一）",
+   "rule": "G-ANA-11",
+   "targets": [
+    "G-ANA-11"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "ADJ-S3 三错法之一"
+  },
+  {
+   "id": "MUT-M01",
+   "mech": "science",
+   "inject": "跨帧相关系数 rho->0（把相关帧当独立帧简单求和）",
+   "rule": "G-ANA-03/G-MC-03",
+   "targets": [
+    "G-ANA-03",
+    "G-MC-03"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "SCI-P2-001 OM3；相关帧必须用联合 C"
+  },
+  {
+   "id": "MUT-M02",
+   "mech": "science",
+   "inject": "报告 Var=1/W 但用错误 W（W 减半）",
+   "rule": "G-MC-01",
+   "targets": [
+    "G-MC-01"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "注入源散度必须与 1/sqrt(W) 一致"
+  },
+  {
+   "id": "MUT-M03",
+   "mech": "science",
+   "inject": "像素 ivar 近似忽略 a_k 并声称最优",
+   "rule": "G-MC-02",
+   "targets": [
+    "G-MC-02"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "ADJ-P2-02：无误差门声明即 REJECT"
+  },
+  {
+   "id": "MUT-M04",
+   "mech": "science",
+   "inject": "PSFSW 方差用 1/W_psfsw 或 Sum W_psfsw 代替实际系数传播",
+   "rule": "G-MC-04",
+   "targets": [
+    "G-MC-04"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "SCI-P2-001 M04/M13；FZ-GATE-PSFSW-COV"
+  },
+  {
+   "id": "MUT-M05",
+   "mech": "science",
+   "inject": "effective PSF 用 median_k FWHM_k 代替脉冲响应",
+   "rule": "G-MC-05/G-INJ-05",
+   "targets": [
+    "G-MC-05",
+    "G-INJ-05"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "SCI-P2-001 C6：median 输入 FWHM != FWHM(P_eff)"
+  },
+  {
+   "id": "MUT-M06",
+   "mech": "science",
+   "inject": "宣称像素 ivar 加权平均等价 W_info / 对任意 PSF 点源最优",
+   "rule": "G-MC-06/G-BASE-02",
+   "targets": [
+    "G-MC-06",
+    "G-BASE-02"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "UNIFIED §5/§11"
+  },
+  {
+   "id": "MUT-M07",
+   "mech": "science",
+   "inject": "covariance 丢弃 UPM 参数项 J C_theta J^T",
+   "rule": "G-MC-07",
+   "targets": [
+    "G-MC-07"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "DESIGN-P2 §4：参数不确定度必须传播"
+  },
+  {
+   "id": "MUT-M08",
+   "mech": "science",
+   "inject": "k_corr=1（忽略 Drizzle 相关）或域外外推不更新 provenance",
+   "rule": "G-MC-08",
+   "targets": [
+    "G-MC-08"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "ADJ-F-OBS-05；SCI-OBS-001 门 D5 mutation"
+  },
+  {
+   "id": "MUT-I01",
+   "mech": "science",
+   "inject": "共享系统项按独立随机项处理（不建低秩/相关核）",
+   "rule": "G-MC-03/G-ANA-03",
+   "targets": [
+    "G-MC-03",
+    "G-ANA-03"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "ADJ-OBS-01/F-OBS-04；ratio>1 必须检出"
+  },
+  {
+   "id": "MUT-I02",
+   "mech": "science",
+   "inject": "注入源恢复用 OLS 取代 GLS",
+   "rule": "G-MC-01/G-INJ-01",
+   "targets": [
+    "G-MC-01",
+    "G-INJ-01"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "点源通量必须最小方差（GLS）"
+  },
+  {
+   "id": "MUT-I03",
+   "mech": "science",
+   "inject": "注入源方差从权重标量反推（variance_from_weight）",
+   "rule": "G-INJ-01/G-INJ-02",
+   "targets": [
+    "G-INJ-01",
+    "G-INJ-02"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "FZ-FORMULA-COV-PROP"
+  },
+  {
+   "id": "MUT-I04",
+   "mech": "science",
+   "inject": "共同星集用逐帧检测阈值交集构造（与待测测量耦合）",
+   "rule": "G-INJ-03",
+   "targets": [
+    "G-INJ-03"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "PSFW_FREEZE §5.2 禁止；选择偏差可测"
+  },
+  {
+   "id": "MUT-I05",
+   "mech": "science",
+   "inject": "W_info 由选中样本计算（随检测深度移动）",
+   "rule": "G-INJ-03",
+   "targets": [
+    "G-INJ-03"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "PSFW K8：W_info 必须样本无关"
+  },
+  {
+   "id": "MUT-I06",
+   "mech": "science",
+   "inject": "单变量扫描方向反转（如 W 随 sigma 增大）",
+   "rule": "G-INJ-04",
+   "targets": [
+    "G-INJ-04"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "解析单调性"
+  },
+  {
+   "id": "MUT-I07",
+   "mech": "science",
+   "inject": "背景非正且变换未定义却返回权重（未 unavailable）",
+   "rule": "G-INJ-06",
+   "targets": [
+    "G-INJ-06"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "FZ-GATE-PSFSW-FAILCLOSED 白名单"
+  },
+  {
+   "id": "MUT-I08",
+   "mech": "science",
+   "inject": "unavailable 时回退 median source SNR",
+   "rule": "G-INJ-06",
+   "targets": [
+    "G-INJ-06"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "PSF_SIGNAL_WEIGHT §3 末条"
+  },
+  {
+   "id": "MUT-I09",
+   "mech": "science",
+   "inject": "Phase3 把输出 PSF 当单像素 delta（delta-PSF 近似）",
+   "rule": "G-INJ-07",
+   "targets": [
+    "G-INJ-07"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "C-P3-PROP-12：delta 近似通量偏差 94.8%"
+  },
+  {
+   "id": "MUT-B01",
+   "mech": "science",
+   "inject": "基线声明 pixel_ivar 等价 W_info（最优性冒充）",
+   "rule": "G-BASE-02/G-MC-06",
+   "targets": [
+    "G-BASE-02",
+    "G-MC-06"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "FZ-MODE-BASELINE 不得冒充最优"
+  },
+  {
+   "id": "MUT-B02",
+   "mech": "science",
+   "inject": "psfsw_robust 声明 Fisher 最优 / 等同 1/Var(F_hat)",
+   "rule": "G-BASE-01/G-BASE-03",
+   "targets": [
+    "G-BASE-01",
+    "G-BASE-03"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "ADJ-P2-03；PSF_SIGNAL_WEIGHT §4/§8"
+  },
+  {
+   "id": "MUT-B03",
+   "mech": "science",
+   "inject": "psfsw 输出 variance_from_weight=true",
+   "rule": "G-BASE-03/G-BASE-01",
+   "targets": [
+    "G-BASE-03",
+    "G-BASE-01"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "FZ-GATE-PSFSW-COV"
+  },
+  {
+   "id": "MUT-B04",
+   "mech": "science",
+   "inject": "equal 模式声明科学最优",
+   "rule": "G-BASE-04",
+   "targets": [
+    "G-BASE-04"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "FZ-MODE-BASELINE"
+  },
+  {
+   "id": "MUT-R01",
+   "mech": "science",
+   "inject": "真实数据门 expected 仅来自生产输出",
+   "rule": "G-RD-01/G-RD-02",
+   "targets": [
+    "G-RD-01",
+    "G-RD-02"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "PROJECT_SPEC §8 禁止以当前程序输出生成唯一 expected"
+  },
+  {
+   "id": "MUT-R02",
+   "mech": "science",
+   "inject": "真实产品缺 provenance 键 / testdata 清单不匹配",
+   "rule": "G-RD-03/G-RD-05",
+   "targets": [
+    "G-RD-03",
+    "G-RD-05"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "FZ-PROV-MINIMAL-SET；testdata/index.json v1.2"
+  },
+  {
+   "id": "MUT-R03",
+   "mech": "science",
+   "inject": "未在 Fatduck 复验却标 Windows VERIFIED",
+   "rule": "G-RD-06",
+   "targets": [
+    "G-RD-06"
+   ],
+   "expect_rc_nonzero": true,
+   "why": "PROJECT_SPEC §10；本包状态机"
+  },
+  {
+   "id": "MUT-SPEC-01",
+   "mech": "spec",
+   "inject": "清空某门的 mutations 列表",
+   "rule": "R1 gates-must-red",
+   "targets": [
+    "P0-01"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "set_gate",
+    "gate_id": "G-ANA-01",
+    "path": [
+     "mutations"
+    ],
+    "value": []
+   },
+   "why": "P0-01：门必须能红"
+  },
+  {
+   "id": "MUT-SPEC-04",
+   "mech": "spec",
+   "inject": "把 psf_snr_power 放进 production_modes",
+   "rule": "C-004.1/FZ-MODE-DEFERRED",
+   "targets": [
+    "G-BASE-05",
+    "G-BASE-01"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "set_top",
+    "key": "production_modes",
+    "value": [
+     "point_information",
+     "surface_gls",
+     "psfsw_robust",
+     "psf_snr_power"
+    ]
+   },
+   "why": "延迟模式不得进生产路由"
+  },
+  {
+   "id": "MUT-SPEC-05",
+   "mech": "spec",
+   "inject": "把 median_source_snr 写入某门 weight_sources",
+   "rule": "FZ-GATE-MEDIAN-SNR",
+   "targets": [
+    "G-ANA-02",
+    "P0-02"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "add_gate_field",
+    "gate_id": "G-ANA-02",
+    "path": [
+     "weight_sources"
+    ],
+    "value": [
+     "median_source_snr"
+    ]
+   },
+   "why": "诊断别名不得作权重来源"
+  },
+  {
+   "id": "MUT-SPEC-06",
+   "mech": "spec",
+   "inject": "在某门 claim 中宣称 support×snr² 为合法权重",
+   "rule": "AR-049/UNIFIED §11",
+   "targets": [
+    "P0-04",
+    "G-INJ-05"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "set_gate",
+    "gate_id": "G-INJ-05",
+    "path": [
+     "claim"
+    ],
+    "value": "support×snr² 是合法科学权重"
+   },
+   "why": "退休口径不得反向固化"
+  },
+  {
+   "id": "MUT-SPEC-07",
+   "mech": "spec",
+   "inject": "删除某门的 oracle.independent_truth（真值来自生产输出）",
+   "rule": "PROJECT_SPEC §8/AR-043",
+   "targets": [
+    "G-RD-04",
+    "P0-02"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "set_gate",
+    "gate_id": "G-RD-04",
+    "path": [
+     "oracle",
+     "must_not"
+    ],
+    "value": []
+   },
+   "why": "同源自证禁止"
+  },
+  {
+   "id": "MUT-SPEC-08",
+   "mech": "spec",
+   "inject": "把某门 oracle.kind 改为 unknown_production",
+   "rule": "R4 independent oracle",
+   "targets": [
+    "P0-03"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "set_gate",
+    "gate_id": "P0-03",
+    "path": [
+     "oracle",
+     "kind"
+    ],
+    "value": "unknown_production"
+   },
+   "why": "独立真值来源白名单"
+  },
+  {
+   "id": "MUT-SPEC-09",
+   "mech": "spec",
+   "inject": "P0-05 账本数字去掉层声明（ledger_layer 置空）",
+   "rule": "AR-051 merged layer",
+   "targets": [
+    "P0-05"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "set_gate",
+    "gate_id": "P0-05",
+    "path": [
+     "ledger_layer"
+    ],
+    "value": ""
+   },
+   "why": "账本数字必须带层号"
+  },
+  {
+   "id": "MUT-SPEC-10",
+   "mech": "spec",
+   "inject": "pending_freeze 容差清空 owner",
+   "rule": "AR-044/SO-07",
+   "targets": [
+    "P0-06",
+    "G-INJ-01"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "set_gate",
+    "gate_id": "G-INJ-01",
+    "path": [
+     "criterion",
+     "threshold_owner"
+    ],
+    "value": ""
+   },
+   "why": "数值未冻结必须指明 owner，不得自称冻结"
+  },
+  {
+   "id": "MUT-SPEC-11",
+   "mech": "spec",
+   "inject": "单位表把 W_info 改为 ADU^2",
+   "rule": "FZ-UNIT-WINFO",
+   "targets": [
+    "G-ANA-06"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "set_top",
+    "key": "unit_table_override",
+    "value": {
+     "W_info": "ADU^2"
+    }
+   },
+   "why": "量纲代数与 FREEZE_LIST §1 一致"
+  },
+  {
+   "id": "MUT-SPEC-12",
+   "mech": "spec",
+   "inject": "清空某门 oracle.must_not_call 与 independent_truth",
+   "rule": "R2 anti self-proof",
+   "targets": [
+    "P0-02",
+    "G-ANA-01"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "set_gate",
+    "gate_id": "G-ANA-01",
+    "path": [
+     "oracle",
+     "must_not"
+    ],
+    "value": []
+   },
+   "why": "必须声明不得调用的对象"
+  },
+  {
+   "id": "MUT-SPEC-13",
+   "mech": "spec",
+   "inject": "把 legacy weight_mode 0 加入生产枚举",
+   "rule": "ADJ-S1/AR-049",
+   "targets": [
+    "P0-04"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "set_top",
+    "key": "production_modes",
+    "value": [
+     "point_information",
+     "surface_gls",
+     "psfsw_robust",
+     "0"
+    ]
+   },
+   "why": "legacy 0 不得进科学权重面"
+  },
+  {
+   "id": "MUT-SPEC-14",
+   "mech": "spec",
+   "inject": "某门 threshold_status=frozen 但 tol_source 不含任何 FZ-/ADJ-/W1 锚",
+   "rule": "AR-044",
+   "targets": [
+    "P0-06"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "set_gate_multi",
+    "gate_id": "G-ANA-01",
+    "sets": [
+     {"path": ["tol_source"], "value": "自定义阈值，无锚"},
+     {"path": ["criterion", "ref"], "value": ""}
+    ]
+   },
+   "why": "frozen 必须有真实锚（ref/tol_source）"
+  },
+  {
+   "id": "MUT-SPEC-15",
+   "mech": "spec",
+   "inject": "把某门 case_ledger.executed_cases 置 0（非 pending 门）",
+   "rule": "zero-case red",
+   "targets": ["P0-01"],
+   "expect_rc_nonzero": true,
+   "op": {"kind": "ledger_set", "gate_id": "G-ANA-01", "path": ["executed_cases"], "value": 0},
+   "why": "零用例即红机制：executed_cases==0 且非 pending -> rc!=0"
+  },
+  {
+   "id": "MUT-SPEC-16",
+   "mech": "spec",
+   "inject": "把某门置 skip-only（skipped_cases>=executed_cases）",
+   "rule": "zero-case red / skip-only",
+   "targets": ["P0-01"],
+   "expect_rc_nonzero": true,
+   "op": {"kind": "ledger_set", "gate_id": "G-ANA-02", "path": ["skipped_cases"], "value": 999},
+   "why": "skip-only 不得 PASS；skipped_cases>=executed_cases -> rc!=0"
+  },
+  {
+   "id": "MUT-DOC-01",
+   "mech": "doc",
+   "inject": "从 QA_MATRIX.md 渲染表删除一行门",
+   "rule": "render consistency",
+   "targets": [
+    "P0-01"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "doc_delete_row",
+    "gate_id": "G-ANA-01"
+   },
+   "why": "人读与机器表必须逐门一致"
+  },
+  {
+   "id": "MUT-DOC-02",
+   "mech": "doc",
+   "inject": "修改渲染表中某门容差数字",
+   "rule": "render consistency",
+   "targets": [
+    "P0-06"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "doc_edit_tolerance",
+    "gate_id": "G-ANA-11"
+   },
+   "why": "容差不得在两侧漂移"
+  },
+  {
+   "id": "MUT-DOC-03",
+   "mech": "doc",
+   "inject": "在渲染表插入 psf_snr_power 为生产模式行/声明",
+   "rule": "C-004.1",
+   "targets": [
+    "G-BASE-05"
+   ],
+   "expect_rc_nonzero": true,
+   "op": {
+    "kind": "doc_append_line",
+    "text": "| psf_snr_power | production | forbidden |"
+   },
+   "why": "延迟模式不得出现在生产清单"
+  }
+ ]
+}

@@ -1,0 +1,3208 @@
+{
+ "schema": "astrocs.v6.qa-matrix/v1",
+ "task": "QA-MATRIX-001",
+ "wave": 3,
+ "write_scope": [
+  "docs/validation/v6/",
+  "reports/v6/qa-design/"
+ ],
+ "baseline_head": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
+ "production_modes": [
+  "point_information",
+  "surface_gls",
+  "psfsw_robust"
+ ],
+ "baseline_modes": [
+  "equal",
+  "pixel_ivar"
+ ],
+ "deferred_modes": [
+  "psf_snr_power"
+ ],
+ "forbidden_weight_source_tokens": [
+  "median_source_snr",
+  "median_snr",
+  "source_snr_median",
+  "med_source_snr",
+  "support",
+  "support_area",
+  "coverage",
+  "coverage_area",
+  "fwhm",
+  "psf_fwhm",
+  "median_fwhm",
+  "source_fwhm",
+  "residual",
+  "psf_residual",
+  "psf_fit_residual",
+  "fit_residual",
+  "psfsw_robust_weight",
+  "psfsw"
+ ],
+ "forbidden_production_modes": [
+  "psf_snr_power",
+  "0",
+  "auto",
+  "support_x_snr2"
+ ],
+ "forbidden_psfsw_keys": [
+  "ivar",
+  "variance",
+  "var",
+  "sigma",
+  "sigma2",
+  "inverse_variance",
+  "fisher",
+  "information",
+  "w_info",
+  "w_psf"
+ ],
+ "required_freeze_ids": [
+  "FZ-UNIT-WINFO",
+  "FZ-UNIT-PSFSW",
+  "FZ-BUNIT-SEMANTICS",
+  "FZ-FORMULA-DRIZZLE-SB",
+  "FZ-GATE-CONST-SB",
+  "FZ-FORMULA-WINFO",
+  "FZ-FORMULA-GLS",
+  "FZ-GATE-PIXIVAR-APPROX",
+  "FZ-FORMULA-COV-PROP",
+  "FZ-FIELD-PSFSW-4COMP",
+  "FZ-GATE-PSFSW-COV",
+  "FZ-GATE-PSFSW-EPSF",
+  "FZ-MODE-PRODUCTION",
+  "FZ-MODE-DEFERRED",
+  "FZ-GATE-MEDIAN-SNR",
+  "FZ-P3-QW-RECOMPUTE",
+  "FZ-P3-FAILCLOSED",
+  "FZ-DEGRADE-SCALAR",
+  "FZ-PROV-KCORR"
+ ],
+ "all_freeze_ids": [
+  "FZ-UNIT-WINFO",
+  "FZ-UNIT-PSFSW",
+  "FZ-BUNIT-SEMANTICS",
+  "FZ-FORMULA-DRIZZLE-SB",
+  "FZ-GATE-CONST-SB",
+  "FZ-FORMULA-WINFO",
+  "FZ-FORMULA-GLS",
+  "FZ-GATE-PIXIVAR-APPROX",
+  "FZ-FORMULA-COV-PROP",
+  "FZ-FIELD-PSFSW-4COMP",
+  "FZ-GATE-PSFSW-COV",
+  "FZ-GATE-PSFSW-EPSF",
+  "FZ-MODE-PRODUCTION",
+  "FZ-MODE-DEFERRED",
+  "FZ-GATE-MEDIAN-SNR",
+  "FZ-P3-QW-RECOMPUTE",
+  "FZ-P3-FAILCLOSED",
+  "FZ-DEGRADE-SCALAR",
+  "FZ-PROV-KCORR",
+  "FZ-UNIT-SIGNAL-SB",
+  "FZ-UNIT-VAR-IN",
+  "FZ-UNIT-VAR-SB",
+  "FZ-UNIT-IVAR-SB",
+  "FZ-UNIT-Q",
+  "FZ-UNIT-FLUX",
+  "FZ-FORMULA-DRIZZLE-VAR",
+  "FZ-FORMULA-Q",
+  "FZ-FORMULA-FHAT",
+  "FZ-COND-WHITENOISE",
+  "FZ-FORMULA-PSFSW-COMPOSITE",
+  "FZ-FIELD-PSFSW-UNIT",
+  "FZ-GATE-PSFSW-FAILCLOSED",
+  "FZ-COND-FLUX-CONSERV",
+  "FZ-PROV-SHARED-SYSTEMATIC",
+  "FZ-PROV-MINIMAL-SET",
+  "FZ-GATE-PARENT-VAR",
+  "FZ-P3-KERNEL-REGISTRY",
+  "FZ-MODE-BASELINE",
+  "FZ-P3-MODES",
+  "FZ-FIELD-WEIGHTMODE",
+  "FZ-PROV-KCORR",
+  "FZ-P3-BUNIT-QUADRATIC"
+ ],
+ "ledger_layer_note": "785 缺陷账本是合并层口径（AR-051）：叶子层 523 个 L-id 结构性不可表达；任何账本数字必须带层声明 merged_785 或 leaf_523，P0 门族统一 merged_785。",
+ "zero_case_red": {
+  "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+  "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+ },
+ "literature": {
+  "HORNE": "Horne 1986 PASP 98,609 DOI:10.1086/131801",
+  "NAYLOR": "Naylor 1998 MNRAS 296,339",
+  "ZO17I": "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872",
+  "ZO17II": "Zackay & Ofek 2017 II ApJ 836,188 arXiv:1512.06879",
+  "FH02": "Fruchter & Hook 2002 PASP 114,144",
+  "PI": "PixInsight New Image Weighting Algorithms §2.5-2.6",
+  "GC02": "Greisen & Calabretta 2002 A&A 395,1061",
+  "KO": "Gorski et al. 2005 HEALPix ApJ 622,759",
+  "FERNIQUE": "Fernique et al. 2015 A&A 578,A114 (HiPS)",
+  "IVOA": "IVOA HiPS 1.0 Recommendation",
+  "PADM": "Padmanabhan et al. 2008 ApJ 674,1217",
+  "GRUEN": "Gruen et al. 2014 PASP 126,158",
+  "STARCK": "Starck, Murtagh & Fadili 2010 CBO9780511730344 (MMT)",
+  "RC93": "Rousseeuw & Croux 1993 JASA 88,1273 (Sn)"
+ },
+ "gates": [
+  {
+   "gate_id": "G-ANA-01",
+   "family": "analytic",
+   "phase": "phase2",
+   "objective": "point_source_photometry",
+   "title": "Q/W == GLS 点源通量恒等",
+   "claim": "point_information 的 F_hat=Sum Q_k/Sum W_k 与显式 GLS 解 x_hat=(A^T C^-1 A)^-1 A^T C^-1 d 在任意正定 C 下数值恒等。",
+   "anchors": [
+    "FZ-FORMULA-Q",
+    "FZ-FORMULA-FHAT",
+    "ADJ-P2-01",
+    "UNIFIED §4",
+    "DESIGN-P2 §6.2",
+    "SCI-P2-001 Oracle C1"
+   ],
+   "lit": [
+    "HORNE",
+    "NAYLOR",
+    "ZO17I"
+   ],
+   "inputs": [
+    "d_k",
+    "P_k",
+    "a_k",
+    "C_k"
+   ],
+   "outputs": [
+    "F_hat",
+    "Q",
+    "W"
+   ],
+   "units": {
+    "Q": "ADU^-1",
+    "W": "ADU^-2",
+    "F_hat": "ADU"
+   },
+   "domain": "C 正定且可表示；P 归一 Sum P=1；独立帧块对角或联合 C。",
+   "criterion": {
+    "metric": "max|F_hat - Q/W| / |x_hat|",
+    "op": "<=",
+    "thresh": 1e-09,
+    "ref": "SCI-P2-001 Oracle C1 实测 0.0",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "解析恒等（非测量阈值）：任意正定 C 下两式代数等价；1e-9 为浮点安全界，继承 SCI-P2-001 Oracle C1。",
+   "fail_closed": "C 非正定/不可求逆 -> 该配置整体 REJECT 并记 unavailable，不参与恒等判定。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式堆叠 A 与块对角 C 的直接矩阵求逆；不调用任何 AstroCS 生产函数。",
+    "must_not": [
+     "astrocs",
+     "lib/",
+     "cli/",
+     "include/"
+    ],
+    "truth": "解析恒等式 + 显式矩阵参考"
+   },
+   "mutations": [
+    "MUT-A01",
+    "MUT-A02",
+    "MUT-A12"
+   ],
+   "owner": "ALG-P2-POINT-001 / P2-INTEGRATE-001",
+   "wave": 3,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Horne 1986 PASP 98,609 DOI:10.1086/131801",
+    "Naylor 1998 MNRAS 296,339",
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-ANA-02",
+   "family": "analytic",
+   "phase": "phase2",
+   "objective": "point_source_photometry",
+   "title": "实际系数方差恒等 c^T C c == 1/W",
+   "claim": "报告方差必须用实际组合系数 c=C^-1 A/(A^T C^-1 A) 计算：c^T C c == 1/W；权重标量/诊断量反推一律禁止。",
+   "anchors": [
+    "FZ-FORMULA-COV-PROP",
+    "FZ-GATE-PSFSW-COV",
+    "ADJ-P2-03",
+    "RULINGS #5",
+    "COVARIANCE_AND_EFFECTIVE_PSF §1"
+   ],
+   "lit": [
+    "HORNE",
+    "FH02"
+   ],
+   "inputs": [
+    "c",
+    "C_in"
+   ],
+   "outputs": [
+    "Var(F_hat)",
+    "c^T C c"
+   ],
+   "units": {
+    "Var": "ADU^2",
+    "W": "ADU^-2"
+   },
+   "domain": "任意线性组合；C 含相关项时必须用完整 C。",
+   "criterion": {
+    "metric": "|c^T C c - 1/W| / (1/W)",
+    "op": "<=",
+    "thresh": 1e-09,
+    "ref": "SCI-P2-001 Oracle C1.3 实测 <1e-9",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "代数恒等（C 正确时）；OM1 以 c×1.10 证明该门能红（rc=1）。",
+   "fail_closed": "variance_from 属于 {weight, psfsw_robust_weight, median_source_snr, support, coverage, fwhm, psf_residual} -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式矩阵二次型；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析恒等式"
+   },
+   "mutations": [
+    "MUT-A02",
+    "MUT-SPEC-05"
+   ],
+   "owner": "ALG-P2-POINT-001 / P2-INTEGRATE-001",
+   "wave": 3,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Horne 1986 PASP 98,609 DOI:10.1086/131801",
+    "Fruchter & Hook 2002 PASP 114,144"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-ANA-03",
+   "family": "analytic",
+   "phase": "phase2",
+   "objective": "point_source_photometry",
+   "title": "相关帧必须用联合 C（简单求和被拒）",
+   "claim": "跨帧相关存在时独立帧求和 Var=1/Sum W_k 低估方差；必须用联合 C 求 c^T C c；低估比 > 1 必须可检出。",
+   "anchors": [
+    "FZ-FORMULA-COV-PROP",
+    "ADJ-P2-01",
+    "ADJ-OBS-01",
+    "UNIFIED §4",
+    "UNIFIED §10",
+    "SCI-P2-001 Oracle C3"
+   ],
+   "lit": [
+    "ZO17I",
+    "FH02"
+   ],
+   "inputs": [
+    "C_joint",
+    "C_diag",
+    "W_k"
+   ],
+   "outputs": [
+    "var_joint",
+    "var_naive",
+    "ratio"
+   ],
+   "units": {
+    "var": "ADU^2"
+   },
+   "domain": "跨帧共享模式 / 共同 master / 重采样相关。",
+   "criterion": {
+    "metric": "var_naive/var_joint",
+    "op": "<",
+    "thresh": 1,
+    "ref": "SCI-P2-001 Oracle C3 实测 1.575；F-OBS-04 实测 3.48x",
+    "kind": "numeric",
+    "threshold_unit": "ratio",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "构造性不变量（ratio>1 必须检出），非经验阈值；W1 双 Oracle 实测 1.575 / 3.48。",
+   "fail_closed": "无法表示联合 C -> variance 面 unavailable 或系统误差预算（FZ-PROV-SHARED-SYSTEMATIC）。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "构造 4 帧共享共同模式，联合 Cholesky 采样；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "构造已知共享幅度下的解析比"
+   },
+   "mutations": [
+    "MUT-M01",
+    "MUT-I01"
+   ],
+   "owner": "ALG-P2-POINT-001 / ALG-P2-SURF-001",
+   "wave": 3,
+   "status": "frozen_mechanism",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872",
+    "Fruchter & Hook 2002 PASP 114,144"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-ANA-04",
+   "family": "analytic",
+   "phase": "phase2",
+   "objective": "surface_brightness",
+   "title": "GLS 协方差恒等 G C G^T == (A^T C^-1 A)^-1",
+   "claim": "surface_gls 的 Cov=(A^T C^-1 A)^-1 与 R C_in R^T (R=(A^T C^-1 A)^-1 A^T C^-1) 数值恒等；使用近似 R~ 时必须报告 R~ C_in R~^T 及相对比值。",
+   "anchors": [
+    "FZ-FORMULA-GLS",
+    "FZ-FORMULA-COV-PROP",
+    "ADJ-P2-02",
+    "UNIFIED §5",
+    "SCI-P2-001 Oracle C5"
+   ],
+   "lit": [
+    "ZO17I"
+   ],
+   "inputs": [
+    "A",
+    "C",
+    "d"
+   ],
+   "outputs": [
+    "x_hat",
+    "Cov",
+    "R C R^T"
+   ],
+   "units": {
+    "Cov": "BUNIT^2"
+   },
+   "domain": "A 列满秩；C 正定。",
+   "criterion": {
+    "metric": "max|G C G^T - (A^T C^-1 A)^-1|",
+    "op": "<=",
+    "thresh": 1e-09,
+    "ref": "SCI-P2-001 Oracle C5 实测 1.1e-16",
+    "kind": "numeric",
+    "threshold_unit": "abs",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "代数恒等；继承 SCI-P2-001 Oracle C5。",
+   "fail_closed": "A 秩亏 -> gauge/断图处理并 REJECT 该元件。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "直接矩阵运算参考；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析恒等式"
+   },
+   "mutations": [
+    "MUT-A04"
+   ],
+   "owner": "ALG-P2-SURF-001 / P2-INTEGRATE-001",
+   "wave": 3,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-ANA-05",
+   "family": "analytic",
+   "phase": "phase1",
+   "objective": "point_source_detection",
+   "title": "白噪声条件恒等 W=a^2/(sigma^2 A_NEA)",
+   "claim": "仅 C 对角且 sigma_pix 声明时，W_info=a_k^2/(sigma_pix^2 A_NEA)，A_NEA=1/Sum P^2；该近似为条件式，不得无条件宣称。",
+   "anchors": [
+    "FZ-COND-WHITENOISE",
+    "FZ-FORMULA-WINFO",
+    "ADJ-P2-01",
+    "PSF_SIGNAL_WEIGHT §2",
+    "DESIGN-P1 §8.1"
+   ],
+   "lit": [
+    "HORNE"
+   ],
+   "inputs": [
+    "a",
+    "sigma_pix",
+    "P"
+   ],
+   "outputs": [
+    "W_info",
+    "A_NEA"
+   ],
+   "units": {
+    "W_info": "ADU^-2",
+    "A_NEA": "px^2"
+   },
+   "domain": "C=sigma^2 I 且 sigma_pix 已声明；P 归一无特别要求（A_NEA 吸收归一）。",
+   "criterion": {
+    "metric": "|a^2/(sigma^2 A_NEA) - a^2 P^T C^-1 P| / (a^2 P^T C^-1 P)",
+    "op": "<=",
+    "thresh": 1e-12,
+    "ref": "SCI-PSFW-001 K1 实测 0.0；SCI-OBS-001 C3 <1e-12",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "代数恒等；继承 SCI-PSFW-001 K1 与 SCI-OBS-001 C3。",
+   "fail_closed": "C 非对角或 sigma_pix 未声明时使用白噪式 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "直接矩阵参考。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析恒等式"
+   },
+   "mutations": [
+    "MUT-A05"
+   ],
+   "owner": "ALG-P1-001 / IMPL-P1-PSFW-001",
+   "wave": 3,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Horne 1986 PASP 98,609 DOI:10.1086/131801"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-ANA-06",
+   "family": "analytic",
+   "phase": "all",
+   "objective": "contract_units",
+   "title": "单位表量纲代数（ADU/PX 指数）",
+   "claim": "signal_sb=ADU/px^2、pixel_variance_in=ADU^2、sb_variance_out=ADU^2/px^4、sb_ivar=px^4/ADU^2、Q=ADU^-1、flux=ADU、W_info=ADU^-2、psfsw=1；Phase3 variance BUNIT=(signal BUNIT)^2；variance 与 ivar 互为倒数。",
+   "anchors": [
+    "FZ-UNIT-SIGNAL-SB",
+    "FZ-UNIT-VAR-IN",
+    "FZ-UNIT-VAR-SB",
+    "FZ-UNIT-IVAR-SB",
+    "FZ-UNIT-Q",
+    "FZ-UNIT-FLUX",
+    "FZ-UNIT-WINFO",
+    "FZ-UNIT-PSFSW",
+    "FZ-P3-BUNIT-QUADRATIC",
+    "ADJ-GEN-01"
+   ],
+   "lit": [
+    "FH02"
+   ],
+   "inputs": [
+    "unit_table"
+   ],
+   "outputs": [
+    "dimension_check"
+   ],
+   "units": {
+    "basis": "ADU, PX"
+   },
+   "domain": "全部产品 BUNIT/单位声明。",
+   "criterion": {
+    "metric": "dimension_violations",
+    "op": "==",
+    "thresh": 0,
+    "ref": "FZ-UNIT-* 表 + FZ-P3-BUNIT-QUADRATIC",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "量纲代数（精确整数指数）已冻结于 FREEZE_LIST §1/§3.2；本任务不改单位表。",
+   "fail_closed": "BUNIT 量纲不可判（无显式 px 幂次且 provenance 无 pixel_area_power=-2）-> unavailable/REJECT。",
+   "oracle": {
+    "kind": "independent_stdlib",
+    "ref": "独立量纲指数向量算术（ADU,PX 基底），不调用生产单位代码。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "FREEZE_LIST §1 单位表"
+   },
+   "mutations": [
+    "MUT-A06",
+    "MUT-SPEC-11"
+   ],
+   "owner": "DATA-DESIGN-001 / SCHEMA-INTEGRATE-001",
+   "wave": 3,
+   "status": "frozen",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Fruchter & Hook 2002 PASP 114,144"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-ANA-07",
+   "family": "analytic",
+   "phase": "phase2",
+   "objective": "conventional_integration",
+   "title": "PSFSW 复合与组内归一（median=1、全正、单调方向）",
+   "claim": "Wt_k=C_norm*S^alpha*Conc^beta/(N^gamma*B^delta) 且 W_psfsw,k=Wt_k/median_j(Wt_j) 组内 median=1、全正；对 S/Conc 单调增、对 N/B 单调减（alpha,beta,gamma,delta>=0）。",
+   "anchors": [
+    "FZ-FORMULA-PSFSW-COMPOSITE",
+    "FZ-FIELD-PSFSW-4COMP",
+    "FZ-FIELD-PSFSW-UNIT",
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §3"
+   ],
+   "lit": [
+    "PI",
+    "STARCK",
+    "RC93"
+   ],
+   "inputs": [
+    "S",
+    "Conc",
+    "N",
+    "B",
+    "alpha",
+    "beta",
+    "gamma",
+    "delta",
+    "C_norm"
+   ],
+   "outputs": [
+    "Wt",
+    "W_psfsw"
+   ],
+   "units": {
+    "W_psfsw": "1"
+   },
+   "domain": "同波段、同连通分量、光度已归一的帧组；四分量 measurement_id 互异。",
+   "criterion": {
+    "metric": "|median_j(W_psfsw,j)-1|",
+    "op": "<=",
+    "thresh": 1e-12,
+    "ref": "ADJ-P2-03；SCI-PSFW-001 K6/K8 方向全部正确",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "组内归一是定义式（median 精确）；单调方向由解析偏导符号证明，对任意正指数成立。",
+   "fail_closed": "背景非正且变换未定义 / 无共同星集 / 有效星不足 / 选择偏差门失败 -> unavailable，禁回退 median SNR。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "从定义式独立复算归一与偏导符号；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "定义式 + 解析单调性"
+   },
+   "mutations": [
+    "MUT-A07",
+    "MUT-A13"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / IMPL-P1-PSFW-001",
+   "wave": 3,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 2
+   },
+   "literature": [
+    "PixInsight New Image Weighting Algorithms §2.5-2.6",
+    "Starck, Murtagh & Fadili 2010 CBO9780511730344 (MMT)",
+    "Rousseeuw & Croux 1993 JASA 88,1273 (Sn)"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-ANA-08",
+   "family": "analytic",
+   "phase": "phase3",
+   "objective": "point_source_flux",
+   "title": "Phase3 Q/W 输出帧重算（pi=S p；禁止重采样输入 Q/W）",
+   "claim": "输出帧必须重算 Q=a pi^T C_y^-1 f、W=a^2 pi^T C_y^-1 pi，pi=S p；禁止把输入 Q/W 重采样后直接使用。",
+   "anchors": [
+    "FZ-P3-QW-RECOMPUTE",
+    "ADJ-P3-01",
+    "C-P3-PROP-14",
+    "DESIGN-P3 §4",
+    "PHASE3_PROPAGATION_REVIEW §6"
+   ],
+   "lit": [
+    "ZO17I",
+    "GC02"
+   ],
+   "inputs": [
+    "f",
+    "S",
+    "p",
+    "C_y",
+    "a"
+   ],
+   "outputs": [
+    "Q",
+    "W",
+    "pi"
+   ],
+   "units": {
+    "Q": "ADU^-1",
+    "W": "ADU^-2"
+   },
+   "domain": "point_source_flux 模式；S 行归一；缺失相关核时须显式声明。",
+   "criterion": {
+    "metric": "|W_recompute - W_resampled_input|",
+    "op": ">",
+    "thresh": 0,
+    "ref": "C-P3-PROP-14；P3 Oracle P3-O5/O6（delta 近似偏差 94.8%）",
+    "kind": "numeric",
+    "threshold_unit": "abs",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "构造性区分门：两条路径在退化（S=I 且 PSF 为 delta）外必须给出不同 W；不得以相等为通过。",
+   "fail_closed": "缺 PSF / PSF 未归一 / 缺 point_information 且不可重建 / 缺 a / 未出 effective PSF -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "独立构造 S,p,C_y,f，比较重算与输入重采样两条路径。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "C-P3-PROP-14 定义式"
+   },
+   "mutations": [
+    "MUT-A08"
+   ],
+   "owner": "ALG-P3-001 / IMPL-P3-RSMP-001",
+   "wave": 3,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872",
+    "Greisen & Calabretta 2002 A&A 395,1061"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-ANA-09",
+   "family": "analytic",
+   "phase": "phase3",
+   "objective": "resampling_uncertainty",
+   "title": "Phase3 重采样方差 Σc^2 u 与行归一 R",
+   "claim": "行归一 Sum_j R_ij=1 保证常数面亮度不变量；var_out=Σ_k c_k^2 u_k 且非退化位置 Σc_k^2 != 1；ivar_out=1/var_out 有限且 >0。",
+   "anchors": [
+    "FZ-P3-BUNIT-QUADRATIC",
+    "ADJ-P3-01",
+    "C-P3-PROP-2",
+    "C-P3-PROP-7",
+    "C-P3-PROP-8",
+    "DATA_SEMANTICS §30.4"
+   ],
+   "lit": [
+    "GC02",
+    "FERNIQUE"
+   ],
+   "inputs": [
+    "R",
+    "c_k",
+    "u_k"
+   ],
+   "outputs": [
+    "var_out",
+    "row_sum"
+   ],
+   "units": {
+    "var_out": "BUNIT^2"
+   },
+   "domain": "线性采样 y=R x；输入像素独立（否则须给相关核）。",
+   "criterion": {
+    "metric": "|Σ_k c_k^2 u_k - diag(R diag(u) R^T)|",
+    "op": "<=",
+    "thresh": 1e-12,
+    "ref": "SCI-OBS-001 门 P1/P2 实测 1e-14；Σc^2=0.3364 != 1",
+    "kind": "numeric",
+    "threshold_unit": "abs",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "代数恒等（diag 情形）；非退化 Σc^2 != 1 是重力物理而非容差。",
+   "fail_closed": "输入 C 已相关仍只出对角且无相关核 -> 拒绝（对角化过度乐观须被检出，M3-05）。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式构造行归一 R 与采样核 c，独立计算 diag(R diag(u) R^T)。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "线性传播恒等式"
+   },
+   "mutations": [
+    "MUT-A09"
+   ],
+   "owner": "ALG-P3-001 / IMPL-P3-RSMP-001",
+   "wave": 3,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Greisen & Calabretta 2002 A&A 395,1061",
+    "Fernique et al. 2015 A&A 578,A114 (HiPS)"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-ANA-10",
+   "family": "analytic",
+   "phase": "phase1",
+   "objective": "surface_brightness",
+   "title": "Drizzle 方差传播恒等 + 缩放律",
+   "claim": "diag(Cov(S_p,S_q))=Σ_j v_j w_jp^2/D_p^2；x->alpha*x 蕴含 var->alpha^2 var、ivar->ivar/alpha^2。",
+   "anchors": [
+    "FZ-FORMULA-DRIZZLE-VAR",
+    "FZ-UNIT-VAR-SB",
+    "FZ-UNIT-IVAR-SB",
+    "ADJ-F-OBS-01",
+    "DRIZZLE §5"
+   ],
+   "lit": [
+    "FH02"
+   ],
+   "inputs": [
+    "v_j",
+    "w_jp",
+    "D_p",
+    "x_j"
+   ],
+   "outputs": [
+    "variance_p",
+    "ivar_p"
+   ],
+   "units": {
+    "variance_p": "ADU^2/px^4",
+    "ivar_p": "px^4/ADU^2"
+   },
+   "domain": "线性 Drizzle 算子；w_jp=a_jp/A_drop,j；D_p=Σ_j a_jp。",
+   "criterion": {
+    "metric": "max|diag(Cov) - Σ_j v_j w_jp^2/D_p^2|",
+    "op": "<=",
+    "thresh": 1e-11,
+    "ref": "SCI-OBS-001 门 D1 实测 5.6e-17",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "代数恒等；继承 SCI-OBS-001 门 D1（rtol 1e-11）。",
+   "fail_closed": "非对角协方差被当零用于 aperture/总量误差 -> 拒绝（须给相关核/误差）。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式构造 footprint 并直接做二次型。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析恒等式"
+   },
+   "mutations": [
+    "MUT-A10",
+    "MUT-A14"
+   ],
+   "owner": "ALG-P1-001 / IMPL-P1-DRZ-001",
+   "wave": 3,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Fruchter & Hook 2002 PASP 114,144"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-ANA-11",
+   "family": "analytic",
+   "phase": "phase1",
+   "objective": "surface_brightness",
+   "title": "Drizzle 面亮度归一 + 常量场 Oracle + 条件通量守恒",
+   "claim": "S_p=Σ_j B_j a_jp/Σ_j a_jp（B_j=x_j/A_pixel,j）对全部 pixfrac in (0,1] 满足常量面亮度 S_p=B0；通量守恒为条件不变量：pf=1 严格 ΣF=Σx，pf<1 总输出通量=pixfrac^2*Σx 且须记 flux_conservation_factor。",
+   "anchors": [
+    "FZ-FORMULA-DRIZZLE-SB",
+    "FZ-GATE-CONST-SB",
+    "FZ-COND-FLUX-CONSERV",
+    "ADJ-F-OBS-02",
+    "ADJ-S3",
+    "DESIGN-P1 §9",
+    "UNIFIED §7"
+   ],
+   "lit": [
+    "FH02"
+   ],
+   "inputs": [
+    "B0",
+    "A_pixel",
+    "a_jp",
+    "pixfrac",
+    "x_j"
+   ],
+   "outputs": [
+    "S_p",
+    "factor"
+   ],
+   "units": {
+    "S_p": "ADU/px^2"
+   },
+   "domain": "常量面亮度场按 x_j=B0*A_pixel,j 构造；pixfrac in (0,1]。",
+   "criterion": {
+    "metric": "max_pixfrac |S_p/B0 - 1|",
+    "op": "<=",
+    "thresh": 0.001,
+    "ref": "FZ-GATE-CONST-SB；p1drz_oracle.hpp:124-127 容差沿用",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "沿用现行常量场门 |S_p/B0-1|<1e-3（ADJ-S3 明令不改数值）；负向三错法必红。",
+   "fail_closed": "缺 flux_conservation_factor -> 不可用于绝对通量；BUNIT 缺 px 幂次且无 provenance -> unavailable。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "独立构造平面 drop 几何，显式求 /Sum a_jp；不调用生产 Drizzle。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "ADJ-S3 真值构造（按 B0）"
+   },
+   "mutations": [
+    "MUT-A11",
+    "MUT-A15",
+    "MUT-A16"
+   ],
+   "owner": "ALG-P1-001 / IMPL-P1-DRZ-001",
+   "wave": 3,
+   "status": "frozen_mechanism_signoff_SO-02/SO-03",
+   "signoff": "SO-02（面亮度归一 FROZEN 公式变更）/ SO-03（常量场判据取代）— 只登记不签署",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 2
+   },
+   "literature": [
+    "Fruchter & Hook 2002 PASP 114,144"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-MC-01",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "point_source_photometry",
+   "title": "点源注入/散度 vs 1/sqrt(W)",
+   "claim": "对固定 F_ref 的注入点源，实测 F_hat 散度与理论 sigma_F=1/sqrt(W_info) 一致；SNR_combined^2=F_ref^2*W。",
+   "anchors": [
+    "FZ-FORMULA-FHAT",
+    "FZ-FORMULA-WINFO",
+    "ADJ-P2-01",
+    "PSF_SIGNAL_WEIGHT §7.1",
+    "DESIGN-P1 §11",
+    "UNIFIED §10"
+   ],
+   "lit": [
+    "HORNE",
+    "NAYLOR",
+    "ZO17I"
+   ],
+   "inputs": [
+    "注入 F_ref",
+    "P_k",
+    "a_k",
+    "C_k",
+    "seed",
+    "N_mc"
+   ],
+   "outputs": [
+    "Var_MC(F_hat)",
+    "1/W",
+    "rel_dev",
+    "SNR^2"
+   ],
+   "units": {
+    "Var_MC": "ADU^2",
+    "W": "ADU^-2"
+   },
+   "domain": "线性高斯、C 正确、P 归一；独立帧。",
+   "criterion": {
+    "metric": "|Var_MC(F_hat)/(1/W) - 1|",
+    "op": "<=",
+    "thresh": 0.03,
+    "ref": "SCI-PSFW-001 K2 实测 0.13%（N=4e5）；SCI-P2-001 C4 rel 0.48%",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "统计收敛阈 3%，继承 SCI-P2-001 C4 / SCI-PSFW-001 K2 的 3%/2% 口径；N_mc 与 seed 必须登记以保证可复跑。",
+   "fail_closed": "N_mc < 1 或 seed 缺失 -> rc=2（零用例/不可复跑即红）；跨帧相关未用联合 C -> 该 case 拒绝。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "纯 NumPy 从第一性原理生成 d_k 并做 GLS/闭式；不调用生产实现也无生产依赖。",
+    "must_not": [
+     "astrocs",
+     "lib/",
+     "tests/"
+    ],
+    "truth": "解析 1/W + 定种子 MC 散度"
+   },
+   "mutations": [
+    "MUT-M02",
+    "MUT-I02"
+   ],
+   "owner": "ALG-P2-POINT-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "mechanism_frozen_tol_inherited",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Horne 1986 PASP 98,609 DOI:10.1086/131801",
+    "Naylor 1998 MNRAS 296,339",
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-MC-02",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "surface_brightness",
+   "title": "surface_gls 协方差 vs Monte Carlo",
+   "claim": "GLS 预言的 Cov=(A^T C^-1 A)^-1 与 MC 实测方差一致（rel<3%）；忽略 a_k 的像素 ivar 近似方差严格劣化（比值>1）。",
+   "anchors": [
+    "FZ-FORMULA-GLS",
+    "FZ-GATE-PIXIVAR-APPROX",
+    "ADJ-P2-02",
+    "UNIFIED §5",
+    "SCI-P2-001 Oracle C4"
+   ],
+   "lit": [
+    "ZO17I"
+   ],
+   "inputs": [
+    "A",
+    "C",
+    "seed",
+    "N_mc"
+   ],
+   "outputs": [
+    "var_pred",
+    "var_mc",
+    "rel",
+    "ratio_approx"
+   ],
+   "units": {
+    "var": "BUNIT^2"
+   },
+   "domain": "GLS 假设成立；像素 ivar 近似仅在同点采样+噪声独立+a_k 一致时可用。",
+   "criterion": {
+    "metric": "|var_mc/var_pred - 1|",
+    "op": "<=",
+    "thresh": 0.03,
+    "ref": "SCI-P2-001 C4 实测 rel=0.48%",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "继承 SCI-P2-001 Oracle C4 的 3% MC 口径；epsilon 上界本门冻结为存在性，数值归 ALG-P2-SURF-001（FZ-GATE-PIXIVAR-APPROX）。",
+   "fail_closed": "无 Var_approx/Var_GLS <= 1+epsilon 误差门声明 -> REJECT；必须报告 R~ C_in R~^T。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "显式 GLS 与定种子 MC。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析 (A^T C^-1 A)^-1 + MC"
+   },
+   "mutations": [
+    "MUT-M03"
+   ],
+   "owner": "ALG-P2-SURF-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "mechanism_frozen_eps_pending",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-MC-03",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "covariance_shared_systematic",
+   "title": "共享系统项：联合 vs 朴素求和比值 > 1",
+   "claim": "存在共同模式时联合 C 的方差严格大于 1/Sum W_k；比值必须 > 1 并被检出（共享项不得按独立项处理）。",
+   "anchors": [
+    "ADJ-OBS-01",
+    "ADJ-F-OBS-04",
+    "FZ-PROV-SHARED-SYSTEMATIC",
+    "UNIFIED §6",
+    "SCI-P2-001 Oracle C3",
+    "SCI-OBS-001 C4"
+   ],
+   "lit": [
+    "FH02",
+    "PADM"
+   ],
+   "inputs": [
+    "shared_mode_amp",
+    "n_frames",
+    "seed"
+   ],
+   "outputs": [
+    "var_joint",
+    "var_naive",
+    "ratio"
+   ],
+   "units": {
+    "ratio": "1"
+   },
+   "domain": "共同 master / 共同天空 / 重采样相关。",
+   "criterion": {
+    "metric": "var_joint/var_naive",
+    "op": ">",
+    "thresh": 1,
+    "ref": "SCI-P2-001 C3 1.575；SCI-OBS-001 C4 3.48",
+    "kind": "numeric",
+    "threshold_unit": "ratio",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "构造性不变量；共享幅度 0.6 sigma 的构造已由 W1 双 Oracle 提供参考值。",
+   "fail_closed": "共享项无法表示 -> variance unavailable 或系统误差预算；禁止静默按独立项发布。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "构造共享低秩项 L L^T 后联合采样。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "构造已知共享项的解析比"
+   },
+   "mutations": [
+    "MUT-M01",
+    "MUT-I01"
+   ],
+   "owner": "ALG-P2-SURF-001 / IMPL-P1-CAL-001",
+   "wave": 5,
+   "status": "mechanism_frozen",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Fruchter & Hook 2002 PASP 114,144",
+    "Padmanabhan et al. 2008 ApJ 674,1217"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-MC-04",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "conventional_integration",
+   "title": "PSFSW 方差从实际系数传播（禁止 1/W_psfsw）",
+   "claim": "Var(I_out)=Sum_{k,l} alpha_k alpha_l [C_in]_{kl} 用实际 alpha 计算并与 MC 一致；1/W_psfsw 或 Sum W_psfsw 作为方差必须被拒且可测出差异。",
+   "anchors": [
+    "FZ-GATE-PSFSW-COV",
+    "FZ-FORMULA-COV-PROP",
+    "ADJ-P2-03",
+    "RULINGS #5",
+    "COVARIANCE_AND_EFFECTIVE_PSF §5"
+   ],
+   "lit": [
+    "FH02",
+    "PI"
+   ],
+   "inputs": [
+    "W_psfsw",
+    "C_in",
+    "seed",
+    "N_mc"
+   ],
+   "outputs": [
+    "var_coeffs",
+    "var_proxy",
+    "rel",
+    "ratio"
+   ],
+   "units": {
+    "var": "BUNIT^2"
+   },
+   "domain": "psfsw_robust conventional coadd；帧独立或给定联合 C。",
+   "criterion": {
+    "metric": "|var_mc/var_coeffs - 1|",
+    "op": "<=",
+    "thresh": 0.03,
+    "ref": "SCI-P2-001 Oracle C7 MC rel 0.20%；var_coeffs 3.286 vs proxy 11.371",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "继承 SCI-P2-001 C7 的 3% MC 口径；proxy 与 coeffs 必须显著不同（>=10%）以证明边界可测。",
+   "fail_closed": "variance_from_weight=true / uses_relative_weight_as_ivar=true -> REJECT（键集合命中即红）。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "从实际 alpha 构造组合并 MC；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "C_out=R C_in R^T + MC"
+   },
+   "mutations": [
+    "MUT-M04",
+    "MUT-A13"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "mechanism_frozen",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Fruchter & Hook 2002 PASP 114,144",
+    "PixInsight New Image Weighting Algorithms §2.5-2.6"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-MC-05",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "effective_psf",
+   "title": "effective PSF：FWHM 从实际组合算子测量",
+   "claim": "FWHM(P_eff) 必须由实际组合算子脉冲响应测量；median(FWHM_k) != FWHM(P_eff)，且同一帧组在不同权重下 FWHM(P_eff) 不同。",
+   "anchors": [
+    "FZ-GATE-PSFSW-EPSF",
+    "ADJ-P2-03",
+    "COVARIANCE_AND_EFFECTIVE_PSF §3",
+    "DESIGN-P2 §6.3/§9",
+    "SCI-P2-001 Oracle C6"
+   ],
+   "lit": [
+    "ZO17II",
+    "HORNE"
+   ],
+   "inputs": [
+    "P_k",
+    "alpha_k",
+    "K_k"
+   ],
+   "outputs": [
+    "P_eff",
+    "FWHM(P_eff)",
+    "median_input_FWHM"
+   ],
+   "units": {
+    "FWHM": "px"
+   },
+   "domain": "conventional coadd 与 matched-filter/proper coadd 两族；归一约定须声明（peak/integral）。",
+   "criterion": {
+    "metric": "|FWHM(P_eff) - median_k FWHM_k| / FWHM(P_eff)",
+    "op": ">",
+    "thresh": 0,
+    "ref": "SCI-P2-001 C6：equal 3.805 / pixel_ivar 5.460 / W_info 5.248 / median 输入 4.756",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "构造性区分门（等式不得作为通过）；只给 FWHM 标量不构成 effective PSF（R7 REJECT）。",
+   "fail_closed": "effective_psf_id 空 / 只有 fwhm 单标量 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "注入单位点源并用实际系数组合，与解析组合比对。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "脉冲响应定义式"
+   },
+   "mutations": [
+    "MUT-M05"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Zackay & Ofek 2017 II ApJ 836,188 arXiv:1512.06879",
+    "Horne 1986 PASP 98,609 DOI:10.1086/131801"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-MC-06",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "estimator_optimality",
+   "title": "CRLB 紧致性与像素 ivar 损失比",
+   "claim": "线性高斯模型下 Q/W 估计量达到 Cramer-Rao 下界（相对差 <1e-12）；像素 ivar 平均相对 matched-filter 的方差损失比 > 1.5（证明基线不是最优）。",
+   "anchors": [
+    "FZ-FORMULA-WINFO",
+    "ADJ-P2-01",
+    "PSF_SIGNAL_WEIGHT §2",
+    "UNIFIED §5/§11"
+   ],
+   "lit": [
+    "HORNE",
+    "ZO17I"
+   ],
+   "inputs": [
+    "P",
+    "C",
+    "a"
+   ],
+   "outputs": [
+    "CRLB_rel",
+    "loss_ratio"
+   ],
+   "units": {
+    "CRLB_rel": "rel",
+    "loss_ratio": "ratio"
+   },
+   "domain": "线性高斯；PSF 跨多像素（退化到同点采样时 loss_ratio->1，属声明域边界）。",
+   "criterion": {
+    "metric": "|Var(Q/W) - CRLB|/CRLB",
+    "op": "<=",
+    "thresh": 1e-12,
+    "ref": "SCI-PSFW-001 K3 相对差 4.1e-16；K4 loss=33.08",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "CRLB 是解析下界（精确恒等）；loss_ratio>1.5 为构造性区分门，继承 K4 的 A_NEA=29.05 参考。",
+   "fail_closed": "声明像素 ivar 对任意 PSF 点源最优 -> REJECT（UNIFIED §11）。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式 Fisher 信息与估计量方差。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "CRLB 解析 + 显式矩阵"
+   },
+   "mutations": [
+    "MUT-M06",
+    "MUT-B01"
+   ],
+   "owner": "ALG-P2-POINT-001",
+   "wave": 3,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Horne 1986 PASP 98,609 DOI:10.1086/131801",
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-MC-07",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "upm_uncertainty",
+   "title": "UPM 参数不确定度进入 covariance",
+   "claim": "C_out=C_stat+J C_theta J^T：含 UPM 参数项与不含项的方差比 > 1 且可计算；UPM 项缺失必须被检出。",
+   "anchors": [
+    "ADJ-P2-01",
+    "DESIGN-P2 §4",
+    "UNIFIED §6",
+    "COVARIANCE_AND_EFFECTIVE_PSF §4",
+    "SCI-P2-001 Oracle C9"
+   ],
+   "lit": [
+    "PADM",
+    "GRUEN"
+   ],
+   "inputs": [
+    "J",
+    "C_theta",
+    "C_stat"
+   ],
+   "outputs": [
+    "ratio"
+   ],
+   "units": {
+    "ratio": "1"
+   },
+   "domain": "UPM 参数（光度尺度 g_k、背景 b_k）有不确定度时。",
+   "criterion": {
+    "metric": "(C_stat + J C_theta J^T)/C_stat",
+    "op": ">",
+    "thresh": 1,
+    "ref": "SCI-P2-001 Oracle C9 实测 2.0",
+    "kind": "numeric",
+    "threshold_unit": "ratio",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "构造性不变量；SCI-P2-001 C9 的含项/不含项比 = 2.0。",
+   "fail_closed": "UPM 断图/欠定 -> 显式失败/分组件，不得静默发布。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式 Jacobian 与参数协方差构造。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析传播 C_out=C_stat+J C_theta J^T"
+   },
+   "mutations": [
+    "MUT-M07"
+   ],
+   "owner": "ALG-P2-UPM-001 / IMPL-P2-UPM-001",
+   "wave": 5,
+   "status": "mechanism_frozen",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Padmanabhan et al. 2008 ApJ 674,1217",
+    "Gruen et al. 2014 PASP 126,158"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-MC-08",
+   "family": "monte_carlo",
+   "phase": "phase2",
+   "objective": "upm_control_variance",
+   "title": "k_corr 可复现口径与适用域",
+   "claim": "定义 k_corr=Var(median)/[pi sigma_bg^2/(2 N_retained)]；固定种子 MC 必须复现方向 k_corr>1 且脚本可复跑；未复跑前仅允许在已声明域内取 1.4，禁止外推。",
+   "anchors": [
+    "FZ-PROV-KCORR",
+    "ADJ-F-OBS-05",
+    "UNCERTAINTY_AND_COVARIANCE §V19R3",
+    "SCI-OBS-001 门 D5"
+   ],
+   "lit": [
+    "STARCK"
+   ],
+   "inputs": [
+    "pixfrac",
+    "patch",
+    "N_retained",
+    "estimator_version",
+    "seed"
+   ],
+   "outputs": [
+    "k_corr",
+    "domain"
+   ],
+   "units": {
+    "k_corr": "1"
+   },
+   "domain": "显式声明几何/pixfrac/control patch/估计器/是否球面；域外禁用。",
+   "criterion": {
+    "metric": "k_corr",
+    "op": ">",
+    "thresh": 1,
+    "ref": "SCI-OBS-001 D5 实测 2.1909；冻结值 1.3883/1.4（域内）",
+    "kind": "numeric",
+    "threshold_unit": "ratio",
+    "threshold_status": "frozen",
+    "threshold_owner": "ALG-P2-UPM-001",
+    "reference_value": ""
+   },
+   "tol_source": "方向不变量（k_corr>1）为门；冻结数值 1.4 仅域内可用（SO-07 数值阈值由负责人确认，本任务不发明）。",
+   "fail_closed": "k_corr=1（忽略相关）或域外外推且未更新 provenance -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "平面 pixfrac=0.8 独立 MC，固定亚像素 shift；与生产球面几何解耦。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "定义式 + 定种子 MC"
+   },
+   "mutations": [
+    "MUT-M08"
+   ],
+   "owner": "ALG-P2-UPM-001 / IMPL-P2-UPM-001",
+   "wave": 5,
+   "status": "mechanism_frozen_value_pending_SO-07",
+   "signoff": "SO-07（k_corr 标定脚本与数值阈值）— 只登记不签署",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Starck, Murtagh & Fadili 2010 CBO9780511730344 (MMT)"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-INJ-01",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "point_source_photometry",
+   "title": "点源注入恢复：bias/variance/SNR 组合律",
+   "claim": "注入已知 F_ref 点源后恢复通量无偏（bias<2%），方差与 1/W 一致；独立帧满足 SNR_combined^2=Sum SNR_k^2。",
+   "anchors": [
+    "FZ-FORMULA-FHAT",
+    "ADJ-P2-01",
+    "PROJECT_SPEC §8",
+    "DESIGN-P2 §10",
+    "UNIFIED §10",
+    "PSF_SIGNAL_WEIGHT §7.1"
+   ],
+   "lit": [
+    "HORNE",
+    "ZO17I"
+   ],
+   "inputs": [
+    "注入目录",
+    "P_k",
+    "a_k",
+    "C_k",
+    "seed"
+   ],
+   "outputs": [
+    "bias",
+    "sigma_F",
+    "SNR_comb^2"
+   ],
+   "units": {
+    "flux": "ADU",
+    "sigma_F": "ADU"
+   },
+   "domain": "独立帧、模型正确；相关帧场景必须走联合 C 分支。",
+   "criterion": {
+    "metric": "|bias|/F_ref",
+    "op": "<=",
+    "thresh": 0.02,
+    "ref": "PROJECT_SPEC §8 注入源验证理论 information 与实测 flux variance",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "pending_freeze",
+    "threshold_owner": "ALG-P2-POINT-001",
+    "reference_value": ""
+   },
+   "tol_source": "门度量（bias、sigma_F vs 1/sqrt(W)）冻结；数值 2% 属设计默认，最终由 ALG-P2-POINT-001 冻结，本任务不宣称冻结数值。",
+   "fail_closed": "注入源 sigma_F 与 1/sqrt(W) 偏差超门且无原因 -> REJECT；跨帧相关简单求和 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy_mc",
+    "ref": "独立构造注入+恢复全链路（检测外）；不调用生产管线。",
+    "must_not": [
+     "astrocs",
+     "lib/",
+     "tests/"
+    ],
+    "truth": "注入已知真值 + 解析方差"
+   },
+   "mutations": [
+    "MUT-I02",
+    "MUT-I03",
+    "MUT-SPEC-10"
+   ],
+   "owner": "ALG-P2-POINT-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "mechanism_frozen_tol_pending",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Horne 1986 PASP 98,609 DOI:10.1086/131801",
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-INJ-02",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "surface_brightness",
+   "title": "扩展源/常量场/梯度注入（GLS）",
+   "claim": "注入常量面亮度、线性梯度与已知总通量的扩展源，GLS 重建在 bias/variance/总通量上无偏；常量面亮度对全部 pixfrac 成立。",
+   "anchors": [
+    "FZ-FORMULA-GLS",
+    "FZ-GATE-CONST-SB",
+    "ADJ-P2-02",
+    "ADJ-S3",
+    "PROJECT_SPEC §8",
+    "DESIGN-P2 §10"
+   ],
+   "lit": [
+    "ZO17I",
+    "FH02"
+   ],
+   "inputs": [
+    "注入模型",
+    "A",
+    "C",
+    "pixfrac"
+   ],
+   "outputs": [
+    "bias",
+    "var",
+    "flux_tot"
+   ],
+   "units": {
+    "SB": "ADU/px^2"
+   },
+   "domain": "GLS 假设成立；像素 ivar 近似仅条件成立。",
+   "criterion": {
+    "metric": "max(|bias|/B0, |var/var_pred-1|, |flux_tot/flux_true-1|)",
+    "op": "<=",
+    "thresh": 0.03,
+    "ref": "PROJECT_SPEC §8 扩展源验证常量面亮度/梯度/总通量/covariance",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "pending_freeze",
+    "threshold_owner": "ALG-P2-SURF-001",
+    "reference_value": ""
+   },
+   "tol_source": "门度量冻结（三量一致性）；数值 3% 设计默认，最终由 ALG-P2-SURF-001 冻结。",
+   "fail_closed": "pf<1 时 flux_conservation_factor 缺失 -> 不得用于绝对通量。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式注入+GLS 重建。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "注入真值 + (A^T C^-1 A)^-1"
+   },
+   "mutations": [
+    "MUT-A11",
+    "MUT-I03"
+   ],
+   "owner": "ALG-P2-SURF-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "mechanism_frozen_tol_pending",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 2
+   },
+   "literature": [
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872",
+    "Fruchter & Hook 2002 PASP 114,144"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-INJ-03",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "selection_bias",
+   "title": "星表深度不变性：W_info 样本无关、median SNR 随深度移动",
+   "claim": "改变检测阈值/星表深度，W_info（或 ratio-of-powers）逐位不变；median(source SNR) 与样本派生 PSFSW 随之移动；共同星集必须独立于待测帧测量。",
+   "anchors": [
+    "FZ-GATE-MEDIAN-SNR",
+    "ADJ-C004-02",
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §7.3",
+    "DESIGN-P1 §11",
+    "PSFW §5.3"
+   ],
+   "lit": [
+    "PI"
+   ],
+   "inputs": [
+    "星场",
+    "thresholds",
+    "星表"
+   ],
+   "outputs": [
+    "W_info",
+    "median_snr",
+    "shift"
+   ],
+   "units": {
+    "W_info": "ADU^-2"
+   },
+   "domain": "共同星集 = 外部参考星表固定子集或参考叠加单一门限；禁止逐帧阈值交集。",
+   "criterion": {
+    "metric": "max_threshold |W_info - W_info_ref| / W_info_ref",
+    "op": "<=",
+    "thresh": 0.05,
+    "ref": "PSFW_FREEZE §5.3：深度扫描相对变化 <5% 且不随深度单调漂移（建议门，数值待 ALG 冻结）",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "pending_freeze",
+    "threshold_owner": "ALG-P2-PSFSW-001",
+    "reference_value": ""
+   },
+   "tol_source": "门度量冻结；数值 <5% 为 SCI-PSFW-001 建议口径，最终由 ALG-P2-PSFSW-001 冻结（本任务不擅自改冻结门）。",
+   "fail_closed": "selection function 缺失 / 样本派生共同星集 -> unavailable。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "同一合成星场只改检测阈值，独立计算样本无关量。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "构造已知：W_info 按构造逐位不变（PSFW K8）"
+   },
+   "mutations": [
+    "MUT-I04",
+    "MUT-I05"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / IMPL-P1-PSFW-001",
+   "wave": 5,
+   "status": "mechanism_frozen_tol_pending",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "PixInsight New Image Weighting Algorithms §2.5-2.6"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-INJ-04",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "single_variable_response",
+   "title": "单变量扫描方向（透明度/seeing/背景/读噪）",
+   "claim": "W_info 对透明度（a 增大）增大、对 seeing（PSF 展宽）减小、对背景/读噪增大减小；psfsw 四分量方向正确。",
+   "anchors": [
+    "FZ-FORMULA-WINFO",
+    "ADJ-P2-01",
+    "PSF_SIGNAL_WEIGHT §7.2",
+    "DESIGN-P1 §11"
+   ],
+   "lit": [
+    "HORNE",
+    "NAYLOR"
+   ],
+   "inputs": [
+    "扫描变量",
+    "P",
+    "a",
+    "C"
+   ],
+   "outputs": [
+    "direction_ok"
+   ],
+   "units": {
+    "dir": "sign"
+   },
+   "domain": "单变量扫描、其余固定；渐变至退化域须声明。",
+   "criterion": {
+    "metric": "direction_violations",
+    "op": "==",
+    "thresh": 0,
+    "ref": "PSF_SIGNAL_WEIGHT §7.2 方向正确；SCI-PSFW-001 K6/K8",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "解析单调性（W=a^2 P^T C^-1 P 对 a 二次增、对 sigma 减）；方向而非幅度。",
+   "fail_closed": "任一方向违反 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "解析导数符号 + 数值扫描。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析单调性"
+   },
+   "mutations": [
+    "MUT-I06"
+   ],
+   "owner": "ALG-P2-POINT-001 / ALG-P2-PSFSW-001",
+   "wave": 3,
+   "status": "frozen_mechanism",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Horne 1986 PASP 98,609 DOI:10.1086/131801",
+    "Naylor 1998 MNRAS 296,339"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-INJ-05",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "effective_psf",
+   "title": "effective PSF 脉冲响应恢复（归一约定声明）",
+   "claim": "注入单位通量点源后，实际组合算子的输出即 P_eff；peak 与 integral 归一约定按产品族声明；ΣP_eff=1（面亮度产品）或 peak=1（点源统计）。",
+   "anchors": [
+    "FZ-GATE-PSFSW-EPSF",
+    "ADJ-P2-03",
+    "COVARIANCE_AND_EFFECTIVE_PSF §3",
+    "DESIGN-P2 §9"
+   ],
+   "lit": [
+    "ZO17II",
+    "HORNE"
+   ],
+   "inputs": [
+    "注入点源",
+    "alpha_k",
+    "K_k"
+   ],
+   "outputs": [
+    "P_eff",
+    "norm"
+   ],
+   "units": {
+    "P_eff": "1"
+   },
+   "domain": "conventional 与 proper-coadd 两族；归一约定必须显式声明。",
+   "criterion": {
+    "metric": "max|P_eff - (Sum alpha_k a_k (P_k ⊗ K_k))/(Sum alpha_k a_k)|",
+    "op": "<=",
+    "thresh": 1e-09,
+    "ref": "COVARIANCE_AND_EFFECTIVE_PSF §3；SCI-P2-001 Oracle C6 误差 <1e-12",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "解析组合定义式恒等。",
+   "fail_closed": "缺 effective PSF 或只给 FWHM 标量 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "注入单位点源并用实际系数组合，与解析组合比对。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "脉冲响应定义式"
+   },
+   "mutations": [
+    "MUT-M05",
+    "MUT-SPEC-06"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Zackay & Ofek 2017 II ApJ 836,188 arXiv:1512.06879",
+    "Horne 1986 PASP 98,609 DOI:10.1086/131801"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-INJ-06",
+   "family": "injection",
+   "phase": "phase2",
+   "objective": "fail_closed",
+   "title": "psfsw fail-closed 目录（零星/少星/拥挤/梯度/云/拖线/FOV/波段）",
+   "claim": "无共同星集/背景非正且变换未定义/有效星不足/选择偏差门失败 -> unavailable（weight_value=null），禁止回退 median source SNR；零星、少星、拥挤、严重梯度、云、拖线、不同 FOV 与波段均有 fail-closed 用例。",
+   "anchors": [
+    "FZ-GATE-PSFSW-FAILCLOSED",
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §3/§7.6",
+    "DESIGN-P2 §6.3"
+   ],
+   "lit": [
+    "PI"
+   ],
+   "inputs": [
+    "帧组特征"
+   ],
+   "outputs": [
+    "unavailable",
+    "reason"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "所有 psfsw_robust 输入；reason ∈ {no_common_star_set, background_nonpositive_undefined_transform, insufficient_valid_stars, selection_bias_gate_failed, spatial_nonuniformity_gate_failed}。",
+   "criterion": {
+    "metric": "unavailable_reasons_not_in_whitelist",
+    "op": "==",
+    "thresh": 0,
+    "ref": "FZ-GATE-PSFSW-FAILCLOSED；PSFW §5.1",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "白名单为冻结语义（FZ-GATE-PSFSW-FAILCLOSED）；valid=false 时 weight_value=null。",
+   "fail_closed": "valid=false 但 weight_value 非 null / 回退 median SNR -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "构造退化场景断言 unavailable；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "FZ-GATE-PSFSW-FAILCLOSED 白名单"
+   },
+   "mutations": [
+    "MUT-I07",
+    "MUT-I08"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / IMPL-P1-PSFW-001",
+   "wave": 5,
+   "status": "frozen",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "PixInsight New Image Weighting Algorithms §2.5-2.6"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-INJ-07",
+   "family": "injection",
+   "phase": "phase3",
+   "objective": "resampling_injection",
+   "title": "Phase3 注入穿透重采样（通量/天体测量/方差恢复）",
+   "claim": "注入源经投影+采样后通量、位置与方差恢复一致；Q/W 输出帧重算与注入真值一致；WCS 正反变换与外部实现交叉。",
+   "anchors": [
+    "FZ-P3-QW-RECOMPUTE",
+    "ADJ-P3-01",
+    "C-P3-PROP-14",
+    "C-P3-PROP-15",
+    "DESIGN-P3 §7"
+   ],
+   "lit": [
+    "GC02",
+    "KO",
+    "FERNIQUE",
+    "IVOA"
+   ],
+   "inputs": [
+    "注入目录",
+    "R",
+    "S",
+    "C_y"
+   ],
+   "outputs": [
+    "flux_bias",
+    "pos_err",
+    "var_ratio"
+   ],
+   "units": {
+    "flux": "ADU",
+    "pos": "px"
+   },
+   "domain": "point_source_flux 与 surface_brightness 模式；TAN/SIN/CAR/AIT。",
+   "criterion": {
+    "metric": "|flux_rec/F_inj - 1|",
+    "op": "<=",
+    "thresh": 0.02,
+    "ref": "DESIGN-P3 §7 注入源恢复；C-P3-PROP-14",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "pending_freeze",
+    "threshold_owner": "ALG-P3-001",
+    "reference_value": ""
+   },
+   "tol_source": "门度量冻结（flux bias/astrometry/variance）；数值 2% 设计默认，最终由 ALG-P3-001 冻结。",
+   "fail_closed": "缺 PSF/PSF 未归一/缺 a/未出 effective PSF/对角无相关核 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "独立投影+采样实现与 Astropy/WCSLIB 外部交叉。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "注入真值 + 外部 WCS 参考"
+   },
+   "mutations": [
+    "MUT-A08",
+    "MUT-I09"
+   ],
+   "owner": "ALG-P3-001 / IMPL-P3-RSMP-001 / IMPL-P3-PROJ-001",
+   "wave": 5,
+   "status": "mechanism_frozen_tol_pending",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 2
+   },
+   "literature": [
+    "Greisen & Calabretta 2002 A&A 395,1061",
+    "Gorski et al. 2005 HEALPix ApJ 622,759",
+    "Fernique et al. 2015 A&A 578,A114 (HiPS)",
+    "IVOA HiPS 1.0 Recommendation"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-INJ-08",
+   "family": "injection",
+   "phase": "phase1",
+   "objective": "drizzle_correlation",
+   "title": "Drizzle aperture 方差低估检出",
+   "claim": "Drizzle 输出相邻像素相关，aperture 方差按逐像素方差求和会低估（构造实测 2.46x）；相关性感知 aperture 必须显式加入 Cov 项。",
+   "anchors": [
+    "ADJ-F-OBS-01",
+    "ADJ-AR-02",
+    "FZ-FORMULA-COV-PROP",
+    "UNIFIED §7",
+    "SCI-OBS-001 门 D2"
+   ],
+   "lit": [
+    "FH02"
+   ],
+   "inputs": [
+    "footprint",
+    "v_j",
+    "c_jp"
+   ],
+   "outputs": [
+    "aperture_var_true",
+    "aperture_var_diag",
+    "ratio"
+   ],
+   "units": {
+    "ratio": "1"
+   },
+   "domain": "Drizzle 后相关像素上的 aperture/总量误差。",
+   "criterion": {
+    "metric": "aperture_var_diag/aperture_var_true",
+    "op": "<",
+    "thresh": 1,
+    "ref": "SCI-OBS-001 D2 实测 0.40（低估 2.46x）",
+    "kind": "numeric",
+    "threshold_unit": "ratio",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "构造性不变量（低估必须被检出）；D2 参考值 0.400/0.983。",
+   "fail_closed": "把逐像素方差和当 aperture 精确方差 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式 Cov(S_p,S_q) 二次型 aperture。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析 aperture 二次型"
+   },
+   "mutations": [
+    "MUT-A10"
+   ],
+   "owner": "ALG-P1-001 / IMPL-P1-DRZ-001",
+   "wave": 5,
+   "status": "mechanism_frozen",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Fruchter & Hook 2002 PASP 114,144"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-RD-01",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "real_data_validation",
+   "title": "M42 马赛克真实数据终验",
+   "claim": "在 testdata/M42_T2T3_mosaic_Flying_dutchman（T2+T3）上检查接缝、背景、星形、排异、黑洞与预测/实测噪声，并落三模式基线比较。",
+   "anchors": [
+    "PROJECT_SPEC §8",
+    "DESIGN-P2 §10",
+    "PSF_SIGNAL_WEIGHT §7.4"
+   ],
+   "lit": [
+    "GRUEN",
+    "PADM"
+   ],
+   "inputs": [
+    "testdata/M42_T2T3_mosaic_Flying_dutchman/T2",
+    "testdata/M42_T2T3_mosaic_Flying_dutchman/T3"
+   ],
+   "outputs": [
+    "seam_metric",
+    "noise_ratio",
+    "rejection_report"
+   ],
+   "units": {
+    "noise_ratio": "1"
+   },
+   "domain": "真实数据；执行归 Wave10 REAL-SCIENCE-001；本任务只定义门。",
+   "criterion": {
+    "metric": "seam_and_noise_checklist_failures",
+    "op": "==",
+    "thresh": 0,
+    "ref": "DESIGN-P2 §10 验收清单",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "pending_freeze",
+    "threshold_owner": "REAL-SCIENCE-001",
+    "reference_value": ""
+   },
+   "tol_source": "门度量与清单冻结（本任务）；数值阈值由 REAL-SCIENCE-001/W10 在预注册后冻结，本任务不发明。",
+   "fail_closed": "接缝/背景/星形/排异/黑洞/噪声任一未过 -> 不得标 VERIFIED。",
+   "oracle": {
+    "kind": "real_data_checklist",
+    "ref": "独立于生产输出的度量脚本 + 外部天球参考；不得以生产输出作唯一 expected。",
+    "must_not": [
+     "solely_production_output"
+    ],
+    "truth": "预注册清单 + 外部参考"
+   },
+   "mutations": [
+    "MUT-R01"
+   ],
+   "owner": "REAL-SCIENCE-001 (W10)",
+   "wave": 10,
+   "status": "defined_pending_execution",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 6
+   },
+   "literature": [
+    "Gruen et al. 2014 PASP 126,158",
+    "Padmanabhan et al. 2008 ApJ 674,1217"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-RD-02",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "real_data_validation",
+   "title": "银心真实数据终验（拥挤/排异/PSF）",
+   "claim": "在 testdata/Galaxy_Center_T4 上检查拥挤场 PSF、排异、背景梯度、黑洞与预测/实测噪声，并落模式比较。",
+   "anchors": [
+    "PROJECT_SPEC §8",
+    "DESIGN-P2 §10",
+    "PSF_SIGNAL_WEIGHT §7.4"
+   ],
+   "lit": [
+    "GRUEN",
+    "PADM"
+   ],
+   "inputs": [
+    "testdata/Galaxy_Center_T4/lights"
+   ],
+   "outputs": [
+    "crowding_metric",
+    "rejection_report",
+    "noise_ratio"
+   ],
+   "units": {
+    "noise_ratio": "1"
+   },
+   "domain": "真实拥挤场；执行归 Wave10。",
+   "criterion": {
+    "metric": "galactic_center_checklist_failures",
+    "op": "==",
+    "thresh": 0,
+    "ref": "DESIGN-P2 §10",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "pending_freeze",
+    "threshold_owner": "REAL-SCIENCE-001",
+    "reference_value": ""
+   },
+   "tol_source": "门度量与清单冻结（本任务）；数值由 W10 预注册后冻结。",
+   "fail_closed": "任一清单项未过 -> 不得标 VERIFIED。",
+   "oracle": {
+    "kind": "real_data_checklist",
+    "ref": "独立度量 + 外部参考。",
+    "must_not": [
+     "solely_production_output"
+    ],
+    "truth": "预注册清单"
+   },
+   "mutations": [
+    "MUT-R01"
+   ],
+   "owner": "REAL-SCIENCE-001 (W10)",
+   "wave": 10,
+   "status": "defined_pending_execution",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 6
+   },
+   "literature": [
+    "Gruen et al. 2014 PASP 126,158",
+    "Padmanabhan et al. 2008 ApJ 674,1217"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-RD-03",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "real_data_validation",
+   "title": "testdata 清单锚定（T2/T3/T4 数据集存在且真实）",
+   "claim": "真实数据门必须绑定 testdata/index.json 的实际数据集：LDN43_T2素材_flying_dutchman、NGC1727_T2、NGC247_T2、M42_T2T3_mosaic、NGC55_T3、NGC83_cluster_T3、Galaxy_Center_T4、Victory_Nebula_T4。",
+   "anchors": [
+    "PROJECT_SPEC §8",
+    "testdata/index.json v1.2"
+   ],
+   "lit": [],
+   "inputs": [
+    "testdata/index.json"
+   ],
+   "outputs": [
+    "missing_datasets"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "真实数据门的前置存在性；资产原地保留，禁移动/改名/删除。",
+   "criterion": {
+    "metric": "missing_dataset_count",
+    "op": "==",
+    "thresh": 0,
+    "ref": "testdata/index.json v1.2 telescopes.T2/T3/T4.datasets",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "存在性（结构证据），非测量阈值；索引版本 1.2 已登记。",
+   "fail_closed": "索引与实际目录不一致 -> 真实数据门不成立（不得以缺失数据集判 PASS）。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "独立读取 testdata/index.json 与文件系统 ls 交叉。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "testdata/index.json"
+   },
+   "mutations": [
+    "MUT-R02"
+   ],
+   "owner": "REAL-SCIENCE-001 (W10) / WIN-VERIFY-001 (W11)",
+   "wave": 10,
+   "status": "defined_pending_execution",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 8
+   },
+   "literature": [],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-RD-04",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "oracle_independence",
+   "title": "真实数据不得作为唯一 expected",
+   "claim": "不得以当前程序输出生成唯一 expected；真实数据门必须配解析/MC/外部参考真值。",
+   "anchors": [
+    "PROJECT_SPEC §8",
+    "SCIENTIFIC_REFERENCES §G"
+   ],
+   "lit": [],
+   "inputs": [
+    "gate_manifest"
+   ],
+   "outputs": [
+    "expected_sources"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "全部门。",
+   "criterion": {
+    "metric": "gates_with_only_production_expected",
+    "op": "==",
+    "thresh": 0,
+    "ref": "PROJECT_SPEC §8；SCIENTIFIC_REFERENCES §G",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "结构性规则（冻结）。",
+   "fail_closed": "唯一 expected 来自生产输出 -> REJECT（AR-043 根因）。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "对整本 qa_matrix.json 的 expected_sources 做结构审计。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "PROJECT_SPEC §8 条款"
+   },
+   "mutations": [
+    "MUT-SPEC-07"
+   ],
+   "owner": "QA-MATRIX-001 / FINAL-AUDIT-001",
+   "wave": 3,
+   "status": "frozen",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-RD-05",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "contract_units",
+   "title": "真实产品层/单位/BUNIT 二次律复检",
+   "claim": "真实产品从磁盘独立重开后层齐全、BUNIT 量纲可判、variance BUNIT=(signal BUNIT)^2、provenance 最小集完整。",
+   "anchors": [
+    "FZ-BUNIT-SEMANTICS",
+    "FZ-P3-BUNIT-QUADRATIC",
+    "FZ-PROV-MINIMAL-SET",
+    "ADJ-GEN-03",
+    "DESIGN-P3 §5"
+   ],
+   "lit": [
+    "IVOA"
+   ],
+   "inputs": [
+    "产品 manifest",
+    "HDU 头"
+   ],
+   "outputs": [
+    "missing_keys",
+    "bunit_ok"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "Phase1/2/3 真实产品写盘。",
+   "criterion": {
+    "metric": "provenance_missing_keys + bunit_violations",
+    "op": "==",
+    "thresh": 0,
+    "ref": "FZ-PROV-MINIMAL-SET；FZ-P3-BUNIT-QUADRATIC",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "键集合与量纲代数（冻结）。",
+   "fail_closed": "缺键/单位不可判/unavailable 无原因 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "独立解析 FITS/HiPS 头与 manifest，不调用生产写盘代码。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "FZ-PROV-MINIMAL-SET"
+   },
+   "mutations": [
+    "MUT-R02"
+   ],
+   "owner": "IMPL-AIO-001 / SCHEMA-INTEGRATE-001",
+   "wave": 5,
+   "status": "frozen",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "IVOA HiPS 1.0 Recommendation"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-RD-06",
+   "family": "real_data",
+   "phase": "all",
+   "objective": "platform_validation",
+   "title": "Windows/Fatduck 复验门",
+   "claim": "Linux 结论不自动等于 Windows VERIFIED；未经 Fatduck 复验只能标 AWAITING_WINDOWS_VALIDATION；Windows 盲区检查不得恒零。",
+   "anchors": [
+    "PROJECT_SPEC §10",
+    "CONTROLLER_LOG C-003/C-004",
+    "AGENTS.md 节点映射"
+   ],
+   "lit": [],
+   "inputs": [
+    "Linux 证据",
+    "Fatduck 运行记录"
+   ],
+   "outputs": [
+    "windows_status"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "发布前平台复验；执行归 WIN-VERIFY-001 (W11)。",
+   "criterion": {
+    "metric": "windows_status",
+    "op": "==",
+    "thresh": 0,
+    "ref": "PROJECT_SPEC §10；本包状态机",
+    "kind": "numeric",
+    "threshold_unit": "enum",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "状态字面量规则（冻结）。",
+   "fail_closed": "未复验却标 VERIFIED -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "核对证据来源与状态字面量。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "PROJECT_SPEC §10"
+   },
+   "mutations": [
+    "MUT-R03"
+   ],
+   "owner": "WIN-VERIFY-001 (W11)",
+   "wave": 11,
+   "status": "defined_pending_execution",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-BASE-01",
+   "family": "baseline",
+   "phase": "phase2",
+   "objective": "baseline_comparison",
+   "title": "基线比较矩阵完整性 + 声明边界",
+   "claim": "矩阵行 = {point_information, surface_gls, psfsw_robust} x {equal, pixel_ivar}（+ deferred psf_snr_power 仅登记）；每格必须给出度量、方向、容差来源与声明边界；psfsw 只能声明优于指定基线，不得声明 Fisher 最优/ivar 等价。",
+   "anchors": [
+    "FZ-MODE-PRODUCTION",
+    "FZ-MODE-BASELINE",
+    "FZ-MODE-DEFERRED",
+    "ADJ-S1",
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §4/§7.4-7.5",
+    "DESIGN-P2 §6.3"
+   ],
+   "lit": [
+    "ZO17I",
+    "PI"
+   ],
+   "inputs": [
+    "baseline_matrix.json"
+   ],
+   "outputs": [
+    "missing_cells",
+    "illegal_declarations"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "Phase2 集成模式比较；预注册数据集优先。",
+   "criterion": {
+    "metric": "missing_cells + illegal_declarations",
+    "op": "==",
+    "thresh": 0,
+    "ref": "FZ-MODE-* + PSF_SIGNAL_WEIGHT §7.4/7.5",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "结构与枚举规则（冻结）；比较度量集合冻结，效应量阈值由预注册确定。",
+   "fail_closed": "遗漏基线/将 psfsw 当 ivar/宣称最优 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "独立校验 baseline_matrix.json 的枚举与声明列。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "FZ-MODE-*/ADJ-S1"
+   },
+   "mutations": [
+    "MUT-SPEC-04",
+    "MUT-B02",
+    "MUT-B03"
+   ],
+   "owner": "ALG-P2-POINT-001 / ALG-P2-PSFSW-001 / P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "frozen_mechanism",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872",
+    "PixInsight New Image Weighting Algorithms §2.5-2.6"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-BASE-02",
+   "family": "baseline",
+   "phase": "phase2",
+   "objective": "baseline_comparison",
+   "title": "pixel_ivar 基线在多像素 PSF 下 != W_info",
+   "claim": "普通像素 ivar 加权平均在 PSF 跨多像素时不等于 1/W_info 且点源方差严格更大；像素 ivar 不得宣称对任意 PSF 点源最优。",
+   "anchors": [
+    "ADJ-P2-01",
+    "ADJ-P2-02",
+    "UNIFIED §5/§11",
+    "PSF_SIGNAL_WEIGHT §2",
+    "FZ-GATE-PIXIVAR-APPROX"
+   ],
+   "lit": [
+    "HORNE",
+    "ZO17I"
+   ],
+   "inputs": [
+    "P",
+    "C",
+    "a"
+   ],
+   "outputs": [
+    "loss_ratio"
+   ],
+   "units": {
+    "loss_ratio": "1"
+   },
+   "domain": "PSF 跨多像素；退化到同点采样时比值->1（声明域边界）。",
+   "criterion": {
+    "metric": "var_pixel_ivar/var_Winfo",
+    "op": ">",
+    "thresh": 1.5,
+    "ref": "SCI-PSFW-001 K4 实测 33.08（A_NEA=29.05）",
+    "kind": "numeric",
+    "threshold_unit": "ratio",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "构造性区分门，继承 SCI-PSFW-001 K4。",
+   "fail_closed": "宣称 pixel_ivar 等价 W_info 或对其任意 PSF 最优 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式比较像素 ivar 平均与 matched filter。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析方差比较"
+   },
+   "mutations": [
+    "MUT-M06",
+    "MUT-B01"
+   ],
+   "owner": "ALG-P2-POINT-001 / ALG-P2-SURF-001",
+   "wave": 3,
+   "status": "frozen_formula",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 2
+   },
+   "literature": [
+    "Horne 1986 PASP 98,609 DOI:10.1086/131801",
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-BASE-03",
+   "family": "baseline",
+   "phase": "phase2",
+   "objective": "baseline_comparison",
+   "title": "psfsw_robust vs 指定基线（预注册，只声明优于）",
+   "claim": "psfsw_robust 在预注册 M42/银心与合成集上，与 equal/exposure/pixel-ivar/W_info 比较：分别报告 detection power、photometric variance、effective PSF、扩展源偏差与伪影；只能声明优于指定基线，不得只以看起来更好通过。",
+   "anchors": [
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §7.4/§7.5",
+    "DESIGN-P2 §6.3",
+    "FZ-GATE-PSFSW-EPSF"
+   ],
+   "lit": [
+    "PI",
+    "ZO17I"
+   ],
+   "inputs": [
+    "预注册数据集",
+    "模式产出"
+   ],
+   "outputs": [
+    "effect_size",
+    "ci",
+    "declaration"
+   ],
+   "units": {
+    "effect_size": "1"
+   },
+   "domain": "预先注册的数据与基线；训练/调参样本 != 验收样本。",
+   "criterion": {
+    "metric": "effect_size (psfsw vs specified baseline)",
+    "op": ">",
+    "thresh": 0,
+    "ref": "PSF_SIGNAL_WEIGHT §7.4/7.5（只声明优于指定基线；数值待预注册）",
+    "kind": "numeric",
+    "threshold_unit": "rel",
+    "threshold_status": "pending_freeze",
+    "threshold_owner": "ALG-P2-PSFSW-001",
+    "reference_value": ""
+   },
+   "tol_source": "声明规则冻结（不得宣称 Fisher 最优）；效应量与 CI 由预注册/W10 冻结。",
+   "fail_closed": "未预注册 / 训练样本与验收样本相同 / 宣称 Fisher 最优 -> REJECT。",
+   "oracle": {
+    "kind": "preregistered_comparison",
+    "ref": "预注册比较协议 + 独立评估。",
+    "must_not": [
+     "astrocs_only"
+    ],
+    "truth": "预注册协议 + 外部/解析基线"
+   },
+   "mutations": [
+    "MUT-B02",
+    "MUT-B03"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / REAL-SCIENCE-001",
+   "wave": 10,
+   "status": "mechanism_frozen_tol_pending",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 4
+   },
+   "literature": [
+    "PixInsight New Image Weighting Algorithms §2.5-2.6",
+    "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-BASE-04",
+   "family": "baseline",
+   "phase": "phase2",
+   "objective": "baseline_comparison",
+   "title": "equal 基线：仅文档基线，不得声明科学最优",
+   "claim": "equal 模式（I_out=mean_k d_k）登记为文档基线；不得声明科学最优；用于证明门非空与对照。",
+   "anchors": [
+    "FZ-MODE-BASELINE",
+    "ADJ-S1",
+    "PSF_SIGNAL_WEIGHT §4"
+   ],
+   "lit": [],
+   "inputs": [
+    "frame_group"
+   ],
+   "outputs": [
+    "I_out"
+   ],
+   "units": {
+    "I_out": "BUNIT"
+   },
+   "domain": "仅基线比较。",
+   "criterion": {
+    "metric": "equal_optimality_claims",
+    "op": "==",
+    "thresh": 0,
+    "ref": "FZ-MODE-BASELINE",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "结构性规则（FZ-MODE-BASELINE）。",
+   "fail_closed": "equal 声明最优 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "等权均值，纯解析。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "定义式"
+   },
+   "mutations": [
+    "MUT-B04"
+   ],
+   "owner": "P2-INTEGRATE-001",
+   "wave": 5,
+   "status": "frozen",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "G-BASE-05",
+   "family": "baseline",
+   "phase": "phase2",
+   "objective": "mode_routing",
+   "title": "psf_snr_power 延迟：不进生产路由",
+   "claim": "psf_snr_power 保持 DEFERRED/NOT_IMPLEMENTED，不得进入 V6 生产 weight_mode 枚举与路由；生产模式列表出现即 REJECT；必须登记在 deferred_modes。",
+   "anchors": [
+    "FZ-MODE-DEFERRED",
+    "ADJ-C004-01",
+    "C-004.1",
+    "00_READ_FIRST",
+    "PSF_SIGNAL_WEIGHT §4"
+   ],
+   "lit": [
+    "PI"
+   ],
+   "inputs": [
+    "mode_registry"
+   ],
+   "outputs": [
+    "deferred_ok"
+   ],
+   "units": {
+    "1": "1"
+   },
+   "domain": "Phase2 配置/schema/路由。",
+   "criterion": {
+    "metric": "psf_snr_power_in_production",
+    "op": "==",
+    "thresh": 0,
+    "ref": "C-004.1；FZ-MODE-DEFERRED",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "控制器裁决 C-004.1（不得推翻）与 FZ-MODE-DEFERRED。",
+   "fail_closed": "生产枚举含 psf_snr_power/legacy 0/auto/support_x_snr2 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "独立校验 mode 枚举集合。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "FZ-MODE-* + C-004.1"
+   },
+   "mutations": [
+    "MUT-SPEC-04"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / CONTRACT-FREEZE-001 / SCHEMA-INTEGRATE-001",
+   "wave": 3,
+   "status": "frozen",
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 1
+   },
+   "literature": [
+    "PixInsight New Image Weighting Algorithms §2.5-2.6"
+   ],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "P0-01",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "gate_red_ability",
+   "title": "R1 机器门必须能红（非看着在跑）",
+   "claim": "每条科学门必须有至少一个已登记 mutation 使其变红；门集合中不允许存在 mutations=[] 的门；mutation 驱动必须实测 rc!=0。",
+   "anchors": [
+    "AR-041",
+    "PROJECT_SPEC §8（mutation 证明门能红）",
+    "ADJ-AR-03"
+   ],
+   "lit": [],
+   "inputs": [
+    "qa_matrix.json",
+    "mutations.json"
+   ],
+   "outputs": [
+    "gates_without_mutation",
+    "red_results"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "全部门。",
+   "criterion": {
+    "metric": "gates_without_mutation + undetected_mutations",
+    "op": "==",
+    "thresh": 0,
+    "ref": "PROJECT_SPEC §8；AR-041",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "结构性规则（冻结）；对应 785 合并层账本中 R1 根因（FD-F-001/M5a-G-005/M5b-G-03）。",
+   "fail_closed": "任何门零 mutation -> FAIL；mutation 未检出 -> FAIL。",
+   "oracle": {
+    "kind": "independent_driver",
+    "ref": "mutation 驱动独立于被测实现；逐条 rc 记录。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "PROJECT_SPEC §8"
+   },
+   "mutations": [
+    "MUT-SPEC-01",
+    "MUT-SPEC-15",
+    "MUT-SPEC-16"
+   ],
+   "owner": "QA-MATRIX-001 / RUNTIME-CI-001",
+   "wave": 3,
+   "status": "frozen",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "FD-F-001",
+    "M5a-G-005",
+    "M5b-G-03"
+   ],
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 2
+   },
+   "literature": [],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "P0-02",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "anti_self_proof",
+   "title": "R2 子串断言/同源自证禁止（值断言）",
+   "claim": "禁止以子串存在性断言或调用被测实现生成期望；每门须声明 oracle.must_not_call 与 independent_truth，且真值来源不得为生产输出。",
+   "anchors": [
+    "AR-042",
+    "PROJECT_SPEC §8",
+    "SCIENTIFIC_REFERENCES §G"
+   ],
+   "lit": [],
+   "inputs": [
+    "gate.oracle"
+   ],
+   "outputs": [
+    "self_proof_violations"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "全部门。",
+   "criterion": {
+    "metric": "self_proof_violations",
+    "op": "==",
+    "thresh": 0,
+    "ref": "AR-042；PROJECT_SPEC §8",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "结构性规则；对应 785 合并层 R2 根因（FD-F-002/M5a-G-002/M5a-C-004）。",
+   "fail_closed": "真值来源 = 生产输出 / must_not_call 缺失 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "对全部门 oracle 字段做结构审计。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "PROJECT_SPEC §8"
+   },
+   "mutations": [
+    "MUT-SPEC-07",
+    "MUT-SPEC-12"
+   ],
+   "owner": "QA-MATRIX-001",
+   "wave": 3,
+   "status": "frozen",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "FD-F-002",
+    "M5a-G-002",
+    "M5a-C-004"
+   ],
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 2
+   },
+   "literature": [],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "P0-03",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "independent_oracle",
+   "title": "R4 独立 Oracle 强制（解析/MC/外部参考/结构）",
+   "claim": "每门必须有独立真值来源（解析恒等、独立 NumPy、外部 WCS/HEALPix 参考或结构规则）；历史「Oracle 全过」不得直接继承。",
+   "anchors": [
+    "AR-043",
+    "PROJECT_SPEC §8",
+    "SCIENTIFIC_REFERENCES §G"
+   ],
+   "lit": [],
+   "inputs": [
+    "gate.oracle.kind"
+   ],
+   "outputs": [
+    "gates_without_oracle"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "全部门。",
+   "criterion": {
+    "metric": "gates_without_independent_oracle",
+    "op": "==",
+    "thresh": 0,
+    "ref": "AR-043；PROJECT_SPEC §8",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "结构性规则；对应 785 合并层 R4 根因（M7-G-104/M2a-F-1/M2b-F-01）。",
+   "fail_closed": "无独立真值来源 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "oracle.kind 必须属于白名单 {independent_numpy, independent_numpy_mc, independent_stdlib, structural, real_data_checklist, preregistered_comparison, independent_driver}。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "PROJECT_SPEC §8"
+   },
+   "mutations": [
+    "MUT-SPEC-08"
+   ],
+   "owner": "QA-MATRIX-001",
+   "wave": 3,
+   "status": "frozen",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "M7-G-104",
+    "M2a-F-1",
+    "M2b-F-01"
+   ],
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 2
+   },
+   "literature": [],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "P0-04",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "regression_lock",
+   "title": "R10 回归锁：不得反向固化已退休 support×snr²",
+   "claim": "新门/规格不得把已退休的 support×snr²、legacy weight_mode=0、auto、support_x_snr2 钉成合法规格或 expected；support/coverage 只能作门。",
+   "anchors": [
+    "AR-049",
+    "ADJ-S1",
+    "ADJ-AR-01",
+    "UNIFIED §11",
+    "宪章 §6.3"
+   ],
+   "lit": [],
+   "inputs": [
+    "qa_matrix.json 全文本"
+   ],
+   "outputs": [
+    "fossilized_tokens"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "全部门与基线矩阵。",
+   "criterion": {
+    "metric": "fossilized_retired_tokens",
+    "op": "==",
+    "thresh": 0,
+    "ref": "AR-049；UNIFIED §11；ADJ-S1",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "结构性规则；对应 785 合并层 R10 根因（M1a-F-005/M3b-A-02/M9-F-2）。",
+   "fail_closed": "退休 token 出现在合法规格/expected -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "对 qa_matrix.json 全文本做 token 白名单/黑名单审计（值断言：token 出现在合法位置即红）。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "UNIFIED §11 + ADJ-S1"
+   },
+   "mutations": [
+    "MUT-SPEC-06",
+    "MUT-SPEC-13"
+   ],
+   "owner": "QA-MATRIX-001 / CONTRACT-FREEZE-001",
+   "wave": 3,
+   "status": "frozen",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "M1a-F-005",
+    "M3b-A-02",
+    "M9-F-2"
+   ],
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 2
+   },
+   "literature": [],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "P0-05",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "ledger_layer",
+   "title": "785 合并层账本 P0 门族（带层声明）",
+   "claim": "785 缺陷账本为合并层口径（667+83+29+4+2=785），叶子层 523 个 L-id 结构性不可表达；任何账本数字必须带层号；本门族对 R1/R2/R4/R5/R10 根因逐条给出销账门。",
+   "anchors": [
+    "AR-035",
+    "AR-051",
+    "AR-041",
+    "AR-042",
+    "AR-043",
+    "AR-044",
+    "AR-049",
+    "reports/v6/review-audit/03"
+   ],
+   "lit": [],
+   "inputs": [
+    "DEFECT_LEDGER.json（只读）"
+   ],
+   "outputs": [
+    "layer_declared",
+    "p0_family_cover"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "缺陷账本口径与 P0 门族覆盖；处置权在控制器/负责人（本任务只登记）。",
+   "criterion": {
+    "metric": "ledger_numbers_without_layer + uncovered_p0_root_causes",
+    "op": "==",
+    "thresh": 0,
+    "ref": "AR-051（合并层口径号）；AR-035 建议 QA-MATRIX-001 增列 P0 门族",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "口径规则冻结：所有账本数字带 merged_785/leaf_523；覆盖 R1/R2/R4/R5/R10。",
+   "fail_closed": "账本数字无层号 / P0 根因无承载门 -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "独立重算 785=667+83+29+4+2（复用 AUDIT-REVIEW-001 只读口径，不新增/改判 id）。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "reports/v6/review-audit/03 + DEFECT_LEDGER.json"
+   },
+   "mutations": [
+    "MUT-SPEC-09"
+   ],
+   "owner": "QA-MATRIX-001 / FINAL-AUDIT-001",
+   "wave": 3,
+   "status": "frozen_registration_only",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "AR-035",
+    "AR-051"
+   ],
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 5
+   },
+   "literature": [],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  },
+  {
+   "gate_id": "P0-06",
+   "family": "p0_root_cause",
+   "phase": "all",
+   "objective": "reachable_thresholds",
+   "title": "R5 阈值可达/引用真实（不虚构依据）",
+   "claim": "每个数值容差必须带 threshold_status 与真实来源：frozen（引用 FZ/SCI-ADJ/W1 Oracle 实测）或 pending_freeze（带 owner ALG/W4，任务不得自称冻结）；禁止虚构依据或不可达阈值。",
+   "anchors": [
+    "AR-044",
+    "ADJ-AR-03",
+    "FZ-GATE-PIXIVAR-APPROX",
+    "SCI-ADJ-001 FREEZE_LIST §7 SO-07"
+   ],
+   "lit": [],
+   "inputs": [
+    "gate.criterion/tol_source"
+   ],
+   "outputs": [
+    "invented_thresholds"
+   ],
+   "units": {
+    "count": "1"
+   },
+   "domain": "全部门的容差字段。",
+   "criterion": {
+    "metric": "thresholds_without_real_source",
+    "op": "==",
+    "thresh": 0,
+    "ref": "AR-044；FREEZE_LIST §7 SO-07",
+    "kind": "numeric",
+    "threshold_unit": "count",
+    "threshold_status": "frozen",
+    "threshold_owner": "",
+    "reference_value": ""
+   },
+   "tol_source": "规则：frozen 必须有 FZ-/ADJ-/W1 实测锚；pending_freeze 必须有 owner；否则 REJECT。",
+   "fail_closed": "自称冻结但无锚 / pending 无 owner -> REJECT。",
+   "oracle": {
+    "kind": "structural",
+    "ref": "逐门校验 threshold_status 与 tol_source 锚点存在性（FZ id 必须命中 FREEZE_LIST）。",
+    "must_not": [
+     "astrocs"
+    ],
+    "truth": "SCI-ADJ-001 FREEZE_LIST 19 required_freeze_ids + ADJ id 集合"
+   },
+   "mutations": [
+    "MUT-SPEC-10",
+    "MUT-SPEC-14"
+   ],
+   "owner": "QA-MATRIX-001 / CONTRACT-FREEZE-001",
+   "wave": 3,
+   "status": "frozen",
+   "ledger_layer": "merged_785",
+   "ledger_refs": [
+    "AR-044"
+   ],
+   "zero_case_red": {
+    "mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+    "runner_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases",
+    "min_cases": 2
+   },
+   "literature": [],
+   "zcr_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+  }
+ ]
+}

@@ -1,0 +1,668 @@
+{
+ "driver": "run_mutations",
+ "n": 56,
+ "n_detected": 56,
+ "rc": 0,
+ "undetected": [],
+ "results": [
+  {
+   "mut": "MUT-A01",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-01",
+    "CHK-ANA-02",
+    "CHK-MC-01"
+   ],
+   "targets_covered": {
+    "G-ANA-01": true
+   }
+  },
+  {
+   "mut": "MUT-A02",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-01",
+    "CHK-ANA-02",
+    "CHK-MC-01"
+   ],
+   "targets_covered": {
+    "G-ANA-01": true,
+    "G-ANA-02": true
+   }
+  },
+  {
+   "mut": "MUT-A04",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-04"
+   ],
+   "targets_covered": {
+    "G-ANA-04": true
+   }
+  },
+  {
+   "mut": "MUT-A05",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-05"
+   ],
+   "targets_covered": {
+    "G-ANA-05": true
+   }
+  },
+  {
+   "mut": "MUT-A06",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-06"
+   ],
+   "targets_covered": {
+    "G-ANA-06": true
+   }
+  },
+  {
+   "mut": "MUT-A07",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-07A"
+   ],
+   "targets_covered": {
+    "G-ANA-07": true
+   }
+  },
+  {
+   "mut": "MUT-A08",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-08"
+   ],
+   "targets_covered": {
+    "G-ANA-08": true,
+    "G-INJ-07": true
+   }
+  },
+  {
+   "mut": "MUT-A09",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-09"
+   ],
+   "targets_covered": {
+    "G-ANA-09": true
+   }
+  },
+  {
+   "mut": "MUT-A10",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-10"
+   ],
+   "targets_covered": {
+    "G-ANA-10": true,
+    "G-INJ-08": true
+   }
+  },
+  {
+   "mut": "MUT-A11",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-11"
+   ],
+   "targets_covered": {
+    "G-ANA-11": true,
+    "G-INJ-02": true
+   }
+  },
+  {
+   "mut": "MUT-A12",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-01",
+    "CHK-ANA-02",
+    "CHK-MC-01"
+   ],
+   "targets_covered": {
+    "G-ANA-01": true
+   }
+  },
+  {
+   "mut": "MUT-A13",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-07B",
+    "CHK-MC-04"
+   ],
+   "targets_covered": {
+    "G-ANA-07": true,
+    "G-MC-04": true
+   }
+  },
+  {
+   "mut": "MUT-A14",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-10"
+   ],
+   "targets_covered": {
+    "G-ANA-10": true
+   }
+  },
+  {
+   "mut": "MUT-A15",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-11"
+   ],
+   "targets_covered": {
+    "G-ANA-11": true
+   }
+  },
+  {
+   "mut": "MUT-A16",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-11"
+   ],
+   "targets_covered": {
+    "G-ANA-11": true
+   }
+  },
+  {
+   "mut": "MUT-M01",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-03",
+    "CHK-MC-03"
+   ],
+   "targets_covered": {
+    "G-ANA-03": true,
+    "G-MC-03": true
+   }
+  },
+  {
+   "mut": "MUT-M02",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-MC-01"
+   ],
+   "targets_covered": {
+    "G-MC-01": true
+   }
+  },
+  {
+   "mut": "MUT-M03",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-MC-02"
+   ],
+   "targets_covered": {
+    "G-MC-02": true
+   }
+  },
+  {
+   "mut": "MUT-M04",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-MC-04"
+   ],
+   "targets_covered": {
+    "G-MC-04": true
+   }
+  },
+  {
+   "mut": "MUT-M05",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-MC-05"
+   ],
+   "targets_covered": {
+    "G-MC-05": true,
+    "G-INJ-05": true
+   }
+  },
+  {
+   "mut": "MUT-M06",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-MC-06"
+   ],
+   "targets_covered": {
+    "G-MC-06": true,
+    "G-BASE-02": true
+   }
+  },
+  {
+   "mut": "MUT-M07",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-MC-07"
+   ],
+   "targets_covered": {
+    "G-MC-07": true
+   }
+  },
+  {
+   "mut": "MUT-M08",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-MC-08"
+   ],
+   "targets_covered": {
+    "G-MC-08": true
+   }
+  },
+  {
+   "mut": "MUT-I01",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-03",
+    "CHK-MC-03"
+   ],
+   "targets_covered": {
+    "G-MC-03": true,
+    "G-ANA-03": true
+   }
+  },
+  {
+   "mut": "MUT-I02",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-ANA-01",
+    "CHK-ANA-02",
+    "CHK-MC-01"
+   ],
+   "targets_covered": {
+    "G-MC-01": true,
+    "G-INJ-01": true
+   }
+  },
+  {
+   "mut": "MUT-I03",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-MC-01",
+    "CHK-INJ-02"
+   ],
+   "targets_covered": {
+    "G-INJ-01": true,
+    "G-INJ-02": true
+   }
+  },
+  {
+   "mut": "MUT-I04",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-INJ-03"
+   ],
+   "targets_covered": {
+    "G-INJ-03": true
+   }
+  },
+  {
+   "mut": "MUT-I05",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-INJ-03"
+   ],
+   "targets_covered": {
+    "G-INJ-03": true
+   }
+  },
+  {
+   "mut": "MUT-I06",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-INJ-04"
+   ],
+   "targets_covered": {
+    "G-INJ-04": true
+   }
+  },
+  {
+   "mut": "MUT-I07",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-INJ-06"
+   ],
+   "targets_covered": {
+    "G-INJ-06": true
+   }
+  },
+  {
+   "mut": "MUT-I08",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-INJ-06"
+   ],
+   "targets_covered": {
+    "G-INJ-06": true
+   }
+  },
+  {
+   "mut": "MUT-I09",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-INJ-07"
+   ],
+   "targets_covered": {
+    "G-INJ-07": true
+   }
+  },
+  {
+   "mut": "MUT-B01",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-MC-06",
+    "CHK-BASE-02"
+   ],
+   "targets_covered": {
+    "G-BASE-02": true,
+    "G-MC-06": true
+   }
+  },
+  {
+   "mut": "MUT-B02",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-BASE-01"
+   ],
+   "targets_covered": {
+    "G-BASE-01": true,
+    "G-BASE-03": true
+   }
+  },
+  {
+   "mut": "MUT-B03",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-MC-01",
+    "CHK-INJ-02",
+    "CHK-BASE-01"
+   ],
+   "targets_covered": {
+    "G-BASE-03": true,
+    "G-BASE-01": true
+   }
+  },
+  {
+   "mut": "MUT-B04",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-BASE-04"
+   ],
+   "targets_covered": {
+    "G-BASE-04": true
+   }
+  },
+  {
+   "mut": "MUT-R01",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-RD-01",
+    "CHK-RD-02"
+   ],
+   "targets_covered": {
+    "G-RD-01": true,
+    "G-RD-02": true
+   }
+  },
+  {
+   "mut": "MUT-R02",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-RD-03",
+    "CHK-RD-05"
+   ],
+   "targets_covered": {
+    "G-RD-03": true,
+    "G-RD-05": true
+   }
+  },
+  {
+   "mut": "MUT-R03",
+   "kind": "science",
+   "detected": true,
+   "rc": 1,
+   "failed_checks": [
+    "CHK-RD-06"
+   ],
+   "targets_covered": {
+    "G-RD-06": true
+   }
+  },
+  {
+   "mut": "MUT-SPEC-01",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-FIELD",
+    "V-GATE-MUT"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-04",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-BM-DEFER",
+    "V-MODES-FORBIDDEN",
+    "V-MODES-PROD"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-05",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-TOKEN-WS"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-06",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-TOKEN-RETIRED"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-07",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-ORACLE-MUSTNOT"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-08",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-ORACLE-KIND"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-09",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-LEDGER-LAYER"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-10",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-CRIT-OWNER"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-11",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-UNITS"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-12",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-ORACLE-MUSTNOT"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-13",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-MODES-FORBIDDEN",
+    "V-MODES-PROD"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-14",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-CRIT-ANCHOR"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-15",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-LEDGER-ZERO"
+   ]
+  },
+  {
+   "mut": "MUT-SPEC-16",
+   "kind": "spec",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "V-LEDGER-SKIP"
+   ]
+  },
+  {
+   "mut": "MUT-DOC-01",
+   "kind": "doc",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "QA-MATRIX-TABLE 与 qa_matrix.json 渲染不一致",
+    "门行集合不一致：缺少 ['G-ANA-01']；多余 []"
+   ]
+  },
+  {
+   "mut": "MUT-DOC-02",
+   "kind": "doc",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "QA-MATRIX-TABLE 与 qa_matrix.json 渲染不一致"
+   ]
+  },
+  {
+   "mut": "MUT-DOC-03",
+   "kind": "doc",
+   "detected": true,
+   "rc": 1,
+   "rules": [
+    "第 872 行把 psf_snr_power 列为生产模式（C-004.1）: | psf_snr_power | production | forbidden |"
+   ]
+  }
+ ]
+}

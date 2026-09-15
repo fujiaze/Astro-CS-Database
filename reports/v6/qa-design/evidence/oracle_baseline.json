@@ -1,0 +1,406 @@
+{
+ "oracle": "qa_oracle",
+ "checks": [
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 1e-09,
+   "ok": true,
+   "id": "CHK-ANA-01",
+   "gates": [
+    "G-ANA-01"
+   ],
+   "desc": "Q/W == GLS 点源通量恒等"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 1e-09,
+   "ok": true,
+   "id": "CHK-ANA-02",
+   "gates": [
+    "G-ANA-02"
+   ],
+   "desc": "实际系数方差恒等 c^T C c == 1/W"
+  },
+  {
+   "measured": 1.0,
+   "op": ">=",
+   "thresh": 1.0,
+   "ok": true,
+   "id": "CHK-ANA-03",
+   "gates": [
+    "G-ANA-03"
+   ],
+   "desc": "相关帧联合 C（朴素求和低估被检出）"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 1e-09,
+   "ok": true,
+   "id": "CHK-ANA-04",
+   "gates": [
+    "G-ANA-04"
+   ],
+   "desc": "GLS 协方差恒等 G C G^T == (A^T C^-1 A)^-1"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 1e-12,
+   "ok": true,
+   "id": "CHK-ANA-05",
+   "gates": [
+    "G-ANA-05"
+   ],
+   "desc": "白噪声条件恒等 W=a^2/(sigma^2 A_NEA)"
+  },
+  {
+   "measured": 0,
+   "op": "==",
+   "thresh": 0,
+   "ok": true,
+   "id": "CHK-ANA-06",
+   "gates": [
+    "G-ANA-06"
+   ],
+   "desc": "单位表量纲代数（ADU/PX 指数）"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 1e-12,
+   "ok": true,
+   "id": "CHK-ANA-07A",
+   "gates": [
+    "G-ANA-07"
+   ],
+   "desc": "PSFSW 组内归一 median=1 且全正"
+  },
+  {
+   "measured": 0,
+   "op": "==",
+   "thresh": 0,
+   "ok": true,
+   "id": "CHK-ANA-07B",
+   "gates": [
+    "G-ANA-07"
+   ],
+   "desc": "psfsw 权重不得写成 ivar/fisher"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 1e-09,
+   "ok": true,
+   "id": "CHK-ANA-08",
+   "gates": [
+    "G-ANA-08",
+    "G-INJ-07"
+   ],
+   "desc": "Phase3 Q/W 输出帧重算（禁重采样输入 Q/W）"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 1e-12,
+   "ok": true,
+   "id": "CHK-ANA-09",
+   "gates": [
+    "G-ANA-09"
+   ],
+   "desc": "Phase3 方差 Σc^2 u 与行归一 R"
+  },
+  {
+   "measured": 2.7755575615628914e-17,
+   "op": "<=",
+   "thresh": 1e-12,
+   "ok": true,
+   "extra": 0.22318960893712736,
+   "id": "CHK-ANA-10",
+   "gates": [
+    "G-ANA-10",
+    "G-INJ-08"
+   ],
+   "desc": "Drizzle 方差恒等 + aperture 相关项"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 0.001,
+   "ok": true,
+   "id": "CHK-ANA-11",
+   "gates": [
+    "G-ANA-11",
+    "G-INJ-02"
+   ],
+   "desc": "常量面亮度 S_p=B0 全 pixfrac（按 B0 构造）"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 1e-12,
+   "ok": true,
+   "id": "CHK-ANA-11F",
+   "gates": [
+    "G-ANA-11"
+   ],
+   "desc": "条件通量守恒（pf=1 严格 / pf<1 = pf^2）"
+  },
+  {
+   "measured": 0.00013293030718063162,
+   "op": "<=",
+   "thresh": 0.03,
+   "ok": true,
+   "extra": 1.7735847698363438,
+   "id": "CHK-MC-01",
+   "gates": [
+    "G-MC-01",
+    "G-INJ-01"
+   ],
+   "desc": "点源散度 vs 1/sqrt(W)（MC）"
+  },
+  {
+   "measured": 0.01077618602810916,
+   "op": "<=",
+   "thresh": 0.03,
+   "ok": true,
+   "id": "CHK-MC-02",
+   "gates": [
+    "G-MC-02"
+   ],
+   "desc": "surface_gls 协方差 vs MC"
+  },
+  {
+   "measured": 1.0,
+   "op": ">=",
+   "thresh": 1.0,
+   "ok": true,
+   "id": "CHK-MC-03",
+   "gates": [
+    "G-MC-03"
+   ],
+   "desc": "共享系统项：联合 vs 朴素比值 > 1（MC）"
+  },
+  {
+   "measured": 0.0025964886988788863,
+   "op": "<=",
+   "thresh": 0.03,
+   "ok": true,
+   "extra": 16.230091765342316,
+   "id": "CHK-MC-04",
+   "gates": [
+    "G-MC-04"
+   ],
+   "desc": "PSFSW 方差从实际系数传播（vs 权重代理）"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 1e-09,
+   "ok": true,
+   "extra": 1.0,
+   "id": "CHK-MC-05",
+   "gates": [
+    "G-MC-05",
+    "G-INJ-05"
+   ],
+   "desc": "effective PSF FWHM 从实际组合算子测量"
+  },
+  {
+   "measured": 4.544860534134822,
+   "op": ">",
+   "thresh": 1.5,
+   "ok": true,
+   "id": "CHK-MC-06",
+   "gates": [
+    "G-MC-06",
+    "G-BASE-02"
+   ],
+   "desc": "CRLB 紧致 + 像素 ivar 损失比 > 1.5"
+  },
+  {
+   "measured": 1.01845,
+   "op": ">",
+   "thresh": 1.0,
+   "ok": true,
+   "id": "CHK-MC-07",
+   "gates": [
+    "G-MC-07"
+   ],
+   "desc": "UPM 参数项进入 covariance（比值 > 1）"
+  },
+  {
+   "measured": 2.699275527729538,
+   "op": ">",
+   "thresh": 1.0,
+   "ok": true,
+   "id": "CHK-MC-08",
+   "gates": [
+    "G-MC-08"
+   ],
+   "desc": "k_corr 定种子 MC 复现方向 > 1"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 1e-09,
+   "ok": true,
+   "id": "CHK-INJ-02",
+   "gates": [
+    "G-INJ-02"
+   ],
+   "desc": "扩展源注入方差一致性（禁 variance_from_weight）"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 0.05,
+   "ok": true,
+   "extra": 178.24421915986593,
+   "id": "CHK-INJ-03",
+   "gates": [
+    "G-INJ-03"
+   ],
+   "desc": "深度不变性：W_info 样本无关，median SNR 移动"
+  },
+  {
+   "measured": 1.0,
+   "op": "==",
+   "thresh": 1.0,
+   "ok": true,
+   "id": "CHK-INJ-04",
+   "gates": [
+    "G-INJ-04"
+   ],
+   "desc": "单变量扫描方向（sigma -> W 减小；a -> W 增大）"
+  },
+  {
+   "measured": 0,
+   "op": "==",
+   "thresh": 0,
+   "ok": true,
+   "id": "CHK-INJ-06",
+   "gates": [
+    "G-INJ-06"
+   ],
+   "desc": "psfsw fail-closed 白名单 + weight_value=null"
+  },
+  {
+   "measured": 0.0,
+   "op": "<=",
+   "thresh": 0.02,
+   "ok": true,
+   "id": "CHK-INJ-07",
+   "gates": [
+    "G-INJ-07"
+   ],
+   "desc": "Phase3 禁 delta-PSF 近似"
+  },
+  {
+   "measured": 0,
+   "op": "==",
+   "thresh": 0,
+   "ok": true,
+   "id": "CHK-BASE-01",
+   "gates": [
+    "G-BASE-01",
+    "G-BASE-03"
+   ],
+   "desc": "基线矩阵声明边界（无非法声明）"
+  },
+  {
+   "measured": 4.544860534134822,
+   "op": ">",
+   "thresh": 1.5,
+   "ok": true,
+   "id": "CHK-BASE-02",
+   "gates": [
+    "G-BASE-02"
+   ],
+   "desc": "pixel_ivar 基线 != W_info（多像素 PSF）"
+  },
+  {
+   "measured": 0,
+   "op": "==",
+   "thresh": 0,
+   "ok": true,
+   "id": "CHK-BASE-04",
+   "gates": [
+    "G-BASE-04"
+   ],
+   "desc": "equal 基线不得声明最优"
+  },
+  {
+   "measured": 0,
+   "op": "==",
+   "thresh": 0,
+   "ok": true,
+   "id": "CHK-BASE-05",
+   "gates": [
+    "G-BASE-05"
+   ],
+   "desc": "psf_snr_power 延迟不进生产"
+  },
+  {
+   "measured": 0,
+   "op": "==",
+   "thresh": 0,
+   "ok": true,
+   "id": "CHK-RD-01",
+   "gates": [
+    "G-RD-01"
+   ],
+   "desc": "M42 清单 expected 不得仅来自生产输出"
+  },
+  {
+   "measured": 0,
+   "op": "==",
+   "thresh": 0,
+   "ok": true,
+   "id": "CHK-RD-02",
+   "gates": [
+    "G-RD-02"
+   ],
+   "desc": "银心清单 expected 不得仅来自生产输出"
+  },
+  {
+   "measured": 0,
+   "op": "==",
+   "thresh": 0,
+   "ok": true,
+   "id": "CHK-RD-03",
+   "gates": [
+    "G-RD-03"
+   ],
+   "desc": "testdata 清单锚定（缺失数据集计数）"
+  },
+  {
+   "measured": 0,
+   "op": "==",
+   "thresh": 0,
+   "ok": true,
+   "id": "CHK-RD-05",
+   "gates": [
+    "G-RD-05"
+   ],
+   "desc": "provenance 最小集 + BUNIT 二次律"
+  },
+  {
+   "measured": 0,
+   "op": "==",
+   "thresh": 0,
+   "ok": true,
+   "id": "CHK-RD-06",
+   "gates": [
+    "G-RD-06"
+   ],
+   "desc": "Windows 未复验不得标 VERIFIED"
+  }
+ ],
+ "n": 35,
+ "n_pass": 35,
+ "rc": 0,
+ "mode": "run"
+}

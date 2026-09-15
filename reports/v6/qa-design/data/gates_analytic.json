@@ -1,0 +1,710 @@
+{
+ "defaults": {
+  "zc_mechanism": "case_ledger 硬校验：每门在 case_ledger.json 登记 executed_cases/skipped_cases；runner 规则 —— executed_cases==0 或 skipped_cases>=executed_cases 一律 rc=2（不算 PASS）；门 missing 于 case_ledger 或 executed<min_cases 即红；skip-only 门禁止出现在通过清单。",
+  "zc_rule": "rc=2 if executed_cases==0 or skipped_cases>=executed_cases"
+ },
+ "literature": {
+  "HORNE": "Horne 1986 PASP 98,609 DOI:10.1086/131801",
+  "NAYLOR": "Naylor 1998 MNRAS 296,339",
+  "ZO17I": "Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872",
+  "ZO17II": "Zackay & Ofek 2017 II ApJ 836,188 arXiv:1512.06879",
+  "FH02": "Fruchter & Hook 2002 PASP 114,144",
+  "PI": "PixInsight New Image Weighting Algorithms §2.5-2.6",
+  "GC02": "Greisen & Calabretta 2002 A&A 395,1061",
+  "KO": "Gorski et al. 2005 HEALPix ApJ 622,759",
+  "FERNIQUE": "Fernique et al. 2015 A&A 578,A114 (HiPS)",
+  "IVOA": "IVOA HiPS 1.0 Recommendation",
+  "PADM": "Padmanabhan et al. 2008 ApJ 674,1217",
+  "GRUEN": "Gruen et al. 2014 PASP 126,158",
+  "STARCK": "Starck, Murtagh & Fadili 2010 CBO9780511730344 (MMT)",
+  "RC93": "Rousseeuw & Croux 1993 JASA 88,1273 (Sn)"
+ },
+ "gates": [
+  {
+   "gate_id": "G-ANA-01",
+   "family": "analytic",
+   "phase": "phase2",
+   "objective": "point_source_photometry",
+   "title": "Q/W == GLS 点源通量恒等",
+   "claim": "point_information 的 F_hat=Sum Q_k/Sum W_k 与显式 GLS 解 x_hat=(A^T C^-1 A)^-1 A^T C^-1 d 在任意正定 C 下数值恒等。",
+   "anchors": [
+    "FZ-FORMULA-Q",
+    "FZ-FORMULA-FHAT",
+    "ADJ-P2-01",
+    "UNIFIED §4",
+    "DESIGN-P2 §6.2",
+    "SCI-P2-001 Oracle C1"
+   ],
+   "lit": [
+    "HORNE",
+    "NAYLOR",
+    "ZO17I"
+   ],
+   "inputs": [
+    "d_k",
+    "P_k",
+    "a_k",
+    "C_k"
+   ],
+   "outputs": [
+    "F_hat",
+    "Q",
+    "W"
+   ],
+   "units": {
+    "Q": "ADU^-1",
+    "W": "ADU^-2",
+    "F_hat": "ADU"
+   },
+   "domain": "C 正定且可表示；P 归一 Sum P=1；独立帧块对角或联合 C。",
+   "criterion": {
+    "metric": "max|F_hat - Q/W| / |x_hat|",
+    "op": "<=",
+    "thresh": 1e-09,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-P2-001 Oracle C1 实测 0.0"
+   },
+   "tol_source": "解析恒等（非测量阈值）：任意正定 C 下两式代数等价；1e-9 为浮点安全界，继承 SCI-P2-001 Oracle C1。",
+   "min_cases": 1,
+   "fail_closed": "C 非正定/不可求逆 -> 该配置整体 REJECT 并记 unavailable，不参与恒等判定。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式堆叠 A 与块对角 C 的直接矩阵求逆；不调用任何 AstroCS 生产函数。",
+    "must_not": [
+     "astrocs",
+     "lib/",
+     "cli/",
+     "include/"
+    ],
+    "truth": "解析恒等式 + 显式矩阵参考"
+   },
+   "mutations": [
+    "MUT-A01",
+    "MUT-A02",
+    "MUT-A12"
+   ],
+   "owner": "ALG-P2-POINT-001 / P2-INTEGRATE-001",
+   "wave": 3,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-ANA-02",
+   "family": "analytic",
+   "phase": "phase2",
+   "objective": "point_source_photometry",
+   "title": "实际系数方差恒等 c^T C c == 1/W",
+   "claim": "报告方差必须用实际组合系数 c=C^-1 A/(A^T C^-1 A) 计算：c^T C c == 1/W；权重标量/诊断量反推一律禁止。",
+   "anchors": [
+    "FZ-FORMULA-COV-PROP",
+    "FZ-GATE-PSFSW-COV",
+    "ADJ-P2-03",
+    "RULINGS #5",
+    "COVARIANCE_AND_EFFECTIVE_PSF §1"
+   ],
+   "lit": [
+    "HORNE",
+    "FH02"
+   ],
+   "inputs": [
+    "c",
+    "C_in"
+   ],
+   "outputs": [
+    "Var(F_hat)",
+    "c^T C c"
+   ],
+   "units": {
+    "Var": "ADU^2",
+    "W": "ADU^-2"
+   },
+   "domain": "任意线性组合；C 含相关项时必须用完整 C。",
+   "criterion": {
+    "metric": "|c^T C c - 1/W| / (1/W)",
+    "op": "<=",
+    "thresh": 1e-09,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-P2-001 Oracle C1.3 实测 <1e-9"
+   },
+   "tol_source": "代数恒等（C 正确时）；OM1 以 c×1.10 证明该门能红（rc=1）。",
+   "min_cases": 1,
+   "fail_closed": "variance_from 属于 {weight, psfsw_robust_weight, median_source_snr, support, coverage, fwhm, psf_residual} -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式矩阵二次型；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析恒等式"
+   },
+   "mutations": [
+    "MUT-A02",
+    "MUT-SPEC-05"
+   ],
+   "owner": "ALG-P2-POINT-001 / P2-INTEGRATE-001",
+   "wave": 3,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-ANA-03",
+   "family": "analytic",
+   "phase": "phase2",
+   "objective": "point_source_photometry",
+   "title": "相关帧必须用联合 C（简单求和被拒）",
+   "claim": "跨帧相关存在时独立帧求和 Var=1/Sum W_k 低估方差；必须用联合 C 求 c^T C c；低估比 > 1 必须可检出。",
+   "anchors": [
+    "FZ-FORMULA-COV-PROP",
+    "ADJ-P2-01",
+    "ADJ-OBS-01",
+    "UNIFIED §4",
+    "UNIFIED §10",
+    "SCI-P2-001 Oracle C3"
+   ],
+   "lit": [
+    "ZO17I",
+    "FH02"
+   ],
+   "inputs": [
+    "C_joint",
+    "C_diag",
+    "W_k"
+   ],
+   "outputs": [
+    "var_joint",
+    "var_naive",
+    "ratio"
+   ],
+   "units": {
+    "var": "ADU^2"
+   },
+   "domain": "跨帧共享模式 / 共同 master / 重采样相关。",
+   "criterion": {
+    "metric": "var_naive/var_joint",
+    "op": "<",
+    "thresh": 1,
+    "unit": "ratio",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-P2-001 Oracle C3 实测 1.575；F-OBS-04 实测 3.48x"
+   },
+   "tol_source": "构造性不变量（ratio>1 必须检出），非经验阈值；W1 双 Oracle 实测 1.575 / 3.48。",
+   "min_cases": 1,
+   "fail_closed": "无法表示联合 C -> variance 面 unavailable 或系统误差预算（FZ-PROV-SHARED-SYSTEMATIC）。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "构造 4 帧共享共同模式，联合 Cholesky 采样；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "构造已知共享幅度下的解析比"
+   },
+   "mutations": [
+    "MUT-M01",
+    "MUT-I01"
+   ],
+   "owner": "ALG-P2-POINT-001 / ALG-P2-SURF-001",
+   "wave": 3,
+   "status": "frozen_mechanism"
+  },
+  {
+   "gate_id": "G-ANA-04",
+   "family": "analytic",
+   "phase": "phase2",
+   "objective": "surface_brightness",
+   "title": "GLS 协方差恒等 G C G^T == (A^T C^-1 A)^-1",
+   "claim": "surface_gls 的 Cov=(A^T C^-1 A)^-1 与 R C_in R^T (R=(A^T C^-1 A)^-1 A^T C^-1) 数值恒等；使用近似 R~ 时必须报告 R~ C_in R~^T 及相对比值。",
+   "anchors": [
+    "FZ-FORMULA-GLS",
+    "FZ-FORMULA-COV-PROP",
+    "ADJ-P2-02",
+    "UNIFIED §5",
+    "SCI-P2-001 Oracle C5"
+   ],
+   "lit": [
+    "ZO17I"
+   ],
+   "inputs": [
+    "A",
+    "C",
+    "d"
+   ],
+   "outputs": [
+    "x_hat",
+    "Cov",
+    "R C R^T"
+   ],
+   "units": {
+    "Cov": "BUNIT^2"
+   },
+   "domain": "A 列满秩；C 正定。",
+   "criterion": {
+    "metric": "max|G C G^T - (A^T C^-1 A)^-1|",
+    "op": "<=",
+    "thresh": 1e-09,
+    "unit": "abs",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-P2-001 Oracle C5 实测 1.1e-16"
+   },
+   "tol_source": "代数恒等；继承 SCI-P2-001 Oracle C5。",
+   "min_cases": 1,
+   "fail_closed": "A 秩亏 -> gauge/断图处理并 REJECT 该元件。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "直接矩阵运算参考；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析恒等式"
+   },
+   "mutations": [
+    "MUT-A04"
+   ],
+   "owner": "ALG-P2-SURF-001 / P2-INTEGRATE-001",
+   "wave": 3,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-ANA-05",
+   "family": "analytic",
+   "phase": "phase1",
+   "objective": "point_source_detection",
+   "title": "白噪声条件恒等 W=a^2/(sigma^2 A_NEA)",
+   "claim": "仅 C 对角且 sigma_pix 声明时，W_info=a_k^2/(sigma_pix^2 A_NEA)，A_NEA=1/Sum P^2；该近似为条件式，不得无条件宣称。",
+   "anchors": [
+    "FZ-COND-WHITENOISE",
+    "FZ-FORMULA-WINFO",
+    "ADJ-P2-01",
+    "PSF_SIGNAL_WEIGHT §2",
+    "DESIGN-P1 §8.1"
+   ],
+   "lit": [
+    "HORNE"
+   ],
+   "inputs": [
+    "a",
+    "sigma_pix",
+    "P"
+   ],
+   "outputs": [
+    "W_info",
+    "A_NEA"
+   ],
+   "units": {
+    "W_info": "ADU^-2",
+    "A_NEA": "px^2"
+   },
+   "domain": "C=sigma^2 I 且 sigma_pix 已声明；P 归一无特别要求（A_NEA 吸收归一）。",
+   "criterion": {
+    "metric": "|a^2/(sigma^2 A_NEA) - a^2 P^T C^-1 P| / (a^2 P^T C^-1 P)",
+    "op": "<=",
+    "thresh": 1e-12,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-PSFW-001 K1 实测 0.0；SCI-OBS-001 C3 <1e-12"
+   },
+   "tol_source": "代数恒等；继承 SCI-PSFW-001 K1 与 SCI-OBS-001 C3。",
+   "min_cases": 1,
+   "fail_closed": "C 非对角或 sigma_pix 未声明时使用白噪式 -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "直接矩阵参考。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析恒等式"
+   },
+   "mutations": [
+    "MUT-A05"
+   ],
+   "owner": "ALG-P1-001 / IMPL-P1-PSFW-001",
+   "wave": 3,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-ANA-06",
+   "family": "analytic",
+   "phase": "all",
+   "objective": "contract_units",
+   "title": "单位表量纲代数（ADU/PX 指数）",
+   "claim": "signal_sb=ADU/px^2、pixel_variance_in=ADU^2、sb_variance_out=ADU^2/px^4、sb_ivar=px^4/ADU^2、Q=ADU^-1、flux=ADU、W_info=ADU^-2、psfsw=1；Phase3 variance BUNIT=(signal BUNIT)^2；variance 与 ivar 互为倒数。",
+   "anchors": [
+    "FZ-UNIT-SIGNAL-SB",
+    "FZ-UNIT-VAR-IN",
+    "FZ-UNIT-VAR-SB",
+    "FZ-UNIT-IVAR-SB",
+    "FZ-UNIT-Q",
+    "FZ-UNIT-FLUX",
+    "FZ-UNIT-WINFO",
+    "FZ-UNIT-PSFSW",
+    "FZ-P3-BUNIT-QUADRATIC",
+    "ADJ-GEN-01"
+   ],
+   "lit": [
+    "FH02"
+   ],
+   "inputs": [
+    "unit_table"
+   ],
+   "outputs": [
+    "dimension_check"
+   ],
+   "units": {
+    "basis": "ADU, PX"
+   },
+   "domain": "全部产品 BUNIT/单位声明。",
+   "criterion": {
+    "metric": "dimension_violations",
+    "op": "==",
+    "thresh": 0,
+    "unit": "count",
+    "status": "frozen",
+    "owner": "",
+    "ref": "FZ-UNIT-* 表 + FZ-P3-BUNIT-QUADRATIC"
+   },
+   "tol_source": "量纲代数（精确整数指数）已冻结于 FREEZE_LIST §1/§3.2；本任务不改单位表。",
+   "min_cases": 1,
+   "fail_closed": "BUNIT 量纲不可判（无显式 px 幂次且 provenance 无 pixel_area_power=-2）-> unavailable/REJECT。",
+   "oracle": {
+    "kind": "independent_stdlib",
+    "ref": "独立量纲指数向量算术（ADU,PX 基底），不调用生产单位代码。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "FREEZE_LIST §1 单位表"
+   },
+   "mutations": [
+    "MUT-A06",
+    "MUT-SPEC-11"
+   ],
+   "owner": "DATA-DESIGN-001 / SCHEMA-INTEGRATE-001",
+   "wave": 3,
+   "status": "frozen"
+  },
+  {
+   "gate_id": "G-ANA-07",
+   "family": "analytic",
+   "phase": "phase2",
+   "objective": "conventional_integration",
+   "title": "PSFSW 复合与组内归一（median=1、全正、单调方向）",
+   "claim": "Wt_k=C_norm*S^alpha*Conc^beta/(N^gamma*B^delta) 且 W_psfsw,k=Wt_k/median_j(Wt_j) 组内 median=1、全正；对 S/Conc 单调增、对 N/B 单调减（alpha,beta,gamma,delta>=0）。",
+   "anchors": [
+    "FZ-FORMULA-PSFSW-COMPOSITE",
+    "FZ-FIELD-PSFSW-4COMP",
+    "FZ-FIELD-PSFSW-UNIT",
+    "ADJ-P2-03",
+    "PSF_SIGNAL_WEIGHT §3"
+   ],
+   "lit": [
+    "PI",
+    "STARCK",
+    "RC93"
+   ],
+   "inputs": [
+    "S",
+    "Conc",
+    "N",
+    "B",
+    "alpha",
+    "beta",
+    "gamma",
+    "delta",
+    "C_norm"
+   ],
+   "outputs": [
+    "Wt",
+    "W_psfsw"
+   ],
+   "units": {
+    "W_psfsw": "1"
+   },
+   "domain": "同波段、同连通分量、光度已归一的帧组；四分量 measurement_id 互异。",
+   "criterion": {
+    "metric": "|median_j(W_psfsw,j)-1|",
+    "op": "<=",
+    "thresh": 1e-12,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "ADJ-P2-03；SCI-PSFW-001 K6/K8 方向全部正确"
+   },
+   "tol_source": "组内归一是定义式（median 精确）；单调方向由解析偏导符号证明，对任意正指数成立。",
+   "min_cases": 2,
+   "fail_closed": "背景非正且变换未定义 / 无共同星集 / 有效星不足 / 选择偏差门失败 -> unavailable，禁回退 median SNR。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "从定义式独立复算归一与偏导符号；不调用生产实现。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "定义式 + 解析单调性"
+   },
+   "mutations": [
+    "MUT-A07",
+    "MUT-A13"
+   ],
+   "owner": "ALG-P2-PSFSW-001 / IMPL-P1-PSFW-001",
+   "wave": 3,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-ANA-08",
+   "family": "analytic",
+   "phase": "phase3",
+   "objective": "point_source_flux",
+   "title": "Phase3 Q/W 输出帧重算（pi=S p；禁止重采样输入 Q/W）",
+   "claim": "输出帧必须重算 Q=a pi^T C_y^-1 f、W=a^2 pi^T C_y^-1 pi，pi=S p；禁止把输入 Q/W 重采样后直接使用。",
+   "anchors": [
+    "FZ-P3-QW-RECOMPUTE",
+    "ADJ-P3-01",
+    "C-P3-PROP-14",
+    "DESIGN-P3 §4",
+    "PHASE3_PROPAGATION_REVIEW §6"
+   ],
+   "lit": [
+    "ZO17I",
+    "GC02"
+   ],
+   "inputs": [
+    "f",
+    "S",
+    "p",
+    "C_y",
+    "a"
+   ],
+   "outputs": [
+    "Q",
+    "W",
+    "pi"
+   ],
+   "units": {
+    "Q": "ADU^-1",
+    "W": "ADU^-2"
+   },
+   "domain": "point_source_flux 模式；S 行归一；缺失相关核时须显式声明。",
+   "criterion": {
+    "metric": "|W_recompute - W_resampled_input|",
+    "op": ">",
+    "thresh": 0,
+    "unit": "abs",
+    "status": "frozen",
+    "owner": "",
+    "ref": "C-P3-PROP-14；P3 Oracle P3-O5/O6（delta 近似偏差 94.8%）"
+   },
+   "tol_source": "构造性区分门：两条路径在退化（S=I 且 PSF 为 delta）外必须给出不同 W；不得以相等为通过。",
+   "min_cases": 1,
+   "fail_closed": "缺 PSF / PSF 未归一 / 缺 point_information 且不可重建 / 缺 a / 未出 effective PSF -> REJECT。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "独立构造 S,p,C_y,f，比较重算与输入重采样两条路径。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "C-P3-PROP-14 定义式"
+   },
+   "mutations": [
+    "MUT-A08"
+   ],
+   "owner": "ALG-P3-001 / IMPL-P3-RSMP-001",
+   "wave": 3,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-ANA-09",
+   "family": "analytic",
+   "phase": "phase3",
+   "objective": "resampling_uncertainty",
+   "title": "Phase3 重采样方差 Σc^2 u 与行归一 R",
+   "claim": "行归一 Sum_j R_ij=1 保证常数面亮度不变量；var_out=Σ_k c_k^2 u_k 且非退化位置 Σc_k^2 != 1；ivar_out=1/var_out 有限且 >0。",
+   "anchors": [
+    "FZ-P3-BUNIT-QUADRATIC",
+    "ADJ-P3-01",
+    "C-P3-PROP-2",
+    "C-P3-PROP-7",
+    "C-P3-PROP-8",
+    "DATA_SEMANTICS §30.4"
+   ],
+   "lit": [
+    "GC02",
+    "FERNIQUE"
+   ],
+   "inputs": [
+    "R",
+    "c_k",
+    "u_k"
+   ],
+   "outputs": [
+    "var_out",
+    "row_sum"
+   ],
+   "units": {
+    "var_out": "BUNIT^2"
+   },
+   "domain": "线性采样 y=R x；输入像素独立（否则须给相关核）。",
+   "criterion": {
+    "metric": "|Σ_k c_k^2 u_k - diag(R diag(u) R^T)|",
+    "op": "<=",
+    "thresh": 1e-12,
+    "unit": "abs",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-OBS-001 门 P1/P2 实测 1e-14；Σc^2=0.3364 != 1"
+   },
+   "tol_source": "代数恒等（diag 情形）；非退化 Σc^2 != 1 是重力物理而非容差。",
+   "min_cases": 1,
+   "fail_closed": "输入 C 已相关仍只出对角且无相关核 -> 拒绝（对角化过度乐观须被检出，M3-05）。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式构造行归一 R 与采样核 c，独立计算 diag(R diag(u) R^T)。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "线性传播恒等式"
+   },
+   "mutations": [
+    "MUT-A09"
+   ],
+   "owner": "ALG-P3-001 / IMPL-P3-RSMP-001",
+   "wave": 3,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-ANA-10",
+   "family": "analytic",
+   "phase": "phase1",
+   "objective": "surface_brightness",
+   "title": "Drizzle 方差传播恒等 + 缩放律",
+   "claim": "diag(Cov(S_p,S_q))=Σ_j v_j w_jp^2/D_p^2；x->alpha*x 蕴含 var->alpha^2 var、ivar->ivar/alpha^2。",
+   "anchors": [
+    "FZ-FORMULA-DRIZZLE-VAR",
+    "FZ-UNIT-VAR-SB",
+    "FZ-UNIT-IVAR-SB",
+    "ADJ-F-OBS-01",
+    "DRIZZLE §5"
+   ],
+   "lit": [
+    "FH02"
+   ],
+   "inputs": [
+    "v_j",
+    "w_jp",
+    "D_p",
+    "x_j"
+   ],
+   "outputs": [
+    "variance_p",
+    "ivar_p"
+   ],
+   "units": {
+    "variance_p": "ADU^2/px^4",
+    "ivar_p": "px^4/ADU^2"
+   },
+   "domain": "线性 Drizzle 算子；w_jp=a_jp/A_drop,j；D_p=Σ_j a_jp。",
+   "criterion": {
+    "metric": "max|diag(Cov) - Σ_j v_j w_jp^2/D_p^2|",
+    "op": "<=",
+    "thresh": 1e-11,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "SCI-OBS-001 门 D1 实测 5.6e-17"
+   },
+   "tol_source": "代数恒等；继承 SCI-OBS-001 门 D1（rtol 1e-11）。",
+   "min_cases": 1,
+   "fail_closed": "非对角协方差被当零用于 aperture/总量误差 -> 拒绝（须给相关核/误差）。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "显式构造 footprint 并直接做二次型。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "解析恒等式"
+   },
+   "mutations": [
+    "MUT-A10",
+    "MUT-A14"
+   ],
+   "owner": "ALG-P1-001 / IMPL-P1-DRZ-001",
+   "wave": 3,
+   "status": "frozen_formula"
+  },
+  {
+   "gate_id": "G-ANA-11",
+   "family": "analytic",
+   "phase": "phase1",
+   "objective": "surface_brightness",
+   "title": "Drizzle 面亮度归一 + 常量场 Oracle + 条件通量守恒",
+   "claim": "S_p=Σ_j B_j a_jp/Σ_j a_jp（B_j=x_j/A_pixel,j）对全部 pixfrac in (0,1] 满足常量面亮度 S_p=B0；通量守恒为条件不变量：pf=1 严格 ΣF=Σx，pf<1 总输出通量=pixfrac^2*Σx 且须记 flux_conservation_factor。",
+   "anchors": [
+    "FZ-FORMULA-DRIZZLE-SB",
+    "FZ-GATE-CONST-SB",
+    "FZ-COND-FLUX-CONSERV",
+    "ADJ-F-OBS-02",
+    "ADJ-S3",
+    "DESIGN-P1 §9",
+    "UNIFIED §7"
+   ],
+   "lit": [
+    "FH02"
+   ],
+   "inputs": [
+    "B0",
+    "A_pixel",
+    "a_jp",
+    "pixfrac",
+    "x_j"
+   ],
+   "outputs": [
+    "S_p",
+    "factor"
+   ],
+   "units": {
+    "S_p": "ADU/px^2"
+   },
+   "domain": "常量面亮度场按 x_j=B0*A_pixel,j 构造；pixfrac in (0,1]。",
+   "criterion": {
+    "metric": "max_pixfrac |S_p/B0 - 1|",
+    "op": "<=",
+    "thresh": 0.001,
+    "unit": "rel",
+    "status": "frozen",
+    "owner": "",
+    "ref": "FZ-GATE-CONST-SB；p1drz_oracle.hpp:124-127 容差沿用"
+   },
+   "tol_source": "沿用现行常量场门 |S_p/B0-1|<1e-3（ADJ-S3 明令不改数值）；负向三错法必红。",
+   "min_cases": 2,
+   "fail_closed": "缺 flux_conservation_factor -> 不可用于绝对通量；BUNIT 缺 px 幂次且无 provenance -> unavailable。",
+   "oracle": {
+    "kind": "independent_numpy",
+    "ref": "独立构造平面 drop 几何，显式求 /Sum a_jp；不调用生产 Drizzle。",
+    "must_not": [
+     "astrocs",
+     "lib/"
+    ],
+    "truth": "ADJ-S3 真值构造（按 B0）"
+   },
+   "mutations": [
+    "MUT-A11",
+    "MUT-A15",
+    "MUT-A16"
+   ],
+   "owner": "ALG-P1-001 / IMPL-P1-DRZ-001",
+   "wave": 3,
+   "status": "frozen_mechanism_signoff_SO-02/SO-03",
+   "signoff": "SO-02（面亮度归一 FROZEN 公式变更）/ SO-03（常量场判据取代）— 只登记不签署"
+  }
+ ]
+}
