@@ -1,11 +1,53 @@
 # AstroCS Changelog
 
-## [0.11.0-alpha.1] 2026-09-02 — Current Alpha（GOV-005 文档收敛基线）
+## [0.11.0-alpha.2] 2026-09-15 — Current Alpha（V6 并行科学与工程实施包）
 
-> 当前产品版本节：根 `VERSION` = `0.11.0-alpha.1`（GOV-003 唯一源；生成串
-> `0.11.0-alpha.1+g<commit12>`）。本节记录当前 alpha 集成事实；历史轮次节
-> （下方 V19R8…V12）仅供追溯，不冒充当前状态（约束 §F.8 / VERSION_NAMESPACES
-> history 命名空间）。基线提交 `6affe3009985452f5bc0bdf654aa95a4b61b2d2e`。
+> 当前产品版本节：根 `VERSION` = `0.11.0-alpha.2`（GOV-003 唯一源；生成串
+> `0.11.0-alpha.2+g<commit12>`，见 `docs/governance/VERSION_NAMESPACES.md`）。
+> **状态 = NOT_READY / 未发布**：不得据此宣布发布，`alpha.N` 只在外部审核通过后提升。
+> 本节记录 V6 包集成事实；历史轮次节（下方 alpha.1 及 V19R8…V12）仅供追溯，
+> 不冒充当前状态（VERSION_NAMESPACES history 命名空间）。
+
+### V6 并行科学与工程实施包（`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/`，Wave 0–12，`scientific_change` 依各任务卡）
+
+- **冻结口径唯一权威**：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：
+  FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8；`baseline_head = ebefe00d`）。
+- **Phase2 权重面**：生产科学模式 `{point_information, surface_gls, psfsw_robust}`；文档基线
+  `{equal, pixel_ivar}`（非科学最优声明）；`psf_snr_power` **DEFERRED 且生产拒绝**（`C-004.1`）。
+- **单一权重词表（C-004.3/DI-01/DI-07）**：canonical = `weight.kind` / `weight.units` /
+  `weight.group_normalized` / `weight.normalization.{scope,median_target,constants_version}` /
+  `weight.weight_value`；事实源 `contracts/data/v6_weight_vocabulary_v1.json`；
+  生产 schema 无第三套名（`docs/contracts/DATA_SEMANTICS.md` §31.4）。
+- **单位与量纲**：`signal_sb=ADU/px²`、`sb_variance_out=ADU²/px⁴`、`sb_ivar_out=px⁴/ADU²`、
+  `pixel_variance_in=ADU²`、`W_info=ADU⁻²`、`Q=ADU⁻¹`、`flux=ADU`、`psfsw_robust_weight=1`；
+  BUNIT 量纲可判 + Phase3 variance 二次律（`FZ-BUNIT-SEMANTICS`/`FZ-P3-BUNIT-QUADRATIC`）。
+  `Q=aPᵀC⁻¹d` / `W_info=a²PᵀC⁻¹P`（无量纲前提说明）；`psfsw` **无量纲、不是 ivar/Fisher**，组内 median=1；
+  final covariance 只能由实际组合系数经 `R C_in Rᵀ` 传播并输出 effective PSF。
+- **文档订正（DOC-CONVERGE-001/W12）**：Phase1 算法规格 §4.2 concentration 单位由 W6 登记的错误值
+  `ADU/px` 订正为 `component_flux_unit/px²`（`A_NEA=px²`），同步机器伴生 `alg_p1_001_spec.json`；
+  61 份未被覆盖的 `docs/**/v6/**` 文档登记进 `docs/DOCUMENT_INDEX.yaml`（闭合 OI-04 的
+  `docs_fully_covered` 红）；
+  README/REVIEW 的 V6 现状与本 changelog 同步收敛。
+- **验证**：V6 各任务独立 Oracle + 负向 mutation（见各任务 `evidence`）；控制包机器门
+  `AGENTS-GOV` / `VERSION-CONSISTENCY` / `VERSION_NAMESPACES` 本地 rc=0。
+- **未通过/未决（不得写成已发布或已通过）**：
+  - **Linux CI 持续红**：`THREAD-BUDGET` FAIL（P36 回退态 `lib/core/src/module_adapters.cpp` 线程预算旁路）；
+    `CTEST-REGISTRATION` FAIL（余 2 项**非 V6** IPV 残项）；`§17.12` 门 7 未满足。
+  - **Windows/Fatduck**：Windows CI failure 且 Fatduck 不可达 → **AWAITING_WINDOWS_VALIDATION**；
+    32/32 Windows 用例 UNAVAILABLE；`FD-F-003`（Windows 单测 0 用例）OPEN；`§17.12` 门 8 未满足。
+  - **SO-05**：16w CPU mean 65.09% < 85%、p50 87.63% < 90%；`memory_growth_unbounded@16w` 未定性。
+  - **REAL-SCIENCE-001**：equal/exposure/ivar 三口径为 **DOCUMENTED_BASELINE**（驱动内实现），
+    非全链生产路径端到端验收；**Phase2 CLI 真实数据不可达**（`obs=0`）。
+  - **F-CAR / F-AIT** legacy 投影错误待负责人授权修正；49 `PENDING_OWNER_SIGNOFF` + 8 `OPEN` 保持 fail-closed。
+  - §14.5 六步发布复核逐项 NOT_MET/AWAITING → 包状态 **NOT_READY**；发布决定权只属项目负责人（宪章 §17.12）。
+
+---
+
+## [0.11.0-alpha.1] 2026-09-02 — GOV-005 文档收敛基线（历史节）
+
+> 当时产品版本节（历史值）：根 `VERSION` = `0.11.0-alpha.1`（GOV-003 唯一源；生成串
+> `0.11.0-alpha.1+g<commit12>`）。历史轮次节（下方 V19R8…V12）仅供追溯，
+> 不冒充当前状态（VERSION_NAMESPACES history 命名空间）。基线提交 `6affe3009985452f5bc0bdf654aa95a4b61b2d2e`。
 ### P5-SNR 逐源 SNR 科学修正（2026-09-14，负责人授权，scientific_change=YES）
 
 > **负责人授权**：2026-09-14 负责人明示批准修改冻结/科学文档（
@@ -103,12 +145,12 @@ ARCHIVED_NON_NORMATIVE 并订正 4 处失实）、`lib/photometric_calib/cpp/tes
   BLD-001 Windows 工具链 preset / BLD-002 唯一根 CMake / IO-001 FITS 流式接口
   / ABI-002 / RT-002（提交链见 `docs/owner/CHANGE_REVIEW.md` §1）。
 
-### 未完成 / 未验证（如实，详见 docs/owner/RELEASE_STATUS.md 与 memory.md §5）
+### 未完成 / 未验证（alpha.1 期如实登记；V6 收敛标注见括号）
 
-- Windows DLL 化发布安装树、MSVC 编译/测试/32R/真实数据最终验收：NOT_VERIFIED。
-- Phase3 SIN/ZEA/CAR/AIT、`healpix_interp4`、流式 FITS 接入：不在基线（NOT_VERIFIED）。
-- 遗留 `astrocs run --phases 1,2,3`：FAIL（未删，冲突约束 §A.4，W4 范围）。
-- 约束 §F.1 每节点唯一真实模块 operation：进行中/未达成（W3/W4）。
+- Windows DLL 化发布安装树、MSVC 编译/测试/32R/真实数据最终验收：NOT_VERIFIED。（V6：Windows CI failure + Fatduck 不可达 → `AWAITING_WINDOWS_VALIDATION`，`FD-F-003` OPEN）
+- Phase3 SIN/ZEA/CAR/AIT、`healpix_interp4`、流式 FITS 接入：不在基线（NOT_VERIFIED）。（V6：冻结四投影为 **TAN/SIN/CAR/AIT**（宪章 §18.1），registry v1 已实现并通过独立 Oracle；`healpix_interp4`/流式 FITS 仍未实现）
+- 遗留 `astrocs run --phases 1,2,3`：FAIL（未删，冲突约束 §A.4，W4 范围）。（V6：**已删除**，实测 rc=2 `unknown command`；宪章 §3.2 禁止三 Phase 隐式串接）
+- 约束 §F.1 每节点唯一真实模块 operation：进行中/未达成（W3/W4）。（V6：P1-001/P2-001/P3-002 已完成三 Phase 节点化，§F.1 **已达成**）
 - 版本收敛他人路径遗留（docs/VERSIONING.md、CMake project 字面量、tests/tools
   硬编码）：check_version_namespaces.py `out_of_scope` 登记，待前台/QA 协调。
 

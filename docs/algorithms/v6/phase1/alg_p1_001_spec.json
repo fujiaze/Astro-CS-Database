@@ -88,7 +88,7 @@
     "A_NEA": "px^2",
     "psfsw_robust_weight": "1",
     "psfsw.signal": "ADU",
-    "psfsw.concentration": "ADU/px",
+    "psfsw.concentration": "ADU/px^2",
     "psfsw.noise": "ADU",
     "psfsw.background": "ADU",
     "phase2_mosaic_signal": "BUNIT(declared)",
@@ -281,7 +281,7 @@
         },
         {
           "name": "psfsw.concentration",
-          "unit": "ADU/px",
+          "unit": "ADU/px^2",
           "definition": "Conc_k = mean_{s in S_k} f_hat_{k,s} / A_NEA,k",
           "estimator_versioned": true,
           "forbidden_substitutes": [

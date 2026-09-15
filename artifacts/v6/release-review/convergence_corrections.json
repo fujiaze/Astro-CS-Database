@@ -1,0 +1,251 @@
+{
+  "tool": "reports/v6/release-review/tools/check_doc_convergence.py",
+  "task": "DOC-CONVERGE-001",
+  "base_head": "8e1e280e8db498aa879abd52ed8d18fa9f0eabd2",
+  "corrections": [
+    {
+      "id": 1,
+      "file": "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md",
+      "line": 203,
+      "old": "| concentration | psfsw.concentration | ADU/px | ...",
+      "new": "| concentration | psfsw.concentration | ADU/px² | ... 单位唯一权威 = component_flux_unit/px²（A_NEA = 1/ΣP²，px²）",
+      "anchors": [
+        "FZ-FIELD-PSFSW-4COMP",
+        "ALG-P2-PSFSW-001 unit-consistency",
+        "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json concentration.units pattern",
+        "W6_SCHEMA_INTEGRATION §3"
+      ]
+    },
+    {
+      "id": 2,
+      "file": "docs/algorithms/v6/phase1/alg_p1_001_spec.json",
+      "line": 91,
+      "old": "\"psfsw.concentration\": \"ADU/px\"",
+      "new": "\"psfsw.concentration\": \"ADU/px^2\"",
+      "anchors": [
+        "same as #1"
+      ]
+    },
+    {
+      "id": 3,
+      "file": "docs/algorithms/v6/phase1/alg_p1_001_spec.json",
+      "line": 284,
+      "old": "\"unit\": \"ADU/px\" (name=psfsw.concentration)",
+      "new": "\"unit\": \"ADU/px^2\"",
+      "anchors": [
+        "same as #1"
+      ]
+    },
+    {
+      "id": 4,
+      "file": "docs/algorithms/v6/phase1/tools/verify_alg_p1_001.py",
+      "line": 445,
+      "old": "\"unit\": \"ADU/px\", \"value\": 4.1",
+      "new": "\"unit\": \"ADU/px^2\", \"value\": 4.1",
+      "anchors": [
+        "same as #1 (positive fixture)"
+      ]
+    },
+    {
+      "id": 5,
+      "file": "docs/contracts/v6/W6_SCHEMA_INTEGRATION.md",
+      "line": 43,
+      "old": "登记文本错误 ... (W12 待修)",
+      "new": "登记文本错误（已由 W12 订正）... 需 contracts/ owner 同源刷新 registered_text_error",
+      "anchors": [
+        "FZ-FIELD-PSFSW-4COMP",
+        "this task"
+      ]
+    },
+    {
+      "id": 6,
+      "file": "docs/contracts/DATA_SEMANTICS.md",
+      "line": 2640,
+      "old": "属登记在案的文本错误（W12 待修）",
+      "new": "属登记在案的文本错误，已由 DOC-CONVERGE-001（W12）订正为 ADU/px²",
+      "anchors": [
+        "DATA-V6-SCHEMA §31.7",
+        "FZ-FIELD-PSFSW-4COMP"
+      ]
+    },
+    {
+      "id": 7,
+      "file": "docs/contracts/v6/data/05_point_information_and_weight_mode.md",
+      "line": 67,
+      "old": "（无 W6 归一完成标注）",
+      "new": "追加 W6 归一完成标注：canonical=weight.kind/units/group_normalized/normalization.*/weight_value；第三套名 REJECT",
+      "anchors": [
+        "C-004.3",
+        "DI-01",
+        "DI-07",
+        "FZ-FIELD-WEIGHTMODE",
+        "DATA_SEMANTICS §31.4"
+      ]
+    },
+    {
+      "id": 8,
+      "file": "docs/contracts/DATA_SEMANTICS.md",
+      "line": "2597-2608",
+      "old": "（既有 canonical 声明，未改）",
+      "new": "复核登记，无文本改动",
+      "anchors": [
+        "C-004.3"
+      ]
+    },
+    {
+      "id": 9,
+      "file": "docs/contracts/{DATA_SEMANTICS,PUBLIC_API}.md",
+      "line": 0,
+      "old": "（P33-COEF/P27 段落已回退）",
+      "new": "未重新引入；C7 逐字面量零命中",
+      "anchors": [
+        "C-007",
+        "C-009",
+        "W6_SCHEMA_INTEGRATION §4"
+      ]
+    },
+    {
+      "id": 10,
+      "file": "docs/ 全体",
+      "line": 0,
+      "old": "（P33/P35/P36 回退态）",
+      "new": "未写成已实现/已恢复；median(SNR_F) 仅诊断",
+      "anchors": [
+        "C-004.2",
+        "C-007",
+        "C-008",
+        "FZ-GATE-MEDIAN-SNR"
+      ]
+    },
+    {
+      "id": 11,
+      "file": "README.md",
+      "line": "15-20",
+      "old": "（无 V6 口径指针）",
+      "new": "新增 V6 冻结口径指针块（三生产模式/psf_snr_power DEFERRED/96 条款/单一词表/复核包/未发布）",
+      "anchors": [
+        "宪章 §16.1/§17.12",
+        "FZ-MODE-*",
+        "C-004.1"
+      ]
+    },
+    {
+      "id": 12,
+      "file": "README.md",
+      "line": "42-45",
+      "old": "支持扩展源 GLS、点源 information/Q-W 及 PixInsight-style psfsw_robust 三种显式集成模式",
+      "new": "三模式规范名 + Q/W 公式 + psfsw 无量纲组内 median=1 非 ivar/Fisher + psf_snr_power DEFERRED 生产拒绝",
+      "anchors": [
+        "FZ-FORMULA-Q",
+        "FZ-FORMULA-WINFO",
+        "FZ-FIELD-PSFSW-UNIT",
+        "FZ-MODE-DEFERRED"
+      ]
+    },
+    {
+      "id": 13,
+      "file": "README.md",
+      "line": "49-53",
+      "old": "Linux amd64 仅作控制/静态分析/轻量编译/小合成节点（约束 §B）",
+      "new": "Linux amd64 是控制/开发节点同时是 Linux 验证节点（宪章 §15.1/§15.4）",
+      "anchors": [
+        "宪章 §1.1/§15.1/§15.4/§18 supersession"
+      ]
+    },
+    {
+      "id": 14,
+      "file": "README.md",
+      "line": "55-78",
+      "old": "当前状态：Windows NOT_VERIFIED；Phase3 SIN/ZEA/CAR/AIT 未实现；run --phases 未删；§F.1 未达成",
+      "new": "如实收敛为 V6 现状（CI 红/Windows AWAITING/SO-05/Phase2 obs=0/DOCUMENTED_BASELINE/51 待决）；run --phases 已删、§F.1 已达成；NOT_READY 未发布",
+      "anchors": [
+        "C-008",
+        "C-009"
+      ]
+    },
+    {
+      "id": 15,
+      "file": "REVIEW.md",
+      "line": "13-21",
+      "old": "（无 V6 包收敛块）",
+      "new": "新增 V6 包收敛补充块",
+      "anchors": [
+        "宪章 §14.5/§17.12"
+      ]
+    },
+    {
+      "id": 16,
+      "file": "REVIEW.md",
+      "line": "19-24",
+      "old": "尚未完成：Windows + 真实数据 + healpix_interp4/流式 FITS",
+      "new": "补 V6 已交付与未完成面（CI 红/Windows/真实数据终验/图像初审/SO-05）",
+      "anchors": [
+        "C-009"
+      ]
+    },
+    {
+      "id": 17,
+      "file": "REVIEW.md",
+      "line": "§4",
+      "old": "本轮执行态：cprun run Rmtxvlrtfa66eb7 rev23",
+      "new": "V6 包 Wave 0-12 集成态 + Wave 13/14 BLOCKED + TASK_LEDGER/CONTROLLER_LOG 唯一源；历史 run 追溯",
+      "anchors": [
+        "TASK_LEDGER.csv",
+        "CONTROLLER_LOG.md"
+      ]
+    },
+    {
+      "id": 18,
+      "file": "REVIEW.md",
+      "line": "§5",
+      "old": "（仅 DOC-CONV-001 期组件表）",
+      "new": "新增 V6 面状态表（合同/三模式/schema/三 Phase/Runtime/真实数据/性能 + CI 红/终验/图像/Windows/SO-05/待决）",
+      "anchors": [
+        "reports/v6/**",
+        "FZ-*"
+      ]
+    },
+    {
+      "id": 19,
+      "file": "REVIEW.md",
+      "line": "§7/§8",
+      "old": "历史决策事项；NOT_READY_FOR_RELEASE",
+      "new": "§7 新增 V6 待裁决 6 项；§8 §14.5 六步 NOT_MET×4+AWAITING+NOT_MET；NOT_READY/NOT_RELEASED",
+      "anchors": [
+        "宪章 §14.5/§17.12",
+        "04_RELEASE_REVIEW_SECTION14_5.md"
+      ]
+    },
+    {
+      "id": 20,
+      "file": "CHANGELOG.md",
+      "line": "3-42",
+      "old": "[0.11.0-alpha.1] ... 根 VERSION = 0.11.0-alpha.1",
+      "new": "[0.11.0-alpha.2] 当前节 + V6 包集成与未决项；旧 alpha.1 节降为历史节（未提升 alpha.N）",
+      "anchors": [
+        "宪章 §16.1",
+        "VERSION_NAMESPACES.md",
+        "GOV-003"
+      ]
+    },
+    {
+      "id": 21,
+      "file": "docs/DOCUMENT_INDEX.yaml",
+      "line": "564-",
+      "old": "（61 份 docs/**/v6/** 未登记，docs_fully_covered 红）",
+      "new": "新增 61 条 docs/**/v6/** = ACTIVE_NORMATIVE",
+      "anchors": [
+        "OI-04",
+        "AR-032-GAP",
+        "tools/doccheck/check_doc_index.py"
+      ]
+    }
+  ],
+  "residual_registered_not_fixed": [
+    "docs/owner/**, non-v6 docs/science/*.md, docs/design/**, docs/references/** — C-004.5 write protection; owner signoff (AR-032/SO-06)",
+    "contracts/** schema registered_text_error wording — contracts owner refresh",
+    "AGENTS.md / memory.md — out of this task write_scope"
+  ],
+  "machine_convergence_report": "artifacts/v6/release-review/doc_convergence_report.json",
+  "verdict": "DOC_CONVERGENCE_PASS"
+}

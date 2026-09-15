@@ -40,7 +40,7 @@
 ## 3. 已登记冲突的裁定：concentration 单位
 
 - **唯一权威**：`psfsw.concentration` 单位 = `component_flux_unit/px^2`（`A_NEA = 1/ΣP²`，单位 `px^2`），锚 = `ALG-P2-PSFSW-001` 单位一致性规则 + `FZ-FIELD-PSFSW-4COMP` + `FZ-COND-WHITENOISE`。
-- **登记文本错误**：`docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md` §4.2 表中写作 `ADU/px`（`W12` 待修）。本任务不改 `docs/algorithms/`（不在 write_scope），只在数据字典 `concentration_unit_authority.registered_text_error` 登记，并使其在**生产合法域之外**：schema `concentration.units` 用 `pattern ^[A-Za-z][A-Za-z0-9_()^\-]*/px\^2$` 收紧，`ADU/px` 结构即红。
+- **登记文本错误（已由 W12 订正）**：`docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md` §4.2 表中曾写作 `ADU/px`。本任务（W6）不改 `docs/algorithms/`（不在 write_scope），只在数据字典 `concentration_unit_authority.registered_text_error` 登记，并使其在**生产合法域之外**：schema `concentration.units` 用 `pattern ^[A-Za-z][A-Za-z0-9_()^\-]*/px\^2$` 收紧，`ADU/px` 结构即红。**DOC-CONVERGE-001（W12，`reports/v6/release-review/01_CONVERGENCE_CORRECTIONS.md`）已把该文本与机器伴生 `alg_p1_001_spec.json` 的 concentration 单位订正为 `ADU/px²`（依据 `FZ-FIELD-PSFSW-4COMP` + `ALG-P2-PSFSW-001` 单位一致性规则 + 本 schema 的 `concentration.units` pattern；`A_NEA=px²`），不改变任何冻结公式/容差/门。** `contracts/**` 中 schema 的 `x-astrocs-concentration-unit-authority.registered_text_error` 仍描述订正前状态，需 `contracts/` owner（SCHEMA-INTEGRATE-001）同源刷新。
 - proposal 正例 `contracts/proposals/v6/data/examples/psfsw.example.json` 的 `ADU/px` 未被静默采纳：生产正例 `contracts/data/examples/v6/psfsw.example.json` 修正为 `ADU/px^2` 并新增 `component_flux_unit` 声明。
 - 修正 FROZEN 正文本身须 DOC-CONVERGE-001(W12) + 负责人签字（宪章 §1.2）。
 
