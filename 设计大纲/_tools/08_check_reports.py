@@ -14,7 +14,9 @@ missing_slices = []; slice_stats = []; seq_total = 0; seq_hit = 0; overlap_total
 for mf in sorted(glob.glob(os.path.join(EV, "commits/slices/S*/manifest.csv"))):
     sid = os.path.basename(os.path.dirname(mf))
     rp = os.path.join(R, "history/slices/H-%s.md" % sid)
-    txt = rd(rp)
+    gp = os.path.join(EV, "commits/逐条详析/H-%s.md" % sid)
+    txt = rd(rp) + "\n" + rd(gp)   # 逐条正文已下沉到证据层，两者合看才是完整覆盖
+    raw = rd(rp)
     prim = ov = ph = oh = 0
     for row in csv.DictReader(open(mf, encoding="utf-8")):
         if row["角色"] == "主责":
