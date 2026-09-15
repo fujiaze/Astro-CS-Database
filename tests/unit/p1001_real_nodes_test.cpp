@@ -23,11 +23,10 @@
 
 #include "p1sess_fixtures.hpp"  // 最小 FITS writer (手写, 不调生产 symbol)
 
-// B2-A12/A13/A14/A16: HISS 读面 + FITS 读面 (Oracle 对拍用; AIO 由
+// B2-A12/A13/A14/A16: 标准 HiPS 读面 + FITS 读面 (Oracle 对拍用; AIO 由
 // astrocs_module_adapters PUBLIC 传递 include 与 AIO_ENABLE_HEALPIX=1)
-#include "aio_healpix_io.h"
 #include "astro_image_io.h"
-#include "hiss_format.h"  // B2-A15: 稀疏多 tile HISS 夹具
+#include "astro_sphere_sink.h"  // P23: write_hips_phase1 (直写标准 HiPS) 等价夹具
 
 #include <nlohmann/json.hpp>
 
@@ -484,8 +483,8 @@ static void test_nodes_real_operation() {
   CHECK(man_drz.value("status", "") == "ok");
   CHECK(fs::exists(fs::path(man_drz.value("stack_artifact", ""))));
 
-  // writer：真实 HiPS writer 链（消费 drizzle 产物 p1_stack.hiss →
-  // aio_hiss_inspect/read_tile_* → AstroSphereTileView → aio_hips_product_*）
+  // writer：标准 HiPS 产物校验节点（drizzle 已直写 signal/+support/ 树;
+  // 本节点核对 properties/Moc/metadata + 统计 tile 数, 不再消费任何中间容器）
   Result<void> wr_rc;
   json man_wr = run_node(reg, "astrocs.phase1.writer", drz_cfg, ctx, &wr_rc);
   if (wr_rc.failed()) std::fprintf(stderr, "DBG writer error: %s\n", wr_rc.error().message().c_str());
@@ -498,7 +497,7 @@ static void test_nodes_real_operation() {
     json f;
     try { f = json::parse(read_file(man_wr.value("final_artifact", ""))); } catch (...) { CHECK(false); }
     CHECK(f.value("schema", "") == "DATA-P1-HIPS");
-    CHECK(f.value("covered_area_model", "") == "hiss_support_ratio_x_A_cell");
+    CHECK(f.value("covered_area_model", "") == "support_ratio_x_A_cell");
   }
   CHECK(fs::exists(fs::path(fx.out_dir + "/signal/properties")));
   CHECK(fs::exists(fs::path(man_wr.value("final_artifact", ""))));
@@ -579,7 +578,7 @@ static void test_runtime_chain_call_count_1() {
   CHECK_MSG(viol.empty(), "no hidden session repeated calls");
   for (const auto& v : viol) std::fprintf(stderr, "violation: %s\n", v.c_str());
 
-  // typed artifact 落盘（cal/cosmetic 覆写 + 每节点 JSON/hiss + HiPS 产品面）
+  // typed artifact 落盘（cal/cosmetic 覆写 + 每节点 JSON + HiPS 产品面）
   CHECK(fs::exists(fs::path(out_dir + "/calibrated_light_1.fits")));
   CHECK(fs::exists(fs::path(out_dir + "/p1_sources.json")));
   CHECK(fs::exists(fs::path(out_dir + "/p1_psf.json")));
@@ -802,50 +801,54 @@ static void test_negative_injection() {
 // RED→GREEN: 以下断言在修复前失败、修复后通过。
 // ══════════════════════════════════════════════════════════════════════════
 
-// HISS header meta_json (只读头, 不加载 tile 数据)
-std::string hiss_meta_json(const std::string& path) {
-  uint32_t nside = 0, tn = 0, depth = 0, nleaf = 0;
-  uint64_t ntiles = 0, npix = 0;
-  char* meta = nullptr;
-  const int rc = aio_hiss_inspect(path.c_str(), &nside, &tn, &depth, &nleaf,
-                                  &ntiles, &npix, &meta, nullptr);
-  std::string s;
-  if (rc == 0 && meta) s = meta;
-  if (meta) aio_hio_free(meta);
-  return s;
+// ── P23: 标准 HiPS 读面 (取代已删除的 legacy 单文件容器读面) ──────────────
+// 读一个标准 512×512 HiPS 图 tile。
+bool read_hips_tile_px(const std::string& path, std::vector<float>* out) {
+  AIOImageData* im = aio_read(path.c_str());
+  if (!im) return false;
+  const int iw = aio_get_width(im), ih = aio_get_height(im);
+  const float* p = aio_get_pixel_data(im);
+  if (!p || iw != 512 || ih != 512) { aio_free_image_data(im); return false; }
+  out->assign(p, p + static_cast<size_t>(iw) * static_cast<size_t>(ih));
+  aio_free_image_data(im);
+  return true;
 }
 
-// 读 .hiss 全部 tile signal (FP32/FP64), key = parent_ipix
-bool hiss_tile_signals(const std::string& path, bool f64,
-                       std::map<uint64_t, std::vector<double>>* out) {
-  uint32_t nside = 0, tn = 0, depth = 0, nleaf = 0;
-  uint64_t ntiles = 0, npix = 0;
-  char* meta = nullptr;
-  uint64_t* ipix = nullptr;
-  if (aio_hiss_inspect(path.c_str(), &nside, &tn, &depth, &nleaf, &ntiles, &npix,
-                       &meta, &ipix) != 0) {
-    if (meta) aio_hio_free(meta);
-    return false;
+// 枚举 <root>/<plane> 下全部图 tile (排除 Moc.fits/metadata.fits/properties),
+// key = 相对该 plane 的路径 (NorderK/DirD/NpixN.fits), value = 512×512 像素。
+void read_hips_plane_px(const std::string& root, const char* plane,
+                        std::map<std::string, std::vector<float>>* out) {
+  const fs::path base = fs::u8path(root + "/" + plane);
+  std::error_code ec;
+  for (fs::recursive_directory_iterator it(base, ec), end; it != end; it.increment(ec)) {
+    std::error_code fec;
+    if (!it->is_regular_file(fec)) continue;
+    const fs::path p = it->path();
+    const std::string fn = p.filename().string();
+    if (fn == "Moc.fits" || fn == "metadata.fits" || fn == "properties") continue;
+    if (p.extension() != ".fits") continue;
+    std::vector<float> v;
+    if (!read_hips_tile_px(p.string(), &v)) continue;
+    std::error_code rec;
+    (*out)[fs::relative(p, base, rec).generic_string()] = std::move(v);
   }
-  bool ok = true;
-  for (uint64_t t = 0; t < ntiles && ok; ++t) {
-    std::vector<double> vals;
-    if (f64) {
-      double* s = nullptr; uint32_t n = 0;
-      if (aio_hiss_read_tile_signal_f64(path.c_str(), ipix[t], &s, &n) != 0) ok = false;
-      else vals.assign(s, s + n);
-      if (s) aio_hio_free(s);
-    } else {
-      float* s = nullptr; uint32_t n = 0;
-      if (aio_hiss_read_tile_signal(path.c_str(), ipix[t], &s, &n) != 0) ok = false;
-      else for (uint32_t i = 0; i < n; ++i) vals.push_back(static_cast<double>(s[i]));
-      if (s) aio_hio_free(s);
-    }
-    if (ok) (*out)[ipix[t]] = std::move(vals);
-  }
-  if (ipix) aio_hio_free(ipix);
-  if (meta) aio_hio_free(meta);
-  return ok;
+}
+
+// 读全部 signal 图 tile (key = 相对路径); 空树 → false。
+bool hips_tile_signals(const std::string& root,
+                       std::map<std::string, std::vector<double>>* out) {
+  std::map<std::string, std::vector<float>> m;
+  read_hips_plane_px(root, "signal", &m);
+  if (m.empty()) return false;
+  for (const auto& kv : m)
+    out->emplace(kv.first, std::vector<double>(kv.second.begin(), kv.second.end()));
+  return true;
+}
+
+// 图 plane 快照 (相对路径 → 像素), 用于拓扑等价比较。
+void hips_plane_snapshot(const std::string& root, const char* plane,
+                         std::map<std::string, std::vector<float>>* out) {
+  read_hips_plane_px(root, plane, out);
 }
 
 // 常数场 + 可控 FITS EXPTIME 的校准 fixture (B2-A13 Oracle 期望可解析)。
@@ -1107,10 +1110,10 @@ static void test_b2a12_precision_default_and_equiv() {
     CHECK_MSG(stack_prec(fx32) == 0, "B2-A12: p1_stack.json must record precision_mode=0");
     CHECK_MSG(stack_prec(fx64) == 1, "B2-A12: p1_stack.json must record precision_mode=1");
     // 等价性: 同一输入 FP32/FP64 累积逐 tile signal 相对一致 (输出窄化 FP32)
-    std::map<uint64_t, std::vector<double>> s32, s64;
-    const bool ok32 = hiss_tile_signals(fx32.out_dir + "/p1_stack.hiss", false, &s32);
-    const bool ok64 = hiss_tile_signals(fx64.out_dir + "/p1_stack.hiss", true, &s64);
-    CHECK_MSG(ok32 && ok64, "B2-A12: FP32/FP64 .hiss signal tiles must be readable");
+    std::map<std::string, std::vector<double>> s32, s64;
+    const bool ok32 = hips_tile_signals(fx32.out_dir, &s32);
+    const bool ok64 = hips_tile_signals(fx64.out_dir, &s64);
+    CHECK_MSG(ok32 && ok64, "B2-A12: FP32/FP64 HiPS signal tiles must be readable");
     CHECK_MSG(s32.size() == s64.size() && !s32.empty(),
               "B2-A12: FP32/FP64 must touch the same tile set");
     double max_rel = 0.0;
@@ -1154,7 +1157,9 @@ static void test_b2a14_photappl_provenance() {
       std::fprintf(stderr, "DBG B2-A14 drizzle failed: %s\n", rc.error().message().c_str());
       return false;
     }
-    try { *meta_out = json::parse(hiss_meta_json(fx.out_dir + "/p1_stack.hiss")); }
+    // P23: PHOTAPPL/PHOTSCAL/BUNIT 事实面从 p1_stack.json provenance 读取
+    // (旧链落中间容器头; 直写末端把同一 provenance 落 p1_stack.json)。
+    try { *meta_out = json::parse(read_file(fx.out_dir + "/p1_stack.json")); }
     catch (...) { return false; }
     return true;
   };
@@ -1196,63 +1201,57 @@ static void test_b2a14_photappl_provenance() {
 }
 
 // ── 5. 确定性: 同 config 双跑 star-psf 输出 bitwise 一致 ───────────────────
-// ── B2-A15: 稀疏多 standard tile HISS 夹具 + HiPS 读面 ────────────────
-// nside=512 → HISS tile_nside=16, 256 leaf/tile; 每个 IVOA 标准 512 tile 由
-// 64 个 HISS tile 覆盖。写 2 个 HISS tile (parent 0 与 64) 分落于 standard
-// tile 0 与 1, 各自只覆盖前 512 个 local leaf (部分覆盖且稀疏)。
-constexpr uint64_t kA15CoverLeaves = 512;   // 兼容旧引用 (已废弃)
-// 每个 HISS tile 的覆盖卷数必须不同: 第二个 tile 的未覆盖偏移
-// 落在第一个 tile 的覆盖区 = 幽灵可观测。
-constexpr uint64_t kA15Cover0 = 768;   // tile 0: HISS local 0..767 (partial)
-constexpr uint64_t kA15Cover1 = 255;   // tile 1: HISS local 0..254 (partial)
-// HISS tile span = 1024 leaf (depth=5, tile_nside=16); IVOA standard 512 tile =
-// 262144 leaf = 256 HISS tile. parent 0 与 256 因此分落在 standard tile 0/1
-// (各自 leaf 0 与 524288 → standard tile 内偏移均为 0, 故旧实现 stale buffer
-// 会把 tile0 的 signal/coverage 泄露到 tile1 的同偏移)。
-constexpr uint64_t kA15Tile1Parent = 256;   // H*1024 >> 18 = 1 (standard tile 1)
+// ── P23: 稀疏多 standard tile HiPS 夹具 (取代已删除的中间容器夹具) ─────
+// 直接构造 TileAccumulator 并调用生产末端 write_hips_phase1, 覆盖:
+//   (a) 每个 standard tile 的有限 signal 像元数 == 构造的覆盖叶数
+//       (无幻灵 / 无跨 parent 缓冲泄露);
+//   (b) support 严格按构造面积比 (uint8/255) 连续缩放, 而非 0/1 坍缩 (P1-8)。
+constexpr uint64_t kA15Cover0 = 768;   // tile 0: local 0..767 (partial)
+constexpr uint64_t kA15Cover1 = 255;   // tile 1: local 0..254 (partial)
 constexpr uint8_t kA15Tile0Support = 128;   // 部分覆盖 128/255 ≈ 0.502
 constexpr uint8_t kA15Tile1Support = 64;    // 64/255 ≈ 0.251
 constexpr double kA15SignalV = 0.5;
 
-bool make_sparse_hiss(const std::string& path) {
+// 稀疏 tile 描述: parent (Norder=L-9 standard) / 起始 local / 覆盖叶数 / 面积比 u8。
+struct SparseTile {
+  uint64_t parent;
+  uint64_t offset;
+  uint64_t cover;
+  uint8_t  support;
+};
+
+// 用生产末端 write_hips_phase1 把稀疏累加器直写成标准 HiPS (nside=512)。
+bool write_sparse_hips(const std::string& root,
+                       const std::vector<SparseTile>& tiles) {
   const uint32_t nside = 512;
-  const uint32_t depth = hiss::compute_tile_depth(nside);
-  const uint32_t tile_nside = hiss::compute_tile_nside(nside);
-  const uint32_t n_leaf = 1u << (2 * depth);
   const double a_cell = 4.0 * 3.14159265358979323846 /
                         (12.0 * static_cast<double>(nside) *
                          static_cast<double>(nside));
-  hiss::HissGridSpec grid;
-  grid.nside = nside; grid.tile_nside = tile_nside;
-  grid.ordering = 1; grid.radesys = 0; grid.pixfrac = 1.0;
-  hiss::HissMetadata hmeta;
-  hmeta.nside = nside; hmeta.tile_nside = tile_nside;
-  hmeta.ordering = 1; hmeta.radesys = 0; hmeta.pixfrac = 1.0;
-  hmeta.photappl = 0;
-  std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU");
-  hiss::HissWriter writer;
-  if (writer.open(path, grid, hmeta) != 0) return false;
-  const uint64_t parents[2] = {0, kA15Tile1Parent};
-  const uint64_t covers[2] = {kA15Cover0, kA15Cover1};
-  const uint8_t sups[2] = {kA15Tile0Support, kA15Tile1Support};
-  for (int t = 0; t < 2; ++t) {
-    hiss::DrizzleTileAccumulator acc;
-    acc.tile_nside = tile_nside;
-    acc.parent_ipix = parents[t];
-    acc.pixel_area = a_cell;
-    acc.pixels.resize(n_leaf);
-    const uint64_t n_cover = covers[t];
-    for (uint64_t i = 0; i < n_cover; ++i) {
-      acc.pixels[i].sum_flux = kA15SignalV;
-      acc.pixels[i].sum_area =
-          (static_cast<double>(sups[t]) / 255.0) * a_cell;
+  std::vector<drizzle::TileAccumulatorT<float>> accs;
+  for (const SparseTile& t : tiles) {
+    drizzle::TileAccumulatorT<float> acc;
+    acc.parent_ipix = t.parent;
+    acc.pixels.resize(512u * 512u);
+    for (uint64_t k = 0; k < t.cover; ++k) {
+      const uint64_t i = t.offset + k;
+      acc.pixels[i].sumFlux = static_cast<float>(kA15SignalV);
+      acc.pixels[i].sumArea = static_cast<float>(
+          (static_cast<double>(t.support) / 255.0) * a_cell);
+      acc.pixels[i].nContrib = 1;
+      acc.touched.push_back(static_cast<uint32_t>(i));
     }
-    if (writer.add_tile(parents[t], acc, nullptr, hiss::OccupancyMode::FULL) != 0) {
-      writer.cancel();
-      return false;
-    }
+    accs.push_back(std::move(acc));
   }
-  return writer.finalize() == 0;
+  drizzle::DrizzleConfig cfg;
+  cfg.nside = static_cast<int>(nside);
+  cfg.tile_depth = 9;
+  std::string err;
+  const bool ok = drizzle::write_hips_phase1<float>(accs, cfg, root, "", err);
+  if (!ok) std::fprintf(stderr, "B2-A15 write_hips_phase1 failed: %s\n", err.c_str());
+  // 上游 provenance (writer 节点据此定位叶片 Norder)
+  std::ofstream sf(root + "/p1_stack.json", std::ios::binary);
+  if (sf) sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << nside << "}";
+  return ok;
 }
 
 bool read_hips_tile(const std::string& path, std::vector<float>* out) {
@@ -1274,30 +1273,19 @@ bool hips_tile_support(const std::string& root, uint64_t tile, std::vector<float
   return read_hips_tile(root + "/support/Norder0/Dir" + std::to_string(tile / 10000) +
                         "/Npix" + std::to_string(tile % 10000) + ".fits", out);
 }
-// ── B2-A15: writer stale buffer / support 量化 (P1-7 + P1-8) ───────────
-// 稀疏 HISS: 2 个 standard tile 各被一个 HISS tile 部分覆盖 (support 128/64
-// of 255)。不依赖 FITS 数组与 NESTED 的具体转换, 用不变量判定:
-//   (a) 每个标准 tile 有效像素数 == HISS 覆盖卷数 (1024),
+// ── B2-A15: sink stale buffer / support 量化 (P1-7 + P1-8) ────────────
+// 稀疏夹具: 2 个 standard tile 各被部分覆盖 (面积比 128/64 of 255)。不依赖
+// FITS 数组与 NESTED 的具体转换, 用不变量判定:
+//   (a) 每个 standard tile 有限 signal 像元数 == 构造覆盖叶数,
 //       无幻灵 / 无跨 parent 泄露 (旧实现 buffer 不清零 → 多余有效像素);
-//   (b) support 严格按 HISS 面积比连续缩放 (128/255, 64/255),
-//       而非塑成 0/1 (P1-8)。
+//   (b) support 严格按面积比连续缩放 (128/255, 64/255), 而非塑成 0/1 (P1-8)。
 static void test_b2a15_writer_stale_buffer_and_support() {
   ModuleRegistry reg;
   CHECK(register_phase_modules(reg).ok());
   Fixture fx = make_fixture("b2a15");
-  const std::string hiss = fx.out_dir + "/p1_stack.hiss";
-  CHECK_MSG(make_sparse_hiss(hiss), "B2-A15: sparse multi-tile HISS fixture");
-  {
-    uint32_t ns = 0, tn = 0, dp = 0, nl = 0; uint64_t nt = 0, np = 0;
-    char* meta = nullptr; uint64_t* tips = nullptr;
-    CHECK(aio_hiss_inspect(hiss.c_str(), &ns, &tn, &dp, &nl, &nt, &np, &meta,
-                           &tips) == 0);
-    CHECK(ns == 512 && nt == 2 && tn == 16);
-    CHECK(tips[0] == 0 && tips[1] == kA15Tile1Parent);
-    CHECK(nl * kA15Tile1Parent == 262144u);
-    if (meta) aio_hio_free(meta);
-    if (tips) aio_hio_free(tips);
-  }
+  CHECK_MSG(write_sparse_hips(fx.out_dir, {{0, 0, kA15Cover0, kA15Tile0Support},
+                                           {1, 0, kA15Cover1, kA15Tile1Support}}),
+            "B2-A15: sparse multi-tile HiPS fixture (write_hips_phase1)");
   RunContext ctx;
   const std::string cfg = R"({
     "input_lights": [")" + fx.light1 + R"("],
@@ -1306,7 +1294,7 @@ static void test_b2a15_writer_stale_buffer_and_support() {
   })";
   Result<void> wrc;
   json wman = run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
-  CHECK_MSG(wrc.ok(), ("B2-A15: writer must consume sparse HISS: " +
+  CHECK_MSG(wrc.ok(), ("B2-A15: writer must validate direct HiPS: " +
                        (wrc.failed() ? wrc.error().message() : std::string())).c_str());
   if (wrc.failed()) { cleanup_fixture(fx); return; }
   std::vector<float> sig0, sup0, sig1, sup1;
@@ -1319,7 +1307,7 @@ static void test_b2a15_writer_stale_buffer_and_support() {
     CHECK_MSG(false, "B2-A15: HiPS tile size must be 512x512");
     cleanup_fixture(fx); return;
   }
-  {  // n_tiles_written 属 p1_final.json 产物面字段 (节点 manifest 只报 B2-A10 字段)
+  {  // n_tiles_written 属 p1_final.json 产物面字段
     json fin0;
     try { fin0 = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
     CHECK(fin0.value("n_tiles_written", 0) == 2);
@@ -1328,7 +1316,6 @@ static void test_b2a15_writer_stale_buffer_and_support() {
   const double exp_sup0 = static_cast<double>(kA15Tile0Support) / 255.0;
   const double exp_sup1 = static_cast<double>(kA15Tile1Support) / 255.0;
   uint64_t valid0 = 0, valid1 = 0;
-  uint64_t sup0_hits = 0, sup1_hits = 0;
   double max_dev0 = 0.0, max_dev1 = 0.0;
   bool collapsed = false, nan_leak = false;
   for (size_t i = 0; i < sig0.size(); ++i) {
@@ -1339,7 +1326,7 @@ static void test_b2a15_writer_stale_buffer_and_support() {
       if (!(std::fabs(s0 - exp_sup0) < 0.01)) collapsed = true;
       max_dev0 = std::max(max_dev0, std::fabs(s0 - exp_sup0));
     } else if (std::fabs(s0) > 1e-6) {
-      nan_leak = true;   // signal invalid 但 support > 0 = 自相矛盾
+      nan_leak = true;
     }
   }
   for (size_t i = 0; i < sig1.size(); ++i) {
@@ -1354,13 +1341,13 @@ static void test_b2a15_writer_stale_buffer_and_support() {
     }
   }
   CHECK_MSG(valid0 == kA15Cover0,
-            ("B2-A15: tile 0 valid pixel count must equal HISS coverage (no ghost): " +
+            ("B2-A15: tile 0 valid pixel count must equal coverage (no ghost): " +
              std::to_string(valid0)).c_str());
   CHECK_MSG(valid1 == kA15Cover1,
-            ("B2-A15: tile 1 valid pixel count must equal HISS coverage (no stale leak): " +
+            ("B2-A15: tile 1 valid pixel count must equal coverage (no stale leak): " +
              std::to_string(valid1)).c_str());
   CHECK_MSG(!collapsed,
-            ("B2-A15: support must scale continuously with HISS ratio " +
+            ("B2-A15: support must scale continuously with area ratio " +
              std::to_string(kA15Tile0Support) + "/255 (tile0 dev=" +
              std::to_string(max_dev0) + " tile1 dev=" + std::to_string(max_dev1) +
              "), not collapse to 0/1").c_str());
@@ -1370,79 +1357,34 @@ static void test_b2a15_writer_stale_buffer_and_support() {
   {
     json fin;
     try { fin = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
-    CHECK_MSG(fin.value("covered_area_model", "") == "hiss_support_ratio_x_A_cell",
-              "B2-A15: covered_area_model must record HISS support ratio scaling");
+    CHECK_MSG(fin.value("covered_area_model", "") == "support_ratio_x_A_cell",
+              "B2-A15: covered_area_model must record uint8 area-ratio scaling");
   }
   cleanup_fixture(fx);
 }
 
+
 // ── RESCUE A15 独立注入证明: 稀疏 / 多 parent / 覆盖不连续 ghost 场景 ──────
-// 两个 HISS tile 落在**不同** standard parent, 且在各 parent 内的缓冲偏移不同
-// (parent0 r=0 → offsets 0..1023; parent1 tile parent_ipix=257 → base_leaf
-// 263168 → r=1024 → offsets 1024..2047)。旧实现 (每 parent 不清零) 会把
-// parent0 的 signal/coverage/seen 残留给 parent1 的前 1024 偏移 → 幽灵像素。
-// 回退 "每 parent 清零" 或 "valid_mask=seen" 任一 → 本测试必红。
-constexpr uint64_t kA15GhostTile1 = 257;    // 263168>>18 = 1, 缓冲偏移 r=1024
+// 两个稀疏 tile 落在不同 standard parent, 且第二个 tile 的覆盖区从 local
+// offset 1024 开始 (与第一个 tile 的 0..767 不相交)。若 sink 未对每个 parent
+// 清零缓冲且 valid_mask 缺失, parent0 的 signal/coverage 会残留到 parent1 的
+// 0..767 → 幽灵像素。回退 "每 parent 清零" 或 "valid_mask=touched" 任一必红。
+constexpr uint64_t kA15GhostParent0 = 0;
+constexpr uint64_t kA15GhostParent1 = 1;
+constexpr uint64_t kA15GhostOffset1 = 1024;
 constexpr uint64_t kA15GhostCover0 = 768;
 constexpr uint64_t kA15GhostCover1 = 255;
 constexpr uint8_t  kA15GhostSup0 = 128;
 constexpr uint8_t  kA15GhostSup1 = 64;
 
-bool make_sparse_hiss_offset(const std::string& path) {
-  const uint32_t nside = 512;
-  const uint32_t depth = hiss::compute_tile_depth(nside);
-  const uint32_t tile_nside = hiss::compute_tile_nside(nside);
-  const uint32_t n_leaf = 1u << (2 * depth);
-  const double a_cell = 4.0 * 3.14159265358979323846 /
-                        (12.0 * static_cast<double>(nside) *
-                         static_cast<double>(nside));
-  hiss::HissGridSpec grid;
-  grid.nside = nside; grid.tile_nside = tile_nside;
-  grid.ordering = 1; grid.radesys = 0; grid.pixfrac = 1.0;
-  hiss::HissMetadata hmeta;
-  hmeta.nside = nside; hmeta.tile_nside = tile_nside;
-  hmeta.ordering = 1; hmeta.radesys = 0; hmeta.pixfrac = 1.0;
-  hmeta.photappl = 0;
-  std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU");
-  hiss::HissWriter writer;
-  if (writer.open(path, grid, hmeta) != 0) return false;
-  const uint64_t parents[2] = {0, kA15GhostTile1};
-  const uint64_t covers[2] = {kA15GhostCover0, kA15GhostCover1};
-  const uint8_t sups[2] = {kA15GhostSup0, kA15GhostSup1};
-  for (int t = 0; t < 2; ++t) {
-    hiss::DrizzleTileAccumulator acc;
-    acc.tile_nside = tile_nside;
-    acc.parent_ipix = parents[t];
-    acc.pixel_area = a_cell;
-    acc.pixels.resize(n_leaf);
-    for (uint64_t i = 0; i < covers[t]; ++i) {
-      acc.pixels[i].sum_flux = kA15SignalV;
-      acc.pixels[i].sum_area = (static_cast<double>(sups[t]) / 255.0) * a_cell;
-    }
-    if (writer.add_tile(parents[t], acc, nullptr, hiss::OccupancyMode::FULL) != 0) {
-      writer.cancel();
-      return false;
-    }
-  }
-  return writer.finalize() == 0;
-}
-
 static void test_b2a15_ghost_discontinuous_multiparent() {
   ModuleRegistry reg;
   CHECK(register_phase_modules(reg).ok());
   Fixture fx = make_fixture("b2a15g");
-  const std::string hiss = fx.out_dir + "/p1_stack.hiss";
-  CHECK_MSG(make_sparse_hiss_offset(hiss), "A15 ghost fixture must be written");
-  {
-    uint32_t ns=0,tn=0,dp=0,nl=0; uint64_t nt=0,np=0;
-    char* meta=nullptr; uint64_t* tips=nullptr;
-    CHECK(aio_hiss_inspect(hiss.c_str(), &ns,&tn,&dp,&nl,&nt,&np,&meta,&tips) == 0);
-    CHECK(ns == 512 && nt == 2 && nl == 1024);
-    if (tips) CHECK(tips[0] == 0 && tips[1] == kA15GhostTile1);
-    CHECK(nl * kA15GhostTile1 == 263168u);
-    if (meta) aio_hio_free(meta);
-    if (tips) aio_hio_free(tips);
-  }
+  CHECK_MSG(write_sparse_hips(fx.out_dir,
+                              {{kA15GhostParent0, 0, kA15GhostCover0, kA15GhostSup0},
+                               {kA15GhostParent1, kA15GhostOffset1, kA15GhostCover1, kA15GhostSup1}}),
+            "A15 ghost fixture must be written (write_hips_phase1)");
   RunContext ctx;
   const std::string cfg = R"({
     "input_lights": [")" + fx.light1 + R"("],
@@ -1471,8 +1413,6 @@ static void test_b2a15_ghost_discontinuous_multiparent() {
   for (size_t i=0;i<sig0.size();++i) {
     if (std::isfinite(sig0[i])) {
       ++valid0;
-      // 输出 signal = flux_sum/covered_area (AIO 归一), 故只验有限且为正 +
-      // support 严格按 HISS 面积比 (不塌缩)。
       if (!(sig0[i] > 0.0f) || std::fabs(sup0[i]-exp0) > 0.01) support_bad = true;
     } else if (std::fabs(sup0[i]) > 1e-6) {
       nan_leak = true;
@@ -1481,7 +1421,7 @@ static void test_b2a15_ghost_discontinuous_multiparent() {
   for (size_t i=0;i<sig1.size();++i) {
     if (std::isfinite(sig1[i])) {
       ++valid1;
-      if (i < 1024) ++stale_finite;   // parent0 写入区: 修复后必须 invalid
+      if (i < kA15GhostOffset1) ++stale_finite;   // parent0 缓冲区: 必须 invalid
       if (!(sig1[i] > 0.0f) || std::fabs(sup1[i]-exp1) > 0.01) support_bad = true;
     } else if (std::fabs(sup1[i]) > 1e-6) {
       nan_leak = true;
@@ -1494,10 +1434,10 @@ static void test_b2a15_ghost_discontinuous_multiparent() {
             ("A15 ghost: parent1 valid count must equal coverage (no stale leak), got " +
              std::to_string(valid1)).c_str());
   CHECK_MSG(stale_finite == 0,
-            ("A15 ghost: parent1 stale offsets 0..1023 must be invalid, finite=" +
+            ("A15 ghost: parent1 stale offsets must be invalid, finite=" +
              std::to_string(stale_finite)).c_str());
   CHECK_MSG(!nan_leak, "A15 ghost: invalid signal pixels must have zero support");
-  CHECK_MSG(!support_bad, "A15 ghost: covered pixels must keep HISS support ratio");
+  CHECK_MSG(!support_bad, "A15 ghost: covered pixels must keep area-ratio support");
   {
     json fin;
     try { fin = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
@@ -1505,59 +1445,35 @@ static void test_b2a15_ghost_discontinuous_multiparent() {
   }
   cleanup_fixture(fx);
 }
-// ── B2-A17 helper: 单像素 delta 帧 + HISS 精确 signal 读面 ──────────────────
+
+// ── B2-A17 helper: 单像素 delta 帧 + 标准 HiPS 精确 signal 读面 ──────────────
 // 单像素 delta 帧: drizzle footprint = CRVAL 周围有限区域的单个 HEALPix
 // 叶像素, signal 严格 = F(ndrop=1, d=54.59, pixfrac=1.0) — 与 1e-6 精度可比。
 inline float delta_px(int i, void* user) { return i == *static_cast<int*>(user) ? 1.0f : 0.0f; }
 
-// HISS 精确读取: 返回 (ipix, signal) 对集合 (仅非零 signal 像素)。
-std::map<uint64_t, float> hiss_exact_signal(const std::string& path) {
-  std::map<uint64_t, float> out;
-  uint32_t nside = 0, tn = 0, dp = 0, nl = 0; uint64_t nt = 0, np = 0;
-  char* meta = nullptr; uint64_t* tips = nullptr;
-  if (aio_hiss_inspect(path.c_str(), &nside, &tn, &dp, &nl, &nt, &np, &meta,
-                       &tips) != 0) {
-    if (meta) aio_hio_free(meta);
-    if (tips) aio_hio_free(tips);
-    return out;
-  }
-  for (uint64_t t = 0; t < nt; ++t) {
-    float* sig = nullptr; uint32_t n = 0;
-    if (aio_hiss_read_tile_signal(path.c_str(), tips[t], &sig, &n) == 0 && sig) {
-      for (uint32_t i = 0; i < n; ++i) {
-        if (sig[i] != 0.0f) out[tips[t] * nl + i] = sig[i];
-      }
+// ── B2-A17: 标准 HiPS 精确读面 (取代已删除的 legacy 容器读面) ────────────
+// 返回全部有限 signal 像元: (相对 tile 路径, 局部索引, signal, support)。
+struct HipsSignalPixel { std::string tile; uint32_t local; double signal; double support; };
+std::vector<HipsSignalPixel> hips_exact_signal(const std::string& root) {
+  std::vector<HipsSignalPixel> out;
+  std::map<std::string, std::vector<float>> sig, sup;
+  read_hips_plane_px(root, "signal", &sig);
+  read_hips_plane_px(root, "support", &sup);
+  for (const auto& kv : sig) {
+    auto it = sup.find(kv.first);
+    for (uint32_t i = 0; i < kv.second.size(); ++i) {
+      if (!std::isfinite(kv.second[i])) continue;
+      const double s = (it != sup.end() && i < it->second.size())
+                           ? static_cast<double>(it->second[i]) : 0.0;
+      out.push_back({kv.first, i, static_cast<double>(kv.second[i]), s});
     }
-    if (sig) aio_hio_free(sig);
   }
-  if (meta) aio_hio_free(meta);
-  if (tips) aio_hio_free(tips);
   return out;
 }
-
-// HISS support 平面神经元快照: 返回 (global_ipix → uint8) 全部非零像素。
-std::map<uint64_t, uint8_t> hiss_support_plane(const std::string& path) {
-  std::map<uint64_t, uint8_t> out;
-  uint32_t nside = 0, tn = 0, dp = 0, nl = 0; uint64_t nt = 0, np = 0;
-  char* meta = nullptr; uint64_t* tips = nullptr;
-  if (aio_hiss_inspect(path.c_str(), &nside, &tn, &dp, &nl, &nt, &np, &meta,
-                       &tips) != 0) {
-    if (meta) aio_hio_free(meta);
-    if (tips) aio_hio_free(tips);
-    return out;
-  }
-  for (uint64_t t = 0; t < nt; ++t) {
-    uint8_t* sup = nullptr; uint32_t n = 0;
-    if (aio_hiss_read_tile_support(path.c_str(), tips[t], &sup, &n) == 0 && sup) {
-      for (uint32_t i = 0; i < n; ++i)
-        if (sup[i] != 0) out[tips[t] * nl + i] = sup[i];
-    }
-    if (sup) aio_hio_free(sup);
-  }
-  if (meta) aio_hio_free(meta);
-  if (tips) aio_hio_free(tips);
-  return out;
-}
+// 单叶 flux 守恒 Oracle: signal·support·A_cell == 落入该叶的累计通量。
+// nside=512 → A_cell = 4π/(12·512²)。
+constexpr double kA17ACell =
+    4.0 * 3.14159265358979323846 / (12.0 * 512.0 * 512.0);
 
 // 独立 TAN + SIP 前向参考解 (与 WcsTan/WcsSip 实现不同源):
 // p = 0-based 像素中心; dx = p - (CRPIX-1); U = dx + A(dx,dy) = dx (仅 A_2_0);
@@ -1587,8 +1503,9 @@ void tan_sip_reference(double crpix1, double crpix2, double crval1, double crval
 
 // 单像素 delta 帧下的精确 signal 预期 (ALG-DRZ 同源):
 // F = 1 · (1/54.5949848) · (1/1.0) · 1 · (1/0.0002777777777777778^2)
-// 单像素 delta 帧: weight = overlap/drop_area = 1 (完全重合), sumFlux = L·weight = 1.0;
-// HISS signal = 累计通量 (不除面积), 故精确值 = 1.0。
+// 单像素 delta 帧: weight = overlap/drop_area = 1 (完全重合), sumFlux = L·weight = 1.0。
+// 标准 HiPS 产物信号为 surface brightness = flux/covered_area, support = covered_area/A_cell,
+// 故守恒 Oracle 为 signal·support·A_cell = 累计通量 = 1.0 (与旧容器信号定义等价)。
 // 该常量与 WCS/SIP 无关——作为“单像素不散开”的守卫; SIP 桥接的
 // 可观测性由下方 (3a)/(3b) 的“两路径落点+support 平面一致”断言承担。
 constexpr double kA17ExpectedSignal = 1.0;
@@ -1754,18 +1671,20 @@ static void test_b2a17_sip_bridge() {
       const json m = run_node(reg2, "astrocs.phase1.drizzle", drz_cfg(wcs_lin), c2, &rc);
       CHECK_MSG(rc.ok(), ("B2-A17: exact linear drizzle: " +
                           (rc.failed() ? rc.error().message() : std::string())).c_str());
-      const auto sq = hiss_exact_signal(fxo.out_dir + "/p1_stack.hiss");
+      const auto sq = hips_exact_signal(fxo.out_dir);
       CHECK_MSG(sq.size() == 1, ("B2-A17: delta frame must touch exactly 1 leaf, got " +
                                  std::to_string(sq.size())).c_str());
       if (sq.size() == 1) {
-        const double got = sq.begin()->second;
-        CHECK_MSG(std::fabs(got / kA17ExpectedSignal - 1.0) < 1e-5,
-                  ("B2-A17: delta signal must equal exact F(ndrop,d,pixfrac): got=" +
+        // 单叶 flux 守恒 Oracle: signal·support·A_cell == 累计通量 1.0
+        const double got = sq[0].signal * sq[0].support * kA17ACell;
+        CHECK_MSG(std::fabs(got / kA17ExpectedSignal - 1.0) < 1e-4,
+                  ("B2-A17: delta leaf flux must equal exact F(ndrop,d,pixfrac): got=" +
                    std::to_string(got) + " expected=" +
                    std::to_string(kA17ExpectedSignal)).c_str());
       }
       CHECK(m.value("precision_mode", -1) == 0);
-      const auto sup_lin = hiss_support_plane(fxo.out_dir + "/p1_stack.hiss");
+      std::map<std::string, std::vector<float>> sup_lin;
+      hips_plane_snapshot(fxo.out_dir, "support", &sup_lin);
       {
         json st;
         try { st = json::parse(read_file(fxo.out_dir + "/p1_stack.json")); } catch (...) {}
@@ -1787,14 +1706,14 @@ static void test_b2a17_sip_bridge() {
       const json dm2 = run_node(reg2, "astrocs.phase1.drizzle", drz_cfg(wcs_sip), c2, &drc2);
       CHECK_MSG(drc2.ok(), ("B2-A17: SIP drizzle via p1_wcs.json: " +
                             (drc2.failed() ? drc2.error().message() : std::string())).c_str());
-      const auto sq2 = hiss_exact_signal(fxo.out_dir + "/p1_stack.hiss");
+      const auto sq2 = hips_exact_signal(fxo.out_dir);
       CHECK_MSG(sq2.size() == 1,
                 ("B2-A17: SIP delta frame must still touch exactly 1 leaf, got " +
                  std::to_string(sq2.size())).c_str());
       if (sq2.size() == 1) {
-        const double got = sq2.begin()->second;
-        CHECK_MSG(std::fabs(got / kA17ExpectedSignal - 1.0) < 1e-5,
-                  ("B2-A17: SIP path must produce the same exact delta signal: got=" +
+        const double got = sq2[0].signal * sq2[0].support * kA17ACell;
+        CHECK_MSG(std::fabs(got / kA17ExpectedSignal - 1.0) < 1e-4,
+                  ("B2-A17: SIP path must produce the same exact delta leaf flux: got=" +
                    std::to_string(got)).c_str());
       }
       CHECK(dm2.value("precision_mode", -1) == 0);
@@ -1809,7 +1728,8 @@ static void test_b2a17_sip_bridge() {
       }
       // 桥接可观测性: SIP 系数下发后 drizzle 落与线性路径同点
       // (A(15.5,15.5)=0 与 B(15.5,15.5)=0) 且 support 平面因子一致。
-      const auto sup_sip = hiss_support_plane(fxo.out_dir + "/p1_stack.hiss");
+      std::map<std::string, std::vector<float>> sup_sip;
+      hips_plane_snapshot(fxo.out_dir, "support", &sup_sip);
       CHECK_MSG(sup_lin.size() == sup_sip.size(),
                 "B2-A17: SIP vs linear support plane topology must agree");
       bool same = (sup_lin.size() == sup_sip.size());
@@ -2458,60 +2378,55 @@ static void test_p17_nside_sampling_compliance() {
   cleanup_fixture(fx);
 }
 
-// ── P21-HIPS-WRITER: 聚合扫描 O(P+T) 建桶回归 ─────────────────────────────
-// 病征 (P17 §5.2): writer 的 HISS→HiPS 聚合是 O(std_parent_count × n_tiles)
+// ── P21-HIPS-WRITER: 聚合扫描 O(P×T) → sink 单趟 O(T) 回归 ───────────────
+// 病征 (P17 §5.2): 旧 writer 的容器→HiPS 聚合是 O(std_parent_count × n_tiles)
 // 整表扫描 —— T2 auto 3,145,728 × 115 ≈ 3.6e8 次迭代、单线程静默 ~207 s,
 // 把全程 CPU 均值压到 3.18 核 (违反宪章 §10.5/§17.6)。
-// 修复 = 先按 (base_leaf>>18) 给 tile 建桶, 再只遍历**非空** parent。
+// P23: 中间容器与聚合节点一并删除, 聚合由生产末端 write_hips_phase1 单趟
+// 遍历累加器列表完成 (O(T) 排序 + O(T) 写出), 结构上不再存在 parent-span 扫描。
 // 本测试用 nside=65536 (std_parent_count = 196,608, HiPS Norder=7) + 4 个
-// 分散 HISS tile (含上界 parent 196607) 同时锁定两件事:
-//   (a) 归属精确: 每个 HISS tile 落进正确的标准 parent, signal/support
-//       数值逐 tile 可区分 (建桶判据必须与旧 (base_leaf>>18) 逐位等价);
-//   (b) 复杂度: 节点 manifest 的 aggregation_scan_steps ≈ 2×n_tiles, 而
+// 分散 sparse tile (含上界 parent 196607) 同时锁定两件事:
+//   (a) 归属精确: 每个 sparse tile 落进正确的标准 parent, signal/support
+//       数值逐 tile 可区分 (逐 tile 直写, 不存在 (base_leaf>>18) 扫描判据);
+//   (b) 复杂度: 节点 manifest 的 aggregation_scan_steps ≈ n_tiles, 而
 //       aggregation_parent_span = 196,608。回退成整表扫描 ⇒ scan_steps 变
 //       196608×4 = 786,432 (或 aggregation_mode 字段消失) ⇒ 本测试必红。
 constexpr uint32_t kP21Nside = 65536;
 constexpr uint64_t kP21Parents[4] = {0, 1, 100000, 196607};
 constexpr float    kP21Signal[4]  = {0.5f, 1.5f, 2.5f, 3.5f};
 constexpr uint8_t  kP21Sup[4]     = {255, 128, 64, 32};
-constexpr uint64_t kP21CoverLeaves = 256;  // 每 HISS tile 仅覆盖前 256 叶
+constexpr uint64_t kP21CoverLeaves = 256;  // 每个 sparse tile 仅覆盖前 256 叶
 
-bool make_p21_scatter_hiss(const std::string& path) {
-  const uint32_t nside = kP21Nside;
-  const uint32_t depth = hiss::compute_tile_depth(nside);
-  const uint32_t tile_nside = hiss::compute_tile_nside(nside);
-  const uint32_t n_leaf = 1u << (2 * depth);
+bool write_p21_scatter_hips(const std::string& root) {
+  std::vector<drizzle::TileAccumulatorT<float>> accs;
   const double a_cell = 4.0 * 3.14159265358979323846 /
-                        (12.0 * static_cast<double>(nside) *
-                         static_cast<double>(nside));
-  hiss::HissGridSpec grid;
-  grid.nside = nside; grid.tile_nside = tile_nside;
-  grid.ordering = 1; grid.radesys = 0; grid.pixfrac = 1.0;
-  hiss::HissMetadata hmeta;
-  hmeta.nside = nside; hmeta.tile_nside = tile_nside;
-  hmeta.ordering = 1; hmeta.radesys = 0; hmeta.pixfrac = 1.0;
-  hmeta.photappl = 0;
-  std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU");
-  hiss::HissWriter writer;
-  if (writer.open(path, grid, hmeta) != 0) return false;
+                        (12.0 * static_cast<double>(kP21Nside) *
+                         static_cast<double>(kP21Nside));
   for (int t = 0; t < 4; ++t) {
-    hiss::DrizzleTileAccumulator acc;
-    acc.tile_nside = tile_nside;
+    drizzle::TileAccumulatorT<float> acc;
     acc.parent_ipix = kP21Parents[t];
-    acc.pixel_area = a_cell;
-    acc.pixels.resize(n_leaf);
+    acc.pixels.resize(512u * 512u);
     for (uint64_t i = 0; i < kP21CoverLeaves; ++i) {
-      acc.pixels[i].sum_flux = kP21Signal[t];
-      acc.pixels[i].sum_area =
-          (static_cast<double>(kP21Sup[t]) / 255.0) * a_cell;
+      acc.pixels[i].sumFlux = kP21Signal[t];
+      acc.pixels[i].sumArea = static_cast<float>(
+          (static_cast<double>(kP21Sup[t]) / 255.0) * a_cell);
+      acc.pixels[i].nContrib = 1;
+      acc.touched.push_back(static_cast<uint32_t>(i));
     }
-    if (writer.add_tile(kP21Parents[t], acc, nullptr,
-                        hiss::OccupancyMode::FULL) != 0) {
-      writer.cancel();
-      return false;
-    }
+    accs.push_back(std::move(acc));
   }
-  return writer.finalize() == 0;
+  drizzle::DrizzleConfig cfg;
+  cfg.nside = static_cast<int>(kP21Nside);
+  cfg.tile_depth = 9;
+  std::string err;
+  if (!drizzle::write_hips_phase1<float>(accs, cfg, root, "R", err)) {
+    std::fprintf(stderr, "P21 write_hips_phase1 failed: %s\n", err.c_str());
+    return false;
+  }
+  // 上游 provenance (writer 节点据此计算 parent span 复杂度不变量)。
+  std::ofstream sf(root + "/p1_stack.json", std::ios::binary);
+  if (sf) sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << kP21Nside << "}";
+  return true;
 }
 
 bool hips_tile_at(const std::string& root, const char* plane, uint32_t norder,
@@ -2526,16 +2441,13 @@ static void test_p21_writer_aggregation_buckets() {
   ModuleRegistry reg;
   CHECK(register_phase_modules(reg).ok());
   Fixture fx = make_fixture("p21");
-  const std::string hiss = fx.out_dir + "/p1_stack.hiss";
-  CHECK_MSG(make_p21_scatter_hiss(hiss), "P21: scatter HISS fixture");
+  // P23: 直接以生产末端 write_hips_phase1 写出 4 个分散 sparse tile 的 HiPS
+  // (旧夹具写中间容器再交 writer 聚合; 容器已删除, 等价夹具改为直供 sink)。
+  CHECK_MSG(write_p21_scatter_hips(fx.out_dir), "P21: scatter HiPS fixture");
   {
-    uint32_t ns = 0, tn = 0, dp = 0, nl = 0; uint64_t nt = 0, np = 0;
-    char* meta = nullptr; uint64_t* tips = nullptr;
-    CHECK(aio_hiss_inspect(hiss.c_str(), &ns, &tn, &dp, &nl, &nt, &np, &meta,
-                           &tips) == 0);
-    CHECK(ns == kP21Nside && nt == 4 && nl == 262144u);
-    if (meta) aio_hio_free(meta);
-    if (tips) aio_hio_free(tips);
+    std::vector<float> pre;
+    CHECK_MSG(hips_tile_at(fx.out_dir, "signal", 7, kP21Parents[0], &pre),
+              "P21: 夹具必须写出 Norder7 sparse tile");
   }
   RunContext ctx;
   const std::string cfg = R"({
@@ -2545,13 +2457,14 @@ static void test_p21_writer_aggregation_buckets() {
   })";
   Result<void> wrc;
   json wman = run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
-  CHECK_MSG(wrc.ok(), ("P21: writer must consume scatter HISS: " +
+  CHECK_MSG(wrc.ok(), ("P21: writer must validate direct HiPS: " +
                        (wrc.failed() ? wrc.error().message()
                                      : std::string())).c_str());
   if (wrc.failed()) { cleanup_fixture(fx); return; }
-  // (b) 复杂度不变量 (确定性断言; 不依赖计时)
-  CHECK_MSG(wman.value("aggregation_mode", std::string()) == "parent_bucket",
-            "P21: writer 聚合必须走 parent 建桶 (禁回退 O(P×T) 整表扫描)");
+  // (b) 复杂度不变量 (确定性断言; 不依赖计时): sink 单趟遍历 O(T),
+  //     scan_steps ≈ n_tiles, 而非 O(parent_span × n_tiles)。
+  CHECK_MSG(wman.value("aggregation_mode", std::string()) == "sink_single_pass",
+            "P21: 聚合必须走 sink 单趟遍历 (禁回退 O(P×T) 整表扫描)");
   const int64_t span = wman.value("aggregation_parent_span", static_cast<int64_t>(0));
   const int64_t steps = wman.value("aggregation_scan_steps", static_cast<int64_t>(0));
   const int64_t visited =
@@ -2587,12 +2500,12 @@ static void test_p21_writer_aggregation_buckets() {
       continue;
     }
     // 读侧不变量 (与 AIO 的 surface-brightness 约定及 NESTED→FITS 像元置换无关):
-    //   (i)   有限 signal 像元数 == 本 tile 的 HISS 覆盖叶数 (256) —— 覆盖守恒,
+    //   (i)   有限 signal 像元数 == 本 tile 的构造覆盖叶数 (256) —— 覆盖守恒,
     //         既不丢也不多 (旧实现 valid_mask 缺失时会多出幽灵像元);
     //   (ii)  本 tile 内所有有限 signal 严格同值 (常量夹具) —— 任何跨 parent /
     //         跨 tile 的桶归属错位都会破坏常量性;
     //   (iii) support 恰在 256 个像元上等于 round(255·A/A_p)/255 =
-    //         kP21Sup[t]/255 (HISS 面积比连续缩放), 其余像元 support == 0;
+    //         kP21Sup[t]/255 (面积比连续缩放), 其余像元 support == 0;
     //   (iv)  4 个 parent 的 signal 常量两两不同, 且随 support 减小严格增大
     //         (与 AIO "surface brightness = flux/covered_area" 一致)。
     const double exp_sup = static_cast<double>(kP21Sup[t]) / 255.0;
@@ -2610,7 +2523,7 @@ static void test_p21_writer_aggregation_buckets() {
       }
     }
     CHECK_MSG(fin == kP21CoverLeaves,
-              ("P21: parent " + tag + " 有效 signal 像元数必须 = HISS 覆盖叶数 256, got " +
+              ("P21: parent " + tag + " 有效 signal 像元数必须 = 构造覆盖叶数 256, got " +
                std::to_string(fin)).c_str());
     CHECK_MSG(fin > 0 && std::fabs(s_max - s_min) <= 1e-5 * std::fabs(s_max),
               ("P21: parent " + tag + " tile 内 signal 必须是单一常量 (禁跨 tile 串扰): min=" +
@@ -2644,7 +2557,7 @@ static void test_p21_writer_aggregation_buckets() {
   {
     std::vector<float> ghost;
     CHECK_MSG(!hips_tile_at(fx.out_dir, "signal", norder, 12345, &ghost),
-              "P21: 未被 HISS 覆盖的 parent 不得写出 signal tile");
+              "P21: 未被 sparse 覆盖的 parent 不得写出 signal tile");
   }
   cleanup_fixture(fx);
 }

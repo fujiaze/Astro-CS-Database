@@ -126,7 +126,7 @@ P1Fixture make_p1_fixture(const char* tag) {
   std::string* hips_out[2] = {&fx.hips1, &fx.hips2};
   for (int i = 0; i < 2; ++i) {
     const std::string od = (fx.root / dirs[i]).string();
-    fs::create_directories(od, ec);   // P1 drizzle HISS writer 需目录预存
+    fs::create_directories(od, ec);   // P1 drizzle 产物 (HiPS) 需目录预存
     const std::string cfg = R"({
       "input_lights": [")" + std::string(lights[i]) + R"("],
       "output_dir": ")" + od + R"(",
