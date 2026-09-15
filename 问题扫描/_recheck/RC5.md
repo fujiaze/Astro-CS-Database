@@ -1,82 +1,96 @@
-# RC5 复验档案（第 5 分片，verify[i::8] i=4，共 62 条）
+# RC5 复验档案（第 5 分片，verify[4::8]，共 62 条）
 
-- 时点 HEAD：`a3a343a44080d917089e1f8d548ed2d0400b0c61`（recheck_round1.json.head 一致，`git --no-optional-locks rev-parse HEAD` 实测吻合）
-- 分片口径：`问题扫描/_cache/recheck_round1.json` → `verify[4::8]`（494 条取模第 5 组，62 条，python3 自主计算）
-- 基线对照：`recheck_round1.json.changed` 35 个文件（base 521095b8 → HEAD），命中面逐条核"是否修完全"
-- 方法：一律按 文件::符号 重定位；不因文件被改判 FIXED，逐条复算原缺陷机制是否消失；缺失判定走三级复核（字面串→符号/近义检索→存在性检索）
-- 四态：STILL（给新锚）/ FIXED（给修在哪的证据 + 是否修完全）/ MOVED（位置变了缺陷原样）/ CANNOT_STATIC（需运行期）
+- 时点 HEAD：`a3a343a44080d917089e1f8d548ed2d0400b0c61`（`git --no-optional-locks rev-parse HEAD` 实测吻合 recheck_round1.json.head）
+- 分片口径：`问题扫描/_cache/recheck_round1.json` → `verify[4::8]`（494 条取模第 5 组，62 条，python3 自主计算，未动他人区间）
+- 方法：一律按 文件::符号 重定位；不因文件被改判 FIXED，逐条复算原缺陷机制；缺失判定走三级复核；全程静态（read/grep/python3 只读 + git --no-optional-locks 只读，零构建零脚本执行零 git 写）
+- 基线对照：changed 35 文件（521095b8→HEAD）命中面逐条核"修在哪、修没修完全"
 
-## 逐条结论
+## 统计（62 条）
+
+| 态 | 数 | 条目 |
+|---|---|---|
+| STILL | 57 | 除下列外全部 |
+| FIXED | 4 | FD-G-002, M4-C-02, M5a-G-002, V2-N-09 |
+| MOVED | 1 | V6-N-02 |
+| CANNOT_STATIC | 0 | — |
+
+FIXED 中：M5a-G-002 与 V2-N-09 各留一处次生小残（见逐条）；M4-C-02 留两处文档行锚/台账小残；FD-G-002 无同类他站在活（p1_noise_adapter 为另一种机制且经负责人裁决登记）。
+
+## 逐条结论（verify[4::8] 原序）
 
 | # | ID | 结论 | 新锚（文件::符号） | 一句话判据 |
 |---|----|------|--------------------|------------|
-| 1 | FD-G-002 | | | |
-| 2 | M1a-A-001 | | | |
-| 3 | M1a-A-009 | | | |
-| 4 | M1a-C-007 | | | |
-| 5 | M1a-F-002 | | | |
-| 6 | M1a-I-001 | | | |
-| 7 | M2a-B-3 | | | |
-| 8 | M2a-C-2 | | | |
-| 9 | M2a-D-1 | | | |
-| 10 | M2a-F-1 | | | |
-| 11 | M2a-H-2 | | | |
-| 12 | M2b-B-01 | | | |
-| 13 | M2b-B-09 | | | |
-| 14 | M2b-G-02 | | | |
-| 15 | M3-A-006 | | | |
-| 16 | M3-C-008 | | | |
-| 17 | M3-F-003 | | | |
-| 18 | M3b-A-01 | | | |
-| 19 | M3b-C-02 | | | |
-| 20 | M3b-F-03 | | | |
-| 21 | M4-C-02 | | | |
-| 22 | M4-F-01 | | | |
-| 23 | M4-G-02 | | | |
-| 24 | M5a-G-002 | | | |
-| 25 | M5a-G-010 | | | |
-| 26 | M5b-E-01 | | | |
-| 27 | M5b-G-03 | | | |
-| 28 | M5b-G-11 | | | |
-| 29 | M5b-G-19 | | | |
-| 30 | M6a-C-002 | | | |
-| 31 | M6a-D-006 | | | |
-| 32 | M6a-D-014 | | | |
-| 33 | M6a-I-005 | | | |
-| 34 | M6b-E-005 | | | |
-| 35 | M6b-G-006 | | | |
-| 36 | M7-A-120 | | | |
-| 37 | M7-A-128 | | | |
-| 38 | M7-A-138 | | | |
-| 39 | M7-G-104 | | | |
-| 40 | M8-C-001 | | | |
-| 41 | M8-F-007 | | | |
-| 42 | M8-G-002 | | | |
-| 43 | M8a-C-006 | | | |
-| 44 | M8a-G-004 | | | |
-| 45 | M8a-I-004 | | | |
-| 46 | M9-C-1 | | | |
-| 47 | M9-G-2 | | | |
-| 48 | M9-H-4 | | | |
-| 49 | V1-N-07 | | | |
-| 50 | V2-N-09 | | | |
-| 51 | V6-N-02 | | | |
-| 52 | V7-N-05 | | | |
-| 53 | V8-N-04 | | | |
-| 54 | V9-N-05 | | | |
-| 55 | V9-N-14 | | | |
-| 56 | V10-N-07 | | | |
-| 57 | V11-N-06 | | | |
-| 58 | V12-N-04 | | | |
-| 59 | V12-N-12 | | | |
-| 60 | V13-N-03 | | | |
-| 61 | V14-N-06 | | | |
-| 62 | V18-N-10 | | | |
+| 1 | FD-G-002 | FIXED | ci/known_failures.json::removals[UT-CLI] + tests/cli/cli_test_hygiene.py::(run/test_cli_cwd) | UT-CLI 已从 failures 移入 removals（2026-09-14T04:31:22Z），根因（子进程 cwd 落根目录）已由 cli_test_hygiene.py 显式 run/ 落位修复；waivable=false 保留 |
+| 2 | M1a-A-001 | STILL | docs/science/ASTROMETRY.md::§5 前向 WCS 块 :48 + ::一致性句 :66 | 像素域 SIP 仍加在天球域中间坐标上（逐字未动）；:66 仍自称与实现一致（所引行区间仍不覆盖被对照数学） |
+| 3 | M1a-A-009 | STILL | docs/contracts/DATA_SEMANTICS.md::§30.4-1/:2436 vs §30.4-3/:2442；lib/phase3_session/p3_resample.cpp::ivar 归类注释 :324-325 | ivar==0 双强制互斥仍在（条目1"u 无效→NaN 传播态" vs 条目3"含 ivar==0 导出=产品损坏"）；实现注释按前者自行裁决并明文抵触条目3括注；W4a/b/c 无 ivar==0 用例 |
+| 4 | M1a-C-007 | STILL | docs/algorithms/PHASE3_RSMP_IMPL.md::§1/:13/:24/:54 + ::§4 符号表 + ::§6.5/:195 | 头行数 58 陈述 vs 实测 116；10 符号表 vs 现 13+ 公共符号（含 p3_uncertainty_* 族与 _ex 族 ra/dec 签名）；非目标仍否认 variance/ivar（实现已落 §30.4 传播面）；coverage 恒 1 台账与头文件 :47-55 的 0/1 语义互斥 |
+| 5 | M1a-F-002 | STILL(缩窄) | docs/algorithms/PLATESOLVE.md::§11.4 F6 首句 + tests/unit/p1_wcs_phot_test.cpp::test_wcs_roundtrip :50 + lib/phase1/wcs/wcs_tan.h:2 vs module_adapters.cpp:::2186-2188 | 合同仍写"roundtrip <1e-6 deg（p1_wcs_phot_test.cpp:50 冻结值）"而该断言在像素域；头合同行仍 deg、节点仍 px ⇒ deg 域往返精度仍无对应断言；注：B2-A1 新增 ≤1e-9 deg 前向交叉绝对门（p1wcs u1_f6_abs_cross/n1 + 生产门）使角域实质缺口大幅缩小 |
+| 6 | M1a-I-001 | STILL | lib/plate_solve/cpp/ipv/::REPORT.md 头部结论段 + ::(make_clean_err/out.txt, siril_atpmatch_b64.txt 均 tracked) | V4 时代报告仍现在时态（2026-07 MVP/100% 结论）；引用归档 lib/plate_solve_old/v4_archive 实测 DIR-MISSING；base64/日志残留仍与源码同层被跟踪 |
+| 7 | M2a-B-3 | STILL | lib/drizzle/include/astrocs/drizzle/types.h::DRZ_CFG_KEY_PIXFRAC :56 + lib/drizzle/src/module_entry.cpp::validate :354-358 + hp_drizzle_api.h:::37/:57 vs :112 + hp_drizzle_api.cpp:::214/:562 + drizzle_engine.cpp:::757 | 迁移面词表仍 [0,1]（注释自述 DISP-DRZ-003 口径）、validate/plan 对 SCI 禁值 0.0 返回成功、run 期才由引擎拒；公共头 0.0~1.0（两处）与 reverse (0,1] 三口径互斥依旧（文件本轮有改但 pixfrac 面逐字未动） |
+| 8 | M2a-C-2 | STILL | lib/healpix_db/healpix_drizzle/drizzle_engine.cpp::writeHis :1164-1165 / ::writeHisTilesT :2284-2285 | hmeta.precision_mode/signal_dtype 仍直接抄 config.precision_mode（请求值），与实际累加域（输入块 dtype 决定）无因果链；两站同型 |
+| 9 | M2a-D-1 | STILL | drizzle_engine.cpp::HEALPIX_SCALE_PER_NSIDE 注释簇 :616/:620/:685 + docs/algorithms/DRIZZLE_GEOMETRY.md::§4/:87-:89 + spherical_overlap.cpp:::1598 vs :1620-1621 | 注释常数仍写 211034.6（python3 复算 √(π/3)·(180/π)·3600=211076.285，差 41.7）；ALG 常数表同错；同函数注释"delta 乘 1.25 安全系数"而代码取 ×1.15，1.127/1.14/1.25 三口径并存 |
+| 10 | M2a-F-1 | STILL | lib/healpix_db/healpix_drizzle/tests/::(candidate_oracle_test.cpp 等 5 文件) + docs/standards/STANDARDS_REGISTRY.md::D.drizzle §4 行 :162 | 三级复核确认：五文件在全仓真实 CMakeLists/ctest_baseline/ci 零注册（命中仅在 run/ 影子树）；注册表仍以未注册件作 CONFORMANT 证据、偏差列"无（9003 例…）"；共源面文件未动 |
+| 11 | M2a-H-2 | STILL | drizzle_engine.cpp::drizzleTiled :1912(continue) / ::processPixelSharedTiled :1557(>0 门) + drizzle_engine.h::processPixel 形参注 :280 + DATA_SEMANTICS:::254 | variance≤0 整颗像素（信号/覆盖/nContrib）丢弃且无计数依旧；头注"0=未知跳过传播"与实现互斥；NaN 分支只丢方差项与合同"非有限→跳过该像素"互斥；SCI 无授权 |
+| 12 | M2b-B-01 | STILL | lib/astro_image_io/src/hips/aio_hips_writer.cpp::tile_rel_path :136-140 + ::aio_hips_reader.cpp:41-42 + runtime/io/hips_core.c::hips_tile_rel :548-558 | 商/余数互换依旧：Dir=ipix/10000（应为 (N/10000)*10000）、Npix=ipix%10000（应为完整 N）；读写两侧同错式自证闭环 |
+| 13 | M2b-B-09 | STILL | runtime/io/fits_core.c::fio_write_header_block :1155 + ::acs_fio_verify_file_v1 :1651 + STANDARDS_REGISTRY::D.fits §6 行 :223 + tests/io/test_fits_stream_contract.py::write_fits :162 | 头块仍无条件写 CHECKSUM=0000000000000000 且注释"HDU checksum updated"；豁免仍在重算值侧；在册测试默认 checksum=0、仅 tamper 用例传 1；注册表仍 CONFORMANT/偏差"无" |
+| 14 | M2b-G-02 | STILL | docs/standards/checks/check_standards_registry.py::(docstring C8/断言名集) + ci/checks.json（HEAD 复算） | 135 项注册表对 check_standards_registry 仍零登记（checks.json 本轮 +407 行亦未纳）；实测断言名 27 个无 C8_*；判据复算同前 |
+| 15 | M3-A-006 | STILL | lib/phase1/noise/noise_model.h::gain_variance 注释 :33（实现 :207-208） + tests/unit/p1_noise_test.cpp::test_gain_variance_matches_analytic :44/:56/:63-65 + lib/phase1/photometry/photometer.cpp::measure :82-90 | ①头注仍缺 read_noise²/gain²；②fixture 仍钉 adus=electrons*gain + analytic=signal*gain+rn²（增益方向反于 SCI gain=e⁻/ADU）且 ±15% 容差 vs SCI 5%；③photometer 仍 1.4826 4 位常数·n·σ_sky² |
+| 16 | M3-C-008 | STILL | lib/core/src/module_adapters.cpp::descriptor :564(astrocs.phase1.calibration) vs lib/calibration/module.yaml:15(astrocs.p1.calibration) + lib/cosmetic/.../types.h:21 ASTROCS_COS_MODULE_ID | 两套词表依旧并行（descriptor/registry 页 phase1.* vs module.yaml/types.h p1.*），无归一化登记 |
+| 17 | M3-F-003 | STILL | lib/snr_estimator/cpp/include/snr_estimator.h::NoiseWeightModelV1 :128-144（无 a,b,c） + lib/snr_estimator/cpp/test/noise_model_science_test.cpp::test_variance_field_fit_snr006 :304/:307 + docs/science/NOISE_MODEL.md::§11:115 + NOISE_ESTIMATION.md::FIX-NOISE-B:194 | API 仍不输出平面系数；测试仍 corr≥0.98+RMSE≤5%、注入 σ 线性场（truth var=s² 二次面）；SCI/ALG 仍写"系数 a,b,c 10% 内复现" |
+| 18 | M3b-A-01 | STILL | lib/star_detector/src/sdet_api.cpp::TWO_SQRT_2_LOG2 :48 / ::kernel :110/:135/:175 + docs/science/STAR_DETECTION.md::§3:41 + lib/dynamic_psf/src/dpsf_psf.cpp::MOFFAT4_FWHM_FACTOR :25 | 生产内核仍是椭圆高斯 exp(−(dx²/SX+dy²/SY))、fwhm=2.35482σ；SCI 冻结基线仍写"Moffat4 GSL-LM"且禁高斯主路径；两系数体系并存（1.914× 错率面未动） |
+| 19 | M3b-C-02 | STILL(部分注) | docs/algorithms/STAR_DETECTION_ALGORITHMS.md:::8-9 + CMakeLists.txt:::557-558 + docs/contracts/DATA_SEMANTICS.md::§17.1 + module_adapters.cpp:::1664(99.0 哨兵) + lib/phase1/stars/star_detector.cpp:167(peak>50000) | "唯一权威生产源/薄包装/生产通道 sdet"三处宣称原样；99.0 哨兵、绝对阈值 50000 等错配事实依旧；注：module_adapters 文件头 2026-09-14 已加"⚠注释订正"自供真实链（注释诚实化≠宣称面修复） |
+| 20 | M3b-F-03 | STILL | lib/star_detector/tests/p1star/p1star_tests_core.cpp::f1 :127-133 + fixtures.hpp::amp 谱段 :60-61 + tests/unit/p1_stars_test.cpp:44-45/:63/:104/:152 | F1 分谱判定仍用测试自定 snr=amp/noise、dc≤0.3 只统计被匹配器接受的星；0.5px 挪用门/4096≤2 虚警门/末尾无条件 PASS 依旧 |
+| 21 | M4-C-02 | FIXED | lib/core/src/module_adapters.cpp::p2_op_fit_upm 装配 :3925/:3941-3943 + lib/phase2_session/p2_session.cpp:::191 + docs/algorithms/PHASE2_UPM_IMPL.md:::365 | 两生产装配现均显式 zero_anchor_weight=1e-3（=SCI §9a:133），IR 通道另加对称覆盖键（代码注释直接注名 M4-C-02）；ALG"同值"陈述已随码更新。小残：PHASE2_UPM_IMPL.md:365 的 module_adapters 行锚 3152-3176 已漂至 :3916-3943；DISP-P2UPM-003(:401)"覆盖键仅三"对 IR 通道已失真 |
+| 22 | M4-F-01 | STILL(半修) | CMakeLists.txt:::693-702(add_subdirectory(lib/phase2)) + ci/checks.json::CTEST-PHASE2-GATES + lib/healpix_db/healpix_drizzle/tests/::(control_median_mc_test.cpp,kcorr_matrix_test.cpp 仍零注册) + docs/science/PHASE2_UPM.md:::147 | UPMW 硬门/持久化门一站已接进根图并登记 linux-main 非豁免门（astro_image_io.dll 经 file 实为 ELF 可链）；但 MC 标定门两文件仍构建孤儿、SCI:147 仍以现在时宣称"§11 Oracle 全过（含 control_median_mc_test…）"⇒ 标题合取未消失；实际跑绿属运行期（未证） |
+| 23 | M4-G-02 | STILL | lib/core/src/module_adapters.cpp::phase2_descriptor :581-598 + ::register :6424(make_session_module<P2Api>) + lib/phase2_session/p2_session.cpp:::248 + docs/modules/registry/astrocs.phase2.resample.md | 整阶段会话仍以 astrocs.phase2.resample（cpu_heavy）驻留注册表、自报 status=partial；行锚较原报漂移（:484→:581）缺陷原样 |
+| 24 | M5a-G-002 | FIXED | cli/resource_gate.h::allocated_capacity_cores :198-202 / ::cpu_percent_of_allocated_capacity :206-209 / ::compute_cores_threshold :214-218 + cli/commands.cpp::run_with_resource_gate :925-928 + cli/resource_recorder.h::头注 :5-8/::write_all :248-253 | 85/90 判定现按"已分配容量"归一（caller 注入前归一 + B2-A18 granted_workers 观测分母 + 等效核门）；四处口径注释全部订正；运行工件 normalized_cpu…=false + cpu_pct_units=percent_of_one_core。小残：:194"NEEDS_DECISION(M5a-G-002)"注释把 granted vs min 取义留待裁决（语义已观测优先，不影响本缺陷） |
+| 25 | M5a-G-010 | STILL | providers/cpu/baseline/src/baseline_provider.cpp::run_banded :418/:431 + avx2:244/:257 + avx512:243/:256 + baseline_provider_v1.h:::42 | 三 provider 无 executor 仍置 workers=1 串行整图、无降级上报；公共头合同句"1=串行兜底(05 §6 保守)"依旧；conservative_route 反方向未同步 |
+| 26 | M5b-E-01 | STILL(漂移加剧) | docs/architecture/MODULE_MAP.md:::32-33/:55 vs lib/core/src/module_adapters.cpp::register_phase_modules :6415 / p1_nodes :6439 / p2_nodes :6464 / p3_nodes :6491 | 三处 :4257/:4282/:4309 行锚仍全部错指（真实已漂至 6415/6439/6464/6491，偏差 ~2150 行）；:3777-3793 同错；宪章 §F.1 grep -c=0 而 RELEASE_STATUS:70/REVIEW:82/SCIENCE_OVERVIEW:79/:90/:100/PIPELINE_OVERVIEW:69 仍引用 |
+| 27 | M5b-G-03 | STILL | tools/check_ast_api.py::main :40-68 + ci/checks.json::AST-API（HEAD 复算） | 71 行原样：同一头文件自反比对恒真、declared[name]=n 的 nparams 提取后弃用（:60-62 仅比名字集）、不读任何 API 文档；AST-API 注册项逐字段未动 |
+| 28 | M5b-G-11 | STILL | ci/validate_registry.py::R7 :247-248 + ci/run.py:::72(自述零 --gate-required) + tools/check_serial_hardcode.py::PROD_FILES :17 + tools/arch/check_thread_budget.py::SCAN_ROOTS :6 + providers/cpu/*/src workers=1 | ①heavy 仍无正向判据、资源门 CI 零调用自述依旧；②serial-hardcode 扫描面已扩为 8 个 lib 目录递归（"仅 4 固定文件"子项过时）但仍不含 providers/；thread-budget SCAN_ROOTS 仅 lib/ ⇒ providers 三处 workers=1 两门皆不可见（核心断言不变） |
+| 29 | M5b-G-19 | STILL(子项清残) | docs/owner/RELEASE_STATUS.md::发布 Gate 段 + ci/checks.json(135 项零图像项) + VISUAL_CHECK_README.md:::8/:17(→不存在的 .\launch\) | §17-9 门禁面仍为零（无 gen_visual_views 接线、无视觉审核项）；Owner 操作文档仍指向不存在路径；launch/js、css 跟踪残留子项已清（git ls-files ^launch 零命中，实际在 packaging/launch/） |
+| 30 | M6a-C-002 | STILL | docs/architecture/PHASE3_MODULE_ARCH.md::§1 :16(LRU)/§3 :29(共享读+互斥加载)/:30-31(上界式+I/O线程1) vs lib/phase3_session/p3_resample.cpp::TileCache :33(FIFO) + p3_session.cpp:::237/:248 | FROZEN 架构文档四处口径与实现互斥原样：共享↔私有、LRU↔FIFO、单缓存上界式↔每 worker 自含、预取线程↔无；DISP-P3RSMP-002 仍只登记 ALG §3 |
+| 31 | M6a-D-006 | STILL(一站已修) | lib/core/src/module_adapters.cpp::文件头 :12-13(wcs-platesolve)/:15(drizzle 宿主库)/:16(writer) vs 实现 :3251+ :3240-3243 注释 + 根 CMake :408-415/:675 | ①star-psf 行已订正为如实（lib/phase1/stars+接 dpsf）；②wcs"真实求解器接线归各 IMPL"仍不实（ipv 链已直调 :1995）；③drizzle 行仍写 lib/drizzle 静态库（astrocs_drizzle STATIC 实为 healpix_drizzle 源，lib/drizzle 是 SHARED astrocs_p1_drizzle）；④writer 行仍 aio_write_fits（实现为 product_begin/tile/finalize，op 级注释已订正而头部未同步）；⑤:621/:860"一站式执行"与 :5412/:6460 违规自述仍并存 |
+| 32 | M6a-D-014 | STILL | lib/phase2/src/sampler.cpp::CON-010 注释 :160-161 + g_aio_mu :166/:693-694 vs SamplerReader 前言 :683 + :629 hotfix 段 + :880-883 | 同一文件"单一全局 mutex 串行化（实写）"与"禁全局 critical(aio_read)"并存、"hotfix 串行"与 N-worker 并行两代叙述依旧互斥 |
+| 33 | M6a-I-005 | STILL(族态) | lib/phase2/README.md:::10"239 行实测"(实测 280) + module_adapters.cpp:::16 + lib/phase2/README.md:::94 | 量化定稿条目：无锚现状断言族仍在产——抽查两处新鲜实例（phase2 README 行数漂移、头部 writer 委托不实）；cosmetic README 等个别实例已订正为带锚真话（≠族已收敛，无对账门） |
+| 34 | M6b-E-005 | STILL(一站已修) | docs/traceability/TRACEABILITY_SPEC.md:::30(8 必填层)/:159(rows= 契约)/§2 唯一性 vs docs/traceability/TRACEABILITY_LAYERS.csv(9 数据行) + tools/traceability/check_traceability_matrix.py:::55/:198/:452 + ci/checks.json::TRACEABILITY-MATRIX.changed_paths | 层数 8↔9 互斥、逐层取值域不被解析（全局并集）、PASS 契约缺 rows=、changed_paths 仍指不存在的根 schemas/ 路径皆依旧；已修：SCHEMA_REL 现指真实存在的 contracts/schemas/traceability_matrix.schema.json（原"schema 路径不存在"子项失效） |
+| 35 | M6b-G-006 | STILL | docs/DOCUMENT_INDEX.yaml:::18(校验声明) + tools/doccheck/check_doc_index.py | 索引"校验"总括表述原样（仍仅结构自洽），内容级覆盖面未扩 |
+| 36 | M7-A-120 | STILL(口径注) | docs/GLOSSARY.md::表体(现 18 headword) vs ASTROCS_PROJECT_CONSTITUTION.md::§4.1 :96-108 | snr/quality/provenance 无词条（现缺 5-6/10 而非逐字 6/10：invalid/bad_mask 已成词条但非 §4.1 validity/rejection_mask 口径）；coverage 仍被登记为 support 的 legacy alias（:14），与 §4.1"coverage 是几何/数据有效域"直接矛盾；"恰一个含义"判定面缺口不变 |
+| 37 | M7-A-128 | STILL | docs/algorithms/STAR_DETECTION_ALGORITHMS.md::§11.4 F1 :256-257 + docs/science/STAR_DETECTION.md:::16 | 门文本"SNR≥10 星召回≥99%"两文档逐字未动；不可达复算主落在 M7-T-101（判决域/噪声域不同源），本条为其 SCI/ALG 侧定档指针 |
+| 38 | M7-A-138 | STILL | docs/algorithms/HEALPIX_MAPPING.md::全篇(实测 35 行) + docs/standards/STANDARDS_REGISTRY.md::D.healpix :135/:137 | 35 行规模原样、无公式/单位/无效值语义面未变；注册表两行仍以其为 CONFORMANT 证据指针 |
+| 39 | M7-G-104 | STILL | docs/standards/STANDARDS_REGISTRY.md::D.healpix :135(实例1) + ::D.drizzle :162(实例2) + 各主落 | 归集条逐实例抽验：实例1 仍"不存在"（test_healpix_oracle 全真实注册面零命中、oracle.jsonl 缺失、registry 仍引用）；实例2 即本分片 M2a-F-1 复验原样 STILL；其余实例主落文件未动 ⇒ 清单整体仍成立 |
+| 40 | M8-C-001 | STILL(锚再漂) | docs/architecture/THREAD_BUDGET_ARCH.md::§4 :32-33 + lib/phase2/src/sampler.cpp:::882/:890 + lib/phase2/src/upm.cpp::D1 注释现 :515 + drizzle_engine.cpp::合并面现 :1577-1590 + p1drz_tests_core.cpp:::216 | "确定性锚点全部有效/sampler 串行"依旧被反证；本批 drizzle 大改（+984 行）使 1662/1751/1834/1843 四锚全部再失效（合并站点现 :1577-1590），upm 495→515；新事实：P15a 加逐位硬锁+taskset 锁（:222-232），但 properties 面仍 1e-12 容差（:216），文档未订正 |
+| 41 | M8-F-007 | STILL | tests/unit/p1_resource_test.cpp::(4) heavy gate :78 + tests/unit/p1_hips_writer_test.cpp::(3) :89 + tools/quality/known_failures_baseline.py::F-022 :912-915 | 两行"X || true"永真 CHECK 逐字原样（全仓同型命中仍恰此 2 行）；F-022 探针仍只 grep 另一文件的 CHECK(true) 字面串 |
+| 42 | M8-G-002 | STILL | ci/run.py:::1039-1052(not executed and skipped_executed→PASS) + :::103 EMPTY_OUTPUT_SILENCE_EXEMPT | "全部合同化 SKIP→整体 PASS"分支与空输出豁免原样；有效用例数报告面依旧无门 |
+| 43 | M8a-C-006 | STILL | tools/make_windows_release.py::license_text :101-108 + tools/make_linux_release.py:::87-93 + ::SBOM :110-127 | NOTICE 仍由脚本内手工字符串生成：cfitsio 仍标 BSD、HEALPix 仍错指 lib/plate_solve/LICENSE、SBOM 仍单容器 NOASSERTION，与 dependency-lock/链接闭包脱钩 |
+| 44 | M8a-G-004 | STILL | DEPENDENCIES.md:::4-5/:27/:58-63 + ci/checks.json(HEAD 复算 135 项) + packaging/gen_sbom_input.py::verify_dependencies_md | 零接线依旧（gen_sbom_input/verify_actions_lock/validate_registry/check_registration_timeouts 在 135 项复算全零命中）；文档声称的 cmake/toolchain/verify_toolchain.py 与 CI 实跑的 ci/verify_toolchain.py(:1209) 仍是两个文件；单向判据未改 |
+| 45 | M8a-I-004 | STILL | lib/common/healpix/healpix_core.cpp::来源头注 :4-9(损坏 URL :6-7) + lib/common/healpix/THIRD_PARTY_NOTICE.md::全文 | "https:// github.com/… healpix.c" 断裂格式原样；NOTICE 复算 0 处 Copyright/Redistribution 原文（BSD-3 字面义务两步缺口未动） |
+| 46 | M9-C-1 | STILL | lib/hips/src/aio_publish.cpp::PUBLISH_MKDIR/_unlink :33/:37/::MoveFileExA :365 + runtime/io/fits_core.c::fio_file_open :137/:1216 + runtime/io/hips_core.c:122/:168/:415 + lib/gaia_xpsd_client/src/gaia_client.c:1199(CreateFileA) | "路径均为 UTF-8"合同下 Windows 侧仍无 UTF-8→UTF-16 适配层（两处正对照 aio_fopen_utf8 在位无人接）；promote 用 *A、参数名 _utf8 名实不符、GetLastError 丢弃面原样 |
+| 47 | M9-G-2 | STILL | lib/gaia_xpsd_client/src/gaia_client.c::load_xpsd_file 树解析 :1337-1338(malloc 失败 break)/出口 return 0(:1379) | 节点数组分配失败仍被 break 吞掉、tree_count 保持已解析棵数照常返回成功；本批该文件改动全部属 magnitudeRange(V5-N-03) 面，未触碰此机制；find_max_block_size/scratch 静默面同址未动 |
+| 48 | M9-H-4 | STILL | lib/astro_image_io/src/hips/aio_hips_reader.cpp::aio_hips_read_snr_catalog :519-526((size_t)max) + lib/astro_image_io/include/aio_hips_reader.h:::79 | int max 仍不判负、(size_t) 强转负值变巨值→按 snr.size() 向六个调用方缓冲越界写的边界不设防原样（文件未动） |
+| 49 | V1-N-07 | STILL | lib/snr_estimator/test/test_snr_estimator.py:::63-112 + CMakeLists.txt:::210(add_subdirectory(lib/snr_estimator) 仍关闭) | 唯一钉退休口径（snr_phot=1/(LN10·σ)）的测试仍存在且仍不在根图/任何 CI discover 面；新增 p1snr_frame_parity_test 锁的是节点级 p1_snr.json 面，不驱动 snr_estimate/snr_estimate_f64 ⇒ 两条被改路径树内仍无活测试 |
+| 50 | V10-N-07 | STILL | lib/hips/src/module_entry.cpp::json_get_u64_array :201-229/::json_get_u64 :194-196/::调用方比对 :462 + lib/gaia_xpsd_client/src/module_entry.c:::191-197 + lib/drizzle/src/module_entry.cpp::(正对照逐字段) | 先无上限 count→malloc、调用方事后才比对 an!=n_tiles 的顺序未改；(uint64_t)d 前仍无 isfinite（只挡 d<0）；三站点原样 |
+| 51 | V11-N-06 | STILL | A: include/astrocs/abi/status_codes.h:12 + lifecycle_v1.h:174 + providers/…< 拒绝式(:465/:515/:607); B: p1_session.cpp:155/p2_session.cpp:57/p3_session.cpp:53/aio_abi.cpp:101/secure_loader.c:347/:382(!= sizeof); C: fits_core.c:83/:94 + hips_core.c:679-680(==0 放行) | 三套互斥语义原样并存；头规定的尾扩展兼容在 B 7 点不可用、C 对"忘填"恒放行（ipv_api.h 本批有改但未触此判据面） |
+| 52 | V12-N-04 | STILL | lib/snr_estimator/cpp/src/noise_model.cpp::kTrimMeanToSigma :37 + ::snr_science.cpp:38(第二同名) + ::snr_estimator.cpp:53/:74/:99(裸字面量) + docs 面(PSF.md:23/:81/:119, STAR_PSF_ALGORITHMS.md:56-57, NOISE_MODEL.md:91) | 16 位在册值≠自称解析值复算 0.731673095280613（rel −4.13e-07）依旧；权威点 2+裸码 3 未合并；分母域仍未声明；两测试锁同用 16 位串共源 |
+| 53 | V12-N-12 | STILL | tests/unit/gaia_xpsd_fixture_gen.c:342(spectrumStep=1) + tests/unit/xpsd_spectrum_count_bounds_test.c:97-113(七例 step=1) + lib/gaia_xpsd_client/src/gaia_client.c:1280(atoi 生产侧) + docs/algorithms/GAIA_QUERY.md:::131(只写公式) | fixture 钉 1、真库口径 2 未进任何权威登记面复算依旧；λ 轴覆盖半域问题未触（本批 gaia 改动为 magnitudeRange 面） |
+| 54 | V13-N-03 | STILL | tools/quality/update_audit_status.py::五分支铸 VERIFIED :94-121 + ::batch_summary 硬编码 :127-138 + reports/v19r2/file_audit_inventory.csv::行 2 起(VERIFIED) | 铸造逻辑逐字原样（713 行级 VERIFIED+findings_pN=0+7×*_ok=PASS）；播种 PENDING 仍被翻转；三铸造工具在 checks.json(135 项)/workflows 复算仍零登记 |
+| 55 | V14-N-06 | STILL | lib/core/src/module_adapters.cpp::phase3_properties/wcs descriptor :625-629/:644-648 + docs/modules/registry/astrocs.phase3.properties.md:34 + wcs.md:94/:119 + runtime/pipeline/module_ports.registry.json::resource_class | 两个纯 JSON 读写节点三面仍齐写 cpu_heavy+parallel_ok=true（wcs.md 仍自证"内核无内部并行轴 0 处"）；本批 module_adapters 改动未降级其 execution_class |
+| 56 | V18-N-10 | STILL | lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_selfcheck.cpp::k_injections :26-30(9 名)+头注 :8-9 vs p1drz_tests_perf.cpp:::65-72(perf_parity/perf_trend 等 3 名) | 手抄清单未随本批 p1drz 改动同步：注入名集合 9 仍缺 3 个 perf 注册名、仍无"注册名集合==驱动名集合"断言 |
+| 57 | V2-N-09 | FIXED | lib/core/src/module_adapters.cpp::p1_op_star_psf_impl :1611-1615(按 n_fit_limit 派生)+::dispatch :1828-1835 + tests/unit/p1001_real_nodes_test.cpp:::2204/:2216(值断言) | psf_mode 不再是无条件字面量：产物(:1745/:1779)与 manifest(:1794)共用派生值，精确直调路径传 0 ⇒"precise"；锁改 contains→=="fast" 并加 n_fit_input 截断/全量双行为断言。小残：precise 侧 p1_psf.json 的 psf_mode 仍只 contains 不查值(:2227)；行为面已被 n_fit_input 断言兜住 |
+| 58 | V6-N-02 | MOVED | docs/traceability/TRACEABILITY_MATRIX.csv::(BOM 复测 b'\\xef\\xbb\\xbf')+ tools/traceability/check_traceability_matrix.py::_check_csv_parity :374-391(encoding=utf-8 不剥 BOM) + TRACEABILITY_MATRIX.json | 位置变了缺陷原样：矩阵两文件已迁至 docs/traceability/（checker 路径常量同步）；BOM 仍在→header[0]='\\ufeffmodule_id'→SCHEMA_VIOLATION 后 return 使 JSON↔CSV 同构校验仍整条短路；CSV 行 11 引 p1star_units/oracle/mad+EVID-P1-STAR-001 而 JSON 侧 p1star 零命中（视图与权威互斥依旧） |
+| 59 | V7-N-05 | STILL | lib/core/src/module_adapters.cpp::p1_op_noise snr 块 :2664-2677 + ::noise_sigma 缺省 :2724 + p1_snr.json 字段面(§13.4) | snr 键错型仍整块静默忽略、九键仍 value(k,0.0) 缺键给 0、p1_snr.json 仍不回显生效 sci_cfg 摘要/哈希（新增 truncated 只覆盖 max_sources 维，不构成本条九键归因） |
+| 60 | V8-N-04 | STILL | lib/core/src/module_adapters.cpp:1604(REPORT.md §4) + lib/phase1/stars/star_detector.cpp:19(REPORT.md §3) + lib/dynamic_psf/README.md:240 + lib/phase1/noise/README.md:53 + lib/plate_solve/cpp/ipv/test/CMakeLists.txt:13 等 | 裸 REPORT §N 锚依旧成群、根 REPORT.md 复测不存在、唯一同名件（ipv/REPORT.md）节面对不上被引内容；个别处已改为显式 run/ 路径（CMakeLists:148）属形态改进非本条清除 |
+| 61 | V9-N-05 | STILL | docs/algorithms/PLATESOLVE.md:::101-113 符号表 vs lib/plate_solve/cpp/ipv/src/ipv_entry.cpp::(ipv_solve_create :317/destroy :329/get_default_params :366/last_inlier_count :407/do_solve_impl :529/callback_d :712) | 本批复测（ipv_entry.cpp 已被改）后 11 条表锚仍全部错指（表写 275/287/298/311/324/352/366/383/415/562/604/648）；DOC-LINE-ANCHORS 门在 checks.json:3326 在册；口径地雷（脏树影子面影响 basename 索引）未除 |
+| 62 | V9-N-14 | STILL | ci/checks.json::CI-BINDING-TESTS(command 仍 -p test_ci001b_*.py) + 复测 ci/tests(21 文件/2 匹配;379 def/33 命中) + validate_registry.py 等零载体复算 | 9% 采集率逐字复现（135 项注册表内该四项仍零登记）；DEEP-SAN-ASAN/DEEP-COV-CPP 的 waivable=false 已落但翻转仍无一致性门拦截 |
 
-## 逐条复核记录（证据与命令输出摘录）
+## 关键命令与输出摘录（抽样）
 
-（随复核进度补写）
-
-## 统计
-
-（收口时填写）
+- 分片计算：`python3 -c "…verify[4::8]"` → 62 条清单（与任务书吻合）。
+- FD-G-002：known_failures.json 顶层键 `failures(1=p1_noise_adapter)/removals(1=UT-CLI, removed_utc 2026-09-14T04:31:22Z)`；`grep -n "test_cli_cwd" tests/cli/cli_test_hygiene.py` → :40 `os.path.join(REPO,"run","test_cli_cwd")`。
+- M4-C-02：`grep -n zero_anchor_weight …` → module_adapters.cpp:3925/:3941-3943（注释"M4-C-02: 与 stage2_common 对称"）、p2_session.cpp:191。
+- M5a-G-002：resource_gate.h:206-218 容量归一函数 + commands.cpp:925-928 注入前归一 + recorder 工件 normalized_cpu…:false。
+- V2-N-09：module_adapters:1615 `psf_mode = (n_fit_limit > 0) ? "fast" : "precise"` + p1001:2204 `== "fast"`。
+- V6-N-02：`head -c` 复测新路径首三字节 b'\xef\xbb\xbf'；`grep -c p1star docs/traceability/TRACEABILITY_MATRIX.json` → 0。
+- M2a-D-1：`python3 -c "math.sqrt(pi/3)*180/pi*3600"` → 211076.28514206142 vs 注释 211034.6。
+- M9-G-2：gaia_client.c 本批 diff(+85/−17) 全属 magnitudeRange 面，树解析 :1337-1338 break 机制未触碰。
+- 禁执行合规：全程未跑 cmake/ctest/任何仓内脚本，仅 read/grep/python3 只读与 git --no-optional-locks（diff/ls-files/rev-parse）；写操作仅本档案文件。
