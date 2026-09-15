@@ -2186,3 +2186,44 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
   ALG-P3-RSMP-IMPL-001 / DATA-P3-RES（§29）；域际: API-P3-FITS-001
   （FITS 写出消费面，resampled 平面为其输入）；镜像: API-P3-001
   （FROZEN 编排面，不因本节改动）。
+
+## 帧级 SNR 系数 C++ API（P33-COEF）
+
+> ID: API-P1-SNRCOEF-001  状态: ACTIVE（P33-COEF，2026-09-15；负责人设计变更：
+> 「一帧内 SNR 近似一致，用一个系数」——取代 P33 早期的稀疏控制点/IDW 层）
+> 头: lib/phase1/noise/snr_frame_coefficient.h（唯一权威签名源）
+> SRC: lib/phase1/noise/snr_frame_coefficient.cpp（编入根 CMake 静态库
+> astrocs_phase1_noise；仅 .cpp 依赖 vendored nlohmann/json）
+> DATA: DATA-P1-SNR-COEF（DATA_SEMANTICS §13.5）；上游: DATA-P1-SNR/2（§13.4）；
+> 消费面: HiPS `properties`/`metadata.fits` 键映射（§12.2）与
+> phase2/phase3 相对质量权重。**公式零副本**：本库不实现任何 SNR 公式，输入是
+> 生产 `compute_snr_frame_science` 已算出的逐源 SNR_F。
+
+- 类型：`astrocs::phase1::SnrFrameCoefficient`
+  （valid/reason/value/estimator/n_sources/median_snr_f/trimmed10_mean_snr_f/
+  geomean_snr_f/flux_matched_median_snr_f/p16_snr_f/p84_snr_f/faint_over_bright/
+  n_flux_matched）；`SnrFrameCoefficientConfig`（match_half_dex，默认 0.10）。
+- 符号（4 个，全部当前真实存在）：
+  - `SnrFrameCoefficient compute_snr_frame_coefficient(const SnrFrameScienceResult& sci, const std::vector<double>& flux_adu, const SnrFrameCoefficientConfig& cfg = {})`
+    —— 系数 = `median(SNR_F)`（= `sci.median_snr`）；同时给出截尾均值/
+    几何均值/通量匹配中位数/分位/暗亮四分位比。无可用样本或非有限 -> `valid=false`
+    + `reason`（fail-closed，禁 1.0 伪装）。
+  - `std::string snr_frame_coefficient_to_json(const SnrFrameCoefficient&)`
+    —— DATA-P1-SNR-COEF/1 JSON（value/definition/sample/dispersion/alternatives/
+    sample_sensitivity；invalid 时 `value=null`）。
+  - `const char* snr_frame_coefficient_definition()`
+  - `const char* snr_frame_coefficient_sample_definition()`
+    —— 系数与样本定义明文（唯一文案，文档/消费者引用，不复制字符串）。
+- 语义边界（合同强制）：系数是**帧级**度量；固定通量下 512 px 分区相对偏离
+  p50 8.3%-26.3%，分区观测中位数偏离 p50 12.6%-77.9%（6 真实帧实测，§13.5）→
+  **不得**当作局部/分区 SNR 场使用。
+- 确定性：分位数/中位数/截尾均值在**已排序副本**上取；几何均值按排序序求和 ->
+  与输入顺序**逐位无关**（ctest `p1snr_scf_determinism`）。
+- 所有权/生命周期：值语义（无指针成员），无 malloc/free、无全局注册表；
+  时间复杂度 O(N log N)（N = 交付样本数，**节点已算过 median，实际增量为 0**）。
+- 线程安全：纯函数 -> reentrant=yes；无线程/ISA 硬编码（宪章 §10.4）。
+- 验证锁：ctest `p1snr_scf_value` / `p1snr_scf_robust` /
+  `p1snr_scf_determinism` / `p1snr_scf_negative` / `p1snr_scf_serialize`；
+  节点端到端 `p1snr_frame_parity` 与帧匹配 `p1snr_fmatch_*`（§13.4）。
+- 备选估计量与独立参考对照（选型依据）见 DATA_SEMANTICS §13.5 与
+  run/perf-fix/P33-snr-model/results/CO_selection.csv。
