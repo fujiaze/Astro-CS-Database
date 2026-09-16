@@ -240,6 +240,32 @@
 - 判定：曲线可用但**溯源链缺失**，属可复现性与科学溯源性风险（非当前实现错误）。
 - 处置：CFG-001 只做转录与 provenance 标注；补 provenance（原始来源/版本/获取方式/校验和）登记为下一轮工程包候选任务。
 - 治理任务：下一轮工程包（provenance 补齐专项）
+**GAP-026　冲突/漂移：项目 Wiki 自称唯一权威，且本地 clone 失踪（§7 亦未列 Wiki）**
+
+- **发现者**：负责人质询「wiki 为啥变成空目录」后，前台实测（2026-09-16）。
+- **权威依据**：ASTROCS_DESIGN.md §0 权威链（**Wiki 不在链上**；唯一权威是仓库内文档集）；ENGINEERING_SPEC §7（根目录固定条目清单）。
+- **证据**：
+  1. 远端 Wiki 可达：`git ls-remote https://github.com/fujiaze/Astro-CS-Database.wiki.git` → `HEAD = refs/heads/master = 9017258…`，**34 页 / 148K**；
+  2. 其 `Home.md` 第 3 行写「**本 Wiki 是项目唯一权威标准**」——与权威链**直接冲突**；
+  3. **已漂移**：22 页含 `HISS`（废止名）、4 页 `HICS`、2 页 `Phase3`；现行三命令名中 `normalize` 与 `export` 在 Wiki 中**零命中**；
+  4. 本地 `AstroCS.wiki/` 为**空目录**且被 `.gitignore:122` 忽略；成因非本轮清运——`25259880`（2026-09-06）移除失效 gitlink 时说明「磁盘目录保留（owner 本地 wiki clone，转为未跟踪）」，即它从来不是生成物，本地那份后被清掉，**无内容丢失**（内容都在 wiki 仓库）；
+  5. ENGINEERING_SPEC §7 的根目录清单**未列 Wiki**，与 `.gitignore` 中保留的 `/AstroCS.wiki/` 规则自相矛盾。
+- **判定**：①Wiki 事实源漂移（内容陈旧且自称权威）；②工程规范清单与 .gitignore 不一致；③本地 clone 消失（不阻塞，可恢复）。
+- **处置**：立 **WIKI-001**（改为**由权威文档生成 Wiki** + `CHK-WIKI-SYNC` 一致性门 + 消除权威自称；push 属发布类动作须负责人批准）；立 **ROOT-005**（空目录与未登记产物目录处置，含 `AstroCS.wiki/`、`evidence/` 登记建议）；§7 清单缺项归下一轮工程包（工程规范对齐）。
+- **治理任务**：WIKI-001、ROOT-005、下一轮工程包（§7 对齐）
+## 6. 科学课题研究层（2026-09-16 设立）
+
+负责人指示：**权威文档里点名存在但缺数值/缺定义的科学量，排 Agent 作课题研究，研究清楚后落到科学文档**。据此设立独立研究包 `工程控制/SCI-RES-01/`，与重构包并行、边界互斥。
+
+| 课题 | 缺什么 | 现状处置 |
+|---|---|---|
+| R-001 稀疏帧内 SNR 层控制点密度 | 定义与取值（点/度²） | defaults 以 `pending_authority` 占位 |
+| R-002 标量门判据与阈值 | 判定式与阈值 | 同上 |
+| R-003 暗场-亮场曝光容差 | 定义式与适用域（值已裁决 5 s） | 5 s 直接采用；定义待落文档 |
+| R-004 已裁决值落文档 | 逐字修订 | 依赖 R-003 与负责人批准 |
+| R-005 drizzle pixfrac 默认值权威出处 | 数值依据 | defaults 收录字段、数值标 `pending_authority` |
+
+纪律：研究期间 `docs/science/**` 与 `docs/algorithms/**` **只读**；结论以 `CONCLUSION_READY` 交付、经负责人批准后才落文档；禁止编造数值。
 ## 5. BASE-001 证据补全（2026-09-16 实测；**只补证据，不改判定口径、不删条目**）
 
 原始输出：`reports/PROJECT-GOVERNANCE-01/baseline/01..22_*` + `SHA256SUMS`；执行日志：`run/PROJECT-GOVERNANCE-01/BASE-001/logs/`；复跑脚本：`run/PROJECT-GOVERNANCE-01/BASE-001/evidence-scan{,2,3,4}.sh`。
