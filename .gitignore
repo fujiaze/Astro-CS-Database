@@ -141,3 +141,9 @@ alloc_samples.csv
 /CS/
 /Database/
 /worktrees/
+
+# 安全（ROOT-006 / CHK-SECRET-HYGIENE）: 凭据/接入类文档不入库——精确条目，不加宽通配
+# 注意：忽略规则对**已 tracked** 文件无效；本条目只是「误加回」护栏，不解决存量。
+# 存量处置 = 审计包白名单移除 + 排除保证（tools/pack_audit_package.py）；
+# 是否 git rm --cached 见 reports/PROJECT-GOVERNANCE-01/security/EXPOSURE_NOTE.md（负责人裁决）。
+FATDUCK_ACCESS.md
