@@ -295,7 +295,8 @@ add_test(NAME mon001_recorder COMMAND mon001_recorder_test)
 add_executable(mon002_gate_test mon002_gate_test.cpp)
 target_include_directories(mon002_gate_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli  ${CMAKE_BINARY_DIR}
+)
 target_link_libraries(mon002_gate_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME mon002_gate COMMAND mon002_gate_test)
 
@@ -305,7 +306,8 @@ add_test(NAME mon002_gate COMMAND mon002_gate_test)
 add_executable(mon002_alloc_test mon002_alloc_test.cpp)
 target_include_directories(mon002_alloc_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli  ${CMAKE_BINARY_DIR}
+)
 target_link_libraries(mon002_alloc_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME mon002_alloc COMMAND mon002_alloc_test)
 
@@ -314,7 +316,8 @@ add_test(NAME mon002_alloc COMMAND mon002_alloc_test)
 add_executable(mon001_gate_test mon001_gate_test.cpp)
 target_include_directories(mon001_gate_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli  ${CMAKE_BINARY_DIR}
+)
 target_link_libraries(mon001_gate_test PRIVATE astrocs_cpu astrocs_contracts astrocs_core)
 add_test(NAME mon001_gate COMMAND mon001_gate_test)
 
@@ -324,7 +327,8 @@ add_test(NAME mon001_gate COMMAND mon001_gate_test)
 add_executable(mon004_enforcement_test mon004_enforcement_test.cpp)
 target_include_directories(mon004_enforcement_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli  ${CMAKE_BINARY_DIR}
+)
 target_link_libraries(mon004_enforcement_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME mon004_enforcement COMMAND mon004_enforcement_test)
 
@@ -440,7 +444,8 @@ endif()
 add_executable(cpu_monitor_test cpu_monitor_test.cpp)
 target_include_directories(cpu_monitor_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli  ${CMAKE_BINARY_DIR}
+)
 target_link_libraries(cpu_monitor_test PRIVATE astrocs_contracts Threads::Threads)
 add_test(NAME cpu_monitor COMMAND cpu_monitor_test)
 
@@ -673,14 +678,16 @@ add_subdirectory(../../lib/phase1_session/tests/p1sess p1sess)
 add_executable(p1_resource_test p1_resource_test.cpp)
 target_include_directories(p1_resource_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/calibration/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli  ${CMAKE_BINARY_DIR}
+)
 target_link_libraries(p1_resource_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET} Threads::Threads)
 add_test(NAME p1_resource COMMAND p1_resource_test)
 
 add_executable(p2_workers_test p2_workers_test.cpp)
 target_include_directories(p2_workers_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/coverage/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/coverage/include  ${CMAKE_BINARY_DIR}
+)
 target_link_libraries(p2_workers_test PRIVATE astrocs_phase2 astrocs_contracts ${ASTROCS_OMP_TARGET})
 add_test(NAME p2_workers COMMAND p2_workers_test)
 
@@ -712,7 +719,8 @@ add_test(NAME p2_ir_facade COMMAND p2_ir_facade_test)
 
 add_executable(p2_seam_gate_test p2_seam_gate_test.cpp)
 target_include_directories(p2_seam_gate_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli  ${CMAKE_BINARY_DIR}
+)
 target_link_libraries(p2_seam_gate_test PRIVATE astrocs_contracts)
 add_test(NAME p2_seam_gate COMMAND p2_seam_gate_test)
 
@@ -1389,3 +1397,16 @@ else()
   message(WARNING "P26 quality-tool tests skipped: Python3 interpreter not found")
 endif()
 
+
+# ── G-RES-01 生成头显式依赖（GATE-FIX-RES）──────────────────────────────────
+# resource_gate_thresholds_generated.h 由根 CMakeLists 的 configure_file 生成；
+# 下面把「生成」与「使用」显式连起来（不依赖"碰巧已生成"）。
+set(ASTROCS_RG_GENERATED_HEADER ${CMAKE_BINARY_DIR}/resource_gate_thresholds_generated.h)
+set_source_files_properties(${ASTROCS_RG_GENERATED_HEADER} PROPERTIES GENERATED TRUE)
+foreach(_acs_rg_tgt mon002_gate_test mon002_alloc_test mon001_gate_test
+                       mon004_enforcement_test cpu_monitor_test p1_resource_test
+                       p2_workers_test p2_seam_gate_test)
+  if(TARGET ${_acs_rg_tgt})
+    target_sources(${_acs_rg_tgt} PRIVATE ${ASTROCS_RG_GENERATED_HEADER})
+  endif()
+endforeach()

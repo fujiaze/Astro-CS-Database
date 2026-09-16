@@ -64,6 +64,7 @@ int main() {
       "NONE", 0.0, "2026-08-30T00:00:00Z", 0);
   CHECK(ps != nullptr);
   if (!ps) return 1;
+  aio_hips_tile_view_abi_init(&view);
   int wrc = aio_hips_write_signal_support_tile(ps, &view);
   if (wrc != 0) std::fprintf(stderr, "write rc=%d\n", wrc);
   CHECK(wrc == 0);

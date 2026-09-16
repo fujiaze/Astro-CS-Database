@@ -67,6 +67,15 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    // CRPIX↔CRVAL 定义性不变量（Paper I §2.1.1）：CRPIX 处 world 必须 == CRVAL
+    {
+        double ra_c = 0, dec_c = 0;
+        const ProjStatus stc = astrocs::phase3proj::v6::pix2world(
+            &d, d.crpix_x - 1.0, d.crpix_y - 1.0, &ra_c, &dec_c);
+        std::printf("CRPIXW x=%.17g y=%.17g status=%d ra=%.17g dec=%.17g\n",
+                    d.crpix_x - 1.0, d.crpix_y - 1.0, (int)stc, ra_c, dec_c);
+    }
+
     // 逐像素 Ω 全网格统计 + 交叉（盈余 vs 微分）
     std::vector<double> omega(static_cast<size_t>(w) * h, 0.0);
     const ProjStatus gst = astrocs::phase3proj::v6::solid_angle_grid(&d, omega.data(), nullptr);

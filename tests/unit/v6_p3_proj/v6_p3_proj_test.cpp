@@ -1,7 +1,8 @@
 // tests/unit/v6_p3_proj/v6_p3_proj_test.cpp — IMPL-P3-PROJ-001 共址单元测试
 //
 // 覆盖（正例 + 负例，负例=违反冻结即失败）:
-//   A registry v2 完整性（4 行 TAN/SIN/CAR/AIT，码/CTYPE/奇点声明/函数指针）。
+//   A registry v3 完整性（已实现 4 行 TAN/SIN/CAR/AIT；权威冻结集合 = DESIGN §5.3
+//     八投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA；表内 code 必须属于冻结集）。
 //   B 标准 FITS WCS Paper II 一致性:
 //     - TAN/SIN 独立 3D 单位向量第一性原理往返 <1e-6 px；
 //     - CAR 标准 X=φ,Y=θ（dec 随 y 增加；负例: legacy Y=−θ 必红）；
@@ -15,7 +16,9 @@
 //     - Σ_j R_ij=1（行）、Σ_i S_ij=1（列）、S_ij=R_ij Ω'_i/Ω_j；
 //     - 语义-归一二元一致门；负例: R/S 互换必红；Ω≤0 非有限 fail-closed。
 //   E 计划/奇点/wrap: domain_valid/singularity_free/margin>0、RA wrap 检出、
-//     越投影域显式拒绝（TAN r≥π/2 / SIN ρ>1 / AIT D²≤0 / CAR |δ|>90）。
+//     越投影域显式拒绝（TAN r≥π/2 / SIN ρ>1 / AIT A>1 / CAR native 极行 |θ|≥90）。
+//   H CRVAL2 进映射（Paper II §2.2 三 Euler 角）: CRPIX↔CRVAL 定义性不变量、
+//     倾斜 CAR/AIT 相对恒等旋转必不等（负例: CRVAL2 不进映射必红）。
 //   F 确定性 + 1/N worker 分块 bitwise 一致。
 //   G 故障注入（ASTROCS_P3PROJ_V6_FAULT）等价缺陷必败（测试级注入，生产源零 getenv）。
 #include "p3_proj_v6.h"
@@ -130,16 +133,35 @@ Descriptor make_case(ProjectionId id, double ra0, double dec0, double scale, int
 void test_registry() {
     int n = -1;
     const Spec* tab = astrocs::phase3proj::v6::registry_table(&n);
-    CHECK_MSG(n == 4, "registry 恰 4 行（TAN/SIN/CAR/AIT, 宪章 §18.1）");
+    CHECK_MSG(n == 4,
+              "registry 已实现恰 4 行（TAN/SIN/CAR/AIT；DESIGN §5.3 八投影之一部）");
     CHECK_MSG(tab != nullptr, "registry table 非空");
-    CHECK_MSG(astrocs::phase3proj::v6::kProjectionRegistryVersion == 2,
-              "registry 版本 = 2（标准 Paper II v2）");
+    CHECK_MSG(astrocs::phase3proj::v6::kProjectionRegistryVersion == 3,
+              "registry 版本 = 3（Paper II CRVAL2 旋转 + AIT A≤1 + CAR 极行 fail-closed）");
+    // 权威冻结集合 = DESIGN §5.3 八投影；本层实现为其子集，表内 code 必须属于该集合
+    int nf = -1;
+    const char* const* frozen = astrocs::phase3proj::v6::registry_frozen_set(&nf);
+    CHECK_MSG(nf == 8 && frozen != nullptr, "冻结集合恰 8 行（DESIGN §5.3）");
+    const char* frozen_expect[8] = {"TAN", "SIN", "CAR", "AIT",
+                                    "STG", "MOL", "CEA", "ZEA"};
+    for (int i = 0; i < 8; ++i) {
+        CHECK_MSG(std::strcmp(frozen[i], frozen_expect[i]) == 0,
+                  "冻结集合顺序 = DESIGN §5.3");
+        CHECK_MSG(astrocs::phase3proj::v6::registry_is_frozen_code(frozen[i]),
+                  "冻结集成员判定为真");
+    }
+    CHECK_MSG(!astrocs::phase3proj::v6::registry_is_frozen_code("ARC"),
+              "非冻结集投影（ARC）判定为假");
+    CHECK_MSG(!astrocs::phase3proj::v6::registry_is_frozen_code(nullptr),
+              "nullptr -> false（fail-closed）");
     const char* codes[4] = {"TAN", "SIN", "CAR", "AIT"};
     for (int i = 0; i < 4; ++i) {
         CHECK_MSG(std::strcmp(tab[i].code, codes[i]) == 0, "code 顺序冻结");
         CHECK_MSG(tab[i].pix2world && tab[i].world2pix, "函数指针非空");
         CHECK_MSG(tab[i].singularity_kind && tab[i].singularity_kind[0] != '\0',
-                  "奇点声明非空（宪章 §7.3 六要素）");
+                  "奇点声明非空（DESIGN §5.3 六要素）");
+        CHECK_MSG(astrocs::phase3proj::v6::registry_is_frozen_code(tab[i].code),
+                  "已实现 code 属于 DESIGN §5.3 冻结集");
         CHECK_MSG(tab[i].max_abs_crval_dec_deg == 85.0, "中心守卫 85°");
         CHECK_MSG(tab[i].max_fov_deg > 0.0, "合法 FOV 声明 > 0");
         CHECK_MSG(astrocs::phase3proj::v6::registry_find(codes[i]) == &tab[i],
@@ -149,7 +171,7 @@ void test_registry() {
     }
     CHECK_MSG(astrocs::phase3proj::v6::registry_selfcheck() == 0, "registry 自检全过");
     CHECK_MSG(astrocs::phase3proj::v6::registry_find("ZEA") == nullptr,
-              "未注册 ZEA -> nullptr（无 fallback）");
+              "冻结集内未实现投影 ZEA -> nullptr（无 fallback；实施归 P3-001/GAP-011）");
     CHECK_MSG(astrocs::phase3proj::v6::registry_find("car") == nullptr,
               "大小写敏感，无静默");
     CHECK_MSG(astrocs::phase3proj::v6::registry_find_id((ProjectionId)9) == nullptr,
@@ -248,7 +270,9 @@ void test_solid_angle() {
         const double ratio = mx / mn;
         CHECK_MSG(std::fabs(ratio - 2.0000) < 0.01,
                   "CAR ±60° Ω max/min ≈ 2.0000（FZ-P3-OMEGA-NONCONST 冻结值）");
-        // 与解析纬度带 Ω = Δα_rad (sin δ_hi − sin δ_lo) 独立交叉
+        // 与解析纬度带 Ω = Δα_rad (sin δ_hi − sin δ_lo) 独立交叉。
+        // ⚠ 量测域: 仅 |CRVAL2|≈0（本用例 dec0=0）；倾斜 CAR 的行是倾斜等纬线，
+        // 该解析式不成立（R-1 §4-B），禁止把本判据复用到 CRVAL2≠0 用例。
         double worst = 0.0;
         for (int j = 0; j < 601; ++j) {
             const double dec = -60.0 + j * 0.2;
@@ -400,6 +424,112 @@ void test_normalisation() {
                   ProjStatus::kParam, "Ω=NaN -> PARAM（fail-closed）");
     CHECK_MSG(astrocs::phase3proj::v6::row_normalise(nullptr, m, n, om_out, r) ==
                   ProjStatus::kParam, "A=null -> PARAM");
+}
+
+// ---- H CRVAL2 进映射（Paper II §2.2 三 Euler 角）----
+void test_crval2_rotation() {
+    struct C { ProjectionId id; const char* code; double ra0, dec0; };
+    const C cases[6] = {{ProjectionId::kCAR, "CAR", 10.0, 30.0},
+                        {ProjectionId::kCAR, "CAR", 10.0, -30.0},
+                        {ProjectionId::kCAR, "CAR", 10.0, 60.0},
+                        {ProjectionId::kAIT, "AIT", 10.0, 30.0},
+                        {ProjectionId::kAIT, "AIT", 10.0, -30.0},
+                        {ProjectionId::kAIT, "AIT", 200.0, -45.0}};
+    for (const C& c : cases) {
+        const Descriptor d = make_case(c.id, c.ra0, c.dec0, 0.2, 17, 17);
+        // (i) CRPIX↔CRVAL 定义性不变量（Paper I §2.1.1）
+        double ra = 0, dec = 0;
+        const ProjStatus st = astrocs::phase3proj::v6::pix2world(
+            &d, d.crpix_x - 1.0, d.crpix_y - 1.0, &ra, &dec);
+        CHECK_MSG(st == ProjStatus::kOk, "CRPIX 处 pix2world OK");
+        double dra = std::fabs(ra - c.ra0);
+        if (dra > 180.0) dra = 360.0 - dra;
+        CHECK_MSG(dra < 1e-9 && std::fabs(dec - c.dec0) < 1e-9,
+                  "pix2world(CRPIX) == CRVAL（CRVAL2 不进映射必红）");
+        // (ii) 倾斜后 ≠ 恒等旋转（dec0≠0 时 dec 不再等于平面 Y）
+        double ra2 = 0, dec2 = 0;
+        const ProjStatus st2 = astrocs::phase3proj::v6::pix2world(&d, 0.0, 16.0,
+                                                                  &ra2, &dec2);
+        if (st2 == ProjStatus::kOk) {
+            const double dy = d.cd[1][0] * ((0.0 + 1.0) - d.crpix_x) +
+                              d.cd[1][1] * ((16.0 + 1.0) - d.crpix_y);
+            CHECK_MSG(std::fabs(dec2 - dy) > 1e-6,
+                      "倾斜 CAR/AIT: dec ≠ 平面 Y（恒等旋转必红）");
+        }
+        // (iii) CRVAL 点往返
+        double xb = 0, yb = 0;
+        if (astrocs::phase3proj::v6::world2pix(&d, ra, dec, &xb, &yb) ==
+            ProjStatus::kOk) {
+            CHECK_MSG(std::hypot(xb - (d.crpix_x - 1.0), yb - (d.crpix_y - 1.0)) <
+                          kRoundtripTolPx,
+                      "CRVAL 点往返 < 1e-6 px");
+        }
+    }
+}
+
+// ---- H2 域界收紧：CAR native 极行 fail-closed + AIT 椭圆域 A≤1 ----
+void test_domain_limits() {
+    // CAR: 平面 θ=±90° 整行塌缩 -> kParam（含恰好 =90；旧守卫 >90 会放行）
+    {
+        // 足迹 ±50°（make 四角守卫通过）；pix2world 仍可在极行 θ=±90 上被调用
+        const Descriptor d = make_case(ProjectionId::kCAR, 0, 0, 1.0, 11, 101);
+        double ra = 0, dec = 0;
+        const double y_pole = 50.0 + 90.0;    // (y+1-51)*1 = +90 -> y = 140
+        CHECK_MSG(astrocs::phase3proj::v6::pix2world(&d, 0.0, y_pole, &ra, &dec) ==
+                      ProjStatus::kParam,
+                  "CAR native 极行 θ=+90 -> PARAM（fail-closed；旧 >90 放行必红）");
+        CHECK_MSG(astrocs::phase3proj::v6::pix2world(&d, 0.0, 50.0 - 90.0 - 1.0, &ra,
+                                                     &dec) == ProjStatus::kParam,
+                  "CAR native 极行 θ=-90 -> PARAM");
+        CHECK_MSG(astrocs::phase3proj::v6::pix2world(&d, 0.0, y_pole - 1.0, &ra,
+                                                     &dec) == ProjStatus::kOk,
+                  "CAR θ=89 域内仍 OK");
+        CHECK_MSG(astrocs::phase3proj::v6::world2pix(&d, 0.0, 90.0, &ra, &dec) ==
+                      ProjStatus::kParam,
+                  "CAR 天球极点（native θ=90）逆映射 φ 不唯一 -> PARAM");
+        Descriptor dd;
+        CHECK_MSG(astrocs::phase3proj::v6::make(ProjectionId::kCAR, 0, 0, 0.3, 11, 601,
+                                                "east_left", 0.0, &dd) ==
+                      ProjStatus::kParam,
+                  "CAR make 足迹触极行（600*0.3=180 -> θ=±90）-> PARAM");
+        Plan p;
+        CHECK_MSG(astrocs::phase3proj::v6::plan(ProjectionId::kCAR, 0, 0, 0.3, 11, 601,
+                                                "east_left", 0.0, &p) ==
+                          ProjStatus::kParam &&
+                      !p.domain_valid,
+                  "CAR plan 触极行 -> PARAM 且 domain_valid=false");
+    }
+    // AIT: 椭圆域 A = xp²/4+yp² ≤ 1（标准半轴 X=2√2 rad=162.0569°, Y=√2 rad=81.0285°）
+    {
+        const Descriptor d = make_case(ProjectionId::kAIT, 0, 0, 0.2, 17, 17);
+        const double cd11 = d.cd[0][0], cd22 = d.cd[1][1];
+        const double y_mid = d.crpix_y - 1.0;
+        auto px_for_x = [&](double xd) { return (d.crpix_x - 1.0) + xd / cd11; };
+        auto py_for_y = [&](double yd) { return y_mid + yd / cd22; };
+        double ra = 0, dec = 0;
+        // X 轴: |X| ≤ 2√2 rad 域内 / > 域外（旧判据 A<2 会放行到 229.125°）
+        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+                      &d, px_for_x(162.0), y_mid, &ra, &dec) == ProjStatus::kOk,
+                  "AIT A≤1（|X|=162.0° < 2√2 rad）域内 OK");
+        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+                      &d, px_for_x(163.0), y_mid, &ra, &dec) == ProjStatus::kHemisphere,
+                  "AIT A>1（|X|=163.0°）-> HEMISPHERE");
+        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+                      &d, px_for_x(-163.0), y_mid, &ra, &dec) == ProjStatus::kHemisphere,
+                  "AIT A>1（|X|=−163.0°）-> HEMISPHERE");
+        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+                      &d, px_for_x(229.125), y_mid, &ra, &dec) ==
+                      ProjStatus::kHemisphere,
+                  "AIT 折叠环带 |X|=229.125°（旧 A<2 放行）-> HEMISPHERE");
+        // Y 轴: |Y| ≤ √2 rad 域内 / > 域外
+        const double x_mid = d.crpix_x - 1.0;
+        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+                      &d, x_mid, py_for_y(81.0), &ra, &dec) == ProjStatus::kOk,
+                  "AIT A≤1（|Y|=81.0° < √2 rad）域内 OK");
+        CHECK_MSG(astrocs::phase3proj::v6::pix2world(
+                      &d, x_mid, py_for_y(82.0), &ra, &dec) == ProjStatus::kHemisphere,
+                  "AIT A>1（|Y|=82.0°）-> HEMISPHERE");
+    }
 }
 
 // ---- E 计划/奇点/wrap ----
@@ -566,14 +696,17 @@ int main(int argc, char** argv) {
     }
     test_registry();
     test_standard_wcs();
+    test_crval2_rotation();
+    test_domain_limits();
     test_solid_angle();
     test_normalisation();
     test_plan();
     test_determinism();
     if (failures == 0) {
         std::printf(
-            "IMPL-P3-PROJ-001 V6 PROJECTION PASS (registry v2 标准 Paper II "
-            "TAN/SIN/CAR/AIT + 逐像素 Ω 真实计算（CAR ratio≈2.0000）+ R/S 行/列归一 "
+            "IMPL-P3-PROJ-001 V6 PROJECTION PASS (registry v3 标准 Paper II "
+            "TAN/SIN/CAR/AIT + CRVAL2 三 Euler 角旋转 + AIT A≤1 + CAR 极行 "
+            "fail-closed + 逐像素 Ω 真实计算（CAR ratio≈2.0000）+ R/S 行/列归一 "
             "+ 计划/奇点/wrap + 独立 oracle)\n");
         return 0;
     }

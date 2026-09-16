@@ -90,6 +90,9 @@ struct Model {
     // 诊断
     int iterations{0};
     double objective{0.0};
+    // M7-H-101: 收敛状态（1 = 在 cfg.max_iterations 内 max_dM/max_dC 均达到
+    // cfg.tolerance；0 = 迭代耗尽未达容差，或旧模型文件未记录该标志）。
+    int converged{0};
     std::size_t component_count{1};
     // 几何/无观测节点独立统计（不混入数据分量）
     std::size_t geometry_component_count{1};
@@ -160,6 +163,12 @@ double evaluate_c_field(const Model* m, std::size_t frame_idx,
         const int gyi = std::clamp((cy - half) / cell, 0, m->grid - 1);
         const auto key = std::make_pair(tile, std::make_pair(gxi, gyi));
         const auto it = m->cell_index.find(key);
+        // 缺失 cell（tile 不在模型 control 图内）保持 0.0 = 无校正：
+        // calibrate_block 的调用契约是"frame+leaf 在模型覆盖域内"，域外
+        // leaf 属调用方错误而非模型不可用；把此处改为 NaN 会改变生产
+        // apply 面对未覆盖 tile 的输出（G2PersistenceAndHashSensitivity
+        // 冻结门实测红），超出 M7-H-103（null model / 未知 frame）范围。
+        // 登记为开放项：是否把"域外 leaf"升级为显式错误需单独裁决（SC-005）。
         if (it == m->cell_index.end()) return 0.0;
         return m->C[frame_idx][it->second];
     };
@@ -512,8 +521,11 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         std::vector<double> sums(K, 0.0);
         // 并行 worker 数来自 Runtime lease(cfg.cpu_workers, p2_session 传
         // budget.max_workers)。无 hardware_concurrency; 1 => 串行 reference。
-        // 规约: worker-local tsums + 按 worker 顺序(与 OpenMP tid 升序语义一致)合并,
-        // 定义 determinism class D1(worker 数无关, 同一 worker 数下位精确)。
+        // 规约: worker-local tsums + 按 worker 顺序合并。确定性三档（冻结，
+        // 见 docs/science/PHASE2_UPM.md §7/§9）：同配置重复=位精确+model_hash
+        // exact；**跨 worker 数=1e-12 绝对容差，不是位精确**——本 per-control
+        // 求和的结合顺序随 worker 切片变化（FP 加法非结合），实测 ΔC_max
+        // 2.22e-15 ≈ 1 ulp @10 ADU；跨后端等价不允许。
         const int cworkers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
         if (cworkers > 1) {
             std::vector<std::vector<double>> tsums((std::size_t)cworkers,
@@ -870,7 +882,10 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             m->objective += raw_w[i] *
                             huber_rho(r / sigma_eff, cfg.huber_delta);
         }
-        if (max_dM < cfg.tolerance && max_dC < cfg.tolerance) break;
+        if (max_dM < cfg.tolerance && max_dC < cfg.tolerance) {
+            m->converged = 1;
+            break;
+        }
     }
 
     for (std::size_t k = 0; k < K; ++k) m->controls[k].M = M[k];
@@ -964,6 +979,7 @@ int p2_upm_save(const void* model, const char* path) {
     j["input_manifest_hash"] = m->input_manifest_hash;
     j["iterations"] = m->iterations;
     j["objective"] = m->objective;
+    j["converged"] = m->converged;
     j["component_count"] = m->component_count;
     j["geometry_component_count"] = m->geometry_component_count;
     j["unobserved_geometry_nodes"] = m->unobserved_geometry_nodes;
@@ -1059,6 +1075,8 @@ int p2_upm_open(const char* path, void** out_model) {
         m->info.model_hash[sizeof(m->info.model_hash) - 1] = '\0';
         m->iterations = j.value("iterations", 0);
         m->objective = j.value("objective", 0.0);
+        // 旧模型文件无该键 → 0（未经证明的收敛，fail-closed 读法）。
+        m->converged = j.value("converged", 0);
         m->component_count = j.value("component_count", (std::size_t)1);
         m->info.component_count = (std::uint32_t)m->component_count;
         m->grid = (int)j.value("grid", 8);
@@ -1240,6 +1258,19 @@ int p2_upm_info(const void* model, P2ModelInfo* out_info) {
     return 0;
 }
 
+// M7-H-101：迭代收敛状态的只读访问器（不改 P2ModelInfo 冻结布局）。
+int p2_upm_convergence(const void* model, std::uint64_t* out_iterations,
+                       double* out_objective, int* out_converged) {
+    if (model == nullptr) return 1;
+    const Model* m = static_cast<const Model*>(model);
+    if (out_iterations != nullptr)
+        *out_iterations = (std::uint64_t)m->iterations;
+    if (out_objective != nullptr) *out_objective = m->objective;
+    // 0 = 迭代耗尽（或旧模型未记录）；1 = 在 max_iterations 内达 tolerance。
+    if (out_converged != nullptr) *out_converged = m->converged;
+    return 0;
+}
+
 int p2_upm_calibrate_block(const void* model, std::uint64_t frame_id,
                            const std::uint64_t* leaf_ipix,
                            const double* input_signal,
@@ -1273,7 +1304,9 @@ int p2_upm_calibrate_block(const void* model, std::uint64_t frame_id,
 
 double p2_upm_evaluate_c(const void* model, std::uint64_t frame_id,
                          std::uint64_t leaf_ipix) {
-    if (model == nullptr) return 0.0;
+    // 不可用一律 NaN（与"未知 frame_id"同哨兵）。0.0 是 gauge 参考帧的
+    // 合法 C 值，用之作哨兵会让调用方把"无模型"读成"无校正"（fail-open）。
+    if (model == nullptr) return std::numeric_limits<double>::quiet_NaN();
     const Model* m = static_cast<const Model*>(model);
     const auto it = m->frame_index.find(frame_id);
     // 未知 frame_id 返回 NaN（显式不可用），禁止用
@@ -1898,6 +1931,8 @@ int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
     // ---- k_corr provenance（FZ-PROV-KCORR；rc=7）----
     if (cfg.k_corr > 0.0) {
         if (!std::isfinite(cfg.k_corr)) { delete m; return 7; }
+        // k_corr ≥ 1 定义性约束（N_eff ≤ N_retained）；k<1 越域 → rc=7。
+        if (cfg.k_corr < 1.0) { delete m; return 7; }
         if (cfg.k_corr == 1.0) { delete m; return 7; }   // 忽略相关，禁
         if (cfg.k_corr_applicability_domain == nullptr ||
             cfg.k_corr_applicability_domain[0] == '\0') { delete m; return 7; }
@@ -2403,6 +2438,10 @@ int p2_upm_control_variance(double k_corr, double sigma_bg,
     if (n_retained < 1) return 1;
     if (!(sigma_bg > 0.0) || !std::isfinite(sigma_bg)) return 1;
     if (!(k_corr > 0.0) || !std::isfinite(k_corr)) return 1;
+    // k_corr ≥ 1 是定义性约束：k_corr 表征 Drizzle 输出协方差使
+    // N_eff ≤ N_retained；k_corr < 1 等价于 N_eff > N_retained（正相关样本
+    // 的有效样本量不可能大于样本数），物理上不可达，必须显式拒（rc=1）。
+    if (k_corr < 1.0) return 1;
     if (k_corr == 1.0) return 2;                       // 忽略相关 → REJECT
     if (k_corr != kMaKCcorrFrozenInDomain &&
         (calibration_run_id == nullptr || calibration_run_id[0] == '\0')) {

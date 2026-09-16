@@ -1047,6 +1047,7 @@ int main(int argc, char** argv) {
             view.flux_sum = flux_leaf.data();
             view.covered_area = area_leaf.data();
             view.valid_mask = valid_leaf.data();
+            aio_hips_tile_view_abi_init(&view);
             if (aio_hips_write_signal_support_tile(ps, &view) != 0) {
                 log("hips tile write failed: " +
                     std::string(aio_hips_last_error()));
@@ -1644,6 +1645,7 @@ int main(int argc, char** argv) {
         view.flux_sum = flux_leaf.data();
         view.covered_area = area_leaf.data();
         view.valid_mask = valid_leaf.data();
+        aio_hips_tile_view_abi_init(&view);
         if (aio_hips_write_signal_support_tile(ps, &view) != 0) {
             log("hips tile write failed: " + std::string(aio_hips_last_error()));
             aio_hips_abort(ps);

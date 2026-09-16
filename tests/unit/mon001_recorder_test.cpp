@@ -1,6 +1,6 @@
 // tests/unit/mon001_recorder_test.cpp — MON-001 (G3) 资源记录器单元测试
 // 覆盖: 采样记录/阶段分段(init/active/flush)/percentile 统计(p50/p95)/三产物写入
-//       (resource_samples.csv / resource_summary.json / worker_balance.csv)/开销字段。
+//       (resource_timeseries.csv / resource_summary.json / worker_balance.csv)/开销字段。
 #include "resource_recorder.h"
 
 #include <cstdio>
@@ -86,7 +86,7 @@ int main() {
     std::filesystem::create_directories(dir, fs_ec);
     CHECK(!fs_ec);
     CHECK(rec.write_all(dir, 2.5, 0.1));
-    std::ifstream csv(dir + "/resource_samples.csv");
+    std::ifstream csv(dir + "/resource_timeseries.csv");
     std::string line;
     std::getline(csv, line);
     CHECK(line.rfind("elapsed_seconds", 0) == 0);   // header

@@ -80,14 +80,16 @@ int main() {
         g.has_stage_annotation = true; g.cpu_percent = 30.0;
         CHECK(astrocs::evaluate_gate(g) == astrocs::GateDiag::SingleThreaded);
     }
-    // 4b) 短任务多核正常 → Ok(短任务只跳过统计判据, 不跳过单线程判定)
+    // 4b) 短任务多核正常 → **NotApplicable**(短任务只跳过统计判据, 不跳过单线程
+    //     判定; GATE-FIX-RES: 跳过统计判据的显式分类是 NotApplicable, 不再静默
+    //     Ok —— "未判"与"判过且通过"必须可区分)
     {
         astrocs::GateConfig g;
         g.kind = astrocs::ResKind::Compute;
         g.available_cpus = 4; g.selected_workers = 4; g.max_active_threads = 4;
         g.avg_equivalent_cores = 0.3; g.wall_seconds = 2.0;
         g.has_stage_annotation = true; g.cpu_percent = 30.0;
-        CHECK(astrocs::evaluate_gate(g) == astrocs::GateDiag::Ok);
+        CHECK(astrocs::evaluate_gate(g) == astrocs::GateDiag::NotApplicable);
     }
     // 4c) 采样 worker p50 权威于租约: 伪造 selected=4 但采样 p50=1.0 → FAIL(负向:
     //     伪造 worker 采样数据喂 evaluate_gate 必须失败)

@@ -294,13 +294,19 @@ TEST(Phase2UpmParallel, OneTvsTwoTDetermine) {
     EXPECT_EQ(i1.control_count, i2.control_count) << "control_count";
     EXPECT_EQ(i1.component_count, i2.component_count) << "component_count";
     EXPECT_EQ(i1.observation_count, i2.observation_count) << "observation_count";
-    // 标定输出按容差一致（1T/2T 浮点合流末位漂移允许）
+    // 跨 worker 数（1T vs 2T）的确定性口径 = **冻结容差 1e-12，不是位精确**：
+    // compute_raw 的 per-control 求和按 worker 连续切片分块、再按 worker 序合并，
+    // 与串行索引序的结合顺序不同（FP 加法非结合）⇒ 当同一 control 各帧 ivar
+    // 不相等时 model_hash 会不同、C 值差可达 ~1 ulp（SCI-FIX-WEIGHT 证据
+    // run/PROJECT-GOVERNANCE-01/SCI-FIX-WEIGHT/logs/probe_1t2t.log：
+    // ΔC_max=2.22e-15 ≈ 1 ulp @10 ADU）。同 worker 数重复仍是位精确 + hash
+    // exact（下方 CON-009，构造保证）。容差来源：docs/science/PHASE2_UPM.md §9。
     std::uint64_t ipix[1] = {0};
     double in[1] = {10.0};
     double out1[1] = {0.0}, out2[1] = {0.0};
     ASSERT_EQ(p2_upm_calibrate_block(m1, 0, ipix, in, out1, 1), 0);
     ASSERT_EQ(p2_upm_calibrate_block(m2, 0, ipix, in, out2, 1), 0);
-    EXPECT_NEAR(out1[0], out2[0], 1e-6) << "1T/2T calibrate 差";
+    EXPECT_NEAR(out1[0], out2[0], 1e-12) << "1T/2T calibrate 差（冻结容差 1e-12）";
 
     // CON-009 重复 2T：同输入、同 2T 配置再建一次模型，须与首次 2T 完全一致
     // （整块隔离 + 仅 max 归约 + 不相交写 => by-construction 位精确）。
@@ -319,6 +325,150 @@ TEST(Phase2UpmParallel, OneTvsTwoTDetermine) {
     p2_upm_close(m1);
     p2_upm_close(m2);
     p2_upm_close(m3);
+}
+
+// M7-H-103：不可用哨兵一律 NaN。0.0 是 gauge 参考帧的**合法** C 值，用 0.0
+// 当哨兵会让调用方把"无模型"读成"无校正"（fail-open）。
+TEST(Phase2Upm, EvaluateCUnavailableSentinelIsNaN) {
+    EXPECT_TRUE(std::isnan(p2_upm_evaluate_c(nullptr, 0, 0)))
+        << "null model 必须返回 NaN（0.0 = 合法无校正，不可区分即 fail-open）";
+    std::vector<P2ControlObservation> obs{
+        make_obs(0, 0, 10.0, 100.0), make_obs(1, 0, 12.0, 100.0)};
+    P2UpmBuildConfig cfg{};
+    void* m = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &m), 0);
+    EXPECT_TRUE(std::isnan(p2_upm_evaluate_c(m, 999, 0)))
+        << "未知 frame_id 必须返回 NaN";
+    p2_upm_close(m);
+}
+
+// M7-H-101：迭代/目标值可由公共 API 观测，且"迭代耗尽"可判别（p2_upm_build
+// 恒 rc=0 只表示构建成功，不得冒充"已收敛"）。
+TEST(Phase2Upm, ConvergenceAccessorReportsExhaustion) {
+    std::vector<P2ControlObservation> obs;
+    for (std::uint64_t f = 0; f < 4; ++f)
+        for (std::uint64_t c = 0; c < 6; ++c)
+            obs.push_back(make_obs(f, c, 10.0 + (double)f * 2.0, 100.0));
+    P2UpmBuildConfig cfg{};
+    cfg.max_iterations = 1;                     // 必然迭代耗尽
+    void* m = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &m), 0);
+    std::uint64_t it = 0;
+    double obj = 0.0;
+    int conv = -1;
+    ASSERT_EQ(p2_upm_convergence(m, &it, &obj, &conv), 0);
+    EXPECT_EQ(it, 1u);
+    EXPECT_EQ(conv, 0) << "迭代耗尽必须报告 converged=0";
+    EXPECT_TRUE(std::isfinite(obj));
+    p2_upm_close(m);
+    // null model → rc=1，禁止把"无模型"读成"已收敛"
+    EXPECT_EQ(p2_upm_convergence(nullptr, &it, &obj, &conv), 1);
+}
+
+// M4-A-01 边界门（SCI REJECTION §4/§5/§7/§8 登记）：
+// wbpp_2_9_1 auto 路由 n<6 → percentile(low 0.2/high 0.1, scale=|median|)。
+// 奇数 n 的百分位带必含中位样本 ⇒ 不可能全拒；偶数 n 可全拒，实测可达域恰为
+// n=4（n≤2 已被 underdetermined_n 白名单截走）⇒ n=4 全拒降级 UNDERDETERMINED
+// 全接受，n≥5 全拒仍 ALL_REJECTED。根因同时登记：scale=|median| 在零中位数栈
+// 上塌缩为 0 ⇒ 全部非中位样本被拒（n=6 显式 percentile 全拒）；生产 auto 路由
+// 把 n≥6 交给 winsorized 才掩盖了它。
+namespace {
+P2RejectionPlan m4a01_explicit_plan(int method) {
+    P2RejectionPlanRequest req{};
+    req.request = method;
+    req.nominal_contributors = 20;
+    req.underdetermined_n = 2;
+    P2RejectionPlan plan{};
+    char err[128] = {0};
+    EXPECT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
+    return plan;
+}
+P2RejectionPlan m4a01_auto_plan(std::uint32_t n) {
+    P2RejectionPlanRequest req{};
+    req.request = P2_REJECT_AUTO;
+    req.nominal_contributors = n;
+    req.profile = "wbpp_current";
+    req.underdetermined_n = 2;
+    P2RejectionPlan plan{};
+    char err[128] = {0};
+    EXPECT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
+    return plan;
+}
+std::uint32_t m4a01_run(const std::vector<double>& vals,
+                        const P2RejectionPlan& plan, P2RejectionDecision* dec,
+                        std::vector<std::uint8_t>* reasons) {
+    P2CandidateStack st{};
+    st.values = vals.data();
+    st.count = (std::uint32_t)vals.size();
+    st.data_type = 1;
+    reasons->assign(vals.size(), 0);
+    dec->reasons = reasons->data();
+    EXPECT_EQ(p2_reject_stack_ex(&st, &plan, dec), 0);
+    return (std::uint32_t)vals.size();
+}
+}  // namespace
+
+TEST(Phase2Reject, M4A01N3PercentileMedianAlwaysInBand) {
+    const std::vector<double> vals{-2.0, 0.0, 2.0};   // median=0 ⇒ scale=0
+    P2RejectionPlan plan = m4a01_auto_plan(3);
+    ASSERT_EQ(plan.method, P2_REJECT_PERCENTILE);
+    P2RejectionDecision dec{};
+    std::vector<std::uint8_t> reasons;
+    m4a01_run(vals, plan, &dec, &reasons);
+    EXPECT_EQ(dec.status, P2_STATUS_OK);
+    EXPECT_EQ(dec.accepted_count, 1u);                // 中位样本必在带内
+    EXPECT_EQ(dec.rejected_low, 1u);
+    EXPECT_EQ(dec.rejected_high, 1u);
+    EXPECT_EQ(reasons[1], P2_REASON_ACCEPTED);
+}
+
+TEST(Phase2Reject, M4A01N4AllRejectedFallsBackUnderdetermined) {
+    const std::vector<double> vals{-2.0, -1.0, 1.0, 2.0};  // median=0 ⇒ 全拒
+    P2RejectionPlan plan = m4a01_auto_plan(4);
+    ASSERT_EQ(plan.method, P2_REJECT_PERCENTILE);
+    P2RejectionDecision dec{};
+    std::vector<std::uint8_t> reasons;
+    m4a01_run(vals, plan, &dec, &reasons);
+    EXPECT_EQ(dec.status, P2_STATUS_UNDERDETERMINED);
+    EXPECT_EQ(dec.accepted_count, 4u);                // n=4 容错：全接受
+    EXPECT_EQ(dec.rejected_low, 0u);
+    EXPECT_EQ(dec.rejected_high, 0u);
+    for (std::uint32_t i = 0; i < 4; ++i)
+        EXPECT_EQ(reasons[i], P2_REASON_UNDERDETERMINED);
+}
+
+TEST(Phase2Reject, M4A01N5PercentileMedianAlwaysInBand) {
+    const std::vector<double> vals{-2.0, -1.0, 0.0, 1.0, 2.0};  // median=0
+    P2RejectionPlan plan = m4a01_auto_plan(5);
+    ASSERT_EQ(plan.method, P2_REJECT_PERCENTILE);
+    P2RejectionDecision dec{};
+    std::vector<std::uint8_t> reasons;
+    m4a01_run(vals, plan, &dec, &reasons);
+    EXPECT_EQ(dec.status, P2_STATUS_OK);
+    EXPECT_EQ(dec.accepted_count, 1u);
+    EXPECT_EQ(dec.rejected_low, 2u);
+    EXPECT_EQ(dec.rejected_high, 2u);
+}
+
+TEST(Phase2Reject, M4A01N6AllRejectedIsHardFailure) {
+    const std::vector<double> vals{-3.0, -2.0, -1.0, 1.0, 2.0, 3.0};  // median=0
+    // (a) 显式 percentile：全拒 ⇒ n=6 > 4 ⇒ ALL_REJECTED（容错域写死 n≤4）
+    P2RejectionPlan pct = m4a01_explicit_plan(P2_REJECT_PERCENTILE);
+    P2RejectionDecision dec{};
+    std::vector<std::uint8_t> reasons;
+    m4a01_run(vals, pct, &dec, &reasons);
+    EXPECT_EQ(dec.status, P2_STATUS_ALL_REJECTED);
+    EXPECT_EQ(dec.accepted_count, 0u);
+    EXPECT_EQ(dec.rejected_low, 3u);
+    EXPECT_EQ(dec.rejected_high, 3u);
+    // (b) 生产 auto 路由：n=6 走 winsorized（不塌缩到 percentile 的零尺度带）
+    P2RejectionPlan autop = m4a01_auto_plan(6);
+    ASSERT_EQ(autop.method, P2_REJECT_WINSORIZED_SIGMA);
+    P2RejectionDecision dec2{};
+    std::vector<std::uint8_t> reasons2;
+    m4a01_run(vals, autop, &dec2, &reasons2);
+    EXPECT_EQ(dec2.status, P2_STATUS_OK);
+    EXPECT_GE(dec2.accepted_count, 1u);
 }
 
 TEST(Phase2Upm, S1KnownAdditiveFieldRecovered) {

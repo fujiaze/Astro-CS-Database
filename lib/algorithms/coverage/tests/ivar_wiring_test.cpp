@@ -86,6 +86,7 @@ void write_hips(const std::string& dir, const FrameSpec& spec,
     view.flux_sum = flux_sum.data();
     view.covered_area = support.data();
     view.valid_mask = nullptr;
+    aio_hips_tile_view_abi_init(&view);
     if (aio_hips_write_signal_support_tile(ps, &view) != 0) {
         ADD_FAILURE() << "write_signal_support_tile failed: "
                       << aio_hips_last_error();
@@ -98,6 +99,7 @@ void write_hips(const std::string& dir, const FrameSpec& spec,
         var_num_sum[i] = (support[i] > 0.0f && ivar[i] > 0.0f)
                              ? 1.0f / ivar[i] : 0.0f;
     view.var_num_sum = var_num_sum.data();
+    aio_hips_tile_view_abi_init(&view);
     if (aio_hips_write_variance_tile(ps, &view) != 0) {
         ADD_FAILURE() << "write_variance_tile failed: "
                       << aio_hips_last_error();

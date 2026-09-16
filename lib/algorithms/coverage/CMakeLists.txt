@@ -74,19 +74,53 @@ endif()
 enable_testing()
 find_package(GTest QUIET)
 if(GTest_FOUND)
+    # SCI-FIX-AIO (V11-N-01): 源树内 **未跟踪** 的
+    # ../../infrastructure/aio/astro_image_io.dll 是 ARCH-001 迁移前的历史构建
+    # 产物 (ELF .so 误名 .dll; 旧 AstroSphereTileView 布局, 无版本化 ABI 头)。
+    # 它与本仓当前 aio_hips.h 不一致时字段整体错位 —— 实测 writer 读到的
+    # width=0 ⇒ rc=-2 "view 与产品集不匹配", 或更糟: 静默错位写数据。
+    # 根图构建一律走 astrocs_hips/astrocs_aio 静态目标 (与 tests/unit/p1_hips*
+    # 同口径); 仅模块独立 configure (无根目标) 才回退到该历史产物。
+    if(TARGET astrocs_hips AND TARGET astrocs_aio)
+        set(P2_AIO_LINK astrocs_hips astrocs_aio)
+    else()
+        set(P2_AIO_LINK ${P2_AIO_LINK})
+    endif()
     add_executable(phase2_synthetic_gate tests/synthetic_gate.cpp)
     target_link_libraries(phase2_synthetic_gate PRIVATE phase2 GTest::gtest_main
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/astro_image_io.dll)
+        ${P2_AIO_LINK})
     add_executable(phase2_ivar_wiring tests/ivar_wiring_test.cpp)
-    target_link_libraries(phase2_ivar_wiring PRIVATE phase2 GTest::gtest_main
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/astro_image_io.dll)
+    # SCI-FIX-AIO (V11-N-01): 与 phase2_sampler_parallel 同因同修 —— 源树内
+    # 未跟踪的 astro_image_io.dll 是历史构建产物 (旧结构布局, 无版本化 ABI 头),
+    # 与本仓当前 aio_hips.h 不一致时读取字段整体错位 (实测 width 读成 0 →
+    # writer rc=-2 "view 与产品集不匹配")。根图构建走 astrocs_hips/astrocs_aio
+    # 静态目标 (与 tests/unit/p1_hips_writer 同口径); 模块独立 configure 保留
+    # DLL 后备。
+    if(TARGET astrocs_hips AND TARGET astrocs_aio)
+        target_link_libraries(phase2_ivar_wiring PRIVATE phase2 GTest::gtest_main
+            astrocs_hips astrocs_aio)
+    else()
+        target_link_libraries(phase2_ivar_wiring PRIVATE phase2 GTest::gtest_main
+            ${P2_AIO_LINK})
+    endif()
     add_executable(phase2_execution_options tests/execution_options_test.cpp)
     target_link_libraries(phase2_execution_options PRIVATE phase2 GTest::gtest_main)
     add_executable(phase2_routing tests/routing_test.cpp)
     target_link_libraries(phase2_routing PRIVATE phase2 GTest::gtest_main)
     add_executable(phase2_sampler_parallel tests/sampler_parallel_consistency_test.cpp)
-    target_link_libraries(phase2_sampler_parallel PRIVATE phase2 GTest::gtest_main
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/astro_image_io.dll)
+    # SCI-FIX-WEIGHT (M8-C-002): Linux 合成 HiPS 门需要**当前** AIO 写面。
+    # 旧直链 ../../infrastructure/aio/astro_image_io.dll 是源树内**未跟踪**的
+    # 历史构建产物（缺版本化 ABI 初始化/新字段布局），与当前 aio_hips.h 不一致
+    # 会让 fixture 写入失败（实测 make_synth_frame=false）。根图构建下改走
+    # astrocs_hips/astrocs_aio 静态目标（与 tests/unit/p1_hips_writer 同口径）；
+    # 模块独立 configure（无根目标）时保留 DLL 后备。
+    if(TARGET astrocs_hips AND TARGET astrocs_aio)
+        target_link_libraries(phase2_sampler_parallel PRIVATE phase2 GTest::gtest_main
+            astrocs_hips astrocs_aio)
+    else()
+        target_link_libraries(phase2_sampler_parallel PRIVATE phase2 GTest::gtest_main
+            ${P2_AIO_LINK})
+    endif()
     add_executable(phase2_async_io tests/async_io_test.cpp)
     target_link_libraries(phase2_async_io PRIVATE phase2 GTest::gtest_main)
     # RQS-B3 / M4-C-01 (ALG-P2-SMP-001 11.3 F2): kcorr_lookup non-uniform
@@ -96,7 +130,7 @@ if(GTest_FOUND)
     target_include_directories(phase2_sampler PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/include)
     target_link_libraries(phase2_sampler PRIVATE phase2 GTest::gtest_main
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/astro_image_io.dll)
+        ${P2_AIO_LINK})
     # M4-C-06 (SCI REJECTION 4/8): 非有限 weights 资格层校验 + INVALID_INPUT
     # hard fail 的共址回归门（正例 + 负例，能红能绿）。
     add_executable(phase2_rej_nonfinite_weights tests/rejection_nonfinite_weights_test.cpp)
@@ -128,7 +162,7 @@ endif()
 # 仅按需显式构建 (cmake --build --target ...); 不进入任何 install/发布树。
 add_executable(astrocs-stage2 tools/stage2.cpp)
 target_link_libraries(astrocs-stage2 PRIVATE phase2
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/astro_image_io.dll)
+    ${P2_AIO_LINK})
 if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
     # CON-006: stage2 工具本身有逐 pixel integration 并行代码，也需要编译宏。
     target_compile_definitions(astrocs-stage2 PRIVATE P2_ENABLE_OPENMP=1)
@@ -141,7 +175,7 @@ add_dependencies(phase2_ivar_wiring astrocs-stage2)
 
 add_executable(calibrated_pair_diag tools/calibrated_pair_diag.cpp)
 target_link_libraries(calibrated_pair_diag PRIVATE phase2
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/astro_image_io.dll)
+    ${P2_AIO_LINK})
 set_target_properties(calibrated_pair_diag PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 add_executable(rejection_cli tools/rejection_cli.cpp)

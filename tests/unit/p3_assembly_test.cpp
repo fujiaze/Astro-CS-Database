@@ -69,6 +69,7 @@ int main() {
         hips.c_str(), 512, W, AIO_HIPS_FLOAT32, AIO_HIPS_PRODUCT_SIGNAL,
         "did:test:p3", "P3-006", "NONE", 0.0, "2026-08-30T00:00:00Z", 0);
     CHECK(ps != nullptr);
+    aio_hips_tile_view_abi_init(&view);
     CHECK(aio_hips_write_signal_support_tile(ps, &view) == 0);
     CHECK(aio_hips_finalize(ps) == 0);
   }

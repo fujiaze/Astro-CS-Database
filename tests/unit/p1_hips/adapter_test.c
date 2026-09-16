@@ -204,6 +204,7 @@ static int direct_tiles(direct_env* e, int n_tiles, int t_base) {
         v.covered_area = cov;
         v.valid_mask = mask;
         v.var_num_sum = var;
+        aio_hips_tile_view_abi_init(&v);
         int rc = aio_hips_write_signal_support_tile(e->ps, &v);
         int rc2 = rc == 0 ? aio_hips_write_variance_tile(e->ps, &v) : 0;
         free(mask); free(flux); free(cov); free(var);
@@ -219,7 +220,9 @@ static int direct_tiles(direct_env* e, int n_tiles, int t_base) {
 
 static int direct_snr(direct_env* e) {
     AioHipsSnrPoint pts[256];
+    memset(pts, 0, sizeof(pts));
     for (int i = 0; i < 256; ++i) {
+        aio_hips_snr_point_abi_init(&pts[i]);
         pts[i].ra_deg = 6.0 * (double)i;
         pts[i].dec_deg = -60.0 + 0.1 * (double)i;
         pts[i].snr = 20.0 + 0.01 * (double)i;
