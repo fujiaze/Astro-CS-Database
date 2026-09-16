@@ -4,7 +4,7 @@
 
 ## 1 上游 SCI 与输入输出
 
-- 上游: `SCI-WCS-001` (CRPIX=w/2+0.5, CD deg/pixel, cd_inv pixel/arcsec, SIP A/B 解析 / AP/BP 7×7网格, Y-down)
+- 上游: `SCI-WCS-001` (CRPIX=w/2+0.5, CD deg/pixel, cd_inv pixel/arcsec, SIP A/B 解析 / AP/BP 采样网格 ≥7×7（实现 AP/BP 41×41 阶 5；APx/BPx 81×81 阶 7，DISP-WCS-008）, Y-down)
 - 输入: 星点表 `(x,y)` + Gaia 参考星表 (RA/Dec)
 - 输出: `WCS` (CD+CRPIX/CRVAL+SIP A/B/AP/BP) 或 `NO_SOLUTION`
 
@@ -14,7 +14,9 @@
 F1: CRPIX = w/2+0.5, h/2+0.5 (1-based), 0-based x0=CRPIX−1
 F2: CD = trans.linear/3600 (deg/pixel), cd_inv = inv(trans.linear) (pixel/arcsec)
 F3: SIP前向 A[i][j]=cd_inv·trans.x_ij, B[i][j]=cd_inv·trans.y_ij (解析)
-F4: SIP逆向 AP/BP = argmin ||UV−(u,v)−SIP(u,v)||² on 7×7 grid, AP[1,0]-=1, BP[0,1]-=1
+F4: SIP逆向 AP/BP = argmin ||UV − [ (u,v) + SIP_A/B(u,v) ]||² on 采样网格 ≥7×7, AP[1,0]-=1, BP[0,1]-=1
+    # 与 SCI-WCS-001 §5 同式同括号; SIP 自变量为像素偏移(px); 采样网格实现值
+    # AP/BP 41×41(阶 5)/APx/BPx 81×81(阶 7) — DISP-WCS-008
 F5: Y-down: cd12,cd22 取反; A'=A·(-1)^j, B'=−B·(-1)^j, AP/BP 同规则
 F6: 投影 TAN + SIP畸变 + J2000, 极区 Lipschitz C=π/2 / C45=π/(2√2) conservative prune
 ```
@@ -39,7 +41,8 @@ function solve_wcs(detections, gaia):
 function build_sip(trans):
   cd_inv = inv(trans.linear)
   for (i,j) in order: A[i][j]=cd_inv·trans.x_ij, B[i][j]=cd_inv·trans.y_ij
-  grid = 7×7 UV = cd_inv·IWC, fit AP/BP via least squares
+  grid = 采样网格 ≥7×7 (实现 41×41 阶 5 / 81×81 阶 7, DISP-WCS-008)
+  UV = cd_inv·IWC, fit AP/BP via least squares
   AP[1,0]-=1; BP[0,1]-=1
   apply Y-down sign flips
 
@@ -52,7 +55,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 |---|---|
 | `n < min_stars` | `NO_SOLUTION` |
 | `det(trans.linear)==0` | reject SIP, `NO_SOLUTION` |
-| `NB_GRID` 奇异 | fallback linear |
+| 网格拟合奇异 | fallback linear |
 | 极区跨界 `θ+radius>90°` | 保守不剪枝遍历 |
 | RA环绕 `dra>180°` | `dra=360−dra` + cos(dec) 缩放 |
 | 输入含 NaN | skip/fail per-field |
@@ -71,7 +74,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 ## 5c SIMD 安全与取消点
 
-- CD/SIP 矩阵算术逐元素独立；最小二乘(7×7 grid AP/BP)为确定性顺序归约(样本序固定)——**禁止并行重结合**；FP64 全链路禁 fast-math。
+- CD/SIP 矩阵算术逐元素独立；最小二乘(AP/BP，采样网格 ≥7×7，实现 41×41/81×81，DISP-WCS-008)为确定性顺序归约(样本序固定)——**禁止并行重结合**；FP64 全链路禁 fast-math。
 - 取消点: 按帧(星表行块)粒度检查; 取消时丢弃半成品 trans 并返回错误码(语义随 API 冻结)。
 
 ## 8 参考实现/Oracle
@@ -121,7 +124,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 | CRVAL/CRPIX 冻结 | ipv_wcs.cpp:264-277 | CRPIX=w/2+0.5, h/2+0.5（1-based，F1） |
 | ctype 选择 | ipv_wcs.cpp:283-290 | order≤1 → RA---TAN/DEC--TAN；否则 -SIP 后缀 |
 | SIP A/B 解析 | ipv_wcs.cpp:322-365 | cd_inv=inv(trans 线性项)（det<1e-15 warn :322-325）；A[i*6+j]=cd_inv·trans.x_ij（F3） |
-| SIP AP/BP 网格反变换 | ipv_wcs.cpp:400-478 | 7×7 网格最小二乘；AP[6]−=1、BP[1]−=1（:456-461，F4）；奇异仅 warn（:477） |
+| SIP AP/BP 网格反变换 | ipv_wcs.cpp:395-527 | 采样网格 ≥7×7（实现 AP/BP 41×41 阶 5；APx/BPx 81×81 阶 7，DISP-WCS-008）最小二乘；AP[6]−=1、BP[1]−=1（:505-509，F4）；奇异仅 warn（:521-523） |
 | RMS 统计 | ipv_wcs.cpp:483-517 | rms_arcsec=√(Σr²/n)；rms_px=rms_arcsec/s0 |
 | Y-down 输出转换 | ipv_wcs.cpp:528-576 | cd12/cd22 取反（:542-544）；A/B/AP/BP 符号规则（:546-571，F5） |
 | inlier 缓存 | ipv_solver.cpp:756-764 | cache_last_inliers_（WCS Gate v2 双层闭环） |
@@ -149,7 +152,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 - 线程安全：solver 句柄级互斥使用；gaia/detector 句柄由调用方保证生存期；
   无内部锁。
 
-### 11.3 现状缺陷清单（DISP-WCS-001..006，登记不改码，整改归 P1-WCS-IMPL/INT）
+### 11.3 现状缺陷清单（DISP-WCS-001..008，登记不改码，整改归 P1-WCS-IMPL/INT）
 
 - DISP-WCS-001 CD/线性变换退化静默坍缩（R1 登记项，失败-置信度语义核心）：
   lib/algorithms/photometry/cpp/src/wcs_transform.cpp:39-49 构造时
@@ -164,7 +167,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   :148-170 cosc<1e-12 → xi=eta=1e6 哨兵（:154-155）无标志位；skyToPixel
   缺 AP/BP 时 3 迭代牛顿近似（:221-240）无收敛判据——均静默返回可疑值。
 - DISP-WCS-003 双 SIP 拟合路径并存：生产 extract_wcs_sip（TRANS 解析 A/B
-  + 7×7 网格反变换 AP/BP，ipv_wcs.cpp:322-478）与 legacy fit_sip IRLS+Huber
+  + 采样网格 ≥7×7（实现 AP/BP 41×41 阶 5；APx/BPx 81×81 阶 7，DISP-WCS-008）反变换 AP/BP，ipv_wcs.cpp:322-478）与 legacy fit_sip IRLS+Huber
   （ipv_sip.cpp:268；irls_huber_fit :161-263，δ=1.345·MAD :241）仅被 legacy
   build_wcs（ipv_wcs.cpp:157-165，AP/BP 显式清零）消费；两实现行为漂移，
   去留归 P1-WCS-IMPL。
@@ -179,12 +182,26 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   仅 tests/unit/p1_wcs_phot_test.cpp 消费）、wcs_transform（P1-PHOT 域）
   ——像素中心契约不一致（§11.2 双契约），维护歧义，去留归
   P1-WCS-IMPL/P1-PHOT-IMPL。
+- DISP-WCS-008 SIP 逆映射网格/阶扩展 + 迭代反演：生产 `ipv_wcs.cpp` AP/BP 用
+  41×41 网格（`NB_GRID=41`）、APx/BPx 用 81×81（`NB_GRID_X=81`，阶 7），SCI
+  §7/§11 原写「7×7 网格」为陈旧口径（自证门），已改为「采样网格 ≥7×7 + 独立
+  密集域不变量 ≤1e-4 px」；本机 `p1wcs_tests apbp` low/mid/high 三档独立域
+  roundtrip max 3.299e-10/1.518e-9/1.655e-9 px 全过（R-3 §3.6）⇒ 「1e-4 px
+  数学不可达」对当前实现为假。维护歧义已消除；注册表 SIP 行承载本口径的旧登记
+  DISP-WCS-006 相应作废（见注册表）；本清单 DISP-WCS-006 为「三套 TAN 实现并
+  存」，与注册表 SIP 行旧口径同号不同义，不受影响、保持有效。
 
 ### 11.4 TEST-WCS-DESIGN-001 冻结测试设计（可执行 TEST-P1-WCS-001 由 P1-WCS-TEST 落地）
 
 - F1 合成线性场（order=1，已知 CD/CRVAL/CRPIX 合成星表）：求解成功且
   n_pairs≥12；rms_arcsec ≤0.5″（实测锚 Galaxy_Center=0.1431″，memory.md
   2026-07-12）；CD 元素相对误差 ≤2%（§9 尺度容差 0.002 同源）；|ΔCRVAL|≤1″。
+  **量测域冻结**：本项 `rms_arcsec` 定义在 `trans` 拟合的**内点集**（`n_pairs≥12`）
+  与**合成线性场**（order=1，已知 CD/CRVAL/CRPIX 合成星表）上；它**不是**产品级
+  天测精度门。产品级外部闭环量（全帧头域 median/p95）另立证据面
+  **G-P1-WCS-CLOSURE**，其阈值需另行标定（`lib/algorithms/platesolve/memory.md:55-56`
+  的 0.897 px 系 v1.2 legacy 工具、2 帧台账值，量测域与门均不同，**不作为 F1
+  超标证据**）。门表见 `docs/algorithms/GATES_AND_TOLERANCES.md`。
 - F2 SIP 场 oracle（注入已知 A/B，order=2）：astropy WCS（隔离 test-only
   oracle，§5 规则）前向/逆向 |Δ|≤1e-4 px 于中心 90% 区域（承接 §8 预冻结
   值，不放宽）；AP/BP 逆向一致性 roundtrip 同容差。

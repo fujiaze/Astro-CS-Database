@@ -25,8 +25,8 @@
 ## 1. 负责与不负责
 
 **负责**：Phase1 单帧 light 上的权威星点检测——peaker 七步候选（11×11 局部
-极大/3×3 meanhigh/零交叉 Sr,Sc/振幅 Ar,Ac/盒半径 R/对称门/候选去重）+ Moffat4
-（GSL trust-region LM，7 参数 Gaussian 参数化）逐候选拟合 + 饱和星（edge-walking
+极大/3×3 meanhigh/零交叉 Sr,Sc/振幅 Ar,Ac/盒半径 R/对称门/候选去重）+ 椭圆高斯
+（GSL trust-region LM，7 参数 Gaussian 参数化；母函数 sdet_gaussian_f）逐候选拟合 + 饱和星（edge-walking
 中心、A>dynrange 标记）+ mag 排序去重截断；输出十数组
 `(x,y,flux,saturated,mag,has_saturated[,extras])`（DATA-P1-STAR）；FP32/FP64
 双通道（DISP-STAR-001）；一帧一次权威检测原则（API-P1-003）。
@@ -93,7 +93,7 @@ C API（9 导出，头 lib/algorithms/star_detection/include/star_detector.h:1-7
 内部核心（static/template，同文件）：`sdet_detect_impl<T>`（:1599-2353，
 float/double 双实例生产核心）、`sdet_compute_bgnoise`（:440-476，FnNoise1
 行差分+3×5σ clip）、peaker 七步主扫描（:1709-1974，star_finder.c 族对齐
-注释 :1653-1660）、`sdet_moffat4_fit`（:483-620，采样/饱和 mask/bkg0 截尾
+注释 :1653-1660）、`sdet_gauss_fit`（:483-620，采样/饱和 mask/bkg0 截尾
 MAD/halfA 初始化）、`sdet_lm_fit`（:262-437，GSL TR-LM 7 参数
 `{B,A,x0,y0,SX,fr,alpha}`，:348-352 trs=LM）、`reject_star`（:189-239，
 SfError 五码 :177-186）、`sdet_dedup_stars`（:822-939）、`sdet_sort_stars`

@@ -3,7 +3,7 @@
  * @brief Star Detector API实现
  *
  * 主要功能：
- * 1. Moffat4 PSF拟合（Levenberg-Marquardt优化）
+ * 1. 椭圆高斯 PSF拟合（Levenberg-Marquardt优化, 母函数=sdet_gaussian_f/df; PSF 侧 Moffat4 见 SCI-PSF-001 §5, DISP-STAR-007）
  * 2. 星点检测流水线（正常星+饱和星）
  * 3. FWHM/圆度过滤
  * 4. 半阈值饱和星检测
@@ -517,7 +517,7 @@ static T sdet_compute_bgnoise(const T* img, int width, int height) {
 // 新增 init_sx/init_sy 参数, 用候选阶段 Sr/Sc 作为初始 σ
 // 新增 bg_init 参数, 用全局中位数作为 B 初始值
 template <typename T>
-int sdet_moffat4_fit(const T* image, int width, int height,
+int sdet_gauss_fit(const T* image, int width, int height,
                      double cx, double cy,
                      int rect_x0, int rect_y0, int rect_x1, int rect_y1,
                      InternalFitResult* result, LMWorkspace* /*ws*/ = nullptr,
@@ -1152,7 +1152,7 @@ SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
             int rx1 = std::min(width, (int)candidates[i].cx + actual_fit_radius + 1);
             int ry1 = std::min(height, (int)candidates[i].cy + actual_fit_radius + 1);
 
-            sdet_moffat4_fit(fimg.data(), width, height,
+            sdet_gauss_fit(fimg.data(), width, height,
                              candidates[i].cx, candidates[i].cy,
                              rx0, ry0, rx1, ry1, &fit_results[i], &ws);
             if (fit_results[i].status == SDET_FIT_OK) fit_ok_count++;
@@ -1486,7 +1486,7 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
             int ry0 = std::max(0, (int)candidates[i].cy - actual_fit_radius);
             int rx1 = std::min(width, (int)candidates[i].cx + actual_fit_radius + 1);
             int ry1 = std::min(height, (int)candidates[i].cy + actual_fit_radius + 1);
-            sdet_moffat4_fit(fimg.data(), width, height,
+            sdet_gauss_fit(fimg.data(), width, height,
                              candidates[i].cx, candidates[i].cy,
                              rx0, ry0, rx1, ry1, &fit_results[i], &ws);
             if (fit_results[i].status == SDET_FIT_OK) fit_ok_count++;
@@ -1592,7 +1592,7 @@ SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
         int ry1 = std::min(height, (int)sc.cy + actual_fit_radius + 1);
 
         InternalFitResult sat_fit;
-        sdet_moffat4_fit(fimg.data(), width, height, sc.cx, sc.cy,
+        sdet_gauss_fit(fimg.data(), width, height, sc.cx, sc.cy,
                          rx0, ry0, rx1, ry1, &sat_fit, nullptr, (double)sat_threshold);
 
         if (sat_fit.status == SDET_FIT_OK) {
@@ -2183,7 +2183,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
     sdet_log(SDET_LOG_INFO, "SDET", "Task6 candidates sorted by mag_est (desc): maxstars=%d candidates=%d",
              params.maxStars, (int)candidates.size());
 
-    // 阶段6: Moffat4拟合 (使用 per-candidate R 作为拟合窗口,
+    // 阶段6: 椭圆高斯拟合 (使用 per-candidate R 作为拟合窗口,
     int cc_count = (int)candidates.size();
     std::vector<InternalFitResult> fit_results(cc_count);
     int fit_ok_count = 0;
@@ -2204,7 +2204,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
             // 之前 IPv 非饱和候选 sat_mask=0 不过滤, 导致含饱和像素的星 A 被拉高 (Galaxy_Center +79)
             double sat_mask = (double)candidates[i].sat;
 
-            sdet_moffat4_fit<T>(image, width, height,
+            sdet_gauss_fit<T>(image, width, height,
                                 candidates[i].cx, candidates[i].cy,
                                 rx0, ry0, rx1, ry1, &fit_results[i], &ws, sat_mask,
                                 (double)candidates[i].sx, (double)candidates[i].sy,

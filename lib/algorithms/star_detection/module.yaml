@@ -1,6 +1,6 @@
 # AstroCS phase1 star-detection module — 元数据 (P1-STAR-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/star_detection/src/sdet_api.cpp 的
-# sdet_detect_impl/peaker 七步候选/sdet_moffat4_fit/sdet_lm_fit(GSL TR-LM)/
+# sdet_detect_impl/peaker 七步候选/sdet_gauss_fit(椭圆高斯)/sdet_lm_fit(GSL TR-LM)/
 # reject_star/sdet_dedup_stars/sdet_sort_stars + C API sdet_create/sdet_destroy/
 # sdet_detect/sdet_free_coords/sdet_detect_debug/sdet_free_debug_maps/
 # sdet_detect_ex/sdet_detect_ex_f64/sdet_free_detect_ex，唯一权威签名头
@@ -10,7 +10,7 @@
 # （TEST-STAR-DESIGN-001 → TEST-P1-STAR-001）。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对清单
 # （P1-STAR-DOC，2026-09-07，9 个导出 C API + 静态核心 sdet_detect_impl/
-# sdet_moffat4_fit/sdet_lm_fit/reject_star，均 grep 实测于 sdet_api.cpp），
+# sdet_gauss_fit/sdet_lm_fit/reject_star，均 grep 实测于 sdet_api.cpp），
 # 禁止手抄他版。
 # 落位依据：MODULE_MIGRATION_MATRIX.csv P1-STAR 行 owner=SA-P1-S15、
 # target=astrocs_p1_star_detection.dll、module_id=astrocs.p1.star_detection、
@@ -98,7 +98,7 @@ source_symbols:
   - sdet_detect_ex_f64
   - sdet_free_detect_ex
   - sdet_detect_impl
-  - sdet_moffat4_fit
+  - sdet_gauss_fit
   - sdet_lm_fit
   - reject_star
   - sdet_dedup_stars
@@ -163,3 +163,7 @@ notes: >-
   编排一帧一次权威检测
   （API-P1-003），PLATESOLVE 禁重检测（:1748-1755）。
   禁止声明 IMPLEMENTED（迁移落码未发生）。
+  门与容差：本域门表的量测域/统计量/SNR 定义/阈值来源见
+  docs/algorithms/GATES_AND_TOLERANCES.md（F-2 冻结门表；门不得引用表外阈值）；
+  检测侧椭圆高斯 / PSF 侧椭圆 Moffat4 双母函数登记 DISP-STAR-007
+  （STAR_DETECTION_ALGORITHMS.md §11.3，fwhm/flux 列禁止跨块比较）。

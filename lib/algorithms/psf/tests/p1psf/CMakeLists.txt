@@ -91,3 +91,62 @@ target_include_directories(p1psf_prodpath_check_test PRIVATE
   ${P1PSF_DIR})
 target_link_libraries(p1psf_prodpath_check_test PRIVATE ${ASTROCS_OMP_TARGET})
 add_test(NAME p1psf_prodpath_centroid COMMAND p1psf_prodpath_check_test)
+
+# ----------------------------------------------------------------------------
+# G-P1-CENTROID-1 生产路径绝对位置门 (SCI-FIX-PSF 第 2 项, R-3 §4.1) —
+# 修复前无任何门链接 sdet + dpsf: 编排写端对 PSF 支路重复 -0.5 使两条支路
+# 相差恰 0.5000 px, 而 ipv 去重阈值是严格 < 0.5 px ⇒ 同星双份进 ipv。
+# 本 target 链接 **两条支路的真实生产源** (sdet 5 TU + dpsf 2 TU) 与生产坐标
+# 契约头 star_coord_contract.h (orchestrator 写端/读端唯一事实源)。
+# 判据与阈值来源: docs/science/GATES_AND_TOLERANCES.md G-P1-CENTROID-1 行
+# (median <= 0.1 px / p95 <= 0.3 px / 双支路分离 <= 0.05 px / dpsf 系 0.05 px)。
+# 正例 p1psf_centroid_gate 必 PASS; 负例 p1psf_centroid_gate_neg 用修复前映射
+# 重算, 必须以 >= 0.4 px 分离被检出 (能红能绿, ENGINEERING_SPEC §8)。
+# ----------------------------------------------------------------------------
+set(P1PSF_GATE_SDET_DIR ${P1PSF_DIR}/../../../star_detection)
+set(P1PSF_GATE_ORCH_INC
+  ${P1PSF_DIR}/../../../../infrastructure/pipeline/orchestrator/cpp/include)
+find_path(P1PSF_GATE_GSL_INCLUDE_DIR gsl/gsl_multifit_nlinear.h
+  HINTS /usr/include /usr/local/include)
+find_library(P1PSF_GATE_GSL_LIB NAMES gsl
+  HINTS /usr/lib/x86_64-linux-gnu /usr/lib64 /usr/lib /usr/local/lib)
+find_library(P1PSF_GATE_GSLCBLAS_LIB NAMES gslcblas
+  HINTS /usr/lib/x86_64-linux-gnu /usr/lib64 /usr/lib /usr/local/lib)
+if(NOT P1PSF_GATE_GSL_INCLUDE_DIR OR NOT P1PSF_GATE_GSL_LIB
+   OR NOT P1PSF_GATE_GSLCBLAS_LIB)
+  message(FATAL_ERROR
+    "G-P1-CENTROID-1: GSL (gsl_multifit_nlinear + libgsl/libgslcblas) not found; "
+    "sdet/dpsf 生产源依赖 GSL trust-region LM, 无法编译本门")
+endif()
+set(P1PSF_GATE_SDET_SRC
+  ${P1PSF_GATE_SDET_DIR}/src/sdet_api.cpp
+  ${P1PSF_GATE_SDET_DIR}/src/sdet_detector.cpp
+  ${P1PSF_GATE_SDET_DIR}/src/sdet_image.cpp
+  ${P1PSF_GATE_SDET_DIR}/src/sdet_log.cpp
+  ${P1PSF_GATE_SDET_DIR}/src/sdet_background.cpp)
+add_executable(p1psf_centroid_gate_test
+  ${P1PSF_DIR}/p1psf_centroid_gate.cpp
+  ${P1PSF_PROD_SOURCES}
+  ${P1PSF_GATE_SDET_SRC})
+target_include_directories(p1psf_centroid_gate_test PRIVATE
+  ${P1PSF_INC}
+  ${P1PSF_SRC}
+  ${P1PSF_DIR}
+  ${P1PSF_GATE_SDET_DIR}/include
+  ${P1PSF_GATE_SDET_DIR}/src
+  ${P1PSF_GATE_ORCH_INC}
+  ${P1PSF_GATE_GSL_INCLUDE_DIR})
+target_link_libraries(p1psf_centroid_gate_test PRIVATE
+  ${P1PSF_GATE_GSL_LIB} ${P1PSF_GATE_GSLCBLAS_LIB} m ${ASTROCS_OMP_TARGET})
+# sdet_log 写 CWD 相对日志 → WORKING_DIRECTORY 隔离; OMP_NUM_THREADS=1 固定
+# 候选拟合归约序 (门要求逐位可复现)。
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run)
+add_test(NAME p1psf_centroid_gate COMMAND p1psf_centroid_gate_test)
+add_test(NAME p1psf_centroid_gate_neg COMMAND p1psf_centroid_gate_test negative-injection)
+set_tests_properties(p1psf_centroid_gate p1psf_centroid_gate_neg PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
+  # STAR_DETECTOR_LOG_LEVEL=3 (ERROR): 门只关心数值, 抑制 sdet 逐阶段 INFO 噪声
+  ENVIRONMENT "OMP_NUM_THREADS=1;STAR_DETECTOR_LOG_LEVEL=3")
+set_tests_properties(p1psf_centroid_gate_neg PROPERTIES
+  PASS_REGULAR_EXPRESSION "NEGATIVE INJECTION DETECTED")
+
