@@ -73,7 +73,7 @@ class RootCleanlinessPositiveTest(unittest.TestCase):
             self.assertEqual(rc, 0, report)
             self.assertEqual(report["verdict"], "PASS")
             self.assertEqual(report["violations"], [])
-            self.assertEqual(report["counts"]["top_level_entries"], 34)
+            self.assertEqual(report["counts"]["top_level_entries"], 35)
 
 
 class RootCleanlinessNegativeTest(unittest.TestCase):

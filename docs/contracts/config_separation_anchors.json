@@ -1,0 +1,215 @@
+{
+  "anchors_schema": "astrocs.config-separation-anchors/v1",
+  "anchor_id": "IDX-CONFIG-SEPARATION",
+  "task": "DATA-001",
+  "baseline_head": "ecf6ad6f",
+  "authority": {
+    "separation": "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
+    "design": "ASTROCS_DESIGN.md §2（数据对象与配置分离）",
+    "owner": "配置 schema 本体（config/**、contracts/schemas/*config*|*profile*|*manifest*）归 CFG-001；本文件只留锚点与索引，不定义配置 schema。"
+  },
+  "purpose": "为 CFG-001 冻结三类配置的字段名命名空间：phase_config（科学，可跨机复现）、cpu_profile（机器绑定，仅 benchmark 生成）、run_manifest（本次运行冻结）。三类不得共用字段名承载不同含义（UNIFIED_MODEL §3）。",
+  "config_classes": [
+    {
+      "class": "phase_config",
+      "schema_owner": "CFG-001",
+      "schema_path_reserved": "contracts/schemas/phase_config.schema.json",
+      "semantics": "科学参数 / 输入输出 / 算法选择；可跨机器复现；禁止出现任何硬件调优字段",
+      "produced_by": [
+        "用户",
+        "cli --template"
+      ],
+      "not_produced_by": [
+        "benchmark"
+      ],
+      "field_name_patterns": [
+        {
+          "regex": "^sci_[a-z0-9_]+$",
+          "examples": [
+            "sci_algorithm_id",
+            "sci_rejection_profile",
+            "sci_weight_mode"
+          ]
+        },
+        {
+          "regex": "^(input|output)_[a-z0-9_]+$",
+          "examples": [
+            "input_dir",
+            "output_dir"
+          ]
+        },
+        {
+          "regex": "^algorithm_[a-z0-9_]+$",
+          "examples": [
+            "algorithm_choice"
+          ]
+        },
+        {
+          "regex": "^phase_name$",
+          "examples": [
+            "phase_name"
+          ]
+        }
+      ],
+      "forbidden_field_names": [
+        "isa",
+        "isa_level",
+        "workers",
+        "worker_count",
+        "block",
+        "block_size",
+        "cpu_model",
+        "cpu_vendor",
+        "thread_budget",
+        "affinity_mask"
+      ],
+      "note": "phase_config 出现 cpu_profile 字段即 REJECT（UNIFIED_MODEL §3：硬件调优不得写回科学配置）"
+    },
+    {
+      "class": "cpu_profile",
+      "schema_owner": "CFG-001",
+      "schema_path_reserved": "contracts/schemas/cpu_profile.schema.json",
+      "semantics": "ISA / workers / block / 机器绑定；仅 benchmark 生成；缓存于程序安装目录；无 profile → 保守运行不阻塞",
+      "produced_by": [
+        "benchmark"
+      ],
+      "not_produced_by": [
+        "用户",
+        "cli --template",
+        "phase_config"
+      ],
+      "field_name_patterns": [
+        {
+          "regex": "^isa(_[a-z0-9_]+)?$",
+          "examples": [
+            "isa",
+            "isa_level"
+          ]
+        },
+        {
+          "regex": "^(workers|worker_count)$",
+          "examples": [
+            "workers"
+          ]
+        },
+        {
+          "regex": "^block(_[a-z0-9_]+)?$",
+          "examples": [
+            "block",
+            "block_size"
+          ]
+        },
+        {
+          "regex": "^cpu_[a-z0-9_]+$",
+          "examples": [
+            "cpu_model",
+            "cpu_vendor"
+          ]
+        },
+        {
+          "regex": "^thread_budget$",
+          "examples": [
+            "thread_budget"
+          ]
+        },
+        {
+          "regex": "^profile_hash$",
+          "examples": [
+            "profile_hash"
+          ]
+        }
+      ],
+      "forbidden_field_names": [
+        "sci_algorithm_id",
+        "sci_rejection_profile",
+        "sci_weight_mode",
+        "algorithm_choice"
+      ],
+      "note": "cpu_profile 只影响并行/ISA，不进入科学配置；无 profile 时保守运行（不阻塞）"
+    },
+    {
+      "class": "run_manifest",
+      "schema_owner": "CFG-001",
+      "schema_path_reserved": "contracts/schemas/run_manifest.schema.json",
+      "semantics": "本次运行冻结：源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本；不承载科学参数与硬件调优",
+      "produced_by": [
+        "运行时（每次运行冻结）"
+      ],
+      "not_produced_by": [
+        "用户"
+      ],
+      "field_name_patterns": [
+        {
+          "regex": "^manifest_(input|output)_hashes$",
+          "examples": [
+            "manifest_input_hashes",
+            "manifest_output_hashes"
+          ]
+        },
+        {
+          "regex": "^software_sha$",
+          "examples": [
+            "software_sha"
+          ]
+        },
+        {
+          "regex": "^config_hash$",
+          "examples": [
+            "config_hash"
+          ]
+        },
+        {
+          "regex": "^toolchain_[a-z0-9_]+$",
+          "examples": [
+            "toolchain_version"
+          ]
+        },
+        {
+          "regex": "^run_id$",
+          "examples": [
+            "run_id"
+          ]
+        }
+      ],
+      "forbidden_field_names": [
+        "isa",
+        "workers",
+        "block",
+        "sci_algorithm_id",
+        "sci_weight_mode"
+      ],
+      "note": "run_manifest 只冻结哈希与版本，不解释科学语义；input_hashes 与 DATA-OBJ-PROVENANCE-001.provenance.input_hashes 同义"
+    }
+  ],
+  "cross_class_forbidden": {
+    "cpu_profile_keys_in_phase_config": [
+      "isa",
+      "isa_level",
+      "workers",
+      "worker_count",
+      "block",
+      "block_size",
+      "cpu_model",
+      "cpu_vendor",
+      "thread_budget",
+      "affinity_mask"
+    ],
+    "phase_config_keys_in_cpu_profile": [
+      "sci_algorithm_id",
+      "sci_rejection_profile",
+      "sci_weight_mode",
+      "algorithm_choice"
+    ],
+    "manifest_keys_anywhere_else": [
+      "software_sha",
+      "config_hash",
+      "manifest_input_hashes",
+      "manifest_output_hashes",
+      "run_id"
+    ]
+  },
+  "machine_assertions": [
+    "tests/contracts/test_unified_object_contract.py::TestConfigSeparationAnchors::test_field_name_sets_are_pairwise_disjoint",
+    "tests/contracts/test_unified_object_contract.py::TestConfigSeparationAnchors::test_hardware_names_forbidden_in_phase_config"
+  ]
+}

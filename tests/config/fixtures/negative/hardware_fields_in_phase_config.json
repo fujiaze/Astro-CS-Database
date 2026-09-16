@@ -1,0 +1,19 @@
+{
+  "phase_name": "normalize",
+  "config": {
+    "output_dir": "path/to/out/normalize",
+    "precision": "fp64",
+    "workers": 8,
+    "isa": "avx512",
+    "block_size": 512
+  },
+  "inputs": [
+    {
+      "light": "path/to/light1.fits",
+      "dark": "path/to/dark.fits",
+      "flat": "path/to/flat.fits",
+      "filter": "Baader R",
+      "isa_level": "avx2"
+    }
+  ]
+}

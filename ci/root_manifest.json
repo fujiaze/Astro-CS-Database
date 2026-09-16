@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "spec": "ENGINEERING_SPEC.md §7（仓库根固定条目；任何新产物必须落位到对应目录，禁止散落根目录）",
-  "doc_anchor": "ENGINEERING_SPEC.md 第 86-110 行「仓库根固定条目」代码块",
+  "doc_anchor": "ENGINEERING_SPEC.md 第 86-111 行「仓库根固定条目」代码块（CFG-001 在 §7 增 config/ 一行，由 86-110 校正）",
   "task": "ROOT-002",
   "allowed_files": [
     "README.md",
@@ -39,7 +39,8 @@
     "engineering",
     "packaging",
     "run",
-    "logs"
+    "logs",
+    "config"
   ],
   "required_files": [
     "README.md",
@@ -77,7 +78,8 @@
     "engineering",
     "packaging",
     "run",
-    "logs"
+    "logs",
+    "config"
   ],
   "implicit_entries": [
     ".git"
@@ -108,61 +110,31 @@
       "path": "VERSION",
       "class": "F2",
       "owner_task": "GOV-001",
-      "note": "Alpha 前版本信息（GAP-017）；ROOT-001 裁决段：不属本控制包，登记进下一轮工程包"
-    },
-    {
-      "path": "CHANGELOG.md",
-      "class": "F2",
-      "owner_task": "ROOT-004",
-      "note": "先核对内容再定去留；ENGINEERING_SPEC §7 注「仅作内部助记」"
+      "note": "保留（登记）：Alpha 前版本信息，ENGINEERING_SPEC §7 明认 VERSION 仅作内部助记符；GOV-001 2026-09-16 结论=不得删除（cli/CMakeLists.txt:27 file(READ ../VERSION) 为构建输入）。"
     },
     {
       "path": "FATDUCK_ACCESS.md",
       "class": "F2",
       "owner_task": "ROOT-004",
-      "note": "凭据引用说明（禁读密钥内容），核对后定去留"
+      "note": "保留（登记，禁删）：运营必需的远程接入指引（reports/PROJECT-GOVERNANCE-01/security/SECURITY_NOTE.md）；去留归 ROOT-006，GOV-001 不删。"
     },
     {
       "path": "VISUAL_CHECK_README.md",
       "class": "F2",
-      "owner_task": "ROOT-004",
-      "note": "核对后定去留"
-    },
-    {
-      "path": "REVIEW.md",
-      "class": "F2",
-      "owner_task": "DOC-001",
-      "note": "GAP-001 旧状态入口"
+      "owner_task": "GOV-001",
+      "note": "已处置（GOV-001 2026-09-16）：归档到 docs/archive/VISUAL_CHECK_README.md 并加 ARCHIVED_NON_NORMATIVE 抬头（所引 launch/ 与 run/ 产品均不存在）；本登记保留至前台提交该移动。"
     },
     {
       "path": "HANDOVER.md",
       "class": "F2",
-      "owner_task": "DOC-001",
-      "note": "GAP-001/019，引用已删控制包路径"
-    },
-    {
-      "path": "ASTROCS_PROJECT_CONSTITUTION.md",
-      "class": "F2",
       "owner_task": "GOV-001",
-      "note": "GAP-001/002 旧宪章"
-    },
-    {
-      "path": "AstroCS_ENGINEERING_CONSTRAINTS.md",
-      "class": "F2",
-      "owner_task": "GOV-001",
-      "note": "GAP-001/015 旧工程约束，仍被 ci/checks.json 的 ENG-CONSTRAINTS 项引用"
+      "note": "已处置（GOV-001 2026-09-16）：归档到 docs/archive/HANDOVER.md 并加 ARCHIVED_NON_NORMATIVE 抬头；本登记保留至前台提交该移动。"
     },
     {
       "path": "问题扫描",
       "class": "F2",
       "owner_task": "ROOT-004",
-      "note": "旧基线 bug 清单，按最新权威订正；ROOT-001 明令不处置"
-    },
-    {
-      "path": "evidence",
-      "class": "F2",
-      "owner_task": "owner",
-      "note": "§7 只列「证据 artifacts/」；历史证据，处置需负责人裁决"
+      "note": "保留（登记，禁删）：在用的待整改台账（REBASE_TABLE.md 785 条 + 本轮 28 条归属处置）；按任务卡「只能登记不能删」。"
     },
     {
       "path": "cli",
@@ -189,22 +161,10 @@
       "note": "§7 无 modules/（GAP-008）"
     },
     {
-      "path": "CS",
-      "class": "F1",
-      "owner_task": "owner",
-      "note": "0 字节空目录，疑未加引号路径残留；来源无法完全确证，待裁决"
-    },
-    {
       "path": "AstroCS.wiki",
       "class": "F1",
       "owner_task": "owner",
       "note": "0 字节空目录；evidence/refactor 记「缺 .gitmodules 的普通目录」"
-    },
-    {
-      "path": "worktrees",
-      "class": "F1",
-      "owner_task": "owner",
-      "note": "0 字节空目录；AGENTS §5 禁 worktree，疑历史残留"
     },
     {
       "path": "p8-files.patch",
@@ -241,6 +201,16 @@
     "strictness": "allowed_files/allowed_dirs 逐条等于 ENGINEERING_SPEC §7 字面清单，未新增任何白名单条目；registered_local_retention 是「已登记待裁决」台账（只减不增），不是白名单扩展。",
     "runtime_products": "runtime_product_patterns 命中即红（无论是否被 .gitignore 覆盖）——依据 ASTROCS_DESIGN §6.3 与 ci/ci_repair_round.py:118「目标目录解析为 CWD(=仓库根)」缺陷认定。",
     "ignored_patterns": "ignored_patterns 为 .gitignore 已覆盖的本地目录（build/ 是 ci/steps 与 CMakePresets 的既定构建目录），出现时记 tolerated_present 并上报，不判红；未登记的新条目仍判红。",
-    "growth_rule": "新增根条目必须先经负责人确认并同步 ENGINEERING_SPEC §7，再改本清单；禁止把本清单当只增不减的豁免表。"
-  }
+    "growth_rule": "新增根条目必须先经负责人确认并同步 ENGINEERING_SPEC §7，再改本清单；禁止把本清单当只增不减的豁免表。",
+    "retention_cleanup": "2026-09-16（RETIRE-001；依据 工程控制/PROJECT-GOVERNANCE-01/GAP_AUDIT.md「GAP-033 附注」：该 7 条悬空登记由 RETIRE-001 清理）删除 7 条已不存在的登记条目：CHANGELOG.md / REVIEW.md / ASTROCS_PROJECT_CONSTITUTION.md / AstroCS_ENGINEERING_CONSTRAINTS.md / evidence / CS / worktrees。物理条目均已不存在，悬空登记本身即 ENGINEERING_SPEC §8 禁止的「静默坏掉」；此为台账只减不增方向清理，不是白名单放宽。前四条随 commit 01db973b（ROOT-007）删除，复原命令见 reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md；CS/ 与 worktrees/ 从未入库（0 字节空目录，无 git 历史可复原）。",
+    "gov001_pending_owner_root_entries": {
+      "checks": "CI 执行器（ci/run_checks.py）本轮运行产出的逐检查 JSON 目录（2026-09-16 18:12，38 项）；根因：产出目录解析为进程 CWD（=仓库根），违反 ENGINEERING_SPEC §7「禁止把运行产物产出到项目根目录」与 ASTROCS_DESIGN §6.3。建议改法（不在 GOV-001 文件域）：执行器写入 --out-dir，默认 artifacts/ci/（已 gitignore）；CI-001 收敛窗口内由该任务落地。校验：arartifacts 目录存在且仓库根无 checks/ 与 ci_result.json。",
+      "ci_result.json": "同一执行器写在仓库根的汇总 JSON（179,145 B，entry_count=38）；根因：产出目录解析为进程 CWD（=仓库根），违反 ENGINEERING_SPEC §7「禁止把运行产物产出到项目根目录」与 ASTROCS_DESIGN §6.3。建议改法（不在 GOV-001 文件域）：执行器写入 --out-dir，默认 artifacts/ci/（已 gitignore）；CI-001 收敛窗口内由该任务落地。校验：arartifacts 目录存在且仓库根无 checks/ 与 ci_result.json。"
+    }
+  },
+  "gov001_pending_owner_root_entries": [
+    "checks",
+    "ci_result.json"
+  ],
+  "gov001_pending_owner_root_entries_note": "GOV-001 根条目结论的机器可读登记面（只减不增）。这些顶层条目不在 ENGINEERING_SPEC §7 白名单内，也不是本任务可以自行新增/删除的条目；在此登记为「已确证存在、处置权/处置动作不在 GOV-001 文件域」，以免 §7 门把它们误判成新散落产物。新增条目必须先由负责人确认并同步 §7 与 allowed_files/allowed_dirs，禁止把本字段当只增不减的豁免表。"
 }

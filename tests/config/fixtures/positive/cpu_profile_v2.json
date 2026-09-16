@@ -1,0 +1,48 @@
+{
+  "schema": "astrocs.cpu-profile/v2",
+  "profile_id": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "created_utc": "2026-09-16T00:00:00Z",
+  "host": {
+    "arch": "amd64",
+    "vendor": "GenuineIntel",
+    "family": 6,
+    "model": 1,
+    "stepping": 1,
+    "os_abi": "linux",
+    "features": [
+      "avx2"
+    ],
+    "xcr0": "231",
+    "logical_available": 8,
+    "quota_signature": ""
+  },
+  "build": {
+    "astrocs_version": "0.1.0-alpha.1",
+    "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "benchmark_binary_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "runtime_build_id": "0.1.0-alpha.1+g1234567890ab",
+    "provider_build_ids": {
+      "baseline": "loaded"
+    }
+  },
+  "memory_bandwidth": {
+    "copy": 1,
+    "read": 1,
+    "write": 1,
+    "triad": 1
+  },
+  "raw_samples_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "kernels": {
+    "calibration-pixel-transform": {
+      "workload_class": "memory",
+      "provider": "avx2",
+      "workers": 8,
+      "block": 1,
+      "correctness_test": "oracle:pass",
+      "self_test_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "median": 1,
+      "mad": 0.1,
+      "fallback_reason": null
+    }
+  }
+}
