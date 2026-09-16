@@ -5,14 +5,14 @@
 > CONTRACT_READY，entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/integration/`
 > → `lib/algorithms/rejection/` → `lib/algorithms/sampling/` → `lib/algorithms/upm/` 先例新建，
 > 仅合同文件、无源码、不与 legacy 目录重叠；生产源引用不搬家。
-> 生产源 `lib/phase3_session/p3_output.cpp`（**556 行**，根 CMakeLists.txt
+> 生产源 `lib/algorithms/fits_output/p3_output.cpp`（**556 行**，根 CMakeLists.txt
 > `add_library(astrocs_phase3_session …)` 五源文件之一）+ 唯一权威
-> 签名头 `lib/phase3_session/p3_output.h`（**95 行**）；进程内编排消费方
+> 签名头 `lib/algorithms/fits_output/p3_output.h`（**95 行**）；进程内编排消费方
 > `lib/phase3_session/p3_session.cpp`（**441 行**，run 段调
 > `p3_output_write_atomic_ex`）；执行测试 `tests/unit/p3_output_test.cpp`
 > （**153 行**，tests/unit/CMakeLists.txt 注册）。行数实测 2026-09-16
-> （`timeout 60 wc -l lib/phase3_session/p3_output.cpp
-> lib/phase3_session/p3_output.h lib/phase3_session/p3_session.cpp
+> （`timeout 60 wc -l lib/algorithms/fits_output/p3_output.cpp
+> lib/algorithms/fits_output/p3_output.h lib/phase3_session/p3_session.cpp
 > tests/unit/p3_output_test.cpp`）；行号锚不冻结，按 `path::symbol` 定位。
 
 ## 身份与合同
@@ -58,7 +58,7 @@
   HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER；COVERAGE 扩展 EXTNAME +
   标准 DATASUM/CHECKSUM（CFITSIO `fits_write_chksum`；自算 `fdatasum`
   已在 B2-A9 删除——原记「32-bit fdatasum，:210-217」为陈旧口径，
-  2026-09-16 复测 `grep -c fdatasum lib/phase3_session/p3_output.cpp` = 0）。
+  2026-09-16 复测 `grep -c fdatasum lib/algorithms/fits_output/p3_output.cpp` = 0）。
 - 独立重开验证（p3_output_verify）：READONLY 重开 → 逐 HDU 尺寸/像素
   回环（NaN==NaN 语义 :311-313）→ coverage 二值门（>0.5f）回环 →
   sha256 重算；哈希失败 = 完整性锚缺失 → P3_OUT_IO，result 不携带
@@ -110,7 +110,7 @@
   docs/algorithms/PHASE3_FITS_IMPL.md「B2-A9/A10 已闭合」不否定本行。
   session 内核 WCS 一致性由写路径单点保证：verify 已按 B2-A9 读回
   CTYPE/CRPIX/CRVAL/CD 对拍（原记「(void)wcs」口径已取消——2026-09-16
-  实测 `grep -c '(void)wcs' lib/phase3_session/p3_output.cpp` = 0）。
+  实测 `grep -c '(void)wcs' lib/algorithms/fits_output/p3_output.cpp` = 0）。
 
 ## 关联文档
 

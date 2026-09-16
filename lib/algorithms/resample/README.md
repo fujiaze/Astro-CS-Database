@@ -3,8 +3,8 @@
 > P3-RSMP-DOC 冻结（2026-09-12，SA-P3-R）。本目录为 Phase3 HiPS 重采样域
 > 迁移合同落位（三件套：README + module.yaml + memory.md），照
 > lib/algorithms/projection→phase3_fits 迁移目录先例新建。**现状**（行数实测
-> 2026-09-16：`timeout 60 wc -l lib/phase3_session/p3_resample.h
-> lib/phase3_session/p3_resample.cpp`）：生产源实际位于 lib/phase3_session/
+> 2026-09-16：`timeout 60 wc -l lib/algorithms/resample/p3_resample.h
+> lib/algorithms/resample/p3_resample.cpp`）：生产源实际位于 lib/phase3_session/
 > （p3_resample.h 150 行 + p3_resample.cpp 519 行，astrocs_phase3_session
 > 静态库成员，根 CMakeLists.txt `add_library(astrocs_phase3_session …)`）；
 > dll_target=astrocs_p3_resample.dll 为矩阵合同值，尚未存在
@@ -36,7 +36,7 @@
 
 ## 3 生产源（冻结实测，2026-09-12）
 
-- 唯一权威签名头: `lib/phase3_session/p3_resample.h`（150 行，2026-09-16 实测）——
+- 唯一权威签名头: `lib/algorithms/resample/p3_resample.h`（150 行，2026-09-16 实测）——
   公共符号（按 `path::symbol` 定位，不冻结行号）: `P3ResampleStatus` /
   `p3_order_select` / `p3_resample_check_mode` / `P3SamplerImpl`(前置声明) /
   `P3Sampler` / `p3_sampler_open` / `p3_sampler_open_ex` /
@@ -47,7 +47,7 @@
   （uncertainty 面按 DATA-P3-UNC-001 §30.4-4 supersession 追加）。
   **注意**：ALG-P3-RSMP-IMPL-001 §4 仍记「全部公共符号（10 个）/58 行」，
   与本节实测不符——该滞后口径属 M1a-C-007，本 README 按实测记录，不复抄旧值。
-- 实现: `lib/phase3_session/p3_resample.cpp`（519 行，2026-09-16 实测；
+- 实现: `lib/algorithms/resample/p3_resample.cpp`（519 行，2026-09-16 实测；
   按 `path::symbol` 定位）: `kTileWidth=512`、`SharedTileCache`
   （**跨 worker 共享、有界 LRU + 缺失负缓存**，P30 `955c45df`；容量 = max_tiles，
   与 worker 数无关）、`read_leaf`、`p3_order_select`、`p3_resample_check_mode`、

@@ -5,7 +5,7 @@
   本目录 `lib/algorithms/resample/` 三件套（README r1 + module.yaml +
   memory.md）由 P3-RSMP-DOC 建立。
 - 落位: `lib/algorithms/resample/`（本目录）。实测生产源
-  lib/phase3_session/p3_resample.cpp + p3_resample.h 位于
+  lib/algorithms/resample/p3_resample.cpp + p3_resample.h 位于
   lib/phase3_session/ ——该目录为 Phase3 会话编排域共享源
   （p3_session/p3_output/p3_wcs/p3_resample/hips_properties 五源同库
   astrocs_phase3_session，根 CMakeLists.txt:460-465），非整目录归属
@@ -65,7 +65,7 @@
   p3_interp_test.cpp 109 行 / p3_coverage_test.cpp 106 行独立参考
   实现）。
 - 生产源锚（read/grep 实测，2026-09-12）:
-  lib/phase3_session/p3_resample.h（58 行，唯一权威签名头）:
+  lib/algorithms/resample/p3_resample.h（58 行，唯一权威签名头）:
   P3ResampleStatus :12-17（P3_RS_OK=0/P3_RS_PARAM=1/
   P3_RS_UNSUPPORTED=2/P3_RS_IO=3）、p3_order_select :21、
   p3_resample_check_mode :25、P3SamplerImpl 前置声明 :28、
@@ -73,7 +73,7 @@
   p3_sampler_open_ex :36-38、p3_sampler_set_max_tiles :42、
   p3_sample_nearest :46-47、p3_sample_bilinear :51-52、
   p3_sampler_close :54；头注 :1-3（ALG-P3-003/P3-003 合同面）。
-  lib/phase3_session/p3_resample.cpp（239 行）: kTileWidth=512 :18
+  lib/algorithms/resample/p3_resample.cpp（239 行）: kTileWidth=512 :18
   （SCI §9a-1 冻结一致）、kReaderBuf=512² :19、TileCache :22-36
   （FIFO 最旧逐出 keys.erase(begin())，cap 默认 8）、read_leaf
   :49-80（leaf_order=tile_order+9；leaf_to_tile_nest/tile_to_leaf_

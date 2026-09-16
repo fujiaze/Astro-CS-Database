@@ -1,4 +1,6 @@
-// lib/phase3_session/p3_output.cpp — 输出原子写/校验 (ALG-P3-004) — P3-004
+// lib/algorithms/fits_output/p3_output.cpp — 输出原子写/校验 (ALG-P3-004) — P3-004
+// W4-A9 批次 3 (2026-09-17): 原址 lib/phase3_session/p3_output.cpp, 按 ASTROCS_DESIGN
+// §7.1「fits_output」行迁入本模块; 源逐字节等价 (仅头注 | include 面改锚)。
 #include "p3_output.h"
 
 #if defined(_WIN32)
@@ -45,7 +47,9 @@
 #include "aio_fits.h"
 #include "astro_image_io.h"
 #include "fitsio.h"
-#include "../infrastructure/aio/src/aio_cfitsio_mutex.h"
+// W4-A9 批次 3: 原相对路径 ../infrastructure/aio/src/... 只在旧址 (lib/phase3_session/)
+// 成立; 该目录已由 astrocs_aio 的 PUBLIC include 面提供 ⇒ 扁平引用 (迁址无关)。
+#include "aio_cfitsio_mutex.h"
 #include "sha256.h"
 
 #include <vector>
