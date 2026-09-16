@@ -41,28 +41,37 @@ static void test_blank_sky() {
 
 static void test_monte_carlo_poisson() {
   // Poisson+read noise Monte Carlo (固定 seed): 解析均值/方差对照
-  // 模型: x = Poisson(signal/gain)*gain + N(0, read_noise)
+  // 模型 (SCI-NOISE-001 §5:58; gain 为 e-/ADU):
+  //   N_e ~ N(signal·gain, signal·gain)     (Poisson 大均值正态近似)
+  //   ADU = N_e/gain + N(0, read_noise_e/gain)
+  //   E[x] = signal [ADU];  Var(x) = signal/gain + (read_noise_e/gain)² [ADU²]
+  // M3-A-006 订正: 原 fixture 写 ADU = N_e·gain (增益方向与 SCI 相反),
+  // 其"解析真值"随之变成 signal·gain + rn², 与 SCI §5:58 相差 gain²=2.25 倍。
   const double signal = 500.0, gain = 1.5, read_noise = 3.0;
+  const std::size_t n_pix = 65536;  // MAD 的 SE≈1.166/√n=0.46% ⇒ 5% 门 ≫5σ
   std::mt19937 rng(7);
   std::vector<float> px;
-  px.reserve(8192);
-  for (int i = 0; i < 8192; ++i) {
-    double electrons = 0;
-    double mean = signal / gain;
-    // Poisson 近似 (大 mean): normal(mean, sqrt(mean))
-    std::normal_distribution<double> pdist(mean, std::sqrt(mean));
-    electrons = pdist(rng);
-    std::normal_distribution<double> rdist(0.0, read_noise);
-    double adus = electrons * gain + rdist(rng);
+  px.reserve(n_pix);
+  const double mean_e = signal * gain;  // 电子数均值 [e-]
+  std::normal_distribution<double> pdist(mean_e, std::sqrt(mean_e));
+  std::normal_distribution<double> rdist(0.0, read_noise / gain);  // [ADU]
+  for (std::size_t i = 0; i < n_pix; ++i) {
+    const double electrons = pdist(rng);
+    const double adus = electrons / gain + rdist(rng);
     px.push_back(static_cast<float>(adus));
   }
   NoiseModel m;
   auto r = m.estimate(px);
   CHECK(r.ok());
   if (r.ok()) {
-    // 解析: variance = signal*gain + read_noise²  (ADU²)
-    const double analytic_var = signal * gain + read_noise * read_noise;
-    CHECK(std::fabs(r.value().variance - analytic_var) / analytic_var < 0.15);
+    // 解析: variance = signal/gain + (read_noise_e/gain)²  [ADU²] (SCI §5:58)
+    const double analytic_var =
+        signal / gain + (read_noise / gain) * (read_noise / gain);
+    CHECK(std::fabs(r.value().variance - analytic_var) / analytic_var < 0.05);
+    // 生产诊断式必须与 SCI 解析式一致 (原测试从未调用它 ⇒ 抓不住方向反转)
+    auto gv = m.gain_variance(signal, gain, read_noise);
+    CHECK(gv.ok() && gv.value().valid);
+    CHECK(std::fabs(gv.value().variance - analytic_var) < 1e-9 * analytic_var);
   }
 }
 

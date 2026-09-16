@@ -30,7 +30,8 @@
 
 namespace {
 
-constexpr double kLn10 = 2.302585092994045684;
+// log10↔ln 换算常数 kLn10: 本模块唯一定义点 = noise_model.cpp (V12-N-16；
+// 此处原为逐位等值的复制字面量且全文件零引用, 已删除)
 constexpr double kPi   = 3.14159265358979323846;
 // FWHM = 1.230310 * sigma (SCI-PSF-001 5, 各向同性 Moffat4 beta=4)
 constexpr double kMoffat4FwhmFactor = 1.230310;

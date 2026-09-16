@@ -177,7 +177,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 - **DISP-PHOT-008**: Photometer 孔径/天空环全图 O(h·w) 扫描 + 背景中值
   整段排序（photometer.cpp:24-62），未优化且未接管线。
 - **DISP-PHOT-009**: 帧级 QA 换算（sigma_mag/sigma_cal_rel）落位
-  snr_estimator（snr_phot_cal_quality，noise_model.cpp:276），本模块仅
+  snr_estimator（snr_phot_cal_quality，noise_model.cpp:305），本模块仅
   登记边界。
 
 ### 13.4 冻结测试设计 TEST-PHOT-DESIGN-001（容差不得放宽）

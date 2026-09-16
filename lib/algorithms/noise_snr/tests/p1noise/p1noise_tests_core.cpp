@@ -659,6 +659,64 @@ int test_negative() {
     }
     P1NOISE_CHECK(cs, true, "n8_silent_clamp");
 
+    // n9: M3-A-005 平面几何退化 (DISP-NOISE-010) —— 控制点共线/近共线时
+    // 必须 has_spatial_field=0 且 fill 为全局常量场。原实现用绝对阈值
+    // fabs(det)>1e-24: 精确共线 (det==0) 仍报 spat=1, fill 退化为"控制点
+    // 方差的算术平均"冒充空间场 (与 variance_bg_global 的稳健中位数不是
+    // 同一个量); 近共线虽 det>1e-24, 平面把方差场病态外推到真值 ±62%。
+    // 判据 = 中心化控制点点云 Gram 特征值比 λlo/λhi ≥ 1/16 (κ≤4)。
+    {
+        const int H9 = 512, W9 = 512, G9 = 8, PH9 = H9 / G9;
+        const FixNoiseA fx9 = fix_noise_a_gaussian(20260926ull, W9, H9, 5.0);
+        // cells: patch 线性号 py*G9+px; 掩膜全 1 (无 sky), 仅放开这些 patch
+        auto mask_of = [&](const std::vector<int>& cells) {
+            std::vector<float> m(static_cast<std::size_t>(H9) * W9, 1.0f);
+            for (int c : cells) {
+                const int px = c % G9, py = c / G9;
+                for (int y = py * PH9; y < (py + 1) * PH9; ++y)
+                    for (int x = px * PH9; x < (px + 1) * PH9; ++x)
+                        m[static_cast<std::size_t>(y) * W9 + x] = 0.0f;
+            }
+            return m;
+        };
+        std::vector<int> rowA, rowB, rowC;
+        for (int px = 0; px < 8; ++px) rowA.push_back(4 * G9 + px);
+        rowB = rowA; rowB.push_back(5 * G9 + 0);
+        for (int px = 0; px < 4; ++px) { rowC.push_back(4 * G9 + px); rowC.push_back(5 * G9 + px); }
+        const std::vector<int>* cell_sets[3] = {&rowA, &rowB, &rowC};
+        const char* names[3] = {"A_collinear", "B_near_collinear", "C_two_rows_control"};
+        const int want_n[3] = {8, 9, 8};
+        const int want_spat[3] = {0, 0, 1};   // C 为几何合格对照 (λlo/λhi=0.20)
+        for (int k = 0; k < 3; ++k) {
+            const std::vector<float> mk = mask_of(*cell_sets[k]);
+            const SnrNoiseModelConfig cfg9 = default_cfg();
+            BuildResult r9 = build_f64(fx9.data, W9, H9, &mk, nullptr, nullptr, &cfg9);
+            P1NOISE_CHECK_EQ(cs, r9.rc, 0);
+            P1NOISE_CHECK_EQ(cs, (int)r9.model.n_qualified_patches, want_n[k]);
+            P1NOISE_CHECK_EQ(cs, (int)r9.model.has_spatial_field, want_spat[k]);
+            std::vector<float> v9(static_cast<std::size_t>(H9) * W9, -1.0f);
+            P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_fill(&r9.model, H9, W9,
+                                                         v9.data(), nullptr), 0);
+            double vmin = v9[0], vmax = v9[0];
+            for (float v : v9) { if (v < vmin) vmin = v; if (v > vmax) vmax = v; }
+            if (want_spat[k] == 0) {
+                // 几何退化 ⇒ 全场常量 = variance_bg_global (禁伪空间场)。
+                // out_variance 是 FLOAT32 产品 (DATA_SEMANTICS §13.2), 故按
+                // float 存储精度逐位比较 (与 g1 同口径)
+                const float want_v = static_cast<float>(r9.model.variance_bg_global);
+                P1NOISE_CHECK(cs, vmin == vmax && vmax == (double)want_v,
+                              "n9_geom_degenerate_const_fill");
+            } else {
+                P1NOISE_CHECK(cs, vmax > vmin, "n9_geom_ok_spatial_fill");
+            }
+            std::fprintf(stdout, "[p1noise][n9] %s nq=%u spat=%u field[%.4f,%.4f]\n",
+                         names[k], r9.model.n_qualified_patches,
+                         (unsigned)r9.model.has_spatial_field, vmin, vmax);
+            free_model(&r9.model);
+        }
+        P1NOISE_CHECK(cs, true, "n9_plane_geometry_gate");
+    }
+
     return cs.failures == 0 ? 0 : 1;
 }
 

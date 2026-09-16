@@ -107,6 +107,31 @@ bool collect_patch_sky(const T* data, int w,
     return (int)out_samples.size() >= min_samples;
 }
 
+// 平面几何可用性判据 (M3-A-005 / DISP-NOISE-010): 控制点必须张成二维。
+// 判据 = 中心化点云 Gram 矩阵 [[sxx,sxy],[sxy,syy]] 的特征值比 λlo/λhi,
+// 无量纲; 等价于点云条件数 κ=√(λhi/λlo) ≤ 1/√kPlaneGeomRatio。
+// 原绝对阈值 |det|>1e-24 (量纲 px⁴) 已废除: 共线点云 det==0 时它不阻止
+// has_spatial_field=1; 近共线点云 det 虽 >1e-24, 平面仍把方差场病态外推 ±62%。
+constexpr double kPlaneGeomRatio = 0.0625;  // λlo/λhi 下限 (=1/16, κ≤4)
+double plane_geometry_ratio(const double* xs, const double* ys, std::size_t n) {
+    if (!xs || !ys || n < 2) return 0.0;
+    double mx = 0.0, my = 0.0;
+    for (std::size_t i = 0; i < n; ++i) { mx += xs[i]; my += ys[i]; }
+    mx /= (double)n; my /= (double)n;
+    double sxx = 0.0, sxy = 0.0, syy = 0.0;
+    for (std::size_t i = 0; i < n; ++i) {
+        const double X = xs[i] - mx;
+        const double Y = ys[i] - my;
+        sxx += X * X; sxy += X * Y; syy += Y * Y;
+    }
+    const double tr = sxx + syy;
+    const double disc = std::sqrt((sxx - syy) * (sxx - syy) + 4.0 * sxy * sxy);
+    const double lam_hi = 0.5 * (tr + disc);
+    const double lam_lo = 0.5 * (tr - disc);
+    if (!(lam_hi > 0.0) || !std::isfinite(lam_hi) || !std::isfinite(lam_lo)) return 0.0;
+    return lam_lo / lam_hi;
+}
+
 // 模板内核: 估计 blank-sky 方差模型 (float/double 数据)
 template <typename T>
 int noise_model_impl(const T* data, int h, int w,
@@ -260,8 +285,12 @@ int noise_model_impl(const T* data, int h, int w,
         out_model->ctrl_variance[i] = var;
         out_model->ctrl_ivar[i] = 1.0 / var;
     }
+    // 平面场启用条件 = enable_spatial_field && n>=4 && 控制点几何张成二维
+    // (M3-A-005: 与 fill 同一无量纲判据; 几何退化 ⇒ 全局常量兜底)
     out_model->has_spatial_field =
-        (c.enable_spatial_field && n >= 4) ? 1 : 0;
+        (c.enable_spatial_field && n >= 4 &&
+         plane_geometry_ratio(ctrl_x.data(), ctrl_y.data(), n) >= kPlaneGeomRatio)
+            ? 1 : 0;
     out_model->source = 0;  // empirical blank-sky (production 基线)
     return 0;
 }
@@ -400,7 +429,10 @@ void fill_impl(const NoiseWeightModelV1* m, int h, int w,
         }
         double b = 0, c = 0;
         const double det = sxx * syy - sxy * sxy;
-        if (std::fabs(det) > 1e-24) {
+        // M3-A-005: 与 build 阶段同一无量纲几何判据 (绝对 |det|>1e-24 已废除;
+        // 判据合格 ⇒ det>0, 除法安全)
+        if (plane_geometry_ratio(m->ctrl_x_px, m->ctrl_y_px, (std::size_t)n) >=
+            kPlaneGeomRatio) {
             b = (sxv * syy - syv * sxy) / det;
             c = (syv * sxx - sxv * sxy) / det;
         }
