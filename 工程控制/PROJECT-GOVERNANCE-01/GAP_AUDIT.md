@@ -334,7 +334,7 @@
 
 | ID | 无法判定的内容 | 缺什么才能判定 | 归属任务 |
 |---|---|---|---|
-| U-08 | 本次治理应以哪个 SHA 为基线：`HEAD=main=ecf6ad6f` 与 `origin/main=f96dff61` 不一致（本地领先 1 个提交），且与本文件抬头 `a861d8f6` 亦不同 | 负责人确认「基线 = 本地 HEAD 并先 push」还是「基线 = origin/main 并先同步」；在确认前任何「基线一致」声明不成立 | GOV-001 / 前台 |
+| U-08（**已于 5f891080 由前台 push 消除**） | 本次治理应以哪个 SHA 为基线：`HEAD=main=ecf6ad6f` 与 `origin/main=f96dff61` 不一致（本地领先 1 个提交），且与本文件抬头 `a861d8f6` 亦不同。**处置：前台 2026-09-16 提交并 push `5f8910804691ba9e64a3426d5bd10f2deb848c30`，此后 HEAD=main=origin/main=5f891080，三 SHA 一致，本条关闭。** | 已消除；后续治理以 `5f891080` 为基线 | GOV-001 / 前台 |
 | U-07（补证据，判定仍待裁决） | `run/` 应 gitignore 还是 tracked | 实测 `git ls-files run` **仅 `run/.gitkeep`**，`.gitignore` 有 `run/*` + `!run/.gitkeep`；§7 白名单本身列有 `run/（gitignore：临时产物/日志）`。故冲突点仅为「目录存在 vs 被 gitignore」，证据已足；仍需负责人裁决是否保留 `.gitkeep` 占位口径 | GOV-001 |
 
 ### 5.5 本轮新发现（追加为 GAP-023，不修改既有条目）
@@ -345,3 +345,39 @@
 - **证据（`git check-ignore -v` 实测，见 `22_gap_evidence_scan4.txt §T7`）**：以下顶层条目 **ignored=NO** 且 untracked，会长期显示在 `git status`：`run_context.json`、`p8-files.patch`、`p9-files.patch`、`p10-files.patch`、`p11-files.patch`、`p15a-files.patch`、`astrocs_p1sess_neg`、`astrocs_p1sess_perf`、`astrocs_p1sess_props`、`astrocs_p1sess_test`、`worktrees/`、`CS/`、`Database/`、`engineering/`（空目录，git 不跟踪空目录故无影响）、`run/`（目录本身）。
 - **已覆盖对照**：`build/`(`.gitignore:22`)、`out/`(121)、`logs/`(18)、`Testing/`(120)、`.pytest_cache/`(91)、`graph/`(130)、`AstroCS.wiki/`(122)、`astrocs_run_*.json`(119)、`alloc_report.json`(128)、`alloc_samples.csv`(129)、`resource_samples.csv`(123)、`resource_summary.json`(124)、`worker_balance.csv`(125)、`BASS DR3/`(7)、`GaiaDR3/`(3)、`GaiaDR3SP/`(4) —— 均已 ignored。
 - **治理任务**：ROOT-002（补 `.gitignore` + 机器门）。
+
+### 5.7 ROOT 线（BASE-001 / ROOT-001 / ROOT-002 / ROOT-003）收口新发现
+
+> 编号顺延：GAP-023 在 §5.5，GAP-024/025/026 在 §5.6，GAP-027 由调度线登记（build 清运副作用），本节从 **GAP-028** 起。§5.6 的 GAP-024/025 本次未改动、未复核。
+
+**GAP-028　违规（既有红灯）：注册表校验与 `tests/quality` 在执行前就是红的**
+
+- **权威依据**：ENGINEERING_SPEC §8（每项检查能红能绿；`ci/checks.json` 是唯一注册表）。
+- **证据（ROOT-002 实测）**：
+  1. `python3 ci/validate_registry.py --registry ci/checks.json --strict` → **rc=1 / 1 条错误**；错误为 R10「linux-main 末位必须是 KNOWN-FAILURES-BASELINE-CHECK」，实测末位是 `CTEST-COMPARE-PRODUCTS-QUALITY`。以 HEAD 版注册表复跑得**同样 1 条错误**（`run/PROJECT-GOVERNANCE-01/ROOT-002/logs/g2-registry-{before,after}.json`），证明与 ROOT-002 新增项无关。
+  2. `python3 -m unittest discover -s tests/quality -t tests/quality` → **rc=1（4 failed / 6 skipped / 99 tests）**：`test_docchk002_mutation.test_01_real_repo_passes`、`test_doc_machine_check.test_05_command_tree_mutation_fails`、`test_doc_line_anchors.test_t01_real_repo_all_anchors_green`、`test_known_failures_baseline_ci.test_t13b_check_gate_is_last_linux_main_entry`。移除本任务新增的 `tests/quality/test_root_cleanliness.py` 后复跑为**同样 4 failed（94 tests）**，差分证明这 4 项为**预存红灯**。
+- **影响**：ROOT-002 验收门「`tests/quality` discover rc=0」在当前基线上无法达成，只能达成「本任务新增 5 例全过 + 不新增任何失败」。
+- **治理任务**：CI-001（注册表末位口径）、DOC-001（三个 doccheck 红灯）。
+
+**GAP-029　结构：`run/` 的体量与「被引用证据」高度重合，可无损清运空间远小于体积本身**
+
+- **权威依据**：CONTROL_PACK_SPEC §3（现状须可复核）；ENGINEERING_SPEC §7（`run/` 为临时产物家）。
+- **证据（ROOT-003 精确引用扫描 `run/PROJECT-GOVERNANCE-01/ROOT-003/logs/refs-by-target.txt`）**：按 `run/<dir>/` 字面引用扫描 `reports/ evidence/ docs/ ci/ tests/ contracts/ tools/`（排除 `run/` 自身与本次新产物），**27 个目录被引用 / 116 个未引用**；被引用集合占 **100,283,248,730 B（93.40 GiB）**。其中 `run/perf-fix`（61,762,795,655 B = 57.52 GiB）被 `reports/review-package-20260915/08_算法推导_drizzle.md` 当作数值来源引用，`run/release-rescue`（29,597,850,726 B = 27.57 GiB）被 `reports/review-package-20260915/01_工作总览_V3至今.md`、`05_验收与证据索引.md` 当作裁决记录事实源引用。
+- **结论**：`run/` 102G 中本次可无损清运的只有 **5,430,815,754 B（5.06 GiB）**（70 个未引用且可确证为一次性临时数据的目录，已执行）。要回收更多，必须先把被引用证据**归档进 `reports/`/`artifacts/` 并改写引用**，属 ROOT-003 复评 / QA-001。
+- **治理任务**：ROOT-003 复评、QA-001。
+
+**GAP-030　流程：控制包执行期内前台仍向 main 提交，冻结基线随时失效**
+
+- **权威依据**：CONTROL_PACK_SPEC §6.2（前台统一提交）、§7.1（独立验证三层）；ENGINEERING_SPEC §6。
+- **证据**：BASE-001 冻结时 `HEAD=ecf6ad6f`（tracked 5,366）；执行期间前台提交 `5f891080`（tracked 5,367，且改写 `tasks/ROOT-001.md`/`tasks/ROOT-003.md`、新增 ROOT-004），使 BASE-001 的 `git status`/`ls-tree` 快照过期，并直接造成 U-08。ROOT-001 的「tracked 行数不变」门因此改为「同一次脚本执行内 before/after 相等」的相对口径（5367/5367）。
+- **影响**：任何「基线冻结」类验收门在并发提交下都会静默失效；`OPERATOR.md §2` 未禁止执行期提交。
+- **治理任务**：GOV-001 / OPERATOR（建议明确：BASE-001 冻结期内禁止 commit，或每次 commit 后强制重跑 BASE-001 差量登记）。
+
+### 5.8 ROOT 线交付摘要（供前台验收引用）
+
+| 任务 | 状态 | 关键产物 | 关键数字 |
+|---|---|---|---|
+| BASE-001 | IN_PROGRESS（自证完备） | `reports/PROJECT-GOVERNANCE-01/baseline/00_MANIFEST.md` + `01..23_*` + `SHA256SUMS` | §0 三红灯 rc=1 复现一致；新增 U-08（已消除）与 GAP-023 |
+| ROOT-001 | IN_PROGRESS（自证完备） | `工程控制/PROJECT-GOVERNANCE-01/ROOT_LEDGER.md`（344 行）+ `reports/PROJECT-GOVERNANCE-01/root/{ROOT_LEDGER.tsv,ledger-stats.json,deleted-manifest/**}` | 顶层 133 → 60；删除 74 项 / 6,451,428,033 B |
+| ROOT-002 | IN_PROGRESS（自证完备；1 门受预存红灯阻塞，见 GAP-028） | `ci/root_manifest.json`、`tools/quality/check_root_cleanliness.py`、`tests/quality/test_root_cleanliness.py`、`ci/checks.json`（+CHK-ROOT-CLEAN，146 项）、`.gitignore` | 检查器正例 rc=0；3 负例 rc=1；真实根探针 2 次 rc=1 后复绿；注册表校验无新增错误 |
+| ROOT-003 | IN_PROGRESS（自证完备） | `工程控制/PROJECT-GOVERNANCE-01/RETENTION.md`（221 行）+ `run/PROJECT-GOVERNANCE-01/ROOT-003/logs/**` | `run/` 102G → 97G；删除 70 目录 / 5,430,815,754 B；27 个被引用目录全部保留 |
