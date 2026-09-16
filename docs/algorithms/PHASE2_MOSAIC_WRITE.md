@@ -124,7 +124,7 @@
   写入前转换 buffer[i]=buf[fits_index(i)]，否则 tile 内像素被散射错排
   （表现为 16px 周期 comb/重复星点）"；实现 `flux_leaf[i] =
   buf[nested_local_to_fits_index(i, 9, 512)]`（ACR 侧 :1028-1040；CPU 侧
-  :1606-1619；签名 lib/common/healpix/healpix_core.h:43）。
+  :1606-1619；签名 lib/algorithms/shared/healpix/healpix_core.h:43）。
 - **CPU reference 权威路径**（ALG-P2-HIPS-003，:1061-1541）:
   - ivar 逐帧读取缓冲: `ivarv[depth×chunk_pixels]`（:1065）+
     `ivar_valid[depth]` per-frame-slot（:1066）；逐帧

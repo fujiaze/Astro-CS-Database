@@ -35,7 +35,10 @@ NINE_REQUIRED_CLASSES = {
     "版本": ["VERSION-CONSISTENCY", "VERSION-NAMESPACES"],
     "schema": ["TASK-RESULT-SCHEMA"],
     "合同索引": ["CONTRACT-GRAPH"],
-    "SCI→TEST 追踪": ["TRACEABILITY-CODE", "TRACEABILITY-MATRIX", "CON-TRACEABILITY"],
+    # TRACEABILITY-CODE 于 2026-09-16 按负责人裁决退役（唯一默认输入 artifacts/prerelease_v5/
+    # tables/TRACEABILITY.csv 随 artifacts/ 删除，b1290525）：见 docs/ci/01_CHECKS.md §2 退役记录。
+    # 本类仍由后两项覆盖（两者均未受影响、仍可跑）。
+    "SCI→TEST 追踪": ["TRACEABILITY-MATRIX", "CON-TRACEABILITY"],
     "ACR dormant": ["ACR-DORMANT"],
     "生产可达性": ["PROD-REACH-SELFTEST"],
     "serial-heavy": ["NO-SERIAL-HEAVY", "SERIAL-HARDCODE"],

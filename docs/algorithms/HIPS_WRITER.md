@@ -60,7 +60,7 @@ docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边
 
 - (2a) 叶级局部索引映射：`fits_index(i) = nested_local_to_fits_index(i, 9, 512)`
   （:463-465；三处 scatter 写点 :464/:604/:809 全部同式）。权威实现
-  lib/common/healpix/healpix_core.cpp:287-296：NESTED 交错位解（x=偶位、
+  lib/algorithms/shared/healpix/healpix_core.cpp:287-296：NESTED 交错位解（x=偶位、
   y=奇位，nested_local_to_xy→nest_to_xy :272-275,37-54）后
   `fits = (511−x)·512 + y`——即 DATA_SEMANTICS §3 冻结的 (511−x)·512+y
   （CDS Hipsgen MAPTILES 对拍冻结，healpix_core.h:39-43 头注释）。tile 内

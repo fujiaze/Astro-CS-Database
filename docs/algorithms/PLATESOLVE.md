@@ -98,19 +98,19 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 | 符号 | 锚 | 角色 |
 |---|---|---|
-| ipv_solve_create | ipv_entry.cpp:275（声明 ipv_api.h:84） | 句柄生命周期 |
-| ipv_solve_destroy | ipv_entry.cpp:287（ipv_api.h:87） | 句柄释放 |
-| ipv_set_gaia_handle | ipv_entry.cpp:298（ipv_api.h:90） | Gaia 句柄注入 |
-| ipv_set_detector_handle | ipv_entry.cpp:311（ipv_api.h:93） | sdet 句柄注入 |
-| ipv_get_default_params | ipv_entry.cpp:324（ipv_api.h:198） | IpvParams 默认值（log_dir 空=无日志） |
-| ipv_get_last_inlier_count | ipv_entry.cpp:352（ipv_api.h:224） | inlier 计数查询 |
-| ipv_get_last_inliers | ipv_entry.cpp:366（ipv_api.h:232） | inlier 9 列缓冲（ipv_api.h:203-221：det_x/det_y/gaia_ra/gaia_dec/pred_x/pred_y/residual_x/residual_y/residual_dist） |
-| ipv_solve | ipv_entry.cpp:383（ipv_api.h:97） | 文件路径入口（legacy） |
-| ipv_solve_from_memory | ipv_entry.cpp:415（ipv_api.h:110） | PipelineFrame 内存入口 |
-| **ipv_solve_from_detections_v1** | ipv_entry.cpp:562（ipv_api.h:146） | **生产入口**（检测坐标 double 数组直入） |
-| ipv_solve_from_memory_with_callback | ipv_entry.cpp:604（ipv_api.h:165） | 回调进度变体 |
-| ipv_solve_from_memory_with_callback_d | ipv_entry.cpp:648（ipv_api.h:182） | 回调变体 FP64 |
-| do_solve_from_detections_v1_impl | ipv_entry.cpp:468 | 参数装配 → IPVSolver::solve_from_memory；try/catch → set_error_msg（:141，:181-187/:218-224） |
+| ipv_solve_create | ipv_entry.cpp:317（声明 ipv_api.h:113） | 句柄生命周期 |
+| ipv_solve_destroy | ipv_entry.cpp:329（ipv_api.h:116） | 句柄释放 |
+| ipv_set_gaia_handle | ipv_entry.cpp:340（ipv_api.h:119） | Gaia 句柄注入 |
+| ipv_set_detector_handle | ipv_entry.cpp:353（ipv_api.h:122） | sdet 句柄注入 |
+| ipv_get_default_params | ipv_entry.cpp:366（ipv_api.h:227） | IpvParams 默认值（log_dir 空=无日志） |
+| ipv_get_last_inlier_count | ipv_entry.cpp:407（ipv_api.h:253） | inlier 计数查询 |
+| ipv_get_last_inliers | ipv_entry.cpp:421（ipv_api.h:261） | inlier 9 列缓冲（ipv_api.h:232-250：det_x/det_y/gaia_ra/gaia_dec/pred_x/pred_y/residual_x/residual_y/residual_dist） |
+| ipv_solve | ipv_entry.cpp:438（ipv_api.h:126） | 文件路径入口（legacy） |
+| ipv_solve_from_memory | ipv_entry.cpp:473（ipv_api.h:139） | PipelineFrame 内存入口 |
+| **ipv_solve_from_detections_v1** | ipv_entry.cpp:623（ipv_api.h:175） | **生产入口**（检测坐标 double 数组直入） |
+| ipv_solve_from_memory_with_callback | ipv_entry.cpp:668（ipv_api.h:194） | 回调进度变体 |
+| ipv_solve_from_memory_with_callback_d | ipv_entry.cpp:715（ipv_api.h:211） | 回调变体 FP64 |
+| do_solve_from_detections_v1_impl | ipv_entry.cpp:529 | 参数装配 → IPVSolver::solve_from_memory；try/catch → set_error_msg（:141，:181-187/:218-224） |
 | IPVSolver::solve_from_memory | ipv_solver.cpp:781 | 主求解流程（入口日志 :794） |
 | 选星 + U 构建 | ipv_select.cpp:492-499（flux 降序取前 img_n_target）、:685-693 | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（:49,:253） |
 | 三角形投票 | ipv_triangle.cpp:296-357 | 线程局部投票矩阵（:296-300）+ omp for schedule(dynamic,64)（:309-311）+ 整数归并 collapse(2) schedule(static)（:347-357） |

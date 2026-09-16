@@ -235,8 +235,8 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   | 关键词 | 命中 | 处置 |
   |---|---|---|
   | `#pragma omp` | lib/phase3_session/*.cpp **0 处** | 无 |
-  | `hardware_concurrency` | p3_session.cpp:238（仅注释，禁用声明） | 合规 |
-  | `std::thread` | p3_session.cpp:327（采样池，非写面） | §8 声明面 |
+  | `hardware_concurrency` | p3_session.cpp:242（仅注释，禁用声明） | 合规 |
+  | `std::thread` | p3_session.cpp:335（采样池，非写面） | §8 声明面 |
   | `#pragma omp`（AIO 域） | aio_fits.cpp:1154 唯一 `parallel for schedule(static)` | 属 AIO 域非本域（QA-001 -fopenmp 编译处理），登记不改 |
   | `cfitsio_io_mutex` | p3_output.cpp:152 / aio_fits.cpp:529 / aio_cfitsio_mutex.h:11 | RT-008 合规 |
 - **取消点**：内核级 cancelled_at_row 参数（h:52，行粒度，session

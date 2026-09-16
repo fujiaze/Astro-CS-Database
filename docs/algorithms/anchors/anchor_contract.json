@@ -22,26 +22,26 @@
   {
    "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
    "basename": "api.cpp",
-   "path": "lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp",
-   "why": "§10 DISP-DRZ 表的 api.cpp = drizzle C API 实现（同目录 hp_drizzle_api.h:93 为其头）"
+   "path": "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp",
+   "why": "§10 DISP-DRZ 表的 api.cpp = drizzle C API 实现（同目录 hp_drizzle_api.h:93 为其头）；2026-09-16 ARCH-001 迁移 lib/healpix_db/healpix_drizzle → lib/algorithms/drizzle/healpix_drizzle"
   },
   {
    "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
    "basename": "healpix_core.h",
-   "path": "lib/healpix_db/healpix_drizzle/healpix_core.h",
-   "why": "shim 构造容忍 nside 非法（:25-27）"
+   "path": "lib/algorithms/drizzle/healpix_drizzle/healpix_core.h",
+   "why": "shim 构造容忍 nside 非法（:25-27）；2026-09-16 ARCH-001 迁移 lib/healpix_db/healpix_drizzle → lib/algorithms/drizzle/healpix_drizzle"
   },
   {
    "doc": "docs/algorithms/HIPS_WRITER.md",
    "basename": "healpix_core.h",
-   "path": "lib/common/healpix/healpix_core.h",
-   "why": "tile 排布/leaf_to_tile_nest 权威在 lib/common/healpix（HiPS 打包注释 :43-45）"
+   "path": "lib/algorithms/shared/healpix/healpix_core.h",
+   "why": "tile 排布/leaf_to_tile_nest 权威在 lib/algorithms/shared/healpix（HiPS 打包注释 :43-45）；2026-09-16 23acb453 由 lib/common/healpix 纯移动（内容逐字节相同）"
   },
   {
    "doc": "docs/algorithms/HIPS_WRITER.md",
    "basename": "healpix_core.cpp",
-   "path": "lib/common/healpix/healpix_core.cpp",
-   "why": "ang2pix_nest 实现 :233-243"
+   "path": "lib/algorithms/shared/healpix/healpix_core.cpp",
+   "why": "ang2pix_nest 实现 :233-243；2026-09-16 23acb453 由 lib/common/healpix 纯移动（内容逐字节相同）"
   },
   {
    "doc": "docs/algorithms/NOISE_ESTIMATION.md",
@@ -340,13 +340,13 @@
   {
    "id": "DRZ-SIPORDER",
    "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
-   "target": "lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp",
+   "target": "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp",
    "symbol": "sip_order"
   },
   {
    "id": "DRZ-MAXANGLE",
    "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
-   "target": "lib/healpix_db/healpix_drizzle/spherical_overlap.cpp",
+   "target": "lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp",
    "symbol": "drop_area"
   },
   {
@@ -370,7 +370,7 @@
   {
    "id": "HIPS-ANG2PIX",
    "doc": "docs/algorithms/HIPS_WRITER.md",
-   "target": "lib/common/healpix/healpix_core.cpp",
+   "target": "lib/algorithms/shared/healpix/healpix_core.cpp",
    "symbol": "ang2pix_nest"
   },
   {
