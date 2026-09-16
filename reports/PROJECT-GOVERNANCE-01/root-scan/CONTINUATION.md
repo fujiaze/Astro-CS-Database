@@ -234,7 +234,8 @@ git status --porcelain=v1 | grep -v -E "问题扫描/|reports/PROJECT-GOVERNANCE
 16. ⚠️ **路径漂移的高频形态（合并时用于重定位，不要当"文件消失"）**：`docs/science/X.md` 实为 `docs/algorithms/X.md`（PHASE2_SAMPLER / PHOTOMETRIC_FIT）；`lib/star_detection/sdet_api.cpp` → `lib/star_detector/src/`；`lib/star_detector/src/star_detector.cpp` → `lib/phase1/stars/star_detector.cpp`；`lib/phase1/photometry/image_corrector.cpp` → `lib/photometric_calib/cpp/src/`；`lib/astro_image_io/src/healpix/aio_healpix_io.h` → `lib/astro_image_io/include/`；`lib/hips/types.h` → `lib/hips/include/astrocs/hips/types.h`；`lib/plate_solve/src/ipv_triangle.cpp` → `lib/plate_solve/cpp/ipv/src/`；`include/` 公共头 96→23（其余在 `lib/*/include`）。
 17. ✅ **分配表/ID 映射已被交叉验证为正确 —— 分片对它的"笔误"指控经复核不成立，不要"修"它**：`C_ALG_IMPL_a` 报「`V10-N-07/N-08` 的『文件』列写 `p1/V10-c.md`」。前任实测：`_assign/C_ALG_IMPL_a.tsv` 两行的第 5 列**都是** `问题扫描/findings/C_ALG_IMPL/p2/V10-c.md`（行 3/10），且 `p1/V10-c.md` 在本树**不存在**、`p2/V10-c.md` 存在（6005 B）；`_gen/idmap.csv` 同指 `p2`。
    ⇒ **规则**：若某片声称分配表路径错，先跑 `awk -F'\t' '$1=="<ID>"{print $5,$6}' shards/_assign/<片>.tsv` 与 `ls` 复核，**以实测为准**；分片第 4 列可能带一条不准确的转述（本例 `V10-N-07` 第 4 列写了"分配表写 p1"，属分片侧误读，不影响其结论与第 6 列证据）。
-18. ⚠️ **`pN` 目录不是优先级权威**：实测 **11 条**条目的所在目录 `pN` 与账本 `priority` 不一致（V/W/V2/V13/V14 轴文件是"按轴成文、混优先级"），例如 `V11-N-02`(P1) 在 `G_GOV_GATE/p0/V11.md`、`V13-N-05/07/08`(P2) 在 `p1/V13-b.md`、`V14-N-07`(P2) 在 `p1/V14-c.md`。**优先级一律取账本第 3 列**（这也是 `REBASE_TABLE` 与分片表的口径）；**不要**用目录名推断优先级，也不要用目录名做"优先级/目录不符"的finding。
+18. ✅ **新增偏差候选（前任已复核实证，接手须收进"下一轮候选任务"）**：`docs/ci/01_CHECKS.md:7` 明文「豁免显式登记 `ci/exemptions.json`，只减不增，需负责人批准」，而 **`ci/exemptions.json` 在树内不存在**（实测 `ls` 0 命中）；实际豁免分散在 `ci/checks.json` 的 `waivable`（7 项）与 `ci/run.py:103` 的硬编码 `EMPTY_OUTPUT_SILENCE_EXEMPT`（2 项）。⇒ 由 `G_GOV_GATE_P2` 提出、前任复核确认；登记为 **`NEXT-PACK:NP-09`**（不属 `GAP-001..031`，勿误标重复）；建议文件域 `ci/**` + `docs/ci/01_CHECKS.md`，验收门 = `test -f ci/exemptions.json` 且每项豁免在注册表可追溯、`ci/run.py` 无硬编码豁免。
+19. ⚠️ **`pN` 目录不是优先级权威**：实测 **11 条**条目的所在目录 `pN` 与账本 `priority` 不一致（V/W/V2/V13/V14 轴文件是"按轴成文、混优先级"），例如 `V11-N-02`(P1) 在 `G_GOV_GATE/p0/V11.md`、`V13-N-05/07/08`(P2) 在 `p1/V13-b.md`、`V14-N-07`(P2) 在 `p1/V14-c.md`。**优先级一律取账本第 3 列**（这也是 `REBASE_TABLE` 与分片表的口径）；**不要**用目录名推断优先级，也不要用目录名做"优先级/目录不符"的finding。
 19. **`UNVERIFIABLE` 的常见成因**：需 Windows/Fatduck 真机行为、需真实数据端到端、需新建 ASan/UBSan 构建、需外网原文（Paper I §3.3.3、Paper II Table 1、HiPS hips_frame 枚举行、IVOA 响应格式）、需负责人裁决（原 `40_OWNER_DECISIONS.md` 的 A-01…A-44）。**判不动就登记，不要强判。**
 
 ### 9.3 ID 定位与条款查无
@@ -283,9 +284,15 @@ git status --porcelain=v1 | grep -v -E "问题扫描/|reports/PROJECT-GOVERNANCE
 2. **前台已把部分交接物归档进 main**（`900916fb` 等）：`reports/PROJECT-GOVERNANCE-01/root-scan/shards/**` 共 **75 个文件（PSV+MD）**、`_tools/SHARD_BRIEF.md`、以及**较早版本**的 `CONTINUATION.md` 已在库；而 `REBASE.md`、`_gen/landed_stats.json`、`shards/G_GOV_GATE_P1c.md`、`00_README.md`/`INDEX.md` 的 REBASE 抬头、以及本文件的**最新修订**仍未入库（`git status --porcelain=v1 -- 问题扫描 reports/PROJECT-GOVERNANCE-01/root-scan | wc -l` 实测 96 条）。
    ⇒ 接手应以**工作树**为准（工作树比 HEAD 新），并请前台在开工前把这批产物补交，避免"两份真相"。
 3. **任务数已由 30 → 33**：新增 `ROOT-004`(本任务)、`ROOT-005/006`、`TEST-GREEN-001`（`1497f796` 立，33 任务）。⇒ 第 8 列"归属"的**可选任务集合与映射计数必须按当前 `TASK_LIST.md` 重算**（本文件 §3 与 SHARD_BRIEF §4 里的 30 任务表已过期，仅作历史）。
-4. **凭据面已升级为独立任务**：`c44adc08` 立 **`ROOT-006（凭据入仓 SECURITY-URGENT）`** 并登记 `GAP-028` —— 即前任在 §11.3 登记的 `FATDUCK_ACCESS.md` 风险已被前台接住。接手在 `SUMMARY.md` 中仍应保留该发现的交叉引用，但**不要**与 ROOT-006 重复立任务。
+4. **凭据面已升级为独立任务**：`c44adc08` 立 **`ROOT-006（凭据入仓 SECURITY-URGENT）`** —— 即前任在 §11.3 登记的 `FATDUCK_ACCESS.md` 风险已被前台接住。接手在 `SUMMARY.md` 中仍应保留该发现的交叉引用，但**不要**与 ROOT-006 重复立任务。
+   - **📌 勘误（负责人 2026-09-16 裁决，前任补记）**：凭据那条最终登记为 **`GAP-031`**，**不是 `GAP-028`**（§11.5 第 6 条与本文件此前出现的 `GAP-028=凭据` 写法均以此为准）。现行 `GAP_AUDIT.md` 编号：**`GAP-028` = ROOT 线「注册表/`tests/quality` 执行前就红」**、**`GAP-029` = `run/` 体量**、**`GAP-030` = 控制包执行期前台仍向 main 提交**、**`GAP-031` = 凭据入仓**。⇒ 第 9 列比对基准按**文件内现状**（`grep` 实测）取，**不要**引用本文件写死的编号。
 5. **根清洁线已在推进**：`4511712b` 删除 `设计大纲/`（344 tracked）、`e5fba371` ROOT-002 根目录长效机器门、`4fc3e898` ROOT-001/003 账本、`900916fb` 归档治理快照。⇒ 根目录条目与 `ci/checks.json` 仍在变动，**不要**引用任何"当前根条目数/门数"的静态数字。
-6. **`GAP` 基准同步扩容**：`GAP-001..GAP-030`（§13.7 已裁定）；`ROOT-006/GAP-028` 即为凭据面新条目 —— 合并时第 9 列按 **30 条 GAP + U-01..U-08** 重比对。
+6. **`GAP` 基准以文件内现状为准**：前任实测为 `GAP-001..GAP-030`，**此后新增 `GAP-031`（凭据入仓，见第 4 条勘误）** ⇒ 合并前**必须重跑** `grep -oE '^(### |\*\*)GAP-[0-9]+' 工程控制/PROJECT-GOVERNANCE-01/GAP_AUDIT.md | grep -oE 'GAP-[0-9]+' | sort -u | wc -l` 并取实测值，**不要**沿用本文件写死的 30/31。第 9 列按「实测 GAP 全集 + U-01..U-08」重比对。
+7. **交接物已入库（负责人 2026-09-16 确认）**：`问题扫描/REBASE.md` 连同 `00_README.md`/`INDEX.md` 抬头、分片产物与 `CONTINUATION.md` **已经提交**（`e7f33817` + `46a1599a`）⇒ **第 1 条的"untracked 风险已解除"**（接手如仍见 untracked，说明工作树被回退，须先查 `git log`）。
+8. **根目录线又推进两步（接手勿引用静态数字）**：`4511712b` 删 `设计大纲/`（344 tracked）；**`01db973b`（ROOT-007）删除四个根文档 —— 旧宪章 `ASTROCS_PROJECT_CONSTITUTION.md`、`AstroCS_ENGINEERING_CONSTRAINTS.md`、`REVIEW.md`、`CHANGELOG.md`，并把 `evidence/**`（2799 文件）归档到 `run/archive/legacy-control-packs/`** ⇒ 根条目 **61 → 56**。
+   - ⚠️ **对 §11 三份根文档处置结论的影响（接手以此为准，勿再按 §11 原建议执行）**：`CHANGELOG.md` 已被 ROOT-007 **删除**（前任原建议"保留+登记"被前台决策取代）；`FATDUCK_ACCESS.md` 归 `ROOT-006`；`VISUAL_CHECK_README.md` 的归档建议**仍待处理**。
+   - **旧宪章与旧工程约束被删除后**：`REBASE_TABLE` 第 4 列的"旧判据"只剩**文本引用**（文件已不在树内）⇒ 凡引用旧宪章的条目，**不要再试图 `read` 其原文**；按 `SHARD_BRIEF §2` 的旧→新映射表处理，并在第 4 列注明"原文件已由 ROOT-007 删除"。
+9. **`artifacts/**` 保留未动**（含真实基准数据与仍在内更新的 CI 产物），负责人待裁 ⇒ **不要**把 `artifacts/` 下任何文件当"运行产物散落"立 finding，也不要清理。
 
 ---
 
@@ -306,7 +313,11 @@ git status --porcelain=v1 | grep -v -E "问题扫描/|reports/PROJECT-GOVERNANCE
 
 ### 13.1 分片状态（末次刷新；接手请用 §8 第 5 条再刷）
 
-> **🔚 最终落盘（前任最后一次实测，2026-09-16T07:48Z）**：分片 **25 / 26 落盘**、条目 **756 / 785**、列数不合格 **0** 行；结论分布 **{'OPEN': 706, 'RESOLVED': 41, 'VOID': 6, 'UNVERIFIABLE': 3}**；`问题扫描` 文件数 **1096**（零删除）；`HEAD=900916fb`。
+> **🎯 全量落盘达成（前任最后一次实测，2026-09-16T08:03Z）**：分片 **26 / 26**、条目 **785 / 785（100%）**、**列数不合格 0 行**、重复 ID 0 ⇒ **ROOT-004 验收门第 1 条（结论条目数 == 原始条目数，差集为空）在分片层已满足**。
+> 分片层四态合计：**OPEN 733 / RESOLVED 41 / VOID 7 / UNVERIFIABLE 4**；其中 **P0 = 93 条全额覆盖：OPEN 73 + RESOLVED 20**（P1 444 = OPEN 428 + RESOLVED 16 + VOID 3 + UNVERIFIABLE 2；P2 239；P? 3）。
+> `问题扫描` 文件数 **1096**（零删除）；`HEAD=b46a316f`（仍移动）。**接手的剩余工作只剩：写 `merge_rebase.py` 合并 26 片 → 出 `REBASE_TABLE.md`/`SUMMARY.md`/`P0_RECHECK.md` → 第 8/9 列按当时树统一重跑 → 逐门自证。**
+
+> **较早快照（24/26）**2026-09-16T07:48Z）**：分片 **25 / 26 落盘**、条目 **756 / 785**、列数不合格 **0** 行；结论分布 **{'OPEN': 706, 'RESOLVED': 41, 'VOID': 6, 'UNVERIFIABLE': 3}**；`问题扫描` 文件数 **1096**（零删除）；`HEAD=900916fb`。
 > **仍未落盘**：`G_GOV_GATE_P2`。
 >
 > **较早快照**：分片 **24 / 26 落盘**、条目 **735 / 785**、重复 ID = 0、列数不合格 **0** 行；结论分布 **{'OPEN': 688, 'RESOLVED': 38, 'VOID': 6, 'UNVERIFIABLE': 3}**。
