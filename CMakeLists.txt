@@ -627,6 +627,15 @@ target_include_directories(astrocs_phase3_session PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(astrocs_phase3_session PUBLIC astrocs_contracts astrocs_aio astrocs_common)
 
+# lib/infrastructure/cli: 子命令模块注册 (INT-001 W4-A9 接线步 1/3)。
+# CLI-001 交付的 header-only 命令编排层 (command_tree/session_commands/subcommand +
+# normalize|mosaic|export 三子目录) 在此登记为 INTERFACE target
+# (astrocs_cli_subcommands 及三个子命令 target); 声明见
+# lib/infrastructure/cli/CMakeLists.txt (BLD-002: 子目录文件非产品事实源,
+# 唯一 project()/唯一 add_executable(astrocs) 仍在本文件)。
+# 置于 astrocs target 之前: INTERFACE target 无源编译, 仅提供 include 面。
+add_subdirectory(lib/infrastructure/cli)
+
 # app/astrocs_cli: 薄 CLI (显式链接各库; 无 GLOB; ACR 不链)
 # RT-008: main.cpp 仅入口壳; parser/commands/runtime_client 为独立编译单元
 # B8-P1: lib/infrastructure/cli/process.cpp — 跨平台子进程封装(argv 传参, 替代 std::system 拼接族),
@@ -646,6 +655,13 @@ add_executable(astrocs
   lib/infrastructure/cli/runtime_client.cpp)
 target_include_directories(astrocs PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli
+  # INT-001 W4-A9 接线步 2/3: CLI 子命令模块四个 include 目录。前三个供
+  # commands.cpp 的 normalize/normalize.h 等引号包含解析, 第 4 个为其上级目录;
+  # astrocs_cli_subcommands 已携带同一组 INTERFACE include (此处显式登记,
+  # 使 include 面在 target_link_libraries 之外亦可独立审计)。
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli/normalize
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli/mosaic
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli/export
   ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
@@ -659,6 +675,9 @@ target_link_libraries(astrocs PRIVATE
   astrocs_contracts astrocs_core astrocs_cli_runtime astrocs_common astrocs_cfitsio astrocs_aio astrocs_hips
   astrocs_calibration astrocs_phase2 astrocs_drizzle astrocs_cpu
   astrocs_phase1_session astrocs_phase2_session astrocs_phase3_session
+  # INT-001 W4-A9 接线步 3/3: CLI 子命令模块 target (INTERFACE, 仅 include 面;
+  # normalize|mosaic|export 三子目录的扁平头名经此解析)。
+  astrocs_cli_subcommands
   ${CMAKE_DL_LIBS})
 if(MSVC)
   if(ACS_ZLIB_LIBRARY)
