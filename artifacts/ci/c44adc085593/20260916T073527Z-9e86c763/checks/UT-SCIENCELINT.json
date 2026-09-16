@@ -1,0 +1,47 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/sciencelint",
+    "-t",
+    "tests/sciencelint"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": [
+      "artifacts/ci/4511712b345a/20260916T073709Z-251b5bd8/checks/CON-TRACEABILITY.json"
+    ]
+  },
+  "duration_seconds": 0.107,
+  "exit_code": 0,
+  "finished_utc": "2026-09-16T07:38:55Z",
+  "heavy": false,
+  "id": "UT-SCIENCELINT",
+  "log": "logs/UT-SCIENCELINT.log",
+  "log_zst": "logs/UT-SCIENCELINT.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "mutates_workspace=false 的检查修改了工作区",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:38:54Z",
+  "stderr_tail": "./workspace/Astro CS Database/tests/sciencelint/test_sciencelint.py:52: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/docs/algorithms/CALIBRATION_ALGORITHMS.md' mode='r' encoding='utf-8'>\n  s = open(os.path.join(REPO, \"docs/algorithms/CALIBRATION_ALGORITHMS.md\"), encoding=\"utf-8\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n./workspace/Astro CS Database/tools/science_contract_lint.py:25: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/docs/science/CALIBRATION.md' mode='r' encoding='utf-8'>\n  text = open(path, encoding=\"utf-8\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tools/science_contract_lint.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/docs/contracts/DATA_SEMANTICS.md' mode='r' encoding='utf-8'>\n  if n and n > sum(1 for _ in open(full, errors=\"replace\")):\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tools/science_contract_lint.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/lib/calibration/src/calibrator.cpp' mode='r' encoding='utf-8'>\n  if n and n > sum(1 for _ in open(full, errors=\"replace\")):\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tools/science_contract_lint.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/lib/calibration/src/master_generator.cpp' mode='r' encoding='utf-8'>\n  if n and n > sum(1 for _ in open(full, errors=\"replace\")):\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tools/science_contract_lint.py:43: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/lib/calibration/src/cosmetic_corrector.cpp' mode='r' encoding='utf-8'>\n  if n and n > sum(1 for _ in open(full, errors=\"replace\")):\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n./workspace/Astro CS Database/tools/science_contract_lint.py:25: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmppg0f32un.md' mode='r' encoding='utf-8'>\n  text = open(path, encoding=\"utf-8\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n./workspace/Astro CS Database/tools/science_contract_lint.py:25: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpfbn27qx1.md' mode='r' encoding='utf-8'>\n  text = open(path, encoding=\"utf-8\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n./workspace/Astro CS Database/tools/science_contract_lint.py:25: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpnqkgv4o1.md' mode='r' encoding='utf-8'>\n  text = open(path, encoding=\"utf-8\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n.\n----------------------------------------------------------------------\nRan 6 tests in 0.047s\n\nOK\n",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 300,
+  "verdict": "FAIL(dirty)",
+  "waivable": false
+}

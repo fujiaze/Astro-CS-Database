@@ -1,0 +1,55 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/cli",
+    "-t",
+    "tests/cli"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": [
+      "evidence/v6_1_rework/tasks/CHK-001/PROD_REACHABILITY.dot",
+      "evidence/v6_1_rework/tasks/CHK-001/PROD_REACHABILITY.json",
+      "run_context.json"
+    ]
+  },
+  "duration_seconds": 553.381,
+  "exit_code": 1,
+  "finished_utc": "2026-09-13T21:33:10Z",
+  "heavy": false,
+  "id": "UT-CLI",
+  "known_failure": {
+    "owner": "SA-CLI",
+    "reason": "UT-CLI（mutates_workspace=false）在 linux-main 下以 FAIL(dirty) 结束：CLI 运行产物按设计落仓库根（astrocs graph → graph/*.json、memory-report → alloc_report.json/alloc_samples.csv），checks 前后 git status --porcelain=v1 -uall 对比出现新增条目即违规。根因在 cli/commands.cpp 产物默认落点（域外，非 tests/cli 断言面），UT-CLI 的 17 项过时断言修复前该检查不可绿。",
+    "reproducer": "python3 ci/run.py --profile linux-main --check UT-CLI --output-root run/ci/known-failures/utcli",
+    "source_sha": "f8778bbbf010e92f49670dd9d2fbef7fe98d6731"
+  },
+  "log": "logs/UT-CLI.log",
+  "log_zst": "logs/UT-CLI.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "mutates_workspace=false 的检查修改了工作区",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-13T21:23:57Z",
+  "stderr_tail": " = hashlib.sha256(open(stable, \"rb\").read()).hexdigest()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/cli/test_phase3_inprocess.py:210: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_3c7u3jqb/run8/astrocs_run_prior.json' mode='w' encoding='utf-8'>\n  json.dump({\"schema_version\": \"1\", \"kind\": \"astrocs_run_manifest\",\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/cli/test_phase3_inprocess.py:219: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_3c7u3jqb/run8/rcfg.json' mode='w' encoding='utf-8'>\n  json.dump({\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n./workspace/Astro CS Database/tests/cli/test_phase3_inprocess.py:250: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_3c7u3jqb/cfg.json' mode='r' encoding='utf-8'>\n  d = json.load(open(self.cfg))\n/workspace/Astro CS Database/tests/cli/test_phase3_inprocess.py:252: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_3c7u3jqb/run9/cfg.json' mode='w' encoding='utf-8'>\n  json.dump(d, open(cfg, \"w\"))\n./workspace/Astro CS Database/tests/cli/test_phase3_inprocess.py:305: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_3c7u3jqb/cov_neg/F2.hips/signal/properties' mode='r' encoding='utf-8'>\n  orig = open(props, encoding=\"utf-8\").readlines()\n/workspace/Astro CS Database/tests/cli/test_phase3_inprocess.py:309: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_3c7u3jqb/cov_neg/F2.hips/signal/properties' mode='w' encoding='utf-8'>\n  open(props, \"w\", encoding=\"utf-8\").write(\n/workspace/Astro CS Database/tests/cli/test_phase3_inprocess.py:313: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_3c7u3jqb/cov_neg/c1.json' mode='w' encoding='utf-8'>\n  json.dump({\"schema_version\": \"1\", \"hips_paths\": [ok, copy],\n/workspace/Astro CS Database/tests/cli/test_phase3_inprocess.py:320: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_3c7u3jqb/cov_neg/F2.hips/signal/properties' mode='w' encoding='utf-8'>\n  open(props, \"w\", encoding=\"utf-8\").write(\n/workspace/Astro CS Database/tests/cli/test_phase3_inprocess.py:324: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_3c7u3jqb/cov_neg/c2.json' mode='w' encoding='utf-8'>\n  json.dump({\"schema_version\": \"1\", \"hips_paths\": [ok, copy],\n/workspace/Astro CS Database/tests/cli/test_phase3_inprocess.py:331: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_3c7u3jqb/cov_neg/F2.hips/signal/properties' mode='w' encoding='utf-8'>\n  open(props, \"w\", encoding=\"utf-8\").write(\"\".join(orig))\n/workspace/Astro CS Database/tests/cli/test_phase3_inprocess.py:334: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/p3cli_3c7u3jqb/cov_neg/c3.json' mode='w' encoding='utf-8'>\n  json.dump({\"schema_version\": \"1\", \"hips_paths\": [ok, copy],\n........\n======================================================================\nFAIL: test_01_cli_binary_no_drizzle_direct_symbols (test_p1003_drizzle_path.TestP1003DrizzlePath.test_01_cli_binary_no_drizzle_direct_symbols)\nCLI 二进制不含 hp_drizzle_run_hips/spawn_frame_from_fits 符号(nm 证明不可绕过)。\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/Astro CS Database/tests/cli/test_p1003_drizzle_path.py\", line 25, in test_01_cli_binary_no_drizzle_direct_symbols\n    self.assertEqual(banned, [], f\"CLI 二进制含直连 drizzle 符号: {banned}\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['hp_drizzle_run_hips'] != []\n\nFirst list contains 1 additional elements.\nFirst extra element 0:\n'hp_drizzle_run_hips'\n\n- ['hp_drizzle_run_hips']\n+ [] : CLI 二进制含直连 drizzle 符号: ['hp_drizzle_run_hips']\n\n----------------------------------------------------------------------\nRan 174 tests in 553.265s\n\nFAILED (failures=1, skipped=1)\n",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 600,
+  "verdict": "KNOWN_FAIL",
+  "waivable": false
+}

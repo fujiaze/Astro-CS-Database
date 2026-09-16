@@ -1,0 +1,52 @@
+{
+  "changed_from": null,
+  "checks": [
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.713,
+      "exit_code": 0,
+      "id": "CTEST-P1WCS-ASTROPY-CROSS",
+      "log": "logs/CTEST-P1WCS-ASTROPY-CROSS.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": false
+    }
+  ],
+  "finished_utc": "2026-09-12T09:44:51Z",
+  "generated_by": "ci/run.py (V8-CI-002)",
+  "known_failures": {
+    "baseline_path": "/workspace/Astro CS Database/ci/known_failures.json",
+    "count_increased": [],
+    "enabled": true,
+    "expired": [],
+    "invalid": [],
+    "matched": [],
+    "new_failures": [],
+    "signature_changed": []
+  },
+  "profile": "fast",
+  "run_id": "20260912T094450Z-4c60c3c4",
+  "schema_version": 1,
+  "selection": {
+    "changed_files_count": 0,
+    "mode": "explicit",
+    "selected_by": {
+      "CTEST-P1WCS-ASTROPY-CROSS": "explicit --check"
+    }
+  },
+  "source_sha": "19bdf1ab04d089879348f0f1b23b9aa66becbfbf",
+  "started_utc": "2026-09-12T09:44:50Z",
+  "strict_workspace": true,
+  "summary": {
+    "fail": 0,
+    "fail_detail": {},
+    "known_fail": 0,
+    "pass": 1,
+    "skipped_waivable": 0,
+    "total": 1
+  },
+  "verdict": "PASS"
+}

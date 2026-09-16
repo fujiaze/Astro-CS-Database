@@ -1,0 +1,52 @@
+{
+  "changed_from": null,
+  "checks": [
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.032,
+      "exit_code": 0,
+      "id": "TOOLCHAIN-VERIFY",
+      "log": "logs/TOOLCHAIN-VERIFY.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": false
+    }
+  ],
+  "finished_utc": "2026-09-06T15:17:41Z",
+  "generated_by": "ci/run.py (V8-CI-002)",
+  "known_failures": {
+    "baseline_path": null,
+    "count_increased": [],
+    "enabled": false,
+    "expired": [],
+    "invalid": [],
+    "matched": [],
+    "new_failures": [],
+    "signature_changed": []
+  },
+  "profile": "fast",
+  "run_id": "20260906T151741Z-1cbc9cf6",
+  "schema_version": 1,
+  "selection": {
+    "changed_files_count": 0,
+    "mode": "explicit",
+    "selected_by": {
+      "TOOLCHAIN-VERIFY": "explicit --check"
+    }
+  },
+  "source_sha": "5e457d425fc81c70a29a7d81d0cb85b4f0a47062",
+  "started_utc": "2026-09-06T15:17:41Z",
+  "strict_workspace": true,
+  "summary": {
+    "fail": 0,
+    "fail_detail": {},
+    "known_fail": 0,
+    "pass": 1,
+    "skipped_waivable": 0,
+    "total": 1
+  },
+  "verdict": "PASS"
+}

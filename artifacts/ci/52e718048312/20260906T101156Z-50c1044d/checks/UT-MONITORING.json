@@ -1,0 +1,45 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/monitoring",
+    "-t",
+    "tests/monitoring"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 7.06,
+  "exit_code": 0,
+  "finished_utc": "2026-09-06T10:12:21Z",
+  "heavy": false,
+  "id": "UT-MONITORING",
+  "log": "logs/UT-MONITORING.log",
+  "log_zst": "logs/UT-MONITORING.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T10:12:14Z",
+  "stderr_tail": "............................................................\n----------------------------------------------------------------------\nRan 60 tests in 6.958s\n\nOK\n",
+  "stdout_tail": "{\n  \"contract\": \"astrocs.log.event.v1\",\n  \"error_count\": 1,\n  \"errors\": [\n    \"L1: 缺必需字段 'commit'\"\n  ],\n  \"meta\": {\n    \"checks\": [\n      \"schema_selfcheck\",\n      \"jsonl_schema\",\n      \"seq_monotonic\",\n      \"error_payload\",\n      \"line_size\"\n    ],\n    \"lines\": 1,\n    \"schema\": \"/workspace/Astro CS Database/runtime/logging/log_event_v1.schema.json\",\n    \"schema_selfcheck\": \"PASS\"\n  },\n  \"task\": \"LOG-001\",\n  \"tool\": \"check_log_contract.py\",\n  \"verdict\": \"FAIL\"\n}\n{\n  \"contract\": \"astrocs.log.event.v1\",\n  \"error_count\": 0,\n  \"errors\": [],\n  \"meta\": {\n    \"checks\": [\n      \"schema_selfcheck\",\n      \"jsonl_schema\",\n      \"seq_monotonic\",\n      \"error_payload\",\n      \"redact_rules\",\n      \"line_size\"\n    ],\n    \"schema\": \"/workspace/Astro CS Database/runtime/logging/log_event_v1.schema.json\",\n    \"schema_selfcheck\": \"PASS\",\n    \"selfcheck_line\": \"{\\\"commit\\\":\\\"0000000000000000000000000000000000000000\\\",\\\"diagnostic\\\":\\\"自检：检查器链路正常\\\",\\\"elapsed\\\":0.0,\\\"event\\\":\\\"start\\\",\\\"host\\\":\\\"ctrl-node\\\",\\\"level\\\":\\\"info\\\",\\\"module\\\":\\\"core\\\",\\\"node\\\":\\\"\\\",\\\"phase\\\":\\\"runtime\\\",\\\"run\\\":\\\"r1\\\",\\\"schema\\\":\\\"astrocs.log.event.v1\\\",\\\"seq\\\":1,\\\"task\\\":\\\"\\\",\\\"ts\\\":\\\"2026-09-02T00:00:00Z\\\",\\\"units\\\":\\\"\\\"}\"\n  },\n  \"task\": \"LOG-001\",\n  \"tool\": \"check_log_contract.py\",\n  \"verdict\": \"PASS\"\n}\n",
+  "timed_out": false,
+  "timeout_seconds": 300,
+  "verdict": "PASS",
+  "waivable": false
+}

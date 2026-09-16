@@ -1,0 +1,45 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/api",
+    "-t",
+    "tests/api"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.106,
+  "exit_code": 0,
+  "finished_utc": "2026-09-06T17:00:46Z",
+  "heavy": false,
+  "id": "UT-API",
+  "log": "logs/UT-API.log",
+  "log_zst": "logs/UT-API.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T17:00:45Z",
+  "stderr_tail": "s.hdr_text += open(os.path.join(P2HDR, fn), encoding=\"utf-8\", errors=\"replace\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/api/test_p2_api.py:23: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/lib/phase2/include/astro/phase2/block.h' mode='r' encoding='utf-8'>\n  cls.hdr_text += open(os.path.join(P2HDR, fn), encoding=\"utf-8\", errors=\"replace\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/api/test_p2_api.py:23: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/lib/phase2/include/astro/phase2/coverage.h' mode='r' encoding='utf-8'>\n  cls.hdr_text += open(os.path.join(P2HDR, fn), encoding=\"utf-8\", errors=\"replace\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/api/test_p2_api.py:23: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/lib/phase2/include/astro/phase2/acr_kernels.h' mode='r' encoding='utf-8'>\n  cls.hdr_text += open(os.path.join(P2HDR, fn), encoding=\"utf-8\", errors=\"replace\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/api/test_p2_api.py:23: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/lib/phase2/include/astro/phase2/sampler.h' mode='r' encoding='utf-8'>\n  cls.hdr_text += open(os.path.join(P2HDR, fn), encoding=\"utf-8\", errors=\"replace\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/api/test_p2_api.py:23: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/lib/phase2/include/astro/phase2/integrate.h' mode='r' encoding='utf-8'>\n  cls.hdr_text += open(os.path.join(P2HDR, fn), encoding=\"utf-8\", errors=\"replace\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/api/test_p2_api.py:23: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/lib/phase2/include/astro/phase2/upm.h' mode='r' encoding='utf-8'>\n  cls.hdr_text += open(os.path.join(P2HDR, fn), encoding=\"utf-8\", errors=\"replace\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/api/test_p2_api.py:23: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/lib/phase2/include/astro/phase2/execution_options.h' mode='r' encoding='utf-8'>\n  cls.hdr_text += open(os.path.join(P2HDR, fn), encoding=\"utf-8\", errors=\"replace\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/api/test_p2_api.py:23: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/lib/phase2/include/astro/phase2/stage2_common.h' mode='r' encoding='utf-8'>\n  cls.hdr_text += open(os.path.join(P2HDR, fn), encoding=\"utf-8\", errors=\"replace\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n....../workspace/Astro CS Database/tests/api/test_p3_api.py:12: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/docs/api/PHASE3_API_V1.md' mode='r' encoding='utf-8'>\n  cls.s = open(API, encoding=\"utf-8\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/api/test_p3_api.py:13: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/docs/science/PHASE3_HIPS_TO_FITS.md' mode='r' encoding='utf-8'>\n  cls.sci = open(SCI, encoding=\"utf-8\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n......sssssssssssssssssss\n----------------------------------------------------------------------\nRan 48 tests in 0.043s\n\nOK (skipped=19)\n",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 300,
+  "verdict": "PASS",
+  "waivable": false
+}

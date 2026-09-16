@@ -1,0 +1,50 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/version",
+    "-t",
+    "tests/version"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": [
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/CHK-ROOT-CLEAN.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/UT-ARTIFACT.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/UT-CONTRACTS.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/WORKFLOW-REGISTRY-BINDING.json"
+    ]
+  },
+  "duration_seconds": 4.11,
+  "exit_code": 1,
+  "finished_utc": "2026-09-16T07:39:03Z",
+  "heavy": false,
+  "id": "UT-VERSION",
+  "log": "logs/UT-VERSION.log",
+  "log_zst": "logs/UT-VERSION.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "mutates_workspace=false 的检查修改了工作区",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:38:59Z",
+  "stderr_tail": "\\n\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/version/test_version_consistency.py:85: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpllaz0x7r/docs/OK.md' mode='w' encoding='utf-8'>\n  open(ok_doc, \"w\", encoding=\"utf-8\").write(f\"当前版本 {cur}\\n\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n.\n======================================================================\nFAIL: test_13_checker_output_bitwise_deterministic (test_version_consistency.TestStandardClauseExclusion.test_13_checker_output_bitwise_deterministic)\n确定性: 同输入两次运行 rc 与 stdout 必须逐字节一致 (无时间戳/无随机序)。\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/Astro CS Database/tests/version/test_version_consistency.py\", line 264, in test_13_checker_output_bitwise_deterministic\n    self.assertEqual(runs[0].returncode, 0)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 0\n\n======================================================================\nFAIL: test_04_real_repo_checker_pass (test_version_consistency.TestVersionContract.test_04_real_repo_checker_pass)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/Astro CS Database/tests/version/test_version_consistency.py\", line 68, in test_04_real_repo_checker_pass\n    self.assertEqual(r.returncode, 0, f\"真实仓库一致性必须 PASS:\\n{r.stdout}{r.stderr}\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 0 : 真实仓库一致性必须 PASS:\nVERSION_CONSISTENCY_FAIL (38):\n  docs/contracts/unified_object_registry.json:31: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\",\n  docs/contracts/unified_object_registry.json:53: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\",\n  docs/contracts/unified_object_registry.json:75: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\",\n  docs/contracts/unified_object_registry.json:139: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\",\n  docs/contracts/unified_object_registry.json:161: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\",\n  docs/contracts/unified_object_registry.json:253: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\",\n  docs/contracts/unified_object_registry.json:985: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\",\n  docs/contracts/unified_object_registry.json:993: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1000: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1007: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1014: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1021: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1028: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1035: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1042: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1049: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1056: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1063: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1070: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n  docs/contracts/unified_object_registry.json:1077: 未知版本字面量 0.12.0 != 唯一源基础号 0.11.0: \"retire_after\": \"0.12.0\"\n\n\n----------------------------------------------------------------------\nRan 26 tests in 4.038s\n\nFAILED (failures=2)\n",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 300,
+  "verdict": "FAIL(dirty)",
+  "waivable": false
+}

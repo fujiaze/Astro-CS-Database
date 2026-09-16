@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/check_data_artifacts.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.04,
+  "exit_code": 1,
+  "finished_utc": "2026-09-12T04:46:01Z",
+  "heavy": false,
+  "id": "DATA-ARTIFACTS",
+  "log": "logs/DATA-ARTIFACTS.log",
+  "log_zst": "logs/DATA-ARTIFACTS.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令非零退出：1",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-12T04:46:01Z",
+  "stderr_tail": "",
+  "stdout_tail": "DATA_ARTIFACTS_FAIL (1):\n  DATA_SEMANTICS 声明但未登记: ['DATA-HIPS-001', 'DATA-TILE-001']\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "FAIL",
+  "waivable": false
+}

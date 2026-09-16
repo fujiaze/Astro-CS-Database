@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/check_agents_gov.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.016,
+  "exit_code": 1,
+  "finished_utc": "2026-09-16T07:48:44Z",
+  "heavy": false,
+  "id": "AGENTS-GOV",
+  "log": "logs/AGENTS-GOV.log",
+  "log_zst": "logs/AGENTS-GOV.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令非零退出：1",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:48:44Z",
+  "stderr_tail": "",
+  "stdout_tail": "[MISS] main-only\n[MISS] amd64\n[MISS] 节点\n[MISS] cpu-only\n[MISS] 单入口\n[MISS] 资源门禁\n[MISS] 无硬编码\n[MISS] alpha/发布\n[MISS] 状态机\n[MISS] 不停工\nGOV_CHECK_FAIL missing=['main-only', 'amd64', '节点', 'cpu-only', '单入口', '资源门禁', '无硬编码', 'alpha/发布', '状态机', '不停工'] conflicts=[]\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "FAIL",
+  "waivable": false
+}

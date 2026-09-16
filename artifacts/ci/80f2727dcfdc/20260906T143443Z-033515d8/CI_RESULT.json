@@ -1,0 +1,54 @@
+{
+  "changed_from": null,
+  "checks": [
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.026,
+      "exit_code": 1,
+      "id": "DOC-L0",
+      "log": "logs/DOC-L0.log",
+      "reason": "命令非零退出：1",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "FAIL",
+      "waivable": false
+    }
+  ],
+  "finished_utc": "2026-09-06T14:34:43Z",
+  "generated_by": "ci/run.py (V8-CI-002)",
+  "known_failures": {
+    "baseline_path": null,
+    "count_increased": [],
+    "enabled": false,
+    "expired": [],
+    "invalid": [],
+    "matched": [],
+    "new_failures": [],
+    "signature_changed": []
+  },
+  "profile": "fast",
+  "run_id": "20260906T143443Z-033515d8",
+  "schema_version": 1,
+  "selection": {
+    "changed_files_count": 0,
+    "mode": "explicit",
+    "selected_by": {
+      "DOC-L0": "explicit --check"
+    }
+  },
+  "source_sha": "80f2727dcfdc5c112de32449e2c63226f7d7d0b8",
+  "started_utc": "2026-09-06T14:34:43Z",
+  "strict_workspace": true,
+  "summary": {
+    "fail": 1,
+    "fail_detail": {
+      "FAIL": 1
+    },
+    "known_fail": 0,
+    "pass": 0,
+    "skipped_waivable": 0,
+    "total": 1
+  },
+  "verdict": "FAIL"
+}

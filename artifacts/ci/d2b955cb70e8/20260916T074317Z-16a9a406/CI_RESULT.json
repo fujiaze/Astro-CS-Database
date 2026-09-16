@@ -1,0 +1,56 @@
+{
+  "changed_from": null,
+  "checks": [
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 1.562,
+      "exit_code": 1,
+      "id": "UT-CONTRACTS",
+      "log": "logs/UT-CONTRACTS.log",
+      "reason": "命令非零退出：1",
+      "signal": null,
+      "timed_out": false,
+      "verdict": "FAIL",
+      "waivable": false
+    }
+  ],
+  "finished_utc": "2026-09-16T07:43:19Z",
+  "generated_by": "ci/run.py (V8-CI-002)",
+  "known_failures": {
+    "baseline_path": "/workspace/Astro CS Database/ci/known_failures.json",
+    "count_increased": [],
+    "enabled": true,
+    "expired": [],
+    "invalid": [],
+    "matched": [],
+    "new_failures": [
+      "UT-CONTRACTS"
+    ],
+    "signature_changed": []
+  },
+  "profile": "fast",
+  "run_id": "20260916T074317Z-16a9a406",
+  "schema_version": 1,
+  "selection": {
+    "changed_files_count": 0,
+    "mode": "explicit",
+    "selected_by": {
+      "UT-CONTRACTS": "explicit --check"
+    }
+  },
+  "source_sha": "d2b955cb70e8de67770dbcbc6e0bed8d9e3aaca1",
+  "started_utc": "2026-09-16T07:43:17Z",
+  "strict_workspace": true,
+  "summary": {
+    "fail": 1,
+    "fail_detail": {
+      "FAIL": 1
+    },
+    "known_fail": 0,
+    "pass": 0,
+    "skipped_waivable": 0,
+    "total": 1
+  },
+  "verdict": "FAIL"
+}

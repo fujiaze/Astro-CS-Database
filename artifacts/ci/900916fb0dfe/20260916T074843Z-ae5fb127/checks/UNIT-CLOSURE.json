@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/check_unit_closure.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.153,
+  "exit_code": 1,
+  "finished_utc": "2026-09-16T07:48:53Z",
+  "heavy": false,
+  "id": "UNIT-CLOSURE",
+  "log": "logs/UNIT-CLOSURE.log",
+  "log_zst": "logs/UNIT-CLOSURE.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令非零退出：1",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:48:53Z",
+  "stderr_tail": "DOCCHK-002 UNIT FAIL: docs/science/v6/observation/OBSERVATION_MODEL_REVIEW.md: U2 双信号单位 `ADU/e⁻` (第15980字) 未见冻结消歧\n",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "FAIL",
+  "waivable": false
+}

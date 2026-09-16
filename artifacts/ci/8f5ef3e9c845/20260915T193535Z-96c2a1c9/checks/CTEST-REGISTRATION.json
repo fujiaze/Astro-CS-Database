@@ -1,0 +1,42 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/check_ctest_registration.py",
+    "--output",
+    "run/ci/ctest-registration/ctest_registration.json"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 7.701,
+  "exit_code": 1,
+  "finished_utc": "2026-09-15T19:35:43Z",
+  "heavy": false,
+  "id": "CTEST-REGISTRATION",
+  "log": "logs/CTEST-REGISTRATION.log",
+  "log_zst": "logs/CTEST-REGISTRATION.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [
+    "run/ci/ctest-registration/ctest_registration.json"
+  ],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令非零退出：1",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-15T19:35:35Z",
+  "stderr_tail": "",
+  "stdout_tail": "  \"rule\": \"CI-REG-002 / STD-F7 处置 4\",\n  \"generated_utc\": \"2026-09-15T19:35:43Z\",\n  \"registry\": \"ci/checks.json\",\n  \"baseline\": \"ci/ctest_baseline.json\",\n  \"baseline_base_commit\": \"e6254d4da99770f05718cc95c868ff1c52339370\",\n  \"targets_total\": 274,\n  \"sources_total\": 30,\n  \"registered_explicit\": [\n    \"aio_abi_negative\",\n    \"aio_abi_selfcheck\",\n    \"aio_abi_units\",\n    \"compare_products_quality\",\n    \"drizzle_precision_default\",\n    \"gaia_magnitude_range_bounds\",\n    \"gaia_module_manifest_bounds\",\n    \"hips_publish_atomic\",\n    \"hips_publish_atomic_units\",\n    \"ipv_abi_layout_lock\",\n    \"ipv_abi_layout_lock_selfcheck\",\n    \"ipv_extract_wcs_sip_failclosed\",\n    \"ipv_mag_iter\",\n    \"ipv_mag_iter_delivery\",\n    \"ipv_params_abi_failclosed\",\n    \"ipv_platform_binding\",\n    \"ipv_triangle_budget\",\n    \"mon004_enforcement\",\n    \"p1001_real_nodes\",\n    \"p1drz_merge_pipeline_lock\",\n    \"p1drz_taskset_invariance\",\n    \"p1phot_fixgates\",\n    \"p1psf_prodpath_centroid\",\n    \"p1snr_frame_parity\",\n    \"p1snr_linux_contract\",\n    \"p1snr_linux_determinism\",\n    \"p1snr_linux_negative\",\n    \"p1snr_linux_oracle\",\n    \"p1snr_linux_units\",\n    \"p1snr_science_determinism\",\n    \"p1snr_science_negative\",\n    \"p1snr_science_oracle\",\n    \"p1snr_science_production\",\n    \"p1snr_science_units\",\n    \"p1star_angle_guard\",\n    \"p1star_mad\",\n    \"p1wcs_apbp\",\n    \"p1wcs_astropy_cross\",\n    \"p1wcs_std_f1_bridge_cross\",\n    \"p2001_real_nodes\",\n    \"p2002_unc_rej_prov\",\n    \"p2_rej_v6_calibration\",\n    \"p2_rej_v6_determinism\",\n    \"p2_rej_v6_negative\",\n    \"p2_rej_v6_oracle\",\n    \"p2_rej_v6_reference\",\n    \"p2_rej_v6_units\",\n    \"p2hips_determinism\",\n    \"p2hips_negative\",\n    \"p2hips_selfcheck\",\n    \"p2hips_units\",\n    \"p3002_real_nodes\",\n    \"p3002_uncertainty\",\n    \"p3_projection_fault\",\n    \"p3_projection_units\",\n    \"p3_sampler_cache\",\n    \"resource_monitor_quality\",\n    \"rt001_unique_executor\",\n    \"v6_aio_artifacts\",\n    \"v6_aio_atomic\",\n    \"v6_aio_fits\",\n    \"v6_aio_impl_mutations\",\n    \"v6_aio_manifest\",\n    \"v6_aio_oracle\",\n    \"v6_aio_oracle_negative\",\n    \"v6_aio_provenance\",\n    \"v6_aio_units\",\n    \"v6_p1_cal_covariance\",\n    \"v6_p1_drz_geometry\",\n    \"v6_p1_drz_negative\",\n    \"v6_p1_drz_oracle\",\n    \"v6_p1_drz_units\",\n    \"v6_p1_group\",\n    \"v6_p1_halfproduct\",\n    \"v6_p1_negative\",\n    \"v6_p1_positive\",\n    \"v6_p1_psfw_${g}\",\n    \"v6_p1_psfw_selfcheck\",\n    \"v6_p1_schema_oracle\",\n    \"v6_p2_halfproduct\",\n    \"v6_p2_negative\",\n    \"v6_p2_oracle\",\n    \"v6_p2_routing\",\n    \"v6_p2_samp_${case}\",\n    \"v6_p2_samp_all\",\n    \"v6_p2_upm_ma_additive\",\n    \"v6_p2_upm_ma_control_variance\",\n    \"v6_p2_upm_ma_negative\",\n    \"v6_p2_upm_ma_structure\",\n    \"v6_p2_upm_ma_units\",\n    \"v6_p2_write\",\n    \"v6_p3_export_negative\",\n    \"v6_p3_export_oracle\",\n    \"v6_p3_export_positive\",\n    \"v6_p3_proj_fault_${_m}\",\n    \"v6_p3_proj_legacy_deviation\",\n    \"v6_p3_proj_units\",\n    \"v6_p3_proj_wcs_oracle\",\n    \"v6_p3_rsmp_mutation_driver\",\n    \"v6_runtime_budget_single_source\",\n    \"v6_runtime_contract_negative\",\n    \"v6_runtime_contract_units\",\n    \"v6_runtime_determinism_negative\",\n    \"v6_runtime_determinism_positive\",\n    \"v6_runtime_metric_fields\",\n    \"v6_runtime_mode_routing\",\n    \"v6_runtime_phase_isolation\",\n    \"v6_runtime_resource_record_negative\",\n    \"v6_runtime_resource_record_positive\",\n    \"v6_runtime_so05_policy\",\n    \"xpsd_spectrum_count_bounds\"\n  ],\n  \"registered_baseline_only_count\": 160,\n  \"unregistered\": [\n    \"${name}\",\n    \"ipv_dead_params_lock\",\n    \"ipv_dead_params_lock_selfcheck\"\n  ],\n  \"stale_baseline\": [],\n  \"dangling_patterns\": [],\n  \"pattern_not_in_command\": [],\n  \"error_count\": 4,\n  \"errors\": [\n    \"C3 未注册的 add_test 目标 3 个（新增/改名测试必须同提交在 ci/checks.json 登记显式检查项，或经 ci/ctest_baseline.json 冻结收编）：\",\n    \"C3   ${name} <- tests/unit/v6_p3_rsmp/CMakeLists.txt\",\n    \"C3   ipv_dead_params_lock <- lib/plate_solve/cpp/ipv/test/CMakeLists.txt\",\n    \"C3   ipv_dead_params_lock_selfcheck <- lib/plate_solve/cpp/ipv/test/CMakeLists.txt\"\n  ],\n  \"verdict\": \"FAIL\"\n}\n",
+  "timed_out": false,
+  "timeout_seconds": 300,
+  "verdict": "FAIL",
+  "waivable": false
+}

@@ -1,0 +1,40 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/contracts/check_traceability.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": [
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/UT-RUNTIME.json"
+    ]
+  },
+  "duration_seconds": 0.053,
+  "exit_code": 1,
+  "finished_utc": "2026-09-16T07:38:54Z",
+  "heavy": false,
+  "id": "CON-TRACEABILITY",
+  "log": "logs/CON-TRACEABILITY.log",
+  "log_zst": "logs/CON-TRACEABILITY.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "mutates_workspace=false 的检查修改了工作区",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:38:54Z",
+  "stderr_tail": "",
+  "stdout_tail": "{\n  \"tool\": \"check_traceability\",\n  \"status\": \"FAIL\",\n  \"rows\": 63,\n  \"findings\": [\n    {\n      \"id\": \"TRACE-CORE-MISSING\",\n      \"severity\": \"P1\",\n      \"symbol\": \"PSF\",\n      \"observed\": \"core SCI not in TRACEABILITY\",\n      \"expected\": \"covered\"\n    },\n    {\n      \"id\": \"TRACE-CORE-MISSING\",\n      \"severity\": \"P1\",\n      \"symbol\": \"REJ\",\n      \"observed\": \"core SCI not in TRACEABILITY\",\n      \"expected\": \"covered\"\n    }\n  ],\n  \"passed\": false\n}\n",
+  "timed_out": false,
+  "timeout_seconds": 120,
+  "verdict": "FAIL(dirty)",
+  "waivable": false
+}

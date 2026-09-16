@@ -1,0 +1,43 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/contracts/check_doc_symbols.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": [
+      "reports/PROJECT-GOVERNANCE-01/root-scan/CONTINUATION.md",
+      "reports/PROJECT-GOVERNANCE-01/root-scan/_gen/landed_stats.json",
+      "tests/contracts/test_unified_object_contract.py",
+      "tools/quality/check_secret_hygiene.py"
+    ]
+  },
+  "duration_seconds": 46.348,
+  "exit_code": 1,
+  "finished_utc": "2026-09-16T07:38:23Z",
+  "heavy": false,
+  "id": "CON-DOC-SYMBOLS",
+  "log": "logs/CON-DOC-SYMBOLS.log",
+  "log_zst": "logs/CON-DOC-SYMBOLS.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "mutates_workspace=false 的检查修改了工作区",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:37:37Z",
+  "stderr_tail": "",
+  "stdout_tail": "d\": \"DOC-BAD-SYMBOL\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/algorithms/v6/phase3/ALG-P3-001_KERNEL_REGISTRY.md\",\n      \"symbol\": \"PROJECT_SPEC\",\n      \"observed\": \"symbol not in API inventory\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-SYMBOL\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md\",\n      \"symbol\": \"TARGET_NORMATIVE\",\n      \"observed\": \"symbol not in API inventory\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md\",\n      \"symbol\": \"工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/ALG-P2-POINT-001.md\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-SYMBOL\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md\",\n      \"symbol\": \"snr_identity\",\n      \"observed\": \"symbol not in API inventory\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/algorithms/v6/phase2-point/README.md\",\n      \"symbol\": \"工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/ALG-P2-POINT-001.md\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/algorithms/v6/phase1/EVIDENCE.md\",\n      \"symbol\": \"工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/ALG-P1-001.md\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md\",\n      \"symbol\": \"工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/ALG-P1-001.md\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-SYMBOL\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/algorithms/v6/phase1/ALG_P1_001_TEST_MATRIX.md\",\n      \"symbol\": \"PENDING_SO07\",\n      \"observed\": \"symbol not in API inventory\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/contracts/v6/W6_SCHEMA_INTEGRATION.md\",\n      \"symbol\": \"工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/SCHEMA-INTEGRATE-001.md\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/contracts/v6/W6_SCHEMA_INTEGRATION.md\",\n      \"symbol\": \"docs/contracts/{DATA_SEMANTICS,PUBLIC_API}.md\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/contracts/v6/W6_SCHEMA_INTEGRATION.md\",\n      \"symbol\": \"docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/contracts/v6/W6_SCHEMA_INTEGRATION.md\",\n      \"symbol\": \"docs/contracts/{DATA_SEMANTICS,PUBLIC_API}.md\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/contracts/v6/data/00_README.md\",\n      \"symbol\": \"工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/DATA-DESIGN-001.md\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/contracts/v6/data/00_README.md\",\n      \"symbol\": \"docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/contracts/v6/data/00_README.md\",\n      \"symbol\": \"docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    }\n  ],\n  \"passed\": false\n}\n",
+  "timed_out": false,
+  "timeout_seconds": 120,
+  "verdict": "FAIL(dirty)",
+  "waivable": false
+}

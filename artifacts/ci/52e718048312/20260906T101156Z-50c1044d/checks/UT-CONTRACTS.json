@@ -1,0 +1,45 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/contracts",
+    "-t",
+    "tests/contracts"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.098,
+  "exit_code": 0,
+  "finished_utc": "2026-09-06T10:13:45Z",
+  "heavy": false,
+  "id": "UT-CONTRACTS",
+  "log": "logs/UT-CONTRACTS.log",
+  "log_zst": "logs/UT-CONTRACTS.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T10:13:45Z",
+  "stderr_tail": ".........\n----------------------------------------------------------------------\nRan 9 tests in 0.009s\n\nOK\n",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 300,
+  "verdict": "PASS",
+  "waivable": false
+}

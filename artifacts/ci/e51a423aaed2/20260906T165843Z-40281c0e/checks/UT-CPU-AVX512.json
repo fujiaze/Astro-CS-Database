@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tests/cpu/avx512/run_provider_avx512_checks.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 3.185,
+  "exit_code": 1,
+  "finished_utc": "2026-09-06T16:58:46Z",
+  "heavy": false,
+  "id": "UT-CPU-AVX512",
+  "log": "logs/UT-CPU-AVX512.log",
+  "log_zst": "logs/UT-CPU-AVX512.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "linux",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令非零退出：1",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T16:58:43Z",
+  "stderr_tail": "",
+  "stdout_tail": "repo=/workspace/Astro CS Database hw_cpus=16\n$ gcc -std=c11 -O2 -DNDEBUG -fPIC -c -Wall -Wextra -Wpedantic -I/workspace/Astro CS Database/include -I/workspace/Astro CS Database/providers/cpu/common/include /workspace/Astro CS Database/providers/cpu/common/src/capability_detect.c -o /tmp/cpu004_avx512/capability_detect.o\n  exit=0\n$ g++ -std=c++17 -O2 -DNDEBUG -fPIC -shared -Wall -Wextra -Wpedantic -I/workspace/Astro CS Database/include -I/workspace/Astro CS Database/providers/cpu/baseline/include -I/workspace/Astro CS Database/providers/cpu/common/include /workspace/Astro CS Database/providers/cpu/baseline/src/baseline_provider.cpp /tmp/cpu004_avx512/capability_detect.o -o /tmp/cpu004_avx512/astrocs_cpu_baseline.so -lpthread\n  exit=0\n$ g++ -std=c++17 -O2 -DNDEBUG -mavx2 -mfma -fPIC -shared -Wall -Wextra -Wpedantic -I/workspace/Astro CS Database/include -I/workspace/Astro CS Database/providers/cpu/baseline/include -I/workspace/Astro CS Database/providers/cpu/avx2/include -I/workspace/Astro CS Database/providers/cpu/common/include /workspace/Astro CS Database/providers/cpu/avx2/src/avx2_provider.cpp /tmp/cpu004_avx512/capability_detect.o -o /tmp/cpu004_avx512/astrocs_cpu_avx2.so -lpthread\n  exit=0\n$ g++ -std=c++17 -O2 -DNDEBUG -fPIC -shared -Wall -Wextra -Wpedantic -mavx512f -mavx512cd -mavx512bw -mavx512dq -mavx512vl -I/workspace/Astro CS Database/include -I/workspace/Astro CS Database/providers/cpu/baseline/include -I/workspace/Astro CS Database/providers/cpu/avx512/include -I/workspace/Astro CS Database/providers/cpu/common/include /workspace/Astro CS Database/providers/cpu/avx512/src/avx512_provider.cpp /tmp/cpu004_avx512/capability_detect.o -o /tmp/cpu004_avx512/astrocs_cpu_avx512.so -lpthread\n  exit=0\n$ python3 /workspace/Astro CS Database/tests/cpu/avx512/check_avx512_illegal_instr.py /tmp/cpu004_avx512/astrocs_cpu_avx512.so\n  exit=0\n  stdout: astrocs_cpu_avx512.so: 文本段 %zmm 引用数 = 7\n_init 函数体零 %zmm (dlopen 静态初始化无 EVEX)\n_GLOBAL__sub_I_avx512_provider.cpp 函数体零 %zmm (dlopen 静态初始化无 EVEX)\nregister_tm_clones 函数体零 %zmm (dlopen 静态初始化无 EVEX)\nframe_dummy 函数体零 %zmm (dlopen 静态初始化无 EVEX)\nastrocs_provider_query_v1.cold (匹配 astrocs_provider_query_v1) 函数体零 %zmm (query/握手路径无 EVEX 指令)\nastrocs_provider_query_v1 (匹配 astrocs_provider_query_v1) 函数体零 %zmm (query/握手路径无 EVEX 指令)\nacs_cpu_avx512_cap_gate (匹配 acs_cpu_avx512_cap_gate) 函数体零 %zmm (query/握手路径无 EVEX 指令)\nacs_cap_detect_v1 (匹配 acs_cap_detect_v1) 函数体零 %zmm (query/握手路径无 EVEX 指令)\nacs_cap_classify_v1 (匹配 acs_cap_classify_v1) 函数体零 %zmm (query/握手路径无 EVEX 指令)\nacs_cap_os_safe_satisfies_v1@plt-0x10 (匹配 acs_cap_os_safe_satisfies_v1) 函数体零 %zmm (query/握手路径无 EVEX 指令)\nacs_cap_os_safe_satisfies_v1 (匹配 acs_cap_os_safe_satisfies_v1) 函数体零 %zmm (query/握手路径无 EVEX 指令)\nacs_cap_hw_satisfies_v1 (匹配 acs_cap_hw_satisfies_v1) 函数体零 %zmm (query/握手路径无 EVEX 指令)\nrun_kernel 路径符号含 %zmm (数值路径真 AVX-512): ['_ZN18astrocs_cpu_avx512L17avx512_run_kernelEjPK15acs_host_api_v1PKvj11acs_span_u8S5_']\n\nAVX512 illegal-instr protection: ALL PASS (kernel path has %zmm; query/cap_gate/.init zero-EVEX → dlopen+query safe on unsupported CPU, no #UD)\n$ g++ -std=c++17 -O2 -DNDEBUG -Wall -Wextra -Wpedantic -I/workspace/Astro CS Database/include -I/workspace/Astro CS Database/providers/cpu/baseline/include -I/workspace/Astro CS Database/providers/cpu/avx2/include -I/workspace/Astro CS Database/providers/cpu/avx512/include -I/workspace/Astro CS Database/providers/cpu/common/include /workspace/Astro CS Database/tests/cpu/avx512/provider_avx512_oracle_main.cpp -o /tmp/cpu004_avx512/avx512_oracle -ldl\n  exit=0\n$ /tmp/cpu004_avx512/avx512_oracle /tmp/cpu004_avx512/astrocs_cpu_baseline.so /tmp/cpu004_avx512/astrocs_cpu_avx2.so /tmp/cpu004_avx512/astrocs_cpu_avx512.so\n  exit=3\n  stdout: QUERY_FAIL\nFAIL: oracle main 运行\n",
+  "timed_out": false,
+  "timeout_seconds": 600,
+  "verdict": "FAIL",
+  "waivable": false
+}

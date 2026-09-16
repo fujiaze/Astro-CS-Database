@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/check_api_docs.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 5.968,
+  "exit_code": 0,
+  "finished_utc": "2026-09-13T21:00:11Z",
+  "heavy": false,
+  "id": "API-DOCS",
+  "log": "logs/API-DOCS.log",
+  "log_zst": "logs/API-DOCS.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-13T21:00:05Z",
+  "stderr_tail": "",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "PASS",
+  "waivable": false
+}

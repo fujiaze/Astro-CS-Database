@@ -1,0 +1,48 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/deep_ci_driver.py",
+    "ctest-full",
+    "--build-dir",
+    "run/ci/build-gcc-release",
+    "--junit",
+    "ctest-full.junit.xml",
+    "--output",
+    "run/ci/build-gcc-release/ctest-full.json"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 142.453,
+  "exit_code": 0,
+  "finished_utc": "2026-09-13T21:42:32Z",
+  "heavy": false,
+  "id": "CTEST-LINUX-FULL",
+  "log": "logs/CTEST-LINUX-FULL.log",
+  "log_zst": "logs/CTEST-LINUX-FULL.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [
+    "run/ci/build-gcc-release/ctest-full.json",
+    "run/ci/build-gcc-release/ctest-full.junit.xml"
+  ],
+  "outputs_missing": [],
+  "platform_registered": "linux",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-13T21:40:09Z",
+  "stderr_tail": "",
+  "stdout_tail": "[deep_ci_driver] cmake-configure: cmake -S . -B run/ci/build-gcc-release -DCMAKE_BUILD_TYPE=Release\n-- Found OpenMP_C: -fopenmp (found version \"4.5\")\n-- Found OpenMP_CXX: -fopenmp (found version \"4.5\")\n-- Found OpenMP_C: -fopenmp (found version \"4.5\")\n-- Found OpenMP_CXX: -fopenmp (found version \"4.5\")\n-- Found OpenMP_C: -fopenmp (found version \"4.5\")\n-- Found OpenMP_CXX: -fopenmp (found version \"4.5\")\n-- Phase2: OpenMP disabled (hotfix default, serial sampler) - libgomp NOT linked\n-- BLD-003 install layout ready (module_dir=modules provider_dir=providers)\n-- AstroCS 0.11.0-alpha.2+g48ceee59fe52e0881fc4b925846fdf37800810d2 root target graph ready (ACR=OFF)\n-- Configuring done (0.2s)\n-- Generating done (0.5s)\n-- Build files have been written to: /workspace/Astro CS Database/run/ci/build-gcc-release\n[deep_ci_driver] cmake-build: cmake --build run/ci/build-gcc-release -j 2\n[ 97%] Linking CXX executable rt009_node_trace_test\n[ 97%] Built target rt008_runtime_client_test\n[ 97%] Linking CXX executable p1001_modules_test\n[ 97%] Built target rt009_node_trace_test\n[ 97%] Linking CXX executable p1001_real_nodes_test\n[ 98%] Built target p1001_modules_test\n[ 98%] Linking CXX executable p2001_real_nodes_test\n[ 98%] Built target p1001_real_nodes_test\n[ 99%] Linking CXX executable p2002_unc_rej_prov_test\n[ 99%] Built target p2001_real_nodes_test\n[ 99%] Linking CXX executable p15_artifact_collect_test\n[ 99%] Built target p2002_unc_rej_prov_test\n[ 99%] Building CXX object tests/unit/CMakeFiles/p3002_real_nodes_test.dir/p3002_real_nodes_test.cpp.o\n[ 99%] Built target p15_artifact_collect_test\n[ 99%] Linking CXX executable p3002_uncertainty_test\n[ 99%] Built target p3002_uncertainty_test\n[ 99%] Linking CXX executable rt001_unique_executor_test\n[ 99%] Built target rt001_unique_executor_test\n[ 99%] Building CXX object CMakeFiles/astrocs.dir/cli/commands.cpp.o\n[ 99%] Linking CXX executable p3002_real_nodes_test\n[ 99%] Built target p3002_real_nodes_test\n[100%] Building CXX object CMakeFiles/astrocs.dir/cli/main.cpp.o\n[100%] Building CXX object CMakeFiles/astrocs.dir/cli/parser.cpp.o\n[100%] Linking CXX executable astrocs\n[100%] Built target astrocs\n[deep_ci_driver] ctest-full: ctest --output-on-failure --output-junit ctest-full.junit.xml\n        Start 287: phase2_async_io.BoundedAsyncQueuePipeline.MultiConsumerProcessesEachItemExactlyOnce\n287/288 Test #287: phase2_async_io.BoundedAsyncQueuePipeline.MultiConsumerProcessesEachItemExactlyOnce ....   Passed    0.01 sec\n        Start 288: phase2_async_io.BoundedAsyncQueuePipeline.CancelWakesBlockedConsumerNoDeadlock\n288/288 Test #288: phase2_async_io.BoundedAsyncQueuePipeline.CancelWakesBlockedConsumerNoDeadlock .........   Passed    0.04 sec\n\n100% tests passed, 0 tests failed out of 288\n\nLabel Time Summary:\np1wcs    =   6.94 sec*proc (9 tests)\n\nTotal Test time (real) =  82.64 sec\n\nThe following tests did not run:\n\t 49 - cpu001_selftest_avx512 (Skipped)\n\t246 - phase2_synthetic_gate.Phase2Acr.CudaEquivalent (Skipped)\n\t247 - phase2_synthetic_gate.Phase2Acr.CudaWeightedSupportEquivalent (Skipped)\n\t248 - phase2_synthetic_gate.Phase2Acr.G9CompactFrameSubset (Skipped)\n\t249 - phase2_synthetic_gate.Phase2Acr.G9WinsorizedCpuRoute (Skipped)\n\t254 - phase2_synthetic_gate.Phase2Coverage.RealHipsUnion (Skipped)\n\t255 - phase2_synthetic_gate.Phase2Coverage.FilterMismatchRejected (Skipped)\n\t256 - phase2_synthetic_gate.Phase2Sampler.RealHipsControlSampling (Skipped)\n\t257 - phase2_synthetic_gate.Phase2Sampler.G6LocalSnrAvailabilityThreeZones (Skipped)\n\t259 - phase2_synthetic_gate.Phase2Identity.G3StableFrameIdentity (Skipped)\n\t260 - phase2_synthetic_gate.Phase2Identity.G3ManifestOrderCanonical (Skipped)\n\t278 - phase2_sampler_parallel.Phase2SamplerParallel.OneTvsTwoTDeterminism (Skipped)\n{\"driver\": \"deep_ci_driver.py\", \"subcommand\": \"ctest-full\", \"build_dir\": \"run/ci/build-gcc-release\", \"verdict\": \"PASS\"}\n",
+  "timed_out": false,
+  "timeout_seconds": 3600,
+  "verdict": "PASS",
+  "waivable": false
+}

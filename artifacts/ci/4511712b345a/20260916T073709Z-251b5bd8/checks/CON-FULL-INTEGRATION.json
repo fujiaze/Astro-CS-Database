@@ -1,0 +1,51 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/contracts/check_full_integration.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": [
+      "contracts/data/unified_object_compatibility_map_v1.json",
+      "contracts/schemas/unified/negative/EXPECTED.json",
+      "contracts/schemas/unified/negative/n1_bare_weight.schema-violation.json",
+      "contracts/schemas/unified/negative/n2_source_snr_as_variance.schema-violation.json",
+      "contracts/schemas/unified/negative/n3_coverage_as_rejection.schema-violation.json",
+      "contracts/schemas/unified/negative/n4_source_snr_into_variance_port.schema-violation.json",
+      "docs/contracts/DATA_ARTIFACTS.md",
+      "docs/contracts/UNIFIED_OBJECTS.md",
+      "docs/contracts/unified_object_registry.json",
+      "reports/PROJECT-GOVERNANCE-01/root-scan/CONTINUATION.md",
+      "reports/PROJECT-GOVERNANCE-01/root-scan/_gen/landed_stats.json",
+      "reports/PROJECT-GOVERNANCE-01/root-scan/shards/B_STD_MISMATCH_ALL.md"
+    ]
+  },
+  "duration_seconds": 30.083,
+  "exit_code": 1,
+  "finished_utc": "2026-09-16T07:38:54Z",
+  "heavy": false,
+  "id": "CON-FULL-INTEGRATION",
+  "log": "logs/CON-FULL-INTEGRATION.log",
+  "log_zst": "logs/CON-FULL-INTEGRATION.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "mutates_workspace=false 的检查修改了工作区",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:38:24Z",
+  "stderr_tail": "Traceback (most recent call last):\n  File \"/workspace/Astro CS Database/tools/quality/contracts/check_full_integration.py\", line 87, in <module>\n    sys.exit(main())\n             ~~~~^^\n  File \"/workspace/Astro CS Database/tools/quality/contracts/check_full_integration.py\", line 20, in main\n    out = subprocess.run([sys.executable, str(repo / \"tools/quality/contracts/generate_contract_report.py\"), \"--repo\", str(repo), \"--out-json\", str(tf)], capture_output=True, text=True, timeout=30)\n  File \"/usr/lib/python3.13/subprocess.py\", line 556, in run\n    stdout, stderr = process.communicate(input, timeout=timeout)\n                     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.13/subprocess.py\", line 1222, in communicate\n    stdout, stderr = self._communicate(input, endtime, timeout)\n                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.13/subprocess.py\", line 2129, in _communicate\n    self._check_timeout(endtime, orig_timeout, stdout, stderr)\n    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.13/subprocess.py\", line 1269, in _check_timeout\n    raise TimeoutExpired(\n    ...<2 lines>...\n            stderr=b''.join(stderr_seq) if stderr_seq else None)\nsubprocess.TimeoutExpired: Command '['/usr/bin/python3', 'tools/quality/contracts/generate_contract_report.py', '--repo', '.', '--out-json', '/tmp/tmp3cm7kb6q.json']' timed out after 30 seconds\n",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 120,
+  "verdict": "FAIL(dirty)",
+  "waivable": false
+}

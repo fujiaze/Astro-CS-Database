@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tests/cpu/avx512/run_provider_avx512_checks.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.551,
+  "exit_code": 77,
+  "finished_utc": "2026-09-13T21:35:36Z",
+  "heavy": false,
+  "id": "UT-CPU-AVX512",
+  "log": "logs/UT-CPU-AVX512.log",
+  "log_zst": "logs/UT-CPU-AVX512.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "linux",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令以 SKIP 退出码 77 结束（ctest SKIP_RETURN_CODE 同语义, 如宿主能力 gate）",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-13T21:35:35Z",
+  "stderr_tail": "",
+  "stdout_tail": "$ g++ -std=c++17 -I/workspace/Astro CS Database/lib/backend_host /tmp/cpu004_avx512/cpu004_host_probe.cpp /workspace/Astro CS Database/lib/backend_host/cpu_features.cpp -o /tmp/cpu004_avx512/cpu004_host_probe\n  exit=0\n$ /tmp/cpu004_avx512/cpu004_host_probe\n  exit=0\n  stdout: detected=0x000000000000001f avx512f=0\nhost capability: detected=0x000000000000001f avx512f=0\nSKIP: host lacks AVX-512F (detected=0x1f) — provider NOT ACTIVATED per activation contract; exit 77 (ctest SKIP_RETURN_CODE, 同 cpu001_selftest_avx512)\n",
+  "timed_out": false,
+  "timeout_seconds": 600,
+  "verdict": "SKIPPED(waivable)",
+  "waivable": false
+}

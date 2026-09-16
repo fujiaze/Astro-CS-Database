@@ -1,0 +1,43 @@
+{
+  "command": [
+    "python3",
+    "ci/validate_workflow_binding.py",
+    "--json",
+    "--out",
+    "run/ci/workflow-binding/workflow_binding.json"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.073,
+  "exit_code": 0,
+  "finished_utc": "2026-09-16T07:52:12Z",
+  "heavy": false,
+  "id": "WORKFLOW-REGISTRY-BINDING",
+  "log": "logs/WORKFLOW-REGISTRY-BINDING.log",
+  "log_zst": "logs/WORKFLOW-REGISTRY-BINDING.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [
+    "run/ci/workflow-binding/workflow_binding.json"
+  ],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:52:12Z",
+  "stderr_tail": "",
+  "stdout_tail": " \"check_id\": \"WIN-CANDIDATE-VALIDATE\", \"name\": null, \"role\": \"check-body\", \"serves_checks\": [], \"step_id\": \"WINDOWS-VALIDATE-CANDIDATE\", \"workflow\": null}, {\"binds_check\": null, \"name\": \"Checkout exact SHA\", \"pending_registration\": null, \"role\": \"pinned-action\", \"serves_checks\": [], \"step_id\": \"LINUX-CHECKOUT\", \"workflow\": \".github/workflows/ci-linux.yml\"}, {\"binds_check\": null, \"name\": \"Bootstrap locked toolchain\", \"pending_registration\": null, \"role\": \"ci-entrypoint\", \"serves_checks\": [], \"step_id\": \"LINUX-BOOTSTRAP\", \"workflow\": \".github/workflows/ci-linux.yml\"}, {\"binds_check\": null, \"name\": \"Select profile\", \"pending_registration\": null, \"role\": \"ci-entrypoint\", \"serves_checks\": [], \"step_id\": \"LINUX-SELECT-PROFILE\", \"workflow\": \".github/workflows/ci-linux.yml\"}, {\"binds_check\": null, \"name\": \"Install linux-main python deps (numpy for UT-IO)\", \"pending_registration\": null, \"role\": \"host-provisioning\", \"serves_checks\": [], \"step_id\": \"LINUX-MAIN-HOST-DEPS\", \"workflow\": \".github/workflows/ci-linux.yml\"}, {\"binds_check\": null, \"name\": \"Install deep coverage tools\", \"pending_registration\": null, \"role\": \"host-provisioning\", \"serves_checks\": [], \"step_id\": \"LINUX-DEEP-TOOLS\", \"workflow\": \".github/workflows/ci-linux.yml\"}, {\"binds_check\": null, \"name\": \"Run registered checks\", \"pending_registration\": null, \"role\": \"registry-runner\", \"serves_checks\": [], \"step_id\": \"LINUX-RUN-REGISTERED\", \"workflow\": \".github/workflows/ci-linux.yml\"}, {\"binds_check\": null, \"name\": \"Collect bootstrap diagnostics\", \"pending_registration\": null, \"role\": \"infra-step\", \"serves_checks\": [], \"step_id\": \"LINUX-BOOTSTRAP-DIAG\", \"workflow\": \".github/workflows/ci-linux.yml\"}, {\"binds_check\": null, \"name\": \"Upload small evidence\", \"pending_registration\": null, \"role\": \"artifact-upload\", \"serves_checks\": [], \"step_id\": \"LINUX-UPLOAD-EVIDENCE\", \"workflow\": \".github/workflows/ci-linux.yml\"}, {\"binds_check\": null, \"name\": \"Checkout exact SHA\", \"pending_registration\": null, \"role\": \"pinned-action\", \"serves_checks\": [], \"step_id\": \"WINDOWS-CHECKOUT\", \"workflow\": \".github/workflows/ci-windows.yml\"}, {\"binds_check\": null, \"name\": \"Provide zlib (vcpkg) and PyYAML\", \"pending_registration\": null, \"role\": \"host-provisioning\", \"serves_checks\": [], \"step_id\": \"WINDOWS-HOST-DEPS\", \"workflow\": \".github/workflows/ci-windows.yml\"}, {\"binds_check\": null, \"name\": \"Bootstrap locked toolchain\", \"pending_registration\": null, \"role\": \"ci-entrypoint\", \"serves_checks\": [], \"step_id\": \"WINDOWS-BOOTSTRAP\", \"workflow\": \".github/workflows/ci-windows.yml\"}, {\"binds_check\": null, \"name\": \"Run MSVC tests and package candidate\", \"pending_registration\": null, \"role\": \"registry-runner\", \"serves_checks\": [], \"step_id\": \"WINDOWS-RUN-REGISTERED\", \"workflow\": \".github/workflows/ci-windows.yml\"}, {\"binds_check\": null, \"name\": \"Upload candidate\", \"pending_registration\": null, \"role\": \"artifact-upload\", \"serves_checks\": [], \"step_id\": \"WINDOWS-UPLOAD-CANDIDATE\", \"workflow\": \".github/workflows/ci-windows.yml\"}, {\"binds_check\": null, \"name\": \"Collect bootstrap diagnostics\", \"pending_registration\": null, \"role\": \"infra-step\", \"serves_checks\": [], \"step_id\": \"WINDOWS-BOOTSTRAP-DIAG\", \"workflow\": \".github/workflows/ci-windows.yml\"}, {\"binds_check\": null, \"name\": \"Upload public CI evidence\", \"pending_registration\": null, \"role\": \"artifact-upload\", \"serves_checks\": [], \"step_id\": \"WINDOWS-UPLOAD-EVIDENCE\", \"workflow\": \".github/workflows/ci-windows.yml\"}], \"task\": \"CI-001B\", \"verdict\": \"PASS\", \"workflows\": {\".github/workflows/ci-linux.yml\": {\"cancel_in_progress\": false, \"concurrency_group\": \"linux-ci-${{ github.ref }}-${{ github.event_name }}-${{ github.sha }}\", \"dispatch_profile_choices\": [\"linux-main\", \"linux-deep\"], \"job\": \"linux\", \"job_timeout_minutes\": 330, \"steps\": 8}, \".github/workflows/ci-windows.yml\": {\"cancel_in_progress\": false, \"concurrency_group\": \"windows-ci-${{ github.ref }}-${{ github.event_name }}\", \"dispatch_profile_choices\": [], \"job\": \"windows\", \"job_timeout_minutes\": 330, \"steps\": 7}}}\n",
+  "timed_out": false,
+  "timeout_seconds": 300,
+  "verdict": "PASS",
+  "waivable": false
+}

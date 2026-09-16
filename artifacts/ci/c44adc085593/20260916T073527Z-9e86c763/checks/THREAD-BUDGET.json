@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/arch/check_thread_budget.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.308,
+  "exit_code": 1,
+  "finished_utc": "2026-09-16T07:35:38Z",
+  "heavy": false,
+  "id": "THREAD-BUDGET",
+  "log": "logs/THREAD-BUDGET.log",
+  "log_zst": "logs/THREAD-BUDGET.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令非零退出：1",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:35:37Z",
+  "stderr_tail": "",
+  "stdout_tail": "THREAD_BUDGET_CHECK_FAIL (2):\n  lib/core/src/module_adapters.cpp:245: omp_set_num_threads 未登记: if (workers > 0) omp_set_num_threads(workers);\n  lib/core/src/module_adapters.cpp:252: omp_set_num_threads 未登记: if (prev_ > 0) omp_set_num_threads(prev_);\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "FAIL",
+  "waivable": false
+}

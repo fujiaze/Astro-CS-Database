@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/check_task_result_schema.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.043,
+  "exit_code": 0,
+  "finished_utc": "2026-09-12T04:46:24Z",
+  "heavy": false,
+  "id": "TASK-RESULT-SCHEMA",
+  "log": "logs/TASK-RESULT-SCHEMA.log",
+  "log_zst": "logs/TASK-RESULT-SCHEMA.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-12T04:46:24Z",
+  "stderr_tail": "",
+  "stdout_tail": "CHIVED_SKIP: evidence/v6_1_rework/tasks/LNX-001/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/LNX-002/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/LNX-003/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/LNX-004/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/LNX-005/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/MON-001/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/MON-002/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/MON-003/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P1-001/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P1-002/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P1-003/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P1-004/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P2-001/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P2-002/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P2-003/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P2-004/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P2-005/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P2-006/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P2-007/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P3-001/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P3-002/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P3-003/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P3-004/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P3-005/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/P3-006/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/QA-001/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/QA-002/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/QA-003/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/R0-001/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/R0-002/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/R0-003/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/R0-004/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/REL-001/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/REL-003/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/RT-001/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/RT-002/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/RT-003/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/RT-004/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/RT-005/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/RT-006/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/RT-007/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/RT-008/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/RT-009/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/VER-001/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/WIN-001/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/WIN-002/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/WIN-003/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/WIN-004/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/WIN-005/TASK_RESULT.json\nSCHEMA_CHECK_ARCHIVED_SKIP: evidence/v6_1_rework/tasks/WIN-006/TASK_RESULT.json\nSCHEMA_CHECK_PASS checked=0 archived_skipped=68\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "PASS",
+  "waivable": false
+}

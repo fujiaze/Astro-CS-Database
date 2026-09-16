@@ -1,0 +1,39 @@
+{
+  "command": [
+    "python3",
+    "ci/reconcile_state.py",
+    "--strict"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.104,
+  "exit_code": 0,
+  "finished_utc": "2026-09-13T21:01:30Z",
+  "heavy": false,
+  "id": "RECONCILE-STATE",
+  "log": "logs/RECONCILE-STATE.log",
+  "log_zst": "logs/RECONCILE-STATE.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-13T21:01:30Z",
+  "stderr_tail": "",
+  "stdout_tail": "{\n  \"script\": \"ci/reconcile_state.py\",\n  \"mode\": {\n    \"current_first\": false,\n    \"strict\": true\n  },\n  \"repo_root\": \"/workspace/Astro CS Database\",\n  \"checks_total\": 8,\n  \"checks_passed\": 8,\n  \"checks_failed\": 0,\n  \"verdict\": \"PASS\",\n  \"checks\": [\n    {\n      \"name\": \"task_state_parse\",\n      \"ok\": true,\n      \"detail\": \"/workspace/Astro CS Database/evidence/v8_1_ci_control/TASK_STATE.json\"\n    },\n    {\n      \"name\": \"task_state_schema\",\n      \"ok\": true,\n      \"detail\": \"schema_version='v8.1' tasks=191\"\n    },\n    {\n      \"name\": \"v71_coverage\",\n      \"ok\": true,\n      \"detail\": \"v71_rows=191 missing=[]\"\n    },\n    {\n      \"name\": \"v71_no_extra_tasks\",\n      \"ok\": true,\n      \"detail\": \"state.tasks == V7.1 id set (191)\"\n    },\n    {\n      \"name\": \"reconciliation_header\",\n      \"ok\": true,\n      \"detail\": \"rows=191\"\n    },\n    {\n      \"name\": \"reconciliation_match\",\n      \"ok\": true,\n      \"detail\": \"csv_rows=191 state_tasks=191\"\n    },\n    {\n      \"name\": \"commit_ledger\",\n      \"ok\": true,\n      \"detail\": \"entries=1769 aligned_with_git_history\"\n    },\n    {\n      \"name\": \"seed_integrity\",\n      \"ok\": true,\n      \"detail\": \"V81-ADOPT-001/002 CLOSED + commit/owner/evidence preserved\"\n    }\n  ]\n}\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "PASS",
+  "waivable": true
+}

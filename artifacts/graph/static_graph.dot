@@ -1,0 +1,15 @@
+digraph astrocs {
+  rankdir="LR";
+  bgcolor="#ffffff";
+  node [shape=box, style="rounded,filled", fontname="sans-serif", fontsize=11, color="#bbbbbb"];
+  edge [fontname="sans-serif", fontsize=9, color="#888888"];
+  "properties" [label=<<b>properties</b><br/><i>properties</i>>, fillcolor="#e3f2fd"];
+  "wcs" [label=<<b>wcs</b><br/><i>wcs</i>>, fillcolor="#e3f2fd"];
+  "resample2" [label=<<b>resample2</b><br/><i>resample2</i>>, fillcolor="#e3f2fd"];
+  "writer" [label=<<b>writer</b><br/><i>writer</i>>, fillcolor="#e3f2fd"];
+  "verify" [label=<<b>verify</b><br/><i>verify</i>>, fillcolor="#e3f2fd"];
+  "writer" -> "verify" [label="artifact:writer", style="solid"];
+  "properties" -> "wcs" [label="artifact:properties", style="solid"];
+  "resample2" -> "writer" [label="artifact:resample2", style="solid"];
+  "wcs" -> "resample2" [label="artifact:wcs", style="solid"];
+}

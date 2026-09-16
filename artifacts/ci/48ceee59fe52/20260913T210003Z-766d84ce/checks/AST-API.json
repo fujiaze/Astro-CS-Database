@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/check_ast_api.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 5.076,
+  "exit_code": 0,
+  "finished_utc": "2026-09-13T21:00:49Z",
+  "heavy": false,
+  "id": "AST-API",
+  "log": "logs/AST-API.log",
+  "log_zst": "logs/AST-API.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "linux",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-13T21:00:44Z",
+  "stderr_tail": "",
+  "stdout_tail": "DOC-004_PASS: 3 头 AST public 符号与声明一致 (参数/cv/noexcept 基线)\n",
+  "timed_out": false,
+  "timeout_seconds": 120,
+  "verdict": "PASS",
+  "waivable": false
+}

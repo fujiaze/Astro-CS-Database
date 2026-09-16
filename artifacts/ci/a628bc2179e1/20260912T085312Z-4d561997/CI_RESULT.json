@@ -1,0 +1,52 @@
+{
+  "changed_from": null,
+  "checks": [
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.093,
+      "exit_code": 0,
+      "id": "DATA-ARTIFACTS",
+      "log": "logs/DATA-ARTIFACTS.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": false
+    }
+  ],
+  "finished_utc": "2026-09-12T08:53:12Z",
+  "generated_by": "ci/run.py (V8-CI-002)",
+  "known_failures": {
+    "baseline_path": "/workspace/Astro CS Database/ci/known_failures.json",
+    "count_increased": [],
+    "enabled": true,
+    "expired": [],
+    "invalid": [],
+    "matched": [],
+    "new_failures": [],
+    "signature_changed": []
+  },
+  "profile": "fast",
+  "run_id": "20260912T085312Z-4d561997",
+  "schema_version": 1,
+  "selection": {
+    "changed_files_count": 0,
+    "mode": "explicit",
+    "selected_by": {
+      "DATA-ARTIFACTS": "explicit --check"
+    }
+  },
+  "source_sha": "a628bc2179e1d4930f221fac23d042cf48914b52",
+  "started_utc": "2026-09-12T08:53:12Z",
+  "strict_workspace": true,
+  "summary": {
+    "fail": 0,
+    "fail_detail": {},
+    "known_fail": 0,
+    "pass": 1,
+    "skipped_waivable": 0,
+    "total": 1
+  },
+  "verdict": "PASS"
+}
