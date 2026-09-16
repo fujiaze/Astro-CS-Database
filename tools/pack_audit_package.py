@@ -6,7 +6,7 @@
 """
 from __future__ import annotations
 
-import datetime, hashlib, json, os, pathlib, zipfile
+import datetime, hashlib, json, os, pathlib, re, zipfile
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 OUT = REPO / "artifacts/prerelease_v5"
@@ -16,8 +16,29 @@ CODE_TOPS = {"cli", "include", "lib", "tools", "tests", "contracts/schemas", "do
 EVIDENCE_TOPS = {"reports", "工程控制/RELEASE_V5", "artifacts/prerelease_v5/AUDIT_REVIEW",
                  "artifacts/prerelease_v5/tables"}
 ROOT_FILES = {"VERSION", "README.md", "AGENTS.md", "build.sh", "toolchain.ps1", "CHANGELOG.md",
-              "memory.md", "FATDUCK_ACCESS.md", "HANDOVER.md", "VISUAL_CHECK_README.md",
+              "memory.md", "HANDOVER.md", "VISUAL_CHECK_README.md",
               ".clang-format", ".gitignore", ".gitattributes", ".editorconfig", "CMakeLists.txt"}
+
+# 排除保证（ROOT-006 / CHK-SECRET-HYGIENE）：凭据/接入类文件**永不入包**——即使被显式塞回
+# 白名单也能拦住。判定只看路径形态，不读文件内容；审计包是外发给第三方审核的产物，
+# 扩大暴露面没有必要。
+#   1) DENY_PATHS    : 路径归一化后的精确条目（与 ROOT_FILES 解耦）；
+#   2) DENY_NAME_RE  : 凭据类文件形态（.env/私钥/密钥库/*_ACCESS.md）。
+DENY_PATHS = {"FATDUCK_ACCESS.md"}
+DENY_NAME_RE = re.compile(
+    r"(?i)(^|/)(\.env(\..*)?|\.netrc|id_(?:rsa|dsa|ecdsa|ed25519)[^/]*)$"
+    r"|\.(pem|key|ppk|p12|pfx|jks|keystore)$"
+    r"|(^|/)[^/]*_access\.md$")
+
+
+def denied(rel: str) -> bool:
+    """凭据类路径排除保证：True = 无论白名单怎么写都不入包。"""
+    rel = rel.replace("\\", "/")
+    while rel.startswith("./"):
+        rel = rel[2:]
+    if rel in DENY_PATHS:
+        return True
+    return bool(DENY_NAME_RE.search(rel))
 
 # 排除: 第三方/数据/二进制/运行时/大产物
 EXCLUDE_SUBSTR = ("/third_party/", "/build/", "/builds/", "/run/", "/testdata/", "/BASS DR3/",
@@ -38,6 +59,8 @@ def sha256_file(p: pathlib.Path) -> str:
 def allowed(rel: str) -> tuple[bool, str]:
     """返回 (是否保留, 包内目标路径 of  code/ | evidence/ | root)."""
     rel = rel.replace("\\", "/")
+    if denied(rel):                     # 排除保证先于一切白名单判定
+        return (False, "")
     if any(s in ("/" + rel.replace("\\", "/")) for s in []):
         pass
     if any(x in rel for x in EXCLUDE_SUBSTR):
@@ -76,11 +99,14 @@ def main() -> int:
     zpath = OUT / f"AUDIT_PACKAGE_{c12}.zip"
     manifest, sums = [], []
     total = 0
+    denied_hits = []
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
         staged = []
         for rel in files:
             ok, dst = allowed(rel)
             if not ok:
+                if denied(rel):
+                    denied_hits.append(rel)
                 continue
             src = REPO / rel
             if not src.is_file():
@@ -109,6 +135,7 @@ def main() -> int:
     print(f"[pack] {zpath}  bytes={total}  files={len(manifest)-3}  zip_bytes={zpath.stat().st_size}")
     print(f"[pack] MIB={total/1024/1024:.2f}  zip_MIB={zpath.stat().st_size/1024/1024:.2f}")
     print(f"[pack] <10MB target: {'PASS' if zpath.stat().st_size < 10*1024*1024 else 'FAIL'}")
+    print(f"[pack] DENY 排除(凭据类, 即使被显式指定也不入包): {len(denied_hits)} {denied_hits}")
     return 0
 
 
