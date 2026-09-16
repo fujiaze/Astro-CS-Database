@@ -19,7 +19,7 @@ ACR_GPU_TERMS = re.compile(
     r'kOpMosaicReject|register_phase2_acr_kernels|dynamic_plugin|CpuExecutor)\b',
     re.IGNORECASE)
 
-# 生产源码: CLI + 三个 phase session + 事件/manifest 头 + 生产 kernel(upm)。不含 lib/acr/(未接入引擎);
+# 生产源码: CLI + 三个 phase session + 事件/manifest 头 + 生产 kernel(upm)。不含 lib/infrastructure/acr/(未接入引擎);
 # 不含 stage2_common.cpp(其为 ACR 边界"拒绝层"/legacy tool parser; 本身校验 acr_route 只允许 auto/cpu,
 # 属 ACR 隔离防线, 不属生产选路)。
 PRODUCTION_SOURCES = [
@@ -28,7 +28,7 @@ PRODUCTION_SOURCES = [
     "lib/phase1_session/p1_session.cpp",
     "lib/phase2_session/p2_session.cpp",
     "lib/phase3_session/p3_session.cpp",
-    "lib/phase2/src/upm.cpp",
+    "lib/algorithms/coverage/src/upm.cpp",
 ]
 
 try:
@@ -96,7 +96,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
         """生产路径不调用 register_phase2_acr_kernels(仅 tests/tools 调)。"""
         prod_cpp = ["cli/main.cpp", "lib/phase1_session/p1_session.cpp",
                     "lib/phase2_session/p2_session.cpp", "lib/phase3_session/p3_session.cpp",
-                    "lib/phase2/src/upm.cpp"]
+                    "lib/algorithms/coverage/src/upm.cpp"]
         for rel in prod_cpp:
             p = os.path.join(REPO, rel)
             if os.path.isfile(p):

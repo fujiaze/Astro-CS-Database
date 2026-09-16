@@ -21,7 +21,7 @@
 # module_id 取 MODULE_MIGRATION_MATRIX P3-RSMP 行权威值
 # astrocs.p3.resample。
 # MOD ID：registry 现有行 MOD-astrocs-phase3-resample2（本域生产
-# descriptor，lib/core/src/module_adapters.cpp:363-377
+# descriptor，lib/infrastructure/scheduler/src/module_adapters.cpp:363-377
 # p3_resample2_descriptor），本 manifest id 与之一致；相邻占位行
 # MOD-astrocs-phase3-resample（module_adapters.cpp:300-318
 # phase3_descriptor，P2 模板复制残留，ports hips/tile、
@@ -30,7 +30,7 @@
 # alg_id=ALG-P3-003、test_id=TEST-P3-RES-001、端口 wcs_plan
 # (DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+resampled(DATA-P3-RES 可)）
 # 为编排层词汇，由 P3-RSMP-INT 对齐本 manifest 与
-# lib/phase3_rsmp/README.md（r1），不得反向作为冻结依据（SCI/ALG
+# lib/algorithms/resample/README.md（r1），不得反向作为冻结依据（SCI/ALG
 # 映射声明见 docs/algorithms/PHASE3_RSMP_IMPL.md §5）。
 # 落位依据：MODULE_MIGRATION_MATRIX.csv P3-RSMP 行 owner=SA-P3-S26、
 # target=astrocs_p3_resample.dll、module_id=astrocs.p3.resample、
@@ -40,7 +40,7 @@
 # field;strict missing;support/mask;shared bounded cache"。实测生产源
 # p3_resample.cpp 位于 lib/phase3_session/ ——该目录为会话编排域共享
 # 源（p3_session/p3_output/p3_wcs 等非本域），不整目录归属，故按
-# lib/phase3_proj→phase3_fits 先例落独立迁移目标目录 lib/phase3_rsmp/
+# lib/algorithms/projection→phase3_fits 先例落独立迁移目标目录 lib/algorithms/resample/
 # （本文件所在，仅合同文件、无源码、不与 legacy 目录重叠）；legacy
 # 生产源引用不搬家。
 # dll_target=astrocs_p3_resample.dll 为迁移目标合同值（尚未存在，
@@ -61,7 +61,7 @@
 # 必)+resampled(DATA-P3-RES 可)、alg_id=ALG-P3-003、
 # data_id=DATA-P3-RES、api_id=API-P3-001、test_id=TEST-P3-RES-001）
 # 为编排层词汇，由 P3-RSMP-INT 对齐本 manifest 与
-# lib/phase3_rsmp/README.md（r1），不得反向作为冻结依据。
+# lib/algorithms/resample/README.md（r1），不得反向作为冻结依据。
 # scientific_change=false：本任务为 -DOC 合同冻结层（不改生产算法/
 # 不改 SCI 公式，docs/science/ 根公式零改动）；Phase3 重采样科学链
 # （SCI-P3 §9a-5/-7 G3/G4）为既冻结构建（V5 SCI-007, 2026-08-28），

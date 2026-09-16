@@ -3,9 +3,9 @@
 # ----------------------------------------------------------------------------
 # write_scope: tests/unit/v6_p1_psfw/
 # 被测生产源 (独立编入测试目标, 不新建生产 target; 对齐 p1psf/p1star 先例):
-#   lib/dynamic_psf/src/psf_information.cpp          (A_NEA / effective PSF)
-#   lib/snr_estimator/cpp/src/information_weight.cpp (W_info/Q/F_hat/白噪条件)
-#   lib/photometric_calib/cpp/src/psfsw.cpp          (四分量/共同星集/门/cov)
+#   lib/algorithms/psf/src/psf_information.cpp          (A_NEA / effective PSF)
+#   lib/algorithms/noise_snr/cpp/src/information_weight.cpp (W_info/Q/F_hat/白噪条件)
+#   lib/algorithms/photometry/cpp/src/psfsw.cpp          (四分量/共同星集/门/cov)
 # 根构建面注册由控制器统一处理 (C-004.4)。
 #
 # 单跑: ./v6_p1_psfw_tests <group>|all
@@ -23,9 +23,9 @@ endif()
 
 set(V6_P1_PSFW_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(V6_P1_PSFW_PROD
-  "${ASTROCS_REPO_ROOT}/lib/dynamic_psf/src/psf_information.cpp"
-  "${ASTROCS_REPO_ROOT}/lib/snr_estimator/cpp/src/information_weight.cpp"
-  "${ASTROCS_REPO_ROOT}/lib/photometric_calib/cpp/src/psfsw.cpp")
+  "${ASTROCS_REPO_ROOT}/lib/algorithms/psf/src/psf_information.cpp"
+  "${ASTROCS_REPO_ROOT}/lib/algorithms/noise_snr/cpp/src/information_weight.cpp"
+  "${ASTROCS_REPO_ROOT}/lib/algorithms/photometry/cpp/src/psfsw.cpp")
 
 add_executable(v6_p1_psfw_tests
   ${V6_P1_PSFW_DIR}/tests_main.cpp
@@ -39,9 +39,9 @@ add_executable(v6_p1_psfw_tests
   ${V6_P1_PSFW_PROD})
 target_include_directories(v6_p1_psfw_tests PRIVATE
   ${V6_P1_PSFW_DIR}
-  "${ASTROCS_REPO_ROOT}/lib/dynamic_psf/include"
-  "${ASTROCS_REPO_ROOT}/lib/snr_estimator/include"
-  "${ASTROCS_REPO_ROOT}/lib/photometric_calib/include")
+  "${ASTROCS_REPO_ROOT}/lib/algorithms/psf/include"
+  "${ASTROCS_REPO_ROOT}/lib/algorithms/noise_snr/include"
+  "${ASTROCS_REPO_ROOT}/lib/algorithms/photometry/include")
 target_compile_features(v6_p1_psfw_tests PRIVATE cxx_std_17)
 if(UNIX)
   target_link_libraries(v6_p1_psfw_tests PRIVATE m)

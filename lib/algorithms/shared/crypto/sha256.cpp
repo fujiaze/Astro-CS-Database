@@ -1,4 +1,4 @@
-// lib/common/crypto/sha256.cpp — SHA-256 独立实现（FIPS 180-4）
+// lib/algorithms/shared/crypto/sha256.cpp — SHA-256 独立实现（FIPS 180-4）
 #include "sha256.h"
 
 #include <algorithm>

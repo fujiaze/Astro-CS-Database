@@ -10,13 +10,13 @@
   {
    "doc": "docs/algorithms/COSMETIC_ALGORITHMS.md",
    "basename": "cosmetic_corrector.cpp",
-   "path": "lib/calibration/src/cosmetic_corrector.cpp",
+   "path": "lib/algorithms/calibration/src/cosmetic_corrector.cpp",
    "why": "生产唯一源（遗留 cc_* 通道在文档中以全路径 lib/calibration/cpp/ 出现，走 exact 解析）"
   },
   {
    "doc": "docs/algorithms/CALIBRATION_ALGORITHMS.md",
    "basename": "cosmetic_corrector.cpp",
-   "path": "lib/calibration/src/cosmetic_corrector.cpp",
+   "path": "lib/algorithms/calibration/src/cosmetic_corrector.cpp",
    "why": "同上"
   },
   {
@@ -46,43 +46,43 @@
   {
    "doc": "docs/algorithms/NOISE_ESTIMATION.md",
    "basename": "build.ps1",
-   "path": "lib/snr_estimator/cpp/build.ps1",
+   "path": "lib/algorithms/noise_snr/cpp/build.ps1",
    "why": "legacy MinGW 通道 cpp/build.ps1"
   },
   {
    "doc": "docs/algorithms/PHOTOMETRIC_FIT.md",
    "basename": "build.ps1",
-   "path": "lib/photometric_calib/cpp/build.ps1",
+   "path": "lib/algorithms/photometry/cpp/build.ps1",
    "why": "本模块 legacy MinGW 通道"
   },
   {
    "doc": "docs/algorithms/PLATESOLVE.md",
    "basename": "build.ps1",
-   "path": "lib/plate_solve/cpp/ipv/build.ps1",
+   "path": "lib/algorithms/platesolve/cpp/ipv/build.ps1",
    "why": "ipv_solver.dll MinGW 通道"
   },
   {
    "doc": "docs/algorithms/STAR_DETECTION_ALGORITHMS.md",
    "basename": "star_detector.h",
-   "path": "lib/phase1/stars/star_detector.h",
+   "path": "lib/algorithms/star_detection/wrapper_phase1/star_detector.h",
    "why": "Phase1 生产 sdet 封装（StarSource/StarCatalog）"
   },
   {
    "doc_prefix": "docs/algorithms/",
    "basename": "noise_model.cpp",
-   "path": "lib/snr_estimator/cpp/src/noise_model.cpp",
+   "path": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
    "why": "ALG 文档的 noise_model.cpp 唯一指 snr_estimator 生产实现；lib/phase1/noise 小封装在文档中以全路径出现"
   },
   {
    "doc": "docs/science/NOISE_MODEL.md",
    "basename": "noise_model.cpp",
-   "path": "lib/snr_estimator/cpp/src/noise_model.cpp",
+   "path": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
    "why": "同上"
   },
   {
    "doc": "docs/science/PSF.md",
    "basename": "noise_model.cpp",
-   "path": "lib/snr_estimator/cpp/src/noise_model.cpp",
+   "path": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
    "why": "同上"
   }
  ],
@@ -105,7 +105,7 @@
   },
   {
    "doc": "docs/science/INTEGRATION.md",
-   "raw": "lib/phase2/src/integrate.cpp:10-79",
+   "raw": "lib/algorithms/coverage/src/integrate.cpp:10-79",
    "kind": "FROZEN_SCI_CLAIM",
    "reason": "SCI §5:63 冻结声明原文（实际 76 行）；ALG 侧已登记为已知漂移且禁止反向修改 SCI",
    "owner": "SCI-INT owner",
@@ -113,7 +113,7 @@
   },
   {
    "doc": "docs/science/INTEGRATION.md",
-   "raw": "lib/phase2/include/astro/phase2/integrate.h:1-75",
+   "raw": "lib/algorithms/coverage/include/astro/phase2/integrate.h:1-75",
    "kind": "FROZEN_SCI_CLAIM",
    "reason": "同上（实际 74 行）",
    "owner": "SCI-INT owner",
@@ -214,109 +214,109 @@
   {
    "id": "P3RSMP-DESCRIPTOR",
    "doc": "docs/algorithms/PHASE3_RSMP_IMPL.md",
-   "target": "lib/core/src/module_adapters.cpp",
+   "target": "lib/infrastructure/scheduler/src/module_adapters.cpp",
    "symbol": "p3_resample2_descriptor"
   },
   {
    "id": "PLATESOLVE-CREATE",
    "doc": "docs/algorithms/PLATESOLVE.md",
-   "target": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+   "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
    "symbol": "ipv_solve_create"
   },
   {
    "id": "PLATESOLVE-DESTROY",
    "doc": "docs/algorithms/PLATESOLVE.md",
-   "target": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+   "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
    "symbol": "ipv_solve_destroy"
   },
   {
    "id": "PLATESOLVE-GAIA",
    "doc": "docs/algorithms/PLATESOLVE.md",
-   "target": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+   "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
    "symbol": "ipv_set_gaia_handle"
   },
   {
    "id": "PLATESOLVE-DETECTOR",
    "doc": "docs/algorithms/PLATESOLVE.md",
-   "target": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+   "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
    "symbol": "ipv_set_detector_handle"
   },
   {
    "id": "PLATESOLVE-DEFAULTS",
    "doc": "docs/algorithms/PLATESOLVE.md",
-   "target": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+   "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
    "symbol": "ipv_get_default_params"
   },
   {
    "id": "PLATESOLVE-INLIERCOUNT",
    "doc": "docs/algorithms/PLATESOLVE.md",
-   "target": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+   "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
    "symbol": "ipv_get_last_inlier_count"
   },
   {
    "id": "PLATESOLVE-INLIERS",
    "doc": "docs/algorithms/PLATESOLVE.md",
-   "target": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+   "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
    "symbol": "ipv_get_last_inliers"
   },
   {
    "id": "PLATESOLVE-MEMORY",
    "doc": "docs/algorithms/PLATESOLVE.md",
-   "target": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+   "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
    "symbol": "ipv_solve_from_memory("
   },
   {
    "id": "PLATESOLVE-DETECTIONS",
    "doc": "docs/algorithms/PLATESOLVE.md",
-   "target": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+   "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
    "symbol": "ipv_solve_from_detections_v1("
   },
   {
    "id": "PLATESOLVE-CALLBACK",
    "doc": "docs/algorithms/PLATESOLVE.md",
-   "target": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+   "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
    "symbol": "ipv_solve_from_memory_with_callback("
   },
   {
    "id": "PLATESOLVE-DOIMPL",
    "doc": "docs/algorithms/PLATESOLVE.md",
-   "target": "lib/plate_solve/cpp/ipv/src/ipv_entry.cpp",
+   "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
    "symbol": "do_solve_from_detections_v1_impl"
   },
   {
    "id": "REJ-UNDERDET",
    "doc": "docs/science/REJECTION.md",
-   "target": "lib/phase2/include/astro/phase2/rejection.h",
+   "target": "lib/algorithms/coverage/include/astro/phase2/rejection.h",
    "symbol": "UNDERDETERMINED"
   },
   {
    "id": "REJ-ALLREJ",
    "doc": "docs/science/REJECTION.md",
-   "target": "lib/phase2/include/astro/phase2/rejection.h",
+   "target": "lib/algorithms/coverage/include/astro/phase2/rejection.h",
    "symbol": "ALL_REJECTED"
   },
   {
    "id": "REJ-INVALIDCFG",
    "doc": "docs/science/REJECTION.md",
-   "target": "lib/phase2/include/astro/phase2/rejection.h",
+   "target": "lib/algorithms/coverage/include/astro/phase2/rejection.h",
    "symbol": "INVALID_CONFIGURATION"
   },
   {
    "id": "CAL-MEDFLOOR",
    "doc": "docs/science/CALIBRATION.md",
-   "target": "lib/calibration/src/calibrator.cpp",
+   "target": "lib/algorithms/calibration/src/calibrator.cpp",
    "symbol": "med > 0"
   },
   {
    "id": "NOISE-MINPATCH",
    "doc": "docs/algorithms/NOISE_ESTIMATION.md",
-   "target": "lib/snr_estimator/cpp/include/snr_estimator.h",
+   "target": "lib/algorithms/noise_snr/cpp/include/snr_estimator.h",
    "symbol": "min_patch_samples"
   },
   {
    "id": "NOISE-NREJ",
    "doc": "docs/algorithms/NOISE_ESTIMATION.md",
-   "target": "lib/snr_estimator/cpp/src/noise_model.cpp",
+   "target": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
    "symbol": "n_rejected_patches"
   },
   {
@@ -352,19 +352,19 @@
   {
    "id": "P2SMP-CELLSIDE",
    "doc": "docs/algorithms/PHASE2_SAMPLER.md",
-   "target": "lib/phase2/src/sampler.cpp",
+   "target": "lib/algorithms/coverage/src/sampler.cpp",
    "symbol": "cell_side"
   },
   {
    "id": "P2SMP-CVAR",
    "doc": "docs/algorithms/PHASE2_SAMPLER.md",
-   "target": "lib/phase2/src/sampler.cpp",
+   "target": "lib/algorithms/coverage/src/sampler.cpp",
    "symbol": "cvar"
   },
   {
    "id": "P2SMP-CIVAR",
    "doc": "docs/algorithms/PHASE2_SAMPLER.md",
-   "target": "lib/phase2/src/sampler.cpp",
+   "target": "lib/algorithms/coverage/src/sampler.cpp",
    "symbol": "civar"
   },
   {
@@ -376,19 +376,19 @@
   {
    "id": "STARDET-SRCS",
    "doc": "docs/algorithms/STAR_DETECTION_ALGORITHMS.md",
-   "target": "lib/phase1/stars/star_detector.h",
+   "target": "lib/algorithms/star_detection/wrapper_phase1/star_detector.h",
    "symbol": "StarSource"
   },
   {
    "id": "NOISEMODEL-VARFLOOR",
    "doc": "docs/science/NOISE_MODEL.md",
-   "target": "lib/snr_estimator/cpp/src/noise_model.cpp",
+   "target": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
    "symbol": "variance_floor"
   },
   {
    "id": "PSF-ROBUST",
    "doc": "docs/science/PSF.md",
-   "target": "lib/snr_estimator/cpp/src/noise_model.cpp",
+   "target": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
    "symbol": "kTrimMeanToSigma"
   }
  ]

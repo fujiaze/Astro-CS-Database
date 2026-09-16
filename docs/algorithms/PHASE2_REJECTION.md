@@ -1,9 +1,9 @@
 # Phase2 Rejection Algorithms（P2-REJ / astrocs.p2.rejection）
 
 > ID: ALG-P2-REJ-001  状态: CONTRACT_READY（P2-REJ-DOC 冻结，2026-09-09）
-> 模块: lib/phase2/src/rejection.cpp（2076 行，astrocs_phase2 静态库
+> 模块: lib/algorithms/coverage/src/rejection.cpp（2076 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/rejection.h（329 行）
+> lib/algorithms/coverage/include/astro/phase2/rejection.h（329 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-REJ-001
 > （docs/science/REJECTION.md，FROZEN T107 2026-08-23，集合
 > SCI-REJ-001..008，零改动；descriptor 占位 SCI-P2-REJ-001 ⇒
@@ -556,7 +556,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 ### 11.4 TEST-P2-REJ-DESIGN-001 冻结测试设计（可执行 TEST-P2-REJ-001 由 P2-REJ-TEST 落地）
 
 锚归属声明: 本节及 §6 全部测试 `:N` 行号锚 =
-`lib/phase2/tests/synthetic_gate.cpp`（2026-09-09 实测；与其余
+`lib/algorithms/coverage/tests/synthetic_gate.cpp`（2026-09-09 实测；与其余
 小节 rejection.cpp/h 锚不同文件）。
 
 - **F1 ESD NIST 门**（SCI §11）: 54 值 NIST Rosner 集恰拒
@@ -654,14 +654,14 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 
 ## 13 追溯
 
-- 实现: lib/phase2/src/rejection.cpp（2076 行）+
-  lib/phase2/include/astro/phase2/rejection.h（329 行）。
+- 实现: lib/algorithms/coverage/src/rejection.cpp（2076 行）+
+  lib/algorithms/coverage/include/astro/phase2/rejection.h（329 行）。
 - 合同: DATA-P2-REJ（DATA_SEMANTICS §22）/ API-P2-REJ-001
   （PUBLIC_API.md）/ TEST-P2-REJ-001（设计冻结 VERIFIED=registry
   承载页 §独立验证节；可执行落地归 P2-REJ-TEST + EVIDENCE）。
-- 交叉: docs/modules/phase2_rej.md + lib/phase2_rej/ 三件套
-  （README/module.yaml/memory.md，按 lib/phase2_int/ 先例新建；
-  lib/phase2/ 三件套已被 P2-COV 占用）；registry
+- 交叉: docs/modules/phase2_rej.md + lib/algorithms/rejection/ 三件套
+  （README/module.yaml/memory.md，按 lib/algorithms/integration/ 先例新建；
+  lib/algorithms/coverage/ 三件套已被 P2-COV 占用）；registry
   astrocs.phase2.reject.md；REJECTION_ALGORITHMS.md（旧 L2，ID
   让位/承接关系见 §12）。
 - 消费者: stage2.cpp（§6；DATA_SEMANTICS §20 编排域）/
@@ -681,9 +681,9 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 - API-P2-REJ-001 = docs/contracts/PUBLIC_API.md 末节：
   planning/eligibility/gather/kernel/large_scale 导出符号冻结；
   compat p2_reject_stack 冻结两符号；与 API-P2-001 编排面并存。
-- MOD = docs/modules/phase2_rej.md（模块页）+ lib/phase2_rej/
+- MOD = docs/modules/phase2_rej.md（模块页）+ lib/algorithms/rejection/
   三件套（README/module.yaml CONTRACT_READY entrypoint=MISSING/
-  memory.md，按 lib/phase2_int/ 先例）+ registry
+  memory.md，按 lib/algorithms/integration/ 先例）+ registry
   docs/modules/registry/astrocs.phase2.reject.md（手写合同页
   重写；TEST 登记面承载）。
 - 一致性声明: 本文件（ALG）与上述同批产物冲突时以本文件为

@@ -1,6 +1,6 @@
 /* M9-H-1 回归锁: Gaia 模块 manifest 栈缓冲容量边界 (B1-memory)
  *
- * 根因: lib/gaia_xpsd_client/src/module_entry.c::gaia_execute 用 512 字节栈
+ * 根因: lib/infrastructure/gaia_xpsd_client/src/module_entry.c::gaia_execute 用 512 字节栈
  * 缓冲 head[512] 拼 manifest, ::gaia_inspect 用同型 buf[512]:
  *   - json_append_escaped 无容量入参, 逐字节自增越界写;
  *   - 三处 hw += snprintf(...) 用"本应写入数"推进指针 (截断即越界);

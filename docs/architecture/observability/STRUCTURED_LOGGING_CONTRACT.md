@@ -62,7 +62,7 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 
 | 子字段 | 语义 | 约束示例 |
 |---|---|---|
-| `source` | 错误来源（模块 id 或仓库内相对路径） | 禁止绝对用户路径（脱敏）；`lib/phase1/noise/noise_model.cpp` |
+| `source` | 错误来源（模块 id 或仓库内相对路径） | 禁止绝对用户路径（脱敏）；`lib/algorithms/noise_snr/wrapper_phase1/noise_model.cpp` |
 | `symbol` | 出错符号 | `astrocs::noise::estimate_sigma` |
 | `status` | 稳定错误码 | `ACS_ERR_IO`、`ACS_ERR_CANCELLED`、`ACS_ERR_BUDGET` |
 

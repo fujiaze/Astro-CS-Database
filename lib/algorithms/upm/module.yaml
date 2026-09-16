@@ -1,10 +1,10 @@
 # AstroCS phase2 upm 模块 — 元数据 (P2-UPM-DOC 冻结, 2026-09-10)
-# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase2/src/upm.cpp
-# 1565 行 + 唯一权威签名头 lib/phase2/include/astro/phase2/upm.h
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/coverage/src/upm.cpp
+# 1565 行 + 唯一权威签名头 lib/algorithms/coverage/include/astro/phase2/upm.h
 # 184 行，行号 grep/read 实测；构建挂载: 根 CMakeLists.txt:337-346
-# astrocs_phase2 STATIC 目标（:338 lib/phase2/src/upm.cpp）+
+# astrocs_phase2 STATIC 目标（:338 lib/algorithms/coverage/src/upm.cpp）+
 # astrocs_phase2_session STATIC :454（:458 链接 astrocs_phase2）；
-# AIO 持久化后端 lib/astro_image_io/src/aio_upm.cpp
+# AIO 持久化后端 lib/infrastructure/aio/src/aio_upm.cpp
 # aio_upm_write_sparse :66 / dense 格式 astrocs-upm-dense-v2 :223/:407），
 # 模块化迁移（独立模块源 astrocs_p2_upm.dll / C ABI adapter /
 # plan-execute-cancel-inspect / ThreadLease 接线）由 P2-UPM-IMPL 执行；
@@ -24,18 +24,18 @@
 # astrocs_p2_upm.dll（MODULE_MIGRATION_MATRIX P2-UPM 行）。
 # 落位依据：MODULE_MIGRATION_MATRIX.csv P2-UPM 行 owner=SA-P2-U21、
 # target=astrocs_p2_upm.dll、module_id=astrocs.p2.upm、
-# legacy_paths="lib/phase2 upm sources"、depends_on_int=
-# P2-SAMP-INT;CPU-005。实测生产源 lib/phase2/src/upm.cpp 位于
-# lib/phase2/——该目录三件套已被 P2-COV 域 astrocs.p2.coverage 合同
-# 占用（lib/phase2/README.md r1，一目录一套 README/module.yaml/
-# memory.md，不可覆盖他域合同），故按 lib/phase2_int/（P2-INT-DOC，
-# 其按 lib/hips_p2/ P2-HIPS-DOC 先例）→ lib/phase2_rej/（P2-REJ-DOC）
-# → lib/phase2_samp/（P2-SAMP-DOC）先例落独立迁移目标目录
-# lib/phase2_upm/（本文件所在，仅合同文件、无源码、不与 legacy
+# legacy_paths="lib/algorithms/coverage upm sources"、depends_on_int=
+# P2-SAMP-INT;CPU-005。实测生产源 lib/algorithms/coverage/src/upm.cpp 位于
+# lib/algorithms/coverage/——该目录三件套已被 P2-COV 域 astrocs.p2.coverage 合同
+# 占用（lib/algorithms/coverage/README.md r1，一目录一套 README/module.yaml/
+# memory.md，不可覆盖他域合同），故按 lib/algorithms/integration/（P2-INT-DOC，
+# 其按 lib/algorithms/coverage/hips_p2/ P2-HIPS-DOC 先例）→ lib/algorithms/rejection/（P2-REJ-DOC）
+# → lib/algorithms/sampling/（P2-SAMP-DOC）先例落独立迁移目标目录
+# lib/algorithms/upm/（本文件所在，仅合同文件、无源码、不与 legacy
 # 目录重叠）；legacy 生产源引用不搬家。
 # dll_target=astrocs_p2_upm.dll 为迁移目标合同值（尚未存在）；
 # 现状构建=根 CMakeLists.txt astrocs_phase2 静态库成员（:337-346，
-# :338 编入 lib/phase2/src/upm.cpp）。
+# :338 编入 lib/algorithms/coverage/src/upm.cpp）。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准
 # §4 值域）；现状实现=worker 数取 cfg.cpu_workers（Runtime lease
 # 唯一来源，p2_session.cpp:155/:195 传 host->budget.max_workers；
@@ -46,13 +46,13 @@
 # cpu_workers=1 串行 reference；ThreadLease/取消检查点无接线（迁移
 # 整改点）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
-# （lib/core/src/module_adapters.cpp:599-632 p2_upm_fit_descriptor
+# （lib/infrastructure/scheduler/src/module_adapters.cpp:599-632 p2_upm_fit_descriptor
 # / p2_upm_apply_descriptor 的 module_id=astrocs.phase2.upm-fit /
 # astrocs.phase2.upm-apply、sci_id=SCI-P2-UPM-001/002、
 # alg_id=ALG-P2-UPM-001/002、data_id=DATA-P2-SMP / DATA-P2-COR
 # （端口上游域引用）、api_id=API-P2-001、test_id=TEST-P2-UPM-001/
 # 002）为编排层词汇，由 P2-XX-INT 对齐本 manifest 与
-# lib/phase2_upm/README.md（r1），不得反向作为冻结依据（映射声明
+# lib/algorithms/upm/README.md（r1），不得反向作为冻结依据（映射声明
 # SCI-P2-UPM-001/002⇒SCI-UPM-001 见 docs/algorithms/
 # PHASE2_UPM_IMPL.md §映射节，SA-B 写；占位 ID 不入合同）。
 schema: astrocs.module-manifest/v1
@@ -126,7 +126,7 @@ determinism: fixed_reduction_order
 scientific_change: false
 depends_on:
   - astrocs_phase2
-legacy_paths: lib/phase2 upm sources
+legacy_paths: lib/algorithms/coverage upm sources
 known_defects:
   - DISP-P2UPM-001
   - DISP-P2UPM-002

@@ -1,6 +1,8 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # 观测模型与 covariance 复核（SCI-OBS-001）
 
-- 任务：工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/SCI-OBS-001.md
+- 任务：工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCI-OBS-001.md
 - 文档 ID：OBS-REVIEW-001
 - 任务基线：HEAD = main = origin/main = 4b508f28bbcada66c417a8a9324aca7eb92869ff（开工时本机只读复核，见 run/v6/sci-obs/logs/rc_summary.txt）
 - 报告时 HEAD：192fab3546e710163e5dc276a9cd76309d650ff2 —— 执行期间控制器集成了并行任务 SCI-P2-001（提交信息 docs(v6): SCI-P2-001 Phase2 三模式集成复核通过）。4b508f28..192fab35 的 diff 仅含 docs/science/v6/phase2/** 与 TASK_LEDGER.csv，**不触及本复核引用的任何 SCI/合同/源码文件**；本任务已在 192fab35 重跑结构锚点（16/16，rc=0）与独立 Oracle（15/15，rc=0），结论不变（见 run/v6/sci-obs/evidence.json）。
@@ -81,7 +83,7 @@ W_info,k = a_k² P_kᵀ C_k⁻¹ P_k
 
 ### 2.4 用词纪律
 
-宪章 §4.1 要求 signal/variance/ivar/snr/quality/support/coverage/validity/rejection/provenance 不复用模糊名；UNIFIED §3 禁止无前缀 weight/snr。现状：lib/phase2/src/stage2_common.cpp:373-384 仅接受 auto/ivar/equal/support_x_snr2（整数 weight_mode），lib/core/src/module_adapters.cpp:4261-4270 在节点链上只放行 1/2 并显式拒绝 legacy 0——方向上与 DATA_SEMANTICS §30.1 一致，但**目标三模式 point_information/surface_gls/psfsw_robust 在生产面仍 0 命中**（run/v6/base/gap_baseline.md §1；本任务不改实现，仅登记）。
+宪章 §4.1 要求 signal/variance/ivar/snr/quality/support/coverage/validity/rejection/provenance 不复用模糊名；UNIFIED §3 禁止无前缀 weight/snr。现状：lib/algorithms/coverage/src/stage2_common.cpp:373-384 仅接受 auto/ivar/equal/support_x_snr2（整数 weight_mode），lib/infrastructure/scheduler/src/module_adapters.cpp:4261-4270 在节点链上只放行 1/2 并显式拒绝 legacy 0——方向上与 DATA_SEMANTICS §30.1 一致，但**目标三模式 point_information/surface_gls/psfsw_robust 在生产面仍 0 命中**（run/v6/base/gap_baseline.md §1；本任务不改实现，仅登记）。
 
 ---
 
@@ -111,7 +113,7 @@ Var_joint(F) = 3.523773   vs   1/ΣW (naive) = 1.013967   → ratio 3.475
 
 DATA_SEMANTICS §30.1（DATA-P2-VAR-001）冻结：ivar_mosaic(p)=W(p)=Σ_i ivar_i(p)，variance_mosaic=1/W，一般式 Σ_i w_i²v_i/W²。现状：
 
-- lib/core/src/module_adapters.cpp:4704-4711 确实写 var_num_sum = cov²/W（即 variance_mosaic=1/W 经 writer 反归一）；uncertainty_available 仅在 weight_mode==2 且全部帧 ivar 存在时为 true（:4281-4306），等权/降级时置 false（fail-closed，符合 §30.1 unavailable 规则）；
+- lib/infrastructure/scheduler/src/module_adapters.cpp:4704-4711 确实写 var_num_sum = cov²/W（即 variance_mosaic=1/W 经 writer 反归一）；uncertainty_available 仅在 weight_mode==2 且全部帧 ivar 存在时为 true（:4281-4306），等权/降级时置 false（fail-closed，符合 §30.1 unavailable 规则）；
 - writer 归约 variance = var_num_sum/covered_area²（aio_hips_writer.cpp:668,721-724）。
 
 失效域：该逐像素方差只在 (a) 权重为纯逆方差、(b) 输入帧 ivar 只含随机项、(c) 相邻像素独立 时是无偏的。Drizzle 后 (c) 不成立（§5），共同 master 使 (b) 不成立（§3.1），weight_mode=1 使 (a) 不成立（但此时产品直接 unavailable）。三者都不进入逐像素 variance 产品，是**结构性缺口**而非公式错误（unavailable 规则部分覆盖了 (a)）。
@@ -172,7 +174,7 @@ control_variance = k_corr × (π/2) × sigma_bg² / N_retained ;  control_ivar =
 独立 Gaussian 基线 Var(median) ≈ πσ²/(2N)
 ~~~
 
-冻结值：k_corr=1.3883（pixfrac=0.8，N_retained≈251，N_eff≈181，UPMW-005 MC），保守冻结 **1.4**（lib/phase2/src/sampler.cpp:81-82）。门 D5 用**平面 pixfrac=0.8 独立 MC**（4000 实现、8×8 patch、N=64、固定亚像素 shift=0.37）测得 Var(median)=4.011933e-02、σ_marg²=7.460978e-01 ⇒ **k_corr=2.1909 > 1**。
+冻结值：k_corr=1.3883（pixfrac=0.8，N_retained≈251，N_eff≈181，UPMW-005 MC），保守冻结 **1.4**（lib/algorithms/coverage/src/sampler.cpp:81-82）。门 D5 用**平面 pixfrac=0.8 独立 MC**（4000 实现、8×8 patch、N=64、固定亚像素 shift=0.37）测得 Var(median)=4.011933e-02、σ_marg²=7.460978e-01 ⇒ **k_corr=2.1909 > 1**。
 
 结论：**机制方向被独立复现**（Drizzle 后 k_corr>1、N_eff<N_retained），但**冻结数值 1.3883 未被独立复现**——它依赖生产球面几何、pixfrac、控制 patch 大小与稳健估计器口径。本任务据此登记残余风险 F-OBS-05，建议 SCI-ADJ-001 要求把 k_corr 的几何/口径/provenance 显式化并附可复跑 MC（现状 sampler.cpp:85-92 已有 K_CORR_DOMAIN 选项 B 的按像素尺度查找表，方向正确）。
 
@@ -193,7 +195,7 @@ S_p = Σ_j x_j a_jp / (A_drop,j · D_p)
 
 独立 Oracle 门 D4（平面、drop 全落内部）实测 S/B0：**pixfrac=1.0 → 1.0000；0.8 → 1.5625（=1/0.64）；0.5 → 4.0000（=1/0.25）**。即 §7 恒等式**只在 pixfrac=1 成立**。
 
-结构证据：生产常量面亮度门本身被固定在 pixfrac=1——lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:71 make_cfg(NSIDE, 1.0, 1, true)，p1drz_fixtures.hpp:119 注释"与生产 drop=pixel (pixfrac=1) 口径一致 → S_p=B0 恒等式剩余…"，p1drz_oracle.hpp:124-127 明确写"当 A_pixel_j≈A_drop,j（同尺度像素），S_p→B0"，并给门 |S_p/B0-1|<1e-3。**pixfrac<1 的常量面亮度不变量无任何门覆盖。**
+结构证据：生产常量面亮度门本身被固定在 pixfrac=1——lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:71 make_cfg(NSIDE, 1.0, 1, true)，p1drz_fixtures.hpp:119 注释"与生产 drop=pixel (pixfrac=1) 口径一致 → S_p=B0 恒等式剩余…"，p1drz_oracle.hpp:124-127 明确写"当 A_pixel_j≈A_drop,j（同尺度像素），S_p→B0"，并给门 |S_p/B0-1|<1e-3。**pixfrac<1 的常量面亮度不变量无任何门覆盖。**
 
 对照：通量守恒 Σ_p F_p = Σ_j x_j 对任意 pixfrac 成立（p1drz_oracle.hpp:190-192），所以偏差只出在**面亮度归一/单位**上。UNIFIED §7 明确要求"Drizzle 的 signal 单位、源/目标像素面积、pixfrac 和归一必须统一；**常量面亮度和总积分通量 Oracle 同时成立**"，宪章 §5.3 要求"Drizzle 的单位及误差传播必须明确"。故 F-OBS-02 是科学口径/失效域问题，非纯实现细节：若该 1/pixfrac² 是有意设计，必须**显式声明并由 a_k/provenance 补偿**，且修正 §5/§7 表述；否则应改为面亮度保持的归一口径（c_jp=a_jp/Σ_j a_jp）。**本任务不改公式、不改容差、不改门。**
 
@@ -321,7 +323,7 @@ ivar_out = 1/var_out (有限且 >0)
 - 事实：独立 Oracle 得 S_p = B0/pixfrac²（pixfrac=0.8 → 1.5625×）。
 - 违反：UNIFIED §7（常量面亮度与总积分通量 Oracle 必须同时成立）、宪章 §5.3。
 - 证据：DRIZZLE.md §5/§7；生产常量场门固定 pixfrac=1（p1drz_tests_core.cpp:71、p1drz_fixtures.hpp:119、p1drz_oracle.hpp:126）；门 D4。
-- 附加结构对照：反向 drizzle（lib/healpix_db/healpix_drizzle/reverse_drizzle.cpp:213-214）用 signal += sig·w、w=ov/drop_area 且 Σ_p w=1（映射的已是 S_p 面亮度），因此反向算子在 pf<1 时**保持面亮度**；正向算子在 pf<1 时**不保持**。该不对称本身即支持 F-OBS-02 需裁决。
+- 附加结构对照：反向 drizzle（lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp:213-214）用 signal += sig·w、w=ov/drop_area 且 Σ_p w=1（映射的已是 S_p 面亮度），因此反向算子在 pf<1 时**保持面亮度**；正向算子在 pf<1 时**不保持**。该不对称本身即支持 F-OBS-02 需裁决。
 - 范围限定：本 finding 针对 DRIZZLE.md §5/§7 的前向 Drizzle 算子与 drizzle_engine.cpp → aio_hips_writer.cpp 链（Phase1 产品）；反向 drizzle 归 reverse_drizzle.cpp，不在本 finding 范围。
 - 候选裁决：**(A)** 认定 §7 缺 pixfrac=1 条件，修正 SCI 表述并把 pixfrac 标定为 a_k/provenance 的一部分（要求跨 pixfrac 合成时显式补偿）；**(B)** 认定归一口径应改为面亮度保持（c_jp=a_jp/Σa_jp），作为 SCI 变更 + 重跑全部 Drizzle 不变量与 variance 门。**本任务不改。**
 

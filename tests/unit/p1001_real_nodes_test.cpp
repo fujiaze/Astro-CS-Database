@@ -68,8 +68,8 @@ static int failures = 0;
     }                                                                     \
   } while (0)
 
-// host services 工厂（定义 lib/backend_host/host_services.cpp, astrocs_cpu 库;
-// 与 lib/core/src/module_adapters.cpp 同一声明模式）
+// host services 工厂（定义 lib/infrastructure/benchmark/backend_host/host_services.cpp, astrocs_cpu 库;
+// 与 lib/infrastructure/scheduler/src/module_adapters.cpp 同一声明模式）
 extern "C" {
 int astrocs_host_services_default_v1(astrocs_host_services_v1* out, void** state_out);
 void astrocs_host_services_destroy_state_v1(void* state);

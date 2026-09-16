@@ -64,7 +64,7 @@
   payload = truncated-64 canonical SHA-256 of science payload (DATA-FRAME-ID-001)
 ```
 
-与 `lib/phase2/src/upm.cpp:6-493,1107-1123`、`sampler.cpp:250-364,672`、`aio_upm.cpp:4` 一致。
+与 `lib/algorithms/coverage/src/upm.cpp:6-493,1107-1123`、`sampler.cpp:250-364,672`、`aio_upm.cpp:4` 一致。
 
 ## 6 假设
 
@@ -117,7 +117,7 @@
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/PHASE2_UPM.md` (SCI-UPM-001..010, SCI-UPM-WEIGHT-001, SCI-UPM-PERSIST-001)
-- 实现: `lib/phase2/src/upm.cpp` (1107-1123, 493-510), `lib/phase2/src/sampler.cpp` (250-364, 672), `lib/astro_image_io/src/aio_upm.cpp` (持久化)
+- 实现: `lib/algorithms/coverage/src/upm.cpp` (1107-1123, 493-510), `lib/algorithms/coverage/src/sampler.cpp` (250-364, 672), `lib/infrastructure/aio/src/aio_upm.cpp` (持久化)
 - 公开 API: `p2_upm_build, p2_upm_calibrate_block, p2_upm_raw_weight, p2_upm_open/save`
 - 测试: `TEST-UPMW-001..007, UPMW-001..007, UpmPersist*` (`synthetic_gate.cpp, control_median_mc_test.cpp`)
 

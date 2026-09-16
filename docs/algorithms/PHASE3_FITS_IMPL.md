@@ -60,7 +60,7 @@
   同目录保证 rename 原子（:82 注释）——**与 h:41-44 协议注
   `<dir>/.<base>.<pid>.tmp` 形态偏差**（DISP-P3FITS-002）。
 - `sha256_file_checked`（:92-114）: R10-C 封装（:85-91 注释冻结）——
-  lib/common/crypto::sha256_file 对 fopen 失败返回空串、fread 中途
+  lib/algorithms/shared/crypto::sha256_file 对 fopen 失败返回空串、fread 中途
   错误静默返回前缀哈希，均为无意义完整性锚；本封装 fopen/ferror/
   fclose 全检查，仅完整读出产出 64hex，失败返回 false 由调用方
   整体失败（禁止空串/前缀哈希入 provenance）。ASTROCS_HASH_FAIL_INJECT
@@ -167,7 +167,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 - **descriptor 占位映射声明**（占位 ID 是矩阵/descriptor 词汇，不注册
   INDEX、不入合同）：
   - `SCI-P3-WR-001`（writer descriptor sci_id，
-    lib/core/src/module_adapters.cpp:449-464 p3_writer_descriptor）⇒
+    lib/infrastructure/scheduler/src/module_adapters.cpp:449-464 p3_writer_descriptor）⇒
     **SCI-P3-001**（docs/science/PHASE3_HIPS_TO_FITS.md 共享 FROZEN；
     §9a-11 G5 FITS 写 + §96 关键字冻结为科学语义来源）；
   - `ALG-P3-004`（writer descriptor alg_id）⇒ **ALG-P3-004**
@@ -329,7 +329,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 ## 14 现状缺陷登记（DISP-P3FITS-001..002，登记不改码）
 
-- **DISP-P3FITS-001**：lib/astro_image_io/README.md 旧派生内容声称
+- **DISP-P3FITS-001**：lib/infrastructure/aio/README.md 旧派生内容声称
   "零外部依赖、不依赖 cfitsio"，与现状 vendored third_party/cfitsio
   （astrocs_cfitsio 静态库，根 CMakeLists.txt:273-296 astrocs_aio
   链接；astrocs_aio 含 aio_fits.cpp 等 6 源）矛盾。他域文件只登记
@@ -381,13 +381,13 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   MISSING 归 P3-FITS-TEST。
 - MOD-astrocs-phase3-writer / astrocs.p3.fits_writer /
   astrocs_p3_fits_writer.dll（合同值未建，P3-FITS-IMPL）；
-  三件套 lib/phase3_fits/（README r1 + module.yaml CONTRACT_READY
+  三件套 lib/algorithms/fits_output/（README r1 + module.yaml CONTRACT_READY
   entrypoint=MISSING + memory.md）。
 
 ## 17 追溯
 
 - MATRIX 行：MOD-astrocs-phase3-writer（TRACEABILITY_MATRIX.json/
-  csv :20 P3-FITS 行）；合同落位=lib/phase3_fits/ 三件套 + 本文件
+  csv :20 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
   + DATA_SEMANTICS §27 + PUBLIC_API API-P3-FITS-001 节 + registry
   手写页 + docs/modules/phase3_fits.md。
 - 零改动声明：docs/science/（SCI-P3 FROZEN）、docs/algorithms/

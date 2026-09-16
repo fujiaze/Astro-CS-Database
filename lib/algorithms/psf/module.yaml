@@ -1,0 +1,169 @@
+# AstroCS phase1 star-psf module — 元数据 (P1-PSF-DOC 冻结, 2026-09-07;
+# PSF-001 r2 2026-09-10: 批 ABI 尺寸边界 dpsf_batch_dims_check 落码后行号锚
+# 全量复测刷新 + notes 增补 PSF-001 语义, 科学公式/容差/状态码语义零改动)
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/psf/src/dpsf_psf.cpp 的
+# moffat4_fit_tmpl/lm_solve/compute_trimmed_mad/高斯采样核 + C API dpsf_fit/
+# dpsf_fit_batch/dpsf_fit_batch_f/dpsf_fit_batch_f32/dpsf_fit_batch_d/
+# dpsf_fit_batch_f64/dpsf_free_results，唯一权威签名头 lib/algorithms/psf/include/
+# dynamic_psf.h），模块化迁移（独立模块源 astrocs_p1_psf.dll / C ABI adapter /
+# plan-execute-cancel-inspect / ThreadLease 接线）由 P1-PSF-IMPL 执行；
+# 可执行测试由 P1-PSF-TEST 建立（TEST-PSF-DESIGN-001 → TEST-P1-PSF-001）。
+# 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对清单
+# （P1-PSF-DOC，2026-09-07，7 个导出 C API + 静态核心 moffat4_fit_tmpl/lm_solve，
+# 均 grep 实测于 dpsf_psf.cpp），禁止手抄他版。
+# 落位依据：MODULE_MIGRATION_MATRIX.csv P1-PSF 行 owner=SA-P1-S15、
+# target=astrocs_p1_psf.dll、module_id=astrocs.p1.psf、legacy_paths=
+# "lib/algorithms/psf"、depends_on_int=P1-STAR-INT、科学专项=known Gaussian/Moffat
+# parameters;covariance;degenerate/saturated sources;fit failure semantics。
+# dll_target=astrocs_p1_psf.dll 为迁移目标合同值（尚未存在）。现状构建=
+# lib/algorithms/psf/Makefile:3-5（g++ -shared -fopenmp -O2 -march=native →
+# dynamic_psf.dll）+ lib/infrastructure/pipeline/orchestrator/cpp/src/dll_loader.cpp:39,53（ModuleId::PSF
+# → lib/algorithms/psf/dynamic_psf.dll 显式加载；PSF 为必需 stage，
+# orchestrator.cpp:2071-2075，DLL 未加载退出码 2）；未编入根 CMake 主构建
+# （根 CMakeLists.txt 无 dynamic_psf 目标）——CMake 集成与 dll 重命名归
+# P1-PSF-IMPL。
+# threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
+# 现状实现为 OpenMP parallel for schedule(dynamic) 4 处（dpsf_psf.cpp:593,718,
+# 842,986，reduction(+:success_count) 仅计数，逐星输出按索引写入互不共享可变
+# 状态，逐星独立拟合结果确定），无取消检查点，ThreadLease 接线为迁移整改点
+# （见 docs/contracts/PUBLIC_API.md API-PSF-001 与
+# docs/algorithms/STAR_PSF_ALGORITHMS.md §11.3 DISP-PSF-001..006）。
+# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID（lib/infrastructure/scheduler/src/
+# module_adapters.cpp:430-448 p1_star_psf_descriptor：module_id=
+# astrocs.phase1.star-psf、sci_id=SCI-P1-PSF-001、alg_id=ALG-002、
+# data_id=DATA-P1-SOURCES、api_id=API-P1-003、test_id=TEST-P1-PSF-001、
+# ports cleaned/sources/psf）由 P1-PSF-INT 对齐本 manifest 与
+# lib/algorithms/psf/README.md（r1），不得反向作为冻结依据。
+schema: astrocs.module-manifest/v1
+id: MOD-astrocs-phase1-star-psf
+module_id: astrocs.p1.psf
+owner: SA-P1-S15
+language: c++17
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: phase1
+dll_name: astrocs_p1_psf.dll
+dll_target: astrocs_p1_psf.dll
+module_status: CONTRACT_READY
+entrypoint: MISSING
+node_operations: [psf]
+input_ports:
+  - cleaned
+  - sources
+output_ports:
+  - psf
+science_contracts:
+  - SCI-P1-PSF-001
+algorithm_contracts:
+  - ALG-STARPSF-001
+data_contracts:
+  - DATA-P1-PSF
+  - DATA-P1-SOURCES
+  - DATA-P1-COSMETIC
+api_contracts:
+  - API-P1-003
+  - API-PSF-001
+doc_links:
+  sci: docs/science/PSF.md
+  alg: docs/algorithms/STAR_PSF_ALGORITHMS.md#§11
+  data: docs/contracts/DATA_SEMANTICS.md#§15
+  api: docs/contracts/PUBLIC_API.md#API-PSF-001
+contract_ids:
+  sci: SCI-P1-PSF-001
+  alg: ALG-STARPSF-001
+  data: DATA-P1-PSF
+  api: API-PSF-001
+  mod: MOD-astrocs-phase1-star-psf
+  src: SRC-PSF-001
+  test: TEST-PSF-DESIGN-001
+exports:
+  - dpsf_fit
+  - dpsf_fit_batch
+  - dpsf_fit_batch_f
+  - dpsf_fit_batch_f32
+  - dpsf_fit_batch_f64
+  - dpsf_fit_batch_d
+  - dpsf_free_results
+source_symbols:
+  - dpsf_fit
+  - dpsf_fit_batch
+  - dpsf_fit_batch_f
+  - dpsf_fit_batch_f32
+  - dpsf_fit_batch_f64
+  - dpsf_fit_batch_d
+  - dpsf_free_results
+  - dpsf_batch_dims_check
+  - fit_batch_float_image
+  - moffat4_fit_tmpl
+  - lm_solve
+test_ids:
+  - TEST-PSF-DESIGN-001
+threading_model: host_executor_lease
+resource_class: cpu_heavy
+cpu_providers: [baseline]
+determinism: fixed_reduction_order
+upstream:
+  - SCI-P1-PSF-001
+  - ALG-STARPSF-001
+  - DATA-P1-COSMETIC
+  - DATA-P1-SOURCES
+  - API-P1-003
+downstream:
+  - DATA-P1-PSF
+  - API-PSF-001
+  - P1-STAR-INT
+  - P1-PSF-IMPL
+  - P1-PSF-TEST
+  - P1-PSF-INT
+legacy_paths: [lib/algorithms/psf]
+scientific_change: false
+notes: >-
+  DISP-PSF-001..006 全部登记（STAR_PSF_ALGORITHMS §11.3，登记不改码）：
+  001 参数向量序 B,A,x0,y0,sx,sy,theta 与 MOFFAT4_FWHM_FACTOR=1.230310 常数依赖；
+  002 lm_solve 前向差分有限导数（dpsf_psf.cpp:121 相对步长 1e-6/绝对 1e-8）与
+  步后硬钳位（:176-178 sx/sy>=0.3、A>=0）破坏二阶收敛路径；
+  003 DPSFFitParams.maxIter/tolerance 死参数（批 API 仅 fitRadius 参与裁窗，
+  LM 容差/迭代硬编码 1e-8/200，:352-353）；
+  004 无取消检查点（OpenMP dynamic 4 处 :593,718,842,986）；
+  005 无参数协方差/不确定性输出（科学专项 covariance 为 P1-PSF-IMPL 整改项）；
+  006 批 f32/f64 路径逐星退败静默（仅 out_n_valid 汇总，per-star 状态不出批）。
+  整改归 P1-PSF-IMPL/INT。matrix 行 depends_on_int=P1-STAR-INT。
+  PSF-001 批 ABI 尺寸边界（2026-09-10）：5 批入口（dpsf_fit_batch/batch_f/
+  batch_d/batch_f32/batch_f64）统一 dpsf_batch_dims_check（:514-527）——
+  w/h<=0（0/-1/INT_MIN）确定性拒绝 + w*h>INT_MAX int 索引寻址上界，均整体
+  -1 零输出触碰；uint16 入口分配失败 try/catch 屏障（bad_alloc/length_error
+  -> -1 不外抛跨 C ABI，修复前 h<0 触发 (size_t)w*h 下溢 -> length_error ->
+  SIGABRT，即 DISP-PSF-007 候选）；逐星 patch 分配失败星级隔离为
+  INVALID_PARAMS/NaN 占位；f32/f64 NaN 初始化 N*9 以 int64 计（入口
+  n>INT_MAX/9 拒绝）。负例锚 tests/p1psf negative 组 N4b/N4c（注入名
+  batch_boundary）。
+  拟合失败语义（P1-PSF-DOC 冻结，STAR_PSF_ALGORITHMS §11.2）：DPSF_FIT_OK=0
+  （||Δx||<tol*(||x||+1e-30)，:164）；DPSF_FIT_NO_CONVERGENCE=1（验证链三关：
+  非有限/A<=0/sx<=0.3/sy<=0.3 :363-366、FWHM>rect :374-380、背景约束
+  |B-bkg0|/max(bkg0,0.01)>0.5 :381-385）；DPSF_FIT_INVALID_PARAMS=2（空指针/
+  w<=0/h<=0 :463、rect 面积<9 :249-252、rect 越界 :253-258、空 rect
+  :477-482）；DPSF_FIT_ITERATION_LIMIT=3（max_iter=200 耗尽 :188，单星接口
+  dpsf_fit/moffat4_fit 仍回填最优参数 :423-436）。批接口 dpsf_fit_batch_f32/f64
+  仅 DPSF_FIT_OK 计入 out_n_valid，非 OK 星 9 字段全 NaN
+  （psf_params:FLOAT64[N,9] 契约，dynamic_psf.h:104-105；NaN 初始化
+  dpsf_psf.cpp:833-836/:977-980，OK 写 9 字段 :893-901/:1030-1038，
+  valid 计数 :919/:1053）。
+  饱和/简并（科学专项）：star_det v1 检测列 [4]=saturated/[5]=has_saturated
+  现状不消费（dpsf_psf.cpp:847-848 仅解包 [0]=x/[1]=y，饱和剔除决策归上游
+  star_detector 侧，P1-PSF-TEST 专项覆盖）；sx/sy 简并兜底经验证链 sx/sy>0.3
+  判定 + 钳位；theta 经 4 候选 {θ,π/2-θ,π/2+θ,π-θ} trimmed-MAD 消歧
+  （dpsf_psf.cpp:389-401）。flux=2π·A·sx·sy/3 为 β=4 Moffat 解析积分
+  （:406-407），FWHM=1.230310·sx/sy（:371-372）。
+  PSF-FAST-001（P2 性能批，负责人裁决 2026-09-14）：生产节点只跑 FAST ——
+  全量检测(145,884 P1-003 类)保持不变, 仅把 Moffat4 拟合限制到最亮
+  psf.max_stars 颗(节点配置, 默认 5000; 0=不截断)。完整精确路径
+  (p1_op_star_psf_precise = n_fit_limit 0) **保留但 inactive**: 开关
+  kPrecisePsfEnabled=false + if constexpr 编译期丢弃, 生产注册表不注册,
+  存活直调测试 tests/unit/p1001_real_nodes_test.cpp::
+  test_psf_fast_cap_and_inactive_precise(钩子 p1_op_star_psf_precise_json)。
+  依据: psf 端口死边 + psf_params 零消费者 + 测光正式口径=孔径测光(负责人
+  2026-09-14)。同批纯性能: pow(1+Q,4) 展开(末位 ulp 可变)、lm_solve 缓冲
+  预分配(值语义不变)、gauss_solve 保留为 [[maybe_unused]] 单次调用入口。
+  公式/默认容差(fitRadius=8, LM 1e-8/200, MOFFAT4_FWHM_FACTOR)零改动;
+  README §12 为权威登记。
+  禁止声明 IMPLEMENTED（迁移落码未发生）。

@@ -1,19 +1,19 @@
-# lib/hips — astrocs.p1.hips_writer（P1-HIPS）
+# lib/algorithms/drizzle/hips — astrocs.p1.hips_writer（P1-HIPS）
 
 > 状态: CONTRACT_READY（P1-HIPS-DOC 冻结，2026-09-07）｜doc revision: r1
 > 本 README 由源码逐函数核对后新建（P1-HIPS-DOC）：函数、单位、坐标、dtype、
 > shape、invalid、错误、并发、内存、I/O 均以现行唯一生产实现
-> `lib/astro_image_io/src/hips/aio_hips_writer.cpp`（合同头
-> `lib/astro_image_io/include/aio_hips.h`；根 CMakeLists.txt:298-309 编入静态库
+> `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（合同头
+> `lib/infrastructure/aio/include/aio_hips.h`；根 CMakeLists.txt:298-309 编入静态库
 > `astrocs_hips`，C ABI 导出 aio_hips.h:104,121,130,135,144,149,152,163,177
-> 的 9 符号）为准；`lib/hips/` 是 P1-HIPS 迁移目标目录（astrocs_p1_hips_writer.dll
+> 的 9 符号）为准；`lib/algorithms/drizzle/hips/` 是 P1-HIPS 迁移目标目录（astrocs_p1_hips_writer.dll
 > 落码由 P1-HIPS-IMPL 建立，当前本目录仅合同文件、无源码；落位依据
 > MODULE_MIGRATION_MATRIX.csv P1-HIPS 行 target=astrocs_p1_hips_writer.dll、
-> legacy_paths="lib/healpix_db;lib/phase1_session"——实测生产 writer 在
-> lib/astro_image_io/src/hips/，lib/healpix_db 侧参与生产的为 drizzle 写通道
+> legacy_paths="lib/infrastructure/aio/healpix_db;lib/phase1_session"——实测生产 writer 在
+> lib/infrastructure/aio/src/hips/，lib/infrastructure/aio/healpix_db 侧参与生产的为 drizzle 写通道
 > astro_sphere_sink.cpp，healpix_stack 系列函数全仓零调用已死代码化，
-> lib/phase1_session 对 HiPS 零引用（grep 退出码 1），与 lib/drizzle/、
-> lib/cosmetic/、lib/calibration/ 先例同构，本目录不与 legacy 目录重叠）。权威合同：
+> lib/phase1_session 对 HiPS 零引用（grep 退出码 1），与 lib/algorithms/drizzle/、
+> lib/algorithms/cosmetic/、lib/algorithms/calibration/ 先例同构，本目录不与 legacy 目录重叠）。权威合同：
 > SCI-DRZ-001（共享引用）→ ALG-HIPS-001..005 → DATA-P1-HIPS / API-HIPS-001
 > （链接见 §4）。
 
@@ -24,7 +24,7 @@
 | MOD ID / DLL target | `MOD-astrocs-phase1-hips-writer` / 现状实现编入 CMake 静态库 `astrocs_hips`（CMakeLists.txt:298-309，无独立 DLL 产物，全仓库无 astrocs_p1_hips_writer 目标）；迁移目标 `astrocs_p1_hips_writer.dll`（P1-HIPS-IMPL 建立，尚未存在） |
 | module / ABI / doc revision | `astrocs.p1.hips_writer` / C ABI（aio_hips.h extern "C" AIO_HIPS_EXPORT，无版本化 query 入口，迁移缺口）/ r1 |
 | owner / phase scope | SA-P1-D18 / phase1（matrix P1-HIPS；depends_on_int=P1-DRZ-INT;IO-003） |
-| 文档状态 | CONTRACT_READY（实现存在于 lib/astro_image_io/src/hips，模块化迁移未开始；不声明 IMPLEMENTED） |
+| 文档状态 | CONTRACT_READY（实现存在于 lib/infrastructure/aio/src/hips，模块化迁移未开始；不声明 IMPLEMENTED） |
 | 构建 | 现状随 CMakeLists.txt:298-309 `astrocs_hips`（STATIC，AIO_ENABLE_FITS/AIO_ENABLE_HEALPIX :317，链接 astrocs_aio/astrocs_common :318；astrocs_drizzle :378 与主程序 :493-497 均链 astrocs_hips）；独立目标由 P1-HIPS-IMPL 建立 |
 
 ## 2. 负责范围
@@ -100,7 +100,7 @@ covered_area≤0 或非有限 → signal=NaN、support=0（:476-485）；varianc
 
 ## 5. 公共入口与符号（API-HIPS-001）
 
-现状 C ABI 九导出（lib/astro_image_io/include/aio_hips.h；实现行号
+现状 C ABI 九导出（lib/infrastructure/aio/include/aio_hips.h；实现行号
 aio_hips_writer.cpp）：`aio_hips_product_begin`（头 :104，实现 :386-422）→
 `aio_hips_write_signal_support_tile`（:121/:424-562）→
 `aio_hips_write_variance_tile`（:130/:571-692）→ `aio_hips_write_snr_points`
@@ -216,7 +216,7 @@ RAII + 同目标自愈）；③Windows 编译保持（_commit/MoveFileEx 目录 
 
 ## 10. 迁移（P1-HIPS-IMPL 目标，不声明完成）
 
-本目录（lib/hips/）为迁移落点：astrocs_p1_hips_writer.dll、module.yaml
+本目录（lib/algorithms/drizzle/hips/）为迁移落点：astrocs_p1_hips_writer.dll、module.yaml
 （同目录，已冻结 manifest：entrypoint=MISSING——registry 无 descriptor）、
 C ABI adapter、plan/execute/cancel/inspect、ThreadLease 接线、DISP-HIPS
 清单消化见 ALG-HIPS-001 §0/§10 与 module.yaml 注释。迁移不得改变

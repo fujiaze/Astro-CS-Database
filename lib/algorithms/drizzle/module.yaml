@@ -1,5 +1,5 @@
 # AstroCS phase1 drizzle module — 元数据 (P1-DRZ-DOC 冻结, 2026-09-07)
-# 状态: CONTRACT_READY —— 实现存在（生产源 lib/healpix_db/healpix_drizzle/，
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/drizzle/healpix_drizzle/，
 # 编译进根 CMakeLists.txt:356-366 静态库 astrocs_drizzle；C ABI 导出
 # hp_drizzle_api.h:42,62,70,130,139,140 六符号），模块化迁移（独立模块源
 # astrocs_p1_drizzle.dll / C ABI adapter / plan-execute-cancel-inspect /
@@ -10,15 +10,15 @@
 # 落位依据：MODULE_MIGRATION_MATRIX.csv P1-DRZ 行 target=astrocs_p1_drizzle.dll、
 # module_id=astrocs.p1.drizzle，legacy_paths="lib/phase1/drizzle;root
 # astrocs_drizzle target"（lib/phase1/drizzle 目录不存在；root astrocs_drizzle
-# target 源码位于 lib/healpix_db/healpix_drizzle/，与 lib/cosmetic/、
-# lib/calibration/ 先例同构，本目录 lib/drizzle/ 为迁移目标目录、不与 legacy
+# target 源码位于 lib/algorithms/drizzle/healpix_drizzle/，与 lib/algorithms/cosmetic/、
+# lib/algorithms/calibration/ 先例同构，本目录 lib/algorithms/drizzle/ 为迁移目标目录、不与 legacy
 # 目录重叠）。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
 # 现状实现为 config.threads 驱动的 omp parallel for num_threads(...) 局部子句
 # （drizzle_engine.cpp:1639-1644，不改全局 ICV；config.threads=0 退化
 # omp_get_max_threads()），ThreadLease 接线为迁移整改点（见
 # docs/contracts/PUBLIC_API.md API-DRZ-001 与 docs/algorithms/DRIZZLE_GEOMETRY.md）。
-# entrypoint=MISSING：registry descriptor（lib/core/src/module_adapters.cpp:508-525
+# entrypoint=MISSING：registry descriptor（lib/infrastructure/scheduler/src/module_adapters.cpp:508-525
 # p1_drizzle_descriptor）未接节点（node_operations 空、factory 委托 phase1
 # session 且 session 无 drizzle stage，lib/phase1_session/p1_session.cpp:2 阶段
 # 序列=io_read→calibrate→cosmetic→io_write）；astrocs_p1_drizzle.dll 未建；

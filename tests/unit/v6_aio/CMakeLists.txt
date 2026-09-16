@@ -13,7 +13,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif()
 
 if(NOT AIO_V6_LIB_DIR)
-  set(AIO_V6_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/astro_image_io/v6")
+  set(AIO_V6_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/infrastructure/aio/v6")
 endif()
 get_filename_component(AIO_V6_LIB_DIR "${AIO_V6_LIB_DIR}" ABSOLUTE)
 get_filename_component(AIO_V6_REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)

@@ -13,7 +13,7 @@ set(V6P2_IT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(V6P2_REPO "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
 get_filename_component(V6P2_REPO "${V6P2_REPO}" ABSOLUTE)
 
-add_subdirectory("${V6P2_REPO}/lib/phase2_int/v6"
+add_subdirectory("${V6P2_REPO}/lib/algorithms/integration/v6"
                  "${CMAKE_CURRENT_BINARY_DIR}/v6_phase2_int_lib")
 
 add_executable(v6_p2_integrate_test "${V6P2_IT_DIR}/v6_p2_integrate_test.cpp")

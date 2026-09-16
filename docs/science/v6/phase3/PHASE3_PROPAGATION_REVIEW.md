@@ -1,3 +1,5 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # SCI-P3-001 主正文 — Phase3 投影/采样下 signal、variance/correlation、effective PSF、Q/W 传播独立复核
 
 文档 ID：`SCI-P3-001-REVIEW`
@@ -230,7 +232,7 @@ covariance 只能从实际组合系数与输入 covariance 传播。三模式规
 | 结论 | 证据锚 | 判定 |
 |---|---|---|
 | 仅 `surface_brightness` 输入模式可接受；`weight`/`flux-per-pixel` UNSUPPORTED，variance/ivar 转 uncertainty 子产品 | `p3_resample.cpp` `p3_resample_check_mode`；`p3_resample.h` §23-28 | 符合（alpha 面） |
-| 无 `point_source_flux`/`visualization` 模式 | 结构扫描 `lib/phase3_session`+`lib/phase3_proj`：0 命中（Oracle P3-O11） | **NOT_IMPLEMENTED** |
+| 无 `point_source_flux`/`visualization` 模式 | 结构扫描 `lib/phase3_session`+`lib/algorithms/projection`：0 命中（Oracle P3-O11） | **NOT_IMPLEMENTED** |
 | 无 effective PSF / Q / W / POINT_INFORMATION / W_info 传播 | 同上；`p3_output` 仅 SIGNAL+COVERAGE(+VARIANCE/IVAR) | **NOT_IMPLEMENTED** |
 | variance 传播仅对角 `Σc²u`，无相关核输出 | `p3_resample.cpp` `acc += w*w*u_k`；`p3_output.h` EXTNAME 集合 | **偏差**（缺 DESIGN-P3 §4 相关核） |
 | 无逐像素立体角/面积元换算 | `grep -riE 'jacobian|solid.?angle|pixel.?area|omega'` 于 phase3 源码 0 命中 | **NOT_IMPLEMENTED** |

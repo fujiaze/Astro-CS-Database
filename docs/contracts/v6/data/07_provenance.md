@@ -1,3 +1,5 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # 07 — provenance 对象 schema（最小集 / 共享系统项 / k_corr / 降级 / unavailable）
 
 上位锚：`FZ-PROV-MINIMAL-SET`、`FZ-PROV-SHARED-SYSTEMATIC`、`FZ-PROV-KCORR`、`FZ-DEGRADE-SCALAR`、`FZ-COND-FLUX-CONSERV`、`FZ-BUNIT-SEMANTICS`；

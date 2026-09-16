@@ -95,7 +95,7 @@ endif()
 # install-tree.contract.json (三方面同步, 机器校验 packaging/verify_install_tree.py
 # + tests/abi/mod001_install_load_check.py 经安全 loader 逐 unit 加载验证,
 # §18.4 只加载签名清单官方模块)。
-# F-CI-002-01 (owner 裁决 2026-09-11): astrocs_p1_noise 随 lib/snr_estimator
+# F-CI-002-01 (owner 裁决 2026-09-11): astrocs_p1_noise 随 lib/algorithms/noise_snr
 # V7 残留断链解除一并摘出本安装名单/产品清单 (该子图 CMakeLists 未入库, 根
 # CMakeLists add_subdirectory 已解除, astrocs_p1_noise target 不在根图);
 # V7 残留收编后 target 重新出现时随 if(TARGET) 门卫自动恢复安装。

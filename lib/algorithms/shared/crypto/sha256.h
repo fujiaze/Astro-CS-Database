@@ -1,4 +1,4 @@
-// lib/common/crypto/sha256.h — 共享自包含 SHA-256（FIPS 180-4，公开算法）
+// lib/algorithms/shared/crypto/sha256.h — 共享自包含 SHA-256（FIPS 180-4，公开算法）
 // 由 astro_image_io（AIO UPM 容器）与 phase2（UPM 模型哈希）共用，单一实现。
 #pragma once
 

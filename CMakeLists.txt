@@ -3,7 +3,7 @@
 # 1) 本文件是仓库唯一 project() 与唯一产品事实源: 产品可执行 astrocs 只在此声明
 #    (add_executable(astrocs ...)), 显式源列表, 禁 GLOB (QA-002)。
 # 2) 子目录 CMakeLists 只声明本模块 target (tests/unit 为测试, 见文末 add_subdirectory)。
-# 3) cli/CMakeLists.txt 与 lib/phase2/CMakeLists.txt 已降级为 compatibility 声明
+# 3) cli/CMakeLists.txt 与 lib/algorithms/coverage/CMakeLists.txt 已降级为 compatibility 声明
 #    (BLD-002): 保留给遗留 tests/cli 独立构建与模块自测/工具按需构建, 不是产品事实源,
 #    禁止正式 install; 产品安装/发布构建一律以本文件为入口。
 # 4) 正式构建入口: 本文件 (Windows preset win-msvc-17.14.39-x64 / Linux linux-control)。
@@ -95,7 +95,7 @@ endif()
 add_library(astrocs_contracts INTERFACE)
 target_include_directories(astrocs_contracts INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/include)
 
 # io adapter (IO-001: 依赖方向 core <- io; 不 include runtime/模块)
 # BLD-003: 更名 astrocs_io_adapter —— ARC-001 冻结的 DLL target 计划
@@ -103,7 +103,7 @@ target_include_directories(astrocs_contracts INTERFACE
 # FITS/HiPS/原子流式 I/O 宿主服务), 见下 "BLD-003 平台 SHARED 骨架" 段落;
 # 本 STATIC 为 legacy 文件适配器 (ArtifactTransaction/FileIoAdapter, IO-001),
 # 保留原名会导致 target 重名 (CMake fatal)。
-add_library(astrocs_io_adapter STATIC lib/io/src/io_adapter.cpp)
+add_library(astrocs_io_adapter STATIC lib/infrastructure/aio/io/src/io_adapter.cpp)
 target_include_directories(astrocs_io_adapter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_io_adapter PUBLIC astrocs_core)
 
@@ -174,21 +174,21 @@ add_subdirectory(modules/conformance/noop)
 # astrocs_catalog_gaia: GAIA XPSD catalog service module DLL (CAT-GAIA-IMPL;
 # 矩阵行 astrocs.catalog.gaia / astrocs_catalog_gaia.dll)。唯一导出
 # astrocs_module_query_v1; legacy 符号经 GAIA_EXPORT= 本地化 (模块 CMakeLists)。
-add_subdirectory(lib/gaia_xpsd_client)
+add_subdirectory(lib/infrastructure/gaia_xpsd_client)
 
 # astrocs_p1_drizzle: drizzle 迁移模块 DLL (P1-DRZ-IMPL; 矩阵行
 # astrocs.p1.drizzle / astrocs_p1_drizzle.dll)。九操作 C ABI v1 adapter
 # 包装 legacy healpix_drizzle 生产源 (API-DRZ-001 冻结, scientific_change=
 # false 零改动重编译); 唯一导出 astrocs_module_query_v1, legacy 六符号经
 # version-script 降 local (模块 CMakeLists)。
-add_subdirectory(lib/drizzle)
+add_subdirectory(lib/algorithms/drizzle)
 
 # astrocs_p1_calibration: calibration 迁移模块 DLL (P1-CAL-IMPL; 矩阵行
 # astrocs.p1.calibration / astrocs_p1_calibration.dll)。九操作 C ABI v1
 # adapter 包装 legacy calibration 生产 4 TU (API-P1-001 冻结, scientific_
 # change=false 零改动重编译); 唯一导出 astrocs_module_query_v1, legacy 12
 # 符号经 AC_API= 本地化 + version-script 双保险 (模块 CMakeLists)。
-add_subdirectory(lib/calibration)
+add_subdirectory(lib/algorithms/calibration)
 
 # astrocs_p1_cosmetic: cosmetic 迁移模块 DLL (P1-COS-IMPL; 矩阵行
 # astrocs.p1.cosmetic / astrocs_p1_cosmetic.dll)。九操作 C ABI v1
@@ -196,7 +196,7 @@ add_subdirectory(lib/calibration)
 # scientific_change=false 零改动重编译); 唯一导出
 # astrocs_module_query_v1, legacy AC_API 符号经 AC_API= 本地化 +
 # version-script 双保险 (模块 CMakeLists)。
-add_subdirectory(lib/cosmetic)
+add_subdirectory(lib/algorithms/cosmetic)
 
 # astrocs_p1_hips_writer: HiPS writer 迁移模块 DLL (P1-HIPS-IMPL; 矩阵行
 # astrocs.p1.hips_writer / astrocs_p1_hips_writer.dll)。九操作 C ABI v1
@@ -205,9 +205,9 @@ add_subdirectory(lib/cosmetic)
 # writer TU 仅依赖 astrocs::healpix 两符号 + cfitsio); 唯一导出
 # astrocs_module_query_v1, legacy aio_hips_* 九符号经 version-script /
 # DEF 降 local (模块 CMakeLists)。
-add_subdirectory(lib/hips)
+add_subdirectory(lib/algorithms/drizzle/hips)
 
-# F-CI-002-01(CI-002 owner 裁决 2026-09-11): add_subdirectory(lib/snr_estimator)
+# F-CI-002-01(CI-002 owner 裁决 2026-09-11): add_subdirectory(lib/algorithms/noise_snr)
 # 断链引用解除——该子图 CMakeLists.txt 为 V7 残留面, 从未入库(P1-001 9e09941a
 # 引用 untracked 文件, hosted/干净树 configure 必败, run 34601822084 实证);
 # 目录保持 untracked 锁死不收编, astrocs_p1_noise target 随之不在根图
@@ -218,11 +218,11 @@ add_subdirectory(lib/hips)
 # 无导出标注 → 默认全导出)。正式 provider ABI/Windows DLL → CPU-002
 # (providers/cpu/baseline)
 add_library(astrocs_cpu_baseline SHARED
-  lib/backend_host/baseline_backend.cpp)
+  lib/infrastructure/benchmark/backend_host/baseline_backend.cpp)
 target_include_directories(astrocs_cpu_baseline PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/backend_host
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 if(MSVC)
   set_property(TARGET astrocs_cpu_baseline PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -246,15 +246,15 @@ endforeach()
 
 
 add_library(astrocs_core STATIC
-  lib/core/src/artifact.cpp
-  lib/core/src/artifact_store.cpp
-  lib/core/src/module.cpp
-  lib/core/src/pipeline.cpp
-  lib/core/src/context.cpp
-  lib/core/src/runtime.cpp
-  lib/core/src/scheduler.cpp
-  lib/core/src/checkpoint.cpp
-  lib/core/src/logging.cpp)
+  lib/infrastructure/scheduler/src/artifact.cpp
+  lib/infrastructure/scheduler/src/artifact_store.cpp
+  lib/infrastructure/scheduler/src/module.cpp
+  lib/infrastructure/scheduler/src/pipeline.cpp
+  lib/infrastructure/scheduler/src/context.cpp
+  lib/infrastructure/scheduler/src/runtime.cpp
+  lib/infrastructure/scheduler/src/scheduler.cpp
+  lib/infrastructure/scheduler/src/checkpoint.cpp
+  lib/infrastructure/scheduler/src/logging.cpp)
 target_include_directories(astrocs_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
@@ -263,18 +263,18 @@ find_package(Threads REQUIRED)
 
 # core/common: sha256/healpix (纯算法)
 add_library(astrocs_common STATIC
-  lib/common/crypto/sha256.cpp
-  lib/common/healpix/healpix_core.cpp)
+  lib/algorithms/shared/crypto/sha256.cpp
+  lib/algorithms/shared/healpix/healpix_core.cpp)
 target_include_directories(astrocs_common PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/healpix)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/healpix)
 
 # vendored cfitsio (第三方, SYSTEM 隔离; 不参与模块图)
 add_library(astrocs_cfitsio STATIC ${ASTROCS_CFITSIO_SOURCES})
 target_include_directories(astrocs_cfitsio PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio)
 if(MSVC)
   # WIN-001: cfitsio 依赖适配 — 源码 `-w` 为 GCC 旗标 (MSVC 忽略并告警 D9002);
   # _REENTRANT 需 pthread.h → 用 cmake/win32_pthread_shim (SRWLOCK 映射, MSVC 专用);
@@ -320,20 +320,20 @@ target_compile_definitions(astrocs_cfitsio PRIVATE _REENTRANT)
 # F-AIO-003 → MOD-001)。仓库根 include/ 以 PRIVATE 引入 (仅本 target 编译
 # aio_abi.cpp 需要 astrocs/io/aio_abi_v1.h, 不扩大下游 include 面)。
 add_library(astrocs_aio STATIC
-  lib/astro_image_io/src/aio_fits.cpp
-  lib/astro_image_io/src/aio_api.cpp
-  lib/astro_image_io/src/aio_log.cpp
-  lib/astro_image_io/src/aio_compressor.cpp
-  lib/astro_image_io/src/aio_xisf.cpp
-  lib/astro_image_io/src/aio_pipeline.cpp
-  lib/astro_image_io/src/aio_abi.cpp)
+  lib/infrastructure/aio/src/aio_fits.cpp
+  lib/infrastructure/aio/src/aio_api.cpp
+  lib/infrastructure/aio/src/aio_log.cpp
+  lib/infrastructure/aio/src/aio_compressor.cpp
+  lib/infrastructure/aio/src/aio_xisf.cpp
+  lib/infrastructure/aio/src/aio_pipeline.cpp
+  lib/infrastructure/aio/src/aio_abi.cpp)
 target_include_directories(astrocs_aio PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(astrocs_aio PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/src
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 target_compile_definitions(astrocs_aio PRIVATE AIO_ENABLE_FITS AIO_ENABLE_XISF)
 if(MSVC AND ACS_ZLIB_LIBRARY)
@@ -349,35 +349,35 @@ endif()
 
 # io/hips: HiPS reader/writer + hiss (无科学积分)
 add_library(astrocs_hips STATIC
-  lib/astro_image_io/src/hips/aio_hips_reader.cpp
-  lib/astro_image_io/src/hips/aio_hips_writer.cpp
-  lib/astro_image_io/src/healpix/aio_healpix_io.cpp
-  lib/astro_image_io/src/hiss_codec.cpp
-  lib/astro_image_io/src/hiss_common.cpp
-  lib/astro_image_io/src/hiss_reader.cpp
-  lib/astro_image_io/src/hiss_stream_writer.cpp
-  lib/astro_image_io/src/hiss_tile_model.cpp
-  lib/astro_image_io/src/hiss_transform.cpp
-  lib/astro_image_io/src/hiss_writer.cpp
-  lib/astro_image_io/src/aio_upm.cpp)
+  lib/infrastructure/aio/src/hips/aio_hips_reader.cpp
+  lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
+  lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp
+  lib/infrastructure/aio/src/hiss_codec.cpp
+  lib/infrastructure/aio/src/hiss_common.cpp
+  lib/infrastructure/aio/src/hiss_reader.cpp
+  lib/infrastructure/aio/src/hiss_stream_writer.cpp
+  lib/infrastructure/aio/src/hiss_tile_model.cpp
+  lib/infrastructure/aio/src/hiss_transform.cpp
+  lib/infrastructure/aio/src/hiss_writer.cpp
+  lib/infrastructure/aio/src/aio_upm.cpp)
 target_include_directories(astrocs_hips PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/src
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/healpix)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/healpix)
 target_compile_definitions(astrocs_hips PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(astrocs_hips PUBLIC astrocs_aio astrocs_common)
 
 # modules/calibration
 add_library(astrocs_calibration STATIC
-  lib/calibration/src/calibrator.cpp
-  lib/calibration/src/master_generator.cpp
-  lib/calibration/src/cosmetic_corrector.cpp
-  lib/calibration/src/ac_api.cpp)
+  lib/algorithms/calibration/src/calibrator.cpp
+  lib/algorithms/calibration/src/master_generator.cpp
+  lib/algorithms/calibration/src/cosmetic_corrector.cpp
+  lib/algorithms/calibration/src/ac_api.cpp)
 target_include_directories(astrocs_calibration PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/calibration/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/calibration/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include)
 target_link_libraries(astrocs_calibration PUBLIC astrocs_aio astrocs_common)
 # QA-001: calibrator/cosmetic_corrector/master_generator 含 omp pragma → -fopenmp
 if(UNIX AND OpenMP_CXX_FOUND)
@@ -387,46 +387,46 @@ endif()
 
 # modules/phase2 (纯 CPU 生产模块; ACR 源不在此列 — LEG-004)
 add_library(astrocs_phase2 STATIC
-  lib/phase2/src/upm.cpp
-  lib/phase2/src/stage2_common.cpp
-  lib/phase2/src/rejection.cpp
-  lib/phase2/src/coverage.cpp
-  lib/phase2/src/sampler.cpp
-  lib/phase2/src/block.cpp
-  lib/phase2/src/integrate.cpp
-  lib/phase2/src/cuda_bridge_stub.cpp)
+  lib/algorithms/coverage/src/upm.cpp
+  lib/algorithms/coverage/src/stage2_common.cpp
+  lib/algorithms/coverage/src/rejection.cpp
+  lib/algorithms/coverage/src/coverage.cpp
+  lib/algorithms/coverage/src/sampler.cpp
+  lib/algorithms/coverage/src/block.cpp
+  lib/algorithms/coverage/src/integrate.cpp
+  lib/algorithms/coverage/src/cuda_bridge_stub.cpp)
 target_include_directories(astrocs_phase2 PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase2/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/acr/backends/cuda/bridge
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/src
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/acr/backends/cuda/bridge
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared)
 target_link_libraries(astrocs_phase2 PUBLIC astrocs_contracts astrocs_common astrocs_aio astrocs_hips)
 
 # modules/healpix_drizzle
 add_library(astrocs_drizzle STATIC
-  lib/healpix_db/healpix_drizzle/fits_reader.cpp
-  lib/healpix_db/healpix_drizzle/wcs_sip.cpp
-  lib/healpix_db/healpix_drizzle/poly_clip.cpp
-  lib/healpix_db/healpix_drizzle/spherical_overlap.cpp
-  lib/healpix_db/healpix_drizzle/drizzle_engine.cpp
-  lib/healpix_db/healpix_drizzle/reverse_drizzle.cpp
-  lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp
-  lib/healpix_db/healpix_drizzle/hp_drizzle_hips_api.cpp
-  lib/healpix_db/healpix_drizzle/astro_sphere_sink.cpp
-  lib/healpix_db/healpix_drizzle/snr_evaluator.cpp)
+  lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp
+  lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp
+  lib/algorithms/drizzle/healpix_drizzle/poly_clip.cpp
+  lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp
+  lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp
+  lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp
+  lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp
+  lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_hips_api.cpp
+  lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp
+  lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.cpp)
 target_include_directories(astrocs_drizzle PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/healpix_db/healpix_drizzle
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/src
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/healpix)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/healpix)
 # QA-001: nanoflann.hpp (BSD-3, vendored 第三方) 经本 target 引号 include 引入;
 # 仅对该第三方头做 -isystem 隔离, drizzle 自有 .cpp 仍参与严格 warning 分层.
 target_include_directories(astrocs_drizzle SYSTEM PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/healpix_db/healpix_drizzle)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle)
 target_compile_definitions(astrocs_drizzle PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(astrocs_drizzle PUBLIC astrocs_contracts astrocs_common astrocs_aio astrocs_hips)
 # QA-001: drizzle_engine/snr_evaluator 含 omp pragma → -fopenmp 编译消除 unknown-pragmas
@@ -438,21 +438,21 @@ endif()
 
 # backends/cpu: provider ABI + baseline (AVX2/512 见 CPU-003/004)
 add_library(astrocs_cpu STATIC
-  lib/backend_host/cpu_features.cpp
-  lib/backend_host/hardware_inspect.cpp
-  lib/backend_host/backend_loader.cpp
-  lib/backend_host/baseline_backend.cpp
-  lib/backend_host/profile_gen.cpp
-  lib/backend_host/profile_gen_v2.cpp
-  lib/backend_host/cpu_routing.cpp
-  lib/backend_host/host_services.cpp
-  lib/backend_host/bench_harness.cpp
-  lib/backend_host/bench_report.cpp
-  lib/backend_host/profile_store.cpp
-  lib/backend_host/worker_advisor.cpp)
+  lib/infrastructure/benchmark/backend_host/cpu_features.cpp
+  lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp
+  lib/infrastructure/benchmark/backend_host/backend_loader.cpp
+  lib/infrastructure/benchmark/backend_host/baseline_backend.cpp
+  lib/infrastructure/benchmark/backend_host/profile_gen.cpp
+  lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp
+  lib/infrastructure/benchmark/backend_host/cpu_routing.cpp
+  lib/infrastructure/benchmark/backend_host/host_services.cpp
+  lib/infrastructure/benchmark/backend_host/bench_harness.cpp
+  lib/infrastructure/benchmark/backend_host/bench_report.cpp
+  lib/infrastructure/benchmark/backend_host/profile_store.cpp
+  lib/infrastructure/benchmark/backend_host/worker_advisor.cpp)
 target_include_directories(astrocs_cpu PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/backend_host
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 target_link_libraries(astrocs_cpu PUBLIC astrocs_contracts astrocs_common)
 
@@ -462,42 +462,42 @@ target_link_libraries(astrocs_cpu PUBLIC astrocs_contracts astrocs_common)
 # 变体与 baseline 共享 baseline_kernels_impl.inc/backend_table.inc 同一源(零复制漂移),
 # 仅编译旗标与 ASTROCS_BACKEND_ID 不同 → 每条路径独立编译成不同目标并各自 self-test。
 # 注意: 两个变体 target 均不得被 astrocs(主 CLI) 链接 — 由 check_isa_leak 的 link map 验证把关。
-add_library(astrocs_cpu_avx2 STATIC lib/backend_host/avx2_backend.cpp)
+add_library(astrocs_cpu_avx2 STATIC lib/infrastructure/benchmark/backend_host/avx2_backend.cpp)
 target_include_directories(astrocs_cpu_avx2 PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/backend_host
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto)
 target_compile_options(astrocs_cpu_avx2 PRIVATE -mavx2 -mfma)
 target_link_libraries(astrocs_cpu_avx2 PUBLIC astrocs_contracts astrocs_common)
 
-add_library(astrocs_cpu_avx512 STATIC lib/backend_host/avx512_backend.cpp)
+add_library(astrocs_cpu_avx512 STATIC lib/infrastructure/benchmark/backend_host/avx512_backend.cpp)
 target_include_directories(astrocs_cpu_avx512 PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/backend_host
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto)
 # AVX512 实际使用子集: F + DQ + BW + VL (ISA-004, 与 cpu_features.h 检测面一致)
 target_compile_options(astrocs_cpu_avx512 PRIVATE
   -mavx512f -mavx512bw -mavx512vl -mavx512dq)
 target_link_libraries(astrocs_cpu_avx512 PUBLIC astrocs_contracts astrocs_common)
 
 # phase1 wcs + photometry (P1-004)
-add_library(astrocs_phase1_wcs STATIC lib/phase1/wcs/wcs_tan.cpp)
+add_library(astrocs_phase1_wcs STATIC lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp)
 target_include_directories(astrocs_phase1_wcs PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1/wcs ${CMAKE_CURRENT_SOURCE_DIR}/include)
-add_library(astrocs_phase1_phot STATIC lib/phase1/photometry/photometer.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/platesolve/wrapper_phase1 ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_library(astrocs_phase1_phot STATIC lib/algorithms/photometry/wrapper_phase1/photometer.cpp)
 target_include_directories(astrocs_phase1_phot PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1/photometry ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/wrapper_phase1 ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_phot PUBLIC astrocs_contracts)
 
 # phase1 noise (P1-005 SCI-NOISE-001)
 # P8-SNR-LINUX (2026-09-14): Linux 生产路径 SNR 接线 —— 把 P5-SNR 唯一权威科学实现
-# lib/snr_estimator/cpp/src/snr_science.cpp 编入本目标 (此前未在根 CMake 主图,
+# lib/algorithms/noise_snr/cpp/src/snr_science.cpp 编入本目标 (此前未在根 CMake 主图,
 # 生产实际的 SNR 由另一份实现产出)。帧级聚合在
-# lib/phase1/noise/snr_frame_science.cpp (零公式副本, 只调 snr_science C ABI)。
+# lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp (零公式副本, 只调 snr_science C ABI)。
 add_library(astrocs_phase1_noise STATIC
-  lib/phase1/noise/noise_model.cpp
-  lib/phase1/noise/snr_frame_science.cpp
-  lib/snr_estimator/cpp/src/snr_science.cpp)
+  lib/algorithms/noise_snr/wrapper_phase1/noise_model.cpp
+  lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp
+  lib/algorithms/noise_snr/cpp/src/snr_science.cpp)
 target_include_directories(astrocs_phase1_noise PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1/noise ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/wrapper_phase1 ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_noise PUBLIC astrocs_contracts)
 # P10-UTIL2-007: 噪声统计 (median/MAD 次序统计量选择) 与逐源 SNR 聚合使用 OpenMP。
 # 无 OpenMP 时 #pragma omp 被忽略 -> 串行回退且结果逐位不变; 线程数不在本库
@@ -508,9 +508,9 @@ if(UNIX AND OpenMP_CXX_FOUND)
 endif()
 
 # phase1 stars (P1-003 StarDetector)
-add_library(astrocs_phase1_stars STATIC lib/phase1/stars/star_detector.cpp)
+add_library(astrocs_phase1_stars STATIC lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp)
 target_include_directories(astrocs_phase1_stars PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1/stars
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/wrapper_phase1
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_stars PUBLIC astrocs_contracts)
 # P2 (PSF-DET-001/PSF-BG-001): 检测器扫描/逐像素转换用 OpenMP。无 OpenMP 时
@@ -524,7 +524,7 @@ endif()
 # 生产源零 diff 只读编译进 STATIC（ipv 13 TU + gaia_client.c(C) + dpsf 3 TU）；
 # 两平台均为真实求解: Windows 经 LoadLibraryA 解析 DLL, 非 Windows (Linux amd64
 # 正式入口) 经 ipv_select.cpp 直接绑定同一组静态链接 C API。源内已无平台 stub。
-set(P1_IPV_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/plate_solve/cpp/ipv)
+set(P1_IPV_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/platesolve/cpp/ipv)
 add_library(astrocs_p1_ipv STATIC
   ${P1_IPV_DIR}/src/ipv_entry.cpp ${P1_IPV_DIR}/src/ipv_solver.cpp
   ${P1_IPV_DIR}/src/ipv_select.cpp ${P1_IPV_DIR}/src/ipv_angle.cpp
@@ -533,38 +533,38 @@ add_library(astrocs_p1_ipv STATIC
   ${P1_IPV_DIR}/src/ipv_ransac.cpp ${P1_IPV_DIR}/src/ipv_robust_refine.cpp
   ${P1_IPV_DIR}/src/ipv_sip.cpp ${P1_IPV_DIR}/src/ipv_triangle.cpp
   ${P1_IPV_DIR}/src/ipv_wcs.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/gaia_xpsd_client/src/gaia_client.c)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c)
 target_include_directories(astrocs_p1_ipv PUBLIC
   ${P1_IPV_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/gaia_xpsd_client/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src
   # RESCUE-FD-05: 非 Windows 直连 C API 需要生产头面 (与 DLL 导入等价的 ABI 面)
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_p1_ipv PUBLIC z Threads::Threads)
-set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/lib/gaia_xpsd_client/src/gaia_client.c
+set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
   PROPERTY C_STANDARD 11)
 
 add_library(astrocs_p1_dpsf STATIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/src/dpsf_psf.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/src/dpsf_image.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/src/dpsf_log.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_psf.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_image.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_log.cpp)
 target_include_directories(astrocs_p1_dpsf PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/src)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src)
 target_link_libraries(astrocs_p1_dpsf PUBLIC OpenMP::OpenMP_CXX)
 
-# P1-001: sdet 生产实现（lib/star_detector 9 TU, ipv detector_handle 与
-# star-psf 检测的真实来源; lib/phase1/stars 仅为薄包装, 真实检测在此）
+# P1-001: sdet 生产实现（lib/algorithms/star_detection 9 TU, ipv detector_handle 与
+# star-psf 检测的真实来源; lib/algorithms/star_detection/wrapper_phase1 仅为薄包装, 真实检测在此）
 add_library(astrocs_p1_sdet STATIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src/sdet_api.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src/sdet_detector.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src/sdet_image.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src/sdet_log.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src/sdet_background.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_api.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_detector.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_image.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_log.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_background.cpp)
 target_include_directories(astrocs_p1_sdet PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/src)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src)
 target_link_libraries(astrocs_p1_sdet PUBLIC OpenMP::OpenMP_CXX)
 # sdet PSF 拟合 trust-region LM 求解器依赖 GSL（star_detector Makefile 同款 -lgsl -lgslcblas）
 target_link_libraries(astrocs_p1_sdet PUBLIC gsl gslcblas m)
@@ -573,8 +573,9 @@ target_link_libraries(astrocs_p1_sdet PUBLIC gsl gslcblas m)
 add_library(astrocs_phase1_session STATIC lib/phase1_session/p1_session.cpp)
 target_include_directories(astrocs_phase1_session PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase1_session
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/calibration/include)
-# P1-001 (attempt 2): lib/phase1 现有科学实现源(只读委托, 源零修改)经本 PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/calibration/include)
+# P1-001 (attempt 2): 原 phase1 科学实现源(只读委托, 源零修改; ARCH-001 迁移后位于
+# lib/algorithms/{noise_snr,photometry,star_detection,platesolve}/wrapper_phase1) 经本 PUBLIC
 # 链接闭包传递给 astrocs_module_adapters(B 线真实节点化构建接线; ARCH-P0-001)。
 target_link_libraries(astrocs_phase1_session PUBLIC astrocs_contracts astrocs_calibration astrocs_aio
   astrocs_phase1_wcs astrocs_phase1_phot astrocs_phase1_noise astrocs_phase1_stars)
@@ -582,7 +583,7 @@ target_link_libraries(astrocs_phase1_session PUBLIC astrocs_contracts astrocs_ca
 add_library(astrocs_phase2_session STATIC lib/phase2_session/p2_session.cpp)
 target_include_directories(astrocs_phase2_session PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase2_session
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase2/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage/include)
 target_link_libraries(astrocs_phase2_session PUBLIC astrocs_contracts astrocs_phase2)
 
 add_library(astrocs_phase3_session STATIC
@@ -593,10 +594,10 @@ add_library(astrocs_phase3_session STATIC
   lib/phase3_session/p3_resample.cpp)
 target_include_directories(astrocs_phase3_session PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase3_session
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/healpix
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/healpix
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
   ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(astrocs_phase3_session PUBLIC astrocs_contracts astrocs_aio astrocs_common)
 
@@ -618,14 +619,14 @@ add_executable(astrocs
 target_include_directories(astrocs PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/cli
   ${CMAKE_CURRENT_BINARY_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/src
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/healpix_db/healpix_drizzle
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/crypto
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/common/healpix
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase2/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/healpix
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage/include)
 target_link_libraries(astrocs PRIVATE
   astrocs_contracts astrocs_core astrocs_cli_runtime astrocs_common astrocs_cfitsio astrocs_aio astrocs_hips
   astrocs_calibration astrocs_phase2 astrocs_drizzle astrocs_cpu
@@ -657,7 +658,7 @@ if(NOT MSVC)
 endif()
 
 # RT-005 可执行模块适配器: Phase1/2/3 session → IModule (core 不依赖会话库)
-add_library(astrocs_module_adapters STATIC lib/core/src/module_adapters.cpp)
+add_library(astrocs_module_adapters STATIC lib/infrastructure/scheduler/src/module_adapters.cpp)
 # B2-A10(宪章 §4.3): 节点 manifest 自报 module build ID = module_id@软件版本;
 # 版本单源 = 构建期 version_generated.h (与 CLI 共用同一生成头)。
 target_include_directories(astrocs_module_adapters PUBLIC
@@ -673,10 +674,10 @@ target_link_libraries(astrocs_module_adapters PUBLIC
   astrocs_cpu astrocs_drizzle astrocs_p1_dpsf astrocs_p1_ipv astrocs_p1_sdet)
 # P1-001: 生产头 include 面（dynamic_psf/ipv/star_detector/aio_hips 直读）
 target_include_directories(astrocs_module_adapters PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/dynamic_psf/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/plate_solve/cpp/ipv/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/star_detector/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/astro_image_io/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/platesolve/cpp/ipv/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include)
 # aio_healpix_io.h(HISS 读面) 由 AIO_ENABLE_HEALPIX 门卫（drizzle 同款语义）
 target_compile_definitions(astrocs_module_adapters PUBLIC AIO_ENABLE_HEALPIX=1)
 
@@ -693,26 +694,26 @@ target_link_libraries(astrocs_cli_runtime PUBLIC
 # Wave 5/7/8 交付的 V6 库（产品 IO、Phase3 重采样传播、Phase1 产品装配、
 # Phase2 三模式集成）。各子目录自带 if(NOT TARGET ...) 守卫，既支持独立
 # cmake -S <dir> 自包含构建，也可被根构建复用；此处为唯一注册点。
-add_subdirectory(lib/astro_image_io/v6)
-add_subdirectory(lib/phase3_rsmp)
-add_subdirectory(lib/phase1/v6)
-add_subdirectory(lib/phase2_int/v6)
+add_subdirectory(lib/infrastructure/aio/v6)
+add_subdirectory(lib/algorithms/resample)
+add_subdirectory(lib/algorithms/integration/v6_phase1)
+add_subdirectory(lib/algorithms/integration/v6)
 
 if(ASTROCS_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests/unit)
   # V3 B3-A4 (RESCUE-P1-13/P1-16): Phase2 主科学门进全量 ctest。
-  # lib/phase2/tests/* 的六个 gtest 目标 (synthetic_gate / ivar_wiring /
+  # lib/algorithms/coverage/tests/* 的六个 gtest 目标 (synthetic_gate / ivar_wiring /
   # execution_options / routing / sampler_parallel / async_io) 此前从不进根
   # 图 —— ctest -N | grep -i synthetic 只剩 tests/unit 的 p2_upm_synthetic
   # 单点。子目录自带 find_package(GTest QUIET); GTest 缺失时这些目标零注册,
   # 故 CI 供应 libgtest-dev 以保证有真实执行面 (不得静默零测试)。
-  add_subdirectory(lib/phase2)
+  add_subdirectory(lib/algorithms/coverage)
 
   # ── V6 (AR-033 / C-004.4): V6 测试目标统一注册 ────────────────────────
   # tests/unit/v6_*: Wave 5 共址单元测试（9 个）；tests/integration/v6_{p1,p2,p3}:
   # Wave 7/8 产品链集成；tests/system/v6_runtime: Wave 9 运行面。
-  # 均只依赖上方已定义的 V6 库目标与 astrocs_phase2，故置于 lib/phase2 之后。
+  # 均只依赖上方已定义的 V6 库目标与 astrocs_phase2，故置于 lib/algorithms/coverage 之后。
   add_subdirectory(tests/unit/v6_aio v6_aio)
   add_subdirectory(tests/unit/v6_p1_cal v6_p1_cal)
   add_subdirectory(tests/unit/v6_p1_drz v6_p1_drz)

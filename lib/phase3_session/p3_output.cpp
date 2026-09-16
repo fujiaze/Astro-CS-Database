@@ -45,7 +45,7 @@
 #include "aio_fits.h"
 #include "astro_image_io.h"
 #include "fitsio.h"
-#include "../astro_image_io/src/aio_cfitsio_mutex.h"
+#include "../infrastructure/aio/src/aio_cfitsio_mutex.h"
 #include "sha256.h"
 
 #include <vector>
@@ -82,7 +82,7 @@ bool make_temp_path(const std::string& out, std::string* tmp) {
     return true;
 }
 
-// R10-C(bughunt p2): sha256_file 的失败可见封装。lib/common/crypto::sha256_file
+// R10-C(bughunt p2): sha256_file 的失败可见封装。lib/algorithms/shared/crypto::sha256_file
 // 对 fopen 失败返回空串、对 fread 中途错误静默返回前缀(部分数据)哈希 —— 任一
 // 形态写进 provenance 即为无意义完整性锚。本封装逐项检查 fopen/ferror/fclose,
 // 只有完整读取成功才产出 64hex; 失败返回 false, 调用方必须把错误向上传播

@@ -1,5 +1,5 @@
 // tests/unit/v6_p3_proj/v6_p3_proj_probe.cpp — IMPL-P3-PROJ-001 独立 WCS Oracle
-// 的被测面探针：输出被测实现（lib/phase3_proj/p3_proj_v6.cpp）的
+// 的被测面探针：输出被测实现（lib/algorithms/projection/p3_proj_v6.cpp）的
 // pix2world / 逐像素 Ω / R-S 归一 CSV，供 tests/unit/v6_p3_proj/
 // p3_proj_wcs_oracle.py（astropy/WCSLIB 独立实现）对拍。
 // 探针本身不做任何判定；判定在独立 oracle 侧。

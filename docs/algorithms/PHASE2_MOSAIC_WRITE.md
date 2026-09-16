@@ -6,7 +6,7 @@
 > SCI-REJ-001..008）、SCI-SCOPE-001（docs/science/SCIENCE_SCOPE.md）。共享 SCI 不因本任务改动；
 > 本文件登记实现级语义（P1-WCS-DOC 共享 SCI 先例：SCI 公式语义不在本文重复定义，两处冲突以
 > docs/science/ 为准并回改本文档，禁止反向）。
-> 实现源（唯一权威生产源）: lib/phase2/tools/stage2.cpp（1762 行实测；入口 main :112）。
+> 实现源（唯一权威生产源）: lib/algorithms/coverage/tools/stage2.cpp（1762 行实测；入口 main :112）。
 > 公式与默认容差以 SCI 层为权威，本文只登记实现锚点与实现自带语义；
 > 本任务 no root science formula change（w_UPM / signal / sup_max / rejection 判据一律不改）。
 > 下游: DATA-P2-INT / DATA-P2-RES（DATA_SEMANTICS §20 DATA-P2-HIPS——P2-HIPS-DOC 新增）、
@@ -357,13 +357,13 @@ main(stage2.json, CLI overrides):
     未显式置 true → rc=7（:565-574）；置 true → rc=0 且 diagnostics
     ivar_product_missing>0。
 - 既有可执行测试（legacy gate，迁移基线，实测）:
-  lib/phase2/tests/ivar_wiring_test.cpp
+  lib/algorithms/coverage/tests/ivar_wiring_test.cpp
   `Phase2IvarWiring.WireProductionStage2PerFrameIvar`（:223 起）——
   直接跑生产 astrocs-stage2（:3 注释，:147 run_stage2），3 帧合成
   signal/support/ivar，验证 WIRE-IVAR-001..005（per-frame ivar 接线、
   invalid compact 不错位、期望 weighted mean 匹配、C 帧 ivar×4 局部生效、
   帧置换不变）+ CON-006 1T/2T 逐层差分（:304-322）+ CON-009 repeat-2T
-  bitwise（:324-345）；lib/phase2/tests/routing_test.cpp
+  bitwise（:324-345）；lib/algorithms/coverage/tests/routing_test.cpp
   `Phase2Routing.AcrCpuRouteStaysCpuNoSilentGpu`（:54）/
   `AcrCpuRouteEntersCpuAcrBlockForLegacyWeightMode`（:65）；
   tests/backend/test_p2004_reject_integrate.py（cosmic ray rejected/
@@ -400,7 +400,7 @@ main(stage2.json, CLI overrides):
   ALG-REJ-001..008（docs/algorithms/REJECTION_ALGORITHMS.md，DERIVED T207
   冻结）、ALG-COV-001（docs/algorithms/PHASE2_COVERAGE.md，P2-COV-DOC
   冻结）、ALG-HIPS-001..005（docs/algorithms/HIPS_WRITER.md，writer 库
-  lib/astro_image_io/src/hips/aio_hips_writer.cpp——P2 马赛克共用其
+  lib/infrastructure/aio/src/hips/aio_hips_writer.cpp——P2 马赛克共用其
   ALG-HIPS-002 归一公式 signal=flux_sum/covered_area、
   support=covered_area/A_cell 钳 1.0（:477-479）与 finalize manifest.json
   语义（:1086-1128）；variance 产品（:1060-1066）P2 不启用；P2 登记的
@@ -419,7 +419,7 @@ main(stage2.json, CLI overrides):
   IO-003（docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，发布层，
   DISP-P2HIPS-003 承接方）。
 - 相邻不改: aio_hips_reader.cpp（P3/HIPS_VERIFY 后端）、
-  lib/healpix_db/healpix_drizzle/astro_sphere_sink.cpp（P1 写通道）、
+  lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp（P1 写通道）、
   p2_session.cpp（编排层，hips_paths 验证 :81-92，不做 HiPS 写）。
 - TST: TEST-P2-HIPS-001（登记面 = 本文档 §11.4 设计冻结 VERIFIED，
   依 P2-COV-DOC TEST-COV-DESIGN-001 先例：VERIFIED 对象为设计+容差，
@@ -496,7 +496,7 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
   astrocs.phase2.write.md:23）。
 - PUBLIC_API.md 现状无 Phase2 mosaic write 节，且 :54 登记 astrocs-stage2
   CLI 为 V5 遗留（LEG-004 已退出生产，生产入口 astrocs phase2 run）——
-  本文档登记对象为该 CLI 背后的底层写出实现 lib/phase2/tools/stage2.cpp。
+  本文档登记对象为该 CLI 背后的底层写出实现 lib/algorithms/coverage/tools/stage2.cpp。
 - 测试现状: 无名为 TEST-P2-HIPS-001 的测试；实测基线 = ivar_wiring_test.cpp
   （直接跑生产 astrocs-stage2）、routing_test.cpp、synthetic_gate.cpp
   Phase2Integrate/Phase2Robust（reducer 级，:2622/:3360）、

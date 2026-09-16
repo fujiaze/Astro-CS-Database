@@ -1,4 +1,4 @@
-// lib/common/dirent_win.h — 最小 Windows dirent 兼容(opendir/readdir/closedir)
+// lib/algorithms/shared/dirent_win.h — 最小 Windows dirent 兼容(opendir/readdir/closedir)
 // 仅供 MSVC 使用: MSVC 无 <dirent.h>。POSIX 语义子集, 足够 hips_properties.cpp 的目录遍历。
 #ifndef ACS_DIRENT_WIN_H
 #define ACS_DIRENT_WIN_H

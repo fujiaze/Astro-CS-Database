@@ -1,5 +1,5 @@
 // lib/phase2_session/p2_session.h — Phase2 进程内会话 (API-P2-001 冻结合同) — CLI-005
-// 生产路由: coverage → sampler → UPM build → persist(可选); 全部直调 lib/phase2 生产函数。
+// 生产路由: coverage → sampler → UPM build → persist(可选); 全部直调 lib/algorithms/coverage 生产函数。
 // 数据所有权(合同 §1): session 持有 Coverage/Observations/Model, 统一经 free/close。
 // 预算绑定(合同 §3): sampler=1(串行 reference); upm=blocks(budget); Σ≤全局 budget。
 #ifndef ASTROCS_P2_SESSION_H

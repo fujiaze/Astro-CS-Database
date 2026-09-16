@@ -61,9 +61,9 @@ class TestThreadBudget(unittest.TestCase):
     # ── ARCH-TB-001 / R-10: 登记「预算注入形态」的负向注入 ──
 
     MODULE_ENTRY = (
-        "lib/calibration/src/module_entry.cpp",
-        "lib/drizzle/src/module_entry.cpp",
-        "lib/cosmetic/src/module_entry.cpp",
+        "lib/algorithms/calibration/src/module_entry.cpp",
+        "lib/algorithms/drizzle/src/module_entry.cpp",
+        "lib/algorithms/cosmetic/src/module_entry.cpp",
     )
 
     def test_06_registered_file_still_fails_on_hardcoded_literal(self):
@@ -115,8 +115,8 @@ class TestThreadBudget(unittest.TestCase):
 
     def test_09_registration_is_path_scoped_not_basename(self):
         """登记必须限定到这三条路径, 不得用 basename 放行其它 module_entry.cpp。"""
-        for other in ("lib/hips/src/module_entry.cpp",
-                      "lib/snr_estimator/src/module_entry.cpp"):
+        for other in ("lib/algorithms/drizzle/hips/src/module_entry.cpp",
+                      "lib/algorithms/noise_snr/src/module_entry.cpp"):
             self.assertIsNone(ctb.registered_annotation(other),
                               "%s 不得被这三条预算注入登记放行" % other)
 

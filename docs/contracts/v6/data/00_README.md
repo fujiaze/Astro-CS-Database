@@ -1,7 +1,9 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # DATA-DESIGN-001 — 跨 Phase signal / covariance / PSF / W_info / PSFSW / weight_mode / effective PSF / provenance schema 设计
 
 - 文档 ID：`DATA-DESIGN-001-SCHEMA-DESIGN`
-- 任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/DATA-DESIGN-001.md`（Wave 3，depends_on = SCI-ADJ-001）
+- 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/DATA-DESIGN-001.md`（Wave 3，depends_on = SCI-ADJ-001）
 - 写域（tracked）：`docs/contracts/v6/data/`、`contracts/proposals/v6/data/`；工作区证据：`run/v6/data-design/`（`run/*` 受 `.gitignore` 约束）
 - 基线：`HEAD = 125bc0999363be1a42a1f2df3254601e0cc7b8fb`（`git rev-parse HEAD` 实测，main）
 - 性质：**设计提案（PROPOSAL_NOT_FROZEN）**。本任务只设计 schema，不实现 schema 校验器、不改生产源码/合同、不改冻结门/容差。

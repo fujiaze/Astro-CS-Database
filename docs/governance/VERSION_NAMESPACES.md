@@ -24,15 +24,15 @@ AstroCS 的"版本号"不是一个量，而是五个生命周期独立的命名�
 ## 2. 历史轮次命名空间（不参与以上五类）
 
 历史工程轮次（V6.1、V19R8、控制包 ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7
-等）不是"当前版本"。它们只允许出现在 `CHANGELOG.md`（历史节）与
-`docs/archive/**`、`engineering/control/archive/**`（ARCHIVED_NON_NORMATIVE
-文档）中，禁止把旧轮次数字冒充当前产品状态（约束文件 §F.8、审计 P1 §4.11）。
+等）不是"当前版本"。它们只允许出现在 `docs/archive/**` 与
+`docs/**/v6/**`（ARCHIVED_NON_NORMATIVE / 产品族设计档案）
+禁止把旧轮次数字冒充当前产品状态（`ENGINEERING_SPEC.md` §2/§8）。
 因此治理上把 history 视作第五个受管命名空间（"历史轮次"），规则是：
-**只进 archive/CHANGELOG，不进 active 文档。**
+**只进 `docs/archive/**` 与 `git log`，不进 active 文档**（根 `CHANGELOG.md`/`REVIEW.md` 已由 ROOT-007 删除）。
 
 | 命名空间 | 允许出现的位置 | 禁止出现的位置 |
 |---|---|---|
-| history（历史工程轮次） | `CHANGELOG.md` 历史节、`docs/archive/**`、`engineering/control/archive/**`、`REVIEW.md` 供追溯的历史引用 | active 文档正文、`docs/governance`、`docs/architecture` 现状描述、README 当前状态节、CLI/打包产物 |
+| history（历史工程轮次） | `docs/archive/**`、`docs/**/v6/**`、`git log` 供追溯的历史引用 |
 
 > 注：任务书列举 "product/module/ABI/data-schema/doc-revision/history"
 > 五个命名空间。其中前四个是活动版本空间，history 是"只归档不激活"的
@@ -55,7 +55,7 @@ AstroCS 的"版本号"不是一个量，而是五个生命周期独立的命名�
 | CMake 主版本串 | 根 `CMakeLists.txt` `file(READ …/VERSION)` + `git rev-parse HEAD` → `ASTROCS_VERSION_STRING`（`X.Y.Z-alpha.N+g<sha>`）→ `configure_file` 生成 `cli/version_generated.h` | 已接线（VER-001 遗留）；`project(astrocs VERSION …)` 字面量字段需 BLD-002 改读生成值（见 known_limits） |
 | CLI `astrocs --version[ --json]` | 编译期注入 `ASTROCS_VERSION_STRING`；`--json` 输出 `{"schema_version":"1","name":"astrocs","version":"<生成串>"}` | 已接线；验收需重建 CLI 验证 |
 | CLI JSON 报告 `astrocs_version` 字段 | `ASTROCS_VERSION_STRING`（doctor/hardware/verify 等共用） | 已接线 |
-| L0 文档（REVIEW.md 等） | 只引用当前产品基础号 `0.11.0-alpha.2`（GOV-003/GOV-005 收敛，V81-ADOPT-006 升至 alpha.2） | 本任务更新允许路径内引用 |
+| L0 文档（`README.md`/`docs/owner/**` 等） |
 | 打包脚本 | `tools/gen_version.py` 读 VERSION + git HEAD → 版本串与 build_id | 已接线（`make_linux_release.py`/`make_windows_release.py` 调用）；硬编码回退串属他人路径清理项 |
 | `tools/gen_version.py --json` | 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象（schemas/version.schema.json） | 已接线 |
 

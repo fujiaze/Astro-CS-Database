@@ -7,16 +7,16 @@
 > 第 5 步（coverage union 为 Phase2 首节点）。本任务零 SCI 层改动（§11.5）。
 > 下游: DATA-COV-001（DATA_SEMANTICS §19）、API-COV-001（PUBLIC_API）、
 > MOD-astrocs-phase2-coverage（registry）
-> 唯一权威生产源: lib/phase2/src/coverage.cpp（239 行实测）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/coverage.h（60 行）；禁止手抄他版。
+> 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（239 行实测）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/coverage.h（60 行）；禁止手抄他版。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json
-> MOD-astrocs-phase2-coverage（matrix P2-COV，legacy_paths=lib/phase2 coverage
+> MOD-astrocs-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
 > sources，迁移目标 astrocs_p2_coverage.dll，module_id=astrocs.p2.coverage）。
 
 ## 1 上游 SCI 与输入输出
 
 - SCI-UPM-001（UPM 共享 SCI）：coverage union 天区 Ω 是 UPM 控制采样
-  （"控制点布置于整个 coverage union"，lib/phase2/src/sampler.cpp:4）与联合
+  （"控制点布置于整个 coverage union"，lib/algorithms/coverage/src/sampler.cpp:4）与联合
   加性模型的范围前提；Ω 与逐帧 tile 覆盖数为几何量，不进入任何科学权重。
 - 三概念分离（本模块合同红线，登记为负向条款，见 §7）：`coverage` = 几何
   球面集合量（本模块唯一产物）；`support` = 逐像素覆盖支撑 [0,1]（样本级，
@@ -36,7 +36,7 @@
   （impl :463，消费 n_union_cells :632/union_cells[0] :658/逐 cell ipix
   :702）、编排 session（lib/phase2_session/p2_session.cpp:119-148 coverage
   阶段，两次调用 :125/:138，manifest 登记 n_union_cells/target_order
-  :145-147）、stage2 正式入口（lib/phase2/tools/stage2.cpp:189-200）、registry descriptor（module_adapters.cpp:627-642）。
+  :145-147）、stage2 正式入口（lib/algorithms/coverage/tools/stage2.cpp:189-200）、registry descriptor（module_adapters.cpp:627-642）。
 - descriptor astrocs.phase2.coverage（module_adapters.cpp:627-642）为编排层
   词汇，端口 calibrated→coverage 坐标登记 PIXEL 与球面 MOC 实际语义不符，
   以本合同为准修订，P2-COV-INT 对齐，不得反向作为冻结依据。
@@ -212,7 +212,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   - 负例: 空输入/NULL 路径/filter mismatch/tile_width 512 以外/
     frame 非法 → rc=1 且 error 载因。
 - 既有可执行测试（legacy gate，迁移基线）:
-  lib/phase2/tests/synthetic_gate.cpp `Phase2Coverage.RealHipsUnion`
+  lib/algorithms/coverage/tests/synthetic_gate.cpp `Phase2Coverage.RealHipsUnion`
   （:3374-3407，真实 HiPS 三帧 T2/T3/t4_crop union/target_order=7/
   filter=Red/两阶段协议/cells[0].order=7）与
   `Phase2Coverage.FilterMismatchRejected`（:3410-3418，坏路径 rc≠0）；
@@ -258,7 +258,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
 结构事实: 独立 `extern "C"` 块内 `#include "aio_hips_reader.h"`
   （:47-51，include 行 :50；AIO 头自带 C 链接声明，双保险属维护歧义，
 并入 DISP-COV-005 整改域）；
-头文件 aio_hips_reader.h 落位 lib/astro_image_io/include/（根 CMake
+头文件 aio_hips_reader.h 落位 lib/infrastructure/aio/include/（根 CMake
 astrocs_phase2 include 目录 CMakeLists.txt:346-352 第 3 项，实测）。
 
 P2HipsInputInfo 7 字段（coverage.h:31-43）生产消费面: hips_path
@@ -295,7 +295,7 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   substr（:113-118）以 `/` 或 `\` 基名为 frame_id，跨平台
   分隔符混用时截断点漂移；64 B 上限截断（strncpy + coverage.h:33 `frame_id[64]`）后
   唯一性可能退化（两长同名基名碰撞）——UPM frame 绑定/持久化引用该
-  id（lib/phase2/memory.md「W4 UPM 完整化：真实内容哈希」），碰撞风险
+  id（lib/algorithms/coverage/memory.md「W4 UPM 完整化：真实内容哈希」），碰撞风险
   如实登记；整改: 内容哈希派生 id（P2-COV-IMPL，与 UPM SHA-256 设施
   对齐）。
 - ~~DISP-COV-003 空 filter 静默放行~~（**B2-A8 已关闭**）: 原实现仅在双方

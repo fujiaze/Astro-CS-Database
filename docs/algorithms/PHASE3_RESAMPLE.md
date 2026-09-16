@@ -7,7 +7,7 @@
 - 上游: `SCI-P3-001`（PHASE3_HIPS_TO_FITS.md §5 连续定义 + §9a 十二项冻结）
 - 输入: HiPS 目录(properties+tiles, float FITS) + 用户参数 center(RA,Dec)/s_out/W_out/H_out/sampler(nearest|bilinear)/parity(east_left|east_right)/bitpix(-32|-64)
 - 输出: 单张 FITS image(S+C=coverage, 经掩膜合成或独立 COV 扩展由 API-004 冻结) + provenance(HISTORY); 落盘原子(tmp+rename)
-- 前置依赖: `lib/common/healpix`（ALG-HEALPIX-*，round-trip ≤1e-12 deg, NESTED 父子一致）
+- 前置依赖: `lib/algorithms/shared/healpix`（ALG-HEALPIX-*，round-trip ≤1e-12 deg, NESTED 父子一致）
 
 ## 2 离散公式
 

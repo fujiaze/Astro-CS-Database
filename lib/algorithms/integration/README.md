@@ -1,14 +1,14 @@
 # astrocs.p2.integration — Phase2 逐像素加权积分模块（P2-INT）
 
 > P2-INT-DOC（2026-09-09，SA-P2-I23）新建模块页。合同三件套落位
-> `lib/phase2_int/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
-> entrypoint=MISSING）——迁移目标目录按 `lib/hips_p2/`（P2-HIPS-DOC）
-> 先例新建；`lib/phase2/` 三件套已被 P2-COV（astrocs.p2.coverage）占用，
-> 不可覆盖。生产源 `lib/phase2/src/integrate.cpp`（76 行，根 CMakeLists
+> `lib/algorithms/integration/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
+> entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/coverage/hips_p2/`（P2-HIPS-DOC）
+> 先例新建；`lib/algorithms/coverage/` 三件套已被 P2-COV（astrocs.p2.coverage）占用，
+> 不可覆盖。生产源 `lib/algorithms/coverage/src/integrate.cpp`（76 行，根 CMakeLists
 > astrocs_phase2 静态库成员 :336-346/:344）+ 唯一权威签名头
-> `lib/phase2/include/astro/phase2/integrate.h`（74 行）；消费链
-> `lib/phase2/tools/stage2.cpp`（马赛克编排）与
-> `lib/phase2/src/acr_kernels.cpp`（ACR 加速），均为本模块合同消费者。
+> `lib/algorithms/coverage/include/astro/phase2/integrate.h`（74 行）；消费链
+> `lib/algorithms/coverage/tools/stage2.cpp`（马赛克编排）与
+> `lib/algorithms/coverage/src/acr_kernels.cpp`（ACR 加速），均为本模块合同消费者。
 
 ## 身份与合同
 
@@ -17,7 +17,7 @@
   （MODULE_MIGRATION_MATRIX P2-INT 行）；dll_target：
   `astrocs_p2_integration.dll`（合同值，尚未存在，迁移归 P2-INT-IMPL）。
 - owner SA-P2-I23；depends_on_int=P2-REJ-INT;P1-NOISE-INT;CPU-005；
-  legacy_paths="lib/phase2 integration sources"。
+  legacy_paths="lib/algorithms/coverage integration sources"。
 - 合同链：SCI-INT-001（docs/science/INTEGRATION.md，FROZEN T108
   2026-08-23，集合 SCI-INT-001/002/004/008）→ ALG-P2-INT-001
   （docs/algorithms/PHASE2_INTEGRATION.md）→ DATA-P2-INT
@@ -68,14 +68,14 @@
 可执行 `TEST-P2-INT-001` MISSING（P2-INT-TEST 建立）；登记面=设计冻结
 VERIFIED；设计内容与容差来源=ALG-P2-INT-001（PHASE2_INTEGRATION.md
 §11.4，五项冻结容差）。现状相邻证据（引用不冒认）：
-lib/phase2/tests/synthetic_gate.cpp Phase2Integrate 组（零权重合同
+lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Integrate 组（零权重合同
 :4702-4715 / support reducer :4737-4738 / 五态 :4741-4760）、
 tests/backend/test_p2004_reject_integrate.py（P2-004 生产 Oracle
 DRIVER_SRC 积分段 :66-126，含 max(accepted support) 注释 :124）。
 
 ## 链接
 
-- README/module.yaml/memory.md：`lib/phase2_int/`（本目录）
+- README/module.yaml/memory.md：`lib/algorithms/integration/`（本目录）
 - SCI：docs/science/INTEGRATION.md（FROZEN，零改动）
 - ALG：docs/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）
 - DATA：docs/contracts/DATA_SEMANTICS.md §21（DATA-P2-INT）

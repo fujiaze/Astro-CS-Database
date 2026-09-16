@@ -31,9 +31,9 @@
   P3-PROJ-IMPL 建立，禁止声明 IMPLEMENTED）；现状构建=
   astrocs_phase3_session 静态库成员（根 CMakeLists.txt:460-465，
   p3_wcs.cpp 为五源文件之一）。
-- 合同落位: lib/phase3_proj/ 三件套（README r1 + module.yaml
+- 合同落位: lib/algorithms/projection/ 三件套（README r1 + module.yaml
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
-  lib/phase2_upm→phase2_samp→phase2_rej→phase2_int→hips_p2→
+  lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2→
   phase3_fits 先例新建；lib/phase3_session/ 为会话编排域共享源，
   不整目录归属）。
 - 合同链: SCI-P3-001（共享 FROZEN）→ ALG-P3-PROJ-IMPL-001（本文档，
@@ -105,7 +105,7 @@ std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
 
 - **投影拒绝（B2-A4 冻结，不得放宽）**：`p3_wcs_validate_request` 对
   projection 仅接受 "TAN"（缺省即 TAN）；SIN/CAR/AIT 即便在
-  `lib/phase3_proj` registry 注册（§18.1 首批四投影 claim）也未接入
+  `lib/algorithms/projection` registry 注册（§18.1 首批四投影 claim）也未接入
   alpha 生产路径，故与任意未注册码一样返回 P3_WCS_UNSUPPORTED——
   **禁止静默改写为 TAN**（01_SCIENCE_AUTHORITY_BASELINE §4）。frame
   非 icrs（接受 "ICRS"）→ P3_WCS_UNSUPPORTED；coverage_output 非 mask
@@ -371,8 +371,8 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 | 2 | CAR | "CAR" | RA---CAR / DEC--CAR | \|dec\|≤85° | 180°（claim） | cylindrical, θ₀=+90° |
 | 3 | AIT | "AIT" | RA---AIT / DEC--AIT | \|dec\|≤85° | 360°（claim） | pseudo-cylindrical, θ₀=+90° |
 
-- 落位：`lib/phase3_proj/p3_projection.h`（唯一权威签名头）+
-  `lib/phase3_proj/p3_projection.cpp`（实现）。查询 API：`registry_table`
+- 落位：`lib/algorithms/projection/p3_projection.h`（唯一权威签名头）+
+  `lib/algorithms/projection/p3_projection.cpp`（实现）。查询 API：`registry_table`
   （表首指针+行数）/`registry_find(code)`（精确匹配，未注册 → nullptr，
   无 fallback 无静默）/`registry_find_id`（越界 → nullptr）/
   `registry_selfcheck`（行数/码互异/CTYPE 非空/函数指针非空/id 顺序）。

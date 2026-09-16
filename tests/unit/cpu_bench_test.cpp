@@ -72,7 +72,7 @@ int main() {
   // 6) benchmark 顺序合同验证: harness 先 Oracle 后计时 (源码级)
   {
     std::string h = std::string(std::getenv("ASTROCS_REPO") ? std::getenv("ASTROCS_REPO") : "..")
-                    + "/lib/backend_host/bench_harness.cpp";
+                    + "/lib/infrastructure/benchmark/backend_host/bench_harness.cpp";
     std::FILE* fp = std::fopen(h.c_str(), "r");
     CHECK(fp != nullptr);
     if (fp) {

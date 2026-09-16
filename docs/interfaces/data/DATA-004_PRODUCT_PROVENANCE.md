@@ -3,7 +3,7 @@
 > 文档 ID：DOC-DATA-PRODUCT-PROVENANCE-001
 > 状态：ACTIVE_NORMATIVE（DATA-004 冻结语义，本任务交付）
 > Owner：SA-DATA-06 ｜ 前序基线：`0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da`（DATA-004 base）
-> 上游权威：AstroCS_ENGINEERING_CONSTRAINTS.md §A.3/A.4/A.6（三阶段仅通过原子发布、
+> 上游权威：`ASTROCS_DESIGN.md` §1.2/§9（三阶段仅通过原子发布、
 > 哈希与 provenance 完整的磁盘产品/manifest 交换）、DATA-001（typed manifest schema）、
 > DATA-002（三阶段产品交换合同，R-DISK-ONLY / R-EVIDENCE-REQUIRED）、
 > DATA-003（生产 ArtifactStore：原子发布 + 唯一 producer + manifest hash sidecar）
@@ -29,7 +29,7 @@ DATA-003 建立了生产 ArtifactStore 的原子发布与校验读；本任务�
    旧数据新 schema 一律拒绝）；
 5. **privacy scan**：provenance 相关文本/诊断不泄露绝对用户路径与凭据。
 
-约束来源：`AstroCS_ENGINEERING_CONSTRAINTS.md` A.6（阶段间只通过原子发布、哈希
+约束来源：`ASTROCS_DESIGN.md` §1.2/§9（阶段间只通过原子发布、哈希
 和 provenance 完整的磁盘产品/manifest 交换）；DATA-002 `R-EVIDENCE-REQUIRED`
 （缺 manifest / 缺 hash / 缺 schema / 缺 units → 拒绝）；DATA-003 接线冻结语义
 （发布物保持严格 DATA-001 manifest 形态，不附加字段——provenance 以独立

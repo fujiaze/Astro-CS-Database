@@ -5,7 +5,7 @@
 > task_id: IO-003 · wave: W2 · owner: SA-IO-07
 > commit: `feat(io): IO-003 实现原子产物发布`（前台集成）
 > source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-003 / `05_FIXED_SUBAGENT_BINDINGS.yaml`
-> SA-IO-07 / 冻结约束 `AstroCS_ENGINEERING_CONSTRAINTS.md` F.3（DLL C ABI 边界）、
+> SA-IO-07 / 冻结约束 `ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）、
 > A.3/A.4（阶段隔离与原子性）、E（科学公式不变）
 > 上游: DOC-IO-INTERFACE-001（IO-001 FITS 流式接口，fitsverify 算法族）、
 > DOC-IO-INTERFACE-002（IO-002 HiPS 输入合同，读端接收本任务产出）、
@@ -24,7 +24,7 @@ IO-003 在 IO-001（FITS 原子写）+ IO-002（HiPS 读端）之上建立 **原
 原子 rename → 最后原子落 manifest.json(COMPLETE) = 完成标记`。
 
 本任务**不改科学公式**（`scientific_change=false`），不做 tile 生成/投影（科学层属
-P1/P2/P3）；`lib/astro_image_io` 与 `lib/io` 保持原样不修改。本任务冻结**输出端**语义；
+P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原样不修改。本任务冻结**输出端**语义；
 读端（IO-002）与产物交换资格（DATA-002）是独立冻结面，不在此重复。
 
 ## 2. 模块归属与目录

@@ -2,9 +2,9 @@
 
 > ID: ALG-GAIA-001  状态: CONTRACT_READY（CAT-GAIA-DOC 冻结，2026-09-05）
 > 上游 SCI: SCI-AST-001（docs/science/ASTROMETRY.md，别名 SCI-WCS-001）
-> 模块: lib/gaia_xpsd_client（module_id astrocs.catalog.gaia）
-> 权威源码: lib/gaia_xpsd_client/src/gaia_client.c（本文件全部离散公式、常量、
-> 行为边界均从该文件逐函数核对；与 lib/gaia_xpsd_client/README.md 旧版性能
+> 模块: lib/infrastructure/gaia_xpsd_client（module_id astrocs.catalog.gaia）
+> 权威源码: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c（本文件全部离散公式、常量、
+> 行为边界均从该文件逐函数核对；与 lib/infrastructure/gaia_xpsd_client/README.md 旧版性能
 > 摘要冲突时以本文与源码为准）。
 
 ## 1. 科学定义（连续层面，源自 SCI-AST-001）
@@ -172,7 +172,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
   XPSD 目录、输出星表行单位/dtype/shape/invalid。
 - API 合同：API-GAIA-001（docs/contracts/PUBLIC_API.md §gaia-client）——
   12 个 GAIA_EXPORT 符号、返回码、所有权、线程安全。
-- 唯一生产源符号清单与迁移映射：lib/gaia_xpsd_client/README.md §6、
+- 唯一生产源符号清单与迁移映射：lib/infrastructure/gaia_xpsd_client/README.md §6、
   module.yaml `source_symbols`。
 
 ### 3.1 plan / execute / cancel / inspect（迁移合同，astrocs.catalog.gaia）

@@ -7,7 +7,7 @@
 > 生产源 `lib/phase2_session/p2_session.cpp`（282 行，根 CMakeLists.txt
 > astrocs_phase2_session 静态库 :454-458 实测）+ 唯一权威签名头
 > `lib/phase2_session/p2_session.h`（39 行）；消费链
-> `lib/core/src/module_adapters.cpp`（P2Api :711-720 工厂委托）与
+> `lib/infrastructure/scheduler/src/module_adapters.cpp`（P2Api :711-720 工厂委托）与
 > `cli/runtime_client.cpp`（:28 passthrough 不自动补 output_dir、:51
 > phase2 config 直通）、`cli/parser.cpp`（:344 output_dir 必填校验）。
 > 装配算法权威=ALG-P2-SESSION-001（docs/algorithms/PHASE2_SESSION.md）。

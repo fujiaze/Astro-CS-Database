@@ -4,7 +4,7 @@
  * tile 流) + tests/unit/aio_abi_tests.cpp (AIO-001 fault 注入必败口径)。
  *
  * 被测面:
- *   - lib/hips/src/aio_publish.cpp (publish.h v1 合同, 4 原语唯一实现):
+ *   - lib/algorithms/drizzle/hips/src/aio_publish.cpp (publish.h v1 合同, 4 原语唯一实现):
  *     units 组 — 正向/边界/错误/幂等 (RAII 语义: discard 恒收敛)。
  *   - module_entry.cpp write_product 事务面: atomic 组 —
  *     正向发布 (staging→fsync→原子 promote→out_dir 完整树)、

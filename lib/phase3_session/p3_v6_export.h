@@ -18,9 +18,9 @@
 //     失败/取消不留可见半成品。
 //
 // 接线来源（Wave 5 交付，本层只调用不修改）:
-//   * lib/phase3_proj/p3_proj_v6.h      —— registry v2 四投影 + 逐像素 Ω + R/S 二元语义。
-//   * lib/phase3_rsmp/p3_rsmp.h         —— 三模式传播、C_y=R C_x R^T、输出帧 Q/W、kernel registry。
-//   * lib/astro_image_io/v6/...         —— 流式 FITS + CHECKSUM + 原子发布 + provenance + 单位门。
+//   * lib/algorithms/projection/p3_proj_v6.h      —— registry v2 四投影 + 逐像素 Ω + R/S 二元语义。
+//   * lib/algorithms/resample/p3_rsmp.h         —— 三模式传播、C_y=R C_x R^T、输出帧 Q/W、kernel registry。
+//   * lib/infrastructure/aio/v6/...         —— 流式 FITS + CHECKSUM + 原子发布 + provenance + 单位门。
 //
 // 单位/权重面纪律（本层硬约束）:
 //   * 不把 median(SNR_F)/support/coverage/FWHM 接成任何权重或方差来源（FZ-GATE-MEDIAN-SNR /

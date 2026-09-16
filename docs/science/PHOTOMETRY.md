@@ -62,7 +62,7 @@ sigma_mag = 2.5·sigma_residual
 outlier_rate = 1 − |r_inliers|/|r_consistent|
 ```
 
-与 `lib/photometric_calib/cpp/src/star_matcher.cpp:21-27,241-248,435-525,552-559` 及 `lib/photometric_calib/cpp/src/pc_api.cpp` 一致。
+与 `lib/algorithms/photometry/cpp/src/star_matcher.cpp:21-27,241-248,435-525,552-559` 及 `lib/algorithms/photometry/cpp/src/pc_api.cpp` 一致。
 
 ## 6 假设
 
@@ -117,8 +117,8 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/PHOTOMETRY.md` (SCI-PHOT-001)
-- 实现: `lib/photometric_calib/cpp/src/star_matcher.cpp` (`location/S/scale, mag_tolerance, IRLS`), `lib/photometric_calib/cpp/src/pc_api.cpp` (`pc_calibrate_simple`)
-- 公开 API: `lib/photometric_calib/cpp/include/photometric_calib.h` (`pc_calibrate_simple, pc_calibrate_simple_with_gaia`)
+- 实现: `lib/algorithms/photometry/cpp/src/star_matcher.cpp` (`location/S/scale, mag_tolerance, IRLS`), `lib/algorithms/photometry/cpp/src/pc_api.cpp` (`pc_calibrate_simple`)
+- 公开 API: `lib/algorithms/photometry/cpp/include/photometric_calib.h` (`pc_calibrate_simple, pc_calibrate_simple_with_gaia`)
 - 测试: `TST-PHOT-001` 合成零点、`TST-PHOT-INV-001` 鲁棒性、`TST-PHOT-FAIL-001` 饱和拒（新增/映射见 `docs/TRACEABILITY.csv`）
 
 ## 14 Primary literature（引用定位声明）

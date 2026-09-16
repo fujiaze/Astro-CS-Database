@@ -1,8 +1,8 @@
 /* adapter_test.c - astrocs.p1.hips_writer 模块 C ABI v1 adapter 契约测试
  *
  * 对齐先例: tests/unit/phase1_session/module_adapter_test.c (九操作)
- *          lib/cosmetic/tests/adapter_budget_test.c (BUDGET/租约)
- *          lib/gaia_xpsd_client/tests/adapter_export_test.c (导出面探针)
+ *          lib/algorithms/cosmetic/tests/adapter_budget_test.c (BUDGET/租约)
+ *          lib/infrastructure/gaia_xpsd_client/tests/adapter_export_test.c (导出面探针)
  *          tests/unit/p1hips/* (BITWISE 对拍基线, p1hips_writer)
  *
  * 覆盖面 (S-4):

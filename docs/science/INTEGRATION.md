@@ -60,7 +60,7 @@
        status  = OK
 ```
 
-与 `lib/phase2/src/integrate.cpp:10-79` 及 `lib/phase2/include/astro/phase2/integrate.h:1-75` 一致。`support` 为 `max(accepted support)` 且仅消费 `pr.support`，调用方不二次 max/mean。
+与 `lib/algorithms/coverage/src/integrate.cpp:10-79` 及 `lib/algorithms/coverage/include/astro/phase2/integrate.h:1-75` 一致。`support` 为 `max(accepted support)` 且仅消费 `pr.support`，调用方不二次 max/mean。
 
 ## 6 假设
 
@@ -113,7 +113,7 @@
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/INTEGRATION.md` (SCI-INT-001,002,004,008)
-- 实现: `lib/phase2/src/integrate.cpp` (10-79), `lib/phase2/include/astro/phase2/integrate.h` (P2PixelStack/Result, P2_INTEGRATE_*)
+- 实现: `lib/algorithms/coverage/src/integrate.cpp` (10-79), `lib/algorithms/coverage/include/astro/phase2/integrate.h` (P2PixelStack/Result, P2_INTEGRATE_*)
 - 公开 API: `p2_integrate_pixel, p2_validate_candidate_weights`
 - 测试: `TST-INT-001` 常量场、`TST-INT-ZERO` 零权重、`TST-INT-FAIL-*` 四态、支撑 `max` 门（新增/映射见 `docs/TRACEABILITY.csv`）
 

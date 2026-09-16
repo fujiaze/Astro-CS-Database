@@ -10,8 +10,8 @@
     run_context.json、resource_samples.csv / resource_summary.json /
     worker_balance.csv（cli/resource_recorder.h）、alloc_samples.csv /
     alloc_report.json（cli/memory_report.h）。
-  * lib/astro_image_io 写侧日志路径硬编码为相对路径
-    `lib/astro_image_io/logs/astro_image_io.log`（lib/astro_image_io/src/aio_log.cpp）。
+  * lib/infrastructure/aio 写侧日志路径硬编码为相对路径
+    `lib/infrastructure/aio/logs/astro_image_io.log`（lib/infrastructure/aio/src/aio_log.cpp）。
 
   * CLI run 图渲染器路径取 `ASTROCS_REPO`（缺省 `"."`，即 cwd 相对）：
     `<repo>/tools/quality/gen_run_graphs.py`（cli/commands.cpp write_run_graphs）。

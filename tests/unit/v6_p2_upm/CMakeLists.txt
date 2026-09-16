@@ -1,7 +1,7 @@
 # =============================================================================
 # IMPL-P2-UPM-001 — Phase2 UPM 乘法/加性分离共址测试
 # -----------------------------------------------------------------------------
-# 被测面 = 生产目标 astrocs_phase2（根 CMakeLists.txt 声明，含 lib/phase2/src/upm.cpp）。
+# 被测面 = 生产目标 astrocs_phase2（根 CMakeLists.txt 声明，含 lib/algorithms/coverage/src/upm.cpp）。
 # 若新 UPM API 未编入 astrocs_phase2，本可执行文件链接失败 => 构建即红灯。
 #
 # CTest 注册（每个用例覆盖一组冻结节点；负例为 fail-closed 门）：

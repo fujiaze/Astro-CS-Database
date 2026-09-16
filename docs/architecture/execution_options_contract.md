@@ -6,7 +6,7 @@
 
 ## 定义
 
-`lib/phase2/include/astro/phase2/execution_options.h`:
+`lib/algorithms/coverage/include/astro/phase2/execution_options.h`:
 
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -37,7 +37,7 @@
 
 约束：`cpu_workers/io_workers` 属于 [0,1024]（0=auto）；`gpu_route` 属于 {cpu,auto,cuda}。
 违反即 `p2_stage2_parse_config` 返回 false（带错误信息）。schema 见
-`工程控制/schemas/stage2.schema.json`（`properties.execution`）。
+`contracts/schemas/phase_config_*.schema.json` 的 `config` 段（生产配置 schema；旧 `工程控制/schemas/stage2.schema.json` 已随旧控制包删除）。
 
 ## CLI 覆盖
 
@@ -53,5 +53,5 @@ CLI 值覆盖配置块的同类字段。
 
 ## 测试
 
-`lib/phase2/tests/execution_options_test.cpp`（目标 `phase2_execution_options`）：
+`lib/algorithms/coverage/tests/execution_options_test.cpp`（目标 `phase2_execution_options`）：
 默认=hardware_concurrency、配置覆盖、缺省默认、非法值拒绝、effective 计数器。

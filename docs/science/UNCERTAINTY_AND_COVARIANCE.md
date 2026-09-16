@@ -7,7 +7,7 @@
 ## 逐像素方差
 
 - 输入方差：NoiseWeightModelV1（空背景稳健方差，SCI-NOISE-001..015）；
-- Drizzle 传播：var_p = Σ v_j w_jp² / D_p²（SCI-DRZ-014）；与 `lib/snr_estimator` 的 `snr_noise_scale_law`（`x′=α·x → Var′=α²·Var, ivar′=ivar/α²`，SCI-NOISE-002）同源互引——Drizzle 归一化权重求和即该缩放律的加权形式；
+- Drizzle 传播：var_p = Σ v_j w_jp² / D_p²（SCI-DRZ-014）；与 `lib/algorithms/noise_snr` 的 `snr_noise_scale_law`（`x′=α·x → Var′=α²·Var, ivar′=ivar/α²`，SCI-NOISE-002）同源互引——Drizzle 归一化权重求和即该缩放律的加权形式；
 - 产品：HiPS variance + ivar（1/variance）。
 
 ## 协方差（重要边界）
@@ -29,7 +29,7 @@ nside=512 合成帧相邻像素 mean|ρ|≈0.19、max|ρ|≈0.57。
 
 ## V19R3 control estimator 方差（ALG-UPM-CONTROL-IVAR-001）
 
-(本节公式隶属Phase2 UPM/ALG-UPM-CONTROL-IVAR-001，不属于lib/snr_estimator的NoiseWeightModelV1；后者仅提供σ_bg，经sampler阶段乘k_corr=N_eff缩放)
+(本节公式隶属Phase2 UPM/ALG-UPM-CONTROL-IVAR-001，不属于lib/algorithms/noise_snr的NoiseWeightModelV1；后者仅提供σ_bg，经sampler阶段乘k_corr=N_eff缩放)
 
 UPM 的 control estimator 是 background-clean patch **median**，其方差
 不是单 leaf 像素方差：

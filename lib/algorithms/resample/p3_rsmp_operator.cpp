@@ -1,4 +1,4 @@
-// lib/phase3_rsmp/p3_rsmp_operator.cpp
+// lib/algorithms/resample/p3_rsmp_operator.cpp
 // 统一线性模型：R（行归一）/ S（列归一）算子与跨 tile 邻域（ALG-P3-002/003）。
 #include "p3_rsmp.h"
 

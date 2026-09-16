@@ -63,13 +63,13 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
   AP/BP 同规则；CRVAL/CRPIX 不变, |det(CD)| 不变
 ```
 
-与 `lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp:13-16,153-164,274-420,530-576` 及 `ipv_select.cpp:723,712` 一致。
+与 `lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:13-16,153-164,274-420,530-576` 及 `ipv_select.cpp:723,712` 一致。
 
 ### 5a 导出边界桥接条款（STD-F1 合同条款；前台裁决 R-02 方案 b）
 
-- **内部口径（求解器）**：`lib/plate_solve` 迭代反演与 `trans`/SIP 拟合全程 0-based 自洽约定，
+- **内部口径（求解器）**：`lib/algorithms/platesolve` 迭代反演与 `trans`/SIP 拟合全程 0-based 自洽约定，
   收敛像素输出为 `x = u + CRPIX`（即 `u = x − CRPIX`，与 oracle 前向/逆向同口径，
-  `lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp:869-872`）。该约定对自身 roundtrip 免疫，故
+  `lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:869-872`）。该约定对自身 roundtrip 免疫，故
   与标准口径的差异**是纯原点平移（常量 1px），不是数学内容差**。
 - **导出口径（FITS）**：以 FITS WCS Paper I §2.1.1 为基础 —— `CRPIX` 为 **1-based** 参考像素，
   像素坐标 `xp = x + 1`，中间坐标 `(u,v) = CD·(xp − CRPIX) + SIP`（§5）；
@@ -157,8 +157,8 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/ASTROMETRY.md` (SCI-WCS-001 / SCI-AST-001)
-- 实现: `lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp` (`build_wcs, CRPIX, cd_inv, SIP A/B/AP/BP, Y-down`), `lib/plate_solve/cpp/ipv/src/ipv_entry.cpp` (`ipv_solve_from_detections_v1`), `lib/gaia_xpsd_client/src/gaia_client.c` (`polar_plane_intersects, bbox_intersects`)
-- 公开 API: `lib/plate_solve/cpp/ipv/include/ipv_api.h` (`ipv_solve_from_detections_v1`), `lib/plate_solve/cpp/ipv/include/ipv_wcs.h` (`build_wcs`)
+- 实现: `lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp` (`build_wcs, CRPIX, cd_inv, SIP A/B/AP/BP, Y-down`), `lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp` (`ipv_solve_from_detections_v1`), `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` (`polar_plane_intersects, bbox_intersects`)
+- 公开 API: `lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h` (`ipv_solve_from_detections_v1`), `lib/algorithms/platesolve/cpp/ipv/include/ipv_wcs.h` (`build_wcs`)
 - 测试: `TST-WCS-001` Astropy 比对、`TST-WCS-INV-001` 往返/`TST-WCS-FAIL-001` 参数拒（新增/映射见 `docs/TRACEABILITY.csv`）
 
 ## 14 Primary literature（引用定位声明）

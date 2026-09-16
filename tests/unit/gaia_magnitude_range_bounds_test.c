@@ -1,6 +1,6 @@
 /* P19-gaia 回归锁: XPSD 头 magnitudeRange 声明边界 (RQS 行动单 B2 / V5-N-03)
  *
- * 根因: lib/gaia_xpsd_client/src/gaia_client.c::load_xpsd_file 曾以裸 atof 解析
+ * 根因: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c::load_xpsd_file 曾以裸 atof 解析
  * XML 头 magnitudeRange="low,high" 的两个分量, 仅校验"存在逗号", 随后
  * gaia_client_cone_search 用
  *     if (xf->has_magnitude_range && xf->magnitude_low > mag_high + 0.25) continue;

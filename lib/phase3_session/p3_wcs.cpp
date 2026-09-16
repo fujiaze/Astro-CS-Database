@@ -31,7 +31,7 @@ void normalize_ra(double* ra) {
 //
 // 口径 (合同冻结, 见 docs/science/ASTROMETRY.md 与
 // docs/standards/STANDARDS_REGISTRY.md 的 STD-F1 行):
-//   - 内层 (lib/plate_solve ipv 迭代反演) 保持既有 0-based 自洽约定;
+//   - 内层 (lib/algorithms/platesolve ipv 迭代反演) 保持既有 0-based 自洽约定;
 //   - FITS 导出层以 FITS WCS Paper I §2.1.1 为基础: CRPIX 为 1-based 参考像素,
 //     像素坐标 xp = x + 1, 中间坐标 (xi,eta) = CD·(xp − CRPIX);
 //   - 桥接责任方 = **Phase3 导出边界 (本文件)**; 除本文件之外不得再施加一次 +1

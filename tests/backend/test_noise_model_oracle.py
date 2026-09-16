@@ -3,7 +3,7 @@
 验收(03 L125): Gaussian/Poisson/constant/blank sky/outlier/small-N → estimator
                bias/variance/SNR/ivar 和边界符合 SCI。
 方法(independent):
-  - 编译 driver 链接 lib/snr_estimator/cpp/src/noise_model.cpp+snr_estimator.cpp(生产同源, std-only)。
+  - 编译 driver 链接 lib/algorithms/noise_snr/cpp/src/noise_model.cpp+snr_estimator.cpp(生产同源, std-only)。
   - driver 用独立解析/抖动生成已知统计的 blank-sky 帧(Gaussian σ_true、常量、Poisson+read、含 cosmic/hot 离群),
     调 snr_noise_model_v1(带默认/定例 config), 输出 ctrl/全局 σ、ivar、n_qualified/rejected、source；
     另调用 snr_noise_model_v1_fill 输出逐像素 ivar 平面, 与 snr_noise_gain_variance 与 snr_noise_scale_law。

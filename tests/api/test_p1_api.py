@@ -17,12 +17,12 @@ HEADERS = {
                         "snr_noise_model_v1_free", "snr_noise_gain_variance"],
 }
 HDR_PATHS = {
-    "astro_calibration.h": "lib/calibration/include/astro_calibration.h",
-    "star_detector.h": "lib/star_detector/include/star_detector.h",
-    "dynamic_psf.h": "lib/dynamic_psf/include/dynamic_psf.h",
-    "ipv_api.h": "lib/plate_solve/cpp/ipv/include/ipv_api.h",
-    "photometric_calib.h": "lib/photometric_calib/cpp/include/photometric_calib.h",
-    "snr_estimator.h": "lib/snr_estimator/cpp/include/snr_estimator.h",
+    "astro_calibration.h": "lib/algorithms/calibration/include/astro_calibration.h",
+    "star_detector.h": "lib/algorithms/star_detection/include/star_detector.h",
+    "dynamic_psf.h": "lib/algorithms/psf/include/dynamic_psf.h",
+    "ipv_api.h": "lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h",
+    "photometric_calib.h": "lib/algorithms/photometry/cpp/include/photometric_calib.h",
+    "snr_estimator.h": "lib/algorithms/noise_snr/cpp/include/snr_estimator.h",
 }
 
 def find_header(name):

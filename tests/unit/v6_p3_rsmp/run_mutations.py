@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """IMPL-P3-RSMP-001 负向 mutation 驱动器。
 
-对 lib/phase3_rsmp 的影子副本注入违反冻结条款的实现，重新编译并运行本任务
+对 lib/algorithms/resample 的影子副本注入违反冻结条款的实现，重新编译并运行本任务
 共址测试；断言至少一个测试变红（rc!=0）。原始树只读，不修改。
 
 证据：run/v6/p3-rsmp/mutants/<id>/、run/v6/p3-rsmp/logs/、mutation_summary.json

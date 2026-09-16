@@ -1,7 +1,7 @@
 # CMakeLists.txt - astrocs_p1_hips_writer 模块 DLL (P1-HIPS-IMPL 迁移面)
 #
-# 对齐先例: lib/drizzle/CMakeLists.txt (P1-DRZ-IMPL, 2c065ace)、
-#           lib/gaia_xpsd_client/CMakeLists.txt (CAT-GAIA-IMPL, babe752d)。
+# 对齐先例: lib/algorithms/drizzle/CMakeLists.txt (P1-DRZ-IMPL, 2c065ace)、
+#           lib/infrastructure/gaia_xpsd_client/CMakeLists.txt (CAT-GAIA-IMPL, babe752d)。
 #
 # 关键事实 (迁移报告 T-1, DRZ 同款): 既有 STATIC 库对象非 PIC (TLS
 # local-exec 重定位 R_X86_64_TPOFF32, 链接 .so 失败实证), 因此本 SHARED
@@ -22,7 +22,7 @@
 # 科学域零改动 (scientific_change=false): 生产 TU 原样编译, 无本地副本。
 
 # ── 生产源 (依赖闭包最小集, 全部指向唯一权威源, 无本地副本) ──
-set(HIPS_PROD_DIR "${CMAKE_SOURCE_DIR}/lib/astro_image_io")
+set(HIPS_PROD_DIR "${CMAKE_SOURCE_DIR}/lib/infrastructure/aio")
 set(HIPS_ADAPTER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/module_entry.cpp
     # AIO-002: 原子发布原语唯一实现 (publish.h v1 合同; staging→fsync→
@@ -38,7 +38,7 @@ set(HIPS_PROD_SOURCES
     # (hips_writer_adapter 基线红)。reader TU 的上游闭包同样只需 healpix_core
     # + cfitsio + 共享互斥头, 故纳入最小闭包。
     ${HIPS_PROD_DIR}/src/hips/aio_hips_reader.cpp
-    ${CMAKE_SOURCE_DIR}/lib/common/healpix/healpix_core.cpp
+    ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/healpix/healpix_core.cpp
 )
 add_library(astrocs_p1_hips_writer SHARED
     ${HIPS_ADAPTER_SOURCES}
@@ -67,8 +67,8 @@ target_include_directories(astrocs_p1_hips_writer PRIVATE
     ${HIPS_PROD_DIR}/include
     # FD-01: aio_hips_reader.cpp 引 "aio_cfitsio_mutex.h" (src/ 直下)
     ${HIPS_PROD_DIR}/src
-    ${CMAKE_SOURCE_DIR}/lib/common
-    ${CMAKE_SOURCE_DIR}/lib/common/healpix
+    ${CMAKE_SOURCE_DIR}/lib/algorithms/shared
+    ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/healpix
 )
 target_include_directories(astrocs_p1_hips_writer SYSTEM PRIVATE
     ${HIPS_PROD_DIR}/third_party/cfitsio

@@ -8,7 +8,7 @@
  * 临时目录 RAII 自愈对齐 V7 历史登记 (make_tmp_dir 无清理, 24G tmpfs 填满
  * 19.94G 致 cfitsio status=107 假败)。
  *
- * 归属与导出面: 本 ABI 是 lib/hips 模块事务内核 (astrocs.p1.hips_writer DLL
+ * 归属与导出面: 本 ABI 是 lib/algorithms/drizzle/hips 模块事务内核 (astrocs.p1.hips_writer DLL
  * 内部支撑, 与 module_entry.cpp 同编; 对外仍唯一导出 astrocs_module_query_v1,
  * 本头符号经 version-script/DEF 保持隐藏)。测试经 tests/unit/p1_hips/
  * adapter_entry_impl.cpp 直链 TU 使用。
@@ -22,7 +22,7 @@
  *   任一步失败/取消 → stage_discard 递归删除 → out_dir 根无 partial。
  *   out_dir 根要么保持旧态要么出现完整新树 (全有或全无)。
  *
- * 科学纪律: scientific_change=false —— 生产 writer (lib/astro_image_io/
+ * 科学纪律: scientific_change=false —— 生产 writer (lib/infrastructure/aio/
  * aio_hips_writer.cpp) 零改动; tile/归一/MOC/层次公式 (ALG-HIPS-001..005)
  * 不在本头域; 本头只承载发布事务原语。
  *

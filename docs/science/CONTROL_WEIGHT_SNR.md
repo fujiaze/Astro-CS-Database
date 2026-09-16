@@ -111,9 +111,9 @@ for 每个控制星 s（半径内）:
 
 ## 8 关联与追溯
 
-- 实现：`lib/phase2/tools/stage2.cpp`（`local_snr_map`, `frame_snr_medians`,
+- 实现：`lib/algorithms/coverage/tools/stage2.cpp`（`local_snr_map`, `frame_snr_medians`,
   `frame_snr_by_id`, `local_snr_unavailable`, `local_snr_used`, `frame_snr_fallback`）、
-  `lib/phase2/src/sampler.cpp`（`quality`, `out_qual`, `kSnrCatalogMax`）。
-- 公开 API：见 `docs/TRACEABILITY.csv`；测试：见 `lib/phase2/tests/synthetic_gate.cpp`
+  `lib/algorithms/coverage/src/sampler.cpp`（`quality`, `out_qual`, `kSnrCatalogMax`）。
+- 公开 API：见 `docs/TRACEABILITY.csv`；测试：见 `lib/algorithms/coverage/tests/synthetic_gate.cpp`
   （UPMW-* 权重相关）。
 - 权威文件：本文件 `docs/science/CONTROL_WEIGHT_SNR.md`（SCI-CW-001..008）。

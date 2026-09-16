@@ -9,7 +9,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   enable_testing()
 endif()
 
-set(V6_P3PROJ_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/phase3_proj)
+set(V6_P3PROJ_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/algorithms/projection)
 
 add_executable(v6_p3_proj_test
   v6_p3_proj_test.cpp

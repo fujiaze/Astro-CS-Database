@@ -1,3 +1,5 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # Phase3 算法实施规格（ALG-P3-001）
 
 > 文档 ID：`ALG-P3-001`（本目录为 W3 任务 ALG-P3-001 交付物）
@@ -6,7 +8,7 @@
 > 上位：`ASTROCS-PROJECT-SPEC-002` §6/§7/§8/§9 → `DESIGN-P3-001` §1–§7 → `ASTROCS-SCIENCE-MODEL-001` / `SCI-PSFW-001` → 专项 SCI/ALG
 > 冻结：`docs/science/v6/adjudication/SCI-ADJ-001_FREEZE_LIST.md`（`reports/v6/science-adjudication/adjudications.json` 为机器源）
 > W1 复核：`docs/science/v6/phase3/PHASE3_PROPAGATION_REVIEW.md`（SCI-P3-001-REVIEW, C-P3-PROP-1..16）
-> 控制器裁决：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/CONTROLLER_LOG.md` C-004（不得推翻）
+> 控制器裁决：`工程控制/旧 V6 控制包（ROOT-007 已删除）/CONTROLLER_LOG.md` C-004（不得推翻）
 > 机器可读规格与证据：`run/v6/alg-p3/`（gitignore 工作区；人读正文在本目录）
 
 ## 0. 范围与纪律

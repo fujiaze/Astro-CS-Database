@@ -1,5 +1,5 @@
 // tests/unit/v6_p3_proj/v6_p3_proj_legacy_probe.cpp — 偏差证据探针（非 V6 实现）
-// 打印 legacy registry v1（lib/phase3_proj/p3_projection.cpp）的四投影 pix2world，
+// 打印 legacy registry v1（lib/algorithms/projection/p3_projection.cpp）的四投影 pix2world，
 // 供 p3_proj_legacy_deviation.py 与 astropy/WCSLIB（标准 FITS WCS Paper II）对比，
 // 量化 V6 前的 CAR/AIT 约定偏差。本探针不参与 V6 生产路径。
 #include "p3_projection.h"

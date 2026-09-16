@@ -19,7 +19,7 @@
     id 未发布 / schema 不匹配 / hash 不匹配 → DATA 拒绝)。
 
 方法 (照 tests/runtime/test_rt006_trace.py 先例):
-  Python unittest 内嵌 C++ driver, g++ 真实编译链接 lib/core/src
+  Python unittest 内嵌 C++ driver, g++ 真实编译链接 lib/infrastructure/scheduler/src
   (context/scheduler/checkpoint/artifact/artifact_store) + include 头, 运行断言。
 """
 from __future__ import annotations
@@ -360,7 +360,7 @@ int main(int argc, char** argv) {
 
 @unittest.skipUnless(shutil.which("g++"), "需要 g++")
 class TestRt007CancelResumeCpp(unittest.TestCase):
-    """C++ harness：真实编译链接 lib/core 源码运行 RT-007 全部验收断言。"""
+    """C++ harness：真实编译链接 lib/infrastructure/scheduler 源码运行 RT-007 全部验收断言。"""
 
     @classmethod
     def setUpClass(cls):

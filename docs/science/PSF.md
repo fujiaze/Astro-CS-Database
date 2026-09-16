@@ -52,7 +52,7 @@ dx = x−(cx+x0), dy = y−(cy+y0)
 flux = 2πA·sxsy/3   (整平面延伸假设)
 ```
 
-与 `lib/dynamic_psf/src/dpsf_psf.cpp:13-18,66-95,351-368` 一致。
+与 `lib/algorithms/psf/src/dpsf_psf.cpp:13-18,66-95,351-368` 一致。
 
 ## 6 假设
 
@@ -108,8 +108,8 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/PSF.md` (SCI-PSF-001)
-- 实现: `lib/dynamic_psf/src/dpsf_psf.cpp` (`dpsf_fit/batch, lm_solve, MOFFAT4_FWHM_FACTOR, compute_trimmed_mad`), `lib/snr_estimator/cpp/src/noise_model.cpp:35-37`
-- 公开 API: `lib/dynamic_psf/include/dynamic_psf.h` (`dpsf_fit, dpsf_fit_batch`)
+- 实现: `lib/algorithms/psf/src/dpsf_psf.cpp` (`dpsf_fit/batch, lm_solve, MOFFAT4_FWHM_FACTOR, compute_trimmed_mad`), `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:35-37`
+- 公开 API: `lib/algorithms/psf/include/dynamic_psf.h` (`dpsf_fit, dpsf_fit_batch`)
 - 测试: `TST-PSF-001` 解析一致性、`TST-PSF-INV-*` 三门、`TST-PSF-FAIL-*` 参数校验（新增/映射见 `docs/TRACEABILITY.csv`）
 
 ## 14 Primary literature（引用定位声明）

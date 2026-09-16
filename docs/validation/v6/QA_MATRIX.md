@@ -1,7 +1,9 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # QA-MATRIX-001 科学 QA 矩阵（解析 / Monte Carlo / 注入源 / 真实数据 / 负向 mutation / 基线比较）
 
 - 文档 ID：`QA-MATRIX-001-QA-MATRIX`
-- 任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/QA-MATRIX-001.md`（wave 3，depends_on = SCI-ADJ-001）
+- 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/QA-MATRIX-001.md`（wave 3，depends_on = SCI-ADJ-001）
 - write_scope：`docs/validation/v6/`、`reports/v6/qa-design/`（本任务未写任何其他路径）
 - 基线：`HEAD = 125bc0999363be1a42a1f2df3254601e0cc7b8fb`（执行期实测，见 `reports/v6/qa-design/evidence/logs/`）
 - 机器规格（唯一事实源）：`reports/v6/qa-design/qa_matrix.json`；mutation 目录 `reports/v6/qa-design/data/mutations.json`；基线矩阵 `reports/v6/qa-design/data/baseline_matrix.json`；零用例账本 `reports/v6/qa-design/case_ledger.json`

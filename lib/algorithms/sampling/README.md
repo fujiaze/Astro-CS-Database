@@ -1,15 +1,15 @@
 # astrocs.p2.sampling — Phase2 控制点采样模块（P2-SAMP）
 
 > P2-SAMP-DOC（2026-09-09，SA-P2-S20）新建模块页。合同三件套落位
-> `lib/phase2_samp/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
-> entrypoint=MISSING）——迁移目标目录按 `lib/phase2_int/`（P2-INT-DOC，
-> 其按 `lib/hips_p2/` P2-HIPS-DOC 先例）→ `lib/phase2_rej/`（P2-REJ-DOC）
-> 先例新建；`lib/phase2/` 三件套已被 P2-COV（astrocs.p2.coverage）占用
-> （lib/phase2/README.md r1，一目录一套 README/module.yaml/memory.md，
-> 不可覆盖）。生产源 `lib/phase2/src/sampler.cpp`（1156 行，根
+> `lib/algorithms/sampling/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
+> entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/integration/`（P2-INT-DOC，
+> 其按 `lib/algorithms/coverage/hips_p2/` P2-HIPS-DOC 先例）→ `lib/algorithms/rejection/`（P2-REJ-DOC）
+> 先例新建；`lib/algorithms/coverage/` 三件套已被 P2-COV（astrocs.p2.coverage）占用
+> （lib/algorithms/coverage/README.md r1，一目录一套 README/module.yaml/memory.md，
+> 不可覆盖）。生产源 `lib/algorithms/coverage/src/sampler.cpp`（1156 行，根
 > CMakeLists astrocs_phase2 静态库成员 :337-346/:342）+ 唯一权威签名头
-> `lib/phase2/include/astro/phase2/sampler.h`（136 行）；唯一生产消费方
-> `lib/phase2/tools/stage2.cpp`（probe/fill 两遍调用 :279-311）。
+> `lib/algorithms/coverage/include/astro/phase2/sampler.h`（136 行）；唯一生产消费方
+> `lib/algorithms/coverage/tools/stage2.cpp`（probe/fill 两遍调用 :279-311）。
 
 ## 身份与合同
 
@@ -20,7 +20,7 @@
   dll_target：`astrocs_p2_sampling.dll`（合同值，尚未存在，迁移归
   P2-SAMP-IMPL）。
 - owner SA-P2-S20；depends_on_int=P2-COV-INT;CPU-005；
-  legacy_paths="lib/phase2 sampling sources"（均以
+  legacy_paths="lib/algorithms/coverage sampling sources"（均以
   MODULE_MIGRATION_MATRIX.csv P2-SAMP 行为权威）。
 - 合同链：SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN T106
   2026-08-23，集合 SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 +
@@ -76,7 +76,7 @@
   hardware_concurrency 自行开线程，:880-883）；cpu_workers>1 走
   std::thread 池（per-worker 独立 AIO 句柄 ：894），=1 串行
   reference（共享句柄经 g_aio_mu :161/:166 串行化）；默认参考构建
-  P2_ENABLE_OPENMP=OFF（lib/phase2/CMakeLists.txt:28 hotfix 保留
+  P2_ENABLE_OPENMP=OFF（lib/algorithms/coverage/CMakeLists.txt:28 hotfix 保留
   仅影响旧 target 编译面；实现唯一并行路径=std::thread :882-883，
   h:54-56 OpenMP 表述为历史状态，h:55 注释漂移未整改=注释面债）。
 - 错误面：rc=0 成功 / rc=1 错误 + err 8KB 文本（frame_id 0、open
@@ -95,7 +95,7 @@ docs/modules/registry/astrocs.phase2.sample.md §独立 synthetic
 验证节 + ALG-P2-SMP-001 §11.3 F1-F9 容差（F1-F6/F8-F9
 bitwise/解析/计数精确，F2 角点 exact 插值 rtol 1e-12、F3-F5
 rtol 1e-12、F4 atol 1e-9 deg）。现状相邻证据（引用不冒认）：
-lib/phase2/tests/synthetic_gate.cpp Phase2Sampler 组
+lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Sampler 组
 （RealHipsControlSampling :3423、G6LocalSnrAvailabilityThreeZones
 :3470、G1StatisticsCorrectness :3594、UPMW-004 MC :4001、cvar 公式
 :4089）+ Phase2SamplerParallel.OneTvsTwoTDeterminism
@@ -104,7 +104,7 @@ WireProductionStage2PerFrameIvar :223。
 
 ## 链接
 
-- README/module.yaml/memory.md：`lib/phase2_samp/`（本目录）
+- README/module.yaml/memory.md：`lib/algorithms/sampling/`（本目录）
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN T106
   2026-08-23，零改动）
 - ALG：docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）

@@ -1,4 +1,4 @@
-// lib/phase3_rsmp/p3_rsmp_covariance.cpp
+// lib/algorithms/resample/p3_rsmp_covariance.cpp
 // covariance 传播 C_y = R C_x Rᵀ（FZ-FORMULA-COV-PROP；唯一来源，禁权重标量反推）。
 #include "p3_rsmp.h"
 

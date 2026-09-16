@@ -29,6 +29,6 @@
 - 生产 heavy 配置禁止选择 workers=1 (P2-002; Runtime lease 至少 2)。
 
 ## 验证
-- 每个映射目标模块存在于 lib/phase2/src/ (config/coverage/sampler/upm/rejection/integrate/block/io)
+- 每个映射目标模块存在于 lib/algorithms/coverage/src/ (config/coverage/sampler/upm/rejection/integrate/block/io)
 - ACR 相关文件全部标注禁止迁移 (3 项)
 - 生产配置不引用 ACR (tools/check_link_scan.py acr_symbols=0)

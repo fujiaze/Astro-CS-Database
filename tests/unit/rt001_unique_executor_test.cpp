@@ -28,7 +28,7 @@
 #include "astrocs/core/module_adapters.h"
 #include "astrocs/core/context.h"
 
-#include "executor_runtime.h"  // RT-001 内部头 (lib/core/src, 不入安装面)
+#include "executor_runtime.h"  // RT-001 内部头 (lib/infrastructure/scheduler/src, 不入安装面)
 
 #include "healpix_core.h"       // astrocs::healpix::pix2ang_nest (数学权威)
 #include "p1sess_fixtures.hpp"  // p1sess::write_fits_file 手写最小 FITS

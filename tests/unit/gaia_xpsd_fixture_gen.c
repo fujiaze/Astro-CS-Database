@@ -6,7 +6,7 @@
  *   - docs/algorithms/GAIA_QUERY.md §5 TEST-GAIA-DESIGN-001：合成 fixture
  *     ≥2 文件 × 多树，LZ4 与 zlib+shuffle 两种压缩，含/不含光谱记录，
  *     极区星、RA≈0/360 环绕星、mag 边界星。
- *   - 记录/节点布局与解码常量以 lib/gaia_xpsd_client/src/gaia_client.c
+ *   - 记录/节点布局与解码常量以 lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
  *     当前 HEAD 为基线独立核对（48B 节点、XPSD0100、zlib+sh 列 shuffle、
  *     384B SP 记录、2µas/dx、10µas/dra、m=raw*0.001-1.5）；测试断言按源码
  *     区分 BP/RP 语义：DR3 文件恒 0 sentinel（DATA-GAIA-001），SP 文件

@@ -1,6 +1,6 @@
 /* aio_publish.cpp - HiPS 原子发布原语 v1 唯一实现 (AIO-002)
  *
- * 合同: lib/hips/include/astrocs/hips/publish.h (v1 数值冻结)。
+ * 合同: lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h (v1 数值冻结)。
  * 流水线: staging → 校验(计数) → fsync 树 → 原子 promote(rename) — 对齐
  * IO_003_ATOMIC_OUTPUT_PUBLISH.md §4; 失败/取消 → stage_discard → 目标根
  * 无 partial (DISP-HIPS-001/004 模块事务面收口; 生产 writer 零改动)。
@@ -8,7 +8,7 @@
  * 平台: Linux/macOS 全功能 (fsync/O_DIRECTORY/dirfd); Windows 编译保持
  * (_commit 落盘 / FindFirstFile 递归 / MoveFileEx 原子替换; 目录句柄 fsync
  * Windows 语义缺失 → 尽力模式, 目录元数据随 promote 的 rename 收敛, 登记
- * 于 lib/hips/README.md §9)。验证平台 = Linux (CI 同 SHA)。
+ * 于 lib/algorithms/drizzle/hips/README.md §9)。验证平台 = Linux (CI 同 SHA)。
  *
  * 科学纪律: scientific_change=false; 本 TU 无任何科学公式。异常屏障:
  * 实现 TU 内 malloc/new 失败走状态码 (无跨边界异常); 递归深度上限 64

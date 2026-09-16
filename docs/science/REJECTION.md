@@ -66,7 +66,7 @@ large_scale 结构生长:
   仅扩展结构生长 (trail)，compact cosmic 不生长 (rejection.cpp:1501-1592 trail 分支)
 ```
 
-与 `lib/phase2/src/rejection.cpp:1-11,1051-1092,1501-1592,1859` 及 `lib/phase2/include/astro/phase2/rejection.h:76-154` 一致。
+与 `lib/algorithms/coverage/src/rejection.cpp:1-11,1051-1092,1501-1592,1859` 及 `lib/algorithms/coverage/include/astro/phase2/rejection.h:76-154` 一致。
 
 ## 6 假设
 
@@ -117,7 +117,7 @@ large_scale 结构生长:
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/REJECTION.md` (SCI-REJ-001..008)
-- 实现: `lib/phase2/src/rejection.cpp` (1,1051-1092,1501-1592,1859), `lib/phase2/include/astro/phase2/rejection.h` (76-154), `lib/phase2/src/integrate.cpp` (状态消费)
+- 实现: `lib/algorithms/coverage/src/rejection.cpp` (1,1051-1092,1501-1592,1859), `lib/algorithms/coverage/include/astro/phase2/rejection.h` (76-154), `lib/algorithms/coverage/src/integrate.cpp` (状态消费)
 - 公开 API: `p2_reject_plan_resolve, p2_reject, p2_large_scale_apply`
 - 测试: `synthetic_gate` (74/74)、`rejection_oracle_compare` (NIST)、`satellite_gate_build/controlled_rejection_truth` (注入门)
 

@@ -1,12 +1,12 @@
 /* module_entry.cpp - astrocs.p1.hips_writer 模块 C ABI v1 adapter
  *
- * 迁移任务 P1-HIPS-IMPL; 对齐先例 lib/drizzle/src/module_entry.cpp
- * (P1-DRZ-IMPL, 2c065ace) 与 lib/gaia_xpsd_client/src/module_entry.cpp
+ * 迁移任务 P1-HIPS-IMPL; 对齐先例 lib/algorithms/drizzle/src/module_entry.cpp
+ * (P1-DRZ-IMPL, 2c065ace) 与 lib/infrastructure/gaia_xpsd_client/src/module_entry.cpp
  * (CAT-GAIA-IMPL, babe752d)。TU 以 C++ 编译 (aio_hips.h 为纯 C 头亦兼容),
  * 全部导出面经 extern "C" 保持 C ABI 不变; 唯一导出 astrocs_module_query_v1
  * (legacy aio_hips_* 九符号经链接 version-script/DEF 降 local, 见 CMakeLists)。
  *
- * 职责: 把 lib/astro_image_io/src/hips/aio_hips_writer.cpp 的 legacy C 接口
+ * 职责: 把 lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 的 legacy C 接口
  *   (aio_hips.h 九导出, API-HIPS-001 冻结) 包装成九操作模块 vtable。
  *
  * 科学纪律: scientific_change=false —— 本文件只做 config/manifest 解析、

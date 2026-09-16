@@ -54,7 +54,7 @@
   候选栈 non-finite / UNDERDETERMINED / ALL_REJECTED 等冻结语义在任意设备上一致
 ```
 
-与 `lib/phase2/src/acr_kernels.cpp:1-100`、`lib/phase2/src/stage2_common.cpp:378-391`、`lib/acr/memory.md: BDR Reviewed` 一致。
+与 `lib/algorithms/coverage/src/acr_kernels.cpp:1-100`、`lib/algorithms/coverage/src/stage2_common.cpp:378-391`、`lib/infrastructure/acr/memory.md: BDR Reviewed` 一致。
 
 ## 6 假设
 
@@ -110,6 +110,6 @@
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/ACR_EQUIVALENCE.md` (SCI-ACR-EQUIV-001)
-- 实现: `lib/phase2/src/acr_kernels.cpp` (`kOpMosaicReject, mosaic_reject_legacy`), `lib/phase2/src/stage2_common.cpp` (`weight_mode/ACR-IVAR-001`), `lib/acr/scheduler/*` (Dispatcher/Profile)
+- 实现: `lib/algorithms/coverage/src/acr_kernels.cpp` (`kOpMosaicReject, mosaic_reject_legacy`), `lib/algorithms/coverage/src/stage2_common.cpp` (`weight_mode/ACR-IVAR-001`), `lib/infrastructure/acr/scheduler/*` (Dispatcher/Profile)
 - 公开 API: `register_phase2_acr_kernels, kOpMosaicReject`
 - 测试: `TST-ACR-001` CPU/GPU等价、`TST-ACR-INV-001` 分块不变量、`TST-ACR-FAIL-001` 极端回退（新增/映射见 `docs/TRACEABILITY.csv`）

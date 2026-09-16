@@ -1,7 +1,9 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # Phase2 扩展源（surface_gls）V6 算法规格 — 索引与冻结常量
 
 - 文档 ID：`ALG-P2-SURF-001`（本目录整体）
-- 任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/ALG-P2-SURF-001.md`
+- 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/ALG-P2-SURF-001.md`
 - wave：3；depends_on：`SCI-ADJ-001`
 - 基线：`HEAD = main = 125bc0999363be1a42a1f2df3254601e0cc7b8fb`（本机 `git rev-parse` 实测；工作树含未裁决回退，见 §基线分歧）
 - 写域：`docs/algorithms/v6/phase2-surface/`（人读规格）+ `run/v6/alg-p2-surf/`（机器规格/证据/日志，任务卡 `00_READ_FIRST` 与产出要求指定）

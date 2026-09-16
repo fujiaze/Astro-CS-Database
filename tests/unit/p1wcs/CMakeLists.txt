@@ -1,5 +1,5 @@
 # ============================================================================
-# P1-WCS-TEST (TEST-P1-WCS-001) — lib/plate_solve + lib/phase1/wcs 可复用验证面
+# P1-WCS-TEST (TEST-P1-WCS-001) — lib/algorithms/platesolve + lib/algorithms/platesolve/wrapper_phase1 可复用验证面
 # ----------------------------------------------------------------------------
 # 控制包任务: P1-WCS-TEST (lock-P1-WCS; 依赖 P1-WCS-DOC 闭环, 2026-09-07)。
 # 合同锚: docs/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001 (F1-F6,
@@ -37,15 +37,15 @@
 #   p1wcs_performance / p1wcs_selfcheck
 #
 # 被测面 (生产源零改动, 数学内核 TU 直接编译进测试):
-#   - lib/plate_solve/cpp/ipv/src/ipv_itertrans.cpp (iter_trans_solve,
+#   - lib/algorithms/platesolve/cpp/ipv/src/ipv_itertrans.cpp (iter_trans_solve,
 #     迭代重投影多项式拟合, ALG-WCS-001 §5)
-#   - lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp (extract_wcs_sip, WCS 提取,
+#   - lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp (extract_wcs_sip, WCS 提取,
 #     CD/CRVAL/CRPIX/SIP/Y-down, ALG-WCS-001 §6)
-#   - lib/plate_solve/cpp/ipv/src/ipv_sip.cpp (fit_sip, DISP-WCS-003 legacy
+#   - lib/algorithms/platesolve/cpp/ipv/src/ipv_sip.cpp (fit_sip, DISP-WCS-003 legacy
 #     路径, ipv_wcs.cpp 链接依赖)
-#   - lib/plate_solve/cpp/ipv/src/ipv_triangle.cpp (triangle_match,
+#   - lib/algorithms/platesolve/cpp/ipv/src/ipv_triangle.cpp (triangle_match,
 #     Valdes 1995 投票, OpenMP 并行区 — F5 线程确定性被测面)
-#   - lib/phase1/wcs/wcs_tan.cpp (WcsTan legacy 桥, F6 冻结回归锚)
+#   - lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp (WcsTan legacy 桥, F6 冻结回归锚)
 #   平台注记: ipv_select/ipv_solver/ipv_entry (C ABI 完整链) 依赖
 #   windows.h (ipv_select.cpp:38), 本 Linux 验证面不可编译 — C ABI 层负面
 #   (ret=0/error_msg/DLL 缺失) 归 P1-WCS-IMPL 迁移落地后验收; 本面覆盖
@@ -54,8 +54,8 @@
 # ============================================================================
 
 set(P1WCS_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(P1WCS_IPV ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/plate_solve/cpp/ipv)
-set(P1WCS_TAN ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/phase1/wcs)
+set(P1WCS_IPV ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/algorithms/platesolve/cpp/ipv)
+set(P1WCS_TAN ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/algorithms/platesolve/wrapper_phase1)
 
 # 被测生产源 TU (零改动直编; 不含 ipv_select/ipv_solver/ipv_entry —
 # windows.h 平台依赖, 见头注)

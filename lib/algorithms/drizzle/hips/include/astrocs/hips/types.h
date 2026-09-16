@@ -1,7 +1,7 @@
 /* types.h - astrocs.p1.hips_writer 模块常量与词表 (module ABI v1 迁移面)
  *
- * 对齐先例: lib/gaia_xpsd_client/include/astrocs/gaia/types.h (CAT-GAIA-IMPL,
- * babe752d) 与 lib/drizzle/include/astrocs/drizzle/types.h (P1-DRZ-IMPL,
+ * 对齐先例: lib/infrastructure/gaia_xpsd_client/include/astrocs/gaia/types.h (CAT-GAIA-IMPL,
+ * babe752d) 与 lib/algorithms/drizzle/include/astrocs/drizzle/types.h (P1-DRZ-IMPL,
  * 2c065ace)。本头只承载 C ABI adapter 层的常量/词表/诊断码, 不含任何科学
  * 常量 (surface brightness=flux_sum/covered_area、support=covered_area/A_cell、
  * variance=var_num_sum/covered_area²、MOC UNIQ=4·4^m+(c>>2(K−m)) 等公式全部
@@ -9,7 +9,7 @@
  * 生产源零改动)。
  *
  * 合同链: SCI-DRZ-001 -> ALG-HIPS-001..005 -> API-HIPS-001
- *         (docs/contracts/PUBLIC_API.md) -> lib/hips/module.yaml
+ *         (docs/contracts/PUBLIC_API.md) -> lib/algorithms/drizzle/hips/module.yaml
  *         (module_id=astrocs.p1.hips_writer, dll_name=astrocs_p1_hips_writer.dll,
  *          threading_model=host_executor_lease, determinism=fixed_reduction_order)
  */

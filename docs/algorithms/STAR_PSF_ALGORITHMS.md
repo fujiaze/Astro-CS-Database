@@ -26,7 +26,7 @@
 
 `[N,9]` (status, B, flux, cx, cy, fwhm, A, mad, eccentricity)
 
-- 实测锚：`lib/orchestrator/cpp/src/orchestrator.cpp:2428-2464`——row[0..8]
+- 实测锚：`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2428-2464`——row[0..8]
   逐一赋值（:2443-2451），`fn_add_block` 注记
   "PSF 拟合结果: status,B,flux,cx,cy,fwhm,A,mad,eccentricity"（:2456-2458），
   dims=[N,9] FLOAT64（:2453-2455）。
@@ -129,9 +129,9 @@ Batch deterministic: input order fixed, per-star independent, reduction none cro
 ## 11 P1-PSF-DOC 冻结附录（2026-09-07，SRC-PSF-001 源码实测）
 
 > 本节为 P1-PSF-DOC 冻结附录：只登记现状与测试设计，不改 §1–§10 科学公式。
-> 实测基准 = `lib/dynamic_psf/src/dpsf_psf.cpp`（934 行，2026-09-07 工作区）与
-> `lib/dynamic_psf/include/dynamic_psf.h`。模块合同入口 =
-> `lib/dynamic_psf/README.md`（r1）+ `lib/dynamic_psf/module.yaml`（CONTRACT_READY）。
+> 实测基准 = `lib/algorithms/psf/src/dpsf_psf.cpp`（934 行，2026-09-07 工作区）与
+> `lib/algorithms/psf/include/dynamic_psf.h`。模块合同入口 =
+> `lib/algorithms/psf/README.md`（r1）+ `lib/algorithms/psf/module.yaml`（CONTRACT_READY）。
 
 ### 11.1 实现锚（SRC-PSF-001，VERIFIED）
 

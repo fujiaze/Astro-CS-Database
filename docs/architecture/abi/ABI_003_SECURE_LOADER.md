@@ -1,8 +1,8 @@
 # Secure Module Loader (ABI-003)
 
 > ID: DOC-ARCH-ABI-003 · owner: SA-ABI-03 · 状态: FROZEN (ABI-003, 2026-09-03)
-> 上游: 12_DLL_ABI_AND_LOADER_STANDARD.md §6 / AstroCS_ENGINEERING_CONSTRAINTS.md §F3
->       / 03_TARGET_PRODUCT_AND_ARCHITECTURE.md（ARC-001 DLL 边界）
+> 上游: `ASTROCS_DESIGN.md` §7.3（版本化 C ABI/DLL 边界）/ `docs/standards/C_ABI_STANDARD.md`；旧编号标准与旧工程约束已退役
+>       / `docs/contracts/ARCH-001.md`（ARC-001 DLL 边界）
 > 下游: ABI-004 动态 registry、ABI-005 conformance 探针、CLI-001 modules/doctor
 > 实现: runtime/module_loader/（secure_loader.h + secure_loader.c）
 > 测试: tests/abi/（abi003_loader_probe.c + test_secure_loader.py）

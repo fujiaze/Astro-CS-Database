@@ -6,28 +6,28 @@
 
 | Target | Type | Sources | CMakeLists |
 |---|---|---|---|
-| phase2 | STATIC | src/upm.cpp, stage2_common.cpp, rejection.cpp, coverage.cpp, sampler.cpp, block.cpp, integrate.cpp, acr_kernels.cpp, acr/api/kernel_registry.cpp, acr/backends/cuda/cuda_bridge_loader.cpp, acr/scheduler/device_executor.cpp, common/healpix_core.cpp, common/crypto/sha256.cpp | lib/phase2/CMakeLists.txt |
-| astrocs-stage2 | EXEC | tools/stage2.cpp | lib/phase2/CMakeLists.txt |
-| calibrated_pair_diag | EXEC | tools/calibrated_pair_diag.cpp | lib/phase2/CMakeLists.txt |
-| rejection_cli | EXEC | tools/rejection_cli.cpp | lib/phase2/CMakeLists.txt |
-| phase2_synthetic_gate | TEST | tests/synthetic_gate.cpp | lib/phase2/CMakeLists.txt (if GTest) |
-| orchestrator.exe | EXEC | cpp/src/main.cpp, orchestrator.cpp, cli_command.cpp | lib/orchestrator/cpp/CMakeLists.txt |
-| astro_image_io.dll | SHARED | src/*.cpp + hips/* + cfitsio | lib/astro_image_io/CMakeLists.txt |
-| hepix_drizzle | STATIC/SHARED | healpix_drizzle/*.cpp | lib/healpix_db/healpix_drizzle/CMakeLists.txt |
+| phase2 | STATIC | src/upm.cpp, stage2_common.cpp, rejection.cpp, coverage.cpp, sampler.cpp, block.cpp, integrate.cpp, acr_kernels.cpp, acr/api/kernel_registry.cpp, acr/backends/cuda/cuda_bridge_loader.cpp, acr/scheduler/device_executor.cpp, common/healpix_core.cpp, common/crypto/sha256.cpp | lib/algorithms/coverage/CMakeLists.txt |
+| astrocs-stage2 | EXEC | tools/stage2.cpp | lib/algorithms/coverage/CMakeLists.txt |
+| calibrated_pair_diag | EXEC | tools/calibrated_pair_diag.cpp | lib/algorithms/coverage/CMakeLists.txt |
+| rejection_cli | EXEC | tools/rejection_cli.cpp | lib/algorithms/coverage/CMakeLists.txt |
+| phase2_synthetic_gate | TEST | tests/synthetic_gate.cpp | lib/algorithms/coverage/CMakeLists.txt (if GTest) |
+| orchestrator.exe | EXEC | cpp/src/main.cpp, orchestrator.cpp, cli_command.cpp | lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt |
+| astro_image_io.dll | SHARED | src/*.cpp + hips/* + cfitsio | lib/infrastructure/aio/CMakeLists.txt |
+| hepix_drizzle | STATIC/SHARED | healpix_drizzle/*.cpp | lib/algorithms/drizzle/healpix_drizzle/CMakeLists.txt |
 
 ## 2 Compile definitions
 
 | Define | Target | Source | 证据 |
 |---|---|---|---|
-| P2_ENABLE_OPENMP=ON | phase2 | `option(P2_ENABLE_OPENMP OFF) hard-disable` → `if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND) target_link OpenMP::OpenMP_CXX` | lib/phase2/CMakeLists.txt:18,54 |
-| OpenMP_CXX_FOUND=FALSE when OFF | phase2 | `set(OpenMP_CXX_FOUND FALSE)` when OFF | lib/phase2/CMakeLists.txt:28 |
-| ACR_BUILD_CUDA=OFF default | acr | `option(ACR_BUILD_CUDA OFF)` | lib/acr/CMakeLists.txt |
+| P2_ENABLE_OPENMP=ON | phase2 | `option(P2_ENABLE_OPENMP OFF) hard-disable` → `if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND) target_link OpenMP::OpenMP_CXX` | lib/algorithms/coverage/CMakeLists.txt:18,54 |
+| OpenMP_CXX_FOUND=FALSE when OFF | phase2 | `set(OpenMP_CXX_FOUND FALSE)` when OFF | lib/algorithms/coverage/CMakeLists.txt:28 |
+| ACR_BUILD_CUDA=OFF default | acr | `option(ACR_BUILD_CUDA OFF)` | lib/infrastructure/acr/CMakeLists.txt |
 
 ## 3 Link libraries
 
 | From | To | Via |
 |---|---|---|
-| astrocs-stage2 | phase2 + astro_image_io.dll | `target_link_libraries(astrocs-stage2 PRIVATE phase2 astro_image_io.dll)` lib/phase2/CMakeLists.txt:73 |
+| astrocs-stage2 | phase2 + astro_image_io.dll | `target_link_libraries(astrocs-stage2 PRIVATE phase2 astro_image_io.dll)` lib/algorithms/coverage/CMakeLists.txt:73 |
 | phase2 (when ON) | OpenMP::OpenMP_CXX | `target_link_libraries(phase2 PUBLIC OpenMP::OpenMP_CXX)` |
 | acr_cuda_bridge.dll | phase2 executables | POST_BUILD copy to TARGET_FILE_DIR if EXISTS |
 
@@ -44,7 +44,7 @@
 ## 5 验证方法
 
 ```sh
-cmake -S lib/phase2 -B build/linux-release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DP2_ENABLE_OPENMP=OFF
+cmake -S lib/algorithms/coverage -B build/linux-release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DP2_ENABLE_OPENMP=OFF
 cmake --build build/linux-release --verbose | grep phase2
 cat build/linux-release/compile_commands.json | python3 -m json.tool | grep -c "phase2/src"
 cat build/linux-release/.cmake/api/v1/reply/codemodel-v2-*.json | python3 -m json.tool | grep target

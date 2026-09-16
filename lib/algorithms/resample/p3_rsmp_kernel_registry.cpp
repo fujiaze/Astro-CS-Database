@@ -1,4 +1,4 @@
-// lib/phase3_rsmp/p3_rsmp_kernel_registry.cpp
+// lib/algorithms/resample/p3_rsmp_kernel_registry.cpp
 // 采样核 registry（FZ-P3-KERNEL-REGISTRY；ALG-P3-001_KERNEL_REGISTRY §1-§5）。
 // 冻结：核是产品语义；未注册/未验证核进生产即 REJECT；nearest 仅 mask/诊断/显式选择；
 //       bilinear_4quad 须独立 Oracle + 误差界 + 边界定义；高阶核各自注册带 Oracle。

@@ -59,8 +59,8 @@ add_executable(p1sess_tests
   ${P1SESS_DIR}/p1sess_tests_perf.cpp)
 target_include_directories(p1sess_tests PRIVATE
   ${P1SESS_INC_ROOT}/lib/phase1_session
-  ${P1SESS_INC_ROOT}/lib/calibration/include
-  ${P1SESS_INC_ROOT}/lib/astro_image_io/include
+  ${P1SESS_INC_ROOT}/lib/algorithms/calibration/include
+  ${P1SESS_INC_ROOT}/lib/infrastructure/aio/include
   ${P1SESS_INC_ROOT}/third_party
   ${P1SESS_DIR})
 target_link_libraries(p1sess_tests PRIVATE astrocs_phase1_session ${ASTROCS_OMP_TARGET})
@@ -78,8 +78,8 @@ add_executable(p1sess_selfcheck_test
   ${P1SESS_DIR}/p1sess_tests_negative.cpp)
 target_include_directories(p1sess_selfcheck_test PRIVATE
   ${P1SESS_INC_ROOT}/lib/phase1_session
-  ${P1SESS_INC_ROOT}/lib/calibration/include
-  ${P1SESS_INC_ROOT}/lib/astro_image_io/include
+  ${P1SESS_INC_ROOT}/lib/algorithms/calibration/include
+  ${P1SESS_INC_ROOT}/lib/infrastructure/aio/include
   ${P1SESS_INC_ROOT}/third_party
   ${P1SESS_DIR})
 target_link_libraries(p1sess_selfcheck_test PRIVATE astrocs_phase1_session ${ASTROCS_OMP_TARGET})

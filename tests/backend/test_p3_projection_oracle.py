@@ -7,7 +7,7 @@ P3-001 新 claim) + SCI-P3-001 (FROZEN, TAN 往返容差 1e-6 px 零改动) +
 宪章 §7.3/§18.1 (首批四投影 registry 冻结)。
 
 方法 (independent, 不调生产实现复算):
-  A) C++ driver 内联编译 lib/phase3_proj/p3_projection.cpp (生产同源,
+  A) C++ driver 内联编译 lib/algorithms/projection/p3_projection.cpp (生产同源,
      registry 直调), 网格输出每采样点 (x,y,ra,dec) 与往返 (x2,y2) 文本。
   B) Python/numpy 侧**第一性独立实现**四投影正反映射:
      TAN/SIN = 3D 单位向量法 (CRVAL 正交基切平面重建/透视除法, 与生产

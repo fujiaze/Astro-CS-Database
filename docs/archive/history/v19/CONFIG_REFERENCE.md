@@ -3,7 +3,7 @@
 
 # AstroCS 配置参考 (V19)
 
-> 权威模板: `lib/orchestrator/cpp/configs/` 与 `lib/phase2/configs/`。
+> 权威模板: `lib/infrastructure/pipeline/orchestrator/cpp/configs/` 与 `lib/algorithms/coverage/configs/`。
 > 机器一致性: `tools/config_consistency_check.py`。
 
 ## stage1_config.json (节选)

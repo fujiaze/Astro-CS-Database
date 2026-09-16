@@ -3,8 +3,8 @@
 > 建立：DOC-001（SA-QA-29，wave W1）base_main_sha=0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
 > 状态：ACTIVE_NORMATIVE —— 本文件冻结追溯 ID 格式、唯一性、跨层关系、CSV/JSON schema
 > 与 source symbol 表达；仓库内所有模块追溯矩阵与机器检查器必须与本文件一致。
-> 权威顺序与分层语义按控制包 `16_SCIENCE_DOCUMENT_AND_TRACEABILITY_STANDARD.md`
-> 与仓库 `AstroCS_ENGINEERING_CONSTRAINTS.md`（源 doc_id DOC-GOV-CONSTRAINTS-001），
+> 权威顺序与分层语义按 `ASTROCS_DESIGN.md` §0（权威链）与 `ENGINEERING_SPEC.md` §8（机器一致性检查）；
+> 旧控制包标准 `16_SCIENCE_DOCUMENT_AND_TRACEABILITY_STANDARD.md` 与 `AstroCS_ENGINEERING_CONSTRAINTS.md`（源 doc_id DOC-GOV-CONSTRAINTS-001）已随 ROOT-007 退役，仅作历史溯源；
 > 本文件不重复公式、不改科学定义、不放宽既有工程约束。
 
 ## 1. 目的与范围
@@ -105,7 +105,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-DOC-001-MATRIX
      （SRC `MISSING` 时 TEST 必须 `MISSING`，禁止“有测试无实现”）；
   2. **承载层引用**：API `VERIFIED` 的行应能通过 API 注册表/API_CONTRACTS.csv
      找到对应 ID（由扩展检查给出具体缺失，不崩溃）；
-  3. **证据锚**：EVIDENCE `VERIFIED` 时 evidence_id 应能在 `evidence/`、`reports/`
+  3. **证据锚**：EVIDENCE `VERIFIED` 时 evidence_id 应能在 `reports/`、`artifacts/`（`evidence/**` 已由 ROOT-007 清运）
      、`returns/` 或 TASK_STATE evidence_refs 中解析（同 2 语义）；
   4. 一行内不允许出现“下层 VERIFIED 而上层同链 MISSING”的科学链断裂
      （SCI MISSING 但 ALG VERIFIED 之类）→ 判 `CHAIN_BREAK`（给出 module_id 与层）。
@@ -131,7 +131,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-DOC-001-MATRIX
 - `modules/services/io`（IO-001/IO-002 落地）：`astrocs.services.io`
 - `modules/conformance/noop`（BLD-003 SKELETON）：`astrocs.conformance.noop`
 - `docs/modules/registry/astrocs.phase*.md` 声明的 22 个 registry 生产模块
-  （module_id 以 `astrocs.phase1./phase2./phase3.` 开头，唯一源 `lib/core/src/module_adapters.cpp`）
+  （module_id 以 `astrocs.phase1./phase2./phase3.` 开头，唯一源 `lib/infrastructure/scheduler/src/module_adapters.cpp`）
 - `providers/cpu`（CPU-001 落地，provider 能力清单）
 
 每行 8 层全部显式；尚无科学/算法合同的行用 `SCI-MISSING`/`ALG-MISSING` + 状态

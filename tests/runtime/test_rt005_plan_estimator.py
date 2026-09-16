@@ -15,7 +15,7 @@
     UINT64_MAX 饱和伪计划、不静默降级越界 order/尺寸）。
 
 方法 (照 tests/runtime/test_rt004_executor.py / test_rt003_budget_wiring.py 先例):
-  Python unittest 内嵌 C++ driver，g++ 真实编译链接 lib/core/src/plan_estimator.cpp
+  Python unittest 内嵌 C++ driver，g++ 真实编译链接 lib/infrastructure/scheduler/src/plan_estimator.cpp
   + include/astrocs/core 头，运行断言并输出 ALL PASS / N FAIL。
 """
 from __future__ import annotations
@@ -435,7 +435,7 @@ _KNOWN_KERNELS = {
     "drizzle-overlap", "drizzle-accumulate", "drizzle-normalize",
     "upm-spmv", "upm-residual", "upm-weight-update", "rejection-statistics",
     "integration-accumulate", "hips-bulk-transform",
-}  # 权威清单 lib/backend_host/backend_table.inc（12 kernel）
+}  # 权威清单 lib/infrastructure/benchmark/backend_host/backend_table.inc（12 kernel）
 
 
 class TestRt005PlanEstimatorStatic(unittest.TestCase):

@@ -1,8 +1,8 @@
-# lib/phase3_proj — astrocs.p3.projection（WCS/投影域合同 + 版本化 projection registry）
+# lib/algorithms/projection — astrocs.p3.projection（WCS/投影域合同 + 版本化 projection registry）
 
 > P3-PROJ-DOC 冻结（2026-09-11，SA-P3-P25）。本目录为 Phase3 投影域迁移
 > 合同落位（三件套：README + module.yaml + memory.md），照
-> lib/phase2_upm→phase2_samp→phase2_rej→phase2_int→phase3_fits 迁移
+> lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→phase3_fits 迁移
 > 目录先例新建。**P3-001 增补（2026-09-10）**：版本化 projection
 > registry v1 与宪章 §18.1 冻结首批四投影（TAN/SIN/CAR/AIT）实现落位
 > 本目录——`p3_projection.h`（唯一权威签名头）+ `p3_projection.cpp`

@@ -82,12 +82,12 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 > docs/science/PHOTOMETRY.md FROZEN T103 2026-08-23 共享引用不改动）、
 > §13.3 已登记现状缺陷 DISP-PHOT-001..009、§13.4 冻结测试设计
 > TEST-PHOT-DESIGN-001、§13.5 legacy 通道与迁移旧符号。行号均为
-> 2026-09-07 grep 实测（lib/photometric_calib/cpp/），后续重构以 grep
+> 2026-09-07 grep 实测（lib/algorithms/photometry/cpp/），后续重构以 grep
 > 重锚为准。禁止声明 IMPLEMENTED（迁移落码归 P1-PHOT-IMPL）。
 
 ### 13.1 逐符号实现锚定
 
-**ALG-PHOT-001 IRLS-Tukey 稳健零点估计**（lib/photometric_calib/cpp/src/star_matcher.cpp）:
+**ALG-PHOT-001 IRLS-Tukey 稳健零点估计**（lib/algorithms/photometry/cpp/src/star_matcher.cpp）:
 
 | 步骤 | 符号/位置 | 锚 |
 |---|---|---|
@@ -131,7 +131,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 
 **图像校正**: ImageCorrector::correctImage I_cal=I·scale（image_corrector.cpp:63-77，OpenMP static :74-76）。
 
-**aperture 测光旧符号**（lib/phase1/photometry/photometer.cpp，§13.5）: 天空环收集 d∈[sky_inner,sky_outer] :31-42; 背景中值 :47-51; 孔径积分 d²≤r² Σ(pixel−background) :53-62; σ_sky=1.4826·MAD :69-70; flux_error=sqrt(max(sum,0)+n_in·σ_sky²) :72-80; snr :81。
+**aperture 测光旧符号**（lib/algorithms/photometry/wrapper_phase1/photometer.cpp，§13.5）: 天空环收集 d∈[sky_inner,sky_outer] :31-42; 背景中值 :47-51; 孔径积分 d²≤r² Σ(pixel−background) :53-62; σ_sky=1.4826·MAD :69-70; flux_error=sqrt(max(sum,0)+n_in·σ_sky²) :72-80; snr :81。
 
 ### 13.2 实现事实修订（ALG 文档事实层；不改根科学公式）
 
@@ -141,7 +141,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
   scale=10^(−location)（IRLS 直出），median(F_syn/F_instr) 仅为旧符号
   computeScale 残留（DISP-PHOT-003）。
 - F_syn 网格为**1.0nm**（spectrum_integrator.cpp:247-255），旧
-  lib/photometric_calib/docs/algorithm.md:107/:346 "0.1nm" 失实。
+  lib/algorithms/photometry/docs/algorithm.md:107/:346 "0.1nm" 失实。
 - 生产 XPSD 光谱为 uint8 编码 F(λ)=byte·flux_mul+flux_min（:62-64/:409-454），
   非 float 原始光谱。
 - 自适应星等锥搜 mag_max_arr={12,13,14,15,16}（pc_api.cpp:836-866）实际
@@ -206,8 +206,8 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
   路径=v2/_f64_v2。
 - ImageCorrector::computeScale（image_corrector.cpp:26-57）=迁移旧符号
   （median 回退，无调用方，DISP-PHOT-003）。
-- astrocs::phase1::Photometer（lib/phase1/photometry/photometer.{h,cpp}）
+- astrocs::phase1::Photometer（lib/algorithms/photometry/wrapper_phase1/photometer.{h,cpp}）
   =aperture 测光迁移旧符号（静态库 astrocs_phase1_phot，CMakeLists.txt:429-432，
   单测 tests/unit/p1_wcs_phot_test tests/unit/CMakeLists.txt:305-310，
-  未接 orchestrator 管线），aperture 合同并入 lib/photometric_calib/
+  未接 orchestrator 管线），aperture 合同并入 lib/algorithms/photometry/
   README.md §9。

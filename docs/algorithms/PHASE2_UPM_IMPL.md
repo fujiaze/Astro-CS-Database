@@ -6,8 +6,8 @@
 > 冻结容差 + 现状缺陷登记。科学语义权威=SCI-UPM-001（docs/science/
 > PHASE2_UPM.md，FROZEN 集合，零改动）；推导级算法权威=ALG-UPM-001
 > （docs/algorithms/UPM_SOLVER.md，本批原位修订，公式与容差零改动）。
-> 模块: lib/phase2/src/upm.cpp（1565 行）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/upm.h（184 行，实测 2026-09-10）；
+> 模块: lib/algorithms/coverage/src/upm.cpp（1565 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/upm.h（184 行，实测 2026-09-10）；
 > API: API-P2-UPM-001（矩阵词汇；PUBLIC_API.md 尚未落页，见 §16）；
 > DATA: DATA-P2-UPM / DATA-P2-COR；MOD: astrocs.p2.upm
 > （TRACEABILITY_MATRIX.csv :21/:22 两行）；TEST: TEST-P2-UPM-001/002
@@ -137,7 +137,7 @@ function calibrate_block(model, frame_id, leaves, in, out, n):   # :1240-1269
   SCI-UPM-001 §3 实测文本。
 - **descriptor 占位映射声明**（仿 PHASE2_SAMPLER.md §11.4/§12 写法；
   占位 ID 是矩阵/descriptor 词汇，不注册 INDEX、不入合同）：
-  - `SCI-P2-UPM-001`（fit descriptor sci_id，lib/core/src/
+  - `SCI-P2-UPM-001`（fit descriptor sci_id，lib/infrastructure/scheduler/src/
     module_adapters.cpp:676）⇒ **SCI-UPM-001**；
   - `SCI-P2-UPM-002`（apply descriptor sci_id，module_adapters.cpp:696）
     ⇒ **SCI-UPM-001**；
@@ -399,7 +399,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 | DISP-P2UPM-001 | upm.h:154-156 与 :173-175 | p2_upm_materialize_dense **重复声明**（复制粘贴遗留；同头文件重复声明同一函数 C++ 合法、非 ODR 违例，运行无影响；纯合同卫生问题） | P2-UPM-IMPL |
 | DISP-P2UPM-002 | upm.h:89-91 | cpu_workers 注释漂移：前半句"CON-005 … 仅 P2_ENABLE_OPENMP 时并行 compute_raw/聚合"与实现不符（现无 OpenMP、std::thread 五段池，§8）；:91 后半句 Runtime lease 语义正确 | P2-UPM-IMPL（随 001 一并清） |
 | DISP-P2UPM-003 | p2_session.cpp:196-202 | upm 配置覆盖键仅 {max_iterations,huber_delta,smoothing_lambda}；zero_anchor_weight/tolerance 无 config 键（build 缺省修补面 ：244-245 只拦非法值，session 面不可配） | P2-SESSION-IMPL |
-| DISP-P2UPM-004 | lib/core/src/module_adapters.cpp:665-698 | descriptor 端口语义占位：fit 行 upm_model=可选输出（:608 required=false）、apply 行 upm_model=必选输入（:626 required=true），与真实数据流（fit 进程内 build→persist 落盘 upm_sparse.json；apply/reload 经文件+p2_upm_open）不符 | P2-XX-INT |
+| DISP-P2UPM-004 | lib/infrastructure/scheduler/src/module_adapters.cpp:665-698 | descriptor 端口语义占位：fit 行 upm_model=可选输出（:608 required=false）、apply 行 upm_model=必选输入（:626 required=true），与真实数据流（fit 进程内 build→persist 落盘 upm_sparse.json；apply/reload 经文件+p2_upm_open）不符 | P2-XX-INT |
 
 登记原则：本批只登记不改码（P2-UPM-DOC 冻结范围=文档）；001/002
 整改编入 P2-UPM-IMPL 任务面，003 归 P2-SESSION-IMPL，004 归
@@ -414,12 +414,12 @@ P2-XX-INT 对齐。
   DISP-P2UPM-003）；p2_upm_build 调用 ：204；info 上账 ：206-219；
   persist 段 ：221-233（persist_upm+upm_save_path 门控、失败
   ACS_ERR_IO）；
-- **dense 物化**：lib/phase2/tools/stage2.cpp:470-495——
+- **dense 物化**：lib/algorithms/coverage/tools/stage2.cpp:470-495——
   p2_upm_save :472 → p2_upm_materialize_dense_n :481-483（workers=
   effective_cpu_workers(cfg.exec)，与积分一致）；
 - **apply 面**：stage2.cpp 经 p2_upm_calibrate_block（:927 与 :1272
   两处逐块校准；进程内 model 直通，无二次 open）；
-- **reload 消费（p2_upm_open）**：lib/phase2/tools/
+- **reload 消费（p2_upm_open）**：lib/algorithms/coverage/tools/
   calibrated_pair_diag.cpp:202（诊断工具读取 upm_sparse.json +
   p2_upm_calibrate_block :334 注释锚）；测试面 synthetic_gate.cpp
   多处 save→open 幂等门（:325/:380/:391/:1824/:2066/:2257/:2335/

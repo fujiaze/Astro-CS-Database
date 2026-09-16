@@ -5,7 +5,7 @@
  * 纯 C TU 不可 include → 本 TU 以 C++ 编译, 全部导出面经 extern "C"
  * 保持 C ABI 不变 (唯一导出 astrocs_module_query_v1, 符号名不 mangle)。
  *
- * 职责: 把 lib/healpix_db/healpix_drizzle/ 的 legacy C 接口
+ * 职责: 把 lib/algorithms/drizzle/healpix_drizzle/ 的 legacy C 接口
  *   (hp_drizzle_api.h 六导出, API-DRZ-001 冻结) 包装成九操作模块 vtable;
  * 唯一导出 astrocs_module_query_v1 (导出面净化经链接 version-script:
  * legacy 六符号降 local, 见 CMakeLists.txt)。
@@ -548,7 +548,8 @@ static acs_status drz_validate_config(const acs_module_api_v1* self,
  * v1 并行轴 = 帧内 OpenMP (TileAccumulator 归并按线程序, 固定次序确定);
  * work_units = 单帧 execute = 1 (帧通道逐帧调用; 多帧扇出由 orchestrator 编排)。
  * memory/io 估算公式 (全部由 config 元数据推导, 无魔数):
- *   accumulator_bytes = 12*nside^2 * 8B * 6   (6 个 f64 累加器/像素)
+ *   accumulator_bytes = 12*nside^2 * 8B * 4   (每叶 3 个 f64 累加量 + 1 个 u32 计数,
+ *                                              FP64 下按 8B 对齐 = 32B/叶)
  *   io_out_bytes      ≈ 12*nside^2 * dtype_bytes * 3 产品 (signal/support/snr)
  */
 

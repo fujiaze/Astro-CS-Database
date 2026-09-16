@@ -1,7 +1,9 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # SCI-PSFW-001 — PSF Signal Weight 冻结研究（W_info / PixInsight-style PSFSW / PSF SNR power / 共同星集与 selection bias）
 
 文档 ID：`SCI-PSFW-001-FREEZE-RESEARCH`
-任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/SCI-PSFW-001.md`（wave 1，`depends_on = BASE-OWN-001`）
+任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCI-PSFW-001.md`（wave 1，`depends_on = BASE-OWN-001`）
 写域：`docs/science/v6/psfw/`、`run/v6/sci-psfw/`（仅此两处；本任务未写任何其他路径）
 建议状态：**PASS**（冻结建议本身通过本任务验收；见 §12。生产实现仍为 `NOT_IMPLEMENTED`，按本包规则不因此判 FAIL）
 基线：`HEAD = main = origin/main = 4b508f28bbcada66c417a8a9324aca7eb92869ff`（任务卡口径）——执行期间控制器又提交了 4 个并行 wave-1 兄弟任务的 docs-only 交付（`192fab35`/`a09a81f4`/`9d99fd71`/`eac43135`，见 `run/v6/sci-psfw/logs/22_baseline_probe.log` §1；均不在本任务写域）。本任务一切**生产面判定以已提交 HEAD 为准**，并在 §2 显式标注**基线分歧未裁决（F1）**。
@@ -67,7 +69,7 @@
 ## 2. 基线状态（强制声明）
 
 - **基线分歧未裁决（F1）**：工作树**不是** HEAD 的干净副本。`run/v6/base/baseline_freeze.json.worktree_vs_head.counts` = `{reverted_tracked_modified: 16, deleted_tracked: 10, new_content_tracked_modified: 11}`；本任务实测 `tracked-M = 27`、`tracked-D = 10`、`untracked(uall) = 841`、`dirty_total(uall) = 878`（`logs/22_baseline_probe.log` §2；随并行 wave-1 任务写入而增长，故以该日志的当次实测为准）。这些**未裁决**回退态**不得**被当作已验证基线。
-- 具体命中本任务相邻域的一例：`lib/phase1/noise/snr_frame_coefficient.{cpp,h}` 在 HEAD 中存在（commit `7346f366`，P33），但在**工作树中被删除**。该文件实现的是 `value = median(SNR_F)` 的**帧级单一系数**，其自身注释即声明"帧级度量"且"不得当作局部 SNR 场"。按 `PROJECT_SPEC` §4 末段与 `UNIFIED` §11，它只能作诊断/深度表达，**不得**成为 Phase2 科学权重；若任何消费者把它当权重使用，即为 P17 违规（本任务只读，不改该文件）。
+- 具体命中本任务相邻域的一例：`lib/algorithms/noise_snr/wrapper_phase1/snr_frame_coefficient.{cpp,h}` 在 HEAD 中存在（commit `7346f366`，P33），但在**工作树中被删除**。该文件实现的是 `value = median(SNR_F)` 的**帧级单一系数**，其自身注释即声明"帧级度量"且"不得当作局部 SNR 场"。按 `PROJECT_SPEC` §4 末段与 `UNIFIED` §11，它只能作诊断/深度表达，**不得**成为 Phase2 科学权重；若任何消费者把它当权重使用，即为 P17 违规（本任务只读，不改该文件）。
 - HEAD 相对任务卡基线**唯一**前进的是 4 个并行 wave-1 兄弟任务的 docs-only 提交（`logs/22_baseline_probe.log` §1）：`192fab35 SCI-P2-001`、`a09a81f4 AUDIT-REVIEW-001`、`9d99fd71 SCI-OBS-001`、`eac43135 SCI-P3-001`，四者写域分别为 `docs/science/v6/phase2|phase3|observation/`、`reports/v6/review-audit/` 与 `run/v6/*`。本任务写域 `docs/science/v6/psfw/`、`run/v6/sci-psfw/` 与它们**两两不相交**，无并发写冲突；已提交的 4 个提交均为文档，未改生产源码，故 §2 的生产面判定不受影响。
 - **生产面现状**（HEAD 已提交内容）：`psfsw|PSFSW|PSF Signal Weight`、`psf_information_weight|point_source_information|point_information|W_psf|W_info`、`psfsw_robust_weight`、`A_NEA|noise_equivalent_area`、`signal concentration|signal_concentration` 在 `lib/ cli/ include/ runtime/ contracts/` 命中**全部为 0**（`logs/22_baseline_probe.log` §3）。判定：**NOT_IMPLEMENTED**，与 `run/v6/base/gap_baseline.md` §2.6 一致。
 
@@ -318,7 +320,7 @@ Oracle K8 用同一合成星场（6000 颗，`10²..10⁵` 通量，CCD 方程�
 |---|---|---|---|
 | R1 | `psf_snr_power` 是否解冻进 Phase2 生产 | 若不裁决，wave 3 `ALG-P2-*` 无法确定模式集合；若误当 Fisher 最优会污染科学声明 | 建议**有条件解冻**（§6）；若控制器要求更强证据，保持 `NOT_IMPLEMENTED` + `unavailable` |
 | R2 | 与 `SCI-P2-001` 权重来源门的 schema 词表不一致（`weight_kind/weight_units/normalization.scope` vs `weight.kind/weight.units/group_normalized`） | 两套门各自 PASS 但互相不认，集成时漏检 | 由 `SCHEMA-INTEGRATE-001`（W6）统一为**单一** schema；本任务给出双向 token 映射（§8） |
-| R3 | F1 基线分歧未裁决（16 回退 + 10 删除） | 本任务生产面判定以 HEAD 为准；若最终基线取工作树，`lib/phase1/noise/snr_frame_coefficient.*` 等删除态会改变"现状" | 控制器先裁决 F1；科学结论（§3–§6）与回退无关，仍然成立 |
+| R3 | F1 基线分歧未裁决（16 回退 + 10 删除） | 本任务生产面判定以 HEAD 为准；若最终基线取工作树，`lib/algorithms/noise_snr/wrapper_phase1/snr_frame_coefficient.*` 等删除态会改变"现状" | 控制器先裁决 F1；科学结论（§3–§6）与回退无关，仍然成立 |
 | R4 | 帧级 `median(SNR_F)` 系数的现状定位 | HEAD 存在 `value = median(SNR_F)` 的帧级系数；若被任何消费者当权重即违反 P17 | 建议在 `CONTRACT-FREEZE-001` 显式把它登记为**诊断/深度表达**，禁止进入 `weight_mode` 权重面 |
 | R5 | PixInsight 式子的"三输入 vs 本项目四分量"结构差异 | 若下游误以为本项目公式必须与 PixInsight 逐字一致，会误删独立分量 | 已在 §4.1 登记；建议 `CONTRACT-FREEZE-001` 原样保留该登记与 `pixinsight_psfsw_compat` 另名规则 |
 | R6 | 共同星集深度稳定性阈值（< 5%）与 `n_common` 下限（≥ 3） | 本任务给出的数值是建议，不是冻结门；若被直接当冻结门即属越界 | 交 `ALG-P2-PSFSW-001`（W3）定值，本任务不擅改容差 |

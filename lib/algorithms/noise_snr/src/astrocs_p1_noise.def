@@ -1,0 +1,6 @@
+# lib/snr_estimator/src/astrocs_p1_noise.def - astrocs_p1_noise (MSVC 导出面白名单)
+# ABI-006: 唯一导出 astrocs_module_query_v1; legacy snr_noise_* 七符号
+# (SNR_API dllexport 携带) 经本 DEF 过滤降 local (Linux 对应 module_exports.map)。
+LIBRARY astrocs_p1_noise
+EXPORTS
+    astrocs_module_query_v1

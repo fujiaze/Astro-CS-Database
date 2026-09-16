@@ -2,11 +2,11 @@
 
 - 任务: P2-INT-DOC（MODULE_MIGRATION_MATRIX P2-INT 行，owner SA-P2-I23，
   2026-09-09）——合同冻结层，不改生产源码，不 commit。
-- 落位: `lib/phase2_int/` 三件套（本目录）。`lib/phase2/` 一目录一套
+- 落位: `lib/algorithms/integration/` 三件套（本目录）。`lib/algorithms/coverage/` 一目录一套
   三件套已被 P2-COV（astrocs.p2.coverage）占用，不可覆盖；按
-  `lib/hips_p2/`（P2-HIPS-DOC）先例新建迁移目标目录。生产源
-  `lib/phase2/src/integrate.cpp`（76 行）引用不搬家。
-- 权威签名头: `lib/phase2/include/astro/phase2/integrate.h`（74 行）。
+  `lib/algorithms/coverage/hips_p2/`（P2-HIPS-DOC）先例新建迁移目标目录。生产源
+  `lib/algorithms/coverage/src/integrate.cpp`（76 行）引用不搬家。
+- 权威签名头: `lib/algorithms/coverage/include/astro/phase2/integrate.h`（74 行）。
   P2PixelStack :36-42（values/weights/support/accepted 可空语义）、
   P2IntegrateStatus :45-51（五态 0..4）、P2PixelResult :53-63、
   support canonical reducer 冻结语义 :17、权重策略注释 :8-11
@@ -39,7 +39,7 @@
     "max(accepted support)" 冻结注释表述冲突（accepted ⊋ {W>0}，
     零权重样本差集）。SCI FROZEN 禁改；冻结口径以 header :17 为准
     （合同文本），实现现状按 DISP-P2INT-001 整改后归一。
-- 验证锚（相邻证据，引用不冒认）: lib/phase2/tests/synthetic_gate.cpp
+- 验证锚（相邻证据，引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp
   Phase2Integrate 组——零权重合同 :4702-4715（validate 零权重=0、
   signal=10.0、n_positive_weight=1）、NaN/Inf support→INVALID
   :4718-4738、五态+计数器 :4741-4760、加权均值+ALL_REJECTED
@@ -48,7 +48,7 @@
   :3021-3160（LegacyLauncherEquivalent）；P2-004 生产 Oracle
   tests/backend/test_p2004_reject_integrate.py（DRIVER_SRC :18-141，
   积分段 :66-126: 状态门 :67-101、signal 10.75/support 0.5 :113-126）。
-- descriptor 占位（不改码）: lib/core/src/module_adapters.cpp
+- descriptor 占位（不改码）: lib/infrastructure/scheduler/src/module_adapters.cpp
   p2_integrate_descriptor :657-675（module_id=astrocs.phase2.integrate、
   ports accepted_mask/corrected/integrated、API-P2-001/
   TEST-P2-INT-001），注册 :785。编排层词汇，P2-XX-INT 对齐。
@@ -77,5 +77,5 @@
   PHASE2_INTEGRATION.md/phase2_int.md/registry integrate 三处登记；
   docs/modules/phase2_int.md 新模块页。
 - 需前台 git add 的新文件（未跟踪）: docs/algorithms/
-  PHASE2_INTEGRATION.md、docs/modules/phase2_int.md、lib/phase2_int/
+  PHASE2_INTEGRATION.md、docs/modules/phase2_int.md、lib/algorithms/integration/
   （三件套）。

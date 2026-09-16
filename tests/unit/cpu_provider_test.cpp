@@ -60,7 +60,7 @@ int main() {
   {
     std::string base = std::string(std::getenv("ASTROCS_REPO") ? std::getenv("ASTROCS_REPO") : "..");
     auto check_shared = [&](const std::string& f) {
-      std::string p = base + "/lib/backend_host/" + f;
+      std::string p = base + "/lib/infrastructure/benchmark/backend_host/" + f;
       std::FILE* fp = std::fopen(p.c_str(), "r");
       CHECK(fp != nullptr);
       if (fp) {

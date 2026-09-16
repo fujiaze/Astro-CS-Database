@@ -2,7 +2,7 @@
 //
 // 控制包任务: AIO-001 (ASTROCS-CONSTITUTION-ALIGNMENT-V1)。
 // 合同锚: include/astrocs/io/aio_abi_v1.h + contracts/data/aio_abi_contract_v1.json。
-// 模式对齐先例: lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp
+// 模式对齐先例: lib/infrastructure/aio/tests/p1hips/p1hips_test_main.hpp
 // (FaultRegistry + 组 runner + note_injected 一次性报告)。
 //
 // 单跑: ./aio_abi_tests units|negative|selfcheck|all

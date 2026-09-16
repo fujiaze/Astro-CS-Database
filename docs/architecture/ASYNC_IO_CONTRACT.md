@@ -1,7 +1,7 @@
 # Async I/O Contract（CON-008 有界异步 I/O 合同）
 
 > 状态：CON-008 PASS
-> 关联代码：`lib/phase2/include/astro/phase2/async_io.h`
+> 关联代码：`lib/algorithms/coverage/include/astro/phase2/async_io.h`
 > 目标：HiPS/FITS/XISF 读取与计算解耦，使用有界 producer/consumer；
 > 队列容量由 `memory_budget_bytes / item_bytes` 推导，禁止无界队列。
 
@@ -71,7 +71,7 @@
   - cancel 唤醒阻塞者并传播错误；
   - 读取失败/写入失败传导；
   - 多 worker 并发消费确定性。
-- 已完成：`phase2_async_io` 以上全部通过（见 `lib/phase2/tests/async_io_test.cpp`），
+- 已完成：`phase2_async_io` 以上全部通过（见 `lib/algorithms/coverage/tests/async_io_test.cpp`），
   含生产型 pipeline 形态的 `ReadFailureCancelsAndPropagatesNoDeadlock`、
   `WriteFailureStopsProducerAndPreservesError`、`BoundedQueueDeliversAllItemsInOrder`、
   `MultiConsumerProcessesEachItemExactlyOnce`、`CancelWakesBothBlockedSidesNoDeadlock`。

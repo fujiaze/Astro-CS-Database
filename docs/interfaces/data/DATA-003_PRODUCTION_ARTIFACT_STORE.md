@@ -13,7 +13,7 @@
 > 验收：spy Store 证明每读写经过 Store；绕过路径/producer 重复/错误 schema/
 > 磁盘满/进程中断/取消均失败且可恢复；manifest hash 可重算。
 
-约束来源: `AstroCS_ENGINEERING_CONSTRAINTS.md` A.3/A.4/A.6（三 Phase 隔离产品命令；
+约束来源: `ASTROCS_DESIGN.md` §1.2/§9（三 Phase 隔离产品命令；
 阶段间只通过原子发布、哈希和 provenance 完整的磁盘产品/manifest 交换）；
 `13_DATA_PIPELINE_AND_ARTIFACT_STANDARD` §1（Pipeline edge 传递 ArtifactHandle，
 不是路径字符串）；DATA-001 manifest 合同（storage_uri 解析只发生在 Store 内部）。

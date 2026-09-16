@@ -3,7 +3,7 @@
 // 独立 Oracle（IMPL-P3-RSMP-001）。
 // 独立性约束（docs/validation/v6/ORACLE_AND_ZERO_CASE_POLICY.md §1）：
 //   * 本头文件只使用 C++ 标准库，**不 include / 不链接 / 不执行任何生产实现**
-//     （不 include lib/phase3_rsmp 的头，不调用 astrocs::p3rsmp::*）。
+//     （不 include lib/algorithms/resample 的头，不调用 astrocs::p3rsmp::*）。
 //   * 真值来源：解析式（双线性误差界、面积重叠归一）与固定种子 Monte Carlo
 //     （SEED=20260915）。
 //   * 线性代数独立转写：一般式直接用三重循环显式矩阵乘；线性方程解用带部分主元的高斯消元

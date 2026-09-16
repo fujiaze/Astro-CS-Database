@@ -1,7 +1,9 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # ALG-P1-001 证据与命令日志（Phase1 算法实施规格）
 
 - 文档 ID：`ALG-P1-001-EVIDENCE`
-- 任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/ALG-P1-001.md`
+- 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/ALG-P1-001.md`
 - write_scope：`docs/algorithms/v6/phase1/`（唯一；本任务未写任何其他路径）
 
 ## 0. 基线与并发集成说明

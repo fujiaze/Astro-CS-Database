@@ -16,7 +16,7 @@ DLL/SO + §8.5 基建构建单元 + §8.1 CLI 产品清单 + §18.4 只加载签
      astrocs.p1.noise）, manifest rel_path ↔ contract install_path ↔ 安装树文件
      三方一致; sha256=null 合法（BLD-003 骨架约定, 打包期填充; 本脚本在 S6 以
      实测 sha256 传入 loader 验证 hash 核对路径）;
-  S5 F-AIO-003 生产接线: lib/astro_image_io/src/aio_abi.cpp 符号（aio_abi_query_v1）
+  S5 F-AIO-003 生产接线: lib/infrastructure/aio/src/aio_abi.cpp 符号（aio_abi_query_v1）
      在生产 target libastrocs_aio.a 内; 直链生产库的探针 aio_abi_query_v1 握手
      abi_version=1/status_count=71 成功;
   S6 安全 loader 加载验证（探针 = tests/abi/abi003_loader_probe.c, 合同 =
@@ -61,7 +61,7 @@ TIMEOUT = 900
 
 # 产品清单合同锚（MOD-001: 科学模块 DLL 必须登记且可加载; 唯一事实源 =
 # lib/<mod>/module.yaml 的 module_id + CMake SHARED target OUTPUT_NAME）。
-# F-CI-002-01 (owner 裁决 2026-09-11): astrocs_p1_noise 随 lib/snr_estimator
+# F-CI-002-01 (owner 裁决 2026-09-11): astrocs_p1_noise 随 lib/algorithms/noise_snr
 # V7 残留断链解除摘出生产图与本清单 (该子图 CMakeLists 未入库, target 不在
 # 根图), V7 残留收编后恢复本锚与产品清单登记。
 SCIENCE_MODULES = [

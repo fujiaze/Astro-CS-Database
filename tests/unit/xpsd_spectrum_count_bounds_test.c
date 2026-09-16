@@ -1,6 +1,6 @@
 /* M9-H-2 回归锁: XPSD 文件自报 spectrumCount 边界 (B1-memory)
  *
- * 根因: lib/gaia_xpsd_client/src/gaia_client.c::load_xpsd_file 曾以
+ * 根因: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c::load_xpsd_file 曾以
  *   xf->spectrum_count = atoi(...) 直接接受文件内 parameters 串的自报计数,
  * 该值随后用作 spec_collector_init 的步长 (capacity*count 分配)、
  * spec_collector_push 每星 memcpy 长度以及结果导出侧 malloc 尺寸:

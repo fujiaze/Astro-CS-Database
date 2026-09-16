@@ -7,8 +7,8 @@
 # 本文件既可被 tests/unit/CMakeLists.txt 以 add_subdirectory 引入，也可独立
 # 构建（cmake -S tests/unit/v6_p1_drz -B <build>）以便任务自验。
 #
-# 依赖：lib/healpix_db/healpix_drizzle/{v6_drizzle_science,v6_spherical_overlap,
-# spherical_overlap}.cpp + lib/common/healpix/healpix_core.cpp。
+# 依赖：lib/algorithms/drizzle/healpix_drizzle/{v6_drizzle_science,v6_spherical_overlap,
+# spherical_overlap}.cpp + lib/algorithms/shared/healpix/healpix_core.cpp。
 # CTest: v6_p1_drz_units / _oracle / _negative / _geometry
 # ============================================================================
 cmake_minimum_required(VERSION 3.16)
@@ -19,18 +19,18 @@ endif()
 
 set(V6_P1_DRZ_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(V6_P1_DRZ_REPO ${V6_P1_DRZ_DIR}/../../..)
-set(V6_P1_DRZ_IMPL ${V6_P1_DRZ_REPO}/lib/healpix_db/healpix_drizzle)
+set(V6_P1_DRZ_IMPL ${V6_P1_DRZ_REPO}/lib/algorithms/drizzle/healpix_drizzle)
 
 add_executable(v6_p1_drz_test
   ${V6_P1_DRZ_DIR}/v6_p1_drz_test.cpp
   ${V6_P1_DRZ_IMPL}/v6_drizzle_science.cpp
   ${V6_P1_DRZ_IMPL}/v6_spherical_overlap.cpp
   ${V6_P1_DRZ_IMPL}/spherical_overlap.cpp
-  ${V6_P1_DRZ_REPO}/lib/common/healpix/healpix_core.cpp)
+  ${V6_P1_DRZ_REPO}/lib/algorithms/shared/healpix/healpix_core.cpp)
 target_include_directories(v6_p1_drz_test PRIVATE
   ${V6_P1_DRZ_IMPL}
-  ${V6_P1_DRZ_REPO}/lib/common
-  ${V6_P1_DRZ_REPO}/lib/common/healpix)
+  ${V6_P1_DRZ_REPO}/lib/algorithms/shared
+  ${V6_P1_DRZ_REPO}/lib/algorithms/shared/healpix)
 target_compile_features(v6_p1_drz_test PRIVATE cxx_std_17)
 
 add_test(NAME v6_p1_drz_units COMMAND v6_p1_drz_test units)
