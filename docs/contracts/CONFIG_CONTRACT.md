@@ -1,6 +1,7 @@
 # 配置合同（全局默认值 · 滤镜库 · 三命令 phase_config · cpu_profile · run_manifest）
 
 > ID: CFG-001　状态: 建立（2026-09-16）　任务: 工程控制/PROJECT-GOVERNANCE-01/tasks/CFG-001.md
+> 收口: W5-CFG-002（CFG-002，2026-09-17）—— 配置登记类遗留五项闭合（plugin 级默认 / per-module 旋钮归属 / 滤镜名语义 / `os_abi` 值域 / 索引归属）。§8 由「未决」改为「闭合或交接」；登记册 = `config/config_registry.json`（`astrocs.config-registry/v1`）。
 > 权限边界：本文件只承载**配置语义与索引**（文件域 docs/contracts/**）；schema 本体在 `contracts/schemas/`，配置数据在 `config/`。
 > 本文件**不新增**任何科学定义、默认数值或容差；所有数值只能转录，缺权威数值者显式 `pending_authority`。
 
@@ -26,26 +27,28 @@
 
 - DATA-001 锚点里保留的 phase_config 聚合 schema 路径，由本任务实现为**三份 phase 专属 schema**：`contracts/schemas/phase_config_normalize.schema.json`、`contracts/schemas/phase_config_mosaic.schema.json`、`contracts/schemas/phase_config_export.schema.json`；**未**创建同名聚合文件，以免留下第二份等价定义（UNIFIED_MODEL §3、裁决四口径）。回归锁：`tests/config/test_cfg001_contracts.py::TestPhaseConfigFamily::test_no_aggregate_second_definition`。
 
-## 2 `config/defaults.json`（44 字段；`astrocs.config-defaults/v1`）
+## 2 `config/defaults.json`（50 字段，2026-09-17 快照；`astrocs.config-defaults/v1`）
 
 - 结构：`fields[]`，每项 `{key, value, unit, constraint, authority_status, source, source_ref, pending_task, note}`；
+  本节的**总数与分组计数是快照**（`noise.*` 正由 MASK-002 扩展）；权威总数以 `config/defaults.json` 的 `field_count` 为准，由机器门实时对账（`TestDefaultsContract`），本节不复制科学数值。
+  `weight.default_mode` 另有 `enum_token`/`enum_target`（SCI 产品名 → phase_config 字段取值 token 的唯一登记，见 §9）。
   `authority_status ∈ {sourced, owner_adjudicated, pending_authority}`。
 - 机器门（`TestDefaultsContract`）：字段数 == 带 unit 数 == 带 source 或 pending_authority 数，来源不明字段 == 0；
-  且**非 pending 字段的 unit 不得为 unspecified**；每个 `source_ref` 的文件:行必须真实存在，11 个关键锚点逐行核对 token。
+  且**非 pending 字段的 unit 不得为 unspecified**；每个 `source_ref` 的文件:行必须真实存在，12 个关键锚点逐行核对 token。
 - 分组与来源（只转录，不改数值）：
 
 | 组 | 字段数 | 权威锚点 |
 |---|---|---|
 | calibration（暗场-亮场曝光容差） | 1 | 负责人裁决 2026-09-16（5 s）；待落 `docs/science/CALIBRATION.md`（SCI-RES-01/R-003 定义 + R-004 落文档） |
-| detection（σ 检测阈值） | 1 | `docs/science/STAR_DETECTION.md:18` |
+| detection（σ 检测阈值） | 1 | `docs/science/STAR_DETECTION.md:19` |
 | psf（默认模型/β） | 2 | `docs/science/PSF.md:7`、`:92` |
-| noise（噪声模型默认配置） | 8 | `docs/algorithms/NOISE_ESTIMATION.md:134`（另见 :11/:20/:36/:100/:151/:154） |
-| rejection（排异阈值表） | 18 | `docs/science/REJECTION.md:131` |
+| noise（噪声模型默认配置） | 14 | `docs/algorithms/NOISE_ESTIMATION.md:134`（另见 :11/:20/:36/:100/:151/:154） |
+| rejection（排异阈值表） | 18 | `docs/science/REJECTION.md:55-61`（§5「阈值冻结锚点」块；W5-CFG-002 重锚，原 :131 已因文档重排失效） |
 | photometry（mag_tolerance / Tukey c / IRLS / 最小星数） | 6 | `docs/science/PHOTOMETRY.md:21,24,38,39` |
 | weight（默认权重模式） | 1 | `docs/science/PSF_SIGNAL_WEIGHT.md:12`、`:28` |
 | precision（默认精度） | 1 | `docs/science/SCIENCE_SCOPE.md:53` |
-| upm（k_corr） | 1 | `docs/science/PHASE2_UPM.md:100` |
-| hips（tile 宽） | 1 | `docs/science/PHASE3_HIPS_TO_FITS.md:27` |
+| upm（k_corr） | 1 | `docs/science/PHASE2_UPM.md:22`（定义 + 冻结默认，:124 记不可接受变化；W5-CFG-002 重锚） |
+| hips（tile 宽） | 1 | `docs/science/PHASE3_HIPS_TO_FITS.md:39`（W 默认 512=2⁹；W5-CFG-002 重锚） |
 | drizzle（pixfrac） | 1 | 语义 `docs/science/DRIZZLE.md:21,27,31`；**数值 pending** |
 | sparse_snr / scalar_gate | 3 | **数值 pending** |
 
@@ -59,7 +62,9 @@
 | `scalar_gate.trend` | unspecified | SCI-RES-01/R-002 + 负责人批准 | 同上（`07_noise_snr.md:62`） |
 
 - `calibration.dark_light_exposure_tolerance = 5 s`：负责人已裁决值，按裁决**不标** pending；文档侧仅有 `K=t_light/t_dark` 语义（`docs/science/CALIBRATION.md:19,21,90`），数值待 SCI-RES-01/R-004 落 `docs/science/CALIBRATION.md`。
-- 负空间（未收录，避免越权）：`docs/plugins/algorithms_phase1/07_noise_snr.md:63-65` 的 `psfsw_enable`/`sparse_snr_layer` 等 plugin 级默认**不进** defaults.json——本任务要求 source 指向 docs/science 或 docs/algorithms，plugin 文档不在该 source 规则内（见 §8 未决项）。
+- 负空间（口径保留，去向已定）：`docs/plugins/**` 的 plugin 级默认**不进** `fields[]`——本文件 source 规则限定 docs/science|docs/algorithms；它们改由 `config/config_registry.json#plugin_knobs` 逐行登记（96 行：归属类 + 登记点 + 缺口/冲突），见 §9。CFG002-ANCHOR: item1-plugin-defaults → config/config_registry.json
+- **默认值 → 字段值域的唯一登记**：`fields[].enum_target`（`{schema, pointer}`）+ `fields[].enum_token`。语义：defaults 里的「产品名/方法名」必须显式映射到承载字段的取值 token；机器门断言 pointer 落到含 `enum` 的节点且 token ∈ enum。首例：`weight.default_mode = psf_information_weight`（SCI 产品名）↔ `phase_config_mosaic.algorithm_weight_mode` 的 token `point_information`（同一模式的两套命名；依据 `docs/science/UNIFIED_SCIENCE_MODEL.md:55` 与 `docs/science/PSF_SIGNAL_WEIGHT.md` §1）。
+- **登记册指针**：`registry_ref` 指向 `config/config_registry.json`（plugin 级默认 / 旋钮归属 / 滤镜名语义 / os_abi / 索引归属的登记面）；本文件与登记册**不得互相复制数值**（数值唯一源 = defaults.json 与 phase_config schema）。
 
 ## 3 三命令 phase_config 与模板
 
@@ -68,14 +73,14 @@
 | phase | 模板 | config 必填 | 可选算法选择（逐项权威） | inputs 项 |
 |---|---|---|---|---|
 | normalize | `config/templates/normalize.phase_config.json` | output_dir, precision | `algorithm_psf_model`（`docs/science/PSF.md:7,:81,:105`，当前唯一实现 Moffat4）；`sparse_snr_layer`（`ASTROCS_DESIGN.md` §3.4:161-164）；**`algorithm_drizzle_pixfrac`**（字段收录；语义/值域权威 `docs/science/DRIZZLE.md:21,:27,:31` + `docs/algorithms/DRIZZLE_GEOMETRY.md:57,:61,:102`，schema 机器强制 `0 < pixfrac <= 1`；**不声明数值默认**——默认值槽在 defaults.json 的 `drizzle.pixfrac`，状态 pending_authority/SCI-RES-01/R-005） | `{light, bias?, dark?, flat?, cosmetic?, filter}`，filter 必须命中滤镜库 |
-| mosaic | `config/templates/mosaic.phase_config.json` | output_dir, precision | `algorithm_weight_mode`（`docs/plugins/algorithms_phase2/13_integration.md:67`；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md:28`）、`algorithm_rejection_method`（`docs/science/REJECTION.md:131-132`）、`algorithm_upm_gauge`（`docs/plugins/algorithms_phase2/11_upm.md:36`） | `{product, filter?}` |
+| mosaic | `config/templates/mosaic.phase_config.json` | output_dir, precision | `algorithm_weight_mode`（`docs/plugins/algorithms_phase2/13_integration.md:67`；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md:28`）、`algorithm_rejection_method`（method/profile 词表 `docs/science/REJECTION.md:20-21`；默认路由 `:47-53`；W5-CFG-002 重锚）、`algorithm_upm_gauge`（`docs/plugins/algorithms_phase2/11_upm.md:36`） | `{product, filter?}` |
 | export | `config/templates/export.phase_config.json` | output_dir, precision, output_mode, wcs | `output_mode`（`ASTROCS_DESIGN.md` §5.3:267；默认 `surface_brightness` 见 `docs/plugins/algorithms_phase3/16_fits_output.md:41`）、`wcs.projection`（§5.3:264-266 首批 8 种 + 缺省 TAN；`14_projection.md:31`）、`wcs.{rotation_deg, crpix_px}`（`14_projection.md:32,35`） | `{product}` |
 
 - `precision` **必填**（`ASTROCS_DESIGN.md` §3.3:145「precision（FP32/FP64）显式声明」），值域 {fp32, fp64}；模板填 `fp64`（`docs/science/SCIENCE_SCOPE.md:53` 默认 FP64）。
-- export 几何字段名与值域取自科学权威：`center_deg`/[`s_out_deg`]/`width_px`/`height_px`（`docs/science/PHASE3_HIPS_TO_FITS.md:29-31`；约束 `:48`：abs(dec) ≤ 85°、W_out/H_out ∈ [1,20000]、s_out > 0）。原 `projection` 插件文档的 `mode` 在 phase_config 中命名为 `output_mode`，以避开 legacy cpu_profile v1 的 `mode` 字段名（UNIFIED_MODEL §3 禁止同名异义，见 §7 门表）。
-- **模板示例值声明**：模板中的 `path/to/...` 路径、`filter: "Baader R"`、export 的 `center_deg: [0,0]` 与 `s_out_deg: 0.001`、`width_px/height_px: 512` 都是**示例占位**（用户必须按观测改写），**不是**科学默认值；除 `precision`/`output_mode`/`projection`/`rotation_deg` 等有权威默认者外，模板不主张任何数值默认。`width_px/height_px = 512` 与 HiPS tile 默认（`PHASE3_HIPS_TO_FITS.md:27`）同值，仅作可运行的示例几何。
+- export 几何字段名与值域取自科学权威：`center_deg`/[`s_out_deg`]/`width_px`/`height_px`（`docs/science/PHASE3_HIPS_TO_FITS.md:39,41,42,43`（§3 符号表：W/s_out/center/W_out,H_out）；约束 `docs/science/PHASE3_HIPS_TO_FITS.md:70`：abs(dec) ≤ 85°、W_out/H_out ∈ [1,20000]、s_out > 0；W5-CFG-002 重锚）。原 `projection` 插件文档的 `mode` 在 phase_config 中命名为 `output_mode`，以避开 legacy cpu_profile v1 的 `mode` 字段名（UNIFIED_MODEL §3 禁止同名异义，见 §7 门表）。
+- **模板示例值声明**：模板中的 `path/to/...` 路径、`filter: "Baader R"`、export 的 `center_deg: [0,0]` 与 `s_out_deg: 0.001`、`width_px/height_px: 512` 都是**示例占位**（用户必须按观测改写），**不是**科学默认值；除 `precision`/`output_mode`/`projection`/`rotation_deg` 等有权威默认者外，模板不主张任何数值默认。`width_px/height_px = 512` 与 HiPS tile 默认（`PHASE3_HIPS_TO_FITS.md:39`）同值，仅作可运行的示例几何。
 - 硬约束：`config`/`inputs` 两级拒绝任何未登记字段 ⇒ cpu_profile 的 `workers`/`isa`/`block_size` 混入必失败（负例 ④）。
-- 内存/流式预算类字段（`docs/plugins/algorithms_phase3/16_fits_output.md:38-39` 的 `band_height`/`tile_cache_mb`）**不进** phase_config：它们不可跨机器复现，属实现策略，按 UNIFIED_MODEL §3 不得写入科学配置（见 §8 未决项）。
+- 内存/流式预算类字段（`docs/plugins/algorithms_phase3/16_fits_output.md:38-39` 的 `band_height`/`tile_cache_mb`）**不进** phase_config：它们不可跨机器复现，属实现策略，按 UNIFIED_MODEL §3 不得写入科学配置。CFG-002 已把它们登记为 `runtime_policy` 类（权威 = 插件文档；机器门断言此类旋钮不得出现在任何 phase_config 属性面），见 §9。CFG002-ANCHOR: item2-knob-ownership → config/config_registry.json
 
 ## 4 `config/filters.json`（`astrocs.filter-library/v1`）
 
@@ -83,17 +88,22 @@
 - **provenance**：指向 `lib/algorithms/photometry/cpp/test/filter_qe_provenance.json`；其 source 自述 `unverified: original curve source not recorded in repository`，本库 **45/45 如实标注** `status=unverified`、`verified=false`、`url=null`、`gap_id=GAP-025`；曲线统计量（`curve_stats`）由机器门与曲线逐条对账。**补 provenance 属下一轮工程包专项**（原出处/版本/获取方式/校验和）。
 - **未知滤镜 → error**：`lookup.unknown_filter = "error"`（`ASTROCS_DESIGN.md` §3.3:144、§3.5 红级）；三份 phase_config schema 的 `filter` 字段为 45 键 `enum`，并由机器门锁定 `enum == config/filters.json 的 filters 键`（`test_filter_enum_equals_library_keys`）。
 - **不含每滤镜零点**（本任务裁决口径）：零点 `location` 是**逐次运行估计量**且满足**零点平移不变量**——`docs/science/PHOTOMETRY.md:7`（估计零点 location、尺度因子 scale…）与 `:73`（零点平移不变量：F_instr 同乘 k ⇒ location 增 log10 k，scale 除 k，sigma_residual 不变）；`docs/algorithms/PHOTOMETRIC_FIT.md:9` 明确 `zero_point` 字段因「无定义式、结构体无字段」被删除（P5-SNR 订正，负责人授权）。故滤镜库**不出现**任何零点列/占位/null 字段；机器门 `test_no_zero_point_column_anywhere` 对**键路径与全文**双向断言（大小写不敏感）。若将来需要每滤镜零点，属**新科学定义**，须负责人批准后另立任务。
-- 未决（不当场选口径）：`ASTROCS_DESIGN.md` §3.3 的示例串 `"bader r"` 与本库键 `"Baader R"` 不同形 ⇒ 滤镜名匹配的大小写/归一化语义无权威定义；本库只声明 `match=exact`、`case_sensitive=true`，并把该语义登记为待裁决项（§8）。
+- **匹配语义（CFG-002 冻结）**：`lookup = {unknown_filter: error, match: exact, case_sensitive: true, normalization: none, aliases: {}}` ⇒ `resolve(name) = filters[name] if name ∈ keys(filters) else ERROR(unknown_filter)`；不做大小写/空白/Unicode 归一，不解析别名（`aliases` 为空对象 = 显式声明「本库不解析任何别名」）。冻结理由：库内品牌大小写不一致（`Optolong B/G/R` 与 `OPTOLONG L-PRO Light Pollution` 并存），品牌级归一化会引入歧义；当前 45 键在「大小写 + 空白」折叠下无重名（机器门断言），但该事实不替代显式规则。
+- **设计示例串的去向（不改设计文档）**：`ASTROCS_DESIGN.md` §3.3:128/:130 的 `"bader r"`/`"bader v"` 登记为 `lookup.non_key_examples`（`kind=design_doc_illustration`、`resolution=ERROR`）——它们不是合法库键，也不能靠归一化变成合法键（`bader` ≠ `Baader`；且库内不存在 Baader V 曲线）。`non_key_examples` 只把示例与合法值分开，**不**把示例升级为别名。正反例与门见 §10。CFG002-ANCHOR: item3-filter-name-policy → config/config_registry.json
+- **死定义已登记**：三份 schema 都保留 `$defs/filter_name`；被字段 `$ref` 的只有 normalize（`inputs[].filter` 必填）与 mosaic（`inputs[].filter` 可选、模板未用）；export 无字段引用它（导出以 HiPS 产品为单位、滤镜在上游分离）⇒ `config_registry.filter_name_policy.dead_filter_enum_phases` 登记，机器门断言该集合不得静默变化。
+- **`channel`（带宽列）语义缺口**：`channel` 值域实测 `{B,G,R,L,HA,OIII,PAN,""}`，其中 7 条为空（`Johnson I`/`Johnson U`/`SDSS g,i,r,u,z`）；`docs/contracts/**` 内不存在滤镜命名/带宽条款 ⇒ **不存在旧名残留或别名冲突**，但 `channel` 语义与空值域无权威定义，登记为缺口（归属：负责人裁决 / 测光文档域，见 §9 缺口清单）。
 
 ## 5 `contracts/schemas/cpu_profile.schema.json`（迁移后：单一文件，两分支）
 
 - **单一事实源**：不再有第二份等价定义；文件以 `oneOf` 定义
   - `$defs.legacy_v1`：BENCH-004 旧 JSON（`schema_version=1`，`kernels` 数组，`hardware/build/memory_benchmark/verdict`）；
   - `$defs.profile_v2`：**当前实现** `schema="astrocs.cpu-profile/v2"`（`lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:558-610`、`verify_profile_v2` :645-707）。
-- **绑定**：CPU（`host.vendor/family/model/stepping/xcr0`）· OS（`host.os_abi`）· 软件版本（`build.astrocs_version/source_commit/runtime_build_id`）· provider hash（`build.provider_build_ids`、`benchmark_binary_sha256`、`kernels.*.self_test_sha256`）· ISA/workers/block（`kernels.*.provider ∈ {baseline,avx2,avx512}`、`workers ≥ 1`、`block ≥ 1`）。身份绑定字段与 `check_profile_identity_v1`（`lib/infrastructure/benchmark/backend_host/cpu_routing.cpp:216-300`）逐项一致。
+- **绑定**：CPU（`host.vendor/family/model/stepping/xcr0`）· OS（`host.os_abi` ∈ {`linux`,`windows`}，CFG-002 冻结，见 §11）· 软件版本（`build.astrocs_version/source_commit/runtime_build_id`）· provider hash（`build.provider_build_ids`、`benchmark_binary_sha256`、`kernels.*.self_test_sha256`）· ISA/workers/block（`kernels.*.provider ∈ {baseline,avx2,avx512}`、`workers ≥ 1`、`block ≥ 1`）。身份绑定字段与 `check_profile_identity_v1`（`lib/infrastructure/benchmark/backend_host/cpu_routing.cpp:216-300`）逐项一致。
 - **只有 benchmark 可写**：`x-astrocs-writer = "benchmark"`、`x-astrocs-not-writable-by = ["用户","cli --template","phase_config"]`；机器门 `TestCpuProfileMigration::test_writer_is_benchmark_only` + §7 的跨类不相交门。
 - **兼容面（既有检查项不失效）**：顶层 `required` 取两分支共有键 `[build, kernels]`，顶层 `properties` 同时登记两分支顶层键，完整 v1 必填集落在 `$defs.legacy_v1.required`；`properties.kernels.items.required` 保持原访问路径（`tests/backend/test_cpu_profile.py:74-79`、`tools/validate_cpu_profile.py:41-70`）。
 - **已知取舍（如实登记，需负责人知悉）**：顶层 `properties.kernels.type = ["array","object"]` 以同时容纳 v1 数组与 v2 对象，因此 `tools/validate_cpu_profile.py:65` 的 `rule.get('type')=='array'` 分支对该字段不再生效；v1 kernel 项约束仍由本文件 `items.required` 与 `$defs.legacy_v1` 强制，并由负例 `cpu_profile_v1_missing_required.json` 复跑证明仍能红。
+- **`host.os_abi` 值域冻结（CFG-002）**：枚举 `{linux, windows}` = 生产者字面量集合（`lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp:255-261` 只写 `windows`/`linux`；`profile_gen_v2.cpp:568` 缺 `os` 字段时回落 `linux`），平台面由 `ENGINEERING_SPEC.md` §1（Windows amd64 / Linux amd64）封闭；非该集合一律 REJECT（负例 `tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json`）。原 `x-astrocs-pending-authority` 项已撤销，改记 `x-astrocs-frozen-domains`。CFG002-ANCHOR: item4-os-abi-enum → config/config_registry.json
+- **kernel 接线缺口（跨域交接，不在本卡五项）**：`$defs.kernel_v1`/`$defs.kernel_v2` 被 0 处 `$ref`（`profile_v2.properties.kernels` 仅 `{type:object,minProperties:1}`，`legacy_v1.items` 仅 `{type:object}`），workers/block/provider/self_test_sha256 等约束已定义但**未被 schema 施加**；`config_registry.cpu_profile_kernel_link` 登记该状态并 pin（refs 计数），归属 CPU/benchmark 线——接线会收紧既有 profile 与负例，须同步 `profile_gen_v2.cpp` 与 tests/config 夹具。
 - **v1 文本/实现漂移（`x-astrocs-v1-drift` 登记，5 条）**：`hardware.feature_bits`（原文本 array／实测 integer）、`hardware.xcr0`（原文本 string／实测 integer）、`build.backend_sha256`（原文本 object／实测 string）、`kernels[].block_size`（原文本 min 1／实测 0）、`kernels[].oracle_status`（canonical 大写 PASS／实测小写 pass，读取侧归一）。本文件按**实测口径**兼容两义，canonical 值不变；不新增也不删除既有检查项。
 
 ## 6 `contracts/schemas/run_manifest.schema.json`
@@ -120,13 +130,85 @@ timeout 60 python3 tests/config/run_validation.py contracts/schemas/phase_config
 | 跨类不相交 | phase_config ∩ cpu_profile(v2) == ∅；∩ run_manifest == ∅；∩ cpu_profile(全体) == {precision}（登记） | `TestCrossClassDisjointness` |
 | 滤镜库 | 45/45 逐字一致 + provenance unverified/GAP-025 + 无零点键 + enum==库键 | `TestFiltersLibrary` |
 | cpu_profile | 单一定义、benchmark-only、v1/v2 双分支可绿、缺必有字段可红 | `TestCpuProfileMigration`、`test_cpu_profile_v1_missing_required_still_fails` |
+| CFG002-01 登记对应 | `docs/plugins/**` 配置表 96 行 ↔ `config/config_registry.json#plugin_knobs` 一一对应（缺登记/多登记/默认值漂移/单位漂移/行号漂移/summary 撒谎均判红） | `check_cfg002_registry.py` CFG002-01 |
+| CFG002-02 登记点可解析 | 每行登记点必须真实解析（defaults 键存在 / phase_config 指针落到属性 / inputs[] 项属性存在 / cpu_profile 指针存在 / 文档 文件:行 非空）；runtime_policy 与 resource_binding 进科学配置即红；phase_config 默认值必须 ∈ 目标 enum | 同上 CFG002-02 |
+| CFG002-03 默认值→值域 | `fields[].enum_target` 指针落到含 enum 节点且 `enum_token` ∈ enum | 同上 CFG002-03 |
+| CFG002-04 滤镜名语义 | `match=exact` / `case_sensitive=true` / `normalization=none` / `aliases={}`；三 schema enum == 库键；6 反例必拒、4 正例必过；`non_key_examples` 锚点成立；消费 filter 的 phase 面与登记一致 | 同上 CFG002-04 |
+| CFG002-05 os_abi 值域 | schema enum == 生产者字面量集合 == 登记册；profile_gen_v2 回落字面量 ∈ enum；pending 项已撤销；负例必拒、正例必过 | 同上 CFG002-05 |
+| CFG002-06 module.yaml 键闭包 | 20 份 `lib/**/module.yaml` 顶层键 ⊆ 登记键集；出现 knobs/params/config/defaults 等旋钮声明键即红 | 同上 CFG002-06 |
+| CFG002-07 索引归属 | `config/**` 无 schema、`contracts/config/**` 全 schema、两侧无同名文件；DOCUMENT_INDEX 中本文件恰一次且 ACTIVE_NORMATIVE；`tests/test_index.csv` 登记 tests/config 且未登记目录 ⊆ 已登记缺口清单 | 同上 CFG002-07 |
+| CFG002-08 文档锚 | 本文件 5 条 `CFG002-ANCHOR:` 标记行恰一次且指向登记册 | 同上 CFG002-08 |
+| CFG002-09 锚存活 | defaults 每个 `source_ref` 行存在且非空；`source` 的 path:line 提示 token 落在该行；paraphrase 例外清单只减不增 | 同上 CFG002-09 |
+| CFG002-10 kernel 接线 pin | `$defs.kernel_v1`/`kernel_v2` 的 `$ref` 计数与 kernels 接线状态 == 登记册 | 同上 CFG002-10 |
 
-## 8 未决项与归属（不在本任务实现）
+## 8 CFG-001 未决项的收口（W5-CFG-002，逐条结论）
 
-1. **plugin 级默认值的入册口径**：`weight_mode=point_information`、`upm.gauge=reference_frame`、`output_mode=surface_brightness` 等默认来自 `docs/plugins/**`，而本任务 source 规则限定 docs/science|docs/algorithms ⇒ 目前只出现在模板与 §3 表，未进 defaults.json。归属：负责人裁决（放宽 source 规则或把 plugin 默认提升进 SCI/ALG 文档）。
-2. **per-module knobs 的逐次覆盖**：`min_overlap`/`spacing`/`sigma_gate`/`max_iter`/`band_height`/`tile_cache_mb` 等未进 phase_config（`additionalProperties:false` 会拒绝）。归属：负责人裁决后另立任务（不得由 Agent 自选字段）。
-3. **滤镜名匹配语义**：`"bader r"`（设计示例）vs `"Baader R"`（库键）的大小写/归一化语义无权威定义。归属：负责人裁决 + CLI-002 实现。
-4. **cpu_profile `host.os_abi` 值域**：只约束非空字符串（schema 内 `x-astrocs-pending-authority` 已登记）；枚举值域待权威面冻结。
-5. **legacy v1 同名登记**：`kernels[].precision`（v1）与 phase_config `precision` 同名同义（fp32/fp64，非异义冲突），已用机器门把交集锁定为 `{precision}`；如需彻底消除，需迁移 v1 producer（lib/**，本任务文件域外）。
-6. **登记面（本任务文件域外，须由调度线/前台补齐）**：`docs/DOCUMENT_INDEX.yaml` 登记本文件（否则 DOC-INDEX 提交后转红）；`tests/test_index.csv` 登记 `tests/config`；`ci/checks.json` 若需新增 `UT-CONFIG` 检查项（ENGINEERING_SPEC §7 要求改测试后同步订正 checks.json，但 ci/** 不在本任务文件域）；`docs/contracts/INDEX.yaml`/UNIFIED_OBJECTS.md 登记本任务的 schema 与默认值索引（同文件正被 DATA-001 线并发修改，避免踩踏）。
-7. **ENGINEERING_SPEC §7 根目录清单缺 `config/`**：已知文档缺口，已由控制包登记下一轮；本任务**不改**该文档。
+| # | CFG-001 未决项 | CFG-002 结论 | 证据 / 去向 |
+|---|---|---|---|
+| 1 | plugin 级默认值的入册口径 | **闭合**（不改 source 规则）：`fields[]` 仍只收 SCI/ALG 数值；plugin 级默认改由 `config/config_registry.json#plugin_knobs` 逐行登记（96 行 = 23 篇插件文档配置表全集），每行给 owner_class + 登记点 + finding | §9；门 CFG002-01/02 |
+| 2 | per-module knobs 的逐次覆盖 | **闭合**（归属面）：96 行逐条定归属（science_param 67 / runtime_policy 20 / cli_surface 6 / resource_binding 3）；其中 22 行「插件声明了默认值但无 SCI/ALG 权威、未进任何配置类」+ 28 行「无默认且字段未登记」+ 4 行冲突 ⇒ 逐行登记为缺口/冲突并点名归属负责人裁决；`module.yaml` 实测无旋钮声明字段，门禁止其新增旋钮键而不登记 | §9；门 CFG002-02/06 |
+| 3 | 滤镜名匹配语义 | **闭合**：冻结为 `match=exact` + `normalization=none` + `aliases={}`（字节精确、不归一、不解析别名）；设计示例 `bader r`/`bader v` 登记为 `non_key_examples`（判 ERROR），不改设计文档 | §10；门 CFG002-04 |
+| 4 | cpu_profile `host.os_abi` 值域 | **闭合**：枚举 `{linux, windows}`（生产者字面量集合，非编造）；`x-astrocs-pending-authority` 项撤销 → `x-astrocs-frozen-domains`；负例 `cpu_profile_v2_bad_os_abi.json` 必红 | §11；门 CFG002-05 |
+| 5 | legacy v1 同名登记（`precision`） | **保留**（口径不变）：v1 `kernels[].precision` 与 phase_config `precision` 同名同义，交集锁定 `{precision}`；彻底消除需迁移 v1 producer（lib/**，本卡文件域外） | 门 `TestCrossClassDisjointness` |
+| 6 | 登记面补齐 | **部分闭合 + 交接**：①`docs/DOCUMENT_INDEX.yaml` 已登记本文件（ACTIVE_NORMATIVE，恰一次，门 CFG002-07）；②`tests/test_index.csv` 已登记 `tests/config`（本卡落地）；③**交接**：`ci/checks.json` + `docs/ci/01_CHECKS.md §2` 尚无 `UT-CONFIG` 步骤（`ci/**`、`docs/ci/**` 不在本卡文件域 S6-A），建议新增 `python3 -B -m unittest discover -s tests/config -t tests/config` 一步并与 §2 双向对齐；④`tests/**` 另有 6 个目录未登记（含新出现的 `tests/gaia_zlib`），已登记为缺口清单，门要求「未登记集合 ⊆ 清单」 | §12；门 CFG002-07 |
+| 7 | ENGINEERING_SPEC §7 根目录清单缺 `config/` | **已落**：`ENGINEERING_SPEC.md:105` 现列 `config/`（程序根全局配置，CFG-001 建立，GAP-033）；本卡不改该文档 | `ENGINEERING_SPEC.md` §7 |
+
+### 8.1 本卡新增的跨域交接项（不在 CFG-002 文件域，供前台派线）
+
+| 项 | 现状（实测） | 建议改法 | 归属 |
+|---|---|---|---|
+| `ci/checks.json` 无 config 门 | CHK-UNIT 的 13 个 UT-* 步骤不含 tests/config；`CON-CONFIG-CONTRACTS` 检查的是 legacy `docs/development/CONFIG_SCHEMA.md` + `lib/algorithms/coverage/src/stage2_common.cpp` 的 `weight_mode` 整数默认（与 phase_config 的字符串枚举不是同一面） | 在 CHK-UNIT 增 `UT-CONFIG` 步骤并与 `docs/ci/01_CHECKS.md §2` 双向对齐 | CI 线（`ci/**`、`docs/ci/**`） |
+|  `$defs.kernel_v1/kernel_v2` 未接线 | 0 处 `$ref`；workers/block/provider 约束定义但未施加 | 接线到 `profile_v2.properties.kernels.additionalProperties` 与 `legacy_v1.items`，同步 profile_gen_v2 与负例 | CPU/benchmark 线 |
+| 插件文档与 SCI/ALG 冲突 4 条 | `psf_model=gauss` vs Moffat4；`pixfrac=1.0` vs pending；`detection_threshold` 局部/全局语义；`flux_zero_point` vs 已删字段 | 逐条由负责人裁决后订正 `docs/plugins/**`（本卡不改插件文档） | 负责人裁决 + DOC 线 |
+| plugin 级默认缺口 22 行 + 未登记字段 28 行 | 见 `config_registry.json#plugin_knobs`（finding=gap/unregistered） | 由负责人裁决字段归属后另立任务落地（不得由 Agent 自选字段） | 负责人裁决 |
+
+## 9 旋钮与默认登记册 `config/config_registry.json`（`astrocs.config-registry/v1`）
+
+- **覆盖面**：`docs/plugins/*/*.md` 的配置项表**全集**（23 篇 / 96 行）逐行登记，一行一个 `(module, field)`，字段：`doc/line/declared_default/unit/owner_class/registration/registered_at/registered_key/finding/note/conflict`。
+- **owner_class**（归属类，一行恰一个）：`science_param`（影响科学结果，必须有 SCI/ALG 条款或已登记配置类承载）· `runtime_policy`（运行期/实现/IO/观测策略，权威 = 插件文档或 algorithms/contracts 文档，**禁入 phase_config**）· `cli_surface`（命令行参数面）· `resource_binding`（线程/资源预算，cpu_profile 或调度器，禁硬编码、禁入 phase_config）。
+- **finding**：`none`（已闭合）· `gap`（插件声明了默认值但无 SCI/ALG 权威、未进任何配置类）· `unregistered`（无默认且字段本身未登记）· `conflict`（与 SCI/ALG 权威或已登记配置冲突，必须带 `conflict.{kind,evidence,owner}`）。
+- **实测分布（2026-09-17）**：96 = none 42 / gap 22 / conflict 4 / unregistered 28；归属 science_param 67 / runtime_policy 20 / cli_surface 6 / resource_binding 3；登记点 defaults_json 6 / phase_config 9 / inputs_block 8 / cpu_profile 2 / plugin_doc 11 / contracts_doc 3 / cli 6 / none 51。
+- **4 条冲突（禁止两存，须负责人裁决）**：①`04_psf.psf_model=gauss` vs `psf.default_model=moffat4`（SCI 权威 `docs/science/PSF.md:7,:81`）；②`08_drizzle.pixfrac=1.0` vs defaults pending（数值权威 SCI-RES-01/R-005；实现模板 0.8）；③`03_star_detection.detection_threshold` 的「局部 σ」vs defaults 的「全局阈值」语义（数值同为 5.0）；④`06_photometry.flux_zero_point` vs `docs/algorithms/PHOTOMETRIC_FIT.md:9` 已删除该字段。
+- **module.yaml 面**：实测 20 份 `lib/**/module.yaml` 的顶层键只含契约/端口/构建/证据字段，**无任何旋钮或默认值声明字段**（因此「module.yaml 声明的可调项是否都登记」当前空集成立）；门 CFG002-06 断言键集闭包——出现 `knobs/knob/params/parameters/config/configs/defaults/tunables/options/settings` 任一键即判红，新增旋钮声明必须先在本册登记归属。
+- **维护规则**：本册是**人工维护**的登记面；文档变化必须由人重新判定归属。禁止用生成脚本批量刷新制造绿灯（ENGINEERING_SPEC §8 fail-closed）；本册不复制科学数值（数值唯一源 = defaults.json / phase_config schema）。
+
+## 10 滤镜名匹配语义（可执行规则 + 正反例）
+
+```text
+rule:   resolve(name) = filters[name] if name in keys(filters) else ERROR(unknown_filter)
+        （lookup.match=exact、case_sensitive=true、normalization=none、aliases={}）
+positive: "Baader R" | "Johnson V" | "SDSS r" | "OPTOLONG L-PRO Light Pollution"  -> 命中
+negative: "bader r" | "bader v" | "baader r" | "BAADER R" | "Baader  R" | " Baader R" -> ERROR
+```
+
+- 三份 phase_config schema 的 `filter` 字段 enum 必须逐项等于库键（45），门同时断言 `enum == keys(filters)`。
+- 正反例由门 CFG002-04 在每个消费滤镜的 phase（normalize/mosaic）上**双向**复跑：反例必须被拒、正例必须通过；`non_key_examples` 的 `where` 锚点（`ASTROCS_DESIGN.md:128/:130`）必须真的含该串。
+- 归一化被**显式拒绝**（不是「暂未实现」）：`aliases` 为空对象即声明「无别名」；将来要支持别名必须先登记（登记=改合同，需权威条款 + 机器门 + 迁移说明）。
+
+## 11 `cpu_profile.host.os_abi` 值域（冻结）
+
+```text
+enum:      { "linux", "windows" }
+derivation: hardware_inspect.cpp:255-261（_WIN32 -> "windows"，否则 -> "linux"）
+            profile_gen_v2.cpp:568（缺 os 字段回落 "linux"）
+platform:   ENGINEERING_SPEC.md §1（Windows 10+ amd64 / Linux amd64）
+consumer:   cpu_routing.cpp:271-275（与 hw os.name 逐字比较，不等 -> stale_machine）
+negative:   tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json（os_abi=freebsd -> REJECT）
+```
+
+- 值域是**转录**（生产者字面量集合），不是编造；非该集合 fail-closed（不夹逼、不改写、不降级）。
+- 合成夹具字面量（`tests/unit/cpu007_profile_store_test.cpp:56` 的 `linux-test`）不经 schema 校验，属测试内构造；若将来把 schema 校验接进 profile_store，该夹具需同步（已登记在登记册 `os_abi.known_non_production_literal`）。
+
+## 12 索引归属（单一事实源）
+
+| 面 | 归属 | 事实源 | 门 |
+|---|---|---|---|
+| 配置数据与模板 | `config/**`（defaults.json / filters.json / templates/*.json） | 数据本体；**不含 schema** | CFG002-07（config 下出现 `*.schema.json` 即红） |
+| 模块/CLI 契约 schema | `contracts/config/**` | cli_modules_list / cli_selftest / module_dll_contract / module_lifecycle_contract | CFG002-07（全为 schema；与 config/** 不得同名） |
+| phase_config schema | `contracts/schemas/phase_config_{normalize,mosaic,export}.schema.json` | 三份 phase 专属；无聚合第二定义 | `test_no_aggregate_second_definition` |
+| 文档事实源 | `docs/contracts/CONFIG_CONTRACT.md`（本文件） | 语义与索引 | CFG002-07（DOCUMENT_INDEX 恰一次 + ACTIVE_NORMATIVE） |
+| 文档索引 | `docs/DOCUMENT_INDEX.yaml` | docs/** 与根治理文档 | `tools/doccheck/check_doc_index.py` |
+| 测试登记 | `tests/test_index.csv` | tests/** 子目录 | CFG002-07（登记 tests/config；未登记集合 ⊆ 已登记缺口清单） |
+| CI 注册表 | `ci/checks.json` ↔ `docs/ci/01_CHECKS.md §2` | 检查项双向对齐 | **交接**：无 UT-CONFIG 步骤（见 §8.1） |
+
+CFG002-ANCHOR: item5-index-ownership → config/config_registry.json
