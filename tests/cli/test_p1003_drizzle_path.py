@@ -38,13 +38,18 @@ class TestP1003DrizzlePath(unittest.TestCase):
             self.assertNotIn(sym, text, f"CLI 源码含 {sym} 直连")
 
     def test_03_drizzle_command_rejects_production(self):
-        """cmd_drizzle 拒绝生产调用(仅测试 preset), 退出码 ARGS(2)。"""
+        """drizzle 用户命令已删除（ASTROCS_DESIGN §6.2 唯一命令树; CLI-001 rc 矩阵）:
+        作为生产命令不可达 ⇒ 未知命令 rc=2(ARGS), 错误面指向新命令树。
+        旧断言 "stderr 含 preset"（旧 cmd_drizzle 仅测试 preset 的语义）已随命令删除;
+        本用例保留其真实意图「drizzle 不得作为生产命令运行」并加强为"命令不存在"。
+        """
         if not os.path.isfile(EXE):
             self.skipTest("CLI 二进制缺失")
         r = subprocess.run([EXE, "drizzle"], capture_output=True, text=True, timeout=60,
                            cwd=run_cwd())
         self.assertEqual(r.returncode, 2, r.stderr)
-        self.assertIn("preset", r.stderr)
+        self.assertIn("unknown command 'drizzle'", r.stderr)
+        self.assertIn("astrocs normalize", r.stderr, "错误面必须给出 §6.2 命令树")
 
     def test_04_prod_callgraph_no_hp_drizzle(self):
         """生产可达性检查: CLI 生产路径无 hp_drizzle 直连(REACH_PASS)。"""

@@ -40,27 +40,25 @@ LEGACY_COMMANDS = [
 
 @unittest.skipUnless(shutil.which("cmake") and shutil.which("g++"), "需要 cmake/g++")
 class TestCliBuild(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.bdir = tempfile.mkdtemp(prefix="astrocs_cli_build_")
-        # CLI-001: cli/ 独立图（compatibility target）的源文件路径行正由 ARCH-001
-        # 做 lib/** → lib/algorithms|infrastructure/** 的机械替换；替换未落盘前
-        # configure 必然失败。这不是本任务的红：跳过并给出可诊断原因，
-        # 不得把迁移中间态伪装成 CLI 违规（产品事实源是根 CMakeLists.txt）。
-        cfg = subprocess.run(["cmake", "-S", CLI, "-B", cls.bdir],
-                             capture_output=True, text=True, timeout=120)
-        if cfg.returncode != 0:
-            tail = "\n".join((cfg.stderr or cfg.stdout).splitlines()[-6:])
-            raise unittest.SkipTest(
-                "cli/ 独立图 configure 失败（ARCH-001 lib/** 迁移未落盘: 路径行待替换）\n" + tail)
-        subprocess.run(["cmake", "--build", cls.bdir, "-j2"], check=True, capture_output=True, timeout=900)
-        exe = os.path.join(cls.bdir, "astrocs")
-        assert os.path.isfile(exe), exe
-        cls.exe = exe
+    """被测对象 = **根产品图**产出的唯一 exe（build/astrocs; ASTROCS_CLI_BIN 可覆盖）。
+
+    退役登记: 旧 setUpClass 以 cmake -S cli -B <tmp> 构建 cli/ 独立图（compatibility
+    target）; BLD-002 明确唯一产品事实源是根 CMakeLists.txt, 且该独立图在 ARCH-001
+    lib/** 迁移中间态必然 configure 失败 ⇒ 该构建路径退役（不是产品缺陷, 也不再 skip）;
+    cli/CMakeLists.txt 的 compat 属性仍由 test_05/test_06 静态断言覆盖。
+    """
 
     @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree(cls.bdir, ignore_errors=True)
+    def setUpClass(cls):
+        env = os.environ.get("ASTROCS_CLI_BIN")
+        cands = [env] if env else []
+        cands += [os.path.join(REPO, "build", "astrocs"),
+                  os.path.join(REPO, "build", "cli", "astrocs")]
+        for cand in cands:
+            if cand and os.path.isfile(cand):
+                cls.exe = cand
+                return
+        raise AssertionError("先构建根产品 exe: cmake -S . -B build && ninja -C build astrocs")
 
     def run_cli(self, *args):
         return subprocess.run([self.exe, *args], capture_output=True, text=True, timeout=30,
@@ -69,8 +67,9 @@ class TestCliBuild(unittest.TestCase):
     def test_01_version_format(self):
         r = self.run_cli("--version")
         self.assertEqual(r.returncode, 0)
+        # 根图用 rev-parse HEAD 全 40 hex（旧 cli/ 独立图才是 --short=12, 已退役）
         self.assertRegex(r.stdout.strip(),
-                         r"^astrocs " + re.escape(_repo_version()) + r"\+g[0-9a-f]{12}(\.dirty)?$")
+                         r"^astrocs " + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")
 
     def test_02_version_json_single_document(self):
         r = self.run_cli("--version", "--json")
@@ -80,7 +79,8 @@ class TestCliBuild(unittest.TestCase):
         doc = json.loads(lines[0])
         self.assertEqual(doc["name"], "astrocs")
         self.assertEqual(doc["schema_version"], "1")
-        self.assertRegex(doc["version"], r"^" + re.escape(_repo_version()) + r"\+g[0-9a-f]{12}")
+        self.assertRegex(doc["version"],
+                         r"^" + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")
 
     def test_03_help_matches_contract(self):
         # §6.2 逐行对照: help 恰为本表（不多不少），且 `help` 与 `--help` 同文本
