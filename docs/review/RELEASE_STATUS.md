@@ -1,3 +1,5 @@
+> **ARCHIVED_NON_NORMATIVE（DOC-001，2026-09-16）**：本文属旧文档体系，已由 docs/DOCUMENT_INDEX.yaml 移出活动索引，不再作为当前权威；替代见该索引 replacement 字段（API_REFERENCE -> docs/api/**；ARCHITECTURE -> docs/architecture/**；docs/review -> docs/owner/**）。保留仅作历史追溯。
+
 # RELEASE_STATUS — L0 治理评审层（发布状态）
 
 > 文档 ID：DOC-REVIEW-RELEASE-001
@@ -34,8 +36,8 @@ NOT_READY_FOR_RELEASE。
 | CLI 协议合同 v1 | `docs/api/CLI_PROTOCOL_V1.md`（API-CLI-001，与 `cli/parser.cpp` kRules 对齐） |
 | 三入口隔离 | CLI-002：phase1/2/3 run 唯一 run 入口；run/graph 已删（负测 exit 2） |
 | 资源门禁接线 | RT-001（`91440c16`）冻结阈值 + MON-004：`cli/resource_gate.h` evaluate_gate 进入 phaseN run（exit 10） |
-| 三 Phase 节点化（§F.1 每节点唯一 operation） | P1-001/`9e09941a`、P2-001/`439f9f20`、P3-002/`1a56ffb7`；`lib/core/src/module_adapters.cpp`:4257/:4282/:4309 |
-| Phase3 冻结四投影 registry（TAN/SIN/CAR/AIT） | P3-001/`9953f103`；`lib/phase3_proj/p3_projection.cpp`:267-273（生产挂载 entrypoint=MISSING，未 INSTALLED） |
+| 三 Phase 节点化（§F.1 每节点唯一 operation） | P1-001/`9e09941a`、P2-001/`439f9f20`、P3-002/`1a56ffb7`；`lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309 |
+| Phase3 冻结四投影 registry（TAN/SIN/CAR/AIT） | P3-001/`9953f103`；`lib/algorithms/projection/p3_projection.cpp`:267-273（生产挂载 entrypoint=MISSING，未 INSTALLED） |
 | 科学模块安装面 + 产品清单 | MOD-001/`59fdeab3`：`cmake/install_layout.cmake` + `packaging/astrocs.product.json` units=10 + 安全 loader 实测 64/64 |
 | CLI validate/plan/inspect 薄命令面 | CLI-001/`026717fd`：`cli/parser.cpp` kRules + `tests/cli/test_cli001_vpi.py` 15/15 |
 | C ABI v1 / DLL schema | `include/astrocs/abi/*.h` + `contracts/config/module_dll_contract.schema.json` |

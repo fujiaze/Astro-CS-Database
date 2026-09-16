@@ -1,3 +1,5 @@
+> **ARCHIVED_NON_NORMATIVE（DOC-001，2026-09-16）**：本文属旧文档体系，已由 docs/DOCUMENT_INDEX.yaml 移出活动索引，不再作为当前权威；替代见该索引 replacement 字段（API_REFERENCE -> docs/api/**；ARCHITECTURE -> docs/architecture/**；docs/review -> docs/owner/**）。保留仅作历史追溯。
+
 # PIPELINE_OVERVIEW — L0 治理评审层（管线）
 
 > 文档 ID：DOC-REVIEW-PIPELINE-001
@@ -40,17 +42,17 @@ Phase3: 任一合同兼容 HiPS（不要求来自 Phase2） → 平面 FITS + WC
 
 - Phase1：`io_read → calibrate → cosmetic → io_write`
   （`lib/phase1_session/p1_session.cpp`）；模块族 `astrocs.phase1.*`
-  注册于 `lib/core/src/module_adapters.cpp`，端口登记于
+  注册于 `lib/infrastructure/scheduler/src/module_adapters.cpp`，端口登记于
   `runtime/pipeline/module_ports.registry.json`。
 - Phase2：`coverage → sample → upm → reject → integrate → write`
-  （`lib/phase2_session/p2_session.cpp`、`lib/phase2/src/*.cpp`）。
+  （`lib/phase2_session/p2_session.cpp`、`lib/algorithms/coverage/src/*.cpp`）。
 - Phase3：会话路径 TAN 投影 + nearest/bilinear 重采样 + FITS 原子写
   （`lib/phase3_session/` 下 p3_session/p3_wcs/p3_resample/p3_output）；
-  冻结四投影 TAN/SIN/CAR/AIT 已在 `lib/phase3_proj/p3_projection.cpp`（registry v1）
+  冻结四投影 TAN/SIN/CAR/AIT 已在 `lib/algorithms/projection/p3_projection.cpp`（registry v1）
   实现并通过 ctest/Oracle（生产挂载未切换，`entrypoint: MISSING`）；
   `healpix_interp4` 未实现，不宣称。
 - 三 Phase 节点化（每 IR 节点唯一真实 operation，§F.1）已完成：
-  `lib/core/src/module_adapters.cpp`:4257/:4282/:4309；
+  `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309；
   ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes` 在 BASE=`da3c4b4a` 实测 rc=0。
 
 ## 4. 已知缺口（如实记录）

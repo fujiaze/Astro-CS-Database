@@ -1,22 +1,34 @@
-# AstroCS 文档体系（L0-L5）
+# AstroCS 文档体系（文档集分层 + 机器索引）
+
+机器索引（活动/归档边界与校验）：`docs/DOCUMENT_INDEX.yaml` +
+`python3 tools/doccheck/check_doc_index.py --strict`。
+
+权威链（`ASTROCS_DESIGN.md` §0，唯一）：`ASTROCS_DESIGN.md` → `AGENTS.md` →
+`ENGINEERING_SPEC.md` → `CONTROL_PACK_SPEC.md` → `docs/ci/` → `docs/plugins/`（23 篇）；
+另立 `docs/science/`（公式权威）、`docs/algorithms/`（推导权威）、
+`docs/design/UNIFIED_MODEL.md`（数据对象与三类配置分离）。与其他文档冲突时以
+`ASTROCS_DESIGN.md` 为准。
 
 ```text
-L0 项目入口      README.md / docs/DEVELOPER_GUIDE.md /
-                 docs/RELEASE_STATUS.md / docs/KNOWN_LIMITATIONS.md /
-                 CHANGELOG.md
-L1 科学规范      docs/science/*.md（定义/公式/变量/单位/假设/域/误差/ID）
-L2 算法规范      docs/algorithms/*.md（输入/输出/前后置/不变量/伪代码/复杂度/oracle）
-L3 工程架构      docs/ARCHITECTURE.md（Engineering Anchor 133行 §1-8 主锚） + docs/API_REFERENCE.md（接口契约） + docs/architecture/*.md（分层/模块/依赖/数据流/所有权/线程/错误/缓存/IO/性能/兼容） + 工程控制/docs/18_CODE_CHANGE_MAP.md Stage C增补
-L4 实现标准      docs/standards/*.md（编码/注释/数值/API/C ABI/并发/错误/IO/日志/测试/基准/文档/发布）
-L5 模块文档      docs/modules/<module>.md（固定模板）
-历史             docs/history/（memory.md、Vxx audit 迁入，不作 current authority）
-追溯             docs/TRACEABILITY.csv（唯一矩阵）
+L0 最高设计/纪律   ASTROCS_DESIGN.md / AGENTS.md / ENGINEERING_SPEC.md / CONTROL_PACK_SPEC.md
+L0 项目入口        README.md / docs/RELEASE_STATUS.md / docs/KNOWN_LIMITATIONS.md /
+                   docs/DEVELOPER_GUIDE.md / HANDOVER.md / memory.md
+L1 科学规范        docs/science/*.md（定义/公式/变量/单位/假设/域/误差/ID；权威）
+L2 算法规范        docs/algorithms/*.md（输入/输出/前后置/不变量/伪代码/复杂度/oracle；权威）
+L3 数据与设计      docs/design/UNIFIED_MODEL.md / docs/contracts/*.md / docs/interfaces/** /
+                   docs/api/*.md（CLI 协议与 Phase API）/ docs/architecture/*.md
+L4 CI 与插件       docs/ci/**（怎么查、哪些是门禁）/ docs/plugins/**（23 篇模块规范）
+L5 模块文档        docs/modules/**（module 页 + MODULE_MAP.yaml + registry/**）
+历史（非权威）      docs/archive/**、docs/**/v6/**（V6 产品族冻结/设计档案）、
+                   docs/review/**、docs/API_REFERENCE.md、docs/ARCHITECTURE.md
+                   （均已标 ARCHIVED_NON_NORMATIVE 并移出活动索引）
 ```
 
-权威链：Wiki(核心约束) → Scientific Requirement → Scientific Definition → Algorithm Contract →
-Architecture → Module/API/Data Contract → Implementation Standard → Source →
-Test → Diagnostics → Release Acceptance。
-
-- Wiki 为 L0 前置核心约束（见 V19R8 S0：Wiki 索引与 L1-L5 一一对应，矛盾以 Wiki 为准；三件套 `30_WIKI_TO_CODE_QUALITY_V19R8_SPEC.md` / `QA_V19R8_QUALITY.md` / `QA-V19R8-QUALITY-OPTIMIZATION.md`）。
-
-机器一致性：tools/docs_machine_consistency.py（S8 gate）。
+- 任务状态与发布结论只写在 `工程控制/PROJECT-GOVERNANCE-01/`（控制包）与
+  `docs/owner/RELEASE_STATUS.md`；状态词唯一口径 = `ASTROCS_DESIGN.md` §11.3。
+- 已删除且不得再作现状引用的旧体系：根 `ASTROCS_PROJECT_CONSTITUTION.md`、
+  旧工程约束、旧 `CHANGELOG.md`/`REVIEW.md`/`HANDOVER.md`、`设计大纲/`、
+`evidence/**`、旧历史控制包归档树与旧 `工程控制/AstroCS_*` 控制包（均已删除）
+  （ROOT-007）。
+- 机器一致性：`tools/docs_machine_consistency.py` 等检查器以 `ci/checks.json` 为唯一注册表
+  （`docs/ci/01_CHECKS.md`）。

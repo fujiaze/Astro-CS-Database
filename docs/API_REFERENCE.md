@@ -1,6 +1,8 @@
+> **ARCHIVED_NON_NORMATIVE（DOC-001，2026-09-16）**：本文属旧文档体系，已由 docs/DOCUMENT_INDEX.yaml 移出活动索引，不再作为当前权威；替代见该索引 replacement 字段（API_REFERENCE -> docs/api/**；ARCHITECTURE -> docs/architecture/**；docs/review -> docs/owner/**）。保留仅作历史追溯。
+
 # AstroCS API Reference (Engineering Anchor — Stage C)
 
-> 阶段: Stage C 只读锚定 (V19R3 True Final Freeze) — 唯一输入 `lib/*/include/*.h` `lib/orchestrator/configs/*` `lib/phase2/configs/*` `tools/*.py`；本文件不改代码，仅锚定公共头暴露的函数/类型签名节选、参数/返回值/错误码、线程/所有权契约与追溯 ID。与 `docs/ARCHITECTURE.md §5` 压缩映射一致、与 `docs/architecture/ERROR_MODEL.md` 错误码全集合一致，契约细节以头文件注释为准。
+> 阶段: Stage C 只读锚定 (V19R3 True Final Freeze) — 唯一输入 `lib/*/include/*.h` `lib/infrastructure/pipeline/orchestrator/configs/*` `lib/algorithms/coverage/configs/*` `tools/*.py`；本文件不改代码，仅锚定公共头暴露的函数/类型签名节选、参数/返回值/错误码、线程/所有权契约与追溯 ID。与 `docs/ARCHITECTURE.md §5` 压缩映射一致、与 `docs/architecture/ERROR_MODEL.md` 错误码全集合一致，契约细节以头文件注释为准。
 
 权威链: `Wiki → Science(L1) → Algorithm(L2) → Architecture(L3, ARCHITECTURE.md) → Standards(L4) → Modules(L5) → 本清单(L3 附录, 接口契约视图) → Source → Test`；机检 `tools/docs_machine_consistency.py 9/9` + `tools/config_consistency_check.py 0 mismatches`。
 
@@ -13,10 +15,10 @@
 
 | 模块 | 头文件 | 前缀 | 函数/类型(签名节选) | 参数/返回值/错误码要点 | 追溯ID |
 |---|---|---|---|---|---|
-| common | `lib/common/healpix/healpix_core.h` | `astrocs::healpix` | `uint64_t ang2pix_nest(uint32_t nside, double ra, double dec)` / `void pix2ang_nest(uint32_t nside, uint64_t ipix, double& ra, double& dec)` / `nested_local_to_xy / xy_to_nested_local / parent_nest / child_nest / query_disc / neighbors / leaf_to_tile_nest` | 仅 header + `healpix_core.cpp` 实现；`nside` 2^n；`ang2pix` 内归一 `ra` 任意值 `dec∈[-90,90]`；`pix2ang` 越界 `ra=dec=0`；NESTED 唯一实现 (`common/healpix_core` 被 `healpix_drizzle`/`astro_image_io`/`browser` 复用，禁止第二套) | SCI-DRZ/UPM `docs/science/HEALPIX_MAPPING.md` `docs/algorithms/HEALPIX_MAPPING.md` B4-01 去重 |
-| common | `lib/common/crypto/sha256.h` | `astrocs::crypto` | `string sha256_hex(const void* data,size_t len)` / `class Sha256 { update(); final_hex(); }` | `sha256_hex` 纯函数；`Sha256` 增量，`final_hex` 后禁止再 `update`；供 `aio_upm` 校验 `source_hash/checksum` 与 `phase2` `model_hash` | DATA-FRAME-ID-001, `docs/architecture/IO_AND_ATOMICITY.md` |
-| common | `lib/common/include/astro_scalar.h` | `AstroScalarType` | `enum AstroScalarType:uint8_t {FP32=0,FP64=1}` / `AstroScalarTraits<S>` / `astro_scalar_type_name/size` / `ASTRO_SCALAR_DISPATCH` | `uint8_t` ABI 稳定；`DISPATCH` 运行时→编译时 `float/double` 分发 | SCI-DRZ `docs/science/DRIZZLE.md` 双精度 ABI |
-| common | `lib/common/include/precision_context.h` | `PrecisionContext` | `PrecisionContext::instance().set_scalar_type / scalar_type() / is_fp32/is_fp64` | 单例全链路统一精度；仅启动阶段写入、数据阶段只读无锁；默认 `FP32` 历史兼容；跨 DLL 由 `aio_set_precision_mode` 显式传递 | 同上，`lib/orchestrator Stage1Config.precision` |
+| common | `lib/algorithms/shared/healpix/healpix_core.h` | `astrocs::healpix` | `uint64_t ang2pix_nest(uint32_t nside, double ra, double dec)` / `void pix2ang_nest(uint32_t nside, uint64_t ipix, double& ra, double& dec)` / `nested_local_to_xy / xy_to_nested_local / parent_nest / child_nest / query_disc / neighbors / leaf_to_tile_nest` | 仅 header + `healpix_core.cpp` 实现；`nside` 2^n；`ang2pix` 内归一 `ra` 任意值 `dec∈[-90,90]`；`pix2ang` 越界 `ra=dec=0`；NESTED 唯一实现 (`common/healpix_core` 被 `healpix_drizzle`/`astro_image_io`/`browser` 复用，禁止第二套) | SCI-DRZ/UPM `docs/science/HEALPIX_MAPPING.md` `docs/algorithms/HEALPIX_MAPPING.md` B4-01 去重 |
+| common | `lib/algorithms/shared/crypto/sha256.h` | `astrocs::crypto` | `string sha256_hex(const void* data,size_t len)` / `class Sha256 { update(); final_hex(); }` | `sha256_hex` 纯函数；`Sha256` 增量，`final_hex` 后禁止再 `update`；供 `aio_upm` 校验 `source_hash/checksum` 与 `phase2` `model_hash` | DATA-FRAME-ID-001, `docs/architecture/IO_AND_ATOMICITY.md` |
+| common | `lib/algorithms/shared/include/astro_scalar.h` | `AstroScalarType` | `enum AstroScalarType:uint8_t {FP32=0,FP64=1}` / `AstroScalarTraits<S>` / `astro_scalar_type_name/size` / `ASTRO_SCALAR_DISPATCH` | `uint8_t` ABI 稳定；`DISPATCH` 运行时→编译时 `float/double` 分发 | SCI-DRZ `docs/science/DRIZZLE.md` 双精度 ABI |
+| common | `lib/algorithms/shared/include/precision_context.h` | `PrecisionContext` | `PrecisionContext::instance().set_scalar_type / scalar_type() / is_fp32/is_fp64` | 单例全链路统一精度；仅启动阶段写入、数据阶段只读无锁；默认 `FP32` 历史兼容；跨 DLL 由 `aio_set_precision_mode` 显式传递 | 同上，`lib/infrastructure/pipeline/orchestrator Stage1Config.precision` |
 
 ---
 

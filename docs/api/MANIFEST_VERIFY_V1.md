@@ -68,4 +68,4 @@ cpu profile(独立文件, `{"schema_version":"1","kind":"astrocs_cpu_profile","c
 ## 5 任务映射与测试
 
 - 实现: cli/main.cpp(cmd_config_validate 强化/cmd_show_effective/cmd_verify/cmd_run 收尾写 manifest);golden: tests/cli/test_cli_protocol.py 追加 mutation 组(schema_version 篡改/未知键/路径不存在/hash 篡改/stale profile/status incomplete/版本不一致), 每组断言退出码。
-- hash 工具: cli 内 sha256 实现(CRYPTO 公共层 lib/common/crypto 已有 sha256, 链接复用; CLI 侧封装 file_sha256)。
+- hash 工具: cli 内 sha256 实现(CRYPTO 公共层 lib/algorithms/shared/crypto 已有 sha256, 链接复用; CLI 侧封装 file_sha256)。

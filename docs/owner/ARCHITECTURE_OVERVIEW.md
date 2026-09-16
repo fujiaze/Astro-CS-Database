@@ -5,7 +5,7 @@
 > 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003）
 > 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
 > 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
-> 权威：`AstroCS_ENGINEERING_CONSTRAINTS.md` §B/C/D/F、`docs/contracts/ARCH-001.md`、
+> 权威：`ASTROCS_DESIGN.md` §7（软件架构）、`ENGINEERING_SPEC.md` §7/§10、`docs/contracts/ARCH-001.md`、
 > `docs/architecture/*.md`、`docs/api/*`、`contracts/config/module_dll_contract.schema.json`。
 > 状态词约定同 `docs/owner/RELEASE_STATUS.md` §0（DOC-CONV-001 唯一口径）。
 
@@ -50,11 +50,11 @@
 
 | 项 | 状态 | 依据（当前提交内可核） |
 |---|---|---|
-| 根 CMake `ASTROCS_ENABLE_ACR` 默认 OFF 且不 add_subdirectory(lib/acr) | PASS | `CMakeLists.txt`：option 默认 OFF；仅 `tests/unit` add_subdirectory；message 显示 ACR 状态 |
+| 根 CMake `ASTROCS_ENABLE_ACR` 默认 OFF 且不 add_subdirectory(lib/infrastructure/acr) | PASS | `CMakeLists.txt`：option 默认 OFF；仅 `tests/unit` add_subdirectory；message 显示 ACR 状态 |
 | Windows preset 强制 `ASTROCS_ENABLE_ACR=OFF` | PASS | `CMakePresets.json` base-msvc/linux-control cacheVariables |
-| CLI 链接图不含 ACR（`astrocs` target 链接表无 lib/acr 源） | PASS | `CMakeLists.txt` add_executable 链接清单静态可核（无 acr target） |
-| `lib/acr` 保留（源码 + 独立 CMake + tests/qualification/ci） | PASS | `lib/acr/` 目录与 CMakeLists 在位（SA-ACR-13 域） |
-| lib/phase2 的 `acr_kernels.cpp`/`cuda_bridge_stub.cpp` 编译进生产模块 | PASS（如实记录） | 根 CMake astrocs_phase2 源含 `cuda_bridge_stub.cpp`（stub）；`lib/phase2/src/acr_kernels.cpp` 不在根 CMake 源表（LEG-004 注释）；约束禁止 ACR/CUDA 进入生产构建，stub 是否存在运行时 CUDA 依赖属他人路径审计项，本文不裁定 |
+| CLI 链接图不含 ACR（`astrocs` target 链接表无 lib/infrastructure/acr 源） | PASS | `CMakeLists.txt` add_executable 链接清单静态可核（无 acr target） |
+| `lib/infrastructure/acr` 保留（源码 + 独立 CMake + tests/qualification/ci） | PASS | `lib/infrastructure/acr/` 目录与 CMakeLists 在位（SA-ACR-13 域） |
+| lib/algorithms/coverage 的 `acr_kernels.cpp`/`cuda_bridge_stub.cpp` 编译进生产模块 | PASS（如实记录） | 根 CMake astrocs_phase2 源含 `cuda_bridge_stub.cpp`（stub）；`lib/algorithms/coverage/src/acr_kernels.cpp` 不在根 CMake 源表（LEG-004 注释）；约束禁止 ACR/CUDA 进入生产构建，stub 是否存在运行时 CUDA 依赖属他人路径审计项，本文不裁定 |
 | ACR 不进入 benchmark/发布包 | PASS（合同）+ NOT_VERIFIED（执行） | 合同面由约束 §C.1 与 preset 保证；benchmark 不含 ACR 的执行证据未在当前提交复跑 |
 
 结论：**ACR = DORMANT**（保留源码/隔离测试；生产构建默认排除；不加载不发布）。
@@ -64,10 +64,10 @@
 
 | 项 | 状态 | 依据 |
 |---|---|---|
-| 唯一生产 Runtime（`astrocs_core`）：load_pipeline→run→cancel→inspect | PASS（源码在位） | `include/astrocs/core/runtime.h`、`lib/core/src/runtime.cpp`、`cli/runtime_client.cpp` 静态可核 |
+| 唯一生产 Runtime（`astrocs_core`）：load_pipeline→run→cancel→inspect | PASS（源码在位） | `include/astrocs/core/runtime.h`、`lib/infrastructure/scheduler/src/runtime.cpp`、`cli/runtime_client.cpp` 静态可核 |
 | 类型化运行图合同（typed DAG schema/validator/registry） | PASS（合同冻结） | `runtime/pipeline/typed_dag.py` + `typed_dag.schema.json` + `module_ports.registry.json`（RT-001，pytest 24/24 已在集成提交验收） |
-| 模块注册表（register_phase_modules：P1/P2/P3 模块族 + factory） | `IMPLEMENTED` | `lib/core/src/module_adapters.cpp`:4257/:4282/:4309 —— P1 八节点 / P2 七节点 / P3 五节点各经 `make_p1/p2/p3_node_module` 绑定**唯一真实 operation**（约束 §F.1 已达成）；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 本提交实测 4/4 PASS |
-| 唯一 executor + 实测资源门（RT-001） | `IMPLEMENTED` | `lib/core/src/executor_runtime.h`（进程唯一池注册点）+ `module_adapters.cpp`:3777-3793（P3 行带经租约提交）+ `tools/monitoring/run_monitored.py` `evaluate_frozen_gate()`；ctest `rt001_unique_executor` 本提交实测 PASS（`91440c16`） |
+| 模块注册表（register_phase_modules：P1/P2/P3 模块族 + factory） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309 —— P1 八节点 / P2 七节点 / P3 五节点各经 `make_p1/p2/p3_node_module` 绑定**唯一真实 operation**（约束 §F.1 已达成）；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 本提交实测 4/4 PASS |
+| 唯一 executor + 实测资源门（RT-001） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`（进程唯一池注册点）+ `module_adapters.cpp`:3777-3793（P3 行带经租约提交）+ `tools/monitoring/run_monitored.py` `evaluate_frozen_gate()`；ctest `rt001_unique_executor` 本提交实测 PASS（`91440c16`） |
 | ThreadBudget/ThreadLease 合同 | PASS（合同冻结） | `include/astrocs/core/context.h`、RT-001.md §2.4；RT-002 budget 测试在 tests/unit |
 | 模块不得私建永久线程池/硬编码核数 | `CONTRACT_READY`（合同）+ `NOT_VERIFIED`（全域扫描） | 约束 §D.3；RT-001 已把 Phase3 行带自建线程池改为唯一 executor 提交（实测）；其余模块的全域静态扫描属 W5/LNX 域，未在本提交复跑 |
 | 遗留 drizzle/calibration OpenMP pragma 与 `aio_pipeline` 5-stage 调度 | 保留中（如实） | 根 CMake 注释：遗留模块 omp pragma target-local 编译；ARCH-001.md §7 登记 `aio_pipeline_engine` 越权编排为已知现状差距（LEG-003 迁移），不宣称已删除 |
@@ -90,7 +90,7 @@
 
 | 契约 | 路径 | 状态 |
 |---|---|---|
-| 工程约束（根权威） | `AstroCS_ENGINEERING_CONSTRAINTS.md` | ACTIVE_NORMATIVE |
+| 最高设计（根权威）+ 工程规范 | `ASTROCS_DESIGN.md`、`ENGINEERING_SPEC.md` | ACTIVE_NORMATIVE |
 | Runtime/模块公共合同 | `docs/contracts/RT-001.md` | ACTIVE_NORMATIVE |
 | 架构职责边界 | `docs/contracts/ARCH-001.md` | ACTIVE_NORMATIVE |
 | 数据语义/产物 | `docs/contracts/DATA_SEMANTICS.md`、`DATA_ARTIFACTS.md` | ACTIVE_NORMATIVE |

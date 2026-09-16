@@ -1,3 +1,5 @@
+> **ARCHIVED_NON_NORMATIVE（DOC-001，2026-09-16）**：本文属旧文档体系，已由 docs/DOCUMENT_INDEX.yaml 移出活动索引，不再作为当前权威；替代见该索引 replacement 字段（API_REFERENCE -> docs/api/**；ARCHITECTURE -> docs/architecture/**；docs/review -> docs/owner/**）。保留仅作历史追溯。
+
 # SCIENCE_OVERVIEW — L0 治理评审层（科学）
 
 > 文档 ID：DOC-REVIEW-SCIENCE-001
@@ -33,14 +35,14 @@
 - 状态词（DOC-CONV-001 起统一）：`CONTRACT_READY`/`IMPLEMENTED`/`INSTALLED`/`VERIFIED`
   阶梯 + `NOT_IMPLEMENTED`/`NOT_VERIFIED`/`DEFERRED`/`DORMANT`/`FAIL`；
   唯一口径见 `docs/owner/RELEASE_STATUS.md` §0。
-- Phase1/2/3 科学实现源码在位（`lib/phase1_session`、`lib/phase2`、
-  `lib/phase3_session`）且**三 Phase 节点化已完成**（`lib/core/src/module_adapters.cpp`
+- Phase1/2/3 科学实现源码在位（`lib/phase1_session`、`lib/algorithms/coverage`、
+  `lib/phase3_session`）且**三 Phase 节点化已完成**（`lib/infrastructure/scheduler/src/module_adapters.cpp`
   :4257/:4282/:4309，P1 八节点 / P2 七节点 / P3 五节点各绑唯一真实 operation）；
   节点化与相关消费者用例在 BASE=`da3c4b4a` 实测 rc=0；端到端合成/门禁复跑仍未做，
   不冒充。
 - Phase3 会话路径实现 TAN 投影 + nearest/bilinear 重采样 + FITS 原子写
   （`lib/phase3_session/p3_wcs.cpp`：proj 恒 "TAN"）；负责人裁决 §18.1 冻结的
-  **四投影 TAN/SIN/CAR/AIT** 已在 `lib/phase3_proj/p3_projection.cpp` registry v1
+  **四投影 TAN/SIN/CAR/AIT** 已在 `lib/algorithms/projection/p3_projection.cpp` registry v1
   实现（`IMPLEMENTED`，生产挂载 entrypoint=MISSING 未 INSTALLED）；
   `healpix_interp4` 与流式 FITS 接入 `NOT_IMPLEMENTED`，不宣称。
 - ACR = DORMANT：保留源码与隔离测试；生产构建/加载/路由/benchmark/发布

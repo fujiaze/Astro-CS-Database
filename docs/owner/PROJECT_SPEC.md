@@ -2,11 +2,11 @@
 
 文档 ID：`ASTROCS-PROJECT-SPEC-002`  
 状态：`ACTIVE_NORMATIVE`  
-定位：冻结宪章之下，项目目标态设计的唯一总入口。本文描述 AstroCS 必须做到什么，不描述某次工程修复流水账。
+定位：`ASTROCS_DESIGN.md` 之下，项目目标态设计的细节总入口。本文描述 AstroCS 必须做到什么，不描述某次工程修复流水账。
 
 ## 1. 权威体系
 
-1. 根 `ASTROCS_PROJECT_CONSTITUTION.md` 是最高约束。
+1. 最高权威是根 `ASTROCS_DESIGN.md`（§0 权威链）；旧宪章 `ASTROCS_PROJECT_CONSTITUTION.md` 已由 ROOT-007 删除，不作权威。
 2. 本文冻结产品目标、科学目标、Phase 边界和目标态组成。
 3. 三阶段详细设计分别位于：
    - `docs/design/PHASE1_DETAILED_DESIGN.md`
