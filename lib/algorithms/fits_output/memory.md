@@ -5,7 +5,7 @@
   本目录 `lib/algorithms/fits_output/` 三件套（README r1 + module.yaml +
   memory.md）由 P3-FITS-DOC 建立。
 - 落位: `lib/algorithms/fits_output/`（本目录）。实测生产源
-  lib/phase3_session/p3_output.cpp + p3_output.h 位于
+  lib/algorithms/fits_output/p3_output.cpp + p3_output.h 位于
   lib/phase3_session/——该目录为 Phase3 会话编排域共享源
   （p3_session/p3_resample/p3_wcs/hips_properties 五源同库
   astrocs_phase3_session，根 CMakeLists.txt:460-465），非整目录
@@ -52,13 +52,13 @@
   §独立 synthetic 验证节——照 P2-INT/P2-REJ/P2-SESSION registry
   页锚先例双重陈述；可执行测试 MISSING 归 P3-FITS-TEST，不冒认）。
 - 生产源锚（grep/read 实测，2026-09-08）:
-  lib/phase3_session/p3_output.h（64 行，唯一权威签名头）:
+  lib/algorithms/fits_output/p3_output.h（64 行，唯一权威签名头）:
   P3Provenance :15-24（8 字段）、P3OutputResult :26-32
   （sha256[65]/coverage_ok/reopen_ok/covered_px/total_px）、
   P3OutputStatus :34-39（OK=0/PARAM=1/IO=2/CANCELLED=3）、原子写
   协议冻结注 :41-44、p3_output_write_atomic :45-53、verify 冻结注
   :55-56（sha256 失败→IO 不带假哈希）、p3_output_verify :57-60。
-  lib/phase3_session/p3_output.cpp（370 行）:
+  lib/algorithms/fits_output/p3_output.cpp（370 行）:
   平台宏 unlink/fsync/close/open :19-31、g_last_err :56、
   fdatasum 32-bit checksum :58-67、make_temp_path :72-84
   （tmp=out+"."+pid+".tmp" :81，同目录保证 rename 原子 :82）、
@@ -81,7 +81,7 @@
   :312、逐 HDU 尺寸门 :318-348、signal 回环 fits_read_pix :326+
   NaN==NaN 语义 :327-330、coverage 二值门 >0.5f :344-346、
   sha256 重算 :351-364）。
-  lib/phase3_session/p3_wcs.h（50 行）: P3WcsDescriptor :11-20
+  lib/algorithms/projection/p3_wcs.h（W4-A9 批次 1 迁入）: P3WcsDescriptor :11-20
   （crpix FITS 1-based pixel-center :14、cd deg/px :16、
   projection="TAN" :19）、P3WcsStatus :22-27（OK/PARAM/
   UNSUPPORTED/HEMISPHERE）、p3_wcs_make :31-34（parity

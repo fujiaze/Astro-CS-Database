@@ -1,6 +1,6 @@
 # AstroCS phase3 fits_writer 模块 — 元数据 (P3-FITS-DOC 冻结, 2026-09-08)
-# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase3_session/p3_output.cpp
-# 556 行 + 唯一权威签名头 lib/phase3_session/p3_output.h 95 行，
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/fits_output/p3_output.cpp
+# 556 行 + 唯一权威签名头 lib/algorithms/fits_output/p3_output.h 95 行，
 # 行数实测 2026-09-16（wc -l）；编排消费方 lib/phase3_session/p3_session.cpp
 # 441 行 run 段调 p3_output_write_atomic_ex；构建挂载: 根
 # CMakeLists.txt add_library(astrocs_phase3_session ...) 五源文件之一
