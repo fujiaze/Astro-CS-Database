@@ -9,7 +9,7 @@ import os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 INC = os.path.join(REPO, "include")
-HOST = os.path.join(REPO, "lib", "backend_host")
+HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")  # ARCH-001 迁移: lib/backend_host
 
 _DRV = r'''
 #include "astrocs/common_abi_v1.h"

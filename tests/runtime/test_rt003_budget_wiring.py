@@ -25,7 +25,7 @@ import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 INC = REPO / "include"
-CORE = REPO / "lib" / "core" / "src"
+CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
 
 _DRIVER = r'''
 // RT-003 harness: ThreadBudget 接入 scheduler→RunContext 验收（真实编译 lib/infrastructure/scheduler 源码）
@@ -240,7 +240,7 @@ _STATIC_SCAN = r'''
 
 GLOBAL_MAKE_RE = re.compile(r"ThreadLease::make")
 PROD_ROOTS = [
-    REPO / "lib" / "core" / "src",
+    REPO / "lib" / "infrastructure" / "scheduler" / "src",
 ]
 
 

@@ -58,7 +58,7 @@ uint64_t p3_default_max_tiles(uint64_t width_px, uint64_t height_px) {
   if (width_px == 0 || height_px == 0) return 8;
   uint64_t wh = 0;
   if (mul_overflow(width_px, height_px, &wh)) return 1024;
-  const uint64_t per_tile = 512u * 512u;
+  const uint64_t per_tile = kHipsTileWidthPx * kHipsTileWidthPx;
   // ceil(W·H/512²)+16, cap [8,1024]（p3_session.cpp 一致）；+16 前 cap 防回绕
   const uint64_t need = ceil_div_sat(wh, per_tile);
   if (need > 1024u - 16u) return 1024;
@@ -281,7 +281,7 @@ PlanEstimateResult estimate_plan(const PlanInputMetadata& in) {
   else if (starts_with(in.module_id, "astrocs.phase2.")) {
     // P2 有效工作域检查（RT-005: 越界/溢出输入必须 checked 拒绝，不静默饱和）：
     // 覆盖 cell 数（输入 tiles / order 推导）与输出像素域相乘不得溢出。
-    if (in.n_tiles_input > (std::numeric_limits<uint64_t>::max() / (512u * 512u))) {
+    if (in.n_tiles_input > (std::numeric_limits<uint64_t>::max() / (kHipsTileWidthPx * kHipsTileWidthPx))) {
       res.error = PlanEstimateError::PARAM;
       res.error_message = "n_tiles_input exceeds representable output pixels";
       return res;
@@ -303,7 +303,7 @@ PlanEstimateResult estimate_plan(const PlanInputMetadata& in) {
     // 输出域像素（tile 覆盖）× tile 像素(512²)；output_pixels 优先
     uint64_t out_px = in.output_pixels;
     if (out_px == 0) {
-      if (mul_overflow(cells, 512u * 512u, &out_px)) {
+      if (mul_overflow(cells, kHipsTileWidthPx * kHipsTileWidthPx, &out_px)) {
         res.error = PlanEstimateError::PARAM;
         res.error_message = "coverage cells * tile pixels overflow";
         return res;
@@ -330,7 +330,7 @@ PlanEstimateResult estimate_plan(const PlanInputMetadata& in) {
       return res;
     }
     // 每覆盖 tile 读: f32 tile + 每 tile 候选样本栈(f32 × n_frames × 像素)
-    const uint64_t tile_px = 512u * 512u;
+    const uint64_t tile_px = kHipsTileWidthPx * kHipsTileWidthPx;
     uint64_t samples_per_tile = 0;
     if (mul_overflow(tile_px, in.n_frames, &samples_per_tile)) {
       res.error = PlanEstimateError::PARAM;
