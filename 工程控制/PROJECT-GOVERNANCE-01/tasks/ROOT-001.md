@@ -24,6 +24,14 @@
 - `VISUAL_CHECK_README.md`、`FATDUCK_ACCESS.md`、`CHANGELOG.md`：由 ROOT-004 先核对内容再定去留。
 - `VERSION` 与「Alpha 前移除版本信息」：**不属本控制包**，登记进下一轮工程包（GOV-001 只记录，不动手）。
 
+## tracked 条目的处置口径（负责人裁决 2026-09-16，消除二义）
+
+- 默认：tracked 条目**只登记处置建议**，不动手（避免与 GOV-001/DOC-001 撞域）。
+- **例外（负责人已明确授权，可直接在工作区删除/归档，由前台提交）**：
+  - `设计大纲/`（tracked 344 文件 / 86.3 MB）：**已确认无用 → 删除**；删除前把 tracked 文件清单与 sha256 记入 ROOT_LEDGER 与 `reports/PROJECT-GOVERNANCE-01/root/deleted-manifest/`。
+- 工作方式：SubAgent 无 git 写权限，故**删除工作区文件即可**（`git rm` 也不需要）；前台会把这个删除作为独立 commit 提交（`git add -A 设计大纲` 的删除记录）。
+- 仍属「只建议不动手」的 tracked 条目：`VERSION`、`CHANGELOG.md`、`FATDUCK_ACCESS.md`、`VISUAL_CHECK_README.md`、`REVIEW.md`、`HANDOVER.md`、`ASTROCS_PROJECT_CONSTITUTION.md`、`AstroCS_ENGINEERING_CONSTRAINTS.md`、`问题扫描/`（归 ROOT-004）。
+
 ## 权威依据
 - ENGINEERING_SPEC.md §7（仓库根固定条目；任何新产物必须落位到对应目录，禁止散落根目录；确需新增根条目先登记并经负责人确认）
 - ASTROCS_DESIGN.md §6.3（运行产物只落配置 output_dir，不得以进程 CWD 作隐式缺省写出）
