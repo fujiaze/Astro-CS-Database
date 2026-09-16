@@ -180,7 +180,7 @@ inline double oracle_mad(const std::vector<double>& v, double location) {
 
 // ALG-PHOT-001 公式重算: r = log10(F_instr/F_syn); delta = -2.5 log10 F_instr
 // − mag_g; 星等一致性 |delta − median(delta)| ≤ tol; IRLS+Tukey (c=4.685,
-// 收敛 1e-6, ≤50 迭代); S = MAD(r)/0.6745; location 初值 = median(r)。
+// 收敛 1e-6, ≤50 迭代); S = MAD(r)/0.6744897501960817; location 初值 = median(r)。
 // 全部按 PHOTOMETRIC_FIT.md §2/§3 公式独立书写 (不 include 被测实现)。
 struct OracleRobust {
     double location = 0.0;
@@ -196,7 +196,7 @@ inline OracleRobust oracle_robust_location(
     const std::vector<double>& f_instr, const std::vector<double>& f_syn,
     const std::vector<double>& gaia_mag, double mag_tolerance) {
     OracleRobust orob;
-    const double MAD_SCALE = 0.6745;
+    const double MAD_SCALE = 0.6744897501960817;
     const double TUKEY_C = 4.685;
     std::vector<double> r_vals, delta_vals;
     std::vector<int> valid_rows;

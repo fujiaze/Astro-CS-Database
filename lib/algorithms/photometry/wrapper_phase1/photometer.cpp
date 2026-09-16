@@ -87,7 +87,7 @@ astrocs::core::Result<PhotometryResult> Photometer::measure(
     std::vector<double> dev;
     for (double v : sky_vals) dev.push_back(std::fabs(v - med));
     std::sort(dev.begin(), dev.end());
-    // MAD→σ 冻结常数 (NOISE_MODEL.md §5:46 = 1/Φ⁻¹(3/4); 原 4 位截断 1.4826
+    // MAD→σ 冻结常数 (NOISE_MODEL.md §5:46 = 1/Φ⁻¹(3/4); 原 4 位截断 1.482602218505602
     // 相对差 -1.50e-6, 同一模块内不得多套常数 — M3-A-006)
     sky_sigma = 1.482602218505602 * dev[dev.size() / 2];
   }

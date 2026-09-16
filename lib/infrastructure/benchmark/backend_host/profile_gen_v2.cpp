@@ -159,7 +159,7 @@ std::vector<double> oracle_ref(const KernelSpec& sp, uint32_t w, uint32_t N,
             const double med = s[frames / 2];
             for (uint32_t f = 0; f < frames; ++f) s[f] = std::fabs(s[f] - med);
             std::sort(s.begin(), s.end());
-            const double mad = s[frames / 2] * 1.4826;
+            const double mad = s[frames / 2] * 1.482602218505602;
             uint32_t cnt = 0;
             for (uint32_t f = 0; f < frames; ++f)
                 if (std::fabs(v[f] - med) > sp.k * mad) ++cnt;

@@ -78,7 +78,7 @@
    P3 五节点各绑唯一真实 operation；DOC-CONV-001 本提交以 ctest
    `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty`
    4/4 实测复核。
-4. **Phase3 投影与扩展**（DOC-CONV-001 更正）：负责人裁决 §18.1 冻结的**四投影为
+4. **Phase3 投影与扩展**（DOC-CONV-001 更正）：负责人裁决 §18.1（原宪章条款，已废止；现行 = `ASTROCS_DESIGN.md` §5.3 八投影）冻结的**四投影为
    TAN+SIN+CAR+AIT**（旧表述含 ZEA 已更正）——registry v1 实现已落位
    （`lib/algorithms/projection/p3_projection.cpp`:267-273）并经 ctest
    `p3_projection_units`/`p3_projection_fault` 与独立 numpy Oracle 实测（`IMPLEMENTED`），
@@ -111,7 +111,7 @@ origin/main 三 SHA 一致）；cprun run `Rmtxvlrtfa66eb7` rev23 / dispatch
 |---|---|
 | 状态词统一 | 全 L0 文档由历史三级口径（合同冻结/源码在位/执行验收）切换为 `CONTRACT_READY`/`IMPLEMENTED`/`INSTALLED`/`VERIFIED` 阶梯，权威定义 = `docs/owner/RELEASE_STATUS.md` §0 |
 | 删除已修复项的陈旧陈述 | `run --phases` 遗留（CLI-002 已删）、§F.1 节点化（P1/P2/P3 已完成）、四投影（P3-001 已实现）三处 NOT_VERIFIED 以当前提交证据替换 |
-| 更正错误事实 | 冻结四投影由旧表述 `SIN/ZEA/CAR/AIT` 更正为宪章 §18.1 的 `TAN+SIN+CAR+AIT`；`cli/runtime_client.cpp` Phase1 IR 由"单节点"更正为 cal→cosmetic 两节点 |
+| 更正错误事实 | 冻结四投影由旧表述 `SIN/ZEA/CAR/AIT` 更正为当时有效的宪章 §18.1（该宪章已废止；现行 = `ASTROCS_DESIGN.md` §5.3 八投影）的 `TAN+SIN+CAR+AIT`；`cli/runtime_client.cpp` Phase1 IR 由"单节点"更正为 cal→cosmetic 两节点 |
 | 落地状态分层 | MOD 安装面与 CLI 命令面按实测写 `INSTALLED`；四投影/会话路径写 `IMPLEMENTED`（`entrypoint: MISSING` 不冒认）；Windows/真实数据保持 `NOT_VERIFIED` |
 | 模块地图 | `docs/architecture/MODULE_MAP.md` 重写为"模块/路径/交付状态/证据锚"列，覆盖 `lib/` 全部模块目录 |
 

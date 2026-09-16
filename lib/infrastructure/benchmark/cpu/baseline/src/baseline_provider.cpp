@@ -317,7 +317,7 @@ static void kernel_pixel_range(const acs_cpu_baseline_params_v1* P, uint32_t kid
             std::sort(scratch, scratch + m);
             const float mad = median_of_sorted(scratch, m);
             om[i] = med;
-            os[i] = mad * 1.4826f;                     /* MAD→σ (ALG-NOISE F1) */
+            os[i] = mad * 1.482602218505602f;                     /* MAD→σ (ALG-NOISE F1) */
         }
         break;
     }
@@ -332,7 +332,7 @@ static void kernel_pixel_range(const acs_cpu_baseline_params_v1* P, uint32_t kid
             for (size_t f = 0; f < m; ++f) scratch[f] = std::fabs(scratch[f] - med);
             std::sort(scratch, scratch + m);
             const float mad = median_of_sorted(scratch, m);
-            const float th = kf * (mad * 1.4826f);
+            const float th = kf * (mad * 1.482602218505602f);
             uint32_t cnt = 0;
             for (uint64_t f = 0; f < frames; ++f) {    /* 原帧值 (含 NaN: 比较恒假) */
                 const float v = a[f * N + i];

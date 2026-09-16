@@ -3,7 +3,7 @@
 import os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-HOST = os.path.join(REPO, "lib", "backend_host")
+HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "include")
 
 
@@ -13,12 +13,12 @@ class TestBenchHarness(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="bench_")
         cls.exe = os.path.join(cls.tmp, "bh")
         cls.cheat = os.path.join(cls.tmp, "cheat.so")
-        crypto_inc = f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}"
+        crypto_inc = f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}"
         for src, out, extra in (
             (os.path.join(REPO, "tests", "backend", "bench_harness_main.cpp"), cls.exe,
              [os.path.join(HOST, "baseline_backend.cpp"), os.path.join(HOST, "bench_harness.cpp"),
               os.path.join(HOST, "host_services.cpp"),
-              os.path.join(REPO, "lib", "common", "crypto", "sha256.cpp"), crypto_inc, "-ldl"]),
+              os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"), crypto_inc, "-ldl"]),
             (os.path.join(REPO, "tests", "backend", "cheat_backend.cpp"), cls.cheat, ["-shared", "-fPIC"]),
         ):
             r = subprocess.run(["g++", "-std=c++17", "-O2", "-Wall", "-Wextra",

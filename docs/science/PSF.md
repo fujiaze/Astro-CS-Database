@@ -20,7 +20,7 @@
 | `fwhm_x/y` | 轴向 FWHM `1.230310·s` | `MOFFAT4_FWHM_FACTOR` |
 | `flux` | 解析通量 `2πA·sxsy/3` (β=4) | `dpsf_psf.cpp:368` |
 | `residual_scale` | 10–90% trimmed mean \|residual\| | PSF 块第8列 |
-| `robust_residual_sigma` | `residual_scale/0.7316728` | Gaussian 假设 |
+| `robust_residual_sigma` | `residual_scale/0.7316727929211932` | Gaussian 假设 |
 | `q_psf` | `A/residual_scale` 拟合质量代理 | 剔星/QA |
 
 ## 3 物理量和单位
@@ -85,7 +85,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 - **WCS frame/pixel convention**：不涉及；像素域窗口拟合（§3a），中心 `(cx+x0, cy+y0)` 供 Astrometry 质心域。
 - **PSF 参数**：七参数含义/单位见 §2/§3；`FWHM=1.230310·σ`（各向同性不变量 §7）；椭率一阶 `e,θ`。
 - **aperture/flux/background**：解析通量 `flux=2πA·sxsy/3`，单位 **ADU**（`I,B` 为 ADU/pixel，对探测器平面二维积分后为 ADU；β=4 整平面延伸假设，Project-defined 推导；§3）；背景 `B` 模型内联合拟合，无独立孔径 annulus。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S3) -->
-- **photometric scale 与不确定度**：`q_psf=A/residual_scale` 为拟合质量代理，**不是 SNR/光度不确定度**（§1 非目标）；`robust_residual_sigma=residual_scale/0.7316728` 为高斯假设换算（10–90% trimmed mean）。
+- **photometric scale 与不确定度**：`q_psf=A/residual_scale` 为拟合质量代理，**不是 SNR/光度不确定度**（§1 非目标）；`robust_residual_sigma=residual_scale/0.7316727929211932` 为高斯假设换算（10–90% trimmed mean）。
 
 ## 10 不可接受变化
 
@@ -116,7 +116,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 
 1. Moffat, A. F. J. 1969, A&A 3, 455（"A Theoretical Investigation of Focal Stellar Images"）：Moffat 轮廓 I(r)∝(1+r²/α²)^{−β} 来源——文章级定位（bibcode 1969A&A.....3..455M，未逐页核验）。
 2. β=4 解析通量 `flux=2πA·sxsy/3` 与 `FWHM/σ=1.230310`：**Project-defined derivation**（§5 对 (1+Q)^{−4} 解析积分，各向同性极限 πα²/3·A=2πAσ²/3 自洽），不引用外部公式号。
-3. trimmed-mean→σ 换算系数 `0.7316728`：高斯假设下 10–90% trimmed mean 的标准化常数（Project-defined 采纳，数值由高斯分位积分确定）。
+3. trimmed-mean→σ 换算系数 `0.7316727929211932`：高斯假设下 10–90% trimmed mean 的标准化常数（Project-defined 采纳，数值由高斯分位积分确定）。
 
 ## 15 Acceptance
 

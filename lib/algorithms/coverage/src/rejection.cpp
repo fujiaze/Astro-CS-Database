@@ -999,7 +999,7 @@ double scratch_median(double* v, std::size_t n) {
 
 double scratch_mad(double* v, std::size_t n, double med) {
     for (std::size_t i = 0; i < n; ++i) v[i] = std::fabs(v[i] - med);
-    return 1.4826 * scratch_median(v, n);
+    return 1.482602218505602 * scratch_median(v, n);
 }
 
 } // namespace

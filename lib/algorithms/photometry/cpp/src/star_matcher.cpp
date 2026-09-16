@@ -18,7 +18,7 @@
 
 namespace pc {
 
-static constexpr double _MAD_SCALE = 0.6745;
+static constexpr double _MAD_SCALE = 0.6744897501960817;
 // Tukey biweight 常数 c=4.685 (标准稳健统计, 对应 95% 正态效率)
 static constexpr double _TUKEY_C = 4.685;
 // IRLS 最大迭代次数
@@ -373,7 +373,7 @@ std::vector<StarMatch> StarMatcher::matchWithKdTree(
 // 1) delta = -2.5*log10(F_instr) - gaia_mag (粗略零点差)
 // 2) median_delta 作为粗略零点, 拒绝 |delta - median_delta| > mag_tolerance
 // 3) r = log10(F_instr/F_syn) 上做 IRLS + Tukey biweight
-// 4) scale = 10^(-location), sigma_residual = MAD(r_inliers)/0.6745
+// 4) scale = 10^(-location), sigma_residual = MAD(r_inliers)/0.6744897501960817
 // ============================================================================
 std::vector<StarMatch> StarMatcher::cleanAndScale(
     const std::vector<StarMatch>& matches, double mag_tolerance,
@@ -536,7 +536,7 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
     }
 
     // ---- 3. IRLS + Tukey biweight 稳健位置估计 ----
-    // 初始: location = median(r), S = MAD(r)/0.6745
+    // 初始: location = median(r), S = MAD(r)/0.6744897501960817
     double location = medianOf(r_consistent);
     std::vector<double> abs_dev;
     abs_dev.reserve(r_consistent.size());
@@ -609,7 +609,7 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
         }
     }
 
-    // sigma_residual = MAD(r_inliers)/0.6745 (供 SNR 模块使用)
+    // sigma_residual = MAD(r_inliers)/0.6744897501960817 (供 SNR 模块使用)
     // B4-2 (M3-C-001): SCI-PHOT-001 §4/§8 冻结门 |r_inliers| >= 2 才估计;
     // 否则 sigma_residual = 0 (不可估计, 不是"零离散度"), 语义与 SCI §8 一致。
     double sigma_residual = 0.0;

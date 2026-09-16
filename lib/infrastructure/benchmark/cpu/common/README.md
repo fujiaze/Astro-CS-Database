@@ -92,7 +92,7 @@ avx512_subset_os_safe}`。
 
 ```bash
 # 纯 C11 编译 (gcc/clang 严格 warning)
-gcc   -std=c11 -Wall -Wextra -Wpedantic -Wconversion -Iproviders/cpu/common/include -c lib/infrastructure/benchmark/cpu/common/src/capability_detect.c
+gcc   -std=c11 -Wall -Wextra -Wpedantic -Wconversion -Ilib/infrastructure/benchmark/cpu/common/include -c lib/infrastructure/benchmark/cpu/common/src/capability_detect.c
 # probe + feature matrix + schema 校验 (tests/cpu/dispatch)
 python3 tests/cpu/dispatch/run_cpu_capability_checks.py
 ```

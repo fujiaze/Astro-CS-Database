@@ -80,10 +80,20 @@ class TestNegativeFixturesMustFail(unittest.TestCase):
             tpl["config"]["algorithm_drizzle_pixfrac"] = good
             self.assertEqual([], C.validate(schema, tpl), "pixfrac=%r 必须合法" % good)
 
-    def test_all_six_negative_fixtures_exist(self):
+    def test_negative_fixture_inventory_is_exactly_registered(self):
+        """负例清单按名登记（不是按数量）：新增负例必须显式登记在此，防漏测/防误删。"""
         import os
+        expected = sorted([
+            "unknown_filter.phase_config.json",              # ① 未知滤镜名
+            "missing_output_dir.phase_config.json",          # ② 缺 output_dir
+            "precision_out_of_domain.phase_config.json",     # ③ precision 越界
+            "hardware_fields_in_phase_config.json",          # ④ cpu_profile 字段混入
+            "run_manifest_hardware_field.json",              # run_manifest 硬件字段
+            "cpu_profile_v1_missing_required.json",          # legacy v1 缺必填
+            "cpu_profile_v2_bad_os_abi.json",                # CFG-002：os_abi 越出冻结枚举
+        ])
         got = sorted(os.listdir(os.path.join(C.REPO, NEG)))
-        self.assertEqual(6, len(got), "负例数量不为 6: %s" % got)
+        self.assertEqual(expected, got, "负例清单与登记不一致: %s" % got)
 
 
 if __name__ == "__main__":

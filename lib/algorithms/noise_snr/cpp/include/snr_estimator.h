@@ -9,6 +9,23 @@
 #define SNR_API
 #endif
 
+// ============================================================================
+// C ABI 版本化 (claim SC-007 / MASK-002；先例 = SCI-FIX-AIO SC-006 的
+// struct_size/abi_version 原位版本化纪律)
+// ----------------------------------------------------------------------------
+// 所有跨边界结构首部两个 uint32_t: struct_size @0 (= 调用方编译期 sizeof) +
+// abi_version @4 (= 本文件对应版本常量)。公共入口**逐元素**校验二者, 失配即
+// fail-closed 返回 SNR_ABI_MISMATCH(-9), 不进入科学路径。
+// 无头部 (全零 = 未版本化的旧调用方) 一律拒绝: 掩膜语义已由「统一半径」升级为
+// 「逐星半径 + 天空预算收缩」(SCI-NOISE-001 §5a), 静默兼容会把旧语义当新语义消费。
+// ============================================================================
+#define SNR_ABI_MISMATCH               (-9)
+#define SNR_NOISE_CONFIG_ABI_VERSION   1u
+#define SNR_NOISE_MODEL_ABI_VERSION    1u
+#define SNR_ABI_HEADER(TYPE, VERSION)      \
+    uint32_t struct_size; /* = sizeof(TYPE) @0 */ \
+    uint32_t abi_version; /* = VERSION @4 */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -106,25 +123,38 @@ SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
 // 缺失时经验 fallback (SNR-014)。
 // ---------------------------------------------------------------------------
 typedef struct {
+    SNR_ABI_HEADER(SnrNoiseModelConfig, SNR_NOISE_CONFIG_ABI_VERSION)
     int    patch_grid_x;         // 每边 patch 数 (默认 8, >=2)
     int    patch_grid_y;         // 每边 patch 数 (默认 8, >=2)
     double source_mask_radius_px;   // 星点固定保守掩膜半径 (默认 10 px)
     double mask_radius_scale;       // 固定半径乘数 (默认 6.0 → 统一 rmax=60 px)
     double gain_e_per_adu;          // 增益 e-/ADU (0=未知, 默认 0)
     double read_noise_e;            // 读出噪声 e- (0=未知, 默认 0)
-    double saturation_level;        // 饱和电平 (0=禁用, 默认 0)
+    double saturation_level;        // 饱和电平 ADU (0/负/非有限 = 未提供电平 unset, 默认 0;
+                                    //   != "无饱和"; 来源优先级 cfg>SATURATE>DATAMAX,
+                                    //   未提供时调用方须显式声明降级 -- SCI NOISE_MODEL §4
+                                    //   「饱和域」claim SC-008, 见 astrocs/noise/saturation_policy.h)
     double cosmic_clip_sigma;       // patch 内 cosmic/hot 稳健裁剪 (默认 5.0)
     int    min_patch_samples;       // patch 合格最小 sky 样本数 (默认 64)
     int    max_clip_rounds;         // cosmic 裁剪轮数 (默认 2)
     uint32_t use_gain_model;        // 1=gain+readnoise 已知时优先模型; 默认 0 (经验优先)
     uint32_t enable_spatial_field;  // 1=最小二乘平面空间方差场 (默认 1)
     double   variance_floor;        // ivar 分母下限 (默认 1e-12)
+    // --- MASK-002 (claim SC-007): 逐星掩膜半径参数, 权威 = SCI-NOISE-001 §5a ---
+    //   r_i = clip(r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax)
+    //   r_max = max(1,source_mask_radius_px)·max(1,mask_radius_scale) 为**硬上界**
+    double   mask_k_sigma;            // 掩膜边缘残余面亮度系数 k (默认 0.1σ_bg)
+    double   mask_r_min_px;           // 逐星半径下界绝对项 (默认 1.5 px)
+    double   mask_fwhm_floor_scale;   // r_min 的 FWHM 项系数 (默认 0.75)
+    uint32_t mask_budget_min_patches; // 天空预算: 合格 patch 数下限 (默认 8)
+    uint32_t mask_budget_min_sky;     // 天空预算: 未掩膜合法像素数下限 (默认 9216)
 } SnrNoiseModelConfig;
 
 // 默认噪声模型配置
 SNR_API int snr_noise_model_v1_default_config(SnrNoiseModelConfig* cfg);
 
 typedef struct {
+    SNR_ABI_HEADER(NoiseWeightModelV1, SNR_NOISE_MODEL_ABI_VERSION)
     uint32_t n_control_points;   // 合格 patch 数
     double*  ctrl_x_px;          // patch 中心 x (0-based)
     double*  ctrl_y_px;          // patch 中心 y
@@ -141,18 +171,27 @@ typedef struct {
     uint8_t  has_spatial_field;  // 1=合格 patch>=4 且控制点几何张成二维 (见 plane_geometry_ratio)
     uint8_t  degenerate;         // 1=无合格 patch, 全局兜底也退化 (ivar=0)
     uint8_t  reserved;
+    // --- MASK-002 (claim SC-007) 掩膜诊断标, 消费方可 fail-closed ---
+    uint32_t mask_degraded;      // 位标: bit0=1 MASK_LEGACY (无 flux/FWHM, 退回统一 rmax 或 4·FWHM);
+                                 //       bit1=1 MASK_DEGRADED (天空预算收缩生效后 n_qualified<预算 或 全局兜底)
+    double   mask_radius_p50;    // 逐星半径中位数 (px); 统一半径/手工掩膜通道 = 0
+    double   mask_frac;          // 掩膜覆盖比 = 掩膜像素数 / (h*w); 无掩膜 = 0
 } NoiseWeightModelV1;
 
 // 从校准帧估计 blank-sky 稳健方差模型。
 // data: FLOAT32 [h*w] (校准后, ADU 空间); source_mask 可空;
 // star_x/star_y: 星点像素坐标 (0-based), n_stars 可 0;
-// cfg: 可空 (=默认配置);
+// star_flux/star_fwhm: **MASK-002 新增可选逐星数组** (与 star_x/y 同序等长,
+//   flux=ADU, fwhm=px; 生产调用点 = psf 块 row[2]/row[5]); 传 NULL 时按
+//   SCI §5a 回调规则降级并置 MASK_LEGACY 位标 (不静默);
+// cfg: 可空 (=默认配置); 非空时其 struct_size/abi_version 必须匹配, 否则 -9;
 // out_model: 调用者用 snr_noise_model_v1_free 释放。
 // 返回 0=成功 (含全局兜底), 1=完全退化 (ivar=0, 调用方应拒绝加权),
-// 3=nullptr / 非法尺寸。
+// SNR_ABI_MISMATCH(-9)=cfg ABI 头部失配 (fail-closed), 3=nullptr / 非法尺寸。
 SNR_API int snr_noise_model_v1(const float* data, int h, int w,
                                const float* source_mask,
                                const double* star_x, const double* star_y,
+                               const double* star_flux, const double* star_fwhm,
                                int n_stars,
                                const SnrNoiseModelConfig* cfg,
                                NoiseWeightModelV1* out_model);
@@ -161,14 +200,24 @@ SNR_API int snr_noise_model_v1(const float* data, int h, int w,
 SNR_API int snr_noise_model_v1_f64(const double* data, int h, int w,
                                    const float* source_mask,
                                    const double* star_x, const double* star_y,
+                                   const double* star_flux, const double* star_fwhm,
                                    int n_stars,
                                    const SnrNoiseModelConfig* cfg,
                                    NoiseWeightModelV1* out_model);
 
+// ---------------------------------------------------------------------------
+// ABI 头部助手 (claim SC-007): 调用方自建结构体时必须先 stamp 再传入;
+// 校验函数返回 0=匹配, SNR_ABI_MISMATCH(-9)=失配。
+// ---------------------------------------------------------------------------
+SNR_API void snr_noise_model_v1_abi_stamp_config(SnrNoiseModelConfig* cfg);
+SNR_API void snr_noise_model_v1_abi_stamp_model(NoiseWeightModelV1* model);
+SNR_API int  snr_noise_model_v1_abi_check_config(const SnrNoiseModelConfig* cfg);
+SNR_API int  snr_noise_model_v1_abi_check_model(const NoiseWeightModelV1* model);
+
 // 填充逐像素 variance / ivar (FLOAT32 输出; 可空任一输出)。
 // 空间场启用且有 >=4 控制点 → 最小二乘平面 var(x,y)=a+b·x+c·y
 // （负预测 clamp 到 variance_floor）；否则全局常量。 冻结。
-// 返回 0=成功, 3=nullptr/尺寸非法。
+// 返回 0=成功, 3=nullptr/尺寸非法, SNR_ABI_MISMATCH(-9)=model ABI 头部失配。
 SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
                                     int h, int w,
                                     float* out_variance, float* out_ivar);

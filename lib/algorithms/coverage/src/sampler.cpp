@@ -465,7 +465,7 @@ double p2_stats_mad(const double* vals, std::uint64_t n,
     const double med = median_of(v);
     if (out_median) *out_median = med;
     for (double& x : v) x = std::fabs(x - med);
-    return 1.4826 * median_of(std::move(v));
+    return 1.482602218505602 * median_of(std::move(v));
 }
 
 static int p2_sample_controls_impl(
@@ -824,7 +824,7 @@ static int p2_sample_controls_impl(
                             std::vector<double> dev;
                             dev.reserve(vals.size());
                             for (double v : vals) dev.push_back(std::fabs(v - m0));
-                            s0 = 1.4826 * median_of(std::move(dev));
+                            s0 = 1.482602218505602 * median_of(std::move(dev));
                         }
                         std::vector<double> ret = vals;
                         for (int it = 0; it < cfg.background_clip_iters; ++it) {
@@ -839,7 +839,7 @@ static int p2_sample_controls_impl(
                             std::vector<double> dev2;
                             dev2.reserve(ret.size());
                             for (double v : ret) dev2.push_back(std::fabs(v - m0));
-                            const double s1 = 1.4826 * median_of(std::move(dev2));
+                            const double s1 = 1.482602218505602 * median_of(std::move(dev2));
                             if (s1 <= 0.0) break;
                             s0 = s1;
                         }
@@ -1007,7 +1007,7 @@ static int p2_sample_controls_impl(
             std::vector<double> dev;
             for (double v : neigh) dev.push_back(std::fabs(v - B));
             std::sort(dev.begin(), dev.end());
-            const double S = 1.4826 * dev[dev.size() / 2];
+            const double S = 1.482602218505602 * dev[dev.size() / 2];
             if (cs.m[fi] > B + cfg.background_tolerance * S) {
                 cs.accepted[fi] = false;
                 cs.reason[fi] = 3;

@@ -7,7 +7,7 @@
     冻结门 1e-4 px)
   - docs/standards/STANDARDS_REGISTRY.md STD-F1 (FITS WCS Paper I §2.1.1)
   - 前台裁决 R-02(方案 b) / R-25: ipv 内部 0-based 自洽; FITS 导出 1-based;
-    唯一桥接点 = Phase3 导出边界 (lib/phase3_session/p3_wcs.cpp fits_pixel_1based)
+    唯一桥接点 = Phase3 导出边界 (lib/algorithms/projection/p3_wcs.cpp fits_pixel_1based;
 
 本脚本做两件事 (均为第三方 astropy 独立实现对拍, 只入测试面, 零生产依赖):
 

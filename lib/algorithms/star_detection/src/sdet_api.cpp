@@ -457,7 +457,7 @@ static int sdet_lm_fit(const T* image, int width,
 
 // 阶段B: 背景噪声估计 (FnNoise1_ushort 算法)
 // 算法: 行差分 -> sigma-clip(3次,5.0) -> stdev -> 中位数 -> *0.7071
-// 注意: sdet_robust_mad 返回值已含 *1.4826 (即 sigma 估计), 直接用作 dsigma
+// 注意: sdet_robust_mad 返回值已含 *1.482602218505602 (即 sigma 估计), 直接用作 dsigma
 template <typename T>
 static T sdet_compute_bgnoise(const T* img, int width, int height) {
     if (width < 2 || height < 1) return 0.0f;
@@ -587,7 +587,7 @@ int sdet_gauss_fit(const T* image, int width, int height,
         ? (abs_dev_lh[nh / 2 - 1] + abs_dev_lh[nh / 2]) / 2.0
         : abs_dev_lh[nh / 2];
 
-    double threshold = 2.0 * 1.4826 * mad_lh;
+    double threshold = 2.0 * 1.482602218505602 * mad_lh;
     std::vector<double> filtered;
     filtered.reserve(nh);
     for (int i = 0; i < nh; i++) {

@@ -157,7 +157,10 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
            "cpu_heavy", true),
         mk("phot", "astrocs.phase1.photometry",
            {{"psf", "artifact:p1_psf"}, {"sources", "artifact:p1_sources"}},
-           {{"fluxes", "artifact:p1_flux"}},
+           // DET-001 (D5): phot 有第二个真实产物 p1_phot.json (测光 provenance
+           // sidecar, DATA-P1-PHOTPROV-001)。它必须登记为 typed 输出, 否则 drz
+           // 读它的存在性判定没有依赖边可绑定（详见 drz 节点处注释）。
+           {{"fluxes", "artifact:p1_flux"}, {"photprov", "artifact:p1_phot"}},
            "cpu_heavy", true),
         mk("snr", "astrocs.phase1.noise-snr",
            {{"fluxes", "artifact:p1_flux"}}, {{"snr", "artifact:p1_snr"}},
@@ -166,8 +169,15 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
         // cal 下游并发执行, drz 在 p1_wcs.json 落盘前按 out_dir 文件约定读到空/
         // 陈旧 header（6B-R2 真实 CLI 3/3 rc=7 "header 缺少 WCS 信息"）。该依赖边令
         // 调度器先执行 wcs 节点; 产物登记仍在 pipeline outputs 兜底。
+        // DET-001 (D5): drz 的 PHOTSCAL/PHOTAPPL 真实来源是 phot 节点产物
+        // p1_phot.json; 未声明该边时 drz 与 phot 同为 cal/psf 下游并发执行,
+        // drz 的存在性判定可先于 phot 落盘 ⇒ photometry_provenance 翻转
+        // (实测 14 次 10/4) 且把「未产出」误记为「未应用测光」(静默 ADU 降级)。
+        // 与 F-8 的 artifact:p1_wcs 同款处置: 声明 typed 边, 调度器保证 phot
+        // 完成后才执行 drz, 不再依赖并发文件约定。
         mk("drz", "astrocs.phase1.drizzle",
-           {{"calibrated", "artifact:cal"}, {"wcs", "artifact:p1_wcs"}},
+           {{"calibrated", "artifact:cal"}, {"wcs", "artifact:p1_wcs"},
+            {"photprov", "artifact:p1_phot"}},
            {{"stacked", "artifact:p1_stack"}},
            "cpu_heavy", true),
         mk("wr", "astrocs.phase1.writer",

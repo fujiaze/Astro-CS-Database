@@ -3,7 +3,7 @@
 import hashlib, json, os, re, shutil, subprocess, sys, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-HOST = os.path.join(REPO, "lib", "backend_host")
+HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "include")
 # SCHEMA 断链修复 (DEEP-COV-PY/CODE_FAIL, V8-CI-012 R6.5): 旧路径 工程控制/RELEASE_V5/
 # 为 untracked 控制包布局, tracked 工作区与 hosted checkout 永不存在 → import 期
@@ -25,8 +25,8 @@ def common_srcs():
             os.path.join(HOST, "hardware_inspect.cpp"),
             os.path.join(HOST, "backend_loader.cpp"),
             os.path.join(HOST, "profile_gen.cpp"),
-            os.path.join(REPO, "lib", "common", "crypto", "sha256.cpp"),
-            f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}",
+            os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
+            f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
             f"-I{os.path.join(REPO, 'third_party')}", "-ldl"]
 
 
@@ -127,7 +127,7 @@ class TestCpuProfile(unittest.TestCase):
     def test_05_avx512_slower_never_selected(self):
         """ISA-001 实测: 变体更慢的 op(driz_accum)在候选选择中不得胜过 baseline。"""
         bench = os.path.join(self.tmp, "kbench")
-        crypto_inc = f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}"
+        crypto_inc = f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}"
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{INC}", f"-I{HOST}", crypto_inc,
                             os.path.join(REPO, "tests", "backend", "kernel_bench_main.cpp"),
                             os.path.join(HOST, "baseline_backend.cpp"),
@@ -171,10 +171,10 @@ int main() {
         src_path = os.path.join(self.tmp, "pol.cpp")
         open(src_path, "w").write(src)
         r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}",
-                            f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}", src_path,
+                            f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}", src_path,
                             os.path.join(HOST, "bench_harness.cpp"),
                             os.path.join(HOST, "host_services.cpp"),
-                            os.path.join(REPO, "lib", "common", "crypto", "sha256.cpp"),
+                            os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
                             "-o", probe], capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr)
         out = subprocess.run([probe], capture_output=True, text=True, timeout=30).stdout
@@ -206,10 +206,10 @@ int main() {
         src_path = os.path.join(self.tmp, "nm.cpp")
         open(src_path, "w").write(src)
         r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}",
-                            f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}", src_path,
+                            f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}", src_path,
                             os.path.join(HOST, "bench_harness.cpp"),
                             os.path.join(HOST, "host_services.cpp"),
-                            os.path.join(REPO, "lib", "common", "crypto", "sha256.cpp"),
+                            os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
                             "-o", probe], capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr)
         out = subprocess.run([probe], capture_output=True, text=True, timeout=30).stdout

@@ -340,7 +340,7 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
         ? (abs_dev_lh[nh / 2 - 1] + abs_dev_lh[nh / 2]) / 2.0
         : abs_dev_lh[nh / 2];
 
-    double threshold = 2.0 * 1.4826 * mad_lh;
+    double threshold = 2.0 * 1.482602218505602 * mad_lh;
     std::vector<double> filtered;
     filtered.reserve(nh);
     for (int i = 0; i < nh; i++) {

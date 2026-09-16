@@ -15,7 +15,7 @@
 // - 核心算法不含文件 IO（日志输出到 stderr，便于分析）。
 // - 使用 OpenMP 多线程并行处理每个像素（线程本地缓冲复用，避免重复分配）。
 // - median 计算使用 std::nth_element（O(n)），MAD = median(|v - median|)，
-// sigma = 1.4826 * MAD。
+// sigma = 1.482602218505602 * MAD。
 //
 // 编译标准：C++17
 // 对应头文件：astro_calibration.h
@@ -73,7 +73,7 @@ void generate_master(const float* stack, int n_frames, int w, int h,
            combine == AC_COMBINE_MEDIAN ? "median" : "mean");
 
     const int npix = w * h;
-    const float k_sigma = 1.4826f;  // MAD -> 高斯 sigma 转换系数
+    const float k_sigma = 1.482602218505602f;  // MAD -> 高斯 sigma 转换系数
 
     if (n_frames <= 0 || npix <= 0) {
         ac_log("generate_master: invalid params (n_frames=%d, npix=%d), abort", n_frames, npix);

@@ -77,7 +77,8 @@
           "ports": [
             { "name": "psf", "direction": "input", "data_schema_id": "DATA-P1-PSF", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[K,K]" },
             { "name": "sources", "direction": "input", "data_schema_id": "DATA-P1-SOURCES", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N,2]" },
-            { "name": "fluxes", "direction": "output", "data_schema_id": "DATA-P1-FLUX", "unit": "ELECTRON", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N]" }
+            { "name": "fluxes", "direction": "output", "data_schema_id": "DATA-P1-FLUX", "unit": "ELECTRON", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N]" },
+            { "name": "photprov", "direction": "output", "data_schema_id": "DATA-P1-PHOTPROV-001", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "n/a", "shape_hint": "n/a" }
           ]
         }
       ]
@@ -108,6 +109,7 @@
           "ports": [
             { "name": "calibrated", "direction": "input", "data_schema_id": "DATA-P1-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
             { "name": "wcs", "direction": "input", "data_schema_id": "DATA-P1-WCS", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[1]" },
+            { "name": "photprov", "direction": "input", "data_schema_id": "DATA-P1-PHOTPROV-001", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "n/a", "shape_hint": "n/a" },
             { "name": "stacked", "direction": "output", "data_schema_id": "DATA-P1-STACK", "unit": "ADU", "coordinate": "ICRS", "scalar": "f32", "shape_hint": "[H,W]" }
           ]
         }

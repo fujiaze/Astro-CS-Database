@@ -114,7 +114,7 @@ void filter_by_structure_size(char* mask, int w, int h, int max_size) {
 }
 
 // ======================== 热像素检测（从Dark） ========================
-// 全局统计：median + threshold_sigma * 1.4826 * MAD
+// 全局统计：median + threshold_sigma * 1.482602218505602 * MAD
 // dark > threshold 的像素为候选，经结构过滤后返回
 void detect_hot_pixels(const float* dark, int w, int h, char* hot_mask,
                        float threshold_sigma, int max_size) {
@@ -123,7 +123,7 @@ void detect_hot_pixels(const float* dark, int w, int h, char* hot_mask,
 
     float med = compute_global_median(dark, n);
     float mad = compute_global_mad(dark, n, med);
-    float sigma = 1.4826f * mad;
+    float sigma = 1.482602218505602f * mad;
     float threshold = med + threshold_sigma * sigma;
 
     #pragma omp parallel for schedule(static)
@@ -135,7 +135,7 @@ void detect_hot_pixels(const float* dark, int w, int h, char* hot_mask,
 }
 
 // ======================== 冷像素检测（从Bias） ========================
-// 全局统计：median - threshold_sigma * 1.4826 * MAD
+// 全局统计：median - threshold_sigma * 1.482602218505602 * MAD
 // bias < threshold 的像素为候选，经结构过滤后返回
 void detect_cold_pixels(const float* bias, int w, int h, char* cold_mask,
                         float threshold_sigma, int max_size) {
@@ -144,7 +144,7 @@ void detect_cold_pixels(const float* bias, int w, int h, char* cold_mask,
 
     float med = compute_global_median(bias, n);
     float mad = compute_global_mad(bias, n, med);
-    float sigma = 1.4826f * mad;
+    float sigma = 1.482602218505602f * mad;
     float threshold = med - threshold_sigma * sigma;
 
     #pragma omp parallel for schedule(static)

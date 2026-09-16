@@ -308,6 +308,9 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
         {"finished_utc", astrocs::iso8601_utc_now()},
         {"summary", summary},
     };
+    // SMOKE-001 D7: 失败/取消的 manifest 必须自带失败原因字段，供机器消费者
+    // 在没有进程 rc 的情况下判定（此前只有 status:"incomplete"，原因仅在 stderr）。
+    if (status != "complete") m["error"] = {{"message", summary}};
     // FIX-E2E B1-A5/A10: 节点级科学事实（如 uncertainty_available）并入 run manifest，
     // 单一来源 = 节点 manifest，不在 CLI 另造。键缺失即不写（禁占位）。
     if (extra.is_object()) {
@@ -341,8 +344,18 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
                  {"size_bytes", mec ? nlohmann::json(nullptr)
                                     : nlohmann::json(static_cast<unsigned long long>(msz))}});
     }
-    // --events-jsonl 模式下 stdout 只能是 JSON 事件(04 §3): 路径已入 artifact 事件
-    if (!ev.enabled()) std::printf("%s\n", final_path.c_str());
+    // §4 final.run_manifest 回填（SMOKE-001 D8）：登记本次 manifest 路径。
+    ev.set_run_manifest(final_path);
+    // §3 stdout 纪律（SMOKE-001 D7）：人类模式下 stdout 只承载「结果」——
+    // 只有 complete 的 run 才把 manifest 路径写到 stdout；失败/取消的路径走
+    // stderr 诊断，避免「失败看起来像成功」。--events-jsonl 模式 stdout 只放 JSON。
+    if (ev.enabled()) return astrocs::OK;
+    if (status == "complete") {
+        std::printf("%s\n", final_path.c_str());
+    } else {
+        std::fprintf(stderr, "astrocs: run %s — run manifest: %s\n", status.c_str(),
+                     final_path.c_str());
+    }
     return astrocs::OK;
 }
 

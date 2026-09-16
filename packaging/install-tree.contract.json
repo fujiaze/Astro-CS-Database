@@ -2,7 +2,7 @@
   "contract_id": "CONTRACT-BLD003-INSTALL-TREE-V1",
   "contract_version": 1,
   "doc_status": "ACTIVE_NORMATIVE",
-  "target_version": "0.11.0-alpha.1",
+  "target_version": "0.11.0-alpha.2",
   "root_layout": "<prefix>/ (Linux 技术预览; Windows: AstroCS-0.11.0-alpha.1-win-x64/ 由 WIN-* 验证)",
   "units": [
     { "unit_id": "PLATFORM-CLI", "kind": "exe", "install_path": "astrocs", "required": true },
@@ -20,6 +20,8 @@
     { "unit_id": "LIC-INDEX", "kind": "license", "install_path": "licenses/LICENSE-INDEX.txt", "required": false },
     { "unit_id": "SCHEMA-INSTALL-TREE", "kind": "schema", "install_path": "schemas/install-tree-contract.schema.json", "required": false },
     { "unit_id": "SCHEMA-PRODUCT", "kind": "schema", "install_path": "schemas/astrocs-product.schema.json", "required": false },
+    { "unit_id": "SCHEMA-DEPLOCK", "kind": "schema", "install_path": "schemas/dependency-lock.schema.json", "required": false },
+    { "unit_id": "SCHEMA-PRESET", "kind": "schema", "install_path": "schemas/preset-contract.json", "required": false },
     { "unit_id": "MANIFEST-PRODUCT", "kind": "manifest", "install_path": "astrocs.product.json", "required": true }
   ]
 }

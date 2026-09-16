@@ -47,7 +47,7 @@ y_ik/σ_ik/snr_ik/support_ik/quality_ik，产出 UPM 联合加性校准的
 | cell (t,gx,gy) | 控制点拓扑 = tile × 网格坐标 | — | sampler.cpp:754-763 |
 | leaf_ipix | cell 中心 leaf 像素（order+9） | 无量纲 | sampler.cpp:756-757 |
 | y_ik | 控制观测（patch 位置估计） | ADU（UPM-calibrated） | sampler.cpp:845 |
-| σ_bg | robust scale（MAD×1.4826） | ADU | sampler.cpp:823-846 |
+| σ_bg | robust scale（MAD×1.482602218505602） | ADU | sampler.cpp:823-846 |
 | k_corr | Drizzle 协方差方差放大因子（1 ≤ k_corr） | 无量纲 | sampler.cpp:83/:560-574 |
 | N_retained | clipping 后保留样本数 | 无量纲 | sampler.cpp:851 |
 | control_variance | 控制点估计统计方差 | ADU² | sampler.cpp:856-860 |
@@ -68,7 +68,7 @@ control_ivar=1/ADU²、ra_deg/dec_deg=度（J2000）、snr=无量纲；
 | p2_sampler_default_config | :60 | :294-312 | 默认配置单一来源（15 字段） |
 | p2_frame_id | :93 | :314-438 | truncated-64 canonical SHA-256 帧身份 |
 | p2_stats_median | :97 | :440-447 | 共享 median（NaN 过滤） |
-| p2_stats_mad | :98-99 | :449-461 | 共享 MAD×1.4826（out_median 回传） |
+| p2_stats_mad | :98-99 | :449-461 | 共享 MAD×1.482602218505602（out_median 回传） |
 | p2_sample_controls | :103-114 | :1121-1136 | 采样入口（frame_id 内部计算） |
 | p2_sample_controls_cached | :120-132 | :1138-1154 | 采样入口（外部透传 frame_id 缓存） |
 
@@ -158,14 +158,14 @@ cell 索引   = c*G² + gy*G + gx                                # :708-709/:870
 
 ```text
 m0 = median_of(vals)                          # :802
-s0 = 1.4826 × median(|v−m0|)                  # :806-809
+s0 = 1.482602218505602 × median(|v−m0|)                  # :806-809
 迭代 it = 1..background_clip_iters (默认 3):   # :812
   nr = { v ∈ ret : v ≤ m0 + clip_sigma·s0 }   # :815 单侧亮端
   若 |nr| < min_samples: break                 # :816
   nm = median_of(nr)                           # :817
   若 |nm−m0| < 1e-12 × max(|m0|, 1e-12): ret=nr; break   # :818 相对收敛
   m0 = nm; ret = nr
-  s0 = 1.4826 × median(|v−m0|)（ret 上重算）    # :821-826
+  s0 = 1.482602218505602 × median(|v−m0|)（ret 上重算）    # :821-826
   若 s1 ≤ 0: break                             # :825
 y_ik = m0（收敛集位置估计）                     # :828
 σ_bg = s0 > 0 ? s0 : 1e-12                    # :829 零尺度 floor
@@ -211,7 +211,7 @@ Chebyshev 距 ≤ background_neighbor_radius（默认 2）邻域 cells 的
 
 ```text
 B = median(neigh)                    # :987-988（<3 → 回退 :977-985）
-S = 1.4826 × median(|v−B|)           # :989-992
+S = 1.482602218505602 × median(|v−B|)           # :989-992
 若 m > B + background_tolerance × S:  # :993-996
   拒绝，reason=3，++rejected_bright_tolerance
 邻域 <3（回退后仍 <3）: 不 gate（保守保留）          # :977/:986
@@ -273,7 +273,7 @@ SHA 流 = 9 关键 properties（creator_did/obs_title/obs_filter/
 - median_of：nth_element 取中，偶数 n 取 [begin,mid) 最大值均值（P0-01 修复，:196-202）；
 - p2_stats_median：先过滤非 finite（:444-445），空/全 NaN 经 median_of :192 → 0.0
   （sampler.h:96 冻结）；
-- p2_stats_mad：median 后 1.4826×median(|x−med|)（:452-460），
+- p2_stats_mad：median 后 1.482602218505602×median(|x−med|)（:452-460），
   out_median 回传收敛 median；UPM 侧共享同一实现（sampler.h:97-99 导出声明；upm.h:43-48 冻结注释同源定义）。
 
 ## 6 消费链与并行语义
@@ -405,7 +405,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
 
 | # | 设计面 | 冻结容差 | 现状测试锚 |
 |---|---|---|---|
-| F1 | 统计量单元：median odd/even/负值/重复/乱序/NaN 过滤；MAD=1.4826×median 偏差 | 逐值 bitwise（EXPECT_DOUBLE_EQ） | synthetic_gate.cpp:3594 G1StatisticsCorrectness（先例在库） |
+| F1 | 统计量单元：median odd/even/负值/重复/乱序/NaN 过滤；MAD=1.482602218505602×median 偏差 | 逐值 bitwise（EXPECT_DOUBLE_EQ） | synthetic_gate.cpp:3594 G1StatisticsCorrectness（先例在库） |
 | F2 | kcorr_lookup 边界与角点：pf∈{0.5,0.8,1.0}×sc∈{300,600} 九值、**域外回退冻结默认 1.4（禁 clamp）**、provenance 缺失/尺度未知回退 1.4 | 角点值 exact；插值点 rtol 1e-12；域外 == 1.4 exact | phase2_sampler.kcorr.corner_exact / .domain_fallback_to_frozen_default_not_clamp（表值 :94-97） |
 | F3 | control_variance 解析 oracle（Python 复算 k_corr×(π/2)×σ²/N_ret） | rtol 1e-12；UPMW-004 MC 基线 3σ | synthetic_gate.cpp:4001/:4061/:4089（先例在库） |
 | F4 | 坐标/tile 映射：单 tile 合成 → 64 cell (ra,dec,leaf_ipix) 对独立 HEALPix 参考实现 | atol 1e-9 deg；cell 索引单射 exact | 无（新建） |

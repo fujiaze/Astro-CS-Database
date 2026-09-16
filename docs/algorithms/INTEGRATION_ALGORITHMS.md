@@ -8,6 +8,21 @@
 - 输入: `P2PixelStack` (values/weights/support/accepted, count)
 - 输出: `P2PixelResult` (signal, support, n_used, n_candidates/accepted/finite/positive_weight, status)
 
+### 1a 状态枚举取值（唯一事实源）
+
+| 名称 | 值 |
+|---|---|
+| P2_INTEGRATE_OK | 0 |
+| P2_INTEGRATE_NO_CANDIDATES | 1 |
+| P2_INTEGRATE_ALL_REJECTED | 2 |
+| P2_INTEGRATE_ZERO_VALID_WEIGHT | 3 |
+| P2_INTEGRATE_INVALID_INPUT | 4 |
+
+- 唯一事实源: `lib/algorithms/coverage/include/astro/phase2/integrate.h` (`enum P2IntegrateStatus`)；
+- 本表为**取值（代码事实）抄录**，不引入新判据：F5 的分支语义与上表逐值对应；
+- 机器门: `tools/docs_machine_consistency.py :: integration_status_full_set`（全集合比对，禁 subset）。
+
+
 ## 2 离散公式
 
 ```text

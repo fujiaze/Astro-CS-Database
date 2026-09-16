@@ -80,15 +80,46 @@ def _is_skipped(rel: pathlib.Path) -> bool:
     return any(s in low for s in SKIP_PATH_SUBSTR)
 
 
-def discover_sources(repo: pathlib.Path) -> list[pathlib.Path]:
-    """活动 CTest 面 CMake 源：CMakeLists.txt 与 *.cmake（排除归档/构建/运行面）。"""
+def git_tracked_set(repo: pathlib.Path) -> set:
+    """git 已跟踪文件集（仓库相对、'/' 分隔）；git 不可用时返回空集。
+
+    W4-A3：CTest 面 = **版本库面**。并发写者（其它任务）在工作区留下的
+    **未跟踪** CMake 源不属于本仓库的任何检出，若纳入判据，本门就会在
+    别人写到一半的目录上判红（实测：lib/algorithms/projection/tests/p3wcs/ 的
+    未跟踪 CMakeLists 重复注册 p3_wcs ⇒ C1 红），把「CI 注册闭包」变成
+    「工作区快照」判据。故判定面收敛到 git ls-files；未跟踪源单独计数并在
+    证据 JSON 的 untracked_cmake_sources 字段留痕（不静默丢弃）。
+    """
+    try:
+        out = subprocess.run(["git", "-C", str(repo), "ls-files", "-z"],
+                             capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    if out.returncode != 0:
+        return set()
+    return {p for p in out.stdout.split("\0") if p}
+
+
+def discover_sources(repo: pathlib.Path, *, tracked_only: bool = False) -> tuple:
+    """活动 CTest 面 CMake 源；返回 (sources, untracked_sources)。
+
+    tracked_only=True 时排除未跟踪源（CI 面）；False 时全收（工作区快照/自测用）。
+    """
     found: set[pathlib.Path] = set()
     for pattern in ("CMakeLists.txt", "*.cmake"):
         for path in repo.rglob(pattern):
             if _is_skipped(path.relative_to(repo)):
                 continue
             found.add(path)
-    return sorted(found)
+    tracked = git_tracked_set(repo) if tracked_only else None
+    sources, untracked = [], []
+    for path in sorted(found):
+        rel = str(path.relative_to(repo)).replace("\\", "/")
+        if tracked is not None and rel not in tracked:
+            untracked.append(rel)
+            continue
+        sources.append(path)
+    return sources, untracked
 
 
 def _visible_text(text: str) -> str:
@@ -126,15 +157,31 @@ def load_json(path: pathlib.Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def command_surface(check: dict) -> list:
+    """聚合项 + 其各 step 的 command 全文（W4-A3 C6 口径订正）。
+
+    CI-001 ID 收敛后注册表是**两层**结构：聚合项（CHK-*）持有 ctest_targets，
+    而真正调用 ctest 的是其 steps[].command（deep_ci_driver.py ctest-target
+    --target <名>）。C6 的判据是「登记了就必须真跑」，故运行面 = 聚合项 command
+    ∪ 全部 step command；只看聚合项 command 会把**确实在跑**的目标误判为
+    「登记但未真跑」（W4-A3 实测 56 条误红）。
+    """
+    cmd = list(check.get("command", []) or [])
+    for step in check.get("steps", []) or []:
+        if isinstance(step, dict):
+            cmd += list(step.get("command", []) or [])
+    return cmd
+
+
 def registry_patterns(registry: dict) -> list:
-    """返回 [(check_id, pattern, command)]。"""
+    """返回 [(check_id, pattern, command_surface)]。"""
     out: list = []
     for check in registry.get("checks", []):
         if not isinstance(check, dict):
             continue
         for pat in check.get("ctest_targets", []) or []:
             if isinstance(pat, str) and pat:
-                out.append((check["id"], pat, list(check.get("command", []))))
+                out.append((check["id"], pat, command_surface(check)))
     return out
 
 
@@ -199,12 +246,19 @@ def evaluate(targets: dict, registry: dict, baseline: dict) -> dict:
 
 # --------------------------------------------------------------------- 真实数据面 ----
 
-def collect_real(repo: pathlib.Path) -> tuple:
+def collect_real(repo: pathlib.Path, *, tracked_only: bool = True) -> tuple:
+    """真实数据面：(targets, structural_errors, untracked_cmake_sources)。
+
+    tracked_only=True（默认，CI 面）= 只判**版本库**内的 CMake 源；未跟踪的
+    工作区源在第三个返回值里留痕。自测可用 tracked_only=False 复现工作区快照。
+    """
+    paths, untracked = discover_sources(repo, tracked_only=tracked_only)
     sources = {}
-    for path in discover_sources(repo):
+    for path in paths:
         rel = str(path.relative_to(repo)).replace("\\", "/")
         sources[rel] = path.read_text(encoding="utf-8", errors="replace")
-    return parse_targets(sources)
+    targets, errors = parse_targets(sources)
+    return targets, errors, untracked
 
 
 def write_baseline(repo: pathlib.Path, targets: dict, explicit: set, previous: dict = None) -> pathlib.Path:
@@ -245,7 +299,7 @@ FIXTURE_CMAKE_STALE = "add_test(NAME demo_units COMMAND demo_test units)\n"
 FIXTURE_CMAKE_ONE = "add_test(NAME demo_units COMMAND demo_test units)\n"
 
 
-def _fixture_registry(target=None, command_name=None) -> dict:
+def _fixture_registry(target=None, command_name=None, *, via_step=False) -> dict:
     checks = [{
         "id": "DEMO-BASE", "profiles": ["fast"], "platform": "any",
         "command": ["python3", "tools/quality/check_ctest_registration.py"],
@@ -253,13 +307,26 @@ def _fixture_registry(target=None, command_name=None) -> dict:
         "outputs": [], "waivable": False,
     }]
     if target is not None:
-        checks.append({
+        entry = {
             "id": "DEMO-CTEST", "profiles": ["linux-main"], "platform": "any",
-            "command": ["ctest", "--test-dir", "run/ci/build", "-R",
-                        "^%s$" % (command_name or target), "--output-on-failure"],
+            "command": ["python3", "ci/run_checks.py", "--check", "DEMO-CTEST", "--quiet"],
             "timeout_seconds": 300, "heavy": False, "mutates_workspace": False,
             "outputs": [], "waivable": False, "ctest_targets": [target],
-        })
+        }
+        if via_step:
+            # 两层结构：聚合项持有 ctest_targets，真正跑 ctest 的是 step command
+            entry["steps"] = [{
+                "id": "DEMO-CTEST-STEP", "profiles": ["linux-main"], "platform": "linux",
+                "command": ["python3", "tools/quality/deep_ci_driver.py", "ctest-target",
+                            "--build-dir", "run/ci/build", "--target", target,
+                            "--output", "run/ci/ctest/%s.json" % target],
+                "timeout_seconds": 300, "heavy": False, "mutates_workspace": False,
+                "outputs": [], "waivable": False,
+            }]
+        else:
+            entry["command"] = ["ctest", "--test-dir", "run/ci/build", "-R",
+                                "^%s$" % (command_name or target), "--output-on-failure"]
+        checks.append(entry)
     return {"schema_version": 1, "checks": checks}
 
 
@@ -286,8 +353,12 @@ def run_selftest() -> int:
          {"targets": []}, False)
     case("S6_stale_baseline", {"CMakeLists.txt": FIXTURE_CMAKE_STALE}, empty_reg,
          {"targets": ["removed_target"]}, False)
+    # S8：两层注册表 —— 目标由 step command 真跑（聚合项 command 只是转发），
+    #     不得判「登记但未真跑」（W4-A3 C6 口径订正的正例面）。
+    case("S8_pattern_in_step_command", {"CMakeLists.txt": FIXTURE_CMAKE_ONE},
+         _fixture_registry("demo_units", via_step=True), {"targets": []}, True)
 
-    targets, structural = collect_real(REPO)
+    targets, structural, untracked_real = collect_real(REPO)
     verdict = evaluate(targets, load_json(REPO / REGISTRY_REL),
                        load_json(REPO / BASELINE_REL))
     errs = structural + verdict["errors"]
@@ -319,7 +390,7 @@ def main(argv=None) -> int:
         return run_selftest()
 
     repo = pathlib.Path(args.repo).resolve()
-    targets, structural = collect_real(repo)
+    targets, structural, untracked = collect_real(repo)
     registry = load_json(repo / args.registry)
     baseline_path = repo / args.baseline
     if not baseline_path.is_file():
@@ -357,6 +428,9 @@ def main(argv=None) -> int:
         "stale_baseline": verdict["stale_baseline"],
         "dangling_patterns": verdict["dangling_patterns"],
         "pattern_not_in_command": verdict["pattern_not_in_command"],
+        "untracked_cmake_sources": untracked,
+        "untracked_note": ("未跟踪的 CMake 源不计入 CTest 面（W4-A3：本门判"
+                           "版本库，不判并发写者的工作区快照）；此处留痕不静默丢弃"),
         "error_count": len(errors),
         "errors": errors,
         "verdict": "PASS" if not errors else "FAIL",

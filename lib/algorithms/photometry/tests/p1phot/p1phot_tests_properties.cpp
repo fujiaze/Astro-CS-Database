@@ -6,7 +6,7 @@
 //   P2  F2 鲁棒门: 20% 离群 Δlocation<0.1 dex (冻结门) + 离群星权重 0
 //       (records reject_reason=2) + fit_used=80% (SCI-PHOT-001 §11)
 //   P3  IRLS 真迭代语义: S>0 场 robust_iterations>=1 且与 oracle 独立复算一致
-//   P4  I2: sigma_residual == MAD(r_inliers)/0.6745 oracle 独立复算 (rtol 1e-9)
+//   P4  I2: sigma_residual == MAD(r_inliers)/0.6744897501960817 oracle 独立复算 (rtol 1e-9)
 //       + records 残差与逐星 r 一致 (I6 方向)
 //   P5  v2/_f64_v2 双通道: 像素 f32 可精确表示场景下 scale/sigma/records
 //       bitwise, out_pixels f32 存储舍入 rtol 1e-7
@@ -231,7 +231,7 @@ int test_properties() {
         // P3: S>0 真迭代 (离群场 S>0)
         P1PHOT_CHECK_MSG(cs, v.diag.robust_iterations >= 1, "p3_irls_iters",
                          "iters=%d", v.diag.robust_iterations);
-        // P4 (I2): sigma_residual == MAD(r_inliers)/0.6745 oracle 复算。
+        // P4 (I2): sigma_residual == MAD(r_inliers)/0.6744897501960817 oracle 复算。
         // r 集合由输入独立重建 — 复刻被测同一估计过程: 全部配对样本
         // (含离群) 进 IRLS (被测收敛门停机于过渡值, inlier 子集重算会得
         // 不同不动点, 属过程差异); F_syn=常数谱 XPSD 闭式

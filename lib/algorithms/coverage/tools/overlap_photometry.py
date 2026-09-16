@@ -192,7 +192,7 @@ def robust_stats(d: np.ndarray) -> dict:
         return {"n": 0}
     med = float(np.median(d))
     mad = float(np.median(np.abs(d - med)))
-    sigma = 1.4826 * mad
+    sigma = 1.482602218505602 * mad
     return {
         "n": int(d.size),
         "median": med,

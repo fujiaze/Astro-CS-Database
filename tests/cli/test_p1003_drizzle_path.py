@@ -12,7 +12,8 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EXE = os.path.join(REPO, "build", "astrocs")
-CLI_DIR = os.path.join(REPO, "cli")
+# ROOT-008: CLI 命令层源在 lib/infrastructure/cli/（旧 cli/ 已退役）。
+CLI_DIR = os.path.join(REPO, "lib", "infrastructure", "cli")
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd / 证据落点统一落 run/（gitignore），见 cli_test_hygiene.py
 from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402

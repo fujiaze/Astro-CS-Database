@@ -48,7 +48,7 @@ bool StarDetector::estimate_background(const float* image, int w, int h,
       dev[static_cast<size_t>(i)] =
           std::fabs(keep[static_cast<size_t>(i)] - med);
     const double mad = nth_value(dev, kn, kn / 2);
-    const double s = 1.4826 * mad;
+    const double s = 1.482602218505602 * mad;
     std::vector<double> filtered;
     filtered.reserve(kn);
     // 顺序保序过滤 (逐元素谓词独立, 但输出顺序承载 keep 的原序 → 串行 push_back)

@@ -147,7 +147,7 @@ DistortionModel estimate_radial_distortion(
     for (size_t i = 0; i + 1 < r_errs.size(); ++i) {
         deltas[i] = r_errs[i+1] - r_errs[i];
     }
-    double delta_mad = median(deltas) * 1.4826;
+    double delta_mad = median(deltas) * 1.482602218505602;
     if (delta_mad < 1e-9) delta_mad = 1.0;  // 防止除零
 
     // 找第一个跳变 > 5×MAD
@@ -216,7 +216,7 @@ DistortionModel estimate_radial_distortion(
 
         // Huber δ = 1.345 × MAD(residuals)
         std::vector<double> r_copy = residuals;
-        double mad = median(r_copy) * 1.4826;
+        double mad = median(r_copy) * 1.482602218505602;
         if (mad < 1e-9) mad = 1.0;
         double delta = 1.345 * mad;
 

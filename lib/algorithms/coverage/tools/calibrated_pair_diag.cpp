@@ -57,7 +57,7 @@ double mad_of(const std::vector<double>& v, double med) {
 }
 
 double robust_sigma(const std::vector<double>& v, double med) {
-    return 1.4826 * mad_of(v, med);
+    return 1.482602218505602 * mad_of(v, med);
 }
 
 double p95_abs(const std::vector<double>& v) {

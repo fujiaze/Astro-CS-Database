@@ -8,7 +8,7 @@
     "RE-JUDGED": "门判据已整改（不再是原判据），登记新判据与依据",
     "RETIRED": "门已退役，见 docs/ci/01_CHECKS.md §2.1/§2.3"
   },
-  "registry_entry_count": 42,
+  "registry_entry_count": 43,
   "gates": {
     "CHK-BUILD-LINUX": {
       "status": "FACE-DEFINED-NOT-RUN",
@@ -1094,6 +1094,33 @@
       "auto": true,
       "not_run_reason": ""
     },
+    "CHK-IMPACT-MAP": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_impact_map.py",
+          "--json-out",
+          "run/ci/impact-map/impact_map.json"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_impact_map.py",
+          "--self-test"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "selftest(N0 正例 + N1..N6 六条判据各自必红 + N7 输入缺失 fail-closed rc=2)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/W4-A3/logs/impact_map_selftest.log",
+      "auto": true,
+      "not_run_reason": "判据违规面由 N1..N6 覆盖；fail-closed 面由 N7 覆盖；真仓 PASS rc=0"
+    },
     "RESOURCE-GATE-REAL": {
       "status": "PROVEN-EXECUTABLE",
       "grade": "P0",
@@ -1188,8 +1215,8 @@
     }
   },
   "summary": {
-    "gates_total": 42,
-    "PROVEN-EXECUTABLE": 19,
+    "gates_total": 43,
+    "PROVEN-EXECUTABLE": 20,
     "RE-JUDGED": 4,
     "FACE-DEFINED-NOT-RUN": 19,
     "missing_records": [],

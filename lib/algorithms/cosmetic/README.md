@@ -24,7 +24,7 @@
 
 ## 2. 负责范围
 
-负责：热像素检测（master dark 全局 median+hot_sigma·1.4826·MAD 阈值）、
+负责：热像素检测（master dark 全局 median+hot_sigma·1.482602218505602·MAD 阈值）、
 冷像素检测（master bias 全局 median−cold_sigma·σ）、8 连通结构过滤
 （≥max_size 连通域不判坏）、坏点插值修复（5×5 镜像边界中值 / 4 方向
 1/dist IDW）、out_hot/out_cold 结构过滤后计数；数据语义
@@ -43,7 +43,7 @@ OpenMP 默认 team，迁移后由 host 授予）；整 Phase 行为（禁止）�
 `[h][w]` float32（f64 ABI 经 double→float 降级执行）；master_dark /
 master_bias `[h][w]` 均**可 NULL**（NULL 或对应 sigma<=0 = 禁用该检测，
 两者皆禁 → 模块恒等 pass）；hot/cold_sigma 无量纲（MAD 倍数，
-1.4826·mad 换算）；method 0=median / 1=IDW（名义 bilinear，非 0 一律
+1.482602218505602·mad 换算）；method 0=median / 1=IDW（名义 bilinear，非 0 一律
 IDW）；max_structure_size 像素个数（<=0 → 全域清除负面语义）；
 out_hot/out_cold 可 NULL。
 
@@ -71,7 +71,7 @@ out_hot/out_cold 可 NULL。
 
 ## 5. 实现事实（源码核对）
 
-- **算法**：检测 = 全局 median + 1.4826·MAD 阈值（不过滤 NaN，
+- **算法**：检测 = 全局 median + 1.482602218505602·MAD 阈值（不过滤 NaN，
   DISP-COS-002：NaN 源帧 → 检测静默全 false）→ 8 连通过滤（保留小域、
   剔除 ≥max_size 大域；背景 label 0 记 size=max_size 防误清）→ 修复
   （median：5×5 镜像反射邻域、仅收好像素、偶数样本双中位均值

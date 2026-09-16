@@ -4,7 +4,9 @@
 import os, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-PHASE2_INC = os.path.join(REPO, "lib", "phase2", "include")
+# ARCH-001: 有界队列头随 coverage 模块迁至 lib/algorithms/coverage/include
+# （astro/phase2/async_io.h）；旧 lib/phase2/include 已不存在。
+PHASE2_INC = os.path.join(REPO, "lib", "algorithms", "coverage", "include")
 
 
 @unittest.skipUnless(shutil.which("g++"), "需要 g++")

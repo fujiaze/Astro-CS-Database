@@ -78,13 +78,13 @@ null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 | method_minimum_n | :921-935 | 方法最小 N 注册表（NONE 0/σ 族+ESD+RCR+MEDIAN_SIGMA 3/LINEAR_FIT 4/PERCENTILE 2/MINMAX 3） |
 | set_err | :937-941 | err 缓冲日志文本（仅日志，不承载语义） |
 | ScratchVec | :944-986 | n≤64 固定 scratch（无每像素堆分配）；>64 堆 fallback |
-| scratch_median / scratch_mad | :989-997 / :999-1002 | nth_element 中位（偶数均值）；MAD=median(|x−med|)，σ=1.4826·MAD 由调用方乘 |
+| scratch_median / scratch_mad | :989-997 / :999-1002 | nth_element 中位（偶数均值）；MAD=median(|x−med|)，σ=1.482602218505602·MAD 由调用方乘 |
 | p2_reject_plan_resolve | :1028-1084 | planning 层 AUTO 解析 + typed 默认值（冻结表，§5 F1） |
 | eligibility_core | :1094-1124 | 连续版 policy core（finite→valid→support→quality 严格大于门；support 严格大于 :1108） |
 | p2_eligibility_filter | :1128-1148 | 资格层连续版入口（compat 路径消费） |
 | p2_collect_candidate_stack | :1150-1225 | 生产 strided gather（f32/f64；source_indices 显式保留 eligible→原 slot） |
 | reject_none_impl | :1235-1237 | 全 ACCEPTED |
-| reject_robust_mad_impl | :1240-1282 | sigma=median+1.4826·MAD 迭代 clip |
+| reject_robust_mad_impl | :1240-1282 | sigma=median+1.482602218505602·MAD 迭代 clip |
 | reject_winsorized_impl | :1285-1344 | winsorized_sigma（Siril 1.4.3 语义 :1284 注释） |
 | reject_averaged_impl | :1347-1382 | averaged_sigma（mean+mean|resid|·√(π/2)） |
 | reject_linear_fit_impl | :1385-1479 | linear_fit（Siril 1.4.3 frozen harness） |
@@ -227,7 +227,7 @@ decision 作用于 work；accepted mask 应用回原始值
 迭代 it=0..max_iterations-1:                                :1253
   cur = {w[i]: accept[i]}（accept 初始全 1）                 :1254-1256
   nc<2 → break                                              :1258
-  m = median(cur);  s = 1.4826 · median(|cur−m|)            :1261-1262
+  m = median(cur);  s = 1.482602218505602 · median(|cur−m|)            :1261-1262
   s ≤ 1e-12 → break                                         :1263
   z_i = (w[i]−m)/s;  z<−|σ_lo| ∨ z>|σ_hi| → 拒             :1269-1271
   无新拒 → break;  计数器 it 外层                             :1273-1276

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "product_version": "0.11.0-alpha.1",
+  "product_version": "0.11.0-alpha.2",
   "source_commit": "9f6b72b5eec1f585506e57fd4fb55c15dda1bbb3",
   "platform": "linux-amd64",
   "note": "MOD-001 科学DLL安装加载验证与产品清单: units 自 BLD-003 骨架 5 项扩至 10 项——5 个科学模块 DLL (astrocs_catalog_gaia / astrocs_p1_{drizzle,calibration,cosmetic,hips_writer}; 宪章 §8.4 独立模块 DLL) 入安装树 modules/ 并登记, 与 cmake/install_layout.cmake 安装规则、packaging/install-tree.contract.json 三方一一对应; 安全 loader 逐 unit 加载验证 = tests/abi/mod001_install_load_check.py (§18.4 只加载签名清单官方模块)。F-CI-002-01 (owner 裁决 2026-09-11): astrocs_p1_noise (MOD-P1-NOISE) 随 lib/snr_estimator V7 残留断链解除摘出生产构建图与本清单 (该子图 CMakeLists 未入库), V7 残留收编后恢复登记。status: 平台 CLI 与全部模块 unit 已实现; PLATFORM-RUNTIME/IO 平台 DLL 仍为 BLD-003 骨架 (单 C ABI 源起步, 宿主接线归 RT-002/WIN-*, 不伪装实现完成, 维持 SKELETON)。source_commit=清单登记时点 main SHA。sha256 维持 null (BLD-003 约定: 打包/ABI-004 填充, loader 对空期望跳过 hash; 加载验证以实测 sha256 传入探针覆盖 HASH_MISMATCH 拒绝路径)。",

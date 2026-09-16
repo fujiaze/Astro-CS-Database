@@ -30,7 +30,7 @@
 | 模块 | 路径 | 交付状态 | 职责 | 证据锚 |
 | --- | --- | --- | --- | --- |
 | Runtime / 唯一 executor | `lib/infrastructure/scheduler` | IMPLEMENTED | typed DAG 调度、ThreadBudget 租约、进程唯一 worker 池 | `lib/infrastructure/scheduler/src/executor_runtime.h`、`lib/infrastructure/scheduler/src/module_adapters.cpp`:3777-3793；ctest `rt001_unique_executor` 实测 PASS |
-| 模块注册表（三 Phase 节点） | `lib/infrastructure/scheduler` | IMPLEMENTED | P1 八节点 / P2 七节点 / P3 五节点，各绑唯一真实 operation（宪章 §F.1） | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 实测 |
+| 模块注册表（三 Phase 节点） | `lib/infrastructure/scheduler` | IMPLEMENTED | P1 八节点 / P2 七节点 / P3 五节点，各绑唯一真实 operation（`ASTROCS_DESIGN.md` §3.2/§4.2/§5.2；原引「宪章 §F.1」已废止） | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 实测 |
 | Phase1 会话 | `lib/phase1_session` | IMPLEMENTED | `io_read → calibrate → cosmetic → io_write` | `lib/phase1_session/p1_session.cpp`（`manifest["stages"]`）；unit `entrypoint: p1_session_run` |
 | Phase1 科学内核 | `lib/phase1` | IMPLEMENTED | noise / photometry / stars / wcs 子目录内核 | `lib/phase1` 下 noise/photometry/stars/wcs 子目录 |
 | Phase2 会话 | `lib/phase2_session` | IMPLEMENTED | 七节点链组装（coverage→sample→upm→reject→integrate→write） | `lib/phase2_session/p2_session.cpp`；ctest `p2001_real_nodes` 实测 |
@@ -38,7 +38,7 @@
 | Phase3 会话 | `lib/phase3_session` | IMPLEMENTED | properties / WCS（TAN）/ nearest+bilinear 重采样 / CFITSIO 原子写 / verify | `lib/phase3_session` 的 p3_session/p3_wcs/p3_resample/p3_output 四源文件；ctest `p3002_real_nodes`/`p3002_uncertainty` 实测 |
 | 三阶段产品交换 | `lib/infrastructure/aio/runtime/artifact_store` | CONTRACT_READY | 跨 Phase 仅磁盘产品交换（role↔type 强绑定） | `contracts/data/phase_product_exchange.schema.json` + `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py` |
 | 结构化日志 | `lib/infrastructure/observability/logging` | CONTRACT_READY | JSONL 事件合同 | LOG-001 schema/契约 |
-| 监控与资源门 | `tools/monitoring` | IMPLEMENTED | 冻结阈值判定（§10.5/§18.2） | `tools/monitoring/run_monitored.py` `evaluate_frozen_gate()`；pytest `tests/monitoring` |
+| 监控与资源门 | `tools/monitoring` | IMPLEMENTED | 冻结阈值判定（现行 = `ASTROCS_DESIGN.md` §8 + `contracts/resource_gate_v1.json`；原引「宪章 §10.5/§18.2」已废止） | `tools/monitoring/run_monitored.py` `evaluate_frozen_gate()`；pytest `tests/monitoring` |
 | AIO 图像 I/O | `lib/infrastructure/aio` | IMPLEMENTED | FITS/XISF/HiPS 读写、唯一 AIO C ABI v1 | `lib/infrastructure/aio/src/aio_abi.cpp`（编入生产 target `astrocs_aio`，MOD-001 实测握手 abi=1/status_count=71） |
 | HEALPix / Drizzle 内核 | `lib/infrastructure/aio/healpix_db` | IMPLEMENTED | `healpix_drizzle`（生产）+ `healpix_io`；`archive/legacy` 与 `healpix_browser_qt` 不重建 | `lib/algorithms/drizzle/healpix_drizzle`、`lib/infrastructure/aio/healpix_db/archive` |
 | 公共工具 | `lib/algorithms/shared` | IMPLEMENTED | HEALPix core / SHA-256 / compute traits（header-only + 静态） | `lib/algorithms/shared` |

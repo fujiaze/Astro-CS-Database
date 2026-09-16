@@ -9,10 +9,10 @@
     "contract_id": { "const": "CONTRACT-BLD003-INSTALL-TREE-V1" },
     "contract_version": { "const": 1 },
     "doc_status": { "const": "ACTIVE_NORMATIVE" },
-    "target_version": { "const": "0.11.0-alpha.1" },
+    "target_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$", "description": "必须逐字等于仓库根 VERSION（唯一版本源, docs/governance/VERSION_NAMESPACES.md）; schema 不写死版本值, 漂移由 packaging/check_packaging_consistency.py C1 机器判红" },
     "root_layout": {
       "type": "string",
-      "description": "Linux 技术预览前缀相对布局; Windows 正式布局见 03_TARGET_PRODUCT_AND_ARCHITECTURE.md §4 (AstroCS-0.11.0-alpha.1-win-x64/) 由 WIN-* 系列验证"
+      "description": "Linux 技术预览前缀相对布局; Windows 正式布局见 03_TARGET_PRODUCT_AND_ARCHITECTURE.md §4 (AstroCS-<根 VERSION>-win-x64/, 版本值唯一源=根 VERSION) 由 WIN-* 系列验证"
     },
     "units": {
       "type": "array",

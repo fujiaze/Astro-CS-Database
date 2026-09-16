@@ -109,7 +109,7 @@ DATA-001），不在本任务写域。
 | `upm.robust_control_weight` | upm.cpp | UPM 控制点权重 = quality×geom×control_ivar | DATA-UPM-CONTROL-UNC-001 | 已消除(禁止与 integration weight 混名) |
 | `support` | integrate/upm/sampler | 覆盖支撑 [0,1] | DATA-IMG-SUPPORT-001 | 明确 |
 | `scale_deg_per_px` | p3_session | 输出像元角尺度 | DATA-P3-FITS-001 s_out | 明确(单位 deg/px) |
-| `sigma` | master_generator/rejection | MAD 转 σ 系数 1.4826 / 拒绝阈值倍数 | SCI-NOISE/SCI-REJ | 明确(无量纲倍数) |
+| `sigma` | master_generator/rejection | MAD 转 σ 系数 1.482602218505602 / 拒绝阈值倍数 | SCI-NOISE/SCI-REJ | 明确(无量纲倍数) |
 | `snr` | CW/sampler | 区域级 SNR 权重因子 snr_v² | SCI-CW-001 | 明确(与 ivar 语义分离) |
 | `value` (integrate) | integrate.h | 候选样本值 | DATA-IMG-CAL-001 标度 | 明确 |
 | `quality` | sampler | 帧/星点质量位掩码 | SCI-CW-001 | 明确 |

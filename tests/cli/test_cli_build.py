@@ -3,7 +3,76 @@
 import json, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CLI = os.path.join(REPO, "cli")
+# 单一产品事实源 = 根 CMakeLists.txt（唯一 project()/唯一 add_executable(astrocs)）。
+# 旧 cli/CMakeLists.txt（BLD-002 compatibility 声明，非产品事实源）退役后，静态
+# 属性断言改锚到根文件 + 迁移后的生成头模板 lib/infrastructure/cli/version_generated.h.in。
+ROOT_CMAKE = os.path.join(REPO, "CMakeLists.txt")
+VERSION_H_IN = "lib/infrastructure/cli/version_generated.h.in"
+
+
+def _code_lines(path):
+    """非注释行（CMake 用 # 注释；禁令注释本身含关键词，沿用旧 filter 教训）。"""
+    with open(path, encoding="utf-8") as fh:
+        return "\n".join(l for l in fh if not l.lstrip().startswith("#"))
+
+
+def _single_exe_violations(text):
+    """唯一 project()/唯一 add_executable(astrocs) + 版本单源锚点（根文件口径）。
+
+    返回违规列表（空 = 合规）；每条都可由注入式负例转红（见 test_05）。
+    """
+    bad = []
+    if len(re.findall(r"^\s*project\(", text, re.M)) != 1:
+        bad.append("根 CMakeLists 必须恰有一个 project()")
+    if len(re.findall(r"add_executable\(", text)) != 1:
+        bad.append("根 CMakeLists 必须恰有一个 add_executable()")
+    if len(re.findall(r"add_executable\(astrocs\b", text)) != 1:
+        bad.append("根 CMakeLists 必须恰有一个 add_executable(astrocs ...)")
+    if "file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION" not in text:
+        bad.append("版本单源必须是根 VERSION 文件（file(READ <root>/VERSION ...)）")
+    if VERSION_H_IN not in text.replace(os.sep, "/"):
+        bad.append("生成头模板必须锚在 " + VERSION_H_IN)
+    # 退役锚点: 旧路径 <root>/cli/version_generated.h.in（不含 infrastructure/ 前缀）。
+    if re.search(r"(?<!infrastructure/)cli/version_generated\.h\.in", text):
+        bad.append("不得再引用已退役的 cli/version_generated.h.in")
+    if "march=native" in text:
+        bad.append("禁 march=native（全局 ISA 泄漏）")
+    return bad
+
+
+# ISA 高级旗标允许出现在 provider target 的 PRIVATE 作用域（ARCH-003 §2 / 根
+# CMakeLists 的编译隔离合同）；被禁的是全局泄漏（add_compile_options /
+# CMAKE_*_FLAGS / 丢失 PRIVATE 的目录级设置）。
+_ARCH_FLAG_RE = re.compile(r"(-mavx\w*|-mfma|/arch:AVX\w*)")
+_GLOBAL_SCOPE_RE = re.compile(r"(add_compile_options|CMAKE_CXX_FLAGS|CMAKE_C_FLAGS|"
+                              r"add_definitions|include_directories)")
+
+
+def _cmake_commands(text):
+    """把 CMake 文本切成完整命令（跨行续行按括号配平合并），避免按行误判。"""
+    out, buf, depth = [], [], 0
+    for line in text.splitlines():
+        buf.append(line)
+        depth += line.count("(") - line.count(")")
+        if depth <= 0:
+            out.append(" ".join(x.strip() for x in buf))
+            buf, depth = [], 0
+    if buf:
+        out.append(" ".join(x.strip() for x in buf))
+    return out
+
+
+def _global_arch_violations(text):
+    """全局 ISA 旗标泄漏（返回违规命令；空 = 合规）。"""
+    bad = []
+    if "march=native" in text:
+        bad.append("march=native")
+    for cmd in _cmake_commands(text):
+        if not _ARCH_FLAG_RE.search(cmd):
+            continue
+        if _GLOBAL_SCOPE_RE.search(cmd) or not re.search(r"PRIVATE", cmd):
+            bad.append(cmd.strip()[:120])
+    return bad
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
 from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
@@ -116,20 +185,34 @@ class TestCliBuild(unittest.TestCase):
         self.assertIn("unknown command", r.stderr)
 
     def test_05_single_exe_rule(self):
-        # 仅统计非注释行(文件头 BLD-002 注释含字面 add_executable(astrocs); 与 test_06 同式)
-        cm = "\n".join(l for l in open(os.path.join(CLI, "CMakeLists.txt"), encoding="utf-8")
-                       if not l.lstrip().startswith("#"))
-        self.assertEqual(len(re.findall(r"add_executable\(", cm)), 1, "恰一个 target")
-        # BLD-002: compatibility target 禁止正式 install (02_ABI_BUILD_CLI_TASKS §BLD-002)
-        self.assertNotIn("install(TARGETS astrocs", cm)
-        self.assertNotIn("march=native", cm)
+        # 单一产品事实源 = 根 CMakeLists.txt（旧 cli/CMakeLists.txt compatibility
+        # 声明已退役）；判据: 唯一 project()/唯一 add_executable(astrocs) + 版本单源
+        # 锚在根 VERSION 与 lib/infrastructure/cli/version_generated.h.in。
+        text = _code_lines(ROOT_CMAKE)
+        self.assertEqual(_single_exe_violations(text), [],
+                         "根 CMakeLists 违反唯一产品 exe 规则")
+        # 判别力自证（负例，注入式）: 改掉对应行 ⇒ 同一判据必须转红。
+        self.assertTrue(_single_exe_violations(
+            text.replace("add_executable(astrocs", "add_executable(astrocs_dup", 1)),
+            "负例: target 改名未被判出（判据失去判别力）")
+        self.assertTrue(_single_exe_violations(text.replace(
+            "lib/infrastructure/cli/version_generated.h.in",
+            "cli/version_generated.h.in", 1)),
+            "负例: 版本头模板锚点漂回已退役路径未被判出")
 
     def test_06_no_global_arch_flags(self):
-        # 仅检查非注释行(禁令注释本身含关键词, 与 checker 误报教训一致)
-        code = "\n".join(l for l in open(os.path.join(CLI, "CMakeLists.txt"), encoding="utf-8")
-                         if not l.lstrip().startswith("#"))
-        for banned in ("-mavx", "arch:AVX", "march=native"):
-            self.assertNotIn(banned, code, f"禁编译旗标 {banned}")
+        # ARCH-003 §2: 禁全局 ISA 旗标（可加载性/可移植性）。provider target 的
+        # PRIVATE 高级旗标（astrocs_cpu_avx2 等）是合同允许的隔离形态。
+        text = _code_lines(ROOT_CMAKE)
+        self.assertEqual(_global_arch_violations(text), [],
+                         "根 CMakeLists 出现全局 ISA 旗标泄漏")
+        # 判别力自证（负例，注入式）: 注入全局旗标与游标旗标 ⇒ 必须判出。
+        self.assertTrue(_global_arch_violations("add_compile_options(-mavx2)\n"),
+                        "负例: 全局 add_compile_options(-mavx2) 未被判出")
+        self.assertTrue(_global_arch_violations("target_compile_options(x -mavx2)\n"),
+                        "负例: 丢失 PRIVATE 的目标级旗标未被判出")
+        self.assertTrue(_global_arch_violations("set(CMAKE_CXX_FLAGS \"-march=native\")\n"),
+                        "负例: march=native 未被判出")
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -131,7 +131,7 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:614-618 注册）。
 |---|---|---|
 | ALG-NOISE-001 | `noise_model_impl`（模板 f32/f64 内核） | noise_model.cpp:137-296（参数校验 :143、`g_model_floor` 注册 :151、fixed conservative 掩膜 :159-188、patch 网格循环 :190-226、全局兜底 :231-264、控制点数组 :266-295） |
 | ALG-NOISE-001 | `snr_noise_model_v1` / `snr_noise_model_v1_f64`（C ABI 门面，extern "C" 异常屏障→rc 3） | noise_model.cpp:386-402 |
-| ALG-NOISE-001 | `snr_noise_model_v1_default_config` | noise_model.cpp:371-384（默认 8×8/r0=10/scale=6/clip 5.0/min 64/rounds 2/spatial 1/floor 1e-12） |
+| ALG-NOISE-001 | `snr_noise_model_v1_default_config` | noise_model.cpp:371-384（默认 8×8/r0=10/scale=6/clip 5.0/min 64/rounds 2/spatial 1/floor 1e-12；**语义判据以 SCI 为准**：`r0·scale` = 60 px 是逐星半径的**硬上界**，另加 k=0.1 / r_min=1.5 px / fwhm_floor=0.75 / budget_patches=8 / budget_sky=9216 —— 见 `docs/science/NOISE_MODEL.md` §5a/§14.5，claim SC-007） |
 | ALG-NOISE-001 | `robust_median` / `robust_sigma`（1.482602218505602·MAD）/ `collect_patch_sky`（掩膜+饱和过滤+5σ≤2 轮裁剪） | noise_model.cpp:42-52,55-62,72-108 |
 | ALG-NOISE-002 | `fill_impl`（平面 LS var(x,y)=a+b·x+c·y，负预测 clamp floor；否则全局常量）+ `snr_noise_model_v1_fill` | noise_model.cpp:408-470（LS :414-431，floor 回退 :443-445，fill 门面 :463-470） |
 | ALG-NOISE-002 | `snr_noise_model_v1_free`（free ctrl 数组 + 按指针擦除 g_model_floor） | noise_model.cpp:472-486 |
@@ -148,14 +148,24 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:614-618 注册）。
 - `g_model_floor` 实际为 `std::unordered_map<const NoiseWeightModelV1*,double>`
   （noise_model.cpp:32），§2 所写 `std::map<void*,double>` 为旧登记——语义
   （model 指针 key、无全局共享）不变，容器与 key 类型以本节为准。
-- `min_patch_samples` 默认 **64**（snr_estimator.h:117、default_config :379），
+- `min_patch_samples` 默认 **64**（snr_estimator.h:135、default_config :379），
   patch 合格阈即 64。SCI-NOISE-001 §4 原文"默认 5"属旧稿数字，已按 claim SC-002
   **订正 SCI 为 64**（依据 R-5 §2 EXP-1/2/3：N=5 时单 patch 偏差 −19.2%、SCI §11
   冻结的 5% oracle 通过率仅 0.6%，与 SCI 自身验收条款不兼容）——本层**以 SCI 为准**。
-- 掩膜统一半径 rmax = max(1, source_mask_radius_px)·max(1, mask_radius_scale)
-  = 默认 10·6 = **60 px**（noise_model.cpp:169-172），对所有星统一，不按
-  振幅/星等缩放（API 无 amplitude 输入）；`amps` 向量残留未用（:166,171
-  `(void)amps`）。
+- 掩膜半径：**判据以 SCI 为准**（claim SC-007，`docs/science/NOISE_MODEL.md` §5a）——
+  `r_i = clip(r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax)` 再按天空预算收缩
+  （`n_qualified ≥ 8` 且 `N_sky ≥ 9216`）；`rmax = max(1, source_mask_radius_px)·
+  max(1, mask_radius_scale)` = 默认 10·6 = **60 px 是硬上界**，不是操作默认半径；
+  半径对 `F_i`、`FWHM_i` 单调不减，「与亮度解耦」**不是**物理不变量。
+  现行实现（noise_model.cpp 掩膜构造段）仍取统一 60 px、`amps` 向量被
+  `(void)` 弃用，且 ABI 只收坐标——属**待整改实现事实**，不构成 SCI 依据。
+- 饱和电平语义（claim SC-008，SAT-001）：`collect_patch_sky` 的饱和过滤是**输入有效域规则**
+  （`valid_pixel`，noise_model.cpp:64-68），不是可选优化；SCI §4「饱和域」定电平来源优先级 =
+  显式 `cfg.saturation_level>0` > 帧元数据 `SATURATE` > `DATAMAX`（解析实现
+  `lib/algorithms/noise_snr/include/astrocs/noise/saturation_policy.h`，生产接线
+  orchestrator.cpp run_stage_snr 噪声块）。`saturation_level=0` **只表示「未提供电平」，
+  不表示「无饱和」**；未提供时编排层必须写 `NOISE_SATURATION_FILTER=DISABLED_NO_METADATA`
+  显式降级声明。**不得**把 0 当作"该帧无饱和像素"消费。
 - 取消检查点：§5c "patch 行带粒度检查取消"为计划语义，现状
   noise_model_impl/fill_impl **无** cancel 回调（DISP-NOISE-004）。
 - §11 "n_ctrl ∈ {1..64}"：n_qualified_patches = 合格 patch 数 ∈ {0..64}
@@ -231,7 +241,9 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:614-618 注册）。
   ⑥free 后再 free 不崩（幂等）。
 - **负面/参数矩阵**: data/out NULL、h/w≤0 → rc=3；cfg=NULL → 默认配置
   rc=0；source_mask 全 1（无 sky）→ rc=1；NaN/Inf 像素 → 过滤不计入
-  （valid_pixel）；饱和电平以上像素排除；star 坐标 NaN → 跳过该星。
+  （valid_pixel）；饱和电平以上像素排除（**必须提供电平**：`saturation_level>0` 或帧元数据
+  `SATURATE`/`DATAMAX`；未提供 ⇒ 编排层显式声明 `DISABLED_NO_METADATA`，claim SC-008，
+  门 `ctest -R p1noise_saturation`）；star 坐标 NaN → 跳过该星。
 - **串并行/资源**: O(h·w) 时间、O(h·w) 掩膜 + O(64) 控制点内存界断言；
   现状单线程（§13.2），P1-NOISE-IMPL 引入并行后按 ④ 复验。
 - **ISA**: 基线标量断言（无 SIMD 变体；引入时按约束 C.4-C.8 逐内核

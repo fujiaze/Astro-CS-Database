@@ -167,7 +167,9 @@
   → DATA 拒绝（不 silent 降 FP32）。节点写 p1_stack.json `precision_mode`、
   帧头 `PRECISION`=fp32/fp64 实际值（module_adapters.cpp:2023-2049）。
 - **RESCUE-FD-02 库边界精度缺省（无 silent FP32）**: `hp_drizzle_run` 参数
-  `precision_mode==-1` 且帧头无 `PRECISION` KV 时按宪章 §5.3 取 **FP64**
+  `precision_mode==-1` 且帧头无 `PRECISION` KV 时按本条 `RESCUE-FD-02` 取 **FP64**
+  （原引「宪章 §5.3」已废止，现行载体 = 本条；数据面同源 =
+  `DATA_SEMANTICS.md` §11.1「PRECISION」行；**语义不变**）
   （不再静默 FP32）；帧头显式 `fp32`/`fp64` 生效；未知 KV 值或参数
   非 -1/0/1 → 显式拒绝（返回非零，不写产物）。生产节点仍由
   `drizzle.precision_mode`（0|1）显式门把关（B2-A12）。

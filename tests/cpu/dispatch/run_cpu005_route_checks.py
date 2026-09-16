@@ -27,8 +27,8 @@ import tempfile
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
 TST = os.path.join(REPO, "tests", "cpu", "dispatch")
-BH = os.path.join(REPO, "lib", "backend_host")
-CRYPTO = os.path.join(REPO, "lib", "common", "crypto")
+BH = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")  # ROOT-008 迁移后路径
+CRYPTO = os.path.join(REPO, "lib", "algorithms", "shared", "crypto")  # ROOT-008 迁移后路径
 INC = os.path.join(REPO, "include")
 TP = os.path.join(REPO, "third_party")
 

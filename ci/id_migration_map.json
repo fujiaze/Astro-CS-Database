@@ -443,6 +443,12 @@
       "grade": "P0",
       "name": "上项的可执行负例面（串行注入 ⇒ 门必须判红）",
       "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+    },
+    "CHK-IMPACT-MAP": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "ci/impact_map.json 判据一致性门（changed-path→checks 映射；ENGINEERING_SPEC §8）",
+      "doc": "docs/ci/01_CHECKS.md §2（W4-A3 登记）"
     }
   },
   "reserved_targets": {
@@ -1857,6 +1863,22 @@
       "kind": "extension",
       "grade": "P0",
       "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "IMPACT-MAP",
+      "decision": "KEPT",
+      "target": "CHK-IMPACT-MAP",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W4-A3（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）：收口 ci/tests/test_impact_map.py 4 条既有红的根因（step id 与顶层 id 混用）"
+    },
+    {
+      "old_id": "IMPACT-MAP-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-IMPACT-MAP",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W4-A3（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）：收口 ci/tests/test_impact_map.py 4 条既有红的根因（step id 与顶层 id 混用）"
     }
   ],
   "coverage": {
@@ -1867,7 +1889,7 @@
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。",
     "absorbed_entries": [
       "CHK-SECRET-HYGIENE",
       "STD-REG",
@@ -1876,7 +1898,9 @@
       "REGISTRY-DOC-SYNC",
       "REGISTRY-DOC-SYNC-SELFTEST",
       "RESOURCE-GATE-REAL",
-      "RESOURCE-GATE-REAL-NEG"
+      "RESOURCE-GATE-REAL-NEG",
+      "IMPACT-MAP",
+      "IMPACT-MAP-SELFTEST"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

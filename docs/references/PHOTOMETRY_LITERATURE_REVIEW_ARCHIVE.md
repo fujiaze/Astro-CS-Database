@@ -47,7 +47,7 @@ AstroCS 的做法（负责人 2026-09-14 澄清，本报告已按此校正前提
 
 ### 0.3 SNR 模型错在哪？错多少？
 
-现状实现（`lib/snr_estimator`）：
+现状实现（`lib/algorithms/noise_snr`）：
 
 ~~~text
 snr_phot  = 1 / (ln10 · sigma_residual)              # 帧级标量；sigma_residual = MAD(r)/0.6745 (dex)
@@ -72,8 +72,8 @@ SNR(pixel)= snr_phot × (snr_psf / median(snr_psf))   # + IDW 插值
 | S1 | `docs/contracts/DATA_SEMANTICS.md` §14.3（:481-483） | 称 `scale` 无量纲、"量纲比进入 log 前由合同锚定"——`log10(F_instr/F_syn)` 是**有量纲比值**，合同未消去量纲；应声明零点单位。 |
 | S2 | `docs/contracts/DATA_SEMANTICS.md` §14.2（:466） | `out_pixels` 单位写 **ADU**；乘 `scale` 后应为 **`F_syn` 单位**，否则与"已定标"矛盾。 |
 | S3 | `docs/science/PSF.md` §3（:28） | `flux` 单位写 **ADU·px²**；由 `I=B+A/(1+Q)^4`（ADU/px）积分应为 **ADU**。 |
-| S4 | `docs/science/CONTROL_WEIGHT_SNR.md` + `lib/snr_estimator/cpp/include/snr_estimator.h`(:189) | 把 `snr_phot × snr_psf/median` 命名为 SNR 并用于权重；应改名为**相对质量权重场**。 |
-| S5 | `lib/photometric_calib/docs/algorithm.md`（:146、:330、:346） | 含伪物理推导 `F_instr=I_star×M, F_syn=I_star ⇒ r=log10 M`、`scale=median(F_syn/F_cal)`、`0.1nm` 网格、`~1-3%` 精度——与现行实现矛盾（README 已列 DISP-PHOT-002）。应整体标 ARCHIVED 或删除。 |
+| S4 | `docs/science/CONTROL_WEIGHT_SNR.md` + `lib/algorithms/noise_snr/cpp/include/snr_estimator.h`(:189) | 把 `snr_phot × snr_psf/median` 命名为 SNR 并用于权重；应改名为**相对质量权重场**。 |
+| S5 | `lib/algorithms/photometry/docs/algorithm.md`（:146、:330、:346） | 含伪物理推导 `F_instr=I_star×M, F_syn=I_star ⇒ r=log10 M`、`scale=median(F_syn/F_cal)`、`0.1nm` 网格、`~1-3%` 精度——与现行实现矛盾（README 已列 DISP-PHOT-002）。应整体标 ARCHIVED 或删除。 |
 
 ---
 
@@ -95,7 +95,7 @@ SNR(pixel)= snr_phot × (snr_psf / median(snr_psf))   # + IDW 插值
 
 **(2) 连续定义** —— 同文件 §5（:44-62）：`r_i = log10(F_instr,i / F_syn,i)`（dex）；`scale = 10^{−location}`；`sigma_residual = MAD(r_inliers)/0.6745`；`sigma_mag = 2.5·sigma_residual`。
 
-**(3) 合成测光的合同声明** —— `lib/photometric_calib/README.md`（CONTRACT_READY，r1）：
+**(3) 合成测光的合同声明** —— `lib/algorithms/photometry/README.md`（CONTRACT_READY，r1）：
 
 > ":39 **负责**：帧级测光定标——(a) 合成测光 F_syn（Gaia DR3SP uint8 光谱 × 滤光片 T(λ) × CCD QE Q(λ) 的 Akima+Simpson 积分，XPSD 官方解码）；..."
 
@@ -110,7 +110,7 @@ SNR(pixel)= snr_phot × (snr_psf / median(snr_psf))   # + IDW 插值
 
 > ":49 **不负责**（边界，禁止越界）：... 不做天光/梯度曲面拟合（v1.0 已封存，禁止复活）；不做 PSF 拟合本身（上游 PSF 模块供 [N,9] 块）；..."
 
-**(4) 通带积分的权威实现** —— `lib/photometric_calib/cpp/src/spectrum_integrator.cpp`：
+**(4) 通带积分的权威实现** —— `lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp`：
 
 > ":410 // F(λ) = byte*flux_mul + flux_min (绝对谱辐照度 W*m^-2*nm^-1)"
 > ":411 // F_syn = ∫ F(λ)·T(λ)·Q(λ)·λ dλ"
@@ -120,7 +120,7 @@ SNR(pixel)= snr_phot × (snr_psf / median(snr_psf))   # + IDW 插值
 
 遗留路径 `spectrum_integrator.cpp:198-204` 用 `byte·10^(−0.4·mag_g)`，头注释 `photometric_calib.h:126` 亦写 `F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ × 10^(-0.4*mag_g)`；生产 XPSD 路径**没有**该因子 → **头注释与生产实现不一致**（§A.4 第 8 条）。
 
-**(5) QE 是可选输入（生产编排）** —— `lib/orchestrator/cpp/src/orchestrator.cpp`：
+**(5) QE 是可选输入（生产编排）** —— `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`：
 
 > ":2705 std::string qe_name = extract_qe_curve_name(config_.calib_params_json);"
 > ":2719 LOG_WARN("orchestrator", "[PHOTOMETRIC] 加载 QE 曲线 '" + qe_name + "' 失败, F_syn 将不含 Q(λ)");"
@@ -129,11 +129,11 @@ SNR(pixel)= snr_phot × (snr_psf / median(snr_psf))   # + IDW 插值
 即：**QE 缺失/加载失败时 Q(λ)≡1，仅 WARN/INFO，不失败**。
 
 **(6) 响应曲线资源与"provenance"**：
-- `lib/photometric_calib/data/response_curves/qe_curves.json`：11 条曲线（GSENSE2020BSI / GSENSE400BSI / GSENSE400FSI / GSENSE4040BSI / GSENSE4040FSI / Ideal QE curve / KAF-16200 / KAF-16803 / KAF-8300 / Sony IMX183 / Sony IMX411-455-461-533-571 / Sony IMX492），每条约 50–447 点。
-- `lib/photometric_calib/data/response_curves/filters.json`：业余/商用滤镜透过率，每条约 7–90 点。
-- `lib/photometric_calib/cpp/test/filter_qe_provenance.json`：**只有统计量**（n_points / wl_min / wl_max / val_min / val_max），**无来源、引用、URL、测量日期**——文件名声称 provenance，内容不含 provenance（**本节新增发现**）。
+- `lib/algorithms/photometry/data/response_curves/qe_curves.json`：11 条曲线（GSENSE2020BSI / GSENSE400BSI / GSENSE400FSI / GSENSE4040BSI / GSENSE4040FSI / Ideal QE curve / KAF-16200 / KAF-16803 / KAF-8300 / Sony IMX183 / Sony IMX411-455-461-533-571 / Sony IMX492），每条约 50–447 点。
+- `lib/algorithms/photometry/data/response_curves/filters.json`：业余/商用滤镜透过率，每条约 7–90 点。
+- `lib/algorithms/photometry/cpp/test/filter_qe_provenance.json`：**只有统计量**（n_points / wl_min / wl_max / val_min / val_max），**无来源、引用、URL、测量日期**——文件名声称 provenance，内容不含 provenance（**本节新增发现**）。
 - 真实 XP 光谱：`GaiaDR3SP/` 20 个 `gdr3sp-1.0.0-*.xpsd`（共 64 GB）。
-- `lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/`：含 `GaiaEDR3_passband.dat`、`gate4_gaiaxpy_compare.py`、`fsyn_astrocs.py` 等 GaiaXPy 对照门（只读确认存在，未执行）。
+- `lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/`：含 `GaiaEDR3_passband.dat`、`gate4_gaiaxpy_compare.py`、`fsyn_astrocs.py` 等 GaiaXPy 对照门（只读确认存在，未执行）。
 
 **(7) 图像标度的上游事实** —— `docs/science/CALIBRATION.md:90`：
 
@@ -145,7 +145,7 @@ SNR(pixel)= snr_phot × (snr_psf / median(snr_psf))   # + IDW 插值
 
 ### A.2 SNR / 不确定度声明
 
-**(1) 三层模型的边界** —— `lib/snr_estimator/cpp/include/snr_estimator.h`：
+**(1) 三层模型的边界** —— `lib/algorithms/noise_snr/cpp/include/snr_estimator.h`：
 
 > ":19-20 // 旧乘法模型 (SNR_phot × SNR_psf/median + IDW) 已降级为 legacy heuristic / diagnostic only (见 snr_extract_model_* 与 snr_estimate_*), 不再作为生产科学权重。"
 > ":26-29 // 1. PhotometricCalibrationQuality — 帧级测光定标质量 (systematic metadata) / 2. PsfFitQuality — 星点级 PSF 拟合质量代理 / 3. NoiseWeightModelV1 — source-masked blank-sky 稳健方差 → ivar (Phase2 科学加权唯一来源)"
@@ -155,7 +155,7 @@ SNR(pixel)= snr_phot × (snr_psf / median(snr_psf))   # + IDW 插值
 > ":189 // SNR(pixel) = SNR_phot × (SNR_psf(pixel) / median(SNR_psf))"
 > ":381     double   snr_phot;          // 1/(ln10×sigma_residual) 全局标量"
 
-**(2) 帧级基准与"局部 PSF SNR"代码事实** —— `lib/snr_estimator/cpp/src/snr_estimator.cpp`：
+**(2) 帧级基准与"局部 PSF SNR"代码事实** —— `lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp`：
 
 > ":76-77  const double LN10 = 2.302585092994045684017991454684;
 >     double snr_phot = 1.0 / (LN10 * sigma_residual);"
@@ -234,7 +234,7 @@ SNR(pixel)= snr_phot × (snr_psf / median(snr_psf))   # + IDW 插值
 9. **通带不完整**：`P_model = T(λ)·Q(λ)·λ` 只含滤镜+QE，**不含光学系统透过率与大气消光**；`location` 与 `sigma_residual` 都会被污染。→ PHOTOMETRY.md:7 "相对/绝对光度尺度"的最强声明超出可计算范围。
 10. **`filter_qe_provenance.json` 无 provenance**：无来源/引用/URL/日期。→ 无法核查响应曲线；"绝对"声明缺可追溯输入。
 11. **port `fluxes` 单位 = `UnitId::ELECTRON`**（registry `astrocs.phase1.photometry.md:43`）与 DATA_SEMANTICS 的 ADU、PSF 的 ADU·px² 三方冲突。
-12. **`lib/photometric_calib/docs/algorithm.md` 的错误物理推导**（:146）："图像模型 I = I_star × M + S 中 M 为渐晕因子，F_instr = I_star × M，F_syn = I_star，故 r = log10(F_instr/F_syn) = log10(M)。拟合曲面 r(x,y) 即为 log10(M(x,y))"——把 Gaia 合成通量等同于"未衰减的仪器流量"，量纲与物理均错；同文还写 `scale = median(F_syn,i / F_cal,i)`（:330）、积分网格 `0.1nm`、合成测光不确定度 `~1-3%`（:346）。README 已在 DISP-PHOT-002 登记该文件"大面积失实"，但**文件仍在仓库 tracked 状态**。
+12. **`lib/algorithms/photometry/docs/algorithm.md` 的错误物理推导**（:146）："图像模型 I = I_star × M + S 中 M 为渐晕因子，F_instr = I_star × M，F_syn = I_star，故 r = log10(F_instr/F_syn) = log10(M)。拟合曲面 r(x,y) 即为 log10(M(x,y))"——把 Gaia 合成通量等同于"未衰减的仪器流量"，量纲与物理均错；同文还写 `scale = median(F_syn,i / F_cal,i)`（:330）、积分网格 `0.1nm`、合成测光不确定度 `~1-3%`（:346）。README 已在 DISP-PHOT-002 登记该文件"大面积失实"，但**文件仍在仓库 tracked 状态**。
 
 13. **通带被积函数的"能量/光子计数"约定未声明**：实现被积函数为 `F_λ(λ)·T(λ)·Q(λ)·λ`（spectrum_integrator.cpp:443-444），隐含"`λ` 为光子计数转换"；但 `Q(λ)` 是否已含 e⁻/photon 语义、`λ` 是否与 `Q` 双重计入，文档未声明（DATA_SEMANTICS:481 只写"W·m⁻²·nm⁻¹ 积分值"，与含 `λ` 的积分相差一个 nm）。→ 通带定义不自洽，须写明被积函数与单位约定。
 
@@ -751,7 +751,7 @@ airmass/exptime 与"消光未应用"标志。
 建议同时报告 `sigma_residual`（逐星散度）与 `≈1.253·sigma_residual/√N_eff`（零点 SE），
 避免把前者误读为零点误差（§C.2.2）。
 
-**R10（清理）`lib/photometric_calib/docs/algorithm.md` 整体标 ARCHIVED_NON_NORMATIVE 或删除。**
+**R10（清理）`lib/algorithms/photometry/docs/algorithm.md` 整体标 ARCHIVED_NON_NORMATIVE 或删除。**
 它含伪物理推导与失实数值（§A.4 第 12 条）；保留会被后续 agent 当作权威。
 
 **R11（场景标志）为 PSF/孔径测光引入显式的场景标志**（欠采样/拥挤/饱和/非线性/背景梯度），
@@ -763,7 +763,7 @@ airmass/exptime 与"消光未应用"标志。
 ### D.2 必须由负责人签字确认的冻结文档订正项（原文 vs 建议措辞）
 
 > 规则：本表只列**与可计算性/科学定义冲突**的句子。所有改动均为**建议**，
-> 冻结文档的实际修改权限在负责人（宪章 §1.2）。行号为 2026-09-14 只读实测。
+> 冻结文档订正流程 = `ENGINEERING_SPEC.md` §3 + `SCIENCE_CORRECTNESS.md` 变更 claim（原引「宪章 §1.2」已废止；证据不可判者上呈负责人）。行号为 2026-09-14 只读实测。
 
 **S1. 零点/尺度因子的量纲**
 - 文档/位置：`docs/contracts/DATA_SEMANTICS.md` §14.3（:481-483）；
@@ -779,7 +779,7 @@ airmass/exptime 与"消光未应用"标志。
 - 理由：量纲一致性；否则下游无法判断 `I_cal` 的标度（§C.2.2）。
 
 **S2. 已定标输出像素的单位**
-- 文档/位置：`docs/contracts/DATA_SEMANTICS.md` §14.2（:466）；`PUBLIC_API.md`（:485-486）；`lib/photometric_calib/README.md`（§3 表）。
+- 文档/位置：`docs/contracts/DATA_SEMANTICS.md` §14.2（:466）；`PUBLIC_API.md`（:485-486）；`lib/algorithms/photometry/README.md`（§3 表）。
 - 原文：
   > "out_pixels | 同输入 dtype [h·w] | ADU | I_cal=I·scale（f32 通道 ImageCorrector :63-77；f64 内联 pc_api.cpp:1023-1028）；退化=恒等拷贝"
 - 建议措辞：
@@ -799,7 +799,7 @@ airmass/exptime 与"消光未应用"标志。
 
 **S4. SNR 的命名与定义**
 - 文档/位置：`docs/science/CONTROL_WEIGHT_SNR.md`（:12、:22-23、:41-42）；
-  `lib/snr_estimator/cpp/include/snr_estimator.h`（:189）；`docs/algorithms/PHOTOMETRIC_FIT.md` §1（:9）。
+  `lib/algorithms/noise_snr/cpp/include/snr_estimator.h`（:189）；`docs/algorithms/PHOTOMETRIC_FIT.md` §1（:9）。
 - 原文：
   > "定义 phase2 控制采样/加权积分所用的**区域级 SNR** 与帧/星点质量，作为 support × snr² 控制权重中的 SNR 因子"
   > "// SNR(pixel) = SNR_phot × (SNR_psf(pixel) / median(SNR_psf))"
@@ -851,7 +851,7 @@ airmass/exptime 与"消光未应用"标志。
 - 理由：三处单位冲突（§A.5）。
 
 **S9. 遗留 ALG 文档**
-- 文档/位置：`lib/photometric_calib/docs/algorithm.md`（:146、:330、:346）。
+- 文档/位置：`lib/algorithms/photometry/docs/algorithm.md`（:146、:330、:346）。
 - 原文：
   > "图像模型 I = I_star × M + S 中 M 为渐晕因子，F_instr = I_star × M，F_syn = I_star，故 r = log10(F_instr/F_syn) = log10(M)。"
   > "scale = median(F_syn,i / F_cal,i)（在乘性梯度校正后）"
@@ -859,12 +859,12 @@ airmass/exptime 与"消光未应用"标志。
 - 建议措辞：
   > "**本文件整体标记 ARCHIVED_NON_NORMATIVE（与 v19 archive 同处理），不得作为权威；**
   > 现行权威为 docs/science/PHOTOMETRY.md + docs/algorithms/PHOTOMETRIC_FIT.md §13 +
-  > lib/photometric_calib/README.md r1。若保留文件，须在文首加 ARCHIVED 横幅并注明
+  > lib/algorithms/photometry/README.md r1。若保留文件，须在文首加 ARCHIVED 横幅并注明
   > 'F_syn ≠ 未衰减仪器流量；1.0nm 网格；精度不由插值决定'。"
 - 理由：DISP-PHOT-002 已登记失实，但文件仍 tracked 且无横幅。
 
 **S10. 响应曲线 provenance**
-- 文档/位置：`lib/photometric_calib/cpp/test/filter_qe_provenance.json`（整体）。
+- 文档/位置：`lib/algorithms/photometry/cpp/test/filter_qe_provenance.json`（整体）。
 - 原文（现状）：仅 `{"filters": {...统计量...}, "qe": {...统计量...}}`，无来源字段。
 - 建议措辞（新增字段）：
   > 每个曲线条目增加 source（数据库/厂商/论文）、url、retrieved（日期）、instrument（传感器型号）、
@@ -1022,15 +1022,15 @@ airmass/exptime 与"消光未应用"标志。
 - `docs/algorithms/PHOTOMETRIC_FIT.md`（213，全读，含 §13.1 :112-116 锚行）；
 - `docs/contracts/DATA_SEMANTICS.md` §4a/§11.1/§13/§14（逐行）；
 - `docs/contracts/PUBLIC_API.md` API-NOISE-001（:348-421）与 API-PHOT-001（:423-509）；
-- `lib/photometric_calib/README.md`（215，全读）、module.yaml（134，全读）、
+- `lib/algorithms/photometry/README.md`（215，全读）、module.yaml（134，全读）、
   cpp/include/photometric_calib.h（275，全读）、cpp/src/spectrum_integrator.cpp（关键段）、
   cpp/src/star_matcher.cpp（按行号锚指示）、docs/algorithm.md（关键行）、
   data/response_curves/{qe_curves.json,filters.json}（结构）、cpp/test/filter_qe_provenance.json（结构）；
-- `lib/snr_estimator/README.md`（191，全读）、cpp/include/snr_estimator.h（438，全读）、
+- `lib/algorithms/noise_snr/README.md`（191，全读）、cpp/include/snr_estimator.h（438，全读）、
   cpp/src/snr_estimator.cpp（:47-208、:484-603）、cpp/src/noise_model.cpp（按锚）；
 - `docs/archive/history/v19/SNR_NOISE_MODEL.md`（123，全读）；
 - `docs/modules/registry/astrocs.phase1.photometry.md`（全读）；
-- `lib/orchestrator/cpp/src/orchestrator.cpp`（:1408-1447、:2690-2729）；
+- `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`（:1408-1447、:2690-2729）；
 - `docs/contracts/DATA_SEMANTICS.md` §30（不确定度产品合同，按需）；
 - `GaiaDR3SP/`（目录清单：20 个 xpsd，64 GB；未读取二进制）。
 
@@ -1060,4 +1060,4 @@ cd run/release-rescue/science-phot && python3 snr_model_crosscheck.py | tee snr_
 
 ---
 
-*本报告为研究与推导产物，供负责人裁决；不含代码改动。所有对冻结文档的订正建议均须负责人签字（宪章 §1.2）。*
+*本报告为研究与推导产物，供负责人裁决；不含代码改动。所有对冻结文档的订正建议走 `ENGINEERING_SPEC.md` §3 + `SCIENCE_CORRECTNESS.md` 变更 claim（原引「宪章 §1.2」已废止；证据不可判者上呈负责人签字）。*

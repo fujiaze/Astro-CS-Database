@@ -40,9 +40,11 @@ int g_failures = 0;
         else { std::printf("  [FAIL] %s\n", msg); ++g_failures; }        \
     } while (0)
 
-constexpr double kMadToSigma15 = 1.482602218505602;  // NOISE_MODEL:135 冻结
+constexpr double kMadToSigma15 = 1.482602218505602;  // docs/science/NOISE_MODEL.md §14.2 冻结
 constexpr float  kMadToSigma15f = 1.482602218505602f;
-constexpr double kMadToSigma4 = 1.4826;              // 旧 4 位截断 (缺陷形态)
+// 判别用对照值：旧实现的 4 位截断形态，**故意保留截断写法**——它是本门'位数纪律判别力'的被测对象 (见下方 CHECK 非恒真断言)；
+// 生产侧一律用 kMadToSigma15 = 1.482602218505602 (docs/science/NOISE_MODEL.md §14.2)。
+constexpr double kMadToSigma4 = 1.4826;
 
 // 中位绝对偏差 (未换算, 测试侧独立实现)
 double mad_raw(std::vector<double> v) {

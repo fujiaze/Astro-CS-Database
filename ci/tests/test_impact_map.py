@@ -29,11 +29,24 @@ import _helpers as H  # noqa: E402
 
 REGISTRY_PATH = CI_DIR / "checks.json"
 MAP_PATH = CI_DIR / "impact_map.json"
+GATE_PATH = CI_DIR.parent / "tools" / "quality" / "check_impact_map.py"
+
+
+def _load_gate():
+    """加载 CHK-IMPACT-MAP 判定器（单源：本测试不再自带一套 id/路径判据）。"""
+    spec = importlib.util.spec_from_file_location("astrocs_impact_gate", GATE_PATH)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 # 规格九类必含（V8-CI-004 spec_ref：tasks/02_CI_TASKS.md）
 NINE_REQUIRED_CLASSES = {
     "版本": ["VERSION-CONSISTENCY", "VERSION-NAMESPACES"],
-    "schema": ["TASK-RESULT-SCHEMA"],
+    # W4-A3 口径订正（不改规格类别，只把 id 改绑现行注册表的两层命名）：
+    #   "schema" 原举 `TASK-RESULT-SCHEMA`（`CHK-SCHEMA` 的旧 step）已于 2026-09-16 退役
+    #   （唯一默认输入 evidence/v6_1_rework/** 随旧世代删除；见 docs/ci/01_CHECKS.md §2.1）。
+    #   该类现由聚合项 `CHK-SCHEMA` + 其现行 steps 承载。
+    "schema": ["CHK-SCHEMA", "CON-CONFIG-CONTRACTS", "LOG-CONTRACT-SELFCHECK"],
     "合同索引": ["CONTRACT-GRAPH"],
     # TRACEABILITY-CODE 于 2026-09-16 按负责人裁决退役（唯一默认输入 artifacts/prerelease_v5/
     # tables/TRACEABILITY.csv 随 artifacts/ 删除，b1290525）：见 docs/ci/01_CHECKS.md §2 退役记录。
@@ -48,38 +61,39 @@ NINE_REQUIRED_CLASSES = {
                  "UT-ARTIFACT"],
 }
 
-# 生产映射承诺的路径域（domain → 探针路径，用 runner 的 _match_prefix 语义验证）
+# 生产映射承诺的路径域 —— W4-A3 按**现行树**重锚（ROOT-008/ARCH-001 迁移后）。
+# 迁移前锚（schemas/ modules/ runtime/ evidence/ graph/ launch/ AstroCS.wiki/）在现行
+# 根清单中不存在，作为判据锚即「锚失效」；现行锚的权威声明面 = CHK-IMPACT-MAP 的
+# PROBE_DOMAINS，本表只保留与生产映射直接对应的等价断言（单源，避免两套判据）。
 REQUIRED_DOMAINS = {
     "VERSION": "VERSION",
     "CMakeLists.txt": "CMakeLists.txt",
     "CMakePresets.json": "CMakePresets.json",
-    "cmake/**": "cmake/toolchain.cmake",
+    "cmake/**": "cmake/install_layout.cmake",
     "ci/**": "ci/run.py",
-    "docs/**": "docs/index.md",
-    "schemas/**": "schemas/ci_result.schema.json",
-    "lib/**": "lib/core/a.cpp",
-    "include/**": "include/astrocs/a.h",
-    "cli/**": "cli/a.py",
-    "modules/**": "modules/services/a.cpp",
-    "runtime/**": "runtime/a.cpp",
-    "third_party/**": "third_party/fmt/a.cpp",
-    "tests/**": "tests/testkit/x.py",
-    "contracts/**": "contracts/a.yaml",
-    "testdata/**": "testdata/a.fits",
-    "evidence/**": "evidence/v8_1_ci_control/a.json",
-    "engineering/control/**": "engineering/control/active/x.md",
-    "tools/**": "tools/a.py",
-    "tools/quality/**": "tools/quality/a.py",
-    "tools/monitoring/**": "tools/monitoring/a.py",
-    "graph/**": "graph/a.json",
-    "launch/**": "launch/a",
-    "packaging/**": "packaging/a",
-    "scripts/**": "scripts/a.sh",
+    "docs/**": "docs/VERSIONING.md",
+    "docs/contracts/**": "docs/contracts/DATA_SEMANTICS.md",
+    "docs/science/**": "docs/science/ASTROMETRY.md",
+    "lib/**": "lib/algorithms/psf/src/dpsf_psf.cpp",
+    "lib/infrastructure/**": "lib/infrastructure/cli/main.cpp",
+    "include/**": "include/astrocs/common_abi_v1.h",
+    "cli/**": "cli/CMakeLists.txt",
+    "contracts/**": "contracts/schemas/run_manifest.schema.json",
+    "third_party/**": "third_party/nlohmann/json.hpp",
+    "tests/**": "tests/testkit/registry.json",
+    "testdata/**": "testdata/index.json",
+    "artifacts/**": "artifacts/ci",
+    "reports/**": "reports/README.md",
+    "工程控制/**": "工程控制/PROJECT-GOVERNANCE-01/OPEN_ITEMS.md",
+    "tools/**": "tools/quality/check_module_map.py",
+    "tools/quality/**": "tools/quality/check_module_map.py",
+    "tools/monitoring/**": "tools/monitoring/run_monitored.py",
+    "packaging/**": "packaging/astrocs.product.json",
+    "scripts/**": "scripts/README.md",
     "AGENTS.md": "AGENTS.md",
     "memory.md": "memory.md",
-    "AstroCS_ENGINEERING_CONSTRAINTS.md": "AstroCS_ENGINEERING_CONSTRAINTS.md",
     "README.md": "README.md",
-    ".github/**": ".github/workflows/ci.yaml",
+    ".github/**": ".github/workflows/ci-linux.yml",
 }
 
 
@@ -106,12 +120,21 @@ class TestImpactMapConsistency(unittest.TestCase):
     def setUpClass(cls):
         cls.registry = _load_registry()
         cls.impact = _load_map()
-        cls.all_ids = {c["id"] for c in cls.registry["checks"]}
-        cls.fast_ids = {c["id"] for c in cls.registry["checks"] if "fast" in c["profiles"]}
+        # W4-A3 根因修复：注册表的执行单元是**两层**结构 —— 顶层聚合项（CHK-* 等）
+        # 与其 steps[].id（CI-001 ID 收敛时原样保留的旧 ID）。impact_map 引用的是
+        # step id（细粒度语义），故 id 面必须是「顶层 ∪ steps」；只索引顶层会把
+        # 48/59 条合法映射误判为「注册表不存在」。口径单源 = CHK-IMPACT-MAP 判定器。
+        cls.gate = _load_gate()
+        cls.index = cls.gate.index_registry(cls.registry)
+        cls.all_ids = cls.gate.registry_ids(cls.index)
+        cls.fast_ids = cls.index["fast"]
+        cls.step_ids = cls.index["steps"]
+        cls.top_ids = cls.index["top"]
         cls.mapped_ids = set()
         for rule in cls.impact.get("rules", []):
             cls.mapped_ids.update(rule.get("checks", []))
         cls.mapped_ids |= set(cls.impact.get("fallback", []))
+        cls.mapped_ids |= set(cls.impact.get("base_checks", []))
 
     def test_map_shape(self):
         self.assertIsInstance(self.impact.get("rules"), list, "rules 必须是数组")
@@ -135,10 +158,27 @@ class TestImpactMapConsistency(unittest.TestCase):
         non_fast = sorted(self.mapped_ids - self.fast_ids)
         self.assertEqual(non_fast, [], f"映射引用了非 fast 候选 id（违反 prefer fast）：{non_fast}")
 
+    def test_id_face_is_two_layer_registry(self):
+        """id 面口径：顶层 ∪ steps（step 未声明 profiles 时继承父项）。
+
+        负例断言：若回退到「只索引顶层」，本测试必须失败（防口径再次漂移）。
+        """
+        self.assertTrue(self.step_ids, "注册表必须含 steps（CI-001 ID 收敛的两层结构）")
+        self.assertTrue(self.step_ids - self.top_ids, "steps 与顶层 id 必须不同集")
+        top_only = {c["id"] for c in self.registry["checks"]}
+        self.assertTrue(self.mapped_ids - top_only,
+                        "映射必须存在只以 step id 形式登记的引用（本口径的判别面）")
+        self.assertEqual(sorted(self.mapped_ids - self.all_ids), [],
+                         "id 面必须覆盖映射的全部引用")
+
     def test_nine_required_classes_covered(self):
         for name, ids in NINE_REQUIRED_CLASSES.items():
             missing = [i for i in ids if i not in self.mapped_ids]
             self.assertEqual(missing, [], f"必含类「{name}」未映射：{missing}")
+        # 必含类引用的 id 也必须落在统一 id 面内（与 test_all_ids_exist_in_registry 同口径）
+        unknown = sorted({i for ids in NINE_REQUIRED_CLASSES.values() for i in ids}
+                         - self.all_ids)
+        self.assertEqual(unknown, [], f"必含类引用了未登记 id：{unknown}")
 
     def test_every_rule_carries_base_core(self):
         base = set(self.impact["fallback"]) - {"WORKSPACE-ADOPTION", "RECONCILE-STATE"}
@@ -149,11 +189,33 @@ class TestImpactMapConsistency(unittest.TestCase):
                 f"rules[{idx}]（{rule['paths'][:2]}…）缺少 BASE 核心类：{missing}")
 
     def test_required_path_domains_covered(self):
+        """路径域覆盖 + 锚存活：探针必须在**现行树**中存在，否则本断言自身失效。"""
         runner = _load_run_module()
         for domain, probe in REQUIRED_DOMAINS.items():
+            anchor = REPO / probe
+            self.assertTrue(anchor.exists(),
+                            f"路径域 {domain} 的探针锚在当前树不存在（锚失效）：{probe}")
             hit = any(runner._match_prefix(probe, pat)
                       for rule in self.impact["rules"] for pat in rule["paths"])
             self.assertTrue(hit, f"路径域 {domain}（探针 {probe}）未被任何规则覆盖")
+
+    def test_gate_probe_domains_are_live_and_covered(self):
+        """与 CHK-IMPACT-MAP 判定器同口径复核（单源）：探针锚存活 + 规则覆盖。"""
+        runner = _load_run_module()
+        for domain, anchor, probe in self.gate.PROBE_DOMAINS:
+            self.assertTrue((REPO / anchor).exists(),
+                            f"[gate] 锚存活失效：{domain} -> {anchor}")
+            hit = any(runner._match_prefix(probe, pat)
+                      for rule in self.impact["rules"] for pat in rule["paths"])
+            self.assertTrue(hit, f"[gate] 路径域 {domain}（探针 {probe}）未被任何规则覆盖")
+
+    def test_no_retired_ids_referenced(self):
+        """R5：映射不得引用 docs/ci/01_CHECKS.md §2.1/§2.3 已退役 / RESERVED 的 id。"""
+        doc = (CI_DIR.parent / "docs" / "ci" / "01_CHECKS.md").read_text(encoding="utf-8")
+        retired = self.gate.parse_retired(doc)
+        self.assertTrue(retired, "退役/RESERVED 表解析为空 ⇒ fail-closed（判据面失效）")
+        refs = sorted(self.mapped_ids & retired)
+        self.assertEqual(refs, [], f"映射引用了已退役/RESERVED id：{refs}")
 
     def test_fallback_minimal_core(self):
         fb = set(self.impact["fallback"])

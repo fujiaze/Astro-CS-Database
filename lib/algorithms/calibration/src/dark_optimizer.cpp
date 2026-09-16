@@ -9,9 +9,9 @@
 // 其中 L=Light, B=Bias, D=Dark（Dark 已含 Bias，D-B 为纯暗电流）
 //
 // 算法流程:
-// 1. 背景提取：对 Light 做 sigma-clip（median + 3*1.4826*MAD）排除星点
+// 1. 背景提取：对 Light 做 sigma-clip（median + 3*1.482602218505602*MAD）排除星点
 // 2. 分区抽样：8x8 = 64 网格，每区最多 1000 个背景像素，总样本上限 50000
-// 3. 鲁棒线性回归：OLS 估计 k、c → 残差 MAD 离群抑制（3*1.4826*MAD 阈值）
+// 3. 鲁棒线性回归：OLS 估计 k、c → 残差 MAD 离群抑制（3*1.482602218505602*MAD 阈值）
 // → 迭代 5 轮逐步剔除离群点
 // 4. 合理性判定：样本不足 / 回归残差异常 / k 值越界(k<=0 或 k>10) 任一触发即判失败
 //
@@ -121,14 +121,14 @@ float optimize_dark_k(const float* light, const float* bias, const float* dark,
 
     // ---- 2. 背景提取（sigma-clip 排除星点）----
     // 规范要求：不得为估计 k 再做完整星点检测，故仅用全局 sigma-clip 粗略剔除亮结构。
-    // 阈值: |light - median| <= 3 * 1.4826 * MAD
+    // 阈值: |light - median| <= 3 * 1.482602218505602 * MAD
     std::vector<float> tmp(light, light + n);
     float lmed = median_inplace(tmp);           // Light 全局中位数
     for (int i = 0; i < n; ++i) {
         tmp[i] = std::fabs(light[i] - lmed);
     }
     float lmad = median_inplace(tmp);           // Light 绝对偏差中位数
-    float lsigma = 1.4826f * lmad;
+    float lsigma = 1.482602218505602f * lmad;
 
     std::vector<unsigned char> bg(n, 0);
     if (lsigma <= 0.0f) {
@@ -217,7 +217,7 @@ float optimize_dark_k(const float* light, const float* bias, const float* dark,
     }
 
     // ---- 5. 鲁棒线性回归 y = c + k*x（5 轮 MAD 离群抑制）----
-    // 每轮: OLS 估计 → 计算残差 → 以 3*1.4826*MAD 为阈值剔除离群点 → 下一轮
+    // 每轮: OLS 估计 → 计算残差 → 以 3*1.482602218505602*MAD 为阈值剔除离群点 → 下一轮
     std::vector<unsigned char> inlier(nsamp, 1);
     float k_est = k_init;   // 回归估计结果（失败时不会被使用）
     float c_est = 0.0f;
@@ -273,7 +273,7 @@ float optimize_dark_k(const float* light, const float* bias, const float* dark,
             resid[i] = std::fabs(resid[i] - rmed);
         }
         float rmad = median_inplace(resid);
-        float rsigma = 1.4826f * rmad;
+        float rsigma = 1.482602218505602f * rmad;
 
         if (rsigma <= 0.0f) {
             // 残差 MAD=0：要么完美拟合（罕见），要么内点完全共线。
@@ -281,7 +281,7 @@ float optimize_dark_k(const float* light, const float* bias, const float* dark,
             break;
         }
 
-        // --- 5.3 标记并剔除离群点（|r - rmed| > 3*1.4826*MAD）---
+        // --- 5.3 标记并剔除离群点（|r - rmed| > 3*1.482602218505602*MAD）---
         const float thr = 3.0f * rsigma;
         int new_inlier = 0;
         for (int i = 0; i < nsamp; ++i) {
@@ -326,12 +326,12 @@ float optimize_dark_k(const float* light, const float* bias, const float* dark,
         float ymed = median_inplace(yvals);
         for (int i = 0; i < cn; ++i) yvals[i] = std::fabs(yvals[i] - ymed);
         float ymad = median_inplace(yvals);
-        float ysigma = 1.4826f * ymad;
+        float ysigma = 1.482602218505602f * ymad;
 
         float rmed = median_inplace(rvals);
         for (int i = 0; i < cn; ++i) rvals[i] = std::fabs(rvals[i] - rmed);
         float rmad = median_inplace(rvals);
-        float rsigma = 1.4826f * rmad;
+        float rsigma = 1.482602218505602f * rmad;
 
         // 残差非有限，或残差散布 >= y 散布（模型毫无解释力），判异常
         if (!std::isfinite(rsigma) || !std::isfinite(ysigma)) {

@@ -9,7 +9,7 @@
 //      互异完备、未知码→nullptr(无 fallback)、越界 id→nullptr。
 //   G2 每投影独立往返 Oracle: 3D 单位向量第一性原理(点积/正交基, 不调
 //      生产实现), world2pix∘pix2world 往返 <1e-6 px (SCI §7 冻结)。
-//   G3 TAN 冻结零漂移: 与 lib/phase3_session/p3_wcs.cpp 生产实现全网格
+//   G3 TAN 冻结零漂移: 与 lib/algorithms/projection/p3_wcs.cpp 生产实现全网格
 //      bitwise 对拍(G1/G2 公式零改动证明)。
 //   G4 G1 CD 构造精确断言(parity/PA/crpix 四投影同构)。
 //   G5 负面清单: 未知投影/parity 非法/|dec|>85/scale≤0/尺寸越界/空指针/
@@ -291,7 +291,7 @@ void test_roundtrip_and_oracle(const CaseCtx& c) {
     CHECK_MSG(ok_cnt > 0, "roundtrip sample must be non-empty");
 }
 
-// G3: TAN 与冻结生产实现(lib/phase3_session/p3_wcs.cpp) bitwise 对拍
+// G3: TAN 与冻结生产实现(lib/algorithms/projection/p3_wcs.cpp) bitwise 对拍
 void test_tan_bitwise_vs_production(const CaseCtx& c) {
     P3ProjectionDescriptor d = make_case(c);
     astrocs::phase3::P3WcsDescriptor legacy{};

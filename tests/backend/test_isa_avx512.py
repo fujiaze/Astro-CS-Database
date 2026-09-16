@@ -4,7 +4,7 @@ vm-bj 支持 AVX512(F/BW/VL/DQ/CD)故可在 Linux 完整验证; 判定=AVX512 �
 import csv, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-HOST = os.path.join(REPO, "lib", "backend_host")
+HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "include")
 
 

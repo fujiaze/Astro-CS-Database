@@ -6,7 +6,6 @@
     "VERSION-CONSISTENCY",
     "VERSION-NAMESPACES",
     "CON-COMMENTS",
-    "TASK-RESULT-SCHEMA",
     "CONTRACT-GRAPH",
     "TRACEABILITY-MATRIX",
     "CON-TRACEABILITY",
@@ -14,7 +13,10 @@
     "PROD-REACH-SELFTEST",
     "PRODUCTION-GRAPH",
     "NO-SERIAL-HEAVY",
-    "SERIAL-HARDCODE"
+    "SERIAL-HARDCODE",
+    "CHK-SCHEMA",
+    "CON-CONFIG-CONTRACTS",
+    "LOG-CONTRACT-SELFCHECK"
   ],
   "rules": [
     {
@@ -25,7 +27,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -34,20 +35,23 @@
         "PRODUCTION-GRAPH",
         "NO-SERIAL-HEAVY",
         "SERIAL-HARDCODE",
-        "UT-VERSION"
+        "UT-VERSION",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
       "paths": [
         "CMakeLists.txt",
         "CMakePresets.json",
-        "cmake/**"
+        "cmake/**",
+        "cli/**"
       ],
       "checks": [
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -57,7 +61,10 @@
         "NO-SERIAL-HEAVY",
         "SERIAL-HARDCODE",
         "CON-BUILD-GRAPH",
-        "UT-VERSION"
+        "UT-VERSION",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -68,7 +75,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -85,7 +91,10 @@
         "CHK-REGISTRY-DOC-SYNC",
         "STD-REG",
         "RESOURCE-GATE-REAL",
-        "RESOURCE-GATE-REAL-NEG"
+        "RESOURCE-GATE-REAL-NEG",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -96,7 +105,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -116,7 +124,10 @@
         "UT-TRACEABILITY",
         "UT-SCIENCELINT",
         "CHK-REGISTRY-DOC-SYNC",
-        "STD-REG"
+        "STD-REG",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -129,7 +140,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -149,7 +159,9 @@
         "CON-FORBIDDEN-PATTERNS",
         "CON-FULL-INTEGRATION",
         "PIPELINE-TRACE",
-        "UT-TRACEABILITY"
+        "UT-TRACEABILITY",
+        "CHK-SCHEMA",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -161,7 +173,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -174,7 +185,10 @@
         "GLOSSARY-DOCS",
         "PIPELINE-TRACE",
         "UT-SCIENCELINT",
-        "UT-TRACEABILITY"
+        "UT-TRACEABILITY",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -186,7 +200,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -197,7 +210,9 @@
         "SERIAL-HARDCODE",
         "LOG-CONTRACT-SELFCHECK",
         "DATA-ARTIFACTS",
-        "UT-RUNTIME"
+        "UT-RUNTIME",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS"
       ]
     },
     {
@@ -209,7 +224,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -237,7 +251,10 @@
         "UT-SCIENCELINT",
         "UT-CONTRACTS",
         "UT-TRACEABILITY",
-        "UT-ARTIFACT"
+        "UT-ARTIFACT",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -248,7 +265,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -263,7 +279,10 @@
         "CON-API-CONTRACTS",
         "UT-RUNTIME",
         "UT-PIPELINE",
-        "UT-VERSION"
+        "UT-VERSION",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -274,7 +293,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -288,7 +306,10 @@
         "UNIT-CLOSURE",
         "P3-STATUS",
         "UT-RUNTIME",
-        "UT-PIPELINE"
+        "UT-PIPELINE",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -302,7 +323,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -318,7 +338,10 @@
         "UNIT-CLOSURE",
         "UT-RUNTIME",
         "UT-PIPELINE",
-        "UT-MONITORING"
+        "UT-MONITORING",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -329,7 +352,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -341,7 +363,10 @@
         "ISA-LEAK-SELFTEST",
         "ABI-BOUNDARY",
         "WARNING-SUPPRESSION",
-        "UT-RUNTIME"
+        "UT-RUNTIME",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -352,7 +377,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -363,7 +387,10 @@
         "SERIAL-HARDCODE",
         "WARNING-SUPPRESSION",
         "DATA-ARTIFACTS",
-        "UT-RUNTIME"
+        "UT-RUNTIME",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -375,7 +402,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -391,7 +417,10 @@
         "UT-TRACEABILITY",
         "UT-CONTRACTS",
         "UT-SCIENCELINT",
-        "UT-VERSION"
+        "UT-VERSION",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -403,7 +432,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -415,7 +443,9 @@
         "CON-CONFIG-CONTRACTS",
         "CON-TEST-CONTRACTS",
         "DATA-ARTIFACTS",
-        "UT-CONTRACTS"
+        "UT-CONTRACTS",
+        "CHK-SCHEMA",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -428,7 +458,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -439,7 +468,10 @@
         "SERIAL-HARDCODE",
         "KNOWN-FAILURES-BASELINE",
         "DATA-ARTIFACTS",
-        "UT-ARTIFACT"
+        "UT-ARTIFACT",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -452,7 +484,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -465,7 +496,10 @@
         "KNOWN-FAILURES-BASELINE",
         "UNIT-CLOSURE",
         "UT-MONITORING",
-        "UT-VERSION"
+        "UT-VERSION",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -476,7 +510,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -489,7 +522,10 @@
         "ISA-LEAK-SELFTEST",
         "KNOWN-FAILURES-BASELINE",
         "UNIT-CLOSURE",
-        "UT-TRACEABILITY"
+        "UT-TRACEABILITY",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -500,7 +536,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -510,7 +545,9 @@
         "NO-SERIAL-HEAVY",
         "SERIAL-HARDCODE",
         "LOG-CONTRACT-SELFCHECK",
-        "UT-MONITORING"
+        "UT-MONITORING",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS"
       ]
     },
     {
@@ -521,7 +558,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -531,7 +567,10 @@
         "NO-SERIAL-HEAVY",
         "SERIAL-HARDCODE",
         "PIPELINE-TRACE",
-        "UT-TRACEABILITY"
+        "UT-TRACEABILITY",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -554,7 +593,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -571,7 +609,10 @@
         "GLOSSARY-DOCS",
         "CON-DOC-SYMBOLS",
         "TOOLCHAIN-VERIFY",
-        "UT-GLOSSARY"
+        "UT-GLOSSARY",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -582,7 +623,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -595,7 +635,10 @@
         "DOC-L0",
         "GLOSSARY-DOCS",
         "MODULE-READMES",
-        "UT-GLOSSARY"
+        "UT-GLOSSARY",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -608,7 +651,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -619,7 +661,10 @@
         "SERIAL-HARDCODE",
         "DATA-ARTIFACTS",
         "KNOWN-FAILURES-BASELINE",
-        "UT-ARTIFACT"
+        "UT-ARTIFACT",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     },
     {
@@ -631,7 +676,6 @@
         "VERSION-CONSISTENCY",
         "VERSION-NAMESPACES",
         "CON-COMMENTS",
-        "TASK-RESULT-SCHEMA",
         "CONTRACT-GRAPH",
         "TRACEABILITY-MATRIX",
         "CON-TRACEABILITY",
@@ -642,7 +686,10 @@
         "SERIAL-HARDCODE",
         "CON-BUILD-GRAPH",
         "DATA-ARTIFACTS",
-        "UT-RUNTIME"
+        "UT-RUNTIME",
+        "CHK-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
       ]
     }
   ],
@@ -650,7 +697,6 @@
     "VERSION-CONSISTENCY",
     "VERSION-NAMESPACES",
     "CON-COMMENTS",
-    "TASK-RESULT-SCHEMA",
     "CONTRACT-GRAPH",
     "TRACEABILITY-MATRIX",
     "CON-TRACEABILITY",
@@ -659,7 +705,8 @@
     "PRODUCTION-GRAPH",
     "NO-SERIAL-HEAVY",
     "SERIAL-HARDCODE",
-    "WORKSPACE-ADOPTION",
-    "RECONCILE-STATE"
+    "CHK-SCHEMA",
+    "CON-CONFIG-CONTRACTS",
+    "LOG-CONTRACT-SELFCHECK"
   ]
 }

@@ -37,7 +37,7 @@
 - 待办: T1-T4 真实帧 PHOTOMETRIC 端到端复验 (下一阶段)。
 
 ### 2026-07-15 sigma_residual 暴露（spec: photometric-sigma-residual）
-- star_matcher.h/cpp: cleanOutliers/matchAndClean 新增 `double* out_sigma_residual = nullptr` 出参, 暴露已计算的 MAD/0.6745
+- star_matcher.h/cpp: cleanOutliers/matchAndClean 新增 `double* out_sigma_residual = nullptr` 出参, 暴露已计算的 MAD/0.6744897501960817
 - photometric_calib.h: pc_calibrate_simple/pc_calibrate_simple_with_gaia 新增末尾参数 out_sigma_residual
 - pc_api.cpp: 透传 sigma_residual + 退化路径(n_gaia<=0/n_psf<=0/无光谱星/滤光片失败)设 0.0 + nullptr 检查
 - python/photometric_calib.py: argtypes 追加 POINTER(c_double), calibrate_simple/with_gaia 返回 4 元组(out_pixels, n_matched, scale, sigma_residual)
@@ -195,7 +195,7 @@ lib/algorithms/photometry/
 - SIP系数按i*6+j索引（长度36扁平数组）
 - 无AP/BP时用3次牛顿迭代反解前向SIP
 - 暴力最近邻（Gaia星通常<10000, 无需nanoflann）
-- MAD: sigma=MAD/0.6745, sigma=0时跳过清洗（与Python版一致）
+- MAD: sigma=MAD/0.6744897501960817, sigma=0时跳过清洗（与Python版一致）
 
 
 
@@ -265,7 +265,7 @@ lib/algorithms/photometry/
   3. 批量 WCS 投影 Gaia 星到像素 (sky_to_pixel_batch)
   4. 每颗 Gaia 星 KDTree 最近邻搜索 (距离 < match_radius_px)
   5. SEDBuilder.from_bp_rp(mag_bp,mag_rp) 生成 SED -> SyntheticPhotometry.compute 算 F_syn
-  6. clean_outliers: r=log10(F_syn/F_instr), 排除 F<=0, sigma=MAD/0.6745, 剔除 |r-median|>outlier_sigma*sigma
+  6. clean_outliers: r=log10(F_syn/F_instr), 排除 F<=0, sigma=MAD/0.6744897501960817, 剔除 |r-median|>outlier_sigma*sigma
 - **设计要点**:
   - StarMatch.x/y 取 PSF 测量质心 cx/cy (仪器实测位置, 而非 Gaia 投影位置), 适合空间梯度建模
   - Gaia 星支持 GaiaStarPy dataclass 或 dict 输入; PSF 结果鸭子类型访问字段 (不硬依赖 dynamic_psf)
@@ -359,8 +359,8 @@ lib/algorithms/photometry/
   - `matchWithKdTree`: WCS 投影 Gaia 星到像素坐标 → 对 Gaia 星建 KD-tree（避免每颗 PSF 星扫描全部 Gaia 星）→ 对每颗 PSF 有效星查询最近邻（距离 < match_radius_px，默认 2.0px 收紧）
   - `cleanAndScale`:
     1. 星等一致性预过滤: `delta_i = -2.5*log10(F_instr_i) - gaia_mag_i`（粗略零点差），`median_delta` 作为粗略零点，拒绝 `|delta - median_delta| > mag_tolerance`（默认 3.0 mag）
-    2. IRLS + Tukey biweight 迭代: `r = log10(F_instr/F_syn)`，`S = MAD(r_consistent)/0.6745`，`c = _TUKEY_C * S`（`_TUKEY_C = 4.685` 标准稳健统计常数），权重 `w = (1-u²)²`（u=r/c，|u|>=1 时 w=0），迭代最多 50 次（`_IRLS_MAX_ITER = 50`），收敛阈值 `|new_location - prev_location| < 1e-6`（`_IRLS_CONVERGE`）
-    3. `scale = 10^(-location)`，`sigma_residual = MAD(r_inliers)/0.6745`，输出亮度比例一致性日志
+    2. IRLS + Tukey biweight 迭代: `r = log10(F_instr/F_syn)`，`S = MAD(r_consistent)/0.6744897501960817`，`c = _TUKEY_C * S`（`_TUKEY_C = 4.685` 标准稳健统计常数），权重 `w = (1-u²)²`（u=r/c，|u|>=1 时 w=0），迭代最多 50 次（`_IRLS_MAX_ITER = 50`），收敛阈值 `|new_location - prev_location| < 1e-6`（`_IRLS_CONVERGE`）
+    3. `scale = 10^(-location)`，`sigma_residual = MAD(r_inliers)/0.6744897501960817`，输出亮度比例一致性日志
 - `cpp/src/pc_api.cpp` - `matchAndClean` 调用更新: `3.0/3.0` → `2.0/3.0`（match_radius/mag_tolerance），新增 `&scale` 参数；移除 `ImageCorrector::computeScale` 调用（scale 现由 IRLS 直接输出，不再走 median 回退路径）
 
 **关键常量**（star_matcher.cpp 文件顶部）:
@@ -397,7 +397,7 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
 - 核心实现锚（详见 docs/algorithms/PHOTOMETRIC_FIT.md §13.1）：star_matcher
   matchWithKdTree（:185-333，双向互最近邻唯一配对）/cleanAndScale
   （:378-605，星等预过滤 + IRLS Tukey c=4.685 + scale=10^(−location) +
-  sigma_residual=MAD/0.6745）；spectrum_integrator
+  sigma_residual=MAD/0.6744897501960817）；spectrum_integrator
   compute_f_syn_cached_xpsd（:409-454，XPSD byte 解码）+ 1.0nm 网格 Simpson；
   像素校正 I_cal=I·scale OpenMP static（image_corrector.cpp:63-77）。
 - 构建现状：cpp/Makefile:11 g++ -shared -fopenmp → photometric_calib.dll

@@ -18,8 +18,9 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 SCI = os.path.join(REPO, "docs", "science", "PHASE3_HIPS_TO_FITS.md")
 API = os.path.join(REPO, "docs", "api", "PHASE3_API_V1.md")
 SESS = os.path.join(REPO, "lib", "phase3_session", "p3_session.cpp")
-WCS_C = os.path.join(REPO, "lib", "phase3_session", "p3_wcs.cpp")
-WCS_H = os.path.join(REPO, "lib", "phase3_session", "p3_wcs.h")
+# W4-A9 批次 1: p3_wcs.{cpp,h} 迁 lib/algorithms/projection/ (ASTROCS_DESIGN §7.1)
+WCS_C = os.path.join(REPO, "lib", "algorithms", "projection", "p3_wcs.cpp")
+WCS_H = os.path.join(REPO, "lib", "algorithms", "projection", "p3_wcs.h")
 
 
 class TestP3001ScienceFreeze(unittest.TestCase):

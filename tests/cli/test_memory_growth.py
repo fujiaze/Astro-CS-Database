@@ -4,7 +4,8 @@
 import os, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CLI = os.path.join(REPO, "cli")
+# ROOT-008: CLI 命令层（memory_growth.h 所在）已迁 lib/infrastructure/cli/。
+CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 
 
 @unittest.skipUnless(shutil.which("g++"), "需要 g++")

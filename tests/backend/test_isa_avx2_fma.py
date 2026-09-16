@@ -4,7 +4,7 @@ ISA-001 已 SHIP avx2_backend.so; 本任务独立复测确认 AVX2+FMA SHIP 成�
 import csv, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-HOST = os.path.join(REPO, "lib", "backend_host")
+HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "include")
 
 

@@ -255,7 +255,7 @@ float robust_mad(const float* data, int n) {
         deviations[i] = std::fabs(data[i] - med);
     }
     float mad = robust_median(deviations.data(), n);
-    return mad * 1.4826f;
+    return mad * 1.482602218505602f;
 }
 
 void downsample(const float* src, int sw, int sh, float* dst, int dw, int dh) {

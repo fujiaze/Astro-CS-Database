@@ -126,7 +126,7 @@ struct OpComputer {
                     const float med = median_inplace(vals);      // 就地; 多重集同
                     for (uint32_t q = 0; q < frames; ++q)
                         vals[q] = std::fabs(vals[q] - med);
-                    const float mad_sigma = median_inplace(vals) * 1.4826f;
+                    const float mad_sigma = median_inplace(vals) * 1.482602218505602f;
                     p->out0.data[i] = med;
                     if (p->out1.data) p->out1.data[i] = mad_sigma;
                 } else {
@@ -134,7 +134,7 @@ struct OpComputer {
                     const float med = median_inplace(tmp);       // tmp 排序; 多重集同
                     for (uint32_t q = 0; q < frames; ++q)
                         tmp[q] = std::fabs(tmp[q] - med);
-                    const float mad_sigma = median_inplace(tmp) * 1.4826f;
+                    const float mad_sigma = median_inplace(tmp) * 1.482602218505602f;
                     uint32_t cnt = 0;
                     for (uint32_t f = 0; f < frames; ++f)        // 原值(未排序)计数
                         if (std::fabs(vals[f] - med) > kf * mad_sigma) ++cnt;

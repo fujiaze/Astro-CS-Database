@@ -31,8 +31,13 @@ def main():
     if ver != "0.10.0-alpha.2":
         errors.append(f"VERSION 非预期: {ver}")
     # 4) phase3 假状态: 真实实现存在
-    for impl in ("p3_wcs.cpp", "p3_resample.cpp", "p3_output.cpp"):
-        if not (REPO / "lib" / "phase3_session" / impl).is_file():
+    # W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/ (ASTROCS_DESIGN §7.1);
+    # 其余两源仍在 lib/phase3_session/ (批次 2/3 迁 resample / fits_output)。
+    _p3_impl = {"p3_wcs.cpp": REPO / "lib" / "algorithms" / "projection",
+                "p3_resample.cpp": REPO / "lib" / "phase3_session",
+                "p3_output.cpp": REPO / "lib" / "phase3_session"}
+    for impl, base in _p3_impl.items():
+        if not (base / impl).is_file():
             errors.append(f"phase3 实现缺失: {impl}")
     # 5) RELEASE_STATUS 诚实性
     rs = (REPO / "docs" / "review" / "RELEASE_STATUS.md").read_text(encoding="utf-8", errors="ignore")

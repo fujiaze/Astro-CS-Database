@@ -35,7 +35,7 @@
 | `CMakePresets.json` | `cmakeMinimumRequired 3.31.0`（presets version 10）；configure presets：`base-msvc`（hidden）、`win-msvc-17.14.39-x64`（Windows 正式：VS 17 2022 / x64 / v143 14.44.35207 / SDK 10.0.26100.0 / cmake_pin 3.31.12）、`linux-control`（Linux 控制节点轻验证，generator `Unix Makefiles`，仅非 Windows 主机条件生效） |
 | `CMakeLists.txt` | `cmake_minimum_required(VERSION 3.24)`；`CMAKE_CXX_STANDARD 17` + `REQUIRED`；sanitizer 仅 GCC/Clang（MSVC 不支持）；MSVC `/utf-8` 分支；OpenMP 在 UNIX 且找到时链接；版本单源 `VERSION`（VER-001） |
 | `AGENTS.md` | Linux amd64 = Agent 执行与控制节点（控制、静态分析、轻量编译、小合成实验），bash+git+Linux 工具链；Windows x64 = 正式开发/客户端/发布平台，经远程节点执行，离线不阻塞 Linux 任务；外部命令须带 timeout 并保存日志 |
-| `build.sh` | BLD-001 根级 Linux configure/build/test 入口；依赖 `cmake`（默认生成器）与 `nproc`；以 `P2_ENABLE_OPENMP=ON` 构建 `lib/phase2` 各测试目标 |
+| `build.sh` | BLD-001 根级 Linux configure/build/test 入口；依赖 `cmake`（默认生成器）与 `nproc`；以 `P2_ENABLE_OPENMP=ON` 构建 `lib/algorithms/coverage` 各测试目标 |
 | `toolchain.ps1` | Windows 侧统一工具链入口（MSYS2 MinGW64 `C:\msys64\mingw64\bin`、正式 Python 3.12 路径、gh CLI；`check`/`build` 用 g++/make）。属 Windows 主机关注点，不适用于本 Linux Agent 主机盘点 |
 
 ## 3. 与 hosted CI 版本策略的关系

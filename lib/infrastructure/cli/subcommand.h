@@ -44,32 +44,103 @@ inline bool confirm_run(const std::string& command_name, const std::string& chec
     return answer == "yes" || answer == "y";
 }
 
-// 配置预检（薄入口只给「可见性」，不做科学判定）：
-//   error    — 运行前即可判定的输入/路径问题（缺 input 列表、output_dir 非目录…）
-//   correct  — 结构可达
-// 与 §3.5 的绿/橘/红三级对应；橘色项（可优化项）由会话层给出，本层不臆造。
+// JSON 值类型名（诊断用；只报类型，不泄露值）。
+inline std::string json_type_of(const nlohmann::json& v) {
+    if (v.is_null()) return "null";
+    if (v.is_string()) return "string";
+    if (v.is_number()) return "number";
+    if (v.is_boolean()) return "boolean";
+    if (v.is_array()) return "array";
+    if (v.is_object()) return "object";
+    return "unknown";
+}
+
+// 配置「结构层」判定的唯一实现（键存在性 + JSON 类型 + 非空形态；不做科学值域判定）。
+// 返回全部结构错（空 = 结构可达）。预检页的 [error] 行与运行前的硬门同源 ——
+// 结构错不是 §3.5 的可强制项（-force 只越过「缺校准帧」一类），因此即使 -force
+// 也必须 rc=2；否则运行期会在 nlohmann 取值处抛 type_error 逃逸到 70
+// （SMOKE-001 D1: output_dir=123 时三命令全 rc=70 崩溃）。
+// 判据字段仍取自 input_contract（CLI-002/GAP-034 单一来源）。
+inline std::vector<std::string> config_structure_errors(SessionId session,
+                                                        const nlohmann::json& doc) {
+    std::vector<std::string> errs;
+    if (!doc.contains("output_dir") || !doc["output_dir"].is_string()) {
+        errs.push_back("output_dir 必须是非空字符串（收到 " +
+                       (doc.contains("output_dir") ? json_type_of(doc["output_dir"])
+                                                   : std::string("缺失")) +
+                       "）；运行产物只落 output_dir");
+    } else if (doc["output_dir"].get<std::string>().empty()) {
+        errs.push_back("output_dir 缺失或为空（运行产物只落 output_dir）");
+    }
+
+    const InputContract& ic = input_contract(session);
+    const std::string key = ic.key;
+    if (!doc.contains(key)) {
+        errs.push_back(key + " 缺失（" + ic.note + "）");
+        return errs;
+    }
+    const auto& v = doc[key];
+    if (ic.object_field != nullptr) {
+        // 对象形态：会话消费的是 <key>.<object_field> 非空字符串。
+        if (!v.is_object()) {
+            errs.push_back(key + " 必须是对象 {\"" + ic.object_field + "\": \"<path>\"}（收到 " +
+                           json_type_of(v) + "）");
+        } else if (!v.contains(ic.object_field) || !v[ic.object_field].is_string()) {
+            errs.push_back(key + "." + ic.object_field + " 缺失或非字符串（" +
+                           (v.contains(ic.object_field) ? json_type_of(v[ic.object_field])
+                                                        : std::string("缺失")) + "）");
+        } else if (v[ic.object_field].get<std::string>().empty()) {
+            errs.push_back(key + "." + ic.object_field + " 为空：没有输入产品");
+        }
+    } else {
+        // 路径列表形态：必须是非空数组（字符串/数字等非数组形态 = 类型错，不猜测、不回落）。
+        if (!v.is_array()) {
+            errs.push_back(key + " 必须是路径数组（收到 " + json_type_of(v) + "）");
+        } else if (v.empty()) {
+            errs.push_back(key + " 为空：没有输入产品");
+        }
+    }
+    return errs;
+}
+
+// 标定帧可见性（normalize；§3.5「缺少校准帧」= -force 可越过的 error）。
+// 只陈述「该步将跳过」，不做科学判定（是否应该跳过属科学侧裁决）。
+inline std::vector<CheckLine> calibration_checks(const nlohmann::json& doc) {
+    std::vector<CheckLine> checks;
+    for (const char* k : {"master_bias", "master_dark", "master_flat"}) {
+        const bool given = doc.contains(k) && doc[k].is_string() &&
+                           !doc[k].get<std::string>().empty();
+        if (given)
+            checks.push_back({"correct", std::string(k) + " = " + doc[k].get<std::string>()});
+        else
+            checks.push_back({"error", std::string(k) + " 未提供：本次运行不做该标定步骤"
+                                       "（如确无该标定帧，用 -force 越过）"});
+    }
+    return checks;
+}
+
+// 配置预检页（薄入口只给「可见性」，不做科学判定）：
+//   error    — 结构错（不可强制）/ 缺校准帧（§3.5 可强制）
+//   correct  — 结构可达 / 已提供的标定帧
+// 结构判据来自 config_structure_errors（唯一实现），不再在此另造一套。
 inline std::vector<CheckLine> precheck_config(SessionId session, const nlohmann::json& doc) {
     std::vector<CheckLine> checks;
-    const std::string out_dir = doc.value("output_dir", std::string());
-    if (out_dir.empty())
-        checks.push_back({"error", "output_dir 缺失或为空（运行产物只落 output_dir）"});
-    else
-        checks.push_back({"correct", "output_dir = " + out_dir});
-
-    const char* list_key = (session == SESSION_NORMALIZE) ? "input_lights"
-                           : (session == SESSION_MOSAIC)  ? "hips_paths"
-                                                          : "source";
-    if (doc.contains(list_key)) {
-        const auto& v = doc[list_key];
-        const std::size_t n = v.is_array() ? v.size() : (v.is_string() ? 1 : 0);
-        if (n == 0)
-            checks.push_back({"error", std::string(list_key) + " 为空：没有输入产品"});
+    const std::vector<std::string> errs = config_structure_errors(session, doc);
+    if (errs.empty()) {
+        checks.push_back({"correct", "output_dir = " + doc["output_dir"].get<std::string>()});
+        const InputContract& ic = input_contract(session);
+        const auto& v = doc[ic.key];
+        if (ic.object_field != nullptr)
+            checks.push_back({"correct", std::string(ic.key) + "." + ic.object_field + " = " +
+                                           v[ic.object_field].get<std::string>()});
         else
-            checks.push_back({"correct", std::string(list_key) + " 条目数 = " + std::to_string(n)});
-    } else if (session == SESSION_EXPORT) {
-        checks.push_back({"error", "source 缺失（export 不假设输入来自 mosaic）"});
+            checks.push_back({"correct", std::string(ic.key) + " 条目数 = " +
+                                           std::to_string(v.size())});
     } else {
-        checks.push_back({"error", std::string(list_key) + " 缺失"});
+        for (const auto& e : errs) checks.push_back({"error", e});
+    }
+    if (session == SESSION_NORMALIZE) {
+        for (const auto& c : calibration_checks(doc)) checks.push_back(c);
     }
     return checks;
 }
@@ -115,7 +186,28 @@ struct Subcommand {
         }
         const std::vector<CheckLine> checks = precheck_config(session, doc);
         const std::string page = render_checks(checks);
+        // 结构错（键缺失/类型错）= 配置错，不可用 -force 越过：越过会在运行期
+        // 于 nlohmann 取值处抛 type_error → 70（SMOKE-001 D1）。
+        const std::vector<std::string> structural = config_structure_errors(session, doc);
         const bool forced = p.flags.count("-force") > 0;
+        // 阻断优先级（§3.5 + CLI_PROTOCOL §7）：
+        //   ① 结构错（键缺失/类型错）→ 2，不可强制（越过会在运行期抛 type_error → 70，
+        //      SMOKE-001 D1）；
+        //   ② 配置合同（白名单键/值域）→ 其自身退出码（未知键 3、schema_version 2…），
+        //      先于③：否则「缺校准帧」这一条 finding 会掩盖未知键等更具体的诊断
+        //      （与 GAP-034「一条误判掩盖其它真实错误」同族）；
+        //   ③ 可强制项（缺校准帧）→ 2，仅 -force 可越过（§3.5）。
+        if (!structural.empty()) {
+            std::fputs(page.c_str(), stderr);
+            std::fprintf(stderr, "astrocs: %s blocked by config error(s); "
+                                 "fix the config (-force cannot override)\n", name);
+            return astrocs::ARGS;                           // 2: 配置错
+        }
+        {
+            nlohmann::json validated;
+            const int vrc = validate_config_full(cfg, &validated, /*session_mode=*/true);
+            if (vrc != astrocs::OK) return vrc;
+        }
         if (has_error(checks) && !forced) {
             std::fputs(page.c_str(), stderr);
             std::fprintf(stderr, "astrocs: %s blocked by precheck error(s); "

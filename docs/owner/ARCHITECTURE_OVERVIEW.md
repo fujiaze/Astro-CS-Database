@@ -66,7 +66,7 @@
 |---|---|---|
 | 唯一生产 Runtime（`astrocs_core`）：load_pipeline→run→cancel→inspect | PASS（源码在位） | `include/astrocs/core/runtime.h`、`lib/infrastructure/scheduler/src/runtime.cpp`、`cli/runtime_client.cpp` 静态可核 |
 | 类型化运行图合同（typed DAG schema/validator/registry） | PASS（合同冻结） | `runtime/pipeline/typed_dag.py` + `typed_dag.schema.json` + `module_ports.registry.json`（RT-001，pytest 24/24 已在集成提交验收） |
-| 模块注册表（register_phase_modules：P1/P2/P3 模块族 + factory） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309 —— P1 八节点 / P2 七节点 / P3 五节点各经 `make_p1/p2/p3_node_module` 绑定**唯一真实 operation**（约束 §F.1 已达成）；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 本提交实测 4/4 PASS |
+| 模块注册表（register_phase_modules：P1/P2/P3 模块族 + factory） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309 —— P1 八节点 / P2 七节点 / P3 五节点各经 `make_p1/p2/p3_node_module` 绑定**唯一真实 operation**（约束「每节点唯一真实 operation」已达成；原引「宪章 §F.1」已废止，现行 = `ASTROCS_DESIGN.md` §3.2/§4.2/§5.2）；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 本提交实测 4/4 PASS |
 | 唯一 executor + 实测资源门（RT-001） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`（进程唯一池注册点）+ `module_adapters.cpp`:3777-3793（P3 行带经租约提交）+ `tools/monitoring/run_monitored.py` `evaluate_frozen_gate()`；ctest `rt001_unique_executor` 本提交实测 PASS（`91440c16`） |
 | ThreadBudget/ThreadLease 合同 | PASS（合同冻结） | `include/astrocs/core/context.h`、RT-001.md §2.4；RT-002 budget 测试在 tests/unit |
 | 模块不得私建永久线程池/硬编码核数 | `CONTRACT_READY`（合同）+ `NOT_VERIFIED`（全域扫描） | 约束 §D.3；RT-001 已把 Phase3 行带自建线程池改为唯一 executor 提交（实测）；其余模块的全域静态扫描属 W5/LNX 域，未在本提交复跑 |
@@ -107,7 +107,7 @@ Linux 技术预览安装面:       INSTALLED（5 科学模块 + noop / 10 units 
 Windows 发布执行面:          NOT_VERIFIED（Windows 安装树/MSVC/32R/真实数据未在本提交验证）
 ACR:                        DORMANT（保留源码隔离测试；生产构建排除；不加载不发布）
 唯一 Runtime/typed DAG:     IMPLEMENTED（合同 + 源码 + 节点化/executor ctest 实测）
-每节点唯一 operation（§F.1）: IMPLEMENTED（P1 8 / P2 7 / P3 5 节点，实测）
+每节点唯一 operation:           IMPLEMENTED（P1 8 / P2 7 / P3 5 节点，实测；原引「宪章 §F.1」已废止）
 遗留 run --phases 连跑:      已删除 IMPLEMENTED（实测 rc=2 unknown command）
 旧 aio_pipeline 越权编排:    保留中（ARCH-001 §7 登记，LEG-003 迁移；不宣称已删除）
 ```

@@ -4,7 +4,7 @@ import os, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 HDR = os.path.join(REPO, "include", "astrocs", "common_abi_v1.h")
-SRC = os.path.join(REPO, "lib", "backend_host")
+SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 MAIN = os.path.join(REPO, "tests", "backend", "abi_selftest_main.cpp")
 
 

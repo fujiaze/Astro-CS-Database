@@ -17,9 +17,9 @@
 | `delta_i` | `−2.5·log10(F_instr)−G_Gaia` mag | 星等一致性 |
 | `location` | IRLS/Tukey 稳健位置（dex） | `star_matcher.cpp:478-525` |
 | `scale` | `10^{−location}` 校正因子 `I_cal=I·scale` | 输出 |
-| `S` | `MAD(r)/0.6745` 初值尺度 (dex) | `star_matcher.cpp:21-27` |
+| `S` | `MAD(r)/0.6744897501960817` 初值尺度 (dex) | `star_matcher.cpp:21-27` |
 | `c` | Tukey 形状参数 `4.685` | 同上 |
-| `sigma_residual` | `MAD(r_inliers)/0.6745` dex | QA |
+| `sigma_residual` | `MAD(r_inliers)/0.6744897501960817` dex | QA |
 | `sigma_mag` | `2.5·sigma_residual` mag | QA |
 | `mag_tolerance` | 星等一致性阈 `3.0 mag` | `star_matcher.cpp:241` |
 | `psf_status,qf` | 饱和/质量标志 | `snr_estimator` |
@@ -49,7 +49,7 @@ median_delta = median(delta)
 预拒绝 i  若  |delta_i − median_delta| > mag_tolerance    # mag_tolerance=3.0
 
 # IRLS + Tukey biweight (对 r_consistent)
-S = MAD(r_consistent)/0.6745,  location_0 = median(r_consistent)
+S = MAD(r_consistent)/0.6744897501960817,  location_0 = median(r_consistent)
 迭代直到 |loc_new−loc_old|<1e-6 或 50 步:
   u_i = (r_i − location)/(c·S),  c=4.685
   w_i = (1−u_i²)²   (|u|<1),  0 否则
@@ -57,7 +57,7 @@ S = MAD(r_consistent)/0.6745,  location_0 = median(r_consistent)
 若 S==0 ⇒ location = median(r_consistent), robust_iterations=0
 
 scale = 10^{−location}          # I_cal = I·scale
-sigma_residual = MAD(r_inliers)/0.6745   # r_inliers={i|w_i>0}
+sigma_residual = MAD(r_inliers)/0.6744897501960817   # r_inliers={i|w_i>0}
 sigma_mag = 2.5·sigma_residual
 outlier_rate = 1 − |r_inliers|/|r_consistent|
 ```
@@ -124,7 +124,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 ## 14 Primary literature（引用定位声明）
 
 1. Tukey biweight `c=4.685`（95% 高斯渐近效率）：Mosteller & Tukey 1977, *Data Analysis and Regression*；定位经 [PMC6768164](https://pmc.ncbi.nlm.nih.gov/articles/PMC6768164/) 实证核对（"c=4.685 yields 95% asymptotic efficiency at the Gaussian"）。
-2. MAD→σ 换算 `1/0.6745`：标准正态 MAD 分位（Φ⁻¹(3/4)≈0.6745），教科书级恒等式，Project-defined 采纳。
+2. MAD→σ 换算 `1/0.6744897501960817 = 1.482602218505602`：标准正态 MAD 分位恒等式（`Φ⁻¹(3/4) = 0.6744897501960817`，double 逐位等于 `1/1.482602218505602`；与 `docs/science/NOISE_MODEL.md` §14 同值），教科书级恒等式，Project-defined 采纳。4 位截断写法 `0.6745` 与全精度值相对差 **+1.5196e-05**，只允许出现在「≈」语境并标注该偏差，不得再作权威值（W4-A6 处置 V12-N-03）。
 3. Gaia DR3 合成通量参考：Gaia Collaboration 星表发布文献——bibcode 级定位（未逐页核验），本合同仅消费星表数值，不转述其定标推导。
 
 ## 15 Acceptance
