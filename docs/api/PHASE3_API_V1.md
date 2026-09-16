@@ -1,6 +1,6 @@
 # Phase3 API 定义 v1 (API-005 冻结 — request/result/HiPS source/WCS output/sampler/coverage/FITS)
 
-> ID: API-P3-001  范围: API-P3-001..006  状态: FROZEN (V5 API-005, 2026-08-28)  上游: API-001/002/004, ALG-P3-001..004, ARCH-P3-001  下游: CLI-002(phase3 run handler)/CODE-P3/SYN-007
+> ID: API-P3-001  范围: API-P3-001..006  状态: FROZEN (V5 API-005, 2026-08-28)；**handler 名称经 CLI-001 切换**  上游: API-001/002/004, ALG-P3-001..004, ARCH-P3-001  下游: 用户命令 `export`(CLI-001;旧 `phase3 run` 已删除, rc=2)/CODE-P3/SYN-007
 > Phase3 为新建模块:本文件=施工规格合同;实现(CODE-P3)必须逐字段落地,布局测试随 ABI-001 模板建立。
 
 ## 1 生命周期(与 p1/p2 session 同构)

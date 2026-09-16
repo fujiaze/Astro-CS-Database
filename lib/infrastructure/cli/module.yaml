@@ -1,0 +1,35 @@
+# AstroCS infrastructure/cli — 模块元数据（ENGINEERING_SPEC §4 / 11_MODULE_SOURCE_TEST_STANDARD.md §4）
+# 状态: IMPLEMENTED_HEADER_ONLY —— 命令编排层已存在并驱动唯一可执行入口 astrocs
+# （ASTROCS_DESIGN §6.2 命令树）；当前以头文件形式编译进根 CMakeLists.txt 的
+# astrocs target（cli/commands.cpp 消费）。独立 CMake target 的登记属根
+# CMakeLists.txt（INT-001 域），模块侧清单已在 CMakeLists.txt 备好。
+id: MOD-astrocs-infrastructure-cli
+module_id: astrocs.infrastructure.cli
+module_version: 0.11.0-alpha.2
+abi_version: 1
+phase_scope: all
+dll_name: astrocs_infrastructure_cli.dll
+module_status: IMPLEMENTED_HEADER_ONLY
+entrypoint: astrocs::cli::cmd::run
+node_operations: []
+input_ports:
+  - cli.argv
+  - cli.config_json
+output_ports:
+  - cli.stdout_json
+  - cli.events_jsonl
+  - cli.exit_code
+science_contracts: []
+data_contracts:
+  - contracts/schemas/jsonl_event_v1.schema.json
+  - contracts/schemas/v6/phase_config.schema.json
+authority:
+  - ASTROCS_DESIGN.md §1.2（三命令平级、禁止隐式串接）
+  - ASTROCS_DESIGN.md §6.1/§6.2/§6.3（薄入口、唯一命令树、退出码）
+  - docs/plugins/infrastructure/18_cli.md
+threading_model: host_executor_lease
+notes: |
+  三个子命令（normalize/mosaic/export）由同一命令树表 command_tree.h 声明；
+  每个子命令模块（normalize/、mosaic/、export/）只做参数读取、配置预检、
+  运行确认与委托，不含科学实现（薄入口，ASTROCS_DESIGN §6.1）。
+  exit code 唯一源: cli/exit_codes.h。

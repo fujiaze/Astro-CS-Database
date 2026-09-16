@@ -1,6 +1,6 @@
 # Phase2 API 定义 v1 (API-004 冻结 — 数据所有权/thread budget/逐函数)
 
-> ID: API-P2-001  范围: API-P2-001..012  状态: FROZEN (V5 API-004, 2026-08-28)  上游: API-001/002/003  下游: CLI-002(phase2 run handler)/TST-P2-*
+> ID: API-P2-001  范围: API-P2-001..012  状态: FROZEN (V5 API-004, 2026-08-28)；**handler 名称经 CLI-001 切换**  上游: API-001/002/003  下游: 用户命令 `mosaic`(CLI-001;旧 `phase2 run` 已删除, rc=2)/TST-P2-*
 > 签名权威=现存头文件(lib/phase2/include/astro/phase2/*.h);本文件登记并发合同、**数据所有权**与 thread budget 绑定;禁止隐藏全局状态(验收)。
 
 ## 1 阶段流水与所有权图(谁分配/谁持有/谁释放)
@@ -42,7 +42,7 @@ coverage ──→ sampler ──→ UPM build ──→ calibrate_block ──�
 
 ## 3 thread budget 绑定(ARCH-004 实例化)
 
-- phase2 run 预算分配冻结: sampler=1(串行 reference);upm build=blocks(budget);rejection/integration=行带(budget);async I/O=1;**Σ≤全局 budget**;每 stage_start 事件携带 workers 实际值(API-002 backend 事件)。
+- `mosaic` 运行预算分配冻结(内部会话 2;CLI-001 前称 `phase2 run`): sampler=1(串行 reference);upm build=blocks(budget);rejection/integration=行带(budget);async I/O=1;**Σ≤全局 budget**;每 stage_start 事件携带 workers 实际值(API-002 backend 事件)。
 
 ## 4 错误码映射
 

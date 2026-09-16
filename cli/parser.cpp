@@ -3,6 +3,12 @@
 // 定义在 namespace astrocs 外(与拆分前一致); 不 include 任何 session/科学内部头。
 #include "cli_common.h"
 
+// CLI-001: 用户可见命令树唯一事实源（lib/infrastructure/cli/command_tree.h）。
+// 命令名/旗标白名单/help 文本都从这里取；本文件不再自带命令清单。
+// 相对路径: 根 CMakeLists.txt 的 astrocs target include 目录尚未登记本模块
+// （登记属 INT-001 域），此处用工作区相对包含保证根图与 cli/ 独立图都能编译。
+#include "../lib/infrastructure/cli/command_tree.h"
+
 #include "sha256.h"
 #include "cpu_routing.h"
 #include "hardware_inspect.h"
@@ -19,91 +25,64 @@
 // ───────────────────────── parser ─────────────────────────
 // struct ParseError / struct Parsed 定义见 cli_common.h(共享头)
 
-const std::set<std::string> kBoolFlags = {"--json", "--events-jsonl", "--quick", "--full",
-                                          "--strict-resource-gate"};
-const std::set<std::string> kValueFlags = {"--output", "--config", "--cpu-profile",
-                                           "--run-manifest", "--group",
-                                           "--resource-detail", "--nside", "--pixfrac",
-                                           "--on-resource-gate",
-                                           "--profile", "--module",
-                                           "--provider",
-                                           // RUNTIME-CI-001: V6 显式模式选择（phase2 权重模式 /
-                                           // phase3 输出模式）；路由与拒绝由 cli/v6_mode_gate.h。
-                                           "--mode", "--export-mode"};
+// ── 旗标面（CLI-001）──
+// 唯一白名单来自命令树表（lib/infrastructure/cli/command_tree.h 的 allowed）；
+// 这里只做「token 是否需要取值」的解析判定，不再自带命令清单。
+// 旧表（hardware inspect / config * / modules * / selftest / test synthetic /
+// verify* / drizzle / benchmark cpu / phase1|2|3 *）已随 CLI-001 删除：这些
+// 用户命令现在一律「unknown command」→ exit 2。
+const std::set<std::string>& cmd_boolean_tokens() {
+    static const std::set<std::string> k = {
+        "--json", "--template", "--help", "-h", "-y", "--yes", "-force", "--events-jsonl"};
+    return k;
+}
+const std::set<std::string>& cmd_value_tokens() {
+    static const std::set<std::string> k = {"--json",  "-o",       "--output", "--template",
+                                            "--cpu-profile", "--mode", "--export-mode"};
+    return k;
+}
+// 允许裸用（不取值）的旗标: 顶层 --version --json / doctor 的 --json /
+// 子命令 --template --json（模板请求机器可读 stdout）。其余取值旗标缺值 → 2。
+bool cmd_allows_bare(const std::string& token, const Parsed& p) {
+    const std::string joined = p.join();
+    // --template 同名两用: `<cmd> --template`（开关，模板→stdout）与
+    // `<cmd> --template <path>`（取值，模板→文件；§6.2 的 -o 为等效短格式）。
+    if (token == "--template") return true;
+    if (token == "--json") {
+        // 机器输出开关与 <config.json> 取值在不同用法下同名不同义（§6.2/§6.3）：
+        //   --version --json / doctor --json        → 开关
+        //   <cmd> --template --json                 → 开关（模板走 JSON 输出）
+        //   <cmd> --json <config.json>              → 取值（缺值 → 2）
+        const bool switch_only_command = (joined == "--version" || joined == "doctor");
+        const bool template_request = p.flags.count("--template") > 0;
+        return switch_only_command || template_request;
+    }
+    return false;
+}
+bool cmd_command_has_flag(const std::string& joined, const std::string& token) {
+    const auto* c = astrocs::cli::cmd::find(joined);
+    if (!c) return false;
+    for (const auto& f : c->allowed)
+        if (f == token) return true;
+    return false;
+}
 
-// 命令树: 每条命令允许的旗标(严格白名单, 未知即 2)
-// 04 §1(V5 冻结命令树) + 03 §3(V7 统一命令面; CLI-001 冻结 version/modules/selftest)
-// 注意: kRules 表驱动最长匹配——`version`/`verify`/`verify profile` 前缀互斥,
-// `modules list`/`modules verify` 与 `selftest` 均须逐条显式登记。
-// CLI-001(宪章对齐控制包): 宪章 §8.1 薄命令面补齐 —— phase1/2/3 validate|plan|inspect
-// 正式登记(golden 同步 tests/cli/test_cli_protocol.py HELP_LINES; docs 命令树同步
-// 归 DOC 域任务, check_api_docs 单向断言 doc⊆help 不受新命令影响)。
-const CmdRule kRules[] = {
-    {"hardware inspect",            {"--json"}},
-    {"version",                     {"--json"}},
-    {"modules list",                {"--json"}},
-    {"modules verify",              {"--json"}},
-    {"selftest",                    {"--json", "--module", "--provider"}},
-    {"config init",                 {"--output"}},
-    {"config validate",             {"--config"}},
-    {"config show-effective",       {"--config", "--cpu-profile", "--json"}},
-    {"benchmark cpu",               {"--quick", "--full", "--output", "--events-jsonl"}},
-    {"benchmark verify-profile",    {"--profile", "--json"}},
-    {"doctor",                      {"--json"}},
-    {"test synthetic",              {"--group"}},
-    {"phase1 validate",             {"--config", "--json"}},
-    {"phase1 plan",                 {"--config", "--json", "--output"}},
-    {"phase1 inspect",              {"--config", "--json"}},
-    {"phase1 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail",
-                                                     "--strict-resource-gate", "--on-resource-gate"}},
-    {"phase2 validate",             {"--config", "--json", "--mode"}},
-    {"phase2 plan",                 {"--config", "--json", "--output", "--mode"}},
-    {"phase2 inspect",              {"--config", "--json"}},
-    {"phase2 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail",
-                                                     "--strict-resource-gate", "--on-resource-gate",
-                                                     "--mode"}},
-    {"phase3 validate",             {"--config", "--json", "--export-mode"}},
-    {"phase3 plan",                 {"--config", "--json", "--output", "--export-mode"}},
-    {"phase3 inspect",              {"--config", "--json"}},
-    {"phase3 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail",
-                                                     "--strict-resource-gate", "--on-resource-gate",
-                                                     "--export-mode"}},
-    {"drizzle",                     {"--config", "--events-jsonl", "--nside", "--pixfrac"}},
-    {"verify",                      {"--run-manifest", "--json"}},
-    {"verify profile",              {"--profile", "--json"}},
-};
+// kRules: 命令树表的解析器视图（path + allowed）。保留 CmdRule 类型以免
+// cli_common.h 的公开声明漂移；内容 100% 来自 command_tree.h。
+struct CmdRuleView { std::string path; std::vector<std::string> allowed; };
+const std::vector<CmdRuleView>& kRuleViews() {
+    static const std::vector<CmdRuleView> k = [] {
+        std::vector<CmdRuleView> v;
+        for (const auto& c : astrocs::cli::cmd::commands())
+            v.push_back({c.path, c.allowed});
+        return v;
+    }();
+    return k;
+}
 
-const char* kHelp =
-    "astrocs --version [--json]\n"
-    "astrocs version [--json]\n"
-    "astrocs hardware inspect --json\n"
-    "astrocs modules list [--json]\n"
-    "astrocs modules verify [--json]\n"
-    "astrocs selftest [--module <ID>] [--provider <ID>] [--json]\n"
-    "astrocs config init --output <path>\n"
-    "astrocs config validate --config <path>\n"
-    "astrocs config show-effective --config <path> [--cpu-profile <path>] --json\n"
-    "astrocs benchmark cpu (--quick|--full) [--output <path>] [--events-jsonl]\n"
-    "astrocs verify profile --profile <path> [--json]\n"
-    "astrocs doctor --json\n"
-    "astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|p1_ir_facade>\n"
-    "astrocs phase1 validate --config <path> [--json]\n"
-    "astrocs phase1 plan --config <path> [--json] [--output <path>]\n"
-    "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
-    "astrocs phase1 inspect --config <path> [--json]\n"
-    // RUNTIME-CI-001: phase2/phase3 的 --mode / --export-mode 是新增显式模式选择旗标。
-    // 其 --help 行文本受 tests/cli/test_cli_protocol.py::HELP_LINES 精确 golden 约束
-    // (该测试不在本任务 write_scope)；help 行同步需与 controller 集成提交协调，
-    // 见任务回执「未决风险」。在此不写 help 行以免单方面破坏 golden。
-    "astrocs phase2 validate --config <path> [--json]\n"
-    "astrocs phase2 plan --config <path> [--json] [--output <path>]\n"
-    "astrocs phase2 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
-    "astrocs phase2 inspect --config <path> [--json]\n"
-    "astrocs phase3 validate --config <path> [--json]\n"
-    "astrocs phase3 plan --config <path> [--json] [--output <path>]\n"
-    "astrocs phase3 run --config <path> [--cpu-profile <path>] [--events-jsonl]\n"
-    "astrocs phase3 inspect --config <path> [--json]\n"
-    "astrocs verify --run-manifest <path> --json\n";
+// help 文本: 由命令树生成（禁止手写副本）。
+const std::string kHelpStorage = astrocs::cli::cmd::help_text();
+const char* kHelp = kHelpStorage.c_str();
 
 [[noreturn]] void parse_fail(const std::string& msg) { throw ParseError(msg); }
 
@@ -111,15 +90,15 @@ Parsed parse_args(int argc, char** argv_utf8) {
     Parsed p;
     std::vector<std::string> raw(argv_utf8 + (argc > 0 ? 1 : 0), argv_utf8 + argc);
     size_t i = 0;
-    // 子命令 token: 不以 -- 开头, 逐段拼接; 命中已知命令时记录但不立即 break,
-    // 继续检查是否还有更长的命令前缀(最长匹配, 支持 verify / verify profile 并存)
+    // 命令 token: 逐段拼接做最长匹配（表驱动，命中即定）。命令树来自
+    // command_tree.h；不在此硬编码任何命令名。
     std::vector<std::string> tokens;
     bool known_break = false;
     for (; i < raw.size(); ++i) {
         const std::string& a = raw[i];
         if (!a.empty() && a[0] == '-') {
             // 顶层 dash 命令(--version/--help/-h)视作命令本身
-            if (tokens.empty() && (a == "--version" || a == "--help" || a == "-h")) {
+            if (tokens.empty() && astrocs::cli::cmd::is_command(a)) {
                 tokens.push_back(a);
                 known_break = true;
             }
@@ -128,35 +107,19 @@ Parsed parse_args(int argc, char** argv_utf8) {
         tokens.push_back(a);
         std::string joined;
         for (const auto& t : tokens) { if (!joined.empty()) joined += ' '; joined += t; }
-        bool known = false;
-        for (const auto& r : kRules) if (joined == r.path) known = true;
-        if (known) {
-            // 已匹配完整命令; 若还有下一个非 dash token 且与其拼接仍是已知命令,
-            // 继续循环以取最长匹配; 否则在此 break。
-            if (i + 1 >= raw.size() || raw[i + 1].empty() || raw[i + 1][0] == '-') {
-                known_break = true;
-                break;
-            }
-            const std::string joined2 = joined + " " + raw[i + 1];
-            bool known2 = false;
-            for (const auto& r : kRules) if (joined2 == r.path) known2 = true;
-            if (!known2) {
-                // 规格命令 `benchmark verify-profile <path>` 的位置参数 → 转 --profile
-                if (joined == "benchmark verify-profile") {
-                    p.values["--profile"] = raw[i + 1];
-                    ++i;   // 消费位置参数
-                }
-                known_break = true;
-                break;
-            }
-            // joined2 是已知命令 → 继续循环消费下一 token
-        } else if (tokens.size() >= 2 ||
-                   i + 1 >= raw.size() || raw[i + 1].empty() || raw[i + 1][0] == '-') {
-            // 拼接已终结(dash token 或 EOF)仍不命中任何已知命令: 该 token 序列
-            // 永远不可能是合法命令, 立即报 unknown command, 不落到 flag 循环让
-            // 无关的 unknown flag 抢先(CLI-002: `graph --preset …`/`run --phases …`
-            // 必须 unknown command → 2)。1-token 但仍可继续拼接的(如 `config`
-            // 后接 `validate`)不算终结, 放行给下一轮最长匹配。
+        if (astrocs::cli::cmd::is_command(joined)) {
+            // 命中完整命令: 只有当下一 token 能拼出更长的已登记命令时才继续
+            // （命令树里没有这种前缀对时立即定案，剩余 token 交旗标循环判定）。
+            if (i + 1 < raw.size() && !raw[i + 1].empty() && raw[i + 1][0] != '-' &&
+                astrocs::cli::cmd::count_with_prefix(joined + " " + raw[i + 1]) > 0)
+                continue;
+            known_break = true;
+            break;
+        }
+        if (i + 1 >= raw.size() || raw[i + 1].empty() || raw[i + 1][0] == '-') {
+            // 拼接已终结(dash token 或 EOF)仍不命中任何已登记命令 → unknown command。
+            // 旧用户命令(phase1/2/3、config、modules、verify、selftest、test synthetic、
+            // benchmark cpu、drizzle、hardware inspect)全部走这一条 → exit 2。
             parse_fail("unknown command '" + joined + "'");
         }
     }
@@ -164,36 +127,32 @@ Parsed parse_args(int argc, char** argv_utf8) {
     if (known_break) ++i;  // 越过已消费的最后一个命令 token
     const std::string joined = p.join();
     if (joined.empty()) parse_fail("no command given");
-    bool matched = (joined == "--help" || joined == "-h" || joined == "--version");
+    const auto* rule = astrocs::cli::cmd::find(joined);
+    if (!rule) parse_fail("unknown command '" + joined + "'");
     for (; i < raw.size(); ++i) {
         const std::string& a = raw[i];
         if (a.size() < 2 || a[0] != '-') parse_fail("unexpected positional argument '" + a + "'");
-        if (kBoolFlags.count(a)) {
+        if (!cmd_command_has_flag(joined, a)) parse_fail("unknown flag '" + a + "'");
+        const bool value_token = cmd_value_tokens().count(a) > 0;
+        if (!value_token) {
             if (!p.flags.insert(a).second) parse_fail("duplicate flag '" + a + "'");
-        } else if (kValueFlags.count(a)) {
-            if (p.values.count(a)) parse_fail("duplicate flag '" + a + "'");
-            const bool next_is_flag =
-                (i + 1 < raw.size()) && raw[i + 1].size() > 1 && raw[i + 1][0] == '-' &&
-                (kBoolFlags.count(raw[i + 1]) > 0 || kValueFlags.count(raw[i + 1]) > 0);
-            if (i + 1 >= raw.size() || raw[i + 1].empty() || next_is_flag)
-                parse_fail("flag '" + a + "' requires a value");
-            p.values[a] = raw[++i];
-        } else {
-            parse_fail("unknown flag '" + a + "'");
+            continue;
         }
+        // 取值旗标: 后随 token 若是「本命令已知旗标」则视为缺值；否则取值。
+        const bool next_is_flag =
+            (i + 1 < raw.size()) && raw[i + 1].size() > 1 && raw[i + 1][0] == '-' &&
+            cmd_command_has_flag(joined, raw[i + 1]);
+        const bool bare_ok = cmd_allows_bare(a, p);
+        if (i + 1 >= raw.size() || raw[i + 1].empty() || next_is_flag) {
+            if (bare_ok) {
+                if (!p.flags.insert(a).second) parse_fail("duplicate flag '" + a + "'");
+                continue;
+            }
+            parse_fail("flag '" + a + "' requires a value");
+        }
+        if (p.values.count(a)) parse_fail("duplicate flag '" + a + "'");
+        p.values[a] = raw[++i];
     }
-    // 命令级旗标白名单(顶层命令只允许 --json)
-    for (const auto& r : kRules) {
-        if (joined != r.path) continue;
-        matched = true;
-        for (const auto& f : p.values)
-            if (std::find(r.allowed.begin(), r.allowed.end(), f.first) == r.allowed.end())
-                parse_fail("flag '" + f.first + "' not allowed for '" + joined + "'");
-        for (const auto& f : p.flags)
-            if (std::find(r.allowed.begin(), r.allowed.end(), f) == r.allowed.end())
-                parse_fail("flag '" + f + "' not allowed for '" + joined + "'");
-    }
-    if (!matched) parse_fail("unknown command '" + joined + "'");
     return p;
 }
 
@@ -204,14 +163,6 @@ std::string need_value(const Parsed& p, const std::string& flag) {
     if (it == p.values.end() || it->second.empty()) parse_fail("missing required " + flag + " <path>");
     return it->second;
 }
-
-// V3 B3-A8: 组名 "pipeline" 与所映射的 p1_ir_facade_test 语义不符 ——
-// 该二进制只断言 p1_session 源文本里的 canonical 节点声明与 facade 委托,
-// 不驱动 CLI 真实 IR; 曾因此让 "pipeline" 组在 CLI IR 仅 2 节点时报 PASS。
-// 改为与二进制同名的 p1_ir_facade (真实 CLI IR 断言在 UT-CLI 的
-// tests/cli/test_phase1_inprocess.py::test_ir_matches_frozen_chain)。
-const std::set<std::string> kGroups = {"all", "calibration", "wcs_psf", "noise_snr",
-                                       "drizzle", "upm", "rejection_integration", "p1_ir_facade"};
 
 // crash 报告脱敏(04 §5): 仅保留可打印 ASCII, 截断 200 字符。
 std::string sanitize(const std::string& s) {
