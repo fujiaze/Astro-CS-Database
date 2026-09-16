@@ -1,0 +1,44 @@
+// astrocs G-RES-01 资源门阈值生成头 —— 由 CMake 从唯一数值源生成, 禁止手改。
+//
+// 唯一数值源: contracts/resource_gate_v1.json
+// 判据语义权威: docs/plugins/infrastructure/21_observability.md §8
+//   「重计算负载资源门（G-RES-01）」
+//
+// GATE-FIX-RES（R-4 D-11）: 阈值此前以字面量散落在 cli/resource_gate.h 与
+// cli/memory_report.h（并引用已废止的「宪章 §18.2」），与 Python 冻结门、
+// 外挂 judge 各持一套。本头把 C++ 面的数值收敛到契约唯一源；手改本文件无效
+// （每次 configure 重新生成）。
+#pragma once
+
+namespace astrocs {
+namespace resource_gate_contract {
+
+// ── 适用域（applicability）──
+inline constexpr double kMinEffectiveCpus = @ASTROCS_RG_MIN_EFFECTIVE_CPUS@;
+inline constexpr double kMinActiveWindowSecondsExclusive =
+    @ASTROCS_RG_MIN_ACTIVE_WINDOW_SECONDS_EXCLUSIVE@;
+
+// ── 计算面（compute）──
+inline constexpr double kMinActiveComputeThreads = @ASTROCS_RG_MIN_ACTIVE_THREADS@;
+inline constexpr double kMeanUtilizationMinPercent = @ASTROCS_RG_MEAN_UTIL_PERCENT@;
+inline constexpr double kP50UtilizationMinPercent = @ASTROCS_RG_P50_UTIL_PERCENT@;
+inline constexpr double kPerSampleUtilizationMinPercent =
+    @ASTROCS_RG_PER_SAMPLE_UTIL_PERCENT@;
+inline constexpr double kPerSamplePassFractionMin = @ASTROCS_RG_PER_SAMPLE_PASS_FRACTION@;
+inline constexpr double kQueueLowUtilizationPercent = @ASTROCS_RG_QUEUE_LOW_UTIL_PERCENT@;
+inline constexpr double kQueueLowWindowSecondsMin = @ASTROCS_RG_QUEUE_LOW_WINDOW_SECONDS@;
+
+// ── 内存面（memory；单位 MiB/s = 1048576 B/s，判据方向 >=）──
+inline constexpr double kMemoryGrowthLimitMibPerS = @ASTROCS_RG_MEM_GROWTH_MIB_PER_S@;
+inline constexpr double kAllocationReclaimMinFraction =
+    @ASTROCS_RG_ALLOC_RECLAIM_MIN_FRACTION@;
+inline constexpr double kAllocationReclaimMinWallSeconds =
+    @ASTROCS_RG_ALLOC_RECLAIM_MIN_WALL_SECONDS@;
+inline constexpr unsigned long long kReclaimResidualToleranceBytes =
+    @ASTROCS_RG_RECLAIM_RESIDUAL_TOL_BYTES@ull;
+
+// ── 工作量下限（事实标记, 不参与裁决）──
+inline constexpr double kWorkloadFloorCoreSeconds = @ASTROCS_RG_WORKLOAD_FLOOR_CORE_SECONDS@;
+
+}  // namespace resource_gate_contract
+}  // namespace astrocs

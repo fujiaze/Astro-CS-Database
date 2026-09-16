@@ -250,6 +250,13 @@ inline bool gate_workload_above_floor(const GateConfig& g) {
 // 注意: Enforced 路径**不咨询工作量下限**(它复现的就是变更前无条件判定的行为);
 // 工作量下限作用于记录面标记与外部裁决(tools/quality/resource_monitor.py --judge)。
 enum class GateEnforcement { RecordOnly, Enforced };
+// 「判定有无违规」的统一谓词: Ok = 判过且通过; NotApplicable = 判定域不成立(未判)。
+// 二者都不是违规 —— 调用方一律用本谓词, 不得再写 d == GateDiag::Ok（那会把
+// "未判"误当"违规"）。
+inline bool gate_diag_is_violation(GateDiag d) {
+    return d != GateDiag::Ok && d != GateDiag::NotApplicable;
+}
+
 inline GateEnforcement gate_enforcement(bool strict_mode, GateDiag d) {
     // NotApplicable = 判定域不成立（显式分类, 非豁免也非失败）; 不产生 rc=10。
     return (strict_mode && d != GateDiag::Ok && d != GateDiag::NotApplicable)
@@ -344,6 +351,11 @@ inline GateDiag evaluate_gate(const GateConfig& g) {
         // —— 它使 5s≤wall<10s 或 active_window<10s 的"短而烂" run 两门都放行
         // （R-4 §4.1⑤ 漏报面）。
         if (!gate_window_representative(g)) return GateDiag::NotApplicable;
+        // 短任务(未提供 active window 的直接判定路径, wall<5s): 统计利用率判据
+        // 不成立 → **显式 NotApplicable**（GATE-FIX-RES: 旧实现返回 Ok, 使"未判"
+        // 与"判过且通过"不可区分; MON-002 复验的"短任务不豁免单线程判定"语义保持
+        // —— 单线程检查在本行之前已执行）。
+        if (g.wall_seconds < 5.0) return GateDiag::NotApplicable;
         const double thr = compute_cores_threshold(g);
         if (thr > 0 && g.avg_equivalent_cores < thr)
             return GateDiag::LowAvgCores;

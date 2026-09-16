@@ -822,7 +822,8 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     g.work_core_seconds = s.avg_equivalent_cores * work_win;
     // MON-002: 结束时 gate 调用; first-10s 已失败而结束判定通过时, 快速失败兜底生效。
     astrocs::GateDiag d = astrocs::evaluate_gate(g);
-    if (d == astrocs::GateDiag::Ok && f10 == astrocs::GateDiag::FastFailFirst10s)
+    if (!astrocs::gate_diag_is_violation(d) &&
+        f10 == astrocs::GateDiag::FastFailFirst10s)
         d = astrocs::GateDiag::FastFailFirst10s;
     // MON-001(V7): 逐样本聚合判定与 evaluate_gate 互补 —— 监控缺失直接 FAIL;
     // >=70% 样本 U>=0.75; 队列有工作时连续>=10s U<0.50。哨兵纪律: 统计不可得
@@ -830,7 +831,9 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // 证据; 监控在跑但 active 段零样本仍是 MonitoringMissing(无资源证据)。
     // mini 任务 0.85*min(selected,available) 门的结构失配(abs-floor)为负责人
     // 裁决项, 此处不自行放宽(§18.2 冻结值 85%/60%)。
-    if (d == astrocs::GateDiag::Ok) {
+    // NotApplicable(判定域不成立)与 Ok 一样继续走 mon001/mon002 证据面:
+    // "未判"不等于"没有监控证据", MonitoringMissing 必须照常抓。
+    if (!astrocs::gate_diag_is_violation(d)) {
         const auto mon_recs = recorder.records_stage(astrocs::ResStage::Active);
         g.monitor_present = true;   // ProcessMonitor 采样线程已实际运行并落盘三产物
         if (mon_recs.empty()) {
@@ -961,7 +964,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // (resource 事件 + resource_gate 事件 + 资源 summary/CSV 产物路径不变), 但不再
     // 以 rc=10 阻塞; --strict-resource-gate 才恢复旧的 error + RESOURCE(10) 语义。
     // 阈值/判定式一字未改; 工作量下限(负责人 2.A)作为事实字段一并记录。
-    if (d != astrocs::GateDiag::Ok) {
+    if (astrocs::gate_diag_is_violation(d)) {
         const astrocs::GateEnforcement enf = astrocs::gate_enforcement(strict_gate, d);
         const bool enforced = enf == astrocs::GateEnforcement::Enforced;
         const std::string why = std::string(enforced ? "resource gate FAILED: "

@@ -143,7 +143,7 @@ run/（gitignore：临时产物/日志）  logs/（gitignore）
 ## 10. 资源与性能
 
 - 一个进程只有一个资源调度器与线程预算源；模块不得硬编码 workers、不得私建长期线程池；
-- CPU-heavy 必须多线程，利用率门禁见最高设计 §8；
+- CPU-heavy 必须多线程；重计算负载资源门（G-RES-01）的判据与判定域见 `docs/plugins/infrastructure/21_observability.md` §8，数值唯一源 `contracts/resource_gate_v1.json`（最高设计 §8 只作定性要求与指针）；
 - 异步只用于能隐藏延迟的 I/O/预取/压缩/落盘；队列必须有容量/背压/取消/超时/错误传播，禁止无界队列；
 - 科学 kernel 归约顺序与确定性由 ALG/ARCH 明确。
 

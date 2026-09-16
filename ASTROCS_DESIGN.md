@@ -412,6 +412,7 @@ flowchart TD
 - `benchmark` 按 kernel 测量数值误差、吞吐、线程扩展、内存带宽、block/worker，生成绑定 CPU 特征/OS/版本/provider 哈希的 `cpu_profile`，输出到**安装目录**；选择用稳定统计，不用一次最快值。
 - **一个进程只有一个资源调度器与线程预算源**；模块不得硬编码 workers、不得私建长期线程池；CPU-heavy 必须多线程。
 - 每个 heavy 运行自动记录：进程/线程 CPU、RSS/PSS、内存增长、读写字节、I/O wait、work units、队列深度、worker 均衡、进度、墙钟。
+- **重计算负载资源门（G-RES-01）**：判据（判定域 / 已分配容量分母取义 / record-and-justify 与 enforce 划分 / exit 10 条件）见 `docs/plugins/infrastructure/21_observability.md` §8；**数值唯一源 = `contracts/resource_gate_v1.json`**（C++/Python 冻结门/外挂 judge 共读，实现侧不得出现字面量阈值）。
 
 ---
 
@@ -419,7 +420,9 @@ flowchart TD
 
 - `aio` 是唯一 FITS/HiPS/manifest 读写边界；Phase1/2/3 复用同一套 AIO，禁止各自复制 reader/writer。
 - 所有产品：临时文件/目录 + 校验 + fsync + 原子 rename 提交；失败/取消不得留下可被误认为正式产品的半成品。
-- 每次运行至少生成：run-plan.json、run-graph.json、run-trace.jsonl、resource-timeseries.csv、resource-summary.json、artifact-manifest.json、run-summary.json。`plan` 是预期，`trace` 是实际观测，**禁止把计划值伪装成实际值**。
+- 每次运行至少生成：`resource_timeseries.csv`、`resource_summary.json`、`worker_balance.csv`、`astrocs_run_*.json`（run manifest）、`run_context.json`、run-graph 渲染目录（`graph/`：`.dot`/`.svg`）。`plan` 是预期，`trace` 是实际观测，**禁止把计划值伪装成实际值**。
+- **下列 5 件在现行实现里 `NOT_IMPLEMENTED`（实测零产出，2026-09-16 R-4 §E5 + GATE-FIX-RES 复核；不得据本名录假设其存在）**：run-plan.json、run-trace.jsonl、artifact-manifest.json、run-summary.json、run-graph.json（现产出的是渲染目录而非该 JSON 文件）。它们**不在**「至少生成」清单内；补实现或显式退役须走任务流程（登记者：R-4 D-15）。
+- 工件名统一**下划线**：`resource_timeseries.csv` / `resource_summary.json`（旧写作 `resource-timeseries.csv` / `resource-summary.json` 及实现侧旧名 `resource_samples.csv` 均已废止）。
 - manifest 至少记录：产品类型/schema 版本、软件来源、run ID、输入产品标识、科学配置、单位、坐标 frame、像素/采样语义、算法 ID、模块 build ID、实际 provider、生成时间。
 
 ---
