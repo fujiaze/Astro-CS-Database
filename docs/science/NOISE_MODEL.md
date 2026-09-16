@@ -14,7 +14,7 @@
 | `x` | 像素值（校准后 ADU/e⁻ 空背景） | 输入 |
 | `variance` | 随机分量方差 `σ_bg²` 或平面预测 `a+b·x+c·y` | `NoiseWeightModelV1.var` |
 | `ivar` | `1/variance` (ADU⁻²) | `variance_bg_global` 倒数 / `fill` |
-| `σ_bg` | `1.4826022185·MAD(|x−median|)` | `noise_model.cpp:robust_sigma` |
+| `σ_bg` | `1.482602218505602·MAD(|x−median|)` | `noise_model.cpp:robust_sigma` |
 | `MAD` | `median(|x−median(x)|)` | 同上 |
 | `rmax` | 掩膜半径 `max(1,r0)·max(1,scale)`（fixed conservative） | 掩膜 |
 | `a,b,c` | 最小二乘平面 `var(x,y)=a+b·x+c·y` | `snr_noise_model_v1` |
@@ -91,7 +91,7 @@ Gain/Readnoise 诊断模型 (仅 diagnostic, NOT FOR PRODUCTION):
 
 ## 9 精度策略
 
-- FP64 全链路；MAD 常数 `1.482602218505602`（15 位截断，与 `1.4826022185` 差 `<1e-12`）；`q_psf` 的 `0.7316727929211932`（10–90% trimmed mean \|residual\| →σ）与本节 `1.4826` 不可互换（前者 trimmed mean，后者 MAD）。
+- FP64 全链路；MAD 常数**唯一权威写法** `1.482602218505602`（= 1/Φ⁻¹(3/4) 的 double 字面量；11 位简写 `1.4826022185` 只能出现在"约等于"语境，与之绝对差 **5.602e-12**、相对差 **3.779e-12**）；`q_psf` 的 `0.7316727929211932`（10–90% trimmed mean \|residual\| →σ）与上述 MAD 常数不可互换（前者 trimmed mean，后者 MAD）。
 - `variance_floor=1e-12` 保证 `ivar` 有限；平面预测负值 clamp 至 floor。
 - 5σ 裁剪 ≤2 轮，避免过度剔除。
 
@@ -136,7 +136,7 @@ Gain/Readnoise 诊断模型 (仅 diagnostic, NOT FOR PRODUCTION):
 ## 14 Primary literature（引用定位声明）
 
 1. Newberry, M. V. 1991, PASP, 103, 122（DOI 10.1086/132801，SCI-001 已核验原文存在性）：Poisson+读出噪声分解的 S/N 建模上下文——文章级定位，本合同 §5 诊断公式为 Project-defined，不引用其具体公式号。
-2. MAD→σ 换算 `1.482602218505602=1/Φ⁻¹(3/4)`：标准正态 MAD 分位恒等式（Φ⁻¹(3/4)≈0.674490），教科书级，Project-defined 采纳；与 SCI-PHOT 的 `0.6745` 同源。
+2. MAD→σ 换算 `1.482602218505602 = 1/Φ⁻¹(3/4)`：标准正态 MAD 分位恒等式（`Φ⁻¹(3/4) = 0.6744897501960817`，double 逐位等于 `1/1.482602218505602`），教科书级，Project-defined 采纳。SCI-PHOT 侧的 4 位写法 `0.6745` 与全精度值相对差 **+1.5196e-05**（等价地 `1/0.6745` 相对差 **−1.5196e-05**），属该侧容许截断，**不得与本节冻结值互换**（V12-N-03，claim SC-002）。
 3. Tukey biweight 内点权重（`r_inliers` 复用）：SCI-PHOT §14/PMS 文献链，本层仅消费 QA 集合不重复估计。
 4. 默认值 `min_samples=64` 的导出依据（claim SC-002）：8×8 patch（P=64）下以本文件 §11 冻结的 5% oracle 为判据，`min_samples=5` 时单 patch 偏差 −19.2%、全局 `sigma_bg_global` 偏差 −25.1%、5% 门通过率 **0.6%**；`min_samples=64` 为 −1.25%/−1.7%、通过率 **92.8%**（纯高斯蒙特卡洛；常规无掩膜帧上 5 与 64 逐位同输出，差异只在 patch 残余样本 5~63 的掩膜 regime）。来源 `reports/PROJECT-GOVERNANCE-01/research/R-5_噪声SNR与统计口径.md` §2 EXP-1/2/3/9，复跑 `run/PROJECT-GOVERNANCE-01/R-5/exp1_mad_bias_mc.py`、`exp2_pipeline_mc.py`、`exp3_prod_threshold.py`。
 

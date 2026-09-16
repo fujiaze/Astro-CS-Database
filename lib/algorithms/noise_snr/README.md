@@ -9,7 +9,7 @@
 > **构建面（实测；本模块不得再自报"唯一生产实现"）**：根 CMake 主图只收
 > `wrapper_phase1/noise_model.cpp` + `wrapper_phase1/snr_frame_science.cpp` +
 > `cpp/src/snr_science.cpp`（目标 `astrocs_phase1_noise`）；`cpp/Makefile` + `build.ps1`
-> 产出 `snr_estimator.dll`，因根 `CMakeLists.txt:210` 的
+> 产出 `snr_estimator.dll`，因根 `CMakeLists.txt:236` 的
 > `add_subdirectory(lib/algorithms/noise_snr)` 被注释而**不在根 CMake 主图**
 > （同 lib/algorithms/cosmetic/ 先例：合同目录与生产实现目录并存）。
 > 权威合同：SCI-NOISE-001..015
@@ -163,7 +163,7 @@ bitwise 与线程数无关。内存：掩膜 O(h·w) uint8（source_mask 直通�
   ivar==0.0、确定性 bitwise、n_qualified+n_rejected==64、free 幂等）。
 - 既有 tests/unit/p1_noise_test.cpp（6 组：blank_sky/monte_carlo_
   poisson/low_high_signal/negative_values/gain_edges/variance_ivar_not_
-  mixed，tests/unit/CMakeLists.txt:312-316 注册，链接 astrocs_phase1_
+  mixed，tests/unit/CMakeLists.txt:614-618 注册，链接 astrocs_phase1_
   noise）为 P1-005 期旧封装测试（astrocs::phase1::NoiseModel 通道），
   非 TEST-NOISE-DESIGN-001 本体；由 P1-NOISE-TEST 对齐重锚（可执行
   TEST-P1-NOISE-001 归 P1-NOISE-TEST 建立）。
@@ -187,7 +187,7 @@ P1-NOISE-IMPL 建立（module.yaml 已登记 manifest，entrypoint=MISSING）。
 遗留通道（计划迁移旧符号，NOISE_ESTIMATION §13.5）：lib/algorithms/noise_snr/wrapper_phase1/
 noise_model.{h,cpp}（39+67 行，astrocs::phase1::NoiseModel::estimate=
 median+MAD 单值退化子集 + gain_variance；静态库 astrocs_phase1_noise
-CMakeLists.txt:435-438、主程序链接 :513；单测 tests/unit/
+CMakeLists.txt:521-524、主程序链接 :607；单测 tests/unit/
 p1_noise_test.cpp :312-316）去留由 P1-NOISE-IMPL 决定并登记其
 TASK_RESULT。迁移不得改变 ALG-NOISE-001..003 公式语义与 DATA-P1-NOISE
 数据语义（SCI-NOISE-001..015 未变更前）。本 README/合同只描述现状，

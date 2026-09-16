@@ -60,8 +60,8 @@
       "unit": "patch",
       "constraint": "patch 网格行列数；整数（实现侧下限钳位 2，见 NOISE_ESTIMATION.md:180 差异登记）",
       "authority_status": "sourced",
-      "source": "docs/algorithms/NOISE_ESTIMATION.md:134（snr_noise_model_v1_default_config 默认 8×8）",
-      "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
+      "source": "docs/science/NOISE_MODEL.md:46（§5 冻结定义 patch grid 8×8）",
+      "source_ref": {"path": "docs/science/NOISE_MODEL.md", "line": 46},
       "pending_task": null,
       "note": "同文件 :11 记 8×8 patch；:86 记 patch 划分为 8×8 网格。"
     },
@@ -71,10 +71,10 @@
       "unit": "px",
       "constraint": ">= 1；参与 rmax = max(1, source_mask_radius_px) * max(1, mask_radius_scale)",
       "authority_status": "sourced",
-      "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 r0=10）",
+      "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 r0=10；SCI 只冻结 rmax 公式不给数值）",
       "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
       "pending_task": null,
-      "note": "符号名与合并式见同文件 :154。"
+      "note": "数值默认 10 仅 ALG §13.1 列出；语义公式见 docs/science/NOISE_MODEL.md:46。同文件 :155。"
     },
     {
       "key": "noise.mask_radius_scale",
@@ -82,7 +82,7 @@
       "unit": "1",
       "constraint": ">= 1；无量纲倍率，与 source_mask_radius_px 相乘得掩膜半径（NOISE_ESTIMATION.md:156）",
       "authority_status": "sourced",
-      "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 scale=6）",
+      "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 scale=6；SCI 只冻结 rmax 公式不给数值）",
       "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
       "pending_task": null,
       "note": "文档按 max(1, r0)·max(1, scale) 使用，单位为无量纲倍率。"
@@ -93,8 +93,8 @@
       "unit": "sigma",
       "constraint": ">= 1；patch 内 |v - med| > clip_sigma*sigma 掩膜（NOISE_ESTIMATION.md:36）",
       "authority_status": "sourced",
-      "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 clip 5.0）",
-      "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
+      "source": "docs/science/NOISE_MODEL.md:48（§5 冻结定义 稳健裁剪 5σ 阈）",
+      "source_ref": {"path": "docs/science/NOISE_MODEL.md", "line": 48},
       "pending_task": null,
       "note": "同文件 :36 记 2 轮内剔除 |v−med|>5σ。"
     },
@@ -104,8 +104,8 @@
       "unit": "count",
       "constraint": ">= 1；patch 合格样本数下限（默认 64）",
       "authority_status": "sourced",
-      "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 min 64）",
-      "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
+      "source": "docs/science/NOISE_MODEL.md:37（§4 min_samples 默认 64，claim SC-002）",
+      "source_ref": {"path": "docs/science/NOISE_MODEL.md", "line": 37},
       "pending_task": null,
       "note": "同文件 :151 记 min_patch_samples 默认 64（snr_estimator.h:117、default_config :379）。"
     },
@@ -115,8 +115,8 @@
       "unit": "rounds",
       "constraint": ">= 0；patch 内裁剪迭代轮数上限（默认 2）",
       "authority_status": "sourced",
-      "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 rounds 2）",
-      "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
+      "source": "docs/science/NOISE_MODEL.md:48（§5 冻结定义 ≤2 轮）",
+      "source_ref": {"path": "docs/science/NOISE_MODEL.md", "line": 48},
       "pending_task": null,
       "note": "同文件 :36 记 5σ ≤2 轮裁剪。"
     },
@@ -126,8 +126,8 @@
       "unit": "bool",
       "constraint": "0/1；1 且 n_ctrl >= 4 时用 LS 平面 var(x,y)=a+b*x+c*y，否则全局中位数兜底（NOISE_ESTIMATION.md:20,:38）",
       "authority_status": "sourced",
-      "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 spatial 1）",
-      "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
+      "source": "docs/science/NOISE_MODEL.md:39（§4 平面场启用条件）",
+      "source_ref": {"path": "docs/science/NOISE_MODEL.md", "line": 39},
       "pending_task": null,
       "note": ""
     },
@@ -137,8 +137,8 @@
       "unit": "ADU^2",
       "constraint": "> 0；ivar = 1 / max(var, floor)，保证 ivar 有限（NOISE_ESTIMATION.md:39,:100）",
       "authority_status": "sourced",
-      "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 floor 1e-12）",
-      "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
+      "source": "docs/science/NOISE_MODEL.md:21（§2 variance_floor 方差下界 1e-12）",
+      "source_ref": {"path": "docs/science/NOISE_MODEL.md", "line": 21},
       "pending_task": null,
       "note": "同文件 :100 记 variance_floor=1e-12 预冻结；:90 记 variance_bg_global 单位 ADU²。"
     },
