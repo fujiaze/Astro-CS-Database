@@ -14,6 +14,13 @@
 - 磁盘 /workspace 503G 已用 293G（62%）；testdata/ 30G、GaiaDR3/+GaiaDR3SP/ 105G、build/ 6.0G 为其它占用方。
 - ENGINEERING_SPEC §7 规定 run/ 是临时产物/日志的家；CONTROL_PACK_SPEC §9 要求执行日志留存到验收完成。
 
+## 负责人裁决（2026-09-16，已授权执行）
+
+- **`run/` 全部可清理**：不再设 >1G 禁删线。清运判据改为「无活动引用 + 非本控制包执行期产物」即可删。
+- 仍必须遵守：不得删除 tracked 文件；不得删除 `run/PROJECT-GOVERNANCE-01/**`（本控制包日志）；每个删除项记录大小/文件数/最后修改时间/「无引用」证据。
+- 回收目标：把 `run/` 从 102G 降到与近期控制包工作相关的规模，并在 RETENTION.md 写明保留期（建议默认 14 天，可复跑证据另行归档到 `reports/`）。
+- 用户数据区（`GaiaDR3/`、`GaiaDR3SP/`、`BASS DR3/`、`testdata/`）**不属本任务**，保持原位。
+
 ## 权威依据
 - ENGINEERING_SPEC.md §7（run/ 定位：临时产物/日志，gitignore）
 - CONTROL_PACK_SPEC.md §6.2（命令日志保存）、§9（汇总与归档）
@@ -28,7 +35,7 @@
 - 删除任何 tracked 文件
 - 删除 `run/PROJECT-GOVERNANCE-01/**`（本控制包的日志）
 - 删除最近 7 天内修改过的目录（除非证明其为一次性临时数据且无引用）
-- 未经负责人确认删除任何 >1G 的目录树
+- 删除任何被 reports/·evidence/·docs/·ci/·tests/ 引用的路径（保留清单是硬约束）
 
 ## 步骤
 1. 产出保留策略 `RETENTION.md`：按「控制包/任务」而非「目录名」定义保留规则，给出保留期与证据引用关系。
