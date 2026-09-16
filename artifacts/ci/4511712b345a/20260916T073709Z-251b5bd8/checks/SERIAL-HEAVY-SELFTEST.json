@@ -1,0 +1,39 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/check_serial_heavy.py",
+    "--selftest"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.04,
+  "exit_code": 0,
+  "finished_utc": "2026-09-16T07:37:20Z",
+  "heavy": false,
+  "id": "SERIAL-HEAVY-SELFTEST",
+  "log": "logs/SERIAL-HEAVY-SELFTEST.log",
+  "log_zst": "logs/SERIAL-HEAVY-SELFTEST.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:37:20Z",
+  "stderr_tail": "",
+  "stdout_tail": "SELFTEST_PASS: P2 macro-off / P3 double loop / no gate caller all caught\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "PASS",
+  "waivable": false
+}

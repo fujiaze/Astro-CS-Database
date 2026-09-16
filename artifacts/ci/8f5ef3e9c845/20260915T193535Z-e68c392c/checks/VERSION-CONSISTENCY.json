@@ -1,0 +1,40 @@
+{
+  "command": [
+    "python3",
+    "ci/check_version.py",
+    "--expected",
+    "0.11.0-alpha.2"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.056,
+  "exit_code": 0,
+  "finished_utc": "2026-09-15T19:35:35Z",
+  "heavy": false,
+  "id": "VERSION-CONSISTENCY",
+  "log": "logs/VERSION-CONSISTENCY.log",
+  "log_zst": "logs/VERSION-CONSISTENCY.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-15T19:35:35Z",
+  "stderr_tail": "",
+  "stdout_tail": "{\n  \"tool\": \"ci/check_version.py\",\n  \"expected\": \"0.11.0-alpha.2\",\n  \"root\": \"/workspace/Astro CS Database\",\n  \"checks\": [\n    {\n      \"id\": \"expected_format\",\n      \"pass\": true,\n      \"file\": \"<argument>\",\n      \"line\": null,\n      \"detected\": \"0.11.0-alpha.2\",\n      \"detail\": \"必须形如 MAJOR.MINOR.PATCH-alpha.N (禁 stable/rc/beta)\"\n    },\n    {\n      \"id\": \"version_file\",\n      \"pass\": true,\n      \"file\": \"VERSION\",\n      \"line\": 1,\n      \"detected\": \"0.11.0-alpha.2\",\n      \"detail\": \"根 VERSION 必须 == expected (唯一事实源)\"\n    },\n    {\n      \"id\": \"cmake_project_base\",\n      \"pass\": true,\n      \"file\": \"CMakeLists.txt\",\n      \"line\": 14,\n      \"detected\": \"project(astrocs VERSION 0.11.0)\",\n      \"detail\": \"规则: project() 数字三元组 == expected 去 -alpha.N 的基础号 (CMake project() 不接受 alpha 后缀, 后缀由根 VERSION/生成链承载)\"\n    },\n    {\n      \"id\": \"chain_root_read_version\",\n      \"pass\": true,\n      \"file\": \"CMakeLists.txt\",\n      \"line\": 50,\n      \"detected\": \"file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION ASTROCS_BASE_VERSION)\",\n      \"detail\": \"根 CMakeLists.txt 必须 file(READ 根 VERSION) (禁止手抄)\"\n    },\n    {\n      \"id\": \"chain_cli_read_version\",\n      \"pass\": true,\n      \"file\": \"cli/CMakeLists.txt\",\n      \"line\": 27,\n      \"detected\": \"file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../VERSION BASE_VERSION)\",\n      \"detail\": \"cli/CMakeLists.txt 必须 file(READ 根 ../VERSION) (禁止手抄)\"\n    },\n    {\n      \"id\": \"chain_template_placeholder\",\n      \"pass\": true,\n      \"file\": \"cli/version_generated.h.in\",\n      \"line\": 3,\n      \"detected\": \"#define ASTROCS_VERSION_STRING \\\"@ASTROCS_VERSION_STRING@\\\"\",\n      \"detail\": \"版本注入模板必须含 @ASTROCS_VERSION_STRING@ 占位\"\n    },\n    {\n      \"id\": \"chain_configure_file_root\",\n      \"pass\": true,\n      \"file\": \"CMakeLists.txt\",\n      \"line\": 61,\n      \"detected\": \"configure_file(cli/version_generated.h.in ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h @ONLY)\",\n      \"detail\": \"根 CMakeLists.txt 必须 configure_file 生成 version_generated.h\"\n    },\n    {\n      \"id\": \"chain_configure_file_cli\",\n      \"pass\": true,\n      \"file\": \"cli/CMakeLists.txt\",\n      \"line\": 56,\n      \"detected\": \"configure_file(version_generated.h.in version_generated.h @ONLY)\",\n      \"detail\": \"cli/CMakeLists.txt (兼容 target) 必须 configure_file 生成 version_generated.h\"\n    },\n    {\n      \"id\": \"literal_scan_cli_and_cmake\",\n      \"pass\": true,\n      \"file\": \"cli/** + CMakeLists.txt\",\n      \"line\": null,\n      \"detected\": \"0 处 alpha 字面量 (生成链注入)\",\n      \"detail\": \"规则: 任何 X.Y.Z-alpha.N 字面量必须 == expected\"\n    },\n    {\n      \"id\": \"doc_scan_active_docs\",\n      \"pass\": true,\n      \"file\": \"README/REVIEW/HANDOVER/docs\",\n      \"line\": null,\n      \"detected\": \"扫描 12 份活动文档\",\n      \"detail\": \"规则: 活动文档中任何 X.Y.Z-alpha.N 字面量必须 == expected (豁免仅 REV_FIELD 机器修订字段; CHANGELOG/memory 为 history/日志 命名空间不进本检查, 冻结约束文件由负责人修订)\"\n    },\n    {\n      \"id\": \"doc_set_complete\",\n      \"pass\": true,\n      \"file\": \"README/REVIEW/HANDOVER/docs\",\n      \"line\": null,\n      \"detected\": \"5 文件 + 2 目录齐全\",\n      \"detail\": \"规则: [5] 的固定活动文档必须存在, 防止检查面被移空\"\n    }\n  ],\n  \"fail_count\": 0,\n  \"pass_count\": 11,\n  \"verdict\": \"VERSION_CHECK_PASS\"\n}\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "PASS",
+  "waivable": false
+}

@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/contracts/check_doc_symbols.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.742,
+  "exit_code": 1,
+  "finished_utc": "2026-09-06T10:12:07Z",
+  "heavy": false,
+  "id": "CON-DOC-SYMBOLS",
+  "log": "logs/CON-DOC-SYMBOLS.log",
+  "log_zst": "logs/CON-DOC-SYMBOLS.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令非零退出：1",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T10:12:07Z",
+  "stderr_tail": "",
+  "stdout_tail": "{\n  \"tool\": \"check_doc_symbols\",\n  \"status\": \"FAIL\",\n  \"docs_scanned\": 100,\n  \"findings\": [\n    {\n      \"id\": \"DOC-BAD-SYMBOL\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md\",\n      \"symbol\": \"ACS_ERR_UNSUPPORTED\",\n      \"observed\": \"symbol not in API inventory\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-SYMBOL\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md\",\n      \"symbol\": \"ACS_ERR_UNSUPPORTED\",\n      \"observed\": \"symbol not in API inventory\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-SYMBOL\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md\",\n      \"symbol\": \"ACS_CPU_AVX2_REQUIRED_FEATURES\",\n      \"observed\": \"symbol not in API inventory\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-FILE\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md\",\n      \"symbol\": \"modules/phase1/noise/impl.cpp\",\n      \"observed\": \"file not found\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-SYMBOL\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md\",\n      \"symbol\": \"IO_READ_FAILED\",\n      \"observed\": \"symbol not in API inventory\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-SYMBOL\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md\",\n      \"symbol\": \"RESOURCE_BUDGET\",\n      \"observed\": \"symbol not in API inventory\",\n      \"expected\": \"exists\"\n    },\n    {\n      \"id\": \"DOC-BAD-SYMBOL\",\n      \"severity\": \"P1\",\n      \"file\": \"docs/architecture/observability/RUN_GRAPH_CONTRACT.md\",\n      \"symbol\": \"PLAN_ONLY\",\n      \"observed\": \"symbol not in API inventory\",\n      \"expected\": \"exists\"\n    }\n  ],\n  \"passed\": false\n}\n",
+  "timed_out": false,
+  "timeout_seconds": 120,
+  "verdict": "FAIL",
+  "waivable": false
+}

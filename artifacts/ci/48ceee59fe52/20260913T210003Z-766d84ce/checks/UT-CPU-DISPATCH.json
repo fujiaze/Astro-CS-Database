@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tests/cpu/dispatch/run_cpu_capability_checks.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 1.969,
+  "exit_code": 0,
+  "finished_utc": "2026-09-13T21:35:30Z",
+  "heavy": false,
+  "id": "UT-CPU-DISPATCH",
+  "log": "logs/UT-CPU-DISPATCH.log",
+  "log_zst": "logs/UT-CPU-DISPATCH.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "linux",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-13T21:35:28Z",
+  "stderr_tail": "",
+  "stdout_tail": "gcc -std=c11 -Wall -Wextra -Wpedantic -Wconversion -I/workspace/Astro CS Database/providers/cpu/common/include /workspace/Astro CS Database/tests/cpu/dispatch/cpu_capability_matrix_test.c /workspace/Astro CS Database/providers/cpu/common/src/capability_detect.c -o /tmp/cpu001_jdstiblh/cap_matrix_g\n  exit=0\n$ clang -std=c11 -Wall -Wextra -Wpedantic -Wconversion -I/workspace/Astro CS Database/providers/cpu/common/include /workspace/Astro CS Database/tests/cpu/dispatch/cpu_capability_matrix_test.c /workspace/Astro CS Database/providers/cpu/common/src/capability_detect.c -o /tmp/cpu001_jdstiblh/cap_matrix_c\n  exit=0\n$ gcc -std=c11 -Wall -Wextra -Wpedantic -Wconversion -I/workspace/Astro CS Database/providers/cpu/common/include /workspace/Astro CS Database/tests/cpu/dispatch/cpu_capability_probe_main.c /workspace/Astro CS Database/providers/cpu/common/src/capability_detect.c -o /tmp/cpu001_jdstiblh/cap_probe\n  exit=0\n$ clang -std=c11 -Wall -Wextra -Wpedantic -Wconversion -I/workspace/Astro CS Database/providers/cpu/common/include /workspace/Astro CS Database/tests/cpu/dispatch/cpu_capability_probe_main.c /workspace/Astro CS Database/providers/cpu/common/src/capability_detect.c -o /tmp/cpu001_jdstiblh/cap_probe_c\n  exit=0\n$ /tmp/cpu001_jdstiblh/cap_matrix_g\n  exit=0\n  stdout: CPU-001 feature matrix: ALL PASS (R1 baseline no-avx reject, R2 no-os-state reject, R3 avx2 pass, R4 avx512 subset-missing reject, R5 avx512 pass, R6 os-zmm-missing reject, R7 illegal/abi, R8 live self-consistency)\n$ /tmp/cpu001_jdstiblh/cap_matrix_c\n  exit=0\n  stdout: CPU-001 feature matrix: ALL PASS (R1 baseline no-avx reject, R2 no-os-state reject, R3 avx2 pass, R4 avx512 subset-missing reject, R5 avx512 pass, R6 os-zmm-missing reject, R7 illegal/abi, R8 live self-consistency)\n$ /tmp/cpu001_jdstiblh/cap_probe\n  exit=0\n  stdout: {\"schema_version\":1,\"kind\":\"astrocs_cpu_capability\",\"architecture\":\"amd64\",\"vendor\":\"GenuineIntel\",\"brand\":\"Genuine Intel(R) CPU 0000 @ 1.70GHz\",\"family\":6,\"model\":158,\"stepping\":12,\"cpuid\":{\"max_leaf\":22,\"leaf1_ecx\":4294619683,\"leaf1_edx\":529267711,\"leaf7_ebx\":10250159,\"leaf7_ecx\":1073741828,\"leaf7_edx\":3154117632},\"os_state\":{\"osxsave\":1,\"xcr0\":31},\"features\":{\"hw\":[\"sse2\",\"sse4_1\",\"sse4_2\",\"avx\",\"avx2\",\"fma\",\"bmi1\",\"bmi2\"],\"os_safe\":[\"sse2\",\"sse4_1\",\"sse4_2\",\"avx\",\"avx2\",\"fma\",\"bmi1\",\"bmi2\"]},\"hw_features_bitmask\":255,\"os_safe_features_bitmask\":255,\"judgement\":{\"os_saves_xmm_ymm\":true,\"os_saves_opmask_zmm\":false,\"avx_family_os_safe\":true,\"avx512_subset_os_safe\":false}}\n  stderr: vendor=GenuineIntel brand=\"Genuine Intel(R) CPU 0000 @ 1.70GHz\" family=6 model=158 stepping=12 osxsave=yes xcr0=0x1f\nhw_features=0xff os_safe=0xff\njudgement: avx_family_os_safe=yes avx512_subset_os_safe=no os_saves_xmm_ymm=yes os_saves_opmask_zmm=no\nprobe run 0: schema OK; hw=0xff os_safe=0xff (sse2=True)\n$ /tmp/cpu001_jdstiblh/cap_probe\n  exit=0\n  stdout: {\"schema_version\":1,\"kind\":\"astrocs_cpu_capability\",\"architecture\":\"amd64\",\"vendor\":\"GenuineIntel\",\"brand\":\"Genuine Intel(R) CPU 0000 @ 1.70GHz\",\"family\":6,\"model\":158,\"stepping\":12,\"cpuid\":{\"max_leaf\":22,\"leaf1_ecx\":4294619683,\"leaf1_edx\":529267711,\"leaf7_ebx\":10250159,\"leaf7_ecx\":1073741828,\"leaf7_edx\":3154117632},\"os_state\":{\"osxsave\":1,\"xcr0\":31},\"features\":{\"hw\":[\"sse2\",\"sse4_1\",\"sse4_2\",\"avx\",\"avx2\",\"fma\",\"bmi1\",\"bmi2\"],\"os_safe\":[\"sse2\",\"sse4_1\",\"sse4_2\",\"avx\",\"avx2\",\"fma\",\"bmi1\",\"bmi2\"]},\"hw_features_bitmask\":255,\"os_safe_features_bitmask\":255,\"judgement\":{\"os_saves_xmm_ymm\":true,\"os_saves_opmask_zmm\":false,\"avx_family_os_safe\":true,\"avx512_subset_os_safe\":false}}\n  stderr: vendor=GenuineIntel brand=\"Genuine Intel(R) CPU 0000 @ 1.70GHz\" family=6 model=158 stepping=12 osxsave=yes xcr0=0x1f\nhw_features=0xff os_safe=0xff\njudgement: avx_family_os_safe=yes avx512_subset_os_safe=no os_saves_xmm_ymm=yes os_saves_opmask_zmm=no\nprobe run 1: schema OK; hw=0xff os_safe=0xff (sse2=True)\nschema file parses\n\nCPU-001 CHECKS PASS (matrix negative tests, live probe JSON schema, stability, no hardcoded core count)\n",
+  "timed_out": false,
+  "timeout_seconds": 600,
+  "verdict": "PASS",
+  "waivable": false
+}

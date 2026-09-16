@@ -1,0 +1,47 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/deep_ci_driver.py",
+    "ctest-target",
+    "--build-dir",
+    "run/ci/build-gcc-release",
+    "--target",
+    "p3002_real_nodes",
+    "--output",
+    "run/ci/ctest/p3002_real_nodes.json"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.135,
+  "exit_code": 0,
+  "finished_utc": "2026-09-12T04:43:42Z",
+  "heavy": false,
+  "id": "CTEST-P3002-REAL-NODES",
+  "log": "logs/CTEST-P3002-REAL-NODES.log",
+  "log_zst": "logs/CTEST-P3002-REAL-NODES.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [
+    "run/ci/ctest/p3002_real_nodes.json"
+  ],
+  "outputs_missing": [],
+  "platform_registered": "linux",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-12T04:43:42Z",
+  "stderr_tail": "",
+  "stdout_tail": "[deep_ci_driver] ctest-target: ctest -R ^p3002_real_nodes$ --output-on-failure\nTest project /workspace/Astro CS Database/run/ci/build-gcc-release\n    Start 102: p3002_real_nodes\n1/1 Test #102: p3002_real_nodes .................   Passed    0.07 sec\n\n100% tests passed, 0 tests failed out of 1\n\nTotal Test time (real) =   0.08 sec\n{\"driver\": \"deep_ci_driver.py\", \"subcommand\": \"ctest-target\", \"target\": \"p3002_real_nodes\", \"build_dir\": \"run/ci/build-gcc-release\", \"verdict\": \"PASS\"}\n",
+  "timed_out": false,
+  "timeout_seconds": 900,
+  "verdict": "PASS",
+  "waivable": false
+}

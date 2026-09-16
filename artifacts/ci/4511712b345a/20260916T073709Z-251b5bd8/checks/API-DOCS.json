@@ -1,0 +1,50 @@
+{
+  "command": [
+    "python3",
+    "tools/check_api_docs.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": [
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/CON-FULL-INTEGRATION.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/CON-SCIENCE-UNITS.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/CON-TEST-CONTRACTS.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/CON-TRACEABILITY.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/DOC-INDEX.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/ENG-CONSTRAINTS.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/LOG-CONTRACT-SELFCHECK.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/TESTKIT-LIST.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/TRACEABILITY-MATRIX.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/VERSION-NAMESPACES.json",
+      "artifacts/ci/c44adc085593/20260916T073527Z-9e86c763/checks/WORKSPACE-ADOPTION.json"
+    ]
+  },
+  "duration_seconds": 6.809,
+  "exit_code": 0,
+  "finished_utc": "2026-09-16T07:37:17Z",
+  "heavy": false,
+  "id": "API-DOCS",
+  "log": "logs/API-DOCS.log",
+  "log_zst": "logs/API-DOCS.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "mutates_workspace=false 的检查修改了工作区",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:37:10Z",
+  "stderr_tail": "",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "FAIL(dirty)",
+  "waivable": false
+}

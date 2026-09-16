@@ -1,0 +1,39 @@
+{
+  "command": [
+    "python3",
+    "tools/testkit/check_testkit.py",
+    "--list"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.051,
+  "exit_code": 0,
+  "finished_utc": "2026-09-16T07:37:17Z",
+  "heavy": false,
+  "id": "TESTKIT-LIST",
+  "log": "logs/TESTKIT-LIST.log",
+  "log_zst": "logs/TESTKIT-LIST.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:37:16Z",
+  "stderr_tail": "",
+  "stdout_tail": "TEST-TST001-FIXTURES-DEMO\tmodule:astrocs.conformance.noop\tfixtures\tpython3 tests/testkit/examples/fixture_hash.py {root}\nTEST-TST001-NEGATIVE-DEMO\tmodule:astrocs.conformance.noop\tnegative\tpython3 tests/testkit/examples/negative_bad_input.py\nTEST-TST001-ORACLE-DEMO\tmodule:astrocs.conformance.noop\toracle\tpython3 tests/testkit/examples/oracle_sum.py\nTEST-TST001-PERF-DEMO\tmodule:astrocs.conformance.noop\tperformance\tpython3 tests/testkit/examples/perf_linear.py\nTEST-TST001-PROPERTIES-DEMO\tmodule:astrocs.conformance.noop\tproperties\tpython3 tests/testkit/examples/property_invariant.py\nTEST-TST001-UNIT-DEMO\tmodule:astrocs.conformance.noop\tunit\tpython3 tests/testkit/examples/check_constant.py 4\nTESTKIT_PASS errors=0\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "PASS",
+  "waivable": true
+}

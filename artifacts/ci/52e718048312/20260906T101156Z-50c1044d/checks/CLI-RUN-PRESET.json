@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/check_cli_run_preset.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.027,
+  "exit_code": 1,
+  "finished_utc": "2026-09-06T10:12:04Z",
+  "heavy": false,
+  "id": "CLI-RUN-PRESET",
+  "log": "logs/CLI-RUN-PRESET.log",
+  "log_zst": "logs/CLI-RUN-PRESET.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令非零退出：1",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T10:12:04Z",
+  "stderr_tail": "",
+  "stdout_tail": "CLI-002_PRESET_VIOLATION:\n  no phases-list (preset) dispatch\n  missing session: p1_session_create\n  missing session: p2_session_create\n  missing session: p3_session_create\n  no artifact collection\n  no run manifest pattern\n  no hash-mismatch guard\n  no events-jsonl mode\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "FAIL",
+  "waivable": false
+}

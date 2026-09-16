@@ -1,0 +1,52 @@
+{
+  "changed_from": null,
+  "checks": [
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.942,
+      "exit_code": 0,
+      "id": "CTEST-REGISTRATION",
+      "log": "logs/CTEST-REGISTRATION.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": false
+    }
+  ],
+  "finished_utc": "2026-09-12T04:39:04Z",
+  "generated_by": "ci/run.py (V8-CI-002)",
+  "known_failures": {
+    "baseline_path": null,
+    "count_increased": [],
+    "enabled": false,
+    "expired": [],
+    "invalid": [],
+    "matched": [],
+    "new_failures": [],
+    "signature_changed": []
+  },
+  "profile": "fast",
+  "run_id": "20260912T043903Z-c1ddb7ba",
+  "schema_version": 1,
+  "selection": {
+    "changed_files_count": 0,
+    "mode": "explicit",
+    "selected_by": {
+      "CTEST-REGISTRATION": "explicit --check"
+    }
+  },
+  "source_sha": "71cdc28f7c9b40bafb3265da79b3e252ba06c075",
+  "started_utc": "2026-09-12T04:39:03Z",
+  "strict_workspace": true,
+  "summary": {
+    "fail": 0,
+    "fail_detail": {},
+    "known_fail": 0,
+    "pass": 1,
+    "skipped_waivable": 0,
+    "total": 1
+  },
+  "verdict": "PASS"
+}

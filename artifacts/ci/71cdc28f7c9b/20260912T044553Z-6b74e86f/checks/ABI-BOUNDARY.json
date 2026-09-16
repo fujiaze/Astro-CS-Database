@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/check_abi_boundary.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.03,
+  "exit_code": 0,
+  "finished_utc": "2026-09-12T04:45:54Z",
+  "heavy": false,
+  "id": "ABI-BOUNDARY",
+  "log": "logs/ABI-BOUNDARY.log",
+  "log_zst": "logs/ABI-BOUNDARY.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-12T04:45:54Z",
+  "stderr_tail": "",
+  "stdout_tail": "CPU-001_PASS: ABI 结构 11 个均带 size/version; 11 头无 STL/异常跨边界\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "PASS",
+  "waivable": false
+}

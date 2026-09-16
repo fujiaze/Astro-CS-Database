@@ -1,0 +1,136 @@
+{
+  "changed_from": null,
+  "checks": [
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.169,
+      "exit_code": 0,
+      "id": "CONTRACT-GRAPH",
+      "log": "logs/CONTRACT-GRAPH.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": false
+    },
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.043,
+      "exit_code": 0,
+      "id": "DATA-ARTIFACTS",
+      "log": "logs/DATA-ARTIFACTS.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": false
+    },
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.037,
+      "exit_code": 0,
+      "id": "CON-CONFIG-CONTRACTS",
+      "log": "logs/CON-CONFIG-CONTRACTS.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": false
+    },
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 18.149,
+      "exit_code": 0,
+      "id": "CON-API-CONTRACTS",
+      "log": "logs/CON-API-CONTRACTS.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": false
+    },
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.244,
+      "exit_code": 0,
+      "id": "CON-EXECUTION-CONTRACTS",
+      "log": "logs/CON-EXECUTION-CONTRACTS.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": false
+    },
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 0.047,
+      "exit_code": 0,
+      "id": "CON-TEST-CONTRACTS",
+      "log": "logs/CON-TEST-CONTRACTS.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": false
+    },
+    {
+      "dirty_checked": true,
+      "dirty_violations": [],
+      "duration_seconds": 1.45,
+      "exit_code": 0,
+      "id": "UT-CONTRACTS",
+      "log": "logs/UT-CONTRACTS.log",
+      "reason": null,
+      "signal": null,
+      "timed_out": false,
+      "verdict": "PASS",
+      "waivable": false
+    }
+  ],
+  "finished_utc": "2026-09-16T06:20:07Z",
+  "generated_by": "ci/run.py (V8-CI-002)",
+  "known_failures": {
+    "baseline_path": "/workspace/Astro CS Database/ci/known_failures.json",
+    "count_increased": [],
+    "enabled": true,
+    "expired": [],
+    "invalid": [],
+    "matched": [],
+    "new_failures": [],
+    "signature_changed": []
+  },
+  "profile": "fast",
+  "run_id": "20260916T061946Z-19b69582",
+  "schema_version": 1,
+  "selection": {
+    "changed_files_count": 0,
+    "mode": "explicit",
+    "selected_by": {
+      "CON-API-CONTRACTS": "explicit --check",
+      "CON-CONFIG-CONTRACTS": "explicit --check",
+      "CON-EXECUTION-CONTRACTS": "explicit --check",
+      "CON-TEST-CONTRACTS": "explicit --check",
+      "CONTRACT-GRAPH": "explicit --check",
+      "DATA-ARTIFACTS": "explicit --check",
+      "UT-CONTRACTS": "explicit --check"
+    }
+  },
+  "source_sha": "2c328348304d033aecfa81faf79d1c6cd802b30a",
+  "started_utc": "2026-09-16T06:19:46Z",
+  "strict_workspace": true,
+  "summary": {
+    "fail": 0,
+    "fail_detail": {},
+    "known_fail": 0,
+    "pass": 7,
+    "skipped_waivable": 0,
+    "total": 7
+  },
+  "verdict": "PASS"
+}

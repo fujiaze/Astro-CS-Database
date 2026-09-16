@@ -1,0 +1,49 @@
+{
+  "command": [
+    "python3",
+    "tools/v6/check_v6_runtime_closure.py",
+    "closure",
+    "--json-out",
+    "run/v6/runtime-closure/closure.json",
+    "--oracle-out",
+    "run/v6/runtime-closure/oracle.json",
+    "--mutations-out",
+    "run/v6/runtime-closure/mutations.json"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.844,
+  "exit_code": 0,
+  "finished_utc": "2026-09-16T07:40:56Z",
+  "heavy": false,
+  "id": "V6-RUNTIME-CLOSURE",
+  "log": "logs/V6-RUNTIME-CLOSURE.log",
+  "log_zst": "logs/V6-RUNTIME-CLOSURE.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [
+    "run/v6/runtime-closure/closure.json",
+    "run/v6/runtime-closure/oracle.json",
+    "run/v6/runtime-closure/mutations.json"
+  ],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:40:55Z",
+  "stderr_tail": "",
+  "stdout_tail": "[PASS] oracle_all_rules rc=0\n[PASS] budget_selftest rc=0\n[PASS] mutation_driver rc=0\n",
+  "timed_out": false,
+  "timeout_seconds": 900,
+  "verdict": "PASS",
+  "waivable": false
+}

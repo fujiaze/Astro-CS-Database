@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/check_legacy_exit.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.071,
+  "exit_code": 0,
+  "finished_utc": "2026-09-06T10:11:57Z",
+  "heavy": false,
+  "id": "ACR-DORMANT",
+  "log": "logs/ACR-DORMANT.log",
+  "log_zst": "logs/ACR-DORMANT.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T10:11:57Z",
+  "stderr_tail": "",
+  "stdout_tail": "LEGACY_EXIT_PASS: 旧路径无生产符号/CMake/文档入口, 源码保留; ACR dormant 隔离\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "PASS",
+  "waivable": false
+}

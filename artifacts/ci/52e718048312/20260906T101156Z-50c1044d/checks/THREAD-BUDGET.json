@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tools/arch/check_thread_budget.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.249,
+  "exit_code": 1,
+  "finished_utc": "2026-09-06T10:12:05Z",
+  "heavy": false,
+  "id": "THREAD-BUDGET",
+  "log": "logs/THREAD-BUDGET.log",
+  "log_zst": "logs/THREAD-BUDGET.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "命令非零退出：1",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T10:12:05Z",
+  "stderr_tail": "",
+  "stdout_tail": "THREAD_BUDGET_CHECK_FAIL (1):\n  lib/core/src/executor.cpp:18: 未登记线程创建 std::thread: //     scheduler 不再自建 std::thread 池（RT-004 消灭 per-run 池）。\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "FAIL",
+  "waivable": false
+}

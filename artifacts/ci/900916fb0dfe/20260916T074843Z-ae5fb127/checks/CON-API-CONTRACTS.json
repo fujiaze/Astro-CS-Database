@@ -1,0 +1,40 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/contracts/check_api_contracts.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": [
+      "reports/PROJECT-GOVERNANCE-01/root-scan/_tools/p0_rerun.py"
+    ]
+  },
+  "duration_seconds": 16.037,
+  "exit_code": 0,
+  "finished_utc": "2026-09-16T07:49:11Z",
+  "heavy": false,
+  "id": "CON-API-CONTRACTS",
+  "log": "logs/CON-API-CONTRACTS.log",
+  "log_zst": "logs/CON-API-CONTRACTS.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "mutates_workspace=false 的检查修改了工作区",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:48:55Z",
+  "stderr_tail": "",
+  "stdout_tail": "{\n  \"tool\": \"check_api_contracts\",\n  \"status\": \"PASS\",\n  \"rows\": 382,\n  \"ast_symbols\": 585,\n  \"findings\": [],\n  \"passed\": true,\n  \"coverage\": {\n    \"compared_rows\": 382,\n    \"basis\": \"normalized-text + arity vs extract_cpp_api.py header measurement\"\n  }\n}\n",
+  "timed_out": false,
+  "timeout_seconds": 120,
+  "verdict": "FAIL(dirty)",
+  "waivable": false
+}

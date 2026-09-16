@@ -1,0 +1,45 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/io",
+    "-t",
+    "tests/io"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 2.19,
+  "exit_code": 0,
+  "finished_utc": "2026-09-06T17:00:30Z",
+  "heavy": false,
+  "id": "UT-IO",
+  "log": "logs/UT-IO.log",
+  "log_zst": "logs/UT-IO.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-06T17:00:28Z",
+  "stderr_tail": "WARNING: VerifyWarning: Found a SIMPLE card but its format doesn't respect the FITS Standard [astropy.io.fits.hdu.hdulist]\n...........................................\n----------------------------------------------------------------------\nRan 43 tests in 2.010s\n\nOK\n",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 300,
+  "verdict": "PASS",
+  "waivable": false
+}

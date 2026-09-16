@@ -1,0 +1,40 @@
+{
+  "command": [
+    "python3",
+    "ci/verify_workspace_adoption.py",
+    "--repo-root-from-git",
+    "--preserve-dirty"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.089,
+  "exit_code": 0,
+  "finished_utc": "2026-09-12T04:46:39Z",
+  "heavy": false,
+  "id": "WORKSPACE-ADOPTION",
+  "log": "logs/WORKSPACE-ADOPTION.log",
+  "log_zst": "logs/WORKSPACE-ADOPTION.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-12T04:46:39Z",
+  "stderr_tail": "",
+  "stdout_tail": "[PASS] 仓库根: /workspace/Astro CS Database\n[PASS] 证据文件存在: evidence/v8_1_ci_control/adoption/PREEXISTING_CHANGES.md\n[PASS] 证据文件存在: evidence/v8_1_ci_control/adoption/REMOTE_RELATION.json\n[PASS] PREEXISTING_CHANGES.md 含关键字段: V81-ADOPT-002\n[PASS] PREEXISTING_CHANGES.md 含关键字段: SA-ADOPT-31\n[PASS] PREEXISTING_CHANGES.md 含关键字段: dist/audit/AstroCS_V6_1_AUDIT_20260902T042239Z_faad602da555.zip\n[PASS] REMOTE_RELATION.json 可解析为 JSON object\n[PASS] REMOTE_RELATION.json 字符串字段齐备 (11 项)\n[PASS] REMOTE_RELATION.json 整数字段齐备 (3 项)\n[PASS] HEAD == main == origin/main == 71cdc28f7c9b40bafb3265da79b3e252ba06c075\n[PASS] 实测 ahead/behind = 0/0\n[PASS] REMOTE_RELATION.ahead 与实测一致 (0)\n[PASS] REMOTE_RELATION.behind 与实测一致 (0)\n[PASS] REMOTE_RELATION.head_sha=a4fdee3f446d… 是当前 HEAD 祖先（记录时点合法）\n[PASS] REMOTE_RELATION.local_main_sha=a4fdee3f446d… 是当前 HEAD 祖先（记录时点合法）\n[PASS] REMOTE_RELATION.origin_main_sha=a4fdee3f446d… 是当前 HEAD 祖先（记录时点合法）\n[PASS] REMOTE_RELATION SHA 字段全部为当前 HEAD 祖先\n[PASS] relation = SYNCED\n\nRESULT: PASS\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "PASS",
+  "waivable": true
+}

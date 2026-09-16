@@ -1,0 +1,45 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/version",
+    "-t",
+    "tests/version"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 3.015,
+  "exit_code": 0,
+  "finished_utc": "2026-09-12T09:36:19Z",
+  "heavy": false,
+  "id": "UT-VERSION",
+  "log": "logs/UT-VERSION.log",
+  "log_zst": "logs/UT-VERSION.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-12T09:36:16Z",
+  "stderr_tail": "...................../workspace/Astro CS Database/tests/version/test_version_consistency.py:45: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/Astro CS Database/contracts/schemas/version.schema.json' mode='r' encoding='utf-8'>\n  schema = json.load(open(os.path.join(REPO, \"contracts\", \"schemas\", \"version.schema.json\"), encoding=\"utf-8\"))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n..../workspace/Astro CS Database/tests/version/test_version_consistency.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpku7kbrou/docs/FORGED.md' mode='w' encoding='utf-8'>\n  open(forged, \"w\", encoding=\"utf-8\").write(\"发布版本: 1.2.3 正式版\\n\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/Astro CS Database/tests/version/test_version_consistency.py:85: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpku7kbrou/docs/OK.md' mode='w' encoding='utf-8'>\n  open(ok_doc, \"w\", encoding=\"utf-8\").write(f\"当前版本 {cur}\\n\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n.\n----------------------------------------------------------------------\nRan 26 tests in 2.943s\n\nOK\n",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 300,
+  "verdict": "PASS",
+  "waivable": false
+}

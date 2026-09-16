@@ -1,0 +1,38 @@
+{
+  "command": [
+    "python3",
+    "tests/cpu/baseline/run_provider_oracle_checks.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 2.025,
+  "exit_code": 0,
+  "finished_utc": "2026-09-13T21:35:28Z",
+  "heavy": false,
+  "id": "UT-CPU-BASELINE",
+  "log": "logs/UT-CPU-BASELINE.log",
+  "log_zst": "logs/UT-CPU-BASELINE.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "linux",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-13T21:35:26Z",
+  "stderr_tail": "",
+  "stdout_tail": "repo=/workspace/Astro CS Database hw_cpus=16\n$ g++ -std=c++17 -O2 -DNDEBUG -Wall -Wextra -Wpedantic -I/workspace/Astro CS Database/include -I/workspace/Astro CS Database/providers/cpu/baseline/include -I/workspace/Astro CS Database/providers/cpu/common/include /workspace/Astro CS Database/tests/cpu/baseline/provider_kernel_oracle_main.cpp /workspace/Astro CS Database/providers/cpu/baseline/src/baseline_provider.cpp /workspace/Astro CS Database/providers/cpu/common/src/capability_detect.c -o /tmp/cpu002_oracle/provider_oracle -lpthread\n  exit=0\n$ /tmp/cpu002_oracle/provider_oracle\n  exit=0\n  stdout: 43295f84 433cd759 4302ff41 43b7cb92 436b3b44 42fb123a 43b4c83a 434b7bb3\nDET OK\nACQ 1 4\nOP driz_norm\nIN0 40bbd70a 413051ec 3fd33333 41547ae1 417fd70a 3f000000 41848f5c 40451eb8\nIN1 41855c29 418fd70a 400d70a4 4197ae14 40c4cccd 3fc51eb8 414a6666 4068f5c3\nOUTA 3eb44a54 3f1ce73a 3f3f2197 3f334edb 40266666 3ea63bd8 3fa7aa32 3f589d89\nOUTB 3eb44a54 3f1ce73a 3f3f2197 3f334edb 40266666 3ea63bd8 3fa7aa32 3f589d89\nDET OK\nACQ 1 4\nOP spmv\nIN0 4194147b 41907ae1 4193999a 3f23d70a 4196f5c3 412947ae\nIN1 00000000 3f800000 40000000 40400000 00000000 3f800000\nIN2 00000000 00000000 3f800000 40000000 40400000 40400000 40800000 40a00000 40c00000\nIN3 3e3851ec 4193eb85 3e4ccccd 410d47ae\nOUTA 00000000 40553c37 43a6f6f6 406c28f7 00000000 40b4d6a1 405961e6 43439fcb\nOUTB 00000000 40553c37 43a6f6f6 406c28f7 00000000 40b4d6a1 405961e6 43439fcb\nDET OK\nACQ 1 4\nOP residual\nIN0 41963d71 40d0f5c3 4143d70a 405b851f 418b0a3d 41387ae1 3f6b851f 41163d71\nIN1 4126147b 40afae14 41000000 3f4a3d71 411f0a3d 418ecccd 414ae148 419c6666\nOUTA 41066667 3f851ebc 4087ae14 4028f5c3 40ee147a c0ca3d72 c13c28f6 c1228f5b\nOUTB 41066667 3f851ebc 4087ae14 4028f5c3 40ee147a c0ca3d72 c13c28f6 c1228f5b\nDET OK\nACQ 1 4\nOP weight_upd\nIN0 406f5c29 41140000 3e75c28f 417970a4 40da3d71 41668f5c 41351eb8 4177851f\nOUTA 406f5c29 41140000 3e800000 417970a4 40da3d71 41668f5c 41351eb8 4177851f\nOUTB 406f5c29 41140000 3e800000 417970a4 40da3d71 41668f5c 41351eb8 4177851f\nDET OK\nACQ 1 4\nOP rejection\nIN0 413fae14 4162147b 40eb851f 40a3851f 4182b852 4197c28f 411f5c29 417deb85 40ceb852 400d70a4 4087ae14 413970a4 400147ae 41971eb8 41166666 41230a3d 40228f5c 4198b852 40d70a3d 4175999a 41935c29 414170a4 4105c28f 41763d71\nIN1 3fd47ae1 40efae14 4143d70a 4096b852 3fee147b 41986666 4158f5c3 4153ae14 419ab852 4162147b 417d70a4 4156e148 418e3d71 40bb3333 40eccccd 418a7ae1 4112e148 40d0f5c3 4150a3d7 405b851f 40833333 40cd1eb8 418dc28f 4192cccd\nOUTA 00000000 00000000 00000000 00000000 3f800000 3f800000 00000000 3f800000\nOUTB 00000000 00000000 00000000 00000000 3f800000 3f800000 00000000 3f800000\nDET OK\nACQ 1 4\nOP integration\nIN0 4183ae14 416ee148 414f5c29 40adc28f 41891eb8 41587ae1 40c8f5c3 4199d70a 4136b852 4191ae14 41951eb8 4197999a 416a8f5c 404d70a4 410eb852 41955c29 40e0a3d7 4045c28f 413ae148 40dbd70a 3fbae148 403e147b 409ae148 3fa7ae14\nIN1 3fc00000 407e147b 4155c28f 419e0000 41873333 41335c29 41751eb8 405e147b 416b3333 40aa8f5c 40d70a3d 4135999a 410570a4 410bae14 4090a3d7 419228f6 4148a3d7 413cf5c3 4193d70a 41530a3d 400147ae 41986666 409d70a4 41955c29\nOUTA 411c3620 411225f1 41556207 41152d49 41738279 40c1ea33 40cf39c1 412b2909\nOUTB 411c3620 411225f1 41556207 41152d49 41738279 40c1ea33 40cf39c1 412b2909\nDET OK\nACQ 1 4\nOP hips\nIN0 3f47ae14 418beb85 40d70a3d 41426666 418a6666 4122b852 418e6666 418d0a3d 4112e148 40ea8f5c 3e75c28f 40e3851f\nOUTA 3f47ae14 411228f6 418beb85 4141ae14 4110a3d7 4136f5c2 415d47ae 4150b851\nOUTB 3f47ae14 411228f6 418beb85 4141ae14 4110a3d7 4136f5c2 415d47ae 4150b851\nDET OK\nACQ 1 4\nORACLE_RUNNER_DONE alloc_balance=0\n\nCPU-002 ORACLE PASS (12 kernels oracle f64-rel 2e-4, determinism budget1vs4 bitwise, worker 1/N observations)\n",
+  "timed_out": false,
+  "timeout_seconds": 600,
+  "verdict": "PASS",
+  "waivable": false
+}

@@ -1,0 +1,42 @@
+{
+  "command": [
+    "python3",
+    "tools/quality/check_root_cleanliness.py",
+    "--json-out",
+    "run/ci/root-cleanliness/root_cleanliness.json"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.038,
+  "exit_code": 0,
+  "finished_utc": "2026-09-16T07:52:11Z",
+  "heavy": false,
+  "id": "CHK-ROOT-CLEAN",
+  "log": "logs/CHK-ROOT-CLEAN.log",
+  "log_zst": "logs/CHK-ROOT-CLEAN.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [
+    "run/ci/root-cleanliness/root_cleanliness.json"
+  ],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:52:11Z",
+  "stderr_tail": "",
+  "stdout_tail": "{\n  \"check\": \"CHK-ROOT-CLEAN\",\n  \"verdict\": \"PASS\",\n  \"root\": \"/workspace/Astro CS Database\",\n  \"manifest\": \"/workspace/Astro CS Database/ci/root_manifest.json\",\n  \"generated_at\": \"2026-09-16T15:52:11+08:00\",\n  \"counts\": {\n    \"top_level_entries\": 56,\n    \"allowed\": 34,\n    \"implicit\": 1,\n    \"registered_pending_owner\": 17,\n    \"tolerated_ignored\": 4,\n    \"violations\": 0\n  },\n  \"violations\": [],\n  \"registered_pending_owner\": [\n    {\n      \"path\": \"AstroCS.wiki\",\n      \"class\": \"F1\",\n      \"owner_task\": \"owner\",\n      \"note\": \"0 字节空目录；evidence/refactor 记「缺 .gitmodules 的普通目录」\"\n    },\n    {\n      \"path\": \"CS\",\n      \"class\": \"F1\",\n      \"owner_task\": \"owner\",\n      \"note\": \"0 字节空目录，疑未加引号路径残留；来源无法完全确证，待裁决\"\n    },\n    {\n      \"path\": \"FATDUCK_ACCESS.md\",\n      \"class\": \"F2\",\n      \"owner_task\": \"ROOT-004\",\n      \"note\": \"凭据引用说明（禁读密钥内容），核对后定去留\"\n    },\n    {\n      \"path\": \"HANDOVER.md\",\n      \"class\": \"F2\",\n      \"owner_task\": \"DOC-001\",\n      \"note\": \"GAP-001/019，引用已删控制包路径\"\n    },\n    {\n      \"path\": \"VERSION\",\n      \"class\": \"F2\",\n      \"owner_task\": \"GOV-001\",\n      \"note\": \"Alpha 前版本信息（GAP-017）；ROOT-001 裁决段：不属本控制包，登记进下一轮工程包\"\n    },\n    {\n      \"path\": \"VISUAL_CHECK_README.md\",\n      \"class\": \"F2\",\n      \"owner_task\": \"ROOT-004\",\n      \"note\": \"核对后定去留\"\n    },\n    {\n      \"path\": \"cli\",\n      \"class\": \"F2\",\n      \"owner_task\": \"ARCH-001\",\n      \"note\": \"§7 要求 CLI 归 lib/infrastructure/cli/（GAP-003）\"\n    },\n    {\n      \"path\": \"modules\",\n      \"class\": \"F2\",\n      \"owner_task\": \"MOD-001\",\n      \"note\": \"§7 无 modules/（GAP-008）\"\n    },\n    {\n      \"path\": \"p10-files.patch\",\n      \"class\": \"F1\",\n      \"owner_task\": \"owner\",\n      \"note\": \"P10 批次本地改动补丁；本地保留\"\n    },\n    {\n      \"path\": \"p11-files.patch\",\n      \"class\": \"F1\",\n      \"owner_task\": \"owner\",\n      \"note\": \"P11 批次本地改动补丁；本地保留\"\n    },\n    {\n      \"path\": \"p15a-files.patch\",\n      \"class\": \"F1\",\n      \"owner_task\": \"owner\",\n      \"note\": \"P15a 批次本地改动补丁；本地保留\"\n    },\n    {\n      \"path\": \"p8-files.patch\",\n      \"class\": \"F1\",\n      \"owner_task\": \"owner\",\n      \"note\": \"P8 批次本地改动补丁；本地保留，建议 .gitignore 登记\"\n    },\n    {\n      \"path\": \"p9-files.patch\",\n      \"class\": \"F1\",\n      \"owner_task\": \"owner\",\n      \"note\": \"P9 批次本地改动补丁；本地保留\"\n    },\n    {\n      \"path\": \"providers\",\n      \"class\": \"F2\",\n      \"owner_task\": \"CPU-001\",\n      \"note\": \"§7 无 providers/（GAP-015）\"\n    },\n    {\n      \"path\": \"runtime\",\n      \"class\": \"F2\",\n      \"owner_task\": \"RT-001\",\n      \"note\": \"§7 无 runtime/（GAP-014）\"\n    },\n    {\n      \"path\": \"worktrees\",\n      \"class\": \"F1\",\n      \"owner_task\": \"owner\",\n      \"note\": \"0 字节空目录；AGENTS §5 禁 worktree，疑历史残留\"\n    },\n    {\n      \"path\": \"问题扫描\",\n      \"class\": \"F2\",\n      \"owner_task\": \"ROOT-004\",\n      \"note\": \"旧基线 bug 清单，按最新权威订正；ROOT-001 明令不处置\"\n    }\n  ],\n  \"tolerated_ignored\": [\n    {\n      \"path\": \"BASS DR3\",\n      \"reason\": \"gitignored_local_dir\",\n      \"detail\": \"被 .gitignore 覆盖的本地目录，记容忍并上报（非白名单扩展）\"\n    },\n    {\n      \"path\": \"GaiaDR3\",\n      \"reason\": \"gitignored_local_dir\",\n      \"detail\": \"被 .gitignore 覆盖的本地目录，记容忍并上报（非白名单扩展）\"\n    },\n    {\n      \"path\": \"GaiaDR3SP\",\n      \"reason\": \"gitignored_local_dir\",\n      \"detail\": \"被 .gitignore 覆盖的本地目录，记容忍并上报（非白名单扩展）\"\n    },\n    {\n      \"path\": \"build\",\n      \"reason\": \"gitignored_local_dir\",\n      \"detail\": \"被 .gitignore 覆盖的本地目录，记容忍并上报（非白名单扩展）\"\n    }\n  ],\n  \"allowed_present\": [\n    \".clang-format\",\n    \".editorconfig\",\n    \".gitattributes\",\n    \".github\",\n    \".gitignore\",\n    \"AGENTS.md\",\n    \"ASTROCS_DESIGN.md\",\n    \"CMakeLists.txt\",\n    \"CMakePresets.json\",\n    \"CONTROL_PACK_SPEC.md\",\n    \"DEPENDENCIES.md\",\n    \"ENGINEERING_SPEC.md\",\n    \"README.md\",\n    \"artifacts\",\n    \"build.sh\",\n    \"ci\",\n    \"cmake\",\n    \"contracts\",\n    \"docs\",\n    \"engineering\",\n    \"include\",\n    \"lib\",\n    \"logs\",\n    \"memory.md\",\n    \"packaging\",\n    \"reports\",\n    \"run\",\n    \"scripts\",\n    \"testdata\",\n    \"tests\",\n    \"third_party\",\n    \"toolchain.ps1\",\n    \"tools\",\n    \"工程控制\"\n  ],\n  \"implicit_present\": [\n    \".git\"\n  ]\n}\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "PASS",
+  "waivable": false
+}

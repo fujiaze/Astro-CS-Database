@@ -1,0 +1,1 @@
+run_id,task_id,host,commit,phase,stage,stage_kind,wall_seconds,available_cpus,selected_workers,avg_equivalent_cores,max_active_threads,avg_cpu_gate,memory_peak_bytes,memory_slope_bytes_per_iteration,io_read_bytes,io_write_bytes,iowait_fraction,memory_bandwidth_fraction,verdict,diagnosis,evidence

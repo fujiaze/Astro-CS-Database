@@ -1,0 +1,47 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests/contracts",
+    "-t",
+    "tests/contracts"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": [
+      "reports/PROJECT-GOVERNANCE-01/root-scan/CONTINUATION.md"
+    ]
+  },
+  "duration_seconds": 1.46,
+  "exit_code": 1,
+  "finished_utc": "2026-09-16T07:40:41Z",
+  "heavy": false,
+  "id": "UT-CONTRACTS",
+  "log": "logs/UT-CONTRACTS.log",
+  "log_zst": "logs/UT-CONTRACTS.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "mutates_workspace=false 的检查修改了工作区",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:40:39Z",
+  "stderr_tail": "......................F....................................\n======================================================================\nFAIL: test_object_id_pattern_is_derived_from_object_name (test_unified_object_contract.TestDeclarationDriftGuard.test_object_id_pattern_is_derived_from_object_name)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/Astro CS Database/tests/contracts/test_unified_object_contract.py\", line 334, in test_object_id_pattern_is_derived_from_object_name\n    self.assertEqual(\"DATA-OBJ-%s-001\" % c[\"object_name\"].upper().replace(\"_\", \"-\"),\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                     c[\"object_data_id\"])\n                     ^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'DATA-OBJ-PSFSW-ROBUST-WEIGHT-001' != 'DATA-OBJ-PSFWSW-ROBUST-WEIGHT-001'\n- DATA-OBJ-PSFSW-ROBUST-WEIGHT-001\n+ DATA-OBJ-PSFWSW-ROBUST-WEIGHT-001\n?             +\n\n\n----------------------------------------------------------------------\nRan 59 tests in 1.381s\n\nFAILED (failures=1)\n",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 300,
+  "verdict": "FAIL(dirty)",
+  "waivable": false
+}

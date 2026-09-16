@@ -1,0 +1,44 @@
+{
+  "command": [
+    "python3",
+    "ci/verify_toolchain.py",
+    "--policy",
+    "ci/toolchain.policy.json",
+    "--actual",
+    "ci/toolchain.lock.json",
+    "--scope",
+    "agent-host"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": []
+  },
+  "duration_seconds": 0.034,
+  "exit_code": 0,
+  "finished_utc": "2026-09-16T07:38:59Z",
+  "heavy": false,
+  "id": "TOOLCHAIN-VERIFY",
+  "log": "logs/TOOLCHAIN-VERIFY.log",
+  "log_zst": "logs/TOOLCHAIN-VERIFY.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": null,
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:38:59Z",
+  "stderr_tail": "",
+  "stdout_tail": "[PASS] lock file parses as JSON\n[PASS] lock is a JSON object\n[PASS] lock schema_version == 2\n[PASS] lock scope == agent-host\n[PASS] policy file parses as JSON\n[PASS] policy.agent_host.require_exact_hosted_versions == false\n[PASS] lock.hosted_ci_versions_required == false (matches policy)\n[PASS] policy.agent_host.host_reprovisioning == false\n[PASS] lock.host_reprovisioning == false (matches policy)\n[PASS] policy.agent_host.acr == false\n[PASS] lock.acr == false (matches policy)\n[PASS] lock.missing_tools is a list\n[PASS] cmake: measured version non-empty and non-placeholder ('3.31.6')\n[PASS] cmake: version_line matches measured regex 'cmake version (\\\\d+\\\\.\\\\d+\\\\.\\\\d+)'\n[PASS] cmake: regex-extracted version '3.31.6' == lock version '3.31.6'\n[PASS] python: measured version non-empty and non-placeholder ('3.13.5')\n[PASS] python: version_line matches measured regex '^Python (\\\\d+\\\\.\\\\d+\\\\.\\\\d+)$'\n[PASS] python: regex-extracted version '3.13.5' == lock version '3.13.5'\n[PASS] git: measured version non-empty and non-placeholder ('2.47.3')\n[PASS] git: version_line matches measured regex '^git version (\\\\d+(?:\\\\.\\\\d+)+)'\n[PASS] git: regex-extracted version '2.47.3' == lock version '2.47.3'\n[PASS] lock carries full 12-tool inventory (got 12)\n[PASS] cmake: present=true not in missing_tools\n[PASS] cmake: present=true has measured version and path\n[PASS] cmake: version_line regex matches and equals version\n[PASS] python: present=true not in missing_tools\n[PASS] python: present=true has measured version and path\n[PASS] python: version_line regex matches and equals version\n[PASS] git: present=true not in missing_tools\n[PASS] git: present=true has measured version and path\n[PASS] git: version_line regex matches and equals version\n[PASS] gcc: present=true not in missing_tools\n[PASS] gcc: present=true has measured version and path\n[PASS] gcc: version_line regex matches and equals version\n[PASS] gxx: present=true not in missing_tools\n[PASS] gxx: present=true has measured version and path\n[PASS] gxx: version_line regex matches and equals version\n[PASS] clang: present=true not in missing_tools\n[PASS] clang: present=true has measured version and path\n[PASS] clang: version_line regex matches and equals version\n[PASS] clang++: present=true not in missing_tools\n[PASS] clang++: present=true has measured version and path\n[PASS] clang++: version_line regex matches and equals version\n[PASS] ninja: present=true not in missing_tools\n[PASS] ninja: present=true has measured version and path\n[PASS] ninja: version_line regex matches and equals version\n[PASS] make: present=true not in missing_tools\n[PASS] make: present=true has measured version and path\n[PASS] make: version_line regex matches and equals version\n[PASS] ccache: present=false recorded in missing_tools\n[PASS] ccache: present=false has null version/path (no fabricated data)\n[PASS] zstd: present=true not in missing_tools\n[PASS] zstd: present=true has measured version and path\n[PASS] zstd: version_line regex matches and equals version\n[PASS] pytest: present=true not in missing_tools\n[PASS] pytest: present=true has measured version and path\n[PASS] pytest: version_line regex matches and equals version\n[PASS] no duplicate logical tool names in lock\n[PASS] no hosted CI cmake value copied into host inventory\n[PASS] lock.cmake_presets_found is a non-empty list\n\nchecks=60 failed=0\n",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "PASS",
+  "waivable": false
+}

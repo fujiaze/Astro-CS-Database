@@ -1,0 +1,40 @@
+{
+  "command": [
+    "python3",
+    "tools/check_api_docs.py"
+  ],
+  "dirty": {
+    "checked": true,
+    "violations": [
+      "reports/PROJECT-GOVERNANCE-01/root-scan/shards/C_ALG_IMPL_a.md"
+    ]
+  },
+  "duration_seconds": 6.768,
+  "exit_code": 0,
+  "finished_utc": "2026-09-16T07:35:35Z",
+  "heavy": false,
+  "id": "API-DOCS",
+  "log": "logs/API-DOCS.log",
+  "log_zst": "logs/API-DOCS.log.zst",
+  "mutates_workspace": false,
+  "outputs_expected": [],
+  "outputs_missing": [],
+  "platform_registered": "any",
+  "platform_runtime": "linux",
+  "prerequisite": {
+    "checked": true,
+    "ok": true,
+    "reason": null
+  },
+  "reason": "mutates_workspace=false 的检查修改了工作区",
+  "requires_monitor": false,
+  "schema_version": 1,
+  "signal": null,
+  "started_utc": "2026-09-16T07:35:28Z",
+  "stderr_tail": "",
+  "stdout_tail": "",
+  "timed_out": false,
+  "timeout_seconds": 60,
+  "verdict": "FAIL(dirty)",
+  "waivable": false
+}
