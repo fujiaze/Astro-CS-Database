@@ -1,0 +1,324 @@
+[
+ {
+  "shard": "A_SCI_DEF_P0",
+  "n": 15,
+  "first": "M1a-A-001",
+  "last": "M7-A-002",
+  "cats": [
+   "A_SCI_DEF"
+  ],
+  "pris": [
+   "P0"
+  ]
+ },
+ {
+  "shard": "A_SCI_DEF_P1a",
+  "n": 38,
+  "first": "M1a-A-004",
+  "last": "M7-A-119",
+  "cats": [
+   "A_SCI_DEF"
+  ],
+  "pris": [
+   "P1"
+  ]
+ },
+ {
+  "shard": "A_SCI_DEF_P1b",
+  "n": 38,
+  "first": "M7-A-120",
+  "last": "W2-N-10",
+  "cats": [
+   "A_SCI_DEF"
+  ],
+  "pris": [
+   "P1"
+  ]
+ },
+ {
+  "shard": "A_SCI_DEF_P2",
+  "n": 36,
+  "first": "M3-A-007",
+  "last": "W2-N-15",
+  "cats": [
+   "A_SCI_DEF"
+  ],
+  "pris": [
+   "P2"
+  ]
+ },
+ {
+  "shard": "B_STD_MISMATCH_ALL",
+  "n": 25,
+  "first": "M1a-B-001",
+  "last": "M8a-B-001",
+  "cats": [
+   "B_STD_MISMATCH"
+  ],
+  "pris": [
+   "P0",
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "shard": "C_ALG_IMPL_a",
+  "n": 35,
+  "first": "V10-N-01",
+  "last": "V10-N-08",
+  "cats": [
+   "C_ALG_IMPL"
+  ],
+  "pris": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "shard": "C_ALG_IMPL_b",
+  "n": 34,
+  "first": "V10-N-09",
+  "last": "V7-N-10",
+  "cats": [
+   "C_ALG_IMPL"
+  ],
+  "pris": [
+   "P2",
+   "P?"
+  ]
+ },
+ {
+  "shard": "C_DOC_CODE_GAP_P0",
+  "n": 18,
+  "first": "M1a-C-001",
+  "last": "M7-C-001",
+  "cats": [
+   "C_DOC_CODE_GAP"
+  ],
+  "pris": [
+   "P0"
+  ]
+ },
+ {
+  "shard": "C_DOC_CODE_GAP_P1a",
+  "n": 32,
+  "first": "M1a-C-005",
+  "last": "M4-C-05",
+  "cats": [
+   "C_DOC_CODE_GAP"
+  ],
+  "pris": [
+   "P1"
+  ]
+ },
+ {
+  "shard": "C_DOC_CODE_GAP_P1b",
+  "n": 32,
+  "first": "M4-C-06",
+  "last": "V2-N-04",
+  "cats": [
+   "C_DOC_CODE_GAP"
+  ],
+  "pris": [
+   "P1"
+  ]
+ },
+ {
+  "shard": "C_DOC_CODE_GAP_P2",
+  "n": 24,
+  "first": "M2a-C-13",
+  "last": "V5-N-01",
+  "cats": [
+   "C_DOC_CODE_GAP"
+  ],
+  "pris": [
+   "P2"
+  ]
+ },
+ {
+  "shard": "D_COMMENT_P1",
+  "n": 32,
+  "first": "L28b-D-001",
+  "last": "W5-N-06",
+  "cats": [
+   "D_COMMENT"
+  ],
+  "pris": [
+   "P1"
+  ]
+ },
+ {
+  "shard": "D_COMMENT_P2",
+  "n": 35,
+  "first": "L28b-D-004",
+  "last": "W1-N-13",
+  "cats": [
+   "D_COMMENT"
+  ],
+  "pris": [
+   "P2"
+  ]
+ },
+ {
+  "shard": "E_TRACE_BREAK_P0P1",
+  "n": 32,
+  "first": "M3-E-001",
+  "last": "M9-E-1",
+  "cats": [
+   "E_TRACE_BREAK"
+  ],
+  "pris": [
+   "P0",
+   "P1"
+  ]
+ },
+ {
+  "shard": "E_TRACE_P2_J_FS",
+  "n": 27,
+  "first": "L28e-E-004",
+  "last": "W4-R2-08",
+  "cats": [
+   "E_TRACE_BREAK",
+   "J_FS_PUBLISH"
+  ],
+  "pris": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "shard": "F_TEST_GAP_P0",
+  "n": 15,
+  "first": "FD-F-003",
+  "last": "M9-F-1",
+  "cats": [
+   "F_TEST_GAP"
+  ],
+  "pris": [
+   "P0"
+  ]
+ },
+ {
+  "shard": "F_TEST_GAP_P1",
+  "n": 46,
+  "first": "FD-F-001",
+  "last": "V15-N-16",
+  "cats": [
+   "F_TEST_GAP"
+  ],
+  "pris": [
+   "P1"
+  ]
+ },
+ {
+  "shard": "F_TEST_GAP_P2",
+  "n": 17,
+  "first": "M1a-F-006",
+  "last": "W1-N-12",
+  "cats": [
+   "F_TEST_GAP"
+  ],
+  "pris": [
+   "P2"
+  ]
+ },
+ {
+  "shard": "G_GOV_GATE_P0",
+  "n": 28,
+  "first": "M3b-G-01",
+  "last": "V9-N-17",
+  "cats": [
+   "G_GOV_GATE"
+  ],
+  "pris": [
+   "P0"
+  ]
+ },
+ {
+  "shard": "G_GOV_GATE_P1a",
+  "n": 31,
+  "first": "FD-G-001",
+  "last": "M5b-G-19",
+  "cats": [
+   "G_GOV_GATE"
+  ],
+  "pris": [
+   "P1"
+  ]
+ },
+ {
+  "shard": "G_GOV_GATE_P1b",
+  "n": 31,
+  "first": "M5b-G-20",
+  "last": "V11-N-10",
+  "cats": [
+   "G_GOV_GATE"
+  ],
+  "pris": [
+   "P1"
+  ]
+ },
+ {
+  "shard": "G_GOV_GATE_P1c",
+  "n": 31,
+  "first": "V13-N-01",
+  "last": "V19-N-07",
+  "cats": [
+   "G_GOV_GATE"
+  ],
+  "pris": [
+   "P1"
+  ]
+ },
+ {
+  "shard": "G_GOV_GATE_P1d",
+  "n": 31,
+  "first": "V19-N-08",
+  "last": "W5-N-09",
+  "cats": [
+   "G_GOV_GATE"
+  ],
+  "pris": [
+   "P1"
+  ]
+ },
+ {
+  "shard": "G_GOV_GATE_P2",
+  "n": 29,
+  "first": "FD-G-003",
+  "last": "W5-N-15",
+  "cats": [
+   "G_GOV_GATE"
+  ],
+  "pris": [
+   "P2"
+  ]
+ },
+ {
+  "shard": "H_NUMERIC_ALL",
+  "n": 29,
+  "first": "M2a-H-1",
+  "last": "V2-N-07",
+  "cats": [
+   "H_NUMERIC"
+  ],
+  "pris": [
+   "P0",
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "shard": "I_DOC_HYGIENE_ALL",
+  "n": 44,
+  "first": "FD-I-001",
+  "last": "M8a-I-007",
+  "cats": [
+   "I_DOC_HYGIENE"
+  ],
+  "pris": [
+   "P1",
+   "P2"
+  ]
+ }
+]

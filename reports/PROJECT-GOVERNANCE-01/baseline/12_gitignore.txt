@@ -1,0 +1,133 @@
+### CMD: cat .gitignore
+# 第三方源码与数据库（参考/适配用，不入仓库）
+siril-1.4.3/
+GaiaDR3/
+GaiaDR3SP/
+
+# BASS DR3 备用测试数据集（用户数据区，原地保留不入仓库——2026-09-09 收紧：索引/坐标/压缩产物全部 gitignore）
+BASS DR3/
+BASS DR3/logs/
+BASS DR3/index.csv
+BASS DR3/coords.csv
+
+# IDE 配置
+.trae/
+.vscode/
+.idea/
+
+# 日志与编译产物
+logs/
+run/*
+!run/.gitkeep
+output/
+build/
+Release/
+Debug/
+*.o
+*.obj
+*.dll
+*.exe
+*.lib
+*.a
+*.so
+*.pdb
+*.ipdb
+*.iobj
+*.exp
+*.ilk
+
+# 归档目录（GOV-002 起归档文件须受 Git 跟踪）
+archive/
+!docs/archive/
+!engineering/control/archive/
+
+# 测试数据与图像 (testdata 目录内容全部忽略，仅 index.json 入仓库)
+testdata/*
+!testdata/index.json
+test_data/
+test_output/
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.tif
+*.tiff
+*.fits
+*.fit
+*.fts
+*.xisf
+*.xpsd
+*.hiss
+*.hcsd
+*.npy
+*.npz
+
+# 工作产物目录 (含已求解 FITS 等大文件)
+engineering_v1.2/evidence/P10-006/calibrated/
+engineering_v1.2/evidence/P11-002/work/
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# Python 缓存与构建
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+# dist/ 目录默认排除, 但发布包文本文件 (VERSION/SHA256SUMS/README/verify.bat/config) 例外
+# 二进制文件 (*.exe/*.dll) 不提交, 只通过 SHA256SUMS.txt 记录 hash
+dist/*
+!dist/AstroCS-CLI-v1/
+dist/AstroCS-CLI-v1/*
+!dist/AstroCS-CLI-v1/VERSION.txt
+!dist/AstroCS-CLI-v1/SHA256SUMS.txt
+!dist/AstroCS-CLI-v1/README.txt
+!dist/AstroCS-CLI-v1/verify.bat
+!dist/AstroCS-CLI-v1/config/
+!dist/AstroCS-CLI-v1/config/**
+.pytest_cache/
+.ninja_log
+meson-private/
+
+# 导出包与上下文压缩包
+AstroCS_Database_Context.zip
+*_Context.zip
+repo.bundle
+
+# 编译输出日志
+compile_out.txt
+compile_out*.txt
+link_err.txt
+
+# 自治 Agent 临时解压目录与压缩包
+.astrocs_agent_bootstrap/
+AstroCS_Autonomous_Agent_Pack*.zip
+AstroCS_Next_Phase_Development_Pack*.zip
+AstroCS_CLI_Core_Development_Pack*.zip
+_new_pack_v*/
+
+# v1.1 审计包
+audit/*.rar
+
+# 审核包（放在项目根目录，本地保留，不 commit）
+*_review_bundle.zip
+
+# 根目录整洁约束 (2026-09-09 整理): 运行产物/测试残留/资料克隆一律不入库
+astrocs_run_*.json
+/Testing/
+/out/
+/AstroCS.wiki/
+resource_samples.csv
+resource_summary.json
+worker_balance.csv
+# FIX-E2E B1-A8: MON-002 allocation report 亦属运行产物(此前漏登记 → CI dirty);
+# 运行产物应只落 output_dir, 此处仅作根目录整洁兜底(与 resource_* 同策略)。
+alloc_report.json
+alloc_samples.csv
+/graph/
+
+/dist/audit/

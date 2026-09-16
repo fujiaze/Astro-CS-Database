@@ -1,0 +1,839 @@
+[
+ {
+  "id": "M1a-A-001",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M1a_L01_L02.md",
+  "line": 6,
+  "nlines": 18,
+  "title": "SCI 前向 WCS 公式把像素域 SIP 加在天球域中间坐标上，量纲不闭合，且同节自称\"与实现一致\"",
+  "heading": "## M1a-A-001 SCI 前向 WCS 公式把像素域 SIP 加在天球域中间坐标上，量纲不闭合，且同节自称\"与实现一致\""
+ },
+ {
+  "id": "M1a-A-002",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M1a_L01_L02.md",
+  "line": 24,
+  "nlines": 18,
+  "title": "天测精度门只约束内部拟合 RMS 域；仓内唯一外部闭环实测超 ALG F1 门 1.8× 且判 PASS、无偏差登记",
+  "heading": "## M1a-A-002 天测精度门只约束内部拟合 RMS 域；仓内唯一外部闭环实测超 ALG F1 门 1.8× 且判 PASS、无偏差登记"
+ },
+ {
+  "id": "M1a-A-003",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M1a_L01_L02.md",
+  "line": 42,
+  "nlines": 25,
+  "title": "CAR/AIT 投影丢失 Paper II fiducial 偏移（CRVAL2 不进映射）且 Y=−θ 手性与 CD 合成北南镜像",
+  "heading": "## M1a-A-003 CAR/AIT 投影丢失 Paper II fiducial 偏移（CRVAL2 不进映射）且 Y=−θ 手性与 CD 合成北南镜像"
+ },
+ {
+  "id": "M2a-A-1",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M2a_L04_L10.md",
+  "line": 6,
+  "nlines": 23,
+  "title": "SCI-DRZ-001 的 pixfrac 归一化与其自身\"常数场流量守恒\"不变量互斥：常数面亮度 B0 的输出为 B0/pixfrac²",
+  "heading": "## M2a-A-1 SCI-DRZ-001 的 pixfrac 归一化与其自身\"常数场流量守恒\"不变量互斥：常数面亮度 B0 的输出为 B0/pixfrac²"
+ },
+ {
+  "id": "M2b-A-01",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M2b_L03_L15.md",
+  "line": 7,
+  "nlines": 44,
+  "title": "HiPS 写入口对 nside 零校验：非 2 的幂与 order>29 均被接受并静默产出错产品；lib/hips 的正确校验在生产调用点被绕过",
+  "heading": "### M2b-A-01 HiPS 写入口对 nside 零校验：非 2 的幂与 order>29 均被接受并静默产出错产品；lib/hips 的正确校验在生产调用点被绕过"
+ },
+ {
+  "id": "M2b-A-02",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M2b_L03_L15.md",
+  "line": 51,
+  "nlines": 33,
+  "title": "tile 几何合同三源互斥：层级 tile NSIDE 卡（代码 2^(k+9) vs ALG 2^k vs IO_002 2^(K+9)）与 hips_order 入参域四层互斥，自产 hierarchy tile 不被自家输入合同接受",
+  "heading": "### M2b-A-02 tile 几何合同三源互斥：层级 tile NSIDE 卡（代码 2^(k+9) vs ALG 2^k vs IO_002 2^(K+9)）与 hips_order 入参域四层互斥，自产 hierarchy tile 不被自家输入合同接受"
+ },
+ {
+  "id": "M3-A-001",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M3_L05_L07.md",
+  "line": 9,
+  "nlines": 35,
+  "title": "SNR 无唯一定义：进入生产权重的「SNR」实为已退休的 PSF 拟合质量比",
+  "heading": "### M3-A-001 SNR 无唯一定义：进入生产权重的「SNR」实为已退休的 PSF 拟合质量比"
+ },
+ {
+  "id": "M3-A-002",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M3_L05_L07.md",
+  "line": 44,
+  "nlines": 34,
+  "title": "SCI-CW 把 `weight_mode=2` 像素权重定义为 `support × snr²`，与实现、另两份冻结合同及其自身条款互斥",
+  "heading": "### M3-A-002 SCI-CW 把 `weight_mode=2` 像素权重定义为 `support × snr²`，与实现、另两份冻结合同及其自身条款互斥"
+ },
+ {
+  "id": "M3b-A-01",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M3b_L06.md",
+  "line": 5,
+  "nlines": 20,
+  "title": "生产检测拟合内核实为椭圆高斯，SCI 冻结基线却写 Moffat4 且禁止高斯主路径",
+  "heading": "### M3b-A-01 生产检测拟合内核实为椭圆高斯，SCI 冻结基线却写 Moffat4 且禁止高斯主路径"
+ },
+ {
+  "id": "M3b-A-02",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M3b_L06.md",
+  "line": 25,
+  "nlines": 19,
+  "title": "star_det flux 列实为峰值振幅/m00 两链不同量，合同却以流量名义登记",
+  "heading": "### M3b-A-02 star_det flux 列实为峰值振幅/m00 两链不同量，合同却以流量名义登记"
+ },
+ {
+  "id": "M3b-A-03",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M3b_L06.md",
+  "line": 44,
+  "nlines": 20,
+  "title": "每像元截尾残差被合同命名为 flux_uncertainty，DISP-PSF-005 自认无协方差",
+  "heading": "### M3b-A-03 每像元截尾残差被合同命名为 flux_uncertainty，DISP-PSF-005 自认无协方差"
+ },
+ {
+  "id": "M4-A-01",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M4_L08_L09.md",
+  "line": 5,
+  "nlines": 24,
+  "title": "N≤4 全拒像素被静默全接受为 UNDERDETERMINED，FROZEN SCI 未订正且零测试",
+  "heading": "### M4-A-01 N≤4 全拒像素被静默全接受为 UNDERDETERMINED，FROZEN SCI 未订正且零测试"
+ },
+ {
+  "id": "M4-A-02",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M4_L08_L09.md",
+  "line": 29,
+  "nlines": 23,
+  "title": "冻结 SCI 内 support reducer 两口径互斥：代码取 accepted 口径并有门，§5 公式未订正、旧 ALG 仍称现状=W>0",
+  "heading": "### M4-A-02 冻结 SCI 内 support reducer 两口径互斥：代码取 accepted 口径并有门，§5 公式未订正、旧 ALG 仍称现状=W>0"
+ },
+ {
+  "id": "M7-A-001",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M7_A_SCI_DEF_p0.md",
+  "line": 11,
+  "nlines": 28,
+  "title": "「科学权重」唯一性被三处不同对象宣称，且 SCI-UPM §5 两式在实现侧被证明不等价（Σ 域裁决 = 单 control 内跨帧）",
+  "heading": "## M7-A-001 「科学权重」唯一性被三处不同对象宣称，且 SCI-UPM §5 两式在实现侧被证明不等价（Σ 域裁决 = 单 control 内跨帧）"
+ },
+ {
+  "id": "M7-A-002",
+  "cat": "A_SCI_DEF",
+  "file": "问题扫描/findings/A_SCI_DEF/p0/M7_A_SCI_DEF_p0.md",
+  "line": 39,
+  "nlines": 12,
+  "title": "ALG 权威层把「ivar 缺失时回退 support」写成 weight_mode=2 的唯一语义（L21-001，维持 P0）",
+  "heading": "## M7-A-002 ALG 权威层把「ivar 缺失时回退 support」写成 weight_mode=2 的唯一语义（L21-001，维持 P0）"
+ },
+ {
+  "id": "M1a-B-001",
+  "cat": "B_STD_MISMATCH",
+  "file": "问题扫描/findings/B_STD_MISMATCH/p0/M1a_L01_L02.md",
+  "line": 3,
+  "nlines": 16,
+  "title": "注册表把 41×41/81×81 的 AP/BP 网格拟合登记为\"7×7 网格…SCI 层已显式冻结该口径\"并评severity低（M1a 加重事实，非叶子原述）",
+  "heading": "## M1a-B-001 注册表把 41×41/81×81 的 AP/BP 网格拟合登记为\"7×7 网格…SCI 层已显式冻结该口径\"并评severity低（M1a 加重事实，非叶子原述）"
+ },
+ {
+  "id": "M1a-B-002",
+  "cat": "B_STD_MISMATCH",
+  "file": "问题扫描/findings/B_STD_MISMATCH/p0/M1a_L01_L02.md",
+  "line": 19,
+  "nlines": 14,
+  "title": "Paper II 相关三行注册表判 CONFORMANT/偏差\"无\"，与 CAR/AIT 实质偏离及\"仅 TAN 受控\"现状互斥",
+  "heading": "## M1a-B-002 Paper II 相关三行注册表判 CONFORMANT/偏差\"无\"，与 CAR/AIT 实质偏离及\"仅 TAN 受控\"现状互斥"
+ },
+ {
+  "id": "M2a-B-1",
+  "cat": "B_STD_MISMATCH",
+  "file": "问题扫描/findings/B_STD_MISMATCH/p0/M2a_L04_L10.md",
+  "line": 6,
+  "nlines": 27,
+  "title": "星表位置历元：注册表条款面要求 J2016.0，产品面四处声称 J2000，模块零历元处理且无天测列可传播——CONFORMANT 判定与偏差登记双双失真",
+  "heading": "## M2a-B-1 星表位置历元：注册表条款面要求 J2016.0，产品面四处声称 J2000，模块零历元处理且无天测列可传播——CONFORMANT 判定与偏差登记双双失真"
+ },
+ {
+  "id": "M2b-B-01",
+  "cat": "B_STD_MISMATCH",
+  "file": "问题扫描/findings/B_STD_MISMATCH/p0/M2b_L03_L15.md",
+  "line": 10,
+  "nlines": 26,
+  "title": "HiPS tile 目录名写「商」、文件名写「余数」，与 IVOA §4.1 算式相反",
+  "heading": "### M2b-B-01 HiPS tile 目录名写「商」、文件名写「余数」，与 IVOA §4.1 算式相反"
+ },
+ {
+  "id": "M2b-B-02",
+  "cat": "B_STD_MISMATCH",
+  "file": "问题扫描/findings/B_STD_MISMATCH/p0/M2b_L03_L15.md",
+  "line": 36,
+  "nlines": 27,
+  "title": "Moc.fits 缺 MOC Table 3 强制键 ORDERING=NUNIQ / COORDSYS=C，注册表仍判 CONFORMANT",
+  "heading": "### M2b-B-02 Moc.fits 缺 MOC Table 3 强制键 ORDERING=NUNIQ / COORDSYS=C，注册表仍判 CONFORMANT"
+ },
+ {
+  "id": "M2b-B-03",
+  "cat": "B_STD_MISMATCH",
+  "file": "问题扫描/findings/B_STD_MISMATCH/p0/M2b_L03_L15.md",
+  "line": 63,
+  "nlines": 23,
+  "title": "hips_pixel_scale 写角秒，标准规定单位为度（相差 3600 倍）",
+  "heading": "### M2b-B-03 hips_pixel_scale 写角秒，标准规定单位为度（相差 3600 倍）"
+ },
+ {
+  "id": "M2b-B-04",
+  "cat": "B_STD_MISMATCH",
+  "file": "问题扫描/findings/B_STD_MISMATCH/p0/M2b_L03_L15.md",
+  "line": 86,
+  "nlines": 24,
+  "title": "HiPS 域条款锚整体错挂；properties 必需键集用自定 5 键替代标准 9 键；STD-F4 引用不存在的 obs_bandpass",
+  "heading": "### M2b-B-04 HiPS 域条款锚整体错挂；properties 必需键集用自定 5 键替代标准 9 键；STD-F4 引用不存在的 obs_bandpass"
+ },
+ {
+  "id": "M2b-B-07",
+  "cat": "B_STD_MISMATCH",
+  "file": "问题扫描/findings/B_STD_MISMATCH/p0/M2b_L03_L15.md",
+  "line": 110,
+  "nlines": 23,
+  "title": "「order ≤ 29」被写成 Górski 标准条款，代码实际无 order 上界且 npix 在 2^31 处静默回绕",
+  "heading": "### M2b-B-07 「order ≤ 29」被写成 Górski 标准条款，代码实际无 order 上界且 npix 在 2^31 处静默回绕"
+ },
+ {
+  "id": "M2b-B-09",
+  "cat": "B_STD_MISMATCH",
+  "file": "问题扫描/findings/B_STD_MISMATCH/p0/M2b_L03_L15.md",
+  "line": 133,
+  "nlines": 18,
+  "title": "交付 FITS 可恒带 CHECKSUM 全零占位卡（注释谎称「HDU checksum updated」），且 verify 的豁免设在**计算值**一侧，D.fits §6 行仍判 CONFORMANT",
+  "heading": "### M2b-B-09 交付 FITS 可恒带 CHECKSUM 全零占位卡（注释谎称「HDU checksum updated」），且 verify 的豁免设在**计算值**一侧，D.fits §6 行仍判 CONFORMANT"
+ },
+ {
+  "id": "M9-B-1",
+  "cat": "B_STD_MISMATCH",
+  "file": "问题扫描/findings/B_STD_MISMATCH/p0/M9_L24_L26.md",
+  "line": 5,
+  "nlines": 20,
+  "title": "SIP 前向 A/B/AP/BP 系数以「像素域」数值直写 FITS 标准键 A_i_j/B_i_j；同一数组在合同面有四处互斥单位；桥注释引用不存在的标准文献；并发修复批次已把该错误口径复制进新的写出面",
+  "heading": "## M9-B-1 SIP 前向 A/B/AP/BP 系数以「像素域」数值直写 FITS 标准键 A_i_j/B_i_j；同一数组在合同面有四处互斥单位；桥注释引用不存在的标准文献；并发修复批次已把该错误口径复制进新的写出面"
+ },
+ {
+  "id": "M1a-C-001",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M1a_L01_L02.md",
+  "line": 3,
+  "nlines": 26,
+  "title": "SIP 逆向冻结口径三方割裂（SCI/ALG 说 7×7、代码是 41×41 阶5 + 81×81 阶7）；SCI 冻结 1e-4 px 门在生产导出的 36 项一步逆上自证\"数学不可达\"，验收门实际钉在不可导出的迭代/APx 路径上",
+  "heading": "## M1a-C-001 SIP 逆向冻结口径三方割裂（SCI/ALG 说 7×7、代码是 41×41 阶5 + 81×81 阶7）；SCI 冻结 1e-4 px 门在生产导出的 36 项一步逆上自证\"数学不可达\"，验收门实际钉在不可导出的迭代/APx 路径上"
+ },
+ {
+  "id": "M1a-C-002",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M1a_L01_L02.md",
+  "line": 29,
+  "nlines": 18,
+  "title": "trans 线性奇异：SCI 承诺\"返回参数错误\"，实现仅 warn 并恒设 success=true，可回写冒称 TAN-SIP 的退化头",
+  "heading": "## M1a-C-002 trans 线性奇异：SCI 承诺\"返回参数错误\"，实现仅 warn 并恒设 success=true，可回写冒称 TAN-SIP 的退化头"
+ },
+ {
+  "id": "M1a-C-003",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M1a_L01_L02.md",
+  "line": 47,
+  "nlines": 20,
+  "title": "p1_op_wcs 自检以 0-based 数组下标喂 1-based 契约的 WcsTan；两条门与\"独立参考解\"共用同一原点 ⇒ 对原点平移零判别力；发布工件 p1_wcs.json 的 samples 无像素原点声明",
+  "heading": "## M1a-C-003 p1_op_wcs 自检以 0-based 数组下标喂 1-based 契约的 WcsTan；两条门与\"独立参考解\"共用同一原点 ⇒ 对原点平移零判别力；发布工件 p1_wcs.json 的 samples 无像素原点声明"
+ },
+ {
+  "id": "M1a-C-004",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M1a_L01_L02.md",
+  "line": 67,
+  "nlines": 17,
+  "title": "alpha 适用 FOV ≤ 20° 为冻结约束但全仓零强制点；三处合同对\"是否硬门\"互斥；超限/半球外像素静默留 NaN 仍计数发布",
+  "heading": "## M1a-C-004 alpha 适用 FOV ≤ 20° 为冻结约束但全仓零强制点；三处合同对\"是否硬门\"互斥；超限/半球外像素静默留 NaN 仍计数发布"
+ },
+ {
+  "id": "M2a-C-1",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M2a_L04_L10.md",
+  "line": 5,
+  "nlines": 22,
+  "title": "DLL 通道把 out_match_idx 截断为 matched_count 个元素，破坏\"坐标序 + −1 表示未匹配\"合同；部分未命中时行↔坐标映射不可恢复",
+  "heading": "## M2a-C-1 DLL 通道把 out_match_idx 截断为 matched_count 个元素，破坏\"坐标序 + −1 表示未匹配\"合同；部分未命中时行↔坐标映射不可恢复"
+ },
+ {
+  "id": "M2b-C-01",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M2b_L03_L15.md",
+  "line": 5,
+  "nlines": 31,
+  "title": "【部分修复】HiPS 生产写出仍为直写（无 staging/rename/fsync/COMPLETE），AIO 树内其它子系统已用原子原语而 HiPS writer 未采用；module_adapters 两处调用点注释仍称「AIO-00",
+  "heading": "### M2b-C-01【部分修复】HiPS 生产写出仍为直写（无 staging/rename/fsync/COMPLETE），AIO 树内其它子系统已用原子原语而 HiPS writer 未采用；module_adapters 两处调用点注释仍称「AIO-002 原子发布原语内建」"
+ },
+ {
+  "id": "M3-C-001",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M3_L05_L07.md",
+  "line": 7,
+  "nlines": 24,
+  "title": "SCI-PHOT 冻结的参考星数门（`|r_consistent|>=3`/`|r_inliers|>=2`）在实现中不存在：一颗星即可定标整帧",
+  "heading": "### M3-C-001 SCI-PHOT 冻结的参考星数门（`|r_consistent|>=3`/`|r_inliers|>=2`）在实现中不存在：一颗星即可定标整帧"
+ },
+ {
+  "id": "M3-C-002",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M3_L05_L07.md",
+  "line": 31,
+  "nlines": 28,
+  "title": "SCI-PHOT 的饱和/质量标志判据在接口与实现中都不存在，饱和星可进零点拟合",
+  "heading": "### M3-C-002 SCI-PHOT 的饱和/质量标志判据在接口与实现中都不存在，饱和星可进零点拟合"
+ },
+ {
+  "id": "M3-C-003",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M3_L05_L07.md",
+  "line": 59,
+  "nlines": 22,
+  "title": "冻结 SCI 的 `min_samples` 默认 5 与实现 64 相差 12.8 倍，ALG 径行「不改 SCI，以代码为准」= 权威层级倒置",
+  "heading": "### M3-C-003 冻结 SCI 的 `min_samples` 默认 5 与实现 64 相差 12.8 倍，ALG 径行「不改 SCI，以代码为准」= 权威层级倒置"
+ },
+ {
+  "id": "M3b-C-01",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M3b_L06.md",
+  "line": 3,
+  "nlines": 22,
+  "title": "生产 PSF 质心 ~0.5px 系统性偏差：已知未闭合的 BLOCKER 只活在归档层，规范层反宣称「无 0.5px 量化损失」",
+  "heading": "### M3b-C-01 生产 PSF 质心 ~0.5px 系统性偏差：已知未闭合的 BLOCKER 只活在归档层，规范层反宣称「无 0.5px 量化损失」"
+ },
+ {
+  "id": "M3b-C-02",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M3b_L06.md",
+  "line": 25,
+  "nlines": 24,
+  "title": "注册节点 star-psf 实装第三套未登记检测器；「唯一生产源」三处宣称被证伪（第三次同模式）",
+  "heading": "### M3b-C-02 注册节点 star-psf 实装第三套未登记检测器；「唯一生产源」三处宣称被证伪（第三次同模式）"
+ },
+ {
+  "id": "M4-C-01",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M4_L08_L09.md",
+  "line": 4,
+  "nlines": 19,
+  "title": "kcorr_lookup 把非均匀 pixfrac 网格当均匀插值：生产默认 0.8 列返回表外值，偏差 +1.5%/+2.1%",
+  "heading": "### M4-C-01 kcorr_lookup 把非均匀 pixfrac 网格当均匀插值：生产默认 0.8 列返回表外值，偏差 +1.5%/+2.1%"
+ },
+ {
+  "id": "M4-C-02",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M4_L08_L09.md",
+  "line": 23,
+  "nlines": 20,
+  "title": "SCI 冻结弱零锚 1e-3 在两条生产装配均为 0；ALG「同值生产装配」为不实陈述",
+  "heading": "### M4-C-02 SCI 冻结弱零锚 1e-3 在两条生产装配均为 0；ALG「同值生产装配」为不实陈述"
+ },
+ {
+  "id": "M4-C-03",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M4_L08_L09.md",
+  "line": 43,
+  "nlines": 29,
+  "title": "stage2 ivar tile 读失败逐像素静默换成 support 作权重：无开关、无计数；文档「显式 fallback 并计数」失实；节点链同场景 fail-closed 证系行为分叉",
+  "heading": "### M4-C-03 stage2 ivar tile 读失败逐像素静默换成 support 作权重：无开关、无计数；文档「显式 fallback 并计数」失实；节点链同场景 fail-closed 证系行为分叉"
+ },
+ {
+  "id": "M5b-C-01",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M5b_L12_L17.md",
+  "line": 3,
+  "nlines": 13,
+  "title": "API 合同表 422 行全部标 VERIFIED、396 行共用未定义占位 test_ids，门只比 4 列且自述\"真实校验由 AST-API 承担\"",
+  "heading": "### M5b-C-01 API 合同表 422 行全部标 VERIFIED、396 行共用未定义占位 test_ids，门只比 4 列且自述\"真实校验由 AST-API 承担\""
+ },
+ {
+  "id": "M5b-C-02",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M5b_L12_L17.md",
+  "line": 16,
+  "nlines": 16,
+  "title": "两平台交付同一 manifest：Windows 侧把 Linux 侧标 SKELETON 的两个平台库标为 IMPLEMENTED",
+  "heading": "### M5b-C-02 两平台交付同一 manifest：Windows 侧把 Linux 侧标 SKELETON 的两个平台库标为 IMPLEMENTED"
+ },
+ {
+  "id": "M6a-C-001",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M6a_L13_L14.md",
+  "line": 6,
+  "nlines": 25,
+  "title": "SCI-P3 冻结的 order_sel「读层级 leaf_nside=2^(order_sel+9)」在两条通道都不参与执行：order_sel 算完只写 provenance/metadata，采样读路径恒按 hips_order 定位",
+  "heading": "### M6a-C-001 SCI-P3 冻结的 order_sel「读层级 leaf_nside=2^(order_sel+9)」在两条通道都不参与执行：order_sel 算完只写 provenance/metadata，采样读路径恒按 hips_order 定位 tile，产品 ORDERSEL 因此记录的不是实际读取层级（来源 L14-005，注释+溯源侧定稿点）"
+ },
+ {
+  "id": "M7-C-001",
+  "cat": "C_DOC_CODE_GAP",
+  "file": "问题扫描/findings/C_DOC_CODE_GAP/p0/M7_C_DOC_CODE_GAP_p0.md",
+  "line": 5,
+  "nlines": 23,
+  "title": "采样器控制网格边长可配（1..64）而 UPM 把 grid=8/cell_side=64/tile_shift=9 编成常数，两侧无一致性门 ⇒ 校正场与采样点静默错位",
+  "heading": "## M7-C-001 采样器控制网格边长可配（1..64）而 UPM 把 grid=8/cell_side=64/tile_shift=9 编成常数，两侧无一致性门 ⇒ 校正场与采样点静默错位"
+ },
+ {
+  "id": "M3-E-001",
+  "cat": "E_TRACE_BREAK",
+  "file": "问题扫描/findings/E_TRACE_BREAK/p0/M3_L05_L07.md",
+  "line": 9,
+  "nlines": 25,
+  "title": "校准 / 测光 / 噪声三域的追溯行与合同尾注存在行级失真：VERIFIED 行的测试锚不覆盖被验门，合同尾注用非法测试 ID",
+  "heading": "### M3-E-001 校准 / 测光 / 噪声三域的追溯行与合同尾注存在行级失真：VERIFIED 行的测试锚不覆盖被验门，合同尾注用非法测试 ID"
+ },
+ {
+  "id": "M6b-E-001",
+  "cat": "E_TRACE_BREAK",
+  "file": "问题扫描/findings/E_TRACE_BREAK/p0/M6b_L16_L18.md",
+  "line": 8,
+  "nlines": 50,
+  "title": "追溯矩阵双头：权威明文是 SPEC JSON，但全部活动路由面（README-DOCS / DEVELOPER_GUIDE / API_STANDARD / 9 份 SCI 尾注 / DOCUMENT_INDEX / CI changed_",
+  "heading": "### M6b-E-001 追溯矩阵双头：权威明文是 SPEC JSON，但全部活动路由面（README-DOCS / DEVELOPER_GUIDE / API_STANDARD / 9 份 SCI 尾注 / DOCUMENT_INDEX / CI changed_paths）指向已被取代的旧 CSV，两表对同一 ID 的 TEST 证据 100% 互斥且无一道门比对"
+ },
+ {
+  "id": "FD-F-003",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/FD_windows_zero_test_green.md",
+  "line": 5,
+  "nlines": 14,
+  "title": "唯一跑 Windows C++ 单测的门连续 10 次\"0 用例 PASS\"，且空输出被 `EMPTY_OUTPUT_SILENCE_EXEMPT` 制度化为豁免",
+  "heading": "### FD-F-003 唯一跑 Windows C++ 单测的门连续 10 次\"0 用例 PASS\"，且空输出被 `EMPTY_OUTPUT_SILENCE_EXEMPT` 制度化为豁免"
+ },
+ {
+  "id": "M1a-F-001",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M1a_L01_L02.md",
+  "line": 3,
+  "nlines": 16,
+  "title": "CAR/AIT\"独立 Oracle\"与被测实现同源（解析式取自同一推导），错误口径被测试钉死为正确",
+  "heading": "## M1a-F-001 CAR/AIT\"独立 Oracle\"与被测实现同源（解析式取自同一推导），错误口径被测试钉死为正确"
+ },
+ {
+  "id": "M2a-F-1",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M2a_L04_L10.md",
+  "line": 5,
+  "nlines": 26,
+  "title": "SCI-DRZ-001 §11 的五个验证 Oracle 中三个所指测试文件从未注册进任何构建/CTest/CI 面，注册表还以其中未注册的一条作为 CONFORMANT 证据",
+  "heading": "## M2a-F-1 SCI-DRZ-001 §11 的五个验证 Oracle 中三个所指测试文件从未注册进任何构建/CTest/CI 面，注册表还以其中未注册的一条作为 CONFORMANT 证据"
+ },
+ {
+  "id": "M2b-F-01",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M2b_L03_L15.md",
+  "line": 7,
+  "nlines": 21,
+  "title": "D.healpix 判 CONFORMANT 所依的「astropy-healpix 百万点独立 oracle / 往返 ≤1e-12 deg」在仓内不可复现：生成器与数据缺位、测试未注册 ctest、现存容差与极区口径差约 10 个数量级",
+  "heading": "### M2b-F-01 D.healpix 判 CONFORMANT 所依的「astropy-healpix 百万点独立 oracle / 往返 ≤1e-12 deg」在仓内不可复现：生成器与数据缺位、测试未注册 ctest、现存容差与极区口径差约 10 个数量级"
+ },
+ {
+  "id": "M3-F-001",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M3_L05_L07.md",
+  "line": 4,
+  "nlines": 26,
+  "title": "SCI-NOISE §11/§15 承诺的「NumPy rtol 1e-9 复算」在仓库内不存在，唯一 Python 对拍面是容差带断言且可整类静默跳过",
+  "heading": "### M3-F-001 SCI-NOISE §11/§15 承诺的「NumPy rtol 1e-9 复算」在仓库内不存在，唯一 Python 对拍面是容差带断言且可整类静默跳过"
+ },
+ {
+  "id": "M3b-F-01",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M3b_L06.md",
+  "line": 3,
+  "nlines": 22,
+  "title": "新失效形态：质心验收门按「非生产初始化配置」定义判据，生产路径质心无门且脚本零登记",
+  "heading": "### M3b-F-01 新失效形态：质心验收门按「非生产初始化配置」定义判据，生产路径质心无门且脚本零登记"
+ },
+ {
+  "id": "M3b-F-02",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M3b_L06.md",
+  "line": 25,
+  "nlines": 19,
+  "title": "SCI-PSF-001 的 VERIFIED 声明全部证据不成立：§11 承诺的 scipy/curve_fit 复算不存在、追溯行指向无断言文件",
+  "heading": "### M3b-F-02 SCI-PSF-001 的 VERIFIED 声明全部证据不成立：§11 承诺的 scipy/curve_fit 复算不存在、追溯行指向无断言文件"
+ },
+ {
+  "id": "M3b-F-03",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M3b_L06.md",
+  "line": 44,
+  "nlines": 22,
+  "title": "冻结验收项在测试面零覆盖：SNR 谱段缺口按测试自身常数可判、空值守卫、永真虚警门（升 P0）",
+  "heading": "### M3b-F-03 冻结验收项在测试面零覆盖：SNR 谱段缺口按测试自身常数可判、空值守卫、永真虚警门（升 P0）"
+ },
+ {
+  "id": "M4-F-01",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M4_L08_L09.md",
+  "line": 4,
+  "nlines": 20,
+  "title": "UPM 硬门/持久化门/MC 标定门全部不挂产品构建，SCI「Oracle 全过」无运行时证据",
+  "heading": "### M4-F-01 UPM 硬门/持久化门/MC 标定门全部不挂产品构建，SCI「Oracle 全过」无运行时证据"
+ },
+ {
+  "id": "M4-F-02",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M4_L08_L09.md",
+  "line": 24,
+  "nlines": 16,
+  "title": "SCI 声称的 NumPy 独立 Huber-IRLS Oracle 真源不存在，「Python 参考 rtol 1e-9」为空头支票",
+  "heading": "### M4-F-02 SCI 声称的 NumPy 独立 Huber-IRLS Oracle 真源不存在，「Python 参考 rtol 1e-9」为空头支票"
+ },
+ {
+  "id": "M8-F-001",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M8_L22_L23.md",
+  "line": 6,
+  "nlines": 22,
+  "title": "`tests/abi` 四个验收脚本被 UT-ABI 以「0 用例」方式采集，该门的加载/注册/echo 三面永不失败；文档仍以「36/36 PASS」为验收证据",
+  "heading": "### M8-F-001 `tests/abi` 四个验收脚本被 UT-ABI 以「0 用例」方式采集，该门的加载/注册/echo 三面永不失败；文档仍以「36/36 PASS」为验收证据"
+ },
+ {
+  "id": "M8-F-002",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M8_L22_L23.md",
+  "line": 28,
+  "nlines": 20,
+  "title": "`tests/unit/io_ownership_test.cpp` 在 ctest 下**不可能失败**：唯一 CHECK 的失败计数不参与退出码，`main` 无条件 `return 0`（覆盖 L23-002 与 L23 §1 的旧措",
+  "heading": "### M8-F-002 `tests/unit/io_ownership_test.cpp` 在 ctest 下**不可能失败**：唯一 CHECK 的失败计数不参与退出码，`main` 无条件 `return 0`（覆盖 L23-002 与 L23 §1 的旧措辞）"
+ },
+ {
+  "id": "M8-F-003",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M8_L22_L23.md",
+  "line": 48,
+  "nlines": 17,
+  "title": "单入口安装树合同门（`tests/cli/test_cli_single_install.py`）在 CI 侧恒 SKIP：前置产物在根 `build/` 从不被任何 CI 步骤产出，且 install 失败被降级为 skip",
+  "heading": "### M8-F-003 单入口安装树合同门（`tests/cli/test_cli_single_install.py`）在 CI 侧恒 SKIP：前置产物在根 `build/` 从不被任何 CI 步骤产出，且 install 失败被降级为 skip"
+ },
+ {
+  "id": "M8-F-004",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M8_L22_L23.md",
+  "line": 65,
+  "nlines": 25,
+  "title": "被 STANDARDS_REGISTRY / TEST_MATRIX / TRACEABILITY 当作符合性证据的测试源从不在任何执行面出现；注册表判定器只验「路径存在」且自身既未注册也未挂账",
+  "heading": "### M8-F-004 被 STANDARDS_REGISTRY / TEST_MATRIX / TRACEABILITY 当作符合性证据的测试源从不在任何执行面出现；注册表判定器只验「路径存在」且自身既未注册也未挂账"
+ },
+ {
+  "id": "M9-F-1",
+  "cat": "F_TEST_GAP",
+  "file": "问题扫描/findings/F_TEST_GAP/p0/M9_L24_L26.md",
+  "line": 5,
+  "nlines": 36,
+  "title": "本域八个恶意输入回归 TU 从不进构建：它们恰是全部 M9 边界缺陷的唯一复现件，却被 docs 当符合性证据引用",
+  "heading": "## M9-F-1 本域八个恶意输入回归 TU 从不进构建：它们恰是全部 M9 边界缺陷的唯一复现件，却被 docs 当符合性证据引用"
+ },
+ {
+  "id": "M3b-G-01",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M3b_L06.md",
+  "line": 3,
+  "nlines": 21,
+  "title": "未闭合 BLOCKER（PSF-001 ~0.5px）只活在归档文档：规范限制层零提及、偏差登记层零条目、门禁层零登记",
+  "heading": "### M3b-G-01 未闭合 BLOCKER（PSF-001 ~0.5px）只活在归档文档：规范限制层零提及、偏差登记层零条目、门禁层零登记"
+ },
+ {
+  "id": "M5a-G-001",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M5a_L11_L17.md",
+  "line": 5,
+  "nlines": 26,
+  "title": "生产利用率门沿用 §18.2 已废止的 80%/75%/50%，宪章冻结的 85%/60% 无实现",
+  "heading": "### M5a-G-001 生产利用率门沿用 §18.2 已废止的 80%/75%/50%，宪章冻结的 85%/60% 无实现"
+ },
+ {
+  "id": "M5a-G-002",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M5a_L11_L17.md",
+  "line": 31,
+  "nlines": 31,
+  "title": "CPU 利用率门的分母是 1 核：85%/90% 实为 0.85/0.90 核下限，四处注释自述相反口径",
+  "heading": "### M5a-G-002 CPU 利用率门的分母是 1 核：85%/90% 实为 0.85/0.90 核下限，四处注释自述相反口径"
+ },
+ {
+  "id": "M5a-G-003",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M5a_L11_L17.md",
+  "line": 62,
+  "nlines": 26,
+  "title": "唯一逐字实现 §10.5 的门禁零应用点，L0 口径却称「缺失即 fail-closed」",
+  "heading": "### M5a-G-003 唯一逐字实现 §10.5 的门禁零应用点，L0 口径却称「缺失即 fail-closed」"
+ },
+ {
+  "id": "M5a-G-005",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M5a_L11_L17.md",
+  "line": 88,
+  "nlines": 23,
+  "title": "THREAD-BUDGET 机器门空转：扫描面、正则与行级豁免三重漏检并被单测固化",
+  "heading": "### M5a-G-005 THREAD-BUDGET 机器门空转：扫描面、正则与行级豁免三重漏检并被单测固化"
+ },
+ {
+  "id": "M5b-G-01",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M5b_L12_L17.md",
+  "line": 9,
+  "nlines": 31,
+  "title": "CLI 命令树与协议门禁全部打在 COMPATIBILITY 二进制上；二进制缺失时门静默零检查",
+  "heading": "### M5b-G-01 CLI 命令树与协议门禁全部打在 COMPATIBILITY 二进制上；二进制缺失时门静默零检查"
+ },
+ {
+  "id": "M5b-G-02",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M5b_L12_L17.md",
+  "line": 40,
+  "nlines": 23,
+  "title": "追溯门 fail-open：`tools/quality/check_traceability.py` 无条件 return 0；TRACEABILITY-CODE 默认读预发布快照",
+  "heading": "### M5b-G-02 追溯门 fail-open：`tools/quality/check_traceability.py` 无条件 return 0；TRACEABILITY-CODE 默认读预发布快照"
+ },
+ {
+  "id": "M5b-G-03",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M5b_L12_L17.md",
+  "line": 63,
+  "nlines": 21,
+  "title": "AST-API 门为同一头文件自反比对（恒真），参数数提取后弃用，且不读任何 API 文档",
+  "heading": "### M5b-G-03 AST-API 门为同一头文件自反比对（恒真），参数数提取后弃用，且不读任何 API 文档"
+ },
+ {
+  "id": "M5b-G-04",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M5b_L12_L17.md",
+  "line": 84,
+  "nlines": 31,
+  "title": "版本单源簇：交付清单/安装树合同/依赖锁/schema 并存 4 份手工版本副本，两道版本门的扫描面都不覆盖它们",
+  "heading": "### M5b-G-04 版本单源簇：交付清单/安装树合同/依赖锁/schema 并存 4 份手工版本副本，两道版本门的扫描面都不覆盖它们"
+ },
+ {
+  "id": "M5b-G-05",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M5b_L12_L17.md",
+  "line": 115,
+  "nlines": 20,
+  "title": "CON-BUILD-GRAPH 只做子串存在性检查：订正 BUILD_GRAPH.md 反而变红，产品构建面无任何机器校验",
+  "heading": "### M5b-G-05 CON-BUILD-GRAPH 只做子串存在性检查：订正 BUILD_GRAPH.md 反而变红，产品构建面无任何机器校验"
+ },
+ {
+  "id": "M5b-G-06",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M5b_L12_L17.md",
+  "line": 135,
+  "nlines": 28,
+  "title": "§18.4「只加载随产品签名清单发布的官方模块」在机器上无实现：产品不加载、hash 全 null、唯一闭环测试不进 CI",
+  "heading": "### M5b-G-06 §18.4「只加载随产品签名清单发布的官方模块」在机器上无实现：产品不加载、hash 全 null、唯一闭环测试不进 CI"
+ },
+ {
+  "id": "M6a-G-001",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M6a_L13_L14.md",
+  "line": 6,
+  "nlines": 37,
+  "title": "注释卫生门 CON-COMMENTS 是空壳机器门：宪章 §12.2/§12.3-10 要求的四类判据中三类无实现，唯一有实现的判据被「冻结」二字永久豁免、每文件至多报一条、扫描面只覆盖 lib 的一部分，却恒定自报 coverage=fu",
+  "heading": "### M6a-G-001 注释卫生门 CON-COMMENTS 是空壳机器门：宪章 §12.2/§12.3-10 要求的四类判据中三类无实现，唯一有实现的判据被「冻结」二字永久豁免、每文件至多报一条、扫描面只覆盖 lib 的一部分，却恒定自报 coverage=full/1.0 —— 注释质量没有任何机器防线（来源 L14-004，根因单条定稿）"
+ },
+ {
+  "id": "M6b-G-001",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M6b_L16_L18.md",
+  "line": 7,
+  "nlines": 37,
+  "title": "未经证据支撑的「已验证」声明（单一根因，四组实例）：八层矩阵在 TEST / EVIDENCE / SRC / 整行四个层面给出 VERIFIED，而门的结构只可能判「文件存在 + 符号 token 可见」",
+  "heading": "### M6b-G-001 未经证据支撑的「已验证」声明（单一根因，四组实例）：八层矩阵在 TEST / EVIDENCE / SRC / 整行四个层面给出 VERIFIED，而门的结构只可能判「文件存在 + 符号 token 可见」"
+ },
+ {
+  "id": "M6b-G-002",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M6b_L16_L18.md",
+  "line": 44,
+  "nlines": 34,
+  "title": "发布与完成状态在仓库内无单一事实源：四份 RELEASE_STATUS 并存、状态词三套、AGENTS.md 状态行被自家校验器判非法却被另一道门强制保留，且活动文档描述的执行面已被取代",
+  "heading": "### M6b-G-002 发布与完成状态在仓库内无单一事实源：四份 RELEASE_STATUS 并存、状态词三套、AGENTS.md 状态行被自家校验器判非法却被另一道门强制保留，且活动文档描述的执行面已被取代"
+ },
+ {
+  "id": "M6b-G-003",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M6b_L16_L18.md",
+  "line": 78,
+  "nlines": 22,
+  "title": "「本版实测」类无据证据：ACTIVE 文档以完成时宣称机器门 PASS 9/9 与 mismatches=[]，既无 SHA/命令/时间/日志指针，其所引检查器又根本不在 CI 注册表内",
+  "heading": "### M6b-G-003 「本版实测」类无据证据：ACTIVE 文档以完成时宣称机器门 PASS 9/9 与 mismatches=[]，既无 SHA/命令/时间/日志指针，其所引检查器又根本不在 CI 注册表内"
+ },
+ {
+  "id": "M7-G-001",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M7_G_GOV_GATE_p0.md",
+  "line": 7,
+  "nlines": 20,
+  "title": "「不可达验收门」家族汇总与升档判定：冻结门在自身冻结公式或 IEEE-754 下数学不可满足（第 1 类；第 2 类见 M7-G-105），而 §11/§15 与注册表声明其「Oracle 全过／CONFORMANT」",
+  "heading": "## M7-G-001 「不可达验收门」家族汇总与升档判定：冻结门在自身冻结公式或 IEEE-754 下数学不可满足（第 1 类；第 2 类见 M7-G-105），而 §11/§15 与注册表声明其「Oracle 全过／CONFORMANT」"
+ },
+ {
+  "id": "M8a-G-001",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/M8a_L25_L27.md",
+  "line": 11,
+  "nlines": 54,
+  "title": "依赖与许可登记面三处失真：GPL 组件进入产品链接闭包、五处登记面零覆盖、派生代码挂自著作权 MIT",
+  "heading": "## M8a-G-001 依赖与许可登记面三处失真：GPL 组件进入产品链接闭包、五处登记面零覆盖、派生代码挂自著作权 MIT"
+ },
+ {
+  "id": "V11-N-01",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V11.md",
+  "line": 6,
+  "nlines": 11,
+  "title": "`AioHipsSnrPoint` 镜像落后 C 头两字段 ⇒ 越界读 24 字节，且**交付 HiPS SNR 目录第 2/3 条记录是邻堆垃圾**",
+  "heading": "### V11-N-01 `AioHipsSnrPoint` 镜像落后 C 头两字段 ⇒ 越界读 24 字节，且**交付 HiPS SNR 目录第 2/3 条记录是邻堆垃圾**"
+ },
+ {
+  "id": "V11-N-04",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V11-b.md",
+  "line": 3,
+  "nlines": 8,
+  "title": "（P0）ctypes **少传第 9 个参数** `out_status` ⇒ C 侧把未初始化栈槽当指针，**既往垃圾地址写、又据其垃圾值决定\"哪些星算成功\"**；现行 gate2 PSF 证据产生于这条不匹配 ABI 之后",
+  "heading": "### V11-N-04（P0）ctypes **少传第 9 个参数** `out_status` ⇒ C 侧把未初始化栈槽当指针，**既往垃圾地址写、又据其垃圾值决定\"哪些星算成功\"**；现行 gate2 PSF 证据产生于这条不匹配 ABI 之后"
+ },
+ {
+  "id": "V11-N-05",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V11-b.md",
+  "line": 11,
+  "nlines": 8,
+  "title": "（P0，结构性）ABI 协商与自检的 6 个合同函数**生产面零实现、零调用**，唯一实现住在**测试自己的探针副本**里 ⇒ 那道门在自证",
+  "heading": "### V11-N-05（P0，结构性）ABI 协商与自检的 6 个合同函数**生产面零实现、零调用**，唯一实现住在**测试自己的探针副本**里 ⇒ 那道门在自证"
+ },
+ {
+  "id": "V13-N-03",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V13.md",
+  "line": 5,
+  "nlines": 9,
+  "title": "审计状态铸造面：713/713 行机械铸 `VERIFIED` 并铸 `findings_p0..3=0`、7 个 `*_ok=PASS`，而这份 inventory **被打进审核包（交付面）**",
+  "heading": "### V13-N-03 审计状态铸造面：713/713 行机械铸 `VERIFIED` 并铸 `findings_p0..3=0`、7 个 `*_ok=PASS`，而这份 inventory **被打进审核包（交付面）**"
+ },
+ {
+  "id": "V18-N-12",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V18.md",
+  "line": 3,
+  "nlines": 6,
+  "title": "（P0·**生产者与守卫同处的最纯形态**）`tests/backend/test_isa_avx.py`：自己写 CSV（decision 列还是硬编码字面量）→ 读回自己刚写的文件 → 循环体只有 `continue` → 末行 `as",
+  "heading": "### V18-N-12（P0·**生产者与守卫同处的最纯形态**）`tests/backend/test_isa_avx.py`：自己写 CSV（decision 列还是硬编码字面量）→ 读回自己刚写的文件 → 循环体只有 `continue` → 末行 `assertTrue(True)`"
+ },
+ {
+  "id": "V19-N-01",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V19.md",
+  "line": 6,
+  "nlines": 7,
+  "title": "（P0·**新机制：不是漏登记，是登记不了**）CI-REG-002 闭包面只认 `add_test(NAME …)` ⇒ **40 处 `gtest_discover_tests` 目标在两个登记面双零覆盖**，而 **C4 使唯一涉及它",
+  "heading": "### V19-N-01（P0·**新机制：不是漏登记，是登记不了**）CI-REG-002 闭包面只认 `add_test(NAME …)` ⇒ **40 处 `gtest_discover_tests` 目标在两个登记面双零覆盖**，而 **C4 使唯一涉及它们的门\"无法\"补声明**"
+ },
+ {
+  "id": "V2-N-01",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V2.md",
+  "line": 3,
+  "nlines": 11,
+  "title": "IpvParams 公共 C 结构体布局已改而仓内 ctypes 镜像未同步 ⇒ 72 字节越界写 + 字段全错位",
+  "heading": "### V2-N-01 IpvParams 公共 C 结构体布局已改而仓内 ctypes 镜像未同步 ⇒ 72 字节越界写 + 字段全错位"
+ },
+ {
+  "id": "V2-N-08",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V2-D2.md",
+  "line": 3,
+  "nlines": 8,
+  "title": "FAST 模式的裁决前提已被同批另一提交推翻 ⇒ `psf.max_stars` 静默决定交付的 SNR／极限星等，且无任何 parity 锁",
+  "heading": "### V2-N-08 FAST 模式的裁决前提已被同批另一提交推翻 ⇒ `psf.max_stars` 静默决定交付的 SNR／极限星等，且无任何 parity 锁"
+ },
+ {
+  "id": "V9-N-07",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V9-b.md",
+  "line": 3,
+  "nlines": 8,
+  "title": "（P0·机制①最纯形态）**5 道非豁免门在 CI 里只跑 `--selftest`**：真实判定模式需要交付物参数，而 CI 从不传 ⇒ 交付二进制 ISA 泄漏 / 生产可达性 / 生产图一致性**在 CI 中没有实体门**",
+  "heading": "### V9-N-07（P0·机制①最纯形态）**5 道非豁免门在 CI 里只跑 `--selftest`**：真实判定模式需要交付物参数，而 CI 从不传 ⇒ 交付二进制 ISA 泄漏 / 生产可达性 / 生产图一致性**在 CI 中没有实体门**"
+ },
+ {
+  "id": "V9-N-16",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V9-c.md",
+  "line": 3,
+  "nlines": 5,
+  "title": "（P0·机制①最纯 + 机制③合成）`TRACEABILITY` 门**末行无条件 `return 0`**，且登记 `mutates_workspace=true` **改写受跟踪文件** `reports/v19r2/evidence/",
+  "heading": "### V9-N-16（P0·机制①最纯 + 机制③合成）`TRACEABILITY` 门**末行无条件 `return 0`**，且登记 `mutates_workspace=true` **改写受跟踪文件** `reports/v19r2/evidence/quality/traceability_check.json`"
+ },
+ {
+  "id": "V9-N-17",
+  "cat": "G_GOV_GATE",
+  "file": "问题扫描/findings/G_GOV_GATE/p0/V9-c.md",
+  "line": 8,
+  "nlines": 6,
+  "title": "（P0·**本时段最需要隔壁立刻看到的一条**）新建门 `CTEST-P1DRZ-TASKSET-INVARIANCE` 的被测脚本**在 `taskset` 缺失时 `exit 0` 自宣跳过** ⇒ 该锁在缺 `taskset` 的机器",
+  "heading": "### V9-N-17（P0·**本时段最需要隔壁立刻看到的一条**）新建门 `CTEST-P1DRZ-TASKSET-INVARIANCE` 的被测脚本**在 `taskset` 缺失时 `exit 0` 自宣跳过** ⇒ 该锁在缺 `taskset` 的机器上**永不红**"
+ },
+ {
+  "id": "M2a-H-1",
+  "cat": "H_NUMERIC",
+  "file": "问题扫描/findings/H_NUMERIC/p0/M2a_L04_L10.md",
+  "line": 5,
+  "nlines": 24,
+  "title": "precision_mode 不参与累加域选择：核心 IR 通道恒 FP32 累加，config 要 FP64 也拿不到 float64 累积（违宪章 §5.3）",
+  "heading": "## M2a-H-1 precision_mode 不参与累加域选择：核心 IR 通道恒 FP32 累加，config 要 FP64 也拿不到 float64 累积（违宪章 §5.3）"
+ },
+ {
+  "id": "M2a-H-2",
+  "cat": "H_NUMERIC",
+  "file": "问题扫描/findings/H_NUMERIC/p0/M2a_L04_L10.md",
+  "line": 29,
+  "nlines": 23,
+  "title": "variance≤0 的源像素被整颗丢弃（信号/覆盖/nContrib 一并丢失，无计数）：不确定度面被当 validity 掩膜，且该语义 SCI 未定义",
+  "heading": "## M2a-H-2 variance≤0 的源像素被整颗丢弃（信号/覆盖/nContrib 一并丢失，无计数）：不确定度面被当 validity 掩膜，且该语义 SCI 未定义"
+ },
+ {
+  "id": "M3b-H-01",
+  "cat": "H_NUMERIC",
+  "file": "问题扫描/findings/H_NUMERIC/p0/M3b_L06.md",
+  "line": 3,
+  "nlines": 21,
+  "title": "mad 列实为 RMSE 再乘 MAD→σ 系数 1.4826 充当残差 σ，排异门等效收紧",
+  "heading": "### M3b-H-01 mad 列实为 RMSE 再乘 MAD→σ 系数 1.4826 充当残差 σ，排异门等效收紧"
+ },
+ {
+  "id": "M9-H-1",
+  "cat": "H_NUMERIC",
+  "file": "问题扫描/findings/H_NUMERIC/p0/M9_L24_L26.md",
+  "line": 5,
+  "nlines": 25,
+  "title": "Gaia 模块 manifest 拼接：snprintf 返回「本应写入数」推进指针 + 转义函数无容量入参 → 512 字节栈缓冲越界写，且同一越界长度被回读进产品",
+  "heading": "## M9-H-1 Gaia 模块 manifest 拼接：snprintf 返回「本应写入数」推进指针 + 转义函数无容量入参 → 512 字节栈缓冲越界写，且同一越界长度被回读进产品"
+ },
+ {
+  "id": "M9-H-2",
+  "cat": "H_NUMERIC",
+  "file": "问题扫描/findings/H_NUMERIC/p0/M9_L24_L26.md",
+  "line": 30,
+  "nlines": 23,
+  "title": "XPSD 自报 spectrumCount 无任何上限即用作分配步长与每星 memcpy 长度 → 堆越界读 + 数百 MB 级 OOM 放大 + 污染下游测光输入",
+  "heading": "## M9-H-2 XPSD 自报 spectrumCount 无任何上限即用作分配步长与每星 memcpy 长度 → 堆越界读 + 数百 MB 级 OOM 放大 + 污染下游测光输入"
+ }
+]

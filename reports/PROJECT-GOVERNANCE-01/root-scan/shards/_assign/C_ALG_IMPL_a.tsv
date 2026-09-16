@@ -1,0 +1,36 @@
+ID	原类别	原优先级	producer	文件	行	标题	旧位置字段	旧证据字段	旧条款字段	fix_state	verified_state
+V10-N-01	C_ALG_IMPL	P1	V10	问题扫描/findings/C_ALG_IMPL/p1/V10.md	5	FITS **短读后仍 return true**：`img.pixels` 按实读量收缩、而 `width/height` 用头声明值 ⇒ drizzle 像素索引**越界读**				OPEN	
+V10-N-02	C_ALG_IMPL	P1	V10	问题扫描/findings/C_ALG_IMPL/p1/V10.md	13	`A_ORDER`/`AP_ORDER` 未做 `[0,5]` 校验 ⇒ SIP 求值按 order 索引 36 元素数组：`order=6` 越入相邻数组、`order=1000` 索引 6000				OPEN	
+V10-N-03	C_ALG_IMPL	P1	V10	问题扫描/findings/C_ALG_IMPL/p1/V10.md	23	gaia XPSD 的 `itemSize` 仍是裸 `atoi`，而它是**字节逆置换的步长与循环界** ⇒ 三条 fail-open 全 `rc=0`，把未逆置换的数据当合法科学数据继续				OPEN	
+V10-N-04	C_ALG_IMPL	P1	V10-b	问题扫描/findings/C_ALG_IMPL/p1/V10-b.md	3	`BSCALE`/`BZERO` 解析 `catch(...)` 吞错取默认、**不吃 FITS 的 D 指数记法** ⇒ 同一合法 FITS 头两个读面差三个数量级，直进交付像素				OPEN	
+V10-N-05	C_ALG_IMPL	P1	V10-b	问题扫描/findings/C_ALG_IMPL/p1/V10-b.md	14	HiPS SNR TSV 坏行**只 ++ 一个全仓无消费者的计数器** ⇒ 交付星表少行完全不可观测；`%lf` 还接受 NaN/inf				OPEN	
+V10-N-06	C_ALG_IMPL	P1	V10-b	问题扫描/findings/C_ALG_IMPL/p1/V10-b.md	22	（P2）`readFits` 无 NAXIS 上限：声明尺寸直乘成分配量，而同族两个读面都设 65535	315-321` 仅 `if (naxis1 <= 0 || naxis2 <= 0)`；`:333-342` 对 `naxis3` 只做归一（非 1/3 按 1，**无上限**）；`:419-422` 直接相乘为 `data_size` 并 `std::vector<uint8_t> raw(data_size)`。			OPEN	
+V20-N-01	C_ALG_IMPL	P1	V20	问题扫描/findings/C_ALG_IMPL/p1/V20.md	3	（P1｜面1+面3）`lib/drizzle/src/module_entry.cpp`（sha `ca6c28c885d0`）`op=reverse` 的**四个 config 键解析并校验后零读取** ⇒ 用户改这四键产物逐位不变				OPEN	
+V21-N-01	C_ALG_IMPL	P1	V21	问题扫描/findings/C_ALG_IMPL/p1/V21.md	29	（P1）`acs_cap_detect_v1` 的**四码值域被塌缩成两码**：6 站点全写成「非 ACS_CAP_OK → ACS_ERR_UNSUPPORTED」⇒ 把装配缺陷归因成硬件事实				OPEN	
+V21-N-02	C_ALG_IMPL	P1	V21	问题扫描/findings/C_ALG_IMPL/p1/V21.md	34	（P1）`aio_healpix_io.cpp:732,759,786,813,846`（+`:493-498`）：HISS 的 **8 码错误域全塌成 `HIO_ERR_FILE(-2)`**，而 HIO 本有 -1..-7 七个可用码				OPEN	
+V21-N-05	C_ALG_IMPL	P1	V21	问题扫描/findings/C_ALG_IMPL/p1/V21.md	38	（P1）`tools/check_warning_suppression.py:79-81`（判定 `:102-104`）：**`grep -c` 的 returncode 恒为 0 且不读退出码**，判定把「构建没跑 / `cd || e				OPEN	
+V21-N-06	C_ALG_IMPL	P1	V21	问题扫描/findings/C_ALG_IMPL/p1/V21.md	41	（P1）`tools/quality/contracts/check_full_integration.py:20,29-34`：子报告 **exit 码不读**（同文件头自述 0/1/2/3 四态）+ `except: pass` 吞掉 				OPEN	
+V21-N-07	C_ALG_IMPL	P1	V21	问题扫描/findings/C_ALG_IMPL/p1/V21.md	44	（P1）打包链 rc 全丢：`scripts/package_audit.py:29-30,34,62` + `tools/quality/build_v19r{2,3,4}_package.py`（`r2:52-56,69,197-198				OPEN	
+V21-N-12	C_ALG_IMPL	P1	V21	问题扫描/findings/C_ALG_IMPL/p1/V21.md	3	（P1）产品 manifest 的完整性两面在整条链上被「**期望为空**」短路 ⇒ 换掉 `modules/*.dll` 只要文件存在即放行				OPEN	
+V21-N-13	C_ALG_IMPL	P1	V21	问题扫描/findings/C_ALG_IMPL/p1/V21.md	10	（P1）`module_adapters.cpp` 节点 manifest 有 **14 个键写出后全仓零回读**（含 docs/tests/tools）				OPEN	
+V21-N-15	C_ALG_IMPL	P1	V21	问题扫描/findings/C_ALG_IMPL/p1/V21.md	15	（P1·**§10.5 门禁的第一根因**）`cli/commands.cpp:912` `g.has_stage_annotation = true;` 与 `:946` `g.monitor_present = true;` —— 两个				OPEN	
+V21-N-16	C_ALG_IMPL	P1	V21	问题扫描/findings/C_ALG_IMPL/p1/V21.md	19	（P1）`cli/commands.cpp:901` `g.kind = astrocs::ResKind::Compute;` 是**生产唯一 kind 写点** ⇒ 四条分类判据分支在生产不可达				OPEN	
+V21-N-17	C_ALG_IMPL	P1	V21	问题扫描/findings/C_ALG_IMPL/p1/V21.md	23	（P1）内存回压**双哨兵恒假** ⇒ §17.6「无界内存增长属发布禁止项」在产品面**失去执行者**				OPEN	
+V7-N-04	C_ALG_IMPL	P1	V7	问题扫描/findings/C_ALG_IMPL/p1/V7.md	3	drizzle 引擎 `has_cd` 只看 CD 对角 ⇒ 合法「对角双零」WCS 被**静默替换**为 CDELT·CROTA2，交付天区几何错（**前台由 P2 升 P1**）	428` `has_cd = (cd11 != 0 || cd22 != 0)`；退化分支 `:433-443`；CD 系数经裸 `atof`（`:474`）**无 `isfinite` 门** ⇒ inf 位模式直入。			OPEN	
+V7-N-05	C_ALG_IMPL	P1	V7	问题扫描/findings/C_ALG_IMPL/p1/V7.md	12	（P3）`p1_snr.json` 不回显生效 SNR 科学配置，九键缺键→0.0 后**改了什么数值不可归因**				OPEN	
+V7-N-06	C_ALG_IMPL	P1	V7	问题扫描/findings/C_ALG_IMPL/p1/V7.md	16	（P3）`calibrate` 交付面 `dark_scale` 双语义：「应用了 K=1.0」与「暗优化未执行」逐字段不可分				OPEN	
+V7-N-07	C_ALG_IMPL	P1	V7	问题扫描/findings/C_ALG_IMPL/p1/V7.md	20	"（P3）`nested` 的类型强制与同文件同批纪律相反 ⇒ 用户 `""0""` 得到 NESTED，**tile ipix 全重排**"				OPEN	
+W1-N-01	C_ALG_IMPL	P1	W1	问题扫描/findings/C_ALG_IMPL/p1/W1.md	3	（P1）ipv_select.cpp 触顶判据的**重写基于错误前提**：新注释断言每文件顺序截断，实为跨文件全局硬顶				OPEN	
+W1-N-04	C_ALG_IMPL	P1	W1-b	问题扫描/findings/C_ALG_IMPL/p1/W1-b.md	3	（P1）未跟踪新代码 `lib/snr_estimator/src/module_entry.cpp`：JSON 整数字段**无界转 int**（UB 面），且同文件已有正确示范 ⇒ 边界校验只做一半				OPEN	
+W3-R2-001	C_ALG_IMPL	P1	W3	问题扫描/findings/C_ALG_IMPL/p1/W3.md	3	（P1）`aio_upm` 原子晋升在 Windows 正常路径＝**先删旧再 rename**，双失败时**新旧模型同灭**				OPEN	
+W3-R2-002	C_ALG_IMPL	P1	W3	问题扫描/findings/C_ALG_IMPL/p1/W3.md	7	（P1）**取消通道整体断线**：`astrocs_host_state_set_cancel` 全仓零调用 ⇒ `cancel.is_cancelled` 恒 false				OPEN	
+W3-R2-003	C_ALG_IMPL	P1	W3	问题扫描/findings/C_ALG_IMPL/p1/W3.md	11	（P1）进程级峰值观测单例**无 epoch 复位** ⇒ node trace 的 `workers` 被记成**全进程历史峰值**				OPEN	
+W3-R2-005	C_ALG_IMPL	P1	W3-b	问题扫描/findings/C_ALG_IMPL/p1/W3-b.md	1	（P1）provider 租约释放不配对：未 acquire 必 release、acquire(1) 失败被忽略、host_release 无钳制 ⇒ 预算计数器可为负	69-84；providers/cpu/baseline/src/baseline_provider.cpp:418-433、:455-457；providers/cpu/avx2/src/avx2_provider.cpp:244-257、:276-277；providers/cpu/avx512/src/avx512_provider.cpp:243-256、:275-276。			OPEN	
+W3-R2-006	C_ALG_IMPL	P1	W3-b	问题扫描/findings/C_ALG_IMPL/p1/W3-b.md	14	（P1）主线程在采样线程存活期内无同步调用 ProcessMonitor::summary() ⇒ 数据竞争（UB）	244-320（全类零锁零 atomic：grep -cE 'std::(atomic|mutex)|lock_guard|unique_lock' cli/monitor.h = 0）；cli/commands.cpp:843-853、:858-859。			OPEN	
+W6-N-01	C_ALG_IMPL	P1	W6	问题扫描/findings/C_ALG_IMPL/p1/W6.md	3	（P1）三面对账：CTest 登记面把 **6 个「结构上永不可生成」的用例名当存量在册**，门无「可达性」维度				OPEN	
+W6-N-02	C_ALG_IMPL	P1	W6	问题扫描/findings/C_ALG_IMPL/p1/W6.md	8	（P1）`V19-N-05` 复验：**21 道门的宿主工具声明一条未补**；按更宽口径本轴另得 **74 门**（两口径不可混用）				OPEN	
+W6-N-03	C_ALG_IMPL	P1	W6	问题扫描/findings/C_ALG_IMPL/p1/W6.md	13	（P1）安装面白名单**不闭合**：实装文件超出合同 2 个，且唯一白名单校验器**三面零注册**				OPEN	
+W6-N-04	C_ALG_IMPL	P1	W6-b	问题扫描/findings/C_ALG_IMPL/p1/W6-b.md	3	（P1）`C-14` 扩散复验：**struct_size 三家未做、V11 四站点全未修、镜像面仍零采集**				OPEN	
+W6-N-05	C_ALG_IMPL	P1	W6-b	问题扫描/findings/C_ALG_IMPL/p1/W6-b.md	8	（P1）导出面合同**无机器消费者**：ARC-001 只有 schema 无实例、Windows 符号门判据「非空即过」、Linux 侧零采集				OPEN	
+V10-N-07	C_ALG_IMPL	P2	V10-c	问题扫描/findings/C_ALG_IMPL/p2/V10-c.md	3	（P2）三个 module_entry 的**自定义 JSON 解析器**：数组元素数无上限（先巨额分配再拒）、`double→uint64` 无 `isfinite`（`1e999`→inf→转整 UB）				OPEN	
+V10-N-08	C_ALG_IMPL	P2	V10-c	问题扫描/findings/C_ALG_IMPL/p2/V10-c.md	10	（P2，**现产不可达**）`hips_order` 第四站点无界 ⇒ `1u << leaf_order_` 移位 UB；orchestrator 同字段整段静默跳过 SIP				OPEN	

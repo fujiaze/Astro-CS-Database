@@ -1,0 +1,2 @@
+--- $ git diff --cached --stat
+rc=0

@@ -1,0 +1,18 @@
+--- $ git diff --stat
+警告：在 'artifacts/prerelease_v5/ISA-001/MEASUREMENTS.csv' 的工作拷贝中，下次 Git 接触时 CRLF 将被 LF 替换
+警告：在 'artifacts/prerelease_v5/ISA-002/MEASUREMENTS.csv' 的工作拷贝中，下次 Git 接触时 CRLF 将被 LF 替换
+警告：在 'artifacts/prerelease_v5/ISA-003/MEASUREMENTS.csv' 的工作拷贝中，下次 Git 接触时 CRLF 将被 LF 替换
+ artifacts/prerelease_v5/ISA-001/MEASUREMENTS.csv   |   12 +-
+ artifacts/prerelease_v5/ISA-002/MEASUREMENTS.csv   |   12 +-
+ artifacts/prerelease_v5/ISA-003/MEASUREMENTS.csv   |   12 +-
+ .../tasks/CHK-001/PROD_REACHABILITY.dot            |  932 +++++++++-
+ .../tasks/CHK-001/PROD_REACHABILITY.json           | 1880 +++++++++++++++++++-
+ reports/v19r2/comment_hygiene.md                   |   60 +-
+ reports/v19r2/evidence/quality/comment_check.json  |  679 ++++++-
+ .../v19r2/evidence/quality/traceability_check.json |    4 +-
+ .../_recheck/RC7.md"                               |  341 +++-
+ .../_verify/V20.md"                                |    6 +-
+ .../_verify/V21.md"                                |  183 +-
+ .../_verify/W5_error_diagnostics.md"               |    8 +-
+ 12 files changed, 4003 insertions(+), 126 deletions(-)
+rc=0

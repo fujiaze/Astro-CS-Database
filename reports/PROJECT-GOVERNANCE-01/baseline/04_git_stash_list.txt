@@ -1,0 +1,2 @@
+### CMD: git stash list
+stash@{0}: On ci-fix: ci-dirty-rest

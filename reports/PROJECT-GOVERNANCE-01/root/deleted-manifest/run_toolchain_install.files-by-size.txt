@@ -1,0 +1,3 @@
+38855	run/toolchain_install/apt_install.log
+10249	run/toolchain_install/apt_install2.log
+668	run/toolchain_install/apt_update.log

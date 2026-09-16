@@ -1,0 +1,3 @@
+### CMD: df -h /workspace
+文件系统        大小  已用  可用 已用% 挂载点
+/dev/vdb1       503G  293G  186G   62% /workspace
