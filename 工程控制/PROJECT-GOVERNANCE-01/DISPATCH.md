@@ -133,3 +133,42 @@
 3. 处置表**计数必须与清单条目数一致**（少一条即视为未收口）；
 4. 一切以第 6 列「命令 + 逐字输出」为准，**不得采信账本 fix_state/verified_state**。
 
+
+---
+
+## 附录 C　当前写域占用与在跑任务（前台实时维护 · 交接必读）
+
+> 继任前台请**先读本附录**再决定派发：下表是「谁现在正在写哪个域」。占用的域**不得**再派第二个写者。
+
+### C.1 在跑任务与写域（2026-09-16 18:40 快照）
+
+| 任务 | 状态 | 独占写域 | 备注 |
+|---|---|---|---|
+| **ARCH-001** | 在跑（~90%） | `lib/**` + 根 `CMakeLists.txt`/`tests/**/CMakeLists.txt`/`cmake/**` 的**机械路径替换** + `docs/algorithms/**` 锚点与 `anchor_contract.json` | **`ARCH-CLEAR` 信号前，任何任务不得写 `lib/**`**；W3 整波（P1/P2/P3/AIO/RT/OBS/MOD-002）都在等它 |
+| **CI-001（第二轮）** | 在跑 | `ci/checks.json`、`ci/run_checks.py`、`ci/tests/**`、`ci/id_migration_map.json`、`tools/check_api_docs.py` 的 `_repo()` 严格化 + GAP-027 P0/P1 fail-closed | 另占 `.github/**`（工作流切换本身归 CI-002）；**他人一行不得改 `ci/checks.json`** |
+| **DOC-001** | 在跑 | `docs/**`（不含 `docs/algorithms/**` 的推导与 `docs/science/**` 的公式）、根活动文档、`docs/DOCUMENT_INDEX.yaml`；含 `docs/api/CLI_PROTOCOL_V1.md §7` | 与 ARCH 的锚点域在 `docs/algorithms/**` **重叠**——DOC-001 只允许改该目录的索引/链接/状态标注 |
+| **GOV-001** | 在跑 | 根治理文档、`tools/check_agents_gov.py`、`tools/doccheck/check_engineering_constraints.py` | 注册项元数据只登记不改（`ci/**` 归 CI-001） |
+| **W1 调度线** | 在跑 | 无独立写域（调度 + 验证 + 台账维护） | 维护 `ACCEPTANCE.md`/`TASK_LIST.md` 状态列 |
+| **前台（我）** | 在跑 | `工程控制/**`、`reports/PROJECT-GOVERNANCE-01/**`（证据）、提交与推送 | 只做调度/独立复跑/原子提交 |
+
+### C.2 冻结中（未提交、勿动）
+
+| 文件 | 归属 | 状态 |
+|---|---|---|
+| `config/**`、`ENGINEERING_SPEC.md §7`、`tests/quality/test_root_cleanliness.py:76`、`ci/root_manifest.json` | **CFG-001**（已完成，待提交） | 等「CFG-001 独立验证 PASS + ARCH-CLEAR」后由前台整文件提交（`ci/root_manifest.json` 含 RETIRE-001 的 7 条清理，属**共享提交**，消息须写明两处归属） |
+| `lib/**` 的 1114 条 git mv（已入索引） | **ARCH-001** | 尚未成为独立任务提交；前台提交**必须带显式 pathspec**（`git mv` 会写索引，历史上有过连带提交事故） |
+
+### C.3 提交纪律（前台铁律，继任者请沿用）
+
+1. **一律 `git commit -- <显式路径>`**，并在提交前核对 `git diff --cached --name-only`；**禁止**裸 `git commit`（ARCH 的暂存 rename 会被连带提交）；
+2. 每次提交后 `git push`，再 `git fetch` 核对 `HEAD = main = origin/main`；
+3. 归属更正一律走**新提交 + 台账注记**，禁止 amend/重写已推送历史；
+4. 共享文件（多任务都改到）**不做 hunk 级拆分**，整文件提交 + 消息写明各处归属。
+
+### C.4 下一批派发顺序（依赖就绪判定）
+
+1. **`ARCH-CLEAR` 一到** → 派 W3：`P1-001`（112 条 / 16 P0-OPEN，最高优先）、`P1-002`、`P2-001`、`P2-002`、`P3-001`、`P3-002`、`AIO-001`、`RT-001`、`OBS-001`、`MOD-002`；
+2. **不等 ARCH** 可派：`CLI-002`（export 缺陷 GAP-034，P0）、`CI-002`（依赖 QA-001）、`CFG-002`、`TEST-CLI-SYNC-2`（依赖 CLI-002）；
+3. 每条派发**必须携带** `reports/PROJECT-GOVERNANCE-01/root-scan/by_owner/<任务>.txt` 清单，并要求执行行先做当前树复检（合并表状态取证于 15:00 前后，其后多个任务已落地）；
+4. 未映射的 47 条（`NEXT-PACK:NP-*`，编号需归一，**无 P0**）由下一轮控制包统一立项。
+
