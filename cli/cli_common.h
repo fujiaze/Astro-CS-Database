@@ -74,9 +74,9 @@ struct Parsed {
 extern const std::set<std::string> kBoolFlags;
 extern const std::set<std::string> kValueFlags;
 
-struct CmdRule { const char* path; std::vector<std::string> allowed; };
-extern const CmdRule kRules[];
-extern const std::set<std::string> kGroups;
+// CLI-001: 命令树不再由本头声明 —— 唯一事实源是
+// lib/infrastructure/cli/command_tree.h（path + 旗标白名单 + help 文本）。
+// kHelp 仍在此暴露（parser.cpp 由命令树生成），便于 main.cpp 打印。
 extern const char* kHelp;
 
 [[noreturn]] void parse_fail(const std::string& msg);
@@ -103,6 +103,17 @@ std::optional<std::string> git_head_sha();
 
 int dispatch(const Parsed& p);
 int real_main(int argc, char** argv_utf8);
+
+// ───────────────────── 会话命令（子命令实现） ─────────────────────
+// 三个平级用户命令（normalize/mosaic/export）的实现入口在
+// lib/infrastructure/cli/{normalize,mosaic,export}/；其背后的会话执行/校验/
+// 计划/检视实现留在 cli/commands.cpp（薄入口只做参数解析、预检、确认、退出码）。
+// 这里的声明是「命令层 → 会话层」的唯一契约面。
+enum class SessionOp { Run, Validate, Plan, Inspect };
+int session_dispatch(int session, SessionOp op, const Parsed& p, astrocs::JsonlEmitter& ev);
+std::string session_config_template(int session);
+std::string session_run_message(int session);
+bool session_has_flag(const Parsed& p, const char* flag);
 
 // 版本生成头（构建期）
 #ifndef ASTROCS_VERSION_STRING

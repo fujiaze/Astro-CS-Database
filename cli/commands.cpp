@@ -72,6 +72,17 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "runtime_client.h"
 #include "v6_mode_gate.h"   // RUNTIME-CI-001: V6 显式模式路由门
 
+// CLI-001: 三个平级用户命令（normalize/mosaic/export）的入口实现在
+// lib/infrastructure/cli/**；本文件是它们背后的会话层（执行/校验/计划/检视）。
+// 相对路径: 根 CMakeLists.txt 的 astrocs target include 目录尚未登记本模块
+// （登记属 INT-001 域），此处用工作区相对包含保证根图与 cli/ 独立图都能编译。
+#include "../lib/infrastructure/cli/command_tree.h"
+#include "../lib/infrastructure/cli/session_commands.h"
+#include "../lib/infrastructure/cli/subcommand.h"
+#include "../lib/infrastructure/cli/normalize/normalize.h"
+#include "../lib/infrastructure/cli/mosaic/mosaic.h"
+#include "../lib/infrastructure/cli/export/export.h"
+
 // MON-002 资源/backend 事件发射(定义于后段, 此处前向声明供 phase run 共用引擎使用)
 // 注: cmd_run_pipeline / cmd_graph 已随 CLI-002 移除; 下述 helper(write_run_graphs /
 // emit_resource_summary / emit_backend_event) 保留, 供后续 phase run 共用引擎复用。
@@ -194,148 +205,9 @@ int cmd_show_effective(const Parsed& p, astrocs::JsonlEmitter& ev) {
     std::printf("%s\n", out.dump().c_str());
     return astrocs::OK;
 }
-
-// stub 命令(科学接线属 CODE/TST 域): 参数已按合同全量校验, 明示 not-wired。
-// 测试钩子(ASTROCS_TEST_SLEEP_MS / ASTROCS_TEST_CRASH=1)仅用于协议 golden 测试, 非用户接口。
-int cmd_test_synthetic(const Parsed& p, const std::string& group, astrocs::JsonlEmitter& ev);  // CLI-003
-
-int cmd_stub(const Parsed& p, const std::string& phase, astrocs::JsonlEmitter& ev) {
-    (void)p;
-    const char* sleep_ms = std::getenv("ASTROCS_TEST_SLEEP_MS");
-    if (sleep_ms) {
-        long ms = std::strtol(sleep_ms, nullptr, 10);
-        auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
-        ev.stage("stub_wait", true);
-        while (std::chrono::steady_clock::now() < deadline) {
-            if (astrocs::is_cancelled()) {
-                ev.stage("stub_wait", false);
-                ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
-                std::fprintf(stderr, "astrocs: cancelled\n");
-                return astrocs::CANCELLED;   // 04: 取消 → 9, 不留伪完整产物
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        }
-        ev.stage("stub_wait", false);
-    }
-    if (std::getenv("ASTROCS_TEST_CRASH")) {
-        throw std::runtime_error("selftest-crash");   // crash boundary 落锤(→70)
-    }
-    ev.emit_final(astrocs::ARGS, "not_wired", nullptr,
-                  "command is declared by the CLI contract but science handlers are wired in later tasks");
-    std::fprintf(stderr, "astrocs: '%s' is declared by the CLI contract but not wired in this build "
-                         "(see docs/api/CLI_PROTOCOL_V1.md)\n", phase.c_str());
-    return astrocs::ARGS;
-}
-
-// V3 B3-A8: 默认测试二进制目录 —— 旧默认 "build/root-cmake/tests/unit" 是
-// V6.1 遗留布局, 当前根图与 CI 构建树均无此目录, 使 test synthetic 在真实
-// 构建完成后仍报 spawn failed (误导)。按现行构建树优先级探测, 命中即用;
-// 全不存在时返回首个候选, 由运行期 spawn 失败明确暴露 (非静默)。
-// ASTROCS_TEST_BIN_DIR 仍最优先 (CI 经 job env 显式指定 linux-control 树)。
-static std::string default_test_bin_dir() {
-    static const char* kCandidates[] = {
-        "build/linux-control/tests/unit",  // CMakePresets linux-control (CI 主口径)
-        "build/tests/unit",                // 根图默认构建 cmake -S . -B build
-        "build/root-cmake/tests/unit",     // V6.1 历史布局 (仅兜底显示)
-    };
-    for (const char* c : kCandidates) {
-        std::error_code ec;
-        if (std::filesystem::is_directory(c, ec)) return c;
-    }
-    return kCandidates[0];
-}
-
-// ── CLI-003: test synthetic 接通真实合成门 ──
-// 运行 build 树内已编译的合成测试可执行文件 (路径: ASTROCS_TEST_BIN_DIR,
-// 未设时按 default_test_bin_dir() 探测真实构建树)。group → 测试二进制映射;
-// 全部 exit 0 = PASS。无测试二进制 (非开发构建) → 明确错误 (可诊断, 非静默)。
-int cmd_test_synthetic(const Parsed& p, const std::string& group, astrocs::JsonlEmitter& ev) {
-    (void)p;
-    struct G { const char* group; const char* bin; };
-    static const G kMap[] = {
-        {"calibration",           "p1_calibration_test"},
-        {"wcs_psf",               "p1_stars_test"},
-        {"noise_snr",             "p1_noise_test"},
-        {"drizzle",               "p1_nside_test"},
-        {"upm",                   "p2_upm_synthetic_test"},
-        {"rejection_integration", "p2_output_semantics_test"},
-        {"p1_ir_facade",          "p1_ir_facade_test"},
-    };
-    // RT-008: crash 测试钩子(非用户接口) — 供协议 golden 验证 crash boundary(→70)
-    if (std::getenv("ASTROCS_TEST_CRASH")) {
-        throw std::runtime_error("selftest-crash");
-    }
-    std::vector<const char*> bins;
-    if (group == "all") {
-        for (const auto& g : kMap) bins.push_back(g.bin);
-    } else {
-        for (const auto& g : kMap)
-            if (group == g.group) bins.push_back(g.bin);
-    }
-    if (bins.empty()) {
-        ev.emit_final(astrocs::ARGS, "no_tests", nullptr,
-                      ("no synthetic tests for group '" + group + "'").c_str());
-        return astrocs::ARGS;
-    }
-    const char* bin_env = std::getenv("ASTROCS_TEST_BIN_DIR");
-    const std::string bin_dir = (bin_env && bin_env[0]) ? std::string(bin_env)
-                                                        : default_test_bin_dir();
-    // 源码相对读取的测试 (p1_ir_facade/p2_ir_facade) 需要 ASTROCS_REPO;
-    // 默认设为调用方 cwd, 可用环境变量覆盖。
-    const char* repo_env = std::getenv("ASTROCS_REPO");
-    // G9: 所有外部命令必须 timeout (ASTROCS_TEST_TIMEOUT_S 可配, 默认 600s)。
-    // B8-P1-1a: 弃用 std::system 字符串拼接(shell 解析断裂空格路径/timeout 参数
-    // 未消毒/POSIX-only) → 进程 API argv 数组传参; timeout 由 run_process 内建
-    // (跨平台, 非外部 timeout 二进制), 非法值消毒回退默认。
-    const char* tmo = std::getenv("ASTROCS_TEST_TIMEOUT_S");
-    double timeout_s = 600.0;
-    if (tmo && tmo[0]) {
-        char* end = nullptr;
-        const unsigned long v = std::strtoul(tmo, &end, 10);
-        if (end && *end == '\0' && v > 0 && v <= 86400UL) timeout_s = static_cast<double>(v);
-    }
-    const std::string repo =
-        (repo_env && repo_env[0]) ? std::string(repo_env) : std::string(".");
-    int failed = 0;
-    for (const char* b : bins) {
-        const std::string exe = bin_dir + "/" + b;
-        ev.stage(("test_" + std::string(b)).c_str(), true);
-        const astrocs::process::RunResult cr = astrocs::process::run_process(
-            {exe}, {{"ASTROCS_REPO", repo}}, timeout_s);
-        int rc;
-        std::string rc_note;
-        if (cr.timed_out) {
-            rc = 124;   // 与原 `timeout` 命令超时退出码保持一致
-            rc_note = " timed out after " + std::to_string(static_cast<long long>(timeout_s)) + "s";
-        } else if (cr.spawn_failed) {
-            rc = 127;
-            rc_note = " spawn failed: " + cr.error;
-        } else if (!cr.exited) {
-            rc = astrocs::INTERNAL;   // 信号终止 → INTERNAL(70), 数值走 exit_codes 单源
-            rc_note = " abnormal termination: " + cr.error;
-        } else {
-            rc = cr.exit_code;
-            rc_note.clear();
-        }
-        ev.stage(("test_" + std::string(b)).c_str(), rc == 0);
-        if (rc != 0) {
-            std::fprintf(stderr, "astrocs: synthetic test %s failed (rc=%d%s)\n",
-                         b, rc, rc_note.c_str());
-            ++failed;
-        }
-    }
-    if (failed) {
-        ev.emit_final(astrocs::INTERNAL, "synthetic_failed", nullptr,
-                      ("synthetic tests failed: " + std::to_string(failed)).c_str());
-        return astrocs::INTERNAL;
-    }
-    ev.emit_final(astrocs::OK, "synthetic_ok", nullptr,
-                  ("synthetic tests passed (" + std::to_string(bins.size()) + ")").c_str());
-    std::fprintf(stderr, "astrocs: test synthetic %s: %zu tests PASS\n",
-                 group.c_str(), bins.size());
-    return astrocs::OK;
-}
-
+// CLI-001: 合成测试门与 stub 用户命令已删除（不在 §6.2 唯一命令树内）——
+// 它们是开发期工具，不是产品命令面；旧入口现在解析失败 → exit 2。
+// 合成测试直接跑 build 树内测试二进制（tests/unit/**、tests/system/**）。
 // B2-A10（宪章 §4.3/§4.2）: 运行上下文（run_id/source SHA/软件版本）在会话启动
 // 前写入 output_dir，供各 phase 的 provenance 消费端读取（禁节点级占位串）。
 // 生成逻辑唯一实现 = astrocs::core::write_run_context（node 级测试夹具同源复用）；
@@ -1146,13 +1018,13 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     return astrocs::OK;
 }
 
-int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     // RUNTIME-CI-001: 显式模式路由门（--mode / legacy weight_mode）；reject → ARGS(2)。
     {
         const int mrc = astrocs::v6cli::mode_gate(p, 2, ev);
         if (mrc != astrocs::OK) return mrc;
     }
-    const std::string cfg = need_value(p, "--config");
+    const std::string cfg = need_value(p, "--json");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
     if (!f) {
         std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
@@ -1284,13 +1156,13 @@ int cmd_phase2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 }
 
 
-int cmd_phase3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     // RUNTIME-CI-001: 显式输出模式路由门（--export-mode）；reject → ARGS(2)。
     {
         const int mrc = astrocs::v6cli::mode_gate(p, 3, ev);
         if (mrc != astrocs::OK) return mrc;
     }
-    const std::string cfg = need_value(p, "--config");
+    const std::string cfg = need_value(p, "--json");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
     if (!f) {
         std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
@@ -1752,8 +1624,8 @@ int cmd_phase_inspect(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
 }
 
 
-int cmd_phase1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
-    const std::string cfg = need_value(p, "--config");
+int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    const std::string cfg = need_value(p, "--json");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
     if (!f) {
         std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
@@ -2425,12 +2297,14 @@ static int cmd_selftest(const Parsed& p, astrocs::JsonlEmitter& ev) {
 }
 
 // dispatch: 外部可见（cli_common.h 声明；main.cpp 调用）。
+// CLI-001: 用户可见命令面 = §6.2 唯一命令树（normalize/mosaic/export/help/
+// --version/doctor/benchmark）。旧命令树（hardware inspect / config * /
+// modules * / selftest / test synthetic / verify* / drizzle / benchmark cpu /
+// phase1|2|3 *）不在表内，解析阶段即 unknown command → exit 2。
 int dispatch(const Parsed& p) {
     const std::string joined = p.join();
     const bool events = p.flags.count("--events-jsonl") > 0;
-    const std::string phase_name =
-        (joined.rfind("phase", 0) == 0 ? joined.substr(0, 6) : joined);
-    astrocs::JsonlEmitter ev(events, astrocs::make_run_id(), phase_name);
+    astrocs::JsonlEmitter ev(events, astrocs::make_run_id(), joined);
 
     if (joined == "--version" || joined == "version") {
         if (p.flags.count("--json")) {
@@ -2441,109 +2315,15 @@ int dispatch(const Parsed& p) {
         }
         return astrocs::OK;
     }
-    if (joined == "--help" || joined == "-h") {
+    if (joined == "help" || joined == "--help" || joined == "-h") {
         std::fputs(kHelp, stdout);
         return astrocs::OK;
     }
-    if (joined == "modules list")            return cmd_modules_list(p, ev);
-    if (joined == "modules verify")          return cmd_modules_verify(p, ev);
-    if (joined == "selftest")                return cmd_selftest(p, ev);
-    if (joined == "benchmark cpu") {
-        const bool quick = p.flags.count("--quick") > 0;
-        const bool full = p.flags.count("--full") > 0;
-        if (quick == full) parse_fail("benchmark cpu requires exactly one of --quick|--full");
-        const std::string out_path = p.values.count("--output") ? p.values.at("--output")
-                                                                : "cpu_profile.json";
-        const std::string mode = quick ? "quick" : "full";
-        const std::string commit = ASTROCS_COMMIT_SHA;
-        // CPU-003: v2 profile 生成(完整 benchmark 链; backends 目录=可执行文件旁 provider 目录)
-        std::string backends_dir = ".";
-        std::string exe_path;
-#if defined(_WIN32)
-        {
-            char buf[MAX_PATH];
-            const DWORD n = GetModuleFileNameA(nullptr, buf, MAX_PATH);
-            if (n > 0) exe_path.assign(buf, n);
-        }
-#else
-        {
-            std::error_code ec;
-            const auto p = std::filesystem::canonical("/proc/self/exe", ec);
-            if (!ec) exe_path = p.string();
-        }
-#endif
-        if (!exe_path.empty()) {
-            std::error_code ec2;
-            const auto parent = std::filesystem::path(exe_path).parent_path();
-            if (!parent.empty()) backends_dir = parent.string();
-        }
-        // cli_sha 锚定当前 CLI 二进制本体。Windows 可执行名是 astrocs.exe
-        // （GetModuleFileNameA 已给出 exe_path，backends_dir=其父目录），拼
-        // "/astrocs" 无后缀时文件不存在 → file_sha256_hex 空串 → v2 profile
-        // 的 cli_sha 在 Windows 恒空（R2 线索 2）。显式探测 .exe 后缀。
-        std::string cli_bin = backends_dir.empty() ? std::string(".") : backends_dir + "/astrocs";
-#if defined(_WIN32)
-        {
-            std::error_code ec3;
-            if (!std::filesystem::is_regular_file(std::filesystem::u8path(cli_bin), ec3))
-                cli_bin += ".exe";
-        }
-#endif
-        const std::string cli_sha = astrocs::backend_host::file_sha256_hex(cli_bin);
-        auto pb = astrocs::backend_host::generate_profile_v2(
-            mode, ASTROCS_VERSION_STRING, commit, cli_sha, backends_dir);
-        const std::string json = pb.json;
-        // B8-P1-2: verdict 推导必须发生在写文件前 —— 顶层 verdict 字段与
-        // "全 kernel oracle:fail → FAIL + exit≠0" 的 CLI 合同语义(退出码 SCIENCE=4,
-        // 与 verify-profile 失败族一致)不可依赖已写盘文件的二次解析。
-        std::string verdict;
-        nlohmann::json doc;
-        try {
-            doc = nlohmann::json::parse(json);
-            verdict = astrocs::benchmark_profile_verdict(doc);
-        } catch (...) {
-            verdict = "FAIL";   // profile 本体不可解析 → 无正确性证据 → FAIL
-        }
-        doc["verdict"] = verdict;
-        const std::string json_with_verdict = doc.dump(2) + "\n";
-        {
-            std::ofstream f(std::filesystem::u8path(out_path), std::ios::binary | std::ios::trunc);
-            if (!f) {
-                std::fprintf(stderr, "astrocs: cannot write profile '%s'\n", out_path.c_str());
-                return astrocs::IO;
-            }
-            f << json_with_verdict;
-        }
-        // 机器可读结果: 普通模式 → "path verdict" 一行; events-jsonl → JSON 事件行
-        const bool events = ev.enabled();
-        if (events) {
-            // CPU-003: 全部原始候选逐条发射(审计/复读; 与 raw_samples_sha256 绑定)
-            for (const auto& c : pb.raw) {
-                ev.emit("benchmark", "info", "cpu", "raw candidate",
-                        {{"kernel", c.kernel_id}, {"size_class", c.size_class},
-                         {"provider", c.provider}, {"workers", c.workers},
-                         {"block", c.block}, {"median_ns", c.median_ns},
-                         {"mad_ns", c.mad_ns}, {"p05_ns", c.p05_ns}, {"p95_ns", c.p95_ns},
-                         {"oracle_pass", c.oracle_pass}, {"fallback_reason", c.fallback_reason}});
-            }
-        }
-        if (events) {
-            ev.emit("result", verdict == "PASS" ? "info" : "error",
-                    "benchmark", "cpu profile written",
-                    {{"path", out_path}, {"verdict", verdict},
-                     {"profile_id", doc.value("profile_id", "")},
-                     {"raw_samples_sha256", doc.value("raw_samples_sha256", "")}});
-        } else {
-            std::printf("%s %s\n", out_path.c_str(), verdict.c_str());
-        }
-        if (verdict != "PASS") {
-            std::fprintf(stderr,
-                         "astrocs: benchmark cpu FAIL: kernel(s) failed oracle "
-                         "(correctness_test != oracle:pass); profile written to '%s'\n",
-                         out_path.c_str());
-            return astrocs::SCIENCE;
-        }
-        return astrocs::OK;
+    // 三个平级子命令（§1.2：互不串接，各自独立进程/独立恢复/独立验收）。
+    for (const auto& s : astrocs::cli::cmd::session_commands()) {
+        if (joined != s.name) continue;
+        const astrocs::cli::cmd::Subcommand sub{s.name, s.session};
+        return sub.dispatch(p, ev);
     }
     if (joined == "doctor") {
         if (!p.flags.count("--json")) parse_fail("doctor requires --json");
@@ -2596,33 +2376,93 @@ int dispatch(const Parsed& p) {
         std::printf("%s\n", doc.dump(2).c_str());
         return all ? astrocs::OK : astrocs::SCIENCE;
     }
-    if (joined == "hardware inspect") {
-        if (!p.flags.count("--json")) parse_fail("hardware inspect requires --json");
-        std::fputs(astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING).c_str(), stdout);
+    if (joined == "benchmark") {
+        // §6.2: benchmark 生成/更新 cpu_profile（机器绑定配置，运行时自动读取）。
+        // 数值/并行决策唯一来源 = lib/backend_host；本层不写死任何 ISA/线程数。
+        std::string exe_path;
+#if defined(_WIN32)
+        {
+            char buf[MAX_PATH];
+            const DWORD n = GetModuleFileNameA(nullptr, buf, MAX_PATH);
+            if (n > 0) exe_path.assign(buf, n);
+        }
+#else
+        {
+            std::error_code ec;
+            const auto cp = std::filesystem::canonical("/proc/self/exe", ec);
+            if (!ec) exe_path = cp.string();
+        }
+#endif
+        std::string install_dir = ".";
+        if (!exe_path.empty()) {
+            std::error_code ec2;
+            const auto parent = std::filesystem::path(exe_path).parent_path();
+            if (!parent.empty()) install_dir = parent.string();
+        }
+        std::string cli_bin = install_dir.empty() ? std::string(".") : install_dir + "/astrocs";
+#if defined(_WIN32)
+        {
+            std::error_code ec3;
+            if (!std::filesystem::is_regular_file(std::filesystem::u8path(cli_bin), ec3))
+                cli_bin += ".exe";
+        }
+#endif
+        const std::string cli_sha = astrocs::backend_host::file_sha256_hex(cli_bin);
+        auto pb = astrocs::backend_host::generate_profile_v2(
+            "full", ASTROCS_VERSION_STRING, ASTROCS_COMMIT_SHA, cli_sha, install_dir);
+        std::string verdict;
+        nlohmann::json doc;
+        try {
+            doc = nlohmann::json::parse(pb.json);
+            verdict = astrocs::benchmark_profile_verdict(doc);
+        } catch (...) {
+            verdict = "FAIL";
+        }
+        doc["verdict"] = verdict;
+        const std::string out_path = install_dir + "/cpu_profile.json";
+        {
+            std::ofstream f(std::filesystem::u8path(out_path), std::ios::binary | std::ios::trunc);
+            if (!f) {
+                std::fprintf(stderr, "astrocs: cannot write cpu_profile '%s'\n", out_path.c_str());
+                return astrocs::IO;
+            }
+            f << doc.dump(2) << "\n";
+        }
+        std::printf("%s %s\n", out_path.c_str(), verdict.c_str());
+        if (verdict != "PASS") return astrocs::SCIENCE;
         return astrocs::OK;
     }
-    if (joined == "config init")           return cmd_config_init(p, ev);
-    if (joined == "config validate")       return cmd_config_validate(p, ev);
-    if (joined == "config show-effective") return cmd_show_effective(p, ev);
-    if (joined == "phase1 validate" || joined == "phase2 validate" ||
-        joined == "phase3 validate")
-        return cmd_phase_validate(p, joined[5] - '0', ev);
-    if (joined == "phase1 plan" || joined == "phase2 plan" || joined == "phase3 plan")
-        return cmd_phase_plan(p, joined[5] - '0', ev);
-    if (joined == "phase1 inspect" || joined == "phase2 inspect" ||
-        joined == "phase3 inspect")
-        return cmd_phase_inspect(p, joined[5] - '0', ev);
-    if (joined == "phase1 run")            return cmd_phase1_run(p, ev);
-    if (joined == "phase2 run")            return cmd_phase2_run(p, ev);
-    if (joined == "phase3 run")            return cmd_phase3_run(p, ev);
-    if (joined == "verify")                return cmd_verify(p, ev);
-    if (joined == "verify profile")        return cmd_verify_profile(p, ev);
-    if (joined == "benchmark verify-profile") return cmd_verify_profile(p, ev);
-    if (joined == "drizzle")               return cmd_drizzle(p, ev);
-    if (joined == "test synthetic") {
-        const std::string g = need_value(p, "--group");
-        if (!kGroups.count(g)) parse_fail("invalid --group '" + g + "'");
-        return cmd_test_synthetic(p, g, ev);
+    parse_fail("unknown command '" + joined + "'");
+}
+
+// ── 会话层分派（命令层 ↔ 会话层唯一契约面，声明见 cli/cli_common.h）──
+// 三个会话各自独立执行、独立恢复，互不共享进程状态（ASTROCS_DESIGN §1.2）。
+int session_dispatch(int session, SessionOp op, const Parsed& p, astrocs::JsonlEmitter& ev) {
+    switch (op) {
+        case SessionOp::Run:
+            if (session == 1) return cmd_session1_run(p, ev);
+            if (session == 2) return cmd_session2_run(p, ev);
+            if (session == 3) return cmd_session3_run(p, ev);
+            break;
+        case SessionOp::Validate: return cmd_phase_validate(p, session, ev);
+        case SessionOp::Plan:     return cmd_phase_plan(p, session, ev);
+        case SessionOp::Inspect:  return cmd_phase_inspect(p, session, ev);
     }
-    return cmd_stub(p, joined, ev);
+    parse_fail("unknown session");
+}
+
+// 命令层共享的会话信息读取器（lib/infrastructure/cli/subcommand.h 只依赖这三个符号）。
+std::string session_config_template(int session) {
+    return astrocs::cli::cmd::config_template(static_cast<astrocs::cli::cmd::SessionId>(session));
+}
+std::string session_run_message(int session) {
+    switch (static_cast<astrocs::cli::cmd::SessionId>(session)) {
+        case astrocs::cli::cmd::SESSION_NORMALIZE: return "normalize";
+        case astrocs::cli::cmd::SESSION_MOSAIC:    return "mosaic";
+        case astrocs::cli::cmd::SESSION_EXPORT:    return "export";
+        default: return "session";
+    }
+}
+bool session_has_flag(const Parsed& p, const char* flag) {
+    return p.flags.count(flag) > 0 || p.values.count(flag) > 0;
 }

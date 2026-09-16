@@ -1,6 +1,7 @@
 // astrocs CLI — 单一用户入口 (V5, CLI-002)
 // 统一 parser + JSON/JSONL writer + 退出码映射 + 协作取消 + crash boundary。
-// 命令树/协议/退出码唯一权威: 控制包 04 + docs/api/CLI_PROTOCOL_V1.md。
+// 命令树唯一权威: ASTROCS_DESIGN §6.2（落在 lib/infrastructure/cli/command_tree.h）；
+// 协议/退出码唯一权威: 控制包 04 + docs/api/CLI_PROTOCOL_V1.md。
 // Windows Unicode: wmain → UTF-16 argv 转 UTF-8, 文件经 std::filesystem::u8path 打开。
 //
 // RT-008: 本文件仅保留入口壳(crash boundary + 平台入口)与薄 include 面;
@@ -28,9 +29,9 @@ int real_main(int argc, char** argv_utf8) {
     try {
         Parsed p = parse_args(argc, argv_utf8);
         joined_for_report = p.join();
-        if (joined_for_report.empty() || joined_for_report == "--help" || joined_for_report == "-h") {
-            std::fputs(kHelp, joined_for_report.empty() ? stderr : stdout);
-            return joined_for_report.empty() ? astrocs::ARGS : astrocs::OK;
+        if (joined_for_report.empty()) {
+            std::fputs(kHelp, stderr);
+            return astrocs::ARGS;   // 04: 无命令 → 2（help 只打印到 stderr）
         }
         return dispatch(p);
     } catch (const ParseError& e) {

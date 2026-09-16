@@ -2,25 +2,32 @@
 
 > ID: API-CLI-001  状态: FROZEN (V5 API-002, 2026-08-28)  上游: API-001/ARCH-002  下游: CLI-001/002/003, API-003..005(handler 追溯), BENCH-005
 > 本文件为控制包 04 的仓库落地;两者冲突以 04 为准并在 traceability 登记。
+> 命令树已于 CLI-001 切换为 ASTROCS_DESIGN §6.1/§6.2 的**唯一命令树**：用户命令只有
+> normalize/mosaic/export + help/--version/doctor/benchmark；旧 phase1|2|3 用户命令与
+> 别名（含 config */modules */selftest/test synthetic/verify*/drizzle/benchmark cpu|
+> verify-profile/hardware inspect）**全部删除且 rc=2**（phase 仅为内部指代，§6.2）。
 
-## 1 命令树(04 §1 逐条,help 文本 golden 由此生成)
+## 1 命令树(ASTROCS_DESIGN §6.2 唯一命令树;help 文本 golden 由此生成)
 
 ```text
 astrocs --version [--json]
-astrocs hardware inspect --json
-astrocs config init --output <path>
-astrocs config validate --config <path>
-astrocs config show-effective --config <path> [--cpu-profile <path>] --json
-astrocs benchmark cpu (--quick|--full) [--output <path>] [--events-jsonl]     # 唯一用户 benchmark 入口,禁另发 benchmark exe
-astrocs doctor --json
-astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|p1_ir_facade>
-astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]
-astrocs phase2 run --config <path> [--cpu-profile <path>] [--events-jsonl]
-astrocs phase3 run --config <path> [--cpu-profile <path>] [--events-jsonl]
-astrocs verify --run-manifest <path> --json
+astrocs normalize (--json <config.json> | --template [-o <path>] | --help)
+astrocs mosaic (--json <config.json> | --template [-o <path>] | --help)
+astrocs export (--json <config.json> | --template [-o <path>] | --help)
+astrocs help
+astrocs doctor [--json]
+astrocs benchmark
 ```
 
-handler→Phase API 追溯(04 §6-4): phase1 run→API-003 create/validate/run/inspect;phase2 run→API-004;phase3 run→API-005;test synthetic→SYN-00x Oracle 入口;benchmark cpu→BENCH-001..004 harness(内部);verify→manifest 复算。
+命令语义（§6.1 薄入口）：
+- `--json <config.json>` 运行：运行前预检（绿/橘/红）→ 存在 error 强制阻断（仅 `-force`
+  可越过可强制项）→ 用户输入 `yes` 确认（`-y` 跳过）→ 执行并落产品 + manifest；
+- `--template [-o <path>]` 生成可直接改的完整 JSON 模板（缺 `-o` → stdout）；
+- `--help` 子命令帮助与字段说明；
+- 三个命令**平级独立**：各自独立进程、独立恢复、独立验收，**禁止**隐式串接（§1.2）；
+- `benchmark` 生成/更新**安装目录** cpu_profile（后续运行自动读取）。
+
+handler→内部会话 API 追溯(04 §6-4,phase 为内部指代): normalize→API-003(会话1)；mosaic→API-004(会话2)；export→API-005(会话3)；benchmark→BENCH-001..004 harness(内部)。
 
 ## 2 退出码(04 §2 全 11 条冻结,唯一源 `include/astrocs/exit_codes.h`)
 
