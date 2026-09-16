@@ -43,14 +43,21 @@
 # 可变状态"结构性满足）；并行仅上游采样 worker 池（p3_session.cpp
 # :247-253，worker 数=host budget.max_workers，禁 hardware_concurrency）；
 # descriptor parallel_ok=true 承认 const-only 入口并发安全。
-# P3-001 增补（2026-09-10）: 版本化 projection registry v1 与冻结四投影
-# （TAN/SIN/CAR/AIT，宪章 §7.3/§18.1）实现落位本目录——
-# p3_projection.h（唯一权威签名头）+ p3_projection.cpp（registry 冻结表 +
-# 四投影统一操作面，ALG-P3-PROJ-IMPL-001 §15 唯一权威冻结口径）；
-# 可执行测试 tests/unit/p3_projection_test.cpp（ctest
+# SCI-FIX-PROJ 增补（2026-09-16）: 投影 registry 权威 = DESIGN §5.3 八投影
+# 冻结集合（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）。**在役 registry = v6 线**
+# p3_proj_v6.h/.cpp（kProjectionRegistryVersion=3：CAR/AIT 按 Paper II §2.2
+# 三 Euler 角把 CRVAL2（含 LONPOLE 默认）纳入映射、AIT 域界 A≤1、CAR native
+# 极行 |θ|≥90° fail-closed）；冻结集合由 registry_frozen_set() 导出，表内 code
+# 必须属于该集合；STG/MOL/CEA/ZEA 实施归 P3-001（GAP-011）。
+# **legacy v1（P3-001 增补 2026-09-10）已 RETIRED**：p3_projection.h/.cpp
+# （TAN/SIN/CAR/AIT，kP3ProjectionRegistryVersion=1）退场，仅为历史测试面与
+# legacy 偏差对照证据门保留（四项偏差 D1..D4 见 ALG-P3-PROJ-IMPL-001 §15.9），
+# 禁止新消费方引用；
+# v1 可执行测试 tests/unit/p3_projection_test.cpp（ctest
 # p3_projection_units/p3_projection_fault）+ tests/backend/
-# test_p3_projection_oracle.py（独立 numpy oracle）；测试挂载仅动
-# tests/unit/CMakeLists.txt（直编，根构建零改动）。
+# test_p3_projection_oracle.py（独立 numpy oracle）；v3 可执行测试
+# tests/unit/v6_p3_proj/**（ctest v6_p3_proj_units/fault_*/wcs_oracle/
+# legacy_deviation）；测试挂载只动 tests/unit/**（直编，根构建零改动）。
 # entrypoint=MISSING：registry 现状为测试目标直编面，非生产构建成员、
 # 非 DLL 入口（astrocs_p3_projection.dll 挂载/adapter 接线/会话消费归
 # P3-PROJ-IMPL/P3-002，白名单外），不冒认 IMPLEMENTED；descriptor 现状占位 ID

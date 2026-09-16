@@ -1,5 +1,7 @@
 // lib/algorithms/projection/p3_proj_v6.cpp — V6 Phase3 投影实现层（标准 FITS WCS Paper II）
 // 任务 IMPL-P3-PROJ-001；合同锚见 p3_proj_v6.h 头注。
+// registry v3（SCI-FIX-PROJ 2026-09-16）：CAR/AIT 按 Paper II §2.2 三 Euler 角把 CRVAL2
+// （含 LONPOLE 标准默认）纳入映射；AIT 域界 A≤1；CAR native 极行 |θ|≥90° fail-closed。
 #include "p3_proj_v6.h"
 
 #include <algorithm>
@@ -25,14 +27,6 @@ constexpr double kSqrt2 = 1.41421356237309504880168872420969808;
 void normalize_ra(double* ra) {
     *ra = std::fmod(*ra, 360.0);
     if (*ra < 0) *ra += 360.0;
-}
-
-// 最短角差 ∈ (−180,180]
-double shortest_dra_deg(double dra) {
-    dra = std::fmod(dra, 360.0);
-    if (dra <= -180.0) dra += 360.0;
-    if (dra > 180.0) dra -= 360.0;
-    return dra;
 }
 
 // G1 CD 构造（east_left: diag(−s,+s)·R；east_right: diag(+s,−s)·R；PA 推广）
@@ -99,6 +93,54 @@ ProjStatus sky_to_plane_zenithal(const Descriptor* d, double ra_deg, double dec_
     return ProjStatus::kOk;
 }
 
+// ---- Paper II §2.2 通用旋转: 由 CRVAL 与投影参考点 (phi0,theta0) 解三 Euler 角 ----
+// 约束: sin(d0) = sin(th0) sin(dp) + cos(th0) cos(dp) cos(phi0 - phip)
+//       ap = a0 - atan2(-cos(th0) sin(phi0-phip), sin(th0) cos(dp) - cos(th0) sin(dp) cos(phi0-phip))
+// CAR/AIT 参考点 (phi0,theta0) = (0,0)；LONPOLE 标准默认 = 0 (d0>=th0) 否则 180。
+// 逆向: th = asin(sin(d) sin(dp) + cos(d) cos(dp) cos(a-ap))
+//       ph = phip + atan2(-cos(d) sin(a-ap), sin(d) cos(dp) - cos(d) sin(dp) cos(a-ap))
+struct Tilt { double ra_p, dec_p, phi_p; };
+
+Tilt tilt_params(double ra0_deg, double dec0_deg) {
+    const double d0 = dec0_deg * kRad;
+    const double phip = (dec0_deg >= 0.0) ? 0.0 : M_PI;
+    double cos_dp = std::sin(d0) / std::cos(phip);          // th0=0, phi0=0
+    if (cos_dp > 1.0) cos_dp = 1.0;
+    if (cos_dp < -1.0) cos_dp = -1.0;
+    const double dp = std::acos(cos_dp);                    // |dp| <= 90
+    const double ap = ra0_deg * kRad -
+        std::atan2(std::sin(phip), -std::sin(dp) * std::cos(phip));
+    Tilt t; t.ra_p = ap; t.dec_p = dp; t.phi_p = phip; return t;
+}
+
+void native_to_sky_general(const Tilt& t, double phi, double theta,
+                           double* ra_deg, double* dec_deg) {
+    const double st = std::sin(theta), ct = std::cos(theta);
+    const double dps = std::sin(t.dec_p), dpc = std::cos(t.dec_p);
+    const double cp = std::cos(phi - t.phi_p), sp = std::sin(phi - t.phi_p);
+    const double dec = std::asin(st * dps + ct * dpc * cp);
+    const double dra = std::atan2(-ct * sp, st * dpc - ct * dps * cp);
+    double ra_out = (t.ra_p + dra) * kDeg;
+    normalize_ra(&ra_out);
+    *ra_deg = ra_out; *dec_deg = dec * kDeg;
+}
+
+void sky_to_native_general(const Tilt& t, double ra_deg, double dec_deg,
+                           double* phi, double* theta) {
+    const double a = ra_deg * kRad, dd = dec_deg * kRad;
+    const double dps = std::sin(t.dec_p), dpc = std::cos(t.dec_p);
+    const double da = a - t.ra_p;
+    double sth = std::sin(dd) * dps + std::cos(dd) * dpc * std::cos(da);
+    if (sth > 1.0) sth = 1.0;
+    if (sth < -1.0) sth = -1.0;
+    *theta = std::asin(sth);
+    double ph = t.phi_p + std::atan2(-std::cos(dd) * std::sin(da),
+                                     std::sin(dd) * dpc - std::cos(dd) * dps * std::cos(da));
+    ph = std::fmod(ph + M_PI, 2.0 * M_PI);        // 归一 (-pi, pi]
+    if (ph <= 0.0) ph += 2.0 * M_PI;
+    *phi = ph - M_PI;
+}
+
 // ---------------- TAN ----------------
 ProjStatus tan_pix2world(const Descriptor* d, double x, double y,
                          double* ra_deg, double* dec_deg) {
@@ -159,19 +201,18 @@ ProjStatus sin_world2pix(const Descriptor* d, double ra_deg, double dec_deg,
     return plane_to_pix(d, xi * kDeg, eta * kDeg, x, y);
 }
 
-// ---------------- CAR（标准 Paper II: X=φ, Y=θ; θ0=+90° 恒等旋转）----------------
+// ---------------- CAR（标准 Paper II: X=φ, Y=θ; 参考点 (0,0) + CRVAL2 旋转）------
 ProjStatus car_pix2world(const Descriptor* d, double x, double y,
                          double* ra_deg, double* dec_deg) {
     if (!d || !ra_deg || !dec_deg) return ProjStatus::kParam;
     double xd, yd;
     pix_to_plane(d, x, y, &xd, &yd);
     const double phi_deg = xd;          // φ = X（deg）
-    const double theta_deg = yd;        // θ = Y（deg）；CAR: θ=δ
-    if (std::fabs(theta_deg) > 90.0) return ProjStatus::kParam;
-    double ra_out = d->crval_ra_deg + phi_deg;
-    normalize_ra(&ra_out);
-    *ra_deg = ra_out;
-    *dec_deg = theta_deg;
+    const double theta_deg = yd;        // θ = Y（deg），native 纬度
+    // native 极行 θ=±90° 整行塌缩（Ω=0、RA 无定义）⇒ fail-closed（含 =90）
+    if (std::fabs(theta_deg) >= 90.0) return ProjStatus::kParam;
+    const Tilt t = tilt_params(d->crval_ra_deg, d->crval_dec_deg);
+    native_to_sky_general(t, phi_deg * kRad, theta_deg * kRad, ra_deg, dec_deg);
     return ProjStatus::kOk;
 }
 
@@ -179,11 +220,15 @@ ProjStatus car_world2pix(const Descriptor* d, double ra_deg, double dec_deg,
                          double* x, double* y) {
     if (!d || !x || !y) return ProjStatus::kParam;
     if (std::fabs(dec_deg) > 90.0) return ProjStatus::kParam;
-    const double dra = shortest_dra_deg(ra_deg - d->crval_ra_deg);
-    return plane_to_pix(d, dra, dec_deg, x, y);
+    const Tilt t = tilt_params(d->crval_ra_deg, d->crval_dec_deg);
+    double phi, theta;
+    sky_to_native_general(t, ra_deg, dec_deg, &phi, &theta);
+    // native 极点上逆映射 φ 不唯一（整行塌缩的同一点）⇒ fail-closed
+    if (std::fabs(theta) >= kHalfPi) return ProjStatus::kParam;
+    return plane_to_pix(d, phi * kDeg, theta * kDeg, x, y);
 }
 
-// ---------------- AIT（标准 Paper II: γ=√2/D, X=2γ cosθ sin(φ/2), Y=γ sinθ）----
+// -------- AIT（标准 Paper II: γ=√2/D, X=2γ cosθ sin(φ/2), Y=γ sinθ；CRVAL2 旋转）--
 ProjStatus ait_pix2world(const Descriptor* d, double x, double y,
                          double* ra_deg, double* dec_deg) {
     if (!d || !ra_deg || !dec_deg) return ProjStatus::kParam;
@@ -192,18 +237,18 @@ ProjStatus ait_pix2world(const Descriptor* d, double x, double y,
     const double xrad = xd * kRad, yrad = yd * kRad;
     // 反演: 令 X'=X/√2, Y'=Y/√2 ⇒ X'=2cosθ sin(φ/2)/D, Y'=sinθ/D
     const double xp = xrad / kSqrt2, yp = yrad / kSqrt2;
-    const double dsq = 2.0 - (xp * xp / 4.0 + yp * yp);
-    if (!(dsq > 0.0)) return ProjStatus::kHemisphere;
+    // Paper II AIT 椭圆域: A = xp²/4 + yp² ≤ 1（A=1 即 φ=±180° 边界合法）
+    const double a_ell = xp * xp / 4.0 + yp * yp;
+    if (a_ell > 1.0) return ProjStatus::kHemisphere;
+    const double dsq = 2.0 - a_ell;
     const double dq = std::sqrt(dsq);
     const double sin_theta = yp * dq;
     if (std::fabs(sin_theta) > 1.0) return ProjStatus::kHemisphere;
     const double theta = std::asin(sin_theta);
     const double half = std::atan2(xp * dq / 2.0, dsq - 1.0);
     const double phi = 2.0 * half;
-    double ra_out = d->crval_ra_deg + phi * kDeg;
-    normalize_ra(&ra_out);
-    *ra_deg = ra_out;
-    *dec_deg = theta * kDeg;
+    const Tilt t = tilt_params(d->crval_ra_deg, d->crval_dec_deg);
+    native_to_sky_general(t, phi, theta, ra_deg, dec_deg);
     return ProjStatus::kOk;
 }
 
@@ -211,9 +256,9 @@ ProjStatus ait_world2pix(const Descriptor* d, double ra_deg, double dec_deg,
                          double* x, double* y) {
     if (!d || !x || !y) return ProjStatus::kParam;
     if (std::fabs(dec_deg) > 90.0) return ProjStatus::kParam;
-    const double dra = shortest_dra_deg(ra_deg - d->crval_ra_deg);
-    const double phi = dra * kRad;
-    const double theta = dec_deg * kRad;
+    const Tilt t = tilt_params(d->crval_ra_deg, d->crval_dec_deg);
+    double phi, theta;
+    sky_to_native_general(t, ra_deg, dec_deg, &phi, &theta);
     const double dq = std::sqrt(1.0 + std::cos(theta) * std::cos(phi / 2.0));
     if (!(dq > 0.0)) return ProjStatus::kHemisphere;
     const double gamma = kSqrt2 / dq;
@@ -222,15 +267,17 @@ ProjStatus ait_world2pix(const Descriptor* d, double ra_deg, double dec_deg,
     return plane_to_pix(d, X * kDeg, Y * kDeg, x, y);
 }
 
+// DESIGN §5.3 八投影冻结集中已实现的 4 项（TAN/SIN/CAR/AIT）；STG/MOL/CEA/ZEA
+// 归 P3-001（GAP-011）实施后再入表，registry_selfcheck 保证表内 code 恒属于冻结集。
 const Spec kRegistry[4] = {
     {ProjectionId::kTAN, "TAN", "RA---TAN", "DEC--TAN", 85.0, 20.0,
      "tan_antipode_r_ge_halfpi", &tan_pix2world, &tan_world2pix},
     {ProjectionId::kSIN, "SIN", "RA---SIN", "DEC--SIN", 85.0, 60.0,
      "sin_limb_rho_gt_one", &sin_pix2world, &sin_world2pix},
     {ProjectionId::kCAR, "CAR", "RA---CAR", "DEC--CAR", 85.0, 180.0,
-     "car_dec_outside_90", &car_pix2world, &car_world2pix},
+     "car_native_pole_row_abs_theta_ge_90", &car_pix2world, &car_world2pix},
     {ProjectionId::kAIT, "AIT", "RA---AIT", "DEC--AIT", 85.0, 360.0,
-     "ait_ellipse_dsq_le_zero", &ait_pix2world, &ait_world2pix},
+     "ait_ellipse_a_gt_one", &ait_pix2world, &ait_world2pix},
 };
 
 // ---------------- Ω 内部辅助 ----------------
@@ -280,21 +327,39 @@ double projection_margin(const Descriptor* d, double x, double y, ProjStatus* st
         }
         case ProjectionId::kCAR: {
             const double th = yd * kRad;
-            *st = (std::fabs(yd) > 90.0) ? ProjStatus::kParam : ProjStatus::kOk;
+            // native 极行 |θ|≥90° 整行塌缩 ⇒ margin 0 即域外（fail-closed）
+            *st = (std::fabs(yd) >= 90.0) ? ProjStatus::kParam : ProjStatus::kOk;
             return kHalfPi - std::fabs(th);
         }
-        default: {   // AIT
+        default: {   // AIT: 椭圆域 A = xp²/4 + yp² ≤ 1
             const double xp = xd * kRad / kSqrt2, yp = yd * kRad / kSqrt2;
-            const double dsq = 2.0 - (xp * xp / 4.0 + yp * yp);
+            const double a_ell = xp * xp / 4.0 + yp * yp;
+            const double dsq = 2.0 - a_ell;
             const double sth = yp * std::sqrt(std::max(0.0, dsq));
-            *st = (!(dsq > 0.0) || std::fabs(sth) > 1.0) ? ProjStatus::kHemisphere
-                                                         : ProjStatus::kOk;
-            return dsq;
+            *st = (a_ell > 1.0 || std::fabs(sth) > 1.0) ? ProjStatus::kHemisphere
+                                                        : ProjStatus::kOk;
+            return 1.0 - a_ell;
         }
     }
 }
 
 }  // namespace
+
+const char* const kFrozenSet[kFrozenProjectionCount] = {
+    "TAN", "SIN", "CAR", "AIT", "STG", "MOL", "CEA", "ZEA"};
+
+const char* const* registry_frozen_set(int* count) {
+    if (count) *count = kFrozenProjectionCount;
+    return kFrozenSet;
+}
+
+bool registry_is_frozen_code(const char* code) {
+    if (!code) return false;
+    for (int i = 0; i < kFrozenProjectionCount; ++i) {
+        if (std::strcmp(code, kFrozenSet[i]) == 0) return true;
+    }
+    return false;
+}
 
 const Spec* registry_table(int* count) {
     if (count) *count = 4;
@@ -316,10 +381,13 @@ const Spec* registry_find_id(ProjectionId id) {
 }
 
 int registry_selfcheck() {
-    if (kProjectionRegistryVersion != 2) return 1;
+    if (kProjectionRegistryVersion != 3) return 1;
+    if (kFrozenProjectionCount != 8) return 1;
     for (int i = 0; i < 4; ++i) {
         if (!kRegistry[i].code || !kRegistry[i].ctype1 || !kRegistry[i].ctype2)
             return i + 1;
+        // 表内投影必须属于 DESIGN §5.3 冻结集合（防未注册投影混入）
+        if (!registry_is_frozen_code(kRegistry[i].code)) return i + 1;
         if (!kRegistry[i].singularity_kind || kRegistry[i].code[0] == '\0')
             return i + 1;
         if (!kRegistry[i].pix2world || !kRegistry[i].world2pix) return i + 1;

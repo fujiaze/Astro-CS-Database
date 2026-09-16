@@ -3,11 +3,16 @@
 > P3-PROJ-DOC 冻结（2026-09-11，SA-P3-P25）。本目录为 Phase3 投影域迁移
 > 合同落位（三件套：README + module.yaml + memory.md），照
 > lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→phase3_fits 迁移
-> 目录先例新建。**P3-001 增补（2026-09-10）**：版本化 projection
-> registry v1 与宪章 §18.1 冻结首批四投影（TAN/SIN/CAR/AIT）实现落位
-> 本目录——`p3_projection.h`（唯一权威签名头）+ `p3_projection.cpp`
-> （registry 冻结表 + 四投影统一操作面，ALG 冻结口径
-> docs/algorithms/PHASE3_PROJ_IMPL.md §15 唯一权威）；TAN 逐式沿用
+> 目录先例新建。**SCI-FIX-PROJ 增补（2026-09-16）**：投影集合权威 =
+> ASTROCS_DESIGN.md §5.3 首批八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
+> **在役 registry = v6 线 p3_proj_v6.h/.cpp（kProjectionRegistryVersion=3）**
+> ——CAR/AIT 按 Calabretta & Greisen (2002) Paper II §2.2 三 Euler 角把
+> CRVAL2（含 LONPOLE 默认 0/180）纳入映射、AIT 椭圆域 A≤1、CAR native 极行
+> |θ|≥90° fail-closed；冻结集合经 registry_frozen_set() 导出（表内 code 必须
+> 属于该集合），STG/MOL/CEA/ZEA 实施归 P3-001（GAP-011）。
+> **legacy v1（P3-001 增补 2026-09-10）已 RETIRED**：p3_projection.h/.cpp
+> 退场，仅为历史测试面与 legacy 偏差对照证据门保留（四项偏差 D1..D4 见
+> ALG-P3-PROJ-IMPL-001 §15.9），禁止新消费方引用。TAN 逐式沿用
 > lib/phase3_session/p3_wcs.cpp 冻结生产事实（bitwise 对拍承载于
 > tests/unit/p3_projection_test.cpp T3）。**现状**：registry 为测试
 > 目标直编面（tests/unit/CMakeLists.txt），非生产构建成员；
@@ -15,6 +20,8 @@
 > 挂载由 P3-PROJ-IMPL/P3-002 建立，禁止声明 IMPLEMENTED）。
 > legacy 生产源 lib/phase3_session/p3_wcs.h/.cpp 保留原位不搬家
 > （会话消费点 p3_session.cpp 不变）。
+> 文档口径见 docs/algorithms/PHASE3_PROJ_IMPL.md §15（v3 冻结口径 + §15.9
+> v1 偏差表）、docs/plugins/algorithms_phase3/14_projection.md。
 
 ## 1 身份
 
@@ -23,9 +30,10 @@
   P3-PROJ-INT 对齐，不作冻结依据）。
 - registry 行: MOD-astrocs-phase3-wcs；dll_target:
   astrocs_p3_projection.dll（合同值，未建）。
-- 域: 天球投影/WCS。**P3-001**: registry v1 冻结四投影 TAN/SIN/CAR/AIT
-  （宪章 §18.1；新增投影须经 registry 注册并附独立往返 Oracle）；
-  ZEA 等其余投影未注册（registry_find 返回 nullptr，fail-closed）。
+- 域: 天球投影/WCS。**在役 v3**（DESIGN §5.3 八投影冻结集合）：已实现
+  TAN/SIN/CAR/AIT，STG/MOL/CEA/ZEA 未实现（registry_find 返回 nullptr，
+  fail-closed；实施归 P3-001/GAP-011）。新增投影必须落在冻结集合内并附
+  独立往返 Oracle。**legacy v1 已 RETIRED**（见上，仅作偏差对照）。
 
 ## 2 合同链（ID 唯一权威落位）
 

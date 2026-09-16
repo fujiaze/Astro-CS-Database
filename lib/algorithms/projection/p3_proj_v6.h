@@ -1,11 +1,11 @@
 // lib/algorithms/projection/p3_proj_v6.h — V6 Phase3 投影实现层（标准 FITS WCS Paper II
-// 四投影 + 逐像素立体角 Ω + R/S 行/列归一二元语义 + 计划/奇点/wrap）
+// registry v3 已实现四投影 + 逐像素立体角 Ω + R/S 行/列归一二元语义 + 计划/奇点/wrap）
 //
 // 任务: IMPL-P3-PROJ-001（wave 5, write_scope=lib/algorithms/projection/）
 // 上位冻结:
-//   * 宪章 §7.3（版本化 projection registry；每投影声明适用天区/奇点/经纬方向/
-//     CRPIX/CRVAL/CD/CTYPE/合法 FOV/独立往返 Oracle；禁止 CLI switch 散落）+ §18.1
-//     （首批 TAN/SIN/CAR/AIT 冻结）。
+//   * ASTROCS_DESIGN.md §5.3（内置多种投影，首批冻结 TAN/SIN/CAR/AIT/STG/MOL/
+//     CEA/ZEA 八投影；每投影声明适用域/奇点/经度 wrap/轴手性/CRPIX/CRVAL/CD/
+//     PC/CDELT/CTYPE；新增投影经 registry 注册并附独立往返 Oracle）。
 //   * DESIGN-P3-001 §2（WCS 计划）/§3（反向映射、逐像素面积元、禁止平面近似）/
 //     §4（C_y=R C_x Rᵀ）。
 //   * ALG-P3-001 §1.3（统一线性模型：Ω'_i=|det(d sky/d pixel)|_i、
@@ -20,20 +20,27 @@
 // 关键约定（标准 FITS WCS，独立 oracle 用 astropy/WCSLIB 交叉验证）:
 //   * CD-only（禁 PC+CDELT），FITS 1-based 关键字 / 内部 0-based 像素中心：
 //     pixel x -> FITS x+1。
-//   * TAN/SIN：zenithal，θ0=CRVAL2（legacy 冻结逐式路径，与 astropy 一致）。
-//   * CAR：cylindrical，恒等旋转 θ0=+90°；平面中间坐标 X=φ, Y=θ（标准 Paper II
-//     y=+θ，declination 随 y 增加）。
-//   * AIT：pseudo-cylindrical，恒等旋转 θ0=+90°；标准 Paper II
-//     γ=√2/√(1+cosθcos(φ/2))，X=2γ cosθ sin(φ/2), Y=γ sinθ（等积）。
-//   * 四投影统一 |CRVAL dec|≤85° 中心守卫；域界 fail-closed：
-//     TAN r≥π/2 / SIN ρ>1 / AIT D²≤0 → kHemisphere；CAR |δ|>90° → kParam。
+//   * TAN/SIN：zenithal，参考点 θ0=CRVAL2（legacy 冻结逐式路径，与 astropy 一致）。
+//   * CAR/AIT：参考点 (φ0,θ0)=(0,0)，native 极恒在 θ=+90°；**CRVAL2 进入映射**——
+//     按 Paper II §2.2 三 Euler 角 (α_p, δ_p, φ_p) 解旋转，LONPOLE 取标准默认
+//     （δ0 ≥ θ0 ⇒ 0°，否则 180°）。平面中间坐标 CAR: X=φ, Y=θ（declination 随 y
+//     增加）；AIT: γ=√2/√(1+cosθcos(φ/2))，X=2γ cosθ sin(φ/2), Y=γ sinθ（等积）。
+//   * CAR native 极行 θ=±90° 整行塌缩（Ω=0、RA 无定义）⇒ fail-closed 拒绝
+//     （|θ|≥90° → kParam，正向/逆向一致）。
+//   * 已实现四投影统一 |CRVAL dec|≤85° 中心守卫；域界 fail-closed：
+//     TAN r≥π/2 / SIN ρ>1 / AIT A>1（A=xp²/4+yp²，标准椭圆域 A≤1）→ kHemisphere；
+//     CAR |θ|≥90° → kParam。
 //
 // 与 legacy registry v1 的关系:
-//   * 本层 kProjectionRegistryVersion=2 是 V6 标准实现。legacy v1
-//     （p3_projection.h/.cpp）CAR 用 Y=−θ（declination 反号）、AIT 缺 Paper II γ 的
-//     √2 因子，与标准 FITS WCS 不一致；本层修正并保留 legacy 符号零改动
-//     （legacy 逆向面 tests/unit/p3_projection_test.cpp 不在本任务 write_scope）。
-//     偏差证据与裁决请求见 run/v6/IMPL-P3-PROJ-001/ 与任务返回。
+//   * 本层 kProjectionRegistryVersion=3 是 V6 唯一在役 registry。legacy v1
+//     （p3_projection.h/.cpp，kP3ProjectionRegistryVersion=1）已 **RETIRED**（退场）：
+//     CAR 用 Y=−θ（declination 反号）、AIT 缺 √2、AIT 域判据 A<2、CRVAL2 不进映射
+//     四项偏差保留为历史对照（ALG-P3-PROJ-IMPL-001 §15.9 v1 偏差表 + 证据门
+//     p3_proj_legacy_deviation.py），禁止新消费方引用；本层不再"保留 legacy 符号
+//     零改动"式回避，legacy 偏差不构成本层行为依据。
+//   * registry 权威冻结集合 = ASTROCS_DESIGN.md §5.3 八投影
+//     （TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；本层 v3 注册已实现子集（当前 4 项，
+//     STG/MOL/CEA/ZEA 实施归 P3-001，GAP-011）。
 #ifndef ASTROCS_P3_PROJ_V6_H
 #define ASTROCS_P3_PROJ_V6_H
 
@@ -42,8 +49,19 @@
 
 namespace astrocs::phase3proj::v6 {
 
-// 版本化 registry 版本（宪章 §7.3）。v2 = 标准 Paper II CAR/AIT 修正。
-constexpr int kProjectionRegistryVersion = 2;
+// 版本化 registry 版本（DESIGN §5.3 八投影冻结集 + 变更 claim）。
+// v1 = 首批四投影，CRVAL2 不进映射（**已 RETIRED**，见下）；
+// v2 = CAR/AIT 符号与 √2 修正，但 CRVAL2 仍不进映射、AIT 域 A<2；
+// v3 = Paper II §2.2 三 Euler 角把 CRVAL2（含 LONPOLE 默认）纳入 CAR/AIT 映射 +
+//      AIT 域界 A≤1 + CAR native 极行 θ=±90° fail-closed。
+// 表内容或语义变化必须递增此版本并在 ALG-P3-PROJ-IMPL-001 §15 登记变更 claim。
+constexpr int kProjectionRegistryVersion = 3;
+
+// registry 权威冻结集合（ASTROCS_DESIGN.md §5.3 首批八投影）。本层 kRegistry 是其
+// 已实现子集；新增投影必须先落在该集合内并附独立往返 Oracle（DESIGN §5.3）。
+constexpr int kFrozenProjectionCount = 8;
+const char* const* registry_frozen_set(int* count);
+bool registry_is_frozen_code(const char* code);   // 冻结集合成员判定（大小写敏感）
 
 // phase3.v1.omega 单位（docs/contracts/v6/data/08_phase3.md §2）。
 constexpr const char* kUnitOmegaSr = "sr";
@@ -57,9 +75,9 @@ enum class ProjectionId : int {
 
 enum class ProjStatus : int {
     kOk = 0,
-    kParam = 1,         // 参数非法 / 空指针 / 非有限 / CAR |δ|>90°
+    kParam = 1,         // 参数非法 / 空指针 / 非有限 / CAR native 极行 |θ|≥90°
     kUnsupported = 2,   // 未知投影码 / 越界 id（registry 未注册）
-    kHemisphere = 3     // 中间坐标越投影域（TAN r≥π/2 / SIN ρ>1 / AIT D²≤0）
+    kHemisphere = 3     // 中间坐标越投影域（TAN r≥π/2 / SIN ρ>1 / AIT A>1）
 };
 
 // 投影 descriptor（CD-only，FITS 1-based CRPIX，内部 0-based 像素中心）。
@@ -74,7 +92,7 @@ struct Descriptor {
     int height_px = 0;
 };
 
-// 经纬方向 + CTYPE 规则 + 适用天区/奇点/合法 FOV 的六要素声明（宪章 §7.3）。
+// 经纬方向 + CTYPE 规则 + 适用天区/奇点/合法 FOV 的六要素声明（DESIGN §5.3）。
 struct Spec {
     ProjectionId id;
     const char* code;
@@ -115,6 +133,7 @@ struct Plan {
 
 // make: 校验序（out 非空→registry id→parity→|dec|≤85°→scale>0→W,H∈[1,20000]
 //       →G1 CD 构造→四角投影域守卫）；失败时 *out 零初始化。
+//       四角守卫对 CAR 即「禁触碰 native 极行 |θ|≥90°」（禁止整行塌缩进入产物）。
 ProjStatus make(ProjectionId id,
                 double centre_ra_deg, double centre_dec_deg,
                 double scale_deg_per_px,
