@@ -1,9 +1,10 @@
 # AstroCS phase3 fits_writer 模块 — 元数据 (P3-FITS-DOC 冻结, 2026-09-08)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase3_session/p3_output.cpp
-# 370 行 + 唯一权威签名头 lib/phase3_session/p3_output.h 64 行，
-# 行号 grep/read 实测；编排消费方 lib/phase3_session/p3_session.cpp
-# 329 行 run 段 :287-289 调 p3_output_write_atomic；构建挂载: 根
-# CMakeLists.txt:460-465 astrocs_phase3_session STATIC 五源文件之一；
+# 556 行 + 唯一权威签名头 lib/phase3_session/p3_output.h 95 行，
+# 行数实测 2026-09-16（wc -l）；编排消费方 lib/phase3_session/p3_session.cpp
+# 441 行 run 段调 p3_output_write_atomic_ex；构建挂载: 根
+# CMakeLists.txt add_library(astrocs_phase3_session ...) 五源文件之一
+# （原记 :460-465 已随路径迁移漂移）；
 # 底座=astrocs_aio STATIC :273-296（aio_fits.cpp + vendored
 # third_party/cfitsio astrocs_cfitsio 静态库 + zlib），
 # cfitsio 进程锁 aio_cfitsio_mutex.h:9-15 RT-008），
@@ -12,7 +13,7 @@
 # 可执行测试由 P3-FITS-TEST 建立（TEST-P3-WR-001 MISSING，不冒认；
 # 设计冻结面=ALG-P3-FITS-IMPL-001 TEST-DESIGN 节 + registry 手写页
 # §独立 synthetic 验证节；现状执行测试 tests/unit/p3_output_test.cpp
-# 116 行 = 相邻证据，引用不冒认，tests/unit/CMakeLists.txt:442-447）。
+# 153 行 = 相邻证据，引用不冒认，tests/unit/CMakeLists.txt 注册）。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为
 # 源码核对清单（P3-FITS-DOC，2026-09-08，grep 实测 p3_output.h/p3_wcs.h
 # 声明符号，禁抄他版）。

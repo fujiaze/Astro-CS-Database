@@ -313,7 +313,7 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         m->controls[it->second].obs_idx.push_back(i);
         frame_ids.insert(o.frame_id);
     }
-    // 移除的跨 tile 边界节点合并（proximity-alias）。
+    // 禁止跨 tile 边界节点合并（proximity-alias）。
     // 边界两侧 cell 中心是**不同 sky 位置**，共享系数会强制 seam 两侧
     // C 恒等（jump=0），导致跨 tile 真实梯度无法恢复。现在边界节点保持
     // 独立系数，跨 tile 连续性由 平滑邻接（弱先验）提供：
@@ -493,7 +493,8 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
 
     // ===== Huber IRLS 坐标下降求解 =====
     // 残差 r_ik = y_ik - M_k - C_i,k
-    // [B4-27 排异锚点 — REJECTION.md 迭代剔除/阈值契约, SCI-UPM 权重 SCI-UPM-WEIGHT-001 关联, 不改语义]
+    // 排异锚点：迭代剔除/阈值契约见 docs/science/REJECTION.md；权重来源见
+    // docs/science/PHASE2_UPM.md（SCI-UPM-WEIGHT-001）。
     // 权重 raw_w = quality × control_ivar（SCI-UPM-WEIGHT-001）；
     // per-control 归一化后 × huber_w。legacy snr² 路径仅在
     // use_ivar_weight=0（ablation/诊断）时由 p2_upm_raw_weight 选择。
@@ -635,12 +636,11 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             } else {
                 for (std::uint64_t i = 0; i < n_obs; ++i) {
                     const std::size_t ck = m->control_by_id[obs[i].control_id];
-                    // Huber 作用于标准化残差 z = r / sigma_eff。
-                    // 此前 huber_delta=1.345 直接与 ~0.002 raw residual 比较，
-                    // 所有残差都落在线性区，robust 几乎永不生效。现在
-                    // sigma_eff = max(观测 uncertainty, sigma_floor)，delta 保持
-                    // dimensionless 1.345；污染观测（patch 星污染 → residual 大
-                    // 而 uncertainty 有限）会被强烈降权。
+                    // Huber 作用于标准化残差 z = r / sigma_eff：
+                    // sigma_eff = max(观测 uncertainty, sigma_floor)，delta 取
+                    // 无量纲 1.345。不得用 raw residual 直接比较 delta——raw 尺度
+                    // 下所有残差都落在线性区，robust 权重永不生效；污染观测
+                    // （patch 星污染 → residual 大而 uncertainty 有限）被强烈降权。
                     const double r = obs[i].value - M[ck] -
                                      m->C[m->frame_index[obs[i].frame_id]][ck];
                     const double sigma_eff =

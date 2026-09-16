@@ -97,6 +97,10 @@ if(GTest_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/include)
     target_link_libraries(phase2_sampler PRIVATE phase2 GTest::gtest_main
         ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/astro_image_io.dll)
+    # M4-C-06 (SCI REJECTION 4/8): 非有限 weights 资格层校验 + INVALID_INPUT
+    # hard fail 的共址回归门（正例 + 负例，能红能绿）。
+    add_executable(phase2_rej_nonfinite_weights tests/rejection_nonfinite_weights_test.cpp)
+    target_link_libraries(phase2_rej_nonfinite_weights PRIVATE phase2 GTest::gtest_main)
     include(GoogleTest)
     # V3 B3-A4: 每个 Phase2 门的发现测试统一加 TEST_PREFIX "phase2_<gate>."，
     # 使全量 ctest 中的 Phase2 科学门可归因、可 grep（"ctest -N | grep -i
@@ -116,6 +120,8 @@ if(GTest_FOUND)
         TEST_PREFIX "phase2_async_io.")
     gtest_discover_tests(phase2_sampler DISCOVERY_MODE PRE_TEST
         TEST_PREFIX "phase2_sampler.")
+    gtest_discover_tests(phase2_rej_nonfinite_weights DISCOVERY_MODE PRE_TEST
+        TEST_PREFIX "phase2_rej_nonfinite_weights.")
 endif()
 
 # BLD-002: 以下工具降级为 compatibility (EXCLUDE_FROM_ALL) —— 非正式 ALL target,
