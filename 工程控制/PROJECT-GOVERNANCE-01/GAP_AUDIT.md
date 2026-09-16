@@ -426,3 +426,14 @@
 - **裁决**：放行把 `config/` 补进 `ENGINEERING_SPEC.md §7` 白名单 + `ci/root_manifest.json`（同一提交，依据设计 §3.3）；`registered_local_retention` 的 7 条悬空登记由 RETIRE-001 清理；
 - **同类**：`run/` 在 §7 同时出现于「固定条目」与「gitignore」两处，口径需在下一轮文档收敛中一并订正（登记待办）。
 
+
+---
+
+**GAP-034　产品：export 的预检与会话层对 `source` 形态要求互斥（模板不可直接运行）**
+
+- **发现**：TEST-CLI-SYNC 执行线实测；前台核实源码后确认。
+- **要点**：`subcommand.h` 把 `source` 只当 array/string 计数（对象恒 0 → error 阻断），`p3_session.cpp` 要求 `source.hips_dir`；`export --template` 产出与会话合同不一致 ⇒ 无合法配置可运行，仅 `-force` 可绕过。
+- **违反**：`ASTROCS_DESIGN §3.5`（force 白名单语义）、`§6.1`（模板必须可直接运行）、`§6.2`（唯一命令树）。
+- **归属**：**CLI-002**（模板/预检/确认/force 语义；卡内已写入验收门）。
+- **影响**：TEST-CLI-SYNC 的 export 链路用例保持**显式红**（不 skip、不掩盖），修复后转绿。
+
