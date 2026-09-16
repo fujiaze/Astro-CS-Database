@@ -3,7 +3,8 @@
 // 覆盖 (HIPS_WRITER.md §9 负面矩阵): nside<512 / tile_width≠512 /
 // 非法 dtype / 越位 flags / parent_ipix≥12·4^K / width≠512 / var_num NULL /
 // 全无效 variance tile (−5) / FITS 路径不可写 (−4/−5/−6/−7) /
-// prov pixfrac>1 (rc=2) / 重复 finalize (−2, I9) / NULL 句柄域 /
+// prov pixfrac(0,1] + scale 闭域 (NaN/Inf/0/负/>824.5167388361774″, 均 rc=2
+// 且必须 set_error 点名原因) / 重复 finalize (−2, I9) / NULL 句柄域 /
 // write_snr NULL+域 / last_error 非空语义。
 // 批次 R hardening 面 (astro_image_io 域 57 处 malloc 0 静默) 由既有
 // hardening 测试覆盖, 本组不重复 (负面注入从 ABI 合同层出发)。
@@ -19,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <limits>
 #include <system_error>
 #include <string>
 
@@ -259,7 +261,11 @@ int test_negative() {
         }
     }
 
-    // --- N5: provenance 域 (pixfrac>1/≤0 → 2; scale<0 → 2; NULL ps → 1)
+    // --- N5: drizzle provenance 合法域 (M9-F-3)
+    //   pixfrac ∉ (0,1] → 2; scale: !isfinite → 2、!(x>0) → 2、
+    //   x > ACS_HIPS_MAX_FRAME_SCALE_ARCSEC → 2; 每次拒绝必须 set_error 并点名
+    //   具体原因 (ENGINEERING_SPEC:137 状态码 + 结构化诊断)。
+    //   通道语义 = 全或无: 接受后两键必须齐备落盘 (禁"接受 0 但静默不写键")。
     {
         const std::string dir = make_tmp_dir("n5");
         AioHipsProductSet* ps = aio_hips_product_begin(
@@ -268,11 +274,39 @@ int test_negative() {
         P1HIPS_CHECK(cs, ps != nullptr, "n5_begin");
         P1HIPS_CHECK_EQ(cs, aio_hips_set_drizzle_provenance(nullptr, 0.5, 1.0), 1);
         if (ps) {
-            P1HIPS_CHECK_EQ(cs, aio_hips_set_drizzle_provenance(ps, 1.5, 1.0), 2);
-            P1HIPS_CHECK_EQ(cs, aio_hips_set_drizzle_provenance(ps, 0.0, 1.0), 2);
-            P1HIPS_CHECK_EQ(cs, aio_hips_set_drizzle_provenance(ps, 0.5, -1.0), 2);
+            const double nan_v = std::numeric_limits<double>::quiet_NaN();
+            const double inf_v = std::numeric_limits<double>::infinity();
+            auto rejected = [&](double pf, double sc, const char* token, const char* tag) {
+                P1HIPS_CHECK_EQ(cs, aio_hips_set_drizzle_provenance(ps, pf, sc), 2);
+                const char* e = aio_hips_last_error();
+                P1HIPS_CHECK_MSG(cs, e && std::strstr(e, token) != nullptr, tag,
+                                 "拒绝必须 set_error 点名原因 (%s); last_error=%s",
+                                 token, e ? e : "(null)");
+            };
+            rejected(1.5, 1.0, "pixfrac", "n5_pixfrac_gt1");
+            rejected(0.0, 1.0, "pixfrac", "n5_pixfrac_zero");
+            rejected(0.5, nan_v, "非有限", "n5_scale_nan");
+            rejected(0.5, inf_v, "非有限", "n5_scale_inf");
+            rejected(0.5, 0.0, "必须 > 0", "n5_scale_zero");
+            rejected(0.5, -1.0, "必须 > 0", "n5_scale_negative");
+            rejected(0.5, ACS_HIPS_MAX_FRAME_SCALE_ARCSEC + 1.0, "超出物理域",
+                     "n5_scale_above_upper");
+            // 上界本身在闭域内 (上界不是"留白"): 必须被接受
+            P1HIPS_CHECK_EQ(cs,
+                            aio_hips_set_drizzle_provenance(
+                                ps, 0.5, ACS_HIPS_MAX_FRAME_SCALE_ARCSEC), 0);
+            // 接受后两键齐备落盘 (禁静默缺键)
             P1HIPS_CHECK_EQ(cs, aio_hips_set_drizzle_provenance(ps, 0.5, 0.1), 0);
-            aio_hips_abort(ps);
+            FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 0.0, true, false);
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &fx.view), 0);
+            P1HIPS_CHECK_EQ(cs, aio_hips_finalize(ps), 0);
+            const auto kv = read_properties(dir + "/signal/properties");
+            P1HIPS_CHECK_MSG(cs, kv.count("ASTROCS_DRIZZLE_PIXFRAC") &&
+                                     kv.count("ASTROCS_DRIZZLE_SCALE_ARCSEC"),
+                             "n5_all_or_none_keys",
+                             "provenance 接受后必须两键齐备 (pixfrac=%d scale=%d)",
+                             (int)kv.count("ASTROCS_DRIZZLE_PIXFRAC"),
+                             (int)kv.count("ASTROCS_DRIZZLE_SCALE_ARCSEC"));
         }
     }
 
@@ -407,6 +441,110 @@ int test_negative() {
         }
     }
 
+    // --- N11: 跨边界结构 ABI fail-closed (V11-N-01; ASTROCS_DESIGN §7.3)
+    //   无 ABI 头的旧调用方 (struct_size/abi_version=0) 与错尺寸/错版本必须在
+    //   公共入口被拒绝 (AIO_HIPS_ABI_MISMATCH=-9) 且 last_error 点名 ABI;
+    //   合法 ABI 头不得被误拒 (双向排除)。修复前这些调用会被"按盲步长"读取:
+    //   40B C 结构 vs 32B 镜像语义 ⇒ 静默错位写数据 + 越界读。
+    {
+        const std::string dir = make_tmp_dir("n11abi");
+        AioHipsProductSet* ps = aio_hips_product_begin(
+            dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
+            AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
+            "ivo://t", "t", nullptr, 0.0, nullptr, 0);
+        P1HIPS_CHECK(cs, ps != nullptr, "n11abi_begin");
+        if (ps) {
+            FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 0.0, true, false);
+            // (a) 合法 ABI 头: 必须放行
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &fx.view), 0);
+            // (b) 旧调用方 (零初始化 = struct_size/abi_version 均 0): fail-closed
+            AstroSphereTileView old_view = fx.view;
+            old_view.struct_size = 0;
+            old_view.abi_version = 0;
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &old_view),
+                            AIO_HIPS_ABI_MISMATCH);
+            {
+                const char* m = aio_hips_last_error();
+                P1HIPS_CHECK_MSG(cs, m && std::strstr(m, "ABI") != nullptr,
+                                 "n11abi_view_last_error",
+                                 "ABI 拒绝必须点名 ABI; last_error=%s",
+                                 m ? m : "(null)");
+            }
+            // (c) 尺寸不符 (旧 40B 布局调用方按新头读到的 struct_size)
+            AstroSphereTileView bad = fx.view;
+            bad.struct_size = (uint32_t)sizeof(AstroSphereTileView) - 4u;
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &bad),
+                            AIO_HIPS_ABI_MISMATCH);
+            // (d) 版本不符 (variance 入口同款)
+            bad = fx.view;
+            bad.abi_version = (uint32_t)AIO_HIPS_TILE_VIEW_ABI_VERSION + 1u;
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_variance_tile(ps, &bad),
+                            AIO_HIPS_ABI_MISMATCH);
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &bad),
+                            AIO_HIPS_ABI_MISMATCH);
+            // (e) SNR 点数组: 逐元素校验 (第 2 元素起模拟旧 32B 镜像步长错位)
+            std::vector<FixSnrPointF> pts = fix_hips_d_snr_points(11u, 3);
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_snr_points(ps, pts.data(), 3), 0);
+            pts[1].struct_size = 0;
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_snr_points(ps, pts.data(), 3),
+                            AIO_HIPS_ABI_MISMATCH);
+            pts[1].struct_size = (uint32_t)sizeof(AioHipsSnrPoint);
+            pts[2].abi_version = 7;
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_snr_points(ps, pts.data(), 3),
+                            AIO_HIPS_ABI_MISMATCH);
+            pts[2].abi_version = AIO_HIPS_SNR_POINT_ABI_VERSION;
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_snr_points(ps, pts.data(), 3), 0);
+            aio_hips_abort(ps);   // 本组只测入口拒绝面, 不 finalize
+        }
+        // (f) 诊断平面视图同款
+        {
+            const std::string d2 = make_tmp_dir("n11abi_diag");
+            AioHipsProductSet* p2 = aio_hips_product_begin(
+                d2.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT32,
+                AIO_HIPS_PRODUCT_NREJ, "ivo://t", "t", nullptr, 0.0, nullptr, 0);
+            if (p2) {
+                std::vector<std::int32_t> z((std::size_t)FIX_NPIX, 0);
+                AioHipsDiagTileView dv{};
+                dv.parent_ipix = 0;
+                dv.leaf_order = FIX_LEAF_ORDER;
+                dv.width = 512;
+                dv.nrej = z.data();
+                dv.nused = nullptr;
+                aio_hips_diag_tile_view_abi_init(&dv);
+                P1HIPS_CHECK_EQ(cs, aio_hips_write_diag_tile(p2, &dv), 0);
+                AioHipsDiagTileView bad_dv = dv;
+                bad_dv.struct_size = 0;
+                P1HIPS_CHECK_EQ(cs, aio_hips_write_diag_tile(p2, &bad_dv),
+                                AIO_HIPS_ABI_MISMATCH);
+                aio_hips_abort(p2);
+            } else {
+                P1HIPS_CHECK(cs, false, "n11abi_diag_begin");
+            }
+        }
+        // (g) legacy aio_hips_write: AioHipsTile 数组同样逐元素 fail-closed
+        {
+            std::vector<float> sig((std::size_t)FIX_NPIX, 1.0f);
+            std::vector<std::uint8_t> sup((std::size_t)FIX_NPIX, 255u);
+            AioHipsTile t{};
+            t.parent_ipix = 0;
+            t.depth = FIX_LEAF_ORDER;
+            t.signal = sig.data();
+            t.support = sup.data();
+            aio_hips_tile_abi_init(&t);
+            const std::string d3 = make_tmp_dir("n11abi_legacy");
+            P1HIPS_CHECK_EQ(cs, aio_hips_write(d3.c_str(), FIX_NSIDE, 512, &t, 1,
+                                               AIO_HIPS_FLOAT32, nullptr, 0,
+                                               "ivo://t", "t", 0), 0);
+            AioHipsTile bad_t = t;
+            bad_t.struct_size = 0;
+            const std::string d4 = make_tmp_dir("n11abi_legacy_bad");
+            P1HIPS_CHECK_EQ(cs, aio_hips_write(d4.c_str(), FIX_NSIDE, 512, &bad_t, 1,
+                                               AIO_HIPS_FLOAT32, nullptr, 0,
+                                               "ivo://t", "t", 0),
+                            AIO_HIPS_ABI_MISMATCH);
+        }
+    }
+
     // --- DP (SCI-F3-001 增补): setter 参数域 / finalize 双向守卫 /
     //     write_diag_tile 值域 / verify 违反面逐条必败
     {
@@ -415,7 +553,7 @@ int test_negative() {
     }
 
     if (cs.failures == 0) {
-        std::fprintf(stdout, "[p1hips] negative: N1..N9 + DP-N1..DP-N4 PASS\n");
+        std::fprintf(stdout, "[p1hips] negative: N1..N11 + DP-N1..DP-N4 PASS\n");
         return 0;
     }
     std::fprintf(stderr, "[p1hips] negative: %d check(s) failed\n", cs.failures);

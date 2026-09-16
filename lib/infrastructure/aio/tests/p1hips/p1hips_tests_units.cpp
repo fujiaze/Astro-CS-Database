@@ -15,6 +15,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <map>
@@ -285,11 +286,21 @@ int test_units() {
         P1HIPS_CHECK(cs, kv.count("hips_frame") && kv.at("hips_frame") == "equatorial", "u1_prop_frame");
         P1HIPS_CHECK(cs, kv.count("dataproduct_subtype") && kv.at("dataproduct_subtype") == "surface brightness", "u1_prop_subtype");
         P1HIPS_CHECK(cs, kv.count("astrocs_signal_dtype") && kv.at("astrocs_signal_dtype") == "float64", "u1_prop_dtype");
-        // moc_sky_fraction (1/12 cell) — std::to_string 格式双侧一致
+        // moc_sky_fraction (1/12 cell) — 非平凡序列化点: 字面量必须
+        // round-trip 精确 (≥17 有效位) 且满足 §9 绝对误差 <1e-9。
+        // 修复前 std::to_string(6dp) 给出 "0.083333", 偏 3.333e-7 = 容差 333 倍。
         {
             const double frac = 1.0 / 12.0;
             const auto it = kv.find("moc_sky_fraction");
-            P1HIPS_CHECK(cs, it != kv.end() && it->second == std::to_string(frac), "u1_prop_mocfrac");
+            P1HIPS_CHECK(cs, it != kv.end(), "u1_prop_mocfrac_key");
+            if (it != kv.end()) {
+                const double got = std::strtod(it->second.c_str(), nullptr);
+                P1HIPS_CHECK_MSG(cs, got == frac, "u1_prop_mocfrac_roundtrip",
+                                 "字面量非 round-trip 精确: %s", it->second.c_str());
+                P1HIPS_CHECK_MSG(cs, std::fabs(got - frac) < 1e-9, "u1_prop_mocfrac_1e9",
+                                 "1/12 点超 §9 容差: got=%.17g err=%.3e",
+                                 got, std::fabs(got - frac));
+            }
         }
         P1HIPS_CHECK(cs, kv.count("obs_exptime") && kv.at("obs_exptime") == std::to_string(100.0), "u1_prop_exptime");
         // t_min/t_max 独立 MJD 复算 (%.8f 双侧)

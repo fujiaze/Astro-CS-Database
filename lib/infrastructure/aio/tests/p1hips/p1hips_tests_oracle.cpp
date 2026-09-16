@@ -10,7 +10,10 @@
 //   O3 SNR cell 归属弱 oracle: 独立球面角距离 + order-K cell 角尺度
 //      解析上界 (不调用被测/共享地址生成);
 //   O4 hips_pixel_scale 独立解析复算 (%.6f 双侧一致);
-//   O5 variance/ivar 互倒 (I4 有限域) f64 bitwise + f32 rtol。
+//   O5 variance/ivar 互倒 (I4 有限域) f64 bitwise + f32 rtol;
+//   O6 moc_sky_fraction 序列化判别面: 非平凡点 1/12 (N=1, K=0) 上
+//      回程精确 + §9 <1e-9 绝对容差 + properties↔manifest 逐字符一致
+//      (修复前 std::to_string 6dp 在 1/12 点超容差 333 倍且两面字面量分叉)。
 #include "p1hips_test_main.hpp"
 #include "p1hips_fixtures.hpp"
 #include "p1hips_oracle.hpp"
@@ -18,6 +21,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -55,6 +59,7 @@ int test_oracle() {
         fx.valid_mask.assign(FIX_NPIX, 1);
         for (std::size_t i = 0; i < FIX_NPIX; ++i)
             fx.flux_sum[i] = std::sin((double)i) * 1000.0 + (double)i;
+        aio_hips_tile_view_abi_init(&fx.view);   // ABI 自描述 (V11-N-01)
         fx.view.parent_ipix = 0;
         fx.view.leaf_order = FIX_LEAF_ORDER;
         fx.view.width = FIX_WIDTH;
@@ -121,16 +126,28 @@ int test_oracle() {
         } else {
             P1HIPS_CHECK(cs, false, "o2_moc_read");
         }
-        // sky fraction 弱上界: 3/12 cells → |frac−0.25| < 1e-9 (§9 冻结)
+        // sky fraction: 3/12 cells → |frac−0.25| < 1e-9 + 回程精确 + 双面一致。
+        // 3/12=0.25 是可精确表示的有限小数 ⇒ 对序列化精度无判别力; 非平凡
+        // 判别点 (1/12) 见 O6。此处的双面逐字符一致面在修复前必红 (properties
+        // 6dp "0.250000" vs manifest 8dp "0.25000000")。
         const auto kv = read_properties(dir + "/signal/properties");
         {
             const auto it = kv.find("moc_sky_fraction");
             if (it != kv.end()) {
-                const double got = std::atof(it->second.c_str());
+                const double got = std::strtod(it->second.c_str(), nullptr);
                 P1HIPS_CHECK(cs, std::fabs(got - 3.0 / 12.0) < 1e-9, "o2_skyfrac_1e9");
+                P1HIPS_CHECK(cs, got == 3.0 / 12.0, "o2_skyfrac_roundtrip_exact");
             } else {
                 P1HIPS_CHECK(cs, false, "o2_skyfrac_key");
             }
+            std::string mtxt, mlit;
+            const bool mok = read_manifest(dir + "/manifest.json", mtxt) &&
+                             manifest_get(mtxt, "moc_sky_fraction", mlit);
+            P1HIPS_CHECK_MSG(cs, it != kv.end() && mok && it->second == mlit,
+                             "o2_skyfrac_double_face",
+                             "properties/manifest 字面量分叉 (prop=%s manifest=%s)",
+                             it != kv.end() ? it->second.c_str() : "(missing)",
+                             mok ? mlit.c_str() : "(missing)");
         }
     }
 
@@ -225,8 +242,46 @@ int test_oracle() {
         }
     }
 
+    // --- O6: moc_sky_fraction 序列化精度判别面 (M2b-H-01): 非平凡点 1/12
+    //   N=1 cell @ K=0 ⇒ 数学真值 1/12 (十进制非有限小数)。
+    //   (a) 回程精确 strtod(literal)==1/12 (要求 ≥17 有效位);
+    //   (b) §9 冻结容差 |literal − 1/12| < 1e-9 (6dp 偏 3.333e-7 = 333 倍);
+    //   (c) 双面一致 properties == manifest.json 逐字符。
+    {
+        const std::string dir = make_tmp_dir("o6");
+        AioHipsProductSet* ps = aio_hips_product_begin(
+            dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
+            AIO_HIPS_PRODUCT_SIGNAL, "ivo://astrocs/test/p1hips", "o6",
+            nullptr, 0.0, nullptr, 0);
+        P1HIPS_CHECK(cs, ps != nullptr, "o6_begin");
+        if (ps) {
+            FixViewF64 fx = fix_hips_a_tile(4, 10.0, 0.5, 0.0, true, false);
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &fx.view), 0);
+            P1HIPS_CHECK_EQ(cs, aio_hips_finalize(ps), 0);
+        }
+        const double want = 1.0 / 12.0;   // 独立解析真值 (N=1 cell, K=0)
+        const auto kv = read_properties(dir + "/signal/properties");
+        const auto it = kv.find("moc_sky_fraction");
+        P1HIPS_CHECK(cs, it != kv.end(), "o6_skyfrac_key");
+        if (it != kv.end()) {
+            const double got = std::strtod(it->second.c_str(), nullptr);
+            P1HIPS_CHECK_MSG(cs, std::fabs(got - want) < 1e-9, "o6_skyfrac_1e9_nontrivial",
+                             "1/12 点容差失败: literal=%s got=%.17g err=%.3e",
+                             it->second.c_str(), got, std::fabs(got - want));
+            P1HIPS_CHECK_MSG(cs, got == want, "o6_skyfrac_roundtrip_exact",
+                             "字面量非 round-trip 精确: literal=%s got=%.17g want=%.17g",
+                             it->second.c_str(), got, want);
+            std::string mtxt, mlit;
+            const bool mok = read_manifest(dir + "/manifest.json", mtxt) &&
+                             manifest_get(mtxt, "moc_sky_fraction", mlit);
+            P1HIPS_CHECK_MSG(cs, mok && mlit == it->second, "o6_skyfrac_double_face",
+                             "properties/manifest 字面量分叉 (prop=%s manifest=%s)",
+                             it->second.c_str(), mok ? mlit.c_str() : "(missing)");
+        }
+    }
+
     if (cs.failures == 0) {
-        std::fprintf(stdout, "[p1hips] oracle: O1..O5 PASS\n");
+        std::fprintf(stdout, "[p1hips] oracle: O1..O6 PASS\n");
         return 0;
     }
     std::fprintf(stderr, "[p1hips] oracle: %d check(s) failed\n", cs.failures);

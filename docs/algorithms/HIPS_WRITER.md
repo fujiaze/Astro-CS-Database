@@ -14,6 +14,13 @@
 > 本文件为逐公式"算法+源码锚点"登记：凡 SCI 层无覆盖而实现自带的语义（HiPS 写出
 > 合同细节），以实现为准登记并标注；凡实现与 SCI 语义冲突处，登记 DISP- 条目，
 > 不反向修改 SCI（P1-HIPS-DOC 纪律）。
+>
+> **行号锚漂移声明（SCI-FIX-AIO，2026-09-16）**：本轮跨边界结构 ABI 头/校验、
+> 共用 `fmt_sky_fraction`、未钳制面积归约与钳制计数使 `aio_hips_writer.cpp`
+> 行号整体推移（+57 起，最大约 +147）。本文件 §4 (4b)(4c)、§5 (5a)(5b)、§9 的
+> 锚已按修订后行号重标；§1–§3 与 §10 DISP 表的裸 `:NNN` 仍为修订前锚（**符号名
+> 为准**）——`docs/algorithms/anchors/anchor_contract.json` 未对 aio 文件声明
+> symbol binding，故 C4 机器门不覆盖此漂移；全量重标定登记为后续文档任务。
 
 ## 0. 范围界定
 
@@ -132,18 +139,32 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
   （:552-556，s=tile 内 NESTED 段），得阶 k 的父 cell 索引——标准 HEALPix
   NESTED 4 分叉父子关系（Górski 2005）；叶 tile→父 cell 分离
   `leaf_to_tile_nest = leaf_ipix >> 2(L−K)`（healpix_core.h:65-68）。
-- (4b) 逐父 cell 确定性累加（:549-550）：`flux_n += signal·support·A_cell`
-  （面亮度→通量还原）、`area_n += support·A_cell`；方差分子直接累加
-  `var_n += var_num`（:664-679，add_var :327-333，var_num 本身已是
+- (4b) 逐父 cell 确定性累加（叶级缓存 :689-694、归约 :748-758）：
+  `flux_n += sig·a`、`area_n += a`，其中 **`a` = 未钳制真实覆盖面积**
+  （叶级 `area_true`→`scratch_area_n`，:645/:670-694），`sig` = 发布面叶级
+  signal（f32 产品取 float 截断后的值，:689）。**归约不得用钳后的 support 当
+  权重**：support 是 a/A_cell 的钳后发布值，用它反乘等于把父级面亮度降为
+  sup 加权均值；异质覆盖（a>A_cell）下父级通量出现**本可避免的损失**
+  （M2a-H-3；R-7 实测 sb=10@c=4 与 sb=0.1@c=1 混合域：面积加权 8.02 vs
+  旧式 5.05，损失 37.032%→0）。方差分子直接累加
+  `var_n += var_num`（:734-747，add_var :465-472，var_num 本身已是
   Σv_j w_jp² 分子，不另乘权）。AncestorAcc 保持 f32/f64 双轨（is_f32
-  :306-317；**f32 产品用 float 累加 Σflux/Σarea——多子 tile 有舍入漂移
+  :444-457；**f32 产品用 float 累加 Σflux/Σarea——多子 tile 有舍入漂移
   风险，DISP-HIPS-009**）。同一父 cell 按叶写序单线程顺序累加（map 条目
   首次遇到时创建）→ fixed_reduction_order（无并行求和漂移）。
-- (4c) 落盘：finalize 时对每阶 k<T（:797-880）：nside_k=2^(k+9)、
-  A_cell_k=4π/(12·nside_k²)（:800-801）；cell 归一 signal=Σflux/Σarea、
-  support=min(Σarea/A_cell_k,1)（:814-821）、variance/ivar 同 (3a) 用
-  Σarea（:845-858）——与叶级公式同构；对齐 IVOA"低阶像素=子像素聚合"
-  约定。FITS cards ORDERING=NESTED + NSIDE=2^k；三处 scatter 同 (2a) 式
+- (4c) 落盘：finalize 时对每阶 k<T：nside_k=2^(k+9)、
+  A_cell_k=4π/(12·nside_k²)；cell 归一 signal=Σflux/Σarea、
+  support=min(Σarea/A_cell_k,1)（:1214-1221，**发布面唯一一次钳制**；
+  Σflux/Σarea 用的是 (4b) 的未钳制面积）、variance/ivar 同 (3a) 用
+  Σarea——与叶级公式同构；对齐 IVOA"低阶像素=子像素聚合"。**编码限
+  （M2a-H-3）**：support 是 a/A_cell_k 的钳后值，Σa>A_cell_k 时父级真实覆盖
+  面积**不可由产物复原**（sup=1 丢失倍数信息）；该情形逐像素计数写入
+  properties 与 manifest（`astrocs_support_clamped_pixels` 叶级钳制像素数
+  :677/:1119、`astrocs_coverage_gt1_pixels` 层级 Σa>A_cell_k 像素数
+  :1543-1556/:1120；DATA_SEMANTICS §20.3 同款声明）
+  约定。FITS cards ORDERING=NESTED + NSIDE=2^(k+9)（k = 该 hierarchy 阶，
+  nside_k = 2^(k+9) 与叶级 ilog2 语义一致；**不是 tile 阶**——tile 宽恒 512=2^9，
+  故 k 阶的 NSIDE 比叶级 nside 低 2(K−k) 个数量级）。三处 scatter 同 (2a) 式
   （:809）。
 - (4d) 边界：hier 仅对**被写过的父 cell** 建立条目（map 语义），但已建
   条目的空 acc（count 全 0）仍会写全 NaN tile（:797-823 不检查 count），
@@ -180,12 +201,23 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
   （:721，DISP-HIPS-002）** / hips_release_date+hips_creation_date=真实 UTC
   （utc_now_date/utc_now_iso :93-/:80-，gmtime_r 固定格式不依赖时区；
   META-001 禁伪造）/ obs_description / prov_progenitor=ivo://astrocs/
-  phase1/drizzle（:729）/ [prov_set 时] ASTROCS_DRIZZLE_PIXFRAC（%.6f）/
-  ASTROCS_DRIZZLE_SCALE_ARCSEC（%.4f，>0 才写）（:727-736；set_drizzle_
-  provenance :1007-1016，pixfrac∈(0,1] rc=2、scale≥0 rc=2）/ obs_regime
+  phase1/drizzle（:1098）/ [prov_set 时] ASTROCS_DRIZZLE_PIXFRAC（%.6f）/
+  ASTROCS_DRIZZLE_SCALE_ARCSEC（%.4f）（:1105-1108；set_drizzle_
+  provenance :1408-1440，**M9-F-3 合法域**：pixfrac∈(0,1] rc=2、
+  scale 必须有限且 ∈(0, ACS_HIPS_MAX_FRAME_SCALE_ARCSEC=824.5167388361774″]
+  rc=2，**每次拒绝都 set_error 点名原因**；通道全或无——接受即两键齐备落盘，
+  不再有 "scale>0 才写" 的静默省略分支。上界推导：叶级 nside≥512 ⇒ 最粗叶像素
+  412.258369″，经 SCI-DRZ-001 冻结的 1–2× 过采样 ⇒ 帧尺度 ≤2×412.258369″；
+  该界是物理/表示域，**不是** k_corr 查表域 [300,600]″）/ obs_regime
   / hips_hierarchy / **hips_pixel_scale = 3600·180/π·√(π/3)/nside arcsec
   （:704-705，%.6f）** / **hips_initial_fov="60" 硬编码（:745，DISP-HIPS-002）** /
-  moc_sky_fraction / astrocs_covered_sky_fraction / astrocs_signal_dtype /
+  **moc_sky_fraction（与 manifest.json 共用唯一格式化函数
+  fmt_sky_fraction = %.17g，:1051/:1115/:1673；DBL_DECIMAL_DIG ⇒
+  strtod 回程精确，§9 的 <1e-9 绝对容差与键值精确两条无条件成立；修复前
+  properties 走 std::to_string 6dp、manifest 走 %.8f ⇒ 双面字面量必然分叉）** /
+  astrocs_covered_sky_fraction / astrocs_signal_dtype /
+  **astrocs_support_clamped_pixels + astrocs_coverage_gt1_pixels（:1119-1120
+  properties / :1668-1669 manifest；M2a-H-3 钳制计数，见 (4c) 编码限）** /
   [非空] hips_data_range（sig_min≤sig_max 才写，:1026-1029）/ **hips_ordering=
   "NESTED" 恒写（:908，B2-A8；消费侧 coverage 断言 NESTED）** / **obs_filter
   恒写（含空值，:960-964，B2-A8；空串=显式"无 filter"声明，不再是"键缺失"）** /
@@ -270,7 +302,11 @@ round-trip（(5c)）。容差冻结见 §9。
 - **fixture**：F1 合成小天区（K=9, nside=512, 单 tile 单元 12 cell 数量级；
   flux/area/var_num 解析可控）；F2 多 tile 覆盖同父（hierarchy 聚合闭合）；
   F3 含 NaN/0-area/负 flux 边界像素；F4 SNR 点集（已知 ra/dec→cell）；
-  F5 prov 键完整/缺省两态；F6 f32/f64 双 dtype。生成器入 tests（testkit
+  F5 prov 键完整/缺省两态；F6 f32/f64 双 dtype；**G 异质覆盖 c>1
+  （p1hips_fixtures.hpp `fix_hips_g_hetero_coverage_tile`：逐像素交替
+  sb=10@c=4 与 sb=0.1@c=1 ⇒ 面积加权真值 8.02 vs 旧 support 加权 5.05，
+  是 (4b) 归约式的**判别面**——c≤1 全域两式仅差浮点重结合，无判别力）**。
+  生成器入 tests（testkit
   规则：fixture generator，不内嵌生产算法；现有 tests/io/make_hips_fixture.py
   属 e2e fixture——注意其 :168/:170 照抄 estsize/fov 占位值，P1-HIPS-TEST
   须以解析值替代）。
@@ -278,27 +314,41 @@ round-trip（(5c)）。容差冻结见 §9。
   HEALPix 独立库或解析解）逐像素重算 signal/support/variance/ivar 与
   FITS 局部索引（DATA_SEMANTICS §3 (511−x)·512+y；外部对拍可取 CDS
   Hipsgen 样例）；FITS 头键精确匹配；MOC UNIQ 精确（式见 (5a)）；
-  hierarchy 父像素=子像素精确聚合（NESTED 4 分叉）。独立复检生态参考：
+  hierarchy 父像素=子像素精确聚合（NESTED 4 分叉）；**层次闭合 oracle 的权重
+  必须取 fixture 输入的未钳制覆盖面积，不得用产物 support（钳后值）反乘
+  ——否则 oracle 与实现同源、对 (4b) 型错误恒绿（M2a-H-3 修复的正是
+  p1hips_tests_properties.cpp 的同源 oracle）**；moc_sky_fraction 的序列化
+  判别点必须取十进制非有限小数（oracle 组 O6 用 N=1,K=0 ⇒ 1/12：
+  6dp 偏 3.333e-7 = §9 容差的 333 倍，且 properties↔manifest 字面量必须
+  逐字符相等）。独立复检生态参考：
   HIPS_VERIFY（orchestrator :3794 起，经 aio_hips_reader）与
   gate7_hips_validate.py（lib/algorithms/photometry/.../gate7_hips_validate.py，
   astropy 独立复检 tile 头/DATASUM/support∈[0,1]/F=signal×support×A_cell/
   MOC↔叶级一一对应）——其不变量与 I1-I8 相容，可作 oracle 参照实现。
 - **不变量**：I1 逐像素 signal=flux/area；I2 support=min(area/A_cell,1)≤1；
   I3 无效规则→NaN/0；I4 variance/ivar 互为倒数（有限域）；I5 MOC cells=
-  非空叶 cells（order K）；I6 moc_sky_fraction·4π=moc_area_sr；I7
-  hierarchy 逐阶聚合闭合（f64 域 bitwise；f32 路径按 §9 容差）；I8
+  非空叶 cells（order K）；I6 moc_sky_fraction·4π=moc_area_sr；
+  **I7 hierarchy 逐阶聚合闭合 = 面积加权（权重为未钳制真实覆盖面积 a；
+  发布面 support=min(Σa/A_cell_k,1) 是编码限，不得回流当归约权重），
+  f64 域 bitwise（c>1 亦然）；f32 路径按 §9 容差（accumulator 漂移）**；I8
   manifest 计数字段=实际文件数；I9 double finalize rc=−2；I10 abort 后
   句柄不可复用；I11 F=signal×support×A_cell 有限非负（gate7 同式）；
   I12 SNR TSV 数值 round-trip 精确（SNR-PREC-001）。
 - **负面矩阵**：nside<512、tile_width≠512、非法 dtype、越位 flags、
   parent_ipix≥12·4^K、width≠512、var_num NULL、全无效 variance tile（−5）、
-  FITS 路径不可写（−4/−5/−6/−7）、prov pixfrac>1（rc=2）、重复 finalize
-  （−2）、SNR metadata.xml 不可写。
+  FITS 路径不可写（−4/−5/−6/−7）、重复 finalize（−2）、SNR metadata.xml
+  不可写；**prov 合法域（M9-F-3）：pixfrac∉(0,1] rc=2、scale 非有限/≤0/
+  >824.5167388361774″ rc=2，每次拒绝 last_error 必须点名原因（N5）；
+  跨边界结构 ABI（V11-N-01）：struct_size/abi_version 与调用方编译期布局不符
+  ⇒ 入口 rc=−9 且 last_error 点名 ABI（view/variance/diag/snr 数组逐元素/
+  legacy tile 数组，N11）**。
 - **冻结容差**：f64 通路逐像素 bitwise（同序确定性）；f32 存储 rtol=1e-7
   （单次乘除舍入界）；hierarchy f64 累加对 oracle bitwise、f32 累加路径
   rtol=1e-6（f32 累加器漂移界，DISP-HIPS-009 修复前口径）；sky fraction
-  绝对误差 <1e-9；MOC/properties 键值精确相等；checksum 字段由 CFITSIO
-  重算一致。
+  绝对误差 <1e-9 **且字面量必须 strtod 回程精确（%.17g；判别点取 1/12 这类
+  十进制非有限小数，见 §9 oracle）**；MOC/properties 键值精确相等
+  （moc_sky_fraction 在 properties 与 manifest 两面**逐字符**相等）；checksum
+  字段由 CFITSIO 重算一致。
 - **精度分层**：f32/f64 两 data_type 全矩阵重跑；f32 输入 + f64 累加器
   路径断言无交叉污染。
 - 性能/资源：单 tile 写耗与内存水位 smoke 记录（非冻结容差，登记即可）。
@@ -313,7 +363,7 @@ round-trip（(5c)）。容差冻结见 §9。
 | DISP-HIPS-004 | 高 | C++ 写出无原子发布：FITS/MOC/metadata 先 remove 后 create 直写（:185-186/:251/:770）、make_dirs 无 fsync（:110-133）、properties/manifest 直写、manifest 无 COMPLETE 状态字/树哈希；finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在 DATA-P1-HIPS §12.5 登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（hiss_stream_writer.cpp:259-260,:644-655）但 writer 未采用 | :185-186,:251,:770,:110-133,:1086-1128; docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属裁决 |
 | DISP-HIPS-005 | 低/中 | 入参 moc_order 静默 clamp（min 与 tile_order）无告警；且 moc_order<K 时 Moc.fits 含低阶 UNIQ，而自家读侧 aio_hips_reader.cpp:166-175 仅保留 order==K——低阶 MOC 对自家 reader 无效（Moc.fits 为 optional hint，不影响覆盖判定） | :419; aio_hips_reader.cpp:166-175 | 强制 moc_order=K 或 reader 兼容低阶 UNIQ |
 | DISP-HIPS-006 | 中 | CFITSIO 裸调未包装进程级互斥锁（同库 aio_fits.cpp:502、aio_hips_reader.cpp:91/:140/:293 均用 aio::cfitsio_io_mutex）——writer 写路径完全无锁；单句柄串行使用无影响，未来多句柄/多线程写同进程将静默竞争（现生产链=drizzle 合并后单线程写，astro_sphere_sink.cpp:97，暂无并发场景） | aio_hips_writer.cpp 全文件无 mutex | 统一包装 mutex 或显式登记单句柄使用约束 |
-| DISP-HIPS-007 | 低 | 错误码无集中枚举且正负混用（write/finalize 负码 −1..−8 vs provenance 正码 1/2；语义仅注释）——ABI 演进风险；last_error 每入口 clear，跨调用不可追溯 | :398/:426/:573, :513/:521/:632/:648/:658/:1036-1072, :1007-1016 | 集中枚举 + 头文件公开 |
+| DISP-HIPS-007 | 低 | 错误码无集中枚举且正负混用（write/finalize 负码 −1..−9（含 ABI 不匹配 −9，V11-N-01）vs provenance 正码 1/2；语义仅注释）——ABI 演进风险；last_error 每入口 clear，跨调用不可追溯 | :398/:426/:573, :513/:521/:632/:648/:658/:1036-1072, :1007-1016 | 集中枚举 + 头文件公开 |
 | DISP-HIPS-008 | 低 | `aio_hips_write` 兼容入口旧语义：signal=F、support=uint8 0..255 → covered_area=su/255·A_cell、flux_sum=signal·su/255（8bit 量化损失），flags 固定 ALL（无 variance/ivar），与新 AstroSphereTileView 连续 support 语义并存易混用 | :1146; :1182-1199 | 标记 deprecated 或内部转换告警 |
 | DISP-HIPS-009 | 中 | f32 产品下 AncestorAcc 以 float 累加 Σflux/Σarea/Σvar_num（f64 通道仅 f64 产品使用）——多子 tile 大和有 f32 舍入漂移风险，影响低阶 hierarchy 精度 | :322-331; :536-557 | f32 产品仍用 double 累加（存储时再截断）或登记精度边界（TEST-HIPS-DESIGN-001 容差已按 1e-6 冻结） |
 | DISP-HIPS-010 | 低 | fits_str 对 FITS 头字符串 68 字符静默截断（obs_title 等超长丢尾无告警）；properties key=value 裸写无转义（值含换行/=会破坏格式，现状值域受控）；write_properties/SNR tile fopen 失败静默或仅 set_error（properties 缺失时 finalize 仍返回成功路径） | :139-157; :285-293; :906 | 截断告警；properties 值转义/校验；失败传播到返回码 |

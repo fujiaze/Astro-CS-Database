@@ -18,38 +18,39 @@ import numpy as np
 import astropy_healpix as ah
 import astropy.units as u
 
-ROOT = r"F:\Astro dev\Astro CS Normalization Database"
 
 
 def add_dll_dirs():
-    for d in (ROOT + r"\lib\astro_image_io", r"C:\msys64\mingw64\bin"):
+    if not hasattr(os, "add_dll_directory"):   # POSIX: 无此 API
+        return
+    for d in (os.path.dirname(AIO_DLL), r"C:\msys64\mingw64\bin"):
         if os.path.isdir(d):
             os.add_dll_directory(d)
             os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
 
 
-class AstroSphereTileView(ctypes.Structure):
-    _fields_ = [("parent_ipix", ctypes.c_uint64),
-                ("leaf_order", ctypes.c_uint32),
-                ("width", ctypes.c_uint32),
-                ("data_type", ctypes.c_int32),
-                ("flux_sum", ctypes.c_void_p),
-                ("covered_area", ctypes.c_void_p),
-                ("valid_mask", ctypes.c_void_p)]
-
-
-class AioHipsSnrPoint(ctypes.Structure):
-    _fields_ = [("ra_deg", ctypes.c_double),
-                ("dec_deg", ctypes.c_double),
-                ("snr", ctypes.c_double),
-                ("star_id", ctypes.c_int64),
-                ("quality_flags", ctypes.c_uint32),
-                ("photometric_status", ctypes.c_uint32)]
+# 唯一权威镜像 (SCI-FIX-AIO #2 / V11-N-01): 本文件不得再内联 _fields_ ——
+# 内联镜像 = 镜像分叉 (修复前 C=40B vs 镜像=32B 静默错位写数据的根因)。
+_HERE = Path(__file__).resolve().parent
+_REPO = None
+for _cand in [_HERE] + list(_HERE.parents):
+    if (_cand / "lib" / "infrastructure" / "aio" / "include" / "aio_hips.h").is_file():
+        _REPO = _cand
+        break
+if _REPO is None:
+    raise SystemExit("找不到仓库根 (lib/infrastructure/aio/include/aio_hips.h)")
+sys.path.insert(0, str(_REPO / "lib" / "infrastructure" / "aio" / "tools"))
+import aio_abi_mirror as abi  # noqa: E402
+AstroSphereTileView = abi.AstroSphereTileView
+AioHipsSnrPoint = abi.AioHipsSnrPoint
+ROOT = _REPO
+AIO_DLL = os.environ.get("ASTROCS_AIO_DLL") or str(
+    _REPO / "lib" / "infrastructure" / "aio" / "astro_image_io.dll")
 
 
 def gen(out, dtype, nside, tile_ra_dec, pts):
     add_dll_dirs()
-    aio = ctypes.CDLL(ROOT + r"\lib\astro_image_io\astro_image_io.dll")
+    aio = ctypes.CDLL(AIO_DLL)
     aio.aio_hips_product_begin.restype = ctypes.c_void_p
     aio.aio_hips_product_begin.argtypes = [ctypes.c_char_p, ctypes.c_uint32, ctypes.c_uint32,
                                            ctypes.c_int32, ctypes.c_int, ctypes.c_char_p,

@@ -1,6 +1,17 @@
 # -*- coding: utf-8 -*-
-"""HiPS 直写冒烟测试 (Phase1 Final Closure V3).
+"""HiPS 直写冒烟测试 (Phase1 Final Closure V3)。
+
 通过 AIO 流式 API 写合成 tile, 再用 astropy (独立 reader) 验证结构。
+
+SCI-FIX-AIO #2 (V11-N-01) 订正:
+  * 删除本文件内联的 ctypes 镜像 —— 唯一权威镜像 =
+    lib/infrastructure/aio/tools/aio_abi_mirror.py (机器锁 aio_abi_layout_lock
+    逐字段比对; 内联镜像 = 镜像分叉, 正是修复前 C=40B vs 镜像=32B 静默错位
+    写数据的根因);
+  * 修复 ARCH-001 迁移后失效的硬编码 DLL 路径 (旧
+    ROOT + "\\lib\\astro_image_io\\astro_image_io.dll" 已不存在), 改为
+    ASTROCS_AIO_DLL 环境变量 + 仓内候选路径解析, 并显式设置 ABI 自描述头
+    (aio_abi_mirror 的工厂函数已自动填 struct_size/abi_version)。
 """
 
 import ctypes
@@ -11,53 +22,56 @@ import sys
 
 import numpy as np
 
-ROOT = r"F:\Astro dev\Astro CS Normalization Database"
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.normpath(os.path.join(HERE, "..", "..", "..", ".."))
+
+# 唯一权威镜像 (禁止在本文件另抄一份 _fields_)
+sys.path.insert(0, os.path.normpath(os.path.join(REPO, "lib", "infrastructure",
+                                                 "aio", "tools")))
+import aio_abi_mirror as abi  # noqa: E402
 
 
-def add_dll_dirs():
-    for d in (ROOT + r"\lib\astro_image_io", r"C:\msys64\mingw64\bin"):
-        if os.path.isdir(d):
-            os.add_dll_directory(d)
-            os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
+def dll_candidates():
+    env = os.environ.get("ASTROCS_AIO_DLL")
+    if env:
+        yield env
+    for rel in (
+        os.path.join("lib", "infrastructure", "aio", "astro_image_io.dll"),
+        os.path.join("build", "astro_image_io.dll"),
+        os.path.join("build", "libastrocs_aio.so"),
+        os.path.join("build", "libastrocs_hips.so"),
+    ):
+        yield os.path.join(REPO, rel)
 
 
-class AstroSphereTileView(ctypes.Structure):
-    _fields_ = [("parent_ipix", ctypes.c_uint64),
-                ("leaf_order", ctypes.c_uint32),
-                ("width", ctypes.c_uint32),
-                ("data_type", ctypes.c_int32),
-                ("flux_sum", ctypes.c_void_p),
-                ("covered_area", ctypes.c_void_p),
-                ("valid_mask", ctypes.c_void_p)]
-
-
-class AioHipsSnrPoint(ctypes.Structure):
-    _fields_ = [("ra_deg", ctypes.c_double),
-                ("dec_deg", ctypes.c_double),
-                ("snr", ctypes.c_double),
-                ("source_id", ctypes.c_int64)]
+def load_aio():
+    for p in dll_candidates():
+        if p and os.path.isfile(p):
+            return ctypes.CDLL(p), p
+    raise SystemExit("找不到 AIO 动态库; 设 ASTROCS_AIO_DLL 指向 astro_image_io.dll")
 
 
 def main():
-    add_dll_dirs()
-    aio = ctypes.CDLL(ROOT + r"\lib\astro_image_io\astro_image_io.dll")
+    aio, dll_path = load_aio()
+    print("AIO 库:", dll_path)
     aio.aio_hips_product_begin.restype = ctypes.c_void_p
     aio.aio_hips_product_begin.argtypes = [
         ctypes.c_char_p, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_int32,
         ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p,
         ctypes.c_double, ctypes.c_char_p, ctypes.c_uint32]
     aio.aio_hips_write_signal_support_tile.restype = ctypes.c_int
-    aio.aio_hips_write_signal_support_tile.argtypes = [ctypes.c_void_p,
-                                                       ctypes.POINTER(AstroSphereTileView)]
+    aio.aio_hips_write_signal_support_tile.argtypes = [
+        ctypes.c_void_p, ctypes.POINTER(abi.AstroSphereTileView)]
     aio.aio_hips_write_snr_points.restype = ctypes.c_int
-    aio.aio_hips_write_snr_points.argtypes = [ctypes.c_void_p,
-                                              ctypes.POINTER(AioHipsSnrPoint), ctypes.c_int]
+    aio.aio_hips_write_snr_points.argtypes = [
+        ctypes.c_void_p, ctypes.POINTER(abi.AioHipsSnrPoint), ctypes.c_int]
     aio.aio_hips_finalize.restype = ctypes.c_int
     aio.aio_hips_finalize.argtypes = [ctypes.c_void_p]
     aio.aio_hips_last_error.restype = ctypes.c_char_p
     aio.aio_hips_last_error.argtypes = []
 
-    out = sys.argv[1] if len(sys.argv) > 1 else r"run\temp\hips_smoke"
+    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
+        REPO, "run", "temp", "hips_smoke")
     nside = 2048          # leaf order 11, tile order 2
     leaf_order = 11
     tile_order = 2
@@ -82,26 +96,21 @@ def main():
                 i = (cy + dy) * 512 + (cx + dx)
                 flux[i] = 2.0
                 area[i] = 0.5 * a_cell
-        view = AstroSphereTileView()
-        view.parent_ipix = tile_ipix
-        view.leaf_order = leaf_order
-        view.width = 512
-        view.data_type = 0
-        view.flux_sum = flux.ctypes.data_as(ctypes.c_void_p)
-        view.covered_area = area.ctypes.data_as(ctypes.c_void_p)
-        view.valid_mask = None
+        view = abi.tile_view(
+            parent_ipix=tile_ipix, leaf_order=leaf_order, width=512,
+            data_type=abi.AIO_HIPS_FLOAT32,
+            flux_sum=flux.ctypes.data, covered_area=area.ctypes.data)
         rc = aio.aio_hips_write_signal_support_tile(ps, ctypes.byref(view))
         if rc != 0:
             print("write tile failed:", rc, aio.aio_hips_last_error().decode())
             return 2
 
-    pts = (AioHipsSnrPoint * 3)(
-        AioHipsSnrPoint(10.0, 89.5, 12.3, 1001),
-        AioHipsSnrPoint(20.0, 89.7, 8.1, 1002),
-        AioHipsSnrPoint(30.0, -45.0, 5.5, 1003))
+    pts = abi.snr_points([(10.0, 89.5, 12.3, 1001),
+                          (20.0, 89.7, 8.1, 1002),
+                          (30.0, -45.0, 5.5, 1003)])
     rc = aio.aio_hips_write_snr_points(ps, pts, 3)
     if rc != 0:
-        print("snr failed:", rc)
+        print("snr failed:", rc, aio.aio_hips_last_error().decode())
         return 3
     rc = aio.aio_hips_finalize(ps)
     if rc != 0:

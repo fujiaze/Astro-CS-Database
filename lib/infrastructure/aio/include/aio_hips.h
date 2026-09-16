@@ -58,6 +58,44 @@ enum AioHipsDataType {
     AIO_HIPS_FLOAT64 = 1
 };
 
+// ============================================================================
+// 跨边界结构 ABI 自描述 (ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1/§4:
+// "版本化 C ABI, 结构体带 struct_size/abi_version")。
+//
+// 四个跨边界结构首部两个 uint32_t: struct_size @0 (= 调用方编译期 sizeof),
+// abi_version @4 (= 本文件对应版本常量)。公共入口**逐元素**校验二者并
+// fail-closed (返回 AIO_HIPS_ABI_MISMATCH=-9 + 结构化诊断), **永不**按盲步长
+// 读取: 修复前 C=40B 而 Python 镜像=32B, 按镜像语义传 3 点会静默错位写数据
+// (第 3 条 snr 落进 ra_deg 槽 + 越界读 24B, rc 仍 0) —— V11-N-01。
+//
+// 自行构造这些结构的调用方**必须**调用对应的 *_abi_init() 初始化器
+// (照 ipv_api.h 的 ipv_get_default_params 样板: 未经初始化器的旧调用方在
+// 入口被明确拒绝, 而不是被静默按错误布局解释)。
+// Python 侧唯一权威镜像: lib/infrastructure/aio/tools/aio_abi_mirror.py
+// (机器锁 aio_abi_layout_lock 逐字段比对; 禁止在任何脚本里另抄一份 _fields_)。
+// ============================================================================
+#define AIO_HIPS_TILE_VIEW_ABI_VERSION      1u
+#define AIO_HIPS_SNR_POINT_ABI_VERSION      1u
+#define AIO_HIPS_DIAG_TILE_VIEW_ABI_VERSION 1u
+#define AIO_HIPS_TILE_ABI_VERSION           1u
+// 入口 ABI 校验失败 (struct_size/abi_version 不匹配) 的统一错误码
+#define AIO_HIPS_ABI_MISMATCH               (-9)
+
+// 跨边界结构首部两字段 (偏移 0/4 由 aio_abi_layout_probe.cpp 编译期锁死)
+#define AIO_HIPS_ABI_HEADER(TYPE, VERSION)          \
+    uint32_t struct_size;   /* = sizeof(TYPE) @0 */ \
+    uint32_t abi_version;   /* = VERSION @4 */
+
+// Drizzle 源帧像素角尺度上界 (弧秒) —— M9-F-3 合法域, 由仓内冻结常量推导:
+//   叶级 nside >= 512 (本文件 aio_hips_product_begin 的 nside 合法域下界)
+//   => 最粗合法 HiPS 叶像素角尺度
+//      = 3600·180/π·sqrt(π/3)/512 = 412.258369 arcsec  (hips_pixel_scale 式)
+//   SCI-DRZ-001 冻结输入帧 1–2x 过采样 => 帧尺度上界 = 2 x 412.258369
+//      = 824.5167388361774 arcsec。
+// 该界是**物理/表示域** (writer 如实记录帧真实尺度), 不是消费侧 k_corr 查表域
+// (k_corr 的 [300,600]" 适用域由 sampler 按 ALG-P2-SURF-UPM 显式拒绝域外值)。
+#define ACS_HIPS_MAX_FRAME_SCALE_ARCSEC 824.5167388361774
+
 // Drizzle Tile 直写视图 ( 05_HIPS_DIRECT_PRODUCTION §2)
 // parent_ipix: NESTED, 叶级 tile 父单元 (Norder K = log2(nside)-9)
 // leaf_order: 叶级 Norder L (= log2(nside))
@@ -67,6 +105,7 @@ enum AioHipsDataType {
 // covered_area: [width*width] 球面覆盖面积 sr (LeafAccumulator.sumArea)
 // valid_mask: [width*width] 1=有效 (covered_area>0), 可 NULL (全部有效)
 typedef struct {
+    AIO_HIPS_ABI_HEADER(AstroSphereTileView, AIO_HIPS_TILE_VIEW_ABI_VERSION)
     uint64_t parent_ipix;
     uint32_t leaf_order;
     uint32_t width;
@@ -82,6 +121,7 @@ typedef struct {
 
 // SNR catalogue 控制点 (: 携带 stable star_id 与真实状态字段)
 typedef struct {
+    AIO_HIPS_ABI_HEADER(AioHipsSnrPoint, AIO_HIPS_SNR_POINT_ABI_VERSION)
     double ra_deg;
     double dec_deg;
     double snr;
@@ -151,6 +191,7 @@ AIO_HIPS_EXPORT int aio_hips_write_variance_tile(
 //     nrej(p)  = |{ s | reason_s ∉ {ACCEPTED, UNDERDETERMINED} }|
 //   无覆盖像素 = 0/0 (int 无 NaN, 0 即"无"; 禁 −1 哨兵 —— 负值一律拒绝)。
 typedef struct {
+    AIO_HIPS_ABI_HEADER(AioHipsDiagTileView, AIO_HIPS_DIAG_TILE_VIEW_ABI_VERSION)
     uint64_t parent_ipix;
     uint32_t leaf_order;
     uint32_t width;
@@ -251,6 +292,7 @@ AIO_HIPS_EXPORT int aio_hips_abort(AioHipsProductSet* ps);
 
 // 旧 Tile 结构 (兼容声明, 仅 aio_hips_write 使用)
 typedef struct {
+    AIO_HIPS_ABI_HEADER(AioHipsTile, AIO_HIPS_TILE_ABI_VERSION)
     uint64_t parent_ipix;
     uint32_t depth;
     const void* signal;
@@ -270,6 +312,34 @@ AIO_HIPS_EXPORT int aio_hips_write(
     const char* creator_did,
     const char* obs_title,
     int moc_order);
+
+// ============================================================================
+// ABI 初始化器 (C99 static inline; C/C++ 调用方均可用)
+// 自行构造跨边界结构后必须调用对应初始化器, 否则入口按 ABI 不匹配拒绝 (-9)。
+// 数组形态用 *_abi_init_n (逐元素初始化, 元素步长与版本逐个自描述)。
+// ============================================================================
+static inline void aio_hips_tile_view_abi_init(AstroSphereTileView* v) {
+    v->struct_size = (uint32_t)sizeof(AstroSphereTileView);
+    v->abi_version = AIO_HIPS_TILE_VIEW_ABI_VERSION;
+}
+static inline void aio_hips_snr_point_abi_init(AioHipsSnrPoint* p) {
+    p->struct_size = (uint32_t)sizeof(AioHipsSnrPoint);
+    p->abi_version = AIO_HIPS_SNR_POINT_ABI_VERSION;
+}
+static inline void aio_hips_diag_tile_view_abi_init(AioHipsDiagTileView* v) {
+    v->struct_size = (uint32_t)sizeof(AioHipsDiagTileView);
+    v->abi_version = AIO_HIPS_DIAG_TILE_VIEW_ABI_VERSION;
+}
+static inline void aio_hips_tile_abi_init(AioHipsTile* t) {
+    t->struct_size = (uint32_t)sizeof(AioHipsTile);
+    t->abi_version = AIO_HIPS_TILE_ABI_VERSION;
+}
+static inline void aio_hips_snr_points_abi_init(AioHipsSnrPoint* pts, int n) {
+    for (int i = 0; i < n; ++i) aio_hips_snr_point_abi_init(&pts[i]);
+}
+static inline void aio_hips_tiles_abi_init(AioHipsTile* tiles, int n) {
+    for (int i = 0; i < n; ++i) aio_hips_tile_abi_init(&tiles[i]);
+}
 
 // 获取最后错误信息 (线程局部)
 AIO_HIPS_EXPORT const char* aio_hips_last_error(void);

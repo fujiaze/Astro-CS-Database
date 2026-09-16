@@ -51,6 +51,63 @@ thread_local std::string g_hips_error;
 
 void set_error(const std::string& msg) { g_hips_error = msg; }
 
+// ---------------------------------------------------------------------------
+// C 边界 ABI 前置校验 (ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1: 版本化 C ABI;
+// V11-N-01): struct_size/abi_version 必须与调用方编译期布局逐字段一致, 不一致
+// 即 fail-closed (返回 AIO_HIPS_ABI_MISMATCH) + 结构化诊断 —— 永远不按盲步长
+// 读取调用方缓冲区。数组形态 (snr_points/tiles) 由调用方逐元素校验。
+// ---------------------------------------------------------------------------
+bool abi_ok_tile_view(const AstroSphereTileView* v) {
+    if (v->struct_size == (uint32_t)sizeof(AstroSphereTileView) &&
+        v->abi_version == (uint32_t)AIO_HIPS_TILE_VIEW_ABI_VERSION)
+        return true;
+    set_error("AstroSphereTileView ABI 不匹配 (caller struct_size=" +
+              std::to_string(v->struct_size) + " abi_version=" +
+              std::to_string(v->abi_version) + ", expected struct_size=" +
+              std::to_string((unsigned)sizeof(AstroSphereTileView)) +
+              " abi_version=" + std::to_string((unsigned)AIO_HIPS_TILE_VIEW_ABI_VERSION) +
+              "); 请重新编译调用方 / 同步 aio_abi_mirror.py");
+    return false;
+}
+
+bool abi_ok_diag_view(const AioHipsDiagTileView* v) {
+    if (v->struct_size == (uint32_t)sizeof(AioHipsDiagTileView) &&
+        v->abi_version == (uint32_t)AIO_HIPS_DIAG_TILE_VIEW_ABI_VERSION)
+        return true;
+    set_error("AioHipsDiagTileView ABI 不匹配 (caller struct_size=" +
+              std::to_string(v->struct_size) + " abi_version=" +
+              std::to_string(v->abi_version) + ", expected struct_size=" +
+              std::to_string((unsigned)sizeof(AioHipsDiagTileView)) +
+              " abi_version=" + std::to_string((unsigned)AIO_HIPS_DIAG_TILE_VIEW_ABI_VERSION) +
+              "); 请重新编译调用方 / 同步 aio_abi_mirror.py");
+    return false;
+}
+
+bool abi_ok_snr_point(const AioHipsSnrPoint* p, int idx) {
+    if (p->struct_size == (uint32_t)sizeof(AioHipsSnrPoint) &&
+        p->abi_version == (uint32_t)AIO_HIPS_SNR_POINT_ABI_VERSION)
+        return true;
+    set_error("AioHipsSnrPoint[" + std::to_string(idx) + "] ABI 不匹配 (caller "
+              "struct_size=" + std::to_string(p->struct_size) + " abi_version=" +
+              std::to_string(p->abi_version) + ", expected struct_size=" +
+              std::to_string((unsigned)sizeof(AioHipsSnrPoint)) +
+              " abi_version=" + std::to_string((unsigned)AIO_HIPS_SNR_POINT_ABI_VERSION) +
+              "); 步长不得错位 (重新编译调用方 / 同步 aio_abi_mirror.py)");
+    return false;
+}
+
+bool abi_ok_legacy_tile(const AioHipsTile* t, int idx) {
+    if (t->struct_size == (uint32_t)sizeof(AioHipsTile) &&
+        t->abi_version == (uint32_t)AIO_HIPS_TILE_ABI_VERSION)
+        return true;
+    set_error("AioHipsTile[" + std::to_string(idx) + "] ABI 不匹配 (caller "
+              "struct_size=" + std::to_string(t->struct_size) + " abi_version=" +
+              std::to_string(t->abi_version) + ", expected struct_size=" +
+              std::to_string((unsigned)sizeof(AioHipsTile)) + " abi_version=" +
+              std::to_string((unsigned)AIO_HIPS_TILE_ABI_VERSION) + ")");
+    return false;
+}
+
 // 故障注入 (ASTROCS_HIPS_*): 测试专用等价缺陷注入面。未设置环境变量时
 // 逐行零行为差异; 命中时按注入名产生等价缺陷, 使对应断言必败 (判别力证明)。
 // 先例: tests/unit/aio_abi_test_main.hpp ASTROCS_AIO_FAULT / p2002 FAULT=proj|prov。
@@ -453,6 +510,9 @@ struct AioHipsProductSet {
     std::vector<AioHipsSnrPoint> snr;
     double moc_area_sr = 0.0;              // Σ moc cell 面积 (order K)
     double covered_area_sr = 0.0;          // Σ covered_area (真实覆盖)
+    // M2a-H-3 可观测钳制计数 (properties + manifest 双写)
+    uint64_t support_clamped_pixels = 0;   // 叶级 covered_area > A_cell (钳生效)
+    uint64_t coverage_gt1_pixels = 0;      // 层级输出像素 Σarea > A_cell_k (不可复原)
     double sig_min = 1e300, sig_max = -1e300;
     bool finalized = false;
     // 跨 tile 累计 profile（低开销 coarse；每 tile 每段一次 clock）
@@ -466,6 +526,8 @@ struct AioHipsProductSet {
     std::vector<float>  scratch_sigF, scratch_supF;   // dtype=f32 写缓冲
     std::vector<double> scratch_sigD, scratch_supD;   // dtype=f64 写缓冲
     std::vector<double> scratch_sig_n, scratch_sup_n; // NESTED 序缓存（hierarchy）
+    // NESTED 序**未钳制**真实覆盖面积（hierarchy 归约权重; M2a-H-3）
+    std::vector<double> scratch_area_n;
     // variance/ivar scratch
     std::vector<float>  scratch_varF, scratch_ivarF;
     std::vector<double> scratch_varD, scratch_ivarD;
@@ -555,6 +617,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
     try {
         g_hips_error.clear();
         if (!ps || !view) { set_error("null handle/view"); return -1; }
+        if (!abi_ok_tile_view(view)) return AIO_HIPS_ABI_MISMATCH;
         if (view->width != 512 || view->leaf_order != ps->leaf_order ||
             view->data_type != ps->data_type) {
             set_error("view 与产品集不匹配 (width=512, leaf_order/ dtype 必须一致)");
@@ -579,8 +642,10 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
         else     { sigD.resize(n); supD.resize(n); }
         std::vector<double>& sig_n = ps->scratch_sig_n;
         std::vector<double>& sup_n = ps->scratch_sup_n;
+        std::vector<double>& area_n = ps->scratch_area_n;
         sig_n.resize(n);
         sup_n.resize(n);
+        area_n.resize(n);
         std::vector<uint8_t> valid;
         if (view->valid_mask)
             valid.assign((const uint8_t*)view->valid_mask, (const uint8_t*)view->valid_mask + n);
@@ -602,11 +667,15 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
                 if (view->flux_sum) flux = ((const double*)view->flux_sum)[i];
                 if (view->covered_area) area = ((const double*)view->covered_area)[i];
             }
-            double sig = 0.0, sup = 0.0;
+            double sig = 0.0, sup = 0.0, area_true = 0.0;
             if (v && area > 0.0 && std::isfinite(flux) && std::isfinite(area)) {
                 sig = flux / area;
                 sup = area / ps->A_cell;
-                if (sup > 1.0) sup = 1.0;
+                area_true = area;   // 未钳制真实覆盖面积 (层级归约权重)
+                if (sup > 1.0) {
+                    sup = 1.0;      // I2: 发布面 support ∈ [0,1]
+                    ++ps->support_clamped_pixels;
+                }
                 tile_covered += area;
                 if (sig < ps->sig_min) ps->sig_min = sig;
                 if (sig > ps->sig_max) ps->sig_max = sig;
@@ -622,6 +691,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
                 sigD[fi] = sig;        supD[fi] = sup;
                 sig_n[i] = sig;        sup_n[i] = sup;
             }
+            area_n[i] = area_true;
         }
 
         ps->prof_transform += std::chrono::duration<double>(
@@ -675,9 +745,11 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
                 // 直接使用 NESTED 序 sig/sup 缓存（与 FITS 序
                 // 读回逐位一致），免每 i 一次 nested_local_to_fits_index 反查。
                 const bool v = valid.empty() || valid[i];
-                double flux = 0.0, area = 0.0;
-                flux = sig_n[i] * sup_n[i] * ps->A_cell;
-                area = sup_n[i] * ps->A_cell;
+                // M2a-H-3: 归约权重用**未钳制**真实覆盖面积 —— 钳后 sup 只用于
+                // 发布; 否则父级面亮度是 sup 加权均值而非面积加权均值, 异质
+                // 覆盖 (c>1) 下父级通量出现本可避免的损失。
+                const double flux = sig_n[i] * area_n[i];
+                const double area = area_n[i];
                 if (!v || !(area > 0.0) || !std::isfinite(flux)) continue;
                 // 叶 (P,l) -> A@k 内 order-(k+9) 单元 NESTED 索引
                 // full = (s<<18)|l (order K+9 within A), z = full >> 2*(K-k)
@@ -713,6 +785,7 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
     try {
         g_hips_error.clear();
         if (!ps || !view) { set_error("null handle/view"); return -1; }
+        if (!abi_ok_tile_view(view)) return AIO_HIPS_ABI_MISMATCH;
         if (!view->var_num_sum) { set_error("var_num_sum 为空 (无方差数据)"); return -2; }
         if (view->width != 512 || view->leaf_order != ps->leaf_order ||
             view->data_type != ps->data_type) {
@@ -847,6 +920,7 @@ int aio_hips_write_diag_tile(AioHipsProductSet* ps,
     try {
         g_hips_error.clear();
         if (!ps || !view) { set_error("null handle/view"); return -1; }
+        if (!abi_ok_diag_view(view)) return AIO_HIPS_ABI_MISMATCH;
         if (view->width != 512 || view->leaf_order != ps->leaf_order) {
             set_error("view 与产品集不匹配 (width=512, leaf_order 必须一致)");
             return -2;
@@ -947,6 +1021,11 @@ int aio_hips_write_snr_points(AioHipsProductSet* ps,
     try {
         g_hips_error.clear();
         if (!ps || (!pts && n > 0)) { set_error("null pts"); return -1; }
+        if (n < 0) { set_error("n < 0"); return -1; }
+        // 逐元素 ABI 校验 (V11-N-01): 元素步长由结构自描述 = sizeof(AioHipsSnrPoint);
+        // 任一元素版本/尺寸不符即整体拒绝, 不做部分写入。
+        for (int i = 0; i < n; ++i)
+            if (!abi_ok_snr_point(&pts[i], i)) return AIO_HIPS_ABI_MISMATCH;
         for (int i = 0; i < n; ++i)
             ps->snr.push_back(pts[i]);
         return 0;
@@ -959,6 +1038,20 @@ int aio_hips_write_snr_points(AioHipsProductSet* ps,
         set_error("unknown exception");
         return -1;
     }
+}
+
+// ---------------------------------------------------------------------------
+// 内部: moc_sky_fraction 的**唯一**字面量格式化函数 (properties 与
+// manifest.json 共用)。%.17g = DBL_DECIMAL_DIG, 对任意 double 满足
+// strtod(snprintf("%.17g", v)) == v (C11 5.2.4.2.2 / IEEE-754 十进制往返),
+// 故 §9 的"绝对误差 <1e-9"与"键值精确相等"两条同时无条件成立, 且不随 K、
+// 覆盖率、平台变化。修复前 properties 走 std::to_string (6dp, 半量化步长
+// 5e-7 = 容差 500 倍)、manifest 走 %.8f (5e-9 = 5 倍) ⇒ 双面字面量分叉。
+// ---------------------------------------------------------------------------
+static std::string fmt_sky_fraction(double v) {
+    char b[40];
+    std::snprintf(b, sizeof(b), "%.17g", v);
+    return std::string(b);
 }
 
 // ---------------------------------------------------------------------------
@@ -1009,19 +1102,22 @@ static bool finalize_image_product(AioHipsProductSet* ps,
         char pf[32], sc[32];
         std::snprintf(pf, sizeof(pf), "%.6f", ps->drizzle_pixfrac);
         kv.push_back({"ASTROCS_DRIZZLE_PIXFRAC", pf});
-        if (ps->drizzle_scale_arcsec > 0.0) {
-            std::snprintf(sc, sizeof(sc), "%.4f",
-                          ps->drizzle_scale_arcsec);
-            kv.push_back({"ASTROCS_DRIZZLE_SCALE_ARCSEC", sc});
-        }
+        // 通道 = 全或无: setter 已把 scale 合法域收紧为 (0, 824.5167388361774"],
+        // 故 drizzle_prov_set 为真 ⇒ 两键必须齐备 (禁"接受 0 但静默不写键")。
+        std::snprintf(sc, sizeof(sc), "%.4f", ps->drizzle_scale_arcsec);
+        kv.push_back({"ASTROCS_DRIZZLE_SCALE_ARCSEC", sc});
     }
     kv.push_back({"obs_regime", "optical"});
     // META-002: 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
     kv.push_back({"hips_hierarchy", "true"});
     kv.push_back({"hips_pixel_scale", buf});
     kv.push_back({"hips_initial_fov", "60"});
-    kv.push_back({"moc_sky_fraction", std::to_string(moc_frac)});
+    kv.push_back({"moc_sky_fraction", fmt_sky_fraction(moc_frac)});
     kv.push_back({"astrocs_covered_sky_fraction", std::to_string(covered_frac)});
+    // M2a-H-3 可观测钳制计数: 叶级 support 钳制像素数 + 层级 Σarea>A_cell_k
+    // 像素数 (编码限"不可复原"从不可观测变为可测量)。
+    kv.push_back({"astrocs_support_clamped_pixels", std::to_string(ps->support_clamped_pixels)});
+    kv.push_back({"astrocs_coverage_gt1_pixels", std::to_string(ps->coverage_gt1_pixels)});
     kv.push_back({"astrocs_signal_dtype", ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64"});
     // DATA-UNC-001 §30.2: 诊断统计平面固定 int32 (无 precision 开关)
     if (is_diag)
@@ -1121,7 +1217,7 @@ static bool finalize_hierarchy(AioHipsProductSet* ps) {
                 if (area > 0.0 && std::isfinite(flux)) {
                     sig = flux / area;
                     sup = area / A_cell_k;
-                    if (sup > 1.0) sup = 1.0;
+                    if (sup > 1.0) sup = 1.0;   // I2: 发布面唯一一次钳制
                 } else {
                     sig = std::numeric_limits<double>::quiet_NaN();
                 }
@@ -1259,8 +1355,8 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     }
     kv2.push_back({"hips_initial_fov", "60"});
     kv2.push_back({"moc_sky_fraction",
-        std::to_string((double)cells.size() * 4.0 * kPi() /
-                       (12.0 * (1ULL << (2ULL * ps->tile_order))) / (4.0 * kPi()))});
+        fmt_sky_fraction((double)cells.size() * 4.0 * kPi() /
+                         (12.0 * (1ULL << (2ULL * ps->tile_order))) / (4.0 * kPi()))});
     kv2.push_back({"hips_cat_nrows", std::to_string(ps->snr.size())});
     // hips_initial_ra/dec: 由真实 SNR 源位置中位数推导（单帧场中心近似，非伪造）
     if (!ps->snr.empty()) {
@@ -1315,8 +1411,24 @@ int aio_hips_set_drizzle_provenance(AioHipsProductSet* ps,
     // P1 (R9-A): C 边界异常屏障
     try {
         if (!ps) return 1;
-        if (!(pixfrac > 0.0 && pixfrac <= 1.0)) return 2;
-        if (scale_arcsec < 0.0) return 2;
+        if (!(pixfrac > 0.0 && pixfrac <= 1.0)) {
+            set_error("drizzle pixfrac 必须在 (0,1] (禁 0/负/NaN/Inf/>1)");
+            return 2;
+        }
+        if (!std::isfinite(scale_arcsec)) {
+            set_error("drizzle scale_arcsec 非有限 (NaN/Inf) 不在合法域");
+            return 2;
+        }
+        if (!(scale_arcsec > 0.0)) {
+            set_error("drizzle scale_arcsec 必须 > 0 (0 不是\"未知\"哨兵: 尺度未知"
+                      "时不得调用本 setter, provenance 通道为全或无)");
+            return 2;
+        }
+        if (scale_arcsec > ACS_HIPS_MAX_FRAME_SCALE_ARCSEC) {
+            set_error("drizzle scale_arcsec 超出物理域 (> 2×412.258369\" = "
+                      "824.5167388361774\", 叶 nside>=512 + SCI-DRZ-001 1-2× 过采样)");
+            return 2;
+        }
         ps->drizzle_prov_set = true;
         ps->drizzle_pixfrac = pixfrac;
         ps->drizzle_scale_arcsec = scale_arcsec;
@@ -1428,6 +1540,22 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
         const auto t_p0 = std::chrono::steady_clock::now();
         const double moc_frac = ps->moc_area_sr / (4.0 * kPi());
         const double cov_frac = ps->covered_area_sr / (4.0 * kPi());
+        // M2a-H-3 可观测计数: properties 在 hierarchy 写出**之前**落盘, 故先由
+        // 累加器统计"Σ未钳制覆盖面积 > A_cell_k"的父像素数 (与 finalize_hierarchy
+        // 的发布面钳制逐像素一致), 使编码限从不可观测变为可测量。
+        ps->coverage_gt1_pixels = 0;
+        for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
+            const uint32_t nside_k = 1u << (k + 9);
+            const double A_cell_k = 4.0 * kPi() / (12.0 * (double)nside_k * nside_k);
+            for (auto& hkv : ps->hier[(size_t)k]) {
+                AncestorAcc& acc = hkv.second;
+                for (size_t i = 0; i < 512 * 512; ++i) {
+                    const double a = acc.areaAt(i);
+                    if (a > A_cell_k && std::isfinite(acc.fluxAt(i)))
+                        ++ps->coverage_gt1_pixels;
+                }
+            }
+        }
         std::string range;
         if (ps->sig_min <= ps->sig_max)
             range = std::to_string(ps->sig_min) + " " + std::to_string(ps->sig_max);
@@ -1535,15 +1663,20 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                     "  \"data_type\": \"%s\",\n"
                     "  \"products\": [%s],\n"
                     "  \"n_leaf_tiles\": %zu,\n"
-                    "  \"moc_sky_fraction\": %.8f,\n"
+                    "  \"moc_sky_fraction\": %s,\n"
                     "  \"astrocs_covered_sky_fraction\": %.8f,\n"
+                    "  \"astrocs_support_clamped_pixels\": %llu,\n"
+                    "  \"astrocs_coverage_gt1_pixels\": %llu,\n"
                     "  \"signal_dtype\": \"%s\",\n"
                     "  \"nrej_tiles\": %zu,\n"
                     "  \"nused_tiles\": %zu",
                     ps->nside, ps->tile_width,
                     ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64",
                     prod_list.c_str(),
-                    ps->leaf_ipix_list.size(), moc_frac, cov_frac,
+                    ps->leaf_ipix_list.size(), fmt_sky_fraction(moc_frac).c_str(),
+                    cov_frac,
+                    (unsigned long long)ps->support_clamped_pixels,
+                    (unsigned long long)ps->coverage_gt1_pixels,
                     ps->data_type == AIO_HIPS_FLOAT32 ? "float32" : "float64",
                     (size_t)(ps->flags & AIO_HIPS_PRODUCT_NREJ
                                  ? ps->leaf_ipix_list.size() : 0),
@@ -1919,6 +2052,11 @@ int aio_hips_write(
     try {
         g_hips_error.clear();
         if (!out_dir || !tiles || n_tiles <= 0) { set_error("参数无效"); return -1; }
+        // 逐元素 ABI 校验 (V11-N-01): 3 个跨边界数组参数均不得按盲步长解释
+        for (int t = 0; t < n_tiles; ++t)
+            if (!abi_ok_legacy_tile(&tiles[t], t)) return AIO_HIPS_ABI_MISMATCH;
+        for (int i = 0; i < (snr_points ? n_snr : 0); ++i)
+            if (!abi_ok_snr_point(&snr_points[i], i)) return AIO_HIPS_ABI_MISMATCH;
         AioHipsProductSet* ps = aio_hips_product_begin(
             out_dir, nside, tile_width, signal_dtype, AIO_HIPS_PRODUCT_ALL,
             creator_did, obs_title, nullptr, 0.0, nullptr, (uint32_t)moc_order);
@@ -1929,6 +2067,7 @@ int aio_hips_write(
         for (int t = 0; t < n_tiles; ++t) {
             AstroSphereTileView view;
             std::memset(&view, 0, sizeof(view));
+            aio_hips_tile_view_abi_init(&view);   // 内部转换视图: 自描述 ABI 头
             view.parent_ipix = tiles[t].parent_ipix;
             view.leaf_order = ilog2_u64(nside);
             view.width = 512;

@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
         view.data_type = AIO_HIPS_FLOAT32;
         view.flux_sum = flux.data();
         view.covered_area = area.data();
+        aio_hips_tile_view_abi_init(&view);
         if (aio_hips_write_signal_support_tile(ps, &view) != 0) {
             std::fprintf(stderr, "tile fail: %s\n", aio_hips_last_error());
             aio_hips_abort(ps);
@@ -52,8 +53,12 @@ int main(int argc, char** argv) {
         }
     }
     AioHipsSnrPoint pts[2];
-    pts[0] = {10.0, 89.5, 12.3, 1001, 1u, 1u};
-    pts[1] = {20.0, -30.0, 5.5, 1002, 4u, 0u};
+    std::memset(pts, 0, sizeof(pts));
+    pts[0].ra_deg = 10.0; pts[0].dec_deg = 89.5; pts[0].snr = 12.3;
+    pts[0].star_id = 1001; pts[0].quality_flags = 1u; pts[0].photometric_status = 1u;
+    pts[1].ra_deg = 20.0; pts[1].dec_deg = -30.0; pts[1].snr = 5.5;
+    pts[1].star_id = 1002; pts[1].quality_flags = 4u; pts[1].photometric_status = 0u;
+    aio_hips_snr_points_abi_init(pts, 2);
     aio_hips_write_snr_points(ps, pts, 2);
     if (aio_hips_finalize(ps) != 0) {
         std::fprintf(stderr, "finalize fail: %s\n", aio_hips_last_error());

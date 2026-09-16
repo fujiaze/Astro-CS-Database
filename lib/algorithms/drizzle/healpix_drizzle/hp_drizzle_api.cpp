@@ -904,6 +904,8 @@ try {
         snr_pts.reserve(snrModelPtr->n_points);
         for (uint32_t i = 0; i < snrModelPtr->n_points; i++) {
             AioHipsSnrPoint pt;
+            std::memset(&pt, 0, sizeof(pt));
+            aio_hips_snr_point_abi_init(&pt);
             pt.ra_deg = snrModelPtr->points[i].ra;
             pt.dec_deg = snrModelPtr->points[i].dec;
             pt.snr = snrModelPtr->points[i].snr_psf;
@@ -916,6 +918,8 @@ try {
         snr_pts.reserve(snrModelF64Ptr->n_points);
         for (uint32_t i = 0; i < snrModelF64Ptr->n_points; i++) {
             AioHipsSnrPoint pt;
+            std::memset(&pt, 0, sizeof(pt));
+            aio_hips_snr_point_abi_init(&pt);
             pt.ra_deg = snrModelF64Ptr->points[i].ra;
             pt.dec_deg = snrModelF64Ptr->points[i].dec;
             pt.snr = snrModelF64Ptr->points[i].snr_psf;
