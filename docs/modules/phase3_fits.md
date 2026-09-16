@@ -13,9 +13,9 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 > P3-FITS-DOC（SA-P3-F27，MODULE_MIGRATION_MATRIX P3-FITS 行）新建
 > 模块页，冻结合同 `astrocs.p3.fits_writer`（registry 行 ID 沿用
 > `MOD-astrocs-phase3-writer`；任务指派文字 astrocs.p3.fits 与矩阵
-> astrocs.p3.fits_writer 冲突——矩阵权威，决策记录 lib/phase3_fits/
-> memory.md）。合同三件套落位 `lib/phase3_fits/`（README/module.yaml/
-> memory.md，按 `lib/phase2_upm/`→`phase2_samp/`→`phase2_rej/`→
+> astrocs.p3.fits_writer 冲突——矩阵权威，决策记录 lib/algorithms/fits_output/
+> memory.md）。合同三件套落位 `lib/algorithms/fits_output/`（README/module.yaml/
+> memory.md，按 `lib/algorithms/upm/`→`phase2_samp/`→`phase2_rej/`→
 > `phase2_int/`→`hips_p2/` 先例新建；`lib/phase3_session/` 为会话
 > 编排域共享源 p3_session/p3_wcs/hips_properties/p3_output/
 > p3_resample 五源同库 astrocs_phase3_session（根 CMakeLists.txt
@@ -37,7 +37,7 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
   dll_target=`astrocs_p3_fits_writer.dll`（迁移合同值，尚未存在——
   MISSING 语义，由 P3-FITS-IMPL 建立，禁止声明 IMPLEMENTED）；
   现状构建=astrocs_phase3_session 静态库成员。
-- 合同落位：`lib/phase3_fits/` 三件套——README r1（合同页）+
+- 合同落位：`lib/algorithms/fits_output/` 三件套——README r1（合同页）+
   module.yaml（CONTRACT_READY，entrypoint=MISSING，31 键 schema
   astrocs.module-manifest/v1）+ memory.md。
 - module_status=CONTRACT_READY 语义：实现存在（生产源实测+编排

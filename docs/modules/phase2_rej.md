@@ -10,9 +10,9 @@ downstream: [TEST-P2-REJ-001]
 
 # 模块 astrocs.p2.rejection（P2-REJ-DOC 新建，2026-09-09）
 
-> P2-REJ-DOC（SA-xxx）新建模块页。合同三件套落位 `lib/phase2_rej/`
-> （README/module.yaml/memory.md，按 `lib/phase2_int/`→`lib/hips_p2/`
-> 先例新建；`lib/phase2/` 一目录一套已被 P2-COV 占用，不可覆盖）；
+> P2-REJ-DOC（SA-xxx）新建模块页。合同三件套落位 `lib/algorithms/rejection/`
+> （README/module.yaml/memory.md，按 `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/`
+> 先例新建；`lib/algorithms/coverage/` 一目录一套已被 P2-COV 占用，不可覆盖）；
 > 合同权威=三件套 + docs/algorithms/PHASE2_REJECTION.md
 > （ALG-P2-REJ-001，CONTRACT_READY）。descriptor 词汇
 > module_id=astrocs.phase2.reject（module_adapters.cpp:700-717，
@@ -26,15 +26,15 @@ downstream: [TEST-P2-REJ-001]
   `astrocs.p2.rejection`（矩阵 P2-REJ 行；descriptor 占位
   `astrocs.phase2.reject` 仅编排层词汇）；dll_target=
   `astrocs_p2_rejection.dll`（合同值，尚未存在，迁移归 P2-REJ-IMPL）。
-- 合同三件套：`lib/phase2_rej/`（README/module.yaml/memory.md），按
-  `lib/phase2_int/`→`lib/hips_p2/` 先例新建；`lib/phase2/` 三件套已
+- 合同三件套：`lib/algorithms/rejection/`（README/module.yaml/memory.md），按
+  `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/` 先例新建；`lib/algorithms/coverage/` 三件套已
   被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
-- 生产源：`lib/phase2/src/rejection.cpp`（2076 行，根 CMakeLists.txt
+- 生产源：`lib/algorithms/coverage/src/rejection.cpp`（2076 行，根 CMakeLists.txt
   :336-346 astrocs_phase2 静态库成员，rejection.cpp 列于 :340）+
-  唯一权威签名头 `lib/phase2/include/astro/phase2/rejection.h`
+  唯一权威签名头 `lib/algorithms/coverage/include/astro/phase2/rejection.h`
   （329 行）。模块页=本文件。
 - owner SA-xxx；depends_on_int=P2-UPM-INT;CPU-005（MODULE_MIGRATION_MATRIX.csv:15 权威；P2-REJ-INT 为 P2-INT 行本域被依赖项，勿混淆）；
-  legacy_paths="lib/phase2 rejection sources"。
+  legacy_paths="lib/algorithms/coverage rejection sources"。
 
 ## 职责与明确非职责
 
@@ -88,7 +88,7 @@ downstream: [TEST-P2-REJ-001]
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 唯一权威签名头: lib/phase2/include/astro/phase2/rejection.h
+- 唯一权威签名头: lib/algorithms/coverage/include/astro/phase2/rejection.h
   （329 行；方法枚举 :45-57、reason :71-77、status :79-90）。
 - 核心 symbol: p2_reject_plan_resolve（:191，AUTO 路由唯一解析点）、
   p2_eligibility_filter（:222）、p2_collect_candidate_stack（:263，
@@ -157,7 +157,7 @@ cfg（stage2.cpp:698-728）。
 small-N 状态穷尽、卫星注入 mask 精确、置换不变性 decision bitwise、
 typed params 逐位、Python oracle rtol 1e-12、gather 逐元素精确；
 F1-F6/F8 无 epsilon 门、F7 rtol 1e-12、large_scale mask 精确）。
-现状相邻证据（引用不冒认）: lib/phase2/tests/synthetic_gate.cpp
+现状相邻证据（引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp
 R1/R2/LinearFit/Rcr/G4（:2639-2725）+ G6（ESD NIST Rosner54
 :2779-2863）+ V15-V17（:4138-4864）；tests/backend/
 test_p2004_reject_integrate.py（P2-004 生产 Oracle）；tests/unit/
@@ -172,7 +172,7 @@ p2_rejection_test.cpp（P2-005 语义 id/解析面）。
 
 ## 链接
 
-- 合同三件套：`lib/phase2_rej/`（README/module.yaml/memory.md）
+- 合同三件套：`lib/algorithms/rejection/`（README/module.yaml/memory.md）
 - registry 页：docs/modules/registry/astrocs.phase2.reject.md
 - SCI：docs/science/REJECTION.md（SCI-REJ-001，FROZEN T107，零改动；
   descriptor 占位 SCI-P2-REJ-001⇒SCI-REJ-001 映射声明=ALG §11.5）

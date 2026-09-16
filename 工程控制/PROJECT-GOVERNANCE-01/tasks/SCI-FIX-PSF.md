@@ -40,3 +40,15 @@
 ## 交付（中文，直白）
 
 1. 逐条执行表；2. 修桥前后的坐标实测对照（0.5 px 偏差 → 0）；3. 新门红→绿；4. 产品面影响评估与重锚清单；5. 未做项；6. 自证摘要。
+
+---
+
+## 登记转 CI-003（本任务**未**改 `ci/**`、`.github/**`，以下为需 CI 侧登记的项）
+
+| # | 要登记的检查 | 建议条目（要点） | 为什么必须 | 极性证据（本任务已备） |
+|---|---|---|---|---|
+| CI-003-SCI-FIX-PSF-1 | **门表机器门**：`python3 tools/check_gates_and_tolerances.py` | 新增 `checks.json` 条目（建议 ID `GATES-TOLERANCES`，`changed_paths` 含 `docs/algorithms/GATES_AND_TOLERANCES.md`、`docs/DOCUMENT_INDEX.yaml`）；两个 step：正例（默认模式）+ 负例（`--self-test`） | 检查器与自检脚本本身必须进门禁，否则"机器可校验门表"只是文本承诺 | 正例 `run/PROJECT-GOVERNANCE-01/SCI-FIX-PSF/logs/40_gate_table_check.txt`（rc=0，16 门）/ 负例 `41_gate_table_selftest.txt`（7 注入必红，rc=0） |
+| CI-003-SCI-FIX-PSF-2 | **追溯矩阵机器门**：`python3 tools/check_traceability_matrix.py` | 新增 `checks.json` 条目（`test_path` 不得为 `docs/**::ID`；`VERIFIED ⇒ evidence_status≠MISSING`；路径存在性）；含 `--self-test` 负例 step | ENGINEERING_SPEC §8「每项检查有正例与负例」；现状 `test_status=VERIFIED` 与 `evidence_status=MISSING` 可长期共存无人发现（R-3 §4.6） | 见本任务 Agent C 报告与 `run/PROJECT-GOVERNANCE-01/SCI-FIX-PSF/logs/30_agentC_matrix_gate_*.txt` |
+| CI-003-SCI-FIX-PSF-3 | **新 ctest 覆盖确认**：`p1psf_centroid_gate` / `p1psf_centroid_gate_neg` | `CHK-UNIT::CTEST-LINUX-FULL` 已能覆盖（全量 ctest）；建议在 `CHK-ORACLE` 增设显式 step `CTEST-P1PSF-CENTROID-GATE`（`deep_ci_driver.py ctest-target --target p1psf_centroid_gate`）以便快速定位 | 该门是 D-16 端到端坐标契约的唯一机器锁；不宜只靠全量套件间接覆盖 | `logs/04_ctest_gate.txt`（2/2 Passed） |
+| CI-003-SCI-FIX-PSF-4 | **Python Oracle 发现面**：`tests/backend/test_psf_moffat_oracle.py` | `CHK-UNIT::UT-BACKEND` 用 `unittest discover -s tests/backend` ⇒ 该文件必须是 `unittest.TestCase` 形式（或加一个 TestCase 包装）才会被采集；请在 CI 侧确认采集数 +1 | 非 TestCase 的 `main()` 脚本不会被 `unittest discover` 执行 ⇒ 门形同虚设 | 见 Agent C 报告（`unittest` 运行输出） |
+| CI-003-SCI-FIX-PSF-5 | **Windows 侧未入门禁的共址锁**：`lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1_batchH_star_coord.cpp` | 该测试有 Makefile 目标（`test_p1_batchH`）但**不在任何 CMakeLists / CI 面**；本任务已订正其假前提头注，建议把它并入 Windows 单测门（`WIN-TEST-UNIT` 阶段或 orchestrator Makefile 的 `run_test`） | R-3 §3.5：它是"未入门禁的锁"，正是 0.5px 双扣长期不被发现的制度原因 | 头注订正见 `lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1_batchH_star_coord.cpp:1-30` |

@@ -14,13 +14,13 @@ downstream: [TEST-P2-HIPS-001, DATA-P2-HIPS]
 > 占位页（旧页以 module_adapters.cpp descriptor 为唯一源——编排层
 > 词汇不得作为冻结依据，本页手写登记事实修订；registry 页保留先例
 > astrocs.phase1.session.md / astrocs.phase1.star-detection.md /
-> astrocs.phase2.coverage.md）。模块级事实以 lib/hips_p2/README.md
-> （r1，CONTRACT_READY）+ lib/hips_p2/module.yaml（MOD-astrocs-phase2-
+> astrocs.phase2.coverage.md）。模块级事实以 lib/algorithms/coverage/hips_p2/README.md
+> （r1，CONTRACT_READY）+ lib/algorithms/coverage/hips_p2/module.yaml（MOD-astrocs-phase2-
 > hips-writer，module_id=astrocs.p2.hips_writer，dll_target=
 > astrocs_p2_hips_writer.dll，entrypoint=MISSING）为准。唯一生产源
-> lib/phase2/tools/stage2.cpp（1762 行，astrocs-stage2 工具，
-> lib/phase2/CMakeLists.txt:103-110）+ config 层
-> lib/phase2/include/astro/phase2/stage2_common.h（P2Stage2Config :16-100），
+> lib/algorithms/coverage/tools/stage2.cpp（1762 行，astrocs-stage2 工具，
+> lib/algorithms/coverage/CMakeLists.txt:103-110）+ config 层
+> lib/algorithms/coverage/include/astro/phase2/stage2_common.h（P2Stage2Config :16-100），
 > 全部行锚 grep/sed 实测（P2-HIPS-DOC，2026-09-09），禁止手抄他版。
 
 ## 职责与明确非职责
@@ -73,7 +73,7 @@ mask 严格分离，mask 不输出产品不入权重式（ALG-P2-HIPS §7）。
 stage2_common.h（p2_stage2_parse_config :102/p2_stage2_make_upm_cfg
 :106/p2_acr_block_eligible :113）；编排消费 p2_collect_candidate_stack/
 p2_reject_stack_ex/p2_integrate_pixel/p2_large_scale_apply/p2_block_plan
-（lib/phase2 冻结接口）；库消费 aio_hips.h 9 C ABI 符号（P1 冻结面）。
+（lib/algorithms/coverage 冻结接口）；库消费 aio_hips.h 9 C ABI 符号（P1 冻结面）。
 公共 API 登记 = API-P2-HIPS-001（PUBLIC_API Phase2 mosaic write 节，
 stage2 配置 schema + 退出码 2/3/4/5/6/7 + diagnostics.json 键集）。
 
@@ -83,7 +83,7 @@ module_id=`astrocs.p2.hips_writer`（matrix P2-HIPS 行）；registry 行 ID
 沿用 `MOD-astrocs-phase2-write`；descriptor（module_adapters.cpp:739-752，
 module_id=astrocs.phase2.write、sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/
 test_id=TEST-P2-WR-001）为编排占位词汇，不得反向作为冻结依据，由
-P2-XX-INT 对齐本页与 lib/hips_p2/module.yaml。配置=single JSON
+P2-XX-INT 对齐本页与 lib/algorithms/coverage/hips_p2/module.yaml。配置=single JSON
 （P2Stage2Config :16-99：weight_mode=2、legacy_allow_weight_fallback=
 false、reject_profile=wbpp_2_9_1、large_scale 默认关、acr_route=auto、
 memory_limit_mb=24576 等，权威=API-P2-HIPS-001）。
@@ -127,7 +127,7 @@ tests/api/test_reject_integration_oracle.py。
 
 ## 已知限制
 
-DISP-P2HIPS-001..004（lib/hips_p2/README.md §7）：无 variance/ivar 输出
+DISP-P2HIPS-001..004（lib/algorithms/coverage/hips_p2/README.md §7）：无 variance/ivar 输出
 产品；hash 链未入 HiPS properties provenance；直写 out_hips 无 staging
 （原子发布归 IO-003）；O(T·N) 覆盖帧 probe。迁移目标
 astrocs_p2_hips_writer.dll 归 P2-HIPS-IMPL；见 docs/KNOWN_LIMITATIONS.md。

@@ -1,7 +1,7 @@
 # Module: gaia_xpsd_client（astrocs.catalog.gaia / CAT-GAIA）
 
 > 状态: CONTRACT_READY（CAT-GAIA-DOC 冻结，2026-09-05；本节为事实修订版，
-> 全部条目以 lib/gaia_xpsd_client/src/gaia_client.c/.h 为准，旧版与源码冲突
+> 全部条目以 lib/infrastructure/gaia_xpsd_client/src/gaia_client.c/.h 为准，旧版与源码冲突
 > 的陈述已删除）。
 
 ## 职责
@@ -75,7 +75,7 @@ O(树深 + 命中叶块解压 + 输出)；文件级并行；缓存命中近乎�
 
 ## Source files
 
-- lib/gaia_xpsd_client/src/gaia_client.h / gaia_client.c（唯一生产源）
-- lib/gaia_xpsd_client/module.yaml / README.md（CAT-GAIA-DOC 冻结）
+- lib/infrastructure/gaia_xpsd_client/src/gaia_client.h / gaia_client.c（唯一生产源）
+- lib/infrastructure/gaia_xpsd_client/module.yaml / README.md（CAT-GAIA-DOC 冻结）
 - 追溯行：docs/traceability/TRACEABILITY_MATRIX.json
   `MOD-astrocs-catalog-gaia`

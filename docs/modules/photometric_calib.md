@@ -1,7 +1,7 @@
 # Module: photometric_calib
 
 > P1-PHOT-DOC 事实修订（2026-09-07，wave W1）：本页由源码核对后修订——
-> 模块合同冻结落位 lib/photometric_calib/README.md（r1，CONTRACT_READY）+
+> 模块合同冻结落位 lib/algorithms/photometry/README.md（r1，CONTRACT_READY）+
 > module.yaml（astrocs.p1.photometry，迁移目标 astrocs_p1_photometry.dll，
 > entrypoint=MISSING）；合同 ID=SCI-PHOT-001 / ALG-PHOT-001..002
 > （PHOTOMETRIC_FIT §13 逐符号锚）/ DATA-P1-PHOT（DATA_SEMANTICS §14）/
@@ -11,7 +11,7 @@
 > CalibrationQuality"与"参考星不足→NO_DATA"按 README §2/§6 修订（参考星
 > 不足为退化 scale=1.0 rc=0，QA 结构体落位 snr_estimator）；现状构建=
 > cpp/Makefile:11 + build.ps1:9（photometric_calib.dll），未编入根 CMake
-> 主构建；lib/phase1/photometry（Photometer aperture 旧符号）合同并入
+> 主构建；lib/algorithms/photometry/wrapper_phase1（Photometer aperture 旧符号）合同并入
 > README §9。DISP-PHOT-001..009 见 PHOTOMETRIC_FIT §13.3。
 
 ## 职责
@@ -24,7 +24,7 @@
 
 ## Public API
 
-photometric_calib DLL（flux_calibrator）；C ABI 见 `lib/photometric_calib/cpp/include/photometric_calib.h`（`PC_API`/`extern "C"` 不抛异常，`gaia_client_handle` opaque borrow/不持有，`spec_stars`/`spectra_buf` 本调用内 `free`，`out_*` 调用方分配/释放）— 契约锚 `docs/contracts/PUBLIC_API.md` + `docs/standards/C_ABI_STANDARD.md`。
+photometric_calib DLL（flux_calibrator）；C ABI 见 `lib/algorithms/photometry/cpp/include/photometric_calib.h`（`PC_API`/`extern "C"` 不抛异常，`gaia_client_handle` opaque borrow/不持有，`spec_stars`/`spectra_buf` 本调用内 `free`，`out_*` 调用方分配/释放）— 契约锚 `docs/contracts/PUBLIC_API.md` + `docs/standards/C_ABI_STANDARD.md`。
 
 ## Data contract
 
@@ -55,8 +55,8 @@ TEST-PHOT-DESIGN-001（PHOTOMETRIC_FIT §13.4，冻结容差）。
 SCI-PHOT-001 §11 容差：注入 rtol 1e-4、20% 离群 Δlocation<0.1 dex、
 NumPy rtol 1e-9）；可执行 TEST-P1-PHOT-001 由 P1-PHOT-TEST 落地；现状
 既有锚 tests/unit/p1_wcs_phot_test.cpp（Photometer 4 组）+
-lib/photometric_calib/cpp/test/test_photometric_calib.py（旧测，对齐重锚）。
+lib/algorithms/photometry/cpp/test/test_photometric_calib.py（旧测，对齐重锚）。
 
 ## Source files
 
-lib/photometric_calib/。
+lib/algorithms/photometry/。

@@ -14,7 +14,7 @@ downstream: [TEST-P2-SMP-001]
 > 为手写合同页（手写 registry 先例 astrocs.phase2.reject.md/
 > astrocs.phase2.coverage.md/astrocs.phase2.integrate.md）。
 > frontmatter 的 source_commit/upstream/downstream 为 registry 生成词
-> 保持不动；合同权威=lib/phase2_samp/ 三件套 +
+> 保持不动；合同权威=lib/algorithms/sampling/ 三件套 +
 > docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）。descriptor
 > 词汇（本节标题 module_id=astrocs.phase2.sample、端口表、坐标
 > PIXEL）为编排层占位（module_adapters.cpp:642-654
@@ -26,12 +26,12 @@ downstream: [TEST-P2-SMP-001]
 - MOD ID：MOD-astrocs-phase2-sample；module_id 合同值=
   astrocs.p2.sampling（矩阵 P2-SAMP 行）；dll_target=
   astrocs_p2_sampling.dll（合同值，尚未存在，P2-SAMP-IMPL）。
-- 合同三件套：lib/phase2_samp/（README/module.yaml/memory.md，按
-  lib/phase2_int/→lib/hips_p2/ 先例新建；lib/phase2/ 一套已被
+- 合同三件套：lib/algorithms/sampling/（README/module.yaml/memory.md，按
+  lib/algorithms/integration/→lib/algorithms/coverage/hips_p2/ 先例新建；lib/algorithms/coverage/ 一套已被
   P2-COV 占用）。
-- 生产源：lib/phase2/src/sampler.cpp（1156 行，根 CMakeLists.txt
+- 生产源：lib/algorithms/coverage/src/sampler.cpp（1156 行，根 CMakeLists.txt
   :337-346/:342 astrocs_phase2 静态库成员）+ 唯一权威签名头
-  lib/phase2/include/astro/phase2/sampler.h（136 行）。
+  lib/algorithms/coverage/include/astro/phase2/sampler.h（136 行）。
 - 模块页：docs/modules/phase2_samp.md。
 
 ## 职责与明确非职责
@@ -75,7 +75,7 @@ n_union>1e6/cells>2e8/首 tile 越界 → rc=1；容量不足不报错
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 唯一权威签名头: lib/phase2/include/astro/phase2/sampler.h
+- 唯一权威签名头: lib/algorithms/coverage/include/astro/phase2/sampler.h
   （136 行；cfg :32-57、stats :63-74、node :77-83、frame_id :93、
   stats_median/mad :97-99、入口 :103-114/:120-132）。
 - 核心 symbol: p2_sampler_default_config（:60，默认单一来源）、
@@ -100,7 +100,7 @@ sccfg 14 字段显式透传（stage2.cpp:256-274；control_k_corr 未透传，
 - `cpu_heavy`；并行轴=union cell 间（模块内 std::thread 池
   :886-913 动态领取，per-worker 独立 AIO 句柄 :894；=1 串行
   reference :916-933）；OpenMP 已从实现移除（:882-883 注释），
-  lib/phase2/CMakeLists.txt:28 option 仅旧 target 编译面。
+  lib/algorithms/coverage/CMakeLists.txt:28 option 仅旧 target 编译面。
 - **输出 obs 序列 bitwise 与 worker 数无关**（1/N 等价）：固定槽位
   写回 cells[idx]（:870-872）+ 第三遍单线程顺序扫描；验证门=F8
   sampler_parallel_consistency_test.cpp:29。
@@ -140,7 +140,7 @@ sccfg 14 字段显式透传（stage2.cpp:256-274；control_k_corr 未透传，
 1e-12、F3 cvar oracle rtol 1e-12、F4 坐标 atol 1e-9 deg、F5
 constant/gradient/impulse cvar rtol 1e-12、F6 边界/seam exact、
 F7 missing/invalid exact、F8 串并行 bitwise、F9 计数守恒现状
-口径）。现状相邻证据（引用不冒认）: lib/phase2/tests/
+口径）。现状相邻证据（引用不冒认）: lib/algorithms/coverage/tests/
 synthetic_gate.cpp Phase2Sampler 组（RealHipsControlSampling
 :3423、G6LocalSnrAvailabilityThreeZones :3470、
 G1StatisticsCorrectness :3594、UPMW-004 MC :4001、cvar :4089）+
@@ -155,7 +155,7 @@ DISP-P2SMP-001..005（上节，登记不改码）；本页旧派生内容
 
 ## 链接
 
-- 合同三件套：`lib/phase2_samp/`（README/module.yaml/memory.md）
+- 合同三件套：`lib/algorithms/sampling/`（README/module.yaml/memory.md）
 - 模块页：docs/modules/phase2_samp.md
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN T106，零
   改动；descriptor 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射声明=ALG

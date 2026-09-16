@@ -16,8 +16,8 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
 > 沿用 MOD-astrocs-phase2-upm-fit/upm-apply）——SCI-UPM-001（共享
 > FROZEN）/ALG-P2-UPM-IMPL-001/ALG-UPM-001/DATA-P2-UPM（§25）/
 > DATA-P2-COR（§26）/API-P2-UPM-001/API-P2-001；合同落位
-> lib/phase2_upm/ 三件套（README r1 + module.yaml CONTRACT_READY
-> entrypoint=MISSING）；生产源 lib/phase2/src/upm.cpp 1565 行 +
+> lib/algorithms/upm/ 三件套（README r1 + module.yaml CONTRACT_READY
+> entrypoint=MISSING）；生产源 lib/algorithms/coverage/src/upm.cpp 1565 行 +
 > upm.h 184 行；旧 descriptor 派生词汇（module_id=
 > astrocs.phase2.upm-fit/upm-apply、SCI-P2-UPM-001/002、
 > ALG-P2-UPM-001/002）由 P2-XX-INT 对齐修订。本页为 apply 职能；
@@ -31,15 +31,15 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
   `astrocs.phase2.upm-apply` 仅编排层词汇）；dll_target=
   `astrocs_p2_upm.dll`（合同值，尚未存在，MISSING 语义归
   P2-UPM-IMPL）。
-- 合同三件套：lib/phase2_upm/（README r1 + module.yaml
+- 合同三件套：lib/algorithms/upm/（README r1 + module.yaml
   CONTRACT_READY entrypoint=MISSING + memory.md），按
-  lib/phase2_samp/→lib/phase2_int/→lib/phase2_rej/ 先例新建；
-  lib/phase2/ 一套已被 P2-COV 占用。
-- 生产源：lib/phase2/src/upm.cpp（1565 行，根 CMakeLists.txt
+  lib/algorithms/sampling/→lib/algorithms/integration/→lib/algorithms/rejection/ 先例新建；
+  lib/algorithms/coverage/ 一套已被 P2-COV 占用。
+- 生产源：lib/algorithms/coverage/src/upm.cpp（1565 行，根 CMakeLists.txt
   :337-346 astrocs_phase2 静态库成员，upm.cpp 列于 :338）+ 唯一权威
-  签名头 lib/phase2/include/astro/phase2/upm.h（184 行）。
+  签名头 lib/algorithms/coverage/include/astro/phase2/upm.h（184 行）。
 - owner SA-P2-U21；depends_on_int=P2-SAMP-INT;CPU-005；
-  legacy_paths="lib/phase2 upm sources"。
+  legacy_paths="lib/algorithms/coverage upm sources"。
 
 ## 职责与明确非职责
 
@@ -48,7 +48,7 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
   sparse/dense 同一科学语义，ALG-UPM-001 F4）；dense cache 物化/
   读取（p2_upm_materialize_dense_n :1390 分批并行求值→(f,tile) 单
   调序串行写、bit-identical；p2_upm_dense_read_block :1542 stale 拒
-  绝 rc=2）；生产 apply 消费链=lib/phase2/tools/stage2.cpp
+  绝 rc=2）；生产 apply 消费链=lib/algorithms/coverage/tools/stage2.cpp
   （p2_upm_build_geo :432、save :473、materialize_dense_n :482、
   calibrate_block :927/:1272）。
 - 非职责：不做 UPM 拟合/权重归一（fit 职能）；不做采样/几何、
@@ -75,7 +75,7 @@ rc=2 stale 拒绝（upm.h:166-167）。
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 唯一权威签名头: lib/phase2/include/astro/phase2/upm.h（184 行；
+- 唯一权威签名头: lib/algorithms/coverage/include/astro/phase2/upm.h（184 行；
   P2ModelInfo :60-68、calibrate_block :113-、dense_read_block
   :166-。
 - 核心 symbol（upm.cpp 16 导出）: p2_upm_build（:929）、

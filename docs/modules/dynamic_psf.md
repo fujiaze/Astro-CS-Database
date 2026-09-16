@@ -1,7 +1,7 @@
 # Module: dynamic_psf
 
 > P1-PSF-DOC 增补（2026-09-07）：legacy 模块页追加说明段；PSF 模块合同页 =
-> lib/dynamic_psf/README.md（r1，CONTRACT_READY）+ lib/dynamic_psf/
+> lib/algorithms/psf/README.md（r1，CONTRACT_READY）+ lib/algorithms/psf/
 > module.yaml（astrocs.p1.psf，迁移目标 astrocs_p1_psf.dll）；冻结合同
 > SCI-P1-PSF-001 / ALG-STARPSF-001（STAR_PSF_ALGORITHMS §11）/ DATA-P1-PSF
 > （DATA_SEMANTICS §15）/ API-PSF-001（PUBLIC_API）；测试设计
@@ -46,4 +46,4 @@ SCI-PSF-001；ALG-STARPSF-*。
 
 ## Source files
 
-lib/dynamic_psf/。
+lib/algorithms/psf/。

@@ -10,8 +10,9 @@
 ## 1 语义要求（semantic anchors，公式锚见 ALG-STARDET-001 §2/§11.1）
 
 - subpixel centroid: 亚像素质心为连续估计（一阶导零交叉 / 二阶导零交叉 /
-  Moffat4 GSL-LM 中心），不引入 0.5px 网格量化损失；合成场验收容差
-  |Δc|≤0.3 px（SNR≥20）见 ALG-STARDET-001 §11.4 F1。
+  椭圆高斯 GSL-LM 中心），不引入 0.5px 网格量化损失；合成场验收容差
+  |Δc|≤0.3 px（SNR≥20）见 ALG-STARDET-001 §11.4 F1；SNR 定义（SNR_peak）
+  见 `docs/algorithms/GATES_AND_TOLERANCES.md`（G-P1-CENTROID-SCI 行）。
 - completeness / false positive (synthetic fields): 完备性与虚警由合成星场
   验收（召回 ≥99% @SNR≥10；虚警 ≤0.1/千像素，纯噪声场）——检测是经验性
   图像处理流程，不宣称解析保证；全局检测阈值为
@@ -27,8 +28,10 @@
 ## 2 与共享 SCI 的关系
 
 - SCI-PSF-001（PSF）：检测输出（cx/cy/FWHM/振幅/背景）为 PSF 拟合与
-  plate solve 的输入；Moffat4/Gaussian 拟合模型语义归 SCI-PSF-001 域，
-  本模块只登记检测侧调用事实（ALG-STARDET-001 §2）。
+  plate solve 的输入；**检测侧母函数 = 椭圆高斯**（本页 §1/§3，
+  ALG-STARDET-001 §2），**PSF 侧 = 椭圆 Moffat4**（SCI-PSF-001 §5）；
+  两模型**宽度列不可跨块比较**：同 sx 下 `FWHM_gauss/FWHM_moffat =
+  2.354820/1.230310 = 1.9140×`（DISP-STAR-007；证据 R-3 §2.2）。
 - SCI-PHOTOMETRY-001（PHOTOMETRY）：正常星 mag=−2.5·log10(Σ_box(pixel−B_fit))
   为粗测光（检测侧自估），最终测光归 PHOTOMETRY 域；饱和星 mag 量纲差异
   已登记 DISP-STAR-004（ALG-STARDET-001 §11.3）。
@@ -38,8 +41,10 @@
 
 ## 3 基线选择与验收语义
 
-- 基线算法=peaker 七步候选 + Moffat4 GSL trust-region LM 拟合
-  （sdet_detect_impl 生产路径，sdet_api.cpp:1599-2353）；旧 CC 结构图路径
+- 基线算法=peaker 七步候选 + 椭圆高斯 GSL trust-region LM 拟合
+  （7 参数，`fwhm=2.3548·sx`；高斯拟合 Moffat4 真星质心无偏 median 0.0047 px，
+  但 FWHM 报值/真值=1.086、解析流量比=0.902，R-3 §2.4；生产路径
+  sdet_detect_impl，sdet_api.cpp:1599-2353）；旧 CC 结构图路径
   （sdet_detect/:992-1274）为 DISP-STAR-005 登记的遗留双实现，不作为
   基线（去留归 P1-STAR-IMPL 整改）。
 - 现状缺陷不隐瞒（DISP-STAR-001..005 显式登记，ALG-STARDET-001 §11.3）；
@@ -51,8 +56,9 @@
 
 TEST-STAR-DESIGN-001（ALG-STARDET-001 §11.4）为冻结测试设计：
 F1 合成场统计（质心/FWHM/召回/虚警）、F2 饱和/混合/边缘专项、F3 确定性
-（线程数 bitwise 一致+全序断言）、F4 FP64 独立 oracle 与 FP32 量化容差、
-F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-001 由 P1-STAR-TEST 按本设计
+（线程数 bitwise 一致+全序断言）、F4 FP64 独立 oracle 与 FP32 量化容差
+（FP32 项只覆盖 FP32→uint16 量化通道，非端到端位置门；端到端绝对位置门=
+G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-001 由 P1-STAR-TEST 按本设计
 落地，容差冻结不得放宽。
 
 ## 5 物理量和单位（units）
@@ -70,3 +76,5 @@ F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-001 由 P1-STAR-TEST 
 单位约定与 docs/science/PHOTOMETRY.md（ADU/mag）、ASTROMETRY.md（px/deg）
 一致；本节为 checker（check_science_units.py）声明本页物理量与单位完备性，
 不改任何既有语义。
+
+> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门不得引用表外阈值）。

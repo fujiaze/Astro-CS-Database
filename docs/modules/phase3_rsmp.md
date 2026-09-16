@@ -2,7 +2,7 @@
 
 > P3-RSMP-DOC 冻结（2026-09-12，SA-P3-R）。模块总页；registry
 > 手写合同页=docs/modules/registry/astrocs.phase3.resample2.md（行
-> MOD-astrocs-phase3-resample2）；合同三件套=lib/phase3_rsmp/
+> MOD-astrocs-phase3-resample2）；合同三件套=lib/algorithms/resample/
 > {README.md,module.yaml,memory.md}。
 
 ## 1 身份
@@ -59,7 +59,7 @@
   （max_tiles 守卫）/:196-199（order 选择）/:217-244（worker 闭包
   每 worker 独立 sampler+cache）/:236-237（nearest/bilinear 分派）/
   :258-263（cancel）/:265-277（provenance）；域际消费:
-  lib/common/healpix（leaf_to_tile_nest/tile_to_leaf_nest/
+  lib/algorithms/shared/healpix（leaf_to_tile_nest/tile_to_leaf_nest/
   nested_local_to_fits_index/ang2pix/pix2ang 权威函数）。
 - 执行面: tests/backend/p3_resample_probe_main.cpp（探针六模式）+
   tests/backend/test_p3_resample.py（156 行，seam/NaN/无静默默认）+

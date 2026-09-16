@@ -2,7 +2,7 @@
 
 > P1-DRZ-DOC（2026-09-07）事实修订：合同 ID 收敛为 ALG-DRZ-001（旧
 > ALG-DRZ-CAND-001/ALG-DRZ-OVERLAP-001/ALG-DRZ-VAR-* 为历史登记名，
-> 不再作合同引用）；模块合同落位 lib/drizzle/（迁移目标目录，
+> 不再作合同引用）；模块合同落位 lib/algorithms/drizzle/（迁移目标目录，
 > astrocs.p1.drizzle）；实现源不变。
 
 ## 职责
@@ -60,7 +60,7 @@ finalize 层，covered_area≤0 → variance NaN）。
 SCI-DRZ-001/014/015/016（docs/science/DRIZZLE.md，FROZEN）；
 ALG-DRZ-001（docs/algorithms/DRIZZLE_GEOMETRY.md，含 TEST-DRZ-
 DESIGN-001 与 DISP-DRZ-001..008）；DATA-P1-DRZ；API-DRZ-001；
-MOD-astrocs-phase1-drizzle（lib/drizzle/module.yaml）。
+MOD-astrocs-phase1-drizzle（lib/algorithms/drizzle/module.yaml）。
 
 ## 性能特征
 
@@ -81,7 +81,7 @@ false_negative=0）；计数 METRIC-P1-DRZ-CANDIDATES 等
 
 ## Tests
 
-lib 内科学门（lib/healpix_db/healpix_drizzle/tests/*.cpp）：
+lib 内科学门（lib/algorithms/drizzle/healpix_drizzle/tests/*.cpp）：
 candidate/overlap/variance oracle（evidence/drizzle/*.json）、
 freeze/l0 闭合门、α² 缩放律、reverse false_hole/false_fill；
 合同级 TEST-DRZ-DESIGN-001（DRIZZLE_GEOMETRY.md §9，可执行
@@ -90,6 +90,6 @@ TEST-P1-DRZ-001 由 P1-DRZ-TEST 建立）；Monte Carlo 方差
 
 ## Source files
 
-lib/healpix_db/healpix_drizzle/（10 源文件编入根 CMake 静态库
+lib/algorithms/drizzle/healpix_drizzle/（10 源文件编入根 CMake 静态库
 astrocs_drizzle，CMakeLists.txt:356-366；poly_clip.cpp 编入但
-生产路径零调用——DISP-DRZ-008）；模块合同 lib/drizzle/。
+生产路径零调用——DISP-DRZ-008）；模块合同 lib/algorithms/drizzle/。

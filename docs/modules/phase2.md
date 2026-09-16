@@ -81,17 +81,17 @@ W9 ACR 仅 legacy CPU launcher（无 CUDA kernel）；输出仅 signal/support�
 
 ## Source files
 
-lib/phase2/{src,include/astro/phase2,tools,tests}/。
+lib/algorithms/coverage/{src,include/astro/phase2,tools,tests}/。
 
 ## Coverage 子模块合同（P2-COV-DOC 2026-09-07，事实修订）
 
 - coverage 环节=astrocs.p2.coverage（matrix P2-COV 行）：生产源
-  lib/phase2/src/coverage.cpp（239 行）+ include/astro/phase2/
+  lib/algorithms/coverage/src/coverage.cpp（239 行）+ include/astro/phase2/
   coverage.h（59 行），2 个 C ABI 导出 p2_coverage_build/p2_coverage_free；
   合同=ALG-COV-001（docs/algorithms/PHASE2_COVERAGE.md）/
   DATA-COV-001（DATA_SEMANTICS §19）/ API-COV-001（PUBLIC_API）/
   模块合同页 docs/modules/registry/astrocs.phase2.coverage.md + 
-  lib/phase2/README.md r1 + module.yaml。
+  lib/algorithms/coverage/README.md r1 + module.yaml。
 - 本页早先"coverage → sampler → …"指处理链阶段序，非本模块归属：
   coverage 仅为几何 union MOC + 兼容校验（hips_order/tile_width=512/
   hips_version/hips_frame/filter），无 weight_mode/config 参与；输出

@@ -2,7 +2,7 @@
 
 > P3-PROJ-DOC 冻结（2026-09-11，SA-P3-P25）。模块总页；registry
 > 手写合同页=docs/modules/registry/astrocs.phase3.wcs.md（行
-> MOD-astrocs-phase3-wcs）；合同三件套=lib/phase3_proj/
+> MOD-astrocs-phase3-wcs）；合同三件套=lib/algorithms/projection/
 > {README.md,module.yaml,memory.md}。
 
 ## 1 身份

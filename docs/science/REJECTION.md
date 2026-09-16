@@ -31,6 +31,9 @@
 
 - `n` 为 planning 层 `nominal contributors`，一次解析，禁止 per-pixel effective 路由（`docs/science/REJECTION.md:16`）。
 - 方法合法且 `method != AUTO` 才进 kernel；`n <= underdetermined_n(=2)` 或 `n < minimum_n` ⇒ `UNDERDETERMINED`（`rejection.h:153-154`）。
+- **全拒容错域（SC-005 登记）**：`n = 4` ∧ 方法核全拒 ⇒ 降级 `UNDERDETERMINED` 全接受
+  （`rejection.cpp:1860-1874`）。该容错的**可达域恰为 n=4**：n≤2 已被白名单截走；
+  奇数 n 的百分位带必含中位样本（不可全拒）；n≥5 全拒仍 `ALL_REJECTED`。
 - `support/weights` 有限性在资格层校验，非有限 ⇒ `INVALID_INPUT` hard fail。
 - `profile` 仅 `wbpp_2_9_1`（及 `wbpp_current` alias）合法，否则 `INVALID_CONFIGURATION`。
 
@@ -61,6 +64,8 @@ eligibility 分层:
   invalid_finite / invalid_support / explicit reason → INVALID_* hard fail
   UNDERDETERMINED (n ≤2) → 不做猜测，全接受 (P2_REASON_UNDERDETERMINED)
   normal → 方法核按阈过滤
+  全拒容错（域写死 n=4）→ UNDERDETERMINED 全接受 (rejection.cpp:1860-1874)
+  n ≥5 全拒 → ALL_REJECTED（不做猜测，不降级）
 
 large_scale 结构生长:
   仅扩展结构生长 (trail)，compact cosmic 不生长 (rejection.cpp:1501-1592 trail 分支)
@@ -77,6 +82,8 @@ large_scale 结构生长:
 - **阈值不变量**：同 `n` 的 `method` 选择确定性一致（WBPP 表驱动），`auto` 路由不依赖 per-pixel `n_eff`。
 - **状态分离不变量**：`P2_REASON` (per-sample) 与 `P2_STATUS` (stack-level) 分离，`INVALID_*` → hard fail 非可继续集合。
 - **UNDERDETERMINED 单调性**：`n ≤2` 恒 `UNDERDETERMINED`，不做剔除（recall=0 显式）。
+- **全拒容错域（n=4，SC-005）**：`n=4` 且方法核全拒 ⇒ `UNDERDETERMINED` 全接受
+  （accepted=n，rej_low=rej_high=0）；`n ≥5` 全拒 ⇒ `ALL_REJECTED`（无 n 相关例外）。
 - **流量中性**：单帧无排异（`n=1` 不进核），多帧无离群时不拒真值（NIST ESR 对照）。
 
 ## 8 极端/退化条件
@@ -84,11 +91,27 @@ large_scale 结构生长:
 | 条件 | 行为 | 证据 |
 |---|---|---|
 | `n ≤2` 或 `n < minimum_n` | `UNDERDETERMINED` 全接受 | `rejection.h:86` |
+| `n=4` 且方法核全拒 | `UNDERDETERMINED` 全接受（容错域写死 n=4） | `rejection.cpp:1860-1874` |
+| `n ≥5` 且方法核全拒 | `ALL_REJECTED`（不降级） | 同上 `else` 分支 |
 | 非有限 `weights/support` | `INVALID_INPUT` hard fail | `rejection.cpp` 资格层 |
 | 全拒 | `ALL_REJECTED` | `rejection.h:84` |
 | 无候选 | `NO_CANDIDATES` | 同上 |
 | 配置非法 (method/profile) | `INVALID_CONFIGURATION/INVALID_METHOD` | `rejection.h:87-88` |
 | 大结构 vs 紧凑 | trail 扩张，compact 不生长 | `rejection.cpp:1501-1592` |
+
+### 8a 根因登记：percentile 的 `scale=|median|` 在近零天光上塌缩（未修复，SC-005）
+
+- 判据带 = `[median − 0.2·|median|, median + 0.1·|median|]`（`rejection.cpp:1599-1611`，
+  工作域 = `v − median`，`scale=|median|`）。
+- 在近零天光像素上 `median → 0` ⇒ 带宽塌缩为 0 ⇒ **全部非中位样本被拒**。独立 MC
+  （20 万次随机高斯栈）实测：显式 `percentile` 在 n=6 / n=8 的全拒率 **73.9% / 70.1%**；
+  奇数 n（3/5/7）为 0（中位样本必在带内）。
+- 生产 `auto` 路由把 `n ≥6` 交给 `winsorized_sigma`（实测全拒 0/200k），因此该塌缩
+  在当前 auto 路径上被掩盖；只有 `n=4` 恰好落在 percentile 分支且可全拒（§4 容错域）。
+- **这是真实缺陷，不由 §4 容错掩盖**：是否把尺度改为 `max(|median|, MAD)`（WBPP 对齐面）
+  需单独裁决与重标定；本文件只登记事实与影响面。
+- 证据：`reports/PROJECT-GOVERNANCE-01/research/R-2_phase2权重与UPM语义.md` §3.6 /
+  `run/PROJECT-GOVERNANCE-01/R-2/logs/probe_r2.log`（[REJX]/[MC] 行）。
 
 ## 9 精度策略
 

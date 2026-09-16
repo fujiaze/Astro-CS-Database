@@ -64,7 +64,7 @@
 **不是新语义**：两 ID 早已在 DATA_SEMANTICS §29.5（"DATA-HIPS-001/
 DATA-TILE-001（HiPS properties/tile 输入面）"）、生产 descriptor
 （lib/infrastructure/scheduler/src/module_adapters.cpp:498-499 与 :459/:498）、
-runtime/pipeline/module_ports.registry.json:246/:277、registry 端口表
+lib/infrastructure/pipeline/module_ports.registry.json:246/:277、registry 端口表
 （docs/modules/registry/astrocs.phase3.resample.md、…resample2.md、
 …properties.md）、tests/unit/core_pipeline_test.cpp:66-67 在用，并在
 docs/traceability/TRACEABILITY_MATRIX.csv:25/:31 登记为 `VERIFIED`。

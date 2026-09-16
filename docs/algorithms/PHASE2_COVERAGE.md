@@ -32,7 +32,7 @@
 - 输出: `P2CoverageResult` POD（coverage.h:45-53）= 逐帧元信息
   P2HipsInputInfo[N]（coverage.h:31-43）+ union MOC 叶级 cell 数组
   P2MocCell[K]（coverage.h:26-29）+ target_order + status/error。
-- 下游消费: sampler（p2_sample_controls/:p2_sample_controls_cached，sampler.cpp:1121/:1138
+- 下游消费: sampler（p2_sample_controls/:p2_sample_controls_cached，sampler.cpp:1138/:1138
   （impl :463，消费 n_union_cells :632/union_cells[0] :658/逐 cell ipix
   :702）、编排 session（lib/phase2_session/p2_session.cpp:119-148 coverage
   阶段，两次调用 :125/:138，manifest 登记 n_union_cells/target_order
@@ -93,7 +93,7 @@
   由去重后的并集 + 逐帧 tile 集合在下游（sampler/UPM）按需计算，本模块
   不输出 depth/重叠计数（§10 负向条款）。
 - 越界守卫: 首个 union cell ipix 必须 < `12·4^order`（NESTED 象限总数；
-  sampler 侧断言 sampler.cpp:658-664，本模块自身不重复校验）。
+  sampler 侧断言 sampler.cpp:675-681，本模块自身不重复校验）。
 
 ## 3 伪代码
 
@@ -345,7 +345,7 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   锚（整改后本断言翻转为拒绝——P2-COV-IMPL 同步更新）。
 - F4 边界: 单输入（N=1，union=自身父聚合）；K=0 空 MOC（rc=0 如实）；
   越界断言 ipix < 12·4^target_order（NESTED 象限总数，sampler 侧先例
-  sampler.cpp:658-664）。
+  sampler.cpp:675-681）。
 - F5 负例/错误通道: NULL out/NULL paths/n_inputs=0 → rc=1；rc 与
   status 一致性断言（DISP-COV-001 整改门：整改后 status 必须同步=1）。
 - F6 确定性/资源: 同输入两次调用 bitwise 一致；单线程断言（无

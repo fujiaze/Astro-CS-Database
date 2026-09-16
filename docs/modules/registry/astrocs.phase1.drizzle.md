@@ -13,8 +13,8 @@ downstream: [TEST-DRZ-DESIGN-001]
 > P1-DRZ-DOC（2026-09-07）源码核对修订：本页旧占位 ID
 > SCI-P1-DRIZ-001/ALG-005/TEST-P1-DRIZ-001 更正为 SCI-DRZ-001/
 > ALG-DRZ-001/TEST-DRZ-DESIGN-001（与 docs/traceability/
-> TRACEABILITY_MATRIX.json P1-DRZ 行、lib/drizzle/module.yaml 一致；
-> 旧 ID 不存在于任何权威文档）。事实源：lib/drizzle/README.md、
+> TRACEABILITY_MATRIX.json P1-DRZ 行、lib/algorithms/drizzle/module.yaml 一致；
+> 旧 ID 不存在于任何权威文档）。事实源：lib/algorithms/drizzle/README.md、
 > docs/algorithms/DRIZZLE_GEOMETRY.md、
 > run/local/agent_p1_drz_doc/source_facts.md（行号实测底稿）。
 

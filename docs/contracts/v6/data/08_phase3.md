@@ -18,7 +18,9 @@ DESIGN-P3 §1/§2/§3/§4/§5；PHASE3_REVIEW C-P3-PROP-1..16；ADJ-P3-01/ADJ-S4
 
 ```text
 Omega'_i = |det(d(sky)/d(pixel))|_i        （TAN/SIN/CAR/AIT 各由 FITS WCS Paper II 定义）
-CAR 面积元: Omega = s_rad * (sin dec_hi - sin dec_lo)  （CRVAL2=0, ±60deg 时 max/min = 2.0000）
+CAR 面积元: Omega = s_rad * (sin dec_hi - sin dec_lo)  （**仅 |CRVAL2|<=1e-9（未倾斜）成立**；
+           CRVAL2≠0 时行是倾斜等纬线，该解析式不成立——v3 起 CAR/AIT 的 CRVAL2 进映射，
+           Paper II §2.2 三 Euler 角；±60deg、CRVAL2=0 时 max/min = 2.0000）
 AIT 等积:   max/min = 1.00000006
 ```
 

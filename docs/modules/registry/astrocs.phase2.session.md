@@ -13,7 +13,7 @@ downstream: [DATA-P2-SESSION, API-P2-SESSION-001, TEST-P2-SESSION-001]
 > P2-SESSION-DOC 手写合同页（2026-09-10，SA-P2-X24）：registry
 > descriptor 无 astrocs.p2.session 词汇（module_adapters.cpp:643 起
 > descriptor 族为 p2_sample_descriptor 等编排占位，无 session 条目；
-> 编排委托=lib/core/src/module_adapters.cpp:23-26 五 C ABI 声明，
+> 编排委托=lib/infrastructure/scheduler/src/module_adapters.cpp:23-26 五 C ABI 声明，
 > RT-005 IModule 工厂）——本页为 Phase2 装配会话（p2_session 函数族）
 > 手写登记，重生成时须保留。权威签名头 lib/phase2_session/p2_session.h。
 
@@ -22,7 +22,7 @@ downstream: [DATA-P2-SESSION, API-P2-SESSION-001, TEST-P2-SESSION-001]
   委托；占位词汇对齐归 P2-XX-INT，不作冻结依据）；迁移目标
   astrocs_p2_session.dll **未建——MISSING 如实登记**，补齐归
   P2-SESSION-IMPL。
-- 层级：assembly（编排，纯 facade 直调 lib/phase2 生产符号，不实现
+- 层级：assembly（编排，纯 facade 直调 lib/algorithms/coverage 生产符号，不实现
   科学公式）；构建=静态库 astrocs_phase2_session（根
   CMakeLists.txt:454-458，link astrocs_contracts astrocs_phase2；
   CLI target 汇总 :504/:522/:538）。

@@ -57,9 +57,11 @@
   max(|Ar|,|Ac|)<locthreshold`。
 - candidate 去重（:1947-1959）: `matchradius=max(1, floor(0.2·R))`；
   曼哈顿距 `|Δx|+|Δy|≤matchradius` 视为重复，先到先留（扫描序 y 主序）。
-- Moffat4/Gaussian 拟合模型（sdet_lm_fit :262-437，GSL trust-region LM，7 参数）:
+- **椭圆高斯拟合模型（检测侧冻结母函数）**（sdet_gauss_fit :483-620 → sdet_lm_fit :262-437，
+  GSL trust-region LM，7 参数）:
   `f(x,y)=B+A·exp(−(x′²/SX+(y′/r)²/SX)/1)`，参数 `{B,A,x0,y0,SX=2σ²,fr,alpha}`，
   `r=0.5·(cos fr+1)`，`sx=√(SX/2)`，`sy=sx·r`，`fwhm=2.3548·σ`（TWO_SQRT_2_LOG2），
+  PSF 侧 = 椭圆 Moffat4（SCI-PSF-001 §5）；同 sx 下 FWHM 相差 1.9140×，禁止跨块比较（DISP-STAR-007）。
   `theta=−alpha` 归一到 (−90°,90°]。残差坐标 `dx=x+0.5−cx`（像素中心=索引+0.5，
   :510-513）。
 - 初始化（:289-346）: halfA 边界搜索（`max_val=A0+B0`，沿中心行列向外走到
@@ -103,7 +105,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1599-2353
     candidates.push({x+xx偏移, y, mag_est=meanhigh, Sr, Sc, R, sat_flag})
   sort candidates by mag_est desc; 截断 maxStars×2       # :2026-2034
   parallel for c in candidates:                   # 阶段6 :2036-2068 OpenMP dynamic
-    fit = GSL_TR_LM_Moffat4(image, window=2R+1, sat_mask=c.sat, init=halfA+局部截尾MAD)
+    fit = GSL_TR_LM_GAUSS(image, window=2R+1, sat_mask=c.sat, init=halfA+局部截尾MAD)
   for (fit, c) in zip(fit_results, candidates):   # 阶段8 :2130-2205
     if fit.status ≠ OK: drop                      # :2139
     if max(sx,sy)/min(sx,sy) > maxAxisRatio: drop # :2143-2145
@@ -166,9 +168,10 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1599-2353
 
 ## 9 容差来源
 
-- 亚像素质心: 一阶导/零交叉为连续估计（无 0.5px 网格量化损失），Moffat4 中心
+- 亚像素质心: 一阶导/零交叉为连续估计（无 0.5px 网格量化损失），**椭圆高斯**中心
   由 GSL LM（XTOL/GTOL/FTOL 编译期常量）收敛；合成高斯场 oracle 容差于 §11.4
-  冻结，禁止放宽。
+  冻结，禁止放宽。检测侧高斯 / PSF 侧 Moffat4 双母函数语义与换算见 §2 与
+  DISP-STAR-007。
 - FP32 通道经 uint16 量化（DISP-STAR-001），其容差与 FP64 通道分别冻结。
 
 ## 10 关联 ARC/API/TST
@@ -193,7 +196,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1599-2353
 | threshold=median+5·bgnoise | :1637-1647 | 阶段3 全局阈值 |
 | peaker 主扫描 | :1709-1974 | 阶段4 七步（§2 候选公式锚） |
 | 候选 mag_est 降序+截断 | :2026-2034 | 阶段5 排序闸门 |
-| sdet_moffat4_fit | :483-620 | 阶段6 采样/饱和 mask/bkg0/初始值 |
+| sdet_gauss_fit | :483-620 | 阶段6 采样/饱和 mask/bkg0/初始值（检测侧母函数=椭圆高斯，DISP-STAR-007） |
 | sdet_lm_fit（GSL TR-LM 7 参） | :262-437 | 阶段6 拟合主体（halfA :289-313） |
 | reject_star | :189-239 | 阶段8 质量门（SfError 五码 :177-186） |
 | StarRecord 构建+mag | :2130-2205 | 阶段8（is_saturated :2159、mag :2177-2198） |
@@ -230,7 +233,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
 - 线程安全: handle 级互斥使用（PHASE1_API_V1 §2 表行登记 handle 级 no/no）；
   无内部锁，禁止跨线程共享句柄并发检测。
 
-### 11.3 现状缺陷清单（DISP-STAR-001..005，登记不改码，整改归 P1-STAR-IMPL/INT）
+### 11.3 现状缺陷清单（DISP-STAR-001..007，登记不改码，整改归 P1-STAR-IMPL/INT）
 
 - DISP-STAR-001 FP32 通道 uint16 量化: orchestrator.cpp:2188-2198 float clamp
   到 [0,65535] 转 uint16 后进 sdet_detect_ex；PREC-105 同族精度约束；FP64
@@ -247,6 +250,12 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
 - DISP-STAR-005 双实现并存: 生产 impl（peaker 路径）与旧 sdet_detect/
   sdet_detect_debug（CC 结构图路径 :992-1274/:1281-1593）行为漂移（候选过滤
   ≤4 vs peaker 七步、dedup 半径/网格不同）；维护歧义，去留归 P1-STAR-IMPL。
+- DISP-STAR-007 检测/PSF 双母函数（列语义不可互换）：检测侧生产内核为椭圆高斯
+  （`sdet_gaussian_f/df`，`fwhm=2.3548·sx`），PSF 侧为椭圆 Moffat4
+  （`MOFFAT4_FWHM_FACTOR=1.230310`）；同 sx 下 FWHM 报值相差 **1.9140×**，
+  解析流量比 0.902（R-3 §2.2/§2.4 实测）。因此 `star_det` 的 fwhm/flux 列与
+  PSF 块同名列**禁止跨块比较**；整改（如统一母函数或列改名）归
+  P1-STAR-IMPL/P1-PSF-IMPL。
 - 线程数未接 ThreadBudget（#pragma omp 无 num_threads 注入，
   threading_model=host_executor_lease 为合同值，接线归 P1-STAR-IMPL）；
   取消检查点缺失（无 cancel 回调，长帧检测不可中断）并入本条整改域。
@@ -262,7 +271,11 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   全序断言；maxStars 截断保留最亮（:2240-2242）。
 - F4 FP64 通道 oracle: 独立 Moffat4/Gaussian 复算（B,A,x0,y0,sx,sy,theta）
   |Δ中心|≤0.05 px、A/B 相对误差 ≤1e−3（GSL 对独立实现，双精度）；FP32 通道
-  经 uint16 量化容差独立冻结 |Δc|≤0.5 px（DISP-STAR-001）。
+  经 uint16 量化容差独立冻结 |Δc|≤0.5 px（DISP-STAR-001）—— 本项**只覆盖
+  FP32→uint16 量化通道**（实测 u16 量化对质心贡献 median 0.0018 / p95 0.0036 /
+  max 0.0056 px，余量约 90×，可达且未超标；R-3 §2.6），**不构成端到端位置门**；
+  端到端绝对位置门 = **G-P1-CENTROID-1**（ctest `p1psf_centroid_gate`/
+  `p1psf_centroid_gate_neg`，判据见 `docs/algorithms/GATES_AND_TOLERANCES.md`）。
 - F5 状态码负例: NULL/空图/0 尺寸 → −1；空场 → count=0 且 rc=0。
 - F6 回归锚: Galaxy_Center 类饱和平台场多检/漏检回归 fixture（源码教训
   :1854/:2217-2218 固化）。容差冻结: 上述数值在 TEST 落地时逐项写死，
@@ -270,10 +283,12 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
 
 ### 11.5 SCI-P1-STAR-001 状态声明
 
-科学专项（matrix P1-STAR 行）映射：subpixel centroid=§2 一阶导/零交叉/Moffat4
+科学专项（matrix P1-STAR 行）映射：subpixel centroid=§2 一阶导/零交叉/椭圆高斯
 中心（连续估计，无网格量化）；completeness/false positive synthetic fields=
 §11.4 F1（检测完备性/虚警由合成场验收，非解析保证；5σ 阈值语义）；saturation/
 blend/edge=§2 饱和双条件+edge-walking+dedup 保饱和+§4 边界丢弃；deterministic
 ordering=§5 全序确定（mag 升序+NaN 末尾+串行 dedup/sort）。共享 SCI（PSF/
 PHOTOMETRY/ASTROMETRY）不因本附录改动；本节禁止被编排层词汇反向改写
 （descriptor astrocs.phase1.star-psf 由 P1-PSF-INT 对齐，不作冻结依据）。
+
+> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门不得引用表外阈值）。

@@ -14,7 +14,7 @@ downstream: [TEST-P2-REJ-001]
 > 手写合同页（手写 registry 先例 astrocs.phase2.write.md/
 > astrocs.phase2.coverage.md/astrocs.phase2.integrate.md）。
 > frontmatter 的 source_commit/upstream/downstream 为 registry 生成词
-> 保持不动；合同权威=lib/phase2_rej/ 三件套 +
+> 保持不动；合同权威=lib/algorithms/rejection/ 三件套 +
 > docs/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）。descriptor
 > 词汇（本节标题 module_id=astrocs.phase2.reject、端口表、坐标
 > PIXEL）为编排层占位（module_adapters.cpp:700-717，注册 :785），由
@@ -26,11 +26,11 @@ downstream: [TEST-P2-REJ-001]
 - MOD ID：MOD-astrocs-phase2-reject；module_id 合同值=
   astrocs.p2.rejection（矩阵 P2-REJ 行）；dll_target=
   astrocs_p2_rejection.dll（合同值，尚未存在，P2-REJ-IMPL）。
-- 合同三件套：lib/phase2_rej/（按 lib/phase2_int/→lib/hips_p2/ 先例
-  新建；lib/phase2/ 一套已被 P2-COV 占用）。
-- 生产源：lib/phase2/src/rejection.cpp（2076 行，根 CMakeLists.txt
+- 合同三件套：lib/algorithms/rejection/（按 lib/algorithms/integration/→lib/algorithms/coverage/hips_p2/ 先例
+  新建；lib/algorithms/coverage/ 一套已被 P2-COV 占用）。
+- 生产源：lib/algorithms/coverage/src/rejection.cpp（2076 行，根 CMakeLists.txt
   :336-346/:340 astrocs_phase2 静态库成员）+ 唯一权威签名头
-  lib/phase2/include/astro/phase2/rejection.h（329 行）。
+  lib/algorithms/coverage/include/astro/phase2/rejection.h（329 行）。
 - 模块页：docs/modules/phase2_rej.md。
 
 ## 职责与明确非职责
@@ -72,7 +72,7 @@ DISP-P2REJ-002）。
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 唯一权威签名头: lib/phase2/include/astro/phase2/rejection.h
+- 唯一权威签名头: lib/algorithms/coverage/include/astro/phase2/rejection.h
   （329 行；reason :71-77/status :79-90）。
 - 核心 symbol: p2_reject_plan_resolve（:191）、p2_eligibility_filter
   （:222）、p2_collect_candidate_stack（:263）、p2_reject_stack_ex
@@ -131,7 +131,7 @@ large_scale_*（:52-63）；typed params 唯一默认源=cfg
 枚举精确/small-N 状态穷尽/卫星注入 mask 精确/置换不变性 decision
 bitwise/typed params 逐位/Python oracle rtol 1e-12/gather 逐元素
 精确；F1-F6/F8 无 epsilon 门、large_scale mask 精确）。现状相邻
-证据（引用不冒认）: lib/phase2/tests/synthetic_gate.cpp R1/R2/
+证据（引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp R1/R2/
 LinearFit/Rcr/G4（:2639-2725）+ G6（:2779-2863）+ V15-V17
 （:4138-4864）；tests/backend/test_p2004_reject_integrate.py
 （P2-004 生产 Oracle）；tests/unit/p2_rejection_test.cpp（P2-005）。

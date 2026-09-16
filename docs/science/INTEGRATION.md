@@ -55,7 +55,7 @@
        wsum = Σ_{valid,W>0} w_i
        vs   = Σ_{valid,W>0} w_i·x_i
        signal  = vs / wsum
-       support = (support 空) ? 1.0 : max_{valid,W>0} support[i]   # canonical reducer, 覆盖并集保守下界
+       support = (support 空) ? 1.0 : max_{accepted} support[i]   # canonical reducer, 覆盖并集保守下界
        n_used  = n_positive_weight
        status  = OK
 ```

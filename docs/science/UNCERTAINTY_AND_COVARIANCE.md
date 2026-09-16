@@ -29,7 +29,7 @@ nside=512 合成帧相邻像素 mean|ρ|≈0.19、max|ρ|≈0.57。
 
 ## V19R3 control estimator 方差（ALG-UPM-CONTROL-IVAR-001）
 
-(本节公式隶属Phase2 UPM/ALG-UPM-CONTROL-IVAR-001，不属于lib/algorithms/noise_snr的NoiseWeightModelV1；后者仅提供σ_bg，经sampler阶段乘k_corr=N_eff缩放)
+(本节公式隶属Phase2 UPM/ALG-UPM-CONTROL-IVAR-001，不属于lib/algorithms/noise_snr的NoiseWeightModelV1；后者仅提供σ_bg，经sampler阶段乘k_corr缩放，且 k_corr = N_retained/N_eff ≥ 1（原括注"k_corr=N_eff"为勘误：N_eff ≤ N_retained，见 SCI-UPM §5/§6 与 SCI-FIX-WEIGHT SC-005）)
 
 UPM 的 control estimator 是 background-clean patch **median**，其方差
 不是单 leaf 像素方差：
@@ -43,8 +43,11 @@ control_ivar     = 1 / control_variance
 - k_corr 表征 Drizzle 输出协方差导致的 N_eff<N_retained：UPMW-005 MC
   （pixfrac=0.8，2000 实现）k_corr=1.3883，N_eff≈181/251；冻结 1.4；
 - N_retained 用 clipping 后保留样本（UPMW-007 patch vs truth 验证）；
-- 生产 UPM 权重 = quality × geometric_reliability × control_ivar
-  （SCI-UPM-WEIGHT-001），禁止再用单像素 ivar/support/SNR 乘因子。
+- 生产 UPM 权重 = quality × control_reliability × control_ivar（SCI-UPM-WEIGHT-001；
+  旧名 geometric_reliability，**实现为配置常量 1.0，不是按覆盖度算出的几何量**，缺陷登记
+  SC-005），禁止再用单像素 ivar/support/SNR 乘因子。
+- k_corr 定义域 1 ≤ k_corr：k_corr<1 ⇔ N_eff>N_retained（正相关样本的有效样本量不可能
+  大于样本数），`p2_upm_control_variance` 与 `p2_upm_ma_build` 显式拒（rc=1 / rc=7）。
 
 ## Phase2 马赛克合成方差（DATA-P2-VAR-001，DATA-UNC-001 冻结 2026-09-09）
 
@@ -75,23 +78,41 @@ variance_mosaic(p) = 1 / W(p)
 缩放律同源）：
 
 ```text
-nearest :  var_out = u_in
-bilinear:  var_out = Σ_k c_k² · u_k     # c_k = ALG-P3-003 G4 冻结权重, Σc_k=1
+# 主式（一般式，允许多个输入像素相关；SCI-FIX-PROJ 2026-09-16 订正，M7-A-114）
+bilinear:  var_out(i) = [ R C_in Rᵀ ]_ii
+           R = 本输出像素对各输入 leaf 的重采样权重行向量（ALG-P3-003 G4 冻结权重 c_k，
+               Σ_k c_k = 1）；C_in = 输入逐像素协方差阵
+nearest :  var_out = u_in                # 单权重 1 的特例；R C_in Rᵀ → u_in
+标量（对角）特例: C_in = diag(u_k) ⇒ var_out = Σ_k c_k² · u_k
 ivar_out = 1 / var_out   (var_out 有限且 >0)；var_out=0→0、NaN→NaN 同态
 ```
 
+- **为何主式必须带协方差项**：本文件协方差节已给出
+  `Cov(S_p,S_q)=Σ_j c_jp c_jq v_j`，且自报 mean|ρ|≈0.19、max|ρ|≈0.57
+  （SNR-012，nside=512）。只写 `Σ c_k²u_k` 等于假设 C_in 对角，**系统性低估**
+  输出方差：偏差因子 ≈ 1+0.75ρ（两像素近邻近似），ρ=0.19 ⇒ 方差低估 36.3%、
+  σ 低估 20.2%（R-1 §2.5 MC 复算 0.39415 vs 理论 0.39250）。
+  与 ALG-P3-001 §3（`C_y = R C_x Rᵀ`）同式；`Σc_k²` 标量式**只在 C_in 对角时**
+  成立，禁止当通用式（原式与本文件 :18 互斥，已降为特例）。
 - **Σc_k² ≠ 1 是正确物理**：bilinear 平均降低独立像素方差但引入相邻相关
   （§上协方差机制），禁止误用 Σc_k=1 归一 variance（常数信号场不变量
   SCI-P3 §7 只对 signal 成立，对 variance 不成立）。
+- **实现口径（如实）**：`p3_rsmp_covariance.cpp`/`p3_rsmp_propagation.cpp` 现按
+  对角特例 `Σc_k²u_k` 传播（不建完整 C_in）；该口径是**下界**，使用该 variance
+  做测量误差时必须显式加入协方差项（本文件对使用的约束同款边界）。
 - 输入选择：输入 HiPS 含 variance/ 子产品则 u=variance；否则含 ivar/ 则
   u=1/ivar；两者皆无 → uncertainty unavailable（输出无 VARIANCE/IVAR HDU +
-  manifest uncertainty_available=false，宪章 §18.3 模式）；负/Inf = 产品
-  损坏显式错误；NaN 传播（C=1）。
+  manifest uncertainty_available=false，DATA_SEMANTICS §30.4 unavailable 模式）；
+  负/Inf = 产品损坏显式错误；NaN 传播（C=1）；**ivar==0 像素 = 零权重 ⇒
+  u 无效（NaN 传播态），不是硬错误，也不得导出 1/0→Inf**（M1a-A-009；
+  DATA_SEMANTICS §30.4-1/-3 已同步）。
 - invalid（输出面）：无覆盖（C=0）→ variance/ivar=NaN（signal=NaN 同态）；
   覆盖不一致（leaf signal 有限而 u 缺失）→ 输出 NaN + provenance 计数。
 - 产品/FITS 表达（EXTNAME=VARIANCE/IVAR、BUNIT 派生）与验证门：
   DATA_SEMANTICS §30.4/§30.5（DATA-P3-UNC-001）；SCI-P3 §9a-10 的
-  variance/ivar 拒绝语义由此 supersession（宪章 §7.1/§7.3 上位）。
+  variance/ivar 拒绝语义由此 supersession（**权威 = 本节 + DATA_SEMANTICS
+  §30.4**；原引「宪章 §7.1/§7.3」在现行活动树无载体，SCI-FIX-PROJ
+  2026-09-16 改为实质条款，见 SCIENCE_CORRECTNESS.md SC-001）。
 
 ## 数值精度
 
