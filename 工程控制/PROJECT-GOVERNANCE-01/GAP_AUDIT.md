@@ -180,6 +180,18 @@
 - **UNRESOLVED（U-07）**：`run/` 在 §7 被标为 gitignore，但实际 **tracked**——文档与既成事实冲突，需负责人裁决口径。
 - **治理任务**：OBS-001（产物归位）、GOV-001（根条目处置）、BASE-001（预存边界登记）
 
+### GAP-022　违规：仓库根被大量散落条目污染（不止 git 脏，物理上就脏）
+
+- **权威依据**：ENGINEERING_SPEC §7（禁止散落根目录；新根条目须先登记并经负责人确认）；ASTROCS_DESIGN §6.3（运行产物只落 output_dir）。
+- **证据（逐项实测）**：工作区根顶层 **133** 个条目（tracked 46 / untracked 87）。相对 §7 白名单：
+  - **一次性运行产物落根**：`astrocs_run_*.json` **62 个**、`astrocs_p1sess_neg`、`astrocs_p1sess_perf`、`astrocs_p1sess_props`、`astrocs_p1sess_test`、`alloc_report.json`、`alloc_samples.csv`、`resource_samples.csv`、`resource_summary.json`、`worker_balance.csv`、`run_context.json`；
+  - **构建/缓存残留**：`build/` 6.0G、`out/`、`Testing/`、`.pytest_cache/`、`logs/`；
+  - **补丁文件散落**：`p8-files.patch`、`p9-files.patch`、`p10-files.patch`、`p11-files.patch`、`p15a-files.patch`（合计约 105KB）；
+  - **未登记目录**：`graph/`、`worktrees/`、`CS/`、`Database/`、`AstroCS.wiki/`、`engineering/`（空）、`BASS DR3/`、`GaiaDR3/`、`GaiaDR3SP/`（后三者属用户数据，已在 .gitignore 内）；
+  - **tracked 但不在白名单**：`设计大纲/`（101M）、`问题扫描/`（20M）、`CHANGELOG.md`、`FATDUCK_ACCESS.md`、`VISUAL_CHECK_README.md`、`run/`（§7 标 gitignore 却 tracked `run/.gitkeep`）；
+  - **磁盘影响**：`run/` **102G / 634993 文件**（`run/perf-fix` 59G、`run/release-rescue` 29G），/workspace 503G 已用 293G。
+- **为什么单列一条**：GAP-021 只登记了「根条目与未跟踪产物」，本条明确其**规模、分类与磁盘后果**，并作为 ROOT-001/002/003 的开工依据；治理口径是「物理根目录干净」，不是「git status 干净」——事实上 `run/` 与多数根产物已被 ignore，git 看不出它们的存在。
+- **治理任务**：ROOT-001（账本 + 清运）、ROOT-002（长效机器门）、ROOT-003（run/ 保留策略）
 ## 2. 基线门复核记录
 
 | 命令 | 编制时实测 | 说明 |

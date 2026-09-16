@@ -11,7 +11,7 @@
 | 文件 | 内容 |
 |---|---|
 | `00_README.md` | 本文：目的、治理事实、执行硬规则、入口 |
-| `TASK_LIST.md` | 26 个任务的总览表、依赖图、并行组、提交规则 |
+| `TASK_LIST.md` | 29 个任务的总览表、依赖图、并行组、提交规则 |
 | `tasks/*.md` | 每任务一份：目标 / 基线状态 / 权威依据 / 文件域 / 步骤 / 验收门 / 证据命令 |
 | `GAP_AUDIT.md` | 差异审计：基线红灯 + GAP-001..GAP-021、U-01..U-07（含可复跑证据与独立复核修正） |
 | `ACCEPTANCE.md` | 验收台账（逐任务状态，现全部 NOT_STARTED） |
@@ -21,6 +21,7 @@
 
 ## 2. 当前已确认的治理事实（编制时实测）
 
+- **根目录在物理上就是脏的**：顶层 133 个条目（tracked 46 / untracked 87），其中 62 个 `astrocs_run_*.json`、5 个 `p*-files.patch`、`build/` 6.0G、以及 `run/` 102G/634993 文件的临时产物；`run/` 与多数产物已被 ignore，所以 git 状态看不出来——治理口径必须是「物理根目录干净」（GAP-022，由 ROOT-001/002/003 治理）。
 - **机器门是红的**：`tools/check_agents_gov.py` rc=1、`tools/doccheck/check_engineering_constraints.py` rc=1、`tools/doccheck/check_doc_index.py --strict` rc=1——三者仍以旧治理体系为判据（详见 `GAP_AUDIT.md §0`）。
 - 新文档要求用户命令为 `normalize/mosaic/export`，当前 CLI 仍注册 `phase1/phase2/phase3 …`，而旧检查器 `tools/check_cli_command_layer.py` 反而以旧命令层为 PASS 判据（rc=0）。
 - 新文档要求 `lib/algorithms/` 与 `lib/infrastructure/` 两个源码根，当前源码仍分散在 31 个 `lib/*` 旧目录与根 `cli/`、`runtime/`、`providers/`、`modules/`。
