@@ -284,6 +284,58 @@ class SecretHygieneInfraInfoTest(unittest.TestCase):
             self.assertNotIn(FAKE_KEYNAME, text)
 
 
+class SecretHygieneConcurrencyAndPolicyTest(unittest.TestCase):
+    """并发竞态判定 与 规则定义文件降级注册表。"""
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("_csh_under_test", CHECKER)
+        cls.mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.mod)
+
+    def test_pattern_definition_registry_is_exact(self):
+        """降级清单必须精确等于「规则本体 + 其测试」，不得被偷偷扩大。"""
+        self.assertEqual(set(self.mod.PATTERN_DEFINITION_FILES),
+                         {"tools/quality/check_secret_hygiene.py",
+                          "tests/quality/test_secret_hygiene.py"})
+
+    def test_definition_files_are_downgraded_but_still_listed(self):
+        """规则定义文件命中降级为 INFO（仍列 路径/形态/行号），不判红。"""
+        report, rc = self.mod.build_report("tracked", REPO,
+                                           ["tools/quality/check_secret_hygiene.py"],
+                                           self.mod.DEFAULT_MAX_BYTES, False)
+        self.assertEqual(report["verdict"], "PASS", report.get("verdict_reasons"))
+        self.assertEqual(report["fatal_paths"], [])
+        entry = report["files_with_findings"][0]
+        self.assertTrue(entry["policy_downgraded"])
+        self.assertNotEqual(entry["patterns"], {})      # 仍逐条列出，不是跳过
+
+    def test_vanished_after_listing_is_not_fatal(self):
+        """清单枚举后文件被并发删除 → 计入 files_vanished，不按不可判定判红。"""
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td) / "repo"
+            root.mkdir()
+            subprocess.run(["git", "init", "-q", str(root)], check=True, timeout=120)
+            (root / "a.txt").write_text("clean\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "a.txt"], check=True, timeout=120)
+            report, rc = self.mod.build_report("tracked", root, ["a.txt", "gone.txt"],
+                                               self.mod.DEFAULT_MAX_BYTES, False, git_backed=True)
+            self.assertEqual(report["counts"]["files_vanished"], 1)
+            self.assertEqual(report["undecidable"], [])
+            self.assertEqual(report["verdict"], "PASS")
+
+    def test_all_vanished_is_red(self):
+        """fail-closed 兜底：全消失（零文件实扫）仍判红，不能变成恒绿。"""
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td) / "repo2"
+            root.mkdir()
+            subprocess.run(["git", "init", "-q", str(root)], check=True, timeout=120)
+            report, rc = self.mod.build_report("tracked", root, ["gone.txt"],
+                                               self.mod.DEFAULT_MAX_BYTES, False, git_backed=True)
+            self.assertNotEqual(rc, 0)
+            self.assertIn("nothing_scanned", report["verdict_reasons"])
+
+
 class PackerDenyGuaranteeTest(unittest.TestCase):
     """审计包排除保证：凭据类文件即使被显式指定/白名单误加回也不入包。"""
 

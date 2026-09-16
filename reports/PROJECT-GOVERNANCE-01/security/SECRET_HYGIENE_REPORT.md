@@ -178,7 +178,7 @@ FATDUCK_ACCESS.md
 
 ### 6.3 新增 `CHK-SECRET-HYGIENE`（检查器 + 测试）
 
-`tools/quality/check_secret_hygiene.py`（新）、`tests/quality/test_secret_hygiene.py`（新，18 项单测）。
+`tools/quality/check_secret_hygiene.py`（新）、`tests/quality/test_secret_hygiene.py`（新，**22 项**单测）。
 
 **扫描范围（三选一）**：`--scope pack`（默认，**直接 import 打包器 `allowed()`，与打包同源**）／`--scope tracked`（`git ls-files` 全集）／`--scope walk --root <dir>`（测试/巡检）；`--files <p...>` 显式清单（白名单审计用）。
 
@@ -190,7 +190,7 @@ FATDUCK_ACCESS.md
 | ESCALATE | password／secret／token 的**赋值字面量**（占位符与变量引用已排除）、hex32/40/64、b64≥40 | INFO（提交哈希/校验和合法且普遍） | **FAIL** |
 | INFO | CGNAT/Tailscale 网段地址、`ssh/scp` 目标、私钥路径、`authorized_keys` | INFO | INFO（**永不判红**，清运属治理批次） |
 
-**fail-closed（无法判定即 FAIL，7 类）**：`git` 不可用、扫描集为空、文件不可读、文本超限未扫（`--max-bytes`，默认 4MiB）、打包器不可导入、输出自泄、walk 根不存在。**显式边界**：二进制（扩展名或前 8KiB 含 NUL）不做文本扫描，但**计数上报**（非静默跳过）。
+`**fail-closed（无法判定即 FAIL）**：`git` 不可用、扫描集为空、**零文件实扫**（`nothing_scanned`）、文件不可读、文本超限未扫（`--max-bytes`，默认 4MiB）、打包器不可导入、输出自泄、walk 根不存在。**显式边界**：二进制（扩展名或前 8KiB 含 NUL）不做文本扫描，但**计数上报**（非静默跳过）。
 
 **输出纪律**：只落 路径/布尔/行号/计数；序列化后再自扫一遍（路径字段用前缀形态单独扫），命中即 `output_self_leak` 并降级为最小 JSON —— 本轮开发中真的触发过一次（`INFRA_AUTHORIZED_KEYS` 这个**形态 ID 自身**被自己的正则命中），已用词边界修正。
 
@@ -198,6 +198,14 @@ FATDUCK_ACCESS.md
 > 为「说明形态」而写的字面量（password／secret 的赋值写法、以及一串用斜杠连接的读取工具名 ≥40 字符）
 > 被判为升级命中 —— 报告一旦落盘，``--scope pack`` 就会因它变红。改写为不含可命中连续串的表述后复扫 rc=0。
 > **边界**：安全报告/规则文档在引用形态时不得写出可命中的连续串（含长斜杠串），否则机器门会（正确地）报红。
+
+**并发竞态 vs 不可判定（本轮新增，避免工作区多写者时抖动）**：扫描集来自 `git ls-files`，枚举后文件可能被别的线删除。判定规则：
+若该路径**已不再是 tracked 条目** → 计入 `files_vanished`（不判红，因为它已不属于扫描集）；若 git 仍认为它 tracked（真丢文件）→ 按 `file_unreadable` **判红**；
+且**零文件实扫**时补判 `nothing_scanned` 判红（防止"全消失=恒绿"）。实测修复前 pack 范围在同一文件集下 rc 在 0/1 间抖动，修复后连续 3 次 rc=0。
+
+**规则定义文件降级注册表（精确 2 项，测试锁定）**：`PATTERN_DEFINITION_FILES` = {`tools/quality/check_secret_hygiene.py`, `tests/quality/test_secret_hygiene.py`}。
+理由：规则本体与测试夹具按定义必须写出原始形态字面量（前缀、赋值写法、私钥头拼接、哨兵串），且两个文件名都含 secret 从而被归为凭据类文件 → 会自我判红（本轮真实发生）。
+语义是**降级不是豁免**：文件照扫、命中照列（路径/形态/行号），只是不判红；清单由 `test_pattern_definition_registry_is_exact` 断言精确等于这 2 项，防止后续被偷偷扩大。
 
 ### 6.4 报告与证据
 
@@ -214,21 +222,23 @@ FATDUCK_ACCESS.md
 | 白名单移除 + 显式指定也不入包 | `python3 run/PROJECT-GOVERNANCE-01/ROOT-006/logs/packer_deny_selftest.py` | 0 | 8/8 PASS；`DENY 排除: 1 ['FATDUCK_ACCESS.md']`；zip 条目名不含它 |
 | 形态扫描覆盖白名单全部文件、无值 | §2 表 + `python3 tools/quality/check_secret_hygiene.py --files <15 项> --report-only` | 0（14 项）/ 不可判定（悬空条目单列） | 15 条全列；FATDUCK 全 false；4 文件 INFO 行号 |
 | 检查器正例 | `python3 tools/quality/check_secret_hygiene.py --scope pack --quiet`；`--scope tracked --quiet` | 0 / 0 | 各 `verdict: PASS`、`fatal_paths: []` |
-| 检查器负例 | `python3 -m unittest tests.quality.test_secret_hygiene` | 0（18 tests OK） | 负例 7 项均 rc≠0（假私钥／`sk-` 前缀／password 赋值、凭据类名+hex、赋值字面量、不可读、超限、空集、根不存在、打包器缺失） |
+| 检查器负例 | `python3 -B -m unittest discover -s tests/quality -t tests/quality -p "test_secret_hygiene.py"` | 0（**22 tests OK**） | 负例 7 项均 rc≠0（假私钥／`sk-` 前缀／password 赋值、凭据类名+hex、赋值字面量、不可读、超限、空集、根不存在、打包器缺失） |
 | fail-closed | 同上（5 项 fail-closed 用例） | — | `undecidable_input`/`empty_scan_set`/`walk_root_missing`/`packer_unavailable:missing` |
 | 无值泄漏 | 同上 `test_report_leaks_no_matched_value` + §2 人工复核 | 0 | 哨兵串不出现在报告/ stdout；报告只有 路径/布尔/行号 |
 | `.gitignore` 条目 | `git check-ignore -v --no-index FATDUCK_ACCESS.md` | 0 | `.gitignore:149:FATDUCK_ACCESS.md	FATDUCK_ACCESS.md` |
 | （同上，默认判定） | `git check-ignore -v FATDUCK_ACCESS.md` | **1** | 无输出 —— **因为文件仍是 tracked**（这就是 §6.1 的口径） |
 | ROOT-002 条目未被破坏 | `grep -qxF <each> .gitignore` | 0×6 | 6/6 在位 |
 | CHK-SECRET-HYGIENE 注册 | **未执行**（冻结令 + 待批，见 §8） | — | 补丁 `run/.../CHK-SECRET-HYGIENE.registration.json` + `apply_...py --check` 干跑通过（只追加、幂等、不改既有条目） |
-| 全程未读凭据内容 | §1 命令清单 | — | 无 `cat/head/tail/base64/xxd`、无复制、无行内容打印 |
+| 全程未读凭据内容 | §1 命令清单 | — | 无内容读取命令、无复制、无行内容打印 |
+| 并发稳定性 | `for i in 1 2 3; do python3 tools/quality/check_secret_hygiene.py --scope pack --quiet; echo rc=$?; done` | 0/0/0 | 三次均 PASS、`files_policy_downgraded: 2`、`fatal_paths: []` |
+| 规则定义降级被锁定 | 同上单测中的 `test_pattern_definition_registry_is_exact` | 0 | 注册表精确 = {规则本体, 其测试} |
 
 ---
 
 ### 7.1 与既有 CI 套件的交叉验证（前台关注）
 
 - 注册项 `UT-QUALITY` 的执行方式为 `python3 -B -m unittest discover -s tests/quality -t tests/quality`：
-  实测 **Ran 120 tests**，其中 `test_secret_hygiene` 的 18 项**全部通过**（单独 discover 复跑 3/3 绿）。
+  实测 **Ran 120 tests**，其中 `test_secret_hygiene` 的 22 项**全部通过**（单独 discover 复跑 3/3 绿）。
 - 同次运行存在 **2 failures + 4 errors**，全部落在 `test_doc_machine_check` / `test_docchk002_mutation`，
   根因为 `DOCCHK-001 FAIL: build/astrocs --help rc=2（命令树 golden 不可读，fail-closed）` —— 属**构建产物缺失/并发清运**导致的既有问题，**与 ROOT-006 改动无关**（本任务未触碰 `docs/`、`build/`）。
   证据：`run/PROJECT-GOVERNANCE-01/ROOT-006/logs/UT_QUALITY_full.txt`。
