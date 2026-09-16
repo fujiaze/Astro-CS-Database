@@ -1,7 +1,7 @@
 # Phase2 API 定义 v1 (API-004 冻结 — 数据所有权/thread budget/逐函数)
 
 > ID: API-P2-001  范围: API-P2-001..012  状态: FROZEN (V5 API-004, 2026-08-28)；**handler 名称经 CLI-001 切换**  上游: API-001/002/003  下游: 用户命令 `mosaic`(CLI-001;旧 `phase2 run` 已删除, rc=2)/TST-P2-*
-> 签名权威=现存头文件(lib/phase2/include/astro/phase2/*.h);本文件登记并发合同、**数据所有权**与 thread budget 绑定;禁止隐藏全局状态(验收)。
+> 签名权威=现存头文件(lib/algorithms/coverage/include/astro/phase2/*.h);本文件登记并发合同、**数据所有权**与 thread budget 绑定;禁止隐藏全局状态(验收)。
 
 ## 1 阶段流水与所有权图(谁分配/谁持有/谁释放)
 

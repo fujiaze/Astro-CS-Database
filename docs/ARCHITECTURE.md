@@ -1,6 +1,8 @@
+> **ARCHIVED_NON_NORMATIVE（DOC-001，2026-09-16）**：本文属旧文档体系，已由 docs/DOCUMENT_INDEX.yaml 移出活动索引，不再作为当前权威；替代见该索引 replacement 字段（API_REFERENCE -> docs/api/**；ARCHITECTURE -> docs/architecture/**；docs/review -> docs/owner/**）。保留仅作历史追溯。
+
 # AstroCS Architecture (Engineering Anchor — Stage C)
 
-> 阶段: Stage C 只读锚定 (V19R3 True Final Freeze) — `lib/*/include/*.h` `lib/*/src/*.cpp` `CMakeLists.txt` `lib/orchestrator/configs/stage1_*.json` `lib/phase2/configs/*.json` `tools/*.py` 为唯一输入；本文件不改代码，仅锚定职责/接口/签名/错误/线程/所有权与科学/算法追溯 ID。机检见 `tools/docs_machine_consistency.py 9/9` + `tools/config_consistency_check.py 0 mismatches`。
+> 阶段: Stage C 只读锚定 (V19R3 True Final Freeze) — `lib/*/include/*.h` `lib/*/src/*.cpp` `CMakeLists.txt` `lib/infrastructure/pipeline/orchestrator/configs/stage1_*.json` `lib/algorithms/coverage/configs/*.json` `tools/*.py` 为唯一输入；本文件不改代码，仅锚定职责/接口/签名/错误/线程/所有权与科学/算法追溯 ID。机检见 `tools/docs_machine_consistency.py 9/9` + `tools/config_consistency_check.py 0 mismatches`。
 
 权威链: `Wiki(核心约束) → Science(L1) → Algorithm(L2) → Architecture(L3, 本文) → Standards(L4) → Modules(L5) → Source → Test → Diagnostics → Release`；与 `docs/README-DOCS.md` L0-L5 及 `docs/validation/SCIENCE_FREEZE.md` 一致，矛盾以 Wiki 为准。
 
@@ -19,7 +21,7 @@ FITS/XISF Light + Master(Bias/Dark/Flat) + Gaia DR3SP
   → healpix_browser_qt(只消费不解释科学数据)
 ```
 
-运行时基座: `lib/acr`(CPU reference + CUDA bridge，`acr_kernels` 幂等注册，科学语义不变)；I/O 唯一入口 `lib/astro_image_io`；通用权威 `lib/common`(healpix_core + sha256)。
+运行时基座: `lib/infrastructure/acr`(CPU reference + CUDA bridge，`acr_kernels` 幂等注册，科学语义不变)；I/O 唯一入口 `lib/infrastructure/aio`；通用权威 `lib/algorithms/shared`(healpix_core + sha256)。
 
 ## 2. Layering & Dependency Rules
 
@@ -37,22 +39,22 @@ orchestrator / stage2 CLI / browser                Application
 
 | 模块 | 路径 | 产物 | 职责 | Public 头 | 构建 |
 |---|---|---|---|---|---|
-| common | `lib/common` | header-only/static | `healpix_core` NESTED 唯一实现 + `crypto/sha256` + `astro_scalar`/`precision_context` 双精度 ABI | `healpix_core.h` `sha256.h` `astro_scalar.h` `precision_context.h` | `lib/common/Makefile` header-only/静态 |
-| astro_image_io | `lib/astro_image_io` | `astro_image_io.dll` | FITS/XISF/HiPS/ahpx/compression/UPM 容器 + `PipelineFrame` 命名块管线 | `astro_image_io.h` `aio_hips.h` `aio_hips_reader.h` `aio_pipeline.h` `aio_pipeline_engine.h` `aio_upm.h` `hiss_format.h` `aio_ahpx_format.h` | `Makefile` (CFITSIO 4.6.4 vendored，`aio_build_config.json`) |
-| calibration | `lib/calibration` | `astro_calibration.dll` + `cosmetic_corrector.dll` | 主帧生成/图像校准/坏点修复 | `astro_calibration.h` `cpp/cosmetic_corrector.h` `src/photometry_apply.h` | `lib/calibration/Makefile` + `cpp/Makefile` |
-| star_detector | `lib/star_detector` | `star_detector.dll` | 星点检测与质心(`SDetParams`, `sdet_*`) | `star_detector.h` | `lib/star_detector/Makefile` |
-| dynamic_psf | `lib/dynamic_psf` | `dynamic_psf.dll` | 动态 PSF 建模(Moffat4 β=4, LM) | `dynamic_psf.h` | `lib/dynamic_psf/Makefile` |
-| plate_solve(ipv) | `lib/plate_solve/cpp/ipv` | `ipv_solver.dll` | IPV 星表匹配/plate solve/WCS/SIP(TAN+SIP 2005, Paper II) | `ipv_api.h` `ipv_solver.h` `ipv_wcs.h` `ipv_sip.h` `ipv_types.h` 等14头 | `cpp/ipv` CMake/Make |
-| photometric_calib | `lib/photometric_calib` | `photometric_calib.dll` | 测光定标(Fsyn 积分+Tukey IRLS 求 scale) | `photometric_calib.h` | `lib/photometric_calib/cpp/Makefile` |
-| snr_estimator | `lib/snr_estimator` | `snr_estimator.dll` | 三层噪声模型: `NoiseWeightModelV1`(blank-sky)/`PsfFitQuality`/`PhotometricCalibrationQuality` | `snr_estimator.h` | `lib/snr_estimator/cpp/Makefile` |
-| gaia_xpsd_client | `lib/gaia_xpsd_client` | `gaia_client.dll` | Gaia DR3/DR3SP 锥形查询与 XPSD 解码/缓存 | `gaia_client.h` | `lib/gaia_xpsd_client/Makefile` |
-| healpix_drizzle | `lib/healpix_db/healpix_drizzle` | `healpix_drizzle.dll` | 球面 Drizzle(线性重建+Fruchter&Hook, 方差传播 α²v) + 反向 drizzle | `hp_drizzle_api.h` `drizzle_engine.h` `wcs_sip.h` `spherical_overlap.h` 等 | header-only + `healpix_drizzle` Makefile |
-| healpix_browser_qt | `lib/healpix_db/healpix_browser_qt` | `healpix_browser_qt.exe` | HiPS 浏览器(Qt6, STF, LOD, GL 3.3) | `healpix_browser_core.h`→`browser_backend.h` `stf_engine.h` `healpix_math.h` `gl_renderer.h` | `CMakeLists.txt` + `Makefile` |
-| phase2 | `lib/phase2` | `phase2.a` + `astrocs-stage2.exe` | Phase2 统一光度模型: coverage/sampler/UPM/rejection/integration/block | `astro/phase2/*.h`(8头)+`stage2_common.h` | `lib/phase2/CMakeLists.txt`(C++20) |
-| orchestrator | `lib/orchestrator/cpp` | `orchestrator.exe` | Phase1 编排(DllLoader 动态加载，stage1.json 驱动) | `orchestrator.h` `json_config.h` `dll_loader.h` `checkpoint.h` `logger.h` 等 | `lib/orchestrator/cpp/Makefile` (C++17, `-Wl,--stack,33554432`) |
-| acr | `lib/acr` | `lib*.a` + `acr_cuda_bridge.dll` | 异构计算抽象(CPU/CUDA)，phase2 ACR kernels | `acr/include/*` `scheduler/*` `backends/cuda/bridge/*` | `lib/acr/CMakeLists.txt` |
+| common | `lib/algorithms/shared` | header-only/static | `healpix_core` NESTED 唯一实现 + `crypto/sha256` + `astro_scalar`/`precision_context` 双精度 ABI | `healpix_core.h` `sha256.h` `astro_scalar.h` `precision_context.h` | `lib/algorithms/shared/Makefile` header-only/静态 |
+| astro_image_io | `lib/infrastructure/aio` | `astro_image_io.dll` | FITS/XISF/HiPS/ahpx/compression/UPM 容器 + `PipelineFrame` 命名块管线 | `astro_image_io.h` `aio_hips.h` `aio_hips_reader.h` `aio_pipeline.h` `aio_pipeline_engine.h` `aio_upm.h` `hiss_format.h` `aio_ahpx_format.h` | `Makefile` (CFITSIO 4.6.4 vendored，`aio_build_config.json`) |
+| calibration | `lib/algorithms/calibration` | `astro_calibration.dll` + `cosmetic_corrector.dll` | 主帧生成/图像校准/坏点修复 | `astro_calibration.h` `cpp/cosmetic_corrector.h` `src/photometry_apply.h` | `lib/algorithms/calibration/Makefile` + `cpp/Makefile` |
+| star_detector | `lib/algorithms/star_detection` | `star_detector.dll` | 星点检测与质心(`SDetParams`, `sdet_*`) | `star_detector.h` | `lib/algorithms/star_detection/Makefile` |
+| dynamic_psf | `lib/algorithms/psf` | `dynamic_psf.dll` | 动态 PSF 建模(Moffat4 β=4, LM) | `dynamic_psf.h` | `lib/algorithms/psf/Makefile` |
+| plate_solve(ipv) | `lib/algorithms/platesolve/cpp/ipv` | `ipv_solver.dll` | IPV 星表匹配/plate solve/WCS/SIP(TAN+SIP 2005, Paper II) | `ipv_api.h` `ipv_solver.h` `ipv_wcs.h` `ipv_sip.h` `ipv_types.h` 等14头 | `cpp/ipv` CMake/Make |
+| photometric_calib | `lib/algorithms/photometry` | `photometric_calib.dll` | 测光定标(Fsyn 积分+Tukey IRLS 求 scale) | `photometric_calib.h` | `lib/algorithms/photometry/cpp/Makefile` |
+| snr_estimator | `lib/algorithms/noise_snr` | `snr_estimator.dll` | 三层噪声模型: `NoiseWeightModelV1`(blank-sky)/`PsfFitQuality`/`PhotometricCalibrationQuality` | `snr_estimator.h` | `lib/algorithms/noise_snr/cpp/Makefile` |
+| gaia_xpsd_client | `lib/infrastructure/gaia_xpsd_client` | `gaia_client.dll` | Gaia DR3/DR3SP 锥形查询与 XPSD 解码/缓存 | `gaia_client.h` | `lib/infrastructure/gaia_xpsd_client/Makefile` |
+| healpix_drizzle | `lib/algorithms/drizzle/healpix_drizzle` | `healpix_drizzle.dll` | 球面 Drizzle(线性重建+Fruchter&Hook, 方差传播 α²v) + 反向 drizzle | `hp_drizzle_api.h` `drizzle_engine.h` `wcs_sip.h` `spherical_overlap.h` 等 | header-only + `healpix_drizzle` Makefile |
+| healpix_browser_qt | `lib/infrastructure/hips_browser/healpix_browser_qt` | `healpix_browser_qt.exe` | HiPS 浏览器(Qt6, STF, LOD, GL 3.3) | `healpix_browser_core.h`→`browser_backend.h` `stf_engine.h` `healpix_math.h` `gl_renderer.h` | `CMakeLists.txt` + `Makefile` |
+| phase2 | `lib/algorithms/coverage` | `phase2.a` + `astrocs-stage2.exe` | Phase2 统一光度模型: coverage/sampler/UPM/rejection/integration/block | `astro/phase2/*.h`(8头)+`stage2_common.h` | `lib/algorithms/coverage/CMakeLists.txt`(C++20) |
+| orchestrator | `lib/infrastructure/pipeline/orchestrator/cpp` | `orchestrator.exe` | Phase1 编排(DllLoader 动态加载，stage1.json 驱动) | `orchestrator.h` `json_config.h` `dll_loader.h` `checkpoint.h` `logger.h` 等 | `lib/infrastructure/pipeline/orchestrator/cpp/Makefile` (C++17, `-Wl,--stack,33554432`) |
+| acr | `lib/infrastructure/acr` | `lib*.a` + `acr_cuda_bridge.dll` | 异构计算抽象(CPU/CUDA)，phase2 ACR kernels | `acr/include/*` `scheduler/*` `backends/cuda/bridge/*` | `lib/infrastructure/acr/CMakeLists.txt` |
 
-`healpix_stack`(`lib/healpix_db/archive/legacy/healpix_stack`) 已归档不重建，当前 HCSD 由 `phase2+astro_image_io` 承担(见 `docs/architecture/MODULE_MAP.md`)；`tools/` 仓根脚本不计入 shipping modules。
+`healpix_stack`(`lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack`) 已归档不重建，当前 HCSD 由 `phase2+astro_image_io` 承担(见 `docs/architecture/MODULE_MAP.md`)；`tools/` 仓根脚本不计入 shipping modules。
 
 完整职责/接口/数据含义/线程/所有权/测试见 `docs/modules/<module>.md`(L5) 与本文 §5 API 一览、`docs/API_REFERENCE.md`。
 
@@ -107,8 +109,8 @@ Phase1 HiPS集 → p2_coverage_build(MOC union, target_order=min leaf)
 
 ## 6. Configs & Tooling
 
-- Stage1: `lib/orchestrator/configs/stage1.schema.json`(v1.1) + `stage1.template.json`(pixfrac 默认 0.8, 生产默认收缩滴落) + `stage1_gc_panel{1,2,3}_Red.json`(32=11+11+10, panel1↔panel2/panel2↔panel3 连通, GC 三面板 pixfrac=1.0 无收缩分支用于最大覆盖)；`precision` fp32/fp64、`gaia_data_dir` 必填、`nside` auto/explicit、`pixfrac` (0,1] 默认 0.8 / GC 1.0 分支见 `lib/orchestrator/configs/`；校验 `validate_stage1_schema` (nlohmann-json-schema-validator v2.4.0，`orchestrator.h` 锚点)。
-- Stage2: `lib/phase2/configs/stage2_*.json`(inputs/model/integration/output/diagnostics)；`model` control 网格/sigma_floor/support_power/use_ivar_weight 等，`reject_method/profile/normalization/large_scale/typed params` 冻结(V17)，`weight_mode` 2=ivar 默认，`acr_route` auto；默认值单一来源 `lib/phase2/src/stage2_common.cpp`，与 `docs/development/CONFIG_SCHEMA.md` + `tools/config_consistency_check.py` 一致(`mismatches=[]`)。
+- Stage1: `lib/infrastructure/pipeline/orchestrator/configs/stage1.schema.json`(v1.1) + `stage1.template.json`(pixfrac 默认 0.8, 生产默认收缩滴落) + `stage1_gc_panel{1,2,3}_Red.json`(32=11+11+10, panel1↔panel2/panel2↔panel3 连通, GC 三面板 pixfrac=1.0 无收缩分支用于最大覆盖)；`precision` fp32/fp64、`gaia_data_dir` 必填、`nside` auto/explicit、`pixfrac` (0,1] 默认 0.8 / GC 1.0 分支见 `lib/infrastructure/pipeline/orchestrator/configs/`；校验 `validate_stage1_schema` (nlohmann-json-schema-validator v2.4.0，`orchestrator.h` 锚点)。
+- Stage2: `lib/algorithms/coverage/configs/stage2_*.json`(inputs/model/integration/output/diagnostics)；`model` control 网格/sigma_floor/support_power/use_ivar_weight 等，`reject_method/profile/normalization/large_scale/typed params` 冻结(V17)，`weight_mode` 2=ivar 默认，`acr_route` auto；默认值单一来源 `lib/algorithms/coverage/src/stage2_common.cpp`，与 `docs/development/CONFIG_SCHEMA.md` + `tools/config_consistency_check.py` 一致(`mismatches=[]`)。
 - 工具: `tools/docs_machine_consistency.py`(9 checks，见 §7)，`config_consistency_check.py`，`api_doc_consistency.py`，`no_legacy_production_reference.py` 等。
 
 ## 7. Machine Consistency (S8 gate, 本版实测)

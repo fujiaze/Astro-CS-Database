@@ -1,3 +1,5 @@
+> **ARCHIVED_NON_NORMATIVE（DOC-001，2026-09-16）**：本文属旧文档体系，已由 docs/DOCUMENT_INDEX.yaml 移出活动索引，不再作为当前权威；替代见该索引 replacement 字段（API_REFERENCE -> docs/api/**；ARCHITECTURE -> docs/architecture/**；docs/review -> docs/owner/**）。保留仅作历史追溯。
+
 # ARCHITECTURE_OVERVIEW — L0 治理评审层（架构）
 
 > 文档 ID：DOC-REVIEW-ARCHITECTURE-001
@@ -20,8 +22,8 @@
 
 ## 2. ACR 状态（约束 §C）
 
-- ACR = DORMANT：保留源码与隔离测试（`lib/acr/`），生产构建默认排除
-  （根 `CMakeLists.txt` option `ASTROCS_ENABLE_ACR` 默认 OFF，不 add_subdirectory(lib/acr)；
+- ACR = DORMANT：保留源码与隔离测试（`lib/infrastructure/acr/`），生产构建默认排除
+  （根 `CMakeLists.txt` option `ASTROCS_ENABLE_ACR` 默认 OFF，不 add_subdirectory(lib/infrastructure/acr)；
   preset 强制 OFF），不加载、不路由、不发布。
 - 当前唯一生产计算后端是**纯 CPU**（§C.2）；CPU 自适应/线程/block/ISA 参数由
   `schemas/cpu_profile.schema.json`（profile 契约）与 `--cpu-profile` /
@@ -31,7 +33,7 @@
 ## 3. Runtime 与资源（RT-001 / 约束 §D）
 
 - 唯一生产 Runtime：`astrocs_core`（`include/astrocs/core/runtime.h`、
-  `lib/core/src/runtime.cpp`），load_pipeline→run→cancel→inspect。
+  `lib/infrastructure/scheduler/src/runtime.cpp`），load_pipeline→run→cancel→inspect。
 - 类型化运行图：`runtime/pipeline/typed_dag.py` + `typed_dag.schema.json` +
   `module_ports.registry.json`（跨 Phase edge 拒绝）。
 - 资源纪律：重计算禁止单线程、自动资源监控；MON-003/004 资源门禁

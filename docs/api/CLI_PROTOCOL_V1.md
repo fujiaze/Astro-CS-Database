@@ -62,7 +62,7 @@ handler→内部会话 API 追溯(04 §6-4,phase 为内部指代): normalize→A
 
 1–5 为 Linux 可验;6 属 WIN/FAT 域任务。
 
-## 7 配置与 `output_dir`(FIX-E2E B1-A8 订正;权威=04 §1 + 宪章 §14.4)
+## 7 配置与 `output_dir`(FIX-E2E B1-A8 订正;权威 = `ASTROCS_DESIGN.md` §6.3 配置/退出码 + `ENGINEERING_SPEC.md` §7 目录规范)
 
 运行产物(每相 run manifest `astrocs_run_*.json`、资源三件套
 `resource_samples.csv` / `resource_summary.json` / `worker_balance.csv`、
@@ -70,7 +70,7 @@ handler→内部会话 API 追溯(04 §6-4,phase 为内部指代): normalize→A
 CLI 不得以进程 CWD(`"."`)作为隐式缺省写出,否则在工作区根散落产物并触发
 UT-CLI `mutates_workspace=false` 的 dirty 判定。
 
-1. **必填**:`phase1|phase2|phase3` 的 `run`/`plan`/`validate`/`inspect` 配置,
+1. **必填**:`normalize|mosaic|export --json <config.json>` 的运行配置(CLI-001 唯一命令树;旧 `phase1|2|3` 的 `run`/`plan`/`validate`/`inspect` 用户命令已全部删除且 rc=2,见 §1 —— 「能力删除」登记:独立 `validate`/`plan`/`inspect` 命令面在新树下无载体,运行前预检由 §3.5 绿/橘/红页面 + `-y`/`-force` 承接,运行计划由产物 `run-plan.json`/`run-graph.json` 承接),
    无论 V1 顶层形态(`inputs`)还是平铺会话形态(`input_lights`/`hips_paths`/
    `phase3`),都必须显式给出 **非空字符串** `output_dir`。
 2. **缺失/非串/空串**:平铺会话形态 → 配置错 `exit 2`(禁 silent default);

@@ -34,7 +34,7 @@
 
 | 文件 | 动作 | 说明 |
 |---|---|---|
-| `REVIEW.md` | 重写 | L0 负责人入口：一句话结论、5 份 docs/owner 链接、进度、组件状态表、关键结论、发布口径 |
+| 根 `REVIEW.md`（已由 ROOT-007 删除） | 重写 | 当时作 L0 负责人入口：一句话结论、5 份 docs/owner 链接、进度、组件状态表、关键结论、发布口径 |
 | `docs/owner/SCIENCE_OVERVIEW.md` | 新增 | 科学权威汇总；Phase1/2/3 逐项状态（**历史条目**：当时标 SIN/ZEA/CAR/AIT + interp4 + 流式 FITS 为未实现，其中四投影口径已由 §7 更正为 TAN/SIN/CAR/AIT 且已 IMPLEMENTED） |
 | `docs/owner/PIPELINE_OVERVIEW.md` | 新增 | 三 Phase 隔离模型与内部链（**历史条目**：当时 run --phases 仍未删；该入口已由 CLI-002 删除，见 §5-2） |
 | `docs/owner/ARCHITECTURE_OVERVIEW.md` | 新增 | Windows 优先、ACR dormant、唯一 Runtime、依赖方向、契约索引 |
@@ -46,6 +46,9 @@
 > `docs/archive/review/*`（ARCHIVED_NON_NORMATIVE），故旧链接已失效；GOV-004
 > 按任务规格在 `docs/owner/` 重建负责人文档并重写 REVIEW 入口（新命名空间与
 > 控制包 03 目录规范 `docs/owner/` 一致）。
+> **DOC-001 补充（2026-09-16）**：根 `REVIEW.md` 与 `docs/review/**` 现均判定为历史——
+> 前者已由 ROOT-007 删除，后者已在 `docs/DOCUMENT_INDEX.yaml` 标 `ARCHIVED_NON_NORMATIVE`；
+> 负责人入口以 `docs/README-DOCS.md` + 本目录为准。
 
 ## 3. 科学影响
 
@@ -59,7 +62,7 @@
 | 文档索引覆盖与归档边界 | `python3 tools/doccheck/check_doc_index.py --root .` | DOC_INDEX_PASS / exit 0 | 基线时 FAIL（3 项未覆盖）→ 本 patch 后 PASS（将留日志） |
 | 工程约束机器修订关系 | `python3 tools/doccheck/check_engineering_constraints.py --root . [--base-sha caee3e6...]` | CONSTRAINTS_PASS / exit 0 | PASS（不修改该文件） |
 | 版本命名空间扫描 | `python3 tools/doccheck/check_version_namespaces.py --root .` | VERSION_NAMESPACES_PASS / exit 0 | PASS（docs/owner 纳入扫描；文档内无版本漂移） |
-| L0 可达性 | 人工核对：REVIEW.md 5 链接 → docs/owner/* 全部存在 | 可到达 | 本 patch 保证 |
+| L0 可达性（历史条目） | 人工核对：旧 `REVIEW.md` 5 链接 → docs/owner/* 全部存在 | 可到达 | 本 patch 时点值；`REVIEW.md` 已删除，现行路由 = `docs/README-DOCS.md` + `docs/DOCUMENT_INDEX.yaml` |
 
 ## 5. 已知限制与诚实缺口（验收项之一：无未验证"已实现"）
 
@@ -71,13 +74,13 @@
    `unknown command 'run'`），与约束 §A.4 一致。
 3. ~~每 DAG 节点唯一真实模块 operation 未达成（约束 §F.1）~~ → **已由 P1-001
    （`9e09941a`）、P2-001（`439f9f20`）、P3-002（`1a56ffb7`）达成**：
-   `lib/core/src/module_adapters.cpp`:4257/:4282/:4309 的 P1 八节点 / P2 七节点 /
+   `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309 的 P1 八节点 / P2 七节点 /
    P3 五节点各绑唯一真实 operation；DOC-CONV-001 本提交以 ctest
    `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty`
    4/4 实测复核。
 4. **Phase3 投影与扩展**（DOC-CONV-001 更正）：负责人裁决 §18.1 冻结的**四投影为
    TAN+SIN+CAR+AIT**（旧表述含 ZEA 已更正）——registry v1 实现已落位
-   （`lib/phase3_proj/p3_projection.cpp`:267-273）并经 ctest
+   （`lib/algorithms/projection/p3_projection.cpp`:267-273）并经 ctest
    `p3_projection_units`/`p3_projection_fault` 与独立 numpy Oracle 实测（`IMPLEMENTED`），
    但生产会话/DLL 挂载未切换（`module.yaml` `entrypoint: MISSING` → 非 `INSTALLED`）；
    `healpix_interp4` 与 Phase3 流式 FITS 接入当前 `NOT_IMPLEMENTED`（P3-RSMP/P3-PROJ-INT
@@ -92,7 +95,7 @@
 
 ## 6. 结论
 
-负责人从 `REVIEW.md` 可到达全部 L0 权威入口；五份 owner 文档对
+负责人从 `docs/README-DOCS.md` + `docs/DOCUMENT_INDEX.yaml` 可到达全部 L0 权威入口（原 `REVIEW.md` 已由 ROOT-007 删除）；五份 owner 文档对
 三 Phase 隔离 / Windows 优先 / ACR dormant / Phase3 状态采用统一口径，
 未出现未验证的"已实现"表述。本 patch 通过三个 doccheck 检查器；
 文档级验收在返回包 logs 留档。
@@ -123,9 +126,9 @@ origin/main 三 SHA 一致）；cprun run `Rmtxvlrtfa66eb7` rev23 / dispatch
 | MOD 安装面/安全 loader | `python3 tests/abi/mod001_install_load_check.py --build-dir build` | 64/64 PASS（含负向注入必败） |
 | CLI 命令面 | `python3 -m pytest tests/cli/test_cli001_vpi.py -q` | 15/15 PASS |
 | 遗留入口已删 | `build/cli/astrocs run --phases 1,2,3` | rc=2 `unknown command 'run'` |
-| doccheck 全套 | `check_doc_index.py --strict` / `check_engineering_constraints.py` / `check_version_namespaces.py` / `check_l0_docs.py` / `check_standards_registry.py` / `check_api_docs.py` / `check_glossary.py` / `check_doc_symbols.py` | 全部 rc=0 |
+| doccheck 全套（历史时点） | `check_doc_index.py --strict` / `check_engineering_constraints.py` / `check_version_namespaces.py` / `check_l0_docs.py` / `check_standards_registry.py` / `check_api_docs.py` / `check_glossary.py` / `check_doc_symbols.py` | 当时全部 rc=0；DOC-001 复检：`check_l0_docs.py` rc=1（绑定已删除的 `REVIEW.md`/旧 `docs/review` 集合）、`check_doc_index.py --strict` rc=1（残留项见 DOC-001 自证） |
 
-域外项（DOC-CONV-001 写白名单 = `REVIEW.md` / `docs/` / `memory.md`，以下均未改动）：
+域外项（DOC-CONV-001 写白名单 = 根 `REVIEW.md`（已删除）/ `docs/` / `memory.md`，以下均未改动）：
 
 1. `lib/*/README.md`（任务目标提及）不在写白名单内 → 未改动，移交 lib/ 写域任务；
 2. 跨 L0 文档状态词一致性目前**无 CI 检查项** → 建议 tools/+ci/ 域任务补 checker

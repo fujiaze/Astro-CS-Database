@@ -2,8 +2,8 @@
 
 ## C ABI（`extern "C"`，不跨边界抛 C++ exception）
 
-- `lib/astro_image_io`：`aio_*`（image/HiPS I/O、writer/reader、pipeline）。
-- `lib/phase2`：`p2_*`（coverage / sampler / upm / integrate / stage2 入口）。
+- `lib/infrastructure/aio`：`aio_*`（image/HiPS I/O、writer/reader、pipeline）。
+- `lib/algorithms/coverage`：`p2_*`（coverage / sampler / upm / integrate / stage2 入口）。
 - `p2_upm_build`（obs-only，兼容）与 `p2_upm_build_geo`（全几何节点，
   V13/V14）。
 - `p2_sample_controls` / `p2_sample_controls_cached`（后者性能透传 `frame_id_cache` 避免二次 500MB payload 哈希；同数值语义）。
@@ -51,23 +51,23 @@
 
 ## 工具/CLI
 
-- `astrocs-stage2.exe <config.json>`（**V5 遗留, LEG-004 已退出生产**；当前生产入口 = `astrocs phase2 run` / `astrocs run --phases` preset）。
-- `orchestrator.exe <stage1.json>`（**V5 遗留, LEG-002 已退出生产**；当前生产入口 = `astrocs phase1 run` / `astrocs run --phases` preset）。
+当前生产入口 = `mosaic --json <config.json>`（CLI-001 唯一命令树；旧 `phase2 run`/`run --phases` 已删除且 rc=2））。
+当前生产入口 = `normalize --json <config.json>`（CLI-001 唯一命令树；旧 `phase1 run`/`run --phases` 已删除且 rc=2））。
 - `healpix_browser_qt.exe`（HiPS 浏览器；`--hips/--standard-hips/--view/
   --screenshot/--lod/--exit`）。
 - `toolchain.ps1 check|build|run|review`（统一工程入口）。
 
 ## JSON schema（config）
 
-- stage1: `lib/orchestrator/configs/stage1_*.json`。
-- stage2: `lib/phase2/configs/stage2_*.json`（model/integration/output/
+- stage1: `lib/infrastructure/pipeline/orchestrator/configs/stage1_*.json`。
+- stage2: `lib/algorithms/coverage/configs/stage2_*.json`（model/integration/output/
   diagnostics 四段；默认值唯一来源见 `CONFIG_SCHEMA.md`）。
 
 ## gaia_client C API（API-GAIA-001）
 
 > ID: API-GAIA-001  状态: CONTRACT_READY（CAT-GAIA-DOC 冻结，2026-09-05）
-> 头: lib/gaia_xpsd_client/src/gaia_client.h（唯一权威签名源，禁止手抄他版）
-> SRC: lib/gaia_xpsd_client/src/gaia_client.c；ALG: ALG-GAIA-001；
+> 头: lib/infrastructure/gaia_xpsd_client/src/gaia_client.h（唯一权威签名源，禁止手抄他版）
+> SRC: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c；ALG: ALG-GAIA-001；
 > DATA: DATA-GAIA-001。纯 C（无 C++ 边界），`GAIA_EXPORT` 导出。
 
 - 导出符号（12 个，全部当前真实存在）：`gaia_client_create`、
@@ -97,8 +97,8 @@
 ## astro_calibration C API（API-CAL-001）
 
 > ID: API-CAL-001  状态: CONTRACT_READY（P1-CAL-DOC 冻结，2026-09-07）
-> 头: lib/calibration/include/astro_calibration.h（唯一权威签名源，禁止手抄他版）
-> SRC: lib/calibration/src/（CMake astrocs_calibration，4 个 cpp）；
+> 头: lib/algorithms/calibration/include/astro_calibration.h（唯一权威签名源，禁止手抄他版）
+> SRC: lib/algorithms/calibration/src/（CMake astrocs_calibration，4 个 cpp）；
 > SCI: SCI-CAL-001；ALG: ALG-CAL-001..004；DATA: DATA-P1-CAL（DATA_SEMANTICS §9）。
 > 编排级合同（p1_session 五段式）见 API-P1-001；本节冻结现状模块级 C API。
 
@@ -145,9 +145,9 @@
 ## cosmetic C API（API-COS-001）
 
 > ID: API-COS-001  状态: CONTRACT_READY（P1-COS-DOC 冻结，2026-09-07）
-> 头: lib/calibration/include/astro_calibration.h（唯一权威签名源，禁止手抄他版；
+> 头: lib/algorithms/calibration/include/astro_calibration.h（唯一权威签名源，禁止手抄他版；
 > ac_correct_frame :97-103、ac_correct_frame_f64 :142-148）
-> SRC: lib/calibration/src/cosmetic_corrector.cpp + ac_api.cpp（CMake
+> SRC: lib/algorithms/calibration/src/cosmetic_corrector.cpp + ac_api.cpp（CMake
 > astrocs_calibration）；SCI: SCI-CAL-001；ALG: ALG-COS-001..005；
 > DATA: DATA-P1-COS（DATA_SEMANTICS §10）；MOD: astrocs.p1.cosmetic
 > （迁移目标 astrocs_p1_cosmetic.dll，落码由 P1-COS-IMPL 建立）。
@@ -207,9 +207,9 @@
 ## drizzle C API（API-DRZ-001）
 
 > ID: API-DRZ-001  状态: CONTRACT_READY（P1-DRZ-DOC 冻结，2026-09-07）
-> 头: lib/healpix_db/healpix_drizzle/hp_drizzle_api.h（唯一权威签名源，
+> 头: lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h（唯一权威签名源，
 > 禁止手抄他版；六导出 :42,62,70,130,139,140）
-> SRC: lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp（CMake 静态库
+> SRC: lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp（CMake 静态库
 > astrocs_drizzle，CMakeLists.txt:356-366）；SCI: SCI-DRZ-001；
 > ALG: ALG-DRZ-001；DATA: DATA-P1-DRZ（DATA_SEMANTICS §11）；
 > MOD: astrocs.p1.drizzle（迁移目标 astrocs_p1_drizzle.dll，落码由
@@ -268,23 +268,23 @@
   （Python ctypes 专用，与 CMake 静态库同源码）——迁移去留由
   P1-DRZ-IMPL 决定。
 - plan/execute/cancel/inspect 迁移语义见 ALG-DRZ-001 §0 与
-  lib/drizzle/module.yaml（astrocs.p1.drizzle / astrocs_p1_drizzle.dll，
+  lib/algorithms/drizzle/module.yaml（astrocs.p1.drizzle / astrocs_p1_drizzle.dll，
   C ABI adapter 由 P1-DRZ-IMPL 建立；本节描述现状 API，不声明 DLL 化
   完成）。
 
 ## HiPS writer C API（API-HIPS-001）
 
 > ID: API-HIPS-001  状态: CONTRACT_READY（P1-HIPS-DOC 冻结，2026-09-07）
-> 头: lib/astro_image_io/include/aio_hips.h（唯一权威签名源，禁止手抄
+> 头: lib/infrastructure/aio/include/aio_hips.h（唯一权威签名源，禁止手抄
 > 他版；九导出 :104,121,130,135,144,149,152,163,177，AIO_HIPS_EXPORT
 > extern "C" :24-30）
-> SRC: lib/astro_image_io/src/hips/aio_hips_writer.cpp（CMake 静态库
+> SRC: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（CMake 静态库
 > astrocs_hips，CMakeLists.txt:298-309）；SCI: SCI-DRZ-001；ALG:
 > ALG-HIPS-001..005；DATA: DATA-P1-HIPS（DATA_SEMANTICS §12）；MOD:
 > astrocs.p1.hips_writer（迁移目标 astrocs_p1_hips_writer.dll，落码由
 > P1-HIPS-IMPL 建立）。编排级无独立 hips stage——经 API-P1-007
 > hp_drizzle_run_hips 由 astro_sphere_sink（astro_sphere_sink.cpp:97，
-> P1-DRZ 链）与 lib/phase2/tools/stage2.cpp:592 间接调用；Phase2 读侧
+> P1-DRZ 链）与 lib/algorithms/coverage/tools/stage2.cpp:592 间接调用；Phase2 读侧
 > 为 aio_hips_reader（SCI-P3-001 链，不属本合同）。
 
 - 导出符号（9 个，全部当前真实存在，`AIO_HIPS_EXPORT` extern "C"）：
@@ -346,16 +346,16 @@
   hierarchy 累加（DISP-HIPS-009）；fits_str 截断（DISP-HIPS-010）。完整
   清单见 ALG-HIPS-001 §10（DISP-HIPS-001..012）。
 - plan/execute/cancel/inspect 迁移语义见 ALG-HIPS-001 §0 与
-  lib/hips/module.yaml（astrocs.p1.hips_writer / astrocs_p1_hips_writer.dll，
+  lib/algorithms/drizzle/hips/module.yaml（astrocs.p1.hips_writer / astrocs_p1_hips_writer.dll，
   entrypoint=MISSING——registry 无 descriptor；C ABI adapter 由
   P1-HIPS-IMPL 建立；本节描述现状 API，不声明 DLL 化完成）。
 
 ## SNR/Noise C API（API-NOISE-001）
 
 > ID: API-NOISE-001  状态: CONTRACT_READY（P1-NOISE-DOC 冻结，2026-09-07）
-> 头: lib/snr_estimator/cpp/include/snr_estimator.h（唯一权威签名源，禁止
+> 头: lib/algorithms/noise_snr/cpp/include/snr_estimator.h（唯一权威签名源，禁止
 > 手抄他版；SNR_API extern "C" 导出，_WIN32 下 __declspec(dllexport) :7-11）
-> SRC: lib/snr_estimator/cpp/src/noise_model.cpp（现状构建=cpp/Makefile:5,12
+> SRC: lib/algorithms/noise_snr/cpp/src/noise_model.cpp（现状构建=cpp/Makefile:5,12
 > g++ -shared → snr_estimator.dll + cpp/build.ps1:29，未编入根 CMake 主
 > 构建；dll_loader.cpp:41/55 加载名与路径吻合）；SCI: SCI-NOISE-001..015；
 > ALG: ALG-NOISE-001..003（NOISE_ESTIMATION §13.1 逐符号锚）；DATA:
@@ -411,26 +411,26 @@
   单线程实现，noise_model.cpp:118-267,371-429）。
 - 取消：无取消检查点（noise_model_impl/fill_impl 无 cancel 回调，
   DISP-NOISE-004；PHASE1_API_V1 §2 "取消点=行带"为计划语义）。
-- 生产调用方：lib/orchestrator/src/orchestrator.cpp:4177（stage6 SNR，
+- 生产调用方：lib/infrastructure/pipeline/orchestrator/src/orchestrator.cpp:4177（stage6 SNR，
   必需 stage）→ dll_loader_ 函数指针 snr_noise_model_v1/_f64/
   _default_config/_fill/_free（orchestrator.cpp:4242-4251）；DLL 装载
-  snr_estimator.dll（dll_loader.cpp:41，lib/snr_estimator/cpp/ :55）。
+  snr_estimator.dll（dll_loader.cpp:41，lib/algorithms/noise_snr/cpp/ :55）。
 - 已登记现状缺陷（不得静默使用，P1-NOISE-IMPL/INT 处理）：ABA 复用与
   并发无锁（DISP-NOISE-001）、build/fill floor 语义不一致（002）、
   gain 三字段无效（003）、无取消点（004）、scale_law 无校验（005）、
   掩膜通道互斥（006）、参数静默钳位（007）、空 patch 计数混同（008）、
   注册表泄漏路径（009）。完整清单见 NOISE_ESTIMATION §13.3。
 - plan/execute/cancel/inspect 迁移语义见 NOISE_ESTIMATION §13.5 与
-  lib/snr_estimator/module.yaml（astrocs.p1.noise-snr /
+  lib/algorithms/noise_snr/module.yaml（astrocs.p1.noise-snr /
   astrocs_p1_noise.dll，C ABI adapter 由 P1-NOISE-IMPL 建立；本节描述
   现状 API，不声明 DLL 化完成）。
 
 ## Photometric C API（API-PHOT-001）
 
 > ID: API-PHOT-001  状态: CONTRACT_READY（P1-PHOT-DOC 冻结，2026-09-07）
-> 头: lib/photometric_calib/cpp/include/photometric_calib.h（271 行，唯一
+> 头: lib/algorithms/photometry/cpp/include/photometric_calib.h（271 行，唯一
 > 权威签名头，PC_API :7-11 `extern "C"` 不抛异常）
-> SRC: lib/photometric_calib/cpp/src/pc_api.cpp
+> SRC: lib/algorithms/photometry/cpp/src/pc_api.cpp
 > SCI: SCI-PHOT-001（docs/science/PHOTOMETRY.md，FROZEN，共享引用不改动）
 > ALG: ALG-PHOT-001..002（docs/algorithms/PHOTOMETRIC_FIT.md，§13 逐符号锚）
 > DATA: DATA-P1-PHOT（DATA_SEMANTICS §14）；编排级合同 API-P1-005
@@ -525,17 +525,17 @@ ADU；`out_pixels` 未定标/退化=ADU，已定标（scale≠1 且 n_matched>0�
   006 rejected_quality 混计/007 双轨并存/008 Photometer 未优化/009 QA 换算
   边界）。
 - plan/execute/cancel/inspect 迁移语义见 PHOTOMETRIC_FIT §13.5 与
-  lib/photometric_calib/module.yaml（astrocs.p1.photometry /
+  lib/algorithms/photometry/module.yaml（astrocs.p1.photometry /
   astrocs_p1_photometry.dll，C ABI adapter 由 P1-PHOT-IMPL 建立；本节描述
   现状 API，不声明 DLL 化完成）。
 
 ## PSF 拟合 C API（API-PSF-001）
 
 > ID: API-PSF-001  状态: CONTRACT_READY（P1-PSF-DOC 冻结，2026-09-07）
-> 头: lib/dynamic_psf/include/dynamic_psf.h（唯一权威签名源，禁止手抄他版；
+> 头: lib/algorithms/psf/include/dynamic_psf.h（唯一权威签名源，禁止手抄他版；
 > DPSF_EXPORT extern "C"（_WIN32 下 __declspec(dllexport) :8，否则
 > __attribute__((visibility("default"))) :10））
-> SRC: lib/dynamic_psf/src/dpsf_psf.cpp（934 行）
+> SRC: lib/algorithms/psf/src/dpsf_psf.cpp（934 行）
 > SCI: SCI-P1-PSF-001（本任务冻结层）；ALG: ALG-STARPSF-001
 > （STAR_PSF_ALGORITHMS §11 逐符号锚）；DATA: DATA-P1-PSF
 > （DATA_SEMANTICS §15，双 [N,9] 布局权威）；编排级合同 API-P1-003
@@ -634,8 +634,8 @@ cx/cy/fitRadius/sx/sy/fwhm 像素；theta 弧度；B/A/flux/mad ADU
   SCI-P1-PSF-001/alg_id=ALG-002/data_id=DATA-P1-SOURCES/api_id=API-P1-003/
   test_id=TEST-P1-PSF-001）由 P1-PSF-INT 对齐本合同，不得反向作为冻结
   依据（DISP-PSF-001 附注）。
-- 现状构建 lib/dynamic_psf/Makefile:3-5 → dynamic_psf.dll；dll_loader.cpp:39
-  （ModuleId::PSF→dynamic_psf.dll）/:53（lib/dynamic_psf/）；未编入根 CMake
+- 现状构建 lib/algorithms/psf/Makefile:3-5 → dynamic_psf.dll；dll_loader.cpp:39
+  （ModuleId::PSF→dynamic_psf.dll）/:53（lib/algorithms/psf/）；未编入根 CMake
   主构建——astrocs_p1_psf.dll 迁移由 P1-PSF-IMPL 建立。
 
 
@@ -656,7 +656,7 @@ cx/cy/fitRadius/sx/sy/fwhm 像素；theta 弧度；B/A/flux/mad ADU
 > 权威签名头 lib/phase1_session/p1_session.h:16-37，禁止手抄他版）。
 > 编排级上游合同 API-P1-001（docs/api/PHASE1_API_V1.md FROZEN）；数据面
 > DATA-P1-SESSION（DATA_SEMANTICS §16）。registry 关系：五函数经 P1Api
-> （lib/core/src/module_adapters.cpp:755-762）被 8 个 Phase1 descriptor
+> （lib/infrastructure/scheduler/src/module_adapters.cpp:755-762）被 8 个 Phase1 descriptor
 > 工厂委托（:728-735/:755-770）。
 
 ### 范围界定
@@ -721,7 +721,7 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
 
 ### 生产调用方与编排现状
 
-- 生产调用方=lib/core/src/module_adapters.cpp。**P1-001（2026-09-10）
+- 生产调用方=lib/infrastructure/scheduler/src/module_adapters.cpp。**P1-001（2026-09-10）
   真实节点化后**：8 个 Phase1 descriptor 各自委托唯一真实 operation
   （p1_nodes[]：calibrate→ac_calibrate_frame、cosmetic→ac_correct_frame、
   star-psf→StarDetector、wcs→WcsTan、photometry→Photometer、noise-snr→
@@ -730,10 +730,10 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
   兼容面。无 CLI/测试外的其他直接调用方（生产可达性由
   tools/quality/check_prod_reachability.py:42 与
   tools/check_pipeline_trace.py:16 登记锚）。
-- **P1-001 attempt 2 三域真实化（2026-09-10）**：star-psf→lib/star_detector
-  生产检测（sdet C 头，StarDetector C++ 类仅薄包装）+lib/dynamic_psf
+- **P1-001 attempt 2 三域真实化（2026-09-10）**：star-psf→lib/algorithms/star_detection
+  生产检测（sdet C 头，StarDetector C++ 类仅薄包装）+lib/algorithms/psf
   `dpsf_fit_batch_f64`（Moffat4 FP64 批量 PSF 拟合，DATA-P1-PSF 携
-  psf_params:FLOAT64[N,9]）；wcs→lib/plate_solve ipv 真实求解链
+  psf_params:FLOAT64[N,9]）；wcs→lib/algorithms/platesolve ipv 真实求解链
   `ipv_solve_from_memory_with_callback_d`（sdet+gaia_client 句柄注入；
   非 Windows 平台为生产源内建 stub，节点 fail-closed 如实报平台限制，
   Windows 侧真实求解；缺求解参数 DATA 拒绝）；writer→drizzle 节点经
@@ -764,9 +764,9 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
 ## 星点检测 C API（API-STAR-001）
 
 > ID: API-STAR-001  状态: CONTRACT_READY（P1-STAR-DOC 冻结，2026-09-07）
-> 模块: lib/star_detector;lib/phase1/stars（MOD-astrocs-phase1-star，matrix
+> 模块: lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1（MOD-astrocs-phase1-star，matrix
 > P1-STAR，迁移目标 astrocs_p1_star_detection.dll；唯一权威签名头
-> lib/star_detector/include/star_detector.h:1-73，禁止手抄他版）。
+> lib/algorithms/star_detection/include/star_detector.h:1-73，禁止手抄他版）。
 > 编排级上游合同 API-P1-003（PHASE1_API_V1 §2：一帧只做一次权威检测）；
 > 数据面 DATA-P1-STAR（DATA_SEMANTICS §17）；算法权威 ALG-STARDET-001
 > （STAR_DETECTION_ALGORITHMS §11 逐符号锚）；SCI-P1-STAR-001（本任务
@@ -834,7 +834,7 @@ saturated/has_saturated int 0/1；图像输入 FP32 通道 uint16（DISP-STAR-00
 
 ### 生产调用方与编排现状
 
-- 唯一生产调用方=lib/orchestrator/cpp/src/orchestrator.cpp：run_stage_psf
+- 唯一生产调用方=lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp：run_stage_psf
   （PSF/STAR_MEASURE 阶段权威检测，:2067；函数指针装载 :2149-2165；FP64/
   FP32 通道选择 :2172-2198；star_det 权威块写入 :2237-2246；缓冲释放
   :2466）；PLATESOLVE fallback 读 star_det 块并禁重检测（:1748-1755、
@@ -849,7 +849,7 @@ saturated/has_saturated int 0/1；图像输入 FP32 通道 uint16（DISP-STAR-00
 - DISP-STAR-001..005 与线程数/取消登记均不改码（ALG-STARDET-001 §11.3），
   整改归 P1-STAR-IMPL/P1-STAR-INT；本节不宣称缺陷已修复。
 - 迁移：矩阵行 P1-STAR（owner=SA-P1-S15，legacy_paths=
-  lib/star_detector;lib/phase1/stars，迁移目标 astrocs_p1_star_detection.dll；
+  lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1，迁移目标 astrocs_p1_star_detection.dll；
   C ABI adapter 由 P1-STAR-IMPL 建立；本节描述现状 API，不声明 DLL 化
   完成）。测试锚 TEST-STAR-DESIGN-001（ALG-STARDET-001 §11.4）由
   P1-STAR-TEST 执行落 TEST-P1-STAR-001 + EVIDENCE；registry descriptor
@@ -858,9 +858,9 @@ saturated/has_saturated int 0/1；图像输入 FP32 通道 uint16（DISP-STAR-00
 ## WCS 求解 C API（API-WCS-001）
 
 > ID: API-WCS-001  状态: CONTRACT_READY（P1-WCS-DOC 冻结，2026-09-07）
-> 头: lib/plate_solve/cpp/ipv/include/ipv_api.h（唯一权威签名源，禁止手抄
+> 头: lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h（唯一权威签名源，禁止手抄
 > 他版；IPV_API extern "C" 导出宏，238 行）
-> SRC: lib/plate_solve/cpp/ipv/src/ipv_entry.cpp（649 行；内核
+> SRC: lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（649 行；内核
 > ipv_solver/ipv_select/ipv_triangle/ipv_itertrans/ipv_robust_refine/
 > ipv_wcs/ipv_sip 共 13821 行）
 > SCI: SCI-WCS-001（docs/science/ASTROMETRY.md，共享引用不改动）；
@@ -965,7 +965,7 @@ focal_length_mm mm；pixel_size_um μm；输出 cd deg/pixel、crval deg
   astrocs.phase1.wcs-platesolve、ports sources/wcs、sci_id=SCI-P1-WCS-001/
   alg_id=ALG-002/data_id=DATA-P1-WCS/api_id=API-P1-004/test_id=
   TEST-P1-WCS-001）由 P1-WCS-INT 对齐本合同，不得反向作为冻结依据。
-- 现状构建 lib/plate_solve/cpp/ipv/build.ps1:27 / Makefile:6（g++
+- 现状构建 lib/algorithms/platesolve/cpp/ipv/build.ps1:27 / Makefile:6（g++
   -fopenmp -O3 → ipv_solver.dll，MSYS2/MinGW）；未编入根 CMake 主构建
   （根 CMakeLists.txt 无 ipv 目标）——astrocs_p1_wcs.dll 迁移由
   P1-WCS-IMPL 建立。
@@ -983,11 +983,11 @@ focal_length_mm mm；pixel_size_um μm；输出 cd deg/pixel、crval deg
 ## Coverage union C API（API-COV-001）
 
 > ID: API-COV-001  状态: CONTRACT_READY（P2-COV-DOC 冻结，2026-09-07）
-> 头: lib/phase2/include/astro/phase2/coverage.h（唯一权威签名源，59 行，
+> 头: lib/algorithms/coverage/include/astro/phase2/coverage.h（唯一权威签名源，59 行，
 > 禁止手抄他版；P2_API 导出宏 :16-20 Windows dllexport/POSIX 默认可见）
-> SRC: lib/phase2/src/coverage.cpp（239 行；生产目标根 CMake
+> SRC: lib/algorithms/coverage/src/coverage.cpp（239 行；生产目标根 CMake
 > astrocs_phase2 静态库 CMakeLists.txt:338-346，独立 self-build
-> lib/phase2/CMakeLists.txt:42-46 phase2 STATIC；astrocs_p2_coverage.dll
+> lib/algorithms/coverage/CMakeLists.txt:42-46 phase2 STATIC；astrocs_p2_coverage.dll
 > 为迁移目标合同值，尚未存在，由 P2-COV-IMPL 建立）
 > SCI: SCI-UPM-001/SCI-INT-001/SCI-SCOPE-001（docs/science/ 共享 FROZEN
 > 引用不改动，SCI 层声明=PHASE2_COVERAGE.md §11.5）；ALG: ALG-COV-001
@@ -1083,14 +1083,14 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   为 Phase2 DAG 首阶段（阶段边界取消检查 :120，manifest 登记
   n_union_cells/target_order :146-147）；两阶段调用 :125/:138。
 - 下游模块消费: sampler p2_sample_controls*（sampler.cpp:464/:504/:632/
-  :1138）、stage2 正式入口（lib/phase2/tools/stage2.cpp:189-200/
+  :1138）、stage2 正式入口（lib/algorithms/coverage/tools/stage2.cpp:189-200/
   :212-213）、registry
   descriptor astrocs.phase2.coverage（module_adapters.cpp:623-638，
   端口 calibrated=DATA-P2-CAL/ADU/PIXEL→coverage=DATA-P2-COV/
   DIMENSIONLESS/PIXEL——出端口坐标登记以本 API/DATA 合同 NESTED 为准
   修订，P2-COV-INT 对齐）。
 - 现状构建: 根 CMakeLists.txt astrocs_phase2 STATIC（:338-346，含
-  src/coverage.cpp，无独立 DLL target）；lib/phase2/CMakeLists.txt
+  src/coverage.cpp，无独立 DLL target）；lib/algorithms/coverage/CMakeLists.txt
   phase2 STATIC 兼容自测 target（:42-46）+ phase2_synthetic_gate
   （:77-79）；astrocs_p2_coverage.dll 为迁移目标合同值（尚未存在），
   CMake 集成归 P2-COV-IMPL。
@@ -1117,14 +1117,14 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > ID: API-P2-HIPS-001  状态: CONTRACT_READY（P2-HIPS-DOC 冻结，
 > 2026-09-07）
 > 定位: Phase2 马赛克写出**当前无独立公共 C API**——生产入口=
-> stage2 工具（lib/phase2/tools/stage2.cpp main :112）；编排层经
+> stage2 工具（lib/algorithms/coverage/tools/stage2.cpp main :112）；编排层经
 > API-P2-001（PHASE2_API_V1 phase session，p2_session）驱动，但
 > p2_session 不执行 HiPS 写（hips_paths/output_dir 校验
 > p2_session.cpp:81-92，coverage 两阶段调用 :125/:138；HiPS 写入仅
 > 发生在 stage2 工具）。本节冻结的是 stage2 配置 schema 的公共消费
 > 面 + 进程退出码 + diagnostics.json 键集。
-> SRC: lib/phase2/tools/stage2.cpp（生产工具 astrocs-stage2，唯一
-> 写入路径）；配置 schema 唯一权威签名源 lib/phase2/include/astro/
+> SRC: lib/algorithms/coverage/tools/stage2.cpp（生产工具 astrocs-stage2，唯一
+> 写入路径）；配置 schema 唯一权威签名源 lib/algorithms/coverage/include/astro/
 > phase2/stage2_common.h:16-99（P2Stage2Config，完整字段集以头文件
 > 为准，本节冻结公共关键字段消费面语义）；DATA: DATA-P2-HIPS
 > （DATA_SEMANTICS §20，单位/dtype/shape/序合同唯一权威）；复用库
@@ -1148,7 +1148,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   p2_session.cpp）仅做配置校验（:81-92）与 coverage 阶段
   （:125/:138 两阶段容量协议），**不调用 HiPS 写出**；马赛克写
   属 stage2 工具职责，编排接入点为 descriptor
-  astrocs.phase2.write 端口表（lib/core/src/module_adapters.cpp
+  astrocs.phase2.write 端口表（lib/infrastructure/scheduler/src/module_adapters.cpp
   :677-694，DATA-P2-HIPS §20.3 编排层词汇注记）。
 
 ### 配置 schema 公共消费面（P2Stage2Config 关键字段，stage2_common.h:16-99）
@@ -1233,9 +1233,9 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 清单行 17-19/24-29 的展开冻结，**不新增、不修改任何 C 头/C
 > ABI**）；编排层经 API-P2-001（PHASE2_API_V1 phase session）驱动，
 > 内核本身无 session 依赖（无状态纯函数）。
-> SRC: lib/phase2/src/integrate.cpp（76 行，astrocs_phase2 静态库
+> SRC: lib/algorithms/coverage/src/integrate.cpp（76 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:336-346/:344）；唯一权威签名头
-> lib/phase2/include/astro/phase2/integrate.h（74 行: P2PixelStack
+> lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行: P2PixelStack
 > :36-42 / P2IntegrateStatus :45-51 / P2PixelResult :53-63 / 函数
 > 声明 :58-66）；DATA: DATA-P2-INT（DATA_SEMANTICS §21，单位/dtype/
 > shape 唯一权威）；ALG: ALG-P2-INT-001（docs/algorithms/
@@ -1307,9 +1307,9 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 冻结（既有符号的展开冻结，**不新增、不修改任何 C 头/C ABI**）；
 > 编排层经 API-P2-001（PHASE2_API_V1 phase session）驱动，kernel
 > 无 session 依赖（无状态纯函数）。
-> SRC: lib/phase2/src/rejection.cpp（2076 行，astrocs_phase2 静态库
+> SRC: lib/algorithms/coverage/src/rejection.cpp（2076 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/rejection.h（329 行）；DATA:
+> lib/algorithms/coverage/include/astro/phase2/rejection.h（329 行）；DATA:
 > DATA-P2-REJ（DATA_SEMANTICS §22，单位/dtype/shape/invalid 唯一
 > 权威）；ALG: ALG-P2-REJ-001（docs/algorithms/PHASE2_REJECTION.md，
 > 逐符号锚与消费链）；MOD: astrocs.p2.rejection（迁移目标
@@ -1441,9 +1441,9 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 展开冻结，**不新增、不修改任何 C 头/C ABI**）；编排层经
 > API-P2-001（PHASE2_API_V1 phase session）驱动，采样函数无
 > session 依赖（数据面经 P2CoverageResult 显式传入）。
-> SRC: lib/phase2/src/sampler.cpp（1156 行，astrocs_phase2 静态库
+> SRC: lib/algorithms/coverage/src/sampler.cpp（1156 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:337-346/:342）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/sampler.h（136 行）；DATA:
+> lib/algorithms/coverage/include/astro/phase2/sampler.h（136 行）；DATA:
 > DATA-P2-SMP（DATA_SEMANTICS §23，单位/dtype/shape/invalid 唯一
 > 权威）；ALG: ALG-P2-SMP-001（docs/algorithms/PHASE2_SAMPLER.md，
 > 逐符号锚与消费链）；MOD: astrocs.p2.sampling（迁移目标
@@ -1525,7 +1525,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   273-274 由 ExecutionOptions 透传；模块无 hardware_concurrency
   自行开线程 :880-883）；>1 走 std::thread 池（:886-913，per-worker
   独立 AIO 句柄 :894），=1 串行 reference（:916-933）；OpenMP 已
-  从实现移除（:882-883 注释），lib/phase2/CMakeLists.txt:28
+  从实现移除（:882-883 注释），lib/algorithms/coverage/CMakeLists.txt:28
   P2_ENABLE_OPENMP option 保留仅影响旧 target 编译面。
 - 容差=bitwise（obs 输出无 epsilon 门；clipping 收敛 1e-12 相对阈
   为实现内部冻结常数；坐标面 F4 atol 1e-9 deg、cvar 面 F2/F3/F5
@@ -1562,7 +1562,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 定位: Phase2 进程内装配会话公共 C ABI——coverage → sample →
 > upm_build → persist 四段编排的会话生命周期五导出符号冻结（既有
 > 符号的展开冻结，**不新增、不修改任何 C 头/C ABI**）；会话本身无
-> 科学实现（纯编排 facade，直调 lib/phase2 生产符号），编排上游=
+> 科学实现（纯编排 facade，直调 lib/algorithms/coverage 生产符号），编排上游=
 > API-P2-001（PHASE2_API_V1 phase session，docs/api/PHASE2_API_V1.md
 > FROZEN，引用不改动）。
 > SRC: lib/phase2_session/p2_session.cpp（282 行，静态库
@@ -1681,9 +1681,9 @@ destroy（唯一释放）。句柄不可复制/二次 destroy；宿主保证 hos
 > 定位: Phase2 UPM fit/persist/apply/reload 公共 C ABI 消费面——
 > 既有 16 导出符号的展开冻结（**不新增、不修改任何 C 头/C ABI**；
 > upm.h 为唯一权威签名头，184 行）。
-> SRC: lib/phase2/src/upm.cpp（1565 行，astrocs_phase2 静态库成员，
+> SRC: lib/algorithms/coverage/src/upm.cpp（1565 行，astrocs_phase2 静态库成员，
 > 根 CMakeLists.txt:337-346/:338）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/upm.h（184 行）；DATA:
+> lib/algorithms/coverage/include/astro/phase2/upm.h（184 行）；DATA:
 > DATA-P2-UPM（DATA_SEMANTICS §25，fit/persist 域单位/dtype/invalid
 > 唯一权威）/ DATA-P2-COR（DATA_SEMANTICS §26，apply 域唯一权威）；
 > ALG: ALG-P2-UPM-IMPL-001（docs/algorithms/PHASE2_UPM_IMPL.md，

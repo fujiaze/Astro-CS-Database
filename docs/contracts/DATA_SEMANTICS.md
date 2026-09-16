@@ -86,8 +86,8 @@ frame_id / manifest / RA-Dec 度 / NESTED / 512-tile 映射
 ## 8. Gaia XPSD 星表输入与星表行（DATA-GAIA-001）
 
 > ID: DATA-GAIA-001  状态: CONTRACT_READY（CAT-GAIA-DOC 冻结，2026-09-05）
-> 模块: lib/gaia_xpsd_client（astrocs.catalog.gaia）；ALG: ALG-GAIA-001；
-> SRC: lib/gaia_xpsd_client/src/gaia_client.c
+> 模块: lib/infrastructure/gaia_xpsd_client（astrocs.catalog.gaia）；ALG: ALG-GAIA-001；
+> SRC: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
 
 ### 8.1 输入：本地 XPSD 数据集目录
 
@@ -133,8 +133,8 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 ## 9. Phase1 校准模块输入/输出数据（DATA-P1-CAL）
 
 > ID: DATA-P1-CAL  状态: CONTRACT_READY（P1-CAL-DOC 冻结，2026-09-07）
-> 模块: lib/calibration（astrocs.p1.calibration）；SCI: SCI-CAL-001；
-> ALG: ALG-CAL-001..004；SRC: lib/calibration/include/astro_calibration.h。
+> 模块: lib/algorithms/calibration（astrocs.p1.calibration）；SCI: SCI-CAL-001；
+> ALG: ALG-CAL-001..004；SRC: lib/algorithms/calibration/include/astro_calibration.h。
 > 本节冻结现有 C API 的真实数据语义（P1-CAL-DOC 源码核对），迁移 DLL
 > astrocs_p1_calibration.dll 由 P1-CAL-IMPL 建立（语义不变）。
 
@@ -180,8 +180,8 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 ## 10. Phase1 cosmetic 模块输入/输出数据（DATA-P1-COS）
 
 > ID: DATA-P1-COS  状态: CONTRACT_READY（P1-COS-DOC 冻结，2026-09-07）
-> 模块: lib/cosmetic（astrocs.p1.cosmetic，迁移目标；现行实现唯一生产源
-> lib/calibration/src/cosmetic_corrector.cpp，经 astrocs_calibration 编译）；
+> 模块: lib/algorithms/cosmetic（astrocs.p1.cosmetic，迁移目标；现行实现唯一生产源
+> lib/algorithms/calibration/src/cosmetic_corrector.cpp，经 astrocs_calibration 编译）；
 > SCI: SCI-CAL-001；ALG: ALG-COS-001..005；上游: DATA-P1-CAL（§9）。
 > 本节冻结 `ac_correct_frame(+_f64)` 的真实数据语义（P1-COS-DOC 源码
 > 核对），迁移 DLL astrocs_p1_cosmetic.dll 由 P1-COS-IMPL 建立
@@ -226,14 +226,14 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 ## 11. Phase1 drizzle 模块输入/输出数据（DATA-P1-DRZ）
 
 > ID: DATA-P1-DRZ  状态: CONTRACT_READY（P1-DRZ-DOC 冻结，2026-09-07）
-> 模块: lib/drizzle（astrocs.p1.drizzle，迁移目标；现行实现唯一生产源
-> lib/healpix_db/healpix_drizzle/，经根 CMake 静态库 astrocs_drizzle
+> 模块: lib/algorithms/drizzle（astrocs.p1.drizzle，迁移目标；现行实现唯一生产源
+> lib/algorithms/drizzle/healpix_drizzle/，经根 CMake 静态库 astrocs_drizzle
 > 编译，CMakeLists.txt:356-366）；SCI: SCI-DRZ-001（含 014/015/016）；
 > ALG: ALG-DRZ-001；上游: DATA-P1-CAL（§9）。本节冻结
 > hp_drizzle_run / hp_drizzle_run_hips 帧通道真实数据语义（P1-DRZ-DOC
 > 源码核对），迁移 DLL astrocs_p1_drizzle.dll 由 P1-DRZ-IMPL 建立
 > （语义不变）。编排现状（registry descriptor
-> lib/core/src/module_adapters.cpp:570-587 p1_drizzle_descriptor）将
+> lib/infrastructure/scheduler/src/module_adapters.cpp:570-587 p1_drizzle_descriptor）将
 > 本模块登记为 ports calibrated→stacked、data_id=DATA-P1-STACK；本节
 > DATA-P1-DRZ 为按 SCI-DRZ-001 语义新建的模块级合同，descriptor 引用
 > 由 P1-DRZ-INT 对齐。禁止声明 IMPLEMENTED。
@@ -287,9 +287,9 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 ## 12. Phase1 HiPS writer 模块输入/输出数据（DATA-P1-HIPS）
 
 > ID: DATA-P1-HIPS  状态: CONTRACT_READY（P1-HIPS-DOC 冻结，2026-09-07）
-> 模块: lib/hips（astrocs.p1.hips_writer，迁移目标；现行实现唯一生产源
-> lib/astro_image_io/src/hips/aio_hips_writer.cpp，合同头
-> lib/astro_image_io/include/aio_hips.h，经根 CMake 静态库 astrocs_hips
+> 模块: lib/algorithms/drizzle/hips（astrocs.p1.hips_writer，迁移目标；现行实现唯一生产源
+> lib/infrastructure/aio/src/hips/aio_hips_writer.cpp，合同头
+> lib/infrastructure/aio/include/aio_hips.h，经根 CMake 静态库 astrocs_hips
 > 编译，CMakeLists.txt:298-309）；迁移 DLL astrocs_p1_hips_writer.dll 由
 > P1-HIPS-IMPL 建立（语义不变，禁止声明 IMPLEMENTED）。ALG:
 > ALG-HIPS-001..005；上游: DATA-P1-DRZ（§11，AstroSphereTileView 直供）；
@@ -338,7 +338,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   索引（512×512 展平）；FITS 行主序落盘索引 =
   nested_local_to_fits_index(i,9,512)（三处 scatter :464/:604/:809），
   映射式=§3 冻结的 (511−x)·512+y（CDS Hipsgen 冻结，共享权威
-  lib/common/healpix/healpix_core.cpp:287-296）。层级 tile 同式。
+  lib/algorithms/shared/healpix/healpix_core.cpp:287-296）。层级 tile 同式。
 - 目录布局：`Norder{K}/Dir{ipix/10000}/Npix{ipix%10000}.fits`（万进制
   分片，tile_rel_path :135-142）；hierarchy 逐阶同布局（k<K）。
 - 面亮度链（与 §4/§4a、SCI-DRZ-001 :145 一致）：drizzle 层产原始累加量
@@ -387,9 +387,9 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 ## 13. Phase1 noise 模块输入/输出数据（DATA-P1-NOISE）
 
 > ID: DATA-P1-NOISE  状态: CONTRACT_READY（P1-NOISE-DOC 冻结，2026-09-07）
-> 模块: lib/snr_estimator;lib/phase1/noise（astrocs.p1.noise-snr，迁移目标
-> astrocs_p1_noise.dll；现行实现唯一生产源 lib/snr_estimator/cpp/src/
-> noise_model.cpp，合同头 lib/snr_estimator/cpp/include/snr_estimator.h）。
+> 模块: lib/algorithms/noise_snr;lib/algorithms/noise_snr/wrapper_phase1（astrocs.p1.noise-snr，迁移目标
+> astrocs_p1_noise.dll；现行实现唯一生产源 lib/algorithms/noise_snr/cpp/src/
+> noise_model.cpp，合同头 lib/algorithms/noise_snr/cpp/include/snr_estimator.h）。
 > ALG: ALG-NOISE-001..003（NOISE_ESTIMATION §13.1 逐符号锚）；SCI:
 > SCI-NOISE-001..015（NOISE_MODEL.md，FROZEN，共享引用不改动）；编排级
 > 合同 API-P1-006（PHASE1_API_V1 §2）。本节是该模块单位/dtype/shape/
@@ -460,10 +460,10 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 ## 14. Phase1 photometry 模块输入/输出数据（DATA-P1-PHOT）
 
 > ID: DATA-P1-PHOT  状态: CONTRACT_READY（P1-PHOT-DOC 冻结，2026-09-07）
-> 模块: lib/photometric_calib;lib/phase1/photometry（astrocs.p1.photometry，
+> 模块: lib/algorithms/photometry;lib/algorithms/photometry/wrapper_phase1（astrocs.p1.photometry，
 > 迁移目标 astrocs_p1_photometry.dll；现行实现唯一生产源
-> lib/photometric_calib/cpp/src/pc_api.cpp，合同头
-> lib/photometric_calib/cpp/include/photometric_calib.h）。
+> lib/algorithms/photometry/cpp/src/pc_api.cpp，合同头
+> lib/algorithms/photometry/cpp/include/photometric_calib.h）。
 > ALG: ALG-PHOT-001..002（PHOTOMETRIC_FIT §13.1 逐符号锚）；SCI:
 > SCI-PHOT-001（docs/science/PHOTOMETRY.md，FROZEN T103 2026-08-23，共享
 > 引用不改动）；编排级合同 API-P1-005（PHASE1_API_V1）。本节是该模块
@@ -522,9 +522,9 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 ## 15. Phase1 star-psf 模块输入/输出数据（DATA-P1-PSF）
 
 > ID: DATA-P1-PSF  状态: CONTRACT_READY（P1-PSF-DOC 冻结，2026-09-07）
-> 模块: lib/dynamic_psf（astrocs.p1.psf，迁移目标 astrocs_p1_psf.dll；现行实现
-> 唯一生产源 lib/dynamic_psf/src/dpsf_psf.cpp，合同头
-> lib/dynamic_psf/include/dynamic_psf.h）。ALG: ALG-STARPSF-001
+> 模块: lib/algorithms/psf（astrocs.p1.psf，迁移目标 astrocs_p1_psf.dll；现行实现
+> 唯一生产源 lib/algorithms/psf/src/dpsf_psf.cpp，合同头
+> lib/algorithms/psf/include/dynamic_psf.h）。ALG: ALG-STARPSF-001
 > （STAR_PSF_ALGORITHMS §11 逐符号锚）；SCI: SCI-P1-PSF-001（本任务冻结层，
 > SCI-PSF-001 docs/science/PSF.md 共享引用不改动）；编排级合同 API-P1-003
 > （PHASE1_API_V1 §2）。本节是该模块单位/dtype/shape/invalid 的唯一权威；
@@ -676,10 +676,10 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 ## 17. Phase1 star-detection 模块输入/输出数据（DATA-P1-STAR）
 
 > ID: DATA-P1-STAR  状态: CONTRACT_READY（P1-STAR-DOC 冻结，2026-09-07）
-> 模块: lib/star_detector;lib/phase1/stars（astrocs.p1.star_detection，迁移目标
+> 模块: lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1（astrocs.p1.star_detection，迁移目标
 > astrocs_p1_star_detection.dll；现行实现唯一生产源
-> lib/star_detector/src/sdet_api.cpp:1599-2353 生产核心 sdet_detect_impl，
-> 合同头 lib/star_detector/include/star_detector.h:1-73）。ALG:
+> lib/algorithms/star_detection/src/sdet_api.cpp:1599-2353 生产核心 sdet_detect_impl，
+> 合同头 lib/algorithms/star_detection/include/star_detector.h:1-73）。ALG:
 > ALG-STARDET-001（STAR_DETECTION_ALGORITHMS §11 逐符号锚）；SCI:
 > SCI-P1-STAR-001（docs/science/STAR_DETECTION.md，本任务冻结层，共享 SCI
 > 引用不改动）；编排级合同 API-P1-003（PHASE1_API_V1 §2：一帧只做一次权威
@@ -739,11 +739,11 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 ## 18. Phase1 wcs（plate_solve）模块输入/输出数据（DATA-P1-WCS）
 
 > ID: DATA-P1-WCS  状态: CONTRACT_READY（P1-WCS-DOC 冻结，2026-09-07）
-> 模块: lib/plate_solve;lib/phase1/wcs（astrocs.p1.wcs，迁移目标
-> astrocs_p1_wcs.dll；现行实现生产源 lib/plate_solve/cpp/ipv/
+> 模块: lib/algorithms/platesolve;lib/algorithms/platesolve/wrapper_phase1（astrocs.p1.wcs，迁移目标
+> astrocs_p1_wcs.dll；现行实现生产源 lib/algorithms/platesolve/cpp/ipv/
 > ipv_entry.cpp:237-649 12 个 C ABI 导出 + 内核 ipv_solver/ipv_select/
 > ipv_triangle/ipv_itertrans/ipv_robust_refine/ipv_wcs/ipv_sip，合计
-> 13821 行；唯一权威签名头 lib/plate_solve/cpp/ipv/include/ipv_api.h）。
+> 13821 行；唯一权威签名头 lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h）。
 > ALG: ALG-WCS-001（PLATESOLVE.md §11 逐符号锚）；SCI: SCI-WCS-001
 > （docs/science/ASTROMETRY.md，FROZEN T102 2026-08-23，共享 SCI 引用
 > 不改动）；编排级合同 API-P1-004（PHASE1_API_V1 §2：一帧只做一次权威
@@ -818,8 +818,8 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 
 ### 18.5 初始指向来源（wcs.init_source，P9 / F-10 负责人裁定）
 
-> 权威实现：生产节点 `lib/core/src/module_adapters.cpp:p1_op_wcs`（CLI
-> `astrocs phase1 run` 的 WCS 节点）。负责人裁定原文：「我从来没有允许过使用
+> 权威实现：生产节点 `lib/infrastructure/scheduler/src/module_adapters.cpp:p1_op_wcs`（CLI
+> `normalize`（CLI-001 唯一命令树；旧 `phase1 run` 已删除且 rc=2）的 WCS 节点）。负责人裁定原文：「我从来没有允许过使用
 > 帧头 wcs」「帧头有没有 wcs 不重要啊，有焦距，相元大小，赤经赤纬指向吗」。
 
 `wcs.init_source` 取值唯一权威如下（枚举外一律 DATA fail-closed，禁 silent
@@ -848,12 +848,12 @@ default）：
   与求解器内部 s0 逐位一致（禁 1e-3 量纲错）。
 - 本枚举是编排层配置词汇；不改动 §18.1/§18.2 的 ipv C ABI 合同与科学定义。
 
-## 19. Phase2 coverage（lib/phase2）模块输入/输出数据（DATA-COV-001）
+## 19. Phase2 coverage（lib/algorithms/coverage）模块输入/输出数据（DATA-COV-001）
 
 > ID: DATA-COV-001  状态: CONTRACT_READY（P2-COV-DOC 冻结，2026-09-07）
-> 模块: lib/phase2 coverage sources（astrocs.p2.coverage，迁移目标
-> astrocs_p2_coverage.dll；现行实现生产源 lib/phase2/src/coverage.cpp
-> 239 行 + 唯一权威签名头 lib/phase2/include/astro/phase2/coverage.h，
+> 模块: lib/algorithms/coverage coverage sources（astrocs.p2.coverage，迁移目标
+> astrocs_p2_coverage.dll；现行实现生产源 lib/algorithms/coverage/src/coverage.cpp
+> 239 行 + 唯一权威签名头 lib/algorithms/coverage/include/astro/phase2/coverage.h，
 > 2 个 C ABI 导出，SRC-COV-001）。本节是该模块单位/dtype/shape/invalid
 > 的唯一权威；ALG: ALG-COV-001（docs/algorithms/PHASE2_COVERAGE.md）；
 > 编排级合同 API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，所有权图
@@ -951,10 +951,10 @@ P2HipsInputInfo 逐字段（coverage.h:31-38，回填锚 :113-143）:
   （PHASE2_API_V1 §1 表行登记）；无隐藏全局状态（单文件 static/匿名
   ns 函数，无模块级可变状态）。
 
-## 20. Phase2 mosaic write（lib/phase2 tools）模块输入/输出数据（DATA-P2-HIPS）
+## 20. Phase2 mosaic write（lib/algorithms/coverage tools）模块输入/输出数据（DATA-P2-HIPS）
 
 > ID: DATA-P2-HIPS  状态: CONTRACT_READY（P2-HIPS-DOC 冻结，2026-09-07）
-> 模块: lib/phase2/tools/stage2.cpp 生产工具 astrocs-stage2
+> 模块: lib/algorithms/coverage/tools/stage2.cpp 生产工具 astrocs-stage2
 > （astrocs.p2.hips_writer；迁移目标 astrocs_p2_hips_writer.dll 为矩阵
 > 合同值，尚未存在，由 P2-HIPS-IMPL 建立，禁止声明 IMPLEMENTED）。
 > 本节是 Phase2 马赛克（HiPS）输出单位/dtype/shape/invalid 的唯一
@@ -965,7 +965,7 @@ P2HipsInputInfo 逐字段（coverage.h:31-38，回填锚 :113-143）:
 > 输出侧逐文件语义；输入读合同: IO-002（docs/interfaces/io/
 > IO_002_HIPS_INPUT_INTERFACE.md）；发布合同: IO-003（docs/interfaces/
 > io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，§20.3 对齐边界）；配置 schema
-> 唯一权威签名源 lib/phase2/include/astro/phase2/stage2_common.h
+> 唯一权威签名源 lib/algorithms/coverage/include/astro/phase2/stage2_common.h
 > :16-99（P2Stage2Config），公共消费面同步冻结于 PUBLIC_API.md
 > API-P2-HIPS-001。
 
@@ -1083,7 +1083,7 @@ signal 回读失败 rc=7 :1665）。
   （DISP-P2HIPS-003）——与 DATA-P1-HIPS §12.5 同源对齐，禁止以
   stage2 直写目录冒认 IO-003 原子发布。
 - **编排层词汇注记**: registry descriptor p2_write_descriptor
-  （lib/core/src/module_adapters.cpp:739-756，module_id=
+  （lib/infrastructure/scheduler/src/module_adapters.cpp:739-756，module_id=
   "astrocs.phase2.write" :679）端口表 integrated=DATA-P2-INT in /
   mosaic=DATA-P2-RES out（UnitId::ADU/CoordinateFrame::PIXEL，
   :684-687）为编排层词汇，与球面 NESTED 马赛克实际不符（产品为
@@ -1120,12 +1120,12 @@ signal 回读失败 rc=7 :1665）。
   循环序），chunk 内多线程仅限积分计算（CON-002 cpu-workers），
   不改变输出 tile 顺序。
 
-## 21. Phase2 integration（lib/phase2）模块输入/输出数据（DATA-P2-INT）
+## 21. Phase2 integration（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-INT）
 
 > ID: DATA-P2-INT  状态: CONTRACT_READY（P2-INT-DOC 冻结，2026-09-09）
-> 模块: lib/phase2/src/integrate.cpp（76 行）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/integrate.h（74 行）
-> （astrocs.p2.integration；合同三件套 lib/phase2_int/，迁移目标
+> 模块: lib/algorithms/coverage/src/integrate.cpp（76 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）
+> （astrocs.p2.integration；合同三件套 lib/algorithms/integration/，迁移目标
 > astrocs_p2_integration.dll 为矩阵合同值，尚未存在，由 P2-INT-IMPL
 > 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 逐像素积分内核
 > in/out 单位/dtype/shape/invalid 的唯一权威；ALG: ALG-P2-INT-001
@@ -1222,12 +1222,12 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 - 同文档: §4（signal/support/invalid 基础语义）、§6（precision）、
   §20（Phase2 mosaic write 下游域）。
 
-## 22. Phase2 rejection（lib/phase2）模块输入/输出数据（DATA-P2-REJ）
+## 22. Phase2 rejection（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-REJ）
 
 > ID: DATA-P2-REJ  状态: CONTRACT_READY（P2-REJ-DOC 冻结，2026-09-09）
-> 模块: lib/phase2/src/rejection.cpp（2076 行）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/rejection.h（329 行）
-> （astrocs.p2.rejection；合同三件套 lib/phase2_rej/，迁移目标
+> 模块: lib/algorithms/coverage/src/rejection.cpp（2076 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/rejection.h（329 行）
+> （astrocs.p2.rejection；合同三件套 lib/algorithms/rejection/，迁移目标
 > astrocs_p2_rejection.dll 为矩阵合同值，尚未存在，由 P2-REJ-IMPL
 > 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 候选栈排异内核
 > in/out 单位/dtype/shape/invalid 的唯一权威；ALG: ALG-P2-REJ-001
@@ -1404,12 +1404,12 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
   占位）端口表为编排层词汇，由 P2-XX-INT 对齐 astrocs.p2.rejection，
   不得反向作为冻结依据。
 
-## 23. Phase2 sampling（lib/phase2）模块输入/输出数据（DATA-P2-SMP）
+## 23. Phase2 sampling（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-SMP）
 
 > ID: DATA-P2-SMP  状态: CONTRACT_READY（P2-SAMP-DOC 冻结，2026-09-09）
-> 模块: lib/phase2/src/sampler.cpp（1156 行）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/sampler.h（136 行）
-> （astrocs.p2.sampling；合同三件套 lib/phase2_samp/，迁移目标
+> 模块: lib/algorithms/coverage/src/sampler.cpp（1156 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/sampler.h（136 行）
+> （astrocs.p2.sampling；合同三件套 lib/algorithms/sampling/，迁移目标
 > astrocs_p2_sampling.dll 为矩阵合同值，尚未存在，由 P2-SAMP-IMPL
 > 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 background-clean 控制
 > 点采样 in/out 单位/dtype/shape/invalid 的唯一权威；ALG:
@@ -1578,7 +1578,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
 > astrocs_p2_session.dll 为矩阵合同值，尚未存在——MISSING 如实登记，
 > 由 P2-SESSION-IMPL 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 装配
 > 会话 config/manifest/错误码/各段数据面单位与透传口径的唯一权威；
-> 本域为纯编排透传层（不实现科学公式，直调 lib/phase2 生产符号），
+> 本域为纯编排透传层（不实现科学公式，直调 lib/algorithms/coverage 生产符号），
 > SCI 上游零改动: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
 > （docs/science/，FROZEN）；ALG: ALG-P2-SESSION-001
 > （docs/algorithms/PHASE2_SESSION.md，逐符号锚与调用序）；API 面:
@@ -1739,15 +1739,15 @@ tree hash/COMPLETE 状态）在本段不适用，如实现状态登记**（无�
   边界——persist 段不适用，§24.4(4)）；DATA-FRAME-ID-001（frame_id
   身份，sample 段经 §23 透传）。
 - 端口词汇注记: registry descriptor 现无 astrocs.p2.session 占位——
-  lib/core/src/module_adapters.cpp:23-26 仅为 RT-005 IModule 工厂声明
+  lib/infrastructure/scheduler/src/module_adapters.cpp:23-26 仅为 RT-005 IModule 工厂声明
   五 C ABI（p2_session_create/validate/run/inspect/destroy）；词汇
   astrocs.p2.session 由 P2-XX-INT 对齐登记，不作冻结依据。
 
-## 25. Phase2 UPM fit（lib/phase2）模块输入/输出数据（DATA-P2-UPM）
+## 25. Phase2 UPM fit（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-UPM）
 
 > ID: DATA-P2-UPM  状态: CONTRACT_READY（P2-UPM-DOC 冻结，2026-09-10）
-> 模块: lib/phase2/src/upm.cpp（1565 行）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/upm.h（184 行）（astrocs.p2.upm-fit；
+> 模块: lib/algorithms/coverage/src/upm.cpp（1565 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/upm.h（184 行）（astrocs.p2.upm-fit；
 > astrocs_phase2 静态库成员，根 CMakeLists.txt:337-346/:338；迁移目标
 > astrocs_p2_upm.dll 为矩阵合同值，尚未存在，由 P2-UPM-IMPL 建立，
 > 禁止声明 IMPLEMENTED）。本节是 Phase2 UPM fit（联合拟合/持久化/
@@ -1776,7 +1776,7 @@ union 全几何节点 7 字段（sampler.h:77-83，§23.2(3) 引用不复制；�
 单帧区空覆盖占位，n_nodes=n_union×G² 口径）；obs 只含 ≥2 clean 帧
 观测，单帧区节点无数据项，C 由全局平滑/Laplacian 延拓得到（harmonic
 continuation，upm.h:99-101 冻结注释；SCI-UPM-001 §4）。stage2 生产
-消费=lib/phase2/tools/stage2.cpp:432-434 p2_upm_build_geo。
+消费=lib/algorithms/coverage/tools/stage2.cpp:432-434 p2_upm_build_geo。
 
 **(3) cfg**（P2UpmBuildConfig，upm.h:71-92，15 字段；默认单一来源=
 upm.cpp:222-236（cfg==nullptr 分支逐字段填充）；非法数值经 :237-245
@@ -1923,11 +1923,11 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
   占位）端口表 samples→upm_model 为编排层词汇，由 P2-XX-INT 对齐
   astrocs.p2.upm-fit，不得反向作为冻结依据。
 
-## 26. Phase2 UPM apply（lib/phase2）模块输入/输出数据（DATA-P2-COR）
+## 26. Phase2 UPM apply（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-COR）
 
 > ID: DATA-P2-COR  状态: CONTRACT_READY（P2-UPM-DOC 冻结，2026-09-10）
-> 模块: lib/phase2/src/upm.cpp（1565 行）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/upm.h（184 行，calibrate/evaluate/
+> 模块: lib/algorithms/coverage/src/upm.cpp（1565 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/upm.h（184 行，calibrate/evaluate/
 > dense_read 面 =upm.h:112-123/:164-172）（astrocs.p2.upm-apply；
 > astrocs_phase2 静态库成员，根 CMakeLists.txt:337-346/:338；迁移
 > 目标 astrocs_p2_upm.dll 为矩阵合同值，尚未存在，由 P2-UPM-IMPL
@@ -1953,7 +1953,7 @@ module_adapters.cpp:689）: 逐帧 signal f64 数组 input_signal[count]
 + frame_id（u64，模型 frames[] 绑定成员，DATA-FRAME-ID-001 身份）+
 leaf_ipix[count]（NESTED leaf 像素，tile=leaf>>18，tile_shift=9，
 :1254/:1258）。dtype=FP64；单位=ADU（§25.3 口径）。生产消费链=
-lib/phase2/tools/stage2.cpp（p2_upm_build_geo :432-434 →
+lib/algorithms/coverage/tools/stage2.cpp（p2_upm_build_geo :432-434 →
 p2_upm_calibrate_block :927-930/:1272-1275 逐 chunk 校准，f32 tile
 源读入提升 f64 → 校正 → f32 回写 :920-935）。
 
@@ -2003,7 +2003,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   （DISP-P2UPM-004 占位语义），由 P2-XX-INT 对齐
   astrocs.p2.upm-apply，不得反向作为冻结依据。
 
-## 27. Phase3 FITS 写出（lib/phase3_fits）模块输入/输出数据（DATA-P3-FITS）
+## 27. Phase3 FITS 写出（lib/algorithms/fits_output）模块输入/输出数据（DATA-P3-FITS）
 
 > ID: DATA-P3-FITS  状态: CONTRACT_READY（P3-FITS-DOC 冻结，2026-09-08）
 > 模块: lib/phase3_session/p3_output.cpp（370 行）+ 唯一权威签名头
@@ -2089,7 +2089,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   编排层词汇，由 P3-FITS-INT 对齐 astrocs.p3.fits_writer，不得
   反向作为冻结依据。
 
-## 29. Phase3 HiPS 重采样（lib/phase3_rsmp）模块输入/输出数据（DATA-P3-RES）
+## 29. Phase3 HiPS 重采样（lib/algorithms/resample）模块输入/输出数据（DATA-P3-RES）
 
 > ID: DATA-P3-RES  状态: CONTRACT_READY（P3-RSMP-DOC 冻结，2026-09-12）
 > 模块: lib/phase3_session/p3_resample.cpp（239 行）+ 唯一权威签名头
@@ -2097,7 +2097,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > 全部公共面）（astrocs.p3.resample；astrocs_phase3_session 静态库
 > 成员，根 CMakeLists.txt:460-465；迁移目标 astrocs_p3_resample.dll
 > 为矩阵合同值，尚未存在（DISP-P3RSMP-005），由 P3-RSMP-IMPL 建立，
-> 禁止声明 IMPLEMENTED；合同落位 lib/phase3_rsmp/ 三件套）。本节是
+> 禁止声明 IMPLEMENTED；合同落位 lib/algorithms/resample/ 三件套）。本节是
 > Phase3 重采样域 in/out 单位/dtype/shape/invalid 的唯一权威；SCI
 > 上游: SCI-P3-001 §4 值语义 + §5 连续定义 + §9a-1 tile 冻结 +
 > §9a-5 order 选择 + §9a-7 采样核 + §9a-8/10 输入拒绝（docs/science/
@@ -2182,7 +2182,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   resampled(DATA-P3-RES 可) 为编排层词汇，由 P3-RSMP-INT 对齐
   astrocs.p3.resample，不得反向作为冻结依据。
 
-## 28. Phase3 投影/WCS（lib/phase3_proj）模块输入/输出数据（DATA-P3-WCS）
+## 28. Phase3 投影/WCS（lib/algorithms/projection）模块输入/输出数据（DATA-P3-WCS）
 
 > ID: DATA-P3-WCS  状态: CONTRACT_READY（P3-PROJ-DOC 冻结，2026-09-11）
 > 模块: lib/phase3_session/p3_wcs.cpp（165 行）+ 唯一权威签名头
@@ -2190,7 +2190,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > （astrocs.p3.projection；astrocs_phase3_session 静态库成员，根
 > CMakeLists.txt:460-465；迁移目标 astrocs_p3_projection.dll 为矩阵
 > 合同值，尚未存在，由 P3-PROJ-IMPL 建立，禁止声明 IMPLEMENTED；
-> 合同落位 lib/phase3_proj/ 三件套）。本节是 Phase3 投影/WCS 域
+> 合同落位 lib/algorithms/projection/ 三件套）。本节是 Phase3 投影/WCS 域
 > in/out 单位/dtype/shape/invalid 的唯一权威；SCI 上游:
 > SCI-P3-001 §5 连续定义 + §9a-4 CRPIX/CD/parity 冻结 + §9a-6 极点/
 > 半球（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN V5 SCI-007
@@ -2209,7 +2209,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 | width_px / height_px | int | 标量 | px | ∈[1,20000]（:42-43，kMaxSide 默认 20000，ASTROCS_P3_MAX_SIDE 编译期覆盖如实冻结） |
 | parity | char* | 1 | — | "east_left"（默认，nullptr 归一，CD1_1<0）\|"east_right"（CD1_1>0）；其它 →PARAM（:39） |
 | rotation_pa_deg | float64 | 标量 | deg | 天北相对 +y 位置角，逆时针为正；会话层现状恒 0.0（p3_session.cpp:160，PA 未接线=整改项不修码） |
-| projection | char* | 1 | — | **请求投影码**（B2-A4，p3_wcs_validate_request）。缺省 "TAN"；仅 "TAN" 在本生产路径已实现。SIN/CAR/AIT（即便在 lib/phase3_proj registry 注册为 §18.1 首批四投影之一）与任意未注册码在 alpha 生产路径**一律 P3_WCS_UNSUPPORTED，禁止静默映射为 TAN**；四投影生产扩展见 §6/B2-A4 延期项 |
+| projection | char* | 1 | — | **请求投影码**（B2-A4，p3_wcs_validate_request）。缺省 "TAN"；仅 "TAN" 在本生产路径已实现。SIN/CAR/AIT（即便在 lib/algorithms/projection registry 注册为 §18.1 首批四投影之一）与任意未注册码在 alpha 生产路径**一律 P3_WCS_UNSUPPORTED，禁止静默映射为 TAN**；四投影生产扩展见 §6/B2-A4 延期项 |
 | frame | char* | 1 | — | 请求参考架（B2-A5）；缺省 "icrs"（接受 "ICRS"）；非 icrs → P3_WCS_UNSUPPORTED（不得静默忽略） |
 | coverage_output | char* | 1 | — | 覆盖率输出语义（B2-A5）；缺省 "mask"；非 mask（如 "weight"）→ P3_WCS_PARAM（不得静默按 mask 产出） |
 | d（映射入口） | P3WcsDescriptor* | 1 | deg、px | 见 28.2 输出面；非空守卫（:95/:122） |
@@ -2249,7 +2249,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   唯一机器源，节点面（module_adapters p3n_geom/P3NodeModule::validate_config/
   p3n_wcs_from_json）与 CLI 配置面（runtime_client phase_config）共用；
   非 "TAN" 的 projection、非 icrs 的 frame、非 mask 的 coverage_output
-  必须在 `phase3 validate|plan|run` **三面一致地非零退出**，且 **run 不得
+  必须在 `export --json` 的预检与运行**一致地非零退出**（CLI-001 唯一命令树；旧 `phase3 validate|plan|run` 三模式命令已删除且 rc=2），且 **运行不得
   写出 output_phase3.fits**（写路径 p3_output_write_atomic_ex 在创建任何
   文件前二次校验）。消费上游 wcs_plan 时若 projection 字段漂移/被篡改，
   按 DATA 拒绝而非按 TAN 消费。
@@ -2544,7 +2544,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 ## 31. V6 目标态数据合同（DATA-V6-SCHEMA，SCHEMA-INTEGRATE-001/W6 集成）
 
 > 条款 ID：`DATA-V6-SCHEMA`　状态：ACTIVE（V6 目标态集成，2026-09-15）
-> 任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/SCHEMA-INTEGRATE-001.md`（Wave 6）
+> 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCHEMA-INTEGRATE-001.md`（Wave 6）
 > 语义权威（唯一）：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8）。
 > 生产 schema（10 件）：`contracts/schemas/v6/astrocs.v6.*.v1.schema.json`；机器数据字典：`contracts/data/v6_data_dictionary_v1.json`；
 > 单一权重词表：`contracts/data/v6_weight_vocabulary_v1.json`；迁移映射：`contracts/data/v6_migration_map_v1.json`；
@@ -2657,5 +2657,5 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 - **不得重新引入**：本次集成保持控制器 `ac04289d` 固化的两处回退态——不在本文 §12.2 / §13.4 / §13.5 / §27 重新加回被回退的帧级单一 SNR 系数落位段或「生产路径不消费的参数登记」节；帧级 `median(SNR_F)` 只登记为诊断/深度表达（`C-004.2`），不得接入任何权重面。
 - `DI-06`（`contracts/data/phase_product_exchange.schema.json` science plane 枚举扩展与 runtime validator 同一提交；`F-UNC-003`）**保持 OPEN**：runtime validator 不在本任务写域，故本次**未**修改 exchange plane 枚举。
 - `SO-01`..`SO-07` 的 49 条 `PENDING_OWNER_SIGNOFF` 与 8 条 `OPEN` **保持原状态并 fail-closed**；本集成不使任何待签条款生效、不改冻结公式/容差/门。
-- 上游：宪章 §1.1/§4.1/§4.3/§5.3/§6.3/§18.3；`docs/owner/PROJECT_SPEC.md` §3/§4/§5/§7/§11；`docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md`；`docs/science/UNIFIED_SCIENCE_MODEL.md`；`docs/science/PSF_SIGNAL_WEIGHT.md`；`docs/science/v6/frozen/01_SEMANTIC_FREEZE.md`。
+- 上游：`ASTROCS_DESIGN.md` §0/§1/§2/§9/§11/§12；`docs/owner/PROJECT_SPEC.md` §3/§4/§5/§7/§11；`docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md`；`docs/science/UNIFIED_SCIENCE_MODEL.md`；`docs/science/PSF_SIGNAL_WEIGHT.md`；`docs/science/v6/frozen/01_SEMANTIC_FREEZE.md`。
 - 消费面（配置/CLI 语义）见 `docs/contracts/PUBLIC_API.md`「V6 消费面：显式 `weight_mode` 与权重对象」；集成登记见 `docs/contracts/v6/W6_SCHEMA_INTEGRATION.md`。
