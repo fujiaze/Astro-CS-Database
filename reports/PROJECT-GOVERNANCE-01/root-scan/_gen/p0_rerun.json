@@ -1,0 +1,1490 @@
+[
+ {
+  "id": "FD-F-003",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "5 份 2026-09-12/13 真机 junit（ci_repair round1、ci001b、ci_domain_merge、release-rescue 两份）全 tests=0，而同目录 CI_RESULT 的 WIN-TEST",
+  "claim": "tests=\"0\" ; 0",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -o tests=.0. run/ci_domain_merge/gh_artifact_327b6c30/windows/run/ci/win-test-junit.xml ; timeout 60 grep -c tests= tools/quality/ci_windows_driver.py",
+    "rc": 1,
+    "out": "tests=\"0\"\n0\n"
+   }
+  ]
+ },
+ {
+  "id": "M1a-A-001",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "该式把像素域 SIP 输出加在 CD·(xp−CRPIX)（按 §2 符号表 CD 为 deg/pixel、cd_inv 为 pixel/arcsec，故前者为 deg）上且自变量取中间坐标，与实现在像素域解 u+A(u)=UV 互斥；or",
+  "claim": "  (u,v) = CD · (xp−CRPIX) + SIP_A/B(u,v)   # (u,v) 为 TAN 投影中间坐标 /     // 4. 牛顿迭代: 解 F(u) = u + A(u) = UV",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"48p\" docs/science/ASTROMETRY.md; timeout 60 sed -n \"918p\" lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp",
+    "rc": 0,
+    "out": "  (u,v) = CD · (xp−CRPIX) + SIP_A/B(u,v)   # (u,v) 为 TAN 投影中间坐标\n    // 4. 牛顿迭代: 解 F(u) = u + A(u) = UV\n"
+   }
+  ]
+ },
+ {
+  "id": "M1a-A-002",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "ALG F1 仍是唯一数值精度门且量测域未定义，全仓 grep 外部闭环/全帧头域=0 命中、DISP-WCS-001..006 无该外部口径项，记录内 5.9–7.2× 内外差不复算即可见；finding 的 1.8× 依赖 s0≈0.9",
+  "claim": "  n_pairs≥12；rms_arcsec ≤0.5″（实测锚 Galaxy_Center=0.1431″，memory.md /   - T3: PlateSolve RMS=0.151px(31pairs) vs 独立 median=0.897px(702 matched) — 5.9× 差距 / - VERDICT: PASS，为 P11-003 全帧复现提供工具基础",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"186p\" docs/algorithms/PLATESOLVE.md; timeout 60 sed -n \"55p;63p\" lib/plate_solve/memory.md",
+    "rc": 0,
+    "out": "  n_pairs≥12；rms_arcsec ≤0.5″（实测锚 Galaxy_Center=0.1431″，memory.md\n  - T3: PlateSolve RMS=0.151px(31pairs) vs 独立 median=0.897px(702 matched) — 5.9× 差距\n- VERDICT: PASS，为 P11-003 全帧复现提供工具基础\n"
+   }
+  ]
+ },
+ {
+  "id": "M1a-A-003",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "P3-001",
+  "gap": "无",
+  "note": "实现取 θ=δ（等价恒设 CRVAL2=0），Paper II §2.2 要求 (φ₀,θ₀) 经 CRVAL 映到 (x,y)=(0,0)，故 CRPIX 处 dec≠CRVAL2（差 δ₀）；CAR 的 −Y 手性与 g1_build_",
+  "claim": "    const double theta = -yd * kRad; // θ = −Y (rad) /     return plane_to_pix(d, phi * kDeg, -theta * kDeg, x, y); /   native (φ,θ)=(α−α₀, δ) 恒等旋转；**CRVAL2 仅记录于 header 不进入映射**",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"198p;217p\" lib/phase3_proj/p3_projection.cpp; timeout 60 sed -n \"399p\" docs/algorithms/PHASE3_PROJ_IMPL.md",
+    "rc": 0,
+    "out": "    const double theta = -yd * kRad; // θ = −Y (rad)\n    return plane_to_pix(d, phi * kDeg, -theta * kDeg, x, y);\n  native (φ,θ)=(α−α₀, δ) 恒等旋转；**CRVAL2 仅记录于 header 不进入映射**\n"
+   }
+  ]
+ },
+ {
+  "id": "M1a-B-001",
+  "shard": "B_STD_MISMATCH_ALL",
+  "state": "OPEN",
+  "attr": "GOV-001",
+  "gap": "无",
+  "note": "注册表 :66/:76/:241 仍写「7×7 网格」「与 SCI 冻结一致」并评 severity 低，而生产实现为 NB_GRID=41 阶 5 与 NB_GRID_X=81 阶 7，全仓不存在任何 7×7 网格",
+  "claim": "const int NB_GRID = 41;       // 每轴网格点数 (整改: 7 -> 41);                 const int NB_GRID_X   = 81;  // 每轴网格点数 (5.3 段 41 -> 81); 4",
+  "rerun": [
+   {
+    "cmd": "sed -n '411p' lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp; sed -n '535p' lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp; grep -c DISP-WCS-006 docs/standards/STANDARDS_REGISTRY.md",
+    "rc": 0,
+    "out": "            const int NB_GRID = 41;       // 每轴网格点数 (整改: 7 -> 41)\n                const int NB_GRID_X   = 81;  // 每轴网格点数 (5.3 段 41 -> 81)\n4\n"
+   }
+  ]
+ },
+ {
+  "id": "M1a-B-002",
+  "shard": "B_STD_MISMATCH_ALL",
+  "state": "OPEN",
+  "attr": "GOV-001",
+  "gap": "无",
+  "note": "注册表 :64 对 Paper II §5 四投影判 CONFORMANT 且偏差列「无」，而 car_pix2world（:192-209）与 ait_pix2world 函数体完全不引用 CRVAL2，δ 由 θ 直接给出，与 §2.2",
+  "claim": "¦ Paper II §5 Table 1（TAN/SIN/CAR/AIT 四投影） ¦ 四投影按 Table 1 的 R_θ 定义实现，新增投影须注册并附独立往返 Oracle ¦ CONFORMANT ¦ docs/algorithms/PHASE3_PROJ_IMPL.md；tests/unit/p3_projection_test.cpp；tests/backend/test_p3_projection_oracle.py ¦ 无（registry v1 恰四行；T1/T2 往返与独立解析解在位） ¦; car_body_crval_dec_deg_hits=0",
+  "rerun": [
+   {
+    "cmd": "sed -n '64p' docs/standards/STANDARDS_REGISTRY.md; awk 'NR>=192 && NR<=209 && /crval_dec_deg/{n++} END{print \"car_body_crval_dec_deg_hits=\" n+0}' lib/phase3_proj/p3_projection.cpp",
+    "rc": 0,
+    "out": "| Paper II §5 Table 1（TAN/SIN/CAR/AIT 四投影） | 四投影按 Table 1 的 R_θ 定义实现，新增投影须注册并附独立往返 Oracle | CONFORMANT | docs/algorithms/PHASE3_PROJ_IMPL.md；tests/unit/p3_projection_test.cpp；tests/backend/test_p3_projection_oracle.py | 无（registry v1 恰四行；T1/T2 往返与独立解析解在位） |\ncar_body_crval_dec_deg_hits=0\n"
+   }
+  ]
+ },
+ {
+  "id": "M1a-C-001",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "SCI 冻结 7×7 与实现 41×41 阶5（另一路 81×81 阶7）仍割裂；ipv_wcs.cpp:409 自注 1e-4 px 数学不可达需负责人裁决，测试 p1wcs_tests_apbp.cpp:257 仍只设 50px 非验收",
+  "claim": "docs/science/ASTROMETRY.md:39: NB_GRID=7 用于逆向拟合 / docs/science/ASTROMETRY.md:125: NB_GRID=7 最小二乘拟合 AP/BP / lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp:411: const int NB_GRID = 41; 每轴网格点数 (整改: 7 -> 41)",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"NB_GRID=7\" docs/science/ASTROMETRY.md && timeout 60 grep -n \"NB_GRID = 41\" lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp",
+    "rc": 0,
+    "out": "39:- 维度 `w>0,h>0`，星点列表非空；`CRPIX` 按 `w/2+0.5` 冻结；`trans.order` 2–3 阶；`NB_GRID=7` 用于逆向拟合。\n125:- FP64 全链路；`CD` 与 SIP 系数以 `double` 写入 FITS 头；`NB_GRID=7` 最小二乘拟合 `AP/BP`，残差 `rms_px` 写入诊断。\n411:            const int NB_GRID = 41;       // 每轴网格点数 (整改: 7 -> 41)\n"
+   }
+  ]
+ },
+ {
+  "id": "M1a-C-002",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "RESOLVED",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "det_lin 小于 1e-15 分支现显式置 success=false 并当场 return（代码内注明 SCI-WCS-001 §8、ALG-WCS-001 §11.1 与宪章 §6.3/§14.4），函数恒 success=true",
+  "claim": "1 / 345: result->success = false;（:341 奇异判据命中即置 false 并 return，:648 正常路径才 success=true）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -c \"std::abs(det_lin) < 1e-15\" lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp && timeout 60 grep -n \"result->success = false\" lib/plate_solve/cpp/ipv/src/",
+    "rc": 2,
+    "out": "1\nlib/plate_solve/cpp/ipv/src/ipv_wcs.cpp-343-            // (共线/退化配置) 必须显式失败, 禁止以未修正畸变的线性 TAN\nlib/plate_solve/cpp/ipv/src/ipv_wcs.cpp-344-            // (CRPIX/CD 坍缩值) 冒充合格解 (宪章 §6.3 禁静默降级、§14.4 fail-fast)。\nlib/plate_solve/cpp/ipv/src/ipv_wcs.cpp:345:            result->success = false;\nlib/plate_solve/cpp/ipv/src/ipv_wcs.cpp-346-            std::snprintf(result->error, sizeof(result->error),\nlib"
+   }
+  ]
+ },
+ {
+  "id": "M1a-C-003",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "自检环仍以 0-based 数组下标 x 属于 [0,W) 喂 1-based 契约的 WcsTan；独立参考解同施 dx=x-crpix1 故两门对原点平移零判别力（代码 :2181 自承对成对单位错零鉴别力）；p1_wcs.json s",
+  "claim": "2149: pts.emplace_back(static_cast<double>(x), static_cast<double>(y)); / 2384: 同型 / 1920: const double dx = x - crpix1;",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"pts.emplace_back(static_cast<double>(x)\" lib/core/src/module_adapters.cpp && timeout 60 grep -n \"const double dx = x - crpix1\" lib/core/src/mod",
+    "rc": 0,
+    "out": "2149:        pts.emplace_back(static_cast<double>(x), static_cast<double>(y));\n2384:      pts.emplace_back(static_cast<double>(x), static_cast<double>(y));\n1920:  const double dx = x - crpix1;\n"
+   }
+  ]
+ },
+ {
+  "id": "M1a-C-004",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "OPEN",
+  "attr": "P3-001",
+  "gap": "无",
+  "note": "lib/phase3_session 与 module_adapters 内 FOV/fov_deg 零命中，校验面仅 TAN、abs(dec) 不超过85、CRPIX 有限、CD 非奇异；module_adapters.cpp:5616 ",
+  "claim": "413: out->fov_x_deg = pl.fov_x_deg; / 414: out->fov_y_deg = pl.fov_y_deg; / 0（FOV 字段仅透传赋值，无范围/一致性校验，校验面仍为 provenance/bunit/TAN/abs(dec)≤85/CRPIX/CD）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"fov\" lib/phase3_session/p3_v6_export.cpp && timeout 60 grep -c \"fov.*>.*0\\validate.*fov\" lib/phase3_session/p3_v6_export.cpp",
+    "rc": 1,
+    "out": "413:  out->fov_x_deg = pl.fov_x_deg;\n414:  out->fov_y_deg = pl.fov_y_deg;\n0\n"
+   }
+  ]
+ },
+ {
+  "id": "M1a-F-001",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "P3-001",
+  "gap": "无",
+  "note": "CAR 的 C++ 与 Python 两个 oracle 的期望式与实现 car_pix2world（p3_projection.cpp:198/204 θ=-yd、α=α0+φ）同一推导，CRVAL2 不进入期望式，故结构上无法证伪 fi",
+  "claim": "dec_o = -yd; / dec = -y_deg（两 oracle 期望式与实现 car_pix2world 同一推导，CRVAL2 不进期望式，无法证伪）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"214p\" tests/unit/p3_projection_test.cpp && timeout 60 sed -n \"156p\" tests/backend/test_p3_projection_oracle.py",
+    "rc": 0,
+    "out": "            dec_o = -yd;\n        dec = -y_deg\n"
+   }
+  ]
+ },
+ {
+  "id": "M2a-A-1",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "按 §5 与 :61 复算 A_drop=pixfrac²·A_pixel ⇒ S_p=F_p/D_p=Σ(B0·A_pixel·a/(pixfrac²·A_pixel))/Σa=B0/pixfrac²，仅 pixfrac=1 等于 §7:",
+  "claim": "    w_jp = a_jp / A_drop,j /   drop 多边形: pixelToSky((x±0.5·pixfrac, y±0.5·pixfrac)) → Vec3 单位向量 /   `x_j=B0×A_pixel_j`（随像素面积变化，**非每像素常量 ADU**），输出 `S_p=B0`（面亮度），",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"40p;61p;81p\" docs/science/DRIZZLE.md",
+    "rc": 0,
+    "out": "    w_jp = a_jp / A_drop,j\n  drop 多边形: pixelToSky((x±0.5·pixfrac, y±0.5·pixfrac)) → Vec3 单位向量\n  `x_j=B0×A_pixel_j`（随像素面积变化，**非每像素常量 ADU**），输出 `S_p=B0`（面亮度），\n"
+   }
+  ]
+ },
+ {
+  "id": "M2a-B-1",
+  "shard": "B_STD_MISMATCH_ALL",
+  "state": "OPEN",
+  "attr": "GOV-001",
+  "gap": "无",
+  "note": "条款面要求 J2016.0，判定式却给 CONFORMANT/偏差「无」；产品面四处仍声称 J2000，模块代码内历元词零命中，无任何历元换算或传播实现",
+  "claim": "- CLAUSES: DR3 source 列面（ra/dec 参考历元 J2016.0、phot_g_mean_mag/phot_bp_mean_mag/phot_rp_mean_mag）；本地 XPSD 记录布局（ALG-GAIA-001 §2）; ¦ DR3 source 位置列（ra/dec，ICRS，参考历元 J2016.0） ¦ 位置以 ICRS 表达，RA∈[0,360)、Dec∈[-90,90] ¦ CONFORMANT ¦ docs/algorithms/GAIA_QUERY.md；docs/science/ASTROMETRY.md；lib/gaia_xpsd_client/src/gaia_client.c ¦ 无（RA 归一到 [0,360)；frame 契约与 SCI-WCS-001 §3a 一致） ¦; 0",
+  "rerun": [
+   {
+    "cmd": "awk 'NR==186' docs/standards/STANDARDS_REGISTRY.md; awk 'NR==193' docs/standards/STANDARDS_REGISTRY.md; grep -c 历元 lib/gaia_xpsd_client/src/gaia_client.c",
+    "rc": 1,
+    "out": "- CLAUSES: DR3 source 列面（ra/dec 参考历元 J2016.0、phot_g_mean_mag/phot_bp_mean_mag/phot_rp_mean_mag）；本地 XPSD 记录布局（ALG-GAIA-001 §2）\n| DR3 source 位置列（ra/dec，ICRS，参考历元 J2016.0） | 位置以 ICRS 表达，RA∈[0,360)、Dec∈[-90,90] | CONFORMANT | docs/algorithms/GAIA_QUERY.md；docs/science/ASTROMETRY.md；lib/gaia_xpsd_client/src/gaia_client.c | 无（RA 归一到 [0,360)；frame 契约与 SCI-WCS-001 §3a 一致） |\n0\n"
+   }
+  ]
+ },
+ {
+  "id": "M2a-C-1",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "RESOLVED",
+  "attr": "DATA-001",
+  "gap": "无",
+  "note": "合同 §8.2 该行已补 长度 = n_coords，编码容量改按 c.n_coords 且载荷回显 n_coords 字段，截断为 matched_count 且不携带 n_coords 的实现已不存在；仅余 部分未命中 回归用例未注册（",
+  "claim": "777: uint64_t b64_idx_cap = match_idx ? b64_encoded_len((uint64_t)c.n_coords * sizeof(int)) : 3;（编码容量已按 n_coords；载荷回显 n_coords 字段）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"b64_idx_cap\" lib/gaia_xpsd_client/src/module_entry.c  head -2 && timeout 60 grep -c \"\"n_coords\\\":%d\" lib/gaia_xpsd_client/src/module_entry.c",
+    "rc": 2,
+    "out": "bash: -c: 行 1: 寻找匹配的 `\"' 时遇到了未预期的 EOF\n"
+   }
+  ]
+ },
+ {
+  "id": "M2a-F-1",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "MOD-001",
+  "gap": "无",
+  "note": "五个点名 TU 仍 tracked 且在盘，但 CMakeLists/*.cmake 注册 0 命中、ci/ctest_baseline.json 0 命中、ci/checks.json 无 drizzle 检查项，唯一 drizzle 注",
+  "claim": "rc=1 ; 85:- **零漏选不变量**：`candidate_oracle_test` 9003 例全枚举下 `false_negative=0`（12 face×边/角×RA跨0×极区×4 pixfrac×5 尺度×7 nside）。",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -rl -e candidate_oracle_test -e variance_propagation_test -e drizzle_freeze_test --include=CMakeLists.txt --include=*.cmake --exclude-dir=build --exclude-dir=run . ; echo rc=$? ; timeo",
+    "rc": 0,
+    "out": "rc=1\n85:- **零漏选不变量**：`candidate_oracle_test` 9003 例全枚举下 `false_negative=0`（12 face×边/角×RA跨0×极区×4 pixfrac×5 尺度×7 nside）。\n"
+   }
+  ]
+ },
+ {
+  "id": "M2a-H-1",
+  "shard": "H_NUMERIC_ALL",
+  "state": "RESOLVED",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "何证据使其不再成立：p1_op_drizzle 现按 precision_mode 提交 FLOAT64 块并做块 dtype 自检；hp_drizzle_api.cpp:1006 对 pm=1 且 data 块为 FLOAT32 显式拒绝",
+  "claim": "lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp:1006:     if (config.precision_mode == 1 && !data_is_f64) {；lib/core/src/module_adapters.cpp:3051:     blk_type = AIO_BLOCK_FLOAT64;；lib/core/src/module_adapters.cpp:3066:           \"drizzle precision consistency: data block dtype != precision_mode\"));",
+  "rerun": [
+   {
+    "cmd": "timeout 60 awk 'FNR==1006{print FILENAME\":\"FNR\": \"$0}' lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp; timeout 60 awk 'FNR==3051{print FILENAME\":\"FNR\": \"$0}' lib/core/src/module_adapters.cpp; timeo",
+    "rc": 0,
+    "out": "lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp:1006:     if (config.precision_mode == 1 && !data_is_f64) {\nlib/core/src/module_adapters.cpp:3051:     blk_type = AIO_BLOCK_FLOAT64;\nlib/core/src/module_adapters.cpp:3066:           \"drizzle precision consistency: data block dtype != precision_mode\"));\n"
+   }
+  ]
+ },
+ {
+  "id": "M2a-H-2",
+  "shard": "H_NUMERIC_ALL",
+  "state": "OPEN",
+  "attr": "DATA-001",
+  "gap": "无",
+  "note": "variance≤0 仍以 continue 整颗丢弃（信号/覆盖/nContrib/source_pixels 全不计），方差值实际充当 validity 掩膜且零计数；负责人裁决 A-11 待定，语义厘清后须统一实现与头注释/DATA/",
+  "claim": "lib/healpix_db/healpix_drizzle/drizzle_engine.cpp:1912:                 if (varianceValue <= 0.0f) continue;  // 合法数据边界, 非掩膜；lib/healpix_db/healpix_drizzle/drizzle_engine.cpp:1916:             threadCounters[static_cast<size_t>(tid)].source_pixels++;",
+  "rerun": [
+   {
+    "cmd": "timeout 60 awk 'FNR==1912{print FILENAME\":\"FNR\": \"$0} FNR==1916{print FILENAME\":\"FNR\": \"$0}' lib/healpix_db/healpix_drizzle/drizzle_engine.cpp",
+    "rc": 0,
+    "out": "lib/healpix_db/healpix_drizzle/drizzle_engine.cpp:1912:                 if (varianceValue <= 0.0f) continue;  // 合法数据边界, 非掩膜\nlib/healpix_db/healpix_drizzle/drizzle_engine.cpp:1916:             threadCounters[static_cast<size_t>(tid)].source_pixels++;\n"
+   }
+  ]
+ },
+ {
+  "id": "M2b-A-01",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "AIO-001",
+  "gap": "无",
+  "note": "写入口 aio_hips_product_begin 仍只判 nside<512（无 2 的幂、无上界），非法 nside 由 ilog2 向下取整静默夹逼（:493）；同文件 2 的幂校验 grep=0、lib/hips/src/modu",
+  "claim": "        ps->leaf_order = ilog2_u64(nside); / 0 / 1",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"493p\" lib/astro_image_io/src/hips/aio_hips_writer.cpp; timeout 60 grep -c \"nside & (nside - 1)\" lib/astro_image_io/src/hips/aio_hips_writer.cpp;",
+    "rc": 0,
+    "out": "        ps->leaf_order = ilog2_u64(nside);\n0\n1\n"
+   }
+  ]
+ },
+ {
+  "id": "M2b-A-02",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "AIO-001",
+  "gap": "无",
+  "note": "三源互斥逐字复现：写侧 2^(k+9)、ALG 同节 2^k、读侧 h->nside=2^(properties_order+9) 且 hips_core.c:632-635 要求 tile NSIDE 等于 h->nside，故自产 No",
+  "claim": "            const uint32_t nside_k = 1u << (k + 9); /   约定。FITS cards ORDERING=NESTED + NSIDE=2^k；三处 scatter 同 (2a) 式 /   h->nside = 1ULL << ((uint64_t)order + 9u);",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"1069p\" lib/astro_image_io/src/hips/aio_hips_writer.cpp; timeout 60 sed -n \"146p\" docs/algorithms/HIPS_WRITER.md; timeout 60 sed -n \"245p\" runtim",
+    "rc": 0,
+    "out": "            const uint32_t nside_k = 1u << (k + 9);\n  约定。FITS cards ORDERING=NESTED + NSIDE=2^k；三处 scatter 同 (2a) 式\n  h->nside = 1ULL << ((uint64_t)order + 9u);\n"
+   }
+  ]
+ },
+ {
+  "id": "M2b-B-01",
+  "shard": "B_STD_MISMATCH_ALL",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "生产写/读/runtime 三处（writer :137-138、aio_hips_reader :41-42、hips_core.c :558-559）仍把商写入 Dir、余数写入 Npix，与 §4.1 算式相反；注册表 :93 偏差列",
+  "claim": "writer:137     uint64_t dir = ipix / 10000;;                   dir.c_str(), order, (unsigned long long)(ipix / 10000),;   D = ipix / 10000u;",
+  "rerun": [
+   {
+    "cmd": "awk 'NR==137{print \"writer:137 \"$0} END{}' lib/astro_image_io/src/hips/aio_hips_writer.cpp; awk 'NR==41' lib/astro_image_io/src/hips/aio_hips_reader.cpp; awk 'NR==558' runtime/io/hips_core.c",
+    "rc": 0,
+    "out": "writer:137     uint64_t dir = ipix / 10000;\n                  dir.c_str(), order, (unsigned long long)(ipix / 10000),\n  D = ipix / 10000u;\n"
+   }
+  ]
+ },
+ {
+  "id": "M2b-B-02",
+  "shard": "B_STD_MISMATCH_ALL",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "write_moc_fits（:293-314）只写 TTYPE1=UNIQ 与 MOCORDER/PIXCOUNT，强制键 ORDERING=NUNIQ、COORDSYS=C 均缺失（NUNIQ 在该文件命中 0）；:243 的 COOR",
+  "claim": "0;     fits_write_key_lng(fptr, \"MOCORDER\", (long)order, (char*)\"MOC order\", &status);;     fits_write_key_lng(fptr, \"PIXCOUNT\", (long)uniq.size(), (char*)\"Cell count\", &status);",
+  "rerun": [
+   {
+    "cmd": "grep -c NUNIQ lib/astro_image_io/src/hips/aio_hips_writer.cpp; sed -n '313,314p' lib/astro_image_io/src/hips/aio_hips_writer.cpp",
+    "rc": 0,
+    "out": "0\n    fits_write_key_lng(fptr, \"MOCORDER\", (long)order, (char*)\"MOC order\", &status);\n    fits_write_key_lng(fptr, \"PIXCOUNT\", (long)uniq.size(), (char*)\"Cell count\", &status);\n"
+   }
+  ]
+ },
+ {
+  "id": "M2b-B-03",
+  "shard": "B_STD_MISMATCH_ALL",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "写出值含 3600 因子即角秒，标准同名键单位为度（相差 3600 倍）；HIPS_WRITER.md:186 把该实现口径登记为标准公式，注册表仍判 CONFORMANT 且条款挂成 §6.3.1（键表实为 §4.4.1）",
+  "claim": "std::snprintf(buf, sizeof(buf), \"%.6f\", 3600.0 * 180.0 / kPi() * std::sqrt(kPi() / 3.0) / (double)ps->nside);; ¦ properties 1.4（hips_version=\"1.4\" 与 hierarchy 聚合） ¦ 1.4 修订的 properties 版本字面量与层级聚合语义 ¦ CONFORMANT ¦ lib/astro_image_io/src/hips/aio_hips_writer.cpp；docs/algorithms/HIPS_WRITER.md；docs/contracts/PUBLIC_API.md ¦ DISP-HIPS-009（f32 产品层级累加为 float 求和，多子 tile 舍入漂移） ¦",
+  "rerun": [
+   {
+    "cmd": "sed -n '943p' lib/astro_image_io/src/hips/aio_hips_writer.cpp; awk 'NR==99' docs/standards/STANDARDS_REGISTRY.md",
+    "rc": 0,
+    "out": "    std::snprintf(buf, sizeof(buf), \"%.6f\", 3600.0 * 180.0 / kPi() * std::sqrt(kPi() / 3.0) / (double)ps->nside);\n| properties 1.4（hips_version=\"1.4\" 与 hierarchy 聚合） | 1.4 修订的 properties 版本字面量与层级聚合语义 | CONFORMANT | lib/astro_image_io/src/hips/aio_hips_writer.cpp；docs/algorithms/HIPS_WRITER.md；docs/contracts/PUBLIC_API.md | DISP-HIPS-009（f32 产品层级累加为 float 求和，多子 tile 舍入漂移） |\n"
+   }
+  ]
+ },
+ {
+  "id": "M2b-B-04",
+  "shard": "B_STD_MISMATCH_ALL",
+  "state": "OPEN",
+  "attr": "GOV-001",
+  "gap": "无",
+  "note": "注册表四处条款号错挂（§3/§4.1/§4.2.1/§4.4.1 应分别为 §4.1/§4.2/§4.4.1/§4.4.2）；IO_002 §3.1 以自定 5 键替代标准 9 必填（多 hips_tile_width，缺五个标准必填键）；",
+  "claim": "2; - COMPLIANCE: PARTIAL; ¦ §4.2.1（properties 必需键集） ¦ `hips_version/hips_order/hips_tile_width/hips_tile_format/hips_frame` 必需且自洽 ¦ PARTIAL ¦ docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md；lib/astro_image_io/src/hips/aio_hips_writer.cpp ¦ STD-F4（写出侧键集缺 em_min/em_max/obs_bandpass 等推荐键；META-002 禁伪造，待 index.json 真实滤镜元数据接通） ¦",
+  "rerun": [
+   {
+    "cmd": "grep -c obs_bandpass docs/standards/STANDARDS_REGISTRY.md; awk 'NR==87' docs/standards/STANDARDS_REGISTRY.md; awk 'NR==95' docs/standards/STANDARDS_REGISTRY.md",
+    "rc": 0,
+    "out": "2\n- COMPLIANCE: PARTIAL\n| §4.2.1（properties 必需键集） | `hips_version/hips_order/hips_tile_width/hips_tile_format/hips_frame` 必需且自洽 | PARTIAL | docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md；lib/astro_image_io/src/hips/aio_hips_writer.cpp | STD-F4（写出侧键集缺 em_min/em_max/obs_bandpass 等推荐键；META-002 禁伪造，待 index.json 真实滤镜元数据接通） |\n"
+   }
+  ]
+ },
+ {
+  "id": "M2b-B-07",
+  "shard": "B_STD_MISMATCH_ALL",
+  "state": "OPEN",
+  "attr": "GOV-001",
+  "gap": "无",
+  "note": "npix（:333-335）已无 require_valid_nside 调用且无上界（nside=2^31 时 12·nside² 按模 2^64 回绕为 0）；注册表 :136 把标准中不存在的 order≤29 写成 Górski 条",
+  "claim": "333:uint64_t npix(uint32_t nside) {; 334-    return 12ULL * uint64_t(nside) * uint64_t(nside);; ¦ §5.2/§5.3（order 上限与溢出收口） ¦ order ≤ 29 且越界输入显式拒绝 ¦ CONFORMANT ¦ lib/common/healpix/healpix_core.cpp；lib/common/healpix/tests/test_healpix_neighbors.cpp ¦ 无（checked 收口，禁静默溢出） ¦",
+  "rerun": [
+   {
+    "cmd": "grep -n -A1 'uint64_t npix' lib/common/healpix/healpix_core.cpp; awk 'NR==136' docs/standards/STANDARDS_REGISTRY.md",
+    "rc": 0,
+    "out": "333:uint64_t npix(uint32_t nside) {\n334-    return 12ULL * uint64_t(nside) * uint64_t(nside);\n| §5.2/§5.3（order 上限与溢出收口） | order ≤ 29 且越界输入显式拒绝 | CONFORMANT | lib/common/healpix/healpix_core.cpp；lib/common/healpix/tests/test_healpix_neighbors.cpp | 无（checked 收口，禁静默溢出） |\n"
+   }
+  ]
+ },
+ {
+  "id": "M2b-B-09",
+  "shard": "B_STD_MISMATCH_ALL",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "头块仍无条件预留并写 CHECKSUM 全零串（注释自称 HDU checksum updated），仅 write_checksum=1 时回填；verify 豁免仍设在计算值侧（:1651）；注册表 :223 该行仍判 CONFORMA",
+  "claim": "fio_card_write(f, \"CHECKSUM\", \"0000000000000000\", \"HDU checksum updated\");;         if (sum != decoded && sum != 0xFFFFFFFFUL && sum != 0UL) {; ¦ §6（DATASUM/CHECKSUM 校验和） ¦ 数据与头校验和须可复算、校验失败显式报错 ¦ CONFORMANT ¦ docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md；docs/contracts/DATA_SEMANTICS.md；tests/io/test_fits_stream_contract.py ¦ 无（内容哈希流式重算复核在位） ¦",
+  "rerun": [
+   {
+    "cmd": "sed -n '1155p;1651p' runtime/io/fits_core.c; awk 'NR==223' docs/standards/STANDARDS_REGISTRY.md",
+    "rc": 0,
+    "out": "    fio_card_write(f, \"CHECKSUM\", \"0000000000000000\", \"HDU checksum updated\");\n        if (sum != decoded && sum != 0xFFFFFFFFUL && sum != 0UL) {\n| §6（DATASUM/CHECKSUM 校验和） | 数据与头校验和须可复算、校验失败显式报错 | CONFORMANT | docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md；docs/contracts/DATA_SEMANTICS.md；tests/io/test_fits_stream_contract.py | 无（内容哈希流式重算复核在位） |\n"
+   }
+  ]
+ },
+ {
+  "id": "M2b-C-01",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "OPEN",
+  "attr": "AIO-001",
+  "gap": "无",
+  "note": "HiPS writer 内原子原语仍 0 命中且 remove+create 直写仍在（:232-233、:301-302）；module_adapters.cpp:28 与 :4602 两处仍称 AIO-002 原子发布原语内建，与 §1",
+  "claim": "0 / 232: std::remove(path_n.c_str()); / 301: std::remove(path_n.c_str());（HiPS 写出仍 remove+create 直写，无原子发布原语）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -c -e rename -e fsync -e staging lib/astro_image_io/src/hips/aio_hips_writer.cpp && timeout 60 grep -n \"std::remove\" lib/astro_image_io/src/hips/ai",
+    "rc": 1,
+    "out": "0\n"
+   }
+  ]
+ },
+ {
+  "id": "M2b-F-01",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "MOD-001",
+  "gap": "无",
+  "note": "注册表:135 仍写「往返 ≤1e-12 deg；astropy-healpix 百万点 oracle 对拍」，healpix_core.h:6-7 同款；仓内无 healpix_fullsky_oracle 生成器与 oracle.jso",
+  "claim": "rc=1 ; 88:        if (std::fabs(dec) >= 89.999999) continue;",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -rl test_healpix_oracle --include=CMakeLists.txt --include=*.json --exclude-dir=build --exclude-dir=run ci tests lib ; echo rc=$? ; timeout 60 grep -n 89.999999 lib/common/healpix/test",
+    "rc": 0,
+    "out": "rc=1\n88:        if (std::fabs(dec) >= 89.999999) continue;\n"
+   }
+  ]
+ },
+ {
+  "id": "M3-A-001",
+  "shard": "A_SCI_DEF_P0",
+  "state": "RESOLVED",
+  "attr": "P1-002",
+  "gap": "无",
+  "note": "使其不再成立：控制点值改由 Horne 1986 SNR_F 计算（sourceSnrFromPsfRow 6 处，snr_estimator.cpp:187 记退休量不再进科学输出；orchestrator.cpp:4296/:4500 ",
+  "claim": "6 /     // 旧 (A-B)/residual_scale 为 SNR-008 已退休量, 不再进入生产路径。 / - **逐源科学 SNR**：由逐源通量不确定度 `σ_F` 定义，`SNR_F = F/σ_F`（PSF 加权最优提取，",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -c \"sourceSnrFromPsfRow\" lib/snr_estimator/cpp/src/snr_estimator.cpp; timeout 60 sed -n \"362p\" lib/snr_estimator/cpp/include/snr_estimator.h; timeo",
+    "rc": 0,
+    "out": "6\n    // 旧 (A-B)/residual_scale 为 SNR-008 已退休量, 不再进入生产路径。\n- **逐源科学 SNR**：由逐源通量不确定度 `σ_F` 定义，`SNR_F = F/σ_F`（PSF 加权最优提取，\n"
+   }
+  ]
+ },
+ {
+  "id": "M3-A-002",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "P2-002",
+  "gap": "无",
+  "note": "FROZEN SCI-CW §4 仍把 support×snr_v² 标为 weight_mode=2 的像素级权重，而实现 mode=2 分支为逐像素 ivar、support×snr² 只在 mode==0 分支（stage2.cpp:",
+  "claim": "# 像素级 SNR 权重（stage2 排异/积分，weight_mode=2） /   weights[s] = support[s] × snr_v²                      # 禁止 snr=1.0 伪装 unknown /             cfg->weight_mode = 2;   // 默认 ivar",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"66p;71p\" docs/science/CONTROL_WEIGHT_SNR.md; timeout 60 sed -n \"378p\" lib/phase2/src/stage2_common.cpp",
+    "rc": 0,
+    "out": "# 像素级 SNR 权重（stage2 排异/积分，weight_mode=2）\n  weights[s] = support[s] × snr_v²                      # 禁止 snr=1.0 伪装 unknown\n            cfg->weight_mode = 2;   // 默认 ivar\n"
+   }
+  ]
+ },
+ {
+  "id": "M3-C-001",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "RESOLVED",
+  "attr": "P1-002",
+  "gap": "无",
+  "note": "两条星数门（至少3、至少2）已按 SCI-PHOT §4/§8 落地：不足3 走 NO_DATA 且 fit_used=0、scale 保持 1.0 不迭代，不足2 时 sigma_residual=0 并在日志注明不可估计；全函数唯一判据",
+  "claim": "518: if (r_consistent.size() < 3) { / 616: if (r_inliers.size() >= 2) {（两星数门按 SCI-PHOT §4/§8 落地，不足即 NO_DATA/不可估计标记）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"r_consistent.size() < 3\" lib/photometric_calib/cpp/src/star_matcher.cpp && timeout 60 grep -n \"r_inliers.size() >= 2\" lib/photometric_calib/cpp",
+    "rc": 0,
+    "out": "518:    if (r_consistent.size() < 3) {\n616:    if (r_inliers.size() >= 2) {\n"
+   }
+  ]
+ },
+ {
+  "id": "M3-C-002",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "RESOLVED",
+  "attr": "P1-002",
+  "gap": "无",
+  "note": "第二个判据（qf 饱和位）已落地：cleanAndScale 增 quality_flags 形参、按 PC_QF_SATURATED_MASK 过滤并计 rejected_quality，公共入口 pc_api.cpp 两处传参；接口与实",
+  "claim": "430: saturated = (quality_flags[row] & PC_QF_SATURATED_MASK) != 0u;（第二判据 qf 饱和位已落地，cleanAndScale 增 quality_flags 形参并计 rejected_quality）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"PC_QF_SATURATED_MASK\" lib/photometric_calib/cpp/src/star_matcher.cpp  head -2 && timeout 60 grep -c \"quality_flags\" lib/photometric_calib/cpp/s",
+    "rc": 2,
+    "out": "lib/photometric_calib/cpp/src/star_matcher.cpp-428-        bool saturated = false;\nlib/photometric_calib/cpp/src/star_matcher.cpp-429-        if (quality_flags != nullptr && row >= 0) {\nlib/photometric_calib/cpp/src/star_matcher.cpp:430:            saturated = (quality_flags[row] & PC_QF_SATURATED_MASK) != 0u;\nlib/photometric_calib/cpp/src/star_matcher.cpp-431-        }\nlib/photometric_calib/cpp/s"
+   }
+  ]
+ },
+ {
+  "id": "M3-C-003",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "OPEN",
+  "attr": "P1-002",
+  "gap": "无",
+  "note": "SCI FROZEN 默认 5 与代码 64 相差 12.8 倍未变，ALG §13.2 不改 SCI 以代码为准 的裁决语仍在活动文档，权威层级倒置未纠，负责人裁决项未登记",
+  "claim": "350: cfg->min_patch_samples = 64; / docs/science/NOISE_MODEL.md:37: min_samples（patch 样本数阈）默认 5 / docs/algorithms/NOISE_ESTIMATION.md:152: SCI §4 \"min_samples 默认 5\" 为旧稿数字——不改 SCI，以代码为准登记",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"min_patch_samples = 64\" lib/snr_estimator/cpp/src/noise_model.cpp && timeout 60 grep -n \"默认 5\" docs/science/NOISE_MODEL.md && timeout 60 grep -",
+    "rc": 0,
+    "out": "350:    cfg->min_patch_samples = 64;\n37:- 维度 `h>0,w>0`，`data` 非空且含有限值；`min_samples`（patch 样本数阈）默认 5；`rmax` 为固定值，不按星亮度/振幅缩放（API 仅 `star_x/y` 无 amplitude，见 §6）。\n152:  SCI §4 \"min_samples 默认 5\" 为旧稿数字——**不改 SCI**，以代码为准登记；\n"
+   }
+  ]
+ },
+ {
+  "id": "M3-E-001",
+  "shard": "E_TRACE_BREAK_P0P1",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "校准科学门 VERIFIED 行的第 9/10 列仍只指测光比例应用测试，第 6 列仍无 ac_correct_frame；三域 TST-CAL/TST-PHOT/TST-NOISE 非法前缀本轮 grep -roE 在 docs 仍命中 ",
+  "claim": "TEST-CAL-001 lib/calibration/tests/test_photometry_apply.cpp VERIFIED ac_correct_frame_in_public_api= False",
+  "rerun": [
+   {
+    "cmd": "python3 -c \"import csv;r=list(csv.reader(open('docs/TRACEABILITY.csv',encoding='utf-8')))[19];print(r[9],r[10],r[14],'ac_correct_frame_in_public_api=', 'ac_correct_frame' in r[6])\"",
+    "rc": 0,
+    "out": "TEST-CAL-001 lib/calibration/tests/test_photometry_apply.cpp VERIFIED ac_correct_frame_in_public_api= False\n"
+   }
+  ]
+ },
+ {
+  "id": "M3-F-001",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "P1-002",
+  "gap": "无",
+  "note": "该文件无任何 numpy（全文 0 命中），唯一 Python 对拍面把生产 noise_model.cpp 用 g++ 编成临时库后 ctypes 调用，属同源而非独立 Oracle；TestNoiseOracle 由类级 skipUnl",
+  "claim": "0 ; 117:- **Python 参考**：NumPy 对同 `data` 的 `median/MAD/5σ裁剪/平面最小二乘` 复算 `variance/ivar`（`rtol 1e-9`）。",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -c numpy tests/backend/test_noise_model_oracle.py ; timeout 60 grep -m1 -n \"Python 参考\" docs/science/NOISE_MODEL.md",
+    "rc": 0,
+    "out": "0\n117:- **Python 参考**：NumPy 对同 `data` 的 `median/MAD/5σ裁剪/平面最小二乘` 复算 `variance/ivar`（`rtol 1e-9`）。\n"
+   }
+  ]
+ },
+ {
+  "id": "M3b-A-01",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "sdet_moffat4_fit(:520) 仍转调 sdet_lm_fit，其母函数/解析导数固定为椭圆高斯 sdet_gaussian_f（:111/:375），生产阶段6 走 sdet_moffat4_fit（:2207 等）——SC",
+  "claim": "    fdf.f = &sdet_gaussian_f; /     int gsl_status = sdet_lm_fit<T>(image, width, / - 基线算法=peaker 七步候选 + Moffat4 GSL trust-region LM 拟合",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"375p\" lib/star_detector/src/sdet_api.cpp; timeout 60 sed -n \"627p\" lib/star_detector/src/sdet_api.cpp; timeout 60 sed -n \"41p\" docs/science/STAR",
+    "rc": 0,
+    "out": "    fdf.f = &sdet_gaussian_f;\n    int gsl_status = sdet_lm_fit<T>(image, width,\n- 基线算法=peaker 七步候选 + Moffat4 GSL trust-region LM 拟合\n"
+   }
+  ]
+ },
+ {
+  "id": "M3b-A-02",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "DATA-001",
+  "gap": "无",
+  "note": "同一 star_det v1 列 [2]=flux 两链不同量：sdet 链填拟合峰值振幅 A（sdet_api.cpp:2304，且 A 的母函数还是高斯），IR 节点链填 5×5 二阶矩 m00（star_detector.cpp:15",
+  "claim": "        rec.flux = (float)fit_results[i].A; /     s.flux = m00; /                 P1STAR_CHECK(cs, std::fabs((double)d.flux[i] - 90000.0) / 90000.0 <= 0.01,",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"2304p\" lib/star_detector/src/sdet_api.cpp; timeout 60 sed -n \"151p\" lib/phase1/stars/star_detector.cpp; timeout 60 sed -n \"210p\" lib/star_detect",
+    "rc": 0,
+    "out": "        rec.flux = (float)fit_results[i].A;\n    s.flux = m00;\n                P1STAR_CHECK(cs, std::fabs((double)d.flux[i] - 90000.0) / 90000.0 <= 0.01,\n"
+   }
+  ]
+ },
+ {
+  "id": "M3b-A-03",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "prow[7] 是 Moffat4 拟合的 10–90% 截尾平均绝对残差（dpsf_psf.cpp:222/:416/:426，单位 ADU/像元），被原样写进名为 flux_uncertainty 的积分流量不确定度列，缺 √N_eff",
+  "claim": "    // [3]=flux_inst (PSF integrated flux), [4]=flux_uncertainty (PSF mad proxy), /             row[4] = prow[7];  // mad (uncertainty proxy) / flux_uncertainty（PSF mad proxy），[5]=background（PSF B），[6]=psf_status，",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"2470p;2506p\" lib/orchestrator/cpp/src/orchestrator.cpp; timeout 60 sed -n \"586p\" docs/contracts/DATA_SEMANTICS.md",
+    "rc": 0,
+    "out": "    // [3]=flux_inst (PSF integrated flux), [4]=flux_uncertainty (PSF mad proxy),\n            row[4] = prow[7];  // mad (uncertainty proxy)\nflux_uncertainty（PSF mad proxy），[5]=background（PSF B），[6]=psf_status，\n"
+   }
+  ]
+ },
+ {
+  "id": "M3b-C-01",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "OPEN",
+  "attr": "MOD-001",
+  "gap": "无",
+  "note": "规范层仍正面宣称无 0.5px 量化损失，已知 BLOCKER 只活在 ARCHIVED_NON_NORMATIVE 归档日志；oracle gate2_psf_oracle.py:320 已把质心门更名 centroid_p95_le_0",
+  "claim": "docs/science/STAR_DETECTION.md:13: 不引入 0.5px 网格量化损失 / 0（KNOWN_LIMITATIONS 零登记） / 12: centroid_p95_le_0.3px_production（BLOCKER 只活在归档日志与测试脚本注释 :328）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"0.5px 网格量化损失\" docs/science/STAR_DETECTION.md && timeout 60 grep -c \"PSF-001\" docs/KNOWN_LIMITATIONS.md && timeout 60 grep -n \"centroid_p95\" lib",
+    "rc": 1,
+    "out": "13:  Moffat4 GSL-LM 中心），不引入 0.5px 网格量化损失；合成场验收容差\n0\n"
+   }
+  ]
+ },
+ {
+  "id": "M3b-C-02",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "OPEN",
+  "attr": "MOD-001",
+  "gap": "无",
+  "note": "注册的 star-psf 节点仍实装第三套检测器 phase1::StarDetector（与 sdet_api.cpp 唯一生产源宣称不符）；mag 仍用 99.0 哨兵（合同 invalid=NaN）、has_saturated 仍赋帧",
+  "claim": "1616: const astrocs::phase1::StarDetector det(5.0); / 1663: ? -2.5 * std::log10(s.flux) : 99.0;（注册节点仍第三套检测器；mag 哨兵 99.0 非合同 NaN）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"phase1::StarDetector det(5.0)\" lib/core/src/module_adapters.cpp && timeout 60 grep -n \": 99.0\" lib/core/src/module_adapters.cpp  head -2",
+    "rc": 2,
+    "out": "1616:  const astrocs::phase1::StarDetector det(5.0);\nlib/core/src/module_adapters.cpp-1661-      dets[k * 6 + 2] = s.flux;\nlib/core/src/module_adapters.cpp-1662-      dets[k * 6 + 3] = (s.flux > 0.0)\nlib/core/src/module_adapters.cpp:1663:          ? -2.5 * std::log10(s.flux) : 99.0;\nlib/core/src/module_adapters.cpp-1664-      dets[k * 6 + 4] = (s.quality & 1) ? 1.0 : 0.0;   // saturated\nlib/core/s"
+   }
+  ]
+ },
+ {
+  "id": "M3b-F-01",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "脚本已按 M3b-F-01 整改：验收门改挂生产路径 0.3px(:305-318)、0.01px 门改名 centroid_p95_le_0.01px_converged_not_acceptance，但脚本仍零 CI 登记（ci/che",
+  "claim": "0 ; False",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -c gate2_psf_oracle ci/checks.json ; timeout 60 python3 -c \"import json;print(json.load(open('lib/photometric_calib/cpp/test/gate4_dr3sp_gaiaxpy/evidence/gate2_result.json'))['gates'][",
+    "rc": 0,
+    "out": "0\nFalse\n"
+   }
+  ]
+ },
+ {
+  "id": "M3b-F-02",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "残项仍成立：PSF.md:99 承诺的 scipy curve_fit 在 tests/ 与 lib/ 0 命中，§15:123 仍称「§11 Oracle 全过」；docs/traceability/TRACEABILITY_MATRIX",
+  "claim": "rc=1 ; 99:- **Python 参考**：`scipy` / NumPy 对同参数 Moffat4 图像块做 `curve_fit` 复算，位置 `≤0.05px`、FWHM `≤1%`（合成无噪声谱）。",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -rl curve_fit tests lib ; echo rc=$? ; timeout 60 grep -m1 -n \"Python 参考\" docs/science/PSF.md",
+    "rc": 0,
+    "out": "rc=1\n99:- **Python 参考**：`scipy` / NumPy 对同参数 Moffat4 图像块做 `curve_fit` 复算，位置 `≤0.05px`、FWHM `≤1%`（合成无噪声谱）。\n"
+   }
+  ]
+ },
+ {
+  "id": "M3b-F-03",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "noise=6(:43) 下三段实际 SNR=[6.7,9.2)/[32.5,45)/[683,1333)，SCI 冻结的召回区间 SNR∈[10,32.5) 零样本，「SNR≈20 谱段」注释为假（实为<10）；F1 的 dc≤0.3(:",
+  "claim": "60:            if (p < 0.15) amp = 40.0 + p * 100.0;       // SNR≈20 谱段 ; 61:            else if (p < 0.4) amp = 150.0 + p * 300.0;  // 中 ; 62:            else amp = 1500.0 + p * 6500.0;             // 亮",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -n \"amp = \" lib/star_detector/tests/p1star/p1star_fixtures.hpp",
+    "rc": 0,
+    "out": "60:            if (p < 0.15) amp = 40.0 + p * 100.0;       // SNR≈20 谱段\n61:            else if (p < 0.4) amp = 150.0 + p * 300.0;  // 中\n62:            else amp = 1500.0 + p * 6500.0;             // 亮\n"
+   }
+  ]
+ },
+ {
+  "id": "M3b-G-01",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "DOC-001",
+  "gap": "无",
+  "note": "限制层（docs/KNOWN_LIMITATIONS.md 为 ACTIVE_INFORMATIVE，8 条限制无一条涉 PSF）与释放状态层仍零提及该未闭合质心 BLOCKER，承载其字面量的 gate2_psf_oracle.py 亦未",
+  "claim": "docs/KNOWN_LIMITATIONS.md:0 / docs/owner/RELEASE_STATUS.md:0 / 0",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -c -e PSF -e 质心 docs/KNOWN_LIMITATIONS.md docs/owner/RELEASE_STATUS.md; timeout 60 grep -c gate2_psf_oracle ci/checks.json",
+    "rc": 1,
+    "out": "docs/KNOWN_LIMITATIONS.md:0\ndocs/owner/RELEASE_STATUS.md:0\n0\n"
+   }
+  ]
+ },
+ {
+  "id": "M3b-H-01",
+  "shard": "H_NUMERIC_ALL",
+  "state": "RESOLVED",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "何证据使其不再成立：:450 写真实 MAD（残差绝对偏差的中位数），:227 排异门用 MAD 乘冻结 15 位常数，RMSE 冒充与二次换算消失；残余子项「0.2 门出处」不属本条，归 M3b-A-03 另案",
+  "claim": "lib/star_detector/src/sdet_api.cpp:227:         double rmse_ratio = fit.mad * 1.482602218505602 / fit.A;；lib/star_detector/src/sdet_api.cpp:450:         result->mad = sdet_median_of(deviations);",
+  "rerun": [
+   {
+    "cmd": "timeout 60 awk 'FNR==450{print FILENAME\":\"FNR\": \"$0} FNR==227{print FILENAME\":\"FNR\": \"$0}' lib/star_detector/src/sdet_api.cpp",
+    "rc": 0,
+    "out": "lib/star_detector/src/sdet_api.cpp:227:         double rmse_ratio = fit.mad * 1.482602218505602 / fit.A;\nlib/star_detector/src/sdet_api.cpp:450:         result->mad = sdet_median_of(deviations);\n"
+   }
+  ]
+ },
+ {
+  "id": "M4-A-01",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "P2-001",
+  "gap": "无",
+  "note": "rejection.cpp:1836-1852 仍保留「N≤4 且全拒 → 全接受 UNDERDETERMINED 并清零 rejected_low/high」，注释自认该状态按 SCIENCE_FREEZE 仍 hard fail；FRO",
+  "claim": "        if (n <= 4) { /   UNDERDETERMINED (n ≤2) → 不做猜测，全接受 (P2_REASON_UNDERDETERMINED) / - **UNDERDETERMINED 单调性**：`n ≤2` 恒 `UNDERDETERMINED`，不做剔除（recall=0 显式）。",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"1844p\" lib/phase2/src/rejection.cpp; timeout 60 sed -n \"79p;62p\" docs/science/REJECTION.md",
+    "rc": 0,
+    "out": "        if (n <= 4) {\n  UNDERDETERMINED (n ≤2) → 不做猜测，全接受 (P2_REASON_UNDERDETERMINED)\n- **UNDERDETERMINED 单调性**：`n ≤2` 恒 `UNDERDETERMINED`，不做剔除（recall=0 显式）。\n"
+   }
+  ]
+ },
+ {
+  "id": "M4-A-02",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "P2-001",
+  "gap": "无",
+  "note": "同一 FROZEN SCI 内两口径互斥（零权重 accepted 样本是两集合差集，其 support 为栈内最大时 :58 不计、:75 必计），实现取 accepted 口径且有回归门 tests/unit/p2_output_sem",
+  "claim": "       support = (support 空) ? 1.0 : max_{valid,W>0} support[i]   # canonical reducer, 覆盖并集保守下界 / - **支撑单调性**：`sup_max = max(accepted support)`，增样本不减 `support`。 /             sup_max = std::max(sup_max, in->support[i]);  // canonical reducer",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"58p;75p\" docs/science/INTEGRATION.md; timeout 60 sed -n \"50p\" lib/phase2/src/integrate.cpp",
+    "rc": 0,
+    "out": "       support = (support 空) ? 1.0 : max_{valid,W>0} support[i]   # canonical reducer, 覆盖并集保守下界\n- **支撑单调性**：`sup_max = max(accepted support)`，增样本不减 `support`。\n            sup_max = std::max(sup_max, in->support[i]);  // canonical reducer\n"
+   }
+  ]
+ },
+ {
+  "id": "M4-C-01",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "RESOLVED",
+  "attr": "P2-001",
+  "gap": "无",
+  "note": "kcorr_lookup 已改为两段各自归一化的分段线性插值（pf 不超过 0.8 取列0-1、否则列1-2），pf=0.8 直接命中冻结表值 1.3925/2.8971；原 i0=wi*2 把 [0.5,1.0] 均匀映到列区间 的写法与",
+  "claim": "89: static const double pf_grid[3] = {0.5, 0.8, 1.0}; / 97: const bool lo = (pf <= pf_grid[1]); / 102: const double fx = (pf - pf_grid[c0]) / (pf_grid[c1] - pf_grid[c0]);（两段各自归一化分段线性插值，pf=0.8 直接命中冻结表值）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"pf_grid\\[3\\]\" lib/phase2/src/sampler.cpp && timeout 60 sed -n \"97p;100,102p\" lib/phase2/src/sampler.cpp",
+    "rc": 0,
+    "out": "89:    static const double pf_grid[3] = {0.5, 0.8, 1.0};\n    // pixfrac 网格 {0.5,0.8,1.0} 非均匀：两段各自归一化的线性插值，\n    const std::size_t c0 = lo ? 0u : 1u;\n    const std::size_t c1 = lo ? 1u : 2u;\n    const double fx = (pf - pf_grid[c0]) / (pf_grid[c1] - pf_grid[c0]);\n"
+   }
+  ]
+ },
+ {
+  "id": "M4-C-02",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "RESOLVED",
+  "attr": "P2-002",
+  "gap": "无",
+  "note": "两条生产装配（p2_session.cpp:191、module_adapters.cpp:3738）现均显式赋 zero_anchor_weight=1e-3，与 SCI §9a:133 FROZEN 常数一致，ALG §13:365 同",
+  "claim": "226: cfg.zero_anchor_weight = 1e-3; / 244: if (cfg.zero_anchor_weight < 0.0) cfg.zero_anchor_weight = 1e-3; / module_adapters.cpp:3738: uc.sigma_floor = 1e-3; uc.zero_anchor_weight = 1e-3;（生产装配显式赋 SCI-UPM-001 §9a FROZEN 常数 1e-3；stage2_common.cpp:152-153 配置默认亦 1e-3）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"zero_anchor_weight = 1e-3\" lib/phase2/src/upm.cpp  head -3 && timeout 60 grep -n \"zero_anchor_weight = 1e-3\" lib/core/src/module_adapters.cpp  ",
+    "rc": 2,
+    "out": "lib/phase2/src/upm.cpp-223-        cfg.snr_weight_mode = 0;\nlib/phase2/src/upm.cpp-224-        cfg.huber_delta = 1.345;\nlib/phase2/src/upm.cpp-225-        cfg.smoothing_lambda = 0.0;\nlib/phase2/src/upm.cpp:226:        cfg.zero_anchor_weight = 1e-3;\nlib/phase2/src/upm.cpp-227-        cfg.max_iterations = 100;\nlib/phase2/src/upm.cpp-228-        cfg.tolerance = 1e-6;\nlib/phase2/src/upm.cpp-229-      "
+   }
+  ]
+ },
+ {
+  "id": "M4-C-03",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "RESOLVED",
+  "attr": "P2-001",
+  "gap": "无",
+  "note": "tile 级 ivar 读失败已改 fail-closed（未开 legacy_allow_weight_fallback 即 fail 或 return 7，串行分支 :1384-1388 同型），降级分支现逐像素自增 ivar_tile",
+  "claim": "607: std::atomic<std::uint64_t> ... ivar_tile_fallback_px{0}; / 1118: ++ivar_tile_fallback_px; weights[s] = support_v[s];（legacy 旗标默认 false 即 fail-closed） / 1753: diag[\"ivar_tile_read_fallback_pixels\"] = ivar_tile_fallback_px.load(); / 测试钉住 :487",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"ivar_tile_fallback_px\" lib/phase2/tools/stage2.cpp  head -3 && timeout 60 grep -n \"ivar_tile_read_fallback_pixels\" lib/phase2/tests/ivar_wiring",
+    "rc": 2,
+    "out": "lib/phase2/tools/stage2.cpp-604-\nlib/phase2/tools/stage2.cpp-605-    std::atomic<std::uint64_t> total_pixels{0}, total_rejected{0}, total_fallback{0};\nlib/phase2/tools/stage2.cpp-606-    std::uint64_t large_scale_grown = 0;   // grow 新增拒绝样本数\nlib/phase2/tools/stage2.cpp:607:    std::atomic<std::uint64_t> dbg_reject_px{0}, dbg_fallback_px{0}, dbg_zero_px{0}, ivar_tile_fallback_px{0};  // M4-C-03 leg"
+   }
+  ]
+ },
+ {
+  "id": "M4-F-01",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "P2-001",
+  "gap": "无",
+  "note": "(a) 类已修复：根 CMakeLists.txt:710 在 ASTROCS_BUILD_TESTS 下 add_subdirectory(lib/phase2)，既有构建树 ctest -N 实测 288 项含 phase2_* 113",
+  "claim": "rc=1 ; 147:- §11 Oracle 全过（含 `control_median_mc_test` MC 一致性、gauge 唯一性、harmonic continuation 边界）；",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -rl -e control_median_mc_test -e kcorr_matrix_test --include=CMakeLists.txt --include=*.cmake --exclude-dir=build --exclude-dir=run . ; echo rc=$? ; timeout 60 grep -m1 -n \"Oracle 全过\" ",
+    "rc": 0,
+    "out": "rc=1\n147:- §11 Oracle 全过（含 `control_median_mc_test` MC 一致性、gauge 唯一性、harmonic continuation 边界）；\n"
+   }
+  ]
+ },
+ {
+  "id": "M4-F-02",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "P2-002",
+  "gap": "无",
+  "note": "全仓 *.py 无 Huber IRLS 复算 θ：huber 命中仅 lib/phase2/tools/*.py 的配置字面量与 tests/backend 的 huber_delta 配置；control_ivar 命中 6 处全为 t",
+  "claim": "rc=1 ; 108:- **Python 参考**：NumPy 对同 `raw` 的 Huber IRLS + `control_ivar` 权重复算 `θ`（`rtol 1e-9`）。",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -rl huber --include=*.py tests/unit/v6_p2_upm tests/integration/v6_p2 ; echo rc=$? ; timeout 60 grep -m1 -n \"Python 参考\" docs/science/PHASE2_UPM.md",
+    "rc": 0,
+    "out": "rc=1\n108:- **Python 参考**：NumPy 对同 `raw` 的 Huber IRLS + `control_ivar` 权重复算 `θ`（`rtol 1e-9`）。\n"
+   }
+  ]
+ },
+ {
+  "id": "M5a-G-001",
+  "shard": "G_GOV_GATE_P0",
+  "state": "RESOLVED",
+  "attr": "OBS-001",
+  "gap": "无",
+  "note": "什么证据使其不再成立：0.80 系数已由 kCpuMeanMinPercent=85.0 取代，逐样本/队列阈值改为 85.0/60.0，:260 注释记「旧 D.6 的 0.80 已被 §18.2 明文废止(M5a-G-001)」；残留 ",
+  "claim": "98:inline constexpr double kCpuMeanMinPercent = 85.0; / 108:inline constexpr double kMon001UtilSampleMinPercent = 85.0; / 111:inline constexpr double kMon001QueueUtilMinPercent = 60.0;",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -n -e \"kCpuMeanMinPercent =\" -e \"kMon001UtilSampleMinPercent =\" -e \"kMon001QueueUtilMinPercent =\" cli/resource_gate.h",
+    "rc": 0,
+    "out": "98:inline constexpr double kCpuMeanMinPercent = 85.0;   // §18.2 冻结均值下限 85%\n108:inline constexpr double kMon001UtilSampleMinPercent = 85.0;   // 单样本 >=0.85(§18.2)\n111:inline constexpr double kMon001QueueUtilMinPercent = 60.0;    // 窗口内利用率下限 0.60(§18.2)\n"
+   }
+  ]
+ },
+ {
+  "id": "M5a-G-002",
+  "shard": "G_GOV_GATE_P0",
+  "state": "RESOLVED",
+  "attr": "OBS-001",
+  "gap": "无",
+  "note": "什么证据使其不再成立：新增容量归一函数并已在生产调用点 commands.cpp:948/:950 使用，resource_gate.h:163-166 注释显式记 M5a-G-002，单核分母不再直接进 90%/85% 判据。",
+  "claim": "253:inline double cpu_percent_of_allocated_capacity(const GateConfig& g, double cpu_pct) { / 948: astrocs::cpu_percent_of_allocated_capacity(g, act.cpu_pct_p50); / 950: astrocs::cpu_percent_of_allocated_capacity(g, act.cpu_pct_mean);",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -n \"inline double cpu_percent_of_allocated_capacity\" cli/resource_gate.h; timeout 60 grep -n \"cpu_percent_of_allocated_capacity(g, act\" cli/commands.cpp",
+    "rc": 0,
+    "out": "253:inline double cpu_percent_of_allocated_capacity(const GateConfig& g, double cpu_pct) {\n948:                astrocs::cpu_percent_of_allocated_capacity(g, act.cpu_pct_p50);\n950:                astrocs::cpu_percent_of_allocated_capacity(g, act.cpu_pct_mean);\n"
+   }
+  ]
+ },
+ {
+  "id": "M5a-G-003",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "OBS-001",
+  "gap": "无",
+  "note": "唯一逐字实现冻结阈值的 run_monitored.py::evaluate_frozen_gate 仍零应用点：登记表 145 项零 --gate-required，9 个 requires_monitor 项全为构建/sanitizer",
+  "claim": "gate-required hits 0 / requires_monitor ['BUILD-GCC-RELEASE', 'DEEP-CLANG-BUILD', 'DEEP-SAN-ASAN', 'DEEP-SAN-TSAN', 'DEEP-COV-CPP', 'DEEP-COV-PY', 'V6-DETERMINISM', 'V6-CTEST-UNIT', 'V6-CTEST-INTEGRATION']",
+  "rerun": [
+   {
+    "cmd": "timeout 60 python3 -c \"import json;d=json.load(open('ci/checks.json'));ch=d['checks'] if isinstance(d,dict) else d;print('gate-required hits',sum(1 for c in ch if '--gate-required' in ' '.join(c.get('",
+    "rc": 0,
+    "out": "gate-required hits 0\nrequires_monitor ['BUILD-GCC-RELEASE', 'DEEP-CLANG-BUILD', 'DEEP-SAN-ASAN', 'DEEP-SAN-TSAN', 'DEEP-COV-CPP', 'DEEP-COV-PY', 'V6-DETERMINISM', 'V6-CTEST-UNIT', 'V6-CTEST-INTEGRATION']\n"
+   }
+  ]
+ },
+ {
+  "id": "M5a-G-005",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "RT-001",
+  "gap": "无",
+  "note": "扫描面仍只 lib/、正则仍不匹配 std::vector<std::thread>（仓库内 12 处不可见）、行级 watchdog 豁免仍在；tests/arch/test_thread_budget.py 仍把空转结果固化为通过条件。",
+  "claim": "vector-thread-in-lib-cpp = 12 / SCAN_ROOTS = [os.path.join(REPO, \"lib\")] / row_exempt = is_exempt or \"watchdog\" in line",
+  "rerun": [
+   {
+    "cmd": "timeout 120 python3 -c \"import os;n=sum(open(os.path.join(d,f),encoding='utf-8',errors='ignore').read().count('std::vector<std::thread>') for d,_,fs in os.walk('lib') if not any(x in d for x in ('test",
+    "rc": 0,
+    "out": "vector-thread-in-lib-cpp = 12\nSCAN_ROOTS = [os.path.join(REPO, \"lib\")]\n                    row_exempt = is_exempt or \"watchdog\" in line\n"
+   }
+  ]
+ },
+ {
+  "id": "M5b-C-01",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "API 合同表 以 API- 开头行 382、其中 356 行共用占位 TST-GEN-001，而该 ID 在 tests/ 与 docs/traceability/ 零命中（仅存在于本合同表自身与 fixture 副本），故 356 行 ",
+  "claim": "382 356 / 0（356 行共用占位测试 ID，该 ID 在测试面与追溯面零命中）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 python3 -c \"import csv;rows=[r for r in csv.reader(open(\"docs/contracts/API_CONTRACTS.csv\",encoding=\"utf-8-sig\")) if r and r[0].startswith(\"API-\")];prin",
+    "rc": 1,
+    "out": "  File \"<string>\", line 1\n    import csv;rows=[r for r in csv.reader(open(docs/contracts/API_CONTRACTS.csv,encoding=utf-8-sig)) if r and r[0].startswith(API-)];print(len(rows),sum(1 for r in rows if any(TST-GEN-001 in c for c in r)))\n                                                                                                                                                                      "
+   }
+  ]
+ },
+ {
+  "id": "M5b-C-02",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "OPEN",
+  "attr": "PKG-001",
+  "gap": "与 GAP-018 重复",
+  "note": "同一 source_commit 上 Windows 模板把 Linux 侧维持 SKELETON 的 PLATFORM-RUNTIME 与 PLATFORM-IO 标为 IMPLEMENTED，与 Linux 清单及 runtime/mo",
+  "claim": "cmake/astrocs.product.windows.json.in:9: \"unit_id\": \"PLATFORM-RUNTIME\", ... \"status\": \"IMPLEMENTED\" / packaging/astrocs.product.json:9: ... \"status\": \"SKELETON\"（同一 source_commit 两清单状态互斥）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"PLATFORM-RUNTIME\" cmake/astrocs.product.windows.json.in  head -1 && timeout 60 grep -n \"PLATFORM-RUNTIME\" packaging/astrocs.product.json  head ",
+    "rc": 2,
+    "out": "cmake/astrocs.product.windows.json.in-8-    {\"unit_id\": \"PLATFORM-CLI\", \"kind\": \"exe\", \"rel_path\": \"astrocs.exe\", \"abi_version\": 1, \"module_id\": null, \"sha256\": null, \"status\": \"IMPLEMENTED\"},\ncmake/astrocs.product.windows.json.in:9:    {\"unit_id\": \"PLATFORM-RUNTIME\", \"kind\": \"runtime\", \"rel_path\": \"astrocs_runtime.dll\", \"abi_version\": 1, \"module_id\": null, \"sha256\": null, \"status\": \"IMPLEMENTED\"}"
+   }
+  ]
+ },
+ {
+  "id": "M5b-G-01",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "CLI-001",
+  "gap": "无",
+  "note": "命令树门仍 only-if-exists 无 else（缺产物即零检查），CI 仍另建 cli 兼容子图（cli/CMakeLists.txt 首行自述 COMPATIBILITY 非产品事实源），门验对象与交付物仍分离。",
+  "claim": "exe = os.path.join(self.repo, \"build\", \"cli\", \"astrocs\") / if os.path.isfile(exe): / 22:mkdir -p build/cli && cmake -S cli -B build/cli -DCMAKE_BUILD_TYPE=Release \\",
+  "rerun": [
+   {
+    "cmd": "timeout 60 sed -n \"132,133p\" tools/check_api_docs.py; timeout 60 grep -n \"cmake -S cli\" ci/steps/linux_build_root_graph.sh",
+    "rc": 0,
+    "out": "        exe = os.path.join(self.repo, \"build\", \"cli\", \"astrocs\")\n        if os.path.isfile(exe):\n22:mkdir -p build/cli && cmake -S cli -B build/cli -DCMAKE_BUILD_TYPE=Release \\\n"
+   }
+  ]
+ },
+ {
+  "id": "M5b-G-02",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "TRACEABILITY 门仍算出 rows_broken 后无条件 return 0（waivable=false 却不可能红），TRACEABILITY-CODE 仍默认读 artifacts 预发布快照副本，TRACEABILITY-",
+  "claim": "\"rows_broken\": len(broken), / return 0 / DEFAULT_TABLES = [os.path.join(REPO, \"artifacts\", \"prerelease_v5\", \"tables\", \"TRACEABILITY.csv\")]",
+  "rerun": [
+   {
+    "cmd": "timeout 60 sed -n \"146p;159p\" tools/quality/check_traceability.py; timeout 60 sed -n \"16p\" tools/check_traceability.py",
+    "rc": 0,
+    "out": "        \"rows_broken\": len(broken),\n    return 0\nDEFAULT_TABLES = [os.path.join(REPO, \"artifacts\", \"prerelease_v5\", \"tables\", \"TRACEABILITY.csv\")]\n"
+   }
+  ]
+ },
+ {
+  "id": "M5b-G-03",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "判据仍是同一头文件的正则声明名 ⊆ 同一头文件 AST 名集（恒真），参数个数 nparams 提取后从未参与比较，脚本零引用 API 文档（PUBLIC_API/API_CONTRACTS 命中 0）。",
+  "claim": "61: if name not in ast_names: / 0",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -n \"if name not in ast_names\" tools/check_ast_api.py; timeout 60 grep -c -e PUBLIC_API -e API_CONTRACTS tools/check_ast_api.py",
+    "rc": 1,
+    "out": "61:            if name not in ast_names:\n0\n"
+   }
+  ]
+ },
+ {
+  "id": "M5b-G-04",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "PKG-001",
+  "gap": "无",
+  "note": "产品版本仍有 4+1 份手工副本（交付清单/安装树合同/依赖锁/两份 schema 与 ci/checks.json 的 --expected），与根 VERSION=0.11.0-alpha.2 漂移，两道版本门扫描面仍不覆盖 packa",
+  "claim": "0.11.0-alpha.2 / product 0.11.0-alpha.1 contract 0.11.0-alpha.1 lock 0.11.0-alpha.1",
+  "rerun": [
+   {
+    "cmd": "timeout 60 cat VERSION; timeout 60 python3 -c \"import json;print('product',json.load(open('packaging/astrocs.product.json'))['product_version'],'contract',json.load(open('packaging/install-tree.contra",
+    "rc": 0,
+    "out": "0.11.0-alpha.2\nproduct 0.11.0-alpha.1 contract 0.11.0-alpha.1 lock 0.11.0-alpha.1\n"
+   }
+  ]
+ },
+ {
+  "id": "M5b-G-05",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "INT-001",
+  "gap": "无",
+  "note": "CON-BUILD-GRAPH 仍只做子串存在性检查（不读根 CMakeLists/install_layout/File API），文档中产品目标名命中 0，订正文档反而变红的结构未变。",
+  "claim": "for tgt in [\"phase2\",\"astrocs-stage2\",\"calibrated_pair_diag\",\"rejection_cli\"]: / if tgt not in text: / 0",
+  "rerun": [
+   {
+    "cmd": "timeout 60 sed -n \"25,26p\" tools/quality/contracts/check_build_graph.py; timeout 60 grep -c -e astrocs_runtime -e astrocs_io -e astrocs_p1_sdet docs/architecture/BUILD_GRAPH.md",
+    "rc": 1,
+    "out": "        for tgt in [\"phase2\",\"astrocs-stage2\",\"calibrated_pair_diag\",\"rejection_cli\"]:\n            if tgt not in text:\n0\n"
+   }
+  ]
+ },
+ {
+  "id": "M5b-G-06",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "MOD-001",
+  "gap": "无",
+  "note": "产品仍静态链全部科学库、根构建面零引用安全 loader，10 个 unit 的 sha256 全 null，唯一逐 unit 闭环 tests/abi/mod001_install_load_check.py 文件名不以 test 开头故",
+  "claim": "units 10 sha256-null 10 / CMakeLists.txt:0 / cli/CMakeLists.txt:0",
+  "rerun": [
+   {
+    "cmd": "timeout 60 python3 -c \"import json;u=json.load(open('packaging/astrocs.product.json'))['units'];print('units',len(u),'sha256-null',sum(1 for x in u if not x.get('sha256')))\"; timeout 60 grep -c -e \"ru",
+    "rc": 1,
+    "out": "units 10 sha256-null 10\nCMakeLists.txt:0\ncli/CMakeLists.txt:0\n"
+   }
+  ]
+ },
+ {
+  "id": "M6a-C-001",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "OPEN",
+  "attr": "P3-001",
+  "gap": "无",
+  "note": "order_sel 在会话与 IR 两条通道仍只写 provenance/manifest/结果 JSON，读路径仍由 p3_sampler_open_ex 按 properties 的 hips_order 组 tile（p3_resam",
+  "claim": "5567: if (p3_order_select(input_order, g.scale, &order_sel) != P3_RS_OK) / p3_resample: s->order = p.order（order_sel 仍只写 provenance/manifest，读路径按 properties.hips_order 组 tile）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"p3_order_select(input_order\" lib/core/src/module_adapters.cpp && timeout 60 grep -rn \"s->order = p.order\" lib/phase3_rsmp  head -2",
+    "rc": 2,
+    "out": "5567:  if (p3_order_select(input_order, g.scale, &order_sel) != P3_RS_OK) {\ngrep: head: 没有那个文件或目录\n"
+   }
+  ]
+ },
+ {
+  "id": "M6a-G-001",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "STALE_PATTERNS/REQUIRE_ID_NEAR 在 tools/ 内仍只有第 9/15 两处定义行（零引用，第 3 行输出即其中之一），实际判定仍只剩 V19R2/V19R3 两字面量且被「冻结」豁免，扫描面仍缺 .c/cli",
+  "claim": "if \"V19R2\" in c or \"V19R3\" in c: / if \"冻结\" not in c and \"history\" not in str(src).lower(): / tools/quality/contracts/check_comments.py:9:STALE_PATTERNS = [",
+  "rerun": [
+   {
+    "cmd": "timeout 60 sed -n \"37p;39p\" tools/quality/contracts/check_comments.py; timeout 120 grep -rn -e STALE_PATTERNS -e REQUIRE_ID_NEAR --include=*.py tools/",
+    "rc": 0,
+    "out": "            if \"V19R2\" in c or \"V19R3\" in c:\n                if \"冻结\" not in c and \"history\" not in str(src).lower():\ntools/quality/contracts/check_comments.py:9:STALE_PATTERNS = [\ntools/quality/contracts/check_comments.py:15:REQUIRE_ID_NEAR = [\"invariant\", \"不变量\", \"conservative\", \"false_negative\"]\n"
+   }
+  ]
+ },
+ {
+  "id": "M6b-E-001",
+  "shard": "E_TRACE_BREAK_P0P1",
+  "state": "OPEN",
+  "attr": "DOC-001",
+  "gap": "无",
+  "note": "SPEC 仍明文 JSON 为机器真相而三份路由文档仍指旧 CSV，DOCUMENT_INDEX 仍列旧表 ACTIVE_NORMATIVE；两表 TEST 证据互斥率本轮未逐条重算",
+  "claim": "docs/README-DOCS.md:13:追溯             docs/TRACEABILITY.csv（唯一矩阵）；docs/DEVELOPER_GUIDE.md:38:- 规范标准：`docs/standards/`；追溯：`docs/TRACEABILITY.csv`；docs/standards/API_STANDARD.md:14:每个稳定公共 API 关联 API-* ID（见 docs/TRACEABILITY.csv），例如",
+  "rerun": [
+   {
+    "cmd": "grep -m1 -n TRACEABILITY.csv docs/README-DOCS.md docs/DEVELOPER_GUIDE.md docs/standards/API_STANDARD.md",
+    "rc": 0,
+    "out": "docs/README-DOCS.md:13:追溯             docs/TRACEABILITY.csv（唯一矩阵）\ndocs/DEVELOPER_GUIDE.md:38:- 规范标准：`docs/standards/`；追溯：`docs/TRACEABILITY.csv`\ndocs/standards/API_STANDARD.md:14:每个稳定公共 API 关联 API-* ID（见 docs/TRACEABILITY.csv），例如\n"
+   }
+  ]
+ },
+ {
+  "id": "M6b-G-001",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "C7 仍对 MOD/SRC/TEST 直接 continue，schema 仍无 evidence_path 列（6 条 EVIDENCE=VERIFIED 全无路径），AUTHORITY_DIRS 仍含不存在的 returns/，TRAC",
+  "claim": "rows 30 test_VERIFIED 22 / evidence_VERIFIED 6 evidence_path_all_None True / if layer in (\"MOD\", \"SRC\", \"TEST\"):",
+  "rerun": [
+   {
+    "cmd": "timeout 60 python3 -c \"import json;m=json.load(open('docs/traceability/TRACEABILITY_MATRIX.json'))['modules'];print('rows',len(m),'test_VERIFIED',sum(1 for x in m if x.get('test_status')=='VERIFIED'))",
+    "rc": 0,
+    "out": "rows 30 test_VERIFIED 22\nevidence_VERIFIED 6 evidence_path_all_None True\n            if layer in (\"MOD\", \"SRC\", \"TEST\"):\n"
+   }
+  ]
+ },
+ {
+  "id": "M6b-G-002",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "DOC-001",
+  "gap": "无",
+  "note": "四份 RELEASE_STATUS 仍并存且 docs/RELEASE_STATUS.md 仍用 owner §0 已废止的 PASS 口径；docs/ARCHITECTURE.md:16/:18 仍把 orchestrator.exe/a",
+  "claim": "RELEASE_STATUS docs 4 / PRE_RELEASE_ENGINEERING_FOUNDATION=PASS / FINAL_REAL_DATA_VALIDATION=PENDING",
+  "rerun": [
+   {
+    "cmd": "timeout 60 python3 -c \"import glob;print('RELEASE_STATUS docs',len(glob.glob('docs/**/RELEASE_STATUS.md',recursive=True)))\"; timeout 60 sed -n \"6,7p\" docs/RELEASE_STATUS.md",
+    "rc": 0,
+    "out": "RELEASE_STATUS docs 4\nPRE_RELEASE_ENGINEERING_FOUNDATION=PASS\nFINAL_REAL_DATA_VALIDATION=PENDING\n"
+   }
+  ]
+ },
+ {
+  "id": "M6b-G-003",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "DOC-001",
+  "gap": "无",
+  "note": "ACTIVE 文档仍以完成时宣称 S8 gate 本版实测 PASS 9/9 且无 SHA/命令/时间/日志指针，被引检查器在 ci/checks.json 命中 0（从未登记），README-DOCS.md:22 仍在规范面引用它。",
+  "claim": "0 / 114:## 7. Machine Consistency (S8 gate, 本版实测) / 1",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -c -e docs_machine_consistency -e config_consistency_check ci/checks.json; timeout 60 grep -n 本版实测 docs/ARCHITECTURE.md; timeout 60 grep -c docs_machine_consistency docs/README-DOCS.md",
+    "rc": 0,
+    "out": "0\n114:## 7. Machine Consistency (S8 gate, 本版实测)\n1\n"
+   }
+  ]
+ },
+ {
+  "id": "M7-A-001",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "P2-002",
+  "gap": "无",
+  "note": "Σ 域=单 control 内跨帧（upm.cpp:1337 sums 以 obs[i].control_id 为键，sampler.cpp:1031 o.control_id=cell 索引），故每 control 权重和恒等于 rel，",
+  "claim": "  w_UPM = quality_factor × geometric_reliability × control_ivar /   raw = quality × control_ivar ; normalized = raw / Σraw · geom (per-control) /         out_norm[i] = (s > 1e-12) ? raw[i] / s * rel : 0.0;",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"46p;47p\" docs/science/PHASE2_UPM.md; timeout 60 sed -n \"1344p\" lib/phase2/src/upm.cpp",
+    "rc": 0,
+    "out": "  w_UPM = quality_factor × geometric_reliability × control_ivar\n  raw = quality × control_ivar ; normalized = raw / Σraw · geom (per-control)\n        out_norm[i] = (s > 1e-12) ? raw[i] / s * rel : 0.0;\n"
+   }
+  ]
+ },
+ {
+  "id": "M7-A-002",
+  "shard": "A_SCI_DEF_P0",
+  "state": "OPEN",
+  "attr": "P2-002",
+  "gap": "无",
+  "note": "ALG 层仍以定义式写「weight_mode=2 → ivar_valid?ivar:support」（PHASE2_INTEGRATION.md:125-127 并注 stage2.cpp:1106-1117），与 SCI-UPM-WE",
+  "claim": "  `ivar_valid?ivar:support`（1/ADU²，ivar 缺失样本 fallback support， /   # 禁 production 乘 star SNR / snr²/(1+snr²) / support^p；support 仅 eligibility/coverage /   weights[s] = support[s] × snr_v²                      # 禁止 snr=1.0 伪装 unknown",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 sed -n \"126p\" docs/algorithms/PHASE2_INTEGRATION.md; timeout 60 sed -n \"54p\" docs/science/PHASE2_UPM.md; timeout 60 sed -n \"71p\" docs/science/CONTROL_WE",
+    "rc": 0,
+    "out": "  `ivar_valid?ivar:support`（1/ADU²，ivar 缺失样本 fallback support，\n  # 禁 production 乘 star SNR / snr²/(1+snr²) / support^p；support 仅 eligibility/coverage\n  weights[s] = support[s] × snr_v²                      # 禁止 snr=1.0 伪装 unknown\n"
+   }
+  ]
+ },
+ {
+  "id": "M7-C-001",
+  "shard": "C_DOC_CODE_GAP_P0",
+  "state": "RESOLVED",
+  "attr": "P2-001",
+  "gap": "无",
+  "note": "UPM 侧编译期常数已改为消费装配传入的 cfg.grid（upm.cpp:260-261），并新增一致性硬门 grid 不等于 8 即显式拒绝（:245 与打开处 :1065），p2_upm_geometry_hash payload 亦",
+  "claim": "40: cfg->control_grid_per_tile = m.value(\"control_grid_per_tile\", 8); / 245: if (cfg.grid != 8) return 3; / 260: m->grid = cfg.grid;（编译期常数改消费装配传入值并加一致性硬门）",
+  "rerun": [
+   {
+    "cmd": "cd \"/workspace/Astro CS Database\" && timeout 60 grep -n \"control_grid_per_tile\" lib/phase2/src/stage2_common.cpp  head -2 && timeout 60 grep -n \"cfg.grid != 8\" lib/phase2/src/upm.cpp && timeout 60 gre",
+    "rc": 2,
+    "out": "lib/phase2/src/stage2_common.cpp-38-        if (j.contains(\"model\")) {\nlib/phase2/src/stage2_common.cpp-39-            const auto& m = j[\"model\"];\nlib/phase2/src/stage2_common.cpp:40:            cfg->control_grid_per_tile = m.value(\"control_grid_per_tile\", 8);\nlib/phase2/src/stage2_common.cpp:41:            if (cfg->control_grid_per_tile < 1 ||\nlib/phase2/src/stage2_common.cpp:42:                c"
+   }
+  ]
+ },
+ {
+  "id": "M7-G-001",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "FINAL-001",
+  "gap": "无",
+  "note": "家族判词：门文本与 §15「§11 Oracle 全过」声明仍在位（9 篇 docs/science 命中），docs/science 与 docs/algorithms 全库仍无「判决域/折算因子」声明，成员级算术偏离可复现（FWHM 解",
+  "claim": "docs/science/PSF.md:1 / docs/science/DRIZZLE.md:1 / analytic FWHM/sigma 1.2303076525901024 frozen 1.230310 delta 2.347409897573982e-06",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -rc \"Oracle 全过\" docs/science/PSF.md docs/science/DRIZZLE.md; timeout 60 python3 -c \"import math;v=2*math.sqrt(2)*math.sqrt(2**0.25-1);print('analytic FWHM/sigma',v,'frozen 1.230310 del",
+    "rc": 0,
+    "out": "docs/science/PSF.md:1\ndocs/science/DRIZZLE.md:1\nanalytic FWHM/sigma 1.2303076525901024 frozen 1.230310 delta 2.347409897573982e-06\n"
+   }
+  ]
+ },
+ {
+  "id": "M8-F-001",
+  "shard": "F_TEST_GAP_P0",
+  "state": "RESOLVED",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "不再成立之证据：四个原脚本（test_secure_loader.py:509、test_module_registry.py:407、test_abi005_echo.py:368 及新增包装 test_mod001_install_lo",
+  "claim": "collected= 22 ; 1",
+  "rerun": [
+   {
+    "cmd": "timeout 120 python3 -B -c \"import unittest;print('collected=',unittest.TestLoader().discover('tests/abi',pattern='test*.py',top_level_dir='tests/abi').countTestCases())\" ; timeout 60 grep -c unittest.",
+    "rc": 0,
+    "out": "collected= 22\n1\n"
+   }
+  ]
+ },
+ {
+  "id": "M8-F-002",
+  "shard": "F_TEST_GAP_P0",
+  "state": "RESOLVED",
+  "attr": "AIO-001",
+  "gap": "无",
+  "note": "不再成立之证据：文件由 32 行扩为 138 行，main 现按 failures 返回 0/1(:131-137)，并新增回归锁 failure_sets_nonzero_exit——以子进程 --inject-failure 分支(:8",
+  "claim": "    return failures == 0 ? 0 : 1; ;   return 1;   // M8-F-002: 失败必须非零退出(修复前恒 return 0 → 门不可能红)",
+  "rerun": [
+   {
+    "cmd": "timeout 60 sed -n \"82p;137p\" tests/unit/io_ownership_test.cpp",
+    "rc": 0,
+    "out": "    return failures == 0 ? 0 : 1;\n  return 1;   // M8-F-002: 失败必须非零退出(修复前恒 return 0 → 门不可能红)\n"
+   }
+  ]
+ },
+ {
+  "id": "M8-F-003",
+  "shard": "F_TEST_GAP_P0",
+  "state": "RESOLVED",
+  "attr": "CLI-001",
+  "gap": "无",
+  "note": "不再成立之证据：CI 步现构建并复制根 build/{astrocs,libastrocs_runtime.so} 双件(:32-33，旧步只 cp exe)，have_tree 前置条件可满足；缺前置产物时在 CI/GITHUB_ACTI",
+  "claim": "cp -f build/linux-control/libastrocs_runtime.so build/libastrocs_runtime.so ; 38:                raise AssertionError(",
+  "rerun": [
+   {
+    "cmd": "timeout 60 sed -n 33p ci/steps/linux_build_root_graph.sh ; timeout 60 grep -n \"raise AssertionError\" tests/cli/test_cli_single_install.py",
+    "rc": 0,
+    "out": "cp -f build/linux-control/libastrocs_runtime.so build/libastrocs_runtime.so\n38:                raise AssertionError(\n"
+   }
+  ]
+ },
+ {
+  "id": "M8-F-004",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "判定器仍只验 path_exists（:249）且条款维 _clauses 解析后被丢弃（:209），其 C1-C7 无「证据必须出现在 ci/checks.json 或 ctest_baseline 或 discover 采集根」规则；该",
+  "claim": "rc=1 ;         key, std, ver, _clauses = row ;                 results.append(check(\"C3_evidence_path_%s\" % key, False, \"证据路径不存在: %s\" % ref))",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -rl -e check_standards_registry -e STD-REGISTRY --exclude-dir=__pycache__ ci ; echo rc=$? ; timeout 60 sed -n \"209p;249p\" docs/standards/checks/check_standards_registry.py",
+    "rc": 0,
+    "out": "rc=1\n        key, std, ver, _clauses = row\n                results.append(check(\"C3_evidence_path_%s\" % key, False, \"证据路径不存在: %s\" % ref))\n"
+   }
+  ]
+ },
+ {
+  "id": "M8a-G-001",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "PKG-001",
+  "gap": "无",
+  "note": "GPL 族 GSL 仍在产品链接闭包（astrocs_p1_sdet PUBLIC gsl→astrocs_module_adapters→astrocs_cli_runtime），而 DEPENDENCIES.md/dependency-",
+  "claim": "DEPENDENCIES.md:0 / packaging/dependency-lock.json:0 / target_link_libraries(astrocs_p1_sdet PUBLIC gsl gslcblas m)",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -c gsl DEPENDENCIES.md packaging/dependency-lock.json; timeout 60 sed -n \"570p\" CMakeLists.txt",
+    "rc": 0,
+    "out": "DEPENDENCIES.md:0\npackaging/dependency-lock.json:0\ntarget_link_libraries(astrocs_p1_sdet PUBLIC gsl gslcblas m)\n"
+   }
+  ]
+ },
+ {
+  "id": "M9-B-1",
+  "shard": "B_STD_MISMATCH_ALL",
+  "state": "OPEN",
+  "attr": "P1-001",
+  "gap": "无",
+  "note": "同函数内 CD 除 3600 而 A/B 不除（:274 与 :361），像素域系数仍以标准键 A_i_j/B_i_j 加 CTYPE 带 -SIP 写出（module_adapters.cpp:1933/1948 与调用点 :3131 仍",
+  "claim": "result->cd.cd11 = trans.x10 / 3600.0;;             // 单位: (像素/角秒) * (角秒/像素^(i+j)) = 1/像素^(i+j-1) (SIP 标准); 1903:// SIP 前向修正 (FITS paper IV §2.1: U = dx + A(dx,dy), V = dy + B(dx,dy))。",
+  "rerun": [
+   {
+    "cmd": "awk 'NR==274' lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp; awk 'NR==361' lib/plate_solve/cpp/ipv/src/ipv_wcs.cpp; grep -n 'FITS paper IV' lib/core/src/module_adapters.cpp",
+    "rc": 0,
+    "out": "    result->cd.cd11 = trans.x10 / 3600.0;\n            // 单位: (像素/角秒) * (角秒/像素^(i+j)) = 1/像素^(i+j-1) (SIP 标准)\n1903:// SIP 前向修正 (FITS paper IV §2.1: U = dx + A(dx,dy), V = dy + B(dx,dy))。\n"
+   }
+  ]
+ },
+ {
+  "id": "M9-F-1",
+  "shard": "F_TEST_GAP_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "8/8 恶意输入回归 TU 仍 tracked 且在盘，但 CMakeLists/*.cmake 与 ci/、.github/ 注册 0 命中（rc=1）；5 处引用面仍把它们当符合性证据：docs/DEVELOPER_GUIDE.md:2",
+  "claim": "rc=1 ; 27:astro_image_io:     pipeline_frame_contract_test / dataflow_fuzz",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -rl -e dataflow_fuzz -e fits_core_selftest -e hips_core_selftest -e test_p0_io_hardening --include=CMakeLists.txt --include=*.cmake --exclude-dir=build --exclude-dir=run . ; echo rc=$?",
+    "rc": 0,
+    "out": "rc=1\n27:astro_image_io:     pipeline_frame_contract_test / dataflow_fuzz\n"
+   }
+  ]
+ },
+ {
+  "id": "M9-H-1",
+  "shard": "H_NUMERIC_ALL",
+  "state": "RESOLVED",
+  "attr": "NEXT-PACK:NP-01",
+  "gap": "无",
+  "note": "何证据使其不再成立：json_append_escaped 增 end 容量参数并返回 0；json_append_fmt 按 min(应写,剩余) 夹紧；:825 起触边即 PARAM+BUFFER_TOO_SMALL 整次失败，不再把越",
+  "claim": "lib/gaia_xpsd_client/src/module_entry.c:391: static int json_append_escaped(char** w, const char* end, const char* s) {；lib/gaia_xpsd_client/src/module_entry.c:395:         if ((size_t)(end - p) < need) return 0;；lib/gaia_xpsd_client/src/module_entry.c:825:     if (!head_ok) {",
+  "rerun": [
+   {
+    "cmd": "timeout 60 awk 'FNR==391{print FILENAME\":\"FNR\": \"$0} FNR==395{print FILENAME\":\"FNR\": \"$0} FNR==825{print FILENAME\":\"FNR\": \"$0}' lib/gaia_xpsd_client/src/module_entry.c",
+    "rc": 0,
+    "out": "lib/gaia_xpsd_client/src/module_entry.c:391: static int json_append_escaped(char** w, const char* end, const char* s) {\nlib/gaia_xpsd_client/src/module_entry.c:395:         if ((size_t)(end - p) < need) return 0;\nlib/gaia_xpsd_client/src/module_entry.c:825:     if (!head_ok) {\n"
+   }
+  ]
+ },
+ {
+  "id": "M9-H-2",
+  "shard": "H_NUMERIC_ALL",
+  "state": "RESOLVED",
+  "attr": "NEXT-PACK:NP-01",
+  "gap": "无",
+  "note": "何证据使其不再成立：spectrumCount 经 parse_bounded_int(limit=WL_COUNT=343) 严格解析（非数字/负数/尾随垃圾/越界即 0），失败整文件拒绝返回 -1，自报值不再作无界分配步长与 memcp",
+  "claim": "lib/gaia_xpsd_client/src/gaia_client.c:1284:                     if (!parse_bounded_int(p + 14, WL_COUNT, &xf->spectrum_count)) {；lib/gaia_xpsd_client/src/gaia_client.c:1285:                         close_xpsd_file(xf);；lib/gaia_xpsd_client/src/gaia_client.c:1286:                         return -1;",
+  "rerun": [
+   {
+    "cmd": "timeout 60 awk 'FNR==1284{print FILENAME\":\"FNR\": \"$0} FNR==1285{print FILENAME\":\"FNR\": \"$0} FNR==1286{print FILENAME\":\"FNR\": \"$0}' lib/gaia_xpsd_client/src/gaia_client.c",
+    "rc": 0,
+    "out": "lib/gaia_xpsd_client/src/gaia_client.c:1284:                     if (!parse_bounded_int(p + 14, WL_COUNT, &xf->spectrum_count)) {\nlib/gaia_xpsd_client/src/gaia_client.c:1285:                         close_xpsd_file(xf);\nlib/gaia_xpsd_client/src/gaia_client.c:1286:                         return -1;\n"
+   }
+  ]
+ },
+ {
+  "id": "V11-N-01",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "AIO-001",
+  "gap": "无",
+  "note": "C 头 6 字段 vs 镜像 4 字段（末字段仍为已废弃 source_id）依旧，C 侧按 40 字节步长取元素而调用方只分配 32 字节/元素，交付 HiPS SNR 目录第 2/3 条仍为错位数据，且该结构仍无 struct_size",
+  "claim": "C AioHipsSnrPoint field-count 6 / PY mirror field-count 4 / 914: ps->snr.push_back(pts[i]);",
+  "rerun": [
+   {
+    "cmd": "timeout 60 python3 -c \"s=open('lib/astro_image_io/include/aio_hips.h').read();i=s.index('} AioHipsSnrPoint');j=s.rindex('typedef struct',0,i);print('C AioHipsSnrPoint field-count',s[j:i].count(';'))\";",
+    "rc": 0,
+    "out": "C AioHipsSnrPoint field-count 6\nPY mirror field-count 4\n914:            ps->snr.push_back(pts[i]);\n"
+   }
+  ]
+ },
+ {
+  "id": "V11-N-04",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "DATA-001",
+  "gap": "无",
+  "note": "两份 Python 镜像仍停在 8 参（缺第 9 参 out_status），C 侧仍按 out_status 判定成功星并 compact，且 gate2_psf_oracle.py 正是 PSF 质心门量具；该结构亦无 struct_s",
+  "claim": "C params 9 / PY args 8 gate2_psf_oracle.py / PY args 8 diag_gaia_psf_projection.py",
+  "rerun": [
+   {
+    "cmd": "timeout 60 python3 -c \"s=open('lib/dynamic_psf/include/dynamic_psf.h').read();p=s[s.index('dpsf_fit_batch_f32('):];print('C params',p[:p.index(');')].count(',')+1)\"; for f in lib/photometric_calib/cpp",
+    "rc": 0,
+    "out": "C params 9\nPY args 8 gate2_psf_oracle.py\nPY args 8 diag_gaia_psf_projection.py\n"
+   }
+  ]
+ },
+ {
+  "id": "V11-N-05",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "MOD-001",
+  "gap": "无",
+  "note": "6 个 ABI 协商/自检函数的唯一定义仍在 tests/abi/abi002_lifecycle_probe.c（生产面 lib/runtime/cli/modules/providers 命中 0），断言对象仍是测试自带的探针副本，门在",
+  "claim": "tests/abi/abi002_lifecycle_probe.c / include/astrocs/abi/lifecycle_v1.h / (第二命令零命中，退出码 1)",
+  "rerun": [
+   {
+    "cmd": "timeout 120 grep -rln acs_negotiate_v1 --include=*.c --include=*.cpp --include=*.h lib runtime cli modules providers tests include; timeout 60 grep -rn acs_negotiate_v1 --include=*.c --include=*.cpp l",
+    "rc": 1,
+    "out": "tests/abi/abi002_lifecycle_probe.c\ninclude/astrocs/abi/lifecycle_v1.h\n"
+   }
+  ]
+ },
+ {
+  "id": "V13-N-03",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "GOV-001",
+  "gap": "无",
+  "note": "update_audit_status.py 仍按 typ 分支机械铸 VERIFIED（713/713）与 findings_p0..3=0、7 个 *_ok=PASS，batch_summary 仍硬编码 0+PASS，该 invent",
+  "claim": "rows 713 {'VERIFIED': 713} / 0 / if typ == \"shipping_src\" and shipping == \"yes\":",
+  "rerun": [
+   {
+    "cmd": "timeout 60 python3 -c \"import csv,collections;r=list(csv.DictReader(open('reports/v19r2/file_audit_inventory.csv',newline='',encoding='utf-8')));print('rows',len(r),dict(collections.Counter(x['review_",
+    "rc": 0,
+    "out": "rows 713 {'VERIFIED': 713}\n0\n        if typ == \"shipping_src\" and shipping == \"yes\":\n"
+   }
+  ]
+ },
+ {
+  "id": "V18-N-12",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "QA-001",
+  "gap": "无",
+  "note": "测试仍自写 CSV（decision 列为硬编码字面量）→ 读回自己刚写的文件 → 循环体仅 continue → 末行 assertTrue(True)，门名承诺的不变量无任何断言承载。",
+  "claim": "87: \"NOT_SHIPPED(avx子集,avx2主导)\" if imp != \"\" and op in (\"calibration\",\"hips\") else \"\"]) / 107: continue  # 由 ISA-001 avx2 vs ISA-002 avx 比值判定(见 LOG) / 109: self.assertTrue(True)  # 比值断言在 LOG 人工判读; 这里是结构守卫",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -n -e \"assertTrue(True)\" -e \"continue  #\" -e \"NOT_SHIPPED(avx子集\" tests/backend/test_isa_avx.py",
+    "rc": 0,
+    "out": "87:                            \"NOT_SHIPPED(avx子集,avx2主导)\" if imp != \"\" and op in (\"calibration\",\"hips\") else \"\"])\n107:                continue  # 由 ISA-001 avx2 vs ISA-002 avx 比值判定(见 LOG)\n109:        self.assertTrue(True)  # 比值断言在 LOG 人工判读; 这里是结构守卫\n"
+   }
+  ]
+ },
+ {
+  "id": "V19-N-01",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "40 处 gtest_discover_tests（lib/acr/tests/unit 27 + lib/phase2 7 + fault 4 + classic 1 + integration 1）在两个登记面双零覆盖，check_ct",
+  "claim": "total 40 / 0",
+  "rerun": [
+   {
+    "cmd": "timeout 120 python3 -c \"import subprocess;o=subprocess.run(['git','grep','-c','gtest_discover_tests','--','*.cmake','*CMakeLists.txt'],capture_output=True,text=True).stdout;print('total',sum(int(l.rsp",
+    "rc": 1,
+    "out": "total 40\n0\n"
+   }
+  ]
+ },
+ {
+  "id": "V2-N-01",
+  "shard": "G_GOV_GATE_P0",
+  "state": "RESOLVED",
+  "attr": "DATA-001",
+  "gap": "无",
+  "note": "什么证据使其不再成立：diag 工具内联镜像已删除并改为 import 唯一权威镜像 ipv_abi_mirror.py（首字段 struct_size/abi_version），且新增 ctest 门 ipv_abi_layout_loc",
+  "claim": "35:from ipv_abi_mirror import (  # noqa: E402 / (\"struct_size\", ctypes.c_uint32),   # = ctypes.sizeof(IpvParams) / 99:add_test(NAME ipv_abi_layout_lock",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -n \"from ipv_abi_mirror import\" lib/plate_solve/tools/diag_gaia_psf_projection.py; timeout 60 sed -n \"33p\" lib/plate_solve/tools/ipv_abi_mirror.py; timeout 60 grep -n \"add_test(NAME ip",
+    "rc": 0,
+    "out": "35:from ipv_abi_mirror import (  # noqa: E402\n        (\"struct_size\", ctypes.c_uint32),   # = ctypes.sizeof(IpvParams)\n99:add_test(NAME ipv_abi_layout_lock\n106:add_test(NAME ipv_abi_layout_lock_selfcheck\n"
+   }
+  ]
+ },
+ {
+  "id": "V2-N-08",
+  "shard": "G_GOV_GATE_P0",
+  "state": "RESOLVED",
+  "attr": "P1-002",
+  "gap": "无",
+  "note": "什么证据使其不再成立：psf_mode 由 n_fit_limit 派生（非字面量）并落交付面与 manifest；p1_op_noise 已与 psf.max_stars 解耦（:2725-2730 注释记「不再取 psf_params…",
+  "claim": "const std::string psf_mode = (n_fit_limit > 0) ? std::string(\"fast\") / 20",
+  "rerun": [
+   {
+    "cmd": "timeout 60 sed -n \"1614p\" lib/core/src/module_adapters.cpp; timeout 60 grep -c max_stars tests/unit/p1snr/p1snr_frame_parity_test.cpp",
+    "rc": 0,
+    "out": "  const std::string psf_mode = (n_fit_limit > 0) ? std::string(\"fast\")\n20\n"
+   }
+  ]
+ },
+ {
+  "id": "V9-N-07",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "5 道非豁免门仍只注册 --selftest/--selfcheck（真实判定模式需交付物参数，CI 从不传），交付二进制 ISA 泄漏、生产可达性与生产图一致性在 CI 中仍无实体门。",
+  "claim": "['PRODUCTION-GRAPH', 'ISA-LEAK-SELFTEST', 'SERIAL-HEAVY-SELFTEST', 'PROD-REACH-SELFTEST', 'LOG-CONTRACT-SELFCHECK']",
+  "rerun": [
+   {
+    "cmd": "timeout 60 python3 -c \"import json;d=json.load(open('ci/checks.json'));ch=d['checks'] if isinstance(d,dict) else d;print([c['id'] for c in ch if '--selftest' in ' '.join(c.get('command',[])) or '--sel",
+    "rc": 0,
+    "out": "['PRODUCTION-GRAPH', 'ISA-LEAK-SELFTEST', 'SERIAL-HEAVY-SELFTEST', 'PROD-REACH-SELFTEST', 'LOG-CONTRACT-SELFCHECK']\n"
+   }
+  ]
+ },
+ {
+  "id": "V9-N-16",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "TRACEABILITY 门末行仍无条件 return 0（waivable=false 却无论查出什么都绿），且登记 mutates_workspace=true 仍改写受跟踪的 reports/v19r2/evidence/qualit",
+  "claim": "return 0 / [('TRACEABILITY', True)] / REV = os.path.join(ROOT, \"reports\", \"v19r2\")",
+  "rerun": [
+   {
+    "cmd": "timeout 60 sed -n \"159p\" tools/quality/check_traceability.py; timeout 60 python3 -c \"import json;d=json.load(open('ci/checks.json'));ch=d['checks'] if isinstance(d,dict) else d;print([(c['id'],c.get('",
+    "rc": 0,
+    "out": "    return 0\n[('TRACEABILITY', True)]\nREV = os.path.join(ROOT, \"reports\", \"v19r2\")\n"
+   }
+  ]
+ },
+ {
+  "id": "V9-N-17",
+  "shard": "G_GOV_GATE_P0",
+  "state": "OPEN",
+  "attr": "CI-001",
+  "gap": "无",
+  "note": "被测脚本在 taskset 缺失（及读不到 affinity、可用 CPU 少于 2）时仍 exit 0 自宣跳过，CTEST-P1DRZ-TASKSET-INVARIANCE 在缺 taskset 的节点上永不红，DRIZZLE-DET-",
+  "claim": "19: echo \"[SKIP] taskset 不可用 (非 Linux 或无 util-linux)\"; exit 0 / 22:if [ -z \"${aff:-}\" ]; then echo \"[SKIP] 无法读取 affinity\"; exit 0; fi",
+  "rerun": [
+   {
+    "cmd": "timeout 60 grep -n \"SKIP. taskset 不可用\" lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_taskset_invariance.sh; timeout 60 grep -n affinity lib/healpix_db/healpix_drizzle/tests/p1drz/p1drz_taskset_inva",
+    "rc": 0,
+    "out": "19:  echo \"[SKIP] taskset 不可用 (非 Linux 或无 util-linux)\"; exit 0\n9:# 会在节点 execute 作用域内覆盖该 ICV; 这里用 taskset 固定 CPU affinity, 引擎以\n22:if [ -z \"${aff:-}\" ]; then echo \"[SKIP] 无法读取 affinity\"; exit 0; fi\n"
+   }
+  ]
+ }
+]
