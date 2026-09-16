@@ -2,8 +2,12 @@
 """P3-002 测试: TAN WCS — 独立参考(向量法) roundtrip/RA wrap/pole/rotation/CRPIX+CD 关键字。"""
 import math, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-HOST = os.path.join(REPO, "lib", "phase3_session")
+# W4-A9 批次 1: 本测试随 p3_wcs 生产源迁入 lib/algorithms/projection/ 共址测试目录
+# (原址 tests/backend/test_p3_wcs.py)。仓库深度 5 级; 驱动与头面同目录树。
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
+HOST = os.path.join(REPO, "lib", "algorithms", "projection")
+DRIVER = os.path.join(HOST, "tests", "p3wcs", "p3_wcs_main.cpp")
 
 
 def gnomonic_vector(ra, dec, ra0, dec0):
@@ -42,7 +46,7 @@ class TestP3Wcs(unittest.TestCase):
         cls.exe = os.path.join(cls.tmp, "p3wcs")
         r = subprocess.run(
             ["g++", "-std=c++17", "-O2", "-Wall", "-Wextra",
-             f"-I{HOST}", os.path.join(REPO, "tests", "backend", "p3_wcs_main.cpp"),
+             f"-I{HOST}", DRIVER,
              os.path.join(HOST, "p3_wcs.cpp"), "-o", cls.exe],
             capture_output=True, text=True, timeout=180)
         assert r.returncode == 0, r.stderr

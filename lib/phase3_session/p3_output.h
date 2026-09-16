@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <string>
 
-#include "p3_wcs.h"
+#include "../algorithms/projection/p3_wcs.h"   // W4-A9 批次 1: 投影/WCS 内核迁 projection
 
 namespace astrocs::phase3 {
 

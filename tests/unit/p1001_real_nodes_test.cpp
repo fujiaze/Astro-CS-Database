@@ -1601,12 +1601,29 @@ static void test_b2a17_sip_bridge() {
   }
   CHECK(wj["wcs"].value("ctype1", "") == std::string("RA---TAN-SIP"));
   CHECK(wj["wcs"].value("ctype2", "") == std::string("DEC--TAN-SIP"));
-  // 独立 Oracle: 线性 WcsTan 前向 + 独立多项式合成 (WcsTan 无 SIP 支持)
+  // 独立 Oracle: 线性 WcsTan 前向 + 独立多项式合成 (WcsTan 无 SIP 支持)。
+  // W4-A1 (M1a-C-003): samples[].x/y 是 **0-based 数组下标 (index-is-center)**
+  // —— 内部 0-based 自洽口径 (SCI-WCS-001 §3a/§5a); WcsTan 的契约是
+  // **FITS 1-based** (wcs_tan.h:11 "参考像素 (1-based)" + pix2sky 的 x − crpix1)。
+  // ⇒ oracle 必须经**单次** +1 桥接 (xp = x + 1) 再喂 WcsTan, SIP 自变量同为
+  // xp − CRPIX。修复前 samples[] 由 0-based 下标直喂 1-based WcsTan
+  // (module_adapters.cpp p1_op_wcs 两条自检环), 与本 oracle 恒差 1px; 下方
+  // [origin-sensitivity] 断言把该差 1 变成可失败的判据 (oracle 不再与实现
+  // 共享同一原点 ⇒ 对原点平移有鉴别力)。
+  constexpr double kPxScaleDeg = 0.0002777777777777778;  // sqrt|det CD| deg/px
   if (wj.contains("samples") && wj["samples"].is_array()) {
+    CHECK_MSG(wj.value("pixel_origin", std::string()) ==
+                  std::string("0-based array index (index-is-center); "
+                              "FITS 1-based xp = x + 1"),
+              "W4-A1: p1_wcs.json.samples[] must declare its pixel origin");
+    CHECK_MSG(wj.value("fits_pixel_origin", 0.0) == 1.0,
+              "W4-A1: p1_wcs.json must declare the FITS 1-based bridge offset");
     double worst = 0.0;
+    double min_unbridged_sep_px = 1e30;
     for (const auto& s : wj["samples"]) {
       const double x = s.value("x", 0.0), y = s.value("y", 0.0);
-      const double dx = x - 16.0, dy = y - 16.0;
+      const double xp = x + 1.0, yp = y + 1.0;  // 单次桥接: 0-based → FITS 1-based
+      const double dx = xp - 16.0, dy = yp - 16.0;  // SIP 自变量 = xp − CRPIX
       const double A = 8.0e-5 * dx * dx;
       const double B = -8.0e-5 * dy * dy;
       astrocs::phase1::WcsTan linear;
@@ -1615,13 +1632,27 @@ static void test_b2a17_sip_bridge() {
       linear.cd11 = -0.0002777777777777778; linear.cd12 = 0.0;
       linear.cd21 = 0.0; linear.cd22 = 0.0002777777777777778;
       double ra = 0.0, dec = 0.0;
-      linear.pix2sky(x + A, y + B, &ra, &dec);
+      linear.pix2sky(xp + A, yp + B, &ra, &dec);
       worst = std::max(worst, std::fabs(s.value("ra", 0.0) - ra));
       worst = std::max(worst, std::fabs(s.value("dec", 0.0) - dec));
+      // [origin-sensitivity] 未桥接读法 (= 修复前实现形态) 必须与桥接读法
+      // 相差 >= 0.9 px, 否则本 oracle 对原点平移无鉴别力 (恒真)。
+      const double dxu = x - 16.0, dyu = y - 16.0;
+      const double Au = 8.0e-5 * dxu * dxu;
+      const double Bu = -8.0e-5 * dyu * dyu;
+      double ra_u = 0.0, dec_u = 0.0;
+      linear.pix2sky(x + Au, y + Bu, &ra_u, &dec_u);
+      const double sep_px =
+          std::hypot(ra - ra_u, dec - dec_u) / kPxScaleDeg;
+      min_unbridged_sep_px = std::min(min_unbridged_sep_px, sep_px);
     }
     CHECK_MSG(worst < 1e-9,
-              ("B2-A17: SIP-aware wcs output vs independent oracle worst=" +
+              ("B2-A17/W4-A1: SIP-aware wcs output vs bridged independent oracle worst=" +
                std::to_string(worst)).c_str());
+    CHECK_MSG(min_unbridged_sep_px >= 0.9,
+              ("W4-A1 [origin-sensitivity]: unbridged (0-based-as-1-based) evaluation "
+               "must be detected at >= 0.9 px; min_sep_px=" +
+               std::to_string(min_unbridged_sep_px)).c_str());
   }
   // (3) p1_wcs.json → drizzle frame header 桥接 (A_i_j 读面 = hp_drizzle_api)
   Result<void> drc;

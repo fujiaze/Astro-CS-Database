@@ -14,7 +14,7 @@
 #include "nlohmann/json.hpp"
 #include "p3_output.h"
 #include "p3_resample.h"
-#include "p3_wcs.h"
+#include "../algorithms/projection/p3_wcs.h"   // W4-A9 批次 1: 投影/WCS 内核迁 projection
 
 using nlohmann::json;
 

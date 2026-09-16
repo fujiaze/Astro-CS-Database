@@ -614,18 +614,24 @@ target_link_libraries(astrocs_phase2_session PUBLIC astrocs_contracts astrocs_ph
 
 add_library(astrocs_phase3_session STATIC
   lib/phase3_session/p3_session.cpp
-  lib/phase3_session/p3_wcs.cpp
+  # W4-A9 批次 1: p3_wcs.cpp 已迁 lib/algorithms/projection/ (ASTROCS_DESIGN §7.1
+  # 「projection」行; 由 add_subdirectory(lib/algorithms/projection) 的
+  # astrocs_p3_projection_wcs 声明, 经本库 target_link_libraries 进闭包)。
   lib/phase3_session/hips_properties.cpp
   lib/phase3_session/p3_output.cpp
   lib/phase3_session/p3_resample.cpp)
 target_include_directories(astrocs_phase3_session PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase3_session
+  # W4-A9 批次 1: p3_wcs.h 迁 projection; 会话层 p3_session.cpp / p3_output.h 仍以
+  # 扁平 "p3_wcs.h" 引用 ⇒ 登记新址 include 面 (会话层退场时随批次 3 收敛)。
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/projection
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/healpix
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
   ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(astrocs_phase3_session PUBLIC astrocs_contracts astrocs_aio astrocs_common)
+target_link_libraries(astrocs_phase3_session PUBLIC astrocs_contracts astrocs_aio astrocs_common
+  astrocs_p3_projection_wcs)
 
 # lib/infrastructure/cli: 子命令模块注册 (INT-001 W4-A9 接线步 1/3)。
 # CLI-001 交付的 header-only 命令编排层 (command_tree/session_commands/subcommand +
@@ -670,9 +676,11 @@ target_include_directories(astrocs PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/healpix
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/projection)
 target_link_libraries(astrocs PRIVATE
   astrocs_contracts astrocs_core astrocs_cli_runtime astrocs_common astrocs_cfitsio astrocs_aio astrocs_hips
+  astrocs_p3_projection_wcs
   astrocs_calibration astrocs_phase2 astrocs_drizzle astrocs_cpu
   astrocs_phase1_session astrocs_phase2_session astrocs_phase3_session
   # INT-001 W4-A9 接线步 3/3: CLI 子命令模块 target (INTERFACE, 仅 include 面;
@@ -737,6 +745,13 @@ target_include_directories(astrocs_cli_runtime PUBLIC
 target_link_libraries(astrocs_cli_runtime PUBLIC
   astrocs_core astrocs_module_adapters)
 
+# W4-A9 批次 1: projection 算法模块注册 (p3_wcs TAN 投影/WCS 内核,
+# 原 lib/phase3_session/p3_wcs.cpp; ASTROCS_DESIGN §7.1「projection」)。
+# 声明见 lib/algorithms/projection/CMakeLists.txt (if(NOT TARGET) 守卫)。
+# 必须早于上方的 astrocs_phase3_session / astrocs / astrocs_module_adapters,
+# 它们经 target_link_libraries 引用 astrocs_p3_projection_wcs。
+add_subdirectory(lib/algorithms/projection)
+
 # ── V6 (AR-033 / C-004.4): V6 生产库统一注册 ─────────────────────────────
 # Wave 5/7/8 交付的 V6 库（产品 IO、Phase3 重采样传播、Phase1 产品装配、
 # Phase2 三模式集成）。各子目录自带 if(NOT TARGET ...) 守卫，既支持独立
@@ -748,6 +763,11 @@ add_subdirectory(lib/algorithms/integration/v6)
 
 if(ASTROCS_BUILD_TESTS)
   enable_testing()
+  # W4-A9 批次 1: projection 共址测试 (p3_wcs_test / ctest 名 p3_wcs) 必须先于
+  # tests/unit 注册 —— tests/unit/p1wcs/CMakeLists.txt 的 p1wcs_std_f1_bridge_cross
+  # 以 $<TARGET_FILE:p3_wcs_test> 引用该目标 (STD-F1 导出边界第三方交叉)。
+  # 目标名与 ctest 名相对迁移前不变, 外部引用零改动。
+  add_subdirectory(lib/algorithms/projection/tests/p3wcs)
   add_subdirectory(tests/unit)
   # V3 B3-A4 (RESCUE-P1-13/P1-16): Phase2 主科学门进全量 ctest。
   # lib/algorithms/coverage/tests/* 的六个 gtest 目标 (synthetic_gate / ivar_wiring /
