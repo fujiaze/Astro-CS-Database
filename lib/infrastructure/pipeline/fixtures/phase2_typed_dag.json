@@ -1,0 +1,139 @@
+{
+ "schema": "astrocs.typed-dag/v1",
+ "pipeline_id": "phase2.typed",
+ "phase": "phase2",
+ "version": "1.0.0",
+ "nodes": [
+  {
+   "node_id": "coverage",
+   "module_id": "astrocs.phase2.coverage",
+   "operation": "compute_coverage",
+   "config": {
+    "phase": 2
+   },
+   "inputs": {
+    "calibrated": "artifact:cal"
+   },
+   "outputs": {
+    "coverage": "artifact:coverage"
+   },
+   "resources": {
+    "class": "cpu_heavy",
+    "parallel": true
+   }
+  },
+  {
+   "node_id": "sample",
+   "module_id": "astrocs.phase2.sample",
+   "operation": "sample_frames",
+   "config": {
+    "phase": 2
+   },
+   "inputs": {
+    "coverage": "artifact:coverage"
+   },
+   "outputs": {
+    "samples": "artifact:samples"
+   },
+   "resources": {
+    "class": "cpu_heavy",
+    "parallel": true
+   }
+  },
+  {
+   "node_id": "upm_fit",
+   "module_id": "astrocs.phase2.upm-fit",
+   "operation": "fit_upm",
+   "config": {
+    "phase": 2
+   },
+   "inputs": {
+    "samples": "artifact:samples"
+   },
+   "outputs": {
+    "upm_model": "artifact:upm_model"
+   },
+   "resources": {
+    "class": "cpu_heavy",
+    "parallel": true
+   }
+  },
+  {
+   "node_id": "upm_apply",
+   "module_id": "astrocs.phase2.upm-apply",
+   "operation": "apply_upm",
+   "config": {
+    "phase": 2
+   },
+   "inputs": {
+    "upm_model": "artifact:upm_model",
+    "calibrated_frames": "artifact:cal"
+   },
+   "outputs": {
+    "corrected": "artifact:corrected"
+   },
+   "resources": {
+    "class": "cpu_heavy",
+    "parallel": true
+   }
+  },
+  {
+   "node_id": "reject",
+   "module_id": "astrocs.phase2.reject",
+   "operation": "reject_outliers",
+   "config": {
+    "phase": 2
+   },
+   "inputs": {
+    "corrected": "artifact:corrected"
+   },
+   "outputs": {
+    "accepted_mask": "artifact:accepted_mask"
+   },
+   "resources": {
+    "class": "cpu_heavy",
+    "parallel": true
+   }
+  },
+  {
+   "node_id": "integrate",
+   "module_id": "astrocs.phase2.integrate",
+   "operation": "integrate_frames",
+   "config": {
+    "phase": 2
+   },
+   "inputs": {
+    "accepted_mask": "artifact:accepted_mask",
+    "corrected": "artifact:corrected"
+   },
+   "outputs": {
+    "integrated": "artifact:integrated"
+   },
+   "resources": {
+    "class": "cpu_heavy",
+    "parallel": true
+   }
+  },
+  {
+   "node_id": "write",
+   "module_id": "astrocs.phase2.write",
+   "operation": "write_mosaic",
+   "config": {
+    "phase": 2
+   },
+   "inputs": {
+    "integrated": "artifact:integrated"
+   },
+   "outputs": {
+    "mosaic": "artifact:mosaic"
+   },
+   "resources": {
+    "class": "io",
+    "parallel": false
+   }
+  }
+ ],
+ "outputs": {
+  "mosaic": "artifact:mosaic"
+ }
+}
