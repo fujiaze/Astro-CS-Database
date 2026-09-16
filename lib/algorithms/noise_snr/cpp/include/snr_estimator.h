@@ -99,7 +99,7 @@ SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
 // - 星点掩膜 (fixed conservative：统一半径，不按振幅； 冻结) +
 // 饱和/边缘排除
 // - patch 内 robust location (median) + robust scale
-// σ_bg = 1.4826022185 × median(|x − median(x)|)
+// σ_bg = 1.482602218505602 × median(|x − median(x)|)
 // - 合格 patch 成为控制点, 可选最小二乘平面空间方差场
 // - 全局兜底 = 合格 patch 的 median variance
 // gain/read-noise 已知时可交叉验证 Poisson+read 模型 (SNR-005),

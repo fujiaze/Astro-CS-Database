@@ -36,7 +36,7 @@
   （**475 行**，2026-09-16 复测；旧记 466 行已过时），签名
   唯一权威 lib/algorithms/noise_snr/cpp/include/snr_estimator.h（**526 行**，旧记
   431 行已过时）；该实现经 cpp/Makefile 产出 snr_estimator.dll，**不在根 CMake 主图**
-  （根 CMakeLists.txt:210 的 add_subdirectory 被注释；交付面 SNR 实现 =
+  （根 CMakeLists.txt:236 的 add_subdirectory 被注释；交付面 SNR 实现 =
   cpp/src/snr_science.cpp + wrapper_phase1/** 编入 astrocs_phase1_noise）。7 个
   noise 导出（头文件行号）：snr_noise_model_v1(:143-149)/_f64(:151-157)/
   _default_config(:115)/_fill(:162-166)/_free(:167-168)/
@@ -84,9 +84,9 @@
   不改 docs/**。
 - lib/algorithms/noise_snr/wrapper_phase1/noise_model.{h,cpp}（39+67 行）=astrocs::phase1::
   NoiseModel::estimate（median+MAD 单值退化子集，无掩膜/patch/平面场）+
-  gain_variance；静态库 astrocs_phase1_noise（CMakeLists.txt:435-438，
+  gain_variance；静态库 astrocs_phase1_noise（CMakeLists.txt:521-524，
   主程序链接 :513）；单测 tests/unit/p1_noise_test.cpp（tests/unit/
-  CMakeLists.txt:312-316，6 组）为 P1-005 期旧测，由 P1-NOISE-TEST 对齐
+  CMakeLists.txt:614-618，6 组）为 P1-005 期旧测，由 P1-NOISE-TEST 对齐
   重锚。
 - descriptor 现状：lib/infrastructure/scheduler/src/module_adapters.cpp:489-503
   p1_noise_snr_descriptor，module_id=astrocs.phase1.noise-snr、
