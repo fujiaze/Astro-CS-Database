@@ -26,3 +26,24 @@
 | B2 | 锚点门 rc=0 | 待上述线收敛（余 C4 = CAL/COS-CMAKE、DRZ-MAXANGLE、P2SMP-CELLSIDE 属各域） |
 | B3 | `问题扫描/**` 台账的两处判据订正（M7-A-117 / M7-A-129） | 等与隔壁挖掘线协调归属后由前台落库（内容已核） |
 | B4 | `memory.md` 纳入 AGENTS-GOV / ENG-CONSTRAINTS 扫描面 | 已批准（CI-003 实测扩面后仍 rc=0），待其执行 |
+
+---
+
+## 变更记录（2026-09-17，前台）
+
+| 原条目 | 现状 | 证据/派单 |
+|---|---|---|
+| A8 掩膜 `rmax=60px` | **研究完成，整改已派** | `MASK-001`（803 行）：60px **无推导**（代码字面量 → ALG 抄成实现锚 → config 标 `sourced` 回指 = 循环引用）；「半径与亮度解耦」**物理上错**（五标准反对）；唯一推荐 **P4**（逐星 `clip(r_local(F,FWHM), r_min, 60px)` + 天空预算收缩 + 降级标）：worst\|σ偏差\| **6.93% → 1.11%**、零权重占比 **14.8% → 0**、权场效率损失 **13.28% → 0.013%**、梯度恢复 **1.000 → 1.489–1.505**（真值 1.5）⇒ 整改 `MASK-002`（SCI+ALG+config+实现+门，两批） |
+| 新增 A11 饱和过滤默认关闭 | **已派 `SAT-001`** | `saturation_level=0` 且编排层从不设置 ⇒ 饱和星像素进入背景/噪声/测光统计；取证 + 判定 + 三链核查 + 门 |
+| 新增 A12 可复现性语义 | **已派 `DET-001`** | SMOKE-001 D5（`p1_stack.json` 6 次 3 哈希，`photometry_provenance` 翻转 = 竞态）+ D6（文件哈希被 RUNID/CHECKSUM 绑定，像素 DATASUM 一致）⇒ 定义**规范产品哈希**（外部标准优先）+ 修竞态 + 反例测试 |
+| 新增 A13 阶段 2 冒烟缺陷 11 条 | **已派 `CLI-002`（8 条）+ `DET-001`（2 条）+ `E2E-001`（D4 真数据复核）** | `run/PROJECT-GOVERNANCE-01/SMOKE-001/自证摘要.md`（76 命令 + 54 配置）；已写入 `ACCEPTANCE_FINAL` D 组 |
+| A9 INT-001 | **接线完成已提交**（`58775e91`，ctest 426/426）；3 个 `*_session` 目录已裁定目标家并按批迁移（`W4-A9` 续做） | 我裁定的归属：`p3_wcs→projection`、`p3_resample→resample`、`p3_output→fits_output`、`hips_properties→coverage`、`phase1_session→cli/normalize`、`phase2_session→cli/mosaic` |
+| A10 版本递增 | **作废** | 负责人明确：首版对外发布前不设版本语义，内部版本号只是标签 |
+
+## 新增待派（本轮发现）
+
+| # | 事项 | 来源 |
+|---|---|---|
+| A14 | 4K²/12801 星掩膜 99.94% 仍 **rc=0** 但只剩 13–14 patch ⇒ **空间场静默退化**（P4 的降级标应覆盖）；`nq==0` 兜底阈值仅 `min_samples/2=32` 像素 ⇒ 按 SE≤1.5% 收紧 | MASK-001 附带发现（并入 MASK-002） |
+| A15 | `test_cli_build.py` test_05/06 改锚后 `cli/CMakeLists.txt` 由前台删除（三步串行：CLI-002 → W4-A3 → 我） | W4-A9 ③（已启动） |
+| A16 | `phase2_ivar_wiring` 那 2 条红的根因（coverage 的 7 个 compatibility 目标直链源树内**过期旧 DLL**）已由 SCI-FIX-AIO 修复并提交（`edf78945`）；**需长期防复发门**（禁止 compatibility 目标直链源树内的未跟踪二进制） | SCI-FIX-AIO（登记转 W4-A3） |
