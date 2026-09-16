@@ -30,7 +30,7 @@
 ## 步骤
 1. 记录环境快照：`git rev-parse HEAD main origin/main`、`git status --porcelain=v1`、`git stash list`、`git log -1 --format=%H%n%ci`、`cmake --version`、`ninja --version`、`g++ --version`、`python3 --version`；原始输出存 `reports/PROJECT-GOVERNANCE-01/baseline/`。
 2. 生成预存工作区清单：对 `git status --porcelain=v1` 的每一条标注类别（预存修改 / 预存未跟踪 / 本控制包自身新增）与是否属于本次治理范围；清单做 `sha256sum`。
-3. 逐条复核 GAP_AUDIT 的 §0 与 GAP-001..GAP-020：补「当前证据」的精确文件、行号或命令+输出片段；无法判定的改写为 `UNRESOLVED` 并写明缺什么。
+3. 逐条复核 GAP_AUDIT 的 §0、GAP-001..GAP-021 与 U-01..U-07：补「当前证据」的精确文件、行号或命令+输出片段；无法判定的改写为 `UNRESOLVED` 并写明缺什么。
 4. 实测并记录 GAP_AUDIT §0 三项红灯命令的退出码：`tools/check_agents_gov.py`、`tools/doccheck/check_engineering_constraints.py`、`tools/doccheck/check_doc_index.py --strict`。
 5. **不执行任何修复。**
 

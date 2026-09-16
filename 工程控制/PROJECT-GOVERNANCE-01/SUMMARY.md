@@ -7,7 +7,7 @@
 
 ## 完成条件
 
-1. `GAP_AUDIT.md` 中 §0 三项基线红灯与 GAP-001..GAP-020 均有 PASS 任务和可复跑证据；
+1. `GAP_AUDIT.md` 中 §0 三项基线红灯与 GAP-001..GAP-021 均有 PASS 任务和可复跑证据；U-01..U-07 各自有结论（闭合或经负责人裁决）；
 2. 每个模块状态按 `CONTRACT_READY / IMPLEMENTED / INSTALLED / VERIFIED` 如实登记，负向状态用 `NOT_IMPLEMENTED / NOT_VERIFIED / DEFERRED / DORMANT / FAIL`；
 3. Linux/Windows、合成/真实数据、资源/科学/ABI/打包门均有最终 SHA 证据；
 4. 无 BLOCKED / FAIL / UNRESOLVED 冒充完成；
