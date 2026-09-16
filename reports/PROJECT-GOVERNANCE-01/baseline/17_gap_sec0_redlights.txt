@@ -1,0 +1,1364 @@
+=== GAP_AUDIT §0 三项红灯实测 2026-09-16T13:58:31+08:00 ===
+--- $ python3 tools/check_agents_gov.py
+[MISS] main-only
+[MISS] amd64
+[MISS] 节点
+[MISS] cpu-only
+[MISS] 单入口
+[MISS] 资源门禁
+[MISS] 无硬编码
+[MISS] alpha/发布
+[MISS] 状态机
+[MISS] 不停工
+GOV_CHECK_FAIL missing=['main-only', 'amd64', '节点', 'cpu-only', '单入口', '资源门禁', '无硬编码', 'alpha/发布', '状态机', '不停工'] conflicts=[]
+rc=1
+--- $ python3 tools/doccheck/check_engineering_constraints.py
+{
+  "head_sha": "ecf6ad6fe55102c08a156564cc0dd30cea3a7cdc",
+  "machine_index": [
+    {
+      "doc_id": "DOC-GOV-CONSTRAINTS-001",
+      "doc_scope": "repository_root",
+      "doc_status": "ARCHIVED_NON_NORMATIVE",
+      "path": "AstroCS_ENGINEERING_CONSTRAINTS.md",
+      "source_control_relpath": "01_OWNER_FROZEN_CONSTRAINTS.md",
+      "source_control_sha256": "f8f3440053030469f84c5b5e06666696ce014d02e101cd85d2930b8b7d27a7b2",
+      "source_main_sha": "c1696156583c68c9a3a65287639c726937e9f6e7"
+    }
+  ],
+  "meta": {
+    "stdout_sha256": "ba4664cb98de8f67b99b6073dc94a92fc57d1a7fb59f72e70bcc78e15ac4848c"
+  },
+  "results": [
+    {
+      "check": "agents_md_pointer_style",
+      "detail": "缺少: 约束文件引用,memory 引用",
+      "pass": false
+    },
+    {
+      "check": "constraints_file_exists",
+      "detail": "AstroCS_ENGINEERING_CONSTRAINTS.md",
+      "pass": true
+    },
+    {
+      "check": "constraints_file_git_tracked",
+      "detail": "git ls-files --error-unmatch -- AstroCS_ENGINEERING_CONSTRAINTS.md",
+      "pass": true
+    },
+    {
+      "check": "source_main_sha_matches",
+      "detail": "header=c1696156583c68c9a3a65287639c726937e9f6e7 ancestor_of_HEAD=True",
+      "pass": true
+    },
+    {
+      "check": "upstream_control_sha256_matches",
+      "detail": "control-root 未提供，结构性跳过（治理包不入库，见检查器 docstring 第 5 条）",
+      "pass": true
+    },
+    {
+      "check": "yaml_header_complete",
+      "detail": "ok",
+      "pass": true
+    }
+  ],
+  "root": "/workspace/Astro CS Database",
+  "task": "GOV-001",
+  "tool": "tools/doccheck/check_engineering_constraints.py",
+  "verdict": "CONSTRAINTS_FAIL",
+  "version": "1.1.0"
+}
+rc=1
+--- $ python3 tools/doccheck/check_doc_index.py --strict
+{
+  "machine_index": [
+    {
+      "path": "AGENTS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "ASTROCS_PROJECT_CONSTITUTION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "AstroCS_ENGINEERING_CONSTRAINTS.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "DEPENDENCIES.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "FATDUCK_ACCESS.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "HANDOVER.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "README.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "REVIEW.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "VERSION",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "VISUAL_CHECK_README.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/API_REFERENCE.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/DEVELOPER_GUIDE.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/GLOSSARY.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/KNOWN_LIMITATIONS.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/README-DOCS.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/RELEASE_STATUS.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/TRACEABILITY.csv",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/TROUBLESHOOTING.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/VERSIONING.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/ACR_EQUIVALENCE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/CALIBRATION_ALGORITHMS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/COSMETIC_ALGORITHMS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/DRIZZLE_GEOMETRY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/GAIA_QUERY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/HEALPIX_MAPPING.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/HIPS_WRITER.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/INTEGRATION_ALGORITHMS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/NOISE_ESTIMATION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHASE2_COVERAGE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHASE2_INTEGRATION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHASE2_MOSAIC_WRITE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHASE2_REJECTION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHASE2_SAMPLER.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHASE2_SESSION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHASE2_UPM_IMPL.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHASE3_PROJ_IMPL.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHASE3_RESAMPLE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHASE3_RSMP_IMPL.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PHOTOMETRIC_FIT.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/PLATESOLVE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/REJECTION_ALGORITHMS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/STAR_DETECTION_ALGORITHMS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/STAR_PSF_ALGORITHMS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/UPM_SOLVER.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/anchors/ANCHOR_CONTRACT.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/frozen/00_README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/frozen/01_NUMERIC_THRESHOLD_FREEZE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/frozen/02_GATE_AND_MUTATION_FREEZE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase1/ALG_P1_001_TEST_MATRIX.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase1/EVIDENCE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase1/README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_GATES.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-point/README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-psfsw/PSFSW_ALGORITHM_SPEC.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-psfsw/PSFSW_BASELINE_COMPARISON.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-psfsw/PSFSW_FROZEN_THRESHOLDS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-psfsw/PSFSW_GATES_AND_MUTATIONS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-psfsw/README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-COVARIANCE-EPSF.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-GLS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-PIXIVAR-GATE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-REJECTION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-UPM.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-surface/ALG-P2-SURF-VERIFICATION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase2-surface/README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase3/ALG-P3-001_KERNEL_REGISTRY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase3/ALG-P3-001_VERIFICATION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/algorithms/v6/phase3/README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/api/CLI_PROTOCOL_V1.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/api/COMMON_ABI_V1.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/api/MANIFEST_VERIFY_V1.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/api/PHASE1_API_V1.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/api/PHASE2_API_V1.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/api/PHASE3_API_V1.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/ARCHITECTURE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/ASYNC_IO_CONTRACT.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/BUILD_GRAPH.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/CACHE_POLICY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/COMPATIBILITY_POLICY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/CPU_BACKEND_ARCH.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/DATA_FLOW.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/DEPENDENCY_RULES.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/ERROR_MODEL.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/EXECUTION_MODEL.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/IO_AND_ATOMICITY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/ISA_BIT_MANIP_VARIANTS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/ISA_VARIANTS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/MODULE_MAP.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/OWNERSHIP_AND_LIFETIME.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/PERFORMANCE_MODEL.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/PHASE3_MODULE_ARCH.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/PIPELINE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/architecture/THREADING_MODEL.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/THREAD_BUDGET_ARCH.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/abi/ABI_003_SECURE_LOADER.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/api_inventory.csv",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/execution_inventory.csv",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/architecture/execution_options_contract.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/observability/RUN_GRAPH_CONTRACT.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/architecture/production_call_paths_stage1.csv",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/architecture/production_call_paths_stage2.csv",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/archive/PRE_RELEASE_EVIDENCE_INDEX.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/README.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/memory_V18R2-V19_operational_log_2026-08-21.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/ARCHITECTURE.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/BUILD_RELEASE.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/CONFIG_REFERENCE.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/DATA_CONTRACTS.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/DIAGNOSTICS.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/DRIZZLE.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/ERROR_TAXONOMY.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/MODULE_INDEX.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/PERFORMANCE.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/PHASE2.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/README.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/SCIENTIFIC_ALGORITHMS.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/SNR_NOISE_MODEL.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/history/v19/TESTING_AND_ACCEPTANCE.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/phase2_PRODUCTION_WIRING.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/refactor/CLI_COMMAND_LAYER.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/refactor/CLI_RUN_PRESET.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/refactor/P1_SYMBOL_MAP.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/refactor/P2_SYMBOL_MAP.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/refactor/P3_STATUS.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/review/ARCHITECTURE_OVERVIEW.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/review/CHANGE_REVIEW.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/review/PIPELINE_OVERVIEW.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/review/RELEASE_STATUS.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/archive/review/SCIENCE_OVERVIEW.md",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "docs/audit/doc_classification.csv",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/audit/inventory.csv",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/audit/risk_verification_T012.csv",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/backlog/NEXT_STAGE.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/browser/HIPS_BROWSER.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/contracts/API-001.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/API_CONTRACTS.csv",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/ARCH-001.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/DATA_ARTIFACTS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/DATA_SEMANTICS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/INDEX.yaml",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/PUBLIC_API.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/RT-001.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/TEST_MATRIX.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/W6_SCHEMA_INTEGRATION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/data/00_README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/data/01_units_and_bunit.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/data/02_signal.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/data/03_covariance.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/data/04_psf_and_effective_psf.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/data/05_point_information_and_weight_mode.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/data/06_psfsw.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/data/07_provenance.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/data/08_phase3.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/data/09_verification.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/data/10_migration_and_open_items.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/frozen/00_README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/frozen/01_DATA_CONTRACT_FREEZE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/contracts/v6/frozen/02_WEIGHT_MODE_VOCABULARY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/design/PHASE1_DETAILED_DESIGN.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/design/PHASE2_DETAILED_DESIGN.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/design/PHASE3_DETAILED_DESIGN.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/development/CODE_STYLE.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/development/CONFIG_SCHEMA.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/development/TESTING.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/diagnostics/TROUBLESHOOTING.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/governance/VERSION_NAMESPACES.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/modules/acr.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/astro_image_io.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/calibration.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/common.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/dynamic_psf.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/gaia_xpsd_client.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/healpix_browser_qt.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/healpix_drizzle.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/hips_p2.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/orchestrator.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/phase1_session.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/phase2.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/phase2_int.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/phase2_rej.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/phase2_samp.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/phase2_upm.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/phase3_fits.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/phase3_proj.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/phase3_rsmp.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/photometric_calib.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/plate_solve.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase1.calibration.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase1.cosmetic.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase1.drizzle.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase1.hips-writer.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase1.noise-snr.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase1.photometry.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase1.session.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase1.star-detection.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase1.star-psf.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase1.wcs-platesolve.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase1.writer.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase2.coverage.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase2.integrate.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase2.reject.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase2.resample.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase2.sample.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase2.session.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase2.upm-apply.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase2.upm-fit.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase2.write.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase3.properties.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase3.resample.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase3.resample2.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase3.verify.md",
+      "status": "GENERATED"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase3.wcs.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/registry/astrocs.phase3.writer.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/snr_estimator.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/modules/star_detector.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/operations/TOOLCHAIN_AGENT_HOST.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/owner/ARCHITECTURE_OVERVIEW.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/owner/CHANGE_REVIEW.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/owner/PIPELINE_OVERVIEW.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/owner/PROJECT_SPEC.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/owner/RELEASE_STATUS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/owner/SCIENCE_OVERVIEW.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/performance/BASELINE.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/performance/OPTIMIZATION.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/quality/complexity_baseline_v1.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/quality/coverage_baseline_v1.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/references/SCIENTIFIC_REFERENCES.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/review",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/science/ACR_EQUIVALENCE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/ASTROMETRY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/CALIBRATION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/CONTROL_WEIGHT_SNR.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/DRIZZLE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/INTEGRATION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/NOISE_MODEL.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/PHASE2_UPM.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/PHASE3_HIPS_TO_FITS.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/PHOTOMETRY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/PSF.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/PSF_SIGNAL_WEIGHT.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/REJECTION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/SCIENCE_SCOPE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/STAR_DETECTION.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/UNCERTAINTY_AND_COVARIANCE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/UNIFIED_SCIENCE_MODEL.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/adjudication/README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/adjudication/SCI-ADJ-001_CONFLICT_MATRIX.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/adjudication/SCI-ADJ-001_FREEZE_LIST.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/frozen/00_README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/frozen/01_SEMANTIC_FREEZE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/frozen/02_SIGNOFF_CONTROLLER_SUPERSEDED.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/observation/OBSERVATION_MODEL_REVIEW.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/phase2/COVARIANCE_AND_EFFECTIVE_PSF.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/phase2/README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/phase2/SCI-P2-001_THREE_MODE_REVIEW.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/phase2/VERIFICATION_AND_EVIDENCE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/phase2/WEIGHT_PROVENANCE_GATE.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/phase3/PHASE3_PROPAGATION_REVIEW.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/science/v6/psfw/PSFW_FREEZE_RESEARCH.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/API_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/BENCHMARK_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/CODE_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/COMMENT_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/CONCURRENCY_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/C_ABI_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/DOCUMENTATION_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/ERROR_HANDLING_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/IO_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/NUMERIC_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/RELEASE_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/STANDARDS_REGISTRY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/standards/TEST_STANDARD.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/traceability/TRACEABILITY_LAYERS.csv",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/traceability/TRACEABILITY_MATRIX.csv",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/traceability/TRACEABILITY_MATRIX.json",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/traceability/TRACEABILITY_SPEC.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/validation/SCIENCE_FREEZE.md",
+      "status": "ACTIVE_INFORMATIVE"
+    },
+    {
+      "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/validation/v6/ORACLE_AND_ZERO_CASE_POLICY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/validation/v6/P0_GATE_FAMILY.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/validation/v6/QA_MATRIX.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "docs/validation/v6/README.md",
+      "status": "ACTIVE_NORMATIVE"
+    },
+    {
+      "path": "engineering/control/archive/2026-09-02_legacy_工程控制_v1.3-to-v6.1/",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "engineering/control/archive/2026-09-09_superseded_V8.1_CI_CONTROL_20260905/",
+      "status": "ARCHIVED_NON_NORMATIVE"
+    },
+    {
+      "path": "memory.md",
+      "status": "ACTIVE_INFORMATIVE"
+    }
+  ],
+  "machine_index_count": 305,
+  "results": [
+    {
+      "check": "active_no_archive",
+      "detail": "ok",
+      "pass": true
+    },
+    {
+      "check": "archive_md_has_archived_marker",
+      "detail": "docs/archive 28 个 md 全含 ARCHIVED",
+      "pass": true
+    },
+    {
+      "check": "archived_all_archived_status",
+      "detail": "ok",
+      "pass": true
+    },
+    {
+      "check": "control_archive_dir_readme",
+      "detail": "缺失",
+      "pass": false
+    },
+    {
+      "check": "docs_fully_covered",
+      "detail": "未覆盖=['docs/ci/01_CHECKS.md', 'docs/ci/02_PIPELINE.md', 'docs/ci/03_GATES.md', 'docs/ci/04_ARTIFACTS.md', 'docs/ci/CI_SPEC.md', 'docs/design/UNIFIED_MODEL.md', 'docs/plugins/00_INDEX.md', 'docs/plugins/algorithms_phase1/01_calibration.md', 'docs/plugins/algorithms_phase1/02_cosmetic.md', 'docs/plugins/algorithms_phase1/03_star_detection.md']…共30",
+      "pass": false
+    },
+    {
+      "check": "index_file_exists",
+      "detail": "docs/DOCUMENT_INDEX.yaml",
+      "pass": true
+    },
+    {
+      "check": "index_file_git_tracked",
+      "detail": "git ls-files --error-unmatch -- docs/DOCUMENT_INDEX.yaml",
+      "pass": true
+    },
+    {
+      "check": "no_legacy_工程控制_left",
+      "detail": "ok",
+      "pass": true
+    },
+    {
+      "check": "no_root_legacy_control_zip",
+      "detail": "ok",
+      "pass": true
+    },
+    {
+      "check": "path_unique",
+      "detail": "ok",
+      "pass": true
+    },
+    {
+      "check": "status_legal",
+      "detail": "ok",
+      "pass": true
+    },
+    {
+      "check": "yaml_parse",
+      "detail": "ok",
+      "pass": true
+    }
+  ],
+  "root": "/workspace/Astro CS Database",
+  "task": "GOV-002",
+  "tool": "tools/doccheck/check_doc_index.py",
+  "verdict": "DOC_INDEX_FAIL",
+  "version": "1.0.0"
+}
+rc=1

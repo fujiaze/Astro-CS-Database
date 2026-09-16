@@ -1,0 +1,17 @@
+198943	run/tmp_wcs001_reval/perf_clean.log
+35174	run/tmp_wcs001_reval/selfcheck.log
+16168	run/tmp_wcs001_reval/probe_oracle_values
+5668	run/tmp_wcs001_reval/provenance.log
+2975	run/tmp_wcs001_reval/inject_o1_wcs_forward_reverse.log
+2975	run/tmp_wcs001_reval/inject_o1_gnomonic_roundtrip.log
+2975	run/tmp_wcs001_reval/inject_o1_apbp_reverse_oracle.log
+2973	run/tmp_wcs001_reval/inject_o1_linear6_recover.log
+2973	run/tmp_wcs001_reval/inject_o1_f2_sip_vs_oracle.log
+2973	run/tmp_wcs001_reval/inject_o1_f2_apbp_roundtrip.log
+2971	run/tmp_wcs001_reval/inject_o1_gnomonic_cross.log
+2966	run/tmp_wcs001_reval/inject_o1_sip_expect.log
+2902	run/tmp_wcs001_reval/probe_wcs001.py
+1868	run/tmp_wcs001_reval/probe_oracle_values.cpp
+799	run/tmp_wcs001_reval/ctest_asan.log
+794	run/tmp_wcs001_reval/ctest_main.log
+167	run/tmp_wcs001_reval/probe_crosscheck.log

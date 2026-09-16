@@ -1,0 +1,15 @@
+198943	run/tmp_wcs002_reval/perf_clean.log
+124424	run/tmp_wcs002_reval/probe_measure
+35174	run/tmp_wcs002_reval/selfcheck.log
+34944	run/tmp_wcs002_reval/probe_apbp
+7520	run/tmp_wcs002_reval/asan_inject_n1_zero_pairs.log
+7508	run/tmp_wcs002_reval/inject_n1_zero_pairs_env.log
+7508	run/tmp_wcs002_reval/inject_n1_zero_pairs_argv.log
+7414	run/tmp_wcs002_reval/asan_negative_clean.log
+7402	run/tmp_wcs002_reval/negative_clean.log
+4836	run/tmp_wcs002_reval/provenance.log
+2916	run/tmp_wcs002_reval/probe_measure.log
+2868	run/tmp_wcs002_reval/oracle_clean.log
+1695	run/tmp_wcs002_reval/source_sha256.txt
+879	run/tmp_wcs002_reval/ctest_asan.log
+869	run/tmp_wcs002_reval/ctest_main.log
