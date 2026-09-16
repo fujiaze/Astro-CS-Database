@@ -14,7 +14,8 @@
 // - ctype: trans.order==1 → "RA---TAN"/"DEC--TAN", 否则 "RA---TAN-SIP"/...
 // - SIP A/B: 解析公式 A[i][j] = cd_inv · (trans.x_ij, trans.y_ij)
 // (cd_inv = trans 线性项的逆, 单位 像素/角秒)
-// - SIP AP/BP: 网格反变换法 (NB_GRID=7)
+// - SIP AP/BP: 采样网格 ≥7×7 反变换法 (实现 AP/BP 41×41 阶 5,
+//   APx/BPx 81×81 阶 7; 偏差登记 DISP-WCS-008)
 // - RMS: 残差 = apply_trans(U) - W (角秒)
 //
 // 日期: 2026-07-05
@@ -235,7 +236,8 @@ WcsFitResult build_wcs(
 // 4. ctype: trans.order==1 → "RA---TAN"/"DEC--TAN", 否则加 -SIP 后缀
 // 5. SIP A/B: 解析公式 A[i][j] = cd_inv · (trans.x_ij, trans.y_ij)
 // cd_inv = trans 线性项的逆 (像素/角秒)
-// 6. SIP AP/BP: 网格反变换法 (NB_GRID=7, 拟合 UV→uv 多项式 = revtrans)
+// 6. SIP AP/BP: 采样网格 ≥7×7 反变换法 (实现 NB_GRID=41 阶 5,
+//    拟合 UV→uv 多项式 = revtrans; 偏差登记 DISP-WCS-008)
 // 7. RMS: 残差 = apply_trans(U) - W (角秒), rms_px = rms_arcsec / s0
 // ===========================================================================
 void extract_wcs_sip(
@@ -406,9 +408,11 @@ void extract_wcs_sip(
             // skyToPixel 有 AP/BP 直加路径)。本拟合为该逆映射多项式在
             // SIPCoeffs 布局 (i*6+j, i+j <= ap_order) 内的最小二乘逼近。
             // 可达性 (F2 冻结 fixture 实测, 探针 run/tmp_wcs002): 边缘畸变
-            // ~117px 时 5 阶最优 center90 roundtrip ~7.6 px, 为逆映射最近
-            // 奇点决定的逼近极限 (order 6..15 → 5.3..0.26 px, 收敛率~0.73);
-            // 冻结 1e-4 px 在该 fixture 下数学不可达, 需负责人裁决 (finding)。
+            // ~117px 时一步直加 5 阶最优 center90 roundtrip ~7.6 px, 为逆映射
+            // 最近奇点决定的逼近极限 (order 6..15 → 5.3..0.26 px, 收敛率~0.73);
+            // 1e-4 px 冻结门由消费方迭代反演 (wcs_sky_to_pixel_iterative) 与 5.4 段
+            // APx/BPx (81×81 阶 7) 达成 (独立密集域实测 3.3e-10~2.9e-9 px), 本一步
+            // 直加路径不受该门约束; 偏差登记 DISP-WCS-008。
             // 确定性: 固定网格顺序 + 顺序归约 (§5c 禁并行重结合), 高斯消元单线程。
             const int NB_GRID = 41;       // 每轴网格点数 (整改: 7 -> 41)
             const int AP_FIT_ORDER = 5;   // 逆向拟合阶 (SIPCoeffs i*6+j 布局上限)

@@ -1,7 +1,7 @@
 # DATA-003 生产 ArtifactStore 接线（设计权威）
 
 > owner: SA-DATA-06 · 权威文档形态（本文）+ 执行形态
-> (`runtime/artifact_store/production_store.py`) + 验收测试
+> (`lib/infrastructure/aio/runtime/artifact_store/production_store.py`) + 验收测试
 > (`tests/artifact/test_production_store.py`)。三形态必须同步修改。
 > 前序合同: DATA-001（typed manifest schema + 唯一 producer）、DATA-002（三阶段
 > 产品交换、跨 Phase 仅磁盘交换）；运行时隔离: RT-002（phase-isolated Runtime）。

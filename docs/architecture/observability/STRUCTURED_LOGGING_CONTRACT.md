@@ -2,8 +2,8 @@
 
 > 文档 ID：`ARCH-LOG-STRUCTURED-001`（归属 `docs/architecture/observability/`，owner SA-LOG-08）
 > 状态：ACTIVE_NORMATIVE（LOG-001 冻结）
-> 机器可读事实源：`runtime/logging/log_event_v1.schema.json`（JSON Schema v1）、
-> `runtime/logging/log_event.py`（参考实现）、`tools/monitoring/check_log_contract.py`（检查器）。
+> 机器可读事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（JSON Schema v1）、
+> `lib/infrastructure/observability/logging/log_event.py`（参考实现）、`tools/monitoring/check_log_contract.py`（检查器）。
 > 本文档是视图；字段定义与验收以 schema/检查器为权威（16 标准：JSON/JSONL 输出为真相）。
 
 ## 1. 目的与边界
@@ -46,7 +46,7 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 | `task` | string | 高层任务标识 | 同上；无则 `""` |
 | `node` | string | DAG 节点 id | 同上；无则 `""` |
 | `module` | string | 唯一 module id | 同上；无则 `""` |
-| `phase` | string | 阶段归属 | `phase1/phase2/phase3/runtime/monitoring/cli/""` |
+| `phase` | string | 阶段归属 | `phase1/phase2/phase3/lib/infrastructure/observability/monitoring/cli/""` |
 | `commit` | string | 产生事件的 commit | 40 位小写 hex；真实运行现场值 |
 | `host` | string | 主机逻辑标识 | 安全字符；不得含用户/凭据 |
 | `level` | string | 级别 | `debug/info/warn/error` |
@@ -132,4 +132,4 @@ LOG-002 在 Runtime 集成时以本合同为单一事实源做适配，双写/�
 
 - 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-001
 - 控制包标准：`14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md` §4/§5、`13_DATA_PIPELINE_AND_ARTIFACT_STANDARD.md` §5
-- 机器事实源：`runtime/logging/log_event_v1.schema.json`、`tools/monitoring/check_log_contract.py`
+- 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`、`tools/monitoring/check_log_contract.py`

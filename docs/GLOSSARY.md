@@ -10,11 +10,11 @@
 | variance | 逐像素随机方差,Drizzle 传播 variance_p=Σ v_j·w_jp²/D_p²;无覆盖像素=0 | 信号单位²(ADU²) | - | docs/contracts/DATA_SEMANTICS.md#4a |
 | ivar | 逆方差=1/variance;variance=0/缺失 → ivar=0(显式不可用,禁止伪装);NaN/负 variance=产品损坏 | ADU⁻² | - | docs/contracts/DATA_SEMANTICS.md#4a |
 | pixel_weight | 像素级科学权重=ivar(UPM/integration/ACR);legacy snr² 权重仅 ablation 域 | 无量纲 | snr²-weight → pixel_weight(ivar) | docs/contracts/DATA_SEMANTICS.md#4a |
-| frame_quality_weight | 帧质量权重=support×snr_v²(SCI-CW 域专用);禁止 snr=1.0 伪装 unknown | 无量纲 | - | docs/science/CONTROL_WEIGHT_SNR.md#42 |
+| frame_quality_weight | 帧质量权重=support×snr_v²(SCI-CW 域专用;**weight_mode=0 legacy/非生产**,生产=逐样本 ivar mode 2);禁止 snr=1.0 伪装 unknown | 无量纲 | - | docs/science/CONTROL_WEIGHT_SNR.md#42 |
 | support | 覆盖/有效支持度,连续 [0,1];0=无覆盖 | 无量纲 | coverage → support | docs/contracts/DATA_SEMANTICS.md#4 |
 | invalid | 非法样本判定:NaN 或 support<=0;有效样本=finite 且 support>0 | 布尔判定 | - | docs/contracts/DATA_SEMANTICS.md#4 |
 | nan | 非法值唯一载体;无有效样本必须有明确 status,禁止静默输出 0 或 ±Inf | 浮点值 | - | docs/contracts/DATA_SEMANTICS.md#4 |
-| bad_mask | 校准域坏点掩膜(char 数组):**1=坏点(需修复/替换),0=好点(保留)** | 极性:1=bad | mask(裸用) → 必须写 bad_mask | lib/calibration/src/cosmetic_corrector.cpp#158 |
+| bad_mask | 校准域坏点掩膜(char 数组):**1=坏点(需修复/替换),0=好点(保留)** | 极性:1=bad | mask(裸用) → 必须写 bad_mask | lib/algorithms/calibration/src/cosmetic_corrector.cpp#158 |
 | product_bit_flags | HiPS 产品位标志(AIO_HIPS_PRODUCT_VARIANCE=8, IVAR=16);是产品位,不是像素 mask | 位标志 | - | docs/contracts/DATA_SEMANTICS.md#4a |
 | ra_dec | 天球坐标,ICRS/equatorial;RA∈[0,360),Dec∈[-90,90] | 度;内部球面计算弧度,公共 ABI 度 | - | docs/contracts/DATA_SEMANTICS.md#1 |
 | pixel_coordinate | 内部像素坐标 0-based x∈[0,w-1](y 同);FITS 1-based xp=x+1;CRPIX=1-based (w/2+0.5,h/2+0.5) 恒成立 | 无量纲(px) | xp/yp(1-based) → 显式标注 FITS 1-based | docs/science/ASTROMETRY.md#14 |

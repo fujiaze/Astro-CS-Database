@@ -40,14 +40,14 @@ IO-002 在 IO-001（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**
 | 内容 | 路径 |
 | --- | --- |
 | 本冻结合同 | `docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md` |
-| HiPS 输入 C ABI | `modules/services/io/include/astrocs/io/hips_input_v1.h` |
-| HiPS 输入核心（C 实现、私有、DLL 内） | `runtime/io/hips_core.c` |
+| HiPS 输入 C ABI | `lib/infrastructure/aio/io/include/astrocs/io/hips_input_v1.h` |
+| HiPS 输入核心（C 实现、私有、DLL 内） | `lib/infrastructure/aio/io/hips_core.c` |
 | 契约/负测（Python，astropy/astropy_healpix 可选 oracle） | `tests/io/` |
-| C 层自检驱动 | `modules/services/io/tests/hips_core_selftest.c` |
+| C 层自检驱动 | `lib/infrastructure/aio/io/tests/hips_core_selftest.c` |
 | fixture 重建生成器 | `tests/io/make_hips_fixture.py` |
 
-允许写路径：`runtime/io/** lib/infrastructure/aio/io/** lib/infrastructure/aio/** lib/infrastructure/aio/healpix_db/**
-modules/services/io/** tests/io/** docs/interfaces/io/**`。
+允许写路径：`lib/infrastructure/aio/io/** lib/infrastructure/aio/io/** lib/infrastructure/aio/** lib/infrastructure/aio/healpix_db/**
+lib/infrastructure/aio/io/** tests/io/** docs/interfaces/io/**`。
 
 ## 3. 输入合同（IVOA HiPS 兼容子集）
 
@@ -264,7 +264,7 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 
 - IO-001 fits_core：tile FITS 平面读取的唯一底层（§6）；错误码 0–7 对齐。
 - `lib/infrastructure/aio`（aio_hips_*，CFITSIO 链）：历史 HiPS 读写实现（writer 产线、
-  reader 供浏览器）；**IO-002 不修改**。IO-002 是 modules/services/io 下与 IO-001
+  reader 供浏览器）；**IO-002 不修改**。IO-002 是 lib/infrastructure/aio/io 下与 IO-001
   同层的输入合同骨架；产线 writer 与 IO-002 的磁盘布局合同相同（§3.3）。
 - `lib/infrastructure/aio/healpix_db`：浏览器/历史参考；不修改。
 - DATA-001 artifact schema / DATA-HIPS-*：科学 dtype/unit/invalid 语义权威；

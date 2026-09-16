@@ -637,6 +637,8 @@ target_include_directories(astrocs_cli_process PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
 add_executable(astrocs
+  # G-RES-01 生成头显式声明为构建输入（不依赖"碰巧已生成"）。
+  ${CMAKE_CURRENT_BINARY_DIR}/resource_gate_thresholds_generated.h
   lib/infrastructure/cli/main.cpp
   lib/infrastructure/cli/parser.cpp
   lib/infrastructure/cli/commands.cpp

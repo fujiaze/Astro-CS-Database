@@ -18,7 +18,7 @@
 | p1 cosmetic | `lib/algorithms/cosmetic` | INSTALLED | `modules/astrocs_p1_cosmetic.so` | unit `MOD-P1-COS`；`src/module_entry.cpp`；实测装配 PASS |
 | p1 hips_writer | `lib/algorithms/drizzle/hips` | INSTALLED | `modules/astrocs_p1_hips_writer.so` | unit `MOD-P1-HIPSW`；`src/module_entry.cpp`；实测装配 PASS |
 | cpu baseline provider | `lib/infrastructure/benchmark/backend_host` | INSTALLED | `providers/astrocs_cpu_baseline.so` | unit `PROV-CPU-BASELINE`；`baseline_backend.cpp`/`backend_loader.cpp` |
-| CLI 平台单元 | `cli/` | INSTALLED | `astrocs` | unit `PLATFORM-CLI`；`cli/parser.cpp` kRules 12 条 phase 命令；`tests/cli/test_cli001_vpi.py` 15/15 实测 |
+| CLI 平台单元 | `lib/infrastructure/cli/` | INSTALLED | `astrocs` | unit `PLATFORM-CLI`；`lib/infrastructure/cli/parser.cpp` kRules 12 条 phase 命令；`tests/cli/test_cli001_vpi.py` 15/15 实测 |
 | runtime / io 平台单元 | `lib/infrastructure/scheduler`、`lib/infrastructure/aio/io` | INSTALLED（骨架） | `libastrocs_runtime.so`、`libastrocs_io.so` | units `PLATFORM-RUNTIME`/`PLATFORM-IO` 状态 = SKELETON（不冒认实现完成度） |
 
 > 安装面唯一源：`cmake/install_layout.cmake`（:104-105 五科学模块 SHARED + `$ORIGIN`
@@ -36,8 +36,8 @@
 | Phase2 会话 | `lib/phase2_session` | IMPLEMENTED | 七节点链组装（coverage→sample→upm→reject→integrate→write） | `lib/phase2_session/p2_session.cpp`；ctest `p2001_real_nodes` 实测 |
 | Phase2 内核 | `lib/algorithms/coverage` | IMPLEMENTED | `lib/algorithms/coverage/src` 下 coverage/sampler/upm/rejection/integrate/stage2_common 源文件 | 同上 + `contracts/data/phase2_uncertainty_rejection_provenance_v1.json`（P2-002） |
 | Phase3 会话 | `lib/phase3_session` | IMPLEMENTED | properties / WCS（TAN）/ nearest+bilinear 重采样 / CFITSIO 原子写 / verify | `lib/phase3_session` 的 p3_session/p3_wcs/p3_resample/p3_output 四源文件；ctest `p3002_real_nodes`/`p3002_uncertainty` 实测 |
-| 三阶段产品交换 | `runtime/artifact_store` | CONTRACT_READY | 跨 Phase 仅磁盘产品交换（role↔type 强绑定） | `contracts/data/phase_product_exchange.schema.json` + `runtime/artifact_store/phase_product_exchange_validator.py` |
-| 结构化日志 | `runtime/logging` | CONTRACT_READY | JSONL 事件合同 | LOG-001 schema/契约 |
+| 三阶段产品交换 | `lib/infrastructure/aio/runtime/artifact_store` | CONTRACT_READY | 跨 Phase 仅磁盘产品交换（role↔type 强绑定） | `contracts/data/phase_product_exchange.schema.json` + `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py` |
+| 结构化日志 | `lib/infrastructure/observability/logging` | CONTRACT_READY | JSONL 事件合同 | LOG-001 schema/契约 |
 | 监控与资源门 | `tools/monitoring` | IMPLEMENTED | 冻结阈值判定（§10.5/§18.2） | `tools/monitoring/run_monitored.py` `evaluate_frozen_gate()`；pytest `tests/monitoring` |
 | AIO 图像 I/O | `lib/infrastructure/aio` | IMPLEMENTED | FITS/XISF/HiPS 读写、唯一 AIO C ABI v1 | `lib/infrastructure/aio/src/aio_abi.cpp`（编入生产 target `astrocs_aio`，MOD-001 实测握手 abi=1/status_count=71） |
 | HEALPix / Drizzle 内核 | `lib/infrastructure/aio/healpix_db` | IMPLEMENTED | `healpix_drizzle`（生产）+ `healpix_io`；`archive/legacy` 与 `healpix_browser_qt` 不重建 | `lib/algorithms/drizzle/healpix_drizzle`、`lib/infrastructure/aio/healpix_db/archive` |

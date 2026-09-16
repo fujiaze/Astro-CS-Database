@@ -32,14 +32,14 @@ P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原
 | 内容 | 路径 |
 | --- | --- |
 | 本冻结合同 | `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` |
-| 原子输出发布器（Python 执行形态） | `runtime/io/hips_output_store.py` |
-| FITS 独立校验器（fitsverify，与 fits_core 同算法） | `runtime/io/fits_verify.py` |
+| 原子输出发布器（Python 执行形态） | `lib/infrastructure/aio/io/hips_output_store.py` |
+| FITS 独立校验器（fitsverify，与 fits_core 同算法） | `lib/infrastructure/aio/io/fits_verify.py` |
 | 契约/负测（Python） | `tests/io/test_hips_output_contract.py` |
 | 测试 tile fixture（复用 IO-001 fits_core） | `tests/io/hips_output_fixture.py` |
 
-允许写路径：`runtime/io/** modules/services/io/** tests/io/** docs/interfaces/io/**`。
+允许写路径：`lib/infrastructure/aio/io/** lib/infrastructure/aio/io/** tests/io/** docs/interfaces/io/**`。
 
-> 执行形态说明：`runtime/io/hips_output_store.py` + `fits_verify.py` 为纯 Python
+> 执行形态说明：`lib/infrastructure/aio/io/hips_output_store.py` + `fits_verify.py` 为纯 Python
 > 语义层（Linux 控制/轻合成节点可完整验证；与 DATA-003 production_store 同模式）。
 > Windows 正式 DLL 交付（astrocs_io.dll）由 IO-003 同语义 C 接线复刻同一发布状态机；
 > manifest/tree hash/错误码公式不变，跨 DLL 边界不暴露路径字符串句柄。

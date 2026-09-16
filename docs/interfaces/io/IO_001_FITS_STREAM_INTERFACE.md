@@ -24,14 +24,14 @@ IO-001 是 **FITS 流式 I/O 接口冻结 + 骨架实现**（W2 宿主基础设�
 | 内容 | 路径 |
 | --- | --- |
 | 本冻结合同 | `docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md` |
-| io 服务模块骨架（README/module.yaml/CMake/占位入口） | `modules/services/io/` |
-| FITS 流核心（C 实现、私有，DLL 内） | `runtime/io/fits_core.c` |
-| FITS 流 C ABI（只被 astrocs_io.dll 导出） | `modules/services/io/include/astrocs/io/fits_stream_v1.h` |
-| 模块公开 ABI 占位（module query 入口） | `modules/services/io/include/astrocs/io/io_module_api_v1.h` |
+| io 服务模块骨架（README/module.yaml/CMake/占位入口） | `lib/infrastructure/aio/io/` |
+| FITS 流核心（C 实现、私有，DLL 内） | `lib/infrastructure/aio/io/fits_core.c` |
+| FITS 流 C ABI（只被 astrocs_io.dll 导出） | `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` |
+| 模块公开 ABI 占位（module query 入口） | `lib/infrastructure/aio/io/include/astrocs/io/io_module_api_v1.h` |
 | 契约/负测（Python，依赖 numpy/astropy 作 oracle） | `tests/io/` |
-| C 层自检驱动 | `modules/services/io/tests/` |
+| C 层自检驱动 | `lib/infrastructure/aio/io/tests/` |
 
-允许写路径：`runtime/io/** lib/infrastructure/aio/io/** lib/infrastructure/aio/** lib/infrastructure/aio/healpix_db/** modules/services/io/** tests/io/** docs/interfaces/io/**`。
+允许写路径：`lib/infrastructure/aio/io/** lib/infrastructure/aio/io/** lib/infrastructure/aio/** lib/infrastructure/aio/healpix_db/** lib/infrastructure/aio/io/** tests/io/** docs/interfaces/io/**`。
 
 ## 3. DLL 边界与所有权
 
@@ -189,7 +189,7 @@ typedef struct acs_fio_trace_hooks_v1 {
 - `lib/infrastructure/aio`（AIO，含 CFITSIO 静态链）：历史全图像读写（aio_read/write_fits），
   保留作兼容层；**IO-001 不迁移/不修改/不删除**，其内部 CFITSIO 用法同样不跨 DLL 边界。
 - `lib/infrastructure/aio/io` + `include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（历史 IO-001 原型），保留。
-- `runtime/io/fits_core.c` 是本任务新增的 fits 流 C 核心（无 CFITSIO 依赖）。
+- `lib/infrastructure/aio/io/fits_core.c` 是本任务新增的 fits 流 C 核心（无 CFITSIO 依赖）。
 - DATA-001 `astrocs/contracts/artifact_abi_v1.h`：产物 manifest C ABI；fits 流接口不重复其职责。
 - trace/bytes：由宿主注入 hook（14 标准）；本任务只冻结 hook 契约并累计，运行时落点由后续 RT 任务接线。
 - HiPS/manifest 输入输出（IO-002/IO-003）在本接口之上扩展，本任务不实现。
