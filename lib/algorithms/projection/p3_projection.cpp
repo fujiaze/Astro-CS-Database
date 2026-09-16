@@ -1,5 +1,7 @@
-// lib/algorithms/projection/p3_projection.cpp — 版本化 projection registry + 冻结四投影
-// 实现 — P3-001 (ASTROCS-CONSTITUTION-001 §7.3/§18.1, ALG-P3-PROJ-IMPL-001 §15)
+// lib/algorithms/projection/p3_projection.cpp — legacy registry v1 实现（TAN/SIN/CAR/AIT）
+// P3-001；⚠ **RETIRED（SCI-FIX-PROJ 2026-09-16）**：唯一在役 registry = v6 线
+// p3_proj_v6.cpp（v3）。本文件仅为历史测试面与 legacy 偏差对照证据门保留，
+// 行为冻结不变（四项偏差 D1..D4 见 p3_projection.h 头注与 ALG-P3-PROJ-IMPL-001 §15.9）。
 //
 // 数学冻结口径:
 //   TAN(gnomonic): 逐式沿用 lib/phase3_session/p3_wcs.cpp 冻结生产事实
@@ -7,8 +9,8 @@
 //     归一；G1 CD 构造 east_left/east_right + PA 推广 + P0 修复 bughunt_p0_wcs）。
 //     共享旋转核与其严格同构（sinθ=sinδ sinδ₀+cosδ cosδ₀ cosΔα 即 denom），
 //     本文件 TAN 路径保持既有表达式顺序以支持 bitwise 对拍。
-//   SIN(orthographic)/CAR(plate carrée)/AIT(Aitoff): 宪章 §18.1 负责人裁决
-//     新增 claim，公式 = FITS WCS Paper II 标准定义（ALG §15 逐式冻结）:
+//   SIN(orthographic)/CAR(plate carrée)/AIT(Aitoff): 公式 = FITS WCS Paper II
+//     标准定义（ALG §15 逐式冻结；本 v1 的 CAR/AIT 偏差见头注 D2/D3/D4）:
 //     共享 native↔celestial 旋转核 + 各投影 native 层:
 //       TAN: X=−cotθ·sinφ, Y=cotθ·cosφ            (zenithal, θ₀=CRVAL2)
 //       SIN: X=cosθ·(−sinφ), Y=cosθ·cosφ          (zenithal, θ₀=CRVAL2)
@@ -20,9 +22,9 @@
 //       逆: sinθ=sinδ sinδ₀+cosδ cosδ₀ cosΔα;
 //       φ=atan2(−cosδ sinΔα, sinδ cosδ₀−cosδ sinδ₀ cosΔα)（zenithal 半球
 //       denom=sinθ>0 与既有 TAN denom>0 背面判定数学等价）。
-//   CAR/AIT 天球惯例: θ₀=+90°（native 北极=天球北极, LONPOLE=0 语义）⇒
-//     native (φ,θ)=(α−α₀, δ) 恒等；CRVAL2 仅记录于 header 不进入映射
-//     （ALG §15.4/§15.5 冻结声明）。
+//   本 v1 的 CAR/AIT 偏差（**不再修正**，仅作对照）: 采用 θ₀=+90° 恒等旋转并让
+//   CRVAL2 不进映射，且 CAR 用 Y=−θ、AIT 缺 √2、AIT 域 A<2；正确口径见 v6 线 v3
+//   （Paper II §2.2 三 Euler 角 + A≤1 + CAR native 极行 fail-closed）。
 #include "p3_projection.h"
 
 #include <cmath>
@@ -297,6 +299,7 @@ const P3ProjectionSpec* p3_projection_registry_find_id(P3ProjectionId id) {
 
 int p3_projection_registry_selfcheck() {
     if (kP3ProjectionRegistryVersion != 1) return 1;
+    if (!kP3ProjectionRegistryRetired) return 1;   // RETIRED 标记必须为真（退场登记）
     for (int i = 0; i < 4; ++i) {
         if (!kRegistry[i].code || !kRegistry[i].ctype1 || !kRegistry[i].ctype2)
             return i + 1;

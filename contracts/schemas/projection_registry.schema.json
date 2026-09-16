@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/projection_registry/v3",
+  "title": "AstroCS phase3 projection registry v3（投影注册表导出）",
+  "description": "projection registry 的机器可校验导出合同（v3，SCI-FIX-PROJ 2026-09-16 建立；修好 docs/modules/MODULE_MAP.yaml:445 与本文件的原悬空引用）。权威 = ASTROCS_DESIGN.md §5.3（首批冻结八投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）+ docs/algorithms/PHASE3_PROJ_IMPL.md §15（v3 冻结口径与 v1 偏差表）+ Calabretta & Greisen 2002 (FITS WCS Paper II) §2.1/§2.2。实现导出 = lib/algorithms/projection/p3_proj_v6.h/.cpp（kProjectionRegistryVersion=3、registry_frozen_set()）。",
+  "x-astrocs-contract": {
+    "authority": "ASTROCS_DESIGN.md §5.3；docs/algorithms/PHASE3_PROJ_IMPL.md §15；docs/plugins/algorithms_phase3/14_projection.md",
+    "registry_version": 3,
+    "implementation": "lib/algorithms/projection/p3_proj_v6.h（Spec/registry_frozen_set）/ p3_proj_v6.cpp",
+    "legacy": "lib/algorithms/projection/p3_projection.h/.cpp（v1，RETIRED；偏差表 ALG §15.9）",
+    "note": "本 schema 描述 registry 导出面，不复制投影公式（公式权威在 ALG §15.2/§15.3）。"
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "registry_version", "frozen_set", "projections"],
+  "properties": {
+    "schema_version": {
+      "const": "3",
+      "description": "registry schema/版本常量（实现侧 kProjectionRegistryVersion；表内容或语义变化必须递增并在 ALG §15 登记 claim）"
+    },
+    "registry_version": {
+      "const": 3,
+      "description": "registry 版本；v1=首批四投影（CRVAL2 不进映射，已 RETIRED）/ v2=CAR/AIT 符号与 √2 修正 / v3=CRVAL2 进映射 + AIT A≤1 + CAR 极行 fail-closed"
+    },
+    "frozen_set": {
+      "type": "array",
+      "description": "权威冻结集合（DESIGN §5.3 八投影），顺序冻结",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": { "enum": ["TAN", "SIN", "CAR", "AIT", "STG", "MOL", "CEA", "ZEA"] }
+    },
+    "projections": {
+      "type": "array",
+      "description": "已实现/已注册的投影行（v3 现状 4 行；未实现成员在 frozen_set 内但不在本数组，registry_find 返回 nullptr = fail-closed）",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id", "code", "ctype1", "ctype2", "max_abs_crval_dec_deg",
+          "max_fov_deg", "singularity_kind", "domain", "reference_point",
+          "crval2_in_mapping", "lonpole_default", "implemented"
+        ],
+        "properties": {
+          "id": { "type": "integer", "minimum": 0, "description": "强类型枚举序号（ProjectionId），实现内禁止 CLI 字符串散落" },
+          "code": { "enum": ["TAN", "SIN", "CAR", "AIT", "STG", "MOL", "CEA", "ZEA"], "description": "registry 键（精确匹配，无 fallback）" },
+          "ctype1": { "type": "string", "pattern": "^RA---[A-Z]{3}$", "description": "FITS CTYPE1" },
+          "ctype2": { "type": "string", "pattern": "^DEC--[A-Z]{3}$", "description": "FITS CTYPE2" },
+          "max_abs_crval_dec_deg": { "type": "number", "exclusiveMinimum": 0, "maximum": 90, "description": "中心 |CRVAL2| 守卫（已实现四投影统一 85.0 保守冻结）" },
+          "max_fov_deg": { "type": "number", "exclusiveMinimum": 0, "description": "合法 FOV 声明（DESIGN §5.3 声明字段，非 make 硬门）" },
+          "singularity_kind": { "type": "string", "minLength": 1, "description": "奇点声明（静态串；CAR = native 极行 θ=±90°，整行塌缩 ⇒ fail-closed）" },
+          "domain": { "enum": ["zenithal", "cylindrical", "pseudo-cylindrical"], "description": "投影分类（Paper II Table 1）" },
+          "reference_point": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["phi0_deg", "theta0_deg"],
+            "properties": {
+              "phi0_deg": { "type": "number" },
+              "theta0_deg": { "type": "number" }
+            },
+            "description": "投影参考点 (φ0,θ0)（Paper II §2.2 三 Euler 角输入）"
+          },
+          "crval2_in_mapping": { "type": "boolean", "description": "CRVAL2 是否进入映射（v3 起 CAR/AIT = true；v1/v2 = false 为已订正缺陷）" },
+          "lonpole_default": { "enum": ["paper2_default", "n/a"], "description": "LONPOLE 取 Paper II 标准默认（δ0≥θ0 ⇒ 0°，否则 180°）" },
+          "domain_bound": { "type": "string", "description": "域界判据（如 TAN r≥π/2 / SIN ρ>1 / AIT A>1 / CAR |θ|≥90°）" },
+          "implemented": { "const": true, "description": "本行为已实现投影（未实现成员只出现在 frozen_set）" }
+        }
+      }
+    }
+  }
+}

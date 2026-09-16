@@ -1,6 +1,6 @@
 # Phase3 HiPS→FITS Resample Algorithms (ALG-P3)
 
-> ID: ALG-P3-001  范围: ALG-P3-001..004  上游 SCI: SCI-P3-001  状态: DERIVED (V5 ALG-007, 2026-08-28)  模块: phase3 (施工规格; 重采样域实现级合同=ALG-P3-RSMP-IMPL-001 docs/algorithms/PHASE3_RSMP_IMPL.md, 投影域=ALG-P3-PROJ-IMPL-001, 写出域=ALG-P3-FITS-IMPL-001; 生产源 lib/phase3_session/p3_resample.cpp 239 行实测在库)
+> ID: ALG-P3-001  范围: ALG-P3-001..004  上游 SCI: SCI-P3-001  状态: DERIVED (V6 ALG-008, 2026-09-16；V5 ALG-007 2026-08-28)  模块: phase3 (施工规格; 重采样域实现级合同=ALG-P3-RSMP-IMPL-001 docs/algorithms/PHASE3_RSMP_IMPL.md, 投影域=ALG-P3-PROJ-IMPL-001, 写出域=ALG-P3-FITS-IMPL-001; 生产源 lib/phase3_session/p3_resample.cpp 239 行实测在库)
 
 ## 1 上游 SCI 与输入输出
 
@@ -19,21 +19,29 @@ G1 (ALG-P3-002) 输出 WCS 构造 (FITS 1-based, CD-only):
   east_right: CD1_1=+s_out, CD2_2=−s_out
 
 G2 (ALG-P3-002) 反向映射 (逐输出像素 (x,y), 1-based→中间平面):
-  iwc = CD^{-1} · ((x+1)−CRPIX1, (y+1)−CRPIX2)      # deg 偏移
-  world = TAN^{-1}(iwc; CRVAL) → (RA,Dec)∈[0,360)×[−90,90]
+  (iwc1,iwc2) = CD · ((x+1)−CRPIX1, (y+1)−CRPIX2)   # deg 偏移；Paper I §2.1.1: 中间坐标 = CD·(p−CRPIX)
+  world = proj^{-1}(iwc; CRVAL) → (RA,Dec)∈[0,360)×[−90,90]
+  # 订正（SCI-FIX-PROJ 2026-09-16，M1a-A-007）：原写 iwc = CD^{-1}·(…) 方向反；
+  # 实现 p3_proj_v6.cpp pix_to_plane / p3_wcs.cpp 均为 CD·δp（正确），本条改文档。
+  TAN 参考点含 CRVAL2（θ0=CRVAL2，Paper II §2.2；CRPIX 处 world == CRVAL）
   gnomonic: (ξ,η)=atan2 形式; 球面角差按 RA wrap 归一
 
 G3 (ALG-P3-003) order 选择 (SCI-P3 §5 冻结):
+  s_out_rad = s_out · π/180                         # s_out 单位 deg/px（量纲声明，M7-A-209）
   s_tile_rad(order) = sqrt(π/3) / (2^order · W)     # tile 像素角尺度近似
   order_needed = ceil( log2( sqrt(π/3) / (W · s_out_rad) ) )
-  order_sel = clamp(order_needed, 0, hips_order)
+  order_sel = clamp(order_needed, 0, hips_order)    # = min(hips_order, max(0, order_needed))
 
 G4 (ALG-P3-003) leaf 采样:
-  leaf_order = order_sel + tile_shift(=9, W=512)
+  leaf_order = order_sel + log2(W)                  # W=hips_tile_width（支持子集 W=512 ⇒ +9）
   ipix = ang2pix_NESTED(nside=2^leaf_order, RA, Dec)
   tile = ipix >> (2·log2(W));  local = ipix & ((1<<2·log2(W))−1); (lx,ly)=nested_local_to_xy(local)
-  nearest: S = tile[lx,ly]（有限判定→coverage）
-  bilinear: 邻域 4 leaf 权重 w=面积重叠分数(投影线性化), Σw=1, S=Σ w·tile_value, 跨 tile 读相邻 tile
+  # 订正（SCI-FIX-PROJ 2026-09-16，M7-A-117）：>>(2·log2 W) 是 **索引位移**（tile 内 leaf 数 W²），
+  # 不是 order 偏移；order 偏移是 log2(W)（W=512 ⇒ +9）。账本原处方 +2·log2(W) 会使 nside 偏大
+  # 2^(2log2 W−log2 W)=W 倍（W=512 ⇒ 512×），已按研究结论在 FIX_LEDGER 备注订正，不按处方改码。
+  nearest: S = tile[lx,ly]（**存在判定→coverage**：tile 像素存在即 C=1，值 NaN 照传）
+  bilinear: 邻域 4 leaf 权重 w=面积重叠分数(投影线性化), **Σw = 1 ± k·ULP**(k 由累加 dtype 定),
+            S=Σ w·tile_value, 跨 tile 读相邻 tile（NESTED 面邻接含轴翻转/镜像）
 
 G5 (ALG-P3-004) FITS 写:
   BITPIX=−32/−64, BSCALE=1, BZERO=0, BUNIT=properties(缺省 'ADU')
@@ -41,7 +49,7 @@ G5 (ALG-P3-004) FITS 写:
   (B2-A4: <proj> 取自已校验 projection, alpha 唯一合法值 "TAN";
    未实现投影在写前 fail-closed, 不落任何 FITS)
   HISTORY: 源 HiPS 标识/order_sel/sampler/软件版本/manifest hash
-  coverage: C=1 ⇔ 足迹内存在有限 tile 像素; 无覆盖 S=NaN
+  coverage: C=1 ⇔ 足迹内存在 tile 像素（值可为 NaN；NaN 只进 S 不改 C）; 无覆盖 S=NaN/C=0
 ```
 
 推导来源: **SCI-P3-001 §5 连续定义与 §9a 冻结回答的离散化**（G1↔§9a-4, G2↔§5 反向映射, G3↔§9a-5, G4↔§9a-6/7, G5↔§9a-11）；实现一致性锚（非推导依据）: 待建 `lib/phase3`。
@@ -51,7 +59,9 @@ G5 (ALG-P3-004) FITS 写:
 ```text
 function phase3_resample(hips_dir, params):
   props = read_properties(hips_dir)                    # ALG-P3-001: 必需键校验, 非法显式拒
-  validate(params): frame=icrs, W,H∈[1,20000], s_out>0, |center.Dec|≥5°, pixfrac N/A
+  validate(params): frame=icrs, W,H∈[1,20000], s_out>0, |center.Dec|≤85°(距极点 ≥5°), pixfrac N/A
+    # 订正（SCI-FIX-PROJ 2026-09-16，M1a-A-007）：原写 |center.Dec|≥5° 与 SCI §4 的
+    # abs(dec)<=85° 语义相反；正确为 |center.Dec| ≤ 85°。
   order_sel = G3(props.hips_order, W=props.hips_tile_width, s_out)
   cd = G1(params); tiles = TileCache(order_sel)        # 有界缓存按 (ipix_tile); 逐出 FIFO 最旧插入 (P3-RSMP-DOC 2026-09-12 表述更正: 原记 LRU, 实测 p3_resample.cpp:22-36 keys.erase(begin()) 无访问序更新, DISP-P3RSMP-002)
   parallel for row_band in rows(out):                  # worker pool by affinity, 禁硬编码线程数
@@ -83,7 +93,7 @@ function phase3_resample(hips_dir, params):
 
 ## 5c SIMD 安全与取消点
 
-- `G2` 内为逐像素标量三角算术(自动向量化安全: 无跨像素依赖)；`S/C` 写入行连续无别名；bilinear 权重和=1 由构造保证(4 权重显式归一, FP64)。
+- `G2` 内为逐像素标量三角算术(自动向量化安全: 无跨像素依赖)；`S/C` 写入行连续无别名；bilinear 权重和 = 1 ± k·ULP（4 权重显式归一，FP64 累加；**不作逐位/精确断言**——IEEE-754 下不可满足，M7-F-201）。
 - 取消点: 输出行带粒度(ALG-P3-003 循环)；取消时**输出文件不落盘**(tmp 删除, rename 不发生)——FITS 原子性以整文件为单元(ALG-P3-004)。
 
 ## 6 时间/空间复杂度
@@ -97,12 +107,12 @@ function phase3_resample(hips_dir, params):
 
 ## 8 参考实现/Oracle
 
-- reference 实现即生产实现(首版)；Oracle=SCI-P3 §11 全集, **Oracle 不调用本模块**（独立小规模球面 reference + 独立 FITS/WCS 读取器）；容差: WCS roundtrip ≤1e-6 px, 常数场 max_abs=0(nearest), bilinear 常数场 max_abs=0, 解析场容差由 SYN-007 预冻结。
+- reference 实现即生产实现(首版)；Oracle=SCI-P3 §11 全集, **Oracle 不调用本模块**（独立小规模球面 reference + 独立 FITS/WCS 读取器）；容差: WCS roundtrip ≤1e-6 px；常数场（nearest）逐值相等；常数场（bilinear）|S−B0| ≤ k·ULP·B0（**不作 max_abs=0 逐位断言**，M7-F-201：Σw=1±k·ULP 经 S=Σw·B0 传递）；解析场容差由 SYN-007 预冻结。
 
 ## 9 容差来源
 
 - WCS roundtrip 1e-6 px：SCI-P3 §7 不变量(FP64 反向映射+Paper I/II 语义)；
-- 常数场 0：bilinear 权重和=1 构造保证；
+- 常数场（bilinear）：|S−B0| ≤ k·ULP·B0——由 Σw = 1 ± k·ULP 传递（不是逐位 0；M7-F-201）；
 - 解析球面场容差：h≤s_out 约束下 bilinear O(h²) 误差界 → SYN-007 表冻结(任务 SYN-007 落实具体数值)。
 
 ## 10 关联 ARC/API/TST
