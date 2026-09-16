@@ -1,6 +1,6 @@
 # 任务列表与依赖图
 
-基线提交：`a861d8f63a1f6c17dea2f201349006f6a6bd1ad2`　任务数：31　所有任务初始状态：`NOT_STARTED`
+基线提交：`a861d8f63a1f6c17dea2f201349006f6a6bd1ad2`　任务数：32　所有任务初始状态：`NOT_STARTED`
 状态列由调度员按 `OPERATOR.md §3` 维护；`PASS` 只由前台独立复跑后写入。
 
 ## 1. 任务总览
@@ -13,6 +13,7 @@
 | L0 | ROOT-003 | run/ 临时产物保留策略与清运 | ROOT-001 | S3-R | NOT_STARTED |
 | L0 | ROOT-004 | 旧 bug 清单按最新权威订正 + 根目录存疑文档处置（**已独立出去由负责人另派 agent**） | ROOT-001 | S4-R | NOT_STARTED（已移交） |
 | L0 | ROOT-005 | 根目录残留空目录与未登记产物目录处置（AstroCS.wiki/ CS/ worktrees/ logs/ 等） | ROOT-001 | S4-S | NOT_STARTED |
+| L0 | ROOT-006 | 凭据入仓风险处置（FATDUCK_ACCESS.md 与审计包白名单）**SECURITY-URGENT** | — | S4-T | NOT_STARTED |
 | L0 | WIKI-001 | 从权威文档生成项目 Wiki 并同步（消除 Wiki 自称唯一权威的漂移） | GOV-001 | S1-W | NOT_STARTED |
 | L0 | GOV-001 | 收敛最高权威、根目录与废止治理入口 | BASE-001 | S1-A | NOT_STARTED |
 | L0 | DOC-001 | 收敛活动文档的术语、状态与引用 | BASE-001 | S1-B | NOT_STARTED |
