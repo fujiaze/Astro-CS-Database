@@ -13,6 +13,16 @@
 - `docs/design/UNIFIED_MODEL.md` 已冻结 14 个对象名，但仓库内没有与之一一对应的 schema ID 清单。
 - 现有质量检查器 `tools/quality/contracts/check_config_contracts.py`、`check_science_units.py`、`check_api_contracts.py` 绑定旧合同布局。
 
+## 与 DOC-001 的边界（负责人裁决 2026-09-16）
+
+- `docs/contracts/**` 在本任务执行期间**归 DATA-001 所有**；DOC-001 不得把 `docs/contracts/v6/**` 当上一轮产物归档或改写（它是 DATA-001 的迁移输入）。
+- 反向：DATA-001 不得改 `docs/` 下与合同无关的活动文档（术语/状态清理归 DOC-001）。
+- 唯一允许的重叠是 `docs/contracts/**`，且以 DATA-001 为准；DOC-001 需要动它时必须等本任务结束后另行派发。
+
+## 环境事实（编制后实测，2026-09-16）
+
+- 系统 `python3` **无第三方 `jsonschema`**；仓库内唯一可用校验器是 `tests/contracts/v6/jsonschema_min.py`（零依赖关键字子集）。本任务的 schema 只能使用该子集支持的关键字，**不得**为过门而放宽 schema，也不得引入新依赖。
+
 ## 权威依据
 - ASTROCS_DESIGN.md §2（数据对象与配置分离；对象禁止互相冒充）
 - docs/design/UNIFIED_MODEL.md §1（统一线性观测模型 d_k = A_k x + n_k）
