@@ -6,6 +6,18 @@
       + TRACEABILITY + 审阅胶囊索引 + 本包控制快照(复制版)。
 禁止: 二进制/真实数据/FITS/HiPS/build/.git/大日志。
 输出: artifacts/prerelease_v5/capsules/REV-002_<commit12>.zip
+
+退役 (RETIRED, 2026-09-16, 负责人裁决) —— REV-002 属旧世代(V5 控制包)审阅胶囊任务, 随该世代作废:
+  1. 依据: ASTROCS_DESIGN.md §0(权威链: 旧世代控制包产物不构成判据)+ 负责人裁决
+     「历史版本控制包全部作废; artifacts/ 不归档不保留」(artifacts/ 整体删除见 commit b1290525);
+  2. 输入已不存在: artifacts/prerelease_v5/tables/{TRACEABILITY,COMMITS,REVIEW_CAPSULE_INDEX}.csv
+     三条被第 119-121 行的 isfile 判定**静默跳过**(不报错、不留痕);
+  3. 输出已不存在: artifacts/prerelease_v5/capsules/ 目录本身已删, 且本脚本无 makedirs ——
+     实测 2026-09-16 运行即未捕获 FileNotFoundError(zipfile 打开输出即崩);
+  4. 活动替代: 无。科学/架构证据改由 reports/** 承载; 版本与提交信息由 git 历史承担(设计 §12);
+  复原命令 (内容未丢): git show 01754fab8618:tools/make_rev2_capsule.py
+  退役后行为: 任意调用打印 MAKE_REV2_CAPSULE_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿)。
+  登记见 docs/ci/01_CHECKS.md §2.2 与 reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md。
 """
 from __future__ import annotations
 
@@ -122,7 +134,25 @@ def collect_files() -> list[tuple[str, str]]:
     return out
 
 
+RETIRED_NOTICE = (
+    "MAKE_REV2_CAPSULE_RETIRED: 本工具（旧世代 REV-002 审阅胶囊生成器）已于 2026-09-16 按负责人裁决退役。\n"
+    "  依据: ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ 负责人裁决"
+    "（历史版本控制包全部作废；artifacts/ 不归档不保留，commit b1290525）；"
+    "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
+    "  输入/输出已不存在: artifacts/prerelease_v5/tables/*.csv 与 artifacts/prerelease_v5/capsules/。\n"
+    "  复原命令: git show 01754fab8618:tools/make_rev2_capsule.py\n"
+    "  登记: docs/ci/01_CHECKS.md §2.2 / reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md"
+)
+
+
 def main() -> int:
+    """退役后入口：显式失败（fail-closed，禁止 traceback 崩溃，不伪装绿）。"""
+    print(RETIRED_NOTICE, file=sys.stderr)
+    return 2
+
+
+def legacy_main() -> int:
+    """退役保留实现（复用方法：按复原命令取回旧世代控制包后可直接复跑）。"""
     commit = git("rev-parse", "HEAD")
     c12 = commit[:12]
     items = sorted(set(collect_files()))
