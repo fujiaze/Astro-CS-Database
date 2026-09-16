@@ -53,6 +53,29 @@
 `tests/traceability/test_traceability.py::test_01`，一为上述矩阵失败）。
 后三项红灯属既有技术债，另行处置，不在本次退役范围。
 
+### 2.2 工具层退役记录（非注册项，只减不增；每条必须写依据与日期）
+
+RETIRE-001（2026-09-16）退役旧世代（V5 控制包）打包/审计工具。**全部只加退役抬头，文件本体不删**（保留可复跑性）。
+统一判定口径：① 权威链 `ASTROCS_DESIGN.md §0`（旧世代控制包产物不构成判据）+ 负责人裁决「历史版本控制包全部作废；
+`artifacts/` 不归档不保留」（commit `b1290525`）与 `ASTROCS_DESIGN.md §12`（版本信息下线）；② `ENGINEERING_SPEC.md §8`
+（坏掉即红的门要退役或修好，**不允许静默坏掉**）。
+
+| 退役项 | 日期 | 依据 | 处置 | 可复跑性 |
+|---|---|---|---|---|
+| `tools/assemble_audit.py` | 2026-09-16 | 唯一输入 `工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/` 与 `artifacts/prerelease_v5/tables/` 均不存在；实测未捕获 `FileNotFoundError` 且残留空目录 | 加退役抬头；入口改「显式失败」：打印 `ASSEMBLE_AUDIT_RETIRED` 并 exit 2；原实现保留为 `legacy_main()` | 有：`git show 01754fab8618:tools/assemble_audit.py` |
+| `tools/make_capsule.py` | 2026-09-16 | 输出 `artifacts/prerelease_v5/capsules/` 已随 `artifacts/` 删除；无参 `IndexError`，带参则静默把 zip 写回已退役路径 | 加退役抬头；入口改「显式失败」：`MAKE_CAPSULE_RETIRED` + exit 2；原实现保留为 `legacy_main()` | 有：`git show 01754fab8618:tools/make_capsule.py` |
+| `tools/make_rev2_capsule.py` | 2026-09-16 | 输入三表（`TRACEABILITY/COMMITS/REVIEW_CAPSULE_INDEX.csv`）被静默跳过，输出目录已删 → 实测未捕获 `FileNotFoundError` | 加退役抬头；入口改「显式失败」：`MAKE_REV2_CAPSULE_RETIRED` + exit 2；原实现保留为 `legacy_main()` | 有：`git show 01754fab8618:tools/make_rev2_capsule.py` |
+| `tools/pack_audit_package.py` | 2026-09-16 | 打包入口产物落已退役 `artifacts/prerelease_v5/`；实测目录被旁路重建时**静默产出 11.2 MB / 2709 条目且超 10 MB 目标仍 exit 0**，目录不存在则 traceback | **仅退役打包入口 `main`**（`PACK_AUDIT_PACKAGE_RETIRED` + exit 2）；`allowed()/denied()/EXCLUDE_EXT` **保留为活动依赖**（`CHK-SECRET-HYGIENE` 的收录白名单与凭据排除真源），import 语义不变 | 有：`git show 01754fab8618:tools/pack_audit_package.py` |
+
+实测复核（2026-09-16，RETIRE-001 自证）：四个退役项调用均为「明确退役文案 + exit 2，无未捕获 traceback」；
+`python3 tools/quality/check_secret_hygiene.py --scope pack` rc=0、`tests/quality/test_secret_hygiene.py` 22/22 OK，
+证明 `pack_audit_package.py` 保留函数的活动依赖未受影响。
+
+**经实证不退役（保留原样，不计入退役数）**：`tools/quality/known_failures_baseline.py`（被 `KNOWN-FAILURES-BASELINE`、
+`-VERIFY`、`-CHECK` 三个注册项消费，仍产出 `artifacts/KNOWN_FAILURES_BASELINE.json`）；`tools/check_traceability.py`
+（已按 GAP-032 于 §2.1 登记）。逐条判定、消费者实测与复原坐标见
+`reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md`。
+
 ## 3. 门禁分级
 
 | 级 | 含义 | 处理 |
