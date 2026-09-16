@@ -26,9 +26,9 @@ import sys
 
 # 允许串行的 I/O/metadata 白名单: 文件名 → {owner, reason, expiry, test}
 ALLOWLIST: dict[str, dict[str, str]] = {
-    "cli/commands.cpp": {"owner": "astrocs-cli", "reason": "CLI 解析/参数/元数据 <5s",
+    "lib/infrastructure/cli/commands.cpp": {"owner": "astrocs-cli", "reason": "CLI 解析/参数/元数据 <5s",
                          "expiry": "RT-008", "test": "check_cli_command_layer.py"},
-    "lib/astro_image_io/src/hips/aio_hips_reader.cpp": {
+    "lib/infrastructure/aio/src/hips/aio_hips_reader.cpp": {
         "owner": "astrocs-io", "reason": "HiPS properties/manifest 解析 <5s",
         "expiry": "P2-005", "test": "io_ownership_test"},
 }
@@ -47,8 +47,8 @@ def scan(repo: pathlib.Path, cmake_path: pathlib.Path) -> list[str]:
     # 先读后用: sampler/upm/p3_session/p3_resample 必须在检查 1 的
     # "std::thread" not in sampler + upm 求值前赋值, 否则当根 CMake 不含
     # P2_ENABLE_OPENMP/P2_PARALLEL/-fopenmp 任一关键词时 UnboundLocalError。
-    sampler = read_text(repo / "lib/phase2/src/sampler.cpp")
-    upm = read_text(repo / "lib/phase2/src/upm.cpp")
+    sampler = read_text(repo / "lib/algorithms/coverage/src/sampler.cpp")
+    upm = read_text(repo / "lib/algorithms/coverage/src/upm.cpp")
     p3_session = read_text(repo / "lib/phase3_session/p3_session.cpp")
     p3_resample = read_text(repo / "lib/phase3_session/p3_resample.cpp")
 
@@ -157,15 +157,15 @@ def _selftest(repo: pathlib.Path, cmake_path: pathlib.Path) -> int:
     with tempfile.TemporaryDirectory() as tmp:
         td = pathlib.Path(tmp)
         # fake repo structure
-        (td / "lib" / "phase2" / "src").mkdir(parents=True)
+        (td / "lib" / "algorithms" / "coverage" / "src").mkdir(parents=True)
         (td / "lib" / "phase3_session").mkdir(parents=True)
         (td / "cli").mkdir()
         (td / "CMakeLists.txt").write_text("# no P2_ENABLE_OPENMP\n", encoding="utf-8")
-        (td / "lib" / "phase2" / "src" / "sampler.cpp").write_text(
+        (td / "lib" / "algorithms" / "coverage" / "src" / "sampler.cpp").write_text(
             "// 默认构建 P2_ENABLE_OPENMP=OFF => 实际串行\n"
             "#if defined(P2_ENABLE_OPENMP) && !defined(_MSC_VER)\nint workers = (int)std::thread::hardware_concurrency();\n#endif\n",
             encoding="utf-8")
-        (td / "lib" / "phase2" / "src" / "upm.cpp").write_text(
+        (td / "lib" / "algorithms" / "coverage" / "src" / "upm.cpp").write_text(
             "int w = std::thread::hardware_concurrency();\n", encoding="utf-8")
         (td / "lib" / "phase3_session" / "p3_session.cpp").write_text(
             "// 单线程串行\nfor (int y = 0; y < h; ++y) { for (int x = 0; x < w; ++x) { out[y*w+x]=0; } }\n",
