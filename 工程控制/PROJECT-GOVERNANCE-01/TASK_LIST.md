@@ -1,6 +1,6 @@
 # 任务列表与依赖图
 
-基线提交：`a861d8f63a1f6c17dea2f201349006f6a6bd1ad2`　任务数：39　所有任务初始状态：`NOT_STARTED`
+基线提交：`a861d8f63a1f6c17dea2f201349006f6a6bd1ad2`　任务数：40　所有任务初始状态：`NOT_STARTED`
 状态列由调度员按 `OPERATOR.md §3` 维护；`PASS` 只由前台独立复跑后写入。
 
 ## 1. 任务总览
@@ -22,10 +22,11 @@
 | L2 | CI-002 | 补齐 run_checks.py 三项活守卫 + 切换工作流调用点（规范=实现=工作流） | QA-001, CI-001 | S5-C | NOT_STARTED |
 | L2 | CFG-002 | 配置登记类遗留闭合（plugin 级默认 / per-module knobs / 滤镜名语义 / os_abi 值域 / 索引归属） | CFG-001, ARCH-001 | S6-A | NOT_STARTED |
 | L2 | TEST-CLI-SYNC-2 | 残余同步：后端 CLI 类 10 文件 + 陈旧 skip 载体 20 条（依赖 CLI-002/ARCH 停稳） | CLI-002, ARCH-001 | S3-B | NOT_STARTED |
+| L2 | CI-003 | 检查器现代化（陈旧绑定迁移）与门7 极性证据债 26 门 | CI-001, DOC-001 | S5-D | NOT_STARTED |
 | L0 | GOV-001 | 收敛最高权威、根目录与废止治理入口 | BASE-001 | S1-A | NOT_STARTED |
 | L0 | DOC-001 | 收敛活动文档的术语、状态与引用 | BASE-001 | S1-B | NOT_STARTED |
 | L1 | DATA-001 | 建立统一数据对象合同链（14 个对象） | GOV-001, DOC-001 | S2-A | PASS（提前于声明的依赖，负责人裁决的 W1 顺序） |
-| L1 | CFG-001 | 建立 defaults/filters 与三命令配置合同 | GOV-001, DATA-001 | S3-A | NOT_STARTED |
+| L1 | CFG-001 | 建立 defaults/filters 与三命令配置合同 | GOV-001, DATA-001 | S3-A | PASS（提前于声明的依赖，负责人裁决的 W1 顺序） |
 | L1 | MOD-001 | 建立 23 插件到模块/target/清单映射门 | GOV-001, DATA-001 | S3-B | PASS（提前于声明的依赖，负责人裁决的 W1 顺序） |
 | L2 | ARCH-001 | 建立目标源码根与等价迁移骨架 | MOD-001 | S4-A | NOT_STARTED |
 | L2 | AIO-001 | 收敛唯一 AIO 与原子产品边界 | DATA-001, ARCH-001 | S5-A | NOT_STARTED |
