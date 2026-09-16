@@ -91,7 +91,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 
 - 改变 Moffat β≠4 或 `FWHM_FACTOR` 而无 SCI 变更；
 - 将 `q_psf` 当 SNR 进入 Phase2 权重；
-- 引入未文档的高斯备选拟合路径作为主路径。
+- 在**本模块内**（`lib/algorithms/psf`，§13 实现面）引入未文档的高斯备选拟合路径作为主路径（检测侧 `lib/algorithms/star_detection` 的椭圆高斯母函数不属本条范围：SCI-P1-STAR-001 §3、DISP-STAR-007）；
 
 ## 11 验证 Oracle
 
@@ -124,3 +124,5 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 - §7/§8 全过；
 - `tools/science_contract_lint.py` PASS；
 - 解析不变量→SYN-002 转换：解析 PSF 星场（已知 A/σ/θ）、q_psf 边界、饱和标志用例登记 SYN-002。
+
+> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门不得引用表外阈值）。
