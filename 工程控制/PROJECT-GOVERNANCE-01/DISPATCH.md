@@ -172,3 +172,20 @@
 3. 每条派发**必须携带** `reports/PROJECT-GOVERNANCE-01/root-scan/by_owner/<任务>.txt` 清单，并要求执行行先做当前树复检（合并表状态取证于 15:00 前后，其后多个任务已落地）；
 4. 未映射的 47 条（`NEXT-PACK:NP-*`，编号需归一，**无 P0**）由下一轮控制包统一立项。
 
+
+---
+
+## 附录 D　提交归属更正（前台记账 · 不改历史）
+
+### D.1 `eaf32aad`（ARCH-001 迁移）**连带提交了在途线文件**
+
+- **原因**：前台对 `lib/**`/`docs/**`/`tests/**` 做整树 `git add -A` + pathspec 提交时，**P1-001（在跑）与 GOV-001（在跑）正在同域写入**，其未提交改动被一并纳入；
+- **被连带的具体项**：
+  - P1-001 的 9 个 comment-hygiene 文件（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.{cpp,h}`、`spherical_overlap.cpp`、`drizzle/module_entry.cpp`、`calibration/master_generator.cpp`、`calibration/cosmetic_corrector.cpp`、`platesolve/cpp/ipv/src/ipv_wcs.cpp`、`ipv_types.h`、`ipv_robust_refine.cpp`）；
+  - GOV-001 的 2 个归档副本（`docs/archive/HANDOVER.md`、`docs/archive/VISUAL_CHECK_README.md`）；
+- **处置**：内容合法、**归属挂错**、**不改历史**；两条线各自的自证摘要为准据台账；ACCEPTANCE 里对应行注明「共享提交」；
+- **流程修正（即刻生效）**：
+  1. **禁止**在他线在跑时对整棵树（`lib`/`docs`/`tests`）做 `git add -A`；提交前必须先 `git status` 列出**在跑线的在途文件**并用 pathspec `:(exclude)` 排除；
+  2. 前台每次提交前声明「本次将排除的在途文件」；
+  3. 已发生两次同类事故（`23acb453` 的 `git mv` 连带、`eaf32aad` 的整树连带）——第三次视为流程失控，须暂停派发做写域冻结。
+
