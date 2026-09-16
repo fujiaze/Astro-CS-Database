@@ -39,11 +39,13 @@ static bool write_frame(const std::string& path, float flux, bool with_ivar = fa
         v.covered_area = area.data();
         v.valid_mask = nullptr;
         v.var_num_sum = with_ivar ? vnum.data() : nullptr;
+        aio_hips_tile_view_abi_init(&v);
         if (aio_hips_write_signal_support_tile(ps, &v) != 0) {
             std::fprintf(stderr, "tile write failed ipix=%llu\n", (unsigned long long)ipix);
             aio_hips_abort(ps);
             return false;
         }
+        aio_hips_tile_view_abi_init(&v);
         if (with_ivar && aio_hips_write_variance_tile(ps, &v) != 0) {
             std::fprintf(stderr, "variance tile write failed ipix=%llu: %s\n",
                          (unsigned long long)ipix, aio_hips_last_error());
@@ -113,11 +115,13 @@ static bool write_seam_frame(const std::string& path, int mode, int offset) {
         v.covered_area = area.data();
         v.valid_mask = nullptr;
         v.var_num_sum = vnum.data();
+        aio_hips_tile_view_abi_init(&v);
         if (aio_hips_write_signal_support_tile(ps, &v) != 0) {
             std::fprintf(stderr, "seam tile write failed ipix=%llu\n", (unsigned long long)ipix);
             aio_hips_abort(ps);
             return false;
         }
+        aio_hips_tile_view_abi_init(&v);
         if (aio_hips_write_variance_tile(ps, &v) != 0) {
             std::fprintf(stderr, "seam variance tile write failed ipix=%llu: %s\n",
                          (unsigned long long)ipix, aio_hips_last_error());
@@ -153,6 +157,7 @@ static bool write_frame_custom(const std::string& path, bool per_tile,
         view.flux_sum = sig.data();
         view.covered_area = area.data();
         view.valid_mask = nullptr;
+        aio_hips_tile_view_abi_init(&view);
         if (aio_hips_write_signal_support_tile(ps, &view) != 0) { aio_hips_abort(ps); return false; }
     }
     if (aio_hips_finalize(ps) != 0) { aio_hips_abort(ps); return false; }
@@ -186,6 +191,7 @@ static bool write_analytic_frame(const std::string& path) {
         view.flux_sum = sig.data();
         view.covered_area = area.data();
         view.valid_mask = nullptr;
+        aio_hips_tile_view_abi_init(&view);
         if (aio_hips_write_signal_support_tile(ps, &view) != 0) { aio_hips_abort(ps); return false; }
     }
     if (aio_hips_finalize(ps) != 0) { aio_hips_abort(ps); return false; }

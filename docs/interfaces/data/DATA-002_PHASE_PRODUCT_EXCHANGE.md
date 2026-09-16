@@ -9,7 +9,7 @@
 > `contracts/data/artifact_types.registry.json` + `contracts/data/artifact_manifest.schema.json`（DATA-001 冻结）
 > 机器形态：`contracts/data/phase_product_exchange.schema.json`（schema）、
 > `contracts/data/phase_product_exchange_matrix.json`（兼容矩阵真源）、
-> `runtime/artifact_store/phase_product_exchange_validator.py`（执行校验器，无第三方依赖）
+> `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py`（执行校验器，无第三方依赖）
 > 下游：DATA-003（生产 ArtifactStore 接线）、RT-002（phase-isolated runtime）、IO-002/IO-003（HiPS 输入/原子输出）
 
 ## 0. 目的与范围
@@ -25,7 +25,7 @@
 |---|---|
 | `contracts/data/phase_product_exchange.schema.json` | 交换对象文档形态（JSON Schema，权威文档形态） |
 | `contracts/data/phase_product_exchange_matrix.json` | 兼容矩阵真源（role 绑定 / edges / 拒绝条件；validator 读取） |
-| `runtime/artifact_store/phase_product_exchange_validator.py` | 执行校验器（与 schema 一一对应；须同步修改） |
+| `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py` | 执行校验器（与 schema 一一对应；须同步修改） |
 | `contracts/data/examples/*.example.json` | 示例（phase1/phase2/phase3 产品 + 外部 fixture） |
 
 ## 1. 阶段产品角色与 type 绑定（role ↔ type）

@@ -3,8 +3,8 @@
 > 文档 ID：`ARCH-LOG-RUNGRAPH-003`（归属 `docs/architecture/observability/`，owner SA-LOG-08）
 > 状态：ACTIVE_NORMATIVE（LOG-003 冻结）
 > 机器可读事实源：`tools/graph/render_run_graph.py`（渲染工具 + 机器验证）、
-> `runtime/pipeline/trace_replay.py`（RT-006 权威 replay 聚合）、
-> `runtime/pipeline/typed_dag.py`（RT-001 typed DAG 编译器，只读消费）。
+> `lib/infrastructure/pipeline/trace_replay.py`（RT-006 权威 replay 聚合）、
+> `lib/infrastructure/pipeline/typed_dag.py`（RT-001 typed DAG 编译器，只读消费）。
 > 本文档是视图；字段定义与验收以工具/标准为权威。
 
 ## 1. 目的与边界
@@ -23,7 +23,7 @@ artifact hash。旧手绘图/静态架构示意图不再作为规范来源——
   事实，SVG 是派生展示物（policy §2.5）；
 - Doxygen/Graphviz 仅生成文档，不改变产品执行 → `scientific_change` 恒 false。
 
-**边界**：本任务不改科学公式/运行调度；只读消费 `runtime/pipeline` 产物
+**边界**：本任务不改科学公式/运行调度；只读消费 `lib/infrastructure/pipeline` 产物
 （不 import 修改）；不实现真实 Graphviz 布局（主机无已登记 dot 时不假装
 调用成功——DOT 文本 + 最小合法 SVG 直出，见 §4）。
 
@@ -131,7 +131,7 @@ TraceEvent（`include/astrocs/core/contracts.h`）JSONL 字段：type/run_id/
 node_id/module_id/module_version/dll_name/dll_sha256/build_id/entry/
 call_count/workers/granted_workers/provider/kernel_id/status/error/
 artifact_id/artifact_sha256/artifact_size/cpu_ms/wall_ms/seq。聚合语义与
-`runtime/pipeline/trace_replay.py` 对齐（同合法类型集、同 call_count 计数、
+`lib/infrastructure/pipeline/trace_replay.py` 对齐（同合法类型集、同 call_count 计数、
 同 provider 最后观测胜出）；replay 未聚合的 dll/artifact/workers/cpu 观测
 由本工具从事件直接收集。**禁止 config 冒充**：worker/provider/duration/
 hash 等观测字段一律只来自 trace 事件。
@@ -166,9 +166,9 @@ hash 等观测字段一律只来自 trace 事件。
 
 - 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-003
 - RT-006：`include/astrocs/core/contracts.h` TraceEvent、
-  `runtime/pipeline/trace_replay.py`
-- RT-001：`runtime/pipeline/typed_dag.py`、
-  `runtime/pipeline/typed_dag.schema.json`
+  `lib/infrastructure/pipeline/trace_replay.py`
+- RT-001：`lib/infrastructure/pipeline/typed_dag.py`、
+  `lib/infrastructure/pipeline/typed_dag.schema.json`
 - LOG-002：`docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`
 - 控制包标准：`14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md` §5、
   `23_GRAPH_AND_DOC_TOOL_POLICY.md`

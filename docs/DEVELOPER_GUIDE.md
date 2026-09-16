@@ -1,4 +1,8 @@
-# AstroCS 开发者指南 (V19R8 — 延续 V19, 补 B4 28/28 + B5 6/8 节点 76/95)
+# AstroCS 开发者指南
+
+> **DOC-001 状态注记（2026-09-16）**：本文标题中的 V19R8 编号、以及下文「环境/构建/Git 工作流」章节为**历史 Windows 工作流记录**，不是当前规范。
+> 当前规范：`AGENTS.md` §3（环境与构建：唯一根 CMake + presets、Linux 开发节点、`python3 ci/run_checks.py`）、
+> `ENGINEERING_SPEC.md` §1（语言/编译器/平台）/§6（Git 与提交：只 `main`，禁止分支/worktree）、`ASTROCS_DESIGN.md` §12（Alpha 前无版本信息）。
 
 ## 环境
 
@@ -35,11 +39,11 @@ astro_image_io:     pipeline_frame_contract_test / dataflow_fuzz
 - 禁止大规模 cosmetic refactor (V19 PRERELEASE_CODE_QUALITY.md)
 - 日志统一写 `run/logs/<module>/<YYYYMMDD>/`
 - 中文注释; 科学文档含公式/单位/假设/失效域/源码入口
-- 规范标准：`docs/standards/`；追溯：`docs/TRACEABILITY.csv`
+- 规范标准：`docs/standards/`；追溯：`docs/traceability/TRACEABILITY_MATRIX.json`（机器真相；旧 `docs/TRACEABILITY.csv` 追溯门已退役）
 
 ## Git 工作流
 
 ```text
-main 分支为 Phase1/Phase2 主线; ACR 分支 feature/astrocompute-runtime 独立
+只 main 开发（禁止分支/worktree/额外 clone；ENGINEERING_SPEC §6）; ACR 仅保留源码且 DORMANT
 控制包协议: START_HERE → EXECUTION_ORDER → 实施 → 审核包 → SHA256
 ```

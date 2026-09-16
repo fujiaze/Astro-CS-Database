@@ -2,10 +2,10 @@
 
 > 文档 ID：`ARCH-LOG-MONITOR-002`（归属 `docs/architecture/observability/`，owner SA-LOG-08）
 > 状态：ACTIVE_NORMATIVE（LOG-002 冻结）
-> 机器可读事实源：`runtime/monitoring/monitor.py`（合同列/指纹/校验）、
+> 机器可读事实源：`lib/infrastructure/observability/monitoring/monitor.py`（合同列/指纹/校验）、
 > `tools/monitoring/verify_monitor_csv.py`（检查器）、
-> `runtime/monitoring/linux_procfs.py`（Linux 采集）、
-> `runtime/monitoring/windows_pdh_etw.py`（Windows 显式未实现 stub）。
+> `lib/infrastructure/observability/monitoring/linux_procfs.py`（Linux 采集）、
+> `lib/infrastructure/observability/monitoring/windows_pdh_etw.py`（Windows 显式未实现 stub）。
 > 本文档是视图；字段定义与验收以 schema/检查器为权威。
 
 ## 1. 目的与边界
@@ -27,7 +27,7 @@ LOG-001/RT-006 已冻结语义；不实现 Windows PDH/ETW 真实采集。
 
 ## 2. 强制自动建档
 
-`runtime/monitoring/runner.py::HeavyRunGuard` 是强制点：
+`lib/infrastructure/observability/monitoring/runner.py::HeavyRunGuard` 是强制点：
 
 - `resource_class ∈ {cpu_heavy, io}` 的 run **必须**先
   `create_monitor(csv_path)` 再 `assert_ready()`；否则抛
@@ -113,7 +113,7 @@ exit 0 = PASS；违例 => 非 0 + machine JSON verdict=FAIL。检查：
 
 ## 6. 真实观测接线（RT-006 trace，禁止 config 冒充）
 
-`runtime/monitoring/trace_feed.py::TraceSnapshotObserver` 从 **RT-006 trace
+`lib/infrastructure/observability/monitoring/trace_feed.py::TraceSnapshotObserver` 从 **RT-006 trace
 事件**（JSONL 或 TraceStore 快照 dict 列表）推导当前观测：
 
 - `provider`：最近一条携带非空 provider 的 trace 事件（MODULE_CALL /
@@ -130,8 +130,8 @@ exit 0 = PASS；违例 => 非 0 + machine JSON verdict=FAIL。检查：
 
 | 后端 | 位置 | 状态 |
 |---|---|---|
-| Linux procfs | `runtime/monitoring/linux_procfs.py` | **真实实现**（控制节点） |
-| Windows PDH/ETW | `runtime/monitoring/windows_pdh_etw.py` | **显式未实现 stub**（隔离） |
+| Linux procfs | `lib/infrastructure/observability/monitoring/linux_procfs.py` | **真实实现**（控制节点） |
+| Windows PDH/ETW | `lib/infrastructure/observability/monitoring/windows_pdh_etw.py` | **显式未实现 stub**（隔离） |
 
 - `linux_procfs.collect()`：/proc/self/status、smaps_rollup、stat、io、
   /proc/stat、/proc/loadavg 真实观测；
@@ -164,5 +164,5 @@ JSONL，按 LOG-001 合同做适配（本任务交付 CSV + 指纹 + 校验闭�
 - 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-002
 - LOG-001：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`
 - RT-006：`include/astrocs/core/contracts.h` TraceEvent、
-  `runtime/pipeline/trace_replay.py`
+  `lib/infrastructure/pipeline/trace_replay.py`
 - 控制包标准：`14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md` §4/§5

@@ -14,7 +14,8 @@
 // - TRANS: U(像素) -> W(角秒), 线性项单位 = 角秒/像素, 常数项单位 = 角秒
 // - CD = trans.x10 / 3600 (直接, 不用 M^-1)
 // - SIP A/B = cd_inv · trans_high_order (解析公式)
-// - SIP AP/BP = 网格反变换法 (NB_GRID_POINTS=7)
+// - SIP AP/BP = 采样网格 ≥7×7 反变换法 (实现 AP/BP 41×41 阶 5,
+//   APx/BPx 81×81 阶 7; 偏差登记 DISP-WCS-008)
 // - iterative_reproject 收敛阈值: sqrt(x00² + y00²) < 0.01" (角秒, 直接)
 //
 // 日期: 2026-07-05

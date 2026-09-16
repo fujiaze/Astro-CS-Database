@@ -2,9 +2,9 @@
 
 > ID: DOC-ARCH-CPU-001 · owner: SA-CPU-09 · 状态: FROZEN (CPU-001, 2026-09-02)
 > 上游: `ASTROCS_DESIGN.md` §8（CPU 后端与资源）/ `ENGINEERING_SPEC.md` §10（资源与性能）；旧编号标准与旧工程约束已退役
->       / 03_TARGET_PRODUCT_AND_ARCHITECTURE.md（providers/cpu 目标树）
+>       / 03_TARGET_PRODUCT_AND_ARCHITECTURE.md（lib/infrastructure/benchmark/cpu 目标树）
 > 下游: CPU-002 baseline、CPU-003 AVX2/FMA、CPU-004 AVX-512、CPU-005 路由
-> 实现: providers/cpu/common/（capability_v1.h + capability_detect.c）
+> 实现: lib/infrastructure/benchmark/cpu/common/（capability_v1.h + capability_detect.c）
 > 测试: tests/cpu/dispatch/（probe + feature matrix 模拟负测 + schema 校验）
 
 ## 1. 目标与验收
@@ -55,7 +55,7 @@ AVX512DQ=1<<11, AVX512VL=1<<12`。
 
 ## 4. JSON schema（Windows/Linux 同一）
 
-- 唯一事实源：`providers/cpu/common/schemas/cpu_capability.schema.json`
+- 唯一事实源：`lib/infrastructure/benchmark/cpu/common/schemas/cpu_capability.schema.json`
   （draft 2020-12；`additionalProperties:false`；全部 required 枚举冻结）。
 - `acs_cap_serialize_json_v1` 输出与该 schema 一一对应；无浮点；键序固定 →
   同机同构输出逐字节稳定（可哈希/可比对）。

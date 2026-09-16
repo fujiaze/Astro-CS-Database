@@ -7,8 +7,8 @@
 > 哈希与 provenance 完整的磁盘产品/manifest 交换）、DATA-001（typed manifest schema）、
 > DATA-002（三阶段产品交换合同，R-DISK-ONLY / R-EVIDENCE-REQUIRED）、
 > DATA-003（生产 ArtifactStore：原子发布 + 唯一 producer + manifest hash sidecar）
-> 机器形态：`runtime/artifact_store/provenance.py`（provenance 层，执行校验器）、
-> `runtime/artifact_store/production_store.py`（DATA-004 接线：provenance sidecar /
+> 机器形态：`lib/infrastructure/aio/runtime/artifact_store/provenance.py`（provenance 层，执行校验器）、
+> `lib/infrastructure/aio/runtime/artifact_store/production_store.py`（DATA-004 接线：provenance sidecar /
 > 版本门 / 消费门）、`tests/artifact/test_provenance.py`（验收测试）
 > 下游：RT-002（phase-isolated runtime 消费门接线）、RT-006（trace 溯源字段）、
 > IO-003（原子 HiPS/manifest 输出复用 provenance sidecar 语义）、LOG-001（脱敏语义对齐）

@@ -166,7 +166,7 @@ class TestP1004JointGate(unittest.TestCase):
         self.assertEqual(ev_run_ids, {m["run_id"]},
                          f"事件流 run_id 与 manifest 不一致: {ev_run_ids} vs {m['run_id']}")
         # resource 文件与 manifest 同轮同目录存在(联合: 数值+资源同门)
-        for name in ("resource_summary.json", "resource_samples.csv", "worker_balance.csv"):
+        for name in ("resource_summary.json", "resource_timeseries.csv", "worker_balance.csv"):
             self.assertTrue(os.path.isfile(os.path.join(TMP, name)), f"{name} 缺失")
         res = json.load(open(os.path.join(TMP, "resource_summary.json")))
         self.assertEqual(res.get("run_id", ""), "",

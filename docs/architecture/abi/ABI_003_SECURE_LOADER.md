@@ -4,7 +4,7 @@
 > 上游: `ASTROCS_DESIGN.md` §7.3（版本化 C ABI/DLL 边界）/ `docs/standards/C_ABI_STANDARD.md`；旧编号标准与旧工程约束已退役
 >       / `docs/contracts/ARCH-001.md`（ARC-001 DLL 边界）
 > 下游: ABI-004 动态 registry、ABI-005 conformance 探针、CLI-001 modules/doctor
-> 实现: runtime/module_loader/（secure_loader.h + secure_loader.c）
+> 实现: lib/infrastructure/pipeline/module_loader/（secure_loader.h + secure_loader.c）
 > 测试: tests/abi/（abi003_loader_probe.c + test_secure_loader.py）
 > 权威参考: include/astrocs/abi/module_api_v1.h / host_api_v1.h（ABI-001 冻结类型）
 

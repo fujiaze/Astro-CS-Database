@@ -6,7 +6,7 @@
 >       （ARCH-BACKEND-001 §1/§5/§6）· CPU_001_CAPABILITY_PROBE.md（CPU-001 os_safe 平面）·
 >       baseline provider 合同（CPU-002, baseline_provider_v1.h）
 > 下游: CPU-004 AVX-512 provider、CPU-005 逐 kernel 路由（以 kernel_id 选 provider）
-> 实现: providers/cpu/avx2/（avx2_provider_v1.h + avx2_provider.cpp；target 单独
+> 实现: lib/infrastructure/benchmark/cpu/avx2/（avx2_provider_v1.h + avx2_provider.cpp；target 单独
 >       `-mavx2 -mfma`；Windows `/arch:AVX2`）
 > 测试: tests/cpu/avx2/（gate stub 负测 + handshake + so_load + 对照 oracle runner）
 > profile 台账: docs/architecture/ISA_VARIANTS.md（ISA-001/003 实测）·

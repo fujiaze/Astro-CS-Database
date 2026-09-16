@@ -40,7 +40,7 @@ PHASE1_API_V1 §2 编排级合同 API-P1-004）；(b) Gaia DR3SP 参考星锥查
 三角形不变量匹配（k-vector + 投票矩阵 + PROSAC）；(c) 迭代重投影多项式
 拟合（order 1→3）+ 稳健扩增精化（CD 阻尼 IRLS + Tukey）；(d) WCS 提取
 （CD=trans 线性项/3600、CRVAL=收敛中心、CRPIX=w/2+0.5、SIP A/B 解析 +
-AP/BP 7×7 网格反变换、Y-down 输出转换）；(e) IpvWcsResult 质量指标
+AP/BP 采样网格 ≥7×7（实现 41×41 阶 5 / 81×81 阶 7）反变换、Y-down 输出转换）；(e) IpvWcsResult 质量指标
 （rms_px/rms_arcsec/n_pairs/trans_order）与 inlier 9 列缓冲；(f) 编排层
 WCS 头写回（CTYPE/CRVAL/CRPIX/CD/RADESYS=ICRS/EQUINOX=2000 + SIP）。
 
