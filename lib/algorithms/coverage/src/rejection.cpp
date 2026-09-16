@@ -1,6 +1,6 @@
 // lib/algorithms/coverage/src/rejection.cpp — Phase2 Rejection Framework CPU reference
 //
-// W7（ 34A532A2...B2EB308 + wiki Phase2_Rejection）：
+// 权威 = docs/science/REJECTION.md 与 docs/algorithms/REJECTION_ALGORITHMS.md：
 // - 输入：UPM-calibrated 样本栈 values[]/valid[]/support[]/weights[]/quality[]；
 // - 首版实现：None、Sigma、WinsorizedSigma（确定性，Oracle 对照）；
 // - AveragedSigma/LinearFit/ESD/RCR 接口冻结，后续子任务按论文/Oracle 独立实现；
@@ -1041,8 +1041,8 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     if (profile != "wbpp_2_9_1" && profile != "wbpp_current" &&
         profile != "astrocs_adaptive") {
         set_err(err, err_cap,
-                "p2_reject_plan_resolve: profile 仅支持 wbpp_2_9_1(wbpp_current"
-                "astrocs_adaptive");
+                "p2_reject_plan_resolve: profile 仅支持 wbpp_2_9_1"
+                "(wbpp_current alias) / astrocs_adaptive");
         return 1;
     }
     P2RejectionPlan p{};
@@ -1106,6 +1106,11 @@ std::uint32_t eligibility_core(
         bool ok = true;
         if (!std::isfinite(values[i])) { ++*out_finite; ok = false; }
         else if (valid != nullptr && !valid[i]) { ++*out_valid; ok = false; }
+        else if (weights != nullptr && !std::isfinite(weights[i])) {
+            // SCI REJECTION §4/§8：非有限 weights 在资格层判不合格
+            // （INVALID_INPUT hard fail 由 kernel 入口 p2_reject_stack_ex 给出）。
+            ++*out_finite; ok = false;
+        }
         else if (support != nullptr && !(support[i] > support_threshold)) {
             ++*out_support; ok = false;
         } else if (quality != nullptr && quality_flags_required != 0 &&
@@ -1190,6 +1195,14 @@ int p2_collect_candidate_stack(const P2EligibilityGatherInput* in,
         else if (in->valid != nullptr &&
                  !in->valid[(std::size_t)s * in->valid_stride + in->pixel]) {
             ++out->invalid_valid; ok = false;
+        } else if (in->weights != nullptr &&
+                   !std::isfinite(
+                       is_f32 ? (double)wf[(std::size_t)s * in->weight_stride +
+                                           in->pixel]
+                              : wd[(std::size_t)s * in->weight_stride +
+                                   in->pixel])) {
+            // SCI REJECTION §4/§8：非有限 weights 在资格层判不合格。
+            ++out->invalid_finite; ok = false;
         } else if (in->support != nullptr &&
                    !((is_f32
                           ? (double)sf[(std::size_t)s * in->support_stride +
@@ -1708,8 +1721,12 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
     if (reasons_out == nullptr || stack->values == nullptr) return 1;
 
     // 非法输入守卫
+    // SCI REJECTION §4(:34) / §8(:87)：values/weights 非有限 ⇒ INVALID_INPUT
+    // hard fail。weights 必须与 values 同等校验，否则非有限权重会被静默带入
+    // RCR 等加权方法核（rejection.h:84「候选栈含非 finite」定义即此语义）。
     for (std::uint32_t i = 0; i < n; ++i) {
-        if (!std::isfinite(stack->values[i])) {
+        if (!std::isfinite(stack->values[i]) ||
+            (stack->weights != nullptr && !std::isfinite(stack->weights[i]))) {
             for (std::uint32_t j = 0; j < n; ++j)
                 reasons_out[j] = P2_REASON_UNDERDETERMINED;
             out->accepted_count = n;

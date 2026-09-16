@@ -2,7 +2,8 @@
 //
 // Phase2 W4：稀疏光度控制点采样器（control sampler）。
 //
-// 语义（冻结， 34A532A2...B2EB308 + wiki Phase2_Unified_Photometric_Model）：
+// 语义（冻结；权威 = docs/algorithms/PHASE2_SAMPLER.md 与
+// docs/plugins/algorithms_phase2/10_sampling.md）：
 // - 控制点 geometry 由 union 几何与目标角间距决定，**不由 SNR 决定**；
 // - 每个覆盖控制节点的 frame 提供观测 y_ik/sigma_ik/snr_ik/support_ik/quality_ik，
 // y_ik 必须从实际 Phase1 HiPS 数据读取；

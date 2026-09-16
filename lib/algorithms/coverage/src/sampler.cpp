@@ -1,6 +1,7 @@
 // lib/algorithms/coverage/src/sampler.cpp — Phase2 W4 稀疏光度控制点采样器
 //
-// 语义（ 34A532A2...B2EB308 + wiki Phase2_Unified_Photometric_Model）：
+// 语义（冻结；权威 = docs/algorithms/PHASE2_SAMPLER.md 与
+// docs/plugins/algorithms_phase2/10_sampling.md）：
 // - 控制点布置于整个 coverage union（不限于 pairwise overlap）；
 // - 控制点 geometry 由 union geometry + target angular spacing 决定，
 // 不由 SNR 决定（SNR 只参与观测可信度）；
