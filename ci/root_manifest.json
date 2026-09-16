@@ -115,7 +115,7 @@
     {
       "path": "FATDUCK_ACCESS.md",
       "class": "F2",
-      "owner_task": "ROOT-004",
+      "owner_task": "ROOT-006",
       "note": "保留（登记，禁删）：运营必需的远程接入指引（reports/PROJECT-GOVERNANCE-01/security/SECURITY_NOTE.md）；去留归 ROOT-006，GOV-001 不删。"
     },
     {
@@ -133,7 +133,7 @@
     {
       "path": "问题扫描",
       "class": "F2",
-      "owner_task": "ROOT-004",
+      "owner_task": "GOV-001",
       "note": "保留（登记，禁删）：在用的待整改台账（REBASE_TABLE.md 785 条 + 本轮 28 条归属处置）；按任务卡「只能登记不能删」。"
     },
     {
