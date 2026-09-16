@@ -5,6 +5,7 @@ tests/artifact,unittest,"python3 -B -m unittest discover -s tests/artifact -t te
 tests/abi,unittest,"python3 -B -m unittest discover -s tests/abi -t tests/abi",true,false,true,"缺 __init__.py；C 探针需 gcc；18 用例 errors=9 全为 FileNotFoundError: gcc"
 tests/backend,unittest,"python3 -B -m unittest discover -s tests/backend -t tests/backend",true,false,true,"70 用例 errors=29 全为 g++ 缺失（ENV_FAIL-prerequisite）；50 skipped"
 tests/cli,unittest,"python3 -B -m unittest discover -s tests/cli -t tests/cli",true,false,true,"74 用例：setUpClass 需先构建 astrocs 二进制（本机无 cmake/gcc）；failures=1 errors=9 skipped=72"
+tests/config,unittest,"python3 -B -m unittest discover -s tests/config -t tests/config",false,true,false,"W5-CFG-002 登记；40 用例 OK（CFG-001 合同门 + CFG002-01..10 登记门，负例入口 tests/config/check_cfg002_registry.py --self-test）；尚未进 ci/checks.json（跨域交接项）"
 tests/contracts,unittest,"python3 -B -m unittest discover -s tests/contracts -t tests/contracts",false,true,false,"缺 __init__.py；9 用例 OK"
 tests/cpu/baseline,script,"python3 tests/cpu/baseline/run_provider_oracle_checks.py",true,false,true,"CPU-002 oracle 运行器：需 gcc 编译 provider .so；本机未实测（ENV_FAIL-prerequisite）"
 tests/cpu/dispatch,script,"python3 tests/cpu/dispatch/run_cpu_capability_checks.py",true,false,true,"CPU-005 capability 编译驱动：需 gcc/clang -std=c11；未实测"
