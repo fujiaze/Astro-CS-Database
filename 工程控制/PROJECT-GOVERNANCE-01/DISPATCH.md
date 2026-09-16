@@ -189,3 +189,41 @@
   2. 前台每次提交前声明「本次将排除的在途文件」；
   3. 已发生两次同类事故（`23acb453` 的 `git mv` 连带、`eaf32aad` 的整树连带）——第三次视为流程失控，须暂停派发做写域冻结。
 
+
+---
+
+## 附录 E　W3 域授权修正：**按对象授权**（前台 2026-09-16，包结构缺陷修正）
+
+### E.1 缺陷
+
+P2-002、OBS-001、P3-001 三条线均报「**卡内文件域不覆盖它自己的验收对象**」：
+- P2-002 卡授权 `lib/algorithms/{sampling,integration,rejection,upm}/**` ⇒ 这些目录现存**只有 README/module.yaml/memory.md，零源码**；生产源在 `lib/algorithms/coverage/src/`；卡里写的 `tests/mosaic/**` **树内不存在**；
+- OBS-001 卡授权 `lib/infrastructure/observability/**`（当前只有 PENDING.md）⇒ 其门禁阈值测试在 `tests/unit/mon00*_gate_test.cpp`、exit 10 门在 `cli/**`；
+- P3-001 卡授权 `tests/export/**` ⇒ **树内不存在**（投影测试实为 `tests/unit/p3_projection_test.cpp` 与 `tests/backend/test_p3_projection_oracle.py`）。
+
+**根因**：扫描的「归属」按**旧账本子系统**划分，落到控制包的**目录域**就错位。这是包的结构缺陷，不是执行行的问题。
+
+### E.2 修正原则（即刻生效）
+
+1. **按对象授权**：对象在哪就授权到哪，**不再**要求对象落在卡里写死的目录；
+2. 授权**逐文件/逐模块列明**（由前台在派发消息里给出），不等于整目录放开；
+3. **同一文件同时只允许一个写者**；跨任务共享文件的串行顺序由前台指定；
+4. **科学语义仍只读**（`docs/science/**`、`docs/algorithms/**` 公式与锚、SCI/ALG 冻结定义）——需要改 ⇒ 升级为 `OWNER_DECISIONS.md` 项，不得在代码里绕过；
+5. 卡的「允许改」与实际树不符时，**由前台在卡内追加订正段**（不改历史），执行行按订正段执行。
+
+### E.3 本波具体授权
+
+| 任务 | 授权（逐对象） | 串行/前置 |
+|---|---|---|
+| **OBS-001 → 拆两段** | **OBS-A**：`lib/infrastructure/observability/**` + `tests/monitoring/**`；**OBS-B**：`cli/**` + `tools/**`（除 `ci/**`） | OBS-A 可立即开工；OBS-B 与 CLI-002 串行（同改 `cli/`）；`ci/checks.json` 的注册面等 CI-002/CI-003 窗口 |
+| **P2-002** | `lib/algorithms/coverage/{src,include,tests}/**` + 新建 `lib/algorithms/coverage/tests/**` 内的 Oracle | **P2-001 先**（同目录）；`weight_mode=2` 语义裁决（D-7）后才动分支 |
+| **P3-001** | `lib/algorithms/projection/**` + `tests/unit/p3_projection_test.cpp` + `tests/backend/test_p3_projection_oracle.py` | D-1/D-2 裁决后才可改冻结公式（裁决前只许补独立 Oracle 与登记） |
+| **P1-002 / P3-002 / AIO-001 / RT-001** | 各自清单里对象所在的 `lib/algorithms/*` 或 `lib/infrastructure/*` 模块（逐条列明） | 同模块内串行 |
+| **MOD-002** | `docs/modules/**`、`tools/quality/check_module_map.py`、`tests/quality/test_module_map.py` | 无（已开工） |
+
+### E.4 卡面订正（追加段，不改历史）
+
+- `tasks/P2-002.md`：`tests/mosaic/**` 不存在 ⇒ 订正为 `lib/algorithms/coverage/tests/**`；`lib/algorithms/{sampling,integration,rejection,upm}/**` 无源码 ⇒ 订正为「对象在 `lib/algorithms/coverage/src/**`，与 P2-001 串行」；
+- `tasks/P3-001.md`：`tests/export/**` 不存在 ⇒ 订正为 `tests/unit/p3_projection_test.cpp` + `tests/backend/test_p3_projection_oracle.py`；
+- `tasks/OBS-001.md`：拆 OBS-A/OBS-B 两段并改写允许域（见 E.3）。
+
