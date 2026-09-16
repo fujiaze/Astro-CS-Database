@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "authority": "docs/ci/01_CHECKS.md §1「豁免显式登记 ci/exemptions.json，只减不增，需负责人批准」；CI_SPEC.md §4；03_GATES.md §1；ENGINEERING_SPEC.md §8",
+  "policy": {
+    "only_decrease": "高水位 high_water.max_entries 只允许下调；新增豁免必须由负责人批准并把 approved_by 写为「负责人」+ 附批准的 evidence 路径",
+    "never_waivable": [
+      "P0 门",
+      "SCI/ALG Oracle",
+      "ABI",
+      "生产路由",
+      "ACR dormant",
+      "heavy 单线程/低利用率",
+      "泄漏",
+      "崩溃",
+      "数据损坏",
+      "版本一致性",
+      "追踪断裂",
+      "安全凭据"
+    ],
+    "checker": "python3 ci/validate_registry.py --registry ci/checks.json --strict（R14）"
+  },
+  "high_water": {
+    "max_entries": 0,
+    "recorded_utc": "2026-09-16T00:00:00Z",
+    "recorded_by": "CI-001",
+    "note": "本波负责人裁决：不得新增任何豁免（CHK-MODULE-MANIFEST 的暂时红不进 known_failures，允许 CI 保持红）"
+  },
+  "approvals": [],
+  "exemptions": []
+}

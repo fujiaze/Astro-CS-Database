@@ -61,7 +61,20 @@ def find_step(manifest: dict, step_id: str) -> dict | None:
 
 
 def registry_index(registry: dict) -> dict:
-    return {c["id"]: c for c in registry.get("checks", [])}
+    """执行单元索引（CI-001 ID 收敛）：顶层项优先，其次聚合项 steps。
+
+    旧注册 ID 在收敛后原样保留为 step id，故绑定声明（binds_check/serves_checks）
+    仍能解析到同一执行单元；判据语义与收敛前一致（绑定的 check 必须已登记）。
+    """
+    by_id: dict = {}
+    for c in registry.get("checks", []):
+        if isinstance(c, dict) and c.get("id"):
+            by_id.setdefault(c["id"], c)
+    for c in registry.get("checks", []):
+        for s in ((c.get("steps") or []) if isinstance(c, dict) else []):
+            if isinstance(s, dict) and s.get("id"):
+                by_id.setdefault(s["id"], s)
+    return by_id
 
 
 def check_declaration(step: dict, checks: dict, repo: Path) -> list[dict]:

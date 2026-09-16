@@ -113,6 +113,110 @@
             "items": {
               "type": "string"
             }
+          },
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "description": "CI-001 ID 收敛：聚合项的逐条子检查（step）。每个 step 是自描述最小检查单元，旧注册 ID 原样保留为 step.id；执行器（ci/run_checks.py / ci/run.py 派发）逐 step 按自身 timeout 执行。单步且 id 与父项相同时可省略 steps（旧式单项注册）",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "command",
+                "timeout_seconds",
+                "profiles",
+                "platform"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Z0-9][A-Z0-9_.-]+$"
+                },
+                "command": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "timeout_seconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "profiles": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "enum": [
+                      "fast",
+                      "linux-main",
+                      "linux-deep",
+                      "windows-main",
+                      "fatduck"
+                    ]
+                  }
+                },
+                "platform": {
+                  "enum": [
+                    "any",
+                    "linux",
+                    "windows",
+                    "fatduck"
+                  ]
+                },
+                "heavy": {
+                  "type": "boolean"
+                },
+                "mutates_workspace": {
+                  "type": "boolean"
+                },
+                "outputs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "waivable": {
+                  "type": "boolean"
+                },
+                "changed_paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "requires_monitor": {
+                  "type": "boolean"
+                },
+                "prerequisite_tools": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "ctest_targets": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "dirty_ignore_exact": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "dirty_ignore_prefixes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
           }
         },
         "additionalProperties": false

@@ -134,7 +134,12 @@ def on_key(doc: dict):
 def registry_fingerprints(registry: dict, manifest: dict) -> set[str]:
     """反复制指纹：注册表命令引用的仓库脚本 + 声明 exec 的脚本 token。"""
     found: set[str] = set()
+    # CI-001 ID 收敛：聚合项把旧检查项收进 steps[]，反复制指纹必须同扫 steps，
+    # 否则被聚合的业务命令不再进入禁复制集合（判据覆盖变窄 = 静默放宽）。
+    _units = list(registry.get("checks", []))
     for check in registry.get("checks", []):
+        _units.extend(check.get("steps") or [])
+    for check in _units:
         for tok in check.get("command") or []:
             if isinstance(tok, str) and tok.endswith((".py", ".sh")) and "/" in tok:
                 found.add(tok)
@@ -152,7 +157,10 @@ def registry_fingerprints(registry: dict, manifest: dict) -> set[str]:
 
 def registry_output_paths(registry: dict) -> set[str]:
     out: set[str] = set()
+    _units = list(registry.get("checks", []))
     for check in registry.get("checks", []):
+        _units.extend(check.get("steps") or [])
+    for check in _units:
         for rel in check.get("outputs") or []:
             out.add(rel)
     return out
@@ -190,12 +198,25 @@ def validate(repo: Path, manifest_path: Path, registry_path: Path, lock_path: Pa
         err("manifest_shape", "steps", "must be non-empty array")
         return errors, notices, report
 
-    checks = {c.get("id"): c for c in registry.get("checks", [])}
+    # CI-001 ID 收敛：注册表顶层项可带 steps（旧注册 ID 原样为 step id）。
+    # 「已登记」判据落在执行单元（unit）层：顶层项优先，其次 step；判据语义不变
+    # （绑定的 check 必须已登记且命令体一致），只是索引面覆盖聚合项。
+    checks = {}
+    for c in registry.get("checks", []):
+        if isinstance(c, dict) and c.get("id"):
+            checks.setdefault(c["id"], c)
+    for c in registry.get("checks", []):
+        for s in ((c.get("steps") or []) if isinstance(c, dict) else []):
+            if isinstance(s, dict) and s.get("id"):
+                checks.setdefault(s["id"], s)
     profiles: dict[str, int] = {}
     for c in registry.get("checks", []):
         for p in c.get("profiles") or []:
             profiles[p] = profiles.get(p, 0) + 1
-    report["registry"] = {"checks": len(checks), "profiles": profiles}
+    # checks = 注册表顶层项数（对外字段语义不变）；units = 执行单元数（顶层项 ∪ steps，
+    # CI-001 收敛后索引面）。两者都如实暴露，避免用其一冒充另一。
+    report["registry"] = {"checks": len(registry.get("checks", [])),
+                          "units": len(checks), "profiles": profiles}
 
     # actions.lock
     lock_shas: set[str] = set()

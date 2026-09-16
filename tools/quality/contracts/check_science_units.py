@@ -17,6 +17,11 @@ def main():
     status = "PASS"
     # Check: each SCI doc has physical quantity and units section
     sci_docs = list((repo / "docs/science").glob("*.md"))
+    if not sci_docs:
+        # GAP-027 fail-closed（CI-001）：扫描面零命中即空转绿
+        findings.append({"id":"SCI-UNITS-NO-DOCS","severity":"P1","file":"docs/science",
+                         "observed":"零命中","expected":"至少一篇 SCI 文档"})
+        status="FAIL"
     for doc in sci_docs:
         text = doc.read_text(encoding="utf-8", errors="ignore")
         # Check that "物理量和单位" or units exist; UNCERTAINTY_AND_COVARIANCE uses variance/covariance terminology
@@ -25,6 +30,12 @@ def main():
             status="FAIL"
     # Check: API contracts have units column non-empty
     api_csv = repo / "docs/contracts/API_CONTRACTS.csv"
+    if not api_csv.is_file():
+        # GAP-027 fail-closed（CI-001）：缺依赖合同表即静默跳过单位列检查
+        findings.append({"id":"SCI-UNITS-NO-API-CONTRACTS","severity":"P1",
+                         "file":"docs/contracts/API_CONTRACTS.csv","observed":"缺失",
+                         "expected":"存在且含单位列"})
+        status="FAIL"
     if api_csv.exists():
         rows = list(csv.DictReader(open(api_csv, encoding="utf-8")))
         for r in rows:

@@ -1,0 +1,1762 @@
+{
+  "schema_version": 1,
+  "generated_by": "CI-001（控制包 PROJECT-GOVERNANCE-01）",
+  "source_registry": {
+    "path": "ci/checks.json",
+    "sha256": "62d051cc69c3993f33883ee11fe4f914588496f71d23a6f29f98038a2c04a3e4",
+    "entry_count": 146,
+    "captured_note": "写前基线（TEST-GREEN-001 交棒，负责人 GO 确认）"
+  },
+  "result_registry": {
+    "path": "ci/checks.json",
+    "sha256": "f2535f473dbc4c969f71ab970333a843506be862cc68a230fe91ee587edf5850",
+    "entry_count": 38,
+    "step_count": 136
+  },
+  "targets": {
+    "CHK-BUILD-LINUX": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "Linux Release 构建",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "BUILD-GCC-RELEASE",
+        "DEEP-CLANG-BUILD"
+      ]
+    },
+    "CHK-BUILD-WIN": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "Windows Release 构建",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "WIN-BUILD-RELEASE"
+      ]
+    },
+    "CHK-WARN": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "编译警告",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "WARNING-SUPPRESSION"
+      ]
+    },
+    "CHK-STATIC": {
+      "kind": "doc",
+      "grade": "P1",
+      "name": "静态分析",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "DUPLICATION",
+        "CON-FORBIDDEN-PATTERNS",
+        "PROD-REACH-SELFTEST",
+        "DEEP-COMPLEXITY"
+      ]
+    },
+    "CHK-MODULE-MANIFEST": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "模块 manifest/注册表/构建 target/产品清单一致",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CHK-MODULE-MANIFEST",
+        "MODULE-READMES",
+        "CTEST-REGISTRATION",
+        "CON-BUILD-GRAPH",
+        "P3-STATUS",
+        "WORKFLOW-REGISTRY-BINDING",
+        "CI-BINDING-TESTS"
+      ]
+    },
+    "CHK-CONTRACT-REF": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "端口引用有效 DATA 合同（canonical=contracts/schemas/unified/**、docs/contracts/unified_object_registry.json）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CONTRACT-GRAPH",
+        "DATA-ARTIFACTS"
+      ]
+    },
+    "CHK-SCI-REF": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "算法引用有效 SCI/ALG",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "TRACEABILITY",
+        "CON-TRACEABILITY",
+        "PRODUCTION-GRAPH",
+        "PIPELINE-TRACE",
+        "CON-SCIENCE-UNITS",
+        "UNIT-CLOSURE",
+        "ACR-DORMANT",
+        "DOC-LINE-ANCHORS"
+      ]
+    },
+    "CHK-CONTRACT-TEST": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "核心合同有独立测试",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CON-TEST-CONTRACTS",
+        "CON-FULL-INTEGRATION",
+        "TRACEABILITY-MATRIX",
+        "UT-TRACEABILITY",
+        "UT-CONTRACTS",
+        "V6-NEGATIVE-MUTATION",
+        "V6-CTEST-INTEGRATION"
+      ]
+    },
+    "CHK-DANGLING": {
+      "kind": "doc",
+      "grade": "P1",
+      "name": "删除/重命名无悬空引用",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CON-DOC-SYMBOLS",
+        "DOC-INDEX"
+      ]
+    },
+    "CHK-STALE-DOC": {
+      "kind": "doc",
+      "grade": "P1",
+      "name": "活动文档无陈旧版本号/历史状态冒充",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CON-COMMENTS"
+      ]
+    },
+    "API-DOCS": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "doc↔code 命令树/签名/退出码/schema 一致",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "API-DOCS",
+        "CLI-COMMAND-LAYER",
+        "CLI-RUN-PRESET",
+        "CON-API-CONTRACTS"
+      ]
+    },
+    "CHK-ROOT-CLEAN": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "仓库根目录整洁",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CHK-ROOT-CLEAN"
+      ]
+    },
+    "CHK-UNIT": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "每模块单测",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "UT-API",
+        "UT-ARCH",
+        "UT-BACKEND",
+        "UT-CLI",
+        "UT-VERSION",
+        "UT-GLOSSARY",
+        "UT-MONITORING",
+        "UT-PIPELINE",
+        "UT-RUNTIME",
+        "UT-SCIENCELINT",
+        "UT-ARTIFACT",
+        "UT-IO",
+        "UT-QUALITY",
+        "UT-GAIA-ZLIB",
+        "TESTKIT-LIST",
+        "CTEST-LINUX-FULL",
+        "WIN-TEST-UNIT",
+        "V6-CTEST-UNIT"
+      ]
+    },
+    "CHK-ORACLE": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "SCI/ALG Oracle 测试",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "UT-CPU-BASELINE",
+        "V6-RUNTIME-CLOSURE",
+        "CTEST-P1WCS-APBP",
+        "CTEST-P1WCS-ASTROPY-CROSS",
+        "CTEST-P1WCS-STD-F1-BRIDGE",
+        "CTEST-P1PHOT-FIXGATES",
+        "CTEST-P1SNR-SCIENCE-ALL",
+        "CTEST-IPV-MAG-ITER",
+        "CTEST-IPV-MAG-ITER-DELIVERY"
+      ]
+    },
+    "CHK-INVARIANT": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "科学不变量/性质测试",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CTEST-DRIZZLE-PRECISION-DEFAULT",
+        "CTEST-P1STAR-MAD",
+        "CTEST-P1PSF-PRODPATH-CENTROID",
+        "CTEST-P1STAR-ANGLE-GUARD",
+        "CTEST-P1SNR-FRAME-PARITY",
+        "CTEST-P2HIPS-UNITS",
+        "CTEST-P2HIPS-DETERMINISM",
+        "CTEST-P2HIPS-NEGATIVE",
+        "CTEST-P2HIPS-SELFCHECK",
+        "CTEST-GAIA-MANIFEST-BOUNDS",
+        "CTEST-XPSD-SPECTRUM-COUNT-BOUNDS",
+        "CTEST-GAIA-MAGNITUDE-RANGE-BOUNDS",
+        "CTEST-IPV-EXTRACT-WCS-SIP-FAILCLOSED",
+        "CTEST-IPV-TRIANGLE-BUDGET",
+        "CTEST-AIO-HIPS-PUBLISH-ATOMIC-UNITS",
+        "CTEST-AIO-HIPS-PUBLISH-ATOMIC",
+        "IPV-PLATFORM-BINDING"
+      ]
+    },
+    "CHK-ABI": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "C ABI 兼容性",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "ABI-BOUNDARY",
+        "AST-API",
+        "UT-ABI",
+        "CTEST-AIO-ABI-UNITS",
+        "CTEST-AIO-ABI-NEGATIVE",
+        "CTEST-AIO-ABI-SELFCHECK",
+        "CTEST-IPV-ABI-LAYOUT-LOCK",
+        "CTEST-IPV-ABI-LAYOUT-LOCK-SELFCHECK",
+        "CTEST-IPV-PARAMS-ABI-FAILCLOSED"
+      ]
+    },
+    "CHK-SCHEMA": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "schema 校验",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "TASK-RESULT-SCHEMA",
+        "CON-CONFIG-CONTRACTS",
+        "LOG-CONTRACT-SELFCHECK"
+      ]
+    },
+    "CHK-SYNTH-P1": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "normalize 合成全链",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CTEST-P1001-REAL-NODES"
+      ]
+    },
+    "CHK-SYNTH-P2": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "mosaic 合成全链",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CTEST-P2001-REAL-NODES",
+        "CTEST-P2002-UNC-REJ-PROV",
+        "CTEST-P1DRZ-MERGE-PIPELINE-LOCK",
+        "CTEST-PHASE2-GATES",
+        "V6-CLI-MODE-ROUTING",
+        "V6-CLI-MODE-MATRIX"
+      ]
+    },
+    "CHK-SYNTH-P3": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "export 合成全链",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CTEST-P3002-REAL-NODES",
+        "CTEST-P3002-UNCERTAINTY",
+        "CTEST-P3-PROJECTION-UNITS",
+        "CTEST-P3-PROJECTION-FAULT",
+        "CTEST-P3-SAMPLER-CACHE"
+      ]
+    },
+    "CHK-ISA-EQ": {
+      "kind": "doc",
+      "grade": "P1",
+      "name": "baseline/AVX2/AVX-512 等价",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "UT-CPU-AVX2",
+        "UT-CPU-AVX512",
+        "UT-CPU-DISPATCH",
+        "ISA-LEAK-SELFTEST"
+      ]
+    },
+    "CHK-NWORKER": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "1 vs N worker 数值一致",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "V6-DETERMINISM",
+        "CTEST-P1DRZ-TASKSET-INVARIANCE",
+        "CTEST-P1SNR-LINUX-ALL"
+      ]
+    },
+    "CHK-SANITIZER": {
+      "kind": "doc",
+      "grade": "P1",
+      "name": "ASan/UBSan",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "DEEP-SAN-ASAN",
+        "DEEP-SAN-TSAN"
+      ]
+    },
+    "CHK-COVERAGE": {
+      "kind": "doc",
+      "grade": "P2",
+      "name": "覆盖率报告",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "DEEP-COV-CPP",
+        "DEEP-COV-PY"
+      ]
+    },
+    "CHK-RESOURCE": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "内存/线程/利用率门禁",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "THREAD-BUDGET",
+        "NO-SERIAL-HEAVY",
+        "SERIAL-HARDCODE",
+        "SERIAL-HEAVY-SELFTEST",
+        "V6-RESOURCE-GATE-POLICY",
+        "CTEST-RESOURCE-MONITOR-QUALITY",
+        "CTEST-MON004-ENFORCEMENT",
+        "CTEST-RT001-UNIQUE-EXECUTOR",
+        "CTEST-COMPARE-PRODUCTS-QUALITY",
+        "AIO-OWNERSHIP",
+        "CON-EXECUTION-CONTRACTS"
+      ]
+    },
+    "CHK-PACKAGE": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "发布候选打包/白名单/哈希/版本/provenance",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "WIN-PACKAGE-CANDIDATE"
+      ]
+    },
+    "CHK-SECRET-HYGIENE": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "凭据/密钥卫生（ROOT-006 注册，absorbed）",
+      "doc": "CI-001 扩展登记（§2 无对应行）",
+      "steps": [
+        "CHK-SECRET-HYGIENE"
+      ]
+    },
+    "CHK-ENV-ADOPTION": {
+      "kind": "extension",
+      "grade": "P1",
+      "name": "CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账）",
+      "doc": "CI-001 扩展登记（§2 无对应行）",
+      "steps": [
+        "WORKSPACE-ADOPTION",
+        "RECONCILE-STATE",
+        "TOOLCHAIN-VERIFY"
+      ]
+    },
+    "CHK-KNOWN-FAILURES-BASELINE": {
+      "kind": "extension",
+      "grade": "P1",
+      "name": "版本化已知失败基线门（聚合型，linux-main 末位）",
+      "doc": "CI-001 扩展登记（§2 无对应行）",
+      "steps": [
+        "KNOWN-FAILURES-BASELINE",
+        "KNOWN-FAILURES-BASELINE-VERIFY",
+        "KNOWN-FAILURES-BASELINE-CHECK"
+      ]
+    }
+  },
+  "reserved_targets": {
+    "CHK-FMT": {
+      "grade": "P0",
+      "name": "格式检查（clang-format --dry-run --Werror）",
+      "reason": "宿主无 clang-format（实测 MISSING），且现注册表零 FMT 命令；本波不注册缺工具即恒红的假门，登记 RESERVED 待补工具+正负例再注册",
+      "owner": "后续 CI 治理任务（工具可用性前置）"
+    },
+    "CHK-DUAL-TOL": {
+      "grade": "P1",
+      "name": "双平台允许误差",
+      "reason": "现注册表零双平台数值对比命令；Windows 复验面（REAL-001/负责人触发）",
+      "owner": "REAL-001 / 负责人触发复验"
+    },
+    "CHK-AGENT-HARD-RULES": {
+      "grade": "P0",
+      "name": "AGENTS.md 硬禁令存在",
+      "reason": "唯一实现者 tools/check_agents_gov.py 本波按裁决冻结（RETIRE-PENDING-GOV-001，W2 GOV-001 执行迁移）",
+      "owner": "GOV-001（W2）"
+    }
+  },
+  "pre_baseline_retirements": [
+    {
+      "old_id": "TRACEABILITY-CODE",
+      "decision": "RETIRED",
+      "authority": "GAP-032 + 前台裁决 2026-09-16（docs/ci/01_CHECKS.md §2.1 退役记录）",
+      "reason": "唯一默认输入 artifacts/prerelease_v5/tables/TRACEABILITY.csv 随 artifacts/ 按负责人裁决删除而断供；本 CI 规范/最高设计/工程规范对「追溯」零命中；内容未丢（git show b1290525^:…）",
+      "note": "不得记为本波「丢失的注册项」；本波 146 项输入 = 147 - TRACEABILITY-CODE"
+    }
+  ],
+  "mappings": [
+    {
+      "old_id": "ABI-BOUNDARY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ABI",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "C ABI 兼容性"
+    },
+    {
+      "old_id": "ACR-DORMANT",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SCI-REF",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 6,
+      "note": "算法引用有效 SCI/ALG"
+    },
+    {
+      "old_id": "AGENTS-GOV",
+      "decision": "RETIRE-PENDING-GOV-001",
+      "target": "CHK-AGENT-HARD-RULES",
+      "reserved_target": "CHK-AGENT-HARD-RULES",
+      "checker": "tools/check_agents_gov.py",
+      "owner": "GOV-001 (W2)",
+      "reason": "AGENTS.md 硬禁令门实现者；GOV-001 迁移入目标 CHK-AGENT-HARD-RULES"
+    },
+    {
+      "old_id": "AIO-OWNERSHIP",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 9,
+      "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "API-DOCS",
+      "decision": "MERGED-INTO",
+      "target": "API-DOCS",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "doc↔code 命令树/签名/退出码/schema 一致"
+    },
+    {
+      "old_id": "AST-API",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ABI",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "C ABI 兼容性"
+    },
+    {
+      "old_id": "BUILD-GCC-RELEASE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-BUILD-LINUX",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "Linux Release 构建"
+    },
+    {
+      "old_id": "CHK-MODULE-MANIFEST",
+      "decision": "MERGED-INTO",
+      "target": "CHK-MODULE-MANIFEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "模块 manifest/注册表/构建 target/产品清单一致"
+    },
+    {
+      "old_id": "CHK-ROOT-CLEAN",
+      "decision": "KEPT",
+      "target": "CHK-ROOT-CLEAN",
+      "kind": "doc",
+      "grade": "P0",
+      "note": "仓库根目录整洁"
+    },
+    {
+      "old_id": "CHK-SECRET-HYGIENE",
+      "decision": "KEPT",
+      "target": "CHK-SECRET-HYGIENE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "凭据/密钥卫生（ROOT-006 注册，absorbed）"
+    },
+    {
+      "old_id": "CI-BINDING-TESTS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-MODULE-MANIFEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 6,
+      "note": "模块 manifest/注册表/构建 target/产品清单一致"
+    },
+    {
+      "old_id": "CLI-COMMAND-LAYER",
+      "decision": "MERGED-INTO",
+      "target": "API-DOCS",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "doc↔code 命令树/签名/退出码/schema 一致"
+    },
+    {
+      "old_id": "CLI-RUN-PRESET",
+      "decision": "MERGED-INTO",
+      "target": "API-DOCS",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "doc↔code 命令树/签名/退出码/schema 一致"
+    },
+    {
+      "old_id": "CON-API-CONTRACTS",
+      "decision": "MERGED-INTO",
+      "target": "API-DOCS",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "doc↔code 命令树/签名/退出码/schema 一致"
+    },
+    {
+      "old_id": "CON-BUILD-GRAPH",
+      "decision": "MERGED-INTO",
+      "target": "CHK-MODULE-MANIFEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "模块 manifest/注册表/构建 target/产品清单一致"
+    },
+    {
+      "old_id": "CON-COMMENTS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-STALE-DOC",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "活动文档无陈旧版本号/历史状态冒充"
+    },
+    {
+      "old_id": "CON-CONFIG-CONTRACTS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SCHEMA",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "schema 校验"
+    },
+    {
+      "old_id": "CON-DOC-SYMBOLS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-DANGLING",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "删除/重命名无悬空引用"
+    },
+    {
+      "old_id": "CON-EXECUTION-CONTRACTS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 10,
+      "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "CON-FORBIDDEN-PATTERNS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-STATIC",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 1,
+      "note": "静态分析"
+    },
+    {
+      "old_id": "CON-FULL-INTEGRATION",
+      "decision": "MERGED-INTO",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "核心合同有独立测试"
+    },
+    {
+      "old_id": "CON-SCIENCE-UNITS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SCI-REF",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "算法引用有效 SCI/ALG"
+    },
+    {
+      "old_id": "CON-TEST-CONTRACTS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "核心合同有独立测试"
+    },
+    {
+      "old_id": "CON-TRACEABILITY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SCI-REF",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "算法引用有效 SCI/ALG"
+    },
+    {
+      "old_id": "CONTRACT-GRAPH",
+      "decision": "MERGED-INTO",
+      "target": "CHK-CONTRACT-REF",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "端口引用有效 DATA 合同（canonical=contracts/schemas/unified/**、docs/contracts/unified_object_registry.json）"
+    },
+    {
+      "old_id": "CTEST-AIO-ABI-NEGATIVE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ABI",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "C ABI 兼容性"
+    },
+    {
+      "old_id": "CTEST-AIO-ABI-SELFCHECK",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ABI",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 5,
+      "note": "C ABI 兼容性"
+    },
+    {
+      "old_id": "CTEST-AIO-ABI-UNITS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ABI",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "C ABI 兼容性"
+    },
+    {
+      "old_id": "CTEST-AIO-HIPS-PUBLISH-ATOMIC",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 15,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-AIO-HIPS-PUBLISH-ATOMIC-UNITS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 14,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-COMPARE-PRODUCTS-QUALITY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 8,
+      "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "CTEST-DRIZZLE-PRECISION-DEFAULT",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-GAIA-MAGNITUDE-RANGE-BOUNDS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 11,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-GAIA-MANIFEST-BOUNDS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 9,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-IPV-ABI-LAYOUT-LOCK",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ABI",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 6,
+      "note": "C ABI 兼容性"
+    },
+    {
+      "old_id": "CTEST-IPV-ABI-LAYOUT-LOCK-SELFCHECK",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ABI",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 7,
+      "note": "C ABI 兼容性"
+    },
+    {
+      "old_id": "CTEST-IPV-EXTRACT-WCS-SIP-FAILCLOSED",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 12,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-IPV-MAG-ITER",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ORACLE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 7,
+      "note": "SCI/ALG Oracle 测试"
+    },
+    {
+      "old_id": "CTEST-IPV-MAG-ITER-DELIVERY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ORACLE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 8,
+      "note": "SCI/ALG Oracle 测试"
+    },
+    {
+      "old_id": "CTEST-IPV-PARAMS-ABI-FAILCLOSED",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ABI",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 8,
+      "note": "C ABI 兼容性"
+    },
+    {
+      "old_id": "CTEST-IPV-TRIANGLE-BUDGET",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 13,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-LINUX-FULL",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 15,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "CTEST-MON004-ENFORCEMENT",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 6,
+      "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "CTEST-P1001-REAL-NODES",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P1",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "normalize 合成全链"
+    },
+    {
+      "old_id": "CTEST-P1DRZ-MERGE-PIPELINE-LOCK",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P2",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "mosaic 合成全链"
+    },
+    {
+      "old_id": "CTEST-P1DRZ-TASKSET-INVARIANCE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-NWORKER",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "1 vs N worker 数值一致"
+    },
+    {
+      "old_id": "CTEST-P1PHOT-FIXGATES",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ORACLE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 5,
+      "note": "SCI/ALG Oracle 测试"
+    },
+    {
+      "old_id": "CTEST-P1PSF-PRODPATH-CENTROID",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-P1SNR-FRAME-PARITY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-P1SNR-LINUX-ALL",
+      "decision": "MERGED-INTO",
+      "target": "CHK-NWORKER",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "1 vs N worker 数值一致"
+    },
+    {
+      "old_id": "CTEST-P1SNR-SCIENCE-ALL",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ORACLE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 6,
+      "note": "SCI/ALG Oracle 测试"
+    },
+    {
+      "old_id": "CTEST-P1STAR-ANGLE-GUARD",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-P1STAR-MAD",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-P1WCS-APBP",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ORACLE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "SCI/ALG Oracle 测试"
+    },
+    {
+      "old_id": "CTEST-P1WCS-ASTROPY-CROSS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ORACLE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "SCI/ALG Oracle 测试"
+    },
+    {
+      "old_id": "CTEST-P1WCS-STD-F1-BRIDGE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ORACLE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "SCI/ALG Oracle 测试"
+    },
+    {
+      "old_id": "CTEST-P2001-REAL-NODES",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P2",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "mosaic 合成全链"
+    },
+    {
+      "old_id": "CTEST-P2002-UNC-REJ-PROV",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P2",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "mosaic 合成全链"
+    },
+    {
+      "old_id": "CTEST-P2HIPS-DETERMINISM",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 6,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-P2HIPS-NEGATIVE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 7,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-P2HIPS-SELFCHECK",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 8,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-P2HIPS-UNITS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 5,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-P3-PROJECTION-FAULT",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P3",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "export 合成全链"
+    },
+    {
+      "old_id": "CTEST-P3-PROJECTION-UNITS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P3",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "export 合成全链"
+    },
+    {
+      "old_id": "CTEST-P3-SAMPLER-CACHE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P3",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "export 合成全链"
+    },
+    {
+      "old_id": "CTEST-P3002-REAL-NODES",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P3",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "export 合成全链"
+    },
+    {
+      "old_id": "CTEST-P3002-UNCERTAINTY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P3",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "export 合成全链"
+    },
+    {
+      "old_id": "CTEST-PHASE2-GATES",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P2",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "mosaic 合成全链"
+    },
+    {
+      "old_id": "CTEST-REGISTRATION",
+      "decision": "MERGED-INTO",
+      "target": "CHK-MODULE-MANIFEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "模块 manifest/注册表/构建 target/产品清单一致"
+    },
+    {
+      "old_id": "CTEST-RESOURCE-MONITOR-QUALITY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 5,
+      "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "CTEST-RT001-UNIQUE-EXECUTOR",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 7,
+      "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "CTEST-XPSD-SPECTRUM-COUNT-BOUNDS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 10,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "DATA-ARTIFACTS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-CONTRACT-REF",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "端口引用有效 DATA 合同（canonical=contracts/schemas/unified/**、docs/contracts/unified_object_registry.json）"
+    },
+    {
+      "old_id": "DEEP-CLANG-BUILD",
+      "decision": "MERGED-INTO",
+      "target": "CHK-BUILD-LINUX",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "Linux Release 构建"
+    },
+    {
+      "old_id": "DEEP-COMPLEXITY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-STATIC",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 3,
+      "note": "静态分析"
+    },
+    {
+      "old_id": "DEEP-COV-CPP",
+      "decision": "MERGED-INTO",
+      "target": "CHK-COVERAGE",
+      "kind": "doc",
+      "grade": "P2",
+      "order_in_target": 0,
+      "note": "覆盖率报告"
+    },
+    {
+      "old_id": "DEEP-COV-PY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-COVERAGE",
+      "kind": "doc",
+      "grade": "P2",
+      "order_in_target": 1,
+      "note": "覆盖率报告"
+    },
+    {
+      "old_id": "DEEP-SAN-ASAN",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SANITIZER",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ASan/UBSan"
+    },
+    {
+      "old_id": "DEEP-SAN-TSAN",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SANITIZER",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 1,
+      "note": "ASan/UBSan"
+    },
+    {
+      "old_id": "DOC-INDEX",
+      "decision": "MERGED-INTO",
+      "target": "CHK-DANGLING",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 1,
+      "note": "删除/重命名无悬空引用"
+    },
+    {
+      "old_id": "DOC-L0",
+      "decision": "RETIRE-PENDING-GOV-001",
+      "target": "CHK-DANGLING",
+      "reserved_target": "CHK-DANGLING",
+      "checker": "tools/check_l0_docs.py",
+      "owner": "GOV-001 (W2)",
+      "reason": "L0 固定文档/链接完整性；悬空引用门归 CHK-DANGLING（GOV-001 迁移）"
+    },
+    {
+      "old_id": "DOC-LINE-ANCHORS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SCI-REF",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 7,
+      "note": "算法引用有效 SCI/ALG"
+    },
+    {
+      "old_id": "DUPLICATION",
+      "decision": "MERGED-INTO",
+      "target": "CHK-STATIC",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "静态分析"
+    },
+    {
+      "old_id": "ENG-CONSTRAINTS",
+      "decision": "RETIRE-PENDING-GOV-001",
+      "target": "CHK-AGENT-HARD-RULES",
+      "reserved_target": "CHK-AGENT-HARD-RULES",
+      "checker": "tools/doccheck/check_engineering_constraints.py",
+      "owner": "GOV-001 (W2)",
+      "reason": "旧权威绑定（AstroCS_ENGINEERING_CONSTRAINTS.md 文本快照）清理归 GOV-001；语义继任者 = AGENTS.md 硬禁令门"
+    },
+    {
+      "old_id": "GLOSSARY-DOCS",
+      "decision": "RETIRE-PENDING-GOV-001",
+      "target": "CHK-DANGLING",
+      "reserved_target": "CHK-DANGLING",
+      "checker": "tools/check_glossary.py",
+      "owner": "GOV-001 (W2)",
+      "reason": "词典锚点/别名唯一性；悬空引用门归 CHK-DANGLING（GOV-001 迁移）"
+    },
+    {
+      "old_id": "IPV-PLATFORM-BINDING",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 16,
+      "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "ISA-LEAK-SELFTEST",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ISA-EQ",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 3,
+      "note": "baseline/AVX2/AVX-512 等价"
+    },
+    {
+      "old_id": "KNOWN-FAILURES-BASELINE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-KNOWN-FAILURES-BASELINE",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "版本化已知失败基线门（聚合型，linux-main 末位）"
+    },
+    {
+      "old_id": "KNOWN-FAILURES-BASELINE-CHECK",
+      "decision": "MERGED-INTO",
+      "target": "CHK-KNOWN-FAILURES-BASELINE",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 2,
+      "note": "版本化已知失败基线门（聚合型，linux-main 末位）"
+    },
+    {
+      "old_id": "KNOWN-FAILURES-BASELINE-VERIFY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-KNOWN-FAILURES-BASELINE",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 1,
+      "note": "版本化已知失败基线门（聚合型，linux-main 末位）"
+    },
+    {
+      "old_id": "LINUX-MAIN-BUILD-TREE",
+      "decision": "KEPT-PENDING-MERGE",
+      "target": "CHK-BUILD-LINUX",
+      "kind": "doc",
+      "grade": "P0",
+      "note": "Linux Release 构建",
+      "reserved_target": "CHK-BUILD-LINUX",
+      "reason": "本波保持顶层：ci/workflow_binding.json 的 wf_step 绑定以该 ID 声明 check 体，并入聚合需同步适配 ci/validate_workflow_binding.py（超出 GO 的注册项-only 边界）；QA-001 改绑定后由后续任务并入目标",
+      "owner": "QA-001 / 后续 CI 治理任务（改 ci/run.py 绑定同批）"
+    },
+    {
+      "old_id": "LINUX-MAIN-FIXTURES",
+      "decision": "KEPT-PENDING-MERGE",
+      "target": "CHK-BUILD-LINUX",
+      "kind": "doc",
+      "grade": "P0",
+      "note": "Linux Release 构建",
+      "reserved_target": "CHK-BUILD-LINUX",
+      "reason": "本波保持顶层：ci/workflow_binding.json 的 wf_step 绑定以该 ID 声明 check 体，并入聚合需同步适配 ci/validate_workflow_binding.py（超出 GO 的注册项-only 边界）；QA-001 改绑定后由后续任务并入目标",
+      "owner": "QA-001 / 后续 CI 治理任务（改 ci/run.py 绑定同批）"
+    },
+    {
+      "old_id": "LOG-CONTRACT-SELFCHECK",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SCHEMA",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "schema 校验"
+    },
+    {
+      "old_id": "MODULE-READMES",
+      "decision": "MERGED-INTO",
+      "target": "CHK-MODULE-MANIFEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "模块 manifest/注册表/构建 target/产品清单一致"
+    },
+    {
+      "old_id": "NO-SERIAL-HEAVY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "P3-STATUS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-MODULE-MANIFEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "模块 manifest/注册表/构建 target/产品清单一致"
+    },
+    {
+      "old_id": "PIPELINE-TRACE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SCI-REF",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "算法引用有效 SCI/ALG"
+    },
+    {
+      "old_id": "PROD-REACH-SELFTEST",
+      "decision": "MERGED-INTO",
+      "target": "CHK-STATIC",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 2,
+      "note": "静态分析"
+    },
+    {
+      "old_id": "PRODUCTION-GRAPH",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SCI-REF",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "算法引用有效 SCI/ALG"
+    },
+    {
+      "old_id": "RECONCILE-STATE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ENV-ADOPTION",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 1,
+      "note": "CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账）"
+    },
+    {
+      "old_id": "SERIAL-HARDCODE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "SERIAL-HEAVY-SELFTEST",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "TASK-RESULT-SCHEMA",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SCHEMA",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "schema 校验"
+    },
+    {
+      "old_id": "TESTKIT-LIST",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 14,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "THREAD-BUDGET",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "TOOLCHAIN-VERIFY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ENV-ADOPTION",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 2,
+      "note": "CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账）"
+    },
+    {
+      "old_id": "TRACEABILITY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SCI-REF",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "算法引用有效 SCI/ALG"
+    },
+    {
+      "old_id": "TRACEABILITY-MATRIX",
+      "decision": "MERGED-INTO",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "核心合同有独立测试"
+    },
+    {
+      "old_id": "UNIT-CLOSURE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SCI-REF",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 5,
+      "note": "算法引用有效 SCI/ALG"
+    },
+    {
+      "old_id": "UT-ABI",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ABI",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "C ABI 兼容性"
+    },
+    {
+      "old_id": "UT-API",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-ARCH",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-ARTIFACT",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 10,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-BACKEND",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-CLI",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-CONTRACTS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "核心合同有独立测试"
+    },
+    {
+      "old_id": "UT-CPU-AVX2",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ISA-EQ",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "baseline/AVX2/AVX-512 等价"
+    },
+    {
+      "old_id": "UT-CPU-AVX512",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ISA-EQ",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 1,
+      "note": "baseline/AVX2/AVX-512 等价"
+    },
+    {
+      "old_id": "UT-CPU-BASELINE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ORACLE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "SCI/ALG Oracle 测试"
+    },
+    {
+      "old_id": "UT-CPU-DISPATCH",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ISA-EQ",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 2,
+      "note": "baseline/AVX2/AVX-512 等价"
+    },
+    {
+      "old_id": "UT-GAIA-ZLIB",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 13,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-GLOSSARY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 5,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-IO",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 11,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-MONITORING",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 6,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-PIPELINE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 7,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-QUALITY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 12,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-RUNTIME",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 8,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-SCIENCELINT",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 9,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-TRACEABILITY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "核心合同有独立测试"
+    },
+    {
+      "old_id": "UT-VERSION",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "V6-CLI-MODE-MATRIX",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P2",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 5,
+      "note": "mosaic 合成全链"
+    },
+    {
+      "old_id": "V6-CLI-MODE-ROUTING",
+      "decision": "MERGED-INTO",
+      "target": "CHK-SYNTH-P2",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "mosaic 合成全链"
+    },
+    {
+      "old_id": "V6-CTEST-INTEGRATION",
+      "decision": "MERGED-INTO",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 6,
+      "note": "核心合同有独立测试"
+    },
+    {
+      "old_id": "V6-CTEST-UNIT",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 17,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "V6-DETERMINISM",
+      "decision": "MERGED-INTO",
+      "target": "CHK-NWORKER",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "1 vs N worker 数值一致"
+    },
+    {
+      "old_id": "V6-NEGATIVE-MUTATION",
+      "decision": "MERGED-INTO",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 5,
+      "note": "核心合同有独立测试"
+    },
+    {
+      "old_id": "V6-RESOURCE-GATE-POLICY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "V6-RUNTIME-CLOSURE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ORACLE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "SCI/ALG Oracle 测试"
+    },
+    {
+      "old_id": "VERSION-CONSISTENCY",
+      "decision": "RETIRE-PENDING-GOV-001",
+      "target": "CHK-STALE-DOC",
+      "reserved_target": "CHK-STALE-DOC",
+      "checker": "ci/check_version.py",
+      "owner": "GOV-001 (W2)",
+      "reason": "硬绑定 --expected 0.11.0-alpha.2 旧版本号；陈旧版本号门归 CHK-STALE-DOC（GOV-001 迁移）"
+    },
+    {
+      "old_id": "VERSION-NAMESPACES",
+      "decision": "RETIRE-PENDING-GOV-001",
+      "target": "CHK-STALE-DOC",
+      "reserved_target": "CHK-STALE-DOC",
+      "checker": "tools/doccheck/check_version_namespaces.py",
+      "owner": "GOV-001 (W2)",
+      "reason": "五版本命名空间与最高设计 §12「版本信息下线」冲突；陈旧版本号门归 CHK-STALE-DOC（GOV-001 迁移）"
+    },
+    {
+      "old_id": "WARNING-SUPPRESSION",
+      "decision": "MERGED-INTO",
+      "target": "CHK-WARN",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "编译警告"
+    },
+    {
+      "old_id": "WIN-BUILD-RELEASE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-BUILD-WIN",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "Windows Release 构建"
+    },
+    {
+      "old_id": "WIN-CANDIDATE-VALIDATE",
+      "decision": "KEPT-PENDING-MERGE",
+      "target": "CHK-PACKAGE",
+      "kind": "doc",
+      "grade": "P0",
+      "note": "发布候选打包/白名单/哈希/版本/provenance",
+      "reserved_target": "CHK-PACKAGE",
+      "reason": "本波保持顶层：ci/workflow_binding.json 的 wf_step 绑定以该 ID 声明 check 体，并入聚合需同步适配 ci/validate_workflow_binding.py（超出 GO 的注册项-only 边界）；QA-001 改绑定后由后续任务并入目标",
+      "owner": "QA-001 / 后续 CI 治理任务（改 ci/run.py 绑定同批）"
+    },
+    {
+      "old_id": "WIN-PACKAGE-CANDIDATE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-PACKAGE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "发布候选打包/白名单/哈希/版本/provenance"
+    },
+    {
+      "old_id": "WIN-TEST-UNIT",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 16,
+      "note": "每模块单测"
+    },
+    {
+      "old_id": "WORKFLOW-REGISTRY-BINDING",
+      "decision": "MERGED-INTO",
+      "target": "CHK-MODULE-MANIFEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 5,
+      "note": "模块 manifest/注册表/构建 target/产品清单一致"
+    },
+    {
+      "old_id": "WORKSPACE-ADOPTION",
+      "decision": "MERGED-INTO",
+      "target": "CHK-ENV-ADOPTION",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账）"
+    }
+  ],
+  "coverage": {
+    "source_entry_count": 146,
+    "mapped_entry_count": 147,
+    "merged_into": 136,
+    "kept": 2,
+    "retire_pending_gov_001": 6,
+    "retired": 0,
+    "silent_drops": 0,
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失",
+    "absorbed_entries": [
+      "CHK-SECRET-HYGIENE"
+    ],
+    "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
+    "kept_pending_merge": 3,
+    "result_entry_count": 38
+  }
+}

@@ -115,6 +115,12 @@ def main(argv: list[str] | None = None) -> int:
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(payload + "\n", encoding="utf-8")
     print(payload)
+    if not any(t.get("exists") for t in per_path):
+        # GAP-027 fail-closed（CI-001）：--paths 全不存在时测量面为空，
+        # 原实现仍 rc=0（空转绿，JSON 照写，run.py 的 outputs 锚也不报错）。
+        print("COMPLEXITY_NO_INPUT: 所有 --paths 均不存在，测量面为空 → fail-closed 判 FAIL",
+              file=sys.stderr)
+        return 1
     return 0
 
 

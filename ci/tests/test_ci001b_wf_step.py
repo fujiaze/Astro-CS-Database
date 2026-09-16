@@ -156,8 +156,21 @@ class TestDeclarationDrift(unittest.TestCase):
         res = run_wf_step(self.root, "--step", "NO-SUCH-STEP")
         self.assertEqual(res.returncode, 2, res.stderr)
 
+    @staticmethod
+    def _units(registry: dict):
+        """执行单元视图（CI-001 ID 收敛）：顶层项 ∪ 各聚合项 steps。
+
+        注入点更新说明（非放宽）：收敛前绑定检查 WIN-PACKAGE-CANDIDATE 是顶层注册项，
+        收敛后它是 CHK-PACKAGE 的 step；漂移注入必须落在真实执行单元上，
+        断言（rc=4 / rc=5 与错误码）逐字不变。
+        """
+        units = list(registry["checks"])
+        for check in registry["checks"]:
+            units.extend(check.get("steps") or [])
+        return units
+
     def test_bound_check_waivable_drift(self):
-        for check in self.registry["checks"]:
+        for check in self._units(self.registry):
             if check["id"] == "WIN-PACKAGE-CANDIDATE":
                 check["waivable"] = True
         self._write()
@@ -166,7 +179,7 @@ class TestDeclarationDrift(unittest.TestCase):
         self.assertIn("bound_check_waivable", res.stderr)
 
     def test_output_contract_drift(self):
-        for check in self.registry["checks"]:
+        for check in self._units(self.registry):
             if check["id"] == "WIN-PACKAGE-CANDIDATE":
                 check["outputs"] = [o for o in check["outputs"] if "AstroCS-candidate.zip" not in o]
         self._write()

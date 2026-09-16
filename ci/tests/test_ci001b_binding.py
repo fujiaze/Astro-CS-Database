@@ -268,10 +268,22 @@ class TestNegativeInjections(unittest.TestCase):
         errors, _n, _r = validate(self.root)
         self.assertIn("registry_runner_missing", codes(errors))
 
+    @staticmethod
+    def _units(registry: dict):
+        """执行单元视图（CI-001 ID 收敛）：顶层项 ∪ 各聚合项 steps。
+
+        注入点更新说明（非放宽）：WIN-PACKAGE-CANDIDATE 收敛后是 CHK-PACKAGE 的 step，
+        漂移必须注入到真实执行单元；断言（错误码）逐字不变。
+        """
+        units = list(registry["checks"])
+        for check in registry["checks"]:
+            units.extend(check.get("steps") or [])
+        return units
+
     def test_bound_check_waivable_drift_fails(self):
         self._baseline()
         data = json.loads(read(self.registry))
-        for check in data["checks"]:
+        for check in self._units(data):
             if check["id"] == "WIN-PACKAGE-CANDIDATE":
                 check["waivable"] = True
         write(self.registry, json.dumps(data, ensure_ascii=False, indent=2))
@@ -281,7 +293,7 @@ class TestNegativeInjections(unittest.TestCase):
     def test_output_contract_drift_fails(self):
         self._baseline()
         data = json.loads(read(self.registry))
-        for check in data["checks"]:
+        for check in self._units(data):
             if check["id"] == "WIN-PACKAGE-CANDIDATE":
                 check["outputs"] = [o for o in check["outputs"]
                                     if "AstroCS-candidate.zip" not in o]
