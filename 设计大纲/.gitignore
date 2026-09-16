@@ -1,9 +1,0 @@
-# 本目录内的可重跑证据底座排除项（前台默认选择：报告+脚本+索引表入库，大块可再生证据不入库）
-# 若负责人改主意要全量入库：删除本文件即可。
-_evidence/commits/cards/
-_evidence/commits/compact/
-_evidence/packs/history/
-_evidence/packs/history_zip/
-_evidence/packs/pack_files.jsonl
-_evidence/**/_run*.log
-_evidence/**/_warnings.txt
