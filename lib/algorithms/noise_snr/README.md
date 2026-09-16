@@ -2,13 +2,17 @@
 
 > 状态: CONTRACT_READY（P1-NOISE-DOC 冻结，2026-09-07）｜doc revision: r1
 > 本 README 由源码逐符号核对后新建（P1-NOISE-DOC，wave W1）：函数、单位、
-> dtype、shape、invalid、错误、并发、内存均以现行唯一生产实现
-> `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`（466 行）+ 唯一权威签名源
-> `lib/algorithms/noise_snr/cpp/include/snr_estimator.h`（431 行）为准；`lib/algorithms/noise_snr/`
-> 是 P1-NOISE 迁移目标目录（`astrocs_p1_noise.dll` 落码由 P1-NOISE-IMPL 建立）；
-> 现状构建走 lib/algorithms/noise_snr/cpp/Makefile + build.ps1 → `snr_estimator.dll`
-> （未编入根 CMake 主构建，§1 构建行详注；同 lib/algorithms/cosmetic/ 先例：合同目录
-> 与生产实现目录并存）。权威合同：SCI-NOISE-001..015
+> dtype、shape、invalid、错误、并发、内存均以现行实现为准：
+> `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`（**475 行**，2026-09-16 复测；
+> blank-sky 方差模型唯一生产实现）+ 唯一权威签名源
+> `lib/algorithms/noise_snr/cpp/include/snr_estimator.h`（**526 行**，2026-09-16 复测）。
+> **构建面（实测；本模块不得再自报"唯一生产实现"）**：根 CMake 主图只收
+> `wrapper_phase1/noise_model.cpp` + `wrapper_phase1/snr_frame_science.cpp` +
+> `cpp/src/snr_science.cpp`（目标 `astrocs_phase1_noise`）；`cpp/Makefile` + `build.ps1`
+> 产出 `snr_estimator.dll`，因根 `CMakeLists.txt:210` 的
+> `add_subdirectory(lib/algorithms/noise_snr)` 被注释而**不在根 CMake 主图**
+> （同 lib/algorithms/cosmetic/ 先例：合同目录与生产实现目录并存）。
+> 权威合同：SCI-NOISE-001..015
 > （NOISE_MODEL.md，FROZEN T104 2026-08-23，不改）→ ALG-NOISE-001..003 →
 > DATA-P1-NOISE / API-NOISE-001（链接见 §4）。
 
@@ -209,9 +213,13 @@ TASK_RESULT。迁移不得改变 ALG-NOISE-001..003 公式语义与 DATA-P1-NOIS
 **被重定义/退休的字段（schema 变更说明）**
 
 - `SnrControlPoint*.snr_psf`（控制点值）：`(A-B)/residual_scale`（SNR-008 已退休）
-  → **逐源最优提取 SNR_F**（无量纲）。生产路径 `snr_estimator.cpp` 的 4 处计算
-  （`snr_estimate`/`snr_estimate_f64`/`snr_extract_model`/`_v2`/`_v3`）统一改为调用
-  `snr_source_snr_f64`；`sigma_sky` 取 `residual_scale/0.7316727929211932`（10-90%
+  → **逐源最优提取 SNR_F**（无量纲）。生产路径 `snr_estimator.cpp` 的 **5** 个
+  版本化入口（`snr_estimate`/`snr_estimate_f64`/`snr_extract_model`/
+  `snr_extract_model_v2`/`snr_extract_model_v3`，调用点 :188/:357/:616/:740/:851）
+  统一经行级 helper `sourceSnrFromPsfRow`（:57）转调 `snr_source_snr_f64`（该 C ABI
+  在本文件内的**唯一直接调用点** = :76；帧级聚合面
+  `wrapper_phase1/snr_frame_science.cpp:58` 另直调它）；`sigma_sky` 取
+  `residual_scale/0.7316727929211932`（10-90%
   trimmed mean |residual| → Gaussian σ），gain 未知故为天空受限。
 - `SnrModel*.snr_phot`：`1/(ln10*sigma_residual)`（与真值之比跨 3 个数量级，非 SNR）
   → **IDW 归一化对成员**（无量纲，值 = `median(SNR_F)`）；`median_snr` 同值，使

@@ -34,7 +34,7 @@
 #   p1noise_performance  — perf 基线哨兵 (parity 4x/trend 0.25x/线性 O(h·w)/
 #                          bitwise/64 控制点界)
 #   p1noise_selfcheck    — 故障注入必败自检 (验收: 注入可失败)
-# 被测面: 现状唯一生产实现 lib/algorithms/noise_snr/cpp/src/noise_model.cpp
+# 被测面: noise 方差模型唯一生产实现 lib/algorithms/noise_snr/cpp/src/noise_model.cpp
 # (snr_noise_model_v1(+_f64)/fill/free/scale_law/gain_variance; 根构建无
 # snr_estimator CMake 目标 — README §1, 故本测试面从生产源独立编译
 # EXCLUDE_FROM_ALL 静态目标 astrocs_p1_noise_prod, 生产源零改动);
@@ -121,3 +121,18 @@ add_test(NAME p1snr_science_oracle COMMAND p1snr_science_test oracle)
 add_test(NAME p1snr_science_negative COMMAND p1snr_science_test negative)
 add_test(NAME p1snr_science_production COMMAND p1snr_science_test production)
 add_test(NAME p1snr_science_determinism COMMAND p1snr_science_test determinism)
+
+# ============================================================================
+# P1-002 / M3-F-001: docs/science/NOISE_MODEL.md §11:117 + §15:140 承诺的
+#   "**Python 参考**：NumPy 对同 data 的 median/MAD/5σ裁剪/平面最小二乘
+#    复算 variance/ivar（rtol 1e-9）"
+# 独立 Oracle（ENGINEERING_SPEC §5.1「不调用生产实现的独立 Oracle」）：
+#   Python/NumPy 侧从同一 data 第一性原理复算，生产源仅作被测对象（零改动）；
+#   numpy 或 g++ 缺失时脚本自身 SKIP 并返回 0。
+# ============================================================================
+find_program(P1NOISE_PYTHON3 NAMES python3 python)
+if(P1NOISE_PYTHON3)
+  add_test(NAME p1noise_numpy_oracle
+           COMMAND ${P1NOISE_PYTHON3} ${P1NOISE_DIR}/noise_model_numpy_oracle.py)
+  set_tests_properties(p1noise_numpy_oracle PROPERTIES LABELS "p1noise")
+endif()
