@@ -111,9 +111,9 @@ lib/plate_solve/cpp/ipv/src/ipv_entry.cpp:347  lib/plate_solve/cpp/ipv/src/ipv_e
 - related：V7-N-03（缺键→就地默认 机制级；本条差异：默认值来自 catch 而非缺键，且落点是产物写出目录）、M5b-C-06（build_run_provenance）。
 
 ### W5-N-06 · P1 · 忽略 `ok` 出参：空串冒充 sha256 进入 manifest/sidecar/trace
-- 位置（21 个 `file_sha256` 调用点中，`ok` 声明后从不读取的 7 处）：`cli/commands.cpp:120`、`:138`、`:466`、`:542`、`:553`、`:579`；`:169/:1070/:1203/:1257/:1330/:1348/:1433/:1658/:1715/:1822/:1841/:1884` 属"读了 ok 并有处置"的对照面
-- 事实：`cli/parser.cpp:238 file_sha256(path, bool* ok)` 读失败时返回空串并置 `*ok=false`；上述 7 处把空串直写 JSON 字段 `sha256`/`ir_sha256`/`output_artifacts[].sha256`
-- 后果：`contracts/schemas/jsonl_event_v1.schema.json` 对 `sha256` 的形状是 `["string","null"] + pattern ^[0-9a-f]{64}$` —— 空串既非 null 也不合 pattern；run manifest 的 artifact 事件与 graph_sidecar/observed_trace 的哈希字段变成"看起来像值、实为无值"，verify/provenance 面无从区分"没算"与"算错"
+- 位置（21 个 `file_sha256` 调用点中，`ok` 声明后从不读取的 8 处）：`cli/commands.cpp:120`、`:138`、`:169`、`:466`、`:542`、`:553`、`:579`、`:1884`；读了 `ok` 的对照面 = `:1070-1071`、`:1203-1204`、`:1257-1258`、`:1433-1435`、`:1658-1659`、`:1822-1823`、`:1841-1842`（这些点 `if (!ok)` 直接退 INPUT/mismatch，处置正确）
+- 事实：`cli/parser.cpp:238 file_sha256(path, bool* ok)` 读失败时返回空串并置 `*ok=false`；上述 8 处把空串直写 JSON 字段 `sha256`/`ir_sha256`/`output_artifacts[].sha256`。同族的另一写法在读了 `ok` 的点上也违约：`:1339`、`:1342`、`:1351`、`:1718` 用 `{"sha256", ok2 ? sha : ""}` —— 失败时写**空串**而不是 `null`，故"检查了 ok"并未换来合法形状
+- 后果：`contracts/schemas/jsonl_event_v1.schema.json` 的 `/properties/sha256` = `{"type": ["string","null"], "pattern": "^[0-9a-f]{64}$"}`（已用解释器解析读出，非肉眼判读）—— 空串既非 null 也不合 pattern；run manifest 的 artifact 事件与 graph_sidecar/observed_trace 的哈希字段变成"看起来像值、实为无值"，verify/provenance 面无从区分"没算"与"算错"
 - 是否触发：需运行期（要求清单写盘时该文件不可读），静态可判的是**形状违约且无兜底**。
 - related：M8a-G-010（同函数）、M6a-G-002（create_directories）、M2b-C-01（fsync 同族丢弃）。
 
@@ -259,7 +259,7 @@ lib/plate_solve/cpp/ipv/src/ipv_entry.cpp:347  lib/plate_solve/cpp/ipv/src/ipv_e
 | W5-N-03 | P1 | cgroup 限额解析失败按"无上限"处理（fail-open） | lib/backend_host/worker_advisor.cpp:72 | M5a-G-006、V7-N-08 |
 | W5-N-04 | P1 | 退出码归因链吞 manifest 解析错 + 归因取"任一节点" | cli/runtime_client.cpp:389, :416 | M5b-C-05 |
 | W5-N-05 | P1 | 配置文本解析失败 → 产物落点静默改 "."（6 处同构） | cli/commands.cpp:867, :1051, :1149, :1214, :1377, :1727 | V7-N-03、M5b-C-06 |
-| W5-N-06 | P1 | file_sha256 的 ok 出参被丢弃 → 空串冒充哈希进 provenance | cli/commands.cpp:120, :138, :466, :542, :553, :579 | M8a-G-010、M6a-G-002、M2b-C-01 |
+| W5-N-06 | P1 | file_sha256 的 ok 出参被丢弃/失败写空串 → 空串冒充哈希进 provenance | cli/commands.cpp:120, :138, :169, :466, :542, :553, :579, :1884（另有 :1339, :1342, :1351, :1718 写 `""`） | M8a-G-010、M6a-G-002、M2b-C-01 |
 | W5-N-07 | P1 | 冻结 ABI 声明的跨语言名值表 0 定义 | include/astrocs/abi/status_codes.h:210, :211 | M5b-E-04 |
 | W5-N-08 | P1 | 宿主私有表漏 ACS_ERR_EXCEPTION=10；7/9/10 域折叠 INTERNAL | lib/core/src/module_adapters.cpp:300-315, :317-329 | M5b-E-04、M5b-G-13、M5b-C-05 |
 | W5-N-09 | P1 | 被引用的错误码权威登记表 CSV 不存在 | lib/orchestrator/cpp/include/orchestrator.h:111；tools/gen_audit_pack.py:74 | —（账本 0 命中） |
