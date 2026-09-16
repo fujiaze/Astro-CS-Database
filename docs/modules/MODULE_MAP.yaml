@@ -1,0 +1,715 @@
+# AstroCS 模块一致性映射表（MOD-001 / CHK-MODULE-MANIFEST）
+#
+# 用途：把 docs/plugins/ 23 篇插件规范与代码落位八元组建立一一机器映射：
+#   模块 ID → 目标目录 → README → module.yaml（ID/版本/ABI/端口/schema 链接/entrypoint）
+#           → 公开头 → CMake target → 产品清单条目 → 共址测试
+#
+# 权威依据：
+#   - docs/plugins/00_INDEX.md §1（模块归属）、§2（23 篇模块总表）、§3（每篇 8 节模板）、§5（维护规则）
+#   - ENGINEERING_SPEC.md §4（每模块必备 7 项）、§8（manifest/注册表/target/产品清单一致）
+#   - ASTROCS_DESIGN.md §7.1（顶层结构唯一）、§7.3（模块与 DLL/SO 边界）、§11.3（状态阶梯唯一口径）
+#   - docs/ci/01_CHECKS.md §2（CHK-MODULE-MANIFEST = 模块 manifest/注册表/构建 target/产品清单一致，P0）
+#   - contracts/config/module_dll_contract.schema.json（entrypoint_abi 统一 astrocs_module_query_v1）
+#
+# 本表是**期望映射**：不含任何模块状态声明。模块状态一律由
+# tools/quality/check_module_map.py 现场计算，状态词只取 §11.3 词表；
+# 禁止在本表写 status 字段（防「表内自证绿」）。
+#
+# 诚实性约定：legacy_paths 只是 ARCH-001 的定位线索，**不参与实现/安装判定**；
+# 实现只认 target_dir 下的生产源。旧命名目录（lib/star_detector 等）永远不得
+# 因目录存在而被算成 IMPLEMENTED。
+#
+# 维护：本表随 DATA-001（合同/schema 面）与 ARCH-001/INT-001（目录迁移/装配）更新；
+# 修改本表必须同时过 CHK-MODULE-MANIFEST。
+
+schema_version: 1
+tool: tools/quality/check_module_map.py
+authorities:
+  module_index: docs/plugins/00_INDEX.md §1/§2/§3/§5
+  engineering_spec: ENGINEERING_SPEC.md §4/§8
+  design: ASTROCS_DESIGN.md §7.1/§7.3/§11.3
+  checks_registry: docs/ci/01_CHECKS.md §2
+status_vocabulary: [CONTRACT_READY, IMPLEMENTED, INSTALLED, VERIFIED, NOT_IMPLEMENTED, NOT_VERIFIED, DEFERRED, DORMANT, FAIL]
+status_vocabulary_authority: ASTROCS_DESIGN.md §11.3
+conventions:
+  target_dir_algorithms: lib/algorithms/<id>
+  target_dir_infrastructure: lib/infrastructure/<id>
+  target_algorithms: astrocs_<scope>_<id>
+  target_infrastructure: astrocs_infra_<id>（cli 为唯一入口 exe，target=astrocs）
+  abi_entrypoint: astrocs_module_query_v1
+  abi_entrypoint_authority: contracts/config/module_dll_contract.schema.json（entrypoint_abi const）
+  public_header_glob: include/**/*.h
+  public_header_requirements: [abi_version_or_struct_size]
+  co_located_tests_glob: tests/**/*
+  module_yaml_required_keys: [id, module_id, module_version, abi_version, entrypoint, input_ports, output_ports, data_contracts]
+  product_manifest_file: packaging/astrocs.product.json
+  contract_index_file: docs/contracts/INDEX.yaml
+  schema_dir: contracts/schemas
+modules:
+  - id: calibration
+    scope: phase1
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase1/01_calibration.md
+    target_dir: lib/algorithms/calibration
+    readme: lib/algorithms/calibration/README.md
+    module_yaml: lib/algorithms/calibration/module.yaml
+    target: astrocs_p1_calibration
+    target_file: lib/algorithms/calibration/CMakeLists.txt
+    co_located_tests: lib/algorithms/calibration/tests
+    module_id: astrocs.p1.calibration
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P1-CAL]
+    data_contracts_source: lib/calibration/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/data_light.schema.json, contracts/schemas/calibration_output.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase1/01_calibration.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p1.calibration
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/calibration]
+    note: legacy 实现 lib/calibration 存在，但迁移目标目录 lib/algorithms/calibration 由 ARCH-001 建立；不得据 legacy 判 IMPLEMENTED。
+  - id: cosmetic
+    scope: phase1
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase1/02_cosmetic.md
+    target_dir: lib/algorithms/cosmetic
+    readme: lib/algorithms/cosmetic/README.md
+    module_yaml: lib/algorithms/cosmetic/module.yaml
+    target: astrocs_p1_cosmetic
+    target_file: lib/algorithms/cosmetic/CMakeLists.txt
+    co_located_tests: lib/algorithms/cosmetic/tests
+    module_id: astrocs.p1.cosmetic
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P1-CAL, DATA-P1-COS]
+    data_contracts_source: lib/cosmetic/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/cosmetic_output.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase1/02_cosmetic.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p1.cosmetic
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/cosmetic]
+    note: legacy 实现 lib/cosmetic 存在；迁移目标目录由 ARCH-001 建立。
+  - id: star_detection
+    scope: phase1
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase1/03_star_detection.md
+    target_dir: lib/algorithms/star_detection
+    readme: lib/algorithms/star_detection/README.md
+    module_yaml: lib/algorithms/star_detection/module.yaml
+    target: astrocs_p1_star_detection
+    target_file: lib/algorithms/star_detection/CMakeLists.txt
+    co_located_tests: lib/algorithms/star_detection/tests
+    module_id: astrocs.p1.star_detection
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P1-STAR]
+    data_contracts_source: lib/star_detector/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/source_catalog.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase1/03_star_detection.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p1.star_detection
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/star_detector]
+    note: legacy 实现 lib/star_detector 存在；迁移目标目录由 ARCH-001 建立。
+  - id: psf
+    scope: phase1
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase1/04_psf.md
+    target_dir: lib/algorithms/psf
+    readme: lib/algorithms/psf/README.md
+    module_yaml: lib/algorithms/psf/module.yaml
+    target: astrocs_p1_psf
+    target_file: lib/algorithms/psf/CMakeLists.txt
+    co_located_tests: lib/algorithms/psf/tests
+    module_id: astrocs.p1.psf
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P1-PSF, DATA-P1-SOURCES, DATA-P1-COSMETIC]
+    data_contracts_source: lib/dynamic_psf/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/psf_output.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase1/04_psf.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p1.psf
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/dynamic_psf]
+    note: legacy 实现 lib/dynamic_psf 存在；迁移目标目录由 ARCH-001 建立。
+  - id: platesolve
+    scope: phase1
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase1/05_platesolve.md
+    target_dir: lib/algorithms/platesolve
+    readme: lib/algorithms/platesolve/README.md
+    module_yaml: lib/algorithms/platesolve/module.yaml
+    target: astrocs_p1_platesolve
+    target_file: lib/algorithms/platesolve/CMakeLists.txt
+    co_located_tests: lib/algorithms/platesolve/tests
+    module_id: astrocs.p1.platesolve
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P1-WCS]
+    data_contracts_source: lib/plate_solve/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/wcs_output.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase1/05_platesolve.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p1.platesolve
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/plate_solve]
+    note: legacy 实现 lib/plate_solve 存在；迁移目标目录由 ARCH-001 建立。
+  - id: photometry
+    scope: phase1
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase1/06_photometry.md
+    target_dir: lib/algorithms/photometry
+    readme: lib/algorithms/photometry/README.md
+    module_yaml: lib/algorithms/photometry/module.yaml
+    target: astrocs_p1_photometry
+    target_file: lib/algorithms/photometry/CMakeLists.txt
+    co_located_tests: lib/algorithms/photometry/tests
+    module_id: astrocs.p1.photometry
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P1-PHOT]
+    data_contracts_source: lib/photometric_calib/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/photometry_output.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase1/06_photometry.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p1.photometry
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/photometric_calib]
+    note: legacy 实现 lib/photometric_calib 存在；迁移目标目录由 ARCH-001 建立。
+  - id: noise_snr
+    scope: phase1
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase1/07_noise_snr.md
+    target_dir: lib/algorithms/noise_snr
+    readme: lib/algorithms/noise_snr/README.md
+    module_yaml: lib/algorithms/noise_snr/module.yaml
+    target: astrocs_p1_noise_snr
+    target_file: lib/algorithms/noise_snr/CMakeLists.txt
+    co_located_tests: lib/algorithms/noise_snr/tests
+    module_id: astrocs.p1.noise_snr
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P1-NOISE]
+    data_contracts_source: lib/snr_estimator/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/noise_snr_output.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase1/07_noise_snr.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p1.noise_snr
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/snr_estimator]
+    note: legacy 实现 lib/snr_estimator 存在（V7 残留，F-AIO-001 相关）；迁移目标目录由 ARCH-001 建立。
+  - id: drizzle
+    scope: phase1
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase1/08_drizzle.md
+    target_dir: lib/algorithms/drizzle
+    readme: lib/algorithms/drizzle/README.md
+    module_yaml: lib/algorithms/drizzle/module.yaml
+    target: astrocs_p1_drizzle
+    target_file: lib/algorithms/drizzle/CMakeLists.txt
+    co_located_tests: lib/algorithms/drizzle/tests
+    module_id: astrocs.p1.drizzle
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P1-CAL, DATA-P1-DRZ]
+    data_contracts_source: lib/drizzle/module.yaml（legacy 声明面，观察值；entrypoint 记 MISSING）
+    schema_links: [contracts/schemas/hips_product.schema.json, contracts/schemas/manifest.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase1/08_drizzle.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p1.drizzle
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/healpix_db/healpix_drizzle, lib/hips]
+    note: legacy 源在 lib/healpix_db/healpix_drizzle；lib/drizzle 为迁移目标目录占位，不得据其存在判 IMPLEMENTED。
+  - id: coverage
+    scope: phase2
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase2/09_coverage.md
+    target_dir: lib/algorithms/coverage
+    readme: lib/algorithms/coverage/README.md
+    module_yaml: lib/algorithms/coverage/module.yaml
+    target: astrocs_p2_coverage
+    target_file: lib/algorithms/coverage/CMakeLists.txt
+    co_located_tests: lib/algorithms/coverage/tests
+    module_id: astrocs.p2.coverage
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-COV-001]
+    data_contracts_source: lib/phase2/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/coverage_output.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase2/09_coverage.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p2.coverage
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/phase2]
+    note: legacy 覆盖实现散在 lib/phase2；迁移目标目录由 ARCH-001 建立。
+  - id: sampling
+    scope: phase2
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase2/10_sampling.md
+    target_dir: lib/algorithms/sampling
+    readme: lib/algorithms/sampling/README.md
+    module_yaml: lib/algorithms/sampling/module.yaml
+    target: astrocs_p2_sampling
+    target_file: lib/algorithms/sampling/CMakeLists.txt
+    co_located_tests: lib/algorithms/sampling/tests
+    module_id: astrocs.p2.sampling
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P2-SMP]
+    data_contracts_source: lib/phase2_samp/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/control_points.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase2/10_sampling.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p2.sampling
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/phase2_samp]
+    note: legacy 实现 lib/phase2_samp 存在；迁移目标目录由 ARCH-001 建立。
+  - id: upm
+    scope: phase2
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase2/11_upm.md
+    target_dir: lib/algorithms/upm
+    readme: lib/algorithms/upm/README.md
+    module_yaml: lib/algorithms/upm/module.yaml
+    target: astrocs_p2_upm
+    target_file: lib/algorithms/upm/CMakeLists.txt
+    co_located_tests: lib/algorithms/upm/tests
+    module_id: astrocs.p2.upm
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P2-UPM, DATA-P2-COR]
+    data_contracts_source: lib/phase2_upm/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/upm_output.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase2/11_upm.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p2.upm
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/phase2_upm]
+    note: legacy 实现 lib/phase2_upm 存在；迁移目标目录由 ARCH-001 建立。
+  - id: rejection
+    scope: phase2
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase2/12_rejection.md
+    target_dir: lib/algorithms/rejection
+    readme: lib/algorithms/rejection/README.md
+    module_yaml: lib/algorithms/rejection/module.yaml
+    target: astrocs_p2_rejection
+    target_file: lib/algorithms/rejection/CMakeLists.txt
+    co_located_tests: lib/algorithms/rejection/tests
+    module_id: astrocs.p2.rejection
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P2-REJ]
+    data_contracts_source: lib/phase2_rej/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/rejection_output.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase2/12_rejection.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p2.rejection
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/phase2_rej]
+    note: legacy 实现 lib/phase2_rej 存在；迁移目标目录由 ARCH-001 建立。
+  - id: integration
+    scope: phase2
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase2/13_integration.md
+    target_dir: lib/algorithms/integration
+    readme: lib/algorithms/integration/README.md
+    module_yaml: lib/algorithms/integration/module.yaml
+    target: astrocs_p2_integration
+    target_file: lib/algorithms/integration/CMakeLists.txt
+    co_located_tests: lib/algorithms/integration/tests
+    module_id: astrocs.p2.integration
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P2-INT]
+    data_contracts_source: lib/phase2_int/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/integration_output.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase2/13_integration.md §3（surface_brightness/point_source/psfsw_integration 产品族）
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p2.integration
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/phase2_int]
+    note: legacy 实现 lib/phase2_int 存在；迁移目标目录由 ARCH-001 建立。
+  - id: projection
+    scope: phase3
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase3/14_projection.md
+    target_dir: lib/algorithms/projection
+    readme: lib/algorithms/projection/README.md
+    module_yaml: lib/algorithms/projection/module.yaml
+    target: astrocs_p3_projection
+    target_file: lib/algorithms/projection/CMakeLists.txt
+    co_located_tests: lib/algorithms/projection/tests
+    module_id: astrocs.p3.projection
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P3-WCS]
+    data_contracts_source: lib/phase3_proj/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/projection_registry.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase3/14_projection.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p3.projection
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/phase3_proj]
+    note: legacy 实现 lib/phase3_proj 存在；迁移目标目录由 ARCH-001 建立。
+  - id: resample
+    scope: phase3
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase3/15_resample.md
+    target_dir: lib/algorithms/resample
+    readme: lib/algorithms/resample/README.md
+    module_yaml: lib/algorithms/resample/module.yaml
+    target: astrocs_p3_resample
+    target_file: lib/algorithms/resample/CMakeLists.txt
+    co_located_tests: lib/algorithms/resample/tests
+    module_id: astrocs.p3.resample
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P3-RES]
+    data_contracts_source: lib/phase3_rsmp/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/export_product.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase3/15_resample.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p3.resample
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/phase3_rsmp]
+    note: legacy 实现 lib/phase3_rsmp 存在；迁移目标目录由 ARCH-001 建立。
+  - id: fits_output
+    scope: phase3
+    group: algorithms
+    plugin_doc: docs/plugins/algorithms_phase3/16_fits_output.md
+    target_dir: lib/algorithms/fits_output
+    readme: lib/algorithms/fits_output/README.md
+    module_yaml: lib/algorithms/fits_output/module.yaml
+    target: astrocs_p3_fits_output
+    target_file: lib/algorithms/fits_output/CMakeLists.txt
+    co_located_tests: lib/algorithms/fits_output/tests
+    module_id: astrocs.p3.fits_output
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-P3-FITS]
+    data_contracts_source: lib/phase3_fits/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/fits_product.schema.json]
+    schema_links_source: docs/plugins/algorithms_phase3/16_fits_output.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.p3.fits_output
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/phase3_fits]
+    note: legacy 实现 lib/phase3_fits 存在；迁移目标目录由 ARCH-001 建立。
+  - id: aio
+    scope: infra
+    group: infrastructure
+    plugin_doc: docs/plugins/infrastructure/17_aio.md
+    target_dir: lib/infrastructure/aio
+    readme: lib/infrastructure/aio/README.md
+    module_yaml: lib/infrastructure/aio/module.yaml
+    target: astrocs_infra_aio
+    target_file: lib/infrastructure/aio/CMakeLists.txt
+    co_located_tests: lib/infrastructure/aio/tests
+    module_id: astrocs.infra.aio
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-ARTIFACTS-001]
+    data_contracts_source: docs/contracts/INDEX.yaml（DATA-ARTIFACTS-001 产品/manifest 面）
+    schema_links: []
+    schema_links_source: docs/plugins/infrastructure/17_aio.md §3 引用 contracts/schemas/*.schema.json（全部数据产品，glob）
+    schema_link_globs: [contracts/schemas/*.schema.json]
+    product_manifest:
+      required: true
+      match_module_id: null
+      match_unit_id: PLATFORM-IO
+      expected_unit_ids: [PLATFORM-IO]
+      unit_kind: io
+      exemption_reason: null
+    legacy_paths: [lib/astro_image_io, lib/io]
+    note: FITS/HiPS/manifest 唯一 I/O；legacy 源散在 lib/astro_image_io + lib/io。
+  - id: cli
+    scope: infra
+    group: infrastructure
+    plugin_doc: docs/plugins/infrastructure/18_cli.md
+    target_dir: lib/infrastructure/cli
+    readme: lib/infrastructure/cli/README.md
+    module_yaml: lib/infrastructure/cli/module.yaml
+    target: astrocs
+    target_file: lib/infrastructure/cli/CMakeLists.txt
+    co_located_tests: lib/infrastructure/cli/tests
+    module_id: astrocs.infra.cli
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: main
+    entrypoint_kind: exe-main
+    data_contracts: []
+    data_contracts_source: docs/plugins/infrastructure/18_cli.md §3（薄入口：输入=CLI 参数 + phase_config，无数据产品合同）
+    schema_links: [contracts/schemas/cli_output.schema.json, contracts/schemas/events.schema.json]
+    schema_links_source: docs/plugins/infrastructure/18_cli.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: null
+      match_unit_id: PLATFORM-CLI
+      expected_unit_ids: [PLATFORM-CLI]
+      unit_kind: exe
+      exemption_reason: null
+    legacy_paths: [cli]
+    note: 唯一入口 exe（DESIGN §6.2 命令树唯一）；target=astrocs，非 DLL/SO，故 entrypoint=main。
+  - id: runtime
+    scope: infra
+    group: infrastructure
+    plugin_doc: docs/plugins/infrastructure/19_runtime.md
+    target_dir: lib/infrastructure/runtime
+    readme: lib/infrastructure/runtime/README.md
+    module_yaml: lib/infrastructure/runtime/module.yaml
+    target: astrocs_infra_runtime
+    target_file: lib/infrastructure/runtime/CMakeLists.txt
+    co_located_tests: lib/infrastructure/runtime/tests
+    module_id: astrocs.infra.runtime
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: []
+    data_contracts_source: docs/plugins/infrastructure/19_runtime.md §3（run-plan/cpu_profile → run-graph/run-trace/artifact-manifest，无 DATA-* 产品合同）
+    schema_links: []
+    schema_links_source: docs/plugins/infrastructure/19_runtime.md §3 引用 contracts/schemas/run_*.schema.json（glob）
+    schema_link_globs: [contracts/schemas/run_*.schema.json]
+    product_manifest:
+      required: true
+      match_module_id: null
+      match_unit_id: PLATFORM-RUNTIME
+      expected_unit_ids: [PLATFORM-RUNTIME]
+      unit_kind: runtime
+      exemption_reason: null
+    legacy_paths: [runtime, lib/core, lib/orchestrator]
+    note: typed DAG 执行/线程预算/资源监控；legacy 源散在 runtime/ + lib/core + lib/orchestrator。
+  - id: benchmark
+    scope: infra
+    group: infrastructure
+    plugin_doc: docs/plugins/infrastructure/20_benchmark.md
+    target_dir: lib/infrastructure/benchmark
+    readme: lib/infrastructure/benchmark/README.md
+    module_yaml: lib/infrastructure/benchmark/module.yaml
+    target: astrocs_infra_benchmark
+    target_file: lib/infrastructure/benchmark/CMakeLists.txt
+    co_located_tests: lib/infrastructure/benchmark/tests
+    module_id: astrocs.infra.benchmark
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: []
+    data_contracts_source: docs/plugins/infrastructure/20_benchmark.md §3（输入=机器特征/内核清单，输出=cpu_profile；无 DATA-* 产品合同）
+    schema_links: [contracts/schemas/cpu_profile.schema.json]
+    schema_links_source: docs/plugins/infrastructure/20_benchmark.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.infra.benchmark
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: []
+    note: 无独立遗留目录：CPU profile 生成面散在 tools/gen_provider_manifests.py + providers/**（信息性）。
+  - id: observability
+    scope: infra
+    group: infrastructure
+    plugin_doc: docs/plugins/infrastructure/21_observability.md
+    target_dir: lib/infrastructure/observability
+    readme: lib/infrastructure/observability/README.md
+    module_yaml: lib/infrastructure/observability/module.yaml
+    target: astrocs_infra_observability
+    target_file: lib/infrastructure/observability/CMakeLists.txt
+    co_located_tests: lib/infrastructure/observability/tests
+    module_id: astrocs.infra.observability
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: []
+    data_contracts_source: docs/plugins/infrastructure/21_observability.md §3（输出=JSONL 事件流/run-trace/资源时间序列，无 DATA-* 产品合同）
+    schema_links: []
+    schema_links_source: docs/plugins/infrastructure/21_observability.md §3 引用 contracts/schemas/events.schema.json + run_*.schema.json（glob）
+    schema_link_globs: [contracts/schemas/events.schema.json, contracts/schemas/run_*.schema.json]
+    product_manifest:
+      required: true
+      match_module_id: astrocs.infra.observability
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [tools/monitoring]
+    note: 日志/事件/运行图/资源监控；legacy 面 tools/monitoring + runtime/。
+  - id: gaia_xpsd_client
+    scope: infra
+    group: infrastructure
+    plugin_doc: docs/plugins/infrastructure/22_gaia_xpsd_client.md
+    target_dir: lib/infrastructure/gaia_xpsd_client
+    readme: lib/infrastructure/gaia_xpsd_client/README.md
+    module_yaml: lib/infrastructure/gaia_xpsd_client/module.yaml
+    target: astrocs_catalog_gaia
+    target_file: lib/infrastructure/gaia_xpsd_client/CMakeLists.txt
+    co_located_tests: lib/infrastructure/gaia_xpsd_client/tests
+    module_id: astrocs.catalog.gaia
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: [DATA-GAIA-001]
+    data_contracts_source: lib/gaia_xpsd_client/module.yaml（legacy 声明面，观察值）
+    schema_links: [contracts/schemas/catalog_query.schema.json]
+    schema_links_source: docs/plugins/infrastructure/22_gaia_xpsd_client.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: true
+      match_module_id: astrocs.catalog.gaia
+      match_unit_id: MOD-CAT-GAIA
+      expected_unit_ids: [MOD-CAT-GAIA]
+      unit_kind: module
+      exemption_reason: null
+    legacy_paths: [lib/gaia_xpsd_client]
+    note: 外部星表查询/缓存/坐标历元语义；产品清单已登记 MOD-CAT-GAIA。
+  - id: hips_browser
+    scope: infra
+    group: infrastructure
+    plugin_doc: docs/plugins/infrastructure/23_hips_browser.md
+    target_dir: lib/infrastructure/hips_browser
+    readme: lib/infrastructure/hips_browser/README.md
+    module_yaml: lib/infrastructure/hips_browser/module.yaml
+    target: astrocs_infra_hips_browser
+    target_file: lib/infrastructure/hips_browser/CMakeLists.txt
+    co_located_tests: lib/infrastructure/hips_browser/tests
+    module_id: astrocs.infra.hips_browser
+    module_version: 0.11.0-alpha.2
+    abi_version: 1
+    entrypoint: astrocs_module_query_v1
+    entrypoint_kind: c-abi
+    data_contracts: []
+    data_contracts_source: docs/plugins/infrastructure/23_hips_browser.md §3（只读 HiPS；无 DATA-* 产品合同）
+    schema_links: [contracts/schemas/hips_product.schema.json]
+    schema_links_source: docs/plugins/infrastructure/23_hips_browser.md §3
+    schema_link_globs: []
+    product_manifest:
+      required: false
+      match_module_id: null
+      match_unit_id: null
+      expected_unit_ids: []
+      unit_kind: gui
+      exemption_reason: docs/plugins/00_INDEX.md §2（23_hips_browser「未来 GUI 可视化组件（不进产品 manifest）」）+ ASTROCS_DESIGN.md §7.1（hips_browser/ 未来 GUI 可视化组件（不进产品 manifest））
+    legacy_paths: []
+    note: 未来 GUI 可视化组件：docs/plugins/00_INDEX.md §2「不进产品 manifest」+ ASTROCS_DESIGN.md §7.1 同口径 → product_manifest.required=false。
