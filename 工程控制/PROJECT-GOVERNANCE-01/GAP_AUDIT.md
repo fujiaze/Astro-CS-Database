@@ -399,3 +399,19 @@
 - **处置（已裁决）**：立 **ROOT-006**（SECURITY）：**保留文件但缩小暴露面**——从 `tools/pack_audit_package.py` 的 `ROOT_FILES` 移除并加排除保证；`.gitignore` 加精确条目仅作为「误加回」护栏（已 tracked，忽略规则对已跟踪文件无效，故不替代白名单修复）；新增 `CHK-SECRET-HYGIENE`（白名单全量敏感形态扫描 + fail-closed + 能红能绿）；不再把「轮换」列为交付项。
 - **治理任务**：ROOT-006（前台提交）；不轮换凭据（无凭据）。
 
+
+---
+
+**GAP-032　结构：追溯门的权威输入存放于构建产物目录，随清运被断供（已裁决退役）**
+
+- **发现者**：TEST-GREEN-001 执行线（artifacts 删除的爆炸半径排查）；前台复核并裁决。
+- **证据**：
+  1. `tools/check_traceability.py:16` 的 `DEFAULT_TABLES` **唯一默认输入**是 `artifacts/prerelease_v5/tables/TRACEABILITY.csv`（13 列六层 claim 表，67 行 / 66 claim）——即**门的权威输入存放在构建产物目录** `artifacts/`；
+  2. 该目录按负责人裁决（「没必要归档、不保留」）于 `b1290525` 整体删除 ⇒ CI 项 `TRACEABILITY-CODE`（三 profile、`waivable=false`）变 rc=1；`tests/quality/test_docchk002_mutation.py` 5 项红；`tests/api/test_cli_protocol.py` import 期 `FileNotFoundError`（Ran 0 / FAILED）；
+  3. 表的语义锚在 `docs/VERSIONING.md` 的版本串匹配上，而新设计 §12 明令版本信息下线；
+  4. 新 CI 规范 `docs/ci/01_CHECKS.md` 与 `ASTROCS_DESIGN.md`/`ENGINEERING_SPEC.md` **对「追溯」零命中** ⇒ 新世代未要求该门；
+  5. 内容未丢：`git show b1290525^:artifacts/prerelease_v5/tables/TRACEABILITY.csv`。
+- **判定**：①门的输入位置本身即设计缺陷（产物目录承载权威数据）；②该门口径属**已废止世代**（版本串匹配）；③新规范不要求 ⇒ **裁决退役**，并保留文件加退役抬头而非删除（可复跑性）。
+- **处置**：TEST-GREEN-001 执行退役（仅退役确认坏掉的那一个，其余 5 个追溯类注册项逐个复核后保留）；旧世代打包/审计工具（`tools/{assemble_audit,make_capsule,make_rev2_capsule}.py` 引用已删路径）另立 **RETIRE-001**；`tests/api/test_cli_protocol.py` 夹具重接线到 tracked 的 `docs/api/CLI_PROTOCOL_V1.md`；该文档本身随命令树更新归 CLI-001。
+- **备注**：若后续确需追溯能力，必须**在新文档集下重新立项**（给出规范条款、tracked 数据位置、能红能绿的负例），不得复活旧表。
+
