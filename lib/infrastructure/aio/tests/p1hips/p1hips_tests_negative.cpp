@@ -16,7 +16,10 @@
 
 #include <cerrno>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <system_error>
 #include <string>
 
 #include "aio_hips.h"
@@ -34,6 +37,19 @@ bool is_root() { return ::geteuid() == 0; }
 bool make_ro_dir(const std::string& path) {
     if (::mkdir(path.c_str(), 0755) != 0 && errno != EEXIST) return false;
     return ::chmod(path.c_str(), 0500) == 0;
+}
+
+// AIO-001/M9-G-6: 递归检查产品目录内是否有 *.tmp.* 残留 (原子落盘失败路径必须清理)。
+// 返回 true = 发现残留 (测试应失败)。
+bool has_tmp_leftover(const std::string& root) {
+    std::error_code ec;
+    if (!std::filesystem::exists(root, ec)) return false;
+    for (const auto& e : std::filesystem::recursive_directory_iterator(
+             root, std::filesystem::directory_options::skip_permission_denied, ec)) {
+        const std::string name = e.path().filename().string();
+        if (name.find(".tmp.") != std::string::npos) return true;
+    }
+    return false;
 }
 
 }  // namespace
@@ -76,6 +92,24 @@ int test_negative() {
                                     AIO_HIPS_PRODUCT_SIGNAL, "ivo://t", "t",
                                     nullptr, 0.0, nullptr, 0);
         P1HIPS_CHECK(cs, ps == nullptr, "n1_nside_511");
+
+        // M8d-A-01/AIO-001: nside 必须是 2 的幂 (ALG-HIPS-001 (1a) "nside=2^K>=512")。
+        // 非 2 的幂会被 ilog2_u64 向下取整静默夹逼并据此写出与调用方声明不一致的
+        // NSIDE/A_cell/leaf_order —— 属 ASTROCS_DESIGN §9 禁止的"看似完整产品"。
+        const std::uint32_t kNsideNotPow2[] = {600u, 513u, 768u, 1000u, 1536u};
+        for (std::uint32_t bad_nside : kNsideNotPow2) {
+            ps = aio_hips_product_begin(dir.c_str(), bad_nside, 512, AIO_HIPS_FLOAT64,
+                                        AIO_HIPS_PRODUCT_SIGNAL, "ivo://t", "t",
+                                        nullptr, 0.0, nullptr, 0);
+            P1HIPS_CHECK(cs, ps == nullptr, "n1_nside_not_pow2");
+            if (ps) aio_hips_abort(ps);
+        }
+        // 上界: 2^29 合法, 2^30 拒绝 (leaf_order<=29 ⇒ MOC tile_order<=20)。
+        ps = aio_hips_product_begin(dir.c_str(), 1u << 30, 512, AIO_HIPS_FLOAT64,
+                                    AIO_HIPS_PRODUCT_SIGNAL, "ivo://t", "t",
+                                    nullptr, 0.0, nullptr, 0);
+        P1HIPS_CHECK(cs, ps == nullptr, "n1_nside_gt_2p29");
+        if (ps) aio_hips_abort(ps);
 
         ps = aio_hips_product_begin(dir.c_str(), FIX_NSIDE, 256, AIO_HIPS_FLOAT64,
                                     AIO_HIPS_PRODUCT_SIGNAL, "ivo://t", "t",
@@ -316,6 +350,60 @@ int test_negative() {
             aio_hips_abort(ps);
         } else {
             P1HIPS_CHECK(cs, false, "n9_begin");
+        }
+    }
+
+    // --- N10 (AIO-001/M9-G-6): properties 是 IVOA+provenance 唯一文本载体,
+    //     其落盘失败必须传播 (修复前与 write_properties 同为 void/静默 return:
+    //     fopen 失败即 return、fprintf/fclose 不查 ⇒ finalize 照常返回 0,
+    //     产出缺 properties 的"完整"产品, 违反 ASTROCS_DESIGN §9)。
+    //     同时断言原子落盘纪律: 失败路径不得残留 .tmp.* 临时文件。
+    {
+        // 注入面: ASTROCS_HIPS_PROV_FAULT=properties_write_fail (测试专用等价缺陷面,
+        // 与既有 missing_key/value_drift/sentinel/skip_write/shortcut 五个注入点同机制)。
+        const char* prev = std::getenv("ASTROCS_HIPS_PROV_FAULT");
+        const std::string prev_s = prev ? std::string(prev) : std::string();
+#ifdef _WIN32
+        _putenv_s("ASTROCS_HIPS_PROV_FAULT", "properties_write_fail");
+#else
+        ::setenv("ASTROCS_HIPS_PROV_FAULT", "properties_write_fail", 1);
+#endif
+        const std::string dir = make_tmp_dir("n10");
+        AioHipsProductSet* ps = aio_hips_product_begin(
+            dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
+            AIO_HIPS_PRODUCT_SIGNAL, "ivo://t", "t", nullptr, 0.0, nullptr, 0);
+        if (ps) {
+            FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 0.0, true, true);
+            const int wrc = aio_hips_write_signal_support_tile(ps, &fx.view);
+            P1HIPS_CHECK_MSG(cs, wrc == 0, "n10_write_tile_ok",
+                             "signal 数据 tile 写入期望 0, got %d", wrc);
+            const int frc = aio_hips_finalize(ps);
+            // 修复前: properties 与 FITS 同一子产品路径均为静默/void
+            // (write_properties fopen 失败即 return、fprintf/fclose 不查) ⇒ 即使
+            // properties 写不出, finalize 仍按成功返回 0 —— 产出缺 IVOA/provenance
+            // 唯一文本载体的"完整"产品, 违反 ASTROCS_DESIGN §9。
+            // 修复后: properties 原子写失败 → 子产品失败码 −3 上报。
+            P1HIPS_CHECK_MSG(cs, frc == -3, "n10_finalize_propagates_properties_failure",
+                             "properties 不可写 finalize 期望 −3, got %d", frc);
+            // 失败路径不留临时文件 (原子落盘纪律: 无半成品、无 *.tmp.* 残留)
+            P1HIPS_CHECK(cs, !has_tmp_leftover(dir), "n10_no_tmp_leftover");
+            aio_hips_abort(ps);
+        } else {
+            P1HIPS_CHECK(cs, false, "n10_begin");
+        }
+        // 恢复注入面 (后续用例必须回到未注入语义)
+        if (!prev_s.empty()) {
+#ifdef _WIN32
+            _putenv_s("ASTROCS_HIPS_PROV_FAULT", prev_s.c_str());
+#else
+            ::setenv("ASTROCS_HIPS_PROV_FAULT", prev_s.c_str(), 1);
+#endif
+        } else {
+#ifdef _WIN32
+            _putenv_s("ASTROCS_HIPS_PROV_FAULT", "");
+#else
+            ::unsetenv("ASTROCS_HIPS_PROV_FAULT");
+#endif
         }
     }
 
